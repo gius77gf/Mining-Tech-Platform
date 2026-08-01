@@ -46,7 +46,7 @@ segnaposto («Funzione nav non ancora pronta»). Per aprirlo davvero si monta
 
 ## Le prove
 
-**1.649 prove girano senza rete e senza browser**, con `node` (contate lanciandole, non a memoria — al 01/08: 1282 + 275 + 49 + 26 + 9 + 8):
+**1.655 prove girano senza rete e senza browser**, con `node` (contate lanciandole, non a memoria — al 01/08: 1288 + 275 + 49 + 26 + 9 + 8):
 
 E **525 funzioni pure su 525** sono chiamate per nome da quelle prove: tutte e
 sei le app al 100%. Non è «provate bene» — è «non ce n'è nessuna che nessuno ha

@@ -89,6 +89,16 @@ const nomiFunzioni = new Set(funzioni.map((f) => f.nome));
 const globali = new Set();
 for (const g of src.matchAll(/\n\s{0,4}(?:let|const|var)\s+([A-Za-z_$][\w$]*)/g)) globali.add(g[1]);
 
+/* ⛔ `$` È L'ACCESSO AL DOM, e il rilevatore non lo vedeva: cerca variabili
+   del modulo e nomi di funzione, e `$` è una funzione — quindi `gsv`, che
+   scrive dentro un campo con `$(id)`, risultava «senza stato e senza DOM».
+   Trovato il 01/08 leggendo il codice di una funzione che il tool proponeva
+   come estraibile: la lista era giusta sui numeri e sbagliata su UNA riga,
+   che è il modo in cui uno strumento di misura fa perdere tempo invece di
+   farne guadagnare. Chi lo usa deve poter fidarsi dell'elenco, non solo del
+   totale. */
+const DOM_NASCOSTO = /(?:^|[^\w$])\$\s*\(/;
+
 const BUILTIN = new Set(("Math Number String Array Object JSON Boolean Date Map Set WeakMap "
   + "isNaN isFinite parseFloat parseInt console Infinity NaN undefined null true false "
   + "RegExp Promise Error Symbol BigInt Intl encodeURIComponent decodeURIComponent").split(" "));
@@ -120,7 +130,7 @@ const censite = funzioni.map((f) => {
     if (globali.has(n)) glob.add(n);
     else if (nomiFunzioni.has(n) && n !== f.nome) chiama.add(n);
   }
-  return { ...f, glob: [...glob], chiama: [...chiama] };
+  return { ...f, glob: [...glob], chiama: [...chiama], dom: DOM_NASCOSTO.test(f.corpo) };
 });
 
 const scaglione = (n) => n === 0 ? "0" : n <= 2 ? "1-2" : n <= 5 ? "3-5" : n <= 10 ? "6-10" : "11+";
@@ -133,10 +143,12 @@ for (const k of ["0", "1-2", "3-5", "6-10", "11+"]) {
   const n = conto[k] || 0;
   console.log(`  ${k.padStart(5)}${" ".padEnd(32)}${String(n).padStart(4)}  ${"█".repeat(Math.round(n / 3))}`);
 }
-const subito = censite.filter((c) => !c.glob.length);
+const subito = censite.filter((c) => !c.glob.length && !c.dom);
+const conDom = censite.filter((c) => !c.glob.length && c.dom);
 const facili = censite.filter((c) => c.glob.length && c.glob.length <= 2);
 const duri = censite.filter((c) => c.glob.length > 10);
-console.log(`\n  ${subito.length} si portano fuori COME SONO (nessuna variabile del modulo)`);
+console.log(`\n  ${subito.length} si portano fuori COME SONO (nessuna variabile del modulo, nessun tocco al DOM)`);
+console.log(`  ${conDom.length} non leggono variabili del modulo ma SCRIVONO NEL DOM con \`$(...)\`: restano nella pagina`);
 console.log(`  ${facili.length} ne leggono una o due: si portano fuori passandogliela`);
 console.log(`  ${duri.length} ne leggono più di dieci: lì è un rifacimento, non un trasloco`);
 console.log(`\n⛔ E il numero che conta non è 192: è ${subito.length + facili.length} —`);

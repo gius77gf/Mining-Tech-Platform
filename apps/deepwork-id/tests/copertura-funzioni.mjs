@@ -123,6 +123,15 @@ const CONDIVISI = [
     perche: "gli aiuti che tutte le app importano (numeri, date, CSV)" },
   { file: "apps/genesi/pointcloud.js", fondo: 5,
     perche: "il calcolo del volume dal drone: da lì passano i m³ che consumano la concessione" },
+  /* ⛔ IL PRIMO PEZZO DI GENESI USCITO DA `genesi.html` (01/08). Genesi era
+     l'unica parte del prodotto con ZERO prove pure — le sue 192 funzioni
+     stanno dentro un file `.html`, che `node` non importa. Queste sei
+     scrivono quasi trecento numeri della pagina, e difendono il principio del
+     fondatore nel punto in cui si vede: su un dato che manca scrivono «—»,
+     non «0». Quanto è grande il resto del cantiere lo misura
+     `genesi-estraibili.mjs`. */
+  { file: "apps/genesi/genesi-formato.js", fondo: 6,
+    perche: "come Genesi scrive i numeri che l'utente legge: spalla, maglia, consumo specifico, chili di esplosivo" },
 ];
 /* Fuori per un motivo, non per dimenticanza. Le prime tre toccano il DOM o
    l'orologio e vivono nei banchi del browser (`tests/browser/`), non in
@@ -189,10 +198,19 @@ const genesiPagina = (() => {
     return (t.match(/^\s*function\s+[A-Za-z_$][\w$]*\s*\(/gm) || []).length;
   } catch { return null; }
 })();
-console.log(`\n⛔ Fuori dal conto, e va detto: **Genesi non ha un modulo dati**.`
-  + ` Le sue ${genesiPagina == null ? "?" : genesiPagina} funzioni stanno dentro genesi.html,`
-  + ` che node non importa: di Genesi qui entra solo pointcloud.js (5).`
-  + `\n   Quindi il 100% qui sopra vale per il perimetro misurato, non per tutto il prodotto.`);
+/* ⚠️ Questa riga diceva «di Genesi entra solo pointcloud.js» ed è stata
+   corretta il 01/08, quando `genesi-formato.js` è diventato il secondo:
+   una riga di riepilogo che contraddice il proprio elenco è il difetto che
+   `numeri-nei-documenti.mjs` esiste per prendere nei documenti — e qui
+   sarebbe stata la rassicurazione peggiore, perché il numero che ammette il
+   buco è proprio quello. */
+const daGenesi = CONDIVISI.filter((s) => s.file.startsWith("apps/genesi/"));
+console.log(`\n⛔ Fuori dal conto, e va detto: **Genesi non ha ancora un modulo dati unico**.`
+  + ` Le sue ${genesiPagina == null ? "?" : genesiPagina} funzioni restano dentro genesi.html,`
+  + ` che node non importa. Di Genesi entrano qui i moduli gia' tirati fuori:`
+  + ` ${daGenesi.map((s) => s.file.split("/").pop()).join(", ")}.`
+  + `\n   Quindi il 100% qui sopra vale per il perimetro misurato, non per tutto il prodotto.`
+  + `\n   Quanto e' grande il resto: node apps/deepwork-id/tests/genesi-estraibili.mjs`);
 
 console.log(`\nRisultato copertura: ${passed} soggetti a posto, ${failed} con funzioni senza prova`
   + ` (o sotto il fondo)  ·  ${APP.length} app + ${CONDIVISI.length} moduli condivisi`

@@ -994,6 +994,9 @@ body.scr-sim #tl{bottom:80px}
 <script src="../../shared/dw-app-ui.js" defer></script>
 <script type="module">
 import * as THREE from 'three';
+/* i formattatori dei numeri: stanno in un modulo perche' `node` non importa
+   un file .html, e finche' erano qui dentro non avevano nessuna prova */
+import { gnum, gseg, gfix, gdata, fmtMs, fmtKg } from './genesi-formato.js';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { OBJLoader } from 'three/examples/jsm/loaders/OBJLoader.js';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
@@ -1045,19 +1048,6 @@ import { numeroScritto, messaggioNumero, perCampo, montaGuardiaInteri, oggiISO, 
    dove gira è precisamente ciò che qui non si vuole.
    null e '' NON sono zero: `+null` fa 0, e senza il controllo un dato che
    manca comparirebbe come «0», cioè un fatto, e falso. */
-function gnum(v, dec){
-  if(v===null || v==='' || v===undefined) return '—';
-  const n = +v;
-  if(!isFinite(n)) return '—';
-  const d = Math.max(0, Math.min(6, dec==null?2:dec|0));
-  return n.toLocaleString('it-IT', { maximumFractionDigits:d, useGrouping:true });
-}
-function gseg(v, dec){
-  if(v===null || v==='' || v===undefined) return '—';
-  const n = +v;
-  if(!isFinite(n)) return '—';
-  return (n<0?'−':'+') + gnum(Math.abs(n), dec);
-}
 /* ══════════════════════════════════════════════════════════════════════
    LEGGERE UN NUMERO SCRITTO A MANO — la virgola, che in cava è la norma
    ══════════════════════════════════════════════════════════════════════
@@ -1112,17 +1102,6 @@ function gsv(id, v, dec){
 
 /* Le volate sono salvate con la data in forma tecnica («2026-07-30 01:38»),
    che è giusto per ordinarle e sbagliato da mostrare a un italiano. */
-function gdata(s){
-  const m = /^(\d{4})-(\d{2})-(\d{2})(?:[ T](\d{2}:\d{2}))?/.exec(String(s || ''));
-  return m ? m[3] + '/' + m[2] + '/' + m[1] + (m[4] ? ' alle ' + m[4] : '') : String(s || '');
-}
-function gfix(v, dec){
-  if(v===null || v==='' || v===undefined) return '—';
-  const n = +v;
-  if(!isFinite(n)) return '—';
-  const d = Math.max(0, Math.min(6, dec==null?1:dec|0));
-  return n.toLocaleString('it-IT', { minimumFractionDigits:d, maximumFractionDigits:d, useGrouping:true });
-}
 
 /* ============ calibrazione (fallback inline = calibrazione.json) ============ */
 let CAL = {
@@ -4315,9 +4294,7 @@ function pfCls(r){
   return 'moltoAlta';
 }
 const ENECOL={ moltoBassa:'#5c8dd6', bassa:'#86b0d8', ok:'#66bb6a', alta:'#ffb300', moltoAlta:'#ef5350' };
-const ENELAB={ moltoBassa:'carica molto diluita', bassa:'carica diluita', ok:'in linea col progetto', alta:'energia concentrata', moltoAlta:'energia molto concentrata' };
-function fmtMs(v){ return gfix(v,1); }
-function fmtKg(v){ return gfix(v, v<0.1?3:2); }   /* i consumi specifici stanno sotto l'unità: due decimali non bastano sempre */
+const ENELAB={ moltoBassa:'carica molto diluita', bassa:'carica diluita', ok:'in linea col progetto', alta:'energia concentrata', moltoAlta:'energia molto concentrata' };   /* i consumi specifici stanno sotto l'unità: due decimali non bastano sempre */
 /* ===== G1 — isocrone dei tempi di sparo sulla pianta =====
    Il campo dei tempi e ricostruito DAI tDet DEI FORI REALI (nessun dato inventato):
    in ogni punto si adatta un piano t = a + b·dx + c·dy sui fori vicini, pesati per

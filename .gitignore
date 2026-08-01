@@ -14,3 +14,5 @@ firestore-debug.log
 # di cosa che nessuno nota finche' non da' fastidio.
 .pagella-*.txt
 .contrassegno-*.txt
+contrassegno-*.txt
+pagella-*.txt

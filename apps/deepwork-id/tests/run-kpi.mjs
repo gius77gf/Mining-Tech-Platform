@@ -11573,6 +11573,72 @@ test("⛔ Flotta: le ore ignote arrivano ignote anche a chi le chiede due volte"
   });
 }
 
+/* ══ GENESI · COME SCRIVE UN NUMERO — le prime prove pure di Genesi ══
+   Genesi era l'unica parte del prodotto con ZERO prove pure: le sue 192
+   funzioni stanno dentro `genesi.html`, e `node` non importa un file .html.
+   Queste sei scrivono quasi trecento numeri della pagina — spalla, maglia,
+   consumo specifico, tempi di sparo, chili di esplosivo — e sono il primo
+   pezzo che esce. */
+{
+  const g = await app("genesi", "genesi-formato.js");
+
+  test("⛔ Genesi: su un dato che manca si scrive «—», non «0»", () => {
+    /* uno zero è un fatto («qui non c'è esplosivo»); un dato mancante è
+       l'assenza di un fatto, e in una pagina di progettazione di volata i due
+       si leggono in modo opposto */
+    for (const vuoto of [null, undefined, "", NaN, Infinity, -Infinity])
+      eq(g.gnum(vuoto), "—", `gnum(${mostra(vuoto)})`);
+    for (const vuoto of [null, undefined, "", NaN])
+      eq(g.gfix(vuoto), "—", `gfix(${mostra(vuoto)})`);
+    eq(g.gseg(null), "—", "e anche il numero col segno");
+    eq(g.gnum(0), "0", "⛔ ma lo ZERO si scrive: è un fatto, non un'assenza");
+    eq(g.gfix(0, 2), "0,00", "idem con i decimali fissi");
+  });
+
+  test("Genesi: i numeri si scrivono all'italiana, e il raggruppamento è dichiarato", () => {
+    eq(g.gnum(1234.5), "1.234,5", "migliaia col punto, decimali con la virgola");
+    eq(g.gnum(1234.5678), "1.234,57", "due decimali di massimo, per difetto");
+    eq(g.gnum(1234.5678, 4), "1.234,5678", "e si possono chiedere di più");
+    eq(g.gfix(2, 1), "2,0", "gfix TIENE i decimali chiesti: «2,0» non è «2»");
+    eq(g.gfix(2), "2,0", "un decimale di suo");
+    /* ⚠️ `useGrouping` è esplicito nel modulo: senza, questa riga darebbe
+       «6375» in Node e «6.375» in Chromium, e la prova sarebbe verde qui e
+       falsa dove l'utente guarda */
+    eq(g.gnum(6375, 0), "6.375", "quattro cifre: raggruppate anche in Node");
+  });
+
+  test("Genesi: i decimali si fermano dove ha senso, non dove capita", () => {
+    eq(g.gnum(1.23456789, 99), "1,234568", "al massimo sei: oltre è rumore, non precisione");
+    eq(g.gnum(1.5, -3), "2", "un numero di decimali negativo non esiste: si legge zero");
+    eq(g.gfix(1.23456789, 99), "1,234568", "stesso tetto");
+  });
+
+  test("Genesi: il segno davanti, per gli scarti", () => {
+    eq(g.gseg(3.2), "+3,2", "il più si scrive: uno scarto senza segno non si legge");
+    eq(g.gseg(-3.2), "−3,2", "e il meno è il segno tipografico (−), non il trattino");
+    eq(g.gseg(0), "+0", "lo zero è uno scarto nullo, non un'assenza");
+  });
+
+  test("Genesi: la data tecnica diventa una data che un italiano legge", () => {
+    eq(g.gdata("2026-07-30 01:38"), "30/07/2026 alle 01:38", "con l'ora");
+    eq(g.gdata("2026-07-30"), "30/07/2026", "senza");
+    eq(g.gdata("2026-07-30T01:38"), "30/07/2026 alle 01:38", "anche in forma ISO con la T");
+    eq(g.gdata(""), "", "niente resta niente");
+    eq(g.gdata("boh"), "boh", "⛔ e quello che non è una data torna com'è: non si inventa un giorno");
+  });
+
+  test("⛔ Genesi: sotto l'unità i chili prendono un decimale in più", () => {
+    /* i consumi specifici stanno sotto l'unità: con due decimali «0,05» e
+       «0,054» diventerebbero lo stesso numero, e quello è il valore da cui
+       dipende quanto esplosivo va nel foro */
+    eq(g.fmtKg(1.234), "1,23", "da un chilo in su, due decimali");
+    eq(g.fmtKg(0.05), "0,050", "sotto l'unità, tre");
+    eq(g.fmtKg(0.0999), "0,100", "il confine è a un decimo");
+    eq(g.fmtKg(0.1), "0,10", "e a un decimo esatto si torna a due");
+    eq(g.fmtMs(25), "25,0", "i millisecondi di ritardo, un decimale");
+  });
+}
+
 /* ══ SHARED · IL LETTORE DI CSV, UNO SOLO ══
    `parseCsvLine` legge UNA riga e va benissimo finché il file ha una riga per
    record. Un estratto conto bancario no: la descrizione lunga la banca la
