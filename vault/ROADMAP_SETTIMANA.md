@@ -156,8 +156,17 @@ dominante. Verifica obbligatoria con screenshot prima/dopo.
       `color`+`font-size` su `.arr` (il chevron `›`, 52 volte). Rimesse in `ui`,
       e diventate la **regola 23** di `run-stile.mjs`, che confronta le
       dichiarazioni e non i nomi.
-      ⏭ Resta il passo 3: `dw-app-shell.css` serve **una pagina sola** e porta
-      ancora 41 regole)* — la parte comune
+      ✅ **01/08 — passo 3 fatto**: `dw-app-shell.css` serviva una pagina sola e
+      ne portava 41 regole; **18 non trovavano niente in `profilo.html`** (tutta
+      la barra in basso, tutti i KPI, il banner del tour, il bottone «Esci», che
+      lì non compare mai perché `mountExit` la chiamano solo le sei app). Tolte:
+      **0 pixel diversi** su 429.000 a 390 px e 410.400 a 360 px, con la
+      controprova che togliendo una regola VIVA la pagina cambia subito.
+      I due controlli si sono accorciati da soli — **doppioni 50 → 32**,
+      **divergenze 12 → 3** — e le tre che restano sono la barra alta a blocco
+      di `profilo.html`, cioè la differenza da cui era nato il difetto.
+      ⏭ Resta dichiarato: 64 px di spazio riservato in `profilo.html` a una
+      barra che non ha)* — la parte comune
       dello stile sale nei fogli condivisi, in ogni app restano solo
       palette e regole specifiche. Aggiunti nello stesso passaggio **tema
       chiaro, modalità sole** (oggi chi la attiva nel core resta al buio

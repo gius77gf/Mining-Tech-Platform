@@ -11,7 +11,7 @@ intenzione senza numeri.*
 | foglio | selettori |
 |---|---|
 | `shared/deepwork-style.css` | 18 |
-| `shared/dw-app-shell.css` | 43 |
+| `shared/dw-app-shell.css` | 43 *(→ **23** dopo il passo 3, sotto)* |
 | `shared/dw-app-ui.css` | 208 |
 
 **49 selettori sono definiti in più di un foglio.** Il grosso è fra shell e ui:
@@ -165,6 +165,49 @@ Il ripristino in `ui` **conserva** il comportamento di prima (E0 non deve
 cambiare un pixel), quindi il difetto resta esattamente com'era — ma adesso è
 misurato invece che invisibile, ed è un'unità a sé: o le due app tolgono le
 classi perché non servono, o il foglio condiviso smette di decidere per loro.
+
+## Passo 3, fatto: shell ridotto a quello che `profilo.html` usa davvero
+
+*(01/08, subito dopo. Il foglio serviva una pagina sola e ne portava 41 regole.)*
+
+Quali di quelle 41 trovano un elemento in `profilo.html`? Misurato in **due
+modi indipendenti che si confermano a vicenda** — le classi citate nel sorgente,
+e `querySelectorAll` **dentro il browser a pagina costruita**, perché
+`profilo.html` disegna righe, avatar e badge da JavaScript e un censimento
+statico non li vedrebbe. Le due misure danno lo stesso numero:
+
+> **23 selettori trovano qualcosa, 18 non trovano niente.**
+
+I 18: tutta la barra in basso (`.nav*`), tutti i KPI (`.kpis`, `.kpi*`),
+`.tour-banner`, `.badge.danger`, e il bottone «Esci» (`.dw-exit`,
+`body.has-exit .top h1`) — che in questa pagina non compare mai, perché
+`mountExit` la chiamano soltanto le sei app. Tolte.
+
+Verifica: `profilo.html` rifotografata a **390 e 360 px**, prima e dopo →
+**0 pixel diversi su 429.000 e 410.400**. Controprova, perché uno zero va messo
+alla prova: tolta anche `.avatar`, che la pagina **usa** (−313 caratteri) → la
+pagina cambia subito (alta 1100 → 1079, la riga da 62 a 55 px). La misura sa
+distinguere una regola morta da una viva.
+
+Effetto sui due controlli, che è il loro secondo verso al lavoro:
+**doppioni 50 → 32**, **divergenze dichiarate 12 → 3**. E le tre che restano
+sono esattamente quelle che devono restare: `.top h1`, `.top h1 .accent` e
+`.top .sub`, cioè la barra alta **a blocco** di `profilo.html` — la differenza
+che aveva causato tutto, adesso isolata in un foglio che nessun'altra pagina
+carica.
+
+⛔ **E una soglia mia, sbagliata, presa in faccia.** La regola 23 conteneva
+`ok(shell.size > 30, "la lettura non sta guardando niente")`: voleva dire «ho
+letto il foglio» e diceva «il foglio è grande». Sceso shell a 23 regole *per il
+motivo giusto*, la guardia ha gridato al guasto. È la lezione di `CLAUDE.md`
+sulle soglie su valori che si muovono, applicata al file che quella lezione la
+fa rispettare. Adesso controlla che i due file **si leggano** e abbiano regole.
+
+📌 Resta dichiarato, non fatto: `body.dw{padding-bottom:calc(64px + …)}` riserva
+spazio per la barra in basso, che `profilo.html` **non ha** — misurati, sono
+64 px di vuoto sotto l'ultimo elemento (a 390 px la pagina è alta 1100, l'ultima
+cosa finisce a 1036). Non tolto qui perché questa unità doveva costare **zero
+pixel**, e un ritocco vero si misura per conto suo.
 
 ## Che cosa farne (prima proposta, superata dalla misura qui sopra)
 

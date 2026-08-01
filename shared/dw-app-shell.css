@@ -1,13 +1,43 @@
 /* ============================================================
-   Shell comune delle app dell'ecosistema (mockup navigabili)
-   Estende shared/deepwork-style.css. Ogni app definisce SOLO:
-   :root { --app-accent: ...; --app-accent2: ...; }
+   IL FOGLIO DI `apps/deepwork-id/profilo.html`, e di nessun altro.
+
+   ⛔ Si chiamava «shell comune delle app» e non lo è più dal 01/08.
+   Fino a quel giorno sette pagine caricavano QUESTO foglio **e**
+   `dw-app-ui.css`, che viene dopo e quindi vinceva: 38 dei 43 selettori
+   di qui erano già senza effetto, e i pochi che sopravvivevano facevano
+   danno — la barra alta arrivava metà da un foglio e metà dall'altro,
+   ed è così che la pagina dell'amministrazione è uscita dallo schermo
+   (441 px di contenuto in 390). Tolto il `<link>` a quelle sette
+   pagine, il conflitto non può più presentarsi.
+
+   ⛔ E il 01/08, seconda passata: di 41 regole, **18 non trovavano
+   nessun elemento in `profilo.html`** — la barra in basso, i KPI, il
+   banner del tour, il bottone «Esci». Misurato in due modi che si
+   confermano a vicenda: le classi citate nel sorgente della pagina, e
+   `querySelectorAll` **dentro il browser** a pagina costruita (perché
+   `profilo.html` disegna righe, avatar e badge da JavaScript, e un
+   censimento statico non li vedrebbe). Tolte: erano regole che nessuno
+   applicava e che facevano sembrare questo foglio più importante di
+   quello che è.
+
+   Restano solo le cose che `profilo.html` usa davvero. Chi cerca lo
+   stile delle APP è nel posto sbagliato: è `shared/dw-app-ui.css`.
+   Racconto e misure: `docs/DUE_FOGLI_PER_LA_STESSA_BARRA.md`.
+
+   Estende `shared/deepwork-style.css`.
    ============================================================ */
 
 
+  /* ⚠️ 64 px riservati alla barra in basso — che questa pagina NON ha:
+     misurati, sono altrettanti pixel di vuoto sotto l'ultimo elemento
+     (a 390 px: la pagina è alta 1100, l'ultima cosa finisce a 1036).
+     Non tolti qui di proposito: questa unità doveva restare a costo
+     zero sul disegno, e un ritocco vero si misura da solo. */
   body.dw { padding-bottom: calc(64px + env(safe-area-inset-bottom)); }
 
-  /* header */
+  /* barra alta — qui è un BLOCCO (titolo sopra, sottotitolo sotto), non
+     la riga del core: è la ragione per cui `.top .sub` e `.top h1` di
+     questo foglio non devono mai incontrare quelli di `dw-app-ui.css` */
   .top {
     position: sticky; top: 0; z-index: 10;
     background: var(--panel); border-bottom: 1px solid var(--border);
@@ -17,46 +47,10 @@
   .top h1 { margin: 0; font-size: 22px; letter-spacing: 3px; }
   .top h1 .accent { color: var(--app-accent2); }
   .top .sub { font-size: 11px; color: var(--muted); letter-spacing: 2px; text-transform: uppercase; }
-  .tour-banner {
-    background: color-mix(in srgb, var(--app-accent) 12%, transparent);
-    border: 1px solid var(--app-accent);
-    color: var(--app-accent2); font-size: 12px; padding: 8px 12px;
-    border-radius: var(--r-sm); margin: 10px 16px 0; text-align: center;
-  }
-
-  /* navigazione a schede in basso (stile PWA deepwork) */
-  .nav {
-    position: fixed; bottom: 0; left: 0; right: 0; z-index: 10;
-    display: flex; background: var(--panel);
-    border-top: 1px solid var(--border);
-    padding-bottom: env(safe-area-inset-bottom);
-  }
-  .nav button {
-    flex: 1; min-height: var(--tap); padding: 8px 4px 10px;
-    background: none; border: none; cursor: pointer;
-    color: var(--muted); font-family: 'Barlow Condensed', sans-serif;
-    font-size: 11px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase;
-  }
-  .nav button.active { color: var(--app-accent2); position: relative; }
-  .nav button.active::before { content: ""; position: absolute; top: 0; left: 22%; right: 22%;
-    height: 2px; border-radius: 0 0 3px 3px; background: linear-gradient(90deg, var(--app-accent), var(--app-accent2));
-    box-shadow: 0 2px 8px color-mix(in srgb, var(--app-accent) 50%, transparent); }
-  .nav .ico { display: block; font-size: 18px; margin-bottom: 2px; }
 
   /* contenuti */
   .page { display: none; padding: 16px; }
   .page.active { display: block; }
-  .kpis { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 16px; }
-  .kpi { background: var(--card); border: 1px solid var(--border); border-radius: var(--r); padding: 14px;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, .22);
-    transition: transform .18s var(--ease), box-shadow .18s var(--ease), border-color .2s; }
-  .kpi:hover { transform: translateY(-3px); box-shadow: 0 10px 24px rgba(0, 0, 0, .32);
-    border-color: color-mix(in srgb, var(--app-accent) 45%, var(--border)); }
-  .kpi .n { font-family: 'Barlow Condensed', sans-serif; font-size: 30px; font-weight: 800; }
-  .kpi .l { font-size: 11px; color: var(--muted); letter-spacing: 1.5px; text-transform: uppercase; }
-  .kpi.ok .n { color: var(--success); }
-  .kpi.warn .n { color: var(--warn); }
-  .kpi.danger .n { color: var(--danger); }
 
   .sec { font-family: 'Barlow Condensed', sans-serif; font-size: 13px; font-weight: 700;
          letter-spacing: 2px; text-transform: uppercase; color: var(--muted2);
@@ -81,12 +75,11 @@
            letter-spacing: 1px; padding: 3px 8px; border-radius: 20px; text-transform: uppercase; }
   .badge.ok { background: rgba(102,187,106,.15); color: var(--success); }
   .badge.warn { background: rgba(255,167,38,.15); color: var(--warn); }
-  .badge.danger { background: rgba(239,83,80,.15); color: var(--danger); }
   .arr { color: var(--muted); font-size: 18px; }
 
   .note { font-size: 12px; color: var(--muted); line-height: 1.5; margin-top: 20px; text-align: center; }
 
-/* link all'hub dell'ecosistema, in alto a destra di ogni app */
+/* link all'hub dell'ecosistema, in alto a destra */
 .dw-home {
   position: absolute; top: 12px; right: 14px;
   display: flex; align-items: center; gap: 6px;
@@ -99,17 +92,3 @@
 }
 .dw-home:hover { color: var(--app-accent2); border-color: var(--app-accent); }
 .top h1 { padding-right: 118px; }   /* spazio per il link ecosistema */
-
-/* uscita dall'account: compare solo in modalità live (via dw-shell.js) */
-.dw-exit {
-  position: absolute; top: 12px; right: 132px;
-  display: flex; align-items: center;
-  min-height: var(--tap); padding: 0 10px;
-  color: var(--muted); text-decoration: none; cursor: pointer;
-  font-family: 'Barlow Condensed', sans-serif;
-  font-size: 11px; font-weight: 700; letter-spacing: 1.5px;
-  text-transform: uppercase;
-  border: 1px solid var(--border); border-radius: var(--r-sm);
-}
-.dw-exit:hover { color: var(--danger); border-color: var(--danger); }
-body.has-exit .top h1 { padding-right: 196px; }

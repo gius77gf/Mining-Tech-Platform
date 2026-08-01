@@ -301,11 +301,15 @@ const FUORI_GIRO = {
 };
 /* ⛔ DUE FOGLI CONDIVISI CHE DEFINISCONO LO STESSO SELETTORE. Misurato il
    01/08 dopo che la barra dell'amministrazione e' uscita dallo schermo:
-   **38 dei 43 selettori di `dw-app-shell.css` sono ridefiniti da
-   `dw-app-ui.css`**, che le pagine caricano dopo e che quindi vince. I cinque
-   superstiti sono il guaio vero — fra loro `.top .sub`, cioe' meta' della
+   **38 dei 43 selettori di `dw-app-shell.css` erano ridefiniti da
+   `dw-app-ui.css`**, che le pagine caricavano dopo e che quindi vinceva. I
+   superstiti erano il guaio vero — fra loro `.top .sub`, cioe' meta' della
    barra alta disegnata da un foglio e meta' dall'altro: e' da li' che nasceva
    il difetto. Racconto e piano: `docs/DUE_FOGLI_PER_LA_STESSA_BARRA.md`.
+   Da E0 nessuna pagina carica piu' i due fogli insieme, e shell e' ridotto a
+   quello che `profilo.html` usa davvero: i doppioni rimasti sono quelli fra
+   `deepwork-style.css` e `dw-app-ui.css` piu' i nomi che le due meta' della
+   famiglia chiamano allo stesso modo servendo pagine diverse.
 
    Questa regola NON pretende che i doppioni spariscano — sarebbe E0 tutto in
    una volta, su undici pagine con tre combinazioni diverse di fogli. Pretende
@@ -317,12 +321,18 @@ const FUORI_GIRO = {
        l'elenco **si accorcia in modo visibile** invece di restare fermo.
    ⚠️ Non e' una soglia su un numero: e' l'insieme esatto. Un fondo sul conto
    direbbe «49 o meno» e lascerebbe passare uno scambio — uno tolto, uno
-   aggiunto — senza dire niente. */
+   aggiunto — senza dire niente.
+
+   ✅ E il secondo verso ha funzionato, due volte in due giorni: 49 → 50 quando
+   `.item:active` e' diventato un doppione VOLUTO (i due fogli servono pagine
+   diverse e non si incontrano mai), poi **50 → 32** quando `dw-app-shell.css`
+   e' stato ridotto a quello che `profilo.html` usa davvero. Diciotto righe
+   tolte perche' la regola le ha pretese tolte: senza, l'elenco sarebbe rimasto
+   a 50 dichiarando doppioni che non esistono piu'. */
 const DOPPIONI_OGGI = [
   [".arr", "dw-app-shell + dw-app-ui"],
   [".avatar", "dw-app-shell + dw-app-ui"],
   [".badge", "dw-app-shell + dw-app-ui"],
-  [".badge.danger", "dw-app-shell + dw-app-ui"],
   [".badge.ok", "dw-app-shell + dw-app-ui"],
   [".badge.warn", "dw-app-shell + dw-app-ui"],
   [".dw-accent", "deepwork-style + dw-app-ui"],
@@ -332,8 +342,6 @@ const DOPPIONI_OGGI = [
   [".dw-btn.secondary", "deepwork-style + dw-app-ui"],
   [".dw-btn.secondary:active", "deepwork-style + dw-app-ui"],
   [".dw-btn.secondary:hover", "deepwork-style + dw-app-ui"],
-  [".dw-exit", "dw-app-shell + dw-app-ui"],
-  [".dw-exit:hover", "dw-app-shell + dw-app-ui"],
   [".dw-home", "dw-app-shell + dw-app-ui"],
   [".dw-home:hover", "dw-app-shell + dw-app-ui"],
   [".dw-input", "deepwork-style + dw-app-ui"],
@@ -347,21 +355,8 @@ const DOPPIONI_OGGI = [
      questa riga. Non si contraddicono perche' non si incontrano mai. */
   [".item:active", "dw-app-shell + dw-app-ui"],
   [".item:hover", "dw-app-shell + dw-app-ui"],
-  [".kpi", "dw-app-shell + dw-app-ui"],
-  [".kpi .l", "dw-app-shell + dw-app-ui"],
-  [".kpi .n", "dw-app-shell + dw-app-ui"],
-  [".kpi:hover", "dw-app-shell + dw-app-ui"],
-  [".kpi.danger .n", "dw-app-shell + dw-app-ui"],
-  [".kpi.ok .n", "dw-app-shell + dw-app-ui"],
-  [".kpi.warn .n", "dw-app-shell + dw-app-ui"],
-  [".kpis", "dw-app-shell + dw-app-ui"],
   [".meta", "dw-app-shell + dw-app-ui"],
   [".name", "dw-app-shell + dw-app-ui"],
-  [".nav", "dw-app-shell + dw-app-ui"],
-  [".nav .ico", "dw-app-shell + dw-app-ui"],
-  [".nav button", "dw-app-shell + dw-app-ui"],
-  [".nav button.active", "dw-app-shell + dw-app-ui"],
-  [".nav button.active::before", "dw-app-shell + dw-app-ui"],
   [".note", "dw-app-shell + dw-app-ui"],
   [".page", "dw-app-shell + dw-app-ui"],
   [".page.active", "dw-app-shell + dw-app-ui"],
@@ -369,10 +364,8 @@ const DOPPIONI_OGGI = [
   [".sec::before", "dw-app-shell + dw-app-ui"],
   [".top", "dw-app-shell + dw-app-ui"],
   [".top h1", "dw-app-shell + dw-app-ui"],
-  [".tour-banner", "dw-app-shell + dw-app-ui"],
   ["*", "deepwork-style + dw-app-ui"],
   ["body.dw", "deepwork-style + dw-app-shell + dw-app-ui"],
-  ["body.has-exit .top h1", "dw-app-shell + dw-app-ui"],
 ];
 console.log("\n── Nessun selettore nuovo definito in due fogli condivisi ──");
 {
@@ -453,21 +446,6 @@ const SOLO_IN_SHELL = [
   [".top h1 .accent", "color", "vive solo in `profilo.html`, che shell lo carica ancora"],
   [".top .sub", "font-size, color, letter-spacing, text-transform",
    "vive solo in `profilo.html`: le altre usano la struttura del core (`.top-brand`)"],
-  [".nav", "border-top, padding-bottom",
-   "ui disegna la barra DEL CORE (pillola sospesa, icone svg, --nav-cols); "
-   + "queste sono il residuo della barra piatta e la contaminavano"],
-  [".nav button", "flex", "vedi `.nav`"],
-  [".nav button.active", "position", "vedi `.nav` — e ui mette gia' `position:relative` su `.nav button`"],
-  [".nav button.active::before", "right, box-shadow", "vedi `.nav`"],
-  [".nav .ico", "font-size, margin-bottom",
-   "in shell l'icona era un CARATTERE, in ui e' un `svg` con misura propria: "
-   + "togliendole l'etichetta e' passata da 11px a 9px/700, **identica a `.bn span` del core**"],
-  [".kpi:hover", "border-color",
-   "il core NON ha un hover sulle sue `.kpi-card`; ui ne ha uno suo (sollevamento "
-   + "+ alone `::after`), coerente e completo. La tinta del bordo arrivava da shell per caso"],
-  [".kpi.ok .n", "color", "ui scrive `-webkit-text-fill-color:transparent` su `.kpi .n` per il gradiente: il color era gia' invisibile"],
-  [".kpi.warn .n", "color", "vedi `.kpi.ok .n`"],
-  [".kpi.danger .n", "color", "vedi `.kpi.ok .n`"],
 ];
 console.log("\n── Le proprietà che solo dw-app-shell.css dichiara sono quelle dichiarate ──");
 {
@@ -524,7 +502,15 @@ console.log("\n── Le proprietà che solo dw-app-shell.css dichiara sono quel
     .map(([s, p]) => `${s} (ora «${p}», dichiarato «${dich.get(s)}»)`);
   test(`le proprietà che solo dw-app-shell.css dichiara sono quelle dichiarate `
      + `(${oggi.size} trovate, ${dich.size} dichiarate; ${shell.size} regole in shell, ${ui.size} in ui)`, () => {
-    ok(shell.size > 30 && ui.size > 100,
+    /* ⛔ QUI C'ERA UNA SOGLIA MIA, SBAGLIATA: `shell.size > 30`. Voleva dire
+       «ho letto il foglio», e diceva «il foglio è grande» — due cose diverse.
+       Il giorno dopo `dw-app-shell.css` è sceso a 23 regole perché 18 non le
+       usava nessuno, cioè per il motivo giusto, e la guardia ha gridato che
+       la lettura non guardava niente. È la lezione di `CLAUDE.md` sulle soglie
+       su valori che possono muoversi, presa in faccia dal file che la applica.
+       Quello che serve sapere è se i due file esistono e hanno regole. */
+    ok(tShell != null && tUi != null, "uno dei due fogli condivisi non si legge");
+    ok(shell.size > 0 && ui.size > 0,
       `letti ${shell.size} e ${ui.size} blocchi: la lettura dei fogli non sta guardando niente`);
     ok(nuove.length === 0,
       `${nuove.length} divergenze nuove → ${nuove.map((s) => `${s} {${oggi.get(s)}}`).join(" · ")}`
