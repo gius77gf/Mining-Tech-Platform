@@ -2051,6 +2051,22 @@ campi interi, file delle macchine.
       Serve a **impedire il lavoro sbagliato**: chi riprendesse dalla scheda
       vecchia scriverebbe strati dati che esistono, l'errore che `CLAUDE.md`
       elenca fra i più costosi con quattro casi datati.
+- [x] ✅ **IL 23% CHE AVREBBE MENTITO** *(01/08)* — pagato il debito del
+      censimento, ma da un'altra strada: per sapere quali frasi un'app sa dire
+      non serve aprirla, stanno nel suo **sorgente**. La prima versione della
+      misura stampava «**23% del principio sorvegliato**»… e una riga non
+      tornava: Sentinella risultava scoperta su «mai misurato», che il banco
+      guarda eccome — col motivo `/nessuna misura registrata/i`, cioè **le
+      parole che il prodotto usa davvero**. Quel 23% misurava la
+      **sovrapposizione di lessico**, non la copertura: due testi non possono
+      dire se due frasi diverse parlano dello stesso stato. ⛔ **Tolto**, non
+      annotato: una percentuale in cima a un output la si ricorda anche quando
+      la nota dice di non fidarsene, e la direttiva 5 vieta i risultati gonfiati
+      in qualunque direzione. Al suo posto un **elenco di candidati** ordinato
+      per quante app li dicono («non lo so» e «non si sa» in tutte e sei), con
+      l'avvertenza stampata **sopra**. È una misura, non una prova: non
+      fallisce mai, perché una soglia qui starebbe su un valore monotòno.
+      `suite-collegate` 45 file.
 - [x] ✅ **IL FASCICOLO SOTTO GUARDIA** *(01/08)* — la cartella era provata solo
       dal **modulo**, ma il difetto che quella funzione esiste per impedire vive
       **sul foglio stampato**: il modulo può dire la cosa giusta e la pagina
