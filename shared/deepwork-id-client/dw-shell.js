@@ -764,3 +764,86 @@ export function pezziDataURL(s) {
   const mime = (testa.replace(/;base64$/i, "").split(";")[0] || "").trim() || "application/octet-stream";
   return { mime, base64, contenuto: t.slice(virgola + 1) };
 }
+
+/* ══════════════════════════════════════════════════════════════════════
+   IL LETTORE DI CSV COMPLETO
+   ══════════════════════════════════════════════════════════════════════
+   Perché sta qui e non in Sentinella: serve a DUE app, e la regola che
+   serve a due app vive in `shared/`. Ma la ragione vera è più concreta di
+   una regola, ed è stata MISURATA il 01/08.
+
+   `parseCsvLine` legge UNA riga, e va benissimo finché il file ha una riga
+   per record. Un estratto conto bancario no: la descrizione lunga la banca
+   la scrive **su più righe dentro le virgolette**. Su questo file
+
+       21/07/2026;"BONIFICO DA CAVA ROSSI SRL
+       SALDO FATTURA 2026/034";12.300,00
+
+   il lettore riga-per-riga produce **due righe rotte** e le scarta tutt'e
+   due: l'incasso da 12.300 € — l'unico movimento vero del file — sparisce.
+   Lo scarto viene dichiarato, quindi non è silenzioso; ma il pagamento non
+   si abbina, e la fattura resta aperta con la sua mora che corre.
+
+   `leggiCsv` legge il testo INTERO come una macchina a stati, quindi
+   l'a-capo dentro le virgolette è solo un carattere come gli altri.
+   ⚠️ E decide il separatore **una volta su tutto il file**, non riga per
+   riga: deciderlo per riga farebbe scivolare le colonne di una singola
+   riga senza che nessuno se ne accorga. */
+
+
+// ══════════════════════════════════════════════════════════════════════
+// T1 · IMPORT DELLE LETTURE DALLO STRUMENTO
+// Sismografi, fonometri e centraline esportano tutti un CSV, ma nessuno
+// lo esporta uguale: cambia il separatore, cambia l'ordine delle colonne,
+// cambia il formato della data. Per questo qui NON si indovina niente: il
+// file viene letto in tabella grezza e poi è l'UTENTE a dire quale colonna
+// è la data, quale l'ora e quale il valore. Nessun servizio esterno,
+// nessuna libreria: il lettore è questo, sotto.
+// ══════════════════════════════════════════════════════════════════════
+
+// Separatore del file, deciso UNA volta su tutto il testo (non riga per
+// riga): conta ; TAB e , che stanno FUORI dalle virgolette, e vince il più
+// frequente con priorità al punto e virgola (l'export italiano di Excel e
+// il nostro). Deciderlo per riga sarebbe un errore: una riga senza
+// separatori sposterebbe tutte le colonne di quella riga.
+function rilevaDelimTesto(t) {
+  let q = false; const c = { ";": 0, "\t": 0, ",": 0 };
+  for (let i = 0; i < t.length; i++) {
+    const ch = t[i];
+    if (ch === '"') { if (q && t[i + 1] === '"') i++; else q = !q; }
+    else if (!q && (ch === ";" || ch === "\t" || ch === ",")) c[ch]++;
+  }
+  return c[";"] ? ";" : c["\t"] ? "\t" : ",";
+}
+
+
+
+// Legge un CSV intero in tabella (array di righe, ogni riga array di celle).
+// Regge: separatore ; , o TAB · campi tra virgolette · virgolette doppie
+// raddoppiate ("") · a capo DENTRO un campo quotato · BOM iniziale ·
+// terminatori di riga Windows e Unix. Le righe completamente vuote spariscono.
+// Ritorna { delim, righe }. Pura e testabile.
+export function leggiCsv(testo) {
+  const t = String(testo == null ? "" : testo).replace(/^\uFEFF/, "");
+  if (!t.trim()) return { delim: ";", righe: [] };
+  const delim = rilevaDelimTesto(t);
+  const righe = [];
+  let campo = "", riga = [], q = false;
+  const chiudiRiga = () => {
+    riga.push(campo); campo = "";
+    if (riga.some(x => String(x).trim() !== "")) righe.push(riga.map(x => String(x).trim()));
+    riga = [];
+  };
+  for (let i = 0; i < t.length; i++) {
+    const c = t[i];
+    if (q) {
+      if (c === '"') { if (t[i + 1] === '"') { campo += '"'; i++; } else q = false; }
+      else campo += c;
+    } else if (c === '"') q = true;
+    else if (c === delim) { riga.push(campo); campo = ""; }
+    else if (c === "\n" || c === "\r") { if (c === "\r" && t[i + 1] === "\n") i++; chiudiRiga(); }
+    else campo += c;
+  }
+  chiudiRiga();
+  return { delim, righe };
+}

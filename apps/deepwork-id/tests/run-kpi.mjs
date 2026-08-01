@@ -11573,6 +11573,60 @@ test("⛔ Flotta: le ore ignote arrivano ignote anche a chi le chiede due volte"
   });
 }
 
+/* ══ SHARED · IL LETTORE DI CSV, UNO SOLO ══
+   `parseCsvLine` legge UNA riga e va benissimo finché il file ha una riga per
+   record. Un estratto conto bancario no: la descrizione lunga la banca la
+   scrive su PIÙ RIGHE dentro le virgolette. Misurato il 01/08 — spezzando il
+   file sugli a-capo, un bonifico da 12.300 € diventava due righe rotte e
+   veniva scartato: lo scarto era dichiarato, quindi non silenzioso, ma il
+   pagamento non si abbinava e la fattura restava aperta con la sua mora. */
+{
+  const conACapo = (testo) => {
+    /* mette un a-capo DENTRO la causale della prima riga di movimento, che è
+       esattamente come lo scrive una banca */
+    const righe = testo.split("\n");
+    const i = righe.findIndex((r, k) => k > 0 && r.includes(";"));
+    const cel = righe[i].split(";");
+    cel[2] = '"' + cel[2].replace(/^"|"$/g, "") + '\nSALDO FATTURA 2026/034"';
+    righe[i] = cel.join(";");
+    return { testo: righe.join("\n"), riga: i };
+  };
+
+  test("⛔ shared: il lettore di CSV è UNO, e Sentinella lo ri-esporta", () => {
+    ok(sentinella.leggiCsv === shell.leggiCsv,
+       "deve ESSERE quello di shared, non una copia che si comporta uguale");
+  });
+
+  test("⛔ Conti: una causale su due righe non fa sparire l'incasso", () => {
+    const base = conti.parseMovimentiCsv(conti.ESTRATTO_ESEMPIO);
+    eq(base.filter(x => x.scarto).length, 0, "il file d'esempio si legge tutto");
+    const { testo, riga } = conACapo(conti.ESTRATTO_ESEMPIO);
+    const dopo = conti.parseMovimentiCsv(testo);
+    eq(dopo.length, base.length,
+       "⛔ stesso numero di movimenti: l'a-capo dentro le virgolette NON è una riga nuova");
+    eq(dopo.filter(x => x.scarto).length, 0, "e nessuno viene scartato");
+    const tocc = dopo[riga - 1];
+    ok(tocc.descrizione.includes("\n"), "la causale arriva intera, a capo compreso");
+    eq(tocc.importo, base[riga - 1].importo, "e l'importo è quello di prima, non perso");
+    eq(dopo.map(x => x.importo), base.map(x => x.importo), "nessun importo si sposta di riga");
+  });
+
+  test("shared: leggiCsv regge quello che un file di banca porta davvero", () => {
+    const r = (t) => shell.leggiCsv(t).righe;
+    eq(r('a;b\n1;2').length, 2, "due righe");
+    eq(r('a;"b\nc";d')[0], ["a", "b\nc", "d"], "a capo dentro le virgolette: una cella sola");
+    eq(r('a;"vir""golette";c')[0], ["a", 'vir"golette', "c"], "virgolette raddoppiate");
+    eq(r('\uFEFFa;b')[0], ["a", "b"], "il BOM non diventa parte della prima cella");
+    eq(r('a;b\r\nc;d').length, 2, "terminatori Windows");
+    eq(r('a;b\n\n\nc;d').length, 2, "le righe vuote spariscono");
+    eq(shell.leggiCsv("a,b,c\n1,2,3").delim, ",", "separatore deciso sul file: qui la virgola");
+    eq(shell.leggiCsv('a;b\n"x,y,z";2').delim, ";",
+       "⛔ e le virgole DENTRO le virgolette non votano: se no un file col punto e virgola verrebbe letto a virgole");
+    eq(shell.leggiCsv("").righe, [], "testo vuoto");
+    eq(shell.leggiCsv(null).righe, [], "niente");
+  });
+}
+
 /* ══ SHARED · LA RISPOSTA A UN FATTO: UNA REGOLA, NON DUE COPIE ══
    `statoPonte` di Sentinella e `statoRisposta` di Campo erano identiche —
    misurate byte per byte, 806 contro 809 caratteri, differenti solo nel nome.

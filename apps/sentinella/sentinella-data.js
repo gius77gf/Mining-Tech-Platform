@@ -32,6 +32,14 @@ import { statoScadenzaHSE } from "../../shared/dw-ponti.js";
    `shared/`: qui restano col nome con cui le pagine le hanno sempre chiamate,
    che è un alias e non una seconda implementazione. */
 export { azioniDiOrigine, statoPonte } from "../../shared/dw-ponti.js";
+/* ⛔ `leggiCsv` STAVA QUI, ed era l'unico lettore di CSV completo
+   dell'ecosistema: regge il separatore deciso su tutto il file, le virgolette
+   doppie raddoppiate, il BOM e — quello che conta — **l'a capo DENTRO un campo
+   quotato**. Serve a due app da quando Conti legge l'estratto conto della
+   banca, e le banche la descrizione lunga la scrivono su piu' righe. Vive in
+   `shared/`, e qui resta il nome che le pagine di Sentinella hanno sempre
+   usato. */
+export { leggiCsv } from "../../shared/deepwork-id-client/dw-shell.js";
 
 export const DEMO = {
   monitoraggi: [
@@ -665,61 +673,6 @@ export function caricaMax(distanzaM, sdObiettivo) {
   const r = +distanzaM, sd = +sdObiettivo;
   if (!(r > 0) || !(sd > 0)) return null;
   return (r / sd) ** 2;
-}
-
-// ══════════════════════════════════════════════════════════════════════
-// T1 · IMPORT DELLE LETTURE DALLO STRUMENTO
-// Sismografi, fonometri e centraline esportano tutti un CSV, ma nessuno
-// lo esporta uguale: cambia il separatore, cambia l'ordine delle colonne,
-// cambia il formato della data. Per questo qui NON si indovina niente: il
-// file viene letto in tabella grezza e poi è l'UTENTE a dire quale colonna
-// è la data, quale l'ora e quale il valore. Nessun servizio esterno,
-// nessuna libreria: il lettore è questo, sotto.
-// ══════════════════════════════════════════════════════════════════════
-
-// Separatore del file, deciso UNA volta su tutto il testo (non riga per
-// riga): conta ; TAB e , che stanno FUORI dalle virgolette, e vince il più
-// frequente con priorità al punto e virgola (l'export italiano di Excel e
-// il nostro). Deciderlo per riga sarebbe un errore: una riga senza
-// separatori sposterebbe tutte le colonne di quella riga.
-function rilevaDelimTesto(t) {
-  let q = false; const c = { ";": 0, "\t": 0, ",": 0 };
-  for (let i = 0; i < t.length; i++) {
-    const ch = t[i];
-    if (ch === '"') { if (q && t[i + 1] === '"') i++; else q = !q; }
-    else if (!q && (ch === ";" || ch === "\t" || ch === ",")) c[ch]++;
-  }
-  return c[";"] ? ";" : c["\t"] ? "\t" : ",";
-}
-
-// Legge un CSV intero in tabella (array di righe, ogni riga array di celle).
-// Regge: separatore ; , o TAB · campi tra virgolette · virgolette doppie
-// raddoppiate ("") · a capo DENTRO un campo quotato · BOM iniziale ·
-// terminatori di riga Windows e Unix. Le righe completamente vuote spariscono.
-// Ritorna { delim, righe }. Pura e testabile.
-export function leggiCsv(testo) {
-  const t = String(testo == null ? "" : testo).replace(/^\uFEFF/, "");
-  if (!t.trim()) return { delim: ";", righe: [] };
-  const delim = rilevaDelimTesto(t);
-  const righe = [];
-  let campo = "", riga = [], q = false;
-  const chiudiRiga = () => {
-    riga.push(campo); campo = "";
-    if (riga.some(x => String(x).trim() !== "")) righe.push(riga.map(x => String(x).trim()));
-    riga = [];
-  };
-  for (let i = 0; i < t.length; i++) {
-    const c = t[i];
-    if (q) {
-      if (c === '"') { if (t[i + 1] === '"') { campo += '"'; i++; } else q = false; }
-      else campo += c;
-    } else if (c === '"') q = true;
-    else if (c === delim) { riga.push(campo); campo = ""; }
-    else if (c === "\n" || c === "\r") { if (c === "\r" && t[i + 1] === "\n") i++; chiudiRiga(); }
-    else campo += c;
-  }
-  chiudiRiga();
-  return { delim, righe };
 }
 
 // La prima riga è un'INTESTAZIONE? Lo è quando contiene almeno una cella

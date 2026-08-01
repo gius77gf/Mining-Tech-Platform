@@ -45,7 +45,7 @@
 // KPI CALCOLATI: da incassare, in scadenza, gare aperte, età media del credito.
 // ============================================================
 
-import { parseCsvLine, numIt, giorniTra, isIntestazione, dataISOEsiste,
+import { parseCsvLine, leggiCsv, numIt, giorniTra, isIntestazione, dataISOEsiste,
          AVVISO_DECIMALE as AVVISO_DECIMALE_SHELL } from "../../shared/deepwork-id-client/dw-shell.js";
 import { provenienzaDi, misuratoPeriodo } from "../../shared/dw-ponti.js";
 /* la classificazione dei costi vive in shared/ perché serve anche a Flotta:
@@ -2238,11 +2238,19 @@ export function isoDaDataItaliana(cella) {
    è il modo migliore per perdere dei soldi senza accorgersene. */
 const INTESTAZIONE_ESTRATTO = /^\s*"?(?:data|date)\b/i;
 export function parseMovimentiCsv(text) {
-  const righe = String(text || "").split(/\r?\n/).map((r) => r.trim()).filter(Boolean);
+  /* ⛔ SI LEGGE IL TESTO INTERO, NON RIGA PER RIGA — e non è una raffinatezza:
+     è stato misurato il 01/08. Le banche la descrizione lunga la scrivono su
+     PIÙ RIGHE dentro le virgolette, e spezzando il file sugli a-capo un
+     bonifico da 12.300 € diventava due righe rotte, scartate tutt'e due. Lo
+     scarto era dichiarato — quindi non silenzioso — ma il pagamento non si
+     abbinava, e la fattura restava aperta con la sua mora che corre.
+     `leggiCsv` sta in `shared/`: legge il testo come una macchina a stati,
+     quindi l'a-capo dentro le virgolette è un carattere come gli altri, e
+     decide il separatore una volta su TUTTO il file invece che per riga. */
   const out = [];
-  for (const r of righe) {
-    if (INTESTAZIONE_ESTRATTO.test(r)) continue;
-    const [dataRaw, valutaRaw, descr, a, b] = parseCsvLine(r);
+  for (const cel of leggiCsv(text).righe) {
+    if (INTESTAZIONE_ESTRATTO.test(cel.join(";"))) continue;
+    const [dataRaw, valutaRaw, descr, a, b] = cel;
     const data = isoDaDataItaliana(dataRaw);
     const ia = importoBancario(a), ib = importoBancario(b);
     let importo = NaN;

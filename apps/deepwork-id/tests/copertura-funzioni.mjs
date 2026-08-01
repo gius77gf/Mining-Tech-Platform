@@ -55,7 +55,13 @@ const APP = ["campo", "conti", "flotta", "scudo", "sentinella", "terra"];
    Campo ed è diventata un alias di `shared/dw-ponti.js`. La sua prova non è
    sparita: si è spostata, e adesso pretende l'IDENTITÀ invece del
    comportamento. Il conto di `dw-ponti` sale da 21 a 23 dello stesso passo. */
-const FONDO = { campo: 86, conti: 90, flotta: 79, scudo: 95, sentinella: 110, terra: 55 };
+/* ⚠️ `sentinella` SCENDE DA 110 A 109, e la ragione va scritta perché
+   abbassare un fondo è il gesto che questo file esiste per rendere
+   visibile: non è una prova tolta, è `leggiCsv` che ha smesso di essere
+   una funzione di Sentinella ed è diventata un alias di
+   `shared/deepwork-id-client/dw-shell.js` — che infatti sale da 29 a 30.
+   Una funzione traslocata, non sparita. */
+const FONDO = { campo: 86, conti: 90, flotta: 79, scudo: 95, sentinella: 109, terra: 55 };
 
 /* Quello che resta fuori per un motivo, non per dimenticanza: i caricatori
    dati vogliono la rete e lo SDK, i ponti demo vogliono il localStorage.
@@ -113,7 +119,7 @@ console.log(`\n${coperte} funzioni coperte su ${guardate} guardate, in ${APP.len
 const CONDIVISI = [
   { file: "shared/dw-ponti.js", fondo: 23,
     perche: "le regole che servono a DUE app: è il posto dove un difetto si moltiplica" },
-  { file: "shared/deepwork-id-client/dw-shell.js", fondo: 29,
+  { file: "shared/deepwork-id-client/dw-shell.js", fondo: 30,
     perche: "gli aiuti che tutte le app importano (numeri, date, CSV)" },
   { file: "apps/genesi/pointcloud.js", fondo: 5,
     perche: "il calcolo del volume dal drone: da lì passano i m³ che consumano la concessione" },
