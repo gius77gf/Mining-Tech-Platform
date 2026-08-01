@@ -135,7 +135,14 @@ dominante. Verifica obbligatoria con screenshot prima/dopo.
       `<script>` classico** di ogni app. Verificato **provando la navigazione**:
       62 asserzioni, 44 navigazioni, controprova che ne fa cadere sei. Nasce il
       banco `browser/navigazione.mjs`: **19 → 21** esecuzioni.
-- [ ] **E0. CONSOLIDAMENTO in `shared/`** *(in corso)* — la parte comune
+- [ ] **E0. CONSOLIDAMENTO in `shared/`** *(in corso · **misurato il 01/08**:
+      `docs/DUE_FOGLI_PER_LA_STESSA_BARRA.md` — **49 selettori definiti in piu' di
+      un foglio**, e **38 dei 43 di `dw-app-shell.css` sono ridefiniti da
+      `dw-app-ui.css`**. I **cinque** superstiti sono il guaio vero: fra loro c'e'
+      `.top .sub`, cioe' meta' della barra alta disegnata da un foglio e meta'
+      dall'altro — da li' la pagina dell'amministrazione che usciva dallo schermo.
+      Undici pagine, **tre combinazioni diverse** di fogli: si procede pagina per
+      pagina rimisurando, mai a occhio)* — la parte comune
       dello stile sale nei fogli condivisi, in ogni app restano solo
       palette e regole specifiche. Aggiunti nello stesso passaggio **tema
       chiaro, modalità sole** (oggi chi la attiva nel core resta al buio
