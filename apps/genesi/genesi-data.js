@@ -100,12 +100,32 @@ export function sitoFit(punti){
 export const NORME_PPV={'din-res':'DIN residenziale','din-ind':'DIN industriale','din-sens':'DIN sensibile/storico','usbm-old':'USBM intonaco','usbm-modern':'USBM cartongesso'};
 export function normaPpvLab(n){ return NORME_PPV[n]||String(n==null?'':n); }
 /* soglia PPV [mm/s] per normativa/edificio e frequenza dominante (soglie verificate USBM RI8507 e DIN 4150-3) */
-export function ppvLimit(norma,f){ switch(norma){
-  case 'usbm-old': return f<40?12.7:50.8;
-  case 'usbm-modern': return f<40?19:50.8;
-  case 'din-ind': return f<10?20:(f<50?40:50);
-  case 'din-sens': return f<10?3:(f<50?8:10);
-  default: return f<10?5:(f<50?15:20); } }  // din-res
+/* ⛔ SU UNA FREQUENZA CHE NON È UN NUMERO NON SI INVENTA UNA SOGLIA.
+   Fino al 01/08 questa funzione, con una frequenza illeggibile, cadeva
+   nell'ultimo ramo di ogni `switch` e restituiva la fascia **più permissiva**
+   di ogni norma — misurato: 50,8 invece di 12,7 (USBM vecchio), 20 invece di
+   15 (DIN residenziale), e così per tutte e cinque. È il numero tranquillo
+   dove non è stato misurato niente, sul valore che decide **se una volata si
+   può sparare**: il posto peggiore in cui potesse capitare.
+   ⚠️ **Nessuna soglia è cambiata**: le curve USBM e DIN sono bloccate senza
+   conferma del fondatore, e i numeri qui sotto sono identici a prima —
+   provato su 5 norme × 7 frequenze, 35 risposte uguali. Cambia solo che cosa
+   succede quando la frequenza non c'è: adesso è `null`, e chi chiama lo dice
+   invece di disegnare un rapporto.
+   ⚠️ E la prima versione della guardia era sbagliata, l'ha bocciata il
+   prototipo: `Number.isFinite(+f)` da sola lascia passare `null` e `""`,
+   perché `+null` fa **zero** — che avrebbe dato 0 Hz, cioè la fascia più
+   severa. Sempre un numero inventato, solo nella direzione che non spaventa. */
+export function ppvLimit(norma,f){
+  if (f === null || f === undefined || String(f).trim() === '') return null;
+  const n = +f;
+  if (!Number.isFinite(n)) return null;
+  switch(norma){
+  case 'usbm-old': return n<40?12.7:50.8;
+  case 'usbm-modern': return n<40?19:50.8;
+  case 'din-ind': return n<10?20:(n<50?40:50);
+  case 'din-sens': return n<10?3:(n<50?8:10);
+  default: return n<10?5:(n<50?15:20); } }  // din-res
 /* Sovrappressione d'aria (airblast) al recettore, in dB(L): scala cube-root
    della carica per ritardo. La formula sta QUI perché la usano in due — la
    scheda validatori e il file per Sentinella — e due copie di una formula

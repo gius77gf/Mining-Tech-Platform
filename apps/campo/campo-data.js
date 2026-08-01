@@ -1581,9 +1581,14 @@ export function testoRiposo(r, fmtData) {
      precedente» credeva di leggere una misura, e stava leggendo il piano dei
      turni. Adesso o c'è l'ora di uscita — e allora è una misura — oppure la
      frase dichiara che non c'è. */
+  /* ⚠️ CORTA, e la lunghezza è stata misurata sullo scatto a 320 px: la prima
+     stesura diceva «dalla durata dichiarata del turno precedente, non dall'ora
+     di uscita» e portava la riga del riposo a QUATTRO righe di testo su un
+     telefono. Una frase che nessuno finisce di leggere protegge quanto una
+     bandiera che nessuno legge. «Stima: manca l'ora di uscita» dice la stessa
+     cosa e dice anche che cosa fare per toglierla. */
   const fonte = r.daFine === "orario" ? " · dagli orari registrati"
-    : (r.daFine === "durata"
-       ? " · dalla durata dichiarata del turno precedente, non dall'ora di uscita" : "");
+    : (r.daFine === "durata" ? " · stima: manca l'ora di uscita" : "");
   // la bandiera si legge QUI: se restasse solo dichiarata non proteggerebbe niente
   const dubbio = r.attendibile === false ? " · orari da controllare" : "";
   /* ⛔ ZERO ORE SI SCRIVE A PAROLE, e la prova che l'ha preteso era scritta al

@@ -211,15 +211,26 @@ body.dw.outdoor-mode .board.warn .board-ico{color:color-mix(in srgb,var(--warn) 
 .orari{
   display:flex; flex-wrap:wrap; align-items:center; gap:6px; margin-top:6px;
 }
+/* ⛔ ETICHETTA E CAMPO IN UN GUSCIO SOLO — è la forma `.of` che la pagina usa
+   già in cima, e non è pignoleria: alla prima stesura i quattro pezzi erano
+   figli diretti del flex, e a 320 px andavano a capo dove capitava. Lo scatto
+   mostrava «ENTRATA [06:15] USCITA» e sulla riga sotto il campo dell'uscita,
+   cioè un'etichetta staccata dal suo campo e un campo senza etichetta: chi
+   compila al fronte scrive l'uscita nella casella dell'entrata. Leggendo il
+   codice non si vedeva. */
+.orari .of{display:flex; align-items:center; gap:6px; flex:0 1 auto; min-width:0}
 .orari label{
   font-size:10px; letter-spacing:.4px; text-transform:uppercase; color:var(--muted2);
+  flex:0 0 auto;
 }
 .orari input[type="time"]{
   /* i campi orario di Chromium hanno una larghezza naturale di circa 100 px:
      lasciarla è meglio che stirarli, perché così la riga si impagina da sola */
   padding:6px 8px; font-size:12px; min-width:0; width:auto;
 }
-.orari .chg{padding:6px 9px; font-size:11px}
+/* il bottone dell'orario standard prende la riga tutta sua: accanto a un campo
+   orario, un rettangolo con dentro «06:00–14:00» si legge come un terzo campo */
+.orari .chg.std{padding:6px 10px; font-size:11px; flex:1 1 100%; letter-spacing:.3px}
 .orari .ore{
   font-size:11px; color:var(--muted2); font-variant-numeric:tabular-nums;
   flex:1 1 100%; line-height:1.4;
@@ -2460,18 +2471,24 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
     const or = orariPresenza(p);
     const frase = testoOrari(or);
     const val = (k) => esc(String((p && p[k]) || ""));
-    const campo = (k, et) => `<label for="ora-${k}-${esc(o.id)}">${et}</label>
+    const campo = (k, et) => `<span class="of"><label for="ora-${k}-${esc(o.id)}">${et}</label>
       <input class="dw-input" type="time" id="ora-${k}-${esc(o.id)}" value="${val(k)}"
         data-ora="${k}" data-op="${esc(o.id)}"${bloc ? " disabled" : ""}
-        aria-label="${et} di ${esc(o.nome)}"${bloc ? " title=\"Turno chiuso: non si può più cambiare\"" : ""}>`;
+        aria-label="${et} di ${esc(o.nome)}"${bloc ? " title=\"Turno chiuso: non si può più cambiare\"" : ""}></span>`;
     // ⛔ IL PROPOSTO SI MOSTRA NELL'ETICHETTA DEL BOTTONE, non nel campo: chi
-    // legge vede che cosa sta per dichiarare prima di dichiararlo.
-    const standard = bloc || !prop.entrata ? ""
-      : `<button type="button" class="chg" data-ora-std="${esc(o.id)}"
-           title="Scrive l'orario standard del turno per ${esc(o.nome)}">${esc(prop.entrata)}${prop.uscita ? "–" + esc(prop.uscita) : ""}</button>`;
+    // legge vede che cosa sta per dichiarare prima di dichiararlo. E la parola
+    // «standard» ci sta davanti perché due orari in un rettangolo, accanto a
+    // due campi orario, sembrano un terzo campo — visto nello scatto.
+    const standard = bloc || !prop.entrata || (or.entrata !== null || or.uscita !== null) ? ""
+      : `<button type="button" class="chg std" data-ora-std="${esc(o.id)}"
+           title="Scrive l'orario standard del turno per ${esc(o.nome)}">Orario standard ${esc(prop.entrata)}${prop.uscita ? "–" + esc(prop.uscita) : ""}</button>`;
     return `<div class="orari">${campo("entrata", "Entrata")}${campo("uscita", "Uscita")}${standard}
       <div class="ore${or.attendibile === false ? " dubbio" : ""}">${frase ? esc(frase)
-        : "Orari non dichiarati: il riposo prima del turno si calcola sulla durata dichiarata del turno, che è una stima"}</div></div>`;
+        // ⛔ CORTA: la conseguenza («stima: manca l'ora di uscita») la dice già
+        // la riga del riposo, due righe più su. Ripeterla qui riempiva mezzo
+        // schermo di telefono con la stessa frase per ogni persona — visto
+        // nello scatto a 320 px, non leggendo il codice.
+        : "Orari non dichiarati"}</div></div>`;
   }
 
   // Il riepilogo degli orari del turno, accanto a quello del riposo.
@@ -2487,8 +2504,14 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
       : "";
     if (!mancano) return `<div class="note recap">Orari dichiarati per <b>tutti</b> i ${q.totale} presenti`
       + ` · <b>${esc(oreMinuti(q.minuti))}</b> lavorate in totale.${dubbio}</div>`;
-    return `<div class="note"><b>${mancano}</b> ${mancano === 1 ? "presente su" : "presenti su"} ${q.totale}`
-      + ` ${mancano === 1 ? "non ha" : "non hanno"} entrata e uscita dichiarate: per ${mancano === 1 ? "lui" : "loro"}`
+    /* ⛔ «NON HANNO GLI ORARI» ERA FALSO PER META' DELLE RIGHE, e si è visto
+       nello scatto: al turno in corso due persone su due avevano l'entrata e
+       non l'uscita, e la nota diceva «non hanno entrata e uscita dichiarate».
+       Chi legge conclude che non ha compilato niente, e va a riscrivere una
+       cosa che c'è già. La frase deve coprire tutt'e due i casi senza
+       affermare nessuno dei due. */
+    return `<div class="note">Per <b>${mancano}</b> ${mancano === 1 ? "presente" : "presenti"} su ${q.totale}`
+      + ` manca l'ora di entrata o quella di uscita: per ${mancano === 1 ? "lui" : "loro"}`
       + ` il riposo prima del turno resta calcolato sulla <b>durata dichiarata</b> del turno, che è una stima.`
       + (q.minuti !== null ? ` Le ore lavorate note sono <b>almeno ${esc(oreMinuti(q.minuti))}</b>.` : "")
       + dubbio + `</div>`;

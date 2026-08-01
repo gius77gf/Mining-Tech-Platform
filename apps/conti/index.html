@@ -563,6 +563,16 @@ label.item:has(.dw-chk:checked){
   /* gli ultimi pixel non stanno più nel testo: stanno nei margini della barra */
   .nav{width:calc(100% - 8px)}
 }
+/* L'ULTIMO PIXEL, e uno solo. Con tutto il resto già stretto restava
+   «FATTURE», che a 320 px chiede 32 px per 31 disponibili — sette lettere, un
+   pixel di troppo. Rimpicciolire ancora il carattere lo risolverebbe
+   rendendo meno leggibili tutte e dieci le voci per salvare mezza lettera di
+   una: si toglie invece un settimo di pixel fra una lettera e l'altra, che a
+   7 px non si vede e su sette lettere vale esattamente quello che manca.
+   Misurato dopo: nessuna etichetta tagliata a 320, 360, 390 e 430 px. */
+@media(max-width:340px){
+  .nav button{letter-spacing:-.15px}
+}
 
 /* ─────────────── azioni di riga su schermo stretto ───────────────
    Con tre azioni (stampa, modifica, elimina) il nome del cliente verrebbe

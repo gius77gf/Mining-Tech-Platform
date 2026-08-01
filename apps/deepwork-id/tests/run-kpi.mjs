@@ -12120,6 +12120,28 @@ test("⛔ Flotta: le ore ignote arrivano ignote anche a chi le chiede due volte"
        + "non è un dettaglio di etichetta, cambia la soglia");
   });
 
+  test("⛔ Genesi: su una frequenza illeggibile la soglia NON esiste — e non è la più permissiva", () => {
+    /* Il difetto, misurato prima di correggerlo: con una frequenza non
+       numerica si cadeva nell'ultimo ramo di ogni `switch`, cioè nella fascia
+       ALTA — 50,8 invece di 12,7, 20 invece di 15. Il numero tranquillo dove
+       non è stato misurato niente, sul valore che decide se si spara. */
+    const ILLEGGIBILI = [undefined, null, NaN, "", "  ", "venticinque", "25,5", {}, []];
+    const norme = Object.keys(v.NORME_PPV);
+    const risposte = [];
+    for (const n of norme) for (const f of ILLEGGIBILI) risposte.push(v.ppvLimit(n, f));
+    eq([...new Set(risposte)], [null],
+       `${norme.length} norme × ${ILLEGGIBILI.length} frequenze illeggibili: devono rispondere tutte null`);
+    /* ⛔ e i due casi che una guardia scritta con `Number.isFinite(+f)` da sola
+       lascerebbe passare: `+null` e `+""` fanno ZERO, che è finito — e zero
+       Hz darebbe la fascia più SEVERA. Sempre un numero inventato, solo nella
+       direzione che non spaventa. Bocciati dal prototipo prima del modulo. */
+    eq([v.ppvLimit("din-res", null), v.ppvLimit("din-res", "")], [null, null],
+       "null e stringa vuota non diventano 0 Hz");
+    /* e la controparte: le soglie vere non sono cambiate di un decimale */
+    eq([v.ppvLimit("usbm-old", "40"), v.ppvLimit("din-res", " 25 ")], [50.8, 15],
+       "una frequenza scritta come stringa numerica resta leggibile (i progetti salvati tornano da JSON)");
+  });
+
   test("Genesi · ogni codice di norma che la pagina propone ha un nome scritto per esteso", () => {
     /* il nome finisce nel rapporto e nel file per Sentinella, accanto al numero:
        un limite citato senza dire QUALE limite non è verificabile da nessuno */
@@ -13451,7 +13473,7 @@ test("⛔ Flotta: le ore ignote arrivano ignote anche a chi le chiede due volte"
      viene dalla DURATA DICHIARATA e non dall'ora di uscita. Scritta una volta
      sola: era in sei asserzioni, e sei copie della stessa stringa è il modo di
      avere un giorno cinque asserzioni aggiornate e una no. */
-  const FONTE_DURATA = " · dalla durata dichiarata del turno precedente, non dall'ora di uscita";
+  const FONTE_DURATA = " · stima: manca l'ora di uscita";
 
   test("Campo · riposo: l'ora d'inizio dei turni sta in un posto solo", () => {
     eq(campo.ORE_INIZIO_TURNO, { Mattina: 6, Pomeriggio: 14, Notte: 22 }, "le tre ore d'inizio");
@@ -13730,8 +13752,17 @@ test("⛔ Flotta: le ore ignote arrivano ignote anche a chi le chiede due volte"
     eq(notte.oltre, true, "e il giorno cambia");
     // chi arriva all'una di notte è entrato in RITARDO, non ventun ore prima:
     // l'entrata è l'occorrenza di quell'ora più vicina all'inizio del turno
-    eq(ore(campo.orariPresenza(p(OGGI_R, "Notte", "o1", "presente", "01:00", "06:00"))), 5,
-       "entrato all'una, uscito alle sei: cinque ore");
+    /* ⚠️ LA DURATA NON BASTA A PROVARLO, e l'ha detto la controprova: togliendo
+       lo spostamento al giorno dopo, «entrato all'una, uscito alle sei» fa
+       cinque ore LO STESSO — perché l'uscita si àncora all'entrata, e cinque
+       ore restano cinque ore anche traslate indietro di un giorno. I dati
+       facevano coincidere la risposta giusta con quella sbagliata (prima
+       causa delle cinque). Quello che cambia è l'ISTANTE, ed è l'istante che
+       finisce nel conto del riposo: quindi si guarda quello. */
+    const tardi = campo.orariPresenza(p(OGGI_R, "Notte", "o1", "presente", "01:00", "06:00"));
+    eq(ore(tardi), 5, "entrato all'una, uscito alle sei: cinque ore");
+    eq(tardi.entrata, new Date(2026, 2, 11, 1).getTime(),
+       "e l'una di notte del turno del 10 è l'una dell'11, non ventun ore prima");
     eq(ore(campo.orariPresenza(p(OGGI_R, "Notte", "o1", "presente", "23:30", "05:30"))), 6,
        "e a cavallo della mezzanotte il conto non salta");
     // l'uscita senza entrata si àncora all'inizio NOMINALE del turno
@@ -13837,7 +13868,7 @@ test("⛔ Flotta: le ore ignote arrivano ignote anche a chi le chiede due volte"
     contiene(con, { stato: "sotto", ore: 6, daFine: "orario", attendibile: true },
              "con l'ora di uscita vera il riposo scende a sei ore, ed è una MISURA");
     ok(/dagli orari registrati/.test(campo.testoRiposo(con)), "e la frase lo dice: " + campo.testoRiposo(con));
-    ok(/durata dichiarata/.test(campo.testoRiposo(senza)), "mentre l'altra dichiara di essere una stima");
+    ok(/stima/.test(campo.testoRiposo(senza)), "mentre l'altra dichiara di essere una stima: " + campo.testoRiposo(senza));
   });
 
   test("Campo · orari: l'ora vera taglia nei DUE versi, e quello che assolve si dichiara uguale", () => {
@@ -13935,7 +13966,7 @@ test("⛔ Flotta: le ore ignote arrivano ignote anche a chi le chiede due volte"
              "o1 è rimasto oltre, e adesso il riposo lo dice");
     // o2: nessuna uscita dichiarata → si ripiega sulla durata, e la frase lo scrive
     contiene(per.o2, { stato: "regolare", daFine: "durata" }, "o2 non ha dichiarato l'uscita");
-    ok(/durata dichiarata/.test(campo.testoRiposo(per.o2, (d) => d)),
+    ok(/stima: manca l'ora di uscita/.test(campo.testoRiposo(per.o2, (d) => d)),
        "e chi legge sa che sta guardando una stima: " + campo.testoRiposo(per.o2, (d) => d));
     /* ⛔ LA DIMOSTRAZIONE DEVE CONTENERE ANCHE LA META' CHE MANCA, se no mostra
        una funzione che nella vita vera non si vede mai in quello stato: al

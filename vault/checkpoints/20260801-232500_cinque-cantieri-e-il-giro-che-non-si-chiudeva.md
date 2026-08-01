@@ -100,3 +100,51 @@ in ordine di pericolo: `ppvLimit` su una frequenza non numerica restituisce la
 fascia **più permissiva** di ogni norma — è un numero tranquillo sul valore che
 decide se una volata si spara. Oggi non è raggiungibile dalla pagina, e la
 difesa sta a un'altra riga: va spostata dentro la funzione.
+
+---
+
+## Aggiunta: la soglia che non si inventa più (stessa sera)
+
+Il primo dei tre difetti che il cantiere di Genesi aveva **trovato e non
+blindato**, chiuso subito perché è quello che sta sul valore peggiore.
+
+`ppvLimit(norma, f)` decide la soglia di vibrazione al recettore — il numero
+che dice **se una volata si può sparare**. Con una frequenza non numerica
+cadeva nell'ultimo ramo di ogni `switch` e restituiva la fascia **più
+permissiva** di ogni norma: 50,8 invece di 12,7 (USBM vecchio), 20 invece di
+15 (DIN residenziale), e così per tutte e cinque.
+
+⚠️ **Nessuna soglia è cambiata** — le curve USBM/DIN sono bloccate senza
+conferma del fondatore, e il prototipo l'ha provato prima: 5 norme × 7
+frequenze vere, **35 risposte identiche**. Cambia solo che cosa succede quando
+la frequenza non c'è: `null`, e chi chiama lo dice.
+
+⛔ **La prima versione della guardia era sbagliata, e l'ha bocciata il
+prototipo**: `Number.isFinite(+f)` da sola lascia passare `null` e `""`, perché
+`+null` fa **zero** — che avrebbe dato 0 Hz, cioè la fascia più severa. Sempre
+un numero inventato, solo nella direzione che non spaventa. È la mezz'ora che
+la regola «si prova in scratchpad prima di scrivere nel modulo» esiste per far
+guadagnare.
+
+I tre punti che la chiamano sono stati guardati uno per uno: la scheda dei
+validatori (dove `_ppv/_lim` sarebbe diventato `NaN`, e `NaN < 0.6` è falso →
+sarebbe finito su **rosso** per il motivo sbagliato), il diagramma (dove
+`Math.log10(null)` fa `-Infinity` e schiaccia tutta la scala **senza errori**),
+e il riepilogo.
+
+**Controprova**: 3 difetti rimessi, 3 prove cadute; il terzo — una soglia
+cambiata di **un decimale**, `12.7 → 12.8` — cambia **zero caratteri** e fa
+cadere la prova giusta: il caso in cui la conta dei caratteri da sola avrebbe
+mentito.
+
+**Lo scatto**, e non era ovvio prendere il caso: la strada per cui una
+frequenza illeggibile arriva davvero è una **volata salvata** — il form la
+stringe fra 2 e 120, ma `apri` fa `Object.assign(D2, design)` senza stringere
+niente (`genesi.html:3764`). La sonda semina quella volata in `localStorage`
+prima del `goto`. Nella riga: pallino ambra, «6,4 mm/s», e «**Non si può dire
+se è sotto soglia**: la frequenza del recettore non è un numero leggibile…».
+Nessun verde, nessun numero inventato.
+⚠️ E la sonda ha sbagliato **due volte** prima di dire il vero: cercava `.scr`
+per provare di aver navigato (la schermata la dichiara il **body**, con
+`scr-design`) e ha fotografato il pannello dei parametri invece della riga che
+questa unità cambia.

@@ -2761,7 +2761,7 @@ function computeKPI(){
   const fly=flyrockEst();
   return { nf, qtot:Math.round(qtot), pf:+pf.toFixed(2), cost:Math.round(_cTotK),
     x20:Math.round(x20), x50:Math.round(x50), x80:Math.round(x80),
-    ppv:+ppv.toFixed(1), lim:+lim.toFixed(1), fly:Math.round(fly.Lpred),
+    ppv:+ppv.toFixed(1), lim:lim===null?null:+lim.toFixed(1), fly:Math.round(fly.Lpred),
     presplit:!!D2.presplit,
     setup:(selEsplosivo()||{}).nome_breve||(selEsplosivo()||{}).nome||D2.esplosivo,
     maglia:B+'×'+S+' m · Ø'+D2.diam+' · '+D2.prof+' m' };
@@ -3258,7 +3258,10 @@ function sitoGrafico(P,f){
   const sdv=P.map(p=>p.d/Math.sqrt(p.w)), pv=P.map(p=>p.ppv);
   const lim=ppvLimit(D2.recNorma,D2.recFreq);
   const sdOra=D2.recDist/Math.sqrt(Math.max(1,computeMIC()));
-  const allX=sdv.concat([sdOra]), allY=pv.concat([lim]);
+  /* ⛔ una soglia che non c'è non entra nella scala: `Math.log10(null)` fa
+     `-Infinity` e schiaccerebbe tutto il diagramma su una riga, senza che
+     nessun errore lo dica. */
+  const allX=sdv.concat([sdOra]), allY=lim===null?pv.slice():pv.concat([lim]);
   let xlo=Math.log10(Math.min.apply(null,allX)), xhi=Math.log10(Math.max.apply(null,allX));
   let ylo=Math.log10(Math.min.apply(null,allY)), yhi=Math.log10(Math.max.apply(null,allY));
   const px=Math.max(.10,(xhi-xlo)*.14), py=Math.max(.10,(yhi-ylo)*.14);
@@ -3276,10 +3279,17 @@ function sitoGrafico(P,f){
   /* le due etichette stanno su angoli opposti: il limite in alto a sinistra,
      la volata in corso in basso accanto alla sua linea — così non si toccano
      mai, qualunque sia la scala */
-  const yLim=Y(Math.log10(lim)), xOra=X(Math.log10(sdOra)), oraDx = xOra > W*.72 ? -6 : 5;
-  g+='<line x1="'+ml+'" y1="'+yLim.toFixed(1)+'" x2="'+(W-mr)+'" y2="'+yLim.toFixed(1)+'" stroke="#ef5350" stroke-width="1.2" stroke-dasharray="6 4"/>'
-    +'<text x="'+(ml+4)+'" y="'+(yLim>mt+16?yLim-5:yLim+12).toFixed(1)+'" fill="#ef5350" font-size="'+fsL+'">limite '+_sitoNum(lim)+' mm/s</text>'
-    +'<line x1="'+xOra.toFixed(1)+'" y1="'+mt+'" x2="'+xOra.toFixed(1)+'" y2="'+(H-mb)+'" stroke="rgba(134,176,216,.7)" stroke-width="1.1" stroke-dasharray="3 4"/>'
+  const xOra=X(Math.log10(sdOra)), oraDx = xOra > W*.72 ? -6 : 5;
+  /* la riga rossa del limite si disegna solo se il limite esiste; se manca lo
+     dice una scritta, invece di lasciare il diagramma senza spiegazione */
+  if(lim===null){
+    g+='<text x="'+(ml+4)+'" y="'+(mt+11)+'" fill="#ef5350" font-size="'+fsL+'">soglia non calcolabile: frequenza del recettore illeggibile</text>';
+  } else {
+    const yLim=Y(Math.log10(lim));
+    g+='<line x1="'+ml+'" y1="'+yLim.toFixed(1)+'" x2="'+(W-mr)+'" y2="'+yLim.toFixed(1)+'" stroke="#ef5350" stroke-width="1.2" stroke-dasharray="6 4"/>'
+      +'<text x="'+(ml+4)+'" y="'+(yLim>mt+16?yLim-5:yLim+12).toFixed(1)+'" fill="#ef5350" font-size="'+fsL+'">limite '+_sitoNum(lim)+' mm/s</text>';
+  }
+  g+='<line x1="'+xOra.toFixed(1)+'" y1="'+mt+'" x2="'+xOra.toFixed(1)+'" y2="'+(H-mb)+'" stroke="rgba(134,176,216,.7)" stroke-width="1.1" stroke-dasharray="3 4"/>'
     +'<text x="'+(xOra+oraDx).toFixed(1)+'" y="'+(mt+11)+'" fill="#86b0d8" font-size="'+fsL+'" text-anchor="'+(oraDx<0?'end':'start')+'">questa volata</text>';
   /* le due rette: media (tratteggiata) e progetto al 95° (piena). Ritagliate
      sul riquadro, altrimenti su pendenze forti finiscono sopra le etichette
@@ -4889,10 +4899,23 @@ function renderScheda2D(){
   const _coda = (_st.fonte==='sito')
     ? ' Legge calibrata sul tuo sito: resta una previsione, va riverificata col sismografo a ogni cambio di zona o di fronte.'
     : ' STIMA predittiva site-specific: con i referti del sismografo (pulsante «Legge di sito») Genesi ricava K e β della tua roccia.';
+  /* ⛔ SENZA SOGLIA NON C'È UN COLORE. Se la frequenza del recettore non è
+     leggibile `ppvLimit` restituisce `null` invece di inventare una fascia, e
+     qui il rapporto PPV/soglia **non esiste**: disegnarlo verde perché
+     `_rat` è `NaN` (e `NaN < 0.6` è falso, quindi cadrebbe su `sv-bad`) o
+     peggio tranquillo sarebbe la violazione del principio nel punto in cui si
+     decide se sparare. Si dichiara, e si dice che cosa fare. */
+  if(_lim===null){
+    rows.push({lab:'PPV al recettore',valStr:gfix(_ppv,1)+' <span>mm/s</span>',cls:'sv-warn',
+      why:'a '+gnum(D2.recDist,0)+' m (SD '+gfix(_sd2,1)+' m/kg^½, MIC '+gnum(_mic,1)+' kg), legge di Devine PPV=K·SD^−β con '+_fonte+'. <b>Non si può dire se è sotto soglia</b>: la frequenza del recettore non è un numero leggibile, e senza quella la norma non ha una fascia. Reimposta la frequenza dominante attesa (tipicamente 10–40 Hz in cava) e il confronto torna.'+_coda});
+    rows.push({lab:'MIC (carica/ritardo)',valStr:_mic+' <span>kg</span>',cls:'sv-info',
+      why:'massima carica entro la finestra di 8 ms (fori sullo stesso ritardo). La carica massima ammissibile <b>non è calcolabile</b> finché manca la soglia: dipende da quella.'});
+  } else {
   rows.push({lab:'PPV al recettore',valStr:gfix(_ppv,1)+' <span>mm/s</span>',cls:(_rat<0.6?'sv-ok':(_rat<1?'sv-warn':'sv-bad')),
     why:'a '+gnum(D2.recDist,0)+' m (SD '+gfix(_sd2,1)+' m/kg^½, MIC '+gnum(_mic,1)+' kg), legge di Devine PPV=K·SD^−β con '+_fonte+'. Soglia '+_normaLab+' '+gnum(_lim,1)+' mm/s @ '+gnum(D2.recFreq,0)+' Hz → '+(_rat>=1?'<b>SUPERA</b>: riduci la MIC (meno kg/foro o frazionamento ritardi) o allontana il recettore.':(_rat>=0.6?'sotto soglia ma vicino: monitora.':'ampiamente sotto soglia.'))+_coda});
   rows.push({lab:'MIC (carica/ritardo)',valStr:_mic+' <span>kg</span>',cls:'sv-info',
     why:'massima carica entro la finestra di 8 ms (fori sullo stesso ritardo). W max ammissibile alla soglia scelta ≈ '+Math.round(_wmax)+' kg a '+D2.recDist+' m: oltre, il PPV supera il limite.'});
+  }
   const _sd3=D2.recDist/Math.cbrt(Math.max(0.1,_mic)), _db=airblastDb(D2.recDist,_mic);
   rows.push({lab:'Airblast (sovrappr.)',valStr:Math.round(_db)+' <span>dB(L)</span>',cls:(_db<128?'sv-ok':(_db<=133?'sv-warn':'sv-bad')),
     why:'rumore d\'aria stimato a '+gnum(D2.recDist,0)+' m (cube-root SD '+gnum(_sd3,0)+'): '+(_db>133?'oltre il limite USBM/OSM di 133 dB(L): borraggio corto/colletto scoperto amplifica; allunga il borraggio.':'sotto il limite USBM/OSM di 133 dB(L).')+' Stima da calibrare.'});
