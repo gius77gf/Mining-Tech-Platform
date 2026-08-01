@@ -2051,6 +2051,27 @@ campi interi, file delle macchine.
       Serve a **impedire il lavoro sbagliato**: chi riprendesse dalla scheda
       vecchia scriverebbe strati dati che esistono, l'errore che `CLAUDE.md`
       elenca fra i più costosi con quattro casi datati.
+- [x] ✅ **IL FUSO ORARIO CHE NON C'ENTRAVA** *(01/08)* — `date-checkpoint.mjs`
+      confronta una data letta da git col nome del file. Sospetto ragionevole:
+      `git log --date=short` renderebbe la data nel fuso di chi guarda, quindi
+      la CI (UTC) boccerebbe un file nominato da una sessione con l'orologio
+      italiano. Correzione scritta… e poi **misurata**: `--date=short` rende la
+      data nell'offset **registrato nel commit**, non in quello di chi legge —
+      è `--date=local` a seguire il lettore. Su 661 checkpoint, **zero**
+      cambiano giorno fra UTC e Tokyo. Era una riga che non fa niente: tolta.
+      Al suo posto la **misura scritta** — tenerla «tanto male non fa» avrebbe
+      lasciato un commento che spiega una trappola inesistente, e una
+      spiegazione sbagliata costa a ogni lettore futuro.
+      ⚠️ **È il terzo caso della notte** in cui ho creduto di trovare un difetto
+      che non c'era (l'heredoc del canarino, il `grep -A 30`, questo): tutti e
+      tre sarebbero finiti in un commit come fatti, tutti e tre caduti
+      misurando la cosa vera invece della mia idea della cosa vera.
+      ⚠️ E il tick di questa riga era **saltato**: l'ancora del mio script
+      sbagliava di una virgola, lo script è morto sull'`assert` — e il `git
+      commit` sulla riga dopo è partito lo stesso. È la trappola già scritta in
+      `CLAUDE.md` («uno script che non fallisce non ha per forza fatto
+      qualcosa»), qui nella variante opposta: lo script **è** fallito, e non ha
+      fermato niente.
 - [x] ✅ **IL CENSIMENTO DEL PRINCIPIO, IN TUTTE E SEI LE APP** *(01/08)* — sei
       cantieri in parallelo, stesso mandato: rileggere **tutto quello che c'è
       già** col metro dell'«assenza non è un dato favorevole». **28 punti
