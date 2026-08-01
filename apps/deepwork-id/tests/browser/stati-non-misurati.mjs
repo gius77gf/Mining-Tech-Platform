@@ -53,6 +53,19 @@ const CASI = [
             perche: 'accanto a «scavo non misurato» non si scrive nessun volume scavato' }],
   ['terra', 'base dell\'onere non dichiarabile', '#nav-den', null, '#den-oneri', /non è stato misurato/i,
     { dentro: '#den-anni', testo: '2024' }],
+  /* ⛔ Un lotto che non dichiara nessun fronte NON ha volume zero: non ha un
+     modo di essere misurato. «misurati —», non «misurati 0 m³», perche' su un
+     lotto lo zero vorrebbe dire «non ci abbiamo ancora lavorato» e la verita'
+     e' che manca il collegamento. Quarto dei cinque stati veri; in
+     dimostrazione sono tre lotti su sei. */
+  /* ⚠️ La riga nomina il LOTTO, non solo la frase: «misurati —» compare anche
+     su un lotto che il fronte ce l'ha ma non ha ancora rilievi, e con quella
+     regex la controprova NON distingueva (caso 1 della tassonomia: i dati
+     facevano coincidere la risposta giusta con quella sbagliata). «Lotto 1» è
+     senza fronte in dimostrazione. */
+  ['terra', 'lotto senza fronte: misurato «—», non zero', '#nav-pia', null, '#lot-list',
+    /Lotto 1[\s\S]*misurati\s*—/i, null, { vietato: /Lotto 1[\s\S]*misurati\s*0\s*m³/i,
+                                            perche: 'un lotto senza fronte non ha «misurati 0 m³»' }],
   /* ⛔ Campo e' il caso che ha dato il nome al principio: «non lo so» non e'
      «non c'e'», perche' se suona l'allarme contare assente chi nessuno ha
      spuntato vuol dire NON ANDARLO A CERCARE. La dimostrazione non aveva

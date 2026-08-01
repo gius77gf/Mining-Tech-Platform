@@ -2051,6 +2051,16 @@ campi interi, file delle macchine.
       Serve a **impedire il lavoro sbagliato**: chi riprendesse dalla scheda
       vecchia scriverebbe strati dati che esistono, l'errore che `CLAUDE.md`
       elenca fra i più costosi con quattro casi datati.
+- [x] ✅ **IL LOTTO SENZA FRONTE** *(01/08, Terra)* — quarto dei cinque: un lotto
+      che non dichiara nessun fronte **non ha volume zero**, non ha un modo di
+      essere misurato («misurati —», non «0 m³», perché su un lotto lo zero si
+      legge «non ci abbiamo ancora lavorato»). ⚠️ E la prima versione della
+      prova **non distingueva**: «misurati —» compare anche su un lotto che il
+      fronte ce l'ha ma non ha ancora rilievi, quindi i dati facevano
+      coincidere giusto e sbagliato — **caso 1**, si correggono i dati della
+      prova. Ora la riga nomina il lotto. Seconda volta stanotte che una prova
+      nuova nasce cieca, e tutt'e due le volte se n'è accorta **solo la
+      controprova**. Banco **46/0**, 21 stati. Restano **1 dei 5**.
 - [x] ✅ **L'ORDINAMENTO TRANQUILLO** *(01/08, Conti)* — il terzo dei cinque non
       era dove pensavo. «senza scadenza: non si sa entro quando» sta nel
       pannello «cosa fare adesso», che mostra le prime **tre** per priorità — e
