@@ -12855,7 +12855,6 @@ test("⛔ Flotta: le ore ignote arrivano ignote anche a chi le chiede due volte"
   });
 }
 
-if (inVolo.length) await Promise.all(inVolo);   // si aspetta PRIMA di contare
 // ── Campo · riposo fra due turni ───────────────────────────────────────
 // D.Lgs 66/2003 art. 7: undici ore consecutive di riposo ogni ventiquattro.
 // Il conto poggia sull'appello, che ha TRE risposte, e da lì l'asimmetria che
@@ -12948,6 +12947,17 @@ if (inVolo.length) await Promise.all(inVolo);   // si aspetta PRIMA di contare
     contiene(r, { stato: "non-misurabile", ore: null, misurabile: false }, "niente denominatore, niente numero");
     ok(/durata/.test(r.perche), "e lo dice: " + r.perche);
     eq(r.ultimo, { data: IERI, turno: "Pomeriggio" }, "il turno di cui manca la durata è nominato");
+    // ⛔ LA DATA LA SCRIVE L'INTERFACCIA, come in `riassuntoRiapertura`: la
+    // frase mostrata a chi comanda il turno non contiene mai un «2026-03-09»,
+    // che è una stringa da macchina in un'app scritta in italiano. Trovato
+    // guardando lo scatto, non leggendo il codice.
+    ok(!/\d{4}-\d{2}-\d{2}/.test(r.perche), "la ragione non porta dentro nessuna data ISO");
+    const dmy = (iso) => iso.slice(8, 10) + "/" + iso.slice(5, 7) + "/" + iso.slice(0, 4);
+    eq(campo.testoRiposo(r, dmy),
+       "Riposo non misurabile — del turno precedente non è stata dichiarata la durata: "
+       + "senza quella non si sa a che ora è finito (turno Pomeriggio del 09/03/2026)",
+       "col formattatore della pagina la data è quella che si legge in cava");
+    ok(campo.testoRiposo(r).includes("2026-03-09"), "senza formattatore la data resta com'è, e non salta niente");
   });
 
   test("Campo · riposo: nessuna spunta da nessuna parte non è «riposato»", () => {
@@ -13013,19 +13023,41 @@ if (inVolo.length) await Promise.all(inVolo);   // si aspetta PRIMA di contare
        "senza nessuno in elenco non si dice «tutti a posto»");
   });
 
-  test("Campo · riposo: sulla dimostrazione si vedono tutti e quattro gli esiti", () => {
+  test("Campo · riposo: sulla dimostrazione si vedono tutti gli esiti", () => {
     const D = campo.DEMO, oggi = campo.oggiISO();
-    const q = campo.riposoDiTurno(D.operatori, D.presenze, D.durate, oggi, "Mattina", "");
-    contiene(q, { totale: 4, sotto: 1, regolari: 1, nonMisurabili: 2 },
-             "quattro in forza: uno sotto, uno regolare, due che non si sanno");
-    const per = {}; q.righe.forEach((r) => { per[r.operatore.id] = r; });
-    contiene(per.o1, { stato: "sotto", ore: 8, limite: "" }, "o1 ha finito ieri alle 22 e ricomincia alle 6");
-    contiene(per.o2, { stato: "regolare", ore: 16, limite: "" }, "o2 ha finito ieri alle 14");
-    contiene(per.o3, { stato: "non-misurabile", ore: 16, limite: "al-piu", buchi: 2 },
+    const m = campo.riposoDiTurno(D.operatori, D.presenze, D.durate, oggi, "Mattina", "");
+    // o3 è spuntata ASSENTE alla Mattina di oggi: resta fuori, perché il riposo
+    // prima di un turno riguarda chi quel turno lo fa
+    contiene(m, { totale: 3, sotto: 1, regolari: 1, nonMisurabili: 1 },
+             "tre in turno: uno sotto, uno regolare, uno che non si sa");
+    const pm = {}; m.righe.forEach((r) => { pm[r.operatore.id] = r; });
+    ok(!pm.o3, "chi è spuntato assente non compare fra le righe del riposo");
+    contiene(pm.o1, { stato: "sotto", ore: 8, limite: "" }, "o1 ha finito ieri alle 22 e ricomincia alle 6");
+    contiene(pm.o2, { stato: "regolare", ore: 16, limite: "" }, "o2 ha finito ieri alle 14");
+    ok(/durata/.test(pm.o4.perche), "o4 era di Notte e della Notte manca la durata: " + pm.o4.perche);
+    // il quarto esito — il TETTO che non assolve — la dimostrazione lo mostra
+    // al Pomeriggio, dove o3 è presente e ha due turni non spuntati alle spalle
+    const p = campo.riposoDiTurno(D.operatori, D.presenze, D.durate, oggi, "Pomeriggio", "");
+    const pp = {}; p.righe.forEach((r) => { pp[r.operatore.id] = r; });
+    contiene(pp.o3, { stato: "non-misurabile", ore: 24, limite: "al-piu", buchi: 2 },
              "o3 ha due turni non spuntati in mezzo: il tetto non assolve");
-    ok(/durata/.test(per.o4.perche), "o4 era di Notte e della Notte manca la durata: " + per.o4.perche);
     // la dimostrazione deve mostrare la DIFESA, non solo il caso bello
-    ok(q.nonMisurabili > 0, "e i buchi nei dati d'esempio ci sono apposta");
+    ok(m.nonMisurabili > 0 && p.nonMisurabili > 0, "e i buchi nei dati d'esempio ci sono apposta");
+  });
+
+  test("Campo · riposo: chi è spuntato assente non entra, chi non è spuntato sì", () => {
+    const OP = [{ id: "o1", nome: "A", squadra: "Squadra A", stato: "in-forza" },
+                { id: "o2", nome: "B", squadra: "Squadra A", stato: "in-forza" }];
+    const lavoro = [pre(IERI, "Pomeriggio", "o1", "presente"), pre(IERI, "Notte", "o1", "assente"),
+                    pre(IERI, "Pomeriggio", "o2", "presente"), pre(IERI, "Notte", "o2", "assente")];
+    // tutti e due sotto le undici ore, ma o1 oggi è spuntato assente
+    const q = campo.riposoDiTurno(OP, lavoro.concat([pre(OGGI_R, "Mattina", "o1", "assente")]),
+                                  DUR, OGGI_R, "Mattina", "");
+    contiene(q, { totale: 1, sotto: 1 }, "chi non è venuto non porta una violazione che non c'è");
+    eq(q.righe[0].operatore.id, "o2", "resta solo chi il turno lo fa");
+    // ⛔ e chi NON è stato spuntato resta dentro: «non lo so» non è «non c'è»
+    const q2 = campo.riposoDiTurno(OP, lavoro, DUR, OGGI_R, "Mattina", "");
+    contiene(q2, { totale: 2, sotto: 2 }, "nessuno spuntato oggi: si guardano tutt'e due");
   });
 }
 
@@ -13220,5 +13252,250 @@ if (inVolo.length) await Promise.all(inVolo);   // si aspetta PRIMA di contare
   });
 }
 
+// ── Scudo · appaltatori e DUVRI ──────────────────────────────────────
+// L'art. 26 D.Lgs 81/08 mette in capo al committente due obblighi che nascono
+// insieme: verificare l'idoneità tecnico-professionale dell'impresa, e
+// redigere il documento di valutazione dei rischi da interferenze. In cava il
+// secondo non è il DUVRI ma il DSS coordinato (art. 9 D.Lgs 624/96), che in
+// più vuole la FIRMA dell'appaltatore.
+// Le prove sono scritte attorno alla direzione pericolosa: non «sbaglia il
+// conto», ma «risponde la cosa tranquilla su un dato che non ha».
+{
+  const OGGI = new Date("2026-08-01T09:00:00");
+  const CAVA = { id: "k1", nome: "Cava Monte Alto", tipo: "cava" };
+  const FUORI = { id: "k2", nome: "Cantiere cliente", tipo: "cantiere" };
+  const IMPRESA = { id: "a1", ragioneSociale: "Trasporti Rossi" };
+  const QUALIFICATA = [
+    { id: "d1", appaltatoreId: "a1", tipoQualifica: "cciaa", scadenza: "2027-01-01" },
+    { id: "d2", appaltatoreId: "a1", tipoQualifica: "autocert" },
+  ];
+
+  test("Scudo · qualifica: un'impresa senza nessun documento NON è idonea, è NON VERIFICATA", () => {
+    const q = scudo.qualificaAppaltatore(IMPRESA, [], OGGI);
+    eq([q.esito, q.noto], ["non-verificato", false],
+       "zero documenti: l'esito ha un nome suo e la bandiera è giù");
+    ok(/non lo sappiamo/i.test(q.perche), "e la ragione dice la differenza: «" + q.perche + "»");
+    ok(/Non lo sappiamo/.test(scudo.descriviQualifica(q)),
+       "chi consuma la bandiera dentro il modulo antepone il dubbio (regola 20)");
+  });
+
+  test("Scudo · qualifica: i due documenti dell'art. 26 bastano, il DURC da solo no", () => {
+    eq(scudo.qualificaAppaltatore(IMPRESA, QUALIFICATA, OGGI).esito, "verificato",
+       "certificato camerale + autocertificazione ex art. 47 DPR 445/2000");
+    eq(scudo.qualificaAppaltatore(IMPRESA, [QUALIFICATA[0]], OGGI).mancanti,
+       ["Autocertificazione dei requisiti"], "manca il secondo dei due, e viene detto per nome");
+    eq(scudo.qualificaAppaltatore(IMPRESA,
+         [{ id: "x", appaltatoreId: "a1", tipoQualifica: "durc", scadenza: "2027-01-01" }], OGGI).esito,
+       "incompleto",
+       "il DURC non è nell'elenco dell'art. 26: averlo non copre i due che lo sono");
+    eq(scudo.tipoDocAppaltatore("durc").obbligatorio, false,
+       "e infatti non è dichiarato obbligatorio: dirlo tale sarebbe citare male una norma");
+  });
+
+  test("Scudo · qualifica: scaduto, senza data e «di un altro» sono tre cose diverse", () => {
+    eq(scudo.qualificaAppaltatore(IMPRESA,
+         [{ ...QUALIFICATA[0], scadenza: "2026-01-01" }, QUALIFICATA[1]], OGGI).esito, "scaduto",
+       "la scadenza la giudica statoScadenza, che è statoScadenzaHSE di shared/ — non una seconda copia");
+    const sd = scudo.qualificaAppaltatore(IMPRESA, [{ ...QUALIFICATA[0], scadenza: null }, QUALIFICATA[1]], OGGI);
+    eq([sd.esito, sd.noto], ["senza-data", false], "una data illeggibile non è una scadenza a posto");
+    eq(scudo.qualificaAppaltatore(IMPRESA,
+         [{ id: "z", appaltatoreId: "a9", tipoQualifica: "cciaa", scadenza: "2027-01-01" }], OGGI).esito,
+       "non-verificato", "i documenti di un'ALTRA impresa non qualificano questa");
+  });
+
+  test("Scudo · in cava il documento è il DSS coordinato, non il DUVRI", () => {
+    const c = scudo.duvriDovuto({ uominiGiorno: 1 }, CAVA);
+    eq([c.sigla, c.norma, c.serve, c.sottoscrizione],
+       ["DSS coordinato", "art. 9 D.Lgs 624/96", true, true],
+       "un solo uomo-giorno in cava: il DSS coordinato serve lo stesso, e vuole la firma");
+    const f = scudo.duvriDovuto({ uominiGiorno: 8 }, FUORI);
+    eq([f.sigla, f.norma, f.sottoscrizione],
+       ["DUVRI", "art. 26 c.3 D.Lgs 81/08", false], "fuori dalla cava vale la regola generale");
+  });
+
+  test("Scudo · DUVRI: «non lo so» non è «non serve» — la durata mai scritta", () => {
+    const senza = scudo.duvriDovuto({}, FUORI);
+    eq([senza.serve, senza.noto], [null, false],
+       "⛔ uominiGiorno assente sarebbe finito a zero (`+null` fa 0, e 0 ≤ 5): "
+       + "l'appalto di cui nessuno ha scritto niente sarebbe uscito ESENTE");
+    ok(/non si può dire/.test(senza.perche), "e lo dice: «" + senza.perche + "»");
+    eq(scudo.duvriDovuto({ uominiGiorno: 8 }, FUORI).serve, true, "sopra i cinque uomini-giorno serve");
+    eq(scudo.duvriDovuto({ uominiGiorno: 3, rischiValutati: true }, FUORI).serve, false,
+       "sotto i cinque, e con i rischi particolari guardati, non serve (art. 26 c.3-bis)");
+    eq(scudo.duvriDovuto({ uominiGiorno: 3 }, FUORI).serve, null,
+       "ma finché nessuno ha guardato i rischi l'esclusione non si può concedere: il c.3-bis dice «sempre che»");
+    /* ⛔ QUESTA RIGA L'HA CHIESTA LA CONTROPROVA, ed è la combinazione che morde
+       davvero: chi compila con diligenza spunta «rischi guardati» e si dimentica
+       la durata. Togliendo la guardia su `uominiGiorno`, `+undefined` non è più
+       un numero e l'appalto scivola fino all'ultima riga della funzione, che
+       dichiara l'esclusione. Con solo `duvriDovuto({})` il difetto NON si vedeva:
+       la prova c'era e il caso difeso no. */
+    eq(scudo.duvriDovuto({ rischiValutati: true }, FUORI).serve, null,
+       "aver guardato i rischi non rende esente un appalto di cui non si sa la durata");
+  });
+
+  test("Scudo · DUVRI: i casi esclusi contano quanto quelli inclusi", () => {
+    eq(scudo.duvriDovuto({ natura: "fornitura", rischiValutati: true }, FUORI).serve, false,
+       "una mera fornitura di materiali è esclusa: dirla obbligatoria farebbe fare lavoro inutile");
+    eq(scudo.duvriDovuto({ natura: "intellettuale", rischiValutati: true }, FUORI).serve, false,
+       "e così un servizio di natura intellettuale");
+    eq(scudo.duvriDovuto({ uominiGiorno: 2, rischiValutati: true, rischiParticolari: ["esplosive"] }, FUORI).serve,
+       true, "ma con atmosfere esplosive nessuna esclusione tiene, nemmeno per due giorni");
+    eq(scudo.rischioParticolare("amianto").nome, "Amianto", "i cinque rischi del c.3-bis sono in elenco");
+  });
+
+  test("Scudo · costi da interferenze: un campo vuoto non è «zero euro dichiarati»", () => {
+    eq([scudo.costiInterferenze({ costiSicurezza: "" }).indicati,
+        scudo.costiInterferenze({ costiSicurezza: "" }).importo], [false, null],
+       "⛔ `+\"\"` fa 0: senza questa guardia un campo mai compilato assolveva l'art. 26 c.5");
+    eq(scudo.costiInterferenze({}).indicati, false, "e nemmeno il campo che non c'è");
+    const zero = scudo.costiInterferenze({ costiSicurezza: 0 });
+    eq([zero.indicati, zero.importo], [true, 0],
+       "zero DICHIARATO invece è una posizione che qualcuno si è preso");
+    eq(scudo.costiInterferenze({ costiSicurezza: 1200 }).importo, 1200, "e un importo si legge");
+    ok(/nullità/i.test(scudo.costiInterferenze({}).perche),
+       "la ragione cita la conseguenza vera: l'art. 26 c.5 li vuole indicati a pena di nullità");
+  });
+
+  test("Scudo · il DUVRI non è un allegato, è una decisione: chi, quando, per quale appalto", () => {
+    const B = { uominiGiorno: 10, dataInizio: "2026-03-01" };
+    eq(scudo.statoCoordinamento(B, FUORI, OGGI).stato, "non-redatto", "dovuto e non risulta redatto");
+    eq(scudo.statoCoordinamento({ ...B, coordRedattore: "Ing. Bianchi" }, FUORI, OGGI).stato, "senza-data",
+       "un documento di coordinamento senza data non copre nessun periodo");
+    eq(scudo.statoCoordinamento({ ...B, coordData: "2026-02-20" }, FUORI, OGGI).stato, "senza-redattore",
+       "e uno senza redattore non attribuisce a nessuno una responsabilità che il committente non delega");
+    eq(scudo.statoCoordinamento({ ...B, coordRedattore: "Ing. Bianchi", coordData: "2026-02-20" }, FUORI, OGGI).stato,
+       "in-vigore", "con tutt'e due, e datato prima dell'avvio, è in vigore");
+  });
+
+  test("Scudo · coordinamento: il documento datato DOPO l'avvio non copriva l'avvio", () => {
+    const B = { uominiGiorno: 10, dataInizio: "2026-03-01", coordRedattore: "Ing. Bianchi" };
+    eq(scudo.statoCoordinamento({ ...B, coordData: "2026-04-10" }, FUORI, OGGI).stato, "tardivo",
+       "l'art. 26 c.3 lo vuole allegato al contratto: un mese dopo, i primi giorni erano scoperti");
+    /* ⛔ IL DIFETTO CHE IL PROTOTIPO HA PRESO PRIMA DEL MODULO: confrontando le
+       stringhe intere «2026-03-01T08:00» è maggiore di «2026-03-01», e un
+       documento firmato LO STESSO GIORNO dell'avvio veniva dichiarato tardivo —
+       un ritardo inventato da un'ora attaccata alla data. Si confrontano i giorni. */
+    eq(scudo.statoCoordinamento({ ...B, coordData: "2026-03-01T08:00" }, FUORI, OGGI).stato, "in-vigore",
+       "firmato lo stesso giorno, con l'ora attaccata: non è un ritardo");
+    eq(scudo.statoCoordinamento({ ...B, dataInizio: null, coordData: "2026-04-10" }, FUORI, OGGI).stato, "in-vigore",
+       "senza una data d'inizio leggibile il confronto non si fa: non si inventa un ritardo");
+  });
+
+  test("Scudo · in cava il DSS coordinato senza la firma dell'impresa non la impegna", () => {
+    const B = { uominiGiorno: 10, dataInizio: "2026-03-01", coordRedattore: "Ing. Bianchi", coordData: "2026-02-20" };
+    eq(scudo.statoCoordinamento(B, CAVA, OGGI).stato, "da-sottoscrivere",
+       "art. 9 c.2 D.Lgs 624/96: è con la sottoscrizione che l'appaltatore diventa responsabile "
+       + "della parte di sua competenza");
+    eq(scudo.statoCoordinamento({ ...B, coordSottoscritto: true }, CAVA, OGGI).stato, "in-vigore", "firmato: in vigore");
+    eq(scudo.statoCoordinamento(B, FUORI, OGGI).stato, "in-vigore",
+       "il DUVRI dell'art. 26 la firma non la chiede: la differenza fra i due documenti è questa");
+  });
+
+  test("Scudo · la riga dell'appalto tiene separati i problemi dai buchi", () => {
+    const SANO = { id: "p1", appaltatoreId: "a1", cantiereId: "k1", uominiGiorno: 10,
+      dataInizio: "2026-03-01", coordRedattore: "Ing. Bianchi", coordData: "2026-02-20",
+      coordSottoscritto: true, costiSicurezza: 900 };
+    eq(scudo.statoAppalto(SANO, CAVA, IMPRESA, QUALIFICATA, OGGI).esito, "a-posto", "tutto in ordine");
+    const mai = scudo.statoAppalto(SANO, CAVA, IMPRESA, [], OGGI);
+    eq([mai.esito, mai.noto, mai.problemi.length, mai.ignoti.length], ["non-verificato", false, 0, 1],
+       "⛔ documento perfetto ma impresa mai verificata: NON è «da sistemare» e NON è «a posto». "
+       + "Sommarlo ai problemi direbbe una colpa che non è stata accertata; ignorarlo darebbe il verde");
+    eq(scudo.statoAppalto({ ...SANO, costiSicurezza: "" }, CAVA, IMPRESA, QUALIFICATA, OGGI).esito,
+       "da-sistemare", "i costi non indicati sono un problema vero, non un dubbio");
+    eq(scudo.statoAppalto({ id: "p2", appaltatoreId: "a1", cantiereId: "k2", uominiGiorno: 2, rischiValutati: true },
+         FUORI, IMPRESA, QUALIFICATA, OGGI).esito, "a-posto",
+       "ma dove il documento non è dovuto i costi da interferenze non si contestano");
+    eq(scudo.statoAppalto({ ...SANO, cantiereId: "kX" }, undefined, IMPRESA, QUALIFICATA, OGGI).coordinamento.sigla,
+       "DUVRI", "un cantiere che non si trova non diventa una cava con le sue regole");
+  });
+
+  test("Scudo · nessun appalto registrato non è «nessuna impresa in cava»", () => {
+    const vuoto = scudo.riepilogoAppalti([], [CAVA], [IMPRESA], QUALIFICATA, OGGI);
+    eq([vuoto.quanti, vuoto.noto], [0, false],
+       "un registro vuoto non dimostra la conformità: dimostra che non è stato compilato");
+    ok(/non dimostra niente/.test(vuoto.testo), "e il testo lo dice: «" + vuoto.testo + "»");
+  });
+
+  test("Scudo · il riepilogo degli appalti conta i buchi a parte, e la demo li mostra tutti", () => {
+    const D = scudo.DEMO;
+    const r = scudo.riepilogoAppalti(D.appalti, D.cantieri, D.appaltatori, D.documenti, OGGI);
+    eq([r.quanti, r.aPosto, r.daSistemare, r.nonVerificati, r.noto], [4, 1, 2, 1, false],
+       "quattro appalti attivi, e i non verificati non finiscono né fra i buoni né fra i cattivi");
+    eq([...new Set(r.righe.map((x) => x.esito))].sort(), ["a-posto", "da-sistemare", "non-verificato"],
+       "la dimostrazione contiene tutti e tre gli esiti: quello che il prodotto sa dire, si vede");
+    eq(r.righe.find((x) => x.appalto.id === "pa2").esito, "non-verificato",
+       "⛔ l'appalto con le atmosfere esplosive ha il documento perfetto e l'impresa mai verificata: "
+       + "è la riga per cui questo modulo esiste");
+    eq(scudo.riepilogoAppalti([{ ...D.appalti[0], stato: "chiuso" }], D.cantieri, D.appaltatori, D.documenti, OGGI).quanti,
+       0, "un appalto chiuso non pesa più");
+  });
+
+  test("Scudo · le imprese da verificare, e i due indici per appaltatore e per cantiere", () => {
+    const D = scudo.DEMO;
+    eq(scudo.appaltatoriDaVerificare(D.appaltatori, D.documenti, OGGI).map((r) => r.esito).sort(),
+       ["non-verificato", "scaduto"], "due imprese su tre hanno qualcosa da sistemare, e per ragioni diverse");
+    eq(scudo.appaltatoriDaVerificare([IMPRESA], QUALIFICATA, OGGI).length, 0, "chi è a posto non compare");
+    eq(scudo.appaltatoriDaVerificare([{ ...IMPRESA, attivo: false }], [], OGGI).length, 0,
+       "e un'impresa non più attiva non si va a cercare");
+    eq(scudo.appaltiDiCantiere(D.appalti, "k1").map((a) => a.id), ["pa1", "pa2", "pa4"], "gli appalti della cava");
+    eq(scudo.appaltiDiAppaltatore(D.appalti, "ap1").map((a) => a.id), ["pa1", "pa4"], "e quelli di un'impresa");
+    eq([scudo.appaltiDiCantiere(D.appalti, null).length, scudo.appaltiDiAppaltatore(D.appalti, "").length], [0, 0],
+       "senza un id non si restituisce «tutto»: si restituisce niente");
+  });
+
+  test("Scudo · gli stati del coordinamento sono tutti raggiungibili (regola 18)", () => {
+    const B = { uominiGiorno: 10, dataInizio: "2026-03-01", coordRedattore: "R", coordData: "2026-02-20" };
+    const visti = new Set([
+      scudo.statoCoordinamento({ dataInizio: "2026-03-01" }, FUORI, OGGI).stato,
+      scudo.statoCoordinamento({ uominiGiorno: 2, rischiValutati: true }, FUORI, OGGI).stato,
+      scudo.statoCoordinamento({ uominiGiorno: 10 }, FUORI, OGGI).stato,
+      scudo.statoCoordinamento({ ...B, coordData: null }, FUORI, OGGI).stato,
+      scudo.statoCoordinamento({ ...B, coordRedattore: "" }, FUORI, OGGI).stato,
+      scudo.statoCoordinamento({ ...B, coordData: "2026-04-10" }, FUORI, OGGI).stato,
+      scudo.statoCoordinamento(B, CAVA, OGGI).stato,
+      scudo.statoCoordinamento(B, FUORI, OGGI).stato,
+    ]);
+    eq([...visti].sort(), [...scudo.STATI_COORDINAMENTO].sort(),
+       "tutti e otto escono da questi casi: la mappa dei badge della pagina deve coprirli tutti");
+  });
+  test("Scudo · gli elenchi che la pagina offre e quelli che il modulo capisce sono gli stessi", () => {
+    /* Una tendina che offre una scelta che la funzione non sa leggere è la
+       forma silenziosa del difetto: l'utente sceglie «mera fornitura», il
+       modulo non riconosce la chiave e risponde come se non l'avesse detto. */
+    eq(scudo.NATURE_APPALTO.map((n) => n.chiave), ["", "intellettuale", "fornitura"],
+       "le tre nature che la pagina propone");
+    for (const n of scudo.NATURE_APPALTO.filter((x) => x.chiave))
+      eq(scudo.duvriDovuto({ natura: n.chiave, rischiValutati: true }, FUORI).serve, false,
+         "«" + n.chiave + "» è una chiave che duvriDovuto riconosce come esclusione");
+    eq(scudo.duvriDovuto({ natura: "inventata", rischiValutati: true, uominiGiorno: 9 }, FUORI).serve, true,
+       "e una natura che non esiste non esclude niente");
+
+    eq(scudo.TIPI_DOC_APPALTATORE.filter((t) => t.obbligatorio).map((t) => t.chiave), ["cciaa", "autocert"],
+       "gli obbligatori sono i due e soli due che l'art. 26 c.1 lett. a) elenca");
+    ok(scudo.TIPI_DOC_APPALTATORE.every((t) => t.fonte && t.nome),
+       "e ogni riga porta scritta la sua provenienza, così «obbligatorio» non si gonfia");
+    eq(scudo.tipoDocAppaltatore("boh"), null, "una chiave sconosciuta non inventa un tipo");
+
+    eq(scudo.RISCHI_PARTICOLARI.length, 5, "i cinque rischi che il c.3-bis mette al riparo dalle esclusioni");
+    for (const r of scudo.RISCHI_PARTICOLARI)
+      eq(scudo.duvriDovuto({ uominiGiorno: 1, rischiValutati: true, rischiParticolari: [r.chiave] }, FUORI).serve,
+         true, "«" + r.chiave + "» da solo basta a rendere dovuto il documento");
+
+    eq(scudo.documentoCoordinamento({ tipo: "cava" }).sigla, "DSS coordinato", "in cava");
+    eq(scudo.documentoCoordinamento({ tipo: "cantiere" }).sigla, "DUVRI", "fuori");
+    eq(scudo.documentoCoordinamento(null).sigla, "DUVRI",
+       "e senza cantiere si sceglie la regola generale, non quella speciale: non si applica alla cieca "
+       + "una norma di settore a un luogo che non si conosce");
+
+    const D = scudo.DEMO;
+    eq(scudo.docDiAppaltatore(D.documenti, "ap1").map((d) => d.tipoQualifica), ["cciaa", "autocert", "durc"],
+       "i documenti di qualifica stanno nel registro documenti di Scudo, non in un secondo archivio");
+    eq([scudo.docDiAppaltatore(D.documenti, "ap3").length, scudo.docDiAppaltatore(D.documenti, null).length], [0, 0],
+       "l'impresa non verificata non ne ha nessuno, e senza id non si restituisce tutto");
+  });
+}
+
+if (inVolo.length) await Promise.all(inVolo);   // si aspetta PRIMA di contare
 console.log(`\nRisultato KPI app: ${passed} passati, ${failed} falliti${inVolo.length ? `  ·  ${inVolo.length} prove asincrone aspettate` : ""}`);
 process.exit(failed > 0 ? 1 : 0);

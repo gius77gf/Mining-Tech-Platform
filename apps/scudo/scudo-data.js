@@ -141,10 +141,76 @@ export const DEMO = {
        vedeva nessuno — né il fondatore né uno scatto. Un dato che manca è uno
        stato che il prodotto sa raccontare, e la dimostrazione lo mostra. */
     { id: "c6", titolo: "Autorizzazione allo scarico acque di lavorazione", meta: "Da archivio cartaceo, stato non registrato", tipo: "Altro", cantiereId: "k1", stato: "" },
+    /* I DOCUMENTI DI QUALIFICA DELLE IMPRESE ESTERNE. Vivono in QUESTO
+       registro — non in un secondo archivio — collegati da `appaltatoreId`
+       come gli altri si collegano a `cantiereId` e `lavoratoreId`; `scadenza`
+       la legge `statoScadenza`, che è la stessa regola dello scadenzario.
+       ⛔ Manca di proposito qualunque riga per «ap3»: è l'impresa NON
+       VERIFICATA, e un'assenza è uno stato che il prodotto sa raccontare. */
+    { id: "c7", titolo: "Visura CCIAA — Autotrasporti Valle srl", meta: "art. 26 c.1 lett. a)", tipo: "Altro",
+      appaltatoreId: "ap1", tipoQualifica: "cciaa", scadenza: "2027-02-10", stato: "valido" },
+    { id: "c8", titolo: "Autocertificazione requisiti — Autotrasporti Valle srl", meta: "art. 47 DPR 445/2000", tipo: "Altro",
+      appaltatoreId: "ap1", tipoQualifica: "autocert", scadenza: null, stato: "valido" },
+    { id: "c9", titolo: "DURC — Autotrasporti Valle srl", meta: "Validità 120 giorni", tipo: "Altro",
+      appaltatoreId: "ap1", tipoQualifica: "durc", scadenza: "2026-11-30", stato: "valido" },
+    /* Officina Meccanica Sud: il camerale c'è ed è SCADUTO. Non è un dettaglio
+       formale — è la riga per cui l'esito «scaduto» esiste separato da
+       «incompleto»: qualcuno ha guardato, e quello che ha trovato non vale più. */
+    { id: "c10", titolo: "Visura CCIAA — Officina Meccanica Sud snc", meta: "Da rinnovare", tipo: "Altro",
+      appaltatoreId: "ap2", tipoQualifica: "cciaa", scadenza: "2026-05-31", stato: "da-rivedere" },
   ],
   cantieri: [
     { id: "k1", nome: "Cava Monte Alto", comune: "Comune di esempio", tipo: "cava", stato: "attivo" },
     { id: "k2", nome: "Cantiere cliente Edilcave", comune: "Comune di esempio", tipo: "cantiere", stato: "attivo" },
+  ],
+  /* LE IMPRESE ESTERNE. In una cava ci sono sempre: chi trasporta, chi ripara,
+     chi perfora, chi ripristina. Le tre righe mostrano i tre esiti che la
+     qualifica sa dire, e la terza è quella che conta: un'impresa **senza
+     nessun documento** non è «idonea finché non si scopre il contrario», è
+     NON VERIFICATA, ed è il caso su cui un ispettore guarda per primo. */
+  appaltatori: [
+    { id: "ap1", ragioneSociale: "Autotrasporti Valle srl", partitaIva: "0000000001",
+      attivita: "Trasporto inerti", referente: "—", telefono: "", attivo: true },
+    { id: "ap2", ragioneSociale: "Officina Meccanica Sud snc", partitaIva: "0000000002",
+      attivita: "Manutenzione mezzi e frantoio", referente: "—", telefono: "", attivo: true },
+    { id: "ap3", ragioneSociale: "Perforazioni Rocca srl", partitaIva: "0000000003",
+      attivita: "Perforazione e volate", referente: "—", telefono: "", attivo: true },
+  ],
+  /* GLI APPALTI. Ogni riga è uno degli esiti che il modulo deve saper dire, e
+     nessuna è di riempimento:
+     · pa1 — tutto in ordine, in cava: DSS coordinato redatto, datato e
+       SOTTOSCRITTO dall'impresa (art. 9 c.2 D.Lgs 624/96);
+     · pa2 — ⛔ LA RIGA PER CUI ESISTE QUESTO MODULO. Sulla carta è impeccabile:
+       DSS coordinato redatto, datato, sottoscritto, costi da interferenze
+       indicati. Ma l'impresa che perfora col rischio di atmosfere esplosive
+       **non è mai stata verificata** — nessun documento, nemmeno il camerale.
+       L'esito NON è «a posto» e non è «da sistemare»: è **non verificato**, e
+       si legge diverso dagli altri due. Un semaforo verde qui sarebbe la cosa
+       peggiore che questa schermata possa fare, perché è quella che si mostra
+       a un ispettore;
+     · pa3 — fuori cava, e la durata in uomini-giorno **non è stata scritta**:
+       non è un appalto esente, è un appalto su cui non si può decidere. È il
+       caso per cui `duvriDovuto` ha tre risposte invece di due, e senza questa
+       riga la dimostrazione non lo mostrerebbe mai;
+     · pa4 — in cava, DSS coordinato redatto ma **mai sottoscritto**: senza la
+       firma l'appaltatore non è responsabile della parte di sua competenza. */
+  appalti: [
+    { id: "pa1", appaltatoreId: "ap1", cantiereId: "k1", oggetto: "Trasporto inerti al piazzale",
+      dataInizio: "2026-02-01", uominiGiorno: 120, natura: "", rischiValutati: true, rischiParticolari: [],
+      coordRedattore: "RSPP dell'azienda", coordData: "2026-01-28", coordSottoscritto: true,
+      costiSicurezza: 1400, stato: "attivo" },
+    { id: "pa2", appaltatoreId: "ap3", cantiereId: "k1", oggetto: "Perforazione fronte Est",
+      dataInizio: "2026-06-15", uominiGiorno: 24, natura: "", rischiValutati: true, rischiParticolari: ["esplosive"],
+      coordRedattore: "RSPP dell'azienda", coordData: "2026-06-10", coordSottoscritto: true,
+      costiSicurezza: 2200, stato: "attivo" },
+    { id: "pa3", appaltatoreId: "ap2", cantiereId: "k2", oggetto: "Revisione impianto di frantumazione",
+      dataInizio: "2026-07-20", uominiGiorno: null, natura: "", rischiValutati: false, rischiParticolari: [],
+      coordRedattore: "", coordData: null, coordSottoscritto: false,
+      costiSicurezza: null, stato: "attivo" },
+    { id: "pa4", appaltatoreId: "ap1", cantiereId: "k1", oggetto: "Trasporto materiale di ripristino",
+      dataInizio: "2026-07-01", uominiGiorno: 18, natura: "", rischiValutati: true, rischiParticolari: [],
+      coordRedattore: "RSPP dell'azienda", coordData: "2026-06-25", coordSottoscritto: false,
+      costiSicurezza: 300, stato: "attivo" },
   ],
   infortuni: [
     { id: "i1", data: "2026-05-18", tipo: "near-miss", gravita: "lieve", giorniAssenza: 0, luogo: "fronte Est", luogoTipo: "fronte", categoria: "caduta-massi", descrizione: "Caduta massi vicino al perforatore, nessun ferito" },
@@ -1922,6 +1988,11 @@ export async function scudoData() {
            non ne ha mai scritta una legge un elenco vuoto, e il registro si
            apre con tutti gli eventi «senza un perché» — che è la verità. */
         analisi:    () => read("analisi"),
+        /* le imprese esterne e i loro appalti. Come le collezioni di S4/S5:
+           chi non le ha mai scritte legge un elenco vuoto — e la schermata NON
+           dice «tutto a posto», dice che non c'è ancora niente da mostrare. */
+        appaltatori: () => read("appaltatori"),
+        appalti:     () => read("appalti"),
         aggiungi: (name, data) => addDoc(id.orgCollection(name), data),
         logout: () => id.logout(),
         aggiorna: (name, docId, data) => updateDoc(doc(id.orgCollection(name), docId), data),
@@ -1976,6 +2047,8 @@ export async function scudoData() {
       nomine:     async () => mem.nomine || [],
       dpi:        async () => mem.dpi || [],
       analisi:    async () => mem.analisi || (mem.analisi = []),
+      appaltatori: async () => mem.appaltatori || (mem.appaltatori = []),
+      appalti:     async () => mem.appalti || (mem.appalti = []),
       logout: async () => {},
       aggiungi: async (name, data) => { const id = "m" + Math.random().toString(36).slice(2, 8); (mem[name] = mem[name] || []).push({ id, ...data }); return { id }; },
       aggiorna: async (name, docId, data) => {
@@ -2290,4 +2363,344 @@ export function causeRicorrenti(infortuni, analisi) {
     motivo: troppoPochiPerTendenza(conAnalisi.length)
       ? `${conAnalisi.length === 0 ? "Nessun evento è stato analizzato" : "Solo " + conAnalisi.length + " event" + (conAnalisi.length === 1 ? "o è stato analizzato" : "i sono stati analizzati")} su ${eventi.length}: servono almeno ${MIN_TENDENZA} analisi prima di poter dire quali cause si ripetono.`
       : "" };
+}
+
+// ══════════════════════════════════════════════════════════════════════
+// APPALTATORI, QUALIFICA E DOCUMENTO DI COORDINAMENTO
+// ══════════════════════════════════════════════════════════════════════
+// In una cava le imprese esterne ci sono sempre: trasportatori, manutentori,
+// ditte di perforazione, imprese di ripristino. Il committente ha due obblighi
+// che nascono insieme, e questa parte del modulo serve a tenerli in ordine.
+//
+// ⛔ E IL SECONDO OBBLIGO, IN CAVA, NON È IL DUVRI. È la cosa che vale la pena
+// sapere di tutto questo blocco:
+//  · fuori dalla cava (un cantiere di un cliente) vale la regola generale —
+//    art. 26 c.3 D.Lgs 81/08, che chiede al committente il DUVRI;
+//  · DENTRO la cava vale la norma speciale delle attività estrattive —
+//    art. 9 D.Lgs 624/96, che chiede al TITOLARE il **DSS coordinato**: gli
+//    appaltatori gli trasmettono la propria valutazione dei rischi, lui la
+//    valuta insieme ai rischi dell'attività estrattiva e redige il documento
+//    coordinato, e gli appaltatori — sentiti i propri rappresentanti dei
+//    lavoratori — lo **sottoscrivono**, diventando responsabili della parte di
+//    loro competenza (art. 9 c.2).
+// Le due differenze che cambiano il lavoro di chi usa Scudo sono queste: il
+// DSS coordinato vuole una FIRMA che il DUVRI non vuole, e le esclusioni del
+// comma 3-bis (natura intellettuale, mera fornitura, cinque uomini-giorno)
+// stanno nell'art. 26 e riguardano il DUVRI — nelle fonti lette non risultano
+// riportate per il DSS coordinato. Scudo quindi NON le applica alla cava, e lo
+// scrive in chiaro invece di applicarle in silenzio: è una nota informativa,
+// non un parere legale, e va confermata con l'RSPP come già la nota della
+// L. 198/2025 qui sopra.
+
+/* I documenti della qualifica.
+   ⛔ `obbligatorio` DICE UNA COSA PRECISA, e vale la pena non gonfiarla: l'art.
+   26 c.1 lett. a) ne elenca DUE, il certificato camerale e l'autocertificazione
+   ex art. 47 DPR 445/2000. Il **DURC** non è in quell'elenco — è obbligatorio
+   per i cantieri (art. 90 c.9) e nella pratica lo chiedono quasi tutti i
+   committenti, ma dichiararlo «obbligo dell'art. 26» sarebbe far fare lavoro
+   inutile citando male una norma, e toglierebbe credibilità al resto della
+   schermata. Sta nell'elenco come prassi, con la sua provenienza scritta. */
+export const TIPI_DOC_APPALTATORE = [
+  { chiave: "cciaa", nome: "Certificato CCIAA", obbligatorio: true, scade: true,
+    fonte: "art. 26 c.1 lett. a) n.1 D.Lgs 81/08" },
+  { chiave: "autocert", nome: "Autocertificazione dei requisiti", obbligatorio: true, scade: false,
+    fonte: "art. 26 c.1 lett. a) n.2 D.Lgs 81/08 — art. 47 DPR 445/2000" },
+  { chiave: "durc", nome: "DURC", obbligatorio: false, scade: true,
+    fonte: "prassi di qualifica — NON elencato dall'art. 26" },
+  { chiave: "dvr", nome: "DVR dell'impresa", obbligatorio: false, scade: false,
+    fonte: "serve al titolare per redigere il DSS coordinato — art. 9 c.2 D.Lgs 624/96" },
+  { chiave: "lavoratori", nome: "Elenco lavoratori e idoneità", obbligatorio: false, scade: false,
+    fonte: "prassi di qualifica" },
+  { chiave: "polizza", nome: "Polizza RC", obbligatorio: false, scade: true,
+    fonte: "prassi contrattuale" },
+];
+export function tipoDocAppaltatore(chiave) {
+  return TIPI_DOC_APPALTATORE.find((t) => t.chiave === chiave) || null;
+}
+
+/* I documenti di qualifica vivono nel registro `documenti` che Scudo ha già —
+   con il suo allegato e la regola condivisa di `controllaAllegato` — collegati
+   da `appaltatoreId`, esattamente come gli altri si collegano a `cantiereId` e
+   `lavoratoreId`. Nessun secondo archivio. */
+export function docDiAppaltatore(documenti, appaltatoreId) {
+  if (!appaltatoreId) return [];
+  return (documenti || []).filter((d) => d && d.appaltatoreId === appaltatoreId);
+}
+
+/* ⛔ UN APPALTATORE DI CUI NON SI È VERIFICATO NIENTE NON È IDONEO: È **NON
+   VERIFICATO**, e le due cose si dicono in modo diverso. È il principio del
+   fondatore nel punto in cui costa di più, perché questa è la schermata che si
+   mostra a un ispettore: un semaforo verde su un'anagrafica vuota sarebbe la
+   cosa peggiore che questo modulo possa fare.
+   La scadenza NON si giudica qui: la dice `statoScadenza`, cioè
+   `statoScadenzaHSE` di `shared/dw-ponti.js`, la stessa che regola lo
+   scadenzario e i turni di Campo. Un certificato camerale e un DURC hanno una
+   scadenza come tutto il resto, e non ne meritano una seconda copia. */
+export function qualificaAppaltatore(appaltatore, documenti, oggi = new Date()) {
+  const id = appaltatore && appaltatore.id;
+  const suoi = docDiAppaltatore(documenti, id);
+  const per = new Map();
+  for (const d of suoi) if (d.tipoQualifica) per.set(d.tipoQualifica, d);
+
+  const mancanti = [], scaduti = [], senzaData = [], inScadenza = [];
+  for (const t of TIPI_DOC_APPALTATORE) {
+    const d = per.get(t.chiave);
+    if (!d) { if (t.obbligatorio) mancanti.push(t.nome); continue; }
+    if (!t.scade) continue;
+    const st = statoScadenza(d.scadenza, oggi);
+    if (st === "scaduta") scaduti.push(t.nome);
+    else if (st === "senza data") senzaData.push(t.nome);
+    else if (st === "in-scadenza") inScadenza.push(t.nome);
+  }
+
+  const base = { appaltatoreId: id || null, quanti: suoi.length, mancanti, scaduti, senzaData, inScadenza,
+    obbligatoriRichiesti: TIPI_DOC_APPALTATORE.filter((t) => t.obbligatorio).length };
+
+  if (!suoi.length)
+    return { ...base, noto: false, esito: "non-verificato",
+      perche: "Di questa impresa non è stato acquisito nessun documento: l'idoneità tecnico-professionale "
+        + "non è stata verificata. Non vuol dire che non sia idonea — vuol dire che non lo sappiamo." };
+  if (scaduti.length)
+    return { ...base, noto: true, esito: "scaduto", perche: "Scaduti: " + scaduti.join(", ") + "." };
+  if (mancanti.length)
+    return { ...base, noto: true, esito: "incompleto",
+      perche: "Manca quello che l'art. 26 c.1 lett. a) chiede di acquisire: " + mancanti.join(", ") + "." };
+  if (senzaData.length)
+    return { ...base, noto: false, esito: "senza-data",
+      perche: "Senza una data leggibile non si sa se sono ancora validi: " + senzaData.join(", ") + "." };
+  if (inScadenza.length)
+    return { ...base, noto: true, esito: "in-scadenza", perche: "In scadenza entro 30 giorni: " + inScadenza.join(", ") + "." };
+  return { ...base, noto: true, esito: "verificato",
+    perche: "I documenti dell'art. 26 sono stati acquisiti e sono in corso di validità." };
+}
+
+/* Chi consuma la bandiera `noto`: sta nel modulo e non nella pagina perché la
+   frase che distingue «non a posto» da «non lo sappiamo» va decisa in un posto
+   solo (regola 7 di run-stile). */
+export function descriviQualifica(q) {
+  if (!q) return "";
+  return (q.noto ? "" : "Non lo sappiamo — ") + q.perche;
+}
+
+/* Quale documento di coordinamento è in gioco: dipende da DOVE si lavora. */
+export function documentoCoordinamento(cantiere) {
+  if (((cantiere && cantiere.tipo) || "") === "cava")
+    return { sigla: "DSS coordinato", nome: "Documento di sicurezza e salute coordinato",
+             norma: "art. 9 D.Lgs 624/96", esclusioniAmmesse: false, sottoscrizione: true };
+  return { sigla: "DUVRI", nome: "Documento unico di valutazione dei rischi da interferenze",
+           norma: "art. 26 c.3 D.Lgs 81/08", esclusioniAmmesse: true, sottoscrizione: false };
+}
+
+/* I rischi che l'art. 26 c.3-bis mette al riparo dalle esclusioni: se ci sono,
+   il documento va fatto comunque, anche per due giorni di lavoro. In cava
+   «atmosfere esplosive» non è un'ipotesi di scuola. */
+export const RISCHI_PARTICOLARI = [
+  { chiave: "incendio", nome: "Rischio di incendio di livello elevato" },
+  { chiave: "confinati", nome: "Attività in ambienti confinati" },
+  { chiave: "cancerogeni", nome: "Agenti cancerogeni, mutageni o biologici" },
+  { chiave: "amianto", nome: "Amianto" },
+  { chiave: "esplosive", nome: "Atmosfere esplosive" },
+];
+export function rischioParticolare(chiave) {
+  return RISCHI_PARTICOLARI.find((r) => r.chiave === chiave) || null;
+}
+
+const NATURE_ESCLUSE = {
+  intellettuale: "servizio di natura intellettuale",
+  fornitura: "mera fornitura di materiali o attrezzature",
+};
+export const NATURE_APPALTO = [
+  { chiave: "", nome: "Lavori o servizi in cava" },
+  { chiave: "intellettuale", nome: "Servizio di natura intellettuale" },
+  { chiave: "fornitura", nome: "Mera fornitura di materiali o attrezzature" },
+];
+
+/* SERVE O NON SERVE il documento di coordinamento.
+   ⛔ I CASI ESCLUSI CONTANO QUANTO QUELLI INCLUSI: dire «obbligatorio» dove non
+   lo è fa fare lavoro inutile e toglie credibilità a tutto il resto. Ma la
+   direzione pericolosa è l'altra, ed è quella che questa funzione difende:
+   **«non lo so» non è «non serve»**. La durata non registrata sarebbe finita a
+   zero (`+null` fa 0, e 0 ≤ 5), cioè l'appalto di cui nessuno ha scritto niente
+   sarebbe uscito ESENTE — la risposta più tranquilla, data sul dato mancante.
+   Perciò `serve` ha tre valori e non due, e `noto: false` accompagna il terzo.
+   Anche l'esclusione vera vuole una condizione: il c.3-bis la concede «sempre
+   che» non ci siano rischi particolari, quindi finché nessuno li ha guardati
+   l'esclusione non si può concedere. */
+export function duvriDovuto(appalto, cantiere) {
+  const a = appalto || {};
+  const doc = documentoCoordinamento(cantiere);
+  const rischi = (Array.isArray(a.rischiParticolari) ? a.rischiParticolari : [])
+    .map((k) => rischioParticolare(k)).filter(Boolean);
+
+  if (rischi.length)
+    return { ...doc, noto: true, serve: true,
+      perche: "Ci sono rischi particolari (" + rischi.map((r) => r.nome.toLowerCase()).join(", ")
+        + "): le esclusioni del comma 3-bis non si applicano, e il documento va fatto." };
+
+  if (!doc.esclusioniAmmesse)
+    return { ...doc, noto: true, serve: true,
+      perche: "Il lavoro si svolge in cava: il documento è il DSS coordinato dell'art. 9 D.Lgs 624/96, "
+        + "che scatta quando entra un'impresa esterna. Le esclusioni del comma 3-bis riguardano il DUVRI "
+        + "dell'art. 26 e Scudo non le applica alla cava." };
+
+  const ug = a.uominiGiorno;
+  const ugNoto = ug !== null && ug !== undefined && ug !== "" && Number.isFinite(+ug) && +ug >= 0;
+  const nat = NATURE_ESCLUSE[a.natura];
+
+  if (nat && a.rischiValutati === true)
+    return { ...doc, noto: true, serve: false,
+      perche: "È una " + nat + " e i rischi particolari sono stati esclusi: il DUVRI non è richiesto (art. 26 c.3-bis)." };
+  if (nat)
+    return { ...doc, noto: false, serve: null,
+      perche: "È una " + nat + ", che il comma 3-bis esclude — ma solo «sempre che» non ci siano rischi "
+        + "particolari, e nessuno li ha ancora guardati." };
+  if (!ugNoto)
+    return { ...doc, noto: false, serve: null,
+      perche: "Non è stata registrata la durata in uomini-giorno: sopra i cinque il DUVRI è richiesto, "
+        + "sotto no. Senza quel numero non si può dire, e un appalto su cui non si sa non è un appalto esente." };
+  if (+ug > 5)
+    return { ...doc, noto: true, serve: true,
+      perche: "La durata è di " + (+ug) + " uomini-giorno, sopra la soglia dei cinque: il DUVRI è richiesto." };
+  if (a.rischiValutati !== true)
+    return { ...doc, noto: false, serve: null,
+      perche: "La durata è di " + (+ug) + " uomini-giorno, sotto la soglia — ma l'esclusione vale «sempre che» "
+        + "non ci siano rischi particolari, e nessuno li ha ancora guardati." };
+  return { ...doc, noto: true, serve: false,
+    perche: "Durata di " + (+ug) + " uomini-giorno e nessun rischio particolare: il DUVRI non è richiesto (art. 26 c.3-bis)." };
+}
+
+/* I COSTI DELLE INTERFERENZE — art. 26 c.5: vanno indicati specificamente **a
+   pena di nullità** del contratto, e non sono soggetti a ribasso.
+   ⛔ `+"" fa 0`: un campo lasciato vuoto sarebbe diventato «zero euro
+   dichiarati», cioè un adempimento assolto da un campo mai compilato. Zero
+   dichiarato è una posizione che qualcuno si prende e va motivata; vuoto è il
+   contratto che rischia la nullità. */
+export function costiInterferenze(appalto) {
+  const v = appalto && appalto.costiSicurezza;
+  if (v === null || v === undefined || (typeof v === "string" && v.trim() === ""))
+    return { indicati: false, importo: null,
+      perche: "I costi della sicurezza da interferenze non sono indicati. L'art. 26 c.5 li vuole indicati "
+        + "specificamente A PENA DI NULLITÀ del contratto, e non soggetti a ribasso." };
+  const n = +v;
+  if (!Number.isFinite(n) || n < 0)
+    return { indicati: false, importo: null, perche: "Il valore registrato per i costi da interferenze non è un importo leggibile." };
+  return { indicati: true, importo: n,
+    perche: n === 0
+      ? "Costi da interferenze dichiarati pari a zero: è una dichiarazione, non un campo vuoto, e va motivata nel documento di coordinamento."
+      : "Costi da interferenze indicati, e non soggetti a ribasso." };
+}
+
+/* ⛔ IL DUVRI NON È UN ALLEGATO, È UNA DECISIONE: va detto CHI l'ha redatto,
+   QUANDO, e per quale appalto. Un documento di coordinamento senza data non
+   copre nessun periodo, e uno senza redattore non attribuisce a nessuno la
+   responsabilità che il committente non può delegare. Perciò gli stati sono
+   sette e non due: la graffetta non è fra questi.
+   Lo stato `tardivo` esiste perché l'art. 26 c.3 vuole il documento **allegato
+   al contratto**: se porta una data successiva all'avvio dei lavori, i primi
+   giorni non erano coperti — ed è un fatto che si vede solo confrontando due
+   date che nessuno confronta a mano. */
+export const STATI_COORDINAMENTO = ["non-decidibile", "non-dovuto", "non-redatto",
+  "senza-data", "senza-redattore", "tardivo", "da-sottoscrivere", "in-vigore"];
+
+export function statoCoordinamento(appalto, cantiere, oggi = new Date()) {
+  const a = appalto || {};
+  const dov = duvriDovuto(a, cantiere);
+  if (dov.serve === null) return { ...dov, stato: "non-decidibile" };
+  if (dov.serve === false) return { ...dov, stato: "non-dovuto" };
+
+  const red = String(a.coordRedattore || "").trim();
+  const dataOk = statoScadenza(a.coordData, oggi) !== "senza data";
+  if (!red && !dataOk)
+    return { ...dov, stato: "non-redatto",
+      perche: dov.sigla + " dovuto e non risulta redatto: non c'è né un redattore né una data." };
+  if (!dataOk)
+    return { ...dov, stato: "senza-data",
+      perche: "Il " + dov.sigla + " risulta redatto da " + red + " ma senza data: un documento di "
+        + "coordinamento senza data non copre nessun periodo." };
+  if (!red)
+    return { ...dov, stato: "senza-redattore",
+      perche: "Il " + dov.sigla + " ha una data ma non dice chi l'ha redatto: la responsabilità del "
+        + "coordinamento è del committente e va scritta col nome di chi se l'è presa." };
+
+  /* ⛔ SI CONFRONTANO I GIORNI, NON LE STRINGHE INTERE. Il prototipo rispondeva
+     «tardivo» su un documento firmato LO STESSO GIORNO dell'avvio, perché
+     «2026-03-01T08:00» è maggiore di «2026-03-01» per il confronto fra
+     stringhe: un ritardo inventato da un'ora attaccata alla data. */
+  const gg = (x) => String(x || "").slice(0, 10);
+  if (statoScadenza(a.dataInizio, oggi) !== "senza data" && gg(a.coordData) > gg(a.dataInizio))
+    return { ...dov, stato: "tardivo",
+      perche: "Il " + dov.sigla + " è datato " + dataIt(a.coordData) + ", dopo l'inizio dei lavori ("
+        + dataIt(a.dataInizio) + "): i primi giorni non erano coperti." };
+
+  if (dov.sottoscrizione && a.coordSottoscritto !== true)
+    return { ...dov, stato: "da-sottoscrivere",
+      perche: "Il DSS coordinato è redatto ma l'impresa non l'ha sottoscritto: l'art. 9 c.2 del D.Lgs 624/96 "
+        + "vuole la firma, ed è con quella che l'appaltatore diventa responsabile della parte di sua competenza." };
+
+  return { ...dov, stato: "in-vigore", perche: "Redatto da " + red + " il " + dataIt(a.coordData) + "." };
+}
+
+/* La riga dell'appalto: le tre domande insieme — l'impresa è qualificata? il
+   documento di coordinamento c'è? i costi sono indicati?
+   ⛔ CIÒ CHE DICHIARA `noto: false` FINISCE FRA GLI **IGNOTI**, NON FRA I
+   PROBLEMI. Sommarlo ai problemi farebbe passare per «fuori regola» un appalto
+   che nessuno ha ancora guardato; ignorarlo lo farebbe passare per «a posto».
+   Sono tre esiti perché i casi sono tre. */
+export function statoAppalto(appalto, cantiere, appaltatore, documenti, oggi = new Date()) {
+  const qualifica = qualificaAppaltatore(appaltatore, documenti, oggi);
+  const coordinamento = statoCoordinamento(appalto, cantiere, oggi);
+  const costi = costiInterferenze(appalto);
+  const problemi = [], ignoti = [];
+  if (!qualifica.noto) ignoti.push(descriviQualifica(qualifica));
+  else if (qualifica.esito !== "verificato" && qualifica.esito !== "in-scadenza") problemi.push(qualifica.perche);
+  if (!coordinamento.noto) ignoti.push(coordinamento.perche);
+  else if (coordinamento.stato !== "in-vigore" && coordinamento.stato !== "non-dovuto") problemi.push(coordinamento.perche);
+  if (coordinamento.serve === true && !costi.indicati) problemi.push(costi.perche);
+  return { appaltoId: (appalto && appalto.id) || null, qualifica, coordinamento, costi, problemi, ignoti,
+    noto: ignoti.length === 0,
+    esito: problemi.length ? "da-sistemare" : (ignoti.length ? "non-verificato" : "a-posto") };
+}
+
+export function appaltiDiCantiere(appalti, cantiereId) {
+  if (!cantiereId) return [];
+  return (appalti || []).filter((a) => a && a.cantiereId === cantiereId);
+}
+export function appaltiDiAppaltatore(appalti, appaltatoreId) {
+  if (!appaltatoreId) return [];
+  return (appalti || []).filter((a) => a && a.appaltatoreId === appaltatoreId);
+}
+
+/* Il riepilogo che si mostra a un ispettore.
+   ⛔ NESSUN APPALTO REGISTRATO NON VUOL DIRE NESSUNA IMPRESA IN CAVA — è la
+   stessa distinzione che Campo fa nell'appello del turno fra «non c'è» e «non
+   lo so». Un registro vuoto qui non dimostra la conformità: dimostra che non è
+   stato compilato, e la bandiera lo dice. */
+export function riepilogoAppalti(appalti, cantieri, appaltatori, documenti, oggi = new Date()) {
+  const perCant = new Map((cantieri || []).filter((c) => c && c.id).map((c) => [c.id, c]));
+  const perApp = new Map((appaltatori || []).filter((a) => a && a.id).map((a) => [a.id, a]));
+  const attivi = (appalti || []).filter((a) => a && a.stato !== "chiuso");
+  const righe = attivi.map((a) => ({ appalto: a,
+    ...statoAppalto(a, perCant.get(a.cantiereId), perApp.get(a.appaltatoreId), documenti, oggi) }));
+  const conta = (e) => righe.filter((r) => r.esito === e).length;
+
+  if (!attivi.length)
+    return { quanti: 0, aPosto: 0, daSistemare: 0, nonVerificati: 0, righe: [], noto: false,
+      testo: "Nessun appalto registrato. Non vuol dire che in cava non entri nessuna impresa esterna: vuol "
+        + "dire che qui non ne risulta nessuna, e finché è così questa schermata non dimostra niente." };
+
+  const daSistemare = conta("da-sistemare"), nonVerificati = conta("non-verificato"), aPosto = conta("a-posto");
+  return { quanti: attivi.length, aPosto, daSistemare, nonVerificati, righe, noto: nonVerificati === 0,
+    testo: (daSistemare || nonVerificati)
+      ? [daSistemare ? daSistemare + (daSistemare === 1 ? " appalto da sistemare" : " appalti da sistemare") : "",
+         nonVerificati ? nonVerificati + (nonVerificati === 1 ? " su cui manca una verifica" : " su cui mancano verifiche") : ""]
+          .filter(Boolean).join(", ") + ", su " + attivi.length + " attiv" + (attivi.length === 1 ? "o" : "i") + "."
+      : "Tutt" + (attivi.length === 1 ? "o l'unico appalto attivo ha" : "i e " + attivi.length + " gli appalti attivi hanno")
+        + " impresa qualificata, documento di coordinamento in vigore e costi da interferenze indicati." };
+}
+
+/* Le imprese su cui c'è qualcosa da fare, per le urgenze del Quadro. */
+export function appaltatoriDaVerificare(appaltatori, documenti, oggi = new Date()) {
+  return (appaltatori || []).filter((a) => a && a.attivo !== false)
+    .map((a) => ({ appaltatore: a, ...qualificaAppaltatore(a, documenti, oggi) }))
+    .filter((r) => r.esito !== "verificato" && r.esito !== "in-scadenza");
 }

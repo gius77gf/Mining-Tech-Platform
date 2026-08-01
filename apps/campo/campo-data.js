@@ -1269,8 +1269,14 @@ export function riposoPrimaDelTurno(operatoreId, presenze, durate, data, turno, 
     // cercare, ma il risultato se lo porta dietro
     if (st !== "presente") { buchi++; continue; }
     const fine = fineTurno(durate, t.data, t.turno);
+    // ⛔ IL TURNO NON SI NOMINA QUI. `perche` non porta né la data né il nome
+    // del turno: quelli stanno in `ultimo`, e la frase li aggiunge scrivendo la
+    // data come la scrive l'interfaccia. È lo stesso disegno di
+    // `riassuntoRiapertura`, e la ragione è che il modulo non sa scrivere
+    // «31/07/2026» senza tenersi una seconda copia della convenzione italiana
+    // delle date — che le sei pagine hanno già, una per una.
     if (fine === null) return { ...base, stato: "non-misurabile", ultimo: t, buchi,
-      perche: "del turno " + t.turno + " del " + t.data + " nessuno ha dichiarato la durata: "
+      perche: "del turno precedente non è stata dichiarata la durata: "
         + "senza quella non si sa a che ora è finito" };
     const ore = oreDaMs(inizio - fine);
     // un tetto già sotto la soglia è sotto la soglia comunque: i buchi possono
@@ -1278,9 +1284,9 @@ export function riposoPrimaDelTurno(operatoreId, presenze, durate, data, turno, 
     if (ore < RIPOSO_MINIMO_ORE) return { ...base, stato: "sotto", ore, misurabile: true,
       limite: buchi ? "al-piu" : "", ultimo: t, buchi };
     if (buchi) return { ...base, stato: "non-misurabile", ore, limite: "al-piu", ultimo: t, buchi,
-      perche: buchi + (buchi === 1 ? " turno" : " turni") + " fra quello e questo "
-        + (buchi === 1 ? "non ha" : "non hanno") + " l'appello spuntato per questa persona: "
-        + "il riposo può essere più corto di così" };
+      perche: "fra questo e l'ultimo turno che risulta lavorato ci "
+        + (buchi === 1 ? "è 1 turno senza appello" : "sono " + buchi + " turni senza appello")
+        + " spuntato per questa persona: il riposo può essere più corto di così" };
     return { ...base, stato: "regolare", ore, misurabile: true, ultimo: t };
   }
   if (buchi) return { ...base, stato: "non-misurabile", buchi,
@@ -1295,10 +1301,16 @@ export function riposoPrimaDelTurno(operatoreId, presenze, durate, data, turno, 
 
 // LA FRASE DA METTERE IN PAGINA. Sta nel modulo e non nella pagina perché è qui
 // che si legge la bandiera `misurabile`: una dichiarazione di non-misurabilità
-// che non legge nessuno non protegge niente. Pura e testabile.
-export function testoRiposo(r) {
+// che non legge nessuno non protegge niente.
+// `fmtData` serve a scrivere il giorno come lo scrive l'interfaccia — stessa
+// firma e stessa ragione di `riassuntoRiapertura`; di suo la data resta com'è,
+// e sullo schermo non ci arriva mai perché la pagina passa sempre il suo `dmy`.
+// Pura e testabile.
+export function testoRiposo(r, fmtData) {
+  const f = typeof fmtData === "function" ? fmtData : (d) => d;
   if (!r || !r.stato) return "";
-  if (!r.misurabile) return "Riposo non misurabile" + (r.perche ? " — " + r.perche : "");
+  if (!r.misurabile) return "Riposo non misurabile" + (r.perche ? " — " + r.perche : "")
+    + (r.ultimo ? " (turno " + r.ultimo.turno + " del " + f(r.ultimo.data) + ")" : "");
   if (r.limite === "almeno")
     return "Nessun turno lavorato nei " + r.giorni + " giorni prima di questo";
   const coda = r.stato === "sotto" ? " · sotto le " + RIPOSO_MINIMO_ORE + " ore" : "";
@@ -1323,6 +1335,18 @@ export function testoRiposo(r) {
 export function riposoDiTurno(operatori, presenze, durate, data, turno, squadra, giorni = 7) {
   const righe = operatoriDi(operatori, squadra)
     .filter(o => o.stato !== "non-disponibile")
+    /* ⛔ CHI È STATO SPUNTATO ASSENTE OGGI NON ENTRA, e non è per far pulizia:
+       dire «Rossi ha meno di undici ore di riposo» di qualcuno che oggi non è
+       venuto è un'accusa falsa su un documento firmato — il riposo prima di un
+       turno riguarda chi quel turno lo fa.
+       ⚠️ Ma solo chi è spuntato ASSENTE: chi non è ancora stato spuntato resta
+       dentro, perché «non lo so» non è «non c'è» — è la stessa distinzione su
+       cui è costruito l'appello, e toglierlo qui vorrebbe dire non guardare il
+       riposo proprio di chi nessuno ha ancora visto. */
+    .filter(o => {
+      const p = presenzaDi(presenze, data, turno, o.id);
+      return !(p && String(p.stato || "") === "assente");
+    })
     .map(o => ({ operatore: o, ...riposoPrimaDelTurno(o.id, presenze, durate, data, turno, giorni) }));
   const conta = (s) => righe.filter(r => r.stato === s).length;
   return {

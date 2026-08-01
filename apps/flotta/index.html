@@ -2285,11 +2285,9 @@
         + "quando registri un rifornimento, e la pagella si riempie da sola."
       : `Un'ora di macchina costa in media <b>${eur(p.mediaEuroOra)}</b><span class="u">/h</span> in tutta la flotta `
         + `(${eur(p.spesaMisurata)} di spesa registrata divisi ${numTx(p.oreTotali)} ore coperte dai contatori). `
-        + `La disponibilità media è <b>${pctTx(p.mediaDisponibilita)}</b> negli ultimi ${p.finestra} giorni (${periodo}). `
-        + `Si segnala chi esce dalla banda: oltre il <b>${BANDA_PAGELLA.costo}%</b> sul costo, oltre `
-        + `<b>${BANDA_PAGELLA.disponibilita} punti</b> sulla disponibilità — sotto quelle soglie mezzo parco `
-        + `finirebbe segnalato tutti i giorni. <b>Attenzione ai periodi</b>: il costo orario è su tutta la spesa `
-        + `registrata, la disponibilità solo sulla finestra dei fermi.`;
+        + `La disponibilità media è <b>${pctTx(p.mediaDisponibilita)}</b> negli ultimi ${p.finestra} giorni (${periodo}) — `
+        + `i due numeri <b>non coprono lo stesso periodo</b>. Si segnala chi esce dalla banda: oltre il `
+        + `<b>${BANDA_PAGELLA.costo}%</b> sul costo, oltre <b>${BANDA_PAGELLA.disponibilita} punti</b> sulla disponibilità.`;
     const coda = (!p.misurabile ? " " + esc(p.percheDisponibilita) : "")
       + (p.fuoriParco ? ` Restano fuori dal conto <b>${p.fuoriParco}</b> ${p.fuoriParco === 1 ? "riga di spesa" : "righe di spesa"} `
           + `(${eur(p.fuoriParcoSpesa)}) di macchine non più nel parco: non hanno un denominatore su cui fare media.` : "");
@@ -2328,7 +2326,7 @@
     const senza = p.senzaCosto.map(r => {
       const [bd, et, st] = PAG_V[r.verdetto];
       return `<div class="item statico ${striscia[st] || "st-mute"}">
-        <div class="info"><div class="name">${esc(r.mezzo)} · <b>non si sa</b> quanto costa un'ora</div>
+        <div class="info"><div class="name">${esc(r.mezzo)} · <b>non si sa</b></div>
           <div class="meta">${r.totale ? eur(r.totale) + " spesi" : "nessuna spesa registrata"} · disponibilità ${
             r.disponibilita == null ? "non calcolata" : pctTx(r.disponibilita)}${
             r.giorniFermo ? " · " + ggTx(r.giorniFermo) + " di fermo" : ""}${
@@ -2341,7 +2339,7 @@
     $("pagella").innerHTML = `<div class="sec">Costa o lavora? La pagella del parco</div>
       <div class="note recap">${testa}${coda}</div>
       ${righe}
-      ${senza ? `<div class="sec">Di queste non si può ancora dire</div>${senza}` : ""}`;
+      ${senza ? `<div class="sec">Di queste non si sa quanto costa un'ora</div>${senza}` : ""}`;
   }
 
   // ══════════════════════════════════════════════════════════════════════

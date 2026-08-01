@@ -49,19 +49,20 @@ const APP = ["campo", "conti", "flotta", "scudo", "sentinella", "terra"];
 /* Il fondo per app. Si alza quando si aggiungono prove, non si abbassa mai
    per far passare il controllo: abbassarlo è esattamente il gesto che
    questo file esiste per rendere visibile. */
+/* ⚠️ `sentinella` SCENDE DA 110 A 109, stessa forma del caso di `campo`
+   qui sotto e stessa ragione: `leggiCsv` ha smesso di essere una funzione
+   di Sentinella ed è diventata un alias di `shared/deepwork-id-client/
+   dw-shell.js`, che infatti sale da 29 a 30. Nessuna prova tolta: una
+   funzione traslocata. */
 /* ⚠️ `campo` SCENDE DA 87 A 86, e la ragione va scritta perché abbassare un
    fondo è il gesto che questo file esiste per rendere visibile: non è una
    prova tolta, è `statoRisposta` che ha smesso di essere una FUNZIONE di
    Campo ed è diventata un alias di `shared/dw-ponti.js`. La sua prova non è
    sparita: si è spostata, e adesso pretende l'IDENTITÀ invece del
    comportamento. Il conto di `dw-ponti` sale da 21 a 23 dello stesso passo. */
-/* ⚠️ `sentinella` SCENDE DA 110 A 109, e la ragione va scritta perché
-   abbassare un fondo è il gesto che questo file esiste per rendere
-   visibile: non è una prova tolta, è `leggiCsv` che ha smesso di essere
-   una funzione di Sentinella ed è diventata un alias di
-   `shared/deepwork-id-client/dw-shell.js` — che infatti sale da 29 a 30.
-   Una funzione traslocata, non sparita. */
-const FONDO = { campo: 95, conti: 90, flotta: 79, scudo: 95, sentinella: 109, terra: 55 };
+/* ⚠️ `flotta` SALE DA 79 A 81: `pagellaMezzi` (il costo orario e la
+   disponibilità sullo stesso piano) e `BANDA_PAGELLA`, con le loro prove. */
+const FONDO = { campo: 95, conti: 90, flotta: 81, scudo: 113, sentinella: 109, terra: 55 };
 
 /* Quello che resta fuori per un motivo, non per dimenticanza: i caricatori
    dati vogliono la rete e lo SDK, i ponti demo vogliono il localStorage.
