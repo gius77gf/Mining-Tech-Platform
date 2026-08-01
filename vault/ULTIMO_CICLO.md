@@ -5,22 +5,21 @@
 > sotto. Se la data è vecchia, vuol dire che **la routine non sta
 > lavorando** — e si vede subito, senza dover cercare tra i commit.
 
-**Ultimo ciclo riuscito:** 2026-08-01 **15:19 UTC**
-**Commit di partenza:** `2d7dade`
-**Cosa sta per fare:** riprendere da **E8** — le sette pagine affiancate. Il
-foglio a contatto e' gia' fatto e dice che le sei app si leggono come una
-famiglia (barra alta 62 px, titolo di sezione 19 px e 11,5/2,5 in tutte e sei);
-le divergenze misurate sono **l'etichetta della barra in basso scritta a tre
-misure diverse** (8, 8,5 e 9 px, dove il core dice 9) e Genesi che sta fuori
-dalla struttura senza che nessuno l'abbia dichiarato. Intanto gira il **giro
-completo dei 41 banchi** su copia congelata di `2d7dade`.
+**Ultimo ciclo riuscito:** 2026-08-01 **16:14 UTC**
+**Commit di partenza:** `f75a9e8`
+**Cosa sta per fare:** aprire **tre cantieri insieme** su tre app diverse — e'
+la regola nuova, misurata: le due giornate migliori della settimana (241 e 258
+modifiche) sono state a cantieri paralleli, quella in fila ne ha fatte 92.
+Si parte dal **delta delle sei ricerche sui concorrenti**, arrivate tutte:
+470 funzioni censite con le fonti, e i tre buchi piu' ricorrenti sono il
+cruscotto degli indicatori di Scudo (10 concorrenti su 10 ce l'hanno, noi
+zero), gli allarmi in tempo reale di Sentinella (7 su 12) e i solleciti di
+Conti.
 
-⚠️ **Il blocco precedente ha lasciato una lezione che vale per chi legge questo
-file**: il giro del browser gira su una **copia del committato**, quindi va
-lanciato DOPO il commit — due tentativi sono stati buttati perche' la copia non
-conteneva le modifiche appena fatte (il giro lo dichiara: «2 file NON committati
-restano FUORI da quello che il giro sta provando») e perche' la porta 8823 era
-ancora occupata dal server del giro precedente.
+⚠️ Ogni candidato si **rimisura** prima di crederci: le due verifiche fatte
+oggi hanno dato una volta un difetto piu' grave di quello segnalato (il turno
+aperto di Campo) e una volta che meta' del lavoro era gia' in casa (il costo
+orario di Flotta).
 
 ---
 
