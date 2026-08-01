@@ -39,6 +39,7 @@
    browser: le frasi che un'app SA dire stanno nel suo sorgente, e quelle che
    il banco guarda stanno nel suo elenco. È un confronto fra due testi. */
 import { readFileSync } from "node:fs";
+import { senzaCommenti } from "./tokenizza.mjs";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 
@@ -58,10 +59,19 @@ export const FRASI = [
   "non lo so", "senza data", "non lo sappiamo", "non si sa",
 ];
 
-/* Le frasi che un file SA dire. Si cerca nel testo, comprese le stringhe —
-   qui è giusto: una frase per l'utente VIVE dentro una stringa. */
+/* Le frasi che un file SA DIRE ALL'UTENTE. Si cerca dentro le stringhe (una
+   frase per l'utente vive lì) ma NON nei commenti.
+   ⛔ La prima versione cercava nel testo intero, e la classifica che ne usciva
+   era fatta quasi tutta di COMMENTI — i punti in cui uno sviluppatore SPIEGA il
+   principio, non quelli in cui il prodotto lo DICE. In Conti tutte e cinque le
+   occorrenze di «non lo so» erano commenti: una lista di lavoro che avrebbe
+   mandato la prossima unità a caccia di spiegazioni.
+   `senzaCommenti` è il tokenizzatore giusto per le regole sui TESTI, e lo dice
+   `CLAUDE.md`: toglie solo i commenti e tiene il resto. Non è stato riscritto —
+   è stato TIRATO FUORI da `run-stile.mjs`, che chiama `process.exit` e quindi
+   lo teneva prigioniero. */
 export function frasiDette(testo) {
-  const t = String(testo || "").toLowerCase();
+  const t = senzaCommenti(String(testo || "")).toLowerCase();
   const fuori = new Set();
   for (const f of FRASI) if (t.includes(f)) fuori.add(f);
   return fuori;

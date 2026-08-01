@@ -2051,6 +2051,23 @@ campi interi, file delle macchine.
       Serve a **impedire il lavoro sbagliato**: chi riprendesse dalla scheda
       vecchia scriverebbe strati dati che esistono, l'errore che `CLAUDE.md`
       elenca fra i più costosi con quattro casi datati.
+- [x] ✅ **IL TOKENIZZATORE PRIGIONIERO DI UN `process.exit`** *(01/08)* —
+      aprendo la classifica della misura nuova, la voce in cima («non lo so»,
+      sei app) si è rivelata fatta quasi tutta di **commenti**: in Conti tutte
+      e cinque le occorrenze erano righe in cui uno sviluppatore **spiega** il
+      principio, non righe in cui il prodotto lo **dice**. ⛔ E la funzione
+      giusta esisteva già — `senzaCommenti`, che `CLAUDE.md` indica proprio per
+      le regole sui TESTI — ma stava dentro `run-stile.mjs`, che chiama
+      `process.exit`: era **prigioniera**, e chiunque ne avesse avuto bisogno
+      avrebbe dovuto riscriverla. Estratta (non riscritta) in `tokenizza.mjs`
+      con `classifica`, `mascheraCodice` e le costanti della scansione. Due
+      sbagli del taglio presi dalle prove: `DIALOGHI` è della **regola**, non
+      dello scanner; e tre costanti servivano ancora. **La verifica è la suite
+      stessa: `run-stile` 271/0**, cioè venti regole identiche a prima.
+      Controprova: rinominata la funzione, **cadono tutti e due** i consumatori
+      — se uno avesse tenuto una copia sarebbe restato verde. La misura ora
+      conta 53 occorrenze invece di 56 e la classifica si riordina.
+      `suite-collegate` 46 file.
 - [x] ✅ **IL 23% CHE AVREBBE MENTITO** *(01/08)* — pagato il debito del
       censimento, ma da un'altra strada: per sapere quali frasi un'app sa dire
       non serve aprirla, stanno nel suo **sorgente**. La prima versione della
