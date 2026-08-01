@@ -666,6 +666,27 @@ Perché serva davvero e non produca elenchi generici, cinque vincoli:
   formato sia quello giusto per chi apre il file con un altro programma. Per
   quello serve un'asserzione sul **testo** del file (`;3.2;`). Stessa forma per
   qualunque coppia scrivi/leggi, cifra/decifra, serializza/deserializza.
+- ⛔ **UNA FUNZIONE NUOVA CHE PRENDE IL POSTO DI UNA VECCHIA SI PORTA DIETRO IL
+  MESTIERE, NON LE DIFESE.** Misurato il 01/08 e costoso: la prova di andata e
+  ritorno `csvCell → parseCsvLine` **c'era**, scritta quando `parseCsvLine` era
+  l'unico lettore di CSV. Poi è arrivato `leggiCsv`, che legge il file intero —
+  e serviva, perché le banche scrivono la causale su più righe fra virgolette e
+  un bonifico da 12.300 € spariva. Ha ereditato il lavoro e **non la prova**:
+  su sette valori scritti da noi e riletti da noi **quattro non tornavano
+  identici**, e il caso che morde è il più banale — un numero **negativo** esce
+  dal nostro export come `'-12,5` (l'apostrofo anti CSV-injection) e rientra
+  `NaN`. Un dato che c'era, perso nel giro di casa nostra.
+  La domanda da farsi ogni volta che si scrive un sostituto: **quali prove
+  guardavano il vecchio, e quante di quelle guardano il nuovo?** Il vecchio
+  resta verde e nessuno se ne accorge.
+- ⛔ **NIENTE `git stash` CON CANTIERI APERTI.** Il 01/08 serviva confrontare la
+  pagina di Genesi con `HEAD`: lo stash ha funzionato e ha ripristinato tutto,
+  ma nella finestra c'erano **cinque agenti che scrivevano** — e uno stash che
+  si sovrappone a una scrittura non si ripristina pulito. È la stessa famiglia
+  del `git checkout` che cancella il lavoro non committato, con in più il fatto
+  che tocca **i file di tutti**, non i propri. Per confrontare con `HEAD` si usa
+  una `git worktree`, che non tocca l'albero vivo — la stessa che serve già a
+  misurare la copia di ciò che si committa.
 - ⚠️ **LE PROVE GIRANO ANCHE CON `TZ=Europe/Rome`.** Il contenitore è in **UTC**,
   le cave sono in Italia. Il 01/08 una controprova sul conto dei giorni ha
   risposto «non distingue» in UTC e ha visto il difetto in ora italiana; la
