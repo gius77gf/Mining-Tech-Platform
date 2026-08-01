@@ -1980,6 +1980,24 @@ campi interi, file delle macchine.
       **03:43**. E la prima lista degli «ereditati» era un mio elenco di cinque
       prefissi, costruito guardando solo gli ultimi otto giorni: rifatta dalla
       misura, che dice che lo scarto comincia due settimane prima.
+- [x] ✅ **DUE BANCHI CHE NON LANCIAVA NESSUNO** *(01/08)* — finita la suite
+      dell'orologio, la domanda ovvia: *e chi la lancia?* La CI esegue
+      `npm test`, che è una **riga scritta a mano** con le suite elencate per
+      nome. La mia non c'era. E non era sola: **`browser/giro-su-copia.mjs`** e
+      **`browser/contrasto-core.mjs`** non stavano né lì né nella lista di
+      `tutti.mjs` — verdi in locale, **mai eseguiti da nessuna catena**. Il
+      primo prova il **meccanismo su cui tutto il giro adesso si appoggia**.
+      Ora c'è `suite-collegate.mjs`: ogni `.mjs` tracciato in `tests/` sta in
+      **una di tre case** — `npm test`, la lista di `tutti.mjs`, o si dichiara
+      col marcatore `NON VA IN npm test` **nel file stesso** (un elenco a parte
+      sarebbe una seconda copia che invecchia). Diviso: 18 + 19 + 5 = 42.
+      ⚠️ E `date-checkpoint.mjs` in CI sarebbe passata **a vuoto**: `checkout`
+      clona a profondità 1 e lei legge la storia di git. Adesso riconosce il
+      clone superficiale e si ferma, **e** il job ha `fetch-depth: 0`.
+      ⚠️ Due volte la mia misura ha guardato dove non credeva: un `grep -A 30`
+      su una lista lunga il doppio (dava per «mancanti» due banchi che c'erano),
+      e un `readdirSync` che prendeva per suite le **copie dell'SDK generate a
+      runtime** — il criterio giusto non è il nome del file, è l'indice di git.
 - [x] ✅ **IL CENSIMENTO DEL PRINCIPIO, IN TUTTE E SEI LE APP** *(01/08)* — sei
       cantieri in parallelo, stesso mandato: rileggere **tutto quello che c'è
       già** col metro dell'«assenza non è un dato favorevole». **28 punti

@@ -1,3 +1,5 @@
+/* ⚠️ NON VA IN npm test: non e' un banco, e' l'ATTREZZO che tutti i banchi
+   importano (SUPERFICI, apriSuperficie, sezioniDi). Gira dentro di loro. */
 /* IL GIRO DELLE SUPERFICI, in un posto solo.
    Aprire una pagina e visitarne le sezioni è la stessa cosa per ogni banco che
    guarda l'interfaccia: se ogni banco se la riscrive, la seconda copia nasce

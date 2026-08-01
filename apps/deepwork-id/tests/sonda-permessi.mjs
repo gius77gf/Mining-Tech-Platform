@@ -9,7 +9,7 @@
    un'organizzazione abbonata SOLO a Scudo, e un utente che è MEMBRO SEMPLICE
    (né proprietario né amministratore).
 
-   ⚠️ NON VA MESSA IN `npm test`. Non fallisce mai: stampa e basta. Un banco
+   ⚠️ NON VA IN npm test. Non fallisce mai: stampa e basta. Un banco
    che non sa fallire non dimostra niente, e infatti questa non dimostra —
    racconta. Quando le regole cambieranno, le prove che devono fallire vanno
    scritte in `run.mjs`, viste fallire prima, e solo dopo si cambiano le regole.

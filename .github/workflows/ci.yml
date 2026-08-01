@@ -14,7 +14,15 @@ jobs:
     name: Helper + Firestore rules + SDK + Functions + Bootstrap + KPI + Demo + Pointcloud + Manifest + Stile tests
     runs-on: ubuntu-latest
     steps:
+      # ⛔ fetch-depth: 0 — la storia INTERA, e non e' un dettaglio.
+      # `date-checkpoint.mjs` legge il giorno in cui ogni checkpoint e' ENTRATO
+      # in git: con la profondita' 1 di default vedrebbe un commit solo e
+      # direbbe «tutto a posto» senza aver guardato niente. La suite quel caso
+      # lo riconosce e si ferma invece di passare a vuoto, ma il rimedio giusto
+      # e' darle la storia.
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - uses: actions/setup-node@v4
         with:
           node-version: 20

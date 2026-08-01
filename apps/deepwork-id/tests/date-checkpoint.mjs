@@ -83,6 +83,20 @@ const giorniFra = (a, b) => Math.round((Date.parse(b + "T00:00:00Z") - Date.pars
    numero scende e si vede. */
 const DAL = "2026-08-01";
 
+/* ⛔ E PRIMA DI TUTTO: QUESTO CONTROLLO SA RISPONDERE QUI DENTRO?
+   Legge la storia di git. In CI `actions/checkout` clona di default a
+   **profondità 1**: `git log --diff-filter=A` vedrebbe un commit solo, il conto
+   dei checkpoint verrebbe quasi zero, e il controllo direbbe «nessuna
+   violazione» **senza aver guardato niente** — la stessa cosa che questa suite
+   esiste per impedire, fatta da lei. Quindi in un clone superficiale non prova
+   a rispondere: si ferma e dice **come** si mette in condizione di farlo. */
+if (execSync("git rev-parse --is-shallow-repository", { cwd: RADICE, encoding: "utf8" }).trim() === "true") {
+  console.error("\n✗ orologio del vault: il clone e' SUPERFICIALE (fetch-depth 1).");
+  console.error("  Questo controllo legge la data in cui ogni checkpoint e' ENTRATO in git:");
+  console.error("  con un commit solo direbbe «tutto a posto» senza aver guardato niente.");
+  console.error("  Rimedio: `fetch-depth: 0` sul passo actions/checkout che lancia le suite.\n");
+  process.exit(1);
+}
 const git = execSync(
   "git log --diff-filter=A --format='C %ad' --date=short --name-only -- vault/checkpoints/",
   { cwd: RADICE, encoding: "utf8", maxBuffer: 32 * 1024 * 1024 });

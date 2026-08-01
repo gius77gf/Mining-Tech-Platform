@@ -1,3 +1,5 @@
+/* ⚠️ NON VA IN npm test: e' una MISURA, non una prova — stampa e basta
+   e non fallisce mai. Metterla in CI vorrebbe dire una CI che non dice niente. */
 /* QUANTO divergono le DUE implementazioni di messaggioNumero?
    Non «divergono?» — quello si vede leggendo. La domanda è: su quanti casi,
    e con che differenza vista dall'utente. */

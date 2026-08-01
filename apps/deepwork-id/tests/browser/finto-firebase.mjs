@@ -1,3 +1,5 @@
+/* ⚠️ NON VA IN npm test: non e' un banco, e' il finto Firebase che i banchi
+   montano PRIMA di `goto` perche' il core parta davvero senza rete. */
 /* UN FINTO FIREBASE, per poter aprire il CORE in locale.
    Il core non si ferma al login: tutto il suo programma sta in un
    `<script type="module">` che importa Firebase da gstatic.com. Qui la rete è

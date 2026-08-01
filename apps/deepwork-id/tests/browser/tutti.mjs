@@ -1,3 +1,5 @@
+/* ⚠️ NON VA IN npm test: e' l'ORCHESTRATORE dei banchi del browser, e vuole
+   Chromium e un server. Si lancia a mano; e' lui a lanciare gli altri. */
 /* TUTTI I BANCHI DEL BROWSER, CON UN COMANDO SOLO.
    I banchi qui dentro non girano in CI (servono Chromium e un server statico) e
    quindi girano solo se qualcuno se li ricorda. Un elenco che sta nella testa di
@@ -70,6 +72,12 @@ const BANCHI = [
   ['quota di base · controprova', 'quota-base-reale.mjs', ['--controprova'], true],
   ['il registro costi', 'registro-costi.mjs', []],
   ['registro costi · controprova', 'registro-costi.mjs', ['--controprova'], true],
+  /* ⛔ AGGIUNTI IL 01/08: c'erano da giorni e NON LI LANCIAVA NESSUNO —
+     ne' questa lista ne' `npm test`. `giro-su-copia` prova per giunta il
+     meccanismo su cui tutto questo giro adesso si appoggia. Trovati da
+     `suite-collegate.mjs`, che esiste per non riprovarci. */
+  ['il giro gira su una copia', 'giro-su-copia.mjs', []],
+  ['contrasto del core', 'contrasto-core.mjs', []],
 ];
 
 async function rispondePorta(porta) {
