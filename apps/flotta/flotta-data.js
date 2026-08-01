@@ -2016,6 +2016,186 @@ export function affidabilitaFlotta(fermi, mezzi, giorni = 30, oggi = new Date())
 }
 
 // ══════════════════════════════════════════════════════════════════════
+// LA PAGELLA DEL PARCO — costo orario E disponibilità sullo stesso piano
+// La domanda che l'app scriveva già nel suo codice («la riparo ancora o la
+// sostituisco») non si risponde con un asse solo, e finora Flotta ne
+// disegnava due SEPARATI, a settecento righe di distanza: il costo di
+// officina per mezzo e i giorni di fermo per mezzo. Chi guarda il primo
+// vede una macchina cara e non sa se è cara PERCHÉ lavora il doppio; chi
+// guarda il secondo vede una macchina ferma e non sa se le sta costando
+// qualcosa. Sono le due metà della stessa decisione, e stavano in due
+// schermate diverse.
+//
+// ⛔ NON RICALCOLA NIENTE, COMPONE. Prende le uscite di `costoOrarioMezzo`
+//    e di `affidabilitaFlotta` così come sono. È la stessa regola che
+//    `costoOrarioMezzo` si è già data sulle ore («due conti delle stesse
+//    ore un giorno divergono senza che nessuno se ne accorga»): qui varrebbe
+//    per €/h e per la disponibilità, cioè per i due numeri che la pagina
+//    mostra già altrove. Se divergessero, la pagella smentirebbe le due
+//    schermate da cui nasce.
+//
+// ⛔ E I DUE ASSI NON MISURANO LO STESSO PERIODO — va detto, non nascosto.
+//    La disponibilità è la finestra dei fermi (30 giorni di suo); il costo
+//    orario è TUTTA la spesa registrata divisa le ore coperte dai contatori.
+//    Scriverli accanto senza dirlo li farebbe leggere come se fossero lo
+//    stesso mese. `finestra`, `da` e `a` riguardano SOLO la disponibilità, e
+//    la pagina lo scrive.
+//
+// ⛔ LA BANDA ESISTE PERCHÉ MEZZO PARCO STA SEMPRE SOPRA LA MEDIA. Senza una
+//    tolleranza, in un parco sano la metà delle macchine finirebbe segnalata
+//    ogni giorno — e un allarme che suona sempre insegna a non guardarlo più,
+//    che è esattamente ciò che questa schermata dovrebbe evitare. Il costo si
+//    misura in PERCENTUALE della media (un €/h è una grandezza relativa); la
+//    disponibilità in PUNTI di percentuale (è già una percentuale: il ±15%
+//    relativo su un parco al 90% aprirebbe una banda da 76 a 100, cioè
+//    nessuna segnalazione mai).
+//
+// ⛔ E «IN LINEA» SI DICE SOLO SE HANNO PARLATO TUTT'E DUE GLI ASSI. È il
+//    principio del fondatore applicato a un verdetto che nasce da due
+//    misure: una macchina di cui si legge una metà sola non è «in linea»,
+//    è `solo-meta`. Il prototipo ci è cascato — con la spesa a zero, o senza
+//    la finestra dei fermi, rispondeva il verdetto più tranquillo che sa
+//    dire su una macchina che non aveva misurato.
+//
+// Il costo che NON si sa non entra in classifica: va in `senzaCosto`, che
+// non è un cestino ma la lista più importante della schermata — nella
+// dimostrazione ci finisce il Dumper D3, che ha la spesa più alta del parco
+// (5.090 €) e la disponibilità più bassa (63%), e di cui nessuno può dire
+// se sia caro perché nessun rifornimento porta la lettura del contatore.
+// Un «0 €/h» lì lo farebbe sembrare la macchina più conveniente che c'è.
+// Tutto puro e testabile.
+// ══════════════════════════════════════════════════════════════════════
+
+// La tolleranza attorno alla media, oltre la quale una macchina si segnala.
+// `costo` in % della media, `disponibilita` in punti di percentuale.
+export const BANDA_PAGELLA = { costo: 15, disponibilita: 5 };
+
+export function pagellaMezzi(righeCosto, aff, mezzi) {
+  const perCosto = new Map();
+  for (const r of righeCosto || []) perCosto.set(r.mezzo, r);
+  const perFermo = new Map();
+  for (const m of (aff && aff.mezzi) || []) perFermo.set(m.mezzo, m);
+  const finestra = aff && aff.finestra > 0 ? aff.finestra : null;
+
+  // Il parco è l'elenco che comanda: una macchina senza nessuna spesa e
+  // senza nessun fermo deve comparire lo stesso, o la pagella racconta un
+  // parco più piccolo di quello che c'è.
+  const parco = [];
+  for (const m of mezzi || []) {
+    const n = nomeBreve(m && m.nome);
+    if (n && !parco.includes(n)) parco.push(n);
+  }
+
+  // La media della flotta è TUTTI i costi misurabili diviso TUTTE le ore
+  // misurabili — non la media dei €/h, che darebbe lo stesso peso a una
+  // macchina di cinquanta ore e a una di cinquemila.
+  let spesaMisurata = 0, oreTotali = 0;
+  for (const n of parco) {
+    const c = perCosto.get(n);
+    if (c && c.ore > 0 && c.euroOra != null) { spesaMisurata += c.totale; oreTotali += c.ore; }
+  }
+  const mediaEuroOra = oreTotali > 0 && spesaMisurata > 0
+    ? Math.round(100 * spesaMisurata / oreTotali) / 100 : null;
+  // La disponibilità di riferimento è quella del parco, già calcolata e già
+  // scritta nella schermata dei fermi. Non è una seconda media: è
+  // esattamente la media dei `pct` di riga, perché `persi` conta solo i
+  // fermi dei mezzi in parco (i fuori parco `affidabilitaFlotta` li tiene
+  // già da parte). La prova lo pretende, così se un giorno divergessero si
+  // vedrebbe.
+  const mediaDisponibilita = aff && aff.pct != null ? aff.pct : null;
+
+  const righe = [], senzaCosto = [];
+  for (const n of parco) {
+    const c = perCosto.get(n);
+    const f = perFermo.get(n);
+    // Nessun fermo registrato su una macchina in parco = nessun giorno
+    // perso, cioè 100%. È la convenzione che la schermata dei fermi usa
+    // già («tutti disponibili»), e con essa il registro dei fermi va tenuto
+    // perché voglia dire qualcosa: quando nessuno ha registrato niente è
+    // `misurabile` a dirlo, non un numero diverso qui.
+    const disponibilita = f ? f.pct : (finestra ? 100 : null);
+    const scostamentoFermo = disponibilita != null && mediaDisponibilita != null
+      ? Math.round(10 * (disponibilita - mediaDisponibilita)) / 10 : null;
+    // `piu` = si ferma PIÙ della media, cioè è disponibile MENO. Le parole
+    // dicono i fermi, non la percentuale: «sopra» e «sotto» su una
+    // disponibilità che scende quando i fermi salgono si leggono al
+    // contrario ogni volta.
+    const fermo = scostamentoFermo == null ? null
+      : scostamentoFermo < -BANDA_PAGELLA.disponibilita ? "piu"
+      : scostamentoFermo > BANDA_PAGELLA.disponibilita ? "meno" : "linea";
+    const base = {
+      mezzo: n, disponibilita, scostamentoFermo, fermo,
+      giorniFermo: f ? f.giorni : 0, episodi: f ? f.episodi : 0, aperti: f ? f.aperti : 0,
+      totale: c ? c.totale : 0, parziale: !!(c && c.parziale),
+    };
+    if (!c || c.euroOra == null) {
+      senzaCosto.push({
+        ...base, euroOra: null, ore: null, costo: null, scostamentoCosto: null,
+        verdetto: "costo-ignoto",
+        perche: c && c.perche ? c.perche
+          : "Su questa macchina non è ancora stata registrata nessuna spesa.",
+      });
+      continue;
+    }
+    const scostamentoCosto = mediaEuroOra
+      ? Math.round(10 * (100 * (c.euroOra - mediaEuroOra) / mediaEuroOra)) / 10 : null;
+    const costo = scostamentoCosto == null ? null
+      : scostamentoCosto > BANDA_PAGELLA.costo ? "piu"
+      : scostamentoCosto < -BANDA_PAGELLA.costo ? "meno" : "linea";
+    const verdetto = costo === "piu" && fermo === "piu" ? "costa-e-ferma"
+      : costo === "piu" ? "costa"
+      : fermo === "piu" ? "ferma"
+      : costo != null && fermo != null ? "in-linea" : "solo-meta";
+    righe.push({ ...base, euroOra: c.euroOra, ore: c.ore, costo, scostamentoCosto, verdetto });
+  }
+  // Il peggiore in cima: è l'unico ordine che serve a chi apre la schermata
+  // per decidere su quale macchina andare a guardare per prima.
+  const peso = { "costa-e-ferma": 0, costa: 1, ferma: 2, "solo-meta": 3, "in-linea": 4 };
+  righe.sort((a, b) => peso[a.verdetto] - peso[b.verdetto]
+    || (b.scostamentoCosto == null ? -Infinity : b.scostamentoCosto)
+     - (a.scostamentoCosto == null ? -Infinity : a.scostamentoCosto)
+    || a.mezzo.localeCompare(b.mezzo, "it"));
+  senzaCosto.sort((a, b) => b.totale - a.totale || b.giorniFermo - a.giorniFermo
+    || a.mezzo.localeCompare(b.mezzo, "it"));
+
+  // La spesa registrata su macchine che non sono più nel parco non entra
+  // nella media (non hanno un denominatore), ma non sparisce: si dichiara,
+  // come `affidabilitaFlotta` fa già con i loro fermi.
+  let fuoriParco = 0, fuoriParcoSpesa = 0;
+  for (const r of righeCosto || []) {
+    if (!parco.includes(r.mezzo)) { fuoriParco++; fuoriParcoSpesa += r.totale; }
+  }
+
+  const confrontabili = righe.length;
+  const pochi = confrontabili < 2 || mediaEuroOra == null;
+  return {
+    finestra, da: aff ? aff.da : null, a: aff ? aff.a : null,
+    mediaEuroOra, oreTotali: Math.round(10 * oreTotali) / 10,
+    spesaMisurata: Math.round(100 * spesaMisurata) / 100,
+    mediaDisponibilita, banda: BANDA_PAGELLA,
+    righe, senzaCosto, confrontabili,
+    // `pochi`: non c'è una classifica da leggere. Con una macchina sola il
+    // confronto è con sé stessa, e senza media non c'è nemmeno quello.
+    pochi,
+    perchePochi: !pochi ? ""
+      : mediaEuroOra == null
+        ? "Nessuna macchina ha insieme una spesa e le ore del contatore: senza una media non c'è un confronto."
+        : confrontabili === 1
+          ? "Di una macchina sola si sa il costo orario: con una sola non c'è una classifica da leggere."
+          : "Di nessuna macchina si sa il costo orario: serve il contatore delle ore sui rifornimenti.",
+    // `misurabile`: l'asse della disponibilità distingue qualcosa. Senza
+    // nessun fermo registrato è 100% per tutte — non perché il parco vada
+    // bene, ma perché nessuno ha scritto niente.
+    misurabile: !!(aff && aff.episodi > 0),
+    percheDisponibilita: aff && aff.episodi > 0 ? ""
+      : !aff || !finestra
+        ? "La disponibilità non è stata calcolata: manca la finestra dei fermi."
+        : "Nessun fermo registrato nella finestra: la disponibilità è 100% per tutte e non distingue una macchina dall'altra.",
+    fuoriParco, fuoriParcoSpesa: Math.round(100 * fuoriParcoSpesa) / 100,
+  };
+}
+
+// ══════════════════════════════════════════════════════════════════════
 // TAGLIANDI IN SCADENZA — la tessera in cima al Quadro, resa onesta
 // Da quando un tagliando si programma in DUE modi (a calendario e a ore
 // del contatore), contare solo quelli a data è una bugia per DIFETTO: chi

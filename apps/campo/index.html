@@ -183,6 +183,22 @@ body.dw.outdoor-mode .board.warn .board-ico{color:color-mix(in srgb,var(--warn) 
 .item{cursor:pointer}
 .item:active{transform:translateX(1px) scale(.995)}
 
+/* ─────────────── riposo fra due turni ───────────────
+   Riga PROPRIA, non una coda appiccicata a `.meta`: quella si ferma a due righe
+   con i puntini, e una frase che finisce dove il testo è tagliato non la legge
+   nessuno — è già costato due volte, in due app diverse, e proprio sulla parte
+   che il principio del fondatore esiste per far leggere. */
+.riposo{
+  font-size:11px; line-height:1.45; margin-top:4px; color:var(--muted2);
+  display:flex; align-items:flex-start; gap:5px; overflow-wrap:anywhere;
+}
+.riposo::before{
+  content:""; flex:0 0 auto; width:5px; height:5px; margin-top:5px; border-radius:50%;
+  background:currentColor; box-shadow:0 0 0 2px rgba(255,255,255,.05);
+}
+.riposo.sotto{color:var(--danger)}
+.riposo.ignoto{color:var(--muted)}
+
 /* petrolio d'appoggio: rapportini */
 .avatar.mute{
   background:var(--card2); color:var(--muted2); border:1px solid var(--border2);
@@ -707,6 +723,7 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
 
   <div class="sec">Chi c'è oggi<span class="cnt" id="pre-count">0</span></div>
   <div id="pre-board"></div>
+  <div id="pre-riposo"></div>
   <div id="pre-list"></div>
   <div class="tools" id="pre-tools" style="display:none;">
     <button class="dw-btn secondary" id="btn-pre-tutti"><svg viewBox="0 0 24 24"><path d="M4.5 12.6l5 5 10-10.6"/></svg>Ci sono tutti</button>
@@ -892,6 +909,7 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
            storicoSettimana, totaliSettimana, unitaPrevalente,
            CHECKLIST_INIZIO, ESITI_CHECK, statoChecklist, checklistDi,
            STATI_PRESENZA, presenzaDi, appelloTurno, chiusuraDi, riassuntoChiusura,
+           RIPOSO_MINIMO_ORE, riposoDiTurno, testoRiposo,
            turnoChiuso, riaperture, riassuntoRiapertura, ultimaRiapertura,
            FOTO_MAX_BYTE, FOTO_TENTATIVI, eImmagine, byteFoto, eFotoValida, misuraRidotta, formattaByte,
            METEO_CIELO, METEO_PISTE, METEO_VISIBILITA, meteoDi, riassuntoMeteo, meteoAvverso,
@@ -2307,12 +2325,40 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
   const ET_PRESENZA = { presente: ["si", "C'è"], assente: ["no", "Non c'è"] };
   let salvataggioPre = null;
 
+  // ── IL RIPOSO FRA DUE TURNI, accanto all'appello ──────────────────────
+  // Sta qui e non in una sezione sua perché la domanda «questa persona ha
+  // riposato abbastanza?» si fa nello stesso momento in cui si guarda chi c'è:
+  // prima di mandare la squadra al fronte, non a fine mese.
+  // ⛔ TRE STATI, non due, e la mappa li copre tutti (regola 18): un `B[st][0]`
+  // su uno stato non previsto ucciderebbe la pagina al disegno, senza nessun
+  // errore di sintassi da vedere.
+  const CLASSE_RIPOSO = { sotto: "sotto", regolare: "", "non-misurabile": "ignoto" };
+
+  function notaRiposo(q) {
+    if (!q || !q.totale) return "";
+    // ⛔ i NON MISURABILI non si sommano ai regolari e non si tacciono: sono la
+    // parte della frase che dice all'ispettore che quel giorno l'appello aveva
+    // dei buchi, ed è il motivo per cui la riga non dice «tutto a posto».
+    const coda = q.nonMisurabili
+      ? ` Per <b>${q.nonMisurabili}</b> ${q.nonMisurabili === 1 ? "persona il riposo non si può misurare" : "persone il riposo non si può misurare"}:`
+        + " manca la spunta dell'appello o la durata dichiarata di un turno precedente."
+      : "";
+    if (q.sotto) return `<div class="note avviso"><b>${q.sotto} ${q.sotto === 1
+      ? "persona ha meno di" : "persone hanno meno di"} ${RIPOSO_MINIMO_ORE} ore</b> fra la fine del`
+      + ` turno precedente e l'inizio di questo (D.Lgs 66/2003, art. 7).${coda}</div>`;
+    if (q.nonMisurabili) return `<div class="note">Nessuno, fra quelli che si sanno, ha meno di`
+      + ` ${RIPOSO_MINIMO_ORE} ore di riposo dal turno precedente.${coda}</div>`;
+    return `<div class="note recap"><b>Tutti</b> hanno almeno ${RIPOSO_MINIMO_ORE} ore di riposo`
+      + ` dal turno precedente, come chiede il D.Lgs 66/2003, art. 7.</div>`;
+  }
+
   function renderPresenze() {
     const squ = $("chk-squadra").value, turno = $("chk-turno").value || turnoCorrente();
     const app = appelloTurno(OPER, PRE, OGGI, turno, squ);
     $("pre-count").textContent = app.totale;
     if (!app.totale) {
       $("pre-board").innerHTML = "";
+      $("pre-riposo").innerHTML = "";
       $("pre-list").innerHTML = vuoto(I.persone,
         squ ? "Nessuno in questa squadra" : "Nessuno in anagrafica",
         squ ? "In questa squadra non c'è nessuna persona disponibile: aggiungila da <b>Squadre → Nuovo operatore</b> e potrai fare l'appello."
@@ -2339,13 +2385,20 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
           ${app.daFare ? ` · <b class="bad">${app.daFare} ancora da spuntare</b>` : " · appello completo"}
           ${bloc ? `<br><b>Turno chiuso e firmato</b>: l'appello non si può più cambiare.` : ""}</div>
       </div>`;
+    const rip = riposoDiTurno(OPER, PRE, DUR, OGGI, turno, squ);
+    $("pre-riposo").innerHTML = notaRiposo(rip);
+    const ripPerId = {};
+    rip.righe.forEach(x => { ripPerId[x.operatore.id] = x; });
     $("pre-list").innerHTML = app.righe.map(r => {
       const o = r.operatore;
       const stile = r.stato === "assente" ? "st-danger" : r.stato === "presente" ? "st-ok" : "st-warn";
+      const rp = ripPerId[o.id];
+      const frase = rp ? testoRiposo(rp) : "";
       return `<div class="item ${stile}" style="cursor:default">
         <div class="avatar${r.stato === "assente" ? " mute" : ""}">${esc((o.nome || "?").split(/\s+/).map(p => p[0] || "").join("").slice(0, 2).toUpperCase())}</div>
         <div class="info"><div class="name">${esc(o.nome)}</div>
-          <div class="meta">${esc(o.ruolo || "ruolo non indicato")} · ${esc(squadraBase(o.squadra) || "senza squadra")}${r.ora ? " · spuntato alle " + esc(r.ora) : ""}</div></div>
+          <div class="meta">${esc(o.ruolo || "ruolo non indicato")} · ${esc(squadraBase(o.squadra) || "senza squadra")}${r.ora ? " · spuntato alle " + esc(r.ora) : ""}</div>
+          ${frase ? `<div class="riposo ${CLASSE_RIPOSO[rp.stato] || ""}">${esc(frase)}</div>` : ""}</div>
         <div class="chk-row">${STATI_PRESENZA.map(s => {
           const [c, lab] = ET_PRESENZA[s];
           return `<button type="button" class="chg ${c}${r.stato === s ? " active" : ""}" data-pre="${esc(o.id)}" data-stato="${s}"${bloc ? " disabled" : ""}
@@ -2395,10 +2448,21 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
     const turno = $("chk-turno").value || turnoCorrente();
     const app = appelloTurno(OPER, PRE, OGGI, turno, $("chk-squadra").value);
     if (!app.totale) { esito("pre-esito", "Non c'è nessuno da mettere nell'elenco.", "err"); return; }
-    let csv = "data;turno;nome;ruolo;squadra;stato;ora\n";
-    for (const r of app.righe)
+    // il riposo viaggia con l'elenco: chi lo apre col foglio di calcolo per una
+    // verifica non deve tornare nell'app a rileggerlo persona per persona
+    const rip = riposoDiTurno(OPER, PRE, DUR, OGGI, turno, $("chk-squadra").value);
+    const perId = {}; rip.righe.forEach(x => { perId[x.operatore.id] = x; });
+    let csv = "data;turno;nome;ruolo;squadra;stato;ora;riposo_stato;riposo_ore;riposo_nota\n";
+    for (const r of app.righe) {
+      const rp = perId[r.operatore.id];
       csv += `${OGGI};${csvCell(turno)};${csvCell(r.operatore.nome)};${csvCell(r.operatore.ruolo || "")};`
-           + `${csvCell(squadraBase(r.operatore.squadra))};${r.stato || "da spuntare"};${r.ora || ""}\n`;
+           + `${csvCell(squadraBase(r.operatore.squadra))};${r.stato || "da spuntare"};${r.ora || ""};`
+           // ⛔ le ore restano col PUNTO decimale: la cella la rilegge un
+           // programma, e la virgola italiana è la convenzione di ciò che si
+           // MOSTRA, non di ciò che si scambia
+           + `${rp ? rp.stato : "non-misurabile"};${rp && rp.ore !== null ? rp.ore : ""};`
+           + `${csvCell(rp ? testoRiposo(rp) : "")}\n`;
+    }
     const a = document.createElement("a");
     a.href = "data:text/csv;charset=utf-8," + encodeURIComponent(csv);
     a.download = "campo_appello.csv"; a.click();
@@ -3248,8 +3312,16 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
       .map(c => ({ c, st: statoChecklist(c.esiti || {}) }));
     // Personale presente: la voce che ogni rapporto di turno professionale ha
     // e che serve, sul serio, all'appello di emergenza.
-    const preOggi = TURNI.map(t => ({ turno: t, app: appelloTurno(OPER, PRE, OGGI, t, "") }))
-      .filter(x => x.app.presenti || x.app.assenti);
+    // ⛔ E IL RIPOSO FRA I TURNI ENTRA NEL DOCUMENTO, non solo nello schermo:
+    // è la riga che un ispettore chiede (D.Lgs 66/2003, art. 7) e che oggi si
+    // ricostruisce sfogliando i fogli dei turni a mano. Dove non si può
+    // misurare, il rapporto lo DICHIARA invece di lasciare la cella vuota: una
+    // casella bianca su un documento firmato si legge come «niente da segnalare».
+    const preOggi = TURNI.map(t => {
+      const rip = riposoDiTurno(OPER, PRE, DUR, OGGI, t, "");
+      const per = {}; rip.righe.forEach(r => { per[r.operatore.id] = r; });
+      return { turno: t, app: appelloTurno(OPER, PRE, OGGI, t, ""), rip, per };
+    }).filter(x => x.app.presenti || x.app.assenti);
     // Firme di chiusura: se non ce ne sono, il rapporto porta le righe vuote
     // da compilare a penna — un documento senza firma resta un appunto.
     const chiuOggi = CHI.filter(c => String(c.data||"") === OGGI && c.ora);
@@ -3284,8 +3356,8 @@ ${chkOggi.length?`<table><tr><th>Squadra</th><th>Turno</th><th>Risposte</th><th>
 <h2>Meteo e condizioni del sito</h2>
 ${metOggi.length?`<table><tr><th>Turno</th><th>Condizioni</th><th>Note sul sito</th></tr>${metOggi.map(m=>`<tr><td>${esc(m.turno)}</td><td>${esc(riassuntoMeteo(m))}</td><td>${esc(m.note||"—")}</td></tr>`).join("")}</table>`:"<div>Meteo e condizioni del sito non registrati oggi.</div>"}
 <h2>Personale presente</h2>
-${preOggi.length?preOggi.map(x=>`<div><b>Turno ${esc(x.turno)}</b>: ${x.app.presenti} ${x.app.presenti===1?"presente":"presenti"} su ${x.app.totale}${x.app.daFare?`, ${x.app.daFare} ${x.app.daFare===1?"non spuntato":"non spuntati"}`:""}.</div>
-<table><tr><th>Nome</th><th>Ruolo</th><th>Squadra</th><th>Stato</th><th>Ora</th></tr>${x.app.righe.map(r=>`<tr><td>${esc(r.operatore.nome)}</td><td>${esc(r.operatore.ruolo||"—")}</td><td>${esc(squadraBase(r.operatore.squadra)||"—")}</td><td>${r.stato==="presente"?"presente":r.stato==="assente"?"ASSENTE":"non spuntato"}</td><td>${esc(r.ora||"")}</td></tr>`).join("")}</table>`).join(""):"<div>Nessun appello registrato oggi.</div>"}
+${preOggi.length?preOggi.map(x=>`<div><b>Turno ${esc(x.turno)}</b>: ${x.app.presenti} ${x.app.presenti===1?"presente":"presenti"} su ${x.app.totale}${x.app.daFare?`, ${x.app.daFare} ${x.app.daFare===1?"non spuntato":"non spuntati"}`:""}.${x.rip.sotto?` <b>${x.rip.sotto} ${x.rip.sotto===1?"persona ha":"persone hanno"} meno di ${RIPOSO_MINIMO_ORE} ore di riposo dal turno precedente</b> (D.Lgs 66/2003, art. 7).`:""}${x.rip.nonMisurabili?` Per ${x.rip.nonMisurabili} il riposo non è misurabile.`:""}</div>
+<table><tr><th>Nome</th><th>Ruolo</th><th>Squadra</th><th>Stato</th><th>Ora</th><th>Riposo dal turno precedente</th></tr>${x.app.righe.map(r=>`<tr><td>${esc(r.operatore.nome)}</td><td>${esc(r.operatore.ruolo||"—")}</td><td>${esc(squadraBase(r.operatore.squadra)||"—")}</td><td>${r.stato==="presente"?"presente":r.stato==="assente"?"ASSENTE":"non spuntato"}</td><td>${esc(r.ora||"")}</td><td>${esc(testoRiposo(x.per[r.operatore.id])||"non misurabile")}</td></tr>`).join("")}</table>`).join(""):"<div>Nessun appello registrato oggi.</div>"}
 <h2>Obiettivo del turno</h2>
 ${obOggi.length?`<table><tr><th>Turno</th><th>Obiettivo</th><th>Fatto</th><th>Scostamento</th></tr>${obOggi.map(o=>`<tr><td>${esc(o.turno)}</td><td>${esc(o.unita===UNITA_ATTIVITA?numeroIt(o.obiettivo,0)+" attività":formattaProduzione(o.obiettivo,o.unita))}</td><td>${esc(o.unita===UNITA_ATTIVITA?numeroIt(o.fatto,0)+" attività":formattaProduzione(o.fatto,o.unita))} (${o.pct}%)</td><td>${esc(segno(o.scarto))}${o.unita===UNITA_ATTIVITA?" attività":" "+o.unita}</td></tr>`).join("")}</table>`:"<div>Nessun obiettivo impostato per i turni di oggi.</div>"}
 <h2>Attività</h2>

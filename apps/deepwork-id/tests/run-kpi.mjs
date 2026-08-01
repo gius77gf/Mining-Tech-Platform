@@ -12790,5 +12790,369 @@ test("⛔ Flotta: le ore ignote arrivano ignote anche a chi le chiede due volte"
 }
 
 if (inVolo.length) await Promise.all(inVolo);   // si aspetta PRIMA di contare
+// ── Campo · riposo fra due turni ───────────────────────────────────────
+// D.Lgs 66/2003 art. 7: undici ore consecutive di riposo ogni ventiquattro.
+// Il conto poggia sull'appello, che ha TRE risposte, e da lì l'asimmetria che
+// queste prove esistono per blindare: con turni non spuntati in mezzo, il
+// riposo calcolato è un TETTO — sa ancora accusare, non sa più assolvere.
+{
+  const IERI = "2026-03-09", OGGI_R = "2026-03-10";
+  const dur8 = (data, turno) => ({ data, turno, minuti: 480 });
+  const pre = (data, turno, operatoreId, stato) => ({ data, turno, operatoreId, stato });
+  const DUR = [dur8(IERI, "Mattina"), dur8(IERI, "Pomeriggio"), dur8(IERI, "Notte")];
+
+  test("Campo · riposo: l'ora d'inizio dei turni sta in un posto solo", () => {
+    eq(campo.ORE_INIZIO_TURNO, { Mattina: 6, Pomeriggio: 14, Notte: 22 }, "le tre ore d'inizio");
+    // la stessa tabella che `turnoCorrente` legge: se qualcuno la cambiasse,
+    // le due letture resterebbero d'accordo invece di divergere in silenzio
+    for (const t of campo.TURNI) {
+      const h = campo.ORE_INIZIO_TURNO[t];
+      eq(campo.turnoCorrente(new Date(2026, 2, 10, h, 30)), t, `alle ${h}:30 è ${t}`);
+    }
+    eq(campo.RIPOSO_MINIMO_ORE, 11, "la soglia di legge");
+    eq(campo.STATI_RIPOSO, ["sotto", "regolare", "non-misurabile"], "i tre stati dichiarati");
+  });
+
+  test("Campo · riposo: inizioTurno e fineTurno, e il rifiuto senza durata", () => {
+    eq(campo.inizioTurno(OGGI_R, "Mattina"), new Date(2026, 2, 10, 6).getTime(), "la mattina comincia alle 6");
+    eq(campo.inizioTurno(OGGI_R, "Notte"), new Date(2026, 2, 10, 22).getTime(), "la notte alle 22");
+    // «2026-02-30» non è un refuso da far scivolare al 2 marzo
+    eq(campo.inizioTurno("2026-02-30", "Mattina"), null, "un giorno che non esiste non ha un inizio");
+    eq(campo.inizioTurno(OGGI_R, "Serale"), null, "un turno che non esiste nemmeno");
+    eq(campo.fineTurno(DUR, IERI, "Pomeriggio"), new Date(2026, 2, 9, 22).getTime(),
+       "14:00 più otto ore dichiarate");
+    // ⛔ il cuore: senza durata dichiarata NON si danno per scontate otto ore
+    eq(campo.fineTurno([], IERI, "Pomeriggio"), null, "senza durata dichiarata non si sa quando è finito");
+    eq(campo.fineTurno([{ data: IERI, turno: "Pomeriggio", minuti: 0 }], IERI, "Pomeriggio"), null,
+       "e nemmeno con una durata di zero minuti");
+  });
+
+  test("Campo · riposo: i turni precedenti si contano all'indietro, mese compreso", () => {
+    const uno = campo.turniPrecedenti(OGGI_R, "Mattina", 1);
+    eq(uno.length, 3, "un giorno indietro sono tre turni");
+    eq(uno[0], { data: IERI, turno: "Notte" }, "prima della Mattina c'è la Notte di ieri");
+    eq(uno[2], { data: IERI, turno: "Mattina" }, "e tre turni prima la Mattina di ieri");
+    eq(campo.turniPrecedenti(OGGI_R, "Mattina", 7).length, 21, "sette giorni sono ventuno turni");
+    eq(campo.turniPrecedenti("2026-03-01", "Mattina", 1)[0].data, "2026-02-28", "attraversa il mese");
+    eq(campo.turniPrecedenti("2026-02-30", "Mattina", 1), [], "da un giorno che non esiste non si cammina");
+    eq(campo.turniPrecedenti(OGGI_R, "Serale", 1), [], "né da un turno che non esiste");
+  });
+
+  test("Campo · riposo: otto ore fra pomeriggio e mattina sono sotto la soglia", () => {
+    const P = [pre(IERI, "Pomeriggio", "o1", "presente"), pre(IERI, "Notte", "o1", "assente")];
+    const r = campo.riposoPrimaDelTurno("o1", P, DUR, OGGI_R, "Mattina");
+    contiene(r, { stato: "sotto", ore: 8, misurabile: true, limite: "", buchi: 0 },
+             "22:00 → 06:00 sono otto ore, ed è una misura");
+    eq(r.ultimo, { data: IERI, turno: "Pomeriggio" }, "l'ultimo turno lavorato che si conosce");
+    eq(campo.testoRiposo(r), "8 h dal turno precedente · sotto le 11 ore", "e si scrive così");
+  });
+
+  test("Campo · riposo: sedici ore sono regolari", () => {
+    const P = [pre(IERI, "Mattina", "o1", "presente"), pre(IERI, "Pomeriggio", "o1", "assente"),
+               pre(IERI, "Notte", "o1", "assente")];
+    const r = campo.riposoPrimaDelTurno("o1", P, DUR, OGGI_R, "Mattina");
+    contiene(r, { stato: "regolare", ore: 16, misurabile: true, limite: "", buchi: 0 }, "14:00 → 06:00");
+    eq(campo.testoRiposo(r), "16 h dal turno precedente", "senza nessun allarme");
+  });
+
+  test("Campo · riposo: un turno non spuntato in mezzo NON assolve", () => {
+    // stessi dati della prova sopra, ma la Notte di ieri nessuno l'ha spuntata:
+    // quella persona potrebbe averla lavorata, e allora ha riposato di meno
+    const P = [pre(IERI, "Mattina", "o1", "presente"), pre(IERI, "Pomeriggio", "o1", "assente")];
+    const r = campo.riposoPrimaDelTurno("o1", P, DUR, OGGI_R, "Mattina");
+    contiene(r, { stato: "non-misurabile", ore: 16, misurabile: false, limite: "al-piu", buchi: 1 },
+             "sedici ore, ma è un TETTO: sopra la soglia non prova niente");
+    ok(/appello/.test(r.perche), "e la ragione nomina l'appello: " + r.perche);
+    ok(campo.testoRiposo(r).startsWith("Riposo non misurabile"), "la frase lo dice");
+  });
+
+  test("Campo · riposo: un turno non spuntato NON scusa, se il tetto è già sotto", () => {
+    // l'altra metà dell'asimmetria: i buchi possono solo ACCORCIARE il riposo,
+    // quindi un tetto di otto ore resta una violazione certa
+    const P = [pre(IERI, "Pomeriggio", "o1", "presente")];
+    const r = campo.riposoPrimaDelTurno("o1", P, DUR, OGGI_R, "Mattina");
+    contiene(r, { stato: "sotto", ore: 8, misurabile: true, limite: "al-piu", buchi: 1 },
+             "col buco resta sotto le undici ore, e si dice");
+    eq(campo.testoRiposo(r), "Al più 8 h dal turno precedente · sotto le 11 ore", "«al più», non «esattamente»");
+  });
+
+  test("Campo · riposo: senza la durata del turno prima non si inventa", () => {
+    const P = [pre(IERI, "Pomeriggio", "o1", "presente"), pre(IERI, "Notte", "o1", "assente")];
+    const r = campo.riposoPrimaDelTurno("o1", P, [], OGGI_R, "Mattina");
+    contiene(r, { stato: "non-misurabile", ore: null, misurabile: false }, "niente denominatore, niente numero");
+    ok(/durata/.test(r.perche), "e lo dice: " + r.perche);
+    eq(r.ultimo, { data: IERI, turno: "Pomeriggio" }, "il turno di cui manca la durata è nominato");
+  });
+
+  test("Campo · riposo: nessuna spunta da nessuna parte non è «riposato»", () => {
+    const r = campo.riposoPrimaDelTurno("o9", [], DUR, OGGI_R, "Mattina");
+    contiene(r, { stato: "non-misurabile", ore: null, misurabile: false, buchi: 21 },
+             "ventuno turni muti non fanno un via libera");
+    // ⛔ il caso che il principio del fondatore esiste per prendere: qui la
+    // risposta comoda sarebbe «riposato da giorni»
+    ok(!/regolare/.test(r.stato), "e soprattutto non è «regolare»");
+  });
+
+  test("Campo · riposo: chi risulta assente per tutta la finestra ha riposato", () => {
+    const P = campo.turniPrecedenti(OGGI_R, "Mattina", 7)
+      .map((t) => pre(t.data, t.turno, "o1", "assente"));
+    const r = campo.riposoPrimaDelTurno("o1", P, DUR, OGGI_R, "Mattina");
+    contiene(r, { stato: "regolare", misurabile: true, limite: "almeno", buchi: 0, giorni: 7 },
+             "spuntato assente ovunque: allora non ha lavorato");
+    ok(r.ore > 24 * 6, "e il riposo è almeno la finestra guardata, " + r.ore + " h");
+    eq(campo.testoRiposo(r), "Nessun turno lavorato nei 7 giorni prima di questo", "e si scrive così");
+  });
+
+  test("Campo · riposo: i casi limite non danno numeri tranquilli", () => {
+    eq(campo.riposoPrimaDelTurno("o1", [], DUR, "2026-02-30", "Mattina").stato, "non-misurabile",
+       "una data che non esiste");
+    eq(campo.riposoPrimaDelTurno("o1", [], DUR, OGGI_R, "Serale").stato, "non-misurabile",
+       "un turno che non esiste");
+    eq(campo.riposoPrimaDelTurno("o1", [], DUR, OGGI_R, "Mattina", 0).stato, "non-misurabile",
+       "zero giorni indietro: non si è guardato niente");
+    // due turni che si sovrappongono (durata dichiarata assurda): un riposo
+    // negativo è comunque «sotto», e il testo non scrive «-4 h»
+    const P = [pre(IERI, "Pomeriggio", "o1", "presente"), pre(IERI, "Notte", "o1", "assente")];
+    const r = campo.riposoPrimaDelTurno("o1", P, [{ data: IERI, turno: "Pomeriggio", minuti: 1200 }],
+                                        OGGI_R, "Mattina");
+    contiene(r, { stato: "sotto", ore: -4 }, "il turno prima finisce dopo che questo è cominciato");
+    eq(campo.testoRiposo(r), "Il turno precedente finisce dopo che questo è cominciato · sotto le 11 ore",
+       "e si dice a parole, non con un «-4 h» che nessuno saprebbe leggere");
+    eq(campo.testoRiposo(null), "", "senza riga non si scrive niente");
+  });
+
+  test("Campo · riposo: la notte che finisce quando comincia la mattina fa zero", () => {
+    const P = [pre(IERI, "Notte", "o1", "presente")];
+    const r = campo.riposoPrimaDelTurno("o1", P, DUR, OGGI_R, "Mattina");
+    contiene(r, { stato: "sotto", ore: 0 }, "22:00 + 8 h = 06:00, cioè nessun riposo");
+    // ⛔ e NON «0 min»: accanto a «8 h» e «16 h» si leggerebbe come un numero
+    // piccolo invece che come il caso peggiore che la funzione sa raccontare
+    eq(campo.testoRiposo(r), "Nessun riposo fra questo turno e il precedente · sotto le 11 ore",
+       "zero ore si scrive a parole");
+  });
+
+  test("Campo · riposo: il quadro del turno non somma i dubbi ai regolari", () => {
+    const OP = [{ id: "o1", nome: "A", squadra: "Squadra A", stato: "in-forza" },
+                { id: "o2", nome: "B", squadra: "Squadra A", stato: "in-forza" },
+                { id: "o3", nome: "C", squadra: "Squadra A", stato: "in-forza" },
+                { id: "o4", nome: "D", squadra: "Squadra A", stato: "non-disponibile" }];
+    const P = [pre(IERI, "Pomeriggio", "o1", "presente"), pre(IERI, "Notte", "o1", "assente"),
+               pre(IERI, "Mattina", "o2", "presente"), pre(IERI, "Pomeriggio", "o2", "assente"),
+               pre(IERI, "Notte", "o2", "assente")];
+    const q = campo.riposoDiTurno(OP, P, DUR, OGGI_R, "Mattina", "");
+    contiene(q, { totale: 3, sotto: 1, regolari: 1, nonMisurabili: 1, tuttiInRegola: false },
+             "chi non è disponibile resta fuori, o3 non si sa e non diventa regolare");
+    eq(q.sotto + q.regolari + q.nonMisurabili, q.totale, "i tre conti coprono tutte le righe");
+    eq(campo.riposoDiTurno([], P, DUR, OGGI_R, "Mattina", "").tuttiInRegola, false,
+       "senza nessuno in elenco non si dice «tutti a posto»");
+  });
+
+  test("Campo · riposo: sulla dimostrazione si vedono tutti e quattro gli esiti", () => {
+    const D = campo.DEMO, oggi = campo.oggiISO();
+    const q = campo.riposoDiTurno(D.operatori, D.presenze, D.durate, oggi, "Mattina", "");
+    contiene(q, { totale: 4, sotto: 1, regolari: 1, nonMisurabili: 2 },
+             "quattro in forza: uno sotto, uno regolare, due che non si sanno");
+    const per = {}; q.righe.forEach((r) => { per[r.operatore.id] = r; });
+    contiene(per.o1, { stato: "sotto", ore: 8, limite: "" }, "o1 ha finito ieri alle 22 e ricomincia alle 6");
+    contiene(per.o2, { stato: "regolare", ore: 16, limite: "" }, "o2 ha finito ieri alle 14");
+    contiene(per.o3, { stato: "non-misurabile", ore: 16, limite: "al-piu", buchi: 2 },
+             "o3 ha due turni non spuntati in mezzo: il tetto non assolve");
+    ok(/durata/.test(per.o4.perche), "o4 era di Notte e della Notte manca la durata: " + per.o4.perche);
+    // la dimostrazione deve mostrare la DIFESA, non solo il caso bello
+    ok(q.nonMisurabili > 0, "e i buchi nei dati d'esempio ci sono apposta");
+  });
+}
+
+// ── Flotta · pagella del parco (costo orario × disponibilità)
+{
+  const D = flotta.DEMO;
+  const OGGI = new Date("2026-08-01T09:00:00Z");
+  const costi = flotta.costoOrarioMezzo(D.interventi, D.rifornimenti);
+  const aff = flotta.affidabilitaFlotta(D.fermi, D.mezzi, 30, OGGI);
+  const pag = () => flotta.pagellaMezzi(costi, aff, D.mezzi);
+  // righe di costo finte, per costruire i verdetti che la dimostrazione non dà
+  const rc = (mezzo, euroOra, extra = {}) =>
+    ({ mezzo, totale: euroOra * 100, ore: 100, euroOra, perche: "", parziale: false, ...extra });
+
+  test("Flotta · pagella: compone senza ricalcolare — €/h e disponibilità sono quelli delle due schermate", () => {
+    const p = pag();
+    const perNome = {}; [...p.righe, ...p.senzaCosto].forEach((r) => { perNome[r.mezzo] = r; });
+    for (const c of costi) {
+      if (!perNome[c.mezzo]) continue;
+      eq(perNome[c.mezzo].euroOra, c.euroOra, c.mezzo + ": il €/h è quello di costoOrarioMezzo, non un secondo conto");
+      eq(perNome[c.mezzo].totale, c.totale, c.mezzo + ": la spesa è quella di costoOrarioMezzo");
+    }
+    for (const m of aff.mezzi) {
+      eq(perNome[m.mezzo].disponibilita, m.pct, m.mezzo + ": la disponibilità è quella di affidabilitaFlotta");
+      eq(perNome[m.mezzo].giorniFermo, m.giorni, m.mezzo + ": i giorni di fermo sono quelli di affidabilitaFlotta");
+    }
+    eq(p.mediaDisponibilita, aff.pct, "il riferimento è la disponibilità del parco già calcolata");
+    eq(p.finestra, aff.finestra, "la finestra è quella dei fermi, e riguarda solo la disponibilità");
+  });
+
+  test("Flotta · pagella: tutto il parco compare, anche chi non ha né spese né fermi", () => {
+    const p = pag();
+    const nomi = [...p.righe, ...p.senzaCosto].map((r) => r.mezzo).sort();
+    eq(nomi, D.mezzi.map((m) => flotta.nomeBreve(m.nome)).sort(),
+       "sei mezzi in parco, sei righe: nessuno sparisce perché non ha dati");
+    eq(p.confrontabili + p.senzaCosto.length, D.mezzi.length, "le due liste coprono il parco e non si sovrappongono");
+  });
+
+  test("Flotta · pagella: la media della flotta è pesata sulle ore, non la media dei €/h", () => {
+    const p = pag();
+    const conOre = costi.filter((c) => c.euroOra != null && c.ore > 0);
+    const spesa = conOre.reduce((t, c) => t + c.totale, 0);
+    const ore = conOre.reduce((t, c) => t + c.ore, 0);
+    eq(p.mediaEuroOra, Math.round(100 * spesa / ore) / 100, "tutti i costi diviso tutte le ore");
+    eq(p.oreTotali, ore, "le ore su cui la media è calcolata sono dichiarate");
+    eq(p.spesaMisurata, spesa, "e anche la spesa");
+    const mediaDeiNumeri = Math.round(100 * conOre.reduce((t, c) => t + c.euroOra, 0) / conOre.length) / 100;
+    ok(p.mediaEuroOra !== mediaDeiNumeri,
+       "sulla dimostrazione le due medie differiscono: la prova distingue davvero (pesata "
+       + p.mediaEuroOra + " ≠ media dei numeri " + mediaDeiNumeri + ")");
+  });
+
+  test("Flotta · pagella: la disponibilità di riferimento è la media vera delle righe", () => {
+    const p = pag();
+    const tutte = [...p.righe, ...p.senzaCosto];
+    const media = Math.round(10 * tutte.reduce((t, r) => t + r.disponibilita, 0) / tutte.length) / 10;
+    eq(media, p.mediaDisponibilita,
+       "il riferimento del parco è esattamente la media dei pct di riga: se divergessero, ogni scostamento sarebbe falso");
+  });
+
+  test("Flotta · pagella: senza le ore la macchina esce dalla classifica e dice perché — non «0 €/h»", () => {
+    const p = pag();
+    const d3 = p.senzaCosto.find((r) => r.mezzo === "Dumper D3");
+    ok(d3, "il Dumper D3 non ha nessuna lettura del contatore: sta fra i senza costo orario");
+    eq(d3.euroOra, null, "e il suo €/h resta null: uno zero lo farebbe sembrare il più conveniente del parco");
+    eq(d3.verdetto, "costo-ignoto", "il verdetto lo dichiara invece di tacere");
+    ok(/contatore/.test(d3.perche), "e dice che cosa manca: " + d3.perche);
+    eq(p.senzaCosto[0].mezzo, "Dumper D3",
+       "in cima ai non giudicabili c'è chi ha speso di più: 5.090 € su cui nessuno può dire se siano tanti");
+    ok(d3.totale > Math.max(...p.righe.map((r) => r.totale)),
+       "ed è proprio la macchina che ha speso più di ogni altra in classifica");
+    // la metà che SI sa non si perde per colpa della metà che non si sa
+    eq(d3.disponibilita, aff.mezzi.find((m) => m.mezzo === "Dumper D3").pct,
+       "la disponibilità del D3 resta scritta: è misurata, e il costo ignoto non la cancella");
+    ok(d3.giorniFermo > 0 && d3.aperti > 0, "con i suoi giorni persi e il fermo ancora aperto");
+    ok(p.righe.every((r) => r.euroOra != null), "in classifica non entra nessuno col €/h ignoto");
+  });
+
+  test("Flotta · pagella: la banda evita che mezzo parco finisca segnalato ogni giorno", () => {
+    const p = pag();
+    eq(p.banda, flotta.BANDA_PAGELLA, "la tolleranza è dichiarata, non nascosta nel codice");
+    const e1 = p.righe.find((r) => r.mezzo === "Escavatore E1");
+    ok(e1.scostamentoCosto < 0 && Math.abs(e1.scostamentoCosto) < flotta.BANDA_PAGELLA.costo,
+       "E1 sta sotto la media ma dentro la banda: " + e1.scostamentoCosto + "%");
+    eq(e1.costo, "linea", "quindi sul costo è in linea, non «costa meno»");
+    const d1 = p.righe.find((r) => r.mezzo === "Dumper D1");
+    ok(d1.scostamentoCosto > flotta.BANDA_PAGELLA.costo, "D1 supera la banda: " + d1.scostamentoCosto + "%");
+    eq(d1.costo, "piu", "e allora si segnala");
+    eq(d1.verdetto, "costa", "ma la sua disponibilità è del 100%: costa, non «costa e si ferma»");
+    eq(p.righe[0].mezzo, "Dumper D1", "e in cima alla classifica c'è lui");
+  });
+
+  test("Flotta · pagella: «si ferma di più» si dice sui fermi, non sulla percentuale al contrario", () => {
+    const p = flotta.pagellaMezzi(
+      [rc("Dumper D3", 5), rc("Escavatore E1", 50), rc("Dumper D1", 50)], aff, D.mezzi);
+    const d3 = p.righe.find((r) => r.mezzo === "Dumper D3");
+    ok(d3.disponibilita < p.mediaDisponibilita, "il D3 è disponibile MENO della media: " + d3.disponibilita + "%");
+    ok(d3.scostamentoFermo < 0, "lo scostamento è negativo");
+    eq(d3.fermo, "piu", "e la parola dice «si ferma più della media», che è il verso in cui si legge");
+    eq(d3.costo, "meno", "sul costo invece sta sotto");
+    eq(d3.verdetto, "ferma", "verdetto: si ferma, non costa");
+  });
+
+  test("Flotta · pagella: costa E si ferma è il verdetto che va in cima a tutto", () => {
+    const p = flotta.pagellaMezzi(
+      [rc("Dumper D3", 200), rc("Escavatore E1", 10), rc("Dumper D1", 10)], aff, D.mezzi);
+    eq(p.righe[0].mezzo, "Dumper D3", "la macchina che costa e si ferma è la prima da guardare");
+    eq(p.righe[0].verdetto, "costa-e-ferma", "e il verdetto lo dice in una parola");
+    eq(p.righe[0].costo, "piu", "sopra la media sul costo");
+    eq(p.righe[0].fermo, "piu", "e sopra la media sui fermi");
+  });
+
+  test("Flotta · pagella: «in linea» si dice solo se hanno parlato tutt'e due gli assi", () => {
+    // spesa a zero: le ore ci sono, ma senza media il costo non dice niente
+    const zero = flotta.pagellaMezzi(
+      [rc("Escavatore E1", 0), rc("Dumper D1", 0)], aff, D.mezzi);
+    eq(zero.mediaEuroOra, null, "con spesa zero non c'è una media con cui confrontarsi");
+    const e1 = zero.righe.find((r) => r.mezzo === "Escavatore E1");
+    eq(e1.costo, null, "e allora il costo non si giudica");
+    eq(e1.verdetto, "solo-meta",
+       "il verdetto NON è «in linea»: una metà sola letta non è una macchina a posto");
+    eq(zero.pochi, true, "e senza media non c'è nemmeno una classifica");
+    // senza la finestra dei fermi manca l'altra metà
+    const senzaFer = flotta.pagellaMezzi(costi, null, D.mezzi);
+    eq(senzaFer.mediaDisponibilita, null, "senza affidabilità non c'è disponibilità di riferimento");
+    ok(senzaFer.righe.every((r) => r.fermo === null), "nessuna riga ha un giudizio sui fermi");
+    ok(senzaFer.righe.every((r) => r.verdetto !== "in-linea"),
+       "e nessuna riga si dichiara «in linea» avendo letto solo il costo");
+    eq(senzaFer.misurabile, false, "la non-misurabilità è dichiarata");
+    ok(/non è stata calcolata/.test(senzaFer.percheDisponibilita), senzaFer.percheDisponibilita);
+  });
+
+  test("Flotta · pagella: nessun fermo registrato non è un parco sano", () => {
+    const vuoto = flotta.affidabilitaFlotta([], D.mezzi, 30, OGGI);
+    const p = flotta.pagellaMezzi(costi, vuoto, D.mezzi);
+    eq(p.mediaDisponibilita, 100, "senza fermi il conto dà 100% a tutte");
+    ok(p.righe.every((r) => r.fermo === "linea"), "e nessuna si scosta da nessuna");
+    eq(p.misurabile, false,
+       "ma la bandiera dice che l'asse non distingue niente: il 100% è l'assenza di dati, non una misura");
+    ok(/Nessun fermo registrato/.test(p.percheDisponibilita), p.percheDisponibilita);
+    eq(pag().misurabile, true, "mentre con i fermi della dimostrazione la disponibilità misura davvero");
+  });
+
+  test("Flotta · pagella: con una macchina sola non c'è una classifica da leggere", () => {
+    const p = flotta.pagellaMezzi(costi.filter((c) => c.mezzo === "Escavatore E1"), aff, D.mezzi);
+    eq(p.confrontabili, 1, "una sola ha il €/h");
+    eq(p.pochi, true, "e allora `pochi` lo dichiara");
+    ok(/una sola/.test(p.perchePochi), p.perchePochi);
+    eq(p.righe[0].scostamentoCosto, 0, "confrontata con sé stessa lo scostamento è zero: un numero che non vuol dire niente");
+    eq(pag().pochi, false, "con tre macchine invece la classifica si legge");
+  });
+
+  test("Flotta · pagella: la spesa dei mezzi non più in parco si dichiara, non sparisce", () => {
+    const p = flotta.pagellaMezzi([...costi, rc("Pala rottamata", 90)], aff, D.mezzi);
+    eq(p.fuoriParco, 1, "una riga di costo non ha un mezzo in parco");
+    eq(p.fuoriParcoSpesa, 9000, "e la sua spesa è dichiarata a parte");
+    eq(p.mediaEuroOra, pag().mediaEuroOra, "senza entrare nella media, che non avrebbe un denominatore");
+    eq(pag().fuoriParco, 0, "sulla dimostrazione non ce ne sono");
+  });
+
+  test("Flotta · pagella: la spesa che è un MINIMO resta marcata anche qui", () => {
+    const p = flotta.pagellaMezzi([rc("Escavatore E1", 40, { parziale: true, interventiSenzaCosto: 2 }),
+                                   rc("Dumper D1", 40)], aff, D.mezzi);
+    const e1 = p.righe.find((r) => r.mezzo === "Escavatore E1");
+    eq(e1.parziale, true,
+       "un intervento senza costo rende il totale un minimo: se si perdesse qui, un «in linea» nascerebbe da una spesa incompleta");
+    eq(p.righe.find((r) => r.mezzo === "Dumper D1").parziale, false, "e chi non ne ha non è marcato");
+  });
+
+  test("Flotta · pagella: parco vuoto non risponde niente di tranquillo", () => {
+    const p = flotta.pagellaMezzi([], flotta.affidabilitaFlotta([], [], 30, OGGI), []);
+    eq(p.righe, [], "nessuna riga");
+    eq(p.senzaCosto, [], "nessun non giudicabile");
+    eq(p.mediaEuroOra, null, "nessuna media del costo");
+    eq(p.mediaDisponibilita, null, "nessuna disponibilità: il parco non ha giorni-macchina");
+    eq(p.pochi, true, "e la mancanza di confronto è dichiarata");
+    eq(p.misurabile, false, "come la mancanza di misura sui fermi");
+  });
+
+  test("Flotta · pagella: i verdetti che la funzione sa dire sono sei, e nessun altro", () => {
+    const casi = [
+      pag(),
+      flotta.pagellaMezzi([rc("Dumper D3", 5), rc("Escavatore E1", 50), rc("Dumper D1", 50)], aff, D.mezzi),
+      flotta.pagellaMezzi([rc("Dumper D3", 200), rc("Escavatore E1", 10), rc("Dumper D1", 10)], aff, D.mezzi),
+      flotta.pagellaMezzi([rc("Escavatore E1", 0), rc("Dumper D1", 0)], aff, D.mezzi),
+    ];
+    const visti = new Set();
+    for (const p of casi) [...p.righe, ...p.senzaCosto].forEach((r) => visti.add(r.verdetto));
+    eq([...visti].sort(),
+       ["costa", "costa-e-ferma", "costo-ignoto", "ferma", "in-linea", "solo-meta"],
+       "tutti e sei escono davvero da questi casi: la mappa della pagina deve coprirli tutti (regola 18)");
+  });
+}
+
 console.log(`\nRisultato KPI app: ${passed} passati, ${failed} falliti${inVolo.length ? `  ·  ${inVolo.length} prove asincrone aspettate` : ""}`);
 process.exit(failed > 0 ? 1 : 0);

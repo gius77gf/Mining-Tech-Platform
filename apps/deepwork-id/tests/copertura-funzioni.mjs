@@ -61,7 +61,7 @@ const APP = ["campo", "conti", "flotta", "scudo", "sentinella", "terra"];
    una funzione di Sentinella ed è diventata un alias di
    `shared/deepwork-id-client/dw-shell.js` — che infatti sale da 29 a 30.
    Una funzione traslocata, non sparita. */
-const FONDO = { campo: 86, conti: 90, flotta: 79, scudo: 95, sentinella: 109, terra: 55 };
+const FONDO = { campo: 95, conti: 90, flotta: 79, scudo: 95, sentinella: 109, terra: 55 };
 
 /* Quello che resta fuori per un motivo, non per dimenticanza: i caricatori
    dati vogliono la rete e lo SDK, i ponti demo vogliono il localStorage.

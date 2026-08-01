@@ -656,6 +656,14 @@
   <div class="sec">Officina</div>
   <div id="graf-officina" class="graf"></div>
   <div id="costo-ora"></div>
+  <!-- LA PAGELLA DEL PARCO. Il costo orario e la disponibilità stavano già
+       tutt'e due in questa schermata, ma in due classifiche separate: una
+       macchina cara non si sa se sia cara perché lavora il doppio, e una
+       macchina ferma non si sa se stia costando qualcosa. Qui i due assi
+       finiscono sulla stessa riga, con la banda che evita di segnalare
+       mezzo parco ogni giorno e con chi non si può giudicare tenuto a
+       parte invece che dato per buono. -->
+  <div id="pagella"></div>
 
   <div class="sec">Nuovo mezzo</div>
   <div class="form">
@@ -1041,7 +1049,7 @@
 
 <script type="module">
   import { flottaData, urgenza, urgenzaOre, kpiFrom, previsioneGiorni, disponibilitaFlotta, sottoScorta, scaricoGiacenza, parseTelemetriaCsv, parseMezziCsv, parseRicambiCsv, ripartizioneCosti, costoOfficinaPerMezzo, costoOrarioMezzo, prioritaOperative,
-           costiPerMese, disponibilitaStorico, fotografiaDaRegistrare,
+           costiPerMese, disponibilitaStorico, fotografiaDaRegistrare, pagellaMezzi, BANDA_PAGELLA,
            SCADENZE_MEZZO_PRESET, presetScadenzaMezzo, statoScadenzaMezzo, scadenzeOrdinate, contaScadenzeMezzi, validaScadenzaMezzo, aggiungiMesi,
            nomeBreve, TIPI_MEZZO, tipoMezzo, tipoMezzoDi, checklistPreUso, riepilogoControllo,
            manutenzioniDaControllo, coperturaControlli, controlliDelMezzo,
@@ -1666,6 +1674,13 @@
         Per gli altri la spesa c'è, il costo orario no: scrivi il <b>contatore delle ore</b>
         quando registri un rifornimento e comparirà anche il loro.</div>` : ""}`;
 
+    // ── LA PAGELLA DEL PARCO ─────────────────────────────────────────────
+    // «La riparo ancora o la sostituisco» non si risponde con un asse solo,
+    // e fin qui questa schermata ne disegnava due separati. Qui i due
+    // numeri stanno sulla stessa riga — e nessuno dei due viene ricalcolato:
+    // sono gli stessi che le due classifiche qui sopra e qui sotto mostrano.
+    disegnaPagella();
+
     // RITMO D'USO: quello MISURATO sulle letture del contatore vale sempre più
     // di un numero medio scritto a mano, perché è quello di QUEL mezzo. Il
     // campo «ritmo d'uso medio» resta, ma per quello che è: un'IPOTESI, usata
@@ -2234,6 +2249,99 @@
           "Il gasolio è la voce più grossa di una flotta, e finora qui era un totale anonimo. Segna ogni pieno "
           + "<b>macchina per macchina</b> — quanti <b>litri</b>, quanto hai <b>speso</b>, le <b>ore del contatore</b> — "
           + "e dal secondo pieno Flotta sa dirti quanto beve all'ora e quanto ti costa un'ora di lavoro.");
+  }
+
+  // ══════════════════════════════════════════════════════════════════════
+  // LA PAGELLA DEL PARCO — i due assi della stessa decisione
+  // ⛔ LA MAPPA COPRE TUTTI E SEI I VERDETTI che `pagellaMezzi` sa dire
+  //    (regola 18): una risposta senza la sua riga qui ucciderebbe la
+  //    schermata al disegno, senza nessun errore di sintassi da leggere.
+  // ⛔ E il terzo rigo è `.meta.norma`, non `.meta`: le righe delle liste
+  //    tagliano il testo a due righe, e la parte che dice PERCHÉ un numero
+  //    non c'è è proprio quella che non si può perdere.
+  // ══════════════════════════════════════════════════════════════════════
+  const PAG_V = {
+    "costa-e-ferma": ["danger", "Costa e si ferma", "danger"],
+    "costa":         ["warn",   "Costa di più",     "warn"],
+    "ferma":         ["warn",   "Si ferma di più",  "warn"],
+    "solo-meta":     ["tag",    "Si legge a metà",  "mute"],
+    "in-linea":      ["ok",     "In linea",         "ok"],
+    "costo-ignoto":  ["tag",    "Non giudicabile",  "warn"],
+  };
+  const pctTx = (n) => (+n || 0).toLocaleString("it-IT", { maximumFractionDigits: 1 }) + "%";
+  const scostTx = (n) => (n > 0 ? "+" : "") + (+n || 0).toLocaleString("it-IT", { maximumFractionDigits: 1 });
+
+  function disegnaPagella() {
+    const aff = affidabilitaFlotta(FER, MEZ, finestraFer, new Date());
+    const p = pagellaMezzi(costoOrarioMezzo(INT, RIF), aff, MEZ);
+    if (!p.righe.length && !p.senzaCosto.length) { $("pagella").innerHTML = ""; return; }
+
+    // Il riepilogo dice i due riferimenti E il fatto che non coprono lo
+    // stesso periodo: scritti accanto senza dirlo si leggerebbero come se
+    // fossero lo stesso mese.
+    const periodo = "dal " + dataIt(p.da) + " a oggi";
+    const testa = p.pochi
+      ? esc(p.perchePochi) + " Il confronto fra le macchine nasce da lì: scrivi il <b>contatore delle ore</b> "
+        + "quando registri un rifornimento, e la pagella si riempie da sola."
+      : `Un'ora di macchina costa in media <b>${eur(p.mediaEuroOra)}</b><span class="u">/h</span> in tutta la flotta `
+        + `(${eur(p.spesaMisurata)} di spesa registrata divisi ${numTx(p.oreTotali)} ore coperte dai contatori). `
+        + `La disponibilità media è <b>${pctTx(p.mediaDisponibilita)}</b> negli ultimi ${p.finestra} giorni (${periodo}). `
+        + `Si segnala chi esce dalla banda: oltre il <b>${BANDA_PAGELLA.costo}%</b> sul costo, oltre `
+        + `<b>${BANDA_PAGELLA.disponibilita} punti</b> sulla disponibilità — sotto quelle soglie mezzo parco `
+        + `finirebbe segnalato tutti i giorni. <b>Attenzione ai periodi</b>: il costo orario è su tutta la spesa `
+        + `registrata, la disponibilità solo sulla finestra dei fermi.`;
+    const coda = (!p.misurabile ? " " + esc(p.percheDisponibilita) : "")
+      + (p.fuoriParco ? ` Restano fuori dal conto <b>${p.fuoriParco}</b> ${p.fuoriParco === 1 ? "riga di spesa" : "righe di spesa"} `
+          + `(${eur(p.fuoriParcoSpesa)}) di macchine non più nel parco: non hanno un denominatore su cui fare media.` : "");
+
+    const lettura = (r) => r.verdetto === "costa-e-ferma"
+        ? "Da guardare per prima: costa più della media <b>e</b> perde più giornate della media."
+      : r.verdetto === "costa"
+        ? "Costa più della media, ma non si ferma più delle altre: il costo non viene dai fermi."
+      : r.verdetto === "ferma"
+        ? "Perde più giornate della media, ma un'ora sua non costa più di un'ora delle altre."
+      : r.verdetto === "in-linea"
+        ? "Dentro la banda su tutt'e due gli assi."
+      : r.costo === null
+        ? "Il costo non si può confrontare: " + esc(p.perchePochi || "manca una media di flotta")
+      : "La disponibilità non è stata calcolata: si legge solo il costo.";
+
+    const righe = p.righe.map(r => {
+      const [bd, et, st] = PAG_V[r.verdetto];
+      return `<div class="item statico ${striscia[st] || "st-mute"}">
+        <div class="info"><div class="name">${esc(r.mezzo)} · <b>${eur(r.euroOra)}</b><span class="u">/h</span></div>
+          <div class="meta">${r.scostamentoCosto == null ? "costo non confrontabile"
+            : "costo " + scostTx(r.scostamentoCosto) + "% sulla media"} · disponibilità ${
+            r.disponibilita == null ? "non calcolata" : pctTx(r.disponibilita)
+            + (r.scostamentoFermo == null ? "" : " (" + scostTx(r.scostamentoFermo) + " punti)")}${
+            r.giorniFermo ? " · " + ggTx(r.giorniFermo) + " di fermo" : ""}${
+            r.parziale ? " · <b class=\"bad\">la spesa è un minimo</b>" : ""}</div>
+          <div class="meta norma">${lettura(r)}</div></div>
+        <div class="acts"><span class="badge ${bd}">${esc(et)}</span></div>
+      </div>`;
+    }).join("");
+
+    // I non giudicabili NON sono un cestino: è la lista da cui nasce il
+    // lavoro. Ci finisce chi ha speso di più senza che nessuno possa dire
+    // se sia caro — e un «0 €/h» al suo posto lo farebbe sembrare il più
+    // conveniente del parco.
+    const senza = p.senzaCosto.map(r => {
+      const [bd, et, st] = PAG_V[r.verdetto];
+      return `<div class="item statico ${striscia[st] || "st-mute"}">
+        <div class="info"><div class="name">${esc(r.mezzo)} · <b>non si sa</b> quanto costa un'ora</div>
+          <div class="meta">${r.totale ? eur(r.totale) + " spesi" : "nessuna spesa registrata"} · disponibilità ${
+            r.disponibilita == null ? "non calcolata" : pctTx(r.disponibilita)}${
+            r.giorniFermo ? " · " + ggTx(r.giorniFermo) + " di fermo" : ""}${
+            r.aperti ? ", <span class=\"rosso\">ancora fermo</span>" : ""}</div>
+          <div class="meta norma">${esc(r.perche.charAt(0).toUpperCase() + r.perche.slice(1))}</div></div>
+        <div class="acts"><span class="badge ${bd}">${esc(et)}</span></div>
+      </div>`;
+    }).join("");
+
+    $("pagella").innerHTML = `<div class="sec">Costa o lavora? La pagella del parco</div>
+      <div class="note recap">${testa}${coda}</div>
+      ${righe}
+      ${senza ? `<div class="sec">Di queste non si può ancora dire</div>${senza}` : ""}`;
   }
 
   // ══════════════════════════════════════════════════════════════════════

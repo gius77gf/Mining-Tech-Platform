@@ -44,7 +44,7 @@
 // ============================================================
 
 import { parseCsvLine, numIt, isIntestazione, csvCell, numeroScritto, oggiISO as oggiISOShell, isoLocale,
-         dataPiuGiorni as dataPiuGiorniShell } from "../../shared/deepwork-id-client/dw-shell.js";
+         dataISOEsiste, dataPiuGiorni as dataPiuGiorniShell } from "../../shared/deepwork-id-client/dw-shell.js";
 
 // ══════════════════════════════════════════════════════════════════════
 // NUMERI COME SI SCRIVONO IN ITALIA — un solo posto per la convenzione
@@ -144,12 +144,19 @@ export const oggiISO = oggiISOShell;
 // I turni di lavoro previsti dall'app (gli stessi già usati dal rapportino).
 export const TURNI = ["Mattina", "Pomeriggio", "Notte"];
 
+// L'ORA IN CUI COMINCIA OGNI TURNO, in un posto solo. Erano tre numeri scritti
+// a mano dentro `turnoCorrente`, e finché li leggeva una funzione sola andava
+// bene; da quando li legge anche il conto del riposo fra due turni, due copie
+// sarebbero due verità che un giorno divergono senza che nessuno lo veda — la
+// regola già pagata con la convenzione sui numeri.
+export const ORE_INIZIO_TURNO = { Mattina: 6, Pomeriggio: 14, Notte: 22 };
+
 // Turno suggerito in base all'ora, così chi registra non deve sceglierlo ogni
 // volta: 6-14 mattina, 14-22 pomeriggio, il resto notte. Pura e testabile.
 export function turnoCorrente(adesso = new Date()) {
   const h = adesso.getHours();
-  if (h >= 6 && h < 14) return TURNI[0];
-  if (h >= 14 && h < 22) return TURNI[1];
+  if (h >= ORE_INIZIO_TURNO.Mattina && h < ORE_INIZIO_TURNO.Pomeriggio) return TURNI[0];
+  if (h >= ORE_INIZIO_TURNO.Pomeriggio && h < ORE_INIZIO_TURNO.Notte) return TURNI[1];
   return TURNI[2];
 }
 
@@ -296,6 +303,32 @@ export const DEMO = {
     { id: "pr6", data: GIORNI_FA(0), turno: "Pomeriggio", operatoreId: "o3", stato: "presente", ora: "14:08" },
     { id: "pr7", data: GIORNI_FA(0), turno: "Pomeriggio", operatoreId: "o4", stato: "presente", ora: "14:11" },
     // Notte — VUOTO: il turno non e' ancora cominciato, e nessuno e' stato visto
+    /* ⛔ L'APPELLO DI IERI, che da solo non si guarda mai ma senza il quale il
+       RIPOSO FRA DUE TURNI non ha niente da misurare. I quattro operatori
+       raccontano i quattro esiti che la funzione sa dire, guardando la Mattina
+       di oggi:
+        · o1 ha finito il Pomeriggio di ieri alle 22 e ricomincia alle 6 →
+          OTTO ore, sotto le undici del D.Lgs 66/2003, e certo (i due turni
+          in mezzo sono spuntati);
+        · o2 ha finito la Mattina di ieri alle 14 → sedici ore, regolare;
+        · o3 nessuno l'ha spuntato ne' al Pomeriggio ne' alla Notte di ieri:
+          il conto direbbe sedici ore, ma e' un TETTO, e un tetto sopra la
+          soglia non prova niente → non misurabile;
+        · o4 era di Notte, e della Notte di ieri nessuno ha dichiarato la
+          durata: non si sa a che ora e' finita → non misurabile.
+       Il terzo e il quarto caso sono il motivo per cui i dati d'esempio hanno
+       dei BUCHI apposta: se fossero tutti compilati la dimostrazione non
+       potrebbe mostrare proprio la difesa per cui la funzione esiste. */
+    { id: "pr8",  data: GIORNI_FA(1), turno: "Mattina",    operatoreId: "o1", stato: "assente",  ora: "06:05" },
+    { id: "pr9",  data: GIORNI_FA(1), turno: "Mattina",    operatoreId: "o2", stato: "presente", ora: "06:02" },
+    { id: "pr10", data: GIORNI_FA(1), turno: "Mattina",    operatoreId: "o3", stato: "presente", ora: "06:04" },
+    { id: "pr11", data: GIORNI_FA(1), turno: "Mattina",    operatoreId: "o4", stato: "assente",  ora: "06:05" },
+    { id: "pr12", data: GIORNI_FA(1), turno: "Pomeriggio", operatoreId: "o1", stato: "presente", ora: "14:03" },
+    { id: "pr13", data: GIORNI_FA(1), turno: "Pomeriggio", operatoreId: "o2", stato: "assente",  ora: "14:06" },
+    { id: "pr14", data: GIORNI_FA(1), turno: "Pomeriggio", operatoreId: "o4", stato: "assente",  ora: "14:06" },
+    { id: "pr15", data: GIORNI_FA(1), turno: "Notte",      operatoreId: "o1", stato: "assente",  ora: "22:04" },
+    { id: "pr16", data: GIORNI_FA(1), turno: "Notte",      operatoreId: "o2", stato: "assente",  ora: "22:04" },
+    { id: "pr17", data: GIORNI_FA(1), turno: "Notte",      operatoreId: "o4", stato: "presente", ora: "22:01" },
   ],
   chiusure: [],
   meteo: [],
@@ -303,6 +336,10 @@ export const DEMO = {
   // denominatore senza il quale la disponibilità non si calcola
   durate: [
     { id: "t1", data: OGGI_DEMO, turno: "Mattina", minuti: 480, ora: "06:00" },
+    // ieri Mattina e Pomeriggio hanno la durata dichiarata; la NOTTE no, ed è
+    // l'assenza che fa dire «non misurabile» invece di dare per scontate otto ore
+    { id: "t2", data: GIORNI_FA(1), turno: "Mattina", minuti: 480, ora: "06:00" },
+    { id: "t3", data: GIORNI_FA(1), turno: "Pomeriggio", minuti: 480, ora: "14:00" },
   ],
   pianocarico: [],
   // I RILIEVI che in esercizio arrivano da Terra (ponte P2, sola lettura). Qui
@@ -1109,6 +1146,194 @@ export function disponibilitaTurno(attivita, durate, data, turno, chiusure) {
   }
   out.motivo = detti.join(" ");
   return out;
+}
+
+// ══════════════════════════════════════════════════════════════════════
+// C3-bis · IL RIPOSO FRA DUE TURNI
+// ══════════════════════════════════════════════════════════════════════
+// A COSA SERVE DAVVERO. Chi manda la squadra al fronte decide a mente: «Rossi
+// ieri era di pomeriggio, stamattina è di nuovo qui». Fra la fine di un turno
+// di pomeriggio (22:00) e l'inizio della mattina dopo (06:00) passano OTTO ore,
+// e chi guida un dumper o carica una volata dopo otto ore da casa non ha
+// riposato. Il conto lo sa fare Campo, perché ha già i due dati che servono:
+// l'appello (chi c'era, turno per turno) e la durata dichiarata del turno.
+//
+// LA NORMA, per chi risponde a un ispettore: il D.Lgs 66/2003, art. 7, chiede
+// **undici ore consecutive di riposo ogni ventiquattro**. Non è una soglia
+// inventata da noi e non è un consiglio: è il numero che l'ispettore verifica,
+// e oggi lo si verifica sfogliando i fogli dei turni a mano.
+//
+// ⛔ E QUI IL PRINCIPIO DEL FONDATORE HA UNA FORMA PRECISA, perché il conto
+// poggia sull'appello, e l'appello ha tre risposte, non due: presente, assente
+// e NON LO SO. Un turno che nessuno ha spuntato non vuol dire «non ha
+// lavorato». Da lì l'asimmetria che regge tutto il modulo:
+//   · se fra l'ultimo turno che sappiamo lavorato e questo ci sono turni non
+//     spuntati, il riposo calcolato è un TETTO: quella persona potrebbe aver
+//     lavorato in uno di quei buchi, e allora ha riposato di MENO;
+//   · un tetto SOTTO le undici ore prova comunque la violazione (i buchi
+//     possono solo accorciare il riposo);
+//   · un tetto SOPRA le undici ore non prova NIENTE, e dire «regolare» sarebbe
+//     il numero tranquillo dove non si è misurato niente.
+// Cioè: il dato incompleto sa ancora accusare, non sa più assolvere. È il verso
+// giusto per un controllo di sicurezza, ed è il motivo per cui `stato` ha tre
+// valori e non due.
+//
+// E NON È UN CARTELLINO DI DEMERITO, come il ponte con Scudo e quello con
+// Terra: dice che un TURNO è stato messo troppo vicino al precedente — una
+// decisione di chi fa i turni — non che la persona ha sbagliato qualcosa.
+
+// Undici ore consecutive ogni ventiquattro: D.Lgs 66/2003, art. 7. Sta qui, in
+// un posto solo, perché sia discutibile senza cercarla nelle pagine.
+export const RIPOSO_MINIMO_ORE = 11;
+
+// I tre stati che il riposo sa dire. Elenco esplicito perché chi disegna una
+// mappa di badge la faccia coprire tutti (regola 18 di run-stile).
+export const STATI_RIPOSO = ["sotto", "regolare", "non-misurabile"];
+
+// L'istante in cui comincia un turno, letto sull'orologio LOCALE (le cave sono
+// in Italia, il contenitore no). `null` se la data non esiste davvero o il
+// turno non è uno dei tre: «2026-02-30» non è un refuso da far scivolare al
+// 2 marzo. Pura e testabile.
+export function inizioTurno(data, turno) {
+  const d = String(data || "").slice(0, 10);
+  if (!dataISOEsiste(d)) return null;
+  const h = ORE_INIZIO_TURNO[String(turno || "")];
+  if (!Number.isFinite(h)) return null;
+  const [a, m, g] = d.split("-").map(Number);
+  return new Date(a, m - 1, g, h, 0, 0, 0).getTime();
+}
+
+// L'istante in cui un turno è FINITO: comincia alla sua ora e dura i minuti
+// DICHIARATI. `null` quando la durata non è stata dichiarata, ed è la scelta
+// che regge tutto il resto: dare per scontate «otto ore» produrrebbe un riposo
+// che nessuno ha misurato, esattamente il numero tranquillo che
+// `disponibilitaTurno` si rifiuta già di dare per lo stesso motivo — e lì il
+// prezzo è una percentuale sbagliata, qui è mandare al fronte qualcuno che non
+// ha dormito. Pura e testabile.
+export function fineTurno(durate, data, turno) {
+  const i = inizioTurno(data, turno);
+  if (i === null) return null;
+  const rec = durataTurnoDi(durate, data, turno);
+  const min = rec && Number.isFinite(+rec.minuti) && +rec.minuti > 0 ? +rec.minuti : null;
+  return min === null ? null : i + min * 60000;
+}
+
+// I turni che vengono PRIMA di uno dato, dal più recente indietro, coprendo
+// `giorni` giorni di calendario (quindi `giorni × 3` turni). Serve a camminare
+// all'indietro nell'appello senza inventare un calendario nuovo: i turni sono
+// già `TURNI` e i giorni già `dataPiuGiorni`. Pura e testabile.
+export function turniPrecedenti(data, turno, giorni = 7) {
+  const d0 = String(data || "").slice(0, 10);
+  if (!dataISOEsiste(d0)) return [];
+  let i = TURNI.indexOf(String(turno || ""));
+  if (i < 0) return [];
+  const n = Math.max(0, Math.round(+giorni || 0));
+  const out = [];
+  let g = d0;
+  for (let k = 0; k < n * TURNI.length; k++) {
+    i -= 1;
+    // ⛔ mezzogiorno e non mezzanotte: nelle due notti del cambio d'ora una data
+    // costruita a mezzanotte può scivolare al giorno prima o dopo
+    if (i < 0) { i = TURNI.length - 1; g = dataPiuGiorni(-1, new Date(g + "T12:00:00")); }
+    out.push({ data: g, turno: TURNI[i] });
+  }
+  return out;
+}
+
+// Centesimi di ora, per non portarsi dietro il rumore dei millisecondi.
+function oreDaMs(ms) { return Math.round(ms / 36000) / 100; }
+
+// IL RIPOSO DI UNA PERSONA PRIMA DI UN TURNO.
+// Torna sempre un oggetto — mai `null` — con `misurabile` e `perche` accanto al
+// numero: quando il numero non si può fare, si dice perché (regola 20).
+//   { stato, ore, misurabile, perche, limite, ultimo, buchi, giorni }
+// `limite` dice che cos'è `ore`: "" una misura, "al-piu" un tetto (ci sono
+// turni non spuntati in mezzo), "almeno" un pavimento (in tutta la finestra
+// guardata la persona risulta esplicitamente assente).
+// Pura e testabile.
+export function riposoPrimaDelTurno(operatoreId, presenze, durate, data, turno, giorni = 7) {
+  const base = { ore: null, misurabile: false, perche: "", limite: "", ultimo: null,
+                 buchi: 0, giorni: Math.max(0, Math.round(+giorni || 0)) };
+  const inizio = inizioTurno(data, turno);
+  if (inizio === null) return { ...base, stato: "non-misurabile",
+    perche: "il turno da guardare non ha una data e un turno leggibili" };
+  const indietro = turniPrecedenti(data, turno, giorni);
+  if (!indietro.length) return { ...base, stato: "non-misurabile",
+    perche: "non è stato guardato nessun turno prima di questo" };
+  let buchi = 0;
+  for (const t of indietro) {
+    const p = presenzaDi(presenze, t.data, t.turno, operatoreId);
+    const st = p ? String(p.stato || "") : "";
+    if (st === "assente") continue;
+    // «non lo so» non è «non c'è»: si conta come buco e si va avanti a
+    // cercare, ma il risultato se lo porta dietro
+    if (st !== "presente") { buchi++; continue; }
+    const fine = fineTurno(durate, t.data, t.turno);
+    if (fine === null) return { ...base, stato: "non-misurabile", ultimo: t, buchi,
+      perche: "del turno " + t.turno + " del " + t.data + " nessuno ha dichiarato la durata: "
+        + "senza quella non si sa a che ora è finito" };
+    const ore = oreDaMs(inizio - fine);
+    // un tetto già sotto la soglia è sotto la soglia comunque: i buchi possono
+    // solo accorciare il riposo, mai allungarlo
+    if (ore < RIPOSO_MINIMO_ORE) return { ...base, stato: "sotto", ore, misurabile: true,
+      limite: buchi ? "al-piu" : "", ultimo: t, buchi };
+    if (buchi) return { ...base, stato: "non-misurabile", ore, limite: "al-piu", ultimo: t, buchi,
+      perche: buchi + (buchi === 1 ? " turno" : " turni") + " fra quello e questo "
+        + (buchi === 1 ? "non ha" : "non hanno") + " l'appello spuntato per questa persona: "
+        + "il riposo può essere più corto di così" };
+    return { ...base, stato: "regolare", ore, misurabile: true, ultimo: t };
+  }
+  if (buchi) return { ...base, stato: "non-misurabile", buchi,
+    perche: "in " + buchi + (buchi === 1 ? " turno" : " turni") + " indietro nessuno ha spuntato "
+      + "l'appello per questa persona: non si sa quando ha lavorato l'ultima volta" };
+  // tutta la finestra spuntata ASSENTE: allora non ha lavorato, e il riposo è
+  // ALMENO l'ampiezza della finestra
+  const ultimo = indietro[indietro.length - 1];
+  return { ...base, stato: "regolare", misurabile: true, limite: "almeno",
+    ore: oreDaMs(inizio - inizioTurno(ultimo.data, ultimo.turno)) };
+}
+
+// LA FRASE DA METTERE IN PAGINA. Sta nel modulo e non nella pagina perché è qui
+// che si legge la bandiera `misurabile`: una dichiarazione di non-misurabilità
+// che non legge nessuno non protegge niente. Pura e testabile.
+export function testoRiposo(r) {
+  if (!r || !r.stato) return "";
+  if (!r.misurabile) return "Riposo non misurabile" + (r.perche ? " — " + r.perche : "");
+  if (r.limite === "almeno")
+    return "Nessun turno lavorato nei " + r.giorni + " giorni prima di questo";
+  const coda = r.stato === "sotto" ? " · sotto le " + RIPOSO_MINIMO_ORE + " ore" : "";
+  /* ⛔ ZERO ORE SI SCRIVE A PAROLE, e la prova che l'ha preteso era scritta al
+     contrario. `oreMinuti(0)` risponde «0 min», che qui è vero — il turno prima
+     è finito nell'istante in cui questo comincia — ma si legge come una misura
+     di comodo accanto a «8 h» e «16 h», cioè come un numero piccolo invece che
+     come il caso peggiore che questa funzione sa raccontare. */
+  if (r.ore < 0) return "Il turno precedente finisce dopo che questo è cominciato" + coda;
+  if (r.ore === 0) return "Nessun riposo fra questo turno e il precedente" + coda;
+  const q = oreMinuti(Math.round(r.ore * 60));
+  return (r.limite === "al-piu" ? "Al più " + q : q) + " dal turno precedente" + coda;
+}
+
+// IL RIPOSO DI TUTTO IL TURNO, con la stessa forma dell'appello e del ponte con
+// Scudo: le righe e i conti già fatti, così la pagina scrive una frase invece di
+// far contare le righe a chi guarda.
+// ⛔ I «non misurabili» restano contati a parte e NON entrano nei regolari:
+// sommarli vorrebbe dire trasformare un dubbio in un via libera, ed è il modo
+// più semplice di rendere inutile un controllo di sicurezza.
+// Pura e testabile.
+export function riposoDiTurno(operatori, presenze, durate, data, turno, squadra, giorni = 7) {
+  const righe = operatoriDi(operatori, squadra)
+    .filter(o => o.stato !== "non-disponibile")
+    .map(o => ({ operatore: o, ...riposoPrimaDelTurno(o.id, presenze, durate, data, turno, giorni) }));
+  const conta = (s) => righe.filter(r => r.stato === s).length;
+  return {
+    righe,
+    sotto: conta("sotto"),
+    regolari: conta("regolare"),
+    nonMisurabili: conta("non-misurabile"),
+    totale: righe.length,
+    // «sappiamo tutto e va tutto bene» è vero solo se non c'è nessun «non lo so»
+    tuttiInRegola: righe.length > 0 && righe.every(r => r.stato === "regolare"),
+  };
 }
 
 // Minuti di fermo giorno per giorno, negli ultimi `giorni` giorni di
