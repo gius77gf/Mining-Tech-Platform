@@ -5,14 +5,76 @@
 > sotto. Se la data è vecchia, vuol dire che **la routine non sta
 > lavorando** — e si vede subito, senza dover cercare tra i commit.
 
-**Ultimo ciclo riuscito:** 2026-08-01 00:43 UTC — **il ciclo che ha chiuso il
-giro del browser e portato in produzione tre schede progettate in banco**
-**Commit di partenza:** `4c3b994`
-**Cosa sta per fare:** due cantieri aperti in parallelo — la **schermata dei
-lotti** in Terra e la **schermata dell'analisi della causa** in Scudo — poi
-verifica con scatto e commit app per app.
+**Ultimo ciclo riuscito:** 2026-08-01 07:45 UTC — **la notte in cui il
+principio del fondatore è diventato un metro per rileggere tutto**
+**Commit di partenza:** `4c3b994` · **arrivato a:** `b964a73`
+**Cosa sta facendo adesso:** il **giro completo del browser** sta girando sul
+codice finale, su una copia congelata, e va letto fino in fondo.
 
-**Cosa ha appena finito** — otto unità dopo il canarino precedente:
+---
+
+## Le dieci unità di questa notte
+
+Il filo è uno solo: **«l'assenza di un dato non è un dato favorevole»** usato
+per la prima volta non come regola da rispettare scrivendo cose nuove, ma come
+**metro per rileggere quello che c'era già**.
+
+1. **Scudo — l'analisi della causa arriva a schermo.** La pastiglia gialla
+   «0 perché» su ogni evento senza analisi, la riga nelle Urgenze, la sezione
+   «Perché succedono». E il difetto vero l'ha trovato il **confronto
+   affiancato**: prima **tutte e sei** le righe del registro mandavano la barra
+   dei comandi a capo, dopo **zero** — e non era colpa del lavoro nuovo, era
+   «1 azione chiusa» scritta due volte identica.
+2. **Regola 20**: una **bandiera che nessuno legge non protegge niente**. Il
+   principio esce da `CLAUDE.md` e diventa un controllo.
+3. **Il censimento in tutte e sei le app — 28 punti corretti.** Sei cantieri in
+   parallelo. I più gravi: in **Flotta** il campo ore vuoto **salvava 0 in
+   archivio**; in **Conti** una fattura senza data d'emissione portava l'età
+   media del credito da **92 a 46 giorni**; in **Scudo** un lavoratore **senza
+   nemmeno una riga in scadenzario** era contato fra i «regolari»; in **Campo**
+   il turno chiuso e firmato faceva uscire **verde** un appello mai fatto; in
+   **Sentinella** lo zero di nascita di un punto lo metteva **primo** fra i
+   tranquilli; in **Terra** «Nei limiti» verde con **zero rilievi**.
+4. **La dimostrazione può mostrare il caso.** `run-demo` vietava alla demo di
+   contenere una fattura senza scadenza — cioè proprio ciò per cui la difesa
+   era appena stata costruita. Ora distingue un dato **corrotto** da un dato
+   **assente**.
+5. **`CLAUDE.md`** aggiornato con le tre cose imparate, dove si rileggono.
+6. **Terra — «con un volume» vuol dire con un numero.** Due condizioni gemelle
+   sbagliavano **tutt'e due**, in punti diversi.
+7. **Due decisioni per il fondatore** (punti 16 e 17), **rimisurate** invece che
+   riportate — e la misura diceva qualcosa di diverso dal resoconto.
+8. **Le sei controprove dichiarate, rilanciate una per una**: reggono tutte e
+   dodici i numeri. Erano stati scritti in un messaggio di commit sulla parola
+   degli agenti.
+9. **Il 100% della copertura non guarda Genesi, e adesso lo dice.**
+10. **La misura per il modulo dati di Genesi**, stretta tre volte: 113 → 81 →
+    **54**.
+
+**Prove `node`: 1.438 → 1.471.** Copertura 454 → **456**, sempre al 100%.
+
+## ⚠️ Le tre cose che vale la pena sapere, se leggi solo questo
+
+- **Genesi è l'unica app che `node` non può interrogare**: le sue 191 funzioni
+  stanno dentro la pagina, e **sei delle otto** che decidono i numeri di
+  sicurezza (compresa quella che sceglie K e β della previsione di vibrazione)
+  **non prendono nessun argomento** — leggono dallo schermo. Oggi, se qualcuno
+  ci cambia una riga, **nessuna prova cade**. Il piano per rimediarci è in
+  `docs/PIANO_GENESI_MODULO_DATI.md`.
+- **Due cose aspettano te**, e sono i punti **16** e **17** di
+  `DECISIONI_WEEKEND.md`: un punto di monitoraggio **senza soglia** oggi viene
+  confrontato con una soglia **inventata** (e sbaglia in tutt'e due i versi:
+  verde a 0,8, allarme a 1,2); e un **infortunio a prognosi ancora aperta** entra
+  come zero giornate perse. Non li ho toccati: il primo è una soglia di
+  sicurezza, il secondo tocca gli indici che vanno all'ente.
+- **Un giro del browser è stato fermato apertamente** a un terzo, e va detto
+  invece di lasciarlo credere finito: girava su una copia ormai vecchia di due
+  commit e teneva occupata la CPU impedendo ogni scatto ai sei cantieri.
+  Rilanciato dopo, sul codice finale.
+
+---
+
+**Cosa aveva fatto il blocco precedente** — otto unità:
 
 1. **Il giro completo del browser, letto fino in fondo**: 1h40 da solo,
    **34 banchi a posto e 1 da guardare**, nessun «GIRO NON VALIDO». Era la
