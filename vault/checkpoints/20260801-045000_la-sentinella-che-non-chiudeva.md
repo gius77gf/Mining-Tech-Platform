@@ -97,7 +97,7 @@ comando che non esiste.**
     /riarma-routine
 
 Verificato: in `.claude/skills/` c'è **una sola** skill, `weekly-kickoff` — e la
-sua descrizione dice testualmente di usarla per «riarbare la Cloud Routine di
+sua descrizione dice testualmente di usarla per «riarmare la Cloud Routine di
 sviluppo automatico», con fra i trigger «riarma la routine di sviluppo». Il
 comando giusto c'era, il documento ne nominava un altro.
 
