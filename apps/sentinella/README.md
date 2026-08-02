@@ -49,11 +49,34 @@ niente**: vale la soglia del punto e il conflitto viene scritto sia
 nell'elenco sia nel report. Una conversione indovinata su un valore di
 sicurezza sarebbe un errore grave.
 
+### Un punto SENZA nessuna soglia (decisione 16 del fondatore, 02/08)
+
+Se né il punto né il suo ricettore hanno una soglia, l'app **non giudica**:
+non c'è nessun limite rispetto a cui essere conformi. Lo stato è
+«**Senza soglia**» (giallo) — né conforme, né in attenzione, né superamento —
+e i conteggi lo **dichiarano** invece di assorbirlo:
+
+- `riepilogoConformita()` ha un conto suo (`senzaSoglia`) e un denominatore
+  onesto (`giudicabili`): «4 conformi su 5 punti giudicabili · 1 senza soglia»,
+  non «4 su 6»;
+- il **report** dà a quel punto l'esito `senza-soglia`, e ogni sua lettura è
+  «non confrontata», non «entro soglia»;
+- il **ponte con Scudo** non può vedere superamenti dove non c'è un limite, e
+  lo scrive invece di dire «niente da rincorrere»;
+- nessuna percentuale, nessun «0 superamenti», nessuna linea di soglia nel
+  grafico: `statoMisura()` dichiara `calcolabile: false` e chi disegna la legge.
+
+Dall'interfaccia il caso **non è raggiungibile** (il form pretende una soglia
+maggiore di zero e l'import CSV scarta le righe con soglia ≤ 0): vive per dati
+scritti prima o entrati da un'altra strada. Prima della decisione 16 il rapporto
+usava una soglia di ripiego pari a **1**, e sullo stesso punto rispondeva
+«Conforme» a 0,8 e «Superamento» a 1,2 — sbagliando in tutt'e due i versi.
+
 ### Report di conformità
 È il documento che si consegna all'ente: periodo, ricettore, letture,
 **soglia applicata e da dove viene**, superamenti, esito
-(conforme / non conforme / senza dati), più reclami e volate del periodo
-come contesto. Sullo schermo è una scheda Deepwork; con **Stampa** le
+(conforme / non conforme / senza dati / senza soglia), più reclami e volate
+del periodo come contesto. Sullo schermo è una scheda Deepwork; con **Stampa** le
 regole `@media print` lo trasformano in un A4 su carta bianca (barra,
 menu e comandi spariscono, i grafici passano a inchiostri leggibili).
 Nessuna libreria PDF: si usa la stampa del browser → «Salva come PDF».
