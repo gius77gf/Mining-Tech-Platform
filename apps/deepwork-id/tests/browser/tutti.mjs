@@ -85,6 +85,18 @@ const BANCHI = [
      stesso «zero violazioni» ottenuto su zero soggetti. */
   ['il contenuto delle finestre di conferma ci sta dentro', 'modali.mjs', []],
   ['finestre di conferma · controprova', 'modali.mjs', ['--controprova'], true],
+  /* ⛔ AGGIUNTO IL 02/08, e non è un doppione di quello qui sopra. `modali.mjs`
+     si apre la strada con UN gesto generico (il primo `[title^="Rimuovi"]` di
+     ogni sezione): raggiunge quattro app su sei e una modale per sezione, e
+     misura una cosa sola. Questo GUIDA l'app — clicca i comandi finché non ha
+     provato tutte le forme — e misura le tre cose che il 01/08 ha trovato solo
+     un occhio umano: l'unità in maiuscolo, il testo tagliato (comprese le
+     tendine, che NON dichiarano di tagliare: misurato, un `<select>` risponde
+     scrollWidth === clientWidth anche con l'opzione al doppio) e quello che
+     esce dal suo spazio, a 320 px oltre che a 390.
+     Costa una mezz'ora sulle quattordici superfici: con `--solo=` sono secondi. */
+  ['dentro le modali (unità, tagli, spazio)', 'modali-dentro.mjs', []],
+  ['dentro le modali · controprova', 'modali-dentro.mjs', ['--controprova'], true],
   ['le etichette della barra stanno nella loro colonna', 'barra-etichette.mjs', []],
   ['etichette della barra · controprova', 'barra-etichette.mjs', ['--controprova'], true],
   ['la quota di base è nel sistema del rilievo', 'quota-base-reale.mjs', []],

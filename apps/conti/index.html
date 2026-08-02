@@ -2267,7 +2267,12 @@ label.item:has(.dw-chk:checked){
           <span class="k">DDT ${esc(p.numero || "—")} · ${fmtD(p.data)}</span>
           <span class="v">${p.quantita == null ? "quantità non calcolabile" : qtu(p.quantita, p.unitaVendita)}
           <button class="arr del" type="button" style="margin-left:8px;" data-stacca="${esc(p.id)}"
-            title="Stacca questo DDT dall'ordine" aria-label="Stacca il DDT ${esc(p.numero || "")}">${IC.croce}</button></span></div>`).join("") : "";
+            title="Stacca questo DDT dall'ordine" aria-label="Stacca il DDT ${esc(p.numero || "")}">${IC.croce}</button></span></div>`
+          /* ⛔ DA DOVE VIENE IL PREZZO DI QUESTA CONSEGNA, sotto la riga e non
+             in coda alla `.k`: lì finirebbe dentro il testo tagliato a due
+             righe e non lo leggerebbe nessuno. È la forma che questa scheda
+             usa già per la banda dello scaglione e per il residuo. */
+          + `<div class="form-hint" style="margin:-2px 0 6px;">${eur(valorePesata(p))} — ${esc(origineDelPrezzo(p))}.</div>`).join("") : "";
 
     const listaSciolti = (st === "accettato" && sciolti.length)
       ? `<span class="fl">DDT di questo cliente senza ordine (${sciolti.length})</span>
