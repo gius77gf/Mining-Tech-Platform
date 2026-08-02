@@ -9942,9 +9942,30 @@ test("statoVuoto: la struttura è quella del core, invariata", () => {
     eq(al.length, 1, "una riga: il dispositivo c'è, la data no");
     eq(al[0].motivo, scudo.MOTIVO_SENZA_SOSTITUZIONE, "il motivo è scritto una volta sola, nel modulo");
     eq(al[0].gravita, "warn", "giallo e non rosso: non è scaduto, non si sa se lo è");
+    /* ⚠️ AGGIUNTA DOPO LA CONTROPROVA, e vale la pena scrivere perché.
+       Togliendo il ramo «senza data» dal giro delle MANSIONI la prova non
+       cadeva: `allarmiDpi` ha un secondo giro, che pesca le consegne fuori
+       dalle mansioni, e reggeva da solo la riga. È la seconda delle cinque
+       cause — difesa in profondità — ma la differenza c'era e nessuno la
+       guardava: senza il primo giro la riga perde il NOME DELLA MANSIONE,
+       cioè la frase «previsto dalla mansione Fochino» che dice a chi legge
+       perché quel dispositivo gli riguarda. */
+    eq(al[0].mansione, "Fochino", "e dice da quale mansione è previsto: senza, la riga non spiega perché è lì");
     eq(scudo.riepilogoDpi(senza, al).senzaSostituzione, 1, "e il riepilogo lo dice");
     eq(scudo.riepilogoDpi(senza, al).daSostituire, 0,
       "senza confonderlo con «da sostituire»: sono due lavori diversi, comprare il pezzo o leggere il libretto");
+    /* ⚠️ E IL SECONDO GIRO, quello che pesca le consegne FUORI dalle mansioni.
+       Scritta anche questa dopo la controprova, e non è ridondanza: togliendo
+       quel ramo niente cadeva, perché i dati della prova qui sopra non ci
+       arrivavano mai (la quinta delle cinque cause). È il caso della
+       dimostrazione — nessuna mansione di Scudo prevede la maschera — e senza
+       questa riga il DPI di III categoria della persona giusta non comparirebbe
+       da nessuna parte. */
+    const fuori = scudo.allarmiDpi([{ id: "m1", nome: "Fochino", dpi: ["elmetto"], lavoratoriIds: ["L1"] }],
+      lav, senza, oggi);
+    ok(fuori.some(a => a.tipo === "maschera" && a.motivo.includes(scudo.MOTIVO_SENZA_SOSTITUZIONE)),
+      "un DPI consegnato che nessuna mansione prevede resta comunque senza data: "
+      + JSON.stringify(fuori.map(a => a.tipo + "/" + a.motivo)));
     /* La controparte, che è il caso in cui l'app deve tacere: dichiarato. */
     const dich = [{ ...senza[0], nonScade: true }];
     const alD = scudo.allarmiDpi(mans, lav, dich, oggi);

@@ -342,16 +342,21 @@ export function prioritaConformita(monitoraggi, adempimenti, oggi = new Date()) 
       // cifra è la sola che si guarda.
       // ⛔ E SU UN PUNTO SENZA SOGLIA non si scrive «/ soglia —»: quel trattino
       // è l'assenza travestita da dato, appesa a una cifra che sembra il
-      // risultato di un confronto. Si dice che cosa manca e che cosa fare.
+      // risultato di un confronto. Si dice che cosa manca, e basta.
       // La bandiera `calcolabile` è la stessa che porta il rapporto: qui è
       // letta per decidere se una frase con un confronto ha senso.
+      // ⚠️ CORTA DI PROPOSITO, e la lunghezza l'ha decisa lo SCATTO. La prima
+      // stesura spiegava anche il perché («ma non c'è un limite rispetto a cui
+      // giudicarlo»): la riga di dettaglio è tagliata a due righe
+      // (`-webkit-line-clamp:2`), e a 430 px quella coda finiva sotto il taglio
+      // insieme alla nota del punto — cioè testo morto. La spiegazione vive
+      // dove si può leggere: il riepilogo dei Monitoraggi e il report.
       dettaglio: (st.stato === "mai"
         ? "nessuna misura registrata" + (sogliaValida(m.soglia)
             ? " · soglia " + numeroIt(m.soglia) + (m.unita ? " " + m.unita : "")
             : " · e nessuna soglia impostata")
         : !st.calcolabile
-        ? "nessuna soglia impostata: ultimo valore " + numeroIt(m.valore) + (m.unita ? " " + m.unita : "")
-          + ", ma non c'è un limite rispetto a cui giudicarlo"
+        ? "nessuna soglia impostata · ultimo valore " + numeroIt(m.valore) + (m.unita ? " " + m.unita : "")
         : numeroIt(m.valore) + " " + (m.unita || "") + " / soglia " + numeroIt(m.soglia))
         + (m.nota ? " · " + m.nota : ""),
       badge: st.label });

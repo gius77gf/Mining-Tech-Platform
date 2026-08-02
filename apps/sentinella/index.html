@@ -3035,7 +3035,13 @@ textarea.dw-input{
               un limite che non esiste, quindi quello zero non è un risultato,
               è l'assenza del confronto. */""}
         superamenti: <b>${p.soglia.valore == null ? "—" : p.nSuperamenti}</b> · esito: <b>${esc(E.label)}</b></div>
-        ${p.esito === "senza-soglia" ? `<div class="note avviso" style="margin-top:8px;">${esc(ESITI["senza-soglia"].testo)}</div>` : ""}
+        ${/* ⚠️ QUI LA FRASE È AL SINGOLARE, e non è pignoleria: il testo di
+              `ESITI` parla del DOCUMENTO («su questi punti non è impostata
+              nessuna soglia») ed è giusto lì, in testa al report. Riusarlo
+              tale e quale sulla scheda di UN punto lo faceva parlare al
+              plurale di un punto solo — visto nello scatto, non leggendo il
+              codice. Due livelli, due frasi. */""}
+        ${p.esito === "senza-soglia" ? `<div class="note avviso" style="margin-top:8px;">Le letture di questo punto ci sono, ma <b>non è impostata nessuna soglia</b>: senza un limite scritto il report non può dire né che sia stato rispettato né che sia stato superato. La soglia si imposta sul punto di misura, oppure sul ricettore a cui il punto è collegato.</div>` : ""}
       <div class="rep-graf" id="rep-graf-${i}"></div>
       <div class="tab-wrap"><table class="tab">
         <thead><tr><th>Data</th><th>Ora</th><th>Valore <span class="u">(${esc(p.unita)})</span></th><th>Provenienza</th><th>Esito</th></tr></thead>
@@ -3212,9 +3218,9 @@ textarea.dw-input{
     const sub = conf.totale
       ? `${conf.conformi} conformi · ${conf.attenzione} in attenzione · ${conf.superamento} in superamento`
         + (daLeggere ? ` · ${daLeggere} senza una lettura` : "")
-        ${/* ⚠️ Il singolare c'era e il verbo no: «1 senza soglia, che non si
-              POSSONO giudicare». Visto solo nello scatto — leggendo il codice
-              la stringa sembrava a posto. */""}
+        /* ⚠️ Il singolare c'era e il verbo no: «1 senza soglia, che non si
+           POSSONO giudicare». Visto solo nello scatto — leggendo il codice la
+           stringa sembrava a posto. */
         + (daSistemare ? ` · ${daSistemare} senza soglia, che non si ${daSistemare === 1 ? "può" : "possono"} giudicare` : "")
         + `, su ${conf.totale} punti in ascolto.`
       : "Nessun punto di misura configurato: aggiungi la prima centralina dai Monitoraggi.";
@@ -3359,8 +3365,18 @@ textarea.dw-input{
            stato: chiede «questo rapporto si può calcolare?», che è la domanda
            vera. Il valore resta — quello l'ha misurato qualcuno — e al posto
            del confronto c'è che cosa manca. */
+        /* ⚠️ E anche qui la frase è CORTA perché questa riga è tagliata a due
+           (`-webkit-line-clamp:2`): con la spiegazione in coda, a 430 px il
+           taglio si portava via la nota del punto e il conto delle letture.
+           Resta il fatto; il perché sta nel riepilogo qui sopra, che non è
+           tagliato.
+           ⛔ E QUESTO COMMENTO STA IN UN'ESPRESSIONE, NON IN UN TESTO: dentro
+           un `${…}` si è già fuori dal template, quindi la forma
+           `${/* … *​/""}` qui è un errore di sintassi DURO — la pagina non
+           parte affatto, e nessuna suite `node` se ne accorge perché nessuna
+           importa le pagine. Lo prende `tests/sintassi-pagine.mjs`. */
         : !st.calcolabile
-        ? `<b>${esc(numeroIt(m.valore))} ${esc(m.unita)}</b> · <b>nessuna soglia impostata</b>: non c'è un limite con cui confrontarlo`
+        ? `<b>${esc(numeroIt(m.valore))} ${esc(m.unita)}</b> · <b>nessuna soglia impostata</b>`
         : `<b>${esc(numeroIt(m.valore))} ${esc(m.unita)}</b> / soglia ${esc(numeroIt(m.soglia))}${sogliaDaRicettore(m)} · ${Math.round(st.ratio*100)}%`
       }${nl ? " · " + nl + (nl === 1 ? " lettura" : " letture") : " · nessuna lettura"}${m.nota ? " · " + esc(m.nota) : ""}</span></div></div>
       <span class="acts">
