@@ -687,6 +687,16 @@ Perché serva davvero e non produca elenchi generici, cinque vincoli:
   che tocca **i file di tutti**, non i propri. Per confrontare con `HEAD` si usa
   una `git worktree`, che non tocca l'albero vivo — la stessa che serve già a
   misurare la copia di ciò che si committa.
+- ⛔ **E SULLA COPIA CI VUOLE `git add -A`, SE NO I FILE NUOVI NON ESISTONO.**
+  `git diff --cached | git apply` **crea il file sul disco** della worktree ma
+  non lo mette nel suo indice: lì resta **non tracciato**. Ogni controllo che
+  conta i soggetti con `git ls-files` — `suite-collegate` lo fa di proposito,
+  e la ragione è scritta nel suo commento — sulla copia **non lo vede**.
+  Misurato il 02/08: la copia diceva «55 file, 3 passati, 0 falliti», la CI sul
+  commit identico diceva «**56 file, 1 fallito**», perché un banco nuovo non
+  era registrato in `tutti.mjs`. Cioè la verifica ha dato **verde su un commit
+  rosso**, che è il modo peggiore di sbagliare: la difesa che si crede di avere.
+  Dopo `git apply`, sulla worktree: `git -C "$W" add -A`. Costa una riga.
 - ⚠️ **LE PROVE GIRANO ANCHE CON `TZ=Europe/Rome`.** Il contenitore è in **UTC**,
   le cave sono in Italia. Il 01/08 una controprova sul conto dei giorni ha
   risposto «non distingue» in UTC e ha visto il difetto in ora italiana; la
