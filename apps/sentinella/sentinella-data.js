@@ -101,6 +101,35 @@ export const DEMO = {
                  { data: "2026-07-08", ora: "14:45", valore: 61, origine: { da: "manuale", quando: "2026-07-09T09:15:00" } },
                  { data: "2026-07-22", ora: "15:20", valore: 62, origine: { da: "manuale", quando: "2026-07-23T08:40:00" } } ] },
     { id: "a1", nome: "Acque — vasca decantazione", tipo: "acque", valore: 12, soglia: 35, unita: "mg/l SST", nota: "campionamento 15/07" },
+    /* ⛔ IL PUNTO SENZA SOGLIA STA NELLA DIMOSTRAZIONE, ed è una scelta presa
+       col criterio di `docs/QUANDO_UN_CASO_VA_IN_DIMOSTRAZIONE.md`: è
+       un'**assenza**, ed è **additiva** — aggiungerlo non porta via nessun
+       numero agli altri quattro punti. È il caso della decisione 16 del
+       fondatore, e prima del 02/08 l'app su un punto così scriveva «Conforme»
+       in verde nel report che va all'ente: un limite che nessuno ha mai
+       stabilito, dichiarato rispettato.
+       ⚠️ Perché una centralina nuova non ha subito un limite: la soglia la
+       fissa l'autorizzazione o una classificazione acustica, e nel frattempo
+       si misura lo stesso. È il caso vero, non uno costruito per la prova. */
+    { id: "pv1", nome: "Polveri PM10 — piazzale nuovo", tipo: "polveri", valore: 22.4, unita: "µg/m³",
+      nota: "centralina installata il 20/07, limite non ancora fissato dall'autorizzazione",
+      /* ⚠️ NIENTE TARATURA, e non per pigrizia: dandogliela la prova
+         «quanti strumenti hanno almeno un certificato» passava da 2 a 3, cioè
+         il punto nuovo cambiava un numero che non c'entra niente con lui.
+         Un caso da dimostrare deve aggiungere UNA cosa, non spostarne due:
+         qui la cosa da mostrare è la soglia che manca. E una centralina
+         installata da dodici giorni senza il certificato ancora registrato è
+         il caso vero, che il report già sa dichiarare. */
+      /* ⛔ LE LETTURE CI VOGLIONO, se no il caso NON si vede dove serve.
+         Misurato: col solo punto e nessuna lettura, il report di conformità —
+         cioè il documento che va all'ente, il posto dove prima usciva
+         «Conforme» su un limite mai stabilito — **non lo mostrava affatto**,
+         perché il periodo raccoglie le letture. Il caso stava in dimostrazione
+         e non si vedeva dove il difetto viveva. Con tre letture il punto entra
+         nel report e ci dichiara che un giudizio non si può dare. */
+      letture: [ { data: "2026-07-22", ora: "09:30", valore: 19.6, origine: { da: "import", file: "PV1_luglio.csv", quando: "2026-08-01T07:50:00" } },
+                 { data: "2026-07-27", ora: "09:20", valore: 24.1, origine: { da: "import", file: "PV1_luglio.csv", quando: "2026-08-01T07:50:00" } },
+                 { data: "2026-07-31", ora: "09:40", valore: 22.4, origine: { da: "import", file: "PV1_luglio.csv", quando: "2026-08-01T07:50:00" } } ] },
   ],
   ricettori: [
     { id: "rc1", nome: "Casa Bianchi — via Cava 12", tipo: "abitazione", distanza: 320, classe: "III", soglia: 5, unita: "mm/s", nota: "abitazione più vicina al fronte Sud" },

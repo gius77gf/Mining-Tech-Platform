@@ -164,7 +164,28 @@ test("conti: la data ASSENTE è permessa, la data CORROTTA no", () => {
 
 test("sentinella: id unici, valore/soglia numerici, date adempimenti", () => {
   idsOk(E.monitoraggi, "monitoraggi"); idsOk(E.adempimenti, "adempimenti"); idsOk(E.registri, "registri");
-  for (const m of E.monitoraggi) ok(isNum(m.valore) && isNum(m.soglia) && m.soglia > 0, `monitoraggio ${m.id}: valori`);
+  /* ⛔ ASSENTE NON È CORROTTO — TERZA VOLTA, e stavolta è stata cercata invece
+     che subita. Questa riga pretendeva `isNum(m.soglia) && m.soglia > 0` su
+     OGNI punto, quindi la dimostrazione **non poteva contenere** il caso della
+     decisione 16 del fondatore — il punto senza soglia, quello su cui l'app
+     fino al 02/08 scriveva «Conforme» nel report che va all'ente.
+     Le altre due volte erano la fattura senza scadenza e la volata senza
+     numeri: tre app, tre autori, la stessa forma. La regola per riconoscerla è
+     scritta in `docs/QUANDO_UN_CASO_VA_IN_DIMOSTRAZIONE.md`: se una prova
+     d'integrità pretende che un campo ci sia SEMPRE, va riletta chiedendosi se
+     sta vietando un'**assenza** invece di una **corruzione**.
+     Quello che resta vietato è il valore corrotto, e la soglia ne ha due
+     forme: `"abc"` e i numeri **non positivi** — su una soglia `-3` il
+     rapporto usciva 120.000%, misurato dal cantiere della decisione 16. */
+  for (const m of E.monitoraggi) {
+    ok(isNum(m.valore), `monitoraggio ${m.id}: valore`);
+    const senzaSoglia = m.soglia === null || m.soglia === undefined;
+    ok(senzaSoglia || (isNum(m.soglia) && m.soglia > 0),
+      `monitoraggio ${m.id}: la soglia o non c'è, o è un numero positivo (letto ${JSON.stringify(m.soglia)})`);
+  }
+  ok(E.monitoraggi.some((m) => m.soglia === null || m.soglia === undefined),
+    "la dimostrazione deve CONTENERE un punto senza soglia: è il caso della decisione 16,"
+    + " e una difesa che non si vede in vetrina non la guarda nessuno");
   for (const a of E.adempimenti) ok(isDate(a.scadenza), `adempimento ${a.id}: data ${a.scadenza}`);
   idsOk(E.volate, "volate");
   for (const v of E.volate) {
