@@ -982,7 +982,12 @@ label.item:has(.dw-chk:checked){
          contiene quel prodotto - perche' una tendina sempre visibile e quasi
          sempre vuota insegna a saltarla, come il campo del vettore qui sotto.
          Chi non usa gli ordini non la vede mai e vende a listino come prima. -->
-    <div class="fld w2" id="fld-pes-ordine" style="display:none;">
+    <!-- ⚠️ base piu' larga delle altre `w2` (200px), e misurata: a 1280px il
+         campo veniva 223px e l'opzione «ORD/2026/004 - € 10,50/t - 5%» ne
+         chiedeva 235, quindi il browser tagliava coi puntini PROPRIO il
+         prezzo - cioe' la cosa per cui si sceglie l'ordine. Si vede solo
+         nello scatto: nel codice non c'e' niente da leggere. -->
+    <div class="fld w2" id="fld-pes-ordine" style="display:none;flex:2 1 300px;">
       <label for="pes-ordine">Ordine del cliente</label>
       <select class="dw-input" id="pes-ordine"></select>
       <span class="err-msg" id="err-pes-ordine"></span>
@@ -3463,23 +3468,39 @@ label.item:has(.dw-chk:checked){
   /* ⛔ DA DOVE VIENE IL PREZZO DI QUESTA BOLLA, in una pillola sola. Serve a
      due schermate (il registro e la fattura differita), quindi si scrive una
      volta: due copie oggi uguali domani direbbero due cose diverse.
-     Tre risposte, e la terza è quella che conta:
-     · «Prezzo da ordine» — concordato, e si dice quale ordine;
-     · niente — vendita a listino, che è il caso normale e non merita rumore;
-     · «Provenienza non dichiarata» — il DDT è agganciato a un ordine ma è
-       stato salvato prima che Conti sapesse rispondere. NON si scrive
-       «listino» per comodità: l'assenza di un dato non è un dato favorevole,
-       e qui la comodità direbbe al venditore che ha applicato il listino
-       quando magari aveva già scontato a mano. */
+     Due risposte, e l'assenza è la terza:
+     · «Prezzo da ordine ORD/…» — concordato, e si dice quale ordine;
+     · niente — vendita a listino, che è il caso normale e non merita rumore.
+
+     ⛔ E IL TERZO CASO — la bolla agganciata a un ordine che NON dichiara da
+     dove venga il suo prezzo — qui NON c'è, e non è una dimenticanza: sta
+     nella scheda dell'ordine, dov'è l'unico posto in cui qualcuno rischia
+     davvero di darlo per scontato (si guarda l'ordine, si guardano i DDT che
+     ci pendono, e si conclude che portano il prezzo pattuito).
+     La ragione per cui non sta anche qui è MISURATA, non estetica: la riga è
+     larga 852px e le parti fisse — avatar 36, importo 132, comandi 93 — ne
+     lasciano circa 330 alle pillole. Il DDT 2026/009 ne ha già due (107 +
+     122): la terza dovrebbe stare in meno di 100px, cioè undici lettere
+     maiuscole, e in undici lettere questa cosa non si dice senza mentire.
+     Con «Provenienza del prezzo non dichiarata» (247px) andava a capo il
+     titolo del DDT; accorciata a «Origine del prezzo ignota» (192px) andava a
+     capo l'IMPORTO, e la riga passava da 100 a 139px. Nel codice non c'era
+     niente da leggere: l'ha detto solo lo scatto, e poi il righello. */
   function badgePrezzo(p) {
-    const conOrdine = p.ordineId != null && String(p.ordineId).trim() !== "";
-    if (p.fontePrezzo === "ordine") {
-      const o = ORD.find(x => x.id === p.ordineId);
-      const n = o ? (o.numeroOrdine || o.numero) : "";
-      return `<span class="badge tag" title="Il prezzo di questa consegna è quello concordato sull'ordine${n ? " " + esc(n) : ""}, non il listino di oggi.">Prezzo da ordine${n ? " " + esc(n) : ""}</span>`;
-    }
-    if (conOrdine) return `<span class="badge warn" title="Questa bolla è collegata a un ordine, ma non dice se il prezzo scritto sopra venga da quell'ordine o dal listino: è stata salvata prima che Conti tenesse questo dato. Non lo diamo per scontato.">Provenienza del prezzo non dichiarata</span>`;
-    return "";
+    if (p.fontePrezzo !== "ordine") return "";
+    const o = ORD.find(x => x.id === p.ordineId);
+    const n = o ? (o.numeroOrdine || o.numero) : "";
+    return `<span class="badge tag" title="Il prezzo di questa consegna è quello concordato sull'ordine${n ? " " + esc(n) : ""}, non il listino di oggi.">Prezzo da ordine${n ? " " + esc(n) : ""}</span>`;
+  }
+  /* La stessa domanda, ma nella scheda dell'ordine, dove c'è una riga intera
+     per rispondere. Qui il caso che conta è proprio quello che nel registro
+     non ci sta: una consegna agganciata di cui NON si sa se porti il prezzo
+     pattuito. Scriverle «a listino» per comodità sarebbe dire al venditore
+     una cosa che nessuno ha verificato. */
+  function origineDelPrezzo(p) {
+    if (p.fontePrezzo === "ordine") return "prezzo concordato su quest'ordine";
+    if (p.fontePrezzo === "listino") return "prezzo di listino, non quello dell'ordine";
+    return "non dichiara da dove venga il suo prezzo: è stato registrato prima che Conti tenesse questo dato";
   }
 
   /* ── L'ORDINE A CUI AGGANCIARE LA CONSEGNA ──────────────────────────
