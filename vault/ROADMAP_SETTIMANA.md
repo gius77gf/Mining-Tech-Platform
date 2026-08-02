@@ -113,27 +113,110 @@ questa settimana serve a farlo valere **funzione per funzione**, non a memoria.
       Campo restava sul preset, pur costruendo la stessa riconciliazione.
       Adesso la regola sta in `shared/dw-ponti.js` con la prova di **identità**
       (`terra.X === ponti.X`), non di somiglianza.
-- [ ] **A3. Conti — il DDT eredita il prezzo dell'ordine.** Si concorda un
-      prezzo su un'offerta, il cliente accetta, e poi ogni bolla di consegna
-      ricalcola dal listino: l'offerta dice 10,50 e il DDT rifà 12,00. Non è un
-      difetto nuovo — con gli scaglioni appena costruiti è solo diventato
-      **visibile**.
-- [ ] **A4. Un banco per le modali.** Stanotte due difetti veri dentro le
+- [x] ✅ **A3. Conti — il DDT eredita il prezzo dell'ordine.** Chiuso il 02/08.
+      Misurato prima di scrivere: un camion da 25,6 t fatturato **291,84 €**
+      invece di 255,36 (**+14,3%**), e su una fattura differita di 32 camion
+      **+1.167,36 €**; sui due DDT già agganciati in dimostrazione, +24,50 €
+      (il 5% concordato non arrivava). `prezzoDaOrdine` è l'unico posto che
+      decide, con `fonte` e la bandiera `calcolabile`; dove non si sa (5 casi:
+      prodotto fuori ordine, due righe a condizioni diverse, densità mancante,
+      riga senza prezzo, documento non accettato) **non si ripiega**.
+      La decisione, con la ragione scritta nel modulo: **vale il pattuito** —
+      un'offerta firmata è un impegno preso su un numero, e seguirlo al listino
+      la farebbe smettere di essere una promessa in tutt'e due i versi.
+      8 controprove su 8 sanno fallire. ⚠️ Due volte hanno risposto «non
+      distingue»: era la **quarta causa** (iniezione puntata su una prova che
+      guarda un'altra funzione), corretto il puntamento, non il codice.
+      Visto **solo negli screenshot**: la tendina tagliava proprio «10,50/t −5%»
+      a 1280px, e una frase di conferma diceva il contrario del riquadro sotto.
+- [~] **A4. Un banco per le modali.** In scrittura (`modali-dentro.mjs`, già
+      nel LEGGIMI dei banchi). Non chiuso: il ciclo si è interrotto due volte.
+      **Originale:** Stanotte due difetti veri dentro le
       finestre di dialogo li ha trovati **solo un occhio umano**: un'unità in
       maiuscolo in Sentinella, e in Terra le etichette di una tendina tagliate a
       320px — dove il taglio si portava via *esattamente la differenza fra le
       due fonti*. Nessun banco apre le modali: quella classe di difetto oggi è
       scoperta dall'automatico.
 
+### A-bis — Quello che la domenica ha aggiunto, e non era in programma
+
+- [x] ✅ **La decisione 2 chiusa e verificata dall'esterno.** Il fondatore ha
+      pubblicato le regole chiuse del Firebase pubblico; una lettura anonima
+      dell'API REST risponde **403 PERMISSION_DENIED** (prima tornava con i
+      documenti dentro). Le regole sono versionate in
+      `firestore.rules.core-vecchio`, con dentro quelle vecchie e come si torna
+      indietro.
+- [x] ✅ **Il messaggio che il core dava a TUTTI era falso.** Chiuse le regole,
+      il ramo di ripiego non è più il caso raro: prende ogni visitatore, e
+      diceva «⚠ Modalità degradata — connessione database non disponibile» —
+      falso (la connessione c'era) e muto sulla cosa che riguarda chi legge:
+      che **quello che scrive non viene salvato**. Ora `motivoDatiNonSalvati`
+      in `shared/` (tre teste, una coda sola, e la causa detta solo quando si
+      sa), badge «NON SALVA» acceso per tutta la sessione, banco
+      `ripiego-messaggio.mjs` — 36 asserzioni, controprova che ne fa cadere 10.
+      ⛔ E lo **scatto** ha trovato quello che il codice non mostrava: il toast
+      era `nowrap` + `ellipsis`, e a 320px **dieci messaggi del core** venivano
+      tagliati (il più lungo 109 caratteri, ne entravano ~45). Misurato su 125
+      messaggi: prima tagliati, ora **zero**, al massimo tre righe.
+- [x] ✅ **La nuvola di punti, e il 30% di volume che non c'era.** Il fondatore
+      non può volare col drone: misurata la rete (`raw.githubusercontent` sì,
+      `github.com`/`api.github.com`/OpenTopography no), scaricati **due file
+      LAS pubblici veri** e letti dal nostro `parseLAS` (110.000 punti in
+      **34 ms**). Ma di un rilievo vero non si conosce la risposta giusta:
+      quindi `nuvola-di-prova.mjs`, un fronte di cava il cui volume esatto si
+      **integra** (14.880 m³).
+      ⛔ Ha trovato subito che `volumeCumulo` difendeva la **base** dai punti
+      spuri e la **cima** no: **40 punti volanti su 120.000 — lo 0,03% —**
+      valevano **+29,9%** del volume con la cella a 2 m (200 punti: +118,7%).
+      Corretto con la «cima sostenuta»: dopo, +4,92%. E non taglia il vero —
+      sul file LiDAR pubblico cambia lo **0,00%** (2 celle su 103.951), su una
+      guglia di roccia il −0,003%, su una nuvola pulita **zero celle toccate**.
+      Imparato: il **piazzale non è scenografia** (senza, il 2° percentile
+      alzava la base e lo scarto era −8,51%) e la **nord UTM perde 25 cm in
+      `float32`**, non «un paio di centimetri».
+- [x] ✅ **Un controllo che gira solo in CI si scopre dopo il push.** La CI è
+      caduta su un `${...}` fuori da ogni template in `sentinella/index.html`:
+      errore di sintassi duro, pagina morta, e **tutte** le suite `node` verdi
+      perché nessuna importa le pagine. Ora `sintassi-pagine.mjs` compila i
+      blocchi `<script>` di tutte le 15 pagine dentro il giro di casa, con
+      l'elenco **derivato** dalla cartella e la controprova a tappeto (14 su 14).
+
 ### B — Lo standard delle funzioni, app per app (martedì → venerdì)
 
-- [ ] **B1. La caccia sistematica ai numeri tranquilli**, non a intuito. La
+- [x] ✅ **B1. La caccia sistematica ai numeri tranquilli.** Chiusa il 02/08, e
+      il numero che conta è il **rapporto segnalati/veri**: sette giri di
+      affinamento, dal primo cercatore (1.127 segnalati, illeggibile) al
+      finale — **16 segnalati, 12 veri, 3 su 4**. Il 01/08 un controllo era
+      stato scartato con 2 veri su 8: qui il rapporto è invertito.
+      Perimetro dichiarato: 7 moduli dati, **16.584 righe**. Punti per app:
+      campo 2 · conti 4 · flotta 3 · scudo 0 · sentinella 1 · terra 6 · genesi 0.
+      I due che pesano di più, misurati: `apertoDi` legge una fattura da mille
+      euro come **saldata** (`+null` fa 0 e `Number.isFinite(0)` è true), e
+      `giorniFraDate` dà **60 giorni** su una scadenza al **30 febbraio**.
+      Scelta di consegna: **stampa e dichiara**, non fa cadere la CI sui punti
+      nuovi — con un falso su quattro una regola che ferma un cantiere verrebbe
+      spenta. Pretende invece l'altra metà, quella senza rischio: nessun punto
+      dichiarato che non si presenta più. *(Testo originale:)* La
       `sonda-vuoto` esiste già e ne dichiara sette: va estesa a cercare il
       **pattern** — `+null`, `|| 0`, `Number.isFinite(0)`, una media senza
       denominatore, un rapporto con numeratore e denominatore su periodi
       diversi — e a **contare quanti ne trova in ognuna delle sei app**. Il
       numero è la misura del lavoro che resta.
-- [ ] **B2. Gli altri due difetti che Genesi ha trovato e non ha blindato**: un
+- [x] ✅ **B2. Chiusa il 02/08 — ma i due difetti del mandato erano GIÀ chiusi.**
+      Corretti il 01/08 alle 23:05 e 23:08 (`b84c594`, `3cfef1d`), con le prove:
+      questa riga era un **«non c'è» scaduto**, scritto dal kickoff arrivato
+      *dopo* le correzioni. È esattamente il caso descritto in CLAUDE.md —
+      rileggere il documento non basta, perché il documento è la cosa vecchia.
+      Quello vero, trovato dal cantiere e vivo in HEAD, era un altro: `ppvLimit`
+      risponde `null` per **due** ragioni e la scheda le raccontava tutt'e due
+      come «frequenza illeggibile», mandando a correggere il campo giusto.
+      Ora `ppvSenzaSoglia` le distingue e `ppvLimit` la chiama invece di
+      ripetere le guardie. Le soglie USBM/DIN **non sono cambiate**: impronta su
+      12 norme × 20.025 frequenze, `sha256` identico prima e dopo.
+      E il secondo difetto **non era raggiungibile**, dimostrato invece che
+      dichiarato (6.700 insiemi costruiti apposta + il confine analitico): non è
+      stata inventata una correzione per un caso che non esiste.
+      *(Testo originale:)* un
       **codice di norma sconosciuto** prende in silenzio la soglia residenziale
       (l'etichetta e il numero raccontano due cose diverse), e `sitoFit` scrive
       **`r2: 0`** dove r² non è calcolabile.

@@ -108,6 +108,26 @@ volta che si accorcia il verde che stampa vale un po' meno. Il lanciatore legge
 toglie solo le quattro suite che vogliono gli emulatori, dichiarate con la
 ragione: elenco **derivato**, non gemello.
 
+⛔ **UN CONTROLLO CHE GIRA SOLO IN CI È UN CONTROLLO CHE SI SCOPRE DOPO IL
+PUSH**, e il 02/08 è costato un commit rosso in cima al branch. La CI compilava
+i blocchi `<script>` di tutte le pagine da settimane; il giro di casa no. Così
+`apps/sentinella/index.html` è stato committato con un `${...}` in mezzo a una
+catena di `+` — errore di sintassi **duro**, la pagina non parte — mentre
+1.901 prove, la copertura 602/602 e la verifica sulla copia di quello che si
+committava erano **tutte verdi**: nessuna suite `node` importa le pagine. È la
+terza volta che questa famiglia passa (l'`import { daCampo }` senza il modulo,
+il `<script>` dimenticato, e questo).
+La regola generale: **se la CI sa fare una cosa in tre secondi, quella cosa sta
+anche nel giro di casa.** Se no la verifica «sulla copia» dà verde su un commit
+rosso — la difesa che si crede di avere. Adesso c'è
+`apps/deepwork-id/tests/sintassi-pagine.mjs` (15 pagine, 16 blocchi, elenco
+**derivato** dalla cartella così un'app nuova entra da sola, controprova a
+tappeto su 14 pagine su 14, iniezione **in memoria** perché le pagine le carica
+il browser).
+⚠️ Scrivendo quel file l'errore è stato rifatto: il commento d'intestazione
+conteneva i delimitatori veri e chiudeva il commento a metà. Un esempio di
+codice dentro un commento va scritto **senza i suoi delimitatori**.
+
 ⛔ **IL COSTO DELLA VERIFICA VA A SCAGLIONI.** Rilanciare tutto a ogni unità è
 il modo più sicuro di lavorare piano: il giro completo dei banchi dura **una o
 due ore** e, mentre gira, rallenta di cinque-dieci volte ogni altra misura.
