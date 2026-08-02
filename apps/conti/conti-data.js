@@ -19,7 +19,13 @@
 //                   prezzoUnitario (€/unità di vendita), aliquotaIva (%),
 //                   mezzo (targa), destinatario, fatturaId|null,
 //                   ordineId?|null (l'ordine del cliente a cui la consegna
-//                   scala: facoltativo, le pesate di prima non ce l'hanno) }
+//                   scala: facoltativo, le pesate di prima non ce l'hanno),
+//                   fontePrezzo?: "ordine"|"listino" (da dove viene il prezzo
+//                   scritto sopra. Facoltativo, e l'assenza NON vuol dire
+//                   «listino»: vuol dire che il DDT è stato salvato prima che
+//                   Conti sapesse rispondere, e nessuno lo sa. Chi mostra
+//                   questo campo scrive «non dichiarata», non tira a indovinare),
+//                   scontoPct? (%) }
 //   ordini/{id}:  { numero (PREV/AAAA/NNN), numeroOrdine? (ORD/AAAA/NNN, dato
 //                   all'accettazione), data (ISO), validoAl (ISO|null),
 //                   clienteId?, cliente (testo), stato: bozza|inviato|
@@ -192,14 +198,26 @@ export const DEMO = {
       prodottoId: "p1", prodotto: "Stabilizzato 0/30", lordo: 42, tara: 14.2, netto: 27.8,
       unitaVendita: "t", quantita: 27.8, densita: 1.9, prezzoUnitario: 8.5, aliquotaIva: 22,
       mezzo: "FT 421 KP", destinatario: "Cantiere SS115 km 12", fatturaId: "storico", causaleTrasporto: "vendita", trasportoACura: "mittente" },
+    /* ⛔ IL DDT CHE EREDITA IL PREZZO DELL'ORDINE. L'ordine ORD/2026/001 ha
+       concordato lo Stabilizzato a 8,50 €/t con il 5% di Edilcave: questa bolla
+       porta quelle condizioni e lo DICHIARA (`fontePrezzo`), invece di rifare
+       il conto dal listino del giorno. Accanto, il DDT 2026/009 fa vedere il
+       caso opposto — vedi il suo commento. */
     { id: "d1", numero: "2026/007", data: "2026-07-06", clienteId: "c1", cliente: "Edilcave Srl",
       prodottoId: "p1", prodotto: "Stabilizzato 0/30", lordo: 42.16, tara: 14.2, netto: 27.96,
-      unitaVendita: "t", quantita: 27.96, densita: 1.9, prezzoUnitario: 8.5, aliquotaIva: 22,
-      mezzo: "FT 421 KP", destinatario: "Cantiere SS115 km 12", ordineId: "o1", fatturaId: null, causaleTrasporto: "vendita", trasportoACura: "mittente" },
+      unitaVendita: "t", quantita: 27.96, densita: 1.9, prezzoUnitario: 8.5, scontoPct: 5, aliquotaIva: 22,
+      mezzo: "FT 421 KP", destinatario: "Cantiere SS115 km 12", ordineId: "o1", fontePrezzo: "ordine",
+      fatturaId: null, causaleTrasporto: "vendita", trasportoACura: "mittente" },
     { id: "d2", numero: "2026/008", data: "2026-07-13", clienteId: "c1", cliente: "Edilcave Srl",
       prodottoId: "p2", prodotto: "Pietrisco 8/12", lordo: 39.4, tara: 13.8, netto: 25.6,
       unitaVendita: "t", quantita: 25.6, densita: 1.5, prezzoUnitario: 12, aliquotaIva: 22,
       mezzo: "FT 421 KP", destinatario: "Cantiere SS115 km 12", fatturaId: null, causaleTrasporto: "vendita", trasportoACura: "mittente" },
+    /* ⛔ AGGANCIATO A UN ORDINE, MA SENZA `fontePrezzo`: è il DDT salvato prima
+       che Conti sapesse rispondere alla domanda «da dove viene questo prezzo?».
+       Sta qui apposta, ed è l'unico modo di vedere che l'app NON lo spaccia per
+       listino e non lo spaccia per pattuito — scrive «provenienza non
+       dichiarata», perché l'assenza di un dato non è un dato favorevole. Si
+       vede anche che il 5% dell'ordine qui non c'è: 252,45 € invece di 239,83. */
     { id: "d3", numero: "2026/009", data: "2026-07-17", clienteId: "c1", cliente: "Edilcave Srl",
       prodottoId: "p1", prodotto: "Stabilizzato 0/30", lordo: 43.9, tara: 14.2, netto: 29.7,
       unitaVendita: "t", quantita: 29.7, densita: 1.9, prezzoUnitario: 8.5, aliquotaIva: 22,
@@ -232,6 +250,16 @@ export const DEMO = {
       unitaVendita: "m3", quantita: null, densita: null, prezzoUnitario: 22, aliquotaIva: 22,
       mezzo: "DR 118 XS", destinatario: "Piazzale Modica", fatturaId: null,
       causaleTrasporto: "vendita", trasportoACura: "mittente" },
+    /* ⛔ IL CASO CHE HA FATTO NASCERE `prezzoDaOrdine`, MISURATO. ORD/2026/004
+       ha concordato 800 t di Pietrisco a 10,50 €/t (banda «da 500 t») col 5% di
+       Edilcave. Il listino di quel prodotto dice 12,00: senza l'eredità del
+       prezzo questa bolla avrebbe scritto 291,84 € invece di 255,36 — 36,48 €
+       in più su UN camion, il 14,3%, e circa 1.167 € sull'ordine intero. */
+    { id: "d8", numero: "2026/014", data: "2026-07-30", clienteId: "c1", cliente: "Edilcave Srl",
+      prodottoId: "p2", prodotto: "Pietrisco 8/12", lordo: 39.4, tara: 13.8, netto: 25.6,
+      unitaVendita: "t", quantita: 25.6, densita: 1.5, prezzoUnitario: 10.5, scontoPct: 5, aliquotaIva: 22,
+      mezzo: "FT 421 KP", destinatario: "Cantiere SS115 km 12", ordineId: "o8", fontePrezzo: "ordine",
+      fatturaId: null, causaleTrasporto: "vendita", trasportoACura: "mittente" },
   ],
   // RILIEVI DI TERRA (solo per la modalità dimostrativa): in un'organizzazione
   // vera arrivano dall'app Terra, qui sono finti ma COERENTI con le pesate
@@ -1609,17 +1637,40 @@ export function applicaScaglione(prodotto, quantita, unita, cliente) {
 // ⚠️ Il quarto parametro è un SOPRAINSIEME: chi non passa il cliente ha il
 // comportamento di prima (sconto zero), e i DDT salvati prima del 03/08 —
 // quando lo sconto non veniva applicato a nessuno — restano quello che sono.
-export function rigaPesata(prodotto, lordo, tara, cliente) {
+//
+// ⛔ E IL QUINTO È L'ORDINE, con la stessa promessa: chi non lo passa vende a
+// listino, come ha sempre fatto. Quando c'è, il prezzo e lo sconto NON vengono
+// più dal listino del giorno ma dal pattuito su quell'ordine — è tutto
+// `prezzoDaOrdine`, che sta in fondo al file con la ragione scritta per esteso.
+// Il prezzo si continua a FOTOGRAFARE qui: la fotografia adesso ritrae il
+// prezzo concordato invece del listino, ma resta una fotografia, e `fontePrezzo`
+// dice di che cosa. Nessun secondo posto in cui un prezzo si calcola: chi legge
+// una pesata salvata usa `valorePesata` come prima.
+// ⛔ Se il pattuito non è determinabile, `prezzoUnitario` e `valore` sono
+// `null` e `perchePrezzo` dice perché: non si ripiega sul listino di nascosto.
+export function rigaPesata(prodotto, lordo, tara, cliente, ordine, oggi = new Date()) {
   const p = prodotto || {};
   const netto = nettoPesata(lordo, tara);
   const unitaVendita = p.unitaPrezzo === "m3" ? "m3" : "t";
   const densita = densitaValida(p);
   const quantita = unitaVendita === "t" ? netto : convertiQuantita(netto, "t", "m3", densita);
-  const prezzoUnitario = round2(+p.prezzo || 0);
-  const scontoPct = scontoValido(cliente);
-  const valore = quantita == null ? null : imponibileRiga(quantita, prezzoUnitario, scontoPct);
+  const listino = round2(+p.prezzo || 0);
+  const pr = prezzoDaOrdine(ordine, { prodottoId: p.id, prodotto: p.nome,
+    unitaVendita, densita: densita }, oggi);
+  const daOrdine = pr.fonte === "ordine";
+  const prezzoUnitario = !pr.calcolabile ? null : daOrdine ? pr.prezzoUnitario : listino;
+  const scontoPct = daOrdine ? pr.scontoPct : scontoValido(cliente);
+  const valore = (quantita == null || prezzoUnitario == null) ? null
+    : imponibileRiga(quantita, prezzoUnitario, scontoPct);
   return { netto, unitaVendita, densita: densita || null, quantita,
-           prezzoUnitario, scontoPct, aliquotaIva: +p.iva || 0, valore };
+           prezzoUnitario, scontoPct, aliquotaIva: +p.iva || 0, valore,
+           /* che cosa ha deciso il prezzo, fotografato accanto al prezzo: un
+              numero che cambia senza dire perché è un numero che il cliente
+              contesta. È la stessa scelta di `rigaPreventivo` con `scaglione`. */
+           fontePrezzo: pr.fonte, listino, prezzoOrdine: pr.prezzoUnitario,
+           motivoPrezzo: pr.motivo, perchePrezzo: pr.perche,
+           ordineId: daOrdine ? pr.ordine.id : null,
+           ordineNumero: daOrdine ? (pr.ordine.numeroOrdine || pr.ordine.numero) : null };
 }
 
 // Valore di una pesata già salvata (usa i dati fotografati sul documento).
@@ -1675,6 +1726,13 @@ export function pesateDaFatturare(pesate, clienteId, dal, al) {
 // prodotto allo stesso prezzo ma con sconti diversi — succede quando le
 // condizioni del cliente cambiano a metà mese — restano due righe, come devono:
 // unirle vorrebbe dire scegliere quale dei due sconti raccontare.
+// ⚠️ E PER LA STESSA RAGIONE ci entra la PROVENIENZA del prezzo. Due consegne
+// dello stesso prodotto, una a prezzo concordato e una a listino, possono
+// capitare allo stesso importo: unirle vorrebbe dire scegliere quale delle due
+// storie raccontare sulla riga di fattura, e la riga finirebbe per dire una
+// cosa vera per metà dei DDT che la compongono. `null` (le pesate salvate prima
+// che Conti sapesse rispondere) è una terza chiave, non un sinonimo di
+// «listino»: l'assenza di un dato non è un dato favorevole.
 export function righeDaPesate(pesate) {
   const per = {};
   for (const p of pesate || []) {
@@ -1682,14 +1740,22 @@ export function righeDaPesate(pesate) {
     const prezzo = round2(+p.prezzoUnitario || 0);
     const aliquota = Math.max(0, +p.aliquotaIva || 0);
     const sconto = Math.min(100, Math.max(0, round2(+p.scontoPct || 0)));
-    const k = [p.prodottoId || p.prodotto || "—", unita, prezzo, sconto, aliquota].join("|");
+    const fonte = p.fontePrezzo === "ordine" || p.fontePrezzo === "listino" ? p.fontePrezzo : null;
+    const k = [p.prodottoId || p.prodotto || "—", unita, prezzo, sconto, aliquota, fonte].join("|");
     const r = per[k] || (per[k] = { prodottoId: p.prodottoId || null,
       descrizione: String(p.prodotto || "Prodotto"), unita, prezzoUnitario: prezzo,
-      scontoPct: sconto, aliquota, quantita: 0, imponibile: 0, ddt: [], ddtIds: [] });
+      scontoPct: sconto, aliquota, quantita: 0, imponibile: 0, ddt: [], ddtIds: [],
+      fontePrezzo: fonte, ordineIds: [] });
     const q = Number.isFinite(+p.quantita) ? +p.quantita : (+p.netto || 0);
     r.quantita = round3(r.quantita + q);
     r.ddt.push(p.numero || "—");
     r.ddtIds.push(p.id);
+    /* i riferimenti d'ordine della riga: è quello che una fattura italiana
+       stampa davvero («rif. vostro ordine ORD/2026/004»), e serve al cliente
+       per riconoscere il prezzo. Distinti, perché due ordini alle stesse
+       condizioni finiscono legittimamente sulla stessa riga. */
+    if (fonte === "ordine" && p.ordineId != null && !r.ordineIds.includes(p.ordineId))
+      r.ordineIds.push(p.ordineId);
   }
   const righe = Object.values(per).sort((a, b) => a.descrizione.localeCompare(b.descrizione, "it"));
   for (const r of righe) r.imponibile = imponibileRiga(r.quantita, r.prezzoUnitario, r.scontoPct);
@@ -3194,6 +3260,122 @@ export function ddtDaAgganciare(ordine, pesate) {
     && chiavi.has(chiaveProdotto(p))
     && (!dal || String(p.data || "") >= dal))
     .sort((a, b) => String(a.data || "").localeCompare(String(b.data || "")));
+}
+
+/* ══════════════════════════════════════════════════════════════════════
+   IL PREZZO DI UN DDT AGGANCIATO A UN ORDINE (A3)
+   ══════════════════════════════════════════════════════════════════════
+   Il difetto che questa funzione chiude, misurato prima di scriverla sui dati
+   di dimostrazione: l'ordine ORD/2026/004 concorda 800 t di Pietrisco a 10,50
+   €/t con il 5% di Edilcave, e ogni bolla di consegna rifaceva il conto dal
+   listino del giorno — 12,00 €/t. Su un camion di 25,6 t: **291,84 € invece di
+   255,36 €, cioè 36,48 € in più, il 14,3%**. Sull'ordine intero: **1.167 €**.
+   Il cliente firma un'offerta e riceve una fattura che dice un'altra cosa.
+
+   ⛔ SE IL LISTINO CAMBIA DOPO L'ACCETTAZIONE, VALE IL PATTUITO. La domanda
+   sembra ovvia e non lo è, quindi la risposta va scritta invece che data per
+   scontata. Una conferma d'ordine è un impegno preso su un numero: il cliente
+   ha deciso di comprare **guardando quel numero**, e in cambio si è legato a
+   una quantità. Se il listino salisse col gasolio e la fattura seguisse il
+   listino, la firma non varrebbe niente e nessuno firmerebbe più; se scendesse
+   e seguissimo il listino, regaleremmo un ribasso che nessuno ci ha chiesto e
+   che il venditore non ha messo in conto. In tutt'e due i versi il numero
+   scritto sull'offerta smetterebbe di essere una promessa.
+   È anche la stessa regola che questo file applica già in due punti — le
+   fotografie di `rigaPesata` e di `rigaPreventivo` — e applicarla al terzo non
+   è una novità: è finire il lavoro. L'unica strada per cambiare un prezzo
+   concordato resta quella vera: rifare l'offerta.
+
+   ⛔ E QUANDO IL PATTUITO NON SI SA, NON SI RIPIEGA. Né sul prezzo dell'ordine
+   «più o meno giusto», né sul listino di nascosto: il prezzo è **non
+   determinabile** (`calcolabile: false`) e la ragione si scrive. I cinque casi
+   sono tutti veri, non ipotesi:
+   · il DDT porta un prodotto che nell'ordine non c'è (sabbia su un ordine di
+     pietrisco: `consegnatoOrdine` lo tiene già a parte come `fuoriOrdine`);
+   · l'ordine ha due righe dello stesso prodotto a condizioni diverse — «500 t
+     a 12 più 300 t del secondo lotto a 11», che il commento di
+     `consegnatoOrdine` dichiara essere la norma in cava — e il DDT non dice a
+     quale delle due appartiene;
+   · il DDT è in un'unità che non si converte in quella dell'ordine perché la
+     densità non c'è;
+   · la riga dell'ordine non porta un prezzo (offerta salvata senza);
+   · il documento non è un ordine accettato, quindi non c'è nessun pattuito.
+   ⛔ E UNA PESATA SENZA ORDINE NON C'ENTRA NIENTE CON TUTTO QUESTO: esce con
+   `fonte: "listino"` e `calcolabile: true`, cioè il comportamento di sempre.
+   Chi non usa gli ordini non si accorge che questa funzione esiste. */
+export function prezzoDaOrdine(ordine, pesata, oggi = new Date()) {
+  const o = ordine || {}, d = pesata || {};
+  const nulla = (motivo, perche) => ({ fonte: "non-determinabile", calcolabile: false,
+    motivo, perche, prezzoUnitario: null, scontoPct: null, unita: null, righe: 0, ordine: null });
+  const listino = (motivo) => ({ fonte: "listino", calcolabile: true, motivo, perche: "",
+    prezzoUnitario: null, scontoPct: null, unita: null, righe: 0, ordine: null });
+
+  if (o.id == null || String(o.id).trim() === "") return listino("senza-ordine");
+  if (!ordineConfermato(o, oggi))
+    return nulla("ordine-non-confermato", "il documento " + (o.numero || "senza numero")
+      + " non è un ordine accettato, quindi nessun prezzo è stato concordato");
+  /* `chiaveProdotto` è la stessa con cui `consegnatoOrdine` e `ddtDaAgganciare`
+     riconoscono «lo stesso prodotto»: se qui se ne usasse un'altra, un DDT
+     potrebbe consumare l'ordine e non ereditarne il prezzo. */
+  const righe = (o.righe || []).filter(Boolean).filter((r) => chiaveProdotto(r) === chiaveProdotto(d));
+  if (!righe.length)
+    return nulla("prodotto-fuori-ordine",
+      "«" + String(d.prodotto || d.descrizione || "questo prodotto") + "» in quest'ordine non c'è");
+  const varianti = new Set(righe.map((r) => [r.unita === "m3" ? "m3" : "t",
+    round2(r.prezzoUnitario), round2(r.scontoPct)].join("|")));
+  if (varianti.size > 1)
+    return nulla("piu-prezzi", "l'ordine ha " + righe.length
+      + " righe di questo prodotto a condizioni diverse, e il DDT non dice a quale appartiene");
+  const r = righe[0];
+  if (r.prezzoUnitario == null || !Number.isFinite(+r.prezzoUnitario))
+    return nulla("riga-senza-prezzo",
+      "la riga dell'ordine non porta un prezzo: l'offerta è stata salvata senza");
+  const uR = r.unita === "m3" ? "m3" : "t";
+  const uD = d.unitaVendita === "m3" ? "m3" : "t";
+  let prezzo = round2(r.prezzoUnitario);
+  if (uD !== uR) {
+    /* ⚠️ IL PREZZO SI CONVERTE CON LA FORMULA DEI PREZZI, non con quella delle
+       quantità, e la differenza l'ha trovata il prototipo prima che finisse
+       qui: `convertiQuantita(1,"t","m3",1.5)` arrotonda a 0,667 e 18 €/m³
+       diventano **12,01** €/t invece di 12,00. Un centesimo per tonnellata fa
+       otto euro su 800 t, su un documento fiscale. Quindi si riusano
+       `prezzoPerTonnellata`/`prezzoPerMetroCubo`, che arrotondano una volta
+       sola e alla fine — e che restituiscono già `null` senza densità.
+       ⚠️ E LA DENSITÀ È QUELLA DEL DDT, non quella fotografata sull'offerta:
+       `quantitaDdtIn` converte la QUANTITÀ con `p.densita`, e un prezzo
+       convertito con un'altra densità farebbe sì che gli euro del DDT non
+       corrispondano all'ordinato che quel DDT consuma. Se il DDT la densità
+       non ce l'ha, non si ripiega su quella dell'ordine: non si sa. */
+    const finto = { prezzo: r.prezzoUnitario, unitaPrezzo: uR, densita: d.densita };
+    prezzo = uD === "t" ? prezzoPerTonnellata(finto) : prezzoPerMetroCubo(finto);
+    if (prezzo == null)
+      return nulla("densita-mancante", "il DDT è in " + UNITA_LABEL[uD] + " e l'ordine in "
+        + UNITA_LABEL[uR] + ", e senza la densità del DDT il prezzo non si converte");
+  }
+  return { fonte: "ordine", calcolabile: true, motivo: "", perche: "", prezzoUnitario: prezzo,
+    /* lo sconto viaggia con il prezzo, come sempre in questo file: la riga
+       d'ordine porta GIÀ la somma di sconto cliente e sconto scaglione
+       (`applicaScaglione`), quindi qui non si ricompone niente — si eredita. */
+    scontoPct: round2(Math.min(100, Math.max(0, +r.scontoPct || 0))),
+    unita: uD, righe: righe.length,
+    ordine: { id: o.id, numero: o.numero || null, numeroOrdine: o.numeroOrdine || null } };
+}
+
+/* La frase che accompagna il prezzo, e il posto in cui la bandiera
+   `calcolabile` viene LETTA — regola 20 di run-stile: una non-misurabilità che
+   non legge nessuno non protegge niente. Stessa forma di `descriviScaglione` e
+   `descriviAvanzamento`: «come si racconta» è una decisione sola, e vive qui
+   perché domani serve anche al CSV e alla stampa del DDT. */
+export function descriviPrezzoOrdine(pr) {
+  const p = pr || {};
+  if (!p.calcolabile)
+    return "Il prezzo concordato non si può applicare: " + (p.perche || "dato mancante")
+      + ". Finché non è chiaro, questa consegna non ha un prezzo.";
+  if (p.fonte !== "ordine")
+    return "Prezzo di listino: questa consegna non è agganciata a nessun ordine.";
+  const n = (p.ordine && (p.ordine.numeroOrdine || p.ordine.numero)) || "";
+  return "Prezzo concordato sull'ordine" + (n ? " " + n : "")
+    + ": non è il listino di oggi, è quello che il cliente ha accettato.";
 }
 
 /* AVANZAMENTO DELL'ORDINE. `percentuale` è `null` quando non si può misurare,

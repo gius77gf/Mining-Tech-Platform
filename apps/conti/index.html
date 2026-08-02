@@ -975,6 +975,18 @@ label.item:has(.dw-chk:checked){
       <select class="dw-input" id="pes-prod"></select>
       <span class="err-msg" id="err-pes-prod"></span>
     </div>
+    <!-- ⛔ L'ORDINE A CUI LA CONSEGNA APPARTIENE. Se c'e', il prezzo NON e'
+         quello di listino: e' quello concordato sull'offerta che il cliente ha
+         accettato. Il campo compare SOLO quando esiste almeno un ordine
+         possibile - cliente scelto, prodotto scelto, ordine accettato che
+         contiene quel prodotto - perche' una tendina sempre visibile e quasi
+         sempre vuota insegna a saltarla, come il campo del vettore qui sotto.
+         Chi non usa gli ordini non la vede mai e vende a listino come prima. -->
+    <div class="fld w2" id="fld-pes-ordine" style="display:none;">
+      <label for="pes-ordine">Ordine del cliente</label>
+      <select class="dw-input" id="pes-ordine"></select>
+      <span class="err-msg" id="err-pes-ordine"></span>
+    </div>
     <div class="fld" id="fld-pes-lordo" style="flex:1 1 120px;">
       <label for="pes-lordo">Lordo (t)</label>
       <input class="dw-input dec" id="pes-lordo" type="text" inputmode="decimal" autocomplete="off" spellcheck="false" placeholder="0,00" title="Peso lordo in tonnellate, come sulla bilancia. La virgola va benissimo: 32,5.">
@@ -1549,7 +1561,7 @@ label.item:has(.dw-chk:checked){
      qui si disegna e si chiede conferma — `round2` è già importato più sotto */
   import { parseMovimentiCsv, abbinaMovimenti, ESTRATTO_ESEMPIO,
            contiData, giorni, kpiFrom, statoScadenzaFattura, agingIncassi, gareRiepilogo, prioritaIncasso, incassoAtteso, incassoPerMese, esposizioneClienti, estrattoContoCliente, livelloSollecito, interessiMora, testoSollecito, TASSO_MORA_DEFAULT, parseFattureCsv, parseGareCsv, parseListinoCsv, chiaveNome, clienteDiFattura, nomeCliente, clientiDaCollegare,
-    round2, densitaValida, prezzoPerTonnellata, prezzoPerMetroCubo, convertiQuantita,
+    round2, densitaValida, prezzoPerTonnellata, prezzoPerMetroCubo, convertiQuantita, imponibileRiga,
     importiFattura, totaliDaRighe, prossimoNumero, nettoPesata, rigaPesata, valorePesata,
     quantitaPesata, pesateDaFatturare, fatturaDaPesate, canonePeriodo, BASI_CANONE, venditePerProdotto,
     cavatoPeriodo, vendutoPeriodo, riconciliazione, valoreCavato, SOGLIA_DIVARIO,
@@ -1564,7 +1576,7 @@ label.item:has(.dw-chk:checked){
     STATI_PREVENTIVO, statoPreventivoLabel, statoPreventivo, ordineConfermato,
     rigaPreventivo, totaliPreventivo, consegnatoOrdine, ddtDaAgganciare,
     avanzamentoOrdine, descriviAvanzamento, portafoglioOrdini,
-    preventiviDaSeguire,
+    preventiviDaSeguire, prezzoDaOrdine, descriviPrezzoOrdine,
     validaScaglioni, scaglionePer, applicaScaglione, etichettaScaglione,
     descriviScaglione } from "./conti-data.js";
   import { mountExit, esc, csvCell, statoVuoto, senzaDoppioni, avvolgiUnita, euro, euro0, conEuro, isoLocale, istanteLocale, oggiISO as oggiISOShell, meseLocale, dataIt, dataPiuGiorni } from "../../shared/deepwork-id-client/dw-shell.js";
@@ -1772,7 +1784,7 @@ label.item:has(.dw-chk:checked){
   const FT_CAMPI = ["ft-num","ft-cli","ft-cli-nuovo","ft-imp","ft-iva","ft-scad"];
   const CL_CAMPI = ["cl-nome","cl-piva","cl-sdi","cl-ind","cl-sconto","cl-fido","cl-note"];
   const PR_CAMPI = ["pr-nome","pr-unita","pr-prezzo","pr-dens","pr-iva"];
-  const PES_CAMPI = ["pes-data","pes-cli","pes-prod","pes-lordo","pes-tara","pes-mezzo","pes-dest"];
+  const PES_CAMPI = ["pes-data","pes-cli","pes-prod","pes-ordine","pes-lordo","pes-tara","pes-mezzo","pes-dest"];
   let ftNumAuto = true;   // finché è vero, il numero lo propone Conti
   const syncCliNuovo = () => { $("fld-ft-cli-nuovo").style.display = $("ft-cli").value === "__nuovo" ? "" : "none"; };
   const pulisciFat = () => { FT_CAMPI.forEach(i => { $(i).value = ""; puliscoErr(i); });
@@ -1832,6 +1844,12 @@ label.item:has(.dw-chk:checked){
   ["pr-prezzo","pr-dens","pr-unita"].forEach(i => $(i).addEventListener("input", aggiornaConvPro));
   ["pes-lordo","pes-tara","pes-prod"].forEach(i => $(i).addEventListener("input", aggiornaNetto));
   $("pes-data").addEventListener("change", () => { $("pes-num").value = numeroProssimoDdt(); });
+  /* cambiando cliente o prodotto cambia l'elenco degli ordini possibili, e il
+     prezzo con lui: le due cose si rifanno insieme, se no la tendina resterebbe
+     a mostrare l'ordine di un altro cliente. */
+  ["pes-cli","pes-prod"].forEach(i => $(i).addEventListener("change", () => {
+    aggiornaOrdiniPesata(); aggiornaNetto(); }));
+  $("pes-ordine").addEventListener("change", aggiornaNetto);
 
   /* le due tendine del DDT: l'elenco lo tiene il modulo, la pagina lo disegna */
   $("pes-causale").innerHTML = '<option value="">— da indicare —</option>'
@@ -2332,15 +2350,67 @@ label.item:has(.dw-chk:checked){
       chiudiModale(); await refresh();
       esito("ord-esito", "Preventivo " + o.numero + " eliminato.", "success");
     });
+    /* ⛔ AGGANCIARE UN DDT A UN ORDINE NE CAMBIA IL PREZZO, e per questo si
+       chiede. Fino a oggi l'aggancio scriveva solo `ordineId` e la bolla
+       continuava a portare il listino del giorno: è il difetto che questa
+       unità chiude, e chiuderlo solo sui DDT nuovi lo avrebbe lasciato aperto
+       su tutti quelli che si agganciano da qui. Il prezzo si ri-fotografa,
+       una volta, con la stessa `prezzoDaOrdine` del form. */
     document.querySelectorAll("[data-aggancia]").forEach(btn => btn.onclick = async () => {
-      await db.aggiorna("pesate", btn.getAttribute("data-aggancia"), { ordineId: o.id });
+      const p = PES.find(x => x.id === btn.getAttribute("data-aggancia"));
+      if (!p) return;
+      const pr = prezzoDaOrdine(o, p);
+      /* ⛔ NON DETERMINABILE: non si aggancia e non si ripiega. Agganciare
+         lasciando il listino vorrebbe dire far consumare l'ordine a una
+         consegna che ne ignora il prezzo — cioè il difetto di partenza. */
+      if (!pr.calcolabile) {
+        toast("Non si può agganciare: " + pr.perche + ".", "err"); return; }
+      /* ⛔ UN DDT GIÀ FATTURATO NON CAMBIA PREZZO. Il documento è uscito, il
+         cliente l'ha ricevuto e l'imponibile è in contabilità: si può
+         collegare all'ordine — serve al residuo — ma il prezzo resta quello
+         fatturato, e la provenienza resta quella che era (cioè, spesso,
+         nessuna: non si dichiara a posteriori una cosa che non si sa). */
+      if (p.fatturaId) {
+        await db.aggiorna("pesate", p.id, { ordineId: o.id });
+        await refresh(); schedaOrdine(o.id);
+        toast("DDT " + (p.numero || "") + " collegato all'ordine. Il prezzo resta quello già fatturato.", "");
+        return; }
+      const cambia = round2(+p.prezzoUnitario || 0) !== pr.prezzoUnitario
+        || round2(+p.scontoPct || 0) !== pr.scontoPct;
+      if (cambia) {
+        const vecchio = valorePesata(p);
+        const nuovo = imponibileRiga(Number.isFinite(+p.quantita) ? +p.quantita : (+p.netto || 0),
+          pr.prezzoUnitario, pr.scontoPct);
+        const ok = await chiedi("Aggancia il DDT all'ordine",
+          `<p>Il DDT <b>${esc(p.numero || "—")}</b> passa alle condizioni concordate su
+             <b>${esc(o.numeroOrdine || o.numero)}</b>: è quello che il cliente ha accettato,
+             e vale più del listino di oggi.</p>
+           <div class="riep" style="margin-top:10px;">
+             <div class="mrec"><span class="k">Prezzo di adesso</span><span class="v">${eur(p.prezzoUnitario)}/${uni(p.unitaVendita)}${+p.scontoPct > 0 ? " − " + perc(p.scontoPct) : ""}</span></div>
+             <div class="mrec"><span class="k">Prezzo concordato</span><span class="v accent">${eur(pr.prezzoUnitario)}/${uni(pr.unita)}${pr.scontoPct > 0 ? " − " + perc(pr.scontoPct) : ""}</span></div>
+             <div class="mrec"><span class="k">Valore della consegna</span><span class="v">${eur(vecchio)} → <b>${eur(nuovo)}</b></span></div>
+           </div>
+           <p style="margin-top:8px;">Questo DDT non è ancora fatturato, quindi il valore si può ancora correggere.</p>`,
+          "Aggancia e applica il prezzo");
+        if (!ok) return; }
+      await db.aggiorna("pesate", p.id, { ordineId: o.id, fontePrezzo: "ordine",
+        prezzoUnitario: pr.prezzoUnitario, scontoPct: pr.scontoPct });
       await refresh(); schedaOrdine(o.id);
-      toast("DDT agganciato all'ordine.", "success");
+      toast(cambia ? "DDT agganciato: adesso porta il prezzo concordato sull'ordine."
+        : "DDT agganciato all'ordine.", "success");
     });
+    /* ⛔ STACCANDO, IL PREZZO NON TORNA AL LISTINO DA SOLO. Il numero è già
+       scritto su un documento di trasporto: riscriverlo di nascosto sarebbe la
+       stessa cosa che questa unità esiste per togliere, al contrario. Resta
+       quello che è, e la provenienza torna a essere ignota — che è la verità. */
     document.querySelectorAll("[data-stacca]").forEach(btn => btn.onclick = async () => {
-      await db.aggiorna("pesate", btn.getAttribute("data-stacca"), { ordineId: null });
+      const p = PES.find(x => x.id === btn.getAttribute("data-stacca"));
+      await db.aggiorna("pesate", btn.getAttribute("data-stacca"),
+        { ordineId: null, fontePrezzo: null });
       await refresh(); schedaOrdine(o.id);
-      toast("DDT staccato dall'ordine.", "");
+      toast(p && p.fontePrezzo === "ordine"
+        ? "DDT staccato. Il prezzo scritto sulla bolla resta " + eur(p.prezzoUnitario) + ": un documento emesso non si riscrive da solo."
+        : "DDT staccato dall'ordine.", "");
     });
   }
 
@@ -3224,7 +3294,7 @@ label.item:has(.dw-chk:checked){
         <div class="amt-n${p.fatturaId ? " mute" : ""}">${eur(valorePesata(p))}</div>
         <div class="amt-s">${p.quantita == null ? "quantità non calcolabile" : qtu(p.quantita, p.unitaVendita) + " × " + eur(p.prezzoUnitario) + (+p.scontoPct > 0 ? " − " + perc(p.scontoPct) : "")}</div></div>
       <span class="badge ${p.fatturaId ? "ok" : "warn"}">${p.fatturaId ? "Fatturato" : "Da fatturare"}</span>${
-        manca.length ? `<span class="badge warn" title="${esc(manca.join("; "))}">DDT incompleto</span>` : ""}
+        manca.length ? `<span class="badge warn" title="${esc(manca.join("; "))}">DDT incompleto</span>` : ""}${badgePrezzo(p)}
       <div class="acts"><button class="arr" type="button" title="Stampa il DDT da dare al camionista (o salvalo in PDF)" aria-label="Stampa il DDT ${esc(p.numero || "")}" data-stampa-ddt="${p.id}">${IC.stampa}</button>${p.fatturaId ? "" : `<button class="arr del" type="button" title="Elimina pesata" aria-label="Elimina il DDT ${esc(p.numero || "")}" data-del-pes="${p.id}">${IC.croce}</button>`}</div>
       <div class="frow"><div class="meta pesa">${dettaglio}</div></div>
       </div>`; }).join("")
@@ -3390,6 +3460,69 @@ label.item:has(.dw-chk:checked){
          </div>`
       : `<div class="note">Senza densità Conti non può dire quanto fa ${suT ? "al metro cubo" : "alla tonnellata"}: <b>€/t e €/m³ non si convertono a occhio</b>. Gli inerti stanno in genere fra 1,2 e 2,8 t/m³ — il valore giusto è quello del tuo materiale.</div>`;
   }
+  /* ⛔ DA DOVE VIENE IL PREZZO DI QUESTA BOLLA, in una pillola sola. Serve a
+     due schermate (il registro e la fattura differita), quindi si scrive una
+     volta: due copie oggi uguali domani direbbero due cose diverse.
+     Tre risposte, e la terza è quella che conta:
+     · «Prezzo da ordine» — concordato, e si dice quale ordine;
+     · niente — vendita a listino, che è il caso normale e non merita rumore;
+     · «Provenienza non dichiarata» — il DDT è agganciato a un ordine ma è
+       stato salvato prima che Conti sapesse rispondere. NON si scrive
+       «listino» per comodità: l'assenza di un dato non è un dato favorevole,
+       e qui la comodità direbbe al venditore che ha applicato il listino
+       quando magari aveva già scontato a mano. */
+  function badgePrezzo(p) {
+    const conOrdine = p.ordineId != null && String(p.ordineId).trim() !== "";
+    if (p.fontePrezzo === "ordine") {
+      const o = ORD.find(x => x.id === p.ordineId);
+      const n = o ? (o.numeroOrdine || o.numero) : "";
+      return `<span class="badge tag" title="Il prezzo di questa consegna è quello concordato sull'ordine${n ? " " + esc(n) : ""}, non il listino di oggi.">Prezzo da ordine${n ? " " + esc(n) : ""}</span>`;
+    }
+    if (conOrdine) return `<span class="badge warn" title="Questa bolla è collegata a un ordine, ma non dice se il prezzo scritto sopra venga da quell'ordine o dal listino: è stata salvata prima che Conti tenesse questo dato. Non lo diamo per scontato.">Provenienza del prezzo non dichiarata</span>`;
+    return "";
+  }
+
+  /* ── L'ORDINE A CUI AGGANCIARE LA CONSEGNA ──────────────────────────
+     Si offrono gli ordini ACCETTATI di quel cliente che contengono quel
+     prodotto. Il filtro non è riscritto qui: lo fa `prezzoDaOrdine`, che è la
+     stessa funzione che poi deciderà il prezzo — se il criterio con cui si
+     sceglie l'ordine e quello con cui si eredita il prezzo fossero due, un
+     ordine comparirebbe in tendina e poi non darebbe nessun prezzo.
+     ⛔ E si scartano SOLO gli ordini che quel prodotto non ce l'hanno: gli
+     altri casi in cui il pattuito non si sa (due righe a prezzi diversi, la
+     densità che manca) restano in elenco APPOSTA, perché sono la cosa che
+     l'utente deve vedere invece che non trovare. */
+  function ordiniPossibiliPesata() {
+    const clienteId = $("pes-cli").value, p = PRO.find(x => x.id === $("pes-prod").value);
+    if (!clienteId || !p) return [];
+    const finto = { prodottoId: p.id, prodotto: p.nome,
+      unitaVendita: p.unitaPrezzo === "m3" ? "m3" : "t", densita: densitaValida(p) };
+    return ORD.filter(o => String(o.clienteId || "") === String(clienteId))
+      .filter(o => prezzoDaOrdine(o, finto).motivo !== "prodotto-fuori-ordine")
+      .filter(o => ordineConfermato(o))
+      .sort((a, b) => String(b.data || "").localeCompare(String(a.data || "")));
+  }
+  function aggiornaOrdiniPesata() {
+    const sel = $("pes-ordine"), prima = sel.value;
+    const lista = ordiniPossibiliPesata();
+    /* una tendina sempre visibile e quasi sempre vuota insegna a saltarla:
+       compare solo quando c'è davvero qualcosa da scegliere. */
+    $("fld-pes-ordine").style.display = lista.length ? "" : "none";
+    sel.innerHTML = '<option value="">— nessuno: vendita a listino —</option>'
+      + lista.map(o => {
+          const r = (o.righe || []).find(x => x.prodottoId === $("pes-prod").value) || {};
+          const cond = r.prezzoUnitario == null ? "prezzo da vedere"
+            : eur(r.prezzoUnitario) + "/" + uni(r.unita) + (r.scontoPct > 0 ? " − " + perc(r.scontoPct) : "");
+          return `<option value="${esc(o.id)}">${esc(o.numeroOrdine || o.numero)} — ${esc(cond)}</option>`;
+        }).join("");
+    sel.value = prima; if (sel.value !== prima) sel.value = "";
+  }
+  /* L'ordine scelto nel form, o `null`. In un posto solo perché lo leggono
+     l'anteprima e il salvataggio, e devono leggere la stessa cosa. */
+  function ordinePesata() {
+    const id = $("fld-pes-ordine").style.display === "none" ? "" : $("pes-ordine").value;
+    return id ? (ORD.find(o => o.id === id) || null) : null;
+  }
   // ── Netto della pesata: lordo − tara, aggiornato mentre si digita ──
   function aggiornaNetto() {
     // lordo e tara si leggono col nostro lettore: «32,5» è trentadue tonnellate
@@ -3410,16 +3543,32 @@ label.item:has(.dw-chk:checked){
     // ⛔ il CLIENTE entra nel conto: la sua scheda dichiara uno sconto, e fino
     // al 03/08 quello sconto non arrivava da nessuna parte.
     const cliAnt = CLI.find(x => x.id === $("pes-cli").value) || null;
-    const r = p ? rigaPesata(p, lordoN, taraN, cliAnt) : null;
-    $("pes-riep").innerHTML = (r && n > 0)
+    const o = ordinePesata();
+    const r = p ? rigaPesata(p, lordoN, taraN, cliAnt, o) : null;
+    const daOrdine = r && r.fontePrezzo === "ordine";
+    /* ⛔ IL PUNTO IN CUI IL PRINCIPIO SI VEDE. Se il pattuito non è
+       determinabile non si disegna nessun prezzo e nessun valore: si scrive
+       che cosa manca. Un numero qui — il listino «per intanto» — sarebbe un
+       prezzo che nessuno ha concordato scritto su un documento fiscale. */
+    $("pes-riep").innerHTML = (r && n > 0 && r.prezzoUnitario == null)
+      ? `<div class="note" style="border-left-color:var(--danger);margin-bottom:0;">
+         ${esc(descriviPrezzoOrdine(prezzoDaOrdine(o, { prodottoId: p.id, prodotto: p.nome,
+             unitaVendita: r.unitaVendita, densita: r.densita })))}</div>`
+      : (r && n > 0)
       ? `<div class="riep">
          <div class="mrec"><span class="k">Netto</span><span class="v">${qt(r.netto)} t</span></div>
          ${r.unitaVendita === "m3"
            ? `<div class="mrec"><span class="k">Volume (netto ÷ densità ${qt(r.densita)})</span><span class="v">${qt(r.quantita)} m³</span></div>` : ""}
-         <div class="mrec"><span class="k">Prezzo di listino</span><span class="v">${eur(r.prezzoUnitario)}/${uni(r.unitaVendita)}</span></div>
-         ${r.scontoPct > 0 ? `<div class="mrec"><span class="k">Sconto ${esc(cliAnt.ragioneSociale)}</span><span class="v">− ${perc(r.scontoPct)}</span></div>` : ""}
+         <div class="mrec"><span class="k">${daOrdine ? "Prezzo concordato" : "Prezzo di listino"}</span>
+           <span class="v${daOrdine ? " accent" : ""}">${eur(r.prezzoUnitario)}/${uni(r.unitaVendita)}</span></div>
+         ${/* il listino resta scritto accanto al pattuito: chi guarda deve
+              vedere QUANTO si discostano, se no la differenza sembra un errore */
+           daOrdine && r.listino !== r.prezzoUnitario
+             ? `<div class="mrec"><span class="k">Listino di oggi</span><span class="v mute">${eur(r.listino)}/${uni(r.unitaVendita)}</span></div>` : ""}
+         ${r.scontoPct > 0 ? `<div class="mrec"><span class="k">Sconto ${daOrdine ? "concordato" : esc(cliAnt ? cliAnt.ragioneSociale : "")}</span><span class="v">− ${perc(r.scontoPct)}</span></div>` : ""}
          <div class="mrec"><span class="k">Valore della consegna</span><span class="v">${r.valore == null ? "—" : eur(r.valore)}</span></div>
-         </div>`
+         </div>
+         ${daOrdine ? `<div class="form-hint" style="margin-top:6px;">${esc(descriviPrezzoOrdine(prezzoDaOrdine(o, { prodottoId: p.id, prodotto: p.nome, unitaVendita: r.unitaVendita, densita: r.densita })))}</div>` : ""}`
       : "";
   }
   // ── Elenco dei DDT da fatturare secondo i filtri della fattura differita ──
@@ -3440,7 +3589,7 @@ label.item:has(.dw-chk:checked){
         <div class="info"><div class="name"><span class="num-doc">DDT ${esc(p.numero || "—")}</span> · ${esc(p.prodotto || "—")}</div>
         <div class="meta">${fmtD(p.data)} · ${qt(p.netto)} t netti${p.mezzo ? " · " + esc(p.mezzo) : ""}${p.destinatario ? " · " + esc(p.destinatario) : ""}</div></div>
         <div class="amt"><div class="amt-n">${eur(valorePesata(p))}</div>
-          <div class="amt-s">${p.quantita == null ? "—" : qtu(p.quantita, p.unitaVendita)}</div></div></label>`).join("")
+          <div class="amt-s">${p.quantita == null ? "—" : qtu(p.quantita, p.unitaVendita)}</div></div>${badgePrezzo(p)}</label>`).join("")
       : ($("dif-cli").value
           ? vuoto("spunta", "Nessun DDT da fatturare", "Per questo cliente non ci sono consegne in attesa nel periodo scelto. Prova ad allargare le date o svuotale per vederle tutte.")
           : vuoto("camion", "Scegli il cliente", "La fattura differita mette insieme i DDT di <b>un solo cliente</b>: scegli chi fatturare qui sopra e compariranno le sue consegne ancora da fatturare."));
@@ -5085,31 +5234,56 @@ label.item:has(.dw-chk:checked){
     if (err.length) { err.forEach(x => segnaErr(x[0], x[1]));
       esito("pes-esito", "Compila i campi evidenziati per registrare la pesata.", "err");
       primoErrore(PES_CAMPI); return; }
-    const r = rigaPesata(p, lordo, tara, c);
+    const ordine = ordinePesata();
+    const r = rigaPesata(p, lordo, tara, c, ordine);
     if (r.quantita == null) {
       segnaErr("pes-prod", "Questo prodotto si vende a metro cubo ma non ha la densità: aggiungila nel listino, altrimenti non si sa quanti m³ sono queste tonnellate.");
       esito("pes-esito", "Manca la densità di " + p.nome + ": aggiungila nel listino.", "err"); return; }
+    /* ⛔ IL PREZZO NON DETERMINABILE FERMA IL DDT, e non ripiega sul listino.
+       Un prezzo che nessuno ha concordato, scritto su un documento di trasporto,
+       diventa una fattura che il cliente contesta: meglio fermarsi e dire che
+       cosa manca. Si dice sulla tendina dell'ordine, che è dove si corregge. */
+    if (r.prezzoUnitario == null) {
+      segnaErr("pes-ordine", r.perchePrezzo.charAt(0).toUpperCase() + r.perchePrezzo.slice(1)
+        + ". Scegli un altro ordine, o togli l'aggancio e vendi a listino.");
+      esito("pes-esito", "Il prezzo concordato non si può applicare a questa consegna: "
+        + r.perchePrezzo + ".", "err");
+      primoErrore(PES_CAMPI); return; }
     const numero = numeroProssimoDdt(data);
     await db.aggiungi("pesate", { numero, data, clienteId, cliente: c.ragioneSociale,
       prodottoId, prodotto: p.nome, lordo: round2(lordo), tara: round2(tara), netto: r.netto,
       unitaVendita: r.unitaVendita, quantita: r.quantita, densita: r.densita,
       prezzoUnitario: r.prezzoUnitario, scontoPct: r.scontoPct, aliquotaIva: r.aliquotaIva,
+      /* l'ordine e la PROVENIENZA del prezzo si salvano insieme, e non è un
+         doppione: `ordineId` dice a che cosa la consegna appartiene,
+         `fontePrezzo` dice da dove viene il numero scritto sopra. Un DDT
+         agganciato dopo, a prezzo di listino, ha il primo e non il secondo. */
+      ordineId: r.ordineId, fontePrezzo: r.fontePrezzo,
       mezzo, destinatario, fatturaId: null,
       /* ⛔ si salvano vuoti se l'utente non li ha scelti: NON si mette
          «vendita» per comodità. Un valore di comodo qui diventa una
          dichiarazione sul documento di trasporto. */
       causaleTrasporto: causaleTr || null, trasportoACura: curaTr || null,
       vettore: curaTr === "vettore" ? (vettore || null) : null });
-    esito("pes-esito", "DDT " + numero + " registrato: " + qt(r.netto) + " t nette di " + p.nome + " per " + eur(r.valore) + ".", "success");
+    esito("pes-esito", "DDT " + numero + " registrato: " + qt(r.netto) + " t nette di " + p.nome
+      + " per " + eur(r.valore)
+      /* si dice SUBITO da dove viene il prezzo: chi vede 255,36 dove il listino
+         ne farebbe 291,84 deve saperlo qui, non scoprirlo in fattura. */
+      + (r.fontePrezzo === "ordine" ? ", al prezzo concordato sull'ordine " + r.ordineNumero : "")
+      + ".", "success");
     // si svuotano solo i pesi: stesso camion, stesso prodotto, viaggio dopo viaggio
     ["pes-lordo", "pes-tara"].forEach(i => { $(i).value = ""; puliscoErr(i); });
     aggiornaNetto(); $("pes-lordo").focus(); await refresh();
   };
   $("btn-pes-export").onclick = () => {
-    let csv = "ddt;data;cliente;prodotto;lordo_t;tara_t;netto_t;quantita;unita;prezzo_unitario;sconto_pct;valore;iva;mezzo;destinatario;fattura\n";
+    /* ⛔ la PROVENIENZA del prezzo esce anche nel CSV, e vuota quando non si
+         sa: chi apre il file col foglio di calcolo deve poter distinguere una
+         consegna a prezzo concordato da una a listino senza riaprire l'app. */
+      let csv = "ddt;data;cliente;prodotto;lordo_t;tara_t;netto_t;quantita;unita;prezzo_unitario;sconto_pct;valore;iva;mezzo;destinatario;fattura;ordine;prezzo_da\n";
     for (const p of PES.slice().sort((a, b) => String(a.data || "").localeCompare(String(b.data || "")))) {
       const f = p.fatturaId ? FAT.find(x => x.id === p.fatturaId) : null;
-      csv += `${csvCell(p.numero)};${p.data || ""};${csvCell(p.cliente)};${csvCell(p.prodotto)};${+p.lordo || 0};${+p.tara || 0};${+p.netto || 0};${p.quantita == null ? "" : p.quantita};${p.unitaVendita === "m3" ? "m3" : "t"};${+p.prezzoUnitario || 0};${+p.scontoPct || 0};${valorePesata(p)};${+p.aliquotaIva || 0};${csvCell(p.mezzo)};${csvCell(p.destinatario)};${csvCell(f ? f.numero : "")}\n`;
+      const o = p.ordineId ? ORD.find(x => x.id === p.ordineId) : null;
+      csv += `${csvCell(p.numero)};${p.data || ""};${csvCell(p.cliente)};${csvCell(p.prodotto)};${+p.lordo || 0};${+p.tara || 0};${+p.netto || 0};${p.quantita == null ? "" : p.quantita};${p.unitaVendita === "m3" ? "m3" : "t"};${+p.prezzoUnitario || 0};${+p.scontoPct || 0};${valorePesata(p)};${+p.aliquotaIva || 0};${csvCell(p.mezzo)};${csvCell(p.destinatario)};${csvCell(f ? f.numero : "")};${csvCell(o ? (o.numeroOrdine || o.numero) : "")};${csvCell(p.fontePrezzo === "ordine" ? "ordine" : p.fontePrezzo === "listino" ? "listino" : "")}\n`;
     }
     const a = document.createElement("a");
     a.href = "data:text/csv;charset=utf-8," + encodeURIComponent(csv);

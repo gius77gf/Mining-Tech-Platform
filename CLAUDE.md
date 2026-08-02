@@ -796,6 +796,19 @@ Perché serva davvero e non produca elenchi generici, cinque vincoli:
   file di prova a vicenda (è già successo più volte).
 
 ## Contesto di progetto
+
+- ⛔ **QUESTO REPOSITORY NON È IL PUNTO ZERO DEL PROGETTO, e in git non si
+  vede.** L'app — il core `index.html` compreso, con i suoi dati d'esempio — è
+  stata costruita da Claude in **conversazioni precedenti**, fuori da qui; il
+  fondatore l'ha poi portata dentro creando il repository il 18/04/2026. Questa
+  sessione (il controllo remoto) è **l'evoluzione di quel lavoro**, non un
+  progetto nuovo che eredita codice altrui.
+  ⚠️ La trappola concreta, già pestata il 02/08: `git log` attribuisce tutto a
+  `gius77gf`, perché **git registra chi committa, non chi scrive**. Chi legge
+  la storia e ne deduce «questo pezzo non l'abbiamo fatto noi» sbaglia, e
+  rischia di dirlo al fondatore come se fosse una smentita. Prima di attribuire
+  qualcosa in base a `git log`, ricordarsi che la firma è di chi ha premuto
+  invio, non di chi ha scritto la riga.
 - Vault Obsidian di visione/ricerca: repo gius77gf/ecosistema-vault
   (mappa ecosistema, roadmap generale, schede delle 6 app, wiki
   ricerca competitor).

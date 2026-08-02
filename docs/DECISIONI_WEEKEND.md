@@ -10,16 +10,16 @@ può procedere con l'attuazione.
 
 ---
 
-# 📖 Da dove cominciare — le decisioni aperte sono **25**
+# 📖 Da dove cominciare — le decisioni aperte sono **24**
 
 *Questa pagina è stata aggiunta il 01/08 per una ragione precisa: hai scritto
 che avresti potuto rispondere «in settimana», e un file di cinquecento righe con
 venticinque caselle non è una cosa a cui si risponde in una sera. Qui sotto le
-stesse venticinque, ordinate per **quanto ti costano a te** e con, per ognuna,
+stesse, ordinate per **quanto ti costano a te** e con, per ognuna,
 la risposta che darei io. Il testo lungo resta nelle sezioni numerate: questa è
 solo la porta d'ingresso.*
 
-## 🔴 Le tre che NON prendo da solo, mai — e che restano ferme finché non parli
+## 🔴 Le due che NON prendo da solo, mai — e che restano ferme finché non parli
 
 Non è prudenza mia: è una regola che hai dato tu, ed è scritta in `CLAUDE.md`.
 Toccano la sicurezza delle persone o dei dati, e una scelta sbagliata qui non si
@@ -27,8 +27,8 @@ vede subito.
 
 | # | in una riga | perché aspetta te |
 |---|---|---|
-| **3** | i dati di default nel core (nomi, telefoni, IBAN) sono **veri o inventati**? | se sono veri sono **pubblici su GitHub** adesso |
-| **4** | via libera a togliere le **password in chiaro** dal sorgente | va fatta insieme alla rotazione di tutte le password: se la faccio da solo qualcuno resta fuori |
+| **3** | ✅ **CHIUSA il 02/08** — i dati di default sono dimostrativi | verificato contro il codice prima di chiuderla. Vedi la sezione 3. |
+| **4** | via libera a togliere le **password in chiaro** dal sorgente | ora si sa che sono dimostrative (decisione 3), quindi **non c'è niente da ruotare fuori dal progetto**: resta da decidere se toglierle prima del primo cliente vero |
 | **9** | le **curve dei limiti di vibrazione** (USBM/DIN) esatte | è la soglia che dice a una cava se può sparare: la cambio solo se me lo dici |
 
 ## 🟡 Le tre che richiedono che tu apra qualcosa
@@ -71,13 +71,26 @@ momento.
 | **18a** | il volume rimesso per il **recupero** si toglie dall'onere? | è un'opzione nella scheda del titolo: cambia da Regione a Regione |
 | **18b** | un recupero **a cavallo di due anni** | conta nell'anno in cui **finisce** |
 
-⚠️ Noterai che dieci di queste diciannove danno la stessa risposta con parole
-diverse: **quando non si sa, si dice che non si sa.** Non è una fissazione — è
-il principio che hai dato tu («l'assenza di un dato non è un dato favorevole»),
-e ogni volta che lo abbiamo violato l'app diceva a qualcuno una cosa
-tranquillizzante che nessuno aveva misurato. Se su questo sei d'accordo in
-generale, **una riga sola basta per tutte e dieci**, e le altre nove sono scelte
-vere su cui ha senso che tu dica la tua.
+⚠️ **Correzione, 02/08.** Qui prima c'era scritto che *dieci* di queste
+diciannove erano la stessa domanda. **Sono quattro.** Le ho contate una per una
+invece di andare a impressione, ed è esattamente il difetto che passiamo le
+giornate a togliere dal prodotto: un numero più grande del vero, scritto con
+sicurezza. Le quattro vere sono la **13**, la **14**, la **16** e la **17**:
+
+| # | la domanda | perché è la stessa domanda |
+|---|---|---|
+| **13** | una mansione **senza requisiti** censiti | il vuoto vuol dire «nessuno l'ha ancora scritto», non «va bene così» |
+| **14** | un DPI **senza data di sostituzione** | idem: verde vorrebbe dire «a posto», e nessuno l'ha detto |
+| **16** | un punto di monitoraggio **senza soglia** | senza soglia non si può dire né conforme né non conforme |
+| **17** | un infortunio a **prognosi aperta** | le giornate perse non sono zero: non si sanno ancora |
+
+Tutte e quattro chiedono la stessa cosa: **quando non si sa, l'app lo dice
+invece di mostrare la faccia tranquilla.** È il principio che hai dato tu
+(«l'assenza di un dato non è un dato favorevole»), e ogni volta che l'abbiamo
+violato l'app ha detto a qualcuno una cosa rassicurante che nessuno aveva
+misurato.
+👉 Se sei d'accordo, **una riga tua chiude tutte e quattro**. Le altre quindici
+restano scelte vere, una per una.
 
 ---
 
@@ -109,7 +122,24 @@ vere su cui ha senso che tu dica la tua.
   dati sintetici (sono pubblici su GitHub) e va valutata la rimozione dallo
   storico.
 - **Dettaglio**: `docs/AUDIT_SICUREZZA.md` punti 1 e 2, `docs/CENSIMENTO_FEATURE.md`.
-- [ ] Deciso (reali → bonificare / fantasia → ok lasciare)
+- [x] ✅ **DECISO dal fondatore il 02/08: sono dati DIMOSTRATIVI.** Servono a
+      provare l'app nelle varie modalità d'accesso, e non sono usati da nessuna
+      altra parte. **Niente da bonificare.**
+      **Verificato contro il codice prima di chiudere**, perché una decisione di
+      sicurezza non si prende su un'impressione — e le tre prove concordano:
+      · l'IBAN è **esattamente** quello d'esempio dei manuali
+        (`IT60X0542811101000000123456`), non un IBAN di qualcuno;
+      · i telefoni sono `333 1234567`, `2345678`, `3456789`, `4567890` — in
+        sequenza;
+      · i cognomi sono Rossi, Bianchi, Verdi, Colombo, cioè i segnaposto
+        classici italiani.
+      ⚠️ E una nota di metodo, perché per un momento l'ho letta male io: in git
+      questi dati risultano introdotti da `gius77gf` col primo commit del
+      repository (`d441229`, 18/04/2026). Ma **git registra chi committa, non
+      chi scrive**: l'app — compresi questi dati d'esempio — è stata costruita
+      da Claude nelle **conversazioni precedenti a questo repository**, e il
+      fondatore l'ha portata qui. Quindi «li ha generati Claude» e «li ha
+      committati Giuseppe» sono vere tutt'e due, e non si contraddicono.
 
 ## 4. Mitigazione password in chiaro
 - **Stato**: preparata ma **NON attivata**. Nel core ci sono 7 utenti con
@@ -548,7 +578,7 @@ ogni strumento), i **grafici** in tutte le app da un motore scritto in casa,
 **sei ponti** veri fra le app, l'**estetica unificata**, e le convenzioni
 condivise su numeri, unità di misura e soldi.
 
-**Le prove automatiche sono passate a 1.838** *(ricontate il 01/08 lanciando le
+**Le prove automatiche sono passate a 1.856** *(ricontate il 01/08 lanciando le
 suite)*, più **106** che girano con l'emulatore Firestore (58 sulle regole di
 sicurezza, 19 sull'SDK, 21 sulle funzioni, 8 sul primo avvio) e **19** banchi
 che aprono davvero le pagine in un browser.

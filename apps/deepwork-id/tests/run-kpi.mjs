@@ -14588,6 +14588,54 @@ test("⛔ Flotta: le ore ignote arrivano ignote anche a chi le chiede due volte"
        ["costa", "costa-e-ferma", "costo-ignoto", "ferma", "in-linea", "solo-meta"],
        "tutti e sei escono davvero da questi casi: la mappa della pagina deve coprirli tutti (regola 18)");
   });
+
+  test("⛔ Flotta · pagella: col gasolio della finestra la media SCENDE e un mezzo esce dalla banda", () => {
+    /* ⛔ LE PROVE DELLA PAGELLA SONO TUTTE RELATIVE, e questa è la ragione per
+       cui ne serviva una assoluta: sono scritte come «la media è la spesa delle
+       righe diviso le loro ore», quindi restano verdi con QUALUNQUE numeratore
+       — anche col gasolio intero, primo pieno compreso, che è il difetto
+       corretto il 05/08. Una prova che deriva il valore atteso dagli stessi
+       dati che misura non sa dire che il dato è cambiato.
+       Qui i numeri della dimostrazione sono scritti a mano, e accanto c'è il
+       parco come sarebbe col difetto rimesso: è il confronto affiancato, dentro
+       la suite invece che in uno scratchpad che alla prossima sessione non
+       esiste più. */
+    const p = pag();
+    eq([p.mediaEuroOra, p.spesaMisurata, p.oreTotali], [20.68, 3102, 150],
+       "la media pesata del parco: 3.102 € di finestra su 150 ore misurate");
+    const asse = Object.fromEntries(p.righe.map((r) => [r.mezzo, [r.euroOra, r.scostamentoCosto, r.costo]]));
+    eq(asse, { "Escavatore E1": [26.11, 26.3, "piu"], "Dumper D1": [19.02, -8, "linea"],
+               "Pala P1": [14.55, -29.6, "meno"] },
+       "€/h, scostamento dalla media e asse del costo, mezzo per mezzo");
+    eq(p.righe.map((r) => r.mezzo), ["Escavatore E1", "Dumper D1", "Pala P1"],
+       "e l'ordine della classifica, dal peggiore");
+
+    /* IL PARCO COME SAREBBE COL PRIMO PIENO DENTRO (il difetto), costruito
+       dalle stesse righe: `officinaInFinestra` più TUTTO il gasolio. Non è una
+       seconda implementazione del €/h — è la fotografia di quello che c'era
+       scritto prima, e serve a far vedere di quanto si sposta. */
+    const conPrimoPieno = costi.map((c) => c.euroOra == null ? c : {
+      ...c,
+      spesaInFinestra: Math.round(100 * (c.officinaInFinestra + c.carburante)) / 100,
+      euroOra: Math.round(100 * (c.officinaInFinestra + c.carburante) / c.ore) / 100,
+    });
+    const q = flotta.pagellaMezzi(conPrimoPieno, aff, D.mezzi);
+    eq(q.mediaEuroOra, 32.38, "col gasolio intero la media del parco era 32,38 €/h, il 56,6% più alta");
+    const asseQ = Object.fromEntries(q.righe.map((r) => [r.mezzo, [r.euroOra, r.scostamentoCosto, r.costo]]));
+    eq(asseQ, { "Escavatore E1": [38.96, 20.3, "piu"], "Dumper D1": [28.61, -11.6, "linea"],
+                "Pala P1": [28.18, -13, "linea"] },
+       "e i tre €/h gonfiati, con gli scostamenti che ne uscivano");
+    /* ⛔ IL PUNTO CHE VALE PIÙ DEI NUMERI: la Pala P1 stava DENTRO la banda del
+       ±15% e ne esce dal lato buono. Il verdetto resta «in-linea» (l'asse del
+       costo entra nei verdetti solo quando costa di PIÙ), ma l'asse che la
+       pagina scrive accanto alla riga cambia parola: da «in linea con la
+       media» a «costa meno della media». Cioè la correzione non sposta solo
+       una cifra, sposta una FRASE che qualcuno legge per decidere. */
+    eq([asseQ["Pala P1"][2], asse["Pala P1"][2]], ["linea", "meno"],
+       "la Pala P1 esce dalla banda: era «in linea», adesso «costa meno»");
+    eq(q.righe.map((r) => r.verdetto), p.righe.map((r) => r.verdetto),
+       "gli altri verdetti no: sulla dimostrazione nessuno passa a «costa di più» (e va detto, non gonfiato)");
+  });
 }
 
 // ── Scudo · appaltatori e DUVRI ──────────────────────────────────────
@@ -15402,6 +15450,250 @@ test("⛔ Flotta: le ore ignote arrivano ignote anche a chi le chiede due volte"
       eq(rifatta.scaglione.da, o8.righe[0].scaglione.da, "e la banda pure");
     });
   }
+
+  // ══════════════════════════════════════════════════════════════════
+  // CONTI · IL DDT EREDITA IL PREZZO DELL'ORDINE (A3)
+  // ------------------------------------------------------------------
+  // Il difetto, misurato sui dati di dimostrazione prima di scrivere una
+  // riga: ORD/2026/004 concorda 800 t di Pietrisco a 10,50 €/t col 5% di
+  // Edilcave, e ogni bolla rifaceva il conto dal listino del giorno (12,00).
+  // Su un camion di 25,6 t: 291,84 € invece di 255,36, cioè 36,48 € in più —
+  // il 14,3% — e circa 1.167 € sull'ordine intero. Il cliente firma
+  // un'offerta e riceve una fattura che dice un'altra cosa.
+  // Queste prove difendono tre cose che si possono rompere una per volta:
+  // che il pattuito VINCA, che chi non usa gli ordini NON cambi comportamento,
+  // e che quando il pattuito non si sa non si ripieghi su niente.
+  // ══════════════════════════════════════════════════════════════════
+  {
+    const PIE = { id: "a3p", nome: "Pietrisco 8/12", unitaPrezzo: "t", prezzo: 12, densita: 1.5, iva: 22 };
+    const CLI5 = { sconto: 5 };
+    // l'ordine: 10,50 €/t concordati, 5% di sconto, in tonnellate
+    const ORD = { id: "a3o", numero: "PREV/2026/900", numeroOrdine: "ORD/2026/900",
+      stato: "accettato", decisoIl: "2026-07-24", clienteId: "c1",
+      righe: [{ prodottoId: "a3p", descrizione: "Pietrisco 8/12", quantita: 800, unita: "t",
+        densita: 1.5, prezzoUnitario: 10.5, scontoPct: 5, aliquota: 22, imponibile: 7980 }] };
+    const DDT = { prodottoId: "a3p", prodotto: "Pietrisco 8/12", unitaVendita: "t", densita: 1.5 };
+
+    test("⛔ A3 · il DDT agganciato usa il PATTUITO, non il listino del giorno", () => {
+      const pr = conti.prezzoDaOrdine(ORD, DDT);
+      eq(pr.fonte, "ordine", "il prezzo viene dall'ordine");
+      eq(pr.calcolabile, true, "e si è potuto determinare");
+      eq(pr.prezzoUnitario, 10.5, "10,50 €/t concordati, non i 12,00 di listino");
+      eq(pr.scontoPct, 5, "e lo sconto pattuito viaggia col prezzo, come sempre in questo file");
+      /* LA MISURA DEL DIFETTO, scritta come asserzione perché non torni: il
+         valore giusto e quello che usciva prima devono restare DIVERSI. */
+      eq(conti.imponibileRiga(25.6, pr.prezzoUnitario, pr.scontoPct), 255.36, "un camion di 25,6 t");
+      eq(conti.imponibileRiga(25.6, 12, 5), 291.84, "quanto avrebbe scritto il listino");
+      eq(conti.imponibileRiga(800, pr.prezzoUnitario, pr.scontoPct), 7980, "e l'ordine intero torna con l'offerta firmata");
+    });
+
+    test("⛔ A3 · e lo DICE: la provenienza è fotografata sul DDT, non dedotta", () => {
+      const pr = conti.prezzoDaOrdine(ORD, DDT);
+      eq(pr.ordine.numeroOrdine, "ORD/2026/900", "quale ordine ha deciso il prezzo");
+      ok(conti.descriviPrezzoOrdine(pr).includes("ORD/2026/900"),
+         "e la frase lo nomina: chi vede 10,50 dove il listino dice 12,00 deve capire perché");
+      ok(/non è il listino di oggi/.test(conti.descriviPrezzoOrdine(pr)),
+         "e dice a chiare lettere che non è il listino");
+    });
+
+    test("⛔ A3 · una pesata NON agganciata continua a usare il listino", () => {
+      const pr = conti.prezzoDaOrdine(null, DDT);
+      eq(pr.fonte, "listino", "senza ordine il prezzo è quello di sempre");
+      eq(pr.calcolabile, true, "e non è una non-misurabilità: è il caso normale");
+      eq(pr.motivo, "senza-ordine", "detto per nome, così la pagina non deve indovinarlo");
+      eq(conti.prezzoDaOrdine({ righe: [] }, DDT).fonte, "listino", "e nemmeno un ordine senza id cambia niente");
+      /* la stessa promessa vista dal lato di `rigaPesata`, che è dove il
+         comportamento di chi non usa gli ordini si romperebbe davvero. */
+      const senza = conti.rigaPesata(PIE, 39.4, 13.8, CLI5);
+      eq(senza.prezzoUnitario, 12, "il listino");
+      eq(senza.scontoPct, 5, "e lo sconto del cliente, come dal 03/08");
+      eq(senza.valore, 291.84, "e il valore di prima, identico");
+      eq(senza.fontePrezzo, "listino", "dichiarato, non lasciato intendere");
+    });
+
+    test("⛔ A3 · rigaPesata: il quinto parametro è un SOPRAINSIEME", () => {
+      const senza = conti.rigaPesata(PIE, 39.4, 13.8, CLI5);
+      const con = conti.rigaPesata(PIE, 39.4, 13.8, CLI5, ORD);
+      eq(con.netto, senza.netto, "il netto non c'entra col prezzo e non cambia");
+      eq(con.quantita, senza.quantita, "e nemmeno la quantità");
+      eq(con.aliquotaIva, senza.aliquotaIva, "e nemmeno l'IVA");
+      eq(con.prezzoUnitario, 10.5, "cambia solo il prezzo: quello concordato");
+      eq(con.valore, 255.36, "e quindi il valore della consegna");
+      eq(con.fontePrezzo, "ordine", "con la provenienza scritta");
+      eq(con.ordineNumero, "ORD/2026/900", "e il numero dell'ordine, per la riga di fattura");
+      eq(con.listino, 12, "il listino resta scritto accanto: chi riceve il documento deve poter rifare il conto");
+    });
+
+    /* ⛔ IL PRINCIPIO DEL FONDATORE, CASO PER CASO. Nessuno di questi cinque
+       ripiega: né sul prezzo dell'ordine «più o meno giusto», né sul listino
+       di nascosto. `calcolabile: false` e la ragione scritta. */
+    test("⛔ A3 · prodotto che nell'ordine NON c'è: non determinabile, e detto", () => {
+      const sabbia = { prodottoId: "a3s", prodotto: "Sabbia lavata 0/4", unitaVendita: "m3", densita: 1.6 };
+      const pr = conti.prezzoDaOrdine(ORD, sabbia);
+      eq(pr.fonte, "non-determinabile", "un carico di sabbia su un ordine di pietrisco non ha un prezzo pattuito");
+      eq(pr.calcolabile, false, "la bandiera lo dichiara");
+      eq(pr.motivo, "prodotto-fuori-ordine", "e dice quale dei casi è");
+      eq(pr.prezzoUnitario, null, "nessun ripiego sul prezzo dell'ordine");
+      ok(pr.perche.includes("Sabbia lavata 0/4"), "e nomina il prodotto: " + pr.perche);
+      ok(conti.descriviPrezzoOrdine(pr).includes("non si può applicare"), "la frase legge la bandiera");
+      /* e il ripiego NASCOSTO sul listino è quello che si vede peggio: qui si
+         pretende che `rigaPesata` non produca nessun numero. */
+      const r = conti.rigaPesata({ ...PIE, id: "a3s", nome: "Sabbia lavata 0/4" }, 39.4, 13.8, CLI5, ORD);
+      eq(r.prezzoUnitario, null, "e rigaPesata non tira fuori il listino di nascosto");
+      eq(r.valore, null, "né un valore");
+      eq(r.motivoPrezzo, "prodotto-fuori-ordine", "e porta con sé il motivo");
+      ok(r.perchePrezzo.length > 0, "e la ragione da scrivere sullo schermo");
+    });
+
+    test("⛔ A3 · due righe dello stesso prodotto a condizioni diverse: non determinabile", () => {
+      /* il caso che `consegnatoOrdine` dichiara essere la norma in cava: «500 t
+         a 12 più 300 t del secondo lotto a 11». Un DDT è un camion e non dice
+         a quale delle due righe appartiene. */
+      const due = { ...ORD, righe: [
+        { prodottoId: "a3p", descrizione: "Pietrisco 8/12", quantita: 500, unita: "t", prezzoUnitario: 12, scontoPct: 0 },
+        { prodottoId: "a3p", descrizione: "Pietrisco 8/12", quantita: 300, unita: "t", prezzoUnitario: 11, scontoPct: 0 }] };
+      const pr = conti.prezzoDaOrdine(due, DDT);
+      eq(pr.fonte, "non-determinabile", "non si sceglie la più bassa per prudenza né la più alta per cautela");
+      eq(pr.motivo, "piu-prezzi", "detto per nome");
+      eq(pr.prezzoUnitario, null, "e nessun numero");
+      /* ma se le due righe dicono la STESSA cosa non c'è nessuna ambiguità:
+         una regola troppo severa qui bloccherebbe un ordine perfettamente sano. */
+      const uguali = { ...due, righe: due.righe.map((r) => ({ ...r, prezzoUnitario: 12 })) };
+      const ok2 = conti.prezzoDaOrdine(uguali, DDT);
+      eq(ok2.fonte, "ordine", "due righe alle stesse condizioni non sono un'ambiguità");
+      eq(ok2.prezzoUnitario, 12, "e il prezzo è quello");
+      eq(ok2.righe, 2, "e la funzione dice su quante righe ha guardato");
+    });
+
+    test("⛔ A3 · unità diverse fra ordine e DDT: il prezzo si converte con la formula dei PREZZI", () => {
+      /* ordine in metri cubi (18 €/m³), DDT in tonnellate, densità 1,5.
+         ⚠️ Questa prova esiste per un centesimo, e il centesimo l'ha trovato il
+         prototipo: convertendo con `convertiQuantita(1,"t","m3",1.5)` — che
+         arrotonda a 0,667 — usciva 12,01 invece di 12,00. Otto euro su 800 t,
+         su un documento fiscale. */
+      const oM3 = { ...ORD, righe: [{ prodottoId: "a3p", descrizione: "Pietrisco 8/12",
+        quantita: 100, unita: "m3", densita: 1.5, prezzoUnitario: 18, scontoPct: 0 }] };
+      const pr = conti.prezzoDaOrdine(oM3, DDT);
+      eq(pr.fonte, "ordine", "si converte, non si rinuncia");
+      eq(pr.prezzoUnitario, 12, "18 €/m³ con densità 1,5 fanno 12,00 €/t esatti, non 12,01");
+      eq(pr.unita, "t", "e il prezzo esce nell'unità del DDT");
+      /* la densità è quella del DDT, non quella fotografata sull'offerta: è la
+         stessa con cui `consegnatoOrdine` converte la quantità, e le due devono
+         essere la stessa o gli euro non corrispondono all'ordinato consumato. */
+      const senzaDens = conti.prezzoDaOrdine(oM3, { ...DDT, densita: null });
+      eq(senzaDens.fonte, "non-determinabile", "senza la densità del DDT non si converte");
+      eq(senzaDens.motivo, "densita-mancante", "detto per nome");
+      eq(senzaDens.prezzoUnitario, null, "e non si ripiega sui 18 €/m³ letti come se fossero €/t");
+    });
+
+    test("⛔ A3 · un documento che non è un ordine accettato non ha nessun pattuito", () => {
+      for (const st of ["bozza", "inviato", "rifiutato", "annullato"]) {
+        const pr = conti.prezzoDaOrdine({ ...ORD, stato: st }, DDT);
+        eq(pr.fonte, "non-determinabile", st + ": nessun prezzo è stato concordato");
+        eq(pr.motivo, "ordine-non-confermato", st + ": detto per nome");
+      }
+      eq(conti.prezzoDaOrdine({ ...ORD, stato: "accettato" }, DDT).fonte, "ordine",
+         "e l'accettato invece sì, se no la prova qui sopra passerebbe per il motivo sbagliato");
+    });
+
+    test("⛔ A3 · riga d'ordine senza prezzo: non se ne inventa uno", () => {
+      const senzaP = { ...ORD, righe: [{ prodottoId: "a3p", descrizione: "Pietrisco 8/12",
+        quantita: 100, unita: "t", prezzoUnitario: null, scontoPct: 0 }] };
+      const pr = conti.prezzoDaOrdine(senzaP, DDT);
+      eq(pr.motivo, "riga-senza-prezzo", "l'offerta è stata salvata senza prezzo");
+      eq(pr.prezzoUnitario, null, "e nessuno lo inventa");
+    });
+
+    test("A3 · la fornitura a chiamata ha il prezzo bloccato e la quantità no", () => {
+      /* l'accordo quadro: «prezzo bloccato fino a fine anno, quantità a
+         chiamata». La quantità mancante rende non misurabile l'AVANZAMENTO
+         (`consegnatoOrdine` lo dice già), ma il PREZZO è stato concordato
+         eccome — è tutto il senso di un accordo quadro. Le due cose sono
+         indipendenti e questa prova impedisce di confonderle. */
+      const quadro = { ...ORD, righe: [{ prodottoId: "a3p", descrizione: "Pietrisco 8/12",
+        quantita: null, unita: "t", densita: 1.5, prezzoUnitario: 11.5, scontoPct: 5, imponibile: null }] };
+      const pr = conti.prezzoDaOrdine(quadro, DDT);
+      eq(pr.fonte, "ordine", "il prezzo c'è");
+      eq(pr.prezzoUnitario, 11.5, "ed è quello bloccato");
+      eq(conti.avanzamentoOrdine(quadro, []).misurabile, false,
+         "mentre quanto è stato consegnato resta non misurabile: sono due domande diverse");
+    });
+
+    test("⛔ A3 · la riga di fattura non mescola prezzi pattuiti e prezzi di listino", () => {
+      /* stessa ragione per cui lo sconto entra già nella chiave: unire le due
+         vorrebbe dire scegliere quale delle due storie raccontare, e la riga
+         direbbe una cosa vera per metà dei DDT che la compongono. */
+      const base = { prodottoId: "a3p", prodotto: "Pietrisco 8/12", unitaVendita: "t",
+        quantita: 10, prezzoUnitario: 10.5, scontoPct: 5, aliquotaIva: 22 };
+      const r = conti.righeDaPesate([
+        { ...base, id: "x1", numero: "1", fontePrezzo: "ordine", ordineId: "a3o" },
+        { ...base, id: "x2", numero: "2", fontePrezzo: "listino" }]);
+      eq(r.length, 2, "stesso prodotto, stesso prezzo, stessa aliquota: restano due righe");
+      eq(r.map((x) => x.fontePrezzo), ["ordine", "listino"], "e ognuna dice da dove viene");
+      eq(r[0].ordineIds, ["a3o"], "quella pattuita porta il riferimento d'ordine, che la fattura stampa");
+      eq(r[1].ordineIds, [], "l'altra no");
+      /* ⛔ e l'ASSENZA è una terza chiave, non un sinonimo di «listino»: i DDT
+         salvati prima di oggi non dichiarano niente, e spacciarli per listino
+         sarebbe esattamente il numero tranquillo dove non è stato deciso nulla. */
+      const con3 = conti.righeDaPesate([
+        { ...base, id: "x1", numero: "1", fontePrezzo: "ordine", ordineId: "a3o" },
+        { ...base, id: "x2", numero: "2", fontePrezzo: "listino" },
+        { ...base, id: "x3", numero: "3" }]);
+      eq(con3.length, 3, "tre provenienze diverse, tre righe");
+      eq(con3.map((x) => x.fontePrezzo), ["ordine", "listino", null], "e la terza dichiara di non sapere");
+      /* mentre due DDT dello stesso ordine si uniscono, come devono */
+      const uniti = conti.righeDaPesate([
+        { ...base, id: "x1", numero: "1", fontePrezzo: "ordine", ordineId: "a3o" },
+        { ...base, id: "x2", numero: "2", fontePrezzo: "ordine", ordineId: "a3o" }]);
+      eq(uniti.length, 1, "stesso ordine e stesse condizioni: una riga sola");
+      eq(uniti[0].quantita, 20, "con le quantità sommate");
+      eq(uniti[0].ordineIds, ["a3o"], "e il riferimento scritto una volta");
+    });
+
+    test("⛔ A3 · gli euro del DDT e l'ordinato che consuma parlano dello stesso ordine", () => {
+      /* l'anello che chiude: la quantità che `consegnatoOrdine` scala
+         dall'ordine e il prezzo che il DDT eredita devono venire dalla stessa
+         riga. Se un giorno le due funzioni riconoscessero «lo stesso prodotto»
+         in due modi diversi, un DDT consumerebbe l'ordine senza ereditarne il
+         prezzo — e nessuna delle due prove di sopra se ne accorgerebbe. */
+      const r = conti.rigaPesata(PIE, 39.4, 13.8, CLI5, ORD);
+      const ddt = { id: "z1", numero: "2026/900", ordineId: "a3o", clienteId: "c1",
+        prodottoId: "a3p", prodotto: "Pietrisco 8/12", unitaVendita: r.unitaVendita,
+        quantita: r.quantita, netto: r.netto, densita: r.densita,
+        prezzoUnitario: r.prezzoUnitario, scontoPct: r.scontoPct, fontePrezzo: r.fontePrezzo };
+      const c = conti.consegnatoOrdine(ORD, [ddt]);
+      eq(c.fuoriOrdine.length, 0, "il DDT consuma l'ordine");
+      eq(c.prodotti[0].consegnato, 25.6, "per 25,6 t");
+      eq(conti.valorePesata(ddt), 255.36, "e vale quanto quelle 25,6 t costano SULL'ORDINE");
+      eq(conti.imponibileRiga(25.6, ORD.righe[0].prezzoUnitario, ORD.righe[0].scontoPct), 255.36,
+         "cioè esattamente il conto rifatto dalla riga d'ordine");
+    });
+
+    test("A3 · la dimostrazione contiene il caso, e anche quello che non si sa", () => {
+      const D = conti.DEMO;
+      const d8 = D.pesate.find((p) => p.id === "d8");
+      ok(!!d8, "c'è un DDT d'esempio agganciato all'ordine con lo scaglione");
+      eq(d8.fontePrezzo, "ordine", "e dichiara di portare il prezzo dell'ordine");
+      const o8 = D.ordini.find((o) => o.id === "o8");
+      const p2 = D.prodotti.find((p) => p.id === "p2");
+      eq(d8.prezzoUnitario, o8.righe[0].prezzoUnitario, "che è davvero quello dell'ordine");
+      eq(d8.scontoPct, o8.righe[0].scontoPct, "sconto compreso");
+      ok(d8.prezzoUnitario < p2.prezzo,
+         "e si vede la differenza col listino: " + d8.prezzoUnitario + " contro " + p2.prezzo);
+      eq(conti.valorePesata(d8), 255.36, "255,36 € invece dei 291,84 che avrebbe scritto il listino");
+      /* e rifacendola oggi con la funzione, la fotografia torna */
+      const rifatta = conti.rigaPesata(p2, d8.lordo, d8.tara, D.clienti.find((c) => c.id === "c1"), o8);
+      eq(rifatta.prezzoUnitario, d8.prezzoUnitario, "rifacendo il DDT oggi il prezzo torna");
+      eq(rifatta.valore, conti.valorePesata(d8), "e il valore pure");
+      /* ⛔ IL CASO CHE NON SI SA: un DDT agganciato salvato prima che Conti
+         sapesse rispondere. Senza questa riga in dimostrazione, «provenienza
+         non dichiarata» non lo vedrebbe mai nessuno. */
+      const vecchio = D.pesate.find((p) => p.ordineId && p.fontePrezzo == null);
+      ok(!!vecchio, "c'è anche il DDT agganciato che la provenienza non la dichiara");
+      eq(conti.righeDaPesate([vecchio])[0].fontePrezzo, null,
+         "e la riga di fattura non lo spaccia per listino");
+    });
+  }
 }
 
 // ══════════════════════════════════════════════════════════════════════
@@ -15677,6 +15969,97 @@ test("⛔ Flotta: le ore ignote arrivano ignote anche a chi le chiede due volte"
        "materiale non riconosciuto: niente, non un numero inventato");
     eq(ponti.densitaDellaCava(null).densita, null, "e senza atto nemmeno");
   });
+
+  /* ⛔ E LA METÀ CHE LE PROVE QUI SOPRA NON GUARDAVANO — misurata, non temuta.
+     L'identità (`terra.X === ponti.X`) difende il lato `shared/`: nessuno può
+     riscrivere la regola in Terra. Ma il difetto vero non stava lì: stava nella
+     PAGINA di Campo, che chiamava `densitaDelMateriale(vig.materiale)`. E
+     rimettendo quel difetto sul disco — import compreso — `run-kpi`, `run-stile`,
+     `nomi-doppi` e `copertura-funzioni` restano **tutte e quattro verdi**: le
+     suite `node` non aprono le pagine, quindi il lato dove il difetto è nato era
+     scoperto. È la guardia scollegata: la regola c'è, e non la legge nessuno.
+
+     Due controlli, e servono tutt'e due — il secondo perché il primo da solo non
+     vede la regressione più probabile, cioè l'import lasciato lì e l'argomento
+     riportato al preset (misurato: la guardia 1 passa, la 2 no).
+
+     ⚠️ E si guarda il CODICE, non il testo: `mascheraCodice` toglie commenti e
+     contenuto delle stringhe. Senza, questo controllo accuserebbe **il commento
+     che documenta la correzione** dentro la pagina di Campo — è esattamente
+     l'inciampo su cui è già caduta la regola 6 di `run-stile.mjs`.
+
+     Le superfici si SCOPRONO leggendo chi chiama `riconciliazioneTurni`: un
+     elenco scritto a mano non contiene l'app che nascerà domani, e allora il
+     controllo risponde «pulito» dopo aver guardato quelle che conosceva già. */
+  {
+    const { readFileSync, readdirSync } = await import("node:fs");
+    const { mascheraCodice } = await import("./tokenizza.mjs");
+    const APPS = join(HERE, "../..");
+
+    /* quante volte `ago` compare nel codice VERO di `src` */
+    const volteNelCodice = (src, ago) => {
+      const vivo = mascheraCodice(src);
+      let n = 0, i = 0;
+      while ((i = src.indexOf(ago, i)) >= 0) {
+        let tutto = true;
+        for (let k = i; k < i + ago.length; k++) if (!vivo[k]) { tutto = false; break; }
+        if (tutto) n++;
+        i += ago.length;
+      }
+      return n;
+    };
+
+    const superfici = [];
+    for (const nome of readdirSync(APPS)) {
+      let src;
+      try { src = readFileSync(join(APPS, nome, "index.html"), "utf8"); } catch { continue; }
+      if (volteNelCodice(src, "riconciliazioneTurni(") > 0) superfici.push({ nome, src });
+    }
+
+    test("Terra e Campo · le superfici che riconciliano sono quelle attese, e sono più di una", () => {
+      /* il numero stampato è la difesa contro il controllo che non guarda dove
+         crede: uno «zero violazioni» su zero soggetti si legge uguale. */
+      ok(superfici.length >= 2,
+         `superfici che costruiscono riconciliazioneTurni: ${superfici.length} (${superfici.map(s => s.nome).join(", ") || "nessuna"}) — se scendono a una, questa regola non ha più due app da tenere insieme`);
+      eq(superfici.map(s => s.nome).sort(), ["campo", "terra"],
+         "se ne nasce una terza va guardata anche lei: l'elenco si scopre, non si scrive");
+    });
+
+    for (const { nome, src } of superfici) {
+      test(`${nome} · la densità della riconciliazione la decide densitaDellaCava, non la pagina`, () => {
+        ok(volteNelCodice(src, "densitaDellaCava") > 0,
+           `${nome}/index.html costruisce riconciliazioneTurni ma non nomina mai densitaDellaCava nel suo codice: sta decidendo da sé quale densità vale`);
+        eq(volteNelCodice(src, "densitaDelMateriale("), 0,
+           `${nome}/index.html chiama densitaDelMateriale( per conto suo: il valore tipico è UNO dei quattro casi, e a sceglierlo è densitaDellaCava — che il preset lo consulta già`);
+      });
+    }
+
+    /* ⚠️ UNA PROVA CHE NON SA FALLIRE NON DIMOSTRA NIENTE: il difetto vero,
+       rimesso nel TESTO (non sul disco, che le pagine se lo caricano). */
+    test("Terra e Campo · la controprova: il difetto rimesso in Campo viene visto", () => {
+      const campoSrc = superfici.find(s => s.nome === "campo").src;
+      const rotto = campoSrc
+        .replace("periodoFraUltimiRilievi, densitaDellaCava }", "periodoFraUltimiRilievi, densitaDelMateriale }")
+        .replace("const dens = densitaDellaCava(vig);", "const dens = densitaDelMateriale(vig && vig.materiale);");
+      ok(rotto !== campoSrc, "l'iniezione non ha iniettato niente: il testo da sostituire è cambiato, la controprova va riscritta");
+      eq(volteNelCodice(rotto, "densitaDellaCava"), 0, "col difetto rimesso, la guardia 1 deve cadere");
+      ok(volteNelCodice(rotto, "densitaDelMateriale(") > 0, "…e anche la guardia 2");
+      /* e la forma più probabile della regressione: l'import resta, l'argomento no.
+         Qui la guardia 1 passa ancora — è la ragione per cui la 2 esiste. */
+      const subdolo = campoSrc.replace("const dens = densitaDellaCava(vig);",
+                                       "const dens = densitaDelMateriale(vig && vig.materiale) || {};");
+      ok(subdolo !== campoSrc, "seconda iniezione: nessun carattere cambiato");
+      ok(volteNelCodice(subdolo, "densitaDellaCava") > 0, "la guardia 1 da sola NON la vede…");
+      ok(volteNelCodice(subdolo, "densitaDelMateriale(") > 0, "…e la vede solo la 2");
+      /* e la prova che il tokenizzatore serve: nel testo grezzo di Campo
+         `densitaDelMateriale(` c'è (nel commento che racconta la correzione),
+         nel codice no. Senza `mascheraCodice` la guardia 2 sarebbe rossa oggi. */
+      ok((campoSrc.match(/densitaDelMateriale\(/g) || []).length > 0,
+         "il commento che documenta la correzione c'è ancora");
+      eq(volteNelCodice(campoSrc, "densitaDelMateriale("), 0,
+         "…ma è un commento, non una chiamata: è mascheraCodice a distinguerli");
+    });
+  }
 }
 
 // ────────────────────────────────────────────────────────────────────────
