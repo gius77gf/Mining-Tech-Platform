@@ -341,6 +341,174 @@ export function densitaDelMateriale(materiale) {
 }
 
 // ══════════════════════════════════════════════════════════════════════
+// DA DOVE VIENE LA DENSITÀ DI QUESTA CAVA
+// ══════════════════════════════════════════════════════════════════════
+//
+// ⛔ PERCHÉ STA QUI E NON IN TERRA, e non è una questione d'ordine. Fino
+// all'01/08 questo blocco viveva in `apps/terra/terra-data.js`, e la
+// conseguenza è stata MISURATA: Terra risolveva la densità dall'atto →
+// laboratorio → preset, mentre `apps/campo/index.html` chiamava
+// `densitaDelMateriale(vig.materiale)`, cioè **solo il preset**. Con la stessa
+// autorizzazione — densità di laboratorio 1,95 t/m³ scritta nell'atto — Terra
+// riconciliava a **1,95** e Campo a **1,90**: due schermate, due scostamenti,
+// la stessa cava, lo stesso mese, e nessuna delle due sbagliata da sola.
+// Le due app costruiscono la STESSA `riconciliazioneTurni` (qui sopra), quindi
+// il fattore che la moltiplica deve essere uno: è la regola vincolante — ciò
+// che serve a due app vive qui e l'app lo RI-ESPORTA, un alias non è una
+// seconda implementazione.
+//
+// ⛔ COSA SI È SPOSTATO E COSA NO. Qui sta il minimo che rende la regola una
+// sola: il vocabolario chiuso, `densitaDichiarata` (che costruisce il record
+// che `densitaDellaCava` restituisce: separarli vorrebbe dire chiamare il
+// modulo di un'altra app) e `densitaDellaCava`. `densitaPerEnte` e
+// `descriviDensita` sono rimaste in Terra: rispondono a domande che solo Terra
+// pone — «questo numero regge davanti a un ispettore?» e «che riga scrivo sotto
+// il campo?» — e Campo non le chiama. `shared/` non è un cassetto dove si mette
+// per ordine: spostare per ordine è il modo in cui lo diventa.
+//
+// La densità è la sola cosa che fa parlare due grandezze che in cava si
+// misurano separatamente: i turni dichiarano TONNELLATE, il drone misura METRI
+// CUBI. Da lei passano due numeri che escono dall'azienda — il confronto fra
+// dichiarato e misurato, e il valore del materiale — e finché è solo un numero
+// in un campo, un valore tipico preso da un manuale e un certificato di
+// laboratorio sul materiale di QUESTA cava si presentano identici.
+//
+// ⛔ NON HANNO LO STESSO PESO DAVANTI A CHI CHIEDE. Sono quattro cose diverse:
+//   · `atto`        — il numero prescritto dall'atto o dal disciplinare. Non è
+//                     una misura del materiale: è la regola con cui l'ente
+//                     stesso vuole che si converta. Non si discute.
+//   · `laboratorio` — una prova sul materiale di questa cava, con la sua data e
+//                     il suo certificato. È la più forte tecnicamente: è
+//                     l'unica delle quattro che MISURA questo materiale.
+//   · `preset`      — il valore tipico del litotipo (`DENSITA_PRESET` qui
+//                     sopra). Utile per non partire da zero, ma è letteratura:
+//                     non è stato misurato niente qui.
+//   · `manuale`     — l'ha scritta una persona. Sappiamo CHI, non DA DOVE.
+//
+// ⛔ E LA QUINTA NON È UN RIPIEGO SULLE ALTRE. Una densità di cui non risulta la
+// provenienza NON è «preset» e NON è «a mano»: è NON DICHIARATA, e chi legge il
+// numero deve saperlo. È la stessa forma di `origineDi` di Terra e di
+// `provenienzaMisura` di Sentinella — l'assenza si dice, non si riempie.
+//
+// ⚠️ DOV'È LA DIFFERENZA CON LE ALTRE DUE PROVENIENZE DELL'ECOSISTEMA, che
+// esistono già e non sono questa. `origineDi` di Terra descrive **come è stato
+// calcolato** un volume: metodo, lato cella, quota di base. `provenienzaMisura`
+// di Sentinella descrive **per che strada è entrato** un numero già misurato da
+// uno strumento. Qui non si descrive né un calcolo né una strada: si dice **chi
+// risponde** di un fattore di conversione che non è stato misurato in cava e
+// che moltiplica tutto quello che ci passa dentro. Nessuna delle tre
+// risponderebbe alla domanda delle altre, e per questo i nomi sono diversi:
+// `nomi-doppi.mjs` non deve confonderle.
+//
+// ⚠️ È SEMPRE IL PESO DI VOLUME **IN BANCO**, non quello del materiale sciolto
+// in mucchio né quello del prodotto finito a listino (che è la densità di
+// Conti, un'altra cosa): il rilievo misura il vuoto lasciato dallo scavo.
+
+/* Il vocabolario, chiuso. Cinque parole: aggiungerne una sesta vorrebbe dire
+   aggiungere un soggetto che risponde del numero. */
+export const DENS_ATTO = "atto";
+export const DENS_LABORATORIO = "laboratorio";
+export const DENS_PRESET = "preset";
+export const DENS_MANO = "manuale";
+export const DENS_NON_DICHIARATA = "non dichiarata";
+
+/* Come si mostra ognuna. `cls` è la classe del semaforo, e la scelta è la
+   stessa già presa in Sentinella: **«a mano» non è un allarme** — è una
+   pratica legittima, e un badge giallo su ogni densità battuta a mano sarebbe
+   un rimprovero continuo, che si impara a non guardare. Giallo lo prende solo
+   ciò che non si sa. Il `preset` resta neutro ma la sua etichetta dice da sola
+   che è provvisorio, perché lo è: `presetDensita` marca ogni valore tipico
+   `daVerificare` da quando esiste.
+   ⚠️ `breve` sta dentro una pillola accanto a un campo stretto: la forma
+   lunga è `label`, ed è quella che va nelle frasi dove non c'è un'etichetta
+   accanto a dire di che si parla. */
+/* ⚠️ E `label` NON È «LA VERSIONE LUNGA»: è la voce di una TENDINA, e una
+   tendina ha una larghezza. Le prime stesure dicevano «Prova di laboratorio
+   sul materiale di questa cava» e «Valore prescritto dall'atto autorizzativo»:
+   a 320 px Chromium le taglia a «Prova di laboratorio sul mate…», cioè proprio
+   dove sta la differenza fra le due fonti forti. Non si vedeva leggendo il
+   codice — l'ha trovato lo scatto. Quello che il taglio si portava via lo dice
+   già `descriviDensita` di Terra, per esteso, nella riga sotto i campi. */
+export const FONTI_DENSITA = {
+  [DENS_ATTO]:            { cls: "ok",   breve: "dall'atto",      label: "Prescritta dall'atto" },
+  [DENS_LABORATORIO]:     { cls: "ok",   breve: "laboratorio",    label: "Prova di laboratorio" },
+  [DENS_PRESET]:          { cls: "",     breve: "valore tipico",  label: "Valore tipico del litotipo" },
+  [DENS_MANO]:            { cls: "",     breve: "a mano",         label: "Inserita a mano" },
+  [DENS_NON_DICHIARATA]:  { cls: "warn", breve: "non dichiarata", label: "Provenienza non dichiarata" },
+};
+
+/* LA DENSITÀ COM'È SCRITTA. Legge, non deduce: un `da` che non sta nel
+   vocabolario ricade su «non dichiarata» invece di essere corretto a
+   indovinare.
+   Ritorna { densita, leggibile, grezza, da, noto, quando, riferimento,
+   etichetta, fonte }. Le bandiere le consuma `descriviDensita`, dentro il
+   modulo di Terra: la pagina non deve decidere come si racconta una densità
+   senza provenienza, se no la regola starebbe scritta in due posti. */
+export function densitaDichiarata(d) {
+  const o = (d && typeof d === "object") ? d : {};
+  /* ⛔ IDEMPOTENTE, e non è eleganza: la pagina si passa in giro il record già
+     normalizzato. Il prototipo perdeva `grezza` al secondo giro, e un «0»
+     scritto da qualcuno tornava indietro come «densità non impostata» — cioè
+     l'errore dell'utente spariva proprio rileggendo il proprio dato. */
+  const g = (o.densita == null && typeof o.grezza === "string" && o.grezza !== "") ? o.grezza : o.densita;
+  const vuoto = (g == null || (typeof g === "string" && g.trim() === ""));
+  const n = vuoto ? null : +g;
+  /* `leggibile` risponde SOLO a «è un numero?»: «1,9» con la virgola italiana
+     per JavaScript non lo è, e qui non lo si legge — sarebbe la seconda copia
+     di `numeroDaCampo`, che è il difetto che questo repo ha già pagato. «0»
+     invece È un numero, e non è una densità: sono due errori diversi e hanno
+     due frasi diverse.
+     ⛔ E `+null` fa ZERO con `Number.isFinite(0)` a true: il controllo del
+     vuoto viene PRIMA, se no una densità assente tornerebbe «0 t/m³», cioè un
+     numero al posto dell'ammissione. */
+  const siLegge = vuoto || Number.isFinite(n);
+  const densita = (siLegge && !vuoto && n > 0) ? n : null;
+  const da = String(o.da || "").trim().toLowerCase();
+  const siSa = Object.prototype.hasOwnProperty.call(FONTI_DENSITA, da) && da !== DENS_NON_DICHIARATA;
+  /* ⚠️ `leggibile:` e `noto:` scritte per esteso, non in forma breve: la regola
+     20 di `run-stile.mjs` riconosce una bandiera dai DUE PUNTI, e con
+     `{ leggibile, noto }` non l'avrebbe vista — cioè non avrebbe controllato
+     che qualcuno le legga. Una guardia che non sa di dover guardare non
+     protegge niente, ed è lo stesso difetto della guardia scollegata. */
+  return {
+    densita, leggibile: siLegge,
+    grezza: vuoto ? "" : String(g),
+    da: siSa ? da : DENS_NON_DICHIARATA, noto: siSa,
+    quando: siSa ? String(o.quando || "").trim() : "",
+    riferimento: siSa ? String(o.riferimento || "").trim() : "",
+    etichetta: siSa ? String(o.etichetta || "").trim() : "",
+    fonte: siSa ? String(o.fonte || "").trim() : "",
+  };
+}
+
+/* LA DENSITÀ DI QUESTA CAVA, presa dall'atto dove sta il resto dei suoi dati.
+   Un posto solo: il materiale è già scritto lì, e chiedere la densità una
+   seconda volta da un'altra parte vorrebbe dire avere due risposte per la
+   stessa cava — è la ragione per cui la pagina di Terra già riempiva il campo
+   dal materiale, e questa funzione ne prende il posto aggiungendo la
+   provenienza. Dall'01/08 la chiama anche Campo, sulla stessa autorizzazione:
+   è il motivo per cui vive qui.
+   ⛔ SI RIPIEGA SUL VALORE TIPICO SOLO SE NON È STATO SCRITTO NIENTE. Se
+   qualcuno ha scritto un valore impossibile, o ha dichiarato la fonte senza il
+   numero, sostituirglielo con un preset nasconde il suo errore e gli mette in
+   mano un numero che non ha scelto.
+   ⛔ E UN NUMERO SENZA FONTE NON DIVENTA «A MANO»: resta «non dichiarata». */
+export function densitaDellaCava(autorizzazione) {
+  const a = autorizzazione || {};
+  const daAtto = String(a.densitaFonte || "").trim().toLowerCase() === DENS_ATTO;
+  const scritta = densitaDichiarata({
+    densita: a.densita, da: a.densitaFonte, quando: a.densitaQuando,
+    // l'atto è già identificato dal suo numero: se nessuno ha scritto un
+    // riferimento più preciso, quello è il documento da esibire
+    riferimento: a.densitaRiferimento || (daAtto ? a.numeroAtto : ""),
+  });
+  if (scritta.grezza !== "" || scritta.noto) return scritta;
+  const p = densitaDelMateriale(a.materiale);
+  if (!p) return densitaDichiarata(null);
+  return densitaDichiarata({ densita: p.densita, da: DENS_PRESET, etichetta: p.etichetta, fonte: p.fonte });
+}
+
+// ══════════════════════════════════════════════════════════════════════
 // PONTE P3 · CAMPO ↔ SCUDO — «chi è in turno è in regola?»
 // ══════════════════════════════════════════════════════════════════════
 //

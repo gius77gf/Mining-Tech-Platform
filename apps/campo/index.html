@@ -961,7 +961,7 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
            pianoParziale, pianoConsuntivoCsv,
            numeroIt, segnoIt, numeroItDa, numeroDaCampo } from "./campo-data.js";
   import { misuratoPeriodo, produzioneDichiarata, riconciliazioneTurni,
-           periodoFraUltimiRilievi, densitaDelMateriale } from "../../shared/dw-ponti.js";
+           periodoFraUltimiRilievi, densitaDellaCava } from "../../shared/dw-ponti.js";
   import { mountExit, esc, csvCell, statoVuoto, senzaDoppioni, messaggioNumero, montaGuardiaInteri, dataIt } from "../../shared/deepwork-id-client/dw-shell.js";
   // gli agganci della struttura condivisa (modale con Escape, riquadri da
   // tastiera, alone che segue il mouse). Va chiamato QUI e non nel blocco
@@ -1376,11 +1376,19 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
     // scelta da fare in una schermata dove si è venuti a scrivere, non a indagare.
     const per = periodoFraUltimiRilievi(RILT);
     if (!per) { out.innerHTML = ""; return; }
-    // la densità viene dal materiale scritto nell'autorizzazione di Terra: a chi
-    // compila un rapportino non si chiede un numero che è già registrato
+    // la densità viene dall'autorizzazione di Terra: a chi compila un rapportino
+    // non si chiede un numero che è già registrato.
+    // ⛔ E SI CHIEDE ALLA STESSA FUNZIONE CHE LA CHIEDE TERRA. Fino all'01/08 qui
+    // c'era `densitaDelMateriale(vig.materiale)`, cioè **solo il valore tipico del
+    // litotipo**, mentre Terra risolveva atto → laboratorio → preset. Misurato: con
+    // la stessa autorizzazione — densità di laboratorio 1,95 t/m³ scritta nell'atto
+    // — Terra riconciliava a 1,95 e questa schermata a 1,90. Due scostamenti diversi
+    // sulla stessa cava e sullo stesso mese, e nessuna delle due sbagliata da sola,
+    // quindi nessuno se ne sarebbe accorto. `vig` è l'autorizzazione INTERA (il
+    // materiale è dentro), quindi si passa lei e non un suo campo.
     const vig = (AUTT || []).find(a => a && a.stato === "vigente") || (AUTT || [])[0];
-    const dens = densitaDelMateriale(vig && vig.materiale);
-    const r = riconciliazioneTurni(RILT, RAP, per.dal, per.al, dens ? dens.densita : null);
+    const dens = densitaDellaCava(vig);
+    const r = riconciliazioneTurni(RILT, RAP, per.dal, per.al, dens.densita);
     if (r.stato === "no-campo" || r.stato === "no-misura" || r.stato === "no-dichiarato") { out.innerHTML = ""; return; }
     if (r.stato === "no-densita") {
       out.innerHTML = `<div class="note">Il rilievo del drone del <b>${dmy(per.al)}</b> ha misurato <b>${numeroIt(r.mis.m3, 0)} m³</b> di scavo dal ${dmy(per.dal)}. Per metterlo accanto alla produzione dei turni serve la <b>densità del materiale</b>, che si imposta in <b>Terra</b>: senza, tonnellate e metri cubi non si parlano.</div>`;

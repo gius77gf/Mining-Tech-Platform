@@ -871,8 +871,20 @@ export function costiPerMese(costi) {
   for (const c of costi || []) {
     const imp = +c.importo || 0;
     const iso = String(c.data || "").slice(0, 10);
-    const valida = /^\d{4}-\d{2}-\d{2}$/.test(iso) && !Number.isNaN(Date.parse(iso + "T00:00:00"));
-    if (!valida) { sdVoci++; if (imp > 0) sdImporto += imp; continue; }
+    /* ⚠️ QUI LA REGOLA ERA SCRITTA UNA SECONDA VOLTA, E PIÙ DEBOLE. La versione
+       di casa era `/^\d{4}-\d{2}-\d{2}$/.test(iso) && !Number.isNaN(Date.parse(…))`
+       e accettava «2026-02-30»: `Date.parse` un giorno che non esiste non lo
+       rifiuta, lo fa SCORRERE al 2 marzo. Una spesa datata così finiva
+       attribuita a un mese sbagliato in silenzio — e da quando il €/h si
+       calcola su una finestra di date, una data che scivola non sposta solo un
+       mese: sposta una spesa dentro o fuori un rapporto.
+       La versione giusta è in `shared/` da mesi (`dataISOEsiste`, che
+       ricostruisce la data e pretende che torni la stessa) e la usa già
+       `costoOrarioMezzo` dieci righe più in là: un alias non è una seconda
+       implementazione. Misurato prima di cambiarla: sulle 7 voci della
+       dimostrazione le due regole danno lo STESSO esito, quindi nessuna riga
+       d'esempio si muove. */
+    if (!dataISOEsiste(iso)) { sdVoci++; if (imp > 0) sdImporto += imp; continue; }
     if (imp <= 0) continue;
     const ym = iso.slice(0, 7);
     const r = per.get(ym) || { ym, etichetta: etichettaMese(ym), importo: 0, voci: 0 };
@@ -1011,6 +1023,24 @@ export function costoOfficinaPerMezzo(interventi) {
 //    del rifornimento la data la pretende), le ore si sanno e il periodo no:
 //    allora non c'è modo di dire quale spesa ci appartenga, e `euroOra` resta
 //    `null` con la sua ragione — come per il Dumper D3, ma per l'altro motivo.
+//
+// ⛔ E NEMMENO IL GASOLIO SI RICALCOLA QUI (05/08, seconda metà della stessa
+//    correzione). La riga sopra dice «LE ORE NON SI RICALCOLANO QUI», e dieci
+//    righe più in basso questa funzione faceva col gasolio esattamente quello
+//    che si era vietata con le ore: prendeva `c.euro` — TUTTO il gasolio del
+//    mezzo, primo pieno compreso — mentre `consumoPerMezzo` il primo pieno lo
+//    scarta di proposito, perché ha alimentato ore precedenti alla finestra.
+//    Due conti della stessa cosa, e divergevano: sulla dimostrazione il €/h
+//    usciva del +50,4% (Dumper D1), +49,2% (Escavatore E1) e +93,7% (Pala P1)
+//    rispetto al gasolio che la finestra contiene davvero. Adesso il
+//    numeratore legge `euroInFinestra`, che è lo stesso numero su cui
+//    `consumoPerMezzo` costruisce il suo `euroOra`: da qui l'identità
+//    `euroOra ≈ euroOraOfficina + euroOraCarburante`, che prima non tornava.
+// ⚠️ E se un pieno della finestra è stato registrato SENZA la spesa, quel
+//    gasolio c'è ma i suoi euro no: il €/h esce più basso del vero. È un
+//    MINIMO, e lo dichiara la stessa bandiera `parziale` — terza ragione
+//    accanto agli interventi senza costo e a quelli senza data. Sempre una
+//    bandiera sola: dicono tutte e tre «questo numero è un minimo».
 export function costoOrarioMezzo(interventi, rifornimenti) {
   const off = costoOfficinaPerMezzo(interventi);
   const car = consumoPerMezzo(rifornimenti);
@@ -1042,19 +1072,23 @@ export function costoOrarioMezzo(interventi, rifornimenti) {
       if (g >= da && g <= a) inFinestra += costo;       // estremi compresi
       else { fuoriN++; fuoriEuro += costo; }
     }
-    const spesaInFinestra = ore ? Math.round(100 * (inFinestra + carburante)) / 100 : null;
-    const parziale = mancanti > 0 || sdN > 0;
+    // il gasolio della finestra si LEGGE da `consumoPerMezzo`, non si rifà qui
+    const carburanteInFinestra = ore && Number.isFinite(c.euroInFinestra) ? c.euroInFinestra : null;
+    const senzaEuro = ore ? c.pieniSenzaEuro : 0;
+    const spesaInFinestra = ore ? Math.round(100 * (inFinestra + carburanteInFinestra)) / 100 : null;
+    const parziale = mancanti > 0 || sdN > 0 || senzaEuro > 0;
     const ragioni = [];
     if (mancanti > 0) ragioni.push(mancanti + (mancanti === 1 ? " intervento senza costo" : " interventi senza costo"));
     if (sdN > 0) ragioni.push(sdN + (sdN === 1 ? " intervento senza data" : " interventi senza data"));
+    if (senzaEuro > 0) ragioni.push(senzaEuro + (senzaEuro === 1 ? " rifornimento senza la spesa" : " rifornimenti senza la spesa"));
     righe.push({
       mezzo, officina, carburante, totale: officina + carburante,
       ore, da, a,
       officinaInFinestra: ore ? Math.round(100 * inFinestra) / 100 : null,
-      spesaInFinestra,
+      carburanteInFinestra, spesaInFinestra,
       fuori: { interventi: fuoriN, costo: Math.round(100 * fuoriEuro) / 100 },
       senzaData: { interventi: sdN, costo: Math.round(100 * sdEuro) / 100 },
-      parziale, interventiSenzaCosto: mancanti,
+      parziale, interventiSenzaCosto: mancanti, rifornimentiSenzaEuro: senzaEuro,
       percheParziale: ragioni.length ? ragioni.join(" e ") + ": il conto è un minimo" : "",
       euroOraOfficina: ore ? Math.round(100 * inFinestra / ore) / 100 : null,
       euroOraCarburante: c && Number.isFinite(c.euroOra) ? c.euroOra : null,
@@ -1544,6 +1578,7 @@ export function consumoPerMezzo(rifornimenti) {
   const mezzi = [...per.values()].map(v => {
     const conOre = v.pieni.filter(p => p.ore != null).sort((a, b) => a.ore - b.ore);
     let litriOra = null, euroOra = null, oreCoperte = null, perche = "", da = null, a = null;
+    let litriInFinestra = null, euroInFinestra = null, pieniInFinestra = 0, pieniSenzaEuro = 0;
     if (conOre.length < 2) {
       perche = conOre.length === 1
         ? "serve almeno un secondo rifornimento con il contatore delle ore"
@@ -1556,6 +1591,25 @@ export function consumoPerMezzo(rifornimenti) {
         const e = dopoIlPrimo.reduce((t, p) => t + p.euro, 0);
         litriOra = Math.round(100 * l / oreCoperte) / 100;
         euroOra = e > 0 ? Math.round(100 * e / oreCoperte) / 100 : null;
+        /* ⛔ IL GASOLIO DELLA FINESTRA, CALCOLATO QUI E BASTA (05/08). Questi
+           sono gli stessi litri e gli stessi euro su cui `litriOra` e `euroOra`
+           sono già costruiti — il primo pieno si scarta perché ha alimentato
+           ore PRECEDENTI alla prima lettura. Fino a stamattina
+           `costoOrarioMezzo` non li leggeva: si prendeva `euro`, cioè TUTTO il
+           gasolio del mezzo, primo pieno compreso, e lo divideva per le ore
+           della finestra. Erano due conti della stessa cosa, e divergevano —
+           sulla Pala P1 del +93,7%. Adesso il conto sta in un posto solo e chi
+           lo vuole lo LEGGE (non lo rifà, e nemmeno lo ricava da
+           `euroOra × oreCoperte`, che sarebbe un terzo conto arrotondato).
+           ⚠️ `pieniSenzaEuro` è la parte scomoda: l'euro del rifornimento è
+           FACOLTATIVO (`validaRifornimento` lo lascia vuoto senza protestare),
+           quindi un pieno registrato senza la spesa fa scendere questo
+           numeratore e il €/h esce più BASSO del vero — cioè il numero
+           tranquillo su un dato che manca. Chi lo usa deve poterlo dichiarare. */
+        litriInFinestra = Math.round(100 * l) / 100;
+        euroInFinestra = Math.round(100 * e) / 100;
+        pieniInFinestra = dopoIlPrimo.length;
+        pieniSenzaEuro = dopoIlPrimo.filter(p => !(p.euro > 0)).length;
         /* LA FINESTRA che quelle ore coprono. Le ore da sole dicono QUANTO ha
            lavorato la macchina, non DA QUANDO A QUANDO: e senza quel «da
            quando a quando» chi divide una spesa per quelle ore non sa se
@@ -1579,6 +1633,7 @@ export function consumoPerMezzo(rifornimenti) {
       euro: Math.round(v.euro * 100) / 100,
       euroLitro: v.litri > 0 && v.euro > 0 ? Math.round(1000 * v.euro / v.litri) / 1000 : null,
       oreCoperte, litriOra, euroOra, perche, da, a,
+      litriInFinestra, euroInFinestra, pieniInFinestra, pieniSenzaEuro,
     };
   }).sort((a, b) => (b.litriOra == null ? -1 : b.litriOra) - (a.litriOra == null ? -1 : a.litriOra)
     || a.mezzo.localeCompare(b.mezzo, "it"));

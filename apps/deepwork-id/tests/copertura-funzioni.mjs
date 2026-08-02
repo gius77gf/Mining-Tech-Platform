@@ -85,7 +85,23 @@ const APP = ["campo", "conti", "flotta", "scudo", "sentinella", "terra"];
    `sintesiCicloDss` è la decima e l'ha pretesa uno SCATTO: la forma lunga,
    nella riga del Quadro, finiva tagliata da `-webkit-line-clamp:2` a metà di
    «non è…» — cioè proprio dove il principio del fondatore vuole essere letto. */
-const FONDO = { campo: 102, conti: 107, flotta: 81, scudo: 123, sentinella: 120, terra: 66 };
+/* ⚠️ `terra` SCENDE DA 66 A 58, ed è la terza volta che questo file registra la
+   stessa forma (dopo `sentinella`/`leggiCsv` e `campo`/`statoRisposta`):
+   abbassare un fondo è il gesto che questo file esiste per rendere visibile,
+   quindi la ragione va scritta. Non è una prova tolta — nessuna delle 17 è
+   sparita — sono OTTO funzioni traslocate in `shared/dw-ponti.js`, che infatti
+   sale da 23 a 31 dello stesso passo: il vocabolario chiuso delle provenienze
+   (`DENS_ATTO`, `DENS_LABORATORIO`, `DENS_PRESET`, `DENS_MANO`,
+   `DENS_NON_DICHIARATA`, `FONTI_DENSITA`), `densitaDichiarata` e
+   `densitaDellaCava`. Perché: `apps/campo/index.html` legge la stessa
+   autorizzazione e costruisce la stessa `riconciliazioneTurni`, ma chiamava
+   `densitaDelMateriale(vig.materiale)` — solo il preset. Misurato: con una
+   densità di laboratorio 1,95 nell'atto, Terra riconciliava a 1,95 e Campo a
+   1,90. Terra adesso li RI-ESPORTA e le prove pretendono l'IDENTITÀ
+   (`terra.X === ponti.X`) invece del comportamento.
+   `densitaPerEnte` e `descriviDensita` restano di Terra, e il conto lo dice: a
+   scendere sono otto, non dieci. */
+const FONDO = { campo: 102, conti: 107, flotta: 81, scudo: 123, sentinella: 120, terra: 58 };
 
 /* Quello che resta fuori per un motivo, non per dimenticanza: i caricatori
    dati vogliono la rete e lo SDK, i ponti demo vogliono il localStorage.
@@ -141,7 +157,11 @@ console.log(`\n${coperte} funzioni coperte su ${guardate} guardate, in ${APP.len
    «tutto a posto» su un perimetro più stretto del suo nome. Adesso il
    perimetro è dichiarato, con il suo fondo. */
 const CONDIVISI = [
-  { file: "shared/dw-ponti.js", fondo: 23,
+  /* ⚠️ SALE DA 23 A 31: le otto della densità arrivate da Terra (vedi il fondo
+     di `terra`, che scende di altrettante). È il caso che questo modulo esiste
+     per ospitare — la stessa autorizzazione letta da due app — e il numero che
+     sale qui e scende là è la prova che è un TRASLOCO e non una copia. */
+  { file: "shared/dw-ponti.js", fondo: 31,
     perche: "le regole che servono a DUE app: è il posto dove un difetto si moltiplica" },
   { file: "shared/deepwork-id-client/dw-shell.js", fondo: 31,
     perche: "gli aiuti che tutte le app importano (numeri, date, CSV)" },

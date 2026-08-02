@@ -1689,84 +1689,32 @@ export function descriviOrigine(rilievo) {
 // ⚠️ È SEMPRE IL PESO DI VOLUME **IN BANCO**, non quello del materiale sciolto
 // in mucchio né quello del prodotto finito a listino (che è la densità di
 // Conti, un'altra cosa): il rilievo misura il vuoto lasciato dallo scavo.
+//
+// ⛔ E DA DOVE VIENE IL NUMERO NON LO DECIDE PIÙ TERRA DA SOLA (01/08). Il
+// vocabolario, `densitaDichiarata` e `densitaDellaCava` sono TRASLOCATI in
+// `shared/dw-ponti.js`, perché `apps/campo/index.html` legge la stessa
+// autorizzazione e costruisce la stessa `riconciliazioneTurni`: finché Campo
+// chiamava `densitaDelMateriale(vig.materiale)` (solo il preset), la stessa
+// cava con una densità di laboratorio 1,95 nell'atto si riconciliava a 1,95 in
+// Terra e a 1,90 in Campo. Misurato, non temuto.
+// Qui restano — e ci restano di proposito — le due funzioni che rispondono a
+// domande che pone solo Terra: `densitaPerEnte` («questo numero regge davanti a
+// un ispettore?», che serve al report per l'ente) e `descriviDensita` («che riga
+// scrivo sotto il campo?»). Campo non le chiama, e `shared/` non è un cassetto.
+// I nomi qui sotto sono RI-ESPORTATI: le pagine importano da dove hanno sempre
+// importato, e `run-kpi.mjs` pretende l'IDENTITÀ (`terra.X === ponti.X`), non
+// il comportamento — due copie uguali oggi divergono domani.
 // ============================================================
 
-/* Il vocabolario, chiuso. Cinque parole: aggiungerne una sesta vorrebbe dire
-   aggiungere un soggetto che risponde del numero. */
-export const DENS_ATTO = "atto";
-export const DENS_LABORATORIO = "laboratorio";
-export const DENS_PRESET = "preset";
-export const DENS_MANO = "manuale";
-export const DENS_NON_DICHIARATA = "non dichiarata";
-
-/* Come si mostra ognuna. `cls` è la classe del semaforo, e la scelta è la
-   stessa già presa in Sentinella: **«a mano» non è un allarme** — è una
-   pratica legittima, e un badge giallo su ogni densità battuta a mano sarebbe
-   un rimprovero continuo, che si impara a non guardare. Giallo lo prende solo
-   ciò che non si sa. Il `preset` resta neutro ma la sua etichetta dice da sola
-   che è provvisorio, perché lo è: `presetDensita` marca ogni valore tipico
-   `daVerificare` da quando esiste.
-   ⚠️ `breve` sta dentro una pillola accanto a un campo stretto: la forma
-   lunga è `label`, ed è quella che va nelle frasi dove non c'è un'etichetta
-   accanto a dire di che si parla. */
-/* ⚠️ E `label` NON È «LA VERSIONE LUNGA»: è la voce di una TENDINA, e una
-   tendina ha una larghezza. Le prime stesure dicevano «Prova di laboratorio
-   sul materiale di questa cava» e «Valore prescritto dall'atto autorizzativo»:
-   a 320 px Chromium le taglia a «Prova di laboratorio sul mate…», cioè proprio
-   dove sta la differenza fra le due fonti forti. Non si vedeva leggendo il
-   codice — l'ha trovato lo scatto. Quello che il taglio si portava via lo dice
-   già `descriviDensita`, per esteso, nella riga sotto i campi. */
-export const FONTI_DENSITA = {
-  [DENS_ATTO]:            { cls: "ok",   breve: "dall'atto",      label: "Prescritta dall'atto" },
-  [DENS_LABORATORIO]:     { cls: "ok",   breve: "laboratorio",    label: "Prova di laboratorio" },
-  [DENS_PRESET]:          { cls: "",     breve: "valore tipico",  label: "Valore tipico del litotipo" },
-  [DENS_MANO]:            { cls: "",     breve: "a mano",         label: "Inserita a mano" },
-  [DENS_NON_DICHIARATA]:  { cls: "warn", breve: "non dichiarata", label: "Provenienza non dichiarata" },
-};
-
-/* LA DENSITÀ COM'È SCRITTA. Legge, non deduce: un `da` che non sta nel
-   vocabolario ricade su «non dichiarata» invece di essere corretto a
-   indovinare.
-   Ritorna { densita, leggibile, grezza, da, noto, quando, riferimento,
-   etichetta, fonte }. Le bandiere le consuma `descriviDensita` qui sotto,
-   dentro il modulo: la pagina non deve decidere come si racconta una densità
-   senza provenienza, se no la regola starebbe scritta in due posti. */
-export function densitaDichiarata(d) {
-  const o = (d && typeof d === "object") ? d : {};
-  /* ⛔ IDEMPOTENTE, e non è eleganza: la pagina si passa in giro il record già
-     normalizzato. Il prototipo perdeva `grezza` al secondo giro, e un «0»
-     scritto da qualcuno tornava indietro come «densità non impostata» — cioè
-     l'errore dell'utente spariva proprio rileggendo il proprio dato. */
-  const g = (o.densita == null && typeof o.grezza === "string" && o.grezza !== "") ? o.grezza : o.densita;
-  const vuoto = (g == null || (typeof g === "string" && g.trim() === ""));
-  const n = vuoto ? null : +g;
-  /* `leggibile` risponde SOLO a «è un numero?»: «1,9» con la virgola italiana
-     per JavaScript non lo è, e qui non lo si legge — sarebbe la seconda copia
-     di `numeroDaCampo`, che è il difetto che questo repo ha già pagato. «0»
-     invece È un numero, e non è una densità: sono due errori diversi e hanno
-     due frasi diverse.
-     ⛔ E `+null` fa ZERO con `Number.isFinite(0)` a true: il controllo del
-     vuoto viene PRIMA, se no una densità assente tornerebbe «0 t/m³», cioè un
-     numero al posto dell'ammissione. */
-  const siLegge = vuoto || Number.isFinite(n);
-  const densita = (siLegge && !vuoto && n > 0) ? n : null;
-  const da = String(o.da || "").trim().toLowerCase();
-  const siSa = Object.prototype.hasOwnProperty.call(FONTI_DENSITA, da) && da !== DENS_NON_DICHIARATA;
-  /* ⚠️ `leggibile:` e `noto:` scritte per esteso, non in forma breve: la regola
-     20 di `run-stile.mjs` riconosce una bandiera dai DUE PUNTI, e con
-     `{ leggibile, noto }` non l'avrebbe vista — cioè non avrebbe controllato
-     che qualcuno le legga. Una guardia che non sa di dover guardare non
-     protegge niente, ed è lo stesso difetto della guardia scollegata. */
-  return {
-    densita, leggibile: siLegge,
-    grezza: vuoto ? "" : String(g),
-    da: siSa ? da : DENS_NON_DICHIARATA, noto: siSa,
-    quando: siSa ? String(o.quando || "").trim() : "",
-    riferimento: siSa ? String(o.riferimento || "").trim() : "",
-    etichetta: siSa ? String(o.etichetta || "").trim() : "",
-    fonte: siSa ? String(o.fonte || "").trim() : "",
-  };
-}
+/* Il vocabolario chiuso e le due funzioni che lo usano vivono in `shared/`.
+   ⚠️ SERVONO ANCHE QUI DENTRO, a `densitaPerEnte` e `descriviDensita`: un
+   `export … from` ri-esporta SENZA creare un nome locale, quindi l'import
+   accanto non è un doppione, è l'unico modo di usarli in questo file. È lo
+   stesso inciampo già pestato qui sopra con `densitaDelMateriale`. */
+export { DENS_ATTO, DENS_LABORATORIO, DENS_PRESET, DENS_MANO, DENS_NON_DICHIARATA,
+         FONTI_DENSITA, densitaDichiarata, densitaDellaCava } from "../../shared/dw-ponti.js";
+import { DENS_ATTO, DENS_LABORATORIO, DENS_PRESET, DENS_NON_DICHIARATA,
+         FONTI_DENSITA, densitaDichiarata } from "../../shared/dw-ponti.js";
 
 /* SI REGGE DAVANTI A CHI LA CHIEDE? Non è «è giusta»: è «esiste un documento
    che qualcuno può farsi mostrare». Un valore tipico può essere azzeccatissimo
@@ -1841,31 +1789,6 @@ export function descriviDensita(d) {
 const _nDens = (v) => Number(v).toLocaleString("it-IT", { minimumFractionDigits: 2, maximumFractionDigits: 3, useGrouping: false });
 const _dmyDens = (iso) => String(iso || "").slice(0, 10).split("-").reverse().join("/");
 const _maiuDens = (s) => s ? s[0].toUpperCase() + s.slice(1) : "";
-
-/* LA DENSITÀ DI QUESTA CAVA, presa dall'atto dove sta il resto dei suoi dati.
-   Un posto solo: il materiale è già scritto lì, e chiedere la densità una
-   seconda volta da un'altra parte vorrebbe dire avere due risposte per la
-   stessa cava — è la ragione per cui la pagina già riempiva il campo dal
-   materiale, e questa funzione ne prende il posto aggiungendo la provenienza.
-   ⛔ SI RIPIEGA SUL VALORE TIPICO SOLO SE NON È STATO SCRITTO NIENTE. Se
-   qualcuno ha scritto un valore impossibile, o ha dichiarato la fonte senza il
-   numero, sostituirglielo con un preset nasconde il suo errore e gli mette in
-   mano un numero che non ha scelto.
-   ⛔ E UN NUMERO SENZA FONTE NON DIVENTA «A MANO»: resta «non dichiarata». */
-export function densitaDellaCava(autorizzazione) {
-  const a = autorizzazione || {};
-  const daAtto = String(a.densitaFonte || "").trim().toLowerCase() === DENS_ATTO;
-  const scritta = densitaDichiarata({
-    densita: a.densita, da: a.densitaFonte, quando: a.densitaQuando,
-    // l'atto è già identificato dal suo numero: se nessuno ha scritto un
-    // riferimento più preciso, quello è il documento da esibire
-    riferimento: a.densitaRiferimento || (daAtto ? a.numeroAtto : ""),
-  });
-  if (scritta.grezza !== "" || scritta.noto) return scritta;
-  const p = densitaDelMateriale(a.materiale);
-  if (!p) return densitaDichiarata(null);
-  return densitaDichiarata({ densita: p.densita, da: DENS_PRESET, etichetta: p.etichetta, fonte: p.fonte });
-}
 
 // ============================================================
 // IL PIANO DI COLTIVAZIONE A LOTTI, E IL DIVARIO DI RECUPERO

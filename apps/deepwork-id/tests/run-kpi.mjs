@@ -8956,6 +8956,29 @@ test("statoVuoto: la struttura è quella del core, invariata", () => {
     eq(c.mancanti, 1, "giugno manca, e lo dice");
     eq(flotta.costiPerMese([]).mancanti, 0, "senza dati non manca niente");
   });
+  test("⛔ costiPerMese: «2026-02-30» non è un giorno, e non scivola al 2 marzo", () => {
+    /* ⚠️ QUI LA REGOLA DELLE DATE ERA SCRITTA UNA SECONDA VOLTA E PIÙ DEBOLE:
+       `/^\d{4}-\d{2}-\d{2}$/` più `Date.parse`, che un giorno inesistente non
+       lo rifiuta — lo fa SCORRERE. Il 30 febbraio diventava il 2 marzo, e una
+       spesa finiva attribuita a un mese in cui non è mai stata fatta, senza
+       che niente lo segnalasse. La versione giusta (`dataISOEsiste`) è in
+       `shared/` da mesi e la usa già `costoOrarioMezzo` nello stesso file.
+       ⚠️ Misurato PRIMA di cambiarla: sulle 7 voci della dimostrazione le due
+       regole danno lo stesso esito, quindi nessuna riga d'esempio si muove —
+       il difetto c'era e non aveva ancora sporcato niente di quello che si
+       vede. */
+    const c = flotta.costiPerMese([{ data: "2026-02-30", importo: 500 },
+                                   { data: "2026-03-05", importo: 100 }]);
+    eq(c.senzaData, { voci: 1, importo: 500 },
+       "il 30 febbraio vale come nessuna data: si dichiara, non si colloca");
+    eq(c.mesi.map((m) => [m.ym, m.importo]), [["2026-03", 100]],
+       "e marzo non si porta dentro 500 € spesi in un giorno che non esiste");
+    // la controprova della permissività: le date vere continuano a passare
+    eq(flotta.costiPerMese([{ data: "2026-02-29", importo: 10 }]).mesi.length, 0,
+       "il 2026 non è bisestile: nemmeno il 29 febbraio esiste");
+    eq(flotta.costiPerMese([{ data: "2024-02-29", importo: 10 }]).mesi[0].ym, "2024-02",
+       "ma il 2024 sì, e quel giorno è buono");
+  });
 
   test("disponibilitaStorico: dello stesso giorno vale l'ultima registrazione", () => {
     const s = flotta.disponibilitaStorico([
@@ -10490,11 +10513,28 @@ test("⛔ Flotta: senza le ore, il costo orario NON è zero", () => {
        corta. Adesso il numeratore è quello della finestra. */
     eq(x.euroOra, Math.round(100 * x.spesaInFinestra / x.ore) / 100,
        x.mezzo + ": la spesa DELLA FINESTRA diviso le ore della stessa finestra");
-    eq(x.spesaInFinestra, Math.round(100 * (x.officinaInFinestra + x.carburante)) / 100,
-       x.mezzo + ": e la spesa della finestra è l'officina collocata dentro più il carburante");
+    /* ⚠️ SECONDA CORREZIONE, la sera del 05/08: qui c'era `x.carburante`, cioè
+       TUTTO il gasolio del mezzo — primo pieno compreso, che ha alimentato ore
+       precedenti alla finestra. Stessa famiglia del difetto dell'officina, e
+       più grossa (+93,7% sulla Pala P1). Il numeratore del gasolio è
+       `carburanteInFinestra`, che `consumoPerMezzo` calcola già per il suo
+       `euroOra`: si legge, non si rifà. */
+    eq(x.spesaInFinestra, Math.round(100 * (x.officinaInFinestra + x.carburanteInFinestra)) / 100,
+       x.mezzo + ": e la spesa della finestra è l'officina collocata dentro più il gasolio della finestra");
     ok(x.euroOra >= x.euroOraOfficina, x.mezzo + ": il totale non è meno della sola officina");
     ok(x.totale >= x.spesaInFinestra,
        x.mezzo + ": il totale speso resta quello vero, da sempre — non scende perché il rapporto si è stretto");
+    /* ⛔ L'IDENTITÀ CHE PRIMA NON TORNAVA, ed è la prova che i due conti del
+       gasolio sono tornati uno solo: officina all'ora + carburante all'ora
+       DEVE fare il €/h. Fino a stamattina `euroOraCarburante` veniva da
+       `consumoPerMezzo` (primo pieno scartato) e `euroOra` da un conto suo
+       (primo pieno dentro): su E1 26,11 contro 38,96, cioè la stessa riga che
+       si smentiva da sola. Tolleranza di 2 centesimi, che è il massimo che tre
+       arrotondamenti al centesimo possono produrre. */
+    const somma = (x.euroOraOfficina || 0) + (x.euroOraCarburante || 0);
+    ok(Math.abs(x.euroOra - somma) <= 0.02,
+       x.mezzo + ": €/h " + x.euroOra + " = officina " + x.euroOraOfficina
+       + " + carburante " + x.euroOraCarburante + " (somma " + Math.round(100 * somma) / 100 + ")");
   }
   /* ⚠️ le ore NON sono ricalcolate qui: vengono da `consumoPerMezzo`, e devono
      essere le STESSE. Due conti delle stesse ore un giorno divergono. */
@@ -10544,13 +10584,19 @@ test("⛔ Flotta: senza le ore, il costo orario NON è zero", () => {
     eq(r.ore, 100, "e le ore sono quelle di quella finestra");
     eq(r.officinaInFinestra, 300, "dell'officina entra solo l'intervento che ci cade dentro");
     eq(r.fuori, { interventi: 1, costo: 900 }, "e quello di giugno si conta a parte, non sparisce");
-    eq(r.euroOra, 6, "(300 di officina + 300 di gasolio) / 100 ore");
-    /* ⚠️ LA RIGA CHE DISCRIMINA: col difetto rimesso dentro (officina da
-       sempre) verrebbe 15 €/h invece di 6 — due volte e mezzo. Senza questa
-       asserzione la prova sopra passerebbe anche con un numeratore diverso
-       che per caso desse lo stesso arrotondamento. */
+    eq(r.carburanteInFinestra, 150,
+       "e del gasolio entra solo quello messo DOPO la prima lettura: il primo pieno ha alimentato ore che la finestra non conta");
+    eq(r.carburante, 300, "mentre il gasolio comprato su questa macchina è tutto, e resta leggibile");
+    eq(r.euroOra, 4.5, "(300 di officina + 150 di gasolio) / 100 ore");
+    /* ⚠️ LE DUE RIGHE CHE DISCRIMINANO, una per metà della frazione. Col
+       difetto dell'officina rimesso dentro verrebbe 10,50; con quello del
+       gasolio 6,00; con tutti e due 15,00 — tre volte e mezzo il vero. Senza
+       queste asserzioni la prova sopra passerebbe anche con un numeratore
+       diverso che per caso desse lo stesso arrotondamento. */
     eq(Math.round(100 * (r.officina + r.carburante) / r.ore) / 100, 15,
-       "il conto vecchio — tutta l'officina diviso le ore della finestra — dava 15: due volte e mezzo");
+       "il conto di ieri l'altro — tutta l'officina e tutto il gasolio diviso le ore della finestra — dava 15");
+    eq(Math.round(100 * (r.officinaInFinestra + r.carburante) / r.ore) / 100, 6,
+       "quello di ieri — officina sistemata, gasolio ancora tutto — dava 6");
   });
 
   test("⛔ Flotta · €/h: il TOTALE SPESO resta quello vero, da sempre", () => {
@@ -10560,10 +10606,14 @@ test("⛔ Flotta: senza le ore, il costo orario NON è zero", () => {
     const r = uno([{ mezzo: "Pala X", data: "2026-07-15", costo: 300 },
                    { mezzo: "Pala X", data: "2026-06-01", costo: 900 }]);
     eq(r.officina, 1200, "l'officina del mezzo è tutta, dal primo intervento registrato");
+    eq(r.carburante, 300, "il gasolio comprato è tutto quello messo nel serbatoio, primo pieno compreso");
     eq(r.totale, 1500, "e il totale speso è officina + carburante, senza nessuna finestra");
-    eq(r.spesaInFinestra, 600, "mentre il numeratore del rapporto è un'altra cosa, e ha un nome suo");
+    eq(r.spesaInFinestra, 450, "mentre il numeratore del rapporto è un'altra cosa, e ha un nome suo");
     eq(r.officina, r.officinaInFinestra + r.fuori.costo + r.senzaData.costo,
        "e i tre pezzi tornano: dentro + fuori + non collocabile = tutta l'officina, nessun euro perso per strada");
+    ok(r.carburante > r.carburanteInFinestra,
+       "e il gasolio di tutta la vita è più di quello della finestra: " + r.carburante + " contro " + r.carburanteInFinestra
+       + " — sono due domande diverse, e nessuna delle due cancella l'altra");
   });
 
   test("⛔ Flotta · €/h: un intervento SENZA DATA non è «dentro per comodità»", () => {
@@ -10575,7 +10625,7 @@ test("⛔ Flotta: senza le ore, il costo orario NON è zero", () => {
     eq(r.senzaData, { interventi: 1, costo: 900 }, "l'intervento senza data si conta a parte");
     eq(r.fuori, { interventi: 0, costo: 0 }, "e NON viene messo fuori: fuori vuol dire «so che è fuori»");
     eq(r.officinaInFinestra, 300, "nel rapporto entra solo quello che si sa collocare");
-    eq(r.euroOra, 6, "quindi il €/h non si muove per colpa sua");
+    eq(r.euroOra, 4.5, "quindi il €/h non si muove per colpa sua");
     eq(r.parziale, true, "ma il €/h è dichiarato parziale: c'è una spesa che non ha potuto contare");
     ok(/senza data/.test(r.percheParziale), "e la ragione è scritta: " + r.percheParziale);
     ok(/minimo/.test(r.percheParziale), "col verso giusto — è un minimo, non un numero definitivo");
@@ -10631,6 +10681,68 @@ test("⛔ Flotta: senza le ore, il costo orario NON è zero", () => {
     eq(r.totale, 600, "la spesa registrata invece resta leggibile, come per il Dumper D3");
   });
 
+  test("⛔ Flotta · €/h: il PRIMO PIENO non entra nel rapporto — ha alimentato ore precedenti", () => {
+    /* Il metodo pieno-a-pieno: fra due letture del contatore, il gasolio
+       consumato è quello messo DOPO la prima. Il primo pieno il serbatoio lo
+       riempie all'inizio — quelle ore la macchina le ha già fatte, e non sono
+       nelle ore contate. `consumoPerMezzo` lo scartava da sempre per il suo
+       `litriOra`; `costoOrarioMezzo` se lo riprendeva dentro, perché sommava
+       `euro` (tutto il gasolio del mezzo). Due conti della stessa cosa che
+       divergevano — la regola che CLAUDE.md chiama la più costosa. */
+    const rif = [{ data: "2026-07-01", mezzo: "Pala X", litri: 100, ore: 1000, euro: 400 },
+                 { data: "2026-07-16", mezzo: "Pala X", litri: 100, ore: 1050, euro: 100 },
+                 { data: "2026-07-31", mezzo: "Pala X", litri: 100, ore: 1100, euro: 100 }];
+    const r = uno([], rif);
+    eq(r.carburante, 600, "il gasolio comprato è tutto: 400 + 100 + 100");
+    eq(r.carburanteInFinestra, 200, "quello della finestra è solo il dopo-il-primo: 100 + 100");
+    eq(r.ore, 100, "le ore sono quelle fra la prima e l'ultima lettura");
+    eq(r.euroOra, 2, "quindi 200 / 100 ore, non 600 / 100");
+    /* ⚠️ IL PRIMO PIENO È GRANDE APPOSTA (400 su 600). Con tre pieni uguali il
+       conto giusto e quello sbagliato darebbero 200 contro 300, cioè la prova
+       distinguerebbe lo stesso ma sarebbe fragile: sbilanciandolo, il difetto
+       triplica il numero invece di aumentarlo di metà. */
+    eq(Math.round(100 * (r.officinaInFinestra + r.carburante) / r.ore) / 100, 6,
+       "col primo pieno dentro verrebbe 6: tre volte tanto");
+    const c = flotta.consumoPerMezzo(rif).mezzi[0];
+    eq(r.carburanteInFinestra, c.euroInFinestra, "e il numero è LO STESSO di consumoPerMezzo, non una copia");
+    eq(c.euroOra, 2, "che è anche il suo euro/ora del gasolio: le due schermate non si smentiscono più");
+    eq(c.litriInFinestra, 200, "e i litri della finestra seguono la stessa regola degli euro");
+    eq(c.pieniInFinestra, 2, "due pieni nella finestra, il primo escluso");
+  });
+
+  test("⛔ Flotta · €/h: un pieno registrato SENZA la spesa fa del €/h un minimo", () => {
+    /* L'euro del rifornimento è FACOLTATIVO — `validaRifornimento` lo lascia
+       vuoto senza protestare, e ci sono buone ragioni (la fattura del gasolio
+       arriva dopo). Ma allora quel gasolio c'è e i suoi euro no: il numeratore
+       scende e il €/h esce più BASSO del vero. È l'assenza di un dato che si
+       traveste da dato favorevole — «questa macchina costa poco» — nel punto in
+       cui qualcuno decide se tenerla. Non si inventa un prezzo: si dichiara. */
+    const r = uno([], [{ data: "2026-07-01", mezzo: "Pala X", litri: 100, ore: 1000, euro: 150 },
+                       { data: "2026-07-16", mezzo: "Pala X", litri: 100, ore: 1050 },
+                       { data: "2026-07-31", mezzo: "Pala X", litri: 100, ore: 1100, euro: 150 }]);
+    eq(r.carburanteInFinestra, 150, "si conta il gasolio di cui si sa la spesa");
+    eq(r.euroOra, 1.5, "e il €/h che ne esce è più basso del vero");
+    eq(r.rifornimentiSenzaEuro, 1, "ma il pieno senza spesa è contato");
+    eq(r.parziale, true, "e la bandiera dice che il numero è un minimo");
+    ok(/rifornimento senza la spesa/.test(r.percheParziale), "con la ragione scritta: " + r.percheParziale);
+    /* ⛔ E LA BANDIERA RESTA UNA SOLA per tutte e tre le ragioni: dicono la
+       stessa cosa («questo numero è un minimo»), e una seconda bandiera
+       accanto sarebbe solo una parola in più da leggere. */
+    const tre = uno([{ mezzo: "Pala X", data: "2026-07-15", costo: 300 }, { mezzo: "Pala X", costo: 900 },
+                     { mezzo: "Pala X", data: "2026-07-20", costo: 0 }],
+      [{ data: "2026-07-01", mezzo: "Pala X", litri: 100, ore: 1000, euro: 150 },
+       { data: "2026-07-16", mezzo: "Pala X", litri: 100, ore: 1050 },
+       { data: "2026-07-31", mezzo: "Pala X", litri: 100, ore: 1100, euro: 150 }]);
+    eq([tre.interventiSenzaCosto, tre.senzaData.interventi, tre.rifornimentiSenzaEuro], [1, 1, 1],
+       "i tre conti restano distinti, uno per ragione");
+    eq(tre.parziale, true, "la bandiera è una");
+    ok(/senza costo e .*senza data e .*senza la spesa/.test(tre.percheParziale),
+       "e la frase le dice tutte e tre: " + tre.percheParziale);
+    // e dove non manca niente non si dichiara niente
+    eq(uno([], RIF).parziale, false, "un mezzo con tutto a posto non è parziale");
+    eq(uno([], RIF).rifornimentiSenzaEuro, 0, "e non ha pieni senza spesa");
+  });
+
   test("⛔ Flotta · €/h: la finestra la fanno le letture COL CONTATORE, non tutti i rifornimenti", () => {
     /* ⚠️ QUESTA PROVA È NATA DA UNA CONTROPROVA CHE NON DISTINGUEVA, ed è la
        quinta delle cause: il caso difeso non stava nei dati. Rimettendo il
@@ -10669,6 +10781,20 @@ test("⛔ Flotta: senza le ore, il costo orario NON è zero", () => {
       const c = car.mezzi.find((m) => m.mezzo === r.mezzo);
       eq([r.da, r.a], [c.da, c.a], r.mezzo + ": la finestra è quella delle letture, non una seconda copia");
       ok(r.da <= r.a, r.mezzo + ": e va nel verso giusto (" + r.da + " → " + r.a + ")");
+      /* ⛔ E NEMMENO IL GASOLIO È UNA SECONDA COPIA: si pretende l'IDENTITÀ col
+         numero di `consumoPerMezzo`, non un comportamento uguale. Due copie
+         uguali oggi divergono domani senza che nessuno lo veda — ed è
+         esattamente quello che era successo qui, dove il gasolio veniva rifatto
+         a mano su `euro` invece che letto. */
+      eq(r.carburanteInFinestra, c.euroInFinestra,
+         r.mezzo + ": il gasolio della finestra è quello di consumoPerMezzo, non un secondo conto");
+      ok(r.carburanteInFinestra !== r.carburante,
+         r.mezzo + ": e non è il gasolio di tutta la vita (" + r.carburanteInFinestra + " contro " + r.carburante
+         + "): se fossero uguali questa prova non distinguerebbe niente");
+      /* ⚠️ e nemmeno ricavato da `euroOra × ore`, che sarebbe un TERZO conto:
+         si controlla che i due tornino, non che uno nasca dall'altro. */
+      ok(Math.abs(c.euroOra * r.ore - r.carburanteInFinestra) <= 0.5,
+         r.mezzo + ": e torna con l'euro/ora del gasolio (" + c.euroOra + " × " + r.ore + " h)");
     }
   });
 
@@ -10676,7 +10802,13 @@ test("⛔ Flotta: senza le ore, il costo orario NON è zero", () => {
     /* La prova che il difetto era quello e non un'impressione. I tre mezzi
        toccati, con lo scarto misurato prima della correzione. */
     const righe = flotta.costoOrarioMezzo(F.interventi, F.rifornimenti);
-    const atteso = { "Dumper D1": [28.61, 2100], "Pala P1": [28.18, 760], "Escavatore E1": [38.96, 420] };
+    /* ⚠️ I NUMERI SONO SCESI DUE VOLTE, IN DUE PASSAGGI, E VANNO LETTI COSÌ:
+         mezzo          prima   officina in finestra   + gasolio in finestra
+         Dumper D1      63,03   → 28,61 (−2.100 €)     → 19,02 (−585 € di primo pieno)
+         Pala P1        51,21   → 28,18 (−760 €)       → 14,55 (−450 €)
+         Escavatore E1  46,46   → 38,96 (−420 €)       → 26,11 (−720 €)
+       La seconda metà è più grossa della prima su due mezzi su tre. */
+    const atteso = { "Dumper D1": [19.02, 2100], "Pala P1": [14.55, 760], "Escavatore E1": [26.11, 420] };
     let toccati = 0;
     for (const r of righe) {
       if (!atteso[r.mezzo]) continue;
@@ -15482,6 +15614,68 @@ test("⛔ Flotta: le ore ignote arrivano ignote anche a chi le chiede due volte"
     const d = terra.densitaDellaCava(a);
     eq(d.densita, 1.9, "se cambia, il 2,4% di scostamento della dimostrazione non è più quello");
     eq(d.da, terra.DENS_PRESET, "e la dimostrazione mostra proprio lo stato del primo giorno: un valore tipico da confermare");
+  });
+
+  /* ⛔ IL TRASLOCO IN `shared/` (01/08), E LA PROVA CHE PRETENDE L'IDENTITÀ.
+     Il vocabolario, `densitaDichiarata` e `densitaDellaCava` vivevano in
+     `terra-data.js` e adesso stanno in `shared/dw-ponti.js`, perché Campo legge
+     la stessa autorizzazione. Qui non si confronta il COMPORTAMENTO ma
+     l'oggetto: due copie che oggi si comportano uguale divergono domani senza
+     che nessuno lo veda, ed è la regola vincolante del `shared/`. Serve doppio,
+     come per `densitaDelMateriale` qui sopra: `terra-data.js` ri-esporta questi
+     nomi E ne importa una parte per usarli dentro `densitaPerEnte` e
+     `descriviDensita`, e un `export … from` non crea un nome locale — la doppia
+     scrittura è il punto esatto in cui una seconda copia entrerebbe senza far
+     cadere niente. */
+  test("Terra · la provenienza della densità è LO STESSO oggetto di shared/, non una copia", () => {
+    for (const n of ["DENS_ATTO", "DENS_LABORATORIO", "DENS_PRESET", "DENS_MANO",
+                     "DENS_NON_DICHIARATA", "FONTI_DENSITA", "densitaDichiarata", "densitaDellaCava"])
+      ok(terra[n] === ponti[n], n + ": Terra ri-esporta quella di shared/, non ne riscrive una sua");
+    /* E le due rimaste in Terra ci devono RESTARE: rispondono a domande che pone
+       solo Terra (regge davanti all'ente? che riga scrivo sotto il campo?), e
+       `shared/` non è un cassetto dove si mette per ordine. Se un giorno servissero
+       a una seconda app, questa riga cade e vanno spostate — non copiate. */
+    for (const n of ["densitaPerEnte", "descriviDensita"])
+      ok(typeof terra[n] === "function" && !(n in ponti),
+         n + " resta di Terra: nessuna seconda app la chiama");
+  });
+
+  /* ⛔ LA PROVA CHE CONTA DAVVERO, ed è quella che il difetto avrebbe fatto
+     cadere. Terra e Campo costruiscono la STESSA `riconciliazioneTurni` sulla
+     STESSA autorizzazione: se il fattore che converte tonnellate in metri cubi
+     non è lo stesso numero, le due schermate mostrano due scostamenti diversi
+     per la stessa cava e lo stesso mese — e nessuna delle due sbaglia da sola,
+     quindi nessuno se ne accorge.
+     Misurato prima di correggere: Campo chiamava `densitaDelMateriale(vig.materiale)`
+     e rispondeva **1,90** dove Terra rispondeva **1,95**. */
+  test("Terra e Campo · con la stessa autorizzazione, la stessa densità", () => {
+    const aut = { stato: "vigente", materiale: "Sabbia e ghiaia", numeroAtto: "DET. 412/2024",
+                  densita: 1.95, densitaFonte: "laboratorio",
+                  densitaQuando: "2026-03-11", densitaRiferimento: "Cert. lab. 88/2026" };
+    // la chiamata di Terra e quella di Campo passano dalla stessa funzione
+    eq(terra.densitaDellaCava(aut).densita, ponti.densitaDellaCava(aut).densita,
+       "lo stesso numero, se no due scostamenti sulla stessa cava");
+    eq(ponti.densitaDellaCava(aut).densita, 1.95,
+       "ed è quella di laboratorio scritta nell'atto…");
+    ok(ponti.densitaDellaCava(aut).densita !== ponti.densitaDelMateriale(aut.materiale).densita,
+       "…NON il valore tipico del litotipo, che è quello che Campo usava e che vale 1,9");
+    eq(ponti.densitaDellaCava(aut).da, terra.DENS_LABORATORIO,
+       "e la provenienza arriva fino a Campo insieme al numero");
+  });
+
+  /* ⛔ NESSUN RIPIEGO SILENZIOSO, ed è la metà della regola che il trasloco non
+     doveva rompere: se l'atto non porta nessuna densità, la risposta è quella
+     di prima — il valore tipico del litotipo, DICHIARATO valore tipico — e se
+     nemmeno il materiale si riconosce non si inventa un numero. */
+  test("Terra e Campo · senza densità nell'atto resta il preset, e resta detto che è un preset", () => {
+    const nudo = { stato: "vigente", materiale: "Sabbia e ghiaia" };
+    const d = ponti.densitaDellaCava(nudo);
+    eq(d.densita, ponti.densitaDelMateriale(nudo.materiale).densita,
+       "il ripiego è lo stesso di prima: Campo non cambia numero nel caso comune");
+    eq(d.da, terra.DENS_PRESET, "…e non si spaccia per una misura");
+    eq(ponti.densitaDellaCava({ materiale: "Materiale che non esiste" }).densita, null,
+       "materiale non riconosciuto: niente, non un numero inventato");
+    eq(ponti.densitaDellaCava(null).densita, null, "e senza atto nemmeno");
   });
 }
 
