@@ -108,12 +108,38 @@ restano scelte vere, una per una.
 - [ ] Deciso / fatto
 
 ## 2. Regole di sicurezza del progetto Firebase ESISTENTE
-- **Stato**: sconosciute (non versionate). Rischio se sono permissive.
-- **Decisione che serve**: apri la console del progetto esistente
-  (`deepwork-app-6c56f`) → Firestore → Rules e incolli le regole attuali in
-  chat, così le versioniamo e correggiamo.
+- **Stato al 02/08**: ⛔ **LETTE, ED ERANO COMPLETAMENTE APERTE.** Il fondatore
+  le ha aperte in console e incollate:
+
+      match /{document=**} { allow read, write: if true; }
+
+  È la «modalità test» che Firebase propone alla creazione del database,
+  rimasta attiva. Tradotta: **chiunque su internet può leggere, scrivere e
+  cancellare l'intero database** — non serve un account, basta l'id del
+  progetto, che sta nel sorgente del sito pubblico.
+- **Perché non poteva essere altrimenti, e come l'abbiamo capito prima di
+  chiederglielo**: nel core non c'è **nessuna** autenticazione — cercati
+  `getAuth`, `signIn`, `onAuthStateChanged`, `firebase/auth` in `index.html` →
+  **zero**. Senza un'identità, o le regole lasciano passare tutti o il sito non
+  salva niente. La lettura delle regole ha confermato la deduzione.
+- ⚠️ **`apiKey` e `projectId` pubblici nel sorgente NON sono il problema**: in
+  Firebase per il web non sono segreti, sono identificatori. La protezione
+  doveva venire dalle regole, e non c'era.
+- ⚠️ **E c'era un secondo difetto che nessuno aveva guardato**: tutti i
+  visitatori del sito dimostrativo scrivono nello **stesso** database, quindi
+  si vedono i dati a vicenda e se li sovrascrivono.
+- **Che cosa si fa**: si chiude (`if false`). ⚠️ **Non spegne il sito**: il core
+  ha già la via d'uscita, e il suo commento la nomina alla lettera — «se
+  Firestore non risponde proprio (rete morta, projectId errato, *security rules
+  bloccanti*) carichiamo i dati di default in memoria»
+  (`initDBOfflineFallback`). La dimostrazione continua, e ognuno lavora sulla
+  propria copia: **migliora** anche il secondo difetto.
+- **Le regole nuove, versionate**: `firestore.rules.core-vecchio`, con dentro
+  quelle vecchie per intero e come si torna indietro.
+- **Contenuto del database**, verificato dal fondatore il 02/08: vuoto o solo
+  prove. Niente da esportare.
 - **Dettaglio**: `docs/AUDIT_SICUREZZA.md` punto 3.
-- [ ] Fatto
+- [ ] Fatto — *in attesa che il fondatore prema «Pubblica» in console*
 
 ## 3. Dati di default: reali o di fantasia?
 - **Stato**: nel core `index.html` ci sono DEFAULT_CLIENTI / DEFAULT_CAVE /

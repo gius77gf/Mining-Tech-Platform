@@ -1,0 +1,65 @@
+// ============================================================
+// REGOLE DI SICUREZZA DEL PROGETTO FIREBASE **VECCHIO**
+// (`deepwork-app-6c56f`, quello a cui punta il core pubblico)
+//
+// ⛔ PERCHÉ QUESTO FILE ESISTE. Fino al 02/08/2026 queste regole erano
+// SCONOSCIUTE: non versionate, visibili solo aprendo la console. Il fondatore
+// le ha lette e incollate, ed erano queste:
+//
+//     rules_version = '2';
+//     service cloud.firestore {
+//       match /databases/{database}/documents {
+//         match /{document=**} {
+//           allow read, write: if true;      // ⛔ CHIUNQUE, TUTTO
+//         }
+//       }
+//     }
+//
+// Cioè la «modalità test» che Firebase propone alla creazione del database,
+// rimasta attiva. Tradotta: chiunque su internet può leggere, scrivere e
+// cancellare l'intero database — non serve un account, basta l'id del
+// progetto, che sta nel sorgente del sito pubblico (ed è giusto che ci stia:
+// in Firebase per il web `apiKey` e `projectId` NON sono segreti, la
+// protezione deve venire da qui).
+//
+// ⚠️ E il core non ha NESSUNA autenticazione: cercati `getAuth`, `signIn`,
+// `onAuthStateChanged`, `firebase/auth` in `index.html` → **zero**. Quindi non
+// esiste un'identità su cui basare una regola: l'unica scelta onesta è
+// chiudere del tutto finché non c'è un accesso vero.
+//
+// ⚠️ CHIUDERE NON SPEGNE IL SITO. Il core ha già la via d'uscita, e il suo
+// commento la nomina alla lettera: «se Firestore non risponde proprio (rete
+// morta, projectId errato, **security rules bloccanti**) carichiamo i dati di
+// default in memoria così l'utente può comunque entrare e vedere qualcosa»
+// (`index.html`, `initDBOfflineFallback`).
+//
+// E migliora una cosa che prima nessuno aveva guardato: oggi TUTTI i
+// visitatori del sito dimostrativo scrivono nello **stesso** database, quindi
+// si vedono i dati a vicenda e se li sovrascrivono. Con le regole chiuse
+// ognuno lavora sulla propria copia in memoria, che è quello che una
+// dimostrazione deve fare.
+//
+// 🔁 COME SI TORNA INDIETRO: si rimettono le tre righe del blocco qui sopra
+// nella console. Nessun dato viene cancellato da questo cambio — diventa solo
+// irraggiungibile dal sito.
+//
+// 👉 QUANDO ARRIVERÀ IL PROGETTO NUOVO (decisione 1) queste regole non
+// serviranno più: le app passano da Deepwork ID, che ha un'autenticazione vera
+// e regole per organizzazione già scritte e provate
+// (`apps/deepwork-id/firestore.rules`, 58 prove con l'emulatore).
+// ============================================================
+
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Nessuna lettura e nessuna scrittura da parte di nessuno.
+    // Non è una restrizione provvisoria in attesa di essere allentata: è la
+    // risposta giusta finché il core non ha un accesso. Il giorno in cui ce
+    // l'avrà, la regola non sarà «if true» ma «if request.auth != null» più
+    // l'isolamento per organizzazione — che è già scritto e provato altrove.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
