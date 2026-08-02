@@ -125,18 +125,51 @@ export function normaPpvLab(n){ return NORME_PPV[n]||String(n==null?'':n); }
    prototipo: `Number.isFinite(+f)` da sola lascia passare `null` e `""`,
    perché `+null` fa **zero** — che avrebbe dato 0 Hz, cioè la fascia più
    severa. Sempre un numero inventato, solo nella direzione che non spaventa. */
+/* ⛔ E NEMMENO SU UNA NORMA CHE NON CONOSCIAMO. Il `default:` del `switch` è la
+   DIN residenziale, e serve — è la norma di riferimento quando il codice è
+   quello giusto. Ma un codice **sconosciuto** ci cadeva dentro in silenzio:
+   `normaPpvLab('boh')` rispondeva onestamente «boh» e `ppvLimit('boh', 25)`
+   rispondeva **15**, cioè l'etichetta e il numero raccontavano due cose diverse
+   sullo stesso schermo. Chi legge «boh · 15 mm/s» crede che 15 sia la soglia
+   di «boh».
+
+   ⛔ E QUI STA IL SEGUITO, misurato il 02/08: `ppvLimit` risponde `null` per
+   **due ragioni diverse**, e la scheda validatori le raccontava tutt'e due con
+   la stessa frase — «la frequenza del recettore non è un numero leggibile».
+   Cioè a chi apriva una volata salvata con un codice di norma non riconosciuto
+   e una frequenza sana di 25 Hz, la pagina diceva di sistemare **il campo
+   giusto**: mandare a correggere ciò che non è rotto è peggio che tacere,
+   perché nasconde il campo vero e fa dubitare di un dato buono. È la stessa
+   famiglia del ponte che dà la colpa a chi compila.
+   La ragione vive QUI e non nella pagina per la regola di sempre: nella pagina
+   non la prova nessuno. E `ppvLimit` la **chiama** invece di ripetere le due
+   guardie, così il numero e la spiegazione non possono scostarsi — l'errore
+   che il 01/08 era costato la seconda tabella delle norme.
+   ⚠️ Il testo non incolla mai il codice scritto dall'utente: la pagina lo mette
+   in `innerHTML`, e il nome della norma lo compone lei con `normaPpvLab`. */
+export const PPV_SENZA_SOGLIA = {
+  freq:  { che:'la frequenza dominante attesa non è un numero leggibile, e senza quella nessuna norma ha una fascia',
+           come:'Reimposta la frequenza dominante attesa (tipicamente 10–40 Hz in cava).' },
+  norma: { che:'la normativa scelta non è fra le cinque che Genesi conosce, e una soglia non si inventa',
+           come:'Riscegli la normativa dall’elenco.' },
+};
+/* `null` quando la soglia c'è; altrimenti dice QUALE dei due campi manca — e
+   se mancano tutt'e due li nomina tutt'e due, se no chi corregge il primo
+   trova il secondo solo dopo, e crede di aver sbagliato di nuovo. */
+export function ppvSenzaSoglia(norma,f){
+  const freq  = (f === null || f === undefined || String(f).trim() === '' || !Number.isFinite(+f));
+  const norm  = !Object.prototype.hasOwnProperty.call(NORME_PPV, norma);
+  if(!freq && !norm) return null;
+  const parti = [];
+  if(freq) parti.push(PPV_SENZA_SOGLIA.freq);
+  if(norm) parti.push(PPV_SENZA_SOGLIA.norma);
+  return { freq, norma:norm,
+    che:  parti.map(p=>p.che).join('; e '),
+    come: parti.map(p=>p.come).join(' ') };
+}
 export function ppvLimit(norma,f){
-  if (f === null || f === undefined || String(f).trim() === '') return null;
+  if (ppvSenzaSoglia(norma,f)) return null;
   const n = +f;
-  if (!Number.isFinite(n)) return null;
-  /* ⛔ E NEMMENO SU UNA NORMA CHE NON CONOSCIAMO. Il `default:` qui sotto è la
-     DIN residenziale, e serve — è la norma di riferimento quando il codice è
-     quello giusto. Ma un codice **sconosciuto** ci cadeva dentro in silenzio:
-     `normaPpvLab('boh')` rispondeva onestamente «boh» e `ppvLimit('boh', 25)`
-     rispondeva **15**, cioè l'etichetta e il numero raccontavano due cose
-     diverse sullo stesso schermo. Chi legge «boh · 15 mm/s» crede che 15 sia
-     la soglia di «boh». */
-  if (!Object.prototype.hasOwnProperty.call(NORME_PPV, norma)) return null;
   switch(norma){
   case 'usbm-old': return n<40?12.7:50.8;
   case 'usbm-modern': return n<40?19:50.8;

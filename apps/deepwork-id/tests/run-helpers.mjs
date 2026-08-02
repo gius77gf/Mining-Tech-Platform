@@ -14,7 +14,7 @@ const HERE = dirname(fileURLToPath(import.meta.url));
 const H = await import(
   join(HERE, "../../../shared/deepwork-id-client/dw-shell.js")
 );
-const { esc, csvCell, parseCsvLine, numIt, isIntestazione, dataISOEsiste, leggiCsv, giorniTra, avvolgiUnita } = H;
+const { esc, csvCell, parseCsvLine, numIt, isIntestazione, dataISOEsiste, leggiCsv, giorniTra, avvolgiUnita, motivoDatiNonSalvati } = H;
 
 let passed = 0, failed = 0;
 const test = (name, fn) => {
@@ -286,6 +286,63 @@ test("numIt: un non-numero non diventa un numero enorme", () => {
   eq(numIt("3.2e2"), 320, "notazione scientifica");
   eq(numIt("1e-3"), 0.001, "esponente negativo");
   eq(numIt("1.234,5"), 1234.5, "migliaia all'italiana");
+});
+
+// ── QUANDO IL DATABASE NON RISPONDE: CHE COSA SI PUÒ DIRE ──
+// Nato il 02/08, il giorno in cui le regole del Firebase pubblico sono state
+// chiuse: da lì in poi TUTTI i visitatori cadono nel ripiego del core, che
+// diceva «connessione database non disponibile» — falso, la connessione c'era.
+test("motivoDatiNonSalvati: le regole che dicono di no NON sono un guasto di rete", () => {
+  const r = motivoDatiNonSalvati({ code: "permission-denied", message: "Missing or insufficient permissions." });
+  eq(r.causa, "accesso", "permission-denied");
+  eq(r.tono, "info", "non è un errore dell'utente né un guasto");
+  eq(/collegamento/.test(r.messaggio), false, "non deve parlare di collegamento");
+  eq(motivoDatiNonSalvati({ code: "unauthenticated" }).causa, "accesso", "unauthenticated");
+});
+test("motivoDatiNonSalvati: il codice maiuscolo con l'underscore è lo stesso caso", () => {
+  // l'SDK JS scrive `permission-denied`, l'API REST `PERMISSION_DENIED`.
+  // Il prototipo sbagliava proprio questo, ed è l'unica forma che si vede
+  // guardando il difetto da fuori (curl), cioè quella che si copia-incolla.
+  eq(motivoDatiNonSalvati({ code: "PERMISSION_DENIED" }).causa, "accesso", "REST");
+});
+test("motivoDatiNonSalvati: la rete morta resta rete morta", () => {
+  eq(motivoDatiNonSalvati({ code: "unavailable" }).causa, "rete", "unavailable");
+  eq(motivoDatiNonSalvati({ code: "deadline-exceeded" }).causa, "rete", "il timeout dei 6 secondi");
+  eq(motivoDatiNonSalvati(new TypeError("Failed to fetch")).causa, "rete", "l'errore del browser, senza codice");
+});
+test("⛔ motivoDatiNonSalvati: se l'app SA di essere offline, quello vince", () => {
+  /* il core chiama il ripiego anche dal ramo `!_isOnline`. Lì l'errore può
+     essere qualunque cosa — anche un permission-denied arrivato prima che la
+     rete cadesse — ma la cosa vera da dire all'utente è che non c'è rete. */
+  eq(motivoDatiNonSalvati({ code: "permission-denied" }, false).causa, "rete", "offline dichiarato");
+});
+test("⛔ motivoDatiNonSalvati: quello che non si sa si dichiara, non si indovina", () => {
+  /* il principio del fondatore applicato al messaggio che lo racconta: un
+     codice che non conosciamo NON diventa «va tutto bene, è la dimostrazione».
+     `certo` è la bandiera, e la legge la funzione stessa scegliendo la frase. */
+  for (const e of [{ code: "not-found" }, { code: "invalid-argument" }, undefined, null, {}]) {
+    const r = motivoDatiNonSalvati(e);
+    eq(r.causa, "ignota", `causa per ${JSON.stringify(e)}`);
+    eq(r.certo, false, `certo per ${JSON.stringify(e)}`);
+    eq(/non raggiungibile/.test(r.messaggio), true, `frase per ${JSON.stringify(e)}`);
+  }
+});
+test("⛔ motivoDatiNonSalvati: tutti e tre i messaggi dicono la cosa che riguarda chi legge", () => {
+  /* la testa della frase cambia con la causa; la CODA no, perché è la sola
+     parte che cambia qualcosa per il cavatore: un rapportino si compila in
+     dieci minuti e nessuno deve scoprire al ricaricamento che era per niente.
+     Il messaggio vecchio parlava solo del database e questa parte non c'era. */
+  const tutti = [
+    motivoDatiNonSalvati({ code: "permission-denied" }),
+    motivoDatiNonSalvati({ code: "unavailable" }),
+    motivoDatiNonSalvati({ code: "boh" }),
+  ];
+  for (const r of tutti) {
+    eq(r.messaggio.endsWith("quello che scrivi non viene salvato"), true, `coda di «${r.messaggio}»`);
+    eq(/degradata/.test(r.messaggio), false, "niente parole da tecnico");
+    eq(/permission|denied|firestore|firebase/i.test(r.messaggio), false, "nessun codice d'errore all'utente");
+  }
+  eq(new Set(tutti.map((r) => r.messaggio)).size, 3, "e le tre teste restano diverse");
 });
 
 console.log(`\nRisultato Helper: ${passed} passati, ${failed} falliti`);

@@ -28,6 +28,7 @@
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
+import { classifica, CODICE } from "./tokenizza.mjs";
 
 const QUI = dirname(fileURLToPath(import.meta.url));
 const RADICE = join(QUI, "..", "..", "..");
@@ -360,6 +361,12 @@ const ALLARMI_ACCETTATI = {
     "VOLUTO, ed è il principio del fondatore nella sua forma più diretta: «nessuna azione» dopo un superamento"
     + " di soglia (Sentinella) o dopo un fermo di produzione (Campo) è ROSSO. La domanda dell'ispettore è «e poi?»,"
     + " e una lista di azioni vuota è la risposta che non si vuole dover dare — non un vuoto neutro",
+  "shell.motivoDatiNonSalvati":
+    "VOLUTO, ed è il principio del fondatore applicato al messaggio che lo racconta: chiamata SENZA errore vuol dire"
+    + " «il database non risponde e non sappiamo perché», e la risposta giusta lì è l'allarme — «⚠ Database non"
+    + " raggiungibile». La faccia tranquilla sarebbe dire «va tutto bene, è la dimostrazione» su una causa che"
+    + " nessuno ha misurato: un permission-denied lo dà anche un progetto configurato male. Nata il 02/08, quando"
+    + " chiudere le regole del Firebase pubblico ha reso questo ramo quello che prende TUTTI i visitatori",
   "scudo.azioneLabel":
     "prende lo STATO di un'azione: senza stato ricade sul primo della lista, non è un giudizio su un dato mancante",
   "scudo.etichettaAmbiente":
@@ -427,6 +434,348 @@ test("nessun allarme dichiarato che non si presenta più", () => {
 });
 console.log(`allarmi su un dato che manca: ${allarmi.size} trovati, ${Object.keys(ALLARMI_ACCETTATI).length} dichiarati`);
 
+/* ══════════════════════════════════════════════════════════════════════
+   IL CENSIMENTO STATICO — «quanti altri ce ne sono?»
+   ══════════════════════════════════════════════════════════════════════
+   La sonda qui sopra CHIAMA le funzioni; questa metà LEGGE il codice. Serve
+   perché la notte fra l'1 e il 2 agosto cinque numeri tranquilli sono stati
+   trovati **uno per uno, a mano**, su codice che passava tutte le prove:
+   il costo orario di Flotta, la scadenza al 30 febbraio di Conti, la soglia
+   di Genesi, la densità prestampata di Terra, il 30/02 nel grafico di
+   Sentinella. Nessuno era un errore di calcolo: erano tutti **un numero
+   scritto dove non era stato misurato niente**.
+
+   ⛔ E QUI STA LA PARTE DIFFICILE, misurata prima di consegnare. Una ricerca
+   ingenua di quei motivi produce quasi solo falsi allarmi — è già successo il
+   01/08 con `documenti-invecchiati`, 8 segnalazioni per 2 vere, e quel
+   controllo è stato scartato: *un allarme che sbaglia tre volte su quattro
+   insegna a non guardarlo.* Quindi il cercatore è stato stretto in SETTE giri,
+   contando ogni volta segnalati e veri (misure in coda a questo blocco):
+
+     giro 1  motivi grezzi (`|| 0`, divisioni, `Date.parse`, `isFinite`)
+             → **1.127 segnalazioni** su 7 moduli. Illeggibile: scartato.
+     giro 2  tre famiglie strette + le divisioni → 49 + 227. Le divisioni
+             restano rumore puro (denominatori costanti, conversioni): fuori.
+     giro 3  `Number.isFinite(+X)` con la GUARDIA VICINA → 33 grezzi, **10
+             segnalati, 7 veri**. Il filtro che funziona non è la forma: è
+             *qualcuno, lì attorno, ha già escluso che X sia assente?*
+     giro 4  la finestra della guardia allargata al TRATTO (il corpo della
+             funzione) → 8 segnalati, 2 falsi allarmi in meno.
+     giro 5  la famiglia delle date rifatta: non «una data giudicata dalla
+             forma» (26 punti, 5 veri) ma «una data CONVERTITA in numero senza
+             che nessuno abbia verificato che esista» → 29 segnalati.
+     giro 6  solo le date SCRITTE (`x + "T00:00"`), non gli istanti già
+             numerici → 19.
+     giro 7  le due guardie che spiegavano tutti i falsi: la data viene
+             dall'OROLOGIO, oppure il tratto passa da una funzione che la
+             verifica davvero → **8 segnalati, 6 veri**.
+
+   Rapporto finale delle due famiglie messe insieme: **16 segnalati, 12 veri**
+   (tre su quattro), con i 4 non-veri dichiarati qui sotto uno per uno con la
+   ragione, come si fa in `ACCETTATI`. Il confronto che conta: il giro 1 ne
+   dava 1.127 e nessuno li avrebbe letti.
+   ⚠️ E i motivi che sono stati PROVATI E SCARTATI vanno scritti, se no
+   qualcuno li rifà alla cieca: `|| 0` (514 punti, quasi tutti somme che
+   partono da zero e contatori — legittimi), le divisioni col denominatore
+   non costante (227), il `default:` di uno `switch` (6 punti, di cui uno
+   solo era il difetto di `ppvLimit` — e nel frattempo è stato corretto:
+   `ppvSenzaSoglia` rifiuta le norme sconosciute), e `n ? a/n : 0` (10 punti,
+   4 discutibili). Nessuno di questi quattro regge il rapporto: contano il
+   MOTIVO, non la guardia — ed è la guardia a fare la differenza.
+
+   ⛔ PERCHÉ NON FA CADERE LA CI SUI PUNTI NUOVI. Il fondo dei falsi allarmi è
+   basso ma non è zero, e una regola che ferma un cantiere una volta su sette
+   viene spenta. Quindi questo censimento **dichiara e stampa**; l'unica cosa
+   che pretende è l'altra metà, quella senza rischio: **un punto dichiarato che
+   non si presenta più** vuol dire che l'elenco è più vecchio del codice, ed è
+   esattamente il controllo che il 01/08 ha tolto tre eccezioni morte.
+   Il giorno in cui il rapporto arriverà a 1 su 1 basterà togliere il commento
+   alla prova «nessun punto nuovo non dichiarato», che è già scritta.
+
+   Perimetro guardato, e va stampato ogni volta: un «zero difetti» su un
+   perimetro taciuto in questo progetto è già costato tre volte.
+   ══════════════════════════════════════════════════════════════════════ */
+
+const ANCORA_TRATTO = /^(?:export )?(?:async )?(?:function|const|let|var) (\w+)/gm;
+
+/* Il TRATTO di un punto: il corpo della dichiarazione a colonna zero che lo
+   contiene, col suo nome. È l'unità in cui una guardia conta davvero — la
+   riga da sola non basta (`oreContatore` di Flotta la guardia ce l'ha DUE
+   righe sopra, e col filtro a una riga risultava un difetto che non è). */
+function tratti(src) {
+  const out = []; ANCORA_TRATTO.lastIndex = 0; let m;
+  while ((m = ANCORA_TRATTO.exec(src))) out.push({ i: m.index, nome: m[1] });
+  return out;
+}
+function trattoDi(src, tag, i) {
+  let da = 0, a = src.length, nome = "(modulo)";
+  for (const t of tag) { if (t.i <= i) { da = t.i; nome = t.nome; } else { a = t.i; break; } }
+  return { testo: src.slice(da, a), nome };
+}
+const esc = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
+/* Il soggetto di `Number.isFinite(+X)`: si legge fino alla parentesi pari,
+   così `+((v||{}).ore)` non viene troncato a metà. */
+function soggettoPiu(src, i) {
+  let j = src.indexOf("+", i) + 1, prof = 0, out = "";
+  while (j < src.length) {
+    const c = src[j];
+    if (c === "(") prof++;
+    else if (c === ")") { if (prof === 0) break; prof--; }
+    else if (prof === 0 && (c === "," || c === "&" || c === "|")) break;
+    out += c; j++;
+  }
+  return out.trim();
+}
+// da dove nasce l'argomento di una conversione: l'orologio non ha date storte
+const OROLOGIO = /oggiISO|oggiIso|isoLocale|giornoDi|dataPiuGiorni/;
+
+/* La scansione. Prende le fonti già lette (app → testo), così la controprova
+   può somministrare una copia col difetto rimesso dentro senza toccare i file
+   veri — che sono di altri cantieri, e che il browser carica. */
+function censimentoStatico(fonti) {
+  const punti = [];
+  const visti = new Map();
+  for (const [app, src] of fonti) {
+    const tipo = classifica(src), linee = src.split("\n"), tag = tratti(src);
+    const riga = (i) => src.slice(0, i).split("\n").length;
+    const segna = (fam, i, nome, nota) => {
+      const r = riga(i), chiave = `${app}|${fam}|${r}`;
+      if (visti.has(chiave)) return; visti.set(chiave, 1);
+      punti.push({ app, fam, funzione: nome, riga: r, nota,
+        testo: linee[r - 1].trim().slice(0, 110) });
+    };
+
+    /* ── FAMIGLIA A · «+X su un dato assente fa ZERO, e zero passa» ──────
+       `+null`, `+undefined` e `+""` valgono 0, e `Number.isFinite(0)` è
+       **true**: il valore mancante entra nel conto travestito da misura. È il
+       difetto di `avanzamentoLotto` (0% dove nessuno ha rilevato) e quello di
+       `oreContatore` di Flotta (zero ore da un contatore illeggibile).
+       Non è un difetto se lì attorno qualcuno ha già escluso l'assenza. */
+    const reA = /Number\.isFinite\(\s*\+/g; let m;
+    while ((m = reA.exec(src))) {
+      if (tipo[m.index] !== CODICE) continue;
+      const X = soggettoPiu(src, m.index); if (!X) continue;
+      const q = esc(X), t = trattoDi(src, tag, m.index);
+      const difeso = [
+        new RegExp(`${q}\\s*[!=]==?\\s*(null|undefined|"")`),
+        new RegExp(`(null|undefined|"")\\s*[!=]==?\\s*${q}`),
+        new RegExp(`String\\(\\s*${q}[^)]*\\)[^;]{0,40}trim`),
+        new RegExp(`\\+?${q}\\s*>\\s*0`),
+        new RegExp(`${q}\\s*\\?\\?`),
+      ].some((r) => r.test(t.testo));
+      if (difeso) continue;
+      segna("zero-da-nulla", m.index, t.nome, `+${X}`);
+    }
+
+    /* ── FAMIGLIA B · «una data che non esiste, contata come se esistesse» ─
+       Misurato, non dedotto: `Date.parse("2026-02-30")` **non fa NaN**, fa il
+       2 marzo; e così «2026-02-29» (il 2026 non è bisestile) e «2026-04-31».
+       Solo «2026-13-45» viene rifiutato. Quindi una regex di FORMA
+       (`/^\d{4}-\d{2}-\d{2}$/`) non difende: l'unica che difende è
+       `dataISOEsiste`, che sta in `shared/` da mesi. È il difetto di Conti
+       («insoluta da 152 giorni» su una scadenza al 30 febbraio) e quello del
+       grafico di Sentinella.
+       Si segnala la CONVERSIONE, non la regex: la regex da sola non inventa
+       niente, il numero nasce quando la stringa diventa una data. */
+    const reB = /\bnew Date\(|\bDate\.parse\(/g;
+    /* le funzioni di QUESTO modulo che la data la verificano davvero: chi
+       passa di lì è difeso anche se sulla sua riga non si vede (è la seconda
+       lettura di «non distingue» — il codice difeso in profondità). */
+    const verificano = [...src.matchAll(/^(?:export )?(?:async )?(?:function|const) (\w+)/gm)]
+      .filter((x) => /dataISOEsiste/.test(trattoDi(src, tag, x.index).testo)).map((x) => x[1]);
+    while ((m = reB.exec(src))) {
+      if (tipo[m.index] !== CODICE) continue;
+      const ap = src.indexOf("(", m.index);
+      let j = ap + 1, prof = 0, arg = "";
+      while (j < src.length) { const c = src[j];
+        if (c === "(") prof++; else if (c === ")") { if (prof === 0) break; prof--; }
+        arg += c; j++; }
+      // solo le date SCRITTE: `x + "T00:00"`. Un istante già numerico non si legge.
+      if (!/\+\s*["'`]T\d/.test(arg)) continue;
+      if (/^\s*(new Date|Date\.parse)/.test(arg)) continue;   // il numero l'ha fatto quello dentro
+      const t = trattoDi(src, tag, m.index);
+      if (/dataISOEsiste|giorniTra/.test(t.testo)) continue;
+      if (verificano.some((n) => new RegExp(`\\b${n}\\s*\\(`).test(t.testo))) continue;
+      const id = (arg.match(/^([A-Za-z_$][\w$.]*)/) || [])[1] || "";
+      const nasce = id && new RegExp(`(?:const|let|var)\\s+${esc(id.split(".")[0])}\\s*=\\s*[^;\\n]*`).exec(t.testo);
+      if (nasce && OROLOGIO.test(nasce[0])) continue;         // viene dall'orologio
+      segna("data-non-verificata", m.index, t.nome, arg.slice(0, 40));
+    }
+  }
+  return punti;
+}
+
+/* ── I PUNTI DICHIARATI ────────────────────────────────────────────────
+   Chiave `app.funzione`. Ogni riga dice se è un difetto VERO (e allora non si
+   corregge qui: questa unità **conta e dichiara**, la correzione è un'altra
+   unità) oppure un FALSO ALLARME, con la ragione — come in `ACCETTATI`.
+   In ordine di quanto pesa per chi legge lo schermo. */
+const CENSITI = {
+  /* ── veri, famiglia B (la data che non esiste) ── */
+  "conti.giorniFraDate":
+    "VERO. Misurato: giorniFraDate('2026-01-01','2026-02-30') risponde **60**, identico alla risposta"
+    + " per il 2 marzo. È il difetto della tabella del 02/08 vivo in una SECONDA funzione: la regex di"
+    + " forma passa, Date.parse fa scorrere il giorno, e «in quanti giorni ha pagato» diventa un numero"
+    + " inventato. Da qui passano l'aging e il comportamento di pagamento del cliente",
+  "conti.mesiFra":
+    "VERO, stessa famiglia: i mesi dall'emissione di una fattura, contati su una data che può non"
+    + " esistere. Il numero finisce nell'avviso «oltre i termini dell'art. 26, l'IVA potrebbe non essere"
+    + " recuperabile» — cioè in una frase che qualcuno porta al commercialista",
+  "flotta.giorniFra":
+    "VERO. L'aiutante che conta i giorni fra due giorni ISO, usato dalle scorte e dai fermi: gli arrivano"
+    + " stringhe controllate da `isoGiorno`, che guarda la FORMA. Da lì il consumo al giorno, e dal"
+    + " consumo al giorno il punto di riordino",
+  "sentinella.piuGiorni":
+    "VERO. Sposta una data di n giorni partendo da `new Date(s + 'T00:00:00Z')` dopo la sola regex di"
+    + " forma: su una data storta la prossima scadenza esce spostata di un giorno o due, in silenzio",
+  "terra.confrontoRilievi":
+    "VERO, peso minore: i giorni fra due rilievi (e quindi il ritmo al giorno e al mese) nascono da"
+    + " `new Date(b.data + 'T00:00:00')`; il filtro a monte (`rilievoUsabileConData`) guarda la forma",
+  "terra.ritmoMedioAnnuo":
+    "VERO, peso minore: la durata in anni da cui esce il volume ANNUO parte dalla data più vecchia"
+    + " passata dallo stesso filtro di forma",
+
+  /* ── veri, famiglia A (+X su un dato assente fa zero) ── */
+  "conti.apertoDi":
+    "VERO, ed è il più pesante di tutti. Misurato: apertoDi({importo:1000, residuo:null}) risponde **0**"
+    + " — una fattura da mille euro letta come già saldata — mentre apertoDi({importo:1000}) risponde"
+    + " 1000, che è la risposta giusta. Il ripiego sull'importo pieno c'è ed è scritto nel commento, ma"
+    + " `+null` fa zero e `Number.isFinite(0)` risponde true, quindi non ci si arriva mai",
+  "terra.descriviOrigine":
+    "VERO, e morde proprio la difesa del principio del fondatore. Nel testo di riproducibilità del"
+    + " volume, `quotaBase` assente diventa 0: la riga stampa «quota di base 0 m» e — peggio — l'elenco"
+    + " esplicito di ciò che NON risulta registrato non la nomina, perché `Number.isFinite(+o.quotaBase)`"
+    + " è true su null. La riga accanto (`+o.cella > 0`) la guardia ce l'ha: stesso autore, stessa"
+    + " funzione, due righe di distanza",
+  "conti.righeDaPesate":
+    "VERO: la quantità di una riga di DDT non scritta diventa 0 invece di ripiegare sul netto pesato,"
+    + " che è quello che il `: (+p.netto || 0)` accanto voleva fare. Zero quantità = zero imponibile",
+  "terra.rilieviFuoriDaiLotti":
+    "VERO, peso minore: un rilievo senza volume viene contato fra gli orfani come se un volume ce"
+    + " l'avesse (`quanti` sale, `m3` no). Nello stesso modulo `rilievoUsabile` la guardia giusta ce l'ha",
+
+  /* ── falsi allarmi, dichiarati con la ragione ── */
+  "campo.storicoSettimana":
+    "FALSO ALLARME: `meta(iso)` converte SEMPRE una data nata dall'orologio (`oggiISO(oggi)`), non un"
+    + " campo di un record. Il filtro dell'orologio non la vede perché `iso` è il parametro di una"
+    + " funzioncina locale, e da lì dentro non si sa chi la chiama",
+  "campo.fermiPerGiorno":
+    "FALSO ALLARME: identica alla riga qui sopra, stessa funzioncina `meta`, stessa provenienza",
+  "flotta.validaRifornimento":
+    "FALSO ALLARME: `+oreMezzo` assente vale 0, ma il solo effetto è che il confronto"
+    + " «il contatore segna meno delle ore già registrate» non scatta. Non nasce nessun numero"
+    + " da mostrare: una validazione che si allenta, non una misura inventata",
+  "flotta.mostra":
+    "DORMIENTE, non VERO: `mostra(null)` scrive «0» invece di «». Oggi i chiamanti le passano"
+    + " numeri già controllati, quindi lo zero non arriva sullo schermo — ma la guardia giusta"
+    + " (`v == null` prima di convertire) è a due righe di distanza in `numeroDaCampo` e qui non"
+    + " c'è. Sta qui perché il giorno in cui un chiamante nuovo le passasse un campo vuoto"
+    + " diventerebbe vero senza che nessuno tocchi questa riga",
+};
+
+/* ⛔ E GENESI CI VA, anche se `APP` qui sopra non la contiene. La sonda che
+   CHIAMA le funzioni la lascia fuori perché il suo modulo dati è piccolo (il
+   grosso di Genesi vive dentro la pagina), ma uno dei cinque difetti del 02/08
+   era proprio suo — il `default:` di `ppvLimit` — e un perimetro che lascia
+   fuori l'app da cui viene un difetto non può dire «zero». Il suo conto è
+   ZERO ed è dichiarato tale, non taciuto. */
+const APP_STATICO = [...APP, "genesi"];
+const fontiStatiche = new Map(APP_STATICO.map((a) =>
+  [a, readFileSync(join(RADICE, "apps", a, `${a}-data.js`), "utf8")]));
+const statici = censimentoStatico(fontiStatiche);
+const RIGHE_LETTE = [...fontiStatiche.values()].reduce((s, t) => s + t.split("\n").length, 0);
+
+const perApp = new Map(APP_STATICO.map((a) => [a, 0]));
+for (const p of statici) perApp.set(p.app, perApp.get(p.app) + 1);
+const veri = statici.filter((p) => (CENSITI[`${p.app}.${p.funzione}`] || "").startsWith("VERO"));
+
+console.log(`\n── censimento statico dei «numeri scritti dove non è stato misurato niente»`);
+console.log(`perimetro guardato: ${APP_STATICO.length} moduli dati (${APP_STATICO.join(", ")}), ${RIGHE_LETTE} righe`);
+console.log(`punti per app: ` + [...perApp].map(([a, n]) => `${a} ${n}`).join(" · "));
+console.log(`${statici.length} segnalati, ${veri.length} difetti VERI dichiarati,`
+  + ` ${statici.length - veri.length} falsi allarmi dichiarati con la ragione`);
+for (const p of statici) {
+  const d = CENSITI[`${p.app}.${p.funzione}`];
+  console.log(`   ${d ? (d.startsWith("VERO") ? "✗" : "·") : "?"} ${p.app}-data.js:${p.riga}`
+    + ` ${p.funzione} [${p.fam}] ${p.nota}`);
+}
+
+/* La metà che PRETENDE, ed è quella senza rischio di falsi allarmi: un punto
+   dichiarato che non si presenta più vuol dire che l'elenco è più vecchio del
+   codice — o perché qualcuno ha corretto il difetto (e allora la riga va
+   tolta), o perché il cercatore ha smesso di guardare lì. */
+test("nessun punto del censimento statico è rimasto dichiarato a vuoto", () => {
+  const chiavi = new Set(statici.map((p) => `${p.app}.${p.funzione}`));
+  const spariti = Object.keys(CENSITI).filter((k) => !chiavi.has(k));
+  ok(spariti.length === 0,
+    `${spariti.length} punti dichiarati non si presentano più → ${spariti.join(", ")}`
+    + " — se sono stati corretti la riga va TOLTA, se no il cercatore ha smesso di guardare lì");
+});
+
+/* E la prova che il cercatore ha davvero guardato: un «zero difetti» su un
+   perimetro taciuto è peggio di nessun cercatore. */
+test("il censimento statico ha davvero letto i moduli", () => {
+  ok(RIGHE_LETTE > 15000, `solo ${RIGHE_LETTE} righe lette: il censimento non sta guardando niente`);
+  ok(statici.length >= 10, `solo ${statici.length} punti: la scansione si è persa`);
+});
+
+/* ⚠️ ANCORA SPENTA, e la ragione è scritta in cima: 12 veri su 14 è un fondo
+   di falsi allarmi basso ma non nullo, e una regola che ferma un cantiere una
+   volta su sette viene spenta invece che rispettata. Si accende il giorno in
+   cui i due numeri coincidono.
+test("nessun punto nuovo che nessuno ha dichiarato", () => {
+  const nuovi = statici.filter((p) => !(`${p.app}.${p.funzione}` in CENSITI));
+  ok(nuovi.length === 0, `${nuovi.length} punti nuovi → ` +
+    nuovi.map((p) => `${p.app}.${p.funzione}:${p.riga}`).join(", "));
+}); */
+const nonDichiarati = statici.filter((p) => !(`${p.app}.${p.funzione}` in CENSITI));
+if (nonDichiarati.length)
+  console.log(`⚠ ${nonDichiarati.length} punti NUOVI da guardare (non fanno cadere la CI, vedi l'intestazione): `
+    + nonDichiarati.map((p) => `${p.app}-data.js:${p.riga} ${p.funzione}`).join(", "));
+
+/* ── LA CONTROPROVA: il cercatore riconosce i difetti da cui nasce? ─────
+   Una prova che non sa fallire non dimostra niente. Si rimettono TRE difetti
+   veri — due dalla tabella del 02/08, uno raccolto in CLAUDE.md — dentro una
+   COPIA IN MEMORIA delle fonti (i file veri sono di altri cantieri, e le
+   pagine li caricano: non si iniettano). Si pretende che il cercatore li
+   veda, e si stampa **quante iniezioni sono andate a segno**: un `replace`
+   che sostituisce zero occorrenze passa in silenzio. */
+const INIEZIONI = [
+  ["conti", "la scadenza al 30 febbraio (tabella 02/08)",
+    (s) => s + "\nconst _scadenzaVecchia = (d, o) => Math.round((new Date(d + \"T00:00:00\") - o) / 86400000);\n",
+    "_scadenzaVecchia"],
+  ["sentinella", "il 30/02/2026 come un giorno qualunque nel grafico (tabella 02/08)",
+    (s) => s + "\nconst _giornoGrafico = (r) => new Date(String(r.data) + \"T00:00:00\").getTime();\n",
+    "_giornoGrafico"],
+  /* Il terzo non è nella tabella ma è la stessa famiglia, ed è successo qui:
+     `oreContatore` di Flotta tornava ZERO ORE da un contatore illeggibile.
+     Qui si toglie la guardia che lo corregge e si pretende che il cercatore
+     rimetta il punto in elenco. */
+  ["flotta", "il contatore illeggibile che valeva zero ore (`+null === 0`)",
+    (s) => s.replace('  if (v == null || v === "") return null;\n  return Number.isFinite(+v) ? +v : null;',
+      "  return Number.isFinite(+v) ? +v : null;"),
+    "oreContatore"],
+];
+const fonti = fontiStatiche;
+let iniettate = 0;
+for (const [app, che, inietta, atteso] of INIEZIONI) {
+  const prima = fonti.get(app);
+  const dopo = inietta(prima);
+  test(`controprova · ${app}: ${che}`, () => {
+    ok(dopo !== prima, "l'iniezione non ha cambiato niente: il testo cercato non c'è più");
+    iniettate++;
+    const base = censimentoStatico(new Map([[app, prima]])).length;
+    const con = censimentoStatico(new Map([[app, dopo]]));
+    ok(con.length > base, `il difetto rimesso non fa salire il conto (${base} → ${con.length}):`
+      + " il cercatore non riconosce il difetto da cui nasce");
+    ok(con.some((p) => p.funzione === atteso),
+      `il conto sale ma non su «${atteso}»: il cercatore vede un'altra cosa`);
+  });
+}
+console.log(`controprova: ${iniettate} iniezioni su ${INIEZIONI.length} andate a segno`);
+
 console.log(`\nRisultato sonda del vuoto: ${passed} passati, ${failed} falliti`
-  + `  ·  ${trovati.size} tranquilli trovati, ${Object.keys(ACCETTATI).length} dichiarati`);
+  + `  ·  ${trovati.size} tranquilli trovati, ${Object.keys(ACCETTATI).length} dichiarati`
+  + `  ·  ${statici.length} punti statici, ${veri.length} veri`);
 process.exit(failed > 0 ? 1 : 0);

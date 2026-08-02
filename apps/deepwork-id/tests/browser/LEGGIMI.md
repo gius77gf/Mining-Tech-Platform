@@ -541,6 +541,12 @@ Due famiglie, perché «so fallire in un punto» non dimostra niente sugli altri
   difetto 1) e le voci delle tendine vengono **allungate** (la forma generale
   del difetto 2).
 
+Si possono lanciare separate — `--iniezione=A` e `--iniezione=B` — e serve:
+con la sola A si vede che il difetto **esatto** del 01/08 fa cadere il banco
+(`«(dB(A))» in maiuscolo … .u`, quattro bocciature che nel giro pulito non
+ci sono), invece di leggere un verde solo in cui le due famiglie si coprono
+a vicenda.
+
 L'iniezione **si conta mentre inietta** (`window.__iniz`): in fondo il banco
 stampa, superficie per superficie, quanti span ha sciolto e quante voci ha
 allungato (dov'è **arrivata**) accanto a quante violazioni ha visto (dov'è stata

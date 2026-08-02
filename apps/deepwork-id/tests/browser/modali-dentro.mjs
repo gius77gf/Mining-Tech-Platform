@@ -160,8 +160,17 @@ function quanteModaliEsistono(sorgente) {
   return n;
 }
 
-/* ══ IL GESTO CHE APRE ═════════════════════════════════════════════════════ */
-const PROSSIMO = async ([fatti, forme, attesa, quanteVolte]) => {
+/* ══ IL GESTO CHE APRE ═════════════════════════════════════════════════════
+   ⛔ IN DUE PASSI, E NON PER ELEGANZA. In un passo solo (scegli-e-clicca) un
+   click che porta la pagina altrove distrugge il contesto: la chiamata
+   fallisce, e il banco non sa nemmeno QUALE comando stava provando — quindi
+   o si ferma lì, o lo riprova all'infinito. Fermarsi era il comportamento
+   della prima stesura, ed era **silenzioso**: Scudo apriva 2 modali su 28
+   chiamate nel programma e il banco stampava un `ok`. Adesso il comando si
+   sceglie e si marca PRIMA (`SCEGLI`), si tocca DOPO (`TOCCA`): se il tocco
+   fa saltare tutto, la chiave è già in mano e il giro va avanti dal comando
+   dopo, contando gli inciampi e dichiarandoli in fondo. */
+const SCEGLI = ([fatti, forme, quanteVolte]) => {
   const vis = (e) => { const r = e.getBoundingClientRect(); return r.width > 0 && r.height > 0; };
   const eti = (e) => (e.getAttribute('aria-label') || e.title || e.textContent || '')
     .trim().replace(/\s+/g, ' ').slice(0, 60);
@@ -187,14 +196,24 @@ const PROSSIMO = async ([fatti, forme, attesa, quanteVolte]) => {
     return e.tagName + '|' + (e.id || '') + '|' + (d || eti(e));
   };
   const FUORI = '.nav, #bottomnav, .modal-ov, #modal, .chgs';
-  const MAI = '[data-filtro], .chg, [data-goto], [id*="tema"], [title^="Tema"], [aria-label^="Tema"]';
+  /* `.dw-exit` porta al login, e da lì non si torna: non apre modali, porta
+     via la pagina */
+  const MAI = '[data-filtro], .chg, [data-goto], .dw-exit, [id*="tema"], [title^="Tema"], [aria-label^="Tema"]';
   const lista = [...document.querySelectorAll('button, [role="button"], summary, .item[onclick], tr[data-id]')]
     .filter((e) => vis(e) && !e.closest(FUORI) && !e.matches(MAI));
   const conta = (f) => forme.filter((x) => x === f).length;
   const el = lista.find((e) => !fatti.includes(identita(e)) && conta(forma(e)) < quanteVolte);
   if (!el) return { fine: true, restano: lista.length };
-  const chiave = identita(el), sagoma = forma(el), etichetta = eti(el);
-  try { el.click(); } catch (e) { return { chiave, sagoma, etichetta, errore: String(e).slice(0, 60) }; }
+  document.querySelectorAll('[data-dw-sonda]').forEach((x) => x.removeAttribute('data-dw-sonda'));
+  el.setAttribute('data-dw-sonda', '1');
+  return { chiave: identita(el), sagoma: forma(el), etichetta: eti(el), restano: lista.length };
+};
+
+const TOCCA = async (attesa) => {
+  const el = document.querySelector('[data-dw-sonda]');
+  if (!el) return { sparito: true };
+  el.removeAttribute('data-dw-sonda');
+  el.click();
   await new Promise((r) => setTimeout(r, attesa));
   const m = document.getElementById('modal');
   const box = m && m.querySelector('.modal-box, .modal-card, [class*="modal-"]');
@@ -204,7 +223,7 @@ const PROSSIMO = async ([fatti, forme, attesa, quanteVolte]) => {
      risponde «tutto a posto». */
   const aperta = !!(m && m.classList.contains('show')
     && box && box.getBoundingClientRect().width > 1 && titolo.trim());
-  return { chiave, sagoma, etichetta, aperta, titolo: titolo.trim() };
+  return { aperta, titolo: titolo.trim() };
 };
 
 const CHIUDI = async () => {
@@ -438,6 +457,8 @@ process.on('exit', togliLaCopia);
 let ko = 0, appPulite = 0;
 let apertePerTutti = 0, elementiPerTutti = 0, opzioniPerTutti = 0, clickPerTutti = 0;
 const tendineTagliate = new Set();
+let inciampi = 0;
+const interrotte = [];
 const raggiunte = [], nonRaggiunte = [];
 const censimento = [];
 const visto = new Set();
@@ -461,14 +482,41 @@ for (const [nome, via] of SUPERFICI) {
   const conto = { span: 0, opzioni: 0, unita: 0, vistoMaiusc: 0, vistoTendina: 0 };
   for (const larghezza of LARGHEZZE) {
     const { ctx, p } = await apriSuperficie(b, { nome, via, porta: PORTA, larghezza, altezza: 844, montaFintoFirebase });
+    const atteso = p.url();
     for (const s of await sezioniDi(p, nome)) {
+      if (p.isClosed()) break;
       await vaiA(p, nome, s);
       const fatti = [], forme = [];
+      let diFila = 0;
       for (let i = 0; i < TETTO; i++) {
-        const r = await p.evaluate(PROSSIMO, [fatti, forme, 170, PER_FORMA]).catch(() => ({ fine: true }));
-        if (r.fine) break;
-        fatti.push(r.chiave); forme.push(r.sagoma);
+        const scelto = await p.evaluate(SCEGLI, [fatti, forme, PER_FORMA]).catch(() => null);
+        if (!scelto) {   /* nemmeno la scelta risponde: la pagina non c'è più */
+          inciampi++; if (++diFila >= 5) { interrotte.push(`${nome}/${s}@${larghezza}`); break; } continue;
+        }
+        if (scelto.fine) break;
+        fatti.push(scelto.chiave); forme.push(scelto.sagoma);
         clickPerTutti++;
+        const r = await p.evaluate(TOCCA, 170).catch(() => null);
+        /* ⛔ IL TOCCO PUÒ PORTARE LA PAGINA ALTROVE — o chiuderla. Non è una
+           ragione per fermare il giro (la chiave è già segnata), ma è una
+           ragione per RIMETTERSI dove si era: senza, il giro continuerebbe a
+           misurare **un'altra pagina** credendo di essere nella sezione. */
+        if (p.isClosed()) {
+          inciampi++; interrotte.push(`${nome}/${s}@${larghezza} (pagina chiusa dopo «${scelto.etichetta}»)`);
+          break;
+        }
+        if (!r || p.url() !== atteso) {
+          inciampi++; diFila++;
+          if (inciampi <= 3) console.log(`      · inciampo su «${scelto.etichetta}» in ${nome}/${s}: ${p.url() !== atteso ? 'la pagina è andata altrove' : 'il contesto è saltato'}`);
+          if (p.url() !== atteso) {
+            await p.goto(atteso).catch(() => {});
+            await p.waitForTimeout(1200);
+            await vaiA(p, nome, s);
+          } else { await p.waitForTimeout(300); }
+          if (diFila >= 5) { interrotte.push(`${nome}/${s}@${larghezza}`); break; }
+          continue;
+        }
+        diFila = 0;
         if (!r.aperta) continue;
         aperteQui++; apertePerTutti++;
         /* ⚠️ «QUANTE MODALI DIVERSE» NON È «QUANTI TITOLI DIVERSI»: il titolo
@@ -478,7 +526,7 @@ for (const [nome, via] of SUPERFICI) {
            che è il segno che si sta contando un'altra cosa. Via le cifre. */
         titoli.add(r.titolo.replace(/\d+/g, '#').replace(/\s+/g, ' ').slice(0, 46));
         const m = await p.evaluate(MISURA, [UNITA, larghezza]).catch(() => null);
-        await p.evaluate(CHIUDI);
+        await p.evaluate(CHIUDI).catch(() => {});
         if (!m) continue;
         elementiPerTutti += m.guardati; opzioniPerTutti += m.opzioni;
         for (const x of m.tendine) if (!x.scelta) tendineTagliate.add(`${nome}|${x.id}|${x.testo}`);
@@ -561,6 +609,11 @@ console.log(`soggetti guardati: ${apertePerTutti} aperture di modale, ${elementi
    a tendina chiusa: lì il valore mostrato è monco. Le altre si contano, così
    il numero resta sotto gli occhi invece di sparire. */
 console.log(`voci di tendina tagliate ma non scelte (dichiarate, non bocciate): ${tendineTagliate.size}`);
+/* ⚠️ GLI INCIAMPI SI DICHIARANO: un tocco che porta la pagina altrove fa
+   perdere il resto della sezione, e un banco che non lo dice sembra averla
+   guardata tutta. */
+if (inciampi) console.log(`inciampi (il tocco ha fatto saltare il contesto): ${inciampi}`
+  + (interrotte.length ? ` — sezioni lasciate a metà: ${interrotte.join(', ')}` : ''));
 if (nonRaggiunte.length) {
   console.log(`⚠️ NON RAGGIUNTE: ${nonRaggiunte.join(', ')}.`);
   console.log('   Non vuol dire «a posto»: vuol dire che nessuna loro modale è stata aperta,');
@@ -575,6 +628,10 @@ if (CONTROPROVA) {
      banco; una non arrivata è un buco della controprova, e i due si curano in
      modo opposto. */
   console.log('\n── la copertura della controprova ──');
+  for (const i of INIEZIONI) console.log(`   nel testo: ${i.cosa}\n              ${i.quante} punto/i in ${i.rel}`);
+  if (QUALE === 'A') {
+    console.log('   (solo la famiglia A: le colonne del conto a tempo di esecuzione sono di B e restano a zero)');
+  }
   let arrivate = 0, viste = 0, spanTot = 0, opzTot = 0, uniTot = 0;
   for (const c of censimento) {
     const q = c.conto;
@@ -586,7 +643,7 @@ if (CONTROPROVA) {
     console.log(`   ${String(c.app).padEnd(22)} iniettato: ${String(q.span).padStart(3)} span sciolti, `
       + `${String(q.unita).padStart(3)} unità messe in una classe maiuscola, ${String(q.opzioni).padStart(4)} voci allungate`
       + `  →  visto: ${q.vistoMaiusc} unità in maiuscolo, ${q.vistoTendina} tendine tagliate`
-      + `  ${arrivata ? (vista ? '✓' : '✗ ARRIVATA E NON VISTA') : '· non arrivata'}`);
+      + `  ${arrivata ? (vista ? '✓' : '✗ ARRIVATA E NON VISTA') : (QUALE === 'A' ? '·' : '· non arrivata')}`);
   }
   console.log(`   ${spanTot + uniTot + opzTot} iniezioni in tutto (${spanTot} span, ${uniTot} unità, ${opzTot} voci)`
     + ` su ${arrivate} superfici; il banco le ha viste su ${viste}.`);

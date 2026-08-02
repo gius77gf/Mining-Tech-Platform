@@ -101,7 +101,7 @@ const APP = ["campo", "conti", "flotta", "scudo", "sentinella", "terra"];
    (`terra.X === ponti.X`) invece del comportamento.
    `densitaPerEnte` e `descriviDensita` restano di Terra, e il conto lo dice: a
    scendere sono otto, non dieci. */
-const FONDO = { campo: 102, conti: 107, flotta: 81, scudo: 123, sentinella: 120, terra: 58 };
+const FONDO = { campo: 102, conti: 109, flotta: 81, scudo: 123, sentinella: 120, terra: 58 };
 
 /* Quello che resta fuori per un motivo, non per dimenticanza: i caricatori
    dati vogliono la rete e lo SDK, i ponti demo vogliono il localStorage.
@@ -163,7 +163,7 @@ const CONDIVISI = [
      sale qui e scende là è la prova che è un TRASLOCO e non una copia. */
   { file: "shared/dw-ponti.js", fondo: 31,
     perche: "le regole che servono a DUE app: è il posto dove un difetto si moltiplica" },
-  { file: "shared/deepwork-id-client/dw-shell.js", fondo: 31,
+  { file: "shared/deepwork-id-client/dw-shell.js", fondo: 32,
     perche: "gli aiuti che tutte le app importano (numeri, date, CSV)" },
   { file: "apps/genesi/pointcloud.js", fondo: 5,
     perche: "il calcolo del volume dal drone: da lì passano i m³ che consumano la concessione" },
@@ -185,7 +185,9 @@ const CONDIVISI = [
      `localStorage` o lo stato del progetto (`sitoStore`, `sitoLegge`,
      `ppvSite`, `computeMIC`): portarle fuori è un rifacimento, non un
      trasloco. Quanto manca lo misura `genesi-estraibili.mjs`. */
-  { file: "apps/genesi/genesi-data.js", fondo: 12,
+  /* 12 → 14 il 02/08: `ppvSenzaSoglia` e la sua tabella `PPV_SENZA_SOGLIA`,
+     cioè la RAGIONE per cui una soglia di vibrazione manca. */
+  { file: "apps/genesi/genesi-data.js", fondo: 14,
     perche: "la vibrazione al recettore: la legge di sito dai referti, il limite di norma, l'airblast" },
 ];
 /* Fuori per un motivo, non per dimenticanza. Le prime tre toccano il DOM o

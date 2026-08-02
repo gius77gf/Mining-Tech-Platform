@@ -108,7 +108,7 @@ import {
 // per il core e per tutte e sei le app. Quando era scritta in ogni app, le sei
 // leggevano «1.250» in tre modi diversi senza che nessun test se ne accorgesse.
 // È un modulo di sole funzioni pure, senza effetti al caricamento.
-import { numeroScritto, messaggioNumero, perCampo, montaGuardiaInteri, isoLocale, meseLocale } from "./shared/deepwork-id-client/dw-shell.js";
+import { numeroScritto, messaggioNumero, perCampo, montaGuardiaInteri, isoLocale, meseLocale, motivoDatiNonSalvati } from "./shared/deepwork-id-client/dw-shell.js";
 
 // ── Config Firebase ──
 const firebaseConfig = {
@@ -624,6 +624,17 @@ function aggiornaSyncBadge(){
   const badge = $('sync-badge');
   if(!badge) return;
   const pending = _pendingWrites.size;
+  // ⛔ Prima di tutto il resto: se siamo nel ripiego in memoria, non c'è
+  // nessuna «modifica in attesa di sync» — non ci sarà nessun sync. Dirlo
+  // per primo, perché OFFLINE lascia sperare che al ritorno della rete si
+  // sistemi tutto, e qui non si sistema niente.
+  if(state.soloMemoria){
+    badge.style.display = 'flex';
+    badge.className = 'sync-badge nonsalva';
+    badge.title = state.soloMemoria.messaggio;
+    badge.innerHTML = '<span class="sync-dot"></span>NON SALVA';
+    return;
+  }
   if(!_isOnline){
     badge.style.display = 'flex';
     badge.className = 'sync-badge offline';
@@ -741,7 +752,10 @@ async function initDB(){
     if(state.dbReady) return;
     console.warn('[initDB] Timeout 6s — procedo con cache locale');
     showSplash('Connessione lenta — modalità offline');
-    initDBOfflineFallback();
+    // Sei secondi senza risposta: il codice che descrive questo caso è
+    // `deadline-exceeded`, e va passato — se no il ripiego direbbe «non
+    // sappiamo perché» quando invece lo sappiamo.
+    initDBOfflineFallback({ code: 'deadline-exceeded' });
   }, 6000);
   try {
     let needSeed = false;
@@ -760,7 +774,7 @@ async function initDB(){
       if(!_isOnline){
         console.error('[initDB] Offline e cache vuota:', e);
         clearTimeout(safetyTimeout);
-        return initDBOfflineFallback();
+        return initDBOfflineFallback(e, false);
       }
       throw e;
     }
@@ -784,13 +798,18 @@ async function initDB(){
   } catch(e) {
     console.error('Firebase error:', e);
     clearTimeout(safetyTimeout);
-    initDBOfflineFallback();
+    initDBOfflineFallback(e, _isOnline);
   }
 }
 
 // Fallback: se Firestore non risponde proprio (rete morta, projectId errato, security rules bloccanti)
 // carichiamo i dati di default in memoria così l'utente può comunque entrare e vedere qualcosa
-function initDBOfflineFallback(){
+// ⛔ Dal 02/08 riceve l'ERRORE e lo stato della rete, e non è un dettaglio: da
+// quando le regole del progetto pubblico sono chiuse questo ramo è quello che
+// prende TUTTI i visitatori, e il messaggio che dava («connessione database
+// non disponibile») era falso proprio nel caso più frequente. La scelta di
+// che cosa dire sta in `motivoDatiNonSalvati` (shared/), con la ragione.
+function initDBOfflineFallback(errore, online = true){
   console.warn('[initDB] Caricamento DEFAULT in memoria (fallback offline)');
   if(DB.users.length===0){
     DB.users = [...DEFAULT_USERS];
@@ -806,11 +825,16 @@ function initDBOfflineFallback(){
     DB.deposito.lubr = [...DEFAULT_DEPOSITO.lubr];
   }
   state.dbReady = true;
+  // Lo stato NON è solo un toast che passa in due secondi e mezzo: resta
+  // acceso nel badge per tutta la sessione. Un rapportino si compila in dieci
+  // minuti, e chi ha visto sparire l'avviso non ha modo di sapere che quello
+  // che sta scrivendo non arriverà da nessuna parte.
+  state.soloMemoria = motivoDatiNonSalvati(errore, online);
   hideSplash();
   applyTheme();
   applyOutdoor();
   aggiornaSyncBadge();
-  setTimeout(()=>toast('⚠ Modalità degradata — connessione database non disponibile','err'), 600);
+  setTimeout(()=>toast(state.soloMemoria.messaggio, state.soloMemoria.tono), 600);
 }
 
 async function seedDB(){
@@ -6883,6 +6907,7 @@ body.outdoor-mode .outdoor-toggle.active{background:#c77800;color:#fff;border-co
 /* Sync badge */
 body.outdoor-mode .sync-badge.offline{background:rgba(198,40,40,.1);border-color:#c62828;color:#c62828;}
 body.outdoor-mode .sync-badge.syncing{background:rgba(230,81,0,.1);border-color:#e65100;color:#e65100;}
+body.outdoor-mode .sync-badge.nonsalva{background:rgba(198,40,40,.1);border-color:#c62828;color:#c62828;}
 /* Toast più grande e visibile, dura 4 secondi (gestito via JS) */
 body.outdoor-mode .toast{font-size:15px;padding:14px 24px;bottom:90px;}
 /* Mappa: nessun filtro inversione sul chiaro */
@@ -6951,6 +6976,10 @@ body.outdoor-mode .topbar{height:60px;background:#000;}
 .sync-badge{display:flex;align-items:center;gap:5px;padding:5px 10px;font-family:'Barlow Condensed',sans-serif;font-size:10px;font-weight:800;letter-spacing:2px;text-transform:uppercase;border-radius:3px;cursor:default;user-select:none;}
 .sync-badge.offline{background:rgba(239,83,80,.15);border:1px solid var(--danger);color:var(--danger);}
 .sync-badge.syncing{background:rgba(255,167,38,.15);border:1px solid var(--warn);color:var(--warn);animation:pulseSync 1.5s ease-in-out infinite;}
+/* Solo memoria: il database non risponde e niente di quello che si scrive
+   viene salvato. NON lampeggia — non è un'attesa che passerà da sola, è lo
+   stato di tutta la sessione, e una cosa che pulsa si smette di guardare. */
+.sync-badge.nonsalva{background:rgba(239,83,80,.15);border:1px solid var(--danger);color:var(--danger);}
 .sync-dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:currentColor;}
 .sync-badge.offline .sync-dot{animation:pulseDot 1.5s ease-in-out infinite;}
 .sync-badge.syncing .sync-dot{animation:rotateDot 1s linear infinite;}
@@ -7242,7 +7271,14 @@ body.outdoor-mode .topbar-search-input:focus{border-color:#c77800;width:180px;}
 .photo-item.add{border-style:dashed;color:var(--muted);font-size:24px;}
 .photo-item.add:hover{border-color:var(--amber);color:var(--amber);}
 .photo-del{position:absolute;top:3px;right:3px;width:22px;height:22px;background:rgba(239,83,80,.9);color:#fff;border-radius:50%;font-size:13px;display:flex;align-items:center;justify-content:center;cursor:pointer;}
-.toast{position:fixed;bottom:80px;left:50%;transform:translateX(-50%) translateY(8px);background:var(--grad);color:#100d07;padding:11px 20px;font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:800;letter-spacing:1px;opacity:0;transition:all .3s;z-index:999;white-space:nowrap;max-width:90vw;overflow:hidden;text-overflow:ellipsis;}
+/* ⛔ IL TESTO VA A CAPO, NON VIENE TAGLIATO (02/08). Qui c'era
+   `white-space:nowrap` + `text-overflow:ellipsis`: su un telefono a 320px
+   nel toast ci stanno ~45 caratteri, e **dieci** messaggi del core sono piu'
+   lunghi — il piu' lungo e' 109 caratteri, cioe' l'utente ne leggeva meno di
+   meta' e i puntini. Un messaggio tagliato e' testo morto, ed e' la stessa
+   regola gia' scritta per le righe delle liste. Andare a capo non cambia
+   niente per i messaggi corti, che restano su una riga sola. */
+.toast{position:fixed;bottom:80px;left:50%;transform:translateX(-50%) translateY(8px);background:var(--grad);color:#100d07;padding:11px 20px;font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:800;letter-spacing:1px;opacity:0;transition:all .3s;z-index:999;white-space:normal;width:max-content;max-width:90vw;text-align:center;line-height:1.35;overflow-wrap:break-word;}
 .toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
 .toast.err{background:var(--danger);color:#fff;}
 .toast.success{background:var(--gradSuc);color:#fff;}

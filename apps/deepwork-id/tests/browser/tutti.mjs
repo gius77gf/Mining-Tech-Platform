@@ -43,6 +43,10 @@ const BANCHI = [
      accorgesse — le suite `node` non importano le pagine. */
   ['le pagine si aprono', 'pagine-vive.mjs', []],
   ['le pagine si aprono · controprova', 'pagine-vive.mjs', ['--controprova'], true],
+  /* il messaggio che il core dà quando il database non risponde: dal 02/08
+     (regole chiuse) è il ramo che prende TUTTI i visitatori */
+  ['messaggio del ripiego', 'ripiego-messaggio.mjs', []],
+  ['messaggio del ripiego · controprova', 'ripiego-messaggio.mjs', ['--controprova'], true],
   ['campi interi', 'interi-superfici.mjs', []],
   ['campi interi · controprova', 'interi-superfici.mjs', ['--senza-guardia'], true],
   ['contrasto', 'contrasto.mjs', []],

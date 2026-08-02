@@ -1006,7 +1006,7 @@ import { gnum, gseg, gfix, gdata, fmtMs, fmtKg } from './genesi-formato.js';
    guardano — e perché `normaPpvLab`, che la pagina **importa**, è l'unico modo
    di leggere quella tabella da fuori: la pagina se n'era scritta una copia, con
    un ripiego diverso, ed è il difetto corretto il 01/08. */
-import { sitoFit, ppvLimit, airblastDb, normaPpvLab,
+import { sitoFit, ppvLimit, ppvSenzaSoglia, airblastDb, normaPpvLab,
          _SITO_FONTI, _sitoFonte, _sitoFonteDaTesto,
          _sitoMappaColonne, _sitoTicks, _sitoNum } from './genesi-data.js';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
@@ -3207,8 +3207,15 @@ function sigRender(){
   const body=$('sigBody');
   if(!_sigData){ body.innerHTML='<div style="color:var(--mut);font-size:12px;">Importa la <b>registrazione di un foro singolo</b> (CSV: <code>tempo_ms;ampiezza</code>, es. mm/s). Genesi la <b>somma ritardata</b> secondo i tempi di detonazione della volata corrente e stima il <b>PPV composito</b> — il metodo dei big (Orica AVM), più preciso della sola legge di Devine perché usa l&rsquo;onda reale del tuo sito.</div>'; _sigComp=null; return; }
   const times=_sigDetTimes(), r=_sigSuperpose(_sigData,times); _sigComp=r;
-  const k=computeKPI(), lim=k.lim, dev=k.ppv, rat=r.ppv/Math.max(0.1,lim);
-  const col=rat<0.6?'#66bb6a':(rat<1?'#ffca28':'#ef5350');
+  /* ⛔ SENZA SOGLIA NON C'È UN VERDETTO, e qui ne uscivano due falsi insieme:
+     `Math.max(0.1, null)` fa **0,1**, quindi il rapporto diventava enorme e la
+     modale dichiarava «SUPERATO» contro un limite che non esiste; e la riga
+     «Limite norma» scriveva alla lettera **«null mm/s»**. Allarmista invece che
+     tranquillo, ma sempre un verdetto dove non è stato misurato niente. */
+  const k=computeKPI(), lim=k.lim, dev=k.ppv;
+  const rat=lim===null?null:r.ppv/Math.max(0.1,lim);
+  const senza=ppvSenzaSoglia(D2.recNorma,D2.recFreq);
+  const col=rat===null?'#ffca28':(rat<0.6?'#66bb6a':(rat<1?'#ffca28':'#ef5350'));
   body.innerHTML=
     '<div style="color:var(--mut);font-size:12px;margin-bottom:8px;">Onda importata: '+gnum(_sigData.a.length,0)+' campioni · '+gnum(times.length,0)+' fori · dt '+gfix(_sigData.dt,2)+' ms</div>'
     +_sigSpark(r.comp,r.steps)
@@ -3216,7 +3223,9 @@ function sigRender(){
     +'<div style="color:var(--mut)">PPV foro singolo (picco onda)</div><div>'+gfix(r.singolo,2)+' mm/s</div>'
     +'<div style="color:var(--mut)">PPV composito previsto</div><div style="color:'+col+';font-weight:700">'+gfix(r.ppv,2)+' mm/s</div>'
     +'<div style="color:var(--mut)">Amplificazione (composito/singolo)</div><div>×'+gfix(r.ppv/Math.max(1e-9,r.singolo),2)+'</div>'
-    +'<div style="color:var(--mut)">Limite norma</div><div>'+lim+' mm/s '+(rat>=1?'<b style="color:#ef5350">SUPERATO</b>':'')+'</div>'
+    +'<div style="color:var(--mut)">Limite norma</div><div>'+(lim===null
+        ? '<b style="color:#ffca28">non calcolabile</b> — '+_rEsc(senza.che)+'. '+_rEsc(senza.come)
+        : gfix(lim,1)+' mm/s '+(rat>=1?'<b style="color:#ef5350">SUPERATO</b>':''))+'</div>'
     +'<div style="color:var(--mut)">Confronto stima Devine</div><div>'+dev+' mm/s</div>'
     +'</div>'
     +'<div style="margin-top:8px;color:var(--mut);font-size:12px;">Il composito dipende dai <b>ritardi</b>: se supera il limite, scegli ritardi che spezzino la somma d&rsquo;onda (evita che fori vicini cadano nella stessa finestra). Assunzione: ogni foro contribuisce con la <b>stessa firma</b> (stessa distanza/carica del foro registrato); per fori molto più lontani il composito è cautelativo. Stima da confermare col sismografo.</div>';
@@ -3526,7 +3535,14 @@ function _sentStore(){ try{ return JSON.parse(localStorage.getItem('genesiSent')
 function _sentSave(o){ try{ localStorage.setItem('genesiSent',JSON.stringify(o)); }catch(e){} }
 function _sentOggi(){ return oggiISO(); }   // stessa regola di shared/, un posto solo
 /* numero per il file: punto decimale (è un file per un'altra macchina) */
-function _sentNum(n){ const v=+n; return Number.isFinite(v)?String(Math.round(v*1e4)/1e4):''; }
+/* ⛔ E `null` NON È ZERO, nemmeno qui — anzi soprattutto qui, perché questa
+   riga la legge un'ALTRA app. `+null` fa 0 e `Number.isFinite(0)` risponde
+   true, quindi un «limite di norma non calcolabile» usciva dal file come
+   **«0»**: Sentinella l'avrebbe letto come una soglia vera di 0 mm/s, cioè
+   superata da qualunque volata. La colonna vuota è già la convenzione di
+   questa stessa riga — le quattro della PPV misurata sono vuote di proposito,
+   con la ragione scritta due righe sopra. */
+function _sentNum(n){ if(n===null||n===undefined||n==='') return ''; const v=+n; return Number.isFinite(v)?String(Math.round(v*1e4)/1e4):''; }
 /* cella di testo: si virgoletta se contiene il separatore (il lettore di
    Sentinella rispetta le virgolette, quindi il dato non si perde) */
 function _sentCell(v){ const s=String(v==null?'':v).replace(/[\r\n\t]+/g,' ').trim(); return /[;"]/.test(s)?'"'+s.replace(/"/g,'""')+'"':s; }
@@ -4908,15 +4924,22 @@ function renderScheda2D(){
   const _coda = (_st.fonte==='sito')
     ? ' Legge calibrata sul tuo sito: resta una previsione, va riverificata col sismografo a ogni cambio di zona o di fronte.'
     : ' STIMA predittiva site-specific: con i referti del sismografo (pulsante «Legge di sito») Genesi ricava K e β della tua roccia.';
-  /* ⛔ SENZA SOGLIA NON C'È UN COLORE. Se la frequenza del recettore non è
-     leggibile `ppvLimit` restituisce `null` invece di inventare una fascia, e
-     qui il rapporto PPV/soglia **non esiste**: disegnarlo verde perché
-     `_rat` è `NaN` (e `NaN < 0.6` è falso, quindi cadrebbe su `sv-bad`) o
-     peggio tranquillo sarebbe la violazione del principio nel punto in cui si
-     decide se sparare. Si dichiara, e si dice che cosa fare. */
+  /* ⛔ SENZA SOGLIA NON C'È UN COLORE. Se manca la soglia `ppvLimit` restituisce
+     `null` invece di inventare una fascia, e qui il rapporto PPV/soglia **non
+     esiste**: disegnarlo verde perché `_rat` è `NaN` (e `NaN < 0.6` è falso,
+     quindi cadrebbe su `sv-bad`) o peggio tranquillo sarebbe la violazione del
+     principio nel punto in cui si decide se sparare. Si dichiara, e si dice che
+     cosa fare.
+     ⛔ E si dice QUALE campo, non uno a caso: questa riga dava sempre la colpa
+     alla frequenza, anche quando la frequenza era un onesto 25 Hz e a non
+     essere riconosciuto era il codice della normativa (che da una volata
+     salvata arriva senza nessun controllo — `apri` fa `Object.assign`). Mandare
+     a correggere il campo sano nasconde quello rotto. La ragione la dice il
+     modulo, dove si prova. */
+  const _perche = ppvSenzaSoglia(D2.recNorma, D2.recFreq);
   if(_lim===null){
     rows.push({lab:'PPV al recettore',valStr:gfix(_ppv,1)+' <span>mm/s</span>',cls:'sv-warn',
-      why:'a '+gnum(D2.recDist,0)+' m (SD '+gfix(_sd2,1)+' m/kg^½, MIC '+gnum(_mic,1)+' kg), legge di Devine PPV=K·SD^−β con '+_fonte+'. <b>Non si può dire se è sotto soglia</b>: la frequenza del recettore non è un numero leggibile, e senza quella la norma non ha una fascia. Reimposta la frequenza dominante attesa (tipicamente 10–40 Hz in cava) e il confronto torna.'+_coda});
+      why:'a '+gnum(D2.recDist,0)+' m (SD '+gfix(_sd2,1)+' m/kg^½, MIC '+gnum(_mic,1)+' kg), legge di Devine PPV=K·SD^−β con '+_fonte+'. <b>Non si può dire se è sotto soglia</b>: '+_rEsc(_perche.che)+(_perche.norma?' (il codice salvato è «'+_rEsc(_normaLab)+'»)':'')+'. '+_rEsc(_perche.come)+' Poi il confronto torna.'+_coda});
     rows.push({lab:'MIC (carica/ritardo)',valStr:_mic+' <span>kg</span>',cls:'sv-info',
       why:'massima carica entro la finestra di 8 ms (fori sullo stesso ritardo). La carica massima ammissibile <b>non è calcolabile</b> finché manca la soglia: dipende da quella.'});
   } else {

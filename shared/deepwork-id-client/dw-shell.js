@@ -945,3 +945,58 @@ export function dataIt(iso, vuoto = "—") {
   const s = String(iso == null ? "" : iso).slice(0, 10);
   return dataISOEsiste(s) ? s.slice(8, 10) + "/" + s.slice(5, 7) + "/" + s.slice(0, 4) : vuoto;
 }
+
+/* ── QUANDO IL DATABASE NON RISPONDE: DIRE QUELLO CHE SI SA, NON DI PIÙ ──
+   ⛔ Nasce dal 02/08, il giorno in cui il fondatore ha chiuso le regole del
+   Firebase pubblico. Da quel momento il core cade sempre nel suo ripiego
+   (`initDBOfflineFallback`) e mostrava a chiunque:
+
+       «⚠ Modalità degradata — connessione database non disponibile»
+
+   Due cose sbagliate in una riga sola. La prima è che **era falsa**: la
+   connessione c'era, erano le regole a dire di no — e a dirlo di proposito.
+   La seconda è più grave e c'era anche prima: la frase parla del *database*
+   e non dice mai al **cavatore** la cosa che lo riguarda, cioè che da lì in
+   poi tutto quello che scrive **non viene salvato**. Uno può compilare un
+   rapportino intero e perderlo al ricaricamento della pagina.
+
+   Quindi: la coda del messaggio è la stessa nei tre casi, perché è la sola
+   parte che cambia qualcosa per chi la legge; la testa dice la causa solo
+   quando si sa davvero.
+
+   ⚠️ E la causa **non sempre si sa**, per una ragione che va scritta prima
+   che qualcuno la «migliori»: un `permission-denied` lo restituisce sia un
+   database chiuso di proposito sia una configurazione sbagliata (progetto
+   che non esiste, chiave di un altro progetto). Quello che si può affermare
+   è «questo accesso non è consentito», NON «va tutto bene, è la
+   dimostrazione». Dire la seconda sarebbe la faccia tranquilla su un dato
+   che nessuno ha misurato — il difetto che questa settimana togliamo dal
+   prodotto, rifatto nel messaggio che lo racconta.
+
+   La bandiera `certo` dichiara proprio quello, e la legge questa funzione
+   stessa scegliendo fra «Database non raggiungibile» (non lo sappiamo) e la
+   causa detta per nome (lo sappiamo). */
+export function motivoDatiNonSalvati(errore, online = true) {
+  // `_` oltre a `-`: l'SDK JS scrive `permission-denied`, l'API REST
+  // `PERMISSION_DENIED`. Il prototipo sbagliava proprio questo caso.
+  const codice = String((errore && (errore.code || errore.codice)) || "")
+    .toLowerCase()
+    .replace(/_/g, "-");
+  const testo = String((errore && errore.message) || "").toLowerCase();
+
+  let causa = "ignota";
+  if (online === false) causa = "rete"; // se l'app SA di essere offline, vince
+  else if (codice === "permission-denied" || codice === "unauthenticated") causa = "accesso";
+  else if (codice === "unavailable" || codice === "deadline-exceeded" || codice === "cancelled") causa = "rete";
+  else if (/failed to fetch|networkerror|network error|err_internet|offline/.test(testo)) causa = "rete";
+
+  const certo = causa !== "ignota";
+  const CODA = "quello che scrivi non viene salvato";
+  const messaggio = !certo
+    ? "⚠ Database non raggiungibile — " + CODA
+    : causa === "accesso"
+      ? "🔒 Accesso al database non consentito — " + CODA
+      : "⚠ Nessun collegamento al database — " + CODA;
+
+  return { causa, certo, messaggio, tono: causa === "accesso" ? "info" : "err" };
+}

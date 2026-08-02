@@ -12494,6 +12494,146 @@ test("⛔ Flotta: le ore ignote arrivano ignote anche a chi le chiede due volte"
        "una legge perfetta ha r² = 1");
   });
 
+  test("⛔ Genesi: r² senza errore non esiste — e la pagina ci fa `.toString()` sopra", () => {
+    /* ⚠️ L'ESITO ONESTO, che vale più della correzione: `r2: 0` NON era
+       raggiungibile. Non è una supposizione, è misurato su due piani.
+       1. A tappeto: 6.700 insiemi di referti costruiti apposta perché `sst`
+          sia nullo o quasi (PPV tutte uguali, poi quasi uguali a scarti da
+          1e-16 a 1e-3, distanze e cariche a caso). Nessuno esce con r² non
+          calcolabile e SENZA errore.
+       2. Il confine analitico, che è il motivo per cui il punto 1 non è
+          fortuna: si arriva a r² solo con `sxx ≥ 1e-6` (sotto è 'stessaSD'),
+          e r² è `null` solo con `sst ≤ 1e-12`. Cauchy-Schwarz dà
+          sxy² ≤ sxx·sst, quindi |β| = |sxy|/sxx ≤ √(sst/sxx) ≤ √(1e-12/1e-6)
+          = 0,001 — e 0,001 non è mai > 0,5, cioè 'pendenza' c'è SEMPRE.
+       Perché allora la prova serve, se il caso non si vede: perché la pagina
+       si appoggia a questa implicazione senza saperlo. `sitoLegge` scarta i
+       fit con `errore`, e SOLO per quello la scheda validatori può scrivere
+       `_st.fit.r2.toString()` — su `null` quella riga **ucciderebbe la
+       pagina**, e non è un errore di sintassi che si veda leggendo. Se un
+       domani qualcuno allargasse la banda 0,5–3, il difetto tornerebbe da
+       lì. È l'invariante, non il caso, che va tenuto fermo. */
+    const rnd = (s) => { let x = s; return () => (x = (x * 1103515245 + 12345) & 0x7fffffff) / 0x7fffffff; };
+    const R = rnd(7);
+    let provati = 0, nonCalcolabili = 0, senzaErrore = 0, betaMax = 0;
+    const guarda = (punti) => {
+      const f = v.sitoFit(punti); provati++;
+      if (f.r2 !== null) return;
+      nonCalcolabili++;
+      if (!f.errore) senzaErrore++;
+      betaMax = Math.max(betaMax, Math.abs(f.beta || 0));
+    };
+    for (let i = 0; i < 4000; i++) {           // PPV tutte identiche
+      const n = 3 + Math.floor(R() * 10), ppv = 0.01 + R() * 200, punti = [];
+      for (let k = 0; k < n; k++) punti.push({ d: 1 + R() * 3000, w: 0.1 + R() * 500, ppv });
+      guarda(punti);
+    }
+    for (const eps of [0, 1e-16, 1e-14, 1e-13, 1e-12, 1e-11, 1e-9, 1e-6, 1e-3]) {
+      for (let i = 0; i < 300; i++) {          // PPV quasi identiche: si sfiora la soglia 1e-12
+        const n = 3 + Math.floor(R() * 8), base = 0.5 + R() * 50, punti = [];
+        for (let k = 0; k < n; k++) punti.push({ d: 1 + R() * 3000, w: 0.1 + R() * 500, ppv: base * (1 + eps * (R() - .5)) });
+        guarda(punti);
+      }
+    }
+    ok(nonCalcolabili > 3000,
+       `${provati} insiemi provati, ${nonCalcolabili} con r² non calcolabile: la ricerca guarda dove deve `
+       + "(un conto basso vorrebbe dire che nessuno dei casi costruiti arriva al ramo, cioè prova zero)");
+    eq(senzaErrore, 0,
+       `nessuno dei ${nonCalcolabili} casi con r² non calcolabile esce senza errore — |β| più grande visto: ${betaMax}`);
+    ok(betaMax <= 1e-3,
+       `e resta sotto il confine analitico 0,001 (visto ${betaMax}), non solo sotto 0,5`);
+    /* e il verso opposto: dove r² è un numero, la pagina lo sa scrivere */
+    const buono = v.sitoFit([{ d: 100, w: 25, ppv: 30 }, { d: 200, w: 25, ppv: 15 }, { d: 400, w: 25, ppv: 7.5 }]);
+    ok(!buono.errore && typeof buono.r2 === "number" && typeof buono.r2.toString === "function",
+       "un fit senza errore ha sempre un r² su cui `.toString()` funziona: è quello che la pagina chiama");
+  });
+
+  test("⛔ Genesi: le soglie USBM/DIN non sono cambiate — impronta carattere per carattere", () => {
+    /* ⛔ Le curve sono BLOCCATE senza conferma esplicita del fondatore. Questa
+       prova non descrive le soglie (lo fa già quella per fascia): fissa
+       l'IMPRONTA di tutte le risposte, così qualunque ritocco a `ppvLimit` —
+       compreso un rifacimento delle guardie che non voleva toccarle — si vede
+       nel diff come una riga di testo cambiata, e non come un numero in mezzo
+       a un `switch`. */
+    const FREQ = [2, 5, 9.99, 10, 25, 39.99, 40, 49.99, 50, 60, 120];
+    const impronta = Object.keys(v.NORME_PPV).sort()
+      .map((n) => n + ": " + FREQ.map((f) => v.ppvLimit(n, f)).join(" ")).join("\n");
+    eq(impronta, [
+      "din-ind: 20 20 20 40 40 40 40 40 50 50 50",
+      "din-res: 5 5 5 15 15 15 15 15 20 20 20",
+      "din-sens: 3 3 3 8 8 8 8 8 10 10 10",
+      "usbm-modern: 19 19 19 19 19 19 50.8 50.8 50.8 50.8 50.8",
+      "usbm-old: 12.7 12.7 12.7 12.7 12.7 12.7 50.8 50.8 50.8 50.8 50.8",
+    ].join("\n"), "55 soglie (5 norme × 11 frequenze) identiche a prima");
+  });
+
+  test("⛔ Genesi: senza soglia si dice QUALE campo manca, non sempre la frequenza", () => {
+    /* Il difetto, misurato il 02/08 sulla scheda validatori: `ppvLimit`
+       risponde `null` per DUE ragioni — frequenza illeggibile e codice di
+       norma non riconosciuto — e la pagina le raccontava tutt'e due con la
+       stessa frase, «la frequenza del recettore non è un numero leggibile».
+       Chi apriva una volata salvata con un codice di norma sconosciuto e una
+       frequenza sana di 25 Hz veniva mandato a correggere il campo GIUSTO:
+       peggio che tacere, perché nasconde il campo rotto e fa dubitare di un
+       dato buono. La strada è quella di sempre — `apri` fa `Object.assign`
+       sulla volata salvata senza controllare niente. */
+    eq(v.ppvSenzaSoglia("din-res", 25), null, "quando la soglia c'è non c'è niente da spiegare");
+    /* le due ragioni possibili stanno in tabella, e la frase composta le CITA
+       invece di riscriverle: due copie di un testo divergono come due copie di
+       un numero, solo che nessuno se ne accorge finché non lo legge un cliente */
+    eq(Object.keys(v.PPV_SENZA_SOGLIA).sort(), ["freq", "norma"],
+       "le ragioni per cui una soglia può mancare sono due, e sono dichiarate");
+    for (const k of Object.keys(v.PPV_SENZA_SOGLIA)) {
+      const r = v.PPV_SENZA_SOGLIA[k];
+      ok(r.che && r.come && r.che !== r.come, `«${k}» dice che cosa non va E che cosa fare, e non sono la stessa frase`);
+      ok(/[.!]$/.test(r.come), `e il «che cosa fare» di «${k}» è una frase compiuta: «${r.come}»`);
+    }
+    const soloNorma = v.ppvSenzaSoglia("boh", 25);
+    eq(soloNorma.che, v.PPV_SENZA_SOGLIA.norma.che, "la spiegazione viene dalla tabella, non da una seconda scrittura");
+    eq([soloNorma.freq, soloNorma.norma], [false, true],
+       "codice di norma sconosciuto e frequenza sana: la colpa è della norma, e la frequenza non si tocca");
+    ok(!/frequenza/i.test(soloNorma.che + soloNorma.come),
+       `e non si nomina nemmeno la frequenza: «${soloNorma.che}»`);
+    const soloFreq = v.ppvSenzaSoglia("din-res", "venticinque");
+    eq([soloFreq.freq, soloFreq.norma], [true, false], "e viceversa");
+    ok(!/normativ/i.test(soloFreq.che + soloFreq.come),
+       `e non si accusa la normativa, che è una delle cinque: «${soloFreq.che}»`);
+    /* ⛔ e se mancano tutt'e due si dicono TUTT'E DUE: se no chi corregge la
+       prima trova la seconda solo dopo, e crede di aver sbagliato di nuovo */
+    const due = v.ppvSenzaSoglia("boh", "venticinque");
+    eq([due.freq, due.norma], [true, true], "tutt'e due rotti");
+    ok(/frequenza/i.test(due.che) && /normativ/i.test(due.che),
+       `e la spiegazione li nomina tutt'e due: «${due.che}»`);
+    ok(due.come.length > soloFreq.come.length && due.come.length > soloNorma.come.length,
+       "e anche il «che cosa fare» dice due cose, non una");
+    /* ⚠️ il testo finisce in `innerHTML`: il codice che l'utente ha salvato non
+       ci entra mai, lo compone la pagina con `normaPpvLab` e lo passa da `_rEsc` */
+    const velenoso = v.ppvSenzaSoglia('<img src=x onerror=alert(1)>', 25);
+    ok(!/[<>]/.test(velenoso.che + velenoso.come),
+       "la spiegazione non incolla mai il codice scritto dall'utente");
+  });
+
+  test("⛔ Genesi: il numero e la sua spiegazione non possono scostarsi", () => {
+    /* È la lezione del 01/08, quando la pagina teneva una SECONDA tabella delle
+       norme con un ripiego diverso e battezzava «DIN residenziale» un codice
+       che nessuno aveva riconosciuto. Qui `ppvLimit` non ripete le guardie:
+       CHIAMA `ppvSenzaSoglia`. Quindi «non c'è la soglia» e «ecco perché» sono
+       la stessa risposta per costruzione — e questa prova lo verifica invece di
+       fidarsi, perché domani qualcuno potrebbe riscriverle separate. */
+    const NORME = [...Object.keys(v.NORME_PPV), "boh", "DIN-RES", "din_res", "", null, undefined, 0];
+    const FREQ = [2, 9.99, 10, 25, 39.99, 40, 50, 120, "25", " 25 ", -5, 0,
+                  null, undefined, NaN, "", "  ", "venticinque", "25,5", Infinity, -Infinity];
+    let coppie = 0, scostamenti = 0;
+    for (const n of NORME) for (const f of FREQ) {
+      coppie++;
+      if ((v.ppvLimit(n, f) === null) !== (v.ppvSenzaSoglia(n, f) !== null)) scostamenti++;
+    }
+    eq(scostamenti, 0,
+       `${NORME.length} norme × ${FREQ.length} frequenze = ${coppie} coppie: «soglia assente» e «c'è una ragione» `
+       + "devono coincidere su tutte");
+    ok(coppie > 250, `e le coppie provate sono ${coppie}, non una manciata`);
+  });
+
   test("Genesi · ogni codice di norma che la pagina propone ha un nome scritto per esteso", () => {
     /* il nome finisce nel rapporto e nel file per Sentinella, accanto al numero:
        un limite citato senza dire QUALE limite non è verificabile da nessuno */
