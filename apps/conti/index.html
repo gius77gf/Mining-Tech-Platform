@@ -2392,9 +2392,14 @@ label.item:has(.dw-chk:checked){
         const nuovo = imponibileRiga(Number.isFinite(+p.quantita) ? +p.quantita : (+p.netto || 0),
           pr.prezzoUnitario, pr.scontoPct);
         const ok = await chiedi("Aggancia il DDT all'ordine",
+          /* ⚠️ «vale più del listino» NO, e l'ha detto lo scatto: su questo
+             caso il concordato è 11,50 contro 12,00 di listino, cioè vale
+             MENO — e la frase, letta da chi guarda i soldi, diceva il
+             contrario di quello che il riquadro sotto mostrava. Si dice che
+             VIENE PRIMA, che è la cosa vera in tutt'e due i versi. */
           `<p>Il DDT <b>${esc(p.numero || "—")}</b> passa alle condizioni concordate su
-             <b>${esc(o.numeroOrdine || o.numero)}</b>: è quello che il cliente ha accettato,
-             e vale più del listino di oggi.</p>
+             <b>${esc(o.numeroOrdine || o.numero)}</b>: è il prezzo che il cliente ha
+             accettato, e per questo viene prima del listino di oggi.</p>
            <div class="riep" style="margin-top:10px;">
              <div class="mrec"><span class="k">Prezzo di adesso</span><span class="v">${eur(p.prezzoUnitario)}/${uni(p.unitaVendita)}${+p.scontoPct > 0 ? " − " + perc(p.scontoPct) : ""}</span></div>
              <div class="mrec"><span class="k">Prezzo concordato</span><span class="v accent">${eur(pr.prezzoUnitario)}/${uni(pr.unita)}${pr.scontoPct > 0 ? " − " + perc(pr.scontoPct) : ""}</span></div>

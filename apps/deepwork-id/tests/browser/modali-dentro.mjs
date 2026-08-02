@@ -96,6 +96,9 @@ let PORTA = process.argv[2] && /^\d+$/.test(process.argv[2]) ? process.argv[2] :
 const PORTA_COPIA = (process.argv.find((a) => a.startsWith('--porta-copia=')) || '').slice(14) || '8177';
 const SOLO = (process.argv.find((a) => a.startsWith('--solo=')) || '').slice(7);
 const CONTROPROVA = process.argv.includes('--controprova');
+/* `--iniezione=A` (solo il difetto esatto di Sentinella) o `=B` (solo la
+   forma generica, su tutte le superfici). Senza, tutt'e due. */
+const QUALE = ((process.argv.find((a) => a.startsWith('--iniezione=')) || '').slice(12) || 'tutte').toUpperCase();
 const TETTO = +((process.argv.find((a) => a.startsWith('--tetto=')) || '').slice(8) || 200);
 /* quante volte si prova lo STESSO comando su righe diverse: due, perché il
    testo tagliato dipende dai dati e una riga sola non lo dimostrerebbe */
@@ -388,10 +391,16 @@ if (CONTROPROVA) {
   execFileSync('git', ['worktree', 'add', '--detach', dove, 'HEAD'], { cwd: RADICE, stdio: 'ignore' });
   COPIA = dove;
   console.log(`▶ controprova: copia di HEAD in ${dove} — l'albero vivo non viene toccato.`);
-  inietta('apps/sentinella/index.html', ',.flab .u{', ',.flab-tolta-dalla-controprova .u{',
-    'A · Sentinella: `.flab .u` fuori dalle esenzioni (il difetto del 01/08, alla lettera)');
-  inietta('shared/dw-app-ui.js', DENTRO_APRI_MODALE, DENTRO_APRI_MODALE + INIETTA,
-    'B · dw-app-ui: lo <span class="u"> sciolto e le voci delle tendine allungate, in ogni modale');
+  /* le due famiglie si possono lanciare separate: serve a sapere QUALE ha
+     fatto cadere che cosa, invece di leggere un verde solo */
+  if (QUALE !== 'B') {
+    inietta('apps/sentinella/index.html', ',.flab .u{', ',.flab-tolta-dalla-controprova .u{',
+      'A · Sentinella: `.flab .u` fuori dalle esenzioni (il difetto del 01/08, alla lettera)');
+  }
+  if (QUALE !== 'A') {
+    inietta('shared/dw-app-ui.js', DENTRO_APRI_MODALE, DENTRO_APRI_MODALE + INIETTA,
+      'B · dw-app-ui: unità dentro una classe maiuscola dell\'app, span.u sciolto, voci di tendina allungate');
+  }
 
   /* il server della copia, col contrassegno che dice che stiamo misurando LA
      NOSTRA copia e non quella di qualcun altro rimasta su quella porta */
