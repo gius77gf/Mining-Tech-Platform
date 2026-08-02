@@ -278,6 +278,24 @@ function updateCrop(){
            Il segno è l'area coperta molto minore dell'impronta del ritaglio. */
         +((v.areaCelle && (x1-x0)*(y1-y0) > 0 && v.areaCelle < 0.55*(x1-x0)*(y1-y0))
           ? ' <b style="color:#ff9a70">⚠ griglia più fitta dei punti: molte celle sono vuote e il volume risulta più basso del vero — usa una cella più grossa</b>'
+          : '')
+        /* ⛔ QUELLO CHE LA DIFESA HA TOLTO SI DICHIARA. Dal 02/08 il calcolo
+           scarta le cime non sostenute — i punti volanti di ogni volo con
+           drone, che valevano fino al 30% del volume con la cella a 2 m. Ma
+           una correzione silenziosa è una correzione di cui nessuno può
+           discutere: se scarta troppo, chi guarda deve poterlo vedere. */
+        +(v.cimeScartate > 0
+          ? ' <span style="color:var(--mut)">· '+v.cimeScartate.toLocaleString('it-IT',{useGrouping:false})
+            +(v.cimeScartate===1?' cima non sostenuta scartata':' cime non sostenute scartate')
+            +' (punti volanti)</span>'
+          : '')
+        /* ⛔ E L'AREA CHE NESSUNO HA VISTO. Le celle senza punti non entrano
+           nel volume — giusto — ma il numero esce più basso e finora non lo
+           diceva nessuno: un'occlusione di 50 m² su un ripiano di 12 m vale
+           600 m³. L'assenza di un dato non è un dato favorevole. */
+        +((v.celleTotali > 0 && v.celleVuote / v.celleTotali > 0.02)
+          ? ' <b style="color:#ff9a70">⚠ il '+Math.round(v.celleVuote/v.celleTotali*100)
+            +'% dell\'impronta del ritaglio non ha nessun punto: quella parte non è stata vista, il volume è per difetto</b>'
           : '');
       try{ const k='genesiNuvole', a=JSON.parse(localStorage.getItem(k)||'[]');
         if(a.length){ a[a.length-1].volume=Math.round(v.volume)+(_georef?'':' u³');

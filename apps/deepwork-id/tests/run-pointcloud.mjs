@@ -10,6 +10,7 @@ import { dirname, join } from "node:path";
 import { mostra } from "./mostra.mjs";
 const HERE = dirname(fileURLToPath(import.meta.url));
 const pc = await import(join(HERE, "../../genesi/pointcloud.js"));
+import { fronteDiCava, scriviLAS } from "./nuvola-di-prova.mjs";
 
 let passed = 0, failed = 0;
 const test = (name, fn) => { try { fn(); passed++; console.log(`  ✓ ${name}`); } catch (e) { failed++; console.error(`  ✗ ${name}: ${e.message}`); } };
@@ -253,6 +254,116 @@ test("volumeCumulo: 1 m di quota di base = area coperta in m³ (è una moltiplic
   // e la sensibilità vera: la stessa nuvola con la base tenuta ferma
   const finto = a.volume + a.areaCelle * 1;
   ok(finto > a.volume, "1 m di base sbagliata vale areaCelle m³ — qui è il conto che il verbale deve poter rifare");
+});
+
+// ── IL FRONTE DI CAVA DI CUI SI CONOSCE IL VOLUME VERO (02/08) ──
+// Fino a oggi le prove del volume giravano su prismi e coni costruiti a mano:
+// dicevano che il conto non esplode, non che desse il numero giusto su
+// qualcosa che somigli a un rilievo. Il soggetto sta in `nuvola-di-prova.mjs`
+// con la ragione per esteso; qui si misura lo SCARTO dal vero.
+console.log("\n— pointcloud: il volume contro una verità calcolata —");
+
+test("il fronte pulito: lo scarto dal volume vero sta sotto il 4%", () => {
+  const c = fronteDiCava({ n: 60000 });
+  const r = pc.parseLAS(scriviLAS(c));
+  eq(r.total, c.punti, "il lettore deve rileggere tutti i punti scritti");
+  for (const [cella, limite] of [[0.5, 2], [1, 3], [2, 5]]) {
+    const v = pc.volumeCumulo(r.pos, cella);
+    const scarto = Math.abs((v.volume - c.vero) / c.vero) * 100;
+    ok(scarto < limite, `cella ${cella} m: scarto ${scarto.toFixed(2)}% (limite ${limite}%), ${v.volume.toFixed(0)} contro ${c.vero.toFixed(0)} m³`);
+  }
+});
+
+test("⛔ i punti volanti non gonfiano più il volume del 30%", () => {
+  /* Il difetto, misurato il 02/08: 40 punti su 120.000 — lo 0,03% — valevano
+     +29,85% del volume con cella 2 m, perché ognuno si prende una cella
+     intera per tutta la sua altezza. Ogni volo con drone ne produce.
+     Il limite qui NON è stretto per pignoleria: è il numero che consuma la
+     concessione di una cava. */
+  for (const [cella, limite] of [[0.5, 2], [1, 4], [2, 7]]) {
+    const c = fronteDiCava({ n: 60000, isolati: 40 });
+    const v = pc.volumeCumulo(c && pc.parseLAS(scriviLAS(c)).pos, cella);
+    const scarto = ((v.volume - c.vero) / c.vero) * 100;
+    ok(scarto < limite, `cella ${cella} m con 40 punti volanti: ${scarto.toFixed(2)}% (limite ${limite}%)`);
+    ok(v.cimeScartate > 0, `cella ${cella} m: nessuna cima scartata, la difesa non ha lavorato`);
+  }
+});
+
+test("⛔ ...e senza punti volanti il risultato è IDENTICO a prima, cifra per cifra", () => {
+  /* La difesa che «migliora» anche dove non c'era niente da migliorare è una
+     difesa che sta cambiando i numeri di tutti. Su una nuvola pulita non
+     deve toccare nemmeno una cella. */
+  const c = fronteDiCava({ n: 60000 });
+  const r = pc.parseLAS(scriviLAS(c));
+  for (const cella of [0.5, 1, 2]) {
+    const v = pc.volumeCumulo(r.pos, cella);
+    eq(v.cimeScartate, 0, `cella ${cella} m: celle abbassate su una nuvola pulita`);
+  }
+});
+
+test("⛔ una guglia di roccia VERA non viene tagliata", () => {
+  /* Il contrario del difetto: alta e stretta come un punto volante, ma è
+     roccia — e infatti ha centinaia di punti attorno alla sua cima. È il caso
+     che distingue «sostenuto» da «solo lassù». */
+  const c = fronteDiCava({ n: 60000 });
+  const senza = pc.volumeCumulo(pc.parseLAS(scriviLAS(c)).pos, 0.5).volume;
+  let messi = 0;
+  for (let i = 0; i < 3000; i++) {
+    const a = ((i * 2654435761) % 100000) / 100000, b = ((i * 40503) % 100000) / 100000;
+    const x = 50 + (a - 0.5) * 3, y = 20 + (b - 0.5) * 3;
+    const d = Math.hypot(x - 50, y - 20);
+    if (d > 1.5) continue;
+    c.xs.push(x); c.ys.push(y); c.zs.push(c.H + 10 * (1 - d / 1.5)); messi++;
+  }
+  ok(messi > 500, `la guglia deve avere punti veri: ne ha ${messi}`);
+  const con = pc.volumeCumulo(pc.parseLAS(scriviLAS(c)).pos, 0.5).volume;
+  ok(con > senza, `la guglia deve AGGIUNGERE volume: ${senza.toFixed(1)} → ${con.toFixed(1)}`);
+});
+
+test("⛔ l'area che nessuno ha visto si dichiara", () => {
+  /* Il principio del fondatore applicato al volume: un'occlusione toglie
+     celle dal conto — giusto, non si inventa terreno che il drone non ha
+     ripreso — ma il numero esce più basso e finora nessuno lo diceva. */
+  const pieno = fronteDiCava({ n: 60000 });
+  const bucato = fronteDiCava({ n: 60000, buchi: [[45, 20, 5]] });
+  const a = pc.volumeCumulo(pc.parseLAS(scriviLAS(pieno)).pos, 1);
+  const b = pc.volumeCumulo(pc.parseLAS(scriviLAS(bucato)).pos, 1);
+  ok(b.celleVuote > a.celleVuote + 50, `il buco deve farsi contare: ${a.celleVuote} → ${b.celleVuote} celle vuote`);
+  ok(b.volume < a.volume, `e il volume scende davvero: ${a.volume.toFixed(0)} → ${b.volume.toFixed(0)} m³`);
+  ok(a.celleVuote + a.celle === a.celleTotali, "vuote + piene devono fare il totale");
+});
+
+test("⛔ perché il pre-shift esiste: 25 cm persi in float32 sulla nord UTM", () => {
+  /* Il 3D del browser disegna in `float32`, e la coordinata nord di una cava
+     italiana vale ~4.850.000 m: lassù due numeri consecutivi rappresentabili
+     distano MEZZO METRO, quindi arrotondando si perdono fino a 25 cm.
+     Misurato qui, e non era la cifra che mi aspettavo: la stima a occhio era
+     «un paio di centimetri» — quella è la perdita sull'EST (~636.000), che è
+     dieci volte più piccola. Su un fronte di cava 25 cm è la differenza fra
+     una scarpata e un'altra.
+     Il rimedio c'è già ed è quello che il visore fa (togliere il baricentro,
+     come `preShiftOBJ` per le mesh): questa prova misura tutt'e due i versi,
+     così se un giorno qualcuno disegnasse le coordinate crude si vedrebbe. */
+  const c = fronteDiCava({ n: 5000 });
+  const r = pc.parseLAS(scriviLAS(c));
+  const perdita = (v) => Math.abs(v - Math.fround(v));
+  let crudoEst = 0, crudoNord = 0;
+  for (let i = 0; i < r.pos.length; i += 3) {
+    crudoEst = Math.max(crudoEst, perdita(r.pos[i]));
+    crudoNord = Math.max(crudoNord, perdita(r.pos[i + 1]));
+  }
+  ok(crudoNord > 0.1, `la nord cruda deve perdere più di 10 cm: perde ${crudoNord.toFixed(4)} m`);
+  ok(crudoEst < 0.05, `l'est perde molto meno: ${crudoEst.toFixed(4)} m`);
+  // e adesso il rimedio: si toglie il baricentro, com'è già scritto nel visore
+  let sx = 0, sy = 0;
+  const n = r.pos.length / 3;
+  for (let i = 0; i < r.pos.length; i += 3) { sx += r.pos[i]; sy += r.pos[i + 1]; }
+  sx /= n; sy /= n;
+  let dopo = 0;
+  for (let i = 0; i < r.pos.length; i += 3) {
+    dopo = Math.max(dopo, perdita(r.pos[i] - sx), perdita(r.pos[i + 1] - sy));
+  }
+  ok(dopo < 0.001, `col baricentro tolto la perdita scende sotto il millimetro: ${(dopo * 1000).toFixed(3)} mm`);
 });
 
 console.log(`\nRisultato pointcloud: ${passed} passati, ${failed} falliti`);
