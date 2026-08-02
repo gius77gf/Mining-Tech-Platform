@@ -402,8 +402,14 @@ Ricerca web 01 agosto 2026:
 
 ## Verifica del delta (01/08 · **riverificata riga per riga il 02/08**)
 
-> **Verificato contro il codice al commit `f5dab46`** — *e il capoverso qui sotto
-> spiega perché quell'hash non è quello del codice letto, che è più avanti.*
+> **Verificato contro il codice al commit `2ab6295`** — l'ultimo che ha toccato
+> `apps/sentinella/` al momento della verifica, cioè **il codice che è stato
+> davvero letto**.
+> *(Prima qui c'era `f5dab46`, e il capoverso qui sotto spiega perché: il
+> controllo pretendeva un commit che avesse toccato il **documento**, e il
+> commit che contiene la verifica non si può citare — il suo hash non esiste
+> ancora quando scrivi la riga. Il vincolo circolare è stato tolto lo stesso
+> giorno, e adesso vale il commit dell'app.)*
 > Tutte e 22 le righe sono
 > state riaperte il **02/08** contro `apps/sentinella/sentinella-data.js` e
 > `apps/sentinella/index.html`, con un `grep` **prima** di ogni verdetto. La

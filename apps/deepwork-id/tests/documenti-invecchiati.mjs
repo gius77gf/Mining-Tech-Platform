@@ -98,11 +98,31 @@ for (const app of APP) {
   test(`${nome}: quel commit esiste davvero`, () => {
     let pieno = "";
     try { pieno = git(`rev-parse ${corto}^{commit}`); } catch { ok(false, `il commit \`${corto}\` non esiste in questa storia`); }
-    /* ⛔ e non basta che esista: deve aver toccato QUESTO documento. Se no
-       chiunque può incollarci `HEAD` e il documento risulterebbe fresco senza
-       che nessuno abbia riletto una riga — la guardia che si spegne da sola. */
-    const tocchi = git(`log --format=%H -- ${nome}`).split("\n");
-    ok(tocchi.includes(pieno), `il commit \`${corto}\` esiste ma non ha mai toccato ${nome}: `
+    /* ⛔ e non basta che esista: deve aver toccato **il documento o l'app** che
+       il documento descrive. Se no chiunque può incollarci un hash a caso e il
+       documento risulterebbe fresco senza che nessuno abbia riletto una riga.
+
+       ⚠️ ERA «SOLO IL DOCUMENTO», ED ERA UN VINCOLO CIRCOLARE — trovato il
+       02/08 da chi stava riverificando Sentinella. Il commit che *contiene* la
+       verifica non si può citare: quando scrivi la riga, quell'hash non esiste
+       ancora. Quindi il più fresco dichiarabile era il commit **precedente**
+       che aveva toccato il documento, e l'arretrato stampato restava
+       **pessimista per costruzione**: quattro dei commit contati erano già
+       dentro la verifica. Un documento riverificato oggi non poteva mai
+       arrivare a zero, cioè il numero che questo controllo esiste per far
+       scendere aveva un fondo che non era lo zero.
+       Con l'app fra i soggetti ammessi il problema sparisce: chi verifica cita
+       il commit dell'**app** che ha davvero letto — che è anche il soggetto
+       vero della verifica — e da lì l'arretrato si conta onestamente.
+
+       ⚠️ E il limite di questa guardia va detto invece che sottinteso: non
+       dimostra che qualcuno abbia riletto: dimostra che l'hash è un punto vero
+       della storia di quel lavoro. La prova vera è quella riga per riga —
+       il `file:riga` se la cosa c'è, i termini cercati a vuoto se non c'è. */
+    const tocchiDoc = git(`log --format=%H -- ${nome}`).split("\n");
+    const tocchiApp = git(`log --format=%H -- apps/${app}/`).split("\n");
+    ok(tocchiDoc.includes(pieno) || tocchiApp.includes(pieno),
+      `il commit \`${corto}\` esiste ma non ha mai toccato né ${nome} né apps/${app}/: `
       + "una data incollata non è una verifica");
   });
 
