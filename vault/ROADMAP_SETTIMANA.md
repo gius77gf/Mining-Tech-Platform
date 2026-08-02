@@ -9,25 +9,36 @@
 
 ## 🔴 Quello che aspetta te, Giuseppe
 
-Hai scritto che questa settimana potresti rispondere. Le decisioni aperte sono
-**25**, e in cima a `docs/DECISIONI_WEEKEND.md` c'è ora una pagina che le
-ordina per **quanto costano a te**, non per numero. In tre righe:
+Domenica **02/08 abbiamo lavorato insieme, passo per passo**, e due sono
+chiuse. Le aperte sono **24**; la pagina d'ingresso di
+`docs/DECISIONI_WEEKEND.md` le ordina per quanto costano **a te**.
 
-- **3 le decido solo con te, mai da solo.** Se i dati di default nel core sono
-  veri o inventati (se sono veri, sono **pubblici su GitHub adesso**); il via
-  libera a togliere le password in chiaro dal sorgente; le curve dei limiti di
-  vibrazione. Toccano la sicurezza delle persone o dei dati.
-- **3 richiedono che tu apra qualcosa**: il progetto Firebase nuovo, le regole
-  di sicurezza di quello esistente, un file di un volo drone vero.
-- **19 sono scelte di prodotto**, e per ognuna c'è già la risposta che darei io.
-  **Se entro venerdì non dici niente procedo con quelle e lo scrivo nel
-  commit** — così resta chiaro che le ha decise il ciclo e non tu, e si cambiano
-  in qualunque momento. ⚠️ Dieci delle diciannove danno la stessa risposta con
-  parole diverse: *«quando non si sa, si dice che non si sa»*. Se su quella sei
-  d'accordo in generale, **una tua riga sola basta per tutte e dieci**.
+- ✅ **Chiusa la 3** — i dati di default del core sono **dimostrativi**, e non
+  sulla parola: l'IBAN è quello d'esempio dei manuali, i telefoni sono in
+  sequenza, i cognomi sono i segnaposto classici. Niente da bonificare, e cade
+  anche l'urgenza della rotazione password (la **4** resta, ma solo come «da
+  togliere prima del primo cliente vero»).
+- 🟡 **La 2 è a un click**: le regole del Firebase esistente erano
+  `allow read, write: if true` — **chiunque su internet poteva leggere,
+  scrivere e cancellare** quel database. Le regole nuove sono scritte e
+  versionate (`firestore.rules.core-vecchio`); manca solo che il fondatore
+  prema «Pubblica» in console. ⚠️ Chiudere **non spegne il sito**: il core ha
+  già `initDBOfflineFallback`, e il suo commento nomina alla lettera il caso
+  «security rules bloccanti».
+- ⏸ **La 1 (Firebase nuovo) è rimandata con la ragione**: serve a far entrare
+  persone vere con un account vero, e finché non c'è un cliente pilota non ha
+  nessuno a cui servire. Si fa in dieci minuti quando arriva, e si collauda
+  con lui.
+- 🟡 **Le quattro gemelle — 13, 14, 16, 17** — sono la stessa domanda e
+  aspettano una riga sola. ⚠️ *Erano state annunciate come «dieci»: sono
+  quattro, contate una per una. Lo stesso difetto che togliamo dal prodotto,
+  fatto da noi in un documento.*
+- Le altre **quindici** sono scelte di prodotto: se entro venerdì non arriva
+  risposta si procede con la colonna «la mia risposta», **dichiarandolo nel
+  commit**.
 
-- [ ] **D. Le 25 decisioni** — `docs/DECISIONI_WEEKEND.md`, pagina d'ingresso in
-      cima al file.
+- [ ] **D. Le 24 decisioni ancora aperte** — `docs/DECISIONI_WEEKEND.md`,
+      pagina d'ingresso in cima al file.
 
 ---
 
@@ -58,17 +69,49 @@ questa settimana serve a farlo valere **funzione per funzione**, non a memoria.
 
 ### A — Chiudere ciò che la notte ha lasciato a metà (lunedì)
 
-- [ ] **A1. Flotta — la metà gasolio del costo orario.** Misurata e dichiarata,
-      non corretta: `consumoPerMezzo` scarta il primo pieno (il gasolio della
-      finestra è quello messo *dopo* la prima lettura) ma `costoOrarioMezzo` lo
-      rimette nel numeratore. **+93,7% su Pala P1**, +50,4% su Dumper D1, +49,2%
-      su Escavatore E1. Sono **due conti della stessa cosa che divergono**,
-      dieci righe sotto il commento che vieta esattamente questo.
-- [ ] **A2. `shared/` — la densità della cava, una sola.** Terra ha imparato a
-      leggerla dall'atto o dalla prova di laboratorio; **Campo continua a usare
-      il preset**. Il giorno in cui un cliente dichiara 1,95 nell'atto, Terra
-      riconcilia a 1,95 e Campo a 1,90: due schermate, due scostamenti, stessa
-      cava, stesso mese. Va in `shared/dw-ponti.js` con la prova di **identità**
+- [x] ✅ **A1. Flotta — la metà gasolio del costo orario.** Chiuso il 02/08. I
+      tre scarti confermati alla cifra (Pala P1 **+93,7%**, Dumper D1 +50,4%,
+      Escavatore E1 +49,2%), e la prova che vale più dei numeri: l'identità
+      `euroOra = euroOraOfficina + euroOraCarburante` **prima non tornava** e
+      adesso torna al centesimo su tutti e tre. `totale`, `officina` e
+      `carburante` **identici** prima e dopo su tutti e sei i mezzi: nessun euro
+      speso è sparito.
+      ⛔ Ma la parte che conta è il **buco nelle prove**, non la correzione: le
+      sedici prove della pagella erano tutte **relative** («la media è la spesa
+      diviso le ore»), quindi restavano verdi **con qualunque numeratore**,
+      difetto compreso. Ora i numeri della dimostrazione sono fissati accanto a
+      come sarebbero col primo pieno dentro — il confronto affiancato **dentro
+      la suite**, non in uno scratchpad che alla sessione dopo non esiste.
+      ⚠️ E un esito che **smentisce** l'ipotesi del mandato, detto com'è: nessun
+      verdetto della pagella cambia e la classifica non si muove. Quello che
+      cambia è la **Pala P1, che esce dalla banda dal lato buono** — «un'ora sua
+      costa meno della media del parco», la buona notizia che prima la
+      schermata non diceva.
+      *Il difetto era*: `consumoPerMezzo` scarta il primo pieno (il gasolio
+      della finestra è quello messo *dopo* la prima lettura) e
+      `costoOrarioMezzo` lo rimetteva nel numeratore — due conti della stessa
+      cosa che divergono, dieci righe sotto il commento che lo vieta.
+- [x] ✅ **A2. `shared/` — la densità della cava, una sola.** Chiuso il 02/08, e
+      il difetto **misurato prima** sullo stato precedente: con la stessa
+      autorizzazione Terra dava **1,95** t/m³ (dal certificato di laboratorio) e
+      Campo **1,90** (il valore tipico). A valle, sulla stessa
+      `riconciliazioneTurni`: scostamento **2,56% in Terra e 0% in Campo**,
+      stessa cava, stesso mese. Nessuna delle due sbagliava da sola.
+      ⛔ **E il buco vero era altrove.** L'identità difendeva il lato `shared/`,
+      ma rimettendo il difetto **su Campo** — import compreso — `run-kpi`,
+      `run-stile`, `nomi-doppi` e `copertura-funzioni` restavano **tutte e
+      quattro verdi**: le suite `node` non aprono le pagine, quindi il lato dove
+      il difetto nasce era scoperto. Aggiunte quattro prove che leggono **chi
+      chiama** `riconciliazioneTurni` invece di elencarlo a mano.
+      ⚠️ **La lezione non prevista**, e vale più dell'unità: la copia
+      «identica» della funzione **è divergesa nell'atto stesso di copiarla** —
+      un controllo scritto diverso su una riga, e con quella versione una
+      densità **0** scritta per errore veniva sostituita di nascosto dal valore
+      tipico. L'ha presa una prova, non una rilettura. È la regola del `shared/`
+      dimostrata dal vivo.
+      *Il difetto era*: Terra leggeva la densità dall'atto o dal laboratorio e
+      Campo restava sul preset, pur costruendo la stessa riconciliazione.
+      Adesso la regola sta in `shared/dw-ponti.js` con la prova di **identità**
       (`terra.X === ponti.X`), non di somiglianza.
 - [ ] **A3. Conti — il DDT eredita il prezzo dell'ordine.** Si concorda un
       prezzo su un'offerta, il cliente accetta, e poi ogni bolla di consegna
