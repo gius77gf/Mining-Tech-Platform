@@ -75,10 +75,16 @@ const ACCETTATI = {
 
   /* Trovati dalla seconda forma (UN RECORD VUOTO), che la lista vuota non
      raggiungeva. */
-  "scudo.statoConsegnaDpi":
-    "una consegna DPI senza scadenza è «regolare» ed è giusto: moltissimi DPI non scadono (un gilet ad alta visibilità)",
-  "scudo.verbaleDpi":
-    "stampa lo stato di statoConsegnaDpi: eredita la riga qui sopra, non decide niente per conto suo",
+  /* ✅ TOLTI IL 02/08: `scudo.statoConsegnaDpi` e `scudo.verbaleDpi`.
+     Stavano qui con la ragione «moltissimi DPI non scadono (un gilet ad alta
+     visibilità), quindi senza scadenza è regolare». Il fondatore ha deciso il
+     contrario (decisione 14): senza data di sostituzione nessuno ha detto che
+     quel DPI è ancora buono — si sa solo che è stato consegnato, e la risposta
+     giusta è «attenzione», non verde.
+     ⚠️ E anche stavolta le righe sono state tolte perché **la sonda le ha
+     pretese**, non perché qualcuno se ne sia ricordato: i due casi non si
+     presentavano più e il conto in fondo si è scostato (5 trovati, 7
+     dichiarati). È la seconda metà del suo mestiere. */
 };
 
 let passed = 0, failed = 0;
@@ -265,6 +271,16 @@ const VOCABOLARIO_MANCANTE = [
   [/^Manca /, "un CAMPO preciso che non c'è — convenzione «Manca <il campo>», una frase per campo"],
   [/^Dato mancante$/, "il ripiego generico, quando non si sa quale campo manchi"],
   [/^Senza frequenza$/, "un'IMPOSTAZIONE che manca (ogni quanti giorni), non una misura"],
+  /* ⛔ LA SORELLA DI «SENZA FREQUENZA», E NON SI SCHIACCIA SU DI LEI (02/08,
+     decisione 16). Sono tutt'e due impostazioni che mancano, ma bloccano due
+     cose diverse e su schermate diverse: senza frequenza non si sa QUANDO
+     tornare a misurare, senza soglia non si sa se quello che si è misurato va
+     bene. E soprattutto non è «Mai misurato»: lì la misura manca, qui c'è —
+     con la sua data, il suo numero e la sua provenienza — e manca il limite
+     con cui giudicarla. Confonderle manderebbe qualcuno a cercare letture che
+     ha già. Vive su due badge, quello del punto e quello dell'esito del
+     report. */
+  [/^Senza soglia$/, "manca il LIMITE con cui giudicare una misura che c'è: né conforme né non conforme — diverso da «Mai misurato» (lì manca la misura) e da «Senza dati» (lì manca l'intero periodo)"],
   [/^senza data$/, "il record non porta una data — convenzione di Flotta, Scudo e Terra"],
   [/ n\.?d\.$/, "un GIUDIZIO che non si può dare per mancanza di dati (idoneità, accuratezza)"],
   /* ⛔ LE DUE DELLA TARATURA, e il prefisso NON è ridondanza (01/08). Stanno

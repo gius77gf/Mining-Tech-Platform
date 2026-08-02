@@ -1362,8 +1362,44 @@ test("statoMisura: rapporto esattamente 0,9 = attenzione", () =>
   eq(sentinella.statoMisura({ valore: 45, soglia: 50 }).cls, "warn", "r=0,9"));
 test("statoMisura: appena sotto 0,9 = conforme", () =>
   eq(sentinella.statoMisura({ valore: 44, soglia: 50 }).cls, "ok", "r<0,9"));
-test("statoMisura: soglia 0 non manda in crash (guardia 0,001)", () =>
-  eq(sentinella.statoMisura({ valore: 5, soglia: 0 }).cls, "danger", "soglia 0"));
+/* ⛔ QUESTA PROVA È CAMBIATA IL 02/08, E NON PERCHÉ IL PRODOTTO SIA
+   PEGGIORATO: pretendeva «soglia 0 → danger», cioè blindava il difetto della
+   decisione 16. Zero non è una soglia bassa: è l'assenza di una soglia, e con
+   `+soglia || 1` finiva a fare da limite il numero **1**, che nessuno ha
+   scelto. L'asserzione nuova è più GIUSTA, non più permissiva: la stessa
+   chiamata deve rispondere «Senza soglia». */
+test("statoMisura: soglia 0 NON è una soglia — «Senza soglia», non superamento", () => {
+  const st = sentinella.statoMisura({ valore: 5, soglia: 0 });
+  eq(st.stato, "senza-soglia", "soglia 0");
+  eq(st.cls, "warn", "avviso, non allarme: nessuno ha sbagliato una misura");
+  eq(st.ratio, null, "nessun rapporto da calcolare");
+});
+/* La guardia 0,001 resta e serve ancora, per un motivo diverso: una soglia
+   positiva ma subnormale farebbe `Infinity`, e la pagina scriverebbe
+   «Infinity%» dove si aspetta una percentuale. */
+test("statoMisura: una soglia positiva minuscola non produce Infinity", () => {
+  const st = sentinella.statoMisura({ valore: 1, soglia: 1e-320 });
+  eq(Number.isFinite(st.ratio), true, "rapporto finito");
+  eq(st.cls, "danger", "1 su una soglia quasi nulla è un superamento");
+});
+/* Le tre facce della decisione 16, misurate sullo stesso punto: il verde
+   tranquillizzante, l'allarme inventato, e il negativo che faceva 1200. */
+test("statoMisura: senza soglia non si è né conformi né in superamento", () => {
+  const letture = [{ data: "2026-07-11", valore: 1.2 }];
+  eq(sentinella.statoMisura({ valore: 0.8, soglia: null, letture }).stato, "senza-soglia", "0,8 non è «Conforme»");
+  eq(sentinella.statoMisura({ valore: 1.2, soglia: null, letture }).stato, "senza-soglia", "1,2 non è «Superamento»");
+  eq(sentinella.statoMisura({ valore: 1.2, soglia: -3, letture }).stato, "senza-soglia", "una soglia negativa non è un limite");
+  eq(sentinella.statoMisura({ valore: 1.2, soglia: "", letture }).stato, "senza-soglia", "stringa vuota");
+  eq(sentinella.statoMisura({ valore: 1.2, soglia: undefined, letture }).stato, "senza-soglia", "campo assente");
+  // e la bandiera, che è quella che la pagina legge per non scrivere «0%»
+  eq(sentinella.statoMisura({ valore: 1.2, soglia: null, letture }).calcolabile, false, "calcolabile: no");
+  eq(sentinella.statoMisura({ valore: 1.2, soglia: 5, letture }).calcolabile, true, "con la soglia sì");
+});
+/* ⚠️ L'ORDINE FRA I DUE AVVISI è una scelta, quindi va scritto: un punto che
+   non ha né letture né soglia dice prima «Mai misurato». Senza questa prova, il
+   giorno che qualcuno invertisse le due guardie nessuno se ne accorgerebbe. */
+test("statoMisura: senza letture E senza soglia vince «Mai misurato»", () =>
+  eq(sentinella.statoMisura({ valore: 0, soglia: null, letture: [] }).stato, "mai", "prima si misura"));
 
 console.log("\n— Libreria soglie normative preimpostate (Sentinella) —");
 test("presetSoglia: chiave valida restituisce valore+unità+fonte", () => {
@@ -1432,7 +1468,37 @@ test("riepilogoConformita: conta conformi/attenzione/superamento", () => {
     { valore: 10, soglia: 10 },  // 100% → superamento
   ];
   eq(sentinella.riepilogoConformita(mon),
-    { conformi: 1, attenzione: 1, superamento: 2, maiMisurati: 0, totale: 4 }, "conteggi");
+    { conformi: 1, attenzione: 1, superamento: 2, maiMisurati: 0,
+      senzaSoglia: 0, giudicabili: 4, totale: 4 }, "conteggi");
+});
+/* ⛔ IL CONTEGGIO DELLA DECISIONE 16: un punto senza soglia esce dal
+   numeratore E dal denominatore. Prima ci finiva dentro due volte, e nel modo
+   peggiore: quello a 0,8 fra i conformi, quello a 1,2 fra i superamenti —
+   sopra una soglia (1) che nessuno aveva scelto. */
+test("riepilogoConformita: un punto SENZA SOGLIA non è né conforme né in superamento", () => {
+  const letture = [{ data: "2026-07-11", valore: 1.2 }];
+  const mon = [
+    { valore: 4, soglia: 10, letture },      // conforme, giudicabile
+    { valore: 0.8, soglia: null, letture },  // prima: conforme (verde)
+    { valore: 1.2, soglia: null, letture },  // prima: superamento (rosso)
+  ];
+  const r = sentinella.riepilogoConformita(mon);
+  eq(r, { conformi: 1, attenzione: 0, superamento: 0, maiMisurati: 0,
+          senzaSoglia: 2, giudicabili: 1, totale: 3 }, "due fuori dal giudizio");
+  eq(r.conformi + r.attenzione + r.superamento + r.maiMisurati + r.senzaSoglia, r.totale,
+    "i pezzi fanno ancora il totale: nessun punto sparisce");
+  eq(r.giudicabili, 1, "il denominatore della conformità è 1, non 3");
+});
+test("puntiSenzaSoglia: la soglia del ricettore vale come soglia del punto", () => {
+  const ric = [{ id: "rc1", nome: "Casa Bianchi", soglia: 3, unita: "mm/s" }];
+  const mon = [
+    { id: "a", nome: "Con la sua", soglia: 5, unita: "mm/s" },
+    { id: "b", nome: "Dal ricettore", soglia: null, unita: "mm/s", ricettoreId: "rc1" },
+    { id: "c", nome: "Nuda", soglia: null, unita: "mm/s", letture: [{ data: "2026-07-01", valore: 2 }] },
+  ];
+  eq(sentinella.puntiSenzaSoglia(mon, ric).map(x => x.id), ["c"], "solo quella davvero senza");
+  eq(sentinella.puntiSenzaSoglia(mon, ric)[0].n, 1, "porta con sé quante letture ha");
+  eq(sentinella.puntiSenzaSoglia([], ric), [], "niente punti, niente elenco");
 });
 /* ⛔ Il conteggio che mancava, ed è quello che il riepilogo esisteva per non
    dire: un punto appena configurato (`valore: 0`, nessuna lettura) NON è
@@ -1442,8 +1508,9 @@ test("riepilogoConformita: conta conformi/attenzione/superamento", () => {
 test("riepilogoConformita: un punto MAI MISURATO non è conforme", () => {
   const nuovi = [{ valore: 0, soglia: 5, letture: [] }, { valore: 0, soglia: 5, letture: [] }];
   const r = sentinella.riepilogoConformita(nuovi);
-  eq(r, { conformi: 0, attenzione: 0, superamento: 0, maiMisurati: 2, totale: 2 }, "due punti nuovi");
-  eq(r.conformi + r.attenzione + r.superamento + r.maiMisurati, r.totale, "i pezzi fanno il totale");
+  eq(r, { conformi: 0, attenzione: 0, superamento: 0, maiMisurati: 2,
+          senzaSoglia: 0, giudicabili: 0, totale: 2 }, "due punti nuovi");
+  eq(r.conformi + r.attenzione + r.superamento + r.maiMisurati + r.senzaSoglia, r.totale, "i pezzi fanno il totale");
   // guardia contro il troppo zelo: una lettura a ZERO è un dato vero
   const misurato = [{ valore: 0, soglia: 5, letture: [{ data: "2026-07-30", valore: 0 }] }];
   eq(sentinella.riepilogoConformita(misurato).conformi, 1, "zero MISURATO è conforme");
@@ -1451,7 +1518,8 @@ test("riepilogoConformita: un punto MAI MISURATO non è conforme", () => {
 });
 test("riepilogoConformita: nessun monitoraggio = tutto 0 (niente crash)", () =>
   eq(sentinella.riepilogoConformita([]),
-    { conformi: 0, attenzione: 0, superamento: 0, maiMisurati: 0, totale: 0 }, "vuoto"));
+    { conformi: 0, attenzione: 0, superamento: 0, maiMisurati: 0,
+      senzaSoglia: 0, giudicabili: 0, totale: 0 }, "vuoto"));
 test("prioritaConformita: misure non conformi + adempimenti (scaduto=danger), danger prima", () => {
   const mon = [
     { nome: "Vibr V2", valore: 5.6, soglia: 5, unita: "mm/s" },     // 1.12 → superamento (danger)
@@ -5750,6 +5818,65 @@ test("statoVuoto: la struttura è quella del core, invariata", () => {
     eq(r.nLetture, 0, "scartata");
     eq(r.esito, "senza-dati", "e il report lo dice invece di dichiarare conforme");
   });
+
+  /* ⛔ IL QUARTO COMPORTAMENTO DA BLOCCARE, TROVATO IL 02/08 (decisione 16).
+     È lo stesso verso degli altri tre — quello che ASSOLVE — ma stava un
+     gradino più a fondo: un punto CON letture e SENZA soglia usciva
+     «conforme», perché nessuna lettura risultava «oltre» un limite che non
+     c'era. Misurato prima della correzione: due punti senza soglia, quattro
+     letture, `esito: "conforme"` sul documento e su ogni riga della tabella il
+     tag verde «entro soglia». Un limite mai scritto dichiarato rispettato,
+     nel documento che va all'ente. */
+  const nudo = (letture) => ({ id: "m9", nome: "Fonometro cortile", unita: "dB(A)", letture });
+  const faiNudo = (letture, altri) => sentinella.reportConformita({
+    dal: "2026-07-01", al: "2026-07-31", ricettori: [casa],
+    monitoraggi: [nudo(letture), ...(altri || [])],
+  });
+  test("⛔ report: con le letture ma SENZA soglia non è conforme, è senza-soglia", () => {
+    const r = faiNudo([{ data: "2026-07-10", valore: 0.8 }, { data: "2026-07-11", valore: 1.2 }]);
+    eq(r.punti[0].esito, "senza-soglia", "il punto non è giudicabile");
+    eq(r.esito, "senza-soglia", "e nemmeno il documento");
+    eq(r.nLetture, 2, "le letture ci sono: non è «senza dati»");
+    eq(r.nPuntiSenzaSoglia, 1, "e il documento lo dichiara col numero");
+    eq(r.nPuntiGiudicabili, 0, "nessun punto giudicabile");
+  });
+  test("⛔ report: nella tabella una lettura senza soglia non è «entro soglia»", () => {
+    const r = faiNudo([{ data: "2026-07-10", valore: 0.8 }]);
+    eq(r.punti[0].letture[0].oltre, null, "né oltre né entro: non confrontata");
+    eq(r.punti[0].nSuperamenti, 0, "e non conta come superamento");
+  });
+  test("report: un punto senza soglia non fa sparire il giudizio sugli altri", () => {
+    const buono = { id: "m1", nome: "Vibrazioni P1", unita: "mm/s", soglia: 3, ricettoreId: "r1",
+                    letture: [{ data: "2026-07-10", valore: 5 }] };
+    const r = faiNudo([{ data: "2026-07-10", valore: 0.8 }], [buono]);
+    eq(r.esito, "non-conforme", "il superamento vero resta il verdetto");
+    eq(r.nPuntiSenzaSoglia, 1, "ma il punto non giudicabile è dichiarato");
+    eq(r.nPuntiGiudicabili, 1, "e il denominatore dice quanti erano giudicabili");
+  });
+  test("report: la soglia del ricettore basta — il punto è giudicabile lo stesso", () => {
+    const r = sentinella.reportConformita({
+      dal: "2026-07-01", al: "2026-07-31", ricettori: [casa],
+      monitoraggi: [{ id: "m8", nome: "Senza soglia propria", unita: "mm/s", ricettoreId: "r1",
+                      letture: [{ data: "2026-07-10", valore: 4 }] }],
+    });
+    eq(r.punti[0].esito, "non-conforme", "4 sopra i 3 del ricettore");
+    eq(r.nPuntiSenzaSoglia, 0, "la soglia c'è: è quella scritta per quella casa");
+  });
+  /* ⚠️ La coppia `esitoPunto` ↔ `ESITI`: la mappa che la pagina usa per
+     disegnare l'esito deve avere una voce per OGNI risposta, se no il
+     documento mostra l'etichetta sbagliata (o, senza il ripiego, muore al
+     disegno). È la regola 18 di run-stile, provata anche da questa parte. */
+  test("esitoPunto: quattro risposte, e ognuna ha la sua voce in ESITI", () => {
+    eq(sentinella.esitoPunto(0, 0, 5), "senza-dati", "niente letture");
+    eq(sentinella.esitoPunto(0, 0, null), "senza-dati", "niente letture batte niente soglia");
+    eq(sentinella.esitoPunto(3, 0, null), "senza-soglia", "letture sì, limite no");
+    eq(sentinella.esitoPunto(3, 0, 0), "senza-soglia", "zero non è un limite");
+    eq(sentinella.esitoPunto(3, 1, 5), "non-conforme", "un superamento basta");
+    eq(sentinella.esitoPunto(3, 0, 5), "conforme", "misurato e dentro");
+    for (const st of ["senza-dati", "senza-soglia", "non-conforme", "conforme"])
+      eq(!!sentinella.ESITI[st], true, `ESITI ha «${st}»`);
+    eq(Object.keys(sentinella.ESITI).length, 4, "e non ha voci che nessuno sa restituire");
+  });
 }
 
 /* ══ CHI VA FERMATO, E CHI INVECE NO ════════════════════════════════════
@@ -9768,20 +9895,296 @@ test("statoVuoto: la struttura è quella del core, invariata", () => {
     contiene(scudo.statoConsegnaDpi({ tipo: "maschera", scadenza: "2099-01-01", addestramento: true }, new Date("2026-07-15")),
       { addestramentoMancante: false }, "fatto");
   });
-  test("⚠️ statoConsegnaDpi: una consegna SENZA data di sostituzione risulta regolare", () => {
-    /* Comportamento di oggi, scritto qui perché è una DOMANDA APERTA, non
-       una regola decisa (punto 14 di DECISIONI_WEEKEND.md).
+  test("⛔ statoConsegnaDpi: una consegna SENZA data di sostituzione è «senza data», non «regolare»", () => {
+    /* DECISIONE 14, presa dal fondatore il 02/08 («attenzione»). Fino a quel
+       giorno questa prova blindava il contrario — `stato: "regolare"` — ed era
+       scritta apposta perché il cambio si vedesse: se cambia, è stato scelto.
        Il form propone da sé la scadenza dai mesi del tipo, ma l'utente può
-       svuotarla: da lì in poi una maschera di III categoria non produce
-       nessun allarme di sostituzione, mai. Le due letture sono:
-       (a) l'ha svuotata apposta, quel dispositivo non scade → regolare;
-       (b) nessuno ha detto entro quando va sostituito → non è un verde.
-       Finché non è deciso, la prova blinda quello che il codice fa DAVVERO,
-       così se cambia si sa che è stato scelto e non successo. */
+       svuotarla: da lì in poi una maschera di III categoria non produceva
+       nessun allarme di sostituzione, mai. Adesso non è un verde: nessuno ha
+       detto entro quando va sostituita, si sa solo che è stata consegnata.
+       ⛔ E la risposta NON è una parola nuova: «senza data» è la convenzione
+       che `statoScadenzaHSE` usa già in tre app. */
     contiene(scudo.statoConsegnaDpi({ tipo: "maschera" }, new Date("2026-07-15")),
-      { stato: "regolare", scadenza: null }, "oggi: regolare");
+      { stato: "senza data", scadenza: null, nonScade: false }, "consegnata, e basta");
     eq(scudo.tipoDpi("maschera").mesi, 12, "eppure il tipo dice dodici mesi");
+    ok(scudo.statoConsegnaDpi({ tipo: "maschera" }, new Date("2026-07-15")).stato !== "regolare",
+      "«non lo sappiamo» non è «a posto»");
+    /* La via d'uscita, e serve davvero: due tipi del catalogo hanno `mesi:
+       null`, cioè per loro una data non si può nemmeno proporre. Dichiarato,
+       il verde torna a essere una risposta misurata. */
+    eq(scudo.tipoDpi("indumenti").mesi, null, "gli indumenti da lavoro non hanno una vita utile proposta");
+    contiene(scudo.statoConsegnaDpi({ tipo: "indumenti", nonScade: true }, new Date("2026-07-15")),
+      { stato: "regolare", nonScade: true }, "dichiarato «non scade»: allora è verde");
+    /* ⚠️ La dichiarazione non scavalca una data VERA: se la scadenza c'è e
+       parla, comanda lei — se no dichiarare «non scade» diventerebbe un modo
+       di spegnere un allarme rosso. */
+    contiene(scudo.statoConsegnaDpi({ tipo: "elmetto", scadenza: "2020-01-01" }, new Date("2026-07-15")),
+      { stato: "scaduta" }, "una data scaduta resta scaduta");
   });
+  test("⛔ statoConsegnaDpi: una data ILLEGGIBILE non diventa «regolare» (2026-02-30 non esiste)", () => {
+    /* Il ternario di prima chiedeva solo «c'è qualcosa nella casella?»: una
+       data impossibile è qualcosa, quindi passava a `statoScadenza` — quella
+       parte era già giusta. La prova sta qui perché adesso è `statoScadenza` a
+       rispondere SEMPRE, e va detto che continua a distinguere i due casi. */
+    eq(scudo.statoConsegnaDpi({ tipo: "elmetto", scadenza: "2026-02-30" }, new Date("2026-07-15")).stato,
+      "senza data", "il 30 febbraio non esiste: non è una scadenza");
+    eq(scudo.statoConsegnaDpi({ tipo: "elmetto", scadenza: "2026-13-45" }, new Date("2026-07-15")).stato,
+      "senza data", "forma giusta, data impossibile");
+  });
+  test("⛔ allarmiDpi + riepilogoDpi: il DPI senza data di sostituzione si CONTA, non si assorbe", () => {
+    const oggi = new Date("2026-07-15T00:00:00");
+    const lav = [{ id: "L1", nome: "Mario Rossi", attivo: true }];
+    const mans = [{ id: "m1", nome: "Fochino", dpi: ["maschera"], lavoratoriIds: ["L1"] }];
+    const senza = [{ id: "c1", lavoratoreId: "L1", tipo: "maschera", dataConsegna: "2026-01-10",
+                     scadenza: null, addestramento: true }];
+    const al = scudo.allarmiDpi(mans, lav, senza, oggi);
+    eq(al.length, 1, "una riga: il dispositivo c'è, la data no");
+    eq(al[0].motivo, scudo.MOTIVO_SENZA_SOSTITUZIONE, "il motivo è scritto una volta sola, nel modulo");
+    eq(al[0].gravita, "warn", "giallo e non rosso: non è scaduto, non si sa se lo è");
+    eq(scudo.riepilogoDpi(senza, al).senzaSostituzione, 1, "e il riepilogo lo dice");
+    eq(scudo.riepilogoDpi(senza, al).daSostituire, 0,
+      "senza confonderlo con «da sostituire»: sono due lavori diversi, comprare il pezzo o leggere il libretto");
+    /* La controparte, che è il caso in cui l'app deve tacere: dichiarato. */
+    const dich = [{ ...senza[0], nonScade: true }];
+    const alD = scudo.allarmiDpi(mans, lav, dich, oggi);
+    eq(alD.length, 0, "dichiarato «non scade»: nessun allarme, perché una risposta c'è");
+    eq(scudo.riepilogoDpi(dich, alD).senzaSostituzione, 0, "e il conteggio torna a zero");
+  });
+  test("⛔ abilitazioneLavoratore: il DPI senza data di sostituzione pesa sulla matrice", () => {
+    const oggi = new Date("2026-07-15T00:00:00");
+    const m = { id: "m1", nome: "Uffici", requisiti: [], nessunRequisito: true, dpi: ["maschera"] };
+    const a = scudo.abilitazioneLavoratore({ id: "L1", nome: "X", attivo: true }, m, [],
+      [{ id: "c1", lavoratoreId: "L1", tipo: "maschera", dataConsegna: "2026-01-10", scadenza: null, addestramento: true }], oggi);
+    eq(a.esito, "attenzione", "non «può andare»: della sua maschera non si sa se è ancora buona");
+    ok(a.attenzioni.some(x => x.includes(scudo.MOTIVO_SENZA_SOSTITUZIONE)),
+      "e la ragione è scritta, non lasciata a un colore: " + JSON.stringify(a.attenzioni));
+  });
+  test("⛔ la dimostrazione contiene le DUE consegne senza data, e sono diverse", () => {
+    /* Un campo assente non è un refuso: è uno stato che il prodotto sa
+       raccontare, e metterlo nella dimostrazione è un modo di mostrarlo.
+       Senza queste due righe le frasi nuove sarebbero codice morto. */
+    const D = scudo.DEMO, oggi = new Date("2026-08-02T00:00:00");
+    const senza = D.dpi.filter(c => !c.scadenza);
+    eq(senza.length, 2, "due, e non una: la risposta e la domanda aperta");
+    const dich = senza.filter(c => c.nonScade === true);
+    eq(dich.length, 1, "una è dichiarata «non scade»");
+    eq(scudo.statoConsegnaDpi(dich[0], oggi).stato, "regolare", "quella è verde, ed è misurata");
+    const aperta = senza.find(c => c.nonScade !== true);
+    eq(scudo.statoConsegnaDpi(aperta, oggi).stato, "senza data", "l'altra no");
+    eq(aperta.tipo, "maschera", "ed è un facciale filtrante: è lì che «non lo sappiamo» pesa");
+    eq(scudo.tipoDpi(aperta.tipo).cat, "III", "III categoria");
+  });
+
+  /* ══════════════════════════════════════════════════════════════════════
+     DECISIONE 13 — UNA MANSIONE SENZA REQUISITI CENSITI
+     Presa dal fondatore il 02/08: «non lo sappiamo», uno stato suo, e i
+     conteggi lo dicono invece di assorbirlo nel verde.
+     Misurato prima di scrivere: su una mansione senza requisiti con una
+     persona assegnata l'esito era `"puo"`, con zero bloccanti e zero
+     attenzioni, e il riepilogo la contava fra chi «può andare oggi».
+     ══════════════════════════════════════════════════════════════════════ */
+  {
+    const OGGI_M = new Date("2026-07-15T00:00:00");
+    const LAV_M = [{ id: "L1", nome: "Anna Neri", attivo: true }];
+    const vuota = (extra) => ({ id: "m1", nome: "Ufficio e pesa", requisiti: [], dpi: [], lavoratoriIds: ["L1"], ...extra });
+
+    test("⛔ esitoAbilitazione: quattro risposte, e l'ordine in cui si scavalcano", () => {
+      eq(scudo.esitoAbilitazione([], [], false), "puo", "niente da dire: può andare");
+      eq(scudo.esitoAbilitazione([], ["dpi in scadenza"], false), "attenzione", "qualcosa da sistemare");
+      eq(scudo.esitoAbilitazione([], [], true), "non-so", "requisiti mai scritti");
+      eq(scudo.esitoAbilitazione(["non è in forza"], [], false), "no", "bloccante");
+      /* ⛔ I due incroci, che sono il punto della funzione:
+         · un bloccante è una cosa MISURATA e batte il non sapere;
+         · «attenzione» afferma «può andare, ma…», e quel «può andare» è
+           esattamente quello che non si può dire. */
+      eq(scudo.esitoAbilitazione(["non è in forza"], [], true), "no",
+        "sapere che non può andare batte non sapere che cosa gli servirebbe");
+      eq(scudo.esitoAbilitazione([], ["elmetto in scadenza"], true), "non-so",
+        "«può andare, ma…» non si può dire se non si sa rispetto a cosa");
+    });
+    test("⛔ requisitiIgnoti: il vuoto è una domanda, la dichiarazione è una risposta", () => {
+      eq(scudo.requisitiIgnoti({ requisiti: ["form-generale"] }), false, "i corsi ci sono");
+      eq(scudo.requisitiIgnoti({ requisiti: [] }), true, "elenco vuoto: nessuno l'ha scritto");
+      eq(scudo.requisitiIgnoti({}), true, "campo assente: idem");
+      eq(scudo.requisitiIgnoti(null), true, "nemmeno la mansione: non si sa di sicuro");
+      eq(scudo.requisitiIgnoti({ requisiti: [], nessunRequisito: true }), false,
+        "dichiarato «non servono corsi»: quella è una risposta");
+      /* ⚠️ La dichiarazione vale solo se è `true` vero: un `"si"` arrivato da
+         un import non deve spegnere la domanda. */
+      eq(scudo.requisitiIgnoti({ requisiti: [], nessunRequisito: "si" }), true, "solo un true vero dichiara");
+    });
+    test("⛔ abilitazioneLavoratore: una mansione senza requisiti NON è un «può andare»", () => {
+      const a = scudo.abilitazioneLavoratore(LAV_M[0], vuota(), [], [], OGGI_M);
+      eq(a.esito, "non-so", "prima del 02/08 qui usciva «puo», in verde");
+      eq(a.bloccanti, [], "e non è un «non può»: non manca niente di dimostrato");
+      eq(a.requisitiIgnoti, true, "la ragione è leggibile, non solo il colore");
+      const b = scudo.abilitazioneLavoratore(LAV_M[0], vuota({ nessunRequisito: true }), [], [], OGGI_M);
+      eq(b.esito, "puo", "dichiarato che non servono corsi: il verde torna, ed è misurato");
+      eq(b.requisitiIgnoti, false);
+    });
+    test("⛔ riepilogoMansioni: il «non lo sappiamo» ha un secchio suo e non gonfia i «puo»", () => {
+      const r = scudo.riepilogoMansioni([vuota()], LAV_M, [], [], OGGI_M)[0];
+      eq({ totale: r.totale, puo: r.puo, attenzione: r.attenzione, nonSo: r.nonSo, no: r.no },
+         { totale: 1, puo: 0, attenzione: 0, nonSo: 1, no: 0 },
+         "prima del 02/08: puo 1, nonSo non esisteva");
+      eq(r.requisitiIgnoti, true, "e la mansione lo dichiara, così la pagina può dirlo una volta sola");
+      const d = scudo.riepilogoMansioni([vuota({ nessunRequisito: true })], LAV_M, [], [], OGGI_M)[0];
+      eq({ puo: d.puo, nonSo: d.nonSo }, { puo: 1, nonSo: 0 }, "dichiarata: torna nel verde");
+      /* La somma deve tornare: se una persona finisse in due secchi o in
+         nessuno, i numeri in cima alla matrice mentirebbero di nascosto. */
+      for (const x of [r, d]) eq(x.puo + x.attenzione + x.nonSo + x.no, x.totale, "le quattro parti fanno il totale");
+    });
+    test("⛔ lavoratoriScoperti: «non lo sappiamo» non è «fuori mansione»", () => {
+      /* Il numero in cima al Quadro è quello che FERMA IL LAVORO. Un requisito
+         mai scritto non ferma nessuno: manda a scrivere i requisiti. Metterli
+         insieme trasformerebbe un «non lo so» in un «no», che è lo stesso
+         errore della decisione, al contrario. */
+      eq(scudo.lavoratoriScoperti([vuota()], LAV_M, [], [], OGGI_M), [],
+        "nessuno è fuori mansione: non manca niente di dimostrato");
+    });
+    test("⛔ matriceMansione: le quattro risposte hanno un ordine, e «non-so» c'è dentro", () => {
+      const lav = [{ id: "L1", nome: "Aaa", attivo: true }, { id: "L2", nome: "Bbb", attivo: false }];
+      const righe = scudo.matriceMansione({ id: "m1", nome: "X", requisiti: [], dpi: [], lavoratoriIds: ["L2", "L1"] },
+        lav, [], [], OGGI_M);
+      eq(righe.map(r => r.esito), ["non-so", "no"],
+        "chi non è in forza va in fondo: è la cosa che si sa, e si legge per ultima");
+    });
+    test("⛔ la dimostrazione contiene la mansione di cui non si sa che cosa richieda", () => {
+      const D = scudo.DEMO;
+      const senza = D.mansioni.filter(m => scudo.requisitiIgnoti(m) && (m.lavoratoriIds || []).length);
+      eq(senza.length, 1, "una, ed è il caso normale di una mansione appena creata");
+      const r = scudo.riepilogoMansioni(D.mansioni, D.lavoratori, D.scadenze, D.dpi, OGGI_M);
+      ok(r.reduce((s, x) => s + x.nonSo, 0) >= 1,
+        "e nella matrice della dimostrazione si vede: senza questa riga la quarta pastiglia era codice morto");
+    });
+  }
+
+  /* ══════════════════════════════════════════════════════════════════════
+     DECISIONE 17 — L'INFORTUNIO CON LA PROGNOSI ANCORA APERTA
+     Presa dal fondatore il 02/08. Misurato prima di scrivere, su un anno da
+     20.000 ore con un infortunio da 12 giorni già a registro: aggiungendone
+     uno a prognosi aperta la frequenza andava da 50 a 100 (giusto), ma la
+     gravità restava 0,6 e il LTIFR 50 — cioè «un infortunio in più che non è
+     costato nemmeno una giornata», che è quello che ancora non si sa.
+     ══════════════════════════════════════════════════════════════════════ */
+  {
+    test("⛔ giornateAssenza: il vuoto di un INFORTUNIO non è zero, quello di un near-miss sì", () => {
+      eq(scudo.giornateAssenza({ tipo: "infortunio", giorniAssenza: 12 }), 12, "un numero è un numero");
+      eq(scudo.giornateAssenza({ tipo: "infortunio", giorniAssenza: 0 }), 0,
+        "uno zero SCRITTO APPOSTA resta zero: è la stessa convenzione della base d'asta in Conti");
+      eq(scudo.giornateAssenza({ tipo: "infortunio" }), null, "campo assente: non si sa");
+      eq(scudo.giornateAssenza({ tipo: "infortunio", giorniAssenza: null }), null, "null: non si sa");
+      eq(scudo.giornateAssenza({ tipo: "infortunio", giorniAssenza: "" }), null, "casella svuotata nel form: non si sa");
+      eq(scudo.giornateAssenza({ tipo: "infortunio", giorniAssenza: "  " }), null, "e nemmeno degli spazi");
+      eq(scudo.giornateAssenza({ tipo: "infortunio", giorniAssenza: "abc" }), null,
+        "illeggibile: «non si sa» copre anche questo, l'unica risposta vietata è uno zero non misurato");
+      eq(scudo.giornateAssenza({ tipo: "infortunio", giorniAssenza: -3 }), 0, "un negativo non toglie giornate");
+      /* ⚠️ IL TRANELLO DEL `+null`, lo stesso di `avanzamentoLotto` il 05/08:
+         `+null` fa `0` e `Number.isFinite(0)` risponde `true`. Se il vuoto si
+         controllasse DOPO la conversione, «non si sa» tornerebbe zero. */
+      eq(+null, 0, "ecco perché il vuoto si controlla prima di convertire");
+      eq(scudo.giornateAssenza({ tipo: "near-miss" }), 0, "per un near-miss il vuoto è una risposta: nessuna assenza");
+      eq(scudo.giornateAssenza({ tipo: "near-miss", giorniAssenza: null }), 0, "idem");
+    });
+    test("⛔ prognosiAperta: solo gli infortuni, e solo quelli senza giornate scritte", () => {
+      eq(scudo.prognosiAperta({ tipo: "infortunio" }), true);
+      eq(scudo.prognosiAperta({ tipo: "infortunio", giorniAssenza: 0 }), false, "zero scritto: la prognosi è chiusa a zero");
+      eq(scudo.prognosiAperta({ tipo: "near-miss" }), false, "un near-miss non ha una prognosi da aspettare");
+      eq(scudo.prognosiAperta(null), false, "e niente non è un infortunio");
+    });
+    test("⛔ indiciInfortunistici: la prognosi aperta non è «senza assenza», ha un secchio suo", () => {
+      const uno = [{ data: "2026-01-10", tipo: "infortunio", giorniAssenza: 12 }];
+      const due = [...uno, { data: "2026-03-04", tipo: "infortunio", giorniAssenza: null }];
+      const a = scudo.indiciInfortunistici(uno, 20000, 2026);
+      contiene(a, { infortuni: 1, conAssenza: 1, daQuantificare: 0, giornatePerse: 12, noto: true,
+                    indiceFrequenza: 50, indiceGravita: 0.6, ltifr: 50 }, "il caso misurato");
+      const b = scudo.indiciInfortunistici(due, 20000, 2026);
+      eq(b.indiceFrequenza, 100, "la frequenza sale: l'infortunio c'è stato");
+      eq(b.conAssenza, 1, "ma NON si conta fra quelli con assenza: non si sa se ce ne sarà");
+      eq(b.daQuantificare, 1, "sta nel suo secchio, e ha un nome");
+      eq(b.noto, false, "e la bandiera dice che le giornate perse non sono tutte");
+      eq(b.giornatePerse, 12, "le giornate note restano dodici: sono un MINIMO, non un consuntivo");
+      /* ⚠️ Prima del 02/08 la differenza fra i due casi era **invisibile** su
+         due indici su tre. La prova la nomina, così se un giorno tornasse a
+         essere invisibile qualcuno se ne accorge. */
+      eq([b.indiceGravita, b.ltifr], [a.indiceGravita, a.ltifr],
+        "IG e LTIFR non si muovono — ed è giusto, purché l'app dichiari che sono minimi");
+      ok(scudo.avvisoGravitaMinima(b).includes("MINIMO"), "e la dichiarazione c'è: " + scudo.avvisoGravitaMinima(b));
+      eq(scudo.avvisoGravitaMinima(a), null, "mentre sul caso misurato non si scrive niente");
+    });
+    test("⛔ indiciInfortunistici: uno ZERO SCRITTO resta un infortunio senza assenza", () => {
+      /* Il contrario del caso sopra, e va difeso con la stessa forza: chi ha
+         scritto «0 giorni» ha misurato, e quel dato non deve diventare una
+         prognosi aperta. */
+      const z = scudo.indiciInfortunistici([{ data: "2026-01-10", tipo: "infortunio", giorniAssenza: 0 }], 20000, 2026);
+      contiene(z, { infortuni: 1, conAssenza: 0, daQuantificare: 0, noto: true, indiceGravita: 0 }, "misurato a zero");
+      eq(scudo.avvisoGravitaMinima(z), null, "niente da avvertire");
+    });
+    test("⛔ riepilogoInfortuni: il totale delle giornate perse si dichiara un minimo", () => {
+      const r = scudo.riepilogoInfortuni([
+        { data: "2026-01-10", tipo: "infortunio", giorniAssenza: 12 },
+        { data: "2026-03-04", tipo: "infortunio", giorniAssenza: null },
+      ], new Date("2026-08-02T00:00:00"));
+      contiene(r, { infortuni: 2, giorniAssenzaTot: 12, prognosiAperte: 1, noto: false }, "due infortuni, dodici giornate note");
+      const t = scudo.descriviGiornatePerse(r);
+      ok(t.startsWith("almeno 12"), "la frase lo dice per prima cosa: " + t);
+      ok(t.includes("prognosi è ancora aperta"), "e dice perché: " + t);
+      const chiuso = scudo.riepilogoInfortuni([{ data: "2026-01-10", tipo: "infortunio", giorniAssenza: 12 }],
+        new Date("2026-08-02T00:00:00"));
+      eq(chiuso.noto, true);
+      eq(scudo.descriviGiornatePerse(chiuso), "12 giornate perse", "e quando si sa, si dice e basta");
+      eq(scudo.descriviGiornatePerse(scudo.riepilogoInfortuni(
+        [{ data: "2026-01-10", tipo: "infortunio", giorniAssenza: 1 }], new Date("2026-08-02T00:00:00"))),
+        "1 giornata persa", "singolare");
+    });
+    test("⛔ parseInfortuniCsv: la colonna vuota di un infortunio non diventa zero", () => {
+      const p = scudo.parseInfortuniCsv(
+        "data;tipo;gravita;giorniAssenza;descrizione;luogo\n"
+        + "2026-02-03;infortunio;lieve;;Distorsione, prognosi aperta;piazzale\n"
+        + "2026-05-18;near-miss;lieve;;Caduta massi;fronte Est\n"
+        + "2026-06-01;infortunio;lieve;0;Nessuna assenza;officina\n");
+      eq(p.length, 3, "tre righe");
+      eq(p[0].giorniAssenza, null, "infortunio con la colonna vuota: prognosi aperta");
+      eq(p[1].giorniAssenza, 0, "near-miss con la colonna vuota: nessuna assenza, ed è il caso normale");
+      eq(p[2].giorniAssenza, 0, "uno zero scritto resta zero");
+      /* ⚠️ ANDATA E RITORNO, e la lezione del 01/08: una funzione nuova si
+         porta dietro il mestiere, non le difese. Quello che la pagina scrive
+         nel CSV deve rientrare identico — se no un dato si perde nel giro di
+         casa nostra. */
+      const cella = (x) => scudo.prognosiAperta(x) ? "" : scudo.giornateAssenza(x);
+      for (const x of p) {
+        const giro = scudo.parseInfortuniCsv(`${x.data};${x.tipo};${x.gravita};${cella(x)};d;l`)[0];
+        eq(giro.giorniAssenza, x.giorniAssenza, `andata e ritorno su ${x.tipo} ${JSON.stringify(x.giorniAssenza)}`);
+      }
+    });
+    test("⛔ andamentoIndici: il confronto dichiara se una prognosi è ancora aperta", () => {
+      const inf = [
+        { data: "2025-01-01", tipo: "infortunio", giorniAssenza: 10 },
+        { data: "2026-01-01", tipo: "infortunio", giorniAssenza: null },
+      ];
+      const ore = [{ anno: 2025, ore: 20000 }, { anno: 2026, ore: 20000 }];
+      const c = scudo.andamentoIndici(inf, ore, { annoFine: 2026 }).confronto;
+      eq(c.confrontabile, true, "due anni con le ore: il confronto c'è");
+      eq(c.daQuantificare, 1, "e dice che una prognosi è ancora aperta");
+      eq(c.noto, false, "quindi il verso di IG e LTIFR è letto su un numero che deve ancora salire");
+      const chiuso = scudo.andamentoIndici(
+        [inf[0], { data: "2026-01-01", tipo: "infortunio", giorniAssenza: 4 }], ore, { annoFine: 2026 }).confronto;
+      eq({ daQuantificare: chiuso.daQuantificare, noto: chiuso.noto }, { daQuantificare: 0, noto: true },
+        "e quando si sa tutto, tace");
+    });
+    test("⛔ la dimostrazione contiene l'infortunio a prognosi aperta", () => {
+      const D = scudo.DEMO;
+      const aperti = D.infortuni.filter(scudo.prognosiAperta);
+      eq(aperti.length, 1, "uno, ed è lo stato in cui un infortunio si trova nei giorni in cui viene registrato");
+      eq(aperti[0].giorniAssenza, null, "null, non zero");
+      const r = scudo.riepilogoInfortuni(D.infortuni, new Date("2026-08-02T00:00:00"));
+      eq(r.noto, false, "e il cartellone della dimostrazione lo dichiara");
+      ok(scudo.descriviGiornatePerse(r).startsWith("almeno "),
+        "senza questa riga la frase «almeno N giornate perse» non l'avrebbe letta nessuno");
+    });
+  }
+
   test("MANSIONI_PRESET: sono una base di partenza, e ogni mansione porta requisiti e DPI", () => {
     /* «base da adattare al DVR e al DSS della propria cava, non un elenco
        di verità di legge»: la prova blinda la forma, non i contenuti */

@@ -243,6 +243,14 @@ export const DEMO = {
     // esiste un andamento da mostrare, e la dimostrazione deve contenere il
     // caso per cui la schermata è stata costruita.
     { id: "i7", data: "2025-09-12", tipo: "infortunio", gravita: "lieve", giorniAssenza: 12, luogo: "impianto", luogoTipo: "impianto", descrizione: "Contusione a un piede durante lo sblocco di un nastro" },
+    /* ⛔ UN INFORTUNIO CON LA PROGNOSI ANCORA APERTA — decisione 17 del
+       fondatore, 02/08. `giorniAssenza` è `null` di proposito, e non è un
+       refuso: è lo stato in cui un infortunio si trova nei giorni in cui viene
+       registrato, cioè quello per cui la difesa esiste. Senza questa riga la
+       dimostrazione non poteva contenere il caso — come la fattura senza
+       scadenza in Conti — e le frasi «almeno N giornate perse» e «indice di
+       gravità (minimo)» sarebbero state codice morto. */
+    { id: "i8", data: "2026-07-28", tipo: "infortunio", gravita: "lieve", giorniAssenza: null, luogo: "piazzale 2", luogoTipo: "piazzale", descrizione: "Distorsione alla caviglia scendendo dalla cabina del dumper — prognosi ancora aperta" },
   ],
   /* LE ORE LAVORATE, ANNO PER ANNO — il denominatore dei tre indici.
      ⛔ Il 2026 NON c'è, ed è la parte più importante della dimostrazione: è
@@ -365,6 +373,17 @@ export const DEMO = {
       requisiti: ["sorv-sanitaria", "form-generale", "form-aggiorn"],
       dpi: ["elmetto", "scarpe", "gilet", "guanti"],
       lavoratoriIds: ["d5"] },
+    /* ⛔ UNA MANSIONE DI CUI NESSUNO HA SCRITTO I REQUISITI — decisione 13 del
+       fondatore, 02/08. È il caso normale di una mansione appena creata: c'è
+       il nome, c'è la persona, e i corsi non li ha ancora messi nessuno. Fino
+       a quel giorno la matrice rispondeva «può andare» in verde; adesso
+       risponde «non lo sappiamo», e la dimostrazione deve contenere la riga
+       per cui la quarta risposta esiste. `nessunRequisito` NON è dichiarato:
+       è proprio quella dichiarazione che manca. */
+    { id: "n5", nome: "Ufficio e pesa",
+      requisiti: [],
+      dpi: ["gilet", "scarpe"],
+      lavoratoriIds: ["d4"] },
   ],
   nomine: [
     { id: "o1", ruolo: "sorvegliante", lavoratoreId: "d3", dal: "2025-02-03", al: null, note: "Turno unico, tutta la cava" },
@@ -427,6 +446,21 @@ export const DEMO = {
        otoprotettori fra i DPI della sua mansione, e il commento di quel giro
        dice esattamente perché va segnalato lo stesso. */
     { id: "e25", lavoratoreId: "d5", tipo: "otoprotettori", modello: "inserti", taglia: "unica", dataConsegna: "2026-05-18", scadenza: "2029-05-18", addestramento: false, dataAddestramento: null, note: "" },
+    /* ⛔ LE DUE CONSEGNE SENZA DATA DI SOSTITUZIONE, E SONO DUE COSE DIVERSE —
+       decisione 14 del fondatore, 02/08. Prima del 02/08 sarebbero state tutte
+       e due VERDI, e nella tabella la data si sarebbe letta «—» per
+       tutt'e due: la stessa faccia tranquilla per una risposta e per una
+       domanda aperta.
+       · e26: gli indumenti da lavoro non hanno una vita utile — il catalogo
+         per loro non sa nemmeno proporre una data (`mesi: null`) — e qualcuno
+         lo ha DICHIARATO. Quello è verde, ed è una risposta misurata.
+       · e27: un facciale filtrante contro la silice, di III categoria, con la
+         casella svuotata. Nessuno ha detto entro quando va sostituito: è
+         giallo, e sta nel registro perché è il caso su cui il fondatore ha
+         detto che «non lo sappiamo» pesa. L'addestramento è registrato di
+         proposito, così l'unica cosa che manca è la data. */
+    { id: "e26", lavoratoreId: "d3", tipo: "indumenti", modello: "", taglia: "M", dataConsegna: "2026-03-09", scadenza: null, nonScade: true, addestramento: false, dataAddestramento: null, note: "Vestiario: nessuna scadenza dichiarata dal costruttore" },
+    { id: "e27", lavoratoreId: "d1", tipo: "maschera", modello: "FFP3", taglia: "unica", dataConsegna: "2026-06-15", scadenza: null, addestramento: true, dataAddestramento: "2026-06-15", note: "" },
   ],
 };
 
@@ -546,6 +580,45 @@ export function testoPromemoria(scadenza, lavoratore, oggi = new Date()) {
 // di cui gravi, near-miss, e giorni di assenza totali. `giorniSenza` è null se
 // non c'è nessun infortunio registrato (nessuna data da cui contare). Pura e
 // testabile; `oggi` iniettabile.
+// ⛔ LE GIORNATE PERSE DI UN INFORTUNIO A PROGNOSI APERTA NON SONO ZERO —
+// decisione 17 del fondatore, 02/08.
+// Fino a quel giorno il campo «giorni di assenza» lasciato vuoto valeva `0`
+// dappertutto (`+x.giorniAssenza || 0`), e la ragione scritta il 31/07 era
+// buona: in un **near-miss** la colonna vuota vuol dire davvero «nessuna
+// assenza», ed è il caso normale. Quella ragione però non copre l'infortunio
+// registrato mentre la **prognosi è ancora aperta**: lì i giorni non si sanno
+// *ancora*. Misurato su un anno da 20.000 ore, con un infortunio da 12 giorni
+// già a registro: aggiungendone uno a prognosi aperta la frequenza saliva da
+// 50 a 100 — giusto, l'infortunio c'è stato — ma la **gravità restava 0,6** e
+// il LTIFR **50**. Cioè l'app diceva «un infortunio in più che non è costato
+// nemmeno una giornata», che è esattamente quello che ancora non si sa.
+//
+// La distinzione è la stessa già usata per la base d'asta di una gara in Conti:
+// **il vuoto resta vuoto, lo zero scritto apposta resta zero**. E dipende dal
+// tipo, perché il vuoto vuol dire due cose diverse:
+//   · near-miss  → nessuna assenza, cioè 0. (La ragione del 31/07, intatta.)
+//   · infortunio → `null`, prognosi ancora aperta.
+// Torna `null` anche per un valore illeggibile: «non si sa» copre tutt'e due, e
+// l'unica risposta che non deve mai uscire da qui è uno zero non misurato.
+export function giornateAssenza(evento) {
+  const e = evento || {};
+  const g = e.giorniAssenza;
+  const vuoto = g === null || g === undefined || (typeof g === "string" && g.trim() === "");
+  if (e.tipo !== "infortunio") return vuoto ? 0 : Math.max(0, +g || 0);
+  if (vuoto) return null;
+  /* ⚠️ Il vuoto si controlla PRIMA di convertire, e non è pignoleria: `+null`
+     fa `0` e `Number.isFinite(0)` risponde `true` — è lo stesso tranello che
+     il 05/08 faceva rispondere «0%» ad `avanzamentoLotto` per un lotto che
+     nessuno aveva mai misurato. */
+  const n = +g;
+  return Number.isFinite(n) ? Math.max(0, n) : null;
+}
+// Un infortunio le cui giornate perse non sono ancora scritte. I near-miss non
+// ci finiscono mai: per loro il vuoto è una risposta, non una domanda aperta.
+export function prognosiAperta(evento) {
+  return !!(evento && evento.tipo === "infortunio") && giornateAssenza(evento) === null;
+}
+
 export function riepilogoInfortuni(infortuni, oggi = new Date()) {
   const list = infortuni || [];
   const veri = list.filter(x => x.tipo === "infortunio");
@@ -556,9 +629,29 @@ export function riepilogoInfortuni(infortuni, oggi = new Date()) {
     if (/^\d{4}-\d{2}-\d{2}$/.test(d) && (!ultimo || d > ultimo)) ultimo = d;
   }
   const giorniSenza = ultimo ? Math.max(0, -giorniTra(ultimo, oggi)) : null;
-  const giorniAssenzaTot = veri.reduce((s, x) => s + (+x.giorniAssenza || 0), 0);
+  const giorniAssenzaTot = veri.reduce((s, x) => s + (giornateAssenza(x) || 0), 0);
+  const prognosiAperte = veri.filter(prognosiAperta).length;
   const gravi = veri.filter(x => x.gravita === "grave").length;
-  return { infortuni: veri.length, nearMiss: nearMiss.length, gravi, giorniSenza, ultimo, giorniAssenzaTot };
+  return { infortuni: veri.length, nearMiss: nearMiss.length, gravi, giorniSenza, ultimo,
+    giorniAssenzaTot, prognosiAperte,
+    /* bandiera: le giornate perse sono TUTTE scritte. Quando è falsa
+       `giorniAssenzaTot` è un MINIMO, e chi lo disegna deve dirlo — se no il
+       totale si legge come un consuntivo, che è il verso in cui rassicura. */
+    noto: prognosiAperte === 0 };
+}
+
+/* La frase che accompagna il totale delle giornate perse. Sta qui e non nella
+   pagina per la stessa ragione di `descriviCartella`: quello che un numero
+   dichiara è una REGOLA, e a scriverla dev'essere uno solo. È anche la lettura
+   della bandiera `noto` — che altrimenti sarebbe una guardia scollegata. */
+export function descriviGiornatePerse(r) {
+  const x = r || {};
+  const g = +x.giorniAssenzaTot || 0;
+  if (x.noto !== false) return g === 1 ? "1 giornata persa" : g + " giornate perse";
+  const n = +x.prognosiAperte || 0;
+  return "almeno " + g + (g === 1 ? " giornata persa" : " giornate perse") + ": "
+    + (n === 1 ? "di un infortunio la prognosi è ancora aperta" : "di " + n + " infortuni la prognosi è ancora aperta")
+    + ", le sue giornate non sono ancora contate";
 }
 
 // ============================================================
@@ -1145,11 +1238,15 @@ export function parseInfortuniCsv(text) {
     .map(r => {
       const [data, tipo, gravita, giorniAssenza, descrizione, luogo] = parseCsvLine(r);
       const g = numIt(giorniAssenza);
+      const tp = (tipo || "").trim().toLowerCase() === "infortunio" ? "infortunio" : "near-miss";
       return {
         data: (data || "").trim(),
-        tipo: (tipo || "").trim().toLowerCase() === "infortunio" ? "infortunio" : "near-miss",
+        tipo: tp,
         gravita: (gravita || "").trim().toLowerCase() === "grave" ? "grave" : "lieve",
-        giorniAssenza: Number.isFinite(g) ? Math.max(0, g) : 0,
+        /* decisione 17: la colonna vuota di un INFORTUNIO non è uno zero — la
+           prognosi può essere ancora aperta. Per un near-miss lo è, ed è il
+           caso normale: la ragione scritta il 31/07 resta valida per lui. */
+        giorniAssenza: Number.isFinite(g) ? Math.max(0, g) : (tp === "infortunio" ? null : 0),
         descrizione: (descrizione || "").trim(),
         luogo: (luogo || "").trim(),
       };
@@ -1758,28 +1855,88 @@ export function ultimaConsegnaDpi(consegne, lavoratoreId, tipo) {
 // Stato di una consegna: "mancante" (mai consegnato) oppure lo stesso semaforo
 // delle scadenze sulla data di sostituzione. `addestramentoMancante` è vero
 // quando il tipo lo richiede e non risulta fatto.
+//
+// ⛔ UNA CONSEGNA SENZA DATA DI SOSTITUZIONE NON È «REGOLARE» — decisione 14
+// del fondatore, 02/08. Fino a quel giorno il ternario qui sotto rispondeva
+// `"regolare"` quando la casella era vuota, e da lì in poi quel dispositivo
+// non produceva **mai più** un avviso di sostituzione: nella tabella la data
+// si leggeva «—» e nel riepilogo il pezzo risultava a posto. Su un facciale
+// filtrante contro la silice quel verde diceva una cosa che nessuno aveva
+// misurato — il form la scadenza la PROPONE dai mesi del tipo, ma si può
+// svuotare, e allora l'unica cosa che si sa è che il DPI è stato consegnato.
+// La risposta è `"senza data"`, che NON è una parola nuova: è la convenzione
+// che `statoScadenzaHSE` usa già in tre app, e che i trenta punti di Scudo che
+// confrontano con `!== "regolare"` cominciano da soli a mostrare fra le cose
+// da guardare. Basta quindi togliere il ternario e lasciar rispondere lei.
+// `nonScade` è la via d'uscita, e serve: `TIPI_DPI` ha due voci con `mesi:
+// null` (indumenti da lavoro, «altro DPI») per cui una data non si può
+// nemmeno proporre. Chi dichiara che quel pezzo non ha una vita utile lo
+// scrive, e da quel momento il verde è una risposta MISURATA invece che un
+// vuoto travestito.
 export function statoConsegnaDpi(consegna, oggi = new Date()) {
-  if (!consegna) return { stato: "mancante", scadenza: null, addestramentoMancante: false };
+  if (!consegna) return { stato: "mancante", scadenza: null, addestramentoMancante: false, nonScade: false };
   const t = tipoDpi(consegna.tipo);
+  const nonScade = consegna.nonScade === true;
   return {
-    stato: consegna.scadenza ? statoScadenza(consegna.scadenza, oggi) : "regolare",
+    stato: nonScade ? "regolare" : statoScadenza(consegna.scadenza, oggi),
     scadenza: consegna.scadenza || null,
     addestramentoMancante: !!(t && t.addestramento) && !consegna.addestramento,
+    nonScade,
   };
 }
 
 // ============================================================
 // LA MATRICE: chi può fare quel lavoro domani mattina
-// Tre risposte sole, perché di mattina non c'è tempo di leggere una tabella:
+// Quattro risposte, perché di mattina non c'è tempo di leggere una tabella:
 //   · "puo"      → può andare;
 //   · "attenzione" → può andare, ma c'è qualcosa da sistemare (un corso che
 //                    scade, un DPI da consegnare o un addestramento da fare);
+//   · "non-so"   → non lo sappiamo: nessuno ha ancora scritto che cosa serve
+//                  per questa mansione (decisione 14 → vedi qui sotto);
 //   · "no"       → non può: manca o è scaduto qualcosa di bloccante.
 // Bloccano: persona non in forza, idoneità sanitaria negativa, un corso
 // richiesto mancante o scaduto. I DPI NON bloccano ma pesano: l'app sa se la
 // consegna è REGISTRATA, non se il lavoratore ha l'elmetto in mano — dirlo
 // come certezza sarebbe una bugia. Restano in evidenza, non nascosti.
+//
+// ⛔ LA QUARTA RISPOSTA — decisione 13 del fondatore, 02/08. Una mansione
+// creata, con le persone assegnate, ma per cui **nessuno ha ancora scritto
+// quali corsi servono**: fino a quel giorno tutti risultavano «può andare», in
+// verde. Tecnicamente coerente — non è richiesto niente, quindi non manca
+// niente — ma le due letture di quel verde sono opposte: «questa mansione non
+// richiede corsi particolari» oppure «nessuno ha ancora detto che cosa serve»,
+// che su una mansione appena creata è il caso più probabile. Il fondatore ha
+// scelto: **non lo sappiamo**, uno stato suo, distinto sia da «può» sia da
+// «non può», e i conteggi lo dicono invece di assorbirlo nel verde.
+// La via d'uscita è una dichiarazione, non un silenzio: `nessunRequisito` sulla
+// mansione vuol dire «per questo lavoro non servono corsi», e da quel momento
+// il verde torna a essere una risposta misurata.
 // ============================================================
+
+/* Il verso in cui le quattro risposte si scavalcano, in una funzione sua e non
+   dentro un ternario lungo: è una MAPPA DI STATI, e la regola 18 di
+   `run-stile.mjs` la può leggere solo se le risposte stanno in dei `return`.
+   ⛔ L'ordine non è estetico. «no» viene per primo anche quando i requisiti
+   sono ignoti, perché un bloccante è una cosa MISURATA (non è in forza, è
+   stato giudicato non idoneo alla visita): quella la sappiamo, e sapere che
+   non può andare batte non sapere che cosa gli servirebbe.
+   E «non-so» viene PRIMA di «attenzione» perché «attenzione» afferma «può
+   andare, ma…», e quel «può andare» è esattamente ciò che non si può dire. */
+export function esitoAbilitazione(bloccanti, attenzioni, requisitiIgnoti) {
+  if ((bloccanti || []).length) return "no";
+  if (requisitiIgnoti) return "non-so";
+  if ((attenzioni || []).length) return "attenzione";
+  return "puo";
+}
+
+/* «Di questa mansione non si sa che cosa richieda»: nessun requisito censito e
+   nessuno ha dichiarato che non ne servono. Una mansione che dichiara
+   `nessunRequisito` ha una risposta, ed è «non ne servono». */
+export function requisitiIgnoti(mansione) {
+  const m = mansione || {};
+  if (m.nessunRequisito === true) return false;
+  return !((m.requisiti || []).length);
+}
 export function abilitazioneLavoratore(lav, mansione, scadenze, consegneDpi, oggi = new Date()) {
   const l = lav || {};
   const scLav = (scadenze || []).filter(s => s.lavoratoreId === l.id);
@@ -1807,16 +1964,20 @@ export function abilitazioneLavoratore(lav, mansione, scadenze, consegneDpi, ogg
     if (d.stato === "mancante") attenzioni.push(d.etichetta.toLowerCase() + ": consegna mai registrata");
     else if (d.stato === "scaduta") attenzioni.push(d.etichetta.toLowerCase() + " da sostituire");
     else if (d.stato === "in-scadenza") attenzioni.push(d.etichetta.toLowerCase() + " in scadenza");
+    // decisione 14: consegnato, ma nessuno ha detto entro quando va sostituito
+    else if (d.stato === "senza data") attenzioni.push(d.etichetta.toLowerCase() + ": " + MOTIVO_SENZA_SOSTITUZIONE);
     if (d.addestramentoMancante && d.stato !== "mancante") attenzioni.push("addestramento " + d.etichetta.toLowerCase() + " da registrare");
   }
-  const esito = bloccanti.length ? "no" : (attenzioni.length ? "attenzione" : "puo");
-  return { lavoratore: l, mansione: mansione || null, requisiti, dpi, bloccanti, attenzioni, esito };
+  const ignoti = requisitiIgnoti(mansione);
+  const esito = esitoAbilitazione(bloccanti, attenzioni, ignoti);
+  return { lavoratore: l, mansione: mansione || null, requisiti, dpi, bloccanti, attenzioni,
+           requisitiIgnoti: ignoti, esito };
 }
 
 // La matrice di UNA mansione: una riga per persona, prima chi può andare.
 export function matriceMansione(mansione, lavoratori, scadenze, consegneDpi, oggi = new Date()) {
   const ids = (mansione && mansione.lavoratoriIds) || [];
-  const ordine = { puo: 0, attenzione: 1, no: 2 };
+  const ordine = { puo: 0, attenzione: 1, "non-so": 2, no: 3 };
   return ids
     .map(id => (lavoratori || []).find(l => l.id === id))
     .filter(Boolean)
@@ -1834,10 +1995,15 @@ export function riepilogoMansioni(mansioni, lavoratori, scadenze, consegneDpi, o
       mansione: m, totale: righe.length,
       puo: righe.filter(r => r.esito === "puo").length,
       attenzione: righe.filter(r => r.esito === "attenzione").length,
+      /* decisione 13: le persone di cui non si sa. NON si sommano ai «puo» —
+         era esattamente quello che succedeva prima, e il numero verde in cima
+         alla matrice le contava fra chi può andare domani mattina. */
+      nonSo: righe.filter(r => r.esito === "non-so").length,
       no: righe.filter(r => r.esito === "no").length,
+      requisitiIgnoti: requisitiIgnoti(m),
       righe,
     };
-  }).sort((a, b) => (b.no - a.no) || (b.attenzione - a.attenzione)
+  }).sort((a, b) => (b.no - a.no) || (b.attenzione - a.attenzione) || (b.nonSo - a.nonSo)
     || String(a.mansione.nome || "").localeCompare(String(b.mansione.nome || ""), "it"));
 }
 
@@ -1967,6 +2133,14 @@ export function nomineDaSistemare(organigramma) {
 // incrociano le mansioni (che dicono quali DPI servono) con le consegne
 // registrate: mai consegnato, da sostituire, addestramento non registrato.
 // ============================================================
+// ⛔ IL MOTIVO SI SCRIVE UNA VOLTA SOLA. `riepilogoDpi` conta le righe
+// cercando il motivo DENTRO il testo (`motivo.includes(...)`): due stesure
+// della stessa frase, in due punti di `allarmiDpi`, e il conteggio ne vedrebbe
+// una sola — senza nessun errore da leggere. La frase è distinta da «da
+// sostituire» di proposito: sono due lavori diversi, uno è comprare il pezzo
+// nuovo, l'altro è andare a leggere il libretto del costruttore.
+export const MOTIVO_SENZA_SOSTITUZIONE = "senza data di sostituzione";
+
 export function allarmiDpi(mansioni, lavoratori, consegne, oggi = new Date()) {
   const out = [], indice = new Map();
   const lavById = Object.fromEntries((lavoratori || []).map(l => [l.id, l]));
@@ -2001,6 +2175,9 @@ export function allarmiDpi(mansioni, lavoratori, consegne, oggi = new Date()) {
         if (st.stato === "mancante") aggiungi(l, ch, t.etichetta, "mai consegnato", "danger", m.nome, null, null, false);
         else if (st.stato === "scaduta") aggiungi(l, ch, t.etichetta, "da sostituire", "danger", m.nome, st.scadenza, cid, false);
         else if (st.stato === "in-scadenza") aggiungi(l, ch, t.etichetta, "in scadenza", "warn", m.nome, st.scadenza, cid, false);
+        // decisione 14: è GIALLO, non rosso — il dispositivo c'è, quello che
+        // manca è la data entro cui va sostituito. Non si sa se è ancora buono.
+        else if (st.stato === "senza data") aggiungi(l, ch, t.etichetta, MOTIVO_SENZA_SOSTITUZIONE, "warn", m.nome, null, cid, false);
         if (st.addestramentoMancante && st.stato !== "mancante")
           aggiungi(l, ch, t.etichetta, "addestramento non registrato", "warn", m.nome, null, cid, true);
       }
@@ -2014,6 +2191,7 @@ export function allarmiDpi(mansioni, lavoratori, consegne, oggi = new Date()) {
     const t = tipoDpiSicuro(c.tipo);
     const st = statoConsegnaDpi(c, oggi);
     if (st.stato === "scaduta") aggiungi(l, c.tipo, t.etichetta, "da sostituire", "danger", "", st.scadenza, c.id, false);
+    if (st.stato === "senza data") aggiungi(l, c.tipo, t.etichetta, MOTIVO_SENZA_SOSTITUZIONE, "warn", "", null, c.id, false);
     if (st.addestramentoMancante) aggiungi(l, c.tipo, t.etichetta, "addestramento non registrato", "warn", "", null, c.id, true);
   }
   const peso = { danger: 0, warn: 1 };
@@ -2030,6 +2208,8 @@ export function riepilogoDpi(consegne, allarmi) {
     mancanti: al.filter(a => a.motivo.includes("mai consegnato")).length,
     daSostituire: al.filter(a => a.motivo.includes("da sostituire")).length,
     addestramenti: al.filter(a => a.motivo.includes("addestramento non registrato")).length,
+    // decisione 14: il conteggio deve DIRLO, non assorbirlo nel verde.
+    senzaSostituzione: al.filter(a => a.motivo.includes(MOTIVO_SENZA_SOSTITUZIONE)).length,
   };
 }
 
@@ -2329,10 +2509,21 @@ export function indiciInfortunistici(infortuni, oreLavorate, anno = new Date().g
   const y = String(anno);
   const nell_anno = (infortuni || []).filter(i =>
     i && i.tipo === "infortunio" && String(i.data || "").slice(0, 4) === y);
-  const conAssenza = nell_anno.filter(i => (+i.giorniAssenza || 0) > 0);
-  const giornatePerse = nell_anno.reduce((t, i) => t + Math.max(0, +i.giorniAssenza || 0), 0);
+  const conAssenza = nell_anno.filter(i => (giornateAssenza(i) || 0) > 0);
+  /* ⛔ decisione 17: l'infortunio a prognosi aperta NON entra fra quelli «con
+     assenza» (non si sa se ce ne sarà) e NON entra fra quelli senza (che è la
+     lettura tranquilla che il vecchio `|| 0` produceva da solo). Ha un secchio
+     suo — assenza **da quantificare** — ed è lui a rendere IG e LTIFR un
+     minimo invece che un consuntivo. */
+  const daQuantificare = nell_anno.filter(prognosiAperta).length;
+  const giornatePerse = nell_anno.reduce((t, i) => t + Math.max(0, giornateAssenza(i) || 0), 0);
   const ore = +oreLavorate;
   const base = { anno: +anno, infortuni: nell_anno.length, conAssenza: conAssenza.length,
+                 daQuantificare,
+                 /* bandiera: tutte le giornate perse dell'anno sono scritte.
+                    Falsa ⇒ `giornatePerse`, `indiceGravita` e `ltifr` sono
+                    MINIMI. La legge `descriviIndici`, qui sotto. */
+                 noto: daQuantificare === 0,
                  giornatePerse, oreLavorate: Number.isFinite(ore) && ore > 0 ? ore : null };
   if (!(Number.isFinite(ore) && ore > 0))
     return { ...base, calcolabile: false, indiceFrequenza: null, indiceGravita: null, ltifr: null,
@@ -2344,6 +2535,21 @@ export function indiciInfortunistici(infortuni, oreLavorate, anno = new Date().g
     indiceFrequenza: r2(nell_anno.length * 1e6 / ore),
     indiceGravita: r2(giornatePerse * 1e3 / ore),
     ltifr: r2(conAssenza.length * 1e6 / ore) };
+}
+
+/* Come si legge l'indice di gravità di quell'anno, scritto dal modulo (regola
+   7: la stessa frase decisa in un posto solo) e lettura della bandiera `noto`.
+   Torna `null` quando non c'è niente da avvertire: chi la disegna scrive la
+   riga solo se c'è, invece di riservare spazio a un avviso che non arriva. */
+export function avvisoGravitaMinima(r) {
+  const x = r || {};
+  if (x.noto !== false) return null;
+  const n = +x.daQuantificare || 0;
+  return "L'indice di gravità del " + x.anno + " è un MINIMO: "
+    + (n === 1 ? "di un infortunio dell'anno la prognosi è ancora aperta"
+               : "di " + n + " infortuni dell'anno la prognosi è ancora aperta")
+    + ", quindi le giornate perse contate finora sono " + x.giornatePerse
+    + " ma non sono tutte. Scritte le giornate, l'indice sale — non è un valore da confrontare con la media di settore finché resta così.";
 }
 
 // ============================================================
@@ -2467,6 +2673,11 @@ function confrontaUltimiDueAnni(misurabili, dal, al, oreFuori) {
   const versi = new Set(per.map(p => p.verso)); versi.delete("stabile");
   return { confrontabile: true, motivo: null, da: da.anno, a: a.anno,
     adiacenti: a.anno - da.anno === 1, salto: a.anno - da.anno,
+    /* decisione 17: se in uno dei due anni una prognosi è ancora aperta, il
+       verso di IG e LTIFR è letto su un numero che deve ancora salire. Non si
+       nasconde il confronto — si dice che quel verso può cambiare. */
+    daQuantificare: da.daQuantificare + a.daQuantificare,
+    noto: da.noto !== false && a.noto !== false,
     eventi, pochi: troppoPochiPerTendenza(eventi), per,
     verso: versi.size === 0 ? "stabile" : versi.size > 1 ? "misto" : [...versi][0] };
 }

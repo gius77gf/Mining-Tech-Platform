@@ -101,7 +101,7 @@ const APP = ["campo", "conti", "flotta", "scudo", "sentinella", "terra"];
    (`terra.X === ponti.X`) invece del comportamento.
    `densitaPerEnte` e `descriviDensita` restano di Terra, e il conto lo dice: a
    scendere sono otto, non dieci. */
-const FONDO = { campo: 102, conti: 109, flotta: 81, scudo: 123, sentinella: 120, terra: 58 };
+const FONDO = { campo: 102, conti: 109, flotta: 81, scudo: 130, sentinella: 122, terra: 58 };
 
 /* Quello che resta fuori per un motivo, non per dimenticanza: i caricatori
    dati vogliono la rete e lo SDK, i ponti demo vogliono il localStorage.

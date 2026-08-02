@@ -74,7 +74,18 @@ test("scudo: id unici, scadenze→lavoratore risolve, date valide", () => {
   for (const x of S.infortuni) {
     ok(isDate(x.data), `infortunio ${x.id}: data non valida ${x.data}`);
     ok(["infortunio", "near-miss"].includes(x.tipo), `infortunio ${x.id}: tipo «${x.tipo}» sconosciuto`);
-    ok(isNum(x.giorniAssenza), `infortunio ${x.id}: giorniAssenza non numerico`);
+    /* ⚠️ IL DATO CORROTTO NON È IL DATO ASSENTE, ed è la stessa correzione già
+       fatta il 01/08 per la fattura senza scadenza. Questa riga pretendeva un
+       numero, quindi la dimostrazione NON POTEVA contenere l'infortunio a
+       prognosi ancora aperta — cioè proprio il caso per cui la decisione 17 del
+       fondatore (02/08) è stata presa: `giorniAssenza: null` vuol dire «non si
+       sanno ancora», ed è uno stato che il prodotto sa raccontare.
+       Quello che va impedito resta: un «tre giorni» scritto a parole, o un
+       numero negativo. Un near-miss invece i giorni li ha sempre, e valgono
+       zero — per lui la colonna vuota è una risposta. */
+    const prognosiAperta = x.tipo === "infortunio" && x.giorniAssenza === null;
+    ok(prognosiAperta || (isNum(x.giorniAssenza) && x.giorniAssenza >= 0),
+      `infortunio ${x.id}: giorniAssenza «${x.giorniAssenza}» non è né un numero né una prognosi aperta`);
   }
 });
 

@@ -790,6 +790,14 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
       </div>
       <div class="nm-lab">Corsi e abilitazioni richiesti</div>
       <div class="chgs griglia2" id="mans-req"></div>
+      <!-- decisione 13: senza requisiti la matrice risponde «non lo sappiamo».
+           Questo bottone e' la via d'uscita, e va accanto ai requisiti perche'
+           e' li' che ci si accorge di non averne messo nessuno. -->
+      <div class="frow" style="margin-top:8px;">
+        <button type="button" class="chg" id="mans-nonreq" aria-pressed="false"
+          title="Dichiara che per questa mansione non servono corsi: da quel momento la matrice torna a rispondere «può andare» invece di «non lo sappiamo»">Per questa mansione non servono corsi</button>
+      </div>
+      <div class="form-hint" id="mans-nonreq-nota" style="margin-top:6px;"></div>
       <div class="nm-lab">DPI previsti</div>
       <div class="chgs griglia2" id="mans-dpi"></div>
       <div class="nm-lab">Chi la svolge</div>
@@ -856,6 +864,15 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
           <span class="nm-lab">Da sostituire entro</span>
           <input class="dw-input" id="dpi-scad" type="date" title="Da sostituire entro">
         </label>
+      </div>
+      <!-- decisione 14: la casella «da sostituire entro» si puo' svuotare, e
+           allora il dispositivo risulta «senza data» invece che a posto.
+           Questo bottone e' la via d'uscita per i pezzi che davvero non hanno
+           una vita utile (indumenti da lavoro, «altro DPI»: il catalogo per
+           loro non sa nemmeno proporre una data). -->
+      <div class="frow">
+        <button type="button" class="chg" id="dpi-nonscade" aria-pressed="false"
+          title="Dichiara che questo dispositivo non ha una data di sostituzione: senza questa dichiarazione la consegna resta «senza data», non «regolare»">Questo dispositivo non scade</button>
       </div>
       <div class="frow">
         <button type="button" class="chg" id="dpi-addestr" aria-pressed="false">Addestramento fatto</button>
@@ -1187,6 +1204,10 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
       <input class="dw-input" id="inf-giorni" type="number" min="0" placeholder="Giorni assenza" style="flex:1 1 150px;">
       <input class="dw-input" id="inf-luogo" placeholder="Luogo (es. fronte Est)" style="flex:1 1 150px;">
     </div>
+    <!-- decisione 17: per un INFORTUNIO la casella vuota non vale zero, vuol
+         dire che la prognosi e' ancora aperta. Va scritto dove si compila, se
+         no la distinzione la conosce solo il programma. -->
+    <div class="form-hint" id="inf-giorni-nota"></div>
     <div class="frow">
       <input class="dw-input" id="inf-desc" placeholder="Descrizione dell'evento" style="flex:2 1 220px;">
       <button class="dw-btn" id="btn-inf">Registra</button>
@@ -1311,7 +1332,9 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
     NOMINE_RUOLI, ruoloNomina, nominaAttiva, organigrammaSicurezza, nomineDaSistemare,
     cartellaLavoratore, descriviCartella,
     TIPI_DPI, tipoDpi, tipoDpiSicuro, ultimaConsegnaDpi, statoConsegnaDpi, allarmiDpi, riepilogoDpi, verbaleDpi,
-    indiciInfortunistici, andamentoIndici,
+    MOTIVO_SENZA_SOSTITUZIONE,
+    indiciInfortunistici, andamentoIndici, avvisoGravitaMinima,
+    giornateAssenza, prognosiAperta, descriviGiornatePerse,
     CAUSE_ANALISI, validaAnalisi, analisiDiEvento, eventiSenzaAnalisi, causeRicorrenti,
     MAX_FOTO, pesoFoto, fotoDiEvento, fotoDiVoce, fotoDiIspezione, bilancioFoto, bilancioFotoVoce,
     testoBilancioFoto, pastigliaFoto, contestoFoto,
@@ -1498,9 +1521,11 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
   let editMans = null;      // mansione in modifica (il form fa doppio servizio)
   let dpiFiltro = "";       // lavoratore scelto nel registro DPI ("" = tutti)
   let dpiAddestr = false;   // interruttore «addestramento fatto» del form DPI
+  let dpiNonScade = false;  // interruttore «questo dispositivo non scade» (decisione 14)
   // Scelte in corso nel form della mansione: stanno qui e non nel DOM, così
   // un aggiornamento dei dati non cancella quello che si sta spuntando.
-  const MANSF = { req: new Set(), dpi: new Set(), lav: new Set() };
+  // `nonReq` = «per questa mansione non servono corsi», dichiarato (decisione 13)
+  const MANSF = { req: new Set(), dpi: new Set(), lav: new Set(), nonReq: false };
   let docFileSel = null;   // allegato scelto per il prossimo documento {nome, dataURL}
   let editLav = null;   // id del lavoratore in modifica (riusa il form "Aggiungi"; idoneità/scadenze restano)
   let editAzi = null;   // id dell'azione correttiva in modifica (stesso schema: il form fa doppio servizio)
@@ -1673,6 +1698,19 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
         <div class="info"><div class="name">${esc(s.lavoratore.nome)}</div>
         <div class="meta">Non può fare ${esc(s.mansioni.join(", "))} · ${esc(s.motivi.join(" · "))}</div></div>
         <span class="acts"><span class="badge danger">Fuori mansione</span><span class="arr">›</span></span></div>`);
+    /* ⛔ LE MANSIONI DI CUI NON SI SA CHE COSA RICHIEDANO, NEL QUADRO —
+       decisione 13 del fondatore, 02/08. È la mancanza silenziosa della stessa
+       famiglia delle imprese non verificate: non produce nessuna riga rossa,
+       produce delle persone che risultano «può andare» senza che nessuno abbia
+       scritto rispetto a cosa. Il giallo la distingue dal rosso di «Fuori
+       mansione»: lì il lavoro si ferma, qui il lavoro va avanti e a mancare è
+       la misura. */
+    const mansIgnUrg = rMans.filter(r => r.requisitiIgnoti && r.totale > 0).slice(0, 2).map(r =>
+      `<div class="item tocca st-warn" data-vai-pers="mans" title="Vai alla matrice delle mansioni">
+        <div class="avatar sup">${I.persone}</div>
+        <div class="info"><div class="name">${esc(r.mansione.nome)}</div>
+        <div class="meta">Nessun corso richiesto è stato scritto per questa mansione: di ${r.totale === 1 ? "una persona assegnata" : r.totale + " persone assegnate"} non sappiamo se possono andare</div></div>
+        <span class="acts"><span class="badge warn">Non lo sappiamo</span><span class="arr">›</span></span></div>`);
     // S4 — nomine obbligatorie scoperte o con la formazione non in regola.
     const nomUrg = nomKO.slice(0, 2).map(o => {
       const chi = o.persone.map(p => p.lavoratore ? p.lavoratore.nome : "persona non più in anagrafica").join(", ");
@@ -1735,7 +1773,7 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
     });
     const urg = SCA.filter(s => statoScadenza(s.dataScadenza) !== "regolare")
                    .sort((a, b) => a.dataScadenza < b.dataScadenza ? -1 : 1).slice(0, 5);
-    $("urg-list").innerHTML = (idonUrg.join("") + manUrg.join("") + nomUrg.join("") + aziUrg.join("") + anUrg.join("") + appUrg.join("") + dssUrg.join("") + urg.map(sc => {
+    $("urg-list").innerHTML = (idonUrg.join("") + manUrg.join("") + mansIgnUrg.join("") + nomUrg.join("") + aziUrg.join("") + anUrg.join("") + appUrg.join("") + dssUrg.join("") + urg.map(sc => {
       const st = statoScadenza(sc.dataScadenza), l = byId[sc.lavoratoreId];
       return `<div class="item tocca ${striscia[B[st][0]]}" onclick="go('scad')" title="Vai allo scadenzario">
         <div class="avatar">${esc(initials(l && l.nome))}</div>
@@ -2190,12 +2228,25 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
          Qui si usa la forma che questa scheda già adopera sopra: una riga sola
          con i valori in accento, come «Infortuni: 1 · near-miss: 5». */
       const nDec = (n) => n.toLocaleString("it-IT", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+      /* ⛔ decisione 17: la frase la scrive il MODULO (`avvisoGravitaMinima`),
+         non questa pagina — è la lettura della bandiera `noto`, ed è la stessa
+         ragione di `descriviCartella`: quello che un numero dichiara è una
+         regola, e a scriverla dev'essere uno solo. Torna `null` quando non
+         c'è niente da avvertire, così non si riserva spazio a un avviso che
+         non arriva. */
+      const gravMin = avvisoGravitaMinima(ii);
+      const avvisoGrav = gravMin ? `<div class="mini" style="margin-top:6px;">⚠️ ${esc(gravMin)}</div>` : "";
+      const perse = `<b>${ii.giornatePerse}</b> ${ii.giornatePerse === 1 ? "giornata persa" : "giornate perse"}`
+        + (ii.noto === false ? " <b>almeno</b>" : "");
+      const daQuant = ii.daQuantificare
+        ? ` · <b>${ii.daQuantificare}</b> con assenza ancora <b>da quantificare</b> (prognosi aperta)`
+        : "";
       $("inf-indici").innerHTML = ii.calcolabile
-        ? `Indice di frequenza (IF): <b>${nDec(ii.indiceFrequenza)}</b> · indice di gravità (IG): <b>${nDec(ii.indiceGravita)}</b> · LTIFR: <b>${nDec(ii.ltifr)}</b>
-           <div class="mini" style="margin-top:6px;">Anno ${annoOra} · ${ii.infortuni} ${ii.infortuni === 1 ? "infortunio" : "infortuni"}, di cui ${ii.conAssenza} con assenza, ${ii.giornatePerse} ${ii.giornatePerse === 1 ? "giornata persa" : "giornate perse"}, su <b>${(+ii.oreLavorate).toLocaleString("it-IT")}</b> ore lavorate. IF e LTIFR sono per milione di ore, IG per mille.</div>`
+        ? `Indice di frequenza (IF): <b>${nDec(ii.indiceFrequenza)}</b> · indice di gravità (IG): <b>${nDec(ii.indiceGravita)}</b>${ii.noto === false ? " <b>(minimo)</b>" : ""} · LTIFR: <b>${nDec(ii.ltifr)}</b>${ii.noto === false ? " <b>(minimo)</b>" : ""}
+           <div class="mini" style="margin-top:6px;">Anno ${annoOra} · ${ii.infortuni} ${ii.infortuni === 1 ? "infortunio" : "infortuni"}, di cui ${ii.conAssenza} con assenza${daQuant}, ${perse}, su <b>${(+ii.oreLavorate).toLocaleString("it-IT")}</b> ore lavorate. IF e LTIFR sono per milione di ore, IG per mille.</div>${avvisoGrav}`
         : `Indici infortunistici ${annoOra}: <b>non calcolabili</b>
            <div class="mini" style="margin-top:6px;">${esc(ii.motivo)}</div>
-           <div class="mini" style="margin-top:4px;">Intanto i conteggi ci sono: <b>${ii.infortuni}</b> ${ii.infortuni === 1 ? "infortunio" : "infortuni"}, di cui <b>${ii.conAssenza}</b> con assenza, <b>${ii.giornatePerse}</b> ${ii.giornatePerse === 1 ? "giornata persa" : "giornate perse"}.</div>`; }
+           <div class="mini" style="margin-top:4px;">Intanto i conteggi ci sono: <b>${ii.infortuni}</b> ${ii.infortuni === 1 ? "infortunio" : "infortuni"}, di cui <b>${ii.conAssenza}</b> con assenza${daQuant}, ${perse}.</div>`; }
 
     /* ── ANDAMENTO DEGLI INDICI ANNO PER ANNO ───────────────────────────────
        Legge le bandiere che il modulo dichiara — `calcolabile` per ogni anno,
@@ -2299,7 +2350,11 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
           <div class="safety-lab">Giorni senza infortuni</div>
           ${ri.nearMiss ? `<div class="safety-sub">${ri.nearMiss} near-miss registrati — non azzerano il conteggio, ma vanno guardati.</div>` : ""}</div></div>`;
     $("inf-riep").innerHTML =
-      `Infortuni: <b>${ri.infortuni}</b>${ri.gravi ? ` (di cui <b>${ri.gravi}</b> gravi)` : ""} · near-miss: <b>${ri.nearMiss}</b> · giorni di assenza totali: <b>${ri.giorniAssenzaTot}</b>`;
+      /* ⛔ decisione 17: «giorni di assenza totali: 0» su un infortunio a
+         prognosi aperta era la frase più tranquilla che questa riga sapesse
+         dire, e nessuno l'aveva misurata. La frase la scrive il modulo
+         (`descriviGiornatePerse`), che legge la bandiera `noto`. */
+      `Infortuni: <b>${ri.infortuni}</b>${ri.gravi ? ` (di cui <b>${ri.gravi}</b> gravi)` : ""} · near-miss: <b>${ri.nearMiss}</b> · ${esc(descriviGiornatePerse(ri))}`;
 
     // ── S2 · RIEPILOGO AGGREGATO DEI NEAR-MISS (L. 198/2025) ─────────────
     // Quanti nel periodo, per tipo e per luogo: è così che si vede DOVE il
@@ -2444,7 +2499,7 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
         title="${pf ? "Foto dell'evento (" + pf.testo + ")" : "Nessuna foto: aggiungine una se ce n'è"}"
         aria-label="Foto dell'evento: ${pf ? pf.testo : "nessuna"}" data-foto-evt="${x.id}">${I.foto}</button>`;
       return `<div class="item tocca ${striscia[tb[0]]}" data-evt="${x.id}"><div class="info"><div class="name">${esc(x.descrizione || x.tipo || "Evento")}</div>
-        <div class="meta">${fmtData(x.data)}${x.luogo ? " · " + esc(x.luogo) : ""}${x.categoria ? " · " + esc(categoriaNearMiss(x.categoria)) : ""}${x.gravita && x.tipo !== "near-miss" ? " · " + esc(x.gravita) : ""}${(+x.giorniAssenza) ? " · " + (+x.giorniAssenza) + " gg assenza" : ""}${chi ? " · " + chi : ""}${an ? " · causa: " + esc(etichettaCausa(an.causa)) : ""}</div></div>
+        <div class="meta">${fmtData(x.data)}${x.luogo ? " · " + esc(x.luogo) : ""}${x.categoria ? " · " + esc(categoriaNearMiss(x.categoria)) : ""}${x.gravita && x.tipo !== "near-miss" ? " · " + esc(x.gravita) : ""}${prognosiAperta(x) ? " · prognosi ancora aperta" : (giornateAssenza(x) ? " · " + giornateAssenza(x) + " gg assenza" : "")}${chi ? " · " + chi : ""}${an ? " · causa: " + esc(etichettaCausa(an.causa)) : ""}</div></div>
         <span class="acts"><span class="badge ${tb[0]}">${tb[1]}</span>
         <span class="badge ${ab[0]}" style="cursor:pointer" title="Vedi le azioni correttive di questo evento" data-azi-evt="${x.id}">${ab[1]}</span>
         ${anb}
@@ -2690,12 +2745,21 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
     // Non «quanti corsi scadono», ma «chi oggi non può salire su quella
     // macchina». Tre risposte sole e il motivo scritto sotto il nome.
     // ══════════════════════════════════════════════════════════════════════
+    /* ⛔ QUATTRO VOCI PERCHE' `esitoAbilitazione` SA DIRE QUATTRO COSE —
+       regola 18. Il giorno in cui la matrice ha imparato «non-so» (decisione
+       13, 02/08) questa mappa ne aveva tre: `ESITO_MAT[a.esito][2]` sarebbe
+       stato `undefined[2]`, cioe' la pagina morta AL DISEGNO, senza nessun
+       errore di sintassi da leggere. */
     const ESITO_MAT = { puo: ["ok", "Può andare", "st-ok"],
-      attenzione: ["warn", "Da sistemare", "st-warn"], no: ["danger", "Non può", "st-danger"] };
+      attenzione: ["warn", "Da sistemare", "st-warn"],
+      "non-so": ["warn", "Non lo sappiamo", "st-warn"],
+      no: ["danger", "Non può", "st-danger"] };
     if (matSel && !MANS.some(m => m.id === matSel)) matSel = null;
     const matTot = rMans.reduce((s, r) => s + r.totale, 0);
     const matPuo = rMans.reduce((s, r) => s + r.puo, 0);
     const matNo = rMans.reduce((s, r) => s + r.no, 0);
+    const matNonSo = rMans.reduce((s, r) => s + r.nonSo, 0);
+    const manIgnote = rMans.filter(r => r.requisitiIgnoti && r.totale > 0);
     $("mat-count").textContent = MANS.length;
     $("mat-riep").innerHTML = !MANS.length
       ? "Nessuna mansione ancora descritta. Una mansione è il lavoro che una persona fa in cava — escavatorista, fochino, autista — con i corsi e i DPI che servono per farlo. Creane una qui sotto: puoi partire da quelle tipiche di cava."
@@ -2703,10 +2767,16 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
         ? "Le mansioni ci sono, ma non è ancora assegnata nessuna persona. Tocca la ✎ di una mansione e scegli <b>chi la svolge</b>: da lì in poi Scudo sa dirti chi può andare."
         : `Oggi possono andare <b>${matPuo}</b> persone su ${matTot}`
           + (matNo ? ` · <b>${matNo}</b> non ${matNo === 1 ? "può" : "possono"} per un corso mancante o scaduto` : "")
+          /* ⛔ decisione 13: il «non lo sappiamo» si DICHIARA, non si somma ai
+             verdi. Prima queste persone erano dentro il «possono andare», e
+             quel numero rassicurava su una mansione di cui nessuno aveva
+             ancora scritto che cosa richiedesse. */
+          + (matNonSo ? ` · di <b>${matNonSo}</b> non lo sappiamo: ${manIgnote.length === 1 ? "una mansione è" : manIgnote.length + " mansioni sono"} senza corsi richiesti` : "")
           + ` · mansioni descritte: <b>${MANS.length}</b>.`;
+    $("mat-riep").className = "note " + (matNo || matNonSo ? "avviso" : "recap");
     $("mat-mansioni").innerHTML = MANS.length
       ? `<button class="chg${matSel ? "" : " active"}" data-mat="">Tutte</button>`
-        + rMans.map(r => `<button class="chg${matSel === r.mansione.id ? " active" : ""}" data-mat="${r.mansione.id}">${esc(r.mansione.nome)} · ${r.puo}/${r.totale}</button>`).join("")
+        + rMans.map(r => `<button class="chg${matSel === r.mansione.id ? " active" : ""}" data-mat="${r.mansione.id}">${esc(r.mansione.nome)} · ${r.requisitiIgnoti && r.totale ? "?" : r.puo}/${r.totale}</button>`).join("")
       : "";
     // Pillole di stato: una per requisito (sempre), più i DPI SOLO quando c'è
     // qualcosa che non va — così la riga resta leggibile e i problemi saltano
@@ -2728,13 +2798,20 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
       const testo = d.stato === "mancante" ? d.breve + " — mai consegnato"
         : d.stato === "scaduta" ? d.breve + " — da sostituire"
         : d.stato === "in-scadenza" ? d.breve + " — in scadenza"
+        // decisione 14: consegnato, ma nessuno ha detto entro quando sostituirlo
+        : d.stato === "senza data" ? d.breve + " — senza data di sostituzione"
         : d.breve + " — addestramento";
       const cls = d.stato === "mancante" || d.stato === "scaduta" ? "danger" : "warn";
       return `<span class="badge ${cls} tocca" data-dpi-fix="${a.lavoratore.id}|${d.chiave}" title="${esc(d.etichetta)} — tocca per registrare la consegna">${esc(testo)}</span>`;
     };
     const rigaMat = (a) => {
       const e = ESITO_MAT[a.esito];
+      /* ⛔ decisione 13: la ragione del «non lo sappiamo» viene PRIMA delle
+         attenzioni sui DPI, perché è quella che spiega la pastiglia. E non è
+         appesa in coda: `.meta` ha `-webkit-line-clamp:2`, e una frase in
+         fondo lì dentro non la legge nessuno. */
       const motivi = a.bloccanti.length ? a.bloccanti.join(" · ")
+        : a.requisitiIgnoti ? ["per questa mansione non è scritto nessun corso richiesto", ...a.attenzioni].join(" · ")
         : a.attenzioni.length ? a.attenzioni.join(" · ")
         : "corsi e DPI in ordine";
       return `<div class="item ${e[2]}">
@@ -2744,7 +2821,14 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
         <div class="reqs">${a.requisiti.map(r => pillReq(a, r)).join("")}${a.dpi.map(d => pillDpi(a, d)).join("")}</div></div>
         <span class="acts"><span class="badge ${e[0]}">${e[1]}</span></span></div>`;
     };
-    const bloccoMat = (r) => `<div class="sub-sec">${esc(r.mansione.nome)} — ${r.puo} su ${r.totale} ${r.totale === 1 ? "può" : "possono"} andare</div>`
+    const bloccoMat = (r) => `<div class="sub-sec">${esc(r.mansione.nome)} — ${r.requisitiIgnoti && r.totale
+        ? "non sappiamo chi può andare"
+        : r.puo + " su " + r.totale + (r.totale === 1 ? " può" : " possono") + " andare"}</div>`
+      /* decisione 13: la ragione sta in un posto suo, sotto il titolo del
+         blocco, con l'azione che la chiude scritta accanto. */
+      + (r.requisitiIgnoti && r.totale
+        ? `<div class="form-hint" style="margin:-4px 0 10px 4px;">Per «${esc(r.mansione.nome)}» non è scritto nessun corso richiesto: finché resta così Scudo non può dire se queste persone possono andare. Tocca la ✎ qui sotto e indica i corsi — oppure dichiara che <b>non servono corsi</b>.</div>`
+        : "")
       + (r.righe.length ? r.righe.map(rigaMat).join("")
         : `<div class="item st-mute"><div class="info"><div class="name">Nessuno assegnato</div>
            <div class="meta">Tocca la ✎ di «${esc(r.mansione.nome)}» qui sotto e scegli chi la svolge.</div></div></div>`);
@@ -2761,7 +2845,10 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
     // c'è un confronto da leggere (due mansioni con persone e almeno un buco):
     // con un dato solo la forma onesta è una frase, non una barra sola.
     const manConGente = rMans.filter(r => r.totale > 0);
-    const buchi = (r) => r.no + r.attenzione;
+    /* decisione 13: il «non lo sappiamo» conta come buco. Escluderlo avrebbe
+       disegnato la barra corta proprio sulla mansione di cui non si sa niente,
+       ed è il verso in cui il grafico rassicura. */
+    const buchi = (r) => r.no + r.attenzione + r.nonSo;
     const buchiTot = manConGente.reduce((s, r) => s + buchi(r), 0);
     const peggio = manConGente.slice().sort((a, b) => buchi(b) - buchi(a))[0];
     if (manConGente.length >= 2 && buchiTot > 0) {
@@ -2771,12 +2858,13 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
         orientamento: "orizzontale", ordina: true, formato: soloInteri,
         valori: manConGente.map(r => ({
           etichetta: r.mansione.nome, valore: buchi(r),
-          stato: r.no ? "danger" : (r.attenzione ? "warn" : "ok"),
+          stato: r.no ? "danger" : (r.attenzione || r.nonSo ? "warn" : "ok"),
         })),
         aria: "Persone da sistemare per mansione: " + manConGente.map(r => r.mansione.nome + " " + buchi(r) + " su " + r.totale).join(", ") + ".",
         nota: "Ogni barra è il numero di persone che per quella mansione <b>non sono a posto</b>: "
           + "<b>critico</b> vuol dire che qualcuno non può proprio andare (corso mancante o scaduto), "
-          + "<b>da tenere d'occhio</b> che può andare ma c'è qualcosa da sistemare. "
+          + "<b>da tenere d'occhio</b> che può andare ma c'è qualcosa da sistemare — oppure che "
+          + "<b>non lo sappiamo</b>, perché per quella mansione non è scritto nessun corso richiesto. "
           + (peggio ? "Il buco più grosso è su <b>" + esc(peggio.mansione.nome) + "</b>: "
               + buchi(peggio) + (buchi(peggio) === 1 ? " persona" : " persone") + " su " + peggio.totale + ". " : "")
           + "Passa sopra una barra per il dettaglio.",
@@ -2794,14 +2882,20 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
     $("mans-count").textContent = MANS.length;
     $("mans-list").innerHTML = rMans.map(r => {
       const m = r.mansione;
-      const cls = r.no ? "st-danger" : (r.attenzione ? "st-warn" : (r.totale ? "st-ok" : "st-mute"));
+      const cls = r.no ? "st-danger" : (r.attenzione || r.nonSo ? "st-warn" : (r.totale ? "st-ok" : "st-mute"));
       const nreq = (m.requisiti || []).length, ndpi = (m.dpi || []).length;
+      /* decisione 13: «0 corsi richiesti» si legge «non ne servono», che è una
+         delle due letture — e non quella vera su una mansione appena creata.
+         Chi lo ha dichiarato lo vede scritto; chi non l'ha fatto vede la
+         domanda aperta invece di uno zero tranquillo. */
+      const testoReq = nreq ? nreq + (nreq === 1 ? " corso richiesto" : " corsi richiesti")
+        : (m.nessunRequisito === true ? "nessun corso richiesto (dichiarato)" : "corsi richiesti non ancora scritti");
       return `<div class="item ${cls}${editMans === m.id ? " evidenzia" : ""}">
         <div class="avatar sup">${I.persone}</div>
         <div class="info"><div class="name">${esc(m.nome)}</div>
-        <div class="meta">${nreq} ${nreq === 1 ? "corso richiesto" : "corsi richiesti"} · ${ndpi} ${ndpi === 1 ? "DPI previsto" : "DPI previsti"} · ${r.totale} ${r.totale === 1 ? "persona" : "persone"}</div></div>
+        <div class="meta">${esc(testoReq)} · ${ndpi} ${ndpi === 1 ? "DPI previsto" : "DPI previsti"} · ${r.totale} ${r.totale === 1 ? "persona" : "persone"}</div></div>
         <span class="acts">
-        <span class="badge ${r.totale ? (r.no ? "danger" : (r.attenzione ? "warn" : "ok")) : "tag"}" title="${r.totale ? r.puo + " su " + r.totale + " possono andare oggi" : "nessuna persona assegnata"}">${r.totale ? r.puo + "/" + r.totale : "nessuno"}</span>
+        <span class="badge ${r.totale ? (r.no ? "danger" : (r.attenzione || r.nonSo ? "warn" : "ok")) : "tag"}" title="${r.totale ? (r.requisitiIgnoti ? "non si sa chi può andare: per questa mansione non è scritto nessun corso richiesto" : r.puo + " su " + r.totale + " possono andare oggi") : "nessuna persona assegnata"}">${r.totale ? (r.requisitiIgnoti ? "?/" + r.totale : r.puo + "/" + r.totale) : "nessuno"}</span>
         <span class="arr" style="cursor:pointer" title="Modifica la mansione" data-edit-mans="${m.id}">✎</span>
         <span class="arr" style="cursor:pointer" title="Rimuovi la mansione" data-del-mans="${m.id}">✕</span></span></div>`;
     }).join("") || vuoto(I.attrezzo, "Nessuna mansione descritta",
@@ -2886,6 +2980,10 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
       ? `Consegne registrate: <b>${rDpi.consegne}</b> a ${rDpi.persone} ${rDpi.persone === 1 ? "persona" : "persone"}`
         + (rDpi.mancanti ? ` · mai consegnati: <b>${rDpi.mancanti}</b>` : "")
         + (rDpi.daSostituire ? ` · da sostituire: <b>${rDpi.daSostituire}</b>` : "")
+        /* decisione 14: il conteggio lo DICE. Prima queste consegne finivano
+           nel «niente da sistemare», cioè un dispositivo di cui nessuno ha
+           scritto la scadenza risultava a posto. */
+        + (rDpi.senzaSostituzione ? ` · senza data di sostituzione: <b>${rDpi.senzaSostituzione}</b>` : "")
         + (rDpi.addestramenti ? ` · addestramenti da registrare: <b>${rDpi.addestramenti}</b>` : "")
         + (rDpi.daSistemare ? "." : " · niente da sistemare.")
       : "Nessuna consegna registrata. Il verbale di consegna firmato è la prima cosa che viene chiesta in ispezione (art. 77 D.Lgs 81/08): registra qui sotto cosa hai dato, a chi e quando.";
@@ -2896,6 +2994,10 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
       const soloAddestramento = a.motivo === "addestramento non registrato" && a.consegnaId;
       const badge = a.motivo.includes("mai consegnato") ? "Mai consegnato"
         : a.motivo.includes("da sostituire") ? "Da sostituire"
+        // decisione 14 — e sta PRIMA di «in scadenza»: «senza data di
+        // sostituzione» non contiene quella parola, ma il verso giusto è
+        // comunque dal caso più specifico al più generico.
+        : a.motivo.includes(MOTIVO_SENZA_SOSTITUZIONE) ? "Senza data"
         : a.motivo.includes("in scadenza") ? "In scadenza" : "Addestramento";
       return `<div class="item ${a.gravita === "danger" ? "st-danger" : "st-warn"}">
         <div class="avatar">${esc(initials(a.lavoratore))}</div>
@@ -2927,6 +3029,15 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
       if (!perPersona.has(k)) perPersona.set(k, []);
       perPersona.get(k).push(c);
     }
+    /* ⛔ LE ETICHETTE DEL DISPOSITIVO SONO AL MASCHILE E COPRONO TUTTI GLI
+       STATI — regola 18. Qui prima c'era `st.stato === "scaduta" ? "Scaduto" :
+       "In scadenza"`, cioè un «altrimenti» che rispondeva per uno stato solo:
+       il giorno in cui `statoConsegnaDpi` ha imparato «senza data» (decisione
+       14, 02/08) quella riga avrebbe scritto «In scadenza» su un dispositivo
+       che non ha nessuna data — la bugia esatta che la decisione toglie.
+       `B` non basta: è al femminile («Scaduta»), perché parla di scadenze. */
+    const DPI_BADGE = { scaduta: "Scaduto", "in-scadenza": "In scadenza",
+      "senza data": "Senza data", mancante: "Mai consegnato", regolare: "Regolare" };
     const gruppi = [...perPersona.entries()].sort((a, b) =>
       ((byId[a[0]] || {}).nome || "zz").localeCompare((byId[b[0]] || {}).nome || "zz", "it"));
     $("dpi-list").innerHTML = gruppi.map(([lavId, lista]) => {
@@ -2936,7 +3047,8 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
       return `<div class="sub-sec">${esc(l ? l.nome : "Lavoratore non più in anagrafica")} — ${lista.length} ${lista.length === 1 ? "dispositivo" : "dispositivi"}${daFare ? " · " + daFare + " da sistemare" : ""}</div>`
         + lista.map(c => {
         const t = tipoDpiSicuro(c.tipo), st = statoConsegnaDpi(c);
-        const cls = st.stato === "scaduta" ? "st-danger" : st.stato === "in-scadenza" ? "st-warn"
+        const cls = st.stato === "scaduta" ? "st-danger"
+          : (st.stato === "in-scadenza" || st.stato === "senza data") ? "st-warn"
           : st.addestramentoMancante ? "st-warn" : "st-ok";
         const ab = t.addestramento
           ? (c.addestramento ? ["ok", "Addestrato"] : ["warn", "Addestramento da fare"])
@@ -2945,9 +3057,15 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
         // quando c'è davvero qualcosa da fare.
         const meta = [
           "consegnato il " + fmtData(c.dataConsegna),
+          /* decisione 14: le tre letture sono diverse e vanno dette diverse —
+             la data c'è; nessuno l'ha scritta; oppure qualcuno ha dichiarato
+             che quel pezzo non ha una vita utile. La terza è una risposta, le
+             prime due no. */
           c.scadenza
             ? "da sostituire entro il " + fmtData(c.scadenza) + (st.stato !== "regolare" ? " · " + livelloScadenza(c.scadenza).label : "")
-            : "senza data di sostituzione",
+            : st.nonScade
+              ? "dichiarato senza scadenza: non va sostituito a data"
+              : "nessuno ha scritto entro quando va sostituito",
           [c.modello, c.taglia ? "taglia " + c.taglia : ""].filter(Boolean).join(" · "),
           c.note || "",
         ].filter(Boolean).join(" · ");
@@ -2957,7 +3075,7 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
           <div class="meta">${esc(meta)}</div></div>
           <span class="acts">
           ${ab ? `<span class="badge ${ab[0]}" style="cursor:pointer" title="Tocca per registrare (o togliere) l'addestramento" data-dpi-addestr="${c.id}">${ab[1]}</span>` : ""}
-          ${st.stato !== "regolare" ? `<span class="badge ${B[st.stato][0]}">${st.stato === "scaduta" ? "Scaduto" : "In scadenza"}</span>` : ""}
+          ${st.stato !== "regolare" ? `<span class="badge ${B[st.stato][0]}">${DPI_BADGE[st.stato]}</span>` : ""}
           <span class="arr" style="cursor:pointer" title="Rimuovi la consegna" data-del-dpi="${c.id}">✕</span></span></div>`;
       }).join("");
     }).join("") || (dpiFiltro
@@ -3469,6 +3587,18 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
   // niente eventi datati nel futuro: il registro infortuni è un documento HSE e la
   // data più recente pilota il cartellone "giorni senza infortuni" (un refuso lo azzererebbe)
   $("inf-data").max = oggiISO();
+  /* ⛔ decisione 17: la casella «giorni assenza» vuota vuol dire due cose
+     diverse a seconda del tipo, e chi compila deve saperlo PRIMA di lasciarla
+     vuota — se no la distinzione la conosce solo il programma. La frase cambia
+     con la tendina, non è un cartello fisso che si smette di leggere. */
+  function notaGiorniAssenza() {
+    const inf = $("inf-tipo").value === "infortunio";
+    $("inf-giorni-nota").innerHTML = inf
+      ? "Se la <b>prognosi è ancora aperta</b>, lascia vuota la casella dei giorni: Scudo la conta fra le assenze <b>da quantificare</b> invece di scrivere zero. Uno zero vorrebbe dire «non è costato nemmeno una giornata»."
+      : "Per un near-miss la casella dei giorni resta vuota: non c'è stata assenza, ed è il caso normale.";
+  }
+  $("inf-tipo").addEventListener("change", notaGiorniAssenza);
+  notaGiorniAssenza();
   $("btn-inf").onclick = async () => {
     const data = $("inf-data").value, desc = $("inf-desc").value.trim();
     if (!data) { err("inf-data", true); $("inf-data").focus();
@@ -3479,7 +3609,13 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
     const tipo = $("inf-tipo").value;
     await db.aggiungi("infortuni", {
       data, tipo, gravita: $("inf-gravita").value,
-      giorniAssenza: +$("inf-giorni").value || 0,
+      /* ⛔ decisione 17: per un INFORTUNIO la casella vuota non vale zero —
+         la prognosi può essere ancora aperta, e uno zero direbbe «non è
+         costato nemmeno una giornata». Per un near-miss zero è la risposta
+         giusta, ed è il caso normale. */
+      giorniAssenza: $("inf-giorni").value.trim() === ""
+        ? (tipo === "infortunio" ? null : 0)
+        : Math.max(0, +$("inf-giorni").value || 0),
       descrizione: desc, luogo: $("inf-luogo").value.trim(),
     });
     $("inf-desc").value = ""; $("inf-giorni").value = ""; $("inf-luogo").value = "";
@@ -3490,7 +3626,10 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
     // registro infortuni per l'RSPP / il consulente (e il registro obbligatorio)
     let csv = "data;tipo;gravita;giorniAssenza;descrizione;luogo\n";
     for (const x of INF.slice().sort((a, b) => (a.data || "") < (b.data || "") ? -1 : 1))
-      csv += `${x.data||""};${x.tipo||""};${x.gravita||""};${+x.giorniAssenza||0};${csvCell(x.descrizione||"")};${csvCell(x.luogo||"")}\n`;
+      // decisione 17: una prognosi aperta esce come CELLA VUOTA, non come 0 —
+      // e `parseInfortuniCsv` la rilegge vuota. Uno zero scritto qui sarebbe un
+      // dato inventato nel documento che si consegna all'RSPP.
+      csv += `${x.data||""};${x.tipo||""};${x.gravita||""};${prognosiAperta(x) ? "" : giornateAssenza(x)};${csvCell(x.descrizione||"")};${csvCell(x.luogo||"")}\n`;
     const a = document.createElement("a");
     a.href = "data:text/csv;charset=utf-8," + encodeURIComponent(csv);
     a.download = "scudo_registro_infortuni.csv"; a.click();
@@ -3708,10 +3847,23 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
       ? LAV.slice().sort((a, b) => a.nome.localeCompare(b.nome, "it")).map(l =>
           `<button type="button" class="chg${MANSF.lav.has(l.id) ? " active" : ""}" data-mlav="${l.id}" aria-pressed="${MANSF.lav.has(l.id)}">${esc(l.nome)}</button>`).join("")
       : '<span class="form-hint">Nessun lavoratore in anagrafica: aggiungili nella scheda <b>Lavoratori</b> e poi torna qui.</span>';
+    /* decisione 13: la dichiarazione «non servono corsi» vale solo se non ce
+       n'è nemmeno uno spuntato. Scegliendo un corso il bottone si spegne da
+       sé, invece di lasciare in memoria due risposte che si contraddicono. */
+    if (MANSF.req.size) MANSF.nonReq = false;
+    const nr = $("mans-nonreq");
+    nr.classList.toggle("active", MANSF.nonReq);
+    nr.setAttribute("aria-pressed", MANSF.nonReq ? "true" : "false");
+    nr.disabled = MANSF.req.size > 0;
+    $("mans-nonreq-nota").innerHTML = MANSF.req.size
+      ? ""
+      : (MANSF.nonReq
+        ? "Dichiarato: per questa mansione non servono corsi. Nella matrice le persone assegnate torneranno a <b>può andare</b>."
+        : "Senza nessun corso richiesto la matrice risponde <b>«non lo sappiamo»</b>, non «può andare»: nessuno ha ancora scritto che cosa serve per fare questo lavoro.");
   }
   function annullaEditMans() {
     editMans = null;
-    MANSF.req.clear(); MANSF.dpi.clear(); MANSF.lav.clear();
+    MANSF.req.clear(); MANSF.dpi.clear(); MANSF.lav.clear(); MANSF.nonReq = false;
     $("mans-nome").value = ""; $("mans-preset").value = "";
     $("btn-mans").textContent = "Aggiungi";
     $("btn-mans-annulla").style.display = "none";
@@ -3725,17 +3877,26 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
     if (!$("mans-nome").value.trim() || !editMans) $("mans-nome").value = p.nome;
     MANSF.req.clear(); p.requisiti.forEach(x => MANSF.req.add(x));
     MANSF.dpi.clear(); p.dpi.forEach(x => MANSF.dpi.add(x));
+    MANSF.nonReq = false;   // un preset porta i suoi corsi: la dichiarazione non c'entra più
     err("mans-nome", false);
     disegnaChipsMansione();
     esito("mans-esito", "Mansione tipica caricata: corsi e DPI sono una proposta, togli e aggiungi quello che serve alla tua cava.");
   });
+  $("mans-nonreq").onclick = () => {
+    if (MANSF.req.size) return;   // c'è già un corso spuntato: non c'è niente da dichiarare
+    MANSF.nonReq = !MANSF.nonReq;
+    disegnaChipsMansione();
+  };
   $("btn-mans-annulla").onclick = () => { annullaEditMans(); esito("mans-esito", "Modifica annullata."); };
   $("btn-mans").onclick = async () => {
     const nome = $("mans-nome").value.trim();
     if (!nome) { err("mans-nome", true); $("mans-nome").focus();
       esito("mans-esito", "Serve il nome della mansione (es. «escavatorista»).", "err"); return; }
     err("mans-nome", false);
-    const rec = { nome, requisiti: [...MANSF.req], dpi: [...MANSF.dpi], lavoratoriIds: [...MANSF.lav] };
+    const rec = { nome, requisiti: [...MANSF.req], dpi: [...MANSF.dpi], lavoratoriIds: [...MANSF.lav],
+      // decisione 13: si salva SOLO se non c'è nessun corso spuntato, se no
+      // resterebbe scritta una dichiarazione che non riguarda più niente
+      nessunRequisito: MANSF.req.size === 0 && MANSF.nonReq };
     if (editMans) { await db.aggiorna("mansioni", editMans, rec); annullaEditMans();
       esito("mans-esito", "Mansione aggiornata: " + nome + ".", "success"); }
     else { await db.aggiungi("mansioni", rec); annullaEditMans();
@@ -3789,7 +3950,7 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
       + (t.nota ? "<br>" + esc(t.nota) : "")
       + (t.mesi ? "<br>Sostituzione proposta dopo <b>" + t.mesi + " mesi</b>: è una durata indicativa, quella vera la dice il libretto del costruttore." : "");
     const base = $("dpi-data").value || oggiISO();
-    if (t.mesi && !$("dpi-scad").value) {
+    if (t.mesi && !dpiNonScade && !$("dpi-scad").value) {
       const d = dataDaPeriodicita(t.mesi, new Date(base + "T00:00:00"));
       if (d) $("dpi-scad").value = d;
     }
@@ -3798,6 +3959,20 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
     dpiAddestr = !dpiAddestr;
     $("dpi-addestr").classList.toggle("active", dpiAddestr);
     $("dpi-addestr").setAttribute("aria-pressed", dpiAddestr ? "true" : "false");
+  };
+  /* decisione 14. Le due cose si escludono: dichiarare che un pezzo non scade
+     e scrivergli una data di sostituzione sono due risposte diverse alla
+     stessa domanda, e tenerle tutt'e due vorrebbe dire lasciar decidere al
+     programma quale conta. Accendendo la dichiarazione la data si svuota. */
+  function mostraNonScade() {
+    $("dpi-nonscade").classList.toggle("active", dpiNonScade);
+    $("dpi-nonscade").setAttribute("aria-pressed", dpiNonScade ? "true" : "false");
+    $("dpi-scad").disabled = dpiNonScade;
+  }
+  $("dpi-nonscade").onclick = () => {
+    dpiNonScade = !dpiNonScade;
+    if (dpiNonScade) $("dpi-scad").value = "";
+    mostraNonScade();
   };
   $("dpi-filtro-lav").addEventListener("change", async () => { dpiFiltro = $("dpi-filtro-lav").value; await refresh(); });
   $("btn-dpi").onclick = async () => {
@@ -3812,13 +3987,20 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
     const addestrato = !!dpiAddestr;
     await db.aggiungi("dpi", {
       lavoratoreId, tipo, modello: $("dpi-modello").value.trim(), taglia: $("dpi-taglia").value.trim(),
-      dataConsegna, scadenza: $("dpi-scad").value || null,
+      dataConsegna, scadenza: dpiNonScade ? null : ($("dpi-scad").value || null),
+      nonScade: !!dpiNonScade,
       addestramento: !!dpiAddestr, dataAddestramento: dpiAddestr ? dataConsegna : null, note: "",
     });
+    const senzaData = !dpiNonScade && !$("dpi-scad").value;
     $("dpi-modello").value = ""; $("dpi-taglia").value = ""; $("dpi-scad").value = "";
     dpiAddestr = false; $("dpi-addestr").classList.remove("active"); $("dpi-addestr").setAttribute("aria-pressed", "false");
+    dpiNonScade = false; mostraNonScade();
     esito("dpi-esito", "Consegna registrata: " + t.etichetta + " a " + (lav ? lav.nome : "lavoratore") + "."
-      + (t.addestramento && !addestrato ? " Manca l'addestramento: per questo dispositivo è obbligatorio (art. 77). Tocca il badge nell'elenco quando l'hai fatto." : ""),
+      + (t.addestramento && !addestrato ? " Manca l'addestramento: per questo dispositivo è obbligatorio (art. 77). Tocca il badge nell'elenco quando l'hai fatto." : "")
+      /* decisione 14: si dice SUBITO, non si scopre nell'elenco. Il caso c'è
+         perché la data si può svuotare — e per due tipi di DPI il catalogo non
+         sa nemmeno proporla. */
+      + (senzaData ? " Non hai indicato entro quando va sostituito: resta «senza data», non «a posto». Se quel pezzo non ha una scadenza, dichiaralo con «questo dispositivo non scade»." : ""),
       "success", "Consegna registrata.");
     await refresh();
   };
@@ -3828,6 +4010,7 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
     $("dpi-lav").value = lavId || "";
     $("dpi-tipo").value = tipo || "";
     $("dpi-scad").value = "";
+    dpiNonScade = false; mostraNonScade();   // il form riparte pulito (decisione 14)
     $("dpi-tipo").dispatchEvent(new Event("change"));
     const l = LAV.find(x => x.id === lavId), t = tipoDpiSicuro(tipo);
     esito("dpi-esito", "Consegna da registrare: " + t.etichetta + " per " + (l ? l.nome : "il lavoratore")
@@ -3886,7 +4069,10 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
             : "DA FARE");
       return `<tr><td>${esc(r.tipo.etichetta)}</td><td>${esc(r.tipo.cat)}</td>
         <td>${esc(c.modello || "—")}</td><td>${esc(c.taglia || "—")}</td>
-        <td>${fmtData(c.dataConsegna)}</td><td>${c.scadenza ? fmtData(c.scadenza) : "—"}</td>
+        <!-- decisione 14: su un foglio stampato «—» si legge «non serve». Le
+             due cose vere sono diverse, e vanno scritte diverse: chi lo ha
+             dichiarato e chi non l'ha mai scritto. -->
+        <td>${fmtData(c.dataConsegna)}</td><td>${c.scadenza ? fmtData(c.scadenza) : (c.nonScade === true ? "non scade (dichiarato)" : "non indicata")}</td>
         <td>${esc(add)}</td><td class="vb-firma"></td></tr>`;
     }).join("");
     $("verbale").innerHTML = `
@@ -4037,6 +4223,7 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
       MANSF.req.clear(); (m.requisiti || []).forEach(x => MANSF.req.add(x));
       MANSF.dpi.clear(); (m.dpi || []).forEach(x => MANSF.dpi.add(x));
       MANSF.lav.clear(); (m.lavoratoriIds || []).forEach(x => MANSF.lav.add(x));
+      MANSF.nonReq = m.nessunRequisito === true;
       $("btn-mans").textContent = "Salva modifica";
       $("btn-mans-annulla").style.display = "inline-flex";
       $("mans-form-tit").textContent = "Modifica mansione";

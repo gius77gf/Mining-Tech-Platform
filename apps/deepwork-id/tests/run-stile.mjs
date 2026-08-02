@@ -2074,6 +2074,38 @@ const COPPIE_STATO = [
   { funzione: "statoConformitaQuota", modulo: "apps/terra/terra-data.js",
     pagina: "apps/terra/index.html", mappa: "CQ",
     perche: "il semaforo della conformità alla quota di fondo, in cima al Piano di Terra" },
+  /* Aggiunte il 02/08 con le decisioni 13 e 14 del fondatore, e sono
+     esattamente il caso che la regola 18 esiste per prendere: due funzioni di
+     stato hanno imparato una risposta in più nello stesso giorno.
+     · `esitoAbilitazione` è passata da tre risposte a quattro («non-so»): se
+       `ESITO_MAT` ne avesse tenute tre, `ESITO_MAT[a.esito][2]` sarebbe stato
+       `undefined[2]` — la pagina morta AL DISEGNO, e leggendo il codice non si
+       vede. La funzione è stata scorporata da `abilitazioneLavoratore` apposta:
+       dentro un ternario lungo le risposte non stanno in dei `return`, e questa
+       regola non le saprebbe leggere.
+     · `DPI_BADGE` disegna lo stato di una CONSEGNA, che per la data di
+       sostituzione è quello di `statoScadenzaHSE`: dal 02/08 una consegna
+       senza data risponde «senza data», e al suo posto c'era un «altrimenti»
+       che scriveva «In scadenza» su un dispositivo che una data non ce l'ha.
+       Non è una pagina morta: è una bugia disegnata — peggio, perché nessuno
+       la nota. */
+  { funzione: "esitoAbilitazione", modulo: "apps/scudo/scudo-data.js",
+    pagina: "apps/scudo/index.html", mappa: "ESITO_MAT",
+    perche: "le pastiglie della matrice «chi può fare cosa» di Scudo" },
+  { funzione: "statoScadenzaHSE", modulo: "shared/dw-ponti.js",
+    pagina: "apps/scudo/index.html", mappa: "DPI_BADGE",
+    perche: "l'etichetta al maschile del dispositivo nel registro DPI di Scudo" },
+  /* ⚠️ QUI LA MAPPA STA NEL MODULO, NON NELLA PAGINA — ed è il disegno giusto
+     (regola 7: la frase la decide un posto solo, e il report la ri-usa in due
+     schermate). Il controllo non cambia: sempre «le risposte di QUESTA
+     funzione stanno tutte in QUELLA mappa». Aggiunta il 02/08 con la decisione
+     16, che a `esitoPunto` ha fatto guadagnare la quarta risposta
+     («senza-soglia»): `ESITI` ne aveva tre, e la pagina ha un ripiego
+     `|| ESITI["senza-dati"]` — quindi non sarebbe morta, avrebbe scritto
+     «Senza dati» su un punto con vent letture. Un difetto muto, che è peggio. */
+  { funzione: "esitoPunto", modulo: "apps/sentinella/sentinella-data.js",
+    pagina: "apps/sentinella/sentinella-data.js", mappa: "ESITI",
+    perche: "l'esito del report di conformità, quello che va all'ente" },
 ];
 /* ⚠️ Due letture sbagliate al primo colpo, e le controprove le hanno viste
    subito — vale la pena scriverle perché sono la stessa famiglia:

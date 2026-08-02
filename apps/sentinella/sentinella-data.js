@@ -187,6 +187,16 @@ export const DEMO = {
   ],
 };
 
+// ⛔ «QUESTA SOGLIA VALE?» SI CHIEDE IN UN POSTO SOLO. La stessa condizione era
+// scritta a mano in cinque punti del modulo (`sogliaEfficace`, `serieStorica`,
+// `ultimaLetturaOltre`, `statPeriodo`, e il ripiego di `statoMisura`) — e la
+// quinta copia si comportava in modo diverso dalle altre quattro: dove loro
+// dicevano «non c'è» lei metteva **1**. È il difetto della regola riscritta,
+// con il costo già pagato una volta dalla convenzione sui numeri.
+// Vale > 0 e finita: zero non è una soglia (non si divide), un negativo non è
+// un limite, e una stringa vuota o `null` sono l'assenza.
+const sogliaValida = (v) => Number.isFinite(+v) && +v > 0;
+
 // ⛔ «CONFORME» SENZA AVER MISURATO NIENTE (corretto il 03/08). Un punto appena
 // configurato nasce con `valore: 0, letture: []` — nessuno ha misurato — e qui
 // il rapporto faceva zero, zero è sotto 0,9, e la risposta era «Conforme»,
@@ -216,15 +226,43 @@ export const DEMO = {
 // ZERO senza letture si comporta come uno appena creato. È la direzione sicura
 // — chiede una misura invece di sostenere che ce n'è una.
 // docs/IL_CONFORME_CHE_NESSUNO_HA_MISURATO.md
+// ⛔ E LA SECONDA FACCIA È LA SOGLIA CHE NON C'È (decisione 16, approvata dal
+// fondatore il 02/08). Fin qui la riga del rapporto diceva
+// `+mm.soglia || 1`: non una scelta scritta da qualcuno, un ripiego messo per
+// non dividere per zero. Misurato su un punto senza soglia, prima:
+//   · 0,8 → «Conforme», verde;
+//   · 1,2 → «Superamento», rosso;
+//   · soglia −3 → rapporto 1200, cioè un superamento del 120.000% inventato
+//     (`Math.max(0.001, -3)` fa 0,001: il ripiego non copriva nemmeno i
+//     negativi).
+// Cioè sbagliava in tutt'e due i versi sullo stesso punto: un verde
+// tranquillizzante a chi non ha nessun limite da rispettare, e un allarme
+// inventato a chi sta sopra un numero che nessuno ha scelto.
+// Senza soglia non si può dire né conforme né non conforme: la risposta è uno
+// STATO A SÉ, «Senza soglia», giallo come gli altri avvisi di questa app —
+// non un allarme (nessuno ha sbagliato una misura), ma una cosa da sistemare.
+// La bandiera `calcolabile` viaggia col rapporto e la leggono la pagina (che
+// senza di lei scriverebbe «0%», perché `Math.round(null*100)` fa zero) e
+// `prioritaConformita` qui sotto.
+// ⚠️ L'ORDINE FRA I DUE AVVISI È UNA SCELTA: «mai misurato» viene PRIMA.
+// Un punto senza letture E senza soglia è tutt'e due le cose; la prima da fare
+// resta registrare una misura, ed è anche il comportamento che c'era, quindi
+// nessun punto già in archivio cambia badge per un motivo diverso da questo.
+// ⚠️ La guardia `Math.max(0.001, …)` resta anche se adesso la soglia è > 0 per
+// costruzione: con una soglia subnormale (1e-320) la divisione darebbe
+// `Infinity`, e `Math.round(Infinity*100)` finisce sulla pagina come
+// «Infinity%».
 export function statoMisura(m) {
   const mm = m || {};
   const v = +mm.valore;
   if (!ultimaLettura(mm) && !(Number.isFinite(v) && v > 0))
-    return { cls: "warn", label: "Mai misurato", stato: "mai", ratio: null };
-  const r = (+mm.valore || 0) / Math.max(0.001, +mm.soglia || 1);
-  if (r >= 1) return { cls: "danger", label: "Superamento", stato: "superamento", ratio: r };
-  if (r >= 0.9) return { cls: "warn", label: "Attenzione", stato: "attenzione", ratio: r };
-  return { cls: "ok", label: "Conforme", stato: "conforme", ratio: r };
+    return { cls: "warn", label: "Mai misurato", stato: "mai", ratio: null, calcolabile: false };
+  if (!sogliaValida(mm.soglia))
+    return { cls: "warn", label: "Senza soglia", stato: "senza-soglia", ratio: null, calcolabile: false };
+  const r = (+mm.valore || 0) / Math.max(0.001, +mm.soglia);
+  if (r >= 1) return { cls: "danger", label: "Superamento", stato: "superamento", ratio: r, calcolabile: true };
+  if (r >= 0.9) return { cls: "warn", label: "Attenzione", stato: "attenzione", ratio: r, calcolabile: true };
+  return { cls: "ok", label: "Conforme", stato: "conforme", ratio: r, calcolabile: true };
 }
 // ⛔ Alias di `giorniTra`: lo stesso involucro di due righe era scritto anche
 // in Conti. Un alias non è una seconda implementazione.
@@ -232,21 +270,45 @@ export const giorni = giorniTra;
 // Riepilogo di conformità: quanti monitoraggi sono conformi / in
 // attenzione / in superamento, a colpo d'occhio. Usa statoMisura (stessa
 // logica dei badge). Funzione pura e testabile.
+// ⛔ E UN PUNTO SENZA SOGLIA NON STA IN NESSUNA DELLE TRE (decisione 16). Non è
+// conforme — non c'è nessun limite rispetto a cui esserlo —, non è in
+// attenzione e non è un superamento: esce dal numeratore E dal denominatore
+// della conformità, e per questo ha un suo conto che chi mostra deve
+// DICHIARARE. `giudicabili` è quel denominatore, scritto una volta qui invece
+// che ricalcolato a mano da ogni schermata: «3 conformi su 5 punti» e «3
+// conformi su 3 giudicabili» sono due frasi diverse, e la seconda è quella
+// vera.
 export function riepilogoConformita(monitoraggi) {
   const r = { conformi: 0, attenzione: 0, superamento: 0, maiMisurati: 0,
-    totale: (monitoraggi || []).length };
+    senzaSoglia: 0, giudicabili: 0, totale: (monitoraggi || []).length };
   for (const m of monitoraggi || []) {
     const st = statoMisura(m);
-    // ⛔ Lo `stato` si guarda PRIMA della classe: «mai misurato» e «senza data»
-    // condividono il giallo con «Attenzione», e leggendo solo `cls` finirebbero
-    // contati come punti vicini alla soglia — un'altra affermazione falsa, solo
-    // in un'altra direzione.
+    // ⛔ Lo `stato` si guarda PRIMA della classe: «mai misurato», «senza data» e
+    // «senza soglia» condividono il giallo con «Attenzione», e leggendo solo
+    // `cls` finirebbero contati come punti vicini alla soglia — un'altra
+    // affermazione falsa, solo in un'altra direzione.
     if (st.stato === "mai") r.maiMisurati++;
+    else if (st.stato === "senza-soglia") r.senzaSoglia++;
     else if (st.cls === "danger") r.superamento++;
     else if (st.cls === "warn") r.attenzione++;
     else r.conformi++;
   }
+  r.giudicabili = r.conformi + r.attenzione + r.superamento;
   return r;
+}
+
+// I punti su cui l'app NON PUÒ dire niente perché nessuno ha scritto una
+// soglia — con la soglia che vale davvero, cioè guardando anche il ricettore
+// (un punto senza soglia propria collegato a un ricettore che ne ha una NON è
+// senza soglia: quella del ricettore è il limite scritto per quella casa).
+// Serve dove la frase rischia di essere tranquilla: il ponte con Scudo dice
+// «nessun punto è oltre soglia», ed è vero solo per i punti una soglia ce
+// l'hanno.
+export function puntiSenzaSoglia(monitoraggi, ricettori) {
+  return (monitoraggi || [])
+    .filter(m => m && sogliaEfficace(m, ricettori).valore == null)
+    .map(m => ({ id: m.id, nome: m.nome || "Punto di misura",
+      n: (((m || {}).letture) || []).length }));
 }
 
 // Data GG/MM/AAAA da ISO (formattazione pura per i testi delle allerte).
@@ -278,8 +340,18 @@ export function prioritaConformita(monitoraggi, adempimenti, oggi = new Date()) 
       // più tranquilla che si possa leggere — accanto a un badge che dice
       // «Mai misurato». Due frasi opposte sulla stessa riga: quella con la
       // cifra è la sola che si guarda.
+      // ⛔ E SU UN PUNTO SENZA SOGLIA non si scrive «/ soglia —»: quel trattino
+      // è l'assenza travestita da dato, appesa a una cifra che sembra il
+      // risultato di un confronto. Si dice che cosa manca e che cosa fare.
+      // La bandiera `calcolabile` è la stessa che porta il rapporto: qui è
+      // letta per decidere se una frase con un confronto ha senso.
       dettaglio: (st.stato === "mai"
-        ? "nessuna misura registrata · soglia " + numeroIt(m.soglia) + (m.unita ? " " + m.unita : "")
+        ? "nessuna misura registrata" + (sogliaValida(m.soglia)
+            ? " · soglia " + numeroIt(m.soglia) + (m.unita ? " " + m.unita : "")
+            : " · e nessuna soglia impostata")
+        : !st.calcolabile
+        ? "nessuna soglia impostata: ultimo valore " + numeroIt(m.valore) + (m.unita ? " " + m.unita : "")
+          + ", ma non c'è un limite rispetto a cui giudicarlo"
         : numeroIt(m.valore) + " " + (m.unita || "") + " / soglia " + numeroIt(m.soglia))
         + (m.nota ? " · " + m.nota : ""),
       badge: st.label });
@@ -1550,6 +1622,24 @@ export const DICHIARAZIONI_PROVENIENZA = {
 // Funzione PURA: prende i dati e restituisce il contenuto del documento,
 // senza toccare né la pagina né la stampa. `oggi` iniettabile.
 // ══════════════════════════════════════════════════════════════════════
+// L'ESITO DI UN PUNTO, in una funzione sua. Sta fuori da `reportConformita`
+// per due ragioni: la stessa regola vale per il singolo punto e per il
+// documento intero (che è la stessa domanda fatta al mucchio), e una mappa di
+// stati — `ESITI`, qui sotto — va confrontata con le risposte di UNA funzione,
+// se no il giorno che ne nasce una quarta la pagina muore al disegno
+// (regola 18 di run-stile).
+// ⛔ L'ORDINE DELLE DOMANDE È IL PUNTO. Prima «c'è una misura?», poi «c'è un
+// limite?», solo alla fine «l'ha superato?». Fino al 02/08 la seconda domanda
+// non veniva fatta: un punto con letture e senza soglia usciva **«conforme»**,
+// perché nessuna lettura risultava «oltre» una soglia che non c'era. Cioè il
+// documento che va all'ente dichiarava rispettato un limite mai scritto.
+export function esitoPunto(nLetture, nSuperamenti, soglia) {
+  if (!(+nLetture > 0)) return "senza-dati";
+  if (!sogliaValida(soglia)) return "senza-soglia";
+  if (+nSuperamenti > 0) return "non-conforme";
+  return "conforme";
+}
+
 export function reportConformita(o = {}) {
   const dal = String(o.dal || "").slice(0, 10);
   const al = String(o.al || "").slice(0, 10);
@@ -1576,7 +1666,14 @@ export function reportConformita(o = {}) {
                      ...((l || {}).origine && typeof l.origine === "object" ? { origine: l.origine } : {}) }))
         .filter(l => Number.isFinite(l.valore) && nelPeriodo(l.data))
         .sort((a, b) => { const ka = chiaveOrdine(a), kb = chiaveOrdine(b); return ka < kb ? -1 : ka > kb ? 1 : 0; })
-        .map(l => ({ ...l, oltre: eff.valore != null && l.valore >= eff.valore }));
+        /* ⛔ `oltre` HA TRE RISPOSTE, NON DUE (decisione 16). Con `false` la
+           tabella del documento scriveva su OGNI riga il tag verde «entro
+           soglia» — su un punto dove nessuna soglia esiste. `null` è la
+           convenzione dell'ecosistema per «non si può dire», e la pagina la
+           legge per scrivere «non confrontata». I filtri non cambiano:
+           `null` è falso, quindi `letture.filter(l => l.oltre)` conta le
+           stesse righe di prima. */
+        .map(l => ({ ...l, oltre: eff.valore == null ? null : l.valore >= eff.valore }));
       const valori = letture.map(l => l.valore);
       const superamenti = letture.filter(l => l.oltre);
       return {
@@ -1587,14 +1684,24 @@ export function reportConformita(o = {}) {
         min: valori.length ? Math.min(...valori) : null,
         media: valori.length ? valori.reduce((s, v) => s + v, 0) / valori.length : null,
         superamenti, nSuperamenti: superamenti.length,
-        esito: !valori.length ? "senza-dati" : superamenti.length ? "non-conforme" : "conforme",
+        esito: esitoPunto(valori.length, superamenti.length, eff.valore),
       };
     });
 
   const nLetture = punti.reduce((s, p) => s + p.n, 0);
   const nSuperamenti = punti.reduce((s, p) => s + p.nSuperamenti, 0);
   const conDati = punti.filter(p => p.n > 0);
-  const esito = !conDati.length ? "senza-dati" : nSuperamenti ? "non-conforme" : "conforme";
+  /* ⛔ IL DENOMINATORE DEL DOCUMENTO. `conDati` diceva «di questi punti
+     qualcuno ha misurato»; non diceva «di questi punti si può giudicare la
+     conformità», che è la domanda a cui il documento risponde. Un punto con
+     venti letture e nessuna soglia stava in `conDati` e portava zero
+     superamenti: bastava lui a far scrivere «Conforme» in testa al report.
+     Adesso i giudicabili sono un conto a sé e viaggiano nel documento
+     (`nPuntiSenzaSoglia`), perché la pagina li deve DICHIARARE accanto
+     all'esito invece di lasciarli sparire dentro un aggettivo tranquillo. */
+  const giudicabili = conDati.filter(p => p.soglia.valore != null);
+  const senzaSoglia = conDati.filter(p => p.soglia.valore == null);
+  const esito = esitoPunto(conDati.length, nSuperamenti, giudicabili.length ? 1 : 0);
 
   const reclami = (o.reclami || [])
     .filter(x => nelPeriodo(x.data))
@@ -1623,6 +1730,7 @@ export function reportConformita(o = {}) {
   return {
     dal, al, ricettore, ricettoreId,
     punti, nPunti: punti.length, nPuntiConDati: conDati.length,
+    nPuntiGiudicabili: giudicabili.length, nPuntiSenzaSoglia: senzaSoglia.length,
     nLetture, nSuperamenti, esito, tarature, provenienza,
     reclami, nReclami: reclami.length,
     volate, nVolate: volate.length,
@@ -1632,11 +1740,19 @@ export function reportConformita(o = {}) {
 }
 
 // Etichetta e gravità dell'esito, in parole che capisce anche chi non è
-// un tecnico. Sono le stesse tre facce del semaforo del resto dell'app.
+// un tecnico. Sono le stesse facce del semaforo del resto dell'app.
+// ⛔ QUATTRO, NON TRE (decisione 16). «Senza dati» e «Senza soglia» si
+// somigliano e non sono la stessa cosa, e il documento va all'ente: la prima
+// dice che nessuno ha misurato, la seconda che si è misurato ma non c'è nessun
+// limite scritto con cui confrontare. Confonderle vorrebbe dire mandare
+// qualcuno a cercare letture che ci sono già.
+// ⚠️ Ogni chiave qui dentro deve esistere fra le risposte di `esitoPunto`, e
+// viceversa: è la coppia che la regola 18 di `run-stile.mjs` confronta.
 export const ESITI = {
   "conforme":    { cls: "ok",     label: "Conforme",     testo: "Nel periodo considerato nessuna lettura ha raggiunto la soglia applicata." },
   "non-conforme":{ cls: "danger", label: "Non conforme", testo: "Nel periodo considerato una o più letture hanno raggiunto o superato la soglia applicata." },
   "senza-dati":  { cls: "warn",   label: "Senza dati",   testo: "Nel periodo considerato non ci sono letture registrate: il report non può dire se il limite è stato rispettato." },
+  "senza-soglia":{ cls: "warn",   label: "Senza soglia", testo: "Le letture del periodo ci sono, ma su questi punti non è impostata nessuna soglia: non essendoci un limite scritto, il report non può dire né che è stato rispettato né che è stato superato. La soglia si imposta sul punto di misura, oppure sul ricettore a cui il punto è collegato." },
 };
 
 // ══════════════════════════════════════════════════════════════════════

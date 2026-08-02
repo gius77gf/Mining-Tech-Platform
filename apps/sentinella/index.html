@@ -948,6 +948,14 @@ textarea.dw-input{
     <button class="chg" data-filtro="ok">Conformi</button>
     <button class="chg" data-filtro="warn">Attenzione</button>
     <button class="chg" data-filtro="danger">Superamenti</button>
+    <!-- ⛔ IL FILTRO C'È SOLO QUANDO IL CASO C'È (decisione 16). Un punto senza
+         soglia condivide il giallo con «Attenzione», e sotto quel nome
+         sarebbe letto come «vicino al limite» — che è esattamente la cosa che
+         non si può dire di lui. Qui ha un nome suo. Nasce nascosto perché in
+         un archivio sano non esiste nessun punto senza soglia: una linguetta
+         sempre accesa su un caso che non c'è è rumore, e il rumore si smette
+         di leggere. Lo accende `refresh()` guardando il conteggio. -->
+    <button class="chg" id="chg-senza-soglia" data-filtro="senza-soglia" hidden>Senza soglia</button>
   </div>
   <div class="ord">
     <label for="mon-ord">Ordina</label>
@@ -1417,7 +1425,7 @@ textarea.dw-input{
            reportConformita, ESITI, TIPI_RECLAMO, etichettaReclamo, riepilogoReclami, firmaLettura,
            PERIODICITA, etichettaFrequenza, ultimaLettura, statoRigaProgramma, programmaEsteso,
            riepilogoProgramma, allerteProgramma, andamentoRicettore,
-           ponteScudo, superamentiAperti, azioniDiOrigine, statoPonte, bozzaAzioneSuperamento,
+           ponteScudo, superamentiAperti, puntiSenzaSoglia, azioniDiOrigine, statoPonte, bozzaAzioneSuperamento,
            bozzaAzioneReclamo, coincidenzaVolata, dataPiuGiorni, AVVISO_COINCIDENZA,
            ppvDiVolata, testoFontePpv, lettureVibrazioniDelGiorno, campiPpvVolata, CAMPI_PPV_VUOTI,
            refertiDaVolate, motivoReferto, MOTIVI_REFERTO, csvRefertiGenesi, riferimentoReferto,
@@ -1773,12 +1781,20 @@ textarea.dw-input{
   // stessa misura del semaforo di conformità, così Quadro e Monitoraggi non
   // possono mai dire due cose diverse. A parità di rapporto vince chi ha
   // più letture registrate: ha più da raccontare.
+  /* ⚠️ UN RAPPORTO CHE NON SI PUÒ CALCOLARE NON È UN RAPPORTO BASSO. Chi non ha
+     soglia (o non è mai stato misurato) ha `ratio: null`, e nei confronti
+     `null` si comporta come zero: da solo basta a farlo perdere, ma la
+     preferenza va scritta invece che sperata — la bandiera `calcolabile` dice
+     esattamente questo, e chi ha un rapporto vero vince sempre. */
   function puntoPeggiore(monitoraggi) {
     let scelto = null;
     for (const m of monitoraggi || []) {
       const st = statoMisura(m), nl = ((m && m.letture) || []).length;
-      if (!scelto || st.ratio > scelto.st.ratio || (st.ratio === scelto.st.ratio && nl > scelto.nl))
-        scelto = { m, st, nl };
+      const vince = !scelto
+        || (st.calcolabile && !scelto.st.calcolabile)
+        || (st.calcolabile === scelto.st.calcolabile
+            && (st.ratio > scelto.st.ratio || (st.ratio === scelto.st.ratio && nl > scelto.nl)));
+      if (vince) scelto = { m, st, nl };
     }
     return scelto;
   }
@@ -1822,6 +1838,13 @@ textarea.dw-input{
     } else {
       nota = `Su questo punto <b>non è ancora stata registrata nessuna misura</b>: il valore qui accanto è quello inserito a mano sulla scheda. Usa <b>Registra misura</b> nei Monitoraggi e qui compare l'andamento.`;
     }
+    /* ⛔ LA SOGLIA CHE MANCA VA DETTA IN TUTTI E QUATTRO I RAMI (decisione 16).
+       Con due letture o più la frase c'era già (qui sopra); negli altri tre no,
+       e due di quei rami parlano DI una soglia («se la soglia è rispettata»)
+       che su questo punto non esiste. Si aggiunge in coda invece di riscrivere
+       le frasi: il ramo lungo ha già detto la sua e non la ripete. */
+    if (!sogliaOk && valori.length < 2)
+      nota += ` Inoltre su questo punto <b>non è impostata nessuna soglia</b>: senza un limite scritto l'app non potrà dire né conforme né superamento, nemmeno quando le misure arriveranno. La soglia si imposta sul punto, oppure sul ricettore a cui è collegato.`;
 
     box.innerHTML = `<div class="peggio ${cls}" role="button" tabindex="0" data-peggio="${esc(m.id)}"
         title="Apri la serie storica di ${esc(m.nome)}">
@@ -2010,6 +2033,21 @@ textarea.dw-input{
     const voci = vociPonte();
     const conAz = voci.filter(v => v.azioni.length).length;
     const daChiudere = voci.reduce((n, v) => n + v.azioni.filter(a => a.stato !== "chiusa").length, 0);
+    /* ⛔ QUESTA SEZIONE SI FONDA SU UN'ASSENZA, E LE ASSENZE VANNO DICHIARATE
+       (decisione 16). `superamentiAperti` salta i punti senza soglia — ed è
+       giusto, senza un limite non esiste nessun superamento da rincorrere. Ma
+       da lì la sezione arrivava alla frase «Nessun punto di misura è oltre
+       soglia», che è la buona notizia ricavata dal non aver guardato: su quei
+       punti non è che non ci sono superamenti, è che non si possono vedere.
+       Il numero lo dà il modulo (`puntiSenzaSoglia`) e guarda anche il
+       ricettore, perché un punto collegato a una casa con la sua soglia una
+       soglia ce l'ha. */
+    const senzaSoglia = puntiSenzaSoglia(MON, RIC);
+    const avvisoCieco = senzaSoglia.length
+      ? `<b>${senzaSoglia.length}</b> ${senzaSoglia.length === 1 ? "punto di misura non ha" : "punti di misura non hanno"} nessuna soglia impostata: `
+        + `su ${senzaSoglia.length === 1 ? "quello" : "quelli"} un superamento non si può nemmeno riconoscere, quindi qui non compare — `
+        + `non perché non ci sia, ma perché manca il limite con cui vederlo (${esc(senzaSoglia.map(p => p.nome).join(", "))}).`
+      : "";
     $("pon-tot").textContent = voci.length;
     // nel riquadro «recap» il grassetto è riservato ai NUMERI (è lo stile
     // del core: b = cifra grande): le parole restano testo normale.
@@ -2017,7 +2055,8 @@ textarea.dw-input{
       ? ""
       : `Fatti che chiedono una risposta: <b>${voci.length}</b> · con un'azione correttiva già aperta: <b>${conAz}</b> · ancora senza: <b>${voci.length - conAz}</b>`
         + (daChiudere ? ` · azioni ancora da chiudere: <b>${daChiudere}</b>.` : ".")
-        + " Le azioni correttive vivono in Scudo, nello stesso scadenzario della sicurezza: lì hanno un responsabile e una data.");
+        + " Le azioni correttive vivono in Scudo, nello stesso scadenzario della sicurezza: lì hanno un responsabile e una data.")
+      + (avvisoCieco ? (voci.length ? "<br>" : "") + avvisoCieco : "");
 
     $("pon-list").innerHTML = voci.map(v => {
       const sup = v.genere === "superamento";
@@ -2054,8 +2093,17 @@ textarea.dw-input{
              <div class="pon-cmd"><button type="button" class="dw-btn mini" data-pon-nuova="${esc(v.chiave)}">Apri azione correttiva</button></div>`}
       </div>`;
     }).join("")
-      || vuoto(I.fatto, "Niente da rincorrere",
-          "Nessun punto di misura è oltre soglia e non ci sono reclami aperti. Quando ne comparirà uno, da qui si apre in un tocco l'<b>azione correttiva</b> in Scudo — con un responsabile e una data — e qui resta scritto a che punto è.");
+      /* ⚠️ E QUANDO CI SONO PUNTI SENZA SOGLIA IL VUOTO NON È «NIENTE DA
+         RINCORRERE»: è «di una parte non lo so». Due stati vuoti diversi,
+         perché dicono due cose diverse a chi legge. */
+      || (senzaSoglia.length
+          ? vuoto(I.sensore, "Niente da rincorrere, ma non su tutti i punti",
+              `Fra i punti che una soglia ce l'hanno nessuno è oltre, e non ci sono reclami aperti. `
+              + `Su ${senzaSoglia.length === 1 ? "<b>un punto</b>" : "<b>" + senzaSoglia.length + " punti</b>"} `
+              + `però non è impostata nessuna soglia, quindi lì un superamento non si può riconoscere: `
+              + `finché resta così, questa sezione non può dire che sia tutto a posto.`)
+          : vuoto(I.fatto, "Niente da rincorrere",
+              "Nessun punto di misura è oltre soglia e non ci sono reclami aperti. Quando ne comparirà uno, da qui si apre in un tocco l'<b>azione correttiva</b> in Scudo — con un responsabile e una data — e qui resta scritto a che punto è."));
   }
 
   // APRE L'AZIONE CORRETTIVA in Scudo, già collegata alla sua origine.
@@ -2849,17 +2897,29 @@ textarea.dw-input{
 
     box.innerHTML = `<div class="rep">
       ${testaReport(periodo, R, genTxt)}
+      ${/* ⛔ UN ESITO CHE ASSOLVE DEVE DIRE SU QUANTI PUNTI (decisione 16). Con
+            un punto giudicabile su tre, «Conforme» in testa al documento è
+            vero e insieme fuorviante: chi legge conta i punti in cima
+            («Punti di misura: 3») e attribuisce quel giudizio a tutti e tre.
+            La riga non toglie il verdetto, gli mette accanto il suo
+            denominatore — ed è la stessa forma della dichiarazione delle
+            tarature e della provenienza, che stanno qui sotto per la stessa
+            ragione: dicono di CHI parla il numero, non se ha superato. */""}
       <div class="rep-esito ${E.cls === "ok" ? "" : E.cls}">
         <div class="rep-esito-ico">${ico}</div>
         <div><div class="rep-esito-lab">${esc(E.label)}</div>
-        <div class="rep-esito-txt">${esc(E.testo)}</div></div>
+        <div class="rep-esito-txt">${esc(E.testo)}${R.nPuntiSenzaSoglia && R.esito !== "senza-soglia"
+          ? " " + esc(`Questo giudizio riguarda ${R.nPuntiGiudicabili} ${R.nPuntiGiudicabili === 1 ? "punto" : "punti"} su ${R.nPuntiConDati} con letture nel periodo: ${R.nPuntiSenzaSoglia === 1 ? "un punto non ha" : R.nPuntiSenzaSoglia + " punti non hanno"} nessuna soglia impostata, e su ${R.nPuntiSenzaSoglia === 1 ? "quello" : "quelli"} non si può dire né conforme né non conforme.`)
+          : ""}</div></div>
       </div>
       ${dichiarazioneTarature(R)}
       ${dichiarazioneProvenienza(R)}
       <div class="rep-cifre">
         <div class="rep-cifra"><div class="k">Punti di misura</div><div class="v">${R.nPunti}</div></div>
         <div class="rep-cifra"><div class="k">Letture</div><div class="v">${R.nLetture}</div></div>
-        <div class="rep-cifra ${R.nSuperamenti ? "danger" : ""}"><div class="k">Superamenti</div><div class="v">${R.nSuperamenti}</div></div>
+        ${/* «Superamenti: 0» senza nemmeno un punto giudicabile è uno zero
+              calcolato dal nulla, come quello di `statPeriodo`. */""}
+        <div class="rep-cifra ${R.nSuperamenti ? "danger" : ""}"><div class="k">Superamenti</div><div class="v">${R.nPuntiGiudicabili ? R.nSuperamenti : "—"}</div></div>
         <div class="rep-cifra"><div class="k">Reclami</div><div class="v">${R.nReclami}</div></div>
         <div class="rep-cifra"><div class="k">Volate</div><div class="v">${R.nVolate}</div></div>
       </div>
@@ -2957,7 +3017,12 @@ textarea.dw-input{
           ? `<span class="tag warn">corretta</span><span class="prov-prima">in origine ${
               pr.corretta.prima != null ? esc(numeroIt(pr.corretta.prima)) : "non leggibile"}</span>`
           : ""}</td>
-      <td class="stato">${l.oltre ? '<span class="tag danger">oltre soglia</span>' : '<span class="tag ok">entro soglia</span>'}</td></tr>`;
+      ${/* ⛔ TRE RISPOSTE, NON DUE (decisione 16). `oltre` vale `null` quando
+            nessuna soglia esiste, e con due soli rami ogni riga della tabella
+            portava il tag verde «entro soglia» — dentro il documento che va
+            all'ente, su un limite che nessuno ha mai scritto. */""}
+      <td class="stato">${l.oltre == null ? '<span class="tag warn">non confrontata</span>'
+        : l.oltre ? '<span class="tag danger">oltre soglia</span>' : '<span class="tag ok">entro soglia</span>'}</td></tr>`;
     }).join("");
 
     return `<div class="rep-punto">
@@ -2965,7 +3030,12 @@ textarea.dw-input{
       <div class="rep-punto-meta">${ric}<br>${fonte}${conflitto}<br>
         Letture nel periodo: <b>${p.n}</b> · massimo <b>${esc(numeroIt(p.max))} ${esc(p.unita)}</b> ·
         media <b>${esc(numeroIt(p.media))} ${esc(p.unita)}</b> ·
-        superamenti: <b>${p.nSuperamenti}</b> · esito: <b>${esc(E.label)}</b></div>
+        ${/* ⛔ «superamenti: 0» SU UN PUNTO SENZA SOGLIA è la solita cifra
+              tranquilla ricavata dal nulla: nessuna lettura può essere «oltre»
+              un limite che non esiste, quindi quello zero non è un risultato,
+              è l'assenza del confronto. */""}
+        superamenti: <b>${p.soglia.valore == null ? "—" : p.nSuperamenti}</b> · esito: <b>${esc(E.label)}</b></div>
+        ${p.esito === "senza-soglia" ? `<div class="note avviso" style="margin-top:8px;">${esc(ESITI["senza-soglia"].testo)}</div>` : ""}
       <div class="rep-graf" id="rep-graf-${i}"></div>
       <div class="tab-wrap"><table class="tab">
         <thead><tr><th>Data</th><th>Ora</th><th>Valore <span class="u">(${esc(p.unita)})</span></th><th>Provenienza</th><th>Esito</th></tr></thead>
@@ -3119,17 +3189,33 @@ textarea.dw-input{
        di cui non si era misurato niente. Adesso i mai misurati (e quelli con un
        valore senza data) hanno una riga loro e vengono PRIMA dei conformi —
        perché sono la cosa da fare, non un risultato. */
+    /* ⛔ E LA STESSA COSA VALE PER LA SOGLIA CHE NON C'È (decisione 16, 02/08).
+       Un punto senza soglia finiva fra i conformi o fra i superamenti a
+       seconda del valore, e in tutt'e due i casi il cartellone diceva una
+       cosa che nessuno aveva misurato. Adesso ha una riga sua, sta accanto ai
+       «da misurare» — sono la stessa famiglia, cose da sistemare e non
+       risultati — e viene DOPO, perché registrare una misura è più urgente
+       che scrivere un limite su un punto che comunque nessuno legge.
+       ⚠️ Il denominatore della frase resta `conf.totale` («su N punti in
+       ascolto»), che è vero; quello della CONFORMITÀ è `conf.giudicabili`, ed
+       è il numero che si scrive accanto ai conformi qui sotto, in Monitoraggi. */
     const daLeggere = conf.maiMisurati;
-    const cls = conf.superamento ? "danger" : conf.attenzione || daLeggere ? "warn" : conf.totale ? "" : "none";
-    const ico = conf.superamento ? I.allerta : daLeggere && !conf.conformi ? I.sensore : conf.totale ? I.scudo : I.sensore;
-    const num = conf.totale ? (conf.superamento || conf.attenzione || daLeggere || conf.conformi) : 0;
+    const daSistemare = conf.senzaSoglia;
+    const cls = conf.superamento ? "danger" : conf.attenzione || daLeggere || daSistemare ? "warn" : conf.totale ? "" : "none";
+    const ico = conf.superamento ? I.allerta : (daLeggere || daSistemare) && !conf.conformi ? I.sensore : conf.totale ? I.scudo : I.sensore;
+    const num = conf.totale ? (conf.superamento || conf.attenzione || daLeggere || daSistemare || conf.conformi) : 0;
     const lab = conf.superamento ? (conf.superamento === 1 ? "punto in superamento" : "punti in superamento")
       : conf.attenzione ? (conf.attenzione === 1 ? "punto in attenzione" : "punti in attenzione")
       : daLeggere ? (daLeggere === 1 ? "punto ancora da misurare" : "punti ancora da misurare")
+      : daSistemare ? (daSistemare === 1 ? "punto senza soglia" : "punti senza soglia")
       : conf.totale ? (conf.conformi === 1 ? "punto entro soglia" : "punti entro soglia") : "punti di misura";
     const sub = conf.totale
       ? `${conf.conformi} conformi · ${conf.attenzione} in attenzione · ${conf.superamento} in superamento`
         + (daLeggere ? ` · ${daLeggere} senza una lettura` : "")
+        ${/* ⚠️ Il singolare c'era e il verbo no: «1 senza soglia, che non si
+              POSSONO giudicare». Visto solo nello scatto — leggendo il codice
+              la stringa sembrava a posto. */""}
+        + (daSistemare ? ` · ${daSistemare} senza soglia, che non si ${daSistemare === 1 ? "può" : "possono"} giudicare` : "")
         + `, su ${conf.totale} punti in ascolto.`
       : "Nessun punto di misura configurato: aggiungi la prima centralina dai Monitoraggi.";
     $("conf-banner").innerHTML = `<div class="safety ${cls}">
@@ -3181,13 +3267,34 @@ textarea.dw-input{
          nemmeno uno — l'assenza di un dato letta come una buona notizia. Lo
          stato di uno strumento senza certificati lo dicono il badge sulla sua
          riga e la sezione, che è il posto giusto: qui si parla di scadenze. */
+      /* ⚠️ «Tutti i punti di misura sono entro soglia» non si può dire se
+         qualcuno una soglia non ce l'ha (decisione 16). E il caso arriva
+         davvero fin qui: un punto senza soglia È un'allerta (`warn`), quindi
+         se questo elenco è vuoto punti senza soglia non ce ne sono — la frase
+         però resta scritta al modo giusto, perché è quella che qualcuno
+         leggerà il giorno che la si sposta altrove. */
       || vuoto(I.fatto, "Nessuna allerta",
-          "Tutti i punti di misura sono entro soglia, il programma di monitoraggio è in pari, nessun adempimento è vicino alla scadenza e nessuna taratura registrata sta per scadere. Il quadro resta pulito finché un valore non si avvicina al limite.");
+          "Tutti i punti di misura che hanno una soglia sono entro il limite, il programma di monitoraggio è in pari, nessun adempimento è vicino alla scadenza e nessuna taratura registrata sta per scadere. Il quadro resta pulito finché un valore non si avvicina al limite.");
 
     $("mon-tot").textContent = MON.length;
+    /* ⛔ IL DENOMINATORE È «GIUDICABILI», NON «TUTTI» (decisione 16). «3
+       conformi su 5 punti» e «3 conformi su 3 giudicabili» sono due frasi
+       diverse, e la prima è falsa quando due punti non hanno nessuna soglia:
+       li conta nel totale come se fossero stati esaminati e trovati non
+       conformi. Il totale resta scritto — è un dato vero — ma accanto, e la
+       riga dice quanti punti restano fuori dal giudizio e perché. */
     $("mon-conf").innerHTML = conf.totale
-      ? `Conformità: <b>${conf.conformi}</b> conformi · <b>${conf.attenzione}</b> in attenzione · <b>${conf.superamento}</b> in superamento, su <b>${conf.totale}</b> punti.`
+      ? `Conformità: <b>${conf.conformi}</b> conformi · <b>${conf.attenzione}</b> in attenzione · <b>${conf.superamento}</b> in superamento, su <b>${conf.giudicabili}</b> ${conf.giudicabili === 1 ? "punto giudicabile" : "punti giudicabili"}`
+        + (conf.maiMisurati ? ` · <b>${conf.maiMisurati}</b> mai ${conf.maiMisurati === 1 ? "misurato" : "misurati"}` : "")
+        + (conf.senzaSoglia ? ` · <b>${conf.senzaSoglia}</b> senza soglia: su ${conf.senzaSoglia === 1 ? "quello" : "quelli"} l'app non può dire né conforme né non conforme, finché non scrivi un limite` : "")
+        + ` · <b>${conf.totale}</b> in ascolto in tutto.`
       : "";
+    /* La linguetta del filtro esiste solo se il caso esiste; e se stava
+       filtrando proprio lei quando l'ultimo punto senza soglia viene
+       sistemato, l'elenco tornerebbe vuoto senza spiegazione. */
+    { const chg = $("chg-senza-soglia");
+      if (chg) chg.hidden = !conf.senzaSoglia;
+      if (!conf.senzaSoglia && filtroMon === "senza-soglia") filtroMon = "tutti"; }
     /* ⛔ UN PUNTO MAI MISURATO STA FUORI DALLA CLASSIFICA DEI NUMERI.
        `statoMisura` gli dà `ratio: null` apposta — non c'è nessun rapporto
        valore/soglia da mettere in fila — ma una sottrazione lo legge come
@@ -3197,16 +3304,24 @@ textarea.dw-input{
        criticità viene per PRIMO (è la cosa da fare, la stessa decisione già
        presa nel cartellone), nel margine per ULTIMO (un margine che nessuno
        ha misurato non è un margine). Per nome resta l'alfabeto. */
-    const mai = (x) => x.st.stato === "mai";
+    /* ⛔ E LA STESSA SOTTRAZIONE MORDE ANCHE IL PUNTO SENZA SOGLIA: il suo
+       rapporto è `null` per la stessa ragione (non c'è niente da dividere), e
+       `null - 0.9` fa −0,9 tale e quale. Il criterio giusto non è «è mai
+       misurato», è la BANDIERA che `statoMisura` mette accanto al rapporto:
+       `calcolabile`. Chiamandola per nome, il giorno che nascesse un terzo
+       stato senza rapporto finirebbe nel blocco giusto da solo. */
+    const fuoriScala = (x) => !x.st.calcolabile;
     const monCmp = (a, b) => ordMon === "nome"
       ? String(a.m.nome || "").localeCompare(String(b.m.nome || ""), "it")
-      : mai(a) !== mai(b) ? (ordMon === "margine" ? (mai(a) ? 1 : -1) : (mai(a) ? -1 : 1))
-      : mai(a) ? String(a.m.nome || "").localeCompare(String(b.m.nome || ""), "it")
+      : fuoriScala(a) !== fuoriScala(b) ? (ordMon === "margine" ? (fuoriScala(a) ? 1 : -1) : (fuoriScala(a) ? -1 : 1))
+      : fuoriScala(a) ? String(a.m.nome || "").localeCompare(String(b.m.nome || ""), "it")
       : ordMon === "margine" ? a.st.ratio - b.st.ratio
       : b.st.ratio - a.st.ratio;
     const qMon = ($("mon-cerca") && $("mon-cerca").value || "").trim().toLowerCase();
     const monVis = MONE.map(m => ({ m, st: statoMisura(m) }))
-      .filter(x => filtroMon === "tutti" || x.st.cls === filtroMon)
+      // il filtro guarda la classe (le tre linguette del semaforo) OPPURE lo
+      // stato: «Senza soglia» ha un nome suo e non si nasconde dentro il giallo
+      .filter(x => filtroMon === "tutti" || x.st.cls === filtroMon || x.st.stato === filtroMon)
       .filter(x => !qMon || ((x.m.nome || "") + " " + (x.m.nota || "")).toLowerCase().includes(qMon))
       .sort(monCmp);
     /* ⛔ E NELLA RIGA NON CI VA NESSUNA CIFRA, se nessuno ha misurato. Il badge
@@ -3236,6 +3351,16 @@ textarea.dw-input{
         tar.stato === "regolare" ? "" : `<span class="badge ${bt.cls}" title="${esc(bt.label)}: la riferibilità delle misure di questo strumento non è dimostrata">${esc(bt.label)}</span>`}
       <span class="meta">${st.stato === "mai"
         ? `<b>nessuna misura</b> / soglia ${esc(numeroIt(m.soglia))} ${esc(m.unita)}${sogliaDaRicettore(m)}`
+        /* ⛔ E NEMMENO LA PERCENTUALE, se non c'è nessuna soglia (decisione 16).
+           È lo stesso `Math.round(null*100)` del caso qui sopra, e faceva
+           «1,2 dB(A) / soglia — · 0%»: un trattino al posto del limite e uno
+           ZERO PER CENTO accanto, cioè la cifra più tranquilla della scala,
+           calcolata dal nulla. La guardia è la bandiera del modulo, non lo
+           stato: chiede «questo rapporto si può calcolare?», che è la domanda
+           vera. Il valore resta — quello l'ha misurato qualcuno — e al posto
+           del confronto c'è che cosa manca. */
+        : !st.calcolabile
+        ? `<b>${esc(numeroIt(m.valore))} ${esc(m.unita)}</b> · <b>nessuna soglia impostata</b>: non c'è un limite con cui confrontarlo`
         : `<b>${esc(numeroIt(m.valore))} ${esc(m.unita)}</b> / soglia ${esc(numeroIt(m.soglia))}${sogliaDaRicettore(m)} · ${Math.round(st.ratio*100)}%`
       }${nl ? " · " + nl + (nl === 1 ? " lettura" : " letture") : " · nessuna lettura"}${m.nota ? " · " + esc(m.nota) : ""}</span></div></div>
       <span class="acts">
