@@ -10,7 +10,7 @@ può procedere con l'attuazione.
 
 ---
 
-# 📖 Da dove cominciare — le decisioni aperte sono **23**
+# 📖 Da dove cominciare — le decisioni aperte sono **19**
 
 *Questa pagina è stata aggiunta il 01/08 per una ragione precisa: hai scritto
 che avresti potuto rispondere «in settimana», e un file di cinquecento righe con
@@ -43,7 +43,10 @@ chiunque, il fondatore ha pubblicato quelle chiuse, e la chiusura è verificata.
 | **2** | ✅ **CHIUSA il 02/08** — le regole del progetto esistente | erano `if true`; il fondatore ha pubblicato `if false` e la chiusura è verificata dall'esterno (403). Vedi la sezione 2. |
 | **7** | la prova drone → Genesi con un volo vero | un file di un volo tuo |
 
-## 🟢 Le diciannove che posso portare avanti io, se non dici niente
+## 🟢 Le quindici che posso portare avanti io, se non dici niente
+
+*Erano diciannove. Le **quattro gemelle — 13, 14, 16, 17** — le hai decise tu
+il 02/08 con una riga sola («vai»), e sono state attuate lo stesso giorno.*
 
 Sono scelte di **prodotto**, non di sicurezza. Per ognuna ho una risposta che mi
 convince, e sotto trovi la ragione per esteso. **Se entro la settimana non dici
@@ -65,11 +68,11 @@ momento.
 | **11c** | alla presentazione: due app o una | **due**, e si mostra il ponte fra loro — è la cosa che i concorrenti non hanno |
 | **12a** | export dei dati **ri-caricabile** | sì: senza, il cliente ha una copia che non sa rimettere dentro |
 | **12b** | oppure dirlo in chiaro prima del pilota | si fa **comunque**, anche con l'export: è onestà, non un ripiego |
-| **13** | una mansione **senza requisiti**: «può andare» o «non lo sappiamo»? | **non lo sappiamo** |
-| **14** | un DPI **senza data di sostituzione**: verde o attenzione? | **attenzione** |
+| ~~**13**~~ | ✅ **DECISA E FATTA il 02/08** — mansione senza requisiti | «non lo sappiamo»: il riepilogo passa da `puo 3/6` a `puo 2, nonSo 1` |
+| ~~**14**~~ | ✅ **DECISA E FATTA il 02/08** — DPI senza data di sostituzione | «attenzione»: da «regolare» e zero allarmi a «senza data», 1 allarme |
 | **15** | dove vive «Il Quadro», il cruscotto del titolare | nel **core**: è la cosa che il titolare apre per prima |
-| **16** | un punto di monitoraggio **senza soglia** | stato a sé, «Senza soglia», e i conteggi di conformità lo dicono |
-| **17** | un infortunio a **prognosi aperta**: quante giornate perse? | si distingue da «0», e la gravità si dichiara un **minimo** |
+| ~~**16**~~ | ✅ **DECISA E FATTA il 02/08** — punto senza soglia | stato a sé: il report per l'ente non scrive più «conforme» su un limite mai stabilito |
+| ~~**17**~~ | ✅ **DECISA E FATTA il 02/08** — infortunio a prognosi aperta | si distingue da «0»: prima era «un infortunio che non è costato una giornata» |
 | **18a** | il volume rimesso per il **recupero** si toglie dall'onere? | è un'opzione nella scheda del titolo: cambia da Regione a Regione |
 | **18b** | un recupero **a cavallo di due anni** | conta nell'anno in cui **finisce** |
 
@@ -91,8 +94,9 @@ invece di mostrare la faccia tranquilla.** È il principio che hai dato tu
 («l'assenza di un dato non è un dato favorevole»), e ogni volta che l'abbiamo
 violato l'app ha detto a qualcuno una cosa rassicurante che nessuno aveva
 misurato.
-👉 Se sei d'accordo, **una riga tua chiude tutte e quattro**. Le altre quindici
-restano scelte vere, una per una.
+✅ **E così è stato**: il 02/08 il fondatore ha risposto «vai», e tutte e quattro
+sono state attuate nello stesso blocco, con le prove e le controprove. Le altre
+quindici restano scelte vere, una per una.
 
 ---
 
@@ -409,7 +413,12 @@ detto a chi guarda la schermata è ambiguo, e le due letture sono opposte:
   più probabile su una mansione appena creata, e allora il verde è proprio il
   colore sbagliato.
 
-- [ ] **13.** Quale delle due? Le strade possibili, in ordine di invadenza:
+- [x] ✅ **13. DECISA dal fondatore il 02/08: «non lo sappiamo».** Attuata lo
+      stesso giorno. Misurato prima: chi ricopre una mansione per cui nessuno
+      ha scritto i requisiti risultava **«può andare»** — `abilitazioneLavoratore`
+      guardava solo se c'erano bloccanti o attenzioni, e senza requisiti non ce
+      n'è nessuno dei due. Il riepilogo diceva `puo 3/6`; adesso `puo 2, nonSo 1`.
+      *(Le strade che erano sul tavolo:)*
   a) **si lascia com'è** — chi crea una mansione sa che cosa ha creato;
   b) **si dice, senza cambiare il colore**: sotto la mansione compare «nessun
      requisito impostato», e la riga resta verde;
@@ -452,7 +461,12 @@ modulo della sicurezza. C'è però una prova che blinda il comportamento di oggi
 e lo nomina, così se un giorno cambia si sa che è stato **scelto** e non
 successo.
 
-- [ ] **14.** Un DPI senza data di sostituzione: **verde** (l'hai svuotata apposta) o **attenzione** (nessuno ha detto entro quando va sostituito)?
+- [x] ✅ **14. DECISA dal fondatore il 02/08: attenzione.** Attuata lo stesso
+      giorno, e senza inventare niente: la parola «senza data» esisteva già in
+      `shared/dw-ponti.js` e la usano tre app — è bastato togliere il ternario
+      `consegna.scadenza ? … : "regolare"` e lasciarla rispondere.
+      Misurato: un DPI senza data passava da «regolare» e **zero allarmi** a
+      «senza data», 1 allarme, `daSistemare` da 3 a 4.
 
 ## 15. Dove vive «Il Quadro», il cruscotto del titolare?
 
@@ -536,7 +550,15 @@ b) **lasciarlo com'è** e considerarlo chiuso dal fatto che l'interfaccia non ci
 ⚠️ **Non l'ho toccato.** La (a) è quasi certamente la risposta giusta per il
 prodotto, ma tocca il modo in cui si giudica una misura ambientale: è tua.
 
-- [ ] **16.** Punto senza soglia: **(a)** stato a sé «Senza soglia» (e i conteggi di conformità cambiano) o **(b)** si lascia com'è, chiuso dal fatto che l'interfaccia non ci arriva?
+- [x] ✅ **16. DECISA dal fondatore il 02/08: stato a sé.** Attuata lo stesso
+      giorno, e il numero che la giustifica è questo: il **report che va
+      all'ente** dichiarava **«conforme»** su punti senza nessun limite scritto,
+      con ogni riga della tabella marchiata verde «entro soglia». Adesso il
+      documento dice «questo giudizio riguarda 4 punti su 5 … su quello non si
+      può dire né conforme né non conforme».
+      Trovato per strada e non previsto: con una soglia **negativa** il rapporto
+      usciva **120.000%**. E il caso è entrato nella **dimostrazione**, perché
+      una difesa che non si vede in vetrina non la guarda nessuno.
 
 ## 17. Un infortunio con la prognosi ANCORA APERTA: quante giornate perse?
 
@@ -571,7 +593,12 @@ come Terra fa già col cumulato quando il pregresso non è dichiarato.
 ⚠️ **Non l'ho toccato**, e c'è la prova che blinda il comportamento di oggi e lo
 nomina: se un giorno cambia, si saprà che è stato **scelto**.
 
-- [ ] **17.** Infortunio a prognosi aperta: **(a)** si distingue da «0 giornate» e la gravità si dichiara un **minimo**, o **(b)** resta com'è?
+- [x] ✅ **17. DECISA dal fondatore il 02/08: si distingue, e la gravità è un
+      minimo.** Attuata lo stesso giorno. Misurato: un infortunio a prognosi
+      aperta veniva contato come **«un infortunio che non è costato una
+      giornata»** (`+x.giorniAssenza || 0`), quindi l'indice di gravità restava
+      0,6 come se non ci fosse. Adesso la pagina scrive «IG **(minimo)**» e
+      «almeno 4 giornate perse», e nell'export la cella è **vuota**, non 0.
 
 ## 18. Il volume rimesso per il RECUPERO si toglie dall'onere?
 
