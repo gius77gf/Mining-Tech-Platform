@@ -24,14 +24,43 @@ dimostrazione è un pregio, non una macchia. È la stessa distinzione che
 Esempi già in dimostrazione: un lotto senza fronte, un anno senza rilievi di
 scavo, una fattura senza scadenza, una fattura incassata senza data d'incasso,
 un DPI valido con l'addestramento mai registrato, un rapportino consegnato senza
-il giorno, una volata senza la distanza del ricettore.
+il giorno, una volata senza la distanza del ricettore, e — dal 02/08 — un
+**punto di monitoraggio senza soglia** (Sentinella `pv1`, «Polveri PM10 —
+piazzale nuovo»: centralina installata da dodici giorni, limite non ancora
+fissato dall'autorizzazione). È il caso della **decisione 16** del fondatore, e
+il report adesso dichiara «questo giudizio riguarda 4 punti su 5 … su quello
+non si può dire né conforme né non conforme».
 
-⚠️ **Due volte questa regola ha trovato una suite che la impediva**: `run-demo`
-pretendeva che ogni fattura avesse la scadenza, e che ogni volata avesse tutti i
-numeri — cioè la dimostrazione **non poteva contenere** proprio il caso per cui
-la difesa era stata costruita. Due app, due autori, stesso difetto: se una prova
-d'integrità pretende che un campo ci sia sempre, va riletta chiedendosi se sta
-vietando un'assenza invece di una corruzione.
+⚠️ **TRE volte questa regola ha trovato una suite che la impediva** (la terza
+il 02/08): `run-demo` pretendeva che ogni fattura avesse la scadenza, che ogni
+volata avesse tutti i numeri, e che ogni punto di monitoraggio avesse una
+**soglia positiva** — cioè la dimostrazione **non poteva contenere** proprio il
+caso per cui la difesa era stata costruita. Tre app, tre autori, stesso
+difetto: se una prova d'integrità pretende che un campo ci sia sempre, va
+riletta chiedendosi se sta vietando un'assenza invece di una corruzione.
+La forma della riscrittura è sempre la stessa — *«o non c'è, o è un valore
+buono»* — perché la corruzione resta vietata: su una soglia `-3` il rapporto
+usciva **120.000%**.
+✅ E dal 02/08 c'è anche la **prova opposta**, che pretende che il caso ci
+**sia** nei dati d'esempio: una difesa che non si vede in vetrina non la guarda
+nessuno, e senza quella riga il caso può sparire dalla dimostrazione senza che
+niente diventi rosso.
+
+⛔ **E NON BASTA CHE IL CASO CI SIA: DEVE ARRIVARE DOVE IL DIFETTO VIVEVA.**
+Lezione del 02/08, e l'ha detta solo lo scatto. Il punto senza soglia era stato
+messo in dimostrazione — ma senza letture, e il **report di conformità**, cioè
+il documento che va all'ente e il posto esatto dove l'app scriveva «Conforme»
+su un limite mai stabilito, **non lo mostrava affatto**: quel documento
+raccoglie le letture del periodo. Il caso stava nei dati e non si vedeva dove
+serviva. La domanda da farsi dopo aver aggiunto una riga alla dimostrazione è
+**«in quale schermata compare, e in quella dove il difetto viveva ci arriva?»**,
+e la risposta si guarda, non si deduce.
+
+⚠️ **Un caso da dimostrare aggiunge UNA cosa, non due.** Sempre il 02/08: al
+punto senza soglia era stato dato anche un certificato di taratura, e la prova
+«quanti strumenti hanno almeno un certificato» passava da 2 a 3 — il caso nuovo
+spostava un numero che non lo riguardava. Il certificato è stato tolto: quello
+che si vuole mostrare è la soglia che manca.
 
 ### 2. CONTRADDIZIONE → no, si raggiunge digitando
 
