@@ -454,6 +454,99 @@ banco la veda. Se non la vede, il banco non sta guardando dove crede.
 banco ha davvero guardato la riga in più, non l'ha dedotta. Uscita `0`, che nel
 verso della controprova vuol dire «so fallire».
 
+## `modali-dentro.mjs` — che cosa si vede DENTRO le modali, aprendole tutte
+
+Nato il 02/08 (task A4) da due difetti veri che, la notte prima, ha trovato
+**solo un occhio umano**:
+
+1. **Sentinella**, modale che corregge una misura: «(mm/s)» usciva **«(MM/S)»**.
+   `.flab` è in maiuscolo, quella era la prima etichetta di campo dell'app a
+   portarsi dietro un'unità, e l'elenco delle esenzioni non conosceva `.flab`.
+   Lo `<span class="u">` c'era: **leggendo il codice non si vede**.
+2. **Terra**, tendina a 320 px: etichette tagliate, e il taglio si portava via
+   la parte che distingue una fonte dall'altra.
+
+⛔ **Perché non bastava `modali.mjs`.** Quello si apre la strada con **un gesto
+generico** — il primo `[title^="Rimuovi"]` di ogni sezione — quindi raggiunge
+una modale per sezione, quattro app su sei, e misura una cosa sola. Qui il
+banco **guida l'app**: cammina sui comandi della sezione, clicca il primo mai
+provato, e se si apre una finestra la misura e la chiude.
+
+⛔ **E c'è una cosa che `modali.mjs` non poteva vedere, misurata prima di
+scrivere una riga: un `<select>` non dichiara di tagliare.** Con un'opzione da
+224 px dentro una tendina da 120, Chromium risponde `scrollWidth 118,
+clientWidth 118` — cioè la domanda giusta per tutto il resto, sulle tendine
+risponde **sempre di no**. Per loro si misura quanto spazio chiede il testo
+dell'opzione mettendolo in uno `<span>` col **font vero della tendina**: non è
+un calcolo, è la stessa domanda fatta a un elemento che sa rispondere.
+
+Le tre cose che misura, e non di più (un banco che ne misura otto e ne sbaglia
+una diventa un banco che nessuno guarda):
+
+| | come lo chiede al browser |
+|---|---|
+| un'unità di misura in maiuscolo | `getComputedStyle(...).textTransform` **effettivo** — `innerText` su un elemento nascosto ricade su `textContent` e il maiuscolo non si vede |
+| testo tagliato | `scrollWidth > clientWidth`, `scrollHeight > clientHeight` (verticale solo dove il taglio è netto), e per le tendine la misura del font |
+| qualcosa che esce dal suo spazio | la finestra più larga dello schermo, o il corpo che scorre in orizzontale — a **320 px** oltre che a 390 |
+
+L'elenco delle unità **non è riscritto qui**: si legge da `unita-maiuscole.mjs`,
+dove vive con la ragione di ogni voce. Una seconda copia nasce uguale e diverge
+al primo cambiamento.
+
+```sh
+node apps/deepwork-id/tests/browser/modali-dentro.mjs 8823
+node apps/deepwork-id/tests/browser/modali-dentro.mjs 8823 --solo=sentinella
+node apps/deepwork-id/tests/browser/modali-dentro.mjs 8823 --controprova
+```
+
+Costa una mezz'ora sulle quattordici superfici; con `--solo=` sono un paio di
+minuti. In fondo stampa **il censimento**: quante modali esistono nel programma
+di ogni superficie (le chiamate vere ad `apriModale`/`chiedi`/`chiediValore`/
+`openModal`, contate con `mascheraCodice` così un `chiedi(` dentro un commento
+non conta) e quante ne ha **aperte e guardate**, più i soggetti misurati e le
+superfici **non raggiunte**.
+
+### Tre cose imparate guidando l'app, tutte e tre nel verso che fa guardare MENO
+
+1. le pillole dei filtri (`.chg`, `[data-filtro]`) **restringono la lista
+   sotto**: cliccando «Superamenti» i punti di misura di Sentinella scendono da
+   40 a 25 e i loro comandi spariscono dal giro. Si escludono;
+2. `[data-goto]` porta **in un'altra sezione**, e il giro finirebbe a misurare
+   una schermata credendo di essere altrove;
+3. **l'impronta di un comando non può essere la sua etichetta**: la linguetta
+   della serie storica si chiama «Apri…» da chiusa e «Chiudi…» da aperta,
+   quindi al giro dopo sembrava un comando NUOVO e la **richiudeva** — e la
+   tabella che stava per comparire (con dentro proprio il difetto 1) non è mai
+   stata guardata. Si usa ciò che non cambia: `id` e attributi `data-`.
+
+E si pretende **la prova di aver aperto** — `#modal` con la classe `show`, il
+riquadro largo più di zero, un titolo non vuoto — perché un banco che non apre
+niente risponde «tutto a posto» dopo aver guardato una schermata su otto.
+
+### La controprova: i difetti rimessi in una COPIA
+
+⛔ **I file delle app non sono di questo banco**: mentre gira, altri cantieri ci
+scrivono. L'iniezione va in una `git worktree` su HEAD, servita su una porta
+sua con il **contrassegno col pid riletto dal server** — se su quella porta
+risponde qualcun altro il banco **si ferma** invece di misurare la copia di un
+altro. L'albero vivo non viene toccato in nessun momento, e non si usa mai
+`git checkout` né `git stash`.
+
+Due famiglie, perché «so fallire in un punto» non dimostra niente sugli altri:
+
+- **A, esatta, una superficie**: in Sentinella si toglie `.flab .u` dall'elenco
+  delle esenzioni. È alla lettera il difetto del 01/08.
+- **B, generica, tutte le superfici che caricano `shared/dw-app-ui.js`**: dentro
+  `apriModale`, lo `<span class="u">` viene **sciolto** (la forma generale del
+  difetto 1) e le voci delle tendine vengono **allungate** (la forma generale
+  del difetto 2).
+
+L'iniezione **si conta mentre inietta** (`window.__iniz`): in fondo il banco
+stampa, superficie per superficie, quanti span ha sciolto e quante voci ha
+allungato (dov'è **arrivata**) accanto a quante violazioni ha visto (dov'è stata
+**vista**). Un'iniezione arrivata e non vista è un buco del banco; una non
+arrivata è un buco della controprova — e si curano in modo opposto.
+
 ## `finto-firebase.mjs`
 
 **Serve per aprire il core in locale, e non solo per questa prova.**

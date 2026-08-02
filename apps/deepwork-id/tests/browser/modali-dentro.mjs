@@ -146,8 +146,11 @@ function quanteModaliEsistono(sorgente) {
     while ((i = sorgente.indexOf(nome, i)) >= 0) {
       const prima = sorgente[i - 1] || ' ';
       /* `chiedi(` dentro `chiediValore(` non è una seconda modale, e
-         `window.chiedi =` nemmeno: si vuole la chiamata, non la parola */
-      if (vivo[i] === 1 && !/[A-Za-z0-9_.$]/.test(prima)) n++;
+         `window.chiedi =` nemmeno: si vuole la chiamata, non la parola.
+         E la DICHIARAZIONE non è una modale: `function openModal(` nel core è
+         il posto dove la finestra è scritta, non uno dei posti da cui si apre. */
+      const dichiarazione = /function\s+$/.test(sorgente.slice(Math.max(0, i - 12), i));
+      if (vivo[i] === 1 && !dichiarazione && !/[A-Za-z0-9_.$]/.test(prima)) n++;
       i += nome.length;
     }
   }
@@ -334,10 +337,23 @@ const INIETTA = `
     /* ── CONTROPROVA (solo nella copia servita dal banco delle modali) ── */
     try {
       var __mb = document.getElementById("modal-body");
-      window.__iniz = window.__iniz || { span: 0, opzioni: 0 };
+      window.__iniz = window.__iniz || { span: 0, opzioni: 0, unita: 0 };
       __mb.querySelectorAll("span.u").forEach(function (s) {
         s.replaceWith(document.createTextNode(s.textContent)); window.__iniz.span++;
       });
+      /* E QUESTA E' LA FORMA DEL DIFETTO, NON UNA SUA IMITAZIONE: si prende
+         una classe dell'app che e' GIA' in maiuscolo — la sua, non una
+         scritta qui — e le si mette dentro un'unita', che e' esattamente
+         l'incontro da cui il difetto nasce. Serve perche' lo span con la
+         classe u dentro una modale ce l'hanno poche app: senza questa riga
+         l'iniezione non arriverebbe sulle altre, e «so fallire» varrebbe per
+         una superficie sola. getComputedStyle risponde anche a modale ancora
+         nascosta: text-transform non dipende dalla disposizione. */
+      var __su = [].slice.call(__mb.querySelectorAll("*")).filter(function (e) {
+        return getComputedStyle(e).textTransform === "uppercase"
+          && !/^(SELECT|INPUT|TEXTAREA|OPTION)$/.test(e.tagName);
+      });
+      if (__su.length) { __su[0].appendChild(document.createTextNode(" 12 m\\u00b3")); window.__iniz.unita++; }
       __mb.querySelectorAll("option").forEach(function (o) {
         o.textContent = o.textContent + " \\u2014 rilevato in cantiere dallo strumento tarato";
         window.__iniz.opzioni++;
@@ -433,7 +449,7 @@ for (const [nome, via] of SUPERFICI) {
   /* per la controprova: quanto è ARRIVATA qui (span sciolti, voci allungate)
      e che cosa il banco ha VISTO. Sono due numeri diversi, e l'utile è il
      secondo diviso il primo. */
-  const conto = { span: 0, opzioni: 0, vistoMaiusc: 0, vistoTendina: 0 };
+  const conto = { span: 0, opzioni: 0, unita: 0, vistoMaiusc: 0, vistoTendina: 0 };
   for (const larghezza of LARGHEZZE) {
     const { ctx, p } = await apriSuperficie(b, { nome, via, porta: PORTA, larghezza, altezza: 844, montaFintoFirebase });
     for (const s of await sezioniDi(p, nome)) {
@@ -494,12 +510,12 @@ for (const [nome, via] of SUPERFICI) {
       }
     }
     if (CONTROPROVA) {
-      const z = await p.evaluate(() => window.__iniz || { span: 0, opzioni: 0 }).catch(() => null);
-      if (z) { conto.span += z.span; conto.opzioni += z.opzioni; }
+      const z = await p.evaluate(() => window.__iniz || { span: 0, opzioni: 0, unita: 0 }).catch(() => null);
+      if (z) { conto.span += z.span; conto.opzioni += z.opzioni; conto.unita += z.unita; }
     }
     await ctx.close();
   }
-  censimento.push({ app: nome, esistono, aperte: titoli.size, conto });
+  censimento.push({ app: nome, esistono, aperte: titoli.size, conto, quali: [...titoli] });
   if (aperteQui === 0) {
     nonRaggiunte.push(nome);
     console.log(`  ⚠️  ${nome}: nessuna modale aperta — il banco NON ha guardato questa superficie`
@@ -518,9 +534,13 @@ let esistonoTot = 0, aperteTot = 0;
 for (const c of censimento) {
   esistonoTot += c.esistono || 0; aperteTot += c.aperte;
   console.log(`   ${String(c.app).padEnd(22)} ${String(c.esistono ?? '?').padStart(3)} nel programma  →  ${String(c.aperte).padStart(3)} aperte e guardate`);
+  /* le finestre aperte si dicono per NOME: un numero non si può controllare,
+     un elenco sì — e quello che manca all'appello si vede */
+  if (c.quali.length) console.log(`      ${c.quali.join(' · ').slice(0, 300)}`);
 }
 console.log(`   ${'TOTALE'.padEnd(22)} ${String(esistonoTot).padStart(3)}                 →  ${String(aperteTot).padStart(3)}`);
-console.log(`\n${appPulite} superfici pulite, ${ko} cose da guardare`);
+console.log(`\n${appPulite} superfici pulite, ${ko} cose da guardare (contate per larghezza: la stessa`);
+console.log(`   riga sbagliata a 390 e a 320 sono due misure, non una)`);
 console.log(`soggetti guardati: ${apertePerTutti} aperture di modale, ${elementiPerTutti} elementi misurati, `
   + `${opzioniPerTutti} voci di tendina, ${clickPerTutti} comandi provati, `
   + `${raggiunte.length} superfici raggiunte su ${raggiunte.length + nonRaggiunte.length}`);
@@ -546,18 +566,21 @@ if (CONTROPROVA) {
      banco; una non arrivata è un buco della controprova, e i due si curano in
      modo opposto. */
   console.log('\n── la copertura della controprova ──');
-  let arrivate = 0, viste = 0, spanTot = 0, opzTot = 0;
+  let arrivate = 0, viste = 0, spanTot = 0, opzTot = 0, uniTot = 0;
   for (const c of censimento) {
-    const arrivata = c.conto.span + c.conto.opzioni > 0;
-    const vista = c.conto.vistoMaiusc + c.conto.vistoTendina > 0;
+    const q = c.conto;
+    const arrivata = q.span + q.opzioni + q.unita > 0;
+    const vista = q.vistoMaiusc + q.vistoTendina > 0;
     if (arrivata) arrivate++;
     if (vista) viste++;
-    spanTot += c.conto.span; opzTot += c.conto.opzioni;
-    console.log(`   ${String(c.app).padEnd(22)} iniezione: ${String(c.conto.span).padStart(4)} span sciolti, `
-      + `${String(c.conto.opzioni).padStart(4)} voci allungate  →  vista: ${c.conto.vistoMaiusc} unità in maiuscolo, `
-      + `${c.conto.vistoTendina} tendine tagliate ${arrivata ? (vista ? '✓' : '✗ ARRIVATA E NON VISTA') : '· non arrivata'}`);
+    spanTot += q.span; opzTot += q.opzioni; uniTot += q.unita;
+    console.log(`   ${String(c.app).padEnd(22)} iniettato: ${String(q.span).padStart(3)} span sciolti, `
+      + `${String(q.unita).padStart(3)} unità messe in una classe maiuscola, ${String(q.opzioni).padStart(4)} voci allungate`
+      + `  →  visto: ${q.vistoMaiusc} unità in maiuscolo, ${q.vistoTendina} tendine tagliate`
+      + `  ${arrivata ? (vista ? '✓' : '✗ ARRIVATA E NON VISTA') : '· non arrivata'}`);
   }
-  console.log(`   ${spanTot} span sciolti + ${opzTot} voci allungate su ${arrivate} superfici; il banco l'ha vista su ${viste}.`);
+  console.log(`   ${spanTot + uniTot + opzTot} iniezioni in tutto (${spanTot} span, ${uniTot} unità, ${opzTot} voci)`
+    + ` su ${arrivate} superfici; il banco le ha viste su ${viste}.`);
   console.log(ko ? '  ✓ la controprova è stata vista: il banco sa fallire'
                  : '  ✗ IL BANCO NON SA FALLIRE: i difetti erano dentro e non se n\'è accorto');
   process.exit(ko && viste ? 0 : 1);
