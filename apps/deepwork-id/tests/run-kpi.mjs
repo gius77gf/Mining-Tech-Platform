@@ -2315,12 +2315,12 @@ test("dal visore: la frase porta i parametri che rendono il numero rifacibile", 
   for (const atteso of ["griglia", "0,50 m", "340,42 m", "729 m²", "218.004", "4.812.331", "cava.las", "15/07/2026"])
     ok(f.includes(atteso), `manca «${atteso}» in: ${f.slice(0, 200)}`);
   ok(/X da 10,00 a 70,00/.test(f), "e il ritaglio");
-  ok(!/Non risulta registrato/.test(f), "e non dichiara mancanze che non ci sono");
+  ok(!/non risulta registrato/i.test(f), "e non dichiara mancanze che non ci sono");
 });
 test("⛔ dal visore ma a metà: quello che manca viene DICHIARATO, non saltato", () => {
   const f = terra.descriviOrigine({ origine: { da: "visore", cella: 0.5, puntiRitaglio: 100 } });
   ok(/0,50 m/.test(f), "dice quello che sa");
-  ok(/Non risulta registrato/.test(f), "e dichiara quello che non sa");
+  ok(/non risulta registrato/i.test(f), "e dichiara quello che non sa");
   ok(/quota di base/.test(f) && /ritaglio/.test(f), "nominando che cosa manca: " + f.slice(-140));
 });
 test("la nuvola non georeferenziata è un avviso, non un dettaglio", () => {
@@ -2338,6 +2338,64 @@ test("i numeri sono scritti all'italiana e col raggruppamento dichiarato", () =>
   ok(/218\.004/.test(f), "le migliaia col punto");
   ok(/0,50/.test(f), "i decimali con la virgola");
   ok(!/218004/.test(f), "e mai la cifra secca");
+});
+
+/* ⛔ IL PARAMETRO CHE NON C'È NON VALE ZERO — censimento del 02/08, tre punti
+   dentro questa sola funzione. Il visore scrive `null` sui parametri che non ha
+   potuto riportare in coordinate reali (`nuvola-poc.html`, `_q`), e
+   `Number.isFinite(+null)` risponde **true** perché `+null` fa 0. Effetto
+   misurato prima della correzione: il verbale che va all'ente stampava «quota
+   di base 0,00 m» e un ritaglio «X da 0,00 a 0,00, Y da 0,00 a 0,00, Z da 0,00
+   a 0,00» — cioè una misura e una scatola di volume nullo, plausibili e false —
+   e nello stesso momento l'elenco di ciò che non risulta registrato NON le
+   nominava, perché usava la stessa guardia rovesciata. Le due bugie si
+   coprivano a vicenda: chi leggeva vedeva parametri completi. */
+test("⛔ quotaBase a null NON diventa «quota di base 0,00 m»", () => {
+  const f = terra.descriviOrigine({ origine: { da: "visore", file: "volo.laz",
+    cella: 0.5, quotaBase: null, areaCoperta: 729, ritaglio: null } });
+  ok(!/quota di base 0,00/.test(f), "il numero inventato non c'è più: " + f.slice(0, 260));
+  ok(/non risulta registrato/i.test(f) && /la quota di base/.test(f),
+    "e viene dichiarata fra le mancanti: " + f.slice(-180));
+  /* ⚠️ la prova non è «non stampa nulla»: gli altri parametri, che ci sono,
+     devono restare — se no la correzione avrebbe tolto informazione vera */
+  ok(/lato cella 0,50 m/.test(f) && /area coperta 729 m²/.test(f), "e quelli veri restano");
+});
+test("⛔ una quota di base pari a ZERO è una misura, e si scrive", () => {
+  /* il contrario della prova qui sopra, ed è la ragione per cui la guardia NON
+     può essere `> 0` come quella del lato cella: un piano di base a quota 0
+     esiste, e una cava sotto il livello del mare ha quote negative */
+  const zero = terra.descriviOrigine({ origine: { da: "visore", cella: 0.5, quotaBase: 0 } });
+  ok(/quota di base 0,00 m/.test(zero), "quota 0 misurata: si scrive");
+  ok(!/la quota di base/.test(zero.split("non risulta registrato")[1] || ""),
+    "e non finisce fra le mancanti");
+  const neg = terra.descriviOrigine({ origine: { da: "visore", cella: 0.5, quotaBase: -2.85 } });
+  ok(/quota di base -2,85 m/.test(neg), "e una quota negativa pure: " + neg.slice(0, 200));
+});
+test("⛔ un ritaglio coi sei lati a null NON diventa una scatola da 0×0×0", () => {
+  const f = terra.descriviOrigine({ origine: { da: "visore", cella: 0.5, quotaBase: 340.12,
+    ritaglio: { x0: null, x1: null, y0: null, y1: null, z0: null, z1: null } } });
+  ok(!/X da 0,00 a 0,00/.test(f), "la scatola falsa non si stampa: " + f.slice(0, 260));
+  ok(/registrati ma non leggibili/.test(f),
+    "⛔ e la differenza si dice: il ritaglio C'È, sono i suoi limiti a non leggersi");
+  /* un ritaglio a metà è comunque inservibile: basta UN lato illeggibile */
+  const meta = terra.descriviOrigine({ origine: { da: "visore", cella: 0.5, quotaBase: 1,
+    ritaglio: { x0: 10, x1: 70, y0: 5, y1: 65, z0: 338, z1: null } } });
+  ok(!/Ritaglio: X da/.test(meta), "un solo lato mancante e il ritaglio non si scrive");
+  ok(/registrati ma non leggibili/.test(meta), "e viene dichiarato");
+  /* ⚠️ «assente» e «illeggibile» restano due frasi diverse */
+  const senza = terra.descriviOrigine({ origine: { da: "visore", cella: 0.5, quotaBase: 1 } });
+  ok(/il ritaglio/.test(senza) && !/registrati ma non leggibili/.test(senza),
+    "se il ritaglio non c'è proprio, si dice così: " + senza.slice(-140));
+});
+test("⛔ i valori che «sembrano numeri» non passano la guardia", () => {
+  /* provati in scratchpad prima di scrivere il predicato: sono i due che il
+     controllo ingenuo (`Number.isFinite(+v)` con la sola guardia su null e
+     stringa vuota) lasciava passare — `+[5]` fa 5, `+true` fa 1 */
+  for (const v of [true, [5], [], {}, "", "   ", "abc", NaN, Infinity]) {
+    const f = terra.descriviOrigine({ origine: { da: "visore", cella: 0.5, quotaBase: v } });
+    ok(!/quota di base/.test(f.split("non risulta registrato")[0]),
+      "quotaBase = " + JSON.stringify(v) + " non è una quota: " + f.slice(0, 200));
+  }
 });
 console.log("\n— Scudo: gli indici infortunistici (IF, IG, LTIFR) —");
 /* ⛔ La prova che regge l'unità: SENZA LE ORE l'indice non si calcola. Il
@@ -2965,6 +3023,35 @@ test("⛔ i rilievi che non stanno in nessun lotto si contano a parte", () => {
   eq(terra.rilieviFuoriDaiLotti([{ frontiId: ["f1", "f2", "f9"] }], RIL_L).quanti, 1,
     "coprendo f9 ne resta solo quello senza fronte");
   eq(terra.rilieviFuoriDaiLotti([], []).quanti, 0, "e senza niente non si inventa niente");
+});
+/* ⛔ UN RILIEVO SENZA VOLUME NON È UN RILIEVO CHE HA MISURATO ZERO — censimento
+   del 02/08. Il filtro qui dentro era la undicesima copia staccata di
+   `rilievoUsabile`, e portava dentro proprio la trappola che quella funzione
+   esiste per chiudere: `+null` fa 0 e `Number.isFinite(0)` risponde true.
+   Prima della correzione, su tre rilievi fuori dai lotti di cui uno solo con un
+   volume leggibile, la schermata scriveva «3 rilievi di scavo non stanno in
+   nessun lotto, per 500 m³»: un conto che sembra completo e non lo è.
+   ⚠️ E toglierli e basta li farebbe sparire in silenzio, cioè il difetto per
+   cui questa funzione esiste: si contano a parte, in `senzaVolume`. */
+test("⛔ i rilievi il cui volume non si legge non entrano nel conto degli orfani", () => {
+  const rotti = [
+    { id: "a", fronteId: "f9", volumeM3: 500, stato: "elaborato" },
+    { id: "b", fronteId: "f9", volumeM3: null, stato: "elaborato" },
+    { id: "c", fronteId: "", volumeM3: "", stato: "elaborato" },
+    { id: "d", fronteId: "f9", volumeM3: "  ", stato: "elaborato" },
+    { id: "e", fronteId: "f9", volumeM3: "abc", stato: "elaborato" },
+  ];
+  const o = terra.rilieviFuoriDaiLotti([{ frontiId: ["f1"] }], rotti);
+  eq([o.quanti, o.m3], [1, 500], "un solo rilievo ha davvero misurato qualcosa");
+  eq(o.senzaFronte, 0, "e non è quello senza fronte, che il volume non ce l'ha");
+  eq(o.senzaVolume, 4, "gli altri quattro si contano a parte, non spariscono");
+  /* ⛔ e valgono anche DENTRO un lotto: da lì non contano lo stesso, quindi la
+     frase tranquilla «ogni volume misurato sta dentro un lotto» resta falsa */
+  const dentro = terra.rilieviFuoriDaiLotti([{ frontiId: ["f9"] }], rotti);
+  eq([dentro.quanti, dentro.senzaVolume], [0, 4],
+    "nessun orfano, ma quattro volumi che non sa nessuno");
+  eq(terra.rilieviFuoriDaiLotti([{ frontiId: ["f1", "f2"] }], RIL_L).senzaVolume, 0,
+    "e sui rilievi sani non si inventa un allarme");
 });
 test("⛔ l'avanzamento di un lotto NON stima", () => {
   eq(terra.avanzamentoLotto({ volumeM3: 180000 }, 96400).pct, 53.56, "misurato ÷ previsto");
@@ -10380,6 +10467,55 @@ test("statoVuoto: la struttura è quella del core, invariata", () => {
     ok(!terra.rilievoUsabileConData({ stato: "bozza", volumeM3: 100, data: "2026-07-12" }),
       "e resta la condizione di prima: una bozza non passa neanche con la data");
   });
+  /* ⛔ «UNA DATA VERA» NON È «UNA DATA CHE HA LA FORMA GIUSTA» — censimento del
+     02/08. Qui c'era `/^\d{4}-\d{2}-\d{2}$/`: «2026-02-30» la passa, e `Date`
+     non lo rifiuta — lo fa SCORRERE al 2 marzo. Il 31/07 le porte d'ingresso
+     (l'import CSV dei rilievi) sono state chiuse con `dataISOEsiste`; queste
+     due LETTURE interne erano rimaste alla forma, quindi un rilievo già in
+     archivio con quel giorno arrivava intatto a chi conta i giorni. */
+  test("⛔ un giorno che NON ESISTE non passa il filtro dei rilievi", () => {
+    const con = (d) => terra.rilievoUsabileConData({ stato: "elaborato", volumeM3: 100, data: d });
+    for (const d of ["2026-02-30", "2026-02-29", "2026-04-31", "2026-13-01", "2026-00-10", "2026-06-00"])
+      ok(!con(d), d + " non è un giorno del calendario, e ha la forma giusta");
+    for (const d of ["2026-02-28", "2024-02-29", "2026-12-31", "2026-01-01"])
+      ok(con(d), d + " esiste e deve passare");
+  });
+  test("⛔ confrontoRilievi non conta i giorni fino a un giorno che non esiste", () => {
+    /* prima della correzione: dal 01/02 al «30/02» rispondeva 29 giorni e
+       48 m³ al giorno — un ritmo di scavo costruito su una data inventata */
+    const rot = [
+      { id: "p", stato: "elaborato", volumeM3: 1000, data: "2026-02-01", fronteId: "f1" },
+      { id: "s", stato: "elaborato", volumeM3: 1400, data: "2026-02-30", fronteId: "f1" },
+    ];
+    eq(terra.confrontoRilievi(rot, "p", "s"), null,
+      "⛔ null: il confronto non c'è, invece di esserci con dei numeri inventati");
+    /* la controparte: con una data vera il confronto si fa, se no la prova
+       direbbe solo che la funzione sa rispondere null */
+    const sano = rot.map(r => r.id === "s" ? { ...r, data: "2026-03-02" } : r);
+    eq(terra.confrontoRilievi(sano, "p", "s").giorni, 29, "e con il 2 marzo vero risponde 29 giorni");
+    eq(terra.rilievoPrecedente(rot, rot[1]), null,
+      "e nemmeno il verbale trova un «precedente» da cui far partire la misura");
+  });
+  test("⛔ ritmoMedioAnnuo non fa partire il periodo da una data inventata", () => {
+    const oggiR = new Date("2026-08-02T10:00:00");
+    /* prima: `dal: \"2026-02-30\"` — una data che non esiste, stampata come
+       inizio del periodo, e 143.235 m³/anno da cui esce l'anno di esaurimento */
+    const rot = [
+      { id: "x", stato: "elaborato", volumeM3: 30000, data: "2026-02-30", fronteId: "f1" },
+      { id: "y", stato: "elaborato", volumeM3: 30000, data: "2026-07-01", fronteId: "f1" },
+    ];
+    eq(terra.ritmoMedioAnnuo(rot, 3, oggiR), null,
+      "⛔ col solo rilievo buono restano meno di 3 mesi di storico: null, non un ritmo");
+    const sano = rot.map(r => r.id === "x" ? { ...r, data: "2026-03-02" } : r);
+    const r = terra.ritmoMedioAnnuo(sano, 3, oggiR);
+    eq(r.dal, "2026-03-02", "e con una data vera il periodo parte da lì");
+    eq(r.rilievi, 2, "contando tutt'e due i rilievi");
+    /* ⚠️ e il volume del rilievo con la data storta NON sparisce dal consumo
+       del titolo: `estrattoComplessivo` filtra con `rilievoUsabile`, che la
+       data non la guarda — è solo la SERIE nel tempo a non poterlo collocare */
+    eq(terra.estrattoComplessivo(rot, {}).rilevato, 60000,
+      "il volume continua a consumare il volume concesso: quello che manca è il QUANDO");
+  });
   test("PROVENIENZE: due sole, e ognuna dice in italiano che cosa cambia", () => {
     eq(terra.PROVENIENZE.map(p => p.chiave), ["scavo", "cumulo"], "scavo e cumulo");
     ok(/consuma il volume concesso/.test(terra.PROVENIENZE[0].nota), "lo scavo consuma");
@@ -16889,6 +17025,144 @@ console.log("\n— Scudo: il ciclo di vita del DSS (D.Lgs 624/96 art. 6) —");
     eq(c.stato, "non-databile",
        "…e nessuna delle tre è una data leggibile: è il punto di partenza vero di una cava che carica l'archivio");
     eq(scudo.dssScollegati(D.documenti), [], "nessun DSS della dimostrazione è appeso a niente");
+  });
+}
+
+/* ══════════════════════════════════════════════════════════════════════
+   I QUATTRO PUNTI DEL CENSIMENTO DEL 02/08 IN CONTI (sonda-vuoto.mjs)
+   ----------------------------------------------------------------------
+   Due famiglie sole, e sono le due che il principio del fondatore esiste per
+   prendere: «+X su un dato assente fa ZERO, e zero passa» e «una data che non
+   esiste, contata come se esistesse». Ogni prova porta il numero di PRIMA
+   accanto a quello di adesso: una prova che non dice da dove viene non fa
+   vedere che cosa difende.
+   ══════════════════════════════════════════════════════════════════════ */
+{
+  test("Conti · apertoDi: un residuo NON scritto è l'importo pieno, non zero", () => {
+    /* prima: apertoDi({importo:1000, residuo:null}) rispondeva 0 — mille euro
+       letti come già saldati — perché `+null` fa 0 e `Number.isFinite(0)` è
+       true, quindi il ripiego scritto nel commento non veniva mai raggiunto. */
+    eq(conti.apertoDi({ id: "F", importo: 1000, residuo: null }), 1000, "residuo null (prima 0)");
+    eq(conti.apertoDi({ id: "F", importo: 1000, residuo: "" }), 1000, "residuo stringa vuota (prima 0)");
+    eq(conti.apertoDi({ id: "F", importo: 1000, residuo: [] }), 1000, "residuo che non è un numero (prima 0)");
+    // e tutto il resto risponde esattamente come prima
+    eq(conti.apertoDi({ id: "F", importo: 1000 }), 1000, "residuo assente: era già giusto");
+    eq(conti.apertoDi({ id: "F", importo: 1000, residuo: 300 }), 300, "un acconto arrivato lascia 300");
+    eq(conti.apertoDi({ id: "F", importo: 1000, residuo: 0 }), 0, "residuo zero VERO: la fattura è saldata");
+    eq(conti.apertoDi({ id: "F", importo: 1000, residuo: "300" }), 300, "un numero scritto come stringa vale");
+    eq(conti.apertoDi({ id: "F", importo: 1000, residuo: -5 }), 0, "un residuo negativo non è un credito");
+  });
+
+  test("Conti · giorniFraDate: il 30 febbraio non è il 2 marzo", () => {
+    /* prima: 60, identico alla risposta per il 2 marzo — `Date.parse` il giorno
+       che non esiste non lo rifiuta, lo fa SCORRERE. Due giorni di pagamento
+       inventati su una fattura importata da un gestionale. */
+    eq(conti.giorniFraDate("2026-01-01", "2026-02-30"), null, "30 febbraio a destra (prima 60)");
+    eq(conti.giorniFraDate("2026-02-30", "2026-03-05"), null, "30 febbraio a sinistra (prima 3)");
+    eq(conti.giorniFraDate("2026-02-29", "2026-03-05"), null, "29 febbraio in un anno non bisestile");
+    eq(conti.giorniFraDate("2026-04-31", "2026-05-05"), null, "31 aprile");
+    /* ⛔ e il caso che vale doppio: la forma passa, la data no, e prima usciva
+       NaN — che NON è null. Chi conta i giorni medi scarta il null, non il NaN. */
+    eq(conti.giorniFraDate("2026-01-01", "2026-13-45"), null, "mese 13 (prima NaN)");
+    // le risposte giuste restano identiche
+    eq(conti.giorniFraDate("2026-01-01", "2026-03-02"), 60, "il 2 marzo VERO fa ancora 60");
+    eq(conti.giorniFraDate("2026-01-01", "2026-01-31"), 30, "un mese normale");
+    eq(conti.giorniFraDate("2024-02-29", "2024-03-05"), 5, "il 29 febbraio di un anno bisestile esiste");
+    eq(conti.giorniFraDate("2026-06-30T10:00", "2026-07-01"), 1, "un istante ISO resta leggibile");
+    eq(conti.giorniFraDate("", "2026-01-31"), null, "senza data");
+  });
+
+  test("Conti · una sola data storta NON porta la media di tutte a NaN", () => {
+    /* Il danno vero del punto qui sopra: `tempoMedioPagamento` scarta le
+       fatture con `giorniPagamento == null`, e NaN != null. Bastava UNA
+       fattura importata con la data d'emissione storta perché il KPI
+       «tempo medio di pagamento» diventasse «NaN giorni» per l'intera cava. */
+    const f = (id, emessa) => ({ id, numero: id, cliente: "Rossi", emessa,
+      scadenza: "2026-02-28", imponibile: 1000, aliquotaIva: 0 });
+    const inc = (id) => ({ id: "m" + id, fatturaId: id, data: "2026-03-01", importo: 1000 });
+    const sane = [f("A", "2026-01-01"), f("B", "2026-01-31")];
+    const conStorta = [...sane, f("C", "2026-13-45")];
+    const soloSane = conti.tempoMedioPagamento(sane, sane.map(x => inc(x.id)));
+    eq(soloSane.giorni, 44, "due fatture sane: 59 e 29 giorni, media 44");
+    const misto = conti.tempoMedioPagamento(conStorta, conStorta.map(x => inc(x.id)));
+    eq(misto.giorni, 44, "la media resta quella delle sane (prima: NaN)");
+    eq(misto.conto, 2, "e conta due fatture, non tre");
+    eq(misto.senzaData, 1, "la terza non sparisce: è dichiarata fra quelle senza data");
+    const perCliente = conti.tempiPagamentoClienti(conStorta, conStorta.map(x => inc(x.id)));
+    eq(perCliente.length, 1, "un cliente solo");
+    eq(perCliente[0].giorniMedi, 44, "e anche per cliente la media non è più NaN");
+    eq(perCliente[0].senzaData, 1, "con la fattura non databile contata a parte");
+  });
+
+  test("Conti · validaNota: su una data d'emissione che non esiste il termine si DICHIARA, non si tace", () => {
+    const OGGI = new Date("2027-06-01T12:00:00");
+    const fat = (emessa) => ({ id: "FX", numero: "1/2026", emessa, imponibile: 1000, aliquotaIva: 0 });
+    const nota = { causale: "errore", totale: 100 };          // causale a comma 3: termine 12 mesi
+    // prima: 14 mesi, contati dal 2 marzo. Un numero inventato dentro una frase
+    // che qualcuno porta al commercialista.
+    const storta = conti.validaNota(nota, fat("2026-02-30"), [], OGGI);
+    eq(storta.avvisi.length, 1, "un avviso");
+    ok(/non è una data che esiste/.test(storta.avvisi[0]), "e dice che la data non esiste");
+    ok(!/Sono passati/.test(storta.avvisi[0]), "senza inventare un numero di mesi");
+    // prima: NaN > 12 è false → NESSUN avviso. Il silenzio letto come «sei nei termini».
+    const impossibile = conti.validaNota(nota, fat("2026-13-45"), [], OGGI);
+    eq(impossibile.avvisi.length, 1, "anche il mese 13 produce l'avviso (prima: silenzio)");
+    // e la fattura senza data d'emissione: stessa idea, stesso avviso
+    const senza = conti.validaNota(nota, fat(null), [], OGGI);
+    eq(senza.avvisi.length, 1, "senza data d'emissione (prima: silenzio)");
+    ok(/non c'è la data di emissione/.test(senza.avvisi[0]), "e lo dice con parole sue");
+    // le risposte giuste restano identiche
+    const oltre = conti.validaNota(nota, fat("2026-03-02"), [], OGGI);
+    eq(oltre.avvisi.length, 1, "il 2 marzo VERO");
+    ok(/Sono passati 14 mesi/.test(oltre.avvisi[0]), "e sono ancora 14 mesi");
+    eq(conti.validaNota(nota, fat("2027-01-15"), [], OGGI).avvisi, [], "dentro i dodici mesi: nessun avviso");
+    eq(conti.validaNota({ causale: "resa", totale: 100 }, fat("2020-01-15"), [], OGGI).avvisi, [],
+       "e su una causale del comma 2 non c'è nessun termine da controllare, per quanto vecchia sia");
+  });
+
+  test("Conti · righeDaPesate: una quantità non scritta ripiega sul netto, non su zero", () => {
+    const ddt = (o) => ({ id: "d1", numero: "DDT/1", prodotto: "Misto 0-30",
+      prezzoUnitario: 10, aliquotaIva: 22, ...o });
+    const riga = (o) => conti.righeDaPesate([ddt(o)])[0];
+    // prima: 0 t e 0 € — una consegna di 25 tonnellate fatturata per niente
+    const t = riga({ unitaVendita: "t", quantita: null, netto: 25 });
+    eq(t.quantita, 25, "a tonnellata il ripiego è il netto pesato (prima 0)");
+    eq(t.imponibile, 250, "e l'imponibile torna (prima 0)");
+    eq(riga({ unitaVendita: "t", quantita: "", netto: 25 }).quantita, 25, "quantità stringa vuota (prima 0)");
+    // a metro cubo il ripiego è il netto DIVISO la densità, non il netto
+    const m3 = riga({ unitaVendita: "m3", quantita: null, netto: 25, densita: 2.5 });
+    eq(m3.quantita, 10, "25 t a 2,5 t/m³ sono 10 m³ (prima 0)");
+    eq(m3.imponibile, 100, "e si fatturano 10 m³, non 25");
+    /* ⛔ e senza densità non c'è nessun ripiego: il netto è in tonnellate, e
+       moltiplicarlo per un prezzo al metro cubo sarebbe la fattura sbagliata
+       di più. Non si scrive zero: si dichiara che non si può misurare. */
+    const cieco = riga({ unitaVendita: "m3", quantita: null, netto: 25 });
+    eq(cieco.calcolabile, false, "la riga dichiara di non essere misurabile");
+    eq(cieco.imponibile, null, "e l'imponibile è null, non lo zero tranquillo (prima 0)");
+    eq(cieco.ddtSenzaQuantita, ["DDT/1"], "dicendo QUALE documento va sistemato");
+    // le risposte giuste restano identiche
+    eq(riga({ unitaVendita: "t", quantita: 12, netto: 25 }).quantita, 12,
+       "una quantità DICHIARATA resta quella: non si tocca ciò che è già stato fatturato");
+    eq(riga({ unitaVendita: "t", netto: 25 }).quantita, 25, "quantità assente: era già giusto");
+    eq(riga({ unitaVendita: "m3", quantita: 9, netto: 25, densita: 2.5 }).quantita, 9, "m³ dichiarati");
+  });
+
+  test("Conti · fatturaDaPesate: l'anteprima dice se la fattura si può emettere", () => {
+    const ddt = (id, o) => ({ id, numero: "DDT/" + id, data: "2026-03-0" + id,
+      prodotto: "Misto", prezzoUnitario: 10, aliquotaIva: 22, ...o });
+    const buona = conti.fatturaDaPesate([ddt("1", { unitaVendita: "t", quantita: 25, netto: 25 })]);
+    eq(buona.calcolabile, true, "un DDT misurabile: si emette");
+    eq(buona.ddtSenzaQuantita, [], "e non c'è niente da sistemare");
+    eq(buona.totale, 305, "250 + 22% di IVA");
+    /* il caso che conta: due DDT, uno solo cieco. Prima usciva una fattura da
+       305 € che avrebbe dovuto essere il doppio, e nessuno lo diceva: si
+       fattura al cliente MENO di quello che gli è stato consegnato. */
+    const mista = conti.fatturaDaPesate([
+      ddt("1", { unitaVendita: "t", quantita: 25, netto: 25 }),
+      ddt("2", { unitaVendita: "m3", quantita: null, netto: 25 })]);
+    eq(mista.calcolabile, false, "con un DDT non misurabile la fattura non si emette");
+    eq(mista.ddtSenzaQuantita, ["DDT/2"], "e si sa quale");
+    eq(mista.conto, 2, "i due DDT ci sono tutti e due: nessuno sparisce dall'anteprima");
   });
 }
 

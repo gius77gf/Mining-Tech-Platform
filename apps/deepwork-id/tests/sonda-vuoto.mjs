@@ -549,11 +549,25 @@ const OROLOGIO = /oggiISO|oggiIso|isoLocale|giornoDi|dataPiuGiorni/;
 /* La scansione. Prende le fonti già lette (app → testo), così la controprova
    può somministrare una copia col difetto rimesso dentro senza toccare i file
    veri — che sono di altri cantieri, e che il browser carica. */
+/* ⛔ QUANTI SOGGETTI HA GUARDATO DAVVERO — e va contato QUI, non dedotto dal
+   numero di difetti trovati. Il conto dei difetti SCENDE man mano che si
+   correggono: metterci sopra un fondo («almeno 10 punti, se no la scansione si
+   è persa») vuol dire scrivere una prova che il lavoro fatto bene fa cadere. È
+   la trappola già scritta in CLAUDE.md — «si controlli CHE COSA fa scendere il
+   numero» — e il 02/08 è scattata davvero: corretti i quattro punti di Conti e
+   i quattro di Terra, il fondo è caduto con la CI verde sul codice.
+   Il numero che dice se il cercatore ha guardato è quello dei CANDIDATI che ha
+   esaminato — le conversioni e le letture numeriche che ha aperto una per una —
+   e quello non scende quando un difetto viene corretto: la riga resta lì, ci
+   passa sopra, e viene scartata da una guardia. */
+let CANDIDATI = 0, DICHIARAZIONI = 0;
 function censimentoStatico(fonti) {
   const punti = [];
   const visti = new Map();
+  CANDIDATI = 0; DICHIARAZIONI = 0;
   for (const [app, src] of fonti) {
     const tipo = classifica(src), linee = src.split("\n"), tag = tratti(src);
+    DICHIARAZIONI += tag.length;
     const riga = (i) => src.slice(0, i).split("\n").length;
     const segna = (fam, i, nome, nota) => {
       const r = riga(i), chiave = `${app}|${fam}|${r}`;
@@ -571,6 +585,7 @@ function censimentoStatico(fonti) {
     const reA = /Number\.isFinite\(\s*\+/g; let m;
     while ((m = reA.exec(src))) {
       if (tipo[m.index] !== CODICE) continue;
+      CANDIDATI++;
       const X = soggettoPiu(src, m.index); if (!X) continue;
       const q = esc(X), t = trattoDi(src, tag, m.index);
       const difeso = [
@@ -602,6 +617,7 @@ function censimentoStatico(fonti) {
       .filter((x) => /dataISOEsiste/.test(trattoDi(src, tag, x.index).testo)).map((x) => x[1]);
     while ((m = reB.exec(src))) {
       if (tipo[m.index] !== CODICE) continue;
+      CANDIDATI++;
       const ap = src.indexOf("(", m.index);
       let j = ap + 1, prof = 0, arg = "";
       while (j < src.length) { const c = src[j];
@@ -612,7 +628,17 @@ function censimentoStatico(fonti) {
       if (/^\s*(new Date|Date\.parse)/.test(arg)) continue;   // il numero l'ha fatto quello dentro
       const t = trattoDi(src, tag, m.index);
       if (/dataISOEsiste|giorniTra/.test(t.testo)) continue;
-      if (verificano.some((n) => new RegExp(`\\b${n}\\s*\\(`).test(t.testo))) continue;
+      /* ⚠️ E «passare di lì» vale anche quando la funzione è passata come
+         RIFERIMENTO. `.filter(rilievoUsabileConData)` non ha le parentesi, e
+         con la sola forma `nome(` questo salto non scattava: il cercatore non
+         guardava dove credeva. Misurato il 02/08 su Terra — messo
+         `dataISOEsiste` dentro `rilievoUsabileConData`, `confrontoRilievi` e
+         `ritmoMedioAnnuo` restavano segnalati perché quella funzione la
+         chiamano proprio così, e la correzione non si poteva vedere. */
+      const passaDaVerificata = (n) =>
+        new RegExp(`\\b${n}\\s*\\(`).test(t.testo)
+        || new RegExp(`\\.(?:filter|some|every|find|findLast|map|flatMap|sort)\\(\\s*${n}\\s*[,)]`).test(t.testo);
+      if (verificano.some(passaDaVerificata)) continue;
       const id = (arg.match(/^([A-Za-z_$][\w$.]*)/) || [])[1] || "";
       const nasce = id && new RegExp(`(?:const|let|var)\\s+${esc(id.split(".")[0])}\\s*=\\s*[^;\\n]*`).exec(t.testo);
       if (nasce && OROLOGIO.test(nasce[0])) continue;         // viene dall'orologio
@@ -629,15 +655,15 @@ function censimentoStatico(fonti) {
    In ordine di quanto pesa per chi legge lo schermo. */
 const CENSITI = {
   /* ── veri, famiglia B (la data che non esiste) ── */
-  "conti.giorniFraDate":
-    "VERO. Misurato: giorniFraDate('2026-01-01','2026-02-30') risponde **60**, identico alla risposta"
-    + " per il 2 marzo. È il difetto della tabella del 02/08 vivo in una SECONDA funzione: la regex di"
-    + " forma passa, Date.parse fa scorrere il giorno, e «in quanti giorni ha pagato» diventa un numero"
-    + " inventato. Da qui passano l'aging e il comportamento di pagamento del cliente",
-  "conti.mesiFra":
-    "VERO, stessa famiglia: i mesi dall'emissione di una fattura, contati su una data che può non"
-    + " esistere. Il numero finisce nell'avviso «oltre i termini dell'art. 26, l'IVA potrebbe non essere"
-    + " recuperabile» — cioè in una frase che qualcuno porta al commercialista",
+  /* ✅ CORRETTI IL 02/08 e tolti da qui: `conti.giorniFraDate` (rispondeva 60
+     giorni fra il 1° gennaio e il «30 febbraio», identico al 2 marzo, e NaN
+     sul mese 13 — e il NaN, che non è null, portava a «NaN giorni» la media
+     di pagamento di TUTTE le fatture) e `conti.mesiFra` (i mesi dall'emissione
+     dentro l'avviso sull'art. 26: su una data storta inventava il numero, su
+     una impossibile taceva). Adesso tutt'e due passano da `dataISOEsiste`, e
+     `validaNota` il «non lo so» lo DICE invece di non dire niente.
+     ⚠️ Le righe sono state tolte perché il censimento le ha pretese, non
+     perché qualcuno se ne sia ricordato. */
   "flotta.giorniFra":
     "VERO. L'aiutante che conta i giorni fra due giorni ISO, usato dalle scorte e dai fermi: gli arrivano"
     + " stringhe controllate da `isoGiorno`, che guarda la FORMA. Da lì il consumo al giorno, e dal"
@@ -645,31 +671,36 @@ const CENSITI = {
   "sentinella.piuGiorni":
     "VERO. Sposta una data di n giorni partendo da `new Date(s + 'T00:00:00Z')` dopo la sola regex di"
     + " forma: su una data storta la prossima scadenza esce spostata di un giorno o due, in silenzio",
-  "terra.confrontoRilievi":
-    "VERO, peso minore: i giorni fra due rilievi (e quindi il ritmo al giorno e al mese) nascono da"
-    + " `new Date(b.data + 'T00:00:00')`; il filtro a monte (`rilievoUsabileConData`) guarda la forma",
-  "terra.ritmoMedioAnnuo":
-    "VERO, peso minore: la durata in anni da cui esce il volume ANNUO parte dalla data più vecchia"
-    + " passata dallo stesso filtro di forma",
+  /* ✅ CORRETTI IL 02/08 e tolti da qui: `terra.confrontoRilievi` e
+     `terra.ritmoMedioAnnuo`. Le due conversioni ci sono ancora — il numero
+     nasce sempre da `new Date(data + 'T00:00:00')` — ma il filtro a monte
+     (`rilievoUsabileConData`) adesso chiama `dataISOEsiste` invece di guardare
+     la forma, quindi una data che non esiste non ci arriva più. Misurato: dal
+     01/02 al «30/02» il confronto rispondeva **29 giorni** e 48 m³ al giorno,
+     e il ritmo medio scriveva `dal: "2026-02-30"`; adesso rispondono `null`.
+     ⚠️ E per vederlo è servito allargare il salto delle funzioni «che
+     verificano»: `.filter(rilievoUsabileConData)` non ha le parentesi, quindi
+     la correzione c'era e il cercatore continuava a segnalare — un controllo
+     che non guardava dove credeva. */
 
   /* ── veri, famiglia A (+X su un dato assente fa zero) ── */
-  "conti.apertoDi":
-    "VERO, ed è il più pesante di tutti. Misurato: apertoDi({importo:1000, residuo:null}) risponde **0**"
-    + " — una fattura da mille euro letta come già saldata — mentre apertoDi({importo:1000}) risponde"
-    + " 1000, che è la risposta giusta. Il ripiego sull'importo pieno c'è ed è scritto nel commento, ma"
-    + " `+null` fa zero e `Number.isFinite(0)` risponde true, quindi non ci si arriva mai",
-  "terra.descriviOrigine":
-    "VERO, e morde proprio la difesa del principio del fondatore. Nel testo di riproducibilità del"
-    + " volume, `quotaBase` assente diventa 0: la riga stampa «quota di base 0 m» e — peggio — l'elenco"
-    + " esplicito di ciò che NON risulta registrato non la nomina, perché `Number.isFinite(+o.quotaBase)`"
-    + " è true su null. La riga accanto (`+o.cella > 0`) la guardia ce l'ha: stesso autore, stessa"
-    + " funzione, due righe di distanza",
-  "conti.righeDaPesate":
-    "VERO: la quantità di una riga di DDT non scritta diventa 0 invece di ripiegare sul netto pesato,"
-    + " che è quello che il `: (+p.netto || 0)` accanto voleva fare. Zero quantità = zero imponibile",
-  "terra.rilieviFuoriDaiLotti":
-    "VERO, peso minore: un rilievo senza volume viene contato fra gli orfani come se un volume ce"
-    + " l'avesse (`quanti` sale, `m3` no). Nello stesso modulo `rilievoUsabile` la guardia giusta ce l'ha",
+  /* ✅ CORRETTI IL 02/08 e tolti da qui: `conti.apertoDi` (il ripiego
+     sull'importo pieno era codice morto — `+null` fa 0 e `Number.isFinite(0)`
+     è true — quindi `residuo: null` valeva «saldata»; ⚠️ era DORMIENTE, non
+     vivo: oggi `residuo` lo scrive solo `applicaIncassi` e sempre con un
+     numero, quindi nessuno schermo diceva il falso) e `conti.righeDaPesate`
+     (la quantità non scritta di un DDT valeva 0 invece del netto pesato; a
+     metro cubo senza densità adesso la riga si dichiara non calcolabile e la
+     fattura differita si ferma, invece di uscire con un totale più basso del
+     vero). La regola giusta era già in casa, in `quantitaPesata`. */
+  /* ✅ CORRETTI IL 02/08 e tolti da qui: `terra.descriviOrigine` (la `quotaBase`
+     assente stampava «quota di base 0 m» e l'elenco di ciò che NON risulta
+     registrato non la nominava) e `terra.rilieviFuoriDaiLotti` (un rilievo
+     senza volume contato fra gli orfani come se un volume ce l'avesse).
+     ⚠️ E le righe sono state tolte perché **il censimento le ha pretese** —
+     «2 punti dichiarati non si presentano più» — non perché qualcuno se ne
+     sia ricordato: è la stessa metà del mestiere che aveva già accorciato
+     l'elenco degli ACCETTATI due volte oggi. */
 
   /* ── falsi allarmi, dichiarati con la ragione ── */
   "campo.storicoSettimana":
@@ -709,7 +740,8 @@ const veri = statici.filter((p) => (CENSITI[`${p.app}.${p.funzione}`] || "").sta
 console.log(`\n── censimento statico dei «numeri scritti dove non è stato misurato niente»`);
 console.log(`perimetro guardato: ${APP_STATICO.length} moduli dati (${APP_STATICO.join(", ")}), ${RIGHE_LETTE} righe`);
 console.log(`punti per app: ` + [...perApp].map(([a, n]) => `${a} ${n}`).join(" · "));
-console.log(`${statici.length} segnalati, ${veri.length} difetti VERI dichiarati,`
+console.log(`${DICHIARAZIONI} dichiarazioni in fase · ${CANDIDATI} candidati aperti uno per uno · ${statici.length} segnalati,`
+  + ` ${veri.length} difetti VERI dichiarati,`
   + ` ${statici.length - veri.length} falsi allarmi dichiarati con la ragione`);
 for (const p of statici) {
   const d = CENSITI[`${p.app}.${p.funzione}`];
@@ -733,7 +765,26 @@ test("nessun punto del censimento statico è rimasto dichiarato a vuoto", () => 
    perimetro taciuto è peggio di nessun cercatore. */
 test("il censimento statico ha davvero letto i moduli", () => {
   ok(RIGHE_LETTE > 15000, `solo ${RIGHE_LETTE} righe lette: il censimento non sta guardando niente`);
-  ok(statici.length >= 10, `solo ${statici.length} punti: la scansione si è persa`);
+  /* ⛔ QUI C'ERA `statici.length >= 10`, e il 02/08 è caduto sul lavoro fatto
+     BENE: corretti i quattro punti di Conti e i quattro di Terra, i segnalati
+     sono scesi da 16 a 6 e la prova è diventata rossa su un codice più sano di
+     prima. È la trappola scritta in CLAUDE.md — un fondo su un valore che
+     scende quando il lavoro va avanti misura il lavoro, non lo strumento. Il
+     numero che dice se la scansione ha guardato è quello dei CANDIDATI aperti:
+     le conversioni e le letture numeriche che ha esaminato una per una. Quello
+     NON scende quando un difetto viene corretto — la riga resta lì e la scarta
+     una guardia — e crolla per davvero se la scansione perde la fase o se
+     qualcuno restringe il perimetro. */
+  ok(DICHIARAZIONI >= 600,
+    `solo ${DICHIARAZIONI} dichiarazioni riconosciute: la scansione ha perso la fase`);
+  /* ⚠️ E dei due numeri quello **onesto** è il primo. I candidati scendono
+     anche per un motivo buono: correggere un punto della famiglia A vuol dire
+     smettere di scrivere `Number.isFinite(+X)` lì, quindi quella riga esce dal
+     conto. Scendono di UNO per correzione, non del difetto intero, e il fondo
+     è tenuto largo apposta; il numero che non ha questa debolezza è quello
+     delle dichiarazioni riconosciute, che dipende solo dal tokenizzatore e dal
+     perimetro. Misurati il 02/08: 711 e 188. */
+  ok(CANDIDATI >= 120, `solo ${CANDIDATI} candidati esaminati: il perimetro si è ristretto`);
 });
 
 /* ⚠️ ANCORA SPENTA, e la ragione è scritta in cima: 12 veri su 14 è un fondo
@@ -772,6 +823,19 @@ const INIEZIONI = [
     (s) => s.replace('  if (v == null || v === "") return null;\n  return Number.isFinite(+v) ? +v : null;',
       "  return Number.isFinite(+v) ? +v : null;"),
     "oreContatore"],
+  /* ⛔ IL QUARTO GUARDA IL CERCATORE, NON IL CODICE. Il 02/08 il salto delle
+     funzioni «che verificano» è stato ALLARGATO: prima riconosceva solo
+     `nome(`, e `.filter(rilievoUsabileConData)` — la forma che Terra usa in
+     dieci punti — non ci cadeva dentro, quindi la correzione c'era e il
+     cercatore segnalava lo stesso. Allargare un salto vuol dire togliere
+     copertura, ed è la mossa che va provata al contrario: si rimette in Terra
+     il filtro a sola FORMA e si pretende che il cercatore torni a vedere i due
+     punti. Se questa prova diventasse verde da sola, il salto sarebbe
+     diventato una scusa buona per tutto. */
+  ["terra", "il filtro delle date tornato a guardare la FORMA (`/^\\d{4}-\\d{2}-\\d{2}$/`)",
+    (s) => s.replace('return rilievoUsabile(r) && dataISOEsiste(String((r && r.data) || ""));',
+      'return rilievoUsabile(r) && /^\\d{4}-\\d{2}-\\d{2}$/.test(String((r && r.data) || ""));'),
+    "confrontoRilievi"],
 ];
 const fonti = fontiStatiche;
 let iniettate = 0;

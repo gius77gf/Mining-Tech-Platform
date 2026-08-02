@@ -2241,8 +2241,12 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
          non arriva. */
       const gravMin = avvisoGravitaMinima(ii);
       const avvisoGrav = gravMin ? `<div class="mini" style="margin-top:6px;">⚠️ ${esc(gravMin)}</div>` : "";
-      const perse = `<b>${ii.giornatePerse}</b> ${ii.giornatePerse === 1 ? "giornata persa" : "giornate perse"}`
-        + (ii.noto === false ? " <b>almeno</b>" : "");
+      /* ⚠️ «4 giornate perse ALMENO» non è italiano, e in italiano il minimo va
+         DAVANTI al numero — come lo scrive già `descriviGiornatePerse` nel
+         riepilogo qui sopra. Visto solo nello scatto: leggendo il codice la
+         concatenazione sembrava a posto. */
+      const perse = (ii.noto === false ? "<b>almeno</b> " : "")
+        + `<b>${ii.giornatePerse}</b> ${ii.giornatePerse === 1 ? "giornata persa" : "giornate perse"}`;
       const daQuant = ii.daQuantificare
         ? ` · <b>${ii.daQuantificare}</b> con assenza ancora <b>da quantificare</b> (prognosi aperta)`
         : "";

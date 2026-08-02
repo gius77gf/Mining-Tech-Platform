@@ -351,8 +351,20 @@ export function rilievoUsabile(r) {
   if (v == null || String(v).trim() === "") return false;
   return Number.isFinite(+v);
 }
+/* ⛔ «CON UNA DATA VERA» VUOL DIRE CHE QUEL GIORNO ESISTE, e fino al 02/08 qui
+   c'era `/^\d{4}-\d{2}-\d{2}$/`, cioè un controllo di FORMA. «2026-02-30» ha la
+   forma giusta e non esiste: `Date` non lo rifiuta, lo fa **scorrere** al 2
+   marzo. Il 31/07 le porte d'ingresso (import CSV dei rilievi) sono state
+   chiuse con `dataISOEsiste`, ma le due LETTURE interne — questa e
+   `rilievoPrecedente` — erano rimaste alla forma: un rilievo già in archivio
+   con quel giorno passava di qui e poi `confrontoRilievi` e `ritmoMedioAnnuo`
+   ci costruivano sopra un conto di giorni e un ritmo annuo. Misurato il 02/08:
+   dal 01/02 al «30/02» il confronto rispondeva **29 giorni** e 48 m³ al giorno,
+   e il ritmo medio scriveva `dal: "2026-02-30"` — una data che non esiste,
+   stampata come inizio del periodo. La funzione che sa la differenza è in
+   `shared/` da mesi ed è già importata in cima a questo file. */
 export function rilievoUsabileConData(r) {
-  return rilievoUsabile(r) && /^\d{4}-\d{2}-\d{2}$/.test(String((r && r.data) || ""));
+  return rilievoUsabile(r) && dataISOEsiste(String((r && r.data) || ""));
 }
 
 // estratti" mostrato per fronte. Di serie conta solo lo SCAVO: un cumulo
@@ -554,8 +566,11 @@ export function rilieviScavoFronte(rilievi, fronteId) {
 // Il rilievo di scavo dello stesso fronte immediatamente PRECEDENTE a `r`
 // (null se `r` è il primo). Serve al verbale: un volume senza il rilievo di
 // partenza non dice da dove è stato misurato.
+/* la stessa guardia di `rilievoUsabileConData`: se qui restasse la forma, un
+   rilievo con un giorno che non esiste troverebbe un «precedente» da cui poi il
+   verbale farebbe partire la misura */
 export function rilievoPrecedente(rilievi, r) {
-  if (!r || !/^\d{4}-\d{2}-\d{2}$/.test(String(r.data || ""))) return null;
+  if (!r || !dataISOEsiste(String(r.data || ""))) return null;
   const stessi = rilieviScavoFronte(rilievi, r.fronteId)
     .filter(x => x.id !== r.id && String(x.data) < String(r.data));
   return stessi[0] || null;   // già ordinati dal più recente
@@ -1584,6 +1599,24 @@ export async function terraData() {
 // scritti prima ricadono lì senza che nessuno inventi per loro un lato cella.
 // Ricerca e decisioni: docs/RICERCA_TRACCIABILITA_VOLUME_202608.md
 // ============================================================
+/* ⛔ «QUESTO PARAMETRO È STATO REGISTRATO?» — e `Number.isFinite(+v)` DA SOLO
+   risponde di sì quando non c'è niente. `+null` fa **0**, `+""` e `+"  "` pure,
+   `+[]` pure, `+true` fa **1**: tutti finiti, tutti «registrati». È la stessa
+   trappola già scritta in `rilievoUsabile` venti righe più su, e qui mordeva
+   nel posto peggiore — il verbale che va all'ente. Misurato il 02/08: un
+   rilievo con `quotaBase: null` (il visore la scrive così quando la nuvola non
+   è georeferenziata, `nuvola-poc.html` riga ~325) faceva stampare «**quota di
+   base 0,00 m**» E spariva dall'elenco di ciò che non risulta registrato: due
+   bugie che si coprono a vicenda.
+   Le guardie vanno in quest'ordine e con il `typeof` davanti: senza, `[5]`
+   varrebbe 5 e `true` varrebbe 1 (provato in scratchpad prima di scriverla —
+   sono i due casi che il predicato ingenuo lasciava passare).
+   ⚠️ E NON si scrive `> 0`: una quota di base può essere **0** (piano a quota
+   zero) o **negativa** (sotto il livello del mare), e i lati del ritaglio pure.
+   Il `> 0` accanto a `cella`, `areaCoperta` e `puntiRitaglio` resta perché lì
+   uno zero non è una misura possibile: un lato cella di 0 m non esiste. */
+const _numRegistrato = (v) => (typeof v === "number" || typeof v === "string")
+  && String(v).trim() !== "" && Number.isFinite(+v);
 const _n0org = (v) => Number(v).toLocaleString("it-IT", { maximumFractionDigits: 0, useGrouping: true });
 const _n2org = (v) => Number(v).toLocaleString("it-IT", { minimumFractionDigits: 2, maximumFractionDigits: 2, useGrouping: true });
 /* ── DA DOVE VIENE IL VOLUME ────────────────────────────────────────────────
@@ -1624,15 +1657,24 @@ export function descriviOrigine(rilievo) {
     + "divisa in celle quadrate e di ogni cella si prende la quota più alta; il "
     + "volume è la somma delle altezze sopra un piano di base.");
   const d = [];
-  if (Number.isFinite(+o.cella) && +o.cella > 0) d.push("lato cella " + _n2org(+o.cella) + " m");
-  if (Number.isFinite(+o.quotaBase)) d.push("quota di base " + _n2org(+o.quotaBase) + " m (2° percentile delle quote, non il minimo assoluto, per non farsi abbassare da un punto spurio)");
-  if (Number.isFinite(+o.areaCoperta) && +o.areaCoperta > 0) d.push("area coperta " + _n0org(+o.areaCoperta) + " m²");
-  if (Number.isFinite(+o.puntiRitaglio) && +o.puntiRitaglio > 0)
+  if (_numRegistrato(o.cella) && +o.cella > 0) d.push("lato cella " + _n2org(+o.cella) + " m");
+  if (_numRegistrato(o.quotaBase)) d.push("quota di base " + _n2org(+o.quotaBase) + " m (2° percentile delle quote, non il minimo assoluto, per non farsi abbassare da un punto spurio)");
+  if (_numRegistrato(o.areaCoperta) && +o.areaCoperta > 0) d.push("area coperta " + _n0org(+o.areaCoperta) + " m²");
+  if (_numRegistrato(o.puntiRitaglio) && +o.puntiRitaglio > 0)
     d.push("punti del ritaglio " + _n0org(+o.puntiRitaglio)
-      + (Number.isFinite(+o.puntiTotali) && +o.puntiTotali > 0 ? " su " + _n0org(+o.puntiTotali) : ""));
+      + (_numRegistrato(o.puntiTotali) && +o.puntiTotali > 0 ? " su " + _n0org(+o.puntiTotali) : ""));
   if (d.length) p.push("Parametri del calcolo: " + d.join("; ") + ".");
+  /* ⛔ IL RITAGLIO SI SCRIVE SOLO SE I SEI LATI CI SONO TUTTI. Il visore li
+     riporta in coordinate reali sommando l'offset, e quando l'offset non c'è
+     scrive `null` su tutti e sei: con `Number.isFinite(+null)` il verbale
+     stampava «Ritaglio: X da 0,00 a 0,00, Y da 0,00 a 0,00, Z da 0,00 a 0,00»,
+     cioè una scatola di volume zero — un rettangolo **plausibile e falso**,
+     esattamente il difetto che il salvataggio dei parametri esiste per
+     impedire (`nuvola-poc.html`, riga ~315). */
   const r = o.ritaglio;
-  if (r && ["x0", "x1", "y0", "y1", "z0", "z1"].every((k) => Number.isFinite(+r[k])))
+  const ritaglioLeggibile = !!r && typeof r === "object"
+    && ["x0", "x1", "y0", "y1", "z0", "z1"].every((k) => _numRegistrato(r[k]));
+  if (ritaglioLeggibile)
     p.push("Ritaglio: X da " + _n2org(+r.x0) + " a " + _n2org(+r.x1) + ", Y da " + _n2org(+r.y0)
       + " a " + _n2org(+r.y1) + ", Z da " + _n2org(+r.z0) + " a " + _n2org(+r.z1) + ".");
   if (o.file) p.push("File di partenza: " + o.file + (o.quandoVisore ? ", caricato il " + String(o.quandoVisore).slice(0, 10).split("-").reverse().join("/") : "") + ".");
@@ -1641,11 +1683,19 @@ export function descriviOrigine(rilievo) {
   /* ⛔ e quello che manca si DICHIARA: un elenco di parametri con dentro solo
      quelli che c'erano sembra completo a chi legge */
   const mancanti = [];
-  if (!(Number.isFinite(+o.cella) && +o.cella > 0)) mancanti.push("il lato della cella");
-  if (!Number.isFinite(+o.quotaBase)) mancanti.push("la quota di base");
+  if (!(_numRegistrato(o.cella) && +o.cella > 0)) mancanti.push("il lato della cella");
+  if (!_numRegistrato(o.quotaBase)) mancanti.push("la quota di base");
+  /* un ritaglio che c'è ma i cui lati non si leggono NON è «il ritaglio non
+     risulta registrato»: è registrato e inservibile, e chi legge il verbale ha
+     diritto di sapere quale delle due */
   if (!r) mancanti.push("il ritaglio");
+  else if (!ritaglioLeggibile) mancanti.push("i limiti del ritaglio, registrati ma non leggibili");
+  /* ⚠️ i due punti al posto di «né»: l'elenco cambia genere e numero a seconda
+     di che cosa manca («registrato la quota di base» era sgrammaticato), e
+     questa frase finisce su un foglio che va a un ente */
   if (mancanti.length)
-    p.push("Non risulta registrato " + mancanti.join(", né ") + ": per questa parte il calcolo non è riproducibile.");
+    p.push("Di questo calcolo non risulta registrato quanto segue: " + mancanti.join("; ")
+      + ". Per questa parte il calcolo non è riproducibile.");
   return p.join(" ");
 }
 
@@ -1916,15 +1966,32 @@ export function volumeMisuratoDiLotto(lotto, rilievi) {
    somma dei lotti sarebbe più piccola del volume davvero misurato — e nessuno
    se ne accorgerebbe, perché ogni singolo lotto tornerebbe. È la stessa forma
    delle voci di costo senza data: si contano a parte, non si nascondono. */
+/* ⛔ E LA CONDIZIONE È QUELLA SCRITTA UNA VOLTA SOLA, non una undicesima copia.
+   Qui c'era `r.stato === "elaborato" && Number.isFinite(+r.volumeM3)`, che è la
+   variante staccata di `rilievoUsabile` con dentro la trappola che quella
+   funzione esiste per evitare: `+null` fa **0** e `Number.isFinite(0)` risponde
+   **true**. Misurato il 02/08 su tre rilievi fuori dai lotti, uno solo dei
+   quali con un volume leggibile: la schermata scriveva «**3** rilievi di scavo
+   non stanno in nessun lotto, per **500 m³**» — tre misure, di cui due non
+   misurate, sommate in un numero che sembra completo.
+   ⚠️ E toglierli e basta li farebbe sparire in silenzio, che è il difetto per
+   cui questa funzione esiste. Si contano a parte, in `senzaVolume`: sono
+   rilievi dichiarati elaborati il cui volume non si legge, quindi non contano
+   **né** nei lotti né qui — e la frase tranquilla «ogni volume misurato sta
+   dentro un lotto» non si può dire finché ce n'è anche uno solo. */
 export function rilieviFuoriDaiLotti(lotti, rilievi) {
   const dentro = new Set();
   for (const l of lotti || []) for (const f of (l || {}).frontiId || []) dentro.add(String(f || ""));
-  const orfani = (rilievi || []).filter((r) => r && r.stato === "elaborato"
-    && Number.isFinite(+r.volumeM3) && provenienzaDi(r) === "scavo"
+  const scavoElaborati = (rilievi || []).filter((r) => r && r.stato === "elaborato"
+    && provenienzaDi(r) === "scavo");
+  const orfani = scavoElaborati.filter((r) => rilievoUsabile(r)
     && !dentro.has(String(r.fronteId || "")));
   return { quanti: orfani.length,
     m3: r2(orfani.reduce((t, r) => t + (+r.volumeM3 || 0), 0)),
-    senzaFronte: orfani.filter((r) => !String(r.fronteId || "").trim()).length };
+    senzaFronte: orfani.filter((r) => !String(r.fronteId || "").trim()).length,
+    // dovunque stiano (dentro o fuori da un lotto): il loro volume non lo sa
+    // nessuno, quindi non entrano in nessuna somma di questa app
+    senzaVolume: scavoElaborati.filter((r) => !rilievoUsabile(r)).length };
 }
 
 // ============================================================

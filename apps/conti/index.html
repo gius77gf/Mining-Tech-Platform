@@ -5337,6 +5337,34 @@ label.item:has(.dw-chk:checked){
     const c = CLI.find(x => x.id === clienteId);
     const numero = numeroProssimaFattura();
     const scadDefault = piuGiorni(oggiISO(), 30);
+    /* ⛔ SE ANCHE UN SOLO DDT NON HA UNA QUANTITÀ MISURABILE, LA FATTURA NON SI
+       EMETTE. Non è pignoleria: quel DDT entrerebbe con quantità zero, e il
+       totale uscirebbe più BASSO del vero — cioè si fatturerebbe al cliente
+       meno di quello che gli è stato consegnato, senza che niente lo dica. È
+       lo stesso stop che il form del DDT fa già quando manca la densità.
+       `ant.calcolabile` è la bandiera che il modulo alza; qui la si legge. */
+    if (!ant.calcolabile) {
+      const uno = ant.ddtSenzaQuantita.length === 1;
+      apriModale("Fattura differita — non si può emettere",
+        `<p>${uno ? "Un DDT fra quelli spuntati non ha" : "Alcuni DDT fra quelli spuntati non hanno"}
+           <b>una quantità misurabile</b>: ${uno ? "è venduto" : "sono venduti"} a metro cubo e il prodotto
+           non ha la densità, quindi non si sa quanti m³ ${uno ? "sia quel netto" : "siano quei netti"} in tonnellate.</p>
+         <div class="mrec"><span class="k">${uno ? "DDT da sistemare" : "DDT da sistemare"}</span><span class="v">${esc(ant.ddtSenzaQuantita.join(", "))}</span></div>
+         <p style="margin-top:10px;">${uno ? "Se lo fatturassi" : "Se li fatturassi"} così ${uno ? "entrerebbe" : "entrerebbero"}
+           con <b>quantità zero</b>, e il totale della fattura sarebbe più basso del dovuto.
+           Aggiungi la <b>densità</b> del prodotto nella scheda <b>Listino</b>, poi torna qui:
+           la quantità si calcola da sola. In alternativa togli la spunta a
+           ${uno ? "quel DDT" : "quei DDT"} e fattura il resto.</p>`,
+        [{ label: "Ho capito", cls: "primary", azione: chiudiModale }]);
+      /* ⚠️ la nota resta SOTTO il bottone, ma senza toast: `esito()` ne alza
+         uno, e a 320 px il toast finisce sopra il bottone della finestra che
+         si è appena aperta — visto nello scatto, non leggendo il codice. La
+         finestra è già il messaggio; questa riga è solo la traccia che resta
+         quando la si chiude. */
+      $("dif-esito").textContent = (uno ? "Un DDT non ha" : "Alcuni DDT non hanno")
+        + " la quantità misurabile: " + ant.ddtSenzaQuantita.join(", ") + ". Manca la densità nel listino.";
+      return;
+    }
     apriModale("Fattura differita — anteprima",
       `<p>Da <b>${plur(ant.conto, "DDT", "DDT")}</b> di <b>${esc((c && c.ragioneSociale) || "—")}</b>
          (consegne dal ${fmtD(ant.dal)} al ${fmtD(ant.al)}) nasce <b>una fattura sola</b>,

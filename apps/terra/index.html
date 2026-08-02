@@ -1883,13 +1883,27 @@ a.dw-btn{text-decoration:none}
        somma dei lotti sarebbe più piccola del volume davvero misurato e ogni
        singola riga tornerebbe lo stesso: nessuno se ne accorgerebbe. */
     const fu = rilieviFuoriDaiLotti(LOT, RIL);
-    $("lot-fuori").className = "note" + (fu.quanti ? " avviso" : "");
+    /* ⛔ E I RILIEVI IL CUI VOLUME NON SI LEGGE NON SI SOMMANO AGLI ALTRI. Fino
+       al 02/08 finivano nel conto degli orfani con `+null || 0`, cioè contati
+       come misure da zero metri cubi: la riga diceva «3 rilievi per 500 m³»
+       quando i rilievi misurati erano uno. Adesso stanno in una frase loro,
+       perché non sono né dentro un lotto né fuori: sono rilievi di cui non si
+       sa il volume, e finché ce n'è anche uno solo la frase tranquilla in
+       fondo («ogni volume misurato sta dentro un lotto») non si può dire. */
+    const senzaVol = fu.senzaVolume
+      ? `<b>${fu.senzaVolume}</b> ${fu.senzaVolume === 1 ? "rilievo di scavo è segnato «elaborato» ma il suo volume non si legge" : "rilievi di scavo sono segnati «elaborati» ma il loro volume non si legge"}: `
+        + `non ${fu.senzaVolume === 1 ? "entra" : "entrano"} in nessun lotto e nemmeno nel conto qui sopra, perché non ${fu.senzaVolume === 1 ? "è una misura" : "sono misure"} — apri${fu.senzaVolume === 1 ? "lo" : "li"} dalla scheda <b>Rilievi</b> e scrivi i metri cubi, oppure riporta${fu.senzaVolume === 1 ? "lo" : "li"} in bozza.`
+      : "";
+    $("lot-fuori").className = "note" + (fu.quanti || fu.senzaVolume ? " avviso" : "");
     $("lot-fuori").innerHTML = !LOT.length ? ""
-      : fu.quanti
+      : (fu.quanti
         ? `<b>${fu.quanti}</b> ${fu.quanti === 1 ? "rilievo di scavo non sta" : "rilievi di scavo non stanno"} in nessun lotto, per <b>${n0(fu.m3)} m³</b>`
           + (fu.senzaFronte ? ` (${fu.senzaFronte} ${fu.senzaFronte === 1 ? "non indica" : "non indicano"} nemmeno il fronte)` : "")
           + `: quei metri cubi sono stati misurati ma non appartengono a nessuna parte del piano, quindi <b>la somma dei lotti è più piccola</b> del volume davvero cavato. Aggiungi il fronte mancante al lotto giusto, oppure registra il lotto che manca.`
-        : `Ogni volume misurato sta dentro un lotto: la somma dei lotti e il volume cavato raccontano la stessa cosa.`;
+        : fu.senzaVolume
+          ? `Ogni volume <b>misurato</b> sta dentro un lotto.`
+          : `Ogni volume misurato sta dentro un lotto: la somma dei lotti e il volume cavato raccontano la stessa cosa.`)
+        + (senzaVol ? `<br>${senzaVol}` : "");
     // le pillole dei fronti nel form (una per fronte, si accendono toccandole)
     $("lot-fronti").innerHTML = FRO.map(f =>
       `<button class="chg${frontiLot.includes(f.id) ? " active" : ""}" type="button" data-fro-lot="${f.id}" aria-pressed="${frontiLot.includes(f.id)}">${esc(f.nome)}</button>`).join("")

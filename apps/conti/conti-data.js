@@ -1182,10 +1182,21 @@ export function movimentiDiFattura(fatturaId, incassi) {
 // Giorni fra due date ISO (b − a), in UTC e senza fuso: deterministica, così
 // "quanti giorni ci ha messo a pagare" dà lo stesso numero ovunque giri l'app.
 // null se una delle due date manca o non è una data.
+/* ⛔ LA FORMA DI UNA DATA NON È LA SUA ESISTENZA, e qui la regex di forma
+   stava al posto della verifica. Misurato il 02/08:
+     · giorniFraDate("2026-01-01","2026-02-30") rispondeva **60** — identico
+       alla risposta per il 2 marzo, perché `Date.parse` il 30 febbraio non lo
+       rifiuta: lo fa SCORRERE. Due giorni di pagamento inventati, e da lì i
+       giorni medi del cliente;
+     · giorniFraDate("2026-01-01","2026-13-45") rispondeva **NaN** — che la
+       forma la passa e la verifica no. E NaN non è null: `tempiPagamentoClienti`
+       e `tempoMedioPagamento` scartano solo il null, quindi UNA fattura con la
+       data storta portava la media di TUTTE a «NaN giorni».
+   La funzione che sa la differenza è `dataISOEsiste`, in `shared/` da mesi ed
+   è già importata in cima a questo file. Non se ne scrive una seconda. */
 export function giorniFraDate(daISO, aISO) {
-  const ok = /^\d{4}-\d{2}-\d{2}$/;
   const a = String(daISO || "").slice(0, 10), b = String(aISO || "").slice(0, 10);
-  if (!ok.test(a) || !ok.test(b)) return null;
+  if (!dataISOEsiste(a) || !dataISOEsiste(b)) return null;
   return Math.round((Date.parse(b + "T00:00:00Z") - Date.parse(a + "T00:00:00Z")) / 86400000);
 }
 
@@ -1244,9 +1255,22 @@ export function applicaIncassi(fatture, incassi) {
 // Importo ancora APERTO di una fattura: il residuo se lo stato di incasso è
 // stato calcolato, altrimenti l'importo pieno. Senza incassi registrati il
 // residuo È l'importo: ecco perché nessun totale cambia da solo.
+/* ⛔ E IL RIPIEGO SULL'IMPORTO PIENO ERA CODICE MORTO. `Number.isFinite(+f.residuo)`
+   da solo non basta: `+null` fa **0** e `Number.isFinite(0)` risponde **true**,
+   quindi un `residuo` non scritto non arrivava mai al ripiego — arrivava a
+   ZERO. Misurato il 02/08: apertoDi({importo:1000, residuo:null}) rispondeva
+   **0**, cioè una fattura da mille euro letta come già saldata, mentre
+   apertoDi({importo:1000}) rispondeva 1000.
+   Oggi nessun dato salvato porta `residuo: null` (lo scrive solo
+   `applicaIncassi`, e sempre con un numero), quindi il difetto è DORMIENTE e
+   non c'è nessuno schermo che cambi: quello che si ripara è la promessa scritta
+   qui sopra, che era una guardia scollegata. La stessa regola, scritta per
+   intero, è in `quantitaPesata` (`qNota`) trecento righe più giù. */
 export function apertoDi(fattura, note) {
   const f = fattura || {};
-  const base = Number.isFinite(+f.residuo) ? round2(Math.max(0, +f.residuo)) : round2(+f.importo || 0);
+  const r = f.residuo;
+  const residuoScritto = !(r == null || String(r).trim() === "") && Number.isFinite(+r);
+  const base = residuoScritto ? round2(Math.max(0, +r)) : round2(+f.importo || 0);
   // ⛔ e quello che una nota di credito ha già stornato NON è più esigibile.
   // `note` è facoltativo: chi non lo passa ha esattamente il numero di prima —
   // ed è così che questa riga è entrata senza cambiare nessuno dei chiamanti
@@ -1745,9 +1769,23 @@ export function righeDaPesate(pesate) {
     const r = per[k] || (per[k] = { prodottoId: p.prodottoId || null,
       descrizione: String(p.prodotto || "Prodotto"), unita, prezzoUnitario: prezzo,
       scontoPct: sconto, aliquota, quantita: 0, imponibile: 0, ddt: [], ddtIds: [],
-      fontePrezzo: fonte, ordineIds: [] });
-    const q = Number.isFinite(+p.quantita) ? +p.quantita : (+p.netto || 0);
-    r.quantita = round3(r.quantita + q);
+      fontePrezzo: fonte, ordineIds: [], ddtSenzaQuantita: [], calcolabile: true });
+    /* ⛔ `Number.isFinite(+p.quantita)` DA SOLO NON BASTA, e il ripiego scritto
+       qui accanto (`: (+p.netto || 0)`) era irraggiungibile: `+null` fa **0** e
+       `Number.isFinite(0)` risponde **true**, quindi una quantità non scritta
+       diventava **0** — zero quantità, zero imponibile, un DDT fatturato per
+       niente. Misurato il 02/08 su una consegna di 25 t: la riga usciva 0 t / 0 €.
+       La regola giusta è quella di `quantitaPesata`, in questo stesso file:
+       la quantità DICHIARATA vale solo se è leggibile, e il ripiego conosce
+       l'unità — a tonnellata è il netto pesato, a metro cubo è il netto diviso
+       la densità. ⛔ E senza densità non c'è nessun ripiego: moltiplicare
+       tonnellate per un prezzo al metro cubo è la fattura sbagliata di più.
+       Lì la riga NON è calcolabile, e lo dichiara invece di scrivere zero. */
+    const qDich = p.quantita;
+    const qNota = !(qDich == null || String(qDich).trim() === "") && Number.isFinite(+qDich);
+    const q = qNota ? +qDich : (unita === "m3" ? quantitaPesata(p).m3 : quantitaPesata(p).t);
+    if (q == null) { r.ddtSenzaQuantita.push(p.numero || "—"); r.calcolabile = false; }
+    else r.quantita = round3(r.quantita + q);
     r.ddt.push(p.numero || "—");
     r.ddtIds.push(p.id);
     /* i riferimenti d'ordine della riga: è quello che una fattura italiana
@@ -1758,7 +1796,11 @@ export function righeDaPesate(pesate) {
       r.ordineIds.push(p.ordineId);
   }
   const righe = Object.values(per).sort((a, b) => a.descrizione.localeCompare(b.descrizione, "it"));
-  for (const r of righe) r.imponibile = imponibileRiga(r.quantita, r.prezzoUnitario, r.scontoPct);
+  // imponibile `null` (non 0) quando la quantità non si può misurare: uno zero
+  // qui è un imponibile dichiarato, e sarebbe una fattura che sotto-fattura in
+  // silenzio. Chi lo legge deve fermarsi, non sommare.
+  for (const r of righe)
+    r.imponibile = r.calcolabile ? imponibileRiga(r.quantita, r.prezzoUnitario, r.scontoPct) : null;
   return righe;
 }
 
@@ -1770,8 +1812,18 @@ export function fatturaDaPesate(pesate) {
   const righe = righeDaPesate(lista);
   const t = totaliDaRighe(righe);
   const date = lista.map(p => String(p.data || "")).filter(Boolean).sort();
+  /* ⛔ E L'ANTEPRIMA DICE SE SI PUÒ EMETTERE. Se anche un solo DDT ha la
+     quantità non misurabile, i totali qui sotto sono più BASSI del vero — e un
+     totale più basso del vero, su una fattura, è denaro che nessuno chiede.
+     `calcolabile: false` è la bandiera che ferma la pagina; `ddtSenzaQuantita`
+     dice quali documenti sistemare. Il DDT che nasce oggi questo caso non lo
+     produce (il form blocca il metro cubo senza densità): ci si arriva da un
+     import o da un archivio vecchio, ed è lo stesso caso che `quantitaPesata`
+     dichiara già nel registro. */
+  const ddtSenzaQuantita = righe.flatMap(r => r.ddtSenzaQuantita);
   return { righe, ...t, ddtIds: lista.map(p => p.id),
            ddtNumeri: lista.map(p => p.numero || "—"),
+           calcolabile: ddtSenzaQuantita.length === 0, ddtSenzaQuantita,
            dal: date[0] || null, al: date[date.length - 1] || null, conto: lista.length };
 }
 
@@ -2264,18 +2316,40 @@ export function validaNota(nota, fattura, note, oggi = new Date()) {
     errori.push(`L'importo supera quello che resta da stornare: ${stornabile.toFixed(2)} € `
       + `(la fattura è ${totale.toFixed(2)} €, già stornati ${giaStornato.toFixed(2)} €).`);
 
-  if (c && c.termine != null && /^\d{4}-\d{2}-\d{2}/.test(String(f.emessa || ""))) {
-    const mesi = mesiFra(String(f.emessa).slice(0, 10), oggi);
-    if (mesi > c.termine)
+  /* ⛔ E IL SILENZIO NON È UN «SEI NEI TERMINI». Fino al 02/08 il termine si
+     controllava solo se la data d'emissione passava una regex di FORMA, e
+     `mesiFra` la convertiva senza verificarla: su «2026-02-30» rispondeva 14
+     mesi (contati dal 2 marzo, dove `Date.parse` fa scorrere il giorno) e su
+     «2026-13-45» rispondeva NaN — e `NaN > 12` è **false**, cioè nessun
+     avviso. Una fattura con la data storta usciva dalla nota di credito
+     tranquilla come una nei termini, che è l'assenza di un dato travestita da
+     dato favorevole. Adesso `mesiFra` risponde null quando non sa, e chi
+     legge il null lo DICE. */
+  if (f.id && c && c.termine != null) {
+    const em = String(f.emessa || "").slice(0, 10);
+    const mesi = mesiFra(em, oggi);
+    if (mesi == null)
+      avvisi.push(`Non posso dire se il termine di ${c.termine} mesi previsto per questa causale `
+        + `(art. 26 comma ${c.comma}) è passato: `
+        + (em ? `la data di emissione della fattura («${em}») non è una data che esiste`
+              : "sulla fattura non c'è la data di emissione")
+        + ". Correggila sulla fattura e ricontrolla, oppure verifica col commercialista.");
+    else if (mesi > c.termine)
       avvisi.push(`Sono passati ${mesi} mesi dall'emissione, oltre i ${c.termine} previsti per questa causale `
         + `(art. 26 comma ${c.comma}): l'IVA potrebbe non essere recuperabile. Verifica col commercialista.`);
   }
   return { ok: errori.length === 0, errori, avvisi, stornabile, giaStornato, totale };
 }
 
+// Mesi interi fra una data ISO e oggi. ⛔ `dataISOEsiste` PRIMA di convertire:
+// «2026-02-30» ha la forma di una data e non è una data, e `Date.parse` la fa
+// scorrere al 2 marzo invece di rifiutarla. null = «non lo so», e chi chiama
+// deve dirlo (vedi `validaNota` qui sopra).
 function mesiFra(dataISO, oggi) {
+  if (!dataISOEsiste(dataISO)) return null;
   const a = new Date(dataISO + "T00:00:00");
   const b = new Date(oggi);
+  if (Number.isNaN(b.getTime())) return null;
   let m = (b.getFullYear() - a.getFullYear()) * 12 + (b.getMonth() - a.getMonth());
   if (b.getDate() < a.getDate()) m--;
   return m;
