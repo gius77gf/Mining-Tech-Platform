@@ -10,7 +10,7 @@ può procedere con l'attuazione.
 
 ---
 
-# 📖 Da dove cominciare — le decisioni aperte sono **24**
+# 📖 Da dove cominciare — le decisioni aperte sono **23**
 
 *Questa pagina è stata aggiunta il 01/08 per una ragione precisa: hai scritto
 che avresti potuto rispondere «in settimana», e un file di cinquecento righe con
@@ -31,14 +31,16 @@ vede subito.
 | **4** | via libera a togliere le **password in chiaro** dal sorgente | ora si sa che sono dimostrative (decisione 3), quindi **non c'è niente da ruotare fuori dal progetto**: resta da decidere se toglierle prima del primo cliente vero |
 | **9** | le **curve dei limiti di vibrazione** (USBM/DIN) esatte | è la soglia che dice a una cava se può sparare: la cambio solo se me lo dici |
 
-## 🟡 Le tre che richiedono che tu apra qualcosa
+## 🟡 Le due che richiedono che tu apra qualcosa
 
 Non posso farle io perché servono un tuo account o un tuo file.
+La terza — la **2** — è stata chiusa domenica 02/08: le regole erano aperte a
+chiunque, il fondatore ha pubblicato quelle chiuse, e la chiusura è verificata.
 
 | # | in una riga | che cosa ti chiede |
 |---|---|---|
 | **1** | creare il progetto Firebase nuovo | un account Google, dieci minuti, e incollarmi la config |
-| **2** | le regole di sicurezza del progetto **esistente** | aprire la console e incollarmi quello che c'è scritto |
+| **2** | ✅ **CHIUSA il 02/08** — le regole del progetto esistente | erano `if true`; il fondatore ha pubblicato `if false` e la chiusura è verificata dall'esterno (403). Vedi la sezione 2. |
 | **7** | la prova drone → Genesi con un volo vero | un file di un volo tuo |
 
 ## 🟢 Le diciannove che posso portare avanti io, se non dici niente
@@ -139,7 +141,26 @@ restano scelte vere, una per una.
 - **Contenuto del database**, verificato dal fondatore il 02/08: vuoto o solo
   prove. Niente da esportare.
 - **Dettaglio**: `docs/AUDIT_SICUREZZA.md` punto 3.
-- [ ] Fatto — *in attesa che il fondatore prema «Pubblica» in console*
+- ✅ **PUBBLICATE dal fondatore il 02/08 — e verificate dall'esterno, non sulla
+  parola.** Una lettura anonima dell'API REST di Firestore (nessun account,
+  nessuna chiave, esattamente quello che poteva fare chiunque fino a stamattina)
+  su `projects/deepwork-app-6c56f/databases/(default)/documents/…` risponde
+  ora **`403 PERMISSION_DENIED — Missing or insufficient permissions`**. Prima
+  quella stessa chiamata restituiva i documenti.
+- ⚠️ **Quello che la prova NON dice, detto com'è.** Da qui il browser non
+  raggiunge la rete pubblica, quindi il sito **vivo** con le regole chiuse non
+  l'ho potuto aprire: quello che ho verificato è (a) la chiusura, dall'esterno,
+  con la chiamata qui sopra, e (b) che il percorso di ripiego del core prende
+  anche questo caso — `loadAllData` fa `await getDocs`, un rifiuto delle regole
+  è un `reject`, e il `catch` che lo circonda chiama `initDBOfflineFallback`
+  (stesso percorso della rete assente, che ho eseguito davvero in locale: la
+  pagina entra, 37 elementi visibili, schermata di accesso al suo posto).
+  Il primo che apre il sito vero è la conferma finale.
+- 👉 **Una conseguenza da sistemare, e non è un difetto nuovo**: adesso ogni
+  visitatore riceve il messaggio «⚠ Modalità degradata — connessione database
+  non disponibile». Con le regole chiuse **per scelta** quella frase è falsa:
+  non è un guasto, è la modalità dimostrativa. Da riscrivere nel core.
+- [x] Fatto — *regole pubblicate e chiusura verificata dall'esterno (02/08)*
 
 ## 3. Dati di default: reali o di fantasia?
 - **Stato**: nel core `index.html` ci sono DEFAULT_CLIENTI / DEFAULT_CAVE /
