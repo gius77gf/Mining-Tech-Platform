@@ -6,13 +6,41 @@
    Soglia: 4,5:1 per il testo piccolo (WCAG 1.4.3), 3:1 per quello grande
    (≥ 24 px, oppure ≥ 18,66 px in grassetto).
 
-   TRE TRAPPOLE, tutte e tre nel verso che ASSOLVE — cioè il peggiore:
+   ⛔ QUATTRO TRAPPOLE. Le prime tre sono nel verso che ASSOLVE; la quarta è
+   nell'altro, e costa in un modo diverso ma non minore — manda a cambiare
+   colori che stanno benissimo.
    1. **Sfondi a gradiente**: il colore vero sta in `background-image`, e
       cercando un fondo opaco fra gli antenati si finisce contro lo sfondo della
       pagina. Bianco su arancione risultava 19:1. Si tiene il caso peggiore fra
       i colori del gradiente.
    2. **Trasparenza del colore del testo**: va composta col fondo.
    3. **`opacity` ereditata**: `opacity:.85` su un antenato portava 4,75 a 4,31.
+   4. **`opacity` di un'ANIMAZIONE, colta a metà.** La guardia della trappola 2
+      guardava `transitionProperty` e basta, e nel core l'opacità la muovono
+      **animazioni**: `scrFade` (0→1 a ogni cambio di schermata), `fadeUp`
+      (riquadro d'accesso e modali) e `pulseDanger`/`pulseSync`, che sono
+      **infinite** e scendono a `.6` per sempre. Un elemento preso a metà
+      pulsazione si misura col suo bianco già impastato di fondo: bianco su
+      `#b71c1c` fa 6,57:1 fermo e **3,49:1** a opacità .63. Il rimedio è in due
+      pezzi, perché i due casi sono diversi: le animazioni **finite** si
+      ASPETTANO (`Animation.finished`), quelle **infinite** non si possono
+      aspettare e allora si **dichiarano**, come già si fa per le dissolvenze.
+      La differenza col caso 2 è il verso: qui il banco non assolve, accusa —
+      e un'accusa falsa su un colore manda a rovinare una palette sana.
+
+   ⚠️ COME È VENUTA FUORI, perché il modo conta più del difetto. Il giro
+   notturno aveva bocciato quattro elementi del core, e il checkpoint di quella
+   mattina diceva al lettore dopo di **scurire la palette del core «il minimo
+   indispensabile»**. Prima di toccare un colore è stato fatto il conto a mano:
+   bianco su `#2e7d32` fa **5,13:1**, cioè passa — e un banco che dice 2,36 su
+   un colore che ne fa 5,13 sta sbagliando lui. Rimisurato sullo stesso identico
+   `index.html` (zero commit sul file in mezzo, verificato con `git log`): **tre
+   giri di fila, 333 testi, 0 sotto soglia**. Il giro notturno girava su una
+   copia di un commit **precedente** a quello che ha sistemato l'accesso al
+   core, quindi misurava schermate a metà comparsa.
+   La lezione non è sulle animazioni: è che **un KO va verificato come un OK**.
+   Questo banco esiste perché nessuno guardava i colori; se le sue bocciature
+   si prendono per buone senza il conto a mano, diventa lui la fonte del danno.
 
    Cosa NON si misura, e perché: il testo dentro le immagini e gli SVG (il
    contrasto lì non si legge dal DOM), e il testo nascosto. Le soglie di
@@ -23,6 +51,8 @@
      node apps/deepwork-id/tests/browser/contrasto.mjs 8823
      node apps/deepwork-id/tests/browser/contrasto.mjs 8823 --solo=terra
      node apps/deepwork-id/tests/browser/contrasto.mjs 8823 --tutti   (elenca anche i promossi)
+     node apps/deepwork-id/tests/browser/contrasto.mjs 8823 --controprova
+     node apps/deepwork-id/tests/browser/contrasto.mjs 8823 --controprova-pulsazione
 */
 import { prendiChromium, CHROMIUM, SUPERFICI, sezioniDi, vaiA, apriSuperficie } from './giro.mjs';
 import { montaFintoFirebase } from './finto-firebase.mjs';
@@ -41,6 +71,16 @@ const TUTTI = process.argv.includes('--tutti');
    misura non sta guardando, e il suo «0 sotto soglia» non vale niente. */
 const CONTROPROVA = process.argv.includes('--controprova');
 const MARCA = 'controprova contrasto';
+/* ⛔ LA CONTROPROVA DELLA TRAPPOLA 4, e serve perché la guardia nuova sul core
+   NON SI ACCENDE MAI: le animazioni finite adesso si aspettano, e le infinite
+   del core capitano quasi sempre sopra 0,95. Una guardia che non scatta non è
+   una guardia provata — è la stessa ragione per cui esiste `--controprova`.
+   Qui si appende un testo che FERMO sta benissimo (bianco su `#b71c1c`,
+   6,57:1) ma porta un'animazione infinita che lo tiene a `opacity:.5`. Deve
+   finire fra i «in pulsazione», MAI fra i bocciati: se viene bocciato, il
+   banco sta di nuovo accusando un colore sano. */
+const CONTROPULSA = process.argv.includes('--controprova-pulsazione');
+const MARCA_PULSA = 'controprova pulsazione';
 
 /* La misura vive nella pagina: si passa una volta sola e si raccoglie tutto il
    testo visibile con il suo contrasto effettivo. */
@@ -97,6 +137,44 @@ const MISURA = () => {
     while (a && a !== document.documentElement) { o *= parseFloat(getComputedStyle(a).opacity || '1'); a = a.parentElement; }
     return o;
   };
+  /* L'opacità la può muovere un ANTENATO, quindi si risale come per
+     `opacitaEreditata`. E si guardano i fotogrammi veri (`getKeyframes`), non
+     il nome dell'animazione: `pulseDanger` dice tutto e `scrFade` niente, ma
+     l'unica cosa che conta è se fra i fotogrammi c'è `opacity`. */
+  const pulsaOpacita = (el) => {
+    let a = el;
+    while (a && a !== document.documentElement) {
+      if (typeof a.getAnimations === 'function') {
+        for (const an of a.getAnimations()) {
+          if (an.playState !== 'running') continue;
+          let k = [];
+          try { k = an.effect.getKeyframes(); } catch (e) { continue; }
+          if (k.some((f) => f.opacity !== undefined)) return true;
+        }
+      }
+      a = a.parentElement;
+    }
+    return false;
+  };
+  /* L'antenato che dipinge davvero questo testo: il primo, risalendo, che si
+     ritaglia il fondo sulle proprie lettere. */
+  const antenatoRitagliato = (el) => {
+    for (let a = el.parentElement; a && a !== document.documentElement; a = a.parentElement) {
+      const c = getComputedStyle(a);
+      if ((c.webkitBackgroundClip || c.backgroundClip) === 'text') return a;
+    }
+    return null;
+  };
+  /* «il mio inchiostro è trasparente E qualcuno sopra di me si ritaglia il
+     fondo sulle lettere» — le due condizioni insieme, perché l'una senza
+     l'altra non vuol dire niente: un testo trasparente sotto un antenato
+     normale è testo invisibile davvero, e va misurato (e bocciato). */
+  const ritagliatoDaSopra = (el) => {
+    const c = getComputedStyle(el);
+    const f = num(c.webkitTextFillColor || c.color || '');
+    const alfa = f.length > 3 ? f[3] : 1;
+    return alfa === 0 && !!antenatoRitagliato(el);
+  };
   const composto = (fg, sf, op) => {
     const f = num(fg), s = num(sf);
     const alfa = (f.length > 3 ? f[3] : 1) * op;
@@ -131,7 +209,23 @@ const MISURA = () => {
        bocciatura su un colore che nessuno vede mai così. Non è un difetto del
        prodotto ed è sbagliato spegnerlo in silenzio: si dichiara. La soglia è
        0,95 perché sotto quella l'elemento sta ancora arrivando o andandosene. */
-    if (op < 0.95 && /opacity|all/.test(cs.transitionProperty || '')) { window.__dwSfumati = (window.__dwSfumati || 0) + 1; return; }
+    /* ⛔ QUELLO CHE PULSA SI CONTA PER PRIMO, ed è un caso diverso dalla
+       dissolvenza: la dissolvenza passa, la pulsazione no. `pulseDanger` e
+       `pulseSync` scendono a .6 e ci tornano ogni secondo e mezzo, per sempre;
+       misurare lì dentro è tirare a sorte. Le animazioni FINITE non arrivano
+       fin qui, perché il banco le aspetta prima di misurare. */
+    if (op < 0.95 && pulsaOpacita(el)) { window.__dwPulsanti = (window.__dwPulsanti || 0) + 1; return; }
+    /* ⚠️ E LA DURATA VA GUARDATA, se no questa riga scarta tutto. Il valore
+       INIZIALE di `transition-property` è `all`, quindi un `div` qualunque che
+       non transisce niente rispondeva `all` e finiva fra le dissolvenze: la
+       guardia della trappola 2 scartava OGNI testo sotto 0,95 di opacità,
+       compresi quelli con un `opacity` statico — cioè proprio i casi della
+       trappola 3, che questo banco dice di misurare. Un'esclusione più larga
+       della sua ragione è un'esclusione che assolve. Misurato il 03/08
+       montando la controprova della pulsazione: il veleno finiva fra le
+       dissolvenze (10 → 27) e la prova nuova non provava niente. */
+    if (op < 0.95 && /opacity|all/.test(cs.transitionProperty || '')
+        && parseFloat(cs.transitionDuration || '0') > 0) { window.__dwSfumati = (window.__dwSfumati || 0) + 1; return; }
     const dim = parseFloat(cs.fontSize);
     const grande = dim >= 24 || (dim >= 18.66 && parseInt(cs.fontWeight, 10) >= 700);
     /* TESTO DIPINTO COL GRADIENTE (`background-clip:text`). Lì `color` è
@@ -156,6 +250,24 @@ const MISURA = () => {
       if (!stop || !stop.length) return;
       inchiostri = stop;
       sfondi = sfondiDi(el.parentElement || document.body);
+    } else if (ritagliatoDaSopra(el)) {
+      /* ⛔ TRAPPOLA 5, ED È LA 1 UN PIANO PIÙ SOTTO. Il ramo qui sopra prende
+         il caso dell'elemento che ha lui il `background-clip:text`. Ma
+         l'unità di misura sta DENTRO il numero (`<span class="n">12<span
+         class="u">gg</span></span>`): il suo `background-clip` non è `text`,
+         il suo inchiostro è trasparente perché lo eredita, e chi la dipinge è
+         il gradiente dell'ANTENATO. Leggendo `color` si misurava il nulla
+         contro sé stesso e veniva **esattamente 1:1** — lo stesso identico
+         sintomo che il commento del ramo sopra racconta come già risolto, su
+         un elemento diverso. Un 1:1 tondo non è un colore: è una misura che
+         non ha trovato l'inchiostro.
+         Il modo di riconoscerlo è il colore trasparente, non il nome della
+         classe: `-webkit-text-fill-color` a alfa zero. */
+      const su = antenatoRitagliato(el);
+      const stop = (getComputedStyle(su).backgroundImage || '').match(/rgba?\([^)]*\)/g);
+      if (!stop || !stop.length) return;
+      inchiostri = stop;
+      sfondi = sfondiDi(su.parentElement || document.body);
     } else {
       inchiostri = [cs.color];
       sfondi = sfondiDi(el);
@@ -171,9 +283,30 @@ const MISURA = () => {
   return out;
 };
 
+/* ⛔ LE ANIMAZIONI FINITE SI ASPETTANO, NON SI INDOVINANO. Un `waitForTimeout`
+   fisso è una scommessa sulla macchina: sotto carico — e qui i cantieri
+   paralleli ci sono sempre — scade prima che la schermata abbia finito di
+   comparire, e allora si misura il prodotto a metà dissolvenza. Si aspetta
+   `Animation.finished` di quelle che finiscono davvero; le infinite le
+   dichiara la guardia dentro la misura. Il tetto c'è perché un'animazione può
+   essere sostituita mentre la si aspetta, e allora `finished` non arriva mai. */
+const TETTO_ATTESA = 1500;
+const aspettaAnimazioni = (p) => p.evaluate((tetto) => {
+  const finite = document.getAnimations().filter((a) => {
+    if (a.playState !== 'running') return false;
+    let t; try { t = a.effect && a.effect.getComputedTiming(); } catch (e) { return false; }
+    return !!t && t.iterations !== Infinity;
+  });
+  if (!finite.length) return 0;
+  return Promise.race([
+    Promise.all(finite.map((a) => a.finished.catch(() => {}))).then(() => finite.length),
+    new Promise((r) => setTimeout(() => r(-finite.length), tetto)),
+  ]);
+}, TETTO_ATTESA).catch(() => 0);
+
 const b = await chromium.launch({ executablePath: CHROMIUM });
 let misurati = 0, bocciati = 0;
-let sfumatiTot = 0;
+let sfumatiTot = 0, pulsantiTot = 0, scadute = 0, pulsaBocciata = 0, pulsaMisurata = 0;
 let superficiProvate = 0;
 const superficiCieche = [];
 const visti = new Set();
@@ -193,10 +326,25 @@ for (const [nome, via] of SUPERFICI) {
       document.body.appendChild(d);
     }, MARCA);
   }
+  if (CONTROPULSA) {
+    await p.evaluate((marca) => {
+      const st = document.createElement('style');
+      st.textContent = '@keyframes dwBassaFissa{0%,100%{opacity:.5}}';
+      document.head.appendChild(st);
+      const d = document.createElement('div');
+      d.textContent = marca;
+      d.className = 'controprova-pulsa';
+      d.setAttribute('style', 'color:rgb(255,255,255); background-color:rgb(183,28,28); font-size:13px;'
+        + ' padding:4px; position:relative; z-index:1; animation:dwBassaFissa 1s linear infinite');
+      document.body.appendChild(d);
+    }, MARCA_PULSA);
+  }
   const sezioni = await sezioniDi(p, nome);
   let bocciatiQui = 0, misuratiQui = 0, presaQui = 0;
   for (const s of sezioni) {
     await vaiA(p, nome, s);
+    const attese = await aspettaAnimazioni(p);
+    if (attese < 0) scadute += -attese;
     const misure = await p.evaluate(MISURA);
     for (const m of misure) {
       /* lo stesso testo con la stessa classe si incontra su più schermate:
@@ -207,9 +355,14 @@ for (const [nome, via] of SUPERFICI) {
       misurati++; misuratiQui++;
       const passa = m.rapporto >= m.soglia;
       if (!passa) {
+        if (m.testo.startsWith(MARCA_PULSA)) { pulsaBocciata++; console.log('  ⚠️  il testo in pulsazione è stato BOCCIATO'
+          + ` a ${m.rapporto}:1 — la guardia della trappola 4 non ha tenuto`); continue; }
         if (m.testo.startsWith(MARCA)) { presaQui++; continue; }   // è il veleno: non è un difetto del prodotto
         bocciati++; bocciatiQui++;
         console.log(`  KO  ${String(m.rapporto).padStart(6)}:1  (serve ${m.soglia})  ${m.dim}px  «${m.testo}»  .${m.classe}`);
+      } else if (m.testo.startsWith(MARCA_PULSA)) {
+        pulsaMisurata++;
+        console.log(`  ⚠️  il testo in pulsazione è stato MISURATO a ${m.rapporto}:1 invece che dichiarato`);
       } else if (m.testo.startsWith(MARCA)) {
         console.log(`  ⚠️  la riga della controprova è stata PROMOSSA a ${m.rapporto}:1 — qui la misura non guarda`);
       } else if (TUTTI) {
@@ -218,9 +371,11 @@ for (const [nome, via] of SUPERFICI) {
     }
   }
   const sfumati = await p.evaluate(() => window.__dwSfumati || 0).catch(() => 0);
-  sfumatiTot += sfumati;
+  const pulsanti = await p.evaluate(() => window.__dwPulsanti || 0).catch(() => 0);
+  sfumatiTot += sfumati; pulsantiTot += pulsanti;
   console.log(`  ${misuratiQui} testi misurati, ${bocciatiQui} sotto soglia`
     + (sfumati ? ` · ${sfumati} in dissolvenza, non misurabili` : '')
+    + (pulsanti ? ` · ${pulsanti} in pulsazione, non misurabili` : '')
     + (CONTROPROVA ? ` · controprova ${presaQui ? 'PRESA' : 'NON PRESA'}` : ''));
   if (CONTROPROVA) { superficiProvate++; if (!presaQui) superficiCieche.push(nome); }
   if (errori.length) console.log('  ⚠ errori pagina:', errori.slice(0, 2));
@@ -229,7 +384,28 @@ for (const [nome, via] of SUPERFICI) {
 
 await b.close();
 console.log(`\n${misurati} testi misurati in tutto, ${bocciati} sotto soglia`
-  + (sfumatiTot ? ` · ${sfumatiTot} saltati perché in dissolvenza (dichiarati, non nascosti)` : ''));
+  + (sfumatiTot ? ` · ${sfumatiTot} saltati perché in dissolvenza (dichiarati, non nascosti)` : '')
+  + (pulsantiTot ? ` · ${pulsantiTot} saltati perché in pulsazione (dichiarati, non nascosti)` : ''));
+/* ⛔ Questa riga va letta PRIMA dei KO, non dopo: è il banco che dice dove non
+   ha guardato. Se le attese scadono, la misura è di nuovo a metà animazione —
+   cioè il difetto del 03/08 che è tornato, e allora i KO non valgono. */
+if (scadute) console.log(`⚠️  ${scadute} animazioni non hanno finito entro ${TETTO_ATTESA} ms:`
+  + ' lì la misura è di nuovo su una schermata a metà, e i suoi KO non sono affidabili.');
+
+if (CONTROPULSA) {
+  /* Il testo appeso sta benissimo fermo e male in movimento: il banco NON deve
+     bocciarlo, e non deve nemmeno misurarlo — deve dichiararlo. Le due uscite
+     sbagliate sono diverse e vanno separate, se no la prova passa per il motivo
+     sbagliato: BOCCIATO = la guardia non c'è; MISURATO = la guardia c'è ma la
+     pulsazione non è stata riconosciuta (e allora il numero è un caso). */
+  const dichiarati = pulsantiTot;
+  console.log(`\ncontroprova della pulsazione: ${dichiarati} dichiarati in pulsazione,`
+    + ` ${pulsaBocciata} bocciati, ${pulsaMisurata} misurati come se fossero fermi`);
+  if (pulsaBocciata) { console.log('⛔ la guardia della trappola 4 NON tiene: un colore sano è stato accusato.'); process.exit(1); }
+  if (pulsaMisurata) { console.log('⛔ il testo in pulsazione è stato misurato invece che dichiarato: il numero è un caso.'); process.exit(1); }
+  if (!dichiarati) { console.log('⛔ nessun testo dichiarato in pulsazione: il veleno non è arrivato, la prova non prova niente.'); process.exit(1); }
+  console.log('la guardia della trappola 4 tiene: il testo in pulsazione è stato dichiarato, non giudicato.');
+}
 
 /* Come per gli altri banchi: in controprova si esce MALE se il difetto NON
    viene trovato, perché vorrebbe dire che la misura non sa fallire. */

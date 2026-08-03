@@ -54,6 +54,15 @@ const BANCHI = [
   ['campi interi · controprova', 'interi-superfici.mjs', ['--senza-guardia'], true],
   ['contrasto', 'contrasto.mjs', []],
   ['contrasto · controprova', 'contrasto.mjs', ['--controprova'], true],
+  /* ⛔ AGGIUNTA IL 03/08, e non è un doppione della riga qui sopra: quella
+     prova che il banco sappia BOCCIARE, questa che sappia NON bocciare. Il
+     giro della notte aveva accusato quattro colori del core che sullo stesso
+     identico file fanno 5:1 e più — erano schermate colte a metà comparsa. Il
+     veleno qui è un testo che fermo sta benissimo e porta un'animazione
+     infinita che lo tiene a mezza opacità: dev'essere DICHIARATO, mai
+     giudicato. Un'accusa falsa su un colore manda a rovinare una palette
+     sana, ed è per questo che ha una prova sua. */
+  ['contrasto · non accusa chi pulsa', 'contrasto.mjs', ['--controprova-pulsazione'], true],
   ['unità in maiuscolo', 'unita-maiuscole.mjs', []],
   ['unità · controprova', 'unita-maiuscole.mjs', ['--controprova', '--solo=campo'], true],
   ['collegamenti della vetrina', 'vetrina-collegamenti.mjs', []],
