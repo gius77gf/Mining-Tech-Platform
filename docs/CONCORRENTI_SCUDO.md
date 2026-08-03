@@ -7,13 +7,13 @@
 >
 > | app | righe | assenti confermate | **false** | ⏱️ **scadute** | a metà |
 > |---|---|---|---|---|---|
-> | Scudo | **17** | **7** | 2 | 1 | **7** |
+> | Scudo | **17** | **6** | 2 | **2** | **7** |
 > | Sentinella | 22 | **13** | 4 | ⏱️ **3** | **2** |
 > | Terra | 11 | 4 | 2 | 2 | 3 |
 > | Campo | 22 | 12 | 2 | 2 | 6 |
 > | Conti | 18 | **8** | **5** | ⏱️ **3** | 2 |
 > | Flotta | 16 | 5 | 3 | 0 | 8 |
-> | **totale** | **106** | **49** | **18** | **11** | **28** |
+> | **totale** | **106** | **48** | **18** | **12** | **28** |
 >
 > ✅ **E due sono già SCESE**, che è il motivo per cui il conto sta scritto: la
 > **catena di custodia del dato** di Sentinella e il suo **audit trail** (a metà)
@@ -477,7 +477,6 @@ Il riferimento a `§2` è la riga corrispondente della tabella «Cosa Abbiamo».
 | Indice di frequenza INAIL (§2 «Indice di frequenza INAIL») | FALSA | `scudo-data.js:2508` `indiciInfortunistici()`; `index.html:2253-2258` mostra IF, IG e LTIFR. **Rafforzata dalla decisione 17** (02/08): un infortunio a prognosi aperta non vale «0 giornate perse» (`scudo-data.js:2513-2522`, `daQuantificare`) e IG/LTIFR si dichiarano un **minimo** (`avvisoGravitaMinima`, `scudo-data.js:2544`). |
 | Organigramma della sicurezza (§2 «Organigramma della sicurezza») | FALSA | `scudo-data.js:2085` `organigrammaSicurezza()`; usata in `index.html:1665`, sezione «Nomine della sicurezza» (`index.html:821`). |
 | **CONFERMATE ASSENTI** — in ordine di quanto le chiederebbe un ispettore |  |  |
-| Permessi di lavoro (PTW) (§2 «Permessi per spazi confinati/lavori caldi/altura») | CONFERMATA | `grep -ciE 'ptw\|permit\|autorizzatore\|lavoro in quota\|lavori a caldo'` → **0 e 0**. «permesso di lavoro» compare **2 volte** e sono la stessa frase: la voce di checklist «Accesso a tramogge e spazi confinati regolato da permesso di lavoro» (`scudo-data.js:350` e `:948`). Cioè l'app **chiede in ispezione** un permesso che non sa né emettere né conservare. |
 | Controllo versioni documenti (§2 «Controllo versioni documenti») | CONFERMATA | `grep -ciE 'versionamento\|storico documenti\|cronologia\|revisione precedente'` → **0 e 0**. Le 38 occorrenze di «revisione» sono tutte del ciclo DSS, che tiene **una sola data** (`dssRevisione`, `scudo-data.js:1471-1494`): dice qual è l'ultima revisione, non quali erano le precedenti. Un documento sostituito sparisce. |
 | Report PDF automatico — ispezioni (§2 «Report PDF automatico») | CONFERMATA | L'unica stampa è il **verbale DPI**: `index.html:892` (bottone), `:4116` `stampaVerbale()`, `:655-666` (regole `@media print` legate alla classe `stampa-verbale`). Nessun percorso di stampa parte da un'ispezione: `grep -n 'isp' ` sui punti di stampa → nessuno. |
 | Esportazione report PDF/Excel (§2 «Esportazione report PDF/Excel») | CONFERMATA | `grep -ciE 'xlsx\|excel\|jspdf'` → **0 e 0**. Restano i tre export CSV puntuali: `index.html:1007` (azioni), `:1174` (near-miss), `:1223` (infortuni). Nessun documento unico da consegnare. |
@@ -485,6 +484,7 @@ Il riferimento a `§2` è la riga corrispondente della tabella «Cosa Abbiamo».
 | Segnalazioni osservazioni (§2, quattro righe «Segnalazioni Osservazioni») | CONFERMATA | `grep -ciE 'osservazion\|buona pratica\|buone pratiche\|safety observation'` → **0 e 0**. Il registro eventi ha due soli tipi, `infortunio` e `near-miss` (`scudo-data.js:43`): manca il terzo, quello che si segnala **prima** che accada qualcosa. |
 | Mobile app offline (§2 «Mobile app offline») | CONFERMATA | `grep -ciE 'offline\|serviceworker\|caches\.'` → **0 e 0**. C'è il `manifest` PWA (`index.html:12`, `display:standalone`), che rende l'app installabile ma **non** utilizzabile senza rete: in cava, dove il campo non c'è, la checklist non si compila. |
 | **⏱️ SCADUTE — vere il 01/08, colmate dopo** |  |  |
+| Permessi di lavoro (PTW) (§2, cinque righe «Permessi di Lavoro») | ⏱️ SCADUTA | Era CONFERMATA e la prova reggeva: `grep -ciE 'ptw\|permit\|autorizzatore\|lavoro in quota\|lavori a caldo'` → **0 e 0**, e «permesso di lavoro» compariva **2 volte**, la stessa frase della voce di checklist (`scudo-data.js:350` e `:948`). Colmata da `22999aa` (03/08) **perché questa riga la proponeva**: 27 funzioni nella sezione S8, collezione `permessi`, pagina `page-perm`, e il ponte che toglie la spunta «conforme» quando il permesso che la voce pretende non esiste. Coperte tre righe su cinque della §2 — «permessi per spazi confinati/lavori caldi/altura», «workflow di approvazione», «monitoraggio permessi in tempo reale»; **restano fuori** «integrazione con rischi e JSA» (ci sono le misure e l'atmosfera, non la valutazione dei rischi collegata) e «coordinamento lavori simultanei». |
 | Anagrafe appaltatori / DUVRI (§2, cinque righe «Contractor/Appaltatori») | ⏱️ SCADUTA | Colmata da `425bf40` (01/08), tre ore dopo la verifica. Oggi: `scudo-data.js:2883` `qualificaAppaltatore()`, `:2973` `duvriDovuto()`, `:3049` `statoCoordinamento()`, `:3093` `statoAppalto()`, `:3146` `appaltatoriDaVerificare()`, `:2847` `TIPI_DOC_APPALTATORE`, `:2956` `NATURE_APPALTO`; pagina `index.html:1232` (`page-appa`), sezioni «Appalti» (`:1240`) e «Imprese esterne» (`:1276`), ex art. 26 D.Lgs 81/08. La riga copre anche il **DUVRI**, che da tipo generico di documento è diventato una condizione calcolata. |
 | **A METÀ — c'è un pezzo** |  |  |
 | Foto e video come evidenza (§2 «Foto e video come evidenza») | ⏱️ **A METÀ** — era CONFERMATA, colmata a metà | La **foto** c'è, dal 01/08: modulo in `e19e196`, pagina in `b66b856`. `scudo-data.js:1104` `MAX_FOTO = 3`, `:1125` `fotoDiEvento()`, `:1138` `fotoDiIspezione()`, `:1155` `bilancioFoto()`, `:1176` `bilancioFotoVoce()`; pagina `index.html:2506-2509` (icona sull'evento), `:2745` (voce d'ispezione), `:605-651` (galleria in modale). **Manca il video**: `grep -ci 'video'` → **0 e 0**, e i due campi file sono `accept="image/*"` (`index.html:4385`, `:4521`). |
@@ -499,11 +499,17 @@ Il riferimento a `§2` è la riga corrispondente della tabella «Cosa Abbiamo».
 
 - **Righe verificate**: **17** — erano dichiarate 16, e la diciassettesima è stata
   ritrovata dentro l'elenco del 01/08, non aggiunta adesso.
-- **Confermate assenti**: **7**
+- **Confermate assenti**: **6**
 - **FALSE (c'era già)**: **2**
-- **⏱️ Scadute**: **1**
+- **⏱️ Scadute**: **2**
 - **A metà**: **7**
-- Somma: 7 + 2 + 1 + 7 = **17** ✅
+- Somma: 6 + 2 + 2 + 7 = **17** ✅
+
+⛔ **Aggiornato il 03/08 da chi ha chiuso l'unità, che è la sola cosa che fa
+scendere l'arretrato.** Il permesso di lavoro passa da CONFERMATA a ⏱️ SCADUTA:
+non perché la verifica fosse sbagliata — era giusta, e la sua prova è rimasta
+scritta — ma perché il cantiere l'ha costruito (`22999aa`). Le confermate
+scendono **da 7 a 6**.
 
 Rispetto al 01/08 (10 confermate reali, 2 false, 1 scaduta, 4 a metà): le
 **confermate scendono da 10 a 7**, perché tre righe che erano buchi interi sono
@@ -511,26 +517,28 @@ diventate mezzi buchi. Il numero che conta è quello, e scende.
 
 ⚠️ **Da riportare nella tabella in cima ai sei documenti** (una verità sola
 scritta sei volte: o si aggiornano insieme, o divergono):
-`| Scudo | 17 | 7 | 2 | 1 | 7 |`, e la riga dei totali
-`| **totale** | **106** | **49** | **18** | **11** | **28** |`.
+`| Scudo | 17 | 6 | 2 | 2 | 7 |`, e la riga dei totali
+`| **totale** | **106** | **48** | **18** | **12** | **28** |`.
 
 ### Mancanza Confermata più Importante
 
-Non è più la dashboard. Adesso è il **permesso di lavoro (PTW)**, ed è l'unica
-delle sette confermate che un ispettore può chiedere di **vedere sul posto**:
-in cava gli spazi confinati esistono davvero — tramogge, silos, vasche — e per
-quelli il DPR 177/2011 pretende una procedura scritta e un'autorizzazione
-all'accesso. Il punto che la rende la prima: **la nostra stessa checklist la
-chiede già**. La voce «Accesso a tramogge e spazi confinati regolato da permesso
-di lavoro» (`scudo-data.js:350`) obbliga chi ispeziona a rispondere sì o no su
-un documento che l'app non sa produrre, quindi la risposta «sì» oggi non ha
-niente dietro. Un'app che verifica un adempimento senza saperlo gestire è
-esattamente il numero tranquillo dove non è stato misurato niente.
+✅ **Quella di prima è stata costruita, ed è il motivo per cui questa sezione
+si riscrive invece di restare com'era.** Il 03/08 il **permesso di lavoro
+(PTW)** era la prima delle confermate, per una ragione precisa: la nostra
+stessa checklist lo chiedeva già — la voce «Accesso a tramogge e spazi
+confinati regolato da permesso di lavoro» (`scudo-data.js:350`) obbligava chi
+ispeziona a rispondere sì o no su un documento che l'app non sapeva produrre,
+quindi la risposta «sì» non aveva niente dietro. È stato costruito lo stesso
+giorno (`22999aa`), col ponte che toglie la spunta quando il permesso non c'è.
 
-Subito dopo, e per la stessa ragione — è ciò che si consegna in mano a chi
-controlla — il **verbale d'ispezione in PDF** e il **controllo di versione dei
-documenti**: «quale revisione del DVR è in vigore, e da quando» oggi ha risposta
-solo per il DSS.
+Adesso la prima è il **verbale d'ispezione in PDF**, e la ragione è la stessa
+che valeva per il permesso: è ciò che si consegna **in mano a chi controlla**.
+Oggi l'unica stampa di Scudo è il verbale DPI (`index.html:892`, `:4116`), e
+un'ispezione compilata resta dentro l'app — quindi il lavoro c'è ma non si può
+mostrare. Subito dopo il **controllo di versione dei documenti**: «quale
+revisione del DVR è in vigore, e da quando» oggi ha risposta solo per il DSS, e
+un documento sostituito **sparisce** invece di diventare una revisione
+precedente.
 
 ⚠️ **La tabella §2 «Cosa Abbiamo» non è stata toccata da questa riverifica e in
 sei righe è ora falsa**: «Foto e video come evidenza», «Gestione DSS/PSC/POS»,
