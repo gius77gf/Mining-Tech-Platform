@@ -118,7 +118,14 @@ export async function apriSuperficie(browser, { nome, via, porta, larghezza = 43
           d'esempio si caricano solo passando dal ripiego;
        2. l'accesso va **ritentato**, perché i dati arrivano DOPO che `doLogin`
           esiste. */
-    await accediAlCore(p);
+    const dentro = await accediAlCore(p);
+    /* ⛔ E SE NON CI SI RIESCE, LO SI DICE. Un banco che misura il guscio della
+       schermata d'accesso credendo di misurare l'app è la stessa cosa che
+       questa correzione è nata per togliere: sotto carico (il giro completo
+       più tre cantieri) i tentativi possono esaurirsi, e allora il numero che
+       esce è di un'altra pagina. La riga costa niente e si vede nel riepilogo
+       del banco che la stampa. */
+    if (!dentro) console.warn('  ⚠️  core: non si è riusciti ad ACCEDERE — quello che segue misura la schermata d\'accesso, non l\'app');
     await p.evaluate((u) => window.__provaUtente(u), UTENTE_PROVA(ruolo));
   }
   return { ctx, p, errori };
@@ -134,8 +141,16 @@ export async function accediAlCore(p) {
         "export async function getDoc() { return { exists: () => false, data: () => null, id: 'finto' }; }",
         "export async function getDoc(){ const e=new Error('finto'); e.code='permission-denied'; throw e; }") }));
   await p.reload({ waitUntil: 'load' }).catch(() => {});
-  await p.waitForFunction(() => typeof window.doLogin === 'function', { timeout: 20000 }).catch(() => {});
-  for (let giro = 0; giro < 6; giro++) {
+  await p.waitForFunction(() => typeof window.doLogin === 'function', { timeout: 30000 }).catch(() => {});
+  /* ⚠️ I DATI ARRIVANO DOPO `doLogin`, e sotto carico anche parecchio dopo:
+     cliccare troppo presto legge «Credenziali errate» su credenziali giuste.
+     Si aspetta il segnale vero — la lista degli utenti nel DB — e solo dopo si
+     prova, con dieci tentativi invece di sei. */
+  await p.waitForFunction(() => {
+    const b = document.getElementById('btn-login');
+    return !!b && !b.disabled;
+  }, { timeout: 30000 }).catch(() => {});
+  for (let giro = 0; giro < 10; giro++) {
     const dentro = await p.evaluate(() => {
       const h = document.getElementById('screen-home');
       return !!h && getComputedStyle(h).display !== 'none';
@@ -144,7 +159,10 @@ export async function accediAlCore(p) {
     await p.fill('#lu', 'admin').catch(() => {});
     await p.fill('#lp', 'admin').catch(() => {});
     await p.click('#btn-login').catch(() => {});
-    await p.waitForTimeout(800);
+    await p.waitForFunction(() => {
+      const h = document.getElementById('screen-home');
+      return !!h && getComputedStyle(h).display !== 'none';
+    }, { timeout: 2500 }).catch(() => {});
   }
   return false;
 }
