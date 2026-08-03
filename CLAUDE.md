@@ -744,6 +744,16 @@ Perché serva davvero e non produca elenchi generici, cinque vincoli:
   era registrato in `tutti.mjs`. Cioè la verifica ha dato **verde su un commit
   rosso**, che è il modo peggiore di sbagliare: la difesa che si crede di avere.
   Dopo `git apply`, sulla worktree: `git -C "$W" add -A`. Costa una riga.
+- ⛔ **E LA WORKTREE SI RICREA, NON SI RESETTA.** `git worktree add --detach
+  HEAD` **congela il commit di quel momento**; un `git reset --hard HEAD`
+  lanciato *dentro* la worktree torna a **quello**, non al ramo, perché lì
+  `HEAD` è il commit staccato. Misurato il 03/08 raccogliendo quattro cantieri:
+  riusando la stessa copia per tre commit di fila stavo misurando un albero
+  vecchio di tre commit, e la copia rispondeva «1 prova fallita» su un test che
+  sul disco era verde — cioè il contrario del difetto solito, un **rosso
+  falso**, che costa uguale perché fa cercare un guasto che non c'è. La copia
+  costa meno di un secondo: `git worktree remove --force "$W" && git worktree
+  prune && git worktree add -q --detach "$W" HEAD`, ogni volta.
 - ⚠️ **LE PROVE GIRANO ANCHE CON `TZ=Europe/Rome`.** Il contenitore è in **UTC**,
   le cave sono in Italia. Il 01/08 una controprova sul conto dei giorni ha
   risposto «non distingue» in UTC e ha visto il difetto in ora italiana; la
@@ -771,6 +781,29 @@ Perché serva davvero e non produca elenchi generici, cinque vincoli:
   La difesa: dopo aver scritto un controllo, chiedersi **quanti soggetti ha
   guardato davvero** e stamparlo (`84 tendine misurate`, `20 gestori`,
   `9 superfici`). Un numero che non torna si vede; un «zero violazioni» no.
+  ⛔ **E IL 03/08 È SUCCESSA ALTRE TRE VOLTE, con la variante che conta: non
+  era il FILTRO a essere sbagliato, era la DOMANDA.** Un filtro storto si
+  aggiusta; una domanda sola non si aggiusta, si affianca.
+  1. la **regola 20** di `run-stile` guardava sei app su sette. L'elenco delle
+     app era scritto a mano e la pagina costruita per convenzione
+     (`apps/<app>/index.html`): Genesi ha `genesi.html`, quindi non c'era — e
+     nessuno se ne accorgeva, perché il controllo diceva «nessuna violazione».
+     Era il **terzo** elenco a mano nello stesso file, mentre gli altri due
+     avevano già il confronto col disco;
+  2. `fuori-schermo.mjs` chiedeva «esce dallo **schermo**?» e la pillola di
+     Campo usciva dal **proprio riquadro** (198 px in un blocco da 131, +9
+     anche a 390): nello schermo ci stava, e `.item` ha `overflow:hidden`,
+     quindi non scorreva nemmeno la pagina. Il banco rispondeva «2 schermate
+     pulite» **prima e dopo** la correzione;
+  3. `copertura-funzioni` contava le funzioni **coperte**: aggiungendo codice
+     senza prove quel numero non scende, cioè il caso che la sua intestazione
+     prometteva di prendere era esattamente quello che non vedeva.
+  La forma della difesa è sempre la stessa e non è «più severità»: **una
+  seconda domanda**, e i due elenchi che già hanno il confronto col disco
+  riusati invece di scriverne un terzo. Chiedersi, dopo ogni controllo nuovo:
+  *se il difetto stesse un piano più sotto — dentro il riquadro invece che
+  dentro lo schermo, in un'app fuori convenzione, sul valore che sale invece
+  che su quello che scende — questo controllo lo direbbe?*
 - ⚠️ **`vaiA(p, nome, sezione)` VUOLE L'ID DEL BOTTONE, NON IL NOME DELLA
   SEZIONE.** La guardia sull'arità ferma la chiamata a due argomenti, ma non
   questa: `vaiA(p, 'sentinella', 'mon')` ha tre argomenti buoni e costruisce il
