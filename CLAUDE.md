@@ -827,6 +827,29 @@ Perché serva davvero e non produca elenchi generici, cinque vincoli:
   *se il difetto stesse un piano più sotto — dentro il riquadro invece che
   dentro lo schermo, in un'app fuori convenzione, sul valore che sale invece
   che su quello che scende — questo controllo lo direbbe?*
+- ⛔ **UN CONTROLLO CHE DICHIARA DI ESSERE CIECO E CHE NESSUNO LEGGE È COME NON
+  AVERLO.** Misurato il 03/08, ed è la forma più beffarda di tutte perché non
+  richiede nessuna indagine: il banco delle modali stampava in fondo al suo
+  riepilogo, da **mesi**, «⚠️ NON RAGGIUNTE: core. Non vuol dire "a posto":
+  vuol dire che nessuna loro modale è stata aperta» — e accanto il numero,
+  «nel suo programma ce ne sono **68** da aprire, **0** aperte». Nessuno l'ha
+  letto. Le cause erano **due, in fila**:
+  1. `apriSuperficie` iniettava `state.user` e basta, quindi il core restava
+     sulla schermata d'accesso: **258 caratteri di testo e UN bottone** contro i
+     658 e otto dell'app vera. Ogni banco che «guardava il core» guardava un
+     guscio, e appena il core è diventato visibile sono uscite **cinque
+     violazioni di contrasto AA** mai viste;
+  2. l'elenco dei candidati da cliccare era scritto sulla forma delle **app**
+     (`.item[onclick]`); il core usa `.sitem`. Il banco provava **6.800
+     comandi** e apriva **zero** modali, perché i bottoni veri navigano e tutto
+     quello che apre una scheda è una riga di lista.
+  La regola che ne esce, e vale per ogni riepilogo di banco: **le righe che
+  dicono «non ho guardato» vanno lette per prime, prima dei KO.** Un rosso lo
+  si vede; un «0 su 68» in fondo a una pagina di verde no — e intanto la
+  superficie che il fondatore mostra per prima non era misurata da nessuno.
+  ⚠️ E il corollario per chi scrive un banco nuovo: se un elenco di soggetti è
+  copiato dalla forma di un'app, **provarlo su una superficie che quella forma
+  non ce l'ha** prima di dichiararlo generale.
 - ⚠️ **`vaiA(p, nome, sezione)` VUOLE L'ID DEL BOTTONE, NON IL NOME DELLA
   SEZIONE.** La guardia sull'arità ferma la chiamata a due argomenti, ma non
   questa: `vaiA(p, 'sentinella', 'mon')` ha tre argomenti buoni e costruisce il
