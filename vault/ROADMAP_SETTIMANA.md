@@ -349,6 +349,19 @@ numero scritto dove non era stato misurato niente**.*
       candidati era scritto sulla forma delle app (`.item[onclick]`), il core
       usa `.sitem`: correzione sul disco, misura in corso.
 
+- [x] ✅ **La dimostrazione del core era vuota dove l'app lavora** (`63928d4`):
+      `@volate` da **0 a 4** righe cliccabili. I casi sono scelti — uno senza un
+      solo foro misurato, uno misurato senza la maglia — perché sono i due stati
+      che l'app ha imparato a raccontare oggi, e metterli nella dimostrazione è
+      il modo di mostrarli.
+- [x] ✅ **Il numero ha smentito il commit di prima** (`301b5b7`): le modali del
+      core restano **0 su 68**, il selettore non era la causa. Scritto nel file
+      perché il prossimo non ricominci da lì.
+- [ ] ⏳ **Le 5 violazioni AA del core** che si vedono solo adesso che il core è
+      accessibile: `.av-cv` 2,36:1, `.av-fc` 3,45:1, `.notif-badge` 3,49:1,
+      `.sync-badge.nonsalva` 4,22:1, più un `.toast info` da verificare. Da
+      correggere tutte insieme, con lo scatto prima/dopo.
+
 ### B — Lo standard delle funzioni, app per app (martedì → venerdì)
 
 - [x] ✅ **B1. La caccia sistematica ai numeri tranquilli.** Chiusa il 02/08, e
