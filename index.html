@@ -1656,14 +1656,26 @@ function aggiornaTotali(){
   const tot=state.rappFori.length+(state.rappFori2.length||0);
   const cnt=allValid.length;
   const m=allValid.reduce((s,f)=>s+parseNum0(f.prof),0);
-  const mediaProf=cnt>0?(m/cnt):0;
+  /* ⛔ SENZA NEMMENO UNA PROFONDITÀ MISURATA LA MEDIA NON È ZERO: NON C'È.
+     Qui il ripiego era `:0`, e da lì partiva tutto il resto — la media
+     stampata «0.00», e soprattutto i metri cubi, che venivano da
+     `mediaProf × fori × B × S × 0.9` e quindi uscivano **0,0 mc**. Un
+     rapportino appena aperto, con i fori ancora da misurare, dichiarava di
+     aver cavato **zero metri cubi**: la cifra più tranquilla della scala su
+     un turno che nessuno ha ancora misurato.
+     ⚠️ E la stessa espressione è scritta **quattro volte** in questo file
+     (1659, 1690, 2095, 2129) con comportamenti diversi: una delle quattro —
+     `ro-media`, riga 2164 — la cosa giusta la faceva già (`mediaProf>0 ? … :
+     '—'`). È il difetto che CLAUDE.md chiama «una regola scritta due volte
+     diverge»: qui erano quattro, e tre su quattro mentivano. */
+  const mediaProf=cnt>0?(m/cnt):null;
   const {B,S}=parseMaglia($('r-m').value);
   // Formula mc migliorata: profondità media × n.fori × B × S × 0.9 (fattore frangimento)
-  const mc=mediaProf*cnt*B*S*0.9;
+  const mc=mediaProf===null?null:mediaProf*cnt*B*S*0.9;
   $('tot-fori').textContent=(cnt===tot)?cnt:`${cnt}/${tot}`;
   $('tot-m').textContent=m.toFixed(1);
-  $('tot-mc').textContent=mc.toFixed(1);
-  if($('tot-media'))$('tot-media').textContent=mediaProf.toFixed(2);
+  $('tot-mc').textContent=mc===null?'—':mc.toFixed(1);
+  if($('tot-media'))$('tot-media').textContent=mediaProf===null?'—':mediaProf.toFixed(2);
 }
 function exitRapp(){
   if(state.unsaved){openModal('Rapportino non salvato','<p>Ci sono modifiche non salvate. Vuoi davvero uscire?</p>',[{label:'Continua',cls:'mbtn',action:closeModal},{label:'ESCI',cls:'mbtn danger',action:()=>{state.unsaved=false;closeModal();_goBackReal();}}]);}
@@ -1687,9 +1699,10 @@ function previewRapp(){
   const valid2=state.rappFori2.filter(f=>parseNum(f.prof)>0);
   const allValid=[...valid1,...valid2];
   const m=allValid.reduce((s,f)=>s+parseNum0(f.prof),0);
-  const mediaProf=allValid.length>0?(m/allValid.length):0;
+  // stessa regola del riquadro dei totali: nessuna profondità = nessuna media
+  const mediaProf=allValid.length>0?(m/allValid.length):null;
   const {B,S}=parseMaglia($('r-m').value||'0x0');
-  const mc=mediaProf*allValid.length*B*S*0.9;
+  const mc=mediaProf===null?null:mediaProf*allValid.length*B*S*0.9;
   const volataId=$('r-volata-id').value;
   const volata=volataId?DB.volate.find(v=>v.id===volataId):null;
   openModal('Anteprima rapportino',`
@@ -1706,8 +1719,8 @@ function previewRapp(){
     ${allValid.length>0?`<div class="preview-sec"><div class="preview-head">Totali</div>
       <div class="preview-row"><span class="preview-lab">Fori validi</span><span class="preview-val">${allValid.length}${valid2.length>0?' ('+valid1.length+' fila 1 + '+valid2.length+' fila 2)':''}</span></div>
       <div class="preview-row"><span class="preview-lab">Metri totali</span><span class="preview-val">${m.toFixed(1)}</span></div>
-      <div class="preview-row"><span class="preview-lab">Media profondità</span><span class="preview-val">${mediaProf.toFixed(2)} m</span></div>
-      ${B>0&&S>0?`<div class="preview-row"><span class="preview-lab">Mc in ballo</span><span class="preview-val">${mc.toFixed(1)}</span></div>`:''}
+      <div class="preview-row"><span class="preview-lab">Media profondità</span><span class="preview-val">${mediaProf===null?'nessun foro misurato':mediaProf.toFixed(2)+' m'}</span></div>
+      ${B>0&&S>0?`<div class="preview-row"><span class="preview-lab">Mc in ballo</span><span class="preview-val">${mc===null?'non calcolabile: nessun foro misurato':mc.toFixed(1)}</span></div>`:''}
     </div>`:''}
     ${$('r-note').value?`<div class="preview-sec"><div class="preview-head">Note</div><div style="font-size:13px;">${$('r-note').value}</div></div>`:''}
   `,[{label:'Indietro',cls:'mbtn',action:closeModal},{label:'SALVA RAPPORTINO',cls:'mbtn primary',action:(e)=>withLock('inviaRapp',e.target,inviaRapp)}]);

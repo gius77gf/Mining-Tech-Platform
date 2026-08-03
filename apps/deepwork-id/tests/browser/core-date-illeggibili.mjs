@@ -50,6 +50,11 @@ const STORTA = "assicurazione:'30/02/2026'";
 const GUARDIE = [
   "else if(illegg.length){badge=`<span class=\"scad-badge warn\">${illegg[0].k}: data illeggibile</span>`;cls='warn';}",
   "if(!st.leggibile){cls='warn';bg='scad-badge warn';testo='data illeggibile';}else ",
+  // la media che non c'è: rimettere il ripiego `: 0` fa tornare «0,0 mc»
+  ["const mediaProf=cnt>0?(m/cnt):null;", "const mediaProf=cnt>0?(m/cnt):0;"],
+  ["$('tot-mc').textContent=mc===null?'—':mc.toFixed(1);", "$('tot-mc').textContent=(mc||0).toFixed(1);"],
+  ["if($('tot-media'))$('tot-media').textContent=mediaProf===null?'—':mediaProf.toFixed(2);",
+   "if($('tot-media'))$('tot-media').textContent=(mediaProf||0).toFixed(2);"],
 ];
 
 const browser = await chromium.launch({ executablePath: CHROMIUM });
@@ -78,8 +83,9 @@ await p.route(`${BASE}/index.html`, async (r) => {
   sostituzioni++;
   if (CONTROPROVA) {
     for (const g of GUARDIE) {
-      const p2 = corpo.replace(g, '');
-      if (p2 === corpo) throw new Error(`CONTROPROVA A VUOTO: questa guardia non si trova più nel core → ${g.slice(0, 60)}…`);
+      const [cerca, metti] = Array.isArray(g) ? g : [g, ''];
+      const p2 = corpo.replace(cerca, metti);
+      if (p2 === corpo) throw new Error(`CONTROPROVA A VUOTO: questa guardia non si trova più nel core → ${cerca.slice(0, 60)}…`);
       corpo = p2;
       sostituzioni++;
     }
@@ -159,6 +165,32 @@ if (det.aperta) {
 } else {
   console.log('  · scheda del mezzo non aperta: le due prove sulla scheda restano fuori (dichiarato, non taciuto)');
 }
+
+/* ── SECONDA FAMIGLIA, STESSO PRINCIPIO: LA MEDIA CHE NON C'È ──
+   Il riquadro dei totali del rapportino calcolava `media = somma / fori` con
+   ripiego `: 0`, e da lì i metri cubi (`media × fori × B × S × 0.9`). Un
+   rapportino appena aperto, con i fori ancora da misurare, dichiarava di aver
+   cavato **0,0 mc**: la cifra più tranquilla della scala su un turno che
+   nessuno ha misurato. La stessa espressione è scritta quattro volte nel core,
+   e una delle quattro la cosa giusta la faceva già. */
+await p.evaluate(() => window.nav('rapp'));
+await p.waitForTimeout(500);
+const rapp = await p.evaluate(() => {
+  const s = document.getElementById('screen-rapp');
+  const mc = document.getElementById('tot-mc');
+  const media = document.getElementById('tot-media');
+  return {
+    aperto: !!s && getComputedStyle(s).display !== 'none',
+    mc: mc ? mc.textContent.trim() : '(non trovato)',
+    media: media ? media.textContent.trim() : '(non trovato)',
+  };
+});
+console.log(`  rapportino vuoto: mc «${rapp.mc}» · media «${rapp.media}»`);
+ok(rapp.aperto, 'si arriva davvero al rapportino');
+ok(rapp.mc !== '0.0' && rapp.mc !== '0,0',
+  '⛔ un rapportino senza fori misurati NON dichiara 0,0 metri cubi', `letto «${rapp.mc}»`);
+ok(rapp.media !== '0.00' && rapp.media !== '0,00',
+  '⛔ e nemmeno una profondità media di 0,00 m', `letto «${rapp.media}»`);
 
 console.log(`\n${sostituzioni} sostituzioni fatte nella pagina servita (0 = banco che non misura niente)`);
 console.log(`\nRisultato date illeggibili nel core: ${passati} passati, ${falliti} falliti`);
