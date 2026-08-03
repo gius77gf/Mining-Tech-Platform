@@ -128,6 +128,14 @@ const BANCHI = [
      frasi e le celle vivono nella pagina. */
   ['i documenti di Terra e gli zeri mai misurati', 'terra-numeri-tranquilli.mjs', []],
   ['zeri mai misurati · controprova', 'terra-numeri-tranquilli.mjs', ['--controprova'], true],
+  /* ⛔ AGGIUNTO IL 03/08, e la ragione è dichiarata: la regola sta in
+     `shared/` ed è provata da otto blocchi in `run-kpi`, ma che l'ELENCO la
+     chiami, che la scheda scriva la ragione invece di far sparire la riga e
+     che il riepilogo dichiari quanti rapportini ha lasciato fuori, `node` non
+     lo può vedere. Senza questo banco la difesa viveva solo negli scatti di
+     uno scratchpad, che alla sessione dopo non esistono. */
+  ['il core e i rapportini mai misurati', 'core-rapportini-non-misurati.mjs', []],
+  ['rapportini mai misurati · controprova', 'core-rapportini-non-misurati.mjs', ['--controprova'], true],
 ];
 
 async function rispondePorta(porta) {
