@@ -110,6 +110,14 @@ const BANCHI = [
   ['quota di base · controprova', 'quota-base-reale.mjs', ['--controprova'], true],
   ['il registro costi', 'registro-costi.mjs', []],
   ['registro costi · controprova', 'registro-costi.mjs', ['--controprova'], true],
+  /* ⛔ AGGIUNTO IL 03/08. Il libretto macchina di Flotta è la pagina che si
+     stampa per un controllo e si consegna a chi compra la macchina; accanto
+     c'è il bottone che ne esporta il CSV. I due documenti li COMPONE LA
+     PAGINA, e le prove chiamano il modulo: su una macchina appena inserita lo
+     schermo dichiarava sei volte quello che non c'era e il file usciva di
+     quattro righe. Si misura premendo il bottone e aprendo il file. */
+  ['il libretto e i suoi vuoti (Flotta)', 'libretto-vuoti.mjs', []],
+  ['libretto e vuoti · controprova', 'libretto-vuoti.mjs', ['--controprova'], true],
   /* ⛔ AGGIUNTI IL 01/08: c'erano da giorni e NON LI LANCIAVA NESSUNO —
      ne' questa lista ne' `npm test`. `giro-su-copia` prova per giunta il
      meccanismo su cui tutto questo giro adesso si appoggia. Trovati da

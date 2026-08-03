@@ -130,7 +130,7 @@ const APP = ["campo", "conti", "flotta", "scudo", "sentinella", "terra"];
    fra gli ultimi due anni: era dichiarata dal modulo e non la leggeva nessuno,
    e la scheda usciva verde «In miglioramento» su giornate perse ancora da
    contare. */
-const FONDO = { campo: 103, conti: 112, flotta: 82, scudo: 160, sentinella: 124, terra: 58 };
+const FONDO = { campo: 103, conti: 112, flotta: 83, scudo: 160, sentinella: 124, terra: 58 };
 
 /* Quello che resta fuori per un motivo, non per dimenticanza: i caricatori
    dati vogliono la rete e lo SDK, i ponti demo vogliono il localStorage.

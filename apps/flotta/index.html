@@ -548,6 +548,23 @@
   .nav button{font-size:9px; letter-spacing:.6px; padding-left:2px; padding-right:2px}
 }
 
+/* ⛔ UN NUMERO TAGLIATO È UN NUMERO DIVERSO, NON UN NUMERO PIÙ CORTO.
+   Le tessere del libretto portano importi e unità («€ 2.100,00», «€ 19,02/h»),
+   non i conteggi a una cifra del Quadro. La tessera ha `overflow:hidden` e il
+   numero un corpo fisso di 32 px: a 320 px il testo chiede 151 px in un
+   riquadro da 116, e quello che si legge sullo schermo è «€ 2.100,» — un
+   importo senza i centesimi — e «€ 19,02/» — un prezzo senza la sua unità.
+   Misurato sul libretto del Dumper D1, 4 elementi fuori dal riquadro su 4
+   tessere. La stessa sonda sulle schermate di apertura di tutte e otto le
+   superfici trova ZERO tagli: lì i numeri sono corti, e il difetto non si
+   vede finché qualcuno non ci mette dentro un euro.
+   Qui si abbassa il corpo solo dove serve; il difetto generale — una tessera
+   che taglia in silenzio invece di adattarsi — vive in `shared/dw-app-ui.css`
+   e non si corregge in casa a metà. */
+@media(max-width:400px){
+  #sch-kpi .n{font-size:23px}
+}
+
 </style>
 </head>
 <body class="dw">
@@ -1052,7 +1069,7 @@
            costiPerMese, disponibilitaStorico, fotografiaDaRegistrare, pagellaMezzi, BANDA_PAGELLA,
            SCADENZE_MEZZO_PRESET, presetScadenzaMezzo, statoScadenzaMezzo, scadenzeOrdinate, contaScadenzeMezzi, validaScadenzaMezzo, aggiungiMesi,
            nomeBreve, TIPI_MEZZO, tipoMezzo, tipoMezzoDi, checklistPreUso, riepilogoControllo,
-           manutenzioniDaControllo, coperturaControlli, controlliDelMezzo,
+           manutenzioniDaControllo, coperturaControlli, controlliDelMezzo, giriDelGiorno,
            GRAVITA_GUASTO, gravitaGuasto, validaGuasto, manutenzioneDaGuasto,
            PIANI_TAGLIANDO, pianoTagliando, propostaTagliando, prossimoTagliando,
            validaRifornimento, consumoPerMezzo, fascicoloMezzo,
@@ -2119,11 +2136,15 @@
 
   function disegnaGiro() {
     const oggi = oggiISO();
-    const fattoDi = {};
-    for (const c of CTR) {
-      if (String(c.data || "").slice(0, 10) !== oggi) continue;
-      const n = nomeBreve(c.mezzo); if (n) fattoDi[n] = c;
-    }
+    /* ⛔ I GIRI DI OGGI SI GUARDANO TUTTI, NON L'ULTIMO CHE PASSA. Qui c'era
+       `fattoDi[n] = c` dentro un ciclo — vince l'ultimo — e da quello
+       uscivano colore ed etichetta del badge. Con due giri dello stesso
+       giorno (in cava sono la norma: uno per turno) la risposta dipendeva
+       dall'ORDINE dell'elenco, e nel verso che rassicura cancellava una voce
+       di sicurezza segnata «non va». La domanda adesso la fa il modulo, una
+       volta sola, e la sua misura sta in `giriDelGiorno`. */
+    const giriDi = {};
+    for (const m of MEZ) { const n = nomeBreve(m.nome); if (n) giriDi[n] = giriDelGiorno(CTR, n, oggi); }
     const cop = coperturaControlli(CTR, MEZ, oggi);
     // senza mezzi non c'è niente da scegliere: resta un titolo solo e lo
     // stato vuoto, che spiega da dove si comincia
@@ -2137,17 +2158,21 @@
 
     // I mezzi senza giro vengono prima: è l'ordine in cui servono.
     const ordinati = MEZ.slice().sort((a, b) => {
-      const fa = fattoDi[nomeBreve(a.nome)] ? 1 : 0, fb = fattoDi[nomeBreve(b.nome)] ? 1 : 0;
+      const fa = (giriDi[nomeBreve(a.nome)] || {}).giri ? 1 : 0, fb = (giriDi[nomeBreve(b.nome)] || {}).giri ? 1 : 0;
       return fa - fb || nomeBreve(a.nome).localeCompare(nomeBreve(b.nome), "it");
     });
     $("giro-mezzi").innerHTML = ordinati.map(m => {
-      const nome = nomeBreve(m.nome), f = fattoDi[nome], t = tipoMezzoDi(m);
-      const cls = f ? gravitaControllo(f) : "accent";
+      const nome = nomeBreve(m.nome), g = giriDi[nome] || giriDelGiorno([], nome, oggi), t = tipoMezzoDi(m);
+      const cls = g.gravita || "accent";
+      // quando qualcosa è stato trovato oggi si dice CHE COSA: «1 da vedere»
+      // sul badge è un numero, e chi sta per salire vuole il nome della voce
+      const coda = g.giri > 1 ? " · " + g.giri + " giri oggi" : "";
       return `<div class="item ${striscia[cls] || "st-accent"}" role="button" tabindex="0" data-giro-mezzo="${m.id}" title="Fai il giro di ${esc(nome)}">
         <div class="avatar">${esc(sig(m.nome))}</div>
         <div class="info"><div class="name">${esc(nome)}</div>
-          <div class="meta">${esc(t.etichetta)} · ${checklistPreUso(t.chiave).length} controlli${m.area ? " · " + esc(m.area) : ""}</div></div>
-        <span class="badge ${f ? cls : "accent"}">${f ? etichettaControllo(f) : "da fare"}</span></div>`;
+          <div class="meta">${esc(t.etichetta)} · ${checklistPreUso(t.chiave).length} controlli${m.area ? " · " + esc(m.area) : ""}${coda}</div>
+          ${g.anomalie ? `<div class="meta norma">${g.voci.length ? "da vedere oggi: " + esc(g.voci.join(", ")) : g.anomalie + (g.anomalie === 1 ? " anomalia segnata oggi" : " anomalie segnate oggi") + ", senza il dettaglio delle voci"}</div>` : ""}</div>
+        <span class="badge ${cls}">${g.etichetta}</span></div>`;
     }).join("")
       || vuoto(I.mezzo, "Nessun mezzo da controllare",
           "Il giro macchina si fa su una macchina: aggiungi il primo mezzo dalla schermata <b>Mezzi</b> e qui comparirà l'elenco di quelle da controllare a inizio turno.");
@@ -2161,7 +2186,10 @@
         const male = (c.voci || []).filter(v => v.esito === "no");
         const capo = [dataIt(c.data), c.operatore ? esc(c.operatore) : "", c.ore ? (+c.ore).toLocaleString("it-IT") + " h" : ""]
                      .filter(Boolean).join(" · ");
-        const coda = [male.length ? male.map(v => esc(v.etichetta)).join(", ") : "nessuna anomalia", c.note ? esc(c.note) : ""]
+        // `esc(undefined)` è la stringa vuota: una voce senza etichetta
+        // sparirebbe dall'elenco senza lasciare traccia, e sparirebbe proprio
+        // una voce segnata «non va». Si ripiega sulla chiave, che c'è sempre.
+        const coda = [male.length ? male.map(v => esc(v.etichetta || v.chiave)).join(", ") : "nessuna anomalia", c.note ? esc(c.note) : ""]
                      .filter(Boolean).join(" · ");
         return `<div class="item statico ${striscia[cls] || "st-ok"}">
           <div class="avatar${cls === "ok" ? " sup" : ""}">${I.giro}</div>
@@ -2912,6 +2940,17 @@
     go("sch");
   }
 
+  /* ⛔ UN ELENCO TAGLIATO LO DICE, SE NO IL TOTALE NON TORNA CON LE RIGHE.
+     Tre elenchi del libretto si fermano alle ultime otto righe — giri, fermi,
+     rifornimenti — e nessuno dei tre lo diceva. Sul foglio che si consegna a
+     chi compra la macchina si leggeva «12 fermi registrati» sopra otto righe:
+     chi conta le righe trova un numero, chi legge la frase ne trova un altro,
+     e non c'è modo di sapere quale dei due è quello vero. */
+  const RIGHE_LIBRETTO = 8;
+  const restoLibretto = (tot) => tot > RIGHE_LIBRETTO
+    ? `<div class="note">Qui sopra compaiono gli ultimi <b>${RIGHE_LIBRETTO}</b> di <b>${tot}</b>: ${tot - RIGHE_LIBRETTO} più ${tot - RIGHE_LIBRETTO === 1 ? "vecchio non è in elenco, né a schermo né sul foglio stampato" : "vecchi non sono in elenco, né a schermo né sul foglio stampato"}. Lo storico completo esce dal bottone «Esporta libretto (CSV)».</div>`
+    : "";
+
   function disegnaScheda() {
     const m = MEZ.find(x => x.id === schedaId);
     if (!m) {   // mezzo dismesso mentre la sua scheda era aperta
@@ -2948,7 +2987,15 @@
     $("sch-sca").innerHTML = f.scadenze.map(s => `<div class="item statico ${striscia[s.sem.cls] || "st-accent"}">
         <div class="avatar">${I.bilancia}</div>
         <div class="info"><div class="name">${esc(s.tipo || "Scadenza")}</div>
-          <div class="meta">scade il ${esc(dataIt(s.dataScadenza))}${s.mesi ? " · ogni " + s.mesi + (s.mesi === 1 ? " mese" : " mesi") : ""}${s.documento ? " · doc. " + esc(s.documento) : ""}${s.ultimaData ? " · ultima: " + esc(dataIt(s.ultimaData)) : ""}</div></div>
+          <div class="meta">scade il ${esc(dataIt(s.dataScadenza))}${s.mesi ? " · ogni " + s.mesi + (s.mesi === 1 ? " mese" : " mesi") : ""}${s.ultimaData ? " · ultima: " + esc(dataIt(s.ultimaData)) : ""}</div>
+          ${/* ⚠️ IL DOCUMENTO STA IN UNA RIGA SUA, e non è pignoleria: la riga
+                di dettaglio è tagliata a due righe (`-webkit-line-clamp:2`) e
+                il riferimento al documento stava in FONDO, cioè era il primo
+                pezzo a sparire. Misurato a 320 px sulla revisione del Dumper
+                D1: la riga chiedeva 46 px e ne aveva 31, e quello che restava
+                fuori era «doc. libretto di circolazione» — l'unica cosa che
+                un ispettore chiede di vedere. */""}
+          ${s.documento ? `<div class="meta norma">documento: ${esc(s.documento)}</div>` : ""}</div>
         <span class="badge ${s.sem.cls}">${ggU(esc(s.sem.label))}</span></div>`).join("")
       || vuoto(I.bilancia, "Nessuna scadenza di legge", "Questa macchina non ha scadenze registrate: verifica periodica, funi e catene, revisione, assicurazione si aggiungono dalla schermata <b>Scadenze</b>.");
 
@@ -2991,25 +3038,37 @@
           + `per <b>${ggTx(f.fermo.giorni)}</b> in tutto${f.fermo.aperti ? `, e <span class="rosso">${f.fermo.aperti === 1 ? "uno è ancora aperto" : f.fermo.aperti + " sono ancora aperti"}</span>` : ""}. `
           + "Sono i giorni in cui questa macchina non ha potuto lavorare.</div>"
         : "")
-      + (f.fermi.slice(0, 8).map(x => `<div class="item statico ${x.aperto ? "st-danger" : "st-mute"}">
+      + (f.fermi.slice(0, RIGHE_LIBRETTO).map(x => `<div class="item statico ${x.aperto ? "st-danger" : "st-mute"}">
           <div class="avatar${x.aperto ? "" : " sup"}">${I.fermo}</div>
           <div class="info"><div class="name">${esc(x.causaleTx)}</div>
             <div class="meta">dal ${esc(dataIt(x.inizio))}${x.fine ? " al " + esc(dataIt(x.fine)) : " — ancora fermo"}</div>
             ${x.note ? `<div class="meta norma">${esc(x.note)}</div>` : ""}</div>
           <span class="badge ${x.aperto ? "danger" : "tag"}">${x.giorni != null ? ggTx(x.giorni) : "—"}</span></div>`).join("")
-        || vuoto(I.fermo, "Mai ferma", "Su questa macchina non risulta nessun fermo registrato: nessuna giornata persa per guasto, attesa di un pezzo o verifica. I fermi si registrano dalla schermata <b>Mezzi</b>."));
+        || vuoto(I.fermo, "Mai ferma", "Su questa macchina non risulta nessun fermo registrato: nessuna giornata persa per guasto, attesa di un pezzo o verifica. I fermi si registrano dalla schermata <b>Mezzi</b>."))
+      + restoLibretto(f.fermi.length);
 
-    $("sch-giri").innerHTML = f.controlli.slice(0, 8).map(c => {
+    /* Il conto dei giri sta in una riga sua, come l'officina e i fermi: senza,
+       il libretto stampava otto righe e da nessuna parte c'era scritto quanti
+       giri ha davvero questa macchina — chi lo legge conta le righe e crede
+       che siano tutti. */
+    $("sch-giri").innerHTML = (f.controlli.length
+        ? `<div class="note recap"><b>${f.controlli.length}</b> ${f.controlli.length === 1 ? "giro macchina registrato" : "giri macchina registrati"}`
+          + (() => { const male = f.controlli.filter(c => (+c.anomalie || 0) > 0).length;
+              return male ? `, <span class="giallo">${male === 1 ? "1 ha trovato qualcosa da vedere" : male + " hanno trovato qualcosa da vedere"}</span>.` : ", nessuno ha trovato anomalie."; })()
+          + "</div>"
+        : "")
+      + (f.controlli.slice(0, RIGHE_LIBRETTO).map(c => {
       const cls = gravitaControllo(c);
       const male = (c.voci || []).filter(v => v.esito === "no");
       return `<div class="item statico ${striscia[cls] || "st-ok"}">
         <div class="avatar${cls === "ok" ? " sup" : ""}">${I.giro}</div>
         <div class="info"><div class="name">${esc(dataIt(c.data))}${c.operatore ? " · " + esc(c.operatore) : ""}</div>
           <div class="meta">${c.ore ? "contatore " + (+c.ore).toLocaleString("it-IT") + " h" : "senza contatore"}</div>
-          <div class="meta norma">${male.length ? male.map(v => esc(v.etichetta)).join(", ") : "nessuna anomalia"}</div></div>
+          <div class="meta norma">${male.length ? male.map(v => esc(v.etichetta || v.chiave)).join(", ") : "nessuna anomalia"}</div></div>
         <span class="badge ${cls}">${etichettaControllo(c)}</span></div>`;
     }).join("")
-      || vuoto(I.giro, "Nessun giro macchina", "Nessun controllo pre-uso registrato su questa macchina. Si fa dal telefono, dalla schermata <b>Giro</b>: meno di un minuto a inizio turno.");
+      || vuoto(I.giro, "Nessun giro macchina", "Nessun controllo pre-uso registrato su questa macchina. Si fa dal telefono, dalla schermata <b>Giro</b>: meno di un minuto a inizio turno."))
+      + restoLibretto(f.controlli.length);
 
     const cons = f.consumo;
     $("sch-carb").innerHTML = (cons
@@ -3017,12 +3076,13 @@
             ? `Consuma <b>${lh(cons.litriOra)}</b>${cons.euroOra ? ` — <b>${eh(cons.euroOra)}</b>` : ""}, misurati su <b>${cons.oreCoperte} ore</b> di lavoro e ${cons.pieni} rifornimenti (${lt(cons.litri)}${cons.euro ? ", " + eur(cons.euro) : ""}).`
             : `${cons.pieni} ${cons.pieni === 1 ? "rifornimento" : "rifornimenti"} per ${lt(cons.litri)}${cons.euro ? " (" + eur(cons.euro) + ")" : ""}: il consumo all'ora non si può ancora calcolare — ${esc(cons.perche)}.`}</div>`
         : "")
-      + (f.rifornimenti.slice(0, 8).map(r => `<div class="item statico st-accent">
+      + (f.rifornimenti.slice(0, RIGHE_LIBRETTO).map(r => `<div class="item statico st-accent">
           <div class="avatar">${I.goccia}</div>
           <div class="info"><div class="name">${esc(dataIt(r.data))} · ${lt(r.litri)}</div>
             <div class="meta">${r.ore ? "contatore " + (+r.ore).toLocaleString("it-IT") + " h" : "senza contatore"}${r.nota ? " · " + esc(r.nota) : ""}</div></div>
           ${(+r.euro) ? `<span class="badge tag euro">${eur(r.euro)}</span>` : ""}</div>`).join("")
-        || vuoto(I.goccia, "Nessun rifornimento", "Nessun pieno registrato su questa macchina: si registrano dalla schermata <b>Costi</b>, e bastano due pieni con le ore del contatore per sapere quanto beve all'ora."));
+        || vuoto(I.goccia, "Nessun rifornimento", "Nessun pieno registrato su questa macchina: si registrano dalla schermata <b>Costi</b>, e bastano due pieni con le ore del contatore per sapere quanto beve all'ora."))
+      + restoLibretto(f.rifornimenti.length);
   }
 
   // il bersaglio del tocco può essere l'icona SVG dentro il bottone: si
@@ -3361,10 +3421,27 @@
                 s.documento || "", s.ultimaData ? dataIt(s.ultimaData) : "", s.ultimoEsito || "",
                 s.note || "", p ? p.norma : ""].map(csvCell).join(";");
       }));
+    /* ⛔ UN MEZZO SENZA NESSUNA RIGA IN SCADENZARIO NON SPARISCE DAL FOGLIO.
+       Questo file è quello che si porta a un controllo o si gira al
+       responsabile della sicurezza, e fino al 03/08 conteneva SOLO le
+       scadenze registrate: una macchina su cui nessuno ha mai scritto una
+       verifica periodica non compariva affatto, e chi apre il foglio non ha
+       modo di accorgersi che manca. È l'assenza scambiata per un dato
+       favorevole nella sua forma più silenziosa — non un colore tranquillo,
+       proprio una riga che non c'è.
+       La regola era già in casa e già applicata allo SCHERMO: la scrive
+       `contaScadenzeMezzi`, che per questo prende il parco. Qui mancava. */
+    const coperti = new Set(SCA.map(s => nomeBreve(s.mezzo)).filter(Boolean));
+    const scoperti = MEZ.map(m => nomeBreve(m.nome)).filter(n => n && !coperti.has(n));
+    for (const n of scoperti)
+      righe.push([n, "", "", "nessuna registrata", "", "", "", "",
+                  "Su questo mezzo non è registrata nessuna scadenza di legge: non vuol dire che non ne abbia.",
+                  ""].map(csvCell).join(";"));
     const a = document.createElement("a");
     a.href = URL.createObjectURL(new Blob(["﻿" + righe.join("\r\n")], { type: "text/csv;charset=utf-8" }));
     a.download = "flotta-scadenze-di-legge.csv"; a.click();
-    esito("sca-esito", "Esportate " + SCA.length + " scadenze (CSV).", "success");
+    esito("sca-esito", "Esportate " + SCA.length + (SCA.length === 1 ? " scadenza" : " scadenze") + " (CSV)"
+      + (scoperti.length ? ", più " + scoperti.length + (scoperti.length === 1 ? " mezzo senza nessuna scadenza registrata" : " mezzi senza nessuna scadenza registrata") + ": nel foglio ci sono, marcati «nessuna registrata»." : "."), "success");
   };
   // La data della spesa parte da OGGI: è quasi sempre giusta e non fa perdere
   // un secondo a chi registra. Si può cambiare, e si può anche svuotare — in
@@ -3968,37 +4045,78 @@
       f.tipo.etichetta + " · " + (m.area || "senza area") + " · "
       + (oreNote(m.ore) ? (+m.ore) + " ore motore" : "ore motore non registrate")
       + " · " + (MB[m.stato] || MB.operativo)[1], "");
-    f.scadenze.forEach(s => R("scadenza di legge", s.tipo || "", dataIt(s.dataScadenza),
+    /* ⛔ UNA SEZIONE VUOTA VA DETTA, ALTRIMENTI IL FOGLIO MENTE PER OMISSIONE.
+       Sullo schermo il libretto ha sei stati vuoti che lo dicono in lettere
+       («Nessuna scadenza di legge», «Storico vuoto», «Mai ferma»…) e sono
+       scritti apposta perché l'assenza di un dato non è un dato favorevole.
+       Il CSV dello STESSO libretto non ne scriveva nemmeno uno: su una
+       macchina appena inserita usciva un file di DUE righe — l'anagrafica e
+       il totale d'officina — e chi lo apre non ha modo di distinguere «questa
+       macchina non ha scadenze di legge» da «nessuno le ha registrate».
+       È il difetto della famiglia «dove il documento si compone»: la regola
+       stava a schermo, la pagina che scrive il file se n'era tenuta una
+       versione più povera. Adesso ogni sezione, quando è vuota, scrive la sua
+       riga con le stesse parole dello stato vuoto che si vede. */
+    const VUOTA = (sez, frase) => R(sez, "nessuna registrata", "", frase, null);
+    if (f.scadenze.length) f.scadenze.forEach(s => R("scadenza di legge", s.tipo || "", dataIt(s.dataScadenza),
       s.sem.label + (s.mesi ? " · ogni " + s.mesi + " mesi" : "") + (s.documento ? " · doc. " + s.documento : ""), ""));
-    f.manutenzioni.forEach(n => R("manutenzione in programma", n.titolo || "", n.dataPrevista ? dataIt(n.dataPrevista) : "",
+    else VUOTA("scadenza di legge",
+      "Nessuna scadenza di legge registrata su questa macchina. Non vuol dire che non ne abbia: vuol dire che in Flotta non ce n'è nessuna.");
+    if (f.manutenzioni.length) f.manutenzioni.forEach(n => R("manutenzione in programma", n.titolo || "", n.dataPrevista ? dataIt(n.dataPrevista) : "",
       (n.orePreviste ? "a " + n.orePreviste + " ore motore" : "a data") + (n.ogniOre ? " · ogni " + n.ogniOre + " h" : n.ogniMesi ? " · ogni " + n.ogniMesi + " mesi" : ""), ""));
+    else VUOTA("manutenzione in programma", "Nessun tagliando pianificato su questa macchina.");
     /* ⛔ LA CELLA DELL'IMPORTO RESTA VUOTA QUANDO IL COSTO NON C'È. `(+w.costo)
        || 0` scriveva `0` su un intervento chiuso senza scrivere quanto è
        costato, e chi apre il file in un foglio quello zero lo SOMMA credendolo
        misurato. `R` sa già lasciare la cella vuota (`imp == null ? ""`): la
        convenzione era in casa, era il chiamante a convertire. */
-    f.interventi.forEach(w => R("intervento", w.titolo || "", dataIt(w.data),
+    if (f.interventi.length) f.interventi.forEach(w => R("intervento", w.titolo || "", dataIt(w.data),
       [w.ricambio || "", lavorazioneTx(w).replace(/<[^>]*>/g, ""), w.note || "",
        (+w.costo > 0) ? "" : "costo non scritto"].filter(Boolean).join(" · "),
       (+w.costo > 0) ? +w.costo : null));
-    f.fermi.forEach(x => R("fermo macchina", x.causaleTx, dataIt(x.inizio),
-      (x.fine ? "ripartito il " + dataIt(x.fine) : "ancora fermo") + (x.giorni != null ? " · " + x.giorni + (x.giorni === 1 ? " giorno" : " giorni") : "")
+    else VUOTA("intervento", "Nessun intervento chiuso su questa macchina: lo storico dell'officina è vuoto.");
+    if (f.fermi.length) f.fermi.forEach(x => R("fermo macchina", x.causaleTx, dataIt(x.inizio),
+      (x.fine ? "ripartito il " + dataIt(x.fine) : "ancora fermo")
+      + (x.giorni != null ? " · " + x.giorni + (x.giorni === 1 ? " giorno" : " giorni") : " · durata non calcolabile")
       + (x.note ? " · " + x.note : ""), ""));
-    f.controlli.forEach(c => R("giro macchina", "controllo pre-uso", dataIt(c.data),
-      (c.operatore ? c.operatore + " · " : "") + ((c.voci || []).filter(v => v.esito === "no").map(v => v.etichetta).join(" | ") || "nessuna anomalia"), ""));
-    f.rifornimenti.forEach(r => R("rifornimento", "gasolio", dataIt(r.data),
+    else VUOTA("fermo macchina", "Nessun fermo registrato: su questa macchina non risulta nessuna giornata persa.");
+    /* ⚠️ «NESSUNA ANOMALIA» SI SCRIVE SOLO SE LE VOCI SI SONO LETTE. Un giro
+       che non porta il suo elenco di voci ma dichiara delle anomalie usciva
+       dal file come «nessuna anomalia» mentre lo stesso giro, sullo schermo,
+       porta il badge «N da vedere»: il documento che si consegna diceva il
+       contrario di quello che l'app mostra. */
+    if (f.controlli.length) f.controlli.forEach(c => {
+      const voci = Array.isArray(c.voci) ? c.voci.filter(v => v && v.esito === "no") : null;
+      const n = +c.anomalie || 0;
+      R("giro macchina", "controllo pre-uso", dataIt(c.data),
+        (c.operatore ? c.operatore + " · " : "")
+        + (voci ? (voci.map(v => v.etichetta || v.chiave).join(" | ") || "nessuna anomalia")
+                : n > 0 ? n + (n === 1 ? " anomalia segnata" : " anomalie segnate") + ", dettaglio delle voci non registrato"
+                        : "nessuna anomalia"), "");
+    });
+    else VUOTA("giro macchina", "Nessun controllo pre-uso registrato su questa macchina.");
+    if (f.rifornimenti.length) f.rifornimenti.forEach(r => R("rifornimento", "gasolio", dataIt(r.data),
       r.litri + " l" + (r.ore ? " · contatore " + r.ore + " h" : "")
       + ((+r.euro > 0) ? "" : " · spesa non scritta"), (+r.euro > 0) ? +r.euro : null));
-    if (f.consumo && f.consumo.litriOra != null)
-      R("consumo", "litri per ora", "", f.consumo.litriOra + " l/h su " + f.consumo.oreCoperte + " ore" + (f.consumo.euroOra ? " · " + f.consumo.euroOra + " €/h" : ""), "");
+    else VUOTA("rifornimento", "Nessun pieno registrato: di questa macchina non si sa quanto beve.");
+    /* ⛔ E IL CONSUMO NON CALCOLABILE SI DICHIARA, invece di sparire. La riga
+       si scriveva solo quando `litriOra` c'era: sullo schermo, nello stesso
+       caso, la scheda spiega PERCHÉ non si può calcolare («serve almeno un
+       secondo rifornimento con il contatore delle ore»), e il file taceva. */
+    R("consumo", "litri per ora", "", !f.consumo
+      ? "Nessun rifornimento registrato: il consumo non si può calcolare."
+      : f.consumo.litriOra != null
+        ? f.consumo.litriOra + " l/h su " + f.consumo.oreCoperte + " ore" + (f.consumo.euroOra ? " · " + f.consumo.euroOra + " €/h" : "")
+        : "Non calcolabile: " + f.consumo.perche + ".", "");
     R("totale officina", "interventi chiusi", "", f.officina.interventi + " interventi"
       + (f.officina.ore ? " · " + f.officina.ore + " ore di manodopera" : "")
       + (f.officina.senzaCosto ? " · " + f.officina.senzaCosto + " senza il costo scritto"
           + (f.officina.misurato ? " (il totale è un minimo)" : " (il totale non si sa)") : ""),
       f.officina.misurato ? f.officina.totale : null);
-    if (f.fermo.episodi) R("totale fermi", "giorni non lavorati", "",
-      f.fermo.episodi + (f.fermo.episodi === 1 ? " fermo" : " fermi") + " · " + f.fermo.giorni + (f.fermo.giorni === 1 ? " giorno" : " giorni")
-      + (f.fermo.aperti ? " · " + f.fermo.aperti + " ancora aperto" : ""), "");
+    R("totale fermi", "giorni non lavorati", "", f.fermo.episodi
+      ? f.fermo.episodi + (f.fermo.episodi === 1 ? " fermo" : " fermi") + " · " + f.fermo.giorni + (f.fermo.giorni === 1 ? " giorno" : " giorni")
+        + (f.fermo.aperti ? " · " + f.fermo.aperti + " ancora aperto" : "")
+      : "Nessun fermo registrato.", "");
     const a = document.createElement("a");
     a.href = URL.createObjectURL(new Blob(["﻿" + righe.join("\r\n")], { type: "text/csv;charset=utf-8" }));
     a.download = "libretto-" + nomeBreve(m.nome).toLowerCase().replace(/[^a-z0-9]+/g, "-") + ".csv"; a.click();

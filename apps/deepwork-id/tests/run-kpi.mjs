@@ -19387,5 +19387,83 @@ test("⛔ Scudo · andamento indici: il verso letto su giornate ancora da contar
   });
 }
 
+// ═══ FLOTTA · il libretto e il giro macchina (03/08) ═══
+{
+  const OGGI = "2026-08-03";
+  // il primo turno trova i FRENI (voce di sicurezza), il secondo è pulito
+  const rotto = { id: "g1", data: OGGI, mezzo: "Escavatore E1", operatore: "Marco", anomalie: 1,
+    voci: [{ chiave: "freni", etichetta: "Freni, sterzo e comandi", esito: "no", critica: true },
+           { chiave: "luci", etichetta: "Luci", esito: "ok", critica: false }] };
+  const pulito = { id: "g2", data: OGGI, mezzo: "Escavatore E1", operatore: "Luca", anomalie: 0,
+    voci: [{ chiave: "freni", etichetta: "Freni, sterzo e comandi", esito: "ok", critica: true },
+           { chiave: "luci", etichetta: "Luci", esito: "ok", critica: false }] };
+  const altraVoce = { id: "g3", data: OGGI, mezzo: "Escavatore E1", anomalie: 1,
+    voci: [{ chiave: "luci", etichetta: "Luci", esito: "no", critica: false }] };
+
+  test("⛔ giriDelGiorno: due giri nello stesso giorno danno la STESSA risposta in qualunque ordine", () => {
+    /* Il difetto vero, misurato sulla pagina: `fattoDi[nome] = c` teneva
+       l'ULTIMO giro che passava, quindi gli stessi due giri scambiati di
+       posto davano «tutto a posto» verde oppure «1 da vedere» rosso. */
+    const a = flotta.giriDelGiorno([rotto, pulito], "Escavatore E1", OGGI);
+    const b = flotta.giriDelGiorno([pulito, rotto], "Escavatore E1", OGGI);
+    eq([a.gravita, a.etichetta, a.giri], ["danger", "1 da vedere", 2],
+       "l'anomalia del primo turno non si cancella col giro pulito del secondo");
+    eq([b.gravita, b.etichetta, b.giri], [a.gravita, a.etichetta, a.giri],
+       "scambiando l'ordine dell'elenco la risposta non cambia");
+  });
+
+  test("giriDelGiorno: la stessa voce trovata due volte è UN problema, due voci diverse sono due", () => {
+    eq(flotta.giriDelGiorno([rotto, { ...rotto, id: "g1b" }], "Escavatore E1", OGGI).anomalie, 1,
+       "la stessa perdita al mattino e al pomeriggio non diventa due perdite");
+    const due = flotta.giriDelGiorno([rotto, altraVoce], "Escavatore E1", OGGI);
+    eq([due.anomalie, due.etichetta, due.voci.join(" + ")],
+       [2, "2 da vedere", "Freni, sterzo e comandi + Luci"],
+       "due voci diverse si contano e si leggono con la loro etichetta, non con la chiave");
+    eq(flotta.giriDelGiorno([altraVoce], "Escavatore E1", OGGI).gravita, "warn",
+       "senza voci di sicurezza resta un avviso");
+  });
+
+  test("⛔ giriDelGiorno: un giro che non porta le sue voci non diventa «tutto a posto»", () => {
+    // l'assenza di un dato non è un dato favorevole: le anomalie dichiarate
+    // si contano anche quando non si sa come si chiamano
+    const cieco = { data: OGGI, mezzo: "Escavatore E1", anomalie: 2 };
+    const r = flotta.giriDelGiorno([cieco], "Escavatore E1", OGGI);
+    eq([r.anomalie, r.gravita, r.etichetta, r.voci.length], [2, "warn", "2 da vedere", 0],
+       "due anomalie senza nome restano due anomalie");
+    eq(flotta.giriDelGiorno([{ data: OGGI, mezzo: "Escavatore E1", anomalie: 0 }], "Escavatore E1", OGGI).gravita,
+       "ok", "un giro dichiarato senza anomalie e senza voci resta a posto");
+  });
+
+  test("giriDelGiorno: il giro di ieri non è il giro di oggi, e senza giri si resta «da fare»", () => {
+    const ieri = { ...rotto, id: "g0", data: "2026-08-02" };
+    const r = flotta.giriDelGiorno([ieri], "Escavatore E1", OGGI);
+    eq([r.giri, r.gravita, r.etichetta], [0, null, "da fare"],
+       "un giro di ieri non risponde per oggi");
+    eq(flotta.giriDelGiorno([rotto], "Dumper D1", OGGI).giri, 0, "né il giro di un'altra macchina");
+    eq(flotta.giriDelGiorno([], "Escavatore E1", OGGI).gravita, null, "nessun giro: nessun colore");
+    eq(flotta.giriDelGiorno(null, null, null).etichetta, "da fare", "e non esplode senza dati");
+  });
+
+  test("giriDelGiorno: il nome lungo del mezzo e l'ora attaccata alla data non sfuggono al filtro", () => {
+    eq(flotta.giriDelGiorno([rotto], "Escavatore E1 — CAT 352", OGGI).giri, 1,
+       "il nome del parco porta il modello dopo il trattino lungo");
+    eq(flotta.giriDelGiorno([rotto], "Escavatore E1", OGGI + "T06:00:00Z").giri, 1,
+       "la data di oggi può arrivare con l'ora attaccata");
+  });
+
+  test("⛔ giriDelGiorno e coperturaControlli non si smentiscono sulla stessa giornata", () => {
+    /* La riga di riepilogo e il badge stanno sulla stessa schermata a tre
+       centimetri di distanza: se rispondono in modo diverso, una delle due
+       sta mentendo a chi deve salire sulla macchina. */
+    const MEZ = [{ id: "m1", nome: "Escavatore E1 — CAT 352", tipo: "escavatore" }];
+    for (const elenco of [[rotto, pulito], [pulito, rotto]]) {
+      const cop = flotta.coperturaControlli(elenco, MEZ, OGGI);
+      const g = flotta.giriDelGiorno(elenco, "Escavatore E1", OGGI);
+      eq([cop.conAnomalie > 0, g.anomalie > 0], [true, true],
+         "il riepilogo dice «con anomalie» e il badge lo conferma");
+    }
+  });
+}
+
 console.log(`\nRisultato KPI app: ${passed} passati, ${failed} falliti${inVolo.length ? `  ·  ${inVolo.length} prove asincrone aspettate` : ""}`);
 process.exit(failed > 0 ? 1 : 0);

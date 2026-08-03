@@ -1341,6 +1341,58 @@ export function controlliDelMezzo(controlli, nome) {
     .sort((a, b) => String(b.data || "").localeCompare(String(a.data || "")));
 }
 
+/* ⛔ I GIRI DI OGGI SU UNA MACCHINA SONO PIÙ D'UNO, E VANNO GUARDATI INSIEME.
+   In cava il giro si fa a ogni cambio turno: due o tre giri al giorno sullo
+   stesso mezzo sono la norma, non un caso limite. Fino al 03/08 la schermata
+   Giro ne teneva **uno solo** per mezzo (`fattoDi[nome] = c` dentro un ciclo:
+   vince l'ultimo che passa) e da quello prendeva colore ed etichetta del
+   badge. Misurato con due giri dello stesso giorno — il primo turno trova i
+   FRENI, il secondo è pulito:
+     · elenco nell'ordine A,B → badge **verde «tutto a posto»**;
+     · gli stessi due scambiati → badge **rosso «1 da vedere»**.
+   Cioè la risposta dipendeva dall'ORDINE dell'elenco, e nel verso che
+   rassicura cancellava una voce di sicurezza segnata «non va». Nella stessa
+   schermata, tre centimetri più in alto, la riga di riepilogo diceva
+   «1 con anomalie»: la pagina si smentiva da sola.
+   È lo stesso difetto corretto il 01/08 dentro `coperturaControlli` — lì la
+   correzione è stata fatta nel modulo, qui la pagina se n'era tenuta una
+   copia più debole. Adesso la domanda si fa in un posto solo.
+   Le anomalie si contano per VOCE DISTINTA, non sommando i giri: la stessa
+   perdita trovata al mattino e al pomeriggio è un problema, non due.
+   ⚠️ E un giro che non porta le sue `voci` ma dichiara `anomalie` non
+   diventa «tutto a posto»: quelle anomalie si contano lo stesso, anche se
+   non si sanno chiamare per nome. Pura e testabile. */
+export function giriDelGiorno(controlli, nome, iso) {
+  const giorno = String(iso || "").slice(0, 10);
+  const n = nomeBreve(nome);
+  const giri = (controlli || []).filter(c =>
+    n && nomeBreve(c && c.mezzo) === n && String((c && c.data) || "").slice(0, 10) === giorno);
+  /* Le voci si raccolgono in una MAPPA chiave → etichetta: la chiave è
+     l'identità (serve a non contare due volte la stessa perdita), l'etichetta
+     è quello che si legge («Freni, sterzo e comandi», non «freni»). */
+  const trovate = new Map();
+  let critica = false, senzaNome = 0;
+  for (const c of giri) {
+    const voci = Array.isArray(c.voci) ? c.voci : null;
+    if (voci) {
+      for (const v of voci) {
+        if (!v || v.esito !== "no") continue;
+        const k = String(v.chiave || v.etichetta || "");
+        if (!trovate.has(k)) trovate.set(k, String(v.etichetta || v.chiave || "").trim() || "voce senza nome");
+        if (v.critica) critica = true;
+      }
+    } else senzaNome += Math.max(0, Math.round(+c.anomalie || 0));
+  }
+  const anomalie = trovate.size + senzaNome;
+  return {
+    giri: giri.length, anomalie, voci: [...trovate.values()],
+    gravita: !giri.length ? null : critica ? "danger" : anomalie ? "warn" : "ok",
+    etichetta: !giri.length ? "da fare"
+      : anomalie === 0 ? "tutto a posto"
+      : anomalie === 1 ? "1 da vedere" : anomalie + " da vedere",
+  };
+}
+
 // ============================================================
 // L8 — SEGNALAZIONE GUASTO RAPIDA
 // Chi vede un guasto è SULLA MACCHINA, non in ufficio: se per dirlo deve
