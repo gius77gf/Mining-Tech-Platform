@@ -1786,20 +1786,62 @@ test("paretoFermi: somma i minuti per causale e ordina per tempo perso", () => {
   ];
   const pf = campo.paretoFermi(att);
   eq(pf.totaleMin, 90, "totale minuti");
-  eq(pf.voci[0], { causale: "Guasto meccanico", conto: 2, minuti: 60 }, "prima la causale col tempo maggiore");
-  eq(pf.voci[1], { causale: "Meteo", conto: 1, minuti: 30 }, "poi meteo");
-  eq(pf.voci[2], { causale: "Altro", conto: 1, minuti: 0 }, "sconosciuta in Altro con 0 min");
+  eq(pf.voci[0], { causale: "Guasto meccanico", conto: 2, minuti: 60, senzaMinuti: 0 }, "prima la causale col tempo maggiore");
+  eq(pf.voci[1], { causale: "Meteo", conto: 1, minuti: 30, senzaMinuti: 0 }, "poi meteo");
+  /* ⚠️ RISCRITTA PIÙ GIUSTA, NON PIÙ PERMISSIVA (03/08). Diceva «sconosciuta in
+     Altro con 0 min» e pretendeva `minuti: 0` su un fermo che **i minuti non li
+     ha**: cioè blindava il difetto. Adesso i minuti restano 0 (non c'è niente
+     da sommare) ma il fermo esce **contato** fra quelli senza. */
+  eq(pf.voci[2], { causale: "Altro", conto: 1, minuti: 0, senzaMinuti: 1 },
+     "sconosciuta in Altro, e i suoi minuti non ci sono: non sono zero");
+  eq(pf.parziale, true, "quindi il totale di 90 minuti è un pavimento");
 });
-test("paretoFermi: minuti non numerici o negativi contano 0 (mai NaN)", () => {
+test("paretoFermi: minuti non leggibili o negativi NON valgono zero", () => {
+  /* ⚠️ Si chiamava «contano 0 (mai NaN)»: il «mai NaN» resta, lo zero no.
+     Un numero che non si legge e una durata negativa sono un dato **assente**,
+     non una misura di zero minuti persi. */
   const pf = campo.paretoFermi([
     { stato: "anomalia", causale: "Meteo", fermoMin: "abc" },
     { stato: "anomalia", causale: "Meteo", fermoMin: -20 },
   ]);
-  eq(pf.totaleMin, 0, "totale 0");
+  eq(pf.totaleMin, 0, "non c'è niente da sommare, e non esce NaN");
   eq(pf.voci[0].conto, 2, "conteggio corretto");
+  eq(pf.voci[0].senzaMinuti, 2, "⛔ ma tutt'e due sono senza minuti, e si vede");
+  eq(campo.minutiFermoTesto(pf.voci[0].minuti, pf.voci[0].conto, pf.voci[0].senzaMinuti),
+     "senza minuti", "e chi lo scrive non dice «0 min»");
 });
 test("paretoFermi: nessuna anomalia = struttura vuota", () =>
-  eq(campo.paretoFermi([]), { voci: [], totaleMin: 0 }, "vuoto"));
+  eq(campo.paretoFermi([]), { voci: [], totaleMin: 0, senzaMinutiTot: 0, fermiTot: 0, parziale: false }, "vuoto"));
+test("⛔ paretoFermi: un fermo senza minuti non entra nella somma valendo ZERO", () => {
+  /* `+a.fermoMin || 0` faceva entrare un guasto mai misurato come «zero minuti
+     persi»: il totale scendeva e nessuno lo sapeva. È lo stesso difetto già
+     corretto nel CSV dello storico. Il numero non si spegne — un totale
+     parziale è comunque una misura — ma diventa un PAVIMENTO, e va detto. */
+  const pf = campo.paretoFermi([
+    { stato: "anomalia", causale: "Guasto meccanico", fermoMin: 90 },
+    { stato: "anomalia", causale: "Guasto meccanico", fermoMin: "" },
+    { stato: "anomalia", causale: "Guasto meccanico", fermoMin: null },
+  ]);
+  eq(pf.voci[0].minuti, 90, "i novanta minuti misurati restano novanta");
+  eq(pf.voci[0].conto, 3, "e i fermi sono tre");
+  eq(pf.voci[0].senzaMinuti, 2, "⛔ due non hanno i minuti, e si contano");
+  eq(pf.parziale, true, "quindi il totale è dichiarato parziale");
+  eq(pf.senzaMinutiTot, 2, "col conto in cima");
+  eq(pf.fermiTot, 3, "e il denominatore, se no «2» non vuol dire niente");
+  eq(campo.minutiFermoTesto(pf.voci[0].minuti, pf.voci[0].conto, pf.voci[0].senzaMinuti),
+     "almeno 90 min", "e chi lo scrive lo dice «almeno», con la regola già in casa");
+});
+test("paretoFermi: tutti coi minuti = niente da dichiarare", () => {
+  /* la metà che manca alla prova qui sopra: se no il modo più facile di farla
+     passare sarebbe dichiarare «parziale» sempre. */
+  const pf = campo.paretoFermi([
+    { stato: "anomalia", causale: "Guasto meccanico", fermoMin: 30 },
+    { stato: "anomalia", causale: "Guasto meccanico", fermoMin: 0 },
+  ]);
+  eq(pf.parziale, false, "⛔ zero minuti SCRITTI è una misura, non un'assenza");
+  eq(pf.senzaMinutiTot, 0, "niente da dichiarare");
+  eq(pf.voci[0].minuti, 30, "e la somma è quella");
+});
 test("CAUSALI_FERMO: lista non vuota, tutte stringhe uniche", () => {
   const c = campo.CAUSALI_FERMO;
   eq(c.length > 0, true, "non vuota");

@@ -3597,9 +3597,25 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
         + riassuntoRiapertura(r, dmy)).join("\n")).join("\n") + "\n";
     }
     txt += "\n";
+    /* ⛔ LA CONSEGNA PERDEVA I MINUTI. Elencava «causale: quante volte» e basta,
+       mentre lo schermo, sulla stessa giornata, scrive già quanto tempo si è
+       perso e «senza minuti» dove nessuno l'ha misurato. È il documento con cui
+       un turno passa la mano all'altro: chi lo legge deve sapere se un guasto è
+       durato dieci minuti o due ore, e soprattutto se **non lo sa nessuno**. */
     const fermi = riepilogoFermi(ATT_OGGI);
+    const pf = paretoFermi(ATT_OGGI);
+    const minutiDi = (causale) => {
+      const v = pf.voci.find(x => x.causale === causale);
+      return v ? minutiFermoTesto(v.minuti, v.conto, v.senzaMinuti) : "senza minuti";
+    };
     txt += "ANOMALIE / FERMI\n";
-    txt += (fermi.length ? fermi.map(f => "- " + f.causale + ": " + f.conto).join("\n") : "- nessuna anomalia aperta") + "\n";
+    txt += (fermi.length
+      ? fermi.map(f => "- " + f.causale + ": " + f.conto + " (" + minutiDi(f.causale) + ")").join("\n")
+      : "- nessuna anomalia aperta") + "\n";
+    if (pf.senzaMinutiTot) {
+      txt += "  (" + pf.senzaMinutiTot + " fermo/i su " + pf.fermiTot
+        + " senza i minuti registrati: il tempo perso qui sopra e' un minimo)\n";
+    }
     const el = document.createElement("a");
     el.href = "data:text/plain;charset=utf-8," + encodeURIComponent(txt);
     el.download = "consegna_turno.txt"; el.click();

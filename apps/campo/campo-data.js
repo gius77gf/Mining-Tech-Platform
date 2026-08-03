@@ -1007,19 +1007,31 @@ export function riepilogoFermi(attivita) {
 // si è perso e per quale causale — la base della disponibilità di giornata.
 // I minuti (a.fermoMin) li inserisce il capocantiere sull'anomalia; un valore
 // assente o non numerico conta 0 (mai NaN). Pura e testabile.
+/* ⛔ E I FERMI SENZA MINUTI SI CONTANO, dal 03/08. `+a.fermoMin || 0` fa
+   entrare nella somma un fermo mai misurato **valendo zero**: il totale scende
+   e nessuno lo sa, che è lo stesso difetto già corretto nel CSV dello storico
+   («una giornata con tre guasti mai misurati identica a una senza fermi»).
+   Il numero non si spegne — un totale parziale è comunque una misura — ma
+   diventa un **pavimento**, e chi lo disegna lo dice con `minutiFermoTesto`,
+   che la regola ce l'ha già scritta. */
 export function paretoFermi(attivita) {
   const acc = {};
   for (const a of attivita || []) {
     if (a.stato !== "anomalia") continue;
     const c = CAUSALI_FERMO.includes(a.causale) ? a.causale : "Altro";
-    const m = Math.max(0, +a.fermoMin || 0);
-    if (!acc[c]) acc[c] = { causale: c, conto: 0, minuti: 0 };
-    acc[c].conto++; acc[c].minuti += m;
+    const grezzo = (a.fermoMin === null || a.fermoMin === undefined || String(a.fermoMin).trim() === "")
+      ? null : +a.fermoMin;
+    const noto = Number.isFinite(grezzo) && grezzo >= 0;
+    if (!acc[c]) acc[c] = { causale: c, conto: 0, minuti: 0, senzaMinuti: 0 };
+    acc[c].conto++;
+    if (noto) acc[c].minuti += grezzo; else acc[c].senzaMinuti++;
   }
   const voci = Object.values(acc)
     .sort((a, b) => b.minuti - a.minuti || b.conto - a.conto || a.causale.localeCompare(b.causale, "it"));
   const totaleMin = voci.reduce((t, v) => t + v.minuti, 0);
-  return { voci, totaleMin };
+  const senzaMinutiTot = voci.reduce((t, v) => t + v.senzaMinuti, 0);
+  const fermiTot = voci.reduce((t, v) => t + v.conto, 0);
+  return { voci, totaleMin, senzaMinutiTot, fermiTot, parziale: senzaMinutiTot > 0 };
 }
 
 // ══════════════════════════════════════════════════════════════════════
