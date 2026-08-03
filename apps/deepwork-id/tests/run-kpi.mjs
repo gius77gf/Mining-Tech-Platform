@@ -17928,5 +17928,344 @@ test("⛔ piuGiorni: una data che non esiste non produce una scadenza", () => {
   eq(sentinella.piuGiorni("2026-08-01", -1), "2026-07-31", "anche all'indietro, attraverso il mese");
 });
 
+// ══════════════════════════════════════════════════════════════════════
+// ⛔ SCUDO · IL PERMESSO DI LAVORO (S8, 03/08)
+// Nasce da un difetto misurato, non da un elenco di funzioni: la checklist
+// dell'impianto chiedeva «accesso a tramogge e spazi confinati regolato da
+// permesso di lavoro» — un adempimento che l'app non sapeva emettere né
+// conservare. La spunta «sì» non aveva niente dietro.
+// ══════════════════════════════════════════════════════════════════════
+{
+  const OGGI = new Date(2026, 7, 3, 10, 0);      // 3 agosto 2026, 10:00 LOCALI
+  const LAV = [{ id: "d1", nome: "Mario Rossi" }, { id: "d3", nome: "Giulia Verdi" },
+               { id: "d6", nome: "Franco Riva" }];
+  const SCA = [
+    { id: "s1", lavoratoreId: "d6", tipo: "Formazione", descrizione: "Spazi confinati — informazione, formazione e addestramento", dataScadenza: "2027-03-01" },
+    { id: "s2", lavoratoreId: "d6", tipo: "Formazione", descrizione: "Formazione generale + specifica (art. 37)", dataScadenza: "2029-01-01" },
+    { id: "s3", lavoratoreId: "d6", tipo: "Visita medica", descrizione: "Sorveglianza sanitaria — visita periodica (art. 41)", dataScadenza: "2027-01-01" },
+  ];
+  const CTX = { lavoratori: LAV, scadenze: SCA };
+  const COMPLETO = {
+    id: "pw", tipo: "confinato", lavoro: "Pulizia tramoggia", cantiereId: "k1",
+    dal: "2026-08-03T07:30", al: "2026-08-03T13:00",
+    rilasciatoDaId: "d3", riceventeId: "d6", sorveglianteId: "d1",
+    misure: scudo.tipoPermesso("confinato").misure.slice(),
+    atmosfera: { ossigeno: "20,9", lel: "0", h2s: "0", co: "2", ora: "07:20" },
+    stato: "aperto",
+  };
+
+  /* ⛔ IL CAMPO VUOTO NON È UNA MISURA — ed è il caso che morde, perché sul LEL
+     `+""` fa ZERO e zero vuol dire «ampiamente sotto il 10%»: la risposta più
+     tranquillizzante che questa funzione sappia dare, su un gas che nessuno ha
+     cercato. È il principio del fondatore nel punto esatto in cui costa la
+     vita di qualcuno. */
+  test("⛔ Scudo · atmosfera: un gas non misurato non è un gas assente", () => {
+    eq(scudo.letturaAtmosfera({}).esito, "non-misurata", "nessuna misura");
+    eq(scudo.letturaAtmosfera({}).leggibile, false, "e la bandiera lo dichiara");
+    eq(scudo.letturaAtmosfera(null).esito, "non-misurata", "e nemmeno null esplode");
+    // tre su quattro nei limiti e uno mai misurato NON è «entro i limiti»
+    eq(scudo.letturaAtmosfera({ ossigeno: 20.9, h2s: 0, co: 0 }).esito, "incompleta",
+      "il LEL mai misurato non diventa uno zero rassicurante");
+    eq(scudo.letturaAtmosfera({ ossigeno: 20.9, h2s: 0, co: 0 }).leggibile, false, "e non è leggibile");
+    /* ⛔ E IL CAMPO VUOTO VA PROVATO NELLE TRE FORME IN CUI ARRIVA, non solo
+       come chiave assente. Lo ha preteso la CONTROPROVA: rimettendo il difetto
+       vero — `if (!s) return 0` dentro il lettore — la suite restava VERDE,
+       perché una chiave assente esce dalla guardia `v === undefined` PRIMA di
+       arrivare a quella riga. Cioè la prova passava per un motivo diverso da
+       quello scritto nel suo nome (quinta causa dell'elenco di CLAUDE.md: il
+       caso difeso non c'era nei dati). E la stringa vuota non è il caso raro:
+       è ESATTAMENTE quello che restituisce un campo di modulo. */
+    eq(scudo.letturaAtmosfera({ ossigeno: 20.9, lel: "", h2s: 0, co: 0 }).esito, "incompleta",
+      "il campo lasciato vuoto (stringa vuota, quello che scrive un modulo)");
+    eq(scudo.letturaAtmosfera({ ossigeno: 20.9, lel: "   ", h2s: 0, co: 0 }).esito, "incompleta", "e nemmeno degli spazi");
+    eq(scudo.letturaAtmosfera({ ossigeno: 20.9, lel: null, h2s: 0, co: 0 }).esito, "incompleta", "né un null salvato");
+    eq(scudo.letturaAtmosfera({ ossigeno: "", lel: "", h2s: "", co: "" }).esito, "non-misurata",
+      "quattro campi vuoti non sono quattro zeri: sono un'aria che nessuno ha misurato");
+    // uno zero SCRITTO è invece una misura, e va distinto dal campo vuoto
+    eq(scudo.letturaAtmosfera({ ossigeno: "20,9", lel: "0", h2s: "0", co: "0" }).esito, "entro-i-limiti",
+      "uno zero scritto da qualcuno è una misura");
+    eq(scudo.letturaAtmosfera({ ossigeno: 18, lel: 0, h2s: 0, co: 0 }).esito, "fuori-limite", "ossigeno basso");
+    eq(scudo.letturaAtmosfera({ ossigeno: 24, lel: 0, h2s: 0, co: 0 }).esito, "fuori-limite", "e anche troppo alto");
+    eq(scudo.letturaAtmosfera({ ossigeno: "19,5" }).righe[0].valore, 19.5, "la virgola italiana si legge");
+    eq(scudo.letturaAtmosfera({ lel: "abc" }).righe[1].valore, null, "e ciò che non si legge è null, non zero");
+    ok(scudo.descriviAtmosfera(scudo.letturaAtmosfera({})).startsWith("Non lo sappiamo — "),
+      "chi consuma la bandiera premette la formula del principio");
+  });
+
+  /* ⛔ SENZA FINESTRA NON È «VALIDO SEMPRE»: è quello che distingue un permesso
+     da un modulo, e `istantePermesso` non si fida di `new Date(stringa)` —
+     cambia significato a seconda di che cosa gli si dà, e il container gira in
+     UTC mentre le cave stanno in Italia. */
+  test("⛔ Scudo · la finestra di validità, e il 30 febbraio che JavaScript non rifiuta", () => {
+    eq(scudo.istantePermesso("2026-08-03"), null, "senza l'ora non è un istante");
+    eq(scudo.istantePermesso("2026-02-30T08:00"), null, "il 30 febbraio non esiste (Date lo farebbe scorrere)");
+    eq(scudo.istantePermesso("2026-08-03T25:00"), null, "e nemmeno le 25");
+    eq(scudo.istantePermesso("2026-08-03T07:30").getHours(), 7, "un istante vero si legge in ora LOCALE");
+    eq(scudo.finestraPermesso({}, OGGI).stato, "senza-finestra", "niente date");
+    eq(scudo.finestraPermesso({}, OGGI).noto, false, "e non è un permesso a posto");
+    eq(scudo.finestraPermesso({ dal: "2026-08-03T07:00" }, OGGI).stato, "senza-finestra", "solo l'inizio non basta");
+    eq(scudo.finestraPermesso({ dal: "2026-08-03T12:00", al: "2026-08-03T07:00" }, OGGI).stato, "finestra-storta",
+      "la fine prima dell'inizio");
+    eq(scudo.finestraPermesso({ dal: "2026-08-03T07:00", al: "2026-08-03T13:00" }, OGGI).stato, "in-corso", "dentro");
+    eq(scudo.finestraPermesso({ dal: "2026-08-03T07:00", al: "2026-08-03T13:00" }, OGGI).ore, 6, "sei ore");
+    eq(scudo.finestraPermesso({ dal: "2026-08-04T07:00", al: "2026-08-04T13:00" }, OGGI).stato, "non-ancora", "domani");
+    eq(scudo.finestraPermesso({ dal: "2026-07-30T07:00", al: "2026-07-30T13:00" }, OGGI).stato, "finita", "la settimana scorsa");
+  });
+
+  /* Il permesso NON si scrive una seconda regola sulla formazione: chiede a
+     `statoRequisito`, la stessa della matrice «chi posso mandare domani». */
+  test("Scudo · chi riceve il permesso passa dallo scadenzario, non da un secondo elenco", () => {
+    eq(scudo.formazionePermesso({ tipo: "confinato", riceventeId: "d6" }, LAV, SCA, OGGI).esito, "in-regola",
+      "chi ha i tre requisiti può ricevere il permesso");
+    eq(scudo.formazionePermesso({ tipo: "confinato", riceventeId: "d1" }, LAV, SCA, OGGI).esito, "mancante",
+      "chi non ha l'addestramento del D.P.R. 177/2011 no");
+    eq(scudo.formazionePermesso({ tipo: "confinato" }, LAV, SCA, OGGI).esito, "senza-nome", "e chi non è nominato");
+    eq(scudo.formazionePermesso({ tipo: "confinato" }, LAV, SCA, OGGI).noto, false, "che è «non lo sappiamo», non «no»");
+    eq(scudo.formazionePermesso({ tipo: "confinato", appaltoId: "a1" }, LAV, SCA, OGGI).esito, "impresa-esterna",
+      "i corsi di un'impresa esterna non stanno nella nostra anagrafe, e non si finge di controllarli");
+    /* ⚠️ E senza la chiave `form-confinati` nello scadenzario TUTTO questo
+       rispondeva «mancante» per chiunque: otto prove rosse con una causa
+       sola, trovata in scratchpad prima di scrivere il modulo. */
+    ok(scudo.REQUISITI_FORMAZIONE.some((r) => r.chiave === "form-confinati"),
+      "l'addestramento per gli spazi confinati è un adempimento dello scadenzario, come gli altri");
+  });
+
+  test("⛔ Scudo · il verdetto del permesso: undici esiti, e nessuno è tranquillo per sbaglio", () => {
+    eq(scudo.statoPermesso(COMPLETO, CTX, OGGI).esito, "valido", "completo e dentro la finestra");
+    eq(scudo.statoPermesso({ ...COMPLETO, atmosfera: null }, CTX, OGGI).esito, "da-verificare",
+      "l'aria mai misurata NON è un permesso valido");
+    eq(scudo.statoPermesso({ ...COMPLETO, atmosfera: null }, CTX, OGGI).noto, false, "ed è dichiarata come ignota");
+    eq(scudo.statoPermesso({ ...COMPLETO, atmosfera: { ossigeno: 17, lel: 0, h2s: 0, co: 0 } }, CTX, OGGI).esito,
+      "da-fermare", "l'aria fuori limite ferma il lavoro");
+    eq(scudo.statoPermesso({ ...COMPLETO, sorveglianteId: "" }, CTX, OGGI).esito, "da-fermare",
+      "in uno spazio confinato senza qualcuno fuori non si entra (D.P.R. 177/2011 art. 3 c.3)");
+    eq(scudo.statoPermesso({ ...COMPLETO, misure: ["dpi"] }, CTX, OGGI).esito, "da-fermare",
+      "una misura non dichiarata in atto non è una misura non applicabile");
+    eq(scudo.statoPermesso({ ...COMPLETO, riceventeId: "d1" }, CTX, OGGI).esito, "da-fermare",
+      "e nemmeno si manda dentro chi non è addestrato");
+    eq(scudo.statoPermesso({ ...COMPLETO, rilasciatoDaId: "" }, CTX, OGGI).esito, "da-fermare",
+      "un'autorizzazione che nessuno firma non autorizza nessuno");
+    eq(scudo.statoPermesso({ ...COMPLETO, dal: "2026-07-30T07:00", al: "2026-07-30T13:00" }, CTX, OGGI).esito,
+      "scaduto", "aperto e fuori dalla finestra: il caso che un ispettore cerca");
+    eq(scudo.statoPermesso({ ...COMPLETO, stato: "bozza" }, CTX, OGGI).esito, "bozza", "una bozza completa");
+    eq(scudo.statoPermesso({ ...COMPLETO, stato: "bozza", misure: [] }, CTX, OGGI).esito, "non-rilasciabile",
+      "una bozza con un problema non si rilascia");
+    eq(scudo.statoPermesso({ ...COMPLETO, stato: "bozza", atmosfera: null }, CTX, OGGI).esito, "da-completare",
+      "e una con un buco è «non lo sappiamo», non «non si può»");
+    eq(scudo.statoPermesso({ ...COMPLETO, stato: "chiuso" }, CTX, OGGI).esito, "chiuso", "chiuso");
+    eq(scudo.statoPermesso({ ...COMPLETO, stato: "revocato" }, CTX, OGGI).esito, "revocato", "revocato");
+    eq(scudo.statoPermesso({ ...COMPLETO, stato: "sospeso" }, CTX, OGGI).esito, "sospeso", "sospeso");
+    eq(scudo.statoPermesso({ ...COMPLETO, dal: "2026-08-04T07:00", al: "2026-08-04T13:00" }, CTX, OGGI).esito,
+      "non-ancora", "autorizzato per domani");
+    // un record vuoto non deve rompere niente, e soprattutto non deve essere verde
+    ok(typeof scudo.statoPermesso(null, CTX, OGGI).esito === "string", "un permesso vuoto non esplode");
+    ok(scudo.statoPermesso(null, CTX, OGGI).esito !== "valido", "e non è mai «valido»");
+  });
+
+  /* ⛔ LA REGOLA 18 TOLTA ALLA RADICE. Invece di sorvegliare una mappa scritta
+     nella pagina — che si stacca il giorno in cui la funzione impara una
+     risposta in più, e la pagina muore AL DISEGNO — il catalogo sta nel modulo
+     e questa prova pretende le due direzioni: nessun esito fuori catalogo, e
+     nessuna voce di catalogo che non si possa raggiungere. */
+  test("⛔ Scudo · ogni esito del permesso è nel catalogo, e ogni voce del catalogo è raggiungibile", () => {
+    const casi = [COMPLETO,
+      { ...COMPLETO, atmosfera: null }, { ...COMPLETO, misure: [] },
+      { ...COMPLETO, dal: "2026-07-30T07:00", al: "2026-07-30T13:00" },
+      { ...COMPLETO, stato: "bozza" }, { ...COMPLETO, stato: "bozza", misure: [] },
+      { ...COMPLETO, stato: "bozza", atmosfera: null }, { ...COMPLETO, stato: "chiuso" },
+      { ...COMPLETO, stato: "revocato" }, { ...COMPLETO, stato: "sospeso" },
+      { ...COMPLETO, dal: "2026-08-04T07:00", al: "2026-08-04T13:00" }];
+    const raggiunti = new Set(casi.map((c) => scudo.statoPermesso(c, CTX, OGGI).esito));
+    const catalogo = new Set(scudo.ESITI_PERMESSO.map((e) => e.chiave));
+    eq([...raggiunti].filter((e) => !catalogo.has(e)), [], "nessun esito senza etichetta: la pagina morirebbe al disegno");
+    eq([...catalogo].filter((e) => !raggiunti.has(e)), [], "nessuna voce di catalogo irraggiungibile: sarebbe un'eccezione che nasconde");
+    eq(catalogo.size, scudo.ESITI_PERMESSO.length, "e nessuna chiave doppia nel catalogo");
+    ok(scudo.esitoPermessoSicuro("chiave-che-non-esiste").etichetta.length > 0,
+      "una chiave sconosciuta si mostra, non sparisce");
+  });
+
+  /* ⛔ IL DIFETTO DA CUI È PARTITO TUTTO. */
+  test("⛔ Scudo · «conforme» su una voce che chiede un permesso, senza permesso, NON è conforme", () => {
+    const VOCE = "Accesso a tramogge e spazi confinati regolato da permesso di lavoro";
+    eq(scudo.voceChiedePermesso(VOCE), "confinato", "la voce vera del modello «impianto» è riconosciuta");
+    eq(scudo.voceChiedePermesso("Ripari fissi e mobili su pulegge, nastri e organi in movimento"), null,
+      "una voce qualunque non chiede niente");
+    eq(scudo.voceChiedePermesso("Saldature con permesso di lavoro"), "caldo", "il tipo si legge dal testo");
+    eq(scudo.voceChiedePermesso(""), null, "e il vuoto non chiede niente");
+
+    const ISP = { id: "q", nome: "Impianto", data: "2026-07-22", cantiereId: "k1",
+      voci: [{ id: "v8", testo: VOCE }], esiti: { v8: { esito: "conforme", nota: "" } }, stato: "completata" };
+    const senza = scudo.provaVoce(ISP, ISP.voci[0], [], CTX, OGGI);
+    eq(senza.esito, "senza-prova", "registro vuoto: la spunta non ha niente dietro");
+    eq(senza.noto, false, "e la bandiera lo dichiara");
+    ok(/non è «conforme», è «non lo sappiamo»/.test(senza.perche), "il testo lo dice a parole: " + senza.perche);
+    ok(scudo.descriviProva(senza).startsWith("Non lo sappiamo — "), "e chi lo consuma premette la formula");
+
+    const PW = { ...COMPLETO, id: "x", dal: "2026-07-22T07:30", al: "2026-07-22T13:00", stato: "chiuso" };
+    eq(scudo.provaVoce(ISP, ISP.voci[0], [PW], CTX, OGGI).esito, "con-prova", "col permesso del giorno giusto");
+    eq(scudo.provaVoce(ISP, ISP.voci[0], [{ ...PW, dal: "2026-07-01T07:30", al: "2026-07-01T13:00" }], CTX, OGGI).esito,
+      "senza-prova", "un permesso di un altro giorno non copre questo");
+    eq(scudo.provaVoce(ISP, ISP.voci[0], [{ ...PW, cantiereId: "k9" }], CTX, OGGI).esito, "senza-prova",
+      "e nemmeno uno di un altro sito");
+    eq(scudo.provaVoce(ISP, ISP.voci[0], [{ ...PW, stato: "aperto", misure: [] }], CTX, OGGI).esito,
+      "prova-da-sistemare", "un permesso che c'è ma è da fermare non è una prova tranquilla");
+
+    // il conto che va nelle urgenze
+    eq(scudo.conformiSenzaProva([ISP], [], CTX, OGGI).length, 1, "una voce conforme senza niente dietro");
+    eq(scudo.conformiSenzaProva([ISP], [PW], CTX, OGGI).length, 0, "col permesso, nessuna");
+    eq(scudo.conformiSenzaProva([{ ...ISP, esiti: { v8: { esito: "non-conforme" } } }], [], CTX, OGGI).length, 0,
+      "una NON conforme è già un problema dichiarato: non è questo il difetto");
+    eq(scudo.conformiSenzaProva([{ ...ISP, esiti: {} }], [], CTX, OGGI).length, 0,
+      "e una voce senza esito la conta già `riepilogoIspezioni`");
+  });
+
+  /* ⛔ IL REGISTRO VUOTO NON È IL VERDE — stessa distinzione di
+     `riepilogoAppalti`, e qui pesa di più perché è proprio l'assenza di righe
+     che rende senza prova le voci di checklist. */
+  test("⛔ Scudo · nessun permesso registrato non vuol dire che in cava non si entri in una tramoggia", () => {
+    const v = scudo.riepilogoPermessi([], CTX, OGGI);
+    eq(v.quanti, 0, "zero righe");
+    eq(v.noto, false, "e la schermata non dimostra niente");
+    ok(/non ne risulta nessuno/.test(v.testo), "col perché scritto: " + v.testo);
+    const r = scudo.riepilogoPermessi([COMPLETO], CTX, OGGI);
+    eq(r.validi, 1, "un permesso valido si conta");
+    eq(r.noto, true, "e non c'è niente di non verificato");
+  });
+
+  /* LA DIMOSTRAZIONE DEVE CONTENERE IL CASO, se no la difesa esiste e non la
+     vede nessuno — è già successo con la nomina senza data e con la mansione
+     senza requisiti. */
+  test("⛔ Scudo · la dimostrazione contiene l'ispezione che chiede un permesso che non c'è", () => {
+    const D = scudo.DEMO;
+    const ctx = { lavoratori: D.lavoratori, scadenze: D.scadenze, appalti: D.appalti,
+      cantieri: D.cantieri, appaltatori: D.appaltatori, documenti: D.documenti };
+    ok((D.permessi || []).length >= 4, "la dimostrazione ha dei permessi");
+    const esiti = D.permessi.map((p) => scudo.statoPermesso(p, ctx, OGGI).esito);
+    ok(esiti.includes("valido"), "uno valido adesso");
+    ok(esiti.includes("chiuso"), "uno chiuso come si deve");
+    ok(esiti.includes("scaduto"), "uno aperto e fuori dalla sua finestra");
+    ok(esiti.includes("da-completare") || esiti.includes("da-verificare"),
+      "e uno su cui manca una verifica");
+    // il caso per cui questo modulo esiste
+    const fuori = scudo.conformiSenzaProva(D.ispezioni, D.permessi, ctx, OGGI);
+    eq(fuori.length, 1, "una voce di checklist data per conforme senza niente dietro");
+    eq(fuori[0].voceId, "v8", "ed è quella del permesso di lavoro nel modello «impianto»");
+    eq(fuori[0].esito, "senza-prova", "nel registro non c'è nessun permesso per quel giorno e quel sito");
+    // ⚠️ e la voce esiste ancora nel MODELLO, non solo nella copia della demo
+    const imp = scudo.MODELLI_ISPEZIONE.find((m) => m.chiave === "impianto");
+    ok(imp.voci.some((t) => scudo.voceChiedePermesso(t) === "confinato"),
+      "il modello «impianto» chiede ancora il permesso: se domani cambiasse testo, questa prova lo direbbe");
+  });
+
+  /* I CATALOGHI: non sono decorazione, sono la parte che la pagina disegna e
+     che un ispettore legge. Una voce senza provenienza, o una chiave doppia,
+     si vedono solo qui. */
+  test("Scudo · i cataloghi del permesso: chiavi uniche, e ogni voce dice da dove viene", () => {
+    eq(scudo.TIPI_PERMESSO.length, new Set(scudo.TIPI_PERMESSO.map((t) => t.chiave)).size, "tipi: nessuna chiave doppia");
+    eq(scudo.MISURE_PERMESSO.length, new Set(scudo.MISURE_PERMESSO.map((m) => m.chiave)).size, "misure: nessuna chiave doppia");
+    eq(scudo.TIPI_PERMESSO.filter((t) => !t.riferimento || !t.nome || !t.breve).length, 0,
+      "ogni tipo ha nome, nome corto e riferimento");
+    eq(scudo.MISURE_PERMESSO.filter((m) => !m.fonte || !m.nome).length, 0, "ogni misura ha un nome e una fonte");
+    /* ⛔ Nessun tipo può chiedere una misura che non esiste: sarebbe una misura
+       impossibile da spuntare, cioè un permesso che non si rilascia mai — e
+       leggendo il codice non si vede. */
+    const chiaviM = new Set(scudo.MISURE_PERMESSO.map((m) => m.chiave));
+    eq(scudo.TIPI_PERMESSO.flatMap((t) => t.misure).filter((k) => !chiaviM.has(k)), [],
+      "ogni misura richiesta da un tipo esiste nel catalogo");
+    /* E nessun tipo può chiedere un requisito che lo scadenzario non conosce:
+       sarebbe un corso che nessuno può mai avere, cioè un permesso che
+       risponde «mancante» a chiunque — è il difetto trovato in scratchpad. */
+    const chiaviR = new Set(scudo.REQUISITI_FORMAZIONE.map((r) => r.chiave));
+    eq(scudo.TIPI_PERMESSO.flatMap((t) => t.requisiti).filter((k) => !chiaviR.has(k)), [],
+      "ogni requisito richiesto da un tipo è un adempimento dello scadenzario");
+    // solo lo spazio confinato chiede l'aria e qualcuno fuori
+    eq(scudo.TIPI_PERMESSO.filter((t) => t.atmosfera).map((t) => t.chiave), ["confinato"], "l'aria si misura dove serve");
+    eq(scudo.TIPI_PERMESSO.filter((t) => t.sorvegliante).map((t) => t.chiave), ["confinato"], "e il sorvegliante sta fuori dallo spazio confinato");
+    // i quattro parametri dell'aria, coi loro limiti dichiarati
+    eq(scudo.LIMITI_ATMOSFERA.map((L) => L.chiave), ["ossigeno", "lel", "h2s", "co"], "i quattro parametri");
+    eq(scudo.LIMITI_ATMOSFERA.filter((L) => L.max === null).length, 0, "ognuno ha almeno un massimo");
+    ok(/non sono una soglia/i.test(scudo.FONTE_ATMOSFERA),
+      "e la fonte dichiara che NON sono limiti di legge: gonfiarli toglierebbe credibilità al resto");
+    // le due letture, e quella «sicura» che non fa sparire una chiave vecchia
+    eq(scudo.tipoPermesso("confinato").chiave, "confinato", "un tipo si legge");
+    eq(scudo.tipoPermesso("mai-visto"), null, "e uno che non c'è è null");
+    eq(scudo.tipoPermessoSicuro("mai-visto").misure, [], "il tipo sicuro non pretende misure che non conosce");
+    ok(scudo.tipoPermessoSicuro("mai-visto").nome.length > 0, "ma un nome lo mostra: un dato non leggibile si mostra, non si nasconde");
+    eq(scudo.misuraPermesso("atmosfera").chiave, "atmosfera", "una misura si legge");
+    eq(scudo.misuraPermesso("mai-vista"), null, "e una che non c'è è null");
+    eq(scudo.misuraPermessoSicura("mai-vista").nome, "mai-vista", "la misura sicura mostra la chiave grezza");
+    eq(scudo.esitoPermesso("valido").cls, "ok", "l'esito porta la sua classe");
+    eq(scudo.esitoPermesso("mai-visto"), null, "e uno che non c'è è null");
+  });
+
+  test("Scudo · misureMancanti: quello che non è spuntato non è «non applicabile»", () => {
+    const t = scudo.tipoPermesso("caldo");
+    eq(scudo.misureMancanti({ tipo: "caldo", misure: [] }).length, t.misure.length, "niente spuntato: mancano tutte");
+    eq(scudo.misureMancanti({ tipo: "caldo", misure: t.misure.slice() }).length, 0, "tutte spuntate: nessuna manca");
+    eq(scudo.misureMancanti({ tipo: "caldo" }).length, t.misure.length, "il campo mai scritto vale come vuoto");
+    eq(scudo.misureMancanti({ tipo: "caldo", misure: "estintore" }).length, t.misure.length,
+      "e un valore che non è una lista non si legge come una spunta");
+    /* Le misure di un ALTRO tipo non contano: spuntare «ancoraggi» su un
+       lavoro a caldo non toglie l'estintore. */
+    eq(scudo.misureMancanti({ tipo: "caldo", misure: ["ancoraggi", "area-sotto"] }).length, t.misure.length,
+      "le misure di un altro tipo non coprono queste");
+    ok(scudo.misureMancanti({ tipo: "caldo", misure: [] }).every((m) => m.nome && m.fonte !== undefined),
+      "e ogni mancanza torna con il suo nome, non con la chiave");
+  });
+
+  test("Scudo · il permesso affidato a un'impresa esterna passa dall'art. 26, non da un secondo controllo", () => {
+    const D = scudo.DEMO;
+    const ctx = { lavoratori: D.lavoratori, scadenze: D.scadenze, appalti: D.appalti,
+      cantieri: D.cantieri, appaltatori: D.appaltatori, documenti: D.documenti };
+    eq(scudo.impresaPermesso({ tipo: "energia" }, ctx, OGGI), null,
+      "un lavoro interno non pone la domanda: null, non un'assenza da dichiarare");
+    const q = scudo.impresaPermesso({ tipo: "energia", appaltoId: "pa1" }, ctx, OGGI);
+    eq(q.esito, "a-posto", "l'appalto con impresa qualificata e DUVRI in vigore");
+    eq(q.noto, true, "ed è noto");
+    const ko = scudo.impresaPermesso({ tipo: "energia", appaltoId: "pa3" }, ctx, OGGI);
+    ok(ko.problemi.length > 0 || ko.ignoti.length > 0, "l'appalto senza documento di coordinamento porta qualcosa da dire");
+    eq(ko.appaltatore.id, "ap2", "e dice quale impresa è");
+    /* ⛔ PROBLEMI E IGNOTI RESTANO SEPARATI: la prima versione li schiacciava in
+       un `perche` solo e scriveva «Non lo sappiamo — Scaduti: Certificato
+       CCIAA», cioè annunciava come incerto un fatto misurato. */
+    const st = scudo.statoPermesso({ ...COMPLETO, tipo: "energia", appaltoId: "pa3",
+      riceventeId: null, sorveglianteId: null, misure: scudo.tipoPermesso("energia").misure.slice() }, ctx, OGGI);
+    eq(st.esito, "da-fermare", "un permesso a un'impresa con un documento scaduto si ferma");
+    ok(!/^Non lo sappiamo/.test(scudo.descriviPermesso(st)),
+      "e il fatto misurato NON viene annunciato come incerto: " + scudo.descriviPermesso(st));
+    // il caso opposto: solo un buco, e allora la formula del principio ci va
+    ok(scudo.descriviPermesso(scudo.statoPermesso({ ...COMPLETO, atmosfera: null }, CTX, OGGI))
+      .startsWith("Non lo sappiamo — "), "dove c'è solo un buco, la formula del principio compare");
+    // un appalto sparito dal registro non è «nessuna impresa»
+    const orfano = scudo.impresaPermesso({ tipo: "energia", appaltoId: "mai-esistito" }, ctx, OGGI);
+    eq(orfano.noto, false, "un appalto che non c'è più è «non lo sappiamo»");
+    eq(orfano.statoAppalto, null, "e non si inventa uno stato");
+  });
+
+  test("Scudo · quali permessi coprono un giorno e un sito", () => {
+    const P = [
+      { id: "a", tipo: "confinato", cantiereId: "k1", dal: "2026-07-20T07:00", al: "2026-07-24T18:00" },
+      { id: "b", tipo: "confinato", cantiereId: "k2", dal: "2026-07-22T07:00", al: "2026-07-22T18:00" },
+      { id: "c", tipo: "caldo", cantiereId: "k1", dal: "2026-07-22T07:00", al: "2026-07-22T18:00" },
+      { id: "d", tipo: "confinato", cantiereId: null, dal: "2026-07-22T07:00", al: "2026-07-22T18:00" },
+      { id: "e", tipo: "confinato", cantiereId: "k1", dal: "", al: "" },
+    ];
+    eq(scudo.permessiDelGiorno(P, { tipo: "confinato", cantiereId: "k1", giorno: "2026-07-22" }).map((p) => p.id),
+      ["a", "d"], "quello a cavallo del giorno e quello senza sito dichiarato");
+    eq(scudo.permessiDelGiorno(P, { tipo: "caldo", cantiereId: "k1", giorno: "2026-07-22" }).map((p) => p.id),
+      ["c"], "il tipo conta");
+    eq(scudo.permessiDelGiorno(P, { tipo: "confinato", cantiereId: "k1", giorno: "2026-07-25" }), [],
+      "il giorno dopo la finestra non è coperto");
+    eq(scudo.permessiDelGiorno(P, { tipo: "confinato", cantiereId: "k1" }), [],
+      "senza giorno non si risponde: sarebbe una copertura inventata");
+    eq(scudo.permessiDelGiorno(P, { giorno: "2026-13-45" }), [], "e nemmeno su una data che non esiste");
+    eq(scudo.permessiDelGiorno(null, { giorno: "2026-07-22" }), [], "lista vuota");
+    // i permessi di un sito, per la scheda del cantiere
+    eq(scudo.permessiDiCantiere(P, "k1").map((p) => p.id), ["a", "c", "e"], "tutti quelli del sito");
+    eq(scudo.permessiDiCantiere(P, null), [], "senza sito non si risponde");
+  });
+}
+
+
 console.log(`\nRisultato KPI app: ${passed} passati, ${failed} falliti${inVolo.length ? `  ·  ${inVolo.length} prove asincrone aspettate` : ""}`);
 process.exit(failed > 0 ? 1 : 0);

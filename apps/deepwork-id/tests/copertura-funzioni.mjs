@@ -101,7 +101,20 @@ const APP = ["campo", "conti", "flotta", "scudo", "sentinella", "terra"];
    (`terra.X === ponti.X`) invece del comportamento.
    `densitaPerEnte` e `descriviDensita` restano di Terra, e il conto lo dice: a
    scendere sono otto, non dieci. */
-const FONDO = { campo: 103, conti: 111, flotta: 82, scudo: 130, sentinella: 122, terra: 58 };
+/* ⚠️ `scudo` SALE DA 130 A 157: IL PERMESSO DI LAVORO (S8, D.P.R. 177/2011).
+   Ventisette funzioni — i due cataloghi (`TIPI_PERMESSO`, `MISURE_PERMESSO`) e
+   le loro letture sicure, `LIMITI_ATMOSFERA`/`FONTE_ATMOSFERA` con
+   `letturaAtmosfera` e `descriviAtmosfera`, `istantePermesso`,
+   `finestraPermesso`, `misureMancanti`, `formazionePermesso`,
+   `impresaPermesso`, `ESITI_PERMESSO` con `statoPermesso` e
+   `descriviPermesso`, `riepilogoPermessi`, `permessiDelGiorno`,
+   `permessiDiCantiere` — e il ponte con la checklist (`voceChiedePermesso`,
+   `provaVoce`, `descriviProva`, `conformiSenzaProva`), con le loro 12 prove.
+   Nasce da un difetto misurato: la voce «accesso a tramogge e spazi confinati
+   regolato da permesso di lavoro» obbligava a rispondere sì/no su un
+   adempimento che l'app non sapeva emettere né conservare — la spunta «sì» non
+   aveva niente dietro. */
+const FONDO = { campo: 103, conti: 111, flotta: 82, scudo: 157, sentinella: 122, terra: 58 };
 
 /* Quello che resta fuori per un motivo, non per dimenticanza: i caricatori
    dati vogliono la rete e lo SDK, i ponti demo vogliono il localStorage.

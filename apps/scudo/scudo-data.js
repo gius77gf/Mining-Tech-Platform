@@ -83,6 +83,22 @@
 //                      azioni nate DOPO l'analisi, cioè quelle che il «perché»
 //                      ha prodotto: due numeri diversi che dicono due cose
 //                      diverse, e nessuno dei due è una copia dell'altro.
+//   permessi/{id}:   { tipo (chiave di TIPI_PERMESSO), lavoro, luogo,
+//                      cantiereId|null, dal/al (AAAA-MM-GGTHH:MM, ora LOCALE),
+//                      rilasciatoDaId, riceventeId|null, sorveglianteId|null,
+//                      appaltoId|null, misure: [chiave di MISURE_PERMESSO],
+//                      atmosfera?: { ossigeno, lel, h2s, co, ora }|null,
+//                      stato: bozza|aperto|sospeso|chiuso|revocato,
+//                      chiusuraOra?|null, chiusuraDaId?|null, note? }
+//                    → il PERMESSO DI LAVORO: autorizza un lavoro pericoloso
+//                      in un luogo e in una finestra di tempo (D.P.R. 177/2011
+//                      per gli spazi confinati). È quello che sta dietro alla
+//                      voce di checklist «accesso a tramogge e spazi confinati
+//                      regolato da permesso di lavoro»: senza, quella spunta
+//                      non ha niente sotto (provaVoce).
+//                      ⛔ `dal`/`al` sono ISTANTI, non date: un permesso senza
+//                      finestra non autorizza un turno, autorizza per sempre.
+//                      `atmosfera` assente NON è aria buona (letturaAtmosfera).
 // Lo "stato" delle scadenze non si salva: si CALCOLA dalla data
 // (scaduta / entro 30gg / regolare) — niente dati derivati nel DB.
 // ============================================================
@@ -139,6 +155,12 @@ export const DEMO = {
     { id: "s20", lavoratoreId: "d2", tipo: "Formazione", descrizione: "Aggiornamento formazione lavoratori", dataScadenza: "2028-09-30" },
     { id: "s21", lavoratoreId: "d5", tipo: "Corso", descrizione: "Primo soccorso — aggiornamento addetti", dataScadenza: "2028-04-14" },
     { id: "s22", lavoratoreId: "d5", tipo: "Formazione", descrizione: "RLS — aggiornamento periodico", dataScadenza: "2027-06-15" },
+    /* L'ADDESTRAMENTO PER GLI SPAZI CONFINATI (D.P.R. 177/2011 art. 2 c.1 lett.
+       f e h). Ce l'ha SOLO Franco Riva, ed è di proposito: è lui che riceve il
+       permesso pw1, e la matrice deve poter dire «può andare» su una riga e
+       «non può» su tutte le altre. Un permesso rilasciato a chi quel corso non
+       l'ha fatto è la cosa che il modulo esiste per fermare. */
+    { id: "s23", lavoratoreId: "d6", tipo: "Formazione", descrizione: "Spazi confinati — informazione, formazione e addestramento", dataScadenza: "2027-09-30" },
   ],
   documenti: [
     { id: "c1", titolo: "DVR — Documento Valutazione Rischi", meta: "Aggiornato 03/2026", tipo: "DVR", stato: "valido" },
@@ -353,8 +375,80 @@ export const DEMO = {
         v1: { esito: "conforme", nota: "" },
         v2: { esito: "conforme", nota: "" },
         v3: { esito: "conforme", nota: "" },
+        /* ⛔ ECCO IL CASO PER CUI ESISTE IL PERMESSO DI LAVORO, e va visto.
+           La voce v8 chiede che l'accesso a tramogge e spazi confinati sia
+           «regolato da permesso di lavoro», e qui è spuntata CONFORME. Per il
+           22/07 su Cava Monte Alto, però, nel registro dei permessi non c'è
+           niente: il permesso pw3 è del 16/07 e pw1 del 03/08. Cioè la spunta
+           verde non ha niente dietro — ed è quello che `provaVoce` dice, in
+           chiaro, sotto la voce: non è «conforme», è «non lo sappiamo».
+           Senza questa riga la difesa esisterebbe e non la vedrebbe nessuno,
+           come è già successo con la nomina senza data e con la mansione senza
+           requisiti. */
+        v8: { esito: "conforme", nota: "" },
       },
       stato: "completata", dataChiusura: "2026-07-22" },
+  ],
+  /* I PERMESSI DI LAVORO. Quattro righe per quattro verdetti diversi: uno
+     valido adesso, uno chiuso come si deve, uno lasciato aperto dopo la fine
+     della sua finestra (il primo che un ispettore cerca), e uno affidato a
+     un'impresa esterna il cui documento di coordinamento non risulta. */
+  permessi: [
+    { id: "pw1", tipo: "confinato", lavoro: "Pulizia della tramoggia di alimentazione del frantoio",
+      luogo: "Tramoggia TR-01, quota +4 m", cantiereId: "k1",
+      dal: "2026-08-03T07:30", al: "2026-08-03T13:00",
+      rilasciatoDaId: "d3", riceventeId: "d6", sorveglianteId: "d1", appaltoId: null,
+      misure: ["sezionamento", "svuotamento", "bonifica", "ventilazione", "atmosfera",
+        "sorvegliante-fuori", "recupero", "emergenza", "dpi"],
+      atmosfera: { ossigeno: "20,8", lel: "0", h2s: "0", co: "2", ora: "07:20" },
+      stato: "aperto", chiusuraOra: null, chiusuraDaId: null, note: "" },
+    { id: "pw2", tipo: "caldo", lavoro: "Saldatura del telaio del vaglio in officina",
+      luogo: "Officina, banco 2", cantiereId: "k1",
+      dal: "2026-07-25T08:00", al: "2026-07-25T12:00",
+      rilasciatoDaId: "d3", riceventeId: "d2", sorveglianteId: null, appaltoId: null,
+      misure: ["infiammabili", "estintore", "vigilanza-dopo", "delimitazione", "dpi"],
+      atmosfera: null,
+      stato: "chiuso", chiusuraOra: "2026-07-25T11:40", chiusuraDaId: "d3",
+      note: "Sorveglianza antincendio mantenuta fino alle 12:40." },
+    /* ⛔ APERTO E FUORI DALLA SUA FINESTRA DA GIORNI. Non è un errore di
+       compilazione: o il lavoro è finito e nessuno ha chiuso il permesso — e
+       allora il registro racconta una cava con qualcuno perennemente dentro
+       una tramoggia — o si è lavorato fuori dall'autorizzazione. È il caso che
+       si vede solo confrontando due date che nessuno confronta a mano. */
+    { id: "pw3", tipo: "confinato", lavoro: "Ispezione interna del silo del filler",
+      luogo: "Silo SF-02", cantiereId: "k1",
+      dal: "2026-07-16T06:30", al: "2026-07-16T11:00",
+      rilasciatoDaId: "d3", riceventeId: "d6", sorveglianteId: "d1", appaltoId: null,
+      misure: ["sezionamento", "svuotamento", "bonifica", "ventilazione", "atmosfera",
+        "sorvegliante-fuori", "recupero", "emergenza", "dpi"],
+      atmosfera: { ossigeno: "20,9", lel: "0", h2s: "0", co: "1", ora: "06:20" },
+      stato: "aperto", chiusuraOra: null, chiusuraDaId: null, note: "" },
+    /* Il permesso affidato a un'IMPRESA ESTERNA: i corsi dei suoi addetti non
+       stanno nella nostra anagrafe, e fingere di controllarli sarebbe peggio
+       che dire che non li controlliamo. Quello che si verifica è la qualifica
+       dell'impresa e il documento di coordinamento — e per l'appalto pa3 non
+       risulta né redattore né data. */
+    { id: "pw4", tipo: "energia", lavoro: "Sostituzione del riduttore del nastro N3",
+      luogo: "Nastro N3, testa motrice", cantiereId: "k2",
+      dal: "2026-08-04T07:00", al: "2026-08-04T17:00",
+      rilasciatoDaId: "d3", riceventeId: null, sorveglianteId: null, appaltoId: "pa3",
+      misure: ["sezionamento", "delimitazione", "avviso-turno", "dpi"],
+      atmosfera: null,
+      stato: "aperto", chiusuraOra: null, chiusuraDaId: null, note: "" },
+    /* ⛔ LA BOZZA CHE ASPETTA LA MISURA DELL'ARIA, e non è un caso di scuola:
+       l'atmosfera si misura pochi minuti prima di aprire il passo d'uomo, non
+       il giorno prima. Fino ad allora il permesso non è «quasi a posto», è
+       NON LO SAPPIAMO — ed è la riga per cui `letturaAtmosfera` distingue
+       «non misurata» da «entro i limiti». Senza, quel ramo esisterebbe e la
+       dimostrazione non lo mostrerebbe mai. */
+    { id: "pw5", tipo: "confinato", lavoro: "Sostituzione del rivestimento antiusura in tramoggia",
+      luogo: "Tramoggia TR-02", cantiereId: "k1",
+      dal: "2026-08-05T07:00", al: "2026-08-05T12:30",
+      rilasciatoDaId: "d3", riceventeId: "d6", sorveglianteId: "d1", appaltoId: null,
+      misure: ["sezionamento", "svuotamento", "bonifica", "ventilazione", "atmosfera",
+        "sorvegliante-fuori", "recupero", "emergenza", "dpi"],
+      atmosfera: null,
+      stato: "bozza", chiusuraOra: null, chiusuraDaId: null, note: "" },
   ],
   mansioni: [
     { id: "n1", nome: "Escavatorista / palista",
@@ -1345,6 +1439,15 @@ export const SCADENZE_PRESET = [
   { chiave: "rls",              categoria: "persona", tipo: "Formazione",    etichetta: "RLS — aggiornamento periodico", mesi: 12, riferimento: "D.Lgs 81/2008 art. 37 — aggiornamento annuale (durata secondo il numero di lavoratori)." },
   { chiave: "patentino-attr",   categoria: "persona", tipo: "Patente",       etichetta: "Abilitazione attrezzature (escavatore, PLE, gru…)", mesi: 60, riferimento: "Accordo Stato-Regioni 22/02/2012 — aggiornamento quinquennale delle abilitazioni." },
   { chiave: "fochino",          categoria: "persona", tipo: "Patente",       etichetta: "Fochino — abilitazione brillamento mine", mesi: null, riferimento: "D.P.R. 302/1956 — licenza rilasciata dal Prefetto: la scadenza è quella indicata sul titolo." },
+  /* ⛔ AGGIUNTO COL PERMESSO DI LAVORO, e senza di lui il permesso per gli
+     spazi confinati non poteva funzionare: `formazionePermesso` chiede a
+     `statoRequisito` se chi entra in tramoggia è formato, e senza una chiave
+     in questo elenco la risposta era «mancante» PER CHIUNQUE — anche per chi
+     il corso l'aveva fatto. Trovato in scratchpad prima di scriverlo nel
+     modulo: otto prove rosse, una causa sola.
+     La periodicità è `null` come per il fochino: il D.P.R. 177/2011 non ne
+     fissa una, la stabilisce la procedura di lavoro dell'azienda. */
+  { chiave: "form-confinati",   categoria: "persona", tipo: "Formazione",    etichetta: "Spazi confinati — informazione, formazione e addestramento", mesi: null, riferimento: "D.P.R. 177/2011 art. 2 c.1 lett. f) e h) — formazione mirata ai rischi propri di queste attività e addestramento di tutto il personale impiegato, datore di lavoro compreso. La periodicità la fissa la procedura aziendale." },
   { chiave: "dss",              categoria: "azienda", tipo: "Altro",         etichetta: "DSS — Documento di Sicurezza e Salute (D.Lgs 624/96)", mesi: null, riferimento: "D.Lgs 624/96 artt. 6 e 10 — il DSS integra l'art. 28 del D.Lgs 81/08; va trasmesso all'autorità di vigilanza prima dell'inizio dei lavori." },
   { chiave: "dvr",              categoria: "azienda", tipo: "Altro",         etichetta: "DVR — aggiornamento", mesi: null, riferimento: "D.Lgs 81/2008 art. 29 — rielaborazione in occasione di modifiche significative, infortuni o nuovi rischi." },
   { chiave: "verifica-attr",    categoria: "azienda", tipo: "Altro",         etichetta: "Verifica periodica attrezzature (D.M. 11/04/2011)", mesi: 12, riferimento: "D.M. 11/04/2011 — periodicità secondo l'allegato VII del D.Lgs 81/08: dipende dal tipo di attrezzatura." },
@@ -1698,6 +1801,7 @@ const BREVE_REQUISITO = {
   "patentino-attr": "Abilitazione attrezzature",
   "fochino":        "Fochino",
   "sorvegliante":   "Sorvegliante",
+  "form-confinati": "Spazi confinati",
 };
 // Parole che identificano l'adempimento dentro una descrizione scritta a mano.
 // Servono a NON far risultare "mancante" un corso che l'azienda ha già in
@@ -1714,6 +1818,11 @@ const PAROLE_REQUISITO = {
   "patentino-attr": ["abilitazione attrezzature", "patentino", "escavatore", "pale caricatrici", "carrello elevatore", "ple"],
   "fochino":        ["fochino", "brillamento"],
   "sorvegliante":   ["sorvegliante"],
+  /* ⚠️ NON basta «confinati»: chi scrive lo scadenzario a mano usa tanto
+     «spazi confinati» quanto «ambienti confinati» (è il nome che il D.P.R.
+     177/2011 e il manuale della Commissione consultiva usano), e c'è chi
+     scrive «DPR 177». Tre forme, un solo adempimento. */
+  "form-confinati": ["spazi confinati", "ambienti confinati", "dpr 177", "sospetti di inquinamento"],
 };
 
 // I requisiti che una mansione può richiedere sono gli stessi adempimenti già
@@ -2406,6 +2515,11 @@ export async function scudoData() {
            dice «tutto a posto», dice che non c'è ancora niente da mostrare. */
         appaltatori: () => read("appaltatori"),
         appalti:     () => read("appalti"),
+        /* i permessi di lavoro. Come le altre collezioni arrivate dopo: chi
+           non ne ha mai scritto uno legge un elenco vuoto — e la schermata NON
+           dice «tutto a posto», dice che finché è così le voci di checklist
+           che chiedono un permesso non hanno niente dietro. */
+        permessi:    () => read("permessi"),
         aggiungi: (name, data) => addDoc(id.orgCollection(name), data),
         logout: () => id.logout(),
         aggiorna: (name, docId, data) => updateDoc(doc(id.orgCollection(name), docId), data),
@@ -2462,6 +2576,7 @@ export async function scudoData() {
       analisi:    async () => mem.analisi || (mem.analisi = []),
       appaltatori: async () => mem.appaltatori || (mem.appaltatori = []),
       appalti:     async () => mem.appalti || (mem.appalti = []),
+      permessi:    async () => mem.permessi || (mem.permessi = []),
       logout: async () => {},
       aggiungi: async (name, data) => { const id = "m" + Math.random().toString(36).slice(2, 8); (mem[name] = mem[name] || []).push({ id, ...data }); return { id }; },
       aggiorna: async (name, docId, data) => {
@@ -3147,4 +3262,587 @@ export function appaltatoriDaVerificare(appaltatori, documenti, oggi = new Date(
   return (appaltatori || []).filter((a) => a && a.attivo !== false)
     .map((a) => ({ appaltatore: a, ...qualificaAppaltatore(a, documenti, oggi) }))
     .filter((r) => r.esito !== "verificato" && r.esito !== "in-scadenza");
+}
+
+// ============================================================
+// S8 · IL PERMESSO DI LAVORO
+//
+// ⛔ NASCE DA UN DIFETTO, NON DA UN ELENCO DI FUNZIONI. La checklist
+// dell'impianto chiede da sempre «Accesso a tramogge e spazi confinati
+// regolato da permesso di lavoro» (MODELLI_ISPEZIONE, modello "impianto") —
+// cioè obbliga chi ispeziona a rispondere sì/no su un adempimento che l'app
+// non sapeva emettere né conservare: la spunta «sì» non aveva niente dietro.
+// È il principio del fondatore applicato a una RISPOSTA invece che a un
+// numero: una conferma di conformità dove non è stato verificato niente.
+//
+// CHE COS'È. Un permesso di lavoro è il documento con cui chi comanda il sito
+// autorizza un lavoro pericoloso in un LUOGO e in una FINESTRA DI TEMPO, dice
+// CHI lo rilascia e CHI lo riceve, elenca le MISURE che devono essere in atto
+// prima di cominciare, e si CHIUDE quando il lavoro finisce. Le quattro cose
+// che lo rendono un permesso e non un modulo sono: il periodo di validità, le
+// due firme, le misure verificate prima, la chiusura.
+//
+// DA DOVE VIENE QUELLO CHE C'È SCRITTO QUI.
+//   · **D.P.R. 177/2011** (ambienti sospetti di inquinamento o confinati):
+//     art. 2 c.1 lett. f) e h) — informazione, formazione e addestramento di
+//     tutto il personale impiegato, datore di lavoro compreso; lett. g) —
+//     DPI, strumentazione e attrezzature idonee; art. 3 c.2 — il datore di
+//     lavoro committente individua un proprio RAPPRESENTANTE, formato quanto
+//     chi entra, che vigila per tutta la durata; art. 3 c.3 — PROCEDURA DI
+//     LAVORO scritta, comprensiva della fase di soccorso e del coordinamento
+//     con il sistema di emergenza del SSN e dei Vigili del fuoco.
+//   · La prassi dei sistemi di permesso di lavoro (guida HSE «Guidance on
+//     permit-to-work systems», HSG250) per le parti che la norma italiana non
+//     scrive: chi rilascia e chi accetta, l'identificazione precisa
+//     dell'attrezzatura, il periodo di validità limitato, la restituzione
+//     («hand-back») al termine, il permesso esposto sul posto di lavoro.
+//   · I tipi di permesso in uso negli impianti (fiamma/calore, scavo, circuiti
+//     elettrici, generico, spazi confinati) — qui ridotti ai cinque che una
+//     cava con impianto usa davvero.
+// ⚠️ Le fonti primarie NON sono state aperte una per una da questa sessione
+// (il proxy le blocca): quanto sopra viene da ricerca secondaria e dalla
+// manualistica italiana. I riferimenti sono scritti perché siano VERIFICABILI
+// da chi legge, non perché siano un parere legale — che infatti la pagina
+// dichiara di non essere.
+//
+// COME SI AGGANCIA A QUELLO CHE SCUDO HA GIÀ. Un permesso che non guarda la
+// formazione di chi lo riceve è un modulo, non un controllo:
+//   · chi lo RICEVE passa da `statoRequisito`, la stessa funzione della
+//     matrice «chi posso mandare domani mattina»;
+//   · se lo esegue un'IMPRESA ESTERNA passa da `statoAppalto`, quindi dalla
+//     qualifica dell'art. 26 e dal documento di coordinamento;
+//   · il SITO è un cantiere del registro, chi rilascia e chi sorveglia sono
+//     lavoratori dell'anagrafe.
+// Nessun secondo archivio, nessuna seconda anagrafe.
+// ============================================================
+
+/* ⚠️ `AAAA-MM-GGTHH:MM` — quello che scrive `<input type="datetime-local">` —
+   letto come ORA LOCALE e costruito campo per campo. `new Date(stringa)`
+   cambia significato a seconda di che cosa gli si dà: con la sola data è UTC,
+   con la T è locale, con la Z è di nuovo UTC. Il contenitore gira in UTC e le
+   cave stanno in Italia (regola 15), quindi qui non si indovina: si legge la
+   stringa e si costruisce la data con i pezzi. E si RILEGGE quello che si è
+   costruito, perché «2026-02-30T08:00» JavaScript non lo rifiuta — lo fa
+   scivolare al 2 marzo (la stessa trappola di `dataISOEsiste`). */
+export function istantePermesso(s) {
+  const m = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/.exec(String(s || ""));
+  if (!m) return null;
+  const Y = +m[1], M = +m[2], G = +m[3], h = +m[4], mi = +m[5];
+  const d = new Date(Y, M - 1, G, h, mi, 0, 0);
+  if (d.getFullYear() !== Y || d.getMonth() !== M - 1 || d.getDate() !== G
+      || d.getHours() !== h || d.getMinutes() !== mi) return null;
+  return d;
+}
+
+/* Un numero misurato, oppure `null`. NON `parseNum0`: di ciò che non capisce
+   quello fa ZERO, e su un LEL zero è la risposta più tranquilla che esista
+   («ampiamente sotto il 10%») data su un campo che nessuno ha compilato. */
+function misuraLetta(v) {
+  if (v === null || v === undefined) return null;
+  if (typeof v === "number") return Number.isFinite(v) ? v : null;
+  const s = String(v).trim();
+  if (!s) return null;
+  const n = numIt(s);
+  return Number.isFinite(n) ? n : null;
+}
+
+/* LE MISURE CHE DEVONO ESSERE IN ATTO. Ognuna con la sua provenienza, e le
+   prassi sono dichiarate prassi: «D.Lgs 81/08 art. 77» e «prassi dei permessi
+   per lavoro a caldo» non sono la stessa cosa, e spacciare la seconda per la
+   prima toglierebbe credibilità anche alla prima. */
+export const MISURE_PERMESSO = [
+  { chiave: "sezionamento", nome: "Macchina sezionata, bloccata e cartellinata, chiavi in custodia",
+    fonte: "D.Lgs 81/08 art. 71 c.4 e allegato VI — nessun intervento con la macchina in moto" },
+  { chiave: "svuotamento", nome: "Tramoggia o silo svuotato, alimentazione e scarico intercettati",
+    fonte: "prassi di impianto — in tramoggia il materiale che può scendere è il primo rischio" },
+  { chiave: "bonifica", nome: "Ambiente bonificato, lavato e aperto prima dell'accesso",
+    fonte: "prassi per gli ambienti sospetti di inquinamento" },
+  { chiave: "ventilazione", nome: "Ventilazione forzata attiva per tutta la durata del lavoro",
+    fonte: "prassi — si applica in caso di carenza di ossigeno o di accumulo di gas" },
+  { chiave: "atmosfera", nome: "Atmosfera misurata prima dell'accesso e tenuta sotto controllo durante",
+    fonte: "D.P.R. 177/2011 art. 3 c.3 — la procedura di lavoro" },
+  { chiave: "sorvegliante-fuori", nome: "Sorvegliante all'esterno per tutta la durata, in contatto continuo",
+    fonte: "D.P.R. 177/2011 art. 3 c.3 — la procedura comprende la fase di soccorso" },
+  { chiave: "recupero", nome: "Attrezzatura di recupero pronta all'accesso (treppiede, argano, imbracatura)",
+    fonte: "D.P.R. 177/2011 art. 2 c.1 lett. g) — DPI, strumentazione e attrezzature idonee" },
+  { chiave: "emergenza", nome: "Procedura di emergenza scritta e coordinata con 118 e Vigili del fuoco",
+    fonte: "D.P.R. 177/2011 art. 3 c.3 — coordinamento col sistema di emergenza del SSN e dei VVF" },
+  { chiave: "infiammabili", nome: "Materiale infiammabile rimosso o protetto attorno al punto di lavoro",
+    fonte: "prassi dei permessi per lavoro a caldo" },
+  { chiave: "estintore", nome: "Estintore a portata di mano e addetto antincendio presente",
+    fonte: "D.M. 2 settembre 2021 — gestione della sicurezza antincendio nei luoghi di lavoro" },
+  { chiave: "vigilanza-dopo", nome: "Sorveglianza antincendio mantenuta dopo la fine del lavoro",
+    fonte: "prassi dei permessi per lavoro a caldo — molti principi d'incendio partono a lavoro finito" },
+  { chiave: "ancoraggi", nome: "Punti di ancoraggio verificati e sistema anticaduta indossato",
+    fonte: "D.Lgs 81/08 art. 115 — sistemi di protezione contro le cadute dall'alto" },
+  { chiave: "area-sotto", nome: "Area sottostante delimitata contro la caduta di oggetti",
+    fonte: "D.Lgs 81/08 titolo IV capo II — lavori in quota" },
+  { chiave: "delimitazione", nome: "Area di lavoro delimitata e segnalata",
+    fonte: "D.Lgs 81/08 titolo V — segnaletica di salute e sicurezza" },
+  { chiave: "dpi", nome: "DPI previsti per questo lavoro consegnati e indossati",
+    fonte: "D.Lgs 81/08 art. 77" },
+  { chiave: "avviso-turno", nome: "Il turno in corso sa che si lavora lì, e fino a quando",
+    fonte: "prassi dei sistemi di permesso di lavoro — il permesso si espone sul posto" },
+];
+export function misuraPermesso(chiave) {
+  return MISURE_PERMESSO.find((m) => m.chiave === chiave) || null;
+}
+/* Misura «sicura» anche per una chiave sconosciuta (dati vecchi): meglio una
+   riga con la chiave grezza che una schermata rotta — come `requisitoSicuro`. */
+export function misuraPermessoSicura(chiave) {
+  return misuraPermesso(chiave) || { chiave, nome: String(chiave || "misura"), fonte: "" };
+}
+
+/* I CINQUE TIPI. `misure` sono quelle che il tipo PRETENDE (non dichiararle è
+   un problema, non una dimenticanza); `requisiti` sono le chiavi di
+   REQUISITI_FORMAZIONE che chi riceve il permesso deve avere in corso di
+   validità; `atmosfera` e `sorvegliante` dicono se il tipo ha bisogno della
+   misura dell'aria e di qualcuno che resti fuori. */
+export const TIPI_PERMESSO = [
+  { chiave: "confinato", nome: "Spazio confinato — tramogge, sili, serbatoi, vasche", breve: "Spazio confinato",
+    riferimento: "D.P.R. 177/2011 — art. 3 c.3: procedura di lavoro comprensiva della fase di soccorso e del "
+      + "coordinamento con 118 e Vigili del fuoco; art. 3 c.2: rappresentante del datore di lavoro committente "
+      + "presente per tutta la durata; art. 2 c.1: qualificazione dell'impresa e addestramento del personale.",
+    atmosfera: true, sorvegliante: true,
+    requisiti: ["form-confinati", "form-generale", "sorv-sanitaria"],
+    misure: ["sezionamento", "svuotamento", "bonifica", "ventilazione", "atmosfera",
+      "sorvegliante-fuori", "recupero", "emergenza", "dpi"] },
+  { chiave: "caldo", nome: "Lavoro a caldo — saldatura, taglio, molatura", breve: "Lavoro a caldo",
+    riferimento: "D.M. 2 settembre 2021 e D.Lgs 81/08 titolo I capo III sez. VI — gestione del rischio incendio "
+      + "nei luoghi di lavoro: il lavoro che produce fiamme, scintille o calore va autorizzato e sorvegliato.",
+    atmosfera: false, sorvegliante: false,
+    requisiti: ["antincendio", "form-generale"],
+    misure: ["infiammabili", "estintore", "vigilanza-dopo", "delimitazione", "dpi"] },
+  { chiave: "quota", nome: "Lavoro in quota — nastri, sili, coperture", breve: "Lavoro in quota",
+    riferimento: "D.Lgs 81/08 titolo IV capo II — lavori in quota; art. 115 sui sistemi di protezione contro "
+      + "le cadute dall'alto.",
+    atmosfera: false, sorvegliante: false,
+    requisiti: ["form-generale", "sorv-sanitaria"],
+    misure: ["ancoraggi", "area-sotto", "delimitazione", "dpi"] },
+  { chiave: "energia", nome: "Esclusione delle energie — manutenzione su macchina", breve: "Esclusione energie",
+    riferimento: "D.Lgs 81/08 art. 71 c.4 e allegato VI — messa fuori servizio, blocco e segnalazione prima "
+      + "di ogni intervento di manutenzione, riparazione o pulizia.",
+    atmosfera: false, sorvegliante: false,
+    requisiti: ["form-generale"],
+    misure: ["sezionamento", "delimitazione", "avviso-turno", "dpi"] },
+  { chiave: "generico", nome: "Altro lavoro pericoloso — permesso generico", breve: "Generico",
+    riferimento: "Prassi dei sistemi di permesso di lavoro: copre il lavoro che non rientra negli altri tipi e "
+      + "che va comunque autorizzato per iscritto, con un periodo di validità e una chiusura.",
+    atmosfera: false, sorvegliante: false,
+    requisiti: ["form-generale"],
+    misure: ["delimitazione", "dpi", "avviso-turno"] },
+];
+export function tipoPermesso(chiave) {
+  return TIPI_PERMESSO.find((t) => t.chiave === chiave) || null;
+}
+export function tipoPermessoSicuro(chiave) {
+  return tipoPermesso(chiave) || { chiave: chiave || "", nome: String(chiave || "permesso"),
+    breve: String(chiave || "permesso"), riferimento: "", atmosfera: false, sorvegliante: false,
+    requisiti: [], misure: [] };
+}
+
+/* I VALORI DI RIFERIMENTO DELL'ARIA, e sono dichiarati per quello che sono.
+   Il D.P.R. 177/2011 non scrive nessuna soglia: questi sono i valori operativi
+   che la manualistica riprende dai limiti di esposizione (ACGIH) e dalla
+   prassi internazionale, e vanno confermati nella procedura di lavoro della
+   cava. Scriverli come «limiti di legge» sarebbe la stessa cosa che dichiarare
+   il DURC un obbligo dell'art. 26. */
+export const LIMITI_ATMOSFERA = [
+  { chiave: "ossigeno", nome: "Ossigeno", unita: "%", min: 19.5, max: 23.5 },
+  { chiave: "lel", nome: "Infiammabili", unita: "% LEL", min: null, max: 10 },
+  { chiave: "h2s", nome: "Acido solfidrico", unita: "ppm", min: null, max: 10 },
+  { chiave: "co", nome: "Ossido di carbonio", unita: "ppm", min: null, max: 25 },
+];
+export const FONTE_ATMOSFERA = "Valori operativi di riferimento — ossigeno fra 19,5 e 23,5%, infiammabili "
+  + "sotto il 10% del limite inferiore di esplodibilità, acido solfidrico entro 10 ppm, ossido di carbonio "
+  + "entro 25 ppm. Non sono una soglia scritta nel D.P.R. 177/2011: vanno confermati nella procedura di "
+  + "lavoro della cava insieme all'RSPP.";
+
+/* ⛔ L'ARIA NON MISURATA NON È ARIA BUONA. Quattro strumenti, quattro numeri, e
+   il caso che morde non è quello fuori scala: è il campo VUOTO. `+""` fa zero,
+   e zero sul LEL vuol dire «ampiamente sotto il 10%», cioè la risposta più
+   tranquillizzante che questa funzione sappia dare, data su una misura che
+   nessuno ha fatto. Perciò gli esiti sono quattro e non due, e `incompleta`
+   esiste apposta: tre gas nei limiti e uno mai misurato non è «entro i
+   limiti». */
+export function letturaAtmosfera(misure) {
+  const m = misure || {};
+  const righe = [], fuori = [], mancanti = [];
+  for (const L of LIMITI_ATMOSFERA) {
+    const v = misuraLetta(m[L.chiave]);
+    if (v === null) {
+      mancanti.push(L.nome);
+      righe.push({ ...L, valore: null, leggibile: false, entro: null });
+      continue;
+    }
+    const entro = (L.min === null || v >= L.min) && (L.max === null || v <= L.max);
+    righe.push({ ...L, valore: v, leggibile: true, entro });
+    if (!entro) fuori.push(L.nome);
+  }
+  const quando = String(m.ora || "").trim();
+  if (mancanti.length === LIMITI_ATMOSFERA.length)
+    return { leggibile: false, esito: "non-misurata", righe, fuori, mancanti, quando,
+      perche: "L'atmosfera non è stata misurata. Un'aria non misurata non è un'aria buona: è un'aria di cui non si sa niente." };
+  if (fuori.length)
+    return { leggibile: true, esito: "fuori-limite", righe, fuori, mancanti, quando,
+      perche: "Fuori dai valori di riferimento: " + fuori.join(", ") + ". Non si entra." };
+  if (mancanti.length)
+    return { leggibile: false, esito: "incompleta", righe, fuori, mancanti, quando,
+      perche: "Non è stato misurato: " + mancanti.join(", ") + ". Quello che è stato misurato sta nei valori di "
+        + "riferimento, ma un gas che nessuno ha cercato non è un gas assente." };
+  return { leggibile: true, esito: "entro-i-limiti", righe, fuori, mancanti, quando,
+    perche: "Tutte e quattro le misure stanno nei valori di riferimento"
+      + (quando ? ", lettura delle " + quando : "") + "." };
+}
+/* Chi consuma la bandiera `leggibile`: sta nel modulo e non nella pagina
+   perché la frase che distingue «non a posto» da «non lo sappiamo» va decisa
+   in un posto solo (regola 7, e regola 20 per la bandiera). */
+export function descriviAtmosfera(l) {
+  if (!l) return "";
+  return (l.leggibile ? "" : "Non lo sappiamo — ") + l.perche;
+}
+
+/* Le misure che il tipo pretende e che nessuno ha dichiarato in atto. */
+export function misureMancanti(permesso) {
+  const t = tipoPermessoSicuro(permesso && permesso.tipo);
+  const messe = new Set(Array.isArray(permesso && permesso.misure) ? permesso.misure : []);
+  return (t.misure || []).filter((k) => !messe.has(k)).map((k) => misuraPermessoSicura(k));
+}
+
+/* LA FINESTRA DI VALIDITÀ, che è ciò che distingue un permesso da un modulo.
+   ⛔ «Senza finestra» non è «sempre valido»: è un permesso che non autorizza
+   un turno, e quindi non autorizza niente. `noto: false` lo dichiara. */
+export function finestraPermesso(permesso, ora = new Date()) {
+  const p = permesso || {};
+  const dal = istantePermesso(p.dal), al = istantePermesso(p.al);
+  if (!dal && !al)
+    return { noto: false, stato: "senza-finestra", ore: null,
+      perche: "Il permesso non dice da quando a quando vale. Un permesso senza finestra non autorizza un "
+        + "turno: vale per sempre, che è il contrario di un permesso." };
+  if (!dal || !al)
+    return { noto: false, stato: "senza-finestra", ore: null,
+      perche: "Il permesso ha " + (dal ? "l'inizio ma non la fine" : "la fine ma non l'inizio")
+        + ": la finestra di validità non si può leggere." };
+  if (al <= dal)
+    return { noto: false, stato: "finestra-storta", ore: null,
+      perche: "La fine non viene dopo l'inizio: la finestra di validità non si può leggere." };
+  const ore = Math.round((al - dal) / 36e5 * 10) / 10;
+  const t = ora.getTime();
+  if (t < dal.getTime())
+    return { noto: true, stato: "non-ancora", ore, perche: "Il lavoro è autorizzato ma non è ancora cominciato." };
+  if (t > al.getTime())
+    return { noto: true, stato: "finita", ore, perche: "La finestra di validità è finita." };
+  return { noto: true, stato: "in-corso", ore, perche: "Il permesso è dentro la sua finestra di validità." };
+}
+
+/* CHI RICEVE IL PERMESSO È FORMATO PER QUEL LAVORO? La domanda passa da
+   `statoRequisito`, la stessa della matrice «chi posso mandare domani
+   mattina»: nessuna seconda regola sulla formazione, e se domani cambia il
+   modo di riconoscere un corso cambia in un posto solo. */
+export function formazionePermesso(permesso, lavoratori, scadenze, oggi = new Date()) {
+  const p = permesso || {};
+  const t = tipoPermessoSicuro(p.tipo);
+  const lav = (lavoratori || []).find((l) => l && l.id === p.riceventeId) || null;
+  /* Un'impresa esterna non ha le sue persone nella nostra anagrafe, e fingere
+     di controllarne i corsi sarebbe peggio che dire che non li controlliamo:
+     quello che si verifica lì è la qualifica dell'impresa (art. 26) e il
+     documento di coordinamento, e lo fa `impresaPermesso`. */
+  if (!lav && p.appaltoId)
+    return { noto: true, esito: "impresa-esterna", lavoratore: null, mancanti: [], scaduti: [], righe: [],
+      perche: "Il lavoro lo esegue un'impresa esterna: la formazione dei suoi addetti la garantisce l'impresa, "
+        + "e quello che si verifica qui è la sua qualifica e il documento di coordinamento." };
+  if (!lav)
+    return { noto: false, esito: "senza-nome", lavoratore: null, mancanti: [], scaduti: [], righe: [],
+      perche: "Il permesso non dice a chi è rilasciato — né una persona né un'impresa — quindi non si è "
+        + "potuto controllare che chi entra sia formato per questo lavoro." };
+  const sue = (scadenze || []).filter((s) => s && s.lavoratoreId === lav.id);
+  const righe = [], mancanti = [], scaduti = [];
+  for (const ch of t.requisiti || []) {
+    const req = requisitoSicuro(ch);
+    const st = statoRequisito(req, sue, oggi);
+    righe.push({ chiave: ch, breve: req.breve, ...st });
+    if (st.stato === "scaduta") scaduti.push(req.breve);
+    else if (st.stato === "mancante") mancanti.push(req.breve);
+    else if (st.stato === "senza data") mancanti.push(req.breve + " (riga senza data)");
+  }
+  if (scaduti.length)
+    return { noto: true, esito: "scaduto", lavoratore: lav, mancanti, scaduti, righe,
+      perche: lav.nome + " ha " + (scaduti.length === 1 ? "un requisito scaduto" : scaduti.length + " requisiti scaduti")
+        + ": " + scaduti.join(", ") + "." };
+  if (mancanti.length)
+    return { noto: true, esito: "mancante", lavoratore: lav, mancanti, scaduti, righe,
+      perche: "Di " + lav.nome + " non risulta in scadenzario: " + mancanti.join(", ") + "." };
+  return { noto: true, esito: "in-regola", lavoratore: lav, mancanti, scaduti, righe,
+    perche: lav.nome + " ha in corso di validità i requisiti che questo permesso richiede." };
+}
+
+/* L'IMPRESA ESTERNA CHE ESEGUE IL LAVORO — riusa `statoAppalto` per intero.
+   Ritorna `null` quando il lavoro è interno: non è un'assenza da dichiarare,
+   è una domanda che non si pone. */
+export function impresaPermesso(permesso, ctx = {}, oggi = new Date()) {
+  const p = permesso || {};
+  if (!p.appaltoId) return null;
+  const appalto = (ctx.appalti || []).find((a) => a && a.id === p.appaltoId) || null;
+  if (!appalto)
+    return { noto: false, esito: "non-verificato", appalto: null, appaltatore: null, statoAppalto: null,
+      perche: "Il permesso rimanda a un appalto che nel registro non c'è più: non si sa quale impresa lo esegue." };
+  const cantiere = (ctx.cantieri || []).find((c) => c && c.id === appalto.cantiereId) || null;
+  const appaltatore = (ctx.appaltatori || []).find((a) => a && a.id === appalto.appaltatoreId) || null;
+  const st = statoAppalto(appalto, cantiere, appaltatore, ctx.documenti || [], oggi);
+  /* ⛔ PROBLEMI E IGNOTI RESTANO SEPARATI ANCHE QUI. `statoAppalto` può dire
+     tutt'e due le cose insieme (un camerale scaduto E un DUVRI indecidibile):
+     schiacciarle in un `perche` solo, come faceva la prima versione, produceva
+     «Non lo sappiamo — Scaduti: Certificato CCIAA» — cioè un fatto NOTO
+     annunciato come incerto. Le due liste viaggiano intere e chi le legge
+     decide dove metterle. */
+  return { noto: st.noto, esito: st.esito, appalto, appaltatore, statoAppalto: st,
+    problemi: st.problemi, ignoti: st.ignoti,
+    perche: st.esito === "a-posto"
+      ? "L'impresa che esegue il lavoro è qualificata e il documento di coordinamento è in vigore."
+      : (st.problemi.concat(st.ignoti)[0] || "") };
+}
+
+/* ⛔ IL CATALOGO DEGLI ESITI STA QUI, NON NELLA PAGINA — regola 18 tolta alla
+   radice invece che sorvegliata. Una mappa dei badge scritta nella pagina si
+   stacca il giorno in cui questa funzione impara una risposta in più, e la
+   pagina muore AL DISEGNO senza nessun errore di sintassi da leggere. Qui la
+   mappa È il vocabolario della funzione: la pagina legge `esitoPermesso`, e
+   una prova in `run-kpi` pretende che ogni esito raggiungibile stia
+   nell'elenco E che ogni voce dell'elenco sia raggiungibile. */
+export const ESITI_PERMESSO = [
+  { chiave: "bozza",            etichetta: "Bozza",               cls: "tag",    striscia: "st-accent" },
+  { chiave: "non-rilasciabile", etichetta: "Non rilasciabile",    cls: "danger", striscia: "st-danger" },
+  { chiave: "da-completare",    etichetta: "Non lo sappiamo",     cls: "warn",   striscia: "st-warn" },
+  { chiave: "non-ancora",       etichetta: "Non ancora aperto",   cls: "tag",    striscia: "st-accent" },
+  { chiave: "valido",           etichetta: "Valido ora",          cls: "ok",     striscia: "st-ok" },
+  { chiave: "da-fermare",       etichetta: "Da fermare",          cls: "danger", striscia: "st-danger" },
+  { chiave: "da-verificare",    etichetta: "Non lo sappiamo",     cls: "warn",   striscia: "st-warn" },
+  { chiave: "scaduto",          etichetta: "Scaduto e non chiuso", cls: "danger", striscia: "st-danger" },
+  { chiave: "sospeso",          etichetta: "Sospeso",             cls: "warn",   striscia: "st-warn" },
+  { chiave: "chiuso",           etichetta: "Chiuso",              cls: "tag",    striscia: "st-mute" },
+  { chiave: "revocato",         etichetta: "Revocato",            cls: "danger", striscia: "st-mute" },
+];
+export function esitoPermesso(chiave) {
+  return ESITI_PERMESSO.find((e) => e.chiave === chiave) || null;
+}
+export function esitoPermessoSicuro(chiave) {
+  return esitoPermesso(chiave) || { chiave: String(chiave || ""), etichetta: String(chiave || "—"),
+    cls: "tag", striscia: "st-accent" };
+}
+
+/* IL VERDETTO. Tre secchi come in `statoAppalto`, e per la stessa ragione:
+   ciò che dichiara `noto: false` finisce fra gli IGNOTI, non fra i problemi.
+   Sommarlo ai problemi farebbe passare per «fuori regola» un permesso che
+   nessuno ha ancora finito di compilare; ignorarlo lo farebbe passare per «a
+   posto», che è la direzione pericolosa. */
+export function statoPermesso(permesso, ctx = {}, oggi = new Date()) {
+  const p = permesso || {};
+  const t = tipoPermessoSicuro(p.tipo);
+  const finestra = finestraPermesso(p, oggi);
+  const atmosfera = t.atmosfera ? letturaAtmosfera(p.atmosfera) : null;
+  const formazione = formazionePermesso(p, ctx.lavoratori, ctx.scadenze, oggi);
+  const impresa = impresaPermesso(p, ctx, oggi);
+  const mancanti = misureMancanti(p);
+  const base = { permessoId: p.id || null, tipo: t, finestra, atmosfera, formazione, impresa,
+    misureMancanti: mancanti };
+
+  const stato = String(p.stato || "bozza");
+  if (stato === "chiuso")
+    return { ...base, stato, noto: true, problemi: [], ignoti: [], esito: "chiuso",
+      perche: "Permesso chiuso" + (dataIt(p.chiusuraOra) ? " il " + dataIt(p.chiusuraOra) : "")
+        + ": il lavoro è finito e l'autorizzazione è stata restituita." };
+  if (stato === "revocato")
+    return { ...base, stato, noto: true, problemi: [], ignoti: [], esito: "revocato",
+      perche: "Permesso revocato: il lavoro non è autorizzato." };
+
+  const problemi = [], ignoti = [];
+  if (!finestra.noto) ignoti.push(finestra.perche);
+  if (!String(p.rilasciatoDaId || "").trim())
+    problemi.push("Non è scritto chi rilascia il permesso: un'autorizzazione che nessuno firma non autorizza nessuno.");
+  if (mancanti.length)
+    problemi.push("Non " + (mancanti.length === 1 ? "è dichiarata in atto una misura"
+      : "sono dichiarate in atto " + mancanti.length + " misure")
+      + " che questo tipo di permesso richiede: " + mancanti.map((m) => m.nome.toLowerCase()).join("; ") + ".");
+  if (t.sorvegliante && !String(p.sorveglianteId || "").trim())
+    problemi.push("Non è indicato chi resta all'esterno a sorvegliare per tutta la durata del lavoro.");
+  if (atmosfera) {
+    /* ⚠️ Qui va `perche` e NON `descriviAtmosfera`: quella premette già «Non lo
+       sappiamo — », e `descriviPermesso` lo premette a sua volta. La prima
+       versione scriveva «Non lo sappiamo — Non lo sappiamo — l'atmosfera non è
+       stata misurata», e si vede solo leggendo l'uscita. La bandiera
+       `leggibile` la legge la riga qui sotto, che è quel che la regola 20
+       chiede: consumata, non solo dichiarata. */
+    if (atmosfera.esito === "fuori-limite") problemi.push(atmosfera.perche);
+    else if (!atmosfera.leggibile) ignoti.push(atmosfera.perche);
+  }
+  if (!formazione.noto) ignoti.push(formazione.perche);
+  else if (formazione.esito !== "in-regola" && formazione.esito !== "impresa-esterna") problemi.push(formazione.perche);
+  if (impresa) {
+    if (!impresa.statoAppalto) ignoti.push(impresa.perche);   // l'appalto non c'è più
+    else {
+      if (impresa.problemi.length) problemi.push("Impresa esterna: " + impresa.problemi[0]);
+      if (impresa.ignoti.length) ignoti.push("Impresa esterna: " + impresa.ignoti[0]);
+    }
+  }
+
+  if (stato === "sospeso")
+    return { ...base, stato, noto: ignoti.length === 0, problemi, ignoti, esito: "sospeso",
+      perche: "Permesso sospeso: il lavoro è fermo e non riprende senza una nuova verifica delle condizioni." };
+
+  if (stato !== "aperto")
+    return { ...base, stato: "bozza", noto: ignoti.length === 0, problemi, ignoti,
+      esito: problemi.length ? "non-rilasciabile" : (ignoti.length ? "da-completare" : "bozza"),
+      perche: problemi.length
+        ? "Non si può rilasciare così. " + problemi[0]
+        : (ignoti.length ? ignoti[0] : "Bozza completa: manca solo il rilascio.") };
+
+  /* ⛔ LA FINESTRA FINITA SU UN PERMESSO ANCORA APERTO SI DICE PRIMA DI TUTTO
+     IL RESTO, ed è il caso che un ispettore cerca: o il lavoro è finito e
+     nessuno ha chiuso il permesso (e allora il registro racconta una cava in
+     cui c'è sempre qualcuno dentro una tramoggia), o si sta lavorando fuori
+     dall'autorizzazione. Non è un dettaglio da mettere in coda ai problemi. */
+  if (finestra.stato === "finita")
+    return { ...base, stato, noto: true, problemi, ignoti, esito: "scaduto",
+      perche: "La finestra di validità è finita e il permesso risulta ancora aperto: o il lavoro è finito e "
+        + "nessuno l'ha chiuso, o si sta lavorando fuori dall'autorizzazione." };
+  if (problemi.length)
+    return { ...base, stato, noto: ignoti.length === 0, problemi, ignoti, esito: "da-fermare", perche: problemi[0] };
+  if (ignoti.length)
+    return { ...base, stato, noto: false, problemi, ignoti, esito: "da-verificare", perche: ignoti[0] };
+  if (finestra.stato === "non-ancora")
+    return { ...base, stato, noto: true, problemi, ignoti, esito: "non-ancora", perche: finestra.perche };
+  return { ...base, stato, noto: true, problemi, ignoti, esito: "valido",
+    perche: "Rilasciato, dentro la sua finestra di validità, con tutte le misure dichiarate in atto." };
+}
+/* ⚠️ «NON LO SAPPIAMO» SI PREMETTE SOLO SE NON C'È UN FATTO ACCERTATO DA DIRE.
+   Un permesso può avere insieme un fatto misurato («il camerale dell'impresa è
+   scaduto») e un buco («nessuno ha guardato i rischi particolari»): la prima
+   versione premetteva «Non lo sappiamo» anche al fatto misurato, cioè
+   annunciava come incerto qualcosa che era stato guardato.
+   ⛔ E RESTA UNA FRASE SOLA di proposito. Questa esce nella riga di dettaglio
+   dell'elenco, che ha `-webkit-line-clamp:2`: una seconda frase appesa in
+   fondo non la legge nessuno. Gli altri problemi e gli altri buchi si vedono
+   nel pannello del permesso, che ha lo spazio per elencarli. */
+export function descriviPermesso(st) {
+  if (!st) return "";
+  if ((st.problemi || []).length) return st.perche;
+  return (st.noto ? "" : "Non lo sappiamo — ") + st.perche;
+}
+
+/* ⛔ IL PONTE CON LA CHECKLIST — È DA QUI CHE È NATO TUTTO.
+   Il riconoscimento è per TESTO, come `scadenzaCopreRequisito` fa con i corsi,
+   e non con una bandierina nel modello: le voci vengono COPIATE dentro
+   l'ispezione quando la si avvia (`nuovaIspezioneDaModello`), quindi una
+   bandierina aggiunta al modello oggi non comparirebbe nelle ispezioni già
+   compilate — cioè proprio quelle su cui la domanda si pone. */
+export function voceChiedePermesso(testo) {
+  const t = normalizzaTesto(testo);
+  if (!t || !t.includes("permesso di lavoro")) return null;
+  if (/confinat|tramogg|silo|serbatoi|vasc/.test(t)) return "confinato";
+  if (/caldo|saldatur|fiamma|molatur/.test(t)) return "caldo";
+  if (/quota|anticadut/.test(t)) return "quota";
+  return "generico";
+}
+
+/* I permessi che coprono un GIORNO: la finestra contiene quel giorno e il sito
+   è lo stesso — o uno dei due non lo dichiara, e allora non è un motivo per
+   scartarlo. Il confronto è fra stringhe di dieci caratteri, non fra istanti:
+   qui la domanda è «quel giorno», non «a quell'ora». */
+export function permessiDelGiorno(permessi, { tipo, cantiereId, giorno } = {}) {
+  const g = String(giorno || "").slice(0, 10);
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(g)) return [];
+  return (permessi || []).filter((p) => {
+    if (!p) return false;
+    if (tipo && p.tipo !== tipo) return false;
+    if (cantiereId && p.cantiereId && p.cantiereId !== cantiereId) return false;
+    const dal = String(p.dal || "").slice(0, 10), al = String(p.al || "").slice(0, 10);
+    if (!dal || !al) return false;
+    return dal <= g && g <= al;
+  });
+}
+
+/* LA PROVA DIETRO UNA VOCE DI CHECKLIST.
+   ⛔ «Conforme» su una voce che chiede un permesso, senza nessun permesso nel
+   registro, NON è conforme: è «non lo sappiamo». La voce può essere stata
+   guardata davvero — magari il permesso è su un foglio nel cassetto — ma qui
+   non c'è niente che lo dimostri, e questa schermata è quella che si mostra a
+   un ispettore. */
+export function provaVoce(ispezione, voce, permessi, ctx = {}, oggi = new Date()) {
+  const isp = ispezione || {}, v = voce || {};
+  const chiede = voceChiedePermesso(v.testo);
+  const risposta = ((isp.esiti || {})[v.id] || {}).esito || "";
+  if (!chiede)
+    return { chiede: null, noto: true, esito: "non-richiesta", risposta, permessi: [], stati: [], perche: "" };
+  const trovati = permessiDelGiorno(permessi, { tipo: chiede, cantiereId: isp.cantiereId, giorno: isp.data });
+  const stati = trovati.map((p) => ({ permesso: p, ...statoPermesso(p, ctx, oggi) }));
+  const rotti = stati.filter((s) => s.esito === "da-fermare" || s.esito === "scaduto" || s.esito === "non-rilasciabile");
+  const tipoNome = tipoPermessoSicuro(chiede).breve.toLowerCase();
+
+  if (!trovati.length)
+    return { chiede, noto: false, esito: "senza-prova", risposta, permessi: [], stati: [],
+      perche: "Per il giorno dell'ispezione non risulta registrato nessun permesso di lavoro «" + tipoNome
+        + "» su questo sito. La voce può essere stata guardata davvero, ma qui non c'è niente che lo dimostri: "
+        + "non è «conforme», è «non lo sappiamo»." };
+  if (rotti.length)
+    return { chiede, noto: true, esito: "prova-da-sistemare", risposta, permessi: trovati, stati,
+      perche: (rotti.length === 1 ? "Il permesso registrato quel giorno ha un problema"
+        : rotti.length + " dei permessi registrati quel giorno hanno un problema") + ": " + rotti[0].perche };
+  return { chiede, noto: true, esito: "con-prova", risposta, permessi: trovati, stati,
+    perche: trovati.length === 1
+      ? "Dietro questa spunta c'è un permesso di lavoro registrato, valido quel giorno."
+      : "Dietro questa spunta ci sono " + trovati.length + " permessi di lavoro registrati, validi quel giorno." };
+}
+export function descriviProva(pr) {
+  if (!pr || !pr.chiede) return "";
+  return (pr.noto ? "" : "Non lo sappiamo — ") + pr.perche;
+}
+
+/* Le voci date per CONFORMI che dietro non hanno niente. È il numero da cui è
+   partito tutto, e va nelle urgenze del Quadro: una checklist verde su un
+   adempimento mai registrato è esattamente il «numero tranquillo dove non è
+   stato misurato niente» del principio del fondatore. */
+export function conformiSenzaProva(ispezioni, permessi, ctx = {}, oggi = new Date()) {
+  const fuori = [];
+  for (const isp of ispezioni || []) {
+    for (const v of (isp && isp.voci) || []) {
+      const pr = provaVoce(isp, v, permessi, ctx, oggi);
+      if (!pr.chiede || pr.risposta !== "conforme" || pr.esito === "con-prova") continue;
+      fuori.push({ ispezioneId: isp.id || null, ispezione: isp.nome || "", data: isp.data || "",
+        voceId: v.id, testo: v.testo, esito: pr.esito, noto: pr.noto, perche: pr.perche });
+    }
+  }
+  return fuori;
+}
+
+/* Il riepilogo in cima alla pagina.
+   ⛔ REGISTRO VUOTO NON VUOL DIRE «IN CAVA NON SI ENTRA IN UNA TRAMOGGIA» — è
+   la stessa distinzione di `riepilogoAppalti`, e qui pesa di più perché è
+   proprio l'assenza di righe che rende senza prova le voci di checklist. */
+export function riepilogoPermessi(permessi, ctx = {}, oggi = new Date()) {
+  const list = (permessi || []).filter(Boolean);
+  const righe = list.map((p) => ({ permesso: p, ...statoPermesso(p, ctx, oggi) }));
+  const conta = (...e) => righe.filter((r) => e.includes(r.esito)).length;
+  const daFermare = conta("da-fermare", "non-rilasciabile");
+  const scaduti = conta("scaduto");
+  const daVerificare = conta("da-verificare", "da-completare");
+  if (!list.length)
+    return { quanti: 0, aperti: 0, validi: 0, daFermare: 0, scaduti: 0, daVerificare: 0, righe: [], noto: false,
+      testo: "Nessun permesso di lavoro registrato. Non vuol dire che in cava non entri nessuno in una "
+        + "tramoggia: vuol dire che qui non ne risulta nessuno, e finché è così le voci di checklist che "
+        + "chiedono un permesso non hanno niente dietro." };
+  return { quanti: list.length, aperti: righe.filter((r) => r.stato === "aperto").length,
+    validi: conta("valido"), daFermare, scaduti, daVerificare, righe, noto: daVerificare === 0,
+    testo: (daFermare || scaduti || daVerificare)
+      ? [daFermare ? daFermare + " da fermare" : "",
+         scaduti ? scaduti + (scaduti === 1 ? " scaduto e non chiuso" : " scaduti e non chiusi") : "",
+         daVerificare ? daVerificare + (daVerificare === 1 ? " su cui manca una verifica" : " su cui mancano verifiche") : ""]
+        .filter(Boolean).join(" · ") + ", su " + list.length + " registrat" + (list.length === 1 ? "o" : "i") + "."
+      : "Tutti i " + list.length + " permessi registrati sono in ordine." };
+}
+
+/* I permessi che riguardano un sito, dal più recente: serve alla pagina e al
+   pannello che si apre dalla voce di checklist. */
+export function permessiDiCantiere(permessi, cantiereId) {
+  if (!cantiereId) return [];
+  return (permessi || []).filter((p) => p && p.cantiereId === cantiereId);
 }

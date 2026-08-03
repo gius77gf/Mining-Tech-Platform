@@ -91,12 +91,12 @@
   --info-basis:120px;
   --arr-ico:15px;
   --arr-stroke:1.8;
-  /* SETTE voci: è arrivata «Appalti». ⛔ Questo numero non è decorativo —
+  /* OTTO voci: è arrivata «Permessi». ⛔ Questo numero non è decorativo —
      `.nav` è una griglia a colonne fisse, e una voce aggiunta senza toccarlo
      non stringe la barra: la manda A CAPO, e l'ultima finisce sotto le altre,
      invisibile e non toccabile. Nessun errore, nessuna prova rossa, e
      leggendo il codice non si vede: lo prende la regola 19 e lo scatto. */
-  --nav-cols:7;
+  --nav-cols:8;
   /* otto tessere (sono arrivate «fuori mansione» e «DPI da sistemare» con
      S4/S5): quattro per riga sullo schermo largo, due sul telefono — file
      piene, nessun buco in fondo. È la stessa misura del core. */
@@ -294,6 +294,22 @@
 .chg.e-na.active{background:var(--border2); border-color:var(--border-hi); color:var(--text)}
 .voce .name{-webkit-line-clamp:3}
 .isp-nota{font-style:italic}
+/* ⛔ LA RIGA DELLA PROVA, e ha un colore perché è un avviso, non un consiglio.
+   La classe `.avviso` esisteva solo per `.note`: appesa a un `form-hint`
+   sarebbe stata una classe che nessun foglio definisce — il caso della regola
+   8, dove il browser tace, la pagina si apre e l'avviso rende come un
+   suggerimento qualunque. Qui è la frase che dice che dietro una spunta verde
+   non c'è niente: deve staccarsi dal grigio degli altri. */
+.form-hint.avviso{color:var(--muted2); border-left:2px solid var(--warn);
+  padding:2px 0 2px 9px; border-radius:0 3px 3px 0; background:linear-gradient(90deg,rgba(248,172,61,.06),transparent 70%)}
+/* ⛔ LE RAGIONI DI UN PERMESSO SI LEGGONO INTERE. `.name` è tagliato a due
+   righe (`-webkit-line-clamp:2`), e in queste righe il testo non è un titolo:
+   è la frase che spiega perché un permesso non si rilascia. Tagliata a metà —
+   «un'aria non misurata non è un'aria buona: è…» — è testo morto, ed è proprio
+   la parte che il principio del fondatore esiste per far leggere. Trovato solo
+   nello scatto. */
+#perm-s-dire .name.intero{-webkit-line-clamp:unset; display:block; white-space:normal;
+  font-weight:600; line-height:1.45}
 
 /* ─── S4/S5 · tastierini a griglia FUORI dalla modale ───────────────────
    Stessa materia dei pulsanti della segnalazione rapida (bersagli larghi,
@@ -435,18 +451,59 @@
    «Documenti») non ci stanno più. Conti se lo può permettere perché le sue
    parole sono corte. Misure: 8px → 1 tagliata; 7,5px → nessuna. */
 @media(max-width:470px){
-  .nav button{font-size:8.5px; letter-spacing:.5px; padding-left:1px; padding-right:1px}
+  .nav button{font-size:8px; letter-spacing:.2px; padding-left:1px; padding-right:1px}
   .nav .ico svg{width:19px; height:19px}
 }
+/* Il gradino di mezzo, ed è quello che serviva davvero: 390px è la larghezza
+   di mezzo mondo (iPhone 14/15), e lì con otto voci a 8,5px le etichette si
+   toccavano peggio che a 320 — 4,2px di aria in tutto per sette spazi.
+   Misurato prima di scegliere, invece di indovinare un valore: a 390 e 412px
+   il primo corpo che porta a ZERO l'eccesso è 7,6px senza spaziatura fra le
+   lettere, con la barra stretta di 8px. */
+@media(max-width:420px){
+  .nav button{font-size:7.6px; letter-spacing:0}
+  .nav{width:calc(100% - 8px)}
+}
+/* ⚠️ CON L'OTTAVA VOCE («Permessi») SI ROMPE UN'ALTRA COSA, DIVERSA DAL
+   TAGLIO, e il controllo che c'era non poteva vederla. Il criterio scritto qui
+   sopra è «nessuna etichetta tagliata» (`scrollWidth > clientWidth`), ed è
+   ancora rispettato: la somma delle larghezze minime a 320px fa **299px su
+   304**, quindi la barra non va a capo e niente viene troncato. Ma di aria ne
+   restano CINQUE pixel per SETTE spazi fra le parole, e sullo scatto le
+   etichette si toccano: «PERSONALESCADENZE AZIONI ISPEZIONIPERMESSIAPPALTI…»,
+   una striscia unica che non si legge. Tagliato e illeggibile sono due difetti
+   diversi, e il secondo lo vede solo lo scatto.
+   Le due leve sono quelle che Conti usa già per le sue dieci voci: il corpo
+   del carattere e gli **otto pixel dei margini esterni della barra**, che a
+   320px valgono un pixel a colonna.
+   ⛔ QUELLO CHE RESTA, ED È DICHIARATO INVECE CHE NASCOSTO: a 320px
+   «Personale» e «Documenti» chiedono più della loro colonna anche così — ed è
+   vero **da prima** dell'ottava voce (misurato: con sette voci la colonna era
+   43,4px e quelle due chiedevano 46,7 e 45,4). Con nove lettere e otto colonne
+   su uno schermo da 320px non c'è corpo di carattere leggibile che le faccia
+   stare: la strada vera è **accorciare una parola**, che è una decisione di
+   prodotto e non di foglio di stile. Qui si porta il difetto dal peggio
+   («quattro etichette attaccate») al livello che c'era prima («due larghe più
+   della loro colonna, ma separate»). */
 @media(max-width:370px){
-  .nav button{font-size:7.5px; letter-spacing:0; padding-left:0; padding-right:0}
+  .nav button{font-size:7px; letter-spacing:-.1px; padding-left:0; padding-right:0}
   .nav .ico svg{width:18px; height:18px}
+  /* gli ultimi pixel non stanno più nel testo: stanno nei margini della barra */
+  .nav{width:calc(100% - 8px)}
 }
 /* Sotto il sole le scritte della pillola sono più grandi (si legge in piedi,
    con la luce di traverso): con sei voci, sul telefono, vanno riportate
    dentro la larghezza — grandi quanto basta, mai tagliate. */
 @media(max-width:470px){
-  body.dw.outdoor-mode .nav button{font-size:9.5px; letter-spacing:.2px}
+  body.dw.outdoor-mode .nav button{font-size:8.8px; letter-spacing:.2px}
+}
+/* Con OTTO voci il punto in cui outdoor e modalità normale convergono si
+   alza da 370 a 420px: sotto quella larghezza non c'è più il posto per
+   tenere le scritte più grandi E separate, e fra le due vince separate —
+   una parola attaccata alla vicina, sotto il sole, non si legge meglio di
+   una piccola. */
+@media(max-width:420px){
+  body.dw.outdoor-mode .nav button{font-size:7.6px; letter-spacing:0}
 }
 @media(max-width:370px){
   /* ⚠️ QUI SOTTO I 370px OUTDOOR E MODALITÀ NORMALE CONVERGONO, e va detto
@@ -456,7 +513,7 @@
      piccola. Misurato: a 8px una etichetta esce di 2px, a 7,5px nessuna.
      Outdoor resta più grande dove lo spazio c'è (9,5px contro 8,5px sopra i
      370px), che è la larghezza della maggior parte dei telefoni. */
-  body.dw.outdoor-mode .nav button{font-size:7.5px; letter-spacing:0}
+  body.dw.outdoor-mode .nav button{font-size:7px; letter-spacing:-.1px}
 }
 
 /* ─────────────── modale (copia di .modal-* del core) ─────────────── */
@@ -1302,12 +1359,106 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
   <div class="note">L'art. 26 c.1 lett. a) chiede al committente di acquisire <b>due</b> cose: il <b>certificato camerale</b> e l'<b>autocertificazione</b> dei requisiti di idoneita' tecnico-professionale (art. 47 DPR 445/2000). Il <b>DURC</b> non e' in quell'elenco &mdash; e' obbligatorio nei cantieri (art. 90 c.9) e nella pratica lo chiedono quasi tutti i committenti: Scudo lo tiene fra i documenti utili, non fra gli obblighi dell'art. 26. I documenti finiscono nel <b>registro documenti</b>, con la stessa graffetta e le stesse scadenze di tutti gli altri.</div>
 </div>
 
+<div class="page" id="page-perm">
+  <!-- ⛔ IL RIEPILOGO IN CIMA, come per gli appalti e per la stessa ragione:
+       questa e' una schermata da ispezione, e deve poter dire TRE cose — quanti
+       permessi sono in ordine, quanti hanno un problema, e quanti nessuno ha
+       finito di compilare. Il registro vuoto non e' il verde: e' la riga che
+       dice che finche' e' vuoto le checklist non hanno niente dietro. -->
+  <div id="perm-riep" class="note recap"></div>
+
+  <!-- ELENCO. Quando se ne apre uno, la scheda prende il posto dell'elenco —
+       stessa dinamica della compilazione di un'ispezione. -->
+  <div id="perm-elenco">
+    <div class="sec">Permessi di lavoro<span class="cnt" id="perm-count">0</span></div>
+    <div class="ords" id="perm-filtri">
+      <button class="chg active" data-filtro-perm="vivi">In corso e da rilasciare</button>
+      <button class="chg" data-filtro-perm="tutti">Tutti</button>
+      <button class="chg" data-filtro-perm="chiusi">Chiusi</button>
+    </div>
+    <div id="perm-list"></div>
+    <div class="note">Un permesso di lavoro autorizza un lavoro pericoloso in un <b>luogo</b> e in una <b>finestra di tempo</b>, dice <b>chi lo rilascia</b> e <b>chi lo riceve</b>, elenca le <b>misure</b> che devono essere in atto prima di cominciare, e <b>si chiude</b> quando il lavoro finisce. Sono quelle quattro cose a farne un permesso invece che un modulo: senza la finestra vale per sempre, senza la chiusura resta aperto in eterno.</div>
+
+    <div class="sec">Nuovo permesso</div>
+    <div class="form col">
+      <div class="frow">
+        <select class="dw-input" id="perm-tipo" style="flex:1 1 240px;"></select>
+        <select class="dw-input" id="perm-cant" style="flex:1 1 180px;"></select>
+      </div>
+      <div class="frow">
+        <input class="dw-input" id="perm-lavoro" placeholder="Che lavoro e' (es. Pulizia della tramoggia)" style="flex:2 1 240px;">
+        <input class="dw-input" id="perm-luogo" placeholder="Dove, con precisione (es. Tramoggia TR-01)" style="flex:1 1 200px;">
+      </div>
+      <div class="frow">
+        <div class="fld" style="flex:1 1 200px;">
+          <label class="fl" for="perm-dal">Valido da</label>
+          <input class="dw-input" id="perm-dal" type="datetime-local">
+        </div>
+        <div class="fld" style="flex:1 1 200px;">
+          <label class="fl" for="perm-al">Valido fino a</label>
+          <input class="dw-input" id="perm-al" type="datetime-local">
+        </div>
+      </div>
+      <div class="frow">
+        <select class="dw-input" id="perm-rilascia" style="flex:1 1 190px;"></select>
+        <select class="dw-input" id="perm-riceve" style="flex:1 1 190px;"></select>
+        <select class="dw-input" id="perm-sorveglia" style="flex:1 1 190px;"></select>
+      </div>
+      <div class="form-hint">Chi <b>riceve</b> il permesso e' la persona che entra: Scudo controlla che abbia in corso di validita' i corsi che quel tipo di lavoro richiede, leggendoli dallo <b>scadenzario</b> — non da un secondo elenco. Se il lavoro lo fa un'impresa esterna, si sceglie l'<b>appalto</b> qui sotto: i corsi dei suoi addetti li garantisce l'impresa, e quello che si verifica e' la sua qualifica e il documento di coordinamento.</div>
+      <div class="frow">
+        <select class="dw-input" id="perm-appalto" style="flex:2 1 260px;"></select>
+        <button class="dw-btn" id="btn-perm" style="margin-left:auto;">Crea la bozza</button>
+      </div>
+    </div>
+    <div class="note esito" id="perm-esito"></div>
+    <div class="note"><b>Nota informativa, non un parere legale.</b> Per gli <b>ambienti sospetti di inquinamento o confinati</b> il <b>D.P.R. 177/2011</b> chiede una <b>procedura di lavoro</b> scritta (art. 3 c.3) che comprenda la fase di soccorso e il coordinamento con il 118 e i Vigili del fuoco, l'individuazione di un <b>rappresentante del datore di lavoro committente</b> presente per tutta la durata (art. 3 c.2), e la <b>qualificazione</b> dell'impresa con formazione e addestramento di tutto il personale impiegato (art. 2). Il permesso di lavoro e' lo strumento con cui quella procedura si applica al singolo intervento: tipi, misure e valori dell'aria che trovi qui sono una <b>base di partenza</b> da adattare al DSS e al DVR della tua cava insieme all'RSPP.</div>
+  </div>
+
+  <!-- LA SCHEDA DEL SINGOLO PERMESSO -->
+  <div id="perm-scheda" style="display:none;">
+    <div class="sec"><span id="perm-s-titolo">Permesso</span><span class="cnt" id="perm-s-badge">—</span></div>
+    <div class="note" id="perm-s-testa"></div>
+    <div id="perm-s-dire"></div>
+
+    <div class="sec">Misure che devono essere in atto</div>
+    <div class="chgs" id="perm-s-misure"></div>
+    <div class="form-hint" id="perm-s-misure-nota"></div>
+
+    <div id="perm-s-aria-box">
+      <div class="sec">Atmosfera misurata prima dell'accesso</div>
+      <div class="form col">
+        <div class="frow" id="perm-s-aria-campi"></div>
+        <div class="frow">
+          <div class="fld" style="flex:1 1 140px;">
+            <label class="fl" for="perm-s-ora">Ora della lettura</label>
+            <input class="dw-input" id="perm-s-ora" type="time">
+          </div>
+          <button class="dw-btn" id="btn-perm-aria" style="margin-left:auto;">Registra le misure</button>
+        </div>
+      </div>
+      <div class="note" id="perm-s-aria-esito"></div>
+    </div>
+
+    <div class="sec">Che cosa si puo' fare</div>
+    <div class="form">
+      <button class="dw-btn" id="btn-perm-rilascia">Rilascia il permesso</button>
+      <button class="dw-btn secondary" id="btn-perm-sospendi">Sospendi</button>
+      <button class="dw-btn secondary" id="btn-perm-chiudi">Chiudi il permesso</button>
+      <button class="dw-btn secondary" id="btn-perm-revoca">Revoca</button>
+      <button class="dw-btn secondary" id="btn-perm-indietro" style="margin-left:auto;">Torna all'elenco</button>
+    </div>
+    <div class="note esito" id="perm-s-esito"></div>
+    <div class="note" id="perm-s-rif"></div>
+  </div>
+</div>
+
 <nav class="nav" aria-label="Sezioni di Scudo">
   <button id="nav-dash" class="active" onclick="go('dash')"><span class="ico"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="7.5" height="7.5" rx="1.6"/><rect x="13.5" y="3" width="7.5" height="7.5" rx="1.6"/><rect x="3" y="13.5" width="7.5" height="7.5" rx="1.6"/><rect x="13.5" y="13.5" width="7.5" height="7.5" rx="1.6"/></svg></span>Quadro</button>
   <button id="nav-pers" onclick="go('pers')"><span class="ico"><svg viewBox="0 0 24 24"><path d="M20 21v-1.8a4.2 4.2 0 0 0-4.2-4.2H8.2A4.2 4.2 0 0 0 4 19.2V21"/><circle cx="12" cy="7.2" r="4.2"/></svg></span>Personale</button>
   <button id="nav-scad" onclick="go('scad')"><span class="ico"><svg viewBox="0 0 24 24"><circle cx="12" cy="12.5" r="8.5"/><path d="M12 7.5v5.2l3.2 2"/></svg></span>Scadenze</button>
   <button id="nav-azio" onclick="go('azio')"><span class="ico"><svg viewBox="0 0 24 24"><path d="M20.8 11.2V12a8.8 8.8 0 1 1-5.2-8"/><path d="M8.6 11.4l3.2 3.2 9-9"/></svg></span>Azioni</button>
   <button id="nav-isp" onclick="go('isp')"><span class="ico"><svg viewBox="0 0 24 24"><path d="M9 4.2H7.5A2.3 2.3 0 0 0 5.2 6.5v12.2A2.3 2.3 0 0 0 7.5 21h9a2.3 2.3 0 0 0 2.3-2.3V6.5A2.3 2.3 0 0 0 16.5 4.2H15"/><rect x="9" y="2.6" width="6" height="3.4" rx="1.1"/><path d="M8.9 11.4l1.7 1.7 3.4-3.6"/><path d="M8.9 16.8h6.2"/></svg></span>Ispezioni</button>
+  <button id="nav-perm" onclick="go('perm')"><span class="ico"><svg viewBox="0 0 24 24"><path d="M6 3.4h9.2L19 7.2v13.4a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V4.4a1 1 0 0 1 1-1z"/><path d="M15 3.4v4h4"/><path d="M8.6 12.4h6.8M8.6 16h4.2"/><circle cx="17.4" cy="16.6" r="4.2" fill="none"/><path d="M15.6 16.7l1.3 1.3 2.3-2.5"/></svg></span>Permessi</button>
   <button id="nav-appa" onclick="go('appa')"><span class="ico"><svg viewBox="0 0 24 24"><path d="M4.2 20.2V9.4l6-3.6 6 3.6v10.8"/><path d="M2.6 20.2h18.8"/><path d="M8.6 20.2v-4.3h3.2v4.3"/><path d="M17.2 13.2h3.2v7"/></svg></span>Appalti</button>
   <button id="nav-doc" onclick="go('doc')"><span class="ico"><svg viewBox="0 0 24 24"><path d="M14 3H7.5A2.5 2.5 0 0 0 5 5.5v13A2.5 2.5 0 0 0 7.5 21h9a2.5 2.5 0 0 0 2.5-2.5V8z"/><path d="M14 3v5h5"/><path d="M8.8 13h6.4M8.8 16.6h4.4"/></svg></span>Documenti</button>
 </nav>
@@ -1347,11 +1498,17 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
     documentoCoordinamento, RISCHI_PARTICOLARI, rischioParticolare, NATURE_APPALTO, duvriDovuto,
     costiInterferenze, statoCoordinamento, STATI_COORDINAMENTO, statoAppalto,
     appaltiDiCantiere, appaltiDiAppaltatore, riepilogoAppalti, appaltatoriDaVerificare,
+    TIPI_PERMESSO, tipoPermesso, tipoPermessoSicuro, MISURE_PERMESSO, misuraPermessoSicura,
+    LIMITI_ATMOSFERA, FONTE_ATMOSFERA, letturaAtmosfera, descriviAtmosfera, misureMancanti,
+    finestraPermesso, formazionePermesso, impresaPermesso, statoPermesso, descriviPermesso,
+    ESITI_PERMESSO, esitoPermessoSicuro, riepilogoPermessi, provaVoce, descriviProva,
+    conformiSenzaProva, voceChiedePermesso, permessiDelGiorno,
     MOTIVI_REVISIONE_DSS, motivoRevisioneDss, dssDiCantiere, dssScollegati, cicloDss,
     descriviCicloDss, descriviTrasmissioneDss, etichettaCicloDss, sintesiCicloDss,
     dssDaSeguire } from "./scudo-data.js";
   import { mountExit, esc, csvCell, statoVuoto, giorniTra, montaGuardiaInteri, avvolgiUnita, oggiISO, dataISOEsiste,
-           controllaAllegato, testoAllegatoRifiutato, pezziDataURL, dataIt } from "../../shared/deepwork-id-client/dw-shell.js";
+           controllaAllegato, testoAllegatoRifiutato, pezziDataURL, dataIt,
+           numeroScritto, AVVISO_DECIMALE, timbroLocale } from "../../shared/deepwork-id-client/dw-shell.js";
   // I campi INTERI restano `type=number` per lo spinner: la guardia rifiuta la
   // virgola, che lì non serve e che il browser scarterebbe in silenzio.
   montaGuardiaInteri((m) => toast(m, "err"));
@@ -1518,6 +1675,11 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
   // S4/S5: chi non le ha mai scritte legge elenchi vuoti — e la schermata NON
   // dice «tutto a posto», dice che non c'è ancora niente da mostrare.
   let APPT = [], APPA = [];
+  // I permessi di lavoro (S8). Stessa regola: elenco vuoto, e la schermata lo
+  // dice invece di accendere il verde.
+  let PERM = [];
+  let filtroPerm = "vivi";   // quali permessi si vedono nell'elenco
+  let permAperto = null;     // id del permesso aperto nella scheda
   // la bozza dell'appalto in composizione: i rischi particolari spuntati e se
   // qualcuno li ha davvero guardati. `valutati` parte FALSO di proposito.
   let bozzaAppalto = { rischi: [], valutati: false };
@@ -1652,6 +1814,11 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
     ANA = (db.analisi ? await db.analisi() : []) || [];
     APPT = (db.appaltatori ? await db.appaltatori() : []) || [];
     APPA = (db.appalti ? await db.appalti() : []) || [];
+    PERM = (db.permessi ? await db.permessi() : []) || [];
+    // Il contesto che i permessi leggono: formazione di chi entra, qualifica
+    // dell'impresa, documento di coordinamento. Si costruisce una volta sola.
+    const ctxPerm = { lavoratori: LAV, scadenze: SCA, appalti: APPA, cantieri: CANT,
+      appaltatori: APPT, documenti: DOC };
     const byId = Object.fromEntries(LAV.map(l => [l.id, l]));
     const infById = Object.fromEntries(INF.map(x => [x.id, x]));
     const k = kpiFrom(LAV, SCA);
@@ -1669,6 +1836,9 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
     // conto che rende l'analisi VIVA invece che facoltativa: senza, la fa chi
     // ha voglia e il registro si riempie di eventi muti.
     const senzaAn = eventiSenzaAnalisi(INF, ANA);
+    // le voci di checklist date per conformi senza il loro permesso: serve nel
+    // Quadro e nella pagina Ispezioni, e si calcola una volta sola
+    const senzaProvaQuadro = conformiSenzaProva(ISP, PERM, ctxPerm);
     $("k-scadute").textContent = k.scadute;
     $("k-30gg").textContent = k.trenta;
     $("k-regolari").textContent = k.regolari;
@@ -1776,16 +1946,46 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
         <div class="meta">${esc(sintesiCicloDss(r.stato))}</div></div>
         <span class="acts"><span class="badge ${b.cls}">${esc(b.label)}</span><span class="arr">›</span></span></div>`;
     });
+    /* ⛔ I PERMESSI DI LAVORO, NEL QUADRO — e le due righe dicono due cose
+       diverse. La prima è il permesso lasciato APERTO dopo la fine della sua
+       finestra: o il lavoro è finito e nessuno l'ha chiuso, o si sta lavorando
+       fuori dall'autorizzazione, e in ispezione è la prima cosa che si nota.
+       La seconda è il difetto da cui è nato tutto questo modulo: una voce di
+       checklist spuntata CONFORME su un permesso che nel registro non c'è.
+       Quella non è una non conformità — è un «non lo sappiamo», e sta in
+       giallo perché il lavoro da fare è andare a cercare, non a riparare. */
+    const permUrg = riepilogoPermessi(PERM, ctxPerm).righe
+      .filter(r => ["da-fermare", "scaduto", "non-rilasciabile"].includes(r.esito))
+      .slice(0, 2).map(r => {
+        const et = esitoPermessoSicuro(r.esito);
+        return `<div class="item tocca ${et.striscia}" onclick="go('perm')" title="Vai ai permessi di lavoro">
+          <div class="avatar sup">${I.doc}</div>
+          <div class="info"><div class="name">${esc(r.permesso.lavoro || "Permesso di lavoro")}</div>
+          <div class="meta">${esc(r.tipo.breve)} · ${esc(accorcia(r.perche, 90))}</div></div>
+          <span class="acts"><span class="badge ${et.cls}">${esc(et.etichetta)}</span><span class="arr">›</span></span></div>`;
+      });
+    const provaUrg = senzaProvaQuadro.length
+      ? [`<div class="item tocca st-warn" onclick="go('isp')" title="Vai alle ispezioni">
+          <div class="avatar sup">${I.lista}</div>
+          <div class="info"><div class="name">${senzaProvaQuadro.length === 1
+              ? "Una voce di checklist senza il suo permesso" : senzaProvaQuadro.length + " voci di checklist senza il loro permesso"}</div>
+          <div class="meta">Segnat${senzaProvaQuadro.length === 1 ? "a conforme" : "e conformi"}, ma di quel permesso di lavoro qui non risulta niente</div></div>
+          <span class="acts"><span class="badge warn">Non lo sappiamo</span><span class="arr">›</span></span></div>`]
+      : [];
     const urg = SCA.filter(s => statoScadenza(s.dataScadenza) !== "regolare")
                    .sort((a, b) => a.dataScadenza < b.dataScadenza ? -1 : 1).slice(0, 5);
-    $("urg-list").innerHTML = (idonUrg.join("") + manUrg.join("") + mansIgnUrg.join("") + nomUrg.join("") + aziUrg.join("") + anUrg.join("") + appUrg.join("") + dssUrg.join("") + urg.map(sc => {
+    $("urg-list").innerHTML = (idonUrg.join("") + manUrg.join("") + mansIgnUrg.join("") + nomUrg.join("") + aziUrg.join("") + anUrg.join("") + appUrg.join("") + dssUrg.join("") + permUrg.join("") + provaUrg.join("") + urg.map(sc => {
       const st = statoScadenza(sc.dataScadenza), l = byId[sc.lavoratoreId];
       return `<div class="item tocca ${striscia[B[st][0]]}" onclick="go('scad')" title="Vai allo scadenzario">
         <div class="avatar">${esc(initials(l && l.nome))}</div>
         <div class="info"><div class="name">${esc(l ? l.nome : "Scadenza aziendale")}</div><div class="meta">${esc(sc.descrizione)} · ${fmtData(sc.dataScadenza)}</div></div>
         <span class="acts"><span class="badge ${B[st][0]}">${B[st][1]}</span><span class="arr">›</span></span></div>`;
+    /* ⚠️ L'ELENCO DI CIÒ CHE È STATO GUARDATO VA TENUTO ALLINEATO A CIÒ CHE SI
+       GUARDA DAVVERO: una frase che dichiara sei controlli mentre ne fa otto
+       promette meno del vero, ma il giorno in cui ne dichiarasse otto facendone
+       sei prometterebbe di più — ed è quella la direzione che rassicura. */
     }).join("")) || vuoto(I.ok, "Nessuna urgenza",
-        "Idoneità, mansioni, nomine, scadenze, azioni correttive e ciclo del DSS sono tutti in regola, e ogni evento del registro ha la sua analisi della causa. Il quadro resta pulito finché una data non si avvicina.");
+        "Idoneità, mansioni, nomine, scadenze, azioni correttive, ciclo del DSS e <b>permessi di lavoro</b> sono tutti in regola, ogni evento del registro ha la sua analisi della causa, e nessuna voce di checklist è segnata conforme senza il permesso che dovrebbe starci dietro. Il quadro resta pulito finché una data non si avvicina.");
 
     const q = ($("pers-cerca").value || "").trim().toLowerCase();
     const lavVis = LAV.filter(l => !q || (l.nome + " " + (l.ruolo || "")).toLowerCase().includes(q))
@@ -2219,6 +2419,185 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
           `<button type="button" class="chg" data-risc="${r.chiave}" aria-pressed="false">${esc(r.nome)}</button>`).join("");
     }
 
+    // ── S8 · PERMESSI DI LAVORO ──────────────────────────────────────
+    // Il documento che autorizza un lavoro pericoloso in un luogo e in una
+    // finestra di tempo. È quello che sta dietro alla voce di checklist
+    // «accesso a tramogge e spazi confinati regolato da permesso di lavoro»:
+    // senza, quella spunta non ha niente sotto.
+    {
+      const rP = riepilogoPermessi(PERM, ctxPerm);
+      /* ⛔ IL VERDE SOLO SE `noto` È VERO E NON C'È NIENTE DA SISTEMARE. Un
+         registro vuoto, o un permesso che nessuno ha finito di compilare, NON
+         accendono il recap: è il principio del fondatore nel punto in cui
+         costa di più, perché questa è una schermata da ispezione. */
+      const permOk = rP.quanti && rP.noto && !rP.daFermare && !rP.scaduti;
+      $("perm-riep").className = "note " + (permOk ? "recap" : "avviso");
+      $("perm-riep").innerHTML = rP.quanti
+        ? `<b>${esc(rP.testo)}</b>`
+          + `<br>Validi adesso: <b class="acc">${rP.validi}</b> · aperti: <b class="acc">${rP.aperti}</b>`
+          + ` · da fermare: <b class="acc">${rP.daFermare}</b> · scaduti e non chiusi: <b class="acc">${rP.scaduti}</b>`
+          + ` · <b class="acc">${rP.daVerificare}</b> su cui manca una verifica`
+        : esc(rP.testo);
+      $("perm-count").textContent = rP.quanti;
+
+      const permVis = rP.righe.filter(r => filtroPerm === "tutti" ? true
+        : filtroPerm === "chiusi" ? (r.stato === "chiuso" || r.stato === "revocato")
+        : (r.stato !== "chiuso" && r.stato !== "revocato"));
+      /* Prima quelli che chiedono qualcosa, poi il resto dal più recente: chi
+         apre questa pagina cerca il permesso rimasto aperto, non l'archivio. */
+      const pesoP = (e) => e === "da-fermare" || e === "scaduto" || e === "non-rilasciabile" ? 0
+        : e === "da-verificare" || e === "da-completare" ? 1 : 2;
+      $("perm-list").innerHTML = permVis.slice()
+        .sort((a, b) => pesoP(a.esito) - pesoP(b.esito)
+          || String(b.permesso.dal || "").localeCompare(String(a.permesso.dal || "")))
+        .map(r => {
+          const p = r.permesso, et = esitoPermessoSicuro(r.esito);
+          const cant = cById[p.cantiereId], chi = byId[p.riceventeId];
+          const imp = r.impresa && r.impresa.appaltatore;
+          const meta = [r.tipo.breve,
+            p.luogo || (cant ? cant.nome : "luogo non indicato"),
+            fmtData(String(p.dal || "").slice(0, 10)) + (String(p.dal || "").slice(11, 16) ? " " + String(p.dal).slice(11, 16) : "")
+              + (String(p.al || "").slice(11, 16) ? "–" + String(p.al).slice(11, 16) : ""),
+            chi ? chi.nome : (imp ? imp.ragioneSociale : "a chi: da indicare")].join(" · ");
+          /* ⛔ LA RAGIONE STA SOTTO LA RIGA, NON IN CODA A `.meta`: quella ha
+             `-webkit-line-clamp:2`, e la frase che spiega perché un permesso è
+             da fermare finirebbe tagliata — cioè proprio la parte che va
+             letta. Stessa scelta già fatta per gli appalti e per il DSS. */
+          return `<div class="item tocca ${et.striscia}" data-perm="${p.id}" title="Apri il permesso">
+            <div class="avatar sup">${I.doc}</div>
+            <div class="info"><div class="name">${esc(p.lavoro || "lavoro non descritto")}</div>
+            <div class="meta">${esc(meta)}</div></div>
+            <span class="acts"><span class="badge ${et.cls}">${esc(et.etichetta)}</span>
+            <span class="arr" style="cursor:pointer" title="Apri il permesso" data-perm="${p.id}">›</span>
+            <span class="arr" style="cursor:pointer" title="Rimuovi il permesso" data-del-perm="${p.id}">✕</span></span></div>`
+            + `<div class="form-hint" style="margin:-4px 0 10px 4px;">${esc(descriviPermesso(r))}</div>`;
+        }).join("") || (filtroPerm === "tutti"
+          ? vuoto(I.doc, "Nessun permesso di lavoro",
+              "Un permesso serve quando si entra in una <b>tramoggia</b> o in un <b>silo</b>, si <b>salda</b>, si sale in <b>quota</b> o si mette mano a una macchina che va prima <b>sezionata</b>. Finché questo elenco è vuoto, le voci di checklist che chiedono un permesso <b>non hanno niente dietro</b>.")
+          : vuoto(I.ok, "Niente in questa categoria",
+              "Nessun permesso rientra nel filtro scelto. Tocca <b>Tutti</b> per vedere l'elenco completo."));
+      document.querySelectorAll("#perm-filtri [data-filtro-perm]").forEach(b =>
+        b.classList.toggle("active", b.getAttribute("data-filtro-perm") === filtroPerm));
+
+      // tendine del form
+      if (!$("perm-tipo").children.length)
+        $("perm-tipo").innerHTML = '<option value="">Che tipo di permesso…</option>'
+          + TIPI_PERMESSO.map(t => `<option value="${t.chiave}">${esc(t.nome)}</option>`).join("");
+      { const s = $("perm-cant"), v = s.value;
+        const o = '<option value="">— dove si lavora —</option>' + CANT.map(c => `<option value="${c.id}">${esc(c.nome)}</option>`).join("");
+        if (s.innerHTML !== o) { s.innerHTML = o; s.value = [...s.options].some(x => x.value === v) ? v : ""; } }
+      for (const [id, vuota] of [["perm-rilascia", "— chi lo rilascia —"], ["perm-riceve", "— chi lo riceve —"], ["perm-sorveglia", "— chi sorveglia da fuori —"]]) {
+        const s = $(id), v = s.value;
+        const o = `<option value="">${esc(vuota)}</option>` + LAV.map(l => `<option value="${l.id}">${esc(l.nome)}</option>`).join("");
+        if (s.innerHTML !== o) { s.innerHTML = o; s.value = [...s.options].some(x => x.value === v) ? v : ""; }
+      }
+      { const s = $("perm-appalto"), v = s.value;
+        const attivi = APPA.filter(a => a && a.stato !== "chiuso");
+        const o = '<option value="">— lo fa il nostro personale, non un\'impresa esterna —</option>'
+          + attivi.map(a => { const t = APPT.find(x => x.id === a.appaltatoreId);
+            return `<option value="${a.id}">${esc((t ? t.ragioneSociale + " — " : "") + (a.oggetto || "appalto"))}</option>`; }).join("");
+        if (s.innerHTML !== o) { s.innerHTML = o; s.value = [...s.options].some(x => x.value === v) ? v : ""; } }
+
+      // ── la scheda del singolo permesso ────────────────────────────
+      if (permAperto && !PERM.some(p => p.id === permAperto)) permAperto = null;
+      $("perm-elenco").style.display = permAperto ? "none" : "block";
+      $("perm-scheda").style.display = permAperto ? "block" : "none";
+      if (permAperto) {
+        const p = PERM.find(x => x.id === permAperto);
+        const st = statoPermesso(p, ctxPerm), et = esitoPermessoSicuro(st.esito);
+        const cant = cById[p.cantiereId];
+        $("perm-s-titolo").textContent = p.lavoro || "Permesso di lavoro";
+        $("perm-s-badge").textContent = et.etichetta;
+        $("perm-s-testa").className = "note " + (st.esito === "valido" || st.esito === "chiuso" ? "recap" : "avviso");
+        /* ⛔ LA FINESTRA SI SCRIVE COL SUO ORARIO, E IL GIUDIZIO UNA VOLTA SOLA.
+           Lo ha detto lo SCATTO, e leggendo il codice non si vedeva: su un
+           permesso «non ancora aperto» il giudizio di `descriviPermesso` È la
+           frase della finestra, e la testata la stampava due volte di fila —
+           «Il lavoro è autorizzato ma non è ancora cominciato.» due righe
+           sopra sé stessa. E mancava la cosa che uno viene a cercare qui: DA
+           QUANDO A QUANDO vale il permesso. Adesso la riga di mezzo è un
+           FATTO (gli orari) e l'ultima è il GIUDIZIO. */
+        const oraDi = (s) => String(s || "").slice(11, 16);
+        const gg = (s) => fmtData(String(s || "").slice(0, 10));
+        const stessoGiorno = String(p.dal || "").slice(0, 10) === String(p.al || "").slice(0, 10);
+        const quando = (gg(p.dal) && gg(p.al))
+          ? (stessoGiorno
+              ? `${gg(p.dal)}, dalle <b>${oraDi(p.dal)}</b> alle <b>${oraDi(p.al)}</b>`
+              : `dal ${gg(p.dal)} alle <b>${oraDi(p.dal)}</b> al ${gg(p.al)} alle <b>${oraDi(p.al)}</b>`)
+            + (st.finestra.ore !== null ? ` · finestra di <b>${String(st.finestra.ore).replace(".", ",")}</b> ore` : "")
+          : "";
+        $("perm-s-testa").innerHTML = `<b>${esc(st.tipo.nome)}</b>`
+          + (p.luogo ? " · " + esc(p.luogo) : "") + (cant ? " · " + esc(cant.nome) : "")
+          + (quando ? `<br>${quando}` : "")
+          + `<br>${esc(descriviPermesso(st))}`;
+        /* Problemi e buchi ELENCATI, non riassunti: nella riga dell'elenco ci
+           sta una frase sola, qui c'è lo spazio per dirle tutte — ed è la
+           differenza fra sapere che c'è qualcosa che non va e sapere che
+           cosa. */
+        /* ⛔ NIENTE DOPPIONI CON LA TESTATA, e a dirlo è stato lo scatto: la
+           testata porta già la ragione principale (`descriviPermesso`), e
+           l'elenco la ripeteva come prima riga — dove per giunta finiva
+           TAGLIATA a due righe («…non è un'aria buona: è…»), cioè proprio la
+           parte che il principio del fondatore esiste per far leggere. */
+        const dire = [
+          ...st.problemi.map(x => ["danger", x]),
+          ...st.ignoti.map(x => ["warn", x]),
+          ...(st.formazione.esito === "in-regola" || st.formazione.esito === "impresa-esterna" ? [["ok", st.formazione.perche]] : []),
+          ...(st.impresa && st.impresa.esito === "a-posto" ? [["ok", st.impresa.perche]] : []),
+        ].filter(([, t]) => t !== st.perche);
+        $("perm-s-dire").innerHTML = dire.map(([c, t]) =>
+          `<div class="item ${striscia[c]}"><div class="info"><div class="name intero">${esc(t)}</div></div></div>`).join("");
+
+        const messe = new Set(Array.isArray(p.misure) ? p.misure : []);
+        const bloccato = p.stato === "chiuso" || p.stato === "revocato";
+        $("perm-s-misure").innerHTML = (st.tipo.misure || []).map(k => {
+          const m = misuraPermessoSicura(k);
+          return `<button type="button" class="chg${messe.has(k) ? " active" : ""}"${bloccato ? " disabled" : ""}
+            data-misura="${k}" aria-pressed="${messe.has(k)}" title="${esc(m.fonte)}">${esc(m.nome)}</button>`;
+        }).join("");
+        $("perm-s-misure-nota").innerHTML = st.misureMancanti.length
+          ? "Le misure non spuntate non sono «non applicabili»: sono <b>non dichiarate in atto</b>, e finché è così il permesso non si rilascia. Ne mancano <b>"
+            + st.misureMancanti.length + "</b>."
+          : "Tutte le misure che questo tipo di permesso richiede risultano dichiarate in atto. La provenienza di ognuna si legge tenendo il dito sulla pastiglia.";
+
+        // l'aria: solo dove serve
+        $("perm-s-aria-box").style.display = st.tipo.atmosfera ? "block" : "none";
+        if (st.tipo.atmosfera) {
+          const a = p.atmosfera || {};
+          /* ⛔ CAMPI DECIMALI: `type="text"` con `inputmode="decimal"`, MAI
+             `type="number"`. Su «20,8» Chromium fa `.value === "208"` e
+             `checkValidity()` risponde true: un ossigeno dieci volte più alto
+             dichiarato valido dal browser, su una misura da cui dipende se
+             qualcuno entra in un silo. */
+          $("perm-s-aria-campi").innerHTML = LIMITI_ATMOSFERA.map(L =>
+            `<div class="fld" style="flex:1 1 130px;">
+              <label class="fl" for="perm-a-${L.chiave}">${esc(L.nome)} <span class="u">${esc(L.unita)}</span></label>
+              <input class="dw-input" id="perm-a-${L.chiave}" type="text" inputmode="decimal" autocomplete="off"
+                ${bloccato ? "disabled" : ""} value="${esc(a[L.chiave] == null ? "" : String(a[L.chiave]))}"
+                placeholder="${L.min !== null ? String(L.min).replace(".", ",") + "–" + String(L.max).replace(".", ",") : "max " + L.max}">
+            </div>`).join("");
+          if ($("perm-s-ora")) $("perm-s-ora").value = String(a.ora || "");
+          const l = letturaAtmosfera(p.atmosfera);
+          $("perm-s-aria-esito").className = "note " + (l.esito === "entro-i-limiti" ? "recap" : "avviso");
+          $("perm-s-aria-esito").innerHTML = "<b>" + esc(descriviAtmosfera(l)) + "</b><br>"
+            + l.righe.map(r => esc(r.nome) + ": " + (r.leggibile
+                ? "<b>" + String(r.valore).replace(".", ",") + "</b> <span class=\"u\">" + esc(r.unita) + "</span>" + (r.entro ? "" : " — fuori")
+                : "<b>non misurato</b>")).join(" · ")
+            + "<br>" + esc(FONTE_ATMOSFERA);
+        }
+
+        const b = (id, mostra, testo) => { const el = $(id); if (!el) return;
+          el.style.display = mostra ? "" : "none"; if (testo) el.textContent = testo; };
+        b("btn-perm-rilascia", p.stato === "bozza" || p.stato === "sospeso",
+          p.stato === "sospeso" ? "Riprendi il lavoro" : "Rilascia il permesso");
+        b("btn-perm-sospendi", p.stato === "aperto");
+        b("btn-perm-chiudi", p.stato === "aperto" || p.stato === "sospeso");
+        b("btn-perm-revoca", p.stato !== "chiuso" && p.stato !== "revocato");
+        $("perm-s-rif").innerHTML = "Riferimento del tipo: " + esc(st.tipo.riferimento)
+          + "<br><b>Nota informativa, non un parere legale</b>: misure e valori sono una base di partenza da adattare alla procedura di lavoro della tua cava insieme all'RSPP.";
+      }
+    }
+
     // Sicurezza: giorni senza infortuni (cartellone) + riepilogo + registro
     const annoOra = new Date().getFullYear();
     const oreRec = ORE.find(o => +o.anno === annoOra) || null;
@@ -2628,6 +3007,7 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
     // Elenco delle ispezioni con lo stesso semaforo di scadenze e azioni: una
     // checklist programmata e non fatta è, a tutti gli effetti, in ritardo.
     const rIsp = riepilogoIspezioni(ISP);
+    const senzaProva = conformiSenzaProva(ISP, PERM, ctxPerm);
     $("isp-count").textContent = ISP.length;
     $("isp-riep").innerHTML = ISP.length
       ? `Da fare: <b>${rIsp.daFare}</b>${rIsp.scadute ? ` (di cui <b>${rIsp.scadute}</b> in ritardo)` : ""} · completate: <b>${rIsp.completate}</b> su ${rIsp.totale} · voci non conformi trovate finora: <b>${rIsp.nonConformi}</b>.`
@@ -2637,7 +3017,14 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
         + (rIsp.senzaEsito
             ? ` Attenzione: <b>${rIsp.senzaEsito}</b> ${rIsp.senzaEsito === 1 ? "voce è rimasta" : "voci sono rimaste"} senza esito in ${rIsp.parziali === 1 ? "un'ispezione chiusa" : rIsp.parziali + " ispezioni chiuse"}: su ${rIsp.senzaEsito === 1 ? "quella" : "quelle"} non è stato guardato niente.`
             : "")
+        /* La seconda forma dello stesso difetto, e più insidiosa: non una voce
+           lasciata in bianco, ma una voce spuntata VERDE su un adempimento di
+           cui nel registro non c'è traccia. */
+        + (senzaProva.length
+            ? ` E <b>${senzaProva.length}</b> ${senzaProva.length === 1 ? "voce è segnata conforme senza" : "voci sono segnate conformi senza"} nessun permesso di lavoro dietro.`
+            : "")
       : "Nessuna ispezione ancora avviata. Scegli un modello qui sotto: le voci sono già scritte, tu metti solo gli esiti.";
+      $("isp-riep").className = "note " + (rIsp.senzaEsito || senzaProva.length ? "avviso" : "recap");
     const ispVis = ISP.filter(i => filtroIsp === "tutte" ? true
       : filtroIsp === "completata" ? i.stato === "completata" : i.stato !== "completata");
     // prima quelle da fare (dalla più vecchia, cioè la più in ritardo), poi le
@@ -2704,12 +3091,23 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
       const i = ISP.find(x => x.id === ispAperta), r = riepilogoIspezione(i);
       const cant = cById[i.cantiereId], resp = byId[i.responsabileId];
       $("isp-c-cnt").textContent = r.fatte + "/" + r.totale;
+      /* ⛔ «ZERO NON CONFORMI» È UN NUMERO TRANQUILLO SE UNA DELLE CONFORMI NON
+         HA NIENTE DIETRO. Lo dice lo scatto: la testata scriveva «0 voci non
+         conformi» sopra una checklist in cui la voce del permesso di lavoro
+         era spuntata verde su un registro vuoto. La riga della voce lo diceva,
+         il riepilogo in cima no — e in cima è dove si guarda. */
+      const senzaProvaQui = conformiSenzaProva([i], PERM, ctxPerm).length;
+      $("isp-c-testa").className = "note " + (senzaProvaQui ? "avviso" : "recap");
       $("isp-c-testa").innerHTML = `<b>${esc(i.nome)}</b> · ${fmtData(i.data)}`
         + (cant ? " · " + esc(cant.nome) : "") + (resp ? " · esegue " + esc(resp.nome) : "")
         + (i.stato === "completata"
             ? ` — <b>completata</b> il ${fmtData(i.dataChiusura || i.data)}: <b>${r.nonConformi}</b> voci non conformi`
               + (r.daFare ? `, e <b>${r.daFare}</b> ${r.daFare === 1 ? "voce chiusa" : "voci chiuse"} senza esito.` : ".")
-            : ` — restano <b>${r.daFare}</b> voci su ${r.totale}.`);
+            : ` — restano <b>${r.daFare}</b> voci su ${r.totale}.`)
+        + (senzaProvaQui
+            ? ` Attenzione: <b>${senzaProvaQui}</b> ${senzaProvaQui === 1 ? "voce è segnata conforme ma non ha" : "voci sono segnate conformi ma non hanno"}`
+              + " nessun permesso di lavoro dietro: su quell'adempimento qui non risulta niente."
+            : "");
       grafico("isp-c-avanz", "avanzamento", {
         titolo: "Avanzamento della checklist",
         meta: r.fatte + " voci su " + r.totale,
@@ -2735,14 +3133,36 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
            all'esito e alla nota. Anche qui zero foto non è un difetto e non
            produce nessun contatore: cambia il colore dell'icona. */
         const pv = pastigliaFoto(fotoDiVoce(i, v.id).length);
-        return `<div class="item voce ${cls}">
+        /* ⛔ LA VOCE CHE CHIEDE UN PERMESSO DI LAVORO PORTA LA SUA PROVA.
+           Fino al 03/08 «Accesso a tramogge e spazi confinati regolato da
+           permesso di lavoro» obbligava a rispondere sì/no su un adempimento
+           che l'app non sapeva emettere né conservare: la spunta «sì» non
+           aveva niente dietro. Adesso, se per quel giorno e per quel sito nel
+           registro non c'è nessun permesso, sotto la voce compare la ragione —
+           e un «conforme» senza prova NON è conforme, è «non lo sappiamo».
+           ⚠️ La riga sta SOTTO, in un `form-hint` suo, non in coda a `.meta`:
+           quella ha `-webkit-line-clamp:2` e la frase finirebbe tagliata
+           proprio dov'è il senso. */
+        const pr = provaVoce(i, v, PERM, ctxPerm);
+        const clsV = (pr.chiede && e.esito === "conforme" && pr.esito !== "con-prova") ? "st-warn" : cls;
+        const provaRiga = !pr.chiede ? ""
+          : `<div class="form-hint ${pr.esito === "con-prova" ? "" : "avviso"}" style="margin:-4px 0 10px 4px;">`
+            + (e.esito === "conforme" && pr.esito !== "con-prova"
+                ? "<b>Segnata conforme, ma qui non risulta niente.</b> " : "")
+            + esc(descriviProva(pr))
+            + (pr.permessi.length
+                ? " " + pr.permessi.map(x => "<b>" + esc(x.lavoro || "permesso") + "</b>").join(", ")
+                : ' <span class="arr" style="cursor:pointer;display:inline-flex" data-vai-perm="1" title="Vai ai permessi di lavoro">↗</span>')
+            + "</div>";
+        return `<div class="item voce ${clsV}">
           <div class="info"><div class="name">${esc(v.testo)}</div>
           <div class="meta">${e.nota ? '<span class="isp-nota">' + esc(e.nota) + "</span>" : (el ? el.etichetta : "esito da mettere")}</div></div>
           <span class="acts">${bottoni}
           <span class="arr" style="cursor:pointer" title="Scrivi una nota su questa voce" data-nota-voce="${v.id}">✎</span>
           <button type="button" class="arr${pv ? " ha-foto" : ""}"
             title="${pv ? "Foto di questa voce (" + pv.testo + ")" : "Nessuna foto: allega quello che hai visto"}"
-            aria-label="Foto di questa voce: ${pv ? pv.testo : "nessuna"}" data-foto-voce="${v.id}">${I.foto}</button></span></div>`;
+            aria-label="Foto di questa voce: ${pv ? pv.testo : "nessuna"}" data-foto-voce="${v.id}">${I.foto}</button></span></div>`
+          + provaRiga;
       }).join("");
       $("btn-isp-chiudi").textContent = bloccata ? "Riapri l'ispezione" : "Chiudi l'ispezione";
       $("isp-c-nota").innerHTML = (i.riferimento ? "Riferimento: " + esc(i.riferimento) + "<br>" : "")
@@ -3239,6 +3659,10 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
       if (vEsito === "non-conforme" && prec !== vEsito)
         esito("isp-c-esito", "Voce segnata non conforme: alla chiusura dell'ispezione diventerà un'azione correttiva.", "", "Non conforme: diventerà un'azione.");
       return; }
+    /* Dalla voce di checklist che chiede un permesso al registro dei permessi:
+       il legame va poter essere percorso proprio quando manca qualcosa, che è
+       il momento in cui uno vuole andare a guardare. */
+    if (at("data-vai-perm")) { permAperto = null; go("perm"); await refresh(); return; }
     const notaV = at("data-nota-voce");
     if (notaV && ispAperta && db.aggiorna) {
       const i = ISP.find(x => x.id === ispAperta); if (!i) return;
@@ -3522,6 +3946,172 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
     if (!id) return;
     apriCoordinamento(id.getAttribute("data-appa"));
   });
+
+  // ── S8 · PERMESSI DI LAVORO ────────────────────────────────────────
+  $("perm-filtri").addEventListener("click", (e) => {
+    const f = e.target.getAttribute && e.target.getAttribute("data-filtro-perm");
+    if (f) { filtroPerm = f; refresh(); }
+  });
+  $("perm-list").addEventListener("click", async (e) => {
+    const del = e.target.getAttribute && e.target.getAttribute("data-del-perm");
+    if (del) {
+      const p = PERM.find(x => x.id === del);
+      const ok = await chiedi("Rimuovere il permesso?",
+        "Stai per togliere <b>" + esc(p ? (p.lavoro || "il permesso") : "il permesso") + "</b>.<br><br>"
+        + "Un permesso compilato è la prova che quel lavoro era stato autorizzato: rimuovilo solo se è stato "
+        + "inserito per sbaglio. Le voci di checklist che lo citavano torneranno <b>senza prova</b>.",
+        "Rimuovi", true);
+      if (!ok) return;
+      await db.rimuovi("permessi", del); permAperto = null; await refresh();
+      esito("perm-esito", "Permesso rimosso.", "success"); return;
+    }
+    const riga = e.target.closest && e.target.closest("[data-perm]");
+    if (!riga) return;
+    permAperto = riga.getAttribute("data-perm"); pulisci("perm-s-esito"); await refresh();
+  });
+  $("btn-perm-indietro").onclick = async () => { permAperto = null; await refresh(); };
+
+  $("btn-perm").onclick = async () => {
+    const tipo = $("perm-tipo").value, lavoro = $("perm-lavoro").value.trim();
+    if (!tipo) { err("perm-tipo", true); $("perm-tipo").focus();
+      esito("perm-esito", "Scegli che tipo di permesso è: le misure da verificare e i corsi richiesti cambiano da un tipo all'altro.", "err"); return; }
+    err("perm-tipo", false);
+    if (!lavoro) { err("perm-lavoro", true); $("perm-lavoro").focus();
+      esito("perm-esito", "Scrivi che lavoro autorizza. Un permesso che non dice che lavoro è non autorizza niente di preciso.", "err"); return; }
+    err("perm-lavoro", false);
+    /* ⛔ LE DATE SI CONTROLLANO QUI, NON DOPO. Un permesso salvato senza
+       finestra non è «valido sempre»: è un permesso che il modulo dichiarerà
+       NON LO SAPPIAMO per sempre, e chi l'ha creato non capirà perché. Meglio
+       dirlo adesso, con le parole del mestiere. */
+    const dal = $("perm-dal").value, al = $("perm-al").value;
+    if (!dal || !al) { err("perm-dal", !dal); err("perm-al", !al);
+      esito("perm-esito", "Serve la finestra di validità: da quando a quando il lavoro è autorizzato. È quella che fa di un permesso un permesso e non un modulo.", "err"); return; }
+    err("perm-dal", false); err("perm-al", false);
+    if (al <= dal) { err("perm-al", true); $("perm-al").focus();
+      esito("perm-esito", "La fine deve venire dopo l'inizio.", "err"); return; }
+    const rec = { tipo, lavoro, luogo: $("perm-luogo").value.trim(),
+      cantiereId: $("perm-cant").value || null, dal, al,
+      rilasciatoDaId: $("perm-rilascia").value || null,
+      riceventeId: $("perm-riceve").value || null,
+      sorveglianteId: $("perm-sorveglia").value || null,
+      appaltoId: $("perm-appalto").value || null,
+      /* ⛔ NASCE CON ZERO MISURE SPUNTATE, e non è una dimenticanza: le misure
+         si dichiarano in atto quando lo sono, sul posto, non quando si scrive
+         il permesso. Precompilarle vorrebbe dire far nascere ogni permesso
+         già «a posto» — cioè l'esatto contrario di quello che serve. */
+      misure: [], atmosfera: null, stato: "bozza", chiusuraOra: null, chiusuraDaId: null, note: "" };
+    const ref = await db.aggiungi("permessi", rec);
+    $("perm-lavoro").value = ""; $("perm-luogo").value = "";
+    permAperto = (ref && ref.id) || null;
+    await refresh();
+    esito("perm-esito", "Bozza creata. Adesso vanno spuntate le misure in atto"
+      + (tipoPermessoSicuro(tipo).atmosfera ? " e misurata l'atmosfera" : "")
+      + ": finché non lo sono, il permesso non si rilascia.",
+      "success", "Bozza creata: mancano le misure.");
+  };
+
+  // le misure: si spuntano una per una, e la pastiglia porta la sua fonte
+  $("perm-s-misure").addEventListener("click", async (e) => {
+    const k = e.target.getAttribute && e.target.getAttribute("data-misura");
+    if (!k || !permAperto) return;
+    const p = PERM.find(x => x.id === permAperto); if (!p) return;
+    const messe = Array.isArray(p.misure) ? p.misure : [];
+    const on = messe.includes(k);
+    await db.aggiorna("permessi", p.id, { misure: on ? messe.filter(x => x !== k) : [...messe, k] });
+    await refresh();
+  });
+
+  $("btn-perm-aria").onclick = async () => {
+    if (!permAperto) return;
+    const p = PERM.find(x => x.id === permAperto); if (!p) return;
+    /* ⛔ IL CAMPO VUOTO SI SALVA `null`, NON ZERO. Sul LEL zero vuol dire
+       «ampiamente sotto il 10%»: la risposta più tranquillizzante che questa
+       schermata sappia dare, scritta su una misura che nessuno ha fatto. */
+    const a = { ora: $("perm-s-ora").value || "" };
+    const illeggibili = [];
+    for (const L of LIMITI_ATMOSFERA) {
+      const g = String($("perm-a-" + L.chiave).value || "").trim();
+      if (!g) { a[L.chiave] = null; continue; }
+      const n = numeroScritto(g, { min: 0 });
+      if (!n.ok) { illeggibili.push(L.nome); a[L.chiave] = null; continue; }
+      a[L.chiave] = n.valore;
+    }
+    if (illeggibili.length) {
+      esito("perm-s-esito", "Non si leggono come numero: " + illeggibili.join(", ")
+        + ". " + AVVISO_DECIMALE + " Le altre misure sono state registrate.", "err");
+    }
+    await db.aggiorna("permessi", p.id, { atmosfera: a });
+    await refresh();
+    if (!illeggibili.length) {
+      const l = letturaAtmosfera(a);
+      esito("perm-s-esito", descriviAtmosfera(l), l.esito === "entro-i-limiti" ? "success" : "err",
+        l.esito === "entro-i-limiti" ? "Misure registrate: entro i valori." : "Misure registrate: guarda l'esito.");
+    }
+  };
+
+  /* ⛔ IL RILASCIO È UN CANCELLO, NON UN BOTTONE. Un permesso con una misura
+     non dichiarata o con l'aria fuori limite non si rilascia: se il bottone lo
+     lasciasse passare, tutto il resto di questo modulo sarebbe decorazione. E
+     quello che NON si sa (l'aria mai misurata) si dice come tale — si può
+     rilasciare lo stesso, ma solo dopo che qualcuno ha letto la frase e ha
+     detto di sì: è la differenza fra un blocco e una firma consapevole. */
+  $("btn-perm-rilascia").onclick = async () => {
+    if (!permAperto) return;
+    const p = PERM.find(x => x.id === permAperto); if (!p) return;
+    const st = statoPermesso(p, { lavoratori: LAV, scadenze: SCA, appalti: APPA, cantieri: CANT,
+      appaltatori: APPT, documenti: DOC });
+    if (st.problemi.length) {
+      esito("perm-s-esito", "Non si rilascia: " + st.problemi[0], "err", "Non si rilascia: manca qualcosa.");
+      return;
+    }
+    if (st.ignoti.length) {
+      const ok = await chiedi("Rilasciare lo stesso?",
+        "Su questo permesso c'è qualcosa che <b>non si sa</b>:<br><br>"
+        + st.ignoti.map(x => "• " + esc(x)).join("<br>")
+        + "<br><br>Rilasciarlo adesso vuol dire autorizzare un lavoro su cui una verifica non è stata fatta. "
+        + "Se lo fai, resta scritto.", "Rilascia lo stesso");
+      if (!ok) return;
+    }
+    await db.aggiorna("permessi", p.id, { stato: "aperto" });
+    await refresh();
+    esito("perm-s-esito", "Permesso rilasciato. Va esposto sul posto di lavoro, e chiuso quando il lavoro finisce.", "success");
+  };
+  $("btn-perm-sospendi").onclick = async () => {
+    if (!permAperto) return;
+    const ok = await chiedi("Sospendere il permesso?",
+      "Il lavoro si ferma e non riprende finché qualcuno non riverifica le condizioni. "
+      + "Si sospende quando cambia qualcosa: il tempo, un allarme, una macchina che riparte.", "Sospendi");
+    if (!ok) return;
+    await db.aggiorna("permessi", permAperto, { stato: "sospeso" });
+    await refresh();
+    esito("perm-s-esito", "Permesso sospeso: il lavoro è fermo.", "success");
+  };
+  $("btn-perm-chiudi").onclick = async () => {
+    if (!permAperto) return;
+    const ok = await chiedi("Chiudere il permesso?",
+      "Si chiude quando il lavoro è <b>finito</b> e l'area è stata restituita: attrezzature tolte, ripari "
+      + "rimessi, nessuno più dentro.<br><br>Un permesso lasciato aperto racconta una cava in cui c'è sempre "
+      + "qualcuno in una tramoggia, e in ispezione è la prima cosa che si nota.", "Chiudi");
+    if (!ok) return;
+    /* La «T» al posto dello spazio: `chiusuraOra` è un istante come `dal` e
+       `al`, e tre campi che dicono la stessa cosa vanno scritti allo stesso
+       modo — se no il giorno che qualcuno li confronterà scoprirà che due
+       formati non si ordinano fra loro. */
+    await db.aggiorna("permessi", permAperto, { stato: "chiuso",
+      chiusuraOra: timbroLocale().replace(" ", "T"), chiusuraDaId: null });
+    await refresh();
+    esito("perm-s-esito", "Permesso chiuso.", "success");
+  };
+  $("btn-perm-revoca").onclick = async () => {
+    if (!permAperto) return;
+    const ok = await chiedi("Revocare il permesso?",
+      "La revoca dice che quel lavoro <b>non è autorizzato</b> — non che è finito. "
+      + "Si usa quando le condizioni non ci sono più o non c'erano.", "Revoca", true);
+    if (!ok) return;
+    await db.aggiorna("permessi", permAperto, { stato: "revocato" });
+    await refresh();
+    esito("perm-s-esito", "Permesso revocato: quel lavoro non è autorizzato.", "success");
+  };
 
   /* IL DOCUMENTO DI COORDINAMENTO — chi, quando, e (in cava) la firma.
      ⛔ NON E' UNA GRAFFETTA: e' la decisione che il committente non puo'
