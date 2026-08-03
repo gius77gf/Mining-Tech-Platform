@@ -390,23 +390,61 @@ button.arr.del:hover{
    dichiara con una pillola, perché è il vero problema del capocantiere. */
 .chi{
   display:inline-flex; align-items:center; gap:5px; flex-shrink:0; padding:2px 8px;
-  border-radius:20px; white-space:nowrap; font-family:'Barlow Condensed',sans-serif;
+  border-radius:20px; font-family:'Barlow Condensed',sans-serif;
   font-size:10px; font-weight:700; letter-spacing:1px; text-transform:uppercase;
   background:var(--tint-app); color:var(--app-accent2);
   border:1px solid color-mix(in srgb,var(--app-accent) 34%,transparent);
   box-shadow:var(--edge);
+  /* ⛔ NIENTE `white-space:nowrap` QUI, e la ragione è misurata (03/08).
+     Con `nowrap` + `flex-shrink:0` la pillola non sa né stringersi né andare
+     a capo: a 320 px «Squadra A · Luca Bianchi» chiedeva 198 px dentro un
+     `.info` che ne ha 131, e usciva dal suo spazio andando a coprire la
+     colonna del badge e della matita. Succedeva anche a 360 e a 390 px.
+     Adesso il testo va a capo dentro la pillola quando non c'è verso di
+     farlo stare (ultima difesa), e `max-width` garantisce che il bordo
+     tondo non esca MAI dal blocco di testo che la contiene.
+     `overflow-wrap:anywhere` è lo stesso di `.name` e `.meta` del core: un
+     cognome più lungo della pillola si spezza invece di sfondarla. */
+  max-width:100%; line-height:1.45; overflow-wrap:anywhere;
 }
 /* La pillola sta DENTRO il blocco di testo, su una riga sua: se fosse un
    figlio della voce si contenderebbe la larghezza con badge e matita, e
-   sul telefono la riga si spezzerebbe in tre pezzi sparsi. */
-.chi-riga{margin-top:6px; line-height:0}
+   sul telefono la riga si spezzerebbe in tre pezzi sparsi.
+   È una riga FLESSIBILE che va a capo: le pillole sono più d'una (squadra,
+   persona, turno chiuso) e sul telefono devono impilarsi, non affiancarsi
+   fino a uscire. Il `gap` sostituisce i margini fra una pillola e l'altra —
+   con `flex-wrap` un margine laterale sarebbe sbagliato sulla riga nuova. */
+.chi-riga{display:flex; flex-wrap:wrap; align-items:center; gap:6px; margin-top:6px}
 .chi.nessuno{
   background:transparent; color:var(--muted); border:1px dashed var(--border-hi);
   box-shadow:none;
 }
+
+/* ─────────────── la nota sotto il dettaglio, fuori dal taglio ───────────────
+   ⛔ `.meta` del core è tagliata a due righe (`-webkit-line-clamp:2`), e in due
+   elenchi di Campo il fatto che conta di più stava appeso in FONDO a quella
+   `.meta`. Misurato il 03/08:
+   · squadre @320 px — la `.meta` chiedeva QUATTRO righe e ne mostrava DUE:
+     «oggi: 2 attività aperte · 0 concluse» spariva per intero in tre squadre
+     su tre (e a 390 px in una). È il numero che il capocantiere apre l'app
+     per leggere;
+   · persone @390 px — spariva la nota sui documenti: «Corso: scadeva il
+     11/07», «Visita medica: scadeva il 02/07». Cioè proprio il documento
+     scaduto, su una riga che per il resto sembra normale.
+   ⚠️ E la larghezza non aiuta come si crederebbe: a 320 px la voce va a capo e
+   la `.info` prende tutta la riga, a 390 px sta accanto al badge ed è più
+   STRETTA. Un taglio che a 320 non c'è può esserci a 390.
+   Le note stanno in un elemento loro, che il taglio non tocca: è la stessa
+   forma che Terra usa per la riga di dettaglio sotto i lotti. */
+.nota-riga{
+  font-size:11px; color:var(--muted); line-height:1.4; margin-top:3px;
+}
+.nota-riga b{color:var(--app-accent2); font-weight:700}
 .chi svg{
   width:11px; height:11px; stroke:currentColor; fill:none; stroke-width:2.1;
   stroke-linecap:round; stroke-linejoin:round;
+  /* l'icona non si schiaccia quando il testo accanto va a capo */
+  flex-shrink:0; align-self:flex-start; margin-top:2px;
 }
 
 /* ─────────────── turno chiuso: la riga è un documento firmato ───────────────
@@ -415,7 +453,10 @@ button.arr.del:hover{
    Colore E parola E icona insieme, mai il solo colore. */
 .chi.chiuso{
   background:var(--card2); color:var(--muted2); border:1px solid var(--border-hi);
-  box-shadow:var(--edge); margin-left:6px;
+  box-shadow:var(--edge);
+  /* lo stacco dalla pillola precedente lo dà il `gap` di `.chi-riga`: un
+     `margin-left` qui rientrerebbe anche quando questa pillola apre una
+     riga nuova, e la manderebbe fuori squadra rispetto a quelle sopra. */
 }
 /* I comandi spenti dal turno chiuso devono VEDERSI spenti: un bottone che
    sembra vivo e non risponde fa pensare a un guasto, non a una firma. */
@@ -1763,7 +1804,8 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
       const inForza = operatoriDi(OPER, q.nome).filter(o => o.stato !== "non-disponibile").length;
       return `<div class="item ${q.stato==="ferma"?"st-danger":"st-ok"}" data-squ="${q.id}" role="button" tabindex="0" style="cursor:pointer" title="Tocca per fermare o rimettere in turno">
       <div class="avatar${q.stato==="ferma"?" mute":""}">${esc(sig(q.nome))}</div>
-      <div class="info"><div class="name">${esc(q.nome)}</div><div class="meta">${q.persone == null ? "persone non indicate" : esc(q.persone) + " persone"}${inForza?" · "+inForza+" in anagrafica":""} · ${esc(q.area||"area non indicata")}<br>oggi: <b>${c.aperte}</b> ${c.aperte===1?"attività aperta":"attività aperte"} · ${c.concluse} ${c.concluse===1?"conclusa":"concluse"}</div></div>
+      <div class="info"><div class="name">${esc(q.nome)}</div><div class="meta">${q.persone == null ? "persone non indicate" : esc(q.persone) + " persone"}${inForza?" · "+inForza+" in anagrafica":""} · ${esc(q.area||"area non indicata")}</div>
+        <div class="nota-riga">oggi: <b>${c.aperte}</b> ${c.aperte===1?"attività aperta":"attività aperte"} · ${c.concluse} ${c.concluse===1?"conclusa":"concluse"}</div></div>
       <span class="badge ${QB[q.stato][0]}">${q.stato==="ferma"?I.allarme:""}${QB[q.stato][1]}</span></div>`; }).join("")
       || vuoto(I.persone, "Nessuna squadra in turno",
           "Le squadre sono la base dei rapportini e del Quadro: ogni attività e ogni fermo si attaccano a una di queste. Senza, non c'è a chi assegnare il turno.",
@@ -1863,12 +1905,28 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
     aggiornaOperatoriDelForm($("att-operatore").value);
   }
 
-  // La pillola «chi lo fa» dentro la voce di lista.
+  // Le pillole «chi lo fa» dentro la voce di lista.
+  /* ⛔ DUE FATTI, DUE PILLOLE — e non è un gusto, è la larghezza. La squadra e
+     la persona stavano in una pillola sola («Squadra A · Luca Bianchi»): una
+     cosa lunga e indivisibile, che a 320 px chiedeva 198 px dentro un blocco
+     di testo che ne ha 131 e usciva dal suo spazio (misurato anche a 360 e a
+     390 px). Sono due informazioni diverse — QUALE squadra e CHI di quella
+     squadra — e separate possono impilarsi su due righe invece di sfondare la
+     voce. L'icona lo dice: il gruppo per la squadra, la persona sola per il
+     nome. Se manca la persona resta la sola squadra, che è il caso normale di
+     un lavoro dato a tutta la squadra. */
   const pillolaChi = (a) => {
-    const et = etichettaAssegnazione(a);
-    return et
-      ? `<span class="chi" title="Assegnata a ${esc(et)}">${I.persona}${esc(et)}</span>`
-      : `<span class="chi nessuno" title="Nessuno se ne sta occupando">da assegnare</span>`;
+    const squadra = squadraBase(a && a.squadra);
+    const chi = String((a && a.operatore) || "").trim();
+    if (!squadra && !chi) {
+      return `<span class="chi nessuno" title="Nessuno se ne sta occupando">da assegnare</span>`;
+    }
+    /* Il `title` spiega che cos'è la pillola, non ne ripete il testo: ripeterlo
+       non aggiungeva niente (il nome è già scritto per intero, e adesso non
+       viene più tagliato), mentre «quale delle due sto guardando» è la sola
+       cosa che l'icona da sola può lasciare in dubbio. */
+    return (squadra ? `<span class="chi" title="La squadra a cui è assegnata questa attività">${I.persone}${esc(squadra)}</span>` : "")
+         + (chi ? `<span class="chi" title="La persona a cui è assegnata questa attività">${I.persona}${esc(chi)}</span>` : "");
   };
 
   // «Cosa tocca a me»: le attività di oggi assegnate a me o alla mia squadra.
@@ -1933,18 +1991,21 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
     // tenerne una tabella. Il verbo «scadeva/scade» non concorda con niente e
     // vale per qualunque nome — è la stessa lezione dell'articolo inventato
     // davanti al nome di un campo.
+    /* ⚠️ SENZA IL « · » DAVANTI, e non è cosmesi: questa nota non sta più in
+       coda alla `.meta` (che il core taglia a due righe e che a 390 px la
+       faceva sparire per intero — vedi `.nota-riga`), sta su una riga sua. */
     if (r.stato === "scaduta") {
       const d = r.scadute[0];
-      return " · <b>" + esc(d.tipo || "Documento") + "</b>: scadeva il " + dmyBreve(d.dataScadenza)
+      return "<b>" + esc(d.tipo || "Documento") + "</b>: scadeva il " + dmyBreve(d.dataScadenza)
         + (r.scadute.length > 1 ? " (e altri " + (r.scadute.length - 1) + " documenti)" : "");
     }
     if (r.stato === "in-scadenza") {
       const d = r.inScadenza[0];
-      return " · " + esc(d.tipo || "Documento") + ": scade il " + dmyBreve(d.dataScadenza);
+      return esc(d.tipo || "Documento") + ": scade il " + dmyBreve(d.dataScadenza);
     }
-    if (r.stato === "senza-scadenze") return " · nessun documento registrato in Scudo";
-    if (r.stato === "collegamento-rotto") return " · non risulta più fra il personale di Scudo";
-    if (r.stato === "non-collegato") return " · non collegato al personale di Scudo";
+    if (r.stato === "senza-scadenze") return "nessun documento registrato in Scudo";
+    if (r.stato === "collegamento-rotto") return "non risulta più fra il personale di Scudo";
+    if (r.stato === "non-collegato") return "non collegato al personale di Scudo";
     return "";
   }
   // IL COLORE NON DEVE DIRE QUELLO CHE IL TESTO NON DICE. Le prime versioni
@@ -2047,7 +2108,8 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
       const cls = giu ? "st-mute" : (r && CLASSE_HSE[r.stato]) || "st-ok";
       return `<div class="item ${cls}" data-ope="${esc(o.id)}" role="button" tabindex="0" style="cursor:pointer" title="Tocca per cambiare la disponibilità">
       <div class="avatar${giu ? " mute" : ""}">${esc((o.nome || "?").split(/\s+/).map(p => p[0] || "").join("").slice(0, 2).toUpperCase())}</div>
-      <div class="info"><div class="name">${esc(o.nome)}</div><div class="meta">${esc(o.ruolo || "ruolo non indicato")} · ${esc(squadraBase(o.squadra) || "senza squadra")}${carico ? " · " + carico + " in carico oggi" : ""}${r ? notaHSE(r) : ""}</div></div>
+      <div class="info"><div class="name">${esc(o.nome)}</div><div class="meta">${esc(o.ruolo || "ruolo non indicato")} · ${esc(squadraBase(o.squadra) || "senza squadra")}${carico ? " · " + carico + " in carico oggi" : ""}</div>
+        ${r && notaHSE(r) ? `<div class="nota-riga">${notaHSE(r)}</div>` : ""}</div>
       <span class="acts"><span class="badge ${giu ? "tag" : "ok"}">${giu ? "Non disponibile" : "In forza"}</span>${LAV_HSE
         ? `<span class="arr" style="cursor:pointer" title="${o.lavoratoreId ? "Cambia la persona collegata in Scudo" : "Collega alla persona registrata in Scudo"}" data-lav-ope="${esc(o.id)}">${o.lavoratoreId ? "↻" : "＋"}</span>`
         : ""}</span></div>`; }).join("")
