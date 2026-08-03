@@ -309,12 +309,28 @@ numero scritto dove non era stato misurato niente**.*
 - [x] ✅ **Le parole del mestiere** (`91d0a3a`): il vocabolario regge, nessuna
       parola sbagliata; e una proposta su due era falsa, fermata dalla
       riverifica.
-- [ ] ⏳ **Il core si fermava sulla schermata d'accesso per tutti i banchi**
-      (sul disco, non ancora committato): 258 caratteri di testo e **un**
-      bottone. Con l'accesso vero il banco del contrasto trova **5 violazioni
-      AA** che prima nessuno vedeva — vanno corrette o dichiarate prima di
-      committare, e le modali restano scoperte per una seconda causa non ancora
-      trovata.
+- [x] ✅ **Il core si fermava sulla schermata d'accesso per tutti i banchi** —
+      chiuso in `71875c1`. ⏳ Resta scoperta la **seconda causa**: le modali del
+      core continuano a non aprirsi (0 su 68, con 6.800 comandi provati).
+
+- [x] ✅ **Genesi, seconda passata** (`efac49a`): un campo svuotato lasciava **28
+      righe su 28** calcolate su un valore che nel campo non c'era più, senza un
+      avviso; `Limite PPV (mm/s);null` nel CSV archiviato; due copie deboli di
+      `csvCell` sopravvissute alla correzione del mattino; e la bandiera `pochi`
+      letta da una schermata sola su tre.
+- [x] ✅ **Scudo, seconda passata** (`395c165`): pastiglia **verde «tutte
+      regolari»** su tre visite mediche dalla data illeggibile, l'assegnato
+      cancellato che accorciava il denominatore da solo, la cartella per
+      l'ispettore che stampava la chiave interna del DPI, e il badge «In
+      miglioramento» su un indice che deve ancora salire.
+- [x] ✅ **Il core era un guscio per tutti i banchi** (`71875c1`): 258 caratteri
+      di testo e **un** bottone. Con l'accesso vero sono uscite **5 violazioni
+      AA** mai viste: quattro corrette, la quinta era il banco che misurava una
+      **dissolvenza** — adesso le salta e le conta.
+- [x] ✅ **SECONDA PASSATA CHIUSA SU TUTTE E SEI LE APP**: Terra 5, Conti 6,
+      Flotta 6, Sentinella 5, Campo 4, Genesi 4, Scudo 5, più quattro nel core.
+      **Trentanove difetti veri**, e il censimento statico su quelle app era a
+      **zero**.
 
 ### B — Lo standard delle funzioni, app per app (martedì → venerdì)
 
