@@ -360,6 +360,33 @@ Perché serva davvero e non produca elenchi generici, cinque vincoli:
   cinque letture sono celle di CSV di una perforatrice, che scrive in notazione
   scientifica. Mezz'ora di misura prima, invece di una correzione che rompe in
   silenzio.
+- ⛔ **E LA FORMA PEGGIORE È LA COPIA PIÙ DEBOLE, NON L'INVENZIONE.** Misurata
+  la notte fra il 2 e il 3 agosto: nel **solo core**, **tre difetti su tre**
+  avevano la stessa causa — una regola che sta in `shared/` da mesi, riscritta
+  lì dentro in una versione che guarda la **forma** invece della sostanza.
+  · i giorni fra due date: `new Date(d2)-new Date(d1)` invece di `giorniTra`
+    → `null` dava «scaduta da 56 anni», `30/02` scorreva al 2 marzo, e un `NaN`
+    faceva **sparire** un promemoria da tutti e due gli elenchi;
+  · la data stampata: `d.split("-")` rimontato a mano invece di `dataIt`
+    → «30/02/2026» stampato come una data qualunque e «boh» stampato
+    **«undefined/undefined/boh»**, in **58 punti** della pagina;
+  · la media dei fori, scritta **quattro volte** nello stesso file con
+    comportamenti diversi — e una delle quattro era già quella giusta.
+  Non è distrazione: la copia debole **funziona** sui dati buoni, e nessuna
+  prova la guarda. Chi scrive una funzione che tratta date, numeri scritti a
+  mano o CSV **cerca prima in `shared/deepwork-id-client/dw-shell.js`**
+  (`dataISOEsiste`, `dataIt`, `giorniTra`, `numIt`, `csvCell`, `leggiCsv`) e in
+  `shared/dw-ponti.js`. Il segno da riconoscere è sempre lo stesso: un
+  controllo che guarda **com'è scritto** un dato invece di **che cosa vale**.
+  ⚠️ **E due controlli automatici sono stati provati e SCARTATI con la misura,
+  perché nessuno li rifaccia alla cieca**: (1) una regola di stile sulle date
+  formattate a mano — restano **un solo** soggetto vero, gli altri sono chiavi
+  di mese (`YYYY-MM`) costruite internamente; (2) un censimento dei **nomi**
+  che collidono con `shared/` — **zero** collisioni su 15 pagine e 55 nomi
+  condivisi, perché le copie deboli hanno sempre un nome diverso (`fmt` contro
+  `dataIt`, `daysBetween` contro `giorniTra`). Cioè: questa famiglia **non si
+  prende con una regex**, si prende leggendo — ed è per questo che sta scritta
+  qui invece che in una suite.
 - ⛔ **LA RISPOSTA È QUASI SEMPRE GIÀ IN CASA — SI CERCA PRIMA DI INVENTARE.**
   Quattro volte in due giorni, e ogni volta è costato lavoro o ha rischiato di
   far scrivere una cosa falsa: il **registro costi** «da fare in Conti» esisteva
