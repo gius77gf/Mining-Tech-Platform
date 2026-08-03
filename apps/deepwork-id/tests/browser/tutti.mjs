@@ -63,6 +63,21 @@ const BANCHI = [
      giudicato. Un'accusa falsa su un colore manda a rovinare una palette
      sana, ed è per questo che ha una prova sua. */
   ['contrasto · non accusa chi pulsa', 'contrasto.mjs', ['--controprova-pulsazione'], true],
+  /* ⛔ AGGIUNTO IL 03/08. Stessa domanda che il giorno prima ha trovato
+     ventiquattro difetti in cinque app — *dove il core compone qualcosa che
+     ESCE, chi decide i suoi numeri?* — applicata ai due documenti del core
+     rimasti fuori dalla passata: il Report tecnico (che stampava «0 · 0.0 ·
+     0.0» su un turno mai misurato, mentre la dashboard da cui si preme il
+     bottone diceva «— mc») e il PDF della frammentazione (che scriveva
+     «Indice oversize: 0% — ECCELLENTE» dove lo schermo, nello stesso caso,
+     taceva). E per arrivarci si è dovuto premere il bottone davvero: da lì è
+     saltata fuori la striscia invisibile del toast, che il codice non mostra.
+     Due controprove, una per strato, perché quella del toast maschera l'altra:
+     senza poter premere il bottone, le prove sui numeri cadono per la ragione
+     sbagliata. */
+  ['i documenti che escono dal core', 'core-documenti-che-escono.mjs', []],
+  ['documenti del core · controprova', 'core-documenti-che-escono.mjs', ['--controprova'], true],
+  ['documenti del core · controprova del tocco', 'core-documenti-che-escono.mjs', ['--controprova-toast'], true],
   ['unità in maiuscolo', 'unita-maiuscole.mjs', []],
   ['unità · controprova', 'unita-maiuscole.mjs', ['--controprova', '--solo=campo'], true],
   ['collegamenti della vetrina', 'vetrina-collegamenti.mjs', []],

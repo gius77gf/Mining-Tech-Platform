@@ -1104,3 +1104,52 @@ export function misureVolataFochino(r) {
   return { fori: n === null ? dett.length : n, kg, dichiarato: kg !== null,
            conKg, senzaKg, parziale: kg !== null && senzaKg > 0 };
 }
+
+/* ⛔ E LA TERZA È LA PIÙ NETTA DELLE TRE: LA FRAMMENTAZIONE POST-VOLATA.
+   Misurato il 03/08 premendo il bottone. La scheda a schermo, quando nessuno
+   ha valutato niente, **tace**: il riquadro dell'indice oversize sta dentro un
+   `overPct>0 ? ... : ''`, e il totale si spegne in grigio. Il PDF che esce
+   dallo stesso pannello stampava invece, sempre e comunque,
+   **«Indice oversize: 0% — ECCELLENTE»**, con le quattro classi a «0 %» e il
+   totale a «0 %». Un giudizio di eccellenza su un cumulo che nessuno ha
+   guardato, su un foglio che esce dall'azienda: il principio del fondatore
+   (l'assenza di un dato non è un dato favorevole) nella sua forma più pura.
+
+   Le domande sono tre e sono separate perché sono separate nel mestiere:
+   · `valutata`    — qualcuno ha scritto almeno una classe?
+   · `completa`    — le ha scritte tutte e quattro?
+   · `attendibile` — la loro somma fa 100, cioè sono percentuali dello stesso
+     cumulo? Un oversize del 2% su un totale dichiarato del 22% non si può
+     confrontare con la soglia del 5%: non si sa di che cosa sia il 2%.
+   ⚠️ `giudizio` è `null` quando l'oversize non è stato scritto, e NON quando
+   vale zero: uno zero misurato è un'ottima notizia e va detta. È la stessa
+   distinzione fra «0 kg» e «nessuno ha scritto quanto ha caricato».
+   ⚠️ Le soglie (3% e 8%) sono quelle che la scheda usa già a schermo: qui non
+   si decide niente di nuovo, si mette in un posto solo ciò che era scritto in
+   due — ed erano scritte in due modi diversi. */
+const _numFram = (v) => (v === null || v === undefined || v === ""
+                         || typeof v === "boolean" || !Number.isFinite(+v) || +v < 0) ? null : +v;
+export function misureFrammentazione(f) {
+  const o = f || {};
+  const classi = { fine: _numFram(o.fine), media: _numFram(o.media),
+                   grossa: _numFram(o.grossa), oversize: _numFram(o.oversize) };
+  const noti = Object.values(classi).filter((v) => v !== null);
+  const valutata = noti.length > 0;
+  const completa = noti.length === 4;
+  const totale = valutata ? noti.reduce((s, v) => s + v, 0) : null;
+  const attendibile = completa && Math.abs(totale - 100) < 0.5;
+  const oversize = classi.oversize;
+  const giudizio = oversize === null ? null
+    : (oversize < 3 ? "eccellente" : (oversize < 8 ? "accettabile" : "critico"));
+  return { classi, valutata, completa, attendibile, totale, oversize, giudizio,
+           mancanti: Object.keys(classi).filter((k) => classi[k] === null) };
+}
+
+/* La frase che accompagna il giudizio, così che la scheda e il foglio stampato
+   dicano **la stessa cosa**: era proprio la loro differenza il difetto. */
+export function riservaFrammentazione(m) {
+  if (!m || !m.valutata) return "nessuna classe granulometrica è stata valutata";
+  if (!m.completa) return `distribuzione incompleta: manca ${m.mancanti.join(", ")}`;
+  if (!m.attendibile) return `le quattro classi sommano ${m.totale}%, non 100%: le percentuali non sono confrontabili`;
+  return "";
+}

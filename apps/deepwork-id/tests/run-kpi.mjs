@@ -20125,5 +20125,83 @@ test("⛔ Scudo · andamento indici: il verso letto su giornate ancora da contar
   });
 }
 
+// ═══ CORE · i documenti che escono (03/08) ═══
+/* ⛔ «INDICE OVERSIZE: 0% — ECCELLENTE» SU UNA VOLATA CHE NESSUNO HA GUARDATO.
+   Il PDF della frammentazione del core faceva `f.oversize||0` e poi
+   `overPct<3?'ECCELLENTE'`; la stessa scheda a schermo, nello stesso caso,
+   non scriveva niente (il riquadro sta dentro un `overPct>0 ? ... : ''`).
+   `misureFrammentazione` è la funzione che adesso decide per tutt'e due, e
+   queste prove tengono chiusa la distinzione che il difetto cancellava: lo
+   zero MISURATO (un'ottima notizia, e va detta) contro il «nessuno ha
+   guardato». */
+{
+  console.log("\n— Core: la frammentazione, e lo zero che nessuno ha misurato —");
+  const mf = shell.misureFrammentazione;
+
+  test("Core · quattro classi non valutate non fanno una distribuzione a zero", () => {
+    const m = mf({ fine: null, media: null, grossa: null, oversize: null });
+    eq([m.valutata, m.completa, m.attendibile], [false, false, false], "niente è stato valutato");
+    eq([m.totale, m.oversize, m.giudizio], [null, null, null],
+      "⛔ e il totale, l'oversize e il giudizio sono `null`: non zero, non «eccellente»");
+    eq(m.mancanti, ["fine", "media", "grossa", "oversize"], "e si sa quali mancano");
+  });
+
+  test("Core · uno ZERO misurato è un'ottima notizia, e si dice", () => {
+    const m = mf({ fine: 0, media: 0, grossa: 100, oversize: 0 });
+    eq([m.valutata, m.completa, m.attendibile], [true, true, true], "tutte e quattro scritte, e sommano 100");
+    eq([m.oversize, m.giudizio], [0, "eccellente"],
+      "⛔ zero per cento di oversize MISURATO resta «eccellente»: la difesa non spegne i numeri veri");
+    eq(shell.riservaFrammentazione(m), "", "e non c'è niente da dichiarare");
+  });
+
+  test("Core · una distribuzione a metà non è confrontabile con la soglia", () => {
+    const m = mf({ fine: 20, media: null, grossa: null, oversize: 2 });
+    eq([m.valutata, m.completa, m.attendibile, m.totale], [true, false, false, 22],
+      "due classi su quattro: valutata sì, completa no, e la somma fa 22");
+    eq(m.giudizio, "eccellente", "il giudizio si calcola lo stesso — il 2% qualcuno l'ha scritto");
+    eq(shell.riservaFrammentazione(m), "distribuzione incompleta: manca media, grossa",
+      "⛔ ma accanto ci va la riserva, che è quello che il foglio stampato deve dire");
+  });
+
+  test("Core · quattro classi complete che NON fanno 100 sono percentuali di che cosa?", () => {
+    const m = mf({ fine: 10, media: 10, grossa: 10, oversize: 10 });
+    eq([m.completa, m.attendibile, m.totale], [true, false, 40], "complete ma non sommano 100");
+    eq(shell.riservaFrammentazione(m),
+      "le quattro classi sommano 40%, non 100%: le percentuali non sono confrontabili",
+      "e la riserva lo dice con la ragione");
+  });
+
+  test("Core · le tre soglie del giudizio, e i loro confini", () => {
+    eq([mf({ oversize: 2.9 }).giudizio, mf({ oversize: 3 }).giudizio], ["eccellente", "accettabile"],
+      "sotto il 3% eccellente, dal 3% accettabile");
+    eq([mf({ oversize: 7.9 }).giudizio, mf({ oversize: 8 }).giudizio], ["accettabile", "critico"],
+      "sotto l'8% accettabile, dall'8% critico");
+  });
+
+  test("Core · quello che non è un numero non diventa uno zero", () => {
+    const m = mf({ fine: "boh", media: "", grossa: true, oversize: -4 });
+    eq([m.classi.fine, m.classi.media, m.classi.grossa, m.classi.oversize], [null, null, null, null],
+      "⛔ testo, vuoto, booleano e negativo sono tutti «non lo so», non zeri");
+    eq(m.valutata, false, "quindi la volata resta non valutata");
+    eq(mf(null).valutata, false, "e non esplode su una frammentazione che non c'è");
+    eq(mf(undefined).giudizio, null, "nemmeno su `undefined`");
+  });
+
+  test("Core · la virgola italiana e le stringhe numeriche si leggono", () => {
+    // i campi sono `type="text"`, quindi arrivano stringhe
+    eq(mf({ fine: "12", media: "53", grossa: "29", oversize: "6" }).totale, 100,
+      "quattro stringhe numeriche sommano come numeri");
+    eq(mf({ fine: "12", media: "53", grossa: "29", oversize: "6" }).giudizio, "accettabile",
+      "e il giudizio è quello giusto");
+  });
+
+  test("Core · la riserva parla anche quando non c'è niente", () => {
+    eq(shell.riservaFrammentazione(mf({})), "nessuna classe granulometrica è stata valutata",
+      "⛔ la frase che il foglio stampa al posto di «ECCELLENTE»");
+    eq(shell.riservaFrammentazione(null), "nessuna classe granulometrica è stata valutata",
+      "e regge anche senza misura");
+  });
+}
+
 console.log(`\nRisultato KPI app: ${passed} passati, ${failed} falliti${inVolo.length ? `  ·  ${inVolo.length} prove asincrone aspettate` : ""}`);
 process.exit(failed > 0 ? 1 : 0);

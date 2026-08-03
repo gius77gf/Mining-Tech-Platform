@@ -108,7 +108,7 @@ import {
 // per il core e per tutte e sei le app. Quando era scritta in ogni app, le sei
 // leggevano «1.250» in tre modi diversi senza che nessun test se ne accorgesse.
 // È un modulo di sole funzioni pure, senza effetti al caricamento.
-import { numeroScritto, messaggioNumero, perCampo, montaGuardiaInteri, isoLocale, meseLocale, motivoDatiNonSalvati, giorniTra, dataIt, misureRapportino, totaliRapportini, misureVolataFochino } from "./shared/deepwork-id-client/dw-shell.js";
+import { numeroScritto, messaggioNumero, perCampo, montaGuardiaInteri, isoLocale, meseLocale, motivoDatiNonSalvati, giorniTra, dataIt, misureRapportino, totaliRapportini, misureVolataFochino, misureFrammentazione, riservaFrammentazione } from "./shared/deepwork-id-client/dw-shell.js";
 
 // ── Config Firebase ──
 const firebaseConfig = {
@@ -2071,7 +2071,7 @@ function apriCava(id){
     <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px;">${operatoriHtml}</div>
     <div class="sec-title"><span class="dot"></span>Volate previste oggi</div>
     ${volateOggiHtml}
-    <div class="stats" style="margin-top:10px;"><div class="stat"><div class="sl">Mc totali</div><div class="sv">${totMc===null?'—':totMc.toFixed(1)}</div></div><div class="stat"><div class="sl">Rapportini</div><div class="sv">${DB.rapportini.filter(r=>r.cavaId===id).length}</div></div></div>${rappFuori(totCava)?`<div style="font-size:11px;color:var(--mut);margin-top:6px;line-height:1.45;">⚠ Su ${totCava.su} rapportini${rappFuori(totCava)}.</div>`:''}
+    <div class="stats" style="margin-top:10px;"><div class="stat"><div class="sl">Mc totali</div><div class="sv">${totMc===null?'—':totMc.toFixed(1)}</div></div><div class="stat"><div class="sl">Rapportini</div><div class="sv">${DB.rapportini.filter(r=>r.cavaId===id).length}</div></div></div>${rappFuori(totCava)?`<div style="font-size:11px;color:var(--muted);margin-top:6px;line-height:1.45;">⚠ Su ${totCava.su} rapportini${rappFuori(totCava)}.</div>`:''}
     ${chartHtml}
     ${c.note?`<div class="preview-sec" style="margin-top:10px;"><div class="preview-head">Note</div><div style="font-size:13px;">${escHtml(c.note)}</div></div>`:''}
     <div class="sec-title" style="margin-top:16px;"><span class="dot"></span>Volate progettate <span class="scad-badge ok" style="margin-left:6px;">F1 nuovo</span></div>
@@ -2082,7 +2082,7 @@ function apriCava(id){
     })()}
     ${can('editCava')?`<button class="btn-sec" style="margin-top:6px;width:100%;" onclick="nuovaVolata('${id}')">+ Progetta nuova volata</button>`:''}
     <div class="sec-title" style="margin-top:16px;"><span class="dot"></span>Ultimi rapportini</div>
-    ${rapp.length?rapp.map(r=>{const u=DB.users.find(u=>u.id===r.userId);return`<div class="sitem" onclick="apriRapport('${r.id}')"><div class="av av-op">${(u?.nome||'?')[0]}</div><div class="sinfo"><div class="sname">${fmt(r.data)} · ${r.fori} fori</div><div class="ssub">${escHtml(u?u.nome+' '+u.cognome:'—')} · ${(r.mc||0).toFixed(1)} mc</div></div><div class="sarr">›</div></div>`;}).join(''):'<div class="empty-state" style="padding:20px;"><div class="empty-sub">Nessun rapportino</div></div>'}
+    ${rapp.length?rapp.map(r=>{const u=DB.users.find(u=>u.id===r.userId);return`<div class="sitem" onclick="apriRapport('${r.id}')"><div class="av av-op">${(u?.nome||'?')[0]}</div><div class="sinfo"><div class="sname">${fmt(r.data)}</div><div class="ssub">${escHtml(u?u.nome+' '+u.cognome:'—')} · ${rappRiga(r)}</div></div><div class="sarr">›</div></div>`;}).join(''):'<div class="empty-state" style="padding:20px;"><div class="empty-sub">Nessun rapportino</div></div>'}
     ${can('delCava')?`<button class="btn-sv" style="margin-top:16px;background:linear-gradient(135deg,#ef5350,#c62828);" onclick="confermaDelCava('${id}')">ELIMINA CAVA</button>`:''}
   `;
   nav('cava-det');
@@ -2427,7 +2427,7 @@ function apriRappFocDett(id){
      dettaglio è una dichiarazione che non si può controllare. */
   const foriRows=(r.fori_dettaglio||[]).map((f,i)=>{
     const kg=misureVolataFochino({fori:1,tot_kg:f&&f.kg,fori_dettaglio:[f||{}]});
-    return `<div class="preview-row"><span class="preview-lab">Foro ${i+1}</span><span class="preview-val">${escHtml(f.esplosivo||'—')}${f.esplosivo2?' + '+escHtml(f.esplosivo2):''} · ${escHtml(f.innesco||'—')} · ${kg.dichiarato?kg.kg.toFixed(1)+' kg':'<span style="color:var(--mut)">kg non scritti</span>'}</span></div>`;
+    return `<div class="preview-row"><span class="preview-lab">Foro ${i+1}</span><span class="preview-val">${escHtml(f.esplosivo||'—')}${f.esplosivo2?' + '+escHtml(f.esplosivo2):''} · ${escHtml(f.innesco||'—')} · ${kg.dichiarato?kg.kg.toFixed(1)+' kg':'<span style="color:var(--muted)">kg non scritti</span>'}</span></div>`;
   }).join('');
   openModal(`Volata ${fmt(r.data)}`,`
     <div class="preview-sec">
@@ -2436,7 +2436,7 @@ function apriRappFocDett(id){
       ${r.oi||r.of?`<div class="preview-row"><span class="preview-lab">Orario</span><span class="preview-val">${r.oi||'—'} → ${r.of||'—'}</span></div>`:''}
       <div class="preview-row"><span class="preview-lab">Fori</span><span class="preview-val">${misureVolataFochino(r).fori}</span></div>
       <div class="preview-row"><span class="preview-lab">Esplosivo tot.</span><span class="preview-val">${focKg(r,'non dichiarato: nessun foro porta i chili')}</span></div>
-      ${misureVolataFochino(r).parziale?`<div class="preview-row"><span class="preview-lab"></span><span class="preview-val" style="color:var(--mut);font-size:12px;">${misureVolataFochino(r).senzaKg} fori su ${misureVolataFochino(r).fori} non dichiarano i chili: il totale è un minimo</span></div>`:''}
+      ${misureVolataFochino(r).parziale?`<div class="preview-row"><span class="preview-lab"></span><span class="preview-val" style="color:var(--muted);font-size:12px;">${misureVolataFochino(r).senzaKg} fori su ${misureVolataFochino(r).fori} non dichiarano i chili: il totale è un minimo</span></div>`:''}
     </div>
     ${foriRows?`<div class="preview-sec">${foriRows}</div>`:''}
     ${r.note?`<div class="preview-sec"><div class="preview-head">Note</div><div style="font-size:13px;">${escHtml(r.note)}</div></div>`:''}
@@ -3393,7 +3393,7 @@ function apriCliente(id){
     ${c.iban?`<div class="preview-row"><span class="preview-lab">IBAN</span><span class="preview-val" style="font-family:monospace;font-size:12px;">${escHtml(c.iban)}</span></div>`:''}
     ${c.referente?`<div class="preview-row"><span class="preview-lab">Referente</span><span class="preview-val">${escHtml(c.referente)}</span></div>`:''}
   </div>
-  <div class="stats" style="margin-top:10px;"><div class="stat"><div class="sl">Cave</div><div class="sv">${cavCli.length}</div></div><div class="stat"><div class="sl">Rapportini</div><div class="sv">${totRapp}</div></div><div class="stat"><div class="sl">Mc totali</div><div class="sv">${totMc===null?'—':totMc.toFixed(0)}</div></div></div>${rappFuori(totCli)?`<div style="font-size:11px;color:var(--mut);margin-top:6px;line-height:1.45;">⚠ Su ${totCli.su} rapportini${rappFuori(totCli)}.</div>`:''}
+  <div class="stats" style="margin-top:10px;"><div class="stat"><div class="sl">Cave</div><div class="sv">${cavCli.length}</div></div><div class="stat"><div class="sl">Rapportini</div><div class="sv">${totRapp}</div></div><div class="stat"><div class="sl">Mc totali</div><div class="sv">${totMc===null?'—':totMc.toFixed(0)}</div></div></div>${rappFuori(totCli)?`<div style="font-size:11px;color:var(--muted);margin-top:6px;line-height:1.45;">⚠ Su ${totCli.su} rapportini${rappFuori(totCli)}.</div>`:''}
   ${c.note?`<div class="preview-sec" style="margin-top:10px;"><div class="preview-head">Note</div><div style="font-size:13px;">${escHtml(c.note)}</div></div>`:''}
   <div class="sec-title" style="margin-top:16px;"><span class="dot"></span>Cave del cliente</div>
   ${cavCli.length?cavCli.map(cav=>`<div class="sitem" onclick="apriCava('${cav.id}')"><div class="av av-cv">${escHtml(cav.nome.substr(0,2).toUpperCase())}</div><div class="sinfo"><div class="sname">${escHtml(cav.nome)}</div><div class="ssub">${escHtml(cav.indirizzo||'—')}</div></div><div class="sarr">›</div></div>`).join(''):'<div class="empty-state" style="padding:16px;"><div class="empty-sub">Nessuna cava collegata</div></div>'}`;
@@ -4024,9 +4024,30 @@ function exportReportTecnicoPDF(){
     <label class="fl">Macchina (opz.)</label><select class="finput" id="rt-mac"><option value="">Tutte</option>${macOpts.map(o=>`<option value="${o.id}">${escHtml(`${o.n}`)}</option>`).join('')}</select>
   `,[{label:'Annulla',cls:'mbtn',action:closeModal},{label:'GENERA',cls:'mbtn primary',action:()=>{const da=$('rt-da').value,a=$('rt-a').value,cv=$('rt-cava').value,mc=$('rt-mac').value;closeModal();_genReportTecnico(da,a,cv,mc);}}]);
 }
+/* ⛔ IL REPORT TECNICO CHIEDEVA I NUMERI AL RAPPORTINO, NON A CHI LI DECIDE.
+   La dashboard da cui si preme questo bottone conta con `totaliRapportini` e
+   scrive «— mc» e «2 fuori dal totale»; il foglio che ne usciva, due
+   centimetri più sotto, faceva `r.fori||0`, `(r.metri||0)`, `(r.mc||0)`. Sui
+   dati della dimostrazione il turno del 21/07 — quello aperto e mai misurato —
+   veniva stampato **«0 · 0.0 · 0.0»**, e quello del 23/07 (nove fori veri,
+   maglia da confermare) usciva con **«0.0» di metri cubi**. Lo stesso difetto
+   che il 03/08 era stato tolto dal rapportino stampato, rimasto in piedi qui.
+   E non c'era **nessuna riga di totali**: quindi nemmeno il posto dove
+   dichiarare che cosa era rimasto fuori.
+
+   ⛔ E LE RIGHE SENZA DATA SPARIVANO. `inRange` rispondeva falso su una data
+   vuota, e il modulo «Segnala guasto» non obbliga a compilarla: un guasto con
+   la data cancellata si vede nella scheda del mezzo e **non c'era** nel
+   documento; se tutte le righe di un mezzo erano senza data spariva **il
+   mezzo intero** (`if(!logs.length&&!guasti.length&&!consumi.length)return`).
+   È la stessa famiglia dei mezzi che Flotta perdeva dallo scadenzario: un
+   filtro sulle date che, non sapendo dove mettere «non lo so», lo butta.
+   Adesso una riga senza data resta e lo **dichiara**: non si può escluderla
+   da un periodo senza affermare qualcosa che nessuno sa. */
 function _genReportTecnico(da,a,cavaId,macRef){
   const {jsPDF}=window.jspdf;const d=new jsPDF({unit:'mm',format:'a4',orientation:'landscape'});const W=297;
-  const inRange=dt=>dt&&(!da||dt>=da)&&(!a||dt<=a);
+  const inRange=dt=>!dt||((!da||dt>=da)&&(!a||dt<=a));
+  const dataO=dt=>dt?fmt(dt):'senza data';
   d.setFillColor(255,171,0);d.rect(0,0,W,22,'F');
   d.setTextColor(28,22,8);d.setFont('helvetica','bold');d.setFontSize(18);d.text('DEEPWORK — REPORT TECNICO',14,14);
   d.setFontSize(10);d.setFont('helvetica','normal');d.text('Periodo: '+(da?fmt(da):'inizio')+' → '+(a?fmt(a):'oggi'),200,14);
@@ -4034,12 +4055,37 @@ function _genReportTecnico(da,a,cavaId,macRef){
   const cav=cavaId?DB.cave.find(x=>x.id===cavaId):null;if(cav){d.setFontSize(10);d.text('Cava: '+cav.nome,14,y);y+=6;}
   const rp=DB.rapportini.filter(r=>inRange(r.data)&&(!cavaId||r.cavaId===cavaId)).sort((x,z)=>(x.data||'').localeCompare(z.data||''));
   d.setFont('helvetica','bold');d.setFontSize(12);d.text('Rapportini perforazione ('+rp.length+')',14,y);
-  d.autoTable({startY:y+2,head:[['Data','Cava','Operatore','Fori','Metri','Mc']],body:rp.map(r=>{const c=DB.cave.find(x=>x.id===r.cavaId);const u=DB.users.find(x=>x.id===r.userId);return[fmt(r.data),c?c.nome:'—',u?u.nome+' '+u.cognome:'—',r.fori||0,(r.metri||0).toFixed(1),(r.mc||0).toFixed(1)];}),styles:{fontSize:8},headStyles:{fillColor:[255,171,0],textColor:[20,16,8]},margin:{left:14,right:14}});
-  y=d.lastAutoTable.finalY+8;
+  /* gli stessi numeri della dashboard, decisi dalla stessa funzione */
+  const totRT=totaliRapportini(rp);
+  d.autoTable({startY:y+2,head:[['Data','Cava','Operatore','Fori','Metri','Mc']],
+    body:rp.map(r=>{const c=DB.cave.find(x=>x.id===r.cavaId);const u=DB.users.find(x=>x.id===r.userId);const ms=misureRapportino(r);
+      return[dataO(r.data),c?c.nome:'—',u?u.nome+' '+u.cognome:'—',
+        ms.misurato?ms.fori:'non misurato',
+        ms.metri===null?'—':ms.metri.toFixed(1),
+        ms.calcolabile?ms.mc.toFixed(1):'—'];}),
+    foot:rp.length?[[{content:'TOTALI',colSpan:3,styles:{halign:'right',fontStyle:'bold'}},
+      totRT.fori,
+      totRT.metri===null?'—':totRT.metri.toFixed(1),
+      totRT.mc===null?'—':totRT.mc.toFixed(1)]]:[],
+    styles:{fontSize:8},headStyles:{fillColor:[255,171,0],textColor:[20,16,8]},
+    footStyles:{fillColor:[34,28,14],textColor:[255,213,79],fontStyle:'bold'},margin:{left:14,right:14}});
+  y=d.lastAutoTable.finalY+6;
+  /* ⛔ CHE COSA NON È NEL TOTALE, scritto sul foglio. Un documento che tace su
+     quello che ha lasciato fuori è peggio di uno che non c'è: chi lo legge
+     somma i numeri credendoli tutti. */
+  if(totRT.senzaMisura||totRT.senzaVolume){
+    const fu=[];
+    if(totRT.senzaMisura)fu.push(`${totRT.senzaMisura} senza nessun foro misurato`);
+    if(totRT.senzaVolume)fu.push(`${totRT.senzaVolume} senza maglia, quindi senza volume calcolabile`);
+    d.setFontSize(8);d.setTextColor(150,90,0);d.setFont('helvetica','italic');
+    d.text(`Su ${totRT.su} rapportini del periodo, ${fu.join(' e ')}: non rientrano nei totali.`,14,y);
+    d.setFont('helvetica','normal');d.setTextColor(40,40,40);y+=4;
+  }
+  y+=4;
   const rf=DB.rapportiniFoc.filter(r=>inRange(r.data)&&(!cavaId||r.cavaId===cavaId)).sort((x,z)=>(x.data||'').localeCompare(z.data||''));
   if(y>175){d.addPage();y=20;}
   d.setFont('helvetica','bold');d.setFontSize(12);d.setTextColor(40,40,40);d.text('Rapportini fochino ('+rf.length+')',14,y);
-  d.autoTable({startY:y+2,head:[['Data','Cava','Fori','Esplosivo kg']],body:rf.map(r=>{const c=DB.cave.find(x=>x.id===r.cavaId);const fm=misureVolataFochino(r);return[fmt(r.data),c?c.nome:'—',r.fori||0,fm.dichiarato?(fm.parziale?'almeno ':'')+fm.kg.toFixed(1):'non dichiarato'];}),styles:{fontSize:8},headStyles:{fillColor:[239,83,80],textColor:[255,255,255]},margin:{left:14,right:14}});
+  d.autoTable({startY:y+2,head:[['Data','Cava','Fori','Esplosivo kg']],body:rf.map(r=>{const c=DB.cave.find(x=>x.id===r.cavaId);const fm=misureVolataFochino(r);return[dataO(r.data),c?c.nome:'—',fm.fori,fm.dichiarato?(fm.parziale?'almeno ':'')+fm.kg.toFixed(1):'non dichiarato'];}),styles:{fontSize:8},headStyles:{fillColor:[239,83,80],textColor:[255,255,255]},margin:{left:14,right:14}});
   y=d.lastAutoTable.finalY+8;
   let macchine=[];
   if(macRef){const k=macRef.slice(0,1),id=macRef.slice(2);const m=(k==='L'?DB.mezziLav:DB.mezziStr).find(x=>x.id===id);if(m)macchine=[m];}
@@ -4050,9 +4096,9 @@ function _genReportTecnico(da,a,cavaId,macRef){
     if(y>170){d.addPage();y=20;}
     d.setFont('helvetica','bold');d.setFontSize(11);d.setTextColor(40,40,40);d.text('Mezzo: '+(m.modello||m.marca||'—')+(m.targa?' ('+m.targa+')':''),14,y);
     const rows=[];
-    logs.forEach(l=>rows.push(['Lavoro',fmt(l.data),(l.operazione||'')+(l.ore?' · '+l.ore+'h':''),l.note||'']));
-    guasti.forEach(g=>rows.push(['Guasto',fmt(g.dataSegn),(g.componente||'')+' ['+(g.stato||'')+']',g.descrizione||'']));
-    consumi.forEach(c=>rows.push(['Consumo',fmt(c.data),(c.gasolio?c.gasolio+'L gas.':'')+(c.olio?' '+c.olio+'L olio':'')+(c.lubr?' '+c.lubr:''),c.note||'']));
+    logs.forEach(l=>rows.push(['Lavoro',dataO(l.data),(l.operazione||'')+(l.ore?' · '+l.ore+'h':''),l.note||'']));
+    guasti.forEach(g=>rows.push(['Guasto',dataO(g.dataSegn),(g.componente||'')+' ['+(g.stato||'')+']',g.descrizione||'']));
+    consumi.forEach(c=>rows.push(['Consumo',dataO(c.data),(c.gasolio?c.gasolio+'L gas.':'')+(c.olio?' '+c.olio+'L olio':'')+(c.lubr?' '+c.lubr:''),c.note||'']));
     d.autoTable({startY:y+2,head:[['Tipo','Data','Dettaglio','Note']],body:rows,styles:{fontSize:8},headStyles:{fillColor:[120,144,156],textColor:[255,255,255]},columnStyles:{0:{cellWidth:24},1:{cellWidth:24}},margin:{left:14,right:14}});
     y=d.lastAutoTable.finalY+8;
   });
@@ -5815,7 +5861,7 @@ function apriRiconciliazione(volataId){
   const dMcPct = delta(progMc, realMc);
   // Helper colore — il vuoto ha un colore suo, spento: non c'è niente da giudicare
   const colore=pct=>{
-    if(pct===null||!Number.isFinite(pct))return 'var(--mut)';
+    if(pct===null||!Number.isFinite(pct))return 'var(--muted)';
     const a=Math.abs(pct);
     if(a<5)return 'var(--success)';
     if(a<15)return 'var(--warn)';
@@ -5854,7 +5900,7 @@ function apriRiconciliazione(volataId){
         </div>
       </div>
     </div>
-    ${rappFuori(tot)?`<div style="font-size:12px;color:var(--mut);margin:-6px 0 12px;line-height:1.5;">⚠ Su ${tot.su} rapportini${rappFuori(tot)}.</div>`:''}
+    ${rappFuori(tot)?`<div style="font-size:12px;color:var(--muted);margin:-6px 0 12px;line-height:1.5;">⚠ Su ${tot.su} rapportini${rappFuori(tot)}.</div>`:''}
     <div class="sec-title"><span class="dot"></span>Rapportini collegati (${realRapp})</div>
     ${realRapp===0
       ? '<div class="empty-state" style="padding:20px;"><div class="empty-icon">📋</div><div class="empty-sub">Nessun rapportino di perforazione nei ±7 giorni dalla data progetto.</div></div>'
@@ -5959,8 +6005,14 @@ function exportRiconciliazionePDF(v, rapportini){
 function apriFrammentazione(volataId){
   const v=DB.volate.find(x=>x.id===volataId);
   if(!v){toast('Volata non trovata','err');return;}
+  /* ⛔ QUATTRO ZERI ALL'APERTURA ERANO LA SORGENTE DELLA BUGIA: bastava aprire
+     la scheda e salvarla per scrivere nel database una distribuzione
+     granulometrica «misurata» che nessuno aveva guardato — e da lì il PDF
+     tirava fuori «Indice oversize: 0% — ECCELLENTE». Una classe non ancora
+     valutata è `null`, che è quello che `leggiCampo` scrive già quando il
+     campo si svuota. */
   const f=v.frammentazione||{
-    fine:0, media:0, grossa:0, oversize:0,
+    fine:null, media:null, grossa:null, oversize:null,
     note:'', foto:[], dataValutazione:'', valutatoreId:''
   };
   // Cache temporanea per modifiche prima del salvataggio
@@ -5971,11 +6023,16 @@ function apriFrammentazione(volataId){
 function renderFrammentazioneModal(v){
   const f=state._tempFrammentazione;
   // Validazione: somma percentuali
-  const tot=(parseNum0(f.fine)||0)+(parseNum0(f.media)||0)+(parseNum0(f.grossa)||0)+(parseNum0(f.oversize)||0);
-  const totColor=Math.abs(tot-100)<0.5?'var(--success)':(tot===0?'var(--muted)':'var(--danger)');
+  /* la stessa funzione che decide sul foglio stampato: era proprio la loro
+     differenza il difetto (lo schermo taceva, il PDF scriveva «ECCELLENTE») */
+  const mf=misureFrammentazione(f);
+  const tot=mf.totale===null?0:mf.totale;
+  const totColor=mf.attendibile?'var(--success)':(!mf.valutata?'var(--muted)':'var(--danger)');
+  const riserva=riservaFrammentazione(mf);
   // KPI: indice oversize è il più importante (target <5%)
-  const overPct=parseNum0(f.oversize)||0;
-  const overValutazione = overPct<3?{cls:'ok',txt:'Eccellente'}:(overPct<8?{cls:'warn',txt:'Accettabile'}:{cls:'danger',txt:'Critico'});
+  const overPct=mf.oversize;
+  const overValutazione = mf.giudizio==='eccellente'?{cls:'ok',txt:'Eccellente'}
+    :(mf.giudizio==='accettabile'?{cls:'warn',txt:'Accettabile'}:{cls:'danger',txt:'Critico'});
   const html=`
     <div style="font-size:13px;color:var(--muted);margin-bottom:12px;line-height:1.5;">
       Distribuzione granulometrica del materiale abbattuto. Inserisci le percentuali stimate per ciascuna classe (totale = 100%).
@@ -5989,37 +6046,38 @@ function renderFrammentazioneModal(v){
     </div>
     <div class="sec-title" style="margin-top:14px;"><span class="dot"></span>Distribuzione granulometrica (%)</div>
     <div class="frow">
-      <div><label class="fl">Fine (<span class="u">0-10 cm</span>)</label><input type="text" inputmode="decimal" min="0" max="100" class="finput" id="fr-fine" value="${f.fine||0}" oninput="aggiornaFrammentazione()"></div>
-      <div><label class="fl">Media (<span class="u">10-30 cm</span>)</label><input type="text" inputmode="decimal" min="0" max="100" class="finput" id="fr-media" value="${f.media||0}" oninput="aggiornaFrammentazione()"></div>
+      <div><label class="fl">Fine (<span class="u">0-10 cm</span>)</label><input type="text" inputmode="decimal" min="0" max="100" class="finput" id="fr-fine" value="${f.fine==null?'':f.fine}" oninput="aggiornaFrammentazione()"></div>
+      <div><label class="fl">Media (<span class="u">10-30 cm</span>)</label><input type="text" inputmode="decimal" min="0" max="100" class="finput" id="fr-media" value="${f.media==null?'':f.media}" oninput="aggiornaFrammentazione()"></div>
     </div>
     <div class="frow">
-      <div><label class="fl">Grossa (<span class="u">30-60 cm</span>)</label><input type="text" inputmode="decimal" min="0" max="100" class="finput" id="fr-grossa" value="${f.grossa||0}" oninput="aggiornaFrammentazione()"></div>
-      <div><label class="fl">Oversize (<span class="u">>60 cm</span>)</label><input type="text" inputmode="decimal" min="0" max="100" class="finput" id="fr-over" value="${f.oversize||0}" oninput="aggiornaFrammentazione()"></div>
+      <div><label class="fl">Grossa (<span class="u">30-60 cm</span>)</label><input type="text" inputmode="decimal" min="0" max="100" class="finput" id="fr-grossa" value="${f.grossa==null?'':f.grossa}" oninput="aggiornaFrammentazione()"></div>
+      <div><label class="fl">Oversize (<span class="u">>60 cm</span>)</label><input type="text" inputmode="decimal" min="0" max="100" class="finput" id="fr-over" value="${f.oversize==null?'':f.oversize}" oninput="aggiornaFrammentazione()"></div>
     </div>
     <div style="background:var(--card2);padding:10px 14px;margin-top:8px;display:flex;justify-content:space-between;align-items:center;">
       <span style="font-size:11px;color:var(--muted);letter-spacing:1px;text-transform:uppercase;">Totale</span>
-      <span style="font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:18px;color:${totColor};">${tot.toFixed(0)}%</span>
+      <span style="font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:18px;color:${totColor};">${mf.valutata?tot.toFixed(0)+'%':'non valutata'}</span>
     </div>
+    ${riserva?`<div style="font-size:11px;color:var(--muted);margin-top:6px;line-height:1.45;">${escHtml(riserva)}</div>`:''}
     ${tot>0 ? `
       <div style="margin-top:14px;">
         <div style="font-size:10px;color:var(--muted);letter-spacing:1px;text-transform:uppercase;margin-bottom:6px;">Visualizzazione</div>
         <div style="display:flex;height:32px;background:var(--card);border:1px solid var(--border);overflow:hidden;">
-          <div style="background:#66bb6a;flex:${parseNum0(f.fine)||0};display:flex;align-items:center;justify-content:center;color:#fff;font-size:11px;font-family:'Barlow Condensed',sans-serif;font-weight:700;">${(parseNum0(f.fine)||0)>5?(parseNum0(f.fine)||0)+'%':''}</div>
-          <div style="background:#42a5f5;flex:${parseNum0(f.media)||0};display:flex;align-items:center;justify-content:center;color:#fff;font-size:11px;font-family:'Barlow Condensed',sans-serif;font-weight:700;">${(parseNum0(f.media)||0)>5?(parseNum0(f.media)||0)+'%':''}</div>
-          <div style="background:#ffa726;flex:${parseNum0(f.grossa)||0};display:flex;align-items:center;justify-content:center;color:#100d07;font-size:11px;font-family:'Barlow Condensed',sans-serif;font-weight:700;">${(parseNum0(f.grossa)||0)>5?(parseNum0(f.grossa)||0)+'%':''}</div>
-          <div style="background:#ef5350;flex:${parseNum0(f.oversize)||0};display:flex;align-items:center;justify-content:center;color:#fff;font-size:11px;font-family:'Barlow Condensed',sans-serif;font-weight:700;">${(parseNum0(f.oversize)||0)>5?(parseNum0(f.oversize)||0)+'%':''}</div>
+          <div style="background:#66bb6a;flex:${mf.classi.fine||0};display:flex;align-items:center;justify-content:center;color:#fff;font-size:11px;font-family:'Barlow Condensed',sans-serif;font-weight:700;">${mf.classi.fine>5?mf.classi.fine+'%':''}</div>
+          <div style="background:#42a5f5;flex:${mf.classi.media||0};display:flex;align-items:center;justify-content:center;color:#fff;font-size:11px;font-family:'Barlow Condensed',sans-serif;font-weight:700;">${mf.classi.media>5?mf.classi.media+'%':''}</div>
+          <div style="background:#ffa726;flex:${mf.classi.grossa||0};display:flex;align-items:center;justify-content:center;color:#100d07;font-size:11px;font-family:'Barlow Condensed',sans-serif;font-weight:700;">${mf.classi.grossa>5?mf.classi.grossa+'%':''}</div>
+          <div style="background:#ef5350;flex:${mf.classi.oversize||0};display:flex;align-items:center;justify-content:center;color:#fff;font-size:11px;font-family:'Barlow Condensed',sans-serif;font-weight:700;">${mf.classi.oversize>5?mf.classi.oversize+'%':''}</div>
         </div>
         <div style="display:flex;justify-content:space-between;font-size:9px;color:var(--muted);margin-top:4px;letter-spacing:1px;">
           <span>FINE</span><span>MEDIA</span><span>GROSSA</span><span>OVERSIZE</span>
         </div>
       </div>
     ` : ''}
-    ${overPct>0 ? `
+    ${overPct!==null ? `
       <div style="margin-top:14px;background:var(--card);border-left:3px solid ${overValutazione.cls==='ok'?'var(--success)':(overValutazione.cls==='warn'?'var(--warn)':'var(--danger)')};padding:10px 14px;">
         <div style="font-size:10px;color:var(--muted);letter-spacing:1px;text-transform:uppercase;">Indice oversize</div>
         <div style="display:flex;justify-content:space-between;align-items:center;margin-top:3px;">
           <span style="font-family:'Barlow Condensed',sans-serif;font-size:24px;font-weight:800;color:${overValutazione.cls==='ok'?'var(--success)':(overValutazione.cls==='warn'?'var(--warn)':'var(--danger)')};">${overPct}%</span>
-          <span class="scad-badge ${overValutazione.cls}">${overValutazione.txt}</span>
+          <span class="scad-badge ${mf.attendibile?overValutazione.cls:'warn'}">${mf.attendibile?overValutazione.txt:'da confermare'}</span>
         </div>
         <div style="font-size:11px;color:var(--muted2);margin-top:4px;line-height:1.4;">Target tipico: &lt;5% per cave da inerti, &lt;3% per produzioni di alta qualità.</div>
       </div>
@@ -6101,7 +6159,7 @@ async function salvaFrammentazione(){
   await fbSet('volate', v.id, v);
   state._tempFrammentazione=null;
   toast('Frammentazione salvata','success');
-  auditLog('volata.frammentazione', {volataId:v.id, oversize:f.oversize});
+  auditLog('volata.frammentazione', {volataId:v.id, oversize:misureFrammentazione(f).oversize});
 }
 
 // Export PDF della frammentazione
@@ -6130,15 +6188,22 @@ function exportFrammentazionePDF(v){
   y+=4;
   d.setDrawColor(120,144,156);d.line(14,y,196,y);y+=4;
   d.setFont('helvetica','bold');d.setFontSize(10);d.text('DISTRIBUZIONE GRANULOMETRICA',14,y);y+=4;
+  /* ⛔ LA STESSA FUNZIONE CHE DECIDE A SCHERMO. Prima qui si faceva
+     `f.fine||0`: una classe che nessuno aveva valutato usciva stampata «0 %»,
+     e il totale «0 %». Chi legge il foglio somma quegli zeri credendoli
+     misure. `misureFrammentazione` distingue lo zero misurato — che è
+     un'ottima notizia e va detta — dal «nessuno ha guardato». */
+  const mf=misureFrammentazione(f);
+  const cl=k=>mf.classi[k]===null?'non valutato':mf.classi[k]+' %';
   d.autoTable({
     startY:y,
     head:[['Classe','Range (cm)','% Stimato']],
     body:[
-      ['Fine','0-10',(f.fine||0)+' %'],
-      ['Media','10-30',(f.media||0)+' %'],
-      ['Grossa','30-60',(f.grossa||0)+' %'],
-      ['Oversize','>60',(f.oversize||0)+' %'],
-      [{content:'TOTALE',colSpan:2,styles:{halign:'right',fontStyle:'bold'}}, ((f.fine||0)+(f.media||0)+(f.grossa||0)+(f.oversize||0))+' %']
+      ['Fine','0-10',cl('fine')],
+      ['Media','10-30',cl('media')],
+      ['Grossa','30-60',cl('grossa')],
+      ['Oversize','>60',cl('oversize')],
+      [{content:'TOTALE',colSpan:2,styles:{halign:'right',fontStyle:'bold'}}, mf.valutata?mf.totale+' %':'non valutata']
     ],
     theme:'grid',
     headStyles:{fillColor:[120,144,156],textColor:[255,255,255],fontStyle:'bold',fontSize:10},
@@ -6146,11 +6211,19 @@ function exportFrammentazionePDF(v){
     margin:{left:14,right:14}
   });
   y=d.lastAutoTable.finalY+8;
-  // KPI oversize
-  const overPct=f.oversize||0;
-  const valutazione=overPct<3?'ECCELLENTE':(overPct<8?'ACCETTABILE':'CRITICO');
+  /* ⛔ E QUI STAVA LA FRASE PEGGIORE DEL CORE: `f.oversize||0` seguito da
+     `overPct<3?'ECCELLENTE'`, cioè **«Indice oversize: 0% — ECCELLENTE»** su
+     una volata che nessuno aveva valutato. Lo schermo, nello stesso caso, non
+     scriveva niente. */
+  const valutazione=mf.giudizio?mf.giudizio.toUpperCase():'NON VALUTATO';
   d.setFont('helvetica','bold');d.setFontSize(11);
-  d.text(`Indice oversize: ${overPct}% — ${valutazione}`,14,y);y+=8;
+  d.text(`Indice oversize: ${mf.oversize===null?'non valutato':mf.oversize+'%'} — ${valutazione}`,14,y);y+=8;
+  const riserva=riservaFrammentazione(mf);
+  if(riserva){
+    d.setFont('helvetica','italic');d.setFontSize(9);d.setTextColor(150,90,0);
+    d.text(d.splitTextToSize(riserva.charAt(0).toUpperCase()+riserva.slice(1)+'.',180),14,y);
+    d.setFont('helvetica','normal');d.setTextColor(40,40,40);y+=8;
+  }
   if(f.note){
     d.setDrawColor(120,144,156);d.line(14,y,196,y);y+=4;
     d.setFont('helvetica','bold');d.setFontSize(10);d.text('NOTE',14,y);y+=5;
@@ -7650,7 +7723,25 @@ body.outdoor-mode .topbar-search-input:focus{border-color:#c77800;width:180px;}
    meta' e i puntini. Un messaggio tagliato e' testo morto, ed e' la stessa
    regola gia' scritta per le righe delle liste. Andare a capo non cambia
    niente per i messaggi corti, che restano su una riga sola. */
-.toast{position:fixed;bottom:80px;left:50%;transform:translateX(-50%) translateY(8px);background:var(--grad);color:#100d07;padding:11px 20px;font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:800;letter-spacing:1px;opacity:0;transition:all .3s;z-index:999;white-space:normal;width:max-content;max-width:90vw;text-align:center;line-height:1.35;overflow-wrap:break-word;}
+/* ⛔ IL TOAST SPARITO CONTINUAVA A MANGIARE I TOCCHI, E LA REGOLA GIUSTA ERA
+   GIÀ IN `shared/`. Misurato il 03/08 premendo il bottone: `.toast` non si
+   nasconde mai — resta `position:fixed` a 80 px dal fondo, `opacity:0` ma
+   `visibility:visible` e `pointer-events:auto`, largo fino al 90% dello
+   schermo. Cioè, dal primo messaggio in poi, una striscia invisibile di circa
+   351×57 px sta per sempre davanti alla pagina, proprio dove cade il pollice.
+   `document.elementFromPoint` sul centro del bottone «🔧 Report tecnico
+   completo» rispondeva `#toast`, e Playwright ha ritentato il click per
+   trenta secondi senza mai raggiungerlo: il bottone c'è, si vede, e non si
+   può premere. Censimento su otto sezioni: **6 comandi su 137** finiscono
+   nella striscia, fra cui DUE dei bottoni di esportazione (il Report tecnico
+   e «Esporta PDF mensile» dell'ufficio); quelli in fondo alla pagina non ne
+   escono nemmeno scorrendo, perché la striscia è fissa e la pagina è finita.
+   ⚠️ E la copia buona esisteva da mesi: `shared/dw-app-ui.css`, che si
+   presenta come «toast (copia del core)», ha `pointer-events:none` — quindi
+   tutte e sei le app stavano bene e l'originale no. Il segno da riconoscere è
+   quello solito: un elemento che si spegne cambiando l'OPACITÀ, che è come
+   appare, invece dello stato, che è quello che è. */
+.toast{position:fixed;bottom:80px;left:50%;transform:translateX(-50%) translateY(8px);background:var(--grad);color:#100d07;padding:11px 20px;font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:800;letter-spacing:1px;opacity:0;pointer-events:none;transition:all .3s;z-index:999;white-space:normal;width:max-content;max-width:90vw;text-align:center;line-height:1.35;overflow-wrap:break-word;}
 .toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
 /* ⛔ `.toast.info` NON ESISTEVA: il toast informativo cadeva sullo stile base,
    cioè testo scuro sul gradiente ambra — e con un fondo a gradiente il

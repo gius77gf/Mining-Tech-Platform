@@ -59,8 +59,24 @@ const RAPP = "rapportini:["
   + "metri:60,media_prof:3,mc:0,maglia:null,maglia_B:null,maglia_S:null,note:'venti fori veri, maglia non compilata'},"
   + "{id:'zz3',userId:'user_operatore',cavaId:'cava_1',data:'2026-07-30',fori:18,fori_fila1:18,fori_fila2:0,"
   + "metri:54,media_prof:3,mc:283.5,maglia:'3.5x4',maglia_B:3.5,maglia_S:4,note:'turno normale'}],";
-const DB_VUOTO = "personale:[], rapportini:[], rapportiniFoc:[],";
-const DB_PIENO = "personale:[], " + RAPP + " rapportiniFoc:[],";
+/* ⛔ E L'AGGANCIO NON È PIÙ IL LETTERALE `DB`, PERCHÉ NON CI ARRIVA PIÙ.
+   Fino al 03/08 i tre rapportini si mettevano dentro `const DB = {…}`, e
+   funzionava perché quel campo restava vuoto. Poi la dimostrazione del core si
+   è riempita (`DEFAULT_RAPPORTINI`), e da quel momento `initDBOfflineFallback`
+   — il ramo che prende TUTTI i visitatori da quando le regole sono chiuse, e
+   quindi anche questo banco — fa `DB.rapportini = [...DEFAULT_RAPPORTINI]`
+   **sopra** l'iniezione. Effetto misurato: il banco diceva «l'iniezione ha
+   agganciato (1)» e poi misurava i QUATTRO rapportini della dimostrazione,
+   cioè un'altra cosa; otto prove su diciotto cadevano e le altre passavano per
+   caso. È la terza causa di «non distingue» di CLAUDE.md — l'iniezione che non
+   inietta — nella sua veste peggiore, quella che si annuncia riuscita.
+   Adesso si sostituisce l'array della dimostrazione, che è il posto da cui i
+   dati arrivano davvero, e la prova che l'aggancio ha preso guarda **quanti
+   rapportini l'app ha in mano**, non quanti caratteri sono stati sostituiti. */
+const DB_VUOTO = "const DEFAULT_RAPPORTINI_FOC = [";
+const DB_PIENO = "DEFAULT_RAPPORTINI.length=0;DEFAULT_RAPPORTINI.push(...["
+  + RAPP.replace(/^rapportini:\[/, "").replace(/\],$/, "")
+  + "]);\nconst DEFAULT_RAPPORTINI_FOC = [";
 
 /* I DIFETTI DA RIMETTERE. Sono le versioni **vere** che il core aveva prima
    del 03/08, non caricature: la riga dell'elenco che sommava `r.mc||0`, le
@@ -138,7 +154,7 @@ for (let giro = 0; giro < 6 && !dentro; giro++) {
   await pg.waitForTimeout(800);
   dentro = await pg.evaluate(() => { const h = document.getElementById("screen-home"); return !!h && getComputedStyle(h).display !== "none"; });
 }
-dice(iniettato === 1, `l'iniezione dei tre rapportini ha agganciato il DB iniziale (${iniettato})`);
+dice(iniettato === 1, `l'iniezione dei tre rapportini ha agganciato la dimostrazione (${iniettato})`);
 dice(dentro, "si entra davvero nell'app");
 
 /* ⚠️ LA PROVA DI AVER NAVIGATO, prima di misurare: un banco che non naviga
@@ -150,7 +166,11 @@ dice(viste.includes("screen-volate"), `navigato allo storico rapportini (${viste
 
 const righe = await pg.$$eval("#vol-list .ssub", (e) => e.map((x) => x.innerText));
 const riepilogo = await pg.evaluate(() => document.getElementById("vol-summary")?.innerText || "");
-dice(righe.length === 3, `tre rapportini nell'elenco (${righe.length})`, righe);
+/* ⛔ QUESTA RIGA È LA PROVA CHE L'INIEZIONE HA PRESO, e vale più della conta
+   dei caratteri sostituiti: quattro righe vorrebbe dire che l'app sta
+   mostrando i rapportini della DIMOSTRAZIONE, cioè che il banco sta misurando
+   un'altra cosa credendo di misurare i propri casi. */
+dice(righe.length === 3, `tre rapportini nell'elenco — quattro vorrebbe dire che si stanno misurando quelli della dimostrazione (${righe.length})`, righe);
 
 // 1 · il turno mai misurato
 const r1 = righe.find((t) => /nessun foro misurato/.test(t));
