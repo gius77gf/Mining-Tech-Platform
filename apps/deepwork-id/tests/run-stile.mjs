@@ -2007,8 +2007,19 @@ function puntiDifficili(src, quanti = 8) {
   for (let i = 0; i < spie.length && scelti.length < quanti; i += passo) scelti.push(spie[i]);
   return scelti;
 }
-function controprovaSuiVeri(etichetta, regola, veleno, ammessa = () => true) {
-  let superfici = 0, punti = 0, cieche = 0;
+/* ⛔ `puntoBuono` — E SERVE, misurato il 03/08. Alcune regole guardano una
+   FINESTRA attorno al difetto (la 10 chiede un `empty-sub` entro 500
+   caratteri), quindi se l'iniezione cade appena prima di uno che c'è già, il
+   difetto **è davvero innocuo lì**: non è la regola cieca, è l'iniezione che
+   non inietta — la terza causa di «non distingue» in CLAUDE.md. Succedeva a 2
+   punti su 8 nel core, e bastava che una modifica altrove spostasse gli
+   offset perché il numero cambiasse: una controprova che dipende da dove
+   cadono i campioni non misura la regola, misura la fortuna.
+   Il punto scartato si CONTA e si stampa, se no si sarebbe barato: una
+   controprova che scarta in silenzio i casi difficili è peggio di nessuna. */
+function controprovaSuiVeri(etichetta, regola, veleno, ammessa = () => true,
+                            puntoBuono = () => true) {
+  let superfici = 0, punti = 0, cieche = 0, scartati = 0;
   const dove = [];
   for (const [, rel] of SUPERFICI) {
     const src = leggi(rel);
@@ -2020,13 +2031,15 @@ function controprovaSuiVeri(etichetta, regola, veleno, ammessa = () => true) {
     superfici++;
     const base = regola(src).length;
     for (const p of posti) {
+      if (!puntoBuono(src, p)) { scartati++; continue; }
       punti++;
       const rotto = src.slice(0, p) + v + src.slice(p);
       if (regola(rotto).length <= base) { cieche++; if (!dove.includes(rel)) dove.push(rel); }
     }
   }
-  test(`${etichetta}: il difetto rimesso nei file veri viene visto (${superfici} superfici, ${punti} punti)`, () => {
+  test(`${etichetta}: il difetto rimesso nei file veri viene visto (${superfici} superfici, ${punti} punti${scartati ? `, ${scartati} scartati perché lì il difetto sarebbe innocuo` : ""})`, () => {
     ok(superfici >= 3, `solo ${superfici} superfici hanno ricevuto l'iniezione: la controprova non sta coprendo niente`);
+    ok(punti >= superfici * 4, `${punti} punti su ${superfici} superfici: troppi scartati, la controprova non copre più niente`);
     ok(cieche === 0, `${cieche} iniezioni su ${punti} non viste, in ${dove.join(", ")}`);
   });
 }
@@ -2050,7 +2063,12 @@ controprovaSuiVeri("regola 9 (guardia degli interi riscritta in casa)", guardieI
 
 /* regola 10: uno stato vuoto col solo titolo, come i tredici del core */
 controprovaSuiVeri("regola 10 (stato vuoto muto)", vuotiSenzaSpiegazione,
-  '<div class="empty-state"><div class="empty-title">Nessun mezzo da lavoro</div></div>');
+  '<div class="empty-state"><div class="empty-title">Nessun mezzo da lavoro</div></div>',
+  () => true,
+  /* la regola guarda 500 caratteri in avanti: se lì un `empty-sub` c'è già,
+     il difetto iniettato risulterebbe spiegato — e non per un buco della
+     regola, ma perché in quel punto lo sarebbe davvero */
+  (src, p) => !/empty-sub/.test(src.slice(p, p + 500)));
 
 /* regola 15: il giorno preso da toISOString() su una data locale */
 controprovaSuiVeri("regola 15 (il giorno di calendario preso in UTC)", giornoInUtc,

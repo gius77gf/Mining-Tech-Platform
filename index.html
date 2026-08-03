@@ -2364,14 +2364,22 @@ function applicaFiltriVolate(){
 function apriRappFocDett(id){
   const r=DB.rapportiniFoc.find(x=>x.id===id);if(!r)return;
   const c=DB.cave.find(x=>x.id===r.cavaId);const u=DB.users.find(x=>x.id===r.userId);
-  const foriRows=(r.fori_dettaglio||[]).map((f,i)=>`<div class="preview-row"><span class="preview-lab">Foro ${i+1}</span><span class="preview-val">${escHtml(f.esplosivo||'—')}${f.esplosivo2?' + '+escHtml(f.esplosivo2):''} · ${escHtml(f.innesco||'—')}</span></div>`).join('');
+  /* ⛔ I CHILI PER FORO MANCAVANO DA QUESTA SCHEDA, e sono la ragione per cui
+     il totale può essere «almeno»: senza, chi legge «almeno 96 kg» non ha modo
+     di sapere QUALI fori non li dichiarano. Un totale parziale senza il suo
+     dettaglio è una dichiarazione che non si può controllare. */
+  const foriRows=(r.fori_dettaglio||[]).map((f,i)=>{
+    const kg=misureVolataFochino({fori:1,tot_kg:f&&f.kg,fori_dettaglio:[f||{}]});
+    return `<div class="preview-row"><span class="preview-lab">Foro ${i+1}</span><span class="preview-val">${escHtml(f.esplosivo||'—')}${f.esplosivo2?' + '+escHtml(f.esplosivo2):''} · ${escHtml(f.innesco||'—')} · ${kg.dichiarato?kg.kg.toFixed(1)+' kg':'<span style="color:var(--mut)">kg non scritti</span>'}</span></div>`;
+  }).join('');
   openModal(`Volata ${fmt(r.data)}`,`
     <div class="preview-sec">
       <div class="preview-row"><span class="preview-lab">Cava</span><span class="preview-val">${escHtml(c?c.nome:'—')}</span></div>
       <div class="preview-row"><span class="preview-lab">Fochino</span><span class="preview-val">${u?escHtml(u.nome+' '+u.cognome):'—'}</span></div>
       ${r.oi||r.of?`<div class="preview-row"><span class="preview-lab">Orario</span><span class="preview-val">${r.oi||'—'} → ${r.of||'—'}</span></div>`:''}
-      <div class="preview-row"><span class="preview-lab">Fori</span><span class="preview-val">${r.fori||0}</span></div>
+      <div class="preview-row"><span class="preview-lab">Fori</span><span class="preview-val">${misureVolataFochino(r).fori}</span></div>
       <div class="preview-row"><span class="preview-lab">Esplosivo tot.</span><span class="preview-val">${focKg(r,'non dichiarato: nessun foro porta i chili')}</span></div>
+      ${misureVolataFochino(r).parziale?`<div class="preview-row"><span class="preview-lab"></span><span class="preview-val" style="color:var(--mut);font-size:12px;">${misureVolataFochino(r).senzaKg} fori su ${misureVolataFochino(r).fori} non dichiarano i chili: il totale è un minimo</span></div>`:''}
     </div>
     ${foriRows?`<div class="preview-sec">${foriRows}</div>`:''}
     ${r.note?`<div class="preview-sec"><div class="preview-head">Note</div><div style="font-size:13px;">${escHtml(r.note)}</div></div>`:''}
@@ -3753,6 +3761,42 @@ function exportRapportinoFocPDF(r){
     }catch(e){}
   }
   y+=2;
+  /* ⛔ IL PDF DEL FOCHINO NON DICEVA QUANTO ESPLOSIVO ERA STATO USATO. Stampava
+     data, cava, fochino, orario, durata, note e reso — e non il numero per cui
+     quel documento esiste. Adesso c'è la tabella dei fori e il totale, con la
+     stessa regola di ogni altra schermata: «non dichiarato» quando nessuno ha
+     scritto i chili, «almeno X kg» quando solo una parte lo fa. */
+  {
+    const mf=misureVolataFochino(r);
+    const dett=Array.isArray(r.fori_dettaglio)?r.fori_dettaglio:[];
+    d.setDrawColor(239,83,80);d.setLineWidth(0.4);d.line(14,y,196,y);y+=4;
+    d.setFont('helvetica','bold');d.setFontSize(10);d.text('ESPLOSIVO',14,y);y+=5;
+    d.setFont('helvetica','normal');d.setFontSize(9);
+    d.text(`Fori caricati: ${mf.fori}`,14,y);
+    d.text(`Totale: ${mf.dichiarato?(mf.parziale?'almeno ':'')+mf.kg.toFixed(1).replace('.',',')+' kg':'non dichiarato'}`,70,y);
+    y+=5;
+    if(mf.parziale||!mf.dichiarato){
+      d.setTextColor(150,90,0);d.setFont('helvetica','italic');
+      d.text(mf.dichiarato
+        ? `${mf.senzaKg} fori su ${dett.length} non portano i chili: il totale è un minimo.`
+        : 'Nessun foro porta i chili caricati: il totale non è zero, non è stato scritto.',14,y);
+      d.setFont('helvetica','normal');d.setTextColor(40,40,40);y+=5;
+    }
+    if(dett.length){
+      d.autoTable({startY:y,
+        head:[['#','Esplosivo','Innesco','kg']],
+        body:dett.map((f,i)=>{
+          const k=misureVolataFochino({fori:1,tot_kg:f&&f.kg,fori_dettaglio:[f||{}]});
+          return [i+1,(f.esplosivo||'—')+(f.esplosivo2?' + '+f.esplosivo2:''),f.innesco||'—',
+                  k.dichiarato?k.kg.toFixed(1).replace('.',','):'—'];
+        }),
+        theme:'grid',styles:{fontSize:8,cellPadding:1.5},
+        headStyles:{fillColor:[239,83,80],textColor:[255,255,255],fontStyle:'bold',fontSize:8},
+        columnStyles:{0:{cellWidth:10,halign:'center'},3:{cellWidth:18,halign:'right'}},
+        margin:{left:14,right:14}});
+      y=d.lastAutoTable.finalY+6;
+    }
+  }
   // Note giornata
   if(r.note){
     d.setDrawColor(239,83,80);d.setLineWidth(0.4);d.line(14,y,196,y);y+=4;
