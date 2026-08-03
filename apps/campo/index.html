@@ -3628,6 +3628,7 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
     // stia guardando a schermo: è un documento datato.
     const oggi = dmy(OGGI);
     const av = avanzamentoGiornata(ATT_OGGI), fermi = riepilogoFermi(ATT_OGGI), cop = coperturaRapportini(SQU, RAP_OGGI);
+    const pfOggi = paretoFermi(ATT_OGGI);   // i minuti per causale: la tabella dei fermi ne aveva bisogno
     const tp = totaliProduzione(RAP_OGGI), unitaProd = Object.entries(tp.perUnita);
     const somma = (u) => Object.entries(u).map(([un, q]) => formattaProduzione(q, un)).join(" + ");
     const st = { "in-corso": "In corso", pianificata: "Pianificata", conclusa: "Conclusa", anomalia: "ANOMALIA" };
@@ -3711,7 +3712,16 @@ ${obOggi.length?`<table><tr><th>Turno</th><th>Obiettivo</th><th>Fatto</th><th>Sc
 <h2>Attività</h2>
 <table><tr><th>Turno</th><th>Attività</th><th>Dettaglio</th><th>Assegnata a</th><th>Stato</th></tr>${ATT_OGGI.slice().sort((a,b)=>(ordR[a.stato]??4)-(ordR[b.stato]??4)).map(riga).join("")||"<tr><td colspan=5>Nessuna attività registrata.</td></tr>"}</table>
 <h2>Fermi per causale</h2>
-${fermi.length?`<table><tr><th>Causale</th><th>Anomalie</th></tr>${fermi.map(f=>`<tr><td>${esc(f.causale)}</td><td>${f.conto}</td></tr>`).join("")}</table>`:"<div>Nessuna anomalia aperta.</div>"}
+${/* QUESTA TABELLA DICEVA MENO DI QUELLA DELLO SCHERMO. Si componeva con
+     `riepilogoFermi`, che restituisce solo `conto`: «Guasto meccanico | 3»,
+     quante volte e non quanto tempo. Lo schermo usa `paretoFermi` coi minuti,
+     e la consegna di turno e stata corretta stamattina (a6185f9) — il foglio
+     stampato no. E la copia debole della stessa regola, nel posto che
+     CLAUDE.md indica: dove il documento si compone.
+     Attenuante vera, scritta per non gonfiare: piu sotto la tabella
+     «Disponibilita del turno» il tempo perso lo riporta. Il dato non spariva
+     dal foglio; questa tabella pero ne diceva meno del dovuto. */""}
+${fermi.length?`<table><tr><th>Causale</th><th>Anomalie</th><th>Tempo perso</th></tr>${fermi.map(f=>{const v=pfOggi.voci.find(x=>x.causale===f.causale);return `<tr><td>${esc(f.causale)}</td><td>${f.conto}</td><td>${esc(v?minutiFermoTesto(v.minuti,v.conto,v.senzaMinuti):"senza minuti")}</td></tr>`;}).join("")}</table>${pfOggi.senzaMinutiTot?`<div class="muted">${pfOggi.senzaMinutiTot} fermo/i su ${pfOggi.fermiTot} senza i minuti registrati: il tempo perso qui sopra è un minimo.</div>`:""}`:"<div>Nessuna anomalia aperta.</div>"}
 <h2>Disponibilità del turno</h2>
 ${dispOggi.length?`<table><tr><th>Turno</th><th>Durata dichiarata</th><th>Fermi</th><th>Tempo perso</th><th>Causale peggiore</th><th>Disponibilità</th></tr>${dispOggi.map(d=>`<tr><td>${esc(d.turno)}</td><td>${d.durataMin===null?"non dichiarata":esc(oreMinuti(d.durataMin))}</td><td>${d.fermi} ${d.fermi===1?"fermo":"fermi"}${d.fermiSenzaMinuti?" (di cui "+d.fermiSenzaMinuti+" senza minuti)":""}</td><td>${d.fermi?esc(minutiFermoTesto(d.fermiMin,d.fermi,d.fermiSenzaMinuti)):"—"}</td><td>${d.peggiore?esc(d.peggiore.causale)+" — "+numeroIt(d.peggiore.minuti,0)+" min su "+d.peggiore.conto+(d.peggiore.conto===1?" fermo":" fermi"):"—"}</td><td>${d.pct===null?"<b>non calcolata</b> — "+esc(d.motivo):(d.parziale?"al più <b>"+d.pct+"%</b>":"<b>"+d.pct+"%</b>")+" ("+esc(oreMinuti(d.lavoratiMin))+" lavorati su "+esc(oreMinuti(d.durataMin))+")"+(d.parziale?"<br>"+esc(d.motivo):"")}</td></tr>`).join("")}</table>
 <div class="muted">Disponibilità = durata dichiarata del turno meno i minuti di fermo registrati sulle attività in anomalia. <b>Non è l'OEE</b>: l'OEE moltiplica disponibilità, prestazione e qualità, e prestazione e qualità qui non sono misurate.</div>`
