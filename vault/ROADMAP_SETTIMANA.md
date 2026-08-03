@@ -332,6 +332,23 @@ numero scritto dove non era stato misurato niente**.*
       **Trentanove difetti veri**, e il censimento statico su quelle app era a
       **zero**.
 
+- [x] ✅ **Il rapportino stampato non diceva chi chiude il turno** (`2fa4c90`):
+      l'app registra chi ha premuto «Salva», che è la creazione di un record,
+      non una sottoscrizione di responsabilità. Adesso il foglio lo dice per
+      quello che è, con le due righe per la firma — **senza** annunciare una
+      «firma digitale» che non c'è.
+- [x] ✅ **La consegna di turno elencava le causali dei fermi e non la durata**
+      (`a6185f9`), mentre lo schermo scrive già i minuti. E sotto c'era un
+      numero tranquillo vero: `paretoFermi` sommava un guasto **mai misurato**
+      valendo zero — con **due prove esistenti** che lo blindavano, una delle
+      quali pretendeva letteralmente `minuti: 0`.
+- [x] ✅ **La regola del banco che confessa** (`7a5e6ba`): «68 da aprire, 0
+      aperte» stampato da mesi in fondo a una pagina di verde. Le righe che
+      dicono «non ho guardato» vanno lette **prima** dei KO.
+- [ ] ⏳ **La seconda causa della cecità sulle modali** — l'elenco dei
+      candidati era scritto sulla forma delle app (`.item[onclick]`), il core
+      usa `.sitem`: correzione sul disco, misura in corso.
+
 ### B — Lo standard delle funzioni, app per app (martedì → venerdì)
 
 - [x] ✅ **B1. La caccia sistematica ai numeri tranquilli.** Chiusa il 02/08, e
