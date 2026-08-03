@@ -448,6 +448,57 @@ numero scritto dove non era stato misurato niente**.*
 - Commit piccoli e frequenti; un checkpoint **nuovo** per ogni unità completata,
   mai sovrascritto.
 
+- [x] ✅ **Il rapporto stampato di Campo** (`6048442`): un fermo mai misurato e
+  uno da 55 minuti erano **la stessa riga**. Misurato premendo il bottone.
+- [x] ✅ **Il delta di Campo riverificato** (`adce399`): «contractor induction»
+  da assente confermata a ⏱️ **scaduta in parte** — l'anagrafe appaltatori di
+  Scudo era entrata **due ore e mezzo dopo** che la riga la dichiarava assente.
+  Arretrato di Campo da 12 commit a **0**.
+- [x] ✅ **Sentinella · il report per l'ente** (`1fef8c0`): «Conforme» su un anno
+  **misurato per tre mesi**, e nessuna riga del foglio lo diceva.
+- [x] ✅ **Flotta · il giro macchina** (`924721d`): il badge usciva verde o rosso
+  **a seconda dell'ordine dell'elenco**, e tre centimetri più su la stessa
+  schermata diceva già «1 con anomalie».
+- [x] ✅ **Conti · i documenti stampati** (`4a389aa`): «**IVA 19%**», un'aliquota
+  che in Italia non esiste, ricavata per divisione e finita in tre posti.
+- [x] ✅ **Il banco del contrasto accusava quattro colori sani del core**
+  (`85ab6cc`), e il checkpoint diceva di **scurire la palette del fondatore**.
+  Tre trappole nuove, tutte nel verso che **accusa**.
+- [x] ✅ **Conti · la cifra dello stato «grave»** (`3250e33`): 2,17:1, il numero
+  meno leggibile della pagina era quello che compare quando c'è un problema.
+- [x] ✅ **Terra · il file dei rilievi** (`f274e91`): la **stima** di un rilievo
+  mai fatto usciva come volume misurato, e le date senza l'anno.
+- [x] ✅ **Regola 24** (`fc10c5b`): un gradiente che dipinge cifre porta il suo
+  conto accanto — e sta in una suite `node`, perché **il banco vede solo gli
+  stati che la dimostrazione mette in scena**.
+- [x] ✅ **Campo · il near-miss dal fronte** + **Scudo · i CSV** (`88bc73f`): la
+  mancanza riverificata come la più importante di Campo. Un compositore solo, in
+  `shared/`, con la prova d'identità che il record di Scudo non è cambiato.
+- [x] ✅ **Conti · il tasso di mora scaduto da 34 giorni** (`898b454`), citato
+  come vigente in una lettera che nomina la legge. Tre stati, e `null` non è «sì».
+- [x] ✅ **La scheda sulle norme smentita** (`19098db`): tre affermazioni su tre
+  false in una sezione sola. La riga DUVRI resta **ferma**, dichiarata.
+- [x] ✅ **Cinque funzioni chiamate che non esistevano** (`1cd1c73`, `757f0b9`),
+  e **quattro erano messaggi d'errore**: i messaggi che spiegano cosa non va
+  lanciavano un ReferenceError invece di comparire. Da lì `nomi-liberi.mjs`.
+- [x] ✅ **Il core** (`b35f647`): una striscia invisibile — il toast con
+  `pointer-events:auto` — copriva **6 comandi su 137**, due dei quali di
+  esportazione. E la versione giusta era già in `shared/`: qui **la copia era
+  migliore dell'originale**.
+- [x] ✅ **Regola 25** (`aae9fb9`): un elemento fisso e invisibile non deve
+  mangiare i tocchi, verificato su 14 superfici.
+- [x] ✅ **Flotta · i fogli stampati** (`998a60e`): «€ 12.750,00» chiede 169 px
+  in 138 **solo sulla carta**, sul foglio che si dà a chi compra la macchina.
+- [x] ✅ **Sentinella · i fogli stampati** (`b03e2df`): una lettura datata **30
+  febbraio** contata solo dal documento per l'ente, che diceva «Non conforme»
+  mentre lo schermo diceva zero superamenti.
+- [x] ✅ **Genesi · il foglio che si porta in cava** (`56747db`): non diceva
+  **SUPERA** dove lo schermo lo dice, non aveva l'airblast, e il confronto A/B
+  regalava cinque celle verdi a una **calibrazione**.
+- [x] ✅ **Il ponte Genesi → Sentinella** (`f9e71de`): una legge tarata su **tre
+  referti** arrivava «calibrata». Nessuna delle due app sbagliava da sola: il
+  fatto si perdeva **nel passaggio**.
+
 ## Riferimenti
 
 - Ultimo checkpoint **per data vera**:
@@ -457,6 +508,7 @@ numero scritto dove non era stato misurato niente**.*
   (640 precedenti alla regola, contati da `date-checkpoint.mjs`). Chi va per
   nome apre il file sbagliato credendo che sia il più fresco.
 - Le decisioni: `docs/DECISIONI_WEEKEND.md` — pagina d'ingresso in cima.
-- Stato misurato al 02/08: **1.838 prove** che girano senza rete, copertura
-  **591/591** e nessuna funzione scoperta, 49 banchi che aprono le pagine in un
-  browser vero.
+- Stato misurato al **03/08 pomeriggio**: **2.092 prove** che girano senza rete,
+  copertura **649/649** e nessuna funzione scoperta, **84 banchi** che aprono le
+  pagine in un browser vero, **21 comandi** nel giro `node` di casa.
+  *(Al 02/08 erano 1.838, 591/591 e 49 banchi.)*
