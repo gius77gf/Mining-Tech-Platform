@@ -3863,6 +3863,43 @@ test("⛔ core: il totale lascia fuori quello che non sa, e lo CONTA", () => {
   eq(t.senzaVolume, 1, "e uno ha misurato ma non sa dire il volume");
   eq(t.calcolabile, true, "il totale però esiste");
 });
+test("⛔ core: una volata del fochino senza i chili scritti non ha caricato ZERO chili", () => {
+  /* ⛔ Il numero più sorvegliato dell'app: dietro i chili di esplosivo ci sono
+     l'autorizzazione, il registro del deposito e la denuncia. `inviaRappFoc`
+     prende per buono un foro che abbia l'esplosivo **o** l'innesco, e somma i
+     chili con `parseNum0(f.kg)||0`: dodici fori caricati con la colonna dei
+     chili in bianco venivano salvati `tot_kg: 0` e mostrati «0 kg».
+     Zero chili su una volata non è una volata a vuoto. */
+  const vuota = shell.misureVolataFochino({ fori: 12, tot_kg: 0,
+    fori_dettaglio: Array.from({ length: 12 }, () => ({ esplosivo: "ANFO", kg: "" })) });
+  eq(vuota.dichiarato, false, "⛔ i chili non sono zero: non li ha scritti nessuno");
+  eq(vuota.kg, null, "⛔ e il numero è `null`, non lo zero della somma");
+  eq(vuota.senzaKg, 12, "dodici fori senza i chili, contati");
+  eq(vuota.fori, 12, "mentre i fori sono un fatto e restano");
+});
+test("⛔ core: se solo una parte dei fori dichiara i chili, il totale è un MINIMO", () => {
+  /* Il caso a metà, e va raccontato diverso: la somma non è sbagliata, è
+     **incompleta**. Stessa convenzione dell'«almeno X kg» di Sentinella. */
+  const meta = shell.misureVolataFochino({ fori: 4, tot_kg: 16,
+    fori_dettaglio: [{ kg: 8 }, { kg: 8 }, { kg: "" }, { kg: null }] });
+  eq(meta.dichiarato, true, "i chili che ci sono si scrivono");
+  eq(meta.kg, 16, "e valgono sedici");
+  eq(meta.parziale, true, "⛔ ma il totale è dichiarato PARZIALE");
+  eq(meta.conKg, 2, "due fori lo dicono");
+  eq(meta.senzaKg, 2, "e due no");
+  const piena = shell.misureVolataFochino({ fori: 2, tot_kg: 16, fori_dettaglio: [{ kg: 8 }, { kg: 8 }] });
+  eq(piena.parziale, false, "⛔ e una volata completa NON è parziale: se no la parola non direbbe niente");
+});
+test("core: i chili scritti a mano non si buttano via se il totale salvato non si legge", () => {
+  /* L'errore opposto a quello che questa funzione esiste per togliere. */
+  const rotta = shell.misureVolataFochino({ fori: 3, tot_kg: "boh", fori_dettaglio: [{ kg: 5 }, { kg: "" }] });
+  eq(rotta.kg, 5, "il totale si rifà dal dettaglio");
+  eq(rotta.parziale, true, "e resta un minimo");
+  eq(shell.misureVolataFochino({ fori: 10, tot_kg: 80 }).kg, 80,
+     "un rapportino vecchio senza dettaglio tiene il suo totale");
+  eq(shell.misureVolataFochino(null).dichiarato, false, "e non esplode su un rapportino che non c'è");
+  eq(shell.misureVolataFochino({}).fori, 0, "né su uno vuoto");
+});
 test("⛔ core: se NESSUNO sa dire il volume, il totale è «non lo so», non zero", () => {
   const t = shell.totaliRapportini([{ fori: 0, mc: 0 }, { fori: 3, metri: 9, mc: 0, maglia_B: 0, maglia_S: 0 }]);
   eq(t.mc, null, "⛔ il totale non è zero: non c'è");

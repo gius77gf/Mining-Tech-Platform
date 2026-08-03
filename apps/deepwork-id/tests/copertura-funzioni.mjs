@@ -114,7 +114,13 @@ const APP = ["campo", "conti", "flotta", "scudo", "sentinella", "terra"];
    regolato da permesso di lavoro» obbligava a rispondere sì/no su un
    adempimento che l'app non sapeva emettere né conservare — la spunta «sì» non
    aveva niente dietro. */
-const FONDO = { campo: 103, conti: 111, flotta: 82, scudo: 157, sentinella: 122, terra: 58 };
+/* ⚠️ ALZATI IL 03/08, e il fondo si alza SOLO dopo che il conto è salito
+   davvero: `conti` 111 → 112 (`baseGara`, che ferma la gara senza base che
+   rientrava dall'import valendo zero) e `sentinella` 122 → 124 (`csvAmbiente`
+   e `numeroDichiarato`, cioè le tre regole del file per l'ARPA salite dal
+   gestore del bottone dentro il modulo). Un fondo che non si alza è un fondo
+   che non cattura più niente: era già a metà strada dal conto vero. */
+const FONDO = { campo: 103, conti: 112, flotta: 82, scudo: 157, sentinella: 124, terra: 58 };
 
 /* Quello che resta fuori per un motivo, non per dimenticanza: i caricatori
    dati vogliono la rete e lo SDK, i ponti demo vogliono il localStorage.
@@ -176,7 +182,7 @@ const CONDIVISI = [
      sale qui e scende là è la prova che è un TRASLOCO e non una copia. */
   { file: "shared/dw-ponti.js", fondo: 31,
     perche: "le regole che servono a DUE app: è il posto dove un difetto si moltiplica" },
-  { file: "shared/deepwork-id-client/dw-shell.js", fondo: 32,
+  { file: "shared/deepwork-id-client/dw-shell.js", fondo: 35,
     perche: "gli aiuti che tutte le app importano (numeri, date, CSV)" },
   { file: "apps/genesi/pointcloud.js", fondo: 5,
     perche: "il calcolo del volume dal drone: da lì passano i m³ che consumano la concessione" },

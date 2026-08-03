@@ -108,7 +108,7 @@ import {
 // per il core e per tutte e sei le app. Quando era scritta in ogni app, le sei
 // leggevano «1.250» in tre modi diversi senza che nessun test se ne accorgesse.
 // È un modulo di sole funzioni pure, senza effetti al caricamento.
-import { numeroScritto, messaggioNumero, perCampo, montaGuardiaInteri, isoLocale, meseLocale, motivoDatiNonSalvati, giorniTra, dataIt, misureRapportino, totaliRapportini } from "./shared/deepwork-id-client/dw-shell.js";
+import { numeroScritto, messaggioNumero, perCampo, montaGuardiaInteri, isoLocale, meseLocale, motivoDatiNonSalvati, giorniTra, dataIt, misureRapportino, totaliRapportini, misureVolataFochino } from "./shared/deepwork-id-client/dw-shell.js";
 
 // ── Config Firebase ──
 const firebaseConfig = {
@@ -382,6 +382,15 @@ function rappRiga(r){
 function quotaMc(parte,totale){
   if(totale===null||!Number.isFinite(totale)||totale<=0||!Number.isFinite(parte))return '—';
   return ((parte/totale)*100).toFixed(0)+'%';
+}
+/* ⛔ La stessa cosa per i chili di esplosivo del fochino, che è il numero più
+   sorvegliato dell'app. «0 kg» su una volata non vuol dire «volata a vuoto»:
+   vuol dire che nessuno ha scritto quanto ha caricato. E quando solo una parte
+   dei fori li dichiara, il totale è vero ma è un MINIMO — si scrive «almeno». */
+function focKg(r,vuoto='chili non dichiarati'){
+  const m=misureVolataFochino(r);
+  if(!m.dichiarato) return vuoto;
+  return `${m.parziale?'almeno ':''}${m.kg.toFixed(1)} kg`;
 }
 /* Il solo volume, per le celle e i documenti: «—» quando non si sa. */
 function rappMc(r,vuoto='—'){ const m=misureRapportino(r); return m.calcolabile?m.mc.toFixed(1):vuoto; }
@@ -2030,12 +2039,17 @@ function apriGemello(id){
   const totRp=totaliRapportini(rp);
   const totMc=totRp.mc;
   const totFori=totRp.fori;
-  const totKg=rf.reduce((s,r)=>s+(r.tot_kg||0),0);
+  /* i chili non dichiarati non entrano nel totale valendo zero: escono contati */
+  const focM=rf.map(misureVolataFochino);
+  const focNoti=focM.filter(x=>x.dichiarato);
+  const totKg=focNoti.length?focNoti.reduce((s,x)=>s+x.kg,0):null;
+  const focSenza=focM.length-focNoti.length;
+  const focParziali=focNoti.filter(x=>x.parziale).length;
   // eventi unificati
   const ev=[];
   vol.forEach(v=>ev.push({d:v.data,ic:'📐',col:'#ff8f00',t:`Progetto ${v.nomeProgetto||'Volata #'+v.numero}`,s:`${v.tot_fori||0} fori · ${v.tot_mc||0} mc`,go:`apriEditorCava('${v.id}')`}));
   rp.forEach(r=>{const u=DB.users.find(x=>x.id===r.userId);ev.push({d:r.data,ic:'📋',col:'#42a5f5',t:'Rapportino perforazione',s:`${(u?u.nome+' '+u.cognome:'—')} · ${rappRiga(r)}`,go:`apriRapport('${r.id}')`});});
-  rf.forEach(r=>{const u=DB.users.find(x=>x.id===r.userId);ev.push({d:r.data,ic:'💥',col:'#ef5350',t:'Volata (fochino)',s:`${(u?u.nome+' '+u.cognome:'—')} · ${r.fori||0} fori · ${(r.tot_kg||0).toFixed(1)} kg`,go:`apriRappFocDett('${r.id}')`});});
+  rf.forEach(r=>{const u=DB.users.find(x=>x.id===r.userId);ev.push({d:r.data,ic:'💥',col:'#ef5350',t:'Volata (fochino)',s:`${(u?u.nome+' '+u.cognome:'—')} · ${r.fori||0} fori · ${focKg(r)}`,go:`apriRappFocDett('${r.id}')`});});
   ev.sort((a,b)=>(b.d||'').localeCompare(a.d||''));
   // mc per mese (ultimi 6) riuso pattern
   const oggi=new Date();const mesi=[];
@@ -2050,7 +2064,7 @@ function apriGemello(id){
     <div class="kpi-grid">
       <div class="kpi-card" style="border-top-color:#26a69a;"><div class="kpi-lbl">Volate progettate</div><div class="kpi-val">${vol.length}</div></div>
       <div class="kpi-card" style="border-top-color:#42a5f5;"><div class="kpi-lbl">Mc estratti</div><div class="kpi-val">${totMc===null?'—':totMc.toFixed(0)}</div><div class="kpi-sub">${totFori} fori${totRp.senzaVolume?` · ${totRp.senzaVolume} senza volume`:''}</div></div>
-      <div class="kpi-card" style="border-top-color:#ef5350;"><div class="kpi-lbl">Esplosivo</div><div class="kpi-val">${totKg.toFixed(0)}</div><div class="kpi-sub">kg · ${rf.length} volate</div></div>
+      <div class="kpi-card" style="border-top-color:#ef5350;"><div class="kpi-lbl">Esplosivo</div><div class="kpi-val">${totKg===null?'—':totKg.toFixed(0)}</div><div class="kpi-sub">${totKg===null?`nessuna delle ${rf.length} volate dichiara i chili`:`kg · ${rf.length} volate${focSenza?` · ${focSenza} senza chili`:''}${focParziali?` · ${focParziali} parziali`:''}`}</div></div>
       <div class="kpi-card"><div class="kpi-lbl">Ultima attività</div><div class="kpi-val" style="font-size:18px;">${ultima}</div></div>
     </div>
     <div class="sec-title" style="margin-top:14px;"><span class="dot"></span>Produzione · ultimi 6 mesi</div>
@@ -2329,11 +2343,14 @@ function applicaFiltriVolate(){
   if(f.userId)all=all.filter(r=>r.userId===f.userId);
   all.sort((a,b)=>(b.data||'').localeCompare(a.data||''));
   if(mode==='foc'){
-    const totKg=all.reduce((s,r)=>s+(r.tot_kg||0),0);
+    const focA=all.map(misureVolataFochino);
+    const focANoti=focA.filter(x=>x.dichiarato);
+    const totKg=focANoti.length?focANoti.reduce((s,x)=>s+x.kg,0):null;
+    const focASenza=focA.length-focANoti.length;
     const totFori=all.reduce((s,r)=>s+(r.fori||0),0);
-    $('vol-summary').innerHTML=all.length?`<div class="vol-sum"><b>${all.length}</b> volate · <b>${totFori}</b> fori · <b>${totKg.toFixed(1)}</b> kg</div>`:'';
+    $('vol-summary').innerHTML=all.length?`<div class="vol-sum"><b>${all.length}</b> volate · <b>${totFori}</b> fori · <b>${totKg===null?'—':totKg.toFixed(1)}</b> kg${focASenza?` · ${focASenza} ${focASenza===1?'non dichiara':'non dichiarano'} i chili`:''}</div>`:'';
     if(all.length===0){$('vol-list').innerHTML='<div class="empty-state"><div class="empty-icon">💥</div><div class="empty-title">Nessuna volata</div><div class="empty-sub">Non ci sono ancora rapportini fochino</div></div>';return;}
-    $('vol-list').innerHTML=all.map(r=>{const c=DB.cave.find(x=>x.id===r.cavaId);const u=DB.users.find(x=>x.id===r.userId);return`<div class="sitem" onclick="apriRappFocDett('${r.id}')"><div class="av" style="background:linear-gradient(135deg,#ef5350,#c62828);color:#fff;">💥</div><div class="sinfo"><div class="sname">${c?escHtml(c.nome):'—'} · ${fmt(r.data)}</div><div class="ssub">${u?escHtml(u.nome+' '+u.cognome):'—'} · ${r.fori||0} fori · ${(r.tot_kg||0).toFixed(1)} kg</div></div><div class="sarr">›</div></div>`;}).join('');
+    $('vol-list').innerHTML=all.map(r=>{const c=DB.cave.find(x=>x.id===r.cavaId);const u=DB.users.find(x=>x.id===r.userId);return`<div class="sitem" onclick="apriRappFocDett('${r.id}')"><div class="av" style="background:linear-gradient(135deg,#ef5350,#c62828);color:#fff;">💥</div><div class="sinfo"><div class="sname">${c?escHtml(c.nome):'—'} · ${fmt(r.data)}</div><div class="ssub">${u?escHtml(u.nome+' '+u.cognome):'—'} · ${r.fori||0} fori · ${focKg(r)}</div></div><div class="sarr">›</div></div>`;}).join('');
     return;
   }
   const totAll=totaliRapportini(all);
@@ -2354,7 +2371,7 @@ function apriRappFocDett(id){
       <div class="preview-row"><span class="preview-lab">Fochino</span><span class="preview-val">${u?escHtml(u.nome+' '+u.cognome):'—'}</span></div>
       ${r.oi||r.of?`<div class="preview-row"><span class="preview-lab">Orario</span><span class="preview-val">${r.oi||'—'} → ${r.of||'—'}</span></div>`:''}
       <div class="preview-row"><span class="preview-lab">Fori</span><span class="preview-val">${r.fori||0}</span></div>
-      <div class="preview-row"><span class="preview-lab">Esplosivo tot.</span><span class="preview-val">${(r.tot_kg||0).toFixed(1)} kg</span></div>
+      <div class="preview-row"><span class="preview-lab">Esplosivo tot.</span><span class="preview-val">${focKg(r,'non dichiarato: nessun foro porta i chili')}</span></div>
     </div>
     ${foriRows?`<div class="preview-sec">${foriRows}</div>`:''}
     ${r.note?`<div class="preview-sec"><div class="preview-head">Note</div><div style="font-size:13px;">${escHtml(r.note)}</div></div>`:''}
@@ -3901,7 +3918,7 @@ function _genReportTecnico(da,a,cavaId,macRef){
   const rf=DB.rapportiniFoc.filter(r=>inRange(r.data)&&(!cavaId||r.cavaId===cavaId)).sort((x,z)=>(x.data||'').localeCompare(z.data||''));
   if(y>175){d.addPage();y=20;}
   d.setFont('helvetica','bold');d.setFontSize(12);d.setTextColor(40,40,40);d.text('Rapportini fochino ('+rf.length+')',14,y);
-  d.autoTable({startY:y+2,head:[['Data','Cava','Fori','Esplosivo kg']],body:rf.map(r=>{const c=DB.cave.find(x=>x.id===r.cavaId);return[fmt(r.data),c?c.nome:'—',r.fori||0,(r.tot_kg||0).toFixed(1)];}),styles:{fontSize:8},headStyles:{fillColor:[239,83,80],textColor:[255,255,255]},margin:{left:14,right:14}});
+  d.autoTable({startY:y+2,head:[['Data','Cava','Fori','Esplosivo kg']],body:rf.map(r=>{const c=DB.cave.find(x=>x.id===r.cavaId);const fm=misureVolataFochino(r);return[fmt(r.data),c?c.nome:'—',r.fori||0,fm.dichiarato?(fm.parziale?'almeno ':'')+fm.kg.toFixed(1):'non dichiarato'];}),styles:{fontSize:8},headStyles:{fillColor:[239,83,80],textColor:[255,255,255]},margin:{left:14,right:14}});
   y=d.lastAutoTable.finalY+8;
   let macchine=[];
   if(macRef){const k=macRef.slice(0,1),id=macRef.slice(2);const m=(k==='L'?DB.mezziLav:DB.mezziStr).find(x=>x.id===id);if(m)macchine=[m];}

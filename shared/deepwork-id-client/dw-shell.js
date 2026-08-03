@@ -1069,3 +1069,38 @@ export function totaliRapportini(righe) {
     calcolabile: conMc.length > 0,
   };
 }
+
+/* ⛔ E LO STESSO VALE PER IL RAPPORTINO DEL FOCHINO, sui chili di esplosivo —
+   che è il numero più sorvegliato di tutta l'app: ci stanno dietro
+   l'autorizzazione, il registro del deposito e la denuncia.
+   `inviaRappFoc` accetta un foro come «valido» se ha l'esplosivo **o**
+   l'innesco (`f.esplosivo||f.esplosivo2||f.innesco`), e i chili li somma con
+   `parseNum0(f.kg)||0`: una volata con dodici fori caricati e la colonna dei
+   chili lasciata in bianco viene salvata `tot_kg: 0` e mostrata «0 kg».
+   Zero chili su una volata **non è una volata a vuoto**: è una volata di cui
+   nessuno ha scritto quanto ha caricato, e sono due cose che a un controllo
+   rispondono in modo opposto.
+
+   ⚠️ E c'è un secondo caso, che è quello a metà: se **alcuni** fori dichiarano
+   i chili e altri no, il totale è vero ma è un **minimo**. Si dichiara
+   `parziale`, con la stessa convenzione dell'«almeno X kg» di Sentinella —
+   perché la somma non è sbagliata, è incompleta, e le due cose si raccontano
+   diverse.
+
+   ⚠️ Il ripiego sul dettaglio (`daiFori`) c'è per il caso in cui il totale
+   salvato non si legga ma i fori sì: buttare via chili scritti a mano sarebbe
+   l'errore opposto a quello che questa funzione esiste per togliere. */
+export function misureVolataFochino(r) {
+  const o = r || {};
+  const dett = Array.isArray(o.fori_dettaglio) ? o.fori_dettaglio : [];
+  const n = _numRapp(o.fori);
+  const conKg = dett.filter((f) => { const k = _numRapp(f && f.kg); return k !== null && k > 0; }).length;
+  const senzaKg = Math.max(0, dett.length - conKg);
+  const grezzo = _numRapp(o.tot_kg);
+  const daiFori = conKg
+    ? dett.reduce((s, f) => { const k = _numRapp(f && f.kg); return s + (k !== null && k > 0 ? k : 0); }, 0)
+    : null;
+  const kg = (grezzo !== null && grezzo > 0) ? grezzo : daiFori;
+  return { fori: n === null ? dett.length : n, kg, dichiarato: kg !== null,
+           conKg, senzaKg, parziale: kg !== null && senzaKg > 0 };
+}
