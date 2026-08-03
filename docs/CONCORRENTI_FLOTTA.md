@@ -10,10 +10,10 @@
 > | Scudo | **17** | **6** | 2 | **2** | **7** |
 > | Sentinella | 22 | **13** | 4 | ⏱️ **3** | **2** |
 > | Terra | 11 | 4 | 2 | 2 | 3 |
-> | Campo | 22 | 12 | 2 | 2 | 6 |
+> | Campo | 22 | 11 | 2 | ⏱️ **3** | 6 |
 > | Conti | 18 | **8** | **5** | ⏱️ **3** | 2 |
 > | Flotta | 16 | 5 | 3 | 0 | 8 |
-> | **totale** | **106** | **48** | **18** | **12** | **28** |
+> | **totale** | **106** | **47** | **18** | **13** | **28** |
 >
 > ✅ **E due sono già SCESE**, che è il motivo per cui il conto sta scritto: la
 > **catena di custodia del dato** di Sentinella e il suo **audit trail** (a metà)

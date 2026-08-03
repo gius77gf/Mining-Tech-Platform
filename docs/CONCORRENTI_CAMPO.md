@@ -10,10 +10,10 @@
 > | Scudo | **17** | **6** | 2 | **2** | **7** |
 > | Sentinella | 22 | **13** | 4 | ⏱️ **3** | **2** |
 > | Terra | 11 | 4 | 2 | 2 | 3 |
-> | Campo | 22 | 12 | 2 | 2 | 6 |
+> | Campo | 22 | 11 | 2 | ⏱️ **3** | 6 |
 > | Conti | 18 | **8** | **5** | ⏱️ **3** | 2 |
 > | Flotta | 16 | 5 | 3 | 0 | 8 |
-> | **totale** | **106** | **48** | **18** | **12** | **28** |
+> | **totale** | **106** | **47** | **18** | **13** | **28** |
 >
 > ✅ **E due sono già SCESE**, che è il motivo per cui il conto sta scritto: la
 > **catena di custodia del dato** di Sentinella e il suo **audit trail** (a metà)
@@ -338,9 +338,18 @@ Fonti: Newtrax MDP product page, Micromine Pitram short-interval control docs.
 
 ---
 
-## Verifica del delta (01/08)
+## Verifica del delta (01/08 · **riverificato il 03/08**)
 
-> **Verificato contro il codice al commit `f3432f4`.** Ogni riga qui sotto
+> **Verificato contro il codice al commit `6048442`.** *(La prima verifica era
+> a `f3432f4`, 01/08 16:55; il 03/08 le righe sono state ripassate contro il
+> codice di oggi e **una ha cambiato verdetto**, nella direzione che costa:
+> «contractor induction» da **assente confermata** a ⏱️ **scaduta in parte** —
+> l'anagrafe appaltatori di Scudo è entrata alle 19:28 dello stesso 01/08, due
+> ore e mezzo dopo che la riga la dichiarava assente. Aggiornati anche i
+> `file:riga` del rapporto stampabile, che i cantieri di questi due giorni
+> avevano spostato di seicento righe.)*
+>
+> Ogni riga qui sotto
 > era vera **a quel commit**, e non lo è più per forza adesso: il 01/08 una riga è
 > scaduta in **trentacinque minuti**, perché la verifica e il cantiere che la
 > colmava sono girati lo stesso pomeriggio senza sapere l'uno dell'altro.
@@ -372,8 +381,8 @@ riferimento che conta è il **nome** della funzione, non il numero.*
 | Equipment dispatch optimization | **CONFERMATO ASSENTE** | Cercati `dispatch`, `assegnazione dinamica`, `instradamento`: zero. Esiste l'assegnazione **manuale** a squadra/operatore (`etichettaAssegnazione`, 358; `caricoSquadre`, 392), non l'ottimizzazione. |
 | Material / inventory RFID tracking | **CONFERMATO ASSENTE** in Campo | Cercati `RFID`, `barcode`, `codice a barre`, `QR`, `inventario`, `giacenza`, `magazzino` in `campo-data.js` e `campo/index.html`: zero. *Nota d'ecosistema*: la giacenza esiste in **Flotta**, ma sui **ricambi** (`sottoScorta`, `flotta-data.js:625`; `scaricoGiacenza`, 617; `propostaScorte`, 1823), non sui materiali di cava. |
 | Mixed-fleet brand-agnostic monitoring | **CONFERMATO ASSENTE** | Stessa ricerca di `telemetri`/`GPS`: zero in Campo. In Flotta c'è solo l'import CSV dai portali OEM (`parseTelemetriaCsv`, `flotta-data.js:531`), che è brand-agnostico ma non è monitoraggio. |
-| Contractor induction compliance | **CONFERMATO ASSENTE** | Cercati `appaltator`, `contractor`, `ditta esterna`, `impresa esterna`, `induction`, `accoglienza` in `campo-data.js`, `campo/index.html` e `shared/dw-ponti.js`: zero. |
-| PDF export con branding | **C'È A METÀ** | *C'è*: il **«Rapporto di fine turno» stampabile completo** — bottone `btn-rapporto-turno` (`index.html:759`), generatore a `index.html:3012-3098`, con quadro, checklist, meteo, appello nominativo, obiettivo, attività, fermi per causale, disponibilità per turno, foto delle anomalie, produzione, rapportini, chiusura e firme, riaperture; apre in scheda nuova con `window.print()` (3095), quindi «salva in PDF» è un passo del browser. *Manca*: il **marchio del cliente** — l'intestazione è fissa, «Deepwork Campo · data» (riga 3058), non il logo e la ragione sociale dell'azienda. |
+| Contractor induction compliance | ⏱️ **SCADUTA IN PARTE — C'È A METÀ NELL'ECOSISTEMA DAL 01/08** (verifica `f3432f4` 16:55 → costruito `425bf40` **19:28**, due ore e mezzo dopo) | *C'è, in Scudo*: l'anagrafe delle imprese esterne con la loro **qualifica** — `appaltatori` (`scudo-data.js:213`), `TIPI_DOC_APPALTATORE` (3085) con CCIAA, DURC e autocertificazione ex art. 47 D.P.R. 445/2000, `docDiAppaltatore` (3107), `qualificaAppaltatore` (3121), `descriviQualifica` (3162), gli appalti per impresa e per cantiere (`appaltiDiAppaltatore` 3350, `riepilogoAppalti` 3360), chi va verificato per primo (`appaltatoriDaVerificare` 3384) e il **documento di coordinamento**; e il permesso di lavoro chiede se il lavoro lo fa un'impresa esterna (`scudo/index.html:1407`, 2546). *Manca davvero, ed è la metà che il concorrente chiama «induction»*: il verbale di **accoglienza della singola persona** che entra in cava per conto dell'impresa. Scudo verifica l'**impresa** (qualifica, coordinamento), non la **persona**, e lo dichiara: «i corsi dei suoi addetti li garantisce l'impresa» (`index.html:1407`) — è una scelta, non una dimenticanza, ma il registro di chi è stato accolto e quando non esiste da nessuna parte. *In Campo*: sempre zero — rifatta la ricerca il 03/08, `appaltator`, `contractor`, `ditta esterna`, `impresa esterna`, `induction`, `accoglienza` in `campo-data.js`, `campo/index.html` e `shared/dw-ponti.js` non compaiono; le sole occorrenze in tutto `apps/` sono in Scudo. |
+| PDF export con branding | **C'È A METÀ** | *C'è*: il **«Rapporto di fine turno» stampabile completo** — bottone `btn-rapporto-turno` (`index.html:903`), generatore a `index.html:3626-3750`, con quadro, checklist, meteo, appello nominativo, obiettivo, attività, fermi per causale, disponibilità per turno, foto delle anomalie, produzione, rapportini, chiusura e firme, riaperture; apre in scheda nuova con `window.print()` (3747), quindi «salva in PDF» è un passo del browser. *Manca*: il **marchio del cliente** — l'intestazione è fissa, «Deepwork Campo · data» (riga 3692), non il logo e la ragione sociale dell'azienda. ⏱️ **E il «fermi per causale» di questo elenco diceva meno del vero fino al 03/08** (`6048442`): la tabella stampata portava solo il **conto** delle anomalie, non i minuti, quindi un fermo mai misurato e uno da quasi un'ora erano la stessa riga. Adesso porta il tempo perso e dichiara quanti fermi i minuti non ce l'hanno. |
 | Offline sync & conflict resolution | **CONFERMATO ASSENTE** | Nessuna registrazione di service worker in `campo/index.html` (cercato `serviceWorker`: zero). Lo scheletro può arrivare dalla cache del `sw.js` di radice, che però **non precarica** nessun file sotto `apps/` (`APP_SHELL`, `sw.js:7-25`) e li prende solo a runtime. Soprattutto: **i dati non hanno persistenza offline** — l'SDK usa `getFirestore` liscio (`shared/deepwork-id-client/index.js:63`), mentre `persistentLocalCache` è attivato **solo nel core** (`index.html:126-137`). Nessuna coda di scritture, nessuna risoluzione di conflitti: cercati `IndexedDb`, `persistentLocalCache`, `enableIndexedDbPersistence` in `shared/` → zero. |
 | Multi-site coordination dashboard | **CONFERMATO ASSENTE** | Cercati `multi-sito`, `multi-cava`, `più cave`, `sede`, `cantiere` in `campo-data.js` e `campo/index.html`: solo «capocantiere» in commenti (860, 930) e l'`area` della squadra («fronte Est»). Un'organizzazione = una cava; niente confronto fra siti. |
 | Turno chiuso con firma digitale | **C'È A METÀ** — la riga del documento era già giusta | *C'è*: `chiusuraDi` (641), `turnoChiuso` (666), consegna/ricevuta/ora, blocco delle modifiche dopo la firma (`index.html:1069-1093`) e la **traccia delle riaperture** con chi/quando/perché (`riaperture` 676, `ultimaRiapertura` 697). *Manca*: la firma **reale** — cercati `firma digitale`, `firma grafometrica`: zero; la firma è il nome di chi consegna scritto in un campo di testo. |
@@ -404,6 +413,29 @@ riferimento che conta è il **nome** della funzione, non il numero.*
 > tutte le altre**, e che qui non c'è più lavoro da fare. Quale sia adesso la
 > mancanza più importante di Campo **non lo si può dire senza riverificare**: è
 > esattamente ciò che misura `documenti-invecchiati.mjs`.
+>
+> ✅ **RIVERIFICATO IL 03/08, e la risposta è sotto: il near-miss segnalabile
+> dal fronte.** Misurato oggi, non riportato dal documento vecchio:
+> `near-miss`, `mancato infortunio`, `quasi infortunio`, `hazard` in
+> `campo-data.js`, `campo/index.html` e `shared/dw-ponti.js` → **zero, zero,
+> zero**. In Scudo invece il giro è completo e costruito apposta per il
+> piazzale: «Segnala un near-miss» (`scudo/index.html:774`, con il commento a
+> 207 — *«si segnala in piedi sul piazzale, con i guanti»*), la sezione
+> «Infortuni e near-miss» (1185), il riepilogo aggregato nella forma che chiede
+> la **L. 198/2025** per le aziende oltre i 15 addetti (1215-1233), e l'azione
+> correttiva collegata (1067).
+>
+> ⚠️ **E va detto che cosa NON è**, se no è un allarme gonfiato: non è una
+> funzione che manca all'ecosistema — c'è, ed è fatta bene. È una **funzione
+> che non sta dove sta la persona**. Chi è al fronte ha in mano Campo, e per
+> segnalare il quasi-infortunio che ha appena visto deve uscire, aprire
+> un'altra app e ritrovarcisi dentro. È la stessa forma del ponte «anomalia →
+> azione correttiva» che è stato costruito il 01/08: non si inventa niente, si
+> collega da dove il fatto succede a dove il fatto viene trattato. La
+> differenza è il **momento**: un fermo si registra a mente fredda a fine
+> turno, un near-miss o lo si segnala nei trenta secondi dopo o non lo si
+> segnala più — ed è precisamente il dato che la legge nuova chiede di
+> contare.
 
 **Il ponte «anomalia di Campo → azione correttiva».** Non è la più ricorrente fra i
 concorrenti (lo sono geofencing e photo annotation), ma è l'unica che oggi fa
