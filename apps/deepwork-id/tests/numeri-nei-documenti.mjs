@@ -379,10 +379,16 @@ test("docs/LA_STRUTTURA_DEL_CORE_SCRITTA_SEI_VOLTE.md: il conto del contagio è 
    va **tolta** da lì, se no l'elenco invecchia e copre un difetto che non c'è
    più. Aggiustare il totale invece di ritrovare le righe sarebbe esattamente il
    difetto che il controllo esiste per prendere. */
-const DA_RIVERIFICARE = {
-  Conti: { mancano: 2, perche: "due righe tolte dalle confermate il 01/08 senza essere aggiunte "
-    + "altrove; il documento è in riverifica riga per riga (03/08), come è già stato fatto per Sentinella" },
-};
+/* ✅ VUOTO, e la riga che c'era è stata tolta perché il controllo l'ha
+   PRETESO, non perché qualcuno se ne sia ricordato: `Conti` è stato
+   riverificato riga per riga il 03/08 e adesso il suo conto torna
+   (8 confermate + 5 false + 3 scadute + 2 a metà = 18). Le due righe perse
+   sono state **ritrovate** — «preventivi e ordini» e «prezzi a scaglioni»,
+   marcate come colmate nel corpo del documento ma mai spostate nella colonna
+   delle scadute — non sono state coperte alzando un numero.
+   È la seconda metà del mestiere che `sonda-vuoto` ha insegnato: un'eccezione
+   che non serve più è un'eccezione che nasconde. */
+const DA_RIVERIFICARE = {};
 
 {
   const APP_DELTA = ["campo", "conti", "flotta", "scudo", "sentinella", "terra"];

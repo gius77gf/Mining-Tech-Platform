@@ -11,9 +11,9 @@
 > | Sentinella | 22 | **13** | 4 | ⏱️ **3** | **2** |
 > | Terra | 11 | 4 | 2 | 2 | 3 |
 > | Campo | 22 | 12 | 2 | 2 | 6 |
-> | Conti | 18 | 9 | **5** | 0 | 2 |
+> | Conti | 18 | **8** | **5** | ⏱️ **3** | 2 |
 > | Flotta | 16 | 5 | 3 | 0 | 8 |
-> | **totale** | **105** | **52** | **18** | **8** | **25** |
+> | **totale** | **105** | **51** | **18** | **11** | **25** |
 >
 > ✅ **E due sono già SCESE**, che è il motivo per cui il conto sta scritto: la
 > **catena di custodia del dato** di Sentinella e il suo **audit trail** (a metà)
@@ -343,15 +343,32 @@
 
 ---
 
-## Verifica del delta (01/08)
+## Verifica del delta (01/08 · **riverificata riga per riga il 03/08**)
 
-> **Verificato contro il codice al commit `f3432f4`.** Ogni riga qui sotto
-> era vera **a quel commit**, e non lo è più per forza adesso: il 01/08 una riga è
-> scaduta in **trentacinque minuti**, perché la verifica e il cantiere che la
-> colmava sono girati lo stesso pomeriggio senza sapere l'uno dell'altro.
-> Di quanti commit l'app sia andata avanti da allora lo dice
-> `node apps/deepwork-id/tests/documenti-invecchiati.mjs`. Le righe già trovate
-> scadute portano la loro correzione accanto, con la data.
+> **Verificato contro il codice al commit `ecc65d5`** — l'ultimo che ha toccato
+> `apps/conti/`, quindi l'arretrato riparte da **zero**. Il codice è stato letto
+> dal **committato** (`git show HEAD:apps/conti/conti-data.js`, 3.543 righe;
+> `git show HEAD:apps/conti/index.html`, 6.103 righe), non dal disco, perché
+> mentre questa verifica girava altri cantieri stavano scrivendo su `apps/conti/`.
+>
+> La verifica precedente era ferma a `f3432f4` e aveva accumulato **12 commit**
+> di arretrato. In mezzo Conti ha ricevuto **tre cantieri interi**, e si vedono
+> nell'unico modo che non mente: le funzioni esportate nuove.
+> `git show f3432f4:apps/conti/conti-data.js` contro `HEAD` dà **30 export nuovi
+> e zero tolti**, e si dividono in tre grappoli e **solo tre**:
+>
+> | grappolo | export nuovi | commit |
+> |---|---|---|
+> | Preventivi / ordini (+ il prezzo dell'ordine ereditato dal DDT) | `STATI_PREVENTIVO`, `statoPreventivoLabel`, `statoPreventivo`, `ordineConfermato`, `rigaPreventivo`, `totaliPreventivo`, `consegnatoOrdine`, `ddtDaAgganciare`, `prezzoDaOrdine`, `descriviPrezzoOrdine`, `avanzamentoOrdine`, `descriviAvanzamento`, `portafoglioOrdini`, `preventiviDaSeguire` | `896b1ea` (01/08) → `5218350` (02/08) |
+> | Prezzi a scaglioni di quantità | `validaScaglioni`, `scaglionePer`, `applicaScaglione`, `etichettaScaglione`, `descriviScaglione` | `aa14015` → `f5dab46` (01/08) |
+> | Abbinamento dei movimenti bancari | `parseMovimentiCsv`, `importoBancario`, `isoDaDataItaliana`, `numeroInCausale`, `clienteInCausale`, `combinazioneUnica`, `movimentoGiaRegistrato`, `abbinaMovimenti`, `riepilogoAbbinamento`, `GRADI_ABBINAMENTO`, `ESTRATTO_ESEMPIO` | `c02836a` (01/08) |
+>
+> Tre grappoli, **tre righe scadute** — e nessun'altra, perché nessun altro
+> export è nato. Le altre quindici righe sono state riaperte una per una lo
+> stesso: i numeri di riga di §2 e §3 erano tutti spostati, e una prova che cita
+> una riga sbagliata non è una prova.
+> Di quanti commit l'app sia andata avanti lo dice
+> `node apps/deepwork-id/tests/documenti-invecchiati.mjs`.
 
 *Ogni riga marcata «Non c'è» o «C'è a metà» nella tabella §2 e ogni riga della
 tabella §3 è stata riaperta sul codice. Le righe che comparivano in tutt'e due
@@ -361,48 +378,128 @@ distinte.*
 
 | Funzione | Verdetto | Prova |
 |---|---|---|
-| Fattura elettronica SDI | **CONFERMATO ASSENTE** (ma la nota del documento è sbagliata) | Cercati `fatturapa`, `xml`, `p7m`, `fattura elettronica`, `codice destinatario`, `SDI` in `conti-data.js` e `conti/index.html`: **nessuna generazione né trasmissione del tracciato**. La nota «né UI» è però falsa: il campo esiste ed è compilabile — `clienti.sdi` (codice destinatario o PEC) è documentato a `conti-data.js:7`, valorizzato nella dimostrazione (100-101) e ha il suo campo nel form (`index.html:1147-1150`) con la ricerca che ci passa sopra (1898). Manca il **file XML** e l'invio. |
-| Note di credito / debito | **FALSO, C'È GIÀ** — ed è la falsa più grossa di questo documento | Impianto completo su **art. 26 DPR 633/1972**: `CAUSALI_NOTA` con il **comma** e il **termine di 12 mesi** per ogni causale (`conti-data.js:1751-1758`), `causaleNota` (1759), `validaNota` (1864), `notaDaFattura` (1901), `stornatoDi` (1828), `statoFattura` che tiene conto dello storno (1843). Nella pagina: sezione **«Note di credito»** sotto le fatture (`index.html:669`), badge «Stornata / Stornata N%» sulla fattura (1626-1635), e le note che **abbassano imponibile e IVA del periodo** con le due cifre tenute separate per il commercialista (1854-1871). Lo storno entra anche in `apertoDi` (1122), quindi in aging ed esposizione. Esiste pure la ricerca dedicata: `docs/RICERCA_NOTE_DI_CREDITO_202608.md`. |
-| Preventivi e ordini | ✅ **COLMATA IL 01/08 — la riga ha fatto il suo lavoro** | `STATI_PREVENTIVO`, `statoPreventivo`, `rigaPreventivo`, `totaliPreventivo`, `ordineConfermato`, `consegnatoOrdine`, `avanzamentoOrdine`, `descriviAvanzamento`, `portafoglioOrdini`, `preventiviDaSeguire` + sezione «Offerte» nella pagina. **Un documento solo**: il preventivo accettato *diventa* l'ordine. Lo scaduto ferma l'orologio quando è accettato, e un ordine di cui non si sa quanto è stato consegnato **non è «0%»** — è non misurabile, e la pagina non disegna la barra. | Cercati `preventiv`, `ordine cliente`, `ordini clienti`, `conferma d'ordine`, `quote` in `conti-data.js` e `conti/index.html`: zero occorrenze. Il ciclo parte dalla pesata/DDT. |
-| Firma digitale documenti | **CONFERMATO ASSENTE** | Cercati `firma digitale`, `firma grafometrica`, `firmato digitalmente`, `firma` in `conti-data.js` e `conti/index.html`: zero. |
-| Listini differenziati per cliente | **C'È A METÀ** | *C'è*: la differenziazione **per cliente** esiste ed è quella della prassi italiana — `clienti.sconto` %, validato da `scontoValido` (`conti-data.js:1271`) e applicato in `imponibileRiga(quantita, prezzoUnitario, scontoPct)` (1280), con il DDT che stampa **prezzo di listino e sconto separati** invece del netto (nota a 1268-1270). *Manca*: **più listini** nominati e assegnabili — c'è un solo listino prodotti (`prodotti/{id}`, import da `parseListinoCsv`, 527) e nessun campo che leghi un cliente a un listino; cercati `listaAssegnata`, `prezzoCliente`, `listino cliente`: zero. |
-| Prezzi dinamici per volume / sconto quantità | ✅ **COLMATA IL 01/08** | `validaScaglioni`, `scaglionePer`, `applicaScaglione`, `etichettaScaglione`, `descriviScaglione`. La scala è per prodotto, a **prezzi** oppure a **sconti**, con la forma «da» (i buchi non sono rappresentabili). Sconto cliente e scaglione **si sommano**, perché il cliente deve poter rifare il conto a mente — e perché una percentuale piegata nel prezzo unitario perde soldi (misurato: 6,24 € su 2.230 t). ⚠️ Lo scaglione vive nel **preventivo, non sul DDT**: un DDT è un camion, e scegliere la banda sulla portata di un autocarro farebbe pagare il prezzo del privato a chi ha comprato 5.000 t. | Cercati `scaglion`, `sconto volume`, `quantita minima`, `fascia di quantità`, `tier` in `conti-data.js` e `conti/index.html`: zero. Lo sconto è una sola percentuale per cliente, indipendente dalla quantità (`imponibileRiga`, 1280). |
-| Pesa / bilancia digitale (driver hardware) | **CONFERMATO ASSENTE** | Cercati `bilancia`, `pesa ponte`, `weighbridge`, `seriale`, `webserial`, `driver`: le sole occorrenze sono testuali (il segnaposto «come sulla bilancia» sul campo del lordo, `index.html:795`, e l'icona `bilancia` a 1439). Le pesate si digitano: `nettoPesata` (1258), `rigaPesata` (1296), lordo/tara a mano. |
-| e-ticketing per DDT | **CONFERMATO ASSENTE** | Cercati `e-ticket`, `eticket`, `ticket elettronico` in `conti-data.js` e `conti/index.html`: zero. Il DDT esiste ma si **stampa** (`mancanzeDdt`, 1809; `CAUSALI_TRASPORTO`, 1782; `TRASPORTO_A_CURA`, 1795). |
-| Scadenza e fasce di scaduto — dichiarata «C'è a metà, logica di UI non scritta» | **FALSO: la UI c'è** | `statoScadenzaFattura` (`conti-data.js:405`) e `agingIncassi` (417) sono **disegnate**: sezione «Aging incassi — crediti aperti per ritardo» (`index.html:1277-1279`), calcolo e righe a 2110-2138, grafico a barre delle fasce a 2150-2174, totale «da sollecitare» a 2138. |
-| Solleciti di pagamento automatici | **FALSO, C'È GIÀ** (già segnalato nell'avviso in testa, qui confermato con le righe) | `livelloSollecito(giorniRitardo)` (`conti-data.js:584`), `testoSollecito` (614), `interessiMora` (574) con `TASSO_MORA_DEFAULT = 10,15%` e `SPESE_RECUPERO_231 = 40 €` ex art. 6 D.Lgs 231/2002 (571-572), `estrattoContoCliente` per il cliente con più fatture aperte (761). Nella pagina: bottone **«Sollecito»** su ogni fattura in ritardo (`index.html:1826`) e sezione **«Priorità: chi sollecitare per primo»** (635, da `prioritaIncasso`, 870). |
-| Aging report / anzianità crediti | **FALSO, C'È GIÀ** | `agingIncassi` (`conti-data.js:417`) con le fasce **non scaduto / 1-30 / 31-60 / 61-90 / oltre 90** e `scadutoTot`, calcolate sul **residuo** (`apertoDi`, 1122) e non sul nominale. Ha anche il secchio **`senzaScadenza`** — una fattura senza data non finisce nella fascia tranquilla — che è più di quanto facciano i concorrenti citati. Reso a `index.html:2110-2174`. Manca solo il **trend storico** promesso in §4.2 (l'aging è una fotografia di oggi). |
-| Fido vs esposizione (alert quando si sfora) | **FALSO, C'È GIÀ** | `esposizioneClienti` (`conti-data.js:729`) somma il residuo per cliente e restituisce **`oltreFido`** (747), con il fido letto dall'anagrafica (740). Nella pagina: sezione «Esposizione per cliente (chi chiamare per primo)» (`index.html:1286`), grafico a barre con la **tacca verticale del fido** e il caso «senza fido» disegnato diverso (402-428), e la striscia di stato **rossa** sul cliente oltre fido (1906). Il campo si compila da `cl-fido` (1162-1165). Manca solo l'**auto-hold** sugli ordini (che non esistono). |
-| Riconciliazione bancaria | **CONFERMATO ASSENTE** | ⚠️ In Conti la parola `riconciliazione` è **già occupata**: `riconciliazione(rilievi, pesate, dal, al)` (`conti-data.js:1622`) confronta **cavato e venduto**, non la banca. Cercati `estratto conto bancario`, `CBI`, `movimenti bancari`, `banca`, `SEPA`: nessuna traccia di flussi bancari. Gli incassi si registrano a mano (`incassi/{id}`, `movimentiDiFattura`, 1048). |
-| Export contabilità | **C'È A METÀ** | *C'è*: sei export CSV — fatture con imponibile/aliquota/IVA/totale/incassato/residuo/giorni di pagamento (`index.html:3886-3900`, `conti_situazione_fatture.csv`), pesate (845), costi (967), listino e prezzi convertiti (989, 1044), clienti (1175), gare (1219), incassi (1290). *Manca*: un tracciato **per il programma del commercialista** (prima nota / import Danea-TeamSystem): l'export è una tabella leggibile, non un formato di scambio. |
-| Ritenuta d'acconto | **CONFERMATO ASSENTE** | Cercato `ritenuta` in `conti-data.js`, `conti/index.html` e `shared/dw-ponti.js`: zero occorrenze. `importiFattura` (972) e `totaliDaRighe` (991) trattano solo imponibile, IVA e totale. |
-| Foto prodotto | **CONFERMATO ASSENTE** | Cercati `foto prodotto`, `immagine prodotto`, `foto` nel modulo prodotti: zero. `prodotti/{id}` porta nome, unità, prezzo, densità, IVA (`prezzoPerTonnellata` 935, `prezzoPerMetroCubo` 942). |
-| Gestione magazzino / giacenze prodotto | **CONFERMATO ASSENTE** | Cercati `giacenz`, `magazzin`, `inventario`, `carico/scarico`, `FIFO` in `conti-data.js` e `conti/index.html`: le uniche occorrenze parlano dell'**opposto** — la riconciliazione avverte esplicitamente che un divario positivo «**non è una scorta**» finché non si è controllato (`index.html:3415-3421`, 3007). *Nota d'ecosistema*: la giacenza esiste in **Flotta**, ma sui ricambi d'officina (`sottoScorta`, `flotta-data.js:625`; `puntoDiRiordino`, 1805; `propostaScorte`, 1823), non sul venduto. |
-| Gestione permessi / ruoli | **CONFERMATO ASSENTE** | Cercati `ruolo`, `ruoli`, `permess`, `admin`, `amministratore` in `conti-data.js` e `conti/index.html`: le occorrenze sono messaggi d'errore («non hai il permesso di vedere i rilievi di Terra», 1998), non un modello di ruoli. L'isolamento è **per organizzazione**, non per persona — coerente con quanto già dichiarato in `CLAUDE.md`: dentro l'organizzazione i ruoli sono una **decisione aperta**, non un difetto di `appId`. |
+| Fattura elettronica SDI (file XML + invio) | **CONFERMATO ASSENTE** *(riconfermato il 03/08)* | `grep -ci` su `conti-data.js` e `index.html`: `fatturapa` **0/0**, `FatturaPA` **0/0**, `p7m` **0/0**, `xml` **0/2** — e le due del `.html` sono il `manifest` (riga 12) e la frase del piede di stampa (3946). Nessuna generazione né trasmissione del tracciato. La nota di §2 «né UI» resta **falsa**: `clienti.sdi` (codice destinatario o PEC) è documentato a `conti-data.js:7`, valorizzato nella dimostrazione (120-121) e ha il suo campo nel form (`index.html:1386-1389`, `cl-sdi`), letto in scrittura a 4984 e ricaricato a 4815. ✅ **E una cosa è migliorata dal 01/08**: il piede della fattura stampata adesso **dichiara la mancanza** invece di lasciarla intuire — «Documento di cortesia stampato da Conti. **Non sostituisce la fattura elettronica**: l'originale è il file XML trasmesso al Sistema di Interscambio», con l'indicazione del portale gratuito **Fatture e Corrispettivi** dell'Agenzia delle Entrate (`index.html:3945-3948`). Manca il file XML e l'invio, non la consapevolezza. |
+| Note di credito / debito | **FALSO, C'È GIÀ** — ed è la falsa più grossa di questo documento *(righe riallineate il 03/08)* | Impianto completo su **art. 26 DPR 633/1972**: `CAUSALI_NOTA` con il **comma** e il **termine di 12 mesi** per ogni causale (`conti-data.js:2190`), `causaleNota` (2198), `stornatoDi` (2267), `statoFattura` che tiene conto dello storno (2282), `validaNota` (2303), `notaDaFattura` (2362). Nella pagina: sezione **«Note di credito»** sotto le fatture (`index.html:707-713`), badge «Stornata / Stornata N%» sulla fattura (1933-1942), e le note che **abbassano imponibile e IVA del periodo** con le due cifre tenute separate per il commercialista (2744-2761). Lo storno entra anche in `apertoDi` (1279), quindi in aging ed esposizione. Esiste pure la ricerca dedicata: `docs/RICERCA_NOTE_DI_CREDITO_202608.md`. |
+| Preventivi e ordini | ⏱️ **SCADUTA** — vera al `f3432f4`, colmata il **01/08** e **estesa il 02/08** | **Prova che c'è, `file:riga`:** `STATI_PREVENTIVO` (`conti-data.js:3129`), `statoPreventivoLabel` (3136), `statoPreventivo` (3154), `ordineConfermato` (3174), `rigaPreventivo` (3199), `totaliPreventivo` (3240), `consegnatoOrdine` (3276), `ddtDaAgganciare` (3327), `avanzamentoOrdine` (3459), `descriviAvanzamento` (3482), `portafoglioOrdini` (3512), `preventiviDaSeguire` (3531). Nella pagina: voce di navigazione **«Ordini»** (`index.html:1542`), sezione «Offerte da richiamare» (848), import a 1581-1584, resa a 2069 e 2089, export `conti_preventivi.csv` (6079). **Commit:** `896b1ea` (01/08, `git log -S"STATI_PREVENTIVO" -- apps/conti/conti-data.js`). **Prova che era vera il 01/08:** cercati allora `preventiv`, `ordine cliente`, `ordini clienti`, `conferma d'ordine`, `quote` in `conti-data.js` e `conti/index.html`: zero occorrenze; il ciclo partiva dalla pesata/DDT. ✅ **E il 02/08 è cresciuta ancora** (`5218350`): `prezzoDaOrdine` (3380) e `descriviPrezzoOrdine` (3443) fanno **ereditare al DDT il prezzo concordato sull'ordine** invece di rifare il conto dal listino del giorno — difetto misurato sui dati di dimostrazione prima di scrivere la funzione: **36,48 € in più su un camion di 25,6 t, 1.167 € sull'ordine intero**. E quando il pattuito non si sa **non si ripiega**: `calcolabile: false` con i cinque motivi scritti. |
+| Firma digitale documenti | **CONFERMATO ASSENTE** *(riconfermato il 03/08)* | Cercati `firma digitale`, `firma grafometrica`, `firmato digitalmente`: **zero**. Il termine largo `firma` dà 8 occorrenze e nessuna è una firma elettronica: sei sono prosa nei commenti (`conti-data.js:2634, 3094, 3144, 3347, 3354, 3500` — «un preventivo che il cliente non ha mai firmato»), due sono **righe di firma a penna** sui documenti stampati (`index.html:2539` «Per accettazione — timbro e firma» sul preventivo, `3895` «Firma del conducente / Firma del destinatario per ricevuta» sul DDT). Cioè il posto dove servirebbe la firma digitale c'è, ed è vuoto. |
+| Listini differenziati per cliente | **C'È A METÀ** — *ma la metà che c'è si è allargata due volte dal 01/08* | *C'è (tre strati, tutti verificati):* **1.** sconto per cliente — `clienti.sconto` %, validato da `scontoValido` (`conti-data.js:1420`) e applicato in `imponibileRiga(quantita, prezzoUnitario, scontoPct)` (1429), con il DDT che stampa **prezzo di listino e sconto separati** invece del netto (la ragione è scritta a 1415-1419); **2.** scaglioni di quantità per prodotto (`validaScaglioni`, 1507 — vedi la riga sotto); **3.** ⏱️ **dal 02/08** il **prezzo concordato** che vive sull'ordine e che il DDT eredita (`prezzoDaOrdine`, 3380), cioè la forma in cui un prezzo personalizzato per cliente esiste davvero in Conti. *Manca ancora:* **più listini nominati e assegnabili** — c'è un solo listino prodotti (`prodotti/{id}`, import da `parseListinoCsv`, 652; export `conti_listino.csv`, `index.html:5745`) e nessun campo che leghi un cliente a un listino. `grep -c` sul committato: `listini` **0 in tutt'e due i file**, `listaAssegnata` **0**, `prezzoCliente` **0**, `listino cliente` **0** (`listino` da solo dà 72+124 occorrenze, tutte il listino unico). |
+| Prezzi dinamici per volume / sconto quantità | ⏱️ **SCADUTA** — vera al `f3432f4`, colmata il **01/08** | **Prova che c'è, `file:riga`:** `validaScaglioni` (`conti-data.js:1507`), `etichettaScaglione` (1566), `scaglionePer` (1579), `descriviScaglione` (1612), `applicaScaglione` (1630). Nella pagina: blocco **«Prezzi a scaglioni di quantità»** nel listino (`index.html:1241-1275`), import a 1585-1586. La scala è per prodotto, a **prezzi** oppure a **sconti**, con la forma «da» (i buchi non sono rappresentabili). Sconto cliente e scaglione **si sommano**, perché il cliente deve poter rifare il conto a mente — e perché una percentuale piegata nel prezzo unitario perde soldi (misurato: 6,24 € su 2.230 t). ⚠️ Lo scaglione vive nel **preventivo, non sul DDT**: un DDT è un camion, e scegliere la banda sulla portata di un autocarro farebbe pagare il prezzo del privato a chi ha comprato 5.000 t. **Commit:** `aa14015` (01/08, `git log -S"validaScaglioni" -- apps/conti/conti-data.js`), rifinito in `f5dab46`. **Prova che era vera il 01/08:** cercati allora `scaglion`, `sconto volume`, `quantita minima`, `fascia di quantità`, `tier`: zero; lo sconto era una sola percentuale per cliente, indipendente dalla quantità. |
+| Pesa / bilancia digitale (driver hardware) | **CONFERMATO ASSENTE** *(riconfermato il 03/08)* | Cercati `pesa ponte`, `weighbridge`, `seriale`, `webserial`, `driver`, `loadrite`: **zero in tutt'e due i file**. `bilancia` dà 8 occorrenze e **nessuna legge un apparecchio**: due sono commenti (`conti-data.js:234, 1921`), una è il segnaposto del campo lordo «Peso lordo in tonnellate, come sulla bilancia» (`index.html:997`), una è il disegno dell'**icona** (1696), quattro sono l'icona riusata negli stati vuoti (3965, 3970, 3976, 4404). Le pesate si digitano: `nettoPesata` (`conti-data.js:1407`), `rigaPesata` (1675), lordo e tara a mano. |
+| e-ticketing per DDT | **CONFERMATO ASSENTE** *(riconfermato il 03/08)* | `grep -ci` su `conti-data.js` e `index.html`: `e-ticket` **0/0**, `eticket` **0/0**, `ticket` **0/0** — nemmeno la parola esiste. Il DDT esiste ma si **stampa**: `mancanzeDdt` (`conti-data.js:2248`), `CAUSALI_TRASPORTO` (2221), `TRASPORTO_A_CURA` (2234), modello di stampa con le due righe di firma a penna (`index.html:3895`), export `conti_pesate_ddt.csv` (5321). |
+| Scadenza e fasce di scaduto — §2 la dichiarava «C'è a metà, logica di UI non scritta» | **FALSO: la UI c'è** *(righe riallineate il 03/08)* | `statoScadenzaFattura` (`conti-data.js:530`) e `agingIncassi` (542) sono **disegnate**: sezione «Aging incassi — crediti aperti per ritardo» (`index.html:1516-1518`), import a 1568, calcolo e righe a 3000-3022, totale «da sollecitare» a 3028, barra delle fasce dal motore grafico dichiarato a 391. |
+| Solleciti di pagamento automatici | **FALSO, C'È GIÀ** *(righe riallineate il 03/08)* | `TASSO_MORA_DEFAULT = 10,15%` annuo — 1° semestre 2026, GU 15/2026 — e `SPESE_RECUPERO_231 = 40 €` forfettari ex **art. 6 D.Lgs 231/2002** (`conti-data.js:696-697`), `interessiMora` (699), `livelloSollecito(giorniRitardo)` (709), `testoSollecito` (739) che cita la norma per esteso nel testo della lettera (763), `prioritaIncasso` (995), `estrattoContoCliente` (886). Nella pagina: bottone **«Sollecito»** su ogni fattura in ritardo (`index.html:2716`, con `livelloSollecito` a 2676) e sezione **«Priorità: chi sollecitare per primo»** (679). |
+| Aging report / anzianità crediti | **FALSO, C'È GIÀ** *(righe riallineate il 03/08)* | `agingIncassi` (`conti-data.js:542`) con le fasce **non scaduto / 1-30 / 31-60 / 61-90 / oltre 90** e `scadutoTot`, calcolate sul **residuo** (`apertoDi`, 1269) e non sul nominale. Ha anche il secchio **`senzaScadenza`** (550, assegnato a 570) — una fattura senza data non finisce nella fascia tranquilla — che è più di quanto facciano i concorrenti citati, e la stessa convenzione la riusa `prioritaIncasso` (1001). Reso a `index.html:1516-1518` e 3000-3028. Manca solo il **trend storico** promesso in §4.2 (l'aging è una fotografia di oggi). |
+| Fido vs esposizione (alert quando si sfora) | **FALSO, C'È GIÀ** *(righe riallineate il 03/08)* | `esposizioneClienti` (`conti-data.js:854`) somma il residuo per cliente e restituisce **`oltreFido`** (872). Nella pagina: sezione «Esposizione per cliente (chi chiamare per primo)» (`index.html:1525`), grafico a barre con la **tacca verticale del fido** e il caso «senza fido» disegnato diverso (407-433), campo `cl-fido` con la sua spiegazione «Diventa rosso se supera il fido che hai impostato» (1401-1418), salvato in `CL_CAMPI` (1790). ⏱️ E l'**auto-hold** che il 01/08 mancava «perché gli ordini non esistono» adesso ha il suo aggancio: gli ordini esistono (`portafoglioOrdini`, `conti-data.js:3512`), quindi non è più una mancanza di impianto ma una funzione da scrivere. |
+| Riconciliazione bancaria | ⏱️ **SCADUTA** — vera al `f3432f4`, colmata il **01/08**. *Era «la mancanza confermata più importante» di questo documento* | **Prova che c'è, `file:riga`:** `importoBancario` (`conti-data.js:2662`, 9 formati su 15 raccolti dagli export bancari italiani), `isoDaDataItaliana` (2685), `parseMovimentiCsv` (2701), `numeroInCausale` (2745), `clienteInCausale` (2770), `combinazioneUnica` (2789), `GRADI_ABBINAMENTO = ["certo","probabile","debole","nessuno"]` (2808), `movimentoGiaRegistrato` (2818), `abbinaMovimenti` (2829), `riepilogoAbbinamento` (3035), `ESTRATTO_ESEMPIO` (3065). Nella pagina: voce di navigazione **«Banca»** (`index.html:1541`), sezione «Estratto conto della banca» (804-830) con caricamento CSV, esempio, svuota, import a 1567, resa a 5528, conferma degli abbinamenti certi a 4594. **Commit:** `c02836a`, 01/08 (`git log -S"abbinaMovimenti" -- apps/conti/conti-data.js`). **Prova che era vera il 01/08:** cercati allora `estratto conto bancario`, `CBI`, `movimenti bancari`, `banca`, `SEPA`: nessuna traccia di flussi bancari; gli incassi si registravano solo a mano. ⚠️ Il conflitto di nome che il 01/08 era stato segnalato è stato **evitato di proposito**: `riconciliazione(rilievi, pesate, dal, al)` (2056) resta cavato-contro-venduto, e la funzione nuova si chiama **abbinamento** — la decisione è scritta a 2609-2612. ⛔ E il difetto che questa riga esisteva per far sparire è **dichiarato nella pagina stessa**: «È l'unico punto in cui questa app ti chiedeva di ribattere a mano un dato che esiste già… Da lì viene il danno peggiore che Conti sappia fare — un **sollecito con la mora mandato su una fattura già pagata**» (`index.html:805-809`), che è parola per parola il paragrafo «mancanza più importante» qui sotto. Le proposte **si propongono e non si applicano**: sotto `probabile` non c'è nessuna proposta (2624-2625). |
+| Export contabilità | **C'È A METÀ** *(riverificato il 03/08: gli export sono nove, non sei)* | *C'è*: **nove** export CSV, contati sui `a.download` del committato — `conti_situazione_fatture.csv` (`index.html:4934`), `conti_incassi.csv` (4953, che il commento chiama già «prima nota degli incassi», 4937), `conti_clienti.csv` (5006), `conti_costi_<dal>_<al>.csv` (5215), `conti_listino_prezzi.csv` (5232), `conti_pesate_ddt.csv` (5321), `conti_listino.csv` (5745), `conti_gare.csv` (5786), `conti_preventivi.csv` (6079, nuovo col cantiere degli ordini). *Manca*: un tracciato **per il programma del commercialista**. `grep -ci` sul committato: `Danea` **0/0**, `TeamSystem` **0/0**, `prima nota` **0/1** (ed è un commento), `partita doppia` **0/0**, `piano dei conti` **0/0**, `causale contabile` **0/0**, `liquidazione IVA` **0/0**. L'export è una tabella leggibile, non un formato di scambio. |
+| Ritenuta d'acconto | **CONFERMATO ASSENTE** *(riconfermato il 03/08)* | `grep -ci "ritenuta"` e `grep -ci "d'acconto"` su `conti-data.js`, `index.html` e `shared/dw-ponti.js`: **zero, tutti e tre**. `importiFattura` (`conti-data.js:1097`) e `totaliDaRighe` (1116) trattano solo imponibile, IVA e totale; `totaliPreventivo` (3240), scritto dopo, non l'ha aggiunta. |
+| Foto prodotto | **CONFERMATO ASSENTE** *(riconfermato il 03/08)* | Cercati `foto prodotto`, `immagine prodotto`: **zero**. Il termine largo `foto` dà 10 occorrenze in `conti-data.js` e **sono tutte la metafora** «il prezzo si FOTOGRAFA sul documento» (391, 1658, 1669-1670, 1691, 1700, 1953, 3178, 3217, 3359), zero in `index.html`. `prodotti/{id}` porta nome, unità, prezzo, densità, IVA (`prezzoPerTonnellata` 1060, `prezzoPerMetroCubo` 1067) e adesso anche gli scaglioni: nessun campo immagine. |
+| Gestione magazzino / giacenze prodotto | **CONFERMATO ASSENTE** *(riconfermato il 03/08)* | `grep -ni` su `conti-data.js` e `index.html`: `giacenz` **0**, `magazzin` **0**, `inventario` **0**, `carico/scarico` **0**, `FIFO` **0**. Le uniche 4 occorrenze di `scorta` dicono l'**opposto**: la riconciliazione avverte esplicitamente che un divario positivo «**non è una scorta**» finché non si è controllato che non manchi un rilievo (`index.html:4421-4427`, con la decisione a 4013) e la stima del cumulo sul piazzale è dichiarata tale (1700). *Nota d'ecosistema*: la giacenza esiste in **Flotta**, ma sui ricambi d'officina (`sottoScorta`, `puntoDiRiordino`, `propostaScorte` in `flotta-data.js`), non sul venduto. |
+| Gestione permessi / ruoli | **CONFERMATO ASSENTE** *(riconfermato il 03/08)* | Cercati `ruolo`, `ruoli`, `amministratore`, `admin`: **zero in tutt'e due i file**. `permess` dà 4 occorrenze e **nessuna è un modello di ruoli**: due sono la lettura negata dei rilievi di Terra (`conti-data.js:2123` e 2459, «o non hai il permesso di vederli»), due sono il permesso del **browser** per la copia negli appunti (`index.html:4864, 4883`). L'isolamento è **per organizzazione**, non per persona — coerente con quanto già dichiarato in `CLAUDE.md`: dentro l'organizzazione i ruoli sono una **decisione aperta**, non un difetto di `appId`. |
 
-### Riepilogo numerico — Conti
+### Riepilogo numerico — Conti *(aggiornato il 03/08)*
 
-| | |
-|---|---|
-| Righe verificate | **18** |
-| Confermate assenti | **11** |
-| False (c'era già) | **5** |
-| A metà | **2** |
+| | 01/08 (`f3432f4`) | **03/08 (`ecc65d5`)** |
+|---|---|---|
+| Righe verificate | 18 | **18** |
+| Confermate assenti | 11 | **8** |
+| False (c'era già) | 5 | **5** |
+| ⏱️ Scadute (vere allora, colmate dopo) | — *(la colonna non esisteva)* | **3** |
+| A metà | 2 | **2** |
+| **somma degli addendi** | 11+5+2 = **18** ✓ | 8+5+3+2 = **18** ✓ |
 
-**Cinque righe su diciotto erano false — quasi una su tre**, e quattro di esse
-(note di credito, aging, fido vs esposizione, fasce di scaduto) descrivono
-funzioni **finite, disegnate e collegate fra loro**: lo storno di una nota di
-credito entra in `apertoDi`, che è il residuo su cui l'aging e l'esposizione
-fanno i loro conti. Erano quattro cantieri pronti ad aprirsi su codice esistente.
+Le mancanze confermate **scendono da 11 a 8** in due giorni, e non perché il
+metro si sia allentato: le tre righe che se ne vanno hanno tutte il loro commit
+accanto. Le false restano cinque — quelle non si muovono, erano sbagliate il
+giorno che sono state scritte.
 
-### La mancanza confermata più importante — Conti
+#### ⛔ Le due righe perse dal conto vecchio, e dove sono finite
 
-**La riconciliazione bancaria.** Non perché sia la più citata, ma perché è
-l'unico punto in cui oggi qualcuno deve **ridigitare** un dato che esiste già
-altrove: l'incasso arriva in banca e in Conti va riscritto a mano, riga per
-riga, e finché non lo si riscrive l'aging e i solleciti — che sono costruiti
-bene — lavorano su un residuo vecchio.
+Il conto in cima ai sei documenti diceva per Conti `18 righe = 9 confermate +
+5 false + 0 scadute + 2 a metà`, cioè **16 su 18**: due righe erano uscite
+dalle confermate senza entrare da nessun'altra parte. Sono state ritrovate, e
+si chiamano **«Preventivi e ordini»** e **«Prezzi dinamici per volume / sconto
+quantità»**.
 
-È anche la mancanza che degrada il resto: un sollecito con la mora ex D.Lgs
-231/2002 calcolata su una fattura in realtà già pagata non è un dettaglio
-sbagliato, è una lettera sbagliata mandata a un cliente.
+Come sono sparite lo dice `git show f5dab46 -- docs/CONCORRENTI_CONTI.md`, in
+tre righe di diff:
+
+```
+-> | Conti | 18 | 11 | **5** | 0 | 2 |
++> | Conti | 18 | 9  | **5** | 0 | 2 |
++| Preventivi e ordini | ✅ **COLMATA IL 01/08 — la riga ha fatto il suo lavoro** | …
++| Prezzi dinamici per volume / sconto quantità | ✅ **COLMATA IL 01/08** | …
+```
+
+Chi ha scritto quel commit ha fatto **metà** della cosa giusta: ha marcato le
+due righe come colmate nel corpo e le ha **tolte** dalle confermate (11 → 9),
+ma non le ha **aggiunte** alle scadute, che sono rimaste a `0`. Il riepilogo
+qui sotto, intanto, continuava a dire `11`. Cioè lo stesso documento portava
+**due conti diversi** — 11 in fondo, 9 in cima — e nessuno dei due era giusto.
+
+Due cose imparate, e valgono per tutti e sei i documenti:
+1. **Un verdetto non si scrive solo in prosa.** «✅ COLMATA IL 01/08» è un
+   verdetto vero, ma se la parola che il conto sa contare è `SCADUTA` allora
+   nel conto quella riga **non esiste**. Adesso le tre righe scadute portano
+   `⏱️ **SCADUTA**` in testa alla colonna del verdetto, e la spiegazione dopo.
+2. **Spostare una riga è un'operazione con due metà, e la seconda si dimentica.**
+   La difesa è aritmetica e costa un secondo: **gli addendi devono sommare al
+   totale**. Se non sommano, la riga non è stata cancellata — è caduta in mezzo,
+   e va ritrovata invece che sottratta dal totale.
+
+⚠️ **E c'era anche un difetto di forma, corretto qui:** le due righe colmate
+erano scritte con **quattro celle** in una tabella a **tre colonne**
+(`Funzione | Verdetto | che cosa c'è | com'era stato cercato il 01/08`). In
+Markdown la quarta cella **non si vede**: la prova di aver cercato a vuoto —
+cioè la sola cosa che rende credibile un «era vero allora» — era invisibile a
+chiunque leggesse il documento renderizzato invece del sorgente. Adesso le due
+metà stanno nella stessa cella, marcate «Prova che c'è» e «Prova che era vera
+il 01/08».
+
+### Le otto mancanze confermate, in ordine di quanto le chiede il fisco
+
+Ordinate per quanto le chiederebbero un **commercialista** o l'**Agenzia delle
+Entrate** — non per quanto le citano i concorrenti, che è l'ordine di §3 e
+risponde a una domanda diversa.
+
+| # | mancanza | chi la chiede, e perché |
+|---|---|---|
+| 1 | **Fattura elettronica SDI — file XML e invio** | **Obbligo di legge** (art. 1 D.Lgs 127/2015): fra soggetti residenti la fattura *è* il file XML trasmesso al Sistema di Interscambio, e la carta è un documento di cortesia. È l'unica riga di questo elenco che non è un miglioramento ma un **adempimento**. Conti oggi ha il pezzo anagrafico (`clienti.sdi`) e lo **dichiara** nel piede di stampa, che è il modo onesto di avere un buco; il buco resta. |
+| 2 | **Rimanenze / giacenze di piazzale** | Il commercialista le chiede **una volta l'anno e sempre**: le rimanenze finali entrano in bilancio (art. 2424-2426 c.c.) e in cava sono i cumuli sul piazzale. Conti sa dire quanto è stato cavato e quanto venduto, ma **rifiuta di proposito** di chiamare scorta la differenza (`index.html:4421`) — che è la decisione giusta e lascia la domanda senza risposta. |
+| 3 | **Export in un tracciato contabile** *(riga «Export contabilità», a metà)* | È la richiesta che un commercialista fa **ogni mese**: non «mandami un CSV leggibile» ma «importamelo nel mio gestionale». Nove export ci sono; un formato di scambio no. |
+| 4 | **Ritenuta d'acconto** | Compare nel tracciato della fattura elettronica (`DatiRitenuta`) e la chiede l'Agenzia quando c'è. Per una cava che vende inerti è **rara** — riguarda soprattutto provvigioni e prestazioni professionali — quindi sta sotto le prime tre pur essendo fiscale a pieno titolo. |
+| 5 | **Firma digitale / conservazione a norma** | Non la chiede il commercialista mese per mese, ma è ciò che rende opponibile un documento in caso di verifica. Oggi il portale gratuito dell'Agenzia copre la conservazione delle fatture; resta scoperto tutto il resto (DDT, conferme d'ordine). |
+| 6 | **Gestione permessi / ruoli** | Nessun fisco la chiede, ma è la prima domanda di un revisore o di un cliente strutturato: *chi* può emettere una nota di credito? Oggi la barriera provata è fra **organizzazioni**, e dentro l'organizzazione è una decisione aperta. |
+| 7 | **e-ticketing per DDT** | Operativa, non fiscale: il DDT cartaceo è pienamente valido. Conta per il cliente che riceve venti bolle al giorno, non per l'Agenzia. |
+| 8 | **Driver della bilancia** e **foto prodotto** | Fuori dal perimetro fiscale del tutto. Il driver toglie battitura e errori di trascrizione; la foto, su inerti, non la guarda nessuno. |
+
+### La mancanza confermata più importante — Conti *(cambiata il 03/08)*
+
+⏱️ **La precedente era la riconciliazione bancaria, e non lo è più: è stata
+costruita il 01/08** (`c02836a`, `abbinaMovimenti` e altre dieci funzioni, con
+la sua sezione «Banca» nella pagina). Il paragrafo che stava qui — «l'unico
+punto in cui oggi qualcuno deve ridigitare un dato che esiste già altrove… un
+sollecito con la mora mandato su una fattura già pagata» — non è stato buttato:
+è finito **dentro il prodotto**, come testo introduttivo della sezione nuova
+(`index.html:805-809`). Una mancanza che diventa la spiegazione della funzione
+che la colma è il ciclo che questo documento esiste per far girare.
+
+**Adesso la più importante è la fattura elettronica SDI**, ed è di una specie
+diversa da tutte le altre diciassette righe: non è una funzione che ci
+mancherebbe rispetto a un concorrente, è un **obbligo di legge** (art. 1
+D.Lgs 127/2015). Un cliente che usasse Conti da solo non sarebbe *meno
+attrezzato*: sarebbe **non conforme**, e dovrebbe tenere aperto un secondo
+programma per l'unica cosa che il fisco considera la fattura.
+
+⚠️ E va detto per intero, se no si esagera la mancanza: il pezzo che manca è
+**il file e il canale**, non i dati. L'imponibile, l'aliquota, l'IVA, il
+totale, il codice destinatario o la PEC del cliente, la causale del trasporto,
+i DDT collegati e — dal 01/08 — la nota di credito col suo comma dell'art. 26
+DPR 633/1972 sono tutti già in Conti, ed è **la parte difficile**. Quello che
+non c'è è il serializzatore verso il tracciato `FatturaPA` e la trasmissione.
+Con l'invio gratuito dal portale **Fatture e Corrispettivi** — che la pagina
+già indica al cliente (`index.html:3947-3948`) — la strada più corta è
+**generare l'XML e lasciarlo caricare a mano**, cioè la stessa forma con cui il
+01/08 è entrato l'estratto conto della banca: un file dentro, un file fuori,
+nessuna integrazione da mantenere e nessuna spesa — che è anche l'unica forma
+compatibile con la regola «nessuna spesa prima della commercializzazione».
