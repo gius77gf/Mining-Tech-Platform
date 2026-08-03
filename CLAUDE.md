@@ -387,6 +387,29 @@ Perché serva davvero e non produca elenchi generici, cinque vincoli:
   `dataIt`, `daysBetween` contro `giorniTra`). Cioè: questa famiglia **non si
   prende con una regex**, si prende leggendo — ed è per questo che sta scritta
   qui invece che in una suite.
+  ⛔ **E IL 03/08 SI È MISURATO DOVE STA, e non è sparsa: sta dove il DOCUMENTO
+  SI COMPONE.** Cinque app in una notte, **ventiquattro** difetti veri, e il
+  filo è uno solo — la regola giusta esisteva già nel modulo, e chi scriveva il
+  file o la frase se n'è tenuta una versione più debole:
+  · Conti aveva `statoScadenzaFattura` e nel CSV ne teneva la **terza** copia
+    (`scadenza=null` scritta come la parola «null», con `stato=aperta`);
+  · Sentinella aveva `conSoglia`, e il commento di quella funzione **elenca**
+    chi deve passare di lì — «semaforo, KPI, grafico, allerte, report»:
+    l'export non c'era, e il file per l'ARPA scriveva «Conforme» dove lo
+    schermo diceva «Superamento»;
+  · Flotta aveva `ritmoOreMezzi` che rifiutava il contatore sceso, e
+    `consumoPerMezzo` no: 0,68 l/h invece di 2,22;
+  · il core aveva `dataIt`, e la barra alta un `nowrap` che il core non ha;
+  · Terra aveva `rilievoUsabile`, e due punti della pagina decidevano con
+    `r.volumeM3 != null`, che accetta `""` e `"abc"`.
+  La domanda che li trova tutti, e va fatta **prima** di leggere il codice
+  riga per riga: **dove questa app compone qualcosa che ESCE — un CSV, un PDF,
+  una frase di riepilogo — chi decide i suoi numeri?** Se la risposta non è
+  «la stessa funzione che li decide a schermo», lì c'è una copia debole. È il
+  posto dove nessuna prova guarda, perché le prove chiamano il modulo e i file
+  li compone la pagina.
+  ⚠️ E il modo di misurarlo non è leggere: è **premere il bottone e aprire il
+  file che esce**. Il censimento statico su quelle cinque app era **a zero**.
 - ⛔ **LA RISPOSTA È QUASI SEMPRE GIÀ IN CASA — SI CERCA PRIMA DI INVENTARE.**
   Quattro volte in due giorni, e ogni volta è costato lavoro o ha rischiato di
   far scrivere una cosa falsa: il **registro costi** «da fare in Conti» esisteva
