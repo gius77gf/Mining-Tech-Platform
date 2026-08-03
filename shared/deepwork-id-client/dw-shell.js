@@ -1090,6 +1090,36 @@ export function totaliRapportini(righe) {
    ⚠️ Il ripiego sul dettaglio (`daiFori`) c'è per il caso in cui il totale
    salvato non si legga ma i fori sì: buttare via chili scritti a mano sarebbe
    l'errore opposto a quello che questa funzione esiste per togliere. */
+/* ⛔ UNA VOLATA PROGETTATA NON È UNA VOLATA CARICATA CON ZERO CHILI.
+   `ricalcolaTotaliVolata` fa `tot_kg = Σ(parseNum0(f.kg) || 0)`: su una volata
+   appena disegnata — i fori ci sono, i chili nessuno li ha ancora scritti — la
+   somma vale **0**, e l'elenco del core stampava «0 kg esplosivo · 0 mc».
+   In cava una volata caricata con zero chili non esiste: quello zero vuol dire
+   «non lo sappiamo ancora».
+   ⚠️ E qui il verso è INVERTITO rispetto al resto della settimana: il documento
+   (`exportVolataPDF`) scriveva già «-», ed era **lo schermo** la copia debole.
+   La differenza si vede solo mettendo le due cose vicine — misurato il 03/08.
+   Sta in `shared/` perché la stessa domanda la fanno il core (elenco volate,
+   scheda cava) e chiunque legga una volata: la risposta dev'essere una sola. */
+export function misureVolataProgetto(v) {
+  const o = v || {}, fori = Array.isArray(o.fori) ? o.fori : [];
+  const pos = (x) => { const n = _numRapp(x); return n !== null && n > 0; };
+  const conKg = fori.filter((f) => pos(f && f.kg)).length;
+  const conProf = fori.filter((f) => pos(f && f.prof)).length;
+  return {
+    fori: fori.length,
+    conKg, senzaKg: fori.length - conKg,
+    /* il totale vale SOLO se qualcuno ha scritto i chili almeno una volta */
+    kg: conKg ? _numRapp(o.tot_kg) : null,
+    kgNoto: conKg > 0,
+    /* caricata a metà: il numero c'è ma è più basso del vero, e va detto */
+    parziale: conKg > 0 && conKg < fori.length,
+    metri: conProf ? _numRapp(o.tot_metri) : null,
+    mc: conProf ? _numRapp(o.tot_mc) : null,
+    mcNoto: conProf > 0,
+  };
+}
+
 export function misureVolataFochino(r) {
   const o = r || {};
   const dett = Array.isArray(o.fori_dettaglio) ? o.fori_dettaglio : [];

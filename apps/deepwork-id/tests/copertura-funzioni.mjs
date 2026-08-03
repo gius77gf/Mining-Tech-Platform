@@ -213,7 +213,7 @@ const CONDIVISI = [
      nello stesso momento: i due numeri vanno letti insieme. */
   { file: "shared/dw-ponti.js", fondo: 38,
     perche: "le regole che servono a DUE app: è il posto dove un difetto si moltiplica" },
-  { file: "shared/deepwork-id-client/dw-shell.js", fondo: 37,
+  { file: "shared/deepwork-id-client/dw-shell.js", fondo: 38,
     perche: "gli aiuti che tutte le app importano (numeri, date, CSV)" },
   { file: "apps/genesi/pointcloud.js", fondo: 5,
     perche: "il calcolo del volume dal drone: da lì passano i m³ che consumano la concessione" },

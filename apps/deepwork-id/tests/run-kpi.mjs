@@ -20527,5 +20527,44 @@ test("⛔ Scudo · andamento indici: il verso letto su giornate ancora da contar
   });
 }
 
+// ═══ CORE · una volata progettata non è caricata con zero chili (03/08) ═══
+{
+  console.log("\n— Il core: «0 kg» su una volata appena disegnata —");
+  const V = (fori, tot) => ({ fori, ...tot });
+
+  test("⛔ core · i chili non scritti da nessuno non sono zero chili", () => {
+    /* `ricalcolaTotaliVolata` fa Σ(parseNum0(kg)||0): su una volata disegnata e
+       non ancora caricata la somma vale 0, e l'elenco stampava «0 kg». In cava
+       una volata caricata con zero chili non esiste. */
+    const m = shell.misureVolataProgetto(V([{ prof: 12 }, { prof: 12 }], { tot_metri: 24, tot_kg: 0, tot_mc: 180 }));
+    eq(m.kg, null, "il totale non si può dire");
+    eq(m.kgNoto, false, "e lo dichiara");
+    eq([m.conKg, m.senzaKg, m.fori], [0, 2, 2], "due fori, nessuno caricato");
+    eq(m.mc, 180, "i metri cubi invece si sanno: le profondità ci sono");
+  });
+
+  test("core · caricata per intero: il totale vale", () => {
+    const m = shell.misureVolataProgetto(V([{ prof: 12, kg: 56 }, { prof: 12, kg: 56 }], { tot_metri: 24, tot_kg: 112, tot_mc: 180 }));
+    eq([m.kg, m.kgNoto, m.parziale], [112, true, false], "112 kg, dichiarati");
+  });
+
+  test("⛔ core · caricata a METÀ: il numero c'è ma è più basso del vero, e va detto", () => {
+    const m = shell.misureVolataProgetto(V([{ prof: 12, kg: 56 }, { prof: 12 }], { tot_metri: 24, tot_kg: 56, tot_mc: 180 }));
+    eq([m.kg, m.kgNoto, m.parziale], [56, true, true], "56 kg su un foro solo: parziale");
+    eq([m.conKg, m.fori], [1, 2], "uno su due");
+  });
+
+  test("core · senza nemmeno le profondità nemmeno i metri cubi si sanno", () => {
+    const m = shell.misureVolataProgetto(V([{}, {}], { tot_metri: 0, tot_kg: 0, tot_mc: 0 }));
+    eq([m.kg, m.mc, m.mcNoto], [null, null, false], "niente misurato, niente da dire");
+  });
+
+  test("core · una volata senza fori non inventa numeri", () => {
+    const m = shell.misureVolataProgetto(V([], { tot_metri: 0, tot_kg: 0, tot_mc: 0 }));
+    eq([m.fori, m.kg, m.mc], [0, null, null], "zero fori: nessun totale");
+    eq(shell.misureVolataProgetto(null).fori, 0, "e nemmeno su un oggetto che non c'è");
+  });
+}
+
 console.log(`\nRisultato KPI app: ${passed} passati, ${failed} falliti${inVolo.length ? `  ·  ${inVolo.length} prove asincrone aspettate` : ""}`);
 process.exit(failed > 0 ? 1 : 0);

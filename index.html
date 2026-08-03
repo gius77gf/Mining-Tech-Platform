@@ -108,7 +108,7 @@ import {
 // per il core e per tutte e sei le app. Quando era scritta in ogni app, le sei
 // leggevano «1.250» in tre modi diversi senza che nessun test se ne accorgesse.
 // È un modulo di sole funzioni pure, senza effetti al caricamento.
-import { numeroScritto, messaggioNumero, perCampo, montaGuardiaInteri, isoLocale, meseLocale, motivoDatiNonSalvati, giorniTra, dataIt, misureRapportino, totaliRapportini, misureVolataFochino, misureFrammentazione, riservaFrammentazione } from "./shared/deepwork-id-client/dw-shell.js";
+import { numeroScritto, messaggioNumero, perCampo, montaGuardiaInteri, isoLocale, meseLocale, motivoDatiNonSalvati, giorniTra, dataIt, misureRapportino, totaliRapportini, misureVolataFochino, misureVolataProgetto, misureFrammentazione, riservaFrammentazione } from "./shared/deepwork-id-client/dw-shell.js";
 
 // ── Config Firebase ──
 const firebaseConfig = {
@@ -424,6 +424,16 @@ function today(){ return isoLocale(new Date()); }
    parole, e sta scritta una volta perché la riga «N fori · X mc» compare in
    **otto** punti di questa pagina, e otto copie divergono — è già successo con
    la media dei fori, scritta quattro volte con tre comportamenti. */
+/* ⛔ «0 kg» su una volata appena progettata non è una misura: è che nessuno ha
+   ancora scritto i chili, e in cava una volata caricata con zero chili non
+   esiste. La decisione la prende `misureVolataProgetto` in `shared/`, così
+   elenco, scheda e documento dicono la stessa cosa — e il documento la diceva
+   già giusta («-»): qui la copia debole era lo SCHERMO. */
+function volKg(v){ const m=misureVolataProgetto(v);
+  return m.kgNoto ? (m.kg+' kg'+(m.parziale?' ('+m.conKg+' fori su '+m.fori+' caricati)':''))
+                  : 'chili non ancora scritti'; }
+function volMc(v){ const m=misureVolataProgetto(v);
+  return m.mcNoto ? (m.mc+' mc') : 'mc non calcolabili'; }
 function rappRiga(r){
   const m=misureRapportino(r);
   if(!m.misurato) return 'nessun foro misurato';
@@ -2051,7 +2061,7 @@ function apriCava(id){
   // Volate previste oggi
   const volateOggi=DB.volate.filter(v=>v.cavaId===id&&v.data===today());
   const volateOggiHtml=volateOggi.length>0
-    ?volateOggi.map(v=>`<div class="sitem success"><div class="av av-am">V${v.numero}</div><div class="sinfo"><div class="sname">Volata #${v.numero} · oggi</div><div class="ssub">${v.tot_fori||0} fori · ${v.tot_kg||0} kg</div></div></div>`).join('')
+    ?volateOggi.map(v=>`<div class="sitem success"><div class="av av-am">V${v.numero}</div><div class="sinfo"><div class="sname">Volata #${v.numero} · oggi</div><div class="ssub">${v.tot_fori||0} fori · ${volKg(v)}</div></div></div>`).join('')
     :'<div style="font-size:12px;color:var(--muted);padding:8px 0;">Nessuna volata prevista per oggi</div>';
   $('cava-det-body').innerHTML=`
     <div class="photo-hero ${canEdit?'editable':''}" onclick="${canEdit?`uploadCavaFoto('${id}')`:''}">
@@ -2077,7 +2087,7 @@ function apriCava(id){
     <div class="sec-title" style="margin-top:16px;"><span class="dot"></span>Volate progettate <span class="scad-badge ok" style="margin-left:6px;">F1 nuovo</span></div>
     ${(()=>{const vols=DB.volate.filter(v=>v.cavaId===id);
       return vols.length?
-        vols.slice(-3).reverse().map(v=>`<div class="sitem" onclick="apriEditorCava('${v.id}')"><div class="av av-am">V${(v.numero||'?').toString().substr(0,2)}</div><div class="sinfo"><div class="sname">Volata #${v.numero||'?'} · ${fmt(v.data)}</div><div class="ssub">${(v.fori||[]).length} fori · ${v.tot_kg||0} kg esplosivo · ${v.tot_mc||0} mc</div></div><div class="sarr">›</div></div>`).join('')
+        vols.slice(-3).reverse().map(v=>`<div class="sitem" onclick="apriEditorCava('${v.id}')"><div class="av av-am">V${(v.numero||'?').toString().substr(0,2)}</div><div class="sinfo"><div class="sname">Volata #${v.numero||'?'} · ${fmt(v.data)}</div><div class="ssub">${(v.fori||[]).length} fori · ${volKg(v)} esplosivo · ${volMc(v)}</div></div><div class="sarr">›</div></div>`).join('')
         : '<div class="empty-state" style="padding:18px;"><div class="empty-sub" style="font-size:11px;">Nessuna volata progettata</div></div>';
     })()}
     ${can('editCava')?`<button class="btn-sec" style="margin-top:6px;width:100%;" onclick="nuovaVolata('${id}')">+ Progetta nuova volata</button>`:''}
