@@ -17928,6 +17928,178 @@ test("⛔ piuGiorni: una data che non esiste non produce una scadenza", () => {
   eq(sentinella.piuGiorni("2026-08-01", -1), "2026-07-31", "anche all'indietro, attraverso il mese");
 });
 
+// ═══════════════════════════════════════════════════════════════════════════
+// CONTI · I NUMERI CHE MENTONO CON LA FACCIA TRANQUILLA, SECONDA PASSATA (03/08)
+// ---------------------------------------------------------------------------
+// Il censimento statico su Conti era già a zero. Questi quattro difetti sono
+// venuti fuori con l'altro metodo: PREMERE I BOTTONI e leggere i documenti che
+// escono dall'azienda. Tutti e quattro stavano nella PAGINA, cioè fuori dalla
+// portata di qualunque suite `node` — e tutti e quattro erano una regola che
+// il modulo ha già scritta, riscritta più debole dove il file si compone.
+// Le misure sono quelle dei file veri, esportati dalla pagina servita:
+//
+// 1. `conti_gare.csv` · «Consorzio ASI — forniture 2027 (bando appena uscito)»
+//    usciva `;0;`. Il file si ri-importa (lo dichiara la pagina), e rientrando
+//    diventava una gara da ZERO euro: `apertesenzaBase` 1 → 0, cioè spariva
+//    l'avviso che spiega perché il totale delle gare aperte è più basso del
+//    vero. È un'andata e ritorno che PERDE un'assenza.
+// 2. `conti_listino_prezzi.csv` · «Misto di cava (non classificato)» usciva
+//    `densita_t_m3 = 0` con `prezzo_m3` VUOTO nella stessa riga: una densità
+//    zero non esiste in natura, e il foglio si smentiva da solo.
+// 3. `conti_pesate_ddt.csv` · il DDT 2026/013 usciva `valore = 0` con
+//    `quantita` vuota. `valorePesata` risponde 0 apposta PER CHI SOMMA — sta
+//    scritto sopra la funzione — e una cella di CSV disegna, non somma.
+// 4. `conti_situazione_fatture.csv` · la fattura 2026/037, senza scadenza,
+//    usciva `scadenza=null` (la stringa) e `stato=aperta`. Era la TERZA copia
+//    di `statoScadenzaFattura`, e la più debole. Nello stesso file le sei
+//    fatture a importo unico uscivano con `iva=0`, mentre il foglio STAMPATO
+//    delle stesse fatture si rifiuta di scriverlo perché «sarebbe una
+//    dichiarazione falsa»: due documenti, gli stessi dati, due affermazioni
+//    opposte.
+// Qui sotto restano le prove che possono vivere in `node`: la regola che è
+// stata spostata nel modulo (1) e le tre bandiere che le celle devono leggere
+// (2, 3, 4). Le celle in sé le ha viste il browser.
+// ═══════════════════════════════════════════════════════════════════════════
+{
+  test("⛔ Conti · baseGara: una base non pubblicata non è una base zero", () => {
+    eq(conti.baseGara({ base: 120000 }), 120000, "il numero passa");
+    eq(conti.baseGara({ base: 0 }), 0, "uno zero SCRITTO davvero resta zero");
+    eq(conti.baseGara({ base: null }), null, "null → non lo so");
+    eq(conti.baseGara({ base: "" }), null, "cella vuota → non lo so");
+    eq(conti.baseGara({}), null, "campo assente → non lo so");
+    eq(conti.baseGara({ base: "n.d." }), null, "illeggibile → non lo so");
+    eq(conti.baseGara(null), null, "niente gara → non lo so");
+    // ⛔ la trappola che il commento del modulo dichiara: +null fa 0, e
+    // Number.isFinite(0) risponde true. Se `baseGara` tornasse 0 al posto di
+    // null, `gareRiepilogo` conterebbe la gara fra quelle CON base.
+    ok(conti.baseGara({ base: null }) !== 0, "e non è lo zero di `+null`");
+  });
+
+  test("⛔ Conti · il riepilogo delle gare legge baseGara, non una sua copia", () => {
+    const G = [{ titolo: "a", base: 120000, stato: "aperta" },
+               { titolo: "b", base: null, stato: "aperta" }];
+    const r = conti.gareRiepilogo(G);
+    eq(r.baseAperta, 120000, "la gara senza base non entra nel totale");
+    eq(r.apertesenzaBase, 1, "e viene contata a parte, che è ciò che spiega il totale");
+  });
+
+  test("⛔ Conti · gare: andata e ritorno del CSV che la pagina dichiara ri-importabile", () => {
+    /* La prova che il difetto 1 non torni. Si compone la riga ESATTAMENTE come
+       fa `btn-gar-export`, si rilegge con `parseGareCsv`, e si pretende che il
+       riepilogo sia lo STESSO — non che il file si apra.
+       ⚠️ E si asserisce anche sul TESTO della cella: un giro che torna
+       identico dimostra solo che scrittore e lettore vanno d'accordo fra loro
+       (CLAUDE.md, la coppia scrivi/leggi). Qui la cella dev'essere VUOTA,
+       perché a rileggere il file c'è anche il foglio di calcolo del cliente. */
+    const G = [{ titolo: "ANAS — manutenzione SS115", base: 340000, scadenza: "2026-08-12", stato: "aperta" },
+               { titolo: "Consorzio ASI — bando appena uscito", base: null, scadenza: "2026-09-15", stato: "aperta" },
+               { titolo: "Provincia — lotto 3", base: 60000, scadenza: "2026-05-15", stato: "persa" }];
+    let csv = "titolo;base;scadenza;stato\n";
+    for (const g of G) csv += `${shell.csvCell(g.titolo)};${conti.baseGara(g) ?? ""};${g.scadenza || ""};${g.stato || "aperta"}\n`;
+    ok(/;;2026-09-15;/.test(csv), "la cella della base non pubblicata è VUOTA nel testo del file: " + csv.split("\n")[2]);
+    const riletto = conti.parseGareCsv(csv);
+    eq(riletto.length, 3, "tornano tutte e tre le gare");
+    eq(riletto.map((g) => g.base), [340000, null, 60000], "e la base assente torna assente, non zero");
+    const prima = conti.gareRiepilogo(G), dopo = conti.gareRiepilogo(riletto);
+    eq(dopo.baseAperta, prima.baseAperta, "il valore in gara non cambia nel giro");
+    eq(dopo.apertesenzaBase, prima.apertesenzaBase, "⛔ e nemmeno l'avviso «senza base d'asta»");
+    eq(dopo.tassoVittoria, prima.tassoVittoria, "né il tasso di vittoria");
+  });
+
+  test("⛔ Conti · densitaValida: la cella del prospetto prezzi ha la sua bandiera", () => {
+    const p5 = conti.DEMO.prodotti.find((p) => p.densita == null);
+    ok(!!p5, "la dimostrazione contiene ancora il prodotto senza densità");
+    eq(conti.densitaValida(p5), null, "densitaValida lo dichiara");
+    eq(conti.prezzoPerMetroCubo(p5), null, "e il prezzo al metro cubo non si calcola");
+    /* ⛔ le due celle della STESSA riga devono raccontare la stessa storia: se
+       una è vuota perché non si converte, l'altra non può portare un numero
+       misurato. Prima erano `0` e vuota. */
+    const densCella = conti.densitaValida(p5) ?? "";
+    const m3Cella = conti.prezzoPerMetroCubo(p5) ?? "";
+    eq([densCella, m3Cella], ["", ""], "densità e prezzo_m3 dicono tutt'e due «non lo so»");
+    // e su un prodotto sano nessuna delle due si svuota
+    const sano = conti.DEMO.prodotti.find((p) => p.densita > 0);
+    ok(conti.densitaValida(sano) > 0 && conti.prezzoPerMetroCubo(sano) > 0,
+      "la correzione non porta via il numero dove il numero c'è");
+  });
+
+  test("⛔ Conti · il valore di un DDT sul foglio si chiede a valoreDdt, non a valorePesata", () => {
+    const p = conti.DEMO.pesate.find((x) => !conti.valoreDdt(x).calcolabile);
+    ok(!!p, "la dimostrazione contiene ancora la consegna non valorizzabile");
+    eq(conti.valorePesata(p), 0, "chi SOMMA riceve 0, ed è la scelta dichiarata sopra la funzione");
+    eq(conti.valoreDdt(p).valore, null, "chi DISEGNA riceve null");
+    /* La cella del CSV disegna: si compone come `btn-pes-export` e si pretende
+       che sia vuota, in accordo con la colonna `quantita` della stessa riga —
+       che era già vuota, e che era l'indizio del difetto. */
+    const v = conti.valoreDdt(p);
+    eq([p.quantita == null ? "" : p.quantita, v.calcolabile ? v.valore : ""], ["", ""],
+      "⛔ quantità e valore della stessa riga dicono tutt'e due «non lo so»");
+    const sana = conti.DEMO.pesate.find((x) => conti.valoreDdt(x).calcolabile);
+    ok(conti.valoreDdt(sana).valore > 0, "e sulle consegne vere il valore resta");
+  });
+
+  test("⛔ Conti · lo stato esportato di una fattura senza scadenza non è «aperta»", () => {
+    const f = conti.DEMO.fatture.find((x) => !x.scadenza);
+    ok(!!f, "la dimostrazione contiene ancora la fattura senza scadenza");
+    /* LA COPIA DEBOLE, rimessa qui per far vedere che cosa faceva: `giorni` di
+       una scadenza che non c'è risponde NaN, e NaN < 0 è FALSO. */
+    const g = conti.giorni(f.scadenza);
+    ok(!Number.isFinite(g), "la copia debole leggeva " + mostra(g));
+    ok(!(g < 0), "⛔ e NaN < 0 è falso: da lì usciva «aperta»");
+    eq(conti.statoScadenzaFattura(f).stato, "senza-scadenza", "la funzione buona ha un secchio suo");
+    // la cella della scadenza: `${f.scadenza}` scriveva la stringa «null»
+    eq(String(f.scadenza || ""), "", "e la cella della scadenza resta vuota, non «null»");
+  });
+
+  test("⛔ Conti · canone: un prodotto di cui non si converte nemmeno un viaggio non deve «zero»", () => {
+    const P = [
+      { data: "2026-07-05", prodotto: "Stabilizzato", netto: 30, densita: 1.5 },
+      { data: "2026-07-06", prodotto: "Sabbia", netto: 10, densita: 1.6 },
+      { data: "2026-07-07", prodotto: "Sabbia", netto: 10 },              // un viaggio su due si converte
+      { data: "2026-07-10", prodotto: "Misto", netto: 26.4 },             // nessun viaggio si converte
+    ];
+    const m3 = conti.canonePeriodo(P, { canoneUnita: "m3", canoneAliquota: 0.55 }, "2026-07-01", "2026-07-31");
+    const riga = (n) => m3.perProdotto.find((x) => x.prodotto === n);
+    eq(riga("Misto").calcolabile, false, "il Misto non ha nessun volume convertibile");
+    eq(riga("Misto").dovuto, null, "⛔ e il dovuto è «non lo so», non € 0,00");
+    eq(riga("Misto").t, 26.4, "ma le tonnellate restano: la bilancia le ha pesate");
+    eq(riga("Misto").senzaDensita, 1, "e il perché è dichiarato sulla riga");
+    // PARZIALE ≠ non calcolabile: dove qualche viaggio si converte il numero è
+    // vero, solo incompleto, e la riga dice quanti viaggi mancano
+    eq(riga("Sabbia").calcolabile, true, "la Sabbia converte un viaggio su due: il numero c'è");
+    eq(riga("Sabbia").senzaDensita, 1, "e l'incompletezza è dichiarata");
+    ok(riga("Sabbia").dovuto > 0, "il dovuto parziale non si cancella: " + riga("Sabbia").dovuto);
+    // A TONNELLATA il caso non esiste: le tonnellate le pesa la bilancia
+    const t = conti.canonePeriodo(P, { canoneUnita: "t", canoneAliquota: 0.4 }, "2026-07-01", "2026-07-31");
+    const mistoT = t.perProdotto.find((x) => x.prodotto === "Misto");
+    eq(mistoT.calcolabile, true, "a tonnellata il Misto si calcola");
+    eq(mistoT.dovuto, 10.56, "26,4 t × 0,40 €/t");
+    // il totale non cambia: escludeva già il non convertibile, e lo dichiara
+    eq(m3.senzaDensita, 2, "le pesate senza densità restano contate nel riepilogo");
+  });
+
+  test("⛔ Conti · l'IVA non dichiarata esce vuota, come si rifiuta di stamparla il foglio", () => {
+    const vecchia = conti.DEMO.fatture.find((x) => !conti.importiFattura(x).conIva);
+    ok(!!vecchia, "la dimostrazione contiene ancora una fattura a importo unico");
+    const im = conti.importiFattura(vecchia);
+    eq(im.conIva, false, "il dettaglio dell'IVA non c'è");
+    eq(im.aliquota, null, "e l'aliquota non si inventa");
+    eq(im.conIva ? im.ivaImporto : "", "", "⛔ quindi la cella `iva` del CSV resta VUOTA, non 0");
+    /* ⚠️ E LA MISURA CHE NON VA GONFIATA, ma nemmeno taciuta: nella
+       dimostrazione le fatture col dettaglio dell'IVA sono ZERO — sono tutte a
+       importo unico — quindi il file esportato scriveva `iva;0` su TUTTE E
+       SETTE. Non è una riga di bordo, è l'intera colonna. Il caso col dettaglio
+       si costruisce qui perché la dimostrazione non ce l'ha. */
+    eq(conti.DEMO.fatture.filter((x) => conti.importiFattura(x).conIva).length, 0,
+      "nella dimostrazione non c'è nessuna fattura col dettaglio dell'IVA");
+    const nuova = { imponibile: 1500, ivaImporto: 330, totale: 1830, aliquotaIva: 22 };
+    const imn = conti.importiFattura(nuova);
+    eq([imn.conIva, imn.conIva ? imn.ivaImporto : ""], [true, 330],
+      "e dove l'IVA c'è la colonna la porta ancora");
+  });
+}
+
+
 // ══════════════════════════════════════════════════════════════════════
 // ⛔ SCUDO · IL PERMESSO DI LAVORO (S8, 03/08)
 // Nasce da un difetto misurato, non da un elenco di funzioni: la checklist

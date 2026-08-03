@@ -1013,17 +1013,32 @@ export function prioritaIncasso(fatture, oggi = new Date(), note = null) {
 // base d'asta per stato, e tasso di vittoria sulle sole gare DECISE
 // (vinte+perse; le aperte non contano ancora). tassoVittoria è null se
 // non c'è ancora nessuna gara decisa. Funzione pura e testabile.
+/* ⛔ LA BASE D'ASTA LEGGIBILE, IN UN POSTO SOLO — e il posto è questo perché
+   la regola serve a TRE chiamanti: il riepilogo qui sotto, `parseGareCsv` (che
+   la scrive `null` quando la colonna è vuota, con la ragione per esteso) e
+   l'ESPORTAZIONE della pagina, che fino al 03/08 la riscriveva più debole.
+   Misurato quel giorno sull'andata e ritorno che la pagina stessa dichiara
+   («il file esportato si può re-importare»): la cella usciva `${+g.base || 0}`,
+   cioè la gara del bando appena uscito — base non ancora pubblicata — tornava
+   dentro con **base 0 €**, e `apertesenzaBase` passava da 1 a 0. Cioè spariva
+   l'avviso «N sono senza base d'asta e non entrano nel totale», che è l'unica
+   cosa che spiega perché il totale è più basso del vero.
+   ⚠️ `Number.isFinite(+g.base)` DA SOLO NON BASTA: `+null` fa 0, che è finito —
+   quindi una base mancante passerebbe per un numero valido e tornerebbe a
+   valere zero, cioè esattamente il difetto che si sta togliendo.
+   Trovato da un test, non a mente. */
+export function baseGara(gara) {
+  const g = gara || {};
+  return g.base != null && g.base !== "" && Number.isFinite(+g.base) ? +g.base : null;
+}
+
 export function gareRiepilogo(gare) {
   const per = (s) => (gare || []).filter(g => g.stato === s);
   /* Le gare senza base non si contano nel totale — sommarle come zero sarebbe
      lo stesso — ma si CONTANO a parte: un totale che esclude qualcosa senza
      dirlo è un totale che inganna chi lo legge. */
-  /* ⚠️ `Number.isFinite(+g.base)` DA SOLO NON BASTA: `+null` fa 0, che è
-     finito — quindi una base mancante passerebbe per un numero valido e
-     tornerebbe a valere zero, cioè esattamente il difetto che si sta togliendo.
-     Trovato da un test, non a mente. */
-  const conBase = (g) => g && g.base != null && g.base !== "" && Number.isFinite(+g.base);
-  const somma = (arr) => arr.reduce((t, g) => t + (conBase(g) ? +g.base : 0), 0);
+  const conBase = (g) => baseGara(g) != null;
+  const somma = (arr) => arr.reduce((t, g) => t + (baseGara(g) || 0), 0);
   const senzaBase = (arr) => arr.filter(g => !conBase(g)).length;
   const aperte = per("aperta"), vinte = per("vinta"), perse = per("persa");
   const decise = vinte.length + perse.length;
@@ -1940,7 +1955,22 @@ export function canonePeriodo(pesate, impostazioni, dal, al, rilievi) {
     if (q.m3 != null) tot.m3 = round3(tot.m3 + q.m3);
   }
   const perProdotto = Object.values(per).sort((a, b) => b.t - a.t);
-  for (const r of perProdotto) r.dovuto = round2((unita === "t" ? r.t : r.m3) * aliquota);
+  /* ⛔ UN PRODOTTO DI CUI NON SI CONVERTE NEMMENO UN VIAGGIO NON DEVE «ZERO».
+     Trovato il 03/08 GUARDANDO LO SCATTO, e nel documento che porta al canone
+     versato all'ente: con l'aliquota a metro cubo, la riga «Misto di cava (non
+     classificato)» diceva «26,40 t · 1 viaggio · 1 senza densità» e accanto
+     «€ 0,00 · 0,00 m³». Quel materiale la cava l'ha venduto e la bilancia l'ha
+     pesato: lo zero non è il dovuto, è il volume che nessuno sa convertire —
+     e sul canone uno zero vuol dire «per questo non devi niente».
+     A TONNELLATA il caso non esiste (le tonnellate le pesa la bilancia), e
+     quando qualche viaggio si converte il numero è vero ma PARZIALE: quello
+     resta, ed è la riga a dire quanti viaggi mancano. `null` — la convenzione
+     dell'ecosistema per «non calcolabile» — si usa solo dove non si converte
+     niente, e `calcolabile` è la bandiera che la pagina legge per scriverlo. */
+  for (const r of perProdotto) {
+    r.calcolabile = unita === "t" || r.senzaDensita < r.viaggi;
+    r.dovuto = r.calcolabile ? round2((unita === "t" ? r.t : r.m3) * aliquota) : null;
+  }
   const comune = { unita, aliquota, baseScelta,
     tonnellate: round2(tot.t), metriCubi: round3(tot.m3),
     senzaDensita: tot.senzaDensita, perProdotto,

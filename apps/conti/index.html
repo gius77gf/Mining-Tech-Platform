@@ -1566,7 +1566,7 @@ label.item:has(.dw-chk:checked){
      qui si disegna e si chiede conferma — `round2` è già importato più sotto */
   import { parseMovimentiCsv, abbinaMovimenti, ESTRATTO_ESEMPIO,
            contiData, giorni, kpiFrom, statoScadenzaFattura, agingIncassi, gareRiepilogo, prioritaIncasso, incassoAtteso, incassoPerMese, esposizioneClienti, estrattoContoCliente, livelloSollecito, interessiMora, testoSollecito, TASSO_MORA_DEFAULT, parseFattureCsv, parseGareCsv, parseListinoCsv, chiaveNome, clienteDiFattura, nomeCliente, clientiDaCollegare,
-    round2, densitaValida, prezzoPerTonnellata, prezzoPerMetroCubo, convertiQuantita, imponibileRiga,
+    round2, baseGara, densitaValida, prezzoPerTonnellata, prezzoPerMetroCubo, convertiQuantita, imponibileRiga,
     importiFattura, totaliDaRighe, prossimoNumero, nettoPesata, rigaPesata, valorePesata, valoreDdt,
     quantitaPesata, pesateDaFatturare, fatturaDaPesate, canonePeriodo, BASI_CANONE, venditePerProdotto,
     cavatoPeriodo, vendutoPeriodo, riconciliazione, valoreCavato, SOGLIA_DIVARIO,
@@ -2513,7 +2513,12 @@ label.item:has(.dw-chk:checked){
         <td class="num">${r.quantita == null ? "a chiamata" : qtu(r.quantita, r.unita)}</td>
         <td class="num">${r.prezzoUnitario == null ? "—" : eur(r.prezzoUnitario) + "/" + uni(r.unita)}</td>
         <td class="num">${+r.scontoPct > 0 ? "− " + perc(r.scontoPct) : "—"}</td>
-        <td class="num">${perc(r.aliquota)}</td>
+        ${/* stessa regola del foglio della fattura: un'aliquota che non c'è non
+             si stampa «0%», che su un documento è la dichiarazione di
+             un'operazione non imponibile. Il caso oggi non si produce
+             (`rigaPreventivo` scrive sempre un numero), ma le due stampe non
+             possono dire due cose diverse sullo stesso dato. */""}
+        <td class="num">${r.aliquota == null ? "—" : perc(r.aliquota)}</td>
         <td class="num">${r.imponibile == null ? "—" : eur(r.imponibile)}</td></tr>`).join("");
     stampaFoglio(`<div class="doc">
       ${testaStampa(titolo, sotto)}
@@ -3962,8 +3967,11 @@ label.item:has(.dw-chk:checked){
       ? righe.map(r => `<tr><td>${esc(r.descrizione || "—")}${r.ddt && r.ddt.length ? `<br><span style="font-size:8.5pt;color:#444;">DDT ${esc(r.ddt.join(", "))}</span>` : ""}</td>
           <td class="num">${qtu(r.quantita, r.unita)}</td>
           <td class="num">${eur(r.prezzoUnitario)}${+r.scontoPct > 0 ? `<br><span style="font-size:8.5pt;color:#444;">sconto ${perc(r.scontoPct)}</span>` : ""}</td>
-          <td class="num">${perc(r.aliquota)}</td>
-          <td class="num">${eur(r.imponibile)}</td></tr>`).join("")
+          ${/* ⛔ un'aliquota che non c'è NON si stampa «0%»: su una fattura è la
+                dichiarazione di un'operazione non imponibile, cioè una cosa
+                diversa da «non lo sappiamo». `perc(null)` faceva 0%. */""}
+          <td class="num">${r.aliquota == null ? "—" : perc(r.aliquota)}</td>
+          <td class="num">${r.imponibile == null ? "—" : eur(r.imponibile)}</td></tr>`).join("")
       : `<tr><td>Fornitura di materiali inerti</td><td class="num">—</td><td class="num">—</td>
           <td class="num">${im.conIva ? (im.aliquota == null ? "—" : perc(im.aliquota)) : "n.d."}</td>
           <td class="num">${eur(im.conIva ? im.imponibile : im.totale)}</td></tr>`;
@@ -4050,8 +4058,13 @@ label.item:has(.dw-chk:checked){
       <span class="avatar">${IC.listino}</span>
       <div class="info"><div class="name">${esc(r.prodotto)}</div>
       <div class="meta">${qt(r.t)} t${r.m3 ? " · " + qt(r.m3) + " m³" : ""} · ${plur(r.viaggi, "viaggio", "viaggi")}${r.senzaDensita ? " · " + r.senzaDensita + " senza densità" : ""}</div></div>
-      <div class="amt"><div class="amt-n${senzaAli ? " mute" : ""}">${senzaAli ? "—" : eur(r.dovuto)}</div>
-        <div class="amt-s">${qt(c.unita === "t" ? r.t : r.m3)} ${u}</div></div></div>`).join("")
+      ${/* ⛔ la bandiera `calcolabile` si legge QUI: senza, la riga scriveva
+            «€ 0,00 · 0,00 m³» su un prodotto venduto e pesato di cui non si
+            converte nemmeno un viaggio — cioè «per questo non devi niente»
+            all'ente, dove la verità è «questo volume non lo sa nessuno». */""}
+      <div class="amt"><div class="amt-n${senzaAli || !r.calcolabile ? " mute" : ""}">${senzaAli || !r.calcolabile ? "—" : eur(r.dovuto)}</div>
+        <div class="amt-s">${r.calcolabile ? qt(c.unita === "t" ? r.t : r.m3) + " " + u
+          : "volume non convertibile"}</div></div></div>`).join("")
       + (senzaAli ? "" : `<div class="tot"><span class="tot-l">Canone stimato del periodo</span>
          <span class="tot-n">${eur(c.dovuto)}</span></div>`);
   }
@@ -4978,10 +4991,24 @@ label.item:has(.dw-chk:checked){
     // vecchie, senza dettaglio, escono con imponibile = importo e IVA 0)
     let csv = "numero;cliente;emessa;imponibile;aliquota;iva;totale;scadenza;stato;incassato;residuo;data_incasso;giorni_pagamento;ddt\n";
     for (const f of FAT.slice().sort((a,b) => (a.scadenza||"").localeCompare(b.scadenza||""))) {
-      const st = f.incassata ? "incassata" : f.parziale ? "acconto" : (giorni(f.scadenza) < 0 ? "insoluta" : "aperta");
       const im = importiFattura(f);
       const s = statoIncasso(f, INC);
-      csv += `${csvCell(f.numero)};${csvCell(nomeCliente(f, CLI))};${f.emessa||""};${im.imponibile};${im.aliquota == null ? "" : im.aliquota};${im.ivaImporto};${im.totale};${f.scadenza};${st};${s.incassato};${s.residuo};${s.dataSaldo||f.dataIncasso||""};${s.giorniPagamento == null ? "" : s.giorniPagamento};${(f.ddtIds||[]).length}\n`;
+      /* ⛔ LO STATO SI CHIEDE A `statoScadenzaFattura`, NON SI RIFÀ QUI. Era la
+         TERZA copia della stessa regola, e la più debole: `giorni(f.scadenza)`
+         di una scadenza che non c'è risponde NaN, che non è `< 0`, quindi la
+         fattura 2026/037 — senza scadenza — usciva «aperta» nel file che va al
+         commercialista. È lo stesso «Regolare» che questa app ha già tolto due
+         volte dal badge e dalla striscia, e la funzione esiste apposta. */
+      const sc = statoScadenzaFattura(f);
+      const st = s.saldata ? "incassata" : s.parziale ? "acconto"
+        : sc.stato === "insoluta" ? "insoluta"
+        : sc.stato === "senza-scadenza" ? "senza scadenza" : "aperta";
+      /* ⛔ E L'IVA NON DICHIARATA NON È «IVA ZERO». Il foglio stampato di queste
+         stesse fatture si rifiuta di scrivere «IVA € 0,00» perché «sarebbe una
+         dichiarazione falsa»; qui la colonna usciva `0`, nel file che il
+         commercialista usa per il registro IVA. Due documenti, gli stessi dati,
+         due affermazioni opposte: la cella resta vuota, come l'aliquota. */
+      csv += `${csvCell(f.numero)};${csvCell(nomeCliente(f, CLI))};${f.emessa||""};${im.imponibile};${im.aliquota == null ? "" : im.aliquota};${im.conIva ? im.ivaImporto : ""};${im.totale};${f.scadenza||""};${st};${s.incassato};${s.residuo};${s.dataSaldo||f.dataIncasso||""};${s.giorniPagamento == null ? "" : s.giorniPagamento};${(f.ddtIds||[]).length}\n`;
     }
     const a = document.createElement("a");
     a.href = "data:text/csv;charset=utf-8," + encodeURIComponent(csv);
@@ -5278,9 +5305,16 @@ label.item:has(.dw-chk:checked){
      file hanno nomi DIVERSI: prima si chiamavano tutti e due
      conti_listino.csv e nella cartella dei download uno copriva l'altro. */
   $("btn-lis-prezzi").onclick = () => {
+    /* ⛔ LA DENSITÀ CHE NON C'È NON È UNA DENSITÀ ZERO. `${+p.densita || 0}`
+       scriveva `0` per il prodotto non classificato — una densità nulla non
+       esiste in natura, e nella STESSA riga la colonna `prezzo_m3` restava
+       vuota perché senza densità non si converte: il foglio si smentiva da
+       solo, e chi lo apre col foglio di calcolo legge un numero misurato dove
+       nessuno ha misurato niente. La regola è `densitaValida`, la stessa che
+       usano le conversioni. */
     let csv = "prodotto;prezzo;unita_prezzo;densita_t_m3;prezzo_t;prezzo_m3;iva\n";
     for (const p of PRO.slice().sort((a, b) => String(a.nome || "").localeCompare(String(b.nome || ""), "it")))
-      csv += `${csvCell(p.nome)};${+p.prezzo || 0};${p.unitaPrezzo === "m3" ? "m3" : "t"};${+p.densita || 0};${prezzoPerTonnellata(p) ?? ""};${prezzoPerMetroCubo(p) ?? ""};${+p.iva || 0}\n`;
+      csv += `${csvCell(p.nome)};${+p.prezzo || 0};${p.unitaPrezzo === "m3" ? "m3" : "t"};${densitaValida(p) ?? ""};${prezzoPerTonnellata(p) ?? ""};${prezzoPerMetroCubo(p) ?? ""};${+p.iva || 0}\n`;
     const a = document.createElement("a");
     a.href = "data:text/csv;charset=utf-8," + encodeURIComponent(csv);
     a.download = "conti_listino_prezzi.csv"; a.click();
@@ -5368,7 +5402,15 @@ label.item:has(.dw-chk:checked){
     for (const p of PES.slice().sort((a, b) => String(a.data || "").localeCompare(String(b.data || "")))) {
       const f = p.fatturaId ? FAT.find(x => x.id === p.fatturaId) : null;
       const o = p.ordineId ? ORD.find(x => x.id === p.ordineId) : null;
-      csv += `${csvCell(p.numero)};${p.data || ""};${csvCell(p.cliente)};${csvCell(p.prodotto)};${+p.lordo || 0};${+p.tara || 0};${+p.netto || 0};${p.quantita == null ? "" : p.quantita};${p.unitaVendita === "m3" ? "m3" : "t"};${+p.prezzoUnitario || 0};${+p.scontoPct || 0};${valorePesata(p)};${+p.aliquotaIva || 0};${csvCell(p.mezzo)};${csvCell(p.destinatario)};${csvCell(f ? f.numero : "")};${csvCell(o ? (o.numeroOrdine || o.numero) : "")};${csvCell(p.fontePrezzo === "ordine" ? "ordine" : p.fontePrezzo === "listino" ? "listino" : "")}\n`;
+      /* ⛔ LA CELLA «valore» LEGGE LA BANDIERA, perché una cella di CSV DISEGNA
+         un numero, non lo somma. `valorePesata` risponde 0 apposta per chi
+         somma (sta scritto sopra la funzione); qui usciva `0` sul DDT 2026/013
+         — venduto a metro cubo, prodotto senza densità — mentre la colonna
+         `quantita` della stessa riga restava giustamente VUOTA. Zero euro di
+         valore accanto a una quantità sconosciuta è una consegna dichiarata di
+         niente, nel file che va al commercialista. */
+      const v = valoreDdt(p);
+      csv += `${csvCell(p.numero)};${p.data || ""};${csvCell(p.cliente)};${csvCell(p.prodotto)};${+p.lordo || 0};${+p.tara || 0};${+p.netto || 0};${p.quantita == null ? "" : p.quantita};${p.unitaVendita === "m3" ? "m3" : "t"};${+p.prezzoUnitario || 0};${+p.scontoPct || 0};${v.calcolabile ? v.valore : ""};${+p.aliquotaIva || 0};${csvCell(p.mezzo)};${csvCell(p.destinatario)};${csvCell(f ? f.numero : "")};${csvCell(o ? (o.numeroOrdine || o.numero) : "")};${csvCell(p.fontePrezzo === "ordine" ? "ordine" : p.fontePrezzo === "listino" ? "listino" : "")}\n`;
     }
     const a = document.createElement("a");
     a.href = "data:text/csv;charset=utf-8," + encodeURIComponent(csv);
@@ -5832,9 +5874,16 @@ label.item:has(.dw-chk:checked){
   $("btn-gar-export").onclick = () => {
     // backup/condivisione delle gare, nello STESSO formato dell'import
     // (titolo;base;scadenza;stato): il file esportato si può re-importare.
+    /* ⛔ LA BASE CHE NON C'È RESTA VUOTA, e non è pignoleria sul formato: questo
+       file si ri-importa (lo dice il commento qui sopra), e `${+g.base || 0}`
+       faceva rientrare una gara senza base come una gara da ZERO euro. Da lì
+       `apertesenzaBase` scendeva a 0 e spariva l'avviso «N sono senza base
+       d'asta e non entrano nel totale» — cioè la sola frase che spiega perché
+       il totale è più basso del vero. La regola sta in `baseGara`, dove la
+       legge anche il riepilogo: qui non si riscrive. */
     let csv = "titolo;base;scadenza;stato\n";
     for (const g of GAR.slice().sort((a, b) => (a.scadenza || "9999").localeCompare(b.scadenza || "9999")))
-      csv += `${csvCell(g.titolo)};${+g.base || 0};${g.scadenza || ""};${g.stato || "aperta"}\n`;
+      csv += `${csvCell(g.titolo)};${baseGara(g) ?? ""};${g.scadenza || ""};${g.stato || "aperta"}\n`;
     const a = document.createElement("a");
     a.href = "data:text/csv;charset=utf-8," + encodeURIComponent(csv);
     a.download = "conti_gare.csv"; a.click();
