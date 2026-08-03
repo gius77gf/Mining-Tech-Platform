@@ -7,7 +7,7 @@
 // perché non falliscono i test, si vedono solo aprendo la pagina giusta.
 // Qui diventano controlli che girano in automatico.
 //
-// 23 regole, al 01/08. *(Era rimasto scritto «tredici» per giorni mentre
+// 24 regole, al 03/08. *(Era rimasto scritto «tredici» per giorni mentre
 // l'elenco cresceva: un numero in un commento non fallisce, sta lì — la stessa
 // ragione per cui esiste `numeri-nei-documenti.mjs`. Adesso c'è una prova in
 // fondo al file che lo confronta con le voci davvero elencate qui sotto.)*
@@ -173,6 +173,16 @@
 //     1.755 a 19.344 px. Idem `cursor` su `.item` e `color`+`font-size` su
 //     `.arr`. Tre perdite che il censimento per nomi non poteva vedere, e
 //     nessuna delle tre rompe la pagina: cambiano un colore e una misura.
+//
+// 24. UN GRADIENTE CHE DIPINGE DELLE CIFRE HA IL SUO CONTO ACCANTO. Il
+//     cartellone di cassa di Conti ritaglia il gradiente sulle lettere, e la
+//     fermata BASSA tinge il basso delle cifre: nello stato «grave» era
+//     `#a32b27` su fondo quasi nero, **2,17:1**, sotto il 3:1 che la WCAG
+//     chiede al testo grande. Cioè il numero meno leggibile della pagina era
+//     quello che compare quando c'è un problema. Sta qui e non nel banco del
+//     browser per una ragione precisa: **il banco vede solo gli stati che la
+//     dimostrazione produce**, e quello stato c'era per caso. Questa legge il
+//     CSS, quindi li guarda tutti.
 //
 // ⚠️ Le regole 21-23 sono nate senza entrare in questo elenco, e la prova in
 // fondo al file **non se n'è accorta**: confronta il numero dichiarato con le
@@ -2533,6 +2543,104 @@ test("regola 20: guarda DAVVERO Genesi, che la convenzione vecchia perdeva", () 
   const solaDich = scollegateIn("apps/genesi/genesi-data.js", modCieco, ...cieche);
   ok(solaDich.length === 1,
     "tolte le letture, la bandiera di Genesi deve risultare scollegata: " + JSON.stringify(solaDich));
+});
+
+/* ═══ REGOLA 24 — UN GRADIENTE CHE DIPINGE DELLE CIFRE HA IL SUO CONTO ACCANTO ═══
+   Nata il 03/08 da un difetto vero in Conti: il cartellone di cassa ritaglia il
+   gradiente sulle lettere (`background-clip:text`), e la fermata BASSA è quella
+   che tinge il basso delle cifre. Nello stato «grave» quella fermata era
+   `#a32b27` su fondo quasi nero — **2,17:1** misurato, sotto il 3:1 che la WCAG
+   chiede al testo grande. Cioè il numero meno leggibile della pagina era
+   proprio quello che compare quando c'è un problema.
+   Perché era passato: `--grad-num` porta accanto il suo conto scritto a mano,
+   gli altri no, e infatti l'unico controllato era quello.
+
+   ⛔ E PERCHÉ STA QUI E NON NEL BANCO DEL BROWSER, che pure misura il contrasto
+   di tutto: il banco vede solo gli stati che la DIMOSTRAZIONE produce. Lo stato
+   «grave» del cartellone c'era per caso; se i dati d'esempio fossero stati un
+   po' più sereni, quel 2,17:1 non l'avrebbe visto nessuno. Questa regola legge
+   il CSS, quindi guarda **tutti** gli stati, anche quelli che nessuna
+   dimostrazione mette in scena.
+
+   ⚠️ E il suo limite è dichiarato, non sottinteso: guarda i blocchi che portano
+   il ritaglio CON SÉ. Se un'app scrivesse `background:var(--grad3)` in una
+   regola che eredita il ritaglio da una regola base, questa non la vedrebbe.
+   Oggi non succede — censite le sette superfici, i gradienti messi come fondo
+   fuori da un blocco col ritaglio dipingono barre, avatar e bottoni, mai
+   lettere — e la prova qui sotto conta quante superfici ha davvero guardato,
+   così il giorno che il numero scende si vede. */
+const _lumHex = (hex) => {
+  const n = hex.replace("#", "");
+  const c = n.length === 3 ? [...n].map((x) => x + x) : n.match(/../g) || [];
+  const [r, g, b] = c.map((x) => parseInt(x, 16));
+  const f = (v) => { v /= 255; return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4); };
+  return 0.2126 * f(r) + 0.7152 * f(g) + 0.0722 * f(b);
+};
+const _rapporto = (a, b) => {
+  const L1 = Math.max(_lumHex(a), _lumHex(b)), L2 = Math.min(_lumHex(a), _lumHex(b));
+  return Math.round((L1 + 0.05) / (L2 + 0.05) * 100) / 100;
+};
+/* Il fondo su cui poggiano le cifre: la scheda, e se non c'è lo sfondo della
+   pagina. È il fondo PIÙ CHIARO dei due, cioè il caso peggiore per un testo
+   chiaro — la stessa scelta prudente del banco del contrasto. */
+function _cifreRitagliate(testo) {
+  const grad = {};
+  for (const m of testo.matchAll(/(--[\w-]*grad[\w-]*)\s*:\s*linear-gradient\(([^;]*)\)/gi))
+    grad[m[1]] = m[2].match(/#[0-9a-f]{3,6}/gi) || [];
+  const val = (n) => {
+    const m = testo.match(new RegExp(n.replace(/-/g, "\\-") + "\\s*:\\s*(#[0-9a-f]{3,6})", "i"));
+    return m && m[1];
+  };
+  const fondo = val("--card") || val("--bg");
+  const usate = new Set();
+  for (const blocco of testo.split("}")) {
+    if (!/background-clip\s*:\s*text/i.test(blocco)) continue;
+    for (const m of blocco.matchAll(/var\((--[\w-]+)\)/g)) usate.add(m[1]);
+  }
+  return { fondo, voci: [...usate].filter((v) => grad[v] && grad[v].length)
+    .map((v) => ({ nome: v, fermate: grad[v],
+                   peggio: fondo ? Math.min(...grad[v].map((x) => _rapporto(x, fondo))) : null })) };
+}
+const SOGLIA_CIFRE = 3;   // WCAG 1.4.3 per il testo grande: queste tinte dipingono solo numeri da 30 px in su
+
+test("regola 24: nessun gradiente dipinge cifre sotto il 3:1", () => {
+  const male = [];
+  for (const [nome, rel] of SUPERFICI) {
+    const { fondo, voci } = _cifreRitagliate(leggi(rel));
+    if (!fondo) continue;
+    for (const v of voci)
+      if (v.peggio !== null && v.peggio < SOGLIA_CIFRE)
+        male.push(`${nome}: ${v.nome} (${v.fermate.join(" → ")}) fa ${v.peggio}:1 su ${fondo}`);
+  }
+  ok(male.length === 0,
+    "gradienti che dipingono cifre sotto il 3:1 — la fermata BASSA è quella da alzare:\n  " + male.join("\n  "));
+});
+
+test("regola 24: dichiara su quante superfici ha davvero guardato", () => {
+  let conSoggetti = 0, soggetti = 0;
+  for (const [, rel] of SUPERFICI) {
+    const { fondo, voci } = _cifreRitagliate(leggi(rel));
+    if (!fondo || !voci.length) continue;
+    conSoggetti++; soggetti += voci.length;
+  }
+  /* Il numero è la difesa contro il «nessuna violazione» di un controllo che
+     non ha guardato niente: se un giorno scende, o è sparito un ritaglio o è
+     cambiata la forma con cui si scrivono i gradienti. */
+  ok(conSoggetti >= 5 && soggetti >= 12,
+    `la regola 24 ha guardato solo ${soggetti} gradienti su ${conSoggetti} superfici: troppo pochi, non sta guardando dove crede`);
+});
+
+test("regola 24: la controprova — una fermata bassa scurita viene vista", () => {
+  const sano = leggi("apps/conti/index.html");
+  const prima = _cifreRitagliate(sano);
+  ok(prima.voci.every((v) => v.peggio >= SOGLIA_CIFRE), "Conti dev'essere sano prima di guastarlo");
+  /* si rimette ESATTAMENTE il difetto che c'era: la fermata bassa di --grad3 */
+  const guasto = sano.replace("#f05f5a,#cc4a44", "#f05f5a,#a32b27");
+  ok(guasto !== sano, "l'iniezione non ha sostituito niente: la prova non prova niente");
+  const dopo = _cifreRitagliate(guasto);
+  const bocciati = dopo.voci.filter((v) => v.peggio < SOGLIA_CIFRE);
+  ok(bocciati.length === 1 && bocciati[0].nome === "--grad3",
+    `col difetto rimesso la regola deve vedere --grad3 e basta, ha visto: ${JSON.stringify(bocciati)}`);
 });
 
 /* Il numero di regole scritto nell'intestazione è quello vero? Era rimasto a
