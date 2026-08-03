@@ -723,6 +723,15 @@ textarea.dw-input{
 }
 .rep-sub{font-size:12px; color:var(--muted); margin-top:6px; line-height:1.55}
 .rep-sub b{color:var(--muted2); font-weight:600}
+/* «dati di esempio»: riquadrata perché è l'unica riga della testata che parla
+   del documento invece che delle misure — e in stampa è l'unica che resta a
+   dirlo, visto che la fascia in alto è un comando e non un documento */
+.rep-esempio{
+  margin:9px 0 0; padding:8px 11px; font-size:11.5px; line-height:1.5;
+  color:var(--muted2); border:1px solid var(--warn); border-radius:var(--r-sm);
+  background:rgba(248,172,61,.10);
+}
+.rep-esempio b{color:var(--warn); font-weight:700; letter-spacing:.2px}
 
 /* il verdetto: è la prima cosa che legge chi riceve il documento */
 .rep-esito{
@@ -885,7 +894,11 @@ textarea.dw-input{
      report che la stampa poteva spezzare a metà fra due fogli: e sono proprio
      quelle che dicono ciò che il documento NON sa — la metà rimasta sul foglio
      dopo si legge staccata dalla frase che la spiega. */
-  .rep-esito,.rep-cifre,.rep-graf,.rep-tar{break-inside:avoid; page-break-inside:avoid}
+  .rep-esito,.rep-cifre,.rep-graf,.rep-tar,.rep-esempio{break-inside:avoid; page-break-inside:avoid}
+  /* su carta il giallo dell'avviso non si vede: resta il riquadro nero, che
+     è quello che fa alzare gli occhi */
+  .rep-esempio{border:1.5px solid #000 !important; background:none !important; color:#000 !important}
+  .rep-esempio b{color:#000 !important}
   .tab tr{break-inside:avoid; page-break-inside:avoid}
   /* su carta non esiste lo scorrimento laterale: le colonne si stringono
      e i testi vanno a capo, così nessuna colonna resta fuori dal foglio */
@@ -2930,6 +2943,21 @@ textarea.dw-input{
         ? "uno non ha nessun punto di misura collegato" : R.nRicettoriSenzaPunti + " non hanno nessun punto di misura collegato"} (${R.ricettoriSenzaPunti.join(", ")}): di ${R.nRicettoriSenzaPunti === 1 ? "quello" : "quelli"} qui non risulta nessuna misura.`);
     if (R.nPuntiSenzaSoglia && R.esito !== "senza-soglia")
       f.push(`Questo giudizio riguarda ${R.nPuntiGiudicabili} ${R.nPuntiGiudicabili === 1 ? "punto" : "punti"} su ${R.nPuntiConDati} con letture nel periodo: ${R.nPuntiSenzaSoglia === 1 ? "un punto non ha" : R.nPuntiSenzaSoglia + " punti non hanno"} nessuna soglia impostata, e su ${R.nPuntiSenzaSoglia === 1 ? "quello" : "quelli"} non si può dire né conforme né non conforme.`);
+    /* ⛔ E LE RIGHE CHE IL DOCUMENTO NON HA POTUTO USARE VANNO DETTE QUI, non
+       lasciate sparire. `reportConformita` le conta (`scartate`) da quando il
+       suo filtro ha smesso di giudicare le date dalla forma della stringa:
+       una lettura datata 30 febbraio entrava nel report — e cambiava esito —
+       mentre ogni schermata la scartava. Toglierla e basta avrebbe spostato
+       la bugia invece di chiuderla: una riga registrata che sparisce senza
+       una parola è di nuovo l'assenza scambiata per un dato favorevole. */
+    const S = R.scartate || { totale: 0 };
+    if (S.totale) {
+      const pezzi = [];
+      if (S.letture) pezzi.push(`${S.letture} ${S.letture === 1 ? "lettura" : "letture"}`);
+      if (S.reclami) pezzi.push(`${S.reclami} ${S.reclami === 1 ? "reclamo" : "reclami"}`);
+      if (S.volate) pezzi.push(`${S.volate} ${S.volate === 1 ? "volata" : "volate"}`);
+      f.push(`In archivio ${S.totale === 1 ? "c'è una riga che questo documento non ha potuto usare" : "ci sono " + S.totale + " righe che questo documento non ha potuto usare"} (${pezzi.join(", ")}): il giorno che ${S.totale === 1 ? "porta" : "portano"} scritto non è un giorno che esiste, oppure il valore non è un numero. ${S.totale === 1 ? "Non è" : "Non sono"} ${S.totale === 1 ? "conteggiata" : "conteggiate"} in nessuno dei numeri qui sotto: ${S.totale === 1 ? "va corretta" : "vanno corrette"} in archivio e poi il report va rifatto.`);
+    }
     return f.join(" ");
   }
 
@@ -3039,9 +3067,22 @@ textarea.dw-input{
     });
   }
 
+  /* ⛔ SUL FOGLIO NON RESTAVA NIENTE CHE DICESSE «SONO DATI DI ESEMPIO».
+     Lo schermo lo dichiara due volte — la fascia in alto e la riga di stato —
+     e la stampa le nasconde tutt'e due, perché `.tour-banner` sta nell'elenco
+     di ciò che è comando e non documento. Ma quello che esce dalla stampante
+     è «Report di conformità ambientale», il foglio che si consegna all'ente:
+     senza questa riga esce con l'aria di un documento e nessuno dei suoi
+     numeri riguarda la cava di chi lo stampa. Misurato premendo il bottone: a
+     schermo il corpo della pagina nomina i dati d'esempio, in `@media print`
+     no.
+     Va DENTRO il documento (e quindi anche a schermo, sotto la testata) e non
+     in una fascia: è il documento a girare, non la finestra del browser. */
   const testaReport = (periodo, R, genTxt) => `<div class="rep-testa">
       <div class="rep-marchio">Deepwork Sentinella · ambiente</div>
       <div class="rep-tit">Report di conformità ambientale</div>
+      ${db.mode !== "live" ? `<div class="rep-esempio"><b>DATI DI ESEMPIO — modalità tour (${esc(db.mode)}).</b>
+        Questo foglio non riporta misure della tua cava: non va consegnato a nessun ente.</div>` : ""}
       <div class="rep-sub">Periodo: <b>${esc(periodo)}</b><br>
         Ricettore: <b>${R.ricettore ? esc(R.ricettore.nome) : "tutti i ricettori della cava"}</b>${
           R.ricettore ? ` · ${esc(etichettaTipo(R.ricettore.tipo))}${Number.isFinite(+R.ricettore.distanza) && +R.ricettore.distanza > 0 ? " a " + esc(numeroIt(R.ricettore.distanza)) + " m dalla cava" : ""}${R.ricettore.classe ? " · classe acustica " + esc(R.ricettore.classe) : ""}` : ""}<br>

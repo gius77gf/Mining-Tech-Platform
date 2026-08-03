@@ -1905,11 +1905,44 @@ export function reportConformita(o = {}) {
   const ricettori = o.ricettori || [];
   const ricettoreId = o.ricettoreId || "";
   const ricettore = ricettoreId ? trovaRicettore(ricettori, ricettoreId) : null;
+  /* ⛔ UNA DATA SI GIUDICA PER QUEL CHE VALE, NON PER COM'È SCRITTA — e qui
+     dentro c'era la copia debole, nel posto peggiore: la funzione che compone
+     il documento che va all'ente. Il filtro era `if (!g) return false` e poi
+     due confronti fra STRINGHE: «2026-02-30» — un giorno che non esiste — è
+     una stringa maggiore di «2026-01-01» e minore di «2026-12-31», quindi
+     entrava nel report. La regola giusta è nello stesso file da mesi:
+     `lettureNelPeriodo`, che alimenta ogni schermata, chiede `dataISOEsiste`.
+     Misurato su un punto con tre letture, una datata 30 febbraio a 99 µg/m³
+     con la soglia a 40:
+       · SCHERMO (`statPeriodo`): 2 letture, massimo 20, zero superamenti;
+       · DOCUMENTO (questa funzione): 3 letture, massimo 99, UN superamento,
+         esito «Non conforme» — e la riga stampata portava «—» nella colonna
+         della data, perché `dataIt` un 30 febbraio lo rifiuta.
+     Due verità sullo stesso archivio, e quella scritta sulla carta era
+     l'unica che usciva dall'azienda.
+     `nelPeriodo` filtra anche reclami e volate, e `parseVolateCsv` la data
+     non la valida affatto: senza periodo dichiarato («tutto lo storico»)
+     entrava perfino «boh». */
+  const dataUsabile = (d) => dataISOEsiste(String(d || "").slice(0, 10));
   const nelPeriodo = (d) => {
     const g = String(d || "").slice(0, 10);
-    if (!g) return false;
+    if (!dataUsabile(g)) return false;
     return (!dal || g >= dal) && (!al || g <= al);
   };
+  /* ⛔ E QUELLO CHE RESTA FUORI VA DICHIARATO, se no si è solo spostata la
+     bugia: una riga registrata che sparisce dal documento senza una parola è
+     l'assenza scambiata per un dato favorevole — la stessa forma di
+     `affidabilitaFlotta.senzaDate`, che i suoi fermi non collocabili li conta
+     a parte e li dice. Qui si contano le righe che il documento NON ha potuto
+     usare perché il giorno che portano scritto non esiste (o, per le letture,
+     perché il valore non è un numero). Una riga esclusa perché cade FUORI dal
+     periodo NON si conta: quella è un'esclusione legittima e non una mancanza
+     — è la sola ragione per cui il conto non passa da `nelPeriodo`.
+     ⚠️ E il conto guarda l'ARCHIVIO, non la finestra: una riga illeggibile
+     non ha una data con cui decidere se è del periodo, quindi la domanda «è
+     dei giorni che sto raccontando?» su di lei non ha risposta. La frase che
+     la pagina scrive dice infatti «in archivio», e chiede di correggerla lì. */
+  const scartataPerData = (x) => !dataUsabile((x || {}).data);
 
   const punti = (o.monitoraggi || [])
     .filter(m => !ricettoreId || m.ricettoreId === ricettoreId)
@@ -1920,9 +1953,13 @@ export function reportConformita(o = {}) {
          `composizioneProvenienza` la conta. Ricopiando solo data/ora/valore
          — che è come stava scritto prima — il documento avrebbe potuto
          dichiarare la composizione soltanto dicendo «non lo so» su tutto. */
-      const letture = ((m.letture) || [])
+      const grezze = ((m.letture) || [])
         .map(l => ({ data: String((l || {}).data || "").slice(0, 10), ora: String((l || {}).ora || ""), valore: +((l || {}).valore),
-                     ...((l || {}).origine && typeof l.origine === "object" ? { origine: l.origine } : {}) }))
+                     ...((l || {}).origine && typeof l.origine === "object" ? { origine: l.origine } : {}) }));
+      // le letture registrate su questo punto che il documento non può usare:
+      // il giorno non esiste, oppure il valore non è un numero
+      const scartate = grezze.filter(l => scartataPerData(l) || !Number.isFinite(l.valore)).length;
+      const letture = grezze
         .filter(l => Number.isFinite(l.valore) && nelPeriodo(l.data))
         .sort((a, b) => { const ka = chiaveOrdine(a), kb = chiaveOrdine(b); return ka < kb ? -1 : ka > kb ? 1 : 0; })
         /* ⛔ `oltre` HA TRE RISPOSTE, NON DUE (decisione 16). Con `false` la
@@ -1938,7 +1975,7 @@ export function reportConformita(o = {}) {
       return {
         m, nome: m.nome || "Punto di misura", unita: unitaMisura(m), soglia: eff,
         ricettore: trovaRicettore(ricettori, m.ricettoreId),
-        letture, n: letture.length,
+        letture, n: letture.length, scartate,
         max: valori.length ? Math.max(...valori) : null,
         min: valori.length ? Math.min(...valori) : null,
         media: valori.length ? valori.reduce((s, v) => s + v, 0) / valori.length : null,
@@ -1985,9 +2022,9 @@ export function reportConformita(o = {}) {
     .map(r => r.nome || "Ricettore senza nome");
   const esito = esitoPunto(conDati.length, nSuperamenti, giudicabili.length ? 1 : 0);
 
-  const reclami = (o.reclami || [])
+  const reclamiSuoi = (o.reclami || []).filter(x => !ricettoreId || x.ricettoreId === ricettoreId);
+  const reclami = reclamiSuoi
     .filter(x => nelPeriodo(x.data))
-    .filter(x => !ricettoreId || x.ricettoreId === ricettoreId)
     .sort((a, b) => chiaveOrdine(a) < chiaveOrdine(b) ? 1 : -1);
 
   // Le volate del periodo entrano come CONTESTO: spiegano i picchi. Se il
@@ -1996,8 +2033,18 @@ export function reportConformita(o = {}) {
   // ⛔ Solo le ESEGUITE (T9): questo documento va all'ente e dice «cosa è
   // avvenuto». Una volata soltanto prevista non è avvenuta, e scriverla qui
   // sarebbe una dichiarazione falsa.
-  const volate = (o.volate || []).filter(v => !volataPrevista(v)).filter(v => nelPeriodo(v.data))
+  const volateEseguite = (o.volate || []).filter(v => !volataPrevista(v));
+  const volate = volateEseguite.filter(v => nelPeriodo(v.data))
     .sort((a, b) => String(a.data || "") < String(b.data || "") ? 1 : -1);
+  /* Le righe che il documento ha dovuto lasciare fuori perché il giorno che
+     portano scritto non è un giorno che esiste. Si contano SEMPRE, anche a
+     zero: è la stessa scelta dei tre conti della provenienza. */
+  const scartate = {
+    letture: punti.reduce((s, p) => s + p.scartate, 0),
+    reclami: reclamiSuoi.filter(scartataPerData).length,
+    volate: volateEseguite.filter(scartataPerData).length,
+  };
+  scartate.totale = scartate.letture + scartate.reclami + scartate.volate;
 
   // La taratura degli strumenti sta ACCANTO all'esito, non dentro: dice di
   // chi sono i numeri, non se hanno superato il limite. Vedi T2b.
@@ -2032,7 +2079,7 @@ export function reportConformita(o = {}) {
     nPuntiSenzaLetture: senzaLetture.length,
     puntiSenzaLetture: senzaLetture.map(p => p.nome),
     nRicettoriSenzaPunti: ricettoriSenzaPunti.length, ricettoriSenzaPunti,
-    copertura,
+    copertura, scartate,
     nLetture, nSuperamenti, esito, tarature, provenienza,
     reclami, nReclami: reclami.length,
     volate, nVolate: volate.length,

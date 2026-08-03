@@ -20249,5 +20249,69 @@ test("⛔ Scudo · andamento indici: il verso letto su giornate ancora da contar
   });
 }
 
+// ═══ SENTINELLA · i fogli stampati (03/08) ═══
+{
+  const PUNTO = {
+    id: "zp1", nome: "Polveri PM10 — confine Est", tipo: "polveri", unita: "µg/m³", soglia: 40,
+    letture: [{ data: "2026-07-05", valore: 10 }, { data: "2026-02-30", valore: 99 }, { data: "2026-07-20", valore: 20 }],
+  };
+  const rep = (o) => sentinella.reportConformita({ monitoraggi: [PUNTO], ricettori: [], reclami: [], volate: [],
+    dal: "2026-01-01", al: "2026-12-31", oggi: "2026-08-03T10:00:00Z", ...o });
+
+  test("⛔ Sentinella · il report giudica la data per quel che VALE, non per com'è scritta", () => {
+    /* Il filtro del documento confrontava STRINGHE: «2026-02-30» — un giorno
+       che non esiste — è maggiore di «2026-01-01» e minore di «2026-12-31»,
+       quindi entrava nel report per l'ente. Ogni schermata lo scartava già,
+       perché `lettureNelPeriodo` chiede `dataISOEsiste`.
+       Misurato: schermo 2 letture / massimo 20 / zero superamenti; documento
+       3 letture / massimo 99 / UN superamento / esito «Non conforme». */
+    const schermo = sentinella.statPeriodo(PUNTO, "2026-01-01", "2026-12-31", 40);
+    eq([schermo.n, schermo.max, schermo.superamenti], [2, 20, 0], "quello che dice lo schermo");
+    const R = rep({});
+    const p = R.punti[0];
+    eq([p.n, p.max, p.nSuperamenti], [2, 20, 0], "⛔ e adesso il documento dice la stessa cosa");
+    eq(p.letture.some(l => l.data === "2026-02-30"), false, "il 30 febbraio non è una riga del documento");
+    eq([R.esito, R.nLetture, R.nSuperamenti], ["conforme", 2, 0],
+      "⛔ l'esito del documento non lo decide più un giorno che non esiste");
+  });
+
+  test("⛔ Sentinella · e la riga scartata viene DICHIARATA, non fatta sparire", () => {
+    // toglierla e basta avrebbe spostato la bugia: una riga registrata che
+    // sparisce senza una parola è di nuovo l'assenza presa per dato favorevole
+    const R = rep({});
+    eq(R.scartate.letture, 1, "la lettura col giorno inesistente è contata");
+    eq(R.scartate.totale, 1, "e finisce nel totale che la pagina scrive accanto al verdetto");
+    // fuori dal periodo NON è una mancanza: quella è un'esclusione legittima
+    const F = rep({ dal: "2026-07-10", al: "2026-07-31" });
+    eq([F.punti[0].n, F.scartate.letture, F.scartate.totale], [1, 1, 1],
+      "la lettura del 05/07 resta fuori per il periodo e non si conta fra le scartate");
+  });
+
+  test("⛔ Sentinella · anche reclami e volate col giorno inesistente restano fuori, e si dicono", () => {
+    /* `parseVolateCsv` la data non la valida affatto: senza periodo dichiarato
+       («tutto lo storico») nel documento entrava perfino «boh», stampato con
+       un trattino nella colonna della data. */
+    const R = sentinella.reportConformita({
+      monitoraggi: [], ricettori: [], oggi: "2026-08-03T10:00:00Z", dal: "", al: "",
+      reclami: [{ id: "r1", data: "2026-07-20", tipo: "polvere" }, { id: "r2", data: "2026-02-30", tipo: "rumore" }],
+      volate: [{ id: "v1", data: "2026-07-17", fronte: "Nord", stato: "eseguita" },
+               { id: "v2", data: "boh", fronte: "Est", stato: "eseguita" }],
+    });
+    eq(R.nReclami, 1, "un reclamo solo entra nel documento");
+    eq(R.nVolate, 1, "e una volata sola");
+    eq([R.scartate.reclami, R.scartate.volate, R.scartate.totale], [1, 1, 2],
+      "⛔ le due righe scartate sono contate, non perse");
+  });
+
+  test("Sentinella · con l'archivio in ordine il report non cambia di una riga", () => {
+    // il caso sano deve restare identico: la guardia sta sull'assenza
+    const sano = { ...PUNTO, letture: [{ data: "2026-07-05", valore: 10 }, { data: "2026-07-20", valore: 20 }] };
+    const R = sentinella.reportConformita({ monitoraggi: [sano], ricettori: [], reclami: [], volate: [],
+      dal: "2026-01-01", al: "2026-12-31", oggi: "2026-08-03T10:00:00Z" });
+    eq([R.nLetture, R.esito, R.scartate.totale], [2, "conforme", 0],
+      "due letture, conforme, e nessuna riga da dichiarare");
+  });
+}
+
 console.log(`\nRisultato KPI app: ${passed} passati, ${failed} falliti${inVolo.length ? `  ·  ${inVolo.length} prove asincrone aspettate` : ""}`);
 process.exit(failed > 0 ? 1 : 0);

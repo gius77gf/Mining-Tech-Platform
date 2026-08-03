@@ -78,6 +78,28 @@ const BANCHI = [
   ['i documenti che escono dal core', 'core-documenti-che-escono.mjs', []],
   ['documenti del core · controprova', 'core-documenti-che-escono.mjs', ['--controprova'], true],
   ['documenti del core · controprova del tocco', 'core-documenti-che-escono.mjs', ['--controprova-toast'], true],
+  /* ⛔ AGGIUNTO IL 03/08. Stessa domanda del foglio di Genesi, girata alle due
+     app di cui la passata sui CSV era già stata fatta: dove Flotta e
+     Sentinella compongono qualcosa che si STAMPA, chi decide i suoi numeri?
+     Sono usciti quattro difetti che nessuna prova poteva vedere, perché le
+     suite `node` chiamano il modulo e i banchi guardano lo SCHERMO:
+     · la tessera del libretto tagliava «€ 12.750,00» a 138 px sul foglio A4 —
+       la riga è forzata a quattro colonne in stampa e la guardia dello
+       schermo (`max-width:400px`) lì non scatta mai;
+     · il libretto scriveva «3 fermi registrati per 5 giorni in tutto» sopra
+       tre righe che dicono «—», «—» e «5 giorni»;
+     · in modalità tour tutt'e due i fogli — quello che si consegna a chi
+       compra la macchina e quello che si consegna all'ente — uscivano dalla
+       stampante senza una parola che dicesse che i numeri sono inventati: la
+       fascia che lo dice a schermo è un comando, e la stampa la nasconde;
+     · e il filtro del periodo del report di Sentinella confrontava STRINGHE,
+       quindi una lettura datata 30 febbraio entrava nel documento per l'ente
+       e ne cambiava l'esito, mentre ogni schermata la scartava.
+     Le funzioni nuove sono provate in `run-kpi`; che il bottone stampi, che
+     il numero ci stia nella tessera e che il foglio dica quelle parole, lo
+     dice solo il browser — e solo in `@media print`. */
+  ['i fogli stampati di Flotta e Sentinella', 'stampe-fs.mjs', []],
+  ['fogli stampati F/S · controprova', 'stampe-fs.mjs', ['--controprova'], true],
   ['unità in maiuscolo', 'unita-maiuscole.mjs', []],
   ['unità · controprova', 'unita-maiuscole.mjs', ['--controprova', '--solo=campo'], true],
   ['collegamenti della vetrina', 'vetrina-collegamenti.mjs', []],
