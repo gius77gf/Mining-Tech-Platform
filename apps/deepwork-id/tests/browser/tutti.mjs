@@ -97,6 +97,15 @@ const BANCHI = [
   ['i fogli stampati di Conti', 'conti-stampe.mjs', []],
   ['fogli di Conti · controprova', 'conti-stampe.mjs', ['--controprova'], true],
   ['fogli di Conti · controprova della ✎', 'conti-stampe.mjs', ['--controprova-matita'], true],
+  /* ⛔ AGGIUNTO IL 03/08, stessa domanda applicata a Scudo: dove l'app compone
+     qualcosa che ESCE, chi decide i suoi numeri? I quattro CSV li scrive la
+     pagina, e ognuno era più tranquillo dello schermo — un'azione scaduta da
+     34 giorni scritta solo «aperta», la persona senza nemmeno una scadenza con
+     le celle bianche, il riepilogo per la L. 198/2025 senza la nota che a
+     schermo impedisce di disegnare le classifiche, la prognosi aperta come una
+     cella vuota che si legge «zero giorni». */
+  ['i CSV che escono da Scudo', 'scudo-documenti.mjs', []],
+  ['CSV di Scudo · controprova', 'scudo-documenti.mjs', ['--controprova'], true],
   ['il verbale dice come è nato il numero', 'verbale-origine.mjs', []],
   ['verbale · controprova', 'verbale-origine.mjs', ['--controprova'], true],
   ['la manina promette un tocco che c\'è', 'promesse-tocco.mjs', []],

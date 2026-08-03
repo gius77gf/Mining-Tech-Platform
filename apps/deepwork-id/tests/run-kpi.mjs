@@ -19710,5 +19710,345 @@ test("⛔ Scudo · andamento indici: il verso letto su giornate ancora da contar
   });
 }
 
+// ═══ SCUDO · i documenti che escono (03/08) ═══════════════════════════════
+/* La domanda del blocco: dove Scudo compone qualcosa che ESCE — un CSV, un
+   foglio, una frase da mandare — chi decide i suoi numeri? Dove la risposta
+   non era «la stessa funzione che li decide a schermo» c'era una copia debole.
+   Qui stanno le prove della parte che vive nel MODULO; quelle sui file veri —
+   che li compone la pagina — stanno in
+   `tests/browser/scudo-documenti.mjs`, perché nessuna suite `node` preme un
+   bottone. */
+{
+  const { readFileSync } = await import("node:fs");
+  const sh = shell;                       // già importato in cima: non se ne prende una seconda copia
+  const OGGI = new Date("2026-08-03T12:00:00");
+  const LAV = { id: "d1", nome: "Mario Rossi" };
+  const scad = (dataScadenza) => ({ tipo: "Visita medica", descrizione: "Visita medica periodica", dataScadenza });
+
+  console.log("\n— Scudo: i documenti che escono —");
+
+  test("⛔ Scudo · il promemoria da mandare al lavoratore non inventa una data che non esiste", () => {
+    /* La copia debole di `dataIt` dentro scudo-data.js teneva buona qualunque
+       stringa della FORMA `\\d{4}-\\d{2}-\\d{2}`. Il messaggio che si copia e si
+       manda usciva «scade il 45/13/2026 (tra NaN giorni)» mentre la stessa
+       riga a schermo diceva «senza data». */
+    for (const d of ["2026-13-45", "2026-02-30", "2026-09-40"]) {
+      const t = scudo.testoPromemoria(scad(d), LAV, OGGI);
+      ok(t, `su «${d}» il promemoria si prepara lo stesso (la riga non è regolare)`);
+      ok(!/NaN/.test(t), `su «${d}» non compare NaN`);
+      ok(!/45\/13|30\/02|40\/09/.test(t), `su «${d}» non compare il giorno che non esiste`);
+      ok(/non è leggibile/.test(t), `su «${d}» il messaggio dice perché non c'è un entro-quando`);
+    }
+  });
+  test("Scudo · e le date che esistono si scrivono come sempre", () => {
+    ok(/SCADUTA dal 02\/07\/2026 \(32 giorni fa\)/.test(scudo.testoPromemoria(scad("2026-07-02"), LAV, OGGI)),
+      "la scaduta dice da quando e da quanti giorni");
+    ok(/scade OGGI, 03\/08\/2026/.test(scudo.testoPromemoria(scad("2026-08-03"), LAV, OGGI)), "quella di oggi");
+    ok(/scade il 20\/08\/2026 \(tra 17 giorni\)/.test(scudo.testoPromemoria(scad("2026-08-20"), LAV, OGGI)), "quella futura");
+    eq(scudo.testoPromemoria(scad("2030-01-01"), LAV, OGGI), null, "e su una regolare non si prepara niente");
+  });
+  test("⛔ Scudo · la data del modulo è QUELLA di shared/, e una seconda copia non c'è", () => {
+    /* Il modo di impedire che il difetto torni non è ricontrollare i casi: è
+       che la copia non ci sia. E questo non si vede chiamando il modulo — una
+       copia debole ha sempre un nome diverso o è privata — quindi si legge il
+       file, che è l'unico posto dove la seconda definizione si vedrebbe.
+       ⚠️ La prima stesura di questa prova era una tautologia
+       (`eq(sh.dataIt(d), sh.dataIt(d))`): non sapeva fallire. */
+    const src = readFileSync(join(HERE, "../../scudo/scudo-data.js"), "utf8");
+    const definizioni = (src.match(/^\s*(?:export\s+)?function\s+dataIt\s*\(/gm) || []).length;
+    eq(definizioni, 0, "scudo-data.js non ridefinisce dataIt in casa");
+    ok(/import\s*\{[^}]*\bdataIt\b[^}]*\}\s*from\s*"\.\.\/\.\.\/shared\/deepwork-id-client\/dw-shell\.js"/s.test(src),
+      "e la importa da shared/deepwork-id-client/dw-shell.js");
+    // e la differenza che contava fra le due versioni resta misurata
+    eq(sh.dataIt("2026-13-45"), "—", "shared rifiuta il giorno che non esiste");
+    eq(sh.dataIt("2026-13-45", ""), "", "e col secondo argomento sa rispondere vuoto");
+  });
+  test("⛔ Scudo · «Permesso chiuso il —» non esce più (il ternario era morto)", () => {
+    /* `dataIt(x)` di ripiego risponde «—», che è VERO: il `? :` che doveva
+       togliere il pezzo non scattava mai. Adesso `dataIt(x, "")`. */
+    for (const co of [undefined, "", null, "boh", "2026-02-30T08:00"]) {
+      const p = scudo.statoPermesso({ id: "p", tipo: "caldo", stato: "chiuso", chiusuraOra: co }, {}, OGGI);
+      eq(p.perche, "Permesso chiuso: il lavoro è finito e l'autorizzazione è stata restituita.",
+        `chiusuraOra ${mostra(co)}: la frase non nomina una data che non c'è`);
+    }
+    const buono = scudo.statoPermesso({ id: "p", tipo: "caldo", stato: "chiuso", chiusuraOra: "2026-08-01T10:00" }, {}, OGGI);
+    ok(/chiuso il 01\/08\/2026/.test(buono.perche), "e quando l'istante c'è, si scrive");
+  });
+
+  // ── la nota di lettura del riepilogo L. 198/2025 ────────────────────────
+  const nm = (id, data) => ({ id, tipo: "near-miss", data, categoria: "massi", luogoTipo: "fronte" });
+  test("⛔ Scudo · il riepilogo per la L. 198/2025 dice quando NON si può leggere una tendenza", () => {
+    const pochi = scudo.riepilogoNearMiss([nm("a", "2026-07-30"), nm("b", "2026-07-20"), nm("c", "2026-07-10")], [], 90, OGGI);
+    eq(pochi.totale, 3, "tre segnalazioni nel periodo");
+    eq(pochi.pochi, true, "sotto la soglia MIN_TENDENZA");
+    const t = scudo.descriviLetturaNearMiss(pochi);
+    ok(/ATTENZIONE alla lettura/.test(t), "la nota c'è");
+    ok(t.includes(String(scudo.MIN_TENDENZA)), "e nomina la soglia, presa dal posto in cui vive");
+    ok(/non una tendenza/.test(t), "e dice che cosa NON sono quelle righe");
+  });
+  test("Scudo · sopra la soglia la nota tace (se no diventa rumore su ogni file)", () => {
+    const tanti = scudo.riepilogoNearMiss(
+      ["2026-07-30", "2026-07-20", "2026-07-10", "2026-07-05", "2026-06-30"].map((d, i) => nm("x" + i, d)), [], 90, OGGI);
+    eq(tanti.pochi, false, "cinque è la soglia");
+    eq(scudo.descriviLetturaNearMiss(tanti), "", "nessuna nota");
+  });
+  test("⛔ Scudo · zero nel periodo NON è zero nello storico (assenza ≠ dato favorevole)", () => {
+    const vuoto = scudo.riepilogoNearMiss(["2025-01-30", "2025-01-20", "2025-01-10", "2025-01-05"].map((d, i) => nm("y" + i, d)), [], 90, OGGI);
+    eq(vuoto.totale, 0, "niente nella finestra");
+    eq(vuoto.totaleStorico, 4, "ma quattro nello storico");
+    const t = scudo.descriviLetturaNearMiss(vuoto);
+    ok(/nello storico ce ne sono 4/.test(t), "il file lo dice col numero");
+    ok(/Allarga il periodo/.test(t), "e dice come vederle");
+  });
+  test("Scudo · registro davvero vuoto: si dice che non si segnala, non che non succede", () => {
+    const t = scudo.descriviLetturaNearMiss(scudo.riepilogoNearMiss([], [], 90, OGGI));
+    ok(/non vuol dire che non succeda niente/.test(t), "la frase del registro vuoto");
+    eq(scudo.descriviLetturaNearMiss(null), "Nessun near-miss registrato. Un registro vuoto non vuol dire che non succeda niente: vuol dire che non si segnala.",
+      "e senza riepilogo non si rompe");
+  });
+  test("⛔ Scudo · il semaforo delle azioni del CSV è quello dello schermo, anche senza data", () => {
+    /* La colonna `semaforo` del file la scrive `statoAzione`, la stessa che
+       decide la pastiglia. Qui si fissa che cosa deve dire nei quattro casi:
+       se un giorno divergessero, il file tornerebbe a essere più tranquillo
+       dello schermo. */
+    const a = (scadenza, stato) => ({ id: "a", descrizione: "x", scadenza, stato });
+    eq(scudo.statoAzione(a("2026-06-30", "aperta"), OGGI), "scaduta", "aperta e fuori tempo di 34 giorni");
+    eq(scudo.statoAzione(a("2026-08-09", "aperta"), OGGI), "in-scadenza", "entro 30 giorni");
+    eq(scudo.statoAzione(a("2027-01-01", "aperta"), OGGI), "regolare", "lontana");
+    eq(scudo.statoAzione(a(null, "aperta"), OGGI), "senza data", "senza entro-quando NON è regolare");
+    eq(scudo.statoAzione(a("2026-13-45", "aperta"), OGGI), "senza data", "e nemmeno con una data che non esiste");
+    eq(scudo.statoAzione(a("2026-06-30", "chiusa"), OGGI), "regolare", "una chiusa non scade più");
+  });
+}
+
+// ═══ CAMPO · il near-miss dal fronte (03/08) ═══
+{
+  console.log("\n— Campo · il mancato infortunio segnalato dal fronte (ponte P5) —");
+  const ADESSO = new Date("2026-08-03T10:00:00");
+  const base = { categoria: "caduta-massi", luogoTipo: "fronte", data: "2026-08-03" };
+  const conCampo = (extra) => ({ ...base, turno: "Mattina", squadra: "Squadra A", app: "campo", ...extra });
+
+  test("⛔ il vocabolario e il compositore stanno in shared/: Campo e Scudo sono ALIAS, non copie", () => {
+    /* L'IDENTITÀ, non il comportamento: due copie uguali oggi divergono domani
+       senza che nessuno lo veda, perché ognuna ha le sue prove e tutt'e due
+       restano verdi. */
+    ok(campo.bozzaNearMiss === ponti.bozzaNearMiss, "campo.bozzaNearMiss === ponti.bozzaNearMiss");
+    ok(scudo.bozzaNearMiss === ponti.bozzaNearMiss, "scudo.bozzaNearMiss === ponti.bozzaNearMiss");
+    ok(campo.NEARMISS_CATEGORIE === ponti.NEARMISS_CATEGORIE, "le categorie sono lo stesso oggetto");
+    ok(scudo.NEARMISS_CATEGORIE === ponti.NEARMISS_CATEGORIE, "anche per Scudo");
+    ok(campo.NEARMISS_LUOGHI === ponti.NEARMISS_LUOGHI, "i luoghi sono lo stesso oggetto");
+    ok(scudo.NEARMISS_LUOGHI === ponti.NEARMISS_LUOGHI, "anche per Scudo");
+    ok(campo.categoriaNearMiss === ponti.categoriaNearMiss, "categoriaNearMiss");
+    ok(campo.luogoNearMiss === ponti.luogoNearMiss, "luogoNearMiss");
+    ok(campo.descrizioneNearMiss === ponti.descrizioneNearMiss, "descrizioneNearMiss");
+  });
+
+  test("⛔ il record composto per Scudo è IDENTICO a quello che la sua pagina scriveva prima", () => {
+    /* Questa è la prova che tiene onesto lo spostamento. Fino al 03/08 il
+       record `infortuni/{id}` lo componeva a mano `inviaSegnalazione` in
+       apps/scudo/index.html; adesso lo compone `bozzaNearMiss`. Qui si rimette
+       la vecchia composizione, riga per riga, e si pretende che le due
+       coincidano — se no lo spostamento avrebbe cambiato in silenzio il
+       contenuto del registro di sicurezza. */
+    const comeprima = (cat, luo, dett, chiSel, anon, data) => ({
+      data, tipo: "near-miss", gravita: "lieve", giorniAssenza: 0,
+      categoria: cat, luogoTipo: luo, luogo: ponti.luogoNearMiss(luo),
+      descrizione: ponti.descrizioneNearMiss({ categoria: cat, luogoTipo: luo, dettaglio: dett }),
+      anonimo: !!anon, segnalatoDaId: (anon ? "" : chiSel) || null, rapida: true,
+    });
+    const casi = [
+      ["caduta-massi", "fronte", "", "d1", false],
+      ["mezzi", "pista", "Curva cieca senza specchio", "", false],
+      ["impianto", "impianto", "", "d3", true],
+      ["volata", "altro", "   ", "", true],
+      ["sostanze", "deposito", "", "d5", false],
+    ];
+    for (const [c, l, d, chi, an] of casi) {
+      const ora = ponti.bozzaNearMiss({ categoria: c, luogoTipo: l, dettaglio: d, data: "2026-08-01",
+        chi: chi ? { lavoratoreId: chi } : null, anonimo: an }, ADESSO).record;
+      eq(ora, comeprima(c, l, d, chi, an, "2026-08-01"), "caso " + c + "/" + l);
+    }
+    /* e un record composto da Scudo non guadagna colonne vuote nuove: `turno`,
+       `squadra` e `origineApp` si scrivono SOLO se ci sono */
+    const soloScudo = ponti.bozzaNearMiss({ ...base, chi: null }, ADESSO).record;
+    eq(Object.prototype.hasOwnProperty.call(soloScudo, "turno"), false, "niente turno vuoto");
+    eq(Object.prototype.hasOwnProperty.call(soloScudo, "squadra"), false, "niente squadra vuota");
+    eq(Object.prototype.hasOwnProperty.call(soloScudo, "origineApp"), false, "niente origineApp vuota");
+  });
+
+  test("⛔ «non lo so» NON è «anonima»: le quattro risposte su chi ha segnalato", () => {
+    /* È il principio del fondatore nella sua forma più precisa. `anonima` è una
+       SCELTA — e conta nell'indicatore di clima `riepilogoNearMiss().anonime`.
+       Una persona che nessuno ha collegato alla sua scheda di Scudo, o una
+       casella che nessuno ha compilato, NON sono quella scelta: scriverci
+       `anonimo: true` gonfierebbe quel conteggio e toglierebbe a chi legge il
+       motivo per riparare il collegamento. */
+    const collegato = ponti.bozzaNearMiss(conCampo({ chi: { lavoratoreId: "d1", nome: "Mario Rossi" } }), ADESSO);
+    eq(collegato.chi, "collegato", "l'operatore ha il lavoratoreId");
+    eq(collegato.record.segnalatoDaId, "d1", "l'id finisce nel record");
+    eq(collegato.record.anonimo, false, "e non è anonima");
+    eq(collegato.noto, true, "il registro potrà dire il nome");
+    eq(collegato.motivoChi, "", "niente da spiegare");
+
+    const anonima = ponti.bozzaNearMiss(conCampo({ anonimo: true, chi: { lavoratoreId: "d1", nome: "Mario Rossi" } }), ADESSO);
+    eq(anonima.chi, "anonima", "la scelta batte l'operatore selezionato");
+    eq(anonima.record.segnalatoDaId, null, "l'id NON viene salvato");
+    eq(anonima.record.anonimo, true, "ed è dichiarata anonima");
+    eq(anonima.noto, true, "si sa che cosa dire: «segnalazione anonima»");
+
+    const rotto = ponti.bozzaNearMiss(conCampo({ chi: { nome: "Youssef Amrani" } }), ADESSO);
+    eq(rotto.chi, "non-collegato", "persona c'è, collegamento no");
+    eq(rotto.record.anonimo, false, "⛔ NON diventa anonima");
+    eq(rotto.record.segnalatoDaId, null, "e nessun id inventato");
+    eq(rotto.noto, false, "il registro NON potrà dire il nome");
+    ok(rotto.motivoChi.includes("Youssef Amrani"), "e il motivo nomina la persona");
+
+    const muto = ponti.bozzaNearMiss(conCampo({ chi: null }), ADESSO);
+    eq(muto.chi, "non-indicato", "nessuno ha risposto alla domanda");
+    eq(muto.record.anonimo, false, "⛔ nemmeno questa diventa anonima");
+    eq(muto.noto, false, "e si dichiara");
+    ok(muto.motivoChi.length > 20, "con la sua frase");
+
+    /* le quattro risposte sono tutte e sole quelle del vocabolario chiuso */
+    for (const r of [collegato, anonima, rotto, muto]) ok(ponti.CHI_SEGNALA.includes(r.chi), "«" + r.chi + "» è nel vocabolario");
+    eq(ponti.CHI_SEGNALA.length, 4, "e il vocabolario ne ha quattro");
+  });
+
+  test("⛔ una segnalazione che non si può datare non si salva: sparirebbe dal riepilogo per l'ente", () => {
+    /* `riepilogoNearMiss` di Scudo seleziona il periodo con `giorniTra`: un
+       evento con una data che non esiste non cade in NESSUN periodo, quindi
+       sparirebbe dal riepilogo aggregato che chiede la L. 198/2025 restando
+       però nell'archivio. Meglio rifiutare e dire perché. */
+    const no = (o, perche) => {
+      const b = ponti.bozzaNearMiss(conCampo(o), ADESSO);
+      eq(b.ok, false, perche);
+      eq(b.record, null, perche + " · e nessun record a metà");
+      ok(b.problemi.length > 0 && b.problemi.every(x => typeof x === "string" && x.length > 10), perche + " · con la frase da mostrare");
+    };
+    no({ categoria: "" }, "senza categoria");
+    no({ categoria: "meteorite" }, "categoria fuori dal vocabolario");
+    no({ luogoTipo: "" }, "senza luogo");
+    no({ luogoTipo: "luna" }, "luogo fuori dal vocabolario");
+    no({ data: "" }, "senza data");
+    no({ data: "boh" }, "data che non è una data");
+    no({ data: "2026-02-30" }, "⛔ 30 febbraio: Date.parse lo farebbe scorrere al 2 marzo");
+    no({ data: "2026-13-45" }, "mese e giorno impossibili");
+    no({ data: "2026-08-04" }, "domani: una segnalazione non si fa in anticipo");
+    eq(ponti.bozzaNearMiss(conCampo({ data: "2026-08-03" }), ADESSO).ok, true, "oggi stesso invece sì");
+    /* e i problemi si accumulano: chi non ha toccato niente ne vede tre */
+    eq(ponti.bozzaNearMiss({ app: "campo" }, ADESSO).problemi.length, 3, "categoria + luogo + data");
+    /* ⚠️ anche quando NON si può comporre, `chi` e `motivoChi` ci sono: la
+       modale mostra l'avviso su chi segnala mentre si sceglie, cioè prima che
+       categoria e luogo siano stati toccati. */
+    ok(ponti.bozzaNearMiss({ chi: { nome: "Anna" } }, ADESSO).motivoChi.includes("Anna"), "l'avviso c'è anche prima");
+  });
+
+  test("Campo scrive il contesto che SA, e la descrizione resta quella di Scudo", () => {
+    const b = ponti.bozzaNearMiss(conCampo({ chi: { lavoratoreId: "d2", nome: "Luca Bianchi" } }), ADESSO);
+    eq(b.record.turno, "Mattina", "il turno");
+    eq(b.record.squadra, "Squadra A", "la squadra");
+    eq(b.record.origineApp, "campo", "e da dove viene");
+    eq(b.record.descrizione, "Caduta massi — Fronte", "descrizione generata come in Scudo");
+    eq(b.record.luogo, "Fronte", "il luogo scritto per esteso, come lo mostra Scudo");
+    eq(b.record.tipo, "near-miss", "un near-miss");
+    eq(b.record.giorniAssenza, 0, "⚠️ e QUI lo zero è una misura, non un'assenza: per definizione non si è fatto male nessuno");
+    eq(b.record.rapida, true, "segnalazione rapida");
+    const scritto = ponti.bozzaNearMiss(conCampo({ dettaglio: "  Blocco sul ciglio  " }), ADESSO);
+    eq(scritto.record.descrizione, "Blocco sul ciglio", "il dettaglio scritto vince, senza spazi di contorno");
+  });
+
+  test("⛔ Campo · «stesso giorno, turno non indicato» non è «non è del mio turno»", () => {
+    /* Gli eventi registrati DA SCUDO non hanno il turno: Scudo non lo chiede.
+       Metterli fra gli «altri turni» sarebbe un'affermazione inventata,
+       ometterli li farebbe sparire. Si tengono a parte e si dichiarano — la
+       stessa scelta dell'appello del turno, dove chi nessuno ha spuntato non si
+       conta né presente né assente. */
+    const INF = [
+      { id: "n1", tipo: "near-miss", data: "2026-08-03", turno: "Mattina", categoria: "mezzi" },
+      { id: "n2", tipo: "near-miss", data: "2026-08-03", turno: "Notte", categoria: "impianto" },
+      { id: "n3", tipo: "near-miss", data: "2026-08-03", categoria: "caduta-massi" },
+      { id: "n4", tipo: "near-miss", data: "2026-08-02", turno: "Mattina" },
+      { id: "n5", tipo: "infortunio", data: "2026-08-03", turno: "Mattina" },
+      { id: "n6", tipo: "near-miss", data: "2026-08-03", turno: "  Mattina  ", categoria: "mezzi" },
+    ];
+    const s = campo.segnalazioniDelTurno(INF, "2026-08-03", "Mattina");
+    eq(s.leggibile, true, "il registro si è letto");
+    eq(s.delTurno.map(x => x.id), ["n1", "n6"], "del turno (spazi di contorno compresi)");
+    eq(s.turnoIgnoto.map(x => x.id), ["n3"], "stesso giorno, turno non indicato: a parte");
+    eq(s.altriTurni.map(x => x.id), ["n2"], "altro turno dello stesso giorno");
+    eq(s.totaleGiorno, 4, "quattro near-miss oggi in tutto");
+    ok(!s.delTurno.concat(s.turnoIgnoto, s.altriTurni).some(x => x.id === "n5"), "un infortunio non è un near-miss");
+    ok(!s.delTurno.concat(s.turnoIgnoto, s.altriTurni).some(x => x.id === "n4"), "e ieri non è oggi");
+
+    const testo = campo.testoSegnalazioniTurno(s);
+    ok(testo.includes("2 near-miss segnalati in questo turno"), "il testo conta i suoi: " + testo);
+    ok(testo.includes("non si sa se di questo turno"), "e dichiara quello di cui non sa il turno");
+    eq(campo.categorieGiaSegnalate(s), ["Mezzi e investimento"], "le categorie già viste, senza doppioni");
+  });
+
+  test("⛔ Campo · registro non leggibile: «non lo so», mai «nessuna segnalazione»", () => {
+    /* Il gemello di `coperturaFermi`: se Scudo non si raggiunge, scrivere
+       «nessuna segnalazione in questo turno» direbbe che non è successo
+       niente. La bandiera `leggibile` la legge la pagina, che al suo posto
+       mostra il motivo. */
+    for (const vuoto of [null, undefined, "boh", 7]) {
+      const s = campo.segnalazioniDelTurno(vuoto, "2026-08-03", "Mattina");
+      eq(s.leggibile, false, "con " + mostra(vuoto) + " non si sa");
+      eq(s.delTurno.length, 0, "nessun elenco inventato");
+      eq(s.totaleGiorno, 0, "e nessun conteggio");
+      ok(s.motivo.includes("Scudo"), "ma il motivo dice dove sta il registro");
+      eq(campo.testoSegnalazioniTurno(s), s.motivo, "ed è quello che la riga mostra");
+      eq(campo.categorieGiaSegnalate(s), null, "le categorie già viste: non lo so, non «nessuna»");
+    }
+    /* un registro leggibile ma senza niente oggi è un'ALTRA cosa, e tace */
+    const zero = campo.segnalazioniDelTurno([], "2026-08-03", "Mattina");
+    eq(zero.leggibile, true, "letto davvero");
+    eq(campo.testoSegnalazioniTurno(zero), null, "e allora non c'è niente da scrivere");
+    eq(campo.categorieGiaSegnalate(zero), [], "nessuna categoria, ed è una risposta");
+    eq(campo.testoSegnalazioniTurno(null), null, "senza riepilogo non si rompe");
+  });
+
+  test("il near-miss di Campo attraversa il registro di Scudo intero, senza sorprese", () => {
+    /* La prova di mestiere: il record composto da Campo passa dalle funzioni
+       di Scudo che lo leggeranno davvero, e nessuna di loro cambia idea sui
+       numeri che finiscono in un documento. */
+    const rec = { id: "nuovo", ...ponti.bozzaNearMiss(conCampo({ chi: { lavoratoreId: "d1", nome: "Mario Rossi" } }), ADESSO).record };
+    const infortunio = { id: "i9", data: "2026-06-01", tipo: "infortunio", gravita: "lieve", giorniAssenza: 3 };
+    const r = scudo.riepilogoInfortuni([infortunio, rec], ADESSO);
+    eq(r.infortuni, 1, "⛔ un near-miss NON è un infortunio");
+    eq(r.nearMiss, 1, "ma si conta fra i near-miss");
+    eq(r.giorniSenza, 63, "⛔ e NON azzera i giorni senza infortuni");
+    eq(scudo.giornateAssenza(rec), 0, "nessuna assenza, ed è una misura");
+    eq(scudo.prognosiAperta(rec), false, "nessuna prognosi da attendere");
+    const nm = scudo.riepilogoNearMiss([rec], [], 90, ADESSO);
+    eq(nm.totale, 1, "entra nel riepilogo aggregato della L. 198/2025");
+    eq(nm.perTipo, [{ etichetta: "Caduta massi", valore: 1 }], "⛔ classificato, non «Non classificato»");
+    eq(nm.perLuogo, [{ etichetta: "Fronte", valore: 1 }], "e col suo luogo");
+    eq(nm.anonime, 0, "⛔ e NON risulta anonima: nessuno l'ha scelto");
+    eq(nm.senzaAzione, 1, "senza azione correttiva, che è lo stato di partenza");
+    /* e quella non collegata non gonfia il conto delle anonime */
+    const senzaNome = { id: "n0", ...ponti.bozzaNearMiss(conCampo({ chi: { nome: "Youssef Amrani" } }), ADESSO).record };
+    eq(scudo.riepilogoNearMiss([rec, senzaNome], [], 90, ADESSO).anonime, 0,
+      "⛔ due segnalazioni, nessuna anonima: «non lo so» non gonfia l'indicatore di clima");
+  });
+
+  test("Campo · la dimostrazione del ponte P5 combacia con quella di Scudo, id per id", async () => {
+    const d = await campo.campoData();
+    const inf = await d.infortuniScudo();
+    ok(Array.isArray(inf) && inf.length >= 2, "la dimostrazione porta il registro eventi");
+    const dScudo = await scudo.scudoData();
+    const infScudo = await dScudo.infortuni();
+    for (const x of inf) {
+      const gemello = infScudo.find(y => y.id === x.id);
+      ok(gemello, "l'evento " + x.id + " esiste anche nella dimostrazione di Scudo");
+      if (gemello) eq(x.categoria, gemello.categoria, x.id + ": stessa categoria");
+    }
+    /* ⛔ NESSUNO DEI DUE HA IL TURNO, e nella dimostrazione si deve vedere:
+       sono stati registrati da Scudo, che il turno non lo chiede. È il caso
+       «stesso giorno, turno non indicato». */
+    ok(inf.every(x => !x.turno), "nessuno porta un turno, come i record veri di Scudo");
+  });
+}
+
 console.log(`\nRisultato KPI app: ${passed} passati, ${failed} falliti${inVolo.length ? `  ·  ${inVolo.length} prove asincrone aspettate` : ""}`);
 process.exit(failed > 0 ? 1 : 0);

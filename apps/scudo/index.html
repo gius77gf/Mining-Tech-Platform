@@ -1481,7 +1481,7 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
 <script type="module">
   import { scudoData, statoScadenza, inTurnoOggi, kpiFrom, idoneitaLabel, idoneitaSuccessivo, idoneitaCriticita, livelloScadenza, coperturaFormazione, muroScadenze, MESI_NOMI, testoPromemoria, riepilogoInfortuni, parseInfortuniCsv, parseScadenzeCsv, parseLavoratoriCsv, SCADENZE_PRESET, presetScadenza, dataDaPeriodicita, TIPI_DOCUMENTO, azioneLabel, azioneStatoSuccessivo, statoAzione, azioniUrgenti, riepilogoAzioni, azioniDiEvento,
     daAmbiente, etichettaAmbiente, riepilogoAmbiente, daCampo,
-    NEARMISS_CATEGORIE, NEARMISS_LUOGHI, categoriaNearMiss, luogoNearMiss, descrizioneNearMiss, riepilogoNearMiss,
+    NEARMISS_CATEGORIE, NEARMISS_LUOGHI, categoriaNearMiss, luogoNearMiss, descrizioneNearMiss, riepilogoNearMiss, descriviLetturaNearMiss, bozzaNearMiss,
     MODELLI_ISPEZIONE, modelloIspezione, nuovaIspezioneDaModello, riepilogoIspezione, riepilogoIspezioni, vociNonConformi, statoIspezione, azioniDiIspezione, esitoLabel, ESITI_ISPEZIONE, dataPiuGiorni,
     REQUISITI_FORMAZIONE, requisitoFormazione, requisitoSicuro, statoRequisito, MANSIONI_PRESET, mansionePreset,
     matriceMansione, riepilogoMansioni, lavoratoriScoperti, abilitazioneLavoratore, daSistemareCopertura,
@@ -4288,12 +4288,23 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
   };
   $("btn-inf-export").onclick = () => {
     // registro infortuni per l'RSPP / il consulente (e il registro obbligatorio)
-    let csv = "data;tipo;gravita;giorniAssenza;descrizione;luogo\n";
+    /* ⛔ LA SETTIMA COLONNA, `nota` (03/08). La decisione 17 ha fatto la cosa
+       giusta — la prognosi aperta esce come cella VUOTA e non come `0` — ma si
+       è fermata a metà: in un foglio di calcolo una cella vuota nella colonna
+       dei giorni si legge «zero giorni», che è di nuovo il numero tranquillo
+       che quella decisione esisteva per togliere. A schermo la stessa cosa è
+       scritta a parole (`descriviGiornatePerse`: «almeno 16 giornate perse: di
+       1 infortunio la prognosi è ancora aperta, le sue giornate non sono
+       ancora contate»); nel file non c'era.
+       In coda e non in mezzo: `parseInfortuniCsv` legge sei colonne per
+       posizione, quindi il giro export → import resta identico. */
+    let csv = "data;tipo;gravita;giorniAssenza;descrizione;luogo;nota\n";
     for (const x of INF.slice().sort((a, b) => (a.data || "") < (b.data || "") ? -1 : 1))
       // decisione 17: una prognosi aperta esce come CELLA VUOTA, non come 0 —
       // e `parseInfortuniCsv` la rilegge vuota. Uno zero scritto qui sarebbe un
       // dato inventato nel documento che si consegna all'RSPP.
-      csv += `${x.data||""};${x.tipo||""};${x.gravita||""};${prognosiAperta(x) ? "" : giornateAssenza(x)};${csvCell(x.descrizione||"")};${csvCell(x.luogo||"")}\n`;
+      csv += `${x.data||""};${x.tipo||""};${x.gravita||""};${prognosiAperta(x) ? "" : giornateAssenza(x)};${csvCell(x.descrizione||"")};${csvCell(x.luogo||"")};`
+        + `${prognosiAperta(x) ? "prognosi ancora aperta: le giornate di assenza non sono ancora contate" : ""}\n`;
     const a = document.createElement("a");
     a.href = "data:text/csv;charset=utf-8," + encodeURIComponent(csv);
     a.download = "scudo_registro_infortuni.csv"; a.click();
@@ -4323,15 +4334,52 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
   $("btn-export-csv").onclick = () => {
     // backup/condivisione (es. consulente del lavoro): lavoratori con le
     // rispettive scadenze e lo stato CALCOLATO alla data odierna
+    /* ⛔ LA CELLA `stato` VUOTA DI CHI NON HA NEMMENO UNA RIGA (03/08). La
+       persona nel file c'era — quel difetto era già stato evitato — ma le sue
+       tre ultime celle erano BIANCHE, in mezzo a ventidue righe che dicono
+       «regolare», «scaduta», «in-scadenza». Chi apre il foglio e filtra sulla
+       colonna `stato` non la vede mai, e una casella vuota in un foglio di
+       conformità si legge «niente da segnalare».
+       Lo schermo, sulla stessa persona, scrive la pastiglia GIALLA «Nessuna
+       scadenza», il dettaglio «né visita medica né corsi in scadenzario» e in
+       testata «non è «a posto», è una persona di cui non si sa niente»
+       (`kpiFrom.senzaScadenze`, che la tiene fuori dai regolari apposta).
+       Il file adesso dice la stessa cosa. `parseLavoratoriCsv` legge solo le
+       prime tre colonne, quindi il giro export → import non cambia — e la
+       prova «giro completo: scudo_personale_scadenze.csv si ri-carica» lo
+       pretende.
+       ⚠️ E QUEL COMMENTO STA SOPRA L'INTESTAZIONE, NON SOTTO, per una ragione
+       che non è estetica: quella prova cerca la riga `csv = "…"` risalendo al
+       massimo QUARANTA righe dal `a.download`. Scritto sotto, spingeva
+       l'intestazione a quarantuno e la prova rispondeva «non si trova
+       l'export» — cioè il controllo smetteva di guardare senza dire che non
+       stava più guardando. */
+    const SENZA = "nessuna scadenza registrata";
     let csv = "nome;ruolo;telefono;idoneita;scadenza;data;stato\n";
     for (const l of LAV) {
       const idn = idoneitaLabel(l.idoneita).label;
       const sc = SCA.filter(s => s.lavoratoreId === l.id);
-      if (!sc.length) csv += `${csvCell(l.nome)};${csvCell(l.ruolo||"")};${csvCell(l.tel||"")};${csvCell(idn)};;;\n`;
-      for (const s of sc) csv += `${csvCell(l.nome)};${csvCell(l.ruolo||"")};${csvCell(l.tel||"")};${csvCell(idn)};${csvCell(s.descrizione)};${s.dataScadenza};${statoScadenza(s.dataScadenza)}\n`;
+      if (!sc.length) csv += `${csvCell(l.nome)};${csvCell(l.ruolo||"")};${csvCell(l.tel||"")};${csvCell(idn)};;;${SENZA}\n`;
+      /* `s.dataScadenza || ""`: senza il ripiego una riga il cui campo non è
+         mai stato scritto finiva nel file con la PAROLA «undefined» — è lo
+         stesso difetto trovato in Conti («null» scritto per esteso). */
+      for (const s of sc) csv += `${csvCell(l.nome)};${csvCell(l.ruolo||"")};${csvCell(l.tel||"")};${csvCell(idn)};${csvCell(s.descrizione)};${s.dataScadenza || ""};${statoScadenza(s.dataScadenza)}\n`;
     }
-    for (const s of SCA.filter(x => !x.lavoratoreId))
-      csv += `AZIENDA;;;;${csvCell(s.descrizione)};${s.dataScadenza};${statoScadenza(s.dataScadenza)}\n`;
+    /* ⛔ LA SCADENZA RIMASTA SENZA LA SUA PERSONA (03/08). Il secondo giro
+       filtrava `!x.lavoratoreId`, cioè «non è di nessuno»; ma un id che punta
+       a una persona TOLTA dall'anagrafica non è vuoto, è un id che non trova
+       niente. Quelle righe non erano nel primo giro (nessun lavoratore le
+       reclama) e non erano in questo: sparivano dal file.
+       E non è un caso di scuola: la modale che toglie una persona PROMETTE
+       «Le sue N scadenze resteranno in elenco come scadenze aziendali: non
+       vanno perse», e lo schermo la promessa la mantiene (le disegna con
+       «azienda», `l ? l.nome : "azienda"`). Il file no. È lo stesso difetto
+       che in Flotta ha fatto sparire 4 mezzi su 7 dallo scadenzario.
+       Il criterio giusto è quello dello schermo: chi non è agganciato a un
+       lavoratore CONOSCIUTO è dell'azienda. */
+    const noti = new Set(LAV.map(l => l.id));
+    for (const s of SCA.filter(x => !noti.has(x.lavoratoreId)))
+      csv += `AZIENDA;;;;${csvCell(s.descrizione)};${s.dataScadenza || ""};${statoScadenza(s.dataScadenza)}\n`;
     const a = document.createElement("a");
     a.href = "data:text/csv;charset=utf-8," + encodeURIComponent(csv);
     a.download = "scudo_personale_scadenze.csv"; a.click();
@@ -4444,16 +4492,38 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
   $("btn-azi-export").onclick = () => {
     // registro delle azioni correttive per l'RSPP, la direzione e (con la
     // L. 198/2025) la comunicazione dei dati aggregati sugli eventi
-    let csv = "descrizione;responsabile;scadenza;stato;esito;dataChiusura;origine\n";
-    const nome = (id) => { const l = LAV.find(x => x.id === id); return l ? l.nome : ""; };
+    /* ⛔ LA COLONNA `semaforo`, E PERCHÉ MANCAVA (03/08). Il file portava lo
+       stato di AVANZAMENTO (`a.stato`, cioè aperta/in corso/chiusa) e la data,
+       e basta: un'azione «aperta» scaduta da 34 giorni usciva scritta identica
+       a una «aperta» che scade fra un anno. Il semaforo lo decide
+       `statoAzione`, che è la funzione che lo decide anche a schermo — e a
+       schermo accanto a quella riga c'è la pastiglia rossa «Scaduta» e la
+       frase «scaduta da 34 gg». Cioè: lo schermo e il documento che si porta
+       al controllo dicevano due cose diverse sugli stessi dati.
+       Va nel file e non ricalcolato qui: una seconda regola sulla stessa
+       domanda è la copia debole che CLAUDE.md descrive.
+       Copre da sola anche la data ILLEGGIBILE — «2026-13-45» finiva nella
+       colonna `scadenza` come una data qualunque, e adesso il semaforo dice
+       «senza data», la parola che l'ecosistema usa in tre app. */
+    let csv = "descrizione;responsabile;scadenza;semaforo;stato;esito;dataChiusura;origine\n";
+    /* ⛔ «da assegnare» e non una cella vuota: è quello che la riga dice a
+       schermo («responsabile da assegnare»), ed è la differenza fra un dato
+       che manca e un dato che nessuno ha ancora deciso. In un foglio di
+       conformità una cella vuota si legge «non serve». */
+    const nome = (id) => { const l = LAV.find(x => x.id === id); return l ? l.nome : "da assegnare"; };
     const orig = (a) => { if (daAmbiente(a)) return a.origineNota || (etichettaAmbiente(a) + " (Sentinella)" + (a.origineData ? " del " + a.origineData : ""));
       if (a.origineTipo === "evento") { const e = INF.find(x => x.id === a.origineId);
         return e ? (e.tipo || "evento") + " del " + (e.data || "") + (e.descrizione ? " — " + e.descrizione : "") : "evento non più in archivio"; }
       if (a.origineTipo === "ispezione") { const i = ISP.find(x => x.id === a.origineId);
         return (i ? "ispezione " + i.nome + " del " + (i.data || "") : "ispezione non più in archivio") + (a.origineNota ? " — " + a.origineNota : ""); }
       return a.origineNota ? "non conformità: " + a.origineNota : ""; };
-    for (const a of AZI.slice().sort((x, y) => String(x.scadenza || "").localeCompare(String(y.scadenza || ""))))
-      csv += `${csvCell(a.descrizione || "")};${csvCell(nome(a.responsabileId))};${a.scadenza || ""};${a.stato || "aperta"};${csvCell(a.esito || "")};${a.dataChiusura || ""};${csvCell(orig(a))}\n`;
+    /* Lo stesso ordine dell'elenco a schermo (`aziCmp`): chiuse in fondo, le
+       altre per data, e chi la data non ce l'ha in coda invece che in testa.
+       Ordinando per `scadenza || ""` un'azione SENZA data finiva prima di
+       tutte, cioè nel posto delle più urgenti. */
+    for (const a of AZI.slice().sort((x, y) => (x.stato === "chiusa") - (y.stato === "chiusa")
+        || String(x.scadenza || "9999").localeCompare(String(y.scadenza || "9999"))))
+      csv += `${csvCell(a.descrizione || "")};${csvCell(nome(a.responsabileId))};${a.scadenza || ""};${statoAzione(a)};${a.stato || "aperta"};${csvCell(a.esito || "")};${a.dataChiusura || ""};${csvCell(orig(a))}\n`;
     const a = document.createElement("a");
     a.href = "data:text/csv;charset=utf-8," + encodeURIComponent(csv);
     a.download = "scudo_azioni_correttive.csv"; a.click();
@@ -4736,7 +4806,24 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
         <!-- decisione 14: su un foglio stampato «—» si legge «non serve». Le
              due cose vere sono diverse, e vanno scritte diverse: chi lo ha
              dichiarato e chi non l'ha mai scritto. -->
-        <td>${fmtData(c.dataConsegna)}</td><td>${c.scadenza ? fmtData(c.scadenza) : (c.nonScade === true ? "non scade (dichiarato)" : "non indicata")}</td>
+        <!-- ⛔ LA COLONNA LEGGE LO STATO DELLA RIGA, NON RI-DECIDE (03/08). Il
+             ternario qui sotto guardava solo SE la data c'era, e quindi una
+             maschera da sostituire dal 10/07/2020 usciva stampata
+             «10/07/2020», identica a una valida fino al 2099. Misurato
+             affiancando i due fogli sugli STESSI dati: la CARTELLA, due
+             bottoni più in là, sulla stessa riga scrive «da sostituire».
+             La funzione verbaleDpi lo stato lo calcola già per ogni riga (con
+             statoConsegnaDpi): era lì e non lo leggeva nessuno.
+             Copre anche la data ILLEGGIBILE, che finiva stampata «—» — cioè,
+             su un foglio, «non serve»: adesso è «non indicata» come il vuoto,
+             che è quello che il modulo dice («senza data»).
+             ⚠️ Questo commento è dentro un template literal: niente apici
+             inversi qui, chiuderebbero la stringa a metà. -->
+        <td>${fmtData(c.dataConsegna)}</td><td>${
+          c.nonScade === true ? "non scade (dichiarato)"
+          : r.stato === "senza data" ? "non indicata"
+          : fmtData(c.scadenza) + (r.stato === "scaduta" ? " — DA SOSTITUIRE"
+                                 : r.stato === "in-scadenza" ? " — da sostituire a breve" : "")}</td>
         <td>${esc(add)}</td><td class="vb-firma"></td></tr>`;
     }).join("");
     $("verbale").innerHTML = `
@@ -5267,18 +5354,26 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
     };
   }
   async function inviaSegnalazione() {
-    if (!NM.categoria) { toast("Tocca prima che cosa è successo (la prima fila di pulsanti).", "err"); return; }
-    if (!NM.luogo) { toast("Tocca dove è successo: serve a capire dove intervenire.", "err"); return; }
     const data = ($("nm-data") && $("nm-data").value) || oggiISO();
-    if (giorniTra(data) > 0) { toast("La data della segnalazione non può essere nel futuro.", "err"); return; }
     const dett = (($("nm-dett") && $("nm-dett").value) || "").trim();
     const chi = NM.anonimo ? "" : (($("nm-chi") && $("nm-chi").value) || "");
-    const rec = {
-      data, tipo: "near-miss", gravita: "lieve", giorniAssenza: 0,
-      categoria: NM.categoria, luogoTipo: NM.luogo, luogo: luogoNearMiss(NM.luogo),
-      descrizione: descrizioneNearMiss({ categoria: NM.categoria, luogoTipo: NM.luogo, dettaglio: dett }),
-      anonimo: !!NM.anonimo, segnalatoDaId: chi || null, rapida: true,
-    };
+    /* ⛔ IL RECORD LO COMPONE `bozzaNearMiss` DI `shared/`, NON QUESTA PAGINA.
+       Fino al 03/08 le tre regole qui sotto — categoria e luogo obbligatori, la
+       data non nel futuro — e i dodici campi del record stavano scritti qui.
+       Da oggi il near-miss si segnala anche da CAMPO, e due pagine che
+       compongono lo stesso documento sono la famiglia di difetti misurata su
+       cinque app: la regola giusta esiste nel modulo, e chi scrive il documento
+       se ne tiene una versione più debole. Qui la versione era più debole
+       davvero: `giorniTra` da sola non rifiuta «2026-02-30», e una segnalazione
+       datata a un giorno che non esiste sparisce dal riepilogo aggregato che si
+       consegna. Una prova pretende che il record composto di qui sia IDENTICO a
+       quello che questa pagina scriveva prima. */
+    const b = bozzaNearMiss({
+      categoria: NM.categoria, luogoTipo: NM.luogo, dettaglio: dett, data,
+      chi: chi ? { lavoratoreId: chi } : null, anonimo: NM.anonimo,
+    });
+    if (!b.ok) { toast(b.problemi[0], "err"); return; }
+    const rec = b.record;
     /* La foto (se c'è) parte insieme: la descrizione generata qui sopra è il
        suo contesto, quindi non resta una miniatura muta nemmeno senza
        didascalia. Si può sempre aggiungerne dal registro. */
@@ -5307,7 +5402,21 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
     let csv = "sezione;voce;numero\n";
     csv += `periodo;${csvCell(per)};\n`;
     csv += `totale;near-miss segnalati;${r.totale}\n`;
+    /* ⛔ LO STORICO ACCANTO AL PERIODO, e la NOTA DI LETTURA (03/08). Sono le
+       due cose che lo schermo dice e il file taceva:
+         · con zero segnalazioni nella finestra la pagina scrive «nello storico
+           ce ne sono N: allarga il periodo»; il file scriveva `0` e nient'altro,
+           cioè la frase più tranquilla possibile in un documento che va a un
+           ente — l'assenza di un dato spacciata per un dato favorevole;
+         · sotto la soglia, la pagina si RIFIUTA di disegnare le due classifiche
+           («non c'è una tendenza da leggere, e disegnarla sarebbe una bugia»),
+           il file le scriveva in fila come se fossero una tendenza.
+       La frase la scrive il modulo (`descriviLetturaNearMiss`), che legge la
+       bandiera `pochi`: nel documento non la guardava nessuno. */
+    csv += `totale;near-miss nello storico (fuori periodo compresi);${r.totaleStorico}\n`;
     csv += `totale;di cui in forma anonima;${r.anonime}\n`;
+    { const nota = descriviLetturaNearMiss(r);
+      if (nota) csv += `lettura;${csvCell(nota)};\n`; }
     for (const t of r.perTipo) csv += `tipo;${csvCell(t.etichetta)};${t.valore}\n`;
     for (const l of r.perLuogo) csv += `luogo;${csvCell(l.etichetta)};${l.valore}\n`;
     csv += `azioni;near-miss con almeno un'azione correttiva;${r.conAzione}\n`;

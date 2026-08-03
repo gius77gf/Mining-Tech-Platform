@@ -130,7 +130,22 @@ const APP = ["campo", "conti", "flotta", "scudo", "sentinella", "terra"];
    fra gli ultimi due anni: era dichiarata dal modulo e non la leggeva nessuno,
    e la scheda usciva verde «In miglioramento» su giornate perse ancora da
    contare. */
-const FONDO = { campo: 103, conti: 112, flotta: 83, scudo: 160, sentinella: 124, terra: 58 };
+/* ⚠️ `scudo` 160 → 155 il 03/08, e un fondo che SCENDE va spiegato più di uno
+   che sale — se no diventa il modo di far passare una prova tolta. Qui non è
+   stata tolta nessuna prova: **cinque export sono TRASLOCATI** in
+   `shared/dw-ponti.js`, dove la regola vincolante li vuole da quando servono a
+   due app (il near-miss si segnala anche da Campo, dal 03/08):
+   `NEARMISS_CATEGORIE`, `NEARMISS_LUOGHI`, `categoriaNearMiss`,
+   `luogoNearMiss`, `descrizioneNearMiss`. Scudo li RI-ESPORTA — e il conto qui
+   non li vede più perché la sua espressione cerca `export function`/`export
+   const` a inizio riga, non un `export … from`, che è giusto: un alias non è
+   una funzione da provare, e la sua prova è l'IDENTITÀ (in `run-kpi.mjs`).
+   L'aritmetica torna e va guardata insieme: 160 − 5 = 155 qui, 31 + 7 = 38 in
+   `dw-ponti` (le cinque traslocate più `CHI_SEGNALA` e `bozzaNearMiss`, nuove).
+   È la stessa forma del trasloco della densità da Terra, quattro righe più
+   giù: il numero che scende di qua e sale di là È la prova che è un trasloco e
+   non una copia. */
+const FONDO = { campo: 103, conti: 112, flotta: 83, scudo: 155, sentinella: 124, terra: 58 };
 
 /* Quello che resta fuori per un motivo, non per dimenticanza: i caricatori
    dati vogliono la rete e lo SDK, i ponti demo vogliono il localStorage.
@@ -190,7 +205,13 @@ const CONDIVISI = [
      di `terra`, che scende di altrettante). È il caso che questo modulo esiste
      per ospitare — la stessa autorizzazione letta da due app — e il numero che
      sale qui e scende là è la prova che è un TRASLOCO e non una copia. */
-  { file: "shared/dw-ponti.js", fondo: 31,
+  /* ⚠️ E DA 31 A 38 IL 03/08, alzato DOPO aver visto il conto salire davvero
+     (38/38, «il fondo era 31: alzalo»): il vocabolario del near-miss traslocato
+     da Scudo — `NEARMISS_CATEGORIE`, `NEARMISS_LUOGHI`, `categoriaNearMiss`,
+     `luogoNearMiss`, `descrizioneNearMiss` — più `CHI_SEGNALA` e
+     `bozzaNearMiss`, che sono nuove. Il fondo di `scudo` scende di cinque
+     nello stesso momento: i due numeri vanno letti insieme. */
+  { file: "shared/dw-ponti.js", fondo: 38,
     perche: "le regole che servono a DUE app: è il posto dove un difetto si moltiplica" },
   { file: "shared/deepwork-id-client/dw-shell.js", fondo: 35,
     perche: "gli aiuti che tutte le app importano (numeri, date, CSV)" },

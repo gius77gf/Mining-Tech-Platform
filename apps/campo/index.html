@@ -603,6 +603,97 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
    toppa andava togliendo il maiuscolo anche a «Voce» e «Quota», cioè si
    allontanava dal core invece di avvicinarsi. */
 
+/* ─── P5 · IL PULSANTE DEL MANCATO INFORTUNIO ──────────────────────────
+   Un near-miss si segnala in piedi sul piazzale, con i guanti: se il
+   pulsante non è la prima cosa che si vede aprendo l'app, non lo tocca
+   nessuno. Stessa materia delle schede del core (fondo a due tinte, bordo
+   che prende luce, alone d'ambiente, alone che segue il mouse, ombra
+   propria) e stessa STRUTTURA di quello di Scudo — pelo per pelo, perché
+   è lo stesso gesto in due app — ma nella misura di un bersaglio grosso.
+   ⛔ I COLORI NON SI COPIANO: qui non c'è un solo valore scritto a mano,
+   tutto passa dalle variabili di tema di Campo (`--grad`, `--app-accent`,
+   `--tint-app`, `--glow-app`), quindi il pulsante nasce nel cotto di Campo
+   e non nel verde di Scudo.                                              */
+.segnala{
+  position:relative; overflow:hidden; display:flex; align-items:center; gap:13px;
+  width:100%; text-align:left; margin:0 0 14px; padding:14px 16px;
+  min-height:calc(var(--tap) + 24px); cursor:pointer;
+  background:linear-gradient(135deg,var(--card2),var(--card));
+  border:1px solid var(--border2); border-left:3px solid var(--app-accent);
+  border-radius:var(--r); box-shadow:var(--sh2),var(--edge);
+  transition:transform .15s var(--ease),box-shadow .15s var(--ease),border-color .2s,background .2s;
+}
+.segnala::before{
+  content:""; position:absolute; inset:0; pointer-events:none;
+  background:radial-gradient(300px 170px at 10% 0%,var(--tint-app),transparent 72%);
+}
+.segnala::after{
+  content:""; position:absolute; inset:0; pointer-events:none; border-radius:inherit;
+  background:radial-gradient(240px 150px at var(--mx,50%) var(--my,50%),var(--glow-app),transparent 62%);
+  opacity:0; transition:opacity .25s var(--ease);
+}
+.segnala:hover::after{opacity:1}
+.segnala>*{position:relative; z-index:1}
+.segnala:hover{
+  background:var(--card2); border-color:var(--app-accent);
+  transform:translateY(-2px); box-shadow:var(--sh4),var(--edge);
+}
+.segnala:active{transform:translateY(0) scale(.995); box-shadow:var(--sh1),var(--edge)}
+.segnala-ico{
+  display:inline-flex; align-items:center; justify-content:center; flex-shrink:0;
+  width:44px; height:44px; border-radius:13px; line-height:0; color:var(--grad-on);
+  background:var(--grad); box-shadow:var(--sh-btn),var(--edge-hi);
+}
+.segnala-ico svg{
+  width:24px; height:24px; stroke:currentColor; fill:none; stroke-width:1.8;
+  stroke-linecap:round; stroke-linejoin:round;
+}
+.segnala-txt{flex:1 1 120px; min-width:0}
+.segnala-tit{
+  display:block; font-family:'Barlow Condensed',sans-serif; font-size:17px;
+  font-weight:800; letter-spacing:1.5px; text-transform:uppercase; color:var(--text);
+  line-height:1.1;
+}
+.segnala-sub{display:block; font-size:11.5px; color:var(--muted2); margin-top:4px; line-height:1.45}
+.segnala-arr{color:var(--app-accent2); font-size:20px; line-height:1; flex-shrink:0}
+/* La riga sotto il pulsante: quante segnalazioni sono già passate in questo
+   turno, oppure la ragione per cui non si sa. ⛔ NON va appesa in fondo alla
+   riga di una lista: quelle hanno `-webkit-line-clamp:2` e un dettaglio in
+   coda non lo legge nessuno. Qui è un blocco suo, sotto il pulsante. */
+.nm-riga{
+  margin:-8px 0 14px; padding:0 2px; font-size:11.5px; line-height:1.5; color:var(--muted2);
+}
+.nm-riga.non-so{color:var(--warn)}
+
+/* ─── P5 · la modale della segnalazione: si tocca, non si scrive ─────── */
+.nm-lab{
+  font-family:'Barlow',sans-serif; font-size:11px; font-weight:600; letter-spacing:2px;
+  text-transform:uppercase; color:var(--muted); margin:14px 0 7px;
+}
+.nm-lab:first-child{margin-top:2px}
+.modal-body .chgs{margin-bottom:0}
+/* Tastierino: due colonne per «che cosa», tre per «dove». Bersagli larghi e
+   sempre nello stesso posto — con i guanti si colpisce a memoria, senza
+   leggere ogni volta. La parola può andare a capo: meglio due righe corte di
+   un'abbreviazione da indovinare. */
+.modal-body .chgs.griglia2{display:grid; grid-template-columns:repeat(2,1fr)}
+.modal-body .chgs.griglia3{display:grid; grid-template-columns:repeat(3,1fr)}
+.modal-body .chgs.griglia2 .chg,.modal-body .chgs.griglia3 .chg{
+  white-space:normal; line-height:1.2; letter-spacing:.5px; padding:8px 7px; text-align:center;
+}
+.chg.anon{flex:1 1 auto}
+.chg.anon.active{background:var(--app-support); border-color:var(--app-support); color:#fff}
+/* Il contesto che Campo SA GIÀ (giorno, turno, squadra): si mostra, non si
+   chiede. È la differenza vera con il modulo di Scudo — non meno campi, ma
+   meno domande. */
+.nm-ctx{
+  display:flex; flex-wrap:wrap; gap:6px 10px; align-items:center;
+  background:var(--card2); border:1px solid var(--border);
+  border-left:3px solid var(--app-accent); border-radius:var(--r2,10px);
+  padding:9px 11px; font-size:12px; color:var(--muted2); margin:2px 0 0;
+}
+.nm-ctx b{color:var(--text); font-weight:700}
+
 /* ─────────────── toast (copia del core) ─────────────── */
 .toast{
   /* width:max-content è indispensabile: un elemento fisso ancorato a left:50%
@@ -636,6 +727,20 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
 
 <!-- DASHBOARD -->
 <div class="page active" id="page-dash">
+  <!-- PONTE P5 — il mancato infortunio si segnala a UN TOCCO dalla schermata
+       principale, PRIMA di ogni altra cosa. Non è una gerarchia estetica: un
+       fermo si registra a mente fredda a fine turno, un near-miss o lo si
+       segnala nei trenta secondi dopo o non lo segnala più. Se il pulsante
+       fosse sotto «Cosa tocca a me» sarebbe già troppo in basso. -->
+  <button class="segnala" id="btn-nm" type="button">
+    <span class="segnala-ico"><svg viewBox="0 0 24 24"><path d="M12 3.2l9.2 16a1 1 0 0 1-.87 1.5H3.67a1 1 0 0 1-.87-1.5z"/><path d="M12 9.4v4.4"/><path d="M12 17.1h.01"/></svg></span>
+    <span class="segnala-txt">
+      <span class="segnala-tit">Segnala un near-miss</span>
+      <span class="segnala-sub">È andata bene per poco: due tocchi, anche in forma anonima. Serve a correggere prima che qualcuno si faccia male.</span>
+    </span>
+    <span class="segnala-arr">›</span>
+  </button>
+  <div class="nm-riga" id="nm-riga" style="display:none;"></div>
   <!-- IL BLOCCO DI CHI LAVORA sta in un contenitore suo perché deve poter SALIRE
        in cima: vedi `sistemaOrdineQuadro()`. Qui sotto è la posizione di quando
        ancora nessuno ha detto chi è. -->
@@ -1001,6 +1106,8 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
            durataTurnoDi, ultimaDurataTurno, disponibilitaTurno, oreMinuti, minutiFermoTesto,
            anomalieAperte, azioniDelFermo, statoRisposta, bozzaAzioneFermo, fermiEAzioni,
            coperturaFermi, dataPiuGiorni,
+           NEARMISS_CATEGORIE, NEARMISS_LUOGHI, bozzaNearMiss,
+           segnalazioniDelTurno, testoSegnalazioniTurno, categorieGiaSegnalate,
            pianoParziale, pianoConsuntivoCsv,
            numeroIt, segnoIt, numeroItDa, numeroDaCampo } from "./campo-data.js";
   import { misuratoPeriodo, produzioneDichiarata, riconciliazioneTurni,
@@ -1223,6 +1330,11 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
   // che NON è «non ce n'è nessuna» — su questa sezione è la differenza fra
   // «nessuno ha fatto niente» e «non siamo riusciti a chiederlo»
   let AZI_HSE = null;
+  // il registro eventi letto da Scudo (ponte P5): `null` = non lo sappiamo.
+  // Vale la stessa regola delle azioni: «nessuna segnalazione oggi» e «non
+  // sono riuscito a chiederlo» sono due frasi diverse, e su un registro di
+  // sicurezza spacciare la seconda per la prima è la bugia peggiore.
+  let INF_HSE = null;
   // ATT/RAP restano SEMPRE la lista completa (serve per ritrovare per id anche
   // ciò che non è a schermo); ATT_G/RAP_G sono la fetta del giorno mostrata e
   // conteggiata. Una registrazione senza data resta dentro (dato vecchio).
@@ -1660,10 +1772,12 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
     // c'è nessun documento scaduto». La schermata deve dire quale dei due.
     // PONTE P4 · le azioni correttive nate dai fermi, in lettura da Scudo.
     // Stessa convenzione: `null` = non lo so.
-    [LAV_HSE, SCAD_HSE, AZI_HSE] = await Promise.all([
+    // PONTE P5 · il registro dei near-miss, in lettura. Stessa convenzione.
+    [LAV_HSE, SCAD_HSE, AZI_HSE, INF_HSE] = await Promise.all([
       db.lavoratoriScudo ? db.lavoratoriScudo() : null,
       db.scadenzeScudo ? db.scadenzeScudo() : null,
       db.azioniScudo ? db.azioniScudo().catch(() => null) : null,
+      db.infortuniScudo ? db.infortuniScudo().catch(() => null) : null,
     ]);
     // Il giorno di lavoro è la chiave di tutto: i KPI del quadro contano SEMPRE
     // e solo le registrazioni di oggi (prima "Rapportini oggi" sommava tutti i
@@ -1723,6 +1837,8 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
     renderDisponibilita();
     // C1 · Cosa tocca a me / alla mia squadra.
     renderIo();
+    // P5 · quanti near-miss sono già passati in questo turno (o perché non si sa).
+    renderNearMiss();
 
     const urgenti = ATT_OGGI.filter(a => a.stato !== "conclusa").slice(0,4);
     $("oggi-list").innerHTML = urgenti.map(a => `<div class="item ${AS[a.stato]||""}" onclick="go('att')" role="button" tabindex="0" title="Vai alle attività della giornata">
@@ -3449,6 +3565,229 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
   $("ope-filtro").onchange = () => renderOperatori();
   $("att-squadra").onchange = () => aggiornaOperatoriDelForm();
   // «Chi sono io»: resta sul telefono di chi lo usa e comanda «cosa tocca a me».
+  // ══════════════════════════════════════════════════════════════════════
+  // PONTE P5 · SEGNALARE UN MANCATO INFORTUNIO DAL FRONTE
+  // ══════════════════════════════════════════════════════════════════════
+  //
+  // ⛔ PIÙ CORTO DI QUELLO DI SCUDO, E NON PER MENO CAMPI: PER MENO DOMANDE.
+  // In cava si compila in piedi, coi guanti, e ogni domanda in più è una
+  // segnalazione persa. Il modulo di Scudo chiede la data e chi segnala perché
+  // Scudo non lo sa; Campo il giorno, il turno e la squadra li SA GIÀ — e
+  // quindi li mostra invece di chiederli. Restano due tocchi obbligatori
+  // (che cosa, dove) e tre cose facoltative.
+  //
+  // ⛔ IL TURNO CHIUSO NON BLOCCA QUESTA SCRITTURA, ed è una decisione, non
+  // una dimenticanza. `bloccato()` protegge il rapporto di fine turno, che è un
+  // documento firmato di Campo; qui non si scrive in Campo, si scrive nel
+  // registro di sicurezza di Scudo. Rifiutare un mancato infortunio perché il
+  // turno è già stato firmato vorrebbe dire che il modo di non registrarlo è
+  // firmare prima.
+  const NM = { categoria: "", luogo: "", anonimo: false, foto: null };
+
+  function nmContesto() {
+    const turno = turnoCorrente();
+    const op = IO.operatore
+      ? (OPER.find(o => o && o.nome === IO.operatore && squadraBase(o.squadra) === squadraBase(IO.squadra))
+         || OPER.find(o => o && o.nome === IO.operatore) || null)
+      : null;
+    return { data: OGGI, turno, squadra: IO.squadra || "", operatore: op };
+  }
+
+  // La riga sotto il pulsante. ⛔ Legge la bandiera `leggibile`: se il registro
+  // di Scudo non si raggiunge NON si scrive «nessuna segnalazione oggi», si
+  // scrive che non lo sappiamo — e in giallo, perché è una cosa da sistemare.
+  function renderNearMiss() {
+    const box = $("nm-riga"); if (!box) return;
+    const s = segnalazioniDelTurno(INF_HSE, OGGI, turnoCorrente());
+    const t = testoSegnalazioniTurno(s);
+    box.classList.toggle("non-so", !s.leggibile);
+    box.style.display = t ? "" : "none";
+    box.textContent = t || "";
+  }
+
+  function apriSegnalazione() {
+    NM.categoria = ""; NM.luogo = ""; NM.anonimo = false; NM.foto = null;
+    const ctx = nmContesto();
+    const chips = (attr, lista) => lista.map(x =>
+      `<button type="button" class="chg" data-${attr}="${x.chiave}">${esc(x.etichetta)}</button>`).join("");
+    // Chi segnala: le persone di CAMPO, e il valore è il loro ID.
+    // ⛔ Mai il nome: è la stessa decisione del ponte P3, per la stessa ragione
+    // misurata — nei dati d'esempio Campo ha un «Marco Rossi» e Scudo un «Mario
+    // Rossi». Qui attaccherebbe la segnalazione alla persona sbagliata.
+    const persone = (OPER || []).filter(o => o && o.id && o.stato !== "non-disponibile");
+    /* ⚠️ SOLO IL NOME, NIENTE RUOLO — ed è una MISURA, non un gusto. La prima
+       stesura scriveva «Giulia Verdi — Caposquadra»: a 320 px la tendina è
+       larga 242 e quella voce ne chiede 251, «Luca Bianchi — Perforatore» 245.
+       Due nomi su quattro tagliati, e a essere tagliato è sempre il pezzo in
+       fondo. Il ruolo qui non serve a niente — la domanda è CHI segnala — e la
+       tendina di Scudo mostra già il solo nome: allinearsi costa zero e toglie
+       il taglio. La misura giusta non è la larghezza del testo: una `<select>`
+       non scorre mai (`scrollWidth === clientWidth`) e la freccia nativa si
+       prende ~20 px dentro il riquadro. Si clona a `width:max-content` e si
+       legge quanto le SERVE — è la stessa tecnica già scritta in Scudo. */
+    const optChi = '<option value="">Chi segnala (facoltativo)</option>'
+      + persone.map(o => `<option value="${esc(o.id)}"${ctx.operatore && o.id === ctx.operatore.id ? " selected" : ""}>${esc(o.nome)}</option>`).join("");
+    const s = segnalazioniDelTurno(INF_HSE, OGGI, ctx.turno);
+    const gia = categorieGiaSegnalate(s);
+    apriModale("Segnala un near-miss",
+      '<div class="nm-lab">1 · Che cosa è successo</div>'
+      + '<div class="chgs griglia2" id="nm-cat">' + chips("nm-cat", NEARMISS_CATEGORIE) + "</div>"
+      + '<div class="nm-lab">2 · Dove</div>'
+      + '<div class="chgs griglia3" id="nm-luo">' + chips("nm-luo", NEARMISS_LUOGHI) + "</div>"
+      /* Il contesto che Campo SA: si mostra, non si chiede. È la riga che rende
+         questo modulo più corto di quello di Scudo senza registrare di meno. */
+      + '<div class="nm-ctx" style="margin-top:14px;">Registrata su <b>oggi ' + esc(dmy(ctx.data)) + '</b>'
+      + ' · turno <b>' + esc(ctx.turno) + '</b>'
+      + (ctx.squadra ? ' · <b>' + esc(ctx.squadra) + '</b>' : ' · squadra non indicata') + "</div>"
+      + (gia && gia.length
+          ? '<div class="form-hint" style="margin-top:8px;">In questo turno è già stato segnalato: <b>'
+            + gia.map(esc).join("</b>, <b>") + "</b>. Se è lo stesso fatto, non serve rimandarlo.</div>"
+          : "")
+      + '<div class="nm-lab">Chi segnala — facoltativo</div>'
+      + '<div class="frow">'
+      + '<select class="dw-input" id="nm-chi" title="Chi segnala" style="flex:1 1 240px;">' + optChi + "</select>"
+      + '<button type="button" class="chg anon" id="nm-anon" aria-pressed="false">Segnalazione anonima</button></div>'
+      + '<div class="form-hint" id="nm-chi-hint" style="margin-top:6px;display:none;"></div>'
+      + '<input class="dw-input" id="nm-dett" placeholder="Dettaglio o punto preciso (facoltativo)" style="margin-top:9px;">'
+      /* ⛔ LA FOTO QUI, e non solo nel registro: davanti a un mancato infortunio
+         il telefono è già in mano, e la stessa prova cercata mezz'ora dopo
+         dall'ufficio non esiste più — il masso è stato tolto, il cavo rimesso a
+         posto. Campo ha già la catena che rimpicciolisce la foto sotto il
+         tetto (`ridimensionaFoto`), quindi non costa niente: si riusa quella,
+         non se ne scrive una seconda. */
+      + '<div class="tools" style="margin-top:10px;">'
+      + '<button type="button" class="dw-btn secondary" id="nm-foto-btn">Aggiungi una foto</button>'
+      + '<input type="file" id="nm-foto" accept="image/*" style="display:none;">'
+      + '<span class="form-hint" id="nm-foto-nome" style="margin:0;align-self:center;"></span>'
+      + "</div>"
+      + '<div class="form-hint" style="margin-top:10px;">Bastano i primi due tocchi. La segnalazione entra nel <b>registro di sicurezza</b> (Scudo), dove nasce l\'azione correttiva: un near-miss <b>non azzera i giorni senza infortuni</b>. In forma anonima <b>non viene salvato chi ha segnalato</b>.</div>',
+      [{ label: "Annulla", azione: chiudiModale },
+       { label: "Invia", cls: "primary", azione: inviaSegnalazione }],
+      { autofocus: false });
+
+    const scelta = (boxId, attr, campo) => {
+      const box = $(boxId); if (!box) return;
+      box.querySelectorAll(".chg").forEach(b => b.onclick = () => {
+        const gia2 = b.classList.contains("active");
+        box.querySelectorAll(".chg").forEach(x => { x.classList.remove("active"); x.setAttribute("aria-pressed", "false"); });
+        if (gia2) { NM[campo] = ""; return; }               // ri-tocco = tolgo la scelta
+        b.classList.add("active"); b.setAttribute("aria-pressed", "true");
+        NM[campo] = b.getAttribute(attr);
+        // scelto il «cosa», il «dove» si porta sotto gli occhi da solo: un dito
+        // in meno da far viaggiare mentre si è in piedi sul piazzale
+        if (campo === "categoria" && !NM.luogo) {
+          const luo = $("nm-luo");
+          if (luo) luo.scrollIntoView({ behavior: "smooth", block: "center" });
+        }
+      });
+    };
+    scelta("nm-cat", "data-nm-cat", "categoria");
+    scelta("nm-luo", "data-nm-luo", "luogo");
+
+    /* ⛔ L'AVVISO SU «CHI» SI VEDE MENTRE SI SCEGLIE, non solo dopo. Una persona
+       di Campo che nessuno ha collegato alla sua scheda di Scudo finirà nel
+       registro SENZA NOME — e questo non è «anonima», che è una scelta. Chi
+       compila deve poterlo sapere prima, che è anche l'unico momento in cui può
+       rimediare scegliendo davvero l'anonimato. */
+    const sistemaAvvisoChi = () => {
+      const h = $("nm-chi-hint"); if (!h) return;
+      const b = bozzaNearMiss(datiSegnalazione());
+      h.style.display = b.motivoChi ? "" : "none";
+      h.textContent = b.motivoChi;
+    };
+    const sel = $("nm-chi");
+    if (sel) sel.onchange = sistemaAvvisoChi;
+
+    const fBtn = $("nm-foto-btn"), fInp = $("nm-foto"), fNome = $("nm-foto-nome");
+    if (fBtn && fInp && fNome) {
+      fBtn.onclick = () => fInp.click();
+      fInp.onchange = async () => {
+        const f = fInp.files && fInp.files[0];
+        NM.foto = null; fNome.textContent = ""; fInp.value = "";
+        if (!f) return;
+        if (!eImmagine(f)) { toast("Questo file non è una foto: scegli un'immagine (JPG, PNG, WEBP).", "err"); return; }
+        toast("Sto rimpicciolendo la foto…", "");
+        try {
+          const r = await ridimensionaFoto(f);
+          NM.foto = { nome: f.name || "foto.jpg", dataURL: r.dataUrl, didascalia: "" };
+          fNome.textContent = "Foto pronta (" + formattaByte(r.byte) + ", " + r.w + "×" + r.h + " punti)";
+          toast("Foto pronta: parte insieme alla segnalazione.", "success");
+        } catch (err) {
+          toast(String(err && err.message) === "troppo grande"
+            ? "La foto resta troppo pesante anche rimpicciolita: scattane una nuova, senza zoom."
+            : "Non sono riuscito a leggere questa foto: riprova o scegline un'altra.", "err");
+        }
+      };
+    }
+    const anon = $("nm-anon");
+    if (anon) anon.onclick = () => {
+      NM.anonimo = !NM.anonimo;
+      anon.classList.toggle("active", NM.anonimo);
+      anon.setAttribute("aria-pressed", NM.anonimo ? "true" : "false");
+      const chi = $("nm-chi");
+      if (chi) { chi.disabled = NM.anonimo; if (NM.anonimo) chi.value = ""; }
+      sistemaAvvisoChi();
+      toast(NM.anonimo ? "Segnalazione anonima: il nome non viene salvato." : "Segnalazione con nome.");
+    };
+    sistemaAvvisoChi();
+  }
+
+  // I dati della modale, nella forma che `bozzaNearMiss` si aspetta. Sta in una
+  // funzione sola perché la leggono in due (l'avviso mentre si sceglie e
+  // l'invio): due letture scritte due volte sono due verità che divergono.
+  function datiSegnalazione() {
+    const ctx = nmContesto();
+    const id = ($("nm-chi") && $("nm-chi").value) || "";
+    const op = id ? (OPER.find(o => o && String(o.id) === id) || null) : null;
+    return {
+      categoria: NM.categoria, luogoTipo: NM.luogo,
+      dettaglio: ($("nm-dett") && $("nm-dett").value) || "",
+      data: ctx.data, turno: ctx.turno, squadra: ctx.squadra, app: "campo",
+      anonimo: NM.anonimo,
+      chi: op ? { lavoratoreId: op.lavoratoreId, nome: op.nome } : null,
+    };
+  }
+
+  async function inviaSegnalazione() {
+    const b = bozzaNearMiss(datiSegnalazione());
+    if (!b.ok) { toast(b.problemi[0], "err"); return; }
+    const rec = b.record;
+    if (NM.foto) rec.foto = [NM.foto];
+    if (!db.aggiungiEventoScudo) {
+      toast("Il registro di sicurezza non è collegato: la segnalazione NON è stata salvata.", "err");
+      return;
+    }
+    try {
+      await db.aggiungiEventoScudo(rec);
+    } catch (e) {
+      /* ⛔ SI DICE CHE NON È STATA SALVATA, e la modale RESTA APERTA con dentro
+         quello che era stato scelto: un near-miss perso perché la rete della
+         cava è caduta è esattamente il caso che questa funzione esiste per
+         evitare, e un toast rassicurante sarebbe la bugia peggiore. Riprovare
+         costa un tocco. */
+      toast("Scudo non è raggiungibile: la segnalazione NON è stata salvata. Riprova fra un momento.", "err");
+      return;
+    }
+    chiudiModale();
+    await refresh();
+    /* ⛔ E QUI SI DICE DI NUOVO CHE COSA NON SI SA. `noto` è la bandiera di
+       `bozzaNearMiss`: se chi ha segnalato non è collegato alla sua scheda in
+       Scudo, il registro lo mostrerà senza nome — e chi ha appena segnalato
+       deve saperlo adesso, non scoprirlo fra un mese. Una bandiera che nessuno
+       legge non protegge niente. */
+    apriModale("Segnalazione registrata",
+      "<b>" + esc(rec.descrizione) + "</b><br>" + esc(dmy(rec.data))
+      + " · turno " + esc(rec.turno || "—") + " · " + esc(rec.luogo)
+      + (rec.anonimo ? " · in forma anonima" : "") + ".<br><br>"
+      + "È entrata nel <b>registro di sicurezza</b> (Scudo): da lì l'RSPP apre l'azione correttiva "
+      + "e la segnalazione entra nel riepilogo dei mancati infortuni."
+      + (b.noto ? "" : '<div class="note avviso" style="margin-top:12px;">' + esc(b.motivoChi) + "</div>"),
+      [{ label: "Va bene", cls: "primary", azione: chiudiModale }]);
+    toast("Near-miss registrato in Scudo.", "success");
+  }
+
+  $("btn-nm").onclick = () => apriSegnalazione();
+
   $("io-squadra").onchange = () => {
     IO.squadra = $("io-squadra").value; IO.operatore = "";
     salvaIo(); aggiornaSceltaSquadre(); renderIo();

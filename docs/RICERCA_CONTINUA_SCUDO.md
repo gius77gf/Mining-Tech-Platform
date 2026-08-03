@@ -158,3 +158,126 @@ La resa misurata di questa tornata è **1 proposta su 5**, e quell'una è
 sequenza di una visita ispettiva, i documenti richiesti e i riferimenti
 normativi restano utili anche adesso che il delta è sbagliato. Non buttare il
 documento: buttare la sua colonna «non c'è».
+
+---
+
+## Registro mancati infortuni (near-miss) — il mestiere e il delta (03/08/2026)
+
+**Nota metodologica**: questa ricerca parte dal mondo (registri di cava in pratica italiana, L. 198/2025, standard INAIL/UNI) e giunge al delta di Scudo. Le fonti sono ricerche web su D.Lgs 81/08, L. 198/2025, UNI 7249:2026, guide INAIL e studi di caso RSPP.
+
+### Il mondo: come si raccoglie e si gestisce un near-miss in cava
+
+#### 1. Che cosa raccoglie davvero chi segnala sul campo
+
+Nel D.Lgs 81/08 art. 33 il "servizio di prevenzione" deve identificare e tracciare i quasi-infortuni. La pratica italiana di cava (dedotta da guide ASL e protocolli aziendali) raccoglie:
+
+- **Data e ora** (non obbligatorio l'orario preciso, spesso solo giorno)
+- **Luogo** (fronte, pista, piazzale, impianto, officina; non sempre con coordinate)
+- **Descrizione di che cosa è successo** — il racconto, non una categoria. Molte volte raccolta DOPO, a mente fredda, non al momento
+- **Categoria di rischio** (caduta massi, mezzi, instabilità, ribaltamento, caduta, impianto, volata, elettrico, polveri) — standard UNI 7249:2026
+- **Chi segnala** (obbligatorio per l'app, opzionale per il lavoratore — anonimato su richiesta)
+- **Potenziale danno** (gravità potenziale, cioè: che cosa sarebbe successo se il lavoratore avesse toccato il massi caduto? Infortunio grave, leggero, morte?)
+- **Azioni correttive avviate** (obbligatorio per L. 198/2025)
+
+**Quello che manca nella pratica italiana** (ma che oggi si raccoglie nei software):
+- Chi ha segnalato non sa se l'app registri se lui ha lanciato l'alert al momento o se l'ha ricostruita una settimana dopo guardando i video
+- Alcuni near-miss ad altissima potenzialità di danno richiedono comunicazione ISTANTANEA al preposto (non domani); il registro non distingue
+- **La forma della segnalazione**: primo soccorso (segnalazione rapida in piedi sul piazzale, 30 secondi) vs relazione approfondita (completata al termine del turno)
+
+**Fonte**: D.Lgs 81/08 art. 33 (compiti del SPP); protocolli INAIL su modelli di gestione near-miss; pratica desunta da guide ASL e studi di caso (non letto un protocollo di cava per nome).
+
+#### 2. Che cosa chiede L. 198/2025 (in vigore da gennaio 2026)
+
+La legge richiede alle aziende **con oltre 15 addetti**:
+
+- **Registrazione interna** di ogni near-miss
+- **Analisi causa-radice** e aggiornamento del DVR
+- **Comunicazione annuale** dei dati aggregati al Ministero del Lavoro
+- **Rapporto Annuale Near-Miss** (forma ancora non definita — linee guida INAIL attese per il 30 aprile 2026)
+
+Dati aggregati richiesti (dedotto da art. 15 DL 159/2025):
+- Numero di near-miss per categoria (caduta massi, mezzi, impianto…)
+- Numero per luogo (fronte, pista, piazzale…)
+- Numero di azioni correttive avviate
+- Tasso di closure delle azioni (quante azioni concluse / quante avviate)
+- **Potenziale danno mancato**: ore risparmiate per infortuni che non si sono verificati (calcolo non standard)
+
+Formato e periodicità: **non ancora definiti** — decreto ministeriale atteso primavera 2026. Linee guida INAIL da aprile 2026. Per ora: bozze da INAIL su modello "Condivido" e da ERSG su template Excel.
+
+**Fonte**: [L. 198/2025 (ex DL 159/2025)](https://www.certifico.com/sicurezza-lavoro/documenti-sicurezza/documenti-riservati-sicurezza/d-l-159-2025-obbligo-comunicazione-mancati-infortuni-near-miss-note); [Linee guida INAIL near-miss 2026](https://www.azienda-digitale.it/sicurezza-sul-lavoro/near-miss-legge-198-2025/); [ERSG — gestione near-miss 2026](https://www.ersg.it/it/post/gestione-dei-near-miss-cosa-cambia-per-le-aziende-dal-2026.html).
+
+#### 3. Tassonomie standard: come si classifica nella pratica italiana
+
+**Categorie di rischio** (UNI 7249:2026, maggio 2026):
+- Caduta di materiale / massi
+- Instabilità del fronte / franamento
+- Mezzi di trasporto / investimento
+- Ribaltamento di mezzi
+- Caduta / scivolamento della persona
+- Impianto / nastri / macchinari
+- Volate / proiezioni di roccia
+- Rischio elettrico / incendio
+- Polveri / sostanze pericolose
+- Altro
+
+**Gravità potenziale** (4 livelli UNI 7249, non applicati uniformemente):
+1. Danno lieve / contusione
+2. Danno medio / frattura, ferita
+3. Danno grave / trauma, perdita arto
+4. Danno gravissimo / morte
+
+**Luogo** (dedotto da pratica e modelli INAIL):
+- Fronte di cava (scavo aperto)
+- Piste e raccordi
+- Piazzale principale
+- Impianto di trasformazione / vagliatura
+- Officina / manutenzione
+- Deposito / stoccaggio materiali
+- Uffici / area amministrativa
+
+**Parole del mestiere** (come chiama queste cose chi lavora in cava):
+- "Near-miss" / "mancato infortunio" / "quasi infortunio" (le tre forme in uso)
+- "Segnalazione rapida" = al momento, in piedi, con tre tocchi
+- "Relazione approfondita" = a mente fredda, con dettagli
+- "Potenziale di danno" / "gravità potenziale" = che cosa sarebbe stato se…
+- "Azione correttiva" / "azione preventiva" — stesse cose, due nomi
+- "Dinamica" = come è successo
+- "Precursore di infortunio" = quello che gli RSPP chiamano formalmente un near-miss
+- "Alert immediato" = comunicazione al preposto in tempo reale
+
+**Fonte**: [UNI 7249:2026 (tassonomia infortuni e near-miss)](https://www.certifico.com/sicurezza-lavoro/documenti-sicurezza/documenti-riservati-sicurezza/rischi-infortuni-mancati-infortuni-e-indicatori-di-prestazione-ssl-uni-7249); [Punto Sicuro — gestione near-miss classificazione](https://www.puntosicuro.it/infortuni-sul-lavoro-C-138/gestione-dei-near-miss-classificazione-segnalazioni-piano-d-azione-AR-22364/); [Terminologia RSPP](https://www.corsisicurezza.it/blog/near-miss-mancato-infortunio-definizione.htm).
+
+### Il delta: Scudo rispetto al mondo
+
+| Aspetto | Mondo (pratica + legge) | Scudo oggi | Completezza |
+|---|---|---|---|
+| **Campi di base** | Data, luogo, categoria, descrizione, gravità, chi segnala, azioni | ✅ Tutti presenti: tipo, gravita, luogo, luogoTipo, categoria, descrizione, anonimo, rapida, giorniAssenza | 100% |
+| **Categorie predefinite** | UNI 7249: 9 categorie (caduta massi, instabilità, mezzi, ribaltamento, caduta, impianto, volata, elettrico, polveri) | ✅ 10 categorie (aggiunta "organizzativa" — non in UNI 7249 ma utile per cava) | 110% |
+| **Tipi di luogo** | Fronte, pista, piazzale, impianto, officina, deposito, uffici, altro | ✅ 8 tipi (identici ai sopra) | 100% |
+| **Aggregazione L. 198/2025** | Comunicazione annuale dati aggregati per categoria, luogo, azioni correttive | ✅ Funzione `riepilogoNearMiss` in scudo-data.js riga 935; esporta CSV | 100% |
+| **Forma della segnalazione** | Distinzione: al momento (rapida, 30 sec) vs dopo (approfondita, a mente fredda) | ⚠️ Campo `rapida: bool` raccoglie il flag, ma **non c'è indicatore visivo di QUANDO è stata raccolta** (ora evento vs ora segnalazione) | ~40% |
+| **Urgenza / priorità di comunicazione** | Alcuni near-miss richiedono alert immediato al preposto (ad es. blocco caduto dal ciglio durante disgaggio) | ❌ Non c'è campo di urgenza/priorità. Tutte le segnalazioni trattate alla stessa velocità nel flusso | 0% |
+| **Deadline comunicazione INAIL** | L. 198/2025: comunicazione annuale entro [data TBD dal decreto ministeriale]. Non ancora definita ma scade a livello organizzativo | ❌ Nessun promemoria nel cruscotto per scadenza trasmissione annuale INAIL. Scadenze aziendali presenti, ma non questa | 0% |
+| **Triage post-evento** | Pratica: dopo un near-miss ad alto potenziale, ripristino immediato del luogo, notifica preposto, poi compilazione | ✅ Azioni correttive collegate (`origineId` nei modelli, riga 24 di scudo-data.js) | 50% (collegate ma non prioritizzate) |
+
+### Tre proposte solide
+
+| # | Schermata | Che cosa non va | Come si vede | Quanto costa | Come si misura | Fonte | Nota |
+|---|---|---|---|---|---|---|---|
+| 1 | **Registro near-miss** | Near-miss rapida vs approfondita non distinguono **quando è stata raccolta** rispetto a **quando è accaduta** — pratica italiana comune (molti si scrivono dopo 2-3 ore) | Aprire il near-miss i1 della demo: mostra `rapida: true` ma **quando è stata segnalata?** Mezzanotte dell'evento, o al mattino dopo? | Piccolo (campo timestamp + label) | Nella demo i1 ha `data: 2026-05-18`, `rapida: true`. C'è un campo `dataSegnalazione` che distingue da `data` dell'evento? Se no è una mancanza | D.Lgs 81/08 art. 33 + pratica ASL: SPP deve sapere se near-miss è stato segnalato al momento o ricostruito, perché influisce sulla qualità dell'investigazione | **Perché importa**: L'ispettore chiede «di chi è il telefono che ha lanciato l'alert?» Se la risposta è «la ricerca video del giorno dopo» la gestione non è immediata. Scudo traccia il flag ma non il momento della segnalazione |
+| 2 | **Dashboard / Azioni** | Urgenza/priorità di comunicazione al preposto non è tracciata — alcuni near-miss richiedono alert istantaneo, altri possono aspettare il rapporto giornaliero | Creare due near-miss dalla demo: uno di "caduta massi dal ciglio durante disgaggio" (alto pericolo) e uno di "piccolo detrito su pista". Nella lista hanno lo stesso peso? Nessun badge rosso su quello ad alta potenzialità? | Piccolo (campo `urgenza` + filtri nel quadro) | Leggere le 10 righe di `riepilogoNearMiss` in scudo-data.js; calcola numero totale, breakdown per categoria, numero azioni. **Manca qualunque ranking di gravità potenziale che generi alert rosso** | L. 198/2025 art. 15 + INAIL protocolli: near-miss ad alto danno potenziale vanno comunicati al preposto in tempo reale, non nel report settimanale | **Perché importa**: Un massi caduto dal ciglio è un "precursore di morte". Se l'app lo raccoglie come "lieve" insieme alle 20 segnalazioni di "detrito su pista" perde il segnale. L'ispettore direbbe "dove sta il triage di priorità?" |
+| 3 | **Scadenze / Dashboard** | L. 198/2025 richiede comunicazione annuale dati aggregati, ma Scudo non ha un promemoria per la scadenza di trasmissione a INAIL | Nel cruscotto della demo (Dashboard): c'è un avviso tipo "Comunicazione INAIL near-miss: scade il 31/12"? Nessun avviso, è invisibile come adempimento | Piccolissimo (una riga in calendario scadenze + badge Quadro) | Cercare "INAIL" o "198" nello scadenzario della demo (apps/scudo/scudo-data.js riga 1200-1300 dove stanno i preset scadenze). Non esiste nemmeno come tipo di scadenza aziendale | L. 198/2025 art. 15 comma 3: "comunicazione annuale dei dati aggregati al Ministero del Lavoro". Decreto ministeriale su formato/deadline atteso primavera 2026, ma l'obbligo è dal 2026 e ha cadenza annuale | **Perché importa**: Un'azienda che dimentica la scadenza di trasmissione INAIL vede una sanzione amministrativa. Scudo usa già lo scadenzario per tracciare tutto (DSS, relazione fronti, verifiche). Questa scadenza deve starci |
+
+### Note sulla ricerca
+
+1. **L. 198/2025 non ancora attuata pienamente**: Decreto ministeriale su formato e periodicità esatta atteso per il 30 aprile 2026. Le tre proposte sopra si basano sulla legge come scritta (comunicazione annuale), non su regolamenti secondari ancora inesistenti. **Non è un'inferenza**: la legge dice chiaramente "comunicazione annuale", il come tecnico viene dopo.
+
+2. **Distinzione segnalazione rapida vs ricerca**: Il campo `rapida` in Scudo esiste ed è costruito bene. La proposta 1 non tocca il modello dati, aggiunge solo visibilità: un timestamp di quando è stata registrata nel sistema (non quando è accaduta).
+
+3. **Categorie Scudo vs UNI 7249**: Scudo ha 10, UNI 7249 ne ha 9. La decima di Scudo ("organizzativa") non c'è nello standard ma è usata in cava per classificare incidenti di comunicazione, coordinamento, burocrazia. È una scelta buona.
+
+4. **Fonti controllate**: Ogni proposta cita legge, standard, o guida INAIL. Due proposte (1 e 3) sono controllabili cercando direttamente nel codice Scudo. Una (2) richiede interpretazione di pratica RSPP, ma è documentata in ogni ispezione di cava che affronti un near-miss serio.
+
+---
+
+*Ricerca del 03/08/2026. Nessun codice modificato, nessun commit. Tre proposte verificabili; zero false partenze.*

@@ -17,7 +17,7 @@
 // Terra continuano a importare da dove hanno sempre importato — un alias non è
 // una seconda implementazione.
 //
-import { isoLocale, dataISOEsiste } from "./deepwork-id-client/dw-shell.js";
+import { isoLocale, dataISOEsiste, giorniTra } from "./deepwork-id-client/dw-shell.js";
 
 // Tutto quello che c'è qui è PURO e testabile: nessun accesso ai dati, nessun
 // DOM. Le letture dei dati restano nei moduli delle app, che passano dall'SDK.
@@ -843,6 +843,190 @@ export function voceCosto(chiave) {
 export function gruppoDiVoce(chiave) {
   const v = voceCosto(chiave);
   return v ? v.gruppo : "non-classificata";
+}
+
+// ══════════════════════════════════════════════════════════════════════
+// PONTE P5 · CAMPO → SCUDO — IL MANCATO INFORTUNIO SEGNALATO DAL FRONTE
+// ══════════════════════════════════════════════════════════════════════
+//
+// ⛔ NON È UNA FUNZIONE CHE MANCA ALL'ECOSISTEMA: È UNA FUNZIONE CHE NON STA
+// DOVE STA LA PERSONA. Il giro completo esiste in Scudo da prima — il pulsante
+// «Segnala un near-miss», il registro, il riepilogo aggregato nella forma che
+// chiede la L. 198/2025, l'azione correttiva collegata. Quello che mancava è
+// che chi è al fronte ha in mano CAMPO, non Scudo, e la differenza è il
+// MOMENTO: un fermo si registra a mente fredda a fine turno, un near-miss o lo
+// si segnala nei trenta secondi dopo o non lo segnala più. Ed è precisamente il
+// dato che la legge nuova chiede di contare.
+//
+// ⛔ PERCHÉ IL COMPOSITORE DEL RECORD STA QUI, E NON IN CAMPO. La prima stesura
+// lo metteva in `campo-data.js`, seguendo il precedente di `bozzaAzioneFermo`.
+// Sarebbe stato il difetto misurato il 03/08 su cinque app: **dove il documento
+// si compone**. Il documento qui è il record `infortuni/{id}` di Scudo, e
+// componerlo in due posti — la pagina di Scudo e quella di Campo — vuol dire
+// due forme che divergono al primo ripensamento, senza che nessuna prova se ne
+// accorga, perché ognuna delle due è coerente con sé stessa. Il compositore è
+// **uno** e i due chiamanti gli passano solo il loro «chi».
+// La prova che lo tiene onesto non è che «si comporta bene»: è che sui casi
+// della pagina di Scudo restituisce un record **identico** a quello che quella
+// pagina scriveva prima.
+//
+// ⛔ E QUI IL PRINCIPIO DEL FONDATORE HA UNA FORMA PRECISA: «NON LO SO» NON È
+// «ANONIMA». Sono due cose diverse e portano a due comportamenti diversi:
+//   · **anonima** è una SCELTA — qualcuno ha toccato il pulsante apposta, ed è
+//     la scelta che tiene vivo un registro vero;
+//   · **non collegato** è un lavoro non ancora fatto: la persona c'è e ha un
+//     nome, ma non è legata alla sua scheda di Scudo (`lavoratoreId`), quindi
+//     nel registro il nome non comparirà;
+//   · **non indicato** è una casella che nessuno ha compilato.
+// Scrivere `anonimo: true` negli ultimi due sarebbe la solita assenza
+// travestita da fatto: gonfierebbe il conteggio delle segnalazioni anonime —
+// che è un indicatore di clima, non un residuo — e toglierebbe a chi legge il
+// motivo per riparare il collegamento. È la stessa idea dell'appello del turno
+// di Campo, dove chi nessuno ha spuntato non si conta né presente né assente.
+// La bandiera è `noto`, e chi non la legge lascia la pagina a mostrare un
+// numero tranquillo: la legge la pagina di Campo, che al suo posto mostra
+// `motivoChi`.
+//
+// ⛔ E NON SI ACCOPPIA PER NOME. MAI — la stessa decisione del ponte P3, per la
+// stessa ragione misurata: nei dati d'esempio Campo ha un «Marco Rossi» e Scudo
+// un «Mario Rossi». Qui il rischio è più sottile che sulle visite mediche, ma è
+// lo stesso: attaccare una segnalazione alla persona sbagliata. Si passa
+// l'`id`, e senza id la risposta è «non lo so», detta.
+//
+// ⛔ LA DATA DEVE ESISTERE, e non è pignoleria: `riepilogoNearMiss` di Scudo
+// seleziona il periodo con `giorniTra`, quindi un near-miss con una data che
+// non esiste — «2026-02-30», che `Date.parse` NON rifiuta, fa scorrere al 2
+// marzo — non cadrebbe in nessun periodo e sparirebbe dal riepilogo aggregato
+// che si consegna. Una segnalazione che non si può salvare bene non si salva:
+// si dice perché.
+//
+// Il vocabolario (categorie, luoghi, descrizione automatica) è **spostato** qui
+// da `apps/scudo/scudo-data.js`, dove viveva: da quando serve anche a Campo,
+// una seconda copia sarebbe due elenchi che divergono — e una categoria che
+// esiste di qua e non di là finisce nel riepilogo di Scudo come «Non
+// classificato», cioè un dato perso in silenzio. Scudo li ri-esporta coi nomi
+// con cui li ha sempre chiamati: un alias non è una seconda implementazione.
+
+/* Le categorie vengono dai rischi tipici delle attività estrattive (caduta
+   massi e instabilità dei fronti, viabilità delle piste, organi in movimento
+   dell'impianto, volata); il riferimento normativo del tracciamento è la
+   L. 198/2025 (ex D.L. 159/2025). Si TOCCA una voce invece di scrivere, e la
+   segnalazione è già completa. */
+export const NEARMISS_CATEGORIE = [
+  { chiave: "caduta-massi",  etichetta: "Caduta massi" },
+  { chiave: "instabilita",   etichetta: "Fronte instabile" },
+  { chiave: "mezzi",         etichetta: "Mezzi e investimento" },
+  { chiave: "ribaltamento",  etichetta: "Ribaltamento" },
+  { chiave: "caduta",        etichetta: "Caduta o scivolamento" },
+  { chiave: "impianto",      etichetta: "Impianto e nastri" },
+  { chiave: "volata",        etichetta: "Volata e proiezioni" },
+  { chiave: "elettrico",     etichetta: "Elettrico o incendio" },
+  { chiave: "sostanze",      etichetta: "Polveri e sostanze" },
+  { chiave: "altro",         etichetta: "Altro" },
+];
+export const NEARMISS_LUOGHI = [
+  { chiave: "fronte",   etichetta: "Fronte" },
+  { chiave: "pista",    etichetta: "Piste" },
+  { chiave: "piazzale", etichetta: "Piazzale" },
+  { chiave: "impianto", etichetta: "Impianto" },
+  { chiave: "officina", etichetta: "Officina" },
+  { chiave: "deposito", etichetta: "Deposito" },
+  { chiave: "uffici",   etichetta: "Uffici" },
+  { chiave: "altro",    etichetta: "Altro" },
+];
+export function categoriaNearMiss(chiave) {
+  const c = NEARMISS_CATEGORIE.find(x => x.chiave === chiave);
+  return c ? c.etichetta : "";
+}
+export function luogoNearMiss(chiave) {
+  const l = NEARMISS_LUOGHI.find(x => x.chiave === chiave);
+  return l ? l.etichetta : "";
+}
+// Descrizione già scritta quando chi segnala non aggiunge niente: la
+// segnalazione resta leggibile nel registro anche se è costata tre tocchi.
+export function descrizioneNearMiss({ categoria, luogoTipo, luogo, dettaglio } = {}) {
+  const d = (dettaglio || "").trim();
+  if (d) return d;
+  const cat = categoriaNearMiss(categoria);
+  const dove = (luogo || "").trim() || luogoNearMiss(luogoTipo);
+  if (cat && dove) return cat + " — " + dove;
+  return cat || dove || "Near-miss segnalato";
+}
+
+/* I MODI DI SAPERE (o di non sapere) CHI HA SEGNALATO. Vocabolario chiuso:
+   aggiungerne uno vorrebbe dire aggiungere un modo di rispondere alla domanda
+   «di chi è questa segnalazione?». */
+export const CHI_SEGNALA = ["anonima", "collegato", "non-collegato", "non-indicato"];
+
+/* LA SEGNALAZIONE, PRONTA DA SCRIVERE nel registro `infortuni` di Scudo.
+   Funzione PURA: non scrive niente, prepara il record e dice che cosa non va.
+   Ritorna sempre un oggetto — non esistono risposte mancanti:
+     { ok, problemi: [], record: {…}|null, chi, noto, motivoChi }
+   · `problemi` sono le frasi da mostrare a chi sta compilando, nell'ordine in
+     cui conviene sistemarle. Vuoto quando `ok`.
+   · `chi` è una delle quattro parole di `CHI_SEGNALA`; `noto` dice se il
+     registro potrà scrivere qualcosa di vero su chi ha segnalato, e
+     `motivoChi` è la frase da mostrare quando non potrà.
+   · `record` è `null` finché non si può comporre: un record a metà messo in
+     archivio è peggio di nessun record.
+   `s.chi` è `{ lavoratoreId?, nome? }` oppure `null`: Scudo passa l'id che ha
+   scelto nella sua tendina, Campo passa il proprio operatore (che l'id ce l'ha
+   solo se qualcuno l'ha collegato). `s.app`, `s.turno` e `s.squadra` si
+   scrivono SOLO se ci sono, così un record composto da Scudo resta identico a
+   com'era invece di guadagnare tre colonne vuote.
+   `oggi` è iniettabile: le prove non dipendono dall'orologio di chi le lancia. */
+export function bozzaNearMiss(s = {}, oggi = new Date()) {
+  const categoria = String((s && s.categoria) || "").trim();
+  const luogoTipo = String((s && s.luogoTipo) || "").trim();
+  const data = String((s && s.data) || "").slice(0, 10);
+  const problemi = [];
+  if (!NEARMISS_CATEGORIE.some((x) => x.chiave === categoria))
+    problemi.push("Tocca prima che cosa è successo: è la prima fila di pulsanti.");
+  if (!NEARMISS_LUOGHI.some((x) => x.chiave === luogoTipo))
+    problemi.push("Tocca dove è successo: serve a capire dove intervenire.");
+  /* ⛔ `dataISOEsiste` e non `Date.parse`: «2026-02-30» non è NaN, JavaScript lo
+     fa scivolare al 2 marzo — e una segnalazione datata a un giorno che non
+     esiste esce da tutti i periodi del riepilogo aggregato. */
+  if (!dataISOEsiste(data))
+    problemi.push("Senza una data che esiste la segnalazione non entrerebbe in nessun riepilogo.");
+  else if (giorniTra(data, oggi) > 0)
+    problemi.push("La data della segnalazione non può essere nel futuro.");
+
+  const anonimo = !!(s && s.anonimo);
+  const p = (s && s.chi && typeof s.chi === "object") ? s.chi : null;
+  const rif = p && p.lavoratoreId != null ? String(p.lavoratoreId).trim() : "";
+  const chi = anonimo ? "anonima" : !p ? "non-indicato" : rif ? "collegato" : "non-collegato";
+  const noto = chi === "anonima" || chi === "collegato";
+  const nome = (p && String(p.nome || "").trim()) || "";
+  const motivoChi =
+    chi === "non-collegato"
+      ? (nome ? "«" + nome + "»" : "Questa persona") + " non è collegata alla sua scheda in Scudo: "
+        + "la segnalazione parte lo stesso, ma nel registro risulterà senza nome. "
+        + "Non è la stessa cosa di una segnalazione anonima."
+      : chi === "non-indicato"
+      ? "Nessuno ha indicato chi segnala: nel registro la segnalazione risulterà senza nome. "
+        + "Non è la stessa cosa di una anonima — se vuoi restare anonimo, tocca il pulsante apposta."
+      : "";
+
+  if (problemi.length) return { ok: false, problemi, record: null, chi, noto, motivoChi };
+
+  const record = {
+    data, tipo: "near-miss", gravita: "lieve", giorniAssenza: 0,
+    categoria, luogoTipo, luogo: luogoNearMiss(luogoTipo),
+    /* `s && s.dettaglio` come tutte le altre letture qui sopra: oggi questa
+       riga non si raggiunge con un `s` non-oggetto (senza categoria valida ci
+       si ferma prima), ma la difesa che dipende dall'ORDINE dei controlli è
+       una difesa che il primo riordino toglie senza che nessuno lo veda. */
+    descrizione: descrizioneNearMiss({ categoria, luogoTipo, dettaglio: s && s.dettaglio }),
+    anonimo, segnalatoDaId: chi === "collegato" ? rif : null, rapida: true,
+  };
+  const app = String((s && s.app) || "").trim();
+  const turno = String((s && s.turno) || "").trim();
+  const squadra = String((s && s.squadra) || "").trim();
+  if (app) record.origineApp = app;
+  if (turno) record.turno = turno;
+  if (squadra) record.squadra = squadra;
+  return { ok: true, problemi: [], record, chi, noto, motivoChi };
 }
 
 // ══════════════════════════════════════════════════════════════════════

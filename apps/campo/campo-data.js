@@ -247,6 +247,18 @@ export const DEMO = {
     { id: "d6", nome: "Franco Riva", ruolo: "Fochino", attivo: true },
     { id: "d7", nome: "Sara Conti", ruolo: "RSPP esterno", attivo: true },
   ],
+  // IL REGISTRO EVENTI CHE IN ESERCIZIO ARRIVA DA SCUDO (ponte P5). Copiato
+  // dalla dimostrazione di Scudo, id per id, come i lavoratori: due
+  // dimostrazioni che dicessero cose diverse sullo stesso evento
+  // smentirebbero l'ecosistema.
+  // ⛔ NESSUNO DEI DUE HA IL `turno`, e non è una dimenticanza: sono stati
+  // registrati DA SCUDO, che il turno non lo chiede. È proprio il caso che
+  // `segnalazioniDelTurno` tiene a parte — «stesso giorno, turno non
+  // indicato» — e nella dimostrazione si deve poter vedere.
+  infortuniScudo: [
+    { id: "i4", data: "2026-07-06", tipo: "near-miss", gravita: "lieve", giorniAssenza: 0, luogo: "fronte Nord", luogoTipo: "fronte", categoria: "caduta-massi", rapida: true, descrizione: "Blocco staccato dal ciglio durante il disgaggio" },
+    { id: "i5", data: OGGI_DEMO, tipo: "near-miss", gravita: "lieve", giorniAssenza: 0, luogo: "Impianto", luogoTipo: "impianto", categoria: "impianto", rapida: true, descrizione: "Riparo del nastro 3 trovato aperto a macchina ferma" },
+  ],
   scadenzeScudo: [
     { id: "s1", lavoratoreId: "d1", tipo: "Visita medica", descrizione: "Visita medica periodica", dataScadenza: "2026-07-02" },
     { id: "s2", lavoratoreId: "d1", tipo: "Patente", descrizione: "Patente di guida", dataScadenza: "2028-05-30" },
@@ -2458,6 +2470,105 @@ export {
 // ri-esporta. Un alias non è una seconda implementazione.
 export { produzionePerFronte } from "../../shared/dw-ponti.js";
 
+// ══════════════════════════════════════════════════════════════════════
+// PONTE P5 CON SCUDO — IL MANCATO INFORTUNIO SEGNALATO DAL FRONTE
+// ══════════════════════════════════════════════════════════════════════
+//
+// ⛔ NON È UNA FUNZIONE CHE MANCA ALL'ECOSISTEMA: È UNA FUNZIONE CHE NON STA
+// DOVE STA LA PERSONA. Il giro completo esiste in Scudo — il pulsante, il
+// registro, il riepilogo aggregato nella forma della L. 198/2025, l'azione
+// correttiva collegata. Quello che manca è che chi è al fronte ha in mano
+// CAMPO. La differenza che conta è il MOMENTO: un fermo si registra a mente
+// fredda a fine turno, un near-miss o lo si segnala nei trenta secondi dopo o
+// non lo segnala più.
+//
+// Il vocabolario e il compositore del record stanno in `shared/dw-ponti.js`
+// (con Scudo che li ri-esporta): la stessa regola serve a due app, e qui si
+// ri-esporta com'è. Il modulo di un'app non importa mai quello di un'altra.
+export {
+  NEARMISS_CATEGORIE, NEARMISS_LUOGHI, CHI_SEGNALA,
+  categoriaNearMiss, luogoNearMiss, descrizioneNearMiss, bozzaNearMiss,
+} from "../../shared/dw-ponti.js";
+/* ⚠️ E l'`import` non è un doppione: `export … from` RI-ESPORTA, non LEGA — il
+   nome non esiste dentro questo file, e `segnalazioniDelTurno` qui sotto
+   chiama `categoriaNearMiss`. È lo stesso inciampo già pagato con
+   `statoRisposta`, scritto trenta righe più su. */
+import { categoriaNearMiss } from "../../shared/dw-ponti.js";
+
+// QUANTO SI È GIÀ SEGNALATO IN QUESTO TURNO. È il ritorno del ponte: Campo
+// scrive nel registro di Scudo e poi lo rilegge, esattamente come fa con le
+// azioni correttive dei fermi. Serve a due cose concrete al fronte — sapere
+// che la segnalazione è passata davvero, e non rimandarne una già mandata da
+// un collega dieci minuti prima.
+//
+// ⛔ TRE ELENCHI, NON UNO, ED È IL PRINCIPIO DEL FONDATORE. Un near-miss dello
+// stesso giorno SENZA turno scritto non è «non è del mio turno»: è un evento
+// registrato da Scudo (dove il turno non si chiede) di cui non si sa in quale
+// turno sia successo. Metterlo fra gli «altri turni» sarebbe un'affermazione
+// inventata; ometterlo lo farebbe sparire. Si tiene a parte e si dichiara — è
+// la stessa scelta dell'appello del turno, dove chi nessuno ha spuntato non si
+// conta né presente né assente.
+//
+// ⛔ E `leggibile: false` NON È ZERO. Se il registro di Scudo non si riesce a
+// leggere, gli elenchi restano vuoti ma la bandiera dice che nessuno ha
+// guardato: scrivere «nessuna segnalazione in questo turno» direbbe che non è
+// successo niente. La bandiera la legge la pagina, che al suo posto mostra il
+// `motivo` — una bandiera che nessuno legge non protegge niente.
+// Pura e testabile.
+export function segnalazioniDelTurno(infortuni, data, turno) {
+  const g = String(data || "").slice(0, 10);
+  const t = String(turno || "").trim();
+  const base = { delTurno: [], turnoIgnoto: [], altriTurni: [], totaleGiorno: 0 };
+  if (!Array.isArray(infortuni)) {
+    return { ...base, leggibile: false,
+      motivo: "Il registro degli eventi vive in Scudo e da qui non si riesce a leggere: "
+        + "non si sa quante segnalazioni siano già state fatte oggi." };
+  }
+  const out = { ...base, leggibile: true, motivo: "" };
+  for (const x of infortuni) {
+    if (!x || x.tipo !== "near-miss") continue;
+    if (String(x.data || "").slice(0, 10) !== g) continue;
+    out.totaleGiorno++;
+    const suo = String(x.turno || "").trim();
+    if (!suo) out.turnoIgnoto.push(x);
+    else if (suo === t) out.delTurno.push(x);
+    else out.altriTurni.push(x);
+  }
+  return out;
+}
+
+// La riga che la pagina scrive sotto il pulsante. Sta qui e non nella pagina
+// perché è il posto dove Campo decide come si racconta un conteggio che
+// potrebbe non essere stato fatto — la stessa ragione per cui `minutiFermoTesto`
+// non vive nell'HTML. `null` quando non c'è niente da dire.
+export function testoSegnalazioniTurno(s) {
+  if (!s) return null;
+  if (!s.leggibile) return s.motivo;
+  const n = s.delTurno.length;
+  const capi = n === 0 ? "" : n === 1 ? "1 near-miss segnalato in questo turno"
+    : n + " near-miss segnalati in questo turno";
+  const ign = s.turnoIgnoto.length;
+  const coda = !ign ? ""
+    : (ign === 1 ? "1 altro segnalato oggi senza turno indicato"
+                 : ign + " altri segnalati oggi senza turno indicato")
+      + " (non si sa se di questo turno)";
+  if (!capi && !coda) return null;
+  return [capi, coda].filter(Boolean).join(" · ") + ".";
+}
+
+// Le categorie già segnalate oggi, in parole: serve alla modale per non far
+// ripetere la stessa segnalazione due volte nello stesso turno. Pura e
+// testabile; `null` quando non si sa (Scudo non leggibile).
+export function categorieGiaSegnalate(s) {
+  if (!s || !s.leggibile) return null;
+  const viste = [];
+  for (const x of s.delTurno) {
+    const e = categoriaNearMiss(x && x.categoria);
+    if (e && !viste.includes(e)) viste.push(e);
+  }
+  return viste;
+}
+
 // ── IL TRASPORTO DEL PONTE P4 IN DIMOSTRAZIONE ────────────────────────
 // In demo/tour non esiste nessun backend, ma Campo e Scudo sono due PAGINE
 // diverse: il "finto backend" è una riga di localStorage condivisa fra le due
@@ -2469,18 +2580,26 @@ export { produzionePerFronte } from "../../shared/dw-ponti.js";
 // ⚠️ Restano LOCALI al modulo (come in Scudo, e a differenza di Sentinella che
 // le esporta): non sono una regola, sono un ripiego dichiarato.
 const PONTE_DEMO_KEY = "deepwork.demo.azioni-ponte";
-function ponteDemoLeggi() {
+// e il gemello per il ponte P5: i near-miss segnalati dal fronte. Chiave
+// diversa perché sono un'altra collezione (`infortuni`, non `azioni`), stesso
+// ripiego dichiarato.
+const EVENTI_DEMO_KEY = "deepwork.demo.eventi-ponte";
+function leggiPonteDemo(chiave) {
   try {
-    const v = JSON.parse(globalThis.localStorage.getItem(PONTE_DEMO_KEY) || "[]");
+    const v = JSON.parse(globalThis.localStorage.getItem(chiave) || "[]");
     return Array.isArray(v) ? v.filter(x => x && x.id) : [];
   } catch (e) { return []; }
 }
-function ponteDemoScrivi(lista) {
+function scriviPonteDemo(chiave, lista) {
   try {
-    globalThis.localStorage.setItem(PONTE_DEMO_KEY, JSON.stringify((lista || []).slice(-200)));
+    globalThis.localStorage.setItem(chiave, JSON.stringify((lista || []).slice(-200)));
     return true;
   } catch (e) { return false; }   // navigazione privata, quota piena: si prosegue senza
 }
+function ponteDemoLeggi() { return leggiPonteDemo(PONTE_DEMO_KEY); }
+function ponteDemoScrivi(lista) { return scriviPonteDemo(PONTE_DEMO_KEY, lista); }
+function eventiDemoLeggi() { return leggiPonteDemo(EVENTI_DEMO_KEY); }
+function eventiDemoScrivi(lista) { return scriviPonteDemo(EVENTI_DEMO_KEY, lista); }
 
 export async function campoData() {
   let mode = "demo", api = null;
@@ -2599,6 +2718,22 @@ export async function campoData() {
         if (!s) throw new Error("Scudo non raggiungibile");
         return addDoc(s.orgCollection("azioni"), rec);
       };
+      // ── PONTE P5 CON SCUDO — IL NEAR-MISS SEGNALATO DAL FRONTE ────────
+      // Il registro degli eventi è UNO SOLO, ed è quello di Scudo. Tenerne una
+      // copia in Campo «finché qualcuno la prende in carico» sembrerebbe più
+      // prudente e sarebbe il contrario: il riepilogo aggregato che Scudo
+      // consegna per la L. 198/2025 conterebbe le segnalazioni fatte da Scudo e
+      // non quelle ferme di qua — cioè direbbe un numero più basso del vero,
+      // che è esattamente l'assenza travestita da dato favorevole. Si scrive
+      // nello stesso registro, e lì la segnalazione ha già tutto: l'azione
+      // correttiva, l'analisi della causa, il conteggio per l'ente.
+      // Lettura fallita → `null` («non lo so»), mai una lista vuota.
+      api.infortuniScudo = () => leggiScudo("infortuni");
+      api.aggiungiEventoScudo = async (rec) => {
+        const s = await apriScudo();
+        if (!s) throw new Error("Scudo non raggiungibile");
+        return addDoc(s.orgCollection("infortuni"), rec);
+      };
     } else if (id.authState() === "tour") mode = "tour";
   } catch (e) { /* backend assente: demo */ }
 
@@ -2624,6 +2759,16 @@ export async function campoData() {
         const nuova = { id: "pn" + Math.random().toString(36).slice(2, 8), ...rec };
         ponteDemoScrivi([...ponteDemoLeggi(), nuova]);
         return nuova;
+      },
+      // ponte P5: il registro eventi che in esercizio sta in Scudo. In
+      // dimostrazione parte dai due near-miss d'esempio (copiati da quella di
+      // Scudo, id per id, come i lavoratori) e si allunga con quelli segnalati
+      // da qui: chi prova l'app vede la segnalazione comparire davvero.
+      infortuniScudo: async () => [...(mem.infortuniScudo || []), ...eventiDemoLeggi()],
+      aggiungiEventoScudo: async (rec) => {
+        const nuovo = { id: "pe" + Math.random().toString(36).slice(2, 8), ...rec };
+        eventiDemoScrivi([...eventiDemoLeggi(), nuovo]);
+        return nuovo;
       },
       autorizzazioniTerra: async () => mem.autorizzazioniTerra || [],
       // i fronti di Terra: in dimostrazione sono gli stessi tre di terra-data,

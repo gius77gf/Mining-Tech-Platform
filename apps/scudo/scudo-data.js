@@ -104,7 +104,7 @@
 // ============================================================
 
 import { parseCsvLine, numIt, giorniTra, isIntestazione, senzaDoppioni, dataISOEsiste,
-         pezziDataURL, LIMITE_ALLEGATO } from "../../shared/deepwork-id-client/dw-shell.js";
+         dataIt, pezziDataURL, LIMITE_ALLEGATO } from "../../shared/deepwork-id-client/dw-shell.js";
 
 export const DEMO = {
   lavoratori: [
@@ -630,12 +630,20 @@ export function livelloScadenza(dataISO, oggi = new Date()) {
   return { cls: "ok", label: "tra " + g + " gg", giorni: g };
 }
 
-// Data GG/MM/AAAA da ISO (formattazione pura, per i testi da inviare).
-function dataIt(iso) {
-  const s = String(iso || "").slice(0, 10);
-  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(s);
-  return m ? `${m[3]}/${m[2]}/${m[1]}` : (s || "—");
-}
+/* ⛔ QUI C'ERA UNA COPIA DEBOLE DI `dataIt` (tolta il 03/08), ed è la famiglia
+   descritta in CLAUDE.md: «un controllo che guarda COM'È SCRITTO un dato invece
+   di CHE COSA VALE». La copia teneva buona qualunque stringa della FORMA
+   `\d{4}-\d{2}-\d{2}`, e «2026-13-45» quella forma ce l'ha. Le due frasi che
+   ne uscivano non erano sullo schermo: erano in due testi che ESCONO.
+     · `testoPromemoria` — il messaggio che si copia e si manda al lavoratore —
+       scriveva «scade il 45/13/2026 (tra NaN giorni)», e su «2026-02-30» il
+       30 febbraio. Nella stessa riga dell'app lo schermo diceva «senza data»
+       dal 03/08 (`statoScadenzaHSE`): schermo e messaggio si smentivano.
+     · `statoPermesso` scriveva «Permesso chiuso il —», perché la copia debole
+       per una data assente rispondeva «—», che è VERO, e il `? :` che doveva
+       togliere il pezzo non scattava mai.
+   La versione di `shared/` passa da `dataISOEsiste` e ha il secondo argomento
+   per il vuoto: `dataIt(x, "")` rende di nuovo vivo quel ternario. */
 
 // Testo PRONTO di un promemoria/convocazione per il lavoratore la cui scadenza
 // (visita medica, corso, patentino…) è scaduta o in scadenza, da copiare e
@@ -652,11 +660,23 @@ export function testoPromemoria(scadenza, lavoratore, oggi = new Date()) {
   const g = giorniTra(sc.dataScadenza, oggi);
   const tipo = (sc.tipo || "adempimento").trim() || "adempimento";
   const cosa = (sc.descrizione || sc.tipo || "adempimento").trim() || "adempimento";
-  const quando = st === "scaduta"
-    ? `risulta SCADUTA dal ${dataIt(sc.dataScadenza)} (${-g} giorni fa)`
-    : g === 0
-      ? `scade OGGI, ${dataIt(sc.dataScadenza)}`
-      : `scade il ${dataIt(sc.dataScadenza)} (tra ${g} ${g === 1 ? "giorno" : "giorni"})`;
+  /* ⛔ IL QUARTO CASO, che mancava: «senza data». Le tre righe qui sotto
+     davano per scontato che una scadenza non regolare avesse una data
+     leggibile, e con «2026-13-45» il messaggio da mandare al lavoratore
+     usciva «scade il 45/13/2026 (tra NaN giorni)». Chi lo riceve legge una
+     scadenza precisa che non esiste; chi l'ha mandato non se ne accorge,
+     perché lo schermo su quella riga scrive «senza data». La frase adesso
+     dice quello che si sa — che va rinnovata — e non inventa l'entro-quando.
+     Stessa regola 18 di `run-stile`, applicata a un testo invece che a una
+     mappa di badge: `statoScadenza` sa dire quattro cose, e chi la legge deve
+     avere quattro risposte. */
+  const quando = st === "senza data"
+    ? "va rinnovata, ma la data di scadenza che risulta a noi non è leggibile: non possiamo dirti entro quando"
+    : st === "scaduta"
+      ? `risulta SCADUTA dal ${dataIt(sc.dataScadenza)} (${-g} giorni fa)`
+      : g === 0
+        ? `scade OGGI, ${dataIt(sc.dataScadenza)}`
+        : `scade il ${dataIt(sc.dataScadenza)} (tra ${g} ${g === 1 ? "giorno" : "giorni"})`;
   return [
     `Oggetto: promemoria scadenza — ${tipo}`,
     ``,
@@ -867,55 +887,35 @@ export function riepilogoAmbiente(azioni) {
 // ============================================================
 // S2 · SEGNALAZIONE RAPIDA DEI NEAR-MISS
 // Un mancato infortunio si segnala in piedi sul piazzale, con i guanti,
-// in pochi secondi — o non lo segnala nessuno. Le due liste qui sotto
-// servono proprio a questo: si TOCCA una categoria e un luogo invece di
-// scrivere, e la segnalazione è già completa. Restano modificabili con il
-// campo libero, perché nessun elenco copre tutte le cave.
-// Le categorie vengono dai rischi tipici delle attività estrattive
-// (caduta massi e instabilità dei fronti, viabilità delle piste, organi in
-// movimento dell'impianto, volata); il riferimento normativo del
-// tracciamento è la L. 198/2025 (ex D.L. 159/2025).
+// in pochi secondi — o non lo segnala nessuno. Le liste servono proprio a
+// questo: si TOCCA una categoria e un luogo invece di scrivere, e la
+// segnalazione è già completa. Restano modificabili con il campo libero,
+// perché nessun elenco copre tutte le cave.
+//
+// ⛔ IL VOCABOLARIO E IL COMPOSITORE DEL RECORD VIVONO IN `shared/dw-ponti.js`,
+// dal 03/08, e qui si RI-ESPORTANO coi nomi con cui Scudo li ha sempre
+// chiamati — un alias non è una seconda implementazione. La ragione è che da
+// oggi il near-miss si segnala anche da CAMPO, cioè dall'app che ha in mano
+// chi sta al fronte: una seconda copia di questo elenco sarebbe due
+// vocabolari che divergono, e una categoria che esiste di qua e non di là
+// finisce nel riepilogo aggregato come «Non classificato» — un dato perso in
+// silenzio, dentro il documento che chiede la L. 198/2025.
+// `bozzaNearMiss` è il compositore UNICO del record `infortuni/{id}`: prima
+// lo componeva a mano `inviaSegnalazione` in index.html, e con due pagine che
+// scrivono lo stesso documento sarebbe stata la famiglia di difetti misurata
+// il 03/08 — «dove il documento si compone».
 // ============================================================
-export const NEARMISS_CATEGORIE = [
-  { chiave: "caduta-massi",  etichetta: "Caduta massi" },
-  { chiave: "instabilita",   etichetta: "Fronte instabile" },
-  { chiave: "mezzi",         etichetta: "Mezzi e investimento" },
-  { chiave: "ribaltamento",  etichetta: "Ribaltamento" },
-  { chiave: "caduta",        etichetta: "Caduta o scivolamento" },
-  { chiave: "impianto",      etichetta: "Impianto e nastri" },
-  { chiave: "volata",        etichetta: "Volata e proiezioni" },
-  { chiave: "elettrico",     etichetta: "Elettrico o incendio" },
-  { chiave: "sostanze",      etichetta: "Polveri e sostanze" },
-  { chiave: "altro",         etichetta: "Altro" },
-];
-export const NEARMISS_LUOGHI = [
-  { chiave: "fronte",   etichetta: "Fronte" },
-  { chiave: "pista",    etichetta: "Piste" },
-  { chiave: "piazzale", etichetta: "Piazzale" },
-  { chiave: "impianto", etichetta: "Impianto" },
-  { chiave: "officina", etichetta: "Officina" },
-  { chiave: "deposito", etichetta: "Deposito" },
-  { chiave: "uffici",   etichetta: "Uffici" },
-  { chiave: "altro",    etichetta: "Altro" },
-];
-export function categoriaNearMiss(chiave) {
-  const c = NEARMISS_CATEGORIE.find(x => x.chiave === chiave);
-  return c ? c.etichetta : "";
-}
-export function luogoNearMiss(chiave) {
-  const l = NEARMISS_LUOGHI.find(x => x.chiave === chiave);
-  return l ? l.etichetta : "";
-}
-// Descrizione già scritta quando chi segnala non aggiunge niente: la
-// segnalazione resta leggibile nel registro anche se è costata tre tocchi.
-export function descrizioneNearMiss({ categoria, luogoTipo, luogo, dettaglio } = {}) {
-  const d = (dettaglio || "").trim();
-  if (d) return d;
-  const cat = categoriaNearMiss(categoria);
-  const dove = (luogo || "").trim() || luogoNearMiss(luogoTipo);
-  if (cat && dove) return cat + " — " + dove;
-  return cat || dove || "Near-miss segnalato";
-}
+export {
+  NEARMISS_CATEGORIE, NEARMISS_LUOGHI, CHI_SEGNALA,
+  categoriaNearMiss, luogoNearMiss, descrizioneNearMiss, bozzaNearMiss,
+} from "../../shared/dw-ponti.js";
+/* ⚠️ E L'`import` SERVE DAVVERO, non è un doppione della riga qui sopra:
+   `export … from` RI-ESPORTA, non LEGA — il nome non esiste dentro questo
+   file. `riepilogoNearMiss`, dodici righe più in giù, chiama
+   `categoriaNearMiss` e `luogoNearMiss`: senza questa riga morirebbe con
+   «categoriaNearMiss is not defined». È lo stesso inciampo già pagato in
+   `apps/campo/campo-data.js` con `statoRisposta`, scritto lì nel commento. */
+import { categoriaNearMiss, luogoNearMiss } from "../../shared/dw-ponti.js";
 
 // Riepilogo AGGREGATO dei near-miss del periodo (L. 198/2025: dati aggregati
 // sugli eventi *e* sulle azioni correttive adottate). Conta il periodo scelto
@@ -964,6 +964,37 @@ export function riepilogoNearMiss(infortuni, azioni, giorni = 90, oggi = new Dat
     azioni: azi.length, azioniChiuse: azi.filter(a => a.stato === "chiusa").length,
     pochi: troppoPochiPerTendenza(list.length),
   };
+}
+
+/* ⛔ COME VA LETTO IL RIEPILOGO, e sta qui perché il FILE che esce e lo
+   SCHERMO devono dirlo con la stessa voce (03/08).
+   Davanti a pochi eventi la pagina si rifiuta di disegnare le due classifiche
+   e scrive «non c'è una tendenza da leggere, e disegnarla sarebbe una bugia»;
+   il CSV del riepilogo — quello che serve alla comunicazione prevista dalla
+   L. 198/2025 — scriveva le stesse righe «tipo» e «luogo» in fila, **senza una
+   parola**, e chi lo apre non ha modo di sapere che sono tre puntini.
+   Stessa cosa, peggiore, col periodo vuoto: `totale = 0` usciva come «nessun
+   near-miss segnalato», e la pagina invece dice quanti ce ne sono NELLO
+   STORICO. Un file che va a un ente non può dire «zero» dove l'app sa «zero in
+   questi 90 giorni, N prima»: è il principio del fondatore — l'assenza di un
+   dato non è un dato favorevole.
+   Legge `pochi`, che altrimenti nel documento non lo guardava nessuno. */
+export function descriviLetturaNearMiss(riepilogo) {
+  const x = riepilogo || {};
+  const t = +x.totale || 0;
+  if (t === 0) {
+    const s = +x.totaleStorico || 0;
+    return s
+      ? "Nessuna segnalazione nel periodo scelto. Non vuol dire che non sia successo niente: "
+        + "nello storico ce ne sono " + s + ". Allarga il periodo per vederle."
+      : "Nessun near-miss registrato. Un registro vuoto non vuol dire che non succeda niente: "
+        + "vuol dire che non si segnala.";
+  }
+  if (x.pochi)
+    return "ATTENZIONE alla lettura: " + t + (t === 1 ? " segnalazione" : " segnalazioni")
+      + " sono meno di " + MIN_TENDENZA + ", la soglia sotto la quale l'app non disegna nessuna "
+      + "classifica. Le righe «tipo» e «luogo» qui sotto sono un conteggio, non una tendenza.";
+  return "";
 }
 
 // ============================================================
@@ -2548,6 +2579,19 @@ function ponteDemoScrivi(lista) {
   try { globalThis.localStorage.setItem(PONTE_DEMO_KEY, JSON.stringify((lista || []).slice(-200))); return true; }
   catch (e) { return false; }
 }
+/* E il gemello del ponte P5: i near-miss segnalati dal fronte, che in demo
+   arrivano da Campo per la stessa strada. Chiave diversa perché sono un'altra
+   collezione (`infortuni`, non `azioni`). ⛔ Senza questa riga la dimostrazione
+   direbbe una cosa falsa dell'ecosistema: si segnala in Campo, si apre Scudo, e
+   nel registro non c'è niente — cioè il contrario di quello che il ponte fa in
+   esercizio, dove il registro è UNO SOLO. */
+const EVENTI_DEMO_KEY = "deepwork.demo.eventi-ponte";
+function eventiDemoLeggi() {
+  try {
+    const v = JSON.parse(globalThis.localStorage.getItem(EVENTI_DEMO_KEY) || "[]");
+    return Array.isArray(v) ? v.filter(x => x && x.id) : [];
+  } catch (e) { return []; }
+}
 
 // ══════════════════════════════════════════════════════════════════════
 // PONTE P3 CON CAMPO — la regola sta in `shared/dw-ponti.js` perché serve a due
@@ -2641,7 +2685,10 @@ export async function scudoData() {
       operatoriCampo: async () => mem.operatoriCampo || [],
       squadreCampo:   async () => mem.squadreCampo || [],
       documenti:  async () => mem.documenti,
-      infortuni:  async () => mem.infortuni,
+      // gli eventi di esempio PIÙ i near-miss segnalati dal fronte in Campo
+      // (ponte P5 in demo): in esercizio è la stessa collezione e questa riga
+      // non esiste nemmeno.
+      infortuni:  async () => [...mem.infortuni, ...eventiDemoLeggi().filter(x => !mem.infortuni.some(y => y.id === x.id))],
       oreAnno:    async () => mem.oreAnno || (mem.oreAnno = []),
       cantieri:   async () => mem.cantieri,
       // le azioni di esempio PIÙ quelle arrivate da Sentinella (ponte demo):
@@ -3772,7 +3819,9 @@ export function statoPermesso(permesso, ctx = {}, oggi = new Date()) {
   const stato = String(p.stato || "bozza");
   if (stato === "chiuso")
     return { ...base, stato, noto: true, problemi: [], ignoti: [], esito: "chiuso",
-      perche: "Permesso chiuso" + (dataIt(p.chiusuraOra) ? " il " + dataIt(p.chiusuraOra) : "")
+      /* `dataIt(x, "")` e non `dataIt(x)`: col trattino di ripiego il ternario
+         era morto e la frase usciva «Permesso chiuso il —». */
+      perche: "Permesso chiuso" + (dataIt(p.chiusuraOra, "") ? " il " + dataIt(p.chiusuraOra, "") : "")
         + ": il lavoro è finito e l'autorizzazione è stata restituita." };
   if (stato === "revocato")
     return { ...base, stato, noto: true, problemi: [], ignoti: [], esito: "revocato",
