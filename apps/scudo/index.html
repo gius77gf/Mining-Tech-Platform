@@ -1484,12 +1484,12 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
     NEARMISS_CATEGORIE, NEARMISS_LUOGHI, categoriaNearMiss, luogoNearMiss, descrizioneNearMiss, riepilogoNearMiss,
     MODELLI_ISPEZIONE, modelloIspezione, nuovaIspezioneDaModello, riepilogoIspezione, riepilogoIspezioni, vociNonConformi, statoIspezione, azioniDiIspezione, esitoLabel, ESITI_ISPEZIONE, dataPiuGiorni,
     REQUISITI_FORMAZIONE, requisitoFormazione, requisitoSicuro, statoRequisito, MANSIONI_PRESET, mansionePreset,
-    matriceMansione, riepilogoMansioni, lavoratoriScoperti, abilitazioneLavoratore,
+    matriceMansione, riepilogoMansioni, lavoratoriScoperti, abilitazioneLavoratore, daSistemareCopertura,
     NOMINE_RUOLI, ruoloNomina, nominaAttiva, organigrammaSicurezza, nomineDaSistemare,
     cartellaLavoratore, descriviCartella,
     TIPI_DPI, tipoDpi, tipoDpiSicuro, ultimaConsegnaDpi, statoConsegnaDpi, allarmiDpi, riepilogoDpi, verbaleDpi,
     MOTIVO_SENZA_SOSTITUZIONE,
-    indiciInfortunistici, andamentoIndici, avvisoGravitaMinima,
+    indiciInfortunistici, andamentoIndici, avvisoGravitaMinima, avvisoAndamentoMinimo,
     giornateAssenza, prognosiAperta, descriviGiornatePerse,
     CAUSE_ANALISI, validaAnalisi, analisiDiEvento, eventiSenzaAnalisi, causeRicorrenti,
     MAX_FOTO, pesoFoto, fotoDiEvento, fotoDiVoce, fotoDiIspezione, bilancioFoto, bilancioFotoVoce,
@@ -2036,33 +2036,48 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
     // distinguere i colori. Il conto completo (in regola · in scadenza ·
     // scadute · totale) resta nell'elenco qui sotto, riga per riga.
     const cop = coperturaFormazione(SCA);
-    const daRinnovare = (c) => c.scadute + c.inScadenza;
+    /* ⛔ «Da sistemare», non «da rinnovare», e il conto lo fa il modulo
+       (`daSistemareCopertura`): il terzo caso — la riga la cui data non si
+       legge — non è un rinnovo, è una cosa di cui non si sa se sia scaduta.
+       Sommarla qui è l'unico modo perché qualcuno la guardi: finché stava fra
+       i «regolari» la pastiglia diceva «tutte regolari» in verde. */
+    const daRinnovare = daSistemareCopertura;
     const copTot = cop.reduce((s, c) => s + daRinnovare(c), 0);
     const copPeggio = cop.slice().sort((a, b) => daRinnovare(b) - daRinnovare(a))[0];
-    const copParole = (c) => c.scadute
-      ? c.scadute + (c.scadute === 1 ? " già scaduta" : " già scadute")
-        + (c.inScadenza ? " e " + c.inScadenza + " in scadenza" : "")
-      : c.inScadenza + " in scadenza entro 30 giorni";
+    const copSenzaData = cop.reduce((s, c) => s + c.senzaData, 0);
+    const copParole = (c) => {
+      const p = [];
+      if (c.scadute) p.push(c.scadute + (c.scadute === 1 ? " già scaduta" : " già scadute"));
+      if (c.inScadenza) p.push(c.inScadenza + " in scadenza entro 30 giorni");
+      if (c.senzaData) p.push(c.senzaData + (c.senzaData === 1 ? " con una data che non si legge" : " con una data che non si legge"));
+      return p.join(" e ") || "niente da sistemare";
+    };
     if (cop.length >= 2 && copTot > 0) {
       grafico("graf-copertura", "barre", {
         titolo: "Copertura della formazione per tipo",
-        meta: copTot + (copTot === 1 ? " adempimento da rinnovare" : " adempimenti da rinnovare"),
+        meta: copTot + (copTot === 1 ? " adempimento da sistemare" : " adempimenti da sistemare"),
         orientamento: "orizzontale",
         ordina: true,
         formato: soloInteri,
         valori: cop.map(c => ({
           etichetta: c.tipo,
           valore: daRinnovare(c),
-          stato: c.scadute ? "danger" : (c.inScadenza ? "warn" : "ok"),
+          stato: c.scadute ? "danger" : (c.inScadenza || c.senzaData ? "warn" : "ok"),
         })),
         aria: "Copertura della formazione per tipo: " + cop.length + " tipi di adempimento, "
-          + copTot + " adempimenti da rinnovare in tutto. Il tipo più scoperto è "
+          + copTot + " adempimenti da sistemare in tutto. Il tipo più scoperto è "
           + copPeggio.tipo + " con " + daRinnovare(copPeggio) + ".",
-        nota: "Ogni barra è il numero di adempimenti <b>da rinnovare</b> per quel tipo: "
+        nota: "Ogni barra è il numero di adempimenti <b>da sistemare</b> per quel tipo: "
           + "<b>critico</b> vuol dire che almeno uno è già scaduto, <b>da tenere d'occhio</b> "
-          + "che scadono entro 30 giorni, <b>a posto</b> che non c'è niente da fare. Oggi il "
+          + "che scadono entro 30 giorni <b>oppure</b> che la data registrata non si legge, "
+          + "<b>a posto</b> che non c'è niente da fare. Oggi il "
           + "buco più grosso è su <b>" + copPeggio.tipo + "</b>: " + copParole(copPeggio)
-          + ". Passa sopra una barra per il dettaglio.",
+          + ". Passa sopra una barra per il dettaglio."
+          + (copSenzaData
+            ? " ⚠️ In tutto ci sono <b>" + copSenzaData + (copSenzaData === 1
+                ? "</b> riga la cui data non si può leggere: non è «in regola», è una scadenza di cui non si sa niente."
+                : "</b> righe la cui data non si può leggere: non sono «in regola», sono scadenze di cui non si sa niente.")
+            : ""),
       });
     } else if (copTot > 0 && copPeggio) {
       // un tipo solo scoperto: non c'è un confronto da leggere, il numero dice di più
@@ -2073,19 +2088,33 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
     } else if (cop.length) {
       grafVuoto("graf-copertura", I.ok, "Nessun buco di copertura",
         "Su tutti i tipi di adempimento registrati (<b>" + cop.length + "</b>) le persone sono in "
-        + "regola: niente di scaduto e niente in scadenza nei prossimi 30 giorni. Il confronto fra "
-        + "i tipi comparirà qui appena una data si avvicina.");
+        + "regola: niente di scaduto, niente in scadenza nei prossimi 30 giorni e nessuna data "
+        + "illeggibile. Il confronto fra i tipi comparirà qui appena una data si avvicina.");
     } else {
       puliscoGrafico("graf-copertura");   // lo stato vuoto è quello dell'elenco qui sotto
     }
 
     // Copertura formazione per tipo: badge dominante per gravità.
     $("cop-list").innerHTML = cop.map(c => {
-      const cls = c.scadute ? "danger" : (c.inScadenza ? "warn" : "ok");
+      /* ⛔ «tutte regolari» era la pastiglia VERDE che usciva anche quando le
+         righe di quel tipo avevano tutte una data illeggibile: nessuna scaduta
+         e nessuna in scadenza, quindi il ternario cadeva sul ramo tranquillo.
+         Il terzo caso è giallo — non si sa se sia scaduta — e va detto per
+         nome, non lasciato in un «in regola» che nessuno ha misurato. */
+      const cls = c.scadute ? "danger" : (c.inScadenza || c.senzaData ? "warn" : "ok");
       const lbl = c.scadute ? c.scadute + (c.scadute === 1 ? " scaduta" : " scadute")
-                : (c.inScadenza ? c.inScadenza + " in scadenza" : "tutte regolari");
+                : (c.inScadenza ? c.inScadenza + " in scadenza"
+                : (c.senzaData ? c.senzaData + (c.senzaData === 1 ? " senza data" : " senza data") : "tutte regolari"));
       return `<div class="item ${striscia[cls]}"><div class="info"><div class="name">${esc(c.tipo)}</div>
-        <div class="meta">${c.regolari} in regola · ${c.inScadenza} in scadenza · ${c.scadute} ${c.scadute === 1 ? "scaduta" : "scadute"} — su ${c.totale} in totale</div></div>
+        <!-- NOTA: «senza data» e non «con una data che non si legge», perché
+             la riga di dettaglio è tagliata a due righe (line-clamp) e la
+             forma lunga spingeva «— su N in totale» sul filo del taglio. È
+             anche il termine che l'ecosistema usa già in tre app, quindi non
+             è una parola nuova. La spiegazione per esteso sta nella nota del
+             grafico, che spazio ne ha.
+             ATTENZIONE: questo commento vive DENTRO un template literal —
+             niente accenti gravi qui dentro, chiuderebbero la stringa. -->
+        <div class="meta">${c.regolari} in regola · ${c.inScadenza} in scadenza · ${c.scadute} ${c.scadute === 1 ? "scaduta" : "scadute"}${c.senzaData ? " · <b>" + c.senzaData + " senza data</b>" : ""} — su ${c.totale} in totale</div></div>
         <span class="acts"><span class="badge ${cls}">${lbl}</span></span></div>`; }).join("")
       || vuoto(I.grafico, "Copertura da costruire",
           "La copertura per tipo di formazione si calcola da sola: appena registri le prime scadenze, qui vedi chi è in regola e chi no.");
@@ -2106,6 +2135,15 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
     const largoMuro = ($("graf-muro") && $("graf-muro").clientWidth) || Math.min(720, innerWidth - 32);
     const quantiMesi = largoMuro >= 600 ? 12 : largoMuro >= 360 ? 6 : 4;
     const muro = muroScadenze(SCA, new Date(), quantiMesi);
+    /* La frase delle righe che il muro non può disegnare, scritta UNA volta:
+       la leggono tre rami (il grafico, il vuoto «cadono più in là» e il vuoto
+       «nessuna data leggibile»), e tre stesure della stessa frase è il modo in
+       cui due di loro invecchiano senza che nessuno se ne accorga. */
+    const testoMuroSenzaData = (m) => m.senzaData
+      ? " ⚠️ Ci sono anche <b>" + m.senzaData + (m.senzaData === 1
+          ? "</b> riga con una data che non si può leggere: non è disegnata qui perché non cade in nessun mese, e non vuol dire «più in là» — vuol dire che va corretta."
+          : "</b> righe con una data che non si può leggere: non sono disegnate qui perché non cadono in nessun mese, e non vuol dire «più in là» — vuol dire che vanno corrette.")
+      : "";
     const mesePieno = muro.mesi.reduce((a, b) => (b.totale > a.totale ? b : a), muro.mesi[0]);
     const orizzonte = quantiMesi === 12 ? "12 mesi" : quantiMesi + " mesi";
     if (muro.scadute + muro.nelPeriodo > 0) {
@@ -2134,13 +2172,25 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
             ? (muro.fuori === 1
                 ? " Un'altra scadenza cade più in là e non è disegnata qui: la trovi nell'elenco."
                 : " Altre " + muro.fuori + " scadenze cadono più in là e non sono disegnate qui: le trovi nell'elenco.")
-            : ""),
+            : "")
+          /* ⛔ Fino al 03/08 queste righe finivano dentro il «cadono più in là»
+             qui sopra (o sparivano del tutto, se la data era vuota): ma una
+             data che non si legge non cade più in là, non cade da nessuna
+             parte, e il muro non la può disegnare. */
+          + testoMuroSenzaData(muro),
       });
     } else if (muro.totale) {
       grafVuoto("graf-muro", I.ok, "Nessuna scadenza nei prossimi " + orizzonte,
         "Le " + muro.totale + (muro.totale === 1 ? " scadenza registrata cade" : " scadenze registrate cadono")
         + " più in là: per adesso il calendario è libero. Il <b>muro dei mesi</b> compare qui appena "
-        + "una data rientra nel periodo.");
+        + "una data rientra nel periodo." + testoMuroSenzaData(muro));
+    } else if (muro.senzaData) {
+      grafVuoto("graf-muro", I.sveglia, "Nessuna data leggibile",
+        "Nello scadenzario ci sono <b>" + muro.senzaData
+        + (muro.senzaData === 1 ? "</b> riga la cui data non si può leggere" : "</b> righe la cui data non si può leggere")
+        + ", e nessuna con una data buona: il muro dei mesi non ha niente da disegnare. "
+        + "Correggi le date nell'elenco qui sotto — una scadenza senza data non è una scadenza lontana, "
+        + "è una scadenza di cui non si sa niente.");
     } else {
       puliscoGrafico("graf-muro");   // lo stato vuoto è quello della lista qui sotto
     }
@@ -2666,7 +2716,18 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
            È la stessa regola del riepilogo near-miss, con la stessa soglia. */
         const V = { migliora: ["ok", "In miglioramento"], peggiora: ["danger", "In peggioramento"],
                     stabile: ["tag", "Stabile"], misto: ["warn", "Segnali contrastanti"] };
-        const b = c.pochi ? ["tag", "Da leggere con prudenza"] : (V[c.verso] || ["tag", "—"]);
+        /* ⛔ E UN VERSO LETTO SU NUMERI CHE DEVONO ANCORA SALIRE NON È VERDE.
+           La frase la scrive il MODULO (`avvisoAndamentoMinimo`, gemella di
+           `avvisoGravitaMinima`): fino al 03/08 il confronto dichiarava
+           `noto: false` e `daQuantificare`, e non li leggeva nessuno — la
+           pastiglia usciva «In miglioramento» in verde con un infortunio
+           dell'anno a prognosi ancora aperta. La stessa forma già usata per
+           `pochi`: il confronto non si nasconde, il verso si dichiara da
+           confermare. */
+        const andMin = avvisoAndamentoMinimo(c);
+        const avvisoAnd = andMin ? `<div class="mini" style="margin-top:6px;">⚠️ ${esc(andMin)}</div>` : "";
+        const b = c.pochi ? ["tag", "Da leggere con prudenza"]
+          : (andMin ? ["warn", "Da confermare"] : (V[c.verso] || ["tag", "—"]));
         /* La ragione del «niente percentuale» è la stessa per tutti e tre gli
            indici quando l'anno di partenza era a zero: scritta su ogni riga
            diventava tre volte la stessa frase. Si scrive una volta sola, sotto.
@@ -2694,7 +2755,7 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
                ? `Fra ${c.da} e ${c.a} non è stato registrato <b>nessun infortunio</b>: gli indici sono a zero perché le ore ci sono e gli eventi no — non perché nessuno abbia guardato. Non c'è una differenza da leggere.`
                : `Fra ${c.da} e ${c.a} ${c.eventi === 1 ? "c'è in tutto <b>1</b> infortunio: troppo poco" : `ci sono in tutto <b>${c.eventi}</b> infortuni: troppo pochi`} perché la differenza sia una tendenza invece che il caso. I numeri sono giusti, la <b>direzione</b> non si può ancora leggere.`
              }</div>` : ""}
-           ${avvisoBuchi}${avvisoDubbi}`;
+           ${avvisoAnd}${avvisoBuchi}${avvisoDubbi}`;
       }
       // I grafici: DUE, non uno. IF e LTIFR sono per milione di ore, IG per
       // mille — su un asse solo il più piccolo diventerebbe una riga piatta.
@@ -3311,7 +3372,11 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
     $("mans-count").textContent = MANS.length;
     $("mans-list").innerHTML = rMans.map(r => {
       const m = r.mansione;
-      const cls = r.no ? "st-danger" : (r.attenzione || r.nonSo ? "st-warn" : (r.totale ? "st-ok" : "st-mute"));
+      /* ⛔ `senzaPersona` entra nel colore e nel conto: un id assegnato a cui
+         in anagrafica non corrisponde più nessuno faceva sparire una riga
+         dalla matrice, e con lei il suo stato. La pastiglia passava da «1/2» a
+         «1/1» — dal giallo al verde — senza che si vedesse niente. */
+      const cls = r.no ? "st-danger" : (r.attenzione || r.nonSo || r.senzaPersona ? "st-warn" : (r.totale ? "st-ok" : "st-mute"));
       const nreq = (m.requisiti || []).length, ndpi = (m.dpi || []).length;
       /* decisione 13: «0 corsi richiesti» si legge «non ne servono», che è una
          delle due letture — e non quella vera su una mansione appena creata.
@@ -3322,9 +3387,9 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
       return `<div class="item ${cls}${editMans === m.id ? " evidenzia" : ""}">
         <div class="avatar sup">${I.persone}</div>
         <div class="info"><div class="name">${esc(m.nome)}</div>
-        <div class="meta">${esc(testoReq)} · ${ndpi} ${ndpi === 1 ? "DPI previsto" : "DPI previsti"} · ${r.totale} ${r.totale === 1 ? "persona" : "persone"}</div></div>
+        <div class="meta">${esc(testoReq)} · ${ndpi} ${ndpi === 1 ? "DPI previsto" : "DPI previsti"} · ${r.totale} ${r.totale === 1 ? "persona" : "persone"}${r.senzaPersona ? ` · <b>${r.senzaPersona} ${r.senzaPersona === 1 ? "assegnato non più in anagrafica" : "assegnati non più in anagrafica"}</b>` : ""}</div></div>
         <span class="acts">
-        <span class="badge ${r.totale ? (r.no ? "danger" : (r.attenzione || r.nonSo ? "warn" : "ok")) : "tag"}" title="${r.totale ? (r.requisitiIgnoti ? "non si sa chi può andare: per questa mansione non è scritto nessun corso richiesto" : r.puo + " su " + r.totale + " possono andare oggi") : "nessuna persona assegnata"}">${r.totale ? (r.requisitiIgnoti ? "?/" + r.totale : r.puo + "/" + r.totale) : "nessuno"}</span>
+        <span class="badge ${r.totale || r.senzaPersona ? (r.no ? "danger" : (r.attenzione || r.nonSo || r.senzaPersona ? "warn" : "ok")) : "tag"}" title="${r.senzaPersona ? r.senzaPersona + " degli " + r.assegnati + " assegnati non risultano più in anagrafica: di loro non si sa niente, e non sono contati né fra chi può né fra chi non può" : (r.totale ? (r.requisitiIgnoti ? "non si sa chi può andare: per questa mansione non è scritto nessun corso richiesto" : r.puo + " su " + r.totale + " possono andare oggi") : "nessuna persona assegnata")}">${r.totale || r.senzaPersona ? (r.requisitiIgnoti ? "?/" + r.assegnati : r.puo + "/" + r.assegnati) : "nessuno"}</span>
         <span class="arr" style="cursor:pointer" title="Modifica la mansione" data-edit-mans="${m.id}">✎</span>
         <span class="arr" style="cursor:pointer" title="Rimuovi la mansione" data-del-mans="${m.id}">✕</span></span></div>`;
     }).join("") || vuoto(I.attrezzo, "Nessuna mansione descritta",
@@ -4759,9 +4824,23 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
           c.scadenze.map(x => riga(x.scadenza.tipo || "—",
             (x.scadenza.dataScadenza ? fmtData(x.scadenza.dataScadenza) : "senza data") + " · " + esc(x.stato || "—"))),
           "Nessuna scadenza registrata: non vuol dire «in regola», vuol dire che non è stato registrato niente.")}
+      ${/* ⛔ `r.tipo.nome` NON ESISTE: i tipi di DPI hanno `etichetta` (il campo
+            `nome` ce l'hanno i tipi di PERMESSO, ed è da lì che la riga era
+            stata copiata). Il fallback funzionava sempre, quindi il fascicolo
+            che si esibisce all'ispettore stampava la CHIAVE INTERNA —
+            «maschera» invece di «Facciale filtrante / respiratore»,
+            «otoprotettori» invece di «Otoprotettori (cuffie o inserti)» — su
+            tutte e dodici le voci, senza nessun errore da leggere.
+            Lo stato della consegna non c'era e adesso c'è: una consegna
+            scaduta o senza data di sostituzione, stampata identica a una in
+            corso di validità, è la stessa omissione che `vuoti` esiste per
+            impedire, un piano più sotto. */""}
       ${sezione("Dispositivi di protezione consegnati",
-          c.verbale.righe.map(r => riga(r.tipo.nome || r.consegna.tipo,
+          c.verbale.righe.map(r => riga(r.tipo.etichetta || r.consegna.tipo,
             fmtData(r.consegna.dataConsegna) + (r.consegna.taglia ? " · taglia " + esc(r.consegna.taglia) : "")
+            + (r.stato === "scaduta" ? " · <b>da sostituire</b>"
+             : r.stato === "in-scadenza" ? " · da sostituire a breve"
+             : r.stato === "senza data" ? " · <b>senza data di sostituzione</b>" : "")
             + (r.addestramentoRichiesto ? (r.addestramentoFatto ? " · addestramento fatto" : " · <b>addestramento da fare</b>") : ""))),
           "Nessun DPI consegnato risulta a registro.")}
       ${c.nomine.length ? sezione("Nomine attive",
@@ -5097,7 +5176,28 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
       + '<div class="nm-lab">Quando e chi segnala — già pronti</div>'
       + '<div class="frow">'
       + '<input class="dw-input" id="nm-data" type="date" value="' + oggi + '" max="' + oggi + '" title="Quando è successo" style="flex:1 1 140px;">'
-      + '<select class="dw-input" id="nm-chi" title="Chi segnala" style="flex:1 1 160px;"><option value="">— chi segnala (facoltativo) —</option>'
+      /* ⛔ LA VOCE CHE DICE «FACOLTATIVO» ERA TAGLIATA SUL TELEFONO, e serviva
+         correggere DUE cose, non una. Un near-miss si segnala in piedi sul
+         piazzale, quindi 390 px è la larghezza vera e 320 è quella stretta.
+         · a 390 la riga è larga 312, la data ne prendeva 142 e la tendina 162:
+           la base passa a 240 così che alla tendina non basti stare accanto
+           alla data (142+240 > 312) e vada a capo prendendosi la riga intera.
+           `.frow` è una classe di `shared/dw-app-ui.css` e NON si tocca: si
+           cambia solo la base di questo elemento.
+         · a 320 la tendina prende comunque tutta la riga (242 px) e non c'è
+           larghezza da guadagnare: lì l'unica leva è il TESTO. La voce vecchia
+           chiedeva 257 px, questa ne chiede 220 — restano le parole che
+           contano, cadono i trattini di contorno, e la forma è quella che
+           l'app usa già in altre due tendine («Scegli il modello di
+           checklist…», «Mansione tipica di cava… (facoltativo)»).
+         ⚠️ E LA MISURA GIUSTA NON È QUELLA CHE SEMBRA. Una `<select>` non
+         scorre — `scrollWidth === clientWidth` sempre — e nemmeno la larghezza
+         del testo contro `clientWidth` basta: la freccia nativa si prende ~20
+         px DENTRO il riquadro, e quel conto rispondeva «ci sta» (209 in 214)
+         su una voce che nello scatto era tagliata. La domanda la sa la
+         risposta il browser: si clona la tendina a `width:max-content` e si
+         legge quanto le SERVE, freccia compresa. È il banco a farlo. */
+      + '<select class="dw-input" id="nm-chi" title="Chi segnala" style="flex:1 1 240px;"><option value="">Chi segnala (facoltativo)</option>'
       + LAV.map(l => `<option value="${l.id}">${esc(l.nome)}</option>`).join("") + "</select>"
       + '<button type="button" class="chg anon" id="nm-anon" aria-pressed="false">Segnalazione anonima</button></div>'
       + '<input class="dw-input" id="nm-dett" placeholder="Dettaglio o punto preciso (facoltativo)" style="margin-top:9px;">'

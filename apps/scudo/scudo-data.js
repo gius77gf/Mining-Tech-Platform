@@ -1355,19 +1355,51 @@ export function parseInfortuniCsv(text) {
 // scadenza / scadute. È la "matrice" che dice se l'azienda è coperta su
 // ciascun adempimento. Ordinata dalla situazione peggiore (più scadute).
 // Pura e testabile.
-export function coperturaFormazione(scadenze) {
+/* ⛔ IL QUARTO SECCHIO, E L'`else` CHE LO INGHIOTTIVA (03/08, seconda passata).
+   `statoScadenza` sa dire QUATTRO cose dal 03/08 — «scaduta», «in-scadenza»,
+   «senza data», «regolare» — e qui i secchi erano tre: il terzo era un `else`,
+   quindi «senza data» finiva fra i REGOLARI. Misurato su quattro righe di
+   «Visita medica», tre con una data che non si legge («2026-13-45»,
+   «2026-02-30», vuota) e una vera: la funzione rispondeva
+   `{ totale: 4, scadute: 0, inScadenza: 0, regolari: 4 }`, la riga dell'elenco
+   scriveva «4 in regola · 0 in scadenza · 0 scadute — su 4 in totale» con la
+   pastiglia VERDE «tutte regolari», e sopra il grafico diceva «Nessun buco di
+   copertura: su tutti i tipi di adempimento registrati le persone sono in
+   regola». Tre visite mediche di cui non si sa niente, raccontate come tre
+   visite mediche a posto.
+   È la stessa famiglia già corretta in `statoScadenzaHSE` (che il «regolare»
+   su NaN lo aveva perso) e in `idoneitaOperatore` (che il `senzaData` lo ha
+   aggiunto): la regola era in casa, e l'`else` di questa funzione non l'aveva
+   ricevuta. Un `else` finale è comodo finché la funzione che sta sopra non
+   impara a dire una risposta in più — ed è precisamente il caso della regola
+   18 di `run-stile.mjs`, applicata a un conteggio invece che a una mappa. */
+export function coperturaFormazione(scadenze, oggi = new Date()) {
   const per = {};
   for (const s of scadenze || []) {
     const t = (s.tipo || "Altro");
-    const g = per[t] || (per[t] = { tipo: t, totale: 0, scadute: 0, inScadenza: 0, regolari: 0 });
+    const g = per[t] || (per[t] = { tipo: t, totale: 0, scadute: 0, inScadenza: 0, senzaData: 0, regolari: 0 });
     g.totale++;
-    const st = statoScadenza(s.dataScadenza);
+    const st = statoScadenza(s.dataScadenza, oggi);
     if (st === "scaduta") g.scadute++;
     else if (st === "in-scadenza") g.inScadenza++;
+    else if (st === "senza data") g.senzaData++;
     else g.regolari++;
   }
   return Object.values(per).sort((a, b) =>
-    (b.scadute - a.scadute) || (b.inScadenza - a.inScadenza) || a.tipo.localeCompare(b.tipo, "it"));
+    (b.scadute - a.scadute) || (b.inScadenza - a.inScadenza) || (b.senzaData - a.senzaData)
+    || a.tipo.localeCompare(b.tipo, "it"));
+}
+
+/* Quante righe di quel tipo chiedono di fare qualcosa. Sta qui e non nella
+   pagina perché la sommavano DUE punti (la barra del grafico e la pastiglia
+   dell'elenco) e il terzo che nasce domani la riscriverebbe più debole: la
+   prima stesura era `scadute + inScadenza`, cioè quella che lasciava fuori il
+   secchio appena aggiunto. Una riga senza data non è «da rinnovare» — non si
+   sa nemmeno se sia scaduta — ma è da sistemare, ed è l'unico modo perché
+   qualcuno la guardi. */
+export function daSistemareCopertura(c) {
+  const x = c || {};
+  return (+x.scadute || 0) + (+x.inScadenza || 0) + (+x.senzaData || 0);
 }
 
 // IL MURO DELLE SCADENZE: quante scadenze cadono in ciascuno dei prossimi N
@@ -1393,17 +1425,35 @@ export function muroScadenze(scadenze, oggi = new Date(), quantiMesi = 12) {
     indice[chiave] = voce;
     mesi.push(voce);
   }
-  let scadute = 0, fuori = 0, totale = 0;
+  /* ⛔ DUE MODI DI SPARIRE DAL MURO, tutti e due misurati il 03/08 e tutti e
+     due nel verso che tranquillizza.
+     1. La riga con una data che non si può leggere ma che ha la FORMA giusta
+        («2026-13-45», «2026-02-30») passava il filtro qui sopra — che guarda
+        com'è SCRITTA la data, non che cosa vale — non era «scaduta», e il mese
+        «2026-13» non esiste nell'indice: finiva in `fuori`, cioè nel secchio
+        che la pagina racconta «Altre N scadenze cadono più in là e non sono
+        disegnate qui». Ma quella data non cade più in là: non cade da nessuna
+        parte.
+     2. La riga con la data VUOTA usciva dal `continue` prima ancora di essere
+        contata: non entrava né in `totale`, né in `fuori`, né in un mese.
+        Spariva da tutti e due gli elenchi, ed è la forma peggiore perché non
+        lascia nemmeno un numero da cui accorgersene.
+     Adesso la domanda la fa `statoScadenza` — «che cosa vale questa data»,
+     non «com'è scritta» — e le righe illeggibili hanno un secchio loro che la
+     pagina legge. `totale` resta il numero delle righe DATABILI, perché è
+     quello che regge la frase «le N scadenze registrate cadono più in là». */
+  let scadute = 0, fuori = 0, totale = 0, senzaData = 0;
   for (const s of scadenze || []) {
     const iso = String(s.dataScadenza || "").slice(0, 10);
-    if (!/^\d{4}-\d{2}-\d{2}$/.test(iso)) continue;
+    const st = statoScadenza(iso, oggi);
+    if (st === "senza data") { senzaData++; continue; }
     totale++;
-    if (statoScadenza(iso, oggi) === "scaduta") { scadute++; continue; }
+    if (st === "scaduta") { scadute++; continue; }
     const voce = indice[iso.slice(0, 7)];
     if (voce) voce.totale++; else fuori++;
   }
   return {
-    scadute, fuori, totale, mesi,
+    scadute, fuori, totale, senzaData, mesi,
     da: mesi[0].chiave, a: mesi[mesi.length - 1].chiave,
     nelPeriodo: mesi.reduce((s, m) => s + m.totale, 0),
   };
@@ -2083,6 +2133,28 @@ export function abilitazioneLavoratore(lav, mansione, scadenze, consegneDpi, ogg
            requisitiIgnoti: ignoti, esito };
 }
 
+/* ⛔ UN ID ASSEGNATO A CUI NON CORRISPONDE PIÙ NESSUNO NON È UNA PERSONA IN
+   MENO: È UNA PERSONA DI CUI NON SI SA NIENTE (03/08).
+   `matriceMansione` costruisce le righe con `.find(...)` + `.filter(Boolean)`:
+   un id rimasto in `lavoratoriIds` dopo che il lavoratore è stato tolto
+   dall'anagrafica sparisce, e con lui sparisce il suo stato. Non è un caso di
+   laboratorio — `db.rimuovi("lavoratori", …)` cancella la persona e NON tocca
+   le mansioni (la finestra di conferma parla delle scadenze e non le nomina).
+   Misurato su una mansione con due assegnati di cui uno cancellato: la
+   pastiglia dell'elenco passa da «1/2» a «1/1», cioè dal giallo al VERDE, e la
+   riga scrive «1 persona» dove ne risultano assegnate due. Se quello tolto era
+   proprio il «no», il rosso della mansione se ne va con lui.
+   La regola non è nuova ed è nello stesso file, dodici funzioni più su:
+   `organigrammaSicurezza` conta `senzaPersona` e la pagina scrive «persona non
+   più in anagrafica», perché «una nomina copre il ruolo solo se la persona c'è
+   ancora». Qui non era arrivata. Si conta a parte — non fra chi può, non fra
+   chi non può — e chi guarda la mansione lo legge. */
+export function assegnatiSenzaAnagrafe(mansione, lavoratori) {
+  const ids = (mansione && mansione.lavoratoriIds) || [];
+  const noti = new Set((lavoratori || []).map(l => l && l.id));
+  return ids.filter(id => !noti.has(id)).length;
+}
+
 // La matrice di UNA mansione: una riga per persona, prima chi può andare.
 export function matriceMansione(mansione, lavoratori, scadenze, consegneDpi, oggi = new Date()) {
   const ids = (mansione && mansione.lavoratoriIds) || [];
@@ -2109,10 +2181,17 @@ export function riepilogoMansioni(mansioni, lavoratori, scadenze, consegneDpi, o
          alla matrice le contava fra chi può andare domani mattina. */
       nonSo: righe.filter(r => r.esito === "non-so").length,
       no: righe.filter(r => r.esito === "no").length,
+      /* Gli id assegnati che in anagrafica non esistono più. NON si sommano né
+         a `totale` né a nessuno dei quattro esiti: non sono persone di cui si
+         sa qualcosa, sono righe rimaste appese. `assegnati` è il numero che
+         c'è scritto sulla mansione, e la differenza col `totale` è tutta qui. */
+      assegnati: ((m && m.lavoratoriIds) || []).length,
+      senzaPersona: assegnatiSenzaAnagrafe(m, lavoratori),
       requisitiIgnoti: requisitiIgnoti(m),
       righe,
     };
   }).sort((a, b) => (b.no - a.no) || (b.attenzione - a.attenzione) || (b.nonSo - a.nonSo)
+    || (b.senzaPersona - a.senzaPersona)
     || String(a.mansione.nome || "").localeCompare(String(b.mansione.nome || ""), "it"));
 }
 
@@ -2790,11 +2869,55 @@ function confrontaUltimiDueAnni(misurabili, dal, al, oreFuori) {
     adiacenti: a.anno - da.anno === 1, salto: a.anno - da.anno,
     /* decisione 17: se in uno dei due anni una prognosi è ancora aperta, il
        verso di IG e LTIFR è letto su un numero che deve ancora salire. Non si
-       nasconde il confronto — si dice che quel verso può cambiare. */
+       nasconde il confronto — si dice che quel verso può cambiare.
+       ⛔ E FINO AL 03/08 QUEL «SI DICE» NON LO DICEVA NESSUNO: `noto` e
+       `daQuantificare` erano scritti qui e non li leggeva né la pagina né il
+       modulo — la guardia scollegata della regola 20, sulla bandiera che il
+       principio del fondatore esiste per far leggere. Misurato su tre
+       infortuni nel 2025 e tre nel 2026 (di cui uno a prognosi aperta), 20.000
+       ore per anno: la scheda mostrava la pastiglia VERDE «In miglioramento»
+       con «Indice di gravità: 3,00 → 0,15 (−95,0%) migliora» e «LTIFR: 150,00
+       → 100,00 (−33,3%) migliora», e da nessuna parte che quei due numeri
+       devono ancora salire. Adesso la frase la scrive `avvisoAndamentoMinimo`,
+       qui sotto, e i due anni sono separati perché la DIREZIONE dell'errore
+       dipende da quale dei due ha le giornate mancanti. */
     daQuantificare: da.daQuantificare + a.daQuantificare,
+    daQuantificarePrecedente: da.daQuantificare,
+    daQuantificareRecente: a.daQuantificare,
     noto: da.noto !== false && a.noto !== false,
     eventi, pochi: troppoPochiPerTendenza(eventi), per,
     verso: versi.size === 0 ? "stabile" : versi.size > 1 ? "misto" : [...versi][0] };
+}
+
+/* La lettura della bandiera `noto` del CONFRONTO, gemella di
+   `avvisoGravitaMinima` e scritta per la stessa ragione (regola 7: quello che
+   un numero dichiara è una regola, e a scriverla dev'essere uno solo). Torna
+   `null` quando non c'è niente da avvertire, così chi disegna non riserva
+   spazio a un avviso che non arriva.
+   ⚠️ `noto !== false` e non `!noto`: un confronto costruito prima che la
+   bandiera esistesse non ha la proprietà, e `!undefined` la farebbe scattare
+   su ogni riga. */
+export function avvisoAndamentoMinimo(confronto) {
+  const c = confronto || {};
+  if (!c.confrontabile || c.noto !== false) return null;
+  const dopo = +c.daQuantificareRecente || 0, prima = +c.daQuantificarePrecedente || 0;
+  const q = (n) => n === 1 ? "un infortunio" : n + " infortuni";
+  const dove = dopo && prima
+    ? "in tutti e due gli anni ci sono infortuni a prognosi ancora aperta (" + q(prima)
+      + " nel " + c.da + ", " + q(dopo) + " nel " + c.a + ")"
+    : dopo
+      ? "nel " + c.a + " la prognosi di " + q(dopo) + " è ancora aperta"
+      : "nel " + c.da + " la prognosi di " + q(prima) + " è ancora aperta";
+  /* La direzione dell'errore NON è la stessa nei due casi, e dirla al
+     contrario sarebbe peggio che tacere: le giornate che mancano nell'anno
+     recente fanno sembrare il confronto migliore del vero, quelle che mancano
+     nell'anno di partenza lo fanno sembrare peggiore. */
+  const verso = dopo
+    ? "l'anno più recente ha giornate perse ancora da contare, quindi il suo indice di gravità e "
+      + "il suo LTIFR possono solo SALIRE: un «migliora» letto adesso può diventare un «peggiora»."
+    : "le giornate che mancano sono nell'anno di partenza, quindi il confronto sta partendo da un "
+      + "valore più basso del vero.";
+  return "Indice di gravità e LTIFR di questo confronto sono MINIMI: " + dove + ", e " + verso;
 }
 
 // ============================================================

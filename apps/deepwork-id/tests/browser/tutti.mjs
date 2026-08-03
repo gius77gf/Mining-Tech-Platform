@@ -136,6 +136,19 @@ const BANCHI = [
      uno scratchpad, che alla sessione dopo non esistono. */
   ['il core e i rapportini mai misurati', 'core-rapportini-non-misurati.mjs', []],
   ['rapportini mai misurati · controprova', 'core-rapportini-non-misurati.mjs', ['--controprova'], true],
+  /* ⛔ AGGIUNTO IL 03/08, stessa famiglia di `terra-numeri-tranquilli` e stessa
+     ragione: in Sentinella il principio del fondatore è NATO, il modulo lo
+     applica in una dozzina di punti — e i quattro numeri tranquilli rimasti
+     stavano tutti dove quel lavoro ESCE dall'app. Il file per l'ARPA scriveva
+     una soglia diversa da quella di ogni schermata, `undefined` e «tra NaN
+     gg»; il riepilogo sopra il registro volate sommava come zero i chili che
+     nessuno ha dichiarato; e la scheda dell'andamento chiudeva con
+     «Superamenti: 0 → 0» sotto la frase «i superamenti non si possono
+     contare». Le tre regole sono state spostate nel modulo e hanno la loro
+     prova in `run-kpi`; che il BOTTONE produca davvero quel file e che la
+     scheda scriva davvero quella frase, `node` non lo può vedere. */
+  ['i numeri tranquilli che escono da Sentinella', 'sentinella-numeri-tranquilli.mjs', []],
+  ['numeri tranquilli di Sentinella · controprova', 'sentinella-numeri-tranquilli.mjs', ['--controprova'], true],
   /* ⛔ AGGIUNTO IL 03/08, stessa famiglia dei due qui sopra. Su Campo il
      censimento statico era a ZERO, e i tre difetti sono usciti lo stesso: il
      CSV dello storico scriveva `0` minuti di fermo su una giornata con tre
@@ -148,6 +161,22 @@ const BANCHI = [
      quella, lo dice solo il browser. */
   ['i numeri tranquilli che escono da Campo', 'campo-numeri-tranquilli.mjs', []],
   ['numeri tranquilli di Campo · controprova', 'campo-numeri-tranquilli.mjs', ['--controprova'], true],
+  /* ⛔ AGGIUNTO IL 03/08, stessa famiglia dei quattro qui sopra, su Scudo.
+     Cinque punti, e tutti col colore o la parola tranquilla: la pastiglia
+     «tutte regolari» su tre visite mediche dalla data illeggibile (il terzo
+     secchio di `coperturaFormazione` era un `else`); il muro delle scadenze
+     che raccontava quelle stesse righe come «cadono più in là»; la mansione
+     che passava da «1/2» a «1/1» perché l'assegnato cancellato dall'anagrafica
+     cade nel `.filter(Boolean)`; la cartella che si esibisce all'ispettore,
+     che stampava la CHIAVE interna del DPI («maschera») e non diceva quali
+     consegne sono scadute; e la scheda dell'andamento degli indici, verde «In
+     miglioramento» su un indice di gravità che deve ancora salire — la
+     bandiera `noto` c'era e non la leggeva nessuno.
+     Le funzioni nuove sono provate in `run-kpi`; che la pastiglia sia di
+     quel colore, che il foglio stampato dica quelle parole e che la voce
+     della tendina ci stia a 390 px, lo dice solo il browser. */
+  ['i numeri tranquilli che escono da Scudo', 'scudo-numeri-tranquilli.mjs', []],
+  ['numeri tranquilli di Scudo · controprova', 'scudo-numeri-tranquilli.mjs', ['--controprova'], true],
   /* ⛔ AGGIUNTO IL 03/08, seconda passata su Genesi dopo i cinque numeri
      tranquilli corretti la mattina dentro `genesi-data.js`. I quattro rimasti
      stavano tutti dove `node` non arriva: un campo SVUOTATO nella
@@ -168,19 +197,6 @@ const BANCHI = [
      «provvisoria», lo dice solo il browser. */
   ['i numeri tranquilli di Genesi', 'genesi-numeri-tranquilli.mjs', []],
   ['numeri tranquilli di Genesi · controprova', 'genesi-numeri-tranquilli.mjs', ['--controprova'], true],
-  /* ⛔ AGGIUNTO IL 03/08, stessa famiglia di `terra-numeri-tranquilli` e stessa
-     ragione: in Sentinella il principio del fondatore è NATO, il modulo lo
-     applica in una dozzina di punti — e i quattro numeri tranquilli rimasti
-     stavano tutti dove quel lavoro ESCE dall'app. Il file per l'ARPA scriveva
-     una soglia diversa da quella di ogni schermata, `undefined` e «tra NaN
-     gg»; il riepilogo sopra il registro volate sommava come zero i chili che
-     nessuno ha dichiarato; e la scheda dell'andamento chiudeva con
-     «Superamenti: 0 → 0» sotto la frase «i superamenti non si possono
-     contare». Le tre regole sono state spostate nel modulo e hanno la loro
-     prova in `run-kpi`; che il BOTTONE produca davvero quel file e che la
-     scheda scriva davvero quella frase, `node` non lo può vedere. */
-  ['i numeri tranquilli che escono da Sentinella', 'sentinella-numeri-tranquilli.mjs', []],
-  ['numeri tranquilli di Sentinella · controprova', 'sentinella-numeri-tranquilli.mjs', ['--controprova'], true],
 ];
 
 async function rispondePorta(porta) {

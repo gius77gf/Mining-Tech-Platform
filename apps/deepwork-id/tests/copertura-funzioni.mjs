@@ -120,7 +120,17 @@ const APP = ["campo", "conti", "flotta", "scudo", "sentinella", "terra"];
    e `numeroDichiarato`, cioè le tre regole del file per l'ARPA salite dal
    gestore del bottone dentro il modulo). Un fondo che non si alza è un fondo
    che non cattura più niente: era già a metà strada dal conto vero. */
-const FONDO = { campo: 106, conti: 112, flotta: 82, scudo: 157, sentinella: 124, terra: 58 };
+/* ⚠️ `scudo` 157 → 159 il 03/08, e il fondo è alzato DOPO aver visto il conto
+   salire (159/159, «il fondo era 157: alzalo»): `daSistemareCopertura` — la
+   somma che decide colore e testo della copertura formazione, scritta nel
+   modulo perché la leggevano due punti della pagina — e
+   `assegnatiSenzaAnagrafe`, che conta gli id di una mansione a cui non
+   corrisponde più nessuno in anagrafica. E 159 → 160 con
+   `avvisoAndamentoMinimo`, la frase che legge la bandiera `noto` del confronto
+   fra gli ultimi due anni: era dichiarata dal modulo e non la leggeva nessuno,
+   e la scheda usciva verde «In miglioramento» su giornate perse ancora da
+   contare. */
+const FONDO = { campo: 103, conti: 112, flotta: 82, scudo: 160, sentinella: 124, terra: 58 };
 
 /* Quello che resta fuori per un motivo, non per dimenticanza: i caricatori
    dati vogliono la rete e lo SDK, i ponti demo vogliono il localStorage.
