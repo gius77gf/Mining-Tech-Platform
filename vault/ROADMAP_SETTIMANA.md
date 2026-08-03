@@ -294,6 +294,28 @@ numero scritto dove non era stato misurato niente**.*
       proposte, **due false** — l'esplosivo ha già un rapportino fochino suo,
       foro per foro. Fermate prima di diventare lavoro.
 
+- [x] ✅ **Il PDF del fochino non diceva quanto esplosivo era stato usato**
+      (`396449b`): stampava tutto tranne il numero per cui quel documento
+      esiste. E i chili per foro mancavano anche dalla scheda, che è la ragione
+      per cui il totale può essere «almeno».
+- [x] ✅ **Campo, seconda passata** (`5b10204`): nel CSV una giornata con **tre
+      guasti mai misurati** era identica a una senza fermi, **2.300 t** sparivano
+      dallo storico senza che niente lo dicesse, e il ponte con Terra contava i
+      rapportini con una sottrazione che toglieva UN rapportino per qualunque
+      numero di viaggi.
+- [x] ✅ **La regola generale scritta in CLAUDE.md** (`9a6689d`): la copia debole
+      non è sparsa, sta **dove il documento si compone** — 24 difetti in 5 app,
+      tutti nello stesso posto, e il censimento statico su quelle app era a zero.
+- [x] ✅ **Le parole del mestiere** (`91d0a3a`): il vocabolario regge, nessuna
+      parola sbagliata; e una proposta su due era falsa, fermata dalla
+      riverifica.
+- [ ] ⏳ **Il core si fermava sulla schermata d'accesso per tutti i banchi**
+      (sul disco, non ancora committato): 258 caratteri di testo e **un**
+      bottone. Con l'accesso vero il banco del contrasto trova **5 violazioni
+      AA** che prima nessuno vedeva — vanno corrette o dichiarate prima di
+      committare, e le modali restano scoperte per una seconda causa non ancora
+      trovata.
+
 ### B — Lo standard delle funzioni, app per app (martedì → venerdì)
 
 - [x] ✅ **B1. La caccia sistematica ai numeri tranquilli.** Chiusa il 02/08, e
