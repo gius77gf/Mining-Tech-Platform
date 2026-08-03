@@ -51,10 +51,18 @@
   /* ---- gradienti ---- */
   --grad:    linear-gradient(135deg,#00b1a1,#009284);
   --grad-on: #070f0e;
-  --grad-num:linear-gradient(135deg,#7fe0d1,#3fbcab);  /* cifre: 6,47:1 */
-  --grad-sup:linear-gradient(135deg,#d9b87c,#a8823f);
+  /* ⛔ IL CONTO VA ACCANTO A OGNI GRADIENTE CHE DIPINGE DELLE CIFRE, non solo
+     al primo. Solo `--grad-num` ce l'aveva, e infatti è l'unico che qualcuno
+     aveva controllato: `--grad3` — la cifra del cartellone nello stato «grave»,
+     cioè il numero che si legge quando le cose vanno male — finiva su `#a32b27`
+     e faceva **2,17:1** misurato, sotto il 3:1 che la WCAG chiede al testo
+     grande. La fermata bassa è quella che dipinge il basso delle cifre, ed è
+     sempre lei la più scura: il conto si fa SU QUELLA, non sul colore che si
+     vede per primo. Tinta invariata, solo alzata di luminosità. */
+  --grad-num:linear-gradient(135deg,#7fe0d1,#3fbcab);  /* cifre: 8,30:1 */
+  --grad-sup:linear-gradient(135deg,#d9b87c,#a8823f);  /* cifre: 5,47:1 */
   --gradSuc: linear-gradient(135deg,#79b862,#3d7a2c);
-  --grad3:   linear-gradient(135deg,#f05f5a,#a32b27);
+  --grad3:   linear-gradient(135deg,#f05f5a,#cc4a44);  /* cifre: 4,27:1 (era 2,71) */
   --grad-ok: linear-gradient(135deg,#a3d68f,#6aa955);
   --grad-wr: linear-gradient(135deg,#ffc79b,#e8894a);
 

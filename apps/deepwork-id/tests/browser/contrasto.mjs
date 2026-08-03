@@ -6,9 +6,11 @@
    Soglia: 4,5:1 per il testo piccolo (WCAG 1.4.3), 3:1 per quello grande
    (≥ 24 px, oppure ≥ 18,66 px in grassetto).
 
-   ⛔ QUATTRO TRAPPOLE. Le prime tre sono nel verso che ASSOLVE; la quarta è
-   nell'altro, e costa in un modo diverso ma non minore — manda a cambiare
-   colori che stanno benissimo.
+   ⛔ SEI TRAPPOLE. Le prime tre sono nel verso che ASSOLVE; le ultime tre
+   nell'altro, e costano in un modo diverso ma non minore — mandano a cambiare
+   colori che stanno benissimo. Sono state trovate tutte e tre in un'ora, il
+   03/08, e non è un caso: finché le trappole scritte qui erano solo del primo
+   tipo, la famiglia opposta non l'aveva cercata nessuno.
    1. **Sfondi a gradiente**: il colore vero sta in `background-image`, e
       cercando un fondo opaco fra gli antenati si finisce contro lo sfondo della
       pagina. Bianco su arancione risultava 19:1. Si tiene il caso peggiore fra
@@ -27,6 +29,16 @@
       aspettare e allora si **dichiarano**, come già si fa per le dissolvenze.
       La differenza col caso 2 è il verso: qui il banco non assolve, accusa —
       e un'accusa falsa su un colore manda a rovinare una palette sana.
+   5. **Testo dipinto dal gradiente di un ANTENATO** (la 1 un piano più sotto):
+      l'unità sta dentro il numero, il suo inchiostro è trasparente perché lo
+      eredita, e veniva **1:1**. Un `1:1` tondo non è un colore: è una misura
+      che non ha trovato l'inchiostro.
+   6. **I comandi SPENTI non hanno una soglia.** La WCAG 1.4.3 esclude il testo
+      «che fa parte di un componente d'interfaccia inattivo». `.dw-btn:disabled`
+      porta `opacity:.6`, e «Salva preventivo» veniva bocciato a 2,9:1 perché
+      al momento della misura il modulo era vuoto. Qui il rimedio sbagliato era
+      peggio del difetto inesistente: schiarire quel testo avrebbe fatto
+      sembrare premibile un bottone che non lo è.
 
    ⚠️ COME È VENUTA FUORI, perché il modo conta più del difetto. Il giro
    notturno aveva bocciato quattro elementi del core, e il checkpoint di quella
@@ -53,6 +65,7 @@
      node apps/deepwork-id/tests/browser/contrasto.mjs 8823 --tutti   (elenca anche i promossi)
      node apps/deepwork-id/tests/browser/contrasto.mjs 8823 --controprova
      node apps/deepwork-id/tests/browser/contrasto.mjs 8823 --controprova-pulsazione
+     node apps/deepwork-id/tests/browser/contrasto.mjs 8823 --solo=conti --tutti
 */
 import { prendiChromium, CHROMIUM, SUPERFICI, sezioniDi, vaiA, apriSuperficie } from './giro.mjs';
 import { montaFintoFirebase } from './finto-firebase.mjs';
@@ -175,6 +188,16 @@ const MISURA = () => {
     const alfa = f.length > 3 ? f[3] : 1;
     return alfa === 0 && !!antenatoRitagliato(el);
   };
+  /* «spento» vuol dire inattivo per davvero, non «sembra chiaro»: o l'elemento
+     stesso è disabilitato, o lo è un antenato (un `<fieldset disabled>` spegne
+     tutto quello che contiene), oppure lo dichiara `aria-disabled`. */
+  const spento = (el) => {
+    for (let a = el; a && a !== document.documentElement; a = a.parentElement) {
+      if (a.disabled === true) return true;
+      if (a.getAttribute && a.getAttribute('aria-disabled') === 'true') return true;
+    }
+    return false;
+  };
   const composto = (fg, sf, op) => {
     const f = num(fg), s = num(sf);
     const alfa = (f.length > 3 ? f[3] : 1) * op;
@@ -226,6 +249,16 @@ const MISURA = () => {
        dissolvenze (10 → 27) e la prova nuova non provava niente. */
     if (op < 0.95 && /opacity|all/.test(cs.transitionProperty || '')
         && parseFloat(cs.transitionDuration || '0') > 0) { window.__dwSfumati = (window.__dwSfumati || 0) + 1; return; }
+    /* ⛔ TRAPPOLA 6 — I COMANDI SPENTI NON HANNO UNA SOGLIA. La WCAG 1.4.3
+       esclude esplicitamente il testo «che fa parte di un componente
+       d'interfaccia inattivo»: un bottone disabilitato è più chiaro APPOSTA,
+       perché è così che si vede che non si può premere. Qui `.dw-btn:disabled`
+       porta `opacity:.6`, e il banco bocciava «Salva preventivo» a 2,9:1 in
+       Conti — su un bottone che al momento della misura era spento perché il
+       modulo era vuoto. Correggerne il colore avrebbe fatto sembrare premibile
+       una cosa che non lo è: il rimedio sbagliato era peggio del difetto
+       inesistente. Si conta e si dichiara, come tutto il resto. */
+    if (spento(el)) { window.__dwSpenti = (window.__dwSpenti || 0) + 1; return; }
     const dim = parseFloat(cs.fontSize);
     const grande = dim >= 24 || (dim >= 18.66 && parseInt(cs.fontWeight, 10) >= 700);
     /* TESTO DIPINTO COL GRADIENTE (`background-clip:text`). Lì `color` è
@@ -306,7 +339,7 @@ const aspettaAnimazioni = (p) => p.evaluate((tetto) => {
 
 const b = await chromium.launch({ executablePath: CHROMIUM });
 let misurati = 0, bocciati = 0;
-let sfumatiTot = 0, pulsantiTot = 0, scadute = 0, pulsaBocciata = 0, pulsaMisurata = 0;
+let sfumatiTot = 0, pulsantiTot = 0, spentiTot = 0, scadute = 0, pulsaBocciata = 0, pulsaMisurata = 0;
 let superficiProvate = 0;
 const superficiCieche = [];
 const visti = new Set();
@@ -372,10 +405,12 @@ for (const [nome, via] of SUPERFICI) {
   }
   const sfumati = await p.evaluate(() => window.__dwSfumati || 0).catch(() => 0);
   const pulsanti = await p.evaluate(() => window.__dwPulsanti || 0).catch(() => 0);
-  sfumatiTot += sfumati; pulsantiTot += pulsanti;
+  const spenti = await p.evaluate(() => window.__dwSpenti || 0).catch(() => 0);
+  sfumatiTot += sfumati; pulsantiTot += pulsanti; spentiTot += spenti;
   console.log(`  ${misuratiQui} testi misurati, ${bocciatiQui} sotto soglia`
     + (sfumati ? ` · ${sfumati} in dissolvenza, non misurabili` : '')
     + (pulsanti ? ` · ${pulsanti} in pulsazione, non misurabili` : '')
+    + (spenti ? ` · ${spenti} spenti, esclusi dalla WCAG 1.4.3` : '')
     + (CONTROPROVA ? ` · controprova ${presaQui ? 'PRESA' : 'NON PRESA'}` : ''));
   if (CONTROPROVA) { superficiProvate++; if (!presaQui) superficiCieche.push(nome); }
   if (errori.length) console.log('  ⚠ errori pagina:', errori.slice(0, 2));
@@ -385,7 +420,8 @@ for (const [nome, via] of SUPERFICI) {
 await b.close();
 console.log(`\n${misurati} testi misurati in tutto, ${bocciati} sotto soglia`
   + (sfumatiTot ? ` · ${sfumatiTot} saltati perché in dissolvenza (dichiarati, non nascosti)` : '')
-  + (pulsantiTot ? ` · ${pulsantiTot} saltati perché in pulsazione (dichiarati, non nascosti)` : ''));
+  + (pulsantiTot ? ` · ${pulsantiTot} saltati perché in pulsazione (dichiarati, non nascosti)` : '')
+  + (spentiTot ? ` · ${spentiTot} comandi spenti, che la WCAG 1.4.3 esclude (dichiarati, non nascosti)` : ''));
 /* ⛔ Questa riga va letta PRIMA dei KO, non dopo: è il banco che dice dove non
    ha guardato. Se le attese scadono, la misura è di nuovo a metà animazione —
    cioè il difetto del 03/08 che è tornato, e allora i KO non valgono. */
