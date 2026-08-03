@@ -7,7 +7,7 @@
 // perché non falliscono i test, si vedono solo aprendo la pagina giusta.
 // Qui diventano controlli che girano in automatico.
 //
-// 24 regole, al 03/08. *(Era rimasto scritto «tredici» per giorni mentre
+// 25 regole, al 03/08. *(Era rimasto scritto «tredici» per giorni mentre
 // l'elenco cresceva: un numero in un commento non fallisce, sta lì — la stessa
 // ragione per cui esiste `numeri-nei-documenti.mjs`. Adesso c'è una prova in
 // fondo al file che lo confronta con le voci davvero elencate qui sotto.)*
@@ -183,6 +183,13 @@
 //     browser per una ragione precisa: **il banco vede solo gli stati che la
 //     dimostrazione produce**, e quello stato c'era per caso. Questa legge il
 //     CSS, quindi li guarda tutti.
+//
+// 25. UN ELEMENTO FISSO E INVISIBILE NON DEVE MANGIARE I TOCCHI. Nel core il
+//     toast era `opacity:0` ma `pointer-events:auto`, fisso e largo fino al 90%
+//     dello schermo: una striscia invisibile sopra i comandi, **6 su 137**
+//     coperti, due dei quali bottoni di esportazione. La versione giusta era
+//     già in `shared/`, che si dichiara «copia del core»: qui la copia era
+//     migliore dell'originale, e nessuno l'aveva riportato indietro.
 //
 // ⚠️ Le regole 21-23 sono nate senza entrare in questo elenco, e la prova in
 // fondo al file **non se n'è accorta**: confronta il numero dichiarato con le
@@ -2641,6 +2648,73 @@ test("regola 24: la controprova — una fermata bassa scurita viene vista", () =
   const bocciati = dopo.voci.filter((v) => v.peggio < SOGLIA_CIFRE);
   ok(bocciati.length === 1 && bocciati[0].nome === "--grad3",
     `col difetto rimesso la regola deve vedere --grad3 e basta, ha visto: ${JSON.stringify(bocciati)}`);
+});
+
+/* ═══ REGOLA 25 — UN ELEMENTO FISSO E INVISIBILE NON DEVE MANGIARE I TOCCHI ═══
+   Il 03/08, nel core, `.toast` era `opacity:0` ma **`visibility:visible` e
+   `pointer-events:auto`**, `position:fixed` a 80 px dal fondo e largo fino al
+   90% dello schermo. Cioè una striscia invisibile, sempre presente, sopra i
+   comandi: misurati **6 comandi coperti su 137**, fra cui **due bottoni di
+   esportazione**, e Playwright ha ritentato un click per 30 secondi senza
+   arrivarci.
+   ⛔ E l'inversione che rende la regola necessaria: la versione GIUSTA era già
+   in `shared/dw-app-ui.css`, che si presenta come «toast (copia del core)». Le
+   sei app stavano bene; era **l'originale** a essere rotto. Di solito è la
+   copia a divergere — qui la copia era migliore, e nessuno l'aveva riportato
+   indietro. Un difetto così non si vede leggendo il codice: si è trovato
+   perché un bottone non si lasciava premere.
+
+   La regola: se una regola CSS mette insieme `position:fixed` e `opacity:0`,
+   deve anche togliersi di mezzo — `pointer-events:none`, `visibility:hidden` o
+   `display:none`. Uno qualunque dei tre basta: sono tre modi di dire la stessa
+   cosa al motore che decide chi riceve il tocco.
+   ⚠️ Il limite, dichiarato: guarda le regole che portano `opacity:0` **nel
+   proprio blocco**. Un elemento reso invisibile da un'altra regola o da
+   JavaScript non lo vede — per quello serve il browser, e infatti il difetto
+   originale l'ha trovato un banco che premeva i bottoni. */
+function _blocchiCss(testo) {
+  /* solo il CSS: dentro `<style>` per le pagine, tutto il file per i `.css` */
+  const pezzi = /<style/i.test(testo)
+    ? [...testo.matchAll(/<style[^>]*>([\s\S]*?)<\/style>/gi)].map((m) => m[1])
+    : [testo];
+  const out = [];
+  for (const p of pezzi)
+    for (const m of p.matchAll(/([^{}@]+)\{([^{}]*)\}/g))
+      out.push({ sel: m[1].trim().split("\n").pop().trim(), corpo: m[2] });
+  return out;
+}
+const NEUTRALIZZA = /pointer-events\s*:\s*none|visibility\s*:\s*hidden|display\s*:\s*none/;
+
+test("regola 25: niente elementi fissi e invisibili che restano cliccabili", () => {
+  const male = [];
+  let guardati = 0;
+  for (const [nome, rel] of [...SUPERFICI, ["foglio condiviso", "shared/dw-app-ui.css"],
+                             ["stile condiviso", "shared/deepwork-style.css"]]) {
+    let testo;
+    try { testo = leggi(rel); } catch { continue; }
+    for (const b of _blocchiCss(testo)) {
+      if (!/position\s*:\s*fixed/.test(b.corpo)) continue;
+      if (!/opacity\s*:\s*0(?![.\d])/.test(b.corpo)) continue;
+      guardati++;
+      if (!NEUTRALIZZA.test(b.corpo)) male.push(`${nome}: «${b.sel}» è fissa e a opacità zero ma resta cliccabile`);
+    }
+  }
+  ok(guardati >= 1, "nessuna regola fissa-e-invisibile trovata: il controllo non sta guardando dove crede");
+  ok(male.length === 0,
+    "elementi invisibili che possono mangiare i tocchi — basta uno fra `pointer-events:none`, "
+    + "`visibility:hidden`, `display:none`:\n  " + male.join("\n  "));
+});
+
+test("regola 25: la controprova — tolta la guardia al toast del core, la regola lo vede", () => {
+  const sano = leggi("index.html");
+  /* si rimette ESATTAMENTE il difetto del 03/08 */
+  const guasto = sano.replace("opacity:0;pointer-events:none;transition:all .3s;z-index:999;",
+                              "opacity:0;transition:all .3s;z-index:999;");
+  ok(guasto !== sano, "l'iniezione non ha sostituito niente: la prova non prova niente");
+  const visti = _blocchiCss(guasto).filter((b) =>
+    /position\s*:\s*fixed/.test(b.corpo) && /opacity\s*:\s*0(?![.\d])/.test(b.corpo) && !NEUTRALIZZA.test(b.corpo));
+  ok(visti.length >= 1 && visti.some((b) => /\.toast/.test(b.sel)),
+    `col difetto rimesso la regola deve vedere il toast, ha visto: ${JSON.stringify(visti.map((b) => b.sel))}`);
 });
 
 /* Il numero di regole scritto nell'intestazione è quello vero? Era rimasto a
