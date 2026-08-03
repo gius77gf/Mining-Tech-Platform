@@ -356,6 +356,96 @@ test("docs/LA_STRUTTURA_DEL_CORE_SCRITTA_SEI_VOLTE.md: il conto del contagio è 
   console.log(`\ndecisioni del fondatore: ${aperte} aperte, ${sezioni.length} sezioni, ${citate.size} indicizzate`);
 }
 
+// ── LA TABELLA DEL DELTA, SCRITTA SEI VOLTE ──
+/* ⛔ Nasce il 03/08 da due righe perse, e da una divergenza trovata DAL VIVO.
+   La tabella riassuntiva del delta — quante mancanze confermate, quante false,
+   quante scadute, quante a metà — è copiata in cima a **tutti e sei** i
+   documenti dei concorrenti, e nessuno la confrontava né con sé stessa né con
+   i suoi addendi. Due difetti, tutt'e due misurati:
+
+   1. **gli addendi non facevano il totale.** La riga di Sentinella faceva
+      `15+4+1+0 = 20` su **22** righe; quella di Conti fa `9+5+0+2 = 16` su
+      **18**. Due righe per parte, tolte dalle confermate senza essere aggiunte
+      da nessun'altra parte: sparite dal conto, e quindi dal lavoro.
+   2. **le sei copie erano già divergenti.** Il 02/08 il documento di Sentinella
+      è stato riverificato riga per riga e la sua copia aggiornata; le altre
+      **cinque** sono rimaste ai numeri vecchi. Nessuno se n'era accorto, ed è
+      la dimostrazione dal vivo della regola che questo progetto ripete da
+      mesi: una verità scritta due volte diverge — figurarsi sei.
+
+   ⚠️ E come per `sonda-vuoto`, chi non torna si **dichiara** invece di essere
+   aggiustato: `DA_RIVERIFICARE` porta il nome, quante righe mancano e la
+   ragione. Con la seconda metà del mestiere: una riga che ricomincia a tornare
+   va **tolta** da lì, se no l'elenco invecchia e copre un difetto che non c'è
+   più. Aggiustare il totale invece di ritrovare le righe sarebbe esattamente il
+   difetto che il controllo esiste per prendere. */
+const DA_RIVERIFICARE = {
+  Conti: { mancano: 2, perche: "due righe tolte dalle confermate il 01/08 senza essere aggiunte "
+    + "altrove; il documento è in riverifica riga per riga (03/08), come è già stato fatto per Sentinella" },
+};
+
+{
+  const APP_DELTA = ["campo", "conti", "flotta", "scudo", "sentinella", "terra"];
+  const TABELLA = /^> \| app \| righe \|[\s\S]*?\| \*\*totale\*\*[^\n]*\n/m;
+  const RIGA = /^> \| ([A-Za-zà-ù]+) \| (\d+) \|(?:[^|]*?(\d+)[^|]*)\|(?:[^|]*?(\d+)[^|]*)\|(?:[^|]*?(\d+)[^|]*)\|(?:[^|]*?(\d+)[^|]*)\|/;
+  const copie = APP_DELTA.map((a) => {
+    const testo = readFileSync(join(RADICE, `docs/CONCORRENTI_${a.toUpperCase()}.md`), "utf8");
+    const m = TABELLA.exec(testo);
+    return { app: a, tabella: m ? m[0] : null };
+  });
+
+  test("la tabella del delta c'è in tutti e sei i documenti", () => {
+    const senza = copie.filter((c) => !c.tabella).map((c) => c.app);
+    ok(!senza.length, `manca in: ${senza.join(", ")}`);
+  });
+
+  test("⛔ le sei copie della tabella del delta sono IDENTICHE", () => {
+    const prima = copie[0];
+    const diverse = copie.filter((c) => c.tabella !== prima.tabella).map((c) => c.app);
+    ok(!diverse.length, `${diverse.length} copie diverse da quella di ${prima.app}: ${diverse.join(", ")}`
+      + " — è una verità sola scritta sei volte: o si aggiornano insieme, o divergono (successo il 02/08)");
+  });
+
+  const righe = [];
+  for (const l of (copie[0].tabella || "").split("\n")) {
+    const m = RIGA.exec(l);
+    if (m && !/^app$/i.test(m[1])) righe.push({
+      nome: m[1], totale: +m[2], conf: +m[3], falsi: +m[4], scadute: +m[5], meta: +m[6],
+    });
+  }
+
+  test("⛔ gli addendi di ogni riga fanno il totale della riga", () => {
+    ok(righe.length === APP_DELTA.length, `lette ${righe.length} righe di app invece di ${APP_DELTA.length}`);
+    const storte = [];
+    for (const r of righe) {
+      const somma = r.conf + r.falsi + r.scadute + r.meta;
+      const atteso = DA_RIVERIFICARE[r.nome];
+      if (somma === r.totale) {
+        ok(!atteso, `${r.nome} adesso torna (${somma} su ${r.totale}): va TOLTA da DA_RIVERIFICARE`);
+        continue;
+      }
+      if (atteso && r.totale - somma === atteso.mancano) continue;   // dichiarata, con la ragione
+      storte.push(`${r.nome}: ${r.conf}+${r.falsi}+${r.scadute}+${r.meta} = ${somma}, ma le righe dichiarate sono ${r.totale}`);
+    }
+    ok(!storte.length, storte.join(" · ") + " — le righe perse si ritrovano, non si aggiusta il totale");
+  });
+
+  test("la riga dei totali è la somma delle colonne", () => {
+    const l = (copie[0].tabella || "").split("\n").find((x) => x.includes("**totale**"));
+    const n = [...(l || "").matchAll(/\*\*(\d+)\*\*/g)].map((m) => +m[1]);
+    ok(n.length >= 5, `la riga dei totali non si legge: «${l}»`);
+    const chiavi = [null, "conf", "falsi", "scadute", "meta"];
+    for (let i = 0; i < 5; i++) {
+      const atteso = righe.reduce((a, r) => a + (i === 0 ? r.totale : r[chiavi[i]]), 0);
+      ok(n[i] === atteso, `la colonna ${i + 1} dei totali dice ${n[i]}, la somma delle righe fa ${atteso}`);
+    }
+  });
+
+  const dichiarate = Object.keys(DA_RIVERIFICARE);
+  console.log(`\ntabella del delta: ${righe.length} app, ${righe.reduce((a, r) => a + r.totale, 0)} righe`
+    + `  ·  ${dichiarate.length} in riverifica dichiarate (${dichiarate.join(", ") || "nessuna"})`);
+}
+
 /* Quanti soggetti ha guardato davvero questa parte: un «tutto a posto»
    ottenuto non leggendo niente è il difetto raccolto tre volte in CLAUDE.md. */
 console.log(`\nmisure su Genesi: ${ID_MODALE.length + ID_EDITOR_3D.length} id verificati, `
