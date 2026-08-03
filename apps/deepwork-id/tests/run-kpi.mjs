@@ -3780,6 +3780,92 @@ test("la convenzione vive in UN posto: le sei app leggono «1.250» allo stesso 
     ok(mod.numeroDaCampo("1.600", { min: 0.3, max: 5 }).valore === 1.6,
       `${nome}: «1.600» in un campo 0,3–5 vale 1,6 — era ${mod.numeroDaCampo("1.600", { min: 0.3, max: 5 }).valore}`);
 });
+// ══════════════════════════════════════════════════════════════════════
+// ⛔ IL CORE · CHE COSA DI UN RAPPORTINO È STATO MISURATO (03/08)
+// Il difetto si vede su un documento che esce dall'azienda: il PDF di un
+// rapportino salvato senza un solo foro misurato stampava «Fori: 0 · Metri:
+// 0,0 · Media foro: 0,00 m · Mc: 0,0». Quattro zeri su un turno di cui non si
+// sa niente — e il modulo che lo compila la cosa giusta la faceva già.
+// La regola sta in `shared/`, non nella pagina, per la ragione di sempre: nel
+// core la media dei fori era scritta QUATTRO volte con tre comportamenti
+// diversi, e tre su quattro mentivano.
+// ══════════════════════════════════════════════════════════════════════
+test("⛔ core: un turno senza un solo foro misurato non ha zero metri cubi, non ne ha", () => {
+  const r = shell.misureRapportino({ fori: 0, metri: 0, media_prof: 0, mc: 0 });
+  eq(r.misurato, false, "nessun foro misurato, e il modulo lo dichiara");
+  eq(r.calcolabile, false, "quindi il volume non è calcolabile");
+  eq(r.metri, null, "⛔ i metri non sono zero: non ci sono");
+  eq(r.mediaProf, null, "⛔ né la media per foro");
+  eq(r.mc, null, "⛔ né il volume in ballo");
+  eq(r.fori, 0, "il numero dei fori invece è un fatto e si scrive: zero fori misurati");
+});
+test("⛔ core: venti fori misurati e la maglia vuota — il volume è ZERO per costruzione", () => {
+  /* ⛔ IL CASO PEGGIORE, e non è quello sopra. La maglia è un campo libero e
+     OPZIONALE (`validaRapp`: «tutti i campi sono opzionali»); senza di lei
+     `parseMaglia` risponde B=0 e S=0, quindi `mc = media × fori × 0 × 0 × 0.9`
+     fa zero. Sullo schermo e sul PDF usciva «0,0 mc» accanto a sessanta metri
+     perforati veri: uno zero che non viene da un dato mancante evidente, ma
+     da una moltiplicazione per un campo che l'utente non era tenuto a
+     compilare. */
+  const r = shell.misureRapportino({ fori: 20, metri: 60, media_prof: 3, mc: 0, maglia_B: 0, maglia_S: 0 });
+  eq(r.misurato, true, "la perforazione è misuratissima");
+  eq(r.metri, 60, "e i metri si scrivono");
+  eq(r.mediaProf, 3, "e la media per foro");
+  eq(r.calcolabile, false, "⛔ ma il volume no: senza maglia non si può calcolare");
+  eq(r.mc, null, "⛔ e vale `null`, non lo zero che la moltiplicazione produce");
+  eq(r.magliaNota, false, "la ragione è dichiarata, non lasciata dedurre");
+});
+test("⛔ core: un volume scritto da una versione vecchia NON si butta via", () => {
+  /* Il verso opposto, che è l'errore facile da fare correggendo il primo:
+     `maglia_B`/`maglia_S` sono nati dopo, quindi un rapportino vecchio ha un
+     `mc` vero e nessuna maglia. Spegnerlo vorrebbe dire cancellare una misura.
+     Si spegne solo lo ZERO, che nessuna maglia può giustificare. */
+  const r = shell.misureRapportino({ fori: 12, metri: 36, media_prof: 3, mc: 120 });
+  eq(r.calcolabile, true, "un volume positivo resta un volume");
+  eq(r.mc, 120, "e vale quello scritto");
+  eq(r.magliaNota, false, "pur senza la maglia, che allora non si salvava");
+});
+test("core: la media si rifà dai metri quando quella salvata è zero", () => {
+  /* `media_prof` vale 0 proprio sui rapportini che questa regola esiste per
+     prendere: se ci si fidasse, il ripiego non scatterebbe mai. */
+  eq(shell.misureRapportino({ fori: 5, metri: 15, media_prof: 0, mc: 40, maglia_B: 3, maglia_S: 3 }).mediaProf, 3,
+     "cinque fori, quindici metri: tre metri a foro");
+  eq(shell.misureRapportino({ fori: 5, mc: 40, maglia_B: 3, maglia_S: 3 }).mediaProf, null,
+     "ma senza metri non la si inventa");
+});
+test("core: i valori che non sono numeri non diventano zero", () => {
+  for (const cattivo of [null, undefined, "", "abc", true, [], {}, NaN])
+    eq(shell.misureRapportino({ fori: cattivo }).misurato, false,
+       `${mostra(cattivo)} come numero di fori: non misurato`);
+  eq(shell.misureRapportino(null).misurato, false, "e nemmeno un rapportino che non c'è");
+  eq(shell.misureRapportino(undefined).mc, null, "senza esplodere");
+});
+test("⛔ core: il totale lascia fuori quello che non sa, e lo CONTA", () => {
+  /* Sommare `r.mc || 0` è il modo in cui un turno non misurato entra in un
+     totale valendo zero: il totale scende e nessuno lo sa. */
+  const t = shell.totaliRapportini([
+    { fori: 20, metri: 60, media_prof: 3, mc: 283.5, maglia_B: 3.5, maglia_S: 4 },
+    { fori: 0, metri: 0, media_prof: 0, mc: 0 },
+    { fori: 12, metri: 36, media_prof: 3, mc: 0, maglia_B: 0, maglia_S: 0 },
+  ]);
+  eq(t.su, 3, "tre rapportini guardati");
+  eq(t.mc, 283.5, "⛔ e nel volume entra solo quello misurabile");
+  eq(t.metri, 96, "i metri invece li sanno dire in due");
+  eq(t.senzaMisura, 1, "uno non ha misurato niente");
+  eq(t.senzaVolume, 1, "e uno ha misurato ma non sa dire il volume");
+  eq(t.calcolabile, true, "il totale però esiste");
+});
+test("⛔ core: se NESSUNO sa dire il volume, il totale è «non lo so», non zero", () => {
+  const t = shell.totaliRapportini([{ fori: 0, mc: 0 }, { fori: 3, metri: 9, mc: 0, maglia_B: 0, maglia_S: 0 }]);
+  eq(t.mc, null, "⛔ il totale non è zero: non c'è");
+  eq(t.calcolabile, false, "e lo dichiara");
+  eq(t.metri, 9, "mentre i metri, che uno dei due sa dire, si sommano");
+  const vuoto = shell.totaliRapportini([]);
+  eq(vuoto.mc, null, "una lista vuota si comporta allo stesso modo");
+  eq(vuoto.fori, 0, "e i fori contati sono zero, che è un fatto");
+  eq(shell.totaliRapportini(null).su, 0, "e non esplode su una lista che non c'è");
+});
+
 test("il messaggio dell'ambiguo mostra le due letture, non dice «non valido»", async () => {
   const sh = await import("../../../shared/deepwork-id-client/dw-shell.js");
   const m = sh.messaggioNumero(sh.numeroScritto("1.250"), "i chili caricati", { unita: "kg" });

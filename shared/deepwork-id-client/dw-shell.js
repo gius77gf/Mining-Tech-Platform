@@ -1000,3 +1000,72 @@ export function motivoDatiNonSalvati(errore, online = true) {
 
   return { causa, certo, messaggio, tono: causa === "accesso" ? "info" : "err" };
 }
+
+/* ⛔ CHE COSA DI UN RAPPORTINO È STATO MISURATO DAVVERO.
+   Nata il 03/08 da un difetto che si vede su un documento che **esce
+   dall'azienda**: il PDF del rapportino stampa «Fori: 0 · Metri: 0,0 · Media
+   foro: 0,00 m · Mc: 0,0» per un turno in cui nessuno ha misurato un solo
+   foro. Il modulo di inserimento la cosa giusta la fa già — il riquadro dei
+   totali scrive «—» e l'anteprima «nessun foro misurato» — ma quello che
+   finisce nel documento e nelle liste sono quattro zeri, cioè la cifra più
+   tranquilla della scala su un turno di cui non si sa niente.
+
+   ⚠️ E IL CASO PEGGIORE NON È QUELLO, perché quello almeno è coerente: è il
+   rapportino **misurato per bene e senza maglia**. La maglia è un campo
+   libero e opzionale (`validaRapp`: «tutti i campi sono opzionali»), e senza
+   di lei `parseMaglia` risponde `B=0, S=0`, quindi `mc = media × fori × 0 × 0
+   × 0.9` fa **zero**. Venti fori, sessanta metri perforati, e il volume in
+   ballo scritto «0,0 mc» accanto ai fori veri: qui lo zero non è nemmeno la
+   conseguenza di un dato mancante evidente, è il prodotto di una
+   moltiplicazione per un campo che l'utente non era tenuto a compilare.
+
+   Le due domande sono separate perché sono separate nel mestiere:
+   · `misurato`   — qualcuno ha misurato almeno un foro?
+   · `calcolabile` — c'è abbastanza per dire il volume in ballo?
+   Un rapportino può essere misuratissimo e avere il volume non calcolabile.
+
+   ⚠️ `mc` positivo scritto da una versione precedente si **tiene**, anche
+   senza `maglia_B`/`maglia_S`: quei due campi sono nati dopo, e cancellare un
+   volume vero per l'assenza di un campo che allora non si scriveva sarebbe
+   l'errore opposto — buttare via una misura. Si spegne solo lo **zero** che
+   nessuna maglia può giustificare. */
+const _numRapp = (v) => (v === null || v === undefined || v === ""
+                         || typeof v === "boolean" || !Number.isFinite(+v)) ? null : +v;
+export function misureRapportino(r) {
+  const o = r || {};
+  const fori = _numRapp(o.fori);
+  const misurato = fori !== null && fori > 0;
+  const metri = misurato ? _numRapp(o.metri) : null;
+  const scritta = misurato ? _numRapp(o.media_prof) : null;
+  /* la media salvata se c'è ed è vera, se no la si rifà dai metri: `media_prof`
+     vale 0 proprio sui rapportini che questo controllo esiste per prendere */
+  const mediaProf = !misurato ? null
+    : (scritta !== null && scritta > 0 ? scritta
+       : (metri !== null && metri > 0 ? metri / fori : null));
+  const B = _numRapp(o.maglia_B), S = _numRapp(o.maglia_S);
+  const magliaNota = B !== null && B > 0 && S !== null && S > 0;
+  const grezzo = misurato ? _numRapp(o.mc) : null;
+  const mc = grezzo === null ? null : (grezzo === 0 && !magliaNota ? null : grezzo);
+  return { misurato, calcolabile: mc !== null, magliaNota, fori, metri, mediaProf, mc };
+}
+
+/* Il totale di una lista di rapportini, con dichiarato **che cosa è rimasto
+   fuori**. Sommare `r.mc || 0` è il modo in cui un turno non misurato entra in
+   un totale valendo zero: il totale scende e nessuno lo sa. Qui i turni che
+   non sanno dire il volume non entrano nella somma, ed escono contati.
+   ⛔ E se nessuno sa dirlo, il totale è `null`, non zero: è il principio del
+   fondatore applicato alla somma invece che alla singola riga. */
+export function totaliRapportini(righe) {
+  const m = (Array.isArray(righe) ? righe : []).map(misureRapportino);
+  const conMc = m.filter((x) => x.calcolabile);
+  const conMetri = m.filter((x) => x.metri !== null);
+  return {
+    su: m.length,
+    mc: conMc.length ? conMc.reduce((s, x) => s + x.mc, 0) : null,
+    metri: conMetri.length ? conMetri.reduce((s, x) => s + x.metri, 0) : null,
+    fori: m.reduce((s, x) => s + (x.fori || 0), 0),
+    senzaMisura: m.filter((x) => !x.misurato).length,
+    senzaVolume: m.filter((x) => x.misurato && !x.calcolabile).length,
+    calcolabile: conMc.length > 0,
+  };
+}
