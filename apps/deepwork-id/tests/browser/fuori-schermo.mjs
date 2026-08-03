@@ -146,15 +146,40 @@ const MISURA = (larghezza) => {
 
 /* Domanda B. `overflow-x` diverso da `visible` vuol dire che qualcuno ha
    DICHIARATO di voler ritagliare o far scorrere: non è un difetto, è una
-   scelta (la sottoscritta della barra alta è tagliata con i puntini apposta). */
+   scelta.
+   ⛔ QUESTO COMMENTO PORTAVA UN ESEMPIO CHE ERA UN DIFETTO. Diceva «la
+   sottoscritta della barra alta è tagliata con i puntini **apposta**», e il
+   03/08 si è misurato che no: `.role-sm` in `shared/dw-app-ui.css` aveva
+   `nowrap` + `ellipsis` mentre il `.role-sm` del **core** non ce li ha, cioè
+   era una copia più debole di una regola del core — vietata dalla direttiva
+   sullo stile. Effetto: a 320 px usciva dal suo spazio in **tutte e sei** le
+   app (36-59 px) e a 360 in cinque su sei, e la parola che si perdeva era
+   sempre «Deepwork», sull'unica riga che nomina l'ecosistema. Adesso va a capo
+   come nel core e la barra alta resta di 62 px.
+   La lezione, che vale per ogni esclusione di questo file: **un `overflow`
+   dichiarato dice che qualcuno ha scelto, non che abbia scelto bene.** Le
+   esclusioni vanno riguardate, se no diventano il posto dove i difetti si
+   nascondono.
+   ⚠️ La barra alta entra fra i soggetti (`.top`): sono sei sottoscritte vere,
+   una per app, ed è il pezzo di pagina che tutte e sei condividono.
+   ⛔ E DENTRO LA BARRA ALTA L'ESCLUSIONE NON VALE, se no questo controllo
+   avrebbe il buco esatto del difetto che l'ha fatto nascere: `.role-sm` era
+   ritagliata **proprio** con `overflow:hidden`, quindi rimettendo il difetto
+   la regola tornerebbe a saltarla e a dire «pulito». La barra alta non è un
+   contenitore che scorre: è alta 62 px e non ha barre di scorrimento, quindi
+   lì un `scrollWidth` di troppo è **testo perso**, dichiarato o no. Nelle
+   voci di lista l'esclusione resta, perché lì il ritaglio a due righe è una
+   scelta vera del prodotto. */
 const MISURA_RIQUADRO = (fondo) => {
   const fuori = [];
   let guardati = 0;
-  document.querySelectorAll('.item, .sitem').forEach((voce) => {
+  document.querySelectorAll('.item, .sitem, .top, .topbar').forEach((voce) => {
+    const barra = voce.classList.contains('top') || voce.classList.contains('topbar');
     voce.querySelectorAll('*').forEach((e) => {
       const cs = getComputedStyle(e);
       if (cs.display === 'none' || cs.visibility === 'hidden' || cs.opacity === '0') return;
-      if (cs.overflowX !== 'visible') return;
+      if (!barra && cs.overflowX !== 'visible') return;
+      if (barra && (cs.overflowX === 'auto' || cs.overflowX === 'scroll')) return;
       const r = e.getBoundingClientRect();
       if (r.width < 1 || r.height < 1) return;
       guardati++;
@@ -225,7 +250,7 @@ for (const [nome, via] of SUPERFICI) {
 await b.close();
 console.log(`\n${ok} schermate pulite, ${ko} cose fuori posto `
   + `(${ko - koB} fuori dallo schermo, ${koB} fuori dal proprio riquadro) · `
-  + `${elementiB} elementi guardati dentro le voci di lista, ${arretrato} nell'arretrato non preteso`);
+  + `${elementiB} elementi guardati dentro voci di lista e barra alta, ${arretrato} nell'arretrato non preteso`);
 if (CONTROPROVA) {
   /* `trovatiB` è il conto GREZZO, prima che il de-duplicatore accorpi le
      ripetizioni: `koB` conta una volta sola lo stesso difetto in dieci

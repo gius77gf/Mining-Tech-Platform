@@ -78,9 +78,18 @@ img{max-width:100%}
   letter-spacing:3px; text-transform:uppercase; color:var(--app-accent2);
   text-shadow:0 0 14px var(--glow-logo); line-height:1.1;
 }
+/* ⛔ IL CORE NON TAGLIA QUESTA RIGA, e qui era stata tagliata. Misurato il
+   03/08 a 320 px: la sottoscritta dell'app usciva dal suo spazio in TUTTE E SEI
+   le app (da 36 a 59 px), e a 360 px in cinque su sei — con `text-overflow:
+   ellipsis` il taglio si vede, ma quello che si perde è sempre la stessa
+   parola: «Deepwork», cioè il nome dell'ecosistema, sull'unica riga che lo dice.
+   Il `.role-sm` del core (`index.html`) non ha né `nowrap` né `overflow`: va a
+   capo. Questa era una **copia più debole** di una regola del core, che la
+   direttiva vincolante sullo stile vieta («struttura identica al core, pelo per
+   pelo»). Adesso va a capo come lì; la barra alta cresce solo dove serve. */
 .role-sm{
   font-size:9px; color:var(--muted); letter-spacing:2px; text-transform:uppercase;
-  margin-top:2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+  margin-top:2px; overflow-wrap:anywhere; line-height:1.35;
 }
 .dw-home,.dw-exit,.dw-tema-btn{
   position:static; top:auto; right:auto; display:inline-flex; align-items:center;
