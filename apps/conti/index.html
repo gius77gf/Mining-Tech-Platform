@@ -3397,7 +3397,13 @@ label.item:has(.dw-chk:checked){
       for (const p of PES.filter(x => !x.fatturaId)) {
         const k = p.clienteId || "nome:" + String(p.cliente || "—");
         const r = per[k] || (per[k] = { clienteId: p.clienteId || "", cliente: p.cliente || "—",
-          conto: 0, valore: 0, netto: 0, ultima: "" });
+          conto: 0, valore: 0, netto: 0, ultima: "", nonVal: 0 });
+        /* ⛔ STESSA REGOLA DEL TOTALE DEL REGISTRO (03/08): una consegna che non
+           si sa valorizzare somma zero — è la forma numerica, giusta per
+           sommare — ma il «da fatturare» che ne esce è **più basso del vero**.
+           Non si inventa il valore mancante: si dice quante righe il conto non
+           ha potuto contare, cliente per cliente e nel totale. */
+        if (!valoreDdt(p).calcolabile) r.nonVal++;
         r.conto++; r.valore = round2(r.valore + valorePesata(p)); r.netto = round2(r.netto + (+p.netto || 0));
         if (String(p.data || "") > r.ultima) r.ultima = String(p.data || "");
       }
@@ -3406,12 +3412,17 @@ label.item:has(.dw-chk:checked){
         ? gruppi.map(g => `<div class="item st-sup">
           <span class="avatar sup">${IC.camion}</span>
           <div class="info"><div class="name">${esc(g.cliente)}</div>
-          <div class="meta">${plur(g.conto, "DDT da fatturare", "DDT da fatturare")} · ${qt(g.netto)} t · ultima consegna ${fmtD(g.ultima)}</div></div>
+          <div class="meta">${plur(g.conto, "DDT da fatturare", "DDT da fatturare")} · ${qt(g.netto)} t · ultima consegna ${fmtD(g.ultima)}${g.nonVal ? " · " + g.nonVal + (g.nonVal === 1 ? " non valorizzabile" : " non valorizzabili") : ""}</div></div>
           <div class="amt"><div class="amt-n">${eur(g.valore)}</div><div class="amt-s">da fatturare</div></div>
           ${g.clienteId ? `<div class="acts"><button class="dw-btn secondary mini" data-vai-dif="${esc(g.clienteId)}" title="Prepara la fattura differita per questo cliente">${IC.fattura}Fattura</button></div>` : ""}
           </div>`).join("")
           + `<div class="tot"><span class="tot-l">Consegnato da fatturare</span>
              <span class="tot-n">${eur(gruppi.reduce((t, g) => t + g.valore, 0))}</span></div>`
+          + (() => { const n = gruppi.reduce((t, g) => t + g.nonVal, 0); return n
+             ? `<div class="form-hint" style="margin-top:4px;">⚠ ${n === 1
+                 ? "una consegna non è valorizzabile e non entra in questo totale"
+                 : n + " consegne non sono valorizzabili e non entrano in questo totale"}: il valore è per difetto.</div>`
+             : ""; })()
         : vuoto("spunta", "Niente in sospeso", "Tutte le pesate registrate sono già state fatturate. Le nuove consegne le registri nella scheda <b>Pesate</b>."); }
 
     // ── Venduto per prodotto (Report): tonnellate, metri cubi e valore ──
