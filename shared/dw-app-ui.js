@@ -169,8 +169,14 @@
      in cui la strada normale non aveva funzionato. */
   function mostraTesto(titolo, spiega, testo) {
     var area = '<textarea class="dw-input" id="modal-campo" rows="10" readonly '
+      /* ⛔ `pre` NO: manda il testo a scorrere di lato, e a 320 px si legge
+         «Oggetto: sollecito di pagamento» tagliato a metà. Visto nello scatto,
+         non nel codice. Qui il testo esiste PER ESSERE LETTO E COPIATO A MANO —
+         è il ripiego di quando la copia automatica non è riuscita — quindi
+         mandarlo a capo è l'unica scelta: gli a capo veri restano nel valore,
+         quindi chi seleziona e copia riprende il testo originale. */
       + 'style="width:100%;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12px;'
-      + 'white-space:pre;overflow:auto">' + String(testo == null ? "" : testo)
+      + 'white-space:pre-wrap;overflow-wrap:anywhere;overflow-x:hidden;overflow-y:auto">' + String(testo == null ? "" : testo)
         .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;") + "</textarea>";
     return new Promise(function (res) {
       apriModale(titolo, (spiega || "") + area, [
