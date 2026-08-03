@@ -197,6 +197,48 @@ Conti calcola gli interessi di mora usando un `TASSO_MORA_DEFAULT` (che dalle ri
 
 La criticità: Il D.Lgs 231/2002 art. 4 non fissa un tasso **tipico**, ma lo lega al **tasso BCE + 8 punti**. Usare un tasso fisso è un'approssimazione che va dichiarata. La nota dice "(tipico, da confermare)", che è onesta, ma non specifica che il tasso **cambia periodicamente** e che la soglia di validità è legata al momento dell'emissione della fattura, non al momento del calcolo.
 
+---
+
+## ⏱️ VERIFICATO E CHIUSO IL 03/08 (`898b454`) — ma non per la ragione scritta qui
+
+⛔ **Tre cose di questa scheda erano sbagliate, e vanno lette prima del resto,
+perché è la stessa scheda che propone di correggere delle CITAZIONI DI LEGGE in
+un software venduto.**
+
+1. **«il tasso varia mensile»** → falso: varia **per semestre**. Il valore lo
+   pubblica il MEF in Gazzetta per ogni semestre (1° gennaio–30 giugno,
+   1° luglio–31 dicembre).
+2. **«sembra essere del 5%»** → il valore non è stato letto: era **10,15%**,
+   scritto in chiaro a `apps/conti/conti-data.js:696`.
+3. **«spese di recupero: € 40 fino a € 1.000, € 70 oltre»** → **non esiste** nel
+   D.Lgs 231/2002. L'art. 6 prevede un **importo forfettario di 40 euro**, uno
+   solo, senza scaglioni — ed è esattamente ciò che l'app fa
+   (`SPESE_RECUPERO_231 = 40`). Questa è la più pericolosa delle tre: una
+   correzione fatta su quella riga avrebbe **introdotto** un errore in un
+   documento che il cliente manda a un altro cliente.
+
+E il modulo **dichiarava già** quello che la scheda gli rimprovera di non dire:
+*«Tasso di riferimento BCE + 8 punti (1° sem 2026 = 10,15%); è un parametro
+aggiornabile ogni semestre, DA CONFERMARE col commercialista»* — dodici righe
+sopra il punto citato.
+
+✅ **Però verificare per smentire ha trovato un difetto vero, e più grave.** Il
+tasso era **scaduto**: `TASSO_MORA_DEFAULT` è quello del 1° semestre 2026, e il
+03/08 sollecito ed estratto conto lo citavano come se fosse in vigore — da
+**trentaquattro giorni**. Corretto in `898b454`: adesso il modulo dichiara il
+semestre a cui il tasso appartiene (`SEMESTRE_TASSO_MORA`), `statoTassoMora`
+risponde `true`/`false`/**`null`** («non si può dire»), e le lettere aggiungono
+la frase solo quando serve. Non è stato inventato il tasso del semestre in
+corso: quello lo pubblica il MEF e non ce l'abbiamo.
+
+⛔ **Che cosa NON è stato toccato, e perché.** La riga **DUVRI** di questa stessa
+scheda (§3) resta **ferma**. Non perché sia sbagliata — non lo so — ma perché è
+una citazione normativa in un software venduto, la scheda che la propone ha
+appena mostrato **tre errori su una sezione sola**, e la modifica proposta
+toccherebbe che cosa l'app dice a un cliente di un suo **obbligo di sicurezza**.
+Va verificata contro la fonte primaria e portata al fondatore col suo RSPP: è
+una decisione, non una correzione.
+
 **Come si misura**:
 - Leggere art. 4 e 6 del D.Lgs 231/2002 (fonte: Gazzetta Ufficiale 25 maggio 2002, n. 119)
 - Cercare il **tasso BCE attuale** (varia ogni mese)
