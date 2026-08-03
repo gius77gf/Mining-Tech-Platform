@@ -55,6 +55,9 @@ const GUARDIE = [
   ["$('tot-mc').textContent=mc===null?'—':mc.toFixed(1);", "$('tot-mc').textContent=(mc||0).toFixed(1);"],
   ["if($('tot-media'))$('tot-media').textContent=mediaProf===null?'—':mediaProf.toFixed(2);",
    "if($('tot-media'))$('tot-media').textContent=(mediaProf||0).toFixed(2);"],
+  // la data stampata che guardava la forma e non l'esistenza
+  ["function fmt(d){ if(d===null||d===undefined||d==='')return'—'; const t=dataIt(d,''); return t||'data non valida'; }",
+   "function fmt(d){ if(!d)return'—';const[y,m,g]=d.split('-');return`${g}/${m}/${y}`; }"],
 ];
 
 const browser = await chromium.launch({ executablePath: CHROMIUM });
@@ -162,6 +165,12 @@ const det = await p.evaluate(() => {
 if (det.aperta) {
   ok(!/NaN/.test(det.testo), 'nella scheda del mezzo non compare «NaN»', det.testo.slice(0, 160));
   ok(/illeggibile/i.test(det.testo), 'e la scheda dice che la data non si legge', det.testo.slice(0, 160));
+  /* ⛔ E LA DATA STESSA NON SI STAMPA COME SE FOSSE VERA. `fmt` guardava la
+     forma e non l'esistenza: «30/02/2026» usciva come una data qualunque, e
+     «boh» usciva **«undefined/undefined/boh»**. Sta in 58 punti della pagina. */
+  ok(!/30\/02\/2026/.test(det.testo),
+    '⛔ una data che non esiste non viene stampata come se fosse vera', det.testo.slice(0, 200));
+  ok(!/undefined/.test(det.testo), 'e da nessuna parte compare «undefined»', det.testo.slice(0, 200));
 } else {
   console.log('  · scheda del mezzo non aperta: le due prove sulla scheda restano fuori (dichiarato, non taciuto)');
 }

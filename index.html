@@ -108,7 +108,7 @@ import {
 // per il core e per tutte e sei le app. Quando era scritta in ogni app, le sei
 // leggevano «1.250» in tre modi diversi senza che nessun test se ne accorgesse.
 // È un modulo di sole funzioni pure, senza effetti al caricamento.
-import { numeroScritto, messaggioNumero, perCampo, montaGuardiaInteri, isoLocale, meseLocale, motivoDatiNonSalvati, giorniTra } from "./shared/deepwork-id-client/dw-shell.js";
+import { numeroScritto, messaggioNumero, perCampo, montaGuardiaInteri, isoLocale, meseLocale, motivoDatiNonSalvati, giorniTra, dataIt } from "./shared/deepwork-id-client/dw-shell.js";
 
 // ── Config Firebase ──
 const firebaseConfig = {
@@ -343,7 +343,24 @@ const DEFAULT_MESSAGGI = [
 // ── UTIL ──
 function $(id){ return document.getElementById(id); }
 function toast(msg,type){ const t=$('toast');t.className='toast '+(type||'');t.textContent=msg;t.classList.add('show');const dur=DB.settings.outdoor?4000:2500;setTimeout(()=>t.classList.remove('show'),dur); }
-function fmt(d){ if(!d)return'—';const[y,m,g]=d.split('-');return`${g}/${m}/${y}`; }
+/* ⛔ LA DATA STAMPATA GUARDAVA LA FORMA, NON L'ESISTENZA — e sta in 58 punti
+   di questa pagina. Misurato il 03/08:
+
+     "2026-08-01"        → 01/08/2026     giusto
+     "2026-02-30"        → 30/02/2026     un giorno che NON esiste, stampato
+     "2026-13-45"        → 45/13/2026     mese 13, giorno 45
+     "2026-08-01T10:00"  → 01T10:00/08/2026
+     "boh"               → undefined/undefined/boh   ← a schermo
+
+   Le ultime due sono la stessa cosa detta in modo goffo; le prime due sono
+   peggio, perché **sembrano vere**: una scadenza al 30 febbraio si legge come
+   una scadenza qualunque. La regola giusta è in `shared/` da mesi — `dataIt`,
+   che passa da `dataISOEsiste` e un giorno inesistente lo **rifiuta** invece
+   di stamparlo.
+   ⚠️ Le due assenze restano distinte, e non è pignoleria: «—» vuol dire «non
+   c'è una data», «data non valida» vuol dire «ce n'è una e non si può
+   leggere». La seconda è un dato da correggere, la prima no. */
+function fmt(d){ if(d===null||d===undefined||d==='')return'—'; const t=dataIt(d,''); return t||'data non valida'; }
 // ⛔ il giorno si legge in ora LOCALE (isoLocale sta in shared/): con
 // toISOString() un rapportino scritto durante il turno di notte — fra
 // mezzanotte e le due, in Italia — finirebbe datato al giorno prima.
