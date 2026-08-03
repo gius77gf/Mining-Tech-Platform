@@ -7,13 +7,13 @@
 >
 > | app | righe | assenti confermate | **false** | ⏱️ **scadute** | a metà |
 > |---|---|---|---|---|---|
-> | Scudo | 16 | 9 | 2 | 1 | 4 |
+> | Scudo | **17** | **7** | 2 | 1 | **7** |
 > | Sentinella | 22 | **13** | 4 | ⏱️ **3** | **2** |
 > | Terra | 11 | 4 | 2 | 2 | 3 |
 > | Campo | 22 | 12 | 2 | 2 | 6 |
 > | Conti | 18 | **8** | **5** | ⏱️ **3** | 2 |
 > | Flotta | 16 | 5 | 3 | 0 | 8 |
-> | **totale** | **105** | **51** | **18** | **11** | **25** |
+> | **totale** | **106** | **49** | **18** | **11** | **28** |
 >
 > ✅ **E due sono già SCESE**, che è il motivo per cui il conto sta scritto: la
 > **catena di custodia del dato** di Sentinella e il suo **audit trail** (a metà)
@@ -442,51 +442,106 @@
 
 ---
 
-## 7. Verifica del Delta (01/08)
+## 7. Verifica del Delta (01/08 · **riverificata riga per riga il 03/08**)
 
-> **Verificato contro il codice al commit `73a03b0`.** Ogni riga qui sotto
-> era vera **a quel commit**, e non lo è più per forza adesso: il 01/08 una riga è
-> scaduta in **trentacinque minuti**, perché la verifica e il cantiere che la
-> colmava sono girati lo stesso pomeriggio senza sapere l'uno dell'altro.
-> Di quanti commit l'app sia andata avanti da allora lo dice
-> `node apps/deepwork-id/tests/documenti-invecchiati.mjs`. Le righe già trovate
-> scadute portano la loro correzione accanto, con la data.
+> **Verificato contro il codice al commit `ecc65d5`** (03/08). È l'ultimo commit
+> che ha toccato `apps/scudo/`, quindi il contenuto letto è identico a quello di
+> `HEAD`: la verifica è stata fatta sul **committato**
+> (`git show HEAD:apps/scudo/scudo-data.js` e `…:apps/scudo/index.html`, albero
+> `6ccc5ae`), non sul disco, perché mentre girava c'erano altri cantieri aperti.
+> Di quanti commit l'app sia andata avanti da qui lo dice
+> `node apps/deepwork-id/tests/documenti-invecchiati.mjs`.
+>
+> ⏱️ **La verifica precedente era del 01/08, al commit `73a03b0`, e in dodici
+> commit tre righe erano scadute senza che nessuno lo scrivesse.** Non erano
+> verifiche sbagliate: erano vere quando sono state scritte, e i cantieri che le
+> hanno colmate sono girati dopo — la foto come prova (`b66b856`), il ciclo di
+> vita del DSS (`aa14015`), l'andamento degli indici nel tempo (`6a971ff`).
+> Nessuna delle tre ha aggiornato la riga che gliel'aveva proposta.
+>
+> ⛔ **E una riga era stata PERSA nel conto, non nel codice.** Il riepilogo del
+> 01/08 diceva «confermate assenti: 10» sotto un elenco che ne conteneva
+> **undici**, e da lì «righe verificate: 16» dove le righe sono **17**. È lo
+> stesso difetto già trovato in Sentinella e in Conti, con lo stesso rimedio:
+> la riga si **ritrova** (è «Esportazione report PDF/Excel», l'ultima
+> dell'elenco), non si aggiusta il totale. La tabella riassuntiva in cima a
+> questo documento — e alle altre cinque copie — dice ancora `16`: va portata a
+> **17**, e il totale delle sei app da 105 a **106**.
 
 Verificate le righe marcate «non c'è» e «c'è a metà» contro il codice di Scudo.
+Il riferimento a `§2` è la riga corrispondente della tabella «Cosa Abbiamo».
 
-| Funzione | Verdetto | Prova (file:riga o termini cercati) |
+| Funzione | Verdetto | Prova (file:riga o comando + uscita) |
 |----------|----------|-----|
 | **FALSE — C'è già quando marcato «non c'è»** |  |  |
-| Indice di frequenza INAIL (riga 217) | FALSO, C'È GIÀ | `scudo-data.js:1821` export function indiciInfortunistici(); `index.html:1744-1746` visualizza IF, IG, LTIFR |
-| Organigramma della sicurezza (riga 250) | FALSO, C'È GIÀ | `scudo-data.js:1350+` export function organigrammaSicurezza(); `index.html` sezione S4 "NOMINE E ORGANIGRAMMA DELLA SICUREZZA" |
-| **CONFERMATO ASSENTE** |  |  |
-| Notifiche automatiche (riga 216) | CONFERMATO ASSENTE | Cercati: notific, email, alert, push — zero occorrenze in scudo-data.js e index.html. C'è solo il toast per messaggi nell'app. |
-| Dashboard KPI infortuni/near-miss/nc (riga 279) | CONFERMATO ASSENTE | Indici calcolati ma non visualizzati in dashboard. Grafici di copertura e scadenze sì, grafici trend infortuni no. |
-| Foto e video come evidenza (riga 235) | CONFERMATO ASSENTE | Allegati supportati solo nei DOCUMENTI (≤400KB). Infortuni e ispezioni: nessun campo allegato. Cercati: foto, video, immagine, media, upload. |
-| Report PDF automatico — ispezioni (riga 236) | CONFERMATO ASSENTE | C'è un PDF per il verbale DPI (specifico), non per le ispezioni. Cercati: report PDF, ispezione, stampa. |
-| Gestione DSS/PSC/POS strutturata (riga 206) | CONFERMATO ASSENTE | Documenti si registrano genericamente (tipo: "DSS", "POS", ecc.), ma zero modulo strutturato. |
-| Controllo versioni documenti (riga 210) | CONFERMATO ASSENTE | Cercati: versione, controllo versione, history, storico — solo riferimenti a storico dei near-miss, non dei documenti. |
-| Mobile app offline (riga 234) | CONFERMATO ASSENTE | Cercati: offline, service worker, PWA, cache — zero occorrenze. |
-| Permessi di Lavoro (PTW, riga 263) | CONFERMATO ASSENTE | Spazi confinati menzionati solo come voce di ispezione, non come modulo PTW. |
-| Segnalazioni osservazioni (righe 269-272) | CONFERMATO ASSENTE | Cercati: segnalazione osservazione, safety observation, comportamento rischio, buona pratica — zero occorrenze. |
-| Anagrafe appaltatori / DUVRI (righe 257-259) | ⏱️ **SCADUTA — C'È DAL 01/08** (verifica `73a03b0` 16:21 → costruito `425bf40` 19:28; `qualificaAppaltatore`, `docDiAppaltatore`, `appaltiDiAppaltatore`, `appaltatoriDaVerificare`, sezione «Appalti» ex art. 26 D.Lgs 81/08) | DUVRI è tipo di documento generico, zero modulo di gestione appaltatori. |
-| Esportazione report PDF/Excel (riga 281) | CONFERMATO ASSENTE | Export CSV puntuali (lavoratori, scadenze, azioni, infortuni), ma zero report complessivo PDF/Excel. |
-| **C'È A METÀ — Verdetto confermato** |  |  |
-| Aggiornamento automatico scadenze (riga 202) | C'È A METÀ | Calcolo stato: SÌ (`scudo-data.js:907+`). Notifiche email/push: NO. |
-| Tracciamento completamento corsi (riga 275) | C'È A METÀ | Corsi tracciati come scadenze (tipo: "Corso"); via scadenze sì, LMS completo no. |
-| Allarmi scadenza certificazione (riga 276) | C'È A METÀ | Calcolo stato: SÌ. Notifiche automatiche: NO. |
-| Filtri per site/data/tipo (riga 282) | C'È A METÀ | Filtri su lista infortuni: sì. Dashboard con filtri incrociati: no. |
+| Indice di frequenza INAIL (§2 «Indice di frequenza INAIL») | FALSA | `scudo-data.js:2508` `indiciInfortunistici()`; `index.html:2253-2258` mostra IF, IG e LTIFR. **Rafforzata dalla decisione 17** (02/08): un infortunio a prognosi aperta non vale «0 giornate perse» (`scudo-data.js:2513-2522`, `daQuantificare`) e IG/LTIFR si dichiarano un **minimo** (`avvisoGravitaMinima`, `scudo-data.js:2544`). |
+| Organigramma della sicurezza (§2 «Organigramma della sicurezza») | FALSA | `scudo-data.js:2085` `organigrammaSicurezza()`; usata in `index.html:1665`, sezione «Nomine della sicurezza» (`index.html:821`). |
+| **CONFERMATE ASSENTI** — in ordine di quanto le chiederebbe un ispettore |  |  |
+| Permessi di lavoro (PTW) (§2 «Permessi per spazi confinati/lavori caldi/altura») | CONFERMATA | `grep -ciE 'ptw\|permit\|autorizzatore\|lavoro in quota\|lavori a caldo'` → **0 e 0**. «permesso di lavoro» compare **2 volte** e sono la stessa frase: la voce di checklist «Accesso a tramogge e spazi confinati regolato da permesso di lavoro» (`scudo-data.js:350` e `:948`). Cioè l'app **chiede in ispezione** un permesso che non sa né emettere né conservare. |
+| Controllo versioni documenti (§2 «Controllo versioni documenti») | CONFERMATA | `grep -ciE 'versionamento\|storico documenti\|cronologia\|revisione precedente'` → **0 e 0**. Le 38 occorrenze di «revisione» sono tutte del ciclo DSS, che tiene **una sola data** (`dssRevisione`, `scudo-data.js:1471-1494`): dice qual è l'ultima revisione, non quali erano le precedenti. Un documento sostituito sparisce. |
+| Report PDF automatico — ispezioni (§2 «Report PDF automatico») | CONFERMATA | L'unica stampa è il **verbale DPI**: `index.html:892` (bottone), `:4116` `stampaVerbale()`, `:655-666` (regole `@media print` legate alla classe `stampa-verbale`). Nessun percorso di stampa parte da un'ispezione: `grep -n 'isp' ` sui punti di stampa → nessuno. |
+| Esportazione report PDF/Excel (§2 «Esportazione report PDF/Excel») | CONFERMATA | `grep -ciE 'xlsx\|excel\|jspdf'` → **0 e 0**. Restano i tre export CSV puntuali: `index.html:1007` (azioni), `:1174` (near-miss), `:1223` (infortuni). Nessun documento unico da consegnare. |
+| Notifiche automatiche (§2 «Notifiche automatiche») | CONFERMATA | `grep -ci 'notific'` → **0 e 0**. Le uniche tre righe con «email/SMS» sono il **testo da copiare a mano**: `scudo-data.js:552` `testoPromemoria()` e `index.html:3302`, `:3310` («incollalo nell'email o nell'SMS»). L'app scrive il messaggio, non lo manda: la scadenza la deve vedere un umano che apre l'app. |
+| Segnalazioni osservazioni (§2, quattro righe «Segnalazioni Osservazioni») | CONFERMATA | `grep -ciE 'osservazion\|buona pratica\|buone pratiche\|safety observation'` → **0 e 0**. Il registro eventi ha due soli tipi, `infortunio` e `near-miss` (`scudo-data.js:43`): manca il terzo, quello che si segnala **prima** che accada qualcosa. |
+| Mobile app offline (§2 «Mobile app offline») | CONFERMATA | `grep -ciE 'offline\|serviceworker\|caches\.'` → **0 e 0**. C'è il `manifest` PWA (`index.html:12`, `display:standalone`), che rende l'app installabile ma **non** utilizzabile senza rete: in cava, dove il campo non c'è, la checklist non si compila. |
+| **⏱️ SCADUTE — vere il 01/08, colmate dopo** |  |  |
+| Anagrafe appaltatori / DUVRI (§2, cinque righe «Contractor/Appaltatori») | ⏱️ SCADUTA | Colmata da `425bf40` (01/08), tre ore dopo la verifica. Oggi: `scudo-data.js:2883` `qualificaAppaltatore()`, `:2973` `duvriDovuto()`, `:3049` `statoCoordinamento()`, `:3093` `statoAppalto()`, `:3146` `appaltatoriDaVerificare()`, `:2847` `TIPI_DOC_APPALTATORE`, `:2956` `NATURE_APPALTO`; pagina `index.html:1232` (`page-appa`), sezioni «Appalti» (`:1240`) e «Imprese esterne» (`:1276`), ex art. 26 D.Lgs 81/08. La riga copre anche il **DUVRI**, che da tipo generico di documento è diventato una condizione calcolata. |
+| **A METÀ — c'è un pezzo** |  |  |
+| Foto e video come evidenza (§2 «Foto e video come evidenza») | ⏱️ **A METÀ** — era CONFERMATA, colmata a metà | La **foto** c'è, dal 01/08: modulo in `e19e196`, pagina in `b66b856`. `scudo-data.js:1104` `MAX_FOTO = 3`, `:1125` `fotoDiEvento()`, `:1138` `fotoDiIspezione()`, `:1155` `bilancioFoto()`, `:1176` `bilancioFotoVoce()`; pagina `index.html:2506-2509` (icona sull'evento), `:2745` (voce d'ispezione), `:605-651` (galleria in modale). **Manca il video**: `grep -ci 'video'` → **0 e 0**, e i due campi file sono `accept="image/*"` (`index.html:4385`, `:4521`). |
+| Gestione DSS/PSC/POS strutturata (§2 «Gestione DSS/PSC/POS») | ⏱️ **A METÀ** — era CONFERMATA, colmata a metà | Il **DSS** ha il suo ciclo di vita dal 01/08 (`aa14015`): `scudo-data.js:1422` `MOTIVI_REVISIONE_DSS`, `:1471` `cicloDss()`, `:1528` `descriviCicloDss()`, `:1590` `dssDaSeguire()`, campi `dssRevisione`/`dssMotivo`/`dssTrasmissione`; pagina `index.html:1103` sezione «Il DSS e il suo ciclo», `:2095-2135`. **PSC e POS no**: `grep -ci 'psc'` → **0 e 0**, e «POS» resta solo un valore di `TIPI_DOCUMENTO` (`scudo-data.js:472`). Il residuo è però una scelta di **ambito** dichiarata dal modulo: «il POS riguarda i cantieri edili» (`scudo-data.js:469`). |
+| Dashboard KPI infortuni/near-miss/nc (§2 «Dashboard KPI infortuni/near-miss/nc») | ⏱️ **A METÀ** — era CONFERMATA, colmata a metà | I **numeri e i grafici ci sono**: indici dell'anno (`index.html:1135`), andamento anno per anno con due grafici separati per scala (`scudo-data.js:2618` `andamentoIndici()`, `:2590` `INDICI_TREND`; `index.html:1153-1156`, `:2329` `graf-if`, `:2341` `graf-ig`, da `6a971ff`), riepilogo near-miss con due grafici (`index.html:2419-2420`) e le cause (`:2455`). **Manca la dashboard**: i KPI del Quadro (`index.html:722-731`, otto piastrelle) parlano di scadenze, azioni, mansioni e DPI — non di infortuni, near-miss e non conformità — e tutto il resto vive sparso dentro la pagina «Documenti», senza filtri per sito o per anno. |
+| Aggiornamento automatico scadenze (§2 «Aggiornamento automatico scadenze») | A METÀ | Calcolo dello stato: sì — `scudo-data.js:528` `livelloScadenza()`, regola condivisa in `shared/dw-ponti.js:562` `statoScadenzaHSE()`. Invio automatico: no (vedi «Notifiche automatiche»). |
+| Allarmi scadenza certificazione (§2 «Allarmi scadenza certificazione») | A METÀ | Stesso calcolo di stato più il testo pronto (`scudo-data.js:552` `testoPromemoria()`), ma l'allarme lo deve andare a leggere qualcuno: nessun invio, nessun calendario. |
+| Tracciamento completamento corsi (§2 «Tracciamento completamento corsi») | A METÀ | I corsi sono scadenze di tipo «Corso» (`scudo-data.js:1343-1344`), con la copertura per tipo (`:1264` `coperturaFormazione()`) e i requisiti di formazione per mansione (`:1724` `REQUISITI_FORMAZIONE`, `:1763` `statoRequisito()`). Manca il completamento vero: nessun registro di partecipazione, nessuna firma, nessun contenuto del corso. |
+| Filtri per sito/data/tipo (§2 «Filtri per site, data, tipo evento») | A METÀ | Filtri su ogni lista: `index.html:916` (scadenze), `:971` (azioni), `:1021` (ispezioni), `:1195` (eventi), e le piastrelle del Quadro portano alla lista già filtrata (`data-goto` + `data-filtro`, `index.html:723-731`). Manca l'incrocio: non si può chiedere «near-miss del fronte Est nel 2025». |
 
-### Riepilogo Verifica
+### Riepilogo Verifica (03/08)
 
-- **Righe verificate**: 16
-- **FALSE (c'è già)**: 2
-- **Confermate assenti**: 9
-- **⏱️ Scadute**: 1 (anagrafe appaltatori / DUVRI → `qualificaAppaltatore`, tre ore dopo la verifica)
-- **C'è a metà (verdetto confermato)**: 4
+- **Righe verificate**: **17** — erano dichiarate 16, e la diciassettesima è stata
+  ritrovata dentro l'elenco del 01/08, non aggiunta adesso.
+- **Confermate assenti**: **7**
+- **FALSE (c'era già)**: **2**
+- **⏱️ Scadute**: **1**
+- **A metà**: **7**
+- Somma: 7 + 2 + 1 + 7 = **17** ✅
+
+Rispetto al 01/08 (10 confermate reali, 2 false, 1 scaduta, 4 a metà): le
+**confermate scendono da 10 a 7**, perché tre righe che erano buchi interi sono
+diventate mezzi buchi. Il numero che conta è quello, e scende.
+
+⚠️ **Da riportare nella tabella in cima ai sei documenti** (una verità sola
+scritta sei volte: o si aggiornano insieme, o divergono):
+`| Scudo | 17 | 7 | 2 | 1 | 7 |`, e la riga dei totali
+`| **totale** | **106** | **49** | **18** | **11** | **28** |`.
 
 ### Mancanza Confermata più Importante
 
-La **Dashboard KPI infortuni/near-miss/non-conformità** rimane il gap più evidente. L'app calcola gli indici (frequenza, gravità, LTIFR) ma non li visualizza in un dashboard con trend nel tempo o filtri per sito/anno — esattamente quello che tutti i competitor offrono e che la cava userebbe per mostrare il trend al cliente/ente. 
+Non è più la dashboard. Adesso è il **permesso di lavoro (PTW)**, ed è l'unica
+delle sette confermate che un ispettore può chiedere di **vedere sul posto**:
+in cava gli spazi confinati esistono davvero — tramogge, silos, vasche — e per
+quelli il DPR 177/2011 pretende una procedura scritta e un'autorizzazione
+all'accesso. Il punto che la rende la prima: **la nostra stessa checklist la
+chiede già**. La voce «Accesso a tramogge e spazi confinati regolato da permesso
+di lavoro» (`scudo-data.js:350`) obbliga chi ispeziona a rispondere sì o no su
+un documento che l'app non sa produrre, quindi la risposta «sì» oggi non ha
+niente dietro. Un'app che verifica un adempimento senza saperlo gestire è
+esattamente il numero tranquillo dove non è stato misurato niente.
 
-Correlato: **grafici trend** (riga 280) e **esportazione report PDF** (riga 281) — il complesso dashboard/reporting è assente.
+Subito dopo, e per la stessa ragione — è ciò che si consegna in mano a chi
+controlla — il **verbale d'ispezione in PDF** e il **controllo di versione dei
+documenti**: «quale revisione del DVR è in vigore, e da quando» oggi ha risposta
+solo per il DSS.
+
+⚠️ **La tabella §2 «Cosa Abbiamo» non è stata toccata da questa riverifica e in
+sei righe è ora falsa**: «Foto e video come evidenza», «Gestione DSS/PSC/POS»,
+«Grafici trend frequenza/gravità», «Indici frequenza/gravità/AIFR»,
+«Organigramma della sicurezza» e le cinque righe di «Contractor/Appaltatori»
+dicono ancora ❌. Va rifatta, ma è un lavoro suo: qui si sarebbe perso il
+confronto con quello che il 01/08 era stato scritto.
+
+⚠️ **E §2 contiene 36 righe ❌ e 5 righe ⚠️, mentre questa sezione ne verifica
+17 raggruppate**: alcune non sono mai state guardate riga per riga — fra le
+altre «Redazione automatica DVR», «Valutazione rischi per mansione», «Dashboard
+per cantiere», «LMS integrato», «Registro firmato partecipazione», «RCA/ICAM
+strutturato», «Heatmap geografica», «AI predictive analytics». Il conto di 17
+non le comprende, e dirlo qui è meno peggio che lasciarle credere verificate.

@@ -393,7 +393,15 @@ const DA_RIVERIFICARE = {};
 {
   const APP_DELTA = ["campo", "conti", "flotta", "scudo", "sentinella", "terra"];
   const TABELLA = /^> \| app \| righe \|[\s\S]*?\| \*\*totale\*\*[^\n]*\n/m;
-  const RIGA = /^> \| ([A-Za-zà-ù]+) \| (\d+) \|(?:[^|]*?(\d+)[^|]*)\|(?:[^|]*?(\d+)[^|]*)\|(?:[^|]*?(\d+)[^|]*)\|(?:[^|]*?(\d+)[^|]*)\|/;
+  /* ⚠️ Anche la colonna del TOTALE può essere in grassetto: la prima versione
+     pretendeva un numero nudo lì, e il giorno in cui Scudo è passata da 16 a
+     **17** righe il controllo ha risposto «lette 5 righe di app invece di 6»
+     invece di leggere il numero nuovo. Ha fatto il suo mestiere — ha detto
+     che non aveva guardato tutto — ma la lezione è la solita: un lettore che
+     pretende una forma si rompe quando la forma cambia, e la forma cambia
+     proprio quando il numero è interessante. */
+  const CELLA = "\\|(?:[^|]*?(\\d+)[^|]*)";
+  const RIGA = new RegExp("^> \\| ([A-Za-zà-ù]+) " + CELLA.repeat(5) + "\\|");
   const copie = APP_DELTA.map((a) => {
     const testo = readFileSync(join(RADICE, `docs/CONCORRENTI_${a.toUpperCase()}.md`), "utf8");
     const m = TABELLA.exec(testo);
