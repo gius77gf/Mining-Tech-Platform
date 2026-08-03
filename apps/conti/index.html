@@ -1567,7 +1567,7 @@ label.item:has(.dw-chk:checked){
   import { parseMovimentiCsv, abbinaMovimenti, ESTRATTO_ESEMPIO,
            contiData, giorni, kpiFrom, statoScadenzaFattura, agingIncassi, gareRiepilogo, prioritaIncasso, incassoAtteso, incassoPerMese, esposizioneClienti, estrattoContoCliente, livelloSollecito, interessiMora, testoSollecito, TASSO_MORA_DEFAULT, parseFattureCsv, parseGareCsv, parseListinoCsv, chiaveNome, clienteDiFattura, nomeCliente, clientiDaCollegare,
     round2, densitaValida, prezzoPerTonnellata, prezzoPerMetroCubo, convertiQuantita, imponibileRiga,
-    importiFattura, totaliDaRighe, prossimoNumero, nettoPesata, rigaPesata, valorePesata,
+    importiFattura, totaliDaRighe, prossimoNumero, nettoPesata, rigaPesata, valorePesata, valoreDdt,
     quantitaPesata, pesateDaFatturare, fatturaDaPesate, canonePeriodo, BASI_CANONE, venditePerProdotto,
     cavatoPeriodo, vendutoPeriodo, riconciliazione, valoreCavato, SOGLIA_DIVARIO,
     applicaIncassi, apertoDi, statoIncasso, movimentiDiFattura, incassatoPeriodo,
@@ -3306,8 +3306,16 @@ label.item:has(.dw-chk:checked){
       <div class="info"><div class="name"><span class="num-doc">DDT ${esc(p.numero || "—")}</span> · ${esc(p.cliente || "—")}</div>
       <div class="meta">${meta}</div></div>
       <div class="amt" title="${p.unitaVendita === "m3" ? "Venduto a metro cubo: i m³ vengono dal netto diviso la densità" : "Venduto a tonnellata"}">
-        <div class="amt-n${p.fatturaId ? " mute" : ""}">${eur(valorePesata(p))}</div>
-        <div class="amt-s">${p.quantita == null ? "quantità non calcolabile" : qtu(p.quantita, p.unitaVendita) + " × " + eur(p.prezzoUnitario) + (+p.scontoPct > 0 ? " − " + perc(p.scontoPct) : "")}</div></div>
+        ${/* ⛔ E QUANDO LA QUANTITÀ NON SI MISURA NON SI SCRIVE NEMMENO «€ 0,00».
+             Questa riga la frase giusta la diceva già, ma sopra ci teneva uno
+             zero in euro: cioè diceva insieme «non si può misurare» e «vale
+             zero», e delle due quella che si legge per prima è la cifra grande.
+             Uno zero è un importo dichiarato; qui l'importo non c'è. */
+          (() => { const v = valoreDdt(p); return `
+        <div class="amt-n${p.fatturaId || !v.calcolabile ? " mute" : ""}">${v.calcolabile ? eur(v.valore) : "—"}</div>
+        <div class="amt-s">${v.calcolabile
+          ? qtu(v.quantita, p.unitaVendita) + " × " + eur(p.prezzoUnitario) + (+p.scontoPct > 0 ? " − " + perc(p.scontoPct) : "")
+          : "quantità non calcolabile"}</div>`; })()}</div>
       <span class="badge ${p.fatturaId ? "ok" : "warn"}">${p.fatturaId ? "Fatturato" : "Da fatturare"}</span>${
         manca.length ? `<span class="badge warn" title="${esc(manca.join("; "))}">DDT incompleto</span>` : ""}${badgePrezzo(p)}
       <div class="acts"><button class="arr" type="button" title="Stampa il DDT da dare al camionista (o salvalo in PDF)" aria-label="Stampa il DDT ${esc(p.numero || "")}" data-stampa-ddt="${p.id}">${IC.stampa}</button>${p.fatturaId ? "" : `<button class="arr del" type="button" title="Elimina pesata" aria-label="Elimina il DDT ${esc(p.numero || "")}" data-del-pes="${p.id}">${IC.croce}</button>`}</div>
@@ -3613,14 +3621,23 @@ label.item:has(.dw-chk:checked){
     difSel = new Set([...difSel].filter(id => ids.includes(id)));
     if (!difSel.size && ids.length) ids.forEach(id => difSel.add(id));
     const scelti = lista.filter(p => difSel.has(p.id));
+    /* ⛔ LA STESSA COSA CHE DICE IL REGISTRO PESATE, E FINO AL 03/08 NON LA
+       DICEVA. Su un DDT venduto a metro cubo senza densità questa riga
+       scriveva «€ 0,00» e «—»: due numeri tranquilli su una consegna che
+       nessuno ha potuto misurare, e per giunta con la spunta già messa, cioè
+       pronta a entrare in fattura contata zero. Misurato affiancando le due
+       schermate sul DDT 2026/013 della dimostrazione — il registro diceva
+       «quantità non calcolabile», questa no. La bandiera la alza `valoreDdt`
+       nel modulo; qui la si legge, che è l'unico modo in cui protegge
+       qualcosa. */
     $("dif-list").innerHTML = lista.length
-      ? lista.map(p => `<label class="item tocca st-accent">
+      ? lista.map(p => { const v = valoreDdt(p); return `<label class="item tocca st-accent">
         <input type="checkbox" class="dw-chk" data-ddt="${p.id}"${difSel.has(p.id) ? " checked" : ""}
                aria-label="Includi il DDT ${esc(p.numero || "")} nella fattura">
         <div class="info"><div class="name"><span class="num-doc">DDT ${esc(p.numero || "—")}</span> · ${esc(p.prodotto || "—")}</div>
         <div class="meta">${fmtD(p.data)} · ${qt(p.netto)} t netti${p.mezzo ? " · " + esc(p.mezzo) : ""}${p.destinatario ? " · " + esc(p.destinatario) : ""}</div></div>
-        <div class="amt"><div class="amt-n">${eur(valorePesata(p))}</div>
-          <div class="amt-s">${p.quantita == null ? "—" : qtu(p.quantita, p.unitaVendita)}</div></div>${badgePrezzo(p)}</label>`).join("")
+        <div class="amt"><div class="amt-n${v.calcolabile ? "" : " mute"}">${v.calcolabile ? eur(v.valore) : "—"}</div>
+          <div class="amt-s">${v.calcolabile ? qtu(v.quantita, p.unitaVendita) : "quantità non calcolabile"}</div></div>${badgePrezzo(p)}</label>`; }).join("")
       : ($("dif-cli").value
           ? vuoto("spunta", "Nessun DDT da fatturare", "Per questo cliente non ci sono consegne in attesa nel periodo scelto. Prova ad allargare le date o svuotale per vederle tutte.")
           : vuoto("camion", "Scegli il cliente", "La fattura differita mette insieme i DDT di <b>un solo cliente</b>: scegli chi fatturare qui sopra e compariranno le sue consegne ancora da fatturare."));
@@ -3631,14 +3648,30 @@ label.item:has(.dw-chk:checked){
   function aggiornaDifTot() {
     const lista = difVisibili(), scelti = lista.filter(p => difSel.has(p.id));
     const ant = fatturaDaPesate(scelti);
-    $("dif-tot").innerHTML = ant
-      ? `<div class="riep">
+    /* ⛔ E I TOTALI DICONO SE VALGONO. `ant.calcolabile` è falsa quando fra i
+       DDT spuntati ce n'è uno senza quantità misurabile: quel DDT entra nella
+       somma contato ZERO, quindi imponibile, IVA e totale sono più BASSI del
+       vero. Fino al 03/08 la pagina li disegnava lo stesso, tranquilli, e la
+       cosa si scopriva soltanto premendo «Prepara la fattura riepilogativa» —
+       cioè dopo aver già letto un totale sbagliato e averci creduto. La
+       bandiera c'era, la alzava il modulo, e qui non la leggeva nessuno: una
+       guardia scollegata non protegge niente. */
+    $("dif-tot").innerHTML = !ant ? ""
+      : `<div class="riep">
          <div class="mrec"><span class="k">DDT scelti</span><span class="v">${ant.conto}</span></div>
          <div class="mrec"><span class="k">Righe raggruppate per prodotto</span><span class="v">${ant.righe.length}</span></div>
-         <div class="mrec"><span class="k">Imponibile</span><span class="v">${eur(ant.imponibile)}</span></div>
-         <div class="mrec"><span class="k">IVA</span><span class="v">${eur(ant.ivaImporto)}</span></div>
-         <div class="mrec"><span class="k">Totale fattura</span><span class="v">${eur(ant.totale)}</span></div>
-         </div>` : "";
+         <div class="mrec"><span class="k">Imponibile</span><span class="v">${ant.calcolabile ? eur(ant.imponibile) : "—"}</span></div>
+         <div class="mrec"><span class="k">IVA</span><span class="v">${ant.calcolabile ? eur(ant.ivaImporto) : "—"}</span></div>
+         <div class="mrec"><span class="k">Totale fattura</span><span class="v">${ant.calcolabile ? eur(ant.totale) : "—"}</span></div>
+         </div>`
+        + (ant.calcolabile ? "" : `<div class="note avviso">${
+             ant.ddtSenzaQuantita.length === 1
+               ? "Il DDT <b>" + esc(ant.ddtSenzaQuantita[0]) + "</b> non ha una quantità misurabile"
+               : "I DDT <b>" + esc(ant.ddtSenzaQuantita.join(", ")) + "</b> non hanno una quantità misurabile"
+           }: ${ant.ddtSenzaQuantita.length === 1 ? "è venduto" : "sono venduti"} a metro cubo e il prodotto
+           non ha la <b>densità</b>. Finché manca, il totale della fattura non si può calcolare: sarebbe
+           più basso del dovuto. Aggiungi la densità nella scheda <b>Listino</b>, oppure togli
+           ${ant.ddtSenzaQuantita.length === 1 ? "quella spunta" : "quelle spunte"} e fattura il resto.</div>`);
     const btn = $("btn-dif-tutti");
     if (btn) { btn.textContent = (lista.length && scelti.length === lista.length) ? "Togli tutti" : "Spunta tutti";
       btn.disabled = !lista.length; }

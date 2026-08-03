@@ -101,7 +101,7 @@ const APP = ["campo", "conti", "flotta", "scudo", "sentinella", "terra"];
    (`terra.X === ponti.X`) invece del comportamento.
    `densitaPerEnte` e `descriviDensita` restano di Terra, e il conto lo dice: a
    scendere sono otto, non dieci. */
-const FONDO = { campo: 102, conti: 109, flotta: 81, scudo: 130, sentinella: 122, terra: 58 };
+const FONDO = { campo: 103, conti: 111, flotta: 82, scudo: 130, sentinella: 122, terra: 58 };
 
 /* Quello che resta fuori per un motivo, non per dimenticanza: i caricatori
    dati vogliono la rete e lo SDK, i ponti demo vogliono il localStorage.
@@ -174,8 +174,12 @@ const CONDIVISI = [
      fondatore nel punto in cui si vede: su un dato che manca scrivono «—»,
      non «0». Quanto è grande il resto del cantiere lo misura
      `genesi-estraibili.mjs`. */
-  { file: "apps/genesi/genesi-formato.js", fondo: 6,
-    perche: "come Genesi scrive i numeri che l'utente legge: spalla, maglia, consumo specifico, chili di esplosivo" },
+  /* 6 → 8 il 03/08: `gEsito` e `gIn`, cioè come Genesi LEGGE un numero
+     scritto a mano. Sono arrivate insieme al blocco della riconciliazione
+     (`riconDelta` le chiama) e stanno qui perché scrivere e leggere sono le
+     due metà della stessa convenzione sui numeri italiani. */
+  { file: "apps/genesi/genesi-formato.js", fondo: 8,
+    perche: "come Genesi scrive — e legge — i numeri: spalla, maglia, consumo specifico, chili di esplosivo" },
   /* ⛔ IL SECONDO PEZZO DI GENESI USCITO DALLA PAGINA. Il primo diceva come
      Genesi SCRIVE un numero; questo dice come lo CALCOLA, sul numero che
      decide se una volata si può sparare: quanto farà vibrare la casa più
@@ -187,8 +191,19 @@ const CONDIVISI = [
      trasloco. Quanto manca lo misura `genesi-estraibili.mjs`. */
   /* 12 → 14 il 02/08: `ppvSenzaSoglia` e la sua tabella `PPV_SENZA_SOGLIA`,
      cioè la RAGIONE per cui una soglia di vibrazione manca. */
-  { file: "apps/genesi/genesi-data.js", fondo: 14,
-    perche: "la vibrazione al recettore: la legge di sito dai referti, il limite di norma, l'airblast" },
+  /* ⛔ 14 → 25 il 03/08: IL TERZO PEZZO DI GENESI USCITO DALLA PAGINA, e sta
+     insieme per mestiere — la RICONCILIAZIONE previsto-vs-reale. Il giro
+     intero del dato che torna dal campo: il consuntivo di carico che Campo
+     riesporta (`_riconParseCampo`), i chili che diventano numeri
+     (`_riconRiassuntoCampo`), i numeri che diventano schermo (`_ricKg`,
+     `_ricSegno`, `_ricPct`, `_ricPlur`, `_ricData`, `_ricColore`,
+     `riconDelta`, `_rEsc`) e lo storico che esce in CSV
+     (`csvRiconciliazione`, che prima era il corpo di un `onclick` anonimo —
+     un file che esce dall'azienda e che nessuna prova poteva chiamare).
+     Sono entrate identiche, copiate da un programma: le 25 prove blindano il
+     comportamento di oggi, difetti compresi e dichiarati nel loro nome. */
+  { file: "apps/genesi/genesi-data.js", fondo: 25,
+    perche: "la vibrazione al recettore e la riconciliazione previsto-vs-reale: i due numeri di Genesi che decidono qualcosa" },
 ];
 /* Fuori per un motivo, non per dimenticanza. Le prime tre toccano il DOM o
    l'orologio e vivono nei banchi del browser (`tests/browser/`), non in

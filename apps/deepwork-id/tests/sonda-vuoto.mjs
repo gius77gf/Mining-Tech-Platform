@@ -582,21 +582,66 @@ function censimentoStatico(fonti) {
        difetto di `avanzamentoLotto` (0% dove nessuno ha rilevato) e quello di
        `oreContatore` di Flotta (zero ore da un contatore illeggibile).
        Non è un difetto se lì attorno qualcuno ha già escluso l'assenza. */
-    const reA = /Number\.isFinite\(\s*\+/g; let m;
-    while ((m = reA.exec(src))) {
-      if (tipo[m.index] !== CODICE) continue;
-      CANDIDATI++;
-      const X = soggettoPiu(src, m.index); if (!X) continue;
-      const q = esc(X), t = trattoDi(src, tag, m.index);
-      const difeso = [
+    /* le difese che tolgono di mezzo l'assenza. `sorgente` è quello che viene
+       convertito (`d.quantita`), `nome` la variabile che lo riceve quando le
+       due metà sono separate — vale "" nella forma attaccata.
+       ⛔ `X > 0` e `X <= 0` DIFENDONO, `X >= 0` e `X < 0` NO: lo zero che
+       `+null` produce passa in mezzo a queste ultime due senza toccare niente.
+       Misurato il 03/08: è la differenza fra `campiPpvVolata` (`v <= 0`, sana)
+       e `correggiLettura` (`v < 0`, che da `null` scrive una lettura di ZERO
+       su uno strumento di vibrazione — cioè il numero più tranquillo che ci
+       sia). */
+    const difese = (sorgente, nome, testo) => {
+      const q = esc(sorgente);
+      const r = [
         new RegExp(`${q}\\s*[!=]==?\\s*(null|undefined|"")`),
         new RegExp(`(null|undefined|"")\\s*[!=]==?\\s*${q}`),
         new RegExp(`String\\(\\s*${q}[^)]*\\)[^;]{0,40}trim`),
         new RegExp(`\\+?${q}\\s*>\\s*0`),
         new RegExp(`${q}\\s*\\?\\?`),
-      ].some((r) => r.test(t.testo));
-      if (difeso) continue;
+      ];
+      if (nome) r.push(new RegExp(`\\b${esc(nome)}\\s*>\\s*0`),
+                       new RegExp(`\\b${esc(nome)}\\s*<=\\s*0`));
+      return r.some((x) => x.test(testo));
+    };
+
+    let m;
+    const reA = /Number\.isFinite\(\s*\+/g;
+    while ((m = reA.exec(src))) {
+      if (tipo[m.index] !== CODICE) continue;
+      CANDIDATI++;
+      const X = soggettoPiu(src, m.index); if (!X) continue;
+      const t = trattoDi(src, tag, m.index);
+      if (difese(X, "", t.testo)) continue;
       segna("zero-da-nulla", m.index, t.nome, `+${X}`);
+    }
+
+    /* ── FAMIGLIA A, FORMA SEPARATA · le due metà su due righe ────────────
+       ⛔ ALLARGATA IL 03/08 PERCHÉ IL CERCATORE NON VEDEVA IL DIFETTO CHE
+       QUEL GIORNO SI STAVA MISURANDO SULLO SCHERMO. `valorePesata` di Conti
+       aveva esattamente la famiglia A —
+           const q = +d.quantita;
+           if (!Number.isFinite(q)) return 0;
+       — e qui non compariva, perché `Number.isFinite(\s*\+` vuole le due cose
+       ATTACCATE e lì il `+` sta sulla riga prima. Il cercatore diceva «conti
+       0» mentre due schermate mostravano «€ 0,00» su una consegna che nessuno
+       aveva potuto misurare.
+       ⚠️ E ALLARGARE COSTA: senza le due difese sul NOME della variabile
+       (`X > 0`, `X <= 0`) questa forma segnala **17 punti, 4 veri** — tredici
+       falsi allarmi, il 76%, cioè un allarme che sbaglia tre volte su quattro
+       e che quindi si impara a non guardare. Con quelle due difese: **6
+       segnalati, 4 veri**. È quel numero — 17 contro 6 — ad aver deciso che
+       si poteva allargare; senza, la forma andava scartata. */
+    const reA2 = /\b(?:const|let|var)\s+([A-Za-z_$][\w$]*)\s*=\s*\+([A-Za-z_$][\w$.[\]"']*)\s*;/g;
+    while ((m = reA2.exec(src))) {
+      if (tipo[m.index] !== CODICE) continue;
+      CANDIDATI++;
+      const [, nome, sorgente] = m;
+      const t = trattoDi(src, tag, m.index);
+      // la guardia dev'esserci: senza `Number.isFinite(X)` non è questa famiglia
+      if (!new RegExp(`Number\\.isFinite\\(\\s*${esc(nome)}\\s*\\)`).test(t.testo)) continue;
+      if (difese(sorgente, nome, t.testo)) continue;
+      segna("zero-da-nulla", m.index, t.nome, `${nome} = +${sorgente}`);
     }
 
     /* ── FAMIGLIA B · «una data che non esiste, contata come se esistesse» ─
@@ -664,10 +709,20 @@ const CENSITI = {
      `validaNota` il «non lo so» lo DICE invece di non dire niente.
      ⚠️ Le righe sono state tolte perché il censimento le ha pretese, non
      perché qualcuno se ne sia ricordato. */
-  "flotta.giorniFra":
-    "VERO. L'aiutante che conta i giorni fra due giorni ISO, usato dalle scorte e dai fermi: gli arrivano"
-    + " stringhe controllate da `isoGiorno`, che guarda la FORMA. Da lì il consumo al giorno, e dal"
-    + " consumo al giorno il punto di riordino",
+  /* ✅ CORRETTO IL 03/08 e tolto da qui: `flotta.giorniFra`. Il buco era in
+     `isoGiorno`, che guardava la FORMA, e da lì passavano fermi e scorte. Due
+     modi diversi di sbagliare dallo stesso punto, misurati: il «30 febbraio»
+     SCORRE al 2 marzo (un fermo lungo **4 giorni** che non c'è mai stato, un
+     ritmo d'uso di 6,67 h/gg su 150 giorni inventati, il consumo di un filtro
+     da 0,0222 a 0,2444 pezzi/giorno e la soglia di magazzino da 1 a 4); il
+     «32 luglio» fa **NaN**, e `NaN <= 0` è false, quindi il fermo non veniva
+     scartato e `persi += NaN` portava a NaN TUTTO il riassunto del parco —
+     sullo schermo «Disponibilità reale NaN% … meno NaN persi per fermo = NaN
+     giorni-macchina lavorabili». La stessa forma di Conti, in una app diversa.
+     Adesso `isoGiorno` chiama `dataISOEsiste` (predicato unico, come
+     `rilievoUsabileConData` in Terra) **e** `giorniFra` se lo richiede da sé
+     invece di fidarsi di chi la chiama: un aiutante difeso solo da com'è
+     chiamato oggi è difeso finché nessuno lo chiama diversamente. */
   "sentinella.piuGiorni":
     "VERO. Sposta una data di n giorni partendo da `new Date(s + 'T00:00:00Z')` dopo la sola regex di"
     + " forma: su una data storta la prossima scadenza esce spostata di un giorno o due, in silenzio",
@@ -702,13 +757,52 @@ const CENSITI = {
      sia ricordato: è la stessa metà del mestiere che aveva già accorciato
      l'elenco degli ACCETTATI due volte oggi. */
 
+  /* ── veri e dormienti, famiglia A nella FORMA SEPARATA (trovati il 03/08
+        allargando il cercatore: prima nessuno di questi cinque si vedeva) ──
+     ✅ E UNO È GIÀ CORRETTO, quindi non sta qui: `conti.valorePesata`, che
+     leggeva `const q = +d.quantita;` e su un DDT a metro cubo senza densità
+     rispondeva **0 €**. Il selettore della fattura differita scriveva «€ 0,00»
+     e «—» su una consegna che nessuno aveva potuto misurare, e la spunta era
+     già messa. Adesso la quantità la legge `quantitaVenduta` (un posto solo) e
+     `valoreDdt` alza `calcolabile: false`, che le due schermate leggono. */
+  "conti.imponibileRiga":
+    "DORMIENTE, non VERO: `+quantita` assente vale 0 e `Number.isFinite(0)` è true, quindi"
+    + " l'imponibile esce **0 €**. È il gradino sotto `valorePesata` — lo zero che si vedeva"
+    + " sullo schermo passava proprio di qui. Oggi i due chiamanti (`valoreDdt` e"
+    + " `righeDaPesate`) le passano una quantità già misurata da `quantitaVenduta`, quindi"
+    + " l'assenza non ci arriva più; resta perché un chiamante nuovo la rifarebbe entrare",
+  "sentinella.correggiLettura":
+    "VERO, e nella direzione che rassicura: `const v = +nuovo;` è guardato da `v < 0`, che lo ZERO"
+    + " NON esclude. Misurato: `correggiLettura({valore: 3.2}, null)` restituisce"
+    + " `{valore: 0, origine:{corretta:{prima: 3.2}}}` — cioè una lettura di vibrazione portata a"
+    + " ZERO e registrata come correzione fatta da qualcuno. Su uno strumento, zero è il numero più"
+    + " tranquillo che ci sia. La guardia giusta è `v <= 0`, che l'app usa già in `campiPpvVolata`."
+    + " ⚠️ Non si corregge qui: questa unità conta e dichiara, e Sentinella non è la sua app",
+  "sentinella.numeroCsvReferto":
+    "DORMIENTE: `const v = +n;` con la sola `Number.isFinite(v)` scrive **\"0\"** invece di cella vuota"
+    + " quando il numero non c'è. Non è una funzione esportata e i chiamanti oggi le passano campi"
+    + " del referto; il giorno in cui uno di quei campi mancasse, il CSV per Genesi direbbe «zero»"
+    + " dove la verità è «non scritto»",
+  "sentinella.confermaVolataEseguita":
+    "FALSO ALLARME, e dichiarato nel codice: `const f = +fall;` sta dentro la funzioncina `num`, che"
+    + " ha il commento «se non si legge un numero il campo torna a zero, come prima» — è il valore"
+    + " PRECOMPILATO di un campo di modulo, non un verdetto dell'app. Stessa ragione per cui"
+    + " `sentinella.confermaVolataEseguita` sta anche fra gli ACCETTATI qui sopra",
+
   /* ── falsi allarmi, dichiarati con la ragione ── */
   "campo.storicoSettimana":
     "FALSO ALLARME: `meta(iso)` converte SEMPRE una data nata dall'orologio (`oggiISO(oggi)`), non un"
     + " campo di un record. Il filtro dell'orologio non la vede perché `iso` è il parametro di una"
     + " funzioncina locale, e da lì dentro non si sa chi la chiama",
-  "campo.fermiPerGiorno":
-    "FALSO ALLARME: identica alla riga qui sopra, stessa funzioncina `meta`, stessa provenienza",
+  /* ✅ TOLTO IL 03/08: `campo.fermiPerGiorno`. Stava qui come falso allarme
+     («identica a `storicoSettimana`, stessa funzioncina `meta`»), e non è
+     stata una correzione mia a farlo sparire: mentre questa unità girava, il
+     cantiere di Campo ha messo `dataISOEsiste` nel filtro delle date di quella
+     funzione (in HEAD c'era `if (!d || d > fine)`), quindi il cercatore la
+     salta. Il gemello `campo.storicoSettimana` invece si presenta ancora, e
+     resta dichiarato qui sotto.
+     ⚠️ Chi legge questa riga in un futuro in cui `fermiPerGiorno` tornasse a
+     filtrare per FORMA: il punto ricompare, e va ridichiarato. */
   "flotta.validaRifornimento":
     "FALSO ALLARME: `+oreMezzo` assente vale 0, ma il solo effetto è che il confronto"
     + " «il contatore segna meno delle ore già registrate» non scatta. Non nasce nessun numero"
@@ -743,6 +837,14 @@ console.log(`punti per app: ` + [...perApp].map(([a, n]) => `${a} ${n}`).join(" 
 console.log(`${DICHIARAZIONI} dichiarazioni in fase · ${CANDIDATI} candidati aperti uno per uno · ${statici.length} segnalati,`
   + ` ${veri.length} difetti VERI dichiarati,`
   + ` ${statici.length - veri.length} falsi allarmi dichiarati con la ragione`);
+/* ⛔ QUANTO PORTA LA FORMA SEPARATA, stampato invece che ricordato. È il
+   numero su cui si è deciso di allargare il cercatore il 03/08, e va tenuto
+   sotto gli occhi: il giorno in cui questa riga segnalasse molto più di quanto
+   ne risulta VERO, la forma andrebbe ristretta o tolta. Misura di quel giorno:
+   6 segnalati e 4 veri con le difese sul nome della variabile, 17 e 4 senza. */
+const sep = statici.filter((p) => /^\w+ = \+/.test(p.nota));
+console.log(`   di cui dalla FORMA SEPARATA (\`const X = +…;\` e la guardia su un'altra riga): `
+  + `${sep.length} segnalati, ${sep.filter((p) => (CENSITI[`${p.app}.${p.funzione}`] || "").startsWith("VERO")).length} veri`);
 for (const p of statici) {
   const d = CENSITI[`${p.app}.${p.funzione}`];
   console.log(`   ${d ? (d.startsWith("VERO") ? "✗" : "·") : "?"} ${p.app}-data.js:${p.riga}`
@@ -836,6 +938,18 @@ const INIEZIONI = [
     (s) => s.replace('return rilievoUsabile(r) && dataISOEsiste(String((r && r.data) || ""));',
       'return rilievoUsabile(r) && /^\\d{4}-\\d{2}-\\d{2}$/.test(String((r && r.data) || ""));'),
     "confrontoRilievi"],
+  /* ⛔ IL QUINTO È LA FORMA SEPARATA, cioè il difetto vero che il 03/08 il
+     cercatore NON vedeva. Si rimette `valorePesata` com'era prima — le due
+     metà su due righe — e si pretende che adesso compaia. Senza questa
+     controprova l'allargamento sarebbe una riga di codice che nessuno ha mai
+     visto lavorare: era esattamente il caso in cui la regola 1 diceva «nessuna
+     violazione» essendo cieca su metà del prodotto. */
+  ["conti", "la famiglia A con le due metà su DUE RIGHE (`valorePesata` prima del 03/08)",
+    (s) => s + "\nexport function _valorePesataVecchia(pesata) {\n"
+      + "  const d = pesata || {};\n  const q = +d.quantita;\n"
+      + "  if (!Number.isFinite(q)) return 0;\n"
+      + "  return imponibileRiga(q, d.prezzoUnitario, d.scontoPct);\n}\n",
+    "_valorePesataVecchia"],
 ];
 const fonti = fontiStatiche;
 let iniettate = 0;
@@ -854,6 +968,33 @@ for (const [app, che, inietta, atteso] of INIEZIONI) {
   });
 }
 console.log(`controprova: ${iniettate} iniezioni su ${INIEZIONI.length} andate a segno`);
+
+/* ⛔ E LA CONTROPROVA AL CONTRARIO, che per un cercatore ALLARGATO conta
+   quanto l'altra: allargare vuol dire aggiungere falsi allarmi, e un allarme
+   che sbaglia tre volte su quattro si impara a non guardarlo. Qui si mette la
+   stessa forma separata ma DIFESA (`v <= 0`, che è come `campiPpvVolata` di
+   Sentinella la scrive davvero) e si pretende che il conto NON salga.
+   Se un giorno questa diventasse rossa, il cercatore avrebbe smesso di
+   distinguere il codice sano da quello malato — e allora la forma va tolta,
+   non scusata. */
+test("controprova al contrario · la forma separata DIFESA non viene segnalata", () => {
+  const base = fonti.get("conti");
+  const sana = base + "\nexport function _valoreDifeso(pesata) {\n"
+    + "  const d = pesata || {};\n  const q = +d.quantita;\n"
+    + "  if (!Number.isFinite(q) || q <= 0) return null;\n"
+    + "  return imponibileRiga(q, d.prezzoUnitario, d.scontoPct);\n}\n";
+  ok(sana !== base, "l'iniezione non ha cambiato niente");
+  const prima = censimentoStatico(new Map([["conti", base]]));
+  const dopo = censimentoStatico(new Map([["conti", sana]]));
+  ok(dopo.length === prima.length,
+    `il codice SANO fa salire il conto (${prima.length} → ${dopo.length}): `
+    + `il cercatore allargato segnala ${dopo.filter((p) => p.funzione === "_valoreDifeso").length} volta`
+    + " una guardia corretta, e un allarme così si impara a non guardarlo");
+});
+/* e si rimette lo stato di partenza per chi legge dopo: `censimentoStatico`
+   scrive su `CANDIDATI`/`DICHIARAZIONI`, che le prove qui sopra hanno già
+   letto, ma un conto lasciato a metà è un conto che mente al prossimo. */
+censimentoStatico(fontiStatiche);
 
 console.log(`\nRisultato sonda del vuoto: ${passed} passati, ${failed} falliti`
   + `  ·  ${trovati.size} tranquilli trovati, ${Object.keys(ACCETTATI).length} dichiarati`

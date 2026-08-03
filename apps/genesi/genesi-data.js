@@ -36,7 +36,12 @@
    due, sotto il centinaio uno, sopra nessuno), e li scrive chiamando `gnum`
    di `genesi-formato.js`. Una sola implementazione, un parametro diverso. */
 
-import { gnum } from './genesi-formato.js';
+import { gnum, gseg, gIn } from './genesi-formato.js';
+/* il lettore dei numeri italiani e quello dei CSV: vivono in `shared/` perché
+   servono a tutte e sei le app, e la regola di casa dice che una regola che
+   serve a due app non si riscrive. `_riconParseCampo` li usava già così
+   quando stava dentro `genesi.html`: sono arrivati qui con lei. */
+import { numIt, leggiCsv } from '../../shared/deepwork-id-client/dw-shell.js';
 
 /* ══════════════════════════════════════════════════════════════════════════
    G3 — LA LEGGE DI SITO K/β DAI REFERTI DEL SISMOGRAFO
@@ -250,3 +255,179 @@ export function _sitoTicks(lo,hi){
    stessa scala 0,12 mm/s e 1.200 m/kg^½, e due decimali fissi li renderebbero
    illeggibili tutt'e due — uno per rumore, l'altro per larghezza. */
 export function _sitoNum(v){ return gnum(v, Math.abs(v)>=100?0:(Math.abs(v)>=10?1:2)); }
+
+
+/* ══════════════════════════════════════════════════════════════════════════
+   G-B3 — LA RICONCILIAZIONE: IL CONSUNTIVO DI CARICO CHE TORNA DA CAMPO
+   ══════════════════════════════════════════════════════════════════════════
+   Il terzo pezzo di Genesi uscito da `genesi.html`, e sta insieme per
+   MESTIERE: è una schermata sola, e dentro c'è il giro intero del dato reale.
+     il file che Campo riesporta  →  `_riconParseCampo`   (lo legge, o dice perché no)
+     i chili diventano numeri     →  `_riconRiassuntoCampo` (somme e medie, niente stime)
+     i numeri diventano schermo   →  `_ricKg` `_ricSegno` `_ricPct` `_ricPlur`
+                                     `_ricData` `_ricColore` `riconDelta`
+     e lo storico esce in CSV     →  `csvRiconciliazione`
+   Perché queste e non altre: sono le funzioni che CALCOLANO UN NUMERO CHE
+   L'UTENTE LEGGE (lo scostamento fra il progetto e i chili davvero caricati)
+   e quella che SCRIVE UN FILE che esce dall'azienda. Sono le due categorie
+   in cui un difetto costa di più.
+
+   ⛔ SONO ENTRATE IDENTICHE, riga per riga, copiate da un programma e non a
+   mano: un'estrazione non è una riscrittura, e se durante il trasloco si vede
+   un difetto lo si SCRIVE e non lo si corregge nello stesso passo — se no
+   nessuno sa più se la prova blinda il vecchio o il nuovo.
+
+   ⛔ COSA È RIMASTO NELLA PAGINA, E PERCHÉ. `riconStorico`, `riconSave` e
+   `riconRender` leggono `localStorage` o il DOM; `_riconCampoHtml` legge lo
+   stato del progetto aperto (`_ricCampo`, `computeKPI`) e portarla fuori
+   vuol dire cambiarle la firma, cioè un rifacimento. Quanto manca lo misura
+   `tests/genesi-estraibili.mjs`. */
+
+export function _rEsc(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }
+
+
+/* ═══ Il consuntivo di carico che TORNA da Campo ═══════════════════════════
+   Il giro è: Genesi esporta il piano di carico in CSV → il fochino lo importa
+   in Campo e registra foro per foro i chili DAVVERO caricati → Campo riesporta
+   lo stesso file con la carica reale dentro → qui lo si rilegge.
+   Prima questa schermata si riempiva a mano, e infatti restava vuota.
+
+   Formato: NON è un formato nuovo, è il consuntivo che Campo già esportava —
+     data;turno;foro;carica_prog_kg;carica_reale_kg;scarto_pct[;scarto_kg;squadra;operatore]
+   La lettura va per NOME di colonna e non per posizione, così un file di una
+   versione precedente di Campo (solo le prime sei colonne) si legge lo stesso.
+
+   Regola di onestà: entra SOLO quello che è scritto nel file (chili reali,
+   fori, chi e quando). Pezzatura, PPV e gittata non ci sono e restano vuoti:
+   sono misure che solo chi era in cava può fare, e Genesi non le inventa. */
+
+/* ⛔ QUI C'ERANO DUE FUNZIONI DI CASA, ED ERANO LA QUARTA E LA SECONDA COPIA.
+   `_ricNum` riscriveva la convenzione sui numeri (l'ultimo separatore è il
+   decimale) e `_ricSplit` la lettura di una riga CSV: tutt'e due vivono in
+   `shared/` — `numIt` e `leggiCsv` — e la regola di casa dice che una regola
+   che serve a due app **non si riscrive**, si importa.
+   Misurato affiancando le due letture su sette file veri, **tre venivano letti
+   diversi**, e nessuna delle tre differenze era innocua:
+     · una nota su **due righe dentro le virgolette** (il caso che in Conti
+       faceva sparire un bonifico da 12.300 €): la lettura di casa spezzava la
+       riga e ne scartava una, `leggiCsv` la tiene intera;
+     · «**1 234,5**» — le migliaia scritte con lo spazio, che i fogli di calcolo
+       italiani producono — la lettura di casa la faceva diventare **1**. Non un
+       errore dichiarato: **un numero sbagliato spacciato per certo**, su una
+       carica in chili;
+     · «12,5 kg», con l'unità appiccicata: la lettura di casa restituiva 12,5
+       (è `parseFloat`, che accetta qualunque prefisso numerico — quindi anche
+       «12,5 pippo»), `numIt` la **rifiuta**. È un cambio di comportamento e va
+       detto: la riga non sparisce in silenzio, finisce fra le `scartate` e il
+       messaggio all'utente le conta. Fra tirare a indovinare e dirlo, dice. */
+// Legge il file e restituisce { righe, ... } oppure { errore } con una frase
+// che dice COSA non va e cosa fare: un file sbagliato non deve mai rompere
+// la pagina, deve spiegarsi.
+export function _riconParseCampo(testo){
+  const { righe: tutte } = leggiCsv(testo);
+  if(!tutte.length) return { errore:'Il file è vuoto: non c’è nessuna riga da leggere.' };
+  const testa=tutte[0].map(s=>String(s).toLowerCase());
+  const haIntestazione = testa.indexOf('foro')>=0 || testa.some(c=>c.indexOf('carica')>=0);
+  const dati = haIntestazione ? tutte.slice(1) : tutte;
+  const col=(...nomi)=>{ for(const n of nomi){ const i=testa.indexOf(n); if(i>=0) return i; } return -1; };
+  // con l'intestazione si va per nome; senza, si torna all'ordine fisso del
+  // consuntivo di Campo (chi cancella la riga dei titoli non resta a piedi)
+  const iData   = haIntestazione ? col('data') : 0;
+  const iTurno  = haIntestazione ? col('turno') : 1;
+  const iForo   = haIntestazione ? col('foro') : 2;
+  const iProg   = haIntestazione ? col('carica_prog_kg','prog','carica_prog','progetto_kg') : 3;
+  const iReale  = haIntestazione ? col('carica_reale_kg','reale','carica_reale') : 4;
+  const iSquadra= haIntestazione ? col('squadra') : -1;
+  const iOper   = haIntestazione ? col('operatore','fochino','chi') : -1;
+  if(haIntestazione && iForo<0)
+    return { errore:'Non trovo la colonna «foro»: questo non sembra il consuntivo di carico di Campo.' };
+  if(haIntestazione && iReale<0)
+    return { errore: iProg>=0
+      ? 'Nel file c’è la carica di progetto ma non la colonna «carica_reale_kg»: questo è il PIANO di carico, non il consuntivo. In Campo, dopo aver registrato le cariche, premi «Esporta consuntivo (CSV)».'
+      : 'Non trovo la colonna «carica_reale_kg»: questo non sembra il consuntivo di carico di Campo.' };
+  if(!dati.length) return { errore:'Il file ha solo l’intestazione: dentro non c’è nessun foro.' };
+  const righe=[]; let scartate=0;
+  for(const r of dati){
+    const c=r;
+    const foro=numIt(c[iForo]), prog=numIt(c[iProg]);
+    if(!(foro>0)||!(prog>0)){ scartate++; continue; }
+    const grezzo = iReale>=0 ? String(c[iReale]==null?'':c[iReale]).trim() : '';
+    const reale = grezzo === '' ? null : numIt(grezzo);
+    righe.push({ foro, prog, reale: (reale!=null&&isFinite(reale)&&reale>=0)?reale:null,
+      data: (iData>=0?c[iData]:'')||'', turno:(iTurno>=0?c[iTurno]:'')||'',
+      squadra:(iSquadra>=0?c[iSquadra]:'')||'', operatore:(iOper>=0?c[iOper]:'')||'' });
+  }
+  if(!righe.length) return { errore:'Nessuna riga leggibile: servono almeno il numero del foro e la carica di progetto in chili'
+    +(scartate?' (ho scartato '+scartate+(scartate===1?' riga':' righe')+').':'.') };
+  return { righe, scartate, colonneDaNome:haIntestazione };
+}
+
+// Dai fori del file ai numeri della riconciliazione. Tutto qui è SOMMA o
+// MEDIA di quello che c'è nel file: niente stime, niente riempimenti.
+export function _riconRiassuntoCampo(p, nomeFile){
+  const reg=p.righe.filter(r=>r.reale!=null);
+  const somma=(a,f)=>a.reduce((t,x)=>t+f(x),0);
+  const uniche=(f)=>[...new Set(p.righe.map(f).map(s=>String(s||'').trim()).filter(Boolean))];
+  const kgProgTot=somma(p.righe,r=>r.prog);
+  const kgProgReg=somma(reg,r=>r.prog);
+  const kgReale=somma(reg,r=>r.reale);
+  const scostKg=+(kgReale-kgProgReg).toFixed(3);
+  const scostPct=kgProgReg?scostKg/kgProgReg*100:0;
+  const medioKg=reg.length?somma(reg,r=>Math.abs(r.reale-r.prog))/reg.length:0;
+  const medioPct=reg.length?somma(reg,r=>Math.abs(r.reale-r.prog)/(r.prog||1))/reg.length*100:0;
+  const peggio=reg.slice().sort((a,b)=>Math.abs(b.reale-b.prog)-Math.abs(a.reale-a.prog))[0]||null;
+  return { file:nomeFile||'', scartate:p.scartate||0,
+    date:uniche(r=>r.data), turni:uniche(r=>r.turno),
+    chi:uniche(r=>r.operatore), squadre:uniche(r=>r.squadra),
+    foriTot:p.righe.length, foriReg:reg.length,
+    kgProgTot:+kgProgTot.toFixed(3), kgProgReg:+kgProgReg.toFixed(3), kgReale:+kgReale.toFixed(3),
+    scostKg, scostPct:+scostPct.toFixed(2),
+    medioKg:+medioKg.toFixed(3), medioPct:+medioPct.toFixed(2),
+    peggio: peggio?{ foro:peggio.foro, prog:peggio.prog, reale:peggio.reale,
+                     diff:+(peggio.reale-peggio.prog).toFixed(3) }:null };
+}
+
+// numeri scritti come si scrivono in Italia (virgola decimale) ovunque, anche
+// nelle percentuali: dentro la stessa riga «-81,7 kg (-28.2%)» si leggerebbe
+// come due unità di misura diverse
+export const _ricKg=(v)=>gnum(v,1);
+export const _ricSegno=(v)=>gseg(v,1);
+export const _ricPct=(v)=>gseg(v,1)+'%';
+export const _ricPlur=(n,uno,tanti)=>n+' '+(n===1?uno:tanti);
+// le date arrivano dal file in ISO (2026-07-29): in cava si legge 29/07/2026.
+// Se non è una data ISO si lascia com'è: è testo di un file, non lo si indovina.
+export const _ricData=(s)=>{ const m=/^(\d{4})-(\d{2})-(\d{2})$/.exec(String(s||'').trim());
+  return m?m[3]+'/'+m[2]+'/'+m[1]:String(s||''); };
+export const _ricColore=(pct)=>{ const a=Math.abs(pct); return a<10?'#66bb6a':(a<25?'#ffca28':'#ef5350'); };
+
+export function riconDelta(prev, real, unit){
+  /* `real` arriva grezzo dal campo, scritto a mano da chi ha misurato: la
+     virgola vale quanto il punto. Con `+real` un «27,5» diventava NaN e la
+     riga mostrava un trattino come se la misura non ci fosse. */
+  const r = gIn(real);
+  if(!isFinite(r)) return '<span style="color:var(--mut)">—</span>';
+  const d=r-prev, pct=prev?Math.round(100*d/prev):0, ad=Math.abs(pct);
+  const col=ad<15?'#66bb6a':(ad<35?'#ffca28':'#ef5350');
+  return '<span style="color:'+col+';font-weight:600">'+gseg(d,1)+' '+unit+' ('+gseg(pct,0)+'%)</span>';
+}
+
+/* IL FILE CHE ESCE DALL'AZIENDA — lo storico delle riconciliazioni in CSV.
+   ⛔ Queste righe erano il corpo di un `onclick` anonimo dentro la pagina:
+   codice che scrive un file che l'utente manda fuori, e che NESSUNA prova
+   poteva chiamare, perché non aveva un nome. Sono le stesse righe, con
+   intorno una funzione: la pagina adesso la chiama e scarica quello che
+   torna. Il separatore è il PUNTO E VIRGOLA e i numeri restano col punto —
+   è un file di scambio, non un numero da leggere (vedi `genesi-formato.js`). */
+export function csvRiconciliazione(st){
+  // le colonne del carico reale si AGGIUNGONO in fondo: chi rilegge un export
+  // vecchio (dieci colonne) continua a trovarle nello stesso ordine
+  const H=['data','nome','x50_prev_cm','x50_reale_cm','ppv_prev_mms','ppv_reale_mms','flyrock_prev_m','flyrock_reale_m','oversize_reale_pct','note',
+           'campo_data','campo_turno','campo_chi','campo_fori_registrati','campo_fori_totali','campo_kg_reali','campo_kg_progetto','campo_scostamento_pct'];
+  const cell=v=>{ const s=String(v==null?'':v); return /[;"\n]/.test(s)?'"'+s.replace(/"/g,'""')+'"':s; };
+  const csv=H.join(';')+'\n'+st.map(r=>{ const c=r.campo||null;
+    return [r.ts,r.nome,r.prev.x50,r.real.x50,r.prev.ppv,r.real.ppv,r.prev.fly,r.real.fly,r.real.ovs,r.real.note,
+      c?(c.date||[]).join(' '):'', c?(c.turni||[]).join(' '):'', c?(c.chi||[]).join(' '):'',
+      c?c.foriReg:'', c?c.foriTot:'', c?c.kgReale:'', c?c.kgProgReg:'', c?c.scostPct:''].map(cell).join(';');
+  }).join('\n')+'\n';
+  return csv;
+}

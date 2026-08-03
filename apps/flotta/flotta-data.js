@@ -1546,8 +1546,15 @@ export function validaRifornimento(dati, oreMezzo) {
       errori.ore = "Il contatore segna meno delle " + mostra(+oreMezzo, 1) + " ore già registrate sul mezzo: controlla il numero.";
     else ore = ro.valore;
   }
+  /* ⛔ LA PORTA DAVANTI DEVE ESSERE LARGA QUANTO QUELLA DIETRO. Con la sola
+     forma, un rifornimento datato «30 febbraio» si salvava (`ok: true`) e poi
+     `ritmoOreMezzi` — che adesso passa da `isoGiorno` — quella lettura del
+     contatore la buttava via: l'utente ne aveva scritte due e l'app gli
+     rispondeva «c'è una sola lettura del contatore». Misurato il 03/08.
+     `isoGiorno` non si può usare qui perché è definita più in basso nel file:
+     è lo stesso predicato di `shared/`, chiamato per nome. */
   const iso = String(d.data || "").slice(0, 10);
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(iso)) errori.data = "Serve il giorno del rifornimento.";
+  if (!dataISOEsiste(iso)) errori.data = "Serve il giorno del rifornimento.";
   return {
     ok: Object.keys(errori).length === 0, errori,
     litri: Number.isFinite(litri) ? Math.round(litri * 100) / 100 : 0,
@@ -1863,15 +1870,51 @@ export function riepilogoOrdini(manutenzioni) {
   return c;
 }
 
-// Un giorno ISO valido, oppure null. Serve sia alle scorte sia ai fermi.
+/* Un giorno ISO che ESISTE, oppure null. Serve sia alle scorte sia ai fermi.
+   ⛔ QUI C'ERA `/^\d{4}-\d{2}-\d{2}$/`, cioè un controllo di FORMA, e la forma
+   non difende: «2026-02-30» ce l'ha buona e quel giorno non esiste.
+   `Date.parse` non lo rifiuta — lo fa SCORRERE al 2 marzo — mentre su
+   «2026-07-32» risponde `NaN`. Due modi diversi di sbagliare dallo stesso
+   buco, misurati il 03/08 su questo file:
+     · SCORRE → un fermo «dal 30 febbraio al 5 marzo» usciva lungo **4 giorni**
+       e `validaFermo` lo salvava dicendo ok; un fermo aperto al 30 febbraio si
+       scriveva «fermo da 155 giorni»; due letture del contatore, la prima al 30
+       febbraio, davano un ritmo d'uso di **6,67 h/gg** su 150 giorni coperti che
+       nessuno ha misurato;
+     · NaN → e questo è il danno grosso, la stessa forma di Conti: `giorniFra`
+       rispondeva `NaN`, `NaN <= 0` è **false**, quindi il fermo NON veniva
+       scartato dal filtro e `persi += NaN` portava a NaN **tutto** il conto del
+       parco — `persi`, `disponibili`, `pct`, `durataMedia`, `fraUnFermoELaltro`.
+       Sullo schermo: «Disponibilità reale NaN% … meno NaN persi per fermo =
+       NaN giorni-macchina lavorabili … lunghi in media NaN giorni». Una riga
+       storta e la pagina dei fermi non dice più niente di vero.
+   L'unica cosa che difende è `dataISOEsiste`, che sta in `shared/` da mesi.
+   ⛔ E SI CORREGGE QUI, IN UN PREDICATO SOLO — come ha fatto Terra con
+   `rilievoUsabileConData` — non nei nove chiamanti: `giorniFra` non riceve mai
+   una stringa che non sia passata di qui o da `oggiIso`.
+   Misurato che non toglie niente di buono: 4.018 giorni veri dal 2020 al 2030,
+   zero trattati diversamente da prima. */
 const isoGiorno = (v) => {
   const s = String(v || "").slice(0, 10);
-  return /^\d{4}-\d{2}-\d{2}$/.test(s) ? s : null;
+  return dataISOEsiste(s) ? s : null;
 };
-// Giorni interi fra due giorni ISO (b − a). Non usa il fuso: le date sono
-// giorni di calendario, non istanti.
-const giorniFra = (a, b) =>
-  Math.round((Date.parse(b + "T12:00:00Z") - Date.parse(a + "T12:00:00Z")) / 86400000);
+/* Giorni interi fra due giorni ISO (b − a). Non usa il fuso: le date sono
+   giorni di calendario, non istanti.
+   ⛔ E CHIEDE A `isoGiorno` INVECE DI FIDARSI DI CHI CHIAMA. Oggi le quattro
+   chiamate le passano stringhe che vengono di lì o da `oggiIso`, quindi
+   correggere il predicato basterebbe; ma un aiutante che si difende solo
+   grazie a com'è chiamato oggi è difeso finché nessuno lo chiama diversamente,
+   e non c'è niente sulla riga che lo dica. Costa due righe e toglie il punto
+   dal censimento invece di dichiararlo falso allarme.
+   ⚠️ La risposta al «non lo so» qui è `NaN` e NON `null`, ed è una scelta: i
+   chiamanti scrivono `giorniFra(i, fine) + 1` per contare le giornate a
+   estremi inclusi, e `null + 1` fa **1** — un giorno di fermo inventato in
+   silenzio — mentre `NaN + 1` resta NaN e si vede. */
+const giorniFra = (a, b) => {
+  const g0 = isoGiorno(a), g1 = isoGiorno(b);
+  if (!g0 || !g1) return NaN;
+  return Math.round((Date.parse(g1 + "T12:00:00Z") - Date.parse(g0 + "T12:00:00Z")) / 86400000);
+};
 
 // ============================================================
 // L7 — QUANTO TENERNE A SCORTA (punto di riordino)
@@ -1899,6 +1942,15 @@ export function consumoRicambi(interventi, giorni = 180, oggi = new Date()) {
   const da = oggiIso(new Date(Date.parse(a + "T12:00:00Z") - (finestra - 1) * 86400000));
   const per = new Map();
   let considerati = 0, stimati = 0;
+  /* ⛔ E QUI L'ASSENZA TIRA DALLA PARTE PERICOLOSA. Un intervento che ha
+     consumato pezzi ma il cui giorno non si legge esce dal conto: il consumo al
+     giorno scende, e con lui il punto di riordino — cioè il magazzino si
+     svuota prima del previsto. Prima del 03/08 il difetto era l'opposto e più
+     vistoso (una data «30 febbraio» entrava eccome: misurato, il consumo di un
+     filtro passava da 0,0222 a 0,2444 pezzi/giorno e la soglia proposta da 1 a
+     4). In tutt'e due i versi la risposta è la stessa: contarli e dichiararli,
+     mai lasciarli sparire. */
+  let senzaData = 0;
   const conta = (chiave, nome, id, qta, data) => {
     const v = per.get(chiave) || { id: id || null, nome, pezzi: 0, episodi: 0, primo: data, ultimo: data };
     v.pezzi += qta; v.episodi++;
@@ -1909,7 +1961,15 @@ export function consumoRicambi(interventi, giorni = 180, oggi = new Date()) {
   };
   for (const w of interventi || []) {
     const d = isoGiorno(w.data);
-    if (!d || d < da || d > a) continue;
+    if (!d) {
+      // si conta solo chi avrebbe avuto qualcosa da dire: un intervento senza
+      // ricambi non manca al conto dei ricambi
+      const conPezzi = (Array.isArray(w.ricambiUsati) && w.ricambiUsati.length)
+        || String((w && w.ricambio) || "").trim() !== "";
+      if (conPezzi) senzaData++;
+      continue;
+    }
+    if (d < da || d > a) continue;
     considerati++;
     if (Array.isArray(w.ricambiUsati) && w.ricambiUsati.length) {
       for (const r of w.ricambiUsati) {
@@ -1929,7 +1989,7 @@ export function consumoRicambi(interventi, giorni = 180, oggi = new Date()) {
     alGiorno: Math.round(10000 * v.pezzi / finestra) / 10000,
     affidabile: v.episodi >= 2,
   })).sort((x, y) => y.alGiorno - x.alGiorno || x.nome.localeCompare(y.nome, "it"));
-  return { finestra, da, a, righe, interventi: considerati, daInterventiVecchi: stimati };
+  return { finestra, da, a, righe, interventi: considerati, daInterventiVecchi: stimati, senzaData };
 }
 
 // Il punto di riordino, dal consumo al giorno. Ritorna null se non si può
@@ -1982,6 +2042,9 @@ export function propostaScorte(ricambi, interventi, opzioni) {
   return {
     righe, senzaConsumo, finestra: cons.finestra, da: cons.da, a: cons.a,
     interventi: cons.interventi, daInterventiVecchi: cons.daInterventiVecchi,
+    // gli interventi con pezzi che non hanno un giorno leggibile: non entrano
+    // nel consumo, quindi la soglia proposta è calcolata su meno di tutto
+    senzaData: cons.senzaData,
     consegna: Math.round(+o.consegnaGiorni || 0), sicurezza: Math.max(0, Math.round(+o.sicurezzaGiorni || 0)),
     daOrdinare: righe.filter(r => r.daOrdinare > 0).length,
     spesaTotale: Math.round(righe.reduce((t, r) => t + (r.spesa || 0), 0) * 100) / 100,
@@ -2025,8 +2088,25 @@ export function etichettaCausale(chiave) {
 // 3 e ripartita il 3 è stata ferma un giorno, non zero — in cava una
 // giornata persa è persa tutta. Un fermo ancora aperto conta fino alla fine
 // della finestra (cioè fino a oggi). Ritorna 0 se non si sovrappone. Pura.
+/* UN FERMO SI PUÒ COLLOCARE NEL TEMPO se il giorno in cui è cominciato esiste
+   e — quando una ripartenza è SCRITTA — esiste anche quella. Predicato unico,
+   perché la domanda «questo fermo lo so mettere sul calendario?» la fanno in
+   tre (`giorniFermo`, `durataFermo`, `affidabilitaFlotta`) e scritta tre volte
+   si stacca.
+   ⛔ E DISTINGUE «NESSUNA RIPARTENZA» DA «RIPARTENZA CHE NON SI LEGGE»: fino al
+   03/08 `durataFermo` faceva `aperto: !isoGiorno(f.fine)`, cioè una data di
+   ripartenza illeggibile diventava «la macchina è ancora ferma» — una frase
+   che nessuno ha misurato, sull'unico dato che dice il contrario. Pura. */
+export function fermoCollocabile(fermo) {
+  const f = fermo || {};
+  if (!isoGiorno(f.inizio)) return false;
+  const fin = String(f.fine == null ? "" : f.fine).trim();
+  return fin === "" || !!isoGiorno(fin);
+}
+
 export function giorniFermo(fermo, da, a) {
   const f = fermo || {};
+  if (!fermoCollocabile(f)) return 0;
   const i = isoGiorno(f.inizio), fin = isoGiorno(f.fine);
   const d0 = isoGiorno(da), d1 = isoGiorno(a);
   if (!i || !d0 || !d1) return 0;
@@ -2040,13 +2120,18 @@ export function giorniFermo(fermo, da, a) {
 // riga. Un fermo aperto conta fino a oggi e lo dichiara. Pura.
 export function durataFermo(fermo, oggi = new Date()) {
   const f = fermo || {};
+  // «aperto» lo decide se una ripartenza è STATA SCRITTA, non se si riesce a
+  // leggerla: una data storta non rimette la macchina in moto (vedi
+  // `fermoCollocabile`).
+  const scritta = String(f.fine == null ? "" : f.fine).trim() !== "";
+  const fin = scritta ? isoGiorno(f.fine) : null;
+  const aperto = !scritta;
   const i = isoGiorno(f.inizio);
-  if (!i) return { giorni: null, aperto: !f.fine, fine: null };
+  if (!i || (scritta && !fin)) return { giorni: null, aperto, fine: fin };
   const oggiI = oggiIso(oggi);
-  const fin = isoGiorno(f.fine);
   const fine = fin || oggiI;
-  if (fine < i) return { giorni: null, aperto: !fin, fine: fin };
-  return { giorni: giorniFra(i, fine) + 1, aperto: !fin, fine: fin };
+  if (fine < i) return { giorni: null, aperto, fine: fin };
+  return { giorni: giorniFra(i, fine) + 1, aperto, fine: fin };
 }
 
 // Controlli su un fermo prima di salvarlo. Pura e testabile: `oggi` iniettabile.
@@ -2109,10 +2194,19 @@ export function affidabilitaFlotta(fermi, mezzi, giorni = 30, oggi = new Date())
   const perMezzo = new Map();
   const perCausale = new Map();
   let persi = 0, episodi = 0, aperti = 0, fuoriParco = 0, fuoriParcoGiorni = 0;
+  /* ⛔ UN FERMO CHE NON SO COLLOCARE NON È UN FERMO CHE NON C'È STATO. Con la
+     sola forma della data quel fermo entrava nel conto e lo portava a `NaN`
+     (vedi `isoGiorno`); adesso non ci entra più — e se uscisse di scena in
+     silenzio la disponibilità salirebbe, cioè l'assenza di un dato diventerebbe
+     un dato favorevole. Si conta a parte e si dichiara, esattamente come i
+     fermi delle macchine non più nel parco. */
+  let senzaDate = 0;
   for (const f of fermi || []) {
     const nome = nomeBreve(f.mezzo);
+    if (!nome) continue;
+    if (!fermoCollocabile(f)) { senzaDate++; continue; }
     const g = giorniFermo(f, da, a);
-    if (!nome || g <= 0) continue;
+    if (g <= 0) continue;
     const aperto = !isoGiorno(f.fine);
     if (!inParco.has(nome)) { fuoriParco++; fuoriParcoGiorni += g; continue; }
     persi += g; episodi++; if (aperto) aperti++;
@@ -2144,6 +2238,9 @@ export function affidabilitaFlotta(fermi, mezzi, giorni = 30, oggi = new Date())
     durataMedia: episodi ? Math.round(10 * persi / episodi) / 10 : null,
     fraUnFermoELaltro: episodi >= 2 ? Math.round(10 * disponibili / episodi) / 10 : null,
     fuoriParco, fuoriParcoGiorni,
+    // quanti fermi registrati non si è potuto mettere sul calendario, e quindi
+    // NON pesano su `pct`: la pagina lo scrive accanto alla percentuale
+    senzaDate,
   };
 }
 

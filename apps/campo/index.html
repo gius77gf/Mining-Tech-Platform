@@ -942,7 +942,7 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
 
 
 <script type="module">
-  import { campoData, kpiFrom, parsePianoCsv, mappaPianoCsv, foriRipetuti, parseSquadreCsv, scartoPct, scartoLivello, pianoRiepilogo, CAUSALI_FERMO, riepilogoFermi, paretoFermi, fermiPerGiorno, riassuntoRapportino, avanzamentoGiornata, coperturaRapportini,
+  import { campoData, kpiFrom, parsePianoCsv, mappaPianoCsv, foriRipetuti, parseSquadreCsv, scartoPct, scartoLivello, pianoRiepilogo, CAUSALI_FERMO, riepilogoFermi, paretoFermi, fermiPerGiorno, fermiSenzaGiorno, riassuntoRapportino, avanzamentoGiornata, coperturaRapportini,
            oggiISO, TURNI, turnoCorrente, diGiorno, senzaData, UNITA_PRODUZIONE, totaliProduzione, formattaProduzione, normalizzaPiano,
            squadraBase, RUOLI, operatoriDi, etichettaAssegnazione, eMia, caricoSquadre,
            idoneitaDiTurno, idoneitaOperatore, inTurnoOggi,
@@ -1099,8 +1099,19 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
   // Questo grafico guarda SEMPRE tutte le giornate, non segue il selettore
   // «Giorno» delle liste: il suo senso è proprio il confronto fra i giorni.
   const FERMI_GIORNI = 14;
-  function grafFermiStorico(righe) {
+  /* ⛔ `fuoriColonna` NON È UN DETTAGLIO IN CODA: sono fermi veri, con i loro
+     minuti, che questo grafico non sa dove mettere perché il loro giorno non si
+     legge. Se non lo dicessimo, la fila di colonne a zero direbbe «non ci siamo
+     fermati» — che è esattamente la cosa che il grafico è stato costruito per
+     non dire (vedi il commento su `senzaMin` qui sotto). Va scritto in TUTTI i
+     rami, compresi quelli vuoti, perché sono i più tranquilli. */
+  function grafFermiStorico(righe, fuoriColonna = 0) {
     const el = svuotaGraf("fermi-storico"); if (!el) return;
+    const codaFuori = fuoriColonna
+      ? ` <b>${fuoriColonna}</b> ${fuoriColonna === 1 ? "fermo registrato non compare" : "fermi registrati non compaiono"} `
+        + `in nessuna colonna: ${fuoriColonna === 1 ? "il suo giorno di lavoro non c'è o non è un giorno che esiste" : "il loro giorno di lavoro non c'è o non è un giorno che esiste"}. `
+        + `Correggi la data sull'attività in anomalia e ${fuoriColonna === 1 ? "rientra" : "rientrano"} nel conto.`
+      : "";
     if (righe.length < 3) {
       const quante = righe.length === 0 ? "non ce n'è ancora <b>nessuna</b>"
         : righe.length === 1 ? "finora ce n'è <b>una sola</b>"
@@ -1108,7 +1119,7 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
       el.innerHTML = vuoto(I.calend,
         righe.length === 0 ? "Nessuna giornata registrata" : "Servono più giornate",
         `Per capire se i fermi stanno aumentando o calando servono almeno tre giornate di lavoro registrate: ${quante}. `
-        + `Registra le attività con il loro <b>giorno di lavoro</b> e il confronto compare da solo.`);
+        + `Registra le attività con il loro <b>giorno di lavoro</b> e il confronto compare da solo.` + codaFuori);
       return;
     }
     const totale = righe.reduce((t, r) => t + r.minuti, 0);
@@ -1122,10 +1133,10 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
         ? `<div class="senza-minuti">In queste <b>${righe.length}</b> giornate ci sono
            <b>${totFermi}</b> ${totFermi === 1 ? "fermo registrato" : "fermi registrati"}
            ma <b>nessun minuto</b>: senza i minuti non si può disegnare quanto sono costati.
-           Scrivi i minuti nel campo accanto alla causale, sulla voce in anomalia.</div>`
+           Scrivi i minuti nel campo accanto alla causale, sulla voce in anomalia.${codaFuori}</div>`
         : vuoto(I.orologio, "Nessun fermo in questi giorni",
             `In <b>${righe.length}</b> giornate registrate non c'è nemmeno un fermo: non c'è niente da mettere in colonna. `
-            + `Se invece qualche fermo c'è stato, registralo come <b>anomalia</b> e scrivi i <b>minuti</b>.`);
+            + `Se invece qualche fermo c'è stato, registralo come <b>anomalia</b> e scrivi i <b>minuti</b>.` + codaFuori);
       return;
     }
     const media = Math.round(totale / righe.length);
@@ -1150,7 +1161,8 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
         // ci siamo fermati»: dice che nessuno li ha misurati, ed è un'altra cosa
         + (senzaMin
             ? ` In ${senzaMin === 1 ? "una giornata la colonna è a zero" : senzaMin + " giornate le colonne sono a zero"}`
-              + ` pur avendo fermi registrati: lì i minuti non sono stati scritti.` : ""),
+              + ` pur avendo fermi registrati: lì i minuti non sono stati scritti.` : "")
+        + codaFuori,
       aria: "Minuti di fermo per giornata, " + righe.length + " giornate: "
         + righe.map(r => dmy(r.data) + " " + numeroIt(r.minuti, 0) + " minuti").join(", ") + ".",
     });
@@ -1726,7 +1738,7 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
     // C1 · Dove si perde tempo: minuti di fermo per causale (Pareto).
     grafFermi(paretoFermi(ATT_G), tuttiAtt);
     // C2 · Gli stessi fermi visti nel tempo: una colonna per giornata.
-    grafFermiStorico(fermiPerGiorno(ATT, FERMI_GIORNI));
+    grafFermiStorico(fermiPerGiorno(ATT, FERMI_GIORNI), fermiSenzaGiorno(ATT));
     // Riepilogo dei fermi (base per OEE/disponibilità). Il dettaglio per
     // causale sta già nelle barre qui sotto: qui va la sintesi, non la
     // stessa lista scritta due volte.

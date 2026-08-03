@@ -1659,13 +1659,34 @@ export function riposoDiTurno(operatori, presenze, durate, data, turno, squadra,
 //  · le attività senza data non entrano: non si sa a che giorno appartengono.
 // Ritorna [{ data (ISO), minuti, fermi }] in ordine cronologico.
 // Pura e testabile.
+/* ⛔ «CON UNA DATA» VUOL DIRE CON UN GIORNO CHE ESISTE, e fino al 03/08 qui non
+   c'era nessun controllo: bastava una stringa non vuota e non maggiore di oggi.
+   Il censimento la dava per falso allarme («`meta` converte sempre una data
+   nata dall'orologio»), e per `storicoSettimana` è ancora vero — ma qui `meta`
+   viene chiamata DUE volte, e la seconda è `meta(da)`, dove `da` può essere
+   `primo`, cioè il campo `data` di una registrazione. La dichiarazione era
+   invecchiata, non sbagliata. Che cosa faceva, misurato:
+     · «2026-07-32» → l'accumulatore teneva quella chiave, il ciclo d'uscita
+       genera solo giorni veri, e i **90 minuti di fermo sparivano**: il grafico
+       usciva IDENTICO a quello dei dati sani, con la colonna del 31 luglio a
+       zero — cioè «quel giorno non ci siamo fermati» dove un fermo c'era;
+     · «2026-02-30» come prima registrazione → `da` = quel giorno, `meta` lo fa
+       SCORRERE al 2 marzo, e il grafico partiva dal 2 marzo saltando febbraio,
+       con 154 colonne tranquille a zero;
+     · «2026-07-32» come UNICA registrazione → `new Date("2026-07-32T12:00:00")`
+       è Invalid Date, `oggiISO(Invalid)` risponde `""`, e `"" <= "2026-08-03"`
+       è **true**: ciclo infinito, `RangeError: Invalid array length`, la
+       sezione Fermi non si disegna più. Non un numero tranquillo — la pagina.
+   La difesa è `dataISOEsiste`, già importata qui sopra, messa nel punto UNICO
+   in cui la data entra: da lì `primo` è per forza un giorno vero, l'accumulatore
+   non ha più chiavi orfane e `meta` non riceve più niente da inventare. */
 export function fermiPerGiorno(attivita, giorni = 14, oggi = new Date()) {
   const fine = oggiISO(oggi);
   const acc = {};
   let primo = null;
   for (const a of attivita || []) {
     const d = String((a && a.data) || "").trim();
-    if (!d || d > fine) continue;
+    if (!dataISOEsiste(d) || d > fine) continue;
     if (!primo || d < primo) primo = d;
     if (!acc[d]) acc[d] = { data: d, minuti: 0, fermi: 0 };
     if (a.stato === "anomalia") {
@@ -1682,6 +1703,21 @@ export function fermiPerGiorno(attivita, giorni = 14, oggi = new Date()) {
   for (let t = meta(da); oggiISO(t) <= fine; t = new Date(t.getTime() + 86400000))
     out.push(acc[oggiISO(t)] || { data: oggiISO(t), minuti: 0, fermi: 0 });
   return out;
+}
+
+/* Quanti fermi NON compaiono in nessuna colonna del grafico qui sopra perché il
+   loro giorno non si sa qual è.
+   ⛔ Esiste perché correggere il conto non basta: prima quei minuti sparivano
+   dentro una chiave orfana, adesso spariscono dentro un `continue`, e in tutti
+   e due i casi il grafico disegna una fila di zeri — il numero tranquillo dove
+   non è stato misurato niente. Il conto va scritto accanto al grafico.
+   Conta le anomalie con una data SCRITTA che non è un giorno vero e quelle
+   senza data: dal punto di vista di questo grafico sono la stessa cosa (non si
+   possono mettere in colonna), e `senzaData` da solo vede solo le seconde.
+   Pura e testabile. */
+export function fermiSenzaGiorno(attivita) {
+  return (attivita || []).filter(a =>
+    a && a.stato === "anomalia" && !dataISOEsiste(String(a.data || "").trim())).length;
 }
 
 // Riassunto testuale di un rapportino di turno STRUTTURATO (turno, squadra,

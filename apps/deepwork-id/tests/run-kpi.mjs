@@ -8857,6 +8857,63 @@ test("statoVuoto: la struttura è quella del core, invariata", () => {
       "solo registrazioni senza data: idem");
   });
 
+  /* ⛔ UN GIORNO CHE NON ESISTE NON È UN GIORNO. Le tre prove qui sotto sono
+     nate dal censimento del 03/08: la riga di `fermiPerGiorno` era dichiarata
+     falso allarme («`meta` converte sempre una data nata dall'orologio») e la
+     dichiarazione era INVECCHIATA — `meta` viene chiamata due volte, e la
+     seconda riceve il campo `data` di una registrazione. */
+  test("fermiPerGiorno: i minuti di un giorno che non esiste NON spariscono in silenzio", () => {
+    /* ⚠️ QUI LA CONTROPROVA HA CORRETTO LA PROVA, NON IL CODICE. La prima
+       stesura pretendeva che i 90 minuti del «31 giugno» non finissero nelle
+       colonne — ma non ci finivano nemmeno PRIMA della correzione: la chiave
+       «2026-06-31» entrava nell'accumulatore e il ciclo d'uscita genera solo
+       giorni veri, quindi la somma faceva 50 in tutt'e due i casi. È la prima
+       delle cinque cause di «non distingue»: i dati facevano coincidere la
+       risposta giusta con quella sbagliata.
+       Il difetto vero non era che i minuti restassero fuori: era che
+       **sparivano senza che nessuno lo dicesse**, e il grafico usciva IDENTICO
+       a quello dei dati sani. Quello che cambia — e che la controprova fa
+       cadere togliendo il conto — è la DICHIARAZIONE. */
+    const con = ATT_FERMI.concat([{ data: "2026-06-31", stato: "anomalia", fermoMin: 90 }]);
+    eq(campo.fermiPerGiorno(con, 14, OGGI).reduce((n, g) => n + g.minuti, 0), 50,
+      "nessuna colonna se li prende: era già così, e deve restare così");
+    eq(campo.fermiSenzaGiorno(con), 2, "ma adesso sono CONTATI: il «31 giugno» e quello senza data");
+  });
+  test("fermiPerGiorno: il 30 febbraio non fa scorrere l'inizio del grafico", () => {
+    /* `new Date("2026-02-30T12:00:00")` non fallisce: SCORRE al 2 marzo. Prima
+       della correzione, con quella come prima registrazione, il grafico
+       partiva dal 2 marzo — saltando febbraio — e disegnava 154 colonne
+       tranquille a zero */
+    const g = campo.fermiPerGiorno([{ data: "2026-02-30", stato: "anomalia", fermoMin: 90 },
+                                    { data: "2026-07-29", stato: "anomalia", fermoMin: 45 }], 200, OGGI);
+    eq(g[0].data, "2026-07-29", "la finestra parte dalla prima registrazione VERA");
+    eq(g.length, 3, "tre colonne, non centocinquantaquattro");
+  });
+  test("fermiPerGiorno: una data impossibile non manda la pagina in ciclo infinito", () => {
+    /* la forma più cattiva, e non è un numero tranquillo: `oggiISO(Invalid
+       Date)` risponde `""`, `"" <= "2026-07-31"` è **true**, e il ciclo non
+       finiva più — `RangeError: Invalid array length`, la sezione Fermi non si
+       disegnava affatto.
+       ⚠️ E LA DATA È SCELTA, NON A CASO. Con «2026-07-32» la prova passava
+       anche col difetto rimesso, e non perché il codice fosse difeso: quella
+       stringa è maggiore di «2026-07-31» anche solo come TESTO, quindi la
+       scartava già il filtro «non nel futuro» e il ciclo non lo raggiungeva mai
+       — la terza causa di «non distingue», l'iniezione che non arriva sul
+       percorso. Serve un giorno impossibile che sia anche PASSATO come
+       stringa: «2026-02-32». Con la finestra a 200 giorni `da` diventa quello,
+       e `meta(da)` è Invalid Date. */
+    eq(campo.fermiPerGiorno([{ data: "2026-02-32", stato: "anomalia", fermoMin: 90 }], 200, OGGI), [],
+      "nessuna colonna, e nessuna esplosione");
+    eq(campo.fermiSenzaGiorno([{ data: "2026-02-32", stato: "anomalia", fermoMin: 90 }]), 1,
+      "il fermo non è sparito: è dichiarato fuori colonna");
+  });
+  test("fermiSenzaGiorno: conta i fermi, non tutto il resto", () => {
+    eq(campo.fermiSenzaGiorno([{ data: "", stato: "conclusa" }, { data: "abc", stato: "pianificata" }]), 0,
+      "un'attività conclusa senza data non è un fermo che manca al grafico");
+    eq(campo.fermiSenzaGiorno([{ data: "2026-07-31", stato: "anomalia" }]), 0, "un giorno vero non è fuori colonna");
+    eq(campo.fermiSenzaGiorno([]), 0, "niente da dichiarare");
+  });
+
   test("storicoSettimana: le giornate vuote restano in elenco (un giorno vuoto è un'informazione)", () => {
     const st = campo.storicoSettimana(ATT, RAP, 3, OGGI);
     eq(st.map(g => g.data), ["2026-07-29", "2026-07-30", "2026-07-31"], "tre giornate in ordine");
@@ -9108,6 +9165,75 @@ test("statoVuoto: la struttura è quella del core, invariata", () => {
     contiene(flotta.durataFermo({}, OGGI), { giorni: null }, "nessun inizio");
     contiene(flotta.durataFermo({ inizio: "2026-07-30", fine: "2026-07-28" }, OGGI), { giorni: null },
       "ripartita prima di fermarsi: nessuna durata, non una negativa");
+  });
+
+  /* ⛔ IL GIORNO CHE NON ESISTE, IN FLOTTA. Fino al 03/08 `isoGiorno` guardava
+     la FORMA (`/^\d{4}-\d{2}-\d{2}$/`), e da lì passavano tutti i conti sui
+     fermi e sulle scorte. Due modi diversi di sbagliare dallo stesso buco:
+     `Date.parse` sul «30 febbraio» SCORRE al 2 marzo (numero inventato), sul
+     «32 luglio» risponde NaN (numero che avvelena la somma). Le prove qui sotto
+     tengono tutt'e due. */
+  test("giorniFermo: un giorno che non esiste non è un fermo di quattro giorni", () => {
+    // misurato prima: 4 giorni, perché il 30 febbraio scivolava al 2 marzo
+    eq(flotta.giorniFermo({ inizio: "2026-02-30", fine: "2026-03-05" }, "2026-02-01", "2026-03-31"), 0,
+      "il «30 febbraio» non fa durata");
+    eq(flotta.giorniFermo({ inizio: "2026-07-31", fine: "2026-07-32" }, "2026-07-01", "2026-07-31"), 0,
+      "e il «32 luglio» non fa NaN");
+    eq(flotta.fermoCollocabile({ inizio: "2026-07-31", fine: "2026-07-32" }), false, "il predicato lo dice");
+    eq(flotta.fermoCollocabile({ inizio: "2026-07-31" }), true, "una ripartenza ASSENTE è un fermo aperto, non un errore");
+    eq(flotta.fermoCollocabile({ inizio: "2026-07-31", fine: "2026-07-31" }), true, "e un giorno vero resta buono");
+  });
+  test("durataFermo: una ripartenza illeggibile non è «ancora ferma»", () => {
+    /* prima faceva `aperto: !isoGiorno(f.fine)`, cioè una data storta diceva
+       che la macchina è ancora ferma — sull'unico dato che dice il contrario */
+    contiene(flotta.durataFermo({ inizio: "2026-07-29", fine: "2026-07-32" }, OGGI),
+      { giorni: null, aperto: false }, "non lo so, e non è aperto");
+    contiene(flotta.durataFermo({ inizio: "2026-02-30" }, OGGI), { giorni: null, aperto: true },
+      "inizio che non esiste: nessuna durata inventata (misurato prima: 155 giorni)");
+  });
+  test("affidabilitaFlotta: una data storta non porta a NaN tutto il parco, e non sparisce", () => {
+    /* IL DANNO A VALLE, misurato il 03/08 e identico a quello di Conti: da
+       `giorniFra` usciva NaN, `NaN <= 0` è **false**, quindi il fermo NON
+       veniva scartato e `persi += NaN` portava a NaN `persi`, `disponibili`,
+       `pct`, `durataMedia` e `fraUnFermoELaltro`. Sullo schermo: «Disponibilità
+       reale NaN% … meno NaN persi per fermo = NaN giorni-macchina lavorabili». */
+    const mezzi = [{ nome: "Pala 01" }, { nome: "Escavatore 02" }];
+    const oggi = new Date("2026-08-03T09:00:00");
+    const a = flotta.affidabilitaFlotta([
+      { mezzo: "Pala 01", inizio: "2026-07-20", fine: "2026-07-24", causale: "guasto-meccanico" },
+      { mezzo: "Escavatore 02", inizio: "2026-07-31", fine: "2026-07-32", causale: "attesa-ricambi" }], mezzi, 30, oggi);
+    ok(Number.isFinite(a.persi) && Number.isFinite(a.pct) && Number.isFinite(a.durataMedia),
+      `nessun NaN nel riassunto del parco: persi=${a.persi} pct=${a.pct} durataMedia=${a.durataMedia}`);
+    eq(a.persi, 5, "restano i 5 giorni del fermo vero");
+    eq(a.pct, 91.7, "e la percentuale è quella del solo fermo misurabile");
+    /* ⛔ E NON BASTA TOGLIERLO: se uscisse di scena in silenzio la
+       disponibilità salirebbe *perché un dato manca*. Si conta a parte. */
+    eq(a.senzaDate, 1, "il fermo non collocabile è contato e dichiarato");
+    eq(a.episodi, 1, "e non è contato fra gli episodi misurati");
+    eq(flotta.affidabilitaFlotta([{ mezzo: "Pala 01", inizio: "2026-07-20", fine: "2026-07-24" }], mezzi, 30, oggi).senzaDate,
+      0, "su dati sani non dichiara niente");
+  });
+  test("validaFermo: il «30 febbraio» non si salva", () => {
+    /* è la porta da cui il dato storto entra: prima rispondeva ok:true e
+       scriveva `inizio: "2026-02-30"` nel database */
+    const v = flotta.validaFermo({ mezzo: "Pala 01", causale: "guasto-meccanico", inizio: "2026-02-30" }, OGGI);
+    eq(v.ok, false, "non si salva");
+    ok(/Serve il giorno/.test(v.errori.inizio || ""), "e la frase dice cosa fare");
+    const w = flotta.validaFermo({ mezzo: "Pala 01", causale: "guasto-meccanico", inizio: "2026-07-29", fine: "2026-07-32" }, OGGI);
+    eq(w.ok, false, "e nemmeno una ripartenza al «32 luglio»");
+    ok(/non è valida/.test(w.errori.fine || ""), "con la frase sulla ripartenza");
+  });
+  test("ritmoOreMezzi: una lettura datata a un giorno che non esiste non fa un ritmo d'uso", () => {
+    /* misurato prima: due letture, la prima al «30 febbraio», davano 6,67 h/gg
+       su 150 giorni coperti — un ritmo su un periodo che non è mai esistito, e
+       da lì la previsione dei tagliandi */
+    const r = flotta.ritmoOreMezzi([{ mezzo: "Pala 01", data: "2026-02-30", ore: 1000 },
+                                    { mezzo: "Pala 01", data: "2026-07-30", ore: 2000 }],
+                                   new Date("2026-08-03T09:00:00"), 30);
+    eq(r.length, 1, "il mezzo c'è ancora");
+    eq(r[0].oreGiorno, null, "ma il ritmo non si inventa");
+    eq(r[0].letture, 1, "resta una lettura sola");
+    ok(/una sola lettura/.test(r[0].perche), "e il perché è scritto in italiano: " + r[0].perche);
   });
 
   test("validaFermo: mezzo, motivo e giorno sono obbligatori, con la frase che dice cosa fare", () => {
@@ -9411,6 +9537,24 @@ test("statoVuoto: la struttura è quella del core, invariata", () => {
     contiene(p, { consegna: 15, sicurezza: 5, finestra: 180, interventi: 3, daInterventiVecchi: 1 },
       "la proposta porta con sé su cosa è stata fatta");
   });
+  test("⛔ consumoRicambi: un intervento datato a un giorno che non esiste non gonfia il consumo", () => {
+    /* misurato il 03/08 prima della correzione: aggiungendo un intervento
+       «2026-02-30» da 40 pezzi, il consumo di un filtro passava da 0,0222 a
+       0,2444 pezzi/giorno e la soglia proposta da 1 a 4 — un magazzino
+       dimensionato su un giorno che non è mai esistito */
+    const con = INT.concat([{ data: "2026-02-30", ricambiUsati: [{ id: "r1", nome: "Filtro olio", qta: 40 }] }]);
+    const c = flotta.consumoRicambi(con, 180, OGGI);
+    eq(c.righe.find(r => r.nome === "Filtro olio").pezzi, 3, "i 40 pezzi del «30 febbraio» non entrano");
+    eq(c.interventi, 3, "e non è contato fra gli interventi guardati");
+    /* ⛔ E NEMMENO SPARISCE: qui l'assenza tira dalla parte pericolosa — meno
+       consumo vuol dire soglia più bassa, cioè magazzino vuoto quando serve. */
+    eq(c.senzaData, 2, "i due interventi con pezzi e senza un giorno leggibile sono contati e dichiarati");
+    eq(flotta.consumoRicambi([{ data: "", titolo: "sopralluogo" }], 180, OGGI).senzaData, 0,
+      "ma un intervento SENZA ricambi non manca al conto dei ricambi");
+    eq(flotta.propostaScorte([{ id: "r1", nome: "Filtro olio", giacenza: 1, sogliaMin: 2 }], con,
+      { consegnaGiorni: 15, sicurezzaGiorni: 5, oggi: OGGI }).senzaData, 2,
+      "e la proposta se lo porta dietro fino alla pagina");
+  });
 }
 
 // ── Flotta: giro macchina, anagrafica del mezzo, libretto ─────────────
@@ -9522,6 +9666,12 @@ test("statoVuoto: la struttura è quella del core, invariata", () => {
       { ok: true, euro: 0, ore: null }, "senza spesa e senza contatore si salva lo stesso");
     ok(flotta.validaRifornimento({ mezzo: "E1", litri: 99999, data: "2026-07-31" }, null).errori.litri,
       "ventimila litri in un rifornimento no");
+    /* ⛔ e il giorno dev'esserci DAVVERO: con la sola forma, un rifornimento
+       al «30 febbraio» si salvava e poi `ritmoOreMezzi` gli buttava via la
+       lettura del contatore — l'utente ne aveva scritte due e l'app gli
+       rispondeva «c'è una sola lettura» */
+    ok(flotta.validaRifornimento({ mezzo: "E1", litri: 40, data: "2026-02-30", ore: 1500 }, null).errori.data,
+      "il «30 febbraio» non si salva: la porta davanti è larga quanto quella dietro");
   });
 
   test("fotografiaDaRegistrare: una riga sola al giorno, e nessuna su un parco vuoto", () => {
@@ -10864,10 +11014,20 @@ test("statoVuoto: la struttura è quella del core, invariata", () => {
     /* ⛔ il caso che conta, e che la prima stesura non aveva: una pesata
        venduta a METRO CUBO ma SENZA densità ha il netto in tonnellate e la
        quantità a null. Ripiegare sul netto la valuterebbe a 18,3 × 20 €/m³,
-       cioè moltiplicando tonnellate per un prezzo al metro cubo. Zero è la
-       risposta giusta, e la pagina lì scrive «manca la densità». */
+       cioè moltiplicando tonnellate per un prezzo al metro cubo.
+       ⚠️ LA MOTIVAZIONE DI QUESTO ZERO ERA IN PARTE FALSA, e il 03/08 è stata
+       misurata: diceva «zero è la risposta giusta, e la pagina lì scrive
+       "manca la densità"». Nessuna delle due schermate scriveva quella frase —
+       il registro Pesate diceva «quantità non calcolabile» E accanto «€ 0,00»,
+       il selettore della fattura differita diceva «€ 0,00» e «—», cioè niente.
+       Una decisione che poggia su «tanto la pagina lo dice» vale finché quel
+       qualcuno lo dice davvero. Adesso lo zero NON è più il residuo di un
+       `+null`: `valoreDdt` dichiara `calcolabile: false`, le due schermate lo
+       leggono, e questa funzione resta la forma numerica per le somme. */
     eq(conti.valorePesata({ netto: 18.3, quantita: null, unitaVendita: "m3", prezzoUnitario: 20 }), 0,
       "il netto NON è un ripiego della quantità venduta");
+    eq(conti.valoreDdt({ netto: 18.3, quantita: null, unitaVendita: "m3", prezzoUnitario: 20 }).calcolabile,
+      false, "e lo zero è una NON-MISURABILITÀ dichiarata, non un importo");
   });
 }
 
@@ -13292,6 +13452,273 @@ test("⛔ Flotta: le ore ignote arrivano ignote anche a chi le chiede due volte"
        ["0,12", "5,68", "12,3", "123", "1.235"], "due sotto la decina, uno sotto il centinaio, zero sopra");
     for (const vuoto of [null, undefined, "", NaN])
       eq(v._sitoNum(vuoto), "—", `${mostra(vuoto)}: il trattino, come tutto il resto di Genesi`);
+  });
+}
+
+/* ══ GENESI · LA RICONCILIAZIONE — il terzo pezzo uscito dalla pagina ══
+   `apps/genesi/genesi-data.js`, blocco G-B3. Una schermata sola, e dentro il
+   giro intero del dato reale: il consuntivo di carico che Campo riesporta →
+   i chili che diventano numeri → i numeri che diventano schermo → lo storico
+   che esce in CSV. È stato scelto perché ci sono dentro le due categorie in
+   cui un difetto costa di più: le funzioni che CALCOLANO UN NUMERO CHE
+   L'UTENTE LEGGE, e quella che SCRIVE UN FILE che esce dall'azienda.
+
+   ⛔ SONO ARRIVATE IDENTICHE da `genesi.html` (copiate da un programma, non a
+   mano): queste prove blindano il comportamento di OGGI, difetti compresi.
+   Dove c'è un difetto è scritto nella prova che lo è, e non è stato corretto
+   qui — se no nessuno saprebbe più se la prova blinda il vecchio o il nuovo. */
+{
+  const v = await app("genesi", "genesi-data.js");
+  const f = await app("genesi", "genesi-formato.js");
+  const shell = await import("../../../shared/deepwork-id-client/dw-shell.js");
+
+  /* il consuntivo come lo riesporta Campo: intestazione, virgola decimale,
+     un foro non ancora caricato e una riga illeggibile */
+  const CONSUNTIVO = "data;turno;foro;carica_prog_kg;carica_reale_kg;scarto_pct;squadra;operatore\n"
+    + "2026-07-29;A;1;12,5;14,0;12;Squadra Nord;M. Rossi\n"
+    + "2026-07-29;A;2;12,5;10,8;-13,6;Squadra Nord;M. Rossi\n"
+    + "2026-07-29;A;3;12,5;12,5;0;Squadra Nord;M. Rossi\n"
+    + "2026-07-29;A;4;12,5;;;Squadra Nord;M. Rossi\n"
+    + "2026-07-29;A;pippo;12,5;9,0;;Squadra Nord;M. Rossi\n";
+
+  test("Genesi · il consuntivo di Campo si legge per NOME di colonna, non per posizione", () => {
+    const p = v._riconParseCampo(CONSUNTIVO);
+    eq(p.errore, undefined, "un consuntivo vero si legge");
+    eq(p.colonneDaNome, true, "c'è l'intestazione: si va per nome");
+    eq(p.righe.length, 4, "quattro fori leggibili");
+    eq(p.scartate, 1, "e la riga col numero di foro «pippo» è scartata, non indovinata");
+    contiene(p.righe[0], { foro: 1, prog: 12.5, reale: 14, data: "2026-07-29", turno: "A", operatore: "M. Rossi" },
+             "il primo foro, con la virgola decimale letta");
+    eq(p.righe[3].reale, null, "⛔ il foro non ancora caricato è null, non zero: «non lo so» non è «zero chili»");
+    /* le colonne in ordine diverso: è il punto di leggere per nome */
+    const girato = v._riconParseCampo("carica_reale_kg;foro;carica_prog_kg\n14;1;12,5\n");
+    contiene(girato.righe[0], { foro: 1, prog: 12.5, reale: 14 }, "colonne in ordine sparso, stesso risultato");
+    /* e chi cancella la riga dei titoli non resta a piedi: ordine fisso di Campo */
+    const senzaTitoli = v._riconParseCampo("2026-07-29;A;1;12,5;14,0;12\n");
+    eq(senzaTitoli.colonneDaNome, false, "senza intestazione si torna all'ordine fisso");
+    contiene(senzaTitoli.righe[0], { foro: 1, prog: 12.5, reale: 14, data: "2026-07-29" }, "e i valori tornano lo stesso");
+  });
+
+  test("⛔ Genesi · un file sbagliato SPIEGA cosa non va, non rompe la pagina", () => {
+    for (const vuoto of ["", "   ", null, undefined])
+      ok(/vuoto/.test(v._riconParseCampo(vuoto).errore || ""), `${mostra(vuoto)}: dice che il file è vuoto`);
+    ok(/solo l’intestazione/.test(v._riconParseCampo("foro;carica_prog_kg;carica_reale_kg\n").errore),
+       "intestazione e basta: lo dice");
+    /* il caso che capita davvero: si è esportato il PIANO invece del consuntivo */
+    ok(/PIANO di carico/.test(v._riconParseCampo("foro;carica_prog_kg\n1;12,5\n").errore),
+       "il piano di carico non è il consuntivo, e il messaggio dice cosa premere in Campo");
+    ok(/«foro»/.test(v._riconParseCampo("carica;carica_reale_kg\n1;2\n").errore),
+       "senza la colonna del foro non è un consuntivo di Campo");
+    ok(/Nessuna riga leggibile/.test(v._riconParseCampo("boh").errore),
+       "un file che non c'entra niente non produce numeri, produce una frase");
+  });
+
+  test("⛔ Genesi · fra tirare a indovinare e dirlo, dice", () => {
+    /* `numIt` di shared rifiuta «12,5 kg» invece di leggerne 12,5 come farebbe
+       `parseFloat` (che accetterebbe anche «12,5 pippo»): la riga finisce fra
+       le scartate e il messaggio all'utente le conta. È un chilo di esplosivo:
+       meglio una riga in meno che un numero inventato. */
+    /* ⚠️ `NaN`, non `null`, e la differenza l'ha fatta vedere `mostra`: la
+       prima stesura di questa riga scriveva `null` perché l'avevo misurata
+       con `JSON.stringify`, che scrive «null» per NaN. È il difetto che
+       `tests/mostra.mjs` esiste per prendere, ripreso mentre lo si scriveva. */
+    eq(shell.numIt("12,5 kg"), NaN, "l'unità appiccicata al numero non si indovina");
+    eq(shell.numIt("1 234,5"), NaN, "e nemmeno le migliaia con lo spazio");
+    const p = v._riconParseCampo("foro;carica_prog_kg;carica_reale_kg\n1;12,5 kg;14\n2;12,5;14\n");
+    eq(p.righe.length, 1, "una riga sola sopravvive");
+    eq(p.scartate, 1, "e l'altra è dichiarata scartata, non persa in silenzio");
+    /* la nota su due righe dentro le virgolette: `leggiCsv` la tiene intera */
+    const duerighe = v._riconParseCampo("foro;carica_prog_kg;carica_reale_kg;operatore\n1;12,5;14;\"M.\nRossi\"\n");
+    eq(duerighe.righe.length, 1, "un a-capo dentro le virgolette non spezza il record");
+    eq(duerighe.righe[0].operatore, "M.\nRossi", "e il nome arriva intero");
+  });
+
+  test("Genesi · dal file ai numeri: solo somme e medie, niente stime", () => {
+    const r = v._riconRiassuntoCampo(v._riconParseCampo(CONSUNTIVO), "consuntivo.csv");
+    contiene(r, { file: "consuntivo.csv", scartate: 1, foriTot: 4, foriReg: 3 },
+             "tre fori registrati su quattro, una riga scartata");
+    eq(r.date, ["2026-07-29"], "le date si contano una volta sola");
+    eq(r.turni, ["A"], "e così i turni");
+    eq(r.chi, ["M. Rossi"], "e chi ha registrato");
+    eq(r.kgProgTot, 50, "il progetto di TUTTI i fori del file");
+    eq(r.kgProgReg, 37.5, "⛔ ma il confronto usa solo i fori registrati: 37,5, non 50");
+    eq(r.kgReale, 37.3, "i chili davvero caricati");
+    eq(r.scostKg, -0.2, "due etti in meno");
+    eq(r.scostPct, -0.53, "cioè mezzo punto percentuale");
+    /* il caso che inganna: il totale torna, i singoli fori no */
+    eq(r.medioKg, 1.067, "ma in media ogni foro è fuori di più di un chilo");
+    eq(r.medioPct, 8.53, "l'8,5% del suo progetto");
+    ok(r.medioPct >= 2 * Math.abs(r.scostPct) && r.medioPct >= 5,
+       "ed è la condizione con cui la pagina avvisa che gli scarti si compensano nel totale");
+    eq(r.peggio, { foro: 2, prog: 12.5, reale: 10.8, diff: -1.7 }, "il foro più lontano dal progetto");
+  });
+
+  test("⛔ Genesi · SENZA NESSUN FORO CARICATO lo scostamento è 0 — il numero tranquillo, misurato", () => {
+    /* ⚠️ QUESTA PROVA BLINDA UN DIFETTO, di proposito e per una riga sola: il
+       trasloco non è una riscrittura, e correggere qui vorrebbe dire non
+       sapere più se la prova guarda il vecchio o il nuovo.
+       Il difetto: con un consuntivo in cui NESSUN foro ha la carica reale (il
+       piano appena importato in Campo, non ancora caricato) il riassunto
+       risponde scostamento 0 e scarto medio 0 — e la pagina li disegna in
+       VERDE, misurato nel browser: «+0 kg (+0%)» in rgb(102,187,106).
+       Cioè il numero tranquillo dove non è stato misurato niente, che è
+       esattamente ciò che il principio del fondatore vieta. Che la pagina
+       scriva sotto «nel file nessun foro ha la carica reale» è difesa in
+       profondità, non innocuità: il numero e il colore dicono il contrario.
+       La forma giusta è quella che la stessa schermata usa una riga più in
+       giù — «—» con la ragione accanto — e ce l'ha già `peggio`, che qui
+       risponde `null` invece di zero. */
+    const r = v._riconRiassuntoCampo(v._riconParseCampo("foro;carica_prog_kg;carica_reale_kg\n1;12,5;\n2;12,5;\n"), "piano.csv");
+    eq(r.foriReg, 0, "nessun foro con la carica reale");
+    eq(r.kgProgTot, 25, "il progetto però c'è: 25 kg");
+    eq(r.scostKg, 0, "⚠️ e lo scostamento risponde 0 — misurato, non voluto");
+    eq(r.scostPct, 0, "⚠️ idem in percentuale");
+    eq(r.medioKg, 0, "⚠️ e lo scarto medio per foro");
+    eq(r.peggio, null, "⛔ mentre il foro peggiore risponde null: la funzione SA dire «non lo so»");
+    /* e il colore che la pagina ci mette sopra */
+    eq(v._ricColore(r.scostPct), "#66bb6a", "⚠️ verde, cioè «tutto a posto», su una misura che non esiste");
+    /* la lista vuota si comporta allo stesso modo */
+    eq(v._riconRiassuntoCampo({ righe: [], scartate: 0 }, "").scostPct, 0, "⚠️ e con zero righe pure");
+  });
+
+  test("Genesi · i numeri della riconciliazione si scrivono all'italiana", () => {
+    eq(v._ricKg(1234.56), "1.234,6", "chili: un decimale, migliaia col punto");
+    eq(v._ricSegno(-0.2), "−0,2", "lo scarto ha il segno, e il meno è quello tipografico");
+    eq(v._ricSegno(0.2), "+0,2", "il più si scrive");
+    eq(v._ricPct(-13.64), "−13,6%", "⛔ anche la percentuale con la virgola: dentro «−81,7 kg (−28.2%)» il punto si leggerebbe come un'altra unità");
+    eq(v._ricPlur(1, "foro", "fori"), "1 foro", "uno");
+    eq(v._ricPlur(3, "foro", "fori"), "3 fori", "più di uno");
+    eq(v._ricPlur(0, "foro", "fori"), "0 fori", "e zero è plurale");
+    for (const vuoto of [null, undefined, NaN]) {
+      eq(v._ricKg(vuoto), "—", `${mostra(vuoto)}: il trattino`);
+      eq(v._ricSegno(vuoto), "—", `${mostra(vuoto)}: il trattino anche col segno`);
+    }
+    eq(v._ricKg(0), "0", "⛔ ma lo zero si scrive: è un fatto");
+  });
+
+  test("Genesi · la data del file diventa la data che si legge in cava", () => {
+    eq(v._ricData("2026-07-29"), "29/07/2026", "l'ISO del file diventa italiana");
+    eq(v._ricData(" 2026-07-29 "), "29/07/2026", "e gli spazi intorno non contano");
+    eq(v._ricData("ieri"), "ieri", "⛔ quello che non è una data ISO torna com'è: è testo di un file, non lo si indovina");
+    for (const vuoto of ["", null, undefined]) eq(v._ricData(vuoto), "", `${mostra(vuoto)}: niente resta niente`);
+    /* ⚠️ SECONDO DIFETTO BLINDATO, non corretto: il controllo è sulla FORMA,
+       non sull'esistenza del giorno. Un 30 febbraio esce riscritto come una
+       data italiana perfetta, cioè una data falsa che sembra vera. La
+       risposta giusta esiste già in casa — `dataISOEsiste` di
+       `shared/deepwork-id-client/dw-shell.js` — ed è la stessa lezione della
+       `isDate` di `run-demo.mjs` che accettava «2026-02-30». */
+    eq(v._ricData("2026-02-30"), "30/02/2026", "⚠️ un giorno che non esiste esce come data vera");
+    eq(v._ricData("2026-13-45"), "45/13/2026", "⚠️ e nemmeno il mese 13 viene fermato");
+    eq(shell.dataISOEsiste("2026-02-30"), false, "⛔ mentre in `shared/` la risposta giusta c'è già");
+  });
+
+  test("Genesi · il colore dello scostamento: verde sotto il 10%, giallo sotto il 25, rosso oltre", () => {
+    eq(v._ricColore(0), "#66bb6a", "in centro");
+    eq(v._ricColore(-9.9), "#66bb6a", "poco sotto");
+    eq(v._ricColore(10), "#ffca28", "al 10% esatto si passa al giallo");
+    eq(v._ricColore(-24.9), "#ffca28", "e ci si resta fino al 25");
+    eq(v._ricColore(25), "#ef5350", "al 25 rosso");
+    eq(v._ricColore(-80), "#ef5350", "e il segno non conta: è la distanza dal progetto");
+  });
+
+  test("Genesi · lo scostamento del fochino legge la VIRGOLA, che in cava è la norma", () => {
+    /* con `+real` un «27,5» diventava NaN e la riga mostrava un trattino come
+       se la misura non ci fosse: il fochino aveva scritto, l'app diceva no */
+    ok(/−0,5 cm \(−2%\)/.test(v.riconDelta(28, "27,5", "cm")), "«27,5» si legge, e lo scarto è −0,5 cm");
+    ok(/−0,5 cm \(−2%\)/.test(v.riconDelta(28, "27.5", "cm")), "e anche col punto, che è come lo scrive un telefono");
+    ok(/#66bb6a/.test(v.riconDelta(28, "27,5", "cm")), "sotto il 15% è verde");
+    ok(/#ffca28/.test(v.riconDelta(28, "34", "cm")), "fra il 15 e il 35 giallo");
+    ok(/#ef5350/.test(v.riconDelta(28, "45", "cm")), "oltre il 35 rosso");
+    for (const niente of ["", "boh", null, undefined])
+      eq(v.riconDelta(28, niente, "cm"), '<span style="color:var(--mut)">—</span>',
+         `${mostra(niente)}: ⛔ il trattino, non uno zero`);
+    /* ⚠️ TERZO DIFETTO BLINDATO: quando il PREVISTO è zero (o manca) la
+       percentuale viene scritta 0 e il colore esce VERDE, cioè «scostamento
+       trascurabile» su un rapporto che non si può calcolare. Il modulo sa già
+       scrivere «—» quando non sa: qui non lo fa. Non corretto in questo passo. */
+    ok(/\+5 cm \(\+0%\)/.test(v.riconDelta(0, "5", "cm")), "⚠️ previsto 0: la percentuale esce 0 invece che non calcolabile");
+    ok(/#66bb6a/.test(v.riconDelta(0, "5", "cm")), "⚠️ e il colore è verde");
+    ok(/#66bb6a/.test(v.riconDelta(null, "5", "cm")), "⚠️ idem se il previsto manca del tutto");
+  });
+
+  test("Genesi · lo storico esce in CSV, e le colonne nuove si aggiungono IN FONDO", () => {
+    const st = [{ ts: "2026-07-29 10:00", nome: "Volata; Est", prev: { x50: 28, ppv: 6.4, fly: 101 },
+                  real: { x50: 27.5, ppv: null, fly: null, ovs: null, note: "due\nrighe" } },
+                { ts: "2026-07-30 08:00", nome: "Ovest", prev: { x50: 30, ppv: 5, fly: 90 },
+                  real: { x50: 31, ppv: 5.2, fly: 88, ovs: 4, note: "" },
+                  campo: { date: ["2026-07-30"], turni: ["B"], chi: ["M. Rossi", "L. Bianchi"],
+                           foriReg: 12, foriTot: 12, kgReale: 690, kgProgReg: 696, scostPct: -0.86 } }];
+    const testo = v.csvRiconciliazione(st);
+    const capo = testo.split("\n")[0].split(";");
+    eq(capo.length, 18, "diciotto colonne");
+    eq(capo.slice(0, 10).join(";"), "data;nome;x50_prev_cm;x50_reale_cm;ppv_prev_mms;ppv_reale_mms;flyrock_prev_m;flyrock_reale_m;oversize_reale_pct;note",
+       "⛔ le prime dieci sono quelle di sempre: chi rilegge un export vecchio le trova nello stesso ordine");
+    eq(capo[10], "campo_data", "e le otto del carico reale cominciano dall'undicesima");
+    /* ⛔ È UN FILE DI SCAMBIO: il decimale resta il PUNTO, non la virgola —
+       se no chi lo apre con un altro programma non capisce più i numeri.
+       È l'asserzione sul TESTO che una prova di andata e ritorno non darebbe:
+       scrittore e lettore andrebbero d'accordo fra loro anche sbagliando. */
+    ok(/;27\.5;/.test(testo), "27.5 col punto, come vuole un file di scambio");
+    ok(!/;27,5;/.test(testo), "e mai con la virgola");
+    /* il giro completo: quello che scriviamo lo sappiamo rileggere */
+    const rilette = shell.leggiCsv(testo).righe;
+    eq(rilette.length, 3, "intestazione più due righe");
+    eq(rilette[1][1], "Volata; Est", "⛔ il punto e virgola dentro il nome non spacca le colonne");
+    eq(rilette[1][9], "due\nrighe", "e nemmeno l'a-capo dentro la nota");
+    eq(rilette[1][10], "", "la volata senza consuntivo da Campo lascia vuote le sue otto colonne, non zeri");
+    eq(rilette[2][12], "M. Rossi L. Bianchi", "chi ha registrato, in una cella sola");
+    eq(rilette[2][17], "-0.86", "e lo scostamento percentuale");
+    eq(v.csvRiconciliazione([]).split("\n")[0], testo.split("\n")[0], "storico vuoto: resta l'intestazione, uguale");
+  });
+
+  test("⚠️ Genesi · il CSV dello storico NON è protetto dalla CSV-injection — misurato", () => {
+    /* ⚠️ QUARTO DIFETTO BLINDATO. `csvRiconciliazione` si porta dietro dalla
+       pagina una `cell` di casa, che è una COPIA PIÙ DEBOLE di `csvCell` di
+       `shared/deepwork-id-client/dw-shell.js`: mette le virgolette dove
+       servono, ma non neutralizza il valore che comincia per = + - @, e non
+       tratta il ritorno a carrello. È il file che esce dall'azienda, quindi
+       l'errore esce con lui.
+       Non corretto qui perché un'estrazione non è una riscrittura; e la
+       correzione è una riga sola: usare `csvCell`, che esiste già ed è la
+       regola scritta una volta per tutte le app. */
+    const veleno = "@SUM(1+1)";
+    const riga = v.csvRiconciliazione([{ ts: "2026-07-29", nome: veleno, prev: { x50: 1, ppv: 1, fly: 1 },
+      real: { x50: 1, ppv: 1, fly: 1, ovs: 1, note: "" } }]).split("\n")[1];
+    ok(riga.includes(";" + veleno + ";"), "⚠️ la formula esce nuda dal nostro export");
+    eq(shell.csvCell(veleno), "'" + veleno, "⛔ mentre `shared/` sa già come si neutralizza");
+    /* e il ritorno a carrello, che `csvCell` mette fra virgolette e `cell` no */
+    const conCR = v.csvRiconciliazione([{ ts: "a\rb", nome: "", prev: { x50: 1, ppv: 1, fly: 1 },
+      real: { x50: 1, ppv: 1, fly: 1, ovs: 1, note: "" } }]).split("\n")[1];
+    ok(conCR.startsWith("a\rb;"), "⚠️ un \\r nella cella non viene protetto e sfonda la riga");
+    eq(shell.csvCell("a\rb"), '"a\rb"', "⛔ anche qui la risposta giusta è in casa");
+  });
+
+  test("Genesi · l'HTML della schermata è messo al sicuro carattere per carattere", () => {
+    eq(v._rEsc('<b>&"\''), "&lt;b&gt;&amp;&quot;&#39;", "i cinque caratteri che aprono un'iniezione");
+    eq(v._rEsc('<img src=x onerror="alert(1)">'),
+       "&lt;img src=x onerror=&quot;alert(1)&quot;&gt;", "un nome di file ostile resta testo");
+    for (const vuoto of [null, undefined]) eq(v._rEsc(vuoto), "", `${mostra(vuoto)}: stringa vuota, non «null» a schermo`);
+    eq(v._rEsc(0), "0", "⛔ ma lo zero si scrive");
+  });
+
+  test("Genesi · e leggere un numero scritto a mano: `gEsito` e `gIn`", () => {
+    /* traslocate in `genesi-formato.js` insieme a questo blocco, perché
+       `riconDelta` le chiama: scrivere e leggere sono le due metà della
+       stessa convenzione. La logica è del lettore condiviso; qui c'è la
+       scelta dei sei decimali. */
+    eq(f.gIn("4,5"), 4.5, "la virgola, che in cava è la norma");
+    eq(f.gIn("4.5"), 4.5, "e il punto, che è come scrive un telefono");
+    eq(f.gIn("1.250,5"), 1250.5, "migliaia all'italiana");
+    eq(f.gIn("1,250.5"), 1250.5, "e migliaia all'inglese");
+    for (const niente of ["", "boh", null, undefined])
+      ok(Number.isNaN(f.gIn(niente)), `⛔ ${mostra(niente)}: NaN e MAI zero — chi chiama tiene il valore di prima`);
+    eq(f.gEsito("4,5").ok, true, "la lettura completa dice se ha capito");
+    eq(f.gEsito("boh").ok, false, "e quando no");
+    ok(typeof f.gEsito("boh").motivo === "string", "col motivo scritto, che l'interfaccia può mostrare");
+    eq(f.gEsito("0,000001").valore, 0.000001, "sei decimali: da 0,05 m al colletto a 4.680 kg di esplosivo");
+    /* i limiti scritti nel campo risolvono l'ambiguo senza chiedere niente */
+    eq(f.gEsito("1.250", { min: 1.5, max: 8 }).ok, false, "«1.250» in un campo 1,5–8 non è né 1250 né 1,25: si ferma");
+    eq(f.gEsito("1.600", { min: 0.3, max: 5 }).valore, 1.6, "«1.600» in un campo 0,3–5 è 1,6, e non c'è nulla da chiedere");
   });
 }
 
@@ -17163,6 +17590,70 @@ console.log("\n— Scudo: il ciclo di vita del DSS (D.Lgs 624/96 art. 6) —");
     eq(mista.calcolabile, false, "con un DDT non misurabile la fattura non si emette");
     eq(mista.ddtSenzaQuantita, ["DDT/2"], "e si sa quale");
     eq(mista.conto, 2, "i due DDT ci sono tutti e due: nessuno sparisce dall'anteprima");
+  });
+
+  /* ══ LA QUANTITÀ CHE SI FATTURA, IN UN POSTO SOLO (03/08) ═══════════════
+     La regola era scritta tre volte: `quantitaPesata`, `righeDaPesate` e —
+     più debole — la pagina (`p.quantita == null`, che il ripiego sul netto
+     non lo conosce). Adesso è `quantitaVenduta`, e queste prove pretendono
+     che le tre risposte siano LA STESSA, non che si somiglino. */
+  test("Conti · quantitaVenduta: la quantità che si fattura, letta in un posto solo", () => {
+    const q = conti.quantitaVenduta;
+    eq(q({ unitaVendita: "t", quantita: 12, netto: 25 }), 12, "la quantità DICHIARATA vale");
+    eq(q({ unitaVendita: "t", quantita: null, netto: 25 }), 25, "a tonnellata il ripiego è il netto pesato");
+    eq(q({ unitaVendita: "t", quantita: "", netto: 25 }), 25, "e la stringa vuota non è uno zero");
+    eq(q({ unitaVendita: "t", quantita: "boh", netto: 25 }), 25, "né una quantità illeggibile");
+    eq(q({ unitaVendita: "m3", quantita: null, netto: 25, densita: 2.5 }), 10,
+       "a metro cubo il ripiego è il netto DIVISO la densità");
+    eq(q({ unitaVendita: "m3", quantita: null, netto: 25 }), null,
+       "e senza densità non c'è nessun ripiego: null, non zero");
+    eq(q(null), 0, "nessuna pesata: nessuna quantità, e il netto assente è zero tonnellate");
+    /* ⛔ LE TRE RISPOSTE SONO LA STESSA, e si pretende l'IDENTITÀ del verdetto,
+       non che si somiglino: due copie che oggi rispondono uguale divergono
+       domani senza che nessuno lo veda. È la stessa forma della regola del
+       `shared/`, applicata dentro un'app sola. */
+    const cieco = { id: "d1", numero: "DDT/1", prodotto: "Sabbia",
+      unitaVendita: "m3", quantita: null, netto: 24.3, prezzoUnitario: 22, aliquotaIva: 22 };
+    eq(conti.quantitaVenduta(cieco), null, "la quantità non si misura");
+    eq(conti.valoreDdt(cieco).calcolabile, false, "e il valore lo dichiara");
+    eq(conti.righeDaPesate([cieco])[0].calcolabile, false, "e la riga di fattura pure");
+    eq(conti.fatturaDaPesate([cieco]).calcolabile, false, "e l'anteprima della fattura pure");
+  });
+
+  test("Conti · valoreDdt: la premessa dello zero, scritta invece che sperata", () => {
+    /* ⛔ QUESTA PROVA NASCE DA DUE SCHERMATE AFFIANCATE, non da un'idea.
+       Su un DDT venduto a metro cubo senza densità (2026/013 della
+       dimostrazione) il registro Pesate scriveva «€ 0,00 · quantità non
+       calcolabile» e il selettore della fattura differita «€ 0,00 · —».
+       Lo zero di `valorePesata` era una decisione dichiarata, ma la sua
+       motivazione — «tanto la pagina lì lo scrive» — era vera su UNA
+       schermata su due. Adesso la non-misurabilità è un dato del modulo, e
+       una schermata che se ne dimentica non può più farlo in silenzio. */
+    const cieco = { netto: 24.3, quantita: null, unitaVendita: "m3", prezzoUnitario: 22 };
+    const v = conti.valoreDdt(cieco);
+    eq(v.calcolabile, false, "non è calcolabile e lo dice");
+    eq(v.valore, null, "il valore è null, non lo zero tranquillo");
+    eq(v.quantita, null, "e nemmeno la quantità si inventa");
+    ok(/densit/i.test(v.perche), "e la ragione nomina la densità: `" + v.perche + "`");
+    eq(conti.valorePesata(cieco), 0, "la forma NUMERICA, per le somme, resta zero come prima");
+    // il caso sano non ha perso niente
+    const sano = { netto: 21.6, quantita: 13.5, unitaVendita: "m3", densita: 1.6, prezzoUnitario: 22 };
+    eq(conti.valoreDdt(sano), { valore: 297, quantita: 13.5, calcolabile: true, motivo: "", perche: "" },
+       "13,5 m³ × 22 € = 297 €, con la bandiera alzata");
+    eq(conti.valorePesata(sano), 297, "e le due strade danno lo stesso numero");
+    /* ⛔ E LE DUE SCHERMATE ADESSO DICONO LA STESSA COSA DELLA FATTURA.
+       Prima no: un DDT a TONNELLATA con la quantità non scritta valeva
+       **0 €** per `valorePesata` (cioè sul registro, nel DDT stampato e nella
+       riga della differita) e **268,80 €** per `righeDaPesate`, cioè in
+       fattura. Stesso documento, due numeri, e quello mostrato era il più
+       basso. `righeDaPesate` era stata corretta il 02/08; `valorePesata` è
+       rimasta indietro — le difese non seguono chi eredita il mestiere. */
+    const muto = { id: "d8", numero: "DDT/8", prodotto: "Pietrisco",
+      netto: 25.6, quantita: null, unitaVendita: "t", prezzoUnitario: 10.5, aliquotaIva: 22 };
+    eq(conti.valorePesata(muto), 268.8, "il registro adesso dice quello che la fattura fattura (prima 0)");
+    eq(conti.righeDaPesate([muto])[0].imponibile, 268.8, "e la riga di fattura non è cambiata");
+    eq(conti.valorePesata(muto), conti.righeDaPesate([muto])[0].imponibile,
+       "le due schermate non possono più dire due numeri diversi sullo stesso DDT");
   });
 }
 

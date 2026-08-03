@@ -2442,17 +2442,27 @@
     const codaFuori = aff.fuoriParco
       ? ` Restano fuori dal conto <b>${aff.fuoriParco}</b> ${aff.fuoriParco === 1 ? "fermo di una macchina non più nel parco" : "fermi di macchine non più nel parco"} (${ggTx(aff.fuoriParcoGiorni)}): non hanno più un parco su cui fare media, ma la loro storia resta scritta qui sotto.`
       : "";
+    /* ⛔ UN FERMO CHE NON SI SA COLLOCARE NON FA SALIRE LA DISPONIBILITÀ. Se
+       sparisse in silenzio, la percentuale verrebbe più alta del vero proprio
+       perché un dato MANCA — e l'assenza di un dato non è un dato favorevole.
+       Va detto anche (soprattutto) nel ramo «nessun fermo registrato», che è la
+       frase più tranquilla che questa schermata sappia dire. */
+    const codaSenzaDate = aff.senzaDate
+      ? ` <span class="rosso">${aff.senzaDate} ${aff.senzaDate === 1 ? "fermo registrato non entra in questo conto" : "fermi registrati non entrano in questo conto"}</span>: `
+        + `${aff.senzaDate === 1 ? "il giorno in cui è cominciato — o quello in cui la macchina è ripartita — non si legge" : "il giorno in cui sono cominciati — o quello in cui le macchine sono ripartite — non si legge"}, `
+        + `quindi la disponibilità qui sopra è più alta di quella vera. ${aff.senzaDate === 1 ? "Lo trovi" : "Li trovi"} qui sotto con scritto «data non valida».`
+      : "";
     $("fer-riep").innerHTML = !aff.parco
       ? "Il conto dell'affidabilità parte dal parco mezzi: aggiungi il primo mezzo e ogni fermo che registri comincerà a pesare sulla disponibilità."
       : !aff.episodi
-        ? `Nessun fermo registrato negli ultimi ${aff.finestra} giorni (${periodo}): <b>${aff.parco}</b> ${aff.parco === 1 ? "mezzo" : "mezzi"} × ${aff.finestra} giorni = <b>${aff.giorniMacchina}</b> giorni-macchina, tutti disponibili. Quando una macchina si ferma registrala qui sotto: è l'unico modo perché questo numero voglia dire qualcosa.${codaFuori}`
+        ? `Nessun fermo registrato negli ultimi ${aff.finestra} giorni (${periodo}): <b>${aff.parco}</b> ${aff.parco === 1 ? "mezzo" : "mezzi"} × ${aff.finestra} giorni = <b>${aff.giorniMacchina}</b> giorni-macchina, tutti disponibili. Quando una macchina si ferma registrala qui sotto: è l'unico modo perché questo numero voglia dire qualcosa.${codaFuori}${codaSenzaDate}`
         : `Disponibilità reale <b>${aff.pct.toLocaleString("it-IT", { maximumFractionDigits: 1 })}%</b> negli ultimi ${aff.finestra} giorni (${periodo}). `
           + `Il conto: ${aff.parco} ${aff.parco === 1 ? "mezzo" : "mezzi"} × ${aff.finestra} giorni = <b>${aff.giorniMacchina}</b> giorni-macchina, `
           + `meno <span class="rosso">${aff.persi}</span> ${aff.persi === 1 ? "perso" : "persi"} per fermo = <b>${aff.disponibili}</b> giorni-macchina lavorabili. `
           + `Ci sono stati <b>${aff.episodi}</b> ${aff.episodi === 1 ? "fermo" : "fermi"}${aff.aperti ? `, di cui <span class="rosso">${aff.aperti} ${aff.aperti === 1 ? "ancora aperto" : "ancora aperti"}</span>` : ", tutti già chiusi"}`
           + `, lunghi in media <b>${ggTx(aff.durataMedia)}</b>.`
           + (aff.fraUnFermoELaltro != null ? ` Fra un fermo e l'altro il parco ha lavorato <b>${ggTx(aff.fraUnFermoELaltro)}</b>-macchina.` : "")
-          + codaFuori;
+          + codaFuori + codaSenzaDate;
 
     // Giorni di fermo per mezzo: la classifica di chi ferma di più. Non è un
     // andamento — di quello non abbiamo la storia giorno per giorno — ma un
@@ -2547,6 +2557,23 @@
     const sicurezza = Math.max(0, Math.round(+$("sco-sicurezza").value || 0));
     const p = propostaScorte(RIC, INT, { consegnaGiorni: consegna, sicurezzaGiorni: sicurezza, finestraGiorni: 180 });
     const consumati = consumoRicambi(INT, 180);
+    /* ⛔ QUELLO CHE È RESTATO FUORI VA DETTO IN OGNI RAMO, perché qui l'assenza
+       tira dalla parte pericolosa: un intervento che ha consumato pezzi ma non
+       ha un giorno leggibile abbassa il consumo al giorno, e quindi la soglia.
+       Un magazzino proposto più magro del vero è il modo di ritrovarsi la
+       macchina ferma ad aspettare il pezzo.
+       ⚠️ Nasce QUI e non dopo la proposta perché lo scatto del 03/08 l'ha visto:
+       scritto solo in fondo, nella schermata più comune — quella di chi non ha
+       ancora messo i giorni di consegna, che esce da un `return` prima — non
+       compariva affatto. Sta in coda al riepilogo e mai nella riga di
+       dettaglio: lì il testo è tagliato a due righe e non lo leggerebbe
+       nessuno. */
+    const codaSenzaData = consumati.senzaData
+      ? ` <span class="rosso">${consumati.senzaData} ${consumati.senzaData === 1
+          ? "intervento con ricambi resta fuori dal conto" : "interventi con ricambi restano fuori dal conto"}</span>: `
+        + `il giorno in cui ${consumati.senzaData === 1 ? "è stato fatto non si legge" : "sono stati fatti non si legge"}, `
+        + "quindi il consumo è calcolato su meno di tutto. Correggi la data dell'intervento e la soglia si alza da sola."
+      : "";
     if (!RIC.length) {
       $("sco-riep").innerHTML = "";
       $("sco-list").innerHTML = vuoto(I.bullone, "Magazzino vuoto",
@@ -2558,7 +2585,8 @@
         + "Scrivilo qui sopra e per ogni ricambio comparirà quanti pezzi tenere, calcolati sui consumi veri."
         + (consumati.righe.length
             ? ` Intanto i consumi ci sono già: <b>${consumati.righe.length}</b> ${consumati.righe.length === 1 ? "ricambio è stato usato" : "ricambi sono stati usati"} negli ultimi ${consumati.finestra} giorni.`
-            : " Per ora nessun ricambio risulta consumato negli interventi chiusi: la prima proposta arriverà dopo i primi lavori.");
+            : " Per ora nessun ricambio risulta consumato negli interventi chiusi: la prima proposta arriverà dopo i primi lavori.")
+        + codaSenzaData;
       $("sco-list").innerHTML = "";
       return;
     }
@@ -2573,6 +2601,7 @@
             : "Nessun ricambio è sotto la soglia che verrebbe fuori dai consumi.")
       : `Nessun ricambio del magazzino risulta consumato negli ultimi ${p.finestra} giorni: senza consumi non si può dire quanti pezzi tenere, e l'app non se lo inventa. `
         + "Le soglie restano quelle che hai scritto tu.";
+    $("sco-riep").innerHTML += codaSenzaData;
 
     $("sco-list").innerHTML = p.righe.map(r => {
       const cls = r.daOrdinare > 0 ? "danger" : r.differenza > 0 ? "warn" : "ok";

@@ -1697,12 +1697,62 @@ export function rigaPesata(prodotto, lordo, tara, cliente, ordine, oggi = new Da
            ordineNumero: daOrdine ? (pr.ordine.numeroOrdine || pr.ordine.numero) : null };
 }
 
-// Valore di una pesata già salvata (usa i dati fotografati sul documento).
-export function valorePesata(pesata) {
+/* ── LA QUANTITÀ CHE SI FATTURA, IN UN POSTO SOLO ───────────────────────────
+   La regola era scritta TRE volte con due comportamenti diversi: qui dentro in
+   `quantitaPesata`, di nuovo in `righeDaPesate`, e — più debole — nella pagina
+   (`p.quantita == null`, che non conosce il ripiego sul netto). Adesso sta qui
+   e le altre la chiamano.
+   Risponde `null` quando la quantità venduta NON si può misurare: succede solo
+   a metro cubo senza densità, dove non c'è nessun ripiego possibile — le
+   tonnellate ci sono, i metri cubi no, e moltiplicare le prime per un prezzo
+   al metro cubo è la fattura sbagliata di più.
+   ⛔ `+d.quantita` DA SOLO NON BASTA: `+null` fa **0** e `Number.isFinite(0)`
+   risponde **true**. La quantità DICHIARATA vale solo se è leggibile; se non
+   lo è, il ripiego conosce l'unità (a tonnellata è il netto pesato, a metro
+   cubo è il netto diviso la densità). */
+export function quantitaVenduta(pesata) {
   const d = pesata || {};
-  const q = +d.quantita;
-  if (!Number.isFinite(q)) return 0;
-  return imponibileRiga(q, d.prezzoUnitario, d.scontoPct);
+  const unita = d.unitaVendita === "m3" ? "m3" : "t";
+  const qDich = quantitaDichiarata(d);
+  if (qDich != null) return qDich;
+  const q = quantitaPesata(d);
+  return unita === "m3" ? q.m3 : q.t;
+}
+
+/* Valore di una pesata già salvata (usa i dati fotografati sul documento), e
+   SE si può calcolare. `calcolabile: false` è la stessa bandiera che alza
+   `fatturaDaPesate` per il caso gemello, e serve alla stessa cosa: la pagina
+   la legge e scrive «quantità non calcolabile» invece di disegnare un numero.
+   ⛔ È NATA IL 03/08 PERCHÉ LA PREMESSA ERA FALSA SU UNA SCHERMATA SU DUE.
+   La motivazione dello zero di `valorePesata` diceva «tanto la pagina lì lo
+   scrive»: vero nel registro Pesate, FALSO nel selettore della fattura
+   differita, dove lo stesso DDT mostrava «€ 0,00» e «—». Misurato aprendo le
+   due schermate sul DDT 2026/013 della dimostrazione. Uno zero tranquillo dove
+   non è stato misurato niente è il difetto che il principio del fondatore
+   esiste per impedire, e una decisione che poggia su «tanto qualcuno lo dice»
+   vale finché quel qualcuno lo dice davvero — cioè finché nessuno scrive una
+   seconda schermata. */
+export function valoreDdt(pesata) {
+  const d = pesata || {};
+  const q = quantitaVenduta(d);
+  if (q == null)
+    return { valore: null, quantita: null, calcolabile: false,
+      motivo: "densita-mancante",
+      perche: "è venduto a metro cubo e il prodotto non ha la densità: dal netto pesato "
+        + "non si sa quanti metri cubi siano" };
+  return { valore: imponibileRiga(q, d.prezzoUnitario, d.scontoPct), quantita: q,
+           calcolabile: true, motivo: "", perche: "" };
+}
+
+/* Lo stesso valore in forma di NUMERO, per le somme. Lo zero del caso non
+   misurabile resta — un `null` dentro un `reduce` si sommerebbe come zero
+   comunque, e in silenzio — ma adesso è lo zero di una non-misurabilità
+   DICHIARATA da `valoreDdt`, non il residuo di un `+null`. Chi disegna un
+   numero sullo schermo usa `valoreDdt` e legge la bandiera; chi somma usa
+   questa. */
+export function valorePesata(pesata) {
+  const v = valoreDdt(pesata).valore;
+  return v == null ? 0 : v;
 }
 
 // Tonnellate e metri cubi di una pesata (i m³ solo se la densità c'era).
@@ -1717,11 +1767,21 @@ export function quantitaPesata(pesata) {
      Zero metri cubi su un DDT non è un vuoto: è una consegna dichiarata di
      niente. Trovato il 01/08 mettendo quel caso in dimostrazione: il codice
      c'era da prima, e nessuno poteva vederlo. */
-  const qDich = d.quantita;
-  const qNota = !(qDich == null || String(qDich).trim() === "") && Number.isFinite(+qDich);
-  const m3 = d.unitaVendita === "m3" && qNota
-    ? +qDich : convertiQuantita(t, "t", "m3", d.densita);
+  const qDich = quantitaDichiarata(d);
+  const m3 = d.unitaVendita === "m3" && qDich != null
+    ? qDich : convertiQuantita(t, "t", "m3", d.densita);
   return { t: round2(t), m3: m3 == null ? null : round3(m3) };
+}
+
+/* La quantità SCRITTA sul documento, se è leggibile — `null` se non c'è o non
+   si legge. È il mattone di `quantitaPesata` e di `quantitaVenduta`, e sta in
+   un posto solo perché era scritto due volte identico: due copie uguali oggi
+   divergono domani senza che nessuno lo veda. Non è esportata: fuori si usa
+   `quantitaVenduta`, che sa anche il ripiego. */
+function quantitaDichiarata(pesata) {
+  const q = (pesata || {}).quantita;
+  if (q == null || String(q).trim() === "") return null;
+  return Number.isFinite(+q) ? +q : null;
 }
 
 // ============================================================
@@ -1780,10 +1840,12 @@ export function righeDaPesate(pesate) {
        l'unità — a tonnellata è il netto pesato, a metro cubo è il netto diviso
        la densità. ⛔ E senza densità non c'è nessun ripiego: moltiplicare
        tonnellate per un prezzo al metro cubo è la fattura sbagliata di più.
-       Lì la riga NON è calcolabile, e lo dichiara invece di scrivere zero. */
-    const qDich = p.quantita;
-    const qNota = !(qDich == null || String(qDich).trim() === "") && Number.isFinite(+qDich);
-    const q = qNota ? +qDich : (unita === "m3" ? quantitaPesata(p).m3 : quantitaPesata(p).t);
+       Lì la riga NON è calcolabile, e lo dichiara invece di scrivere zero.
+       ⛔ E DAL 03/08 LA REGOLA NON È PIÙ SCRITTA QUI: è `quantitaVenduta`, la
+       stessa che leggono `valoreDdt` e le due schermate. Era la terza copia
+       della stessa cosa, e la copia più debole (quella della pagina) diceva
+       già qualcosa di diverso. */
+    const q = quantitaVenduta(p);
     if (q == null) { r.ddtSenzaQuantita.push(p.numero || "—"); r.calcolabile = false; }
     else r.quantita = round3(r.quantita + q);
     r.ddt.push(p.numero || "—");
