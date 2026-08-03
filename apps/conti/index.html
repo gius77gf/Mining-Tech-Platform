@@ -1567,7 +1567,7 @@ label.item:has(.dw-chk:checked){
   import { parseMovimentiCsv, abbinaMovimenti, ESTRATTO_ESEMPIO,
            contiData, giorni, kpiFrom, statoScadenzaFattura, agingIncassi, gareRiepilogo, prioritaIncasso, incassoAtteso, incassoPerMese, esposizioneClienti, estrattoContoCliente, livelloSollecito, interessiMora, testoSollecito, TASSO_MORA_DEFAULT, parseFattureCsv, parseGareCsv, parseListinoCsv, chiaveNome, clienteDiFattura, nomeCliente, clientiDaCollegare,
     round2, baseGara, densitaValida, prezzoPerTonnellata, prezzoPerMetroCubo, convertiQuantita, imponibileRiga,
-    importiFattura, totaliDaRighe, prossimoNumero, nettoPesata, rigaPesata, valorePesata, valoreDdt,
+    importiFattura, totaliDaRighe, riepilogoIvaFattura, prossimoNumero, nettoPesata, rigaPesata, valorePesata, valoreDdt,
     quantitaPesata, pesateDaFatturare, fatturaDaPesate, canonePeriodo, BASI_CANONE, venditePerProdotto,
     cavatoPeriodo, vendutoPeriodo, riconciliazione, valoreCavato, SOGLIA_DIVARIO,
     applicaIncassi, apertoDi, statoIncasso, movimentiDiFattura, incassatoPeriodo,
@@ -1674,7 +1674,10 @@ label.item:has(.dw-chk:checked){
   // iniziali per l'avatar del cliente (massimo due lettere, come nel core)
   const iniziali = (nome) => String(nome || "?").replace(/[^\p{L}\s]/gu, " ").trim()
     .split(/\s+/).slice(0, 2).map(w => w[0] || "").join("").toUpperCase() || "?";
-  const fmtD = (iso) => dataIt(iso);   // la regola sta in shared/: vedi `dataIt`
+  /* la regola sta in shared/: vedi `dataIt`. Il secondo argomento è quello che
+     si stampa quando la data NON C'È o non esiste: di serie «—», ma un campo
+     di un documento vuole scritto il perché, non un trattino muto. */
+  const fmtD = (iso, vuoto) => dataIt(iso, vuoto);
   const GB = { aperta: ["warn","Aperta"], vinta: ["ok","Vinta"], persa: ["danger","Persa"] };
 
   // ── Icone SVG (niente emoji: tratto coerente, 24×24, stroke) ────────
@@ -3933,7 +3936,13 @@ label.item:has(.dw-chk:checked){
           if (c.id === "vettore") return esc(String(p.vettore || "").trim() || "vettore — <b>da indicare</b>");
           return esc(c.label.toLowerCase()) + (p.mezzo ? " — mezzo " + esc(p.mezzo) : "");
         })()}</div>
-        <div class="box"><span class="et">Data e ora di ritiro</span>${fmtD(p.data)}</div>
+        ${/* ⛔ L'ETICHETTA PROMETTEVA UN'ORA CHE IL DOCUMENTO NON HA MAI AVUTO:
+      «Data e ora di ritiro», e sotto una data sola. La pesata la scrive un
+      `<input type="date">` (`#pes-data`), che l'ora non la raccoglie: non è
+      un campo vuoto, è un campo che non esiste — e su un DDT, dove l'ora del
+      ritiro è una cosa che qualcuno può venire a chiedere, un'etichetta che la
+      promette è peggio di non nominarla. Il DPR 472/1996 chiede la data. */""}
+        <div class="box"><span class="et">Data del ritiro</span>${fmtD(p.data)}</div>
       </div>
       <table><thead><tr>
         <th>Natura e qualità dei beni</th><th class="num">Lordo (t)</th><th class="num">Tara (t)</th>
@@ -3961,7 +3970,17 @@ label.item:has(.dw-chk:checked){
   function fogliFattura(f) {
     const c = clienteDiFattura(f, CLI) || { ragioneSociale: f.cliente };
     const im = importiFattura(f);
-    const st = statoIncasso(f, INC);
+    /* ⛔ IL FOGLIO LEGGE `statoFattura`, NON `statoIncasso`, e la differenza è
+       tutta in una parola. `statoIncasso` le note di credito non le conosce:
+       una fattura annullata per intero da una nota — che sull'ELENCO porta il
+       badge «Stornata», scritto lì apposta — usciva stampata con «Da
+       incassare» e il totale pieno. Cioè lo schermo diceva «annullata» e il
+       foglio che va in mano al cliente gli chiedeva i soldi.
+       È la stessa riga che il sollecito e l'estratto conto avevano già: le
+       note si passano ai documenti che ESCONO, sempre. */
+    const rie = riepilogoIvaFattura(f);
+    const st = statoFattura(f, INC, NOT);
+    const notePro = (NOT || []).filter(n => n && String(n.fatturaId) === String(f.id) && !n.bozza);
     const righe = (f.righe && f.righe.length) ? f.righe : null;
     const corpo = righe
       ? righe.map(r => `<tr><td>${esc(r.descrizione || "—")}${r.ddt && r.ddt.length ? `<br><span style="font-size:8.5pt;color:#444;">DDT ${esc(r.ddt.join(", "))}</span>` : ""}</td>
@@ -3975,12 +3994,22 @@ label.item:has(.dw-chk:checked){
       : `<tr><td>Fornitura di materiali inerti</td><td class="num">—</td><td class="num">—</td>
           <td class="num">${im.conIva ? (im.aliquota == null ? "—" : perc(im.aliquota)) : "n.d."}</td>
           <td class="num">${eur(im.conIva ? im.imponibile : im.totale)}</td></tr>`;
-    // fattura registrata come IMPORTO UNICO (le vecchie): sul foglio non si
-    // scrive "IVA € 0,00", che sarebbe una dichiarazione falsa — si dice che
-    // il dettaglio non c'è.
+    /* IL PIEDE DEL FOGLIO: una riga per ALIQUOTA, non una media.
+       ⛔ Prima c'era una riga sola con l'aliquota di `importiFattura`, che
+       quando la fattura ne ha più d'una la RICAVAVA PER DIVISIONE: su
+       5.000 € al 22% + 2.000 € al 10% scriveva «IVA 19%» — un'aliquota che in
+       Italia non esiste — sotto due righe che dicevano 22% e 10%. Il foglio si
+       smentiva da solo, e nell'anteprima della stessa fattura, un minuto
+       prima, le due bande erano scritte giuste. Adesso la decisione è una
+       sola e sta in `riepilogoIvaFattura`.
+       Le vecchie fatture a importo unico non cambiano: niente «IVA € 0,00»,
+       che sarebbe una dichiarazione falsa — si dice che il dettaglio non c'è. */
     const chiusura = im.conIva
       ? `<tr class="tot-riga"><td colspan="4">Totale imponibile</td><td class="num">${eur(im.imponibile)}</td></tr>
-         <tr><td colspan="4" style="border-bottom:none;">IVA${im.aliquota != null ? " " + perc(im.aliquota) : ""}</td><td class="num" style="border-bottom:none;">${eur(im.ivaImporto)}</td></tr>
+         ${rie.bande.map((b, i) => `<tr><td colspan="4" style="border-bottom:none;">IVA${
+             b.aliquota == null ? " <b>(aliquota non indicata)</b>" : " " + perc(b.aliquota)
+           }${rie.bande.length > 1 ? " su " + eur(b.imponibile) : ""}</td><td class="num" style="border-bottom:none;">${eur(b.imposta)}</td></tr>`).join("")}
+         ${rie.bande.length > 1 ? `<tr><td colspan="4" style="border-bottom:none;">Totale imposta</td><td class="num" style="border-bottom:none;">${eur(rie.ivaRighe)}</td></tr>` : ""}
          <tr class="tot-riga"><td colspan="4" class="grande">Totale fattura</td><td class="num grande">${eur(im.totale)}</td></tr>`
       : `<tr class="tot-riga"><td colspan="4" class="grande">Totale documento</td><td class="num grande">${eur(im.totale)}</td></tr>`;
     return `<div class="doc">
@@ -3992,14 +4021,43 @@ label.item:has(.dw-chk:checked){
       </tr></thead><tbody>${corpo}</tbody>
       <tfoot>${chiusura}</tfoot></table>
       ${im.conIva ? "" : `<div class="manca">Questa fattura è registrata come <b>importo unico</b>, senza il dettaglio dell'IVA: il foglio non può indicarla. Aprila in Conti con la matita, scegli l'aliquota e ristampala.</div>`}
+      ${/* ⛔ LE RIGHE STAMPATE CHE NON TORNANO COL PIEDE. Ci si arriva con la ✎:
+            quella riscrive imponibile, IVA e totale e NON tocca `righe`, quindi
+            una fattura nata da tre DDT e poi corretta a mano esce con le righe
+            che sommano una cifra e il piede che ne dice un'altra. Ogni numero,
+            preso da solo, sembra giusto: è il difetto peggiore che un documento
+            possa avere, e l'unica difesa è scriverlo sul foglio. */""}
+      ${rie.quadra ? "" : `<div class="manca"><b>Le righe qui sopra non tornano con il totale.</b>
+        Sommate danno ${eur(rie.imponibileRighe)} di imponibile e ${eur(rie.ivaRighe)} di IVA
+        (${eur(rie.totaleRighe)} in tutto); il documento è registrato per ${eur(im.imponibile)} + ${eur(im.ivaImporto)}
+        = <b>${eur(im.totale)}</b>, ed è questo il totale che Conti chiede al cliente.
+        Succede quando una fattura nata dai DDT viene poi corretta a mano: rifalla dai DDT, oppure
+        correggi le righe, prima di consegnarla.</div>`}
+      ${notePro.length ? `<div class="manca"><b>Questa fattura è stata ${st.stato === "stornata" ? "annullata" : "rettificata in parte"} da ${notePro.length === 1 ? "una nota di credito" : notePro.length + " note di credito"}</b>
+        (art. 26 DPR 633/1972) per ${eur(st.stornato)}${st.stato === "stornata"
+          ? ": non c'è più niente da pagare, e il totale qui sopra resta scritto perché è quello del documento originale."
+          : `: resta esigibile <b>${eur(st.esigibile)}</b>.`}</div>` : ""}
       <div class="cols">
-        <div class="box"><span class="et">Pagamento entro il</span>${fmtD(f.scadenza)}</div>
-        <div class="box"><span class="et">Stato</span>${st.saldata
-          ? "Saldata" + (st.dataSaldo ? " il " + fmtD(st.dataSaldo) : "")
+        ${/* «Pagamento entro il —» era un campo vuoto che non diceva perché. La
+              scadenza manca sul serio (le fatture importate da CSV arrivano
+              spesso senza) oppure la data scritta non esiste: in tutt'e due i
+              casi si scrive, come fa già il foglio del preventivo. */""}
+        <div class="box"><span class="et">Pagamento entro il</span>${
+          fmtD(f.scadenza, "") || "<b>non indicato</b>"}</div>
+        <div class="box"><span class="et">Stato</span>${st.stato === "stornata"
+          ? "Annullata da nota di credito"
+          : st.saldata ? "Saldata" + (st.dataSaldo ? " il " + fmtD(st.dataSaldo) : "")
           : st.parziale ? "Acconti " + eur(st.incassato) + " — residuo " + eur(st.residuo)
+          : st.stornato > 0 ? "Da incassare " + eur(st.residuo) + " (dopo la nota di credito)"
           : "Da incassare"}</div>
         ${(f.ddtIds || []).length ? `<div class="box"><span class="et">Consegne fatturate</span>${plur((f.ddtIds || []).length, "DDT", "DDT")}</div>` : ""}
       </div>
+      ${notePro.length ? `<table><thead><tr><th colspan="2">Note di credito su questa fattura</th></tr></thead><tbody>
+        ${notePro.map(n => `<tr><td>${esc(n.numero || "—")}${n.emessa ? " del " + fmtD(n.emessa) : ""}${
+            (causaleNota(n.causale) || {}).label ? " · " + esc(causaleNota(n.causale).label) : ""}</td>
+          <td class="num">− ${eur(n.totale)}</td></tr>`).join("")}
+        </tbody><tfoot><tr class="tot-riga"><td>Importo ancora esigibile</td>
+        <td class="num">${eur(st.esigibile)}</td></tr></tfoot></table>` : ""}
       ${st.movimenti.length ? `<table><thead><tr><th colspan="2">Incassi registrati</th></tr></thead><tbody>
         ${st.movimenti.map(m => `<tr><td>${fmtD(m.data)} · ${esc(nomeMetodo(m.metodo))}</td><td class="num">${eur(m.importo)}</td></tr>`).join("")}
         </tbody><tfoot><tr class="tot-riga"><td>${st.saldata ? "Totale incassato" : "Residuo da incassare"}</td>
@@ -4969,15 +5027,54 @@ label.item:has(.dw-chk:checked){
         syncCliNuovo(); }
       // la fattura vecchia (importo secco) si apre come imponibile con IVA 0:
       // finché non si sceglie un'aliquota il totale resta identico a prima
+      /* ⛔ IL RIPIEGO SU «0% — ESENTE» ERA MUTO, E BUTTAVA VIA L'IVA. La tendina
+         ha cinque aliquote: se quella della fattura non è fra loro
+         (`select.value = "19"` non attacca), il campo resta vuoto e la riga
+         qui sotto ci metteva **0**, cioè l'opzione «esente o non imponibile».
+         Da lì un «Salva modifica» — magari fatto solo per correggere la
+         scadenza — riscriveva imposta e totale a zero senza dire niente:
+         misurato su una fattura differita a due aliquote, 8.300 € diventavano
+         7.000 € e 1.300 € di IVA sparivano.
+         Adesso lo zero si mette lo stesso (il campo deve pur valere qualcosa),
+         ma NON in silenzio: la riga d'esito dice che cosa succede se si
+         salva. Vale anche per le fatture nate dai DDT, dove salvare riscrive i
+         totali e **non** le righe — ed è da lì che esce il foglio in cui le
+         righe non tornano col piede. */
+      let avvisoIva = "";
       { const im = importiFattura(f);
         $("ft-imp").value = itDec(im.imponibile);
-        $("ft-iva").value = String(im.aliquota != null ? im.aliquota : 0);
-        if (!$("ft-iva").value) $("ft-iva").value = "0";
+        /* ⚠️ L'ORDINE DELLE DUE RIGHE È LA PROVA. Scritte al contrario —
+           «metti 0 se l'aliquota non c'è, poi guarda se il campo è vuoto» — la
+           tendina accetta lo zero e risponde «rappresentabile», quindi il caso
+           che l'avviso esiste per prendere (la fattura a più aliquote, dove
+           l'aliquota è `null`) non lo prendeva mai. Trovato nel banco, non
+           leggendo: si prova PRIMA a scrivere il valore vero. */
+        $("ft-iva").value = im.aliquota == null ? "" : String(im.aliquota);
+        const rappresentabile = im.aliquota != null && $("ft-iva").value !== "";
+        if (!rappresentabile) $("ft-iva").value = "0";
+        if (im.conIva && !rappresentabile)
+          avvisoIva = " ⚠️ L'IVA di questa fattura (" + eur(im.ivaImporto) + ") non si riassume in una delle aliquote della tendina"
+            + ((f.righe || []).length > 1 ? " perché le sue righe ne hanno più d'una" : "")
+            + ": qui sotto è impostata su «0%», e salvando l'imposta verrebbe azzerata. Se devi solo correggere la scadenza, rimetti prima l'aliquota giusta.";
+        else if ((f.righe || []).length)
+          avvisoIva = " ⚠️ Questa fattura nasce da " + ((f.ddtIds || []).length === 1 ? "un DDT" : plur((f.ddtIds || []).length || f.righe.length, "DDT", "DDT"))
+            + ": salvando, imponibile, IVA e totale vengono riscritti da questi campi ma le righe restano quelle di prima, e sul foglio stampato non torneranno più.";
         aggiornaRiepFat(); }
       $("ft-scad").value = f.scadenza || "";
       FT_CAMPI.forEach(puliscoErr);
       $("btn-ft").textContent = "Salva modifica";
-      esito("ft-esito", "Stai modificando la fattura " + f.numero + (importiFattura(f).conIva ? "" : " (importo senza IVA: scegli l'aliquota per completarla)") + ": cambia i campi e premi «Salva modifica».");
+      /* ⚠️ L'AVVISO LUNGO NON VA NEL TOAST. `esito()` scrive la nota E alza un
+         toast con lo STESSO testo: a 320 px queste sei righe coprivano lo
+         schermo intero, bottone compreso — visto nello scatto, non leggendo il
+         codice. La spiegazione sta dove RESTA (la nota sotto il modulo, che è
+         anche dove si corregge); il toast dice solo che c'è da leggerla. È la
+         stessa scelta già presa per il sollecito, dieci righe più su. */
+      const testaEsito = "Stai modificando la fattura " + f.numero
+        + (importiFattura(f).conIva ? "" : " (importo senza IVA: scegli l'aliquota per completarla)")
+        + ": cambia i campi e premi «Salva modifica».";
+      $("ft-esito").textContent = testaEsito + avvisoIva;
+      if (avvisoIva) toast("Fattura " + f.numero + ": prima di salvare leggi l'avviso sotto il modulo.", "err");
+      else toast(testaEsito);
       $("ft-num").scrollIntoView({ behavior: "smooth", block: "center" });
       return; }
     // toccare una fattura apre il registro dei suoi incassi (acconti compresi)

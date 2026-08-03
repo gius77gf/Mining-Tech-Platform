@@ -65,7 +65,7 @@
 // KPI CALCOLATI: da incassare, in scadenza, gare aperte, età media del credito.
 // ============================================================
 
-import { parseCsvLine, leggiCsv, numIt, giorniTra, isIntestazione, dataISOEsiste,
+import { parseCsvLine, leggiCsv, numIt, giorniTra, isIntestazione, dataISOEsiste, dataIt,
          AVVISO_DECIMALE as AVVISO_DECIMALE_SHELL } from "../../shared/deepwork-id-client/dw-shell.js";
 import { provenienzaDi, misuratoPeriodo } from "../../shared/dw-ponti.js";
 /* la classificazione dei costi vive in shared/ perché serve anche a Flotta:
@@ -723,11 +723,21 @@ function euroIt(v) {
   const seg = dec === "00" ? intG : intG + "," + dec;
   return (n < 0 ? "-" : "") + seg;
 }
-function dataIt(iso) {
-  const s = String(iso || "").slice(0, 10);
-  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(s);
-  return m ? `${m[3]}/${m[2]}/${m[1]}` : (s || "—");
-}
+/* ⛔ LA DATA DEL DOCUMENTO LA SCRIVE `dataIt` DI `shared/`, e qui ce n'era una
+   COPIA PIÙ DEBOLE — la forma esatta descritta in CLAUDE.md: guardava **com'è
+   scritta** la data (una regex a due cifre) invece di **che cosa vale**.
+   Misurato il 03/08 su una fattura importata da CSV con scadenza «2026-02-30»
+   (l'import la prende com'è: `parseFattureCsv` non tocca le date):
+     · l'estratto conto spedito al cliente stampava
+       «- n. 2026/041 · € 4.400 · scad. **30/02/2026** · senza scadenza»
+       — cioè una data che non esiste, scritta come una data vera, e nella
+       stessa riga la smentita di sé stessa;
+     · «2026-13-45» sarebbe uscito «45/13/2026», e «boh» sarebbe uscito «boh».
+   `dataIt` di shared/ passa da `dataISOEsiste`, che il 30 febbraio lo rifiuta
+   invece di farlo scorrere al 2 marzo: la data impossibile diventa «—», e
+   accanto resta scritto perché (`senza scadenza`). Non è la stessa cosa di
+   prima scritta meglio: è la stessa regola che usano tutte le altre app. */
+
 
 // Testo PRONTO di un sollecito di pagamento per una fattura INSOLUTA, da
 // copiare e inviare (email/PEC). Mette insieme gli estremi della fattura, i
@@ -1120,9 +1130,37 @@ export function importiFattura(fattura) {
   const imponibile = round2(f.imponibile != null ? +f.imponibile : (+f.importo || 0));
   const ivaImporto = round2(+f.ivaImporto || 0);
   const totale = round2(f.totale != null ? +f.totale : imponibile + ivaImporto);
-  const aliquota = f.aliquotaIva != null ? +f.aliquotaIva
-    : (imponibile > 0 ? Math.round(ivaImporto / imponibile * 100) : null);
+  /* ⛔ L'ALIQUOTA RICAVATA PER DIVISIONE INVENTAVA UN'ALIQUOTA CHE NON ESISTE,
+     e finiva su un documento fiscale. Misurato il 03/08 su una fattura
+     differita con due prodotti a aliquote diverse (5.000 € al 22% + 2.000 € al
+     10%): il rapporto IVA/imponibile fa 1.300/7.000 = 18,57, arrotondato
+     **19%** — un'aliquota che in Italia non c'è. Il foglio stampato scriveva
+     «IVA 19%» sotto due righe che dicevano 22% e 10%, cioè si smentiva da
+     solo; il CSV per il commercialista scriveva 19 nella colonna dell'aliquota;
+     e la ✎ della fattura, non trovando «19» fra le opzioni della tendina,
+     ripiegava su **0% — esente**, così un «Salva modifica» buttava via 1.300 €
+     di IVA senza dire niente.
+     La divisione resta per le fatture SENZA righe (quelle vecchie, a una sola
+     aliquota, dove il rapporto è esatto): lì è una lettura, non una stima.
+     Con le righe la risposta ce l'hanno le righe — e se ne dichiarano più di
+     una, «l'aliquota della fattura» non è un numero: è `null`, e il riepilogo
+     per aliquota lo dà `riepilogoIvaFattura`. */
+  const aliquota = f.aliquotaIva != null ? +f.aliquotaIva : aliquotaSolaDelleRighe(f, imponibile, ivaImporto);
   return { imponibile, ivaImporto, totale, aliquota, conIva: true };
+}
+
+/* L'aliquota UNICA di una fattura, quando ne ha una sola. `null` vuol dire «non
+   si riassume in una cifra», ed è una risposta, non un errore: due aliquote
+   diverse sulla stessa fattura sono normalissime (inerti al 22%, forniture per
+   opere agevolate al 10%).
+   ⚠️ `r.aliquota == null` NON è zero, e va tenuto distinto: zero è l'esente
+   dichiarato, `null` è «non scritto». `totaliDaRighe` li accorpa (il registro
+   IVA li tratta uguale), qui no, perché qui si decide che cosa STAMPARE. */
+function aliquotaSolaDelleRighe(fattura, imponibile, ivaImporto) {
+  const righe = ((fattura || {}).righe || []).filter(Boolean);
+  if (!righe.length) return imponibile > 0 ? Math.round(ivaImporto / imponibile * 100) : null;
+  const viste = new Set(righe.map((r) => (r.aliquota == null ? null : +r.aliquota)));
+  return viste.size === 1 ? [...viste][0] : null;
 }
 
 // Totali di una fattura a partire dalle sue righe, con il riepilogo per
@@ -1142,6 +1180,50 @@ export function totaliDaRighe(righe) {
   const perAliquota = Object.values(per).sort((a, b) => a.aliquota - b.aliquota);
   for (const p of perAliquota) { p.imposta = round2(p.imponibile * p.aliquota / 100); ivaImporto = round2(ivaImporto + p.imposta); }
   return { imponibile, ivaImporto, totale: round2(imponibile + ivaImporto), perAliquota };
+}
+
+/* ── IL RIEPILOGO IVA CHE VA STAMPATO SUL FOGLIO ────────────────────────────
+   ⛔ NASCE DALLA DOMANDA CHE TROVA QUESTA FAMIGLIA DI DIFETTI: «dove questa app
+   compone qualcosa che ESCE, chi decide i suoi numeri?». Il piede della fattura
+   stampata li decideva da sé, con `importiFattura`, mentre l'anteprima della
+   fattura differita — la stessa fattura, un minuto prima — mostrava il
+   riepilogo per aliquota di `totaliDaRighe`. Due schermate, gli stessi dati,
+   due affermazioni diverse: sul foglio «IVA 19%», nell'anteprima «22% su 5.000
+   e 10% su 2.000». Adesso la decisione è una sola e sta qui.
+   Risponde due cose che la pagina da sola non sa dire:
+   · `bande` — le aliquote da scrivere, una riga per aliquota, come le vuole
+     una fattura vera (e come le mostra già l'anteprima);
+   · `quadra` — se la somma delle righe STAMPATE torna con i totali registrati.
+     Non torna quando la fattura nasce dai DDT e poi qualcuno la corregge a
+     mano con la ✎ (che riscrive imponibile, IVA e totale ma **non** le righe):
+     da lì esce un foglio in cui le righe dicono una cosa e il piede un'altra,
+     ed è il difetto peggiore di tutti perché ogni singolo numero, preso da
+     solo, sembra giusto. Chi lo legge deve poterlo vedere scritto. */
+export function riepilogoIvaFattura(fattura) {
+  const f = fattura || {};
+  const im = importiFattura(f);
+  const righe = (f.righe || []).filter(Boolean);
+  const daRighe = righe.length > 0;
+  const t = daRighe ? totaliDaRighe(righe) : null;
+  const bande = daRighe ? t.perAliquota
+    : !im.conIva ? []
+    : [{ aliquota: im.aliquota, imponibile: im.imponibile, imposta: im.ivaImporto }];
+  const scartoImponibile = daRighe ? round2(t.imponibile - im.imponibile) : 0;
+  const scartoIva = daRighe ? round2(t.ivaImporto - im.ivaImporto) : 0;
+  return { ...im, bande, daRighe,
+    /* un'aliquota che non c'è non si stampa «0%»: chi disegna legge questa.
+       ⚠️ NON si chiede alle bande, e la prima stesura lo faceva: `totaliDaRighe`
+       accorpa il `null` allo zero — giustamente, perché il registro IVA li
+       tratta uguale — quindi una banda con l'aliquota `null` non esiste, e la
+       bandiera rispondeva sempre `false` su ogni fattura con righe. Era una
+       guardia scollegata: c'era, e non poteva alzarsi. Si chiede alle RIGHE,
+       che il `null` ce l'hanno ancora. */
+    aliquotaIgnota: daRighe ? righe.some((r) => r.aliquota == null) : (im.conIva && im.aliquota == null),
+    quadra: !daRighe || (scartoImponibile === 0 && scartoIva === 0),
+    scartoImponibile, scartoIva,
+    imponibileRighe: daRighe ? t.imponibile : null,
+    ivaRighe: daRighe ? t.ivaImporto : null,
+    totaleRighe: daRighe ? t.totale : null };
 }
 
 // NUMERAZIONE PROGRESSIVA PER ANNO (fatture e DDT hanno registri separati).

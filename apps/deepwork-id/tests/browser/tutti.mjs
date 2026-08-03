@@ -79,6 +79,15 @@ const BANCHI = [
   ['struttura di Genesi · controprova', 'genesi-struttura.mjs', ['--prima'], true],
   ['nota di credito', 'nota-credito.mjs', []],
   ['nota di credito · controprova', 'nota-credito.mjs', ['--controprova'], true],
+  /* ⛔ AGGIUNTO IL 03/08. I FOGLI di Conti — fattura, DDT — li compone la
+     PAGINA, e nessuna prova `node` li guardava: le suite chiamano il modulo.
+     Lì dentro sono stati misurati tre difetti veri (l'aliquota 19% ricavata
+     per divisione, la fattura stornata stampata «Da incassare», le righe che
+     non tornano col piede dopo una correzione a mano). I casi il banco se li
+     costruisce nei DATI SERVITI, mai sul disco. */
+  ['i fogli stampati di Conti', 'conti-stampe.mjs', []],
+  ['fogli di Conti · controprova', 'conti-stampe.mjs', ['--controprova'], true],
+  ['fogli di Conti · controprova della ✎', 'conti-stampe.mjs', ['--controprova-matita'], true],
   ['il verbale dice come è nato il numero', 'verbale-origine.mjs', []],
   ['verbale · controprova', 'verbale-origine.mjs', ['--controprova'], true],
   ['la manina promette un tocco che c\'è', 'promesse-tocco.mjs', []],

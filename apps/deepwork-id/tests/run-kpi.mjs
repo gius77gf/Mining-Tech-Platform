@@ -19465,5 +19465,138 @@ test("⛔ Scudo · andamento indici: il verso letto su giornate ancora da contar
   });
 }
 
+/* ═══ CONTI · i documenti stampati (03/08) ═══════════════════════════════════
+   Terza passata su Conti: le prime due hanno guardato i numeri sullo schermo e
+   i file CSV, questa guarda i FOGLI — fattura, DDT, preventivo, estratto conto.
+   La domanda è quella che in una notte ha trovato ventiquattro difetti in
+   cinque app: **dove questa app compone qualcosa che ESCE, chi decide i suoi
+   numeri?** Se la risposta non è «la stessa funzione che li decide a schermo»,
+   lì c'è una copia debole — ed è il posto dove nessuna prova guarda, perché le
+   prove chiamano il modulo e i fogli li compone la pagina.
+   Le tre trovate, misurate una per una qui sotto.                            */
+{
+  const righeMiste = () => [
+    { descrizione: "Stabilizzato 0/30", quantita: 500, unita: "t", prezzoUnitario: 10, scontoPct: 0, imponibile: 5000, aliquota: 22 },
+    { descrizione: "Massi da scogliera", quantita: 200, unita: "t", prezzoUnitario: 10, scontoPct: 0, imponibile: 2000, aliquota: 10 },
+  ];
+  // la fattura differita com'è salvata dalla pagina (vedi il gestore «Emetti la
+  // fattura»: `aliquotaIva` = l'unica banda, oppure null se ce n'è più d'una)
+  const fatturaMista = () => {
+    const r = righeMiste(), t = conti.totaliDaRighe(r);
+    return { id: "fm", numero: "2026/040", cliente: "Edilcave Srl", righe: r,
+      imponibile: t.imponibile, ivaImporto: t.ivaImporto, totale: t.totale, importo: t.totale,
+      aliquotaIva: t.perAliquota.length === 1 ? t.perAliquota[0].aliquota : null,
+      emessa: "2026-07-31", scadenza: "2026-08-30", incassata: false, ddtIds: ["d1", "d2"] };
+  };
+
+  test("⛔ Conti · l'aliquota non si inventa per divisione: 19% non esiste", () => {
+    /* PRIMA: 5.000 al 22% + 2.000 al 10% fanno 1.300 di IVA su 7.000 di
+       imponibile, e `Math.round(1300/7000*100)` risponde **19**. Quel 19
+       finiva in tre posti: il piede del foglio stampato (sotto due righe che
+       dicevano 22% e 10%), la colonna «aliquota» del CSV per il
+       commercialista, e la tendina della ✎ — che non avendo l'opzione «19»
+       ripiegava su «0% — esente», così un «Salva modifica» buttava via 1.300 €
+       di IVA in silenzio. */
+    const f = fatturaMista();
+    eq(conti.importiFattura(f).aliquota, null,
+       "due aliquote diverse non si riassumono in una cifra: null, non 19");
+    eq(conti.importiFattura(f).ivaImporto, 1300, "e l'IVA in euro resta quella giusta");
+    eq(conti.importiFattura(f).totale, 8300, "come il totale del documento");
+  });
+  test("⛔ Conti · con UNA sola aliquota nelle righe la risposta è quella, esatta", () => {
+    /* la divisione qui darebbe lo stesso numero: la prova serve a dire che la
+       correzione non ha spento il caso normale — che è il 99% delle fatture */
+    const f = { righe: [{ imponibile: 1000, aliquota: 10 }], imponibile: 1000, ivaImporto: 100, totale: 1100 };
+    eq(conti.importiFattura(f).aliquota, 10, "una banda sola: l'aliquota della fattura è quella");
+    /* e con un'aliquota NON scritta sulla riga la risposta non è «0%»: le due
+       cose sono diverse su un documento fiscale (esente contro non dichiarata) */
+    eq(conti.importiFattura({ righe: [{ imponibile: 1000, aliquota: null }], imponibile: 1000, ivaImporto: 0, totale: 1000 }).aliquota,
+       null, "riga senza aliquota: non dichiarata, non zero");
+  });
+  test("⛔ Conti · la fattura vecchia (senza righe) legge ancora l'aliquota dal rapporto", () => {
+    eq(conti.importiFattura({ imponibile: 1000, ivaImporto: 220 }).aliquota, 22,
+       "senza righe il rapporto è una lettura esatta, non una stima: resta");
+    eq(conti.importiFattura({ imponibile: 1000, ivaImporto: 220, aliquotaIva: 10 }).aliquota, 10,
+       "e l'aliquota scritta sul documento continua a vincere");
+  });
+
+  test("⛔ Conti · riepilogoIvaFattura: il piede del foglio dice le bande, non una media", () => {
+    const r = conti.riepilogoIvaFattura(fatturaMista());
+    eq(r.bande, [{ aliquota: 10, imponibile: 2000, imposta: 200 },
+                 { aliquota: 22, imponibile: 5000, imposta: 1100 }],
+       "una riga per aliquota, come le stampa una fattura vera");
+    eq(r.daRighe, true, "e dichiara di averle prese dalle righe");
+    eq(r.aliquotaIgnota, false, "tutte le bande hanno la loro aliquota");
+    eq(r.quadra, true, "le righe tornano con i totali registrati");
+    /* è LO STESSO riepilogo che l'anteprima della fattura differita mostra a
+       schermo un minuto prima: schermo e foglio non possono dire due cose */
+    eq(r.bande, conti.totaliDaRighe(righeMiste()).perAliquota,
+       "identico a quello dell'anteprima: una decisione sola");
+  });
+  test("⛔ Conti · riepilogoIvaFattura vede la fattura corretta a mano dopo i DDT", () => {
+    /* LA ✎ riscrive imponibile, IVA e totale e NON tocca `righe`. Da lì esce un
+       foglio in cui le righe stampate sommano 8.300 e il piede dice 8.540:
+       ogni numero, preso da solo, sembra giusto. */
+    const f = { ...fatturaMista(), imponibile: 7000, aliquotaIva: 22, ivaImporto: 1540, totale: 8540, importo: 8540 };
+    const r = conti.riepilogoIvaFattura(f);
+    eq(r.quadra, false, "le righe stampate NON tornano col piede: va detto sul foglio");
+    eq(r.scartoIva, -240, "e di quanto: 1.300 dalle righe contro 1.540 registrati");
+    eq(r.scartoImponibile, 0, "l'imponibile invece torna");
+    eq([r.ivaRighe, r.totaleRighe], [1300, 8300], "quanto fa la somma delle righe stampate");
+    eq(r.totale, 8540, "il piede resta quello registrato: è ciò che l'app chiede al cliente");
+  });
+  test("⛔ Conti · riepilogoIvaFattura sulle fatture senza righe e su quelle vecchie", () => {
+    const secca = conti.riepilogoIvaFattura({ importo: 1000 });
+    eq([secca.conIva, secca.bande, secca.quadra], [false, [], true],
+       "importo secco: nessuna banda da stampare, e il foglio lo dichiara già");
+    const una = conti.riepilogoIvaFattura({ imponibile: 1000, ivaImporto: 220, aliquotaIva: 22 });
+    eq(una.bande, [{ aliquota: 22, imponibile: 1000, imposta: 220 }], "una banda sola, dai totali");
+    eq(una.daRighe, false, "e non viene dalle righe, perché righe non ce ne sono");
+    eq(conti.riepilogoIvaFattura(null).bande, [], "nessuna fattura: nessuna banda, nessuna esplosione");
+  });
+  test("⛔ Conti · `aliquotaIgnota` sa alzarsi, e la prima stesura no", () => {
+    /* regola 20 di run-stile: una non-misurabilità che non legge nessuno non
+       protegge niente. Questa la legge il piede del foglio (`fogliFattura`).
+       ⚠️ Ma prima ancora deve sapersi ALZARE, e scritta come «una banda con
+       l'aliquota null» non ci riusciva mai: `totaliDaRighe` accorpa il null
+       allo zero. La bandiera rispondeva `false` su qualunque fattura con
+       righe — guardia scollegata, e nella direzione che rassicura.
+       ⚠️ ONESTÀ SULLA COPERTURA: oggi nessuna strada dell'app salva una riga
+       con l'aliquota non scritta (`righeDaPesate` e `rigaPreventivo` scrivono
+       sempre un numero), quindi questo è un caso DIFENSIVO — lo stesso per cui
+       il foglio scrive già «—» invece di «0%» nella colonna della riga. Ci si
+       arriva da un archivio importato. */
+    eq(conti.riepilogoIvaFattura({ righe: [{ imponibile: 1000, aliquota: null }], imponibile: 1000, ivaImporto: 0, totale: 1000 }).aliquotaIgnota,
+       true, "una riga senza aliquota si dichiara, anche se la banda la conta a zero");
+    eq(conti.riepilogoIvaFattura(fatturaMista()).aliquotaIgnota, false,
+       "due aliquote scritte non sono un'aliquota ignota");
+    eq(conti.riepilogoIvaFattura({ imponibile: 1000, ivaImporto: 0, totale: 1000 }).aliquotaIgnota,
+       false, "e IVA zero su una fattura senza righe è uno zero DICHIARATO: 0%, non «non si sa»");
+  });
+
+  test("⛔ Conti · la data impossibile non si stampa più come una data vera", () => {
+    /* L'estratto conto è un documento che parte verso il cliente. Con una
+       scadenza «2026-02-30» — che l'import da CSV prende com'è — la riga
+       diceva «scad. 30/02/2026 · senza scadenza»: una data che non esiste,
+       scritta come vera, e la sua smentita a tre parole di distanza. */
+    const f = { id: "f1", numero: "2026/041", cliente: "Edilcave Srl", importo: 4400,
+                emessa: "2026-06-18", scadenza: "2026-02-30", incassata: false };
+    const testo = conti.estrattoContoCliente({ cliente: "Edilcave Srl" }, [f], new Date(2026, 7, 3), 10.15, [], []);
+    ok(!testo.includes("30/02/2026"), "il 30 febbraio non compare stampato");
+    ok(testo.includes("scad. — · senza scadenza"), "al suo posto «—», con accanto il perché");
+    // e le date che esistono continuano a stamparsi
+    const sana = conti.estrattoContoCliente({ cliente: "Edilcave Srl" },
+      [{ ...f, scadenza: "2026-07-08" }], new Date(2026, 7, 3), 10.15, [], []);
+    ok(sana.includes("scad. 08/07/2026"), "una scadenza vera si stampa come sempre");
+  });
+  test("⛔ Conti · e il CSV importato ci arriva davvero, la data non è un caso di scuola", () => {
+    /* «non c'è» va provato: `parseFattureCsv` le date non le tocca — non c'è
+       nessun `dataISOEsiste` fra la cella e il campo salvato. */
+    const lette = conti.parseFattureCsv("numero;cliente;importo;emessa;scadenza;incassata\n2026/041;Edilcave Srl;4400;2026-06-18;2026-02-30;no\n");
+    eq(lette.length, 1, "la riga entra");
+    eq(lette[0].scadenza, "2026-02-30", "con la data impossibile intatta: è da lì che arriva in archivio");
+  });
+}
+
 console.log(`\nRisultato KPI app: ${passed} passati, ${failed} falliti${inVolo.length ? `  ·  ${inVolo.length} prove asincrone aspettate` : ""}`);
 process.exit(failed > 0 ? 1 : 0);
