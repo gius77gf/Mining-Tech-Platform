@@ -181,6 +181,49 @@ questa settimana serve a farlo valere **funzione per funzione**, non a memoria.
       blocchi `<script>` di tutte le 15 pagine dentro il giro di casa, con
       l'elenco **derivato** dalla cartella e la controprova a tappeto (14 su 14).
 
+### A-ter — La notte fra il 2 e il 3 agosto: il core e le date impossibili
+
+*Sette unità, ognuna con la misura prima e dopo. Il filo è sempre quello: **un
+numero scritto dove non era stato misurato niente**.*
+
+- [x] ✅ **La tabella del delta scritta sei volte era già divergente.** Gli
+      addendi non facevano il totale (Sentinella `15+4+1+0` su 22, Conti
+      `9+5+0+2` su 18) **e** le sei copie erano già diverse fra loro. Tre
+      controlli, controprova su due piani.
+- [x] ✅ **Il core: una data illeggibile diventava un OK verde.** `null` dava
+      «scaduta da 56 anni», `30/02/2026` dava `NaN` — e con `NaN` sono false
+      **tutt'e due** le domande, quindi un mezzo mostrava il badge **OK verde**
+      e un promemoria **spariva** da entrambi gli elenchi e dal pallino rosso.
+      Sei punti corretti; la regola giusta era in `shared/` da mesi.
+- [x] ✅ **Un rapportino appena aperto dichiarava «0,0 mc».** La media di zero
+      fori misurati non è zero: non c'è. La stessa espressione era scritta
+      **quattro volte**, e una delle quattro era già giusta.
+      ⏳ **Resta aperto**: le due copie nel percorso di **salvataggio** scrivono
+      `0` nel documento, e non c'è guardia che impedisca di salvare un
+      rapportino senza un solo foro misurato. È una decisione di prodotto (vedi
+      il commit `7050dea`), non una correzione ovvia.
+- [x] ✅ **Conti: la premessa di una decisione dichiarata era falsa in tre
+      punti**, e i totali della fattura erano **più bassi del vero con la
+      spunta già messa**. Più il DDT **stampato** che scriveva «€ 0,00».
+- [x] ✅ **Sentinella: una misura di vibrazione portata a zero e registrata
+      come correzione di qualcuno.** `+null` è 0, la guardia lo lasciava
+      passare. E lo zero scritto davvero continua a passare.
+- [x] ✅ **Flotta e Campo: gli ultimi punti del censimento.** Una data
+      impossibile faceva scrivere «Disponibilità reale **NaN%**» su tutta la
+      pagina dei fermi, e in Campo una registrazione con «2026-02-32» mandava
+      la sezione in **ciclo infinito**: la schermata non si disegnava affatto.
+      Corretto **un solo predicato** invece di otto chiamanti.
+      ⚠️ E la lezione: correggere non bastava, perché togliendo il dato
+      sbagliato la disponibilità **saliva**. Ora le tre schermate dichiarano
+      che cosa è rimasto fuori.
+- [x] ✅ **Genesi esce dalla pagina: 174 → 168 funzioni.** Estratta la
+      riconciliazione previsto-vs-reale, +25 prove, i quattro scatti identici
+      byte per byte. Cinque difetti trovati e **dichiarati senza correggerli**
+      (fra cui un CSV che esce dall'azienda senza la difesa contro la
+      CSV-injection): sono il mandato del cantiere che gira adesso.
+- [x] ✅ **Le due righe perse di Conti ritrovate**, non coperte con un numero.
+      Arretrato di Conti da 12 commit a **zero**.
+
 ### B — Lo standard delle funzioni, app per app (martedì → venerdì)
 
 - [x] ✅ **B1. La caccia sistematica ai numeri tranquilli.** Chiusa il 02/08, e
