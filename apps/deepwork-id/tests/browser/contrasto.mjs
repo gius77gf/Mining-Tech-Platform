@@ -323,23 +323,60 @@ const MISURA = () => {
    `Animation.finished` di quelle che finiscono davvero; le infinite le
    dichiara la guardia dentro la misura. Il tetto c'è perché un'animazione può
    essere sostituita mentre la si aspetta, e allora `finished` non arriva mai. */
-const TETTO_ATTESA = 1500;
-const aspettaAnimazioni = (p) => p.evaluate((tetto) => {
-  const finite = document.getAnimations().filter((a) => {
-    if (a.playState !== 'running') return false;
-    let t; try { t = a.effect && a.effect.getComputedTiming(); } catch (e) { return false; }
-    return !!t && t.iterations !== Infinity;
-  });
-  if (!finite.length) return 0;
-  return Promise.race([
-    Promise.all(finite.map((a) => a.finished.catch(() => {}))).then(() => finite.length),
-    new Promise((r) => setTimeout(() => r(-finite.length), tetto)),
-  ]);
-}, TETTO_ATTESA).catch(() => 0);
+/* ⛔ LE ANIMAZIONI FINITE SI PORTANO ALLA FINE, NON SI ASPETTANO — e la
+   differenza l'ha stabilita una misura, non un ragionamento.
+   Prima stesura: si aspettava `Animation.finished`. Isolato funzionava; il giro
+   completo rimetteva **cinque KO** (quattro colori del core e una cifra di
+   Conti) sullo stesso identico commit, e senza stampare nessuna riga di attesa
+   scaduta. Il numero che l'ha spiegato è un altro: nel giro le animazioni
+   dichiarate «in pulsazione» erano **zero**, isolate **diciassette**.
+   La ragione: nel giro le pagine stanno in secondo piano, e lì Chromium
+   **non fa avanzare le animazioni**. Non è che partano tardi — non partono. Un
+   elemento con `scrFade` resta fermo sul suo `from{opacity:0}` per sempre, e
+   `getAnimations()` non ha niente da restituire. Aspettare qualcosa che non
+   parte è aspettare a vuoto, ed è per questo che la prima correzione (due
+   `requestAnimationFrame` prima di chiedere) è stata **provata e scartata**:
+   la sua controprova rispondeva onestamente «non distingue».
+   `finish()` non dipende dal fatto che l'animazione stia girando: la porta al
+   suo ultimo fotogramma, che è lo stato in cui l'utente vede la pagina ferma.
+   Le infinite non si toccano — non hanno una fine — e restano dichiarate dalla
+   guardia della trappola 4. */
+const fermaAnimazioni = (p) => p.evaluate(() => {
+  let finite = 0, infinite = 0;
+  for (const a of document.getAnimations()) {
+    let t; try { t = a.effect && a.effect.getComputedTiming(); } catch (e) { continue; }
+    if (t && t.iterations === Infinity) { infinite++; continue; }
+    try { a.finish(); finite++; } catch (e) {}
+  }
+  return { finite, infinite };
+}).catch(() => ({ finite: 0, infinite: 0 }));
+
+/* ⛔ E `finish()` HA UNA PROVA SUA, che la vecchia attesa non poteva avere:
+   si mette un elemento con un'animazione CSS che parte da `opacity:0`, si legge
+   l'opacità PRIMA e DOPO, e si pretende che dopo valga 1. Non dipende dal fatto
+   che l'animazione stia girando — che è esattamente il punto. */
+const provaFinish = (p) => p.evaluate(() => {
+  const st = document.createElement('style');
+  st.textContent = '@keyframes dwProvaAtt{from{opacity:0}to{opacity:1}} .dw-prova-att{animation:dwProvaAtt 30s linear}';
+  document.head.appendChild(st);
+  const d = document.createElement('div');
+  d.setAttribute('style', 'position:fixed;left:-9999px;width:10px;height:10px');
+  document.body.appendChild(d);
+  d.className = 'dw-prova-att';
+  const prima = parseFloat(getComputedStyle(d).opacity);
+  for (const a of document.getAnimations()) {
+    let t; try { t = a.effect && a.effect.getComputedTiming(); } catch (e) { continue; }
+    if (t && t.iterations === Infinity) continue;
+    try { a.finish(); } catch (e) {}
+  }
+  const dopo = parseFloat(getComputedStyle(d).opacity);
+  d.remove(); st.remove();
+  return { prima, dopo };
+});
 
 const b = await chromium.launch({ executablePath: CHROMIUM });
 let misurati = 0, bocciati = 0;
-let sfumatiTot = 0, pulsantiTot = 0, spentiTot = 0, scadute = 0, pulsaBocciata = 0, pulsaMisurata = 0;
+let sfumatiTot = 0, pulsantiTot = 0, spentiTot = 0, finiteTot = 0, pulsaBocciata = 0, pulsaMisurata = 0;
 let superficiProvate = 0;
 const superficiCieche = [];
 const visti = new Set();
@@ -376,8 +413,8 @@ for (const [nome, via] of SUPERFICI) {
   let bocciatiQui = 0, misuratiQui = 0, presaQui = 0;
   for (const s of sezioni) {
     await vaiA(p, nome, s);
-    const attese = await aspettaAnimazioni(p);
-    if (attese < 0) scadute += -attese;
+    const { finite: portateAllaFine } = await fermaAnimazioni(p);
+    finiteTot += portateAllaFine;
     const misure = await p.evaluate(MISURA);
     for (const m of misure) {
       /* lo stesso testo con la stessa classe si incontra su più schermate:
@@ -425,8 +462,8 @@ console.log(`\n${misurati} testi misurati in tutto, ${bocciati} sotto soglia`
 /* ⛔ Questa riga va letta PRIMA dei KO, non dopo: è il banco che dice dove non
    ha guardato. Se le attese scadono, la misura è di nuovo a metà animazione —
    cioè il difetto del 03/08 che è tornato, e allora i KO non valgono. */
-if (scadute) console.log(`⚠️  ${scadute} animazioni non hanno finito entro ${TETTO_ATTESA} ms:`
-  + ' lì la misura è di nuovo su una schermata a metà, e i suoi KO non sono affidabili.');
+console.log(`   (${finiteTot} animazioni finite portate al loro ultimo fotogramma prima di misurare:`
+  + ' in secondo piano Chromium non le fa avanzare, e senza questo si misurerebbero a metà)');
 
 if (CONTROPULSA) {
   /* Il testo appeso sta benissimo fermo e male in movimento: il banco NON deve
@@ -441,6 +478,22 @@ if (CONTROPULSA) {
   if (pulsaMisurata) { console.log('⛔ il testo in pulsazione è stato misurato invece che dichiarato: il numero è un caso.'); process.exit(1); }
   if (!dichiarati) { console.log('⛔ nessun testo dichiarato in pulsazione: il veleno non è arrivato, la prova non prova niente.'); process.exit(1); }
   console.log('la guardia della trappola 4 tiene: il testo in pulsazione è stato dichiarato, non giudicato.');
+}
+
+if (CONTROPULSA || CONTROPROVA) {
+  /* la prova dell'ATTESA gira insieme alle altre controprove: costa un
+     millisecondo e difende la correzione del 03/08 */
+  const b2 = await chromium.launch({ executablePath: CHROMIUM });
+  const { ctx, p } = await apriSuperficie(b2, { nome: 'core', via: '/index.html', porta: PORTA, montaFintoFirebase });
+  const r = await provaFinish(p).catch(() => null);
+  await ctx.close(); await b2.close();
+  if (!r) console.log('⚠️  la prova di `finish()` non è riuscita a girare');
+  else {
+    console.log(`\nprova di finish(): opacità prima ${r.prima}, dopo ${r.dopo}`);
+    if (!(r.dopo >= 0.99)) { console.log('⛔ `finish()` non porta l\'elemento al suo ultimo fotogramma: la correzione non tiene.'); process.exit(1); }
+    if (r.prima >= 0.99) console.log('⚠️  qui l\'animazione era già finita da sola: la prova non distingue (macchina scarica).');
+    else console.log(`la correzione tiene: da ${r.prima} a ${r.dopo} senza aspettare che l'animazione giri.`);
+  }
 }
 
 /* Come per gli altri banchi: in controprova si esce MALE se il difetto NON
