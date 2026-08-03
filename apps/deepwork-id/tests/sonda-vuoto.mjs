@@ -723,9 +723,12 @@ const CENSITI = {
      `rilievoUsabileConData` in Terra) **e** `giorniFra` se lo richiede da sé
      invece di fidarsi di chi la chiama: un aiutante difeso solo da com'è
      chiamato oggi è difeso finché nessuno lo chiama diversamente. */
-  "sentinella.piuGiorni":
-    "VERO. Sposta una data di n giorni partendo da `new Date(s + 'T00:00:00Z')` dopo la sola regex di"
-    + " forma: su una data storta la prossima scadenza esce spostata di un giorno o due, in silenzio",
+  /* ✅ CORRETTO IL 03/08 e tolto da qui: `sentinella.piuGiorni`. La regex di
+     forma è diventata `dataISOEsiste`, e adesso `piuGiorni("2026-02-30", 5)`
+     risponde `""` invece di **"2026-03-07"**. ⚠️ E il commento della funzione
+     diceva il falso da un anno — «ritorna "" se la data non è valida» — perché
+     una regex sulla forma non è una verifica di validità. La riga è stata tolta
+     perché **la sonda l'ha preteso**, non perché qualcuno se ne sia ricordato. */
   /* ✅ CORRETTI IL 02/08 e tolti da qui: `terra.confrontoRilievi` e
      `terra.ritmoMedioAnnuo`. Le due conversioni ci sono ancora — il numero
      nasce sempre da `new Date(data + 'T00:00:00')` — ma il filtro a monte
@@ -771,13 +774,16 @@ const CENSITI = {
     + " sullo schermo passava proprio di qui. Oggi i due chiamanti (`valoreDdt` e"
     + " `righeDaPesate`) le passano una quantità già misurata da `quantitaVenduta`, quindi"
     + " l'assenza non ci arriva più; resta perché un chiamante nuovo la rifarebbe entrare",
-  "sentinella.correggiLettura":
-    "VERO, e nella direzione che rassicura: `const v = +nuovo;` è guardato da `v < 0`, che lo ZERO"
-    + " NON esclude. Misurato: `correggiLettura({valore: 3.2}, null)` restituisce"
-    + " `{valore: 0, origine:{corretta:{prima: 3.2}}}` — cioè una lettura di vibrazione portata a"
-    + " ZERO e registrata come correzione fatta da qualcuno. Su uno strumento, zero è il numero più"
-    + " tranquillo che ci sia. La guardia giusta è `v <= 0`, che l'app usa già in `campiPpvVolata`."
-    + " ⚠️ Non si corregge qui: questa unità conta e dichiara, e Sentinella non è la sua app",
+  /* ✅ CORRETTO IL 03/08 e tolto da qui: `sentinella.correggiLettura`. Era il
+     caso più grave che questa sonda abbia trovato — `correggiLettura({valore:
+     3.2}, null)` scriveva `{valore: 0, prima: 3.2}`, cioè una misura di
+     vibrazione azzerata **e registrata come correzione fatta da qualcuno**.
+     Corretto in due passi, e il secondo l'ha chiesto la sonda stessa: prima il
+     valore NUOVO (`numIt` al posto di `+nuovo`, così il vuoto non diventa
+     zero), poi il valore di PRIMA (stessa cosa: su `valore: null` scriveva
+     «prima valeva 0», che è un'affermazione falsa su una misura che non
+     c'era). Lo zero **scritto davvero** continua a passare: due prove separate
+     lo pretendono nei due versi. */
   "sentinella.numeroCsvReferto":
     "DORMIENTE: `const v = +n;` con la sola `Number.isFinite(v)` scrive **\"0\"** invece di cella vuota"
     + " quando il numero non c'è. Non è una funzione esportata e i chiamanti oggi le passano campi"

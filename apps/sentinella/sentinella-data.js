@@ -1607,7 +1607,15 @@ export function correggiLettura(l, nuovo, quando) {
      con la virgola italiana, e risponde `NaN` a tutto ciò che numero non è. */
   const v = numIt(nuovo);
   if (!Number.isFinite(v) || v < 0) return null;
-  const prec = +l.valore;
+  /* ⛔ «PRIMA VALEVA ZERO» È UNA COSA CHE SI SCRIVE NEL REGISTRO. Qui c'era
+     `+l.valore`, e su una lettura con `valore: null` faceva **0**: la
+     correzione veniva registrata con `prima: 0`, cioè affermando che quella
+     misura valeva zero — mentre non aveva nessun valore. Misurato il 03/08:
+       correggiLettura({valore: null}, 2) → prima: 0      ← falso
+       correggiLettura({}, 0)             → prima: null   ← giusto
+     Due vuoti, due risposte diverse, nello stesso punto: `+undefined` è NaN e
+     `+null` è 0. `numIt` li tratta tutt'e due per quello che sono. */
+  const prec = numIt(l.valore);
   if (Number.isFinite(prec) && prec === v) return { ...l };   // stesso numero: nessuna correzione finta
   const p = provenienzaMisura(l);
   const o = (l.origine && typeof l.origine === "object") ? { ...l.origine } : { da: FONTE_IGNOTA };
@@ -1877,7 +1885,13 @@ export function etichettaFrequenza(ogniGiorni) {
 // nell'ora legale). Ritorna "" se la data non è valida.
 export function piuGiorni(dataISO, n) {
   const s = String(dataISO || "").slice(0, 10);
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(s)) return "";
+  /* ⛔ IL COMMENTO QUI SOPRA DICEVA IL FALSO, e per un anno. «Ritorna "" se la
+     data non è valida»: la prova era una regex sulla **forma**, quindi
+     `piuGiorni("2026-02-30", 5)` rispondeva **"2026-03-07"** — `Date` fa
+     scorrere il 30 febbraio al 2 marzo, e da lì conta cinque giorni. Una
+     scadenza costruita su un giorno che non esiste, e con l'aria di essere
+     giusta. `dataISOEsiste` è la sola cosa che difende, ed è in `shared/`. */
+  if (!dataISOEsiste(s)) return "";
   const d = new Date(s + "T00:00:00Z");
   d.setUTCDate(d.getUTCDate() + Math.round(+n || 0));
   return d.toISOString().slice(0, 10);

@@ -17703,5 +17703,32 @@ test("⛔ la dimostrazione contiene una consegna NON valorizzabile, e valoreDdt 
   ok(nonVal.length > 0, "quindi il totale è per difetto, e la pagina lo dice");
 });
 
+// ── ⛔ GLI ULTIMI DUE PUNTI DEL CENSIMENTO, IN SENTINELLA (03/08) ──
+test("⛔ correggiLettura: «prima valeva 0» non si scrive su una misura che non c'era", () => {
+  /* Secondo passo della stessa correzione, e l'ha chiesto la sonda: sistemato
+     il valore NUOVO restava quello di PRIMA. `+l.valore` su `valore: null` fa
+     **0**, quindi la correzione veniva registrata dicendo «prima valeva zero»
+     — un'affermazione falsa su una misura che non esisteva. E i due vuoti
+     rispondevano diverso: `+undefined` è NaN (giusto), `+null` è 0. */
+  eq(sentinella.correggiLettura({ valore: null }, 2).origine.corretta.prima, null,
+    "una lettura senza valore non aveva un «prima»");
+  eq(sentinella.correggiLettura({ valore: "" }, 2).origine.corretta.prima, null, "stringa vuota");
+  eq(sentinella.correggiLettura({}, 2).origine.corretta.prima, null, "campo mai scritto");
+  // e il valore di prima VERO si conserva, che è il motivo per cui il campo esiste
+  eq(sentinella.correggiLettura({ valore: 3.2 }, 2).origine.corretta.prima, 3.2, "il valore vero resta");
+  eq(sentinella.correggiLettura({ valore: 0 }, 2).origine.corretta.prima, 0, "e uno zero misurato davvero è 0");
+});
+test("⛔ piuGiorni: una data che non esiste non produce una scadenza", () => {
+  /* Il commento della funzione prometteva «ritorna \"\" se la data non è
+     valida» e per un anno ha detto il falso: la prova era una regex sulla
+     FORMA, quindi il 30 febbraio scorreva al 2 marzo e ne uscivano cinque
+     giorni dopo. Una scadenza costruita su un giorno che non c'è. */
+  eq(sentinella.piuGiorni("2026-02-30", 5), "", "il 30 febbraio non esiste");
+  eq(sentinella.piuGiorni("2026-02-29", 5), "", "e nemmeno il 29 febbraio 2026");
+  eq(sentinella.piuGiorni("2026-13-01", 5), "", "mese 13");
+  eq(sentinella.piuGiorni("2026-08-01", 5), "2026-08-06", "e una data vera si sposta davvero");
+  eq(sentinella.piuGiorni("2026-08-01", -1), "2026-07-31", "anche all'indietro, attraverso il mese");
+});
+
 console.log(`\nRisultato KPI app: ${passed} passati, ${failed} falliti${inVolo.length ? `  ·  ${inVolo.length} prove asincrone aspettate` : ""}`);
 process.exit(failed > 0 ? 1 : 0);
