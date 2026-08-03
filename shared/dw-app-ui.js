@@ -136,6 +136,51 @@
     });
   }
 
+  /* ⛔ AVVISO A UN BOTTONE SOLO — E NON È UNA COMODITÀ: MANCAVA E QUALCUNO LA
+     CHIAMAVA GIÀ. Il 03/08 un controllo nuovo (`tests/nomi-liberi.mjs`) ha
+     trovato **cinque** chiamate a nomi che non esistono in nessun file, e due
+     erano queste: `avvisa()` in Conti (una volta) e in Flotta (quattro), più
+     `mostraTesto()` in Conti. Non erano codice morto: stavano tutte su un
+     percorso d'ERRORE — «Cliente non eliminabile», «Data non valida», «Manca
+     la data», «C'è già un fermo aperto». Cioè **proprio i messaggi che
+     spiegano cosa non va lanciavano un ReferenceError invece di comparire**, e
+     l'utente vedeva il nulla.
+     Stanno qui e non nelle due pagine perché servono a DUE app, ed è la regola
+     del `shared/`: una regola che serve a due app non si riscrive in casa. Così
+     le chiamate esistenti diventano giuste senza toccare una riga delle pagine
+     — erano corrette nell'intenzione, mancava la funzione.
+     `avvisa` è `chiedi` senza la scelta: chi la usa non sta chiedendo un
+     permesso, sta dicendo perché non si può fare. Torna una Promise perché i
+     chiamanti la aspettano con `await`. */
+  function avvisa(titolo, corpo, etichettaOk) {
+    return new Promise(function (res) {
+      apriModale(titolo, corpo, [
+        { label: etichettaOk || "Ho capito", cls: "primary",
+          azione: function () { chiudiModale(); res(true); } },
+      ]);
+    });
+  }
+
+  /* Il ripiego quando il testo non si può copiare negli appunti: si mostra, e
+     l'utente lo copia a mano. Il `corpo` spiega perché, il testo va in un'area
+     selezionabile — non in un paragrafo, che su telefono non si seleziona
+     bene. Anche questa era chiamata e non esisteva: il ripiego della copia
+     falliva a sua volta, cioè l'utente restava senza niente proprio nel caso
+     in cui la strada normale non aveva funzionato. */
+  function mostraTesto(titolo, spiega, testo) {
+    var area = '<textarea class="dw-input" id="modal-campo" rows="10" readonly '
+      + 'style="width:100%;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12px;'
+      + 'white-space:pre;overflow:auto">' + String(testo == null ? "" : testo)
+        .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;") + "</textarea>";
+    return new Promise(function (res) {
+      apriModale(titolo, (spiega || "") + area, [
+        { label: "Chiudi", cls: "primary", azione: function () { chiudiModale(); res(true); } },
+      ]);
+      var c = document.getElementById("modal-campo");
+      if (c) { c.focus(); c.select(); }
+    });
+  }
+
   // Richiesta di un valore in stile core: `Promise<string|null>`.
   // L'Invio dentro il campo vale come il pulsante primario: chi scrive un
   // numero e batte Invio si aspetta che salvi, non che non succeda niente.
@@ -212,6 +257,8 @@
   window.apriModale = apriModale;
   window.chiudiModale = chiudiModale;
   window.chiedi = chiedi;
+  window.avvisa = avvisa;
+  window.mostraTesto = mostraTesto;
   window.chiediValore = chiediValore;
   window.dwUiAggancia = dwUiAggancia;
 })();

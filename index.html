@@ -182,7 +182,7 @@ async function initFCM(){
       const tipo = payload.data?.tipo || 'info';
       toast(`${tipo==='rapportino'?'📋':tipo==='messaggio'?'💬':tipo==='scadenza'?'⏰':'🔔'} ${title}: ${body}`,'info');
       // Aggiorna badge notifiche se nella schermata home
-      if(state.currentScreen==='home')aggiornaBadgeNotifiche();
+      if(state.currentScreen==='home')aggiornaNotifBadge();
     });
     console.log('[FCM] Inizializzato OK');
   } catch(e) {

@@ -3977,7 +3977,7 @@ a.dw-btn{text-decoration:none}
     esito("ril-esito", "Precompilato dal visore: «" + (ultimo.nome || "rilievo") + "» ≈ " + vol.toLocaleString("it-IT") + " m³ come "
       + (prov === "cumulo" ? "ripresa da cumulo" : "scavo dal fronte") + ". "
       + (dataVisore
-          ? "La data è quella del caricamento nel visore (" + fmtD(dataVisore) + "): <b>confermala</b> se il volo è di un altro giorno."
+          ? "La data è quella del caricamento nel visore (" + fmtData(dataVisore) + "): <b>confermala</b> se il volo è di un altro giorno."
           : "<b>Metti la data del volo</b>: il visore non l'ha registrata.")
       + " Controlla fronte e metodo, poi tocca Registra.");
   };
