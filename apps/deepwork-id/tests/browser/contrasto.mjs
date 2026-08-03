@@ -125,6 +125,13 @@ const MISURA = () => {
     if (cs.visibility === 'hidden' || cs.display === 'none') return;
     const op = opacitaEreditata(el);
     if (op < 0.06) return;                      // praticamente non si vede: non è testo
+    /* ⛔ E QUELLO CHE STA SFUMANDO NON SI MISURA, SI CONTA. Il toast del core
+       ha `transition:all .3s` sull'opacità: preso a metà dissolvenza dava
+       **1,45:1** su un testo che a schermo pieno ne fa più di otto — cioè una
+       bocciatura su un colore che nessuno vede mai così. Non è un difetto del
+       prodotto ed è sbagliato spegnerlo in silenzio: si dichiara. La soglia è
+       0,95 perché sotto quella l'elemento sta ancora arrivando o andandosene. */
+    if (op < 0.95 && /opacity|all/.test(cs.transitionProperty || '')) { window.__dwSfumati = (window.__dwSfumati || 0) + 1; return; }
     const dim = parseFloat(cs.fontSize);
     const grande = dim >= 24 || (dim >= 18.66 && parseInt(cs.fontWeight, 10) >= 700);
     /* TESTO DIPINTO COL GRADIENTE (`background-clip:text`). Lì `color` è
@@ -166,6 +173,7 @@ const MISURA = () => {
 
 const b = await chromium.launch({ executablePath: CHROMIUM });
 let misurati = 0, bocciati = 0;
+let sfumatiTot = 0;
 let superficiProvate = 0;
 const superficiCieche = [];
 const visti = new Set();
@@ -209,7 +217,10 @@ for (const [nome, via] of SUPERFICI) {
       }
     }
   }
+  const sfumati = await p.evaluate(() => window.__dwSfumati || 0).catch(() => 0);
+  sfumatiTot += sfumati;
   console.log(`  ${misuratiQui} testi misurati, ${bocciatiQui} sotto soglia`
+    + (sfumati ? ` · ${sfumati} in dissolvenza, non misurabili` : '')
     + (CONTROPROVA ? ` · controprova ${presaQui ? 'PRESA' : 'NON PRESA'}` : ''));
   if (CONTROPROVA) { superficiProvate++; if (!presaQui) superficiCieche.push(nome); }
   if (errori.length) console.log('  ⚠ errori pagina:', errori.slice(0, 2));
@@ -217,7 +228,8 @@ for (const [nome, via] of SUPERFICI) {
 }
 
 await b.close();
-console.log(`\n${misurati} testi misurati in tutto, ${bocciati} sotto soglia`);
+console.log(`\n${misurati} testi misurati in tutto, ${bocciati} sotto soglia`
+  + (sfumatiTot ? ` · ${sfumatiTot} saltati perché in dissolvenza (dichiarati, non nascosti)` : ''));
 
 /* Come per gli altri banchi: in controprova si esce MALE se il difetto NON
    viene trovato, perché vorrebbe dire che la misura non sa fallire. */

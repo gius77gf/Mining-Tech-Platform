@@ -7257,7 +7257,8 @@ body.outdoor-mode .topbar{height:60px;background:#000;}
 .notif-bell,.outdoor-toggle{position:relative;background:none;border:1px solid var(--border);color:var(--muted);padding:9px 11px;font-size:14px;cursor:pointer;transition:all .2s;min-width:var(--tap);min-height:var(--tap);display:flex;align-items:center;justify-content:center;}
 .notif-bell:hover,.outdoor-toggle:hover{border-color:var(--amber);color:var(--amber);}
 .outdoor-toggle.active{background:var(--amber);color:#100d07;border-color:var(--amber);}
-.notif-badge{position:absolute;top:-5px;right:-5px;background:var(--danger);color:#fff;font-size:9px;font-weight:700;min-width:15px;height:15px;border-radius:50%;display:flex;align-items:center;justify-content:center;padding:0 3px;}
+/* ⛔ 3,49:1: il numero delle notifiche è piccolo (9px) e su rosso chiaro. */
+.notif-badge{position:absolute;top:-5px;right:-5px;background:#b71c1c;color:#fff;font-size:9px;font-weight:700;min-width:15px;height:15px;border-radius:50%;display:flex;align-items:center;justify-content:center;padding:0 3px;}
 /* ── Sync badge (B1+B2) ── */
 .sync-badge{display:flex;align-items:center;gap:5px;padding:5px 10px;font-family:'Barlow Condensed',sans-serif;font-size:10px;font-weight:800;letter-spacing:2px;text-transform:uppercase;border-radius:3px;cursor:default;user-select:none;}
 .sync-badge.offline{background:rgba(239,83,80,.15);border:1px solid var(--danger);color:var(--danger);}
@@ -7265,7 +7266,9 @@ body.outdoor-mode .topbar{height:60px;background:#000;}
 /* Solo memoria: il database non risponde e niente di quello che si scrive
    viene salvato. NON lampeggia — non è un'attesa che passerà da sola, è lo
    stato di tutta la sessione, e una cosa che pulsa si smette di guardare. */
-.sync-badge.nonsalva{background:rgba(239,83,80,.15);border:1px solid var(--danger);color:var(--danger);}
+/* ⛔ 4,22:1 contro i 4,5 che servono: è l'avviso che dice «quello che scrivi
+   non viene salvato», cioè il posto dove leggere male costa di più. */
+.sync-badge.nonsalva{background:rgba(239,83,80,.15);border:1px solid var(--danger);color:#ff9a95;}
 .sync-dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:currentColor;}
 .sync-badge.offline .sync-dot{animation:pulseDot 1.5s ease-in-out infinite;}
 .sync-badge.syncing .sync-dot{animation:rotateDot 1s linear infinite;}
@@ -7360,8 +7363,14 @@ textarea.finput{resize:vertical;min-height:60px;}
 .av-su{background:linear-gradient(135deg,#42a5f5,#1976d2);color:#fff;}
 .av-dp{background:linear-gradient(135deg,#8a7440,#6b5a30);color:#fff;}
 .av-am{background:linear-gradient(135deg,#ff6d00,#ffab00);}
-.av-fc{background:var(--grad3);}
-.av-cv{background:linear-gradient(135deg,#66bb6a,#2e7d32);color:#fff;}
+/* ⛔ 3,45:1 col gradiente di serie: le due iniziali del fochino sono TESTO,
+   e la direttiva sullo stile pretende AA. Tinta più profonda, stessa famiglia. */
+/* ⚠️ e col fondo scuro ci vuole il testo CHIARO: la prima correzione ha
+   scurito il fondo lasciando il `color:#100d07` di `.av`, e il rapporto è
+   PEGGIORATO da 3,45 a 2,09. Misurare dopo, non solo prima. */
+.av-fc{background:linear-gradient(135deg,#c62828,#8e1414);color:#fff;}
+/* ⛔ era 2,36:1, la peggiore delle cinque: verde chiaro sotto testo bianco. */
+.av-cv{background:linear-gradient(135deg,#2e7d32,#14521a);color:#fff;}
 .av-mz{background:linear-gradient(135deg,#78909c,#37474f);color:#fff;}
 .sinfo{flex:1;min-width:0;}
 .sname{font-size:13px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
@@ -7566,6 +7575,12 @@ body.outdoor-mode .topbar-search-input:focus{border-color:#c77800;width:180px;}
    niente per i messaggi corti, che restano su una riga sola. */
 .toast{position:fixed;bottom:80px;left:50%;transform:translateX(-50%) translateY(8px);background:var(--grad);color:#100d07;padding:11px 20px;font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:800;letter-spacing:1px;opacity:0;transition:all .3s;z-index:999;white-space:normal;width:max-content;max-width:90vw;text-align:center;line-height:1.35;overflow-wrap:break-word;}
 .toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+/* ⛔ `.toast.info` NON ESISTEVA: il toast informativo cadeva sullo stile base,
+   cioè testo scuro sul gradiente ambra — e con un fondo a gradiente il
+   `background-color` è trasparente, quindi il testo finiva a 1,45:1 contro la
+   pagina scura. È il toast che dice «quello che scrivi non viene salvato».
+   Adesso ha una tinta piena, come `.err` e `.success`. */
+.toast.info{background:#0d47a1;color:#fff;}
 .toast.err{background:var(--danger);color:#fff;}
 .toast.success{background:var(--gradSuc);color:#fff;}
 /* ── D6 Filtri volate ── */

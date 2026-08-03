@@ -137,6 +137,36 @@ Due eccezioni dichiarate: il core si apre sulla sua schermata d'accesso ed è
 quello che deve fare, e Deepwork ID è la porta d'ingresso, non una stanza da cui
 uscire.
 
+## ⛔ E FINO AL 03/08 IL CORE SI FERMAVA LÌ, per tutti i banchi
+
+`apriSuperficie` iniettava `state.user` e basta: il core restava **sulla
+schermata d'accesso**, e ogni banco che diceva «ho guardato il core» guardava
+un guscio. Misurato prima e dopo, con lo stesso attrezzo:
+
+| | elementi | caratteri di testo | bottoni visibili | schermata |
+|---|---|---|---|---|
+| prima | 1.036 | **258** | **1** | `screen-login` |
+| dopo | 1.102 | **658** | **8** | `screen-home` |
+
+`state.user` non basta perché senza dati il `DB` è vuoto e le schermate non
+disegnano niente. Il segno era **già stampato** da mesi, in fondo al banco delle
+modali: «core: nessuna modale aperta — il banco NON ha guardato questa
+superficie (nel suo programma ce ne sono **68** da aprire)». Cioè il controllo
+dichiarava di essere cieco e nessuno lo leggeva: è la stessa famiglia del
+«controllo che non guarda dove crede», con l'aggravante che qui la confessione
+c'era.
+
+Adesso `apriSuperficie` chiama `accediAlCore(p)`, che fa le due cose che
+CLAUDE.md ha già pagato a caro prezzo:
+1. **il finto Firestore RIFIUTA** (`permission-denied`). Se risponde «nessun
+   documento» il core crede di essere al primo avvio, semina il database e
+   l'accesso risponde «Credenziali errate» **su credenziali giuste**: i dati
+   d'esempio si caricano solo passando dal ripiego;
+2. **l'accesso si ritenta**, perché i dati arrivano DOPO che `doLogin` esiste.
+
+`accediAlCore` torna `true`/`false`: un banco può **dichiarare** di aver
+guardato un guscio invece di tacere.
+
 ### `--senza-programma`: «la pagina monta» non basta
 
 ⚠️ **Misurato il 01/08, ed è il motivo per cui questa prova esiste.** La prova

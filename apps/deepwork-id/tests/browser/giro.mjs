@@ -101,8 +101,52 @@ export async function apriSuperficie(browser, { nome, via, porta, larghezza = 43
   }
   await p.goto(`http://127.0.0.1:${porta}${via}`);
   await p.waitForTimeout(nome === 'core' ? 3500 : 2200);
-  if (nome === 'core') await p.evaluate((u) => window.__provaUtente(u), UTENTE_PROVA(ruolo));
+  if (nome === 'core') {
+    /* ⛔ FINO AL 03/08 QUI IL CORE RESTAVA SULLA SCHERMATA D'ACCESSO, e ogni
+       banco che «guardava il core» guardava un guscio vuoto. Misurato:
+       **1.036 elementi, 258 caratteri di testo, UN bottone visibile**, e in
+       `@volate` 107 caratteri. `state.user` iniettato non basta: senza dati il
+       `DB` è vuoto e le schermate non disegnano niente. Il segno da leggere
+       era già stampato dal banco delle modali — «core: nessuna modale aperta —
+       il banco NON ha guardato questa superficie (nel suo programma ce ne sono
+       68 da aprire)» — cioè il controllo lo DICHIARAVA e nessuno lo leggeva.
+       Due cose servono, e sono tutt'e due in CLAUDE.md già pagate a caro
+       prezzo:
+       1. il finto Firestore deve **RIFIUTARE**. Se risponde «nessun documento»
+          il core crede di essere al primo avvio, semina il database e
+          l'accesso risponde «Credenziali errate» su credenziali giuste: i dati
+          d'esempio si caricano solo passando dal ripiego;
+       2. l'accesso va **ritentato**, perché i dati arrivano DOPO che `doLogin`
+          esiste. */
+    await accediAlCore(p);
+    await p.evaluate((u) => window.__provaUtente(u), UTENTE_PROVA(ruolo));
+  }
   return { ctx, p, errori };
+}
+
+/* Entra nel core coi dati d'esempio. Torna `true` se ci è riuscito: chi la
+   chiama può dichiarare di aver guardato un guscio vuoto invece di tacere. */
+export async function accediAlCore(p) {
+  const { MODULI } = await import('./finto-firebase.mjs');
+  await p.route('https://www.gstatic.com/firebasejs/**firebase-firestore.js', (r) =>
+    r.fulfill({ status: 200, contentType: 'text/javascript',
+      body: MODULI['firebase-firestore.js'].replace(
+        "export async function getDoc() { return { exists: () => false, data: () => null, id: 'finto' }; }",
+        "export async function getDoc(){ const e=new Error('finto'); e.code='permission-denied'; throw e; }") }));
+  await p.reload({ waitUntil: 'load' }).catch(() => {});
+  await p.waitForFunction(() => typeof window.doLogin === 'function', { timeout: 20000 }).catch(() => {});
+  for (let giro = 0; giro < 6; giro++) {
+    const dentro = await p.evaluate(() => {
+      const h = document.getElementById('screen-home');
+      return !!h && getComputedStyle(h).display !== 'none';
+    }).catch(() => false);
+    if (dentro) return true;
+    await p.fill('#lu', 'admin').catch(() => {});
+    await p.fill('#lp', 'admin').catch(() => {});
+    await p.click('#btn-login').catch(() => {});
+    await p.waitForTimeout(800);
+  }
+  return false;
 }
 
 /* L'elenco delle sezioni da visitare, nella forma che `vaiA` sa usare. */
