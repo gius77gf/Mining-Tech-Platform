@@ -145,7 +145,7 @@ const APP = ["campo", "conti", "flotta", "scudo", "sentinella", "terra"];
    È la stessa forma del trasloco della densità da Terra, quattro righe più
    giù: il numero che scende di qua e sale di là È la prova che è un trasloco e
    non una copia. */
-const FONDO = { campo: 103, conti: 112, flotta: 83, scudo: 155, sentinella: 124, terra: 58 };
+const FONDO = { campo: 109, conti: 117, flotta: 83, scudo: 156, sentinella: 126, terra: 58 };
 
 /* Quello che resta fuori per un motivo, non per dimenticanza: i caricatori
    dati vogliono la rete e lo SDK, i ponti demo vogliono il localStorage.

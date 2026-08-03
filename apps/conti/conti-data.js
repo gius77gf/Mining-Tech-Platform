@@ -696,6 +696,59 @@ export function parseListinoCsv(text) {
 export const TASSO_MORA_DEFAULT = 10.15;   // % annuo — 1° semestre 2026 (GU 15/2026)
 export const SPESE_RECUPERO_231 = 40;      // € forfettari art. 6 D.Lgs 231/2002
 
+/* ⛔ E IL SEMESTRE A CUI QUEL TASSO APPARTIENE, perché è un numero CHE SCADE.
+   Il D.Lgs 231/2002 non fissa una percentuale: fissa una regola — tasso di
+   rifinanziamento BCE **più otto punti** — e il valore lo pubblica il MEF in
+   Gazzetta **per ogni semestre**. Quindi `TASSO_MORA_DEFAULT` è giusto fino al
+   30 giugno 2026 e dal 1° luglio è un numero vecchio.
+   Il difetto misurato il 03/08: il sollecito e l'estratto conto lo citavano
+   come se fosse quello in vigore, in una lettera che nomina la legge. Non è un
+   errore di calcolo — è la forma più insidiosa del numero tranquillo, perché
+   **era vero** e nessuno gli aveva messo una scadenza. Ed era già scaduto da
+   trentaquattro giorni mentre l'app lo scriveva.
+   ⚠️ Quello che questa correzione NON fa, di proposito: **non inventa il tasso
+   del semestre in corso**. Quel numero lo pubblica il MEF e noi non ce
+   l'abbiamo; scriverne uno plausibile in una lettera legale sarebbe peggio del
+   difetto. La lettera dichiara a quale semestre appartiene il tasso che sta
+   usando, e chi legge sa che va riconfermato. */
+export const SEMESTRE_TASSO_MORA = "2026-1";
+
+/* Il semestre si ricava dalla data LOCALE, non da `toISOString()`: il
+   contenitore gira in UTC e le cave sono in Italia, e su una data costruita in
+   ora locale l'ISO perde un'ora — a cavallo di mezzanotte cambia il giorno, e
+   il 30 giugno diventerebbe il 1° luglio. Vedi `docs/RICERCA_GIORNO_LOCALE_202607.md`. */
+export function semestreDi(data) {
+  const d = data instanceof Date ? data : new Date(data);
+  if (!(d instanceof Date) || Number.isNaN(d.getTime())) return null;
+  return `${d.getFullYear()}-${d.getMonth() <= 5 ? 1 : 2}`;
+}
+
+/* «Il tasso che sto per scrivere è ancora quello in vigore?» — e la risposta
+   `null` quando la data non si legge, che NON è «sì»: è la convenzione
+   dell'ecosistema per «non si può dire». */
+export function statoTassoMora(oggi = new Date(), semestre = SEMESTRE_TASSO_MORA) {
+  const ora = semestreDi(oggi);
+  const sem = String(semestre || "").trim();
+  const leggibile = /^\d{4}-[12]$/.test(sem);
+  return {
+    semestreTasso: leggibile ? sem : null,
+    semestreOggi: ora,
+    aggiornato: (!ora || !leggibile) ? null : sem === ora,
+    etichetta: leggibile ? `${sem.endsWith("-1") ? "1°" : "2°"} semestre ${sem.slice(0, 4)}` : null,
+  };
+}
+
+/* La frase da mettere nelle lettere: una sola, così sollecito ed estratto conto
+   non se ne tengono due versioni diverse — è la copia debole che questa
+   settimana stiamo togliendo di mezzo. */
+export function frasiTassoMora(oggi = new Date(), semestre = SEMESTRE_TASSO_MORA) {
+  const s = statoTassoMora(oggi, semestre);
+  if (s.aggiornato === true) return "";
+  if (s.aggiornato === null)
+    return " Il tasso indicato è quello registrato nell'applicazione: non è stato possibile verificare a quale semestre si riferisca.";
+  return ` Il tasso indicato è quello fissato per il ${s.etichetta}: per il semestre in corso il valore di riferimento BCE va riconfermato prima dell'invio.`;
+}
+
 export function interessiMora(importo, giorniRitardo, tassoAnnuo = TASSO_MORA_DEFAULT) {
   const imp = +importo || 0, g = +giorniRitardo || 0, t = +tassoAnnuo || 0;
   if (imp <= 0 || g <= 0 || t <= 0) return { interessi: 0, giorni: Math.max(0, g), tasso: t };
@@ -770,7 +823,7 @@ export function testoSollecito(fattura, oggi = new Date(), tassoAnnuo = TASSO_MO
       ? `risulta ancora da saldare la fattura n. ${numero} di ${e(totDoc)}, scaduta il ${dataIt(f.scadenza)} (${ritardo} giorni di ritardo): a fronte di acconti per ${e(acconti)} resta scoperto ${e(imp)}.`
       : `risulta non ancora saldata la fattura n. ${numero} di ${e(imp)}, scaduta il ${dataIt(f.scadenza)} (${ritardo} giorni di ritardo).`,
     ``,
-    `La preghiamo di provvedere al pagamento nel più breve tempo possibile. Ai sensi del D.Lgs 231/2002 sulle transazioni commerciali, dalla scadenza maturano interessi di mora al tasso del ${tassoTxt}% annuo, oltre a ${e(SPESE_RECUPERO_231)} di spese forfettarie di recupero (art. 6).`,
+    `La preghiamo di provvedere al pagamento nel più breve tempo possibile. Ai sensi del D.Lgs 231/2002 sulle transazioni commerciali, dalla scadenza maturano interessi di mora al tasso del ${tassoTxt}% annuo, oltre a ${e(SPESE_RECUPERO_231)} di spese forfettarie di recupero (art. 6).${frasiTassoMora(oggi)}`,
     ``,
     `Riepilogo alla data odierna:`,
     ...(acconti > 0
@@ -940,6 +993,10 @@ export function estrattoContoCliente(cliente, fatture, oggi = new Date(), tassoA
   ];
   if (scaduteN > 0) {
     out.push(`Interessi di mora stimati (D.Lgs 231/2002, ${String(tassoAnnuo).replace(".", ",")}%): ${e(moraTot)}`);
+    /* la stessa frase del sollecito, dalla stessa funzione: due lettere che
+       citano la stessa legge non possono dire due cose diverse */
+    const avviso = frasiTassoMora(oggi);
+    if (avviso) out.push(avviso.trim());
     out.push(`Spese forfettarie art. 6 (${e(SPESE_RECUPERO_231)} × ${scaduteN} fatture scadute): ${e(spese)}`);
     out.push(`Totale dovuto ad oggi: ${e(totaleDovuto)}`);
   }

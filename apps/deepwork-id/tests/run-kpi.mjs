@@ -20050,5 +20050,80 @@ test("⛔ Scudo · andamento indici: il verso letto su giornate ancora da contar
   });
 }
 
+// ═══ CONTI · il tasso di mora che scade (03/08) ═══════════════════════════
+/* Il D.Lgs 231/2002 non fissa una percentuale: fissa una regola (BCE + 8 punti)
+   e il valore lo pubblica il MEF PER OGNI SEMESTRE. Il nostro default era
+   giusto fino al 30/06/2026 e il 03/08 lo scrivevamo ancora nelle lettere come
+   se fosse quello in vigore: un numero che ERA vero e a cui nessuno aveva messo
+   una scadenza. */
+{
+  console.log("\n— Conti: il tasso di mora e il suo semestre —");
+
+  test("⛔ Conti · il semestre si ricava dalla data locale, e i due estremi sono quelli giusti", () => {
+    eq(conti.semestreDi(new Date(2026, 0, 1)), "2026-1", "1° gennaio: primo semestre");
+    eq(conti.semestreDi(new Date(2026, 5, 30)), "2026-1", "30 giugno: ancora il primo");
+    eq(conti.semestreDi(new Date(2026, 6, 1)), "2026-2", "1° luglio: secondo");
+    eq(conti.semestreDi(new Date(2026, 11, 31)), "2026-2", "31 dicembre: ancora il secondo");
+    eq(conti.semestreDi("non una data"), null, "una data illeggibile non ha un semestre");
+  });
+
+  test("⛔ Conti · «non si può dire» non è «sì»: il tasso senza semestre risponde null", () => {
+    /* Se `aggiornato` tornasse `false` su una data illeggibile la lettera
+       scriverebbe un avviso inventato; se tornasse `true`, tacerebbe. */
+    eq(conti.statoTassoMora("boh", "2026-1").aggiornato, null, "data illeggibile: non si può dire");
+    eq(conti.statoTassoMora(new Date(2026, 7, 3), "").aggiornato, null, "semestre non dichiarato: non si può dire");
+  });
+
+  test("Conti · il tasso del 1° semestre 2026 è scaduto il 1° luglio", () => {
+    eq(conti.statoTassoMora(new Date(2026, 2, 15), "2026-1").aggiornato, true, "dentro il suo semestre");
+    eq(conti.statoTassoMora(new Date(2026, 5, 30), "2026-1").aggiornato, true, "l'ultimo giorno vale ancora");
+    eq(conti.statoTassoMora(new Date(2026, 6, 1), "2026-1").aggiornato, false, "il giorno dopo no");
+    eq(conti.statoTassoMora(new Date(2026, 7, 3), "2026-2").aggiornato, true, "se qualcuno lo aggiorna, torna in corso");
+    eq(conti.statoTassoMora(new Date(2026, 7, 3), "2026-1").etichetta, "1° semestre 2026", "l'etichetta si legge in italiano");
+  });
+
+  test("Conti · l'avviso entra SOLO quando serve", () => {
+    /* Una lettera che si scusa sempre è una lettera che nessuno legge. */
+    eq(conti.frasiTassoMora(new Date(2026, 2, 15), "2026-1"), "", "tasso in corso: nessun avviso");
+    ok(/1° semestre 2026/.test(conti.frasiTassoMora(new Date(2026, 7, 3), "2026-1")),
+       "tasso scaduto: la lettera dice a quale semestre appartiene");
+    ok(/non è stato possibile verificare/.test(conti.frasiTassoMora("boh", "2026-1")),
+       "data illeggibile: lo dichiara invece di tacere");
+  });
+
+  test("⛔ Conti · sollecito ed estratto conto citano la stessa legge e dicono la stessa cosa", () => {
+    /* Tenersene due versioni è la copia debole che questa settimana stiamo
+       togliendo di mezzo: qui la frase viene da una funzione sola. */
+    const fatt = { id: "f1", numero: "2026/041", cliente: "Edilcave Srl", importo: 4400, scadenza: "2026-01-10" };
+    const scaduto = new Date(2026, 7, 3);
+    const sol = [].concat(conti.testoSollecito(fatt, scaduto)).join("\n");
+    const est = [].concat(conti.estrattoContoCliente("Edilcave Srl", [fatt], scaduto)).join("\n");
+    ok(/1° semestre 2026/.test(sol), "il sollecito dichiara il semestre del tasso");
+    ok(/1° semestre 2026/.test(est), "e l'estratto conto dice la stessa cosa");
+  });
+
+  test("⛔ Conti · il semestre dichiarato e il tasso di default sono la stessa coppia", () => {
+    /* I due valori vivono su due righe diverse e vanno aggiornati INSIEME: chi
+       cambia la percentuale a gennaio e si dimentica il semestre rimette in
+       piedi esattamente il difetto che questa unità toglie. Qui si pretende
+       almeno che la coppia sia dichiarata e coerente, e che sia LEI quella che
+       le lettere usano quando nessuno passa niente. */
+    ok(/^\d{4}-[12]$/.test(conti.SEMESTRE_TASSO_MORA),
+       `SEMESTRE_TASSO_MORA dev'essere «AAAA-1» o «AAAA-2», è «${conti.SEMESTRE_TASSO_MORA}»`);
+    ok(Number.isFinite(conti.TASSO_MORA_DEFAULT) && conti.TASSO_MORA_DEFAULT > 0,
+       "il tasso di default dev'essere un numero positivo");
+    /* chiamata SENZA semestre: deve cadere sul default, non su «non si può dire» */
+    eq(conti.statoTassoMora(new Date(2026, 2, 15)).semestreTasso, conti.SEMESTRE_TASSO_MORA,
+       "senza argomento si usa il semestre dichiarato nel modulo");
+  });
+
+  test("Conti · col tasso in corso la lettera non cambia di una virgola", () => {
+    const fatt = { id: "f1", numero: "2026/012", cliente: "Edilcave Srl", importo: 4400, scadenza: "2026-01-10" };
+    const dentro = new Date(2026, 2, 15);
+    ok(!/semestre/.test([].concat(conti.testoSollecito(fatt, dentro)).join("\n")),
+       "la correzione non deve sporcare il documento nel caso normale");
+  });
+}
+
 console.log(`\nRisultato KPI app: ${passed} passati, ${failed} falliti${inVolo.length ? `  ·  ${inVolo.length} prove asincrone aspettate` : ""}`);
 process.exit(failed > 0 ? 1 : 0);
