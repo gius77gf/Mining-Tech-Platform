@@ -1486,7 +1486,7 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
     REQUISITI_FORMAZIONE, requisitoFormazione, requisitoSicuro, statoRequisito, MANSIONI_PRESET, mansionePreset,
     matriceMansione, riepilogoMansioni, lavoratoriScoperti, abilitazioneLavoratore, daSistemareCopertura,
     NOMINE_RUOLI, ruoloNomina, nominaAttiva, organigrammaSicurezza, nomineDaSistemare,
-    cartellaLavoratore, descriviCartella,
+    cartellaLavoratore, descriviCartella, etichettaStatoDocumento, statoPeggioreScadenze,
     TIPI_DPI, tipoDpi, tipoDpiSicuro, ultimaConsegnaDpi, statoConsegnaDpi, allarmiDpi, riepilogoDpi, verbaleDpi,
     MOTIVO_SENZA_SOSTITUZIONE,
     indiciInfortunistici, andamentoIndici, avvisoGravitaMinima, avvisoAndamentoMinimo,
@@ -2003,10 +2003,19 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
     $("pers-list").innerHTML = lavVis.map(l => {
       const sue = SCA.filter(s => s.lavoratoreId === l.id);
       const prob = sue.filter(s => statoScadenza(s.dataScadenza) !== "regolare");
-      const st = prob.some(s => statoScadenza(s.dataScadenza) === "scaduta") ? "scaduta" : (prob.length ? "in-scadenza" : "regolare");
-      // stessa regola del KPI: senza nessuna riga in scadenzario non si scrive
-      // «Regolare», che è il colore di chi è stato guardato ed è a posto
-      const bg = sue.length ? B[st] : ["warn", "Nessuna scadenza"];
+      /* ⛔ TRE RISPOSTE PER UNA FUNZIONE CHE NE SA DIRE QUATTRO (03/08). Qui
+         c'era scritto a mano `prob.some(scaduta) ? "scaduta" : (prob.length ?
+         "in-scadenza" : "regolare")`: chi ha solo scadenze dalla data
+         illeggibile o mai scritta usciva con la pastiglia gialla «In
+         scadenza» — un'affermazione precisa su una data che nessuno conosce —
+         mentre lo scadenzario, sulla stessa riga, scrive «Senza data».
+         La stessa domanda la faceva già `idoneitaOperatore` di `shared/`, con
+         la risposta giusta: adesso la decide `statoPeggioreScadenze`, che
+         quelle due copie le ha sostituite tutt'e due.
+         `null` = nessuna riga: non si scrive «Regolare», che è il colore di
+         chi è stato guardato ed è a posto. */
+      const st = statoPeggioreScadenze(sue);
+      const bg = st ? B[st] : ["warn", "Nessuna scadenza"];
       const idn = idoneitaLabel(l.idoneita);
       return `<div class="item ${striscia[bg[0]]}">
         <div class="avatar">${esc(initials(l.nome))}</div>
@@ -2285,7 +2294,11 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
     $("new-scad-lav").innerHTML = '<option value="">— azienda —</option>' +
       LAV.map(l => `<option value="${l.id}">${esc(l.nome)}</option>`).join("");
 
-    const D = { valido: ["ok", "Valido"], "da-rivedere": ["warn", "Da rivedere"], scaduto: ["danger", "Scaduto"] };
+    /* ⛔ LA MAPPA DEGLI STATI DEL DOCUMENTO È USCITA DI QUI (03/08). Stava
+       scritta a mano proprio qui, e serviva solo a disegnare questo elenco;
+       poi la CARTELLA del lavoratore ha dovuto stampare gli stessi documenti
+       e, non avendola, ha stampato la riga SENZA lo stato. Adesso la decide
+       `etichettaStatoDocumento` e la leggono tutt'e due. */
     /* Il documento di coordinamento (DUVRI o DSS coordinato).
        ⛔ OTTO VOCI PERCHE' `statoCoordinamento` SA DIRE OTTO COSE — regola 18:
        il giorno in cui la funzione impara una nona risposta e questa mappa non
@@ -2322,10 +2335,10 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
     $("doc-list").innerHTML = DOC.map(d => {
       const legami = [d.cantiereId && cById[d.cantiereId] ? "sito: " + esc(cById[d.cantiereId].nome) : "", d.lavoratoreId && byId[d.lavoratoreId] ? "lavoratore: " + esc(byId[d.lavoratoreId].nome) : ""].filter(Boolean).join(" · ");
       /* ⛔ Un documento di cui lo stato non è scritto — un import, un dato
-         vecchio — non è un documento «valido»: leggerlo con `D[d.stato][0]`
-         uccideva la pagina AL DISEGNO, e cadere sul verde sarebbe stato peggio
-         del crash. Si dichiara che non si sa, in giallo. */
-      const ds = D[d.stato] || ["warn", "Stato non indicato"];
+         vecchio — non è un documento «valido»: leggerlo con una mappa senza
+         ripiego uccideva la pagina AL DISEGNO, e cadere sul verde sarebbe
+         stato peggio del crash. Il ripiego giallo sta nella funzione. */
+      const dse = etichettaStatoDocumento(d.stato), ds = [dse.cls, dse.label];
       return `<div class="item tocca ${striscia[ds[0]]}" data-doc="${d.id}" title="Tocca per cambiare stato"><div class="info"><div class="name">${d.tipo ? `<span class="badge tag" style="margin-right:6px;">${esc(d.tipo)}</span>` : ""}${esc(d.titolo)}</div><div class="meta">${esc(d.meta || "")}${legami ? (d.meta ? " · " : "") + legami : ""}</div></div>
        <span class="acts">${d.allegatoData ? `<span class="arr" style="cursor:pointer" title="Apri allegato ${esc(d.allegatoNome || "")}" data-open-doc="${d.id}">${I.clip}</span>` : ""}
        <span class="badge ${ds[0]}">${ds[1]}</span></span></div>`;
@@ -3787,7 +3800,11 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
     if (prom) { const sc = SCA.find(x => x.id === prom);
       const lav = sc && LAV.find(x => x.id === sc.lavoratoreId);
       const testo = sc && testoPromemoria(sc, lav);
-      if (!testo) { esito("scad-esito", "Il promemoria si può preparare solo per la scadenza di un lavoratore, e solo se è in scadenza o già scaduta.", "err"); return; }
+      /* La frase diceva «solo se è in scadenza o già scaduta» e lasciava fuori
+         il quarto stato: su una riga «senza data» — che il bottone ce l'ha,
+         perché il criterio è `stato !== "regolare"` — annunciava un motivo
+         falso. Adesso i due casi che restano sono davvero questi. */
+      if (!testo) { esito("scad-esito", "Il promemoria si può preparare solo per la scadenza di un lavoratore, e solo se c'è qualcosa da sollecitare: scaduta, in scadenza, o senza una data leggibile.", "err"); return; }
       const ok = () => esito("scad-esito", "Promemoria per " + lav.nome + " copiato: incollalo nell'email o nell'SMS.", "success");
       try {
         if (navigator.clipboard && navigator.clipboard.writeText) { await navigator.clipboard.writeText(testo); ok(); }
@@ -4933,9 +4950,25 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
       ${c.nomine.length ? sezione("Nomine attive",
           c.nomine.map(n => riga((ruoloNomina(n.ruolo) || {}).etichetta || n.ruolo,
             n.dal ? "dal " + fmtData(n.dal) : "senza data di nomina")), "") : ""}
+      ${/* ⛔ LO STATO DEL DOCUMENTO NON C'ERA (03/08). La riga stampava titolo
+            e `meta` — che è testo libero e può essere vuoto — e basta: sul
+            fascicolo che si esibisce all'ispettore un documento «Da rivedere»
+            o dallo stato mai registrato usciva identico a uno valido, con la
+            cella di destra bianca. Su un foglio una cella bianca accanto a un
+            documento si legge «a posto».
+            Lo stato lo decide `etichettaStatoDocumento`, la stessa che disegna
+            la pastiglia nell'elenco dei Documenti: qui non si ri-decide niente.
+            `meta` resta, dopo, perché è la nota che l'utente ha scritto. */""}
       ${c.documenti.length ? sezione("Documenti collegati",
-          c.documenti.map(d => riga(d.titolo, esc(d.meta || ""))), "") : ""}
-      <div style="margin-top:14px;font-size:11.5px;${c.completa ? "color:#555;" : "color:#8a0000;font-weight:600;"}">${esc(descriviCartella(c))}</div>
+          c.documenti.map(d => { const e = etichettaStatoDocumento(d.stato);
+            return riga(d.titolo, (e.valido ? "" : "<b>") + esc(e.label) + (e.valido ? "" : "</b>")
+              + (d.meta ? " · " + esc(d.meta) : "")); }), "") : ""}
+      ${/* ⛔ E IL COLORE SEGUE LE RIGHE, NON SOLO LE SEZIONI. Grigio quando è
+            completa: una cartella con dentro una visita medica scaduta e un
+            DPI da sostituire chiudeva in grigio, cioè col colore tranquillo su
+            un foglio che due centimetri più sopra scrive «DA SOSTITUIRE».
+            `daSistemare` è l'elenco di quelle righe, e lo compone il modulo. */""}
+      <div style="margin-top:14px;font-size:11.5px;${c.completa && !c.daSistemare.length ? "color:#555;" : "color:#8a0000;font-weight:600;"}">${esc(descriviCartella(c))}</div>
       <div style="margin-top:22px;display:flex;gap:26px;">
         <div style="flex:1;border-top:1px solid #777;padding-top:4px;font-size:11px;color:#555;">Luogo e data</div>
         <div style="flex:1;border-top:1px solid #777;padding-top:4px;font-size:11px;color:#555;">Il datore di lavoro</div>
@@ -4952,6 +4985,14 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
         ? "Tutte le sezioni contengono dati registrati in Scudo."
         : "⚠️ <b>La cartella non è completa.</b> " + esc(c.vuoti.join(" "))
           + "<br><br>Il foglio esce lo stesso e <b>dichiara</b> le sezioni vuote, invece di lasciarle bianche: una sezione bianca un ispettore la legge «non dovuto».")
+      /* La finestra diceva SOLO se ci sono sezioni vuote, quindi su una
+         cartella piena di righe scadute annunciava «tutte le sezioni
+         contengono dati» — la stessa faccia tranquilla che il foglio aveva in
+         fondo. Chi sta per stampare deve sapere che cosa ci troverà dentro. */
+      + (c.daSistemare.length
+        ? "<br><br>⚠️ <b>Completa non vuol dire in regola:</b> fra le righe registrate ce ne sono che non lo sono — "
+          + esc(c.daSistemare.join(", ")) + ". Il foglio le riporta una per una."
+        : "")
       + "<br><br>Si apre la finestra di stampa del browser: da lì puoi anche scegliere «Salva come PDF».",
       "Stampa");
     if (!ok) return;

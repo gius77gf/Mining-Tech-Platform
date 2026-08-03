@@ -649,12 +649,23 @@ export function livelloScadenza(dataISO, oggi = new Date()) {
 // (visita medica, corso, patentino…) è scaduta o in scadenza, da copiare e
 // inviare (email/SMS). Serve al responsabile sicurezza a sollecitare il
 // rinnovo senza riscrivere ogni volta. Ritorna null se non c'è nulla di
-// urgente (scadenza regolare), se manca il nome del lavoratore o la data.
+// urgente (scadenza regolare) o se manca il nome del lavoratore.
 // Pura e testabile: nessun DOM, `oggi` iniettabile.
+/* ⛔ LA GUARDIA `!sc.dataScadenza` È USCITA DI QUI (03/08), e il difetto si
+   vedeva solo premendo il bottone. La riga il cui campo data non è mai stato
+   scritto e la riga con la data ILLEGGIBILE («2026-13-45») sono la STESSA COSA
+   a schermo — lo scadenzario scrive «Senza data» su tutt'e due, e su tutt'e due
+   disegna il bottone «Promemoria», perché il criterio è `stato !== "regolare"`.
+   Premendolo: sulla seconda usciva il messaggio giusto, sulla prima la pagina
+   rispondeva «Il promemoria si può preparare solo per la scadenza di un
+   lavoratore, e solo se è in scadenza o già scaduta» — che è FALSO due volte
+   (è di un lavoratore, e il suo stato non è regolare). Guardava COM'È SCRITTO
+   il dato invece di CHE COSA VALE: `statoScadenza` le due cose le tratta già
+   uguali, ed è lei che deve decidere. */
 export function testoPromemoria(scadenza, lavoratore, oggi = new Date()) {
   const sc = scadenza || {};
   const nome = ((lavoratore && lavoratore.nome) || "").trim();
-  if (!nome || !sc.dataScadenza) return null;
+  if (!nome) return null;
   const st = statoScadenza(sc.dataScadenza, oggi);
   if (st === "regolare") return null;                 // niente di urgente da sollecitare
   const g = giorniTra(sc.dataScadenza, oggi);
@@ -670,8 +681,13 @@ export function testoPromemoria(scadenza, lavoratore, oggi = new Date()) {
      Stessa regola 18 di `run-stile`, applicata a un testo invece che a una
      mappa di badge: `statoScadenza` sa dire quattro cose, e chi la legge deve
      avere quattro risposte. */
+  /* ⚠️ La frase del quarto caso vale per TUTT'E DUE i modi di non avere una
+     data — quella illeggibile e quella mai scritta — perché per chi riceve il
+     messaggio sono la stessa cosa: nello scadenzario non risulta un
+     entro-quando. Dire «non è leggibile» su un campo vuoto sarebbe raccontare
+     un guasto che non c'è. */
   const quando = st === "senza data"
-    ? "va rinnovata, ma la data di scadenza che risulta a noi non è leggibile: non possiamo dirti entro quando"
+    ? "va rinnovata, ma nel nostro scadenzario non risulta una data di scadenza leggibile: non possiamo dirti entro quando"
     : st === "scaduta"
       ? `risulta SCADUTA dal ${dataIt(sc.dataScadenza)} (${-g} giorni fa)`
       : g === 0
@@ -2476,9 +2492,38 @@ export function verbaleDpi(lavoratore, consegne, oggi = new Date()) {
 
    `completa` è false appena c'è un vuoto: un fascicolo senza dati non è il
    fascicolo di una persona in regola, è un fascicolo non compilato. */
+/* LO STATO DI UN DOCUMENTO, DECISO IN UN POSTO SOLO (03/08).
+   ═══════════════════════════════════════════════════════════════════════
+   La mappa stava SOLO nella pagina (`const D = {valido, da-rivedere,
+   scaduto}` + il ripiego giallo «Stato non indicato»), e serviva a disegnare
+   l'elenco dei Documenti. Poi è arrivata la CARTELLA del lavoratore, che
+   quello stato non lo aveva a portata di mano e quindi ha stampato la riga
+   SENZA: sul fascicolo che si esibisce all'ispettore, «Nomine RSPP / addetti»
+   compariva come un titolo e una cella libera, identica a un documento
+   valido. Non è un numero sbagliato, è un numero che non c'è — e su un foglio
+   una cella vuota accanto a un documento si legge «a posto».
+   Copiare la mappa nella cartella sarebbe stata la copia debole. Sta qui, e la
+   leggono tutt'e due.
+   ⚠️ `valido` è il terzo campo di proposito: senza, chi vuole sapere «questo
+   documento è a posto?» se lo ricalcola confrontando l'etichetta con la
+   stringa «Valido», che è la forma invece della sostanza. */
+export function etichettaStatoDocumento(stato) {
+  const M = {
+    valido:        { cls: "ok",     label: "Valido",      valido: true },
+    "da-rivedere": { cls: "warn",   label: "Da rivedere", valido: false },
+    scaduto:       { cls: "danger", label: "Scaduto",     valido: false },
+  };
+  /* Un documento di cui lo stato non è scritto — un import, un archivio
+     cartaceo — non è un documento valido: si dichiara che non si sa, in
+     giallo. Cadere sul verde sarebbe peggio del crash che questo ripiego
+     evita. */
+  return M[String(stato == null ? "" : stato).trim()]
+      || { cls: "warn", label: "Stato non indicato", valido: false };
+}
+
 export function cartellaLavoratore(lavoratore, dati, oggi = new Date()) {
   const l = lavoratore || null;
-  if (!l) return { trovato: false, motivo: "Nessun lavoratore scelto.", vuoti: [], completa: false };
+  if (!l) return { trovato: false, motivo: "Nessun lavoratore scelto.", vuoti: [], daSistemare: [], completa: false };
   const d = dati || {};
   const scadenze = d.scadenze || [], mansioni = d.mansioni || [],
         dpi = d.dpi || [], nomine = d.nomine || [], documenti = d.documenti || [];
@@ -2503,10 +2548,43 @@ export function cartellaLavoratore(lavoratore, dati, oggi = new Date()) {
   if (!verbale.righe.length)
     vuoti.push("Nessun DPI consegnato risulta a registro.");
 
+  /* ⛔ `vuoti` GUARDA LE SEZIONI SENZA RIGHE. NESSUNO GUARDAVA LE RIGHE CHE
+     CI SONO (03/08). Misurato premendo il bottone sulla dimostrazione:
+     **cinque cartelle su sette** uscivano dalla stampante con la riga di
+     chiusura «Tutte le sezioni della cartella contengono dati registrati in
+     Scudo alla data di stampa», in grigio — e dentro c'erano una visita
+     medica SCADUTA (che `abilitazioneLavoratore` chiama bloccante), un DPI da
+     sostituire, un addestramento da fare, una nomina di cui non si dimostra
+     da quando decorre. Il foglio scriveva «DA SOSTITUIRE» su una riga e due
+     centimetri più sotto si dichiarava tranquillo.
+     Non è la stessa domanda di `vuoti` ed è per questo che è sfuggita: una
+     cartella COMPLETA non è una cartella IN REGOLA. Le due cose vanno dette
+     tutt'e due, e la seconda non si calcola qui — si LEGGE dagli stati che
+     questa funzione ha già messo in ogni riga (regola del posto solo).
+     ⚠️ `in-scadenza` sta FUORI di proposito: non è una riga fuori regola, è
+     un preavviso, e il foglio lo scrive già accanto alla riga. Metterlo qui
+     avrebbe fatto uscire un avviso su quasi ogni cartella, e un avviso che
+     c'è sempre non lo legge più nessuno. */
+  const q = (n, uno, tanti) => n + " " + (n === 1 ? uno : tanti);
+  const stScad = sue.map(x => x.stato), stDpi = verbale.righe.map(r => r.stato);
+  const conta = [
+    [stScad.filter(x => x === "scaduta").length, "scadenza già scaduta", "scadenze già scadute"],
+    [stScad.filter(x => x === "senza data").length, "scadenza senza una data leggibile", "scadenze senza una data leggibile"],
+    [stDpi.filter(x => x === "scaduta").length, "DPI da sostituire", "DPI da sostituire"],
+    [stDpi.filter(x => x === "senza data").length, "DPI senza data di sostituzione", "DPI senza data di sostituzione"],
+    [verbale.addestramentiMancanti, "addestramento ancora da fare", "addestramenti ancora da fare"],
+    /* `dataISOEsiste` e non `!n.dal`: è la stessa regola di
+       `organigrammaSicurezza`, che una data illeggibile la conta in `senzaData`. */
+    [sueNomine.filter(n => !dataISOEsiste(n.dal)).length, "nomina senza la data da cui decorre", "nomine senza la data da cui decorrono"],
+    [suoiDoc.filter(x => !etichettaStatoDocumento(x.stato).valido).length,
+      "documento non valido o dallo stato non registrato", "documenti non validi o dallo stato non registrato"],
+  ];
+  const daSistemare = conta.filter(([n]) => n > 0).map(([n, uno, tanti]) => q(n, uno, tanti));
+
   return {
     trovato: true, lavoratore: l,
     scadenze: sue, mansioni: mie, verbale, nomine: sueNomine, documenti: suoiDoc,
-    vuoti, completa: vuoti.length === 0,
+    vuoti, daSistemare, completa: vuoti.length === 0,
   };
 }
 
@@ -2517,8 +2595,18 @@ export function cartellaLavoratore(lavoratore, dati, oggi = new Date()) {
 export function descriviCartella(cartella) {
   const c = cartella || {};
   if (!c.trovato) return c.motivo || "Cartella non disponibile.";
+  /* ⛔ LA CODA CHE MANCAVA: le righe REGISTRATE e non in regola. `completa`
+     risponde a «ci sono sezioni senza righe?», che è una domanda sola — e
+     finché era l'unica, un fascicolo pieno di roba scaduta chiudeva con una
+     riga tranquilla in grigio. L'elenco lo compone `cartellaLavoratore` dagli
+     stati che stampa lui stesso: qui si dice solo COME va letto. */
+  const guai = c.daSistemare || [];
+  const coda = guai.length
+    ? " ⚠️ E non tutto quello che è registrato è in regola: " + guai.join(", ")
+      + ". Una cartella completa non è una cartella in regola: queste righe il foglio le riporta una per una."
+    : "";
   if (c.completa)
-    return "Tutte le sezioni della cartella contengono dati registrati in Scudo alla data di stampa.";
+    return "Tutte le sezioni della cartella contengono dati registrati in Scudo alla data di stampa." + coda;
   /* ⚠️ NON ri-elenca i vuoti: quelli li scrive già ogni sezione, e sul foglio
      stampato la ripetizione era tre righe di rumore in fondo a un documento
      che va letto in fretta. Qui si dice la cosa che le sezioni NON dicono —
@@ -2527,7 +2615,7 @@ export function descriviCartella(cartella) {
   const n = c.vuoti.length;
   return "⚠️ Questa cartella non è completa: " + n
     + (n === 1 ? " sezione è senza righe" : " sezioni sono senza righe")
-    + ". Le sezioni senza righe non vanno lette come «non dovuto»: vanno compilate.";
+    + ". Le sezioni senza righe non vanno lette come «non dovuto»: vanno compilate." + coda;
 }
 
 /* ⛔ CHI NON HA NEMMENO UNA SCADENZA NON È «REGOLARE»: È NON VERIFICATO.
@@ -2598,6 +2686,11 @@ function eventiDemoLeggi() {
 // app, e Scudo la ri-esporta col nome con cui la chiamano le sue pagine.
 // ══════════════════════════════════════════════════════════════════════
 export { inTurnoOggi, scadenzeDiChiLavora } from "../../shared/dw-ponti.js";
+/* `statoPeggioreScadenze` sta in `shared/` per la stessa ragione: la usa
+   `idoneitaOperatore` (per Campo) e la usa l'elenco Personale di Scudo, che
+   se ne teneva una versione a tre risposte su quattro. Un alias non è una
+   seconda implementazione. */
+export { statoPeggioreScadenze } from "../../shared/dw-ponti.js";
 
 export async function scudoData() {
   // tenta il backend reale; qualunque problema → demo (tour/mockup)

@@ -145,7 +145,7 @@ const APP = ["campo", "conti", "flotta", "scudo", "sentinella", "terra"];
    È la stessa forma del trasloco della densità da Terra, quattro righe più
    giù: il numero che scende di qua e sale di là È la prova che è un trasloco e
    non una copia. */
-const FONDO = { campo: 109, conti: 117, flotta: 83, scudo: 156, sentinella: 126, terra: 58 };
+const FONDO = { campo: 109, conti: 117, flotta: 83, scudo: 157, sentinella: 126, terra: 58 };
 
 /* Quello che resta fuori per un motivo, non per dimenticanza: i caricatori
    dati vogliono la rete e lo SDK, i ponti demo vogliono il localStorage.
@@ -211,7 +211,7 @@ const CONDIVISI = [
      `luogoNearMiss`, `descrizioneNearMiss` — più `CHI_SEGNALA` e
      `bozzaNearMiss`, che sono nuove. Il fondo di `scudo` scende di cinque
      nello stesso momento: i due numeri vanno letti insieme. */
-  { file: "shared/dw-ponti.js", fondo: 38,
+  { file: "shared/dw-ponti.js", fondo: 39,
     perche: "le regole che servono a DUE app: è il posto dove un difetto si moltiplica" },
   { file: "shared/deepwork-id-client/dw-shell.js", fondo: 38,
     perche: "gli aiuti che tutte le app importano (numeri, date, CSV)" },
@@ -252,6 +252,9 @@ const CONDIVISI = [
      un file che esce dall'azienda e che nessuna prova poteva chiamare).
      Sono entrate identiche, copiate da un programma: le 25 prove blindano il
      comportamento di oggi, difetti compresi e dichiarati nel loro nome. */
+  /* 03/08: +5 col verdetto sulla vibrazione (`esitoPpv`, `esitoAirblast`,
+     `provenienzaPpv`) e il confronto A/B (`vincitoreKpi`, `stessaBasePpv`),
+     spostati fuori dalla pagina perché il FOGLIO STAMPABILE non li prendeva. */
   { file: "apps/genesi/genesi-data.js", fondo: 31,
     perche: "la vibrazione al recettore e la riconciliazione previsto-vs-reale: i due numeri di Genesi che decidono qualcosa" },
 ];

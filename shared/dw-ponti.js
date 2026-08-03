@@ -594,10 +594,43 @@ export function idoneitaOperatore(operatore, lavoratori, scadenze, oggi = new Da
     else if (st === "senza data") senzaData.push(s);
   }
   return {
-    stato: scadute.length ? "scaduta" : inScadenza.length ? "in-scadenza"
-      : senzaData.length ? "senza data" : "regolare",
+    stato: statoPeggioreScadenze(sue, oggi),
     lavoratore: l, scadute, inScadenza, senzaData, documenti: sue.length,
   };
+}
+
+/* LO STATO PEGGIORE FRA PIÙ SCADENZE — la regola che stava scritta due volte.
+   ═══════════════════════════════════════════════════════════════════════
+   ⛔ Nasce il 03/08 da un difetto MISURATO nell'elenco Personale di Scudo: il
+   riepilogo per persona era scritto lì a mano come
+
+       prob.some(scaduta) ? "scaduta" : (prob.length ? "in-scadenza" : "regolare")
+
+   cioè con TRE risposte per una funzione che ne sa dire QUATTRO. Una persona
+   le cui uniche scadenze hanno la data illeggibile (o mai scritta) usciva con
+   la pastiglia gialla **«In scadenza»** — che è un'affermazione precisa su una
+   data che nessuno conosce — mentre lo scadenzario, sulla stessa riga, scrive
+   «Senza data». Due schermate della stessa app, due risposte, e quella più
+   tranquilla era anche quella sbagliata.
+   La stessa domanda la faceva già `idoneitaOperatore` qui sopra, con la
+   risposta giusta e da mesi: era la regola scritta due volte, la più debole
+   nella pagina (il difetto che CLAUDE.md chiama «la copia più debole»).
+
+   ⚠️ SU UN ELENCO VUOTO RISPONDE `null`, non «regolare». Chi non ha nemmeno
+   una scadenza non è a posto: è una persona di cui non si sa niente, e chi
+   chiama deve dirlo con parole sue («Nessuna scadenza», «senza-scadenze»).
+   Un `"regolare"` qui sarebbe il verde su una cosa mai guardata. */
+export function statoPeggioreScadenze(scadenze, oggi = new Date()) {
+  let scadute = 0, inScadenza = 0, senzaData = 0, quante = 0;
+  for (const s of scadenze || []) {
+    quante++;
+    const st = statoScadenzaHSE(s && s.dataScadenza, oggi);
+    if (st === "scaduta") scadute++;
+    else if (st === "in-scadenza") inScadenza++;
+    else if (st === "senza data") senzaData++;
+  }
+  if (!quante) return null;
+  return scadute ? "scaduta" : inScadenza ? "in-scadenza" : senzaData ? "senza data" : "regolare";
 }
 
 // Il quadro di un TURNO: gli operatori che stanno lavorando, ognuno col suo

@@ -3,13 +3,15 @@
    ────────────────────────────────────────────────────────────────────────
    Uso:
      node scudo-documenti.mjs [--porta=8730]
-     node scudo-documenti.mjs --controprova   (rimette i quattro difetti: DEVE fallire)
+     node scudo-documenti.mjs --controprova   (rimette TUTTI i difetti: DEVE fallire)
+     node scudo-documenti.mjs --controprova --difetti=13,16   (solo quelli)
      node scudo-documenti.mjs --dimmi         (stampa i file interi)
 
    PERCHÉ ESISTE. Le prove `node` chiamano il modulo; i FILE li compone la
    pagina, e lì non guardava nessuno — è il posto misurato il 03/08 in cinque
-   app su cinque. I quattro difetti che questo banco tiene chiusi sono tutti
-   della stessa famiglia: **il documento era più tranquillo dello schermo**.
+   app su cinque. I difetti che questo banco tiene chiusi sono tutti della
+   stessa famiglia: **il documento era più tranquillo dello schermo**. Quattro
+   CSV, e i due FOGLI STAMPABILI (il verbale DPI e la cartella).
 
    1. AZIONI CORRETTIVE. Il file portava `stato` (aperta/in corso/chiusa) e la
       data, e basta: un'azione «aperta» scaduta da 34 giorni usciva scritta
@@ -32,6 +34,15 @@
       foglio di calcolo una cella vuota in quella colonna si legge «zero
       giorni», che è di nuovo il numero tranquillo che la decisione 17 esisteva
       per togliere.
+   5. VERBALE DPI. La colonna «Sostituire entro» ri-decideva invece di leggere
+      lo stato della riga: una maschera da sostituire dal 2020 usciva stampata
+      come una valida fino al 2099.
+   6. CARTELLA DEL LAVORATORE. La riga di chiusura guardava solo le sezioni
+      SENZA righe (`completa`), quindi cinque cartelle su sette chiudevano in
+      grigio con «Tutte le sezioni contengono dati registrati» mentre dentro
+      c'era una visita medica scaduta e un DPI da sostituire. E il documento
+      collegato usciva col titolo e una cella bianca: lo stato — quello che
+      nell'elenco dei Documenti è una pastiglia — non c'era.
 
    ⛔ I CASI SI COSTRUISCONO NEI DATI SERVITI, non nel file su disco: accanto
    ci sono cantieri che scrivono e un giro del browser può partire in qualunque
@@ -94,12 +105,25 @@ const CASI = `
     taglia: "M", dataConsegna: "2020-01-10", scadenza: "2020-07-10", addestramento: false });
   DEMO.dpi.push({ id: "zdpisenza", lavoratoreId: "d4", tipo: "otoprotettori", modello: "Cuffie Y",
     taglia: "U", dataConsegna: "2021-03-01", addestramento: false });
+  /* CARTELLA. Anna Neri (d4) ha mansione, scadenze e DPI: la sua cartella è
+     COMPLETA — e dentro ha una maschera da sostituire dal 2020, due
+     addestramenti da fare e una scadenza senza data. È il caso esatto del
+     difetto: completa non vuol dire in regola.
+     Le si aggiunge un documento collegato di cui NESSUNO ha scritto lo stato:
+     nell'elenco dei Documenti la pastiglia dice «Stato non indicato», sul
+     foglio la riga usciva col titolo e una cella bianca. */
+  DEMO.documenti.push({ id: "zdoc", titolo: "Attestato antincendio da archivio cartaceo",
+    tipo: "Altro", lavoratoreId: "d4", meta: "", stato: "" });
+  DEMO.nomine.push({ id: "znom", ruolo: "antincendio", lavoratoreId: "d4", dal: null, al: null, note: "" });
 }
 `;
 
-/* LA CONTROPROVA rimette i quattro difetti nella PAGINA servita, uno per
+/* LA CONTROPROVA rimette i difetti nella PAGINA servita (e, dal 03/08, anche
+   nel MODULO servito: la frase che chiude la cartella la scrive lui), uno per
    difetto, e conta le sostituzioni: un `replace` che non trova niente esce in
-   silenzio e dichiara riuscita una prova mai partita. */
+   silenzio e dichiara riuscita una prova mai partita.
+   Terzo elemento della riga = il file da toccare; assente vuol dire la pagina. */
+const PAGINA = "apps/scudo/index.html", MODULO = "apps/scudo/scudo-data.js";
 const DIFETTI = [
   // 1a. l'intestazione delle azioni senza la colonna del semaforo
   ['let csv = "descrizione;responsabile;scadenza;semaforo;stato;esito;dataChiusura;origine\\n";',
@@ -135,9 +159,53 @@ const DIFETTI = [
         valida fino al 2099. */
   ['${\n          c.nonScade === true ? "non scade (dichiarato)"\n          : r.stato === "senza data" ? "non indicata"\n          : fmtData(c.scadenza) + (r.stato === "scaduta" ? " — DA SOSTITUIRE"\n                                 : r.stato === "in-scadenza" ? " — da sostituire a breve" : "")}',
    '${c.scadenza ? fmtData(c.scadenza) : (c.nonScade === true ? "non scade (dichiarato)" : "non indicata")}'],
+  /* ── LA CARTELLA DEL LAVORATORE (03/08) ────────────────────────────────
+    13. la riga del documento collegato senza il suo stato: sul foglio usciva
+        titolo + `meta` (testo libero, spesso vuoto) e basta. */
+  ['c.documenti.map(d => { const e = etichettaStatoDocumento(d.stato);\n            return riga(d.titolo, (e.valido ? "" : "<b>") + esc(e.label) + (e.valido ? "" : "</b>")\n              + (d.meta ? " · " + esc(d.meta) : "")); })',
+   'c.documenti.map(d => riga(d.titolo, esc(d.meta || "")))'],
+  // 14. il colore della riga di chiusura deciso solo dalle sezioni vuote
+  ['${c.completa && !c.daSistemare.length ? "color:#555;" : "color:#8a0000;font-weight:600;"}',
+   '${c.completa ? "color:#555;" : "color:#8a0000;font-weight:600;"}'],
+  // 15. la finestra prima di stampare che non dice che cosa si troverà dentro
+  ['      + (c.daSistemare.length\n        ? "<br><br>⚠️ <b>Completa non vuol dire in regola:</b> fra le righe registrate ce ne sono che non lo sono — "\n          + esc(c.daSistemare.join(", ")) + ". Il foglio le riporta una per una."\n        : "")\n', ""],
+  /* 16. LA CODA DELLA FRASE, che sta nel MODULO: senza, un fascicolo con
+         dentro una visita medica scaduta chiude con «Tutte le sezioni …
+         contengono dati registrati». */
+  ['  const coda = guai.length\n    ? " ⚠️ E non tutto quello che è registrato è in regola: " + guai.join(", ")\n      + ". Una cartella completa non è una cartella in regola: queste righe il foglio le riporta una per una."\n    : "";',
+   "  const coda = \"\";", MODULO],
+  /* ── IL PROMEMORIA CHE SI MANDA AL LAVORATORE (03/08) ──────────────────
+    17. il riepilogo per persona con TRE risposte su quattro: chi ha solo
+        scadenze senza data usciva con la pastiglia gialla «In scadenza». */
+  ['      const st = statoPeggioreScadenze(sue);\n      const bg = st ? B[st] : ["warn", "Nessuna scadenza"];',
+   '      const st = prob.some(s => statoScadenza(s.dataScadenza) === "scaduta") ? "scaduta" : (prob.length ? "in-scadenza" : "regolare");\n      const bg = sue.length ? B[st] : ["warn", "Nessuna scadenza"];'],
+  /* 18. la guardia che guardava COM'È SCRITTO il dato: col campo data mai
+         scritto il promemoria non si preparava, e la pagina dava un motivo
+         falso — mentre sulla data ILLEGGIBILE, che a schermo è lo stesso
+         stato, usciva regolarmente. */
+  ["  if (!nome) return null;", "  if (!nome || !sc.dataScadenza) return null;", MODULO],
 ];
 
-let iniezioniCasi = 0, iniezioniDifetti = 0;
+let iniezioniCasi = 0;
+/* ⚠️ UN INSIEME E NON UN CONTATORE: un file richiesto due volte farebbe
+   salire il conto oltre il numero dei difetti, e la riga «12/12 rimessi»
+   direbbe una cosa che non è successa. */
+const rimessi = new Set();
+/* `--difetti=9,12` rimette SOLO quelli, per vedere quale prova cade su quale
+   difetto: la controprova a tappeto dice che il banco distingue, non CHE COSA
+   distingue, e una prova può cadere per il difetto del vicino. */
+const SOLO = ((process.argv.find((a) => a.startsWith("--difetti=")) || "").split("=")[1] || "")
+  .split(",").filter(Boolean).map(Number);
+const applica = (t, file) => {
+  for (const [i, [da, a, dove]] of DIFETTI.entries()) {
+    if ((dove || PAGINA) !== file) continue;
+    if (SOLO.length && !SOLO.includes(i + 1)) { rimessi.add(i); continue; }
+    const n = t.split(da).length - 1;
+    if (n !== 1) { console.log(`⛔ INIEZIONE MANCATA (#${i + 1}): ${n} soggetti per «${da.slice(0, 60).replace(/\n/g, "⏎")}…»`); continue; }
+    t = t.replace(da, a); rimessi.add(i);
+  }
+  return t;
+};
 const TIPI = { ".html": "text/html", ".js": "text/javascript", ".mjs": "text/javascript", ".css": "text/css",
   ".json": "application/json", ".svg": "image/svg+xml", ".png": "image/png", ".webmanifest": "application/manifest+json" };
 
@@ -151,16 +219,12 @@ const srv = createServer((q, s) => {
   if (existsSync(p) && statSync(p).isDirectory()) p = join(p, "index.html");
   if (!existsSync(p)) { s.writeHead(404); return s.end("no"); }
   let corpo = readFileSync(p);
-  if (p.endsWith("apps/scudo/scudo-data.js")) { corpo = Buffer.from(corpo.toString("utf8") + CASI, "utf8"); iniezioniCasi++; }
-  if (CONTROPROVA && p.endsWith("apps/scudo/index.html")) {
+  if (p.endsWith(MODULO)) {
     let t = corpo.toString("utf8");
-    for (const [da, a] of DIFETTI) {
-      const n = t.split(da).length - 1;
-      if (n !== 1) { console.log(`⛔ INIEZIONE MANCATA: ${n} soggetti per «${da.slice(0, 60).replace(/\n/g, "⏎")}…»`); continue; }
-      t = t.replace(da, a); iniezioniDifetti++;
-    }
-    corpo = Buffer.from(t, "utf8");
+    if (CONTROPROVA) t = applica(t, MODULO);
+    corpo = Buffer.from(t + CASI, "utf8"); iniezioniCasi++;
   }
+  if (CONTROPROVA && p.endsWith(PAGINA)) corpo = Buffer.from(applica(corpo.toString("utf8"), PAGINA), "utf8");
   s.writeHead(200, { "content-type": TIPI[extname(p)] || "application/octet-stream" });
   s.end(corpo);
 });
@@ -359,11 +423,154 @@ if (!inf.errore) {
   dice(!/—\s*<\/td>/.test(foglio) && !/ — $/.test(foglio), "e nessuna cella resta un trattino muto");
 }
 
-console.log(`\n${ok} ok · ${ko} KO${CONTROPROVA ? `  ·  ${iniezioniDifetti}/${DIFETTI.length} difetti rimessi` : ""}`);
+// ── 6 · LA CARTELLA DEL LAVORATORE, IL FASCICOLO CHE SI ESIBISCE ──────────
+/* ⛔ IL SECONDO FOGLIO STAMPABILE, e nessuno lo guardava. Misurato premendo il
+   bottone sulla dimostrazione: CINQUE cartelle su sette chiudevano con «Tutte
+   le sezioni della cartella contengono dati registrati in Scudo», in GRIGIO —
+   e dentro c'era una visita medica scaduta, un DPI da sostituire, un
+   addestramento da fare, una nomina senza la data da cui decorre. Il foglio
+   scriveva «da sostituire» su una riga e due centimetri sotto si dichiarava
+   tranquillo: `completa` risponde a «ci sono sezioni senza righe?», che è
+   un'altra domanda.
+   ⚠️ SI GUARDA ANCHE IL COLORE, non solo il testo: la riga di chiusura era
+   grigia (#555) proprio nei casi in cui va letta. */
+{
+  const apriCartella = async (idLav) => {
+    await pg.click("#nav-pers").catch(() => {});
+    await pg.waitForTimeout(500);
+    await pg.click('#pers-tabs [data-tab="dpi"]').catch(() => {});
+    await pg.waitForTimeout(400);
+    const scelto = await pg.evaluate((v) => {
+      const s = document.getElementById("dpi-verb-lav");
+      if (!s || ![...s.options].some((o) => o.value === v)) return false;
+      s.value = v; return s.value === v;
+    }, idLav);
+    if (!scelto) return { errore: "la persona " + idLav + " non è scegliibile" };
+    await pg.click("#btn-cartella").catch(() => {});
+    await pg.waitForTimeout(400);
+    const modale = await pg.evaluate(() => {
+      const m = document.querySelector(".modal-ov");
+      return m ? (m.textContent || "").replace(/\s+/g, " ").trim() : "";
+    });
+    if (!modale) return { errore: "nessuna modale per " + idLav };
+    await pg.evaluate(() => {
+      const b = [...document.querySelectorAll(".modal-ov button, .modal button")].find((x) => /^Stampa$/i.test(x.textContent.trim()));
+      if (b) b.click();
+    });
+    await pg.waitForTimeout(400);
+    /* Il colore della riga di chiusura si legge DALLA PAGINA (getComputedStyle
+       sull'ultimo blocco prima delle firme), non dal sorgente: è il valore che
+       finisce sul foglio. */
+    const [foglio, colore] = await pg.evaluate(() => {
+      const v = document.getElementById("verbale");
+      const chiusura = [...v.querySelectorAll("div")].filter((d) => /cartella/i.test(d.textContent) && d.children.length === 0).pop();
+      return [(v.textContent || "").replace(/\s+/g, " ").trim(),
+              chiusura ? getComputedStyle(chiusura).color : "(non trovata)"];
+    });
+    return { modale, foglio, colore };
+  };
+
+  const guasta = await apriCartella("d4");
+  dice(!guasta.errore, "la cartella di chi ha righe fuori regola si compone", guasta.errore);
+  if (!guasta.errore) {
+    if (DIMMI) console.log("\n[cartella d4]\n" + guasta.foglio + "\n[modale]\n" + guasta.modale + "\n");
+    dice(/Cartella del lavoratore/.test(guasta.foglio), "il foglio si compone", guasta.foglio.slice(0, 120));
+    /* la cartella di Anna Neri è COMPLETA (mansione, scadenze e DPI ci sono):
+       è il caso esatto — completa e non in regola */
+    dice(/Tutte le sezioni della cartella contengono dati/.test(guasta.foglio),
+      "e questa cartella è davvero completa: nessuna sezione senza righe", guasta.foglio.slice(0, 200));
+    dice(/non tutto quello che è registrato è in regola/.test(guasta.foglio),
+      "ma la riga di chiusura non si ferma lì: dice che ci sono righe fuori regola", guasta.foglio.slice(-400));
+    dice(/DPI da sostituire/.test(guasta.foglio) && /addestrament\w+ ancora da fare/.test(guasta.foglio),
+      "e le elenca, invece di lasciarle da cercare nelle tabelle", guasta.foglio.slice(-400));
+    dice(/completa non è una cartella in regola/i.test(guasta.foglio),
+      "con la frase che spiega la differenza fra completa e in regola", guasta.foglio.slice(-300));
+    /* #8a0000 = rgb(138, 0, 0) */
+    dice(/rgb\(138,\s*0,\s*0\)/.test(guasta.colore),
+      "e non è scritta in grigio: il colore segue le righe, non solo le sezioni", guasta.colore);
+    dice(/Completa non vuol dire in regola/.test(guasta.modale),
+      "la finestra prima di stampare dice che cosa si troverà dentro", guasta.modale.slice(0, 400));
+    /* il documento collegato di cui nessuno ha scritto lo stato: nell'elenco
+       dei Documenti la pastiglia dice «Stato non indicato», sul foglio la riga
+       usciva col titolo e una cella bianca */
+    dice(/Attestato antincendio da archivio cartaceo\s*Stato non indicato/.test(guasta.foglio),
+      "il documento collegato porta il suo stato, non solo il titolo", (guasta.foglio.match(/Documenti collegati.{0,140}/) || [""])[0]);
+  }
+
+  /* ⛔ IL CASO DI CONTROLLO, senza il quale «l'avviso c'è» non dimostra niente:
+     un avviso che compare sempre non lo legge più nessuno. Franco Riva ha
+     tutto a posto e la sua cartella deve restare pulita e grigia. */
+  const sana = await apriCartella("d6");
+  dice(!sana.errore, "la cartella di chi ha tutto a posto si compone", sana.errore);
+  if (!sana.errore) {
+    if (DIMMI) console.log("\n[cartella d6]\n" + sana.foglio + "\n");
+    dice(!/non tutto quello che è registrato è in regola/.test(sana.foglio),
+      "e NON porta l'avviso: un avviso che c'è sempre non lo legge nessuno", sana.foglio.slice(-300));
+    dice(/rgb\(85,\s*85,\s*85\)/.test(sana.colore), "e resta grigia", sana.colore);
+    dice(!/Completa non vuol dire in regola/.test(sana.modale), "nemmeno nella finestra", sana.modale.slice(0, 200));
+  }
+}
+
+// ── 7 · IL PROMEMORIA CHE SI MANDA AL LAVORATORE ─────────────────────────
+/* Non e' un file, ma esce lo stesso: si copia negli appunti e finisce in
+   un'email o in un SMS. E il difetto era della stessa famiglia — due righe che
+   a schermo dicono la STESSA cosa («Senza data», stessa pastiglia, stesso
+   bottone) si comportavano in modo diverso premendo il bottone, perche' un
+   `if` guardava se il campo era scritto invece di che cosa valeva. */
+{
+  await pg.click("#nav-pers").catch(() => {});
+  await pg.waitForTimeout(600);
+  /* ⛔ IL RIEPILOGO PER PERSONA. Anna Neri ha una sola scadenza, e il suo
+     campo data non e' mai stato scritto: la pastiglia diceva «In scadenza» —
+     un'affermazione precisa su una data che nessuno conosce. */
+  const pastiglia = await pg.evaluate(() => {
+    const r = [...document.querySelectorAll("#pers-list .item")].find((x) => /Anna Neri/.test(x.textContent));
+    return r ? [...r.querySelectorAll(".badge")].map((b) => b.textContent.trim()).join(" | ") : "(riga assente)";
+  });
+  dice(/Senza data/.test(pastiglia) && !/In scadenza/.test(pastiglia),
+    "nell'elenco Personale chi ha solo scadenze senza data NON è «In scadenza»", pastiglia);
+
+  await pg.click("#nav-scad").catch(() => {});
+  await pg.waitForTimeout(700);
+  const prom = await pg.evaluate(async () => {
+    const out = {};
+    let copiato = null;
+    const vero = navigator.clipboard && navigator.clipboard.writeText;
+    Object.defineProperty(navigator, "clipboard", { value: { writeText: async (t) => { copiato = t; } }, configurable: true });
+    const r = [...document.querySelectorAll("#scad-list .item")].find((x) => /Preposto — aggiornamento/.test(x.textContent));
+    if (!r) return { errore: "riga senza data non trovata nello scadenzario" };
+    out.riga = r.textContent.replace(/\s+/g, " ").trim();
+    const b = r.querySelector("[data-prom-scad]");
+    out.bottone = !!b;
+    if (b) { b.click(); await new Promise((z) => setTimeout(z, 400)); }
+    out.copiato = copiato;
+    out.esito = (document.getElementById("scad-esito") || {}).textContent || "";
+    out.vero = !!vero;
+    return out;
+  });
+  dice(!prom.errore, "la scadenza col campo data mai scritto è nello scadenzario", prom.errore);
+  if (!prom.errore) {
+    if (DIMMI) console.log("\n[promemoria]\n" + JSON.stringify(prom, null, 1) + "\n");
+    dice(/Senza data/.test(prom.riga), "e a schermo dice «Senza data», come una data illeggibile", prom.riga);
+    dice(prom.bottone, "il bottone «Promemoria» c'è (il criterio è «non regolare»)", prom.riga);
+    dice(!!prom.copiato, "e premendolo il testo esce davvero", { esito: prom.esito, copiato: prom.copiato });
+    dice(/non risulta una data di scadenza leggibile/.test(prom.copiato || ""),
+      "il messaggio dice perché non c'è un entro-quando, invece di inventarlo", prom.copiato);
+    dice(!/NaN|undefined|scade il/.test(prom.copiato || ""),
+      "e non promette una data che non esiste", prom.copiato);
+    dice(!/solo se è in scadenza o già scaduta/.test(prom.esito),
+      "e la pagina non risponde con un motivo falso", prom.esito);
+  }
+}
+
+console.log(`\n${ok} ok · ${ko} KO${CONTROPROVA ? `  ·  ${rimessi.size}/${DIFETTI.length} difetti rimessi` : ""}`);
 if (CONTROPROVA) {
-  const atteso = iniezioniDifetti === DIFETTI.length;
-  if (!atteso) console.log("⛔ non tutti i difetti sono stati rimessi: il verde qui sotto non vuol dire niente.");
+  const atteso = rimessi.size === DIFETTI.length;
+  if (!atteso) {
+    console.log("⛔ non tutti i difetti sono stati rimessi: il verde qui sotto non vuol dire niente.");
+    console.log("   mancano i numeri: " + DIFETTI.map((_, i) => i + 1).filter((i) => !rimessi.has(i - 1)).join(", "));
+  }
   console.log(ko > 0 && atteso ? "✔ CONTROPROVA OK: coi difetti rimessi il banco fallisce." : "⛔ CONTROPROVA FALLITA: il banco non distingue.");
 }
 await b.close(); srv.close();
-process.exit(CONTROPROVA ? (ko > 0 && iniezioniDifetti === DIFETTI.length ? 0 : 1) : (ko > 0 ? 1 : 0));
+process.exit(CONTROPROVA ? (ko > 0 && rimessi.size === DIFETTI.length ? 0 : 1) : (ko > 0 ? 1 : 0));

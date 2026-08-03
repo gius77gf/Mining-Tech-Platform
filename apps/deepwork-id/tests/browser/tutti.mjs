@@ -150,8 +150,8 @@ const BANCHI = [
      le celle bianche, il riepilogo per la L. 198/2025 senza la nota che a
      schermo impedisce di disegnare le classifiche, la prognosi aperta come una
      cella vuota che si legge «zero giorni». */
-  ['i CSV che escono da Scudo', 'scudo-documenti.mjs', []],
-  ['CSV di Scudo · controprova', 'scudo-documenti.mjs', ['--controprova'], true],
+  ['i documenti che escono da Scudo (4 CSV, 2 fogli stampati, il promemoria)', 'scudo-documenti.mjs', []],
+  ['documenti di Scudo · controprova', 'scudo-documenti.mjs', ['--controprova'], true],
   ['il verbale dice come è nato il numero', 'verbale-origine.mjs', []],
   ['verbale · controprova', 'verbale-origine.mjs', ['--controprova'], true],
   ['la manina promette un tocco che c\'è', 'promesse-tocco.mjs', []],

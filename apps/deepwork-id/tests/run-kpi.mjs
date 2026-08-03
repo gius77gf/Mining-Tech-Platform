@@ -869,10 +869,23 @@ test("testoPromemoria: convocazione per scadenza scaduta o in scadenza", () => {
   for (const s of ["Luca Bianchi", "scade il 10/08/2026", "tra 20 giorni"])
     if (!prox.includes(s)) throw new Error(`manca "${s}" nel promemoria (in scadenza)`);
 });
-test("testoPromemoria: null se regolare, senza lavoratore o senza data", () => {
+test("testoPromemoria: null se regolare o senza lavoratore — ma NON senza data", () => {
   eq(scudo.testoPromemoria({ tipo: "X", dataScadenza: "2099-12-31" }, { nome: "Y" }, new Date(2026, 6, 21)), null, "regolare");
   eq(scudo.testoPromemoria({ tipo: "X", dataScadenza: "2000-01-01" }, { nome: "" }, new Date(2026, 6, 21)), null, "senza nome");
-  eq(scudo.testoPromemoria({ tipo: "X" }, { nome: "Y" }, new Date(2026, 6, 21)), null, "senza data");
+  /* ⛔ QUESTA RIGA PRETENDEVA `null` E BLINDAVA UN DIFETTO (corretta il 03/08).
+     Misurato premendo il bottone: la riga col campo data MAI SCRITTO e quella
+     con la data ILLEGGIBILE sono la stessa cosa a schermo — «Senza data» per
+     tutt'e due, e il bottone «Promemoria» su tutt'e due, perche' il criterio
+     e' `stato !== "regolare"`. Premendolo, la seconda dava il messaggio
+     giusto e la prima rispondeva «si puo' preparare solo se e' in scadenza o
+     gia' scaduta»: falso, ed e' un `if` che guardava COM'E' SCRITTO il dato
+     invece di CHE COSA VALE. */
+  const t = scudo.testoPromemoria({ tipo: "X", descrizione: "Corso" }, { nome: "Y" }, new Date(2026, 6, 21));
+  ok(t, `il campo data mai scritto e' «senza data» come una data illeggibile: il promemoria si prepara — ${JSON.stringify(t)}`);
+  ok(/non risulta una data di scadenza leggibile/.test(t), `e dice perche' non c'e' un entro-quando: ${t}`);
+  ok(!/NaN|undefined|scade il/.test(t), `senza inventare un entro-quando: ${t}`);
+  eq(t, scudo.testoPromemoria({ tipo: "X", descrizione: "Corso", dataScadenza: "2026-13-45" }, { nome: "Y" }, new Date(2026, 6, 21)),
+    "e le due strade dicono la stessa identica frase: lo schermo le tratta uguali");
 });
 test("prioritaIncasso: fattura senza data — non in cima per errore, ma nemmeno «a posto»", () => {
   /* ⚠️ QUESTA PROVA BLINDAVA IL DIFETTO. Pretendeva `ritardo: 0` su una
@@ -7480,6 +7493,9 @@ test("statoVuoto: la struttura è quella del core, invariata", () => {
     eq(sentinella.testoFontePrevisione(sentinella.previsioneDiVolata(
          { ...prevista, ppvPrevProvvisoria: "no", ppvPrevReferti: "12" })),
        "da Genesi · legge di sito calibrata (12 referti)", "detto in chiaro");
+    eq(sentinella.testoFontePrevisione(sentinella.previsioneDiVolata(prevista)),
+       "da Genesi · legge di sito, su quanti referti non è dichiarato",
+       "e un file vecchio non si spaccia per calibrato");
     eq(sentinella.testoFontePrevisione(sentinella.previsioneDiVolata({ ...prevista, ppvPrevFonte: "genesi-litologia" })),
        "da Genesi · stima dalla litologia", "e l'altra base si distingue");
   });
@@ -19744,7 +19760,8 @@ test("⛔ Scudo · andamento indici: il verso letto su giornate ancora da contar
       ok(t, `su «${d}» il promemoria si prepara lo stesso (la riga non è regolare)`);
       ok(!/NaN/.test(t), `su «${d}» non compare NaN`);
       ok(!/45\/13|30\/02|40\/09/.test(t), `su «${d}» non compare il giorno che non esiste`);
-      ok(/non è leggibile/.test(t), `su «${d}» il messaggio dice perché non c'è un entro-quando`);
+      ok(/non risulta una data di scadenza leggibile/.test(t), `su «${d}» il messaggio dice perché non c'è un entro-quando`);
+      ok(!/scade il|scade OGGI|SCADUTA dal/.test(t), `su «${d}» non promette un entro-quando che non c'è`);
     }
   });
   test("Scudo · e le date che esistono si scrivono come sempre", () => {
@@ -20132,194 +20149,6 @@ test("⛔ Scudo · andamento indici: il verso letto su giornate ancora da contar
   });
 }
 
-// ═══ CORE · i documenti che escono (03/08) ═══
-/* ⛔ «INDICE OVERSIZE: 0% — ECCELLENTE» SU UNA VOLATA CHE NESSUNO HA GUARDATO.
-   Il PDF della frammentazione del core faceva `f.oversize||0` e poi
-   `overPct<3?'ECCELLENTE'`; la stessa scheda a schermo, nello stesso caso,
-   non scriveva niente (il riquadro sta dentro un `overPct>0 ? ... : ''`).
-   `misureFrammentazione` è la funzione che adesso decide per tutt'e due, e
-   queste prove tengono chiusa la distinzione che il difetto cancellava: lo
-   zero MISURATO (un'ottima notizia, e va detta) contro il «nessuno ha
-   guardato». */
-{
-  console.log("\n— Core: la frammentazione, e lo zero che nessuno ha misurato —");
-  const mf = shell.misureFrammentazione;
-
-  test("Core · quattro classi non valutate non fanno una distribuzione a zero", () => {
-    const m = mf({ fine: null, media: null, grossa: null, oversize: null });
-    eq([m.valutata, m.completa, m.attendibile], [false, false, false], "niente è stato valutato");
-    eq([m.totale, m.oversize, m.giudizio], [null, null, null],
-      "⛔ e il totale, l'oversize e il giudizio sono `null`: non zero, non «eccellente»");
-    eq(m.mancanti, ["fine", "media", "grossa", "oversize"], "e si sa quali mancano");
-  });
-
-  test("Core · uno ZERO misurato è un'ottima notizia, e si dice", () => {
-    const m = mf({ fine: 0, media: 0, grossa: 100, oversize: 0 });
-    eq([m.valutata, m.completa, m.attendibile], [true, true, true], "tutte e quattro scritte, e sommano 100");
-    eq([m.oversize, m.giudizio], [0, "eccellente"],
-      "⛔ zero per cento di oversize MISURATO resta «eccellente»: la difesa non spegne i numeri veri");
-    eq(shell.riservaFrammentazione(m), "", "e non c'è niente da dichiarare");
-  });
-
-  test("Core · una distribuzione a metà non è confrontabile con la soglia", () => {
-    const m = mf({ fine: 20, media: null, grossa: null, oversize: 2 });
-    eq([m.valutata, m.completa, m.attendibile, m.totale], [true, false, false, 22],
-      "due classi su quattro: valutata sì, completa no, e la somma fa 22");
-    eq(m.giudizio, "eccellente", "il giudizio si calcola lo stesso — il 2% qualcuno l'ha scritto");
-    eq(shell.riservaFrammentazione(m), "distribuzione incompleta: manca media, grossa",
-      "⛔ ma accanto ci va la riserva, che è quello che il foglio stampato deve dire");
-  });
-
-  test("Core · quattro classi complete che NON fanno 100 sono percentuali di che cosa?", () => {
-    const m = mf({ fine: 10, media: 10, grossa: 10, oversize: 10 });
-    eq([m.completa, m.attendibile, m.totale], [true, false, 40], "complete ma non sommano 100");
-    eq(shell.riservaFrammentazione(m),
-      "le quattro classi sommano 40%, non 100%: le percentuali non sono confrontabili",
-      "e la riserva lo dice con la ragione");
-  });
-
-  test("Core · le tre soglie del giudizio, e i loro confini", () => {
-    eq([mf({ oversize: 2.9 }).giudizio, mf({ oversize: 3 }).giudizio], ["eccellente", "accettabile"],
-      "sotto il 3% eccellente, dal 3% accettabile");
-    eq([mf({ oversize: 7.9 }).giudizio, mf({ oversize: 8 }).giudizio], ["accettabile", "critico"],
-      "sotto l'8% accettabile, dall'8% critico");
-  });
-
-  test("Core · quello che non è un numero non diventa uno zero", () => {
-    const m = mf({ fine: "boh", media: "", grossa: true, oversize: -4 });
-    eq([m.classi.fine, m.classi.media, m.classi.grossa, m.classi.oversize], [null, null, null, null],
-      "⛔ testo, vuoto, booleano e negativo sono tutti «non lo so», non zeri");
-    eq(m.valutata, false, "quindi la volata resta non valutata");
-    eq(mf(null).valutata, false, "e non esplode su una frammentazione che non c'è");
-    eq(mf(undefined).giudizio, null, "nemmeno su `undefined`");
-  });
-
-  test("Core · la virgola italiana e le stringhe numeriche si leggono", () => {
-    // i campi sono `type="text"`, quindi arrivano stringhe
-    eq(mf({ fine: "12", media: "53", grossa: "29", oversize: "6" }).totale, 100,
-      "quattro stringhe numeriche sommano come numeri");
-    eq(mf({ fine: "12", media: "53", grossa: "29", oversize: "6" }).giudizio, "accettabile",
-      "e il giudizio è quello giusto");
-  });
-
-  test("Core · la riserva parla anche quando non c'è niente", () => {
-    eq(shell.riservaFrammentazione(mf({})), "nessuna classe granulometrica è stata valutata",
-      "⛔ la frase che il foglio stampa al posto di «ECCELLENTE»");
-    eq(shell.riservaFrammentazione(null), "nessuna classe granulometrica è stata valutata",
-      "e regge anche senza misura");
-  });
-}
-
-// ═══ FLOTTA · i fogli stampati (03/08) ═══
-{
-  const OGGI_S = new Date("2026-08-03T10:00:00Z");
-  const fasc = (fermi) => flotta.fascicoloMezzo({ nome: "Pala X1 — CAT 980", ore: 100 },
-    { manutenzioni: [], interventi: [], scadenze: [], controlli: [], rifornimenti: [], fermi }, OGGI_S);
-
-  test("⛔ Flotta · il libretto non somma ZERO i fermi che non sa collocare", () => {
-    /* Il fascicolo è il foglio che si stampa e si consegna a chi compra la
-       macchina. `t + (f.giorni || 0)` faceva entrare nel totale, come zero,
-       proprio i fermi su cui `durataFermo` ha risposto «non lo so» — e nella
-       direzione che rassicura: meno giorni fermi, macchina che sembra tenuta
-       meglio. La riga del foglio scriveva «3 fermi per 5 giorni in tutto»
-       sopra tre righe che dicono «—», «—» e «5 giorni».
-       La regola giusta era in casa: `affidabilitaFlotta` conta a parte i
-       fermi non collocabili (`senzaDate`) e la pagina lo dichiara. */
-    const F = fasc([
-      { mezzo: "Pala X1", causale: "guasto-meccanico", inizio: "2026-07-01", fine: "2026-07-05" },
-      { mezzo: "Pala X1", causale: "guasto-meccanico", inizio: "boh", fine: "" },
-      { mezzo: "Pala X1", causale: "attesa-ricambi", inizio: "2026-07-20", fine: "2026-07-10" },
-    ]);
-    eq(F.fermo.episodi, 3, "i tre fermi restano tutti nell'elenco: nessuno sparisce dal foglio");
-    eq(F.fermo.giorni, 5, "il totale è fatto del solo fermo misurabile");
-    eq(F.fermo.senzaDurata, 2,
-      "⛔ e dice quanti NON ci sono dentro: senza questo numero il totale non torna con le righe");
-    eq(F.fermi.filter(x => x.giorni == null).length, 2, "le due righe senza durata restano visibili");
-  });
-
-  test("Flotta · quando tutti i fermi si leggono, `senzaDurata` è zero e il totale non cambia", () => {
-    // il caso sano deve restare identico a prima: la guardia sta sull'assenza
-    const F = fasc([
-      { mezzo: "Pala X1", causale: "guasto-meccanico", inizio: "2026-07-01", fine: "2026-07-05" },
-      { mezzo: "Pala X1", causale: "attesa-ricambi", inizio: "2026-07-10", fine: "2026-07-15" },
-    ]);
-    eq([F.fermo.episodi, F.fermo.giorni, F.fermo.senzaDurata], [2, 11, 0], "5 + 6 giorni, niente fuori");
-    eq(fasc([]).fermo.senzaDurata, 0, "nessun fermo: nessuno fuori dal conto, e nessuna frase da scrivere");
-  });
-
-  test("⛔ Flotta · un fermo aperto con la data d'inizio illeggibile resta aperto e fuori dal totale", () => {
-    /* le due cose sono indipendenti e vanno lette insieme: «è ancora ferma»
-       lo decide la ripartenza SCRITTA, i giorni li decide se si leggono */
-    const F = fasc([{ mezzo: "Pala X1", causale: "guasto-meccanico", inizio: "2026-02-30", fine: "" }]);
-    eq([F.fermo.episodi, F.fermo.giorni, F.fermo.senzaDurata, F.fermo.aperti], [1, 0, 1, 1],
-      "un fermo, zero giorni contati, uno fuori dal conto, e la macchina risulta ancora ferma");
-  });
-}
-
-// ═══ SENTINELLA · i fogli stampati (03/08) ═══
-{
-  const PUNTO = {
-    id: "zp1", nome: "Polveri PM10 — confine Est", tipo: "polveri", unita: "µg/m³", soglia: 40,
-    letture: [{ data: "2026-07-05", valore: 10 }, { data: "2026-02-30", valore: 99 }, { data: "2026-07-20", valore: 20 }],
-  };
-  const rep = (o) => sentinella.reportConformita({ monitoraggi: [PUNTO], ricettori: [], reclami: [], volate: [],
-    dal: "2026-01-01", al: "2026-12-31", oggi: "2026-08-03T10:00:00Z", ...o });
-
-  test("⛔ Sentinella · il report giudica la data per quel che VALE, non per com'è scritta", () => {
-    /* Il filtro del documento confrontava STRINGHE: «2026-02-30» — un giorno
-       che non esiste — è maggiore di «2026-01-01» e minore di «2026-12-31»,
-       quindi entrava nel report per l'ente. Ogni schermata lo scartava già,
-       perché `lettureNelPeriodo` chiede `dataISOEsiste`.
-       Misurato: schermo 2 letture / massimo 20 / zero superamenti; documento
-       3 letture / massimo 99 / UN superamento / esito «Non conforme». */
-    const schermo = sentinella.statPeriodo(PUNTO, "2026-01-01", "2026-12-31", 40);
-    eq([schermo.n, schermo.max, schermo.superamenti], [2, 20, 0], "quello che dice lo schermo");
-    const R = rep({});
-    const p = R.punti[0];
-    eq([p.n, p.max, p.nSuperamenti], [2, 20, 0], "⛔ e adesso il documento dice la stessa cosa");
-    eq(p.letture.some(l => l.data === "2026-02-30"), false, "il 30 febbraio non è una riga del documento");
-    eq([R.esito, R.nLetture, R.nSuperamenti], ["conforme", 2, 0],
-      "⛔ l'esito del documento non lo decide più un giorno che non esiste");
-  });
-
-  test("⛔ Sentinella · e la riga scartata viene DICHIARATA, non fatta sparire", () => {
-    // toglierla e basta avrebbe spostato la bugia: una riga registrata che
-    // sparisce senza una parola è di nuovo l'assenza presa per dato favorevole
-    const R = rep({});
-    eq(R.scartate.letture, 1, "la lettura col giorno inesistente è contata");
-    eq(R.scartate.totale, 1, "e finisce nel totale che la pagina scrive accanto al verdetto");
-    // fuori dal periodo NON è una mancanza: quella è un'esclusione legittima
-    const F = rep({ dal: "2026-07-10", al: "2026-07-31" });
-    eq([F.punti[0].n, F.scartate.letture, F.scartate.totale], [1, 1, 1],
-      "la lettura del 05/07 resta fuori per il periodo e non si conta fra le scartate");
-  });
-
-  test("⛔ Sentinella · anche reclami e volate col giorno inesistente restano fuori, e si dicono", () => {
-    /* `parseVolateCsv` la data non la valida affatto: senza periodo dichiarato
-       («tutto lo storico») nel documento entrava perfino «boh», stampato con
-       un trattino nella colonna della data. */
-    const R = sentinella.reportConformita({
-      monitoraggi: [], ricettori: [], oggi: "2026-08-03T10:00:00Z", dal: "", al: "",
-      reclami: [{ id: "r1", data: "2026-07-20", tipo: "polvere" }, { id: "r2", data: "2026-02-30", tipo: "rumore" }],
-      volate: [{ id: "v1", data: "2026-07-17", fronte: "Nord", stato: "eseguita" },
-               { id: "v2", data: "boh", fronte: "Est", stato: "eseguita" }],
-    });
-    eq(R.nReclami, 1, "un reclamo solo entra nel documento");
-    eq(R.nVolate, 1, "e una volata sola");
-    eq([R.scartate.reclami, R.scartate.volate, R.scartate.totale], [1, 1, 2],
-      "⛔ le due righe scartate sono contate, non perse");
-  });
-
-  test("Sentinella · con l'archivio in ordine il report non cambia di una riga", () => {
-    // il caso sano deve restare identico: la guardia sta sull'assenza
-    const sano = { ...PUNTO, letture: [{ data: "2026-07-05", valore: 10 }, { data: "2026-07-20", valore: 20 }] };
-    const R = sentinella.reportConformita({ monitoraggi: [sano], ricettori: [], reclami: [], volate: [],
-      dal: "2026-01-01", al: "2026-12-31", oggi: "2026-08-03T10:00:00Z" });
-    eq([R.nLetture, R.esito, R.scartate.totale], [2, "conforme", 0],
-      "due letture, conforme, e nessuna riga da dichiarare");
-  });
-}
-
 /* ══ GENESI · il foglio che si porta in cava (03/08) ═══════════════════════
    Le tre decisioni sulla vibrazione (verdetto PPV, verdetto airblast, da dove
    vengono K e β) e le due sul confronto A/B. Stavano tutte DENTRO la pagina,
@@ -20482,6 +20311,194 @@ test("⛔ Scudo · andamento indici: il verso letto su giornate ancora da contar
   });
 }
 
+// ═══ FLOTTA · i fogli stampati (03/08) ═══
+{
+  const OGGI_S = new Date("2026-08-03T10:00:00Z");
+  const fasc = (fermi) => flotta.fascicoloMezzo({ nome: "Pala X1 — CAT 980", ore: 100 },
+    { manutenzioni: [], interventi: [], scadenze: [], controlli: [], rifornimenti: [], fermi }, OGGI_S);
+
+  test("⛔ Flotta · il libretto non somma ZERO i fermi che non sa collocare", () => {
+    /* Il fascicolo è il foglio che si stampa e si consegna a chi compra la
+       macchina. `t + (f.giorni || 0)` faceva entrare nel totale, come zero,
+       proprio i fermi su cui `durataFermo` ha risposto «non lo so» — e nella
+       direzione che rassicura: meno giorni fermi, macchina che sembra tenuta
+       meglio. La riga del foglio scriveva «3 fermi per 5 giorni in tutto»
+       sopra tre righe che dicono «—», «—» e «5 giorni».
+       La regola giusta era in casa: `affidabilitaFlotta` conta a parte i
+       fermi non collocabili (`senzaDate`) e la pagina lo dichiara. */
+    const F = fasc([
+      { mezzo: "Pala X1", causale: "guasto-meccanico", inizio: "2026-07-01", fine: "2026-07-05" },
+      { mezzo: "Pala X1", causale: "guasto-meccanico", inizio: "boh", fine: "" },
+      { mezzo: "Pala X1", causale: "attesa-ricambi", inizio: "2026-07-20", fine: "2026-07-10" },
+    ]);
+    eq(F.fermo.episodi, 3, "i tre fermi restano tutti nell'elenco: nessuno sparisce dal foglio");
+    eq(F.fermo.giorni, 5, "il totale è fatto del solo fermo misurabile");
+    eq(F.fermo.senzaDurata, 2,
+      "⛔ e dice quanti NON ci sono dentro: senza questo numero il totale non torna con le righe");
+    eq(F.fermi.filter(x => x.giorni == null).length, 2, "le due righe senza durata restano visibili");
+  });
+
+  test("Flotta · quando tutti i fermi si leggono, `senzaDurata` è zero e il totale non cambia", () => {
+    // il caso sano deve restare identico a prima: la guardia sta sull'assenza
+    const F = fasc([
+      { mezzo: "Pala X1", causale: "guasto-meccanico", inizio: "2026-07-01", fine: "2026-07-05" },
+      { mezzo: "Pala X1", causale: "attesa-ricambi", inizio: "2026-07-10", fine: "2026-07-15" },
+    ]);
+    eq([F.fermo.episodi, F.fermo.giorni, F.fermo.senzaDurata], [2, 11, 0], "5 + 6 giorni, niente fuori");
+    eq(fasc([]).fermo.senzaDurata, 0, "nessun fermo: nessuno fuori dal conto, e nessuna frase da scrivere");
+  });
+
+  test("⛔ Flotta · un fermo aperto con la data d'inizio illeggibile resta aperto e fuori dal totale", () => {
+    /* le due cose sono indipendenti e vanno lette insieme: «è ancora ferma»
+       lo decide la ripartenza SCRITTA, i giorni li decide se si leggono */
+    const F = fasc([{ mezzo: "Pala X1", causale: "guasto-meccanico", inizio: "2026-02-30", fine: "" }]);
+    eq([F.fermo.episodi, F.fermo.giorni, F.fermo.senzaDurata, F.fermo.aperti], [1, 0, 1, 1],
+      "un fermo, zero giorni contati, uno fuori dal conto, e la macchina risulta ancora ferma");
+  });
+}
+
+// ═══ SENTINELLA · i fogli stampati (03/08) ═══
+{
+  const PUNTO = {
+    id: "zp1", nome: "Polveri PM10 — confine Est", tipo: "polveri", unita: "µg/m³", soglia: 40,
+    letture: [{ data: "2026-07-05", valore: 10 }, { data: "2026-02-30", valore: 99 }, { data: "2026-07-20", valore: 20 }],
+  };
+  const rep = (o) => sentinella.reportConformita({ monitoraggi: [PUNTO], ricettori: [], reclami: [], volate: [],
+    dal: "2026-01-01", al: "2026-12-31", oggi: "2026-08-03T10:00:00Z", ...o });
+
+  test("⛔ Sentinella · il report giudica la data per quel che VALE, non per com'è scritta", () => {
+    /* Il filtro del documento confrontava STRINGHE: «2026-02-30» — un giorno
+       che non esiste — è maggiore di «2026-01-01» e minore di «2026-12-31»,
+       quindi entrava nel report per l'ente. Ogni schermata lo scartava già,
+       perché `lettureNelPeriodo` chiede `dataISOEsiste`.
+       Misurato: schermo 2 letture / massimo 20 / zero superamenti; documento
+       3 letture / massimo 99 / UN superamento / esito «Non conforme». */
+    const schermo = sentinella.statPeriodo(PUNTO, "2026-01-01", "2026-12-31", 40);
+    eq([schermo.n, schermo.max, schermo.superamenti], [2, 20, 0], "quello che dice lo schermo");
+    const R = rep({});
+    const p = R.punti[0];
+    eq([p.n, p.max, p.nSuperamenti], [2, 20, 0], "⛔ e adesso il documento dice la stessa cosa");
+    eq(p.letture.some(l => l.data === "2026-02-30"), false, "il 30 febbraio non è una riga del documento");
+    eq([R.esito, R.nLetture, R.nSuperamenti], ["conforme", 2, 0],
+      "⛔ l'esito del documento non lo decide più un giorno che non esiste");
+  });
+
+  test("⛔ Sentinella · e la riga scartata viene DICHIARATA, non fatta sparire", () => {
+    // toglierla e basta avrebbe spostato la bugia: una riga registrata che
+    // sparisce senza una parola è di nuovo l'assenza presa per dato favorevole
+    const R = rep({});
+    eq(R.scartate.letture, 1, "la lettura col giorno inesistente è contata");
+    eq(R.scartate.totale, 1, "e finisce nel totale che la pagina scrive accanto al verdetto");
+    // fuori dal periodo NON è una mancanza: quella è un'esclusione legittima
+    const F = rep({ dal: "2026-07-10", al: "2026-07-31" });
+    eq([F.punti[0].n, F.scartate.letture, F.scartate.totale], [1, 1, 1],
+      "la lettura del 05/07 resta fuori per il periodo e non si conta fra le scartate");
+  });
+
+  test("⛔ Sentinella · anche reclami e volate col giorno inesistente restano fuori, e si dicono", () => {
+    /* `parseVolateCsv` la data non la valida affatto: senza periodo dichiarato
+       («tutto lo storico») nel documento entrava perfino «boh», stampato con
+       un trattino nella colonna della data. */
+    const R = sentinella.reportConformita({
+      monitoraggi: [], ricettori: [], oggi: "2026-08-03T10:00:00Z", dal: "", al: "",
+      reclami: [{ id: "r1", data: "2026-07-20", tipo: "polvere" }, { id: "r2", data: "2026-02-30", tipo: "rumore" }],
+      volate: [{ id: "v1", data: "2026-07-17", fronte: "Nord", stato: "eseguita" },
+               { id: "v2", data: "boh", fronte: "Est", stato: "eseguita" }],
+    });
+    eq(R.nReclami, 1, "un reclamo solo entra nel documento");
+    eq(R.nVolate, 1, "e una volata sola");
+    eq([R.scartate.reclami, R.scartate.volate, R.scartate.totale], [1, 1, 2],
+      "⛔ le due righe scartate sono contate, non perse");
+  });
+
+  test("Sentinella · con l'archivio in ordine il report non cambia di una riga", () => {
+    // il caso sano deve restare identico: la guardia sta sull'assenza
+    const sano = { ...PUNTO, letture: [{ data: "2026-07-05", valore: 10 }, { data: "2026-07-20", valore: 20 }] };
+    const R = sentinella.reportConformita({ monitoraggi: [sano], ricettori: [], reclami: [], volate: [],
+      dal: "2026-01-01", al: "2026-12-31", oggi: "2026-08-03T10:00:00Z" });
+    eq([R.nLetture, R.esito, R.scartate.totale], [2, "conforme", 0],
+      "due letture, conforme, e nessuna riga da dichiarare");
+  });
+}
+
+// ═══ CORE · i documenti che escono (03/08) ═══
+/* ⛔ «INDICE OVERSIZE: 0% — ECCELLENTE» SU UNA VOLATA CHE NESSUNO HA GUARDATO.
+   Il PDF della frammentazione del core faceva `f.oversize||0` e poi
+   `overPct<3?'ECCELLENTE'`; la stessa scheda a schermo, nello stesso caso,
+   non scriveva niente (il riquadro sta dentro un `overPct>0 ? ... : ''`).
+   `misureFrammentazione` è la funzione che adesso decide per tutt'e due, e
+   queste prove tengono chiusa la distinzione che il difetto cancellava: lo
+   zero MISURATO (un'ottima notizia, e va detta) contro il «nessuno ha
+   guardato». */
+{
+  console.log("\n— Core: la frammentazione, e lo zero che nessuno ha misurato —");
+  const mf = shell.misureFrammentazione;
+
+  test("Core · quattro classi non valutate non fanno una distribuzione a zero", () => {
+    const m = mf({ fine: null, media: null, grossa: null, oversize: null });
+    eq([m.valutata, m.completa, m.attendibile], [false, false, false], "niente è stato valutato");
+    eq([m.totale, m.oversize, m.giudizio], [null, null, null],
+      "⛔ e il totale, l'oversize e il giudizio sono `null`: non zero, non «eccellente»");
+    eq(m.mancanti, ["fine", "media", "grossa", "oversize"], "e si sa quali mancano");
+  });
+
+  test("Core · uno ZERO misurato è un'ottima notizia, e si dice", () => {
+    const m = mf({ fine: 0, media: 0, grossa: 100, oversize: 0 });
+    eq([m.valutata, m.completa, m.attendibile], [true, true, true], "tutte e quattro scritte, e sommano 100");
+    eq([m.oversize, m.giudizio], [0, "eccellente"],
+      "⛔ zero per cento di oversize MISURATO resta «eccellente»: la difesa non spegne i numeri veri");
+    eq(shell.riservaFrammentazione(m), "", "e non c'è niente da dichiarare");
+  });
+
+  test("Core · una distribuzione a metà non è confrontabile con la soglia", () => {
+    const m = mf({ fine: 20, media: null, grossa: null, oversize: 2 });
+    eq([m.valutata, m.completa, m.attendibile, m.totale], [true, false, false, 22],
+      "due classi su quattro: valutata sì, completa no, e la somma fa 22");
+    eq(m.giudizio, "eccellente", "il giudizio si calcola lo stesso — il 2% qualcuno l'ha scritto");
+    eq(shell.riservaFrammentazione(m), "distribuzione incompleta: manca media, grossa",
+      "⛔ ma accanto ci va la riserva, che è quello che il foglio stampato deve dire");
+  });
+
+  test("Core · quattro classi complete che NON fanno 100 sono percentuali di che cosa?", () => {
+    const m = mf({ fine: 10, media: 10, grossa: 10, oversize: 10 });
+    eq([m.completa, m.attendibile, m.totale], [true, false, 40], "complete ma non sommano 100");
+    eq(shell.riservaFrammentazione(m),
+      "le quattro classi sommano 40%, non 100%: le percentuali non sono confrontabili",
+      "e la riserva lo dice con la ragione");
+  });
+
+  test("Core · le tre soglie del giudizio, e i loro confini", () => {
+    eq([mf({ oversize: 2.9 }).giudizio, mf({ oversize: 3 }).giudizio], ["eccellente", "accettabile"],
+      "sotto il 3% eccellente, dal 3% accettabile");
+    eq([mf({ oversize: 7.9 }).giudizio, mf({ oversize: 8 }).giudizio], ["accettabile", "critico"],
+      "sotto l'8% accettabile, dall'8% critico");
+  });
+
+  test("Core · quello che non è un numero non diventa uno zero", () => {
+    const m = mf({ fine: "boh", media: "", grossa: true, oversize: -4 });
+    eq([m.classi.fine, m.classi.media, m.classi.grossa, m.classi.oversize], [null, null, null, null],
+      "⛔ testo, vuoto, booleano e negativo sono tutti «non lo so», non zeri");
+    eq(m.valutata, false, "quindi la volata resta non valutata");
+    eq(mf(null).valutata, false, "e non esplode su una frammentazione che non c'è");
+    eq(mf(undefined).giudizio, null, "nemmeno su `undefined`");
+  });
+
+  test("Core · la virgola italiana e le stringhe numeriche si leggono", () => {
+    // i campi sono `type="text"`, quindi arrivano stringhe
+    eq(mf({ fine: "12", media: "53", grossa: "29", oversize: "6" }).totale, 100,
+      "quattro stringhe numeriche sommano come numeri");
+    eq(mf({ fine: "12", media: "53", grossa: "29", oversize: "6" }).giudizio, "accettabile",
+      "e il giudizio è quello giusto");
+  });
+
+  test("Core · la riserva parla anche quando non c'è niente", () => {
+    eq(shell.riservaFrammentazione(mf({})), "nessuna classe granulometrica è stata valutata",
+      "⛔ la frase che il foglio stampa al posto di «ECCELLENTE»");
+    eq(shell.riservaFrammentazione(null), "nessuna classe granulometrica è stata valutata",
+      "e regge anche senza misura");
+  });
+}
+
 // ═══ PONTE Genesi → Sentinella · la legge provvisoria che arrivava «calibrata» (03/08) ═══
 {
   console.log("\n— Il ponte Genesi → Sentinella: «calibrata» non vuol dire «solida» —");
@@ -20526,6 +20543,156 @@ test("⛔ Scudo · andamento indici: il verso letto su giornate ancora da contar
     eq(sentinella.testoFontePrevisione(p), "previsione", "e la frase non cambia");
   });
 }
+
+// ═══════════════ SCUDO · i fogli stampati (03/08) ═══════════════
+/* Il filo del blocco: dove il DOCUMENTO SI COMPONE. I quattro CSV sono già
+   tenuti dal banco `browser/scudo-documenti.mjs`; qui stanno le regole che il
+   MODULO decide per i due fogli che escono dalla stampante, perche' una
+   difesa che vive solo nel banco del browser costa due minuti a ogni giro. */
+test("⛔ cartellaLavoratore: completa NON vuol dire in regola", () => {
+  /* Misurato premendo il bottone: CINQUE cartelle su sette della dimostrazione
+     chiudevano con «Tutte le sezioni della cartella contengono dati registrati
+     in Scudo», in GRIGIO — e dentro avevano una visita medica scaduta, un DPI
+     da sostituire, un addestramento da fare, una nomina senza la data da cui
+     decorre. `vuoti` guarda le sezioni SENZA righe; le righe che ci sono, e
+     che il foglio stampa marcate, non le guardava nessuno. */
+  const D = scudo.DEMO, oggi = new Date("2026-08-03T00:00:00");
+  const dati = { scadenze: D.scadenze, mansioni: D.mansioni, dpi: D.dpi,
+                 nomine: D.nomine, documenti: D.documenti };
+  const c = (id) => scudo.cartellaLavoratore(D.lavoratori.find(x => x.id === id), dati, oggi);
+
+  const rossi = c("d1");   // visita medica scaduta + un DPI senza data di sostituzione
+  eq(rossi.completa, true, "la sua cartella non ha sezioni vuote: e' completa");
+  ok(rossi.daSistemare.length > 0,
+    `ma NON e' in regola, e la cartella lo dice: ${JSON.stringify(rossi.daSistemare)}`);
+  ok(rossi.daSistemare.some(x => /scadenza gia' scaduta|scadenza già scaduta/.test(x)),
+    `la visita medica scaduta e' nell'elenco: ${JSON.stringify(rossi.daSistemare)}`);
+  ok(rossi.daSistemare.some(x => /DPI senza data di sostituzione/.test(x)),
+    `e il DPI senza data di sostituzione anche: ${JSON.stringify(rossi.daSistemare)}`);
+
+  /* ⛔ IL CASO DI CONTROLLO. Senza, «l'elenco non e' vuoto» non dimostra
+     niente: un avviso che compare sempre non lo legge piu' nessuno. */
+  const riva = c("d6");
+  eq(riva.completa, true, "chi ha davvero tutto a posto resta completo");
+  eq(riva.daSistemare, [], "e il suo elenco resta VUOTO: l'avviso non e' sempre acceso");
+
+  /* le due domande sono indipendenti: una cartella puo' essere incompleta e
+     avere anche righe fuori regola, e i due elenchi non si mescolano */
+  const conti = c("d7");
+  eq(conti.completa, false, "chi non ha ne' mansione ne' scadenze ne' DPI non e' completo");
+  eq(conti.vuoti.length, 3, "tre sezioni senza righe");
+  eq(conti.daSistemare, [], "e nessuna riga fuori regola, perche' righe non ce ne sono");
+
+  eq(scudo.cartellaLavoratore(null, dati, oggi).daSistemare, [],
+    "senza lavoratore l'elenco c'e' ed e' vuoto: la pagina lo legge sempre");
+});
+test("⛔ cartellaLavoratore: la nomina senza data e il documento non valido entrano nell'elenco", () => {
+  const D = scudo.DEMO, oggi = new Date("2026-08-03T00:00:00");
+  const lav = { id: "zz", nome: "Prova", attivo: true };
+  const base = { scadenze: [{ id: "s", lavoratoreId: "zz", tipo: "Corso", dataScadenza: "2099-01-01" }],
+    mansioni: [{ id: "m", nome: "Mansione", lavoratoriIds: ["zz"], requisiti: [], dpi: [] }],
+    dpi: [{ id: "p", lavoratoreId: "zz", tipo: "elmetto", dataConsegna: "2026-01-01", scadenza: "2099-01-01" }],
+    nomine: [], documenti: [] };
+  eq(scudo.cartellaLavoratore(lav, base, oggi).daSistemare, [],
+    "il caso di partenza e' pulito: tutto in regola");
+  /* ⚠️ `dataISOEsiste` e non `!n.dal`: e' la stessa regola di
+     `organigrammaSicurezza`. Una data che NON ESISTE (il 30 febbraio) non e'
+     una data, e senza questo controllo passava per buona. */
+  const senzaDal = scudo.cartellaLavoratore(lav, { ...base, nomine: [{ id: "n", ruolo: "rls", lavoratoreId: "zz", dal: null }] }, oggi);
+  ok(senzaDal.daSistemare.some(x => /nomina senza la data/.test(x)),
+    `una nomina senza data da cui decorre: ${JSON.stringify(senzaDal.daSistemare)}`);
+  const dalFinto = scudo.cartellaLavoratore(lav, { ...base, nomine: [{ id: "n", ruolo: "rls", lavoratoreId: "zz", dal: "2026-02-30" }] }, oggi);
+  ok(dalFinto.daSistemare.some(x => /nomina senza la data/.test(x)),
+    `e nemmeno il 30 febbraio e' una data: ${JSON.stringify(dalFinto.daSistemare)}`);
+  const dalVero = scudo.cartellaLavoratore(lav, { ...base, nomine: [{ id: "n", ruolo: "rls", lavoratoreId: "zz", dal: "2025-01-02" }] }, oggi);
+  eq(dalVero.daSistemare, [], "una nomina datata non finisce nell'elenco");
+  for (const [stato, atteso] of [["valido", 0], ["da-rivedere", 1], ["scaduto", 1], ["", 1], [undefined, 1]]) {
+    const r = scudo.cartellaLavoratore(lav, { ...base, documenti: [{ id: "d", titolo: "T", lavoratoreId: "zz", stato }] }, oggi);
+    eq(r.daSistemare.filter(x => /document/.test(x)).length, atteso,
+      `documento «${stato}» -> ${atteso ? "va segnalato" : "non va segnalato"}: ${JSON.stringify(r.daSistemare)}`);
+  }
+});
+test("descriviCartella: la coda che dice le righe fuori regola", () => {
+  const D = scudo.DEMO, oggi = new Date("2026-08-03T00:00:00");
+  const dati = { scadenze: D.scadenze, mansioni: D.mansioni, dpi: D.dpi,
+                 nomine: D.nomine, documenti: D.documenti };
+  const f = scudo.descriviCartella(scudo.cartellaLavoratore(D.lavoratori.find(x => x.id === "d1"), dati, oggi));
+  ok(/alla data di stampa/.test(f), `dice che le sezioni ci sono tutte: «${f.slice(0, 80)}…»`);
+  ok(/non tutto quello che è registrato è in regola/.test(f),
+    `e NON si ferma li': «${f.slice(60, 220)}…»`);
+  ok(/completa non è una cartella in regola/.test(f),
+    "con la frase che spiega la differenza fra le due domande");
+  const g = scudo.descriviCartella(scudo.cartellaLavoratore(D.lavoratori.find(x => x.id === "d6"), dati, oggi));
+  ok(!/non tutto quello che è registrato/.test(g),
+    `su chi ha tutto a posto la coda non c'e': «${g}»`);
+  /* una cartella incompleta E con righe fuori regola dice tutt'e due le cose */
+  const doppia = scudo.descriviCartella({ trovato: true, completa: false,
+    vuoti: ["Nessun DPI consegnato risulta a registro."], daSistemare: ["1 scadenza già scaduta"] });
+  ok(/non è completa/.test(doppia) && /non tutto quello che è registrato/.test(doppia),
+    `le due domande non si escludono: «${doppia}»`);
+  /* retrocompatibile: una cartella costruita senza `daSistemare` non esplode */
+  ok(/alla data di stampa/.test(scudo.descriviCartella({ trovato: true, completa: true, vuoti: [] })),
+    "senza l'elenco la frase resta quella di prima");
+});
+test("⛔ statoPeggioreScadenze: quattro risposte, non tre", () => {
+  /* Il difetto, misurato aprendo la pagina: l'elenco Personale calcolava il
+     riepilogo per persona con `some(scaduta) ? "scaduta" : (prob.length ?
+     "in-scadenza" : "regolare")` — TRE risposte per una funzione che ne sa dire
+     QUATTRO. Chi ha solo scadenze dalla data illeggibile o mai scritta usciva
+     con la pastiglia gialla «In scadenza», che e' un'affermazione precisa su
+     una data che nessuno conosce, mentre lo scadenzario sulla stessa riga
+     scrive «Senza data». */
+  const oggi = new Date("2026-08-03T00:00:00");
+  const s = (d) => ({ dataScadenza: d });
+  eq(ponti.statoPeggioreScadenze([s("2026-13-45")], oggi), "senza data",
+    "⛔ una data illeggibile NON e' «in scadenza»");
+  eq(ponti.statoPeggioreScadenze([s(undefined)], oggi), "senza data",
+    "⛔ e nemmeno un campo mai scritto");
+  eq(ponti.statoPeggioreScadenze([s("2026-02-30")], oggi), "senza data",
+    "il 30 febbraio non e' una data");
+  eq(ponti.statoPeggioreScadenze([s("2099-01-01")], oggi), "regolare", "una lontana e' regolare");
+  eq(ponti.statoPeggioreScadenze([s("2026-08-20")], oggi), "in-scadenza", "una vicina e' in scadenza");
+  eq(ponti.statoPeggioreScadenze([s("2020-01-01")], oggi), "scaduta", "una passata e' scaduta");
+  // la precedenza: il peggiore vince, e «senza data» non copre un guasto vero
+  eq(ponti.statoPeggioreScadenze([s("2099-01-01"), s(undefined), s("2020-01-01")], oggi), "scaduta",
+    "una scaduta batte tutto");
+  eq(ponti.statoPeggioreScadenze([s("2099-01-01"), s(undefined), s("2026-08-20")], oggi), "in-scadenza",
+    "e una in scadenza batte il non si sa");
+  eq(ponti.statoPeggioreScadenze([s("2099-01-01"), s(undefined)], oggi), "senza data",
+    "⛔ ma il non si sa non sparisce dietro un «regolare»");
+  /* ⛔ SU UN ELENCO VUOTO `null`, NON «regolare»: chi non ha nemmeno una
+     scadenza non e' a posto, e' una persona di cui non si sa niente. Chi
+     chiama deve dirlo con parole sue. */
+  eq(ponti.statoPeggioreScadenze([], oggi), null, "elenco vuoto: non si puo' dire");
+  eq(ponti.statoPeggioreScadenze(null, oggi), null, "e nemmeno senza elenco");
+  /* ⛔ E LA COPIA NON C'E' PIU': `idoneitaOperatore` la stessa domanda la fa
+     passando di qui, se no le due risposte divergono senza che nessuno lo veda. */
+  const lav = [{ id: "d1", nome: "Mario" }];
+  const op = { id: "o1", lavoratoreId: "d1" };
+  for (const caso of [[s("2026-13-45")], [s("2020-01-01")], [s("2026-08-20")], [s("2099-01-01")]]) {
+    const sc = caso.map((x, i) => ({ ...x, id: "s" + i, lavoratoreId: "d1" }));
+    eq(ponti.idoneitaOperatore(op, lav, sc, oggi).stato, ponti.statoPeggioreScadenze(sc, oggi),
+      `idoneitaOperatore e statoPeggioreScadenze dicono la stessa cosa su ${JSON.stringify(caso)}`);
+  }
+  /* e Scudo la ri-esporta: un alias, non una seconda implementazione */
+  eq(scudo.statoPeggioreScadenze === ponti.statoPeggioreScadenze, true,
+    "scudo.statoPeggioreScadenze E' quella di shared/, non una copia");
+});
+test("⛔ etichettaStatoDocumento: la mappa esce dalla pagina e la leggono in due", () => {
+  /* La mappa stava SOLO nella pagina, per disegnare l'elenco dei Documenti.
+     La CARTELLA, che quello stato non lo aveva a portata di mano, ha stampato
+     la riga SENZA: sul fascicolo dell'ispettore un documento «Da rivedere»
+     usciva identico a uno valido, con la cella di destra bianca. */
+  eq(scudo.etichettaStatoDocumento("valido"), { cls: "ok", label: "Valido", valido: true });
+  eq(scudo.etichettaStatoDocumento("da-rivedere"), { cls: "warn", label: "Da rivedere", valido: false });
+  eq(scudo.etichettaStatoDocumento("scaduto"), { cls: "danger", label: "Scaduto", valido: false });
+  /* ⛔ un documento di cui NESSUNO ha scritto lo stato non e' un documento
+     valido: si dichiara che non si sa, in giallo (principio del fondatore) */
+  for (const s of ["", null, undefined, "boh", "  "])
+    eq(scudo.etichettaStatoDocumento(s), { cls: "warn", label: "Stato non indicato", valido: false },
+      `«${s}» -> non si sa, e non e' verde`);
+  eq(scudo.etichettaStatoDocumento(" valido ").valido, true, "e gli spazi non cambiano la risposta");
+});
 
 // ═══ CORE · una volata progettata non è caricata con zero chili (03/08) ═══
 {
