@@ -244,6 +244,29 @@ numero scritto dove non era stato misurato niente**.*
       illeggibile, e il riquadro del valore «**€ 0**» a due gesti di distanza.
       Banco nuovo del browser, 26 prove, 8 difetti rimessi su 8.
 
+- [x] ✅ **Il core stampava «Fori: 0 · Metri: 0,0 · Mc: 0,0»** su un turno mai
+      misurato (`f035a13`), e il caso peggiore era l'altro: la maglia è un
+      campo **opzionale**, quindi venti fori veri e sessanta metri perforati
+      davano «0,0 mc» per una moltiplicazione per zero. La regola sta in
+      `shared/`, e sistema elenco, scheda, quattro documenti che escono
+      dall'azienda, la riconciliazione (che scriveva «+0,0%» in verde) e i
+      grafici. ⏳ Il **salvataggio** resta la decisione di prodotto di
+      `7050dea`.
+- [x] ✅ **Scudo: il permesso di lavoro** (`22999aa`), perché la nostra
+      checklist chiedeva una spunta su un documento che l'app non sapeva
+      produrre: 27 funzioni, copertura 130 → 157, otto controprove.
+- [x] ✅ **La riga del documento che l'aveva proposto è aggiornata**
+      (`1d53ce7`) — direttiva 7, che era una regola scritta e non applicata:
+      confermate di Scudo 7 → 6, tabella del delta riscritta in tutti e sei.
+- [x] ✅ **Un banco del browser difende i rapportini non misurati**
+      (`62fc449`): 18 prove, quattro difetti veri rimessi ne fanno cadere otto.
+      Prima quella difesa viveva solo negli scatti di uno scratchpad.
+- [x] ✅ **Campo: la pillola della squadra copriva il badge** (`613c3b6`) —
+      198 px in un blocco da 131, e **+9 anche a 390 px**. Il banco diceva «2
+      schermate pulite» prima e dopo, perché chiedeva «esce dallo schermo?» e
+      quella usciva dal **proprio riquadro**: adesso `fuori-schermo.mjs` ha due
+      domande, con l'arretrato di Sentinella stampato e non preteso.
+
 ### B — Lo standard delle funzioni, app per app (martedì → venerdì)
 
 - [x] ✅ **B1. La caccia sistematica ai numeri tranquilli.** Chiusa il 02/08, e
