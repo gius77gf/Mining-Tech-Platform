@@ -326,6 +326,59 @@ const DEFAULT_PERSONALE = [
   {id:'pers_1',nome:'Paolo',cognome:'Neri',ruolo:'Aiuto fochino',note:'',tel:'+39 345 1111111',foto:null},
   {id:'pers_2',nome:'Sergio',cognome:'Gialli',ruolo:'Operatore assistente',note:'',tel:'+39 345 2222222',foto:null}
 ];
+/* ⛔ LA DIMOSTRAZIONE DEL CORE ERA VUOTA DOVE L'APP LAVORA. Misurato il 03/08
+   contando gli elementi VISIBILI sezione per sezione dopo l'accesso: **zero-due
+   righe cliccabili per sezione**, e `@volate` — lo storico dei rapportini, cioè
+   il cuore del core — ne aveva **zero**, perché `rapportini: []`. Chi apre il
+   sito vede un'app che non ha mai lavorato; e nessun banco del browser poteva
+   misurare quello che non c'era (il banco delle modali ha un programma da 68
+   schede e ne apriva **0**).
+   ⚠️ I casi sono scelti, non riempitivi: due turni misurati per bene, **uno
+   senza un solo foro misurato** e **uno misurato senza la maglia**. Sono i due
+   stati che l'app ha imparato a raccontare stanotte («nessun foro misurato»,
+   «mc non calcolabili»), e metterli nella dimostrazione è il modo di mostrarli
+   — la stessa ragione per cui `run-demo.mjs` pretende che un campo ASSENTE
+   possa stare nei dati d'esempio, mentre un `2026-13-45` no. */
+const DEFAULT_RAPPORTINI = [
+  { id:'rp_1', userId:'user_operatore', cavaId:'cava_1', data:'2026-07-14',
+    oi:'07:00', of:'12:30', diametro:89, maglia:'3x3.5', maglia_B:3, maglia_S:3.5,
+    mezzoId:'mlav_1', personale:['pers_1'], fori:14, fori_fila1:14, fori_fila2:0,
+    metri:126, media_prof:9, mc:1190.7,
+    fori_dettaglio:Array.from({length:14},(_,i)=>({prof:+(8.4+i*0.1).toFixed(1),fila:1})),
+    volataId:null, note:'Fronte Nord, roccia regolare.', inviato:'2026-07-14' },
+  { id:'rp_2', userId:'user_operatore', cavaId:'cava_2', data:'2026-07-17',
+    oi:'07:15', of:'13:00', diametro:102, maglia:'3.2x3.8', maglia_B:3.2, maglia_S:3.8,
+    mezzoId:'mlav_2', personale:['pers_2'], fori:11, fori_fila1:11, fori_fila2:0,
+    metri:110, media_prof:10, mc:1204.4,
+    fori_dettaglio:Array.from({length:11},(_,i)=>({prof:+(9.6+i*0.08).toFixed(2),fila:1})),
+    volataId:null, note:'', inviato:'2026-07-17' },
+  /* il turno aperto e mai misurato: i fori si contano, i metri no */
+  { id:'rp_3', userId:'user_operatore', cavaId:'cava_1', data:'2026-07-21',
+    oi:'07:00', of:'', diametro:89, maglia:'3x3.5', maglia_B:3, maglia_S:3.5,
+    mezzoId:'mlav_1', personale:[], fori:0, fori_fila1:0, fori_fila2:0,
+    metri:0, media_prof:0, mc:0, fori_dettaglio:[], volataId:null,
+    note:'Turno aperto: le profondita non sono ancora state misurate.', inviato:'2026-07-21' },
+  /* misurato per bene, ma senza la maglia: il volume non si puo calcolare */
+  { id:'rp_4', userId:'user_fochino', cavaId:'cava_2', data:'2026-07-23',
+    oi:'08:00', of:'12:00', diametro:102, maglia:null, maglia_B:null, maglia_S:null,
+    mezzoId:'mlav_2', personale:['pers_2'], fori:9, fori_fila1:9, fori_fila2:0,
+    metri:81, media_prof:9, mc:0,
+    fori_dettaglio:Array.from({length:9},()=>({prof:9,fila:1})),
+    volataId:null, note:'Maglia da confermare col capocantiere.', inviato:'2026-07-23' },
+];
+const DEFAULT_RAPPORTINI_FOC = [
+  { id:'rf_1', userId:'user_fochino', cavaId:'cava_1', data:'2026-07-15',
+    oi:'14:00', of:'16:30', note:'Volata regolare, nessun fuori sagoma.',
+    fori:14, tot_kg:112,
+    fori_dettaglio:Array.from({length:14},(_,i)=>({n:i+1,esplosivo:'Emulsione',esplosivo2:'',innesco:'Detonatore a tubo',kg:8})),
+    volataId:null, rappPerfId:'rp_1', inviato:'2026-07-15', modificabile:true, reso:'', foto:[] },
+  /* i chili non li ha scritti nessuno: NON e' una volata a vuoto */
+  { id:'rf_2', userId:'user_fochino', cavaId:'cava_2', data:'2026-07-18',
+    oi:'15:00', of:'17:00', note:'Chili da recuperare dal registro del deposito.',
+    fori:11, tot_kg:0,
+    fori_dettaglio:Array.from({length:11},(_,i)=>({n:i+1,esplosivo:'ANFO',esplosivo2:'',innesco:'Detonatore a tubo',kg:''})),
+    volataId:null, rappPerfId:'rp_2', inviato:'2026-07-18', modificabile:true, reso:'', foto:[] },
+];
 const DEFAULT_DEPOSITO = {
   punte:[{id:'pt_1',diametro:64,qta:12,note:''},{id:'pt_2',diametro:76,qta:8,note:''},{id:'pt_3',diametro:89,qta:20,note:''},{id:'pt_4',diametro:102,qta:5,note:''}],
   aste:[{id:'as_1',lunghezza:3.05,diametro:45,qta:30,note:''},{id:'as_2',lunghezza:3.66,diametro:45,qta:18,note:''},{id:'as_3',lunghezza:4.27,diametro:51,qta:12,note:''}],
@@ -911,6 +964,8 @@ function initDBOfflineFallback(errore, online = true){
     DB.deposito.punte = [...DEFAULT_DEPOSITO.punte];
     DB.deposito.aste = [...DEFAULT_DEPOSITO.aste];
     DB.deposito.lubr = [...DEFAULT_DEPOSITO.lubr];
+    DB.rapportini = [...DEFAULT_RAPPORTINI];
+    DB.rapportiniFoc = [...DEFAULT_RAPPORTINI_FOC];
   }
   state.dbReady = true;
   // Lo stato NON è solo un toast che passa in due secondi e mezzo: resta
@@ -939,6 +994,8 @@ async function seedDB(){
   DEFAULT_DEPOSITO.punte.forEach(p=>b1.set(ddoc('deposito_punte',p.id),p));
   DEFAULT_DEPOSITO.aste.forEach(a=>b1.set(ddoc('deposito_aste',a.id),a));
   DEFAULT_DEPOSITO.lubr.forEach(l=>b1.set(ddoc('deposito_lubr',l.id),l));
+  DEFAULT_RAPPORTINI.forEach(r=>b1.set(ddoc('rapportini',r.id),r));
+  DEFAULT_RAPPORTINI_FOC.forEach(r=>b1.set(ddoc('rapportiniFoc',r.id),r));
   await b1.commit();
 }
 
