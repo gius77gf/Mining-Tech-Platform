@@ -223,6 +223,26 @@ numero scritto dove non era stato misurato niente**.*
       CSV-injection): sono il mandato del cantiere che gira adesso.
 - [x] ✅ **Le due righe perse di Conti ritrovate**, non coperte con un numero.
       Arretrato di Conti da 12 commit a **zero**.
+- [x] ✅ **Genesi: i cinque difetti dichiarati sono corretti** (`7cb8df7`). Il
+      più grave era il CSV dello storico senza la difesa contro la
+      CSV-injection — `@SUM(1+1)` usciva **nudo** dal file che si apre in Excel
+      a casa del cliente — e il più insidioso `_ricColore(null)`, **verde**
+      perché `Math.abs(null)` fa 0: era la trappola in cui sarebbe caduta la
+      correzione principale. Ogni prova che li **blindava** è stata riscritta
+      più giusta, non più permissiva.
+- [x] ✅ **La regola 20 guardava sei app su sette, e non lo diceva** (`2dfd3d8`).
+      Genesi ne restava fuori perché la sua pagina si chiama `genesi.html` e
+      l'elenco era costruito per convenzione; e la dichiarazione aveva **due
+      forme** (`bandiera:` e `const bandiera =`) di cui se ne cercava una sola,
+      quindi per Genesi la regola non poteva scattare **in nessun caso**. Due
+      righe di prosa erano false e sono state rimisurate: la copertura non è
+      «tre app su sei», è **sette su sette, 18 bandiere**.
+- [x] ✅ **Terra: i documenti che escono dall'azienda** (`ae26773`). Cinque zeri
+      tranquilli trovati alla **seconda passata**, aprendo la pagina: il
+      prospetto annuale per l'ente diceva «Totale 2026 · **0**» su un anno che
+      nessuno ha misurato, il verbale di rilievo «fra **0 e 0** m³» su un volume
+      illeggibile, e il riquadro del valore «**€ 0**» a due gesti di distanza.
+      Banco nuovo del browser, 26 prove, 8 difetti rimessi su 8.
 
 ### B — Lo standard delle funzioni, app per app (martedì → venerdì)
 
