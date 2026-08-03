@@ -41,6 +41,12 @@ const ok = (cond, nome, dett = '') => {
 /* la data buona dei dati d'esempio, e quella storta che si mette al suo posto */
 const BUONA = "assicurazione:'2026-07-01'";
 const STORTA = "assicurazione:'30/02/2026'";
+/* ⛔ E UN PROMEMORIA CON LA DATA ILLEGGIBILE. È la metà del difetto che
+   nessun banco guardava: con `NaN` sono false tutt'e due le prove (`<0` e
+   `>=0`), quindi il promemoria non finiva né fra gli «Scaduti» né fra i
+   «Prossimi» — spariva, e non lo contava nemmeno il pallino rosso. */
+const PROM_BUONA = "data:'2026-04-20'";
+const PROM_STORTA = "data:'30/02/2026'";
 /* ⛔ LE GUARDIE SONO DUE, E VANNO TOLTE TUTT'E DUE. La prima controprova ne
    toglieva una sola — quella dell'elenco — e rispondeva «NON distingue»: non
    perché il banco fosse cieco, ma perché le prove che dovevano cadere guardano
@@ -58,6 +64,9 @@ const GUARDIE = [
   // la data stampata che guardava la forma e non l'esistenza
   ["function fmt(d){ if(d===null||d===undefined||d==='')return'—'; const t=dataIt(d,''); return t||'data non valida'; }",
    "function fmt(d){ if(!d)return'—';const[y,m,g]=d.split('-');return`${g}/${m}/${y}`; }"],
+  // il promemoria che spariva: rimettere il conto vecchio lo fa sparire di nuovo
+  ["const senzaData=DB.promemoria.filter(p=>!promemoriaScaduto(p)&&promemoriaSenzaData(p));",
+   "const senzaData=[];"],
 ];
 
 const browser = await chromium.launch({ executablePath: CHROMIUM });
@@ -83,6 +92,10 @@ await p.route(`${BASE}/index.html`, async (r) => {
   const prima = corpo;
   corpo = corpo.replace(BUONA, STORTA);
   if (corpo === prima) throw new Error(`INIEZIONE A VUOTO: «${BUONA}» non si trova più nei dati d'esempio`);
+  sostituzioni++;
+  const primaProm = corpo;
+  corpo = corpo.replace(PROM_BUONA, PROM_STORTA);
+  if (corpo === primaProm) throw new Error(`INIEZIONE A VUOTO: «${PROM_BUONA}» non si trova più nei dati d'esempio`);
   sostituzioni++;
   if (CONTROPROVA) {
     for (const g of GUARDIE) {
@@ -200,6 +213,22 @@ ok(rapp.mc !== '0.0' && rapp.mc !== '0,0',
   '⛔ un rapportino senza fori misurati NON dichiara 0,0 metri cubi', `letto «${rapp.mc}»`);
 ok(rapp.media !== '0.00' && rapp.media !== '0,00',
   '⛔ e nemmeno una profondità media di 0,00 m', `letto «${rapp.media}»`);
+
+/* ── IL PROMEMORIA CHE SPARIVA ── */
+await p.evaluate(() => window.openNotifiche && window.openNotifiche());
+await p.waitForTimeout(600);
+const not = await p.evaluate(() => {
+  const l = document.getElementById('notif-full-list');
+  const b = document.getElementById('notif-badge') || document.querySelector('.notif-badge');
+  return { aperta: !!l, testo: l ? l.innerText : '(non trovato)', badge: b ? b.textContent.trim() : '(nessun badge)' };
+});
+console.log(`  notifiche: badge «${not.badge}» · testo «${not.testo.replace(/\n/g, ' | ').slice(0, 180)}»`);
+ok(not.aperta, 'si arriva davvero alle notifiche');
+ok(/non si legge/i.test(not.testo),
+  '⛔ il promemoria con la data illeggibile compare, e dice perché',
+  not.testo.slice(0, 200));
+ok(!/30\/02\/2026/.test(not.testo),
+  'e la data impossibile non viene stampata come se fosse vera', not.testo.slice(0, 200));
 
 console.log(`\n${sostituzioni} sostituzioni fatte nella pagina servita (0 = banco che non misura niente)`);
 console.log(`\nRisultato date illeggibili nel core: ${passati} passati, ${falliti} falliti`);
