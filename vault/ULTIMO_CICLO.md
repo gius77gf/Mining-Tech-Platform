@@ -5,43 +5,39 @@
 > sotto. Se la data è vecchia, vuol dire che **la routine non sta
 > lavorando** — e si vede subito, senza dover cercare tra i commit.
 
-**Ultimo ciclo riuscito:** 2026-08-03 **00:47 UTC**
-**Commit di partenza:** `6484882`
+**Ultimo ciclo riuscito:** 2026-08-03 **06:44 UTC**
+**Commit di partenza:** `380fb76`
 
-**Cosa sta per fare.** Il ciclo precedente si è fermato due volte, e nessuna
-delle due per scelta:
-1. **il limite della piattaforma** (reset all'una UTC), che ha ucciso tre
-   cantieri mentre scrivevano — Conti (`valorePesata`), Flotta+Campo (gli
-   ultimi punti del censimento) e la riverifica del delta di Conti;
-2. **il contenitore si è riportato indietro di due ore.** Tutto il lavoro
-   spinto era su GitHub e non si è perso niente di committato, ma la copia
-   locale è tornata a `45617e9` con dentro file **più vecchi** di quelli del
-   remoto. Committarli avrebbe resuscitato tre difetti chiusi il giorno prima:
-   la prova che pretendeva «pericolo» su soglia 0 (blindava il difetto della
-   decisione 16), le due righe che dichiaravano accettabile il DPI senza data
-   (decisione 14), e le righe che dichiaravano ancora aperti i difetti sulle
-   date di Conti. Sono stati messi da parte con `git stash` — non cancellati —
-   e la cartella è stata riallineata a `origin`.
+**Cosa sta per fare.** Il ciclo precedente non si è fermato: questo riparte da
+dentro, con il lavoro ancora caldo. Alle 06:44 sul disco c'è già, pronto e
+verificato, il **rapportino del fochino** — «0 kg» su una volata di cui nessuno
+ha scritto quanto ha caricato, che è il numero più sorvegliato dell'app
+(autorizzazione, registro del deposito, denuncia) — e la **sottoscritta della
+barra alta**, che a 320 px si tagliava in tutte e sei le app perdendo sempre la
+stessa parola: «Deepwork».
 
-⚠️ **Una unità è andata persa** perché non era ancora committata quando il
-contenitore è tornato indietro: il controllo che pretende che la tabella
-riassuntiva del delta — copiata in cima a **tutti e sei** i documenti dei
-concorrenti — torni con i suoi addendi. Il difetto che aveva trovato resta
-vero ed è scritto: in due documenti su sei mancavano **due righe per parte**,
-tolte dalle confermate senza essere aggiunte altrove. Va rifatto.
+Il blocco appena chiuso ha prodotto **dodici commit**, e il filo è uno solo:
+1. **i quattro cantieri della notte raccolti** app per app (Genesi, Terra,
+   Scudo, Campo), ognuno verificato sulla copia di quello che si committava;
+2. **tre cantieri nuovi** chiusi in parallelo (Conti, Flotta, Sentinella) sulla
+   seconda passata dei numeri tranquilli, col metodo che rende: chiamare le
+   funzioni coi casi limite **e poi aprire la pagina e premere i bottoni**;
+3. **la domanda sbagliata risponde «pulito»** — tre controlli che esistevano e
+   non vedevano il difetto (la regola 20 cieca su un'app intera, il banco del
+   fuori-schermo che chiedeva «esce dallo schermo?» mentre il testo usciva dal
+   proprio riquadro, la copertura che misura solo il numero che sale).
 
 Questo ciclo quindi:
-1. **rilancia i tre cantieri uccisi dal limite**, con i mandati già scritti:
-   la premessa di `valorePesata` che regge su una schermata su due, gli ultimi
-   punti del censimento in Flotta e Campo, la riverifica del delta di Conti
-   (dove il conto non torna di due righe);
-2. **rifà il controllo sulla tabella del delta**, che è la difesa contro
-   esattamente il difetto del punto 1;
-3. prosegue con l'obiettivo della settimana — **lo standard di ogni funzione**,
-   cioè i numeri che mentono con la faccia tranquilla, funzione per funzione.
+1. chiude le due unità già pronte sul disco (fochino, barra alta) e **raccoglie
+   Flotta**, che è rientrato con sei difetti misurati;
+2. prosegue con l'obiettivo della settimana — **lo standard di ogni funzione**
+   — sulle superfici che la seconda passata non ha ancora attraversato;
+3. rilancia la ricerca continua, mirata dove chi lavora è carente, con l'obbligo
+   della prova per ogni «non c'è»: la prima tornata ne ha proposti **tre**, e
+   **due erano falsi** — fermati dalla riverifica prima di diventare lavoro.
 
-**Stato al momento della partenza:** giro `node` **20 comandi su 20**, albero
-pulito e allineato a `origin`. **1.925 prove** senza rete, **53** banchi del
-browser, copertura **602/602** e nessuna funzione scoperta, 60 file di test
-collegati, 15 pagine che compilano, 858 nomi importati verificati.
-Decisioni del fondatore ancora aperte: **19** (erano 24 sabato).
+**Stato al momento della partenza:** giro `node` **20 comandi su 20**.
+**1.985 prove** senza rete, **61** banchi del browser, copertura **636/636** e
+nessuna funzione scoperta, 64 file di test collegati, 15 pagine che compilano,
+917 nomi importati verificati. Arretrato dei documenti del delta: **33 commit**.
+Decisioni del fondatore ancora aperte: **19** (procedono venerdì 07/08).
