@@ -498,6 +498,23 @@ numero scritto dove non era stato misurato niente**.*
 - [x] ✅ **Il ponte Genesi → Sentinella** (`f9e71de`): una legge tarata su **tre
   referti** arrivava «calibrata». Nessuna delle due app sbagliava da sola: il
   fatto si perdeva **nel passaggio**.
+- [x] ✅ **Scudo · i documenti che escono** (`1857d83`): **cinque cartelle su
+  sette** uscivano dalla stampante dichiarandosi «complete», in grigio, con
+  dentro una visita medica **scaduta** e un DPI da sostituire. `completa`
+  risponde a «ci sono sezioni senza righe?» — è una domanda sola, e finché era
+  l'unica una cartella piena di roba scaduta si dichiarava tranquilla. Più: lo
+  **stato del documento** che sul fascicolo usciva come una cella bianca, il
+  riepilogo per persona scritto a mano con **tre risposte su quattro** (sale in
+  `shared/`, `statoPeggioreScadenze`), e il promemoria che su una riga «senza
+  data» rispondeva con un motivo **falso**.
+- [x] ✅ **La dimostrazione dichiarata sui fogli stampati** (`3be554d`), Conti e
+  Terra: in modalità tour lo schermo lo dice **due volte** e la stampa nasconde
+  tutt'e due. Un foglio di dimostrazione — il DDT che viaggia sul camion, il
+  prospetto che si allega alla comunicazione annuale — si portava a un
+  controllo senza niente che lo distinguesse da uno vero. In Terra la stampa lo
+  nascondeva ancora meglio: i due fogli vivono in una **finestra nuova**, dove
+  il `@media print` della pagina non arriva mai.
+  ⚠️ Restano **Scudo e Campo** (cantieri aperti) e **i CSV di tutte e sei**.
 
 ## Riferimenti
 
