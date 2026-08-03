@@ -199,7 +199,18 @@ const SCEGLI = ([fatti, forme, quanteVolte]) => {
   /* `.dw-exit` porta al login, e da lì non si torna: non apre modali, porta
      via la pagina */
   const MAI = '[data-filtro], .chg, [data-goto], .dw-exit, [id*="tema"], [title^="Tema"], [aria-label^="Tema"]';
-  const lista = [...document.querySelectorAll('button, [role="button"], summary, .item[onclick], tr[data-id]')]
+  /* ⛔ `.sitem[onclick]` È LA SECONDA CAUSA DELLA CECITÀ SUL CORE, trovata il
+     03/08. Questo elenco era scritto sulla forma delle APP, che usano `.item`;
+     il core usa `.sitem` — «SEGNALAZIONE item», la riga di lista da cui si apre
+     ogni sua scheda. Effetto: il banco provava **6.800 comandi** sul core e
+     apriva **zero modali su 68**, perché i bottoni veri (navigazione, FAB)
+     portano altrove e tutto quello che apre una scheda è una riga `.sitem`.
+     Prima ancora il core non passava nemmeno la schermata d'accesso (corretto
+     in `giro.mjs`): due cause in fila, e il banco lo dichiarava da mesi in
+     fondo al suo riepilogo — «nessuna modale aperta … nel suo programma ce ne
+     sono 68 da aprire». Un controllo che confessa di essere cieco e che nessuno
+     legge è come non averlo. */
+  const lista = [...document.querySelectorAll('button, [role="button"], summary, .item[onclick], .sitem[onclick], tr[data-id]')]
     .filter((e) => vis(e) && !e.closest(FUORI) && !e.matches(MAI));
   const conta = (f) => forme.filter((x) => x === f).length;
   const el = lista.find((e) => !fatti.includes(identita(e)) && conta(forma(e)) < quanteVolte);
