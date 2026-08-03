@@ -46,6 +46,9 @@ const BANCHI = [
   /* il messaggio che il core dà quando il database non risponde: dal 02/08
      (regole chiuse) è il ramo che prende TUTTI i visitatori */
   ['messaggio del ripiego', 'ripiego-messaggio.mjs', []],
+  /* una data che nessuno sa leggere non può diventare un OK verde (03/08) */
+  ['date illeggibili nel core', 'core-date-illeggibili.mjs', []],
+  ['date illeggibili · controprova', 'core-date-illeggibili.mjs', ['--controprova'], true],
   ['messaggio del ripiego · controprova', 'ripiego-messaggio.mjs', ['--controprova'], true],
   ['campi interi', 'interi-superfici.mjs', []],
   ['campi interi · controprova', 'interi-superfici.mjs', ['--senza-guardia'], true],

@@ -108,7 +108,7 @@ import {
 // per il core e per tutte e sei le app. Quando era scritta in ogni app, le sei
 // leggevano «1.250» in tre modi diversi senza che nessun test se ne accorgesse.
 // È un modulo di sole funzioni pure, senza effetti al caricamento.
-import { numeroScritto, messaggioNumero, perCampo, montaGuardiaInteri, isoLocale, meseLocale, motivoDatiNonSalvati } from "./shared/deepwork-id-client/dw-shell.js";
+import { numeroScritto, messaggioNumero, perCampo, montaGuardiaInteri, isoLocale, meseLocale, motivoDatiNonSalvati, giorniTra } from "./shared/deepwork-id-client/dw-shell.js";
 
 // ── Config Firebase ──
 const firebaseConfig = {
@@ -348,7 +348,41 @@ function fmt(d){ if(!d)return'—';const[y,m,g]=d.split('-');return`${g}/${m}/${
 // toISOString() un rapportino scritto durante il turno di notte — fra
 // mezzanotte e le due, in Italia — finirebbe datato al giorno prima.
 function today(){ return isoLocale(new Date()); }
-function daysBetween(d1,d2){ return Math.floor((new Date(d2)-new Date(d1))/(1000*60*60*24)); }
+/* ⛔ LA REGOLA DEI GIORNI STA IN `shared/`, E QUI ERA SCRITTA UNA SECONDA VOLTA.
+   Misurato il 03/08 su questa riga, con `oggi = 2026-08-03`:
+
+     data          giorni      «è scaduta?»   che cosa vedeva l'utente
+     2026-08-01        -2      sì             giusto
+     2026-02-30      -154      sì             un giorno CHE NON ESISTE, contato
+     null          -20668      sì             «scaduta da 56 anni» (new Date(null) = 1970)
+     ""               NaN      NO             spariva da tutte e due gli elenchi
+     "30/02/2026"     NaN      NO             idem
+     "boh"            NaN      NO             idem
+
+   I due difetti sono di famiglie diverse e tutt'e due contano. Il primo è la
+   data impossibile che `new Date` fa **scorrere** invece di rifiutare — lo
+   stesso che è costato una fattura «insoluta da 152 giorni» con scadenza al 30
+   febbraio. Il secondo è peggio ed è il principio del fondatore: con `NaN`
+   entrambe le prove (`< 0` e `>= 0`) sono **false**, quindi un promemoria con
+   la data illeggibile non finisce né fra gli «Scaduti» né fra i «Prossimi»:
+   **sparisce dalla schermata** e non lo conta nemmeno il pallino rosso.
+   Non è un numero tranquillo: è l'assenza totale di un numero, che è la stessa
+   cosa detta peggio.
+
+   La regola giusta esiste da mesi in `shared/deepwork-id-client/dw-shell.js`:
+   `giorniTra` passa da `dataISOEsiste`, che il 30 febbraio lo **rifiuta**
+   invece di farlo scorrere, e risponde `NaN` — che qui va LETTO, non ignorato.
+   Tutte e undici le chiamate di casa passano `today()` come primo argomento
+   (contate, non a memoria: `grep -c` dice 11 su 11), quindi la delega è
+   diretta. */
+function daysBetween(d1,d2){ return giorniTra(d2, new Date(d1+"T00:00:00")); }
+/* La lettura della bandiera: `NaN` vuol dire «questa data non si può leggere»,
+   e va DETTO. Le tre risposte sono quelle che le app usano già. */
+function statoScadenzaCore(v){
+  const g = daysBetween(today(), v);
+  if (!Number.isFinite(g)) return { giorni: null, stato: 'illeggibile', leggibile: false };
+  return { giorni: g, stato: g < 0 ? 'scaduta' : (g <= 30 ? 'vicina' : 'lontana'), leggibile: true };
+}
 function initials(n,c){ return (n||'?')[0]+((c||'')[0]||''); }
 function genId(){ return Date.now().toString(36)+Math.random().toString(36).substr(2,5); }
 
@@ -1248,7 +1282,9 @@ function renderHome(){
   if(!state.user)return;
   initHome();aggiornaNotifBadge();
   const nl=$('notif-list');
-  const scad=DB.promemoria.filter(p=>(p.scaduto||daysBetween(today(),p.data)<0)&&!p.letto);
+  /* stesso conto del pallino rosso, e per la stessa ragione: un promemoria
+     con la data illeggibile non deve sparire anche da qui */
+  const scad=DB.promemoria.filter(p=>(promemoriaScaduto(p)||promemoriaSenzaData(p))&&!p.letto);
   if(scad.length>0&&DB.settings.notRem){
     $('home-notif').style.display='block';
     nl.innerHTML=scad.slice(0,3).map(p=>`<div class="sitem warn"><div class="av av-cv">⏰</div><div class="sinfo"><div class="sname">${escHtml(p.titolo)}</div><div class="ssub">Scaduto il ${fmt(p.data)}</div></div></div>`).join('');
@@ -1307,20 +1343,37 @@ function renderHome(){
     $('recent-list').innerHTML=miei.map(r=>{const cava=DB.cave.find(c=>c.id===r.cavaId);return`<div class="sitem success"><div class="av av-op">✓</div><div class="sinfo"><div class="sname">${escHtml(cava?cava.nome:'—')}</div><div class="ssub">${fmt(r.data)} · ${r.fori} fori · ${(r.mc||0).toFixed(1)} mc</div></div></div>`;}).join('');
   }else{$('recent-list').innerHTML='<div class="empty-state"><div class="empty-icon">📋</div><div class="empty-title">Nessuna attività</div><div class="empty-sub">I rapportini inviati compariranno qui</div></div>';}
 }
-function contaScaduti(){ return DB.promemoria.filter(p=>(p.scaduto||daysBetween(today(),p.data)<0)&&!p.letto).length; }
+/* ⛔ IL PROMEMORIA CHE SPARIVA. Con una data illeggibile `daysBetween`
+   risponde `NaN`, e `NaN<0` è **false**: il promemoria non risultava
+   scaduto, non veniva contato dal pallino rosso, e nell'elenco non
+   compariva nemmeno fra i «Prossimi» (perché anche `NaN>=0` è false).
+   Spariva dalla schermata senza che niente lo dicesse.
+   La scelta, con la ragione: **entra nel conto**. Un promemoria con la
+   data che non si legge è una cosa che chiede attenzione — nessuno ha
+   detto che va bene — e segnalare un problema di dati in più è molto meno
+   grave che nasconderlo. Nell'elenco ha una sezione sua, che dice perché.
+   Vedi `statoScadenzaCore`. */
+function promemoriaSenzaData(p){ return !statoScadenzaCore(p.data).leggibile; }
+function promemoriaScaduto(p){ const st=statoScadenzaCore(p.data); return p.scaduto||(st.leggibile&&st.giorni<0); }
+function contaScaduti(){ return DB.promemoria.filter(p=>(promemoriaScaduto(p)||promemoriaSenzaData(p))&&!p.letto).length; }
 function openNotifiche(){ nav('notifiche'); }
 
 function renderNotificheFull(){
   if($('btn-add-notif'))$('btn-add-notif').style.display=can('admin')||can('ufficio')?'flex':'none';
-  DB.promemoria.forEach(async p=>{if((p.scaduto||daysBetween(today(),p.data)<0)&&!p.letto){p.letto=true;await fbUpdate('promemoria',p.id,{letto:true});}});
-  const scad=DB.promemoria.filter(p=>p.scaduto||daysBetween(today(),p.data)<0);
-  const pros=DB.promemoria.filter(p=>!p.scaduto&&daysBetween(today(),p.data)>=0);
+  DB.promemoria.forEach(async p=>{if(promemoriaScaduto(p)&&!p.letto){p.letto=true;await fbUpdate('promemoria',p.id,{letto:true});}});
+  const scad=DB.promemoria.filter(promemoriaScaduto);
+  const senzaData=DB.promemoria.filter(p=>!promemoriaScaduto(p)&&promemoriaSenzaData(p));
+  const pros=DB.promemoria.filter(p=>{const st=statoScadenzaCore(p.data);return !p.scaduto&&st.leggibile&&st.giorni>=0;});
   let html='';
   if(scad.length){html+='<div class="sec-title"><span class="dot"></span>Scaduti</div>';html+=scad.map(p=>`<div class="sitem warn" onclick="confermaElimPromemoria('${p.id}')"><div class="av av-cv">⏰</div><div class="sinfo"><div class="sname">${escHtml(p.titolo)}</div><div class="ssub">Era ${fmt(p.data)}</div></div><div class="sarr">×</div></div>`).join('');}
+  if(senzaData.length){html+='<div class="sec-title" style="margin-top:16px;"><span class="dot"></span>Senza una data leggibile</div>';html+=senzaData.map(p=>`<div class="sitem warn" onclick="confermaElimPromemoria('${p.id}')"><div class="av av-cv">⏰</div><div class="sinfo"><div class="sname">${escHtml(p.titolo)}</div><div class="ssub">La data non si legge: non si può dire se è scaduto</div></div><div class="sarr">×</div></div>`).join('');}
   if(pros.length){html+='<div class="sec-title" style="margin-top:16px;"><span class="dot"></span>Prossimi</div>';html+=pros.map(p=>`<div class="sitem" onclick="confermaElimPromemoria('${p.id}')"><div class="av av-cv">📅</div><div class="sinfo"><div class="sname">${escHtml(p.titolo)}</div><div class="ssub">${fmt(p.data)} · fra ${daysBetween(today(),p.data)} giorni</div></div><div class="sarr">×</div></div>`).join('');}
   const mzScad=[];
-  DB.mezziStr.forEach(m=>{Object.entries(m.scadenze||{}).forEach(([k,v])=>{if(v){const d=daysBetween(today(),v);if(d<=30)mzScad.push({targa:m.targa,tipo:k,data:v,d});}});});
-  if(mzScad.length){html+='<div class="sec-title" style="margin-top:16px;"><span class="dot"></span>Scadenze mezzi</div>';html+=mzScad.map(x=>`<div class="sitem ${x.d<0?'warn':''}"><div class="av av-mz">🚛</div><div class="sinfo"><div class="sname">${x.tipo.toUpperCase()} · ${escHtml(x.targa)}</div><div class="ssub">${fmt(x.data)} ${x.d<0?'(scaduta)':'(fra '+x.d+'g)'}</div></div></div>`).join('');}
+  /* ⛔ e qui la stessa sparizione, sui mezzi: con `NaN` la prova `d<=30` è
+     falsa, quindi una scadenza illeggibile non entrava in questo elenco.
+     Adesso entra, con la sua ragione al posto del numero di giorni. */
+  DB.mezziStr.forEach(m=>{Object.entries(m.scadenze||{}).forEach(([k,v])=>{if(!v)return;const st=statoScadenzaCore(v);if(!st.leggibile||st.giorni<=30)mzScad.push({targa:m.targa,tipo:k,data:v,d:st.giorni,leggibile:st.leggibile});});});
+  if(mzScad.length){html+='<div class="sec-title" style="margin-top:16px;"><span class="dot"></span>Scadenze mezzi</div>';html+=mzScad.map(x=>`<div class="sitem ${!x.leggibile||x.d<0?'warn':''}"><div class="av av-mz">🚛</div><div class="sinfo"><div class="sname">${x.tipo.toUpperCase()} · ${escHtml(x.targa)}</div><div class="ssub">${x.leggibile?fmt(x.data)+' '+(x.d<0?'(scaduta)':'(fra '+x.d+'g)'):'la data non si legge: non si può dire se è scaduta'}</div></div></div>`).join('');}
   if(!html)html='<div class="empty-state"><div class="empty-icon">✓</div><div class="empty-title">Nessuna notifica</div><div class="empty-sub">Tutto in ordine</div></div>';
   $('notif-full-list').innerHTML=html;
   aggiornaNotifBadge();
@@ -2380,7 +2433,17 @@ function renderMacLavoro(){
 }
 function renderMacStrada(){
   if(DB.mezziStr.length===0){$('mac-strada-list').innerHTML=`<div class="empty-state"><div class="empty-icon">🚛</div><div class="empty-title">Nessun mezzo da strada</div><div class="empty-sub">${can('addMac')?'Aggiungi il primo con il ＋ in alto a destra.':'I mezzi li registra l\'ufficio: appena inseriti compaiono qui.'}</div></div>`;return;}
-  $('mac-strada-list').innerHTML=DB.mezziStr.map(m=>{const scad=Object.entries(m.scadenze||{}).filter(([k,v])=>v).map(([k,v])=>({k,v,d:daysBetween(today(),v)}));const prox=[...scad].sort((a,b)=>a.d-b.d)[0];let badge='',cls='';if(prox){if(prox.d<0){badge=`<span class="scad-badge danger">${prox.k} scaduta</span>`;cls='danger';}else if(prox.d<=30){badge=`<span class="scad-badge warn">${prox.k} in ${prox.d}g</span>`;cls='warn';}else badge=`<span class="scad-badge ok">OK</span>`;}return`<div class="sitem ${cls}" onclick="apriMezzoStr('${m.id}')"><div class="photo-avatar-sm">${m.foto?`<img src="${encodeURI(m.foto)}">`:'<span style="font-size:16px;">🚛</span>'}</div><div class="sinfo"><div class="sname">${escHtml(m.marca)} ${escHtml(m.modello)} ${badge}</div><div class="ssub">${escHtml(m.targa)} · ${m.km||0} km</div></div><div class="sarr">›</div></div>`;}).join('');
+  $('mac-strada-list').innerHTML=DB.mezziStr.map(m=>{/* ⛔ UN «OK» VERDE SU UNA DATA CHE NESSUNO SA LEGGERE. Misurato il 03/08:
+     con una scadenza scritta male (`30/02/2026`, o un campo compilato a mano)
+     `daysBetween` rispondeva `NaN`, e `NaN<0` e `NaN<=30` sono tutt'e due
+     FALSE — quindi si cadeva nell'`else` finale e il mezzo mostrava il badge
+     **OK verde**. Il colore più tranquillo della scala su un dato che non è
+     stato letto: è il principio del fondatore violato nel modo più diretto.
+     ⚠️ E c'era un secondo difetto sulla stessa riga, che non si vede: con un
+     `NaN` in mezzo, `sort((a,b)=>a.d-b.d)` non ordina — il confronto è
+     sempre falso — quindi «la scadenza più vicina» poteva essere una
+     qualsiasi. Adesso si ordinano solo quelle leggibili. */
+    const scad=Object.entries(m.scadenze||{}).filter(([k,v])=>v).map(([k,v])=>({k,v,...statoScadenzaCore(v)}));const illegg=scad.filter(x=>!x.leggibile);const prox=scad.filter(x=>x.leggibile).sort((a,b)=>a.giorni-b.giorni)[0];let badge='',cls='';if(prox&&prox.giorni<0){badge=`<span class="scad-badge danger">${prox.k} scaduta</span>`;cls='danger';}else if(illegg.length){badge=`<span class="scad-badge warn">${illegg[0].k}: data illeggibile</span>`;cls='warn';}else if(prox&&prox.giorni<=30){badge=`<span class="scad-badge warn">${prox.k} in ${prox.giorni}g</span>`;cls='warn';}else if(prox){badge=`<span class="scad-badge ok">OK</span>`;}return`<div class="sitem ${cls}" onclick="apriMezzoStr('${m.id}')"><div class="photo-avatar-sm">${m.foto?`<img src="${encodeURI(m.foto)}">`:'<span style="font-size:16px;">🚛</span>'}</div><div class="sinfo"><div class="sname">${escHtml(m.marca)} ${escHtml(m.modello)} ${badge}</div><div class="ssub">${escHtml(m.targa)} · ${m.km||0} km</div></div><div class="sarr">›</div></div>`;}).join('');
 }
 function apriMacLavoro(id){
   state.macSel=id;state.macDetKind='lav';const m=DB.mezziLav.find(x=>x.id===id);if(!m)return;
@@ -2407,7 +2470,10 @@ function apriMacLavoro(id){
 function apriMezzoStr(id){
   state.mezzoSel=id;state.macDetKind='str';const m=DB.mezziStr.find(x=>x.id===id);if(!m)return;
   $('mzd-title').textContent=`${m.marca} ${m.modello}`;$('btn-edit-mezzo').style.display=can('editMac')?'flex':'none';const canEdit=can('editMac');
-  const scadHtml=Object.entries(m.scadenze||{}).map(([k,v])=>{if(!v)return'';const d=daysBetween(today(),v);let cls='',bg='';if(d<0){cls='danger';bg='scad-badge danger';}else if(d<=30){cls='warn';bg='scad-badge warn';}else bg='scad-badge ok';return`<div class="sitem ${cls}"><div class="av av-am">${k.substr(0,2).toUpperCase()}</div><div class="sinfo"><div class="sname">${k} <span class="${bg}">${d<0?'scaduta':d+'g'}</span></div><div class="ssub">${fmt(v)}</div></div></div>`;}).join('');
+  /* stessa correzione della scheda elenco: senza la guardia questa riga
+     scriveva **«NaNg»** dentro il badge, che è la stessa bugia detta in modo
+     più goffo — e il badge restava verde. */
+  const scadHtml=Object.entries(m.scadenze||{}).map(([k,v])=>{if(!v)return'';const st=statoScadenzaCore(v);let cls='',bg='',testo='';if(!st.leggibile){cls='warn';bg='scad-badge warn';testo='data illeggibile';}else if(st.giorni<0){cls='danger';bg='scad-badge danger';testo='scaduta';}else if(st.giorni<=30){cls='warn';bg='scad-badge warn';testo=st.giorni+'g';}else {bg='scad-badge ok';testo=st.giorni+'g';}return`<div class="sitem ${cls}"><div class="av av-am">${k.substr(0,2).toUpperCase()}</div><div class="sinfo"><div class="sname">${k} <span class="${bg}">${testo}</span></div><div class="ssub">${fmt(v)}</div></div></div>`;}).join('');
   const ripHtml=(m.riparazioni||[]).map(r=>`<div class="sitem"><div class="av av-mz">€</div><div class="sinfo"><div class="sname">${escHtml(r.desc)}</div><div class="ssub">${fmt(r.data)} · ${escHtml(r.officina)} · €${r.costo}</div></div></div>`).join('');
   const totRip=(m.riparazioni||[]).reduce((s,r)=>s+(r.costo||0),0);
   $('mezzo-det-body').innerHTML=`
