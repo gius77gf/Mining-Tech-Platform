@@ -17658,5 +17658,30 @@ console.log("\n— Scudo: il ciclo di vita del DSS (D.Lgs 624/96 art. 6) —");
 }
 
 if (inVolo.length) await Promise.all(inVolo);   // si aspetta PRIMA di contare
+// ── ⛔ UNA LETTURA DI VIBRAZIONE PORTATA A ZERO, CON LA FIRMA (03/08) ──
+test("⛔ correggiLettura: il VUOTO non è uno zero corretto da qualcuno", () => {
+  /* La guardia c'era — `Number.isFinite(v) || v < 0` — e non prendeva il caso
+     più facile: `+null`, `+""` e `+[]` fanno tutt'e tre 0, che è finito e non
+     è negativo. Misurato su una lettura da 3,2 mm/s: la funzione rispondeva
+     `valore: 0` con `prima: 3.2`, cioè un dato ambientale falsificato **e
+     registrato come una correzione fatta da qualcuno**, con l'ora. */
+  const l = { valore: 3.2, unita: "mm/s" };
+  for (const vuoto of [null, undefined, "", [], "   "]) {
+    eq(sentinella.correggiLettura(l, vuoto), null, `il vuoto ${JSON.stringify(vuoto)} non corregge niente`);
+  }
+});
+test("⛔ ...ma lo zero SCRITTO DAVVERO deve continuare a passare", () => {
+  /* Il difetto opposto, e la ragione per cui non basta rifiutare lo 0:
+     correggere a zero è una cosa che capita, e vietarla toglierebbe una
+     possibilità vera. Si rifiuta il vuoto, che è un'altra cosa. */
+  const l = { valore: 3.2, unita: "mm/s" };
+  const r = sentinella.correggiLettura(l, 0, "2026-08-03T10:00");
+  ok(r !== null, "lo zero scritto è una correzione legittima");
+  eq(r.valore, 0, "e vale zero");
+  eq(r.origine.corretta.prima, 3.2, "col valore di prima conservato");
+  // e la virgola italiana, che è come si scrive un numero in cava
+  eq(sentinella.correggiLettura(l, "2,5").valore, 2.5, "virgola italiana");
+});
+
 console.log(`\nRisultato KPI app: ${passed} passati, ${failed} falliti${inVolo.length ? `  ·  ${inVolo.length} prove asincrone aspettate` : ""}`);
 process.exit(failed > 0 ? 1 : 0);

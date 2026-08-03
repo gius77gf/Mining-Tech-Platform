@@ -1587,7 +1587,25 @@ export function campiProvenienza(da, opts = {}) {
 // negativo): uno strumento non misura meno di zero.
 export function correggiLettura(l, nuovo, quando) {
   if (!l || typeof l !== "object") return null;
-  const v = +nuovo;
+  /* ⛔ LA GUARDIA C'ERA E NON PRENDEVA IL CASO PIÙ FACILE. Qui c'era
+     `const v = +nuovo`, e `+null`, `+""` e `+[]` fanno tutt'e tre **0**, che
+     è finito e non è negativo: passavano. Misurato il 03/08 su una lettura da
+     3,2 mm/s:
+
+       correggiLettura(l, null)  → valore: 0, prima: 3,2
+       correggiLettura(l, "")    → valore: 0, prima: 3,2
+       correggiLettura(l, [])    → valore: 0, prima: 3,2
+       correggiLettura(l, "boh") → rifiutata (giusto)
+
+     Cioè: una **misura di vibrazione portata a zero e registrata come una
+     correzione fatta da qualcuno**, con l'ora e il valore di prima. Non è un
+     numero tranquillo di troppo: è un dato ambientale falsificato, con la
+     firma. E lo zero **scritto davvero** deve continuare a passare — capita
+     di correggere a zero — quindi non si può rifiutare lo 0: si deve
+     rifiutare il **vuoto**, che è un'altra cosa.
+     `numIt` (in `shared/`) fa esattamente questo: legge i numeri veri, anche
+     con la virgola italiana, e risponde `NaN` a tutto ciò che numero non è. */
+  const v = numIt(nuovo);
   if (!Number.isFinite(v) || v < 0) return null;
   const prec = +l.valore;
   if (Number.isFinite(prec) && prec === v) return { ...l };   // stesso numero: nessuna correzione finta
