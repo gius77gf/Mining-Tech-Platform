@@ -803,7 +803,7 @@
     <div class="kpi danger" role="button" tabindex="0" style="cursor:pointer" data-sca-filtro="scaduta" title="Vedi solo le scadenze scadute"><div class="l">Scadute</div><div class="n">—</div></div>
     <div class="kpi warn" role="button" tabindex="0" style="cursor:pointer" data-sca-filtro="in-scadenza" title="Vedi solo quelle in scadenza"><div class="l">In scadenza</div><div class="n">—</div></div>
     <div class="kpi ok" role="button" tabindex="0" style="cursor:pointer" data-sca-filtro="a-posto" title="Vedi solo quelle a posto"><div class="l">A posto</div><div class="n">—</div></div>
-    <div class="kpi accent" role="button" tabindex="0" style="cursor:pointer" data-sca-filtro="tutte" title="Vedi tutte le scadenze"><div class="l">Mezzi coinvolti</div><div class="n">—</div></div>
+    <div class="kpi accent" role="button" tabindex="0" style="cursor:pointer" data-sca-filtro="tutte" title="Vedi tutte le scadenze"><div class="l">Mezzi coinvolti</div><div class="n">—</div><div class="s" id="sca-kpi-parco"></div></div>
   </div>
   <div class="form col">
     <div class="frow">
@@ -1466,13 +1466,24 @@
     /* nella casella dell'indicatore la cifra per intero non ci sta: si scrive
        «€ 8,4k». Il numero è formattato qui perché è una scelta di questa
        casella; il SIMBOLO no, quello lo mette shared/ come dappertutto. */
-    if (kn[3]) kn[3].textContent = carbValore >= 1000
-      ? conEuro((carbValore / 1000).toLocaleString("it-IT", { maximumFractionDigits: 1 })) + "k"
-      : eur(carbValore);
+    /* ⛔ E SE NON C'È NESSUNA VOCE DI CARBURANTE, «€ 0,00» È UNA BUGIA.
+       Misurato aprendo la pagina con un parco di sei mezzi e nessun costo
+       registrato: la tessera scriveva «€ 0,00» — cioè «questo mese di gasolio
+       non è stato speso niente» — e il suo titolo diceva perfino «qui c'è il
+       totale registrato», di un totale che non esiste. Zero euro di gasolio su
+       una flotta che lavora non è un dato favorevole: è l'assenza del dato.
+       Il caso «voci senza data» resta com'era: lì una misura c'è, ed è il mese
+       che non si può isolare. */
+    if (kn[3]) kn[3].textContent = !carb.length ? "—"
+      : carbValore >= 1000
+        ? conEuro((carbValore / 1000).toLocaleString("it-IT", { maximumFractionDigits: 1 })) + "k"
+        : eur(carbValore);
     if ($("kpi-carb-l")) $("kpi-carb-l").textContent = carbConData.length ? "Carburante mese" : "Carburante";
-    { const card = $("kpi-carb"); if (card) card.title = carbConData.length
-        ? "Carburante registrato in questo mese. Le voci senza data non sono conteggiate."
-        : "Nessuna voce di carburante ha una data: qui c'è il totale registrato, non il mese."; }
+    { const card = $("kpi-carb"); if (card) card.title = !carb.length
+        ? "Nessuna voce di carburante registrata: quanto sia stato speso di gasolio non si sa. Tocca per registrare la prima."
+        : carbConData.length
+          ? "Carburante registrato in questo mese. Le voci senza data non sono conteggiate."
+          : "Nessuna voce di carburante ha una data: qui c'è il totale registrato, non il mese."; }
 
     // Urgenza per riga di manutenzione (badge nella lista Manutenzioni): a ore
     // motore usa il contatore del mezzo, altrimenti la data prevista.
@@ -1789,7 +1800,7 @@
       ].filter(Boolean).join(" · ");
       return `<div class="item ${striscia[u.cls] || "st-accent"}" role="button" tabindex="0" data-odl-man="${n.id}" title="Apri l'ordine di lavoro: stato, ore, ricambi, costo">
       <div class="avatar">${icoOrigine(n.origine) || I.chiave}</div>
-      <div class="info"><div class="name">${esc(n.titolo)} — ${esc(n.mezzo)}</div><div class="meta">${n.orePreviste ? "A " + (+n.orePreviste).toLocaleString("it-IT") + " ore motore" : "Previsto " + (n.dataPrevista ? n.dataPrevista.split("-").reverse().join("/") : "—")}${ritmo}${ricN ? " · usa " + esc(ricN.nome) : ""}</div>${quando ? `<div class="meta norma quando">${I.tachi}${quando}</div>` : ""}${n.nota ? `<div class="meta norma">${esc(n.nota)}</div>` : ""}${lav ? `<div class="meta norma">${I.persona}${lav}</div>` : ""}</div>
+      <div class="info"><div class="name">${esc(n.titolo)} — ${esc(n.mezzo)}</div><div class="meta">${n.orePreviste ? "A " + (+n.orePreviste).toLocaleString("it-IT") + " ore motore" : "Previsto " + dataIt(n.dataPrevista)}${ritmo}${ricN ? " · usa " + esc(ricN.nome) : ""}</div>${quando ? `<div class="meta norma quando">${I.tachi}${quando}</div>` : ""}${n.nota ? `<div class="meta norma">${esc(n.nota)}</div>` : ""}${lav ? `<div class="meta norma">${I.persona}${lav}</div>` : ""}</div>
       <div class="acts">${so.chiave !== "da-fare" ? `<span class="badge ${so.cls}">${so.breve}</span>` : ""}<span class="badge ${u.cls}">${ggU(esc(u.label))}</span>
       <span class="arr ok" role="button" tabindex="0" title="Chiudi l'ordine e registra l'intervento" aria-label="Chiudi ${esc(n.titolo)}" data-man-done="${n.id}">${I.spunta}</span></div></div>`; }).join("")
       || (filtroMan !== "tutti"
@@ -1981,18 +1992,33 @@
     // SCADENZE DI LEGGE (F6): semaforo (scaduta / in scadenza / a posto),
     // conteggi in evidenza e lista ordinata per urgenza. Lo stato non è mai
     // salvato: si calcola dalla data e dalla soglia di preavviso scelta.
-    const conta = contaScadenzeMezzi(SCA, new Date(), preavvisoSca);
+    // il PARCO va passato: senza, «tutte a posto» parla solo dei mezzi che
+    // qualcuno ha messo a scadenzario, e tace di quelli che non ci sono
+    const conta = contaScadenzeMezzi(SCA, new Date(), preavvisoSca, MEZ);
     const skn = document.querySelectorAll("#sca-kpis .kpi .n");
     if (skn[0]) skn[0].textContent = conta.scadute;
     if (skn[1]) skn[1].textContent = conta.inScadenza;
     if (skn[2]) skn[2].textContent = conta.aPosto;
     if (skn[3]) skn[3].textContent = conta.mezzi;
-    $("dash-sca").className = "note link" + ((conta.scadute + conta.inScadenza) === 0 ? "" : " recap");
+    if ($("sca-kpi-parco")) $("sca-kpi-parco").innerHTML = !conta.parco ? ""
+      : conta.senzaNessuna
+        ? `<span class="apar">su ${conta.parco}: ${conta.senzaNessuna} senza nessuna scadenza</span>`
+        : `tutto il parco (${conta.parco})`;
+    /* ⛔ «TUTTE A POSTO» SI PUÒ DIRE SOLO DI CIÒ CHE È STATO GUARDATO. Le
+       macchine che nessuno ha messo a scadenzario non sono in regola: sono
+       fuori dalla misura, e vanno dette accanto al verde. */
+    const scoperti = conta.senzaNessuna
+      ? `<span class="giallo">${conta.senzaNessuna} ${conta.senzaNessuna === 1 ? "mezzo" : "mezzi"} su ${conta.parco} senza nessuna scadenza registrata</span>`
+      : "";
+    $("dash-sca").className = "note link"
+      + ((conta.scadute + conta.inScadenza) === 0 && !conta.senzaNessuna ? "" : " recap");
     $("dash-sca").innerHTML = conta.totale === 0
       ? 'Nessuna scadenza di legge registrata. <span class="go">Apri e aggiungi la prima →</span>'
       : (conta.scadute + conta.inScadenza) === 0
-        ? `Tutte a posto: <b>${conta.totale}</b> scadenze su ${conta.mezzi} ${conta.mezzi === 1 ? "mezzo" : "mezzi"}, nessuna entro ${preavvisoSca} giorni. <span class="go">Vedi →</span>`
-        : `<span class="rosso">${conta.scadute} ${conta.scadute === 1 ? "scaduta" : "scadute"}</span> · <span class="giallo">${conta.inScadenza} in scadenza entro ${preavvisoSca} gg</span> · ${conta.aPosto} a posto. <span class="go">Vedi →</span>`;
+        ? (scoperti
+            ? `Le <b>${conta.totale}</b> registrate sono a posto, ma ${scoperti}: di quelle macchine non si sa niente. <span class="go">Vedi →</span>`
+            : `Tutte a posto: <b>${conta.totale}</b> scadenze su ${conta.mezzi} ${conta.mezzi === 1 ? "mezzo" : "mezzi"}, nessuna entro ${preavvisoSca} giorni. <span class="go">Vedi →</span>`)
+        : `<span class="rosso">${conta.scadute} ${conta.scadute === 1 ? "scaduta" : "scadute"}</span> · <span class="giallo">${conta.inScadenza} in scadenza entro ${preavvisoSca} gg</span> · ${conta.aPosto} a posto${scoperti ? " · " + scoperti : ""}. <span class="go">Vedi →</span>`;
     // GIRO MACCHINA sul Quadro: una riga sola, che dice quanti mezzi hanno
     // già il controllo di oggi. È la spinta a farlo: un elenco di chi manca
     // vale più di qualunque promemoria.
@@ -2271,10 +2297,18 @@
       return `<div class="item statico ${striscia[cls] || "st-mute"}">
         <div class="avatar sup">${I.goccia}</div>
         <div class="info"><div class="name">${esc(m.mezzo)}</div>
-          <div class="meta">${lt(m.litri)}${m.euro ? " · " + eur(m.euro) : ""} · ${m.pieni} ${m.pieni === 1 ? "pieno" : "pieni"}${m.euroLitro ? " · " + m.euroLitro.toLocaleString("it-IT", { minimumFractionDigits: 3, maximumFractionDigits: 3 }) + " €/l" : ""}</div>
+          <div class="meta">${lt(m.litri)}${m.euro ? " · " + eur(m.euro) : ""} · ${m.pieni} ${m.pieni === 1 ? "pieno" : "pieni"}${m.euroLitro ? " · " + m.euroLitro.toLocaleString("it-IT", { minimumFractionDigits: 3, maximumFractionDigits: 3, useGrouping: false }) + " €/l" : ""}</div>
           <div class="meta norma">${m.litriOra != null
             ? "misurato su " + m.oreCoperte + " ore di lavoro"
-            : esc(m.perche.charAt(0).toUpperCase() + m.perche.slice(1)) + "."}</div></div>
+            : esc(m.perche.charAt(0).toUpperCase() + m.perche.slice(1)) + "."}${
+            /* La dichiarazione va sulla SECONDA riga, non appesa in coda alla
+               prima: la riga di dettaglio è tagliata a due righe, e i litri +
+               gli euro + i pieni + il €/l ce le riempiono già da soli. Qui
+               resta corta e si legge — è la stessa ragione per cui in Terra la
+               ragione di un banco non misurato è stata spostata. Vale per
+               tutt'e due i numeri della riga: il €/l e il €/h scendono
+               insieme quando un pieno non porta la sua spesa. */
+            m.senzaSpesa ? ` · <b class="bad">${m.senzaSpesa === 1 ? "1 pieno senza la spesa" : m.senzaSpesa + " pieni senza la spesa"}</b>` : ""}</div></div>
         ${m.litriOra != null
           ? `<span class="badge ok">${ggU(lh(m.litriOra))}</span>${m.euroOra ? `<span class="badge tag euro">${ggU(eh(m.euroOra))}</span>` : ""}`
           : `<span class="badge tag">consumo n.d.</span>`}</div>`;
@@ -2899,7 +2933,14 @@
     $("sch-kpi").innerHTML = [
       // «—» come il consumo qui accanto: non misurato non è zero
       ["accent", "Ore motore", oreNote(m.ore) ? (+m.ore).toLocaleString("it-IT") : "—"],
-      [f.officina.totale ? "warn" : "ok", "Officina", eur(f.officina.totale)],
+      /* ⛔ E QUI VALE LA STESSA RIGA SCRITTA QUI SOPRA, che prima non veniva
+         applicata: «€ 0,00» in VERDE era il numero più tranquillo della
+         tessera proprio dove nessuno aveva scritto quanto è costato l'intervento.
+         Un ordine di lavoro chiuso senza scrivere niente vale `costo: 0`, e la
+         macchina che ne ha tre sembrava la più economica del parco. Adesso: se
+         non si sa, «—» come il consumo e il gasolio qui accanto. */
+      [f.officina.misurato ? "warn" : "accent", "Officina",
+        f.officina.misurato ? eur(f.officina.totale) : "—"],
       ["accent", "Consumo", f.consumo && f.consumo.litriOra != null ? lh(f.consumo.litriOra) : "—"],
       ["accent", "Gasolio", f.consumo && f.consumo.euroOra != null ? eh(f.consumo.euroOra) : "—"],
     ].map(([cls, l, n]) => `<div class="kpi ${cls}"><div class="l">${l}</div><div class="n">${n}</div></div>`).join("");
@@ -2921,13 +2962,27 @@
     }).join("")
       || vuoto(I.chiave, "Niente in programma", "Nessun tagliando pianificato su questa macchina. Si pianifica dalla schermata <b>Officina</b>, a data oppure a ore motore.");
 
-    $("sch-int").innerHTML = f.interventi.map(w => `<div class="item statico st-ok">
+    /* La riga che dice di che cosa è fatto il totale d'officina. Sta in una
+       sezione sua (`note recap`, la stessa forma dei fermi qui sotto) e non
+       appesa in coda al dettaglio di una riga: il dettaglio è tagliato a due
+       righe e una dichiarazione che finisce lì dentro non la legge nessuno. */
+    $("sch-int").innerHTML = (f.officina.interventi
+        ? `<div class="note recap"><b>${f.officina.interventi}</b> ${f.officina.interventi === 1 ? "intervento chiuso" : "interventi chiusi"}`
+          + (f.officina.misurato
+              ? ` per <b>${eur(f.officina.totale)}</b>`
+                + (f.officina.parziale
+                    ? `. <span class="giallo">Su ${f.officina.senzaCosto} non è scritto quanto ${f.officina.senzaCosto === 1 ? "è costato" : "sono costati"}: il totale è un minimo.</span>`
+                    : ".")
+              : `. <span class="giallo">Su nessuno è scritto quanto è costato: quanto ha speso l'officina su questa macchina non si sa.</span>`)
+          + "</div>"
+        : "")
+      + (f.interventi.map(w => `<div class="item statico st-ok">
         <div class="avatar sup">${I.registro}</div>
         <div class="info"><div class="name">${esc(w.titolo)}</div>
           <div class="meta">${esc(dataIt(w.data))}${w.ricambio ? " · " + esc(w.ricambio) : ""}${w.note ? " · " + esc(w.note) : ""}</div>
           ${lavorazioneTx(w) ? `<div class="meta norma">${I.persona}${lavorazioneTx(w)}</div>` : ""}</div>
-        ${(+w.costo) ? `<span class="badge tag euro">${eur(+w.costo)}</span>` : ""}</div>`).join("")
-      || vuoto(I.registro, "Storico vuoto", "Nessun intervento chiuso su questa macchina. Ogni manutenzione che segni <b>eseguita</b> finisce qui, con data, ricambio e costo.");
+        ${(+w.costo) ? `<span class="badge tag euro">${eur(+w.costo)}</span>` : `<span class="badge tag">costo non scritto</span>`}</div>`).join("")
+        || vuoto(I.registro, "Storico vuoto", "Nessun intervento chiuso su questa macchina. Ogni manutenzione che segni <b>eseguita</b> finisce qui, con data, ricambio e costo."));
 
     // I fermi di QUESTA macchina: è la pagina che guarda per prima chi la
     // compra, ed è anche quella da cui si decide se tenerla.
@@ -3531,7 +3586,7 @@
     for (const m of MEZ.slice().sort((a, b) => a.nome.localeCompare(b.nome, "it")))
       csv += `mezzo;${csvCell(m.nome)};${m.stato};${csvCell((oreNote(m.ore) ? (+m.ore).toLocaleString("it-IT") + " h" : "ore non registrate") + (m.area ? " · " + m.area : ""))}\n`;
     for (const n of MAN.slice().sort((a, b) => (a.dataPrevista || "9999") < (b.dataPrevista || "9999") ? -1 : 1))
-      csv += `manutenzione;${csvCell(n.titolo + " — " + n.mezzo)};pianificata;${csvCell(n.orePreviste ? "a " + n.orePreviste + " h motore" : "previsto " + (n.dataPrevista ? n.dataPrevista.split("-").reverse().join("/") : "—"))}\n`;
+      csv += `manutenzione;${csvCell(n.titolo + " — " + n.mezzo)};pianificata;${csvCell(n.orePreviste ? "a " + n.orePreviste + " h motore" : "previsto " + dataIt(n.dataPrevista))}\n`;
     const scorta = new Set(sottoScorta(RIC).map(r => r.id));
     for (const r of RIC.slice().sort((a, b) => a.nome.localeCompare(b.nome, "it")))
       csv += `ricambio;${csvCell(r.nome)};${scorta.has(r.id) ? "sotto scorta" : "ok"};${csvCell("giacenza " + (+r.giacenza || 0) + " · soglia min " + (+r.sogliaMin || 0))}\n`;
@@ -3917,19 +3972,30 @@
       s.sem.label + (s.mesi ? " · ogni " + s.mesi + " mesi" : "") + (s.documento ? " · doc. " + s.documento : ""), ""));
     f.manutenzioni.forEach(n => R("manutenzione in programma", n.titolo || "", n.dataPrevista ? dataIt(n.dataPrevista) : "",
       (n.orePreviste ? "a " + n.orePreviste + " ore motore" : "a data") + (n.ogniOre ? " · ogni " + n.ogniOre + " h" : n.ogniMesi ? " · ogni " + n.ogniMesi + " mesi" : ""), ""));
+    /* ⛔ LA CELLA DELL'IMPORTO RESTA VUOTA QUANDO IL COSTO NON C'È. `(+w.costo)
+       || 0` scriveva `0` su un intervento chiuso senza scrivere quanto è
+       costato, e chi apre il file in un foglio quello zero lo SOMMA credendolo
+       misurato. `R` sa già lasciare la cella vuota (`imp == null ? ""`): la
+       convenzione era in casa, era il chiamante a convertire. */
     f.interventi.forEach(w => R("intervento", w.titolo || "", dataIt(w.data),
-      [w.ricambio || "", lavorazioneTx(w).replace(/<[^>]*>/g, ""), w.note || ""].filter(Boolean).join(" · "), (+w.costo) || 0));
+      [w.ricambio || "", lavorazioneTx(w).replace(/<[^>]*>/g, ""), w.note || "",
+       (+w.costo > 0) ? "" : "costo non scritto"].filter(Boolean).join(" · "),
+      (+w.costo > 0) ? +w.costo : null));
     f.fermi.forEach(x => R("fermo macchina", x.causaleTx, dataIt(x.inizio),
       (x.fine ? "ripartito il " + dataIt(x.fine) : "ancora fermo") + (x.giorni != null ? " · " + x.giorni + (x.giorni === 1 ? " giorno" : " giorni") : "")
       + (x.note ? " · " + x.note : ""), ""));
     f.controlli.forEach(c => R("giro macchina", "controllo pre-uso", dataIt(c.data),
       (c.operatore ? c.operatore + " · " : "") + ((c.voci || []).filter(v => v.esito === "no").map(v => v.etichetta).join(" | ") || "nessuna anomalia"), ""));
     f.rifornimenti.forEach(r => R("rifornimento", "gasolio", dataIt(r.data),
-      r.litri + " l" + (r.ore ? " · contatore " + r.ore + " h" : ""), (+r.euro) || 0));
+      r.litri + " l" + (r.ore ? " · contatore " + r.ore + " h" : "")
+      + ((+r.euro > 0) ? "" : " · spesa non scritta"), (+r.euro > 0) ? +r.euro : null));
     if (f.consumo && f.consumo.litriOra != null)
       R("consumo", "litri per ora", "", f.consumo.litriOra + " l/h su " + f.consumo.oreCoperte + " ore" + (f.consumo.euroOra ? " · " + f.consumo.euroOra + " €/h" : ""), "");
     R("totale officina", "interventi chiusi", "", f.officina.interventi + " interventi"
-      + (f.officina.ore ? " · " + f.officina.ore + " ore di manodopera" : ""), f.officina.totale);
+      + (f.officina.ore ? " · " + f.officina.ore + " ore di manodopera" : "")
+      + (f.officina.senzaCosto ? " · " + f.officina.senzaCosto + " senza il costo scritto"
+          + (f.officina.misurato ? " (il totale è un minimo)" : " (il totale non si sa)") : ""),
+      f.officina.misurato ? f.officina.totale : null);
     if (f.fermo.episodi) R("totale fermi", "giorni non lavorati", "",
       f.fermo.episodi + (f.fermo.episodi === 1 ? " fermo" : " fermi") + " · " + f.fermo.giorni + (f.fermo.giorni === 1 ? " giorno" : " giorni")
       + (f.fermo.aperti ? " · " + f.fermo.aperti + " ancora aperto" : ""), "");

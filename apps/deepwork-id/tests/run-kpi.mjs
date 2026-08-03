@@ -18630,5 +18630,192 @@ test("⛔ piuGiorni: una data che non esiste non produce una scadenza", () => {
 }
 
 
+// ═══ FLOTTA · i numeri che mentono con la faccia tranquilla, seconda passata (03/08) ═══
+// Quattro difetti trovati chiamando le funzioni coi casi limite VERI e poi
+// aprendo la pagina e premendo i bottoni. Nessuno dei quattro si vedeva
+// leggendo il codice, e nessuno faceva cadere niente: rispondevano tutti con
+// un numero tranquillo al posto di «non lo so».
+{
+  const OGGI = new Date(2026, 7, 3);   // 3 agosto 2026, ora locale
+
+  test("⛔ Flotta · urgenza: un giorno che non esiste non è un giorno lontano", () => {
+    // il difetto misurato: `giorniTra` risponde NaN, NaN fallisce TUTT'E DUE i
+    // confronti, e la funzione cadeva nell'ultimo return — badge VERDE «NaN gg»
+    for (const d of ["2026-02-30", "boh", "2026-13-45"]) {
+      const u = flotta.urgenza(d, OGGI);
+      eq(u.cls, "", "nessun colore su «" + d + "»: non è né a posto né scaduta");
+      eq(u.giorni, null, "e nessun numero di giorni su «" + d + "»");
+      eq(/NaN/.test(u.label), false, "e sul badge non si stampa NaN: «" + u.label + "»");
+      eq(u.label, "data non leggibile", "la riga dice che cosa manca");
+    }
+    // il caso sano non cambia di una virgola
+    eq(flotta.urgenza(null, OGGI), { cls: "ok", label: "a ore", giorni: 9999 }, "a ore, come sempre");
+    eq(flotta.urgenza("2026-08-10", OGGI), { cls: "warn", label: "7 gg", giorni: 7 }, "7 gg");
+    eq(flotta.urgenza("2026-07-19", OGGI), { cls: "danger", label: "Scaduta", giorni: -15 }, "scaduta");
+    eq(flotta.urgenza("2026-09-30", OGGI).cls, "ok", "oltre i 30 giorni resta ok");
+  });
+
+  test("⛔ Flotta · la tessera «Tagliandi 30gg» non conta ciò che non sa collocare", () => {
+    const mezzi = [{ nome: "Pala P1", stato: "operativo" }];
+    // `null <= 30` è **true** in JavaScript: senza `Number.isFinite` la riga
+    // con la data impossibile finirebbe DENTRO il conto dei prossimi 30 giorni
+    eq(null <= 30, true, "⛔ la trappola: null passa il confronto");
+    const k = flotta.kpiFrom(mezzi, [{ dataPrevista: "2026-02-30" }, { dataPrevista: "boh" }], []);
+    eq(k.tagliandi30, 0, "due manutenzioni con la data illeggibile non sono «in scadenza»");
+    // e quelle vere si contano ancora
+    const buoni = flotta.kpiFrom(mezzi,
+      [{ dataPrevista: flotta.oggiIso(OGGI) }, { dataPrevista: "2026-02-30" }], []);
+    eq(buoni.tagliandi30, 1, "la manutenzione di oggi c'è, quella illeggibile no");
+    // né a ore né a data: resta fuori come è sempre stato
+    eq(flotta.kpiFrom(mezzi, [{ orePreviste: 6000 }], []).tagliandi30, 0, "quella a ore non entra dalla firma corta");
+  });
+
+  test("⛔ Flotta · nel Quadro la data illeggibile non diventa «30/02/2026»", () => {
+    const mezzi = [{ nome: "Pala P1", stato: "operativo" }];
+    // la riga con la data che non esiste NON compare fra le priorità (non ha
+    // né «danger» né «warn»), e prima ci finiva col badge verde «NaN gg»
+    const storta = flotta.prioritaOperative(mezzi, [{ titolo: "Revisione", mezzo: "Pala P1", dataPrevista: "2026-02-30" }],
+      [], OGGI);
+    eq(storta.filter(x => x.categoria === "manutenzione").length, 0, "non entra nelle priorità");
+    /* ⛔ E LA DATA SI STAMPA CON `dataIt`, NON CON UNA COPIA DI CASA.
+       Su una data pulita le due scritture COINCIDONO, quindi una prova scritta
+       con «2026-08-05» passerebbe per un motivo diverso dal suo nome (è la
+       causa 1 dell'elenco: i dati fanno coincidere la risposta giusta con
+       quella sbagliata). Il caso che le separa è quello vero: una data che si
+       porta dietro l'ora — tutto il modulo fa `String(x).slice(0, 10)` proprio
+       perché arrivano così. Lì `split("-").reverse().join("/")` scrive
+       «05T00:00:00/08/2026», e `dataIt` scrive «05/08/2026». */
+    const conOra = flotta.prioritaOperative(mezzi,
+      [{ titolo: "Revisione", mezzo: "Pala P1", dataPrevista: "2026-08-05T00:00:00" }], [], OGGI);
+    const riga = conOra.find(x => x.categoria === "manutenzione");
+    eq("2026-08-05T00:00:00".split("-").reverse().join("/"), "05T00:00:00/08/2026",
+      "⛔ la copia di casa, su una data con l'ora, scriveva questo");
+    eq(riga && riga.dettaglio, "previsto 05/08/2026", "la data si stampa con dataIt");
+    eq(riga && riga.badge, "2 gg", "e il badge conta i giorni veri");
+    // la riga con la data che non esiste non compare nemmeno se la si guarda
+    // dal Quadro con la lente della lista
+    eq(flotta.urgenza("2026-02-30", OGGI).cls, "", "e il colore della data impossibile resta nessuno");
+  });
+
+  test("⛔ Flotta · il €/litro si divide per i litri che hanno un prezzo", () => {
+    // la spesa del rifornimento è FACOLTATIVA (validaRifornimento la lascia
+    // vuota): i litri di un pieno senza spesa finivano al denominatore con
+    // zero euro sopra, e il gasolio sembrava più a buon mercato di quello che è
+    const rif = [{ mezzo: "Escavatore E1", data: "2026-06-01", litri: 300, euro: 450, ore: 5600 },
+                 { mezzo: "Escavatore E1", data: "2026-06-15", litri: 300, ore: 5750 },
+                 { mezzo: "Escavatore E1", data: "2026-07-01", litri: 300, euro: 450, ore: 5870 }];
+    const m = flotta.consumoPerMezzo(rif).mezzi[0];
+    eq(Math.round(1000 * m.euro / m.litri) / 1000, 1, "⛔ il vecchio conto (900 € / 900 l) diceva 1,000 €/l");
+    eq(m.euroLitro, 1.5, "il gasolio pagato costa 1,500 €/l");
+    eq([m.litriConEuro, m.senzaSpesa], [600, 1], "e la riga può dire quanti pieni non portano la spesa");
+    // dove tutti i pieni portano la spesa il numero è quello di sempre
+    const sani = flotta.consumoPerMezzo(
+      [{ mezzo: "Pala P1", data: "2026-06-01", litri: 300, euro: 450, ore: 100 },
+       { mezzo: "Pala P1", data: "2026-07-01", litri: 200, euro: 300, ore: 400 }]).mezzi[0];
+    eq([sani.euroLitro, sani.senzaSpesa], [1.5, 0], "nessun cambiamento sul caso sano");
+    // e se NESSUN pieno porta la spesa non si inventa un prezzo
+    const muto = flotta.consumoPerMezzo([{ mezzo: "Dumper D1", data: "2026-06-01", litri: 300, ore: 10 }]).mezzi[0];
+    eq([muto.euroLitro, muto.litriConEuro, muto.senzaSpesa], [null, 0, 1], "senza nessuna spesa il €/l è null, non 0");
+  });
+
+  test("⛔ Flotta · un contatore che scende non è una finestra corta: il consumo si rifiuta", () => {
+    const pieno = (data, ore) => ({ mezzo: "Escavatore E1", data, litri: 300, euro: 450, ore });
+    // le stesse tre letture, con l'ultima sbagliata di una cifra
+    const storto = flotta.consumoPerMezzo([pieno("2026-06-01", 5600), pieno("2026-06-15", 5750), pieno("2026-07-01", 4870)]).mezzi[0];
+    const sano = flotta.consumoPerMezzo([pieno("2026-06-01", 5600), pieno("2026-06-15", 5750), pieno("2026-07-01", 5870)]).mezzi[0];
+    eq([sano.oreCoperte, sano.litriOra, sano.euroOra], [270, 2.22, 3.33], "il caso sano: 270 ore, 2,22 l/h");
+    eq(storto.litriOra, null, "⛔ col contatore sceso il consumo NON si calcola (dava 0,68 l/h, un terzo del vero)");
+    eq([storto.oreCoperte, storto.euroOra, storto.da, storto.a], [null, null, null, null],
+      "e niente ore, niente €/h, niente finestra: non c'è un periodo di cui parlare");
+    eq(/il contatore è sceso/.test(storto.perche), true, "e la riga dice perché: «" + storto.perche.slice(0, 48) + "…»");
+    // ⛔ ERA LA STESSA REGOLA SCRITTA DUE VOLTE, e solo una si difendeva:
+    //    `ritmoOreMezzi`, sugli stessi dati, il numero si rifiutava già
+    const ritmo = flotta.ritmoOreMezzi(
+      [{ mezzo: "Escavatore E1", data: "2026-06-01", ore: 5600 }, { mezzo: "Escavatore E1", data: "2026-07-01", ore: 4870 }], OGGI);
+    eq(ritmo[0].oreGiorno, null, "il ritmo d'uso lo rifiutava da sempre");
+    // e i casi che NON devono far scattare la guardia
+    eq(flotta.consumoPerMezzo([pieno("2026-07-01", 5870), pieno("2026-06-01", 5600)]).mezzi[0].oreCoperte, 270,
+      "pieni registrati in ordine sparso ma coerenti: si calcola");
+    eq(flotta.consumoPerMezzo([pieno("2026-07-01", 5620), pieno("2026-07-01", 5600),
+                               pieno("2026-08-01", 5900)]).mezzi[0].oreCoperte, 300,
+      "due letture lo STESSO giorno si registrano in qualunque ordine: nessun falso allarme");
+    eq(flotta.consumoPerMezzo([{ mezzo: "Escavatore E1", data: "", litri: 300, euro: 450, ore: 5900 },
+                               pieno("2026-06-01", 5600), pieno("2026-07-01", 5870)]).mezzi[0].oreCoperte, 300,
+      "una lettura senza data non delimita la finestra e non fa scattare la guardia");
+    // il parco della dimostrazione non si muove di un decimo
+    eq(flotta.consumoPerMezzo(flotta.DEMO.rifornimenti).calcolabili, 3, "la dimostrazione resta com'era");
+  });
+
+  test("⛔ Flotta · «tutte a posto» non si dice dei mezzi che nessuno ha messo a scadenzario", () => {
+    const parco = [{ nome: "Escavatore E1 — CAT 352" }, { nome: "Escavatore E2" },
+                   { nome: "Dumper D1" }, { nome: "Dumper D3" }, { nome: "Pala P1" }, { nome: "Perforatrice P2" }];
+    const sca = [{ mezzo: "Escavatore E1", tipo: "Verifica periodica", dataScadenza: "2027-05-10" },
+                 { mezzo: "Escavatore E1", tipo: "Assicurazione", dataScadenza: "2027-03-01" }];
+    const c = flotta.contaScadenzeMezzi(sca, OGGI, 30, parco);
+    eq([c.totale, c.scadute, c.inScadenza, c.aPosto], [2, 0, 0, 2], "le due registrate sono davvero lontane");
+    eq([c.parco, c.senzaNessuna], [6, 5],
+      "⛔ ma cinque macchine su sei non hanno NESSUNA scadenza registrata");
+    // ⛔ la firma storica non cambia di un valore: chi non passa il parco ha
+    //    esattamente il comportamento di prima, e `null` dice «non l'ho
+    //    guardato» — non zero, che vorrebbe dire «li ho guardati, sono coperti»
+    const vecchia = flotta.contaScadenzeMezzi(sca, OGGI, 30);
+    eq([vecchia.totale, vecchia.scadute, vecchia.inScadenza, vecchia.aPosto, vecchia.mezzi],
+      [c.totale, c.scadute, c.inScadenza, c.aPosto, c.mezzi], "gli stessi cinque numeri di sempre");
+    eq([vecchia.parco, vecchia.senzaNessuna], [null, null], "senza il parco non si finge di averlo guardato");
+    // il nome lungo del parco e quello corto dello scadenzario sono lo stesso
+    // mezzo: se il confronto non passasse da `nomeBreve`, «Escavatore E1» del
+    // primo non troverebbe «Escavatore E1 — CAT 352» del secondo e la riga
+    // direbbe 6 scoperti su 6
+    eq(flotta.contaScadenzeMezzi([{ mezzo: "Escavatore E1", dataScadenza: "2027-05-10" }],
+      OGGI, 30, [{ nome: "Escavatore E1 — CAT 352" }]).senzaNessuna, 0,
+      "il nome lungo e quello corto sono la stessa macchina");
+    // parco tutto coperto → niente da dichiarare
+    eq(flotta.contaScadenzeMezzi(sca, OGGI, 30, [{ nome: "Escavatore E1 — CAT 352" }]).senzaNessuna, 0,
+      "quando sono tutti a scadenzario non c'è niente da dire");
+  });
+
+  test("⛔ Flotta · il libretto non dice «€ 0,00 di officina» dove nessuno ha scritto il costo", () => {
+    // un ordine di lavoro chiuso senza scrivere niente vale `costo: 0` — la
+    // finestra della chiusura lo dice — quindi il caso entra dalla via vera
+    const senza = flotta.fascicoloMezzo({ nome: "Pala P9 — Komatsu" }, { interventi: [
+      { mezzo: "Pala P9", data: "2026-07-02", titolo: "Tubo", costo: 0 },
+      { mezzo: "Pala P9", data: "2026-06-11", titolo: "Ingrassaggio", costo: null },
+      { mezzo: "Pala P9", data: "2026-05-04", titolo: "Luci" }] }, OGGI);
+    eq(senza.officina.totale, 0, "il totale resta zero: è quello che le righe dicono");
+    eq(senza.officina.misurato, false, "⛔ ma NON è misurato, e chi disegna scrive «—»");
+    eq([senza.officina.interventi, senza.officina.senzaCosto], [3, 3], "tre interventi, tre senza costo");
+    eq(senza.officina.parziale, false, "«parziale» è un'altra cosa: qui non si sa niente");
+
+    // 1 su 3 col costo: il totale è un MINIMO e va detto
+    const meta = flotta.fascicoloMezzo({ nome: "Pala P9 — Komatsu" }, { interventi: [
+      { mezzo: "Pala P9", data: "2026-07-02", titolo: "Tubo", costo: 420 },
+      { mezzo: "Pala P9", data: "2026-06-11", titolo: "Ingrassaggio", costo: 0 },
+      { mezzo: "Pala P9", data: "2026-05-04", titolo: "Luci", costo: null }] }, OGGI);
+    eq([meta.officina.totale, meta.officina.misurato, meta.officina.senzaCosto, meta.officina.parziale],
+      [420, true, 2, true], "420 € su tre interventi, due senza costo: è un minimo");
+
+    // tutti col costo: niente cambia, e nessuna dichiarazione da mostrare
+    const pieno = flotta.fascicoloMezzo({ nome: "Pala P9 — Komatsu" }, { interventi: [
+      { mezzo: "Pala P9", data: "2026-07-02", titolo: "Tubo", costo: 420 },
+      { mezzo: "Pala P9", data: "2026-06-11", titolo: "Gomme", costo: 100 }] }, OGGI);
+    eq([pieno.officina.totale, pieno.officina.misurato, pieno.officina.senzaCosto, pieno.officina.parziale],
+      [520, true, 0, false], "caso sano: nessun cambiamento e nessuna dichiarazione");
+
+    // nessun intervento: non si sa, e non è zero
+    const vuoto = flotta.fascicoloMezzo({ nome: "Nuovo N1" }, {}, OGGI);
+    eq([vuoto.officina.interventi, vuoto.officina.misurato, vuoto.officina.senzaCosto],
+      [0, false, 0], "macchina senza storia: non misurato, e nessun intervento da scusare");
+
+    // ⛔ e la distinzione era GIÀ in casa, in costoOrarioMezzo: le due funzioni
+    // devono contare gli stessi interventi senza costo, o un giorno divergono
+    const co = flotta.costoOrarioMezzo(
+      [{ mezzo: "Pala P9", data: "2026-07-02", titolo: "Tubo", costo: 420 },
+       { mezzo: "Pala P9", data: "2026-06-11", titolo: "Ingrassaggio", costo: 0 },
+       { mezzo: "Pala P9", data: "2026-05-04", titolo: "Luci", costo: null }], []);
+    eq(co[0].interventiSenzaCosto, meta.officina.senzaCosto,
+      "il libretto e il costo orario contano gli stessi interventi senza costo");
+  });
+}
+
 console.log(`\nRisultato KPI app: ${passed} passati, ${failed} falliti${inVolo.length ? `  ·  ${inVolo.length} prove asincrone aspettate` : ""}`);
 process.exit(failed > 0 ? 1 : 0);

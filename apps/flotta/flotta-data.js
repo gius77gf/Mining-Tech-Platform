@@ -84,7 +84,7 @@
 // ============================================================
 
 import { parseCsvLine, numIt, giorniTra, isIntestazione, numeroScritto, oggiISO,
-         dataISOEsiste,
+         dataISOEsiste, dataIt,
          messaggioNumero as messaggioNumeroShell,
          perCampo as perCampoShell,
          AVVISO_DECIMALE as AVVISO_DECIMALE_SHELL,
@@ -475,18 +475,36 @@ export function scadenzeOrdinate(scadenze, oggi = new Date(), preavvisoGiorni = 
 
 // Conteggi del semaforo, per i numeri in evidenza: scadute / in scadenza /
 // a posto / mezzi coinvolti. Pura e testabile.
-export function contaScadenzeMezzi(scadenze, oggi = new Date(), preavvisoGiorni = 30) {
+export function contaScadenzeMezzi(scadenze, oggi = new Date(), preavvisoGiorni = 30, parcoMezzi = null) {
   const c = { scadute: 0, inScadenza: 0, aPosto: 0, totale: 0, mezzi: 0 };
   const mezzi = new Set();
+  const coperti = new Set();
   for (const s of scadenze || []) {
     c.totale++;
-    if (s.mezzo) mezzi.add(String(s.mezzo));
+    if (s.mezzo) { mezzi.add(String(s.mezzo)); coperti.add(nomeBreve(s.mezzo)); }
     const st = statoScadenzaMezzo(s.dataScadenza, oggi, preavvisoGiorni).stato;
     if (st === "scaduta") c.scadute++;
     else if (st === "in-scadenza" || st === "senza-data") c.inScadenza++;
     else c.aPosto++;
   }
   c.mezzi = mezzi.size;
+  /* ⛔ UN MEZZO SENZA NESSUNA RIGA IN SCADENZARIO NON È UN MEZZO A POSTO.
+     È la stessa cosa che Scudo ha scritto per i requisiti, e qui mancava: col
+     parco di sei macchine e le scadenze registrate su UNA sola, il Quadro
+     scriveva «Tutte a posto: 2 scadenze su 1 mezzo, nessuna entro 30 giorni»
+     — misurato aprendo la pagina. Cinque macchine su sei non hanno nessuna
+     verifica periodica, nessuna assicurazione, nessuna revisione registrata, e
+     la riga che le riguarda dice la frase più tranquilla che sa dire.
+     Il parco è FACOLTATIVO: chi non lo passa ha esattamente il comportamento
+     di prima (`parco` e `senzaNessuna` restano `null`, cioè «non l'ho
+     guardato»), e non zero, che vorrebbe dire «li ho guardati e sono tutti
+     coperti». */
+  c.parco = null; c.senzaNessuna = null;
+  if (Array.isArray(parcoMezzi)) {
+    const nomi = parcoMezzi.map(m => nomeBreve(m && m.nome)).filter(Boolean);
+    c.parco = nomi.length;
+    c.senzaNessuna = nomi.filter(n => !coperti.has(n)).length;
+  }
   return c;
 }
 
@@ -633,6 +651,22 @@ export function sottoScorta(ricambi) {
 export function urgenza(dataISO, oggi = new Date()) {
   if (!dataISO) return { cls: "ok", label: "a ore", giorni: 9999 };   // manutenzione a ore motore, non a data
   const g = giorniTra(dataISO, oggi);
+  /* ⛔ UN GIORNO CHE NON SI LEGGE NON È UN GIORNO LONTANO. `giorniTra` risponde
+     `NaN` a una data che non esiste («2026-02-30», che `Date.parse` non
+     rifiuta ma fa SCORRERE al 2 marzo) e a una che non è una data («boh»), e
+     `NaN` fallisce TUTT'E DUE i confronti qui sotto: la funzione cadeva
+     nell'ultimo `return` e rispondeva `{ cls: "ok", label: "NaN gg" }`, cioè
+     un badge VERDE con scritto «NaN gg» — il colore tranquillo dove non è
+     stato misurato niente, più un NaN stampato sulla pagina. E il numero
+     spariva insieme al colore: `kpiFrom` conta `giorni <= 30`, e `NaN <= 30`
+     è false, quindi quella manutenzione non era in nessun elenco e in nessun
+     conto, ma sulla riga sembrava a posto.
+     È la stessa guardia che `urgenzaOre` ha preso il 03/08 (era «dormiente»
+     anche quella: protetta da chiamanti che si ricordano). Misurato:
+     `urgenza("2026-02-30")` dava `{cls:"ok", label:"NaN gg"}`, adesso dà
+     `{cls:"", label:"data non leggibile", giorni:null}` — nessun colore, e la
+     riga dice che cosa manca. */
+  if (!Number.isFinite(g)) return { cls: "", label: "data non leggibile", giorni: null };
   if (g < 0) return { cls: "danger", label: "Scaduta", giorni: g };
   if (g <= 30) return { cls: "warn", label: g + " gg", giorni: g };
   return { cls: "ok", label: g + " gg", giorni: g };
@@ -779,7 +813,11 @@ export function prioritaOperative(mezzi, manutenzioni, ricambi, oggi = new Date(
       dettaglio = "a " + mostra(n.orePreviste, 1) + " h motore";
     } else if (n.dataPrevista) {
       u = urgenza(n.dataPrevista, oggi);
-      dettaglio = "previsto " + String(n.dataPrevista).split("-").reverse().join("/");
+      /* ⛔ `dataIt`, NON `split("-").reverse()`. La copia di casa scriveva
+         «30/02/2026» come una data qualunque e «boh» come «boh»: guardava
+         com'è SCRITTO il dato invece di che cosa vale. `dataIt` chiede a
+         `dataISOEsiste` e risponde «—» quando il giorno non esiste. */
+      dettaglio = "previsto " + dataIt(n.dataPrevista);
     } else continue;
     if (u.cls !== "danger" && u.cls !== "warn") continue;
     items.push({ gravita: u.cls, categoria: "manutenzione",
@@ -1586,10 +1624,44 @@ export function consumoPerMezzo(rifornimenti) {
     const conOre = v.pieni.filter(p => p.ore != null).sort((a, b) => a.ore - b.ore);
     let litriOra = null, euroOra = null, oreCoperte = null, perche = "", da = null, a = null;
     let litriInFinestra = null, euroInFinestra = null, pieniInFinestra = 0, pieniSenzaEuro = 0;
+    /* ⛔ UN CONTATORE CHE SCENDE È UN ERRORE, NON UNA FINESTRA CORTA.
+       `conOre` è ordinato per ORE, non per data — scelta buona, perché una
+       lettura senza data non deve né allargare né restringere la finestra —
+       ma con un errore di dito diventa una bugia: misurato su tre pieni con
+       il contatore a 5600 (01/06), 5750 (15/06) e **4870** (01/07, una cifra
+       sbagliata), l'ordinamento per ore metteva PRIMA la lettura di luglio,
+       calcolava `oreCoperte = 5750 − 4870 = 880` e rispondeva **0,68 l/h**
+       dove il consumo vero è 2,22 — un terzo, e nella direzione che
+       rassicura («questa macchina beve pochissimo»).
+       `ritmoOreMezzi`, sugli stessi dati, quel numero si RIFIUTA di darlo
+       («fra la prima e l'ultima lettura il contatore non è salito»): erano
+       due letture dello stesso fatto, e solo una delle due si difendeva.
+       Il caso entra dalla via vera: `validaRifornimento` confronta la lettura
+       col contatore del MEZZO, e per una macchina senza contaore (`ore: null`,
+       che è quello che `parseMezziCsv` scrive quando è illeggibile) la pagina
+       gli passa `+m.ore || 0`, cioè zero: qualunque numero passa.
+       La guardia guarda solo le letture CHE HANNO UNA DATA, in ordine di
+       data, con le stesse due chiavi di `ritmoOreMezzi` — la seconda
+       (`a.ore - b.ore`) serve alle letture dello stesso giorno, che si
+       registrano in qualunque ordine e non devono far scattare niente.
+       ⚠️ E la controprova su quella seconda chiave dice «non distingue», ed è
+       onesto scriverlo: togliendola non cade nessuna prova, perché `conOre`
+       ARRIVA QUI GIÀ ORDINATO PER ORE e l'ordinamento per data è stabile —
+       cioè il caso dello stesso giorno è già difeso a monte. È la seconda
+       delle cinque cause («il codice è difeso in profondità»), non un difetto
+       che non c'è: la chiave resta perché questa guardia non deve dipendere
+       da come `conOre` è ordinato altrove, e perché è la stessa coppia di
+       chiavi che `ritmoOreMezzi` usa per la stessa domanda. */
+    const conData = conOre.filter(x => dataISOEsiste(x.data))
+      .slice().sort((a, b) => a.data.localeCompare(b.data) || a.ore - b.ore);
+    let sceso = false;
+    for (let i = 1; i < conData.length; i++) if (conData[i].ore < conData[i - 1].ore) sceso = true;
     if (conOre.length < 2) {
       perche = conOre.length === 1
         ? "serve almeno un secondo rifornimento con il contatore delle ore"
         : "nessun rifornimento porta il contatore delle ore";
+    } else if (sceso) {
+      perche = "fra due rifornimenti il contatore è sceso: una delle due letture è sbagliata, e finché non è corretta il consumo non si può calcolare";
     } else {
       oreCoperte = conOre[conOre.length - 1].ore - conOre[0].ore;
       if (oreCoperte > 0) {
@@ -1635,10 +1707,28 @@ export function consumoPerMezzo(rifornimenti) {
         perche = "fra i rifornimenti il contatore non è cambiato";
       }
     }
+    /* ⛔ IL PREZZO AL LITRO SI DIVIDE PER I LITRI CHE HANNO UN PREZZO.
+       La spesa del rifornimento è FACOLTATIVA (`validaRifornimento` la lascia
+       vuota senza protestare), e fino al 03/08 `euroLitro` era «tutti gli euro
+       diviso TUTTI i litri»: i litri di un pieno registrato senza la spesa
+       finivano al denominatore con zero euro sopra, e il prezzo usciva più
+       BASSO del vero. Misurato su tre pieni da 300 l, due a 450 €: la riga
+       scriveva «1,000 €/l» dove il gasolio pagato costa **1,500 €/l** — un
+       terzo in meno, e nella direzione che rassicura (il gasolio sembra a
+       buon mercato proprio quando qualcuno non ha scritto quanto è costato).
+       Adesso il denominatore sono i litri dei pieni che portano la spesa, e
+       quanti pieni restano fuori lo dice `senzaSpesa`, perché la riga possa
+       scriverlo invece di far passare per misurato ciò che non lo è.
+       ⚠️ `pieniSenzaEuro` è un'altra cosa e resta: quello conta i pieni DELLA
+       FINESTRA (dal secondo in poi), perché serve a `costoOrarioMezzo` per
+       dichiarare che il €/h è un minimo. Qui si guarda tutto il mezzo. */
+    const litriConEuro = Math.round(v.pieni.filter(x => x.euro > 0).reduce((t, x) => t + x.litri, 0) * 10) / 10;
+    const senzaSpesa = v.pieni.filter(x => !(x.euro > 0)).length;
     return {
       mezzo: v.mezzo, pieni: v.pieni.length, litri: Math.round(v.litri * 10) / 10,
       euro: Math.round(v.euro * 100) / 100,
-      euroLitro: v.litri > 0 && v.euro > 0 ? Math.round(1000 * v.euro / v.litri) / 1000 : null,
+      euroLitro: litriConEuro > 0 && v.euro > 0 ? Math.round(1000 * v.euro / litriConEuro) / 1000 : null,
+      litriConEuro, senzaSpesa,
       oreCoperte, litriOra, euroOra, perche, da, a,
       litriInFinestra, euroInFinestra, pieniInFinestra, pieniSenzaEuro,
     };
@@ -1673,6 +1763,22 @@ export function fascicoloMezzo(mezzo, dati, oggi = new Date(), preavvisoGiorni =
     .sort((a, b) => String(b.data || "").localeCompare(String(a.data || "")));
   const consumo = consumoPerMezzo(rifornimenti).mezzi[0] || null;
   const officina = interventi.reduce((t, w) => t + (+w.costo || 0), 0);
+  /* ⛔ «NESSUNO HA SCRITTO QUANTO È COSTATO» NON È «NON È COSTATO NIENTE», e il
+     libretto è il posto peggiore dove confonderle: è la pagina che si stampa e
+     si esporta, quella che legge un compratore o un ispettore.
+     Chiudere un ordine di lavoro senza scrivere niente è normale e previsto —
+     la finestra della chiusura lo dice, «su questo lavoro non è ancora scritto
+     niente: nessuna ora, nessun ricambio» — e produce un intervento con
+     `costo: 0`. Misurato aprendo la pagina: una macchina con tre interventi
+     chiusi così mostrava la tessera «Officina € 0,00» in VERDE accanto a
+     «Consumo —» e «Gasolio —», che invece dichiarano di non sapere; e il CSV
+     del libretto scriveva `totale officina;interventi chiusi;;3 interventi;0`,
+     cioè uno zero che chi apre il foglio somma credendolo misurato.
+     La distinzione esisteva già in casa: `costoOrarioMezzo` conta gli
+     `interventiSenzaCosto` e dichiara il conto `parziale`. Qui mancava, ed è
+     lo stesso dato. `totale` NON cambia (sono soldi veri e vanno detti);
+     quello che si aggiunge è di che cosa è fatto quel numero. */
+  const senzaCosto = interventi.filter(w => !(+w.costo > 0)).length;
   // FERMI della macchina (L6): quanti, quanto sono durati, se ne ha uno
   // aperto adesso. Nel libretto è la pagina che un compratore guarda per
   // prima, e l'unica onesta: senza, «tenuta bene» è una parola.
@@ -1683,7 +1789,10 @@ export function fascicoloMezzo(mezzo, dati, oggi = new Date(), preavvisoGiorni =
     mezzo: m, nome, tipo: tipoMezzoDi(m),
     manutenzioni, interventi, scadenze, controlli, rifornimenti, consumo, fermi,
     officina: { totale: Math.round(officina * 100) / 100, interventi: interventi.length,
-      ore: Math.round(oreLavorate * 100) / 100 },
+      ore: Math.round(oreLavorate * 100) / 100,
+      // quanti interventi non portano il loro costo, e se di questa macchina
+      // si sa almeno in parte quanto è costata l'officina
+      senzaCosto, misurato: officina > 0, parziale: officina > 0 && senzaCosto > 0 },
     fermo: { episodi: fermi.length, giorni: giorniFermoTot,
       aperti: fermi.filter(f => f.aperto).length, ultimo: fermi[0] || null },
     carburante: { totale: consumo ? consumo.euro : 0, litri: consumo ? consumo.litri : 0 },
@@ -2603,7 +2712,13 @@ export function kpiFrom(mezzi, manutenzioni, costi, opts) {
   const base = {
     operativi: mezzi.filter(m => m.stato === "operativo").length,
     inManutenzione: mezzi.filter(m => m.stato !== "operativo").length,
-    tagliandi30: manutenzioni.filter(n => { const g = urgenza(n.dataPrevista).giorni; return g <= 30; }).length,
+    /* ⚠️ `Number.isFinite` PRIMA del confronto. Da quando `urgenza` risponde
+       `giorni: null` a un giorno che non si legge, `null <= 30` sarebbe
+       **true** e la tessera conterebbe fra i tagliandi dei prossimi 30 giorni
+       una manutenzione di cui nessuno sa quando cade. Prima ci arrivava un
+       `NaN`, che il confronto scartava per caso: il conto non cambia sui dati
+       buoni né su quelli storti, cambia la ragione per cui è giusto. */
+    tagliandi30: manutenzioni.filter(n => { const g = urgenza(n.dataPrevista).giorni; return Number.isFinite(g) && g <= 30; }).length,
     carburante: costi.filter(c => /carburante/i.test(c.voce)).reduce((t, c) => t + (+c.importo || 0), 0),
   };
   if (!opts) return base;
