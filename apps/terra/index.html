@@ -2302,6 +2302,28 @@ a.dw-btn{text-decoration:none}
     $("den-anni").scrollIntoView({ behavior: "smooth", block: "start" });
   });
 
+  /* ⛔ SUI FOGLI NON RESTAVA NIENTE CHE DICESSE «SONO DATI DI ESEMPIO».
+     Lo schermo lo dichiara due volte — la fascia in alto e la riga di stato —
+     e la stampa le nasconde tutt'e due. In Terra le nasconde ancora meglio
+     che altrove: i due fogli non sono la pagina stampata, sono un HTML
+     costruito qui e scritto in una FINESTRA NUOVA con `document.write`, dove
+     né la fascia né il `@media print` di questa pagina arrivano mai. Ma
+     quelli che escono sono il prospetto che si allega alla comunicazione
+     annuale all'ente e il verbale che rende il rilievo opponibile: senza
+     questa riga escono con l'aria di documenti e nessuno dei loro metri cubi
+     riguarda una cava vera.
+     La decisione «questo è un foglio di dimostrazione» si prende QUI, in un
+     posto solo, e i due fogli la leggono: `db.mode` scritto due volte è la
+     copia debole che aspetta di divergere. Cambia solo la frase, perché un
+     prospetto annuale e un verbale non si usano allo stesso modo. */
+  const CSS_ESEMPIO = ".esempio{border:2px solid #111;background:#fff;color:#111;"
+    + "padding:8px 11px;margin:0 0 14px;font-size:11.5px;line-height:1.5;"
+    + "page-break-inside:avoid;break-inside:avoid}"
+    + ".esempio b{letter-spacing:.3px}";
+  const avvisoEsempio = (frase) => db.mode !== "live"
+    ? "<div class='esempio'><b>DATI DI ESEMPIO — modalità tour (" + esc(db.mode) + ").</b> " + frase + "</div>"
+    : "";
+
   // ── Il foglio da consegnare ────────────────────────────────────────────
   // Pagina bianca, nessun colore d'interfaccia, un solo scopo: essere
   // stampata o salvata in PDF e allegata alla comunicazione. Contiene solo
@@ -2356,10 +2378,13 @@ a.dw-btn{text-decoration:none}
       /* su telefono le tre firme in fila diventano illeggibili: si incolonnano */
       + "@media screen and (max-width:520px){.firma{display:block}.firma div{margin-top:20px}}"
       + "@media print{body{margin:14mm;padding:0;max-width:none}h2{page-break-after:avoid}tr{page-break-inside:avoid}}"
+      + CSS_ESEMPIO
       + "</style></head><body>"
       + "<h1>Riepilogo annuale dei volumi — anno " + R.anno + "</h1>"
       + "<div class='sub'>Documento preparato con Deepwork Terra il " + dataOggi
       + (R.inCorso ? " · <b>anno ancora in corso</b>: i dati si fermano a oggi e cresceranno fino al 31 dicembre" : "") + "</div>"
+      + avvisoEsempio("Questo prospetto non riporta i volumi di nessuna cava reale: "
+          + "non va inviato all'ente né allegato alla comunicazione annuale.")
       + "<h2>Titolo autorizzativo</h2><table>"
       + dati.map(d => riga(["<b>" + d[0] + "</b>", d[1]])).join("") + "</table>"
       + "<p class='mini'>Ditta titolare, sede e cava di riferimento vanno indicate secondo il modello richiesto dall'ente.</p>"
@@ -3601,9 +3626,12 @@ a.dw-btn{text-decoration:none}
       /* su telefono le tre firme in fila diventano illeggibili: si incolonnano */
       + "@media screen and (max-width:520px){.firma{display:block}.firma div{margin-top:20px}}"
       + "@media print{body{margin:14mm;padding:0;max-width:none}h2{page-break-after:avoid}tr{page-break-inside:avoid}}"
+      + CSS_ESEMPIO
       + "</style></head><body>"
       + "<h1>Verbale di rilievo — " + esc(r.titolo || "rilievo del " + fmtData(r.data)) + "</h1>"
       + "<div class='sub'>Documento preparato con Deepwork Terra il " + dataOggi + "</div>"
+      + avvisoEsempio("Questo verbale non documenta nessun rilievo reale: "
+          + "non va allegato a una comunicazione all'ente né esibito a un controllo.")
       + "<h2>Il rilievo</h2><table>" + dati.map(d => riga(d[0], d[1])).join("") + "</table>"
       + "<p class='mini'>Ditta titolare, sede e denominazione della cava vanno indicate secondo il modello richiesto dall'ente.</p>"
       + (titolo ? "<h2>Titolo autorizzativo di riferimento</h2><table>" + titolo.map(d => riga(d[0], d[1])).join("") + "</table>" : "")

@@ -98,8 +98,15 @@ const BANCHI = [
      Le funzioni nuove sono provate in `run-kpi`; che il bottone stampi, che
      il numero ci stia nella tessera e che il foglio dica quelle parole, lo
      dice solo il browser — e solo in `@media print`. */
-  ['i fogli stampati di Flotta e Sentinella', 'stampe-fs.mjs', []],
-  ['fogli stampati F/S · controprova', 'stampe-fs.mjs', ['--controprova'], true],
+  /* ⛔ E DAL 03/08 IL BANCO NON GUARDA PIÙ DUE APP MA QUATTRO: la
+     dichiarazione «dati di esempio» sul foglio mancava anche a Conti (tre
+     fogli: preventivo, DDT, fattura) e a Terra (riepilogo annuale e verbale,
+     che vivono in una FINESTRA NUOVA, dove il `@media print` della pagina non
+     arriva). L'etichetta diceva «Flotta e Sentinella» ed era la solita lista
+     tenuta a mente: si aggiorna col banco, se no il giro dice di aver
+     guardato meno di quello che guarda — o più. */
+  ['i fogli stampati di Flotta, Sentinella, Conti e Terra', 'stampe-fs.mjs', []],
+  ['fogli stampati F/S/C/T · controprova', 'stampe-fs.mjs', ['--controprova'], true],
   ['unità in maiuscolo', 'unita-maiuscole.mjs', []],
   ['unità · controprova', 'unita-maiuscole.mjs', ['--controprova', '--solo=campo'], true],
   ['collegamenti della vetrina', 'vetrina-collegamenti.mjs', []],

@@ -648,6 +648,15 @@ label.item:has(.dw-chk:checked){
   #stampa .firme div{flex:1; border-top:.8pt solid #000; padding-top:2mm; font-size:9pt; color:#333}
   #stampa .piede{margin-top:6mm; font-size:8.5pt; color:#333; line-height:1.5}
   #stampa .manca{border:1pt dashed #900; color:#900; padding:2mm 3mm; font-size:9.5pt; margin-bottom:4mm}
+  /* la dichiarazione «dati di esempio»: sta in cima al foglio e si legge
+     prima dell'intestazione. Bordo pieno e spesso, non tratteggiato come
+     `.manca`, perché non è un campo da compilare — è ciò che toglie valore a
+     tutto il resto della pagina. Mai spezzata fra due fogli. */
+  #stampa .esempio{
+    border:2pt solid #000; padding:2.5mm 3mm; font-size:10pt; line-height:1.45;
+    margin-bottom:4mm; break-inside:avoid; page-break-inside:avoid;
+  }
+  #stampa .esempio b{letter-spacing:.4px}
   @page{size:A4; margin:14mm}
 }
 
@@ -3891,8 +3900,27 @@ label.item:has(.dw-chk:checked){
     ind:  (IMP && IMP.aziendaIndirizzo || "").trim(),
     con:  (IMP && IMP.aziendaContatti || "").trim(),
   });
+  /* ⛔ SUL FOGLIO NON RESTAVA NIENTE CHE DICESSE «SONO DATI DI ESEMPIO».
+     Lo schermo lo dichiara due volte — la fascia in alto e la riga di stato —
+     e la stampa le nasconde tutt'e due, perché `.tour-banner` sta qui sopra
+     nell'elenco di ciò che è comando e non documento. Ma quello che esce
+     dalla stampante sono i tre fogli che Conti dà in mano a qualcuno: il
+     preventivo che si manda al cliente, il DDT che viaggia sul camion e che
+     legge la Guardia di Finanza, la fattura. Senza questa riga escono con
+     l'aria di documenti e nessuno dei loro numeri riguarda un'operazione
+     vera. Misurato premendo il bottone: a schermo il corpo della pagina
+     nomina i dati d'esempio, in `@media print` no.
+     Sta DENTRO `testaStampa`, che è il punto unico da cui passano tutti e
+     tre i fogli: la decisione «questo è un foglio di dimostrazione» si
+     prende in un posto solo, come i suoi numeri. */
+  const avvisoEsempio = () => db.mode !== "live"
+    ? `<div class="esempio"><b>DATI DI ESEMPIO — modalità tour (${esc(db.mode)}).</b>
+        Questo foglio non documenta nessuna operazione reale: non ha valore fiscale,
+        non va consegnato a un cliente, non accompagna nessun trasporto e non va
+        esibito a un controllo.</div>`
+    : "";
   const testaStampa = (titolo, sotto) => { const a = azienda();
-    return `${a.nome ? "" : `<div class="manca">Intestazione mancante: scrivi ragione sociale, P.IVA e sede nella scheda <b>Listino → Dati della tua azienda</b>. Questo foglio è valido solo quando porta i dati di chi emette il documento.</div>`}
+    return `${avvisoEsempio()}${a.nome ? "" : `<div class="manca">Intestazione mancante: scrivi ragione sociale, P.IVA e sede nella scheda <b>Listino → Dati della tua azienda</b>. Questo foglio è valido solo quando porta i dati di chi emette il documento.</div>`}
       <div class="testa">
         <div class="mitt"><b>${esc(a.nome || "— ragione sociale non impostata —")}</b>
           ${a.ind ? "<br>" + esc(a.ind) : ""}
