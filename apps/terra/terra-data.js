@@ -381,16 +381,41 @@ export function volumeFronte(rilievi, fronteId, prov = "scavo") {
 // Da volume estratto (m³ in banco) a tonnellate e valore economico:
 // tonnellate = m³ × densità (t/m³); valore = tonnellate × prezzo (€/t).
 // È l'anello che lega il rilievo alla contabilità. Densità e prezzo
-// dipendono dal materiale (l'utente li imposta). Numeri non validi → 0.
+// dipendono dal materiale (l'utente li imposta).
 // ⚠️ QUESTA FUNZIONE PRENDE LA DENSITÀ COME NUMERO, e va bene: qui si
 // moltiplica. DA DOVE VIENE quel numero è un'altra domanda, e la risposta sta
 // più in basso in questo file (`densitaDichiarata` e compagnia): chi mostra il
 // risultato deve dire anche quella, se no un valore tipico di letteratura e un
 // certificato di laboratorio finiscono sullo schermo con la stessa faccia.
+/* ⛔ E FINO AL 03/08 «NUMERI NON VALIDI → 0», che è la faccia peggiore del
+   principio del fondatore perché il numero tranquillo qui sono dei SOLDI.
+   Misurato aprendo la pagina e svuotando il campo della densità — due gesti,
+   nessun dato strano: il riquadro scriveva «Estratto 2026: 79.400 m³ → **0 t**
+   → **€ 0** di materiale», e tre righe più su la nota diceva «Densità non
+   impostata… il valore del materiale **non si calcola**». Cioè la stessa
+   schermata si smentiva da sola, e a vincere era lo zero.
+   La causa è il solito `+null || 0`: `+null`, `+""` e `+"  "` fanno **0**, e
+   `Math.max(0, …)` porta a zero anche una densità negativa. Un materiale senza
+   densità non vale zero euro: non si sa quanto vale.
+   Il predicato che distingue «registrato» da «assente» è già scritto in questo
+   file — `_numRegistrato`, più in basso, quello che difende il verbale — e non
+   se ne scrive un secondo. Qui si aggiunge solo il «non negativo»: una densità
+   o un prezzo sotto zero non sono una misura di zero, sono un dato da
+   correggere. Il volume 0 invece resta un volume misurato, e vale 0 €.
+   `calcolabile` è la bandiera del vocabolario chiuso, e la legge la pagina. */
 export function valoreMateriale(volumeM3, densita, prezzoTon) {
-  const v = Math.max(0, +volumeM3 || 0), d = Math.max(0, +densita || 0), p = Math.max(0, +prezzoTon || 0);
-  const tonnellate = v * d;
-  return { tonnellate, valore: tonnellate * p };
+  const buono = (x) => _numRegistrato(x) && +x >= 0;
+  const vOk = buono(volumeM3), dOk = buono(densita), pOk = buono(prezzoTon);
+  const tonnellate = vOk && dOk ? (+volumeM3) * (+densita) : null;
+  const valore = tonnellate != null && pOk ? tonnellate * (+prezzoTon) : null;
+  return { tonnellate, valore, calcolabile: valore != null,
+    /* ⚠️ le frasi dicono l'EFFETTO, non «manca il campo»: così restano vere sia
+       quando il numero non c'è sia quando c'è e non si legge, e chi le scrive
+       non deve indovinare quale dei due casi ha davanti. */
+    motivo: valore != null ? ""
+      : !vOk ? "Senza il volume estratto non si calcolano né le tonnellate né il valore."
+        : !dOk ? "Senza una densità del materiale i metri cubi non si possono portare in tonnellate: il valore del materiale non si calcola."
+          : "Senza un prezzo per tonnellata il valore del materiale non si calcola: le tonnellate però ci sono." };
 }
 // Le densità di riferimento vivono in `shared/dw-ponti.js`: le usa Terra per il
 // valore del materiale, e le usa il ponte P2 anche da CAMPO, che deve poter
@@ -486,7 +511,20 @@ export function classeAccuratezza(rilievo) {
 // Banda di incertezza sul volume (m³) data una %tolleranza: rende onesto il
 // numero ("19.400 m³ ± 388"). Ritorna {volume, banda, min, max} arrotondati,
 // oppure null se volume o tolleranza non sono validi. Pura e testabile.
+/* ⛔ E «VOLUME NON VALIDO» NON VOLEVA DIRE QUELLO CHE LA RIGA QUI SOPRA
+   PROMETTE. `+null` fa **0** e `0 >= 0` è **true**, quindi un volume assente
+   (`null`, `""`, `"  "`) non tornava `null`: tornava `{volume:0, banda:0,
+   min:0, max:0}` — cioè «misurato 0 m³, con incertezza zero», che è il numero
+   più tranquillo che questa funzione sappia produrre. Misurato il 03/08 nel
+   posto peggiore, il **verbale che va all'ente**: su un rilievo di archivio
+   segnato «elaborato» col volume illeggibile il foglio stampava «Volume
+   misurato — m³ (**± 0 m³ · fra 0 e 0 m³**)» e, sotto, «la tolleranza tipica è
+   ± 2%, cioè circa **± 0 m³** su questo volume». Nella stessa pagina
+   `descriviOrigine` diceva che il numero non è riproducibile.
+   La guardia sta PRIMA della conversione e usa il predicato che c'è già
+   (`_numRegistrato`): un volume negativo continua a tornare `null` come prima. */
 export function bandaVolume(volumeM3, tolleranzaPct) {
+  if (!_numRegistrato(volumeM3)) return null;            // assente ≠ misurato zero
   const v = +volumeM3;
   if (!(v >= 0) || tolleranzaPct == null) return null;   // niente tolleranza = non calcolabile
   const t = +tolleranzaPct;

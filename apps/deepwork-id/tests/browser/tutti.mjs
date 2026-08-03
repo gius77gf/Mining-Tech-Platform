@@ -120,6 +120,14 @@ const BANCHI = [
   ['stati «non misurato» · controprova', 'stati-non-misurati.mjs', ['--controprova'], true],
   ['il salvataggio che non riesce (Flotta, senza rete)', 'salvataggio-offline.mjs', []],
   ['salvataggio senza rete · controprova', 'salvataggio-offline.mjs', ['--senza-guardia'], true],
+  /* ⛔ AGGIUNTO IL 03/08. `stati-non-misurati.mjs` guarda gli stati vuoti a
+     SCHERMO; questo guarda i DOCUMENTI che escono dall'azienda — il prospetto
+     annuale per l'ente, il suo CSV e il verbale di rilievo — su un anno che
+     nessuno ha misurato e su un rilievo il cui volume non si legge. Tre zeri
+     tranquilli su tre documenti, e nessuna suite `node` poteva vederli: le
+     frasi e le celle vivono nella pagina. */
+  ['i documenti di Terra e gli zeri mai misurati', 'terra-numeri-tranquilli.mjs', []],
+  ['zeri mai misurati · controprova', 'terra-numeri-tranquilli.mjs', ['--controprova'], true],
 ];
 
 async function rispondePorta(porta) {

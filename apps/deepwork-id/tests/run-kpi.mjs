@@ -1036,18 +1036,50 @@ test("volumeFronte: somma solo i rilievi elaborati (con volume) del fronte", () 
   eq(terra.volumeFronte([], "f1"), 0, "nessun rilievo = 0");
 });
 test("valoreMateriale: m³ → tonnellate → valore (densità e prezzo)", () => {
-  eq(terra.valoreMateriale(1000, 1.6, 12), { tonnellate: 1600, valore: 19200 }, "1000 m³ × 1,6 × 12€");
-  eq(terra.valoreMateriale(0, 1.6, 12), { tonnellate: 0, valore: 0 }, "volume 0");
+  const v = terra.valoreMateriale(1000, 1.6, 12);
+  eq(v.tonnellate, 1600, "1000 m³ × 1,6 t/m³");
+  eq(v.valore, 19200, "× 12 €/t");
+  eq(v.calcolabile, true, "conto fatto");
+  eq(v.motivo, "", "niente da spiegare");
+  // uno ZERO MISURATO resta uno zero: il volume c'è ed è zero, il valore è zero
+  const z = terra.valoreMateriale(0, 1.6, 12);
+  eq(z.tonnellate, 0, "volume 0 → 0 t");
+  eq(z.valore, 0, "e 0 €");
+  eq(z.calcolabile, true, "zero misurato è un conto fatto, non una mancanza");
 });
-test("valoreMateriale: input non validi contano come 0 (niente NaN)", () => {
-  eq(terra.valoreMateriale(1000, undefined, 12), { tonnellate: 0, valore: 0 }, "densità assente → 0");
-  eq(terra.valoreMateriale("abc", 1.6, 12), { tonnellate: 0, valore: 0 }, "volume non numerico → 0");
-  eq(terra.valoreMateriale(1000, 1.6, ""), { tonnellate: 1600, valore: 0 }, "prezzo vuoto → valore 0");
+/* ⛔ QUESTE TRE PROVE PRIMA SI CHIAMAVANO «input non validi contano come 0» e
+   «input negativi trattati come 0», e BLINDAVANO IL DIFETTO: un materiale
+   senza densità non vale zero euro, non si sa quanto vale. Misurato sullo
+   schermo il 03/08 — campo della densità svuotato, riquadro «79.400 m³ → 0 t →
+   € 0 di materiale» e tre righe sopra la nota «il valore del materiale non si
+   calcola». Adesso l'asserzione è più GIUSTA, non più permissiva: la catena si
+   ferma dove si ferma il dato, e la ragione è dichiarata. */
+test("⛔ valoreMateriale: senza densità NON vale zero euro — non si calcola", () => {
+  const v = terra.valoreMateriale(1000, undefined, 12);
+  eq(v.tonnellate, null, "densità assente → tonnellate non calcolabili");
+  eq(v.valore, null, "e quindi nemmeno il valore");
+  eq(v.calcolabile, false, "dichiarato");
+  ok(/densità/.test(v.motivo), "e la ragione nomina la densità: " + v.motivo);
+  // le altre due porte dello stesso caso
+  eq(terra.valoreMateriale(1000, null, 12).valore, null, "densità null");
+  eq(terra.valoreMateriale(1000, "", 12).valore, null, "densità stringa vuota");
+  eq(terra.valoreMateriale(1000, "  ", 12).valore, null, "densità solo spazi");
 });
-test("valoreMateriale: input negativi trattati come 0 (niente valori assurdi)", () => {
-  eq(terra.valoreMateriale(-5, 1.6, 12), { tonnellate: 0, valore: 0 }, "volume negativo → 0");
-  eq(terra.valoreMateriale(1000, -1, 12), { tonnellate: 0, valore: 0 }, "densità negativa → 0");
-  eq(terra.valoreMateriale(1000, 1.6, -3), { tonnellate: 1600, valore: 0 }, "prezzo negativo → 0");
+test("⛔ valoreMateriale: senza prezzo restano le tonnellate, il valore no", () => {
+  const v = terra.valoreMateriale(1000, 1.6, "");
+  eq(v.tonnellate, 1600, "le tonnellate si calcolano lo stesso");
+  eq(v.valore, null, "il valore no");
+  eq(v.calcolabile, false, "dichiarato");
+  ok(/prezzo/.test(v.motivo), "e la ragione nomina il prezzo: " + v.motivo);
+});
+test("⛔ valoreMateriale: volume o densità illeggibili o negativi → non si calcola", () => {
+  eq(terra.valoreMateriale("abc", 1.6, 12).tonnellate, null, "volume non numerico");
+  eq(terra.valoreMateriale(-5, 1.6, 12).tonnellate, null, "volume negativo");
+  eq(terra.valoreMateriale(1000, -1, 12).tonnellate, null, "densità negativa");
+  eq(terra.valoreMateriale(1000, 1.6, -3).valore, null, "prezzo negativo");
+  eq(terra.valoreMateriale(1000, 1.6, -3).tonnellate, 1600, "ma le tonnellate restano");
+  // `true` non è un numero registrato, e `+true` fa 1: la trappola del predicato ingenuo
+  eq(terra.valoreMateriale(1000, true, 12).tonnellate, null, "densità `true` non è 1 t/m³");
 });
 test("parseRilieviCsv: legge data/volume/metodo/gsd, scarta righe non valide", () => {
   const csv = "data;volumeM3;metodo;gsd\n2026-07-15;19400;RTK+GCP;2\n2026-06-16;21300\nquando;100;;\n2026-05-01;abc;;\n";
@@ -1116,6 +1148,25 @@ test("bandaVolume: banda ± sulla base della %tolleranza", () => {
   eq(terra.bandaVolume(50, 8).min, 46, "min non negativo");
   eq(terra.bandaVolume(100, null), null, "tolleranza assente → null");
   eq(terra.bandaVolume(-5, 2), null, "volume negativo → null");
+});
+/* ⛔ IL VOLUME ASSENTE DAVA «FRA 0 E 0 m³», E FINIVA SUL VERBALE PER L'ENTE.
+   `+null` fa 0 e `0 >= 0` è true, quindi la guardia che dichiarava «volume non
+   valido → null» lasciava passare `null`, `""` e `"  "` e restituiva
+   `{volume:0, banda:0, min:0, max:0}`. Misurato il 03/08 aprendo il verbale di
+   un rilievo di archivio segnato «elaborato» col volume illeggibile: il foglio
+   stampava «Volume misurato — m³ (± 0 m³ · fra 0 e 0 m³)». Uno ZERO MISURATO
+   resta invece una banda vera, ed è il caso da non rompere. */
+test("⛔ bandaVolume: volume assente non è volume zero", () => {
+  eq(terra.bandaVolume(null, 2), null, "null → non calcolabile");
+  eq(terra.bandaVolume(undefined, 2), null, "undefined → non calcolabile");
+  eq(terra.bandaVolume("", 2), null, "stringa vuota → non calcolabile");
+  eq(terra.bandaVolume("  ", 2), null, "solo spazi → non calcolabile");
+  eq(terra.bandaVolume("abc", 2), null, "non numero → non calcolabile");
+  eq(terra.bandaVolume(true, 2), null, "`true` non è 1 m³");
+  eq(terra.bandaVolume([], 2), null, "`[]` non è 0 m³");
+  // e il caso opposto, quello che la correzione NON deve portarsi via
+  eq(terra.bandaVolume(0, 2), { volume: 0, banda: 0, min: 0, max: 0 }, "zero MISURATO resta una banda");
+  eq(terra.bandaVolume("19400", 2).banda, 388, "il numero scritto come stringa si legge ancora");
 });
 test("presetDensita: ritorna densità tipica del litotipo con avviso daVerificare", () => {
   const c = terra.presetDensita("calcare-compatto");

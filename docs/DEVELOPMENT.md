@@ -46,7 +46,7 @@ segnaposto («Funzione nav non ancora pronta»). Per aprirlo davvero si monta
 
 ## Le prove
 
-**1.948 prove girano senza rete e senza browser**, con `node` (contate lanciandole, non a memoria — al 03/08: 1552 + 284 + 63 + 32 + 9 + 8):
+**1.950 prove girano senza rete e senza browser**, con `node` (contate lanciandole, non a memoria — al 03/08: 1554 + 284 + 63 + 32 + 9 + 8):
 
 E **606 funzioni pure su 606** sono chiamate per nome da quelle prove: tutte e
 sei le app al 100%. Non è «provate bene» — è «non ce n'è nessuna che nessuno ha
@@ -128,7 +128,7 @@ avvio) — servono `firebase-tools` e Java:
 cd apps/deepwork-id && firebase emulators:exec --project demo-deepwork "cd tests && npm test"
 ```
 
-**55 esecuzioni che aprono davvero le pagine** in Chromium — banchi distinti,
+**57 esecuzioni che aprono davvero le pagine** in Chromium — banchi distinti,
 ognuno seguito dalla sua **controprova** (Chromium è già installato in
 `/opt/pw-browsers/chromium`, **non** si lancia `playwright install`):
 

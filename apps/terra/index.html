@@ -1115,8 +1115,19 @@ a.dw-btn{text-decoration:none}
                    .sort(rilCmp);
     $("ril-list").innerHTML = ril.map(r => {
       const ca = classeAccuratezza(r);
-      const bv = (r.volumeM3 != null && ca.tolleranzaPct != null) ? bandaVolume(r.volumeM3, ca.tolleranzaPct) : null;
-      const volTxt = r.volumeM3 != null ? " · " + r.volumeM3.toLocaleString("it-IT") + " m³" + (bv ? " ± " + bv.banda.toLocaleString("it-IT") : "") : "";
+      /* ⛔ QUI C'ERANO DUE COPIE PIÙ DEBOLI DI `rilievoUsabile`, e la seconda
+         apriva il bottone del VERBALE. `r.volumeM3 != null` accetta `""`,
+         `"  "` e `"abc"`: un rilievo di archivio segnato «elaborato» col volume
+         illeggibile prendeva il bottone, e il foglio che va all'ente stampava
+         «Volume misurato — m³ (± 0 m³ · fra 0 e 0 m³)». La condizione giusta
+         è scritta una volta sola nel modulo, e questa riga la chiama.
+         ⚠️ E un rilievo così non si tace: la riga lo dichiara, con le stesse
+         parole che la scheda dei Lotti usa già per lo stesso caso. */
+      const usabile = rilievoUsabile(r);
+      const bv = (usabile && ca.tolleranzaPct != null) ? bandaVolume(r.volumeM3, ca.tolleranzaPct) : null;
+      const volTxt = usabile
+        ? " · " + (+r.volumeM3).toLocaleString("it-IT") + " m³" + (bv ? " ± " + bv.banda.toLocaleString("it-IT") : "")
+        : r.stato === "elaborato" ? " · volume non leggibile" : "";
       // Il cumulo si dichiara: senza etichetta, un volume ripreso dal
       // piazzale sembrerebbe scavo nuovo. Lo scavo resta senza badge, com'era.
       const cum = provenienzaRilievo(r) === "cumulo";
@@ -1124,7 +1135,7 @@ a.dw-btn{text-decoration:none}
       <div class="info"><div class="name">${esc(r.titolo)}</div><div class="meta">${giornoMese(r.data)} · ${esc(r.tipo||"")}${volTxt}${qualitaRilievo(r)?" · "+esc(qualitaRilievo(r)):""}</div></div>
       <div class="acts">${cum ? '<span class="badge tag" title="Materiale già estratto, ripreso da un cumulo: non consuma il volume concesso">Da cumulo</span>' : ""}
       ${ca.cls ? `<span class="badge ${ca.cls}" title="Accuratezza tipica del metodo — da confermare coi checkpoint del rilevatore">${ca.label}</span>` : ""}
-      <span class="badge ${RB[r.stato][0]}">${RB[r.stato][1]}</span>${r.stato==="elaborato"&&r.volumeM3!=null?`<button class="arr" type="button" title="Verbale di rilievo da stampare o salvare in PDF" aria-label="Verbale del rilievo del ${giornoMese(r.data)}" data-verb-ril="${r.id}">${A.verb}</button>`:""}${r.stato==="pianificato"?`<button class="arr del" type="button" title="Annulla il rilievo pianificato" aria-label="Annulla il rilievo pianificato del ${giornoMese(r.data)}" data-del-ril="${r.id}">${A.del}</button>`:""}</div></div>`;
+      <span class="badge ${RB[r.stato][0]}">${RB[r.stato][1]}</span>${usabile?`<button class="arr" type="button" title="Verbale di rilievo da stampare o salvare in PDF" aria-label="Verbale del rilievo del ${giornoMese(r.data)}" data-verb-ril="${r.id}">${A.verb}</button>`:""}${r.stato==="pianificato"?`<button class="arr del" type="button" title="Annulla il rilievo pianificato" aria-label="Annulla il rilievo pianificato del ${giornoMese(r.data)}" data-del-ril="${r.id}">${A.del}</button>`:""}</div></div>`;
     }).join("")
       || (qRil
           ? vuoto(I.cerca, "Nessun risultato", "Nessun rilievo corrisponde a <b>«" + esc(qRil) + "»</b>. Prova con una parte del titolo o del tipo di rilievo.")
@@ -2315,8 +2326,16 @@ a.dw-btn{text-decoration:none}
     if (R.qualita.surveyGrade) qual.push(R.qualita.surveyGrade + " di qualità topografica");
     if (R.qualita.indicativo) qual.push(R.qualita.indicativo + " indicativi");
     if (R.qualita.nd) qual.push(R.qualita.nd + " senza metodo dichiarato");
+    /* ⛔ LA FRASE DICEVA «nessun rilievo, QUINDI volumi a zero per tutto
+       l'anno», su un foglio che va all'ente. È l'inferenza che il principio del
+       fondatore vieta, scritta per esteso nel posto peggiore — e a tre
+       centimetri di distanza, sullo STESSO foglio, il paragrafo dell'onere dice
+       «per l'ente “zero misurato” e “non misurato” non sono la stessa cosa».
+       Gli zeri della tabella dei mesi restano (il modulo dell'ente vuole il
+       mese vuoto scritto zero, e la colonna «Rilievi» accanto dichiara che lì
+       non ha misurato nessuno): quello che non si può scrivere è il «quindi». */
     const conta = (R.rilieviScavo + R.rilieviCumulo === 0)
-      ? "nessun rilievo, quindi volumi a zero per tutto l'anno"
+      ? "nessun rilievo — il volume dell'anno non l'ha misurato nessuno, e gli zeri della tabella dei mesi sono il modo in cui il modulo va compilato, non una misura"
       : R.rilieviScavo + (R.rilieviScavo === 1 ? " rilievo di scavo" : " rilievi di scavo")
         + (R.rilieviCumulo ? " e " + R.rilieviCumulo + (R.rilieviCumulo === 1 ? " ripresa da cumulo" : " riprese da cumuli") : "");
     const doc = "<!DOCTYPE html><html lang='it'><head><meta charset='utf-8'>"
@@ -2349,10 +2368,21 @@ a.dw-btn{text-decoration:none}
       + mesiVisti.map(m => riga([MESI_NOME[m.mese - 1],
           "<span class='n'>" + n0(m.scavo) + "</span>", "<span class='n'>" + n0(m.cumulo) + "</span>",
           "<span class='n'>" + m.rilievi + "</span>"])).join("")
-      + "<tr class='tot'><td>Totale " + R.anno + "</td><td class='n'>" + n0(R.scavo) + "</td><td class='n'>"
+      /* ⛔ E LA RIGA DEL TOTALE PORTA «non misurato», come già fanno i banchi
+         venti righe più giù su questo stesso foglio. Un «Totale 2026: 0» in
+         grassetto, in un anno in cui nessuno ha volato, l'ente lo legge come
+         una dichiarazione di non aver estratto niente. Chi decide se lo scavo
+         dell'anno è dichiarabile è `baseOnereEscavazione` — la stessa bandiera
+         che due sezioni più in basso decide l'imponibile: una regola, un posto,
+         letta tre volte sullo stesso foglio. */
+      + "<tr class='tot'><td>Totale " + R.anno + "</td><td class='n'>"
+      + (DEN.base && DEN.base.calcolabile ? n0(R.scavo) : "non misurato") + "</td><td class='n'>"
       + n0(R.cumulo) + "</td><td class='n'>" + (R.rilieviScavo + R.rilieviCumulo) + "</td></tr>"
       + "</table>"
-      + "<p class='mini'>Lo <b>scavo</b> è materiale nuovo tolto dal fronte e consuma il volume concesso. La <b>ripresa da cumuli</b> è materiale già estratto in passato e rimosso da un deposito: è indicata a parte perché non costituisce nuovo scavo.</p>"
+      + "<p class='mini'>Lo <b>scavo</b> è materiale nuovo tolto dal fronte e consuma il volume concesso. La <b>ripresa da cumuli</b> è materiale già estratto in passato e rimosso da un deposito: è indicata a parte perché non costituisce nuovo scavo."
+      + (DEN.base && DEN.base.calcolabile ? ""
+          : " Nel " + R.anno + " <b>non risulta nessun rilievo di scavo</b>: gli zeri dei mesi sono la forma con cui il modulo va compilato — la colonna «Rilievi» dice dove non ha misurato nessuno — e il totale dell'anno non è una misura.")
+      + "</p>"
       /* NOTA: qui si stampano TUTTE le voci di `R.fronti`, compresa quella senza
          fronte fatta di sole riprese da cumuli — che invece l'elenco a schermo
          esclude. Non è una svista: la tabella ha una colonna «Ripreso da cumuli»,
@@ -2455,7 +2485,13 @@ a.dw-btn{text-decoration:none}
     const mesiVisti = R.inCorso ? R.mesi.slice(0, meseOggi) : R.mesi;
     let csv = "sezione;voce;scavoM3;cumuloM3;rilievi\n";
     for (const m of mesiVisti) csv += `mese;${csvCell(MESI_NOME[m.mese - 1] + " " + R.anno)};${m.scavo};${m.cumulo};${m.rilievi}\n`;
-    csv += `totale;${csvCell("Anno " + R.anno)};${R.scavo};${R.cumulo};${R.rilieviScavo + R.rilieviCumulo}\n`;
+    /* ⛔ E LA STESSA REGOLA VALE PER IL TOTALE DELL'ANNO, che qui sotto era un
+       «0» secco mentre sei righe più giù la cella di un banco mai rilevato è
+       già vuota, con la ragione scritta. Misurato il 03/08 su un anno senza
+       rilievi: il file diceva `totale;Anno 2026;0;0;0` e `banco;banco 1;;0;0`,
+       cioè due convenzioni opposte nello stesso CSV — e chi apre il foglio in
+       Excel somma lo zero del totale credendolo misurato. */
+    csv += `totale;${csvCell("Anno " + R.anno)};${DEN.base && DEN.base.calcolabile ? R.scavo : ""};${R.cumulo};${R.rilieviScavo + R.rilieviCumulo}\n`;
     for (const f of R.fronti) csv += `fronte;${csvCell(etFronte(f))};${f.scavo};${f.cumulo};${f.rilievi}\n`;
     /* ⛔ la cella dello scavo di un banco mai rilevato resta VUOTA, non «0»:
        chi apre il CSV in un foglio sommerebbe uno zero che nessuno ha misurato */
@@ -2967,8 +3003,17 @@ a.dw-btn{text-decoration:none}
     const rp = numCampo("val-prezzo", { min: 0, decimali: 2 });
     const rotto = numIllegibile(rd) ? ["la densità", rd, "t/m³"] : numIllegibile(rp) ? ["il prezzo", rp, "€/t"] : null;
     if (rotto) { $("val-out").innerHTML = esc(spiegaNum(rotto[0], rotto[1], rotto[2])); return; }
-    const dens = rd.ok ? rd.valore : 0, prezzo = rp.ok ? rp.valore : 0;
-    const { tonnellate, valore } = valoreMateriale(volAnno, dens, prezzo);
+    /* ⛔ QUI C'ERANO DUE ZERI, e dieci righe più giù il ponte coi turni legge lo
+       STESSO campo con `: null`. Due letture della stessa densità, a dieci
+       righe di distanza, con convenzioni opposte — e quella tranquilla stava
+       nel riquadro dei soldi: campo della densità svuotato, e il riquadro
+       scriveva «79.400 m³ → 0 t → € 0 di materiale» mentre la nota qui sopra
+       diceva «il valore del materiale non si calcola». Adesso il campo non
+       letto vale `null` in tutt'e due i posti, e chi decide se il conto si può
+       fare è `valoreMateriale`, una volta sola. */
+    const dens = rd.ok ? rd.valore : null, prezzo = rp.ok ? rp.valore : null;
+    const V = valoreMateriale(volAnno, dens, prezzo);
+    const { tonnellate, valore } = V;
     const eur = euro0;   // la regola vive in shared/ (prima aveva lo spazio normale)
     const ton = (n) => Math.round(n).toLocaleString("it-IT");
     /* ⛔ IL NUMERO NON BASTA. Le tonnellate qui sopra sono metri cubi
@@ -2980,8 +3025,15 @@ a.dw-btn{text-decoration:none}
     const attrib = dens > 0
       ? ` <span class="form-hint">Conversione fatta con <b>${itDec(dens)} t/m³</b> — ${esc(f.breve === "non dichiarata" ? "provenienza non dichiarata" : f.breve)}.</span>`
       : "";
+    /* la catena si ferma dove si ferma il conto: senza densità restano i metri
+       cubi, senza prezzo restano le tonnellate. Il perché lo dice il modulo —
+       la frase è una REGOLA, e chi la scrive dev'essere uno solo. */
+    const catena = `Estratto ${anno}: <b>${volAnno.toLocaleString("it-IT")} m³</b>`
+      + (tonnellate != null ? ` → <b>${ton(tonnellate)} t</b>` : "")
+      + (valore != null ? ` → <b>${eur(valore)}</b> di materiale.` : ".")
+      + (V.motivo ? ` ${esc(V.motivo)}` : "");
     $("val-out").innerHTML = volAnno
-      ? `Estratto ${anno}: <b>${volAnno.toLocaleString("it-IT")} m³</b> → <b>${ton(tonnellate)} t</b> → <b>${eur(valore)}</b> di materiale.`
+      ? catena
         + (volCum ? ` Fuori dal conto restano <b>${volCum.toLocaleString("it-IT")} m³</b> ripresi da cumuli: erano già stati estratti, contarli qui varrebbe due volte lo stesso materiale.` : "")
         + attrib
       : `Nessun volume di scavo elaborato per il ${anno}: registra un rilievo per stimare il valore.`
@@ -3077,16 +3129,34 @@ a.dw-btn{text-decoration:none}
         <div class="kpi"><div class="l">Giorni dall'ultimo rilievo</div><div class="n">${av.giorni}</div></div>
         <div class="kpi largo"><div class="l">Turni che hanno dichiarato</div><div class="n">${d.turni}</div></div>
       </div>`;
+      /* ⛔ E I CASI SONO TRE, NON DUE. Con la densità non impostata i turni
+         dichiarano tonnellate che nessuno può portare in metri cubi: il ponte
+         mette quelle tonnellate in `tSenzaDensita` e lascia `m3` a **zero** —
+         giusto come forma numerica, ma la frase scriveva «i turni hanno
+         dichiarato circa **0 m³**» mentre la tessera accanto, che la stessa
+         distinzione ce l'aveva già (`d.m3 > 0 ? … : "—"`), diceva «—».
+         Misurato aprendo la pagina il 03/08, col campo della densità svuotato.
+         Il predicato è quello di `riconciliazioneTurni` in `shared/`, che per
+         questo caso ha lo stato `no-densita`: non se ne scrive un altro. */
+      const nonConvertibile = !nulla && !(d.m3 > 0);
       html += `<div class="note recap">Dal <b>${fmtData(av.dal)}</b> — il giorno dopo il rilievo del ${fmtData(av.dallUltimoRilievo)} — a oggi `
         + (nulla
           ? `nessun turno ha registrato una produzione, quindi di questo periodo Terra non sa niente: l'ultimo numero misurato resta quello del rilievo del ${fmtData(av.dallUltimoRilievo)}.`
-          : `i turni hanno dichiarato circa <b>${n0(d.m3)} m³</b>${d.t > 0 && d.densita ? ` (da <b>${n0(d.t)} t</b> alla densità di ${nD(d.densita)} t/m³)` : ""}. `
-            + `È una <b>stima dichiarata</b>, non una misura: non consuma il volume concesso e non entra nella denuncia agli enti. Serve a sapere cosa è successo da quando il drone non vola.`)
+          : nonConvertibile
+            ? `${d.turni} turn${d.turni === 1 ? "o ha" : "i hanno"} dichiarato una produzione, ma <b>niente di quello che hanno scritto si può portare in metri cubi</b>: di quanto è uscito dalla cava in questo periodo Terra non ha un numero. Non vuol dire che non sia uscito niente.`
+            : `i turni hanno dichiarato circa <b>${n0(d.m3)} m³</b>${d.t > 0 && d.densita ? ` (da <b>${n0(d.t)} t</b> alla densità di ${nD(d.densita)} t/m³)` : ""}. `
+              + `È una <b>stima dichiarata</b>, non una misura: non consuma il volume concesso e non entra nella denuncia agli enti. Serve a sapere cosa è successo da quando il drone non vola.`)
         + `</div>`;
       const fuori = [];
       if (d.tSenzaDensita > 0) fuori.push(`<b>${n0(d.tSenzaDensita)} t</b> che non si possono portare in metri cubi senza una densità valida`);
       if (d.viaggi > 0) fuori.push(`<b>${d.viaggi} viaggi</b>, che non si convertono: servirebbe la portata del mezzo, e cambia da camion a camion`);
-      if (fuori.length) html += `<div class="note avviso">Fuori da quel numero restano ${fuori.join(" e ")}. Il totale in metri cubi è quindi <b>per difetto</b>.</div>`;
+      if (fuori.length) html += `<div class="note avviso">`
+        /* ⚠️ «per difetto» ha senso solo se un numero c'è: quando in metri cubi
+           non è entrato NIENTE, il totale non è basso, non esiste. */
+        + (nonConvertibile
+          ? `Quello che i turni hanno dichiarato è ${fuori.join(" e ")}: imposta la densità del materiale qui sopra e le tonnellate diventano metri cubi.`
+          : `Fuori da quel numero restano ${fuori.join(" e ")}. Il totale in metri cubi è quindi <b>per difetto</b>.`)
+        + `</div>`;
 
       // ── 1-bis. PONTE P2 — DA QUALE FRONTE, secondo i turni ──────────────
       // Il numero sopra dice QUANTO; questo dice DA DOVE. Resta una stima
@@ -3100,7 +3170,24 @@ a.dw-btn{text-decoration:none}
          turno dal periodo */
       const oggiLoc = oggiISO();
       const pf = d.turni ? produzionePerFronte(RAPP, FRO, av.dal, oggiLoc, dens) : null;
-      if (pf && (pf.righe.length || pf.senzaFronte.m3 > 0 || pf.fronteSconosciuto.m3 > 0)) {
+      /* ⛔ QUESTA SEZIONE SI GUARDAVA I METRI CUBI PER DECIDERE CHI ESISTE, e
+         senza densità i metri cubi sono tutti zero: la riga del fronte scriveva
+         «0 m³» (con la tessera qui sopra che diceva «—» sullo stesso dato), e la
+         frase in fondo scriveva «Tutti i turni hanno indicato il fronte» mentre
+         i turni senza fronte c'erano — con la densità impostata la stessa
+         schermata diceva «763 m³ da turni che il fronte non l'hanno indicato».
+         Cioè un dato assente letto come una buona notizia, due volte di fila.
+         Chi c'è lo dicono i TURNI (`turni`), che si contano sempre; il volume
+         lo dicono i metri cubi, che a volte non ci sono. Le due domande sono
+         diverse e adesso guardano due campi diversi. */
+      const daTurni = (x) => (x.turni || 0) > 0;
+      if (pf && (pf.righe.length || daTurni(pf.senzaFronte) || daTurni(pf.fronteSconosciuto))) {
+        /* un fronte è in elenco solo se qualche turno ci ha dichiarato una
+           produzione > 0: quindi `m3 === 0` qui non è «hanno cavato zero», è
+           «quello che hanno dichiarato non si converte». */
+        const volume = (x) => x.m3 > 0
+          ? `${n0(x.m3)} <span class="u">m³</span>`
+          : `<span title="I turni hanno dichiarato tonnellate o viaggi, che senza densità (o del tutto) non si portano in metri cubi">non convertibile</span>`;
         const righe = pf.righe.map((r) =>
           /* `cursor:default`: e' una riga di sola lettura — dice quanti metri
              cubi vengono da quel fronte secondo i turni, e non si tocca. E'
@@ -3109,14 +3196,19 @@ a.dw-btn{text-decoration:none}
           `<div class="item st-accent" style="cursor:default;"><div class="avatar">${esc(sig(r.nome))}</div>
              <div class="info"><div class="name">${esc(r.nome)}</div>
                <div class="meta">${r.turni} turn${r.turni === 1 ? "o" : "i"}${r.quotaPct != null ? " · " + nD(r.quotaPct) + "% di quello che si sa" : ""}</div></div>
-             <div class="acts"><span class="vita-pct">${n0(r.m3)} <span class="u">m³</span></span></div></div>`).join("");
+             <div class="acts"><span class="vita-pct">${volume(r)}</span></div></div>`).join("");
         html += `<div class="sec" style="margin-top:18px;">Da quale fronte, secondo i turni</div>` + righe;
 
+        /* la frase cambia forma, non solo numero: «non convertibile da 2 turni»
+           non si legge. Col volume si dice il volume, senza si dicono i turni. */
+        const avanzo = (x, coda) => x.m3 > 0
+          ? `<b>${n0(x.m3)} m³</b> da ${x.turni} turn${x.turni === 1 ? "o " : "i "}${coda}`
+          : `<b>${x.turni} turn${x.turni === 1 ? "o " : "i "}${coda}</b>, il cui dichiarato non si converte in metri cubi`;
         const avanzi = [];
-        if (pf.senzaFronte.m3 > 0)
-          avanzi.push(`<b>${n0(pf.senzaFronte.m3)} m³</b> da turni che il fronte non l'hanno indicato`);
-        if (pf.fronteSconosciuto.m3 > 0)
-          avanzi.push(`<b>${n0(pf.fronteSconosciuto.m3)} m³</b> attaccati a un fronte che non esiste più`);
+        if (daTurni(pf.senzaFronte))
+          avanzi.push(avanzo(pf.senzaFronte, pf.senzaFronte.turni === 1 ? "che il fronte non l'ha indicato" : "che il fronte non l'hanno indicato"));
+        if (daTurni(pf.fronteSconosciuto))
+          avanzi.push(avanzo(pf.fronteSconosciuto, pf.fronteSconosciuto.turni === 1 ? "attaccato a un fronte che non esiste più" : "attaccati a un fronte che non esiste più"));
         html += `<div class="note recap">`
           + (pf.copertura != null
             ? `Di quello che i turni hanno dichiarato, si sa da dove viene il <b>${nD(pf.copertura)}%</b>. `
