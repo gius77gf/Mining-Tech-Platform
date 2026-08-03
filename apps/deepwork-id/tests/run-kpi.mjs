@@ -19213,5 +19213,179 @@ test("⛔ Scudo · andamento indici: il verso letto su giornate ancora da contar
   });
 }
 
+// ═══ SENTINELLA · il documento per l'ente (03/08) ═══
+// Terza passata sul report di conformità: non più «che numero scrive», ma
+// «che cosa dichiara di NON sapere», e se lo dichiara dove qualcuno lo legge.
+{
+  console.log("\n— Sentinella: il report di conformità, terza passata —");
+  const L = (d, v) => ({ data: d, ora: "09:00", valore: v });
+  const P = (...date) => ({ letture: date.map((d) => ({ data: d, valore: 1 })) });
+
+  test("⛔ Sentinella · il periodo dichiarato e quello davvero misurato sono due cose diverse", () => {
+    /* Il caso vero: report intestato a dodici mesi, misure che finiscono il
+       10 marzo. Prima non lo diceva niente — né il modulo né la pagina. */
+    const c = sentinella.coperturaPeriodo(
+      [P("2026-01-10", "2026-02-10", "2026-03-10")], "2026-01-01", "2026-12-31",
+      new Date("2026-12-31T12:00:00"));
+    eq(c.stato, "misurato", "il periodo è dichiarato e qualcosa è stato misurato");
+    eq(c.giorniDichiarati, 365, "il 2026 dura 365 giorni");
+    eq([c.prima, c.ultima], ["2026-01-10", "2026-03-10"], "primo e ultimo giorno misurato");
+    eq(c.nGiorniMisurati, 3, "tre giorni con almeno una misura");
+    eq(c.giorniPrima, 9, "dal 1º al 9 gennaio nessuna misura");
+    eq(c.giorniDopo, 296, "dall'11 marzo al 31 dicembre nessuna misura");
+    eq([c.vuotoMax, c.vuotoDal, c.vuotoAl], [296, "2026-03-11", "2026-12-31"],
+       "e il tratto scoperto più lungo è la coda");
+  });
+
+  test("⛔ Sentinella · i giorni non ancora trascorsi NON sono un buco nel report", () => {
+    /* L'errore di mestiere che il prototipo ha fermato: un report generato il
+       25 marzo su «tutto il 2026» avrebbe dichiarato 286 giorni scoperti in
+       coda. Non sono scoperti: non sono passati. Il fondo si taglia a oggi. */
+    const c = sentinella.coperturaPeriodo([P("2026-03-01", "2026-03-20")],
+      "2026-01-01", "2026-12-31", new Date("2026-03-25T12:00:00"));
+    eq(c.oltreOggi, true, "il periodo dichiarato arriva oltre oggi, e si dice");
+    eq(c.alUtile, "2026-03-25", "il fondo utile è oggi, non il 31 dicembre");
+    eq(c.giorniDichiarati, 84, "1º gennaio → 25 marzo");
+    eq(c.giorniDopo, 5, "cinque giorni fra l'ultima misura e oggi, non 286");
+    eq(c.vuotoMax, 59, "il vuoto più lungo è la testa (1º gennaio → 28 febbraio)");
+  });
+
+  test("⛔ Sentinella · testa e coda non bastano: il buco in mezzo va detto", () => {
+    /* Due misure, gennaio e dicembre: agli estremi il periodo sembra coperto
+       (4 giorni di testa, 11 di coda) e dentro ci sono 348 giorni vuoti. */
+    const c = sentinella.coperturaPeriodo([P("2026-01-05", "2026-12-20")],
+      "2026-01-01", "2026-12-31", new Date("2026-12-31T12:00:00"));
+    eq([c.giorniPrima, c.giorniDopo], [4, 11], "agli estremi sembra coperto");
+    eq([c.vuotoMax, c.vuotoDal, c.vuotoAl], [348, "2026-01-06", "2026-12-19"],
+       "ma in mezzo c'è quasi tutto l'anno");
+    // e un mensile regolare non deve suonare come un buco
+    const r = sentinella.coperturaPeriodo(
+      [P(...Array.from({ length: 12 }, (_, i) => `2026-${String(i + 1).padStart(2, "0")}-15`))],
+      "2026-01-01", "2026-12-31", new Date("2026-12-31T12:00:00"));
+    eq(r.vuotoMax, 30, "dodici misure mensili: il vuoto più lungo è un mese");
+  });
+
+  test("⛔ Sentinella · «senza letture» e «senza periodo» non si confondono", () => {
+    const vuoto = sentinella.coperturaPeriodo([P()], "2026-01-01", "2026-12-31",
+      new Date("2026-12-31T12:00:00"));
+    eq(vuoto.stato, "senza-letture", "periodo dichiarato, nemmeno un giorno misurato");
+    eq([vuoto.prima, vuoto.giorniDichiarati, vuoto.vuotoMax], [null, null, null],
+       "e non si inventa nessun numero");
+    const storico = sentinella.coperturaPeriodo([P("2026-01-10")], "", "",
+      new Date("2026-12-31T12:00:00"));
+    eq(storico.stato, "senza-periodo", "«tutto lo storico» non ha una finestra promessa");
+    eq(storico.prima, "2026-01-10", "ma il primo giorno misurato si dice lo stesso");
+    // una data che non esiste non allunga niente (`dataISOEsiste`, non `Date.parse`)
+    const falsa = sentinella.coperturaPeriodo([P("2026-02-30", "2026-03-10")],
+      "2026-01-01", "2026-12-31", new Date("2026-12-31T12:00:00"));
+    eq([falsa.prima, falsa.nGiorniMisurati], ["2026-03-10", 1], "il 30 febbraio non è un giorno misurato");
+  });
+
+  test("⛔ Sentinella · la mappa della copertura copre tutte le risposte della sua funzione", () => {
+    /* La coppia funzione↔mappa della regola 18, provata qui perché
+       `run-stile.mjs` le coppie le tiene scritte a mano e questo cantiere non
+       lo tocca. Se `coperturaPeriodo` impara una quarta risposta e la mappa
+       resta a tre, la card del report esce con il testo sbagliato — e con il
+       ripiego `|| DICHIARAZIONI_COPERTURA["senza-periodo"]` non muore nemmeno
+       la pagina: scrive «nessun periodo dichiarato» su un periodo dichiarato. */
+    const stati = new Set();
+    const casi = [
+      [[P("2026-01-10")], "2026-01-01", "2026-12-31"],
+      [[P()], "2026-01-01", "2026-12-31"],
+      [[P("2026-01-10")], "", ""],
+    ];
+    for (const [pt, d, a] of casi)
+      stati.add(sentinella.coperturaPeriodo(pt, d, a, new Date("2026-12-31T12:00:00")).stato);
+    eq(stati.size, 3, "tre situazioni di fatto, tutte raggiunte dalle prove");
+    for (const s of stati)
+      ok(sentinella.DICHIARAZIONI_COPERTURA[s],
+         `DICHIARAZIONI_COPERTURA non ha «${s}», che coperturaPeriodo sa restituire`);
+    eq(Object.keys(sentinella.DICHIARAZIONI_COPERTURA).length, 3,
+       "e nessuna voce in più che non corrisponda a niente");
+  });
+
+  test("⛔ Sentinella · «Conforme» su un punto misurato e due mai misurati deve dire quanti", () => {
+    /* Misurato prima della correzione: tre punti, uno solo con letture, tutti
+       e tre con la loro soglia → il documento scriveva «Conforme», «Punti di
+       misura: 3», e dei due mai misurati non diceva niente accanto al
+       verdetto, perché la riga del denominatore si accendeva solo sui punti
+       SENZA SOGLIA. L'esito resta quello (è vero per i punti che hanno
+       letture); quello che mancava era il conto accanto. */
+    const R = sentinella.reportConformita({
+      dal: "2026-01-01", al: "2026-12-31", oggi: "2026-12-31",
+      ricettori: [{ id: "r1", nome: "Casa Bianchi" }],
+      monitoraggi: [
+        { id: "p1", nome: "Fonometro nord", soglia: 65, unita: "dB(A)", ricettoreId: "r1",
+          letture: [L("2026-01-10", 50), L("2026-02-10", 52), L("2026-03-10", 51)] },
+        { id: "p2", nome: "Polveri est", soglia: 50, unita: "µg/m³", ricettoreId: "r1", letture: [] },
+        { id: "p3", nome: "Vibrometro sud", soglia: 3, unita: "mm/s", ricettoreId: "r1", letture: [] },
+      ],
+    });
+    eq(R.esito, "conforme", "sui punti che hanno letture il giudizio non cambia");
+    eq([R.nPunti, R.nPuntiConDati, R.nPuntiSenzaSoglia], [3, 1, 0],
+       "tre configurati, uno misurato, nessuno senza soglia: la vecchia riga taceva");
+    eq(R.nPuntiSenzaLetture, 2, "e due non sono stati misurati per niente");
+    eq(R.puntiSenzaLetture, ["Polveri est", "Vibrometro sud"],
+       "col nome, perché «due punti» senza dire quali non manda nessuno a misurare");
+    // e il periodo dichiarato viaggia nel documento, non solo nella testata
+    contiene(R.copertura, { stato: "misurato", giorniDopo: 296, vuotoMax: 296 },
+       "la copertura del periodo entra nel report");
+  });
+
+  test("⛔ Sentinella · un ricettore senza NEMMENO UN punto non sparisce dal documento", () => {
+    /* Un piano più su dei punti mai misurati, e la domanda che il controllo
+       precedente non si faceva: un punto senza letture almeno una scheda ce
+       l'ha, un ricettore senza punti no — non compare da nessuna parte.
+       Misurato: tre ricettori in archivio, uno solo monitorato, testata
+       «tutti i ricettori della cava» e verdetto «Conforme». */
+    const base = {
+      dal: "2026-01-01", al: "2026-12-31", oggi: "2026-12-31",
+      ricettori: [{ id: "r1", nome: "Casa Bianchi" }, { id: "r2", nome: "Scuola Verdi" },
+                  { id: "r3", nome: "Cascina Rossi" }],
+      monitoraggi: [{ id: "p1", nome: "Fonometro nord", soglia: 65, unita: "dB(A)", ricettoreId: "r1",
+        letture: [L("2026-05-10", 50)] }],
+    };
+    const R = sentinella.reportConformita(base);
+    eq(R.esito, "conforme", "sul punto che c'è il giudizio non cambia");
+    eq(R.nRicettoriSenzaPunti, 2, "due ricettori non hanno nessun punto collegato");
+    eq(R.ricettoriSenzaPunti, ["Scuola Verdi", "Cascina Rossi"],
+       "e si chiamano per nome, come i punti mai misurati");
+    /* ⛔ E SOLO SUL REPORT DI TUTTA LA CAVA: scelto un ricettore il documento
+       è suo, e il caso «nessun punto collegato» lo racconta già lo stato
+       `vuoto`. Ripeterlo lì vorrebbe dire accusare l'utente di non aver
+       monitorato ricettori di cui quel foglio non parla. */
+    const solo = sentinella.reportConformita({ ...base, ricettoreId: "r1" });
+    eq(solo.nRicettoriSenzaPunti, 0, "su un report di UN ricettore la riga non si accende");
+    eq(solo.nPunti, 1, "e il documento resta quello del ricettore scelto");
+  });
+
+  test("⛔ Sentinella · il conto delle tarature arriva attaccato al SUO punto", () => {
+    /* `taratureDelReport` calcolava `perPunto` da sempre e non lo leggeva
+       nessuno: il documento diceva «una o più letture non sono coperte» senza
+       dire quale strumento. Adesso ogni punto porta il suo conto — e questa
+       prova guarda i NOMI, non gli indici: «per costruzione» è esattamente ciò
+       che si rompe in silenzio quando qualcuno filtra i punti. */
+    const R = sentinella.reportConformita({
+      dal: "2026-01-01", al: "2026-12-31", oggi: "2026-12-31",
+      ricettori: [{ id: "r1", nome: "Casa Bianchi" }],
+      monitoraggi: [
+        { id: "p1", nome: "Fonometro nord", soglia: 65, unita: "dB(A)", ricettoreId: "r1",
+          tarature: [{ data: "2025-06-01", scadenza: "2027-06-01", certificato: "C-1" }],
+          letture: [L("2026-01-10", 50), L("2026-02-10", 52)] },
+        { id: "p2", nome: "Polveri est", soglia: 50, unita: "µg/m³", ricettoreId: "r1",
+          tarature: [{ data: "2024-01-01", scadenza: "2025-01-01", certificato: "C-9" }],
+          letture: [L("2026-05-10", 20), L("2026-06-10", 22), L("2026-07-10", 21)] },
+      ],
+    });
+    eq(R.tarature.stato, "scoperte", "in cima il documento lo dice già");
+    for (const p of R.punti)
+      eq(p.taratura.nome, p.nome, `il conto attaccato a «${p.nome}» è il suo`);
+    eq([R.punti[0].taratura.coperte, R.punti[0].taratura.scoperte], [2, 0],
+       "il fonometro è coperto per tutte e due le letture");
+    eq([R.punti[1].taratura.coperte, R.punti[1].taratura.scoperte], [0, 3],
+       "e le tre letture scoperte sono TUTTE del polverimetro: è questo che mancava");
+  });
+}
+
 console.log(`\nRisultato KPI app: ${passed} passati, ${failed} falliti${inVolo.length ? `  ·  ${inVolo.length} prove asincrone aspettate` : ""}`);
 process.exit(failed > 0 ? 1 : 0);

@@ -877,10 +877,15 @@ textarea.dw-input{
     padding:0 !important; margin:0 !important; background:#fff !important;
   }
   .rep::before{display:none !important}
-  .rep-esito,.rep-cifra,.imp-cifra,.tab-wrap{box-shadow:none !important}
+  .rep-esito,.rep-cifra,.rep-tar,.imp-cifra,.tab-wrap{box-shadow:none !important}
   /* niente righe spezzate a metà fra due pagine */
   .rep-punto-tit,.rep-sez{break-after:avoid; page-break-after:avoid}
-  .rep-esito,.rep-cifre,.rep-graf{break-inside:avoid; page-break-inside:avoid}
+  /* ⛔ `.rep-tar` sta qui dentro dal 03/08, e sono le TRE dichiarazioni del
+     documento (riferibilità, provenienza, periodo). Erano le uniche card del
+     report che la stampa poteva spezzare a metà fra due fogli: e sono proprio
+     quelle che dicono ciò che il documento NON sa — la metà rimasta sul foglio
+     dopo si legge staccata dalla frase che la spiega. */
+  .rep-esito,.rep-cifre,.rep-graf,.rep-tar{break-inside:avoid; page-break-inside:avoid}
   .tab tr{break-inside:avoid; page-break-inside:avoid}
   /* su carta non esiste lo scorrimento laterale: le colonne si stringono
      e i testi vanno a capo, così nessuna colonna resta fuori dal foglio */
@@ -1438,6 +1443,7 @@ textarea.dw-input{
            csvAmbiente,
            provenienzaMisura, descriviProvenienza, campiProvenienza, correggiLettura,
            composizioneProvenienza, DICHIARAZIONI_PROVENIENZA, FONTI_MISURA,
+           DICHIARAZIONI_COPERTURA,
            FONTE_IMPORT, FONTE_MANO, FONTE_IGNOTA,
            numeroDaCampo, AVVISO_DECIMALE } from "./sentinella-data.js";
   import { mountExit, esc, csvCell, statoVuoto, senzaDoppioni, giorniTra, montaGuardiaInteri, avvolgiUnita, oggiISO,
@@ -2862,6 +2868,71 @@ textarea.dw-input{
       <div class="rep-tar-txt">${esc(D.testo)}</div>${dettaglio}</div>`;
   }
 
+  /* IL PERIODO DICHIARATO CONTRO QUELLO DAVVERO MISURATO (T2e).
+     ⛔ Terza card dello stesso rango — `.rep-tar` come le altre due, non una
+     scritta a mano: «di che giorni parla questo documento» sta accanto a «di
+     chi sono questi numeri» e «per che strada sono entrati». In testa al
+     report c'era «Periodo: dal 01/01/2026 al 31/12/2026» e in fondo
+     «Conforme», e in mezzo niente diceva che le misure finivano il 10 marzo.
+     ⛔ I NUMERI SI SCRIVONO SEMPRE, come i tre conti della provenienza: il
+     modulo non giudica «quante misure bastano» (lo decidono l'autorizzazione
+     e il programma di monitoraggio) e questa card non inventa un semaforo. */
+  function dichiarazioneCopertura(R) {
+    const C = R.copertura || { stato: "senza-periodo" };
+    const D = DICHIARAZIONI_COPERTURA[C.stato] || DICHIARAZIONI_COPERTURA["senza-periodo"];
+    const gg = (n) => `<b>${n}</b> ${n === 1 ? "giorno" : "giorni"}`;
+    const parti = [];
+    if (C.stato === "misurato") {
+      parti.push(`Periodo dichiarato: ${gg(C.giorniDichiarati)}`
+        + (C.oltreOggi ? `, contati fino a oggi (${fmtD(C.alUtile)}): i giorni successivi non sono ancora trascorsi` : ""));
+      parti.push(`misure registrate in <b>${C.nGiorniMisurati}</b> ${C.nGiorniMisurati === 1 ? "giorno" : "giorni"} diversi, dal <b>${fmtD(C.prima)}</b> al <b>${fmtD(C.ultima)}</b>`);
+      if (C.giorniPrima) parti.push(`${gg(C.giorniPrima)} all'inizio del periodo senza nessuna misura`);
+      if (C.giorniDopo) parti.push(`${gg(C.giorniDopo)} alla fine del periodo senza nessuna misura`);
+      /* ⚠️ IL TRATTO PIÙ LUNGO SI SCRIVE SOLO SE È UN BUCO IN MEZZO, e la
+         ragione si è vista solo nello scatto: nel caso più comune il tratto
+         più lungo È la coda, e la card scriveva «146 giorni alla fine» e
+         subito dopo «il tratto più lungo è di 146 giorni» — la stessa cosa
+         detta due volte. Una riga che ripete quella prima insegna a saltarle
+         tutt'e due. Quando invece il buco sta in mezzo, è l'unica riga che lo
+         dice: due misure a gennaio e a dicembre lasciano testa e coda corte e
+         348 giorni vuoti in mezzo. */
+      if (C.vuotoMax > C.giorniPrima && C.vuotoMax > C.giorniDopo)
+        parti.push(`e dentro il periodo c'è un tratto di ${gg(C.vuotoMax)} senza nessuna misura, dal <b>${fmtD(C.vuotoDal)}</b> al <b>${fmtD(C.vuotoAl)}</b>`);
+      if (!C.vuotoMax) parti.push(`non c'è nessun giorno del periodo senza misura`);
+    } else if (C.stato === "senza-periodo" && C.prima) {
+      parti.push(`le misure registrate vanno dal <b>${fmtD(C.prima)}</b> al <b>${fmtD(C.ultima)}</b>`);
+    }
+    const dettaglio = parti.length ? `<div class="rep-tar-conto">${parti.join(" · ")}.</div>` : "";
+    return `<div class="rep-tar ${D.cls === "ok" ? "" : D.cls}">
+      <div class="rep-tar-lab">Periodo dichiarato e periodo misurato</div>
+      <div class="rep-tar-txt">${esc(D.testo)}</div>${dettaglio}</div>`;
+  }
+
+  /* IL DENOMINATORE DEL VERDETTO, in una funzione sola.
+     ⛔ Prima stava dentro il template, in un ternario, e guardava UNA cosa
+        sola: i punti senza soglia. Con tre punti configurati, uno solo
+        misurato e tutti e tre con la loro soglia, il documento scriveva
+        «Conforme», «Punti di misura: 3» — e dei due punti su cui nessuno
+        aveva mai misurato niente non diceva nulla accanto al verdetto (lo
+        diceva in fondo, nella scheda di ciascuno: dove chi legge arriva dopo
+        essersi già fatto l'idea). Le due mancanze sono la stessa cosa vista da
+        due lati — «non si può giudicare» — e vanno dette insieme, se no la
+        seconda che si aggiunge finisce di nuovo dentro un `&&` di quella
+        prima. Restituisce una FRASE, non un `innerHTML`: il testo passa
+        comunque da `esc`. */
+  function denominatoreEsito(R) {
+    const f = [];
+    if (R.nPuntiSenzaLetture && R.esito !== "senza-dati")
+      f.push(`Dei ${R.nPunti} punti di misura configurati, ${R.nPuntiSenzaLetture === 1
+        ? "uno non ha nessuna lettura" : R.nPuntiSenzaLetture + " non hanno nessuna lettura"} nel periodo (${R.puntiSenzaLetture.join(", ")}): su ${R.nPuntiSenzaLetture === 1 ? "quello" : "quelli"} il documento non può dire se il limite è stato rispettato.`);
+    if (R.nRicettoriSenzaPunti)
+      f.push(`Il documento è intestato a tutti i ricettori della cava, ma ${R.nRicettoriSenzaPunti === 1
+        ? "uno non ha nessun punto di misura collegato" : R.nRicettoriSenzaPunti + " non hanno nessun punto di misura collegato"} (${R.ricettoriSenzaPunti.join(", ")}): di ${R.nRicettoriSenzaPunti === 1 ? "quello" : "quelli"} qui non risulta nessuna misura.`);
+    if (R.nPuntiSenzaSoglia && R.esito !== "senza-soglia")
+      f.push(`Questo giudizio riguarda ${R.nPuntiGiudicabili} ${R.nPuntiGiudicabili === 1 ? "punto" : "punti"} su ${R.nPuntiConDati} con letture nel periodo: ${R.nPuntiSenzaSoglia === 1 ? "un punto non ha" : R.nPuntiSenzaSoglia + " punti non hanno"} nessuna soglia impostata, e su ${R.nPuntiSenzaSoglia === 1 ? "quello" : "quelli"} non si può dire né conforme né non conforme.`);
+    return f.join(" ");
+  }
+
   function renderReport() {
     const box = $("rep-doc"); if (!box) return;
     repGrafici.forEach(g => { try { g.distruggi(); } catch (e) {} });
@@ -2909,10 +2980,9 @@ textarea.dw-input{
       <div class="rep-esito ${E.cls === "ok" ? "" : E.cls}">
         <div class="rep-esito-ico">${ico}</div>
         <div><div class="rep-esito-lab">${esc(E.label)}</div>
-        <div class="rep-esito-txt">${esc(E.testo)}${R.nPuntiSenzaSoglia && R.esito !== "senza-soglia"
-          ? " " + esc(`Questo giudizio riguarda ${R.nPuntiGiudicabili} ${R.nPuntiGiudicabili === 1 ? "punto" : "punti"} su ${R.nPuntiConDati} con letture nel periodo: ${R.nPuntiSenzaSoglia === 1 ? "un punto non ha" : R.nPuntiSenzaSoglia + " punti non hanno"} nessuna soglia impostata, e su ${R.nPuntiSenzaSoglia === 1 ? "quello" : "quelli"} non si può dire né conforme né non conforme.`)
-          : ""}</div></div>
+        <div class="rep-esito-txt">${esc(E.testo)}${(() => { const d = denominatoreEsito(R); return d ? " " + esc(d) : ""; })()}</div></div>
       </div>
+      ${dichiarazioneCopertura(R)}
       ${dichiarazioneTarature(R)}
       ${dichiarazioneProvenienza(R)}
       <div class="rep-cifre">
@@ -2990,6 +3060,21 @@ textarea.dw-input{
       ? `Ricettore: <b>${esc(p.ricettore.nome)}</b> · ${esc(etichettaTipo(p.ricettore.tipo))}${Number.isFinite(+p.ricettore.distanza) && +p.ricettore.distanza > 0 ? " a <b>" + esc(numeroIt(p.ricettore.distanza)) + " m</b>" : ""}${p.ricettore.classe ? " · classe acustica <b>" + esc(p.ricettore.classe) + "</b>" : ""}`
       : "Ricettore: <b>non collegato</b>";
     const E = ESITI[p.esito] || ESITI["senza-dati"];
+    /* LA TARATURA DI QUESTO STRUMENTO, NELLA SCHEDA DI QUESTO PUNTO.
+       ⛔ Il conto per punto lo calcolava `taratureDelReport` da sempre
+       (`perPunto`) e non lo leggeva nessuno: il documento diceva in cima «una
+       o più letture sono state prese in un giorno non coperto da nessuna
+       taratura» e non diceva quale strumento fosse. Chi legge sta guardando i
+       numeri di QUESTO punto: qui è dove la frase serve.
+       ⚠️ Va in `.rep-punto-meta`, che è un blocco a righe libere — non nella
+       riga di lista, che `-webkit-line-clamp:2` taglia: è già successo con
+       questa stessa informazione, e una frase tagliata è testo morto. */
+    const T = p.taratura;
+    const tar = !T ? ""
+      : T.scoperte ? `<br><b>Taratura dello strumento:</b> <b>${T.scoperte}</b> ${T.scoperte === 1 ? "lettura di questo punto cade" : "letture di questo punto cadono"} in un giorno che nessuna taratura registrata copre.`
+      : T.nonNote ? `<br><b>Taratura dello strumento:</b> per <b>${T.nonNote}</b> ${T.nonNote === 1 ? "lettura di questo punto non risulta" : "letture di questo punto non risulta"} nessuna taratura da confrontare${T.coperte ? `; le altre <b>${T.coperte}</b> sono coperte da un certificato registrato` : ""}.`
+      : T.coperte ? `<br>Taratura dello strumento: ${T.coperte === 1 ? "l'unica lettura di questo punto ricade" : "tutte e " + T.coperte + " le letture di questo punto ricadono"} in un certificato registrato.`
+      : "";
 
     if (!p.n) return `<div class="rep-punto">
       <div class="rep-punto-tit">${esc(p.nome)}</div>
@@ -3028,7 +3113,7 @@ textarea.dw-input{
 
     return `<div class="rep-punto">
       <div class="rep-punto-tit">${esc(p.nome)}</div>
-      <div class="rep-punto-meta">${ric}<br>${fonte}${conflitto}<br>
+      <div class="rep-punto-meta">${ric}<br>${fonte}${conflitto}${tar}<br>
         Letture nel periodo: <b>${p.n}</b> · massimo <b>${esc(numeroIt(p.max))} ${esc(p.unita)}</b> ·
         media <b>${esc(numeroIt(p.media))} ${esc(p.unita)}</b> ·
         ${/* ⛔ «superamenti: 0» SU UN PUNTO SENZA SOGLIA è la solita cifra

@@ -1789,6 +1789,92 @@ export const DICHIARAZIONI_PROVENIENZA = {
 };
 
 // ══════════════════════════════════════════════════════════════════════
+// T2e · IL PERIODO DICHIARATO CONTRO IL PERIODO DAVVERO MISURATO
+// ══════════════════════════════════════════════════════════════════════
+// Perché esiste: in testa al report c'è scritto «Periodo: dal 01/01/2026 al
+// 31/12/2026» e in fondo c'è scritto «Conforme». Fra le due righe nessuno
+// diceva che le misure si fermavano al 10 marzo. Chi legge — un funzionario
+// che ha in mano un documento intestato a dodici mesi — non ha modo di
+// accorgersene: dovrebbe scorrere ogni tabella e confrontare le date a mente.
+// È la stessa famiglia del «conforme» su punti mai misurati: un giudizio
+// tranquillo su una finestra di tempo che non è stata guardata.
+//
+// ⛔ QUESTA FUNZIONE NON GIUDICA, E NON È PIGRIZIA. «Quante misure bastano»
+// dipende dall'autorizzazione del sito e dal programma di monitoraggio, e una
+// soglia inventata qui (metà periodo? trenta giorni?) sarebbe arbitraria — la
+// stessa ragione per cui `QUOTA_NON_STRUMENTALE` pesa solo sul tono e non sui
+// numeri. Qui i numeri si scrivono SEMPRE e il lettore giudica: giorni
+// dichiarati, primo e ultimo giorno misurato, giorni scoperti in testa e in
+// coda, e il vuoto più lungo. `stato` distingue solo tre situazioni di FATTO.
+//
+// ⛔ IL FONDO DEL PERIODO SI TAGLIA A OGGI. Un report generato il 25 marzo su
+// «tutto il 2026» ha 281 giorni davanti che non sono un buco: non sono ancora
+// passati. Senza questo taglio l'avviso sarebbe partito su un caso sano — lo
+// stesso errore di mestiere del ponte col volume di Terra, dove il confronto
+// fra le date accusava un rilievo che era a posto.
+//
+// ⛔ E IL VUOTO PIÙ LUNGO SERVE PERCHÉ TESTA E CODA NON BASTANO: due misure,
+// una a gennaio e una a dicembre, coprono il periodo agli estremi e lasciano
+// dentro 348 giorni senza niente. Guardando solo `giorniPrima`/`giorniDopo`
+// quel report sembrerebbe completo.
+export function coperturaPeriodo(punti, dal, al, oggi = new Date()) {
+  const d = dataISOEsiste(String(dal || "").slice(0, 10)) ? String(dal).slice(0, 10) : "";
+  const a = dataISOEsiste(String(al || "").slice(0, 10)) ? String(al).slice(0, 10) : "";
+  const o = new Date(oggi);
+  const p2 = (n) => String(n).padStart(2, "0");
+  const oggiISO = `${o.getFullYear()}-${p2(o.getMonth() + 1)}-${p2(o.getDate())}`;
+  const aUtile = a ? (a > oggiISO ? oggiISO : a) : "";
+  const oltreOggi = !!(a && a > oggiISO);
+  // i giorni fra due date ISO, col conto locale di `shared/` (mai
+  // `new Date(x) - new Date(y)`: è la copia debole che dà «scaduta da 56 anni»)
+  const fra = (x, y) => giorniTra(y, new Date(x + "T00:00:00"));
+
+  const tutti = [...new Set((punti || []).flatMap(p => (((p || {}).letture) || [])
+    .map(l => String((l || {}).data || "").slice(0, 10))))].filter(dataISOEsiste).sort();
+
+  const base = { dal: d, al: a, alUtile: aUtile, oltreOggi, prima: null, ultima: null,
+    nGiorniMisurati: 0, giorniDichiarati: null, giorniPrima: null, giorniDopo: null,
+    vuotoMax: null, vuotoDal: null, vuotoAl: null };
+  // senza nessun estremo dichiarato il report dice «tutto lo storico»: non
+  // c'è nessuna finestra promessa da confrontare, e fingere di misurarla
+  // sarebbe inventarsi il termine di paragone.
+  if (!d && !a) return { ...base, stato: "senza-periodo",
+    prima: tutti[0] || null, ultima: tutti[tutti.length - 1] || null, nGiorniMisurati: tutti.length };
+
+  const inizio = d || tutti[0] || "";
+  const fine = aUtile || tutti[tutti.length - 1] || "";
+  // ⛔ dentro la finestra DICHIARATA (non quella tagliata a oggi): una misura
+  // registrata con data futura ma dentro il periodo è una misura del periodo.
+  const dentro = tutti.filter(g => (!inizio || g >= inizio) && (!a || g <= a));
+  if (!dentro.length || !inizio || !fine) return { ...base, stato: "senza-letture" };
+
+  const giorniDichiarati = fine >= inizio ? fra(inizio, fine) + 1 : null;
+  const giorniPrima = Math.max(0, fra(inizio, dentro[0]));
+  const giorniDopo = Math.max(0, fra(dentro[dentro.length - 1], fine));
+
+  let vuotoMax = 0, vuotoDal = null, vuotoAl = null;
+  const segna = (n, da, aX) => { if (n > vuotoMax) { vuotoMax = n; vuotoDal = da; vuotoAl = aX; } };
+  segna(giorniPrima, inizio, piuGiorni(dentro[0], -1));
+  for (let i = 0; i < dentro.length - 1; i++)
+    segna(fra(dentro[i], dentro[i + 1]) - 1, piuGiorni(dentro[i], 1), piuGiorni(dentro[i + 1], -1));
+  segna(giorniDopo, piuGiorni(dentro[dentro.length - 1], 1), fine);
+
+  return { ...base, stato: "misurato", prima: dentro[0], ultima: dentro[dentro.length - 1],
+    nGiorniMisurati: dentro.length, giorniDichiarati, giorniPrima, giorniDopo,
+    vuotoMax, vuotoDal, vuotoAl };
+}
+
+// La frase del documento. Come per tarature e provenienza: dice cosa si sa e
+// cosa non si sa, e i numeri li scrive sempre la pagina accanto.
+// ⚠️ Copre tutti e tre gli stati che `coperturaPeriodo` sa dire (la stessa
+// coppia funzione↔mappa della regola 18 dello stile).
+export const DICHIARAZIONI_COPERTURA = {
+  "misurato":      { cls: "",     testo: "Il documento dichiara un periodo: qui sotto ci sono i giorni in cui una misura è stata davvero registrata e quelli in cui non ce n'è nessuna. Quante misure servano lo stabiliscono l'autorizzazione del sito e il programma di monitoraggio: questo documento riporta i fatti, non li giudica." },
+  "senza-letture": { cls: "warn", testo: "Nel periodo dichiarato non risulta registrata nessuna misura: il documento non copre nemmeno un giorno di quelli che dichiara." },
+  "senza-periodo": { cls: "",     testo: "Non è stato dichiarato nessun periodo: il documento riporta tutto lo storico registrato, quindi non c'è una finestra di tempo promessa da confrontare con le misure." },
+};
+
+// ══════════════════════════════════════════════════════════════════════
 // T3 · REPORT DI CONFORMITÀ
 // È il documento che il cliente consegna all'ente: periodo, ricettore,
 // letture, soglia applicata (e da dove viene), superamenti, esito.
@@ -1874,6 +1960,29 @@ export function reportConformita(o = {}) {
      all'esito invece di lasciarli sparire dentro un aggettivo tranquillo. */
   const giudicabili = conDati.filter(p => p.soglia.valore != null);
   const senzaSoglia = conDati.filter(p => p.soglia.valore == null);
+  /* ⛔ E I PUNTI MAI MISURATI VANNO CONTATI ANCHE LORO, per la stessa ragione
+     dei senza-soglia e con la stessa forma. Misurato il 03/08 su tre punti,
+     uno solo con letture: il documento scriveva «Conforme» in testa, «Punti di
+     misura: 3» nella prima casella, e NIENTE sui due punti su cui nessuno
+     aveva misurato niente — perché la riga che mette il denominatore accanto
+     al verdetto si accendeva solo se c'erano punti senza soglia
+     (`nPuntiSenzaSoglia && …`). Il fatto stava scritto in fondo, nella scheda
+     di ciascun punto; l'esito no. È «l'assenza di un dato non è un dato
+     favorevole» nel posto in cui questo prodotto quel principio l'ha inventato. */
+  const senzaLetture = punti.filter(p => p.n === 0);
+  /* ⛔ E UN PIANO PIÙ SU: I RICETTORI SU CUI NON C'È NEMMENO UN PUNTO.
+     Misurato il 03/08 con tre ricettori in archivio e uno solo monitorato: la
+     testata prometteva «Ricettore: tutti i ricettori della cava», il verdetto
+     diceva «Conforme», e degli altri due il documento non faceva parola —
+     non comparivano da nessuna parte, perché senza punti non c'è niente da
+     elencare. È la stessa mancanza dei punti mai misurati vista un piano più
+     su, ed è la domanda che il controllo di prima non si faceva: un punto
+     senza letture almeno una scheda ce l'ha, un ricettore senza punti no.
+     Solo quando il report è di TUTTA la cava: scelto un ricettore, il
+     documento è suo e il caso «nessun punto collegato» lo racconta già. */
+  const ricettoriSenzaPunti = ricettoreId ? [] : ricettori
+    .filter(r => r && r.id && !(o.monitoraggi || []).some(m => m && m.ricettoreId === r.id))
+    .map(r => r.nome || "Ricettore senza nome");
   const esito = esitoPunto(conDati.length, nSuperamenti, giudicabili.length ? 1 : 0);
 
   const reclami = (o.reclami || [])
@@ -1893,6 +2002,17 @@ export function reportConformita(o = {}) {
   // La taratura degli strumenti sta ACCANTO all'esito, non dentro: dice di
   // chi sono i numeri, non se hanno superato il limite. Vedi T2b.
   const tarature = taratureDelReport(punti, o.oggi ? new Date(o.oggi) : new Date());
+  /* ⛔ E IL CONTO PER PUNTO VA ATTACCATO AL PUNTO, se no non lo legge nessuno.
+     `taratureDelReport` lo calcolava da sempre (`perPunto`), e la pagina
+     leggeva solo il totale: il documento diceva «una o più letture sono state
+     prese in un giorno non coperto da nessuna taratura» senza dire QUALE
+     strumento, e la scheda del punto — dove chi legge sta guardando i numeri
+     di quel punto — non ne faceva parola. Una guardia calcolata e mai letta
+     non protegge niente. `perPunto` esce dalla stessa `map` che costruisce
+     `punti`, quindi gli indici corrispondono per costruzione; la prova
+     accanto pretende che i nomi combacino, perché «per costruzione» è
+     esattamente ciò che si rompe in silenzio. */
+  punti.forEach((p, i) => { p.taratura = tarature.perPunto[i] || null; });
 
   // La CATENA DI CUSTODIA delle misure del periodo (T2d). Sta accanto
   // all'esito come le tarature, e per la stessa ragione: risponde a «per
@@ -1900,10 +2020,19 @@ export function reportConformita(o = {}) {
   // limite». Si conta sulle letture DEL PERIODO, non su tutto l'archivio.
   const provenienza = composizioneProvenienza(punti);
 
+  // Il periodo DICHIARATO contro quello davvero misurato (T2e). Sta accanto
+  // all'esito come tarature e provenienza, e per la stessa ragione: risponde a
+  // «di quali giorni parla questo documento», non a «hanno superato il limite».
+  const copertura = coperturaPeriodo(punti, dal, al, o.oggi ? new Date(o.oggi) : new Date());
+
   return {
     dal, al, ricettore, ricettoreId,
     punti, nPunti: punti.length, nPuntiConDati: conDati.length,
     nPuntiGiudicabili: giudicabili.length, nPuntiSenzaSoglia: senzaSoglia.length,
+    nPuntiSenzaLetture: senzaLetture.length,
+    puntiSenzaLetture: senzaLetture.map(p => p.nome),
+    nRicettoriSenzaPunti: ricettoriSenzaPunti.length, ricettoriSenzaPunti,
+    copertura,
     nLetture, nSuperamenti, esito, tarature, provenienza,
     reclami, nReclami: reclami.length,
     volate, nVolate: volate.length,

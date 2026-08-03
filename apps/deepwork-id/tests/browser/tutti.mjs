@@ -149,6 +149,17 @@ const BANCHI = [
      scheda scriva davvero quella frase, `node` non lo può vedere. */
   ['i numeri tranquilli che escono da Sentinella', 'sentinella-numeri-tranquilli.mjs', []],
   ['numeri tranquilli di Sentinella · controprova', 'sentinella-numeri-tranquilli.mjs', ['--controprova'], true],
+  /* ⛔ AGGIUNTO IL 03/08, terza passata sul documento che va all'ente: non più
+     «che numero scrive» ma «che cosa dichiara di NON sapere», e se lo dichiara
+     dove qualcuno lo legge. Tre cose che solo il browser vede, perché il
+     documento lo COMPONE la pagina: il periodo dichiarato (dodici mesi) contro
+     quello davvero misurato (tre), i punti mai misurati accanto al verdetto —
+     la riga del denominatore si accendeva solo sui punti senza soglia — e il
+     conto delle tarature PER PUNTO, che il modulo calcolava da sempre e che
+     nessuno leggeva. Guarda anche il foglio in `@media print`: è quello che
+     il cliente consegna. */
+  ['le dichiarazioni del report di Sentinella', 'sentinella-report-dichiarazioni.mjs', []],
+  ['dichiarazioni del report · controprova', 'sentinella-report-dichiarazioni.mjs', ['--controprova'], true],
   /* ⛔ AGGIUNTO IL 03/08, stessa famiglia dei due qui sopra. Su Campo il
      censimento statico era a ZERO, e i tre difetti sono usciti lo stesso: il
      CSV dello storico scriveva `0` minuti di fermo su una giornata con tre
