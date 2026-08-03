@@ -18950,5 +18950,104 @@ test("⛔ Campo · il CSV dello storico non scrive «0» dove lo schermo dice «
   ok(grandi.includes(";6375.5;"), "6.375,5 t nel file si scrive 6375.5: è un dato, non un testo");
 });
 
+// ═══ GENESI · I DUE FILE CHE ESCONO E LA BANDIERA CHE NESSUNO LEGGEVA (03/08) ═══
+/* Seconda passata sui «numeri tranquilli» di Genesi, dopo i cinque corretti
+   nel modulo la mattina del 03/08. Quelli rimasti stavano nella PAGINA e nei
+   file che escono, e `node` non li può aprire: il banco che li prende è
+   `tests/browser/genesi-numeri-tranquilli.mjs`. Qui restano le due metà che
+   una prova pura può tenere ferme meglio del browser — il GIRO di andata e
+   ritorno dei due CSV, e il fatto che l'export usi davvero la protezione. */
+{
+  const genesi = await app("genesi", "genesi-data.js");
+  const { readFileSync } = await import("node:fs");
+  const sorgente = readFileSync(join(HERE, "../../genesi/genesi.html"), "utf8");
+
+  /* i valori che rompono un CSV, uno per famiglia. `-12.5` c'è perché il 01/08
+     un negativo usciva `'-12,5` e rientrava `NaN`: un dato perso nel giro di
+     casa nostra, non un errore dichiarato. */
+  const OSTILI = ["=cmd|'/c calc'!A1", "@SUM(1+1)", "+1", "-12.5", "Fronte Sud; ovest",
+                  'nota con "virgolette"', "\t=1+1", "Fronte Nord"];
+
+  test("⛔ Genesi → Sentinella: il giro del file resta chiuso anche sui nomi ostili", () => {
+    /* Genesi normalizza i ritorni a capo (il lettore di Sentinella taglia per
+       righe PRIMA di leggere le celle, quindi un a-capo virgolettato gli
+       spaccherebbe la riga) e poi protegge con `csvCell`. Sentinella rilegge
+       con `parseCsvLine`, che l'apostrofo di guardia lo toglie.
+       ⚠️ È il giro fra DUE APP: se un giorno una delle due cambia cella, qui
+       si vede subito — e senza questa prova si vedrebbe in cava. */
+    const cella = (v) => shell.csvCell(String(v == null ? "" : v).replace(/[\r\n\t]+/g, " ").trim());
+    const riga = OSTILI.map(cella).join(";");
+    eq(riga.split("\n").length, 1, "la riga costruita resta UNA riga sola");
+    const letto = shell.parseCsvLine(riga);
+    eq(letto.length, OSTILI.length, `${OSTILI.length} colonne scritte, ${letto.length} rilette`);
+    for (let i = 0; i < OSTILI.length; i++)
+      eq(letto[i], OSTILI[i].replace(/[\r\n\t]+/g, " ").trim(),
+         `${mostra(OSTILI[i])} torna identico dall'altra parte del ponte`);
+    /* e l'andata: nel FILE la formula non è nuda. Un giro chiuso non lo
+       dimostra — scrittore e lettore possono sbagliare insieme. */
+    ok(/(^|;)'=cmd/.test(riga) && /;'@SUM/.test(riga),
+       `nel testo del file la formula porta l'apostrofo di guardia: ${riga.slice(0, 40)}`);
+  });
+
+  test("⛔ Genesi · il CSV della legge di sito si rilegge identico", () => {
+    /* `_sitoParseCsv` legge questo stesso file, e adesso passa da `leggiCsv`:
+       prima si teneva l'apostrofo di guardia, quindi il nome del referto
+       cambiava a ogni giro di andata e ritorno. */
+    const testo = "data;riferimento;distanza_m;carica_per_ritardo_kg;ppv_mms\n"
+      + ["2026-06-02", shell.csvCell("=SUM(1+1)"), "120", "50", "9.2"].join(";");
+    const righe = shell.leggiCsv(testo).righe;
+    eq(righe.length, 2, "intestazione più una riga");
+    eq(righe[1][1], "=SUM(1+1)", "il nome ostile torna identico, senza l'apostrofo appiccicato");
+    eq([righe[1][2], righe[1][3], righe[1][4]], ["120", "50", "9.2"],
+       "e le colonne dei numeri non si sono spostate");
+  });
+
+  test("⛔ Genesi · i tre file che escono chiamano DAVVERO csvCell", () => {
+    /* Il giro chiuso prova che il lettore sa disfare quello che `csvCell` fa;
+       NON prova che l'export l'abbia usato — è la stessa distinzione già
+       scritta per gli export di Sentinella. Lì il censimento cerca
+       `.download = "file.csv"`; Genesi scrive `a.download='genesi_….csv'`, con
+       gli apici singoli e senza spazi, quindi quel censimento non la vedeva
+       nemmeno se la si aggiungesse all'elenco: qui si guardano le tre righe.
+       Erano tre copie più deboli, e due sono sopravvissute alla correzione del
+       03/08 su `csvRiconciliazione` — la stessa `cell` scritta tre volte. */
+    const RIGHE = [
+      ["scheda volata", "+rows.map(r=>csvCell(r[0])+';'+csvCell("],
+      ["legge di sito", "].map(csvCell).join(';')"],
+      ["file per Sentinella", "function _sentCell(v){ return csvCell("],
+    ];
+    for (const [che, ancora] of RIGHE)
+      ok(sorgente.includes(ancora), `l'export «${che}» protegge le celle con csvCell`);
+    /* e nessuna delle tre copie deboli è tornata: la firma è sempre la stessa,
+       le virgolette messe su `; " \n` e la formula no */
+    const deboli = (sorgente.match(/\/\[;"\\n\]\/\.test\(s\)/g) || []).length;
+    eq(deboli, 0, `copie più deboli di csvCell rimaste nella pagina: ${deboli}`);
+  });
+
+  test("⛔ Genesi · la legge di sito si dichiara provvisoria a OGNI conto sotto gli otto", () => {
+    /* La bandiera `avviso:'pochi'` esisteva e la leggeva una schermata sola —
+       la modale della legge. La scheda validatori (dove il numero decide se
+       una volata si può sparare) e il riquadro «Manda a Sentinella» dicevano
+       solo «calibrata sui tuoi referti». Adesso la leggono in tre; che la
+       leggano lo prova il banco del browser, che ci sia sempre lo prova qui.
+       Prima si guardavano solo n=3 e n=8: fra i due c'erano quattro conti mai
+       provati, ed è lì che un `<` scritto `<=` non si vede. */
+    const punto = (d, w) => ({ d, w, ppv: 700 * Math.pow(d / Math.sqrt(w), -1.6) });
+    const tutti = [punto(100, 50), punto(200, 50), punto(400, 50), punto(300, 20),
+                   punto(150, 80), punto(500, 100), punto(80, 40), punto(250, 60),
+                   punto(600, 90)];
+    for (let n = 3; n <= 7; n++) {
+      const f = genesi.sitoFit(tutti.slice(0, n));
+      eq([f.n, f.errore, f.avviso], [n, undefined, "pochi"],
+         `${n} referti: legge utilizzabile ma dichiarata provvisoria`);
+    }
+    for (const n of [8, 9]) {
+      const f = genesi.sitoFit(tutti.slice(0, n));
+      eq([f.n, f.errore, f.avviso], [n, undefined, undefined],
+         `${n} referti: nessun avviso da mostrare`);
+    }
+  });
+}
+
 console.log(`\nRisultato KPI app: ${passed} passati, ${failed} falliti${inVolo.length ? `  ·  ${inVolo.length} prove asincrone aspettate` : ""}`);
 process.exit(failed > 0 ? 1 : 0);

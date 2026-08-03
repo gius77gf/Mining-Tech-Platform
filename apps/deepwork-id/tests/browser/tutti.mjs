@@ -148,6 +148,26 @@ const BANCHI = [
      quella, lo dice solo il browser. */
   ['i numeri tranquilli che escono da Campo', 'campo-numeri-tranquilli.mjs', []],
   ['numeri tranquilli di Campo · controprova', 'campo-numeri-tranquilli.mjs', ['--controprova'], true],
+  /* ⛔ AGGIUNTO IL 03/08, seconda passata su Genesi dopo i cinque numeri
+     tranquilli corretti la mattina dentro `genesi-data.js`. I quattro rimasti
+     stavano tutti dove `node` non arriva: un campo SVUOTATO nella
+     progettazione non diceva niente, e le ventotto righe della scheda
+     validatori restavano quelle di prima — powder factor 0,55 kg/m³, X50 28
+     cm, burden minimo 2,4–2,8 m, PPV 6,4 mm/s — calcolate su una spalla che
+     sullo schermo non c'era più; «Limite PPV (mm/s);null» scritto per intero
+     nel CSV che il fochino archivia col rapportino, mentre duecento righe più
+     in giù la stessa `null` era già una cella vuota; DUE copie più deboli di
+     `csvCell` sopravvissute alla correzione del 03/08, che lasciavano uscire
+     NUDA una formula dal CSV della legge di sito e dal file che importa
+     Sentinella; e la bandiera `pochi` — «legge di sito provvisoria» — letta
+     dalla sola modale della legge e non dalle due schermate che quel numero
+     lo usano per decidere se una volata si può sparare.
+     Il giro dei due CSV e la bandiera sono provati in `run-kpi`; che il campo
+     torni a mostrare il valore del progetto, che il toast lo dica, che il
+     bottone produca davvero quel file e che la riga della PPV scriva
+     «provvisoria», lo dice solo il browser. */
+  ['i numeri tranquilli di Genesi', 'genesi-numeri-tranquilli.mjs', []],
+  ['numeri tranquilli di Genesi · controprova', 'genesi-numeri-tranquilli.mjs', ['--controprova'], true],
   /* ⛔ AGGIUNTO IL 03/08, stessa famiglia di `terra-numeri-tranquilli` e stessa
      ragione: in Sentinella il principio del fondatore è NATO, il modulo lo
      applica in una dozzina di punti — e i quattro numeri tranquilli rimasti

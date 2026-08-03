@@ -1041,7 +1041,15 @@ import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js
    non caricava niente da shared/ — e leggeva «1.250» come 1,25 in silenzio.
    `dw-shell.js` è un modulo senza dipendenze: non porta dentro né Firebase né
    l'SDK, quindi Genesi resta quello che è (localStorage, nessun account). */
-import { numeroScritto, messaggioNumero, perCampo, montaGuardiaInteri, oggiISO, timbroLocale, numIt, leggiCsv } from '../../shared/deepwork-id-client/dw-shell.js';
+/* ⛔ E DAL 03/08 ANCHE `csvCell`, dopo lo stesso errore trovato ancora DUE
+   volte. Il 03/08 `csvRiconciliazione` si era portata dietro dalla pagina una
+   `cell` di casa — copia più debole di `csvCell`, che le virgolette le metteva
+   e la formula no — ed è stata corretta. La seconda passata ha trovato la
+   stessa copia viva in altri DUE file che escono dall'azienda: il CSV della
+   legge di sito (`sitoExport`) e il file che importa **Sentinella**
+   (`_sentCell`). Misurato aprendo la pagina: un referto chiamato `=SUM(1+1)` e
+   un fronte chiamato `=cmd|'/c calc'!A1` uscivano NUDI da tutt'e due. */
+import { numeroScritto, messaggioNumero, perCampo, montaGuardiaInteri, oggiISO, timbroLocale, numIt, leggiCsv, csvCell } from '../../shared/deepwork-id-client/dw-shell.js';
   // I campi INTERI restano `type=number` per lo spinner: la guardia rifiuta la
   // virgola, che lì non serve e che il browser scarterebbe in silenzio.
   montaGuardiaInteri((m) => toast(m, "err"));
@@ -2830,13 +2838,27 @@ if($('btn-scheda-csv')) $('btn-scheda-csv').onclick=()=>{
     ['Powder factor (kg/m3)', k.pf],
     ['X20 (cm)', k.x20], ['X50 (cm)', k.x50], ['X80 (cm)', k.x80],
     ['PPV recettore (mm/s)', k.ppv], ['Limite PPV (mm/s)', k.lim],
+    /* la norma esce ACCANTO alla sua soglia: quando la cella del limite è vuota
+       è l'unica cosa che dice perché — e quando è piena dice a che cosa si
+       riferisce quel numero, che in un file archiviato col rapportino conta */
+    ['Norma PPV', normaPpvLab(D2.recNorma)+' @ '+D2.recFreq+' Hz'],
     ['Gittata flyrock (m)', k.fly],
     ['Sgombero mezzi 2x (m)', Math.round(F.Dmez)],
     ['Sgombero persone 4x (m)', Math.round(F.Dper)],
     ['Presplit', k.presplit?'si':'no'],
     ['Costo totale stima (EUR)', k.cost],
   ];
-  let csv='parametro;valore\n'+rows.map(r=>r[0]+';'+r[1]).join('\n')+'\n';
+  /* ⛔ `null` NON SI SCRIVE IN UN FILE, e qui ci finiva scritto per intero.
+     Misurato il 03/08 aprendo una volata salvata con un codice di normativa che
+     Genesi non riconosce (`apri` fa `Object.assign`, senza controlli): la riga
+     usciva «Limite PPV (mm/s);null». La stessa `null` che nel file per
+     Sentinella è una cella VUOTA da settimane, con la ragione scritta sopra
+     `_sentNum` — la risposta era in casa, duecento righe più in giù. Qui non
+     capitava perché le righe si univano con `+`, che di `null` fa la parola.
+     ⚠️ E le celle passano da `csvCell`: è un file che si apre in Excel a casa
+     del cliente, come lo storico della riconciliazione. */
+  let csv='parametro;valore\n'
+    +rows.map(r=>csvCell(r[0])+';'+csvCell(r[1]===null||r[1]===undefined?'':r[1])).join('\n')+'\n';
   const a=document.createElement('a');
   a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(csv);
   a.download='genesi_scheda_volata.csv'; a.click();
@@ -3350,10 +3372,34 @@ function sitoAggiungi(){
 
 /* Il CSV del sismografo: separatore ; , o tabulazione, decimali con la virgola,
    intestazione riconosciuta se la prima riga non è fatta di numeri. */
+/* ⛔ IL TAGLIO DELLE RIGHE LO FA `leggiCsv` DI `shared/`, NON PIÙ QUESTA RIGA.
+   Era la terza copia di casa del lettore di CSV, e misurandola contro quella
+   condivisa su dieci file sbagliava in tre punti, tutti nel verso peggiore —
+   un dato perso, non un errore dichiarato:
+     · il nostro export riletto qui riportava dentro **l'apostrofo di guardia**
+       che `csvCell` mette davanti a una formula, quindi il nome del referto
+       cambiava a ogni giro di andata e ritorno;
+     · un riferimento con un **punto e virgola dentro** («Fronte Sud; ovest»),
+       pur virgolettato, veniva spezzato: da lì in poi tutte le colonne
+       scalavano di uno, e la distanza finiva a leggere la carica;
+     · una nota **su due righe fra virgolette** faceva sparire la prima metà
+       della riga — è il difetto che in Conti faceva sparire un bonifico da
+       12.300 €, e qui costava la distanza e la carica di un referto.
+   ⚠️ RESTA il taglio di casa quando il file è a VIRGOLE, e non è pigrizia:
+   `leggiCsv` sulla virgola non sa distinguere il separatore dal decimale
+   italiano, e su «120,5,50,9,2» risponde cinque colonne plausibili invece di
+   fermarsi. Misurato: con la sola `leggiCsv` quel file entrava come
+   distanza 120, carica 5, PPV 50 — un numero sbagliato spacciato per certo, su
+   una carica in chili. Il ripiego di casa lo rifiuta, e rifiutare è la
+   risposta giusta. Il delimitatore lo dichiara `leggiCsv` stessa, così la
+   scelta non è una seconda rilevazione scritta a somiglianza. */
 function _sitoParseCsv(testo){
-  const righe=String(testo||'').split(/\r?\n/).map(s=>s.trim()).filter(Boolean)
-    .map(s=>s.split(/[;\t]|,(?=\s*[^\d\s])/).map(c=>c.trim().replace(/^"|"$/g,'')))
-    .filter(r=>r.length>=3);
+  const L=leggiCsv(testo);
+  const righe = (L.delim !== ',')
+    ? L.righe.map(r=>r.map(c=>String(c==null?'':c).trim())).filter(r=>r.length>=3)
+    : String(testo||'').split(/\r?\n/).map(s=>s.trim()).filter(Boolean)
+        .map(s=>s.split(/[;\t]|,(?=\s*[^\d\s])/).map(c=>c.trim().replace(/^"|"$/g,'')))
+        .filter(r=>r.length>=3);
   if(!righe.length) return null;
   const numerica=r=>r.filter(c=>isFinite(parseFloat(String(c).replace(',','.')))).length>=3;
   let intest=null;
@@ -3404,11 +3450,17 @@ if($('sitoFile')) $('sitoFile').onchange=async(e)=>{
 if($('sitoExport')) $('sitoExport').onclick=()=>{
   const P=(sitoStore().punti||[]).filter(p=>p&&p.d>0&&p.w>0&&p.ppv>0);
   if(!P.length){ toast('Nessun referto da esportare'); return; }
-  const cell=v=>{ const s=String(v==null?'':v); return /[;"\n]/.test(s)?'"'+s.replace(/"/g,'""')+'"':s; };
+  /* ⛔ QUI C'ERA LA SECONDA COPIA PIÙ DEBOLE DI `csvCell`, identica a quella
+     tolta il 03/08 da `csvRiconciliazione`: virgolette su `; " \n` e basta.
+     Misurato aprendo la pagina con un referto chiamato `=SUM(1+1)`: usciva
+     NUDO nel file — e questo è il file che l'azienda manda fuori e che si apre
+     in Excel a casa del cliente. `csvCell` mette l'apostrofo di guardia, e
+     `_sitoParseCsv` (che rilegge questo stesso file) lo toglie perché adesso
+     passa da `leggiCsv`: il giro di andata e ritorno resta chiuso. */
   /* la colonna «origine» esce insieme ai numeri: così un file riletto (qui o
      altrove) non perde la provenienza dei referti */
   const csv='data;riferimento;distanza_m;carica_per_ritardo_kg;ppv_mms;distanza_scalata;origine\n'
-    +P.map(p=>[p.ts||'',p.nome||'',p.d,p.w,p.ppv,(p.d/Math.sqrt(p.w)).toFixed(2),p.fonte||''].map(cell).join(';')).join('\n')+'\n';
+    +P.map(p=>[p.ts||'',p.nome||'',p.d,p.w,p.ppv,(p.d/Math.sqrt(p.w)).toFixed(2),p.fonte||''].map(csvCell).join(';')).join('\n')+'\n';
   const a=document.createElement('a'); a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(csv);
   a.download='genesi_legge_di_sito.csv'; a.click();
 };
@@ -3447,9 +3499,19 @@ function _sentOggi(){ return oggiISO(); }   // stessa regola di shared/, un post
    questa stessa riga — le quattro della PPV misurata sono vuote di proposito,
    con la ragione scritta due righe sopra. */
 function _sentNum(n){ if(n===null||n===undefined||n==='') return ''; const v=+n; return Number.isFinite(v)?String(Math.round(v*1e4)/1e4):''; }
-/* cella di testo: si virgoletta se contiene il separatore (il lettore di
-   Sentinella rispetta le virgolette, quindi il dato non si perde) */
-function _sentCell(v){ const s=String(v==null?'':v).replace(/[\r\n\t]+/g,' ').trim(); return /[;"]/.test(s)?'"'+s.replace(/"/g,'""')+'"':s; }
+/* cella di testo per il file che importa Sentinella.
+   ⛔ QUI C'ERA LA TERZA COPIA PIÙ DEBOLE DI `csvCell`: virgolettava `; "` e
+   basta, quindi un fronte chiamato `=cmd|'/c calc'!A1` usciva **nudo** —
+   misurato aprendo la pagina e premendo Esporta. È un file che gira fra due
+   aziende e si apre in Excel. Adesso la cella la fa `csvCell` di `shared/`,
+   che l'apostrofo di guardia lo mette, e `parseCsvLine` — quello che
+   `parseVolateCsv` di Sentinella usa davvero — lo toglie: il giro resta chiuso.
+   ⚠️ LA NORMALIZZAZIONE DEI RITORNI A CAPO RESTA, e non è un doppione di
+   `csvCell`: è un requisito del LETTORE. `parseVolateCsv` fa
+   `split(/\r?\n/)` PRIMA di leggere le celle, quindi un a-capo virgolettato —
+   che `csvCell` da sola conserverebbe, giustamente — gli spaccherebbe la riga
+   in due. Si normalizza per chi legge, poi si protegge con la regola di casa. */
+function _sentCell(v){ return csvCell(String(v==null?'':v).replace(/[\r\n\t]+/g,' ').trim()); }
 /* I numeri della volata come li vede Genesi ADESSO. Sono gli stessi che
    mostrano la scheda validatori e il report: se qui uscisse un numero diverso
    da quello a schermo, non si saprebbe più a quale credere. */
@@ -3463,6 +3525,22 @@ function _sentDati(){
     ppv:k.ppv, lim:k.lim, freq:+D2.recFreq,
     norma:normaPpvLab(D2.recNorma)+' @ '+D2.recFreq+' Hz',
     fonte:(st.fonte==='sito'?'genesi-sito':'genesi-litologia'),
+    /* ⛔ «CALIBRATA» E «PROVVISORIA» NON SI ESCLUDONO, E LA SECONDA VA DETTA.
+       `sitoFit` alza la bandiera `avviso:'pochi'` sotto gli 8 referti, e con
+       tre referti la modale della legge di sito scrive già, in giallo, «Legge
+       provvisoria: la pendenza si muove ancora parecchio a ogni misura nuova».
+       Quella bandiera però la leggeva SOLO quella modale: qui — cioè nel
+       riquadro che si guarda un secondo prima di mandare il file a un'altra
+       app — usciva «legge di sito calibrata sui tuoi referti» e basta. La
+       stessa legge, due schermate, due pesi diversi. È la guardia scollegata
+       della regola 20 applicata a chi DISEGNA il numero, non a chi lo produce.
+       ⚠️ Il file, invece, resta `genesi-sito`: il token lo legge Sentinella
+       (`previsioneDiVolata` fa `calibrata: /sito/.test(fonte)`) e inventarne
+       uno nuovo qui vorrebbe dire cambiarlo anche di là — una decisione a due
+       app, non una correzione. Quello che si può fare da qui è avvisare chi
+       preme il bottone, e si fa. */
+    provvisoria: st.fonte==='sito' && !!(st.fit && st.fit.avviso==='pochi'),
+    referti: st.fonte==='sito' && st.fit ? st.fit.n : null,
     calibrata:st.fonte==='sito', db:Math.round(airblastDb(D2.recDist,mic)) };
 }
 /* Il CODICE della volata: deterministico, ricavato dal progetto (data, fronte,
@@ -3496,7 +3574,10 @@ function sentRender(){
     +riga('Limite citato',it(d.lim)+' mm/s')
     +riga('Norma citata',_rEsc(d.norma))
     +riga('Airblast previsto',it(d.db,0)+' dB(L)')
-    +riga('Base della previsione',d.calibrata?'legge di sito calibrata sui tuoi referti':'stima dalla litologia')
+    +riga('Base della previsione',d.calibrata
+      ? ('legge di sito calibrata sui tuoi '+gnum(d.referti,0)+' referti'
+         + (d.provvisoria?' — <b style="color:#ffca28">provvisoria</b>: sotto gli 8 referti la pendenza si muove ancora a ogni misura nuova':''))
+      : 'stima dalla litologia')
     +'</div>'
     +'<div style="margin-top:10px;color:var(--mut);font-size:12px;">In Sentinella: <b>Registri → Registro volate → «Importa da CSV»</b>. La riga arriva col badge <b>Prevista</b>: non conta fra le volate eseguite, non entra nel report di conformità, e dopo lo sparo si conferma (correggendo i dati se in cava è andata diversamente).</div>'
     +'<div style="margin-top:8px;color:var(--mut);font-size:12px;">La <b>PPV misurata</b> non parte da qui, e non partirà mai: la volata non è ancora stata sparata. La aggancia Sentinella dalla lettura del sismografo, e solo quella può tornare qui come <b>referto</b> per la legge di sito. La PPV <b>prevista</b> viaggia in una colonna sua, dichiarata come previsione.</div>'
@@ -4558,7 +4639,7 @@ const SVOPEN=new Set();
 function renderScheda2D(){
   const el=$('d2-scheda'); if(!el) return; const g=measureGeom2D();
   if($('d2-mat')) $('d2-mat').textContent='⛏ '+(selEsplosivo()?selEsplosivo().nome.split(' ')[0]:'—')+' · '+(selInnesco()?selInnesco().short:'—')+(D2.bagnato?' · 💧':'');
-  if($('dKgTot') && document.activeElement!==$('dKgTot')) gsv('dKgTot',Math.round(D2.kg*(g.n||0)),0);
+  if(document.activeElement!==$('dKgTot')) syncKgTot();
   const B=g.B, S=g.S, H=D2.prof, Dmm=D2.diam, Dm=Dmm/1000, Q=D2.kg, rit=D2.ritardo;
   const pf=Q/(B*S*H), sb=S/B, hb=H/B, bd=B/Dm, stem=D2.stem, stemB=stem/B, msmHole=rit/S, msmRow=(D2.ritardoFila||rit)/B, sub=D2.sub, subB=sub/B, subRec=0.3*B;
   function badge(x,lab,valStr,lo,hi,wlo,whi,whyOk,whyLo,whyHi){
@@ -4821,8 +4902,21 @@ function renderScheda2D(){
   /* G3 — da dove vengono K e β: dai referti del sismografo se c'è una legge di
      sito attiva, altrimenti dalla litologia. Va detto in chiaro: cambia il peso
      del numero, e fuori dall'intervallo calibrato la legge è un'estrapolazione. */
+  /* ⛔ LA BANDIERA «POCHI» LA LEGGEVA UNA SCHERMATA SOLA, E NON ERA QUESTA.
+     `sitoFit` la alza sotto gli 8 referti, e la modale della legge di sito
+     scrive «Legge provvisoria». Qui — dove il numero decide se una volata si
+     può sparare — usciva soltanto «ricavati dai tuoi 3 referti», che a leggerlo
+     suona come una credenziale invece che come un limite.
+     ⚠️ E `r2` si scrive con `gnum`, non con `.toString()`: `sitoFit` risponde
+     `null` quando r² non è calcolabile (tutte le PPV uguali), e `null.toString()`
+     ucciderebbe la pagina al disegno. Oggi quel caso non arriva fin qui — esce
+     sempre con `errore:'pendenza'`, quindi `sitoLegge` torna `null` e questo
+     ramo non gira: è difesa in profondità, non innocuità, ed è esattamente lo
+     strato che la regola 18 chiede di non lasciare appeso a un'altra riga. */
+  const _prov = (_st.fonte==='sito' && _st.fit && _st.fit.avviso==='pochi');
   const _fonte = (_st.fonte==='sito')
-    ? ('K≈'+_st.K+'/β≈'+_st.beta+' ricavati dai <b>tuoi '+_st.fit.n+' referti</b> (riga al 95° percentile, R²='+_st.fit.r2.toString().replace('.',',')+')'
+    ? ('K≈'+_st.K+'/β≈'+_st.beta+' ricavati dai <b>tuoi '+gnum(_st.fit.n,0)+' referti</b> (riga al 95° percentile, R²='+gnum(_st.fit.r2,3)+')'
+       + (_prov ? '. <b>Legge provvisoria</b>: sotto gli 8 referti la pendenza si muove ancora parecchio a ogni misura nuova, quindi anche questa PPV si muoverà' : '')
        + ((_sd2<_st.fit.sdMin||_sd2>_st.fit.sdMax) ? '. <b>Attenzione</b>: SD '+gfix(_sd2,1)+' è fuori dall\'intervallo calibrato ('+gnum(_st.fit.sdMin,1)+'–'+gnum(_st.fit.sdMax,1)+'): qui la legge estrapola' : ''))
     : ('K≈'+_st.K+'/β≈'+_st.beta+' stimati da '+_rk.nome+' (valori da manuale, cautelativi)');
   const _coda = (_st.fonte==='sito')
@@ -5011,21 +5105,48 @@ function simulaVolata2D(){
    valore che il progetto ha davvero. */
 const D2_DECIMALI = ['dB','dS','dH','dKg','dKgTot','dStem','dSub','dAcquaCol','dPsSpacing',
   'dPsCharge','dRecDist','dCPerf','dCExpl','dCInn','dValMat','dDeckStem','dErrColl','dDev'];
+/* il nome del campo come lo legge chi guarda lo schermo: sta qui perché lo
+   usano due guardie, e due copie di una frase prima o poi dicono due nomi */
+function nomeCampoD2(el){
+  const et = el.closest('label');
+  return et ? (et.querySelector('span')||{textContent:''}).textContent.trim().toLowerCase() : 'questo valore';
+}
 function guardiaDecimale(el){
   if(String(el.value||'').trim() === '') return true;
   const r = gLeggi(el.id);
   if(r.ok) return true;
   /* il messaggio viene dal posto in cui vive la regola: così «1.250» dice che
      può essere 1250 o 1,25 invece di «non è un numero», che sarebbe falso */
-  const et = el.closest('label');
-  const nome = et ? (et.querySelector('span')||{textContent:''}).textContent.trim().toLowerCase() : 'questo valore';
-  toast(messaggioNumero(r, '«'+nome+'»', { min: r.min, max: r.max }));
+  toast(messaggioNumero(r, '«'+nomeCampoD2(el)+'»', { min: r.min, max: r.max }));
   syncDesignInputs();          // rimette nel campo il valore vero del progetto
+  return false;
+}
+/* ⛔ UN CAMPO SVUOTATO NON È UN VALORE, E IL SILENZIO LO FA SEMBRARE TALE.
+   Misurato il 03/08 aprendo la pagina e cancellando la SPALLA: il campo restava
+   vuoto, nessun toast, e la scheda validatori continuava a mostrare gli stessi
+   numeri di prima — powder factor 0,55 kg/m³, X50 28 cm, burden minimo 2,4–2,8
+   m, PPV 6,4 mm/s — tutti calcolati su una spalla di 3,00 m che sullo schermo
+   non c'era più. Ventotto righe uguali a prima: nessuna di loro sapeva di
+   riferirsi a un numero che l'utente aveva appena tolto.
+   Il ripiego di `applyDesign` (`gvv('dB')||D2.B`) è la cosa GIUSTA: non si
+   progetta una volata su un numero inventato. Quello che mancava è dirlo. La
+   pagina lo faceva già per un valore ILLEGGIBILE («quattroemezzo» → toast +
+   `syncDesignInputs`) e non per un campo VUOTO: due modi di non avere un
+   numero, due comportamenti opposti, e quello silenzioso è il più comune —
+   basta selezionare e premere Canc.
+   ⚠️ Vale solo per gli `input`: le tendine (esplosivo, roccia, norma…) un
+   valore vuoto non ce l'hanno. E `dKgTot` ha una guardia sua, perché è
+   l'unico campo che si ricompila da solo a ogni ridisegno. */
+function guardiaVuoto(el){
+  if(el.tagName !== 'INPUT' || String(el.value||'').trim() !== '') return true;
+  toast('«'+nomeCampoD2(el)+'» non può restare vuoto: il progetto sta ancora usando il valore di prima, e l\'ho rimesso nel campo.');
+  syncDesignInputs();
   return false;
 }
 ['dB','dS','dD','dN','dFile','dH','dKg','dIncl','dStem','dSub','dRit','dRitFila','dEspl','dInnSel','dRoccia','dUcs','dEmod','dFrat','dBagnato','dAcquaCol','dPresplit','dPsSpacing','dPsCharge','dSeq','dRecDist','dRecNorma','dRecFreq','dCPerf','dCExpl','dCInn','dValMat','dDecks','dDeckStem','dErrColl','dDev'].forEach(id=>{
   const el=$(id); if(!el) return;
   el.addEventListener('change', ()=>{
+    if(!guardiaVuoto(el)) return;
     if(D2_DECIMALI.indexOf(id)>=0 && !guardiaDecimale(el)) return;
     applyDesign();
   });
@@ -5057,8 +5178,16 @@ syncLayerUI();
 document.querySelectorAll('.dc-sec-h').forEach(b=>{ b.addEventListener('click', ()=>b.parentElement.classList.toggle('closed')); });
 if($('dKg')) $('dKg').addEventListener('input', ()=>{ D2.kgAuto=false; });
 /* quantitativo TOTALE della volata (fondatore 25/07): l'app lo divide sui fori
-   e genera gli altri dati; il campo si tiene allineato quando cambiano maglia o kg/foro */
+   e genera gli altri dati; il campo si tiene allineato quando cambiano maglia o kg/foro.
+   Sta in una funzione perché la chiamano in due — il ridisegno della scheda e la
+   guardia sul campo vuoto — e due copie della stessa riga prima o poi scrivono
+   due totali diversi. */
+function syncKgTot(){ if($('dKgTot')) gsv('dKgTot',Math.round(D2.kg*(measureGeom2D().n||0)),0); }
 if($('dKgTot')) $('dKgTot').addEventListener('change', ()=>{
+  /* ⛔ E SVUOTARLO NON VUOL DIRE «ZERO CHILI»: qui `tot` diventava 0, il ramo
+     non partiva, e il campo restava VUOTO mentre la volata continuava ad avere
+     i suoi 696 kg. Misurato il 03/08 insieme agli altri campi. */
+  if(String($('dKgTot').value||'').trim()===''){ syncKgTot(); return; }
   /* prima un valore illeggibile finiva in `gvv(...)||0` e diventava zero, e il
      campo veniva ignorato SENZA dire niente: chi aveva scritto «4.680» credeva
      di aver messo l'esplosivo di tutta la volata. */
