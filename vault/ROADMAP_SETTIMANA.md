@@ -267,6 +267,33 @@ numero scritto dove non era stato misurato niente**.*
       quella usciva dal **proprio riquadro**: adesso `fuori-schermo.mjs` ha due
       domande, con l'arretrato di Sentinella stampato e non preteso.
 
+- [x] ✅ **Conti: sei zeri nei file che escono dall'azienda** (`e8933c0`), e uno
+      **rientrava dall'import**: la gara col bando appena uscito usciva `;0;` e
+      rientrando diventava una gara da zero euro, facendo sparire l'avviso che
+      spiega il totale. Più l'IVA `0` su tutte e sette le fatture a importo
+      unico, mentre il foglio stampato si rifiuta di scriverla.
+- [x] ✅ **Sentinella: il file per l'ARPA usava un'altra soglia** (`380fb76`).
+      Col ricettore più severo del punto lo schermo diceva **Superamento** e il
+      file **Conforme**: il documento che va al consulente assolveva un punto
+      segnato in rosso. Più «undefined», «tra NaN gg» e i chili del mese sommati
+      come zero.
+- [x] ✅ **Il fochino: «0 kg» non è «nessuno ha scritto i chili»** (`34db532`).
+      Dodici fori caricati con la colonna in bianco davano `tot_kg: 0` — ed è il
+      numero dietro cui stanno autorizzazione, deposito e denuncia. Il caso a
+      metà adesso dice «almeno X kg».
+- [x] ✅ **Flotta: un badge VERDE che diceva «NaN gg»** (`394ca35`), e il gasolio
+      a **1,000 €/l invece di 1,500** perché i litri senza spesa restavano al
+      denominatore: −33% nella direzione che rassicura. Più il contatore sceso
+      che dava 0,68 l/h invece di 2,22 — e `ritmoOreMezzi` quel caso lo
+      rifiutava già.
+- [x] ✅ **La barra alta si tagliava in tutte e sei le app** (`66b570a`),
+      perdendo sempre «Deepwork». Era una copia più debole del `.role-sm` del
+      core, e il banco che avrebbe dovuto vederla portava scritto nel commento
+      che il taglio era «apposta».
+- [x] ✅ **La ricerca continua riverificata** (`0b4d8a1`): tre mancanze
+      proposte, **due false** — l'esplosivo ha già un rapportino fochino suo,
+      foro per foro. Fermate prima di diventare lavoro.
+
 ### B — Lo standard delle funzioni, app per app (martedì → venerdì)
 
 - [x] ✅ **B1. La caccia sistematica ai numeri tranquilli.** Chiusa il 02/08, e
