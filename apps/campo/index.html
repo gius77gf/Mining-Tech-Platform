@@ -950,6 +950,7 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
       </select></span>
   </div>
   <div id="set-board"></div>
+  <div id="set-fuori"></div>
   <div id="set-graf"></div>
   <div class="sec">Giorno per giorno<span class="cnt" id="set-count">0</span></div>
   <div id="set-list"></div>
@@ -988,7 +989,8 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
            squadraBase, RUOLI, operatoriDi, etichettaAssegnazione, eMia, caricoSquadre,
            idoneitaDiTurno, idoneitaOperatore, inTurnoOggi,
            UNITA_ATTIVITA, obiettivoDi, statoObiettivo,
-           storicoSettimana, totaliSettimana, unitaPrevalente,
+           storicoSettimana, totaliSettimana, unitaPrevalente, registrazioniSenzaGiorno, csvStorico,
+           produzioneDi, rapportiniInConto,
            CHECKLIST_INIZIO, ESITI_CHECK, statoChecklist, checklistDi,
            STATI_PRESENZA, presenzaDi, appelloTurno, chiusuraDi, riassuntoChiusura,
            minutiOrario, orariPresenza, testoOrari, orariProposti, orariDiTurno,
@@ -1458,8 +1460,12 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
       ? `<b>${numeroIt(Math.abs(r.scostamento), 0)} m³ in più</b> nei rapportini`
       : `<b>${numeroIt(Math.abs(r.scostamento), 0)} m³ in meno</b> nei rapportini`;
     // e si contano i rapportini che hanno DAVVERO contribuito ai metri cubi: dire
-    // «7 rapportini» quando uno è in viaggi e non entra nel totale è fuorviante
-    const inConto = r.dich.turni - (r.dich.viaggi > 0 ? 1 : 0);
+    // «7 rapportini» quando uno è in viaggi e non entra nel totale è fuorviante.
+    // ⛔ Il conto lo fa `rapportiniInConto`, e quando è INCOMPLETO risponde
+    // `conto: null`: qui allora si scrive «su N rapportini del periodo», che è
+    // vero, invece del numero preciso che la sottrazione a mano sbagliava
+    // (misurato: 2 in m³ + 3 in viaggi davano «4»).
+    const inConto = rapportiniInConto(r.dich);
     // DUE NOTE, NON UNA. Guardata a schermo, la versione unica era un paragrafo di
     // sette righe alto 178 px in una schermata di lavoro: tutto allo stesso peso,
     // nessun punto da cui cominciare a leggere. La convenzione dell'app è già
@@ -1469,7 +1475,11 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
     // dell'avvertenza senza tingere anche i numeri.
     const numeri = `Il rilievo del drone del <b>${dmy(per.al)}</b> ha misurato <b>${numeroIt(r.mis.m3, 0)} m³</b> di scavo dal ${dmy(per.dal)}. `
       + `I turni di quei giorni ne avevano dichiarati circa <b>${numeroIt(r.dich.m3, 0)} m³</b>`
-      + (r.dich.turni ? ` (${inConto} ${inConto === 1 ? "rapportino" : "rapportini"})` : "")
+      + (inConto.delPeriodo
+          ? (inConto.noto
+              ? ` (${inConto.conto} ${inConto.conto === 1 ? "rapportino" : "rapportini"})`
+              : ` (su ${inConto.delPeriodo} ${inConto.delPeriodo === 1 ? "rapportino" : "rapportini"} del periodo)`)
+          : "")
       + `: ${tornano ? "<b>i due numeri si parlano</b>" : parole}.`;
     const spiega = r.parziale
       ? `<b>Conto incompleto</b>: ${r.dich.viaggi > 0 ? `i <b>${r.dich.viaggi} viaggi</b> non entrano nei metri cubi (servirebbe la portata del mezzo)` : `parte delle tonnellate non si converte senza la densità`}. Il dichiarato vero è più alto, quindi il confronto non conclude.`
@@ -2973,17 +2983,38 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
     const tot = totaliSettimana(SET_RIGHE);
     const unita = unitaPrevalente(SET_RIGHE);
     const prodTot = prodTesto(tot.prod);
+    /* ⛔ QUELLO CHE LO STORICO NON SA COLLOCARE VA DETTO, non lasciato sparire.
+       Misurato il 03/08 con tre rapportini senza data che dichiarano 260 t e un
+       fermo da 90 minuti: il cartellone diceva «0 giornate registrate su 7» e
+       «Prodotto: niente registrato», cioè il numero tranquillo dove qualcosa è
+       stato registrato eccome — solo non si sa quando. `fermiSenzaGiorno` fa
+       già questo accanto al grafico dei fermi: qui è lo stesso principio per
+       tutto lo storico. */
+    const fuori = registrazioniSenzaGiorno(ATT, RAP);
+    const prodFuori = prodTesto(fuori.prod);
     $("set-board").innerHTML = `<div class="board ${tot.minutiFermo && !tot.giorniConDati ? "warn" : ""}">
         <div class="board-ico">${I.calend}</div>
         <div><div class="board-num">${tot.giorniConDati}</div>
           <div class="board-lab">${tot.giorniConDati === 1 ? "Giornata registrata" : "Giornate registrate"} su ${tot.giorni}</div></div>
         <div class="board-txt">
-          Prodotto: <b>${prodTot ? esc(prodTot) : "niente registrato"}</b> ·
+          Prodotto: <b>${prodTot ? esc(prodTot) : (fuori.totale ? "niente che stia in una giornata" : "niente registrato")}</b> ·
           fermi: <b>${esc(minutiFermoTesto(tot.minutiFermo, tot.fermi, tot.fermiSenzaMinuti))}</b><br>
           Attività concluse: <b>${tot.attConcluse}/${tot.attTot}</b>${tot.pctConcluse != null ? " (" + tot.pctConcluse + "%)" : ""} ·
           rapportini inviati: <b>${tot.rapInviati}</b>
         </div>
       </div>`;
+    $("set-fuori").innerHTML = !fuori.totale ? "" :
+      `<div class="note avviso"><b>${fuori.totale === 1
+          ? "Una registrazione non entra in nessuna giornata"
+          : fuori.totale + " registrazioni non entrano in nessuna giornata"}</b>: `
+      + [fuori.rapportini ? `${fuori.rapportini} ${fuori.rapportini === 1 ? "rapportino" : "rapportini"}`
+           + (prodFuori ? ` (${esc(prodFuori)})` : "") : "",
+         fuori.attivita ? `${fuori.attivita} ${fuori.attivita === 1 ? "attività" : "attività"}`
+           + (fuori.fermi ? ` di cui ${fuori.fermi} ${fuori.fermi === 1 ? "fermo" : "fermi"}` : "") : ""]
+          .filter(Boolean).join(" e ")
+      + ` senza <b>giorno di lavoro</b>, o con un giorno che non esiste. Non sono nei totali qui sopra `
+      + `né nel grafico: nel file esportato escono in una riga con la data vuota. `
+      + `Scrivi la data in <b>Attività</b> e <b>Rapportini</b> e rientrano da soli.</div>`;
     graficoSettimana(SET_RIGHE, unita);
     $("set-count").textContent = SET_RIGHE.length;
     $("set-list").innerHTML = SET_RIGHE.slice().reverse().map(g => {
@@ -3067,16 +3098,19 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
   });
   $("btn-set-export").onclick = () => {
     if (!SET_RIGHE.length) { esito("set-esito", "Non c'è nessuna giornata da esportare.", "err"); return; }
-    const unita = [...new Set(SET_RIGHE.flatMap(g => Object.keys(g.prod)))].sort();
-    let csv = "data;" + unita.map(u => "prodotto_" + u).join(";") + (unita.length ? ";" : "")
-            + "minuti_fermo;fermi;attivita_totali;attivita_concluse;rapportini_inviati\n";
-    for (const g of SET_RIGHE)
-      csv += `${g.data};${unita.map(u => g.prod[u] || 0).join(";")}${unita.length ? ";" : ""}`
-           + `${g.minutiFermo};${g.fermi};${g.attTot};${g.attConcluse};${g.rapInviati}\n`;
+    // ⛔ IL FILE LO COSTRUISCE `csvStorico`, non questa riga: chi apre il CSV
+    // col foglio di calcolo SOMMA le colonne, e prima qui uscivano `0` dove lo
+    // schermo scrive «nessuna registrazione» e `0` nei minuti dove lo schermo
+    // scrive «senza minuti». Le celle vuote, la colonna `fermi_senza_minuti` e
+    // la riga senza giorno stanno nel modulo, dove si possono provare.
+    const fuori = registrazioniSenzaGiorno(ATT, RAP);
     const a = document.createElement("a");
-    a.href = "data:text/csv;charset=utf-8," + encodeURIComponent(csv);
+    a.href = "data:text/csv;charset=utf-8," + encodeURIComponent(csvStorico(SET_RIGHE, fuori));
     a.download = "campo_storico.csv"; a.click();
-    esito("set-esito", "Esportate " + SET_RIGHE.length + " giornate nel file campo_storico.csv.", "success");
+    esito("set-esito", "Esportate " + SET_RIGHE.length + " giornate nel file campo_storico.csv."
+      + (fuori.totale ? " In coda c'è la riga senza giorno con " + fuori.totale
+          + (fuori.totale === 1 ? " registrazione che non sta" : " registrazioni che non stanno")
+          + " in nessuna giornata." : ""), "success");
   };
 
   // interazioni: attività cicla lo stato; rapportino bozza → inviato
@@ -3670,7 +3704,11 @@ ${fotoOggi.length?`<h2>Foto delle anomalie</h2>${fotoOggi.map(a=>`<div class="fo
 <h2>Produzione</h2>
 ${unitaProd.length?`<table><tr><th>Turno</th><th>Produzione</th></tr>${tp.perTurno.map(t=>`<tr><td>${esc(t.turno)}</td><td>${esc(somma(t.perUnita))}</td></tr>`).join("")}<tr><th>Totale</th><th>${esc(somma(tp.perUnita))}</th></tr></table>`:"<div>Nessuna produzione registrata.</div>"}
 <h2>Rapportini</h2>
-${RAP_OGGI.length?`<table><tr><th>Titolo</th><th>Squadra · turno</th><th>Produzione</th><th>Consegne al turno dopo</th><th>Stato</th></tr>${RAP_OGGI.map(r=>`<tr><td>${esc(r.titolo)}</td><td>${esc(r.squadra||"—")}${r.turno?" · "+esc(r.turno):""}</td><td>${esc(+r.prodQta>0?formattaProduzione(r.prodQta,r.prodUnita):(r.produzione||"—"))}</td><td>${esc(r.note||"—")}</td><td>${esc(r.stato)}${r.ora?" "+esc(r.ora):""}</td></tr>`).join("")}</table>`:"<div>Nessun rapportino oggi.</div>"}
+${RAP_OGGI.length?`<table><tr><th>Titolo</th><th>Squadra · turno</th><th>Produzione</th><th>Consegne al turno dopo</th><th>Stato</th></tr>${RAP_OGGI.map(r=>`<tr><td>${esc(r.titolo)}</td><td>${esc(r.squadra||"—")}${r.turno?" · "+esc(r.turno):""}</td><td>${/* ⛔ la produzione la legge `produzioneDi`, non `+r.prodQta>0` con l'unità
+     GREZZA accanto: un'unità fuori dall'elenco («m3» senza il ³, da un archivio
+     vecchio) veniva STAMPATA com'era in questa tabella e SOMMATA come
+     tonnellate due tabelle più giù — lo stesso documento che si contraddice */""
+   }${(() => { const p = produzioneDi(r); return p ? esc(formattaProduzione(p.qta, p.unita)) : esc(r.produzione || "—"); })()}</td><td>${esc(r.note||"—")}</td><td>${esc(r.stato)}${r.ora?" "+esc(r.ora):""}</td></tr>`).join("")}</table>`:"<div>Nessun rapportino oggi.</div>"}
 ${cop.mancanti.length?`<div class="muted" style="margin-top:6px">Squadre senza rapportino: ${cop.mancanti.map(esc).join(", ")}.</div>`:""}
 <h2>Chiusura e firme</h2>
 ${chiuOggi.length?`<table><tr><th>Turno</th><th>Consegnato da</th><th>Ricevuto da</th><th>Ora</th><th>Note</th></tr>${chiuOggi.map(c=>`<tr><td>${esc(c.turno)}</td><td>${esc(c.consegna||"—")}</td><td>${esc(c.ricevuta||"—")}</td><td>${esc(c.ora)}</td><td>${esc(c.note||"")}</td></tr>`).join("")}</table>`

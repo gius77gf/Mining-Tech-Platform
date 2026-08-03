@@ -120,7 +120,7 @@ const APP = ["campo", "conti", "flotta", "scudo", "sentinella", "terra"];
    e `numeroDichiarato`, cioè le tre regole del file per l'ARPA salite dal
    gestore del bottone dentro il modulo). Un fondo che non si alza è un fondo
    che non cattura più niente: era già a metà strada dal conto vero. */
-const FONDO = { campo: 103, conti: 112, flotta: 82, scudo: 157, sentinella: 124, terra: 58 };
+const FONDO = { campo: 106, conti: 112, flotta: 82, scudo: 157, sentinella: 124, terra: 58 };
 
 /* Quello che resta fuori per un motivo, non per dimenticanza: i caricatori
    dati vogliono la rete e lo SDK, i ponti demo vogliono il localStorage.

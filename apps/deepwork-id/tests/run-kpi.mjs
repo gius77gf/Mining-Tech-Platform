@@ -18817,5 +18817,138 @@ test("⛔ piuGiorni: una data che non esiste non produce una scadenza", () => {
   });
 }
 
+// ═══════════════════════════════════════════════════════════════════════════
+// CAMPO · i numeri che mentono con la faccia tranquilla, seconda passata (03/08)
+// ═══════════════════════════════════════════════════════════════════════════
+// Il censimento statico era a zero: questi tre difetti sono usciti chiamando le
+// funzioni coi casi limite e guardando quello che ESCE dall'app — il file CSV,
+// il rapporto stampato, la frase del ponte con Terra. Misure prima/dopo nel
+// commento di ogni prova.
+console.log("\n— Campo · i numeri tranquilli, seconda passata —");
+
+test("⛔ Campo · il ponte con Terra non conta come «entrati nei m³» i rapportini in viaggi", () => {
+  /* PRIMA: la pagina faceva `dich.turni - (dich.viaggi > 0 ? 1 : 0)`. Con 2
+     rapportini in m³ e 3 in viaggi scriveva «(4 rapportini)» accanto a 700 m³
+     dichiarati, quando a quei metri cubi ne avevano contribuito DUE: `viaggi`
+     è la somma dei viaggi (28), non il numero dei rapportini.
+     DOPO: conto null, e la pagina scrive «su 5 rapportini del periodo». */
+  const rap = [
+    { data: "2026-07-10", prodQta: 400, prodUnita: "m³" },
+    { data: "2026-07-11", prodQta: 300, prodUnita: "m³" },
+    { data: "2026-07-12", prodQta: 12, prodUnita: "viaggi" },
+    { data: "2026-07-13", prodQta: 9, prodUnita: "viaggi" },
+    { data: "2026-07-14", prodQta: 7, prodUnita: "viaggi" },
+  ];
+  const d = ponti.produzioneDichiarata(rap, "2026-07-01", "2026-07-31", 2.5);
+  eq([d.turni, d.viaggi, d.m3, d.parziale], [5, 28, 700, true],
+    "il ponte vede 5 turni, 28 viaggi e 700 m³: il conto è incompleto");
+  eq(campo.rapportiniInConto(d), { conto: null, delPeriodo: 5, noto: false },
+    "con dei viaggi fuori dal totale il numero preciso non si sa: non si inventa");
+  // ⚠️ la sottrazione vecchia dava 4, che è il numero SBAGLIATO in modo
+  // credibile: sta fra 2 (il vero) e 5 (il totale), quindi nessuno lo controlla
+  ok(d.turni - (d.viaggi > 0 ? 1 : 0) === 4, "e la vecchia sottrazione diceva 4");
+
+  /* e il caso che la sottrazione vecchia non toglieva AFFATTO: tonnellate
+     senza densità. 1 rapportino in m³ + 2 in tonnellate → diceva «3». */
+  const d2 = ponti.produzioneDichiarata([
+    { data: "2026-07-10", prodQta: 400, prodUnita: "m³" },
+    { data: "2026-07-11", prodQta: 800, prodUnita: "t" },
+    { data: "2026-07-12", prodQta: 900, prodUnita: "t" }], "2026-07-01", "2026-07-31", null);
+  eq([d2.turni, d2.tSenzaDensita, d2.parziale], [3, 1700, true],
+    "1.700 t restano fuori dai metri cubi perché la densità non c'è");
+  eq(campo.rapportiniInConto(d2).conto, null, "e nemmeno qui si scrive un numero preciso");
+
+  // caso SANO: niente resta fuori, quindi tutti i turni contati hanno contribuito
+  const d3 = ponti.produzioneDichiarata([
+    { data: "2026-07-10", prodQta: 400, prodUnita: "m³" },
+    { data: "2026-07-11", prodQta: 800, prodUnita: "t" }], "2026-07-01", "2026-07-31", 2);
+  eq(campo.rapportiniInConto(d3), { conto: 2, delPeriodo: 2, noto: true },
+    "con la densità e senza viaggi il conto è esatto e si scrive");
+  eq(campo.rapportiniInConto(null), { conto: null, delPeriodo: 0, noto: false },
+    "e senza il dichiarato non si conta niente");
+});
+
+test("⛔ Campo · lo storico dice quello che non sa mettere in nessuna giornata", () => {
+  /* PRIMA: tre rapportini senza data che dichiarano 260 t e un fermo da 90
+     minuti sparivano dentro un `continue` di `storicoSettimana`, e il
+     cartellone scriveva «0 giornate registrate su 7 · Prodotto: niente
+     registrato · fermi: 0 min». DOPO: il conto esiste e la pagina lo mostra. */
+  const RAP = [
+    { data: "", turno: "Mattina", prodQta: 120, prodUnita: "t", stato: "inviato" },
+    { data: "", turno: "Notte", prodQta: 80, prodUnita: "t", stato: "inviato" },
+    { data: "2026-02-30", turno: "Mattina", prodQta: 60, prodUnita: "t", stato: "bozza" },
+  ];
+  const ATT = [
+    { data: "", stato: "anomalia", causale: "Guasto meccanico", fermoMin: 90 },
+    { data: "", stato: "anomalia", causale: "Meteo" },
+    { data: "2026-02-30", stato: "conclusa" },
+  ];
+  const oggi = new Date("2026-07-15T12:00:00");
+  const tot = campo.totaliSettimana(campo.storicoSettimana(ATT, RAP, 7, oggi));
+  eq([tot.giorniConDati, tot.prod, tot.fermi], [0, {}, 0],
+    "lo storico per giornate non li vede: è il buco da dichiarare, non da tappare");
+
+  const f = campo.registrazioniSenzaGiorno(ATT, RAP);
+  eq([f.rapportini, f.attivita, f.totale], [3, 3, 6], "sei registrazioni non stanno in nessun giorno");
+  eq(f.prod, { t: 260 }, "e portano 260 t che il cartellone dichiarava inesistenti");
+  eq([f.fermi, f.minutiFermo, f.fermiSenzaMinuti], [2, 90, 1],
+    "due fermi, 90 minuti misurati e uno senza minuti");
+  eq([f.attConcluse, f.rapInviati, f.data], [1, 2, ""],
+    "e i nomi dei campi sono quelli di una riga dello storico, con la data vuota");
+
+  // ⛔ «2026-02-30» non è un giorno: `senzaData` da solo non lo vede, ed è
+  //    esattamente la ragione per cui questa funzione non lo riusa
+  eq(campo.senzaData(RAP), 2, "senzaData conta solo le date vuote");
+  eq(campo.registrazioniSenzaGiorno([], RAP).rapportini, 3, "qui entra anche il 30 febbraio");
+
+  // caso SANO: tutto datato → niente da dichiarare
+  const sano = campo.registrazioniSenzaGiorno(
+    [{ data: "2026-07-14", stato: "conclusa" }],
+    [{ data: "2026-07-14", prodQta: 10, prodUnita: "t", stato: "inviato" }]);
+  eq([sano.totale, sano.prod, sano.fermi], [0, {}, 0], "con tutto datato non c'è nessun avviso da dare");
+});
+
+test("⛔ Campo · il CSV dello storico non scrive «0» dove lo schermo dice «senza minuti»", () => {
+  /* PRIMA: `${g.minutiFermo};${g.fermi}` e `${g.prod[u] || 0}`. Una settimana
+     con tre guasti mai misurati usciva dal file IDENTICA a una settimana senza
+     un fermo (`0;3`), e una giornata senza nessuna registrazione portava uno
+     `0` nella colonna della produzione — cioè «misurato, e vale zero» — mentre
+     lo schermo scrive «nessuna registrazione» e «senza minuti».
+     DOPO: celle vuote, colonna `fermi_senza_minuti`, e la riga senza giorno. */
+  const righe = [
+    { data: "2026-07-13", prod: {}, minutiFermo: 0, fermi: 0, fermiSenzaMinuti: 0, attTot: 0, attConcluse: 0, rapInviati: 0, rapTot: 0 },
+    { data: "2026-07-14", prod: {}, minutiFermo: 0, fermi: 3, fermiSenzaMinuti: 3, attTot: 3, attConcluse: 0, rapInviati: 0, rapTot: 0 },
+    { data: "2026-07-15", prod: { t: 120 }, minutiFermo: 45, fermi: 2, fermiSenzaMinuti: 1, attTot: 2, attConcluse: 1, rapInviati: 1, rapTot: 1 },
+  ];
+  const csv = campo.csvStorico(righe, null).split("\n");
+  eq(csv[0], "data;prodotto_t;minuti_fermo;fermi;fermi_senza_minuti;attivita_totali;attivita_concluse;rapportini_inviati",
+    "l'intestazione porta anche i fermi senza minuti");
+  eq(csv[1], "2026-07-13;;0;0;0;0;0;0",
+    "giornata vuota: produzione VUOTA (non 0) e zero fermi, che è una misura vera");
+  eq(csv[2], "2026-07-14;;;3;3;3;0;0",
+    "tre fermi e nessun minuto: la cella dei minuti resta vuota, non «0»");
+  eq(csv[3], "2026-07-15;120;45;2;1;2;1;1",
+    "misura parziale: il numero c'è ed è un pavimento, e la colonna dice quanti mancano");
+  // ⚠️ e il confronto con la forma vecchia, che è il difetto in una riga:
+  //    la giornata dei tre guasti usciva come quella senza nessun fermo
+  eq(`2026-07-14;${righe[1].prod.t || 0};${righe[1].minutiFermo};${righe[1].fermi}`,
+    "2026-07-14;0;0;3", "prima quella riga diceva «0 minuti persi» su tre guasti mai misurati");
+
+  // la riga senza giorno esce SOLO se c'è qualcosa, e passa dallo stesso codice
+  const f = campo.registrazioniSenzaGiorno(
+    [{ data: "", stato: "anomalia", fermoMin: 90 }],
+    [{ data: "", prodQta: 60, prodUnita: "t", stato: "inviato" }]);
+  const conFuori = campo.csvStorico(righe, f).split("\n");
+  eq(conFuori.length, csv.length + 1, "una riga in più, e solo una");
+  eq(conFuori[4], ";60;90;1;0;1;0;1", "la riga senza giorno ha la data vuota e i suoi numeri veri");
+  eq(campo.csvStorico(righe, { totale: 0, prod: {} }).split("\n").length, csv.length,
+    "e se non c'è niente fuori la riga non compare");
+
+  // ⛔ i numeri SCAMBIATI restano col punto e senza migliaia (regola del modulo)
+  const grandi = campo.csvStorico([{ data: "2026-07-15", prod: { t: 6375.5 }, minutiFermo: 1200,
+    fermi: 1, fermiSenzaMinuti: 0, attTot: 1, attConcluse: 1, rapInviati: 1, rapTot: 1 }], null);
+  ok(grandi.includes(";6375.5;"), "6.375,5 t nel file si scrive 6375.5: è un dato, non un testo");
+});
+
 console.log(`\nRisultato KPI app: ${passed} passati, ${failed} falliti${inVolo.length ? `  ·  ${inVolo.length} prove asincrone aspettate` : ""}`);
 process.exit(failed > 0 ? 1 : 0);

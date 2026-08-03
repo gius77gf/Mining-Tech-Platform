@@ -136,6 +136,18 @@ const BANCHI = [
      uno scratchpad, che alla sessione dopo non esistono. */
   ['il core e i rapportini mai misurati', 'core-rapportini-non-misurati.mjs', []],
   ['rapportini mai misurati · controprova', 'core-rapportini-non-misurati.mjs', ['--controprova'], true],
+  /* ⛔ AGGIUNTO IL 03/08, stessa famiglia dei due qui sopra. Su Campo il
+     censimento statico era a ZERO, e i tre difetti sono usciti lo stesso: il
+     CSV dello storico scriveva `0` minuti di fermo su una giornata con tre
+     guasti mai misurati (identica a una senza fermi), lo storico lasciava
+     sparire senza dirlo ogni registrazione priva di giorno — 2.300 t nella
+     sola dimostrazione — e la frase del ponte con Terra contava i rapportini
+     entrati nei metri cubi con una sottrazione che toglieva UN rapportino per
+     QUALUNQUE numero di viaggi. Le funzioni nuove sono provate in `run-kpi`;
+     che il bottone produca quel file, che l'avviso compaia e che la frase sia
+     quella, lo dice solo il browser. */
+  ['i numeri tranquilli che escono da Campo', 'campo-numeri-tranquilli.mjs', []],
+  ['numeri tranquilli di Campo · controprova', 'campo-numeri-tranquilli.mjs', ['--controprova'], true],
   /* ⛔ AGGIUNTO IL 03/08, stessa famiglia di `terra-numeri-tranquilli` e stessa
      ragione: in Sentinella il principio del fondatore è NATO, il modulo lo
      applica in una dozzina di punti — e i quattro numeri tranquilli rimasti

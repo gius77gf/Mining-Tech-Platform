@@ -601,6 +601,92 @@ export function unitaPrevalente(righe) {
   return voci.length ? voci[0][0] : null;
 }
 
+/* QUELLO CHE LO STORICO NON SA METTERE IN NESSUNA GIORNATA.
+   ⛔ `storicoSettimana` colloca ogni registrazione sul suo giorno: quelle senza
+   giorno — o con un giorno che non esiste, «2026-02-30» — non entrano in
+   nessuna riga e spariscono dentro un `continue`. Misurato con tre rapportini
+   senza data che dichiarano 260 t e un fermo da 90 minuti: il cartellone dice
+   «0 giornate registrate su 7» e «Prodotto: niente registrato», cioè il numero
+   tranquillo dove qualcosa è stato registrato eccome — solo non si sa quando.
+   È la stessa cosa che `fermiSenzaGiorno` conta già accanto al grafico dei
+   fermi; qui si conta per TUTTO lo storico, produzione compresa, perché è la
+   produzione quella che il cartellone dichiara inesistente.
+   ⛔ La riga che torna ha gli STESSI NOMI di una riga di `storicoSettimana`
+   (`prod`, `minutiFermo`, `fermi`, `fermiSenzaMinuti`, `attTot`,
+   `attConcluse`, `rapInviati`, `rapTot`) più `totale`: così chi la somma o la
+   scrive in un file non ha bisogno di un secondo pezzo di codice che tratti
+   questo caso — un secondo pezzo di codice è una seconda occasione di
+   divergere. `data` resta la stringa vuota, che a schermo Campo scrive già
+   «senza data». Pura e testabile. */
+export function registrazioniSenzaGiorno(attivita, rapportini) {
+  const senza = (r) => !!r && !dataISOEsiste(String(r.data || "").trim());
+  const att = (attivita || []).filter(senza);
+  const rap = (rapportini || []).filter(senza);
+  const prod = {};
+  for (const r of rap) {
+    const p = produzioneDi(r);
+    if (p) prod[p.unita] = Math.round(((prod[p.unita] || 0) + p.qta) * 100) / 100;
+  }
+  const anomalie = att.filter(a => a.stato === "anomalia");
+  let minutiFermo = 0, fermiSenzaMinuti = 0;
+  for (const a of anomalie) {
+    const m = Math.max(0, +a.fermoMin || 0);
+    minutiFermo += m;
+    if (!m) fermiSenzaMinuti++;
+  }
+  return {
+    data: "",
+    attivita: att.length,
+    rapportini: rap.length,
+    totale: att.length + rap.length,
+    prod,
+    minutiFermo, fermi: anomalie.length, fermiSenzaMinuti,
+    attTot: att.length,
+    attConcluse: att.filter(a => a.stato === "conclusa").length,
+    rapTot: rap.length,
+    rapInviati: rap.filter(r => r.stato === "inviato").length,
+  };
+}
+
+/* LO STORICO CHE ESCE DALL'APP, e non è la stessa cosa di quello che si vede.
+   ⛔ Il file lo rilegge un foglio di calcolo, e chi lo apre SOMMA le colonne.
+   Fino al 03/08 il CSV scriveva `0` dove lo schermo scrive «nessuna
+   registrazione» e `0` nei minuti di fermo dove lo schermo scrive «senza
+   minuti» (`minutiFermoTesto`): una settimana con tre guasti mai misurati
+   usciva dal file identica a una settimana senza un fermo. Le regole, le
+   stesse dello schermo:
+     · produzione → cella VUOTA quando in quell'unità non è stato dichiarato
+       niente. Uno zero direbbe «misurato, e vale zero»;
+     · minuti_fermo → cella VUOTA quando ci sono fermi e NESSUNO ha i minuti;
+       il numero (che è un pavimento) quando alcuni ce li hanno, e allora la
+       colonna `fermi_senza_minuti` dice quanti mancano; `0` solo quando di
+       fermi non ce n'è stato nessuno, che è una misura vera;
+     · le registrazioni che non stanno in nessuna giornata (`fuori`) escono in
+       una riga finale con la DATA VUOTA — la convenzione «senza data» che
+       Campo usa già a schermo — così chi somma le colonne trova i numeri veri
+       invece di un totale che ne ha persi per strada.
+   I numeri restano col PUNTO decimale e senza migliaia: è un dato scambiato,
+   non un testo mostrato. Pura e testabile. */
+export function csvStorico(righe, fuori) {
+  const gg = righe || [];
+  const f = fuori || null;
+  const unita = [...new Set(gg.flatMap(g => Object.keys(g.prod || {}))
+    .concat(f ? Object.keys(f.prod || {}) : []))].sort();
+  const cella = (v) => (v === null || v === undefined || v === "") ? "" : String(v);
+  const minutiCella = (g) => {
+    const fermi = Math.max(0, Math.round(+g.fermi || 0));
+    const senza = Math.max(0, Math.round(+g.fermiSenzaMinuti || 0));
+    return (fermi && senza >= fermi) ? "" : cella(Math.max(0, Math.round(+g.minutiFermo || 0)));
+  };
+  const riga = (g) => `${g.data};${unita.map(u => cella((g.prod || {})[u])).join(";")}${unita.length ? ";" : ""}`
+    + `${minutiCella(g)};${g.fermi};${g.fermiSenzaMinuti};${g.attTot};${g.attConcluse};${g.rapInviati}\n`;
+  let csv = "data;" + unita.map(u => "prodotto_" + u).join(";") + (unita.length ? ";" : "")
+          + "minuti_fermo;fermi;fermi_senza_minuti;attivita_totali;attivita_concluse;rapportini_inviati\n";
+  for (const g of gg) csv += riga(g);
+  if (f && f.totale) csv += riga(f);
+  return csv;
+}
+
 // ══════════════════════════════════════════════════════════════════════
 // CHECKLIST DI INIZIO TURNO (C3)
 // ══════════════════════════════════════════════════════════════════════
@@ -1776,6 +1862,31 @@ export function totaliProduzione(rapportini) {
       .map(([turno, u]) => ({ turno, perUnita: u }))
       .sort((a, b) => ord(a.turno) - ord(b.turno) || a.turno.localeCompare(b.turno, "it")),
   };
+}
+
+/* QUANTI RAPPORTINI SONO DAVVERO ENTRATI NEI METRI CUBI del confronto con
+   Terra. La schermata dei rapportini scrive «i turni ne avevano dichiarati
+   circa 700 m³ (N rapportini)», e quel N deve contare SOLO i rapportini che
+   hanno contribuito a quei metri cubi: i viaggi non si convertono mai, e le
+   tonnellate senza densità nemmeno.
+   ⛔ MISURATO IL 03/08, E IL CONTO ERA SBAGLIATO NEL VERSO CHE RASSICURA. La
+   pagina faceva `dich.turni - (dich.viaggi > 0 ? 1 : 0)`, cioè toglieva UN
+   rapportino se c'erano dei viaggi — ma `dich.viaggi` è la SOMMA dei viaggi,
+   non il numero dei rapportini che li hanno dichiarati. Con 2 rapportini in m³
+   e 3 in viaggi diceva «4 rapportini» quando ne avevano contribuito 2; con
+   1 in m³ e 2 in tonnellate senza densità diceva «3» invece di 1, perché il
+   caso delle tonnellate non lo toglieva affatto.
+   ⛔ E IL NUMERO GIUSTO NON SI SA RICOSTRUIRE DA `dich`: lì dentro ci sono le
+   somme per unità, non i conti dei rapportini. Quindi la funzione non lo
+   inventa: quando il conto è incompleto (`parziale`) risponde `conto: null` e
+   `noto: false`, e chi mostra scrive quello che sa davvero — «su N rapportini
+   del periodo» — invece di un numero preciso e falso. Quando invece niente è
+   rimasto fuori, tutti i turni contati hanno contribuito e `conto` è esatto.
+   Pura e testabile. */
+export function rapportiniInConto(dich) {
+  const n = Math.max(0, Math.round(+((dich && dich.turni) || 0)) || 0);
+  const noto = !!dich && !dich.parziale;
+  return { conto: noto ? n : null, delPeriodo: n, noto };
 }
 
 // Copertura dei rapportini di TURNO: quali squadre hanno già consegnato un
