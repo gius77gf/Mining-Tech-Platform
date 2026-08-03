@@ -701,19 +701,52 @@ export function parseAdempimentiCsv(text) {
 // COMPATIBILITÀ: una volata senza il campo `stato` (tutte quelle registrate
 // prima che esistesse) vale come ESEGUITA, quindi su uno storico esistente
 // questa funzione restituisce esattamente gli stessi numeri di prima.
+/* IL NUMERO CHE QUALCUNO HA DICHIARATO, oppure `null`. Scritta una volta sola
+   perché `Number.isFinite(+x)` da sola NON risponde a questa domanda: `+null`
+   fa **0** e `+""` fa **0**, e `Number.isFinite(0)` risponde **true**. Cioè il
+   controllo che sembra il più severo lascia passare le due forme più comuni
+   dell'assenza — ed è successo mentre si correggeva proprio questo difetto:
+   tre prove nuove su cinque sono cadute qui il 03/08, in un blocco scritto per
+   toglierlo. `csvRegistroVolate` la stessa regola ce l'aveva già, scritta
+   dentro di sé come `cella`: adesso la chiama, così è una sola. */
+function numeroDichiarato(x) {
+  if (x == null || String(x).trim() === "") return null;
+  const v = +x;
+  return Number.isFinite(v) ? v : null;
+}
+
 export function riepilogoVolate(volate, oggi = new Date()) {
   const list = (volate || []).filter(v => !volataPrevista(v));
   const o = new Date(oggi);
   const ym = `${o.getFullYear()}-${String(o.getMonth() + 1).padStart(2, "0")}`;
   const questoMese = list.filter(v => (v.data || "").slice(0, 7) === ym);
-  const kgMese = questoMese.reduce((s, v) => s + (+v.kgTotali || 0), 0);
+  /* ⛔ I CHILI CHE NESSUNO HA DICHIARATO NON SONO ZERO CHILI (03/08). Qui c'era
+     `s + (+v.kgTotali || 0)`: la stessa guardia che `csvRegistroVolate` si era
+     già tolta di mezzo con la sua ragione scritta («una casella vuota non è uno
+     zero»), e che `parseVolateCsv` evita apposta rispondendo `null` su una cella
+     vuota o illeggibile. La riga della lista lo diceva già bene — «kg non
+     dichiarati» — e il riepilogo SOPRA di lei sommava quelle stesse volate come
+     zero e stampava un totale sicuro: la frase e il numero accanto si
+     smentivano. Misurato su tre volate del mese con 120 kg dichiarati e due
+     celle vuote: prima «questo mese: 3 (120 kg)», cioè 120 kg spalmati su tre
+     volate come se fossero tutti i chili sparati.
+     Adesso i chili si sommano solo su chi li dichiara e viaggiano con il loro
+     denominatore: `kgMeseNoti` (quante volate del mese hanno un numero) e
+     `kgMeseSenza` (quante no). Senza nemmeno una dichiarazione `kgMese` è
+     `null` — «non lo so», la convenzione dell'ecosistema — e chi mostra scrive
+     «—» invece di uno zero. La bandiera la legge la pagina: un totale parziale
+     si annuncia come parziale. */
+  const conKg = questoMese.map(v => numeroDichiarato((v || {}).kgTotali)).filter(k => k != null);
+  const kgMese = conKg.length ? conKg.reduce((s, k) => s + k, 0) : null;
   let ultima = null;
   for (const v of list) {
     const d = (v.data || "");
     if (/^\d{4}-\d{2}-\d{2}$/.test(d) && (!ultima || d > ultima)) ultima = d;
   }
   const contestazioni = list.filter(v => v.esito === "contestazione").length;
-  return { totale: list.length, questoMese: questoMese.length, kgMese, ultima, contestazioni };
+  return { totale: list.length, questoMese: questoMese.length, kgMese,
+    kgMeseNoti: conKg.length, kgMeseSenza: questoMese.length - conKg.length,
+    ultima, contestazioni };
 }
 
 // Import registro volate da CSV. Colonne: data;fronte;nFori;kgTotali;
@@ -1363,6 +1396,86 @@ export function csvTarature(monitoraggi) {
         csvCell((t || {}).nota || ""),
       ].join(";"));
   return CSV_TARATURE_INTESTAZIONE + "\n" + (righe.length ? righe.join("\n") + "\n" : "");
+}
+
+// ══════════════════════════════════════════════════════════════════════
+// IL FILE PER L'ARPA / IL CONSULENTE AMBIENTALE
+//
+// ⛔ PERCHÉ È SALITO QUI DENTRO, il 03/08. Stava scritto a mano nel gestore
+// del bottone dentro la pagina — nove righe di template — e lì nessuna prova
+// lo guardava: è l'unico export dell'app che non passava da una funzione pura,
+// e infatti era rimasto indietro rispetto a tutte le schermate. Tre difetti
+// misurati sul dato di dimostrazione, tutti nella stessa direzione (il file
+// dice all'ente qualcosa di diverso da quello che l'app dice all'utente):
+//
+//  1. ⛔ LA SOGLIA DEL RICETTORE NON ARRIVAVA NEL FILE. Il gestore ciclava su
+//     `MON`, non su `MON.map(conSoglia)`: cioè su tutto il resto dell'app la
+//     soglia che vale è quella scritta nell'autorizzazione per QUELLA casa, e
+//     nel file esportato era quella del punto. Misurato su `DEMO`, punto
+//     «Vibrazioni V2 — confine Nord»: schermo «soglia 20 · Conforme», file
+//     «soglia 5 · Superamento». E nel verso che conta — un ricettore PIÙ
+//     SEVERO del punto (punto 20, casa 5, lettura 6) — schermo
+//     «Superamento», file «soglia 20 · **Conforme**»: il documento che il
+//     cliente manda al consulente assolveva un punto che l'app segna in rosso.
+//     Il commento di `conSoglia`, nella pagina, elencava già chi deve passare
+//     da lì — «semaforo, KPI, grafico, allerte, report» — e l'export non era
+//     nell'elenco perché nessuno l'aveva riguardato.
+//  2. ⛔ `undefined` SCRITTO NELLA COLONNA DELLA SOGLIA. `${m.soglia}` su un
+//     punto senza soglia (decisione 16, ed è in `DEMO`) finiva nel file come
+//     la parola `undefined`. Un campo vuoto dice «non c'è»; quella parola non
+//     dice niente e sporca chi rilegge il file con un altro programma.
+//  3. ⛔ «tra NaN gg» SU UN ADEMPIMENTO SENZA DATA LEGGIBILE. La stessa riga
+//     era già stata corretta nella LISTA il 03/08 («Senza data», giallo, con
+//     il suo perché scritto sopra) e non qui: `giorni("")` non fa zero, fa
+//     `NaN`, e `NaN < 0` è falso, quindi si finiva nel ramo tranquillo.
+//
+// Il valore di un punto MAI MISURATO esce vuoto e non `0`: quello zero è il
+// valore con cui il punto nasce, non una misura, ed è la stessa regola per cui
+// la riga delle volate scrive «kg non dichiarati» invece di «0 kg».
+// I numeri escono col punto decimale, come negli altri tre export di questa
+// app: è un file per un'altra macchina, non per un foglio italiano.
+// La colonna `origine_soglia` è IN CODA e facoltativa da leggere, come le
+// colonne aggiunte al registro volate: chi taglia alle prime sette ritrova
+// esattamente il file di prima.
+export const CSV_AMBIENTE_INTESTAZIONE = "tipo;nome;valore;unita;soglia;stato;dettaglio;origine_soglia";
+
+export function csvAmbiente(monitoraggi, adempimenti, ricettori, oggi = new Date()) {
+  /* ⛔ `numeroDichiarato` e non `Number.isFinite(+x)`: `+null` fa 0. Scritta a
+     mano, questa cella riscriveva `2026-07-02:0` su una lettura senza valore —
+     il difetto che il file esiste per non fare, rifatto nella correzione. */
+  const n = (x) => { const v = numeroDichiarato(x); return v == null ? "" : String(Math.round(v * 1e4) / 1e4); };
+  const righe = [];
+  for (const m of monitoraggi || []) {
+    const eff = sogliaEfficace(m, ricettori);
+    // la stessa copia con cui ragionano tutte le schermate: la soglia che vale
+    const st = statoMisura(eff.valore != null ? { ...m, soglia: eff.valore } : m);
+    const storico = (((m || {}).letture) || [])
+      .map(l => String((l || {}).data || "") + ":" + n((l || {}).valore)).join(" ");
+    const origine = eff.valore == null ? ""
+      : eff.conflitto
+      ? "punto di misura · il ricettore " + (eff.ricettore || "collegato") + " ha una soglia in "
+        + (eff.unitaRicettore || "un'altra unità") + ", non applicata e non convertita"
+      : eff.fonte === "ricettore" ? "ricettore " + (eff.ricettore || "")
+      : "punto di misura";
+    righe.push([
+      "monitoraggio", csvCell((m || {}).nome || ""),
+      st.stato === "mai" ? "" : n((m || {}).valore),
+      csvCell(unitaMisura(m)), n(eff.valore), st.label, csvCell(storico), csvCell(origine),
+    ].join(";"));
+  }
+  for (const a of adempimenti || []) {
+    const g = giorniTra((a || {}).scadenza, oggi);
+    const stato = !Number.isFinite(g) ? "senza data"
+      : g < 0 ? "scaduto da " + (-g) + " gg"
+      : "tra " + g + " gg";
+    const ente = (a || {}).ente && a.ente !== "—" ? a.ente + " · " : "";
+    righe.push([
+      "adempimento", csvCell((a || {}).titolo || ""), "", "", "", stato,
+      csvCell(ente + "entro " + (dataISOEsiste(String((a || {}).scadenza || "").slice(0, 10))
+        ? String(a.scadenza).slice(0, 10) : "data non indicata")), "",
+    ].join(";"));
+  }
+  return CSV_AMBIENTE_INTESTAZIONE + "\n" + (righe.length ? righe.join("\n") + "\n" : "");
 }
 
 // LA TARATURA CHE SCADE, NELLE ALLERTE DEL QUADRO.
@@ -2759,18 +2872,25 @@ export function confermaVolataEseguita(volata, corr = {}, oggi = new Date()) {
 // sono quelle la cui data è già arrivata e che nessuno ha ancora confermato: è
 // l'unico avviso che serve, perché una volata sparata e mai confermata lascia un
 // buco nel brogliaccio. Pura; `oggi` iniettabile.
+// ⛔ E I CHILI SEGUONO LA REGOLA DEI CHILI DEL MESE (03/08). Qui c'era lo
+// stesso `+v.kgTotali || 0` corretto in `riepilogoVolate`: nessuno oggi legge
+// questo numero — la riga delle previste mostra il conto e la prossima data —
+// ma lasciarlo lì è la copia debole che aspetta il giorno in cui qualcuno lo
+// mostra. `kgTotaliSenza` dice su quante previste il totale NON è fatto.
 export function riepilogoPreviste(volate, oggi = new Date()) {
   const l = volatePreviste(volate);
   let daConfermare = 0, prossima = null;
-  let kgTotali = 0;
+  let kgTotali = null, kgTotaliSenza = 0;
   for (const v of l) {
-    kgTotali += +v.kgTotali || 0;
+    const kg = numeroDichiarato((v || {}).kgTotali);
+    if (kg == null) kgTotaliSenza++;
+    else kgTotali = (kgTotali || 0) + kg;
     const d = String(v.data || "").slice(0, 10);
     if (!/^\d{4}-\d{2}-\d{2}$/.test(d)) continue;
     if (giorniTra(d, oggi) <= 0) daConfermare++;
     else if (!prossima || d < prossima) prossima = d;
   }
-  return { totale: l.length, daConfermare, prossima, kgTotali };
+  return { totale: l.length, daConfermare, prossima, kgTotali, kgTotaliSenza };
 }
 
 // L'ordine del registro a schermo: prima le PREVISTE in ordine di calendario
@@ -2822,9 +2942,12 @@ export function csvRegistroVolate(volate) {
      scritta nessuno». Prima qui c'era `n(+v.nFori || 0)`: la guardia `|| 0`
      trasformava l'assenza in una dichiarazione, e il file esportato — che va
      all'ente, o torna dentro con l'import — la portava come tale.
-     `n` da solo la risposta giusta ce l'aveva già (`""` sui non finiti): era
-     il `|| 0` davanti a impedirgliela. */
-  const cella = (x) => (x == null || String(x).trim() === "" ? "" : n(x));
+     ⚠️ E la regola stava scritta QUI DENTRO, in due righe che sembrano una
+     comodità locale: il 03/08 è servita altre due volte (i chili del mese e il
+     file per l'ARPA) e riscriverla a mano è costato tre prove rosse, perché
+     `Number.isFinite(+null)` risponde **true**. Adesso è `numeroDichiarato`,
+     una sola, e questa riga la chiama — il comportamento è identico. */
+  const cella = (x) => { const v = numeroDichiarato(x); return v == null ? "" : n(v); };
   const righe = (volate || []).slice()
     .sort((a, b) => String(a.data || "").localeCompare(String(b.data || "")))
     .map(v => {

@@ -136,6 +136,19 @@ const BANCHI = [
      uno scratchpad, che alla sessione dopo non esistono. */
   ['il core e i rapportini mai misurati', 'core-rapportini-non-misurati.mjs', []],
   ['rapportini mai misurati · controprova', 'core-rapportini-non-misurati.mjs', ['--controprova'], true],
+  /* ⛔ AGGIUNTO IL 03/08, stessa famiglia di `terra-numeri-tranquilli` e stessa
+     ragione: in Sentinella il principio del fondatore è NATO, il modulo lo
+     applica in una dozzina di punti — e i quattro numeri tranquilli rimasti
+     stavano tutti dove quel lavoro ESCE dall'app. Il file per l'ARPA scriveva
+     una soglia diversa da quella di ogni schermata, `undefined` e «tra NaN
+     gg»; il riepilogo sopra il registro volate sommava come zero i chili che
+     nessuno ha dichiarato; e la scheda dell'andamento chiudeva con
+     «Superamenti: 0 → 0» sotto la frase «i superamenti non si possono
+     contare». Le tre regole sono state spostate nel modulo e hanno la loro
+     prova in `run-kpi`; che il BOTTONE produca davvero quel file e che la
+     scheda scriva davvero quella frase, `node` non lo può vedere. */
+  ['i numeri tranquilli che escono da Sentinella', 'sentinella-numeri-tranquilli.mjs', []],
+  ['numeri tranquilli di Sentinella · controprova', 'sentinella-numeri-tranquilli.mjs', ['--controprova'], true],
 ];
 
 async function rispondePorta(porta) {

@@ -1609,11 +1609,19 @@ test("riepilogoVolate: totale, questo mese, kg del mese, contestazioni", () => {
   eq(r.totale, 3, "tre volate");
   eq(r.questoMese, 2, "due a luglio");
   eq(r.kgMese, 890, "480+410 kg nel mese");
+  eq(r.kgMeseNoti, 2, "tutt'e due dichiarano i chili");
+  eq(r.kgMeseSenza, 0, "nessuna senza chili");
   eq(r.ultima, "2026-07-17", "volata più recente");
   eq(r.contestazioni, 1, "una con contestazione");
 });
-test("riepilogoVolate: vuoto = tutto zero (niente crash)", () =>
-  eq(sentinella.riepilogoVolate([], new Date(2026, 6, 21)), { totale: 0, questoMese: 0, kgMese: 0, ultima: null, contestazioni: 0 }, "vuoto"));
+/* ⚠️ RISCRITTA PIÙ GIUSTA, NON PIÙ PERMISSIVA (03/08). Si chiamava «vuoto =
+   tutto zero» e pretendeva `kgMese: 0` su un registro SENZA NESSUNA VOLATA:
+   uno zero calcolato dal nulla, cioè esattamente la forma che `statPeriodo`
+   aveva già smesso di produrre sui mesi senza letture. Su zero volate i chili
+   del mese non sono zero, sono «non lo so». */
+test("riepilogoVolate: registro vuoto = nessun conto, non uno zero", () =>
+  eq(sentinella.riepilogoVolate([], new Date(2026, 6, 21)),
+     { totale: 0, questoMese: 0, kgMese: null, kgMeseNoti: 0, kgMeseSenza: 0, ultima: null, contestazioni: 0 }, "vuoto"));
 test("parseVolateCsv: legge le colonne, scarta data non ISO, esito default regolare", () => {
   const csv = "data;fronte;nFori;kgTotali;kgMaxRitardo;distanzaRicettore;esito;note\n2026-07-17;Fronte Nord;42;480;18;320;regolare;ok\n2026-07-03;Est;36;410;22;280;contestazione;\nboh;X;1;1;1;1;;\n";
   const p = sentinella.parseVolateCsv(csv);
@@ -18096,6 +18104,152 @@ test("⛔ piuGiorni: una data che non esiste non produce una scadenza", () => {
     const imn = conti.importiFattura(nuova);
     eq([imn.conIva, imn.conIva ? imn.ivaImporto : ""], [true, 330],
       "e dove l'IVA c'è la colonna la porta ancora");
+  });
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// SENTINELLA · I NUMERI CHE MENTONO CON LA FACCIA TRANQUILLA, SECONDA PASSATA (03/08)
+// ---------------------------------------------------------------------------
+// Il censimento statico era a zero anche qui, e il principio del fondatore in
+// questa app è NATO («senza dati» non è «conforme»): il modulo lo applica in
+// dodici punti, con le sue ragioni scritte. I difetti stavano tutti nel punto
+// in cui quel lavoro ESCE dall'app — l'export e il riepilogo sopra una lista —
+// cioè dove nessuna prova `node` guardava.
+//
+// 1. ⛔ IL FILE PER L'ARPA IGNORAVA LA SOGLIA DEL RICETTORE. Il gestore del
+//    bottone ciclava su `MON` invece che su `MON.map(conSoglia)`. Misurato sul
+//    dato di dimostrazione, «Vibrazioni V2 — confine Nord»: schermo «soglia 20
+//    · Conforme», file «soglia 5 · Superamento». E costruendo il verso che
+//    conta (punto 20, casa 5, lettura 6): schermo «Superamento», file
+//    «Conforme». Il commento di `conSoglia` elencava già chi deve passare da
+//    lì — «semaforo, KPI, grafico, allerte, report» — e l'export non c'era.
+// 2. ⛔ `undefined` NELLA COLONNA DELLA SOGLIA, sul punto senza soglia che sta
+//    in `DEMO` apposta (decisione 16).
+// 3. ⛔ «tra NaN gg» su un adempimento senza data leggibile: la LISTA della
+//    stessa pagina era già stata corretta («Senza data»), l'export no.
+// 4. ⛔ `riepilogoVolate.kgMese` sommava come ZERO le volate che non dichiarano
+//    i chili — mentre la riga di ognuna, tre centimetri sotto, scriveva già
+//    «kg non dichiarati». `parseVolateCsv` risponde `null` su una cella vuota
+//    proprio per non dire quella bugia, e il riepilogo la ridiceva.
+// 5. ⛔ «Superamenti: 0 → 0» nel verdetto dell'andamento per ricettore, su un
+//    punto SENZA SOGLIA: la tabella accanto scriveva «—» e il sottotitolo
+//    della stessa scheda diceva «i superamenti non si possono contare». Vive
+//    nella pagina, l'ha visto lo scatto.
+// Qui sotto le prove che possono vivere in `node`: 1, 2, 3 e 4.
+// ═══════════════════════════════════════════════════════════════════════════
+{
+  const righeCsv = (t) => String(t).trim().split("\n");
+  const colonne = (r) => r.split(";");
+
+  test("⛔ Sentinella · il file per l'ARPA usa la soglia che VALE, non quella del punto", () => {
+    const RIC = [{ id: "rcX", nome: "Casa Rossi", tipo: "abitazione", soglia: 5, unita: "mm/s" }];
+    const m = { id: "x", nome: "Vibrazioni — fronte Ovest", tipo: "vibrazioni", unita: "mm/s",
+      soglia: 20, valore: 6, ricettoreId: "rcX", letture: [{ data: "2026-07-20", valore: 6 }] };
+    // il verso che conta: il ricettore è PIÙ SEVERO del punto
+    eq(sentinella.sogliaEfficace(m, RIC).valore, 5, "la soglia che vale è quella della casa");
+    eq(sentinella.statoMisura(m).label, "Conforme", "⛔ con la soglia del PUNTO usciva così");
+    eq(sentinella.statoMisura({ ...m, soglia: 5 }).label, "Superamento", "e con quella vera è un superamento");
+    const r = colonne(righeCsv(sentinella.csvAmbiente([m], [], RIC))[1]);
+    eq(r[4], "5", "⛔ nel file c'è la soglia del ricettore");
+    eq(r[5], "Superamento", "⛔ e lo stesso stato che l'utente legge sullo schermo");
+    eq(r[7], "ricettore Casa Rossi", "e il file dice DA DOVE viene quella soglia");
+    // e la stessa cosa sul dato di dimostrazione, nel verso opposto
+    const v2 = sentinella.DEMO.monitoraggi.find(x => x.id === "v2");
+    ok(!!v2, "la dimostrazione contiene ancora V2 — confine Nord");
+    eq(sentinella.statoMisura(v2).label, "Superamento", "⛔ com'era nel file: soglia del punto, 5");
+    const d2 = colonne(righeCsv(sentinella.csvAmbiente(sentinella.DEMO.monitoraggi, [], sentinella.DEMO.ricettori))
+      .find(x => x.includes("confine Nord")));
+    eq([d2[4], d2[5]], ["20", "Conforme"], "adesso il file dice quello che dicono le schermate");
+  });
+
+  test("⛔ Sentinella · un punto senza soglia non esporta la parola «undefined»", () => {
+    const pv1 = sentinella.DEMO.monitoraggi.find(x => x.id === "pv1");
+    ok(!!pv1, "la dimostrazione contiene ancora il punto senza soglia");
+    eq(pv1.soglia, undefined, "⛔ ed è il campo che `${m.soglia}` scriveva come «undefined»");
+    eq(String(pv1.soglia), "undefined", "⛔ misura della vecchia cella");
+    const r = colonne(righeCsv(sentinella.csvAmbiente([pv1], [], sentinella.DEMO.ricettori))[1]);
+    eq(r[4], "", "la cella della soglia è VUOTA: «non c'è» si scrive non scrivendo");
+    eq(r[5], "Senza soglia", "e lo stato lo dice a parole");
+    eq(r[7], "", "senza soglia non c'è nessuna origine da dichiarare");
+  });
+
+  test("⛔ Sentinella · «tra NaN gg»: l'export aveva la copia debole che la lista aveva già corretto", () => {
+    const OGGI = new Date(2026, 7, 3);
+    const ade = [{ titolo: "Relazione annuale", ente: "ARPA", scadenza: "2026-08-10" },
+                 { titolo: "Rinnovo AUA", ente: "SUAP", scadenza: "2026-07-20" },
+                 { titolo: "Fonometria", ente: "—", scadenza: "" },
+                 { titolo: "Analisi acque", ente: "—", scadenza: "2026-02-30" }];
+    // la copia debole, rimessa qui per far vedere che cosa faceva
+    const g = sentinella.giorni("", OGGI);
+    ok(!Number.isFinite(g), "giorni('') risponde " + mostra(g) + ", non 0");
+    ok(!(g < 0), "⛔ e NaN < 0 è falso: si finiva nel ramo tranquillo");
+    eq("tra " + g + " gg", "tra NaN gg", "⛔ ecco la cella che usciva nel file");
+    const r = righeCsv(sentinella.csvAmbiente([], ade, [], OGGI));
+    eq(colonne(r[1])[5], "tra 7 gg", "una scadenza vera resta un numero di giorni");
+    eq(colonne(r[2])[5], "scaduto da 14 gg", "e uno scaduto porta il suo numero, non solo «scaduto»");
+    eq(colonne(r[3])[5], "senza data", "⛔ senza data si dice «senza data», come nella lista");
+    eq(colonne(r[4])[5], "senza data", "⛔ e il 30 febbraio non esiste: `dataISOEsiste`, non la sola forma");
+    eq(colonne(r[3])[6], "entro data non indicata", "e il dettaglio non stampa una data che non c'è");
+  });
+
+  test("Sentinella · csvAmbiente: intestazione, valore mai misurato, storico, niente crash sul vuoto", () => {
+    eq(sentinella.csvAmbiente(null, null, null), sentinella.CSV_AMBIENTE_INTESTAZIONE + "\n",
+      "senza dati esce la sola intestazione");
+    eq(sentinella.CSV_AMBIENTE_INTESTAZIONE.split(";").length, 8, "otto colonne, l'ottava in coda");
+    eq(sentinella.CSV_AMBIENTE_INTESTAZIONE.split(";").slice(0, 7).join(";"),
+      "tipo;nome;valore;unita;soglia;stato;dettaglio", "le prime sette sono quelle di prima");
+    // il punto appena creato: `valore: 0` è il valore con cui NASCE, non una misura
+    const nuovo = { nome: "Polveri — piazzale", tipo: "polveri", unita: "µg/m³", soglia: 40, valore: 0, letture: [] };
+    eq(sentinella.statoMisura(nuovo).stato, "mai", "il modulo lo sa già dire");
+    const r = colonne(righeCsv(sentinella.csvAmbiente([nuovo], [], []))[1]);
+    eq([r[2], r[5]], ["", "Mai misurato"], "⛔ la cella del valore è vuota, non «0»");
+    // lo storico: una lettura illeggibile non diventa uno zero nel file
+    const rotto = { nome: "P", tipo: "rumore", unita: "dB(A)", soglia: 70, valore: 60,
+      letture: [{ data: "2026-07-01", valore: 60 }, { data: "2026-07-02", valore: null }] };
+    eq(colonne(righeCsv(sentinella.csvAmbiente([rotto], [], []))[1])[6], "2026-07-01:60 2026-07-02:",
+      "la riga c'è (nessuna sparisce), ma il valore che non si legge resta vuoto");
+    // il conflitto di unità: il file lo dichiara invece di far sembrare applicata una soglia che non lo è
+    const RICu = [{ id: "r1", nome: "Scuola", soglia: 40, unita: "µg/m³" }];
+    const dB = { nome: "Rumore", tipo: "rumore", unita: "dB(A)", soglia: 70, valore: 62, ricettoreId: "r1",
+      letture: [{ data: "2026-07-01", valore: 62 }] };
+    ok(colonne(righeCsv(sentinella.csvAmbiente([dB], [], RICu))[1])[7].includes("non applicata"),
+      "l'unità che non coincide si dichiara, non si converte");
+  });
+
+  test("⛔ Sentinella · i chili del mese non sommano come zero le volate che non li dichiarano", () => {
+    const OGGI = new Date(2026, 7, 3);
+    const vol = [{ data: "2026-08-01", kgTotali: 120, stato: "eseguita" },
+                 { data: "2026-08-02", kgTotali: null, stato: "eseguita" },
+                 { data: "2026-08-03", kgTotali: "boh", stato: "eseguita" }];
+    // la trappola, misurata: +null fa 0 e Number.isFinite(0) risponde true
+    eq(vol.reduce((s, v) => s + (+v.kgTotali || 0), 0), 120, "⛔ la vecchia somma diceva 120 su tre volate");
+    const r = sentinella.riepilogoVolate(vol, OGGI);
+    eq([r.questoMese, r.kgMese, r.kgMeseNoti, r.kgMeseSenza], [3, 120, 1, 2],
+      "il numero resta 120 ma porta il suo denominatore: 1 dichiarata su 3");
+    // nessuno dichiara niente → non è «zero chili», è «non lo so»
+    const muto = sentinella.riepilogoVolate(
+      [{ data: "2026-08-01", kgTotali: null, stato: "eseguita" }], OGGI);
+    eq([muto.questoMese, muto.kgMese, muto.kgMeseSenza], [1, null, 1],
+      "⛔ zero dichiarazioni → null, non 0: chi mostra scrive «—»");
+    // ⛔ e il giro col file: `parseVolateCsv` risponde null apposta su una cella
+    // vuota, quindi il caso non è costruito a tavolino — entra dall'import
+    const dal = sentinella.parseVolateCsv("data;fronte;nFori;kgTotali\n2026-08-02;Nord;12;\n");
+    eq(dal[0].kgTotali, null, "la cella vuota del file resta «non lo so»");
+    eq(sentinella.riepilogoVolate(dal, OGGI).kgMese, null, "e il riepilogo non se la inventa");
+    // il caso sano non cambia
+    eq(sentinella.riepilogoVolate([{ data: "2026-08-01", kgTotali: 480, stato: "eseguita" },
+                                   { data: "2026-08-02", kgTotali: 410, stato: "eseguita" }], OGGI).kgMese,
+      890, "dove i chili ci sono il totale è quello di sempre");
+    /* ⚠️ E LA COPIA DEBOLE ACCANTO, corretta insieme: `riepilogoPreviste`
+       aveva lo stesso `+v.kgTotali || 0`. Nessuno mostra quel numero oggi —
+       ed è proprio per questo che sarebbe rimasto lì fino al giorno in cui
+       qualcuno lo mostra. */
+    const pv = sentinella.riepilogoPreviste(
+      [{ id: "a", stato: "prevista", data: "2026-09-01", kgTotali: 300 },
+       { id: "b", stato: "prevista", data: "2026-09-08", kgTotali: null }], OGGI);
+    eq([pv.kgTotali, pv.kgTotaliSenza], [300, 1], "le previste: 300 kg su una sola delle due");
+    eq(sentinella.riepilogoPreviste([{ id: "a", stato: "prevista", data: "2026-09-01" }], OGGI).kgTotali,
+      null, "⛔ e nessuna dichiarazione non fa «0 kg previsti»");
   });
 }
 
