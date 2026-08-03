@@ -3393,6 +3393,24 @@ function sitoAggiungi(){
    una carica in chili. Il ripiego di casa lo rifiuta, e rifiutare è la
    risposta giusta. Il delimitatore lo dichiara `leggiCsv` stessa, così la
    scelta non è una seconda rilevazione scritta a somiglianza. */
+/* ⚠️ IL RIPIEGO SULLE VIRGOLE È STATO PROVATO A PORTARE IN `shared/` E LA
+   MISURA HA DETTO DI NO — scritto qui perché nessuno lo rifaccia alla cieca.
+   L'idea era dare a `leggiCsv` un'opzione `virgolaDecimale`: con il separatore
+   `,`, una virgola seguita da una CIFRA è un decimale e non un separatore.
+   Costruita in scratchpad e misurata su quattro file:
+     · «120,5,50,9,2» → una cella sola tanto di qua quanto di là, quindi la
+       riga viene **scartata** in tutt'e due i casi. Ed è la cosa giusta: quel
+       file è ambiguo per costruzione (cinque interi o tre decimali?), e
+       accettarlo vorrebbe dire leggere la carica al posto della distanza;
+     · «"Volata A, fronte est",120.5,50,9.2» → **scartata da tutt'e due**,
+       perché la virgola prima del `5` di `120.5` resta ambigua comunque.
+   L'unica differenza è la spazzatura intermedia: la regex di casa spezza
+   DENTRO le virgolette e lascia un `"` a metà campo, la condivisa no. Nessun
+   file cambia esito. Cioè il trasloco sposterebbe righe senza cambiare niente
+   per l'utente, e aggiungerebbe a `shared/` un'opzione con **un solo** utente:
+   la regola «una funzione che serve a due app» qui non si applica.
+   ⛔ Quello che resta valido e non va toccato: il **taglio delle righe e delle
+   virgolette** passa da `leggiCsv`, e solo il ripiego sulle virgole è di casa. */
 function _sitoParseCsv(testo){
   const L=leggiCsv(testo);
   const righe = (L.delim !== ',')

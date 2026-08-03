@@ -206,10 +206,25 @@ const SCEGLI = ([fatti, forme, quanteVolte]) => {
      apriva **zero modali su 68**, perché i bottoni veri (navigazione, FAB)
      portano altrove e tutto quello che apre una scheda è una riga `.sitem`.
      Prima ancora il core non passava nemmeno la schermata d'accesso (corretto
-     in `giro.mjs`): due cause in fila, e il banco lo dichiarava da mesi in
-     fondo al suo riepilogo — «nessuna modale aperta … nel suo programma ce ne
-     sono 68 da aprire». Un controllo che confessa di essere cieco e che nessuno
-     legge è come non averlo. */
+     in `giro.mjs`): il banco lo dichiarava da mesi in fondo al suo riepilogo —
+     «nessuna modale aperta … nel suo programma ce ne sono 68 da aprire». Un
+     controllo che confessa di essere cieco e che nessuno legge è come non
+     averlo.
+     ⛔ **E QUESTA CORREZIONE, DA SOLA, NON BASTA: MISURATO DOPO.** Rimessa
+     `.sitem[onclick]`, il banco sul solo core risponde **ancora 0 modali
+     aperte su 68**, con gli stessi 6.800 comandi provati. Il conto statico
+     (41 `.sitem[onclick]` nel sorgente contro 0 `.item[onclick]`) era vero ma
+     non era la causa. Quella vera, misurata contando gli elementi VISIBILI
+     sezione per sezione dopo l'accesso, è che **la dimostrazione del core è
+     quasi vuota**: 0-2 righe cliccabili per sezione (`@volate` ne ha **zero**,
+     perché `rapportini: []`), 3 bottoni e 4-5 `[role=button]`. Il banco ha un
+     programma da 68 modali e una dimostrazione che non ha le righe da cui
+     aprirle.
+     Quindi la strada non è un terzo ritocco al selettore: o la dimostrazione
+     del core si popola come quella delle app, oppure il banco deve
+     **dichiarare** che sul core misura una superficie senza dati invece di
+     dire «non raggiunta». Scritto qui perché il prossimo non ricominci dal
+     selettore. */
   const lista = [...document.querySelectorAll('button, [role="button"], summary, .item[onclick], .sitem[onclick], tr[data-id]')]
     .filter((e) => vis(e) && !e.closest(FUORI) && !e.matches(MAI));
   const conta = (f) => forme.filter((x) => x === f).length;
