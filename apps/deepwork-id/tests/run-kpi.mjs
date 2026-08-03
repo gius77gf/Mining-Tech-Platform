@@ -13535,8 +13535,8 @@ test("⛔ Flotta: le ore ignote arrivano ignote anche a chi le chiede due volte"
 
   test("Genesi · dal file ai numeri: solo somme e medie, niente stime", () => {
     const r = v._riconRiassuntoCampo(v._riconParseCampo(CONSUNTIVO), "consuntivo.csv");
-    contiene(r, { file: "consuntivo.csv", scartate: 1, foriTot: 4, foriReg: 3 },
-             "tre fori registrati su quattro, una riga scartata");
+    contiene(r, { file: "consuntivo.csv", scartate: 1, foriTot: 4, foriReg: 3, misurabile: true },
+             "tre fori registrati su quattro, una riga scartata — e lo scostamento è misurabile");
     eq(r.date, ["2026-07-29"], "le date si contano una volta sola");
     eq(r.turni, ["A"], "e così i turni");
     eq(r.chi, ["M. Rossi"], "e chi ha registrato");
@@ -13553,32 +13553,47 @@ test("⛔ Flotta: le ore ignote arrivano ignote anche a chi le chiede due volte"
     eq(r.peggio, { foro: 2, prog: 12.5, reale: 10.8, diff: -1.7 }, "il foro più lontano dal progetto");
   });
 
-  test("⛔ Genesi · SENZA NESSUN FORO CARICATO lo scostamento è 0 — il numero tranquillo, misurato", () => {
-    /* ⚠️ QUESTA PROVA BLINDA UN DIFETTO, di proposito e per una riga sola: il
-       trasloco non è una riscrittura, e correggere qui vorrebbe dire non
-       sapere più se la prova guarda il vecchio o il nuovo.
-       Il difetto: con un consuntivo in cui NESSUN foro ha la carica reale (il
-       piano appena importato in Campo, non ancora caricato) il riassunto
-       risponde scostamento 0 e scarto medio 0 — e la pagina li disegna in
-       VERDE, misurato nel browser: «+0 kg (+0%)» in rgb(102,187,106).
-       Cioè il numero tranquillo dove non è stato misurato niente, che è
-       esattamente ciò che il principio del fondatore vieta. Che la pagina
-       scriva sotto «nel file nessun foro ha la carica reale» è difesa in
-       profondità, non innocuità: il numero e il colore dicono il contrario.
-       La forma giusta è quella che la stessa schermata usa una riga più in
-       giù — «—» con la ragione accanto — e ce l'ha già `peggio`, che qui
-       risponde `null` invece di zero. */
+  test("⛔ Genesi · SENZA NESSUN FORO CARICATO lo scostamento non è ZERO: non c'è", () => {
+    /* ⛔ QUESTA PROVA BLINDAVA IL DIFETTO, ed è la riga per cui è stata
+       riscritta il 03/08. Con un consuntivo in cui NESSUN foro ha la carica
+       reale (il piano appena importato in Campo, non ancora caricato) il
+       riassunto rispondeva scostamento 0 e scarto medio 0, e la pagina li
+       disegnava in VERDE — misurato nel browser: «+0 kg (+0%)» in
+       rgb(102,187,106), con accanto «0 kg (0%)». Il numero tranquillo dove non
+       è stato misurato niente, che è ciò che il principio del fondatore vieta.
+       Che sotto ci fosse l'avviso «nel file nessun foro ha la carica reale»
+       era difesa in profondità, non innocuità: il numero e il colore dicevano
+       il contrario, e sono loro che si leggono per primi.
+       La forma giusta ce l'aveva già `peggio`, due righe più in giù: `null`.
+       Adesso l'asserzione è PIÙ GIUSTA, non più permissiva — pretende il
+       «non lo so» invece di accettare lo zero. */
     const r = v._riconRiassuntoCampo(v._riconParseCampo("foro;carica_prog_kg;carica_reale_kg\n1;12,5;\n2;12,5;\n"), "piano.csv");
     eq(r.foriReg, 0, "nessun foro con la carica reale");
-    eq(r.kgProgTot, 25, "il progetto però c'è: 25 kg");
-    eq(r.scostKg, 0, "⚠️ e lo scostamento risponde 0 — misurato, non voluto");
-    eq(r.scostPct, 0, "⚠️ idem in percentuale");
-    eq(r.medioKg, 0, "⚠️ e lo scarto medio per foro");
-    eq(r.peggio, null, "⛔ mentre il foro peggiore risponde null: la funzione SA dire «non lo so»");
-    /* e il colore che la pagina ci mette sopra */
-    eq(v._ricColore(r.scostPct), "#66bb6a", "⚠️ verde, cioè «tutto a posto», su una misura che non esiste");
+    eq(r.kgProgTot, 25, "il progetto però c'è: 25 kg — quello è un fatto e si scrive");
+    eq(r.misurabile, false, "⛔ e il modulo lo DICHIARA, invece di lasciarlo dedurre da un null");
+    eq(r.scostKg, null, "⛔ lo scostamento non è zero: non è misurabile");
+    eq(r.scostPct, null, "⛔ e nemmeno in percentuale");
+    eq(r.medioKg, null, "⛔ né lo scarto medio per foro");
+    eq(r.medioPct, null, "⛔ né il suo per cento");
+    eq(r.peggio, null, "⛔ come il foro peggiore, che sapeva già dire «non lo so»");
+    /* e il colore che la pagina ci mette sopra: spento, non verde */
+    eq(v._ricColore(r.scostPct), "var(--mut)", "⛔ e il colore non è più «tutto a posto» su una misura che non esiste");
     /* la lista vuota si comporta allo stesso modo */
-    eq(v._riconRiassuntoCampo({ righe: [], scartate: 0 }, "").scostPct, 0, "⚠️ e con zero righe pure");
+    const vuoto = v._riconRiassuntoCampo({ righe: [], scartate: 0 }, "");
+    eq(vuoto.scostPct, null, "⛔ e con zero righe pure");
+    eq(vuoto.misurabile, false, "con la stessa dichiarazione");
+  });
+
+  test("⛔ Genesi · e il confine: UN SOLO foro caricato è poco, ma è misurato", () => {
+    /* ⚠️ La metà che manca alla prova qui sopra, e senza la quale il modo più
+       facile di farla passare sarebbe rispondere `null` sempre. Il confine sta
+       a UNO: quanto valga poco lo dice già l'avviso «N fori su M non hanno la
+       carica reale», e spegnere anche questo numero vorrebbe dire buttare via
+       una misura vera. */
+    const uno = v._riconRiassuntoCampo(v._riconParseCampo("foro;carica_prog_kg;carica_reale_kg\n1;10;12\n2;10;\n"), "");
+    eq(uno.misurabile, true, "un foro solo è pochi, ma è misurato");
+    eq(uno.scostKg, 2, "e due chili in più sono due chili in più");
+    eq(uno.scostPct, 20, "sul progetto di QUEL foro, non di tutta la volata");
   });
 
   test("Genesi · i numeri della riconciliazione si scrivono all'italiana", () => {
@@ -13592,8 +13607,13 @@ test("⛔ Flotta: le ore ignote arrivano ignote anche a chi le chiede due volte"
     for (const vuoto of [null, undefined, NaN]) {
       eq(v._ricKg(vuoto), "—", `${mostra(vuoto)}: il trattino`);
       eq(v._ricSegno(vuoto), "—", `${mostra(vuoto)}: il trattino anche col segno`);
+      /* ⛔ e il «%» NON si attacca al trattino: «—%» si legge come una
+         percentuale rotta, non come «non lo so». Serve da quando
+         `_riconRiassuntoCampo` risponde `null` dove non ha misurato. */
+      eq(v._ricPct(vuoto), "—", `${mostra(vuoto)}: il trattino SENZA il per cento appeso`);
     }
     eq(v._ricKg(0), "0", "⛔ ma lo zero si scrive: è un fatto");
+    eq(v._ricPct(0), "+0%", "⛔ e lo zero per cento pure");
   });
 
   test("Genesi · la data del file diventa la data che si legge in cava", () => {
@@ -13601,15 +13621,25 @@ test("⛔ Flotta: le ore ignote arrivano ignote anche a chi le chiede due volte"
     eq(v._ricData(" 2026-07-29 "), "29/07/2026", "e gli spazi intorno non contano");
     eq(v._ricData("ieri"), "ieri", "⛔ quello che non è una data ISO torna com'è: è testo di un file, non lo si indovina");
     for (const vuoto of ["", null, undefined]) eq(v._ricData(vuoto), "", `${mostra(vuoto)}: niente resta niente`);
-    /* ⚠️ SECONDO DIFETTO BLINDATO, non corretto: il controllo è sulla FORMA,
-       non sull'esistenza del giorno. Un 30 febbraio esce riscritto come una
-       data italiana perfetta, cioè una data falsa che sembra vera. La
-       risposta giusta esiste già in casa — `dataISOEsiste` di
-       `shared/deepwork-id-client/dw-shell.js` — ed è la stessa lezione della
-       `isDate` di `run-demo.mjs` che accettava «2026-02-30». */
-    eq(v._ricData("2026-02-30"), "30/02/2026", "⚠️ un giorno che non esiste esce come data vera");
-    eq(v._ricData("2026-13-45"), "45/13/2026", "⚠️ e nemmeno il mese 13 viene fermato");
-    eq(shell.dataISOEsiste("2026-02-30"), false, "⛔ mentre in `shared/` la risposta giusta c'è già");
+    /* ⛔ IL DIFETTO CHE QUESTA PROVA BLINDAVA, corretto il 03/08: il controllo
+       era sulla FORMA e non sull'esistenza del giorno, quindi «2026-02-30»
+       usciva riscritto «30/02/2026» — una data falsa resa indistinguibile da
+       una vera. E non restava lì: la pagina propone il nome della
+       riconciliazione come «Volata <data> · turno X», quindi la data
+       inesistente finiva nello storico e nel CSV che esce dall'azienda
+       (fotografato prima della correzione: «volata del 30/02/2026»).
+       Adesso si usa `dataISOEsiste` di `shared/`, e una data che non esiste
+       ricade nella regola già scritta qui sopra: torna com'è, perché è testo
+       di un file e non lo si indovina. */
+    eq(v._ricData("2026-02-30"), "2026-02-30", "⛔ il 30 febbraio non diventa una data italiana: resta il testo del file");
+    eq(v._ricData("2026-13-45"), "2026-13-45", "⛔ e nemmeno il mese 13");
+    eq(v._ricData("2026-02-29"), "2026-02-29", "⛔ il 29 febbraio di un anno non bisestile è la stessa cosa, ed è il caso che si vede meno");
+    eq(v._ricData("2028-02-29"), "29/02/2028", "⛔ ma nel 2028 esiste, e si scrive");
+    eq(shell.dataISOEsiste("2026-02-30"), false, "⛔ la risposta giusta era in `shared/` da mesi, e non se ne è scritta una seconda");
+    /* ⚠️ e la lunghezza si controlla lo stesso, per una ragione precisa:
+       `dataISOEsiste` guarda i primi dieci caratteri, quindi accetta un
+       ISTANTE. Riscritto come data sola perderebbe l'ora in silenzio. */
+    eq(v._ricData("2026-07-29T10:00"), "2026-07-29T10:00", "⛔ un istante non viene accorciato a data: l'ora non si butta via di nascosto");
   });
 
   test("Genesi · il colore dello scostamento: verde sotto il 10%, giallo sotto il 25, rosso oltre", () => {
@@ -13619,6 +13649,17 @@ test("⛔ Flotta: le ore ignote arrivano ignote anche a chi le chiede due volte"
     eq(v._ricColore(-24.9), "#ffca28", "e ci si resta fino al 25");
     eq(v._ricColore(25), "#ef5350", "al 25 rosso");
     eq(v._ricColore(-80), "#ef5350", "e il segno non conta: è la distanza dal progetto");
+    /* ⛔ IL QUINTO DIFETTO, corretto il 03/08. `Math.abs(null)` fa **0**,
+       quindi un «non misurabile» usciva VERDE; `Math.abs(undefined)` fa NaN,
+       che non è minore di niente, quindi lo stesso vuoto scritto nell'altro
+       modo usciva ROSSO. Due vuoti, due colori, nessuno dei due giusto — e
+       quello verde è il peggiore, perché è il colore che dice «non guardare».
+       Adesso l'assenza ha un colore suo, quello del testo spento: la
+       convenzione che il resto della schermata usa già per «non lo so». */
+    for (const niente of [null, undefined, "", NaN])
+      eq(v._ricColore(niente), "var(--mut)",
+         `⛔ ${mostra(niente)}: spento, perché non c'è niente da giudicare`);
+    eq(v._ricColore(0), "#66bb6a", "⛔ mentre lo ZERO misurato resta verde: è un fatto, non un'assenza");
   });
 
   test("Genesi · lo scostamento del fochino legge la VIRGOLA, che in cava è la norma", () => {
@@ -13632,13 +13673,23 @@ test("⛔ Flotta: le ore ignote arrivano ignote anche a chi le chiede due volte"
     for (const niente of ["", "boh", null, undefined])
       eq(v.riconDelta(28, niente, "cm"), '<span style="color:var(--mut)">—</span>',
          `${mostra(niente)}: ⛔ il trattino, non uno zero`);
-    /* ⚠️ TERZO DIFETTO BLINDATO: quando il PREVISTO è zero (o manca) la
-       percentuale viene scritta 0 e il colore esce VERDE, cioè «scostamento
-       trascurabile» su un rapporto che non si può calcolare. Il modulo sa già
-       scrivere «—» quando non sa: qui non lo fa. Non corretto in questo passo. */
-    ok(/\+5 cm \(\+0%\)/.test(v.riconDelta(0, "5", "cm")), "⚠️ previsto 0: la percentuale esce 0 invece che non calcolabile");
-    ok(/#66bb6a/.test(v.riconDelta(0, "5", "cm")), "⚠️ e il colore è verde");
-    ok(/#66bb6a/.test(v.riconDelta(null, "5", "cm")), "⚠️ idem se il previsto manca del tutto");
+    /* ⛔ IL DIFETTO CHE QUESTA PROVA BLINDAVA, corretto il 03/08. Quando il
+       PREVISTO era zero la percentuale veniva scritta **0** e il colore usciva
+       VERDE — cioè «scostamento trascurabile» su un rapporto che non si può
+       fare; e quando il previsto MANCAVA, `r - null` faceva `r`, quindi
+       usciva «+5 cm (+0%)», uno scarto inventato contro una previsione che non
+       c'era. Non è un caso di laboratorio: la PPV prevista è arrotondata al
+       decimo di mm/s, e col recettore a 3.000 m e la carica minima esce
+       «0,0 mm/s» da sola (misurato aprendo la pagina: `dRecDist` arriva a 3000,
+       `dKg` scende a 5). */
+    const zero = v.riconDelta(0, "5", "cm");
+    ok(/\+5 cm/.test(zero), "⛔ previsto 0: lo scarto in cm si scrive — quello è misurato");
+    ok(/% non calcolabile/.test(zero), "⛔ ma al posto della percentuale c'è il motivo per cui non c'è");
+    ok(!/\+0%/.test(zero), "⛔ e mai più uno zero al posto di un rapporto impossibile");
+    ok(!/#66bb6a/.test(zero) && /var\(--mut\)/.test(zero), "⛔ col colore spento, non verde");
+    for (const senza of [null, undefined, ""])
+      eq(v.riconDelta(senza, "5", "cm"), '<span style="color:var(--mut)">—</span>',
+         `⛔ ${mostra(senza)}: senza previsto non si scrive nemmeno lo scarto — sarebbe un confronto con niente`);
   });
 
   test("Genesi · lo storico esce in CSV, e le colonne nuove si aggiungono IN FONDO", () => {
@@ -13671,26 +13722,36 @@ test("⛔ Flotta: le ore ignote arrivano ignote anche a chi le chiede due volte"
     eq(v.csvRiconciliazione([]).split("\n")[0], testo.split("\n")[0], "storico vuoto: resta l'intestazione, uguale");
   });
 
-  test("⚠️ Genesi · il CSV dello storico NON è protetto dalla CSV-injection — misurato", () => {
-    /* ⚠️ QUARTO DIFETTO BLINDATO. `csvRiconciliazione` si porta dietro dalla
-       pagina una `cell` di casa, che è una COPIA PIÙ DEBOLE di `csvCell` di
-       `shared/deepwork-id-client/dw-shell.js`: mette le virgolette dove
-       servono, ma non neutralizza il valore che comincia per = + - @, e non
-       tratta il ritorno a carrello. È il file che esce dall'azienda, quindi
-       l'errore esce con lui.
-       Non corretto qui perché un'estrazione non è una riscrittura; e la
-       correzione è una riga sola: usare `csvCell`, che esiste già ed è la
-       regola scritta una volta per tutte le app. */
+  test("⛔ Genesi · il CSV dello storico è protetto dalla CSV-injection, con la difesa di casa", () => {
+    /* ⛔ IL DIFETTO CHE QUESTA PROVA BLINDAVA, corretto il 03/08 ed era il più
+       grave dei cinque: `csvRiconciliazione` si portava dietro dalla pagina una
+       `cell` di casa, COPIA PIÙ DEBOLE di `csvCell` di
+       `shared/deepwork-id-client/dw-shell.js`. Metteva le virgolette su
+       `; " \n` e basta: un valore che comincia per `= + - @` usciva NUDO, e un
+       ritorno a carrello sfondava la riga. È il file che esce dall'azienda e
+       che si apre in Excel a casa del cliente, quindi l'errore usciva con lui.
+       La correzione è la riga che la regola di casa chiedeva da sempre: usare
+       quella di `shared/`, non una somiglianza. */
     const veleno = "@SUM(1+1)";
     const riga = v.csvRiconciliazione([{ ts: "2026-07-29", nome: veleno, prev: { x50: 1, ppv: 1, fly: 1 },
       real: { x50: 1, ppv: 1, fly: 1, ovs: 1, note: "" } }]).split("\n")[1];
-    ok(riga.includes(";" + veleno + ";"), "⚠️ la formula esce nuda dal nostro export");
-    eq(shell.csvCell(veleno), "'" + veleno, "⛔ mentre `shared/` sa già come si neutralizza");
-    /* e il ritorno a carrello, che `csvCell` mette fra virgolette e `cell` no */
+    ok(!riga.includes(";" + veleno + ";"), "⛔ la formula non esce più nuda");
+    ok(riga.includes(";'" + veleno + ";"), "⛔ esce neutralizzata dall'apostrofo, che la tiene testo");
+    eq(shell.csvCell(veleno), "'" + veleno, "⛔ ed è esattamente quello che scrive `shared/`: una difesa sola, non due");
+    /* e il ritorno a carrello, che la `cell` di casa lasciava passare */
     const conCR = v.csvRiconciliazione([{ ts: "a\rb", nome: "", prev: { x50: 1, ppv: 1, fly: 1 },
       real: { x50: 1, ppv: 1, fly: 1, ovs: 1, note: "" } }]).split("\n")[1];
-    ok(conCR.startsWith("a\rb;"), "⚠️ un \\r nella cella non viene protetto e sfonda la riga");
-    eq(shell.csvCell("a\rb"), '"a\rb"', "⛔ anche qui la risposta giusta è in casa");
+    ok(conCR.startsWith('"a\rb";'), "⛔ un \\r nella cella sta fra virgolette e non sfonda la riga");
+    /* ⛔ E IL GIRO SI CHIUDE: `csvCell` e `leggiCsv` sono le due metà di una
+       coppia, quindi quello che il nostro export protegge il nostro import lo
+       rilegge IDENTICO. È la prova che a `parseCsvLine` mancava e che è
+       costata quattro valori su sette, il 01/08. */
+    const st = [{ ts: "2026-07-29", nome: veleno, prev: { x50: -12.5, ppv: 1, fly: 1 },
+                  real: { x50: 1, ppv: 1, fly: 1, ovs: 1, note: "=cmd|' /C calc'!A0" } }];
+    const rilette = shell.leggiCsv(v.csvRiconciliazione(st)).righe;
+    eq(rilette[1][1], veleno, "⛔ il nome ostile torna identico: l'apostrofo di guardia non resta attaccato");
+    eq(rilette[1][9], "=cmd|' /C calc'!A0", "e nemmeno sulla nota, che è l'altro campo che l'utente scrive");
+    eq(rilette[1][2], "-12.5", "⛔ e il NUMERO NEGATIVO rientra numero: è il caso che il 01/08 rientrava NaN");
   });
 
   test("Genesi · l'HTML della schermata è messo al sicuro carattere per carattere", () => {

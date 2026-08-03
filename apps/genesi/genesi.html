@@ -294,7 +294,19 @@ html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--tx);
   .ricamp-g{grid-template-columns:1fr auto;gap:2px 10px}
   .ricamp-g .l{grid-column:1}
   .ricamp-g .v{grid-column:2}
-  .ricamp-g .f{grid-column:1;text-align:left;padding-bottom:7px}
+  /* ⚠️ E QUI IL `nowrap` VA TOLTO. Nella riga a due colonne la provenienza sta
+     in colonna `1fr`, e un testo che non va a capo ha larghezza minima pari a
+     sé stesso: quindi allarga la colonna e spinge il numero verso il bordo.
+     Misurato a 320 px col metro del browser (`scrollWidth > clientWidth`), e
+     il numero onesto è questo: la griglia sbordava GIÀ prima — 223 contro 210
+     su HEAD, con «calcolato qui» — e senza il `nowrap`, e con la ragione più
+     lunga «nessuna carica reale», sborda di meno: 219 contro 210. Cioè non è
+     la correzione ad aver rotto niente, ma il margine non c'era e la
+     provenienza è il pezzo che cresce quando si smette di mentire.
+     ⛔ La scheda del modale sborda ancora (340 contro 282) ed è un difetto
+     PRECEDENTE, non di questa riga: sta nella larghezza della `.gmodal-card`
+     sul telefono, e va misurato per conto suo. */
+  .ricamp-g .f{grid-column:1;text-align:left;padding-bottom:7px;white-space:normal}
 }
 /* moduli dentro i modali (legge di sito): sul telefono quattro colonne
    diventano quattro campi larghi un dito, quindi si spezzano su due righe */
@@ -2919,18 +2931,32 @@ function _riconCampoHtml(){
     + riga('Fori con la carica registrata','<b>'+c.foriReg+'</b> / '+c.foriTot,'dal file')
     + riga('Carica reale totale',_ricKg(c.kgReale)+' kg','dal file')
     + riga('Carica di progetto (stessi fori)',_ricKg(c.kgProgReg)+' kg','dal file')
-    + riga('Scostamento complessivo',_ricSegno(c.scostKg)+' kg ('+_ricPct(c.scostPct)+')','calcolato qui',_ricColore(c.scostPct))
-    + riga('Scostamento medio per foro',_ricKg(c.medioKg)+' kg ('+_ricPct(c.medioPct).replace('+','')+')','calcolato qui',_ricColore(c.medioPct));
+    /* ⛔ `misurabile` è la dichiarazione del modulo: senza nessun foro caricato
+       lo scostamento non è piccolo, non esiste. Prima qui uscivano quattro
+       zeri in verde, cioè «tutto a posto» su una misura mai fatta; adesso
+       esce il trattino con la ragione accanto, nella colonna che la ragione
+       la ospita già («altra volata?», «volata a metà»). Il colore lo decide
+       comunque `_ricColore`, che sul `null` risponde spento. */
+    + riga('Scostamento complessivo',
+           c.misurabile?_ricSegno(c.scostKg)+' kg ('+_ricPct(c.scostPct)+')':'—',
+           c.misurabile?'calcolato qui':'nessuna carica reale',_ricColore(c.scostPct))
+    + riga('Scostamento medio per foro',
+           c.misurabile?_ricKg(c.medioKg)+' kg ('+_ricPct(c.medioPct).replace('+','')+')':'—',
+           c.misurabile?'calcolato qui':'nessuna carica reale',_ricColore(c.medioPct));
   // Il confronto con il progetto APERTO ADESSO in Genesi si fa solo quando è
   // lecito farlo: stesso numero di fori e volata caricata per intero. Se il
   // file è di un'altra volata o è a metà, un delta qui sarebbe una bugia.
   if(k&&k.nf){
     const confrontabile = c.foriTot===k.nf && c.foriReg===c.foriTot;
+    /* stessa regola una riga più su: senza un previsto da cui dividere la
+       percentuale non è zero, è assente — e `_ricColore` la spegne da sola
+       invece di dipingere di verde una divisione che non si può fare */
+    const vsGenesi = k.qtot?(c.kgReale-k.qtot)/k.qtot*100:null;
     h+=riga('Carica prevista da Genesi (progetto aperto)',_ricKg(k.qtot)+' kg su '+gnum(k.nf,0)+' fori','previsto qui');
     h+= confrontabile
       ? riga('Reale contro il previsto di Genesi',
-             _ricSegno(c.kgReale-k.qtot)+' kg ('+_ricPct(k.qtot?(c.kgReale-k.qtot)/k.qtot*100:0)+')',
-             'calcolato qui', _ricColore(k.qtot?(c.kgReale-k.qtot)/k.qtot*100:0))
+             _ricSegno(c.kgReale-k.qtot)+' kg ('+_ricPct(vsGenesi)+')',
+             'calcolato qui', _ricColore(vsGenesi))
       : riga('Reale contro il previsto di Genesi','—',
              c.foriTot!==k.nf?'altra volata?':'volata a metà');
   }
@@ -2938,7 +2964,7 @@ function _riconCampoHtml(){
   // Il caso che inganna di più: il totale torna perché un foro caricato in più
   // compensa uno caricato in meno. In chili la volata è a posto, ma l'energia
   // è distribuita male — ed è la distribuzione che fa la pezzatura.
-  if(c.foriReg>1 && c.medioPct >= 2*Math.abs(c.scostPct) && c.medioPct>=5)
+  if(c.misurabile && c.foriReg>1 && c.medioPct >= 2*Math.abs(c.scostPct) && c.medioPct>=5)
     h+='<div class="ricamp-note">Il totale è vicino al progetto (<b>'+_ricPct(c.scostPct)+'</b>) ma i singoli fori no: in media ogni foro è fuori di <b>'+_ricKg(c.medioKg)+' kg</b>. Vuol dire che i fori caricati in più e quelli caricati in meno <b>si compensano nel totale</b>: i chili tornano, la loro distribuzione lungo il fronte no.</div>';
   if(c.peggio&&c.peggio.diff!==0)
     h+='<div class="ricamp-note">Il foro più lontano dal progetto è il <b>'+c.peggio.foro+'</b>: '
@@ -2978,7 +3004,11 @@ function riconRender(){
       +'<div style="max-height:150px;overflow:auto;font-size:12px;margin-top:4px;">'
       +st.slice().reverse().map(r=>'<div style="border-top:1px solid rgba(255,255,255,.08);padding:4px 0"><b style="color:#ffd54f">'+_rEsc(r.nome||r.ts)+'</b> — X50 '+gnum(r.prev.x50,1)+'→'+(r.real.x50==null?'—':gnum(r.real.x50,1))+' cm · PPV '+gnum(r.prev.ppv,1)+'→'+(r.real.ppv==null?'—':gnum(r.real.ppv,1))+' mm/s · fly '+gnum(r.prev.fly,0)+'→'+(r.real.fly==null?'—':gnum(r.real.fly,0))+' m'+(r.real.ovs!=null&&r.real.ovs!==''?' · oversize '+gnum(r.real.ovs,1)+'%':'')
         // le riconciliazioni salvate prima del ponte con Campo non hanno r.campo: restano come prima
-        +(r.campo?'<br><span style="color:var(--mut2)">da Campo: '+_ricKg(r.campo.kgReale)+' kg caricati su '+r.campo.foriReg+'/'+r.campo.foriTot+' fori ('+_ricPct(+r.campo.scostPct||0)+' sul progetto)'+(r.campo.chi&&r.campo.chi.length?' · '+_rEsc(r.campo.chi.join(', ')):'')+'</span>':'')
+        /* ⛔ `+r.campo.scostPct||0` scriveva «+0,0% sul progetto» su una
+           riconciliazione in cui nessun foro aveva la carica reale: lo stesso
+           numero tranquillo del riquadro in cima, ma dentro lo STORICO, dove
+           resta per sempre e nessun avviso lo accompagna. */
+        +(r.campo?'<br><span style="color:var(--mut2)">da Campo: '+_ricKg(r.campo.kgReale)+' kg caricati su '+r.campo.foriReg+'/'+r.campo.foriTot+' fori ('+(r.campo.scostPct==null?'scostamento non misurabile':_ricPct(+r.campo.scostPct)+' sul progetto')+')'+(r.campo.chi&&r.campo.chi.length?' · '+_rEsc(r.campo.chi.join(', ')):'')+'</span>':'')
         +(r.real.note?' · '+_rEsc(r.real.note):'')+'</div>').join('')
       +'</div>'):'<div style="margin-top:12px;color:var(--mut);font-size:12px;">Nessuna riconciliazione salvata: inserisci i valori reali e premi “Salva”.</div>');
   const upd=()=>{ $('ric-d-x50').innerHTML=riconDelta(prev.x50,$('ric-x50').value,'cm'); $('ric-d-ppv').innerHTML=riconDelta(prev.ppv,$('ric-ppv').value,'mm/s'); $('ric-d-fly').innerHTML=riconDelta(prev.fly,$('ric-fly').value,'m'); };

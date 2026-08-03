@@ -41,7 +41,13 @@ import { gnum, gseg, gIn } from './genesi-formato.js';
    servono a tutte e sei le app, e la regola di casa dice che una regola che
    serve a due app non si riscrive. `_riconParseCampo` li usava già così
    quando stava dentro `genesi.html`: sono arrivati qui con lei. */
-import { numIt, leggiCsv } from '../../shared/deepwork-id-client/dw-shell.js';
+/* ⛔ E DAL 03/08 ANCHE `csvCell` E `dataISOEsiste`, per la stessa ragione e
+   dopo lo stesso errore. `csvRiconciliazione` si portava dietro dalla pagina
+   una `cell` di casa — una COPIA PIÙ DEBOLE di `csvCell`, che le virgolette le
+   metteva ma la formula no — e `_ricData` controllava la FORMA di una data
+   invece della sua esistenza, mentre `dataISOEsiste` è in `shared/` da mesi.
+   Due volte la risposta era già in casa. */
+import { numIt, leggiCsv, csvCell, dataISOEsiste } from '../../shared/deepwork-id-client/dw-shell.js';
 
 /* ══════════════════════════════════════════════════════════════════════════
    G3 — LA LEGGE DI SITO K/β DAI REFERTI DEL SISMOGRAFO
@@ -371,18 +377,31 @@ export function _riconRiassuntoCampo(p, nomeFile){
   const kgProgTot=somma(p.righe,r=>r.prog);
   const kgProgReg=somma(reg,r=>r.prog);
   const kgReale=somma(reg,r=>r.reale);
-  const scostKg=+(kgReale-kgProgReg).toFixed(3);
-  const scostPct=kgProgReg?scostKg/kgProgReg*100:0;
-  const medioKg=reg.length?somma(reg,r=>Math.abs(r.reale-r.prog))/reg.length:0;
-  const medioPct=reg.length?somma(reg,r=>Math.abs(r.reale-r.prog)/(r.prog||1))/reg.length*100:0;
+  /* ⛔ SE NESSUN FORO HA LA CARICA REALE NON C'È UNO SCOSTAMENTO PICCOLO: NON
+     C'È UNO SCOSTAMENTO. È il caso del piano appena importato in Campo e non
+     ancora caricato, e fino al 03/08 qui uscivano quattro zeri — che la pagina
+     disegnava «+0 kg (+0%)» in VERDE (rgb(102,187,106), misurato nel browser):
+     il numero tranquillo dove non è stato misurato niente, cioè esattamente
+     ciò che il principio del fondatore vieta. Che l'avviso sotto dicesse «nel
+     file nessun foro ha la carica reale» è difesa in profondità, non
+     innocuità: il numero e il colore dicevano il contrario.
+     La forma giusta ce l'aveva già `peggio`, due righe più in giù: `null`.
+     La bandiera `misurabile` sta accanto ai numeri perché chi disegna non
+     debba dedurre il «non lo so» da un `null` (la legge `_riconCampoHtml`, che
+     su di lei sceglie fra il valore e il trattino con la ragione). */
+  const misurabile=reg.length>0;
+  const scostKg=misurabile?+(kgReale-kgProgReg).toFixed(3):null;
+  const scostPct=misurabile&&kgProgReg?+(scostKg/kgProgReg*100).toFixed(2):null;
+  const medioKg=misurabile?+(somma(reg,r=>Math.abs(r.reale-r.prog))/reg.length).toFixed(3):null;
+  const medioPct=misurabile?+(somma(reg,r=>Math.abs(r.reale-r.prog)/(r.prog||1))/reg.length*100).toFixed(2):null;
   const peggio=reg.slice().sort((a,b)=>Math.abs(b.reale-b.prog)-Math.abs(a.reale-a.prog))[0]||null;
   return { file:nomeFile||'', scartate:p.scartate||0,
     date:uniche(r=>r.data), turni:uniche(r=>r.turno),
     chi:uniche(r=>r.operatore), squadre:uniche(r=>r.squadra),
-    foriTot:p.righe.length, foriReg:reg.length,
+    foriTot:p.righe.length, foriReg:reg.length, misurabile,
     kgProgTot:+kgProgTot.toFixed(3), kgProgReg:+kgProgReg.toFixed(3), kgReale:+kgReale.toFixed(3),
-    scostKg, scostPct:+scostPct.toFixed(2),
-    medioKg:+medioKg.toFixed(3), medioPct:+medioPct.toFixed(2),
+    scostKg, scostPct,
+    medioKg, medioPct,
     peggio: peggio?{ foro:peggio.foro, prog:peggio.prog, reale:peggio.reale,
                      diff:+(peggio.reale-peggio.prog).toFixed(3) }:null };
 }
@@ -392,13 +411,34 @@ export function _riconRiassuntoCampo(p, nomeFile){
 // come due unità di misura diverse
 export const _ricKg=(v)=>gnum(v,1);
 export const _ricSegno=(v)=>gseg(v,1);
-export const _ricPct=(v)=>gseg(v,1)+'%';
+/* ⚠️ IL «%» SI SCRIVE SOLO SE C'È UN NUMERO DAVANTI. `gseg` su un dato che non
+   c'è risponde «—», e attaccargli il simbolo dava «—%», che si legge come una
+   percentuale rotta invece che come «non lo so». */
+export const _ricPct=(v)=>{ const s=gseg(v,1); return s==='—'?s:s+'%'; };
 export const _ricPlur=(n,uno,tanti)=>n+' '+(n===1?uno:tanti);
 // le date arrivano dal file in ISO (2026-07-29): in cava si legge 29/07/2026.
 // Se non è una data ISO si lascia com'è: è testo di un file, non lo si indovina.
-export const _ricData=(s)=>{ const m=/^(\d{4})-(\d{2})-(\d{2})$/.exec(String(s||'').trim());
-  return m?m[3]+'/'+m[2]+'/'+m[1]:String(s||''); };
-export const _ricColore=(pct)=>{ const a=Math.abs(pct); return a<10?'#66bb6a':(a<25?'#ffca28':'#ef5350'); };
+/* ⛔ E «È UNA DATA ISO» NON È LA SUA FORMA. Fino al 03/08 qui c'era una regex
+   sui gruppi di cifre, e `2026-02-30` usciva riscritto «30/02/2026»: una data
+   che non esiste, resa indistinguibile da una vera — e da lì finiva anche nel
+   nome proposto per la riconciliazione, cioè nello storico e nel CSV.
+   `dataISOEsiste` di `shared/` la costruisce e pretende che torni la stessa;
+   qui non se ne scrive una seconda. La lunghezza si controlla lo stesso, e non
+   è un doppione: `dataISOEsiste` guarda i primi dieci caratteri (accetta un
+   ISTANTE, «2026-06-30T10:00»), e un istante riscritto come data sola
+   perderebbe l'ora in silenzio. */
+export const _ricData=(s)=>{ const t=String(s==null?'':s).trim();
+  return t.length===10&&dataISOEsiste(t) ? t.slice(8,10)+'/'+t.slice(5,7)+'/'+t.slice(0,4) : t; };
+/* ⛔ E UN VUOTO NON È UNO SCOSTAMENTO NULLO. `Math.abs(null)` fa 0, quindi un
+   «non misurabile» usciva VERDE — mentre `undefined`, che è l'altro modo di
+   dire la stessa cosa, usciva ROSSO: due vuoti, due colori, nessuno dei due
+   giusto. Adesso quando non c'è una percentuale il colore è quello del testo
+   spento, che nel resto della schermata vuol dire «non lo so». */
+export const _ricColore=(pct)=>{
+  if(pct===null||pct===undefined||pct==='') return 'var(--mut)';
+  const a=Math.abs(+pct);
+  if(!isFinite(a)) return 'var(--mut)';
+  return a<10?'#66bb6a':(a<25?'#ffca28':'#ef5350'); };
 
 export function riconDelta(prev, real, unit){
   /* `real` arriva grezzo dal campo, scritto a mano da chi ha misurato: la
@@ -406,7 +446,23 @@ export function riconDelta(prev, real, unit){
      riga mostrava un trattino come se la misura non ci fosse. */
   const r = gIn(real);
   if(!isFinite(r)) return '<span style="color:var(--mut)">—</span>';
-  const d=r-prev, pct=prev?Math.round(100*d/prev):0, ad=Math.abs(pct);
+  /* ⛔ E IL PREVISTO SI GUARDA PRIMA DI DIVIDERCI SOPRA. Fino al 03/08:
+       · previsto **assente** → `r - null` fa `r`, e usciva «+5 cm (+0%)» in
+         verde, cioè uno scarto inventato contro una previsione che non c'era;
+       · previsto **0** → la percentuale non è calcolabile, e veniva scritta
+         **0**: che qui è la fascia più tranquilla di tutte (verde sotto il
+         15%). Non è un caso di laboratorio — la PPV prevista è arrotondata al
+         decimo, e con il recettore a 3.000 m esce «0,0 mm/s» da sola.
+     Adesso: senza previsto non si scrive nemmeno lo scarto in unità (sarebbe
+     un confronto con niente); col previsto a zero lo scarto in unità si
+     scrive — è un fatto misurato — e al posto della percentuale c'è il motivo
+     per cui non c'è, col colore spento perché non c'è niente da giudicare. */
+  const p = (prev===null||prev===undefined||prev==='')?NaN:+prev;
+  if(!isFinite(p)) return '<span style="color:var(--mut)">—</span>';
+  const d=r-p;
+  if(p===0) return '<span style="color:var(--mut);font-weight:600">'
+    +gseg(d,1)+' '+unit+' (% non calcolabile)</span>';
+  const pct=Math.round(100*d/p), ad=Math.abs(pct);
   const col=ad<15?'#66bb6a':(ad<35?'#ffca28':'#ef5350');
   return '<span style="color:'+col+';font-weight:600">'+gseg(d,1)+' '+unit+' ('+gseg(pct,0)+'%)</span>';
 }
@@ -423,11 +479,18 @@ export function csvRiconciliazione(st){
   // vecchio (dieci colonne) continua a trovarle nello stesso ordine
   const H=['data','nome','x50_prev_cm','x50_reale_cm','ppv_prev_mms','ppv_reale_mms','flyrock_prev_m','flyrock_reale_m','oversize_reale_pct','note',
            'campo_data','campo_turno','campo_chi','campo_fori_registrati','campo_fori_totali','campo_kg_reali','campo_kg_progetto','campo_scostamento_pct'];
-  const cell=v=>{ const s=String(v==null?'':v); return /[;"\n]/.test(s)?'"'+s.replace(/"/g,'""')+'"':s; };
+  /* ⛔ QUI C'ERA UNA `cell` DI CASA, ED ERA UNA COPIA PIÙ DEBOLE DI `csvCell`.
+     Metteva le virgolette su `; " \n` e basta: quindi `@SUM(1+1)` scritto nel
+     nome di una volata usciva **nudo** — e questo è il file che l'azienda
+     manda fuori, che si apre in Excel a casa del cliente — e un `\r` in una
+     cella non veniva protetto, cioè sfondava la riga. `csvCell` fa tutt'e due
+     le cose ed è la METÀ di una coppia: `leggiCsv` toglie l'apostrofo che lei
+     mette, quindi il giro di andata e ritorno resta chiuso. La regola di casa
+     dice che una regola che serve a due app non si riscrive: era riscritta. */
   const csv=H.join(';')+'\n'+st.map(r=>{ const c=r.campo||null;
     return [r.ts,r.nome,r.prev.x50,r.real.x50,r.prev.ppv,r.real.ppv,r.prev.fly,r.real.fly,r.real.ovs,r.real.note,
       c?(c.date||[]).join(' '):'', c?(c.turni||[]).join(' '):'', c?(c.chi||[]).join(' '):'',
-      c?c.foriReg:'', c?c.foriTot:'', c?c.kgReale:'', c?c.kgProgReg:'', c?c.scostPct:''].map(cell).join(';');
+      c?c.foriReg:'', c?c.foriTot:'', c?c.kgReale:'', c?c.kgProgReg:'', c?c.scostPct:''].map(csvCell).join(';');
   }).join('\n')+'\n';
   return csv;
 }
