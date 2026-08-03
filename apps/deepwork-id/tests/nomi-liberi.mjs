@@ -34,7 +34,7 @@
    stampato apposta: è la difesa contro il «nessuna violazione» di un controllo
    che non ha guardato niente.
 */
-import { readFileSync } from "node:fs";
+import { readFileSync, readdirSync } from "node:fs";
 import { join, dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { mascheraCodice } from "./tokenizza.mjs";
@@ -128,6 +128,13 @@ function nomiLegati(codice) {
   agg(/\(([^()]*)\)\s*=>/g);
   agg(/([\w$]+)\s*=>/g);
   agg(/([\w$]+)\s*[:=]\s*(?:async\s*)?(?:function|\()/g);
+  /* ⚠️ I METODI IN FORMA ABBREVIATA, dentro una classe o un oggetto:
+     `async inviteMember(email, role = "member") {` è una DEFINIZIONE, non una
+     chiamata — ma al lettore di chiamate somiglia in tutto. Erano i nove
+     «sospetti» dell'SDK alla prima passata sui moduli: nove falsi allarmi su
+     nove, e un allarme che sbaglia nove volte su nove insegna a non guardarlo.
+     Si riconoscono dalla graffa che segue la parentesi. */
+  agg(/(?:^|\n)\s*(?:static\s+)?(?:async\s+)?\*?\s*([\w$]+)\s*\([^()]*\)\s*\{/g);
   return legati;
 }
 
@@ -147,6 +154,45 @@ export function nomiSospetti(relPagina) {
     sospetti.set(n, (sospetti.get(n) || 0) + 1);
   }
   return { chiamate, sospetti, blocchi: blocchi.length, fratelli };
+}
+
+/* ⛔ E I MODULI, che alla prima stesura restavano fuori — dichiarato allora,
+   chiuso il 03/08 lo stesso giorno, perché nel frattempo ci sono ricascato: in
+   `dw-shell.js` ho scritto `_numMis` dove l'aiuto si chiama `_numRapp`. Nei
+   moduli il difetto è **peggiore** che nelle pagine: un nome libero non fa
+   rumore all'import, esplode quando quella riga viene eseguita — cioè magari
+   in un ramo che le prove non toccano.
+   Qui non ci sono script fratelli: un modulo ha solo i suoi `import` e le sue
+   dichiarazioni, quindi il conto è più stretto e più affidabile. */
+function moduliDelDisco() {
+  const fuori = [];
+  const dai = (dir, prof) => {
+    let voci = [];
+    try { voci = readdirSync(join(RADICE, dir), { withFileTypes: true }); } catch { return; }
+    for (const v of voci) {
+      const rel = dir + "/" + v.name;
+      if (v.isDirectory()) { if (prof > 0 && v.name !== "node_modules" && v.name !== "tests") dai(rel, prof - 1); continue; }
+      if (!v.name.endsWith(".js")) continue;
+      fuori.push(rel);
+    }
+  };
+  dai("shared", 2);
+  dai("apps", 2);
+  return fuori.filter((p) => !/\/tests\//.test(p));
+}
+
+export function nomiSospettiModulo(rel) {
+  const codice = soloCodice(leggi(rel));
+  const legati = nomiLegati(codice);
+  const sospetti = new Map();
+  let chiamate = 0;
+  for (const m of codice.matchAll(/(^|[^\w$.?])([A-Za-z_$][\w$]*)\s*\(/g)) {
+    const n = m[2];
+    chiamate++;
+    if (PAROLE.has(n) || GLOBALI.has(n) || DA_CDN.has(n) || legati.has(n)) continue;
+    sospetti.set(n, (sospetti.get(n) || 0) + 1);
+  }
+  return { chiamate, sospetti };
 }
 
 let passed = 0, failed = 0;
@@ -183,6 +229,43 @@ test("ha davvero guardato: il numero delle chiamate è quello di un'app viva", (
   ok(chiamateTot >= 10000, `solo ${chiamateTot} chiamate guardate su ${pagineViste} pagine: troppo poche`);
 });
 
+let chiamateMod = 0, moduliVisti = 0;
+const maleMod = [];
+for (const p of moduliDelDisco()) {
+  let r;
+  try { r = nomiSospettiModulo(p); } catch { continue; }
+  if (!r.chiamate) continue;
+  moduliVisti++; chiamateMod += r.chiamate;
+  for (const [n, c] of r.sospetti) maleMod.push(`${p}: ${n}() ×${c}`);
+}
+
+test("nessun nome chiamato che non esiste, nei MODULI", () => {
+  ok(maleMod.length === 0,
+    "nomi chiamati e mai dichiarati dentro un modulo (né importati, né dichiarati lì):\n  "
+    + maleMod.join("\n  "));
+});
+
+test("ha davvero guardato anche i moduli", () => {
+  ok(moduliVisti >= 10, `solo ${moduliVisti} moduli guardati: l'elenco non sta guardando dove crede`);
+  ok(chiamateMod >= 3000, `solo ${chiamateMod} chiamate nei moduli: troppo poche`);
+});
+
+test("la controprova dei MODULI — il refuso che è successo davvero viene visto", () => {
+  /* si rimette ESATTAMENTE lo scambio del 03/08: `_numRapp` → `_numMis` in una
+     riga sola di dw-shell. Sul testo, senza toccare il disco. */
+  const rel = "shared/deepwork-id-client/dw-shell.js";
+  const sano = leggi(rel);
+  ok(!/_numMis/.test(sano), "dw-shell dev'essere sano prima di guastarlo");
+  const guasto = sano.replace("kg: conKg ? _numRapp(o.tot_kg) : null,", "kg: conKg ? _numMis(o.tot_kg) : null,");
+  ok(guasto !== sano, "l'iniezione non ha sostituito niente: la prova non prova niente");
+  const codice = soloCodice(guasto);
+  const legati = nomiLegati(codice);
+  let visto = false;
+  for (const m of codice.matchAll(/(^|[^\w$.?])([A-Za-z_$][\w$]*)\s*\(/g))
+    if (m[2] === "_numMis" && !PAROLE.has(m[2]) && !GLOBALI.has(m[2]) && !legati.has(m[2])) visto = true;
+  ok(visto, "col refuso rimesso, `_numMis` deve risultare sospetto — e non risulta");
+});
+
 test("la controprova — il nome che è successo davvero viene visto", () => {
   /* Si rimette ESATTAMENTE il difetto del 03/08: `numeroIt(` in Conti, che non
      esiste in nessun file. Non si tocca il disco: si lavora sul testo. */
@@ -205,5 +288,5 @@ test("la controprova — il nome che è successo davvero viene visto", () => {
 });
 
 console.log(`\nRisultato nomi liberi: ${passed} passati, ${failed} falliti`
-  + `  ·  ${chiamateTot} chiamate guardate su ${pagineViste} pagine`);
+  + `  ·  ${chiamateTot} chiamate su ${pagineViste} pagine, ${chiamateMod} su ${moduliVisti} moduli`);
 process.exit(failed > 0 ? 1 : 0);
