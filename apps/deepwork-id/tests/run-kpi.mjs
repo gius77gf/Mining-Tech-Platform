@@ -7471,8 +7471,15 @@ test("statoVuoto: la struttura è quella del core, invariata", () => {
     /* una previsione calibrata sul sito vale più di una da manuale, e l'utente
        ha il diritto di sapere quale delle due sta leggendo */
     eq(sentinella.previsioneDiVolata(prevista).calibrata, true, "legge di sito");
-    eq(sentinella.testoFontePrevisione(sentinella.previsioneDiVolata(prevista)),
-       "da Genesi · legge di sito calibrata", "detto in chiaro");
+    /* ⛔ 03/08: la frase ha TRE esiti, non due, e questa prova ne dichiarava uno
+       solo. `prevista` è un file **senza** le colonne nuove, cioè uno vecchio:
+       la risposta giusta lì non è «calibrata» — che affermerebbe un controllo
+       mai fatto — ma «non è dichiarato». La prova diventa più giusta, non più
+       permissiva: qui si guarda il file DICHIARATO, e il caso del file vecchio
+       ha una prova sua nella banda del ponte. */
+    eq(sentinella.testoFontePrevisione(sentinella.previsioneDiVolata(
+         { ...prevista, ppvPrevProvvisoria: "no", ppvPrevReferti: "12" })),
+       "da Genesi · legge di sito calibrata (12 referti)", "detto in chiaro");
     eq(sentinella.testoFontePrevisione(sentinella.previsioneDiVolata({ ...prevista, ppvPrevFonte: "genesi-litologia" })),
        "da Genesi · stima dalla litologia", "e l'altra base si distingue");
   });
@@ -20472,6 +20479,51 @@ test("⛔ Scudo · andamento indici: il verso letto su giornate ancora da contar
        veniva: «non lo so» non è «uguale» */
     eq(g.stessaBasePpv(undefined, lit), false, "una base non registrata non è confrontabile");
     eq(g.stessaBasePpv(undefined, undefined), false, "e nemmeno due basi non registrate");
+  });
+}
+
+// ═══ PONTE Genesi → Sentinella · la legge provvisoria che arrivava «calibrata» (03/08) ═══
+{
+  console.log("\n— Il ponte Genesi → Sentinella: «calibrata» non vuol dire «solida» —");
+  const P = (v) => sentinella.previsioneDiVolata(v);
+
+  test("⛔ ponte · una legge tarata su 3 referti non arriva più come «calibrata»", () => {
+    const p = P({ ppvPrevFonte: "genesi-sito", ppvPrevProvvisoria: "si", ppvPrevReferti: "3", ppvPrevista: "5" });
+    eq(p.calibrata, true, "è comunque una legge di sito");
+    eq(p.provvisoria, true, "ma provvisoria, e adesso lo si sa");
+    eq(p.referti, 3, "e su quanti referti");
+    ok(/PROVVISORIA/.test(sentinella.testoFontePrevisione(p)),
+       "la frase deve dirlo: " + sentinella.testoFontePrevisione(p));
+  });
+
+  test("ponte · una legge su molti referti resta calibrata", () => {
+    const p = P({ ppvPrevFonte: "genesi-sito", ppvPrevProvvisoria: "no", ppvPrevReferti: "12", ppvPrevista: "5" });
+    eq([p.calibrata, p.provvisoria, p.referti], [true, false, 12], "solida e dichiarata");
+    ok(/calibrata \(12 referti\)/.test(sentinella.testoFontePrevisione(p)), sentinella.testoFontePrevisione(p));
+  });
+
+  test("⛔ ponte · un file VECCHIO senza le colonne dice «non dichiarato», non «calibrata»", () => {
+    /* È il caso che vale l'unità: `null` non è `false`. Se rispondesse `false`
+       la frase direbbe «calibrata», cioè l'app affermerebbe di aver controllato
+       una cosa che non ha controllato. */
+    const p = P({ ppvPrevFonte: "genesi-sito", ppvPrevista: "5" });
+    eq(p.provvisoria, null, "non dichiarato: non si può dire");
+    eq(p.referti, null, "e nemmeno quanti referti");
+    ok(/non è dichiarato/.test(sentinella.testoFontePrevisione(p)), sentinella.testoFontePrevisione(p));
+    ok(!/calibrata/.test(sentinella.testoFontePrevisione(p)),
+       "e soprattutto NON deve dire «calibrata»: " + sentinella.testoFontePrevisione(p));
+  });
+
+  test("ponte · sulla litologia la domanda non si pone", () => {
+    const p = P({ ppvPrevFonte: "genesi-litologia", ppvPrevProvvisoria: "", ppvPrevReferti: "", ppvPrevista: "5" });
+    eq([p.calibrata, p.provvisoria], [false, null], "non è una legge di sito: `provvisoria` non ha senso");
+    ok(/litologia/.test(sentinella.testoFontePrevisione(p)), sentinella.testoFontePrevisione(p));
+  });
+
+  test("ponte · una previsione che non viene da Genesi resta quella di prima", () => {
+    const p = P({ ppvPrevFonte: "a mano", ppvPrevista: "5" });
+    eq(p.daGenesi, false, "non è di Genesi");
+    eq(sentinella.testoFontePrevisione(p), "previsione", "e la frase non cambia");
   });
 }
 

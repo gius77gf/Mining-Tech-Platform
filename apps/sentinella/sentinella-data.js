@@ -2958,6 +2958,26 @@ export function previsioneDiVolata(v) {
     // previsione calibrata sul sito vale più di una da manuale, e l'utente ha
     // il diritto di sapere quale delle due sta leggendo.
     calibrata: /sito/.test(fonte),
+    /* ⛔ E «CALIBRATA» NON VUOL DIRE «SOLIDA», dal 03/08. `sitoFit` alza la
+       bandiera `pochi` sotto gli otto referti e Genesi, due schermate prima di
+       mandare il file, scrive in giallo «Legge provvisoria: la pendenza si
+       muove ancora parecchio a ogni misura nuova». Quella bandiera nel file non
+       c'era: qui arrivava `genesi-sito`, il `/sito/` rispondeva vero e questa
+       app scriveva «legge di sito CALIBRATA» su una legge tarata su TRE
+       referti. Il numero tranquillo che attraversa il confine fra due app.
+       Adesso Genesi lo dichiara in due colonne, e qui si legge.
+       ⚠️ Tre stati, non due, ed è il terzo che conta: un file **vecchio** non
+       ha quelle colonne, e allora la risposta è `null` — «non è dichiarato» —
+       mai `false`, che vorrebbe dire «l'abbiamo controllato ed è solida». */
+    provvisoria: (() => {
+      if (!/sito/.test(fonte)) return null;          // la domanda non si pone
+      const g = String((v || {}).ppvPrevProvvisoria || "").trim().toLowerCase();
+      return (g === "si" || g === "no") ? g === "si" : null;
+    })(),
+    referti: (() => {
+      const n = +(v || {}).ppvPrevReferti;
+      return Number.isFinite(n) && n > 0 ? n : null;
+    })(),
     airblast: Number.isFinite(ab) && ab > 0 ? ab : null,
   };
 }
@@ -2969,7 +2989,13 @@ export function previsioneDiVolata(v) {
 export function testoFontePrevisione(p) {
   if (!p) return "";
   if (!p.daGenesi) return "previsione";
-  return "da Genesi · " + (p.calibrata ? "legge di sito calibrata" : "stima dalla litologia");
+  if (!p.calibrata) return "da Genesi · stima dalla litologia";
+  const q = p.referti ? " (" + p.referti + " referti)" : "";
+  if (p.provvisoria === true) return "da Genesi · legge di sito PROVVISORIA" + q;
+  if (p.provvisoria === false) return "da Genesi · legge di sito calibrata" + q;
+  /* file vecchio: la legge è di sito, ma su quanti referti non lo sappiamo —
+     e non saperlo va detto, non arrotondato verso la risposta che tranquillizza */
+  return "da Genesi · legge di sito, su quanti referti non è dichiarato";
 }
 
 // IL CONFRONTO PREVISTO → MISURATO: esiste solo quando ci sono entrambi i

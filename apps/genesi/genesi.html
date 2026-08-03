@@ -3593,7 +3593,18 @@ if($('sitoExport')) $('sitoExport').onclick=()=>{
       calcolo circolare. */
 const CSV_SENT_HEAD='data;fronte;nFori;kgTotali;kgMaxRitardo;distanzaRicettore;esito;note;'
   +'ppvMisurata;ppvFonte;ppvPunto;ppvOra;'
-  +'stato;ppvPrevista;ppvPrevLimite;ppvPrevNorma;ppvPrevFonte;airblastPrevisto;codiceVolata';
+  /* ⛔ LE DUE COLONNE IN CODA SONO IL SEGUITO DEL COMMENTO IN `_sentDati`, che
+     dichiarava questa come «una decisione a due app, non una correzione». È
+     stata presa il 03/08: senza di loro Sentinella riceve `genesi-sito`, fa
+     `calibrata: /sito/.test(fonte)` e scrive «legge di sito CALIBRATA» su una
+     legge che Genesi stesso, due schermate prima, chiama PROVVISORIA perché
+     tarata su tre referti. Il numero tranquillo che attraversa il confine fra
+     due app.
+     In CODA e non in mezzo: un lettore che conta le colonne da sinistra non si
+     accorge di niente, e un file VECCHIO — senza queste due — dev'essere letto
+     come «non dichiarato», mai come «calibrata». */
+  +'stato;ppvPrevista;ppvPrevLimite;ppvPrevNorma;ppvPrevFonte;airblastPrevisto;codiceVolata;'
+  +'ppvPrevProvvisoria;ppvPrevReferti';
 let _sentFatto=null;                        /* ultimo file mandato, per dirlo a schermo */
 function _sentStore(){ try{ return JSON.parse(localStorage.getItem('genesiSent')||'{}')||{}; }catch(e){ return {}; } }
 function _sentSave(o){ try{ localStorage.setItem('genesiSent',JSON.stringify(o)); }catch(e){} }
@@ -3706,7 +3717,11 @@ if($('sentExport')) $('sentExport').onclick=()=>{
   const riga=[data,_sentCell(fronte),_sentNum(d.nFori),_sentNum(d.kgTotali),_sentNum(d.mic),_sentNum(d.dist),
     '','',
     '','','','',
-    'prevista',_sentNum(d.ppv),_sentNum(d.lim),_sentCell(d.norma),d.fonte,_sentNum(d.db),_sentCell(codice)].join(';');
+    'prevista',_sentNum(d.ppv),_sentNum(d.lim),_sentCell(d.norma),d.fonte,_sentNum(d.db),_sentCell(codice),
+    /* vuote quando la previsione NON viene da una legge di sito: lì la
+       domanda «su quanti referti» non ha senso, e una cella vuota è la
+       risposta onesta */
+    d.calibrata?(d.provvisoria?'si':'no'):'', d.calibrata&&d.referti?_sentNum(d.referti):''].join(';');
   const csv=CSV_SENT_HEAD+'\n'+riga+'\n';
   const a=document.createElement('a'); a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(csv);
   const file='genesi_volata_per_sentinella_'+data+'.csv';
