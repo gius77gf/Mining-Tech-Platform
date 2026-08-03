@@ -137,8 +137,14 @@
 //     PAGINA. È il principio del fondatore — «l'assenza di un dato non è un
 //     dato favorevole» — nella sua forma verificabile. Quando un modulo si
 //     accorge di non poter misurare qualcosa lo dichiara con una bandiera
-//     (`misurabile`, `leggibile`, `calcolabile`, `noto`, `misurato`, `pochi`,
-//     `assente`, `mai`) accanto al numero. Ma una bandiera che nessuno legge
+//     (`misurabile`, `leggibile`, `calcolabile`, `noto`, `attendibile`,
+//     `pochi`) accanto al numero — e sono SEI, non otto: `misurato`, `assente`
+//     e `mai`, che questa riga elencava fino al 03/08, sono fuori con la loro
+//     ragione accanto a `BANDIERE`. Un'intestazione che promette più di quello
+//     che il codice fa è la stessa bugia dei numeri nei documenti.
+//     La dichiarazione ha DUE forme — `bandiera:` e `const bandiera =` — e per
+//     un mese se ne cercava una sola: Genesi usa l'altra, quindi per Genesi la
+//     regola non poteva scattare mai. Ma una bandiera che nessuno legge
 //     **non protegge niente**: la pagina disegna il numero tranquillo lo
 //     stesso, e il modulo sembra a posto perché la dichiarazione c'è. È la
 //     stessa forma della guardia scollegata della regola 17 — togliere le
@@ -179,7 +185,7 @@
 // Come si aggiunge una regola: una funzione che restituisce l'elenco delle
 // violazioni con file e riga, e un `test(...)` che pretende zero.
 // ============================================================
-import { readFileSync, readdirSync } from "node:fs";
+import { readFileSync, readdirSync, existsSync } from "node:fs";
 import { classifica, mascheraCodice, senzaCommenti, COMMENTO, CODICE, DENTRO } from "./tokenizza.mjs";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
@@ -2266,14 +2272,35 @@ const BANDIERE = ["misurabile", "leggibile", "calcolabile", "noto",
                   "attendibile", "pochi"];
 /* Le posizioni di `bandiera:` che stanno DAVVERO nel codice — non in un
    commento, non dentro una stringa. `mascheraCodice` è lo scanner del file,
-   quello con la sua prova dedicata: qui non se ne scrive un secondo. */
+   quello con la sua prova dedicata: qui non se ne scrive un secondo.
+   ⛔ **E LA DICHIARAZIONE HA DUE FORME, non una.** Fino al 03/08 si cercava
+   solo `bandiera:`, e Genesi la sua la scrive nell'altro modo — `const
+   misurabile = reg.length > 0;` e poi la scorciatoia ES6 `{ …, misurabile }`
+   nell'oggetto che torna. Misurato: con la sola forma coi due punti, Genesi
+   risultava dichiarare **zero** bandiere, e le sue occorrenze finivano contate
+   fra le LETTURE. Cioè per quell'app la regola non poteva scattare mai, in
+   nessun caso — la forma peggiore di guardia scollegata, perché tace.
+   Adesso conta anche `const|let|var bandiera =`, che è senza ambiguità.
+   ⚠️ Quello che ancora NON si distingue, e va detto invece di lasciarlo
+   credere: la **scorciatoia dentro l'oggetto** (`{ foriReg, misurabile }`) ha
+   la stessa forma di una destrutturazione (`const { misurabile } = r`), che
+   invece è una lettura vera. Separarle vorrebbe dire leggere la grammatica, e
+   una regola che sbaglia verso l'allarme si spegne (CLAUDE.md, «un allarme che
+   sbaglia tre volte su quattro insegna a non guardarlo»). Il costo di questa
+   scelta è preciso: un'app che dichiarasse **solo** con la scorciatoia e non
+   leggesse mai scivolerebbe via. Oggi nessuna è in quella forma — le sette
+   dichiarano tutte o coi due punti o con `const`, ed è misurato dalla prova
+   sulla copertura qui sotto. */
+const dichiarazioniDi = (b) =>
+  [new RegExp("\\b" + b + "\\s*:", "g"),
+   new RegExp("\\b(?:const|let|var)\\s+" + b + "\\s*=", "g")];
 function bandiereDichiarate(testo) {
   const vivo = mascheraCodice(testo);
   const out = new Set();
-  for (const b of BANDIERE) {
-    const re = new RegExp("\\b" + b + "\\s*:", "g");
-    for (const m of testo.matchAll(re)) if (vivo[m.index]) { out.add(b); break; }
-  }
+  for (const b of BANDIERE)
+    for (const re of dichiarazioniDi(b))
+      for (const m of testo.matchAll(re))
+        if (vivo[m.index + m[0].indexOf(b)]) { out.add(b); break; }
   return out;
 }
 /* Quante volte la bandiera compare come LETTURA e non come dichiarazione:
@@ -2292,29 +2319,59 @@ function bandiereLette(testi) {
     let letture = 0;
     for (const t of testi) {
       const vivo = mascheraCodice(t);
-      for (const m of t.matchAll(new RegExp("\\b" + b + "\\b\\s*(:?)", "g")))
-        if (vivo[m.index] && m[1] !== ":") letture++;
+      /* ⚠️ Si tolgono le DUE forme della dichiarazione, non una: `bandiera:` e
+         `const bandiera =`. Contare la seconda come lettura era il difetto
+         gemello di quello di `bandiereDichiarate` — la bandiera di Genesi
+         risultava letta dal suo stesso `const`, cioè da nessuno. */
+      for (const m of t.matchAll(new RegExp("(\\b(?:const|let|var)\\s+)?\\b" + b + "\\b\\s*([:=]?)", "g"))) {
+        const dove = m.index + (m[1] ? m[1].length : 0);
+        if (vivo[dove] && m[2] !== ":" && !(m[1] && m[2] === "=")) letture++;
+      }
     }
     if (letture) out.add(b);
   }
   return out;
 }
-const APP_CON_MODULO = ["campo", "conti", "flotta", "scudo", "sentinella", "terra"];
+/* ⛔ QUESTO ELENCO ERA SCRITTO A MANO — `["campo","conti","flotta","scudo",
+   "sentinella","terra"]` — e la pagina la costruiva per CONVENZIONE, con
+   `apps/<app>/index.html`. GENESI NE RESTAVA FUORI, e non per una decisione:
+   la sua pagina si chiama `genesi.html`, quindi la convenzione non la trovava
+   e il nome non compariva nell'elenco. Effetto misurato il 03/08, correggendo
+   cinque numeri tranquilli in Genesi: il modulo ha guadagnato la bandiera
+   `misurabile`, la pagina la legge, e la regola 20 **non stava guardando
+   nessuna delle due** — cioè la guardia che esiste per prendere le guardie
+   scollegate era essa stessa scollegata dall'unica app con la pagina fuori
+   convenzione. È la stessa forma dell'elenco `SUPERFICI` aggiornato a memoria,
+   con in più il fatto che qui non mancava una riga: mancava un'app intera.
+   Adesso i moduli si DERIVANO da `MODULI` e le pagine da `SUPERFICI` — i due
+   elenchi che hanno già il controllo che li confronta col disco — e la prova
+   qui sotto pretende che ogni modulo `<app>-data.js` sul disco sia coperto.
+   ⚠️ E scrivendo questo commento ci sono ricascato: il percorso con la stella
+   contiene i due caratteri che CHIUDONO un commento, quindi la riga finiva a
+   metà nel codice. È la trappola già raccolta in `sintassi-pagine.mjs`. */
+const MODULI_APP = MODULI
+  .filter(([, rel]) => /^apps\/[^/]+\/[^/]+-data\.js$/.test(rel))
+  .map(([, rel]) => [rel.split("/")[1], rel]);
+/* Tutte le pagine dell'app, non una per convenzione: Genesi ne ha tre in
+   `SUPERFICI` (la home, il portone, il visore nuvola). Una bandiera letta in
+   una qualunque di esse è collegata. */
+const pagineDi = (app) =>
+  SUPERFICI.filter(([, rel]) => rel.startsWith(`apps/${app}/`)).map(([, rel]) => rel);
 /* ⚠️ PRENDE IL TESTO, NON IL PERCORSO. Una controprova che per provarci deve
    scrivere in un file tracciato è scritta male: il 01/08 una di queste ha
    girato con `sed` sul modulo vero mentre nell'altra finestra c'era un giro
    del browser, cioè esattamente ciò che `impronta.mjs` esiste per impedire. */
-function scollegateIn(app, mod, pag) {
+function scollegateIn(dove, mod, ...pagine) {
   const dich = bandiereDichiarate(mod);
-  const lette = bandiereLette([mod, pag]);
+  const lette = bandiereLette([mod, ...pagine]);
   return [...dich].filter((b) => !lette.has(b)).map((b) =>
-    `apps/${app}/${app}-data.js dichiara «${b}» e nessuno la legge mai`
+    `${dove} dichiara «${b}» e nessuno la legge mai`
     + " — né la pagina né il modulo: il numero si disegna tranquillo e la"
     + " dichiarazione non protegge niente");
 }
 function bandiereScollegate() {
-  return APP_CON_MODULO.flatMap((a) =>
-    scollegateIn(a, leggi(`apps/${a}/${a}-data.js`), leggi(`apps/${a}/index.html`)));
+  return MODULI_APP.flatMap(([app, rel]) =>
+    scollegateIn(rel, leggi(rel), ...pagineDi(app).map(leggi)));
 }
 test("regola 20: ogni non-misurabilità dichiarata è letta da qualcuno", () => {
   const v = bandiereScollegate();
@@ -2324,23 +2381,54 @@ test("regola 20: ogni non-misurabilità dichiarata è letta da qualcuno", () => 
    regola risponderebbe «nessuna violazione» senza aver letto niente — il
    difetto raccolto tre volte in CLAUDE.md. */
 /* ⚠️ E QUI VA DETTA LA COPERTURA VERA, non lasciata intendere dallo zero.
-   Le app che usano questo vocabolario sono TRE su sei: Conti, Scudo e Terra.
-   Campo e Sentinella la non-misurabilità la dicono in un altro modo — uno
-   `stato: "mai"`, un `null` di ritorno — e Flotta non la dichiara affatto.
-   Quindi «nessuna violazione» qui NON vuol dire «tutte le app sono a posto»:
-   vuol dire che le bandiere esistenti sono attaccate a qualcosa. Il giorno in
-   cui Campo o Flotta adottassero una bandiera, questa prova lo direbbe
-   salendo — ed è il motivo per cui stampa i numeri invece di tacere. */
+   ⛔ **LA RIGA CHE C'ERA QUI ERA FALSA, ed è stata rimisurata il 03/08.**
+   Diceva «le app che usano questo vocabolario sono TRE su sei: Conti, Scudo e
+   Terra; Campo e Sentinella lo dicono in un altro modo e Flotta non lo dichiara
+   affatto». Contate: sono **sette su sette**, per **18** bandiere distinte —
+   Campo ne dichiara tre (`misurabile`, `leggibile`, `attendibile`) e Flotta
+   due (`misurabile`, `pochi`). Era una dichiarazione di copertura scritta una
+   volta e mai più rimessa alla prova, cioè la stessa cosa contro cui esiste
+   `documenti-invecchiati.mjs`, dentro un file di test. Adesso i numeri li
+   stampa la prova, e la prosa dice solo quello che i numeri non dicono.
+   Quello che resta vero della riga vecchia: «nessuna violazione» NON vuol dire
+   «tutte le app sono a posto». Vuol dire che le bandiere **esistenti** sono
+   attaccate a qualcosa; una non-misurabilità che nessuno ha mai dichiarato
+   questa regola non la può vedere. */
 test("regola 20: ha davvero trovato le bandiere, e dichiara su quante app", () => {
-  const per = APP_CON_MODULO.map((a) => [a, bandiereDichiarate(leggi(`apps/${a}/${a}-data.js`))]);
+  const per = MODULI_APP.map(([app, rel]) => [app, bandiereDichiarate(leggi(rel))]);
   const totale = per.reduce((t, [, s]) => t + s.size, 0);
   const conAlmenoUna = per.filter(([, s]) => s.size).length;
-  ok(totale >= 6,
+  ok(totale >= 16,
     `bandiere distinte trovate: ${totale}, troppe poche perché il controllo stia guardando davvero`
     + ` — ${per.map(([a, s]) => `${a}:${s.size}`).join(" ")}`);
-  ok(conAlmenoUna >= 3,
-    `app che dichiarano una non-misurabilità: ${conAlmenoUna} su ${APP_CON_MODULO.length}`
+  ok(conAlmenoUna >= 6,
+    `app che dichiarano una non-misurabilità: ${conAlmenoUna} su ${MODULI_APP.length}`
     + ` — ${per.map(([a, s]) => `${a}:${s.size}`).join(" ")}`);
+});
+/* ⛔ E IL CONTROLLO CHE AVREBBE PRESO GENESI: nessun modulo dati sul disco può
+   restare fuori. Prima l'elenco era scritto a mano, quindi un'app fuori
+   convenzione non faceva rumore — la regola rispondeva «nessuna violazione»
+   dopo aver guardato sei moduli su sette, che è il difetto del «controllo che
+   non guarda dove crede» raccolto tre volte in CLAUDE.md.
+   Pretende anche che ogni app abbia almeno una pagina in `SUPERFICI`: senza,
+   `bandiereLette` leggerebbe il solo modulo e una bandiera consumata dalla
+   pagina risulterebbe scollegata — un allarme falso, che è il modo più veloce
+   di far spegnere una regola. */
+test("regola 20: nessun modulo dati resta fuori, e ognuno ha la sua pagina", () => {
+  const sulDisco = readdirSync(join(root, "apps"))
+    .filter((d) => existsSync(join(root, `apps/${d}/${d}-data.js`)))
+    .map((d) => [d, `apps/${d}/${d}-data.js`]);
+  const coperti = new Set(MODULI_APP.map(([, rel]) => rel));
+  const fuori = sulDisco.filter(([, rel]) => !coperti.has(rel)).map(([, rel]) => rel);
+  ok(fuori.length === 0,
+    `moduli dati che la regola 20 non guarda: ${fuori.join(", ")}`
+    + " — vanno aggiunti a MODULI, che è l'elenco col controllo sul disco");
+  const senzaPagina = MODULI_APP.filter(([app]) => pagineDi(app).length === 0).map(([app]) => app);
+  ok(senzaPagina.length === 0,
+    `app senza nemmeno una pagina in SUPERFICI: ${senzaPagina.join(", ")}`
+    + " — la regola leggerebbe il solo modulo e accuserebbe le bandiere sane");
+  ok(sulDisco.length >= 7,
+    `moduli dati trovati sul disco: ${sulDisco.length} — troppo pochi perché la scansione stia guardando davvero`);
 });
 /* ⚠️ LA CONTROPROVA, E NON TOCCA NESSUN FILE — due direzioni opposte, perché
    questa regola può sbagliare in tutt'e due i versi. */
@@ -2358,10 +2446,10 @@ test("regola 20: la controprova — vede la dichiarazione scollegata, non il com
   ok(!bandiereLette([conDifetto, pag]).has("attendibile"),
     "e DEVE vedere che nessuno la legge: né il modulo col difetto, né la pagina");
   //    …e soprattutto: la REGOLA, non solo i suoi pezzi, deve segnalarlo.
-  ok(scollegateIn("terra", conDifetto, pag).length === 1,
+  ok(scollegateIn("apps/terra/terra-data.js", conDifetto, pag).length === 1,
     "la regola intera deve produrre esattamente una segnalazione sul difetto iniettato: "
-    + JSON.stringify(scollegateIn("terra", conDifetto, pag)));
-  ok(scollegateIn("terra", mod, pag).length === 0,
+    + JSON.stringify(scollegateIn("apps/terra/terra-data.js", conDifetto, pag)));
+  ok(scollegateIn("apps/terra/terra-data.js", mod, pag).length === 0,
     "e nessuna sul file vero: se ne desse anche senza difetto, non starebbe distinguendo");
 
   // 2. IL FALSO POSITIVO che questa regola ha davvero prodotto, il 01/08:
@@ -2384,8 +2472,49 @@ test("regola 20: la controprova — vede la dichiarazione scollegata, non il com
   //    spegne. Aggiunta la lettura, la bandiera non è più scollegata.
   const conLettura = conDifetto.replace("export function divarioRecupero",
     "export function _legge(o){ return o.attendibile ? 1 : 0; }\nexport function divarioRecupero");
-  ok(scollegateIn("terra", conLettura, pag).length === 0,
+  ok(scollegateIn("apps/terra/terra-data.js", conLettura, pag).length === 0,
     "una lettura vera DEVE far sparire la segnalazione: se no la regola non distingue niente");
+});
+
+/* ⛔ LA CONTROPROVA CHE RIGUARDA GENESI, e c'è perché la regola per un mese
+   intero **non l'ha guardata**: sapeva fallire su Terra e su nessuno sapeva
+   dire se guardasse tutte le app. «Sapere fallire in un punto non dimostra
+   niente sugli altri mille» — CLAUDE.md, sui template annidati. */
+test("regola 20: guarda DAVVERO Genesi, che la convenzione vecchia perdeva", () => {
+  const mod = leggi("apps/genesi/genesi-data.js");
+  const pagine = pagineDi("genesi").map(leggi);
+  // 1. la vecchia convenzione: `apps/genesi/index.html` NON ESISTE. È il
+  //    motivo per cui Genesi non era nell'elenco, e non si vedeva.
+  ok(leggi("apps/genesi/index.html") === null,
+    "se un giorno nascesse `apps/genesi/index.html` questa riga va riscritta: oggi la sua assenza È la causa del buco");
+  ok(pagine.length >= 1 && pagine.every((t) => t !== null),
+    `le pagine di Genesi devono esserci e leggersi: ${JSON.stringify(pagineDi("genesi"))}`);
+  // 2. la bandiera c'è, ed è quella nata il 03/08 correggendo i numeri tranquilli.
+  ok(bandiereDichiarate(mod).has("misurabile"),
+    "Genesi deve dichiarare «misurabile»: se sparisse, questa controprova va rifatta su un'altra bandiera");
+  // 3. e la regola, sul file vero, tace.
+  ok(scollegateIn("apps/genesi/genesi-data.js", mod, ...pagine).length === 0,
+    "sul file vero non deve segnalare niente");
+  // 4. tolte TUTTE le letture — quelle della pagina e quelle del modulo — e
+  //    lasciata in piedi la sola dichiarazione, la regola DEVE segnalare.
+  //    ⚠️ La dichiarazione va risparmiata a mano: è `const misurabile = …`, e
+  //    una sostituzione a tappeto la porterebbe via insieme alle letture,
+  //    lasciando un file senza niente da segnalare. È la terza causa di «non
+  //    distingue» di CLAUDE.md — l'iniezione che non inietta.
+  let tolteMod = 0;
+  const modCieco = mod.replace(/\bmisurabile\b/g, (m, i) => {
+    if (/(?:const|let|var)\s+$/.test(mod.slice(Math.max(0, i - 12), i))) return m;
+    tolteMod++; return "_spenta";
+  });
+  let toltePag = 0;
+  const cieche = pagine.map((t) => t.replace(/\bmisurabile\b/g, () => { toltePag++; return "_spenta"; }));
+  ok(tolteMod >= 4 && toltePag >= 5,
+    `l'iniezione deve togliere letture vere: ${tolteMod} nel modulo, ${toltePag} nelle pagine`);
+  ok(bandiereDichiarate(modCieco).has("misurabile"),
+    "e DEVE lasciare in piedi la dichiarazione, se no non c'è niente da segnalare");
+  const solaDich = scollegateIn("apps/genesi/genesi-data.js", modCieco, ...cieche);
+  ok(solaDich.length === 1,
+    "tolte le letture, la bandiera di Genesi deve risultare scollegata: " + JSON.stringify(solaDich));
 });
 
 /* Il numero di regole scritto nell'intestazione è quello vero? Era rimasto a
