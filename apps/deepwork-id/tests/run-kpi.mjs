@@ -20313,5 +20313,167 @@ test("⛔ Scudo · andamento indici: il verso letto su giornate ancora da contar
   });
 }
 
+/* ══ GENESI · il foglio che si porta in cava (03/08) ═══════════════════════
+   Le tre decisioni sulla vibrazione (verdetto PPV, verdetto airblast, da dove
+   vengono K e β) e le due sul confronto A/B. Stavano tutte DENTRO la pagina,
+   quindi il REPORT STAMPABILE — il documento che si archivia col rapportino —
+   non le prendeva. Misurato premendo il bottone e aprendo il foglio che esce:
+     · recettore a 60 m, DIN sensibile → schermo «77,7 mm/s», pallino rosso,
+       «SUPERA»; foglio «77,7 mm/s (limite 8,0, DIN sensibile/storico)» e via.
+       L'airblast (143 dB(L), dieci oltre il limite USBM/OSM) non c'era;
+     · legge di sito su tre referti (che `sitoFit` dichiara provvisoria) →
+       la stessa volata stampava 2,8 invece di 6,4, con la frase IDENTICA;
+     · confronto A/B di due scatti dello STESSO progetto → quattro celle verdi
+       su quattro pareggi, più la PPV «vinta» da B perché era cambiata la
+       calibrazione e non il progetto.
+   Nessuna soglia è cambiata: 0,6 · 1,0 e i 133 dB(L) sono gli stessi numeri,
+   spostati e non riscritti. */
+{
+  const g = await app("genesi", "genesi-data.js");
+  /* referti presi ESATTAMENTE da PPV = 700·SD^−1,6, come nella banda della
+     legge di sito: se una prova cade, accusa il calcolo e non i dati */
+  const _ref = (d, w) => ({ d, w, ppv: 700 * Math.pow(d / Math.sqrt(w), -1.6) });
+  const OTTO_REFERTI = [_ref(100, 50), _ref(200, 50), _ref(400, 50), _ref(300, 20),
+                        _ref(150, 80), _ref(500, 100), _ref(80, 40), _ref(250, 60)];
+
+  console.log("\n— Genesi: il verdetto sulla vibrazione, uno solo per lo schermo e per il foglio —");
+
+  test("Genesi · il verdetto sulla PPV: le tre fasce, ai loro confini", () => {
+    eq([g.esitoPpv(77.7, 8).stato, g.esitoPpv(77.7, 8).classe], ["supera", "sv-bad"],
+       "77,7 su una soglia di 8 supera, e il colore è quello dell'allarme");
+    eq(g.esitoPpv(15, 15).stato, "supera", "il confine 1,0 sta con «supera»: alla soglia non si è sotto");
+    eq(g.esitoPpv(9, 15).stato, "vicino", "il confine 0,6 sta con «vicino»");
+    eq(g.esitoPpv(8.99, 15).stato, "sotto", "appena sotto lo 0,6 si torna verdi");
+    eq([g.esitoPpv(6.4, 15).stato, g.esitoPpv(6.4, 15).classe], ["sotto", "sv-ok"], "6,4 su 15");
+    eq(g.esitoPpv(77.7, 8).verdetto, "SUPERA", "la parola che finisce sul foglio");
+    ok(/riduci la MIC/.test(g.esitoPpv(77.7, 8).consiglio), "e accanto c'è che cosa fare");
+    eq(g.esitoPpv(6.4, 15).consiglio, "", "sotto soglia non si dà un consiglio che non serve");
+  });
+
+  test("⛔ Genesi · senza soglia non c'è un verdetto, e `null` non è «sotto»", () => {
+    /* `+null` fa 0 e 0/15 darebbe la fascia più tranquilla di tutte, sul numero
+       che decide se una volata si può sparare. Ci si arriva davvero: basta
+       aprire una volata salvata con un codice di normativa non riconosciuto. */
+    for (const lim of [null, undefined, "", NaN, 0]) {
+      const e = g.esitoPpv(6.4, lim);
+      eq([e.confrontabile, e.stato], [false, "nonConfrontabile"],
+         `limite ${mostra(lim)}: non si confronta`);
+      ok(e.classe !== "sv-ok", `   e il colore non è quello tranquillo (${e.classe})`);
+      eq(e.rapporto, null, "   e non esiste un rapporto PPV/soglia");
+    }
+    eq(g.esitoPpv(null, 15).confrontabile, false, "una PPV che non c'è non è uno zero di vibrazione");
+    eq(g.esitoPpv(NaN, 15).confrontabile, false, "né un NaN");
+    /* ma lo ZERO MISURATO resta un fatto, se no il modo più facile di far
+       passare questa prova sarebbe rispondere sempre «non confrontabile» */
+    eq([g.esitoPpv(0, 15).confrontabile, g.esitoPpv(0, 15).stato], [true, "sotto"],
+       "uno zero misurato è un fatto e resta verde");
+  });
+
+  test("Genesi · l'airblast contro il limite USBM/OSM, con i confini di oggi", () => {
+    eq(g.AIRBLAST_LIMITE_DB, 133, "il limite USBM/OSM è dichiarato e non si tocca");
+    eq([g.esitoAirblast(143).stato, g.esitoAirblast(143).classe], ["oltre", "sv-bad"], "143 dB(L)");
+    ok(/oltre il limite USBM\/OSM di 133 dB\(L\)/.test(g.esitoAirblast(143).verdetto),
+       "e il foglio scrive perché");
+    eq([g.esitoAirblast(124).stato, g.esitoAirblast(124).classe], ["sotto", "sv-ok"], "124 dB(L)");
+    eq(g.esitoAirblast(130).classe, "sv-warn", "fra 128 e 133 è giallo");
+    /* ⚠️ il confine esatto è quello di prima, non «migliorato»: a 133 dB la
+       pagina scriveva «sotto il limite» con il giallo, e correggerlo è una
+       decisione sulla soglia, che senza il fondatore non si prende. */
+    eq([g.esitoAirblast(133).classe, g.esitoAirblast(133).stato], ["sv-warn", "sotto"],
+       "a 133 esatti la risposta è identica a quella di prima del trasloco");
+    eq(g.esitoAirblast(null).misurabile, false, "un dB non calcolabile non è 0 dB, che sarebbe il silenzio");
+  });
+
+  console.log("\n— Genesi: da dove vengono K e β, e quanto pesano —");
+
+  test("⛔ Genesi · la legge su pochi referti dice SU QUANTI, anche fuori dalla pagina", () => {
+    const tre = g.sitoFit([{ d: 120, w: 50, ppv: 9.2 }, { d: 260, w: 55, ppv: 3.1 }, { d: 430, w: 48, ppv: 1.4 }]);
+    eq(tre.avviso, "pochi", "premessa: sotto gli 8 referti `sitoFit` alza la bandiera");
+    const p = g.provenienzaPpv({ K: tre.K95, beta: tre.beta, fonte: "sito", fit: tre }, 20, "Calcare");
+    eq([p.fonte, p.referti, p.provvisoria], ["sito", 3, true], "la provenienza li riporta");
+    ok(/tuoi 3 referti/.test(p.testo), `e il testo per i documenti lo scrive: ${mostra(p.testo)}`);
+    ok(p.avvisi.some((a) => /provvisoria/i.test(a)),
+       "e l'avviso è una frase pronta, perché il foglio stampato non ha il grassetto della schermata");
+    /* ⚠️ la forma CORTA serve al confronto A/B, dove una colonna sta in 85 px a
+       320: la frase lunga ci andava a capo in mezzo alle parole. Non è una
+       seconda verità — dice le stesse due cose, dagli stessi campi. */
+    ok(/legge di sito/.test(p.breve) && /3 referti/.test(p.breve) && /provvisoria/.test(p.breve),
+       `la forma corta dice fonte, referti e provvisorietà: ${mostra(p.breve)}`);
+    ok(p.breve.length < p.testo.length, "ed è più corta di quella lunga, se no non serve a niente");
+  });
+
+  test("Genesi · la legge tarata su otto referti non è provvisoria", () => {
+    const otto = g.sitoFit(OTTO_REFERTI);
+    eq(otto.avviso, undefined, "premessa: da otto in su la bandiera non si alza");
+    const p = g.provenienzaPpv({ K: otto.K95, beta: otto.beta, fonte: "sito", fit: otto }, 30, "Calcare");
+    eq([p.provvisoria, p.referti], [false, 8], "e la provenienza non inventa un avviso");
+    eq(p.avvisi.length, 0, "nessun avviso da stampare");
+  });
+
+  test("Genesi · fuori dall'intervallo calibrato la legge estrapola, e lo dice", () => {
+    const otto = g.sitoFit(OTTO_REFERTI);
+    const dentro = g.provenienzaPpv({ K: otto.K95, beta: otto.beta, fonte: "sito", fit: otto }, 30, "Calcare");
+    eq(dentro.fuoriIntervallo, false, `SD 30 sta dentro ${otto.sdMin}–${otto.sdMax}`);
+    const fuori = g.provenienzaPpv({ K: otto.K95, beta: otto.beta, fonte: "sito", fit: otto }, 900, "Calcare");
+    eq(fuori.fuoriIntervallo, true, "SD 900 no");
+    ok(fuori.avvisi.some((a) => /estrapola/.test(a)), "e c'è la frase da stampare");
+    /* ⛔ una SD che non si sa non è «dentro»: sarebbe la solita assenza
+       raccontata come un dato favorevole */
+    eq(g.provenienzaPpv({ K: 1, beta: 1, fonte: "sito", fit: otto }, null, "Calcare").fuoriIntervallo, false,
+       "e con la SD assente non si dichiara né dentro né fuori (l'avviso non si alza)");
+    eq(g.provenienzaPpv({ K: 1, beta: 1, fonte: "sito", fit: otto }, null, "Calcare").avvisi.length, 0,
+       "   cioè: non si accusa di estrapolare chi non si è misurato");
+  });
+
+  test("Genesi · senza legge di sito la previsione dichiara la litologia", () => {
+    const p = g.provenienzaPpv({ K: 1906, beta: 1.55, fonte: "litologia" }, 7.9, "Calcare");
+    eq([p.fonte, p.referti, p.provvisoria], ["litologia", null, false], "nessun referto da citare");
+    ok(/stimati da Calcare \(valori da manuale, cautelativi\)/.test(p.testo), mostra(p.testo));
+    /* ⚠️ e i numeri sono scritti all'italiana, come tutto il resto del foglio */
+    ok(/K≈1\.906\/β≈1,55/.test(p.testo), `virgola decimale e punto delle migliaia: ${mostra(p.testo)}`);
+    ok(/da litologia \(Calcare\)/.test(p.breve), `e la forma corta cita la roccia: ${mostra(p.breve)}`);
+    ok(!/referti/.test(p.breve), "senza referti non si nominano referti");
+    /* una fonte «sito» SENZA il fit non inventa referti: è il caso di uno stato
+       montato a metà, e l'unica cosa vera che si può dire è la litologia */
+    eq(g.provenienzaPpv({ K: 1906, beta: 1.55, fonte: "sito" }, 7.9, "Calcare").fonte, "litologia",
+       "una legge dichiarata e assente non produce referti immaginari");
+  });
+
+  console.log("\n— Genesi: il confronto A/B, e il verde che non si regala —");
+
+  test("⛔ Genesi · un pareggio non ha un vincitore", () => {
+    eq(g.vincitoreKpi(28, 50), "A", "più basso vince");
+    eq(g.vincitoreKpi(50, 28), "B", "e l'altro verso");
+    eq(g.vincitoreKpi(28, 28), null,
+       "⛔ 28 contro 28: nessuno è «il progetto migliore» — erano quattro celle verdi su quattro righe identiche");
+    eq(g.vincitoreKpi(-0, 0), null, "−0 e 0 sono lo stesso numero");
+  });
+
+  test("⛔ Genesi · un valore assente non vince per essere assente", () => {
+    /* `(A.kpi.cost||0)` faceva vincere un costo che non c'era, perché `||0`
+       di un vuoto dà lo zero, cioè il più basso di tutti */
+    for (const v of [null, undefined, "", NaN]) {
+      eq(g.vincitoreKpi(v, 2234), null, `A ${mostra(v)} contro 2.234: nessun vincitore`);
+      eq(g.vincitoreKpi(2234, v), null, `2.234 contro B ${mostra(v)}: nessun vincitore`);
+    }
+    eq(g.vincitoreKpi(0, 2234), "A", "ma uno ZERO dichiarato è un fatto e vince");
+  });
+
+  test("⛔ Genesi · due PPV si confrontano solo se vengono dalla stessa legge", () => {
+    const lit = { fonte: "litologia", K: 1906, beta: 1.55, referti: null };
+    const sito3 = { fonte: "sito", K: 585, beta: 1.45, referti: 3 };
+    eq(g.stessaBasePpv(lit, { ...lit }), true, "due scatti sulla stessa stima da litologia");
+    eq(g.stessaBasePpv(sito3, { ...sito3 }), true, "due scatti sulla stessa legge di sito");
+    eq(g.stessaBasePpv(lit, sito3), false,
+       "⛔ litologia contro legge di sito: 6,4 e 2,8 non dicono che il progetto è migliorato");
+    eq(g.stessaBasePpv(sito3, { fonte: "sito", K: 600, beta: 1.5, referti: 9 }), false,
+       "una legge ritarata su altri referti non è la stessa legge");
+    /* uno scatto salvato prima che questo campo esistesse non sa da dove
+       veniva: «non lo so» non è «uguale» */
+    eq(g.stessaBasePpv(undefined, lit), false, "una base non registrata non è confrontabile");
+    eq(g.stessaBasePpv(undefined, undefined), false, "e nemmeno due basi non registrate");
+  });
+}
+
 console.log(`\nRisultato KPI app: ${passed} passati, ${failed} falliti${inVolo.length ? `  ·  ${inVolo.length} prove asincrone aspettate` : ""}`);
 process.exit(failed > 0 ? 1 : 0);

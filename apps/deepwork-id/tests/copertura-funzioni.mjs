@@ -252,7 +252,7 @@ const CONDIVISI = [
      un file che esce dall'azienda e che nessuna prova poteva chiamare).
      Sono entrate identiche, copiate da un programma: le 25 prove blindano il
      comportamento di oggi, difetti compresi e dichiarati nel loro nome. */
-  { file: "apps/genesi/genesi-data.js", fondo: 25,
+  { file: "apps/genesi/genesi-data.js", fondo: 31,
     perche: "la vibrazione al recettore e la riconciliazione previsto-vs-reale: i due numeri di Genesi che decidono qualcosa" },
 ];
 /* Fuori per un motivo, non per dimenticanza. Le prime tre toccano il DOM o

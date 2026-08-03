@@ -123,6 +123,15 @@ const BANCHI = [
   ['punti della nuvola · controprova', 'punti-nuvola.mjs', ['--conto-unico'], true],
   ['struttura di Genesi', 'genesi-struttura.mjs', []],
   ['struttura di Genesi · controprova', 'genesi-struttura.mjs', ['--prima'], true],
+  /* IL FOGLIO CHE SI PORTA IN CAVA. Terza passata, e la domanda era una sola:
+     dove Genesi compone qualcosa che ESCE, chi decide i suoi numeri? Il report
+     stampabile li decideva da sé, e quindi non diceva che la PPV SUPERA (77,7
+     contro una soglia di 8), non aveva la riga dell'airblast (143 dB(L), dieci
+     oltre il limite), non dichiarava su quanti referti era tarata la legge — e
+     il confronto A/B dipingeva di verde quattro pareggi. Non si vedeva
+     leggendo: si è visto premendo il bottone e aprendo il documento. */
+  ['il foglio che si porta in cava (Genesi)', 'genesi-foglio-in-cava.mjs', []],
+  ['foglio in cava · controprova', 'genesi-foglio-in-cava.mjs', ['--controprova'], true],
   ['nota di credito', 'nota-credito.mjs', []],
   ['nota di credito · controprova', 'nota-credito.mjs', ['--controprova'], true],
   /* ⛔ AGGIUNTO IL 03/08. I FOGLI di Conti — fattura, DDT — li compone la

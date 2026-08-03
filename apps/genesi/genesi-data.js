@@ -193,6 +193,147 @@ export function ppvLimit(norma,f){
    prima o poi dicono due numeri diversi. STIMA, da calibrare. */
 export function airblastDb(dist,mic){ const sd3=Math.max(0.001,+dist||0)/Math.cbrt(Math.max(0.1,+mic||0)); return 172-24*Math.log10(Math.max(1,sd3)); }
 
+/* ══════════════════════════════════════════════════════════════════════════
+   IL VERDETTO SULLA VIBRAZIONE — UNO SOLO, PER LO SCHERMO E PER IL FOGLIO
+   ══════════════════════════════════════════════════════════════════════════
+   ⛔ PERCHÉ ESISTONO QUESTE TRE FUNZIONI. Fino al 03/08 il giudizio sulla PPV
+   lo prendeva la SCHEDA VALIDATORI, dentro la pagina, e il REPORT STAMPABILE
+   — il foglio che si porta in cava e si archivia col rapportino — non lo
+   prendeva affatto: stampava il numero e basta. Misurato premendo il bottone,
+   col recettore a 60 m e la DIN sensibile:
+     · schermo → «77,7 mm/s», pallino ROSSO, «Soglia 8 mm/s → SUPERA: riduci
+       la MIC o allontana il recettore»;
+     · foglio  → «PPV al recettore (60 m) 77,7 mm/s (limite 8,0, DIN
+       sensibile/storico)», nella stessa tipografia piatta di tutte le altre
+       righe, e l'AIRBLAST (143 dB(L), dieci sopra il limite USBM/OSM) non
+       compariva per niente.
+   Il confronto lo doveva fare il lettore. È la famiglia del «Conforme» che
+   Sentinella scriveva nel file per l'ARPA mentre lo schermo diceva
+   «Superamento»: il documento che esce non ripete la decisione della
+   schermata, la lascia cadere.
+
+   ⛔ E LA SECONDA META È LA PROVENIENZA. Con la legge di sito attiva su TRE
+   referti — che `sitoFit` dichiara PROVVISORIA — la stessa volata stampava
+   «2,8 mm/s» invece di «6,4»: il numero più che dimezzato, e il foglio
+   scriveva la STESSA IDENTICA FRASE. La bandiera `pochi` il 03/08 era stata
+   collegata alla scheda validatori e al riquadro «Manda a Sentinella»; il
+   foglio stampato non era in quell'elenco.
+
+   ⚠️ NESSUNA SOGLIA CAMBIA: 0,6 · 1,0 sul rapporto PPV/limite e i 133 dB(L)
+   USBM/OSM sono gli stessi numeri di prima, spostati e non riscritti (le
+   curve di sicurezza non si toccano senza il fondatore). Anche il confine di
+   `esitoAirblast` è preservato com'era, `<128` verde e `<=133` giallo con la
+   parola «sotto»: correggere quel bordo è una decisione sul limite, non un
+   trasloco, e va chiesta.
+   ══════════════════════════════════════════════════════════════════════════ */
+
+/* La PPV prevista contro la soglia di norma. `null` NON è «sotto soglia»:
+   `+null` fa 0 e 0/15 darebbe la fascia più tranquilla di tutte, sul numero
+   che decide se una volata si può sparare. Lo ZERO MISURATO invece resta un
+   fatto, e resta verde. */
+export function esitoPpv(ppv, limite){
+  const p = (ppv===null||ppv===undefined||ppv==='')?NaN:+ppv;
+  const l = (limite===null||limite===undefined||limite==='')?NaN:+limite;
+  if(!isFinite(p) || !isFinite(l) || l<=0)
+    return { confrontabile:false, rapporto:null, classe:'sv-warn', stato:'nonConfrontabile',
+             verdetto:'non si può dire se è sotto soglia', consiglio:'' };
+  const r = p/l;
+  if(r>=1)   return { confrontabile:true, rapporto:r, classe:'sv-bad', stato:'supera',
+    verdetto:'SUPERA', consiglio:'riduci la MIC (meno kg/foro o frazionamento ritardi) o allontana il recettore.' };
+  if(r>=0.6) return { confrontabile:true, rapporto:r, classe:'sv-warn', stato:'vicino',
+    verdetto:'sotto soglia ma vicino', consiglio:'monitora.' };
+  return { confrontabile:true, rapporto:r, classe:'sv-ok', stato:'sotto',
+    verdetto:'ampiamente sotto soglia', consiglio:'' };
+}
+
+/* La sovrappressione d'aria contro il limite USBM/OSM. Stessa ragione: un dB
+   che non si può calcolare non è uno 0 dB, che sarebbe il silenzio. */
+export const AIRBLAST_LIMITE_DB = 133;
+export function esitoAirblast(db){
+  const d = (db===null||db===undefined||db==='')?NaN:+db;
+  if(!isFinite(d)) return { misurabile:false, classe:'sv-warn', stato:'nonCalcolabile',
+    verdetto:'non calcolabile', consiglio:'' };
+  if(d>AIRBLAST_LIMITE_DB) return { misurabile:true, classe:'sv-bad', stato:'oltre',
+    verdetto:'oltre il limite USBM/OSM di '+AIRBLAST_LIMITE_DB+' dB(L)',
+    consiglio:'borraggio corto/colletto scoperto amplifica; allunga il borraggio.' };
+  return { misurabile:true, classe:(d<128?'sv-ok':'sv-warn'), stato:'sotto',
+    verdetto:'sotto il limite USBM/OSM di '+AIRBLAST_LIMITE_DB+' dB(L)', consiglio:'' };
+}
+
+/* DA DOVE VENGONO K E β, e quanto pesano. Torna le decisioni (`provvisoria`,
+   `fuoriIntervallo`, `referti`) perché le prendano tutte le superfici in un
+   posto solo, e un `testo` già scritto per i documenti che non hanno grassetto.
+   `st` è quello che risponde `ppvSite()` nella pagina: `{K,beta,fonte,fit}`.
+   ⚠️ Una `fonte:'sito'` senza `fit` non inventa referti: ricade su litologia,
+   che è l'unica cosa vera che si può dire di una legge che non c'è. */
+export function provenienzaPpv(st, sd, roccia){
+  const s = st||{};
+  const capo = 'K≈'+gnum(s.K,0)+'/β≈'+gnum(s.beta,2);
+  if(s.fonte!=='sito' || !s.fit)
+    return { fonte:'litologia', K:s.K, beta:s.beta, referti:null, r2:null,
+      provvisoria:false, fuoriIntervallo:false, sdMin:null, sdMax:null, avvisi:[],
+      /* ⚠️ DUE LUNGHEZZE, E LA CORTA NON È UN VEZZO. Nel confronto A/B le
+         colonne stanno in 85 px a 320: la frase lunga ci va a capo in mezzo
+         alle parole («Impostazion-e», «provviso-ria»), misurato sullo scatto.
+         La corta dice le stesse due cose che lì contano — da dove viene la
+         legge e su quanti referti — e non è una seconda verità: esce dagli
+         stessi campi. */
+      breve: 'da litologia ('+String(roccia||'—')+')',
+      testo: capo+' stimati da '+String(roccia||'litologia')+' (valori da manuale, cautelativi)' };
+  const f = s.fit;
+  const x = (sd===null||sd===undefined||sd==='')?NaN:+sd;
+  const fuori = isFinite(x) && isFinite(+f.sdMin) && isFinite(+f.sdMax) && (x<f.sdMin || x>f.sdMax);
+  const provvisoria = f.avviso==='pochi';
+  const avvisi = [];
+  if(provvisoria) avvisi.push('Legge provvisoria: sotto gli 8 referti la pendenza si muove ancora '
+    +'parecchio a ogni misura nuova, quindi anche questa PPV si muoverà.');
+  if(fuori) avvisi.push('Attenzione: SD '+gnum(x,1)+' è fuori dall’intervallo calibrato ('
+    +gnum(f.sdMin,1)+'–'+gnum(f.sdMax,1)+'): qui la legge estrapola.');
+  return { fonte:'sito', K:s.K, beta:s.beta, referti:f.n,
+    r2:(f.r2===null||f.r2===undefined)?null:f.r2,
+    provvisoria, fuoriIntervallo:fuori, sdMin:f.sdMin, sdMax:f.sdMax, avvisi,
+    breve: 'legge di sito · '+gnum(f.n,0)+' referti'+(provvisoria?' · provvisoria':'')
+      +(fuori?' · estrapola':''),
+    testo: capo+' ricavati dai tuoi '+gnum(f.n,0)+' referti (riga al 95° percentile, R²='+gnum(f.r2,3)+')' };
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   IL CONFRONTO A/B — «IL PROGETTO MIGLIORE», QUANDO SI PUÒ DIRE
+   ══════════════════════════════════════════════════════════════════════════
+   ⛔ MISURATO IL 03/08 SALVANDO DUE VOLTE LO STESSO PROGETTO. Fra i due scatti
+   non è stato toccato niente: si è solo accesa la legge di sito (tre referti,
+   che `sitoFit` dichiara provvisoria). Il confronto ha risposto così:
+     · dieci righe su undici IDENTICHE — stessa maglia, stesso esplosivo, 12
+       fori, 696 kg, PF 0,55, X50 28, X80 50, flyrock 101 m, €2.234;
+     · **quattro celle dipinte di verde su quattro PAREGGI** (`A<=B` risponde
+       'A' anche quando i due numeri sono lo stesso numero), sotto la didascalia
+       «in verde il progetto migliore per ciascun KPI»;
+     · e la PPV data VINTA a B — 2,8 contro 6,4 — cioè un cambio di
+       CALIBRAZIONE raccontato come un miglioramento del PROGETTO.
+   Nessuno dei due verdi corrisponde a qualcosa di misurato. È il numero
+   tranquillo del principio del fondatore nella sua forma cromatica.
+
+   ⚠️ E `(A.kpi.cost||0)` faceva vincere un costo ASSENTE, perché `||0` di un
+   vuoto fa lo zero, cioè il valore più basso possibile. Lo zero VERO invece
+   gioca e vince: è un fatto. Le due cose si distinguono qui dentro. */
+
+/* Chi è meglio fra due valori in cui «più basso = meglio». `null` quando il
+   confronto non si può fare O quando finisce pari: un pareggio non ha un
+   vincitore, e dipingerlo di verde è un'affermazione. */
+export function vincitoreKpi(a, b){
+  const x=(a===null||a===undefined||a==='')?NaN:+a, y=(b===null||b===undefined||b==='')?NaN:+b;
+  if(!isFinite(x)||!isFinite(y)) return null;
+  if(x===y) return null;
+  return x<y ? 'A' : 'B';
+}
+/* Due PPV previste si confrontano solo se vengono dalla STESSA legge. Una base
+   non registrata (uno scatto salvato prima che questo campo esistesse) non è
+   «uguale»: è «non lo so», e va detto invece di far vincere qualcuno. */
+export function stessaBasePpv(a, b){
+  if(!a || !b) return false;
+  return a.fonte===b.fonte && a.K===b.K && a.beta===b.beta && a.referti===b.referti;
+}
+
 /* ── LA PROVENIENZA DI UN REFERTO ────────────────────────────────────────
    K e β decidono le distanze di sicurezza: chi li guarda deve poter sapere
    da dove vengono i numeri che li hanno prodotti. Quindi ogni referto porta
