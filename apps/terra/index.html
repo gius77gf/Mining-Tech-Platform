@@ -2497,8 +2497,23 @@ a.dw-btn{text-decoration:none}
        chi apre il CSV in un foglio sommerebbe uno zero che nessuno ha misurato */
     for (const b of (DEN.banchi ? DEN.banchi.righe : []))
       csv += `banco;${csvCell(b.etichetta)};${b.misurabile ? b.scavo : ""};${b.cumulo};${b.rilieviScavo}\n`;
-    if (DEN.banchi && DEN.banchi.nonDichiarato)
-      csv += `banco;${csvCell("Banco non dichiarato")};${DEN.banchi.nonDichiarato.scavo};${DEN.banchi.nonDichiarato.cumulo};${DEN.banchi.nonDichiarato.rilieviScavo}\n`;
+    /* ⛔ E LO STESSO VALE PER I SECCHI, che banchi sono anche loro. Misurato il
+       03/08 premendo il bottone con un fronte che non dichiara il banco e
+       nessun rilievo: il file scriveva `banco;Banco non dichiarato;0;0;0` una
+       riga sotto un `banco;banco 3;;0;0`. La bandiera che distingue lo zero
+       misurato dallo zero mai misurato adesso ce l'hanno tutt'e tre, e la
+       scrive `ripartizioneBanchi`: qui si legge, non si rifà.
+       ⛔ E IL SECCHIO «FUORI ELENCO» NON C'ERA AFFATTO. I metri cubi usciti da
+       un fronte poi cancellato li dichiarano lo schermo e il foglio stampato
+       («si contano a parte, non spariscono»); il CSV li taceva, e allora la
+       colonna dei banchi non tornava col totale dell'anno — un buco senza
+       nemmeno una riga che dicesse di che cosa. */
+    const secchi = DEN.banchi ? [
+      ["Banco non dichiarato", DEN.banchi.nonDichiarato],
+      ["Fronti non più in elenco", DEN.banchi.fuoriElenco],
+    ] : [];
+    for (const [et, s] of secchi) if (s)
+      csv += `banco;${csvCell(et)};${s.misurabile ? s.scavo : ""};${s.cumulo};${s.rilieviScavo}\n`;
     csv += `titolo;${csvCell("Volume concesso")};${R.concesso || ""};;\n`;
     csv += `titolo;${csvCell("Estratto prima di Terra")};${R.pregresso};;\n`;
     csv += `titolo;${csvCell("Cumulato a fine " + R.anno)};${R.cumulatoFineAnno};;\n`;
@@ -3532,7 +3547,16 @@ a.dw-btn{text-decoration:none}
     const cum = provenienzaRilievo(r) === "cumulo";
     const dati = [
       ["Data del rilievo", fmtData(r.data)],
-      ["Fronte", f ? esc(f.nome) + (f.banco ? " — " + esc(f.banco) : "") + (f.quota != null ? " · quota " + esc(String(f.quota)) + " m" : "")
+      /* ⛔ LA QUOTA ALL'ITALIANA, come il GSD sei righe più sotto — e per la
+         stessa ragione, che lì era già scritta: questo foglio va a un ente
+         italiano. Fino al 03/08 usciva `String(f.quota)` grezzo, cioè «quota
+         148.5 m» col punto, mentre l'elenco dei Fronti sullo stesso dato
+         scrive «Quota 148,5 m». E la guardia era `f.quota != null`, che
+         accetta la stringa vuota: un fronte senza quota stampava «· quota  m»,
+         due parole e un buco. La condizione giusta è quella dell'elenco
+         (`== null || === ""`), che quel caso lo dichiara invece di tacerlo. */
+      ["Fronte", f ? esc(f.nome) + (f.banco ? " — " + esc(f.banco) : "")
+          + (f.quota == null || f.quota === "" ? " · quota non dichiarata" : " · quota " + esc(nD(f.quota)) + " m")
         : (r.fronteId ? "fronte non più in elenco" : "non indicato")],
       ["Che cosa è stato misurato", cum
         ? "Ripresa da un cumulo — materiale già estratto in passato, non nuovo scavo"
@@ -3708,11 +3732,54 @@ a.dw-btn{text-decoration:none}
       esito("fro-esito", "Fronte «" + f.nome + "» " + (nuovo === "sospeso" ? "sospeso." : "riattivato."));
       await refresh(); }
   });
+  /* ⛔ IL FILE DICE QUELLO CHE DICE LO SCHERMO, e fino al 03/08 diceva altro.
+     Misurato premendo il bottone e aprendo il file, sugli STESSI dati:
+     · `r.volumeM3 != null` era ancora una copia più debole di `rilievoUsabile`,
+       e stava nel FILE invece che sullo schermo: la stessa riga era già stata
+       tolta dall'elenco e dal bottone del verbale (il commento sta più di
+       millecinquecento righe più su, in questo stesso file), e qui non era
+       venuto a guardare nessuno. Cercandola per bene ne è saltata fuori
+       un'altra nel modulo — `anniConVolumi`, corretta lo stesso giorno — quindi
+       il conto giusto è: dove una regola vive in una funzione, va CHIAMATA, e
+       il posto dove nessuno controlla è quello dove il documento si compone.
+       Il file scriveva
+       «20/03 · circa 8000 m³» e «12/03 ·  m³» dove la riga a schermo dice
+       «volume non leggibile»: cioè il documento che esce dall'azienda
+       dichiarava una misura che l'app stessa rifiuta di leggere;
+     · e non guardava lo STATO: un rilievo ancora **pianificato** con una stima
+       nel campo usciva «10/09 · 9999 m³», indistinguibile da una misura fatta,
+       mentre a schermo un pianificato non porta nessun volume. È il vincolo T9
+       («una volata prevista non è un referto») applicato ai rilievi;
+     · la DATA era `giornoMese` — giorno e mese, senza anno. Quella funzione
+       nasce per le etichette dei grafici, «dove l'anno è già nel titolo»: qui
+       il titolo non c'è, e il file contiene l'archivio intero. Nella
+       dimostrazione convivono 2024, 2025 e 2026 e si leggevano tutte uguali,
+       col «20/11» del 2025 stampato sotto il «15/05» del 2026;
+     · la QUOTA usciva come `f.quota` grezzo — «quota 148.5m», col punto, su un
+       foglio italiano dove lo schermo scrive «Quota 148,5 m» — e quando non
+       c'era spariva del tutto, mentre lo schermo dichiara «quota non
+       dichiarata». L'assenza di un dato non è un dato favorevole nemmeno
+       quando la si tace;
+     · il nome portava sempre uno spazio in coda (`nome + " " + (banco||"")`),
+       che a chi cerca quel fronte in un foglio fa fallire il confronto.
+     ⚠️ E LA COLONNA DEL DETTAGLIO ADESSO PASSA DA `csvCell`, ma questo NON era
+     un difetto: è la convenzione di casa, messa dov'era l'unica colonna che la
+     saltava. Provato a raggiungerlo e non si raggiunge — `parseFrontiCsv` la
+     quota la fa passare da `numIt` e tiene solo i finiti, il form da
+     `numCampo`, `avFronte` da `nD`: un `;` lì dentro non ci arriva. Sta scritto
+     perché la controprova del banco su quella riga NON cade, e senza questa
+     nota domani sembrerebbe una prova che non sa fallire. */
   $("btn-terra-export").onclick = () => {
     let csv = "tipo;nome;stato;provenienza;dettaglio\n";
-    for (const f of FRO) csv += `fronte;${csvCell(f.nome+" "+(f.banco||""))};${f.stato};;${[f.quota == null || f.quota === "" ? "" : "quota " + f.quota + "m", avFronte(f, "avanzamento")].filter(Boolean).join(" · ")}\n`;
+    for (const f of FRO)
+      csv += `fronte;${csvCell(f.nome + (f.banco ? " — " + f.banco : ""))};${f.stato};;`
+        + csvCell([f.quota == null || f.quota === "" ? "quota non dichiarata" : "quota " + nD(f.quota) + " m",
+            avFronte(f, "avanzamento")].filter(Boolean).join(" · ")) + "\n";
     for (const r of RIL.slice().sort((a,b)=>(b.data||"").localeCompare(a.data||"")))
-      csv += `rilievo;${csvCell(r.titolo)};${r.stato};${provenienzaRilievo(r)};${giornoMese(r.data)}${r.volumeM3!=null?" · "+r.volumeM3+" m³":""}\n`;
+      csv += `rilievo;${csvCell(r.titolo)};${r.stato};${provenienzaRilievo(r)};`
+        + csvCell(dataIt(r.data)
+            + (rilievoUsabile(r) ? " · " + nD(r.volumeM3) + " m³"
+              : r.stato === "elaborato" ? " · volume non leggibile" : "")) + "\n";
     const a = document.createElement("a");
     a.href = "data:text/csv;charset=utf-8," + encodeURIComponent(csv);
     a.download = "terra_fronti_rilievi.csv"; a.click();

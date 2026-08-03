@@ -19598,5 +19598,117 @@ test("⛔ Scudo · andamento indici: il verso letto su giornate ancora da contar
   });
 }
 
+// ═══ TERRA · i documenti che escono (03/08) ═══════════════════════════════
+/* La domanda del blocco: «dove Terra compone qualcosa che ESCE, chi decide i
+   suoi numeri?». Per il CSV della denuncia la risposta era «due regole
+   diverse»: le RIGHE dei banchi leggevano `misurabile` (la cella di un banco
+   mai rilevato resta vuota), i tre SECCHI no — e il secchio è un banco anche
+   lui, solo senza nome. Sul file usciva
+
+       banco;banco 3;;0;0                ← nessuno ha misurato: cella vuota
+       banco;Banco non dichiarato;0;0;0  ← nessuno ha misurato: uno ZERO
+
+   cioè due convenzioni opposte a una riga di distanza, e chi apre il foglio
+   somma il secondo credendolo una misura. Lo zero non si vedeva né a schermo
+   né sul foglio stampato, perché lì è filtrato dalla verità
+   (`nonDichiarato.scavo ? … : ""`): viveva SOLO nel file.
+   La bandiera adesso la scrive il modulo, che è dove sta già la stessa regola
+   per le righe — una regola, un posto — e la pagina la legge. */
+{
+  const AUT_S = { volumeAutorizzatoM3: 1200000, estrattoPregressoM3: 340000, dataRilascio: "2021-03-15" };
+  const OGGI_S = new Date("2026-08-01T00:00:00");
+  const rieS = (ril, anno = 2026) => terra.riepilogoAnnuale(ril, anno, AUT_S, OGGI_S);
+
+  test("⛔ Terra · i tre secchi della ripartizione dicono se qualcuno ha misurato", () => {
+    /* un fronte che non dichiara il banco e che quest'anno non ha nessun
+       rilievo: il secchio esiste (c'è un fronte da compilare) e vale ZERO
+       perché nessuno ha guardato, non perché non sia uscito niente */
+    const fro = [...terra.DEMO.fronti, { id: "f9", nome: "Fronte Ovest", banco: "", stato: "attivo" }];
+    const B = terra.ripartizioneBanchi(rieS(terra.DEMO.rilievi), fro);
+    eq(B.nonDichiarato.fronti, 1, "il fronte senza banco si conta");
+    eq(B.nonDichiarato.scavo, 0, "e il suo scavo è zero…");
+    eq(B.nonDichiarato.misurabile, false,
+       "⛔ …ma è uno zero che non ha misurato nessuno, e adesso il secchio lo dice");
+    eq(B.righe.find((r) => r.etichetta === "banco 3").misurabile, false,
+       "la stessa risposta che le RIGHE davano già: la regola è una sola");
+  });
+
+  test("⛔ Terra · e uno zero MISURATO resta misurato: la bandiera non è «scavo > 0»", () => {
+    /* la trappola da non rifare: guardare `scavo` invece di `rilieviScavo`
+       farebbe sparire il caso vero — qualcuno è andato a rilevare quel fronte
+       e ha trovato che non si era tolto niente. Quello è un dato. */
+    /* ⚠️ serve un SECONDO fronte che il banco ce l'ha: se nessun fronte lo
+       dichiara, `ripartizioneBanchi` si ferma prima e i secchi non nascono
+       nemmeno — il caso da provare non arriverebbe mai al codice cambiato. */
+    const fro = [{ id: "f1", nome: "Nord", banco: "" }, { id: "f2", nome: "Est", banco: "banco 1" }];
+    const ril = [{ id: "z1", titolo: "Rilievo a volume nullo", data: "2026-05-10",
+                   volumeM3: 0, stato: "elaborato", fronteId: "f1" },
+                 { id: "z2", titolo: "Rilievo sul fronte Est", data: "2026-05-11",
+                   volumeM3: 1200, stato: "elaborato", fronteId: "f2" }];
+    const B = terra.ripartizioneBanchi(rieS(ril), fro);
+    eq(B.nonDichiarato.scavo, 0, "lo scavo è zero");
+    eq(B.nonDichiarato.rilieviScavo, 1, "ma un rilievo di scavo c'è stato");
+    eq(B.nonDichiarato.misurabile, true, "⛔ quindi lo zero è una misura, e il file lo scrive");
+  });
+
+  test("⛔ Terra · anche «fronti non più in elenco» e «senza fronte» portano la bandiera", () => {
+    const fro = [{ id: "f1", nome: "Nord", banco: "banco 1" }];
+    const ril = [
+      { id: "z1", titolo: "Sul fronte vivo", data: "2026-05-10", volumeM3: 1000, stato: "elaborato", fronteId: "f1" },
+      { id: "z2", titolo: "Su un fronte cancellato", data: "2026-05-11", volumeM3: 700, stato: "elaborato", fronteId: "fZZ" },
+      { id: "z3", titolo: "Ripresa senza fronte", data: "2026-05-12", volumeM3: 300, stato: "elaborato", fronteId: null, provenienza: "cumulo" },
+    ];
+    const B = terra.ripartizioneBanchi(rieS(ril), fro);
+    eq(B.fuoriElenco.scavo, 700, "il fronte cancellato ha il suo scavo");
+    eq(B.fuoriElenco.misurabile, true, "ed è misurato: c'è un rilievo di scavo dietro");
+    eq(B.senzaFronte.cumulo, 300, "la ripresa senza fronte è un cumulo");
+    eq(B.senzaFronte.rilieviScavo, 0, "e nessuno ha rilevato uno scavo lì");
+    eq(B.senzaFronte.misurabile, false,
+       "⛔ quindi il suo «scavo 0» non è una misura — la stessa regola, per tutt'e tre i secchi");
+    /* e la somma continua a tornare: la bandiera non toglie né aggiunge metri cubi */
+    eq(B.nonDichiarato, null, "qui tutti i fronti dichiarano il banco: quel secchio non c'è");
+    const dentro = B.righe.reduce((t, r) => t + (+r.scavo || 0), 0);
+    eq(dentro + B.fuoriElenco.scavo + B.senzaFronte.scavo, B.totale,
+       "niente si perde per strada");
+  });
+
+  test("⛔ Terra · un volume che non si legge non fa un anno «con volumi»", () => {
+    /* `anniConVolumi` riscriveva a mano la condizione che il suo commento
+       promette — «elaborato con volume» — nella forma `volumeM3 == null`, che
+       `""` e `"circa 5000"` li fa passare. Da lì escono DUE cose che l'utente
+       vede: gli anni offerti dal selettore della Denuncia, e la finestra di
+       `banchiDaSempre`. Trovata cercando le copie deboli rimaste, dopo aver
+       scritto (a torto) che non ce n'erano più. */
+    const O = new Date("2026-08-01T00:00:00");
+    for (const v of ["", "   ", "circa 5000", "abc"]) {
+      const ril = [...terra.DEMO.rilievi,
+        { id: "vecchio", titolo: "Archivio 2019", data: "2019-05-04", volumeM3: v, stato: "elaborato", fronteId: "f1" }];
+      eq(terra.anniConVolumi(ril, O), [2026, 2025, 2024],
+         `volume ${JSON.stringify(v)}: il 2019 non entra fra gli anni con volumi`);
+      /* e la finestra del «da sempre» non si apre di cinque anni: era la
+         conseguenza più cara, perché trasforma tre anni misurati in otto con
+         cinque ciechi in mezzo */
+      eq(terra.banchiDaSempre(ril, terra.DEMO.fronti, terra.DEMO.autorizzazioni[0], O).anni,
+         [2024, 2025, 2026], `volume ${JSON.stringify(v)}: la finestra resta quella misurata`);
+    }
+    // e un volume VERO nel 2019 l'anno lo aggiunge eccome
+    const buono = [...terra.DEMO.rilievi,
+      { id: "vero", titolo: "Archivio 2019", data: "2019-05-04", volumeM3: 5000, stato: "elaborato", fronteId: "f1" }];
+    ok(terra.anniConVolumi(buono, O).includes(2019), "un volume leggibile del 2019 entra");
+  });
+
+  test("⛔ Terra · un secchio che non esiste resta `null`, non un oggetto tranquillo", () => {
+    /* la bandiera si aggiunge a un secchio che c'è; se il caso non si presenta
+       la risposta resta `null` — che è come la pagina decide se scrivere la
+       riga. Un `{ misurabile: false }` al suo posto farebbe comparire nel file
+       una riga «Fronti non più in elenco» per una cava che non ne ha. */
+    const B = terra.ripartizioneBanchi(rieS(terra.DEMO.rilievi), terra.DEMO.fronti);
+    eq(B.fuoriElenco, null, "nessun rilievo su fronti cancellati: niente secchio");
+    eq(B.nonDichiarato, null, "tutti i fronti della dimostrazione dichiarano il banco");
+    ok(B.senzaFronte && B.senzaFronte.misurabile === false,
+       "e quello che c'è (la ripresa da cumulo del 2026) porta la bandiera");
+  });
+}
+
 console.log(`\nRisultato KPI app: ${passed} passati, ${failed} falliti${inVolo.length ? `  ·  ${inVolo.length} prove asincrone aspettate` : ""}`);
 process.exit(failed > 0 ? 1 : 0);

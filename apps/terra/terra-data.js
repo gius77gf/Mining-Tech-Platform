@@ -807,10 +807,21 @@ export function vitaCava(autorizzazione, rilievi, oggi = new Date()) {
 // Anni per cui esiste almeno un rilievo elaborato con volume, dal più
 // recente. L'anno in corso c'è sempre: la denuncia si prepara anche
 // quando l'anno non è finito, e va inviata anche a volumi zero.
+/* ⛔ «CON VOLUME» È `rilievoUsabile`, E QUI ERA RISCRITTO PIÙ DEBOLE. La riga
+   diceva `r.stato !== "elaborato" || r.volumeM3 == null`, cioè la condizione
+   che il commento qui sopra promette («elaborato con volume») scritta a mano e
+   senza la parte che conta: `""`, `"  "` e `"circa 5000"` passavano. Misurato
+   il 03/08 aggiungendo alla dimostrazione un rilievo del 2019 col volume
+   illeggibile: il selettore degli anni della Denuncia offriva **2019**, e la
+   finestra di `banchiDaSempre` si apriva da lì — da tre anni a **otto**, con
+   cinque anni ciechi in mezzo, sulla forza di un rilievo che non ha misurato
+   niente. Un rilievo il cui volume non si legge non è un anno con dei volumi.
+   La funzione che sa la differenza sta cinquecento righe più su, in questo
+   stesso file, ed è già usata da tutti gli altri lettori. */
 export function anniConVolumi(rilievi, oggi = new Date()) {
   const anni = new Set([String(new Date(oggi).getFullYear())]);
   for (const r of rilievi || []) {
-    if (r.stato !== "elaborato" || r.volumeM3 == null) continue;
+    if (!rilievoUsabile(r)) continue;
     const a = String(r.data || "").slice(0, 4);
     if (/^\d{4}$/.test(a)) anni.add(a);
   }
@@ -1137,13 +1148,26 @@ export function ripartizioneBanchi(riepilogo, fronti) {
           quotaPct: totale > 0 ? Math.round(1000 * b.scavo / totale) / 10 : null, motivo: "" });
 
   const qualcuno = righe.some((x) => x.misurabile);
+  /* ⛔ ANCHE I TRE SECCHI DICONO SE SONO STATI MISURATI, e fino al 03/08 non lo
+     dicevano: la regola («senza nessun rilievo di scavo quello zero non è una
+     misura») era scritta sei righe più su per le RIGHE dei banchi, e i secchi
+     — che sono banchi anche loro, solo senza nome — restavano con lo `scavo: 0`
+     nudo. Nessuno se ne accorgeva a schermo né sul foglio stampato, perché lì
+     lo zero è filtrato dalla verità (`nonDichiarato.scavo ? ... : ""`); ma il
+     CSV della denuncia lo scriveva secco, `banco;Banco non dichiarato;0;0;0`,
+     sei righe sotto un `banco;banco 3;;0;0` che la cella la lascia VUOTA. Due
+     convenzioni opposte nello stesso file — la stessa forma del difetto già
+     corretta sul totale dell'anno, un piano più sotto.
+     La bandiera si mette QUI e non nella pagina perché la regola è una sola e
+     chi la scrive deve essere uno solo: chi disegna la legge, non la rifà. */
+  const conMisura = (t) => ({ ...t, misurabile: t.rilieviScavo > 0 });
   return {
     righe, banchi: righe.length, misurabile: qualcuno,
     motivo: qualcuno ? ""
       : `Nessun banco ha un rilievo di scavo nel ${anno}: il volume per banco di quest'anno non è stato misurato da nessuno.`,
-    nonDichiarato: nonDich.fronti || nonDich.rilievi ? nonDich : null,
-    senzaFronte: senzaFro.rilievi ? senzaFro : null,
-    fuoriElenco: fuori.rilievi ? fuori : null,
+    nonDichiarato: nonDich.fronti || nonDich.rilievi ? conMisura(nonDich) : null,
+    senzaFronte: senzaFro.rilievi ? conMisura(senzaFro) : null,
+    fuoriElenco: fuori.rilievi ? conMisura(fuori) : null,
     totale,
     grafieDoppie: righe.filter((x) => x.grafie.length > 1).map((x) => x.grafie),
   };
