@@ -3719,6 +3719,26 @@ function exportRapportinoPDF(r){
     d.setFont('helvetica','normal');d.setFontSize(9);
     const lines=d.splitTextToSize(r.note,180);d.text(lines,14,y);y+=lines.length*4.5+4;
   }
+  /* ⛔ CHI CHIUDE IL TURNO E SE NE PRENDE LA RESPONSABILITÀ. Il foglio diceva
+     tutto tranne questo: l'app registra `userId` (chi ha premuto «Salva») e la
+     data, cioè la **creazione di un record**, non una sottoscrizione. Su un
+     documento che si consegna a chi controlla la differenza c'è, e va detta per
+     quello che è invece di lasciarla intendere: si scrive chi ha compilato e
+     quando — che è quello che sappiamo — e si lascia la riga per la firma, che
+     è quello che il foglio di carta ha sempre avuto.
+     ⚠️ Nessuna «firma digitale» annunciata: dichiarare una garanzia che non
+     c'è sarebbe la stessa bugia dei numeri tranquilli, spostata sulla
+     responsabilità. */
+  if(y>250)y=250;
+  d.setDrawColor(220,210,180);d.setLineWidth(0.3);d.line(14,y,196,y);y+=6;
+  d.setTextColor(40,40,40);d.setFont('helvetica','bold');d.setFontSize(9);
+  d.text('CHIUSURA DEL TURNO',14,y);y+=6;
+  d.setFont('helvetica','normal');d.setFontSize(9);
+  d.text('Compilato da: '+(u?(u.nome+' '+u.cognome):'—')+(r.inviato?('  ·  registrato il '+fmt(r.inviato)):''),14,y);y+=9;
+  d.setDrawColor(150,150,150);d.setLineWidth(0.2);
+  d.line(14,y,92,y);d.line(110,y,196,y);y+=4;
+  d.setFontSize(8);d.setTextColor(120,120,120);
+  d.text('Firma di chi chiude il turno',14,y);d.text('Firma per presa visione',110,y);
   // Footer
   d.setFontSize(8);d.setTextColor(120,120,120);
   d.setFont('helvetica','italic');d.text('Deepwork per Cofa Mineraria',105,285,{align:'center'});d.setFont('helvetica','normal');
