@@ -2272,7 +2272,7 @@ label.item:has(.dw-chk:checked){
              in coda alla `.k`: lì finirebbe dentro il testo tagliato a due
              righe e non lo leggerebbe nessuno. È la forma che questa scheda
              usa già per la banda dello scaglione e per il residuo. */
-          + `<div class="form-hint" style="margin:-2px 0 6px;">${eur(valorePesata(p))} — ${esc(origineDelPrezzo(p))}.</div>`).join("") : "";
+          + `<div class="form-hint" style="margin:-2px 0 6px;">${(() => { const v = valoreDdt(p); return v.calcolabile ? eur(v.valore) : "valore non calcolabile"; })()} — ${esc(origineDelPrezzo(p))}.</div>`).join("") : "";
 
     const listaSciolti = (st === "accettato" && sciolti.length)
       ? `<span class="fl">DDT di questo cliente senza ordine (${sciolti.length})</span>
@@ -3325,12 +3325,21 @@ label.item:has(.dw-chk:checked){
          : filtroPes === "tutte" ? vuoto("camion", "Nessuna pesata", "Registra la prima pesata qui sotto: lordo e tara li scrivi tu, il <b>netto</b> lo calcola Conti. Da questi DDT nasce poi la fattura differita.")
          : vuoto("camion", "Categoria vuota", "Nessun DDT in questa categoria. Tocca <b>Tutti</b> per vedere l'elenco completo."));
     { const nT = pesViste.reduce((t, p) => t + (+p.netto || 0), 0);
+      /* ⛔ UNA SOMMA CHE SALTA DELLE RIGHE DEVE DIRLO. `valorePesata` risponde
+         zero sulle consegne non valorizzabili — è la forma numerica, e va bene
+         per sommare — ma il totale che esce è **più basso del vero** e finora
+         non lo diceva nessuno. Non si può inventare il valore mancante: si
+         può dire su quante righe il conto non si è potuto fare. */
+      const nonVal = pesViste.filter((p) => !valoreDdt(p).calcolabile).length;
       const val = pesViste.reduce((t, p) => t + valorePesata(p), 0);
       $("pes-tot").innerHTML = pesViste.length
         ? `<div class="tot"><span class="tot-l">Netto trasportato</span>
            <span class="tot-n">${qt(nT)}<span class="u"> t</span></span></div>
            <div class="tot"><span class="tot-l">Valore delle consegne</span>
-           <span class="tot-n">${eur(val)}</span></div>` : ""; }
+           <span class="tot-n">${eur(val)}</span></div>
+           ${nonVal ? `<div class="form-hint" style="margin-top:4px;">⚠ ${nonVal === 1
+             ? "una consegna non è valorizzabile e non entra in questo totale"
+             : nonVal + " consegne non sono valorizzabili e non entrano in questo totale"}: il valore è per difetto.</div>` : ""}` : ""; }
     { const n = pesViste.length, filtrata = qPes || filtroPes !== "tutte";
       $("pes-count").innerHTML = n === 0 ? "" : "<b>" + n + "</b>" + (n === 1 ? " pesata" : " pesate") + (filtrata ? " su " + PES.length : ""); }
     $("pes-cnt").textContent = PES.length;
@@ -3920,10 +3929,11 @@ label.item:has(.dw-chk:checked){
         <td class="num">${p.quantita == null ? "—" : qtu(p.quantita, p.unitaVendita)}</td>
         <td class="num">${eur(p.prezzoUnitario)}/${uni(p.unitaVendita)}</td>
         <td class="num">${+p.scontoPct > 0 ? "− " + perc(p.scontoPct) : "—"}</td>
-        <td class="num">${eur(valorePesata(p))}</td>
+        <td class="num">${(() => { const v = valoreDdt(p); return v.calcolabile ? eur(v.valore) : "—"; })()}</td>
       </tr></tbody>
       <tfoot><tr class="tot-riga"><td colspan="7">Valore della consegna (imponibile, IVA ${perc(p.aliquotaIva)} esclusa)</td>
-        <td class="num grande">${eur(valorePesata(p))}</td></tr></tfoot></table>
+        <td class="num grande">${(() => { const v = valoreDdt(p); return v.calcolabile ? eur(v.valore) : "non calcolabile"; })()}</td></tr></tfoot></table>
+      ${(() => { const v = valoreDdt(p); return v.calcolabile ? "" : `<div class="box" style="margin-bottom:4mm;border-color:#c62828;"><span class="et">Perché il valore non c'è</span>${esc(v.perche)}. Il documento resta valido per il trasporto — il DPR 472/1996 chiede la natura e la quantità della merce, non il prezzo — ma la consegna non è ancora valorizzabile.</div>`; })()}
       ${q.m3 != null ? `<div class="box" style="margin-bottom:4mm;"><span class="et">Volume corrispondente</span>${qt(q.m3)} m³ (netto ÷ densità ${qt(p.densita)} t/m³)</div>` : ""}
       <div class="firme"><div>Firma del conducente</div><div>Firma del destinatario per ricevuta</div></div>
       <div class="piede">Documento di trasporto ai sensi del <b>DPR 472/1996</b>: va emesso <b>prima dell'inizio del trasporto</b>
@@ -4692,7 +4702,7 @@ label.item:has(.dw-chk:checked){
          <div class="mrec"><span class="k">Cliente</span><span class="v">${esc(p.cliente || "—")}</span></div>
          <div class="mrec"><span class="k">Prodotto</span><span class="v">${esc(p.prodotto || "—")}</span></div>
          <div class="mrec"><span class="k">Netto</span><span class="v">${qt(p.netto)} t</span></div>
-         <div class="mrec"><span class="k">Valore</span><span class="v accent">${eur(valorePesata(p))}</span></div>
+         <div class="mrec"><span class="k">Valore</span><span class="v accent">${(() => { const v = valoreDdt(p); return v.calcolabile ? eur(v.valore) : "non calcolabile"; })()}</span></div>
          <p style="margin-top:10px;">Esce dal registro, dal venduto e dal conto del canone.
            <b>Fallo solo per correggere una pesata sbagliata</b> e non ancora consegnata: il numero
            che si libera verrà riusato dalla prossima, così la numerazione resta senza salti.</p>`,

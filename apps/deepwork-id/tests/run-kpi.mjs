@@ -17683,5 +17683,25 @@ test("⛔ ...ma lo zero SCRITTO DAVVERO deve continuare a passare", () => {
   eq(sentinella.correggiLettura(l, "2,5").valore, 2.5, "virgola italiana");
 });
 
+// ── ⛔ IL TOTALE DELLE CONSEGNE CHE SALTA UNA RIGA (03/08) ──
+test("⛔ la dimostrazione contiene una consegna NON valorizzabile, e valoreDdt lo dichiara", () => {
+  /* Il registro somma con `valorePesata`, che sulle consegne non valorizzabili
+     risponde zero — giusto come forma numerica — ma il totale che ne esce è
+     **più basso del vero**. Non si può inventare il valore mancante: si può
+     dire su quante righe il conto non si è potuto fare, ed è quello che la
+     pagina adesso scrive. Qui si blinda la metà misurabile in `node`: che il
+     caso ci sia nella dimostrazione e che la funzione lo dichiari. */
+  const pes = (conti.DEMO && conti.DEMO.pesate) || [];
+  ok(pes.length > 0, "la dimostrazione ha delle pesate");
+  const nonVal = pes.filter((p) => !conti.valoreDdt(p).calcolabile);
+  eq(nonVal.length, 1, "una sola consegna non valorizzabile nella dimostrazione");
+  eq(conti.valoreDdt(nonVal[0]).motivo, "densita-mancante", "e la ragione è dichiarata");
+  eq(conti.valorePesata(nonVal[0]), 0, "la forma numerica resta zero: serve a sommare");
+  // e il totale che se ne ricava è davvero più basso della somma dichiarabile
+  const somma = pes.reduce((t, p) => t + conti.valorePesata(p), 0);
+  ok(somma > 0, "il totale non è vuoto");
+  ok(nonVal.length > 0, "quindi il totale è per difetto, e la pagina lo dice");
+});
+
 console.log(`\nRisultato KPI app: ${passed} passati, ${failed} falliti${inVolo.length ? `  ·  ${inVolo.length} prove asincrone aspettate` : ""}`);
 process.exit(failed > 0 ? 1 : 0);

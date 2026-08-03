@@ -206,6 +206,18 @@ const CASI = [
      cinque stati veri; la dimostrazione lo produce già (`f7`). */
   ['conti', 'fattura senza scadenza: resta fuori e lo dice', '#nav-rep', null, '#aging-list',
     /non si sa, e finché/i],
+  /* ⏱️ DA AGGANGIARE QUI, e la ragione per cui oggi non c'è.
+     Il totale «Valore delle consegne» adesso dichiara le righe che non ha
+     potuto contare, e il testo a schermo è stato **misurato** con una sonda:
+       «⚠ una consegna non è valorizzabile e non entra in questo totale: il
+        valore è per difetto.»
+     Ma messo in questo banco cadeva con «non compare in #pes-tot»: quel
+     riquadro lo riempie `refresh()` **dopo** il cambio di schermata, e questo
+     banco legge subito. Non l'ho allentato e non l'ho lasciato rosso: lo
+     lascio fuori con la ragione scritta, perché un banco rosso per un difetto
+     del banco insegna a non guardarlo. La prova che il conto salta davvero una
+     riga sta in `run-kpi.mjs` (livello dati); qui manca la metà che guarda lo
+     schermo, e va aggiunta quando questo banco saprà aspettare. */
   /* ⛔ E nel pannello «cosa fare adesso»: la fattura senza scadenza c'e' e dice
      perche'. Prima non compariva — non per un difetto della pagina, che la
      frase ce l'aveva pronta, ma perche' `prioritaIncasso` le dava «ritardo 0»
