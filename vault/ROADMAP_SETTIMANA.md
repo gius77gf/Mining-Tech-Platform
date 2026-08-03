@@ -502,7 +502,11 @@ numero scritto dove non era stato misurato niente**.*
 ## Riferimenti
 
 - Ultimo checkpoint **per data vera**:
-  `vault/checkpoints/20260801-235400_quattro-cantieri-e-un-numero-piu-alto-di-ogni-suo-addendo.md`
+  `vault/checkpoints/20260803-141020_i-documenti-che-escono-tutte-e-sei-piu-il-core.md`
+  *(dato da `node apps/deepwork-id/tests/date-checkpoint.mjs`, non letto a occhio:
+  per NOME il più alto sarebbe `20260805-100000_…`, che è stato scritto **tre
+  giorni prima**. Questa riga era ferma al 01/08: il puntatore al file più
+  fresco era lui stesso il più vecchio.)*
   ⚠️ *Non* il più alto in ordine alfabetico: in `vault/checkpoints/` ci sono
   ancora file **datati avanti** rispetto al giorno in cui sono entrati in git
   (640 precedenti alla regola, contati da `date-checkpoint.mjs`). Chi va per
