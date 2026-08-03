@@ -532,6 +532,26 @@
   .badge{border:1px solid #666 !important; background:#fff !important; color:#000 !important}
   .avatar,.sch-av{background:#eee !important; color:#000 !important; border-color:#999 !important; box-shadow:none !important}
   .kpis{grid-template-columns:repeat(4,1fr) !important}
+  /* ⛔ UN NUMERO TAGLIATO È UN NUMERO DIVERSO ANCHE SULLA CARTA, e la
+     correzione fatta per lo schermo qui non arrivava. Sul foglio A4 la riga
+     delle tessere è forzata a QUATTRO colonne (la riga qui sopra): 166 px
+     l'una, 138 di spazio utile, e il numero resta a corpo 32. Misurato sul
+     libretto di una macchina con dodicimila euro d'officina: «€ 12.750,00»
+     chiede 169 px, la tessera ha `overflow:hidden`, e sul foglio che si
+     consegna a chi compra la macchina si legge un importo mozzato. La
+     guardia dello schermo (`@media(max-width:400px)`, più in basso) non
+     scatta mai in stampa: il foglio è largo 688 px, non 400.
+     Due mosse insieme, perché una sola non basta: il corpo scende a 19 px —
+     ci sta anche «€ 123.750,00» — e se un giorno un numero fosse ancora più
+     lungo va A CAPO dentro la tessera invece di essere tagliato via. */
+  #sch-kpi .n{font-size:19px; line-height:1.2; overflow-wrap:anywhere}
+  .kpi{overflow:visible !important}
+  /* la dichiarazione «dati di esempio» sul foglio: riquadrata, perché è
+     l'unica riga del libretto che parla del libretto e non della macchina */
+  .avviso-stampa{
+    border:1.5px solid #000 !important; border-radius:4px;
+    padding:6px 9px; margin-top:9px; color:#000 !important; font-size:11.5px;
+  }
 }
 
 /* ─────────────── touch: come il core, niente effetti "incollati" ─────────────── */
@@ -560,9 +580,18 @@
    vede finché qualcuno non ci mette dentro un euro.
    Qui si abbassa il corpo solo dove serve; il difetto generale — una tessera
    che taglia in silenzio invece di adattarsi — vive in `shared/dw-app-ui.css`
-   e non si corregge in casa a metà. */
+   e non si corregge in casa a metà.
+   ⚠️ E ABBASSARE IL CORPO NON BASTA: LA MISURA ERA STATA FATTA SU UN NUMERO
+   TROPPO CORTO. «€ 2.100,00» a 23 px ci sta; «€ 12.750,00» — un'officina da
+   dodicimila euro, che è un anno normale di un escavatore — chiede 122 px in
+   un riquadro da 116 e si legge di nuovo mozzato. Un corpo scelto sul caso
+   che si aveva sotto mano regge finché non arriva la cifra successiva, ed è
+   la stessa trappola del fondo su un valore che sale. Adesso la difesa è a
+   due strati: il corpo scende a 21 px, e se un numero fosse ancora più lungo
+   va A CAPO dentro la tessera invece di essere tagliato via — un numero
+   spezzato su due righe si legge, uno tagliato è un altro numero. */
 @media(max-width:400px){
-  #sch-kpi .n{font-size:23px}
+  #sch-kpi .n{font-size:21px; line-height:1.2; overflow-wrap:anywhere}
 }
 
 </style>
@@ -2961,8 +2990,21 @@
     const f = fascicoloMezzo(m, { manutenzioni: MAN, interventi: INT, scadenze: SCA, controlli: CTR, rifornimenti: RIF, fermi: FER },
                              new Date(), preavvisoSca);
     const st = MB[m.stato] || MB.operativo;
+    /* ⛔ SUL FOGLIO NON RESTAVA NIENTE CHE DICESSE «SONO DATI DI ESEMPIO».
+       Lo schermo lo dichiara due volte — la fascia in alto e la riga di
+       stato — e la stampa le nasconde tutt'e due, perché `.tour-banner` sta
+       nell'elenco di ciò che è comando e non documento. Ma il foglio che
+       esce è il libretto che si mostra a un controllo e si consegna a chi
+       compra la macchina: senza questa riga esce dalla stampante con l'aria
+       di un documento, e nessuno dei suoi numeri riguarda una macchina vera.
+       Misurato premendo il bottone: a schermo il corpo della pagina nomina i
+       dati d'esempio, in `@media print` no. La dichiarazione va DENTRO il
+       documento, perché è il documento a girare — non lo schermo. */
+    const esempio = db.mode !== "live"
+      ? `<div class="sch-sotto avviso-stampa"><b>DATI DI ESEMPIO — modalità tour (${esc(db.mode)}).</b> Questo foglio non documenta nessuna macchina reale: non va portato a un controllo né consegnato a chi compra.</div>`
+      : "";
     $("sch-stampa").innerHTML = `<div class="sch-nome">Libretto macchina — ${esc(f.nome)}</div>
-      <div class="sch-sotto">Stampato il ${dataIt(oggiISO())} · Deepwork Flotta · ${esc(f.tipo.etichetta)}</div>`;
+      <div class="sch-sotto">Stampato il ${dataIt(oggiISO())} · Deepwork Flotta · ${esc(f.tipo.etichetta)}</div>${esempio}`;
     $("sch-testa").innerHTML = `<div class="sch-testa">
       <div class="sch-av">${I.mezzo}</div>
       <div class="sch-b"><div class="sch-nome">${esc(m.nome)}</div>
@@ -3036,7 +3078,17 @@
     $("sch-fer").innerHTML = (f.fermo.episodi
         ? `<div class="note recap">${f.fermo.episodi === 1 ? "<b>1</b> fermo registrato" : "<b>" + f.fermo.episodi + "</b> fermi registrati"} `
           + `per <b>${ggTx(f.fermo.giorni)}</b> in tutto${f.fermo.aperti ? `, e <span class="rosso">${f.fermo.aperti === 1 ? "uno è ancora aperto" : f.fermo.aperti + " sono ancora aperti"}</span>` : ""}. `
-          + "Sono i giorni in cui questa macchina non ha potuto lavorare.</div>"
+          + "Sono i giorni in cui questa macchina non ha potuto lavorare."
+          /* la coda che dice quanti fermi NON sono in quel totale: senza,
+             il foglio scriveva un totale che non torna con le righe che ha
+             sotto, e nella direzione che rassicura. Stesse parole della
+             disponibilità del parco, che questa dichiarazione ce l'ha già. */
+          + (f.fermo.senzaDurata
+              ? ` <span class="giallo">${f.fermo.senzaDurata === 1 ? "Un fermo non è" : f.fermo.senzaDurata + " fermi non sono"} in questo conto</span>: `
+                + `${f.fermo.senzaDurata === 1 ? "il giorno in cui è cominciato — o quello in cui la macchina è ripartita — non si legge" : "il giorno in cui sono cominciati — o quello in cui la macchina è ripartita — non si legge"}, `
+                + `quindi i giorni fermi sono almeno questi, non esattamente questi. ${f.fermo.senzaDurata === 1 ? "Lo trovi" : "Li trovi"} qui sotto senza la durata.`
+              : "")
+          + "</div>"
         : "")
       + (f.fermi.slice(0, RIGHE_LIBRETTO).map(x => `<div class="item statico ${x.aperto ? "st-danger" : "st-mute"}">
           <div class="avatar${x.aperto ? "" : " sup"}">${I.fermo}</div>
@@ -4116,6 +4168,10 @@
     R("totale fermi", "giorni non lavorati", "", f.fermo.episodi
       ? f.fermo.episodi + (f.fermo.episodi === 1 ? " fermo" : " fermi") + " · " + f.fermo.giorni + (f.fermo.giorni === 1 ? " giorno" : " giorni")
         + (f.fermo.aperti ? " · " + f.fermo.aperti + " ancora aperto" : "")
+        // la stessa coda della riga a schermo: un totale che non comprende
+        // tutte le righe del file va detto DENTRO il file
+        + (f.fermo.senzaDurata ? " · " + f.fermo.senzaDurata
+            + (f.fermo.senzaDurata === 1 ? " fermo non è in questo totale (durata non calcolabile)" : " fermi non sono in questo totale (durata non calcolabile)") : "")
       : "Nessun fermo registrato.", "");
     const a = document.createElement("a");
     a.href = URL.createObjectURL(new Blob(["﻿" + righe.join("\r\n")], { type: "text/csv;charset=utf-8" }));

@@ -1835,7 +1835,23 @@ export function fascicoloMezzo(mezzo, dati, oggi = new Date(), preavvisoGiorni =
   // aperto adesso. Nel libretto è la pagina che un compratore guarda per
   // prima, e l'unica onesta: senza, «tenuta bene» è una parola.
   const fermi = fermiOrdinati((d.fermi || []).filter(mio), oggi);
-  const giorniFermoTot = fermi.reduce((t, f) => t + (f.giorni || 0), 0);
+  /* ⛔ UN FERMO CHE NON SO COLLOCARE NON È UN FERMO DA ZERO GIORNI. La regola
+     stava già in casa — `affidabilitaFlotta` conta a parte i fermi senza date
+     leggibili (`senzaDate`) e la pagina lo dichiara, «quindi la disponibilità
+     qui sopra è più alta di quella vera» — e il fascicolo se n'era tenuta una
+     versione più debole: `t + (f.giorni || 0)`, che somma **zero** proprio
+     dove `durataFermo` ha risposto `null` («non lo so»).
+     È il posto peggiore dove farlo: il fascicolo è il libretto che si stampa
+     e si consegna a chi compra la macchina, e l'errore va nella direzione che
+     rassicura — meno giorni di fermo, macchina che sembra tenuta meglio.
+     Misurato su tre fermi, due con le date non leggibili: la riga del foglio
+     scriveva «3 fermi registrati per 5 giorni in tutto» sopra tre righe che
+     dicono «—», «—» e «5 giorni». Chi conta le righe trova un numero, chi
+     legge la frase ne trova un altro.
+     Adesso il totale è fatto dei soli fermi misurabili e `senzaDurata` dice
+     quanti sono rimasti fuori, perché la pagina possa scriverlo. */
+  const fermiConDurata = fermi.filter(f => Number.isFinite(f.giorni));
+  const giorniFermoTot = fermiConDurata.reduce((t, f) => t + f.giorni, 0);
   const oreLavorate = interventi.reduce((t, w) => t + (+w.oreManodopera || 0), 0);
   return {
     mezzo: m, nome, tipo: tipoMezzoDi(m),
@@ -1846,6 +1862,9 @@ export function fascicoloMezzo(mezzo, dati, oggi = new Date(), preavvisoGiorni =
       // si sa almeno in parte quanto è costata l'officina
       senzaCosto, misurato: officina > 0, parziale: officina > 0 && senzaCosto > 0 },
     fermo: { episodi: fermi.length, giorni: giorniFermoTot,
+      // quanti fermi NON sono in quel totale perché il giorno d'inizio (o
+      // quello di ripartenza) non si legge: `giorni` da solo non lo direbbe
+      senzaDurata: fermi.length - fermiConDurata.length,
       aperti: fermi.filter(f => f.aperto).length, ultimo: fermi[0] || null },
     carburante: { totale: consumo ? consumo.euro : 0, litri: consumo ? consumo.litri : 0 },
     speso: Math.round((officina + (consumo ? consumo.euro : 0)) * 100) / 100,

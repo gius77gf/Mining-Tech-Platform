@@ -20203,5 +20203,51 @@ test("⛔ Scudo · andamento indici: il verso letto su giornate ancora da contar
   });
 }
 
+// ═══ FLOTTA · i fogli stampati (03/08) ═══
+{
+  const OGGI_S = new Date("2026-08-03T10:00:00Z");
+  const fasc = (fermi) => flotta.fascicoloMezzo({ nome: "Pala X1 — CAT 980", ore: 100 },
+    { manutenzioni: [], interventi: [], scadenze: [], controlli: [], rifornimenti: [], fermi }, OGGI_S);
+
+  test("⛔ Flotta · il libretto non somma ZERO i fermi che non sa collocare", () => {
+    /* Il fascicolo è il foglio che si stampa e si consegna a chi compra la
+       macchina. `t + (f.giorni || 0)` faceva entrare nel totale, come zero,
+       proprio i fermi su cui `durataFermo` ha risposto «non lo so» — e nella
+       direzione che rassicura: meno giorni fermi, macchina che sembra tenuta
+       meglio. La riga del foglio scriveva «3 fermi per 5 giorni in tutto»
+       sopra tre righe che dicono «—», «—» e «5 giorni».
+       La regola giusta era in casa: `affidabilitaFlotta` conta a parte i
+       fermi non collocabili (`senzaDate`) e la pagina lo dichiara. */
+    const F = fasc([
+      { mezzo: "Pala X1", causale: "guasto-meccanico", inizio: "2026-07-01", fine: "2026-07-05" },
+      { mezzo: "Pala X1", causale: "guasto-meccanico", inizio: "boh", fine: "" },
+      { mezzo: "Pala X1", causale: "attesa-ricambi", inizio: "2026-07-20", fine: "2026-07-10" },
+    ]);
+    eq(F.fermo.episodi, 3, "i tre fermi restano tutti nell'elenco: nessuno sparisce dal foglio");
+    eq(F.fermo.giorni, 5, "il totale è fatto del solo fermo misurabile");
+    eq(F.fermo.senzaDurata, 2,
+      "⛔ e dice quanti NON ci sono dentro: senza questo numero il totale non torna con le righe");
+    eq(F.fermi.filter(x => x.giorni == null).length, 2, "le due righe senza durata restano visibili");
+  });
+
+  test("Flotta · quando tutti i fermi si leggono, `senzaDurata` è zero e il totale non cambia", () => {
+    // il caso sano deve restare identico a prima: la guardia sta sull'assenza
+    const F = fasc([
+      { mezzo: "Pala X1", causale: "guasto-meccanico", inizio: "2026-07-01", fine: "2026-07-05" },
+      { mezzo: "Pala X1", causale: "attesa-ricambi", inizio: "2026-07-10", fine: "2026-07-15" },
+    ]);
+    eq([F.fermo.episodi, F.fermo.giorni, F.fermo.senzaDurata], [2, 11, 0], "5 + 6 giorni, niente fuori");
+    eq(fasc([]).fermo.senzaDurata, 0, "nessun fermo: nessuno fuori dal conto, e nessuna frase da scrivere");
+  });
+
+  test("⛔ Flotta · un fermo aperto con la data d'inizio illeggibile resta aperto e fuori dal totale", () => {
+    /* le due cose sono indipendenti e vanno lette insieme: «è ancora ferma»
+       lo decide la ripartenza SCRITTA, i giorni li decide se si leggono */
+    const F = fasc([{ mezzo: "Pala X1", causale: "guasto-meccanico", inizio: "2026-02-30", fine: "" }]);
+    eq([F.fermo.episodi, F.fermo.giorni, F.fermo.senzaDurata, F.fermo.aperti], [1, 0, 1, 1],
+      "un fermo, zero giorni contati, uno fuori dal conto, e la macchina risulta ancora ferma");
+  });
+}
+
 console.log(`\nRisultato KPI app: ${passed} passati, ${failed} falliti${inVolo.length ? `  ·  ${inVolo.length} prove asincrone aspettate` : ""}`);
 process.exit(failed > 0 ? 1 : 0);
