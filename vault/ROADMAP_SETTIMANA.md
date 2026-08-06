@@ -345,21 +345,41 @@ numero scritto dove non era stato misurato niente**.*
 - [x] ✅ **La regola del banco che confessa** (`7a5e6ba`): «68 da aprire, 0
       aperte» stampato da mesi in fondo a una pagina di verde. Le righe che
       dicono «non ho guardato» vanno lette **prima** dei KO.
-- [ ] **La cecità sulle modali del core: la causa NON è nota** — e questa riga
-      va letta insieme alle due qui sotto, perché fino al 06/08 diceva
-      «correzione sul disco, misura in corso» mentre la misura era **già
-      arrivata e diceva di no** (`301b5b7`: il selettore `.sitem` non era la
-      causa, le modali restano **0 su 68**). ⏱️ Seconda riga scaduta trovata
-      oggi su undici aperte, dopo quella delle violazioni AA: la roadmap ha lo
-      stesso difetto che `documenti-invecchiati.mjs` misura sui documenti del
-      delta, e su di lei non lo misura nessuno.
-      Quello che resta aperto è la domanda vera: **perché il gesto generico non
-      raggiunge le modali del core** (e nemmeno quelle di vetrina, campo, conti,
-      genesi e terra, che il giro elenca come «non guardate»). Il passo giusto
-      non è indovinare un terzo selettore: è far **stampare al banco quanti
-      candidati ha trovato e quanti ne ha aperti**, superficie per superficie —
-      la difesa già scritta in CLAUDE.md, «quanti soggetti ha guardato
-      davvero», applicata a sé stesso.
+- [x] ✅ **LA CECITÀ SULLE MODALI DEL CORE: TROVATA, ED ERA UNA RIGA** (`b627316`).
+      **0 → 11 modali su 68**, comandi provati **6.800 → 980**.
+      Non era il selettore (`301b5b7` lo aveva già smentito) e non era la
+      dimostrazione vuota (riempirla, `7ba9c42`, da sola non è bastata): in
+      `SCEGLI` il contrassegno `data-dw-sonda` veniva messo **prima** che si
+      calcolasse l'impronta, e `identita`/`forma` leggono il `dataset` — quindi
+      la lista dei fatti riceveva `…|dwSonda=1` mentre il confronto del giro
+      dopo guardava l'elemento senza contrassegno. Non combaciavano **mai**:
+      tutt'e due le difese contro i doppioni erano morte e il banco ripremeva
+      lo stesso pugno di comandi. Controprova: col solo difetto rimesso, a
+      **12 min 14 s** il core non era ancora finito.
+      ⛔ La riga chiedeva «fai stampare al banco quanti candidati ha trovato e
+      quanti ne ha aperti» — ed era la strada giusta: è **quel censimento** che
+      ha reso visibile il numero, ma la causa non stava nel conteggio. La
+      lezione da tenere: *uno strumento che scrive sul soggetto che misura deve
+      leggerlo prima di scriverci.*
+      ⚠️ Restano «non guardate» vetrina, campo, conti, genesi e terra: adesso
+      che il banco funziona, misurarle è un'unità sua e non più una domanda
+      aperta.
+
+- [x] ✅ **Due uscite fuori schermo a 320 px, trovate appena il banco ha aperto
+      le modali** (`b627316`). Home **343 → 320** (il bottone «ESCI» fuori, e su
+      HEAD il blocco dell'identità era largo **zero**) e chat **379 → 320**
+      («INVIA» a 379: il messaggio si scriveva e non si mandava). Tutt'e due
+      sono la stessa forma — *una regola provata a una larghezza sola* — e in
+      tutt'e due la difesa c'era, **scollegata**: `flex-shrink:1` sul figlio
+      dentro un padre che non cede. 30 sezioni su 30 adesso senza scorrimento
+      orizzontale.
+      ⚠️ E il primo verde era una trappola: reso cedevole il blocco, «ESCI»
+      stava dentro lo schermo **largo 16 px**. «Ci sta» non è «si usa».
+- [ ] ⏳ **La pastiglia «NON SALVA» si sovrappone al nome dell'utente a 320 px**
+      — dichiarata, misurata in **tutt'e due** le versioni (quindi non causata
+      dalle correzioni di oggi) e **non corretta**. È più strana di come sembra:
+      risulta `position:static` e misura **fuori dalla scatola del proprio
+      padre**, quindi indovinare sarebbe peggio che aspettare mezz'ora di misura.
 
 - [x] ✅ **La dimostrazione del core era vuota dove l'app lavora** (`63928d4`):
       `@volate` da **0 a 4** righe cliccabili. I casi sono scelti — uno senza un
