@@ -357,10 +357,26 @@ numero scritto dove non era stato misurato niente**.*
 - [x] ✅ **Il numero ha smentito il commit di prima** (`301b5b7`): le modali del
       core restano **0 su 68**, il selettore non era la causa. Scritto nel file
       perché il prossimo non ricominci da lì.
-- [ ] ⏳ **Le 5 violazioni AA del core** che si vedono solo adesso che il core è
-      accessibile: `.av-cv` 2,36:1, `.av-fc` 3,45:1, `.notif-badge` 3,49:1,
-      `.sync-badge.nonsalva` 4,22:1, più un `.toast info` da verificare. Da
-      correggere tutte insieme, con lo scatto prima/dopo.
+- [x] ✅ **Le 5 violazioni AA del core** (`d2f86db`). Tre erano già state chiuse
+      da `71875c1` — la riga era **scaduta**, il difetto della direttiva 7 fatto
+      da noi. Le due rimaste sono state trovate solo facendo **una seconda
+      domanda che non si era mai fatta nessuno**: ⛔ *e quello che adesso non si
+      dipinge?* Il banco del contrasto misura 343 testi e risponde «0 sotto
+      soglia» — vero, e muto su tutto ciò che compare solo in un momento
+      difficile (il pallino delle notifiche, la pillola «non salva», il toast,
+      gli avatar dei ruoli). `.av-su` **2,65:1** (le iniziali di una persona e
+      il numero di riga del registro accessi) e `.av-mz` **3,35:1** («MZ», «€»)
+      → **5,69** e **5,43**, tinte più profonde della stessa famiglia. Scatto
+      prima/dopo guardato; verificate a mano prima di toccare un colore, perché
+      `.av` è 12px in 800 e quindi la soglia è 4,5, non 3.
+      ⛔ **E il censimento nuovo ha sbagliato tre volte prima di funzionare**,
+      tutte e tre «il controllo che non guarda dove crede»: una regola di stile
+      **ora ha `cssRules`** (CSS annidato) e `if (r.cssRules) continue` saltava
+      **620 regole su 649** rispondendo «0 candidate»; un `.catch(() => [])`
+      ingoiava l'eccezione stampando lo stesso zero; e la prima versione
+      accusava `.chart-bar` a 1,56:1, cioè un colore per il testo che ce
+      **avevo messo io**. Controprova `--controprova-censimento` nel giro:
+      una classe che nel DOM non compare mai, trovata e bocciata.
 
 ### B — Lo standard delle funzioni, app per app (martedì → venerdì)
 
