@@ -118,6 +118,60 @@ export function modoDimostrazione(modo) {
   return modo === "live" ? null : String(modo || "non dichiarata");
 }
 
+/* ⛔ IL SINGOLARE, SCRITTO UNA VOLTA — E IL NUMERO CHE LO GIUSTIFICA È 359.
+   Misurato il 06/08: nelle sei app ci sono **351** ternari del singolare
+   scritti a mano (`n === 1 ? "voce" : "voci"`) e altri **8** nel core, e in
+   `shared/` non c'era niente. Trecentocinquantanove volte la stessa regola,
+   quindi trecentocinquantanove occasioni di dimenticarla — e infatti oggi il
+   banco delle modali ne ha trovate due dimenticate in Scudo, nella STESSA
+   testata dove le altre due frasi ce l'avevano: «restano **1 voci** su 25».
+   Non è una scortesia verso chi legge: è il segno che la frase non è stata
+   provata col caso più comune di tutti. Un rapportino, una foto, un giorno.
+
+   ⚠️ COSA FA E COSA NON FA, dichiarato perché non prometta troppo. Sceglie
+   fra due forme date, e basta: l'italiano vero (articoli, preposizioni
+   articolate, genere) resta di chi scrive la frase. Serve a togliere
+   l'occasione di sbagliare la parte **meccanica**, che è quella che si
+   dimentica.
+   ⛔ E IL CONFRONTO È `Number(n) === 1`, NON `n === 1`, PERCHÉ LA PRIMA
+   STESURA ERA STRETTA E LA PROVA IN SCRATCHPAD L'HA BOCCIATA IN TRE SECONDI.
+   Con il confronto stretto, `conta("1", "rapportino", "rapportini")` — cioè un
+   conto arrivato come stringa da una cella di CSV o da un campo di testo —
+   rispondeva **«1 rapportini»**: esattamente il difetto che questa funzione
+   esiste per togliere, prodotto dalla funzione stessa. Il ragionamento che
+   avevo scritto («una stringa non è un conto, chi ce l'ha la converta prima»)
+   è vero e non basta: una funzione che si comporta male su un dato plausibile
+   è una trappola, non una regola.
+   ⚠️ Quello che `Number()` fa qui è **scegliere fra due parole**, non produrre
+   un numero da mostrare — quindi non c'entra la lezione del `+null` che fa
+   zero: lì lo zero finiva **a schermo** al posto di «non misurato», qui un
+   valore che non si sa cade sul plurale, che è la forma neutra. */
+export function plurale(n, singolare, plurale2) {
+  return Number(n) === 1 ? String(singolare) : String(plurale2);
+}
+
+/* La forma che si usa nove volte su dieci: il numero e la parola insieme.
+   `conta(1,"rapportino","rapportini")` → «1 rapportino».
+   ⛔ E SU UN VALORE CHE NON È UN NUMERO SCRIVE «—», non `null`. La prima
+   stesura faceva `String(n)` e su `null` usciva **«null rapportini»**: visibile,
+   sì, ma è una parola che l'utente non deve leggere mai. «—» è la convenzione
+   che l'ecosistema usa già dappertutto per «non si sa» — gli stessi KPI del
+   core la scrivono così — quindi la frase resta leggibile E continua a dire
+   che quel conto non c'è, invece di travestirsi da zero. */
+export function conta(n, singolare, plurale2) {
+  /* ⛔ `null` NON PASSA DA `Number()`, E QUESTA RIGA È LA TERZA STESURA. La
+     seconda faceva `Number.isFinite(Number(n))` e su `null` rispondeva ancora
+     «null rapportini», perché **`Number(null)` fa ZERO**, che è finito. È la
+     trappola che CLAUDE.md nomina per esteso (`+null` fa zero e
+     `Number.isFinite(0)` risponde true), e ci sono cascato dentro **mentre
+     scrivevo il commento che diceva che qui non c'entrava**. Vale la pena
+     lasciarlo scritto: le trappole già censite non si evitano ricordandole,
+     si evitano provando la funzione sui valori che le innescano. */
+  const vuoto = n === null || n === undefined || n === "";
+  return (!vuoto && Number.isFinite(Number(n)) ? String(n) : "—")
+    + " " + plurale(n, singolare, plurale2);
+}
+
 // Legge UNA riga CSV rispettando le virgolette: così un campo come
 // "Rossi;Mario" (col separatore dentro) resta un valore solo e non
 // spacca le colonne. Toglie anche l'apostrofo di guardia che csvCell

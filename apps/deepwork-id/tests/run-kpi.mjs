@@ -22068,5 +22068,62 @@ console.log("\n— Conti · la barra di peso: il numero è giusto e a mentire è
   });
 }
 
+/* ══ IL SINGOLARE, SCRITTO UNA VOLTA (dw-shell) ══════════════════════════
+   Il 06/08 il banco delle modali ha trovato «restano 1 voci su 25» in Scudo,
+   nella stessa testata dove le altre due frasi il singolare ce l'avevano.
+   Contando: 351 ternari del singolare scritti a mano nelle app, 8 nel core,
+   zero in `shared/`. Da qui `plurale` e `conta`. */
+{
+  test("plurale: sceglie la forma sul numero, e solo su quello", () => {
+    eq(shell.plurale(1, "voce", "voci"), "voce", "uno è singolare");
+    eq(shell.plurale(2, "voce", "voci"), "voci", "due è plurale");
+    eq(shell.plurale(0, "voce", "voci"), "voci", "zero è plurale, come in italiano");
+    eq(shell.plurale(-1, "voce", "voci"), "voci", "meno uno non è «una voce»");
+  });
+
+  test("plurale: anche «1» come stringa è uno, e la prima stesura sbagliava", () => {
+    /* ⛔ Il confronto era `n === 1`, stretto, «di proposito» — e la prova in
+       scratchpad l'ha bocciato in tre secondi: un conto arrivato come stringa
+       da una cella di CSV dava «1 rapportini», cioè **proprio il difetto che
+       questa funzione esiste per togliere**, prodotto dalla funzione stessa.
+       Il ragionamento che avevo scritto («una stringa non è un conto, chi ce
+       l'ha la converta prima») è vero e non basta: una funzione che si comporta
+       male su un dato plausibile è una trappola, non una regola. */
+    eq(shell.plurale("1", "voce", "voci"), "voce", "la stringa «1» è uno");
+    eq(shell.plurale(1.0, "voce", "voci"), "voce", "1.0 è uno");
+    eq(shell.plurale("3", "voce", "voci"), "voci", "«3» è plurale");
+  });
+
+  test("plurale: un valore che non si sa cade sul plurale, la forma neutra", () => {
+    eq(shell.plurale(null, "rapportino", "rapportini"), "rapportini", "null → plurale");
+    eq(shell.plurale(undefined, "rapportino", "rapportini"), "rapportini", "undefined → plurale");
+    eq(shell.plurale(NaN, "rapportino", "rapportini"), "rapportini", "NaN → plurale");
+  });
+
+  test("conta: mette insieme il numero e la parola", () => {
+    eq(shell.conta(1, "rapportino", "rapportini"), "1 rapportino", "uno");
+    eq(shell.conta(12, "rapportino", "rapportini"), "12 rapportini", "dodici");
+    eq(shell.conta("1", "rapportino", "rapportini"), "1 rapportino", "«1» da un CSV è uno");
+    eq(shell.conta(0, "foto", "foto"), "0 foto", "una parola invariabile resta sé stessa");
+  });
+
+  test("conta: su un valore che non si sa scrive «—», mai «null»", () => {
+    /* ⛔ E `null` va intercettato PRIMA di `Number()`, perché `Number(null)` fa
+       ZERO, che è finito: la seconda stesura controllava
+       `Number.isFinite(Number(n))` e su `null` scriveva ancora «null
+       rapportini». È la trappola già censita in CLAUDE.md (`+null` fa zero e
+       `Number.isFinite(0)` risponde true), presa in pieno **mentre scrivevo il
+       commento che diceva che lì non c'entrava**. Le trappole già censite non
+       si evitano ricordandole: si evitano provando la funzione sui valori che
+       le innescano. */
+    eq(shell.conta(null, "rapportino", "rapportini"), "— rapportini", "null → «—», non «null»");
+    eq(shell.conta(undefined, "rapportino", "rapportini"), "— rapportini", "undefined → «—»");
+    eq(shell.conta(NaN, "rapportino", "rapportini"), "— rapportini", "NaN → «—»");
+    eq(shell.conta("", "rapportino", "rapportini"), "— rapportini", "campo vuoto → «—»");
+    eq(shell.conta("abc", "rapportino", "rapportini"), "— rapportini", "non un numero → «—»");
+    eq(shell.conta(0, "rapportino", "rapportini"), "0 rapportini", "ma uno ZERO VERO resta zero");
+  });
+}
+
 console.log(`\nRisultato KPI app: ${passed} passati, ${failed} falliti${inVolo.length ? `  ·  ${inVolo.length} prove asincrone aspettate` : ""}`);
 process.exit(failed > 0 ? 1 : 0);

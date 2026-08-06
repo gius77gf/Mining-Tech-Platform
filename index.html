@@ -108,7 +108,7 @@ import {
 // per il core e per tutte e sei le app. Quando era scritta in ogni app, le sei
 // leggevano «1.250» in tre modi diversi senza che nessun test se ne accorgesse.
 // È un modulo di sole funzioni pure, senza effetti al caricamento.
-import { numeroScritto, messaggioNumero, perCampo, montaGuardiaInteri, isoLocale, meseLocale, motivoDatiNonSalvati, giorniTra, dataIt, misureRapportino, totaliRapportini, misureVolataFochino, misureVolataProgetto, misureFrammentazione, riservaFrammentazione } from "./shared/deepwork-id-client/dw-shell.js";
+import { numeroScritto, messaggioNumero, perCampo, montaGuardiaInteri, isoLocale, meseLocale, motivoDatiNonSalvati, giorniTra, dataIt, misureRapportino, totaliRapportini, misureVolataFochino, misureVolataProgetto, misureFrammentazione, riservaFrammentazione, conta } from "./shared/deepwork-id-client/dw-shell.js";
 
 // ── Config Firebase ──
 const firebaseConfig = {
@@ -1649,7 +1649,7 @@ function renderNotificheFull(){
   let html='';
   if(scad.length){html+='<div class="sec-title"><span class="dot"></span>Scaduti</div>';html+=scad.map(p=>`<div class="sitem warn" onclick="confermaElimPromemoria('${p.id}')"><div class="av av-cv">⏰</div><div class="sinfo"><div class="sname">${escHtml(p.titolo)}</div><div class="ssub">Era ${fmt(p.data)}</div></div><div class="sarr">×</div></div>`).join('');}
   if(senzaData.length){html+='<div class="sec-title" style="margin-top:16px;"><span class="dot"></span>Senza una data leggibile</div>';html+=senzaData.map(p=>`<div class="sitem warn" onclick="confermaElimPromemoria('${p.id}')"><div class="av av-cv">⏰</div><div class="sinfo"><div class="sname">${escHtml(p.titolo)}</div><div class="ssub">La data non si legge: non si può dire se è scaduto</div></div><div class="sarr">×</div></div>`).join('');}
-  if(pros.length){html+='<div class="sec-title" style="margin-top:16px;"><span class="dot"></span>Prossimi</div>';html+=pros.map(p=>`<div class="sitem" onclick="confermaElimPromemoria('${p.id}')"><div class="av av-cv">📅</div><div class="sinfo"><div class="sname">${escHtml(p.titolo)}</div><div class="ssub">${fmt(p.data)} · fra ${daysBetween(today(),p.data)} giorni</div></div><div class="sarr">×</div></div>`).join('');}
+  if(pros.length){html+='<div class="sec-title" style="margin-top:16px;"><span class="dot"></span>Prossimi</div>';html+=pros.map(p=>`<div class="sitem" onclick="confermaElimPromemoria('${p.id}')"><div class="av av-cv">📅</div><div class="sinfo"><div class="sname">${escHtml(p.titolo)}</div><div class="ssub">${fmt(p.data)} · fra ${conta(daysBetween(today(),p.data),'giorno','giorni')}</div></div><div class="sarr">×</div></div>`).join('');}
   const mzScad=[];
   /* ⛔ e qui la stessa sparizione, sui mezzi: con `NaN` la prova `d<=30` è
      falsa, quindi una scadenza illeggibile non entrava in questo elenco.
@@ -2189,7 +2189,7 @@ function renderCave(){
   $('btn-add-cava').style.display=can('addCava')?'flex':'none';
   const caveDisp=DB.cave.filter(c=>can('ufficio')||(state.user.cave&&state.user.cave.includes(c.id)));
   if(caveDisp.length===0){$('cave-list').innerHTML='<div class="empty-state"><div class="empty-icon">⛰️</div><div class="empty-title">Nessuna cava</div><div class="empty-sub">Non sei assegnato a nessuna cava</div></div>';return;}
-  $('cave-list').innerHTML=caveDisp.map(c=>{const nR=DB.rapportini.filter(r=>r.cavaId===c.id).length;return`<div class="sitem" onclick="apriCava('${c.id}')"><div class="av av-cv">${escHtml(c.nome.substr(0,2).toUpperCase())}</div><div class="sinfo"><div class="sname">${escHtml(c.nome)}</div><div class="ssub">${escHtml(c.indirizzo||'—')} · ${nR} rapportini</div></div><div class="sarr">›</div></div>`;}).join('');
+  $('cave-list').innerHTML=caveDisp.map(c=>{const nR=DB.rapportini.filter(r=>r.cavaId===c.id).length;return`<div class="sitem" onclick="apriCava('${c.id}')"><div class="av av-cv">${escHtml(c.nome.substr(0,2).toUpperCase())}</div><div class="sinfo"><div class="sname">${escHtml(c.nome)}</div><div class="ssub">${escHtml(c.indirizzo||'—')} · ${conta(nR,'rapportino','rapportini')}</div></div><div class="sarr">›</div></div>`;}).join('');
 }
 function apriCava(id){
   state.cavaSel=id;const c=DB.cave.find(x=>x.id===id);if(!c)return;
@@ -2242,7 +2242,7 @@ function apriCava(id){
     <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px;">${operatoriHtml}</div>
     <div class="sec-title"><span class="dot"></span>Volate previste oggi</div>
     ${volateOggiHtml}
-    <div class="stats" style="margin-top:10px;"><div class="stat"><div class="sl">Mc totali</div><div class="sv">${totMc===null?'—':totMc.toFixed(1)}</div></div><div class="stat"><div class="sl">Rapportini</div><div class="sv">${DB.rapportini.filter(r=>r.cavaId===id).length}</div></div></div>${rappFuori(totCava)?`<div style="font-size:11px;color:var(--muted);margin-top:6px;line-height:1.45;">⚠ Su ${totCava.su} rapportini${rappFuori(totCava)}.</div>`:''}
+    <div class="stats" style="margin-top:10px;"><div class="stat"><div class="sl">Mc totali</div><div class="sv">${totMc===null?'—':totMc.toFixed(1)}</div></div><div class="stat"><div class="sl">Rapportini</div><div class="sv">${DB.rapportini.filter(r=>r.cavaId===id).length}</div></div></div>${rappFuori(totCava)?`<div style="font-size:11px;color:var(--muted);margin-top:6px;line-height:1.45;">⚠ Su ${conta(totCava.su,'rapportino','rapportini')}${rappFuori(totCava)}.</div>`:''}
     ${chartHtml}
     ${c.note?`<div class="preview-sec" style="margin-top:10px;"><div class="preview-head">Note</div><div style="font-size:13px;">${escHtml(c.note)}</div></div>`:''}
     <div class="sec-title" style="margin-top:16px;"><span class="dot"></span>Volate progettate <span class="scad-badge ok" style="margin-left:6px;">F1 nuovo</span></div>
@@ -3564,7 +3564,7 @@ function apriCliente(id){
     ${c.iban?`<div class="preview-row"><span class="preview-lab">IBAN</span><span class="preview-val" style="font-family:monospace;font-size:12px;">${escHtml(c.iban)}</span></div>`:''}
     ${c.referente?`<div class="preview-row"><span class="preview-lab">Referente</span><span class="preview-val">${escHtml(c.referente)}</span></div>`:''}
   </div>
-  <div class="stats" style="margin-top:10px;"><div class="stat"><div class="sl">Cave</div><div class="sv">${cavCli.length}</div></div><div class="stat"><div class="sl">Rapportini</div><div class="sv">${totRapp}</div></div><div class="stat"><div class="sl">Mc totali</div><div class="sv">${totMc===null?'—':totMc.toFixed(0)}</div></div></div>${rappFuori(totCli)?`<div style="font-size:11px;color:var(--muted);margin-top:6px;line-height:1.45;">⚠ Su ${totCli.su} rapportini${rappFuori(totCli)}.</div>`:''}
+  <div class="stats" style="margin-top:10px;"><div class="stat"><div class="sl">Cave</div><div class="sv">${cavCli.length}</div></div><div class="stat"><div class="sl">Rapportini</div><div class="sv">${totRapp}</div></div><div class="stat"><div class="sl">Mc totali</div><div class="sv">${totMc===null?'—':totMc.toFixed(0)}</div></div></div>${rappFuori(totCli)?`<div style="font-size:11px;color:var(--muted);margin-top:6px;line-height:1.45;">⚠ Su ${conta(totCli.su,'rapportino','rapportini')}${rappFuori(totCli)}.</div>`:''}
   ${c.note?`<div class="preview-sec" style="margin-top:10px;"><div class="preview-head">Note</div><div style="font-size:13px;">${escHtml(c.note)}</div></div>`:''}
   <div class="sec-title" style="margin-top:16px;"><span class="dot"></span>Cave del cliente</div>
   ${cavCli.length?cavCli.map(cav=>`<div class="sitem" onclick="apriCava('${cav.id}')"><div class="av av-cv">${escHtml(cav.nome.substr(0,2).toUpperCase())}</div><div class="sinfo"><div class="sname">${escHtml(cav.nome)}</div><div class="ssub">${escHtml(cav.indirizzo||'—')}</div></div><div class="sarr">›</div></div>`).join(''):'<div class="empty-state" style="padding:16px;"><div class="empty-sub">Nessuna cava collegata</div></div>'}`;
@@ -4153,7 +4153,7 @@ async function exportRapportiniXLSX(){
         const fu=[];
         if(totX.senzaMisura)fu.push(`${totX.senzaMisura} senza nessun foro misurato`);
         if(totX.senzaVolume)fu.push(`${totX.senzaVolume} senza maglia, quindi senza volume calcolabile`);
-        XLSX.utils.sheet_add_aoa(ws,[[`Su ${totX.su} rapportini, ${fu.join(' e ')}: celle vuote, non zeri, e fuori dai totali.`]],{origin:-1});
+        XLSX.utils.sheet_add_aoa(ws,[[`Su ${conta(totX.su,'rapportino','rapportini')}, ${fu.join(' e ')}: celle vuote, non zeri, e fuori dai totali.`]],{origin:-1});
       }
       const wb=XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(wb,ws,'Rapportini '+mese);
@@ -4249,7 +4249,7 @@ function _genReportTecnico(da,a,cavaId,macRef){
     if(totRT.senzaMisura)fu.push(`${totRT.senzaMisura} senza nessun foro misurato`);
     if(totRT.senzaVolume)fu.push(`${totRT.senzaVolume} senza maglia, quindi senza volume calcolabile`);
     d.setFontSize(8);d.setTextColor(150,90,0);d.setFont('helvetica','italic');
-    d.text(`Su ${totRT.su} rapportini del periodo, ${fu.join(' e ')}: non rientrano nei totali.`,14,y);
+    d.text(`Su ${conta(totRT.su,'rapportino','rapportini')} del periodo, ${fu.join(' e ')}: non rientrano nei totali.`,14,y);
     d.setFont('helvetica','normal');d.setTextColor(40,40,40);y+=4;
   }
   y+=4;
@@ -4348,7 +4348,7 @@ function exportRapportiniMeseCorrentePDF(){
         if(totM.senzaMisura)fu.push(`${totM.senzaMisura} senza nessun foro misurato`);
         if(totM.senzaVolume)fu.push(`${totM.senzaVolume} senza maglia, quindi senza volume calcolabile`);
         d.setFontSize(9);d.setTextColor(150,90,0);d.setFont('helvetica','italic');
-        d.text(`Su ${totM.su} rapportini del periodo, ${fu.join(' e ')}: non rientrano nei totali.`,14,d.lastAutoTable.finalY+6);
+        d.text(`Su ${conta(totM.su,'rapportino','rapportini')} del periodo, ${fu.join(' e ')}: non rientrano nei totali.`,14,d.lastAutoTable.finalY+6);
         d.setFont('helvetica','normal');d.setTextColor(0,0,0);
       }
       d.setFontSize(8);d.setTextColor(120,120,120);
@@ -4580,7 +4580,7 @@ let _reconImg=null,_reconImgs=[],_recon=null;
 function reconPickPhoto(ev){
   const files=[...(ev.target.files||[])];if(!files.length)return;
   _reconImgs=[];let done=0;
-  files.forEach((f,i)=>{const r=new FileReader();r.onload=()=>{_reconImgs[i]=r.result;if(++done===files.length){_reconImg=_reconImgs[0];$('rc-preview').innerHTML=_reconImgs.map(s=>`<img src="${encodeURI(s)}" style="max-width:48%;max-height:120px;border:1px solid var(--border);margin:2px;">`).join('')+`<div style="font-size:11px;color:var(--muted);">${_reconImgs.length} foto pronte</div>`;}};r.readAsDataURL(f);});
+  files.forEach((f,i)=>{const r=new FileReader();r.onload=()=>{_reconImgs[i]=r.result;if(++done===files.length){_reconImg=_reconImgs[0];$('rc-preview').innerHTML=_reconImgs.map(s=>`<img src="${encodeURI(s)}" style="max-width:48%;max-height:120px;border:1px solid var(--border);margin:2px;">`).join('')+`<div style="font-size:11px;color:var(--muted);">${conta(_reconImgs.length,'foto','foto')} pronte</div>`;}};r.readAsDataURL(f);});
 }
 // media delle mappe di profondità di più foto (riproiettate sulla griglia della prima)
 async function getDepthAvg(urls){
@@ -6071,7 +6071,7 @@ function apriRiconciliazione(volataId){
         </div>
       </div>
     </div>
-    ${rappFuori(tot)?`<div style="font-size:12px;color:var(--muted);margin:-6px 0 12px;line-height:1.5;">⚠ Su ${tot.su} rapportini${rappFuori(tot)}.</div>`:''}
+    ${rappFuori(tot)?`<div style="font-size:12px;color:var(--muted);margin:-6px 0 12px;line-height:1.5;">⚠ Su ${conta(tot.su,'rapportino','rapportini')}${rappFuori(tot)}.</div>`:''}
     <div class="sec-title"><span class="dot"></span>Rapportini collegati (${realRapp})</div>
     ${realRapp===0
       ? '<div class="empty-state" style="padding:20px;"><div class="empty-icon">📋</div><div class="empty-sub">Nessun rapportino di perforazione nei ±7 giorni dalla data progetto.</div></div>'
@@ -6163,7 +6163,7 @@ function exportRiconciliazionePDF(v, rapportini){
     if(totR.senzaMisura)fuori.push(`${totR.senzaMisura} senza nessun foro misurato`);
     if(totR.senzaVolume)fuori.push(`${totR.senzaVolume} senza maglia, quindi senza volume calcolabile`);
     d.setFontSize(9);d.setTextColor(150,90,0);d.setFont('helvetica','italic');
-    const righe=d.splitTextToSize(`Su ${totR.su} rapportini collegati, ${fuori.join(' e ')}: non rientrano nei totali qui sopra.`,180);
+    const righe=d.splitTextToSize(`Su ${conta(totR.su,'rapportino','rapportini')} collegati, ${fuori.join(' e ')}: non rientrano nei totali qui sopra.`,180);
     d.text(righe,14,y);d.setFont('helvetica','normal');d.setTextColor(0,0,0);
   }
   d.setFontSize(8);d.setTextColor(120,120,120);

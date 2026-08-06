@@ -226,7 +226,7 @@ const CONDIVISI = [
      conto e si prova chiamandola: è lo stesso movimento di
      `nomeCsvDimostrazione` di ieri, e il segno che erano nel posto sbagliato
      era lo stesso — per provarle bisognava estrarre la riga dal sorgente. */
-  { file: "shared/deepwork-id-client/dw-shell.js", fondo: 41,
+  { file: "shared/deepwork-id-client/dw-shell.js", fondo: 43,
     perche: "gli aiuti che tutte le app importano (numeri, date, CSV)" },
   { file: "apps/genesi/pointcloud.js", fondo: 5,
     perche: "il calcolo del volume dal drone: da lì passano i m³ che consumano la concessione" },
