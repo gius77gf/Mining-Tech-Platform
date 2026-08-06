@@ -262,7 +262,22 @@ const CONDIVISI = [
   /* 03/08: +5 col verdetto sulla vibrazione (`esitoPpv`, `esitoAirblast`,
      `provenienzaPpv`) e il confronto A/B (`vincitoreKpi`, `stessaBasePpv`),
      spostati fuori dalla pagina perché il FOGLIO STAMPABILE non li prendeva. */
-  { file: "apps/genesi/genesi-data.js", fondo: 31,
+  /* ⛔ 31 → 36 il 06/08: IL QUARTO PEZZO DI GENESI USCITO DALLA PAGINA, e sta
+     insieme per una ragione sola — è il CASO RIPETIBILE. I due generatori
+     pseudocasuali (`mulberry32` per il replay del fronte 3D, `_rngDa` per la
+     banda d'incertezza), il rumore continuo della parete (`vnoise3`), la
+     deviazione sorteggiata del foro (`_gauss`) e i percentili del campione
+     (`_perc`). Era la parte in cui un difetto NON SI VEDE: un generatore
+     rotto restituisce comunque numeri fra 0 e 1 e la banda continua a
+     disegnarsi. Le 14 prove guardano la ripetibilità (stesso seme, stessa
+     sequenza), il dominio, le due guardie che sembrano buchi — il seme zero e
+     il logaritmo di zero — e il principio del fondatore su `_perc`, che su un
+     campione vuoto risponde `null` e non zero: uno zero lì si leggerebbe
+     «burden minimo zero metri», l'allarme più grave di quella schermata,
+     scritto dove non è stato misurato niente.
+     Restano nella pagina `jitterGeo`, `worldJitter` e `simulaPerforazione`,
+     che scrivono in una geometria THREE o leggono lo stato del progetto. */
+  { file: "apps/genesi/genesi-data.js", fondo: 36,
     perche: "la vibrazione al recettore e la riconciliazione previsto-vs-reale: i due numeri di Genesi che decidono qualcosa" },
 ];
 /* Fuori per un motivo, non per dimenticanza. Le prime tre toccano il DOM o

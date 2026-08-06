@@ -21461,5 +21461,243 @@ test("⛔ etichettaStatoDocumento: la mappa esce dalla pagina e la leggono in du
   });
 }
 
+// ═══ GENESI · funzioni uscite dalla pagina (06/08) ═══
+/* IL CASO RIPETIBILE, E IL RIASSUNTO DEL CAMPIONE — blocco G7 di
+   `apps/genesi/genesi-data.js`.
+   Cinque funzioni spostate parola per parola da `genesi.html`: i due
+   generatori pseudocasuali (`mulberry32` per il replay del 3D, `_rngDa` per
+   la banda d'incertezza), il rumore continuo del fronte (`vnoise3`), la
+   deviazione sorteggiata del foro (`_gauss`) e i percentili del campione
+   (`_perc`). Erano l'unica parte del caso di Genesi senza nessuna prova, e
+   sono anche la parte in cui un difetto NON SI VEDE: un generatore rotto
+   restituisce comunque numeri fra 0 e 1, e la banda continua a disegnarsi.
+   Le prove guardano quattro cose, in quest'ordine:
+     1. la RIPETIBILITÀ (stesso seme → stessa sequenza), che è la ragione per
+        cui questi generatori sono scritti a mano invece di `Math.random`;
+     2. il DOMINIO (i valori restano dentro [0,1), il rumore dentro [0,1]);
+     3. le due GUARDIE che sembrano buchi — il seme zero e il logaritmo di
+        zero — perché chi le legge di sfuggita è tentato di toglierle;
+     4. il principio del fondatore su `_perc`: su un campione VUOTO risponde
+        `null`, non zero. Uno zero lì si leggerebbe «burden minimo zero
+        metri», cioè l'allarme più grave possibile, dove non è stato misurato
+        niente. */
+{
+  const g = await app("genesi", "genesi-data.js");
+  /* ⚠️ il tokenizzatore che toglie i COMMENTI e tiene il resto: l'ultima prova
+     cerca dichiarazioni di funzione nella pagina, e i commenti del trasloco
+     nominano tutt'e cinque le funzioni. Cercandole nel sorgente intero la
+     prova non saprebbe fallire — è il difetto già scritto in CLAUDE.md. */
+  const { senzaCommenti } = await import("./tokenizza.mjs");
+  const { readFileSync } = await import("node:fs");
+
+  console.log("\n— Genesi: il caso ripetibile (blocco G7, uscito da genesi.html il 06/08) —");
+
+  test("Genesi · `mulberry32`: stesso seme, stessa sequenza — è tutto il suo mestiere", () => {
+    const a = g.mulberry32(7), b = g.mulberry32(7);
+    const primi = [a(), a(), a()];
+    eq(primi, [b(), b(), b()], "due generatori dallo stesso seme danno gli stessi tre numeri");
+    eq(primi[0], 0.011704753153026104, "e il primo numero è UN numero preciso, non «un numero a caso»");
+    /* la controprova del seme: semi diversi non devono dare la stessa cosa,
+       se no «ripetibile» sarebbe solo «costante» */
+    const c = g.mulberry32(8);
+    ok(c() !== primi[0], "un seme diverso dà una sequenza diversa");
+    /* `SEED` della pagina: il fronte disegnato deve essere lo stesso a ogni
+       apertura, e questa è la riga che lo garantisce */
+    const s1 = g.mulberry32(19250606), s2 = g.mulberry32(19250606);
+    eq([s1(), s1(), s1(), s1()], [s2(), s2(), s2(), s2()],
+       "col seme fisso della scena il replay è identico");
+  });
+
+  test("Genesi · `mulberry32`: i numeri stanno in [0,1), su duecentomila tiri", () => {
+    const r = g.mulberry32(19250606);
+    let mn = Infinity, mx = -Infinity, fuori = 0;
+    for (let i = 0; i < 200000; i++) {
+      const v = r();
+      if (!(v >= 0 && v < 1)) fuori++;
+      if (v < mn) mn = v; if (v > mx) mx = v;
+    }
+    eq(fuori, 0, "nessuno dei 200.000 tiri esce da [0,1)");
+    ok(mn < 0.0001 && mx > 0.9999, `e l'intervallo è coperto (min ${mn.toFixed(6)}, max ${mx.toFixed(6)})`);
+    console.log(`     (200.000 tiri, min ${mn.toFixed(6)} · max ${mx.toFixed(6)})`);
+  });
+
+  test("Genesi · `_rngDa`: il seme viene dalla geometria, quindi la banda sta ferma", () => {
+    /* `simulaPerforazione` costruisce il seme dai numeri del progetto: finché
+       il progetto non cambia la banda d'incertezza non deve ballare. */
+    const a = g._rngDa(19250606), b = g._rngDa(19250606);
+    eq([a(), a(), a()], [b(), b(), b()], "stesso seme, stessa banda");
+    eq(g._rngDa(19250606)(), 0.8551469568628818, "e il primo numero è quello, non un altro");
+    ok(g._rngDa(19250607)() !== g._rngDa(19250606)(),
+       "un progetto diverso di un'unità dà un sorteggio diverso");
+  });
+
+  test("⛔ Genesi · `_rngDa(0)` NON è un generatore fermo: il `||1` è una guardia", () => {
+    /* In un generatore lineare congruente `s=0` non si impianta (0·1664525+c
+       riparte), ma il `||1` c'è per non dipendere da quella fortuna. La prova
+       serve perché chi legge `(seme>>>0)||1` è tentato di semplificarlo. */
+    const zero = g._rngDa(0), uno = g._rngDa(1);
+    eq([zero(), zero()], [uno(), uno()], "seme 0 e seme 1 danno la stessa sequenza: 0 viene rifiutato");
+    const z = g._rngDa(0);
+    const tre = [z(), z(), z()];
+    ok(tre[0] !== tre[1] && tre[1] !== tre[2], "e la sequenza cammina, non ripete lo stesso numero");
+    /* un seme negativo non fa saltare niente: `>>>0` lo porta nei 32 bit */
+    const neg = g._rngDa(-3);
+    const v = neg();
+    ok(v >= 0 && v < 1, `un seme negativo resta un generatore buono (${v.toFixed(6)})`);
+  });
+
+  test("Genesi · `_rngDa`: i numeri stanno in [0,1), su duecentomila tiri", () => {
+    const r = g._rngDa(12345);
+    let mn = Infinity, mx = -Infinity, fuori = 0;
+    for (let i = 0; i < 200000; i++) {
+      const v = r();
+      if (!(v >= 0 && v < 1)) fuori++;
+      if (v < mn) mn = v; if (v > mx) mx = v;
+    }
+    eq(fuori, 0, "nessuno dei 200.000 tiri esce da [0,1)");
+    ok(mn < 0.0001 && mx > 0.9999, `e l'intervallo è coperto (min ${mn.toFixed(6)}, max ${mx.toFixed(6)})`);
+  });
+
+  test("Genesi · `_gauss`: media 0 e scarto 1 — la deviazione del foro è quella dichiarata", () => {
+    const r = g._rngDa(4242);
+    let s = 0, s2 = 0, sa = 0;
+    const N = 200000;
+    for (let i = 0; i < N; i++) { const x = g._gauss(r); s += x; s2 += x * x; sa += Math.abs(x); }
+    const media = s / N, sd = Math.sqrt(s2 / N);
+    ok(Math.abs(media) < 0.01, `media ${media.toFixed(4)}: la deviazione non è sbilanciata da una parte`);
+    ok(Math.abs(sd - 1) < 0.01, `scarto ${sd.toFixed(4)}: è una normale standard, non una uniforme`);
+    /* ⛔ il numero 0,7978 SCRITTO NELLA PAGINA: `simulaPerforazione` moltiplica
+       per lui per far tornare la deviazione MEDIA a quella che l'utente ha
+       scritto. Se `_gauss` cambiasse forma, quel fattore diventerebbe falso e
+       la banda mentirebbe senza che nulla si rompa. */
+    const mediaAss = sa / N;
+    ok(Math.abs(mediaAss - 0.7978) < 0.01,
+       `media di |N| = ${mediaAss.toFixed(4)}: è lo 0,7978 su cui la pagina tara la deviazione`);
+    console.log(`     (200.000 tiri: media ${media.toFixed(4)} · sd ${sd.toFixed(4)} · media |N| ${mediaAss.toFixed(4)})`);
+  });
+
+  test("⛔ Genesi · `_gauss` col logaritmo di zero: un foro spostato all'infinito non esiste", () => {
+    /* `Math.log(0)` è `-Infinity` e la radice ne farebbe `Infinity`: il foro
+       finirebbe a distanza infinita dal fronte e il burden minimo diventerebbe
+       `NaN` o `Infinity` — cioè un numero tranquillo, o nessun numero, proprio
+       nella funzione che esiste per dire quanto si può sbagliare. Il gradino
+       `Math.max(1e-9, u)` è la guardia. */
+    const v = g._gauss(() => 0);
+    ok(Number.isFinite(v), `un generatore che risponde 0 non produce un infinito (${v.toFixed(4)})`);
+    ok(v > 6 && v < 7, "e il valore è quello del gradino 1e-9, non un numero qualunque");
+    /* l'altro verso: con un generatore costante il risultato è ripetibile */
+    eq(g._gauss(() => 0.5), g._gauss(() => 0.5), "stesso ingresso, stessa uscita");
+    /* e legge DUE numeri dal generatore, non uno: se ne leggesse uno solo, il
+       coseno e il logaritmo verrebbero dallo stesso tiro e i valori sarebbero
+       legati fra loro */
+    let letti = 0;
+    g._gauss(() => { letti++; return 0.5; });
+    eq(letti, 2, "consuma due tiri del generatore (Box–Muller ne vuole due)");
+  });
+
+  test("⛔ Genesi · `_perc` su un campione vuoto: `null`, non zero", () => {
+    /* Il principio del fondatore, nel punto in cui morde: `_perc` alimenta
+       `bMin5`/`bMin50`/`bMin95`, cioè il burden minimo della banda. Uno zero
+       lì si leggerebbe «il foro tocca il fronte», che è l'allarme più grave
+       che questa schermata sappia dare — scritto dove non è stato misurato
+       niente. `simulaPerforazione` infatti si ferma prima (`if(!minimi.length)
+       return null`), e questa è la seconda guardia. */
+    eq(g._perc([], 0.5), null, "campione vuoto: non si può calcolare");
+    eq(g._perc([], 0), null, "nemmeno al percentile 0");
+    eq(g._perc([], 1), null, "nemmeno al 100°");
+  });
+
+  test("Genesi · `_perc`: i percentili 5 · 50 · 95 su un campione noto", () => {
+    /* dieci valori dati in ordine SPARSO: se la funzione non ordinasse,
+       risponderebbe con l'elemento in posizione e non col percentile */
+    const dieci = [10, 9, 8, 7, 6, 5, 4, 3, 2, 1];
+    eq([g._perc(dieci, 0.05), g._perc(dieci, 0.50), g._perc(dieci, 0.95)], [1, 6, 10],
+       "5° · 50° · 95° su dieci valori dati al contrario");
+    eq(g._perc([5, 1, 3], 0), 1, "il percentile 0 è il minimo");
+    eq(g._perc([5, 1, 3], 1), 5, "il percentile 100 è il massimo");
+    eq(g._perc([7], 0.5), 7, "un campione di un valore solo risponde quel valore");
+    /* ordina per VALORE, non come testo: `[9, 10]` ordinato come stringhe
+       darebbe 10 prima di 9, e il 95° percentile sarebbe il numero più piccolo */
+    eq(g._perc([9, 10, 100], 1), 100, "ordina i numeri, non le stringhe");
+  });
+
+  test("Genesi · `_perc` non tocca il campione che gli passi", () => {
+    /* `simulaPerforazione` lo chiama TRE volte sullo stesso vettore e poi ci
+       conta sopra il rischio: se ordinasse sul posto, non si romperebbe niente
+       oggi — ma è il tipo di dipendenza silenziosa che il giorno dopo morde. */
+    const campione = [3, 1, 2];
+    g._perc(campione, 0.5);
+    eq(campione, [3, 1, 2], "l'ordine originale è ancora quello");
+  });
+
+  test("Genesi · `_perc` con un percentile fuori scala resta dentro il campione", () => {
+    /* l'indice è pinzato fra 0 e l'ultimo: un `p` sballato dà un valore vero
+       del campione, non `undefined` — che a valle diventerebbe `NaN`. */
+    eq(g._perc([1, 2, 3], 2), 3, "p = 2 (200°) risponde il massimo");
+    eq(g._perc([1, 2, 3], -1), 1, "p = −1 risponde il minimo");
+  });
+
+  test("Genesi · `vnoise3`: lo stesso punto dà sempre lo stesso rumore", () => {
+    /* è quello che rende la parete una parete: due pannelli adiacenti
+       chiedono il rumore nello STESSO punto del mondo sul bordo comune, e se
+       le due risposte non coincidessero si vedrebbe la cucitura. */
+    eq(g.vnoise3(3.7, -2.1, 0.4), g.vnoise3(3.7, -2.1, 0.4), "stesso punto, stesso valore");
+    eq(g.vnoise3(0, 0, 0), 0, "l'origine è un valore preciso, non un caso");
+    ok(g.vnoise3(1, 0, 0) !== g.vnoise3(0, 1, 0), "e punti diversi danno rumori diversi");
+  });
+
+  test("Genesi · `vnoise3`: sta in [0,1] ed è continuo (niente scalini sul fronte)", () => {
+    let mn = Infinity, mx = -Infinity, fuori = 0;
+    for (let i = 0; i < 4000; i++) {
+      const v = g.vnoise3(i * 0.137, i * 0.911, i * 0.313);
+      if (!(v >= 0 && v <= 1)) fuori++;
+      if (v < mn) mn = v; if (v > mx) mx = v;
+    }
+    eq(fuori, 0, "4.000 punti, nessuno fuori da [0,1]");
+    ok(mx - mn > 0.8, `e il rumore usa l'intervallo (${mn.toFixed(3)} … ${mx.toFixed(3)})`);
+    /* ⛔ LA CONTINUITÀ SI MISURA A CAVALLO DEL CONFINE, non dentro una cella.
+       Prima versione di questa prova: due punti a 0,0001 m dentro la stessa
+       cella (2,0 e 2,0001). Rispondeva verde anche col rumore ridotto a
+       SCALINI (`sx=sy=sz=0`, cioè nessuna interpolazione), perché due punti
+       che stanno nella stessa cella danno lo stesso valore d'angolo tanto col
+       rumore liscio quanto con quello a gradini: i dati facevano coincidere la
+       risposta giusta con quella sbagliata. Il difetto vive sui CONFINI —
+       è lì che si vedrebbero i «riquadri disegnati» — quindi è lì che si
+       misura, mettendo i due punti uno per parte del nodo intero. */
+    const nodi = [[2, 3, 4], [-1, 0, 5], [7, 7, 7]];
+    let peggiore = 0;
+    for (const [x, y, z] of nodi) {
+      for (const d of [[1, 0, 0], [0, 1, 0], [0, 0, 1]]) {
+        const salto = Math.abs(g.vnoise3(x - 1e-4 * d[0], y - 1e-4 * d[1], z - 1e-4 * d[2])
+                             - g.vnoise3(x + 1e-4 * d[0], y + 1e-4 * d[1], z + 1e-4 * d[2]));
+        if (salto > peggiore) peggiore = salto;
+      }
+    }
+    ok(peggiore < 1e-3,
+       `attraversando un nodo intero il rumore cambia al massimo di ${peggiore.toExponential(2)}: nessuno scalino`);
+    /* e sui nodi interi il valore è quello dell'angolo, non interpolato */
+    eq(g.vnoise3(5, 5, 5), g.vnoise3(5.0, 5.0, 5.0), "sul nodo intero non c'è ambiguità");
+    console.log(`     (4.000 punti, ${mn.toFixed(3)} … ${mx.toFixed(3)} · 9 passaggi di confine, salto peggiore ${peggiore.toExponential(2)})`);
+  });
+
+  test("⛔ Genesi · le cinque sono USCITE dalla pagina, non copiate", () => {
+    /* La trappola del trasloco: lasciare la vecchia copia dentro `genesi.html`
+       e importare anche la nuova. La pagina userebbe la sua — le dichiarazioni
+       di funzione vincono sull'import — e le prove qui sopra blinderebbero un
+       file che nessuno esegue. */
+    const pag = senzaCommenti(readFileSync(join(HERE, "../../genesi/genesi.html"), "utf8"));
+    for (const n of ["mulberry32", "vnoise3", "_rngDa", "_gauss", "_perc"])
+      ok(!new RegExp(`function\\s+${n}\\s*\\(`).test(pag),
+         `${n}: nella pagina non c'è più una seconda dichiarazione`);
+    ok(/mulberry32, vnoise3, _rngDa, _gauss, _perc\s*\}\s*from\s*'\.\/genesi-data\.js'/.test(pag),
+       "e la pagina le importa tutte e cinque da genesi-data.js");
+    /* la seconda domanda: che il modulo le esporti davvero coi nomi che la
+       pagina importa — un import ESM di un nome inesistente non fa partire la
+       pagina, e nessuna suite `node` se ne accorgerebbe */
+    for (const n of ["mulberry32", "vnoise3", "_rngDa", "_gauss", "_perc"])
+      eq(typeof g[n], "function", `${n}: il modulo lo esporta`);
+  });
+}
+
 console.log(`\nRisultato KPI app: ${passed} passati, ${failed} falliti${inVolo.length ? `  ·  ${inVolo.length} prove asincrone aspettate` : ""}`);
 process.exit(failed > 0 ? 1 : 0);

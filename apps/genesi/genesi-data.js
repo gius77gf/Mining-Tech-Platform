@@ -635,3 +635,62 @@ export function csvRiconciliazione(st){
   }).join('\n')+'\n';
   return csv;
 }
+
+/* ══════════════════════════════════════════════════════════════════════════
+   G7 — IL CASO RIPETIBILE, E IL RIASSUNTO DEL CAMPIONE
+   ══════════════════════════════════════════════════════════════════════════
+   Il quarto pezzo di Genesi che esce da `genesi.html`, e sta insieme per un
+   motivo solo: sono le funzioni che producono numeri **a caso** e quelle che
+   li riassumono. In un'app che simula, il caso non è un dettaglio grafico —
+   è la parte che dice **di quanto la previsione può sbagliare**, e deve
+   essere RIPETIBILE: stessa volata, stessa banda; stesso seme, stesso fronte
+   disegnato. Un numero che balla a ogni ridisegno non è una misura.
+
+     il replay identico del 3D      →  `mulberry32`  (seme fisso `SEED`)
+     la parete che non sembra
+     fatta di riquadri              →  `vnoise3`     (value-noise continuo)
+     la banda d'incertezza          →  `_rngDa`      (seme dalla geometria)
+     la deviazione del foro         →  `_gauss`      (Box–Muller sul generatore)
+     i percentili 5 · 50 · 95       →  `_perc`
+
+   Nessuna di loro legge una variabile del modulo né tocca il DOM: sono
+   entrate qui **identiche**, riga per riga, senza cambiare una virgola del
+   comportamento. La pagina le importa; non ne tiene una seconda copia.
+
+   ⚠️ `vnoise3` il censimento (`tests/genesi-estraibili.mjs`) NON la elencava
+   fra le estraibili: conta `L` come variabile del modulo, perché sta in una
+   dichiarazione multipla (`const sx=…, sy=…, sz=…, L=(a,b,t)=>…`) e il
+   rilevatore prende solo il PRIMO nome di un `const`. È l'euristica che
+   sbaglia nel verso prudente, dichiarata nella sua intestazione. Letta, la
+   funzione è pura: solo `Math` e nomi suoi.
+
+   ⛔ COSA RESTA NELLA PAGINA, E PERCHÉ. `jitterGeo` e `worldJitter` chiamano
+   questi due generatori ma scrivono dentro una geometria `THREE`, che in
+   `node` non esiste; `simulaPerforazione` legge lo stato del progetto (`D2`)
+   e portarla fuori vuol dire cambiarle la firma, cioè un rifacimento.
+
+   ⚠️ E DUE COMPORTAMENTI CHE SEMBRANO BUCHI E SONO GUARDIE, provati sotto
+   perché nessuno li «aggiusti» leggendoli di sfuggita:
+    · `_rngDa(0)` e `_rngDa(1)` danno la STESSA sequenza — il `||1` rifiuta
+      il seme zero, che in un generatore lineare congruente si impianta;
+    · `_gauss` alza `u` a `1e-9` prima del logaritmo: senza quel gradino un
+      generatore che restituisce esattamente 0 darebbe `Infinity`, cioè un
+      foro spostato a distanza infinita.
+   ══════════════════════════════════════════════════════════════════════════ */
+
+/* ============ RNG deterministico (replay identici) ============ */
+export function mulberry32(a){return function(){let t=a+=0x6D2B79F5;t=Math.imul(t^t>>>15,t|1);t^=t+Math.imul(t^t>>>7,t|61);return((t^t>>>14)>>>0)/4294967296}}
+/* rumore continuo NEL MONDO: pannelli adiacenti si deformano allo stesso modo sui bordi → niente "riquadri disegnati", il fronte è una parete unica */
+export function vnoise3(x,y,z){
+  const h=(ix,iy,iz)=>{ let n=ix*374761393 + iy*668265263 + iz*1274126177; n=(n^(n>>13))*1103515245; return (((n^(n>>16))>>>0)%1024)/1024; };
+  const ix=Math.floor(x),iy=Math.floor(y),iz=Math.floor(z), fx=x-ix,fy=y-iy,fz=z-iz;
+  const sx=fx*fx*(3-2*fx), sy=fy*fy*(3-2*fy), sz=fz*fz*(3-2*fz), L=(a,b,t)=>a+(b-a)*t;
+  return L( L(L(h(ix,iy,iz),h(ix+1,iy,iz),sx), L(h(ix,iy+1,iz),h(ix+1,iy+1,iz),sx), sy),
+            L(L(h(ix,iy,iz+1),h(ix+1,iy,iz+1),sx), L(h(ix,iy+1,iz+1),h(ix+1,iy+1,iz+1),sx), sy), sz );
+}
+export function _rngDa(seme){
+  let s=(seme>>>0)||1;
+  return function(){ s=(s*1664525+1013904223)>>>0; return s/4294967296; };
+}
+export function _gauss(r){ const u=Math.max(1e-9,r()), v=r(); return Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v); }
+export function _perc(v,p){ if(!v.length) return null; const a=v.slice().sort((x,y)=>x-y); const i=Math.min(a.length-1,Math.max(0,Math.round(p*(a.length-1)))); return a[i]; }
