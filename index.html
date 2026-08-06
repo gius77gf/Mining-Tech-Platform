@@ -939,19 +939,22 @@ function aggiornaSyncBadge(){
     badge.style.display = 'flex';
     badge.className = 'sync-badge nonsalva';
     badge.title = state.soloMemoria.messaggio;
-    badge.innerHTML = '<span class="sync-dot"></span>NON SALVA';
+    badge.setAttribute('aria-label', 'Non salva. ' + state.soloMemoria.messaggio);
+    badge.innerHTML = '<span class="sync-dot"></span><span class="sync-testo">NON SALVA</span>';
     return;
   }
   if(!_isOnline){
     badge.style.display = 'flex';
     badge.className = 'sync-badge offline';
     badge.title = pending>0 ? `${pending} modifich${pending===1?'a':'e'} in attesa di sync` : 'Offline';
-    badge.innerHTML = '<span class="sync-dot"></span>OFFLINE'+(pending>0?` · ${pending}`:'');
+    badge.setAttribute('aria-label', 'Offline. ' + badge.title);
+    badge.innerHTML = '<span class="sync-dot"></span><span class="sync-testo">OFFLINE'+(pending>0?` · ${pending}`:'')+'</span>';
   } else if(pending>0){
     badge.style.display = 'flex';
     badge.className = 'sync-badge syncing';
     badge.title = `Sincronizzazione di ${pending} modifich${pending===1?'a':'e'} in corso`;
-    badge.innerHTML = '<span class="sync-dot"></span>SYNC · '+pending;
+    badge.setAttribute('aria-label', badge.title);
+    badge.innerHTML = '<span class="sync-dot"></span><span class="sync-testo">SYNC · '+pending+'</span>';
   } else {
     badge.style.display = 'none';
   }
@@ -7583,6 +7586,18 @@ body.outdoor-mode .login-glow{display:none;}
 .login-msg.show{display:block;}
 .login-msg.info{background:rgba(66,165,245,.08);border-color:rgba(66,165,245,.3);color:var(--info);}
 .login-msg.success{background:rgba(102,187,106,.08);border-color:rgba(102,187,106,.3);color:var(--success);}
+/* ⛔ LE DUE META' DELLA BARRA HANNO UNA CLASSE, E LO STILE NON E' PIU' IN LINEA.
+   Non e' riordino: e' la ragione per cui una correzione non funzionava. Lo
+   stile in linea batte QUALUNQUE regola del foglio senza `!important`, quindi
+   `.topbar-cmd{gap:4px}` e `.topbar-id{flex-shrink:4}` scritte in un `@media`
+   non facevano niente — e il browser rispondeva `mq360: true`, cioe' tutti i
+   segnali che la regola fosse attiva. Ci ho perso venti minuti e ho anche dato
+   la colpa alla cosa sbagliata (due blocchi `@media` per lo stesso limite, che
+   e' un problema vero ma riguardava solo il padding).
+   Con le dichiarazioni qui, il `@media` sotto i 360 px puo' finalmente
+   cambiarle. */
+.topbar-id{display:flex;align-items:center;gap:10px;min-width:0;flex:0 1 auto;}
+.topbar-cmd{display:flex;align-items:center;gap:6px;min-width:0;flex:0 1 auto;justify-content:flex-end;}
 .topbar{background:rgba(20,16,10,.9);backdrop-filter:blur(12px);border-bottom:1px solid var(--border);padding:0 14px;height:56px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;position:sticky;top:0;z-index:100;gap:8px;}
 body.outdoor-mode .topbar{height:60px;background:#000;}
 .logo-sm{font-family:'Barlow Condensed',sans-serif;font-size:16px;font-weight:800;letter-spacing:3px;color:var(--amber);
@@ -7610,6 +7625,50 @@ body.outdoor-mode .topbar{height:60px;background:#000;}
    non viene salvato», cioè il posto dove leggere male costa di più. */
 .sync-badge.nonsalva{background:rgba(239,83,80,.15);border:1px solid var(--danger);color:#ff9a95;}
 .sync-dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:currentColor;}
+/* ⛔ SOTTO I 360 px LA PASTIGLIA DIVENTA UN PUNTO, E LA RAGIONE È UNA MISURA.
+   A 320 px «NON SALVA» è larga 76 px, e nella barra in alto ci sono già quattro
+   comandi da 44 e una ricerca: lo spazio non basta. Quello che succedeva
+   NON era che la pastiglia uscisse a destra — il blocco ha
+   `justify-content:flex-end`, quindi quando il contenuto non ci sta trabocca
+   dalla parte OPPOSTA, verso sinistra, e la pastiglia finiva **sopra il nome
+   dell'utente**: due testi impilati, nessuno dei due leggibile, e il documento
+   non scorreva nemmeno — quindi il controllo sull'overflow non se ne accorgeva.
+   ⚠️ Misurato, non dedotto: pastiglia a 6-82 px, il suo genitore a 131-312.
+   Un figlio statico e senza trasformazioni **fuori dalla scatola del padre** è
+   proprio la firma del traboccamento all'indietro, e per un'ora è sembrata una
+   contraddizione impossibile.
+   Sparisce il TESTO, non la pastiglia: il punto colorato resta, e resta il
+   colore, che è quello che dice se si sta salvando. Il testo per esteso vive
+   nel `title` e — nuovo — in un `aria-label`, perché un `title` da solo su un
+   telefono non lo legge nessuno. È lo stesso trattamento che ha già il bottone
+   «Esci», che sotto questa soglia è un'icona. */
+@media(max-width:360px){
+  .sync-badge .sync-testo{display:none;}
+  .sync-badge{padding:5px 7px;}
+  /* ⛔ E LA PASTIGLIA DA SOLA NON BASTAVA: MISURATO. Ridotta a punto (76 → 23
+     px) traboccava ancora, perché nel blocco restavano quattro comandi da 44 e
+     una casella di ricerca da 74: servivano 253 px dove ce n'erano 160.
+     Qui cede la RICERCA, e non è un ripiego: il suo `:focus{width:200px}`
+     dice che era già disegnata per stare stretta da ferma e allargarsi quando
+     la si usa. Sotto i 360 px si stringe fino alla sua lente — che resta
+     visibile e toccabile, perché il campo conserva il padding sinistro — e si
+     apre a 150 px appena la si tocca. Il `min-width:0` sull'INVOLUCRO è la
+     riga che rende possibile tutto il resto: senza, l'involucro tiene la
+     larghezza del suo contenuto e a cedere torna a essere qualcun altro. */
+  /* ⛔ E MANCAVANO ANCORA 19 px, misurati: pastiglia a 133-156 dove il blocco
+     dei comandi comincia a 152. Li danno tre cose insieme, e nessuna toglie
+     niente a nessuno: i margini della barra (14 → 10), lo spazio fra i comandi
+     (6 → 4) e — la più importante — **chi cede per primo**.
+     `flex-shrink` di suo distribuisce la stretta in proporzione a quanto uno è
+     largo, quindi il blocco dell'identità (138 px) e quello dei comandi (160)
+     cedevano insieme, e i comandi restavano a corto pur avendo dentro cose che
+     non si possono stringere. Con `flex-shrink:4` sull'identità cede PRIMA lei,
+     ed è giusto: un nome che si accorcia resta leggibile («Gius…»), un bottone
+     che si accorcia smette di essere un bottone. */
+  .topbar-search-wrap{min-width:0;}
+  .topbar-search-input{width:0;padding-right:0;border-color:transparent;background:transparent;}
+  .topbar-search-input:focus{width:150px;padding-right:10px;border-color:var(--amber);background:var(--card);}
+}
 .sync-badge.offline .sync-dot{animation:pulseDot 1.5s ease-in-out infinite;}
 .sync-badge.syncing .sync-dot{animation:rotateDot 1s linear infinite;}
 @keyframes pulseSync{0%,100%{opacity:1;}50%{opacity:.6;}}
@@ -8075,6 +8134,31 @@ select.finput,select.fi{font-size:16px;}
   .sc,.hcontent,.fcontent{padding-left:10px;padding-right:10px;}
   .topbar,.ph{padding-left:8px;padding-right:8px;}
   .frow,.frow3{grid-template-columns:1fr;}
+  /* ⛔ QUESTE DUE RIGHE SONO COSTATE VENTI MINUTI, E DUE DIAGNOSI, DI CUI LA
+     PRIMA SBAGLIATA. Vanno raccontate tutt'e due, perche' la prima e' il modo
+     tipico di correggere la cosa giusta per il motivo falso.
+     Le avevo scritte piu' su, accanto alla pastiglia di sincronia, in un
+     `@media(max-width:360px)` **nuovo** — senza accorgermi che ce n'era gia'
+     uno **qui**, cinquecento righe piu' in basso, per lo stesso limite. Il
+     browser rispondeva `mq360: true` e teneva nascosto `.sync-testo`, cioe'
+     tutti i segnali che la regola fosse attiva, mentre `.topbar` e le due meta'
+     non si muovevano di un pixel.
+     · **Diagnosi 1 (parziale):** vince l'ultimo a parita' di specificita', e
+       infatti il `padding` lo decide la riga qui sopra, non la mia. Vero — ma
+       spiegava una dichiarazione su tre.
+     · **Diagnosi 2 (quella giusta):** le due meta' della barra avevano lo
+       **stile in linea**, che batte qualunque regola del foglio senza
+       `!important`. Nessun `@media`, in nessun punto del file, avrebbe mai
+       potuto cambiarle. Per questo adesso `.topbar-id` e `.topbar-cmd` hanno
+       le loro dichiarazioni nel foglio (vedi accanto a `.topbar`), e solo da
+       allora queste due righe fanno qualcosa.
+     ⚠️ Le due lezioni restano tutt'e due: prima di aprire un `@media` si cerca
+     se c'e' gia' (e' la regola 22 di `run-stile.mjs`, due fogli che definiscono
+     lo stesso selettore, qui in versione «due blocchi dello stesso foglio»); e
+     quando una regola non morde, si guarda **chi vince davvero** invece di
+     dedurlo — `getComputedStyle` risponde in tre secondi. */
+  .topbar-cmd{gap:4px;}
+  .topbar-id{flex-shrink:4;}
 }
 /* Evita che il contenuto sc dell'editor-cava venga tagliato (ha solo ec-side, non sc) */
 #screen-editor-cava{overflow:hidden;}
@@ -8511,7 +8595,7 @@ body.outdoor-mode #search-results-wrap .search-results{top:56px;}
          390 px il bottone di uscita finiva a 429, cioè NON si poteva uscire dal
          proprio account su un telefono stretto. Il difetto c'era già prima del
          nome su una riga sola; quello l'ha solo reso più evidente. -->
-    <div style="display:flex;align-items:center;gap:10px;min-width:0;flex:0 1 auto;">
+    <div class="topbar-id">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 92" width="32" height="28" style="flex:none;">
         <polygon points="60,72 16,17 104,17" fill="#14100a"/>
         <polygon points="60,70 18,19 102,19" fill="none" stroke="#2a2010" stroke-width="1"/>
@@ -8558,7 +8642,7 @@ body.outdoor-mode #search-results-wrap .search-results{top:56px;}
          applicata al layout: la regola era scritta, il posto era sbagliato.
          `.topbar` è `justify-content:space-between`, quindi con tutt'e due i
          blocchi cedevoli restano comunque agli estremi. -->
-    <div style="display:flex;gap:6px;align-items:center;flex:0 1 auto;min-width:0;justify-content:flex-end;">
+    <div class="topbar-cmd">
       <span id="sync-badge" class="sync-badge" style="display:none;"></span>
       <button id="btn-install-pwa" class="install-btn" onclick="installPWA()" style="display:none;" title="Installa app" aria-label="Installa app">⤓</button>
       <button class="outdoor-toggle" id="btn-outdoor" onclick="toggleOutdoor()" title="Cambia tema (chiaro/scuro)" aria-label="Cambia tema chiaro o scuro">☀️</button>
