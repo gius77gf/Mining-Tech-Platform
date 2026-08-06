@@ -345,7 +345,8 @@
 
 ## Verifica del delta (01/08 · **riverificata riga per riga il 03/08**)
 
-> **Verificato contro il codice al commit `ecc65d5`** — l'ultimo che ha toccato
+> **Verificato contro il codice al commit `b12c87f`** *(riverificato il 06/08; la
+> verifica precedente era a `ecc65d5`, undici commit prima)* — l'ultimo che ha toccato
 > `apps/conti/`, quindi l'arretrato riparte da **zero**. Il codice è stato letto
 > dal **committato** (`git show HEAD:apps/conti/conti-data.js`, 3.543 righe;
 > `git show HEAD:apps/conti/index.html`, 6.103 righe), non dal disco, perché
@@ -503,3 +504,39 @@ già indica al cliente (`index.html:3947-3948`) — la strada più corta è
 01/08 è entrato l'estratto conto della banca: un file dentro, un file fuori,
 nessuna integrazione da mantenere e nessuna spesa — che è anche l'unica forma
 compatibile con la regola «nessuna spesa prima della commercializzazione».
+
+---
+
+### ⏱️ Riverifica del 06/08 — `ecc65d5` → `b12c87f`, undici commit dopo
+
+Le **otto** righe CONFERMATE ASSENTI rimisurate contro il codice di oggi.
+**Reggono tutte e otto**, e tre di esse solo perché il campione è stato
+**aperto** invece che contato: il conteggio secco avrebbe fatto scrivere il
+contrario su tre righe su otto.
+
+```
+fatturapa|xml|sdi      →  27 occorrenze   ⚠️ da aprire
+bilancia|driver|…      →  10 occorrenze   ⚠️ da aprire
+permess|ruolo utente   →   4 occorrenze   ⚠️ da aprire
+firma digital · e-ticket · ritenuta · foto prodotto · giacenz|magazzin  →  0
+```
+
+- **`sdi` / `xml`** — è il **codice destinatario** del cliente, un campo
+  dell'anagrafica (`sdi: "ABC1234"`, `sdi: "…@pec.example.it"`), più un
+  `image/svg+xml` dentro l'icona del manifest. Non c'è nessun generatore di
+  XML né nessun invio: la riga regge, e il foglio stampato lo dice pure
+  all'utente («non sostituisce la fattura elettronica: l'originale è il file
+  XML trasmesso al Sistema di Interscambio»);
+- **`bilancia`** — dieci **commenti** che spiegano un fatto del mestiere («le
+  tonnellate le pesa la bilancia, i metri cubi no: non si inventano»). Non è un
+  driver hardware, è la ragione per cui una conversione non si fa;
+- **`permess`** — il verbo *permettere* («se la lettura non è permessa», «il
+  browser non ha permesso la copia automatica»). Non è un sistema di permessi.
+
+⚠️ **E dentro questa stessa riverifica il cercatore ha sbagliato una seconda
+volta**, in modo nuovo: il comando che apriva il contesto usava una finestra di
+50 caratteri prima e 45 dopo, e su `bilancia` e `permess` ha risposto **niente**
+— su termini che avevano dieci e quattro occorrenze. Le righe erano più corte
+della finestra. Un «nessun risultato» che significa «la mia finestra non ci
+stava», letto di fretta, è **la stessa bugia** del conteggio non aperto, presa
+dall'altro lato. Rifatto con `grep -n` per riga.
