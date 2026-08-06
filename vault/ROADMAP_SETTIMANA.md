@@ -375,11 +375,35 @@ numero scritto dove non era stato misurato niente**.*
       orizzontale.
       ⚠️ E il primo verde era una trappola: reso cedevole il blocco, «ESCI»
       stava dentro lo schermo **largo 16 px**. «Ci sta» non è «si usa».
-- [ ] ⏳ **La pastiglia «NON SALVA» si sovrappone al nome dell'utente a 320 px**
-      — dichiarata, misurata in **tutt'e due** le versioni (quindi non causata
-      dalle correzioni di oggi) e **non corretta**. È più strana di come sembra:
-      risulta `position:static` e misura **fuori dalla scatola del proprio
-      padre**, quindi indovinare sarebbe peggio che aspettare mezz'ora di misura.
+- [x] ✅ **La pastiglia «NON SALVA» non sta più sopra il nome** (`47ab5c8`).
+      La stranezza — `position:static` e misura **fuori dalla scatola del
+      padre** — era il **traboccamento all'indietro**: con
+      `justify-content:flex-end`, quando il contenuto non ci sta esce dalla
+      parte opposta, cioè a sinistra, e il documento **non scorre** — quindi
+      nessun controllo sull'overflow poteva vederlo. Chiusa con tre cose
+      misurate: la pastiglia diventa un punto sotto i 360 px (76 → 23 px, e
+      resta il colore, che è quello che dice se si salva), la ricerca si
+      stringe alla sua lente e si apre al tocco, e cede **prima** l'identità.
+      ⛔ **E ho dato la colpa a due cose sbagliate prima di trovare quella
+      giusta**, scritte tutt'e due nel file: (1) «vince l'ultimo `@media`» —
+      vero, ma spiegava una dichiarazione su tre; (2) quella vera, lo **stile
+      in linea**, che batte qualunque regola del foglio. Il segnale ingannevole:
+      il browser rispondeva `mq360: true` e nascondeva il testo, cioè tutti i
+      segnali che la regola fosse attiva, mentre tre dichiarazioni su quattro
+      venivano buttate. *Quando una regola non morde si guarda chi vince
+      davvero, non lo si deduce.*
+
+- [x] ✅ **Le due copie di Genesi dichiarate e non corrette** (`66ae5b1`): la
+      seconda Box–Muller che **ombreggiava** l'import (e scriveva `6.2831853`
+      dove il modulo scrive `2*Math.PI`), e il corpo di `jitterGeo` ricopiato a
+      mano. ⛔ La seconda esisteva **perché mancava un argomento**: il seme era
+      inchiodato a 7 e lì servivano `11+k`. È la terza volta oggi che una copia
+      nasce da una firma troppo stretta — prima di ricopiare un corpo, la
+      domanda è se all'originale manchi un parametro.
+
+- [x] ✅ **Il banco delle modali su Terra: 0 difetti** (6 modali aperte su 11,
+      22 aperture, 188 elementi). Risultato pulito e onesto, che prima della
+      correzione di stamattina quel banco non sapeva produrre.
 
 - [x] ✅ **La dimostrazione del core era vuota dove l'app lavora** (`63928d4`):
       `@volate` da **0 a 4** righe cliccabili. I casi sono scelti — uno senza un
