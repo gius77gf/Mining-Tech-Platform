@@ -401,6 +401,26 @@ numero scritto dove non era stato misurato niente**.*
       nasce da una firma troppo stretta — prima di ricopiare un corpo, la
       domanda è se all'originale manchi un parametro.
 
+- [x] ✅ **IL BANCO DELLE MODALI HA GUARDATO TUTTE E NOVE LE SUPERFICI**
+      (`4743c69`). Riparato stamattina, il censimento completo: **core 11/68**
+      (2 difetti, le uscite fuori schermo), **sentinella 10/13** (5 difetti di
+      maiuscolo, corretti), e pulite conti 12/22, terra 6/11, flotta 6/14,
+      campo 5/19, scudo 2/34, genesi 1/2. Vetrina e le due pagine di ID sono
+      **non raggiunte**, e il banco lo dichiara invece di dirle a posto.
+      ⚠️ E il limite si legge nella colonna: su Scudo apre **2 su 34**, quindi
+      «pulita» lì vuol dire pulita **su due**.
+
+- [x] ✅ **Il singolare sale in `shared/`** (`18725f1`): **351** ternari scritti
+      a mano nelle app, **8** nel core, **zero** in `shared/`. Nascono `plurale`
+      e `conta`; il core ne adotta i dieci punti in cui il conto vale uno più
+      spesso che altrove. ⛔ La funzione ha sbagliato **tre volte** prima di
+      funzionare, e le tre stesure sono scritte accanto a lei: la terza è la
+      trappola `Number(null) === 0` presa **mentre scrivevo il commento che
+      diceva che lì non c'entrava**.
+- [ ] **I 349 ternari del singolare che restano nelle app.** Non si traducono in
+      una notte; quando si fa, si fa con `conta`/`plurale`, non a mano. I tre
+      cantieri del filo «il testo che mente» stanno guardando lì.
+
 - [x] ✅ **Il banco delle modali su Terra: 0 difetti** (6 modali aperte su 11,
       22 aperture, 188 elementi). Risultato pulito e onesto, che prima della
       correzione di stamattina quel banco non sapeva produrre.
