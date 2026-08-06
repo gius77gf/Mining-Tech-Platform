@@ -93,6 +93,16 @@ const MARCA = 'controprova contrasto';
    finire fra i «in pulsazione», MAI fra i bocciati: se viene bocciato, il
    banco sta di nuovo accusando un colore sano. */
 const CONTROPULSA = process.argv.includes('--controprova-pulsazione');
+/* ⛔ LA CONTROPROVA DEL CENSIMENTO, e serve per la ragione di sempre: una
+   guardia scollegata non è un errore di sintassi. Si aggiunge al foglio di
+   stile una classe che nel DOM **non compare mai** e che ha un contrasto
+   pessimo (grigio su grigio, ~1,15:1). Il censimento deve trovarla, farla
+   comparire e bocciarla: se il giro finisce con zero bocciature «mai
+   comparse», la passata nuova non sta guardando niente e il suo elenco di
+   classi vale zero — esattamente come il «0 sotto soglia» che questo banco
+   dava prima di avere `--controprova`. */
+const CONTROCENS = process.argv.includes('--controprova-censimento');
+const CLASSE_CENS = 'dw-mai-vista-controprova';
 const MARCA_PULSA = 'controprova pulsazione';
 
 /* La misura vive nella pagina: si passa una volta sola e si raccoglie tutto il
@@ -374,8 +384,105 @@ const provaFinish = (p) => p.evaluate(() => {
   return { prima, dopo };
 });
 
+/* ⛔ LA SECONDA DOMANDA: «E QUELLO CHE ADESSO NON SI DIPINGE?» (06/08)
+   ═══════════════════════════════════════════════════════════════════════
+   Questo banco misura il testo che si vede, e lo fa bene: «343 testi, 0 sotto
+   soglia» sul core è una risposta VERA. Ma la roadmap portava da giorni cinque
+   violazioni AA del core, e il banco ne diceva zero — non perché fossero state
+   corrette (tre lo erano), ma perché **nello stato di partenza quei cinque
+   elementi non ci sono**. Il pallino delle notifiche compare se ci sono
+   notifiche, la pillola «non salva» se il salvataggio fallisce, il toast
+   quando c'è qualcosa da dire, gli avatar dei ruoli solo nelle liste che li
+   usano. Un colore che si vede in un momento difficile non è un colore meno
+   importante: è quello che l'utente legge quando ha più fretta.
+   È la stessa forma di «68 modali da aprire, 0 aperte». Il rimedio non è più
+   severità — è **una seconda domanda**, e la risposta la sa già il foglio di
+   stile.
+
+   ⚠️ IL LIMITE È DICHIARATO, NON NASCOSTO, e sono due:
+   1. si fanno comparire soltanto le classi che portano **un fondo proprio e
+      coprente** (tinta piena o gradiente). Per quelle il contesto non conta,
+      perché il loro sfondo vince su qualunque antenato. Le altre si
+      **elencano** e basta: misurarle in un contenitore inventato vuol dire
+      accusare un colore per il posto in cui ce l'ho messo io — la sesta
+      trappola qui sopra, nella sua forma più facile da rifare;
+   2. il testo di prova è di misura normale, quindi la soglia applicata è 4,5.
+      Se una classe nel prodotto vive solo a corpo grande la soglia vera è 3, e
+      il censimento la accuserebbe a torto. Per questo un KO di questa passata
+      **si verifica come un OK**: si va a cercare dove la classe è usata
+      davvero, prima di toccare un colore. */
+const CLASSI_CANDIDATE = () => {
+  const fuori = /:(hover|focus|active|visited|disabled|checked|target)|::/;
+  const trovate = new Map();
+  for (const foglio of document.styleSheets) {
+    let regole; try { regole = foglio.cssRules; } catch (e) { continue; }   // foglio d'altra origine
+    /* ⛔ UNA REGOLA DI STILE ORA HA `cssRules`, E QUESTO CENSIMENTO CI È CASCATO
+       ALLA PRIMA STESURA. Era scritto `if (r.cssRules) { scendi(...); continue; }`,
+       cioè «se ha figli è un contenitore» — vero fino a ieri. Col CSS annidato
+       Chromium dà una `cssRules` (vuota) anche alle regole normali: risultato,
+       **620 regole su 649 saltate** e il censimento che rispondeva «0 classi
+       candidate», un numero che sembrava una risposta. È la famiglia dello
+       scanner che perdeva la fase: un controllo che guarda **com'è fatto** un
+       oggetto invece di **che cos'è**. Adesso si decide dal `selectorText`, e
+       nei figli si scende IN PIÙ, non INVECE. */
+    const scendi = (lista) => {
+      for (const r of lista) {
+        if (r.cssRules && r.cssRules.length) scendi(r.cssRules);            // @media, @supports, CSS annidato
+        if (!r.selectorText || !r.style) continue;
+        if (fuori.test(r.selectorText)) continue;
+        const bg = r.style.getPropertyValue('background') || r.style.getPropertyValue('background-image')
+          || r.style.getPropertyValue('background-color');
+        if (!bg) continue;
+        /* ⛔ E DEVE DICHIARARE ANCHE IL SUO INCHIOSTRO. Senza questa riga il
+           censimento accusava `.chart-bar` a 1,56:1: una barra di grafico non
+           contiene testo, e il testo ce l'avevo messo io per misurarla. Chi
+           scrive `background` E `color` nella stessa regola sta dicendo «qui
+           dentro ci va del testo, e lo voglio di questo colore»: è la sola
+           dichiarazione d'intenzione che un foglio di stile sappia dare. */
+        if (!r.style.getPropertyValue('color')) continue;
+        const gradiente = /gradient\(/.test(bg);
+        /* `rgba(...,.15)` non copre niente e va misurata dove sta davvero */
+        const pieno = /^\s*(#[0-9a-f]{3,8}|rgb\([^)]*\)|[a-z]+)\s*$/i.test(bg)
+          && !/^\s*(none|transparent|inherit|initial|currentcolor)\s*$/i.test(bg);
+        for (const pezzo of r.selectorText.split(',')) {
+          const sel = pezzo.trim();
+          /* solo i selettori fatti di classi: `.av.av-fc` va bene, `div > .x` no
+             — lì il posto conta, e il posto non lo so inventare */
+          if (!/^(\.[A-Za-z0-9_-]+)+$/.test(sel)) continue;
+          const chiavi = sel.slice(1).split('.');
+          const nome = chiavi.join(' ');
+          if (!trovate.has(nome)) trovate.set(nome, { classi: chiavi, coprente: false });
+          if (gradiente || pieno) trovate.get(nome).coprente = true;
+        }
+      }
+    };
+    scendi(regole);
+  }
+  return [...trovate.entries()].map(([nome, v]) => ({ nome, classi: v.classi, coprente: v.coprente }));
+};
+
+/* Fa comparire le classi mai viste, una accanto all'altra in fondo al `body`.
+   Poi la misura la fa `MISURA`: **una scansione sola**, come pretende
+   CLAUDE.md — se sbaglia, sbaglia uguale nei due posti invece di sbagliare in
+   due modi diversi. */
+const FAI_COMPARIRE = (elenco) => {
+  const host = document.createElement('div');
+  host.id = 'dw-mai-comparse';
+  host.setAttribute('style', 'position:fixed;left:0;top:0;z-index:2147483646;display:flex;flex-wrap:wrap');
+  for (const c of elenco) {
+    const d = document.createElement('div');
+    d.className = c.classi.join(' ');
+    d.textContent = 'Ag';                      // due lettere: una alta e una con la coda
+    host.appendChild(d);
+  }
+  document.body.appendChild(host);
+  return elenco.length;
+};
+
 const b = await chromium.launch({ executablePath: CHROMIUM });
 let misurati = 0, bocciati = 0;
+let maiComparse = 0, maiMisurate = 0, maiBocciate = 0;
+const nonMisurabili = [];
 let sfumatiTot = 0, pulsantiTot = 0, spentiTot = 0, finiteTot = 0, pulsaBocciata = 0, pulsaMisurata = 0;
 let superficiProvate = 0;
 const superficiCieche = [];
@@ -409,8 +516,16 @@ for (const [nome, via] of SUPERFICI) {
       document.body.appendChild(d);
     }, MARCA_PULSA);
   }
+  if (CONTROCENS) {
+    await p.evaluate((cls) => {
+      const st = document.createElement('style');
+      st.textContent = `.${cls}{background:rgb(42,42,42);color:rgb(51,51,51);font-size:13px;padding:4px}`;
+      document.head.appendChild(st);
+    }, CLASSE_CENS);
+  }
   const sezioni = await sezioniDi(p, nome);
   let bocciatiQui = 0, misuratiQui = 0, presaQui = 0;
+  const classiViste = new Set();
   for (const s of sezioni) {
     await vaiA(p, nome, s);
     const { finite: portateAllaFine } = await fermaAnimazioni(p);
@@ -419,6 +534,7 @@ for (const [nome, via] of SUPERFICI) {
     for (const m of misure) {
       /* lo stesso testo con la stessa classe si incontra su più schermate:
          si segnala una volta sola, altrimenti l'elenco è illeggibile */
+      for (const t of m.classe.split(/\s+/)) if (t) classiViste.add(t);
       const chiave = `${nome}|${m.classe}|${m.testo}`;
       if (visti.has(chiave)) continue;
       visti.add(chiave);
@@ -440,6 +556,41 @@ for (const [nome, via] of SUPERFICI) {
       }
     }
   }
+  /* ── La seconda domanda: le classi che dipingono e non sono mai comparse ── */
+  /* ⛔ NIENTE `.catch(() => [])` QUI. La prima stesura ce l'aveva, il censimento
+     rispondeva «0 classi» e sembrava una risposta: era l'eccezione ingoiata. */
+  const candidate = await p.evaluate(CLASSI_CANDIDATE)
+    .catch((e) => { console.log('  ⚠️  il censimento delle classi non è girato:', String(e).slice(0, 120)); return []; });
+  const mai = candidate.filter((c) => !c.classi.every((k) => classiViste.has(k)));
+  const daFar = mai.filter((c) => c.coprente);
+  const soloElencate = mai.filter((c) => !c.coprente);
+  maiComparse += mai.length;
+  if (soloElencate.length) nonMisurabili.push(`${nome}: ${soloElencate.length}`);
+  if (daFar.length) {
+    await p.evaluate(FAI_COMPARIRE, daFar.map((c) => ({ classi: c.classi })));
+    await fermaAnimazioni(p);
+    const misureMai = await p.evaluate(MISURA);
+    /* si guardano SOLO gli elementi appena creati: il resto della pagina è già
+       stato misurato, e rimisurarlo qui gonfierebbe il totale */
+    const nomiFatti = new Set(daFar.map((c) => c.classi.join(' ')));
+    for (const m of misureMai) {
+      if (m.testo !== 'Ag' || !nomiFatti.has(m.classe)) continue;
+      maiMisurate++;
+      if (m.rapporto < m.soglia) {
+        maiBocciate++; bocciati++; bocciatiQui++;
+        console.log(`  KO  ${String(m.rapporto).padStart(6)}:1  (serve ${m.soglia})  ${m.dim}px`
+          + `  .${m.classe}  — mai comparsa durante il giro, fatta comparire`);
+      } else if (TUTTI) {
+        console.log(`  ok  ${String(m.rapporto).padStart(6)}:1  .${m.classe}  (fatta comparire)`);
+      }
+    }
+    await p.evaluate(() => { const h = document.getElementById('dw-mai-comparse'); if (h) h.remove(); });
+  }
+  if (mai.length) {
+    console.log(`  ⚠️  ${mai.length} classi che dipingono un fondo non sono mai comparse:`
+      + ` ${daFar.length} fatte comparire e misurate, ${soloElencate.length} solo elencate`);
+  }
+
   const sfumati = await p.evaluate(() => window.__dwSfumati || 0).catch(() => 0);
   const pulsanti = await p.evaluate(() => window.__dwPulsanti || 0).catch(() => 0);
   const spenti = await p.evaluate(() => window.__dwSpenti || 0).catch(() => 0);
@@ -464,6 +615,23 @@ console.log(`\n${misurati} testi misurati in tutto, ${bocciati} sotto soglia`
    cioè il difetto del 03/08 che è tornato, e allora i KO non valgono. */
 console.log(`   (${finiteTot} animazioni finite portate al loro ultimo fotogramma prima di misurare:`
   + ' in secondo piano Chromium non le fa avanzare, e senza questo si misurerebbero a metà)');
+/* ⛔ ANCHE QUESTA RIGA VA LETTA PRIMA DEI KO. A sinistra c'è la parte di
+   prodotto che il giro non incontra da solo — il pallino delle notifiche, la
+   pillola «non salva», il toast; a destra quella che nemmeno facendola
+   comparire si può giudicare senza inventarle un contesto. */
+console.log(`   (${maiComparse} classi con un fondo proprio non sono mai comparse durante il giro:`
+  + ` ${maiMisurate} fatte comparire e misurate, ${maiBocciate} sotto soglia`
+  + (nonMisurabili.length ? ` · non giudicabili fuori dal loro posto: ${nonMisurabili.join(', ')}` : '')
+  + ')');
+
+if (CONTROCENS) {
+  console.log(`\ncontroprova del censimento: ${maiMisurate} classi mai comparse sono state fatte comparire,`
+    + ` ${maiBocciate} bocciate`);
+  if (!maiMisurate) { console.log('⛔ il censimento non ha fatto comparire NIENTE: la passata non gira.'); process.exit(1); }
+  if (!maiBocciate) { console.log(`⛔ la classe «${CLASSE_CENS}» a 1,15:1 non è stata bocciata: il censimento non giudica.`); process.exit(1); }
+  console.log('il censimento sa fallire: la classe che nel DOM non compare mai è stata trovata e bocciata.');
+  process.exit(0);
+}
 
 if (CONTROPULSA) {
   /* Il testo appeso sta benissimo fermo e male in movimento: il banco NON deve

@@ -7520,7 +7520,12 @@ textarea.finput{resize:vertical;min-height:60px;}
 .av-fo{background:var(--grad3);}
 .av-uf{background:linear-gradient(135deg,#ffab00,#ffd54f);}
 .av-ad{background:linear-gradient(135deg,#ff6d00,#ffab00);}
-.av-su{background:linear-gradient(135deg,#42a5f5,#1976d2);color:#fff;}
+/* ⛔ 2,65:1, la peggiore rimasta nel core: qui dentro ci vanno le INIZIALI
+   di una persona e il numero di riga del registro accessi, a 12px in 800 —
+   testo piccolo, soglia 4,5. Non la vedeva nessuna prova perche' l'avatar
+   del personale nello stato di partenza non compare. Stessa famiglia, due
+   gradini piu' in giu': 5,69:1. */
+.av-su{background:linear-gradient(135deg,#1565c0,#0d47a1);color:#fff;}
 .av-dp{background:linear-gradient(135deg,#8a7440,#6b5a30);color:#fff;}
 .av-am{background:linear-gradient(135deg,#ff6d00,#ffab00);}
 /* ⛔ 3,45:1 col gradiente di serie: le due iniziali del fochino sono TESTO,
@@ -7531,7 +7536,9 @@ textarea.finput{resize:vertical;min-height:60px;}
 .av-fc{background:linear-gradient(135deg,#c62828,#8e1414);color:#fff;}
 /* ⛔ era 2,36:1, la peggiore delle cinque: verde chiaro sotto testo bianco. */
 .av-cv{background:linear-gradient(135deg,#2e7d32,#14521a);color:#fff;}
-.av-mz{background:linear-gradient(135deg,#78909c,#37474f);color:#fff;}
+/* ⛔ 3,35:1 col grigio-azzurro di serie: qui dentro ci vanno «MZ», «€» e le
+   sigle dei mezzi. Stessa famiglia, tinta piu' profonda: 5,43:1. */
+.av-mz{background:linear-gradient(135deg,#546e7a,#263238);color:#fff;}
 .sinfo{flex:1;min-width:0;}
 .sname{font-size:13px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 .ssub{font-size:10px;color:var(--muted);margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}

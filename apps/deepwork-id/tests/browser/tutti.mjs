@@ -63,6 +63,15 @@ const BANCHI = [
      giudicato. Un'accusa falsa su un colore manda a rovinare una palette
      sana, ed è per questo che ha una prova sua. */
   ['contrasto · non accusa chi pulsa', 'contrasto.mjs', ['--controprova-pulsazione'], true],
+  /* ⛔ AGGIUNTO IL 06/08. Il banco misura il testo CHE SI VEDE, e la sua
+     risposta è vera; quello che non diceva è che nello stato di partenza il
+     pallino delle notifiche, la pillola «non salva», il toast e gli avatar dei
+     ruoli **non ci sono**. Da lì due violazioni AA rimaste nel core per giorni
+     con tre suite verdi sopra: `.av-su` a 2,65:1 (le iniziali di una persona)
+     e `.av-mz` a 3,35:1. La controprova aggiunge al foglio di stile una classe
+     che nel DOM non compare MAI: il censimento deve trovarla e bocciarla, se
+     no la passata nuova è una guardia scollegata. */
+  ['contrasto · le classi mai comparse', 'contrasto.mjs', ['--controprova-censimento'], true],
   /* ⛔ AGGIUNTO IL 03/08. Stessa domanda che il giorno prima ha trovato
      ventiquattro difetti in cinque app — *dove il core compone qualcosa che
      ESCE, chi decide i suoi numeri?* — applicata ai due documenti del core
