@@ -345,9 +345,21 @@ numero scritto dove non era stato misurato niente**.*
 - [x] ✅ **La regola del banco che confessa** (`7a5e6ba`): «68 da aprire, 0
       aperte» stampato da mesi in fondo a una pagina di verde. Le righe che
       dicono «non ho guardato» vanno lette **prima** dei KO.
-- [ ] ⏳ **La seconda causa della cecità sulle modali** — l'elenco dei
-      candidati era scritto sulla forma delle app (`.item[onclick]`), il core
-      usa `.sitem`: correzione sul disco, misura in corso.
+- [ ] **La cecità sulle modali del core: la causa NON è nota** — e questa riga
+      va letta insieme alle due qui sotto, perché fino al 06/08 diceva
+      «correzione sul disco, misura in corso» mentre la misura era **già
+      arrivata e diceva di no** (`301b5b7`: il selettore `.sitem` non era la
+      causa, le modali restano **0 su 68**). ⏱️ Seconda riga scaduta trovata
+      oggi su undici aperte, dopo quella delle violazioni AA: la roadmap ha lo
+      stesso difetto che `documenti-invecchiati.mjs` misura sui documenti del
+      delta, e su di lei non lo misura nessuno.
+      Quello che resta aperto è la domanda vera: **perché il gesto generico non
+      raggiunge le modali del core** (e nemmeno quelle di vetrina, campo, conti,
+      genesi e terra, che il giro elenca come «non guardate»). Il passo giusto
+      non è indovinare un terzo selettore: è far **stampare al banco quanti
+      candidati ha trovato e quanti ne ha aperti**, superficie per superficie —
+      la difesa già scritta in CLAUDE.md, «quanti soggetti ha guardato
+      davvero», applicata a sé stesso.
 
 - [x] ✅ **La dimostrazione del core era vuota dove l'app lavora** (`63928d4`):
       `@volate` da **0 a 4** righe cliccabili. I casi sono scelti — uno senza un
@@ -377,6 +389,17 @@ numero scritto dove non era stato misurato niente**.*
       accusava `.chart-bar` a 1,56:1, cioè un colore per il testo che ce
       **avevo messo io**. Controprova `--controprova-censimento` nel giro:
       una classe che nel DOM non compare mai, trovata e bocciata.
+      ✅ **E poi girato su tutte e quattordici le superfici, su una copia
+      immobile del committato** (i cantieri stavano scrivendo). Il risultato va
+      detto com'è, senza gonfiarlo: **4.443 testi misurati, 0 sotto soglia**;
+      **220 classi** con un fondo proprio non compaiono mai durante il giro, ne
+      sono state fatte comparire e misurate **41**, e **nessuna** è sotto
+      soglia. Cioè: **il core era l'eccezione**, le sei app su questo asse sono
+      pulite. Le altre **179** restano dichiarate come «non giudicabili fuori
+      dal loro posto» — poggiano sul fondo di chi le contiene, e misurarle in
+      un contenitore inventato vorrebbe dire accusarle per dove le ho messe io.
+      Un censimento che non trova niente è una risposta, non un fallimento:
+      quello che dimostra è che le due del core non erano la punta di nulla.
 
 ### B — Lo standard delle funzioni, app per app (martedì → venerdì)
 
