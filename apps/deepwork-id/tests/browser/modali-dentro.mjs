@@ -506,6 +506,22 @@ for (const [nome, via] of SUPERFICI) {
      e che cosa il banco ha VISTO. Sono due numeri diversi, e l'utile è il
      secondo diviso il primo. */
   const conto = { span: 0, opzioni: 0, unita: 0, vistoMaiusc: 0, vistoTendina: 0 };
+  /* ⛔ «NON RAGGIUNTA» E «SENZA DATI» SONO DUE COSE DIVERSE, e fino al 06/08 il
+     banco le diceva con la stessa frase. Il core stampava «nessuna modale
+     aperta — il banco NON ha guardato questa superficie», che si legge «c'è un
+     guasto nel banco»: e per due giorni la roadmap ha mandato a cercare il
+     selettore giusto, che non era la causa (`301b5b7`). La causa vera, già
+     misurata e scritta trenta righe più su, è che la **dimostrazione del core
+     è quasi vuota**: il banco ha un programma da 68 modali e non ha le righe
+     da cui aprirle.
+     Sono due diagnosi opposte e portano a due lavori opposti — sistemare il
+     banco, oppure popolare la dimostrazione — quindi vanno separate, e il
+     numero che le separa è **quanti comandi cliccabili ha trovato**:
+     · zero candidati → non ci è arrivato (accesso, navigazione, selettore);
+     · candidati sì, modali no → ci è arrivato e non c'era niente da aprire.
+     È il principio del fondatore applicato al banco: l'assenza di un dato non
+     è un dato favorevole, e nemmeno un guasto. È uno stato da dichiarare. */
+  let candidatiQui = 0, clickQui = 0;
   for (const larghezza of LARGHEZZE) {
     const { ctx, p } = await apriSuperficie(b, { nome, via, porta: PORTA, larghezza, altezza: 844, montaFintoFirebase });
     const atteso = p.url();
@@ -519,9 +535,10 @@ for (const [nome, via] of SUPERFICI) {
         if (!scelto) {   /* nemmeno la scelta risponde: la pagina non c'è più */
           inciampi++; if (++diFila >= 5) { interrotte.push(`${nome}/${s}@${larghezza}`); break; } continue;
         }
+        if (typeof scelto.restano === 'number' && scelto.restano > candidatiQui) candidatiQui = scelto.restano;
         if (scelto.fine) break;
         fatti.push(scelto.chiave); forme.push(scelto.sagoma);
-        clickPerTutti++;
+        clickPerTutti++; clickQui++;
         const r = await p.evaluate(TOCCA, 170).catch(() => null);
         /* ⛔ IL TOCCO PUÒ PORTARE LA PAGINA ALTROVE — o chiuderla. Non è una
            ragione per fermare il giro (la chiave è già segnata), ma è una
@@ -598,11 +615,19 @@ for (const [nome, via] of SUPERFICI) {
     }
     await ctx.close();
   }
-  censimento.push({ app: nome, esistono, aperte: titoli.size, conto, quali: [...titoli] });
+  censimento.push({ app: nome, esistono, aperte: titoli.size, conto, quali: [...titoli], candidati: candidatiQui, provati: clickQui });
   if (aperteQui === 0) {
     nonRaggiunte.push(nome);
-    console.log(`  ⚠️  ${nome}: nessuna modale aperta — il banco NON ha guardato questa superficie`
-      + (esistono ? ` (nel suo programma ce ne sono ${esistono} da aprire)` : ''));
+    if (candidatiQui === 0) {
+      console.log(`  ⚠️  ${nome}: NON RAGGIUNTA — zero comandi cliccabili trovati in tutte le sezioni.`
+        + ` Il banco non ci è arrivato: accesso, navigazione o selettore.`
+        + (esistono ? ` (nel suo programma ce ne sono ${esistono} da aprire)` : ''));
+    } else {
+      console.log(`  ⚠️  ${nome}: RAGGIUNTA MA SENZA DATI — ${candidatiQui} comandi cliccabili trovati,`
+        + ` ${clickQui} provati, 0 modali aperte. Il banco ci è arrivato e non c'era niente da aprire:`
+        + ` la dimostrazione non ha le righe.`
+        + (esistono ? ` (nel suo programma ce ne sono ${esistono} da aprire)` : ''));
+    }
   } else {
     raggiunte.push(nome);
     if (!male) { appPulite++; console.log(`  ok  ${nome}: ${titoli.size} modali diverse, ${aperteQui} aperture, niente da dire`); }
@@ -616,7 +641,8 @@ console.log('\n── il censimento: quante modali esistono, quante ne ha aperte
 let esistonoTot = 0, aperteTot = 0;
 for (const c of censimento) {
   esistonoTot += c.esistono || 0; aperteTot += c.aperte;
-  console.log(`   ${String(c.app).padEnd(22)} ${String(c.esistono ?? '?').padStart(3)} nel programma  →  ${String(c.aperte).padStart(3)} aperte e guardate`);
+  console.log(`   ${String(c.app).padEnd(22)} ${String(c.esistono ?? '?').padStart(3)} nel programma  →  ${String(c.aperte).padStart(3)} aperte e guardate`
+    + (c.aperte === 0 ? `   [${c.candidati} comandi trovati, ${c.provati} provati: ${c.candidati ? 'senza dati' : 'non raggiunta'}]` : ''));
   /* le finestre aperte si dicono per NOME: un numero non si può controllare,
      un elenco sì — e quello che manca all'appello si vede */
   if (c.quali.length) console.log(`      ${c.quali.join(' · ').slice(0, 300)}`);
