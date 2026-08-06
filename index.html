@@ -108,7 +108,7 @@ import {
 // per il core e per tutte e sei le app. Quando era scritta in ogni app, le sei
 // leggevano «1.250» in tre modi diversi senza che nessun test se ne accorgesse.
 // È un modulo di sole funzioni pure, senza effetti al caricamento.
-import { numeroScritto, messaggioNumero, perCampo, montaGuardiaInteri, isoLocale, meseLocale, motivoDatiNonSalvati, giorniTra, dataIt, misureRapportino, totaliRapportini, misureVolataFochino, misureVolataProgetto, misureFrammentazione, riservaFrammentazione, conta } from "./shared/deepwork-id-client/dw-shell.js";
+import { numeroScritto, messaggioNumero, perCampo, montaGuardiaInteri, isoLocale, meseLocale, motivoDatiNonSalvati, giorniTra, dataIt, misureRapportino, totaliRapportini, misureVolataFochino, misureVolataProgetto, misureFrammentazione, riservaFrammentazione, plurale, conta } from "./shared/deepwork-id-client/dw-shell.js";
 
 // ── Config Firebase ──
 const firebaseConfig = {
@@ -586,14 +586,14 @@ function today(){ return isoLocale(new Date()); }
    È lo stesso motivo per cui la forma delle parole sta scritta qui una volta
    sola: chi chiama non deve comporre. */
 function volKg(v){ const m=misureVolataProgetto(v);
-  return m.kgNoto ? (m.kg+' kg di esplosivo'+(m.parziale?' ('+m.conKg+' fori su '+m.fori+' caricati)':''))
+  return m.kgNoto ? (m.kg+' kg di esplosivo'+(m.parziale?' ('+m.conKg+' '+plurale(m.conKg,'foro','fori')+' su '+m.fori+' caricati)':''))
                   : 'chili non ancora scritti'; }
 function volMc(v){ const m=misureVolataProgetto(v);
   return m.mcNoto ? (m.mc+' mc') : 'mc non calcolabili'; }
 function rappRiga(r){
   const m=misureRapportino(r);
   if(!m.misurato) return 'nessun foro misurato';
-  return `${m.fori} fori · ${m.calcolabile?m.mc.toFixed(1)+' mc':'mc non calcolabili'}`;
+  return `${conta(m.fori,'foro','fori')} · ${m.calcolabile?m.mc.toFixed(1)+' mc':'mc non calcolabili'}`;
 }
 /* ⛔ La quota sul totale — e `Math.max(totMc,1)` non è una difesa: con un
    totale non misurabile scriveva una percentuale calcolata su 1, cioè un
@@ -1915,7 +1915,7 @@ function allegaProgettoDiVolata(){
   if(vols.length===0){toast('Nessun progetto di volata disponibile','err');return;}
   openModal('Allega progetto volata',
     `<div style="font-size:13px;color:var(--muted);margin-bottom:10px;">Seleziona un progetto da allegare al rapportino.</div>`+
-    vols.map(v=>{const c=DB.cave.find(x=>x.id===v.cavaId);return`<div class="sitem" onclick="selezionaVolataPerRapp('${v.id}')"><div class="av av-am">V${v.numero}</div><div class="sinfo"><div class="sname">Volata #${v.numero} · ${fmt(v.data)}</div><div class="ssub">${c?escHtml(c.nome):'—'} · ${v.tot_fori||0} fori</div></div></div>`;}).join(''),
+    vols.map(v=>{const c=DB.cave.find(x=>x.id===v.cavaId);return`<div class="sitem" onclick="selezionaVolataPerRapp('${v.id}')"><div class="av av-am">V${v.numero}</div><div class="sinfo"><div class="sname">Volata #${v.numero} · ${fmt(v.data)}</div><div class="ssub">${c?escHtml(c.nome):'—'} · ${conta(v.tot_fori||0,'foro','fori')}</div></div></div>`;}).join(''),
     [{label:'Annulla',cls:'mbtn',action:closeModal}]
   );
 }
@@ -1923,7 +1923,7 @@ function selezionaVolataPerRapp(volataId){
   const v=DB.volate.find(x=>x.id===volataId);
   if(!v)return;
   $('r-volata-id').value=volataId;
-  $('r-volata-label').textContent=`Volata #${v.numero} · ${fmt(v.data)} · ${v.tot_fori||0} fori`;
+  $('r-volata-label').textContent=`Volata #${v.numero} · ${fmt(v.data)} · ${conta(v.tot_fori||0,'foro','fori')}`;
   closeModal();markUnsaved();toast('Progetto allegato','success');
 }
 function rimuoviVolataRapp(){
@@ -2061,14 +2061,14 @@ function allegaVolataFochino(){
   if(vols.length===0){toast('Nessun progetto di volata disponibile','err');return;}
   openModal('Allega progetto volata',
     `<div style="font-size:13px;color:var(--muted);margin-bottom:10px;">Seleziona un progetto da allegare.</div>`+
-    vols.map(v=>{const c=DB.cave.find(x=>x.id===v.cavaId);return`<div class="sitem" onclick="selezionaVolataFoc('${v.id}')"><div class="av av-am">V${v.numero}</div><div class="sinfo"><div class="sname">Volata #${v.numero} · ${fmt(v.data)}</div><div class="ssub">${c?escHtml(c.nome):'—'} · ${v.tot_fori||0} fori</div></div></div>`;}).join(''),
+    vols.map(v=>{const c=DB.cave.find(x=>x.id===v.cavaId);return`<div class="sitem" onclick="selezionaVolataFoc('${v.id}')"><div class="av av-am">V${v.numero}</div><div class="sinfo"><div class="sname">Volata #${v.numero} · ${fmt(v.data)}</div><div class="ssub">${c?escHtml(c.nome):'—'} · ${conta(v.tot_fori||0,'foro','fori')}</div></div></div>`;}).join(''),
     [{label:'Annulla',cls:'mbtn',action:closeModal}]
   );
 }
 function selezionaVolataFoc(volataId){
   const v=DB.volate.find(x=>x.id===volataId);if(!v)return;
   $('rf-volata-id').value=volataId;
-  $('rf-volata-label').textContent=`Volata #${v.numero} · ${fmt(v.data)} · ${v.tot_fori||0} fori`;
+  $('rf-volata-label').textContent=`Volata #${v.numero} · ${fmt(v.data)} · ${conta(v.tot_fori||0,'foro','fori')}`;
   closeModal();markUnsavedFoc();toast('Progetto allegato','success');
 }
 function rimuoviVolataFoc(){
@@ -2082,7 +2082,7 @@ function allegaRappPerfFochino(){
   if(rs.length===0){toast('Nessun rapportino di perforazione disponibile','err');return;}
   openModal('Allega rapportino perforazione',
     `<div style="font-size:13px;color:var(--muted);margin-bottom:10px;">Seleziona un rapportino.</div>`+
-    rs.map(r=>{const c=DB.cave.find(x=>x.id===r.cavaId);const u=DB.users.find(x=>x.id===r.userId);return`<div class="sitem" onclick="selezionaRappPerfFoc('${r.id}')"><div class="av av-cv">${c?escHtml(c.nome.substr(0,2).toUpperCase()):'—'}</div><div class="sinfo"><div class="sname">${c?escHtml(c.nome):'—'} · ${fmt(r.data)}</div><div class="ssub">${u?escHtml(u.nome+' '+u.cognome):'—'} · ${r.fori||0} fori</div></div></div>`;}).join(''),
+    rs.map(r=>{const c=DB.cave.find(x=>x.id===r.cavaId);const u=DB.users.find(x=>x.id===r.userId);return`<div class="sitem" onclick="selezionaRappPerfFoc('${r.id}')"><div class="av av-cv">${c?escHtml(c.nome.substr(0,2).toUpperCase()):'—'}</div><div class="sinfo"><div class="sname">${c?escHtml(c.nome):'—'} · ${fmt(r.data)}</div><div class="ssub">${u?escHtml(u.nome+' '+u.cognome):'—'} · ${conta(r.fori||0,'foro','fori')}</div></div></div>`;}).join(''),
     [{label:'Annulla',cls:'mbtn',action:closeModal}]
   );
 }
@@ -2090,7 +2090,7 @@ function selezionaRappPerfFoc(id){
   const r=DB.rapportini.find(x=>x.id===id);if(!r)return;
   const c=DB.cave.find(x=>x.id===r.cavaId);
   $('rf-rapp-id').value=id;
-  $('rf-rapp-label').textContent=`${c?c.nome:'—'} · ${fmt(r.data)} · ${r.fori||0} fori`;
+  $('rf-rapp-label').textContent=`${c?c.nome:'—'} · ${fmt(r.data)} · ${conta(r.fori||0,'foro','fori')}`;
   closeModal();markUnsavedFoc();toast('Rapportino allegato','success');
 }
 function rimuoviRappPerfFoc(){
@@ -2222,7 +2222,7 @@ function apriCava(id){
   // Volate previste oggi
   const volateOggi=DB.volate.filter(v=>v.cavaId===id&&v.data===today());
   const volateOggiHtml=volateOggi.length>0
-    ?volateOggi.map(v=>`<div class="sitem success"><div class="av av-am">V${v.numero}</div><div class="sinfo"><div class="sname">Volata #${v.numero} · oggi</div><div class="ssub">${v.tot_fori||0} fori · ${volKg(v)}</div></div></div>`).join('')
+    ?volateOggi.map(v=>`<div class="sitem success"><div class="av av-am">V${v.numero}</div><div class="sinfo"><div class="sname">Volata #${v.numero} · oggi</div><div class="ssub">${conta(v.tot_fori||0,'foro','fori')} · ${volKg(v)}</div></div></div>`).join('')
     :'<div style="font-size:12px;color:var(--muted);padding:8px 0;">Nessuna volata prevista per oggi</div>';
   $('cava-det-body').innerHTML=`
     <div class="photo-hero ${canEdit?'editable':''}" onclick="${canEdit?`uploadCavaFoto('${id}')`:''}">
@@ -2248,7 +2248,7 @@ function apriCava(id){
     <div class="sec-title" style="margin-top:16px;"><span class="dot"></span>Volate progettate <span class="scad-badge ok" style="margin-left:6px;">F1 nuovo</span></div>
     ${(()=>{const vols=DB.volate.filter(v=>v.cavaId===id);
       return vols.length?
-        vols.slice(-3).reverse().map(v=>`<div class="sitem" onclick="apriEditorCava('${v.id}')"><div class="av av-am">V${(v.numero||'?').toString().substr(0,2)}</div><div class="sinfo"><div class="sname">Volata #${v.numero||'?'} · ${fmt(v.data)}</div><div class="ssub">${(v.fori||[]).length} fori · ${volKg(v)} · ${volMc(v)}</div></div><div class="sarr">›</div></div>`).join('')
+        vols.slice(-3).reverse().map(v=>`<div class="sitem" onclick="apriEditorCava('${v.id}')"><div class="av av-am">V${(v.numero||'?').toString().substr(0,2)}</div><div class="sinfo"><div class="sname">Volata #${v.numero||'?'} · ${fmt(v.data)}</div><div class="ssub">${conta((v.fori||[]).length,'foro','fori')} · ${volKg(v)} · ${volMc(v)}</div></div><div class="sarr">›</div></div>`).join('')
         : '<div class="empty-state" style="padding:18px;"><div class="empty-sub" style="font-size:11px;">Nessuna volata progettata</div></div>';
     })()}
     ${can('editCava')?`<button class="btn-sec" style="margin-top:6px;width:100%;" onclick="nuovaVolata('${id}')">+ Progetta nuova volata</button>`:''}
@@ -2275,9 +2275,9 @@ function apriGemello(id){
   const focParziali=focNoti.filter(x=>x.parziale).length;
   // eventi unificati
   const ev=[];
-  vol.forEach(v=>ev.push({d:v.data,ic:'📐',col:'#ff8f00',t:`Progetto ${v.nomeProgetto||'Volata #'+v.numero}`,s:`${v.tot_fori||0} fori · ${v.tot_mc||0} mc`,go:`apriEditorCava('${v.id}')`}));
+  vol.forEach(v=>ev.push({d:v.data,ic:'📐',col:'#ff8f00',t:`Progetto ${v.nomeProgetto||'Volata #'+v.numero}`,s:`${conta(v.tot_fori||0,'foro','fori')} · ${v.tot_mc||0} mc`,go:`apriEditorCava('${v.id}')`}));
   rp.forEach(r=>{const u=DB.users.find(x=>x.id===r.userId);ev.push({d:r.data,ic:'📋',col:'#42a5f5',t:'Rapportino perforazione',s:`${(u?u.nome+' '+u.cognome:'—')} · ${rappRiga(r)}`,go:`apriRapport('${r.id}')`});});
-  rf.forEach(r=>{const u=DB.users.find(x=>x.id===r.userId);ev.push({d:r.data,ic:'💥',col:'#ef5350',t:'Volata (fochino)',s:`${(u?u.nome+' '+u.cognome:'—')} · ${r.fori||0} fori · ${focKg(r)}`,go:`apriRappFocDett('${r.id}')`});});
+  rf.forEach(r=>{const u=DB.users.find(x=>x.id===r.userId);ev.push({d:r.data,ic:'💥',col:'#ef5350',t:'Volata (fochino)',s:`${(u?u.nome+' '+u.cognome:'—')} · ${conta(r.fori||0,'foro','fori')} · ${focKg(r)}`,go:`apriRappFocDett('${r.id}')`});});
   ev.sort((a,b)=>(b.d||'').localeCompare(a.d||''));
   // mc per mese (ultimi 6) riuso pattern
   const oggi=new Date();const mesi=[];
@@ -2291,8 +2291,8 @@ function apriGemello(id){
     <div class="sec-title"><span class="dot" style="background:#26a69a;"></span>${escHtml(c.nome)}</div>
     <div class="kpi-grid">
       <div class="kpi-card" style="border-top-color:#26a69a;"><div class="kpi-lbl">Volate progettate</div><div class="kpi-val">${vol.length}</div></div>
-      <div class="kpi-card" style="border-top-color:#42a5f5;"><div class="kpi-lbl">Mc estratti</div><div class="kpi-val">${totMc===null?'—':totMc.toFixed(0)}</div><div class="kpi-sub">${totFori} fori${totRp.senzaVolume?` · ${totRp.senzaVolume} senza volume`:''}</div></div>
-      <div class="kpi-card" style="border-top-color:#ef5350;"><div class="kpi-lbl">Esplosivo</div><div class="kpi-val">${totKg===null?'—':totKg.toFixed(0)}</div><div class="kpi-sub">${totKg===null?`nessuna delle ${rf.length} volate dichiara i chili`:`kg · ${rf.length} volate${focSenza?` · ${focSenza} senza chili`:''}${focParziali?` · ${focParziali} parziali`:''}`}</div></div>
+      <div class="kpi-card" style="border-top-color:#42a5f5;"><div class="kpi-lbl">Mc estratti</div><div class="kpi-val">${totMc===null?'—':totMc.toFixed(0)}</div><div class="kpi-sub">${conta(totFori,'foro','fori')}${totRp.senzaVolume?` · ${totRp.senzaVolume} senza volume`:''}</div></div>
+      <div class="kpi-card" style="border-top-color:#ef5350;"><div class="kpi-lbl">Esplosivo</div><div class="kpi-val">${totKg===null?'—':totKg.toFixed(0)}</div><div class="kpi-sub">${totKg===null?`nessuna delle ${conta(rf.length,'volata','volate')} dichiara i chili`:`kg · ${conta(rf.length,'volata','volate')}${focSenza?` · ${focSenza} senza chili`:''}${focParziali?` · ${focParziali} parziali`:''}`}</div></div>
       <div class="kpi-card"><div class="kpi-lbl">Ultima attività</div><div class="kpi-val" style="font-size:18px;">${ultima}</div></div>
     </div>
     <div class="sec-title" style="margin-top:14px;"><span class="dot"></span>Produzione · ultimi 6 mesi</div>
@@ -2576,15 +2576,15 @@ function applicaFiltriVolate(){
     const totKg=focANoti.length?focANoti.reduce((s,x)=>s+x.kg,0):null;
     const focASenza=focA.length-focANoti.length;
     const totFori=all.reduce((s,r)=>s+(r.fori||0),0);
-    $('vol-summary').innerHTML=all.length?`<div class="vol-sum"><b>${all.length}</b> volate · <b>${totFori}</b> fori · <b>${totKg===null?'—':totKg.toFixed(1)}</b> kg${focASenza?` · ${focASenza} ${focASenza===1?'non dichiara':'non dichiarano'} i chili`:''}</div>`:'';
+    $('vol-summary').innerHTML=all.length?`<div class="vol-sum"><b>${all.length}</b> ${plurale(all.length,'volata','volate')} · <b>${totFori}</b> ${plurale(totFori,'foro','fori')} · <b>${totKg===null?'—':totKg.toFixed(1)}</b> kg${focASenza?` · ${focASenza} ${focASenza===1?'non dichiara':'non dichiarano'} i chili`:''}</div>`:'';
     if(all.length===0){$('vol-list').innerHTML='<div class="empty-state"><div class="empty-icon">💥</div><div class="empty-title">Nessuna volata</div><div class="empty-sub">Non ci sono ancora rapportini fochino</div></div>';return;}
-    $('vol-list').innerHTML=all.map(r=>{const c=DB.cave.find(x=>x.id===r.cavaId);const u=DB.users.find(x=>x.id===r.userId);return`<div class="sitem" onclick="apriRappFocDett('${r.id}')"><div class="av" style="background:linear-gradient(135deg,#ef5350,#c62828);color:#fff;">💥</div><div class="sinfo"><div class="sname">${c?escHtml(c.nome):'—'} · ${fmt(r.data)}</div><div class="ssub">${u?escHtml(u.nome+' '+u.cognome):'—'} · ${r.fori||0} fori · ${focKg(r)}</div></div><div class="sarr">›</div></div>`;}).join('');
+    $('vol-list').innerHTML=all.map(r=>{const c=DB.cave.find(x=>x.id===r.cavaId);const u=DB.users.find(x=>x.id===r.userId);return`<div class="sitem" onclick="apriRappFocDett('${r.id}')"><div class="av" style="background:linear-gradient(135deg,#ef5350,#c62828);color:#fff;">💥</div><div class="sinfo"><div class="sname">${c?escHtml(c.nome):'—'} · ${fmt(r.data)}</div><div class="ssub">${u?escHtml(u.nome+' '+u.cognome):'—'} · ${conta(r.fori||0,'foro','fori')} · ${focKg(r)}</div></div><div class="sarr">›</div></div>`;}).join('');
     return;
   }
   const totAll=totaliRapportini(all);
   const totMc=totAll.mc;
   const totFori=totAll.fori;
-  $('vol-summary').innerHTML=all.length?`<div class="vol-sum"><b>${all.length}</b> rapportini · <b>${totFori}</b> fori · <b>${totMc===null?'—':totMc.toFixed(1)}</b> mc${rappFuori(totAll)}</div>`:'';
+  $('vol-summary').innerHTML=all.length?`<div class="vol-sum"><b>${all.length}</b> ${plurale(all.length,'rapportino','rapportini')} · <b>${totFori}</b> ${plurale(totFori,'foro','fori')} · <b>${totMc===null?'—':totMc.toFixed(1)}</b> mc${rappFuori(totAll)}</div>`:'';
   if(all.length===0){$('vol-list').innerHTML='<div class="empty-state"><div class="empty-icon">📋</div><div class="empty-title">Nessun rapportino</div><div class="empty-sub">Nessun rapportino di perforazione trovato</div></div>';return;}
   $('vol-list').innerHTML=all.map(r=>{const c=DB.cave.find(x=>x.id===r.cavaId);const u=DB.users.find(x=>x.id===r.userId);return`<div class="sitem" onclick="apriRapport('${r.id}')"><div class="av av-cv">${c?escHtml(c.nome.substr(0,2).toUpperCase()):'—'}</div><div class="sinfo"><div class="sname">${c?escHtml(c.nome):'—'} · ${fmt(r.data)}</div><div class="ssub">${u?escHtml(u.nome+' '+u.cognome):'—'} · ${rappRiga(r)}</div></div><div class="sarr">›</div></div>`;}).join('');
 }
@@ -2607,7 +2607,7 @@ function apriRappFocDett(id){
       ${r.oi||r.of?`<div class="preview-row"><span class="preview-lab">Orario</span><span class="preview-val">${r.oi||'—'} → ${r.of||'—'}</span></div>`:''}
       <div class="preview-row"><span class="preview-lab">Fori</span><span class="preview-val">${misureVolataFochino(r).fori}</span></div>
       <div class="preview-row"><span class="preview-lab">Esplosivo tot.</span><span class="preview-val">${focKg(r,'non dichiarato: nessun foro porta i chili')}</span></div>
-      ${misureVolataFochino(r).parziale?`<div class="preview-row"><span class="preview-lab"></span><span class="preview-val" style="color:var(--muted);font-size:12px;">${misureVolataFochino(r).senzaKg} fori su ${misureVolataFochino(r).fori} non dichiarano i chili: il totale è un minimo</span></div>`:''}
+      ${misureVolataFochino(r).parziale?`<div class="preview-row"><span class="preview-lab"></span><span class="preview-val" style="color:var(--muted);font-size:12px;">${conta(misureVolataFochino(r).senzaKg,'foro','fori')} su ${misureVolataFochino(r).fori} non dichiarano i chili: il totale è un minimo</span></div>`:''}
     </div>
     ${foriRows?`<div class="preview-sec">${foriRows}</div>`:''}
     ${r.note?`<div class="preview-sec"><div class="preview-head">Note</div><div style="font-size:13px;">${escHtml(r.note)}</div></div>`:''}
@@ -3735,7 +3735,7 @@ function renderDashboard(){
       <div class="kpi-card">
         <div class="kpi-lbl">Mc totali</div>
         <div class="kpi-val">${totMc===null?'—':totMc.toFixed(0)}</div>
-        <div class="kpi-sub">${totFori} fori · ${totMetri===null?'—':totMetri.toFixed(0)+' m'}${totDash.senzaMisura||totDash.senzaVolume?` · ${totDash.senzaMisura+totDash.senzaVolume} fuori dal totale`:''}</div>
+        <div class="kpi-sub">${conta(totFori,'foro','fori')} · ${totMetri===null?'—':totMetri.toFixed(0)+' m'}${totDash.senzaMisura||totDash.senzaVolume?` · ${totDash.senzaMisura+totDash.senzaVolume} fuori dal totale`:''}</div>
       </div>
       <div class="kpi-card">
         <div class="kpi-lbl">Operatori attivi</div>
@@ -3765,7 +3765,7 @@ function renderDashboard(){
         <div class="av av-cv">${escHtml(c.nome.substr(0,2).toUpperCase())}</div>
         <div class="sinfo">
           <div class="sname">${escHtml(c.nome)}</div>
-          <div class="ssub">${c.mc.toFixed(1)} mc · ${rapp.filter(r=>r.cavaId===c.id).length} rapportini</div>
+          <div class="ssub">${c.mc.toFixed(1)} mc · ${conta(rapp.filter(r=>r.cavaId===c.id).length,'rapportino','rapportini')}</div>
         </div>
         <div style="font-family:'Barlow Condensed',sans-serif;font-size:16px;font-weight:800;color:var(--amber);padding:0 8px;">${quotaMc(c.mc,totMc)}</div>
         <div class="sarr">›</div>
@@ -3778,7 +3778,7 @@ function renderDashboard(){
         <div class="av av-op">${escHtml((o.nome||'?')[0])}</div>
         <div class="sinfo">
           <div class="sname">${escHtml(o.nome)}</div>
-          <div class="ssub">${o.mc.toFixed(1)} mc · ${rapp.filter(r=>r.userId===o.id).length} rapportini</div>
+          <div class="ssub">${o.mc.toFixed(1)} mc · ${conta(rapp.filter(r=>r.userId===o.id).length,'rapportino','rapportini')}</div>
         </div>
         <div style="font-family:'Barlow Condensed',sans-serif;font-size:16px;font-weight:800;color:var(--amber);padding:0 8px;">${quotaMc(o.mc,totMc)}</div>
         <div class="sarr">›</div>
@@ -4026,7 +4026,7 @@ function exportRapportinoFocPDF(r){
     if(mf.parziale||!mf.dichiarato){
       d.setTextColor(150,90,0);d.setFont('helvetica','italic');
       d.text(mf.dichiarato
-        ? `${mf.senzaKg} fori su ${dett.length} non portano i chili: il totale è un minimo.`
+        ? `${conta(mf.senzaKg,'foro','fori')} su ${dett.length} non portano i chili: il totale è un minimo.`
         : 'Nessun foro porta i chili caricati: il totale non è zero, non è stato scritto.',14,y);
       d.setFont('helvetica','normal');d.setTextColor(40,40,40);y+=5;
     }
@@ -4689,7 +4689,7 @@ async function reconToVolata(){
        ricalcolaTotaliVolata(v);
        await fbSet('volate', v.id, v);
        auditLog('volata.recon_import', {volataId:v.id, added:n});
-       toast('Aggiunti '+n+' fori alla volata #'+(v.numero||'?')+' (nota di provenienza inclusa)','success');
+       toast('Aggiunt'+plurale(n,'o','i')+' '+conta(n,'foro','fori')+' alla volata #'+(v.numero||'?')+' (nota di provenienza inclusa)','success');
      }}]);
 }
 function reconExportHoles(){
@@ -4704,7 +4704,7 @@ function reconExportHoles(){
   const a=document.createElement('a');
   a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(csv);
   a.download='deepwork_fori_fronte.csv';a.click();
-  toast('Esportati '+_recon.markers.length+' fori (CSV in metri)','success');
+  toast('Esportat'+plurale(_recon.markers.length,'o','i')+' '+conta(_recon.markers.length,'foro','fori')+' (CSV in metri)','success');
 }
 function reconSnapshot(){
   if(!_recon||!_recon.renderer){toast('Ricostruisci prima il modello','err');return;}
@@ -5079,7 +5079,7 @@ function renderEditorCava(){
   const Borr=getBorraggio(v);const Spaz=getSpaziatura(v);
   $('ec-stats').innerHTML=`
     <span class="ec-stat">${tipoLabel}</span>
-    <span class="ec-stat"><b>${v.tot_fori}</b>fori</span>
+    <span class="ec-stat"><b>${v.tot_fori}</b>${plurale(v.tot_fori,'foro','fori')}</span>
     <span class="ec-stat"><b>${v.maglia.file}</b>file</span>
     <span class="ec-stat"><b>Sp${Borr}</b>×I<b>${Spaz}</b></span>
     <span class="ec-stat"><b>${v.tot_metri}</b>m</span>
@@ -5432,7 +5432,7 @@ function renderEditorSide(){
           <div style="font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:15px;color:var(--amber);">
             FORO #${f.num} ${statoBadge}
           </div>
-          <div style="font-size:10px;color:var(--muted);">${idx+1} di ${v.fori.length} fori</div>
+          <div style="font-size:10px;color:var(--muted);">${idx+1} di ${conta(v.fori.length,'foro','fori')}</div>
         </div>
         <button class="chg" ${hasNext?'':'disabled style="opacity:.3;"'} onclick="selezionaForo(${idx+1})" title="Foro successivo">▶</button>
       </div>
@@ -5755,7 +5755,7 @@ function applicaATutti(campo, valore){
   const numCampi=['x','y','prof','diam','sequenza','incl'];
   const val=numCampi.includes(campo)?parseNum0(valore):valore;
   openModal(`Applica a tutti i fori`,
-    `<p style="font-size:13px;">Vuoi impostare <b>${campo}</b> = "<b>${valore||'—'}</b>" per tutti i <b>${v.fori.length}</b> fori?</p>
+    `<p style="font-size:13px;">Vuoi impostare <b>${campo}</b> = "<b>${valore||'—'}</b>" per ${v.fori.length===1?'l\'unico':'tutti i'} <b>${v.fori.length}</b> ${plurale(v.fori.length,'foro','fori')}?</p>
      <p style="font-size:11px;color:var(--muted);margin-top:6px;">⚠ I valori individuali verranno sovrascritti.</p>`,
     [
       {label:'Annulla',cls:'mbtn',action:closeModal},
@@ -5767,7 +5767,7 @@ function applicaATutti(campo, valore){
         renderEditorCanvas();
         renderEditorSide();
         _aggiornaEcStats(v);
-        toast(`"${campo}" applicato a tutti i ${v.fori.length} fori`,'success');
+        toast(`"${campo}" applicato a tutti i ${conta(v.fori.length,'foro','fori')}`,'success');
       }}
     ]
   );
@@ -6537,7 +6537,7 @@ function renderMWDPreview(parsed){
   const sepLabel=parsed.separator==='\t'?'TAB':parsed.separator;
   $('mwd-preview').innerHTML=`
     <div style="background:var(--card);border:1px solid var(--success);padding:10px 12px;font-size:12px;">
-      <div style="margin-bottom:6px;color:var(--success);"><b>✓ ${parsed.rows.length}</b> fori rilevati · separatore <b>"${sepLabel}"</b></div>
+      <div style="margin-bottom:6px;color:var(--success);"><b>✓ ${parsed.rows.length}</b> ${plurale(parsed.rows.length,'foro rilevato','fori rilevati')} · separatore <b>"${sepLabel}"</b></div>
       <div style="color:var(--muted);margin-bottom:6px;">Colonne riconosciute:</div>
       <div style="margin-bottom:8px;">${colsFound.length>0?colsFound.map(c=>`<span class="scad-badge ok" style="margin-right:3px;">${c}</span>`).join(''):'<span style="color:var(--danger);">Nessuna riconosciuta!</span>'}</div>
       ${parsed.conUnita && parsed.conUnita.length ? `<div style="margin-bottom:8px;padding:7px 9px;background:rgba(255,171,0,.06);border-left:3px solid var(--muted);color:var(--muted);line-height:1.5;">
@@ -6746,7 +6746,7 @@ function _aggiornaEcStats(v){
   const tipoLabel={'cava':'⛰️','galleria':'🚇','altro':'🏗️'}[v.tipo||'cava']||'⛰️';
   $('ec-stats').innerHTML=`
     <span class="ec-stat">${tipoLabel}</span>
-    <span class="ec-stat"><b>${v.tot_fori}</b>fori</span>
+    <span class="ec-stat"><b>${v.tot_fori}</b>${plurale(v.tot_fori,'foro','fori')}</span>
     <span class="ec-stat"><b>${v.maglia.file}</b>file</span>
     <span class="ec-stat"><b>Sp${Borr}</b>×I<b>${Spaz}</b></span>
     <span class="ec-stat"><b>${v.tot_metri}</b>m</span>
@@ -7212,7 +7212,7 @@ function renderVolateList(){
         <div class="av av-am">${ticoIco}</div>
         <div class="sinfo">
           <div class="sname">${escHtml(titolo)} · ${fmt(v.data)}</div>
-          <div class="ssub">${v.tot_fori||0} fori${v.tot_kg>0?' · '+v.tot_kg+' kg':''} · ${v.tot_mc||0} mc</div>
+          <div class="ssub">${conta(v.tot_fori||0,'foro','fori')}${v.tot_kg>0?' · '+v.tot_kg+' kg':''} · ${v.tot_mc||0} mc</div>
         </div>
         <div class="sarr">›</div>
       </div>`;
