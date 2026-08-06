@@ -345,6 +345,43 @@ Perché serva davvero e non produca elenchi generici, cinque vincoli:
   prodotto**, e va applicato a ogni funzione nuova che riassume qualcosa. Il
   segno che è stato violato è sempre lo stesso — un numero o un colore
   **tranquillo** dove non è stato misurato niente.
+- ⛔ **E IL NUMERO PUÒ ESSERE GIUSTO MENTRE A MENTIRE È IL DISEGNO.** Forma
+  nuova del principio qui sopra, censita il 06/08 e costata **sei difetti veri
+  in un giorno**. Nel core la barra di luglio dichiarava `height:100%` e
+  `data-val="2261.7 mc"` e veniva disegnata **3 px**, identica ai cinque mesi a
+  zero: `.chart-bars` era alto 120px ma la colonna dentro, con
+  `align-items:flex-end`, restava alta quanto il contenuto, quindi la
+  percentuale si risolveva contro un `auto`. CSS valido, percentuale presente,
+  zero errori in console: **non c'è niente da leggere**. Poi la stessa famiglia
+  in tre app — in Terra una barra da 8,88 px su un anno senza rilievi mentre i
+  KPI sopra dicevano «—»; in Conti una fattura vera da **12 €** disegnata a
+  **zero px** e 9.750 € e 8.100 € tutt'e due a 7,88; in Sentinella la miniatura
+  che contraddiceva il badge sopra di lei su una lettura **pari** alla soglia.
+  ⚠️ **E non si vedeva perché non c'era mai stata una barra alta**: senza dati
+  d'esempio tutti i valori sono a zero, e stanghette uguali sono esattamente
+  quello che ci si aspetta da un grafico vuoto. Quindi il metodo, provato su
+  cinque app: si costruisce il caso **iniettando i dati nella risposta HTTP**
+  del proprio server (mai sul file), si misurano i **pixel** con
+  `getBoundingClientRect()` contro il valore dichiarato, e la prova che conta è
+  **il rapporto fra due valori diversi** — un campione solo non distingue
+  «funziona» da «sono tutti uguali». Difesa: `lunghezzaBarra` in
+  `shared/dw-grafici.js` (uno zero si disegna zero) e quattro banchi in
+  `tests/browser/*-disegni.mjs` / `terra-geometrie.mjs`.
+  ⚠️ Il limite dichiarato: un **minimo di visibilità** appiattisce comunque i
+  valori piccoli fra loro (misurato su Scudo: 2, 3, 5 e 10 scadenze tutte a
+  1,85 px). Alzarlo o abbassarlo non risolve — i banchi **stampano le coppie
+  appiattite** invece di saltarle in silenzio.
+- ⛔ **UNA COPIA NASCE QUASI SEMPRE DA UNA FIRMA TROPPO STRETTA.** Tre volte in
+  poche ore il 06/08, in tre posti che non si parlano: il minimo della barra
+  scritto a mano in tre punti di `dw-grafici`; `disegnaSpark` che decideva la
+  soglia con `>` mentre la sorella `disegnaLinea` legge già `inclusiva`; e
+  `jitterGeo` di Genesi col seme **inchiodato a 7**, per cui chi ne serviva tre
+  diversi ha ricopiato sei righe. In tutt'e tre i casi la copia è sparita
+  **aggiungendo un argomento** (o allargando il contratto), non riscrivendo
+  niente. Quindi la domanda da farsi **prima** di ricopiare un corpo:
+  *all'originale manca un parametro?* Costa una riga e toglie una divergenza
+  futura — che era già lì: la seconda Box–Muller scriveva `6.2831853` dove il
+  modulo scrive `2*Math.PI`.
 - ⛔ **UNA REGOLA CHE SERVE A DUE APP VIVE IN `shared/`.** Non nel modulo di una
   delle due (nessuna app importa il modulo dati di un'altra) e **mai riscritta**:
   è il difetto che è costato una giornata intera con la convenzione sui numeri,
@@ -786,6 +823,63 @@ Perché serva davvero e non produca elenchi generici, cinque vincoli:
   costruita in ora **locale** perde una o due ore, e quando attraversano la
   mezzanotte cambia il **giorno**. **Un controllo che gira in un ambiente
   diverso da quello del cliente misura l'ambiente, non il prodotto.**
+- ⛔ **UNO STRUMENTO CHE SCRIVE SUL SOGGETTO CHE MISURA DEVE LEGGERLO PRIMA DI
+  SCRIVERCI.** Misurato il 06/08, ed è la causa — cercata per giorni nel posto
+  sbagliato — dello «0 modali aperte su 68» del banco `modali-dentro.mjs`.
+  `SCEGLI` metteva il contrassegno `data-dw-sonda` sull'elemento e **poi** ne
+  calcolava l'impronta; ma `identita` e `forma` leggono il `dataset`, quindi
+  quello che tornava era l'impronta dell'elemento **col contrassegno addosso**
+  (`BUTTON|btn-x|dwSonda=1`). `TOCCA` il contrassegno lo toglie, e al giro dopo
+  il confronto era fra `BUTTON|btn-x|` e una lista che conteneva
+  `…|dwSonda=1`: non combaciavano **mai**. Le due difese contro i doppioni
+  erano tutt'e due morte e il banco ripremeva lo stesso pugno di comandi — i
+  «6.800 comandi provati» che sembravano la prova di una superficie senza dati.
+  Dopo: **0 → 11 modali**, comandi **6.800 → 980**. Il contrassegno serve a
+  **ritrovare** l'elemento dopo, non a descriverlo.
+  ⚠️ E le due diagnosi precedenti erano tutt'e due plausibili e tutt'e due
+  false (il selettore `.sitem`, poi la dimostrazione vuota): quando una misura
+  non torna, il sospettato più facile è il soggetto — ed è quasi sempre il
+  righello.
+- ⛔ **QUANDO UNA REGOLA CSS NON MORDE, SI GUARDA CHI VINCE — NON LO SI
+  DEDUCE.** Il 06/08, correggendo la barra in alto del core a 320 px, ho dato
+  la colpa a **due** cose sbagliate prima di trovare quella giusta:
+  1. «vince l'ultimo `@media`» — vero, e c'erano davvero **due blocchi
+     `@media(max-width:360px)`** nello stesso foglio a cinquecento righe di
+     distanza (prima di aprirne uno, si cerca se c'è già: è la regola 22 di
+     `run-stile` in versione «stesso foglio»). Ma spiegava **una dichiarazione
+     su tre**;
+  2. quella vera: le due metà della barra avevano lo **stile in linea**, che
+     batte qualunque regola del foglio senza `!important`. Nessun `@media`, in
+     nessun punto del file, avrebbe potuto cambiarle.
+  Il segnale che inganna: il browser rispondeva `mq360: true` e teneva nascosto
+  l'elemento giusto — cioè **tutti i segnali che la regola fosse attiva** —
+  mentre tre dichiarazioni su quattro venivano buttate. `getComputedStyle`
+  risponde in tre secondi.
+- ⛔ **UN CONTROLLO SULL'OVERFLOW NON VEDE IL TRABOCCAMENTO ALL'INDIETRO.** Con
+  `justify-content:flex-end`, il contenuto che non ci sta esce dalla parte
+  **opposta** — verso l'inizio, sopra il vicino — e `scrollWidth > clientWidth`
+  risponde «a posto». È così che la pastiglia «NON SALVA» stava **sopra il nome
+  dell'utente** nella prima schermata del core a 320 px senza che nessuna misura
+  se ne accorgesse. Il segno da cercare: un figlio `position:static`, senza
+  trasformazioni, il cui rettangolo cade **fuori dalla scatola del padre**.
+- ⚠️ **«CI STA» NON È «SI USA», e il primo verde è la trappola.** Stessa
+  giornata: reso cedevole il blocco della barra, la pagina non scorreva più — e
+  il bottone «Esci» era diventato largo **16 px** su 44 di altezza, dentro lo
+  schermo e impossibile da premere. Fermarsi al numero che si stava inseguendo
+  avrebbe consegnato un difetto **peggiore** di quello di partenza, perché
+  invisibile a chi misura l'overflow. Dopo una correzione di layout si
+  rimisurano **i bersagli di tocco** (44×44, e il punto centrale deve
+  appartenere all'elemento o a un suo discendente), non solo lo scorrimento.
+- ⏱️ **E C'È UNA TERZA FORMA DI INVECCHIAMENTO DEI DOCUMENTI: IL VERDETTO REGGE
+  E SCADE LA PROVA.** Oltre al «non c'è» **sbagliato** e a quello **scaduto**,
+  il 06/08 su `docs/CONCORRENTI_SCUDO.md` due righe portavano una prova falsa
+  con un giudizio giusto: «l'unica stampa è il verbale DPI» (le stampe erano
+  due) e «restano i tre export CSV» (erano quattro). Il verdetto non cambiava.
+  Ma chi riapre la riga fra un mese verifica la prova, la trova falsa, e
+  conclude che sia scaduta **tutta la riga** — e apre un cantiere su una cosa
+  che esiste già. **Una prova che invecchia non rende la riga sbagliata: la
+  rende non credibile**, che è peggio, perché la fa buttare via insieme a
+  quelle giuste.
 - ⚠️ **IL CONTROLLO CHE NON GUARDA DOVE CREDE.** Variante della regola qui
   sopra, e più insidiosa: il controllo **sa** fallire, ma il suo filtro esclude
   proprio i casi che contano, e allora risponde «pulito» senza aver guardato
