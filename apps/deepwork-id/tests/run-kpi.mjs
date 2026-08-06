@@ -10279,6 +10279,49 @@ test("statoVuoto: la struttura è quella del core, invariata", () => {
     const g = sentinella.serieStorica({ tipo: "vibrazioni", soglia: 500, letture: [{ data: "2026-07-10", valore: 1 }] }, {});
     contiene(g.lineaSoglia, { valore: 500, fuoriScala: true }, "soglia dichiarata fuori scala");
   });
+  /* ⛔ LA GEOMETRIA CHE MENTE COL NUMERO GIUSTO. Il 06/08, nel core, la barra
+     di luglio dichiarava `2261.7 mc` e veniva disegnata TRE PIXEL, identica ai
+     cinque mesi a zero: `height:100%` si risolveva contro un'altezza `auto`.
+     Il numero era giusto, a mentire era il disegno — e non c'era niente da
+     leggere: CSS valido, percentuale presente, zero errori in console.
+     Qui quella forma costa di più, perché questi disegni dicono conforme o
+     superamento. Le due domande che la prendono sono queste, e in `serieStorica`
+     si possono fare senza browser perché la geometria esce dal modulo:
+     1. i pixel stanno nello stesso RAPPORTO dei valori? Un campione solo non
+        distingue «funziona» da «sono tutti uguali»: ne servono tre;
+     2. la LINEA DI SOGLIA sta sulla stessa scala dei punti? Se le due scale
+        divergessero, una lettura oltre soglia finirebbe disegnata SOTTO la
+        linea — cioè il disegno direbbe «conforme» su un superamento.
+     ⚠️ La tolleranza è ASSOLUTA (un decimo di unità), non relativa: `serieStorica`
+     arrotonda le coordinate a un decimo, e un margine in percentuale sarebbe
+     insieme lasco in cima alla scala e stretto in fondo. */
+  test("⛔ serieStorica: i punti sono proporzionali ai valori, e la soglia sta sulla LORO scala", () => {
+    const g = sentinella.serieStorica({ tipo: "polveri", soglia: 250, letture: [
+      { data: "2026-05-04", valore: 20 }, { data: "2026-05-14", valore: 100 }, { data: "2026-05-24", valore: 200 },
+    ] }, {});
+    const zero = g.yTicks.find(t => t.valore === 0);
+    ok(zero && zero.y === g.box.y1, "lo zero della scala è l'asse in basso");
+    // la scala si legge dal punto più alto, dove l'arrotondamento pesa meno
+    const per = (zero.y - g.punti[2].y) / g.punti[2].valore;
+    for (const p of g.punti)
+      ok(Math.abs((zero.y - p.y) - p.valore * per) <= 0.1,
+        `${p.valore} è disegnato a ${+(zero.y - p.y).toFixed(2)} dall'asse, e sulla scala ne servono ${+(p.valore * per).toFixed(2)}`);
+    ok(Math.abs((zero.y - g.lineaSoglia.y) - 250 * per) <= 0.1,
+      `la soglia 250 è a ${+(zero.y - g.lineaSoglia.y).toFixed(2)} dall'asse, e sulla scala dei DATI ne servono ${+(250 * per).toFixed(2)}`);
+  });
+  test("⛔ serieStorica: 10,1 sta sopra la linea di soglia e 9,9 sotto (soglia 10)", () => {
+    /* il caso più grave di questa app, ridotto all'osso: due letture a un
+       decimo dalla soglia. In SVG «più in alto» vuol dire y MINORE. */
+    const g = sentinella.serieStorica({ tipo: "rumore", soglia: 10, letture: [
+      { data: "2026-05-04", valore: 9.9 }, { data: "2026-05-14", valore: 10.1 }, { data: "2026-05-24", valore: 9.95 },
+    ] }, {});
+    const sotto = g.punti[0], sopra = g.punti[1], y = g.lineaSoglia.y;
+    ok(sopra.y < y, `10,1 disegnata a y ${sopra.y}, sopra la soglia a ${y}`);
+    ok(sotto.y > y, `9,9 disegnata a y ${sotto.y}, sotto la soglia a ${y}`);
+    eq([sotto.oltre, sopra.oltre, g.punti[2].oltre], [false, true, false],
+      "e solo quella oltre porta il segno del superamento");
+    eq(g.superamenti, 1, "uno solo contato");
+  });
   test("i tipi di ricettore sono una lista chiusa, e uno sconosciuto non diventa «abitazione»", () => {
     eq(sentinella.TIPI_RICETTORE.map(t => t.chiave),
       ["abitazione", "scuola", "ospedale", "confine", "storico", "altro"], "i sei tipi");
@@ -21870,6 +21913,89 @@ test("⛔ etichettaStatoDocumento: la mappa esce dalla pagina e la leggono in du
     eq(scudo.riepilogoPotenziale(
       [{ id: "i", data: "2026-08-01", tipo: "infortunio", gravitaPotenziale: "mortale" }], 90, OGGI).eventi, 0,
        "un infortunio non è un mancato infortunio");
+  });
+}
+
+console.log("\n— Conti · la barra di peso: il numero è giusto e a mentire è il DISEGNO —");
+{
+  /* ⛔ IL DIFETTO CHE QUESTE PROVE TENGONO CHIUSO. Fino al 06/08 le quattro
+     liste con la barra sotto la riga se la scrivevano da sole, tutte uguali:
+     `width:${Math.round(importo / massimo * 100)}%`. Sotto lo 0,5% della scala
+     l'arrotondamento all'intero dà `width:0%`, cioè lo stesso disegno che si
+     fa per uno zero vero — misurato nel browser con una fattura da 480.000 €
+     in archivio: la fascia «scaduto 61–90 gg» con 12 € dentro usciva 0 px,
+     identica alle due fasce accanto che di fatture non ne hanno nessuna.
+     Il passo dell'1% vale ~4 px, quindi 9.750 € e 8.100 € finivano tutt'e due
+     a 7,96 px: importi diversi, pixel identici.
+     ⚠️ Il browser è servito a SCOPRIRLO; qui dentro sta la parte che si prova
+     senza, perché `stileBarraPeso` prende due numeri e restituisce una
+     stringa. La misura in pixel vera vive in
+     `tests/browser/conti-barre-peso.mjs`. */
+  const larg = (st, contenitore = 398) => {
+    if (st === null) return null;
+    const p = /width:([\d.]+)%/.exec(st);
+    const w = p ? (parseFloat(p[1]) / 100) * contenitore : 0;
+    const mw = /min-width:(\d+)px/.exec(st);
+    return mw ? Math.max(+mw[1], w) : w;
+  };
+
+  test("un importo vero non viene mai disegnato a zero pixel", () => {
+    /* il caso misurato: 12 € su una scala da 494.000 € */
+    const st = conti.stileBarraPeso(12, 494000);
+    ok(/min-width:3px/.test(st), "sotto la soglia visibile resta il segno che dice «qui c'è qualcosa»: " + st);
+    ok(larg(st) >= 3, "e in pixel sono almeno tre, non zero: " + larg(st));
+    /* la versione di prima, rimessa qui come metro: dava esattamente 0 */
+    eq(Math.round(12 / 494000 * 100), 0, "ecco perché usciva `width:0%`");
+  });
+
+  test("lo zero VERO resta distinguibile dall'importo minuscolo", () => {
+    eq(conti.stileBarraPeso(0, 494000), "width:0%", "lo zero non lascia segno");
+    eq(larg(conti.stileBarraPeso(0, 494000)), 0, "zero pixel");
+    ok(larg(conti.stileBarraPeso(12, 494000)) > larg(conti.stileBarraPeso(0, 494000)),
+       "e 12 € disegna più di 0 €");
+  });
+
+  test("due importi diversi non finiscono negli stessi pixel", () => {
+    const coppie = [[9750, 8100], [5900, 4400], [12300, 12000]];
+    for (const [a, b] of coppie) {
+      eq(Math.round(a / 494000 * 100), Math.round(b / 494000 * 100),
+         `prima ${a} e ${b} davano la stessa percentuale intera`);
+      ok(larg(conti.stileBarraPeso(a, 494000)) > larg(conti.stileBarraPeso(b, 494000)),
+         `adesso ${a} disegna più di ${b}`);
+    }
+  });
+
+  test("la lunghezza resta proporzionale al valore", () => {
+    /* la prova che conta è il RAPPORTO fra due valori diversi: un campione
+       solo non distingue «funziona» da «sono tutte uguali» */
+    const a = larg(conti.stileBarraPeso(14000, 22050)), b = larg(conti.stileBarraPeso(22050, 22050));
+    ok(Math.abs(a / b - 14000 / 22050) < 0.001, `rapporto pixel ${(a / b).toFixed(4)} contro rapporto valori 0,6349`);
+    /* e sopra la soglia dei 3 px il minimo non deve più falsare niente */
+    const c = larg(conti.stileBarraPeso(11025, 22050));
+    ok(Math.abs(c / b - 0.5) < 0.001, "metà valore, metà pixel: " + (c / b).toFixed(4));
+  });
+
+  test("quello che non si può disegnare NON si disegna", () => {
+    /* ⛔ il principio del fondatore applicato al disegno: una barra a zero si
+       legge «misurato, ed è zero». Chi chiama, con `null`, non mette la barra. */
+    eq(conti.stileBarraPeso(null, 494000), null, "importo assente");
+    eq(conti.stileBarraPeso(undefined, 494000), null, "importo non passato");
+    eq(conti.stileBarraPeso(NaN, 494000), null, "importo non calcolabile");
+    eq(conti.stileBarraPeso("boh", 494000), null, "importo illeggibile");
+    eq(conti.stileBarraPeso(500, 0), null, "scala a zero: prima dava `width:Infinity%`, che il browser ignora");
+    eq(conti.stileBarraPeso(500, null), null, "scala assente");
+  });
+
+  test("i casi ai bordi non escono dal contenitore", () => {
+    eq(conti.stileBarraPeso(22050, 22050), "width:100%;min-width:3px", "il massimo riempie e non straborda");
+    eq(conti.stileBarraPeso(150, 100), "width:100%;min-width:3px", "oltre il massimo resta al 100%, non 150%");
+    eq(conti.stileBarraPeso(-50, 100), "width:0%", "un negativo non disegna una barra all'indietro");
+  });
+
+  test("i numeri scritti come stringa si leggono", () => {
+    /* le liste passano quello che arriva dal modulo, e un importo può essere
+       arrivato da un CSV: `+"12"` fa 12, e la barra deve esserci */
+    eq(conti.stileBarraPeso("12", 494000), conti.stileBarraPeso(12, 494000), "«12» e 12 disegnano uguale");
   });
 }
 

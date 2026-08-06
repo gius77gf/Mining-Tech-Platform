@@ -149,6 +149,28 @@
   }
   function num(v) { return typeof v === 'number' && isFinite(v); }
 
+  /* ⛔ UNO ZERO SI DISEGNA ZERO, E QUESTA FUNZIONE ESISTE PERCHE' LA REGOLA
+     STAVA SCRITTA IN TRE POSTI CON LO STESSO DIFETTO. Il 06/08 tre cantieri
+     paralleli — Terra, Conti, Sentinella — hanno misurato col righello ogni
+     geometria delle loro app, e sono arrivati alla stessa riga da tre strade:
+       · barre orizzontali e verticali: `Math.max(2, …)`. In Terra un fronte
+         **mai rilevato** (0 m3) e uno da **1.000 m3**, su un grafico che
+         arriva a 200.000, uscivano tutti e due **1,85 px**;
+       · `avanzamento`: `Math.max(spessore * 0.6, …)`. In Conti un ordine
+         **consegnato allo 0%** disegnava una pillola piena per **9,6 unita'
+         su 352** (2,7%), e con `etichettaValore:false` quella pillola e'
+         l'unica cosa che si vede.
+     Il minimo serve, e resta: una quantita' piccola ma vera dev'essere
+     visibile e toccabile. Quello che non deve succedere e' che lo **zero** —
+     che nell'ecosistema vuol dire spesso «nessuno ha misurato» — prenda in
+     prestito quel minimo e si disegni come una quantita'. E' il principio del
+     fondatore («l'assenza di un dato non e' un dato favorevole») portato dove
+     finora viveva solo nei numeri e nei colori: nella **geometria**.
+     ⚠️ La soglia e' `<= 0` e non `=== 0` di proposito: un valore negativo su
+     una barra che parte da zero e' gia' fuori dal suo verso, e disegnarne il
+     minimo direbbe «un po'» dove la verita' e' «non in questa direzione». */
+  function lunghezzaBarra(px, minimo) { return px <= 0 ? 0 : Math.max(minimo, px); }
+
   var fmtInt = new Intl.NumberFormat('it-IT', { maximumFractionDigits: 0 });
   var fmtDec = new Intl.NumberFormat('it-IT', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
   var fmtEur = new Intl.NumberFormat('it-IT', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 });
@@ -961,7 +983,7 @@
 
       dati.forEach(function (d, i) {
         var cy = box.y0 + bandaO * (i + 0.5);
-        var y = cy - spessO / 2, w = Math.max(2, pxv(d.valore) - pxv(0));
+        var y = cy - spessO / 2, w = lunghezzaBarra(pxv(d.valore) - pxv(0), 2);
         svg.appendChild(nodo('rect', { 'class': 'dwg-hit', x: box.x0 - etLargh - 8, y: cy - bandaO / 2, width: box.x1 - box.x0 + etLargh + 8, height: bandaO, 'data-i': i }));
         svg.appendChild(barraPath(pxv(0), y, w, spessO, 4, true, classeBarra(d, i, taglio, s)));
         /* nell'orizzontale lo spazio riservato è `etLargh`, ma è TAGLIATO al 38%
@@ -998,7 +1020,7 @@
       var etichettaTutte = dati.length <= 8;
       dati.forEach(function (d, i) {
         var cx = box.x0 + banda * (i + 0.5);
-        var x = cx - spess / 2, y = pyv(d.valore), h = Math.max(2, pyv(0) - y);
+        var x = cx - spess / 2, y = pyv(d.valore), h = lunghezzaBarra(pyv(0) - y, 2);
         svg.appendChild(nodo('rect', { 'class': 'dwg-hit', x: (cx - banda / 2).toFixed(1), y: box.y0 - 14, width: banda.toFixed(1), height: box.y1 - box.y0 + 26, 'data-i': i }));
         svg.appendChild(barraPath(x, y, spess, h, 4, false, classeBarra(d, i, taglio, s)));
         /* l'etichetta sta nella sua banda MENO il respiro: due nomi che si toccano
@@ -1306,10 +1328,29 @@
     grad.appendChild(nodo('stop', { 'class': 'dwg-a1', offset: '1' }));
     defs.appendChild(grad); svg.appendChild(defs);
     if (s.area !== false) svg.appendChild(nodo('path', { 'class': 'dwg-area', fill: 'url(#' + g.id + 's)', d: d + 'L' + px(v.length - 1).toFixed(1) + ' ' + (h - 1) + 'L' + px(0).toFixed(1) + ' ' + (h - 1) + 'Z' }));
-    if (s.soglia != null) svg.appendChild(nodo('line', { 'class': 'dwg-soglia', x1: 1, y1: py(s.soglia).toFixed(1), x2: w - 1, y2: py(s.soglia).toFixed(1) }));
+    /* ⛔ LA MINIATURA CONTRADDICEVA IL BADGE CHE LE STAVA SOPRA, e la
+       differenza era un carattere. Misurato il 06/08 in Sentinella su un punto
+       con ultima lettura **40** e soglia **40**: il badge diceva «Superamento»,
+       la frase «1 volta oltre soglia», la serie storica disegnava il rombo
+       rosso — e la miniatura, **in mezzo alle due**, metteva il pallino di fine
+       corsa nella tinta dell'app, esattamente sulla linea di soglia.
+       La causa: qui si decideva con `>` stretto, mentre `disegnaLinea` legge
+       gia' `soglia.inclusiva` e tutta Sentinella conta `>=` — nel modulo, nel
+       badge, nel conteggio e nel file per l'ARPA. E' la «copia piu' debole»
+       nella sua veste grafica: la regola giusta esisteva gia' venti righe piu'
+       in la', e chi disegna la miniatura se n'era tenuta una versione corta.
+       ⚠️ Il contratto si allarga senza rompere quello vecchio: `soglia` puo'
+       restare un numero (com'e' nell'esempio d'uso in cima al file) oppure
+       diventare `{ valore, inclusiva }`, che e' la stessa forma che `linea`
+       accetta gia'. Due funzioni sorelle che chiedono la stessa cosa in due
+       modi diversi sono il modo in cui questa divergenza e' nata. */
+    var sog = (s.soglia && typeof s.soglia === 'object') ? s.soglia : { valore: s.soglia, inclusiva: false };
+    var sVal = num(sog.valore) ? sog.valore : null;
+    var sIncl = !!sog.inclusiva;
+    if (sVal != null) svg.appendChild(nodo('line', { 'class': 'dwg-soglia', x1: 1, y1: py(sVal).toFixed(1), x2: w - 1, y2: py(sVal).toFixed(1) }));
     svg.appendChild(nodo('path', { 'class': 'dwg-linea', d: d, pathLength: '1' }));
     var ult = v[v.length - 1];
-    var oltre = s.soglia != null && ult > s.soglia;
+    var oltre = sVal != null && (sIncl ? ult >= sVal : ult > sVal);
     if (oltre) {
       var X = px(v.length - 1), Y = py(ult);
       svg.appendChild(nodo('path', { 'class': 'dwg-oltre', d: 'M' + X.toFixed(1) + ' ' + (Y - 4).toFixed(1) + 'L' + (X + 4).toFixed(1) + ' ' + Y.toFixed(1) + 'L' + X.toFixed(1) + ' ' + (Y + 4).toFixed(1) + 'L' + (X - 4).toFixed(1) + ' ' + Y.toFixed(1) + 'Z' }));
@@ -1339,7 +1380,7 @@
     var y = conTacca ? 16 : 4;
     var r = hBarra / 2;
     svg.appendChild(nodo('rect', { 'class': 'dwg-track', x: 0, y: y, width: largo, height: hBarra, rx: r }));
-    var w = Math.max(hBarra * 0.6, largo * quota);
+    var w = lunghezzaBarra(largo * quota, hBarra * 0.6);
     var fill = nodo('rect', { 'class': 'dwg-fill' + (stato ? ' st-' + stato : ''), x: 0, y: y, width: w.toFixed(1), height: hBarra, rx: r });
     svg.appendChild(fill);
     svg.appendChild(nodo('rect', { 'class': 'dwg-riflesso', x: 2, y: y + 1.5, width: Math.max(0, w - 4).toFixed(1), height: Math.max(1, hBarra * 0.30).toFixed(1), rx: Math.max(1, hBarra * 0.15) }));

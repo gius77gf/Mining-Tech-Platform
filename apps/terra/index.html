@@ -258,6 +258,16 @@ body.dw.outdoor-mode{
   content:""; position:absolute; top:0; bottom:0; right:0; width:2px;
   background:var(--app-accent-soft); opacity:.75;
 }
+/* ⛔ NIENTE CONSUMATO SI DISEGNA VUOTO. `min-width:6px` serve a far vedere la
+   testa arrotondata quando il consumo è piccolo ma c'è: su `width:0%` invece
+   disegnava **6 px su 360**, l'1,67% dell'incavo — cioè ~20.000 m³ apparenti su
+   un concesso di 1,2 milioni — sul cartellone che il titolare guarda per primo.
+   Misurato col righello: dichiarato «0%», disegnati 6 px. La classe la mette
+   `cardVita` guardando i m³ (`vc.estratto`), NON la percentuale: `pct` è
+   arrotondata a un decimale, quindi 500 m³ veri fanno «0,0%» e quelli la testa
+   se la meritano — l'unico caso che si spegne è il consumo davvero a zero. */
+.vita-fill.vuota{min-width:0; box-shadow:none}
+.vita-fill.vuota::after{display:none}
 .vita.warn .vita-fill{
   background:linear-gradient(180deg,#ffc78c,#e08a35 62%,#b3651b);
   box-shadow:inset 0 1px 0 rgba(255,255,255,.26), 0 0 14px rgba(255,167,82,.30);
@@ -1298,6 +1308,31 @@ a.dw-btn{text-decoration:none}
         "Serve un <b>volume annuo pianificato</b> nel <b>Piano estrattivo</b>: da lì Terra ricava il pro-quota atteso a oggi e ti dice se sei avanti o indietro.");
       return;
     }
+    /* ⛔ UNA BARRA A ZERO È UNA MISURA, ANCHE QUANDO IL NUMERO È ZERO — e qui a
+       mentire non era il numero, era il DISEGNO.
+       `proiezioneAnnua` risponde `stato: "senza-rilievi"` quando nell'anno non
+       c'è nessun rilievo di scavo: è la bandiera che due riquadri più su spegne
+       il colore del KPI dell'avanzamento e fa scrivere «proiezione di fine anno:
+       non calcolabile». Il disegno non la leggeva. Misurato col righello sul
+       Quadro, con la dimostrazione senza rilievi: i due KPI in cima dicevano
+       «—», e tre centimetri sotto la barra disegnava **8,9 px su 368** (il
+       minimo del motore, il 2,4% della traccia, ~3.000 m³ di estratto
+       apparente) con la tacca del pro-quota al 59,7% e la frase «sei indietro
+       di 74.601 m³ rispetto al pro-quota atteso a oggi». Cioè: la stessa
+       schermata si smentiva, e la parte che pretendeva di aver misurato era
+       quella disegnata.
+       La regola non è nuova ed è di Terra: la Denuncia la applica già —
+       «la barra del consumo esiste solo se c'è un consumo misurato: disegnarla
+       a zero sarebbe la stessa buona notizia, in forma di grafico». Qui ne
+       viveva la copia più debole, quella che il flag lo legge per il colore ma
+       non per l'esistenza. */
+    if (pr.stato === "senza-rilievi") {
+      el.innerHTML = vuoto(I.mappa, "Avanzamento dell'anno non misurato",
+        "Quest'anno non risulta <b>nessun rilievo di scavo elaborato</b>: quanto è stato estratto non l'ha misurato nessuno, "
+        + "e senza quel numero non c'è niente da confrontare col piano annuo di <b>" + n0(pr.pianificato) + " m³</b>. "
+        + "<b>Non vuol dire che la cava sia ferma.</b> Registra un rilievo elaborato e l'avanzamento si accende.");
+      return;
+    }
     el.innerHTML = "";
     const atteso = Math.round(pr.pianificato * pr.frazione);
     const scarto = pr.estrattoAnno - atteso;
@@ -1459,6 +1494,17 @@ a.dw-btn{text-decoration:none}
       return;
     }
     el.innerHTML = "";
+    /* ⛔ UN FRONTE CHE NESSUNO HA RILEVATO ESCE COME UNA BARRA A ZERO, e allo
+       zero il motore dà comunque la sua stanghetta minima: sul disegno si legge
+       «da lì non è uscito niente», che è una misura. Non lo è — è che nessuno
+       l'ha misurato. Terra la frase ce l'ha già, due volte, con le stesse
+       parole: i mesi del grafico del ritmo («vuol dire che non è stato misurato
+       niente, non per forza che la cava fosse ferma») e i banchi della denuncia
+       («non hanno cavato zero, non li ha misurati nessuno»). Qui mancava, ed è
+       la stessa regola scritta più debole nel terzo posto. Le barre restano —
+       togliere il fronte lo nasconderebbe, che è peggio — ma la nota dice
+       quante sono e che cosa vogliono dire. */
+    const senzaRilievi = voci.filter(v => !(v.valore > 0)).length;
     dwGrafici.barre(el, {
       titolo: "Volumi per fronte",
       meta: "somma dei rilievi elaborati",
@@ -1467,6 +1513,11 @@ a.dw-btn{text-decoration:none}
       nota: (nonAss > 0
         ? "«Non assegnato» sono i rilievi elaborati senza fronte: restano in vista, altrimenti la somma non tornerebbe. Per farli sparire basta indicare il fronte quando registri il rilievo."
         : "Somma dei rilievi elaborati di ogni fronte, dal più al meno produttivo.")
+        + (senzaRilievi > 0
+          ? (senzaRilievi === 1
+              ? " <b>Un fronte è</b> a zero perché non ha nessun rilievo elaborato collegato: non ha cavato zero, non l'ha misurato nessuno."
+              : " <b>" + senzaRilievi + " fronti sono</b> a zero perché non hanno nessun rilievo elaborato collegato: non hanno cavato zero, non li ha misurati nessuno.")
+          : "")
         + (cumTot > 0
           ? " Fuori da questo conto restano <b>" + n0(cumTot) + " m³</b> ripresi da cumuli: erano già stati scavati, non escono adesso dal fronte."
           : ""),
@@ -1520,6 +1571,10 @@ a.dw-btn{text-decoration:none}
       </div>`;
     }
     const w = Math.max(0, Math.min(100, vc.pct));
+    /* la testa del riempimento si spegne quando non c'è NIENTE di consumato:
+       vedi il commento su `.vita-fill.vuota`. Si guardano i metri cubi, non la
+       percentuale, che è arrotondata a un decimale. */
+    const wVuota = !(vc.estratto > 0) ? " vuota" : "";
     /* solo gli stati che sono una MISURA colorano la scheda: una classe di
        stato inventata qui non esisterebbe nel foglio di stile */
     const st = ["warn", "danger"].includes(vc.stato) ? vc.stato : "";
@@ -1565,7 +1620,7 @@ a.dw-btn{text-decoration:none}
       </div>
       <div class="vita-bar">
         <div class="vita-track" role="img" aria-label="Consumato ${un1(vc.pct)} per cento del volume autorizzato${vc.soglia != null ? ", soglia di guardia al " + un1(vc.soglia) + " per cento" : ""}">
-          <i class="vita-fill" style="width:${w}%"></i>
+          <i class="vita-fill${wVuota}" style="width:${w}%"></i>
         </div>${soglia}
         <div class="vita-scala${scalaCls}"><span class="s0">0%</span>${tag}<span class="s100">100%</span></div>
       </div>

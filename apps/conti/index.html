@@ -1582,7 +1582,7 @@ label.item:has(.dw-chk:checked){
   /* l'estratto conto della banca: il file si legge e si abbina nel modulo dati,
      qui si disegna e si chiede conferma — `round2` è già importato più sotto */
   import { parseMovimentiCsv, abbinaMovimenti, ESTRATTO_ESEMPIO,
-           contiData, giorni, kpiFrom, statoScadenzaFattura, agingIncassi, gareRiepilogo, prioritaIncasso, incassoAtteso, incassoPerMese, esposizioneClienti, estrattoContoCliente, livelloSollecito, interessiMora, testoSollecito, TASSO_MORA_DEFAULT, statoTassoMora, parseFattureCsv, parseGareCsv, parseListinoCsv, chiaveNome, clienteDiFattura, nomeCliente, clientiDaCollegare,
+           contiData, giorni, kpiFrom, statoScadenzaFattura, agingIncassi, stileBarraPeso, gareRiepilogo, prioritaIncasso, incassoAtteso, incassoPerMese, esposizioneClienti, estrattoContoCliente, livelloSollecito, interessiMora, testoSollecito, TASSO_MORA_DEFAULT, statoTassoMora, parseFattureCsv, parseGareCsv, parseListinoCsv, chiaveNome, clienteDiFattura, nomeCliente, clientiDaCollegare,
     round2, baseGara, densitaValida, prezzoPerTonnellata, prezzoPerMetroCubo, convertiQuantita, imponibileRiga,
     importiFattura, totaliDaRighe, riepilogoIvaFattura, prossimoNumero, nettoPesata, rigaPesata, valorePesata, valoreDdt,
     quantitaPesata, pesateDaFatturare, fatturaDaPesate, canonePeriodo, BASI_CANONE, venditePerProdotto,
@@ -1624,6 +1624,16 @@ label.item:has(.dw-chk:checked){
     return n >= 10000 ? conEuro(NUM0.format(Math.round(n / 1000))) + '<span class="u">k</span>'
                       : conEuro(NUM0.format(Math.round(n))); };
   const plur = (n, s, p) => n + " " + (n === 1 ? s : p);
+  /* La barra di peso sotto le righe delle liste. La regola sta nel modulo
+     (`stileBarraPeso`, con il racconto del difetto che ha chiuso): qui c'è solo
+     il pezzo di pagina, scritto una volta perché i punti che la usano sono
+     quattro e prima ognuno se la ricalcolava a modo suo. Quando il modulo dice
+     `null` la barra NON si disegna: una barra a zero si legge «misurato, ed è
+     zero», e non è quello che sappiamo. */
+  const barraPeso = (valore, massimo) => {
+    const st = stileBarraPeso(valore, massimo);
+    return st ? `<span class="bar" style="${st}"></span>` : "";
+  };
   // ── QUANTITÀ: pesi e volumi in formato italiano. Due decimali come gli
   //    importi (10 kg di precisione sulla pesata: più che sufficiente).
   const qt   = (v) => NUM2.format(+v || 0);
@@ -2993,7 +3003,7 @@ label.item:has(.dw-chk:checked){
           <div class="amt-s">emesso</div></div>
         <div class="amt" style="min-width:118px;"><div class="amt-n${m.incassato ? " pos" : " mute"}">${eur(m.incassato)}</div>
           <div class="amt-s">incassato</div></div>
-        <span class="bar" style="width:${Math.round(Math.max(m.emesso, m.incassato) / fluMax * 100)}%"></span></div>`).join("")
+        ${barraPeso(Math.max(m.emesso, m.incassato), fluMax)}</div>`).join("")
         + `<div class="tot${fluScarto > 0 ? " warn" : ""}"><span class="tot-l">${
             fluScarto > 0 ? "Emesso e non ancora incassato (6 mesi)" : "Incassato più di quanto emesso (6 mesi)"}</span>
            <span class="tot-n">${eur(Math.abs(fluScarto))}</span></div>`
@@ -3090,7 +3100,7 @@ label.item:has(.dw-chk:checked){
       <div class="info"><div class="name">${et}</div>
       <div class="meta">${v.conto ? plur(v.conto, "fattura", "fatture") : "nessuna fattura"}</div></div>
       <div class="amt"><div class="amt-n${v.conto ? (cls === "danger" ? " neg" : "") : " mute"}">${eur(v.importo)}</div></div>
-      <span class="bar" style="width:${Math.round((v.importo || 0) / agMax * 100)}%"></span></div>`).join("")
+      ${barraPeso(v.importo, agMax)}</div>`).join("")
       + `<div class="tot${ag.scadutoTot > 0 ? " warn" : ""}"><span class="tot-l">Totale scaduto da sollecitare</span>
          <span class="tot-n">${eur(ag.scadutoTot)}</span></div>`
       /* ⚠️ niente `plur` qui: scrive anche il numero, e la frase ne ha già uno.
@@ -3156,7 +3166,7 @@ label.item:has(.dw-chk:checked){
       <div class="info"><div class="name">${nomeMese(m.mese)}</div>
       <div class="meta">${m.conto ? plur(m.conto, "fattura in scadenza", "fatture in scadenza") : "nessuna scadenza"}</div></div>
       <div class="amt"><div class="amt-n${m.importo > 0 ? " pos" : " mute"}">${eur(m.importo)}</div></div>
-      <span class="bar" style="width:${Math.round((m.importo || 0) / prevMax * 100)}%"></span></div>`).join("")
+      ${barraPeso(m.importo, prevMax)}</div>`).join("")
       : "")   // lo stato vuoto lo dà il grafico qui sopra: non si ripete due volte
       + (prev.scadute.conto ? `<div class="note">Escluse <b>${prev.scadute.conto}</b> già scadute (<b>${eur(prev.scadute.importo)}</b>): quelle vanno sollecitate, le trovi nell'aging qui sopra.</div>` : "");
 
@@ -3201,7 +3211,7 @@ label.item:has(.dw-chk:checked){
         <div class="amt"><div class="amt-n${c.oltreFido || c.scaduto > 0 ? " neg" : ""}">${eur(c.totale)}</div>
           <div class="amt-s">esposizione</div></div>
         <div class="acts"><button class="dw-btn secondary mini" data-espo="${i}" title="Copia l'estratto conto del cliente (tutte le fatture aperte + mora)">${IC.busta}Estratto</button></div>
-        <span class="bar" style="width:${Math.round((c.totale || 0) / espoMax * 100)}%"></span></div>`).join("")
+        ${barraPeso(c.totale, espoMax)}</div>`).join("")
         + `<div class="tot"><span class="tot-l">Credito aperto totale</span>
            <span class="tot-n">${eur(espo.reduce((t,c) => t + (+c.totale || 0), 0))}</span></div>`
       : vuoto("spunta", "Nessun credito aperto", "Tutte le fatture emesse risultano incassate: non c'è nessuno da chiamare.");

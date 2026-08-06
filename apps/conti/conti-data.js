@@ -539,6 +539,69 @@ export function statoScadenzaFattura(fattura, oggi = new Date()) {
 // ritardo rispetto alla scadenza (giorni negativi = scaduto). È lo
 // strumento amministrativo con cui si capisce quanto credito è "vecchio"
 // e va sollecitato per primo. Ogni fascia: numero fatture + importo.
+/* ══════════════════════════════════════════════════════════════════════
+   LA BARRA DI PESO — UNA GEOMETRIA CHE RAPPRESENTA UN IMPORTO
+   ──────────────────────────────────────────────────────────────────────
+   ⛔ IL NUMERO ERA GIUSTO E A MENTIRE ERA IL DISEGNO. Fino al 06/08 le
+   quattro liste con la barra sotto la riga (flusso, aging, previsione
+   incassi, esposizione) se la scrivevano da sole, tutte con la stessa
+   riga: `width:${Math.round(importo / massimo * 100)}%`. Due bugie, e
+   nessun errore da leggere — il CSS è valido, la percentuale c'è, la
+   console tace:
+
+   1. UN IMPORTO VERO DISEGNATO A ZERO PIXEL. Sotto lo 0,5% della scala
+      l'arrotondamento all'intero dà `width:0%`, cioè **niente**, che è
+      esattamente quello che si disegna per uno zero vero. Misurato con
+      una fattura da 480.000 € in archivio: la fascia «scaduto 61–90 gg»
+      con dentro 12 € reali usciva **0 px**, identica alle due fasce
+      accanto che di fatture non ne hanno nessuna. E non serve un caso
+      estremo: con una scala da 480.000 € sparisce **qualunque importo
+      sotto i 2.400 €**, cioè una fattura del tutto ordinaria.
+      È l'assenza di un dato spacciata per un dato: la riga dice «1
+      fattura, 12 €» e la barra dice «qui non c'è niente».
+   2. IMPORTI DIVERSI DISEGNATI IDENTICI. Un passo dell'1% vale ~4 px:
+      9.750 € e 8.100 € finivano tutt'e due a 7,96 px, e 5.900 € e
+      4.400 € tutt'e due a 3,98 px — barre uguali per importi che
+      differiscono di un terzo.
+
+   La regola giusta era già in casa e in due posti: `shared/dw-grafici.js`
+   tiene ogni barra a un minimo di 2 unità (`Math.max(2, …)`) e il core,
+   dal 06/08, tiene `min-height:3px` come «il pezzetto che dice che qui
+   c'è qualcosa». Le liste di Conti se n'erano tenuta una versione più
+   debole: è la copia debole di CLAUDE.md, nel posto dove il documento si
+   compone.
+
+   COSA RESTITUISCE, e perché tre risposte e non due:
+   · `null`  → non si può disegnare (importo assente o non calcolabile,
+     scala assente o non positiva). Chi chiama **non mette la barra**:
+     una barra a zero si legge «misurato, ed è zero», e l'assenza di un
+     dato non è un dato favorevole;
+   · `width:0%` senza minimo → lo zero VERO, che non deve lasciare segno;
+   · `width:<pct>%;min-width:3px` → tutto il resto. I 3 px non sono la
+     lunghezza dell'importo: sono il segno che dice **che l'importo c'è**,
+     esattamente come nel core. La percentuale resta scritta per intero
+     (quattro decimali, ~0,001 px di risoluzione), così due importi
+     diversi non finiscono mai nello stesso pixel.
+
+   ⚠️ IL LIMITE, MISURATO E DICHIARATO INVECE CHE NASCOSTO. La riga ha
+   `border-radius:8px` e la barra sta a `left:0;bottom:0` alta 2 px: un
+   segno da 3 px cade dentro la curva dell'angolo, subito dopo il bordo
+   colorato di sinistra. Fotografato a 8×, si vede — la riga cambia
+   davvero togliendo la barra, e uno zero vero non cambia niente — ma si
+   legge come un'ombra dell'angolo, non come una barra corta. Alzare il
+   minimo non è la risposta: a 10 px (2,5% della pista) si appiattirebbero
+   sullo stesso segno **sei righe su sette** del caso misurato, cioè si
+   rimetterebbe in piedi la seconda bugia per curare la prima. Il segno
+   resta quindi a 3 px, come nel core, e la cifra accanto — che c'è sempre
+   e nell'aging è pure colorata — è quella che porta il dato.
+   ══════════════════════════════════════════════════════════════════════ */
+export function stileBarraPeso(valore, massimo) {
+  const v = +valore, m = +massimo;
+  if (valore == null || !Number.isFinite(v) || !Number.isFinite(m) || m <= 0) return null;
+  if (v <= 0) return "width:0%";
+  return `width:${+Math.min(100, (v / m) * 100).toFixed(4)}%;min-width:3px`;
+}
+
 export function agingIncassi(fatture, oggi = new Date(), note = null) {
   const b = {
     nonScaduto: { conto: 0, importo: 0 },

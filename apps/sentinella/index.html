@@ -1934,7 +1934,12 @@ textarea.dw-input{
       const geo = sparkGeom();
       dwGrafici.sparkline("#peggio-spark", {
         valori,
-        soglia: sogliaOk ? +m.soglia : null,
+        // ⛔ `inclusiva: true` come per gli altri grafici: qui una lettura PARI
+        // alla soglia è un superamento, ed è così che contano il modulo, il
+        // badge, la serie storica e il file per l'ARPA. Senza, la miniatura
+        // diceva il contrario del badge che le sta sopra — misurato il 06/08
+        // su una lettura di 40 con soglia 40.
+        soglia: sogliaOk ? { valore: +m.soglia, inclusiva: true } : null,
         larghezza: geo.larghezza, altezza: geo.altezza,
         aria: `Andamento di ${m.nome}: ${valori.length} letture, da ${numeroIt(valori[0])} a ${numeroIt(valori[valori.length - 1])} ${unita}`
           + (sogliaOk ? `, soglia ${numeroIt(m.soglia)} ${unita}` : "") + ".",

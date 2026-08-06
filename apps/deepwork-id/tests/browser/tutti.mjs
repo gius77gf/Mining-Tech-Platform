@@ -189,6 +189,16 @@ const BANCHI = [
   ['i fogli stampati di Conti', 'conti-stampe.mjs', []],
   ['fogli di Conti · controprova', 'conti-stampe.mjs', ['--controprova'], true],
   ['fogli di Conti · controprova della ✎', 'conti-stampe.mjs', ['--controprova-matita'], true],
+  /* ⛔ AGGIUNTO IL 06/08 — il filo «il numero è giusto e a mentire è il DISEGNO»
+     portato nell'app dei soldi. Le quattro liste con la barra sotto la riga
+     scrivevano `width:Math.round(pct)%`: sotto lo 0,5% della scala l'intero dà
+     `width:0%`, cioè il disegno dello ZERO VERO — misurato, 12 € reali a 0 px
+     accanto a due fasce vuote a 0 px. E il passo dell'1% vale 4 px, quindi
+     9.750 € e 8.100 € uscivano tutt'e due a 7,88 px. Il caso (una fattura
+     grande e una minuscola) se lo costruisce nei DATI SERVITI: senza un valore
+     alto il difetto non si presenta, com'era successo nel core. */
+  ['le barre di peso di Conti', 'conti-barre-peso.mjs', []],
+  ['barre di peso di Conti · controprova', 'conti-barre-peso.mjs', ['--controprova'], true],
   /* ⛔ AGGIUNTO IL 03/08, stessa domanda applicata a Scudo: dove l'app compone
      qualcosa che ESCE, chi decide i suoi numeri? I quattro CSV li scrive la
      pagina, e ognuno era più tranquillo dello schermo — un'azione scaduta da
@@ -262,6 +272,20 @@ const BANCHI = [
      frasi e le celle vivono nella pagina. */
   ['i documenti di Terra e gli zeri mai misurati', 'terra-numeri-tranquilli.mjs', []],
   ['zeri mai misurati · controprova', 'terra-numeri-tranquilli.mjs', ['--controprova'], true],
+  /* ⛔ AGGIUNTO IL 06/08, ed è la famiglia che il 06/08 è stata censita nel
+     core: il numero è giusto e a mentire è il DISEGNO. Là una barra da 2.261,7
+     m³ ne disegnava 3, identica ai cinque mesi a zero, perché `height:100%` si
+     risolveva contro un genitore alto `auto`; e non l'aveva vista nessuno
+     perché senza dati d'esempio nessuna barra era mai stata alta. Questo banco
+     misura col righello ogni geometria di Terra — barra della vita cava, tacca
+     della soglia, avanzamenti, tre grafici a barre, la riga del pro-quota — e
+     non chiede «il disegno c'è?» ma «i pixel stanno fra loro come i valori?»,
+     con una scena che inietta un mese 200 volte più grande. Ha trovato due
+     disegni che pretendevano una misura che non c'era: la barra dell'anno nel
+     Quadro su un anno senza rilievi, e la testa del riempimento su un consumo
+     di zero m³. Nessuna suite `node` li poteva vedere: sono pixel. */
+  ['le geometrie di Terra, misurate in pixel', 'terra-geometrie.mjs', []],
+  ['geometrie di Terra · controprova', 'terra-geometrie.mjs', ['--controprova'], true],
   /* ⛔ AGGIUNTO IL 03/08, e la ragione è dichiarata: la regola sta in
      `shared/` ed è provata da otto blocchi in `run-kpi`, ma che l'ELENCO la
      chiami, che la scheda scriva la ragione invece di far sparire la riga e
@@ -294,6 +318,21 @@ const BANCHI = [
      il cliente consegna. */
   ['le dichiarazioni del report di Sentinella', 'sentinella-report-dichiarazioni.mjs', []],
   ['dichiarazioni del report · controprova', 'sentinella-report-dichiarazioni.mjs', ['--controprova'], true],
+  /* ⛔ AGGIUNTO IL 06/08. LA FORMA IN CUI A MENTIRE È IL DISEGNO, non il numero.
+     Nel core, quel giorno, la barra di luglio dichiarava `2261.7 mc` e veniva
+     disegnata 3 px — identica ai cinque mesi a zero — perché `height:100%` si
+     risolveva contro un'altezza `auto`. CSS valido, percentuale presente, zero
+     errori: solo una misura in pixel lo diceva. In Sentinella quella forma
+     costa di più, perché qui i disegni dicono conforme o superamento: il banco
+     misura ogni geometria in pixel e pretende il RAPPORTO fra valori diversi
+     (un campione solo non distingue «funziona» da «sono tutti uguali»), poi
+     chiede quale fra una lettura sopra soglia e la linea di soglia stia più in
+     alto. Ha trovato che la MINIATURA del Quadro contraddice il badge che le
+     sta sopra su una lettura pari alla soglia: il difetto è in `disegnaSpark`
+     di shared/dw-grafici.js, che decide con `>` mentre tutta Sentinella conta
+     `>=`. Finché quella riga non cambia, questo banco è KO di proposito. */
+  ['i disegni di Sentinella, misurati in pixel', 'sentinella-disegni.mjs', []],
+  ['disegni di Sentinella · controprova', 'sentinella-disegni.mjs', ['--controprova'], true],
   /* ⛔ AGGIUNTO IL 03/08, stessa famiglia dei due qui sopra. Su Campo il
      censimento statico era a ZERO, e i tre difetti sono usciti lo stesso: il
      CSV dello storico scriveva `0` minuti di fermo su una giornata con tre
