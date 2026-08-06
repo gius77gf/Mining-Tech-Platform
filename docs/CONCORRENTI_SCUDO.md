@@ -442,9 +442,63 @@
 
 ---
 
-## 7. Verifica del Delta (01/08 · **riverificata riga per riga il 03/08**)
+## 7. Verifica del Delta (01/08 · riverificata riga per riga il 03/08 · **arretrato richiuso il 06/08**)
 
-> **Verificato contro il codice al commit `ecc65d5`** (03/08). È l'ultimo commit
+> **Verificato contro il codice al commit `50dfe1b`** (06/08).
+>
+> ### 06/08 — i sette commit ripassati: nessun verdetto si muove, due PROVE sì
+>
+> Fra `ecc65d5` e `50dfe1b` Scudo è andata avanti di **7 commit** e **+2.479
+> righe** — il permesso di lavoro, la gravità potenziale, le visite mediche
+> dalla data illeggibile, le cartelle che uscivano «complete», il verbale DPI,
+> i CSV di dimostrazione. Le 17 righe reggono tutte, e la prova è il diff:
+>
+> ```
+> git diff ecc65d5 HEAD -- apps/scudo/ | grep -E "^\+" \
+>   | grep -oEi "versionamento|storico documenti|cronologia|revisione precedente|
+>                xlsx|excel|jspdf|notific|osservazion|buona pratica|buone pratiche|
+>                safety observation|offline|serviceworker|caches\.|video|\bpsc\b|
+>                jsa|lavori simultanei" | sort | uniq -c
+> → (nessuna riga)
+> ```
+>
+> Zero occorrenze su 19 termini nelle sole righe **aggiunte**, e zero anche sui
+> file interi. Le 38 funzioni esportate nuove sono tutte del permesso di lavoro
+> (`TIPI_PERMESSO`, `LIMITI_ATMOSFERA`, `letturaAtmosfera`, `esitoPermesso`…) e
+> della gravità potenziale (`GRAVITA_POTENZIALE`, `riepilogoPotenziale`,
+> `descriviRischioPotenziale`): nessuna colma una delle sei mancanze o uno dei
+> sei «a metà». E i **filtri incrociati** restano fuori — misurati adesso, i
+> soli `data-filtro` sono `tutte/scaduta/in-scadenza/regolare` sulle scadenze e
+> `tutti/infortunio/near-miss` sugli eventi: né sito né anno, quindi
+> «near-miss del fronte Est nel 2025» non si può ancora chiedere.
+>
+> ### ⏱️ E c'è una terza forma di invecchiamento, che qui si vede per la prima volta
+>
+> CLAUDE.md ne descrive due — il «non c'è» **sbagliato** e il «non c'è»
+> **scaduto**. Questa è la terza: **il verdetto regge e a scadere è la PROVA**.
+> Due righe la portavano, e nessuna delle due era sbagliata nel giudizio:
+>
+> · **«Report PDF automatico — ispezioni»** diceva *«l'unica stampa è il verbale
+>   DPI»*. Falso da `1857d83`: i percorsi di stampa sono **due**
+>   (`stampaVerbale` e la **cartella del personale**, `index.html:5192`). Il
+>   verdetto però regge, perché la domanda della riga è un'altra — nessuna
+>   stampa parte da un'**ispezione**, e nessuna delle due lo fa.
+> · **«Esportazione report PDF/Excel»** diceva *«restano i tre export CSV
+>   puntuali»*. Sono **quattro**: infortuni, azioni correttive, near-miss e —
+>   nuovo — `scudo_personale_scadenze.csv`. Verdetto invariato: nessun `xlsx`,
+>   nessun `jspdf`, nessun documento unico da consegnare.
+>
+> ⚠️ **Perché conta, anche se il verdetto non cambia.** Chi riapre la riga fra un
+> mese legge «l'unica stampa è il verbale DPI», lo verifica, lo trova falso — e
+> la conclusione naturale è che **tutta la riga** sia scaduta. Da lì si apre un
+> cantiere su una funzione che esiste già: è esattamente il modo di sprecare una
+> giornata che il 01/08 abbiamo già pagato due volte. Una prova che invecchia
+> non rende la riga sbagliata: rende la riga **non credibile**, che è peggio,
+> perché la fa buttare via insieme a quelle giuste.
+>
+> *(Il blocco qui sotto è la verifica del 03/08 e resta com'era scritta.)*
+
+> **Verificato al commit `ecc65d5`** (03/08). Era l'ultimo commit
 > che ha toccato `apps/scudo/`, quindi il contenuto letto è identico a quello di
 > `HEAD`: la verifica è stata fatta sul **committato**
 > (`git show HEAD:apps/scudo/scudo-data.js` e `…:apps/scudo/index.html`, albero
@@ -478,8 +532,8 @@ Il riferimento a `§2` è la riga corrispondente della tabella «Cosa Abbiamo».
 | Organigramma della sicurezza (§2 «Organigramma della sicurezza») | FALSA | `scudo-data.js:2085` `organigrammaSicurezza()`; usata in `index.html:1665`, sezione «Nomine della sicurezza» (`index.html:821`). |
 | **CONFERMATE ASSENTI** — in ordine di quanto le chiederebbe un ispettore |  |  |
 | Controllo versioni documenti (§2 «Controllo versioni documenti») | CONFERMATA | `grep -ciE 'versionamento\|storico documenti\|cronologia\|revisione precedente'` → **0 e 0**. Le 38 occorrenze di «revisione» sono tutte del ciclo DSS, che tiene **una sola data** (`dssRevisione`, `scudo-data.js:1471-1494`): dice qual è l'ultima revisione, non quali erano le precedenti. Un documento sostituito sparisce. |
-| Report PDF automatico — ispezioni (§2 «Report PDF automatico») | CONFERMATA | L'unica stampa è il **verbale DPI**: `index.html:892` (bottone), `:4116` `stampaVerbale()`, `:655-666` (regole `@media print` legate alla classe `stampa-verbale`). Nessun percorso di stampa parte da un'ispezione: `grep -n 'isp' ` sui punti di stampa → nessuno. |
-| Esportazione report PDF/Excel (§2 «Esportazione report PDF/Excel») | CONFERMATA | `grep -ciE 'xlsx\|excel\|jspdf'` → **0 e 0**. Restano i tre export CSV puntuali: `index.html:1007` (azioni), `:1174` (near-miss), `:1223` (infortuni). Nessun documento unico da consegnare. |
+| Report PDF automatico — ispezioni (§2 «Report PDF automatico») | CONFERMATA | ⏱️ *Prova rimisurata il 06/08: le stampe sono **due**, non una.* Il **verbale DPI** (`stampaVerbale`, `index.html:5059`, `:5087`, `window.print()` a `:5069`) e la **cartella del personale** (`costruisciCartella` + `window.print()` a `index.html:5192`, da `1857d83`), tutt'e due con le regole `@media print` della classe `stampa-verbale`. Il verdetto regge lo stesso, perché la domanda è un'altra: **nessuna delle due parte da un'ispezione**. |
+| Esportazione report PDF/Excel (§2 «Esportazione report PDF/Excel») | CONFERMATA | `grep -ciE 'xlsx\|excel\|jspdf'` → **0 e 0** (rimisurato il 06/08). ⏱️ *Ma gli export CSV sono **quattro**, non tre*: `scudo_registro_infortuni.csv` (`index.html:4455`), `scudo_personale_scadenze.csv` (`:4530`, **nuovo**), `scudo_azioni_correttive.csv` (`:4674`), `scudo_riepilogo_near_miss.csv` (`:5675`). Verdetto invariato: restano quattro estrazioni puntuali, nessun documento unico da consegnare. |
 | Notifiche automatiche (§2 «Notifiche automatiche») | CONFERMATA | `grep -ci 'notific'` → **0 e 0**. Le uniche tre righe con «email/SMS» sono il **testo da copiare a mano**: `scudo-data.js:552` `testoPromemoria()` e `index.html:3302`, `:3310` («incollalo nell'email o nell'SMS»). L'app scrive il messaggio, non lo manda: la scadenza la deve vedere un umano che apre l'app. |
 | Segnalazioni osservazioni (§2, quattro righe «Segnalazioni Osservazioni») | CONFERMATA | `grep -ciE 'osservazion\|buona pratica\|buone pratiche\|safety observation'` → **0 e 0**. Il registro eventi ha due soli tipi, `infortunio` e `near-miss` (`scudo-data.js:43`): manca il terzo, quello che si segnala **prima** che accada qualcosa. |
 | Mobile app offline (§2 «Mobile app offline») | CONFERMATA | `grep -ciE 'offline\|serviceworker\|caches\.'` → **0 e 0**. C'è il `manifest` PWA (`index.html:12`, `display:standalone`), che rende l'app installabile ma **non** utilizzabile senza rete: in cava, dove il campo non c'è, la checklist non si compila. |
