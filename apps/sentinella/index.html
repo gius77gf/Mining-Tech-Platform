@@ -564,7 +564,19 @@
    È il difetto già pestato — un'unità di misura stravolta dal maiuscolo — in
    un contesto nuovo, e leggendo il codice non si vede: il `<span class="u">`
    c'era, era l'elenco delle esenzioni a non conoscere `.flab`. */
-.kpi .l .u,.badge .u,.tab th .u,.flab .u{text-transform:none; letter-spacing:.2px}
+/* ⛔ `.fl .u` E' ENTRATA IL 06/08, E E' LA TERZA VOLTA CHE QUESTO ELENCO
+   ARRIVA IN RITARDO SU UNA CLASSE NUOVA. Il 01/08 mancava `.flab`, e «(mm/s)»
+   usciva «(MM/S)» nella modale che corregge una misura. Oggi il banco delle
+   modali — rimesso in funzione stamattina — ha trovato la stessa cosa in
+   ALTRE QUATTRO etichette, tutte dentro `.modal-body .fl`: «Carica totale
+   (kg)», «Carica massima per ritardo (kg)» e due volte «PPV misurata (mm/s)».
+   Il difetto non e' in nessuna di quelle righe: e' l'incontro fra una classe
+   che mette il maiuscolo e un elenco di esenzioni che non la conosce — cioe'
+   una cosa che leggendo il codice non si vede, e che infatti l'hanno trovata
+   solo due banchi diversi a cinque giorni di distanza.
+   ⚠️ Le unita' non vanno mai in maiuscolo: `MM/S` non e' un'unita', e `KG` non
+   e' un chilogrammo. */
+.kpi .l .u,.badge .u,.tab th .u,.flab .u,.fl .u{text-transform:none; letter-spacing:.2px}
 .tab td{
   padding:7px 10px; border-bottom:1px solid var(--border); color:var(--muted2);
   font-variant-numeric:tabular-nums; white-space:nowrap;
@@ -2314,7 +2326,7 @@ textarea.dw-input{
           + `<select class="dw-input" id="ppv-scelta">${opz}</select><div id="ppv-info" class="note" style="margin-top:8px;"></div>`
         : `<div class="note avviso">Nessuna lettura di vibrazione in mm/s registrata il <b>${fmtD(v.data)}</b> fra i punti di misura${altraUnita.length ? " (ce ne sono " + altraUnita.length + " con un'altra unità: non sono PPV in mm/s e non si possono usare come tali)" : ""}. Se hai il referto dello strumento, trascrivi qui sotto il valore.</div>`
           + `<input type="hidden" id="ppv-scelta" value="mano">`)
-      + '<label class="fl" for="ppv-val" id="ppv-lab">PPV misurata (mm/s)</label>'
+      + '<label class="fl" for="ppv-val" id="ppv-lab">PPV misurata (<span class="u">mm/s</span>)</label>'
       + `<input class="dw-input dec" id="ppv-val" type="text" inputmode="decimal" autocomplete="off" spellcheck="false" placeholder="es. 2,4" title="Scrivila come sta sul referto: la virgola va benissimo (2,4)." value="${gia && gia.fonte !== PPV_STRUMENTO ? esc(itDec(gia.valore)) : ""}">`
       + '<div class="note eco" id="ppv-eco" style="display:none;margin-top:6px;"></div>'
       + (dist > 0 ? "" : `<div class="note avviso">Sulla volata <b>manca la distanza del ricettore</b>: senza quella il referto non è completo, perché la distanza scalata non si calcola. Scrivila sulla riga del registro.</div>`)
@@ -2364,12 +2376,12 @@ textarea.dw-input{
           n.value = itDec(c.valore); n.readOnly = true; n.classList.remove("err");
           n.style.opacity = ".85"; n.style.cursor = "not-allowed";
           n.title = "Valore preso dalla lettura del sismografo: per scriverne uno a mano scegli «nessuna» qui sopra.";
-          if (lab) lab.textContent = "PPV misurata (mm/s) · dalla lettura scelta";
+          if (lab) lab.innerHTML = 'PPV misurata (<span class="u">mm/s</span>) · dalla lettura scelta';
         } else {
           if (n.readOnly) { n.value = ""; n.readOnly = false; }
           n.style.opacity = ""; n.style.cursor = "";
           n.title = "Scrivila come sta sul referto: la virgola va benissimo (2,4).";
-          if (lab) lab.textContent = "PPV misurata (mm/s) · la scrivi tu";
+          if (lab) lab.innerHTML = 'PPV misurata (<span class="u">mm/s</span>) · la scrivi tu';
         }
         eco();
         if (!info) return;
@@ -2470,9 +2482,9 @@ textarea.dw-input{
       <input class="dw-input" id="conf-fronte" value="${esc(v.fronte || "")}" placeholder="Fronte">
       <label class="fl" for="conf-nfori">N° fori</label>
       <input class="dw-input" id="conf-nfori" type="number" min="0" value="${num(+v.nFori || 0)}">
-      <label class="fl" for="conf-kg">Carica totale (kg)</label>
+      <label class="fl" for="conf-kg">Carica totale (<span class="u">kg</span>)</label>
       <input class="dw-input dec" id="conf-kg" type="text" inputmode="decimal" autocomplete="off" spellcheck="false" title="Carica totale in kg. La virgola va benissimo (187,5)." value="${num(+v.kgTotali || 0)}">
-      <label class="fl" for="conf-kgmax">Carica massima per ritardo (kg)</label>
+      <label class="fl" for="conf-kgmax">Carica massima per ritardo (<span class="u">kg</span>)</label>
       <input class="dw-input dec" id="conf-kgmax" type="text" inputmode="decimal" autocomplete="off" spellcheck="false" title="Carica massima per ritardo in kg. La virgola va benissimo (12,5)." value="${num(+v.kgMaxRitardo || 0)}">
       <label class="fl" for="conf-dist">Distanza del ricettore (m)</label>
       <input class="dw-input dec" id="conf-dist" type="text" inputmode="decimal" autocomplete="off" spellcheck="false" title="Distanza del ricettore in metri. La virgola va benissimo (312,5)." value="${num(+v.distanzaRicettore || 0)}">

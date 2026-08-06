@@ -3299,16 +3299,20 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
       $("isp-c-testa").innerHTML = `<b>${esc(i.nome)}</b> · ${fmtData(i.data)}`
         + (cant ? " · " + esc(cant.nome) : "") + (resp ? " · esegue " + esc(resp.nome) : "")
         + (i.stato === "completata"
-            ? ` — <b>completata</b> il ${fmtData(i.dataChiusura || i.data)}: <b>${r.nonConformi}</b> voci non conformi`
+            ? ` — <b>completata</b> il ${fmtData(i.dataChiusura || i.data)}: <b>${r.nonConformi}</b> ${r.nonConformi === 1 ? "voce non conforme" : "voci non conformi"}`
               + (r.daFare ? `, e <b>${r.daFare}</b> ${r.daFare === 1 ? "voce chiusa" : "voci chiuse"} senza esito.` : ".")
-            : ` — restano <b>${r.daFare}</b> voci su ${r.totale}.`)
+            /* il singolare c'era su due frasi di questa stessa testata e non
+               sulle altre due: «restano 1 voci su 25» e «1 voci non conformi».
+               Trovate misurando la barra di avanzamento, che l'etichetta la
+               prende da qui. */
+            : ` — ${r.daFare === 1 ? "resta <b>1</b> voce" : `restano <b>${r.daFare}</b> voci`} su ${r.totale}.`)
         + (senzaProvaQui
             ? ` Attenzione: <b>${senzaProvaQui}</b> ${senzaProvaQui === 1 ? "voce è segnata conforme ma non ha" : "voci sono segnate conformi ma non hanno"}`
               + " nessun permesso di lavoro dietro: su quell'adempimento qui non risulta niente."
             : "");
       grafico("isp-c-avanz", "avanzamento", {
         titolo: "Avanzamento della checklist",
-        meta: r.fatte + " voci su " + r.totale,
+        meta: r.fatte + (r.fatte === 1 ? " voce su " : " voci su ") + r.totale,
         valore: r.percento, massimo: 100, unita: "%", tabella: false,
         stato: r.nonConformi ? "warn" : (r.completa ? "ok" : null),
         nota: r.completa

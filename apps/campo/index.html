@@ -1094,7 +1094,7 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
            squadraBase, RUOLI, operatoriDi, etichettaAssegnazione, eMia, caricoSquadre,
            idoneitaDiTurno, idoneitaOperatore, inTurnoOggi,
            UNITA_ATTIVITA, obiettivoDi, statoObiettivo,
-           storicoSettimana, totaliSettimana, unitaPrevalente, registrazioniSenzaGiorno, csvStorico,
+           storicoSettimana, totaliSettimana, unitaPrevalente, zeriDelGrafico, registrazioniSenzaGiorno, csvStorico,
            produzioneDi, rapportiniInConto,
            CHECKLIST_INIZIO, ESITI_CHECK, statoChecklist, checklistDi,
            STATI_PRESENZA, presenzaDi, appelloTurno, chiusuraDi, riassuntoChiusura,
@@ -3183,6 +3183,24 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
     const media = conDati ? Math.round(totale / conDati * 10) / 10 : 0;
     const migliore = valori.reduce((a, b) => b.valore > a.valore ? b : a);
     const gMigliore = righe.find(g => g.data.slice(8, 10) === migliore.etichetta);
+    /* ⛔ LE COLONNE A ZERO SONO DI TRE SPECIE, E IL DISEGNO NON LE DISTINGUE.
+       Misurato nel browser: con 5.000 m³ in una giornata e 300 t in un'altra,
+       l'asse è in m³ e la giornata delle tonnellate esce a ZERO pixel, uguale a
+       una giornata vuota — mentre la riga della lista, dieci pixel più sotto,
+       scrive «prodotto 300 t». Una barra alta zero non porta né colore né
+       etichetta, quindi a distinguerle è la nota (e l'aria per chi non vede).
+       Il conto sta in `zeriDelGrafico`, con le ragioni per esteso. */
+    const zeri = zeriDelGrafico(righe, conProd ? unita : null);
+    const gFuori = new Set(zeri.fuoriUnita.map(z => z.data));
+    const codaFuoriUnita = !zeri.fuoriUnita.length ? "" :
+      ` In ${zeri.fuoriUnita.length === 1 ? "una giornata la colonna è a zero" : zeri.fuoriUnita.length + " giornate le colonne sono a zero"}`
+      + ` pur avendo prodotto: ${zeri.fuoriUnita.map(z => "il <b>" + dmy(z.data) + "</b> "
+          + z.altre.map(a => "<b>" + formattaProduzione(a.qta, a.unita) + "</b>").join(" + ")).join(", ")}.`
+      + ` ${zeri.fuoriUnita.length === 1 ? "Quella grandezza" : "Quelle grandezze"} non si somma${zeri.fuoriUnita.length === 1 ? "" : "no"} ai <b>${unita}</b>`
+      + ` e su questo asse non ci sta${zeri.fuoriUnita.length === 1 ? "" : "nno"}: il numero è nella lista qui sotto.`;
+    const codaZeriVeri = !zeri.conRegistrazioni.length ? "" :
+      ` In ${zeri.conRegistrazioni.length === 1 ? "una giornata la colonna è a zero" : zeri.conRegistrazioni.length + " giornate le colonne sono a zero"}`
+      + ` pur avendo qualcosa registrato: ${conProd ? "nessuna produzione in <b>" + unita + "</b>" : "nessuna attività portata a <b>conclusa</b>"}.`;
     dwGrafici.barre(el, {
       titolo: conProd ? "Produzione per giornata" : "Attività concluse per giornata",
       meta: "dal " + dmy(righe[0].data).slice(0, 5) + " al " + dmy(righe[righe.length - 1].data).slice(0, 5),
@@ -3193,10 +3211,24 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
             ? `Si disegna la grandezza che pesa di più nel periodo, <b>${unita}</b>: le altre unità di misura non si sommano a questa e restano nell'elenco qui sotto. `
             : `Non c'è ancora produzione registrata, quindi si contano le <b>attività concluse</b>. `)
         + `Nelle giornate con qualcosa registrato la media è <b>${numeroIt(media, 1)}${conProd ? " " + unita : ""}</b>; `
-        + `la migliore è il <b>${gMigliore ? dmy(gMigliore.data) : migliore.etichetta}</b> con <b>${numeroIt(migliore.valore, 2)}${conProd ? " " + unita : ""}</b>. `
-        + `Le colonne a zero sono giornate senza registrazioni: nel registro di una settimana anche quelle contano.`,
+        + `la migliore è il <b>${gMigliore ? dmy(gMigliore.data) : migliore.etichetta}</b> con <b>${numeroIt(migliore.valore, 2)}${conProd ? " " + unita : ""}</b>.`
+        /* ⛔ QUI C'ERA «Le colonne a zero sono giornate senza registrazioni», detto
+           di TUTTE le colonne a zero, e su una giornata da 300 t era falso. Adesso
+           quella frase la si dice solo delle giornate che lo sono davvero. */
+        + codaFuoriUnita + codaZeriVeri
+        + (zeri.vuote.length
+            ? ` ${zeri.vuote.length === 1 ? "In una giornata" : "In " + zeri.vuote.length + " giornate"} non è stato registrato niente: `
+              + `nel registro di una settimana anche ${zeri.vuote.length === 1 ? "quella conta" : "quelle contano"}.`
+            : ""),
       aria: (conProd ? "Produzione" : "Attività concluse") + " per giornata: "
-        + righe.map((g, i) => dmy(g.data) + " " + numeroIt(valori[i].valore, 2)).join(", ") + ".",
+        /* per chi non vede, «0» su una giornata che ha prodotto 300 t è la stessa
+           bugia del disegno, scritta a parole: lì si dice che cosa c'è davvero. */
+        + righe.map((g, i) => {
+            if (!gFuori.has(g.data)) return dmy(g.data) + " " + numeroIt(valori[i].valore, 2);
+            const z = zeri.fuoriUnita.find(x => x.data === g.data);
+            return dmy(g.data) + " nessuna produzione in " + unita + ", ma "
+              + z.altre.map(a => formattaProduzione(a.qta, a.unita)).join(" e ");
+          }).join(", ") + ".",
     });
   }
 

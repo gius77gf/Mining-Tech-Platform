@@ -9186,6 +9186,75 @@ test("statoVuoto: la struttura è quella del core, invariata", () => {
     eq(campo.unitaPrevalente(campo.storicoSettimana([], [], 3, OGGI)), null, "nessuna produzione");
   });
 
+  /* ⛔ LE COLONNE A ZERO DEL GRAFICO DELLA SETTIMANA, misurate nel browser il
+     06/08: con 5.000 m³ in una giornata e 300 t in un'altra l'asse va in m³ e
+     la giornata delle tonnellate esce a ZERO PIXEL, identica a una giornata in
+     cui non è stato registrato niente — mentre la lista, dieci pixel più sotto,
+     scrive «prodotto 300 t». Il numero era giusto: a mentire era il disegno. */
+  {
+    const rigaSet = (data, o = {}) => ({ data, prod: o.prod || {}, minutiFermo: 0, fermi: 0,
+      fermiSenzaMinuti: 0, attTot: o.attTot || 0, attConcluse: o.attConcluse || 0,
+      rapInviati: o.rapInviati || 0, rapTot: o.rapTot || 0 });
+
+    test("⛔ zeriDelGrafico: la giornata che ha prodotto in UN'ALTRA unità non è una giornata vuota", () => {
+      const z = campo.zeriDelGrafico([
+        rigaSet("2026-08-02"),
+        rigaSet("2026-08-03", { prod: { t: 300 }, rapTot: 1, rapInviati: 1 }),
+        rigaSet("2026-08-04", { prod: { "m³": 5000 }, rapTot: 1 }),
+        rigaSet("2026-08-06", { prod: { t: 210 }, attTot: 5, attConcluse: 1, rapTot: 2 }),
+      ], "m³");
+      eq(z.fuoriUnita.map(x => x.data), ["2026-08-03", "2026-08-06"],
+        "le due giornate in tonnellate: colonna a zero, ma hanno prodotto");
+      eq(z.fuoriUnita[0].altre, [{ unita: "t", qta: 300 }], "e si dice quanto, e in che unità");
+      eq(z.conRegistrazioni.map(x => x.data), [], "nessuna giornata registrata senza produzione");
+      eq(z.vuote.map(x => x.data), ["2026-08-02"], "una sola giornata è davvero vuota");
+    });
+    test("zeriDelGrafico: la giornata con la nostra unità NON è un buco, nemmeno se ne ha anche altre", () => {
+      const z = campo.zeriDelGrafico([rigaSet("2026-08-04", { prod: { t: 10, "m³": 5000 } })], "t");
+      eq(z.fuoriUnita, [], "10 t si disegnano: la giornata sta nel grafico");
+      eq(z.conRegistrazioni, [], "e non è nemmeno uno zero");
+      eq(z.vuote, [], "né una giornata vuota");
+    });
+    test("zeriDelGrafico: attività registrate ma nessuna conclusa è uno ZERO, non una giornata vuota", () => {
+      /* modalità «attività concluse» (nessuna produzione in tutto il periodo):
+         qui lo zero è misurato davvero — nessuna attività è arrivata a conclusa —
+         ma la giornata NON è vuota, e la nota non deve dire che lo è. */
+      const z = campo.zeriDelGrafico([
+        rigaSet("2026-08-02"),
+        rigaSet("2026-08-04", { attTot: 3, attConcluse: 0 }),
+        rigaSet("2026-08-03", { attTot: 2, attConcluse: 2 }),
+      ], null);
+      eq(z.fuoriUnita, [], "senza produzione non c'è nessun'altra unità in gioco");
+      eq(z.conRegistrazioni.map(x => x.data), ["2026-08-04"], "tre attività aperte: zero concluse, non giornata vuota");
+      eq(z.vuote.map(x => x.data), ["2026-08-02"], "solo il 02 non ha niente");
+    });
+    test("zeriDelGrafico: uno zero SCRITTO e una quantità illeggibile non diventano «fuori unità»", () => {
+      /* `prod: { t: 0 }` non capita da `storicoSettimana` (produzioneDi vuole
+         qta > 0), ma un dato può arrivare da un CSV: «0» e «abc» non sono una
+         produzione fatta in un'altra unità, e dichiararli tali sarebbe
+         inventare una misura. */
+      eq(campo.zeriDelGrafico([rigaSet("2026-08-04", { prod: { t: 0 }, rapTot: 1 })], "t").fuoriUnita, [],
+        "zero scritto: nessuna produzione da dichiarare altrove");
+      const z = campo.zeriDelGrafico([null, { data: "2026-08-05" },
+        rigaSet("2026-08-06", { prod: { t: "abc" }, rapTot: 1 })], "t");
+      eq(z.fuoriUnita, [], "«abc» non è una quantità");
+      eq(z.conRegistrazioni.map(x => x.data), ["2026-08-06"], "ma il rapportino registrato resta");
+      eq(z.vuote.map(x => x.data), ["2026-08-05"], "una riga senza prod è una giornata vuota, non un errore");
+    });
+    test("zeriDelGrafico: senza righe non dichiara niente", () => {
+      eq(campo.zeriDelGrafico([], "t"), { fuoriUnita: [], conRegistrazioni: [], vuote: [] }, "elenco vuoto");
+      eq(campo.zeriDelGrafico(null, "t"), { fuoriUnita: [], conRegistrazioni: [], vuote: [] }, "niente da guardare");
+    });
+    test("zeriDelGrafico sui dati veri della dimostrazione: nessuna giornata fuori unità", () => {
+      /* l'unità prevalente della dimostrazione è «t» e le giornate che
+         producono producono in tonnellate: il grafico non nasconde niente. */
+      const st = campo.storicoSettimana(ATT, RAP, 3, OGGI);
+      const z = campo.zeriDelGrafico(st, campo.unitaPrevalente(st));
+      eq(z.fuoriUnita, [], "nessuna colonna a zero che nasconde una produzione");
+      eq(z.vuote.map(x => x.data), ["2026-07-29", "2026-07-30"], "due giornate vuote, e lo sono davvero");
+    });
+  }
+
   test("etichettaAssegnazione e operatoriDi: nome breve della squadra e ordine alfabetico", () => {
     eq(campo.etichettaAssegnazione({ squadra: SQU_A, operatore: "Mario Rossi" }), "Squadra A · Mario Rossi", "squadra e persona");
     eq(campo.etichettaAssegnazione({ squadra: SQU_A }), "Squadra A", "solo squadra");

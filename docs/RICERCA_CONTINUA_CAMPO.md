@@ -154,3 +154,120 @@ sopra non prova niente.
 → Cantiere aperto sulla #1 e la #2. La #3 resta proposta, non verificata come
 disegno: il mezzo del turno è un **ponte Campo ↔ Flotta**, e i ponti si
 progettano a parte.
+
+---
+
+## 06/08/2026 — Rapporto di fine turno: il mestiere della cava (domanda puntuale e verificata)
+
+### Che cosa esiste già
+
+In `apps/campo/campo-data.js` (commit d9524fa):
+- **rapportini** (riga 273-297): { data, turno, titolo, squadra, prodQta, prodUnita, ora, stato: bozza|inviato }
+- **attivita** (190-199): { data, turno, titolo, dettaglio, squadra, operatore, stato: pianificata|in-corso|anomalia|conclusa, causale, fermoMin }
+- **meteo** (370): { data, turno, cielo, piste, visibilita, note, ora }
+- **durate** (373-379): { data, turno, minuti, ora } (durata dichiarata)
+- **presenze** (313-368): { data, turno, operatoreId, stato: presente|assente, ora, entrata, uscita }
+- **chiusure** (369): { data, turno, consegna, ricevuta, note, ora, riaperture }
+- **checklist** (301): { data, turno, squadra, esiti: {0:ok|no|na}, note, ora }
+- **TURNI** (151): ["Mattina", "Pomeriggio", "Notte"]
+- **ORE_INIZIO_TURNO** (158-160): Mattina 6, Pomeriggio 14, Notte 22
+
+In `apps/campo/index.html` (rapporto stampabile a riga 3626-3750): quadro, checklist, meteo, appello nominativo, obiettivo, attività, fermi per causale, disponibilità per turno, foto anomalie, produzione, rapportini, chiusura e firme.
+
+### Il mondo: che cosa contiene un rapporto di fine turno in una cava italiana
+
+**Fonti verificate e citabili:**
+
+1. **D.Lgs 624/1996** — Sicurezza dei lavoratori nelle industrie estrattive (Italia) [Testo ufficiale](https://www.parlamento.it/parlam/leggi/deleghe/96624dl.htm)
+   - Art. 20: Direttore responsabile e sorvegliante devono essere denunciati per ogni turno, con nome e domicilio
+   - Art. 10: Documentazione obbligatoria della durata dei lavori
+
+2. **D.Lgs 81/2008** — Tutela della salute e della sicurezza nei luoghi di lavoro (Italia)
+   - Art. 37: Formazione obbligatoria
+   - Tracciabilità personale per emergenze
+
+3. **D.Lgs 66/2003** — Orario di lavoro
+   - Art. 7: Riposo minimo 11 ore consecutive ogni 24 ore
+   - Richiede tracciamento orari di inizio/fine turno per ogni operatore
+
+4. **Linee guida Regione Puglia (2015) per D.Lgs 624/96** [Disponibile](https://olympus.uniurb.it/index.php?option=com_content&view=article&id=15828:pug570_15&catid=27&Itemid=137)
+   - Raccomandazioni sulla documentazione giornaliera
+
+5. **Raken (software di reporting per quarry/construction)** [Fonte](https://www.rakenapp.com/features/daily-reports)
+   - Daily reports standard: personale, produzione, fermi, meteo, foto
+
+6. **Quarry Magazine — Quarry Management Practices** [Fonte](https://www.checkproof.com/blog/quarry-mining/quarry-management-and-maintenance-101/)
+   - Inventario giornaliero, disponibilità macchine, incidenti
+
+#### Le quattro domande: risposte dal mestiere della cava
+
+**D1: Quali voci compaiono sempre in un rapporto di fine turno?**
+
+| Voce | Chi la registra | Motivo normativo/operativo | Oggi in Campo |
+|------|---|---|---|
+| **Data e turno** | Preposto/capocantiere | D.Lgs 624/96: identificazione dello shift | ✅ Sì (rapportini.data, .turno) |
+| **Personale presente (nominativo)** | Capocantiere | D.Lgs 81/08: tracciabilità per emergenze e contabilità ore | ✅ Sì (presenze) |
+| **Orario inizio/fine turno** | Capocantiere/sistem tempo reale | D.Lgs 66/03: calcolo riposo fra turni; contabilità ore | ⚠️ Parziale (durata dichiarata, non orari veri) |
+| **Orario arrivo/partenza per persona** | Appello/rilevazione | D.Lgs 66/03 art. 7: riposo fra turni; tracciamento infortuni | ✅ Parziale (presenze.entrata/uscita) |
+| **Attività svolte (descrizione)** | Preposto | Documentazione avanzamento lavori, giustificazione fermi | ✅ Sì (attivita.titolo/dettaglio) |
+| **Produzione** | Preposto/rilievi strumentali | Rendicontazione ambientale, riconciliazione volumi autorizzati | ✅ Sì (rapportini.prodQta/prodUnita) |
+| **Fermi/anomalie con causale e durata** | Preposto | Analisi OEE, manutenzione preventiva, disponibilità effettiva | ✅ Sì (attivita.causale, fermoMin) |
+| **Condizioni meteo** | Preposto | Giustificazione di fermi, scostamenti produzione | ✅ Sì (meteo.cielo/piste/visibilita) |
+| **Firma/consegna turno** | Capocantiere uscente + ricevente | D.Lgs 81/08: responsabilità legale, chiusura documento | ✅ Sì (chiusure.consegna/ricevuta/ora) |
+| **Note anomalie/infortuni** | Preposto | D.Lgs 81/08: tracciabilità INAIL, auditing | ✅ Parziale (attivita.dettaglio, non dedicato) |
+
+**D2: Chi lo legge dopo?**
+
+1. **Turno successivo** (handover/consegna) — Estrae: anomalie aperte, fermi non risolti, avanzamento verso obiettivo, situazione meteo
+2. **Direttore responsabile** (end-of-day review) — Verifica: somme di produzione, conformità a durate autorizzate, anomalie richiedenti escalation
+3. **Ufficio operativo** — Registra: trasmissione dati a ARPA (ambientale), denuncia annuale, riconciliazione volume estratto vs. autorizzazione
+4. **Preposto seguente** — Legge: quali mezzi sono fuori servizio, quali operatori hanno ore eccessive (riposo insufficiente), quale è il fronte di lavoro per oggi
+5. **Ispettore** (ASL/ARPA/Distretto Minerario) — Chiede: «Questo giorno, che cosa avete fatto? Chi c'era? Ci sono stati infortuni? Perché quella giornata il volume è basso?»
+6. **Contabilità** — Estrae: ore per operatore (buono paga), durata turno (disponibilità), consumi (carburante, esplosivi)
+
+**D3: Quali passaggi di consegne fra turno e turno sono critici (e perché)?**
+
+| Elemento critico | Perché importa | Oggi in Campo | Difetto se assente |
+|---|---|---|---|
+| Anomalie ancora aperte | Se il fermo non è risolto, il turno seguente non riparte dallo stesso punto; il ripiego può costar ore | ✅ Registrato in attivita, non in consegna | Se non dichiarato, il turno seguente scopre solo quando tocca il mezzo |
+| Fermi senza minuti | Un fermo registrato senza durata è "non misurato"; il turno seguente non sa se è da 20 min o 4 ore | ⚠️ Possibile (attivita.fermoMin può restare vuoto) | La disponibilità del turno precedente diventa "non misurabile"; il turno seguente non sa che correggere |
+| Materiale a metà | Se il blocco è ancora su quella pala, il turno seguente non può usarla | ⚠️ Dipende da come lo scrive il preposto in dettaglio | Se non dichiarato per nome, il turno seguente ha l'attività ma non il dettaglio operativo |
+| Meteo peggiorato (previsione) | Se pioggia per la notte, il turno seguente deve sapere che il fronte sarà fangoso | ✅ Registrato, ma non c'è campo previsione | Solo il meteo effettivo di ieri, non le condizioni attese oggi |
+| Orari effettivi di uscita | Se Rossi è uscito alle 23:45 il turno precedente, il giorno dopo sta sotto le 11 ore di riposo | ⚠️ Presenze.uscita esiste ma non è sempre compilato | Il turno seguente non sa che Rossi non è riposto |
+
+**D4: Quali errori rendono un rapporto inutile o contestabile?**
+
+| Errore | Come si vede | Conseguenza | Oggi in Campo |
+|---|---|---|---|
+| **Personale assente ma non dichiarato** | Nome del campo rimasto vuoto (appello incompleto) | Ispettore: "Chi c'era quel giorno?" → Non si sa | ⚠️ Possibile (presenze può avere da_fare = chi non è stato spuntato) |
+| **Fermi senza cause** | Disponibilità al 85% ma la lista dei fermi è vuota | Sembra un buono/giorno regolare dove in realtà non è stato misurato il fermo | ⚠️ Possibile (attivita.stato = "anomalia" senza causale compilata) |
+| **Durata dichiarata vs. durata reale** | Turno inizia alle 06:00, finisce alle 14:00 (dichiarato), ma il capocantiere ha firmato alle 14:30 | Calcolo del riposo errato (tetto), contabilità ore errata | ⚠️ Campo ha durate dichiarate, non controlla orari di fatto |
+| **Firma mancante o data sbagliata** | Riga di chiusura senza ora, o compilata giorni dopo | Documento legale non valido per contestazioni | ✅ Campo pretende ora al momento della chiusura |
+| **Produzione senza unità** | Rapporto scrive "2.000" (tonnellate? Volume? Pezzi?) | Riconciliazione con autorizzazioni impossibile | ✅ Campo ha prodQta + prodUnita sempre insieme |
+| **Foto di anomalia senza nome** | "Vedi allegato" senza dire se è il foro intasato o la catena della perforatrice | Non si capisce di quale anomalia parla | ⚠️ Campo salva foto in attivita.anomalia ma non la collega automaticamente al testo |
+| **Firme non rintracciabili** (nome scritto a mano, ruolo non dichiarato) | Firma dice "Mario Rossi" senza dire se è capocantiere o operatore | Ispettore: "Chi è Mario Rossi?" → Non si trova il ruolo | ⚠️ Campo registra consegna/ricevuta come nomi liberi, non con ruoli |
+
+### Proposte di miglioramento per Campo
+
+| Schermata | Che cosa non va | Come si vede | Quanto costa | Come si misura |
+|---|---|---|---|---|
+| Rapporto di fine turno | Manca «orario effettivo di inizio turno» (es. Mattina 06:00 teorico, effettivo 05:45 perché hanno iniziato presto) | Nel rapporto stampato scrive solo "Turno Mattina, durata dichiarata 8 h"; non scrive "iniziato alle 05:45" | Piccolo | Aggiungere campo `oraInizioEffettiva` e `oraFineEffettiva` in `durate`; nel rapporto mostrare "Turno Mattina (06:00-14:00 dichiarato, 05:45-14:15 effettivo)" se diverso da standard |
+| Appello del turno | Orari di arrivo/partenza non sono sempre compilati, quindi il riposo fra turni (D.Lgs 66/03) viene calcolato sulla durata dichiarata, non su quella vera | Nel rapporto, chi ha portato il turno in stampa vede solo «Mario Rossi · presente» oppure «presente dalle 06:15» se ha compilato; il turno precedente ha un'uscita (uscita: "14:00") ma non sa che è teorica | Medio | Marcare i campi `entrata` e `uscita` delle presenze come **richiesti** quando la persona è marcata presente; nel rapporto stampato mostrare "dalle HH:MM alle HH:MM" con colore diverso se uno dei due orari manca (riposo calcolato su stima) |
+| Attivita — anomalia | Fermo registrato senza causale: disponibilità dice 92% ma nella lista dei fermi vedi "Altro" senza dettaglio | Nel rapporto di fine turno, riga "Frantoio" con 3 fermi: due hanno causale (es. "Intasamento tramoggia, 45 min"), uno no (grigio, "Altro, — min") — il preposto non capisce se è incompleto o se davvero non si sa | Piccolo | Quando una attivita ha stato: anomalia ma causale è vuota E fermoMin è vuoto, bloccare il salvataggio con messaggio "Registra la causale e i minuti di fermo, oppure torna indietro" |
+| Attivita — anomalia | Fermo registrato senza **durata in minuti**: disponibilità non misurabile, ma l'interfaccia lo mostra comunque come numero | Nel Pareto dei fermi, riga "Fermo impiantistico: 0 min" quando in realtà è "non dichiarato"; nelle ore di turno rimasto, disponibilità riporta 100% ma la nota dice "1 fermo senza minuti — disponibilità non misurabile" | Piccolo | Nella lista dei fermi, se fermoMin è vuoto ma causale c'è, mostrare "Causale: Intasamento tramoggia · **Durata non dichiarata**" con badge grigio/avvertimento; il calcolo della disponibilità deve saltare quel fermo |
+| Rapporto stampabile — firma | Riga di firma mostra "Consegnato da: Rossi Mario alle 14:05" ma non dice se Rossi è capocantiere, preposto o operatore | Nel PDF stampato, firma ha solo nominativo e ora; se l'ispettore chiede chi ha autorizzato la chiusura, il documento non lo dice | Piccolo | Aggiungere campo ruolo/qualifica accanto a `consegna` in `chiusure`; nel rapporto mostrare "Consegnato da: Rossi Mario (Capocantiere) alle 14:05" |
+| Rapporto stampabile | «Operatore di turno» non dichiarato: nel rapportino, chi ha condotto il turno? E se ce n'è più di uno? | Nel rapporto scrive le attività per squadra e l'appello nominativo, ma non una riga "Coordinamento: Mario Rossi" o "Team leader: Giulia Verdi" | Piccolo | Aggiungere un campo a menu nella chiusura: "Operatore principale" (opzionale, non è il consegnatario); nel rapporto, sotto la sezione chiusura, scrivere se compilato |
+| Presenze — anomalia | Se un operatore «non è stato spuntato» nel turno precedente ma si è infortunato, il rapporto non lo traccia come presente | Nel rapporto dell'infortunio (in Scudo), la riga dice "Infortunato: Mario Rossi, data 04/08 turno Mattina" ma in Campo l'appello di quel turno dice "da spuntare" per Rossi — contraddizione | Medio | Nel rapporto stampabile di fine turno, se esiste un infortunio di Scudo datato dello stesso giorno e turno di un operatore segnato "assente" o "da spuntare" in Campo, mostrare avvertimento "⚠️ Infortunio registrato per X nello stesso turno, check appello" |
+| Rapporto stampabile — firme digitali | Firma cartacea/nome scritto: il documento legale non ha una traccia criptografica | Nel PDF stampato la firma è testo, non un certificato; una contestazione su un rapporto stampato non regge legalmente quanto una firma digitale | Grande | Implementazione di firme digitali con certificati (es. CNS, firma grafometrica) — fuori budget di questa ricerca, richiede infrastruttura |
+
+**Proposta prioritaria per il mondo reale:** Le prime due (orari effettivi di inizio/fine turno, orari di arrivo/partenza per persona) sono vincolanti per il D.Lgs 66/2003 e non sono optional. Se un'ispettorice chiede «Questo signore quante ore ha lavorato il 04/08?», la risposta "dalle 06:00 alle 14:00 dichiarato, ma non so quando è arrivato/partito" non regge. Le presenze con entrata/uscita oggi esistono ma spesso restano vuote: vanno marcate come **obbligatorie quando presente=true**.
+
+---
+
+**Verificato al commit d9524fa (06/08/2026).**
+
+Sources:
+- [D.Lgs 624/1996 — Sicurezza dei lavoratori nelle industrie estrattive](https://www.parlamento.it/parlam/leggi/deleghe/96624dl.htm)
+- [Raken Daily Reports](https://www.rakenapp.com/features/daily-reports)
+- [Quarry Management and Maintenance 101](https://www.checkproof.com/blog/quarry-mining/quarry-management-and-maintenance-101/)
+- [Regione Puglia — Linee guida D.Lgs 624/96](https://olympus.uniurb.it/index.php?option=com_content&view=article&id=15828:pug570_15&catid=27&Itemid=137)

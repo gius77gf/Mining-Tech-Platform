@@ -613,6 +613,53 @@ export function unitaPrevalente(righe) {
   return voci.length ? voci[0][0] : null;
 }
 
+/* ⛔ LE COLONNE A ZERO DEL GRAFICO DELLA SETTIMANA NON SONO TUTTE LA STESSA
+   COSA, e finché il grafico ha detto che lo erano ha mentito col disegno.
+   Misurato il 06/08 nel browser: con 5.000 m³ il 04/08, 300 t il 03/08 e 210 t
+   oggi, `unitaPrevalente` sceglie i **m³** e le due giornate in tonnellate
+   escono come colonne alte **ZERO pixel** — identiche, pixel per pixel, alle
+   quattro giornate in cui non è stato registrato niente. Sotto, nella stessa
+   schermata, la lista scriveva «prodotto 300 t» e il cartellone «Prodotto:
+   510 t + 5.000 m³»: il numero era giusto dappertutto e a mentire era il
+   disegno, con in più una nota che affermava «le colonne a zero sono giornate
+   senza registrazioni».
+   Una colonna a zero, in quel grafico, può voler dire tre cose diverse:
+     · `fuoriUnita`       — la giornata HA prodotto, ma in un'unità che su
+                            quell'asse non ci può stare (t e m³ non si sommano):
+                            l'unica in cui il disegno dice il falso;
+     · `conRegistrazioni` — la giornata ha attività o rapportini registrati ma
+                            niente da mettere su quell'asse: uno zero vero, che
+                            però non è «giornata vuota»;
+     · `vuote`            — nella giornata non è stato registrato niente.
+   Il disegno le tre cose non le sa distinguere (una barra alta zero non porta
+   né colore né etichetta), quindi le distingue chi scrive la nota e l'etichetta
+   accessibile. È la stessa difesa che `grafFermiStorico` usa già per le sue
+   colonne a zero — «pur avendo fermi registrati: lì i minuti non sono stati
+   scritti» — qui applicata al grafico gemello, dove mancava.
+   `unita` null vuol dire che il grafico sta disegnando le ATTIVITÀ CONCLUSE
+   (succede quando nel periodo non c'è nessuna produzione): in quel caso
+   `fuoriUnita` è sempre vuoto, perché non c'è nessun'altra unità in gioco.
+   Pura e testabile. */
+export function zeriDelGrafico(righe, unita) {
+  const fuoriUnita = [], conRegistrazioni = [], vuote = [];
+  for (const g of righe || []) {
+    if (!g) continue;
+    const prod = g.prod || {};
+    const valore = unita ? (+prod[unita] || 0) : (+g.attConcluse || 0);
+    if (valore > 0) continue;
+    const haProdotto = Object.values(prod).some(q => Number.isFinite(+q) && +q > 0);
+    const altre = unita ? Object.entries(prod)
+      .filter(([u, q]) => u !== unita && Number.isFinite(+q) && +q > 0)
+      .map(([u, q]) => ({ unita: u, qta: +q }))
+      .sort((a, b) => b.qta - a.qta) : [];
+    const registrato = (+g.attTot || 0) > 0 || (+g.rapTot || 0) > 0 || haProdotto;
+    if (altre.length) fuoriUnita.push({ data: g.data, altre });
+    else if (registrato) conRegistrazioni.push({ data: g.data });
+    else vuote.push({ data: g.data });
+  }
+  return { fuoriUnita, conRegistrazioni, vuote };
+}
+
 /* QUELLO CHE LO STORICO NON SA METTERE IN NESSUNA GIORNATA.
    ⛔ `storicoSettimana` colloca ogni registrazione sul suo giorno: quelle senza
    giorno — o con un giorno che non esiste, «2026-02-30» — non entrano in

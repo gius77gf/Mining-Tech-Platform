@@ -1644,7 +1644,22 @@
     //  · sotto i tre giorni registrati non si disegna nessuna tendenza: si
     //    dicono i valori che ci sono e quanto manca perché abbia senso.
     const stDisp = disponibilitaStorico(DISP, 14, new Date());
-    const maxPunti = (($("graf-disp") && $("graf-disp").clientWidth) || 360) >= 520 ? 14 : 8;
+    /* ⛔ LA LARGHEZZA NON SI LEGGE DA UN ELEMENTO CHE IN QUEL MOMENTO È
+       NASCOSTO. `#graf-disp` vive dentro `.page#page-mez`, e al `refresh` la
+       pagina attiva è quasi sempre il Quadro: `display:none` vuol dire
+       `clientWidth` **zero**, quindi il ripiego a 360 vinceva sempre e le
+       giornate erano **otto anche su uno schermo largo**, dove questa riga ne
+       vuole quattordici. Misurato col righello prima di toccare niente:
+       viewport 1200 px, contenitore 852 px (ben oltre i 520 della soglia),
+       colonne disegnate **8** — e il grafico non mentiva, perché meta, nota e
+       buchi parlano delle otto mostrate: semplicemente le altre sei non le ha
+       mai viste nessuno. Dopo: 14.
+       Il ripiego è lo stesso che il motore usa per sé quando il contenitore non
+       è ancora stato disposto (`larghezzaUtile` in `shared/dw-grafici.js`): due
+       ripieghi diversi per la stessa domanda un giorno divergono. */
+    const largoDisp = ($("graf-disp") && $("graf-disp").clientWidth)
+      || Math.min(720, (window.innerWidth || 360) - 32);
+    const maxPunti = largoDisp >= 520 ? 14 : 8;
     const puntiDisp = stDisp.punti.slice(-maxPunti);
     const statoDisp = (pct) => pct >= 90 ? "ok" : pct >= 75 ? "warn" : "danger";
     const gg = (iso) => String(iso).slice(8, 10) + "/" + String(iso).slice(5, 7);
@@ -1657,6 +1672,22 @@
         titolo: "Disponibilità giorno per giorno",
         meta: "dal " + dataIt(primo) + " al " + dataIt(ultimo),
         formato: "percentuale",
+        /* ⛔ QUESTA SERIE NON SI SOMMA, E FINO AL 06/08 IL GRAFICO LA SOMMAVA.
+           Le colonne sono percentuali di disponibilità, una per giorno: 83% +
+           67% non fa «150% di qualcosa». Il motore la regola ce l'ha scritta —
+           «la quota sul totale ha senso solo se i valori si possono sommare»,
+           e l'esempio nel suo commento è PROPRIO questo grafico — ma la
+           riconosce solo da `unita: '%'` o da `quota: false`, e qui non c'era
+           né l'una né l'altra (`unita` qui non si può usare: il formato
+           «percentuale» il segno lo mette già, e verrebbe «83% %»).
+           Misurato prima della correzione, nella tabella dei dati e nel
+           tooltip: una giornata all'83% si dichiarava «quota 12,8%» sul totale
+           di 650, e la giornata a 0 mezzi operativi «quota 0,0%» — cioè il
+           numero più tranquillo che questa schermata sappia dire proprio sul
+           giorno in cui la cava era ferma. La geometria era giusta (i pixel
+           stanno fra loro come le percentuali): a mentire era il numero
+           scritto accanto. Dopo: la colonna «Quota» scrive «—». */
+        quota: false,
         valori: puntiDisp.map(p => ({ etichetta: gg(p.data), valore: p.pct, stato: statoDisp(p.pct) })),
         aria: `Disponibilità del parco in ${puntiDisp.length} giorni registrati, media ${media}%.`,
         nota: "Ogni colonna è la fotografia di un giorno — mezzi operativi sul totale — e Flotta la scrive da sola quando apri l'app o cambi lo stato di un mezzo. Media dei giorni mostrati: <b>"

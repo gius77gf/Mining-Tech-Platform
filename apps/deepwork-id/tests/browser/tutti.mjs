@@ -286,6 +286,22 @@ const BANCHI = [
      di zero m³. Nessuna suite `node` li poteva vedere: sono pixel. */
   ['le geometrie di Terra, misurate in pixel', 'terra-geometrie.mjs', []],
   ['geometrie di Terra · controprova', 'terra-geometrie.mjs', ['--controprova'], true],
+  /* ⛔ AGGIUNTO IL 06/08, stesso filo e stessa domanda col righello, su Flotta.
+     Le dieci geometrie dell'app (otto grafici più la tacca del riferimento di
+     settore e il taglio di Pareto) passano tutte dal motore condiviso, e in
+     quattro scene — compreso un valore MILLE volte più grande, uno zero
+     misurato e il parco vuoto — i pixel stanno fra loro come i valori: sulla
+     geometria Flotta è pulita, ed è un risultato, non un'assenza di risultato.
+     Il difetto trovato è di fianco e sullo stesso grafico: `#graf-disp`
+     dichiarava una QUOTA SUL TOTALE su una serie di percentuali che non si
+     sommano (una giornata all'83% «vale il 12,8%» di un totale di 650, e la
+     giornata a zero mezzi operativi «lo 0,0%»). La controprova rimette quattro
+     difetti — due in Flotta e due nella copia SERVITA del motore, mai sul
+     disco: lo zero disegnato col minimo della barra e l'asse che non parte da
+     zero — perché senza quei due resterebbe da dimostrare che questo banco una
+     barra sproporzionata la saprebbe vedere. */
+  ['i disegni di Flotta, misurati in pixel', 'flotta-disegni.mjs', []],
+  ['disegni di Flotta · controprova', 'flotta-disegni.mjs', ['--controprova'], true],
   /* ⛔ AGGIUNTO IL 03/08, e la ragione è dichiarata: la regola sta in
      `shared/` ed è provata da otto blocchi in `run-kpi`, ma che l'ELENCO la
      chiami, che la scheda scriva la ragione invece di far sparire la riga e
@@ -333,6 +349,21 @@ const BANCHI = [
      `>=`. Finché quella riga non cambia, questo banco è KO di proposito. */
   ['i disegni di Sentinella, misurati in pixel', 'sentinella-disegni.mjs', []],
   ['disegni di Sentinella · controprova', 'sentinella-disegni.mjs', ['--controprova'], true],
+  /* ⛔ AGGIUNTO IL 06/08, stessa famiglia, su Scudo. Qui il censimento ha
+     cambiato la domanda: su dodici tappe i soggetti con una geometria sono 91,
+     e le geometrie che rappresentano una QUANTITÀ sono NOVE — tutte del motore
+     condiviso. Scudo non disegna niente di suo (nessun SVG a mano, nessuna
+     dimensione calcolata dentro uno style in linea, e il Quadro ne ha zero),
+     quindi il banco non cerca la barra scritta male: controlla che quello che
+     Scudo PASSA al motore produca un disegno che dice la stessa cosa dei suoi
+     numeri. Le nove sono tutte proporzionali e gli zeri si disegnano zero; il
+     controllo che vale per questa app è il QUARTO difetto della controprova,
+     che è di Scudo e non del motore — `serieDi` che scrive `null` sugli anni
+     senza ore lavorate. Messo a `0`, la linea degli indici passa per l'anno
+     perfetto che nessuno ha misurato, appoggiato sull'asse accanto agli zeri
+     veri, e non si distingue più da loro. */
+  ['i disegni di Scudo, misurati in pixel', 'scudo-disegni.mjs', []],
+  ['disegni di Scudo · controprova', 'scudo-disegni.mjs', ['--controprova'], true],
   /* ⛔ AGGIUNTO IL 03/08, stessa famiglia dei due qui sopra. Su Campo il
      censimento statico era a ZERO, e i tre difetti sono usciti lo stesso: il
      CSV dello storico scriveva `0` minuti di fermo su una giornata con tre
@@ -345,6 +376,24 @@ const BANCHI = [
      quella, lo dice solo il browser. */
   ['i numeri tranquilli che escono da Campo', 'campo-numeri-tranquilli.mjs', []],
   ['numeri tranquilli di Campo · controprova', 'campo-numeri-tranquilli.mjs', ['--controprova'], true],
+  /* ⛔ AGGIUNTO IL 06/08, la domanda col righello su Campo. Il censimento a
+     tappeto (percentuali negli style inline, SVG con dimensioni calcolate,
+     min-width/min-height, su tutte e cinque le schermate) dice che le
+     geometrie di Campo sono CINQUE e passano TUTTE dal motore condiviso: zero
+     disegni scritti a mano, e il Quadro — la prima schermata — non ne ha
+     nessuna. La proporzione è giusta dappertutto, anche con un valore 200
+     volte più grande degli altri, e gli zeri veri si disegnano a zero pixel.
+     Il difetto è un piano più sotto e non sta nel rapporto: in `#set-graf` una
+     colonna a ZERO voleva dire tre cose diverse e la pagina le raccontava come
+     una sola. Con 5.000 m³ in una giornata e 300 t in un'altra l'asse va in m³
+     (5.000 > 510) e le giornate delle tonnellate escono a 0 px, identiche alle
+     giornate vuote — mentre la lista sotto scrive «prodotto 300 t» e la nota
+     dichiarava, di tutte, «le colonne a zero sono giornate senza
+     registrazioni». L'aria diceva la stessa bugia a chi non vede: «03/08/2026
+     0». Il grafico gemello, dodici funzioni più su, quella difesa ce l'aveva
+     già. La controprova rimette la frase vecchia e spegne il conto. */
+  ['i disegni di Campo, misurati in pixel', 'campo-disegni.mjs', []],
+  ['disegni di Campo · controprova', 'campo-disegni.mjs', ['--controprova'], true],
   /* ⛔ AGGIUNTO IL 03/08, stessa famiglia dei quattro qui sopra, su Scudo.
      Cinque punti, e tutti col colore o la parola tranquilla: la pastiglia
      «tutte regolari» su tre visite mediche dalla data illeggibile (il terzo
