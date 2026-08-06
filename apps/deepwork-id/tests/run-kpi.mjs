@@ -20837,13 +20837,41 @@ test("⛔ etichettaStatoDocumento: la mappa esce dalla pagina e la leggono in du
        riga di prosa. Il tokenizzatore che serve c'è già. */
     const CODICE_CAMPO = senzaCommenti(SRC_CAMPO);
     const letture = (CODICE_CAMPO.match(/db\.mode/g) || []).length;
-    console.log(`     (${letture} letture di db.mode nel CODICE di Campo, ${vestiti.length} vestiti guardati)`);
-    /* Cinque, e sono tutte a schermo o nella decisione: una accende la fascia
-       del tour, due scrivono la nota di stato («live» / il nome del modo), due
-       sono la definizione di `modoDimostrazione`. Una sesta è o un foglio
-       nuovo che si è scritto la propria regola, o lo schermo che ne ha
-       guadagnata un'altra: in tutt'e due i casi va guardata. */
-    eq(letture, 5, "le letture di db.mode censite nel codice di apps/campo/index.html");
+    /* ⛔ E QUI IL NUMERO SECCO ERA LA COSA SBAGLIATA — trovato il 06/08
+       aggiungendo `marchiaCsv` a Campo. La prova pretendeva **5** e ha detto
+       6: giusto che parlasse, perché una lettura in più va guardata. Ma
+       alzarla a 6 sarebbe stato renderla PIÙ PERMISSIVA, non più giusta —
+       da lì in poi qualunque sesta lettura sarebbe passata, compresa una
+       seconda decisione scritta a mano.
+       La domanda vera non è QUANTE volte si legge `db.mode`: è **che cosa se
+       ne fa**. Una lettura PASSATA a una decisione di `shared/` è plumbing e
+       può moltiplicarsi quanto vuole; una lettura che **confronta** è una
+       decisione, e di quelle ce ne deve essere una sola. Adesso si contano
+       separate, e la seconda è la sola bloccata a un numero. */
+    const passate = (CODICE_CAMPO.match(/(?:modoDimostrazione|nomeCsvDimostrazione)\([^)]*db\.mode/g) || []).length;
+    /* ⚠️ E ANCHE QUESTA È STATA MISURATA PRIMA DI IRRIGIDIRLA, con l'ipotesi
+       sbagliata presa in mezzo: avevo scritto `decidono === 0` e la prova ha
+       risposto **2**. I due confronti che restano sono la **fascia del tour**
+       e la **nota di stato** — decidono che cosa si vede a SCHERMO, non che
+       cosa dice un documento che esce, e sono l'impianto che tutte le app
+       hanno uguale. Quelli si lasciano stare; è fuori di lì che un confronto
+       vuol dire «qualcuno si è riscritto la regola in casa». */
+    const CONFRONTO = /db\.mode\s*(?:!==|===|!=|==)/;
+    const SCHERMO = /tour-banner|mode-note/;
+    const decidono = CODICE_CAMPO.split("\n")
+      .filter((r) => CONFRONTO.test(r) && !SCHERMO.test(r)).length;
+    const aSchermo = CODICE_CAMPO.split("\n").filter((r) => CONFRONTO.test(r) && SCHERMO.test(r)).length;
+    console.log(`     (${letture} letture di db.mode nel CODICE di Campo: ${passate} passate a shared/, `
+      + `${decidono} che confrontano fuori dallo schermo, ${aSchermo} righe d'impianto`
+      + ` · ${vestiti.length} vestiti guardati)`);
+    /* UNA sola lettura confronta, ed è dentro `modoDimostrazione`… che dal
+       06/08 non è più nemmeno in questo file: sta in `shared/`. Quindi qui le
+       letture che decidono sono ZERO, e il giorno in cui ne comparisse una
+       vorrebbe dire che un foglio nuovo si è scritto la propria regola. */
+    eq(decidono, 0, "⛔ letture di db.mode che CONFRONTANO in Campo: la decisione non si riscrive in casa");
+    ok(passate >= 3, `⛔ solo ${passate} letture passate a una decisione condivisa: `
+      + "se scendono, qualcuno ha smesso di chiedere e ha ricominciato a decidere");
+    eq(aSchermo, 2, "e le due righe dell'impianto ci sono ancora: la fascia del tour e la nota di stato");
   });
 
   test("campo · il rapporto stampato e la consegna .txt chiedono ognuno una volta", () => {

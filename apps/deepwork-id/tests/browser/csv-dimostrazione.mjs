@@ -79,8 +79,16 @@ const TIPI = { ".html": "text/html", ".js": "text/javascript", ".mjs": "text/jav
   ".json": "application/json", ".svg": "image/svg+xml", ".png": "image/png", ".webmanifest": "application/manifest+json" };
 
 const MARCHIO = "DATI-DI-ESEMPIO_";
+/* ⛔ CAMPO È LA QUINTA, DAL 06/08. Era rimasta fuori quando le altre quattro
+   hanno avuto il marchio, e la ragione era buona: allora la regola viveva in
+   quattro copie dentro le pagine, e portarla in Campo avrebbe creato una
+   SECONDA decisione «sono in demo» accanto a `modoDimostrazione`. Adesso che
+   la decisione sta in `shared/`, quel motivo è caduto — e le sue sei uscite
+   (cinque CSV più la consegna di turno `.txt`) erano l'unico buco rimasto.
+   L'elenco dei bottoni è derivato dal disco, quindi Campo entra da sola. */
 const PAGINE = ["apps/conti/index.html", "apps/flotta/index.html",
-                "apps/sentinella/index.html", "apps/terra/index.html"];
+                "apps/sentinella/index.html", "apps/terra/index.html",
+                "apps/campo/index.html"];
 
 /* ── I BOTTONI DI EXPORT, uno per punto censito ────────────────────────────
    L'elenco è DERIVATO dal disco, non scritto a mano: si legge la pagina, si
@@ -141,10 +149,17 @@ const inietta = (rotta, t) => {
      il giro attraversa la funzione condivisa per davvero. */
   if (FINGE_LIVE) {
     if (!PAGINE.includes(dentro)) return t;
-    const q = t.split("nomeCsvDimostrazione(el.download, db.mode)").length - 1;
-    if (q !== 1) { console.log(`⛔ INIEZIONE MANCATA in ${rotta}: ${q} soggetti per il modo`); nMancate++; return t; }
-    nDecisioni++;
-    return t.replace("nomeCsvDimostrazione(el.download, db.mode)", 'nomeCsvDimostrazione(el.download, "live")');
+    /* ⛔ E SI ROVESCIA OGNI LETTURA DEL MODO, NON SOLO QUELLA DEL NOME —
+       trovato il 06/08 aggiungendo Campo. Campo dichiara la dimostrazione in
+       DUE posti: il nome del file e, sulla consegna di turno `.txt`, una riga
+       nel contenuto. Rovesciando solo il primo il file usciva col nome pulito
+       e la riga di dentro che diceva ancora «DATI DI ESEMPIO» — un KO vero,
+       ma del banco: nella realtà `db.mode === "live"` le zittisce tutt'e due.
+       Un `--live` che finge a metà misura un caso che non esiste. */
+    const q = (t.match(/(?:nomeCsvDimostrazione|modoDimostrazione)\(([^)]*?)db\.mode\)/g) || []).length;
+    if (q < 1) { console.log(`⛔ INIEZIONE MANCATA in ${rotta}: nessuna lettura del modo da rovesciare`); nMancate++; return t; }
+    nDecisioni += q;
+    return t.replace(/((?:nomeCsvDimostrazione|modoDimostrazione)\([^)]*?)db\.mode\)/g, '$1"live")');
   }
   if (dentro === CONDIVISO) {
     const q = t.split(DEC_VERA).length - 1;
@@ -307,7 +322,13 @@ const provaApp = async (app) => {
     dice(marchiato === ATTESO,
       `${app}: «${u.nome}» ${ATTESO ? "porta il marchio in testa" : "esce col nome PULITO (nessun marchio su un file vero)"}`,
       u.nome);
-    dice(/\.csv$/i.test(u.nome), `${app}: «${u.nome}» resta un .csv`, u.nome);
+    /* ⛔ NON TUTTO QUELLO CHE ESCE È UN CSV, e fino al 06/08 questo banco lo
+       dava per scontato. Aggiungendo Campo sono usciti TRE KO, e nessuno dei
+       tre era un difetto: erano tutti assunzioni del banco su un file `.txt`
+       — la consegna di turno, che passa di mano fra due turni. Un'accusa falsa
+       manda a «correggere» un prodotto sano, ed è il verso che costa di più.
+       L'estensione decide quali domande hanno senso, e si dichiara. */
+    dice(/\.(csv|txt)$/i.test(u.nome), `${app}: «${u.nome}» ha un'estensione che il banco sa giudicare`, u.nome);
   }
 
   /* ── IL CONTENUTO NON È STATO TOCCATO ────────────────────────────────── */
@@ -326,10 +347,29 @@ const provaApp = async (app) => {
   for (const c of corpi) {
     const pulito = c.nome.replace(MARCHIO, "");
     if (DUMP) { mkdirSync(DUMP, { recursive: true }); writeFileSync(join(DUMP, `${app}__${pulito}`), c.testo); }
-    dice(!/DATI-DI-ESEMPIO|DATI DI ESEMPIO/i.test(c.testo),
-      `${app}: «${pulito}» — il marchio NON è entrato nel contenuto`, c.testo.slice(0, 120));
-    dice(c.testo.split("\n")[0].includes(";"),
-      `${app}: «${pulito}» — l'intestazione è ancora la riga 1`, c.testo.split("\n")[0].slice(0, 120));
+    /* ⛔ E LE DUE DOMANDE QUI SOTTO VALGONO SOLO PER UN CSV. Il marchio non
+       deve entrare nel contenuto di un `.csv` per una ragione precisa e
+       misurata: sei nostri lettori su nove lo rileggerebbero **come un dato**,
+       e la frase scritta per dire «questi numeri non sono veri» diventerebbe
+       essa stessa un numero falso. In un `.txt` quel rischio non c'è — nessun
+       lettore lo scompone in colonne — e infatti Campo la dichiarazione ce la
+       mette apposta, in cima, prima di qualunque dato. Le due difese non si
+       sostituiscono: il nome sopravvive al salvataggio, la riga nel contenuto
+       sopravvive al copia-incolla. */
+    const eCsv = /\.csv$/i.test(pulito);
+    if (eCsv) {
+      dice(!/DATI-DI-ESEMPIO|DATI DI ESEMPIO/i.test(c.testo),
+        `${app}: «${pulito}» — il marchio NON è entrato nel contenuto del CSV`, c.testo.slice(0, 120));
+      dice(c.testo.split("\n")[0].includes(";"),
+        `${app}: «${pulito}» — l'intestazione è ancora la riga 1`, c.testo.split("\n")[0].slice(0, 120));
+    } else {
+      /* la domanda rovesciata, e va fatta: su un documento che si legge a
+         occhio la dichiarazione DEVE esserci, e deve stare in alto. */
+      const primeRighe = c.testo.split("\n").slice(0, 3).join("\n");
+      dice(ATTESO ? /DATI DI ESEMPIO/i.test(primeRighe) : !/DATI DI ESEMPIO/i.test(primeRighe),
+        `${app}: «${pulito}» — ${ATTESO ? "lo dichiara nelle prime righe, non solo nel nome" : "coi dati veri non dichiara niente"}`,
+        primeRighe.slice(0, 120));
+    }
     const g = GIRI[pulito];
     if (!g) continue;
     const [modApp, lettore] = g;
@@ -342,7 +382,12 @@ const provaApp = async (app) => {
   await ctx.close();
 };
 
-const APP = ["conti", "flotta", "sentinella", "terra"];
+/* ⛔ E QUESTO È L'ELENCO CHE IL BANCO VISITA DAVVERO — `PAGINE` più sopra serve
+   solo alle iniezioni. Aggiungendo Campo lassù e non qui, il 06/08, i numeri
+   sono rimasti IDENTICI (26 bottoni, 23 file): il banco non l'aveva guardata,
+   e diceva lo stesso «111 ok, 0 KO». Due elenchi per la stessa cosa sono due
+   posti in cui dimenticarsi, ed è la ragione per cui questo commento sta qui. */
+const APP = ["conti", "flotta", "sentinella", "terra", "campo"];
 for (const a of APP) if (!SOLO || SOLO === a) await provaApp(a);
 
 /* Genesi resta FUORI, e la ragione è misurata invece che ricordata: non ha

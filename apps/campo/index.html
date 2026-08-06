@@ -1112,7 +1112,7 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
            numeroIt, segnoIt, numeroItDa, numeroDaCampo } from "./campo-data.js";
   import { misuratoPeriodo, produzioneDichiarata, riconciliazioneTurni,
            periodoFraUltimiRilievi, densitaDellaCava } from "../../shared/dw-ponti.js";
-  import { mountExit, esc, csvCell, statoVuoto, senzaDoppioni, messaggioNumero, montaGuardiaInteri, dataIt, modoDimostrazione } from "../../shared/deepwork-id-client/dw-shell.js";
+  import { mountExit, esc, csvCell, statoVuoto, senzaDoppioni, messaggioNumero, montaGuardiaInteri, dataIt, modoDimostrazione, nomeCsvDimostrazione } from "../../shared/deepwork-id-client/dw-shell.js";
   // gli agganci della struttura condivisa (modale con Escape, riquadri da
   // tastiera, alone che segue il mouse). Va chiamato QUI e non nel blocco
   // classico in linea: i moduli girano dopo gli script `defer`.
@@ -2871,7 +2871,7 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
     }
     const a = document.createElement("a");
     a.href = "data:text/csv;charset=utf-8," + encodeURIComponent(csv);
-    a.download = "campo_appello.csv"; a.click();
+    a.download = "campo_appello.csv"; marchiaCsv(a); a.click();
     esito("pre-esito", "Elenco per l'appello esportato: " + app.totale + " persone.", "success");
   };
 
@@ -3222,7 +3222,7 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
     const fuori = registrazioniSenzaGiorno(ATT, RAP);
     const a = document.createElement("a");
     a.href = "data:text/csv;charset=utf-8," + encodeURIComponent(csvStorico(SET_RIGHE, fuori));
-    a.download = "campo_storico.csv"; a.click();
+    a.download = "campo_storico.csv"; marchiaCsv(a); a.click();
     esito("set-esito", "Esportate " + SET_RIGHE.length + " giornate nel file campo_storico.csv."
       + (fuori.totale ? " In coda c'è la riga senza giorno con " + fuori.totale
           + (fuori.totale === 1 ? " registrazione che non sta" : " registrazioni che non stanno")
@@ -3483,7 +3483,7 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
       csv += `${a.data || ""};${csvCell(a.turno || "")};${csvCell(a.titolo || "")};${csvCell(a.dettaglio || "")};${a.stato || ""};${csvCell(a.stato === "anomalia" ? (a.causale || "") : "")}\n`;
     const a = document.createElement("a");
     a.href = "data:text/csv;charset=utf-8," + encodeURIComponent(csv);
-    a.download = "campo_attivita.csv"; a.click();
+    a.download = "campo_attivita.csv"; marchiaCsv(a); a.click();
     esito("att-esito", "Esportate " + ATT_G.length + " attività nel file campo_attivita.csv.", "success");
   };
   $("btn-add-rap").onclick = async () => {
@@ -3887,7 +3887,7 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
       csv += `${csvCell(q.nome)};${q.persone == null ? "" : Math.max(0, Math.round(+q.persone) || 0)};${csvCell(q.area || "")};${q.stato || "operativa"}\n`;
     const a = document.createElement("a");
     a.href = "data:text/csv;charset=utf-8," + encodeURIComponent(csv);
-    a.download = "campo_squadre.csv"; a.click();
+    a.download = "campo_squadre.csv"; marchiaCsv(a); a.click();
     esito("squ-esito", "Esportate " + SQU.length + " squadre nel file campo_squadre.csv.", "success");
   };
   /* ⛔ SUI FOGLI DI CAMPO NON RESTAVA NIENTE CHE DICESSE «SONO DATI DI ESEMPIO».
@@ -3933,6 +3933,24 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
   // `null` = dati veri, e allora tutto tace. Qualunque altro valore è il nome
   // della dimostrazione. ⛔ Se `db.mode` non c'è la risposta resta
   // «non dichiarata»: l'assenza del dato non è il permesso di stare zitti.
+  /* IL NOME DEI FILE CHE ESCONO. La decisione — che cosa conta come
+     dimostrazione, che forma ha il marchio — sta in `nomeCsvDimostrazione` di
+     shared/deepwork-id-client/dw-shell.js, la stessa che usano Conti, Flotta,
+     Sentinella e Terra. Qui resta l'impianto, perché `db.mode` è della pagina.
+     ⛔ Campo era rimasto FUORI di proposito quando le altre quattro l'hanno
+     avuta: allora la regola viveva in quattro copie dentro le pagine, e
+     portarla qui avrebbe creato una SECONDA decisione «sono in demo» in questo
+     file, accanto a `modoDimostrazione`. Adesso che la decisione è una sola e
+     sta in `shared/`, il motivo per restare fuori è caduto.
+     ⚠️ Il marchio va anche sulla CONSEGNA DI TURNO `.txt`, che nel contenuto
+     lo dichiara già: le due difese non si sostituiscono. La riga nel contenuto
+     è la forte ma si perde se qualcuno copia e incolla il testo altrove; il
+     nome del file è la debole ma sopravvive al salvataggio. Un documento che
+     passa di mano fra due turni merita tutt'e due.
+     Si chiama DOPO l'assegnazione, e la riga download = "…" resta un
+     letterale: la regola 13 di run-stile conta i nomi ripetuti leggendo
+     proprio quel letterale, e nasconderglielo la renderebbe cieca. */
+  const marchiaCsv = (el) => { el.download = nomeCsvDimostrazione(el.download, db.mode); return el; };
   const FRASE_ESEMPIO = "Questo foglio non descrive nessun turno realmente lavorato: "
     + "nomi, orari, ore lavorate, fermi e firme sono inventati. Non va consegnato al turno "
     + "successivo, non vale come prova delle presenze o delle ore di lavoro e non va esibito "
@@ -4019,7 +4037,7 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
     }
     const el = document.createElement("a");
     el.href = "data:text/plain;charset=utf-8," + encodeURIComponent(txt);
-    el.download = "consegna_turno.txt"; el.click();
+    el.download = "consegna_turno.txt"; marchiaCsv(el); el.click();
     esito("rap-esito", "Consegna di turno esportata: " + RAP_OGGI.length + " rapportini e " + fermi.length + " causali di fermo.", "success");
   };
   // Rapporto di fine turno STAMPABILE (stesso pattern del report di Genesi):
@@ -4342,7 +4360,7 @@ ${riapOggi.length?`<h2>Riaperture del turno</h2>
     const reg = PIANO.filter(p => p.reale != null).length;
     const a = document.createElement("a");
     a.href = "data:text/csv;charset=utf-8," + encodeURIComponent(pianoConsuntivoCsv(PIANO));
-    a.download = "campo_consuntivo_carico.csv"; a.click();
+    a.download = "campo_consuntivo_carico.csv"; marchiaCsv(a); a.click();
     toast(reg
       ? "Consuntivo esportato: " + reg + " fori su " + PIANO.length + " con la carica reale. Rileggilo in Genesi → Riconciliazione."
       : "Consuntivo esportato, ma nessuna carica reale è ancora registrata: a Genesi arriverebbe solo il progetto.",
