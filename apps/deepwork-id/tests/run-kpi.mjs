@@ -20846,5 +20846,180 @@ test("⛔ etichettaStatoDocumento: la mappa esce dalla pagina e la leggono in du
   });
 }
 
+// ═══ SCUDO · la dimostrazione dichiarata (06/08) ═══
+/* Che cosa ci fa una banda che LEGGE UNA PAGINA in una suite di funzioni pure.
+   Due ragioni, e vanno dette perché la prossima persona la sposti invece di
+   ricopiarla.
+   1. La funzione che dichiara «questo è un foglio di dimostrazione» vive nella
+      PAGINA di Scudo, non nel modulo dati: è lei a comporre i fogli. Ma è una
+      funzione pura come le altre — frase dentro, HTML fuori — quindi qui non
+      si legge il suo sorgente per fare il conto dei caratteri: si ESTRAE e si
+      CHIAMA, con `db` e `esc` finti. Le prove che seguono la eseguono davvero.
+   2. Le tre domande che restano — «un solo punto scrive nel foglio?», «la
+      regola di stampa è ancorata a `#verbale`?», «i due fogli dicono cose
+      diverse?» — sono regole di STRUTTURA, e il loro posto naturale è
+      `run-stile.mjs`. Ci vanno spostate: qui stanno perché in questo giro
+      quel file non si toccava.
+   ⚠️ COPERTURA DICHIARATA, per non spacciare per generale ciò che è locale:
+   questa banda guarda la sola `apps/scudo/index.html`. Conti e Terra hanno la
+   stessa funzione con lo stesso nome (è la copia debole che va portata in
+   `shared/`, ed è scritto anche nella pagina di Scudo): quando ci andrà, le
+   prove qui sotto la seguiranno e varranno per tutt'e tre.
+   ⚠️ E QUELLO CHE QUESTA BANDA **NON** VEDE: se `scriviFoglio` smettesse di
+   anteporre l'avviso all'HTML, tutti i controlli qui sotto resterebbero verdi
+   — la funzione estratta funziona lo stesso, il punto di scrittura resta uno,
+   le frasi restano due e diverse. Quel caso lo prende il banco del browser
+   (`browser/scudo-documenti.mjs`, iniezione 19), che legge il foglio in
+   `emulateMedia({media:"print"})`. Una banda che tacesse su questo buco
+   sarebbe la guardia che dichiara di guardare e guarda altrove. */
+{
+  console.log("\n— Scudo: i due fogli stampabili dichiarano di essere una dimostrazione —");
+  const { readFileSync } = await import("node:fs");
+  const PAGINA_SCUDO = join(HERE, "../../scudo/index.html");
+  const sorgenteScudo = readFileSync(PAGINA_SCUDO, "utf8");
+
+  /* ⛔ I CONTROLLI SONO UNA FUNZIONE DEL TESTO, non del file: così la
+     controprova può passargli una copia col difetto rimesso senza toccare il
+     disco. È la regola del 01/08 — si inietta in memoria, perché quella pagina
+     la carica il browser e un giro potrebbe essere in corso. */
+  const misura = (testo) => {
+    // quanti punti scrivono dentro il foglio: deve essere UNO
+    const scrittori = testo.split('$("verbale").innerHTML').length - 1;
+    // le chiamate al punto unico, con la frase che ognuna passa
+    const chiamate = [...testo.matchAll(/scriviFoglio\(([\s\S]*?),\s*`/g)]
+      .map((m) => { try { return new Function(`return (${m[1]})`)(); } catch { return null; } });
+    // i selettori del foglio di stile che nominano `.esempio`
+    const selettori = [...testo.matchAll(/(?:^|\n)\s*([^\n{}]*\.esempio[^\n{}]*)\{/g)].map((m) => m[1].trim());
+    /* La funzione si ESTRAE E SI CHIAMA. `new Function` le passa un `db` e un
+       `esc` finti: se il codice estratto non fosse una funzione pura di quei
+       due, questa riga esploderebbe — ed è un modo di misurarlo. */
+    const decl = /const avvisoEsempio = \(frase\) =>[\s\S]*?\n    : "";/.exec(testo);
+    const fabbrica = decl ? new Function("db", "esc", `${decl[0]}\nreturn avvisoEsempio;`) : null;
+    return { scrittori, chiamate, selettori, decl: decl ? 1 : 0, fabbrica };
+  };
+  const M = misura(sorgenteScudo);
+  console.log(`  (misurati: ${M.scrittori} punto/i di scrittura, ${M.chiamate.length} fogli, `
+    + `${M.selettori.length} selettori «.esempio», ${M.decl} dichiarazione/i di avvisoEsempio)`);
+
+  test("⛔ scudo · un solo punto scrive dentro il foglio da stampare", () => {
+    /* La decisione «questo è di dimostrazione» si prende in un posto solo, e a
+       tenerla lì non basta scriverlo: basta che un terzo foglio faccia
+       `$("verbale").innerHTML = …` per conto suo e la dichiarazione sparisce
+       da quel foglio senza nessun errore da leggere. */
+    eq(M.scrittori, 1, "il foglio si scrive da un punto solo");
+    ok(/const scriviFoglio = \(frase, html\) => \{ \$\("verbale"\)\.innerHTML/.test(sorgenteScudo),
+      "e quel punto è `scriviFoglio`, non una riga sparsa");
+  });
+
+  test("scudo · e ci passano tutti i fogli che l'app stampa", () => {
+    /* Due, al 06/08: il verbale di consegna dei DPI e la cartella del
+       lavoratore. Se ne nascesse un terzo senza passare di qui, il conto qui
+       sopra (`scrittori`) salirebbe a 2 e la prova precedente cadrebbe. */
+    eq(M.chiamate.length, 2, "il verbale e la cartella");
+    ok(M.chiamate.every((f) => typeof f === "string" && f.length > 40),
+      `ogni foglio passa la sua frase: ${JSON.stringify(M.chiamate.map((f) => (f || "").length))}`);
+  });
+
+  test("⛔ scudo · i due fogli non dicono la stessa cosa: la conseguenza è di quel foglio lì", () => {
+    /* «Dati di esempio» da solo si legge come una nota di cortesia. Quello che
+       serve è l'istruzione: un verbale di consegna si fa FIRMARE (e quindi non
+       va firmato), una cartella si ESIBISCE e si tiene agli atti. Un punto
+       solo per la decisione non vuol dire una frase sola per tutti. */
+    const [verb, cart] = M.chiamate;
+    ok(verb !== cart, "le due frasi sono diverse");
+    ok(/non va fatto firmare/i.test(verb), `il verbale dice che non va firmato: «${verb}»`);
+    ok(/non va esibita a un ispettore/i.test(cart), `la cartella dice che non va esibita: «${cart}»`);
+  });
+
+  test("⛔ scudo · avvisoEsempio: sui dati di esempio dichiara, e dichiara la frase del foglio", () => {
+    const f = M.fabbrica({ mode: "demo" }, shell.esc);
+    const out = f("Questo foglio non serve a niente.");
+    ok(/class="esempio"/.test(out), "esce dentro il riquadro che la stampa disegna");
+    ok(/DATI DI ESEMPIO/.test(out), "e dice che i dati sono d'esempio");
+    ok(/\(demo\)/.test(out), "col nome della modalità, così si sa da dove viene");
+    ok(/Questo foglio non serve a niente\./.test(out), "e riporta la frase del foglio");
+  });
+
+  test("⛔ scudo · avvisoEsempio: sui dati VERI tace, e tace del tutto", () => {
+    /* Il difetto opposto, e più costoso: «DATI DI ESEMPIO» stampato sulla
+       cartella vera di un lavoratore vero. Non basta che il riquadro sia
+       vuoto: non deve esserci proprio, se no sul foglio resta un rettangolo
+       nero alto due centimetri sopra la testata. */
+    eq(M.fabbrica({ mode: "live" }, shell.esc)("Frase qualunque."), "",
+      "in produzione non esce niente");
+  });
+
+  test("⛔ scudo · il nome della modalità passa da esc: è testo, non markup", () => {
+    /* `db.mode` arriva dallo SDK. Non è testo scritto da noi, e finisce dentro
+       l'HTML del foglio: se un giorno contenesse un `<`, senza `esc` sarebbe
+       markup. Costa niente pretenderlo adesso. */
+    const out = M.fabbrica({ mode: '<b>x</b>' }, shell.esc)("F.");
+    ok(!/<b>x<\/b>/.test(out), `il markup nel nome della modalità viene neutralizzato: ${out}`);
+    ok(/&lt;b&gt;x/.test(out), "e resta leggibile come testo");
+  });
+
+  test("⛔ scudo · la regola di stampa è ancorata a #verbale", () => {
+    /* È il difetto del 06/08 in forma di regola. La dichiarazione c'era, sullo
+       schermo, DUE volte — la fascia `#tour-banner` e la riga `#mode-note` — e
+       la stampa le nasconde tutt'e due, perché stanno nell'elenco di ciò che è
+       comando e non documento. `#verbale` è l'unica cosa che la stampa lascia
+       in piedi: se il selettore della dichiarazione non è ancorato lì, non c'è
+       niente che impedisca alla riga di finire di nuovo dove nessuno la legge. */
+    ok(M.selettori.length > 0, "il foglio di stile nomina `.esempio`");
+    for (const s of M.selettori)
+      ok(/#verbale/.test(s), `il selettore «${s}» è ancorato a #verbale`);
+  });
+
+  /* ⛔ LA CONTROPROVA. Sei difetti rimessi in una COPIA IN MEMORIA della
+     pagina: il disco non si tocca, perché quella pagina la carica il browser e
+     un giro potrebbe essere in corso. Ogni difetto deve far cadere almeno un
+     controllo, e si stampa quante iniezioni sono state provate e quali
+     controlli sono caduti — un `replace` che non trova niente esce in silenzio
+     e dichiarerebbe riuscita una controprova mai partita. */
+  const DIFETTI_STATICI = [
+    ["la cartella si scrive il foglio da sola, scavalcando il punto unico",
+     "    scriviFoglio(\n      /* la conseguenza detta per QUESTO foglio: la cartella è il fascicolo",
+     '    $("verbale").innerHTML = ((f, h) => h)(\n      /* la conseguenza detta per QUESTO foglio: la cartella è il fascicolo'],
+    ["l'avviso non sa più tacere: dichiara anche sui dati veri",
+     '  const avvisoEsempio = (frase) => db.mode !== "live"',
+     '  const avvisoEsempio = (frase) => db.mode !== "MAI"'],
+    ["il nome della modalità entra nel foglio senza esc",
+     "modalità tour (${esc(db.mode)})", "modalità tour (${db.mode})"],
+    ["la regola di stampa non è più ancorata a #verbale",
+     "  body.stampa-verbale #verbale .esempio{", "  .esempio{"],
+    ["i due fogli dicono la stessa frase",
+     '"Questa cartella non riguarda nessun lavoratore reale: non va esibita a un ispettore "\n      + "né tenuta agli atti come fascicolo personale.", `',
+     '"Questo verbale non documenta nessuna consegna reale: non va fatto firmare, "\n      + "non va allegato ai Documenti e non prova la consegna dei DPI (art. 77 D.Lgs 81/2008) "\n      + "davanti a un controllo.", `'],
+    ["un foglio passa dal punto unico senza dire la sua conseguenza",
+     '"Questo verbale non documenta nessuna consegna reale: non va fatto firmare, "\n      + "non va allegato ai Documenti e non prova la consegna dei DPI (art. 77 D.Lgs 81/2008) "\n      + "davanti a un controllo.", `',
+     '"", `'],
+  ];
+  test("⛔ scudo · la controprova: rimessi i difetti, i controlli cadono", () => {
+    let provate = 0;
+    const caduti = [];
+    for (const [nome, da, a] of DIFETTI_STATICI) {
+      const n = sorgenteScudo.split(da).length - 1;
+      ok(n === 1, `l'iniezione «${nome}» ha ${n} soggetti invece di 1: non è partita`);
+      provate++;
+      const G = misura(sorgenteScudo.replace(da, a));
+      /* si ripetono gli stessi controlli sulla copia, e ne deve cadere almeno
+         uno: quale, lo si stampa, se no «è caduto qualcosa» non dice dove */
+      const rotti = [];
+      if (G.scrittori !== 1) rotti.push("un solo scrittore");
+      if (G.chiamate.length !== 2 || !G.chiamate.every((f) => typeof f === "string" && f.length > 40)) rotti.push("due fogli con la loro frase");
+      if (G.chiamate[0] === G.chiamate[1]) rotti.push("frasi diverse");
+      if (!G.selettori.length || !G.selettori.every((s) => /#verbale/.test(s))) rotti.push("selettore ancorato");
+      if (G.fabbrica) {
+        if (G.fabbrica({ mode: "live" }, shell.esc)("F.") !== "") rotti.push("sa tacere");
+        if (/<b>x<\/b>/.test(G.fabbrica({ mode: "<b>x</b>" }, shell.esc)("F."))) rotti.push("esc sul nome della modalità");
+      } else rotti.push("la funzione non si estrae più");
+      ok(rotti.length > 0, `il difetto «${nome}» non fa cadere nessun controllo`);
+      caduti.push(`${nome} → ${rotti.join(", ")}`);
+    }
+    eq(provate, DIFETTI_STATICI.length, "tutte le iniezioni sono partite");
+    console.log("    controprova: " + provate + " iniezioni provate\n      · " + caduti.join("\n      · "));
+  });
+}
+
 console.log(`\nRisultato KPI app: ${passed} passati, ${failed} falliti${inVolo.length ? `  ·  ${inVolo.length} prove asincrone aspettate` : ""}`);
 process.exit(failed > 0 ? 1 : 0);

@@ -183,6 +183,13 @@ const BANCHI = [
      cella vuota che si legge «zero giorni». */
   ['i documenti che escono da Scudo (4 CSV, 2 fogli stampati, il promemoria)', 'scudo-documenti.mjs', []],
   ['documenti di Scudo · controprova', 'scudo-documenti.mjs', ['--controprova'], true],
+  /* ⛔ AGGIUNTO IL 06/08 insieme alla dichiarazione «dati di esempio» sui due
+     fogli di Scudo — il verbale di consegna dei DPI (art. 77 D.Lgs 81/2008) e
+     la cartella del lavoratore. `--live` è la metà che conta quanto l'altra:
+     pretende che coi dati VERI i due fogli escano **puliti**, cioè che la
+     dichiarazione sappia anche tacere. Una guardia che parla sempre non
+     protegge, infastidisce. */
+  ['fogli di Scudo · coi dati veri tacciono', 'scudo-documenti.mjs', ['--live']],
   ['il verbale dice come è nato il numero', 'verbale-origine.mjs', []],
   ['verbale · controprova', 'verbale-origine.mjs', ['--controprova'], true],
   ['la manina promette un tocco che c\'è', 'promesse-tocco.mjs', []],

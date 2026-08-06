@@ -5,6 +5,8 @@
      node scudo-documenti.mjs [--porta=8730]
      node scudo-documenti.mjs --controprova   (rimette TUTTI i difetti: DEVE fallire)
      node scudo-documenti.mjs --controprova --difetti=13,16   (solo quelli)
+     node scudo-documenti.mjs --live          (Scudo crede di essere in produzione:
+                                               i due fogli devono uscire PULITI)
      node scudo-documenti.mjs --dimmi         (stampa i file interi)
 
    PERCHÉ ESISTE. Le prove `node` chiamano il modulo; i FILE li compone la
@@ -43,6 +45,25 @@
       c'era una visita medica scaduta e un DPI da sostituire. E il documento
       collegato usciva col titolo e una cella bianca: lo stato — quello che
       nell'elenco dei Documenti è una pastiglia — non c'era.
+   7. LA DIMOSTRAZIONE NON DICHIARATA (06/08). Il difetto più grosso dei due
+      fogli, e non stava nei numeri: stava in ciò che NON c'era scritto. In
+      modalità tour lo schermo dichiara due volte che i dati sono d'esempio —
+      la fascia `#tour-banner` e la riga `#mode-note` — e la stampa le nasconde
+      TUTT'E DUE, perché `.tour-banner` e `.page` stanno nell'elenco di ciò che
+      è comando e non documento. Misurato in `emulateMedia({media:"print"})`
+      PRIMA della correzione: `#tour-banner` a `display:none`, `#mode-note`
+      alto 0 px e fuori da `body.innerText`, e nel foglio zero occorrenze di
+      «esempio», «tour» o «dimostrazione». Cioè: un verbale di dimostrazione
+      con il nome di una persona, le date, le righe per le firme e il timbro
+      dell'art. 77 si porta a un controllo e niente lo distingue da uno vero.
+      Adesso la dichiarazione sta DENTRO `#verbale`, che è l'unica cosa che la
+      stampa lascia in piedi, e ci arriva da un punto solo (`scriviFoglio`).
+   8. E SA TACERE. Un avviso che compare sempre non lo legge più nessuno, e
+      «DATI DI ESEMPIO» stampato sulla cartella vera di un lavoratore vero
+      sarebbe il difetto opposto e più costoso. `--live` fa credere a Scudo di
+      essere in produzione e pretende i due fogli PULITI: senza quel giro il
+      banco avrebbe provato solo che l'avviso sa comparire, mai che sa stare
+      zitto.
 
    ⛔ I CASI SI COSTRUISCONO NEI DATI SERVITI, non nel file su disco: accanto
    ci sono cantieri che scrivono e un giro del browser può partire in qualunque
@@ -184,7 +205,52 @@ const DIFETTI = [
          falso — mentre sulla data ILLEGGIBILE, che a schermo è lo stesso
          stato, usciva regolarmente. */
   ["  if (!nome) return null;", "  if (!nome || !sc.dataScadenza) return null;", MODULO],
+  /* ── LA DIMOSTRAZIONE DICHIARATA SUI DUE FOGLI (06/08) ─────────────────
+    19. IL BUCO NELLA SUA FORMA PIÙ SEMPLICE: il foglio esce senza la
+        dichiarazione. È lo stato in cui Scudo era prima del 06/08. */
+  ['  const scriviFoglio = (frase, html) => { $("verbale").innerHTML = avvisoEsempio(frase) + html; };',
+   '  const scriviFoglio = (frase, html) => { $("verbale").innerHTML = html; };'],
+  /* 20. IL BUCO NELLA SUA FORMA VERA, che è più insidiosa: la dichiarazione
+        c'è nel DOM, ma sta dove la stampa non la fa uscire. È esattamente
+        quello che succedeva con `#tour-banner` e `#mode-note`, e una prova
+        scritta su `textContent` passerebbe lo stesso. Qui si riproduce con la
+        via più corta — la regola di stampa spenta — e a prenderlo devono
+        essere `innerText` in `emulateMedia({media:"print"})` e lo stile
+        calcolato, non il sorgente. */
+  ["  body.stampa-verbale #verbale .esempio{\n    border:2pt solid #14121c;",
+   "  body.stampa-verbale #verbale .esempio{\n    display:none; border:2pt solid #14121c;"],
+  /* 21. LA DICHIARAZIONE GENERICA: c'è, si vede, e non dice che cosa comporta
+        per QUEL foglio lì. «Dati di esempio» da solo lo si legge come una nota
+        di cortesia; «non va fatto firmare» è un'istruzione. */
+  ['? `<div class="esempio"><b>DATI DI ESEMPIO — modalità tour (${esc(db.mode)}).</b> ${frase}</div>`',
+   '? `<div class="esempio"><b>DATI DI ESEMPIO — modalità tour (${esc(db.mode)}).</b></div>`'],
+  /* 22. UN FOGLIO SOLO DEI DUE dice la sua conseguenza: la cartella passa dal
+        punto unico ma con la frase vuota. Serve a pinnare che le prove
+        guardano TUTT'E DUE i fogli — un banco che ne legge uno e chiama
+        «coperti» tutti e due è il controllo che non guarda dove crede. */
+  ['"Questa cartella non riguarda nessun lavoratore reale: non va esibita a un ispettore "\n      + "né tenuta agli atti come fascicolo personale.", `', '"", `'],
 ];
+
+/* ⛔ LA SECONDA DOMANDA: E SU UN FOGLIO VERO LA DICHIARAZIONE NON C'È?
+   Le quattro iniezioni qui sopra provano che il banco vede l'avviso quando
+   manca. Non provano la cosa opposta, che costa di più: «DATI DI ESEMPIO»
+   stampato sulla cartella vera di un lavoratore vero, o sul verbale che si sta
+   davvero facendo firmare. `--live` fa credere a Scudo di essere in produzione
+   — in demo il confronto diventa `!== "demo"`, cioè falso — e allora i due
+   fogli devono uscire PULITI: le prove sull'avviso si rovesciano.
+   ⚠️ Si tocca SOLO la riga dell'avviso: la fascia `#tour-banner` continua a
+   guardare `db.mode !== "live"` e resta accesa, ed è la prova che l'app è
+   davvero in dimostrazione. Senza quel controllo un foglio pulito si
+   scambierebbe per «il banco non ha caricato niente». */
+const FINGE_LIVE = process.argv.includes("--live");
+const COME_LIVE = [
+  ['  const avvisoEsempio = (frase) => db.mode !== "live"',
+   '  const avvisoEsempio = (frase) => db.mode !== "demo"'],
+];
+if (FINGE_LIVE && CONTROPROVA) {
+  console.error("✗ --live e --controprova insieme non vogliono dire niente: il primo pretende i fogli puliti, il secondo li rompe.");
+  process.exit(2);
+}
 
 let iniezioniCasi = 0;
 /* ⚠️ UN INSIEME E NON UN CONTATORE: un file richiesto due volte farebbe
@@ -196,10 +262,15 @@ const rimessi = new Set();
    distingue, e una prova può cadere per il difetto del vicino. */
 const SOLO = ((process.argv.find((a) => a.startsWith("--difetti=")) || "").split("=")[1] || "")
   .split(",").filter(Boolean).map(Number);
+/* La lista è DERIVATA dalla modalità, non gemella: `--live` non rimette
+   difetti, sposta il confronto di una riga sola. Il conteggio dei soggetti
+   toccati resta lo stesso in tutt'e due i casi, perché la trappola è la
+   stessa: un `replace` che non trova niente esce in silenzio. */
+const listaAttiva = () => (FINGE_LIVE ? COME_LIVE : DIFETTI);
 const applica = (t, file) => {
-  for (const [i, [da, a, dove]] of DIFETTI.entries()) {
+  for (const [i, [da, a, dove]] of listaAttiva().entries()) {
     if ((dove || PAGINA) !== file) continue;
-    if (SOLO.length && !SOLO.includes(i + 1)) { rimessi.add(i); continue; }
+    if (!FINGE_LIVE && SOLO.length && !SOLO.includes(i + 1)) { rimessi.add(i); continue; }
     const n = t.split(da).length - 1;
     if (n !== 1) { console.log(`⛔ INIEZIONE MANCATA (#${i + 1}): ${n} soggetti per «${da.slice(0, 60).replace(/\n/g, "⏎")}…»`); continue; }
     t = t.replace(da, a); rimessi.add(i);
@@ -224,7 +295,7 @@ const srv = createServer((q, s) => {
     if (CONTROPROVA) t = applica(t, MODULO);
     corpo = Buffer.from(t + CASI, "utf8"); iniezioniCasi++;
   }
-  if (CONTROPROVA && p.endsWith(PAGINA)) corpo = Buffer.from(applica(corpo.toString("utf8"), PAGINA), "utf8");
+  if ((CONTROPROVA || FINGE_LIVE) && p.endsWith(PAGINA)) corpo = Buffer.from(applica(corpo.toString("utf8"), PAGINA), "utf8");
   s.writeHead(200, { "content-type": TIPI[extname(p)] || "application/octet-stream" });
   s.end(corpo);
 });
@@ -241,7 +312,7 @@ for (let i = 0; i < 12 && !porta; i++) {
 if (!porta) { console.error(`✗ nessuna porta libera fra ${PORTA} e ${PORTA + 11}: mi fermo invece di misurare la copia di qualcun altro.`); process.exit(2); }
 { const r = await fetch(`http://127.0.0.1:${porta}/__contrassegno`).then((x) => x.text()).catch(() => "");
   if (r !== String(process.pid)) { console.error(`✗ il contrassegno riletto dal server dice «${r}», il mio pid è ${process.pid}: mi fermo.`); process.exit(2); }
-  console.log(`porta ${porta} · contrassegno riletto = pid ${process.pid} ✔`); }
+  console.log(`porta ${porta} · contrassegno riletto = pid ${process.pid} ✔${CONTROPROVA ? "  · CONTROPROVA" : ""}${FINGE_LIVE ? "  · FINGE LIVE (i due fogli devono uscire PULITI)" : ""}`); }
 
 const { chromium } = await import("/opt/node22/lib/node_modules/playwright/index.mjs");
 const b = await chromium.launch({ executablePath: "/opt/pw-browsers/chromium" });
@@ -264,6 +335,14 @@ await pg.waitForTimeout(2500);
 
 let ok = 0, ko = 0;
 const dice = (c, t, x) => { if (c) { ok++; console.log(`  ok  ${t}`); } else { ko++; console.log(`  KO  ${t}${x !== undefined ? ` -> ${JSON.stringify(x).slice(0, 400)}` : ""}`); } };
+/* Le prove sulla dichiarazione «dati di esempio» si ROVESCIANO con `--live`:
+   lì il foglio è vero e la riga non ci deve essere. Si rovescia anche il
+   TESTO, e scritto a mano invece che con una `replace` sulla frase: un
+   riepilogo che stampa «sta in cima al foglio» mentre ha appena verificato il
+   contrario è la stessa bugia dello script che dichiara riuscita una prova mai
+   partita — solo più difficile da vedere, perché è verde. */
+const ATTESO = !FINGE_LIVE;
+const diceAvviso = (c, demo, live, x) => dice(c === ATTESO, FINGE_LIVE ? `[live] ${live}` : demo, x);
 dice(errori.length === 0, "la pagina non solleva errori", errori.slice(0, 2));
 dice(iniezioniCasi > 0, "i casi sono stati montati nel modulo servito", iniezioniCasi);
 
@@ -295,6 +374,61 @@ const scarica = async (nav, id) => {
   return { nome: g[0].nome, testo: decodeURIComponent(g[0].href.replace(/^data:text\/csv;charset=utf-8,/, "")) };
 };
 const righe = (t) => t.split("\n").filter(Boolean);
+
+/* ⛔ COME SI LEGGE UN FOGLIO: in `emulateMedia({media:"print"})`, e con
+   `innerText` — non con `textContent`. La differenza È il difetto del 06/08:
+   `textContent` risponde anche per ciò che la stampa NASCONDE, quindi una
+   prova scritta su di lui direbbe «la dichiarazione c'è» proprio nel caso in
+   cui dalla stampante non esce (è l'iniezione 20, ed è la forma che il difetto
+   aveva davvero: la riga stava in `#tour-banner`, cioè in un elemento che
+   `@media print` spegne).
+   Si legge anche lo stato delle DUE dichiarazioni dello SCHERMO: sul foglio
+   non arrivano, ed è la misura che dice perché la riga deve stare dentro
+   `#verbale` invece che «da qualche parte nella pagina». */
+const leggiFoglioStampato = async () => {
+  await pg.emulateMedia({ media: "print" });
+  await pg.waitForTimeout(250);
+  const r = await pg.evaluate(() => {
+    const v = document.getElementById("verbale");
+    const e = v.querySelector(".esempio");
+    const visibile = (el) => {
+      if (!el) return false;
+      const s = getComputedStyle(el);
+      return s.display !== "none" && s.visibility !== "hidden" && el.getBoundingClientRect().height > 0;
+    };
+    return {
+      stampato: (v.innerText || "").replace(/\s+/g, " ").trim(),
+      nelDom: (v.textContent || "").replace(/\s+/g, " ").trim(),
+      avvisoVisibile: visibile(e),
+      avvisoPrimo: !!e && v.firstElementChild === e,
+      bannerVisibile: visibile(document.getElementById("tour-banner")),
+      modeNoteVisibile: visibile(document.getElementById("mode-note")),
+    };
+  });
+  await pg.emulateMedia({ media: "screen" });
+  await pg.waitForTimeout(120);
+  return r;
+};
+/* Le quattro domande valgono per TUTT'E DUE i fogli e si scrivono una volta
+   sola: un banco che ne legge uno e chiama coperti tutti e due è il controllo
+   che non guarda dove crede. L'ultima cambia per foglio, perché la
+   conseguenza di un verbale di consegna e quella di una cartella personale
+   sono cose diverse. */
+const proveAvviso = (f, chi, conseguenza) => {
+  diceAvviso(/DATI DI ESEMPIO/.test(f.stampato),
+    `⛔ ${chi}: il foglio che esce dalla stampante dichiara di essere fatto di dati d'esempio`,
+    `⛔ ${chi}: su dati veri il foglio NON si dichiara d'esempio`, f.stampato.slice(0, 200));
+  diceAvviso(f.avvisoVisibile,
+    `⛔ ${chi}: e la dichiarazione si VEDE in stampa, non è solo scritta nel DOM`,
+    `⛔ ${chi}: e non c'è nemmeno un riquadro vuoto da vedere`,
+    { avvisoVisibile: f.avvisoVisibile, ancheNelDom: /DATI DI ESEMPIO/.test(f.nelDom) });
+  diceAvviso(f.avvisoPrimo,
+    `${chi}: sta in cima al foglio, prima della testata`,
+    `${chi}: il foglio comincia dalla sua testata, senza niente davanti`, f.stampato.slice(0, 90));
+  diceAvviso(conseguenza.test(f.stampato),
+    `⛔ ${chi}: e dice che cosa comporta per QUESTO foglio, non «dati di esempio» e basta`,
+    `⛔ ${chi}: e non porta nessuna delle frasi della dimostrazione`, f.stampato.slice(0, 300));
+};
 
 // ── 1 · LE AZIONI CORRETTIVE ───────────────────────────────────────────────
 const azi = await scarica("nav-azio", "btn-azi-export");
@@ -421,6 +555,25 @@ if (!inf.errore) {
   dice(/01\/06\/2099(?! —)/.test(foglio), "e una in corso di validità resta pulita", foglio.slice(0, 700));
   dice(/non indicata/.test(foglio), "la consegna senza data di sostituzione lo dice (decisione 14)", foglio.slice(0, 700));
   dice(!/—\s*<\/td>/.test(foglio) && !/ — $/.test(foglio), "e nessuna cella resta un trattino muto");
+
+  /* ⛔ LA DIMOSTRAZIONE DICHIARATA. Prima si prova che l'app È in
+     dimostrazione: senza questo controllo, in `--live`, un foglio pulito si
+     scambierebbe per «il banco non ha caricato niente». La fascia guarda
+     `db.mode` per conto suo e `--live` non la tocca. */
+  dice(await pg.evaluate(() => getComputedStyle(document.getElementById("tour-banner")).display === "block"),
+    "l'app è davvero in modalità dimostrazione: sullo schermo la fascia in alto è accesa");
+  const fv = await leggiFoglioStampato();
+  if (DIMMI) console.log("\n[verbale in stampa]\n" + JSON.stringify(fv, null, 1) + "\n");
+  /* ⛔ LA MISURA CHE SPIEGA PERCHÉ LA RIGA STA LÌ, e non è rovesciata da
+     `--live`: è un fatto delle regole di stampa, vero in tutt'e due i modi.
+     Le due dichiarazioni dello schermo sul foglio NON arrivano — `.tour-banner`
+     e `.page` stanno nell'elenco di ciò che è comando e non documento — quindi
+     una dichiarazione scritta fuori da `#verbale` non protegge niente. */
+  dice(!fv.bannerVisibile && !fv.modeNoteVisibile,
+    "⛔ e le due dichiarazioni dello SCHERMO sul foglio non arrivano: ecco perché la riga deve stare dentro #verbale",
+    { bannerVisibile: fv.bannerVisibile, modeNoteVisibile: fv.modeNoteVisibile });
+  dice(/Verbale di consegna dei DPI/i.test(fv.stampato), "il foglio letto in stampa è davvero il verbale", fv.stampato.slice(0, 90));
+  proveAvviso(fv, "verbale DPI", /non va fatto firmare/i);
 }
 
 // ── 6 · LA CARTELLA DEL LAVORATORE, IL FASCICOLO CHE SI ESIBISCE ──────────
@@ -495,6 +648,15 @@ if (!inf.errore) {
        usciva col titolo e una cella bianca */
     dice(/Attestato antincendio da archivio cartaceo\s*Stato non indicato/.test(guasta.foglio),
       "il documento collegato porta il suo stato, non solo il titolo", (guasta.foglio.match(/Documenti collegati.{0,140}/) || [""])[0]);
+    /* ⛔ IL SECONDO FOGLIO PORTA LA SUA DICHIARAZIONE, e con la SUA
+       conseguenza: una cartella non si fa firmare, si esibisce e si tiene agli
+       atti. Stessa funzione, frase diversa — è quello che «un posto solo» deve
+       permettere, se no la decisione unica diventa una frase unica e sbagliata
+       per metà dei fogli. */
+    const fc = await leggiFoglioStampato();
+    if (DIMMI) console.log("\n[cartella in stampa]\n" + JSON.stringify(fc, null, 1) + "\n");
+    dice(/Cartella del lavoratore/i.test(fc.stampato), "il foglio letto in stampa è davvero la cartella", fc.stampato.slice(0, 90));
+    proveAvviso(fc, "cartella del lavoratore", /non va esibita a un ispettore/i);
   }
 
   /* ⛔ IL CASO DI CONTROLLO, senza il quale «l'avviso c'è» non dimostra niente:
@@ -571,6 +733,20 @@ if (CONTROPROVA) {
     console.log("   mancano i numeri: " + DIFETTI.map((_, i) => i + 1).filter((i) => !rimessi.has(i - 1)).join(", "));
   }
   console.log(ko > 0 && atteso ? "✔ CONTROPROVA OK: coi difetti rimessi il banco fallisce." : "⛔ CONTROPROVA FALLITA: il banco non distingue.");
+}
+/* ⛔ ANCHE `--live` DICHIARA QUANTI SOGGETTI HA TOCCATO. Se lo spostamento del
+   confronto non fosse arrivato nella pagina servita, i fogli uscirebbero
+   dichiarati e le prove rovesciate cadrebbero: un rosso, non un silenzio. Ma
+   il caso opposto — un `replace` a vuoto che lascia la pagina intatta e che
+   qualcuno legge come «Scudo sa tacere» — va reso impossibile qui. */
+if (FINGE_LIVE) {
+  const tutte = rimessi.size === COME_LIVE.length;
+  console.log(`--live: ${rimessi.size}/${COME_LIVE.length} spostamenti del confronto arrivati nella pagina servita`);
+  if (!tutte) console.log("⛔ lo spostamento NON è arrivato: questo giro non prova che Scudo sappia tacere.");
+  else console.log(ko === 0 ? "✔ SU DATI VERI I DUE FOGLI ESCONO PULITI: la dichiarazione sa tacere."
+                            : "⛔ su dati veri qualcosa continua a dichiararsi d'esempio.");
+  await b.close(); srv.close();
+  process.exit(tutte && ko === 0 ? 0 : 1);
 }
 await b.close(); srv.close();
 process.exit(CONTROPROVA ? (ko > 0 && rimessi.size === DIFETTI.length ? 0 : 1) : (ko > 0 ? 1 : 0));

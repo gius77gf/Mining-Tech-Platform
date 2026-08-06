@@ -721,6 +721,21 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
   body.stampa-verbale .toast,body.stampa-verbale .modal-ov,body.stampa-verbale .dw-home,
   body.stampa-verbale .dw-exit,body.stampa-verbale .page{display:none !important}
   body.stampa-verbale #verbale{display:block !important; font-family:'Barlow',sans-serif; color:#14121c}
+  /* LA DICHIARAZIONE «DATI DI ESEMPIO». Sta in cima al foglio, PRIMA della
+     testata, e si legge prima di qualunque altra cosa: è ciò che toglie valore
+     al resto della pagina, non un campo da compilare — per questo il bordo è
+     pieno e spesso, non tratteggiato. Mai spezzata fra due fogli.
+     In nero e non nel viola di Scudo: una fotocopia in bianco e nero
+     ridurrebbe la tinta dell'app a un rettangolo pallido, cioè proprio la
+     riga che deve restare leggibile anche sulla copia della copia.
+     Il selettore è ancorato a `#verbale`, che in stampa è l'unica cosa che
+     resta: così la riga non può finire dentro qualcosa che `@media print`
+     nasconde — che è esattamente il difetto che questa regola chiude. */
+  body.stampa-verbale #verbale .esempio{
+    border:2pt solid #14121c; padding:2.5mm 3mm; margin:0 0 5mm; color:#14121c;
+    font-size:10.5pt; line-height:1.45; break-inside:avoid; page-break-inside:avoid;
+  }
+  body.stampa-verbale #verbale .esempio b{letter-spacing:.4px}
   .vb-testa{border-bottom:2px solid #5e499d; padding-bottom:8px; margin-bottom:14px}
   .vb-tit{
     font-family:'Barlow Condensed',sans-serif; font-size:22px; font-weight:800;
@@ -4801,6 +4816,45 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
       sc ? "Corso rinnovato." : "Corso messo in scadenzario.");
   }
 
+  /* ⛔ LA DICHIARAZIONE «DATI DI ESEMPIO» SUI FOGLI CHE ESCONO DA SCUDO (06/08).
+     Sullo schermo la modalità tour si dichiara DUE volte — la fascia
+     `#tour-banner` in alto e la riga `#mode-note` in fondo alla scheda
+     Documenti — e la stampa le nasconde TUTT'E DUE, perché `.tour-banner` e `.page`
+     stanno nell'elenco di ciò che è comando e non documento (regole @media
+     print, in cima a questo file). Non è una svista di quelle regole: una
+     fascia di comando su un foglio A4 non ci va davvero. Il buco è che la
+     dichiarazione viveva SOLO lì.
+     E i fogli di Scudo sono i più pesanti dell'ecosistema: la CARTELLA DEL
+     LAVORATORE è il fascicolo che si esibisce all'ispettore, il VERBALE DI
+     CONSEGNA DEI DPI è il foglio che in ispezione viene chiesto per primo
+     (art. 77 D.Lgs 81/2008) e che si fa FIRMARE. Senza questa riga un foglio
+     di dimostrazione — nome vero di una persona, date, righe per le firme —
+     si porta a un controllo e niente lo distingue da uno vero.
+     Misurato premendo il bottone e leggendo `#verbale` in
+     `emulateMedia({media:"print"})`: `#tour-banner` a `display:none`,
+     `#mode-note` dentro una `.page` nascosta (altezza 0, fuori da
+     `body.innerText`), e nel foglio nessuna occorrenza di «esempio», «tour» o
+     «dimostrazione».
+     ⛔ LA DECISIONE SI PRENDE QUI, IN UN POSTO SOLO. `scriviFoglio` è l'unico
+     punto che scrive dentro `#verbale`: un terzo foglio non può nascere senza
+     passarci, e nessuno dei due fogli rilegge `db.mode` per conto suo — un
+     `db.mode` scritto due volte è la copia debole che aspetta di divergere.
+     Cambia solo la FRASE, perché un verbale di consegna e una cartella
+     personale non si usano allo stesso modo, e la conseguenza va detta per
+     QUEL foglio lì.
+     ⚠️ E SA TACERE: sui dati veri (`db.mode === "live"`) non stampa niente. Un
+     avviso che c'è sempre non lo legge più nessuno.
+     ⚠️ DEBITO DICHIARATO, non nascosto: questa è la TERZA copia della stessa
+     funzione (Conti e Terra ne hanno una a testa, con la stessa forma e nomi
+     quasi identici). Una regola che serve a tre app vive in `shared/`, e
+     questa ci deve andare: qui `shared/` non si tocca, quindi la copia resta
+     scritta e va unificata, con le tre pagine che la ri-esportano col nome che
+     hanno sempre usato. */
+  const avvisoEsempio = (frase) => db.mode !== "live"
+    ? `<div class="esempio"><b>DATI DI ESEMPIO — modalità tour (${esc(db.mode)}).</b> ${frase}</div>`
+    : "";
+  const scriviFoglio = (frase, html) => { $("verbale").innerHTML = avvisoEsempio(frase) + html; };
+
   // ── S5 · IL VERBALE DI CONSEGNA SU CARTA ─────────────────────────────
   // Quello che in ispezione viene chiesto per primo. Sullo schermo non c'è:
   // si costruisce al momento e vive solo dentro la stampa.
@@ -4843,7 +4897,14 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
                                  : r.stato === "in-scadenza" ? " — da sostituire a breve" : "")}</td>
         <td>${esc(add)}</td><td class="vb-firma"></td></tr>`;
     }).join("");
-    $("verbale").innerHTML = `
+    scriviFoglio(
+      /* la conseguenza detta per QUESTO foglio: un verbale di consegna serve
+         a provare che i dispositivi sono stati dati a quella persona, e la
+         prova la fa la firma. Quindi le tre cose da vietare sono: farlo
+         firmare, allegarlo ai Documenti, esibirlo in ispezione. */
+      "Questo verbale non documenta nessuna consegna reale: non va fatto firmare, "
+      + "non va allegato ai Documenti e non prova la consegna dei DPI (art. 77 D.Lgs 81/2008) "
+      + "davanti a un controllo.", `
       <div class="vb-testa">
         <div class="vb-tit">Verbale di consegna dei DPI</div>
         <div class="vb-sub">Dispositivi di protezione individuale — art. 77 D.Lgs 81/2008</div>
@@ -4870,7 +4931,7 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
         <div>Firma del lavoratore</div>
         <div>Firma di chi consegna (datore di lavoro o preposto)</div>
       </div>
-      <div class="vb-pie">Documento preparato con Scudo · Deepwork — ${v.righe.length} ${v.righe.length === 1 ? "dispositivo" : "dispositivi"}${v.addestramentiMancanti ? " · addestramenti ancora da fare: " + v.addestramentiMancanti : ""}. Nota informativa, non un parere legale: il contenuto va verificato con l'RSPP dell'azienda.</div>`;
+      <div class="vb-pie">Documento preparato con Scudo · Deepwork — ${v.righe.length} ${v.righe.length === 1 ? "dispositivo" : "dispositivi"}${v.addestramentiMancanti ? " · addestramenti ancora da fare: " + v.addestramentiMancanti : ""}. Nota informativa, non un parere legale: il contenuto va verificato con l'RSPP dell'azienda.</div>`);
   }
   function stampaVerbale(lav) {
     costruisciVerbale(lav);
@@ -4918,7 +4979,12 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
           ? `<table style="width:100%;border-collapse:collapse;font-size:12px;">${righe.join("")}</table>`
           : `<div style="font-size:12px;color:#8a0000;border:1px dashed #8a0000;padding:5px 8px;">${esc(vuotoTesto)}</div>`);
 
-    $("verbale").innerHTML = `
+    scriviFoglio(
+      /* la conseguenza detta per QUESTO foglio: la cartella è il fascicolo
+         personale che si esibisce all'ispettore e che si tiene agli atti.
+         Le due cose da vietare sono quelle. */
+      "Questa cartella non riguarda nessun lavoratore reale: non va esibita a un ispettore "
+      + "né tenuta agli atti come fascicolo personale.", `
       <h2 style="font-size:17px;margin:0 0 2px;">Cartella del lavoratore</h2>
       <div style="font-size:12px;color:#555;margin-bottom:10px;">${esc(l.nome)}${l.ruolo ? " · " + esc(l.ruolo) : ""} — documento preparato con Deepwork Scudo il ${fmtData(oggiISO())}</div>
       ${sezione("Mansioni assegnate",
@@ -4972,7 +5038,7 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
       <div style="margin-top:22px;display:flex;gap:26px;">
         <div style="flex:1;border-top:1px solid #777;padding-top:4px;font-size:11px;color:#555;">Luogo e data</div>
         <div style="flex:1;border-top:1px solid #777;padding-top:4px;font-size:11px;color:#555;">Il datore di lavoro</div>
-      </div>`;
+      </div>`);
   }
   $("btn-cartella").onclick = async () => {
     const lav = LAV.find(l => l.id === $("dpi-verb-lav").value);
