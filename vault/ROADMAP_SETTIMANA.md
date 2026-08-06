@@ -417,7 +417,32 @@ numero scritto dove non era stato misurato niente**.*
       funzionare, e le tre stesure sono scritte accanto a lei: la terza è la
       trappola `Number(null) === 0` presa **mentre scrivevo il commento che
       diceva che lì non c'entrava**.
-- [ ] **I 349 ternari del singolare che restano nelle app.** Non si traducono in
+- [x] ✅ **IL TESTO CHE MENTE — filo nuovo, e in una sera ha reso 53 frasi**
+      (`6c738f7`). Conti (4.746 frasi rese, **22 stringhe in 9 punti**), Terra
+      (744 righe, **18 punti**), Genesi (838 censite, **13**). Le tre che
+      contano più delle altre:
+      · **Conti**: «LORDO (T)», «TARA (T)» a schermo **e sul DDT stampato** —
+        su un documento ex DPR 472/1996 la tonnellata diventava un **tesla**;
+      · **Terra**: sul foglio che va all'**ente**, «1 **indicativi**», mentre le
+        altre due voci dello stesso elenco erano giuste;
+      · **Genesi**: una previsione **presentata come un fatto** — la PPV
+        cambiava da 6,4 a 2,8 mm/s accendendo una legge di sito che il modulo
+        stesso dichiara provvisoria, e tre superfici mostravano solo il numero.
+      ⛔ E tutti e tre hanno trovato **una copia debole di `conta`/`plurale`**
+      nella propria app senza saperlo l'uno dell'altro (`plur` con 103 usi in
+      Conti, `_ricPlur` in Genesi, e Terra ne stava scrivendo una terza).
+      Adesso sono alias, e le prove pretendono l'**identità**.
+
+- [x] ✅ **Banco `uno-solo.mjs`**: cerca «1 <plurale>» nel testo **reso** di
+      tutte le superfici — 67 schermate, 176.000 caratteri, 33 parole, 6
+      invariabili dichiarate («1 foto» è giusto). Nasce da un fallimento del
+      `grep`, che nel core aveva detto «non resta niente» mentre la pagina
+      diceva ancora «1 rapportini». Ha trovato subito un «1 rapportini» in
+      **Campo**, che nessun cantiere stava guardando.
+      ⚠️ Al primo giro ha **accusato un innocente** («1 MEZZI» in Flotta: due
+      piastrelle di KPI unite dall'a capo di `innerText`).
+
+- [ ] **I ternari del singolare che restano nelle app.** Non si traducono in
       una notte; quando si fa, si fa con `conta`/`plurale`, non a mano. I tre
       cantieri del filo «il testo che mente» stanno guardando lì.
 
