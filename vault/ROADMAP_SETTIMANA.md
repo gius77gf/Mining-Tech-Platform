@@ -562,6 +562,23 @@ numero scritto dove non era stato misurato niente**.*
   nascondeva ancora meglio: i due fogli vivono in una **finestra nuova**, dove
   il `@media print` della pagina non arriva mai.
   ⚠️ Restano **Scudo e Campo** (cantieri aperti) e **i CSV di tutte e sei**.
+- [x] ✅ **Terra riverificata** (`3e92bf2`): le quattro assenze reggono dopo
+  sedici commit, e **l'arretrato dei documenti scende da 57 a 41**. ⚠️ Ma la
+  riverifica stava per dire il contrario: il primo `grep` rispondeva 21/33/5
+  occorrenze, e guardando **che cosa** aveva trovato erano «taglio» dentro
+  *detta·glio·* e «floating» in un commento. **Un conto senza il suo campione
+  non è una misura.**
+- [x] ✅ **Genesi esce dalla pagina** (`6c8e902`): **171 → 166** funzioni fuori
+  dalla portata delle prove. Il gruppo scelto è **il caso che resta lo stesso**
+  — il posto dove un difetto non si vede, perché un generatore rotto
+  restituisce comunque numeri fra 0 e 1. Spostate identiche carattere per
+  carattere; scena 3D prima/dopo: **0 pixel diversi su 408.500**.
+- [x] ✅ **Scudo · la gravità potenziale** (`50dfe1b`): «e se fosse andata
+  male?», con **«non lo so» come pulsante** e non come cella vuota. Con 4
+  valutazioni su 5 l'app **si rifiuta di fare la classifica** e lo dice.
+  Copertura **656/656**. Tre difetti presi da tre controlli diversi, fra cui
+  `badge info` che è una **collisione di nomi** nel CSS condiviso: la pastiglia
+  ereditava `flex:1 1 120px` e prendeva 460 px.
 
 ## Riferimenti
 
