@@ -342,7 +342,8 @@ Telematica **anticipatoria**, non solo tracking: mostrare il guasto prima che ca
 
 ## Verifica del delta (01/08)
 
-> **Verificato contro il codice al commit `f3432f4`.** Ogni riga qui sotto
+> **Verificato contro il codice al commit `8042b15`** *(riverificato il 06/08;
+> la verifica precedente era a `f3432f4`, dodici commit prima).* Ogni riga qui sotto
 > era vera **a quel commit**, e non lo è più per forza adesso: il 01/08 una riga è
 > scaduta in **trentacinque minuti**, perché la verifica e il cantiere che la
 > colmava sono girati lo stesso pomeriggio senza sapere l'uno dell'altro.
@@ -410,3 +411,38 @@ Oggi l'SDK apre Firestore senza cache persistente mentre il core, che sta in
 ufficio e la rete ce l'ha, la persistenza ce l'ha: è al contrario. E il costo di
 lasciarla così non è un errore visibile — è il giro macchina che non si compila
 e la macchina che parte senza.
+
+---
+
+### ⏱️ Riverifica del 06/08 — `f3432f4` → `8042b15`, dodici commit dopo
+
+Le righe **CONFERMATE ASSENTI** sono state rimisurate contro il codice di oggi,
+perché un «non c'è» invecchia. **Reggono tutte.** I dodici commit intercorsi
+hanno toccato Flotta sul costo orario, sul badge del giro macchina che dipendeva
+dall'ordine dell'elenco, sull'importo mozzato nel foglio che si consegna a chi
+compra la macchina e sulla dichiarazione «dati di esempio» — niente che
+assomigli a piani a chilometri, firma grafometrica, budget o fatture.
+
+⚠️ **E stavolta il campione è stato guardato fin dal primo comando**, non dopo:
+è la disciplina imparata poche ore prima su Terra, dove un conteggio non
+esaminato stava per far scrivere il contrario del vero. Qui è servita subito:
+
+```
+$ for T in "km\b|chilometr|odometr" "firma digitale|grafometric" \
+           "budget|stanziam|sforat" "fattur|contabil"; do
+    grep -oiE "$T" apps/flotta/flotta-data.js apps/flotta/index.html | sort | uniq -c
+  done
+   (nessuna occorrenza)
+   (nessuna occorrenza)
+      1 budget          ← e va aperto, non contato
+   (nessuna occorrenza)
+```
+
+L'unico `budget` sta **dentro un commento** (`index.html:1717`: «si vede subito
+quale macchina sta mangiando il budget, che è la domanda da cui nasce la
+decisione…»), cioè descrive **perché** l'elenco è ordinato dal mezzo più caro —
+non è una funzione di budget. Contato e non aperto avrebbe fatto scrivere «la
+riga è falsa, adesso c'è».
+
+**Un conto senza il suo campione non è una misura**, ed è la seconda volta in
+un pomeriggio che quella regola paga.
