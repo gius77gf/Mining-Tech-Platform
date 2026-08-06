@@ -1112,7 +1112,7 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
            numeroIt, segnoIt, numeroItDa, numeroDaCampo } from "./campo-data.js";
   import { misuratoPeriodo, produzioneDichiarata, riconciliazioneTurni,
            periodoFraUltimiRilievi, densitaDellaCava } from "../../shared/dw-ponti.js";
-  import { mountExit, esc, csvCell, statoVuoto, senzaDoppioni, messaggioNumero, montaGuardiaInteri, dataIt } from "../../shared/deepwork-id-client/dw-shell.js";
+  import { mountExit, esc, csvCell, statoVuoto, senzaDoppioni, messaggioNumero, montaGuardiaInteri, dataIt, modoDimostrazione } from "../../shared/deepwork-id-client/dw-shell.js";
   // gli agganci della struttura condivisa (modale con Escape, riquadri da
   // tastiera, alone che segue il mouse). Va chiamato QUI e non nel blocco
   // classico in linea: i moduli girano dopo gli script `defer`.
@@ -3915,14 +3915,24 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
      aspetta di divergere. La frase è UNA perché i due fogli raccontano lo
      stesso turno e si usano allo stesso modo; cambia solo il vestito, HTML
      sul foglio e testo semplice nel file.
-     ⚠️ La forma (nome, CSS, struttura del blocco) è copiata da Terra e Conti,
-     che ce l'hanno da prima: è la terza app con lo stesso avviso in pagina, e
-     quando servirà alla quarta il posto giusto è `shared/`, non un quarto
-     copia-e-incolla. */
+     ✅ E LA QUARTA È ARRIVATA IL 06/08 — era Scudo, e il posto giusto era
+     quello scritto qui: `modoDimostrazione` sta in
+     shared/deepwork-id-client/dw-shell.js. È salita in QUESTA forma, che era
+     di Campo, e non in quella delle altre tre (`db.mode !== "live"`, un
+     sì/no), perché è l'unica che copre anche chi il nome del modo lo SCRIVE
+     nell'avviso: con un booleano Conti, Scudo e Terra avrebbero dovuto
+     rileggersi `db.mode` per conto loro, cioè rifare la copia debole nel punto
+     in cui la si stava togliendo. Misurata contro le altre tre su dodici casi:
+     zero differenze di decisione.
+     ⛔ Quello che NON è salito, ed è quello che conta: il vestito. Il
+     `CSS_ESEMPIO` qui sotto è di Campo perché il suo rapporto nasce in una
+     finestra nuova; la `FRASE_ESEMPIO` è di Campo perché parla di presenze, di
+     ore lavorate e di consegna al turno successivo — e la stessa frase su un
+     verbale di consegna DPI o su un DDT non direbbe niente di utile. Qui resta
+     il plumbing di tre parole, perché `db.mode` è della pagina. */
   // `null` = dati veri, e allora tutto tace. Qualunque altro valore è il nome
   // della dimostrazione. ⛔ Se `db.mode` non c'è la risposta resta
-  // «dimostrazione»: l'assenza del dato non è il permesso di stare zitti.
-  const modoDimostrazione = () => db.mode === "live" ? null : String(db.mode || "non dichiarata");
+  // «non dichiarata»: l'assenza del dato non è il permesso di stare zitti.
   const FRASE_ESEMPIO = "Questo foglio non descrive nessun turno realmente lavorato: "
     + "nomi, orari, ore lavorate, fermi e firme sono inventati. Non va consegnato al turno "
     + "successivo, non vale come prova delle presenze o delle ore di lavoro e non va esibito "
@@ -3932,13 +3942,13 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
     + "padding:8px 11px;margin:0 0 14px;font-size:11.5px;line-height:1.5;"
     + "page-break-inside:avoid;break-inside:avoid}"
     + ".esempio b{letter-spacing:.3px}";
-  const avvisoEsempio = () => { const m = modoDimostrazione();
+  const avvisoEsempio = () => { const m = modoDimostrazione(db.mode);
     return m ? "<div class='esempio'><b>DATI DI ESEMPIO — modalità tour (" + esc(m) + ").</b> "
       + esc(FRASE_ESEMPIO) + "</div>" : ""; };
   // … e quello per la consegna in .txt, dove non c'è nessun riquadro da
   // disegnare: la riga sta in cima, prima di qualunque dato, perché un foglio
   // che si legge dall'alto deve dirlo prima di essere creduto.
-  const avvisoEsempioTesto = () => { const m = modoDimostrazione();
+  const avvisoEsempioTesto = () => { const m = modoDimostrazione(db.mode);
     return m ? "*** DATI DI ESEMPIO — modalita' tour (" + m + "). " + FRASE_ESEMPIO + " ***\n\n" : ""; };
 
   // Consegna di turno (handover): un testo con i rapportini e le anomalie

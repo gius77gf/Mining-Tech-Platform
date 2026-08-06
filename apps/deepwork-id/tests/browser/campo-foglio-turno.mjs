@@ -111,16 +111,34 @@ DEMO.attivita = []; DEMO.rapportini = []; DEMO.presenze = []; DEMO.checklist = [
 `;
 
 /* ── LA CONTROPROVA: i difetti rimessi nella copia SERVITA ─────────────────
-   ⛔ LA PRIMA INIEZIONE SPEGNE LA DECISIONE, NON LA FRASE. Campo ha UN posto
-   solo che decide «questo è un foglio di dimostrazione», e il rapporto e la
+   ⛔ LA PRIMA INIEZIONE SPEGNE LA DECISIONE, NON LA FRASE. C'è UN posto solo
+   che decide «questo è un foglio di dimostrazione», e il rapporto e la
    consegna lo leggono: spegnendo quel posto si toglie tutto lo strato. Se una
    prova restasse verde vorrebbe dire che sta guardando un foglio che non
    passa di lì, cioè una copia debole nata nel frattempo.
+   ⛔ E DAL 06/08 QUEL POSTO NON È PIÙ DENTRO LA PAGINA DI CAMPO: la decisione è
+   salita in `shared/deepwork-id-client/dw-shell.js`, nella forma che era di
+   Campo (risponde col NOME del modo, non con un sì/no), perché la stessa
+   domanda era scritta in quattro varianti in quattro pagine. L'iniezione ha
+   dovuto seguirla: lasciata a mirare `const modoDimostrazione = () => …` nella
+   pagina avrebbe risposto «INIEZIONE MANCATA» — la QUARTA delle cinque cause
+   elencate in CLAUDE.md, l'iniezione puntata dove il difetto non vive più. Un
+   banco che non sa più fallire non è un banco, e questo lo direbbe a voce
+   bassa: una riga di log e il riepilogo verde.
+   ⚠️ Il vestito è rimasto in Campo ed è giusto — il `CSS_ESEMPIO` (il rapporto
+   nasce in una finestra nuova), la riga `*** … ***` della consegna .txt, e la
+   `FRASE_ESEMPIO` che parla di presenze e di ore lavorate. Le chiamate restano
+   quindi nella pagina, e i due strati devono cadere separatamente.
+   ⚠️ Il file condiviso lo carica ogni pagina servita, quindi il conto delle
+   iniezioni sale col numero delle aperture (tre giri = tre volte), ed è
+   giusto: cresce con le pagine, non coi difetti.
    Le altre due rimettono i due numeri tranquilli del Quadro. */
 const DIFETTI = {
+  "shared/deepwork-id-client/dw-shell.js": [
+    ['  return modo === "live" ? null : String(modo || "non dichiarata");',
+     "  return null;"],
+  ],
   "apps/campo/index.html": [
-    ['  const modoDimostrazione = () => db.mode === "live" ? null : String(db.mode || "non dichiarata");',
-     '  const modoDimostrazione = () => null;'],
     ['${av.totale?`<b>${av.anomalie}</b> ${av.anomalie===1?"anomalia aperta":"anomalie aperte"}`:`<b>—</b> anomalie: nessuna attività da cui contarle`}',
      '<b>${av.anomalie}</b> anomalie aperte'],
     ['${av.totale?`<b>${av.concluse}/${av.totale}</b> attività concluse`:`<b>—</b> attività: nessuna registrata oggi`}',
@@ -133,15 +151,26 @@ const DIFETTI = {
    costerebbe caro al contrario: «DATI DI ESEMPIO» stampato sul rapporto del
    turno vero, quello che si archivia come prova delle presenze. Il banco lo
    chiede davvero invece di leggerlo nel codice — `--live` fa credere a Campo
-   di essere in produzione (in dimostrazione il confronto diventa `=== "demo"`,
-   cioè vero, cioè `null`, cioè silenzio) e allora i fogli devono uscire
-   PULITI. Le prove si rovesciano: quelle che pretendono la dichiarazione ne
-   pretendono l'assenza. Senza questo passaggio il banco avrebbe provato solo
-   che l'avviso sa comparire, mai che sa stare zitto. */
+   di essere in produzione e allora i fogli devono uscire PULITI. Le prove si
+   rovesciano: quelle che pretendono la dichiarazione ne pretendono l'assenza.
+   Senza questo passaggio il banco avrebbe provato solo che l'avviso sa
+   comparire, mai che sa stare zitto.
+   ⚠️ E SI INIETTA NELLA PAGINA, NON NELLA DECISIONE CONDIVISA: `--live` non è
+   un difetto, è la stessa decisione letta al contrario, quindi si tocca il
+   modo che la pagina PASSA (`db.mode` → `"live"`) e il giro attraversa davvero
+   `modoDimostrazione` di `shared/`. Spegnendola dall'interno il giro
+   resterebbe verde anche se quella funzione smettesse di saper tacere sui dati
+   veri — cioè proverebbe l'opposto di quello che dice di provare.
+   ⛔ E I SOGGETTI SONO DUE, non uno: i due vestiti di Campo — il riquadro del
+   foglio stampato e la riga in cima alla consegna .txt — chiedono ognuno per
+   conto suo. Toccandone uno solo l'altro continuerebbe a dichiarare, e il
+   banco griderebbe a un difetto che non c'è. */
 const COME_LIVE = {
   "apps/campo/index.html": [
-    ['  const modoDimostrazione = () => db.mode === "live" ? null',
-     '  const modoDimostrazione = () => db.mode === "demo" ? null'],
+    ["  const avvisoEsempio = () => { const m = modoDimostrazione(db.mode);",
+     '  const avvisoEsempio = () => { const m = modoDimostrazione("live");'],
+    ["  const avvisoEsempioTesto = () => { const m = modoDimostrazione(db.mode);",
+     '  const avvisoEsempioTesto = () => { const m = modoDimostrazione("live");'],
   ],
 };
 

@@ -20799,18 +20799,33 @@ test("⛔ etichettaStatoDocumento: la mappa esce dalla pagina e la leggono in du
   });
 
   test("campo · la decisione «è una dimostrazione» è scritta in UN posto solo", () => {
+    /* ✅ E DAL 06/08 QUEL POSTO NON È PIÙ QUI: la decisione è salita in
+       `shared/deepwork-id-client/dw-shell.js`, perché la stessa domanda era
+       scritta in quattro varianti in quattro pagine. Quello che questa prova
+       pretende adesso è il contrario di prima — che nella pagina NON ci sia
+       nessuna definizione — e che la funzione arrivi dall'import. Il vestito
+       resta di Campo, ed è la ragione per cui le righe qui sotto non cambiano. */
     const def = SRC_CAMPO.match(/^[ \t]*const modoDimostrazione = .*$/mg) || [];
-    eq(def.length, 1, "una sola definizione di modoDimostrazione");
-    console.log(`     (${def.length} definizione: ${def[0].trim()})`);
+    eq(def.length, 0, "nessuna definizione in casa: la decisione arriva da shared/");
+    const imp = SRC_CAMPO.match(/^\s*import \{[^}]*\} from "\.\.\/\.\.\/shared\/deepwork-id-client\/dw-shell\.js";/m);
+    ok(imp && /\bmodoDimostrazione\b/.test(imp[0]),
+      "campo importa modoDimostrazione da dw-shell.js");
+    console.log(`     (0 definizioni in pagina, 1 import da shared/: ${(imp || [""])[0].slice(0, 60)}…)`);
     // i due vestiti — HTML per il foglio stampato, testo per la consegna —
-    // passano tutt'e due di lì, e nessuno dei due rilegge `db.mode`
+    // passano tutt'e due di lì, e nessuno dei due RI-DECIDE
     const vestiti = ["avvisoEsempio", "avvisoEsempioTesto"];
     for (const v of vestiti) {
       const riga = SRC_CAMPO.split("\n").findIndex((r) => r.includes(`const ${v} = `));
       ok(riga > 0, `${v} non è definito`);
       const corpo = SRC_CAMPO.split("\n").slice(riga, riga + 3).join("\n");
-      ok(/modoDimostrazione\(\)/.test(corpo), `${v} non chiede a modoDimostrazione`);
-      ok(!/db\.mode/.test(corpo), `${v} rilegge db.mode: è la seconda copia che aspetta di divergere`);
+      ok(/modoDimostrazione\(db\.mode\)/.test(corpo), `${v} non chiede a modoDimostrazione`);
+      /* ⚠️ Qui prima c'era `!/db\.mode/`, e dopo il trasloco sarebbe stato il
+         controllo che non guarda dove crede: `modoDimostrazione(db.mode)`
+         CONTIENE `db.mode`, e passarglielo è il plumbing giusto — `db.mode` è
+         della pagina. Quello che non deve esserci è un CONFRONTO: un vestito
+         che decide per conto suo è la seconda copia che aspetta di divergere. */
+      ok(!/db\.mode\s*(?:!==|===|!=|==)/.test(corpo),
+        `${v} ri-decide invece di chiedere: è la seconda copia che aspetta di divergere`);
     }
     /* E il conto dei soggetti, perché «nessuna violazione» su zero letture è
        la risposta che non si vede.
@@ -20861,10 +20876,17 @@ test("⛔ etichettaStatoDocumento: la mappa esce dalla pagina e la leggono in du
       `run-stile.mjs`. Ci vanno spostate: qui stanno perché in questo giro
       quel file non si toccava.
    ⚠️ COPERTURA DICHIARATA, per non spacciare per generale ciò che è locale:
-   questa banda guarda la sola `apps/scudo/index.html`. Conti e Terra hanno la
-   stessa funzione con lo stesso nome (è la copia debole che va portata in
-   `shared/`, ed è scritto anche nella pagina di Scudo): quando ci andrà, le
-   prove qui sotto la seguiranno e varranno per tutt'e tre.
+   questa banda guarda la sola `apps/scudo/index.html`, e continua a farlo
+   anche dopo il 06/08.
+   ✅ QUEL GIORNO LA COPIA DEBOLE È SALITA IN `shared/` — ma solo la DECISIONE
+   (`modoDimostrazione`), che si prova nella banda in fondo a questo file,
+   chiamandola. Il VESTITO di Scudo è rimasto qui, ed è giusto: la frase dice
+   la conseguenza per QUEL foglio lì, e un verbale che si fa firmare e una
+   cartella che si tiene agli atti non la condividono. Quindi non è vero che
+   «le prove qui sotto la seguiranno e varranno per tutt'e tre», com'era scritto
+   prima di sapere come sarebbe andata: queste restano di Scudo, e le tre
+   pagine gemelle sono coperte dalla banda condivisa più il banco
+   `browser/stampe-fs.mjs`.
    ⚠️ E QUELLO CHE QUESTA BANDA **NON** VEDE: se `scriviFoglio` smettesse di
    anteporre l'avviso all'HTML, tutti i controlli qui sotto resterebbero verdi
    — la funzione estratta funziona lo stesso, il punto di scrittura resta uno,
@@ -20890,11 +20912,22 @@ test("⛔ etichettaStatoDocumento: la mappa esce dalla pagina e la leggono in du
       .map((m) => { try { return new Function(`return (${m[1]})`)(); } catch { return null; } });
     // i selettori del foglio di stile che nominano `.esempio`
     const selettori = [...testo.matchAll(/(?:^|\n)\s*([^\n{}]*\.esempio[^\n{}]*)\{/g)].map((m) => m[1].trim());
-    /* La funzione si ESTRAE E SI CHIAMA. `new Function` le passa un `db` e un
-       `esc` finti: se il codice estratto non fosse una funzione pura di quei
-       due, questa riga esploderebbe — ed è un modo di misurarlo. */
-    const decl = /const avvisoEsempio = \(frase\) =>[\s\S]*?\n    : "";/.exec(testo);
-    const fabbrica = decl ? new Function("db", "esc", `${decl[0]}\nreturn avvisoEsempio;`) : null;
+    /* Il VESTITO si ESTRAE E SI CHIAMA. `new Function` gli passa un `db`, un
+       `esc` e la decisione VERA di `shared/`: se il codice estratto non fosse
+       una funzione pura di quei tre, questa riga esploderebbe — ed è un modo
+       di misurarlo.
+       ⚠️ E dal 06/08 il terzo argomento è `shell.modoDimostrazione`, non una
+       finta: la decisione è salita in `shared/` e il vestito è rimasto qui, ed
+       è giusto che sia rimasto — la frase dice la conseguenza per QUEL foglio
+       lì, e un verbale da firmare e una cartella da tenere agli atti non la
+       condividono. Montando qui la funzione vera si prova anche che i due
+       strati si INNESTANO: se domani l'import sparisse dalla pagina, il
+       browser morirebbe e questa riga no, ma il banco `scudo-documenti.mjs`
+       inietta la decisione condivisa e le sue prove cadono. */
+    const decl = /const avvisoEsempio = \(frase\) => \{[\s\S]*?\n    : ""; \};/.exec(testo);
+    const fabbrica = decl
+      ? new Function("db", "esc", "modoDimostrazione", `${decl[0]}\nreturn avvisoEsempio;`)
+      : null;
     return { scrittori, chiamate, selettori, decl: decl ? 1 : 0, fabbrica };
   };
   const M = misura(sorgenteScudo);
@@ -20932,7 +20965,7 @@ test("⛔ etichettaStatoDocumento: la mappa esce dalla pagina e la leggono in du
   });
 
   test("⛔ scudo · avvisoEsempio: sui dati di esempio dichiara, e dichiara la frase del foglio", () => {
-    const f = M.fabbrica({ mode: "demo" }, shell.esc);
+    const f = M.fabbrica({ mode: "demo" }, shell.esc, shell.modoDimostrazione);
     const out = f("Questo foglio non serve a niente.");
     ok(/class="esempio"/.test(out), "esce dentro il riquadro che la stampa disegna");
     ok(/DATI DI ESEMPIO/.test(out), "e dice che i dati sono d'esempio");
@@ -20945,7 +20978,7 @@ test("⛔ etichettaStatoDocumento: la mappa esce dalla pagina e la leggono in du
        cartella vera di un lavoratore vero. Non basta che il riquadro sia
        vuoto: non deve esserci proprio, se no sul foglio resta un rettangolo
        nero alto due centimetri sopra la testata. */
-    eq(M.fabbrica({ mode: "live" }, shell.esc)("Frase qualunque."), "",
+    eq(M.fabbrica({ mode: "live" }, shell.esc, shell.modoDimostrazione)("Frase qualunque."), "",
       "in produzione non esce niente");
   });
 
@@ -20953,7 +20986,7 @@ test("⛔ etichettaStatoDocumento: la mappa esce dalla pagina e la leggono in du
     /* `db.mode` arriva dallo SDK. Non è testo scritto da noi, e finisce dentro
        l'HTML del foglio: se un giorno contenesse un `<`, senza `esc` sarebbe
        markup. Costa niente pretenderlo adesso. */
-    const out = M.fabbrica({ mode: '<b>x</b>' }, shell.esc)("F.");
+    const out = M.fabbrica({ mode: '<b>x</b>' }, shell.esc, shell.modoDimostrazione)("F.");
     ok(!/<b>x<\/b>/.test(out), `il markup nel nome della modalità viene neutralizzato: ${out}`);
     ok(/&lt;b&gt;x/.test(out), "e resta leggibile come testo");
   });
@@ -20980,11 +21013,18 @@ test("⛔ etichettaStatoDocumento: la mappa esce dalla pagina e la leggono in du
     ["la cartella si scrive il foglio da sola, scavalcando il punto unico",
      "    scriviFoglio(\n      /* la conseguenza detta per QUESTO foglio: la cartella è il fascicolo",
      '    $("verbale").innerHTML = ((f, h) => h)(\n      /* la conseguenza detta per QUESTO foglio: la cartella è il fascicolo'],
+    /* ⛔ L'INIEZIONE HA SEGUITO IL DIFETTO. Fino al 06/08 mirava
+       `db.mode !== "live"` dentro la pagina; adesso la decisione sta in
+       `shared/` e la pagina le passa il modo, quindi il modo per farle dire di
+       sì sempre è cambiare quello che le si passa. Lasciata dov'era, questa
+       riga avrebbe fatto cadere l'`ok(n === 1)` qui sotto — che è il caso
+       fortunato: il caso brutto è quando l'iniezione trova ancora un soggetto
+       e non tocca più niente di vivo. */
     ["l'avviso non sa più tacere: dichiara anche sui dati veri",
-     '  const avvisoEsempio = (frase) => db.mode !== "live"',
-     '  const avvisoEsempio = (frase) => db.mode !== "MAI"'],
+     "  const avvisoEsempio = (frase) => { const m = modoDimostrazione(db.mode);",
+     '  const avvisoEsempio = (frase) => { const m = modoDimostrazione("MAI-COSÌ");'],
     ["il nome della modalità entra nel foglio senza esc",
-     "modalità tour (${esc(db.mode)})", "modalità tour (${db.mode})"],
+     "modalità tour (${esc(m)})", "modalità tour (${m})"],
     ["la regola di stampa non è più ancorata a #verbale",
      "  body.stampa-verbale #verbale .esempio{", "  .esempio{"],
     ["i due fogli dicono la stessa frase",
@@ -21010,8 +21050,8 @@ test("⛔ etichettaStatoDocumento: la mappa esce dalla pagina e la leggono in du
       if (G.chiamate[0] === G.chiamate[1]) rotti.push("frasi diverse");
       if (!G.selettori.length || !G.selettori.every((s) => /#verbale/.test(s))) rotti.push("selettore ancorato");
       if (G.fabbrica) {
-        if (G.fabbrica({ mode: "live" }, shell.esc)("F.") !== "") rotti.push("sa tacere");
-        if (/<b>x<\/b>/.test(G.fabbrica({ mode: "<b>x</b>" }, shell.esc)("F."))) rotti.push("esc sul nome della modalità");
+        if (G.fabbrica({ mode: "live" }, shell.esc, shell.modoDimostrazione)("F.") !== "") rotti.push("sa tacere");
+        if (/<b>x<\/b>/.test(G.fabbrica({ mode: "<b>x</b>" }, shell.esc, shell.modoDimostrazione)("F."))) rotti.push("esc sul nome della modalità");
       } else rotti.push("la funzione non si estrae più");
       ok(rotti.length > 0, `il difetto «${nome}» non fa cadere nessun controllo`);
       caduti.push(`${nome} → ${rotti.join(", ")}`);
@@ -21237,6 +21277,159 @@ test("⛔ etichettaStatoDocumento: la mappa esce dalla pagina e la leggono in du
     ok(!/db\.mode/.test(g), "genesi.html non parla di db.mode");
     ok(!/id="tour-banner"/.test(g), "genesi.html non ha il banner del tour");
     ok(!/^export const DEMO\b/m.test(gd), "genesi-data.js non ha un archivio DEMO");
+  });
+}
+
+// ═══ CHE COSA CONTA COME DIMOSTRAZIONE — UNA DECISIONE PER QUATTRO APP (06/08) ═══
+/* Quattro varianti in quattro pagine — Conti, Scudo, Terra, Campo — scritte da
+   quattro cantieri in due giorni, e tutt'e quattro col debito già dichiarato
+   nel proprio commento («quando servirà alla quarta il posto giusto è
+   `shared/`, non un quarto copia-e-incolla»). Il 06/08 la decisione è salita in
+   `shared/deepwork-id-client/dw-shell.js`.
+   ⛔ QUELLO CHE È SALITO È LA DECISIONE, NON IL VESTITO, e le prove qui sotto
+   dicono tutt'e due le metà: che la risposta è una sola, e che il riquadro, il
+   CSS e soprattutto la FRASE sono rimasti di ogni app. Un verbale di consegna
+   DPI si fa firmare, una cartella personale si tiene agli atti, un DDT viaggia
+   sul camion, un rapporto di turno prova le presenze: la conseguenza è di quel
+   foglio lì e non si condivide.
+   ⚠️ E queste prove CHIAMANO la funzione. È il segno che il comportamento è
+   arrivato dove si può chiamare: fino a ieri l'unico modo di misurarlo era
+   estrarre la riga dal sorgente della pagina, ed è la stessa cosa che era
+   successa con `nomeCsvDimostrazione`. */
+{
+  const { readFileSync } = await import("node:fs");
+  const { senzaCommenti } = await import("./tokenizza.mjs");
+  console.log("\n— La decisione «questi dati sono veri?»: una sola, per quattro app —");
+
+  const QUATTRO = [
+    ["conti", join(HERE, "../../conti/index.html")],
+    ["scudo", join(HERE, "../../scudo/index.html")],
+    ["terra", join(HERE, "../../terra/index.html")],
+    ["campo", join(HERE, "../../campo/index.html")],
+  ];
+  const SRC4 = new Map(QUATTRO.map(([n, f]) => [n, readFileSync(f, "utf8")]));
+
+  test("sui dati veri tace, e tace col silenzio (`null`), non con una stringa vuota", () => {
+    /* `null` è la convenzione con cui l'ecosistema dice «non c'è niente da
+       raccontare». Una stringa vuota si stampa lo stesso dentro le parentesi. */
+    eq(shell.modoDimostrazione("live"), null, "«live» è l'unico che ha diritto al silenzio");
+  });
+
+  test("⛔ fuori da live risponde col NOME del modo, che è quello che i fogli stampano", () => {
+    /* È la forma che aveva Campo, e la ragione per cui è quella salita: Conti,
+       Scudo e Terra scrivono «modalità tour (…)», e con un sì/no avrebbero
+       dovuto rileggersi `db.mode` per conto loro — la seconda copia rifatta nel
+       punto in cui la si stava togliendo. */
+    eq(shell.modoDimostrazione("demo"), "demo", "il nome, pronto da stampare");
+    eq(shell.modoDimostrazione("tour"), "tour", "qualunque nome, non solo quello che usiamo oggi");
+  });
+
+  test("⛔ un modo che non c'è non è un modo favorevole: si chiama «non dichiarata»", () => {
+    /* Il principio del fondatore applicato al foglio che esce dalla stampante:
+       l'assenza di un dato non è un dato favorevole, e qui il dato favorevole
+       sarebbe «questo foglio documenta un'operazione vera». */
+    for (const m of [undefined, null, "", 0, false, NaN])
+      eq(shell.modoDimostrazione(m), "non dichiarata", `mode ${JSON.stringify(m)} non tace`);
+  });
+
+  test("⛔ «LIVE» in maiuscolo NON è live: solo l'esatto ha diritto al silenzio", () => {
+    /* Se un giorno lo SDK cambiasse la capitalizzazione, l'errore uscirebbe
+       dalla parte giusta: un foglio vero marchiato è una seccatura, un foglio
+       di dimostrazione pulito è quello che si consegna all'ispettore. */
+    eq(shell.modoDimostrazione("LIVE"), "LIVE", "maiuscolo: si dichiara");
+    eq(shell.modoDimostrazione("Live"), "Live", "e nemmeno l'iniziale maiuscola");
+    eq(shell.modoDimostrazione(" live"), " live", "né uno spazio davanti");
+  });
+
+  test("⛔ misurato: il trasloco non ha cambiato QUANDO si parla e quando si tace", () => {
+    /* La riga che le tre pagine avevano prima era `db.mode !== "live"`, un
+       sì/no. Qui le si affiancano su dodici casi: se il trasloco avesse
+       spostato anche di un caso la soglia del silenzio, sarebbe un cambiamento
+       di comportamento venduto per riordino — e su un foglio che va all'ente.
+       Esito: zero differenze. Quello che cambia è solo il TESTO fra parentesi
+       col modo assente, e lo dice la prova qui sotto. */
+    const vecchia = (modo) => modo !== "live";      // conti · scudo · terra, fino al 06/08
+    const casi = ["live", "demo", undefined, null, "", 0, false, "LIVE", "Live", "boh", "tour", NaN];
+    const diverse = casi.filter((c) => (shell.modoDimostrazione(c) !== null) !== vecchia(c));
+    eq(diverse.length, 0, `casi in cui la decisione cambia: ${JSON.stringify(diverse)}`);
+    console.log(`     (${casi.length} casi affiancati alla riga vecchia, ${diverse.length} differenze di decisione)`);
+  });
+
+  test("e una cosa migliora: col modo assente non si stampano più due parentesi vuote", () => {
+    /* Conti, Scudo e Terra scrivevano «modalità tour (${esc(db.mode)})», e
+       `esc(undefined)` è la stringa vuota: sul foglio usciva «modalità tour ()».
+       Non era un difetto di sicurezza, era un foglio che non diceva la cosa
+       vera nel punto in cui esiste per dirla. */
+    eq(shell.esc(undefined), "", "la riga vecchia dava questo");
+    eq(shell.esc(shell.modoDimostrazione(undefined)), "non dichiarata", "adesso c'è scritto che cosa non si sa");
+  });
+
+  test("⛔ nessuna delle quattro pagine ri-decide in casa: la sola decisione è quella di shared/", () => {
+    /* Il confronto `db.mode === "live"` resta legittimo in DUE punti per
+       pagina, e sono tutt'e due SCHERMO: la fascia del tour e la riga di
+       stato. Un terzo confronto è una copia debole nata su un foglio, e il
+       segno è sempre lo stesso — un documento che decide per conto suo.
+       ⚠️ Si conta sul CODICE: due delle quattro pagine spiegano la decisione
+       in un commento che quel confronto lo cita, e contando a testo uscirebbe
+       il numero sbagliato. */
+    let tot = 0;
+    for (const [n] of QUATTRO) {
+      const codice = senzaCommenti(SRC4.get(n));
+      const conf = codice.split("\n").filter((r) => /db\.mode\s*(?:!==|===)\s*"live"/.test(r));
+      eq(conf.length, 2, `${n}: ${conf.length} confronti su db.mode invece di 2 →${conf.map((r) => "\n      " + r.trim()).join("")}`);
+      for (const r of conf)
+        ok(/tour-banner|mode-note/.test(r), `${n}: un confronto fuori dallo schermo → ${r.trim()}`);
+      tot += conf.length;
+    }
+    console.log(`     (${tot} confronti guardati su ${QUATTRO.length} pagine, tutti su tour-banner o mode-note)`);
+  });
+
+  test("⛔ e tutt'e quattro chiedono alla stessa funzione, importandola da shared/", () => {
+    /* La prova che i due strati sono INNESTATI. Un import ES di un nome che
+       non esiste non si vede leggendo, uccide la pagina al caricamento e le
+       suite `node` non se ne accorgono perché non importano le pagine: è il
+       difetto che a questo repository è già costato cinque commit. */
+    let siti = 0;
+    for (const [n] of QUATTRO) {
+      const codice = senzaCommenti(SRC4.get(n));
+      const imp = codice.match(/import \{[^}]*\} from "\.\.\/\.\.\/shared\/deepwork-id-client\/dw-shell\.js";/);
+      ok(imp && /\bmodoDimostrazione\b/.test(imp[0]), `${n}: non importa modoDimostrazione da dw-shell.js`);
+      const chiamate = (codice.match(/modoDimostrazione\(db\.mode\)/g) || []).length;
+      ok(chiamate >= 1, `${n}: importa la decisione e non la chiama mai`);
+      ok(!/const modoDimostrazione = /.test(codice), `${n}: se l'è riscritta in casa`);
+      siti += chiamate;
+    }
+    /* Cinque: uno per Conti, Scudo e Terra, DUE per Campo — che ha due vestiti,
+       il riquadro del foglio stampato e la riga in cima alla consegna .txt. */
+    eq(siti, 5, "i punti che chiedono la decisione nelle quattro pagine");
+    console.log(`     (${siti} chiamate in ${QUATTRO.length} pagine, tutte con db.mode passato dalla pagina)`);
+  });
+
+  test("⛔ e il VESTITO è rimasto di ognuna: quattro frasi diverse, non una condivisa", () => {
+    /* La metà che si sbaglia più facilmente traslocando: portare su anche la
+       frase avrebbe reso il messaggio generico, e «dati di esempio» da solo si
+       legge come una nota di cortesia. Quello che serve è l'istruzione, e
+       l'istruzione è di quel foglio lì. */
+    /* ⚠️ E SI CERCA NEL CODICE, NON NEL TESTO DELLA PAGINA. Scritta col
+       sorgente intero questa prova NON SAPEVA FALLIRE, misurato rimettendo il
+       difetto: tolta la frase dal foglio di Conti la suite restava verde,
+       perché lo stesso giro di parole compare nel COMMENTO che racconta il
+       trasloco, dodici righe più su. È il controllo che non guarda dove crede,
+       nella sua forma più banale — e la difesa è quella già scritta in
+       CLAUDE.md: il tokenizzatore che toglie i commenti e tiene le stringhe. */
+    const suo = {
+      conti: /non ha valore fiscale/,
+      scudo: /non va fatto firmare/,
+      terra: /non va inviato all'ente né allegato alla comunicazione annuale/,
+      campo: /non vale come prova delle presenze/,
+    };
+    for (const [n] of QUATTRO)
+      ok(suo[n].test(senzaCommenti(SRC4.get(n))), `${n}: la sua frase non c'è più — è diventata generica?`);
+    /* e la conferma dall'altro verso: la frase NON è salita in shared/ */
+    const sh = readFileSync(join(HERE, "../../../shared/deepwork-id-client/dw-shell.js"), "utf8");
+    ok(!/DATI DI ESEMPIO/.test(senzaCommenti(sh)),
+      "shared/ non contiene il testo dell'avviso: lassù c'è la decisione, non il vestito");
+    ok(!/class=.esempio/.test(sh), "e nemmeno il riquadro");
   });
 }
 

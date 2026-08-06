@@ -213,7 +213,14 @@ const CONDIVISI = [
      nello stesso momento: i due numeri vanno letti insieme. */
   { file: "shared/dw-ponti.js", fondo: 39,
     perche: "le regole che servono a DUE app: è il posto dove un difetto si moltiplica" },
-  { file: "shared/deepwork-id-client/dw-shell.js", fondo: 40,
+  /* 40 → 41 il 06/08: `modoDimostrazione`, cioè «questi dati sono veri?».
+     Era scritta in quattro varianti dentro quattro pagine (Conti, Scudo,
+     Terra, Campo) e nessuna delle quattro era misurabile da qui — una funzione
+     dentro un `.html` non la importa nessuno. Salita in `shared/`, entra nel
+     conto e si prova chiamandola: è lo stesso movimento di
+     `nomeCsvDimostrazione` di ieri, e il segno che erano nel posto sbagliato
+     era lo stesso — per provarle bisognava estrarre la riga dal sorgente. */
+  { file: "shared/deepwork-id-client/dw-shell.js", fondo: 41,
     perche: "gli aiuti che tutte le app importano (numeri, date, CSV)" },
   { file: "apps/genesi/pointcloud.js", fondo: 5,
     perche: "il calcolo del volume dal drone: da lì passano i m³ che consumano la concessione" },

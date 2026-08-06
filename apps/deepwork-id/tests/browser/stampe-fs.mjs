@@ -139,14 +139,30 @@ const DIFETTI = {
      decide «questo è un foglio di dimostrazione», e i tre fogli di Conti e i
      due di Terra lo leggono. Spegnendo quel posto si toglie tutto lo strato —
      e se una prova restasse verde vorrebbe dire che sta guardando un foglio
-     che non passa di lì, cioè una copia debole nata nel frattempo. */
-  "apps/conti/index.html": [
-    ['  const avvisoEsempio = () => db.mode !== "live"',
-     '  const avvisoEsempio = () => false && db.mode !== "live"'],
-  ],
-  "apps/terra/index.html": [
-    ['  const avvisoEsempio = (frase) => db.mode !== "live"',
-     '  const avvisoEsempio = (frase) => false && db.mode !== "live"'],
+     che non passa di lì, cioè una copia debole nata nel frattempo.
+     ⛔ E DAL 06/08 QUEL POSTO NON È PIÙ DENTRO LE PAGINE: la decisione «che
+     cosa conta come dimostrazione» è salita in
+     `shared/deepwork-id-client/dw-shell.js` (era in quattro varianti dentro
+     quattro pagine — Conti, Scudo, Terra, Campo). L'iniezione ha dovuto
+     seguirla: lasciata a mirare la riga vecchia avrebbe risposto «INIEZIONE
+     MANCATA», che è la QUARTA delle cinque cause elencate in CLAUDE.md —
+     l'iniezione puntata dove il difetto non vive più. Un banco che non sa più
+     fallire non è un banco, e lo dice a voce bassa: nel riepilogo il numero
+     dei difetti rimessi scende e le prove restano verdi.
+     ⚠️ Ed è un guadagno, non una complicazione: adesso la controprova prova
+     ANCHE che i due strati sono separabili — spento lo strato condiviso, le
+     chiamate nelle pagine restano intatte e i fogli escono nudi.
+     ⚠️ Il file condiviso lo carica OGNI pagina servita, quindi in un giro a
+     quattro app l'iniezione si applica quattro volte e il conto è salito da 8
+     a 10 (era: 3 Flotta + 2 Sentinella + 1 sentinella-data + 1 Conti + 1
+     Terra; adesso le ultime due sono una sola, moltiplicata per le quattro
+     pagine). Cresce con le pagine servite, non coi difetti — e restano 7 le
+     prove sulla dichiarazione che cadono, le stesse di prima: è così che si
+     legge che l'iniezione è arrivata dove arrivava. Un conto che dopo un
+     trasloco SCENDE è il segno da leggere. */
+  "shared/deepwork-id-client/dw-shell.js": [
+    ['  return modo === "live" ? null : String(modo || "non dichiarata");',
+     "  return null;"],
   ],
 };
 
@@ -160,15 +176,22 @@ const DIFETTI = {
    rovesciano: quelle che pretendono la dichiarazione ne pretendono l'assenza.
    Senza questo passaggio il banco avrebbe provato solo che l'avviso sa
    comparire, mai che sa stare zitto. */
+/* ⚠️ E `--live` SI INIETTA NELLA PAGINA, NON NELLA DECISIONE CONDIVISA. Non è
+   un difetto: è la stessa decisione letta al contrario, e va chiesta al modo
+   che la pagina PASSA (`db.mode` → `"live"`) invece che alla funzione che
+   risponde. Così il giro attraversa davvero `modoDimostrazione`, e non ne
+   misura una copia disattivata: se domani quella funzione smettesse di tacere
+   sui dati veri, questo giro diventerebbe rosso — mentre spegnendola
+   dall'interno resterebbe verde per il motivo sbagliato. */
 const FINGE_LIVE = process.argv.includes("--live");
 const COME_LIVE = {
   "apps/conti/index.html": [
-    ['  const avvisoEsempio = () => db.mode !== "live"',
-     '  const avvisoEsempio = () => db.mode !== "demo"'],
+    ["  const avvisoEsempio = () => { const m = modoDimostrazione(db.mode);",
+     '  const avvisoEsempio = () => { const m = modoDimostrazione("live");'],
   ],
   "apps/terra/index.html": [
-    ['  const avvisoEsempio = (frase) => db.mode !== "live"',
-     '  const avvisoEsempio = (frase) => db.mode !== "demo"'],
+    ["  const avvisoEsempio = (frase) => { const m = modoDimostrazione(db.mode);",
+     '  const avvisoEsempio = (frase) => { const m = modoDimostrazione("live");'],
   ],
 };
 

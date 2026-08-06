@@ -909,7 +909,7 @@ a.dw-btn{text-decoration:none}
            STATI_LOTTO, statoLotto, divarioRecupero, avanzamentoLotto,
            conformitaProgetto,
            volumeMisuratoDiLotto, rilieviFuoriDaiLotti } from "./terra-data.js";
-  import { mountExit, esc, csvCell, statoVuoto, senzaDoppioni, montaGuardiaInteri, euro0, isoLocale, oggiISO, dataISOEsiste, dataIt, nomeCsvDimostrazione } from "../../shared/deepwork-id-client/dw-shell.js";
+  import { mountExit, esc, csvCell, statoVuoto, senzaDoppioni, montaGuardiaInteri, euro0, isoLocale, oggiISO, dataISOEsiste, dataIt, nomeCsvDimostrazione, modoDimostrazione } from "../../shared/deepwork-id-client/dw-shell.js";
   // gli agganci della struttura condivisa (modale con Escape, riquadri da
   // tastiera, alone che segue il mouse). Va chiamato QUI e non nel blocco
   // classico in linea: i moduli girano dopo gli script `defer`.
@@ -2356,14 +2356,28 @@ a.dw-btn{text-decoration:none}
      La decisione «questo è un foglio di dimostrazione» si prende QUI, in un
      posto solo, e i due fogli la leggono: `db.mode` scritto due volte è la
      copia debole che aspetta di divergere. Cambia solo la frase, perché un
-     prospetto annuale e un verbale non si usano allo stesso modo. */
+     prospetto annuale e un verbale non si usano allo stesso modo.
+     ✅ TRASLOCATA IL 06/08, come `marchiaCsv` dodici righe più su, e per la
+     stessa ragione: la stessa decisione era scritta in quattro pagine (Conti,
+     Scudo, Terra, Campo) in quattro varianti. È salita LA DECISIONE —
+     `modoDimostrazione` in shared/deepwork-id-client/dw-shell.js, che risponde
+     `null` sui dati veri o col NOME del modo, quello che qui si stampa fra
+     parentesi — e NON il vestito: il `CSS_ESEMPIO` qui sopra deve restare di
+     Terra perché i suoi fogli nascono in una FINESTRA NUOVA, dove il foglio di
+     stile di questa pagina non arriva mai; e la frase la passa il foglio che
+     chiama, perché un prospetto per l'ente e un verbale di rilievo non si
+     usano allo stesso modo.
+     ⚠️ E una cosa migliora: col modo assente usciva «modalità tour ()», due
+     parentesi vuote (`esc(undefined)` è la stringa vuota). Adesso c'è scritto
+     «non dichiarata». */
   const CSS_ESEMPIO = ".esempio{border:2px solid #111;background:#fff;color:#111;"
     + "padding:8px 11px;margin:0 0 14px;font-size:11.5px;line-height:1.5;"
     + "page-break-inside:avoid;break-inside:avoid}"
     + ".esempio b{letter-spacing:.3px}";
-  const avvisoEsempio = (frase) => db.mode !== "live"
-    ? "<div class='esempio'><b>DATI DI ESEMPIO — modalità tour (" + esc(db.mode) + ").</b> " + frase + "</div>"
-    : "";
+  const avvisoEsempio = (frase) => { const m = modoDimostrazione(db.mode);
+    return m
+    ? "<div class='esempio'><b>DATI DI ESEMPIO — modalità tour (" + esc(m) + ").</b> " + frase + "</div>"
+    : ""; };
 
   // ── Il foglio da consegnare ────────────────────────────────────────────
   // Pagina bianca, nessun colore d'interfaccia, un solo scopo: essere

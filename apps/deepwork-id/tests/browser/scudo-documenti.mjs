@@ -145,6 +145,12 @@ const CASI = `
    silenzio e dichiara riuscita una prova mai partita.
    Terzo elemento della riga = il file da toccare; assente vuol dire la pagina. */
 const PAGINA = "apps/scudo/index.html", MODULO = "apps/scudo/scudo-data.js";
+/* Dal 06/08 c'è un terzo soggetto d'iniezione: la DECISIONE «questi dati sono
+   veri?», che è salita in `shared/` perché era scritta in quattro varianti
+   dentro quattro pagine. Il vestito (riquadro, CSS, e soprattutto la frase che
+   dice la conseguenza per QUEL foglio lì) è rimasto in Scudo, ed è giusto: un
+   verbale si fa firmare, una cartella si tiene agli atti. */
+const CONDIVISO = "shared/deepwork-id-client/dw-shell.js";
 const DIFETTI = [
   // 1a. l'intestazione delle azioni senza la colonna del semaforo
   ['let csv = "descrizione;responsabile;scadenza;semaforo;stato;esito;dataChiusura;origine\\n";',
@@ -222,13 +228,25 @@ const DIFETTI = [
   /* 21. LA DICHIARAZIONE GENERICA: c'è, si vede, e non dice che cosa comporta
         per QUEL foglio lì. «Dati di esempio» da solo lo si legge come una nota
         di cortesia; «non va fatto firmare» è un'istruzione. */
-  ['? `<div class="esempio"><b>DATI DI ESEMPIO — modalità tour (${esc(db.mode)}).</b> ${frase}</div>`',
-   '? `<div class="esempio"><b>DATI DI ESEMPIO — modalità tour (${esc(db.mode)}).</b></div>`'],
+  ['? `<div class="esempio"><b>DATI DI ESEMPIO — modalità tour (${esc(m)}).</b> ${frase}</div>`',
+   '? `<div class="esempio"><b>DATI DI ESEMPIO — modalità tour (${esc(m)}).</b></div>`'],
   /* 22. UN FOGLIO SOLO DEI DUE dice la sua conseguenza: la cartella passa dal
         punto unico ma con la frase vuota. Serve a pinnare che le prove
         guardano TUTT'E DUE i fogli — un banco che ne legge uno e chiama
         «coperti» tutti e due è il controllo che non guarda dove crede. */
   ['"Questa cartella non riguarda nessun lavoratore reale: non va esibita a un ispettore "\n      + "né tenuta agli atti come fascicolo personale.", `', '"", `'],
+  /* 23. LA DECISIONE SPENTA, E DAL 06/08 STA IN UN ALTRO FILE. «Che cosa conta
+         come dimostrazione» è salito in `shared/deepwork-id-client/dw-shell.js`
+         (era in quattro varianti dentro quattro pagine). Le iniezioni 19-22
+         restano nella PAGINA e toccano le chiamate e il vestito; questa tocca
+         lo strato sotto, e i due strati devono cadere separatamente — se
+         spegnendo la decisione condivisa i fogli continuassero a dichiararsi,
+         vorrebbe dire che una copia debole è rinata dentro Scudo.
+         ⛔ È anche la difesa contro la quarta delle cinque cause di CLAUDE.md:
+         un'iniezione lasciata a mirare il posto vecchio non fallisce, dice
+         «MANCATA» in una riga di log e lascia il banco verde. */
+  ['  return modo === "live" ? null : String(modo || "non dichiarata");',
+   "  return null;", CONDIVISO],
 ];
 
 /* ⛔ LA SECONDA DOMANDA: E SU UN FOGLIO VERO LA DICHIARAZIONE NON C'È?
@@ -236,16 +254,22 @@ const DIFETTI = [
    manca. Non provano la cosa opposta, che costa di più: «DATI DI ESEMPIO»
    stampato sulla cartella vera di un lavoratore vero, o sul verbale che si sta
    davvero facendo firmare. `--live` fa credere a Scudo di essere in produzione
-   — in demo il confronto diventa `!== "demo"`, cioè falso — e allora i due
-   fogli devono uscire PULITI: le prove sull'avviso si rovesciano.
+   e allora i due fogli devono uscire PULITI: le prove sull'avviso si
+   rovesciano.
    ⚠️ Si tocca SOLO la riga dell'avviso: la fascia `#tour-banner` continua a
    guardare `db.mode !== "live"` e resta accesa, ed è la prova che l'app è
    davvero in dimostrazione. Senza quel controllo un foglio pulito si
-   scambierebbe per «il banco non ha caricato niente». */
+   scambierebbe per «il banco non ha caricato niente».
+   ⚠️ E DAL 06/08 SI INIETTA NELLA PAGINA, NON NELLA DECISIONE CONDIVISA:
+   `--live` non è un difetto, è la stessa decisione letta al contrario, e si
+   chiede al modo che la pagina PASSA (`db.mode` → `"live"`). Così il giro
+   attraversa davvero `modoDimostrazione` di `shared/`; spegnendola dall'interno
+   il giro resterebbe verde anche se quella funzione smettesse di saper
+   tacere — cioè proverebbe l'opposto di quello che dice di provare. */
 const FINGE_LIVE = process.argv.includes("--live");
 const COME_LIVE = [
-  ['  const avvisoEsempio = (frase) => db.mode !== "live"',
-   '  const avvisoEsempio = (frase) => db.mode !== "demo"'],
+  ["  const avvisoEsempio = (frase) => { const m = modoDimostrazione(db.mode);",
+   '  const avvisoEsempio = (frase) => { const m = modoDimostrazione("live");'],
 ];
 if (FINGE_LIVE && CONTROPROVA) {
   console.error("✗ --live e --controprova insieme non vogliono dire niente: il primo pretende i fogli puliti, il secondo li rompe.");
@@ -296,6 +320,11 @@ const srv = createServer((q, s) => {
     corpo = Buffer.from(t + CASI, "utf8"); iniezioniCasi++;
   }
   if ((CONTROPROVA || FINGE_LIVE) && p.endsWith(PAGINA)) corpo = Buffer.from(applica(corpo.toString("utf8"), PAGINA), "utf8");
+  /* il terzo soggetto: la decisione condivisa. Va servita passando da
+     `applica` come gli altri due, se no l'iniezione 23 non arriva mai e il
+     conto dei difetti rimessi resta sotto — che è il modo silenzioso in cui
+     una controprova smette di provare qualcosa. */
+  if (CONTROPROVA && p.endsWith(CONDIVISO)) corpo = Buffer.from(applica(corpo.toString("utf8"), CONDIVISO), "utf8");
   s.writeHead(200, { "content-type": TIPI[extname(p)] || "application/octet-stream" });
   s.end(corpo);
 });

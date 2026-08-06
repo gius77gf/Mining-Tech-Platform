@@ -1523,7 +1523,7 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
     dssDaSeguire } from "./scudo-data.js";
   import { mountExit, esc, csvCell, statoVuoto, giorniTra, montaGuardiaInteri, avvolgiUnita, oggiISO, dataISOEsiste,
            controllaAllegato, testoAllegatoRifiutato, pezziDataURL, dataIt,
-           numeroScritto, AVVISO_DECIMALE, timbroLocale } from "../../shared/deepwork-id-client/dw-shell.js";
+           numeroScritto, AVVISO_DECIMALE, timbroLocale, modoDimostrazione } from "../../shared/deepwork-id-client/dw-shell.js";
   // I campi INTERI restano `type=number` per lo spinner: la guardia rifiuta la
   // virgola, che lì non serve e che il browser scarterebbe in silenzio.
   montaGuardiaInteri((m) => toast(m, "err"));
@@ -4844,15 +4844,25 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
      QUEL foglio lì.
      ⚠️ E SA TACERE: sui dati veri (`db.mode === "live"`) non stampa niente. Un
      avviso che c'è sempre non lo legge più nessuno.
-     ⚠️ DEBITO DICHIARATO, non nascosto: questa è la TERZA copia della stessa
-     funzione (Conti e Terra ne hanno una a testa, con la stessa forma e nomi
-     quasi identici). Una regola che serve a tre app vive in `shared/`, e
-     questa ci deve andare: qui `shared/` non si tocca, quindi la copia resta
-     scritta e va unificata, con le tre pagine che la ri-esportano col nome che
-     hanno sempre usato. */
-  const avvisoEsempio = (frase) => db.mode !== "live"
-    ? `<div class="esempio"><b>DATI DI ESEMPIO — modalità tour (${esc(db.mode)}).</b> ${frase}</div>`
-    : "";
+     ✅ DEBITO CHIUSO IL 06/08 — era dichiarato qui («questa è la TERZA copia,
+     una regola che serve a tre app vive in `shared/`») e le copie erano
+     diventate quattro, con Campo. È salita LA DECISIONE e non il vestito:
+     `modoDimostrazione` sta in shared/deepwork-id-client/dw-shell.js, risponde
+     `null` sui dati veri o col NOME del modo — che è esattamente quello che
+     questo riquadro stampa fra parentesi.
+     ⛔ E NON È SALITA LA FRASE, di proposito: `scriviFoglio` la riceve dal
+     foglio che chiama, perché un verbale di consegna DPI si fa FIRMARE e una
+     cartella personale si ESIBISCE e si tiene agli atti. Un punto solo per la
+     decisione non vuol dire una frase sola per tutti — se la frase salisse in
+     `shared/` tornerebbe generica, e «dati di esempio» da solo si legge come
+     una nota di cortesia invece che come un'istruzione.
+     ⚠️ E una cosa migliora: col modo assente usciva «modalità tour ()», due
+     parentesi vuote (`esc(undefined)` è la stringa vuota). Adesso c'è scritto
+     «non dichiarata», che è la cosa vera. */
+  const avvisoEsempio = (frase) => { const m = modoDimostrazione(db.mode);
+    return m
+    ? `<div class="esempio"><b>DATI DI ESEMPIO — modalità tour (${esc(m)}).</b> ${frase}</div>`
+    : ""; };
   const scriviFoglio = (frase, html) => { $("verbale").innerHTML = avvisoEsempio(frase) + html; };
 
   // ── S5 · IL VERBALE DI CONSEGNA SU CARTA ─────────────────────────────

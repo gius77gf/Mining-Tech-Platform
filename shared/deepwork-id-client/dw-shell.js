@@ -74,6 +74,50 @@ export function nomeCsvDimostrazione(nome, modo) {
   return MARCHIO_CSV_DIMOSTRAZIONE + n;
 }
 
+/* CHE COSA CONTA COME DIMOSTRAZIONE — deciso in un posto solo.
+   ═══════════════════════════════════════════════════════════════════════
+   ⛔ Nasce il 06/08 da QUATTRO varianti in quattro pagine — Conti, Scudo,
+   Terra, Campo — scritte da quattro cantieri in due giorni, e tutt'e quattro
+   col debito già dichiarato nel proprio commento: «quando servirà alla quarta
+   il posto giusto è `shared/`, non un quarto copia-e-incolla». Le varianti
+   non erano identiche, ed è la ragione per cui qui sale una funzione e non un
+   copia-incolla della più recente.
+
+   ⚠️ QUELLO CHE SALE È LA DECISIONE, NON IL VESTITO, e la distinzione è la
+   sostanza di questa unità. La decisione è una domanda sola, che le quattro
+   si facevano uguale: «questi dati sono veri?». Il vestito — il riquadro
+   `.esempio`, il CSS del foglio, la riga `*** … ***` in cima al .txt e
+   soprattutto LA FRASE — resta di ogni app e ci deve restare: un verbale di
+   consegna DPI si fa firmare, una cartella personale si tiene agli atti, un
+   DDT viaggia sul camion, un rapporto di turno prova le presenze. «Dati di
+   esempio» da solo si legge come una nota di cortesia; la conseguenza detta
+   per QUEL foglio lì è un'istruzione, e non è condivisibile.
+
+   ⛔ RISPONDE COL NOME DEL MODO, NON CON SÌ/NO. È la forma che aveva Campo, ed
+   è l'unica delle quattro che copre anche chi il modo lo SCRIVE nell'avviso
+   (Conti, Scudo e Terra stampano «modalità tour (…)»): con un booleano
+   avrebbero dovuto rileggersi `db.mode` per conto loro, cioè rifare la
+   seconda copia nel punto in cui la si era appena tolta.
+   `null` = dati veri, e allora tutto tace. Qualunque altro valore è il nome
+   della dimostrazione, pronto da stampare.
+
+   ⛔ SOLO UN «live» ESPLICITO HA DIRITTO AL SILENZIO. Modo assente, vuoto,
+   sconosciuto o scritto in maiuscolo → si dichiara. È il principio del
+   fondatore applicato al foglio che esce dalla stampante: l'assenza di un
+   dato non è un dato favorevole, e qui il dato favorevole sarebbe «questo
+   foglio documenta un'operazione vera».
+
+   ⚠️ E UN COMPORTAMENTO È MIGLIORE delle tre righe che sostituisce, misurato
+   affiancandole su dodici casi (`live`, `demo`, assente, `null`, vuoto, `0`,
+   `false`, `LIVE`, `Live`, `boh`, `tour`, `NaN`): **zero differenze di
+   decisione** — quindi il trasloco non cambia quando si parla e quando si
+   tace — ma col modo assente Conti, Scudo e Terra stampavano «modalità tour
+   ()», due parentesi vuote, perché `esc(undefined)` è la stringa vuota.
+   Adesso c'è scritto «non dichiarata», che è la cosa vera. */
+export function modoDimostrazione(modo) {
+  return modo === "live" ? null : String(modo || "non dichiarata");
+}
+
 // Legge UNA riga CSV rispettando le virgolette: così un campo come
 // "Rossi;Mario" (col separatore dentro) resta un valore solo e non
 // spacca le colonne. Toglie anche l'apostrofo di guardia che csvCell

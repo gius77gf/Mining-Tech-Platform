@@ -1601,7 +1601,7 @@ label.item:has(.dw-chk:checked){
     preventiviDaSeguire, prezzoDaOrdine, descriviPrezzoOrdine,
     validaScaglioni, scaglionePer, applicaScaglione, etichettaScaglione,
     descriviScaglione } from "./conti-data.js";
-  import { mountExit, esc, csvCell, statoVuoto, senzaDoppioni, avvolgiUnita, euro, euro0, conEuro, isoLocale, istanteLocale, oggiISO as oggiISOShell, meseLocale, dataIt, dataPiuGiorni, nomeCsvDimostrazione } from "../../shared/deepwork-id-client/dw-shell.js";
+  import { mountExit, esc, csvCell, statoVuoto, senzaDoppioni, avvolgiUnita, euro, euro0, conEuro, isoLocale, istanteLocale, oggiISO as oggiISOShell, meseLocale, dataIt, dataPiuGiorni, nomeCsvDimostrazione, modoDimostrazione } from "../../shared/deepwork-id-client/dw-shell.js";
   // gli agganci della struttura condivisa (modale con Escape, riquadri da
   // tastiera, alone che segue il mouse). Va chiamato QUI e non nel blocco
   // classico in linea: i moduli girano dopo gli script `defer`.
@@ -3953,13 +3953,28 @@ label.item:has(.dw-chk:checked){
      nomina i dati d'esempio, in `@media print` no.
      Sta DENTRO `testaStampa`, che è il punto unico da cui passano tutti e
      tre i fogli: la decisione «questo è un foglio di dimostrazione» si
-     prende in un posto solo, come i suoi numeri. */
-  const avvisoEsempio = () => db.mode !== "live"
-    ? `<div class="esempio"><b>DATI DI ESEMPIO — modalità tour (${esc(db.mode)}).</b>
+     prende in un posto solo, come i suoi numeri.
+     ✅ TRASLOCATA IL 06/08, e come per `marchiaCsv` è salita LA DECISIONE, non
+     il vestito: `modoDimostrazione` sta in shared/deepwork-id-client/dw-shell.js
+     e risponde `null` sui dati veri o col NOME del modo, che è quello che
+     questo riquadro stampa. Qui resta ciò che è di Conti e ci deve restare —
+     il riquadro `.esempio`, la sua regola in `@media print`, e soprattutto la
+     FRASE: «non ha valore fiscale, non va consegnato a un cliente, non
+     accompagna nessun trasporto» è la conseguenza per il preventivo, il DDT e
+     la fattura, e non la si può condividere con un verbale di consegna DPI o
+     con un rapporto di turno. La riga che resta è plumbing di tre parole,
+     perché `db.mode` è della pagina: un alias non è una seconda
+     implementazione.
+     ⚠️ E una cosa migliora: col modo assente qui usciva «modalità tour ()» —
+     due parentesi vuote, perché `esc(undefined)` è la stringa vuota. Adesso
+     c'è scritto «non dichiarata». */
+  const avvisoEsempio = () => { const m = modoDimostrazione(db.mode);
+    return m
+    ? `<div class="esempio"><b>DATI DI ESEMPIO — modalità tour (${esc(m)}).</b>
         Questo foglio non documenta nessuna operazione reale: non ha valore fiscale,
         non va consegnato a un cliente, non accompagna nessun trasporto e non va
         esibito a un controllo.</div>`
-    : "";
+    : ""; };
   const testaStampa = (titolo, sotto) => { const a = azienda();
     return `${avvisoEsempio()}${a.nome ? "" : `<div class="manca">Intestazione mancante: scrivi ragione sociale, P.IVA e sede nella scheda <b>Listino → Dati della tua azienda</b>. Questo foglio è valido solo quando porta i dati di chi emette il documento.</div>`}
       <div class="testa">
