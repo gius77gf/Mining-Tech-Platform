@@ -7,7 +7,7 @@
 // perché non falliscono i test, si vedono solo aprendo la pagina giusta.
 // Qui diventano controlli che girano in automatico.
 //
-// 25 regole, al 03/08. *(Era rimasto scritto «tredici» per giorni mentre
+// 26 regole, al 06/08. *(Era rimasto scritto «tredici» per giorni mentre
 // l'elenco cresceva: un numero in un commento non fallisce, sta lì — la stessa
 // ragione per cui esiste `numeri-nei-documenti.mjs`. Adesso c'è una prova in
 // fondo al file che lo confronta con le voci davvero elencate qui sotto.)*
@@ -190,6 +190,15 @@
 //     coperti, due dei quali bottoni di esportazione. La versione giusta era
 //     già in `shared/`, che si dichiara «copia del core»: qui la copia era
 //     migliore dell'originale, e nessuno l'aveva riportato indietro.
+//
+// 26. I DATI DI RIFERIMENTO DEL FONDATORE NON ESCONO MAI. La regola ferrea del
+//     25/07 («nessuna eccezione») viveva solo in prosa, e il 06/08 si e' visto
+//     che era gia' violata: il core ripiegava su un `|| 25` — il ritardo di
+//     quella origine — e lo scriveva nella sequenza disegnata di ogni foro.
+//     La regola prende le CITAZIONI riconoscibili (il nome dell'innesco, la
+//     maglia con le sue due misure, l'archivio dei video, le volate misurate);
+//     NON prende gli usi travestiti, ed e' dichiarato: quel `|| 25` lei non lo
+//     vedrebbe, l'ha trovato leggere il codice.
 //
 // ⚠️ Le regole 21-23 sono nate senza entrare in questo elenco, e la prova in
 // fondo al file **non se n'è accorta**: confronta il numero dichiarato con le
@@ -2715,6 +2724,107 @@ test("regola 25: la controprova — tolta la guardia al toast del core, la regol
     /position\s*:\s*fixed/.test(b.corpo) && /opacity\s*:\s*0(?![.\d])/.test(b.corpo) && !NEUTRALIZZA.test(b.corpo));
   ok(visti.length >= 1 && visti.some((b) => /\.toast/.test(b.sel)),
     `col difetto rimesso la regola deve vedere il toast, ha visto: ${JSON.stringify(visti.map((b) => b.sel))}`);
+});
+
+/* ═══ REGOLA 26 — I DATI DI RIFERIMENTO DEL FONDATORE NON ESCONO MAI ═══
+   La regola ferrea di CLAUDE.md (25/07, «nessuna eccezione») dice che i dati
+   che il fondatore diede all'inizio erano SOLO orientativi, per far capire i
+   video che stava mostrando: si possono usare per i calcoli e le calibrazioni,
+   ma non devono comparire in interfaccia, nei testi, negli export o nei
+   documenti dell'app.
+   ⛔ FINO AL 06/08 QUELLA REGOLA VIVEVA SOLO IN PROSA, e quel giorno si è visto
+   che era già violata: `riassegnaSequenzaAuto` del core ripiegava su un
+   `|| 25` scritto nel codice — cioè il ritardo di quella origine — e lo
+   scriveva dentro `f.ritardo` di ogni foro, da dove finiva **disegnato sulla
+   sequenza**. Nessuno l'aveva notato perché non c'era niente da leggere: una
+   costante in una riga di calcolo non si annuncia. È la stessa lezione delle
+   altre venticinque: *una regola scritta è affidata alla memoria di chi legge.*
+
+   COSA GUARDA, e perché proprio questo. Si cercano le forme **riconoscibili**
+   di quei dati, quelle che non possono nascere per caso in un'app di cave:
+   il nome commerciale del sistema d'innesco, la maglia con le sue due misure
+   attaccate, l'archivio dei video col suo numero, il conto delle volate
+   misurate. Non si cerca il numero 25 da solo, né «15-20», perché sarebbero
+   allarmi continui su valori legittimi — e un allarme che sbaglia tre volte su
+   quattro insegna a non guardarlo (misurato il 01/08 sui «non c'è» scaduti).
+   ⚠️ IL LIMITE, DICHIARATO: questa regola prende le CITAZIONI, non gli usi
+   travestiti. Il `|| 25` che l'ha fatta nascere **lei non lo vedrebbe** — a
+   trovarlo è stato leggere il codice. Serve a impedire che quei dati entrino
+   nei testi e negli export, che è il caso che il fondatore ha vietato per
+   nome; non a dimostrare che non ci siano più costanti derivate da lì.
+
+   ⚠️ E SI GUARDA `senzaCommenti`, NON IL FILE CRUDO: i valori vietati stanno
+   dentro le stringhe (testi, etichette, export), quindi il tokenizzatore
+   giusto è quello che toglie i commenti e TIENE il resto. Il crudo farebbe
+   cadere la regola sul commento che la spiega — è già successo alla regola 6,
+   e sta scritto in CLAUDE.md. */
+/* ⛔ E LA PRIMA STESURA DI QUESTA LISTA HA ACCUSATO UN INNOCENTE, al primo
+   giro, il 06/08. Ci avevo messo `\bnonel\b`, perché la regola ferrea nomina
+   «Nonel 25 ms»; la regola ha subito segnalato `apps/genesi/genesi.html:1247`,
+   `innesco:'nonel'`. Aprendo la riga: **non è una citazione, è un catalogo**.
+   `INNESCHI` elenca quattro sistemi d'innesco veri — Nonel a tubo d'urto,
+   elettronico, elettrico, miccia detonante — ognuno con tipo, dispersione,
+   comportamento in acqua, pro e contro; e la serie di ritardi del Nonel è
+   scritta lì per esteso: `17/25/42/65/100 ms`, che è **la serie standard di
+   quel sistema**, non un numero che ci ha dato qualcuno.
+   Quindi «Nonel» e «25 ms» sono **anche** termini del mestiere, e un'app di
+   volate che non li nominasse sarebbe monca. Il divieto del fondatore riguarda
+   la *citazione della sua origine*, non il vocabolario del settore — e una
+   regola che non sa distinguere i due manda ad aprire un cantiere per togliere
+   una cosa giusta. È il costo della direzione che accusa, misurato su me
+   stesso: qui restano solo le forme che **non possono nascere per caso**.
+   ⚠️ Stessa ragione per cui `calcare` non è in lista: il calcare è una roccia,
+   e Genesi deve poterla offrire. Vietato è dichiararlo «dominio di validità»
+   del modello, che è una frase, non una parola. */
+const VIETATI = [
+  [/\b4[.,]5\s*[x×]\s*3[.,]5\b|\b3[.,]5\s*[x×]\s*4[.,]5\b/i, "la maglia di quell'origine"],
+  [/\b190\s*(video|filmat)/i, "l'archivio dei video"],
+  [/\b6\s*\/\s*23\s*volate\b|\b6\s+volate\s+su\s+23\b/i, "le volate misurate di quell'origine"],
+  [/dominio di validit[àa]/i, "il litotipo dichiarato come dominio di validità del modello"],
+];
+
+test("regola 26: i dati di riferimento del fondatore non compaiono in nessuna superficie", () => {
+  const male = [];
+  let guardate = 0, caratteri = 0;
+  for (const [nome, rel] of SUPERFICI) {
+    let testo;
+    try { testo = leggi(rel); } catch { continue; }
+    const vivo = senzaCommenti(testo);
+    guardate++; caratteri += vivo.length;
+    for (const [re, che] of VIETATI) {
+      const m = re.exec(vivo);
+      if (m) male.push(`${nome}: «${m[0]}» — ${che}`);
+    }
+  }
+  /* quanti soggetti ha guardato davvero: uno «zero violazioni» senza questo
+     numero non distingue «pulito» da «non ho aperto niente» */
+  ok(guardate >= 14, `superfici guardate: ${guardate} — l'elenco si è accorciato`);
+  ok(caratteri > 500000, `solo ${caratteri} caratteri esaminati: il tokenizzatore sta buttando via il file`);
+  ok(male.length === 0,
+    "dati di riferimento del fondatore trovati in superficie (regola ferrea, nessuna eccezione):\n  "
+    + male.join("\n  "));
+});
+
+test("regola 26: la controprova — rimessi i quattro dati, la regola li vede tutti e quattro", () => {
+  const sano = senzaCommenti(leggi("index.html"));
+  const finti = ["maglia 4,5×3,5", "archivio di 190 video", "6/23 volate misurate",
+                 "il dominio di validità del modello"];
+  const visti = [];
+  for (let i = 0; i < VIETATI.length; i++) {
+    /* si inietta in una COPIA in memoria, mai sul file: il core lo carica il
+       browser, e un banco che gira dentro la finestra misurerebbe una falsità.
+       ⚠️ Si antepone invece di cercare un'ancora: la prima stesura cercava
+       `<body` dentro il testo GIÀ passato da `senzaCommenti` e non lo trovava,
+       quindi l'iniezione non iniettava — la terza delle cinque cause. */
+    const guasto = `<p>${finti[i]}</p>\n` + sano;
+    ok(guasto.length > sano.length, `iniezione ${i + 1} non agganciata: la prova non prova niente`);
+    if (VIETATI[i][0].test(guasto)) visti.push(finti[i]);
+  }
+  ok(visti.length === VIETATI.length,
+    `col difetto rimesso la regola deve vedere tutt'e ${VIETATI.length}, ne ha visti ${visti.length}: ${JSON.stringify(visti)}`);
+  /* e sul file sano non ne vede nessuno: se no vedrebbe sempre tutto */
+  ok(VIETATI.every(([re]) => !re.test(sano)),
+    "la regola risponde «trovato» anche sul file sano: sta guardando la propria iniezione");
 });
 
 /* Il numero di regole scritto nell'intestazione è quello vero? Era rimasto a

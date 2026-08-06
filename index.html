@@ -499,9 +499,13 @@ const DEFAULT_VOLATE = [
     fronte:{lunghezza_m:20,altezza_m:0,calotta_m:0,profilo:[],piede_attivo:false,piede_profondita:0},
     maglia:{borraggio:3,spaziatura:3.5,file:2},
     /* ⚠️ il ritardo di riferimento e' scritto anche qui, dove il carico non
-       c'e' ancora: `riassegnaSequenzaAuto` legge `v.default.ritardo_ms` e, se
-       lo trova vuoto, ripiega su un valore scritto nel codice. Lasciarlo vuoto
-       avrebbe fatto scegliere quel ripiego dalla dimostrazione. */
+       c'e' ancora — e la ragione e' CAMBIATA il 06/08, quindi vale la pena
+       dirla giusta: prima serviva a schivare un ripiego `|| 25` scritto dentro
+       `riassegnaSequenzaAuto`, che riempiva i fori di ritardi inventati. Quel
+       ripiego adesso non c'e' piu' (il bottone rifa' la sequenza e i ritardi li
+       lascia stare, dicendolo). Il campo resta scritto perche' e' vero del
+       mestiere: una volata progettata il suo ritardo di riferimento ce l'ha,
+       anche prima che qualcuno decida i chili. */
     default:{diametro_mm:89,profondita_m:7.5,esplosivo:'',kg_per_foro:'',ritardo_ms:42,innesco:''},
     /* i fori ci sono e sono misurati, i chili non li ha ancora scritti nessuno */
     fori:Array.from({length:10},(_,i)=>({id:'foro_v3_'+(i+1),num:i+1,
@@ -6954,10 +6958,30 @@ function playSequenza(){
   },totMs);
 }
 
+/* ⛔ QUI C'ERA UN RIPIEGO `|| 25`, ED E' UN NUMERO TRANQUILLO DOVE NON E' STATO
+   MISURATO NIENTE. Su una volata in cui nessuno ha ancora scritto il ritardo di
+   riferimento, il bottone riempiva TUTTI i fori di ritardi inventati — 25, 50,
+   75 ms — che sullo schermo si leggono identici a quelli decisi da qualcuno. E
+   in cava un ritardo non e' un dettaglio: e' la differenza fra una volata che
+   parte bene e una che sposta il fronte dove non deve.
+   Il bottone si chiama «Riassegna automatica» e il suo mestiere e' la
+   SEQUENZA: quella si rifa' sempre. I ritardi si scrivono solo se c'e' un
+   ritardo di riferimento da cui derivarli, e quando non c'e' lo si DICE invece
+   di riempire i campi in silenzio.
+   ⚠️ E QUI VA CORRETTA UNA COSA CHE AVEVO SCRITTO IO STESSO POCHE ORE PRIMA,
+   perche' e' il genere di errore che questo file esiste per non ripetere. Avevo
+   dichiarato che quel `25` fosse un **dato di riferimento del fondatore**, e
+   quindi vietato per la regola ferrea. Non e' dimostrato: il catalogo degli
+   inneschi di Genesi (`genesi.html`, `INNESCHI`) riporta per il Nonel la serie
+   standard `17/25/42/65/100 ms`, che e' del mestiere e non di quell'origine.
+   Il ripiego va tolto lo stesso — per la ragione qui sopra, che regge da sola —
+   ma la ragione giusta e' UNA, non due, e gonfiarla renderebbe meno credibile
+   tutto il resto. */
 function riassegnaSequenzaAuto(){
   const v=DB.volate.find(x=>x.id===state.volataSel);
   if(!v)return;
-  const ritardoBase=parseNum0(v.default.ritardo_ms)||25;
+  const base=parseNum0(v.default.ritardo_ms);
+  const noto=base>0;
   // Riordino prima per Y (crescente = più vicino al fronte), poi per X
   const sorted=[...v.fori].sort((a,b)=>{
     if(Math.abs((a.y||0)-(b.y||0))<0.01) return (a.x||0)-(b.x||0);
@@ -6965,12 +6989,14 @@ function riassegnaSequenzaAuto(){
   });
   sorted.forEach((f,i)=>{
     f.sequenza=i+1;
-    f.ritardo=ritardoBase*i;
+    if(noto) f.ritardo=base*i;
   });
   state.editorUnsaved=true;
   ricalcolaTotaliVolata(v);
   renderEditorCava();
-  toast('Sequenza riassegnata','success');
+  toast(noto?'Sequenza riassegnata'
+            :'Sequenza riassegnata. I ritardi restano come sono: manca il ritardo di riferimento della volata.',
+        noto?'success':'info');
 }
 
 function calcolaCaricaMaxRitardo(v){
