@@ -189,6 +189,21 @@ const BANCHI = [
   ['i fogli stampati di Conti', 'conti-stampe.mjs', []],
   ['fogli di Conti · controprova', 'conti-stampe.mjs', ['--controprova'], true],
   ['fogli di Conti · controprova della ✎', 'conti-stampe.mjs', ['--controprova-matita'], true],
+  /* ⛔ AGGIUNTO IL 06/08 — «il testo che mente», il filo nato di fianco a quello
+     del disegno. Non un numero sbagliato: una FRASE che in un caso limite non
+     è italiano, e in Conti quelle frasi finiscono su un sollecito e su un
+     estratto conto. Con UNA fattura scaduta da UN giorno, la lettera al cliente
+     diceva «(1 giorni di ritardo)» e l'estratto conto «€ 40 × 1 fatture
+     scadute»; con un DDT solo, «I 1 DDT collegati tornano»; e i tre import più
+     un export scrivevano «1 aggiunte», «1 prodotti aggiunti», «1 già presenti».
+     Sette punti, e il modulo la regola non ce l'aveva proprio: la pagina usava
+     `plur` 103 volte, `conti-data.js` — quello che compone i documenti che
+     ESCONO — zero. Nella stessa passata è saltato fuori che «Lordo (t)»,
+     «Tara (t)» e «Netto (t)» uscivano «LORDO (T)» a schermo E sul DDT
+     stampato: il tesla al posto della tonnellata su un documento di trasporto.
+     I casi limite se li costruisce lui, nei DATI SERVITI e nei file caricati. */
+  ['le frasi di Conti nei casi limite', 'conti-frasi.mjs', []],
+  ['frasi di Conti · controprova', 'conti-frasi.mjs', ['--controprova'], true],
   /* ⛔ AGGIUNTO IL 06/08 — il filo «il numero è giusto e a mentire è il DISEGNO»
      portato nell'app dei soldi. Le quattro liste con la barra sotto la riga
      scrivevano `width:Math.round(pct)%`: sotto lo 0,5% della scala l'intero dà
@@ -272,6 +287,30 @@ const BANCHI = [
      frasi e le celle vivono nella pagina. */
   ['i documenti di Terra e gli zeri mai misurati', 'terra-numeri-tranquilli.mjs', []],
   ['zeri mai misurati · controprova', 'terra-numeri-tranquilli.mjs', ['--controprova'], true],
+  /* ⛔ AGGIUNTO IL 06/08, ed è una famiglia TERZA rispetto alle due qui
+     intorno: non il numero sbagliato (`terra-numeri-tranquilli`) né il disegno
+     che mente (`terra-geometrie`), ma la FRASE — la parola incollata al numero
+     che, quando il numero è uno, dice una cosa non italiana. Undici frasi in
+     Terra, fra cui «1 indicativi» sul prospetto che va all'ente e «Import
+     fronti: 1 aggiunti», che è il primo messaggio che si legge provando
+     l'import con una riga sola. Nessuna suite `node` le vede: le regole pure
+     stanno in `run-kpi.mjs`, ma che la PAGINA le chiami lo dice solo il
+     browser. */
+  /* ⛔ AGGIUNTO IL 06/08. LA STESSA FAMIGLIA, MA SU TUTTE LE SUPERFICI E SENZA
+     COSTRUIRE NIENTE: cerca «1 <parola al plurale>» nel testo RESO di ogni
+     schermata. Nasce perché quel giorno il censimento a `grep` ha detto «nel
+     core non resta niente» e la pagina, con un solo rapportino, diceva ancora
+     «1 rapportini · 1 fori»: il codice scrive quella frase in tre dialetti
+     (`${n} fori`, `+' fori'`, `<b>${n}</b> fori`) e una ricerca a testo ne
+     conosce solo quelli che le hai insegnato. Ha trovato subito un «1
+     rapportini» in Campo che nessuno stava cercando.
+     ⚠️ E al primo giro ha accusato un innocente — «1 MEZZI» in Flotta, che
+     erano DUE piastrelle di KPI unite dall'a capo di `innerText`: adesso fra
+     il numero e la parola accetta solo uno spazio vero. */
+  ['«1 fori» su tutte le superfici', 'uno-solo.mjs', []],
+  ['«1 fori» · controprova', 'uno-solo.mjs', ['--controprova'], true],
+  ['le frasi di Terra quando il numero è uno', 'terra-frasi-da-uno.mjs', []],
+  ['frasi da uno · controprova', 'terra-frasi-da-uno.mjs', ['--controprova'], true],
   /* ⛔ AGGIUNTO IL 06/08, ed è la famiglia che il 06/08 è stata censita nel
      core: il numero è giusto e a mentire è il DISEGNO. Là una barra da 2.261,7
      m³ ne disegnava 3, identica ai cinque mesi a zero, perché `height:100%` si
@@ -430,6 +469,18 @@ const BANCHI = [
      «provvisoria», lo dice solo il browser. */
   ['i numeri tranquilli di Genesi', 'genesi-numeri-tranquilli.mjs', []],
   ['numeri tranquilli di Genesi · controprova', 'genesi-numeri-tranquilli.mjs', ['--controprova'], true],
+  /* ⛔ E DAL 06/08 LE FRASI, non i numeri. Il numero era giusto e a mentire era
+     la frase intorno: undici punti incollavano un plurale a un conto che può
+     valere uno («Consuntivo importato: 1 fori», «Il file ha 1 righe», e —
+     nella scheda in cui si decide la carica — «Qui 1 fori fuori finestra», che
+     si raggiunge con la maglia a 3 fori × 2 file e la finestra di default); e
+     la RICONCILIAZIONE mostrava la PPV prevista senza dire su che cosa è
+     tarata, quindi lo stesso progetto passava da 6,4 a 2,8 mm/s con la stessa
+     identica riga — che poi finisce nello storico e nel CSV che esce
+     dall'azienda. L'identità `_ricPlur === conta` la prova `run-kpi`; che le
+     frasi escano davvero così lo dice solo il browser. */
+  ['le frasi limite di Genesi', 'genesi-frasi-limite.mjs', []],
+  ['frasi limite di Genesi · controprova', 'genesi-frasi-limite.mjs', ['--controprova'], true],
 ];
 
 async function rispondePorta(porta) {

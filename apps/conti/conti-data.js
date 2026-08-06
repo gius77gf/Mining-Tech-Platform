@@ -65,7 +65,7 @@
 // KPI CALCOLATI: da incassare, in scadenza, gare aperte, età media del credito.
 // ============================================================
 
-import { parseCsvLine, leggiCsv, numIt, giorniTra, isIntestazione, dataISOEsiste, dataIt,
+import { parseCsvLine, leggiCsv, numIt, giorniTra, isIntestazione, dataISOEsiste, dataIt, conta,
          AVVISO_DECIMALE as AVVISO_DECIMALE_SHELL } from "../../shared/deepwork-id-client/dw-shell.js";
 import { provenienzaDi, misuratoPeriodo } from "../../shared/dw-ponti.js";
 /* la classificazione dei costi vive in shared/ perché serve anche a Flotta:
@@ -830,6 +830,23 @@ export function livelloSollecito(giorniRitardo) {
   return { livello: 3, label: "ultimo avviso", cls: "danger" };
 }
 
+/* ⛔ IL SINGOLARE E IL PLURALE LI DECIDE `conta` DI `shared/`, E QUI NON C'ERA.
+   La pagina la regola ce l'aveva (`plur`, usata 103 volte); questo modulo no —
+   e questo modulo compone il SOLLECITO e l'ESTRATTO CONTO, cioè le due cose
+   che escono di qui e arrivano al cliente. Misurato il 06/08 nel browser, su
+   una fattura scaduta di UN giorno:
+     · sollecito      → «scaduta il 05/08/2026 (**1 giorni di ritardo**)»
+     · estratto conto → «Spese forfettarie art. 6 (€ 40 × **1 fatture scadute**)»
+   È la forma esatta di CLAUDE.md — «dove questa app compone qualcosa che ESCE,
+   chi decide le sue parole?» — e il posto dove nessuna prova guardava, perché
+   le prove `node` chiamavano il modulo con 13 giorni e 1 non lo provava nessuno.
+   ⚠️ E la copia debole aveva un NOME DIVERSO, che è il motivo per cui era
+   sopravvissuta: `grep plur shared/` risponde «non c'è», perché lì si chiama
+   `conta`. Ci sono cascato mentre cercavo: la prima stesura di questa
+   correzione scriveva un `export function plur` qui dentro — cioè una TERZA
+   copia — ed è saltata fuori solo aprendo `run-kpi.mjs` e vedendo le prove di
+   `shell.conta` già scritte. */
+
 // Formattazioni PURE (niente locale ICU, così i test sono deterministici):
 // euro all'italiana (18.300 / 83,42) e data GG/MM/AAAA da ISO.
 function euroIt(v) {
@@ -883,8 +900,8 @@ export function testoSollecito(fattura, oggi = new Date(), tassoAnnuo = TASSO_MO
     ``,
     `Spett.le ${cliente},`,
     acconti > 0
-      ? `risulta ancora da saldare la fattura n. ${numero} di ${e(totDoc)}, scaduta il ${dataIt(f.scadenza)} (${ritardo} giorni di ritardo): a fronte di acconti per ${e(acconti)} resta scoperto ${e(imp)}.`
-      : `risulta non ancora saldata la fattura n. ${numero} di ${e(imp)}, scaduta il ${dataIt(f.scadenza)} (${ritardo} giorni di ritardo).`,
+      ? `risulta ancora da saldare la fattura n. ${numero} di ${e(totDoc)}, scaduta il ${dataIt(f.scadenza)} (${conta(ritardo, "giorno", "giorni")} di ritardo): a fronte di acconti per ${e(acconti)} resta scoperto ${e(imp)}.`
+      : `risulta non ancora saldata la fattura n. ${numero} di ${e(imp)}, scaduta il ${dataIt(f.scadenza)} (${conta(ritardo, "giorno", "giorni")} di ritardo).`,
     ``,
     `La preghiamo di provvedere al pagamento nel più breve tempo possibile. Ai sensi del D.Lgs 231/2002 sulle transazioni commerciali, dalla scadenza maturano interessi di mora al tasso del ${tassoTxt}% annuo, oltre a ${e(SPESE_RECUPERO_231)} di spese forfettarie di recupero (art. 6).${frasiTassoMora(oggi)}`,
     ``,
@@ -1060,7 +1077,7 @@ export function estrattoContoCliente(cliente, fatture, oggi = new Date(), tassoA
        citano la stessa legge non possono dire due cose diverse */
     const avviso = frasiTassoMora(oggi);
     if (avviso) out.push(avviso.trim());
-    out.push(`Spese forfettarie art. 6 (${e(SPESE_RECUPERO_231)} × ${scaduteN} fatture scadute): ${e(spese)}`);
+    out.push(`Spese forfettarie art. 6 (${e(SPESE_RECUPERO_231)} × ${conta(scaduteN, "fattura scaduta", "fatture scadute")}): ${e(spese)}`);
     out.push(`Totale dovuto ad oggi: ${e(totaleDovuto)}`);
   }
   out.push(``, `La preghiamo di provvedere alla regolarizzazione. Restiamo a disposizione per ogni chiarimento.`);
@@ -3168,7 +3185,11 @@ function guardiaStessaFattura(righe, aperte) {
       alternative: r.proposta.map((p) => ({ fatturaId: p.fatturaId, numero: p.numero,
                                             cliente: p.cliente, aperto: p.aperto })),
       motivi: r.motivi.concat("stessa fattura in più movimenti"),
-      perche: `più movimenti di questo file propongono la fattura ${toccate.map((p) => p.numero).join(", ")}`
+      /* «la fattura A, B» era la stessa famiglia al contrario: un singolare
+         fisso accanto a un elenco che può averne più d'uno (una proposta
+         cumulativa ne porta due o tre). Dodici righe più su, `saldate` lo
+         faceva già bene — l'asimmetria dentro lo stesso file. */
+      perche: `più movimenti di questo file propongono ${toccate.length === 1 ? "la fattura" : "le fatture"} ${toccate.map((p) => p.numero).join(", ")}`
         + " e insieme superano quello che resta aperto: confermarli tutti registrerebbe un incasso che non c'è."
         + " Scegli tu quale vale." };
   });

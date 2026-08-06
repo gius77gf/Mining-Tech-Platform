@@ -856,6 +856,107 @@ test("estrattoContoCliente: null se cliente senza fatture aperte o nome vuoto", 
   eq(conti.estrattoContoCliente("", [{ cliente: "Altro", importo: 100, incassata: false, scadenza: "2026-07-01" }], new Date(2026, 6, 21)), null, "nome vuoto");
   eq(conti.estrattoContoCliente("X", [{ cliente: "X", importo: 100, incassata: true, scadenza: "2026-07-01" }], new Date(2026, 6, 21)), null, "solo fatture incassate");
 });
+/* ⛔ IL TESTO CHE MENTE: UNO SOLO. Le due lettere che escono da Conti e
+   arrivano al cliente erano provate con 13 giorni di ritardo e 1 fattura
+   scaduta su tante — cioè con i numeri comodi, gli unici in cui un plurale
+   fisso non si vede. Con UN giorno di ritardo dicevano «1 giorni di ritardo»
+   e «€ 40 × 1 fatture scadute». Non è un numero sbagliato: è una lettera che
+   non è in italiano, spedita a un cliente a cui si stanno chiedendo soldi.
+   ⚠️ E la prova esiste QUI perché il difetto era nel MODULO: la pagina la
+   regola ce l'aveva (`plur`, 103 volte) e il modulo no. Il caso limite non è
+   un caso raro — una fattura scaduta ieri è il primo giorno in cui il bottone
+   «Sollecito» compare, cioè il più probabile di tutti. */
+test("testoSollecito: un giorno di ritardo si scrive «1 giorno», non «1 giorni»", () => {
+  const t = conti.testoSollecito(
+    { numero: "2026/099", cliente: "Monoscadenza Srl", importo: 1220, scadenza: "2026-08-05" },
+    new Date(2026, 7, 6));   // 1 giorno di ritardo
+  if (!t.includes("(1 giorno di ritardo)")) throw new Error(`la lettera dice: ${t.split("\n")[3]}`);
+  if (/\b1 giorni\b/.test(t)) throw new Error("«1 giorni» nella lettera al cliente");
+  // e con due giorni resta plurale: una prova che passa in tutt'e due i versi
+  const d = conti.testoSollecito(
+    { numero: "2026/099", cliente: "Monoscadenza Srl", importo: 1220, scadenza: "2026-08-04" },
+    new Date(2026, 7, 6));
+  if (!d.includes("(2 giorni di ritardo)")) throw new Error(`due giorni: ${d.split("\n")[3]}`);
+});
+test("testoSollecito: anche il ramo con gli acconti — erano due frasi, e la regola stava su nessuna", () => {
+  /* il difetto era scritto DUE volte, una per ramo: la prova che ne guarda uno
+     solo lascia in piedi l'altro, ed è il ramo che si legge quando il cliente
+     ha già versato qualcosa — cioè quando la lettera è più delicata. */
+  const t = conti.testoSollecito(
+    { numero: "2026/099", cliente: "Monoscadenza Srl", importo: 1220, scadenza: "2026-08-05" },
+    new Date(2026, 7, 6), conti.TASSO_MORA_DEFAULT,
+    [{ fatturaId: undefined }]);
+  const conAcconto = conti.testoSollecito(
+    { id: "z", numero: "2026/099", cliente: "Monoscadenza Srl", importo: 1220, scadenza: "2026-08-05" },
+    new Date(2026, 7, 6));
+  for (const x of [t, conAcconto]) if (/\b1 giorni\b/.test(x)) throw new Error("«1 giorni» in un ramo del sollecito");
+});
+test("estrattoContoCliente: con UNA fattura scaduta scrive «1 fattura scaduta»", () => {
+  const fatture = [
+    { numero: "2026/099", cliente: "Monoscadenza Srl", importo: 1220, scadenza: "2026-08-05", incassata: false },
+    { numero: "2026/098", cliente: "Monoscadenza Srl", importo: 122,  scadenza: "2026-08-30", incassata: false },
+  ];
+  const t = conti.estrattoContoCliente("Monoscadenza Srl", fatture, new Date(2026, 7, 6));
+  if (!t.includes("× 1 fattura scaduta)")) throw new Error(`l'estratto conto dice: ${t.split("\n").find(r => r.includes("art. 6"))}`);
+  if (/1 fatture scadute/.test(t)) throw new Error("«1 fatture scadute» nell'estratto conto");
+  // due scadute → plurale
+  const due = conti.estrattoContoCliente("Monoscadenza Srl",
+    fatture.map((f) => ({ ...f, scadenza: "2026-08-05" })), new Date(2026, 7, 6));
+  if (!due.includes("× 2 fatture scadute)")) throw new Error(`due scadute: ${due.split("\n").find(r => r.includes("art. 6"))}`);
+});
+test("Conti · banca: «le fatture» quando ne nomina più d'una — il singolare fisso al contrario", () => {
+  /* la stessa famiglia vista dall'altra parte: non un plurale accanto a UNO,
+     ma un SINGOLARE fisso accanto a un elenco. «propongono la fattura
+     2026/001, 2026/002» — e dodici righe più su, nello stesso file,
+     `saldate` la distinzione la faceva già. */
+  const fat = (id, n, imp) => ({ id, numero: n, cliente: "Edilcave Srl", clienteId: "k1",
+    importo: imp, emessa: "2026-01-10", scadenza: "2026-02-10", incassata: false });
+  const F = [fat("b1", "2026/001", 1000), fat("b2", "2026/002", 2000)];
+  const CL = [{ id: "k1", ragioneSociale: "Edilcave Srl" }];
+  const testa = "Data;Valuta;Descrizione;Importo\n";
+  // due movimenti che propongono LE STESSE DUE fatture: insieme sforano
+  const due = conti.abbinaMovimenti(conti.parseMovimentiCsv(testa
+    + "10/03/2026;10/03/2026;Bonifico fatture 2026/001 e 2026/002;3000,00\n"
+    + "11/03/2026;11/03/2026;Bonifico fatt 2026/001 2026/002;3000,00"), F, [], CL).righe;
+  if (!due[0].perche.includes("propongono le fatture 2026/001, 2026/002"))
+    throw new Error(`con due fatture doveva dire «le fatture»: ${due[0].perche.slice(0, 90)}`);
+  // e con UNA sola resta al singolare
+  const una = conti.abbinaMovimenti(conti.parseMovimentiCsv(testa
+    + "10/03/2026;10/03/2026;Bonifico fatt 2026/001;1000,00\n"
+    + "11/03/2026;11/03/2026;Saldo fattura 2026/001;1000,00"), F, [], CL).righe;
+  if (!una[0].perche.includes("propongono la fattura 2026/001"))
+    throw new Error(`con una fattura doveva dire «la fattura»: ${una[0].perche.slice(0, 90)}`);
+});
+test("Conti · la pagina e shared/ hanno UNA regola sola per il plurale (identità, non comportamento)", async () => {
+  /* il `plur` della pagina è `conta` di shared/: due copie uguali oggi
+     divergono domani senza che nessuno lo veda, quindi si pretende
+     l'IDENTITÀ. La pagina non è importabile da qui, ma il modulo dati sì, e
+     usa la stessa: se un giorno qualcuno ne riscrive una in casa, la riga di
+     `run-stile` che censisce le copie non la prende (hanno sempre un nome
+     diverso) — questa sì, perché guarda il testo del file. */
+  const { readFileSync } = await import("node:fs");
+  /* ⚠️ SI LEGGE IL CODICE, NON IL FILE. Al primo giro questa prova ha accusato
+     un innocente DUE VOLTE di fila, e tutt'e due le volte il colpevole era il
+     COMMENTO che spiega la correzione: il racconto nomina la copia debole, e
+     un controllo che cerca a testo prende il racconto per il fatto. È l'errore
+     che CLAUDE.md nomina per esteso («la regola 6 è caduta segnalando il
+     commento che documentava la decisione»), rifatto mentre lo si citava.
+     `senzaCommenti` è lo stesso tokenizzatore che usano le altre prove di
+     questo file: uno solo, non un terzo scritto qui. */
+  const { senzaCommenti } = await import("./tokenizza.mjs");
+  const src = senzaCommenti(readFileSync(new URL("../../conti/index.html", import.meta.url), "utf8"));
+  if (!/const plur = conta;/.test(src)) throw new Error("la pagina di Conti si è riscritta `plur` in casa");
+  /* ⚠️ QUESTA RIGA HA ACCUSATO UN INNOCENTE AL PRIMO GIRO, ed è l'errore che
+     CLAUDE.md nomina per esteso: cercava la forma del codice **a testo**, e in
+     quel file la forma c'era — dentro il commento che spiegava perché era
+     stata tolta. Un esempio di codice in un commento è un commento. Adesso il
+     controllo è al positivo (esiste UNA riga, ed è l'alias) e in più conta le
+     dichiarazioni di `plur`: due vorrebbe dire che ne è tornata una in casa. */
+  const dich = (src.match(/(?:const|let|var|function)\s+plur\b/g) || []).length;
+  if (dich !== 1) throw new Error(`la pagina dichiara \`plur\` ${dich} volte, dev'essere una sola (l'alias)`);
+  const mod = senzaCommenti(readFileSync(new URL("../../conti/conti-data.js", import.meta.url), "utf8"));
+  if (/function plur\b/.test(mod)) throw new Error("una seconda implementazione del plurale nel modulo dati");
+});
 // — Scudo: testo del promemoria scadenze —
 test("testoPromemoria: convocazione per scadenza scaduta o in scadenza", () => {
   const scaduta = scudo.testoPromemoria(
@@ -13964,6 +14065,19 @@ test("⛔ Flotta: le ore ignote arrivano ignote anche a chi le chiede due volte"
     eq(v._ricPlur(1, "foro", "fori"), "1 foro", "uno");
     eq(v._ricPlur(3, "foro", "fori"), "3 fori", "più di uno");
     eq(v._ricPlur(0, "foro", "fori"), "0 fori", "e zero è plurale");
+    /* ⛔ E `_ricPlur` NON È PIÙ UNA SUA IMPLEMENTAZIONE: è `conta` di
+       `shared/`, che Genesi chiama col nome che ha sempre usato. La copia di
+       casa (`n+' '+(n===1?uno:tanti)`) funzionava sui dati buoni e sbagliava
+       nei due casi per cui `conta` esiste — «1» come stringa dava «1 fori»,
+       `null` dava «null fori».
+       ⚠️ Si pretende l'IDENTITÀ e non il comportamento: due copie uguali oggi
+       divergono domani senza che nessuno lo veda (regola di CLAUDE.md). */
+    eq(v._ricPlur === shell.conta, true,
+       "⛔ `_ricPlur` È `conta` di shared/, non una seconda implementazione");
+    eq(v._ricPlur("1", "foro", "fori"), "1 foro",
+       "⛔ e quindi «1» arrivato come stringa da una cella di CSV non dà più «1 fori»");
+    eq(v._ricPlur(null, "foro", "fori"), "— fori",
+       "⛔ e un conto che non c'è non scrive più la parola «null»");
     for (const vuoto of [null, undefined, NaN]) {
       eq(v._ricKg(vuoto), "—", `${mostra(vuoto)}: il trattino`);
       eq(v._ricSegno(vuoto), "—", `${mostra(vuoto)}: il trattino anche col segno`);
@@ -14061,10 +14175,15 @@ test("⛔ Flotta: le ore ignote arrivano ignote anche a chi le chiede due volte"
                            foriReg: 12, foriTot: 12, kgReale: 690, kgProgReg: 696, scostPct: -0.86 } }];
     const testo = v.csvRiconciliazione(st);
     const capo = testo.split("\n")[0].split(";");
-    eq(capo.length, 18, "diciotto colonne");
+    eq(capo.length, 19, "diciannove colonne");
     eq(capo.slice(0, 10).join(";"), "data;nome;x50_prev_cm;x50_reale_cm;ppv_prev_mms;ppv_reale_mms;flyrock_prev_m;flyrock_reale_m;oversize_reale_pct;note",
        "⛔ le prime dieci sono quelle di sempre: chi rilegge un export vecchio le trova nello stesso ordine");
     eq(capo[10], "campo_data", "e le otto del carico reale cominciano dall'undicesima");
+    /* ⛔ LA DICIANNOVESIMA, dal 06/08: senza di lei `ppv_prev_mms` non si sa
+       leggere. Lo stesso identico progetto, con la legge di sito accesa su tre
+       referti, scrive 2.8 dove prima scriveva 6.4 — e le due righe finiscono
+       nello stesso file, confrontabili solo per sbaglio. */
+    eq(capo[18], "ppv_prev_base", "e la base della PPV prevista è l'ultima, aggiunta in fondo");
     /* ⛔ È UN FILE DI SCAMBIO: il decimale resta il PUNTO, non la virgola —
        se no chi lo apre con un altro programma non capisce più i numeri.
        È l'asserzione sul TESTO che una prova di andata e ritorno non darebbe:
@@ -14079,6 +14198,17 @@ test("⛔ Flotta: le ore ignote arrivano ignote anche a chi le chiede due volte"
     eq(rilette[1][10], "", "la volata senza consuntivo da Campo lascia vuote le sue otto colonne, non zeri");
     eq(rilette[2][12], "M. Rossi L. Bianchi", "chi ha registrato, in una cella sola");
     eq(rilette[2][17], "-0.86", "e lo scostamento percentuale");
+    eq(rilette[1][18], "",
+       "⛔ una riconciliazione salvata prima che la colonna esistesse lascia la cella VUOTA: non le si attribuisce una base che nessuno aveva registrato");
+    /* e con la base registrata ci finisce la frase corta di `provenienzaPpv`,
+       che è la stessa che decide il numero: il file e lo schermo non possono
+       scostarsi */
+    const conBase = shell.leggiCsv(v.csvRiconciliazione([{ ts: "2026-08-06", nome: "Est",
+      prev: { x50: 28, ppv: 2.8, fly: 101, ppvBase: v.provenienzaPpv(
+        { K: 585, beta: 1.45, fonte: "sito", fit: { n: 3, avviso: "pochi", sdMin: 10, sdMax: 60, r2: 1 } }, 39, "Calcare") },
+      real: { x50: null, ppv: null, fly: null, ovs: null, note: "" } }])).righe;
+    eq(conBase[1][18], "legge di sito · 3 referti · provvisoria",
+       "⛔ e quando c'è, il file dice su che cosa è tarata la previsione — «provvisoria» compresa");
     eq(v.csvRiconciliazione([]).split("\n")[0], testo.split("\n")[0], "storico vuoto: resta l'intestazione, uguale");
   });
 
@@ -22122,6 +22252,83 @@ console.log("\n— Conti · la barra di peso: il numero è giusto e a mentire è
     eq(shell.conta("", "rapportino", "rapportini"), "— rapportini", "campo vuoto → «—»");
     eq(shell.conta("abc", "rapportino", "rapportini"), "— rapportini", "non un numero → «—»");
     eq(shell.conta(0, "rapportino", "rapportini"), "0 rapportini", "ma uno ZERO VERO resta zero");
+  });
+}
+
+/* ══════════════════════════════════════════════════════════════════════
+   TERRA · LE DUE REGOLE DELLA FRASE CHE SI ACCORDA COL NUMERO
+   ----------------------------------------------------------------------
+   Nate il 06/08 censendo ogni testo di Terra nei casi limite. La terza —
+   il singolare — NON è qui perché non è di Terra: è `plurale` di
+   `shared/`, provata qui sopra. Queste due sono nuove davvero, e stanno
+   in `terra-data.js` finché serviranno a una app sola.
+   ══════════════════════════════════════════════════════════════════════ */
+{
+  test("aEufonica: la «d» solo davanti alla stessa vocale", () => {
+    /* Terra scrive «si vedono i mesi fino a <mese>»: in agosto e in aprile
+       usciva «fino a agosto». La regola moderna è stretta — «ad agosto» sì,
+       «a ottobre» no — e la si applica alla PAROLA che segue, non alla sua
+       iniziale generica: una regola «d davanti a qualunque vocale» avrebbe
+       prodotto «ad ottobre», sbagliato allo stesso modo. */
+    eq(terra.aEufonica("agosto"), "ad", "a + agosto → ad");
+    eq(terra.aEufonica("aprile"), "ad", "a + aprile → ad");
+    eq(terra.aEufonica("Aprile"), "ad", "l'iniziale maiuscola non cambia la regola");
+    eq(terra.aEufonica("ottobre"), "a", "vocale diversa: resta «a»");
+    eq(terra.aEufonica("ottobre") + " ottobre", "a ottobre", "e la frase intera");
+    eq(terra.aEufonica("marzo"), "a", "consonante: resta «a»");
+    eq(terra.aEufonica(""), "a", "niente da guardare: la forma neutra");
+    eq(terra.aEufonica(null), "a", "e nemmeno un null la fa cadere");
+  });
+
+  test("articoloNumero: l'articolo si sceglie su come il numero si PRONUNCIA", () => {
+    /* I due casi veri, misurati aprendo la pagina: «si sa da dove viene il
+       0%» nella ripartizione dei turni e «l'hai messa al 80%» nell'avviso
+       della soglia di guardia. */
+    eq(terra.articoloNumero("il", "0") + "0%", "lo 0%", "zero → lo");
+    eq(terra.articoloNumero("al", "80") + "80%", "all'80%", "ottanta → all'");
+    eq(terra.articoloNumero("il", "1") + "1%", "l'1%", "uno → l'");
+    eq(terra.articoloNumero("il", "8") + "8%", "l'8%", "otto → l'");
+    eq(terra.articoloNumero("il", "11") + "11%", "l'11%", "undici → l'");
+    eq(terra.articoloNumero("il", "18") + "18%", "l'18%", "diciotto → l'");
+    eq(terra.articoloNumero("il", "880") + "880", "l'880", "ottocentottanta → l'");
+    eq(terra.articoloNumero("il", "2") + "2%", "il 2%", "due → il");
+    eq(terra.articoloNumero("il", "100") + "100%", "il 100%", "cento → il");
+    eq(terra.articoloNumero("il", "108") + "108", "il 108", "centotto comincia per c");
+  });
+
+  test("articoloNumero: guarda la parte INTERA, scritta all'italiana", () => {
+    /* I numeri che Terra passa qui arrivano già formattati: `un1` e `nD`
+       scrivono la virgola decimale e il punto delle migliaia. Chi decide è
+       la prima parola che si pronuncia, cioè la parte intera. */
+    eq(terra.articoloNumero("il", "31,8"), "il ", "trentuno virgola otto → il");
+    eq(terra.articoloNumero("il", "0,0"), "lo ", "zero virgola zero si pronuncia zero");
+    eq(terra.articoloNumero("il", "1,04"), "l'", "uno virgola zero quattro → l'");
+    eq(terra.articoloNumero("il", "1.200.000"), "il ", "un milione: i punti sono migliaia, non decimali");
+    eq(terra.articoloNumero("il", "8,5"), "l'", "otto virgola cinque → l'");
+  });
+
+  test("articoloNumero: le forme composte, e lo spazio già attaccato", () => {
+    /* ⛔ L'articolo torna col suo spazio: davanti all'apostrofo lo spazio
+       non ci va, e lasciar decidere a chi chiama vuol dire riscrivere quella
+       condizione a ogni punto d'uso — la copia debole, un piano più sotto. */
+    eq(terra.articoloNumero("il", "2"), "il ", "con lo spazio");
+    eq(terra.articoloNumero("il", "1"), "l'", "senza spazio dopo l'apostrofo");
+    eq(terra.articoloNumero("del", "80"), "dell'", "del → dell'");
+    eq(terra.articoloNumero("nel", "0"), "nello ", "nel → nello");
+    eq(terra.articoloNumero("sul", "1"), "sull'", "sul → sull'");
+    eq(terra.articoloNumero("dal", "2"), "dal ", "dal resta dal");
+    eq(terra.articoloNumero("AL", "0"), "allo ", "la base si legge senza badare al maiuscolo");
+  });
+
+  test("articoloNumero: su ciò che non è un numero non inventa niente", () => {
+    /* La forma base è quella giusta da restituire quando non si sa: cambiare
+       articolo su un testo qualunque produrrebbe «lo —», che è peggio del
+       problema che si voleva risolvere. */
+    eq(terra.articoloNumero("il", "—"), "il ", "un trattino resta col «il»");
+    eq(terra.articoloNumero("il", ""), "il ", "stringa vuota");
+    eq(terra.articoloNumero("il", null), "il ", "null");
+    eq(terra.articoloNumero("il", "non misurato"), "il ", "una dichiarazione di non-misura");
+    eq(terra.articoloNumero("bah", "0"), "bah ", "una base che non conosce torna com'era, con lo spazio");
   });
 }
 

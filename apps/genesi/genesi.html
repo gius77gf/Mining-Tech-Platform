@@ -2711,7 +2711,7 @@ $('fileIn').onchange = async e=>{
     gsv('pProf',P.prof,1); gsv('pKg',Math.round(P.kg),0);
     clearFrontMesh();                               // una volata parametrica sostituisce l'eventuale fronte 3D
     rebuild();
-    toast('✓ Volata importata: '+fori.length+' fori'+(P.profilo.length?' · fronte sagomato':'')+(j.schemaV?' (schema v'+j.schemaV+')':''));
+    toast('✓ Volata importata: '+_ricPlur(fori.length,'foro','fori')+(P.profilo.length?' · fronte sagomato':'')+(j.schemaV?' (schema v'+j.schemaV+')':''));
   }catch(err){ toast('Import fallito: '+err.message); }
   e.target.value='';
 };
@@ -2759,7 +2759,7 @@ function loadFrontMeshObject(obj){
     }
     $('pFori').value = n;
     rebuild();                                  // costruisce la sim sulla geometria reale; frontMeshGroup resta come faccia visibile
-    toast('✓ Fronte 3D reale importato: '+n+' fori sulla geometria vera');
+    toast('✓ Fronte 3D reale importato: '+_ricPlur(n,'foro','fori')+' sulla geometria vera');
   }catch(err){ toast('Import fronte fallito: '+err.message); }
 }
 function loadFrontMeshFile(file){
@@ -2921,6 +2921,28 @@ if($('btn-scheda-csv')) $('btn-scheda-csv').onclick=()=>{
   a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(csv);
   a.download='genesi_scheda_volata.csv'; a.click();
 };
+/* DA DOVE VIENE LA PPV PREVISTA, scritto UNA VOLTA per i due posti che devono
+   dirlo (il foglio stampabile e la riconciliazione).
+   ⛔ IL 06/08 QUESTA FRASE ESISTEVA IN UN POSTO SOLO, e il posto era il
+   foglio. Misurato salvando lo stesso identico progetto due volte, con in
+   mezzo solo l'accensione della legge di sito su TRE referti (che `sitoFit`
+   dichiara PROVVISORIA): la scheda validatori passava da «6,4 mm/s · K≈1.906
+   stimati da Calcare» a «2,8 mm/s · ricavati dai tuoi 3 referti · Legge
+   provvisoria», e la RICONCILIAZIONE scriveva le due volte la STESSA riga —
+   «PPV vibrazione | 6,4 mm/s» e «PPV vibrazione | 2,8 mm/s», niente accanto.
+   È la schermata in cui quel numero diventa uno scarto contro il misurato, e
+   da lì entra nello storico e nel CSV che esce dall'azienda: il numero più che
+   dimezzato senza che una parola dicesse perché. Stessa famiglia della
+   bandiera `pochi` collegata a una schermata sola (03/08); qui la schermata
+   dimenticata era un'altra.
+   Il grassetto va sul CAPO dell'avviso e non su tutta la frase: sullo scatto a
+   390 px sei righe intere in grassetto smettono di segnalare qualcosa. */
+function _ppvBaseHtml(pv){
+  return _rEsc(pv.testo) + (pv.avvisi.length
+    ? '<br>'+pv.avvisi.map(a=>{ const i=a.indexOf(':');
+        return i<0 ? '<b>'+_rEsc(a)+'</b>' : '<b>'+_rEsc(a.slice(0,i))+'</b>'+_rEsc(a.slice(i)); }).join('<br>')
+    : '');
+}
 /* Report volata formattato e stampabile (→ PDF con la stampa del browser).
    Emula il "blast report" dei competitor lato browser. Ogni previsione è
    etichettata come tale: è un progetto/stima, non una misura di campo. */
@@ -2970,11 +2992,7 @@ if($('btn-report')) $('btn-report').onclick=()=>{
       /* ⚠️ il grassetto va sul CAPO dell'avviso, non su tutto: sullo scatto a
          390 px sei righe intere in grassetto smettevano di segnalare qualcosa
          — è la stessa scelta della schermata, «<b>Legge provvisoria</b>: …». */
-      ['Base della previsione PPV',
-        esc(_rPv.testo) + (_rPv.avvisi.length
-          ? '<br>'+_rPv.avvisi.map(a=>{ const i=a.indexOf(':');
-              return i<0 ? '<b>'+esc(a)+'</b>' : '<b>'+esc(a.slice(0,i))+'</b>'+esc(a.slice(i)); }).join('<br>')
-          : '')],
+      ['Base della previsione PPV', _ppvBaseHtml(_rPv)],
       ['Airblast (sovrappressione) a '+gnum(D2.recDist,0)+' m',
         gnum(_rDb,0)+' dB(L)<br><b>'+esc(_rEa.verdetto)+'</b>'+(_rEa.consiglio?' — '+esc(_rEa.consiglio):'')],
       ['Gittata flyrock',gnum(k.fly,0)+' m'],['Sgombero mezzi 2× / persone 4×',gnum(F.Dmez,0)+' / '+gnum(F.Dper,0)+' m'],['Presplit',k.presplit?'sì':'no']])
@@ -3064,8 +3082,21 @@ function _riconCampoHtml(){
       +(chi?'':' · <i>il file non dice chi ha registrato le cariche</i>')+'</div>'
     +'<div class="ricamp-g">'
     + riga('Fori con la carica registrata','<b>'+c.foriReg+'</b> / '+c.foriTot,'dal file')
-    + riga('Carica reale totale',_ricKg(c.kgReale)+' kg','dal file')
-    + riga('Carica di progetto (stessi fori)',_ricKg(c.kgProgReg)+' kg','dal file')
+    /* ⛔ E LO ZERO DI QUESTE DUE RIGHE È LO STESSO ZERO DELLE DUE SOTTO, che il
+       03/08 era già stato tolto: se nessun foro ha la carica reale, «Carica
+       reale totale 0 kg · DAL FILE» si legge «hanno caricato zero chili»,
+       mentre la verità è che nel file quel dato non c'è — e «di progetto
+       (stessi fori)» somma il progetto degli STESSI fori, cioè di nessuno.
+       Misurato il 06/08 importando un consuntivo senza la colonna compilata:
+       due «0 kg dal file» sopra il trattino che dichiarava «nessuna carica
+       reale». La bandiera `misurabile` era già lì, letta due righe più in giù.
+       ⚠️ Lo zero VERO — un foro registrato con 0 kg dentro — resta 0 kg: è un
+       fatto, e `misurabile` lo distingue perché guarda quanti fori hanno la
+       carica, non quanto pesano. */
+    + riga('Carica reale totale', c.misurabile?_ricKg(c.kgReale)+' kg':'—',
+           c.misurabile?'dal file':'nessuna carica reale')
+    + riga('Carica di progetto (stessi fori)', c.misurabile?_ricKg(c.kgProgReg)+' kg':'—',
+           c.misurabile?'dal file':'nessun foro registrato')
     /* ⛔ `misurabile` è la dichiarazione del modulo: senza nessun foro caricato
        lo scostamento non è piccolo, non esiste. Prima qui uscivano quattro
        zeri in verde, cioè «tutto a posto» su una misura mai fatta; adesso
@@ -3116,7 +3147,12 @@ function _riconCampoHtml(){
 }
 function riconRender(){
   const k=computeKPI(), body=$('riconBody');
-  const prev={x50:k.x50, ppv:k.ppv, fly:k.fly};
+  /* ⛔ LA PPV PREVISTA SI PORTA DIETRO LA SUA BASE ANCHE QUI. `computeKPI`
+     restituisce `ppvBase` da `provenienzaPpv` dal 03/08, e questa schermata lo
+     buttava via: due leggi diverse, lo stesso numero raccontato con la stessa
+     frase — vedi `_ppvBaseHtml`. Entra anche nell'oggetto salvato, perché lo
+     storico e il CSV lo tengono per sempre. */
+  const prev={x50:k.x50, ppv:k.ppv, fly:k.fly, ppvBase:k.ppvBase};
   $('riconModal').dataset.prev=JSON.stringify(prev);
   const st=riconStorico();
   const nomeSug=_ricCampo&&_ricCampo.date.length
@@ -3130,6 +3166,11 @@ function riconRender(){
     +'<div style="color:var(--mut)">PPV vibrazione</div><div>'+gnum(prev.ppv,1)+' mm/s</div><div><input id="ric-ppv" type="text" inputmode="decimal" min="0" step="0.1" style="width:70px"> mm/s</div><div id="ric-d-ppv">—</div>'
     +'<div style="color:var(--mut)">Gittata flyrock</div><div>'+gnum(prev.fly,0)+' m</div><div><input id="ric-fly" type="text" inputmode="decimal" min="0" style="width:70px"> m</div><div id="ric-d-fly">—</div>'
     +'</div>'
+    /* la base della PPV prevista sta SOTTO la griglia e non dentro la cella
+       «Previsto»: a 430 px quella colonna sta in 80 px, e una frase lì dentro
+       andrebbe a capo in mezzo alle parole — è la ragione per cui
+       `provenienzaPpv` ha due lunghezze. Qui c'è spazio per quella lunga. */
+    +'<div id="ric-ppv-base" style="margin-top:8px;color:var(--mut);font-size:12px;line-height:1.4">Base della PPV prevista: '+_ppvBaseHtml(prev.ppvBase)+'</div>'
     +'<div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:10px;align-items:center;font-size:13px;color:var(--mut)">'
     +'<label>Oversize reale <input id="ric-ovs" type="number" min="0" max="100" style="width:58px"> %</label>'
     +'<label>Nome/data <input id="ric-nome" type="text" style="width:160px" placeholder="Volata 12/07 fronte Est" value="'+_rEsc(_ricNome||nomeSug)+'"></label>'
@@ -3143,6 +3184,12 @@ function riconRender(){
            riconciliazione in cui nessun foro aveva la carica reale: lo stesso
            numero tranquillo del riquadro in cima, ma dentro lo STORICO, dove
            resta per sempre e nessun avviso lo accompagna. */
+        /* ⛔ E UNA RIGA DI STORICO RESTA PER SEMPRE: senza la base, «PPV
+           6,4→5,8» e «PPV 2,8→3,0» sono la stessa frase su due leggi diverse,
+           e fra un mese nessuno sa più quale. Le righe salvate PRIMA di questa
+           riga non ce l'hanno e lo dicono, invece di farsela attribuire. */
+        +'<br><span style="color:var(--mut2)">base PPV: '
+          +_rEsc(r.prev&&r.prev.ppvBase&&r.prev.ppvBase.breve ? r.prev.ppvBase.breve : 'non registrata')+'</span>'
         +(r.campo?'<br><span style="color:var(--mut2)">da Campo: '+_ricKg(r.campo.kgReale)+' kg caricati su '+r.campo.foriReg+'/'+r.campo.foriTot+' fori ('+(r.campo.scostPct==null?'scostamento non misurabile':_ricPct(+r.campo.scostPct)+' sul progetto')+')'+(r.campo.chi&&r.campo.chi.length?' · '+_rEsc(r.campo.chi.join(', ')):'')+'</span>':'')
         +(r.real.note?' · '+_rEsc(r.real.note):'')+'</div>').join('')
       +'</div>'):'<div style="margin-top:12px;color:var(--mut);font-size:12px;">Nessuna riconciliazione salvata: inserisci i valori reali e premi “Salva”.</div>');
@@ -3155,7 +3202,7 @@ function riconSave(){
   const k=computeKPI();
   const val=id=>{ const v=$(id)?$(id).value:''; return v===''?null:(isNaN(+v)?v:+v); };
   const rec={ ts:timbroLocale(), nome:($('ric-nome')&&$('ric-nome').value.trim())||'',
-    prev:{x50:k.x50, ppv:k.ppv, fly:k.fly},
+    prev:{x50:k.x50, ppv:k.ppv, fly:k.fly, ppvBase:k.ppvBase},
     real:{x50:val('ric-x50'), ppv:val('ric-ppv'), fly:val('ric-fly'), ovs:val('ric-ovs'), note:($('ric-note')&&$('ric-note').value.trim())||''} };
   // il consuntivo di Campo, se c'è, viaggia insieme al resto: senza di lui la
   // riga di storico non direbbe quanti chili sono davvero finiti nei fori
@@ -3200,8 +3247,8 @@ if($('riconCampoFile')) $('riconCampoFile').onchange=async(e)=>{
   _ricCampo=_riconRiassuntoCampo(p, file.name);
   riconRender();
   toast(_ricCampo.foriReg
-    ? 'Consuntivo importato: '+_ricCampo.foriReg+' fori, '+_ricKg(_ricCampo.kgReale)+' kg reali'
-    : 'File letto ('+_ricCampo.foriTot+' fori), ma nessuna carica reale è registrata dentro');
+    ? 'Consuntivo importato: '+_ricPlur(_ricCampo.foriReg,'foro','fori')+', '+_ricKg(_ricCampo.kgReale)+' kg reali'
+    : 'File letto ('+_ricPlur(_ricCampo.foriTot,'foro','fori')+'), ma nessuna carica reale è registrata dentro');
 };
 
 /* ===== Signature-hole (P0.2): PPV COMPOSITO sommando la registrazione di un
@@ -3381,7 +3428,7 @@ function sitoRender(){
     const decl = map.org>=0;
     const conteggi = decl ? _sitoCsv.righe.reduce((a,r)=>{ const k=_sitoFonteDaTesto(r[map.org]); a[k]=(a[k]||0)+1; return a; },{}) : null;
     const rico = _sitoCsv.intest && (map.d!==0||map.w!==1||map.p!==2||map.rif>=0);
-    body.innerHTML='<div style="color:var(--mut);font-size:12px;margin-bottom:10px;">Il file ha <b>'+_sitoCsv.righe.length+'</b> righe. I sismografi esportano formati diversi: dimmi tu quale colonna è quale, poi guarda l’anteprima e conferma.'
+    body.innerHTML='<div style="color:var(--mut);font-size:12px;margin-bottom:10px;">Il file ha <b>'+_sitoCsv.righe.length+'</b> '+(_sitoCsv.righe.length===1?'riga':'righe')+'. I sismografi esportano formati diversi: dimmi tu quale colonna è quale, poi guarda l’anteprima e conferma.'
       +(rico?' L’intestazione è stata riconosciuta e le colonne sono già proposte giuste: controllale comunque.':'')+'</div>'
       +'<div class="sito-form">'
       +'<label>Distanza (m)<br>'+sel('sito-c-d',map.d)+'</label>'
@@ -3837,23 +3884,23 @@ function volSnapshot(nome){
    I record vecchi hanno solo `punti`: si mostrano com'erano, senza inventare. */
 function _puntiNuvola(e){
   if(!e) return '';
-  if(e.puntiRitaglio>0) return ' · '+gnum(e.puntiRitaglio,0)+' punti nel ritaglio';
+  if(e.puntiRitaglio>0) return ' · '+_ricPlur(e.puntiRitaglio,'punto','punti')+' nel ritaglio';
   const mostrati = e.puntiMostrati || e.punti || 0;
   if(!mostrati) return '';
   const tot = e.puntiTotali || 0;
   return tot>mostrati
-    ? ' · '+gnum(mostrati,0)+' punti disegnati su '+gnum(tot,0)+' caricati'
-    : ' · '+gnum(mostrati,0)+' punti caricati';
+    ? ' · '+_ricPlur(mostrati,'punto disegnato','punti disegnati')+' su '+gnum(tot,0)+' caricati'
+    : ' · '+_ricPlur(mostrati,'punto caricato','punti caricati');
 }
 function renderHome(){
   const arr=_lsGet('genesiVolate');
-  if($('hgVolN')) $('hgVolN').textContent=arr.length? (arr.length+' salvate'):'';
+  if($('hgVolN')) $('hgVolN').textContent=arr.length? _ricPlur(arr.length,'salvata','salvate'):'';
   const list=$('hgVolate');
   if(list) list.innerHTML = arr.length
     ? arr.slice().reverse().map(v=>'<div class="hg-item" data-id="'+v.id+'"><div class="t"><b>'+_rEsc(v.nome)+'</b><small>'+_rEsc(gdata(v.data))+' · '+_rEsc(v.sintesi||'')+'</small></div><button data-act="apri">Apri</button><button data-act="dup">Duplica</button><button data-act="del" title="Elimina">✕</button></div>').join('')
     : '<div class="hg-empty">Nessuna volata salvata. Progetta nel 2D e premi «Salva la volata attuale»: la ritroverai qui.</div>';
   const nv=_lsGet('genesiNuvole');
-  if($('hgNuvN')) $('hgNuvN').textContent=nv.length? (nv.length+' lavorazioni'):'';
+  if($('hgNuvN')) $('hgNuvN').textContent=nv.length? _ricPlur(nv.length,'lavorazione','lavorazioni'):'';
   const ln=$('hgNuvole');
   if(ln) ln.innerHTML = nv.length
     ? nv.slice(-6).reverse().map(e=>'<div class="hg-item"><div class="t"><b>'+_rEsc(e.nome)+'</b><small>'+_rEsc(e.data||'')+_puntiNuvola(e)+(e.volume?(' · volume ≈ '+gnum(e.volume,1)+' m³'):'')+'</small></div></div>').join('')
@@ -3987,7 +4034,7 @@ if($('btn-innesco-xml')) $('btn-innesco-xml').onclick=()=>{
   const a=document.createElement('a');
   a.href='data:application/xml;charset=utf-8,'+encodeURIComponent(xml);
   a.download='genesi_piano_innesco.xml'; a.click();
-  if(typeof toast==='function') toast('Piano di innesco XML esportato ('+rows.length+' fori)');
+  if(typeof toast==='function') toast('Piano di innesco XML esportato ('+_ricPlur(rows.length,'foro','fori')+')');
 };
 /* Import del piano di innesco XML: round-trip con l'export stile IREDES di Genesi.
    Rilegge geometria/esplosivo/sequenza/ritardi nel Progetto 2D. NON è un import
@@ -4034,7 +4081,7 @@ if($('fileXmlIn')) $('fileXmlIn').onchange=async e=>{
     D2.dir = tMin<=tMax ? 'sx' : 'dx';
     syncDesignInputs();
     genMaglia2D(); drawDesign2D(); renderScheda2D(); renderInspector();
-    if(typeof toast==='function') toast('✓ Piano XML importato: '+gnum(holes.length,0)+' fori · B '+gfix(D2.B,2)+'×S '+gfix(D2.S,2)+' · '+D2.sequenza);
+    if(typeof toast==='function') toast('✓ Piano XML importato: '+_ricPlur(holes.length,'foro','fori')+' · B '+gfix(D2.B,2)+'×S '+gfix(D2.S,2)+' · '+D2.sequenza);
   }catch(err){ if(typeof toast==='function') toast('Import XML fallito: '+err.message); }
   e.target.value='';
 };
@@ -4902,7 +4949,7 @@ function renderScheda2D(){
       why:'millisecondi che ogni foro ha per liberare un metro della roccia che lo separa dal foro vicino già sparato (si tiene il vincolo più stretto). Qui va da '+fmtMs(mn)+' a '+fmtMs(mx)+' ms/m, finestra '+fmtMs(lo)+'–'+fmtMs(hi)+' modificabile accanto al pulsante Relief. '
         +'<b>Sotto</b>: il foro spara quando la roccia davanti non si è ancora mossa → resta confinato: blocchi, picchi di vibrazione, proiezioni. '
         +'<b>Sopra</b>: passa troppo tempo, la roccia è già andata via e il foro lavora da solo → pezzatura più grossa e cumulo sparpagliato. '
-        +(nLo+nHi>0?'Qui '+(nLo+nHi)+' fori fuori finestra: il livello <b>Relief</b> li segna con un anello sulla pianta. Da guardare: ritardo tra fori e tra file, distanza fra quei fori, ordine della sequenza. '
+        +(nLo+nHi>0?'Qui '+_ricPlur(nLo+nHi,'foro','fori')+' fuori finestra: il livello <b>Relief</b> '+(nLo+nHi===1?'lo':'li')+' segna con un anello sulla pianta. Da guardare: ritardo tra fori e tra file, distanza fra i fori interessati, ordine della sequenza. '
                    :'Tutti i fori sono dentro la finestra impostata. ')
         +'I fori che partono entro la dispersione dell\'innesco ('+fmtMs(scatterMs())+' ms) contano come un istante solo: sparando insieme non si liberano a vicenda. I badge Timing inter-foro/inter-fila restano la media di progetto. '
         +'Letteratura: ≈8–14 ms/m tra prima e seconda fila, ≈5 tra le ultime. È una <b>diagnosi</b>, non un\'istruzione: i ritardi restano decisione del responsabile del tiro.'});
@@ -4931,7 +4978,7 @@ function renderScheda2D(){
       why:'consumo specifico calcolato sul blocco che ogni foro serve <b>davvero</b> — burden verso la fila davanti (la prima fila verso la faccia libera) per la porzione di interasse fra i due vicini, per l\'altezza del banco — invece della media di volata ('+fmtKg(pfRif)+' kg/m³). Qui va da '+fmtKg(mn)+' a '+fmtKg(mx)+' kg/m³, un rapporto di '+gfix(disp,1)+'×. '
         +'<b>Diluito</b> (sotto il 90% del progetto): il foro ha troppa roccia per la carica che porta → blocchi, piede sporco, ripasso. '
         +'<b>Concentrato</b> (sopra il 115%): energia sprecata sul poco materiale che gli tocca → fini invenduti, proiezioni, sovrappressione. '
-        +((gi+su)>0?'Qui '+(gi+su)+' fori fuori dalla fascia: accendi il livello <b>Energia</b> sulla pianta e guarda dove — di solito sono i fori di bordo e quelli della prima fila dove la faccia rientra. Si corregge spostando il foro, non alzando la carica di tutta la volata. '
+        +((gi+su)>0?'Qui '+_ricPlur(gi+su,'foro','fori')+' fuori dalla fascia: accendi il livello <b>Energia</b> sulla pianta e guarda dove — di solito sono i fori di bordo e quelli della prima fila dove la faccia rientra. Si corregge spostando il foro, non alzando la carica di tutta la volata. '
                    :'Tutti i fori stanno entro il ±15% del progetto: la carica è distribuita in modo uniforme. ')
         +bVero
         +'L\'altezza del banco è considerata costante: se il fronte ha altezze molto diverse, il dato locale va letto come indicativo.'});

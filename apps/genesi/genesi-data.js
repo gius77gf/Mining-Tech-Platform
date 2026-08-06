@@ -47,7 +47,9 @@ import { gnum, gseg, gIn } from './genesi-formato.js';
    metteva ma la formula no — e `_ricData` controllava la FORMA di una data
    invece della sua esistenza, mentre `dataISOEsiste` è in `shared/` da mesi.
    Due volte la risposta era già in casa. */
-import { numIt, leggiCsv, csvCell, dataISOEsiste } from '../../shared/deepwork-id-client/dw-shell.js';
+/* ⛔ E DAL 06/08 ANCHE `conta`: `_ricPlur` era la sua copia più debole — vedi
+   la sua riga, più in giù. */
+import { numIt, leggiCsv, csvCell, dataISOEsiste, conta } from '../../shared/deepwork-id-client/dw-shell.js';
 
 /* ══════════════════════════════════════════════════════════════════════════
    G3 — LA LEGGE DI SITO K/β DAI REFERTI DEL SISMOGRAFO
@@ -556,7 +558,21 @@ export const _ricSegno=(v)=>gseg(v,1);
    c'è risponde «—», e attaccargli il simbolo dava «—%», che si legge come una
    percentuale rotta invece che come «non lo so». */
 export const _ricPct=(v)=>{ const s=gseg(v,1); return s==='—'?s:s+'%'; };
-export const _ricPlur=(n,uno,tanti)=>n+' '+(n===1?uno:tanti);
+/* ⛔ QUI C'ERA LA COPIA PIÙ DEBOLE DI `conta` DI `shared/`, e si è vista il
+   06/08 cercando i «1 fori» di Genesi: `n+' '+(n===1?uno:tanti)`. Funziona sui
+   dati buoni — che è la ragione per cui nessuno se n'era accorto — e sbaglia
+   nei due casi che `conta` esiste per prendere:
+     · su «1» arrivato come STRINGA (una cella di CSV, un campo di testo) il
+       confronto stretto risponde **«1 fori»**, cioè proprio il difetto;
+     · su `null` scrive **«null fori»**, la parola che l'utente non deve
+       leggere mai — `conta` scrive «—», la convenzione dell'ecosistema.
+   La regola di casa dice che una regola che serve a due app non si riscrive:
+   `plurale`/`conta` stanno in `shared/deepwork-id-client/dw-shell.js`. Questo
+   è un ALIAS, non una seconda implementazione — il nome resta quello con cui
+   la pagina l'ha sempre chiamata, e la prova pretende l'IDENTITÀ
+   (`_ricPlur === conta`), non il comportamento: due copie uguali oggi
+   divergono domani senza che nessuno lo veda. */
+export const _ricPlur = conta;
 // le date arrivano dal file in ISO (2026-07-29): in cava si legge 29/07/2026.
 // Se non è una data ISO si lascia com'è: è testo di un file, non lo si indovina.
 /* ⛔ E «È UNA DATA ISO» NON È LA SUA FORMA. Fino al 03/08 qui c'era una regex
@@ -619,7 +635,17 @@ export function csvRiconciliazione(st){
   // le colonne del carico reale si AGGIUNGONO in fondo: chi rilegge un export
   // vecchio (dieci colonne) continua a trovarle nello stesso ordine
   const H=['data','nome','x50_prev_cm','x50_reale_cm','ppv_prev_mms','ppv_reale_mms','flyrock_prev_m','flyrock_reale_m','oversize_reale_pct','note',
-           'campo_data','campo_turno','campo_chi','campo_fori_registrati','campo_fori_totali','campo_kg_reali','campo_kg_progetto','campo_scostamento_pct'];
+           'campo_data','campo_turno','campo_chi','campo_fori_registrati','campo_fori_totali','campo_kg_reali','campo_kg_progetto','campo_scostamento_pct',
+           /* ⛔ `ppv_prev_mms` DA SOLA NON SI SA LEGGERE, e questo file esce
+              dall'azienda. Lo stesso progetto, con la legge di sito accesa su
+              tre referti, scrive 2.8 dove prima scriveva 6.4: senza dire su
+              che cosa è tarata la previsione, le due righe sono confrontabili
+              solo per sbaglio. La frase corta la compone già `provenienzaPpv`
+              (`breve`), che è la stessa che decide il numero — così il file e
+              lo schermo non possono scostarsi.
+              La colonna si AGGIUNGE IN FONDO, come le otto di Campo: chi
+              rilegge un export vecchio trova le altre nello stesso ordine. */
+           'ppv_prev_base'];
   /* ⛔ QUI C'ERA UNA `cell` DI CASA, ED ERA UNA COPIA PIÙ DEBOLE DI `csvCell`.
      Metteva le virgolette su `; " \n` e basta: quindi `@SUM(1+1)` scritto nel
      nome di una volata usciva **nudo** — e questo è il file che l'azienda
@@ -631,7 +657,11 @@ export function csvRiconciliazione(st){
   const csv=H.join(';')+'\n'+st.map(r=>{ const c=r.campo||null;
     return [r.ts,r.nome,r.prev.x50,r.real.x50,r.prev.ppv,r.real.ppv,r.prev.fly,r.real.fly,r.real.ovs,r.real.note,
       c?(c.date||[]).join(' '):'', c?(c.turni||[]).join(' '):'', c?(c.chi||[]).join(' '):'',
-      c?c.foriReg:'', c?c.foriTot:'', c?c.kgReale:'', c?c.kgProgReg:'', c?c.scostPct:''].map(csvCell).join(';');
+      c?c.foriReg:'', c?c.foriTot:'', c?c.kgReale:'', c?c.kgProgReg:'', c?c.scostPct:'',
+      /* una riconciliazione salvata prima che questa colonna esistesse resta
+         VALIDA e lascia la cella vuota: non le si attribuisce una base che
+         nessuno aveva registrato (è la stessa scelta di `_sitoFonte`). */
+      (r.prev&&r.prev.ppvBase&&r.prev.ppvBase.breve)||''].map(csvCell).join(';');
   }).join('\n')+'\n';
   return csv;
 }

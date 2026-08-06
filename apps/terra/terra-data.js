@@ -321,6 +321,78 @@ export function fmtM3(v) {
   return (+v).toLocaleString("it-IT", { maximumFractionDigits: 2, useGrouping: true });
 }
 
+/* ══════════════════════════════════════════════════════════════════════
+   LA FRASE CHE SI ACCORDA COL NUMERO
+   ----------------------------------------------------------------------
+   ⛔ IL NUMERO È GIUSTO E A MENTIRE È LA FRASE. Il 06/08, censendo ogni
+   testo di Terra costruito coi dati nei casi limite, sono usciti dodici
+   punti in cui la parola accanto al numero non lo guardava: «restano 1
+   viaggi», «ogni 1 mesi», «Import fronti: 1 aggiunti», «1 indicativi» —
+   quest'ultima sul prospetto che va all'ente. Nessuno di questi è un
+   errore di calcolo: la frase resta grammaticale a occhio e cade solo sul
+   caso da uno, che nella dimostrazione non c'è mai.
+   Le due regole stanno QUI e non nella pagina per la ragione di sempre:
+   scritte a mano nel punto d'uso diventano dodici copie, e la tredicesima
+   nasce diversa. Sono pure, quindi si provano in `run-kpi.mjs`.
+   ⚠️ Servono solo a Terra, oggi. Il giorno in cui una seconda app ne ha
+   bisogno il posto è `shared/dw-ponti.js` e questo modulo le ri-esporta:
+   un alias non è una seconda implementazione.
+
+   ⛔ E LA PRIMA DELLE TRE È STATA SCRITTA E POI BUTTATA, perché c'era già.
+   Avevo aggiunto qui un `parolaNum(numeroScritto, sing, plur)` che decideva
+   sul numero SCRITTO invece che sul valore; messo alla prova riga per riga
+   contro `plurale` di `shared/deepwork-id-client/dw-shell.js` dà **la stessa
+   risposta su ogni caso che Terra produce** («1», «0,7», «1,5», «1.000»,
+   1.04), perché `Number("0,7")` è `NaN` e `NaN !== 1` come «0,7» !== «1».
+   Cioè era una copia più debole con un nome diverso — la forma esatta che
+   CLAUDE.md dice di cercare, scritta dalla persona che la stava cercando.
+   Terra importa `plurale` da `shared/` e basta.
+
+/* 2 · LA «D» EUFONICA. Terra scrive «si vedono i mesi fino a <mese>»: in
+   agosto e in aprile usciva «fino a agosto». La regola moderna (Crusca) è
+   stretta: la «d» si mette solo davanti alla STESSA vocale, quindi «ad
+   agosto» e «ad aprile» sì, «a ottobre» no. Si guarda la parola che segue,
+   non la sua lunghezza. */
+export function aEufonica(parolaSeguente) {
+  return /^a/i.test(String(parolaSeguente || "").trim()) ? "ad" : "a";
+}
+
+/* 3 · L'ARTICOLO DAVANTI A UN NUMERO SI SCEGLIE PER COME IL NUMERO SI
+   PRONUNCIA, non per come si scrive: «lo 0%» (zero), «l'1%» (uno), «l'8%»
+   (otto), «l'11%» (undici), «l'80%» (ottanta). Misurati in Terra due casi
+   veri: «si sa da dove viene il 0%» nella ripartizione dei turni e «l'hai
+   messa al 80%» nell'avviso della soglia.
+   ⚠️ COPERTURA DICHIARATA, non totale: si guarda la sola parte INTERA e si
+   riconoscono zero, uno, otto, undici, diciotto, ottanta-e-dintorni e
+   ottocento-e-dintorni. Un numero come 108 («centotto») prende «il», che è
+   giusto; uno come 1.800 («milleottocento») pure. Quello che resta fuori è
+   raro nei numeri che Terra mostra, ed è meglio dichiararlo che fingere
+   una regola generale che non c'è.
+   ⚠️ E L'ARTICOLO TORNA COL SUO SPAZIO GIÀ ATTACCATO («il », «lo », «l'»):
+   davanti all'apostrofo lo spazio non ci va, e lasciarlo decidere a chi
+   chiama vuol dire riscrivere quella condizione a ogni punto d'uso — cioè
+   la copia debole, un piano più sotto. */
+const ARTICOLI = {
+  il:  ["il ",  "lo ",  "l'"],
+  al:  ["al ",  "allo ", "all'"],
+  del: ["del ", "dello ", "dell'"],
+  nel: ["nel ", "nello ", "nell'"],
+  sul: ["sul ", "sullo ", "sull'"],
+  dal: ["dal ", "dallo ", "dall'"],
+};
+export function articoloNumero(base, numeroScritto) {
+  const forme = ARTICOLI[String(base).toLowerCase()];
+  if (!forme) return String(base) + " ";
+  // la parte intera, senza i punti delle migliaia e senza il segno
+  const intera = String(numeroScritto).trim().replace(/^[−+-]/, "").split(/[,\s]/)[0].replace(/\./g, "");
+  if (!/^\d+$/.test(intera)) return forme[0];
+  if (/^0+$/.test(intera)) return forme[1];                       // zero → lo
+  const n = Number(intera);
+  const vocale = n === 1 || n === 8 || n === 11 || n === 18
+    || (n >= 80 && n <= 89) || (n >= 800 && n <= 899);
+  return vocale ? forme[2] : forme[0];                            // uno/otto/undici → l'
+}
+
 // Volume estratto da un fronte = somma dei m³ dei rilievi ELABORATI di
 // quel fronte (i pianificati e i volumi assenti non contano). È il "m³
 // ⛔ «QUESTO RILIEVO SI PUÒ USARE» — la condizione, scritta UNA VOLTA.

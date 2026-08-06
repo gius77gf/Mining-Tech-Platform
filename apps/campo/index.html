@@ -1112,7 +1112,7 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
            numeroIt, segnoIt, numeroItDa, numeroDaCampo } from "./campo-data.js";
   import { misuratoPeriodo, produzioneDichiarata, riconciliazioneTurni,
            periodoFraUltimiRilievi, densitaDellaCava } from "../../shared/dw-ponti.js";
-  import { mountExit, esc, csvCell, statoVuoto, senzaDoppioni, messaggioNumero, montaGuardiaInteri, dataIt, modoDimostrazione, nomeCsvDimostrazione } from "../../shared/deepwork-id-client/dw-shell.js";
+  import { mountExit, esc, csvCell, statoVuoto, senzaDoppioni, messaggioNumero, montaGuardiaInteri, dataIt, modoDimostrazione, nomeCsvDimostrazione, conta } from "../../shared/deepwork-id-client/dw-shell.js";
   // gli agganci della struttura condivisa (modale con Escape, riquadri da
   // tastiera, alone che segue il mouse). Va chiamato QUI e non nel blocco
   // classico in linea: i moduli girano dopo gli script `defer`.
@@ -1943,7 +1943,7 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
 
     const cop = coperturaRapportini(SQU, RAP_G);
     const sdRap = senzaData(RAP);
-    const avvisoSdRap = sdRap ? ` <span class="dw-muted">(${sdRap} rapportini ancora senza data)</span>` : "";
+    const avvisoSdRap = sdRap ? ` <span class="dw-muted">(${conta(sdRap, "rapportino", "rapportini")} ancora senza data)</span>` : "";
     $("rap-cop").innerHTML = cop.totale === 0 ? (avvisoSdRap ? avvisoSdRap : "")
       : cop.mancanti.length === 0
         ? `Rapportini consegnati da <b>${cop.coperte}/${cop.totale}</b> squadre <span class="badge ok">tutte a posto</span>${avvisoSdRap}`

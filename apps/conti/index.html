@@ -136,6 +136,16 @@
    pastiglia e l'etichetta di un campo. Il 30/07 Conti scriveva «13 GG»,
    «-2 GG» e «DENSITÀ (T/M³)» — e nessuno se n'era accorto perché Conti non
    era in nessun elenco di banco del browser. */
+/* ⛔ `.fld>label` È IN MAIUSCOLO, quindi un'unità scritta a nudo dentro
+   un'etichetta si corrompe. Misurato il 06/08 nel renderizzato: «Lordo (t)»,
+   «Tara (t)» e «Netto (t)» uscivano «LORDO (T)», «TARA (T)», «NETTO (T)» —
+   e «T» non è la tonnellata, è il tesla. Erano tre etichette della STESSA
+   riga di form, accanto a «Densità (t/m³)» che invece era giusta perché
+   avvolgeva l'unità in `.u`: non una riga sbagliata, l'INCONTRO fra una
+   classe e un contenuto che quella classe non aveva previsto. Leggendo il
+   codice non si vede — l'ha trovato `conti-frasi.mjs` chiedendo al browser
+   la trasformazione EFFETTIVA. Chi scrive un'unità in un'etichetta la
+   avvolge in `.u`, sempre. */
 .badge .u,.fld>label .u{text-transform:none; letter-spacing:.2px}
 .kpi .n .u{font-size:19px; font-weight:700; letter-spacing:.5px}
 .kpi .s{font-size:10.5px; color:var(--muted2); margin-top:3px; line-height:1.35}
@@ -640,6 +650,15 @@ label.item:has(.dw-chk:checked){
     text-align:left; border-bottom:1pt solid #000; padding:2mm 1.5mm;
     font-size:8.5pt; letter-spacing:1.2px; text-transform:uppercase;
   }
+  /* ⛔ E L'ESENZIONE VALE ANCHE SULLA CARTA. Le intestazioni del DDT — il
+     foglio che il camionista si porta dietro, DPR 472/1996 — sono in
+     maiuscolo, e «Lordo (t)» ci usciva «LORDO (T)»: il tesla al posto della
+     tonnellata su un documento di trasporto. Lo schermo aveva già la sua
+     regola (`.fld>label .u`), la stampa no — la stessa asimmetria per cui
+     esiste `conti-stampe.mjs`: i fogli li compone la pagina e lì non guardava
+     nessuno. Misurato con `emulateMedia({media:"print"})`, perché fuori dalla
+     stampa questa classe non si applica e il difetto non si vede. */
+  #stampa .u{text-transform:none; letter-spacing:.2px}
   #stampa td{border-bottom:.5pt solid #bbb; padding:2mm 1.5mm; vertical-align:top}
   #stampa .num{text-align:right; font-variant-numeric:tabular-nums; white-space:nowrap}
   #stampa .tot-riga td{border-top:1.2pt solid #000; border-bottom:none; font-weight:700}
@@ -1010,17 +1029,17 @@ label.item:has(.dw-chk:checked){
       <span class="err-msg" id="err-pes-ordine"></span>
     </div>
     <div class="fld" id="fld-pes-lordo" style="flex:1 1 120px;">
-      <label for="pes-lordo">Lordo (t)</label>
+      <label for="pes-lordo">Lordo (<span class="u">t</span>)</label>
       <input class="dw-input dec" id="pes-lordo" type="text" inputmode="decimal" autocomplete="off" spellcheck="false" placeholder="0,00" title="Peso lordo in tonnellate, come sulla bilancia. La virgola va benissimo: 32,5.">
       <span class="err-msg" id="err-pes-lordo"></span>
     </div>
     <div class="fld" id="fld-pes-tara" style="flex:1 1 120px;">
-      <label for="pes-tara">Tara (t)</label>
+      <label for="pes-tara">Tara (<span class="u">t</span>)</label>
       <input class="dw-input dec" id="pes-tara" type="text" inputmode="decimal" autocomplete="off" spellcheck="false" placeholder="0,00" title="Tara in tonnellate, il camion vuoto. La virgola va benissimo: 14,2.">
       <span class="err-msg" id="err-pes-tara"></span>
     </div>
     <div class="fld" id="fld-pes-netto" style="flex:1 1 120px;">
-      <label for="pes-netto">Netto (t)</label>
+      <label for="pes-netto">Netto (<span class="u">t</span>)</label>
       <input class="dw-input calc" id="pes-netto" readonly tabindex="-1" aria-readonly="true" value="0,00"
              title="Lo calcola Conti: lordo − tara. Non si scrive a mano.">
       <span class="err-msg" id="err-pes-netto"></span>
@@ -1601,7 +1620,7 @@ label.item:has(.dw-chk:checked){
     preventiviDaSeguire, prezzoDaOrdine, descriviPrezzoOrdine,
     validaScaglioni, scaglionePer, applicaScaglione, etichettaScaglione,
     descriviScaglione } from "./conti-data.js";
-  import { mountExit, esc, csvCell, statoVuoto, senzaDoppioni, avvolgiUnita, euro, euro0, conEuro, isoLocale, istanteLocale, oggiISO as oggiISOShell, meseLocale, dataIt, dataPiuGiorni, nomeCsvDimostrazione, modoDimostrazione } from "../../shared/deepwork-id-client/dw-shell.js";
+  import { mountExit, esc, csvCell, statoVuoto, senzaDoppioni, avvolgiUnita, conta, euro, euro0, conEuro, isoLocale, istanteLocale, oggiISO as oggiISOShell, meseLocale, dataIt, dataPiuGiorni, nomeCsvDimostrazione, modoDimostrazione } from "../../shared/deepwork-id-client/dw-shell.js";
   // gli agganci della struttura condivisa (modale con Escape, riquadri da
   // tastiera, alone che segue il mouse). Va chiamato QUI e non nel blocco
   // classico in linea: i moduli girano dopo gli script `defer`.
@@ -1623,7 +1642,18 @@ label.item:has(.dw-chk:checked){
        da cui erano nate le tre forme diverse */
     return n >= 10000 ? conEuro(NUM0.format(Math.round(n / 1000))) + '<span class="u">k</span>'
                       : conEuro(NUM0.format(Math.round(n))); };
-  const plur = (n, s, p) => n + " " + (n === 1 ? s : p);
+  /* ⛔ QUESTA ERA UNA COPIA DEBOLE, E PER TROVARLA HO SBAGLIATO IO PER PRIMO.
+     una freccia di tre argomenti che incollava il numero alla parola stava qui
+     dall'inizio (n, singolare, plurale, col confronto con 1 scritto in casa)
+     e la regola era già in `shared/` da mesi, col nome `conta` — che è
+     esattamente il difetto che CLAUDE.md descrive: «le copie deboli hanno
+     sempre un nome diverso», quindi un `grep plur` in `shared/` risponde
+     «non c'è». Ci sono cascato: ho scritto un `export function plur` nel
+     modulo dati prima di trovare `conta`.
+     E `conta` è più forte: su `null`/`""`/`NaN` scrive «— fatture» invece di
+     «null fatture». Adesso è un alias — `plur === conta` — non una seconda
+     implementazione, e il test pretende l'identità. */
+  const plur = conta;
   /* La barra di peso sotto le righe delle liste. La regola sta nel modulo
      (`stileBarraPeso`, con il racconto del difetto che ha chiuso): qui c'è solo
      il pezzo di pagina, scritto una volta perché i punti che la usano sono
@@ -4047,8 +4077,8 @@ label.item:has(.dw-chk:checked){
         <div class="box"><span class="et">Data del ritiro</span>${fmtD(p.data)}</div>
       </div>
       <table><thead><tr>
-        <th>Natura e qualità dei beni</th><th class="num">Lordo (t)</th><th class="num">Tara (t)</th>
-        <th class="num">Netto (t)</th><th class="num">Quantità</th><th class="num">Prezzo</th><th class="num">Sconto</th><th class="num">Valore</th>
+        <th>Natura e qualità dei beni</th><th class="num">Lordo (<span class="u">t</span>)</th><th class="num">Tara (<span class="u">t</span>)</th>
+        <th class="num">Netto (<span class="u">t</span>)</th><th class="num">Quantità</th><th class="num">Prezzo</th><th class="num">Sconto</th><th class="num">Valore</th>
       </tr></thead><tbody><tr>
         <td>${esc(p.prodotto || "—")}</td>
         <td class="num">${qt(p.lordo)}</td><td class="num">${qt(p.tara)}</td>
@@ -5000,7 +5030,10 @@ label.item:has(.dw-chk:checked){
            realmente emessa non va cancellata, va <b>stornata con una nota di credito</b> —
            il bottone qui accanto. Lo storno lascia la fattura in archivio, riduce
            l'esposizione del cliente e non cancella niente.</p>
-         ${(PES.filter(p => p.fatturaId === f.id).length) ? `<p>I <b>${PES.filter(p => p.fatturaId === f.id).length} DDT</b> collegati tornano fra quelli <b>da fatturare</b>: le consegne non si perdono, si rimettono in coda.</p>` : ""}
+         ${(() => { const n = PES.filter(p => p.fatturaId === f.id).length;
+            /* la riga qui sotto usava `plur` e questa no, nella STESSA finestra:
+               con un DDT solo diceva «I 1 DDT collegati tornano». */
+            return n ? `<p>${n === 1 ? `Il <b>DDT collegato</b> torna` : `I <b>${n} DDT</b> collegati tornano`} fra quelli <b>da fatturare</b>: ${n === 1 ? "la consegna non si perde, si rimette" : "le consegne non si perdono, si rimettono"} in coda.</p>` : ""; })()}
          ${movimentiDiFattura(f.id, INC).length ? `<p>Vengono eliminati anche i <b>${plur(movimentiDiFattura(f.id, INC).length, "incasso registrato", "incassi registrati")}</b> su questa fattura (${eur(movimentiDiFattura(f.id, INC).reduce((t, m) => t + m.importo, 0))}): senza la fattura non avrebbero più un documento a cui riferirsi.</p>` : ""}`,
         "Elimina", true, "Emetti nota di credito");
       /* la finestra spiegava la regola e poi offriva UN SOLO bottone, che era
@@ -6026,9 +6059,14 @@ label.item:has(.dw-chk:checked){
        chi ha appena caricato il file deve saperlo ADESSO, non il giorno in cui
        una conversione non esce. */
     esito("lis-esito",
-      `Import listino: ${agg} prodotti aggiunti${dup ? `, ${dup} già presenti (saltati)` : ""}${ripetute ? `, ${ripetute} ripetuti nel file` : ""}.`
-      + (senzaPrezzo ? ` ${senzaPrezzo} ${senzaPrezzo === 1 ? "riga non \u00e8 entrata perch\u00e9 non aveva" : "righe non sono entrate perch\u00e9 non avevano"} un prezzo leggibile nella sua colonna: un prodotto senza prezzo non si pu\u00f2 vendere, e uno zero messo da me lo farebbe sembrare gratis.` : "")
-      + (senzaDensita ? ` ${senzaDensita} ${senzaDensita === 1 ? "prodotto \u00e8" : "prodotti sono"} senza densit\u00e0: per quelli non posso convertire fra metri cubi e tonnellate finch\u00e9 non la aggiungi.` : ""),
+      /* ⛔ LA CODA AVEVA IL SINGOLARE E LA TESTA NO, nella stessa riga d'esito:
+         «1 prodotti aggiunti, 1 già presenti (saltati), 1 ripetuti nel file.
+          1 prodotto è senza densità: per quelli non posso convertire…».
+         Tre plurali fissi in testa e una concordanza rotta in fondo («per
+         quelli» dopo «un prodotto»). Misurato caricando un CSV di tre righe. */
+      `Import listino: ${plur(agg, "prodotto aggiunto", "prodotti aggiunti")}${dup ? `, ${plur(dup, "già presente (saltato)", "già presenti (saltati)")}` : ""}${ripetute ? `, ${plur(ripetute, "ripetuto nel file", "ripetuti nel file")}` : ""}.`
+      + (senzaPrezzo ? ` ${plur(senzaPrezzo, "riga non \u00e8 entrata perch\u00e9 non aveva", "righe non sono entrate perch\u00e9 non avevano")} un prezzo leggibile nella sua colonna: un prodotto senza prezzo non si pu\u00f2 vendere, e uno zero messo da me lo farebbe sembrare gratis.` : "")
+      + (senzaDensita ? ` ${plur(senzaDensita, "prodotto \u00e8", "prodotti sono")} senza densit\u00e0: per ${senzaDensita === 1 ? "quello" : "quelli"} non posso convertire fra metri cubi e tonnellate finch\u00e9 non la aggiungi.` : ""),
       agg ? "success" : "err");
     await refresh();
   };
@@ -6038,7 +6076,11 @@ label.item:has(.dw-chk:checked){
     const a = document.createElement("a");
     a.href = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8" }));
     a.download = "conti_listino.csv"; marchiaCsv(a); a.click();
-    esito("lis-esito", `Esportati ${PRO.length} prodotti (CSV).`, "success");
+    /* sei export su sette usavano già `plur`, questo no — e proprio su
+       `PRO.length`, lo stesso numero che l'export dei prezzi convertiti
+       quindici righe più su passa a `plur`. Con un prodotto solo in listino
+       scriveva «Esportati 1 prodotti (CSV).» */
+    esito("lis-esito", "Esportati " + plur(PRO.length, "prodotto", "prodotti") + " (CSV).", "success");
   };
   $("btn-gar-import").onclick = () => $("gar-file").click();
   $("gar-file").onchange = async (e) => {
@@ -6065,8 +6107,8 @@ label.item:has(.dw-chk:checked){
        è ancora pubblicata, e la scadenza serve comunque — ma il totale «per
        quanto stiamo correndo» le salta, e un totale che esclude qualcosa senza
        dirlo inganna chi lo legge. Meglio saperlo adesso che davanti al numero. */
-    esito("gar-esito", `Import gare: ${agg} aggiunte${dup ? `, ${dup} già presenti (saltate)` : ""}${ripetute ? `, ${ripetute} ripetute nel file` : ""}.`
-      + (senzaBase ? ` ${senzaBase} ${senzaBase === 1 ? "\u00e8 senza base d'asta e non entra" : "sono senza base d'asta e non entrano"} nel totale del valore in gara.` : ""),
+    esito("gar-esito", `Import gare: ${plur(agg, "gara aggiunta", "gare aggiunte")}${dup ? `, ${plur(dup, "gi\u00e0 presente (saltata)", "gi\u00e0 presenti (saltate)")}` : ""}${ripetute ? `, ${plur(ripetute, "ripetuta nel file", "ripetute nel file")}` : ""}.`
+      + (senzaBase ? ` ${plur(senzaBase, "gara \u00e8 senza base d'asta e non entra", "gare sono senza base d'asta e non entrano")} nel totale del valore in gara.` : ""),
       agg ? "success" : "err");
     await refresh();
   };
@@ -6188,7 +6230,9 @@ label.item:has(.dw-chk:checked){
       add++;
     }
     $("fat-file").value = "";
-    esito("ft-esito", "Import fatture: " + add + " aggiunte" + (dup ? ", " + dup + " già presenti (numero duplicato)" : "") + (ripetute ? ", " + ripetute + " con lo stesso numero ripetuto nel file" : "") + ".", add ? "success" : "err");
+    esito("ft-esito", "Import fatture: " + plur(add, "fattura aggiunta", "fatture aggiunte")
+      + (dup ? ", " + plur(dup, "gi\u00e0 presente (numero duplicato)", "gi\u00e0 presenti (numero duplicato)") : "")
+      + (ripetute ? ", " + plur(ripetute, "fattura con lo stesso numero ripetuto nel file", "fatture con lo stesso numero ripetuto nel file") : "") + ".", add ? "success" : "err");
     await refresh();
   };
   // Recupero errore: appena l'utente corregge un campo, togli il bordo

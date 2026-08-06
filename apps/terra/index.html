@@ -615,7 +615,12 @@ a.dw-btn{text-decoration:none}
         <input class="dw-input" id="fro-nome" placeholder="es. Fronte Ovest"></div>
       <div class="fld" style="flex:1 1 100px;"><label class="fl" for="fro-banco">Banco</label>
         <input class="dw-input" id="fro-banco" placeholder="es. B2"></div>
-      <div class="fld" style="flex:1 1 110px;"><label class="fl" for="fro-quota">Quota (m)</label>
+      <!-- ⛔ l'unità dentro `<span class="u">` anche quando è un metro liscio:
+           `.fl` è maiuscolo per struttura e senza il guscio qui si leggeva
+           «QUOTA (M)», cioè mega. Le altre etichette della pagina lo facevano
+           già; questa e quella del volume annuo nella modale erano rimaste
+           fuori perché «m» da solo non sembra un'unità. -->
+      <div class="fld" style="flex:1 1 110px;"><label class="fl" for="fro-quota">Quota (<span class="u">m</span>)</label>
         <input class="dw-input dec" id="fro-quota" type="text" inputmode="decimal" autocomplete="off" spellcheck="false" placeholder="es. 148" title="Quota del fronte in metri. La virgola va benissimo: 148,50."></div>
       <button class="dw-btn" id="btn-fro">Aggiungi</button>
     </div>
@@ -918,8 +923,12 @@ a.dw-btn{text-decoration:none}
            DENS_ATTO, DENS_LABORATORIO, DENS_PRESET, DENS_MANO, DENS_NON_DICHIARATA,
            STATI_LOTTO, statoLotto, divarioRecupero, avanzamentoLotto,
            conformitaProgetto,
-           volumeMisuratoDiLotto, rilieviFuoriDaiLotti } from "./terra-data.js";
-  import { mountExit, esc, csvCell, statoVuoto, senzaDoppioni, montaGuardiaInteri, euro0, isoLocale, oggiISO, dataISOEsiste, dataIt, nomeCsvDimostrazione, modoDimostrazione } from "../../shared/deepwork-id-client/dw-shell.js";
+           volumeMisuratoDiLotto, rilieviFuoriDaiLotti,
+           aEufonica, articoloNumero } from "./terra-data.js";
+  /* `plurale` viene da shared/ e non da qui: la regola del singolare c'era
+     già, ed è la stessa che usano le altre app. Riscriverla in casa è la
+     copia debole che CLAUDE.md censisce — provata riga per riga e buttata. */
+  import { mountExit, esc, csvCell, statoVuoto, senzaDoppioni, montaGuardiaInteri, euro0, isoLocale, oggiISO, dataISOEsiste, dataIt, nomeCsvDimostrazione, modoDimostrazione, plurale } from "../../shared/deepwork-id-client/dw-shell.js";
   // gli agganci della struttura condivisa (modale con Escape, riquadri da
   // tastiera, alone che segue il mouse). Va chiamato QUI e non nel blocco
   // classico in linea: i moduli girano dopo gli script `defer`.
@@ -1214,7 +1223,7 @@ a.dw-btn{text-decoration:none}
     const rr = refP ? riservaResidua(refP.riserveM3, estrattoAnnoP, refP.pianificatoAnnuoM3) : null;
     $("pia-riserva").innerHTML = (rr && refP.riserveM3 != null)
       ? `Riserva residua stimata: <b>${rr.residuo.toLocaleString("it-IT")} m³</b>`
-        + (rr.anni != null ? ` · durata ~<b>${(Math.round(rr.anni * 10) / 10).toLocaleString("it-IT")} anni</b> al piano annuo di ${fmtM3(refP.pianificatoAnnuoM3)} m³` : "")
+        + (rr.anni != null ? ` · durata ~<b>${(Math.round(rr.anni * 10) / 10).toLocaleString("it-IT")} ${plurale((Math.round(rr.anni * 10) / 10).toLocaleString("it-IT"), "anno", "anni")}</b> al piano annuo di ${fmtM3(refP.pianificatoAnnuoM3)} m³` : "")
         + ` (estratti ${estrattoAnnoP.toLocaleString("it-IT")} m³ nel ${annoP}).`
       : "";
 
@@ -1340,10 +1349,10 @@ a.dw-btn{text-decoration:none}
     const note = [];
     // 1 · la risposta alla domanda: avanti o indietro rispetto alla tacca
     if (pr.estrattoAnno > pr.pianificato)
-      note.push("Con il " + pctAnno + "% dell'anno alle spalle hai <b>già superato il piano annuo</b> di "
+      note.push("Con " + articoloNumero("il", pctAnno) + pctAnno + "% dell'anno alle spalle hai <b>già superato il piano annuo</b> di "
         + n0(pr.estrattoAnno - pr.pianificato) + " m³: la barra è piena e non può dire altro.");
     else
-      note.push("Con il " + pctAnno + "% dell'anno alle spalle sei <b>"
+      note.push("Con " + articoloNumero("il", pctAnno) + pctAnno + "% dell'anno alle spalle sei <b>"
         + (scarto >= 0 ? "avanti di " + n0(scarto) : "indietro di " + n0(-scarto))
         + " m³</b> rispetto al pro-quota atteso a oggi, dove sta la tacca.");
     // 2 · dove si va a finire, e perché la barra ha quel colore
@@ -1591,12 +1600,14 @@ a.dw-btn{text-decoration:none}
       if (sTag > 64) scalaCls += " no100";
     }
     const ritmo = vc.ritmoAnnuo
-      ? `Al ritmo medio di <b>${n0(vc.ritmoAnnuo)} m³/anno</b> (dai rilievi degli ultimi ${un1(vc.ritmo.durataAnni)} anni) restano circa <b>${un1(vc.anniResidui)} anni</b>, esaurimento stimato verso il <b>${vc.annoEsaurimento}</b>.`
+      /* ⚠️ l'accordo si fa col numero SCRITTO, non col valore: `un1(1,04)`
+         stampa «1» e il valore non è 1 — chi legge vedeva «ultimi 1 anni». */
+      ? `Al ritmo medio di <b>${n0(vc.ritmoAnnuo)} m³/anno</b> (dai rilievi ${plurale(un1(vc.ritmo.durataAnni), "dell'ultimo anno", "degli ultimi " + un1(vc.ritmo.durataAnni) + " anni")}) ${plurale(un1(vc.anniResidui), "resta", "restano")} circa <b>${un1(vc.anniResidui)} ${plurale(un1(vc.anniResidui), "anno", "anni")}</b>, esaurimento stimato verso il <b>${vc.annoEsaurimento}</b>.`
       : `Ritmo medio non ancora calcolabile: servono almeno tre mesi di rilievi elaborati per stimare gli anni che restano.`;
     const avviso = vc.stato === "danger"
       ? `<div class="riga dng">${I.stop}<span><b>Volume autorizzato esaurito o superato.</b> Fermati o chiedi una variante prima di continuare a scavare.</span></div>`
       : vc.stato === "warn"
-        ? `<div class="riga att">${I.allarme}<span><b>Soglia di guardia superata</b> (l'hai messa al ${un1(vc.soglia)}%): è il momento di preparare rinnovo o variante.</span></div>`
+        ? `<div class="riga att">${I.allarme}<span><b>Soglia di guardia superata</b> (l'hai messa ${articoloNumero("al", un1(vc.soglia))}${un1(vc.soglia)}%): è il momento di preparare rinnovo o variante.</span></div>`
         : "";
     const titolo = vc.scadePrimaIlTitolo === true
       ? `<div class="riga">L'autorizzazione scade <b>prima</b> che il volume finisca: il vincolo che arriva per primo è la data del titolo.</div>`
@@ -1643,7 +1654,7 @@ a.dw-btn{text-decoration:none}
     return `<div class="item ${cls}" style="cursor:default;">
       <div class="avatar ico ${ico[0]}" aria-hidden="true">${ico[1]}</div>
       <div class="info"><div class="name">${nome}</div>
-      <div class="meta">${esc(etichettaTipoScadenza(s.tipo))} · ${fmtData(s.dataScadenza)} · ${esc(lv.label)} · preavviso ${+s.preavvisoGiorni || 0} gg${ric ? " · ogni " + ric + " mesi" : ""}</div></div>
+      <div class="meta">${esc(etichettaTipoScadenza(s.tipo))} · ${fmtData(s.dataScadenza)} · ${esc(lv.label)} · preavviso ${+s.preavvisoGiorni || 0} gg${ric ? (ric === 1 ? " · ogni mese" : " · ogni " + ric + " mesi") : ""}</div></div>
       <div class="acts"><span class="badge ${SB[st][0]}">${SB[st][1]}</span>
       ${azioni ? `<button class="arr ok" type="button" title="${ric ? "Segna come fatta e proponi la prossima data" : "Segna come fatta e rimuovi"}" aria-label="Segna come fatta la scadenza ${nome}" data-fatta-scad="${s.id}">${A.fatto}</button>
       <button class="arr del" type="button" title="Rimuovi la scadenza" aria-label="Rimuovi la scadenza ${nome}" data-del-scad="${s.id}">${A.del}</button>` : ""}</div></div>`;
@@ -1753,7 +1764,7 @@ a.dw-btn{text-decoration:none}
     const volume = !c.volume.misurabile
       ? `<div class="riga">${esc(c.volume.perche)}</div>`
       : c.volume.oltrePrevisto.length
-        ? `<div class="riga att">${I.allarme}<span><b>${c.volume.oltrePrevisto.length} ${c.volume.oltrePrevisto.length === 1 ? "lotto ha superato" : "lotti hanno superato"} il volume che il progetto gli assegna</b>: ${c.volume.oltrePrevisto.map(v => esc(v.nome) + " al " + un1(v.pct) + "%").join(", ")}. È il metro cubo in più che l'atto non concede a quel settore.</span></div>`
+        ? `<div class="riga att">${I.allarme}<span><b>${c.volume.oltrePrevisto.length} ${c.volume.oltrePrevisto.length === 1 ? "lotto ha superato" : "lotti hanno superato"} il volume che il progetto gli assegna</b>: ${c.volume.oltrePrevisto.map(v => esc(v.nome) + " " + articoloNumero("al", un1(v.pct)) + un1(v.pct) + "%").join(", ")}. È il metro cubo in più che l'atto non concede a quel settore.</span></div>`
         : `<div class="riga">Nessun lotto ha superato il volume che il progetto gli assegna, su <b>${c.volume.conConfronto}</b> ${c.volume.conConfronto === 1 ? "confrontabile" : "confrontabili"}.</div>`;
     const sequenza = c.volume.fuoriSequenza.length
       ? `<div class="riga att">${I.allarme}<span>Ci sono rilievi di scavo su ${c.volume.fuoriSequenza.length === 1 ? "un lotto ancora <b>previsto</b>" : "lotti ancora <b>previsti</b>"} (${c.volume.fuoriSequenza.map(v => esc(v.nome)).join(", ")}): il progetto non li ha ancora aperti, e la sequenza dei lotti è una prescrizione come le altre.</span></div>`
@@ -2088,7 +2099,11 @@ a.dw-btn{text-decoration:none}
         <span class="badge ${zero ? "tag" : "accent"}">${n0(m.scavo)} <span class="u">m³</span></span></div>`;
     }).join("");
     $("den-mesi-nota").innerHTML = "I mesi a <b>zero</b> restano in elenco apposta: nel modulo dell'ente un mese senza scavo va dichiarato zero, non saltato."
-      + (R.inCorso ? " Dell'anno in corso si vedono i mesi fino a <b>" + MESI_NOME[meseOggi - 1].toLowerCase() + "</b>." : "")
+      /* ⚠️ la «d» eufonica: in agosto e in aprile usciva «fino a agosto». La
+         regola sta nel modulo perché qui la stessa frase si scrive due volte,
+         e due copie della stessa regola divergono. */
+      + (R.inCorso ? " Dell'anno in corso si vedono i mesi fino "
+          + aEufonica(MESI_NOME[meseOggi - 1]) + " <b>" + MESI_NOME[meseOggi - 1].toLowerCase() + "</b>." : "")
       + " I metri cubi in etichetta sono <b>solo scavo</b>; le riprese dai cumuli sono scritte a parte nella riga.";
 
     // 4 · da quale fronte è uscito
@@ -2240,7 +2255,8 @@ a.dw-btn{text-decoration:none}
          quella cosa la chiama già <b>minimo</b>, dodici righe più in giù, dove
          il cumulato senza pregresso dichiarato «è quindi un minimo». Una parola
          nuova per un concetto che ne ha già una è un secondo vocabolario. */
-      : "Anni guardati: <b>" + BS.dal + "–" + BS.al + "</b>"
+      /* un anno solo non è un intervallo: «Anni guardati: 2026–2026» */
+      : (BS.dal === BS.al ? "Anno guardato: <b>" + BS.dal + "</b>" : "Anni guardati: <b>" + BS.dal + "–" + BS.al + "</b>")
         + (BS.totale > 0 ? ", con <b>" + n0(BS.totale) + " m³</b> di scavo misurato in tutto." : ".")
         + (BS.limite === "almeno"
             ? " ⚠️ Dove c'è scritto <b>almeno</b> il totale è un <b>minimo</b>, non una misura: negli anni in cui nessuno ha rilevato quel banco il volume tolto è ignoto, e ignoto non vuol dire zero."
@@ -2273,7 +2289,7 @@ a.dw-btn{text-decoration:none}
           ? `<div class="note recap">Volume concesso dall'atto: <b>${nD(R.concesso)} m³</b>.`
             + (R.pregresso ? ` Di questi, <b>${n0(R.pregresso)} m³</b> risultavano già estratti prima di usare Terra.` : "")
             + ` Sommando lo scavo misurato fino ${fine}, il cumulato sotto questo titolo arriva a <b>${n0(R.cumulatoFineAnno)} m³</b>`
-            + ` — il <b>${un1(R.pctFineAnno)}%</b> del concesso — e restano <b>${n0(R.residuoFineAnno)} m³</b>.`
+            + ` — ${articoloNumero("il", un1(R.pctFineAnno))}<b>${un1(R.pctFineAnno)}%</b> del concesso — e restano <b>${n0(R.residuoFineAnno)} m³</b>.`
             + (R.pregressoDichiarato ? "" : ` Il <b>già estratto prima di Terra</b> non è dichiarato: il cumulato è quindi un <b>minimo</b>.`)
             + (R.cumulo ? ` I <b>${n0(R.cumulo)} m³</b> ripresi dai cumuli nel ${R.anno} <b>non</b> entrano in questo conto: erano già stati scavati e già scalati a suo tempo.` : "")
             + "</div>"
@@ -2347,7 +2363,7 @@ a.dw-btn{text-decoration:none}
         gel.innerHTML = "";
         dwGrafici.barre(gel, {
           titolo: "Volumi scavati nel " + R.anno,
-          meta: R.inCorso ? "fino a " + MESI_NOME[meseOggi - 1].toLowerCase() : "anno completo",
+          meta: R.inCorso ? "fino " + aEufonica(MESI_NOME[meseOggi - 1]) + " " + MESI_NOME[meseOggi - 1].toLowerCase() : "anno completo",
           unita: "m³",
           valori: mesiVisti.map(m => ({ etichetta: MESI3[m.mese - 1], valore: m.scavo })),
           nota: "Solo scavo: le riprese dai cumuli non sono qui dentro."
@@ -2456,7 +2472,13 @@ a.dw-btn{text-decoration:none}
     ];
     const qual = [];
     if (R.qualita.surveyGrade) qual.push(R.qualita.surveyGrade + " di qualità topografica");
-    if (R.qualita.indicativo) qual.push(R.qualita.indicativo + " indicativi");
+    /* ⛔ «1 indicativi» su un foglio che va all'ente. Le altre due voci di
+       questo elenco non hanno il problema (una finisce in «di qualità
+       topografica», l'altra in «senza metodo dichiarato»): è la firma di
+       questa famiglia — chi scrive guarda la riga che sta scrivendo, non le
+       tre insieme. */
+    if (R.qualita.indicativo) qual.push(R.qualita.indicativo + " "
+      + plurale(R.qualita.indicativo, "indicativo", "indicativi"));
     if (R.qualita.nd) qual.push(R.qualita.nd + " senza metodo dichiarato");
     /* ⛔ LA FRASE DICEVA «nessun rilievo, QUINDI volumi a zero per tutto
        l'anno», su un foglio che va all'ente. È l'inferenza che il principio del
@@ -2909,8 +2931,9 @@ a.dw-btn{text-decoration:none}
     const preav = Number.isFinite(pre) && pre >= 0 ? pre : (parseInt($("aut-preavviso").value, 10) || 60);
     await db.aggiungi("scadenze", { tipo: $("scad-preset").value || "altro", descrizione: desc,
       dataScadenza: data, preavvisoGiorni: preav, ricorrenzaMesi: Number.isFinite(ric) && ric > 0 ? ric : null, note: "" });
-    esito("scad-esito", "Scadenza «" + desc + "» del " + fmtData(data) + " registrata (preavviso " + preav + " giorni"
-      + (Number.isFinite(ric) && ric > 0 ? ", si ripete ogni " + ric + " mesi" : "") + ").");
+    esito("scad-esito", "Scadenza «" + desc + "» del " + fmtData(data) + " registrata (preavviso "
+      + preav + " " + plurale(preav, "giorno", "giorni")
+      + (Number.isFinite(ric) && ric > 0 ? (ric === 1 ? ", si ripete ogni mese" : ", si ripete ogni " + ric + " mesi") : "") + ").");
     $("new-scad-desc").value = ""; $("new-scad-data").value = ""; $("new-scad-ric").value = "";
     $("scad-preset").value = ""; $("scad-preset-nota").style.display = "none";
     await refresh();
@@ -3297,15 +3320,23 @@ a.dw-btn{text-decoration:none}
             : `i turni hanno dichiarato circa <b>${n0(d.m3)} m³</b>${d.t > 0 && d.densita ? ` (da <b>${n0(d.t)} t</b> alla densità di ${nD(d.densita)} t/m³)` : ""}. `
               + `È una <b>stima dichiarata</b>, non una misura: non consuma il volume concesso e non entra nella denuncia agli enti. Serve a sapere cosa è successo da quando il drone non vola.`)
         + `</div>`;
+      /* ⚠️ OGNI VOCE PORTA IL SUO NUMERO, così il verbo della frase che le
+         mette in fila si accorda con quello che c'è davvero: con una voce
+         sola da uno usciva «Fuori da quel numero restano 1 viaggi» — due
+         errori nella stessa riga, il plurale della cosa e quello del verbo. */
       const fuori = [];
-      if (d.tSenzaDensita > 0) fuori.push(`<b>${n0(d.tSenzaDensita)} t</b> che non si possono portare in metri cubi senza una densità valida`);
-      if (d.viaggi > 0) fuori.push(`<b>${d.viaggi} viaggi</b>, che non si convertono: servirebbe la portata del mezzo, e cambia da camion a camion`);
+      if (d.tSenzaDensita > 0) fuori.push({ uno: n0(d.tSenzaDensita) === "1",
+        t: `<b>${n0(d.tSenzaDensita)} t</b> che non si possono portare in metri cubi senza una densità valida` });
+      if (d.viaggi > 0) fuori.push({ uno: d.viaggi === 1,
+        t: `<b>${d.viaggi} ${plurale(d.viaggi, "viaggio", "viaggi")}</b>, che non ${plurale(d.viaggi, "si converte", "si convertono")}: servirebbe la portata del mezzo, e cambia da camion a camion` });
+      const unaSola = fuori.length === 1 && fuori[0].uno;
+      const elenco = fuori.map(x => x.t).join(" e ");
       if (fuori.length) html += `<div class="note avviso">`
         /* ⚠️ «per difetto» ha senso solo se un numero c'è: quando in metri cubi
            non è entrato NIENTE, il totale non è basso, non esiste. */
         + (nonConvertibile
-          ? `Quello che i turni hanno dichiarato è ${fuori.join(" e ")}: imposta la densità del materiale qui sopra e le tonnellate diventano metri cubi.`
-          : `Fuori da quel numero restano ${fuori.join(" e ")}. Il totale in metri cubi è quindi <b>per difetto</b>.`)
+          ? `Quello che i turni hanno dichiarato è ${elenco}: imposta la densità del materiale qui sopra e le tonnellate diventano metri cubi.`
+          : `Fuori da quel numero ${unaSola ? "resta" : "restano"} ${elenco}. Il totale in metri cubi è quindi <b>per difetto</b>.`)
         + `</div>`;
 
       // ── 1-bis. PONTE P2 — DA QUALE FRONTE, secondo i turni ──────────────
@@ -3361,7 +3392,7 @@ a.dw-btn{text-decoration:none}
           avanzi.push(avanzo(pf.fronteSconosciuto, pf.fronteSconosciuto.turni === 1 ? "attaccato a un fronte che non esiste più" : "attaccati a un fronte che non esiste più"));
         html += `<div class="note recap">`
           + (pf.copertura != null
-            ? `Di quello che i turni hanno dichiarato, si sa da dove viene il <b>${nD(pf.copertura)}%</b>. `
+            ? `Di quello che i turni hanno dichiarato, si sa da dove viene ${articoloNumero("il", nD(pf.copertura))}<b>${nD(pf.copertura)}%</b>. `
             : "")
           + (avanzi.length
             ? `Il resto è ${avanzi.join(" e ")}: non viene spalmato sugli altri fronti, perché una ripartizione inventata a fine anno non si distingue più da una misurata. Per farlo sparire basta scegliere il fronte quando si compila il rapportino in Campo.`
@@ -3385,7 +3416,7 @@ a.dw-btn{text-decoration:none}
           <div class="kpi largo"><div class="l">Turni che hanno dichiarato</div><div class="n">${d.turni}</div></div>
         </div>`;
         html += `<div class="note recap">Non c'è ancora nessun <b>rilievo elaborato</b>, quindi non c'è un «da quando» e nemmeno niente contro cui confrontare. Quello che c'è sono i turni: negli ultimi 30 giorni hanno dichiarato <b>${n0(d.m3)} m³</b>${d.t > 0 && d.densita ? ` (da <b>${n0(d.t)} t</b>)` : ""}. È una <b>stima dichiarata</b> — non consuma il volume concesso e non entra nella denuncia agli enti — ma finché il drone non vola è l'unica cosa che si sa di questa cava.</div>`;
-        if (d.viaggi > 0) html += `<div class="note avviso">Fuori da quel numero restano <b>${d.viaggi} viaggi</b>, che non si convertono senza la portata del mezzo: il totale è <b>per difetto</b>.</div>`;
+        if (d.viaggi > 0) html += `<div class="note avviso">Fuori da quel numero restano <b>${d.viaggi} ${plurale(d.viaggi, "viaggio", "viaggi")}</b>, che non si convertono senza la portata del mezzo: il totale è <b>per difetto</b>.</div>`;
       } else {
         html += `<div class="note">Per la stima corrente serve <b>almeno un rilievo elaborato</b> da cui partire, e nessun turno ha registrato una produzione: per adesso non c'è niente da dire.</div>`;
       }
@@ -3416,7 +3447,7 @@ a.dw-btn{text-decoration:none}
           <div class="kpi largo"><div class="l">Dichiarato in ${verso}</div><div class="n">${nD(Math.abs(r.pct))}%</div></div>
         </div>`;
         html += cornice;
-        html += `<div class="note recap"><span class="badge ${cls} inline">${frase}</span> Il rilievo ha misurato <b>${nD(r.mis.m3)} m³</b>, i turni ne hanno dichiarati circa <b>${n0(r.dich.m3)}</b>: <b>${n0(Math.abs(r.scostamento))} m³</b> in ${verso} nel dichiarato, cioè il <b>${nD(Math.abs(r.pct))}%</b> del misurato.`
+        html += `<div class="note recap"><span class="badge ${cls} inline">${frase}</span> Il rilievo ha misurato <b>${nD(r.mis.m3)} m³</b>, i turni ne hanno dichiarati circa <b>${n0(r.dich.m3)}</b>: <b>${n0(Math.abs(r.scostamento))} m³</b> in ${verso} nel dichiarato, cioè ${articoloNumero("il", nD(Math.abs(r.pct)))}<b>${nD(Math.abs(r.pct))}%</b> del misurato.`
           + (r.stato === "coerente"
             ? ` Su una stima fatta a occhio a fine turno una differenza così è normale, in un verso o nell'altro: i due mondi si parlano.`
             : sopra
@@ -3429,8 +3460,11 @@ a.dw-btn{text-decoration:none}
         if (r.parziale) {
           const p = [];
           if (r.dich.tSenzaDensita > 0) p.push(`<b>${n0(r.dich.tSenzaDensita)} t</b> senza densità`);
-          if (r.dich.viaggi > 0) p.push(`<b>${r.dich.viaggi} viaggi</b>`);
-          html += `<div class="note avviso">Attenzione: nel dichiarato ci sono ${p.join(" e ")} che non entrano nei metri cubi. Lo scostamento qui sopra è quindi <b>per difetto</b> — il dichiarato vero è più alto di così.</div>`;
+          if (r.dich.viaggi > 0) p.push(`<b>${r.dich.viaggi} ${plurale(r.dich.viaggi, "viaggio", "viaggi")}</b>`);
+          /* i due punti al posto del «che non entrano»: l'elenco cambia numero
+             a seconda di che cosa c'è dentro, e «ci sono 1 viaggio che non
+             entrano» è la stessa riga sbagliata due volte. */
+          html += `<div class="note avviso">Attenzione: nel dichiarato c'è dell'altro che non entra nei metri cubi — ${p.join(" e ")}. Lo scostamento qui sopra è quindi <b>per difetto</b>: il dichiarato vero è più alto di così.</div>`;
         }
       }
     }
@@ -3635,7 +3669,9 @@ a.dw-btn{text-decoration:none}
     const nome = c.fronteId ? (nomeFronte(c.fronteId) || "fronte non più in elenco") : "rilievi senza fronte";
     const band = c.banda > 0 ? " ± " + n0(c.banda) : "";
     const rit = c.alGiorno != null
-      ? `In quei <b>${c.giorni} giorni</b> fanno circa <b>${n0(c.alGiorno)} m³ al giorno</b>, cioè <b>${n0(c.alMese)} m³ al mese</b> se il ritmo resta questo.`
+      ? (c.giorni === 1
+          ? `In quel <b>giorno</b> fanno circa <b>${n0(c.alGiorno)} m³</b>, cioè <b>${n0(c.alMese)} m³ al mese</b> se il ritmo resta questo.`
+          : `In quei <b>${c.giorni} giorni</b> fanno circa <b>${n0(c.alGiorno)} m³ al giorno</b>, cioè <b>${n0(c.alMese)} m³ al mese</b> se il ritmo resta questo.`)
       : `Le due date coincidono, quindi non c'è nessun ritmo da calcolare.`;
     const conf = c.delta === 0
       ? `I due rilievi hanno misurato lo stesso volume (<b>${nD(c.primo.volumeM3)} m³</b>).`
@@ -3829,7 +3865,7 @@ a.dw-btn{text-decoration:none}
       const v = await chiediValore("Volume annuo pianificato",
         "Quanti m³ prevedi di estrarre in un anno su <b>«" + esc(p.titolo) + "»</b>?<br><br>"
         + "È il numero con cui Terra calcola l'<b>avanzamento del piano</b> e la <b>proiezione di fine anno</b>: mettici quello che hai scritto nel tuo programma di coltivazione.",
-        '<label class="fl" for="modal-campo">Volume annuo (m³)</label><input class="dw-input dec" id="modal-campo" type="text" inputmode="decimal" autocomplete="off" spellcheck="false" title="Metri cubi previsti in un anno. La virgola va benissimo." value="' + esc(itDec(p.pianificatoAnnuoM3)) + '">',
+        '<label class="fl" for="modal-campo">Volume annuo (<span class="u">m³</span>)</label><input class="dw-input dec" id="modal-campo" type="text" inputmode="decimal" autocomplete="off" spellcheck="false" title="Metri cubi previsti in un anno. La virgola va benissimo." value="' + esc(itDec(p.pianificatoAnnuoM3)) + '">',
         "Salva");
       if (v == null) return;
       // il `parseInt(String(v).replace(/\./g, ""))` di prima trattava OGNI punto
@@ -3921,7 +3957,11 @@ a.dw-btn{text-decoration:none}
     const a = document.createElement("a");
     a.href = "data:text/csv;charset=utf-8," + encodeURIComponent(csv);
     a.download = "terra_fronti_rilievi.csv"; marchiaCsv(a); a.click();
-    esito("terra-esito", "Esportati " + FRO.length + " fronti e " + RIL.length + " rilievi (CSV).");
+    /* «Esportati 1 fronti e 1 rilievi»: due plurali e per giunta un
+       participio che dovrebbe accordarsi con la somma dei due. Si toglie di
+       mezzo il participio invece di provare a farlo concordare. */
+    esito("terra-esito", "Esportato il CSV: " + FRO.length + " " + plurale(FRO.length, "fronte", "fronti")
+      + " e " + RIL.length + " " + plurale(RIL.length, "rilievo", "rilievi") + ".");
   };
   $("btn-fro").onclick = async () => {
     const nome = $("fro-nome").value.trim(), banco = $("fro-banco").value.trim();
@@ -3978,7 +4018,13 @@ a.dw-btn{text-decoration:none}
       agg++;
     }
     $("fro-file").value = "";
-    esito("fro-esito", `Import fronti: ${agg} aggiunti${dup ? `, ${dup} già presenti (saltati)` : ""}${ripetute ? `, ${ripetute} ripetuti nel file` : ""}.`);
+    /* ⛔ TRE PLURALI IN UNA RIGA SOLA, e tutti e tre cadevano sull'uno:
+       «Import fronti: 1 aggiunti, 1 già presenti (saltati), 1 ripetuti nel
+       file». È il messaggio che l'utente legge la PRIMA volta che prova
+       l'import — cioè quando importa una riga per vedere se funziona. */
+    esito("fro-esito", `Import fronti: ${agg} ${plurale(agg, "aggiunto", "aggiunti")}`
+      + (dup ? `, ${dup} ${plurale(dup, "già presente (saltato)", "già presenti (saltati)")}` : "")
+      + (ripetute ? `, ${ripetute} ${plurale(ripetute, "ripetuto", "ripetuti")} nel file` : "") + ".");
     await refresh();
   };
   $("btn-add-ril").onclick = async () => {
@@ -4148,10 +4194,14 @@ a.dw-btn{text-decoration:none}
       agg++;
     }
     $("ril-file").value = "";
-    esito("ril-esito", `Import rilievi: ${agg} rilievi elaborati aggiunti`
-      + (cum ? `, di cui ${cum} ${cum === 1 ? "ripreso da cumulo" : "ripresi da cumuli"}` : "")
-      + (dup ? `, ${dup} già presenti (saltati)` : "")
-      + (senzaFronte ? " (" + senzaFronte + " con un fronte non riconosciuto: restano non assegnati)" : "") + ".");
+    /* ⚠️ QUI IL SINGOLARE C'ERA GIÀ — su una voce su quattro (i cumuli).
+       È la prova che non è ignoranza della regola: è che si guarda il pezzo
+       che si sta scrivendo, non la frase intera. */
+    esito("ril-esito", `Import rilievi: ${agg} ${plurale(agg, "rilievo elaborato aggiunto", "rilievi elaborati aggiunti")}`
+      + (cum ? `, di cui ${cum} ${plurale(cum, "ripreso da cumulo", "ripresi da cumuli")}` : "")
+      + (dup ? `, ${dup} ${plurale(dup, "già presente (saltato)", "già presenti (saltati)")}` : "")
+      + (senzaFronte ? " (" + senzaFronte + " con un fronte non riconosciuto: "
+          + plurale(senzaFronte, "resta non assegnato", "restano non assegnati") + ")" : "") + ".");
     await refresh();
   };
   // Recupero errore: appena l'utente corregge un campo, togli il bordo
