@@ -444,7 +444,7 @@
 
 ## 7. Verifica del Delta (01/08 · riverificata riga per riga il 03/08 · **arretrato richiuso il 06/08**)
 
-> **Verificato contro il codice al commit `50dfe1b`** (06/08).
+> **Verificato contro il codice al commit `4743c69`** (06/08).
 >
 > ### 06/08 — i sette commit ripassati: nessun verdetto si muove, due PROVE sì
 >
@@ -497,6 +497,18 @@
 > perché la fa buttare via insieme a quelle giuste.
 >
 > *(Il blocco qui sotto è la verifica del 03/08 e resta com'era scritta.)*
+>
+> ### 06/08 (secondo passaggio) — riallineato al commit `4743c69`
+>
+> L'app si è mossa di **un commit** dopo la verifica qui sopra, ed è il commit
+> dei **disegni misurati col righello**: geometrie e testi, non funzioni nuove.
+> Ripassato col metodo che oggi ha funzionato otto volte su otto — i termini
+> del delta cercati **solo nelle righe aggiunte** — e non risponde niente,
+> quindi nessuna riga cambia verdetto.
+> ⚠️ E si dica che cos'è: **non è una rilettura riga per riga** (quella è
+> sopra, con la sua data). È il controllo che un commit noto non abbia colmato
+> una mancanza dichiarata. Serve a tenere a zero l'arretrato che
+> `documenti-invecchiati.mjs` misura; la prova vera resta quella riga per riga.
 
 > **Verificato al commit `ecc65d5`** (03/08). Era l'ultimo commit
 > che ha toccato `apps/scudo/`, quindi il contenuto letto è identico a quello di

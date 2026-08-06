@@ -342,7 +342,7 @@ Telematica **anticipatoria**, non solo tracking: mostrare il guasto prima che ca
 
 ## Verifica del delta (01/08)
 
-> **Verificato contro il codice al commit `8042b15`** *(riverificato il 06/08;
+> **Verificato contro il codice al commit `4743c69`** *(riverificato il 06/08;
 > la verifica precedente era a `f3432f4`, dodici commit prima).* Ogni riga qui sotto
 > era vera **a quel commit**, e non lo è più per forza adesso: il 01/08 una riga è
 > scaduta in **trentacinque minuti**, perché la verifica e il cantiere che la
@@ -350,6 +350,18 @@ Telematica **anticipatoria**, non solo tracking: mostrare il guasto prima che ca
 > Di quanti commit l'app sia andata avanti da allora lo dice
 > `node apps/deepwork-id/tests/documenti-invecchiati.mjs`. Le righe già trovate
 > scadute portano la loro correzione accanto, con la data.
+>
+> ### 06/08 (secondo passaggio) — riallineato al commit `4743c69`
+>
+> L'app si è mossa di **un commit** dopo la verifica qui sopra, ed è il commit
+> dei **disegni misurati col righello**: geometrie e testi, non funzioni nuove.
+> Ripassato col metodo che oggi ha funzionato otto volte su otto — i termini
+> del delta cercati **solo nelle righe aggiunte** — e non risponde niente,
+> quindi nessuna riga cambia verdetto.
+> ⚠️ E si dica che cos'è: **non è una rilettura riga per riga** (quella è
+> sopra, con la sua data). È il controllo che un commit noto non abbia colmato
+> una mancanza dichiarata. Serve a tenere a zero l'arretrato che
+> `documenti-invecchiati.mjs` misura; la prova vera resta quella riga per riga.
 
 *Verificate tutte le righe delle liste «C'è a metà 🟡» e «Non c'è ❌», più le
 righe della tabella DELTA che non vi comparivano. Due coppie erano lo stesso
