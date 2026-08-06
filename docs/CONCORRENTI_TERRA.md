@@ -298,7 +298,8 @@ Nella roadmap, il ponte P2 (riconciliazione volume vs tonnellate) è il prossimo
 
 ## Verifica del delta (01/08)
 
-> **Verificato contro il codice al commit `e9f9b0d`.** Ogni riga qui sotto
+> **Verificato contro il codice al commit `b12c87f`** *(riverificato il 06/08;
+> la verifica precedente era a `e9f9b0d`, sedici commit prima).* Ogni riga qui sotto
 > era vera **a quel commit**, e non lo è più per forza adesso: il 01/08 una riga è
 > scaduta in **trentacinque minuti**, perché la verifica e il cantiere che la
 > colmava sono girati lo stesso pomeriggio senza sapere l'uno dell'altro.
@@ -319,6 +320,36 @@ Nella roadmap, il ponte P2 (riconciliazione volume vs tonnellate) è il prossimo
 | Conformità design | ⏱️ **SCADUTA — C'È DAL 01/08** (verifica `e9f9b0d` 16:20 → costruito `e19e196` 18:22) | Allora zero occorrenze di `conformit`; oggi `statoConformitaQuota`, `conformitaQuota` e `conformitaProgetto` in `terra-data.js`: «stiamo scavando dove il progetto dice?» è la domanda dell'ente, e l'app sa rispondere |
 | Gestione concessione regionale | **C'È A METÀ** | terra-data.js:580, 722, 959, 980 e index.html:541, 819 dichiarano "materia regionale": l'app non applica regole specifiche per regione, ma l'utente le imposta. `vitaCava()` è generico, niente regole per regione |
 | Compliance reporting per ente | **C'È A METÀ** | terra-data.js:751 `riepilogoAnnuale()` e terra-data.js:857 `baseOnereEscavazione()` producono i dati per la denuncia annuale (volumi per mese/fronte, qualità, banda incertezza, onere di escavazione); index.html:819 dichiara esplicitamente "Terra ti dà i tuoi numeri ordinati, non compila la denuncia al posto tuo" — i dati ci sono, il modulo ufficiale lo compila l'utente |
+
+### ⏱️ Riverifica del 06/08 — `e9f9b0d` → `b12c87f`, sedici commit dopo
+
+Le quattro righe **CONFERMATE ASSENTI** sono state rimisurate contro il codice
+di oggi, perché un «non c'è» invecchia: **reggono tutte e quattro.** I sedici
+commit intercorsi hanno toccato Terra sui documenti che escono (dichiarazione
+«dati di esempio» sul prospetto e sul verbale, marchio sul nome dei CSV, la
+decisione salita in `shared/`) e sul volume illeggibile che usciva come cella
+vuota — niente che assomigli a cut&fill, pit design, stockpile detection o
+floating cone.
+
+⚠️ **E la riverifica ha rischiato di dire il contrario, per colpa del
+cercatore, non del codice.** Il primo giro di `grep` — `cut\b|fill\b|taglio|
+riempimento` — ha risposto **21 occorrenze in `terra-data.js`, 33 nella pagina,
+5 in `dw-ponti.js`**, e letto così avrebbe fatto scrivere «la riga è scaduta,
+adesso c'è». Guardando **che cosa** aveva trovato invece del solo numero:
+
+```
+$ grep -oiE "cut[a-z]*|fill[a-z]*|taglio|riempiment[oi]" apps/terra/terra-data.js | sort | uniq -c
+     24 taglio        ← dentro «detta·glio·»
+      1 cute
+$ grep -oiE "floating|cone[a-z]*" apps/terra/terra-data.js apps/terra/index.html
+      1 floating      ← dentro un commento sui numeri a virgola mobile
+      1 cone          ← dentro un'altra parola
+```
+
+Zero occorrenze vere. È la stessa famiglia già scritta in CLAUDE.md — *il
+controllo che non guarda dove crede* — nella sua forma più banale e più facile
+da rifare: **un conto senza il suo campione non è una misura.** La difesa costa
+un comando: `grep -o` e `uniq -c` prima di credere al numero.
 
 **Riepilogo verifica:**
 - **Righe verificate:** 11
