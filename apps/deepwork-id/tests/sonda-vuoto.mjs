@@ -795,6 +795,17 @@ const CENSITI = {
     + " PRECOMPILATO di un campo di modulo, non un verdetto dell'app. Stessa ragione per cui"
     + " `sentinella.confermaVolataEseguita` sta anche fra gli ACCETTATI qui sopra",
 
+  "sentinella.csvRegistroVolate":
+    "FALSO ALLARME, ed è il contrario del difetto che il cercatore cerca (dichiarato il 06/08)."
+    + " La forma `const v = +x; return Number.isFinite(v) ? String(...) : \"\"` è proprio la"
+    + " GUARDIA: un valore illeggibile esce come **cella vuota**, non come zero. La riga sopra lo"
+    + " racconta — prima c'era `n(+v.nFori || 0)`, e quel `|| 0` trasformava l'assenza in una"
+    + " dichiarazione su un file che va all'ente o rientra dall'import."
+    + " ⚠️ Vale la pena scriverlo perché il cercatore qui segnala la CORREZIONE, non il difetto:"
+    + " la sua forma-spia (`X = +…` con la guardia su un'altra riga) è la stessa in tutt'e due i"
+    + " versi, e distinguerli è una lettura, non un pattern. È la ragione per cui questi punti si"
+    + " dichiarano uno per uno invece di alzare una soglia",
+
   /* ── falsi allarmi, dichiarati con la ragione ── */
   "campo.storicoSettimana":
     "FALSO ALLARME: `meta(iso)` converte SEMPRE una data nata dall'orologio (`oggiISO(oggi)`), non un"
