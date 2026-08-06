@@ -122,22 +122,37 @@ const GIRI = {
      1. la DECISIONE — `marchiaCsv` che non marchia più niente;
      2. le CHIAMATE — i 25 siti che non la chiamano più.
    `--live` invece non è un difetto: è la stessa decisione letta al contrario. */
-const DEF_VERA = 'const marchiaCsv = (el) => { if (db.mode !== "live")';
-const DEF_SPENTA = 'const marchiaCsv = (el) => { if (false && db.mode !== "live")';
-const DEF_LIVE = 'const marchiaCsv = (el) => { if (db.mode !== "demo")';
+/* ⛔ E DAL 06/08 I DUE STRATI STANNO IN DUE FILE DIVERSI, perché la DECISIONE
+   è salita in `shared/deepwork-id-client/dw-shell.js` (era in quattro copie
+   identiche dentro quattro pagine). L'iniezione ha dovuto seguirla: mirata al
+   vecchio posto rispondeva **«4 iniezioni MANCATE»** — la quarta delle cinque
+   cause elencate in CLAUDE.md, l'iniezione puntata dove il difetto non vive
+   più. Ed è un guadagno, non una complicazione: adesso la controprova prova
+   anche che i due strati sono davvero separabili. */
+const CONDIVISO = "shared/deepwork-id-client/dw-shell.js";
+const DEC_VERA = '  if (modo === "live") return n;';
+const DEC_SPENTA = '  if (true) return n;';                 // la decisione non decide più: non marchia mai
 
 let nDecisioni = 0, nChiamate = 0, nMancate = 0;
 const inietta = (rotta, t) => {
-  if (!PAGINE.includes(rotta.replace(/^\//, ""))) return t;
+  const dentro = rotta.replace(/^\//, "");
+  /* `--live` non è un difetto: è la stessa decisione letta al contrario, e si
+     inietta nella PAGINA (il modo che passa) invece che nella decisione, così
+     il giro attraversa la funzione condivisa per davvero. */
   if (FINGE_LIVE) {
-    const n = t.split(DEF_VERA).length - 1;
-    if (n !== 1) { console.log(`⛔ INIEZIONE MANCATA in ${rotta}: ${n} soggetti per la definizione`); nMancate++; return t; }
+    if (!PAGINE.includes(dentro)) return t;
+    const q = t.split("nomeCsvDimostrazione(el.download, db.mode)").length - 1;
+    if (q !== 1) { console.log(`⛔ INIEZIONE MANCATA in ${rotta}: ${q} soggetti per il modo`); nMancate++; return t; }
     nDecisioni++;
-    return t.replace(DEF_VERA, DEF_LIVE);
+    return t.replace("nomeCsvDimostrazione(el.download, db.mode)", 'nomeCsvDimostrazione(el.download, "live")');
   }
-  const n = t.split(DEF_VERA).length - 1;
-  if (n !== 1) { console.log(`⛔ INIEZIONE MANCATA in ${rotta}: ${n} soggetti per la definizione`); nMancate++; }
-  else { t = t.replace(DEF_VERA, DEF_SPENTA); nDecisioni++; }
+  if (dentro === CONDIVISO) {
+    const q = t.split(DEC_VERA).length - 1;
+    if (q !== 1) { console.log(`⛔ INIEZIONE MANCATA in ${rotta}: ${q} soggetti per la decisione condivisa`); nMancate++; return t; }
+    nDecisioni++;
+    return t.replace(DEC_VERA, DEC_SPENTA);
+  }
+  if (!PAGINE.includes(dentro)) return t;
   const prima = t.length;
   let tolte = 0;
   t = t.replace(/ marchiaCsv\([A-Za-z_$][\w$]*\);/g, () => { tolte++; return ""; });

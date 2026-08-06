@@ -1601,7 +1601,7 @@ label.item:has(.dw-chk:checked){
     preventiviDaSeguire, prezzoDaOrdine, descriviPrezzoOrdine,
     validaScaglioni, scaglionePer, applicaScaglione, etichettaScaglione,
     descriviScaglione } from "./conti-data.js";
-  import { mountExit, esc, csvCell, statoVuoto, senzaDoppioni, avvolgiUnita, euro, euro0, conEuro, isoLocale, istanteLocale, oggiISO as oggiISOShell, meseLocale, dataIt, dataPiuGiorni } from "../../shared/deepwork-id-client/dw-shell.js";
+  import { mountExit, esc, csvCell, statoVuoto, senzaDoppioni, avvolgiUnita, euro, euro0, conEuro, isoLocale, istanteLocale, oggiISO as oggiISOShell, meseLocale, dataIt, dataPiuGiorni, nomeCsvDimostrazione } from "../../shared/deepwork-id-client/dw-shell.js";
   // gli agganci della struttura condivisa (modale con Escape, riquadri da
   // tastiera, alone che segue il mouse). Va chiamato QUI e non nel blocco
   // classico in linea: i moduli girano dopo gli script `defer`.
@@ -1798,9 +1798,17 @@ label.item:has(.dw-chk:checked){
      Si chiama DOPO l'assegnazione, e la riga download = "…" resta un
      letterale: la regola 13 di run-stile conta i nomi ripetuti leggendo proprio
      quel letterale, e nasconderglielo la renderebbe cieca.
-     ⛔ Questa regola serve a QUATTRO app: il suo posto è shared/dw-ponti.js e
-     il trasloco è una riga (questa const diventa un import). */
-  const marchiaCsv = (el) => { if (db.mode !== "live") el.download = `DATI-DI-ESEMPIO_${el.download}`; return el; };
+     ✅ TRASLOCATA IL 06/08: la DECISIONE — che cosa conta come dimostrazione e
+     che forma ha il marchio — sta in `nomeCsvDimostrazione` di
+     shared/deepwork-id-client/dw-shell.js, accanto a `csvCell` che è della
+     stessa famiglia. Qui resta l'impianto, tre parole, perché `db.mode` è
+     della pagina: un alias non è una seconda implementazione.
+     ⚠️ Il segno che era nel posto sbagliato non era il numero delle copie: era
+     che per provarla bisognava ESTRARRE LA RIGA DAL SORGENTE ed eseguirla con
+     `new Function`. Una prova costretta a leggere il codice per misurarne il
+     comportamento sta dicendo che quel comportamento non vive dove si può
+     chiamare. */
+  const marchiaCsv = (el) => { el.download = nomeCsvDimostrazione(el.download, db.mode); return el; };
 
   let FAT=[], GAR=[], CLI=[], PRO=[], PES=[], INC=[], NOT=[], COS=[], CHI=[], IMP=null;
   /* PREVENTIVI E ORDINI (N9). `ORD` è la lista salvata; `orRighe` sono le

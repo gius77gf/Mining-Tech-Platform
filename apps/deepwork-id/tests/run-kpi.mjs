@@ -21087,11 +21087,14 @@ test("⛔ etichettaStatoDocumento: la mappa esce dalla pagina e la leggono in du
     eq(scoperti(rotto).siti, 2, "e li ha contati tutti e due");
   });
 
-  /* La riga vera, estratta dal sorgente ed eseguita: si prova quello che gira
-     nella pagina, non una seconda copia scritta qui. */
-  const espressione = rigaDef(SRC.get("conti")).replace(/^\s*const marchiaCsv = /, "").replace(/;\s*$/, "");
-  const fabbrica = new Function("db", `return (${espressione});`);
-  const nomeCon = (mode, base) => { const el = { download: base }; fabbrica({ mode })(el); return el.download; };
+  /* ⛔ QUI C'ERA UNA PROVA CHE ESTRAEVA LA RIGA DAL SORGENTE E LA ESEGUIVA con
+     `new Function`, e non era un capriccio: la regola viveva in quattro copie
+     dentro quattro pagine, e non c'era nessun altro modo di chiamarla.
+     **Una prova costretta a leggere il sorgente per misurare un comportamento
+     sta dicendo che quel comportamento è nel posto sbagliato.** Il 06/08 la
+     decisione è salita in `shared/`, e adesso si chiama come tutte le altre —
+     più corta, più severa, e non salta se qualcuno indenta diversamente. */
+  const nomeCon = (mode, base) => shell.nomeCsvDimostrazione(base, mode);
 
   test("in live il nome esce pulito", () => {
     eq(nomeCon("live", "conti_situazione_fatture.csv"), "conti_situazione_fatture.csv", "niente marchio sui dati veri");
@@ -21112,14 +21115,33 @@ test("⛔ etichettaStatoDocumento: la mappa esce dalla pagina e la leggono in du
       eq(nomeCon(m, "flotta-costi.csv"), "DATI-DI-ESEMPIO_flotta-costi.csv", `mode ${JSON.stringify(m)} non è «live»`);
   });
 
-  test("il marchio non entra MAI nel contenuto: sta scritto una volta sola per pagina", () => {
+  test("il marchio non entra MAI nel contenuto, e adesso non sta nemmeno nelle pagine", () => {
     /* Se qualcuno lo mettesse in una riga d'intestazione o in coda ai dati, in
-       quella pagina comparirebbe una seconda volta e questa prova cadrebbe. È
-       la guardia sul giro scrivi/leggi: il contenuto non lo tocca nessuno. */
+       quella pagina comparirebbe e questa prova cadrebbe. È la guardia sul giro
+       scrivi/leggi: il contenuto non lo tocca nessuno.
+       ⚠️ Il numero atteso è cambiato da 1 a 0 il 06/08, e il cambio È l'unità:
+       il testo del marchio non è più scritto in nessuna pagina, sta nella
+       costante di `shared/`. Una pagina che se lo riscrive in casa fa cadere
+       questa riga — che è esattamente ciò che deve succedere. */
     for (const [n] of PAGINE) {
       const quante = (SRC.get(n).match(/DATI-DI-ESEMPIO_/g) || []).length;
-      eq(quante, 1, `${n}: il marchio compare ${quante} volte invece che solo nella definizione`);
+      eq(quante, 0, `${n}: il marchio è scritto ${quante} volte nella pagina invece di venire da shared/`);
     }
+    eq(shell.MARCHIO_CSV_DIMOSTRAZIONE, "DATI-DI-ESEMPIO_", "e il testo del marchio è quello, dichiarato una volta");
+  });
+
+  test("⛔ chiamata due volte non raddoppia il marchio", () => {
+    /* La riga vecchia lo faceva: `DATI-DI-ESEMPIO_DATI-DI-ESEMPIO_x.csv`. Non
+       era raggiungibile allora, ma un nome di file è una cosa che si compone a
+       pezzi e domani qualcuno passa di lì due volte. */
+    const una = shell.nomeCsvDimostrazione("listino.csv", "demo");
+    eq(shell.nomeCsvDimostrazione(una, "demo"), una, "il secondo giro non aggiunge niente");
+  });
+
+  test("⛔ e un nome che non c'è non diventa il testo «null»", () => {
+    /* Altra cosa che la riga vecchia faceva: `DATI-DI-ESEMPIO_null`. */
+    eq(shell.nomeCsvDimostrazione(null, "demo"), "DATI-DI-ESEMPIO_", "nessun «null» nel nome del file");
+    eq(shell.nomeCsvDimostrazione(undefined, "live"), "", "e coi dati veri resta vuoto, non «undefined»");
   });
 
   test("la riga download = «…» resta un letterale, se no la regola 13 di run-stile diventa cieca", () => {

@@ -38,6 +38,42 @@ export function csvCell(v) {
   return s;
 }
 
+/* IL NOME DI UN CSV USCITO DALLA DIMOSTRAZIONE — deciso in un posto solo.
+   ═══════════════════════════════════════════════════════════════════════
+   ⛔ Nasce il 06/08 da QUATTRO copie identiche in quattro pagine (Conti,
+   Flotta, Sentinella, Terra), scritte tutte nello stesso pomeriggio. Il segno
+   che erano nel posto sbagliato non è il numero delle copie: è che per
+   provarle era stato necessario **estrarre la riga dal sorgente della pagina
+   ed eseguirla**. Una prova che deve leggere il codice sorgente per misurarne
+   il comportamento sta dicendo che quel comportamento non vive dove si può
+   chiamare. Adesso è una funzione pura e si prova come tutte le altre.
+
+   ⚠️ In `shared/` sta la DECISIONE — che cosa conta come dimostrazione e che
+   forma ha il marchio — non l'impianto: `db.mode` è della pagina, e la pagina
+   continua a passarglielo. La riga che resta nelle quattro è plumbing di tre
+   parole, non una seconda implementazione.
+
+   Perché il marchio sta in TESTA e non in coda: è la fine del nome che i
+   client di posta e le finestre di allegato tagliano per prima.
+
+   ⛔ SOLO UN «live» ESPLICITO HA DIRITTO AL NOME PULITO. Modo assente, vuoto,
+   sconosciuto, o scritto in maiuscolo → marchiato. È il principio del
+   fondatore applicato al nome di un file: l'assenza di un dato non è un dato
+   favorevole, e qui il dato favorevole sarebbe «questi numeri sono veri».
+
+   ⚠️ E tre comportamenti sono MIGLIORI della riga che sostituisce, misurati
+   affiancando le due versioni su undici casi: chiamata due volte non raddoppia
+   il marchio (`DATI-DI-ESEMPIO_DATI-DI-ESEMPIO_x.csv`), un nome assente non
+   diventa il testo «null», e coi dati veri un nome assente resta vuoto invece
+   che «undefined». Nessuno dei tre si vedeva leggendo la riga vecchia. */
+export const MARCHIO_CSV_DIMOSTRAZIONE = "DATI-DI-ESEMPIO_";
+export function nomeCsvDimostrazione(nome, modo) {
+  const n = String(nome == null ? "" : nome);
+  if (modo === "live") return n;
+  if (n.startsWith(MARCHIO_CSV_DIMOSTRAZIONE)) return n;   // già marchiato: non si raddoppia
+  return MARCHIO_CSV_DIMOSTRAZIONE + n;
+}
+
 // Legge UNA riga CSV rispettando le virgolette: così un campo come
 // "Rossi;Mario" (col separatore dentro) resta un valore solo e non
 // spacca le colonne. Toglie anche l'apostrofo di guardia che csvCell

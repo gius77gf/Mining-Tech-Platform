@@ -1460,7 +1460,7 @@ textarea.dw-input{
            FONTE_IMPORT, FONTE_MANO, FONTE_IGNOTA,
            numeroDaCampo, AVVISO_DECIMALE } from "./sentinella-data.js";
   import { mountExit, esc, csvCell, statoVuoto, senzaDoppioni, giorniTra, montaGuardiaInteri, avvolgiUnita, oggiISO,
-         controllaAllegato, testoAllegatoRifiutato, pezziDataURL, dataIt } from "../../shared/deepwork-id-client/dw-shell.js";
+         controllaAllegato, testoAllegatoRifiutato, pezziDataURL, dataIt, nomeCsvDimostrazione } from "../../shared/deepwork-id-client/dw-shell.js";
   // Il colore della riga di una taratura è quello di una scadenza qualunque:
   // la regola sta in shared/ e la usano già Scudo e Campo. Non se ne scrive
   // una copia qui dentro solo perché la parola è diversa.
@@ -1598,9 +1598,17 @@ textarea.dw-input{
      Si chiama DOPO l'assegnazione, e la riga download = "…" resta un
      letterale: la regola 13 di run-stile conta i nomi ripetuti leggendo proprio
      quel letterale, e nasconderglielo la renderebbe cieca.
-     ⛔ Questa regola serve a QUATTRO app: il suo posto è shared/dw-ponti.js e
-     il trasloco è una riga (questa const diventa un import). */
-  const marchiaCsv = (el) => { if (db.mode !== "live") el.download = `DATI-DI-ESEMPIO_${el.download}`; return el; };
+     ✅ TRASLOCATA IL 06/08: la DECISIONE — che cosa conta come dimostrazione e
+     che forma ha il marchio — sta in `nomeCsvDimostrazione` di
+     shared/deepwork-id-client/dw-shell.js, accanto a `csvCell` che è della
+     stessa famiglia. Qui resta l'impianto, tre parole, perché `db.mode` è
+     della pagina: un alias non è una seconda implementazione.
+     ⚠️ Il segno che era nel posto sbagliato non era il numero delle copie: era
+     che per provarla bisognava ESTRARRE LA RIGA DAL SORGENTE ed eseguirla con
+     `new Function`. Una prova costretta a leggere il codice per misurarne il
+     comportamento sta dicendo che quel comportamento non vive dove si può
+     chiamare. */
+  const marchiaCsv = (el) => { el.download = nomeCsvDimostrazione(el.download, db.mode); return el; };
 
   let MON=[], ADE=[], REG=[], VOL=[], RIC=[], REC=[], PRG=[];
   // T7 · il ponte con Scudo: le azioni correttive NON sono dati di
