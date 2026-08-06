@@ -1325,7 +1325,15 @@ function hudUpdate(now){
 }
 
 /* materiale roccia irregolare (clonato dall'approccio del core: jitter vertici + flatShading) */
-function jitterGeo(g, amp){ const a = g.attributes.position.array; const rj = mulberry32(7); for(let i=0;i<a.length;i++) a[i]+=(rj()-0.5)*amp; g.computeVertexNormals(); return g; }
+/* ⛔ IL SEME È UN ARGOMENTO, E PRIMA NON LO ERA — per questo il corpo di
+   questa funzione stava scritto una seconda volta a mano, dentro la
+   costruzione dei chunk: là servono tre geometrie DIVERSE (semi `11+k`), qui
+   il seme era inchiodato a 7, e chi doveva variarlo non poteva fare altro che
+   ricopiare le sei righe. Il risultato è la solita coppia: due copie che oggi
+   fanno la stessa cosa e domani divergono, con l'aggravante che questa scrive
+   dentro una geometria — cioè un difetto che si vede solo guardando il 3D.
+   Il valore predefinito tiene identiche le tre chiamate che c'erano già. */
+function jitterGeo(g, amp, seme = 7){ const a = g.attributes.position.array; const rj = mulberry32(seme); for(let i=0;i<a.length;i++) a[i]+=(rj()-0.5)*amp; g.computeVertexNormals(); return g; }
 /* il rumore continuo NEL MONDO (`vnoise3`) sta in `./genesi-data.js`, blocco
    G7: è il generatore, `worldJitter` è chi lo spalma su una geometria THREE. */
 function worldJitter(g, off, amp){
@@ -1481,10 +1489,22 @@ function buildSim(){
   const depth = SPALLA + maxZoff;                                  // profondità totale scavata (file dietro incluse)
   /* scatter dell'innesco: jitter gaussiano deterministico sui tempi nominali (elettronico 0,1 ms, elettrico 0,5 ms, Nonel 2%·t, cordtex 3%·t) */
   const _innId = D2.innesco||'nonel';
-  const _gauss = ()=>{ const u=Math.max(1e-9,rng()), v=rng(); return Math.sqrt(-2*Math.log(u))*Math.cos(6.2831853*v); };
+  /* ⛔ QUI C'ERA UNA SECONDA COPIA DI BOX–MULLER, E OMBREGGIAVA L'ORIGINALE.
+     `const _gauss = …` dichiarato in questa funzione nascondeva l'import di
+     riga 1040 — stesso nome, altra implementazione — e le due non erano
+     nemmeno uguali: quella di casa scriveva `6.2831853` dove il modulo scrive
+     `2*Math.PI` (che vale 6,283185307…), cioè un 2π troncato alla settima
+     cifra. Su una distribuzione non si vede a occhio, ed è il motivo per cui
+     una copia divergente sopravvive: nessuno la smentisce.
+     La differenza che conta non è la settima cifra: è che il modulo è provato
+     e questa no, e che chi correggesse la formula nel modulo si troverebbe la
+     pagina ferma alla versione vecchia senza nessun errore da leggere.
+     ⚠️ Le due firme non erano intercambiabili — quella di casa prendeva il
+     generatore dalla chiusura, quella del modulo lo vuole come argomento — ed
+     è esattamente perché **non** lo erano che la copia era nata. */
   for(const f of fori){
     const sd=(_innId==='elettronico')?0.1:((_innId==='elettrico')?0.5:((_innId==='cordtex')?0.03*f.tDet:0.02*f.tDet));
-    f.tNom=f.tDet; f.tDet=Math.max(0, f.tDet + _gauss()*sd);
+    f.tNom=f.tDet; f.tDet=Math.max(0, f.tDet + _gauss(rng)*sd);
   }
   const H = Math.max(...fori.map(f=>f.h));          // altezza rappresentativa (max) per banco/camera/muckpile
   const lastDet = Math.max(...fori.map(f=>f.tDet));
@@ -1907,7 +1927,9 @@ function buildScene(){
   }
   /* chunk: 3 InstancedMesh con geometrie icosaedro diverse */
   chunkMeshes.forEach(im=>{ im.geometry.dispose(); im.material.dispose(); dynGroup.remove(im); }); chunkMeshes=[];
-  const geos = [0,1,2].map(k=>{ const g=new THREE.IcosahedronGeometry(0.6,0); const a=g.attributes.position.array; const r=mulberry32(11+k); for(let i=0;i<a.length;i++)a[i]+=(r()-0.5)*0.26; g.computeVertexNormals(); return g; });
+  /* tre sassi diversi = tre semi diversi; il corpo è quello di `jitterGeo`,
+     che adesso il seme lo prende come argomento invece di tenerlo inchiodato */
+  const geos = [0,1,2].map(k=>jitterGeo(new THREE.IcosahedronGeometry(0.6,0), 0.26, 11+k));
   const mats = [shade(_lt,0.92),shade(_lt,0.82),shade(_lt,0.72)].map(c=>rockMat(c));
   const per = Math.ceil(SIM.chunks.length/3);
   for(let k=0;k<3;k++){
