@@ -440,10 +440,18 @@ numero scritto dove non era stato misurato niente**.*
       **codice di norma sconosciuto** prende in silenzio la soglia residenziale
       (l'etichetta e il numero raccontano due cose diverse), e `sitoFit` scrive
       **`r2: 0`** dove r² non è calcolabile.
-- [ ] **B3. Genesi continua a uscire dalla pagina.** Da 186 funzioni dentro
-      `genesi.html` siamo a **174**; le estraibili senza toccare l'architettura
-      sono circa **90**. È l'unico pezzo di prodotto che vive quasi tutto fuori
-      dalla portata delle prove.
+- [ ] **B3. Genesi continua a uscire dalla pagina.** ⏱️ *Numeri rimisurati il
+      06/08, perché erano invecchiati di tre unità mentre nessuno se ne
+      accorgeva — «186 → 174» era il conto di due giorni prima.* Oggi, contati
+      lanciando `copertura-funzioni.mjs` e `genesi-estraibili.mjs` invece che a
+      memoria: **171** funzioni ancora dentro `genesi.html`, e le estraibili
+      **senza rifare il modo in cui Genesi tiene il suo stato** sono **87** —
+      59 leggono una o due variabili del modulo (si portano fuori
+      passandogliele), 6 scrivono nel DOM e restano dov'è giusto che restino.
+      Le altre **84** non sono un trasloco: sono una decisione di architettura,
+      e vanno chiamate così invece di finire in una stima ottimistica.
+      È l'unico pezzo di prodotto che vive quasi tutto fuori dalla portata
+      delle prove.
 - [ ] **B4. Le mancanze confermate del delta**, in ordine di quanto le chiede un
       ispettore. Conto aggiornato al 02/08: **54 confermate**, 6 **scadute**
       (colmate senza che la riga lo sapesse), 2 **colmate di proposito**. Regola
