@@ -338,9 +338,52 @@ Fonti: Newtrax MDP product page, Micromine Pitram short-interval control docs.
 
 ---
 
-## Verifica del delta (01/08 · **riverificato il 03/08**)
+## Verifica del delta (01/08 · riverificato il 03/08 · **arretrato richiuso il 06/08**)
 
-> **Verificato contro il codice al commit `6048442`.** *(La prima verifica era
+> **Verificato contro il codice al commit `d9524fa`** (06/08).
+>
+> ### 06/08 — l'ultimo arretrato dei sei documenti va a zero
+>
+> Fra `6048442` e `d9524fa` Campo è andata avanti di **4 commit** e **+597
+> righe** (il near-miss segnalato dal fronte, il rapporto di fine turno che
+> dichiara di essere una dimostrazione, la regola dei file che escono salita in
+> `shared/`). Nessuna riga del delta si muove, e la prova sono le **sole righe
+> aggiunte**:
+>
+> ```
+> git diff 6048442 HEAD -- apps/campo/ | grep -E "^\+" \
+>   | grep -oEi "GPS|IoT|QR|RFID|XMLHttpRequest|annotaz|barcode|codice a barre|
+>                geofenc|geolocation|latitudin|longitudin|coordinat|in.?cab|
+>                cabina|fatica|fatigue|ore consecutive|riposo|instradament|
+>                dispatch|ordine di lavoro|inventario|magazzino|giacenza|
+>                multi-cava|multi-sito|predittiv|previsione|
+>                manutenzione preventiva|fetch\(|canvas|markup" | sort | uniq -c
+> →       2 ioT
+> →       1 riposo
+> ```
+>
+> **Due occorrenze su 34 termini, e le ho aperte tutt'e due** — che è la regola
+> imparata stamattina su Terra e ripetuta oggi su Sentinella:
+> · `ioT` sta dentro **`avvis·ioT·esto`** (`avvisoEsempioTesto`), la funzione
+>   che scrive l'avviso di dimostrazione: camelCase, come `colOra` in
+>   Sentinella;
+> · `riposo` sta in un **commento** che descrive i dati inventati del rapporto
+>   («nomi, orari, ore lavorate e ore di riposo tutti inventati»).
+>
+> ⚠️ **E il secondo meritava un controllo in più, non un'alzata di spalle.** Un
+> commento che nomina «ore di riposo» fra i dati della dimostrazione suggerisce
+> che il modello *le abbia*. Verificato: le ha — `RIPOSO_MINIMO_ORE`,
+> `riposoPrimaDelTurno`, `riposoDiTurno`, `STATI_RIPOSO`, con il D.Lgs 66/2003
+> art. 7 citato e il caso «non misurabile» gestito (`campo-data.js:1296-1361`,
+> `index.html:2587-2602`). Ma il documento **lo sapeva già**: la riga «Fatigue
+> monitoring» è marcata ⏱️ *SCADUTA — c'è dal 01/08* e cita quelle stesse
+> funzioni. Cioè il sospetto era giusto e la risposta era che il lavoro era già
+> stato fatto — il caso opposto a quello che costa, e va scritto anche questo,
+> perché altrimenti sembra che il controllo trovi sempre qualcosa.
+>
+> *(Il blocco qui sotto è la verifica del 03/08 e resta com'era scritta.)*
+
+> **Verificato al commit `6048442`** (03/08). *(La prima verifica era
 > a `f3432f4`, 01/08 16:55; il 03/08 le righe sono state ripassate contro il
 > codice di oggi e **una ha cambiato verdetto**, nella direzione che costa:
 > «contractor induction» da **assente confermata** a ⏱️ **scaduta in parte** —
