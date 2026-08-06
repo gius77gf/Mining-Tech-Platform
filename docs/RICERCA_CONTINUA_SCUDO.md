@@ -281,3 +281,67 @@ Formato e periodicità: **non ancora definiti** — decreto ministeriale atteso 
 ---
 
 *Ricerca del 03/08/2026. Nessun codice modificato, nessun commit. Tre proposte verificabili; zero false partenze.*
+
+---
+
+## ⛔ Le tre proposte sui near-miss, rimisurate una per una (06/08/2026)
+
+**Commit verificato:** `d9524fa`
+
+Questa scheda parte con poco credito, e non per pregiudizio: la sua gemella
+sulle norme aveva **tre affermazioni false su tre in una sezione sola**, fra cui
+scaglioni di spese di recupero (`€ 40 / € 70`) che nel D.Lgs 231/2002 **non
+esistono** — e correggere su quella riga avrebbe **introdotto** un errore in un
+documento che il cliente manda a un cliente. Quindi ogni riga qui sotto è stata
+riaperta contro il codice, coi comandi e le loro uscite.
+
+| # | proposta | verdetto misurato |
+|---|---|---|
+| 1 | ora di segnalazione distinta dalla data dell'evento | **vera: non c'è** |
+| 2 | gravità potenziale del mancato infortunio | **vera: non c'è** |
+| 3 | scadenza della comunicazione annuale | **falsa a metà**, e la parte che resta NON si costruisce su questa scheda |
+
+### Le prove
+
+```
+$ grep -n "oraSegnalazione\|ora_segnalazione\|nm-ora\|oraEvento" apps/scudo/scudo-data.js apps/scudo/index.html
+(nessuna riga)
+$ grep -c 'type="time"' apps/scudo/index.html
+1                                  ← e non è del near-miss
+
+$ grep -n "gravitaPotenziale\|potenziale\|GRAVITA_POT" apps/scudo/scudo-data.js apps/scudo/index.html
+(nessuna riga)
+
+$ grep -n "export function.*NearMiss" apps/scudo/scudo-data.js
+951:export function riepilogoNearMiss(infortuni, azioni, giorni = 90, oggi = new Date())
+998:export function descriviLetturaNearMiss(riepilogo)
+$ grep -c "scadenzaComunicazione\|entro il 30\|termine di comunicazione" apps/scudo/scudo-data.js apps/scudo/index.html
+0  0
+```
+
+### ⛔ Perché la terza si ferma qui, e non è pigrizia
+Il **riepilogo aggregato** che la L. 198/2025 chiede **c'è già**
+(`riepilogoNearMiss`, con `descriviLetturaNearMiss` che dichiara quando i
+numeri non si possono leggere). Quello che manca è la **scadenza**: entro
+quando va comunicato.
+
+Ma una scadenza è una **citazione normativa dentro un software venduto**, e
+questa scheda dice — con parole sue — che le linee guida INAIL erano «attese
+per il 30 aprile 2026», cioè **dichiara essa stessa che la forma non era
+definita**. Costruire un promemoria su una data così vuol dire mettere in
+faccia a un responsabile della sicurezza un termine che potremmo aver
+inventato, sulla parola di una scheda che ha già sbagliato tre volte su tre.
+
+**Va alla fonte primaria e al fondatore col suo RSPP**, esattamente come la
+riga sul DUVRI, e per la stessa ragione. Non è «rimandata»: è **ferma con il
+motivo scritto**, che è una cosa diversa.
+
+### Che cosa entra in lavorazione
+La **2** — la gravità potenziale — perché è quella che trasforma un registro in
+qualcosa che sa dire *dove il rischio si concentra*, e perché non è una
+citazione normativa ma una scelta di prodotto, che possiamo difendere da soli.
+⚠️ E con il principio del fondatore addosso fin dal disegno: **«non lo so» deve
+essere uno stato dichiarabile**, non il valore più basso. Chi segnala di corsa
+sul piazzale spesso non sa dire che cosa sarebbe successo, e un registro che lo
+costringe a scegliere raccoglie un numero inventato — che è peggio di una cella
+vuota, perché poi qualcuno ci fa una media.
