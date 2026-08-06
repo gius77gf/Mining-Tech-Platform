@@ -115,6 +115,21 @@ const BANCHI = [
      tenuta a mente: si aggiorna col banco, se no il giro dice di aver
      guardato meno di quello che guarda — o più. */
   ['i fogli stampati di Flotta, Sentinella, Conti e Terra', 'stampe-fs.mjs', []],
+  /* ⛔ AGGIUNTO IL 06/08, e Campo ha voluto un banco suo perché il suo foglio
+     non è come gli altri: Campo **non stampa sé stesso** (`grep -c "@media
+     print" apps/campo/index.html` → 0). Il rapporto di fine turno è un HTML
+     costruito e scritto in una FINESTRA NUOVA, come i due di Terra, e con lui
+     viaggia la **consegna di turno `.txt`** — lo stesso documento in un altro
+     vestito, quello che passa di mano fra due turni.
+     Il banco ha `--live` (coi dati veri i fogli devono uscire PULITI: 3
+     iniezioni riuscite) e `--controprova` (9 difetti rimessi, 0 iniezioni
+     mancate). Ha trovato anche il secondo difetto della giornata: sul Quadro
+     in cima al foglio, con la giornata vuota, «0/0 attività concluse · 0
+     anomalie aperte» — la riga più tranquilla del documento, due sezioni
+     sopra una che già diceva «non calcolata». */
+  ['il foglio di fine turno di Campo', 'campo-foglio-turno.mjs', []],
+  ['foglio di turno · controprova', 'campo-foglio-turno.mjs', ['--controprova'], true],
+  ['foglio di turno · coi dati veri tace', 'campo-foglio-turno.mjs', ['--live']],
   ['fogli stampati F/S/C/T · controprova', 'stampe-fs.mjs', ['--controprova'], true],
   ['unità in maiuscolo', 'unita-maiuscole.mjs', []],
   ['unità · controprova', 'unita-maiuscole.mjs', ['--controprova', '--solo=campo'], true],

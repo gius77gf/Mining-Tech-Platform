@@ -3890,11 +3890,63 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
     a.download = "campo_squadre.csv"; a.click();
     esito("squ-esito", "Esportate " + SQU.length + " squadre nel file campo_squadre.csv.", "success");
   };
+  /* ⛔ SUI FOGLI DI CAMPO NON RESTAVA NIENTE CHE DICESSE «SONO DATI DI ESEMPIO».
+     Misurato oggi con lo stesso comando di tre secondi che ha aperto il buco
+     nelle altre app:  grep -c "solo-stampa\|DATI DI ESEMPIO"
+     apps/campo/index.html  ->  0.
+     Lo schermo lo dichiara due volte — la fascia `#tour-banner` (riga 1323) e
+     la riga di stato `#mode-note` (riga 1324) — e nessuna delle due arriva sul
+     foglio: sono comandi, non documento. In Campo il salto è ancora più netto
+     che altrove, e va detto perché cambia DOVE si mette la difesa: la pagina
+     non ha nemmeno una regola `@media print` (`grep -c "@media print"` -> 0),
+     perché il rapporto non è questa pagina stampata — è un HTML costruito qui
+     e scritto con `document.write` in una FINESTRA NUOVA, dove né la fascia né
+     un eventuale `@media print` di casa arriverebbero mai. La dichiarazione va
+     quindi DENTRO il documento generato, come in Terra.
+     E qui il foglio che esce è il rapporto di fine turno: lo si consegna al
+     capocantiere, lo si archivia come prova di chi c'era e a che ora, e un
+     ispettore lo chiede. Senza questa riga un rapporto di dimostrazione — con
+     nomi, orari, ore lavorate e ore di riposo tutti inventati — è
+     indistinguibile da uno vero.
+
+     LA DECISIONE SI PRENDE QUI, IN UN POSTO SOLO, e i fogli la leggono: oggi
+     il rapporto stampato e la consegna di turno in .txt, domani chiunque
+     altro. `db.mode` riletto in ogni foglio sarebbe la copia debole che
+     aspetta di divergere. La frase è UNA perché i due fogli raccontano lo
+     stesso turno e si usano allo stesso modo; cambia solo il vestito, HTML
+     sul foglio e testo semplice nel file.
+     ⚠️ La forma (nome, CSS, struttura del blocco) è copiata da Terra e Conti,
+     che ce l'hanno da prima: è la terza app con lo stesso avviso in pagina, e
+     quando servirà alla quarta il posto giusto è `shared/`, non un quarto
+     copia-e-incolla. */
+  // `null` = dati veri, e allora tutto tace. Qualunque altro valore è il nome
+  // della dimostrazione. ⛔ Se `db.mode` non c'è la risposta resta
+  // «dimostrazione»: l'assenza del dato non è il permesso di stare zitti.
+  const modoDimostrazione = () => db.mode === "live" ? null : String(db.mode || "non dichiarata");
+  const FRASE_ESEMPIO = "Questo foglio non descrive nessun turno realmente lavorato: "
+    + "nomi, orari, ore lavorate, fermi e firme sono inventati. Non va consegnato al turno "
+    + "successivo, non vale come prova delle presenze o delle ore di lavoro e non va esibito "
+    + "a un controllo.";
+  // il vestito per il foglio stampato (finestra nuova) …
+  const CSS_ESEMPIO = ".esempio{border:2px solid #111;background:#fff;color:#111;"
+    + "padding:8px 11px;margin:0 0 14px;font-size:11.5px;line-height:1.5;"
+    + "page-break-inside:avoid;break-inside:avoid}"
+    + ".esempio b{letter-spacing:.3px}";
+  const avvisoEsempio = () => { const m = modoDimostrazione();
+    return m ? "<div class='esempio'><b>DATI DI ESEMPIO — modalità tour (" + esc(m) + ").</b> "
+      + esc(FRASE_ESEMPIO) + "</div>" : ""; };
+  // … e quello per la consegna in .txt, dove non c'è nessun riquadro da
+  // disegnare: la riga sta in cima, prima di qualunque dato, perché un foglio
+  // che si legge dall'alto deve dirlo prima di essere creduto.
+  const avvisoEsempioTesto = () => { const m = modoDimostrazione();
+    return m ? "*** DATI DI ESEMPIO — modalita' tour (" + m + "). " + FRASE_ESEMPIO + " ***\n\n" : ""; };
+
   // Consegna di turno (handover): un testo con i rapportini e le anomalie
   // aperte, pronto da passare al turno successivo o da archiviare.
   $("btn-consegna").onclick = () => {
     const oggi = dmy(OGGI);
     let txt = "CONSEGNA DI TURNO — " + oggi + "\n\n";
+    txt += avvisoEsempioTesto();
     txt += "RAPPORTINI\n";
     txt += (RAP_OGGI.length ? RAP_OGGI.map(r => "- " + r.titolo + (riassuntoRapportino(r) ? " — " + riassuntoRapportino(r) : "") + " [" + r.stato + "]").join("\n") : "- nessun rapportino") + "\n\n";
     const tp = totaliProduzione(RAP_OGGI), unita = Object.entries(tp.perUnita);
@@ -4027,12 +4079,28 @@ table{border-collapse:collapse;width:100%}td,th{border:1px solid #ccc;padding:4p
    di lunghezza diversa che non stanno sotto si confrontano a occhio male */
 .kpi b{font-variant-numeric:tabular-nums}
 .muted{color:#666;font-size:11px}.kpi{display:inline-block;margin-right:18px}.kpi b{font-size:17px}
-.foto{margin:10px 0;page-break-inside:avoid}.foto img{max-width:340px;width:100%;border:1px solid #ccc;margin-top:4px}</style></head><body>
+.foto{margin:10px 0;page-break-inside:avoid}.foto img{max-width:340px;width:100%;border:1px solid #ccc;margin-top:4px}
+${CSS_ESEMPIO}</style></head><body>
 <h1>Rapporto di fine turno</h1><div class="muted">Deepwork Campo · ${oggi}</div>
+${avvisoEsempio()}
 <h2>Quadro</h2>
-<div><span class="kpi"><b>${av.concluse}/${av.totale}</b> attività concluse</span>
-<span class="kpi"><b>${ATT_OGGI.filter(a=>a.stato==="anomalia").length}</b> anomalie aperte</span>
-<span class="kpi"><b>${cop.coperte}/${cop.totale}</b> squadre con rapportino</span>
+${/* ⛔ IL QUADRO DICEVA «0 ANOMALIE APERTE» SU UNA GIORNATA IN CUI NESSUNO
+     AVEVA REGISTRATO NIENTE. Misurato aprendo il foglio con le attività del
+     giorno a zero: usciva «0/0 attività concluse · 0 anomalie aperte», cioè
+     la riga più tranquilla che il documento sappia dire proprio dove non è
+     stato misurato niente — e in cima a un rapporto che si consegna e si
+     archivia, quella riga è la prima che si legge.
+     La regola giusta era già DUE sezioni più sotto, in questo stesso foglio:
+     «Disponibilità del turno» scrive «non calcolata — Non è registrata nessuna
+     attività per questo turno. Un numero qui direbbe che il turno è andato
+     bene, mentre la verità è che non è stato misurato». Il Quadro se n'era
+     tenuta una versione più debole. Il segno è quello scritto in CLAUDE.md:
+     un numero tranquillo dove non è stato misurato niente.
+     E le anomalie si contano una volta sola: `avanzamentoGiornata` le conta
+     già (`av.anomalie`), qui c'era un secondo `filter` sullo stesso stato. */""}
+<div><span class="kpi">${av.totale?`<b>${av.concluse}/${av.totale}</b> attività concluse`:`<b>—</b> attività: nessuna registrata oggi`}</span>
+<span class="kpi">${av.totale?`<b>${av.anomalie}</b> ${av.anomalie===1?"anomalia aperta":"anomalie aperte"}`:`<b>—</b> anomalie: nessuna attività da cui contarle`}</span>
+<span class="kpi">${cop.totale?`<b>${cop.coperte}/${cop.totale}</b> squadre con rapportino`:`<b>—</b> squadre: nessuna in anagrafica`}</span>
 <span class="kpi"><b>${unitaProd.length?esc(somma(tp.perUnita)):"—"}</b> prodotti</span></div>
 <h2>Checklist di inizio turno</h2>
 ${chkOggi.length?`<table><tr><th>Squadra</th><th>Turno</th><th>Risposte</th><th>Voci non a posto</th><th>Chiusa alle</th></tr>${chkOggi.map(x=>`<tr><td>${esc(x.c.squadra||"—")}</td><td>${esc(x.c.turno||"—")}</td><td>${x.st.ok} a posto · ${x.st.na} n.a. · ${x.st.mancanti} senza risposta</td><td>${x.st.problemi.length?x.st.problemi.map(esc).join("; "):"nessuna"}</td><td>${esc(x.c.ora||"non chiusa")}</td></tr>`).join("")}</table>`:"<div>Nessuna checklist di inizio turno compilata oggi.</div>"}
@@ -4060,7 +4128,7 @@ ${/* QUESTA TABELLA DICEVA MENO DI QUELLA DELLO SCHERMO. Si componeva con
      Attenuante vera, scritta per non gonfiare: piu sotto la tabella
      «Disponibilita del turno» il tempo perso lo riporta. Il dato non spariva
      dal foglio; questa tabella pero ne diceva meno del dovuto. */""}
-${fermi.length?`<table><tr><th>Causale</th><th>Anomalie</th><th>Tempo perso</th></tr>${fermi.map(f=>{const v=pfOggi.voci.find(x=>x.causale===f.causale);return `<tr><td>${esc(f.causale)}</td><td>${f.conto}</td><td>${esc(v?minutiFermoTesto(v.minuti,v.conto,v.senzaMinuti):"senza minuti")}</td></tr>`;}).join("")}</table>${pfOggi.senzaMinutiTot?`<div class="muted">${pfOggi.senzaMinutiTot} fermo/i su ${pfOggi.fermiTot} senza i minuti registrati: il tempo perso qui sopra è un minimo.</div>`:""}`:"<div>Nessuna anomalia aperta.</div>"}
+${fermi.length?`<table><tr><th>Causale</th><th>Anomalie</th><th>Tempo perso</th></tr>${fermi.map(f=>{const v=pfOggi.voci.find(x=>x.causale===f.causale);return `<tr><td>${esc(f.causale)}</td><td>${f.conto}</td><td>${esc(v?minutiFermoTesto(v.minuti,v.conto,v.senzaMinuti):"senza minuti")}</td></tr>`;}).join("")}</table>${pfOggi.senzaMinutiTot?`<div class="muted">${pfOggi.senzaMinutiTot} fermo/i su ${pfOggi.fermiTot} senza i minuti registrati: il tempo perso qui sopra è un minimo.</div>`:""}`:(ATT_OGGI.length?"<div>Nessuna anomalia aperta.</div>":"<div>Nessuna attività registrata oggi: non c'è niente da cui contare i fermi. Questa riga non dice che il turno è andato liscio.</div>")}
 <h2>Disponibilità del turno</h2>
 ${dispOggi.length?`<table><tr><th>Turno</th><th>Durata dichiarata</th><th>Fermi</th><th>Tempo perso</th><th>Causale peggiore</th><th>Disponibilità</th></tr>${dispOggi.map(d=>`<tr><td>${esc(d.turno)}</td><td>${d.durataMin===null?"non dichiarata":esc(oreMinuti(d.durataMin))}</td><td>${d.fermi} ${d.fermi===1?"fermo":"fermi"}${d.fermiSenzaMinuti?" (di cui "+d.fermiSenzaMinuti+" senza minuti)":""}</td><td>${d.fermi?esc(minutiFermoTesto(d.fermiMin,d.fermi,d.fermiSenzaMinuti)):"—"}</td><td>${d.peggiore?esc(d.peggiore.causale)+" — "+numeroIt(d.peggiore.minuti,0)+" min su "+d.peggiore.conto+(d.peggiore.conto===1?" fermo":" fermi"):"—"}</td><td>${d.pct===null?"<b>non calcolata</b> — "+esc(d.motivo):(d.parziale?"al più <b>"+d.pct+"%</b>":"<b>"+d.pct+"%</b>")+" ("+esc(oreMinuti(d.lavoratiMin))+" lavorati su "+esc(oreMinuti(d.durataMin))+")"+(d.parziale?"<br>"+esc(d.motivo):"")}</td></tr>`).join("")}</table>
 <div class="muted">Disponibilità = durata dichiarata del turno meno i minuti di fermo registrati sulle attività in anomalia. <b>Non è l'OEE</b>: l'OEE moltiplica disponibilità, prestazione e qualità, e prestazione e qualità qui non sono misurate.</div>`

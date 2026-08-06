@@ -20733,5 +20733,118 @@ test("⛔ etichettaStatoDocumento: la mappa esce dalla pagina e la leggono in du
   });
 }
 
+// ═══ CAMPO · la dimostrazione dichiarata (06/08) ═══
+/* Il rapporto di fine turno di Campo non diceva di essere fatto di dati di
+   esempio (`grep -c "solo-stampa\|DATI DI ESEMPIO" apps/campo/index.html` -> 0
+   prima di oggi). Il foglio si apre in una FINESTRA NUOVA, quindi il difetto
+   e la sua difesa si vedono solo aprendola: quel lavoro lo fa il banco
+   `browser/campo-foglio-turno.mjs`.
+   Qui restano le due cose che NON hanno bisogno del browser, e che il banco
+   non potrebbe tenere ferme da solo:
+   1. il contratto puro su cui il foglio adesso decide che cosa scrivere nel
+      Quadro — `avanzamentoGiornata` su una giornata senza registrazioni;
+   2. che la decisione «questo è un foglio di dimostrazione» resti in UN posto
+      solo. Il banco può provare che i fogli dichiarano; non può accorgersi
+      che domani qualcuno rilegga `db.mode` dentro un terzo foglio, perché
+      quel terzo foglio direbbe la cosa giusta lo stesso — fino al giorno in
+      cui le due copie divergono. Si guarda il testo della pagina, come fa già
+      la banda dei CSV qui sopra. */
+{
+  const { readFileSync } = await import("node:fs");
+  const { senzaCommenti } = await import("./tokenizza.mjs");
+  const SRC_CAMPO = readFileSync(join(HERE, "../../campo/index.html"), "utf8");
+  console.log("\n— Campo · il rapporto di fine turno dichiara di essere una dimostrazione —");
+
+  test("campo · su una giornata senza registrazioni il modulo non dà numeri tranquilli", () => {
+    const a = campo.avanzamentoGiornata([]);
+    eq([a.totale, a.concluse, a.anomalie], [0, 0, 0], "non c'è niente da contare");
+    eq(a.pct, null, "e la percentuale è già dichiarata non calcolabile dal modulo");
+    /* ⛔ È QUI CHE STAVA LA COPIA DEBOLE: `pct` era `null` da sempre, ma il
+       foglio non lo guardava — scriveva «0/0 attività concluse · 0 anomalie
+       aperte» in cima al rapporto. Adesso decide su `totale`, che è il solo
+       valore che distingue «zero anomalie» da «nessuna attività da cui
+       contarle». Questa prova fissa quel contratto: se `totale` smettesse di
+       essere 0 su una lista vuota, il foglio tornerebbe a scrivere il numero. */
+    eq(campo.avanzamentoGiornata(null).totale, 0, "e nemmeno su una lista che non c'è");
+  });
+
+  test("campo · `av.anomalie` conta esattamente quello che il foglio contava a mano", () => {
+    /* Il rapporto aveva un secondo `filter(a => a.stato === "anomalia")`
+       accanto ad `avanzamentoGiornata`, che le anomalie le conta già. Due
+       conti uguali oggi divergono domani: adesso ce n'è uno, e questa prova
+       dice che è lo stesso numero. */
+    const att = [
+      { stato: "anomalia" }, { stato: "conclusa" }, { stato: "anomalia" },
+      { stato: "in-corso" }, { stato: "pianificata" }, { stato: "boh" },
+    ];
+    eq(campo.avanzamentoGiornata(att).anomalie,
+      att.filter((a) => a.stato === "anomalia").length, "stesso conto, un posto solo");
+    eq(campo.avanzamentoGiornata(att).totale, 6, "e uno stato sconosciuto resta nel totale");
+  });
+
+  test("campo · senza squadre in anagrafica la copertura non è «0 su 0» per finta", () => {
+    const c = campo.coperturaRapportini([], []);
+    eq(c.totale, 0, "nessuna squadra: il foglio lo dichiara invece di scrivere 0/0");
+  });
+
+  test("campo · senza attività non c'è nessun fermo da riassumere", () => {
+    eq(campo.riepilogoFermi([]).length, 0, "elenco vuoto");
+    /* il foglio, su questo, deve dire «nessuna attività registrata» e non
+       «nessuna anomalia aperta»: l'elenco vuoto da solo non distingue i due
+       casi, ed è la ragione per cui la pagina guarda anche quante attività ci
+       sono. Il testo lo prova il banco; qui si fissa che il modulo, da solo,
+       non sa dire la differenza. */
+    eq(campo.riepilogoFermi([{ stato: "conclusa" }]).length, 0,
+      "e nemmeno una giornata piena senza anomalie: identico all'elenco vuoto");
+  });
+
+  test("campo · la decisione «è una dimostrazione» è scritta in UN posto solo", () => {
+    const def = SRC_CAMPO.match(/^[ \t]*const modoDimostrazione = .*$/mg) || [];
+    eq(def.length, 1, "una sola definizione di modoDimostrazione");
+    console.log(`     (${def.length} definizione: ${def[0].trim()})`);
+    // i due vestiti — HTML per il foglio stampato, testo per la consegna —
+    // passano tutt'e due di lì, e nessuno dei due rilegge `db.mode`
+    const vestiti = ["avvisoEsempio", "avvisoEsempioTesto"];
+    for (const v of vestiti) {
+      const riga = SRC_CAMPO.split("\n").findIndex((r) => r.includes(`const ${v} = `));
+      ok(riga > 0, `${v} non è definito`);
+      const corpo = SRC_CAMPO.split("\n").slice(riga, riga + 3).join("\n");
+      ok(/modoDimostrazione\(\)/.test(corpo), `${v} non chiede a modoDimostrazione`);
+      ok(!/db\.mode/.test(corpo), `${v} rilegge db.mode: è la seconda copia che aspetta di divergere`);
+    }
+    /* E il conto dei soggetti, perché «nessuna violazione» su zero letture è
+       la risposta che non si vede.
+       ⚠️ E SI CONTA SUL CODICE, NON SUL TESTO — scritto in CLAUDE.md e
+       sbagliato lo stesso, qui, alla prima stesura: contando a testo uscivano
+       **7** letture invece di 5, perché due stavano nel commento che spiega
+       la decisione. Un controllo che prende i commenti per codice avrebbe
+       preteso di aggiornare il numero ogni volta che qualcuno riscrive una
+       riga di prosa. Il tokenizzatore che serve c'è già. */
+    const CODICE_CAMPO = senzaCommenti(SRC_CAMPO);
+    const letture = (CODICE_CAMPO.match(/db\.mode/g) || []).length;
+    console.log(`     (${letture} letture di db.mode nel CODICE di Campo, ${vestiti.length} vestiti guardati)`);
+    /* Cinque, e sono tutte a schermo o nella decisione: una accende la fascia
+       del tour, due scrivono la nota di stato («live» / il nome del modo), due
+       sono la definizione di `modoDimostrazione`. Una sesta è o un foglio
+       nuovo che si è scritto la propria regola, o lo schermo che ne ha
+       guadagnata un'altra: in tutt'e due i casi va guardata. */
+    eq(letture, 5, "le letture di db.mode censite nel codice di apps/campo/index.html");
+  });
+
+  test("campo · il rapporto stampato e la consegna .txt chiedono ognuno una volta", () => {
+    /* Il foglio si compone in una stringa `<!DOCTYPE html>…`, la consegna in
+       un `txt +=`: si contano i punti di chiamata, non il testo dell'avviso.
+       Se un domani un terzo documento nascesse senza chiamarli, questo numero
+       non salirebbe — ed è per questo che accanto c'è il censimento delle
+       uscite nel banco, che invece le conta tutte. */
+    const html = (SRC_CAMPO.match(/\$\{avvisoEsempio\(\)\}/g) || []).length;
+    const testo = (SRC_CAMPO.match(/txt \+= avvisoEsempioTesto\(\);/g) || []).length;
+    eq(html, 1, "una chiamata sola nel foglio stampato");
+    eq(testo, 1, "e una sola nella consegna .txt");
+    ok(SRC_CAMPO.includes("${CSS_ESEMPIO}</style>"),
+      "il vestito del foglio entra nello <style> della finestra nuova, dove il @media print di casa non arriva");
+  });
+}
+
 console.log(`\nRisultato KPI app: ${passed} passati, ${failed} falliti${inVolo.length ? `  ·  ${inVolo.length} prove asincrone aspettate` : ""}`);
 process.exit(failed > 0 ? 1 : 0);
