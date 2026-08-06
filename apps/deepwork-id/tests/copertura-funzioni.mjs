@@ -145,7 +145,13 @@ const APP = ["campo", "conti", "flotta", "scudo", "sentinella", "terra"];
    È la stessa forma del trasloco della densità da Terra, quattro righe più
    giù: il numero che scende di qua e sale di là È la prova che è un trasloco e
    non una copia. */
-const FONDO = { campo: 109, conti: 117, flotta: 83, scudo: 157, sentinella: 126, terra: 58 };
+/* ⚠️ `scudo` SALE DA 157 A 163: LA GRAVITÀ POTENZIALE del mancato infortunio
+   — `GRAVITA_POTENZIALE`, `ORDINE_POTENZIALE_ALTO`, `potenzialeDi`,
+   `descriviPotenziale`, `riepilogoPotenziale`, `descriviRischioPotenziale`,
+   con le loro prove. È la risposta a «e se fosse andata male?», e serve a
+   distinguere un masso caduto a due metri da un uomo da uno caduto in un
+   piazzale deserto: contati insieme, il secondo diluisce il primo. */
+const FONDO = { campo: 109, conti: 117, flotta: 83, scudo: 163, sentinella: 126, terra: 58 };
 
 /* Quello che resta fuori per un motivo, non per dimenticanza: i caricatori
    dati vogliono la rete e lo SDK, i ponti demo vogliono il localStorage.

@@ -21699,5 +21699,179 @@ test("⛔ etichettaStatoDocumento: la mappa esce dalla pagina e la leggono in du
   });
 }
 
+// ═══ SCUDO · la gravità potenziale del mancato infortunio (06/08) ═══
+/* «E se fosse andata male?» — la domanda che distingue un masso caduto a due
+   metri da un uomo da un masso caduto in un piazzale deserto. Le prove qui
+   sotto guardano soprattutto UNA cosa: che «non lo so» resti uno stato
+   dichiarabile e non diventi mai il gradino più basso. Tre delle quattro sono
+   nate da risposte sbagliate del prototipo, prima che il codice entrasse nel
+   modulo — la percentuale su un campione di uno, la classifica costruita su un
+   episodio, e «in testa c'è Fronte con 0 episodi che potevano finire male». */
+{
+  const { readFileSync: leggiFile } = await import("node:fs");
+  const OGGI = new Date("2026-08-06T09:00:00Z");
+  const nm = (id, data, luogoTipo, gp) =>
+    ({ id, data, tipo: "near-miss", luogoTipo, ...(gp ? { gravitaPotenziale: gp } : {}) });
+
+  test("Scudo · il vocabolario della gravità potenziale è chiuso, ordinato e si porta il colore", () => {
+    eq(scudo.GRAVITA_POTENZIALE.map(g => g.chiave), ["lieve", "grave", "mortale"],
+       "tre gradini, dal meno al più grave");
+    eq(scudo.GRAVITA_POTENZIALE.map(g => g.ordine), [1, 2, 3], "l'ordine è scritto, non è la posizione");
+    eq(scudo.ORDINE_POTENZIALE_ALTO, 2, "«poteva finire con un infortunio» parte da «grave»");
+    /* ⛔ regola 18 al contrario: il livello si porta dietro la propria
+       pastiglia, così non esiste nessuna mappa parallela da tenere allineata.
+       E il colore di «lieve» NON deve essere quello che la pagina userà per
+       «non valutata» (`tag`): sono cose diverse e vanno viste diverse. */
+    /* ⛔ E LA PASTIGLIA NON SI CONTROLLA CON UN ELENCO A MEMORIA, si chiede al
+       foglio di stile — perché il difetto vero non è «una classe che non
+       esiste», è **una classe che esiste due volte**. Trovato in uno scatto:
+       `lieve` era nato con `cls: "info"`, e `shared/dw-app-ui.css` ha sia
+       `.badge.info` (il colore) sia `.info{flex:1 1 120px}` (la colonna di
+       testo di ogni riga di lista). La pastiglia ereditava il `flex` e si
+       allargava a metà riga. Le due domande sono quindi due:
+         · esiste `.badge.<cls>`? (se no, la pastiglia è senza colore)
+         · esiste anche un `.<cls>` NUDO? (se sì, è un nome dell'impianto di
+           pagina e la pastiglia si porta dietro il suo layout) */
+    const css = leggiFile(join(HERE, "../../../shared/dw-app-ui.css"), "utf8");
+    for (const g of scudo.GRAVITA_POTENZIALE) {
+      ok(new RegExp(`\\.badge\\.${g.cls}[,{]`).test(css),
+         `${g.chiave}: «${g.cls}» è una pastiglia dichiarata in shared/dw-app-ui.css`);
+      ok(!new RegExp(`(^|\\})\\s*\\.${g.cls}\\{`, "m").test(css),
+         `${g.chiave}: «${g.cls}» NON è anche una classe dell'impianto di pagina (si porterebbe dietro il suo layout)`);
+      ok(g.cls !== "tag", `${g.chiave}: nessun livello usa la pastiglia neutra, che è di «non valutata»`);
+      ok(g.domanda && g.domanda.length > 10, `${g.chiave}: la domanda in parole c'è`);
+    }
+    /* e la controprova della seconda domanda, sul caso vero: «info» DEVE
+       essere rifiutata, se no il controllo non guarda dove crede */
+    ok(/(^|\})\s*\.info\{/m.test(css),
+       "il caso che ha prodotto il difetto esiste ancora nel foglio di stile: `.info` nudo c'è");
+    /* ⛔ due parole su tre sono quelle con cui Scudo classifica gli infortuni
+       VERI: se qualcuno le rinominasse qui, la scala nuova e quella vecchia
+       direbbero la stessa cosa con due vocabolari. */
+    for (const c of ["lieve", "grave"])
+      ok(scudo.GRAVITA_POTENZIALE.some(g => g.chiave === c),
+         `«${c}» è la stessa parola della scala degli infortuni veri`);
+    /* e nella dimostrazione quelle due parole ci sono davvero, nel campo
+       `gravita`: è il controesempio che rende vera la riga qui sopra */
+    ok(scudo.DEMO.infortuni.some(x => x.gravita === "lieve"),
+       "il registro d'esempio usa «lieve» per la gravità vera");
+  });
+
+  test("⛔ Scudo · un valore fuori vocabolario vale «non valutato», mai «lieve»", () => {
+    eq(scudo.potenzialeDi(null), null, "niente evento, niente livello");
+    eq(scudo.potenzialeDi({}), null, "campo assente");
+    eq(scudo.potenzialeDi({ gravitaPotenziale: "" }), null, "campo vuoto");
+    eq(scudo.potenzialeDi({ gravitaPotenziale: "catastrofico" }), null,
+       "una parola che il vocabolario non ha NON scivola sul gradino più basso");
+    eq(scudo.potenzialeDi({ gravitaPotenziale: " grave " }).chiave, "grave", "gli spazi non contano");
+    /* la frase che racconta il null, ed è il consumatore della bandiera del
+       singolo evento: senza di lei «non valutata» resterebbe muta */
+    eq(scudo.descriviPotenziale({ tipo: "near-miss" }), "gravità potenziale non valutata",
+       "un near-miss senza valutazione lo dice");
+    eq(scudo.descriviPotenziale({ tipo: "near-miss", gravitaPotenziale: "mortale" }), "se andava male: mortale",
+       "e con la valutazione la scrive");
+    /* ⚠️ un INFORTUNIO vero non si accusa di una mancanza che non ha: di lui
+       si sa già che cosa è successo */
+    eq(scudo.descriviPotenziale({ tipo: "infortunio" }), "", "a un infortunio la domanda non si fa");
+    eq(scudo.descriviPotenziale({ tipo: "infortunio", gravitaPotenziale: "mortale" }), "",
+       "nemmeno se qualcuno gliel'ha scritta");
+  });
+
+  test("⛔ Scudo · nessun numero tranquillo dove non è stato valutato niente", () => {
+    const vuoto = scudo.riepilogoPotenziale([], 90, OGGI);
+    eq(vuoto.quotaAlto, null, "senza episodi la quota è null, non 0");
+    eq(vuoto.piuAlto, null, "e non c'è nessun livello «più alto»");
+    eq(vuoto.dove, null, "e nessun luogo in testa");
+    eq(vuoto.noto, false, "⛔ zero episodi tutti valutati NON è «tutto valutato»");
+    /* ⛔ E NEMMENO LA SCALA: le tre righe a zero si portano dietro la propria
+       pastiglia, cioè un «ok» verde e un «danger» rosso su un registro in cui
+       non è successo niente. Non l'ho visto io: l'ha preteso `sonda-vuoto.mjs`,
+       che chiama ogni funzione esportata a vuoto e legge i `cls` che tornano. */
+    eq(vuoto.perLivello, [], "⛔ senza episodi non torna nessuna ripartizione, nemmeno a zero");
+
+    const ciechi = [nm("a", "2026-08-01", "fronte"), nm("b", "2026-07-30", "pista"), nm("c", "2026-07-20", "fronte")];
+    const rc = scudo.riepilogoPotenziale(ciechi, 90, OGGI);
+    eq([rc.eventi, rc.valutati, rc.nonValutati], [3, 0, 3], "tre episodi, nessuno valutato");
+    /* ma con episodi le tre righe RESTANO, anche tutte a zero: lì gli zeri
+       hanno accanto il conto dei non valutati, che è il loro denominatore */
+    eq(rc.perLivello.map(x => x.quanti), [0, 0, 0], "con episodi la ripartizione c'è, e dice tre zeri");
+    eq(rc.quotaAlto, null, "la quota di alto potenziale è null, non 0%");
+    eq(rc.dove, null, "e «dove il rischio si concentra» non si può dire");
+    eq(rc.perLuogo, [], "la classifica è vuota");
+    /* ⛔ e i luoghi non valutati NON finiscono in fondo alla classifica come
+       se fossero i più tranquilli: escono a parte, col loro conto */
+    eq(rc.luoghiCiechi, [{ etichetta: "Fronte", eventi: 2 }, { etichetta: "Piste", eventi: 1 }],
+       "i luoghi non misurati si dichiarano, non si ordinano");
+    ok(/NON si può dire/.test(scudo.descriviRischioPotenziale(rc)), "e la frase lo dice");
+    ok(/non vuol dire che sia basso/i.test(scudo.descriviRischioPotenziale(rc)),
+       "⛔ con le parole del fondatore: l'assenza di un dato non è un dato favorevole");
+
+    /* ⛔ IL CASO CHE IL PROTOTIPO HA SBAGLIATO: un solo episodio valutato
+       dava «quotaAlto 100%» e «il rischio si concentra su Fronte». Una
+       percentuale e una classifica costruite su un campione di uno. */
+    const uno = [nm("a", "2026-08-01", "fronte", "mortale"), nm("b", "2026-07-30", "pista"), nm("c", "2026-07-20", "fronte")];
+    const ru = scudo.riepilogoPotenziale(uno, 90, OGGI);
+    eq(ru.valutati, 1, "uno valutato su tre");
+    eq(ru.leggibile, false, `sotto ${scudo.MIN_TENDENZA} valutati non si legge niente`);
+    eq(ru.quotaAlto, null, "⛔ niente «100% ad alto potenziale» su un episodio solo");
+    eq(ru.dove, null, "⛔ e niente classifica");
+    eq(ru.perLuogo.length, 1, "ma la riga che c'è non si nasconde: il poco che c'è resta");
+    eq(ru.alto, 1, "e il conteggio grezzo resta vero");
+  });
+
+  test("⛔ Scudo · dove il rischio si concentra, e su quanti episodi lo dice", () => {
+    const dati = [
+      nm("a", "2026-08-01", "fronte", "mortale"), nm("b", "2026-07-30", "fronte", "grave"),
+      nm("c", "2026-07-20", "pista", "lieve"),    nm("d", "2026-07-10", "pista", "lieve"),
+      nm("e", "2026-07-05", "impianto"),          nm("f", "2026-06-20", "piazzale", "grave"),
+    ];
+    const r = scudo.riepilogoPotenziale(dati, 90, OGGI);
+    eq([r.eventi, r.valutati, r.nonValutati], [6, 5, 1], "sei episodi, cinque valutati");
+    eq(r.leggibile, true, "cinque valutati sono la soglia");
+    eq(r.noto, false, "⛔ ma uno non valutato basta a dire che i conti sono un MINIMO");
+    eq(r.alto, 3, "tre potevano finire con un infortunio");
+    eq(r.quotaAlto, 60, "tre su cinque valutati");
+    eq(r.piuAlto.chiave, "mortale", "il gradino più alto raggiunto");
+    eq(r.perLivello.map(x => [x.chiave, x.quanti]), [["lieve", 2], ["grave", 2], ["mortale", 1]],
+       "il conto per gradino tiene tutte e tre le righe, anche a zero");
+    eq(r.dove.etichetta, "Fronte", "in testa il luogo con più episodi ad alto potenziale");
+    eq([r.dove.alto, r.dove.valutati, r.dove.nonValutati], [2, 2, 0], "e dice su quanti lo dice");
+    eq(r.perLuogo.map(x => x.etichetta), ["Fronte", "Piazzale", "Piste"],
+       "poi il piazzale (1 grave) e le piste (2 lievi, nessun alto)");
+    eq(r.luoghiCiechi, [{ etichetta: "Impianto", eventi: 1 }], "l'impianto non è valutato: sta a parte");
+    const f = scudo.descriviRischioPotenziale(r);
+    ok(/5 near-miss su 6/.test(f), "la frase dichiara su quanti è calcolata");
+    ok(/1 no\./.test(f), "e quanti non sono valutati");
+    ok(/Fronte/.test(f), "e dove si concentra");
+
+    /* ⛔ L'ALTRO CASO CHE IL PROTOTIPO HA SBAGLIATO: con tutti gli episodi
+       valutati «lieve» la prima riga usciva lo stesso e la frase diceva «in
+       testa c'è Fronte con 0 episodi che potevano finire male». Non c'è
+       niente da concentrare, quindi `dove` è null — ma `noto` è VERO, perché
+       lì il conto è misurato davvero e lo zero è uno zero scritto apposta. */
+    const lievi = ["a", "b", "c", "d", "e"].map((id, i) =>
+      nm(id, "2026-07-2" + i, i < 2 ? "fronte" : i < 4 ? "pista" : "impianto", "lieve"));
+    const rl = scudo.riepilogoPotenziale(lievi, 90, OGGI);
+    eq(rl.noto, true, "cinque episodi, cinque valutati: il conto è completo");
+    eq(rl.alto, 0, "nessuno poteva finire con un infortunio");
+    eq(rl.quotaAlto, 0, "e QUI lo zero è misurato, quindi è un numero e non un null");
+    eq(rl.dove, null, "⛔ ma nessuno «va in testa» a una classifica senza niente da classificare");
+    eq(rl.luoghiCiechi, [], "e non ci sono luoghi ciechi");
+    ok(/sono tutti «lieve»/.test(scudo.descriviRischioPotenziale(rl)), "la frase lo dice così");
+
+    /* il periodo funziona come nel riepilogo aggregato: fuori finestra non
+       si conta, ma lo storico si dichiara invece di sparire */
+    const vecchio = [nm("z", "2025-01-01", "fronte", "mortale")];
+    const rv = scudo.riepilogoPotenziale(vecchio, 90, OGGI);
+    eq([rv.eventi, rv.totaleStorico], [0, 1], "fuori periodo: zero nel periodo, uno nello storico");
+    ok(/Nello storico ce n'è 1/.test(scudo.descriviRischioPotenziale(rv)), "e la frase non dice «zero» e basta");
+    eq(scudo.riepilogoPotenziale(vecchio, null, OGGI).eventi, 1, "con `giorni = null` si guarda tutto lo storico");
+    /* e gli INFORTUNI veri non entrano mai in questo riepilogo */
+    eq(scudo.riepilogoPotenziale(
+      [{ id: "i", data: "2026-08-01", tipo: "infortunio", gravitaPotenziale: "mortale" }], 90, OGGI).eventi, 0,
+       "un infortunio non è un mancato infortunio");
+  });
+}
+
 console.log(`\nRisultato KPI app: ${passed} passati, ${failed} falliti${inVolo.length ? `  ·  ${inVolo.length} prove asincrone aspettate` : ""}`);
 process.exit(failed > 0 ? 1 : 0);

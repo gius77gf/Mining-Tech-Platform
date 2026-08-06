@@ -398,6 +398,24 @@
    il comando resta sempre sulla prima riga, e la riga di dettaglio sotto
    mantiene il suo allineamento a sinistra. */
 .name .badge.inline{white-space:nowrap}
+/* ⛔ LA GRAVITÀ POTENZIALE STA IN TESTA AL NOME, NON IN CODA — ed è la stessa
+   misura scritta qui sopra, letta fino in fondo. L'idoneità può stare in coda
+   perché il nome di un lavoratore è corto; la descrizione di un evento no
+   («Caduta massi vicino al perforatore, nessun ferito» sono due righe piene),
+   e `.name` è tagliato a due righe da `shared/dw-app-ui.css`. Una pastiglia in
+   coda a quel testo finisce sulla terza riga, che `overflow:hidden` nasconde:
+   il comando diventa invisibile E irraggiungibile. In testa è sulla prima
+   riga per costruzione, qualunque cosa ci sia scritto dopo. */
+.name>.badge.inline.pre{margin:0 6px 0 0}
+/* «non valutata» NON è «lieve», e si deve VEDERE che sono due cose diverse:
+   i tre livelli portano una pastiglia piena (info/warn/danger, scelta dal
+   modulo), questa è vuota e sottile — la stessa che l'app usa per le etichette
+   neutre. Il colore della più bassa (`info`) non ricompare mai qui. */
+/* «non valutato» ha un vestito SUO, e uno solo, ovunque compaia: pastiglia
+   neutra col bordo tratteggiato. Ripeterlo con uno stile in linea in tre punti
+   avrebbe voluto dire tre vestiti che divergono al primo ritocco — e il punto
+   di tutta questa funzione è che «non lo so» si veda diverso da «lieve». */
+.badge.nonval{border-style:dashed}
 /* I badge che PORTANO DA QUALCHE PARTE (le azioni di un evento, le azioni di
    un'ispezione) restano piccoli come nel core, ma l'area che ascolta il dito
    è alta quanto un bersaglio vero: si allarga l'ombra del tocco, non il
@@ -598,11 +616,11 @@
      tagliato da nessuno). */
   .arr,
   .acts>.badge[data-azi-stato],.acts>.badge[data-dpi-addestr],.acts>.badge[data-azi-evt],
-  .acts>.badge[data-azi-isp],.name>.badge[data-idon]{position:relative}
+  .acts>.badge[data-azi-isp],.name>.badge[data-idon],.name>.badge[data-pot]{position:relative}
   .arr::after,
   .acts>.badge[data-azi-stato]::after,.acts>.badge[data-dpi-addestr]::after,
   .acts>.badge[data-azi-evt]::after,.acts>.badge[data-azi-isp]::after,
-  .name>.badge[data-idon]::after{
+  .name>.badge[data-idon]::after,.name>.badge[data-pot]::after{
     content:""; position:absolute; top:50%; height:var(--tap);
     transform:translateY(-50%); left:0; right:0;
   }
@@ -1247,6 +1265,25 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
   </div>
   <div class="note">Dal 2026 le aziende <b>oltre i 15 addetti</b> devono tracciare i mancati infortuni e comunicare i <b>dati aggregati</b> sugli eventi e sulle azioni correttive adottate (L. 198/2025, ex D.L. 159/2025; linee guida MLPS/INAIL e decreto attuativo attesi). Questo riepilogo tiene i numeri già in ordine. <b>Nota informativa, non un parere legale</b>: modalità e obblighi vanno confermati con l'RSPP e il consulente dell'azienda.</div>
 
+  <!-- E SE FOSSE ANDATA MALE — dove il rischio si concentra.
+       Il riepilogo qui sopra conta QUANTI e DOVE. Contati insieme, un masso
+       caduto a due metri da un uomo e un masso caduto in un piazzale deserto
+       fanno «due cadute massi»: il secondo diluisce il primo, ed è il primo
+       quello per cui il registro esiste. Questa sezione tiene separate le due
+       cose.
+       ⛔ Non è un adempimento e qui non se ne cita nessuno: è una scelta di
+       prodotto.
+       ⛔ E la valutazione è FACOLTATIVA: quello che non è stato valutato si
+       DICHIARA, non si conta come «lieve» e non sparisce dal denominatore.
+       Sotto la soglia l'app non nomina nessuna concentrazione di rischio —
+       la classifica costruita su due episodi è una bugia con la faccia di un
+       calcolo. -->
+  <div class="sec">E se fosse andata male?<span class="cnt" id="pot-count">0</span></div>
+  <div id="pot-riep" class="note recap" style="margin-top:0;"></div>
+  <div id="pot-livelli" class="reqs" style="margin-top:10px;"></div>
+  <div id="pot-luoghi" style="margin-top:10px;"></div>
+  <div class="note">La gravità potenziale è la risposta a <b>«e se fosse andata male?»</b>, e si scrive con un tocco sulla pastiglia in testa a ogni near-miss del registro. È <b>facoltativa</b>: chi segnala in piedi sul piazzale spesso non sa dire come sarebbe finita, e <b>«non lo so» è una risposta</b> — l'app la tiene da parte invece di trasformarla in un numero basso. <b>Non è un obbligo di legge</b>: è il modo in cui questo registro distingue un episodio da un episodio grave.</div>
+
   <!-- L'ANALISI DELLA CAUSA — le cause che si ripetono.
        Il riepilogo dei near-miss qui sopra dice DOVE e COME: caduta massi in
        officina, mezzi in pista. Non dice PERCHÉ, e due tagli in officina e due
@@ -1497,6 +1534,7 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
   import { scudoData, statoScadenza, inTurnoOggi, kpiFrom, idoneitaLabel, idoneitaSuccessivo, idoneitaCriticita, livelloScadenza, coperturaFormazione, muroScadenze, MESI_NOMI, testoPromemoria, riepilogoInfortuni, parseInfortuniCsv, parseScadenzeCsv, parseLavoratoriCsv, SCADENZE_PRESET, presetScadenza, dataDaPeriodicita, TIPI_DOCUMENTO, azioneLabel, azioneStatoSuccessivo, statoAzione, azioniUrgenti, riepilogoAzioni, azioniDiEvento,
     daAmbiente, etichettaAmbiente, riepilogoAmbiente, daCampo,
     NEARMISS_CATEGORIE, NEARMISS_LUOGHI, categoriaNearMiss, luogoNearMiss, descrizioneNearMiss, riepilogoNearMiss, descriviLetturaNearMiss, bozzaNearMiss,
+    GRAVITA_POTENZIALE, potenzialeDi, descriviPotenziale, riepilogoPotenziale, descriviRischioPotenziale,
     MODELLI_ISPEZIONE, modelloIspezione, nuovaIspezioneDaModello, riepilogoIspezione, riepilogoIspezioni, vociNonConformi, statoIspezione, azioniDiIspezione, esitoLabel, ESITI_ISPEZIONE, dataPiuGiorni,
     REQUISITI_FORMAZIONE, requisitoFormazione, requisitoSicuro, statoRequisito, MANSIONI_PRESET, mansionePreset,
     matriceMansione, riepilogoMansioni, lavoratoriScoperti, abilitazioneLavoratore, daSistemareCopertura,
@@ -2887,6 +2925,59 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
     nmBarre("graf-nm-tipo", rnm.perTipo, "Near-miss per tipo", "tipo di rischio", "Pochi dati per tipo", true);
     nmBarre("graf-nm-luogo", rnm.perLuogo, "Near-miss per luogo", "luogo della cava", "Pochi dati per luogo", false);
 
+    // ── E SE FOSSE ANDATA MALE · dove il rischio si concentra ────────────
+    // ⛔ Il conto in cima NON è «quanti near-miss»: è «quanti sono valutati su
+    // quanti». Un numero aggregato che non porta con sé il proprio
+    // denominatore è esattamente la cosa che, letta di fretta, diventa una
+    // media — e la media di una scala inventata ha la faccia tranquilla.
+    const rp = riepilogoPotenziale(INF, nmPeriodo || null);
+    $("pot-count").textContent = rp.valutati + " su " + rp.eventi;
+    $("pot-riep").innerHTML = esc(descriviRischioPotenziale(rp));
+    /* Le tre pillole dei gradini + la quarta, che NON è un gradino: i non
+       valutati. Sta insieme alle altre perché è lì che il conto si chiude —
+       tenerla fuori vorrebbe dire tre numeri che non sommano al totale, e chi
+       legge completa la somma da solo dalla parte sbagliata. Colore neutro e
+       bordo tratteggiato, come la pastiglia del registro: non è «zero
+       gravità», è «nessuno l'ha guardato». */
+    $("pot-livelli").innerHTML = rp.eventi === 0 ? "" :
+      rp.perLivello.map(g =>
+        `<span class="badge ${g.quanti ? g.cls : "mute"}">${esc(g.etichetta)} ${g.quanti}</span>`).join("")
+      + (rp.nonValutati
+        ? `<span class="badge tag nonval">Non valutati ${rp.nonValutati}</span>` : "");
+    /* La classifica per luogo. Ogni riga porta il proprio denominatore, e i
+       luoghi in cui nessuno ha valutato niente NON sono in classifica: in
+       fondo a un elenco ordinato si leggerebbero come i più tranquilli. */
+    const potRiga = (nome, dettaglio, cls, valore) =>
+      `<div class="item"><div class="info"><div class="name">${esc(nome)}</div>
+        <div class="meta">${esc(dettaglio)}</div></div>
+        <span class="acts"><span class="badge ${cls}">${esc(valore)}</span></span></div>`;
+    $("pot-luoghi").innerHTML = rp.eventi === 0
+      ? vuoto(I.allerta, "Niente da valutare",
+          "In questo periodo non ci sono near-miss. Appena ne arriva uno, qui puoi dire <b>come poteva finire</b>: è la differenza fra un elenco di episodi e una mappa di dove il rischio si concentra.")
+      : rp.valutati === 0
+      ? vuoto(I.grafico, "Nessuna valutazione, quindi nessuna classifica",
+          "Nessuno dei near-miss di questo periodo ha una gravità potenziale. <b>Non vuol dire che il rischio sia basso</b>: vuol dire che non è stato misurato. "
+          + "Si scrive con un tocco sulla pastiglia in testa a ogni evento del registro, qui sotto — ed è facoltativa.")
+      /* ⛔ LA PASTIGLIA PORTA IL LIVELLO, NON UNA FRASE: `.badge` è in
+         maiuscolo per costruzione, e la prima stesura ci aveva messo dentro
+         «al massimo: mortale» — che nello scatto usciva «AL MASSIMO: MORTALE»,
+         una frase urlata dentro un'etichetta. I numeri e i loro denominatori
+         stanno nella riga di dettaglio, che è il posto in cui si leggono.
+         La riga è la STESSA sopra e sotto la soglia: quello che cambia è la
+         frase in cima, che dice se quell'ordine si può leggere come una
+         classifica. Due forme di riga per lo stesso dato sarebbero due
+         verità da tenere allineate. */
+      : (rp.leggibile ? "" :
+          `<div class="form-hint" style="margin-top:0;">Con ${rp.valutati} valutazion${rp.valutati === 1 ? "e" : "i"} l'app <b>non fa nessuna classifica</b>: costruirla su così pochi episodi sarebbe una bugia. Le righe qui sotto sono un <b>conteggio</b>, non un ordine di gravità.</div>`)
+        + rp.perLuogo.map(l => potRiga(l.etichetta,
+            l.valutati + " valutat" + (l.valutati === 1 ? "o" : "i")
+            + " · " + l.alto + (l.alto === 1 ? " poteva" : " potevano") + " finire con un infortunio"
+            + (l.nonValutati ? " · " + l.nonValutati + (l.nonValutati === 1 ? " non valutato" : " non valutati") : ""),
+            l.piuAlto.cls, l.piuAlto.etichetta)).join("")
+        + rp.luoghiCiechi.map(l => potRiga(l.etichetta,
+            "nessuno di questi episodi è stato valutato: non si sa come poteva finire",
+            "tag nonval", l.eventi + (l.eventi === 1 ? " episodio" : " episodi"))).join("");
+
     // ── L'ANALISI DELLA CAUSA · le cause che si ripetono ────────────────
     // ⛔ `leggibile` non vuol dire «ci sono dati»: vuol dire che ce n'è
     // abbastanza da poterci leggere qualcosa. Le due cose confuse producono la
@@ -2975,7 +3066,25 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
       const fb = `<button type="button" class="arr${pf ? " ha-foto" : ""}"
         title="${pf ? "Foto dell'evento (" + pf.testo + ")" : "Nessuna foto: aggiungine una se ce n'è"}"
         aria-label="Foto dell'evento: ${pf ? pf.testo : "nessuna"}" data-foto-evt="${x.id}">${I.foto}</button>`;
-      return `<div class="item tocca ${striscia[tb[0]]}" data-evt="${x.id}"><div class="info"><div class="name">${esc(x.descrizione || x.tipo || "Evento")}</div>
+      /* ⛔ «E SE FOSSE ANDATA MALE?» — la pastiglia in testa al nome, e SOLO
+         sui near-miss (di un infortunio vero si sa già com'è finita: gliela
+         chiederebbe come una mancanza che non ha, ed è il modulo a dirlo con
+         `descriviPotenziale` che risponde vuoto).
+         Il livello si porta dietro la propria pastiglia (`pot.cls`): non c'è
+         nessuna mappa parallela da tenere allineata, che è il difetto della
+         regola 18. Il caso «non valutata» ha una pastiglia SUA — neutra e col
+         bordo tratteggiato — perché non è il gradino più basso: è una domanda
+         a cui nessuno ha ancora risposto, e va vista diversa da «lieve».
+         Perché in testa e non in coda: la ragione, misurata, è nel CSS. */
+      const pot = potenzialeDi(x);
+      const pb = x.tipo !== "near-miss" ? "" : pot
+        ? `<span class="badge inline pre ${pot.cls}" style="cursor:pointer" data-pot="${x.id}"
+             title="Se fosse andata male: ${esc(pot.domanda)} — tocca per cambiare"
+             aria-label="Gravità potenziale ${esc(pot.etichetta)}: tocca per cambiare">${esc(pot.etichetta)}</span>`
+        : `<span class="badge inline pre tag nonval" style="cursor:pointer" data-pot="${x.id}"
+             title="Nessuno ha ancora detto come poteva finire — tocca per dirlo (è facoltativo)"
+             aria-label="Gravità potenziale non valutata: tocca per valutarla">Non valutata</span>`;
+      return `<div class="item tocca ${striscia[tb[0]]}" data-evt="${x.id}"><div class="info"><div class="name">${pb}${esc(x.descrizione || x.tipo || "Evento")}</div>
         <div class="meta">${fmtData(x.data)}${x.luogo ? " · " + esc(x.luogo) : ""}${x.categoria ? " · " + esc(categoriaNearMiss(x.categoria)) : ""}${x.gravita && x.tipo !== "near-miss" ? " · " + esc(x.gravita) : ""}${prognosiAperta(x) ? " · prognosi ancora aperta" : (giornateAssenza(x) ? " · " + giornateAssenza(x) + " gg assenza" : "")}${chi ? " · " + chi : ""}${an ? " · causa: " + esc(etichettaCausa(an.causa)) : ""}</div></div>
         <span class="acts"><span class="badge ${tb[0]}">${tb[1]}</span>
         <span class="badge ${ab[0]}" style="cursor:pointer" title="Vedi le azioni correttive di questo evento" data-azi-evt="${x.id}">${ab[1]}</span>
@@ -3652,6 +3761,10 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
     // tranne che sul suo bordo.
     const anEvt = e.target.closest && e.target.closest("[data-analisi]");
     if (anEvt) { e.stopPropagation(); apriAnalisi(anEvt.getAttribute("data-analisi")); return; }
+    /* «e se fosse andata male?»: stessa forma della pastiglia dell'analisi,
+       `closest` per la stessa ragione scritta due righe più su. */
+    const potEvt = e.target.closest && e.target.closest("[data-pot]");
+    if (potEvt) { e.stopPropagation(); apriPotenziale(potEvt.getAttribute("data-pot")); return; }
     /* --- la foto come prova: evento del registro e voce d'ispezione ---
        ⚠️ `closest` e non `getAttribute`: il dito atterra sull'`<svg>` dentro
        l'icona, che è un figlio — leggendo solo `e.target` il comando sarebbe
@@ -5536,6 +5649,23 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
       if (nota) csv += `lettura;${csvCell(nota)};\n`; }
     for (const t of r.perTipo) csv += `tipo;${csvCell(t.etichetta)};${t.valore}\n`;
     for (const l of r.perLuogo) csv += `luogo;${csvCell(l.etichetta)};${l.valore}\n`;
+    /* ⛔ E SE FOSSE ANDATA MALE — nel file con la stessa voce dello schermo.
+       Le righe «potenziale» non escono MAI da sole: prima esce quante ne sono
+       valutate su quante, e la frase del modulo che dice se quei numeri si
+       possono leggere. Un conteggio per gradino senza il denominatore è la
+       cosa che, aperta in un foglio di calcolo, diventa una media. */
+    { const rp = riepilogoPotenziale(INF, nmPeriodo || null);
+      csv += `potenziale;near-miss con la gravità potenziale valutata;${rp.valutati}\n`;
+      csv += `potenziale;near-miss NON valutati;${rp.nonValutati}\n`;
+      csv += `potenziale;${csvCell(descriviRischioPotenziale(rp))};\n`;
+      for (const g of rp.perLivello) csv += `potenziale;se andava male: ${csvCell(g.etichetta.toLowerCase())};${g.quanti}\n`;
+      /* ⛔ i luoghi con episodi ma nessuna valutazione NON entrano nella
+         classifica per luogo: in fondo a un elenco ordinato si leggerebbero
+         come i più tranquilli. Escono con la loro riga e la loro parola. */
+      for (const l of rp.perLuogo)
+        csv += `potenziale;${csvCell(l.etichetta)} — episodi che potevano finire con un infortunio (su ${l.valutati} valutati, ${l.nonValutati} no);${l.alto}\n`;
+      for (const l of rp.luoghiCiechi)
+        csv += `potenziale;${csvCell(l.etichetta)} — nessun episodio valutato: non si sa come poteva finire;${l.eventi}\n`; }
     csv += `azioni;near-miss con almeno un'azione correttiva;${r.conAzione}\n`;
     csv += `azioni;near-miss ancora senza azione;${r.senzaAzione}\n`;
     csv += `azioni;azioni correttive aperte da near-miss;${r.azioni}\n`;
@@ -5545,6 +5675,75 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
     a.download = "scudo_riepilogo_near_miss.csv"; a.click();
     esito("inf-esito", "Riepilogo near-miss esportato (" + per + ").", "success");
   };
+
+  // ══════════════════════════════════════════════════════════════════════
+  // «E SE FOSSE ANDATA MALE?» — LA GRAVITÀ POTENZIALE
+  // Un masso caduto a due metri da un uomo e un masso caduto in un piazzale
+  // deserto sono lo stesso evento, e non sono lo stesso rischio.
+  //
+  // ⛔ NON È UN ADEMPIMENTO, e nei testi non se ne cita nessuno: è una scelta
+  // di prodotto e si difende da sola.
+  //
+  // ⛔ «NON LO SO» È UN PULSANTE, NON UNA CELLA VUOTA. Chi segnala di corsa sul
+  // piazzale spesso non sa dire che cosa sarebbe successo, e una scheda che lo
+  // costringe a scegliere raccoglie un numero inventato — peggio di niente,
+  // perché poi qualcuno ci fa una media e la media ha la faccia tranquilla.
+  // Quindi la valutazione è FACOLTATIVA, «non lo so» è una risposta che si dà
+  // in un tocco, e il registro la racconta con parole e colori suoi.
+  // ══════════════════════════════════════════════════════════════════════
+  function apriPotenziale(idEvento) {
+    const x = INF.find(v => v.id === idEvento);
+    if (!x) { toast("Questo evento non è più nel registro.", "err"); return; }
+    /* la scelta corrente parte da quella salvata: `null` vuol dire «non
+       valutata», ed è uno stato pieno — non l'assenza di uno stato */
+    const scelto = { chiave: (potenzialeDi(x) || {}).chiave || "" };
+    /* ⛔ le tre voci e la legenda escono TUTTE da `GRAVITA_POTENZIALE`: una
+       lista scritta a mano qui sarebbe la mappa parallela che la regola 18
+       esiste per impedire — e il giorno in cui il modulo guadagnasse un quarto
+       gradino, questa finestra continuerebbe a mostrarne tre senza un errore
+       da vedere. */
+    const bottoni = GRAVITA_POTENZIALE.map(g =>
+      `<button type="button" class="chg${g.chiave === scelto.chiave ? " active" : ""}"
+         aria-pressed="${g.chiave === scelto.chiave}" data-pot-liv="${g.chiave}">${esc(g.etichetta)}</button>`).join("");
+    const legenda = GRAVITA_POTENZIALE.map(g =>
+      `<b>${esc(g.etichetta)}</b> — ${esc(g.domanda)}`).join("<br>");
+    apriModale("E se fosse andata male?",
+      `<div class="note" style="margin-top:0;"><b>${esc(x.descrizione || "Near-miss")}</b><br>${fmtData(x.data)}${x.luogo ? " · " + esc(x.luogo) : ""}</div>`
+      + '<div class="nm-lab">Che cosa sarebbe successo, se fosse andata male?</div>'
+      + '<div class="chgs griglia3" id="pot-scelta">' + bottoni + "</div>"
+      + '<div class="form-hint" style="margin-top:8px;">' + legenda + "</div>"
+      + '<div class="nm-lab">Oppure</div>'
+      + `<div class="chgs"><button type="button" class="chg${scelto.chiave ? "" : " active"}"
+           aria-pressed="${!scelto.chiave}" id="pot-boh">Non lo so</button></div>`
+      + '<div class="form-hint" style="margin-top:8px;">«Non lo so» è una <b>risposta</b>, non una casella lasciata vuota: '
+      + 'nel registro l\'evento risulterà <b>non valutato</b>, che è una cosa diversa da «lieve» e si vede diversa. '
+      + 'Questa valutazione è <b>facoltativa</b> e serve a capire dove il rischio si concentra: due massi caduti sono '
+      + 'lo stesso evento, ma uno a due metri da una persona e uno in un piazzale vuoto non sono lo stesso rischio.</div>',
+      [{ label: "Annulla", azione: chiudiModale },
+       { label: "Salva", cls: "primary", azione: async () => {
+          /* si scrive `null`, non si toglie il campo: «qualcuno ha guardato e
+             non sa dire» e «nessuno ha mai guardato» arrivano tutt'e due qui,
+             e `potenzialeDi` li tratta uguale — non valutato. */
+          await db.aggiorna("infortuni", x.id, { gravitaPotenziale: scelto.chiave || null });
+          chiudiModale(); await refresh();
+          const g = GRAVITA_POTENZIALE.find(v => v.chiave === scelto.chiave);
+          esito("inf-esito", g
+            ? "Se fosse andata male: " + g.etichetta.toLowerCase() + ". Registrato."
+            : "Registrato come non valutato: il riepilogo lo conta fra quelli di cui non si sa come poteva finire.",
+            "success"); } }],
+      { autofocus: false });
+    const box = $("pot-scelta"), boh = $("pot-boh");
+    const segna = () => {
+      if (box) box.querySelectorAll(".chg").forEach(b => {
+        const s = b.getAttribute("data-pot-liv") === scelto.chiave;
+        b.classList.toggle("active", s); b.setAttribute("aria-pressed", String(s));
+      });
+      if (boh) { boh.classList.toggle("active", !scelto.chiave); boh.setAttribute("aria-pressed", String(!scelto.chiave)); }
+    };
+    if (box) box.querySelectorAll(".chg").forEach(b =>
+      b.onclick = () => { scelto.chiave = b.getAttribute("data-pot-liv"); segna(); });
+    if (boh) boh.onclick = () => { scelto.chiave = ""; segna(); };
+  }
 
   // ══════════════════════════════════════════════════════════════════════
   // L'ANALISI DELLA CAUSA — LA CATENA DEI PERCHÉ

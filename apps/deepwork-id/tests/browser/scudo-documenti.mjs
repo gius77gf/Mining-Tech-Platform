@@ -92,9 +92,23 @@ const CASI = `
      la pagina non disegna le classifiche — e QUATTRO fuori, così il file deve
      dire tutt'e due le cose: come va letto, e quanti sono nello storico. */
   DEMO.infortuni = DEMO.infortuni.filter((x) => x.tipo !== "near-miss");
-  for (const [i, n] of [10, 20, 30].entries())
+  /* ⛔ E LE TRE DENTRO IL PERIODO NON SONO UGUALI: due portano la GRAVITÀ
+     POTENZIALE («e se fosse andata male?») e la terza no, ed è in un luogo
+     tutto suo. Serve a mettere nel file, insieme, i tre casi che quella
+     funzione esiste per tenere separati: un episodio che poteva finire male,
+     uno che sarebbe finito con poco, e uno di cui NESSUNO ha detto niente —
+     più un luogo in cui non è stato valutato nulla, che non è un luogo
+     sicuro. Senza la terza, il documento non avrebbe mai un «non valutato» da
+     dichiarare, e la difesa resterebbe non misurata. */
+  const nmCasi = [
+    [10, "fronte", "fronte Est",  "mortale"],
+    [20, "fronte", "fronte Est",  "lieve"],
+    [30, "impianto", "impianto",  null],
+  ];
+  for (const [i, [n, lt, lg, pot]] of nmCasi.entries())
     DEMO.infortuni.push({ id: "znmd" + i, tipo: "near-miss", data: gg(n), gravita: "lieve",
-      categoria: "caduta-massi", luogoTipo: "fronte", descrizione: "Segnalazione dentro il periodo", luogo: "fronte Est" });
+      categoria: "caduta-massi", luogoTipo: lt, descrizione: "Segnalazione dentro il periodo", luogo: lg,
+      ...(pot ? { gravitaPotenziale: pot } : {}) });
   for (const [i, n] of [400, 401, 402, 403].entries())
     DEMO.infortuni.push({ id: "znmf" + i, tipo: "near-miss", data: gg(n), gravita: "lieve",
       categoria: "mezzi", luogoTipo: "pista", descrizione: "Segnalazione fuori periodo", luogo: "pista principale" });
@@ -247,6 +261,22 @@ const DIFETTI = [
          «MANCATA» in una riga di log e lascia il banco verde. */
   ['  return modo === "live" ? null : String(modo || "non dichiarata");',
    "  return null;", CONDIVISO],
+  /* ── LA GRAVITÀ POTENZIALE NEL FILE (06/08) ────────────────────────────
+    24. IL CONTEGGIO PER GRADINO SENZA IL SUO DENOMINATORE. Le righe «se
+        andava male: lieve/grave/mortale» da sole sono la cosa che, aperta in
+        un foglio di calcolo, diventa una media: chi legge non ha modo di
+        sapere che sono calcolate su 2 episodi valutati su 3, né che l'app si
+        rifiuta di dire dove il rischio si concentra. È lo stesso difetto del
+        punto 3, sulla funzione nuova. */
+  ['      csv += `potenziale;near-miss con la gravità potenziale valutata;${rp.valutati}\\n`;\n      csv += `potenziale;near-miss NON valutati;${rp.nonValutati}\\n`;\n      csv += `potenziale;${csvCell(descriviRischioPotenziale(rp))};\\n`;',
+   ""],
+  /* 25. IL LUOGO IN CUI NESSUNO HA VALUTATO NIENTE, TOLTO DAL FILE. A schermo
+        ha una riga sua che dice «non si sa come poteva finire»; sparendo dal
+        documento, un luogo non misurato si legge come un luogo senza problemi
+        — l'assenza di un dato letta come un dato favorevole, nel foglio che
+        va fuori. */
+  ['      for (const l of rp.luoghiCiechi)\n        csv += `potenziale;${csvCell(l.etichetta)} — nessun episodio valutato: non si sa come poteva finire;${l.eventi}\\n`; }',
+   "       }"],
 ];
 
 /* ⛔ LA SECONDA DOMANDA: E SU UN FOGLIO VERO LA DICHIARAZIONE NON C'È?
@@ -530,6 +560,28 @@ if (!nm.errore) {
   dice(/^lettura;/m.test(nm.testo), "c'è la riga che dice come va letto", nm.testo);
   dice(/ATTENZIONE alla lettura/.test(nm.testo) && /non una tendenza/.test(nm.testo),
     "e dice che sotto la soglia quelle righe sono un conteggio, non una tendenza", nm.testo);
+  /* ⛔ «E SE FOSSE ANDATA MALE?» — e il denominatore accanto al numero.
+     Il conteggio per gradino da solo, in un foglio di calcolo, diventa una
+     media: chi legge deve trovare nello stesso file su quanti episodi è
+     calcolato, quanti non sono valutati, e la frase che dice se quei numeri
+     si possono leggere. */
+  dice(/potenziale;near-miss con la gravità potenziale valutata;2\b/.test(nm.testo),
+    "il file dice quanti near-miss sono valutati", nm.testo);
+  dice(/potenziale;near-miss NON valutati;1\b/.test(nm.testo),
+    "e quanti NON lo sono: due su tre non è due", nm.testo);
+  dice(/se andava male: mortale;1\b/.test(nm.testo) && /se andava male: lieve;1\b/.test(nm.testo),
+    "il conteggio per gradino c'è", nm.testo);
+  dice(/potenziale;[^;]*sono meno di 5[^;]*;/i.test(nm.testo),
+    "e con due valutati il file NON nomina nessuna concentrazione di rischio: lo dice",
+    righe(nm.testo).filter((r) => /^potenziale;/.test(r)));
+  /* ⛔ e il luogo in cui NESSUNO ha valutato niente non sparisce dal
+     documento: un luogo non misurato non è un luogo sicuro. */
+  dice(/potenziale;Impianto — nessun episodio valutato[^;]*;1\b/.test(nm.testo),
+    "il luogo senza nessuna valutazione ha la sua riga, con la sua parola",
+    righe(nm.testo).filter((r) => /^potenziale;/.test(r)));
+  dice(!/potenziale;Impianto — episodi che potevano/.test(nm.testo),
+    "e NON entra nella classifica per luogo, dove in fondo si leggerebbe come il più tranquillo",
+    righe(nm.testo).filter((r) => /^potenziale;/.test(r)));
 }
 
 // ── 4 · IL REGISTRO INFORTUNI ──────────────────────────────────────────────

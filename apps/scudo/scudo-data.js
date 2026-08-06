@@ -255,12 +255,19 @@ export const DEMO = {
       costiSicurezza: 300, stato: "attivo" },
   ],
   infortuni: [
-    { id: "i1", data: "2026-05-18", tipo: "near-miss", gravita: "lieve", giorniAssenza: 0, luogo: "fronte Est", luogoTipo: "fronte", categoria: "caduta-massi", descrizione: "Caduta massi vicino al perforatore, nessun ferito" },
+    { id: "i1", data: "2026-05-18", tipo: "near-miss", gravita: "lieve", giorniAssenza: 0, luogo: "fronte Est", luogoTipo: "fronte", categoria: "caduta-massi", gravitaPotenziale: "mortale", descrizione: "Caduta massi vicino al perforatore, nessun ferito" },
     { id: "i2", data: "2026-02-03", tipo: "infortunio", gravita: "lieve", giorniAssenza: 4, luogo: "officina", luogoTipo: "officina", descrizione: "Taglio alla mano durante una manutenzione" },
-    { id: "i3", data: "2026-06-24", tipo: "near-miss", gravita: "lieve", giorniAssenza: 0, luogo: "pista principale", luogoTipo: "pista", categoria: "mezzi", anonimo: true, rapida: true, descrizione: "Dumper e pick-up incrociati in curva con poca visibilità" },
-    { id: "i4", data: "2026-07-06", tipo: "near-miss", gravita: "lieve", giorniAssenza: 0, luogo: "fronte Nord", luogoTipo: "fronte", categoria: "caduta-massi", rapida: true, descrizione: "Blocco staccato dal ciglio durante il disgaggio" },
+    { id: "i3", data: "2026-06-24", tipo: "near-miss", gravita: "lieve", giorniAssenza: 0, luogo: "pista principale", luogoTipo: "pista", categoria: "mezzi", anonimo: true, rapida: true, gravitaPotenziale: "mortale", descrizione: "Dumper e pick-up incrociati in curva con poca visibilità" },
+    { id: "i4", data: "2026-07-06", tipo: "near-miss", gravita: "lieve", giorniAssenza: 0, luogo: "fronte Nord", luogoTipo: "fronte", categoria: "caduta-massi", rapida: true, gravitaPotenziale: "grave", descrizione: "Blocco staccato dal ciglio durante il disgaggio" },
+    /* ⛔ i5 È SENZA `gravitaPotenziale`, E DI PROPOSITO. Un campo assente non
+       è un refuso: è uno stato che il prodotto sa raccontare, e la
+       dimostrazione deve contenerlo — se no la funzione appena costruita per
+       dire «nessuno l'ha valutato» non avrebbe niente da mostrare. È anche il
+       caso realistico: il riparo di un nastro trovato aperto a macchina ferma
+       è esattamente l'episodio su cui chi segnala NON sa dire come sarebbe
+       finita, e costringerlo a scegliere raccoglierebbe un numero inventato. */
     { id: "i5", data: "2026-07-15", tipo: "near-miss", gravita: "lieve", giorniAssenza: 0, luogo: "impianto", luogoTipo: "impianto", categoria: "impianto", rapida: true, descrizione: "Riparo del nastro 3 trovato aperto a macchina ferma" },
-    { id: "i6", data: "2026-07-21", tipo: "near-miss", gravita: "lieve", giorniAssenza: 0, luogo: "pista di risalita", luogoTipo: "pista", categoria: "mezzi", anonimo: true, rapida: true, descrizione: "Pietra caduta dal cassone su tratto di pista con arginello basso" },
+    { id: "i6", data: "2026-07-21", tipo: "near-miss", gravita: "lieve", giorniAssenza: 0, luogo: "pista di risalita", luogoTipo: "pista", categoria: "mezzi", anonimo: true, rapida: true, gravitaPotenziale: "lieve", descrizione: "Pietra caduta dal cassone su tratto di pista con arginello basso" },
     // i7 sta in un ANNO PRECEDENTE di proposito: senza almeno due anni non
     // esiste un andamento da mostrare, e la dimostrazione deve contenere il
     // caso per cui la schermata è stata costruita.
@@ -948,14 +955,26 @@ import { categoriaNearMiss, luogoNearMiss } from "../../shared/dw-ponti.js";
 export const MIN_TENDENZA = 5;
 export function troppoPochiPerTendenza(quanti) { return (+quanti || 0) < MIN_TENDENZA; }
 
+/* ⛔ LA FINESTRA DEL PERIODO E L'ETICHETTA DEL LUOGO STANNO QUI, UNA VOLTA SOLA.
+   Erano scritte dentro `riepilogoNearMiss`; da quando le usa anche il riepilogo
+   della GRAVITÀ POTENZIALE sarebbero due copie della stessa regola — la forma
+   di difetto che in questo repository è già costata una giornata. Non sono
+   esportate perché non servono fuori: la regola sta in un posto solo dentro il
+   file che la usa. */
+function dentroFinestraNM(x, giorni, oggi) {
+  if (giorni == null) return true;
+  const g = giorniTra((x || {}).data, oggi);   // negativo = nel passato
+  return Number.isFinite(g) && g <= 0 && -g <= giorni;
+}
+// Il luogo può arrivare da un tocco (luogoTipo) o essere scritto a mano nel
+// registro di sempre (luogo): il conteggio tiene buoni tutti e due.
+function etichettaLuogoNM(x) {
+  return luogoNearMiss((x || {}).luogoTipo) || String((x || {}).luogo || "").trim() || "Luogo non indicato";
+}
+
 export function riepilogoNearMiss(infortuni, azioni, giorni = 90, oggi = new Date()) {
   const tutti = (infortuni || []).filter(x => x.tipo === "near-miss");
-  const dentro = (x) => {
-    if (giorni == null) return true;
-    const g = giorniTra(x.data, oggi);      // negativo = nel passato
-    return Number.isFinite(g) && g <= 0 && -g <= giorni;
-  };
-  const list = tutti.filter(dentro);
+  const list = tutti.filter(x => dentroFinestraNM(x, giorni, oggi));
   const conta = (etichettaDi) => {
     const per = {};
     for (const x of list) {
@@ -966,9 +985,7 @@ export function riepilogoNearMiss(infortuni, azioni, giorni = 90, oggi = new Dat
       .sort((a, b) => b.valore - a.valore || a.etichetta.localeCompare(b.etichetta, "it"));
   };
   const perTipo = conta(x => categoriaNearMiss(x.categoria) || "Non classificato");
-  // Il luogo può arrivare da un tocco (luogoTipo) o essere scritto a mano nel
-  // registro di sempre (luogo): il conteggio tiene buoni tutti e due.
-  const perLuogo = conta(x => luogoNearMiss(x.luogoTipo) || (x.luogo || "").trim() || "Luogo non indicato");
+  const perLuogo = conta(etichettaLuogoNM);
   const ids = new Set(list.map(x => x.id));
   const azi = (azioni || []).filter(a => a.origineTipo === "evento" && ids.has(a.origineId));
   const conAzione = new Set(azi.map(a => a.origineId)).size;
@@ -1011,6 +1028,221 @@ export function descriviLetturaNearMiss(riepilogo) {
       + " sono meno di " + MIN_TENDENZA + ", la soglia sotto la quale l'app non disegna nessuna "
       + "classifica. Le righe «tipo» e «luogo» qui sotto sono un conteggio, non una tendenza.";
   return "";
+}
+
+// ============================================================
+// S2b · LA GRAVITÀ POTENZIALE — «e se fosse andata male?»
+//
+// Il registro dei near-miss raccoglie che cosa è successo, dove, chi segnala e
+// che cosa si è fatto per correggerlo. Non raccoglie la cosa che trasforma un
+// elenco di episodi in qualcosa che sa dire DOVE IL RISCHIO SI CONCENTRA: un
+// masso caduto a due metri da un uomo e un masso caduto in un piazzale deserto
+// sono lo stesso «evento», e non sono lo stesso rischio. Contati insieme, il
+// secondo diluisce il primo — ed è il primo quello per cui il registro esiste.
+//
+// ⛔ NON È UN ADEMPIMENTO E NON VA RACCONTATO COME TALE. Nessuna legge citata
+// da Scudo chiede la gravità potenziale: è una SCELTA DI PRODOTTO, si difende
+// da sola e i testi la presentano come tale. Qui dentro non si scrivono
+// articoli, non si nominano norme e non si inventano termini.
+//
+// ⛔ E IL VINCOLO DI DISEGNO VIENE PRIMA DEL CODICE: «NON LO SO» È UNO STATO
+// DICHIARABILE, NON IL VALORE PIÙ BASSO. Chi segnala di corsa sul piazzale
+// spesso non sa dire che cosa sarebbe successo, e un registro che lo costringe
+// a scegliere raccoglie un numero INVENTATO — peggio di una cella vuota,
+// perché poi qualcuno ci fa una media e la media ha la faccia tranquilla.
+// Da lì tre conseguenze, e sono le tre che questo blocco deve rispettare:
+//   1. la gravità potenziale è FACOLTATIVA, e non averla è uno stato che l'app
+//      sa raccontare (`descriviPotenziale`), non un buco;
+//   2. ogni numero aggregato dichiara su quanti episodi è calcolato e quanti
+//      non sono valutati, e risponde `null` — non zero, non «lieve» — quando
+//      non si può dire;
+//   3. la parola e il colore di «non valutata» non sono quelli di «lieve»:
+//      sono cose diverse e vanno viste diverse (pastiglia neutra `tag`, non
+//      `info`), ed è la pagina a doverlo rispettare.
+//
+// ⚠️ LA SCALA RIUSA LE PAROLE DI CASA, e la terza è dichiarata. `lieve` e
+// `grave` sono le stesse due parole con cui Scudo classifica gli infortuni
+// VERI (campo `gravita`): non se ne inventano di nuove per una cosa che esiste.
+// `mortale` è il gradino che la scala degli infortuni non ha — e non ce l'ha
+// per una ragione che qui non vale: quella scala descrive un danno AVVENUTO,
+// questa descrive un danno EVITATO, e l'unica risposta per cui vale la pena
+// tenere il registro è proprio «ci scappava il morto». Senza quel gradino la
+// funzione non risponderebbe alla domanda per cui è stata scritta.
+// ============================================================
+/* Vocabolario CHIUSO, dal meno al più grave. `ordine` serve al confronto e
+   all'ordinamento — mai la posizione nell'array, che il primo riordino
+   cambierebbe in silenzio. `cls` è la pastiglia con cui la pagina lo disegna:
+   sta qui e non nella pagina perché una mappa parallela nella pagina è
+   esattamente il difetto della regola 18 (una funzione che sa dire N stati e
+   una mappa che ne disegna N−1 uccide la pagina al disegno). Portandosi il
+   proprio colore, il livello non ha nessuna mappa da tenere allineata. */
+export const GRAVITA_POTENZIALE = [
+  /* ⚠️ «lieve» NON usa `info`, e la ragione è stata TROVATA IN UNO SCATTO,
+     non leggendo il codice: `shared/dw-app-ui.css` ha `.info{flex:1 1 120px}`
+     — la colonna di testo di ogni riga di lista, usata 36 volte nella sola
+     pagina di Scudo. Una pastiglia `badge info` eredita quel `flex` (nessuno
+     dei due la contraddice) e si ALLARGA a metà riga: «LIEVE 2» prendeva 460
+     px accanto a «GRAVE 1» da 120. Nessun errore, nessuna prova rossa, e
+     leggendo il codice non si vede. La lezione è più larga del caso: il
+     vocabolario delle pastiglie e quello dell'IMPIANTO di pagina vivono nello
+     stesso spazio di nomi, e `info` appartiene già al secondo. */
+  { chiave: "lieve",   ordine: 1, etichetta: "Lieve",   cls: "ok",
+    domanda: "Una medicazione, nessun giorno di assenza" },
+  { chiave: "grave",   ordine: 2, etichetta: "Grave",   cls: "warn",
+    domanda: "Un infortunio con giorni di assenza" },
+  { chiave: "mortale", ordine: 3, etichetta: "Mortale", cls: "danger",
+    domanda: "Ci scappava il morto, o un'invalidità permanente" },
+];
+/* Da quale gradino in su un near-miss «poteva finire con un infortunio». Sta
+   in una costante perché la usano il conteggio, la classifica per luogo e la
+   frase: tre copie dello stesso `>= 2` divergono al primo ripensamento. */
+export const ORDINE_POTENZIALE_ALTO = 2;
+
+/* Il livello di un evento, oppure `null` se non è stato valutato.
+   ⛔ UN VALORE CHE NON STA NEL VOCABOLARIO VALE «NON VALUTATO», MAI «LIEVE».
+   Ci si arriva con un import o con un dato vecchio, ed è la direzione che
+   conta: farlo scivolare sul gradino più basso sarebbe il numero tranquillo
+   costruito su una parola che nessuno sa leggere. */
+export function potenzialeDi(evento) {
+  const c = String(((evento || {}).gravitaPotenziale) || "").trim();
+  return GRAVITA_POTENZIALE.find((g) => g.chiave === c) || null;
+}
+
+/* La frase per la riga del registro, ed è il consumatore della non-misurabilità
+   di un evento singolo: senza di lei «non valutata» resterebbe un `null` che
+   nessuno racconta.
+   ⚠️ Risponde `""` per tutto ciò che non è un near-miss, e non è una svista:
+   di un infortunio VERO si sa già che cosa è successo, quindi chiedergli come
+   poteva finire non ha senso — e scrivergli accanto «non valutata» sarebbe
+   accusarlo di una mancanza che non ha. */
+export function descriviPotenziale(evento) {
+  if (((evento || {}).tipo) !== "near-miss") return "";
+  const g = potenzialeDi(evento);
+  return g ? "se andava male: " + g.etichetta.toLowerCase() : "gravità potenziale non valutata";
+}
+
+/* DOVE IL RISCHIO SI CONCENTRA, e quanto di quella risposta è misurato.
+   Guarda solo i near-miss (per la ragione scritta in `descriviPotenziale`) e
+   solo quelli dentro il periodo, con la stessa finestra del riepilogo
+   aggregato — `dentroFinestraNM`, chiamata e non ricopiata.
+   Le tre risposte che possono valere `null` invece di un numero tranquillo:
+     · `quotaAlto` — una percentuale su meno di MIN_TENDENZA valutati è una
+       misura su un campione di uno o due: «100% ad alto potenziale» con un
+       solo episodio valutato è la bugia più convincente che questa funzione
+       potrebbe dire;
+     · `dove` — la classifica per luogo, `null` sotto la soglia E `null` quando
+       nessun luogo ha nemmeno un episodio sopra il gradino: senza quello non
+       c'è niente da concentrare, e la prima riga uscirebbe lo stesso portandosi
+       dietro la frase «in testa c'è Fronte con 0 episodi che potevano finire
+       male» (misurato in prova, prima di scrivere qui);
+     · `piuAlto` — `null` finché nessuno ha valutato niente.
+   ⛔ E I LUOGHI CON ZERO VALUTATI NON ENTRANO NELLA CLASSIFICA: un luogo con
+   cinque episodi che nessuno ha valutato non è un luogo sicuro, è un luogo non
+   misurato. Se finisse in fondo alla classifica lo si leggerebbe come il più
+   tranquillo — l'assenza di un dato letta come un dato favorevole. Escono in
+   `luoghiCiechi`, con quanti episodi hanno, e la pagina li mostra a parte.
+   `noto` è vero solo quando c'è almeno un episodio E sono valutati tutti: con
+   zero episodi «tutti valutati» sarebbe la parola tranquilla sulla scatola
+   vuota. Pura e testabile; `oggi` iniettabile. */
+export function riepilogoPotenziale(infortuni, giorni = 90, oggi = new Date()) {
+  const tutti = (infortuni || []).filter((x) => x && x.tipo === "near-miss");
+  const list = tutti.filter((x) => dentroFinestraNM(x, giorni, oggi));
+  const val = list.filter((x) => potenzialeDi(x));
+  const leggibile = !troppoPochiPerTendenza(val.length);
+  /* ⛔ SENZA NEMMENO UN EPISODIO NON SI RESTITUISCE LA SCALA, e a pretenderlo è
+     stata `sonda-vuoto.mjs` — non l'ho visto io. Chiamata a vuoto, questa
+     funzione rispondeva con le tre righe a zero, e ognuna si portava dietro la
+     propria pastiglia: `cls: "ok"` (una risposta TRANQUILLA) e `cls: "danger"`
+     (un ALLARME) su un registro in cui non è successo niente. Sullo schermo non
+     si vedeva — la pagina non disegna niente con zero episodi — ma la funzione
+     è pubblica, e la prossima che la disegnasse si troverebbe un verde e un
+     rosso dove nessuno ha misurato. Zero episodi non è «tutti lievi»: è che non
+     c'è nessuna ripartizione. Con episodi ma nessuna valutazione le tre righe
+     restano, e stanno accanto al conto dei non valutati: lì gli zeri hanno il
+     loro denominatore a fianco. */
+  const perLivello = list.length === 0 ? [] : GRAVITA_POTENZIALE.map((g) => ({
+    chiave: g.chiave, etichetta: g.etichetta, cls: g.cls,
+    quanti: val.filter((x) => potenzialeDi(x).chiave === g.chiave).length,
+  }));
+  const alto = val.filter((x) => potenzialeDi(x).ordine >= ORDINE_POTENZIALE_ALTO).length;
+  const piuAlto = GRAVITA_POTENZIALE.slice().reverse()
+    .find((g) => val.some((x) => potenzialeDi(x).chiave === g.chiave)) || null;
+  const quotaAlto = leggibile ? Math.round((alto * 1000) / val.length) / 10 : null;
+
+  const per = new Map();
+  for (const x of list) {
+    const et = etichettaLuogoNM(x);
+    if (!per.has(et)) per.set(et, { etichetta: et, eventi: 0, valutati: 0, nonValutati: 0, alto: 0, piuAlto: null });
+    const r = per.get(et);
+    r.eventi++;
+    const g = potenzialeDi(x);
+    if (!g) { r.nonValutati++; continue; }
+    r.valutati++;
+    if (g.ordine >= ORDINE_POTENZIALE_ALTO) r.alto++;
+    if (!r.piuAlto || g.ordine > r.piuAlto.ordine) r.piuAlto = g;
+  }
+  const righe = [...per.values()];
+  /* La guardia su `piuAlto` non è ridondante perché il filtro viene prima: è
+     una difesa che oggi non serve e che sopravvive al primo riordino, ed è la
+     lezione già pagata in `bozzaNearMiss` di `shared/`. */
+  const ord = (r) => (r.piuAlto ? r.piuAlto.ordine : 0);
+  const perLuogo = righe.filter((r) => r.valutati > 0)
+    .sort((a, b) => b.alto - a.alto || ord(b) - ord(a)
+      || b.valutati - a.valutati || a.etichetta.localeCompare(b.etichetta, "it"));
+  const luoghiCiechi = righe.filter((r) => r.valutati === 0)
+    .sort((a, b) => b.eventi - a.eventi || a.etichetta.localeCompare(b.etichetta, "it"))
+    .map((r) => ({ etichetta: r.etichetta, eventi: r.eventi }));
+
+  return {
+    giorni, eventi: list.length, totaleStorico: tutti.length,
+    valutati: val.length, nonValutati: list.length - val.length,
+    perLivello, alto, quotaAlto, piuAlto, perLuogo, luoghiCiechi,
+    dove: leggibile && perLuogo[0] && perLuogo[0].alto > 0 ? perLuogo[0] : null,
+    /* bandiera: ce n'è abbastanza da poterci leggere qualcosa. Non vuol dire
+       «ci sono dati» — è la stessa distinzione di `causeRicorrenti`. */
+    leggibile,
+    /* bandiera: la gravità potenziale è scritta su TUTTI gli episodi del
+       periodo. Quando è falsa ogni conteggio qui dentro è un MINIMO. */
+    noto: list.length > 0 && val.length === list.length,
+  };
+}
+
+/* Come va letto quel riepilogo — e sta nel modulo, non nella pagina, perché lo
+   SCHERMO e il FILE che esce devono dirlo con la stessa voce (è la regola già
+   scritta per `descriviLetturaNearMiss`). È anche il posto in cui le bandiere
+   `leggibile` e `noto` vengono LETTE: senza questa funzione sarebbero due
+   guardie scollegate, cioè dichiarazioni che non proteggono niente. */
+export function descriviRischioPotenziale(riepilogo) {
+  const r = riepilogo || {};
+  const ev = +r.eventi || 0, val = +r.valutati || 0, non = +r.nonValutati || 0;
+  if (ev === 0) {
+    const s = +r.totaleStorico || 0;
+    return s
+      ? "Nessun near-miss nel periodo scelto: non c'è niente di cui dire come poteva finire. "
+        + "Nello storico ce n'" + (s === 1 ? "è 1" : "sono " + s) + "."
+      : "Nessun near-miss registrato: la gravità potenziale non ha ancora niente da misurare.";
+  }
+  if (val === 0)
+    return "Nessuno dei " + ev + " near-miss del periodo ha una gravità potenziale scritta, quindi "
+      + "dove il rischio si concentra NON si può dire. Non vuol dire che sia basso: vuol dire che "
+      + "non l'ha valutato nessuno. Scriverla è facoltativo, e si fa in un tocco dal registro.";
+  const testa = non
+    ? val + " near-miss su " + ev + (val === 1 ? " ha" : " hanno") + " la gravità potenziale scritta, "
+      + non + " no. "
+    : (ev === 1 ? "L'unico near-miss del periodo ha la gravità potenziale scritta. "
+                : "Tutti e " + ev + " i near-miss del periodo hanno la gravità potenziale scritta. ");
+  if (!r.leggibile)
+    return testa + "Sono meno di " + MIN_TENDENZA + ": l'app non dice dove il rischio si concentra, "
+      + "perché una classifica costruita su così pochi episodi sarebbe una bugia.";
+  const d = r.dove;
+  if (!d)
+    return testa + "Nessuno di quelli valutati poteva finire con un infortunio: sono tutti «lieve». "
+      + "È il conto di quello che è stato valutato, non di quello che è successo.";
+  return testa + "Il rischio si concentra su " + d.etichetta + ": " + d.alto
+    + (d.alto === 1 ? " episodio poteva" : " episodi potevano") + " finire con un infortunio, su "
+    + d.valutati + " valutat" + (d.valutati === 1 ? "o" : "i")
+    + (d.nonValutati ? " — e lì " + d.nonValutati + (d.nonValutati === 1 ? " non è valutato" : " non sono valutati") : "")
+    + ".";
 }
 
 // ============================================================
