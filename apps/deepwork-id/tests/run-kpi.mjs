@@ -21021,5 +21021,202 @@ test("⛔ etichettaStatoDocumento: la mappa esce dalla pagina e la leggono in du
   });
 }
 
+// ═══ I CSV E LA DIMOSTRAZIONE DICHIARATA (06/08) ═══
+/* Sui fogli STAMPATI la dichiarazione «dati di esempio» c'era già (avvisoEsempio
+   e i suoi gemelli). Sui CSV non c'era per nessuno: un .csv che esce dalla
+   dimostrazione arriva in un foglio di calcolo — o dal commercialista, o
+   all'ente — identico a uno vero, e a differenza di un foglio stampato non ha
+   nemmeno una testata in cui dubitare.
+   La dichiarazione sta nel NOME del file e non dentro, perché ogni CSV che
+   scriviamo qualcuno di noi lo rilegge: una riga in cima sposta l'intestazione
+   dalla riga 1, una in coda entra fra i dati, una colonna in più cambia lo
+   schema. Il nome non tocca un byte del contenuto, quindi i giri scrivi/leggi
+   restano identici PER COSTRUZIONE.
+   Qui si prova la riga vera, letta dalle pagine ed eseguita: se qualcuno la
+   riscrive in una delle quattro, o aggiunge un export senza marchiarlo, queste
+   prove cadono. */
+{
+  const { readFileSync } = await import("node:fs");
+  console.log("\n— I CSV che escono dalla dimostrazione lo dicono nel nome —");
+
+  const PAGINE = [
+    ["conti", join(HERE, "../../conti/index.html")],
+    ["flotta", join(HERE, "../../flotta/index.html")],
+    ["sentinella", join(HERE, "../../sentinella/index.html")],
+    ["terra", join(HERE, "../../terra/index.html")],
+  ];
+  const SRC = new Map(PAGINE.map(([n, f]) => [n, readFileSync(f, "utf8")]));
+  const rigaDef = (s) => (s.match(/^[ \t]*const marchiaCsv = .*$/m) || [null])[0];
+
+  /* Il rilevatore: quanti siti di export ci sono e quanti NON chiamano la
+     marcatura. Torna anche il conto dei soggetti, perché «zero violazioni» su
+     zero soggetti guardati è la risposta che non si vede. */
+  const scoperti = (s) => {
+    const righe = s.split("\n")
+      .filter((r) => !/const marchiaCsv =/.test(r));   // la definizione non è un export
+    const siti = righe.filter((r) => /[A-Za-z_$][\w$]*\.download = /.test(r));
+    return { siti: siti.length, fuori: siti.filter((r) => !/marchiaCsv\(/.test(r)) };
+  };
+
+  test("le quattro pagine dichiarano la marcatura con la STESSA riga, non con quattro copie", () => {
+    const righe = PAGINE.map(([n]) => [n, rigaDef(SRC.get(n))]);
+    for (const [n, r] of righe) ok(r !== null, `${n}: la definizione di marchiaCsv non c'è`);
+    const primo = righe[0][1];
+    for (const [n, r] of righe.slice(1))
+      ok(r === primo, `${n} ha una versione diversa da conti:\n      ${r}\n      ${primo}`);
+    console.log(`     (4 pagine, 1 sola riga: ${primo.trim()})`);
+  });
+
+  test("nessun export CSV resta senza marchio, e si dice quanti se ne sono guardati", () => {
+    let tot = 0;
+    for (const [n] of PAGINE) {
+      const { siti, fuori } = scoperti(SRC.get(n));
+      ok(siti > 0, `${n}: nessun sito di export trovato — il rilevatore non sta guardando niente`);
+      ok(fuori.length === 0, `${n}: ${fuori.length} export senza marchiaCsv →${fuori.map((r) => "\n      " + r.trim()).join("")}`);
+      tot += siti;
+    }
+    eq(tot, 25, "i siti di export CSV censiti nelle quattro app");
+    console.log(`     (${tot} siti di export guardati in ${PAGINE.length} pagine)`);
+  });
+
+  test("il rilevatore sa vedere un export lasciato fuori", () => {
+    const sano = '    a.download = "x.csv"; marchiaCsv(a); a.click();';
+    const rotto = sano + '\n    b.download = "y.csv"; b.click();';
+    eq(scoperti(sano).fuori.length, 0, "un export marchiato non è una violazione");
+    eq(scoperti(rotto).fuori.length, 1, "uno dimenticato sì");
+    eq(scoperti(rotto).siti, 2, "e li ha contati tutti e due");
+  });
+
+  /* La riga vera, estratta dal sorgente ed eseguita: si prova quello che gira
+     nella pagina, non una seconda copia scritta qui. */
+  const espressione = rigaDef(SRC.get("conti")).replace(/^\s*const marchiaCsv = /, "").replace(/;\s*$/, "");
+  const fabbrica = new Function("db", `return (${espressione});`);
+  const nomeCon = (mode, base) => { const el = { download: base }; fabbrica({ mode })(el); return el.download; };
+
+  test("in live il nome esce pulito", () => {
+    eq(nomeCon("live", "conti_situazione_fatture.csv"), "conti_situazione_fatture.csv", "niente marchio sui dati veri");
+    eq(nomeCon("live", "conti_costi_2026-01-01_2026-08-06.csv"), "conti_costi_2026-01-01_2026-08-06.csv", "anche sui nomi costruiti a pezzi");
+  });
+
+  test("⛔ fuori da live il nome porta il marchio in testa", () => {
+    eq(nomeCon("demo", "conti_situazione_fatture.csv"), "DATI-DI-ESEMPIO_conti_situazione_fatture.csv", "la dimostrazione lo dice");
+    eq(nomeCon("demo", "terra_riepilogo_2026.csv"), "DATI-DI-ESEMPIO_terra_riepilogo_2026.csv", "e anche i nomi costruiti a pezzi");
+  });
+
+  test("⛔ un modo che non si sa non è un modo favorevole: si marchia", () => {
+    /* Solo un «live» esplicito ha diritto al nome pulito. Se domani `db.mode`
+       arrivasse vuoto o sconosciuto, il file uscirebbe marchiato — che è
+       l'errore dalla parte giusta: un file vero marchiato è una seccatura, un
+       file di dimostrazione pulito è quello che finisce dall'ente. */
+    for (const m of [undefined, null, "", "LIVE", "Live", "boh", 0, false])
+      eq(nomeCon(m, "flotta-costi.csv"), "DATI-DI-ESEMPIO_flotta-costi.csv", `mode ${JSON.stringify(m)} non è «live»`);
+  });
+
+  test("il marchio non entra MAI nel contenuto: sta scritto una volta sola per pagina", () => {
+    /* Se qualcuno lo mettesse in una riga d'intestazione o in coda ai dati, in
+       quella pagina comparirebbe una seconda volta e questa prova cadrebbe. È
+       la guardia sul giro scrivi/leggi: il contenuto non lo tocca nessuno. */
+    for (const [n] of PAGINE) {
+      const quante = (SRC.get(n).match(/DATI-DI-ESEMPIO_/g) || []).length;
+      eq(quante, 1, `${n}: il marchio compare ${quante} volte invece che solo nella definizione`);
+    }
+  });
+
+  test("la riga download = «…» resta un letterale, se no la regola 13 di run-stile diventa cieca", () => {
+    /* Quella regola conta i nomi di file ripetuti leggendo `.download = "…"`.
+       Scrivere `a.download = marchiaCsv("x.csv")` avrebbe funzionato uguale e
+       le avrebbe tolto la vista su quattro app senza far cadere niente. */
+    for (const [n] of PAGINE) {
+      const letterali = (SRC.get(n).match(/\.download = "([^"]+)"/g) || []).length;
+      ok(letterali > 0, `${n}: nessun nome di file più leggibile come letterale`);
+    }
+    const l = PAGINE.reduce((t, [n]) => t + (SRC.get(n).match(/\.download = "([^"]+)"/g) || []).length, 0);
+    console.log(`     (${l} nomi di file ancora letterali sulle 4 pagine)`);
+  });
+
+  /* ── PERCHÉ IL NOME E NON UNA DELLE ALTRE TRE FORME ─────────────────────
+     Le forme possibili sono quattro: (a) il nome del file, (b) una riga di
+     commento in cima, (c) una riga in coda, (d) una colonna in più. La scelta
+     non è stata fatta a ragionamento: sono state scritte tutte e quattro e
+     RILETTE dai nostri lettori, sui 23 file veri usciti premendo i bottoni.
+     Esito, e non è quello che ci si aspetta leggendo il codice:
+
+       forma                 lettori che ritrovano le righe   resta coi dati
+       (a) nome del file                 9 su 9                    NO
+       (b) riga # in cima                3 su 9                    sì
+       (c) riga in coda                  3 su 9                    sì
+       (d) colonna in più                9 su 9                    sì
+
+     ⛔ (b) e (c) non «sporcano» il file: la riga della dichiarazione viene
+     letta come un DATO. `parseRicambiCsv` trova un ricambio in più,
+     `parseMezziCsv` un mezzo in più, `parseTaratureCsv` una taratura in più,
+     `parseFrontiCsv` un fronte in più, `parseRicettoriCsv` un ricettore in
+     più, `parseGareCsv` una gara in più. Cioè: la frase messa lì per dire
+     «questi dati non sono veri» diventa essa stessa un dato falso. Sei
+     lettori su nove, misurati.
+     ⛔ E (d) è l'unica altra che regge — resta anche attaccata ai dati, che è
+     il suo vantaggio vero — ma NON si può fare come trasformazione del testo
+     dopo: attaccando la colonna riga per riga su un `split("\n")`, i sei file
+     di Flotta (che uniscono le righe con `\r\n`) hanno RADDOPPIATO il numero
+     di righe lette, in silenzio. Per farla bene la colonna va aggiunta dove il
+     file si compone, riga per riga: 25 intestazioni e una quarantina di
+     modelli di riga. È la proposta aperta, non un lavoro saltato.
+     Qui sotto si tiene ferma la parte misurata, così se un lettore cambiasse
+     idea la si rivedrebbe invece di ricordarsela. */
+  {
+    const DICH = "DATI DI ESEMPIO — questo file non contiene dati di nessuna cava reale";
+    const FORME = {
+      a: (t) => t,
+      b: (t) => "# " + DICH + "\n" + t,
+      c: (t) => t.replace(/\n?$/, "\n") + DICH + "\n",
+      d: (t) => t.split("\n").map((r, i) => (r === "" ? r : r + ";" + (i === 0 ? "dati_di_esempio" : "SI"))).join("\n"),
+    };
+    const base = sentinella.csvTarature(sentinella.DEMO.monitoraggi);
+    const attese = sentinella.parseTaratureCsv(base);
+    const quante = (f) => sentinella.parseTaratureCsv(FORME[f](base)).length;
+
+    test("misurato: la dichiarazione DENTRO il file diventa un dato falso", () => {
+      ok(attese.length > 0, "il riferimento non è vuoto, se no la misura non misura niente");
+      eq(quante("b"), attese.length + 1, "una riga # in cima: parseTaratureCsv legge una taratura in più");
+      eq(quante("c"), attese.length + 1, "una riga in coda: idem");
+      console.log(`     (${attese.length} tarature vere → ${quante("b")} con la riga in cima, ${quante("c")} con quella in coda)`);
+    });
+
+    test("misurato: il nome del file e la colonna in più non rompono nessun lettore", () => {
+      eq(quante("a"), attese.length, "il nome non tocca il contenuto");
+      eq(quante("d"), attese.length, "una colonna in coda viene ignorata dal lettore");
+      /* e sul giro più forte che abbiamo, i 19 campi del registro volate */
+      const vb = sentinella.csvRegistroVolate(sentinella.DEMO.volate);
+      const rif = sentinella.parseVolateCsv(vb);
+      ok(rif.length > 0, "il registro volate d'esempio non è vuoto");
+      eq(sentinella.parseVolateCsv(FORME.a(vb)).length, rif.length, "19 campi, forma (a)");
+      eq(sentinella.parseVolateCsv(FORME.d(vb)).length, rif.length, "19 campi, forma (d)");
+    });
+
+    test("⛔ misurato: la colonna aggiunta a TESTO raddoppia le righe dei file con CRLF", () => {
+      /* Flotta unisce le righe con `\r\n`. Attaccare `;SI` dopo uno `split("\n")`
+         lascia il `\r` in mezzo e `leggiCsv` conta il doppio delle righe: è il
+         motivo per cui (d) va fatta dove il file si compone, non dopo. */
+      const crlf = "nome;giacenza\r\nPunta;12\r\nFiltro;3\r\n";
+      eq(shell.leggiCsv(crlf).righe.length, 3, "il file con CRLF ha 3 righe");
+      ok(shell.leggiCsv(FORME.d(crlf)).righe.length > 3,
+        "e con la colonna attaccata a testo ne ha di più: la trasformazione lo corrompe");
+      console.log(`     (3 righe → ${shell.leggiCsv(FORME.d(crlf)).righe.length} con la colonna attaccata a testo)`);
+    });
+  }
+
+  test("Genesi è FUORI, e la ragione è misurata: non ha nessun modo dimostrazione", () => {
+    /* Genesi non ha login, né archivio DEMO, né `db.mode`: i suoi CSV escono
+       dai parametri che l'utente ha scritto, quindi non c'è nessuna
+       dimostrazione da dichiarare. Il giorno in cui Genesi guadagnasse il modo
+       tour questa prova cade, e l'eccezione va rifatta invece che ricordata. */
+    const g = readFileSync(join(HERE, "../../genesi/genesi.html"), "utf8");
+    const gd = readFileSync(join(HERE, "../../genesi/genesi-data.js"), "utf8");
+    ok(!/db\.mode/.test(g), "genesi.html non parla di db.mode");
+    ok(!/id="tour-banner"/.test(g), "genesi.html non ha il banner del tour");
+    ok(!/^export const DEMO\b/m.test(gd), "genesi-data.js non ha un archivio DEMO");
+  });
+}
+
 console.log(`\nRisultato KPI app: ${passed} passati, ${failed} falliti${inVolo.length ? `  ·  ${inVolo.length} prove asincrone aspettate` : ""}`);
 process.exit(failed > 0 ? 1 : 0);

@@ -1034,6 +1034,39 @@ a.dw-btn{text-decoration:none}
   if (db.mode !== "live") $("tour-banner").style.display = "block";
   $("mode-note").textContent = db.mode === "live" ? "Dati reali della tua organizzazione." : "Dati di esempio ("+db.mode+"): le modifiche non vengono salvate.";
 
+  /* ── IL CSV CHE ESCE DALLA DIMOSTRAZIONE LO DICE NEL NOME DEL FILE ─────
+     I fogli STAMPATI la dichiarazione ce l'hanno già. I CSV no: un file che
+     arriva al commercialista o all'ente è identico a uno vero, e a differenza
+     di un foglio non ha nemmeno una testata in cui dubitare.
+     Le forme possibili erano quattro e sono state MISURATE, non discusse:
+     scritte tutte e quattro e rilette dai nostri lettori sui 23 file veri
+     usciti dai bottoni (la misura vive in run-kpi, banda «I CSV E LA
+     DIMOSTRAZIONE DICHIARATA»):
+       (a) il nome del file        9 lettori su 9 ritrovano le righe
+       (b) una riga # in cima      3 su 9   ⛔
+       (c) una riga in coda        3 su 9   ⛔
+       (d) una colonna in più      9 su 9
+     ⛔ (b) e (c) non sporcano il file: la riga della dichiarazione viene letta
+     come un DATO — un ricambio in più per parseRicambiCsv, un mezzo in più per
+     parseMezziCsv, una taratura in più per parseTaratureCsv, un fronte in più
+     per parseFrontiCsv. La frase messa lì per dire «questi numeri non sono
+     veri» diventa essa stessa un numero falso.
+     Resta (a), che è quella scritta qui: non tocca un byte del contenuto,
+     quindi ogni giro scrivi/leggi è identico per costruzione. (d) regge anche
+     lei e in più resta attaccata ai dati: è la proposta aperta, ma va fatta
+     dove il file si compone (attaccata a testo dopo, sui sei file di Flotta
+     che usano CRLF, raddoppia le righe lette — in silenzio).
+     Il marchio va in TESTA: è la fine del nome che i client di posta e le
+     colonne strette dei gestori di file tagliano per prima.
+     Solo un «live» esplicito ha diritto al nome pulito — un modo sconosciuto è
+     marchiato, perché l'assenza di un dato non è un dato favorevole.
+     Si chiama DOPO l'assegnazione, e la riga download = "…" resta un
+     letterale: la regola 13 di run-stile conta i nomi ripetuti leggendo proprio
+     quel letterale, e nasconderglielo la renderebbe cieca.
+     ⛔ Questa regola serve a QUATTRO app: il suo posto è shared/dw-ponti.js e
+     il trasloco è una riga (questa const diventa un import). */
+  const marchiaCsv = (el) => { if (db.mode !== "live") el.download = `DATI-DI-ESEMPIO_${el.download}`; return el; };
+
   let FRO=[], RIL=[], PIA=[], AUT=[], SCA=[], LOT=[];
   let editFro = null;   // id del fronte in modifica (riusa il form "Nuovo fronte"; rilievi/avanzamento restano)
   let editAut = null;   // id dell'autorizzazione in modifica (null = la scheda compilata è nuova)
@@ -2545,7 +2578,7 @@ a.dw-btn{text-decoration:none}
     csv += `titolo;${csvCell("Residuo del concesso")};${R.residuoFineAnno != null ? R.residuoFineAnno : ""};;\n`;
     const a = document.createElement("a");
     a.href = "data:text/csv;charset=utf-8," + encodeURIComponent(csv);
-    a.download = "terra_riepilogo_" + R.anno + ".csv"; a.click();
+    a.download = "terra_riepilogo_" + R.anno + ".csv"; marchiaCsv(a); a.click();
     esito("den-esito", "Riepilogo " + R.anno + " esportato in CSV: mesi, fronti, banchi e confronto col volume concesso.");
   };
 
@@ -3810,7 +3843,7 @@ a.dw-btn{text-decoration:none}
               : r.stato === "elaborato" ? " · volume non leggibile" : "")) + "\n";
     const a = document.createElement("a");
     a.href = "data:text/csv;charset=utf-8," + encodeURIComponent(csv);
-    a.download = "terra_fronti_rilievi.csv"; a.click();
+    a.download = "terra_fronti_rilievi.csv"; marchiaCsv(a); a.click();
     esito("terra-esito", "Esportati " + FRO.length + " fronti e " + RIL.length + " rilievi (CSV).");
   };
   $("btn-fro").onclick = async () => {

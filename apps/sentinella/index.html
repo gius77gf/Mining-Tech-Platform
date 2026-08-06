@@ -1569,6 +1569,39 @@ textarea.dw-input{
   if (db.mode !== "live") $("tour-banner").style.display = "block";
   $("mode-note").textContent = db.mode === "live" ? "Dati reali della tua organizzazione." : "Dati di esempio ("+db.mode+"): le modifiche non vengono salvate.";
 
+  /* ── IL CSV CHE ESCE DALLA DIMOSTRAZIONE LO DICE NEL NOME DEL FILE ─────
+     I fogli STAMPATI la dichiarazione ce l'hanno già. I CSV no: un file che
+     arriva al commercialista o all'ente è identico a uno vero, e a differenza
+     di un foglio non ha nemmeno una testata in cui dubitare.
+     Le forme possibili erano quattro e sono state MISURATE, non discusse:
+     scritte tutte e quattro e rilette dai nostri lettori sui 23 file veri
+     usciti dai bottoni (la misura vive in run-kpi, banda «I CSV E LA
+     DIMOSTRAZIONE DICHIARATA»):
+       (a) il nome del file        9 lettori su 9 ritrovano le righe
+       (b) una riga # in cima      3 su 9   ⛔
+       (c) una riga in coda        3 su 9   ⛔
+       (d) una colonna in più      9 su 9
+     ⛔ (b) e (c) non sporcano il file: la riga della dichiarazione viene letta
+     come un DATO — un ricambio in più per parseRicambiCsv, un mezzo in più per
+     parseMezziCsv, una taratura in più per parseTaratureCsv, un fronte in più
+     per parseFrontiCsv. La frase messa lì per dire «questi numeri non sono
+     veri» diventa essa stessa un numero falso.
+     Resta (a), che è quella scritta qui: non tocca un byte del contenuto,
+     quindi ogni giro scrivi/leggi è identico per costruzione. (d) regge anche
+     lei e in più resta attaccata ai dati: è la proposta aperta, ma va fatta
+     dove il file si compone (attaccata a testo dopo, sui sei file di Flotta
+     che usano CRLF, raddoppia le righe lette — in silenzio).
+     Il marchio va in TESTA: è la fine del nome che i client di posta e le
+     colonne strette dei gestori di file tagliano per prima.
+     Solo un «live» esplicito ha diritto al nome pulito — un modo sconosciuto è
+     marchiato, perché l'assenza di un dato non è un dato favorevole.
+     Si chiama DOPO l'assegnazione, e la riga download = "…" resta un
+     letterale: la regola 13 di run-stile conta i nomi ripetuti leggendo proprio
+     quel letterale, e nasconderglielo la renderebbe cieca.
+     ⛔ Questa regola serve a QUATTRO app: il suo posto è shared/dw-ponti.js e
+     il trasloco è una riga (questa const diventa un import). */
+  const marchiaCsv = (el) => { if (db.mode !== "live") el.download = `DATI-DI-ESEMPIO_${el.download}`; return el; };
+
   let MON=[], ADE=[], REG=[], VOL=[], RIC=[], REC=[], PRG=[];
   // T7 · il ponte con Scudo: le azioni correttive NON sono dati di
   // Sentinella, si leggono da Scudo (stessa organizzazione, app diversa) e
@@ -2599,7 +2632,7 @@ textarea.dw-input{
     const csv = csvRefertiGenesi(R.tutti);
     const el = document.createElement("a");
     el.href = "data:text/csv;charset=utf-8," + encodeURIComponent(csv);
-    el.download = "sentinella_referti_legge_di_sito.csv"; el.click();
+    el.download = "sentinella_referti_legge_di_sito.csv"; marchiaCsv(el); el.click();
     // chi resta fuori resta fuori per motivi diversi, e vanno detti diversi:
     // «manca un dato» si rimedia, «non è ancora stata sparata» si aspetta
     const fuoriPrev = R.nPreviste;
@@ -3909,7 +3942,7 @@ textarea.dw-input{
     const csv = csvAmbiente(MON, ADE, RIC);
     const el = document.createElement("a");
     el.href = "data:text/csv;charset=utf-8," + encodeURIComponent(csv);
-    el.download = "sentinella_ambiente.csv"; el.click();
+    el.download = "sentinella_ambiente.csv"; marchiaCsv(el); el.click();
     /* scritto con esito() come tutti gli altri: la scrittura diretta finiva
        sulla nota del modo (cancellando la conferma «dati reali») e il toast
        era ricopiato a mano accanto. Il quarto argomento è proprio il toast
@@ -3976,7 +4009,7 @@ textarea.dw-input{
     const csv = csvRegistroVolate(VOL);
     const el = document.createElement("a");
     el.href = "data:text/csv;charset=utf-8," + encodeURIComponent(csv);
-    el.download = "sentinella_registro_volate.csv"; el.click();
+    el.download = "sentinella_registro_volate.csv"; marchiaCsv(el); el.click();
     const nP = VOL.filter(volataPrevista).length;
     esito("vol-esito-msg", "Esportate " + VOL.length + " volate (CSV)"
       + (nP ? ", di cui " + nP + (nP === 1 ? " prevista" : " previste") + " (la colonna «stato» lo dice riga per riga)" : "") + ".", "success");
@@ -4163,7 +4196,7 @@ textarea.dw-input{
     for (const r of RIC) csv += `${csvCell(r.nome)};${csvCell(r.tipo || "")};${r.distanza ?? ""};${csvCell(r.classe || "")};${r.soglia ?? ""};${csvCell(r.unita || "")};${csvCell(r.nota || "")}\n`;
     const a = document.createElement("a");
     a.href = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8" }));
-    a.download = "sentinella_ricettori.csv"; a.click();
+    a.download = "sentinella_ricettori.csv"; marchiaCsv(a); a.click();
     esito("ric-esito", "Esportati " + RIC.length + " ricettori (CSV).", "success");
   };
   $("mon-file").onchange = async (e) => {
@@ -4371,7 +4404,7 @@ textarea.dw-input{
     const n = MON.reduce((s, m) => s + ((m.tarature || []).length), 0);
     const a = document.createElement("a");
     a.href = URL.createObjectURL(new Blob([csvTarature(MON)], { type: "text/csv;charset=utf-8" }));
-    a.download = "sentinella_tarature.csv"; a.click();
+    a.download = "sentinella_tarature.csv"; marchiaCsv(a); a.click();
     esito("tar-esito", "Esportati " + n + (n === 1 ? " certificato (CSV)." : " certificati (CSV)."), "success");
   };
 

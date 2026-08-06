@@ -130,6 +130,21 @@ const BANCHI = [
   ['il foglio di fine turno di Campo', 'campo-foglio-turno.mjs', []],
   ['foglio di turno · controprova', 'campo-foglio-turno.mjs', ['--controprova'], true],
   ['foglio di turno · coi dati veri tace', 'campo-foglio-turno.mjs', ['--live']],
+  /* ⛔ AGGIUNTO IL 06/08. I CSV sono l'uscita più esposta di tutte: un `.csv`
+     che esce dalla dimostrazione arriva in un foglio di calcolo — o dal
+     commercialista, o all'ente — identico a uno vero, e a differenza di un
+     foglio stampato non ha nemmeno un'intestazione grafica in cui dubitare.
+     25 punti di export su 4 app, censiti coi comandi.
+     ⛔ E LA SCELTA L'HANNO DECISA I NUMERI, non l'eleganza: delle quattro
+     forme possibili, la riga di commento in cima e la riga in coda vengono
+     rilette **come un DATO** da 6 lettori nostri su 9 (un ricambio in più, un
+     mezzo in più, un ricettore in più…). La frase scritta per dire «questi
+     numeri non sono veri» diventava essa stessa un numero falso: il difetto
+     che si stava chiudendo, rifatto peggio. Restano il nome del file (montato)
+     e la colonna in più (proposta, col suo costo misurato). */
+  ['i CSV che escono dalla dimostrazione (25 export, 4 app)', 'csv-dimostrazione.mjs', []],
+  ['CSV dimostrazione · su dati veri il marchio non c\'è', 'csv-dimostrazione.mjs', ['--live']],
+  ['CSV dimostrazione · controprova', 'csv-dimostrazione.mjs', ['--controprova'], true],
   ['fogli stampati F/S/C/T · controprova', 'stampe-fs.mjs', ['--controprova'], true],
   ['unità in maiuscolo', 'unita-maiuscole.mjs', []],
   ['unità · controprova', 'unita-maiuscole.mjs', ['--controprova', '--solo=campo'], true],

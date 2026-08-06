@@ -1314,6 +1314,39 @@
   $("mode-note").innerHTML = db.mode === "live"
     ? "Stai lavorando sui <b>dati reali</b> della tua organizzazione."
     : "Stai guardando <b>dati di esempio</b> (" + db.mode + "): le modifiche non vengono salvate.";
+
+  /* ── IL CSV CHE ESCE DALLA DIMOSTRAZIONE LO DICE NEL NOME DEL FILE ─────
+     I fogli STAMPATI la dichiarazione ce l'hanno già. I CSV no: un file che
+     arriva al commercialista o all'ente è identico a uno vero, e a differenza
+     di un foglio non ha nemmeno una testata in cui dubitare.
+     Le forme possibili erano quattro e sono state MISURATE, non discusse:
+     scritte tutte e quattro e rilette dai nostri lettori sui 23 file veri
+     usciti dai bottoni (la misura vive in run-kpi, banda «I CSV E LA
+     DIMOSTRAZIONE DICHIARATA»):
+       (a) il nome del file        9 lettori su 9 ritrovano le righe
+       (b) una riga # in cima      3 su 9   ⛔
+       (c) una riga in coda        3 su 9   ⛔
+       (d) una colonna in più      9 su 9
+     ⛔ (b) e (c) non sporcano il file: la riga della dichiarazione viene letta
+     come un DATO — un ricambio in più per parseRicambiCsv, un mezzo in più per
+     parseMezziCsv, una taratura in più per parseTaratureCsv, un fronte in più
+     per parseFrontiCsv. La frase messa lì per dire «questi numeri non sono
+     veri» diventa essa stessa un numero falso.
+     Resta (a), che è quella scritta qui: non tocca un byte del contenuto,
+     quindi ogni giro scrivi/leggi è identico per costruzione. (d) regge anche
+     lei e in più resta attaccata ai dati: è la proposta aperta, ma va fatta
+     dove il file si compone (attaccata a testo dopo, sui sei file di Flotta
+     che usano CRLF, raddoppia le righe lette — in silenzio).
+     Il marchio va in TESTA: è la fine del nome che i client di posta e le
+     colonne strette dei gestori di file tagliano per prima.
+     Solo un «live» esplicito ha diritto al nome pulito — un modo sconosciuto è
+     marchiato, perché l'assenza di un dato non è un dato favorevole.
+     Si chiama DOPO l'assegnazione, e la riga download = "…" resta un
+     letterale: la regola 13 di run-stile conta i nomi ripetuti leggendo proprio
+     quel letterale, e nasconderglielo la renderebbe cieca.
+     ⛔ Questa regola serve a QUATTRO app: il suo posto è shared/dw-ponti.js e
+     il trasloco è una riga (questa const diventa un import). */
+  const marchiaCsv = (el) => { if (db.mode !== "live") el.download = `DATI-DI-ESEMPIO_${el.download}`; return el; };
   // scorciatoia: toccare un KPI del quadro porta alla lista pertinente
   document.querySelector(".kpis").addEventListener("click", (e) => {
     const card = e.target.closest("[data-goto]"); if (!card) return;
@@ -3429,7 +3462,7 @@
                    (w.manodopera || []).map(r => r.chi + " " + r.ore + " h").join(" | ")].map(csvCell).join(";")));
     const a = document.createElement("a");
     a.href = URL.createObjectURL(new Blob(["﻿" + righe.join("\r\n")], { type: "text/csv;charset=utf-8" }));
-    a.download = "flotta-registro-interventi.csv"; a.click();
+    a.download = "flotta-registro-interventi.csv"; marchiaCsv(a); a.click();
     toast("Esportati " + INT.length + " interventi (CSV).", "success");
   };
   // Nuova scadenza di legge: il tipo arriva dalle voci già pronte, la
@@ -3491,7 +3524,7 @@
                   ""].map(csvCell).join(";"));
     const a = document.createElement("a");
     a.href = URL.createObjectURL(new Blob(["﻿" + righe.join("\r\n")], { type: "text/csv;charset=utf-8" }));
-    a.download = "flotta-scadenze-di-legge.csv"; a.click();
+    a.download = "flotta-scadenze-di-legge.csv"; marchiaCsv(a); a.click();
     esito("sca-esito", "Esportate " + SCA.length + (SCA.length === 1 ? " scadenza" : " scadenze") + " (CSV)"
       + (scoperti.length ? ", più " + scoperti.length + (scoperti.length === 1 ? " mezzo senza nessuna scadenza registrata" : " mezzi senza nessuna scadenza registrata") + ": nel foglio ci sono, marcati «nessuna registrata»." : "."), "success");
   };
@@ -3540,7 +3573,7 @@
                    c.voce || "", (+c.importo) || 0, c.nota || ""].map(csvCell).join(";")));
     const a = document.createElement("a");
     a.href = URL.createObjectURL(new Blob(["﻿" + righe.join("\r\n")], { type: "text/csv;charset=utf-8" }));
-    a.download = "flotta-costi.csv"; a.click();
+    a.download = "flotta-costi.csv"; marchiaCsv(a); a.click();
     const senza = COS.filter(c => !/^\d{4}-\d{2}-\d{2}$/.test(String(c.data || "").slice(0,10))).length;
     esito("cos-esito", "Esportate " + COS.length + " voci di costo (CSV)"
       + (senza ? ", di cui " + senza + " senza data." : "."), "success");
@@ -3666,7 +3699,7 @@
     for (const r of RIC) csv += `${csvCell(r.nome)};${r.giacenza ?? 0};${r.sogliaMin ?? ""};${r.prezzo ?? ""}\n`;
     const a = document.createElement("a");
     a.href = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8" }));
-    a.download = "flotta_ricambi.csv"; a.click();
+    a.download = "flotta_ricambi.csv"; marchiaCsv(a); a.click();
     esito("ric-esito", `Esportati ${RIC.length} ricambi (CSV).`, "success");
   };
   $("mez-file").onchange = async (e) => {
@@ -3721,7 +3754,7 @@
       csv += `ricambio;${csvCell(r.nome)};${scorta.has(r.id) ? "sotto scorta" : "ok"};${csvCell("giacenza " + (+r.giacenza || 0) + " · soglia min " + (+r.sogliaMin || 0))}\n`;
     const a = document.createElement("a");
     a.href = "data:text/csv;charset=utf-8," + encodeURIComponent(csv);
-    a.download = "flotta_situazione.csv"; a.click();
+    a.download = "flotta_situazione.csv"; marchiaCsv(a); a.click();
     esito("ore-esito", "Esportati " + MEZ.length + " mezzi, " + MAN.length + " manutenzioni, " + RIC.length + " ricambi (CSV).", "success");
   };
   $("btn-man").onclick = async () => {
@@ -3921,7 +3954,7 @@
       }));
     const a = document.createElement("a");
     a.href = URL.createObjectURL(new Blob(["﻿" + righe.join("\r\n")], { type: "text/csv;charset=utf-8" }));
-    a.download = "flotta-giri-macchina.csv"; a.click();
+    a.download = "flotta-giri-macchina.csv"; marchiaCsv(a); a.click();
     toast("Esportati " + CTR.length + " giri macchina (CSV).", "success");
   };
 
@@ -4175,7 +4208,7 @@
       : "Nessun fermo registrato.", "");
     const a = document.createElement("a");
     a.href = URL.createObjectURL(new Blob(["﻿" + righe.join("\r\n")], { type: "text/csv;charset=utf-8" }));
-    a.download = "libretto-" + nomeBreve(m.nome).toLowerCase().replace(/[^a-z0-9]+/g, "-") + ".csv"; a.click();
+    a.download = "libretto-" + nomeBreve(m.nome).toLowerCase().replace(/[^a-z0-9]+/g, "-") + ".csv"; marchiaCsv(a); a.click();
     toast("Libretto macchina esportato (CSV).", "success");
   };
   // ══════════════════════════════════════════════════════════════════════
@@ -4326,7 +4359,7 @@
                            r.spesa == null ? "" : r.spesa, r.alGiorno, r.copertura].map(csvCell).join(";")));
     const a = document.createElement("a");
     a.href = URL.createObjectURL(new Blob(["﻿" + righe.join("\r\n")], { type: "text/csv;charset=utf-8" }));
-    a.download = "flotta-lista-della-spesa.csv"; a.click();
+    a.download = "flotta-lista-della-spesa.csv"; marchiaCsv(a); a.click();
     esito("ric-esito", "Lista della spesa esportata: " + da.length + (da.length === 1 ? " ricambio" : " ricambi")
       + (p.spesaTotale ? " per circa " + eur(p.spesaTotale) : "") + " (CSV).", "success");
   };
@@ -4401,7 +4434,7 @@
          f.aperto ? "ancora fermo" : "chiuso", f.note || ""].map(csvCell).join(";")));
     const a = document.createElement("a");
     a.href = URL.createObjectURL(new Blob(["﻿" + righe.join("\r\n")], { type: "text/csv;charset=utf-8" }));
-    a.download = "flotta-fermi-macchina.csv"; a.click();
+    a.download = "flotta-fermi-macchina.csv"; marchiaCsv(a); a.click();
     esito("fer-esito", "Esportati " + FER.length + " fermi (CSV).", "success");
   };
 

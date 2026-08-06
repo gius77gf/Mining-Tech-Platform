@@ -1769,6 +1769,39 @@ label.item:has(.dw-chk:checked){
   if (db.mode !== "live") $("tour-banner").style.display = "block";
   $("mode-note").textContent = db.mode === "live" ? "Dati reali della tua organizzazione." : "Dati di esempio ("+db.mode+"): le modifiche non vengono salvate.";
 
+  /* ── IL CSV CHE ESCE DALLA DIMOSTRAZIONE LO DICE NEL NOME DEL FILE ─────
+     I fogli STAMPATI la dichiarazione ce l'hanno già. I CSV no: un file che
+     arriva al commercialista o all'ente è identico a uno vero, e a differenza
+     di un foglio non ha nemmeno una testata in cui dubitare.
+     Le forme possibili erano quattro e sono state MISURATE, non discusse:
+     scritte tutte e quattro e rilette dai nostri lettori sui 23 file veri
+     usciti dai bottoni (la misura vive in run-kpi, banda «I CSV E LA
+     DIMOSTRAZIONE DICHIARATA»):
+       (a) il nome del file        9 lettori su 9 ritrovano le righe
+       (b) una riga # in cima      3 su 9   ⛔
+       (c) una riga in coda        3 su 9   ⛔
+       (d) una colonna in più      9 su 9
+     ⛔ (b) e (c) non sporcano il file: la riga della dichiarazione viene letta
+     come un DATO — un ricambio in più per parseRicambiCsv, un mezzo in più per
+     parseMezziCsv, una taratura in più per parseTaratureCsv, un fronte in più
+     per parseFrontiCsv. La frase messa lì per dire «questi numeri non sono
+     veri» diventa essa stessa un numero falso.
+     Resta (a), che è quella scritta qui: non tocca un byte del contenuto,
+     quindi ogni giro scrivi/leggi è identico per costruzione. (d) regge anche
+     lei e in più resta attaccata ai dati: è la proposta aperta, ma va fatta
+     dove il file si compone (attaccata a testo dopo, sui sei file di Flotta
+     che usano CRLF, raddoppia le righe lette — in silenzio).
+     Il marchio va in TESTA: è la fine del nome che i client di posta e le
+     colonne strette dei gestori di file tagliano per prima.
+     Solo un «live» esplicito ha diritto al nome pulito — un modo sconosciuto è
+     marchiato, perché l'assenza di un dato non è un dato favorevole.
+     Si chiama DOPO l'assegnazione, e la riga download = "…" resta un
+     letterale: la regola 13 di run-stile conta i nomi ripetuti leggendo proprio
+     quel letterale, e nasconderglielo la renderebbe cieca.
+     ⛔ Questa regola serve a QUATTRO app: il suo posto è shared/dw-ponti.js e
+     il trasloco è una riga (questa const diventa un import). */
+  const marchiaCsv = (el) => { if (db.mode !== "live") el.download = `DATI-DI-ESEMPIO_${el.download}`; return el; };
+
   let FAT=[], GAR=[], CLI=[], PRO=[], PES=[], INC=[], NOT=[], COS=[], CHI=[], IMP=null;
   /* PREVENTIVI E ORDINI (N9). `ORD` è la lista salvata; `orRighe` sono le
      righe del preventivo che si sta scrivendo, che vivono nella pagina finché
@@ -5145,7 +5178,7 @@ label.item:has(.dw-chk:checked){
     }
     const a = document.createElement("a");
     a.href = "data:text/csv;charset=utf-8," + encodeURIComponent(csv);
-    a.download = "conti_situazione_fatture.csv"; a.click();
+    a.download = "conti_situazione_fatture.csv"; marchiaCsv(a); a.click();
     esito("rep-esito", "Esportate " + plur(FAT.length, "fattura", "fatture") + " in CSV.", "success");
   };
   // Prima nota degli incassi: ogni versamento con la sua data vera. È il file
@@ -5164,7 +5197,7 @@ label.item:has(.dw-chk:checked){
     }
     const a = document.createElement("a");
     a.href = "data:text/csv;charset=utf-8," + encodeURIComponent(csv);
-    a.download = "conti_incassi.csv"; a.click();
+    a.download = "conti_incassi.csv"; marchiaCsv(a); a.click();
     esito("rep-esito", righe.length
       ? "Esportati " + plur(righe.length, "incasso", "incassi") + " in CSV."
       : "Nessun incasso registrato: il file esce con la sola intestazione.", righe.length ? "success" : "err");
@@ -5217,7 +5250,7 @@ label.item:has(.dw-chk:checked){
       csv += `${csvCell(c.ragioneSociale)};${csvCell(c.piva)};${csvCell(c.sdi)};${csvCell(c.indirizzo)};${+c.sconto || 0};${+c.fido || 0};${csvCell(c.note)}\n`;
     const a = document.createElement("a");
     a.href = "data:text/csv;charset=utf-8," + encodeURIComponent(csv);
-    a.download = "conti_clienti.csv"; a.click();
+    a.download = "conti_clienti.csv"; marchiaCsv(a); a.click();
     esito("cl-esito", "Esportati " + plur(CLI.length, "cliente", "clienti") + " in CSV.", "success");
   };
   // ══════════════════════════════════════════════════════════════════
@@ -5426,7 +5459,7 @@ label.item:has(.dw-chk:checked){
       csv += `;${csvCell(leggiVoce(c.voce))};${csvCell(etichettaGruppo(gruppoDiVoce(c.voce)))};${+c.importo || 0};${csvCell(c.nota || "")};no (senza data)\n`;
     const a = document.createElement("a");
     a.href = URL.createObjectURL(new Blob(["﻿" + csv], { type: "text/csv;charset=utf-8" }));
-    a.download = "conti_costi_" + d1 + "_" + d2 + ".csv";
+    a.download = "conti_costi_" + d1 + "_" + d2 + ".csv"; marchiaCsv(a);
     a.click(); URL.revokeObjectURL(a.href);
     esito("cos-esito", "Esportate " + plur(r.righe.length + r.righeSenzaData.length, "voce di costo", "voci di costo") + ".", "success");
   };
@@ -5450,7 +5483,7 @@ label.item:has(.dw-chk:checked){
       csv += `${csvCell(p.nome)};${+p.prezzo || 0};${p.unitaPrezzo === "m3" ? "m3" : "t"};${densitaValida(p) ?? ""};${prezzoPerTonnellata(p) ?? ""};${prezzoPerMetroCubo(p) ?? ""};${+p.iva || 0}\n`;
     const a = document.createElement("a");
     a.href = "data:text/csv;charset=utf-8," + encodeURIComponent(csv);
-    a.download = "conti_listino_prezzi.csv"; a.click();
+    a.download = "conti_listino_prezzi.csv"; marchiaCsv(a); a.click();
     esito("pr-esito", "Esportati " + plur(PRO.length, "prodotto", "prodotti") + " col prezzo convertito a tonnellata e a metro cubo. Per il file da ri-caricare usa Esporta CSV nella scheda Listino.", "success");
   };
 
@@ -5547,7 +5580,7 @@ label.item:has(.dw-chk:checked){
     }
     const a = document.createElement("a");
     a.href = "data:text/csv;charset=utf-8," + encodeURIComponent(csv);
-    a.download = "conti_pesate_ddt.csv"; a.click();
+    a.download = "conti_pesate_ddt.csv"; marchiaCsv(a); a.click();
     esito("pes-esito", "Esportate " + plur(PES.length, "pesata", "pesate") + " in CSV.", "success");
   };
 
@@ -5971,7 +6004,7 @@ label.item:has(.dw-chk:checked){
     for (const p of PRO) csv += `${csvCell(p.nome)};${p.unitaPrezzo === "m3" ? "mc" : "t"};${p.prezzo};${p.densita ?? ""};${p.iva ?? 22}\n`;
     const a = document.createElement("a");
     a.href = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8" }));
-    a.download = "conti_listino.csv"; a.click();
+    a.download = "conti_listino.csv"; marchiaCsv(a); a.click();
     esito("lis-esito", `Esportati ${PRO.length} prodotti (CSV).`, "success");
   };
   $("btn-gar-import").onclick = () => $("gar-file").click();
@@ -6019,7 +6052,7 @@ label.item:has(.dw-chk:checked){
       csv += `${csvCell(g.titolo)};${baseGara(g) ?? ""};${g.scadenza || ""};${g.stato || "aperta"}\n`;
     const a = document.createElement("a");
     a.href = "data:text/csv;charset=utf-8," + encodeURIComponent(csv);
-    a.download = "conti_gare.csv"; a.click();
+    a.download = "conti_gare.csv"; marchiaCsv(a); a.click();
     esito("gar-esito", "Esportate " + plur(GAR.length, "gara", "gare") + " in CSV.", "success");
   };
   $("btn-ft").onclick = async () => {
@@ -6312,7 +6345,7 @@ label.item:has(.dw-chk:checked){
     }
     const a = document.createElement("a");
     a.href = URL.createObjectURL(new Blob(["\ufeff" + righe.join("\n") + "\n"], { type: "text/csv;charset=utf-8" }));
-    a.download = "conti_preventivi.csv";
+    a.download = "conti_preventivi.csv"; marchiaCsv(a);
     a.click(); URL.revokeObjectURL(a.href);
     esito("ord-esito", plur(ORD.length, "preventivo esportato", "preventivi esportati") + ".", "success");
   };
