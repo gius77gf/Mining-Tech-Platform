@@ -402,7 +402,7 @@ Ricerca web 01 agosto 2026:
 
 ## Verifica del delta (01/08 · riverificata riga per riga il 02/08 · **arretrato richiuso il 06/08**)
 
-> **Verificato contro il codice al commit `8042b15`** — l'ultimo che ha toccato
+> **Verificato contro il codice al commit `4916275`** — l'ultimo che ha toccato
 > `apps/sentinella/` al momento della verifica, cioè **il codice che è stato
 > davvero letto**.
 >
@@ -465,6 +465,19 @@ Ricerca web 01 agosto 2026:
 > controllo, non una scorciatoia, e non si può aggirare scrivendoci HEAD: un
 > documento non può dichiarare il commit che lo contiene, perché quell'hash non
 > esiste ancora quando lo si scrive.
+>
+> ### 06/08 (secondo passaggio) — riallineato al commit `4916275`
+>
+> L'app si è mossa di **un commit** dopo la verifica qui sopra, ed è il commit
+> dei **disegni che mentono**: geometrie, non funzioni. Ripassato con lo stesso
+> metodo — i termini del delta cercati **solo nelle righe aggiunte** — e non
+> risponde niente, quindi nessuna riga cambia verdetto.
+> ⚠️ E va detto che cos'è questo passaggio, per non farlo sembrare più di
+> quello che è: **non è una rilettura delle righe una per una** (quella è
+> quella sopra, con la sua data). È il controllo che un commit noto non abbia
+> colmato una mancanza dichiarata. Costa un minuto e serve a tenere a zero
+> l'arretrato che `documenti-invecchiati.mjs` misura; la prova vera resta
+> quella riga per riga.
 
 ### Il conto, prima e dopo
 

@@ -345,7 +345,7 @@
 
 ## Verifica del delta (01/08 · **riverificata riga per riga il 03/08**)
 
-> **Verificato contro il codice al commit `b12c87f`** *(riverificato il 06/08; la
+> **Verificato contro il codice al commit `4916275`** *(riverificato il 06/08; la
 > verifica precedente era a `ecc65d5`, undici commit prima)* — l'ultimo che ha toccato
 > `apps/conti/`, quindi l'arretrato riparte da **zero**. Il codice è stato letto
 > dal **committato** (`git show HEAD:apps/conti/conti-data.js`, 3.543 righe;
@@ -370,6 +370,19 @@
 > una riga sbagliata non è una prova.
 > Di quanti commit l'app sia andata avanti lo dice
 > `node apps/deepwork-id/tests/documenti-invecchiati.mjs`.
+>
+> ### 06/08 (secondo passaggio) — riallineato al commit `4916275`
+>
+> L'app si è mossa di **un commit** dopo la verifica qui sopra, ed è il commit
+> dei **disegni che mentono**: geometrie, non funzioni. Ripassato con lo stesso
+> metodo — i termini del delta cercati **solo nelle righe aggiunte** — e non
+> risponde niente, quindi nessuna riga cambia verdetto.
+> ⚠️ E va detto che cos'è questo passaggio, per non farlo sembrare più di
+> quello che è: **non è una rilettura delle righe una per una** (quella è
+> quella sopra, con la sua data). È il controllo che un commit noto non abbia
+> colmato una mancanza dichiarata. Costa un minuto e serve a tenere a zero
+> l'arretrato che `documenti-invecchiati.mjs` misura; la prova vera resta
+> quella riga per riga.
 
 *Ogni riga marcata «Non c'è» o «C'è a metà» nella tabella §2 e ogni riga della
 tabella §3 è stata riaperta sul codice. Le righe che comparivano in tutt'e due
