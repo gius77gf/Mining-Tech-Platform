@@ -400,11 +400,46 @@ Ricerca web 01 agosto 2026:
 
 ---
 
-## Verifica del delta (01/08 · **riverificata riga per riga il 02/08**)
+## Verifica del delta (01/08 · riverificata riga per riga il 02/08 · **arretrato richiuso il 06/08**)
 
-> **Verificato contro il codice al commit `2ab6295`** — l'ultimo che ha toccato
+> **Verificato contro il codice al commit `8042b15`** — l'ultimo che ha toccato
 > `apps/sentinella/` al momento della verifica, cioè **il codice che è stato
 > davvero letto**.
+>
+> ### 06/08 — gli otto commit ripassati, e nessuna riga si è mossa
+>
+> Fra `2ab6295` (verifica del 02/08) e `8042b15` Sentinella è andata avanti di
+> **8 commit**, **+597 righe** su `sentinella-data.js` e `index.html` (il ponte
+> con Genesi, il report che non dice più «Conforme» su tre mesi di misure, il
+> file per l'ARPA con la soglia di ogni schermata, la lettura datata 30 febbraio,
+> i CSV di dimostrazione). La domanda della riverifica è **una sola**: qualcuno
+> di quei commit ha costruito una delle 22 cose che questo documento dichiara
+> assenti o a metà? La risposta è **no**, e la prova è il diff, non la lettura:
+>
+> ```
+> git diff 2ab6295 HEAD -- apps/sentinella/ | grep -E "^\+" \
+>   | grep -oEi "SMS|e-?mail|notific|wireless|4G|LoRa|telemetr|FFT|ottav|spettro|
+>                temperatur|umidit|anemometr|\bvento\b|SO2|NO2|benzene|cittadin|
+>                webhook|endpoint|OAuth|android|matricola|61672|modificatoDa|
+>                creatoDa|dispersion|AERMOD|cron|scheduler|widget|
+>                dashboard configurabil" | sort | uniq -c
+> →       1 lora
+> ```
+>
+> **Una sola occorrenza su 34 termini, ed è la sillaba di «al·lora·»** (riga
+> aggiunta: *«ha quelle colonne, e allora la risposta è `null`»*). Sui file
+> interi lo stesso termine dà 13 righe, tutte `colOra`, `colValore`, `colora`,
+> `colorato` — il rilevatore di colonne del CSV, in camelCase; e l'unico `cov`
+> di tutta l'app è `viewport-fit=cover` nel `<meta>` (`index.html:5`).
+> Le due righe **a metà** rimisurate a parte, con `grep -o` + `uniq -c` come
+> pretende la lezione del 06/08 su Terra: il «chi» dell'audit trail dà `47
+> utente` (la parola nei commenti e nei testi) + `3 uid` (gli id dei gradienti
+> SVG), `modificatoDa`/`creatoDa` **zero**; l'identità dello strumento dà `2
+> modello`, ed è il *modello di calcolo* della PPV. Restano a metà tutt'e due.
+>
+> ⚠️ **Il vincolo circolare descritto qui sotto non c'è più** — è stato tolto il
+> 02/08 proprio da questa riverifica — e infatti oggi l'arretrato di Sentinella
+> torna a **0**, che prima era un fondo irraggiungibile per costruzione.
 > *(Prima qui c'era `f5dab46`, e il capoverso qui sotto spiega perché: il
 > controllo pretendeva un commit che avesse toccato il **documento**, e il
 > commit che contiene la verifica non si può citare — il suo hash non esiste
