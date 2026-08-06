@@ -312,15 +312,75 @@ const DEFAULT_CAVE = [
   {id:'cava_1',nome:'Cava Monte Serra',indirizzo:'SP12 km 5, Calci (PI)',clienteId:'cli_1',cliente:'Edilizia Toscana S.p.A.',lat:43.7228,lon:10.4917,note:'',foto:null,tel:'+39 050 987654',ricettori:[]},
   {id:'cava_2',nome:'Cava Valle Secca',indirizzo:'Via dei Marmi 14, Carrara',clienteId:'cli_2',cliente:'Marmi Apuani',lat:44.0791,lon:10.0977,note:'',foto:null,tel:'+39 0585 112233',ricettori:[]}
 ];
+/* ⛔ LE QUATTRO LINGUETTE DEL MEZZO ERANO TUTTE VUOTE. `macGestRender` sa
+   disegnare LAVORI, CHECK-LIST, GUASTI e CONSUMI, e la dimostrazione non aveva
+   una riga per nessuna delle quattro: quattro schermate per due mezzi, otto
+   stati vuoti di fila, su una scheda che nel mestiere e' quella che si apre
+   ogni giorno.
+   ⚠️ I casi sono SCELTI, con lo stesso criterio dei rapportini qui sotto: si
+   mostrano gli stati che l'app ha imparato a raccontare, non si fa volume.
+   · un lavoro **senza le ore** — la riga le salta invece di scrivere «0 h»;
+   · una check-list tutta a posto e una con **due voci da sistemare** — il
+     badge rosso col conto esisteva e non lo faceva vedere niente;
+   · un guasto **aperto e mai aggiornato** (dentro, «Nessun aggiornamento») e
+     uno **riparato con la sua storia**: i due estremi di `apriGuastoDett`;
+   · un consumo **senza l'olio** — il campo assente sparisce dalla riga.
+   ⚠️ E un mezzo resta **senza nessun guasto**: «nessun guasto» e' uno stato
+   vero, e va visto accanto a quello che i guasti ce li ha. */
 const DEFAULT_MEZZILAV = [
-  {id:'mlav_1',modello:'Atlas Copco ROC F9',targa:'AC-F9-01',anno:2019,oreIniziali:1200,oreAttuali:4820,cavaId:'cava_1',note:'Tagliando effettuato 2026-03-10',foto:null},
-  {id:'mlav_2',modello:'Sandvik DX780',targa:'SD-780-02',anno:2021,oreIniziali:200,oreAttuali:2150,cavaId:'cava_2',note:'',foto:null}
+  {id:'mlav_1',modello:'Atlas Copco ROC F9',targa:'AC-F9-01',anno:2019,oreIniziali:1200,oreAttuali:4820,cavaId:'cava_1',note:'Tagliando effettuato 2026-03-10',foto:null,
+   logLavori:[
+     {id:'lg_1',data:'2026-06-18',operazione:'Sostituzione punta da 89 mm',ore:1.5,note:''},
+     /* le ore non le ha scritte nessuno: non sono zero ore di lavoro */
+     {id:'lg_2',data:'2026-07-09',operazione:'Ingrassaggio slitta e catena di avanzamento',ore:null,note:'Fatto a fine turno.'}
+   ],
+   checklist:[
+     {id:'ck_1',tipo:'giornaliera',data:'2026-07-21',note:'',items:[
+       {desc:'Livello olio motore',ok:true},{desc:'Livello gasolio',ok:true},{desc:'Pneumatici / cingoli',ok:true},
+       {desc:'Luci e segnalatori',ok:true},{desc:'Perdite visibili',ok:true}]},
+     {id:'ck_2',tipo:'settimanale',data:'2026-07-17',note:'Segnalato al capocantiere.',items:[
+       {desc:'Filtri',ok:false},{desc:'Ingrassaggio',ok:true},{desc:'Batteria',ok:true},
+       {desc:'Freni',ok:true},{desc:'Tubi idraulici',ok:false}]}
+   ],
+   guasti:[
+     /* aperto, e nessuno lo ha ancora aggiornato */
+     {id:'gu_1',dataSegn:'2026-07-20',componente:'Impianto idraulico',gravita:'critica',descrizione:'Perdita dal raccordo del martello: la perforazione si ferma dopo pochi minuti.',stato:'segnalato',aggiornamenti:[]},
+     {id:'gu_2',dataSegn:'2026-05-28',componente:'Compressore',gravita:'media',descrizione:'Pressione aria in calo quando sale di giri.',stato:'riparato',aggiornamenti:[
+       {data:'2026-05-29',stato:'in_riparazione',nota:'Officina in cava, ricambio ordinato.'},
+       {data:'2026-06-03',stato:'riparato',nota:'Valvola sostituita, pressione rientrata.'}]}
+   ],
+   consumi:[
+     {id:'co_1',data:'2026-07-14',gasolio:118,olio:2,lubr:'Grasso multiuso 1 kg',note:''},
+     /* l'olio non lo ha rabboccato nessuno: campo assente, non uno zero */
+     {id:'co_2',data:'2026-07-21',gasolio:96,olio:null,lubr:'',note:'Rifornimento a fine turno.'}
+   ]},
+  {id:'mlav_2',modello:'Sandvik DX780',targa:'SD-780-02',anno:2021,oreIniziali:200,oreAttuali:2150,cavaId:'cava_2',note:'',foto:null,
+   logLavori:[{id:'lg_3',data:'2026-07-02',operazione:'Cambio filtro aria',ore:0.8,note:''}],
+   checklist:[{id:'ck_3',tipo:'mensile',data:'2026-07-01',note:'',items:[
+     {desc:'Tagliando programmato',ok:true},{desc:'Usura utensili / punte',ok:true},{desc:'Serraggi bulloneria',ok:true},
+     {desc:'Impianto elettrico',ok:true},{desc:'Documenti e scadenze',ok:true}]}],
+   /* nessun guasto: uno stato, non un buco nella dimostrazione */
+   guasti:[],
+   consumi:[{id:'co_3',data:'2026-07-17',gasolio:104,olio:1.5,lubr:'',note:''}]}
 ];
+/* ⚠️ IL SECONDO MEZZO DA STRADA SERVE A UNO STATO CHE MANCAVA: delle tre
+   risposte di `statoScadenzaCore` — scaduta, vicina, lontana — la
+   dimostrazione aveva solo la prima e la terza, quindi il badge giallo «fra
+   N giorni» non lo vedeva nessuno. E la sua scheda non ha nessuna riparazione:
+   anche quello e' uno stato che la pagina sa dire. */
 const DEFAULT_MEZZISTR = [
   {id:'mstr_1',targa:'EF123GH',marca:'IVECO',modello:'Daily 35S14',anno:2020,km:68200,
    scadenze:{revisione:'2026-09-15',assicurazione:'2026-07-01',bollo:'2026-12-31',tagliando:'2026-05-20'},
    riparazioni:[{id:'rip_1',data:'2025-11-10',desc:'Sostituzione pastiglie freno',costo:280,officina:'Autofficina Belli'}],
-   note:'Gomme invernali montate',foto:null}
+   note:'Gomme invernali montate',foto:null,
+   logLavori:[{id:'lg_4',data:'2026-04-22',operazione:'Rotazione pneumatici',ore:0.5,note:''}],
+   checklist:[],guasti:[],
+   consumi:[{id:'co_4',data:'2026-07-20',gasolio:62,olio:null,lubr:'',note:''}]},
+  {id:'mstr_2',targa:'GK456LM',marca:'Mercedes-Benz',modello:'Sprinter 316',anno:2023,km:24100,
+   scadenze:{revisione:'2027-02-10',assicurazione:'2026-08-28',bollo:'2027-01-31',tagliando:'2026-11-05'},
+   riparazioni:[],
+   note:'Furgone officina mobile.',foto:null,
+   logLavori:[],checklist:[],guasti:[],consumi:[]}
 ];
 const DEFAULT_PERSONALE = [
   {id:'pers_1',nome:'Paolo',cognome:'Neri',ruolo:'Aiuto fochino',note:'',tel:'+39 345 1111111',foto:null},
@@ -365,6 +425,20 @@ const DEFAULT_RAPPORTINI = [
     metri:81, media_prof:9, mc:0,
     fori_dettaglio:Array.from({length:9},()=>({prof:9,fila:1})),
     volataId:null, note:'Maglia da confermare col capocantiere.', inviato:'2026-07-23' },
+  /* ⛔ «ATTIVITA' RECENTI» ERA VUOTA PER CHI ENTRA, e sta nella PRIMA
+     schermata del prodotto. Quel riquadro mostra i rapportini di CHI HA FATTO
+     L'ACCESSO (`r.userId===state.user.id`), e nessuno dei quattro turni qui
+     sopra e' firmato dall'utente della dimostrazione: chi apre il sito legge
+     «Nessuna attivita» sotto il titolo «Attivita recenti».
+     ⚠️ Questo e' anche il solo rapportino con un progetto di volata attaccato
+     (`volataId`), cioe' l'unico punto in cui si vede il legame fra il turno di
+     perforazione e lo schema disegnato nell'editor. */
+  { id:'rp_5', userId:'user_admin', cavaId:'cava_1', data:'2026-07-28',
+    oi:'07:00', of:'11:45', diametro:89, maglia:'3x3.5', maglia_B:3, maglia_S:3.5,
+    mezzoId:'mlav_1', personale:['pers_1'], fori:12, fori_fila1:12, fori_fila2:0,
+    metri:102, media_prof:8.5, mc:1071,
+    fori_dettaglio:Array.from({length:12},(_,i)=>({prof:+(8.3+i*0.04).toFixed(2),fila:1})),
+    volataId:'vol_1', note:'Sostituito il capocantiere per mezza giornata.', inviato:'2026-07-28' },
 ];
 const DEFAULT_RAPPORTINI_FOC = [
   { id:'rf_1', userId:'user_fochino', cavaId:'cava_1', data:'2026-07-15',
@@ -379,6 +453,63 @@ const DEFAULT_RAPPORTINI_FOC = [
     fori_dettaglio:Array.from({length:11},(_,i)=>({n:i+1,esplosivo:'ANFO',esplosivo2:'',innesco:'Detonatore a tubo',kg:''})),
     volataId:null, rappPerfId:'rp_2', inviato:'2026-07-18', modificabile:true, reso:'', foto:[] },
 ];
+/* ⛔ IL PROGETTO DI VOLATA: META' DEL CORE CHE NON AVEVA MAI LAVORATO.
+   `DB.volate` era `[]` e non aveva nessun DEFAULT: l'elenco dei progetti
+   diceva «Nessun progetto», e l'editor del fronte cava — con la sequenza, la
+   riconciliazione, la frammentazione, l'import MWD e il PDF — non si apriva su
+   niente. E' il pezzo di prodotto piu' grande che la dimostrazione non
+   mostrava.
+   ⚠️ Anche qui i casi sono scelti sugli stati che `misureVolataProgetto` sa
+   dire e che `volKg`/`volMc` scrivono in italiano — misurati in scratchpad
+   prima di essere scritti qui:
+   · vol_1, caricata per intero            → «112 kg»
+   · vol_2, caricata a META'               → «56 kg (7 fori su 12 caricati)»:
+     il totale c'e' ma e' piu' basso del vero, e la pagina lo dice
+   · vol_3, chili non ancora scritti       → «chili non ancora scritti», che
+     non e' «zero chili»
+   I totali sono quelli che `ricalcolaTotaliVolata` ricalcola dai fori (metri,
+   kg, e mc = metri x borraggio x spaziatura): se non tornassero, la scheda
+   cambierebbe numeri sotto gli occhi appena aperta. */
+const DEFAULT_VOLATE = [
+  { id:'vol_1', cavaId:'cava_1', tipo:'cava', nomeProgetto:'Fronte Nord · Banco 3', numero:1,
+    data:'2026-07-13', stato:'progetto',
+    fronte:{lunghezza_m:28,altezza_m:0,calotta_m:0,profilo:[],piede_attivo:false,piede_profondita:0},
+    maglia:{borraggio:3,spaziatura:3.5,file:2},
+    default:{diametro_mm:89,profondita_m:9,esplosivo:'Emulsione',kg_per_foro:8,ritardo_ms:42,innesco:'Detonatore a tubo'},
+    fori:Array.from({length:14},(_,i)=>({id:'foro_v1_'+(i+1),num:i+1,
+      x:Math.round(((i%7)*3.5+1.75)*100)/100, y:i<7?3:6,
+      prof:9, diam:89, kg:8, esplosivo:'Emulsione', ritardo:42*(i+1),
+      innesco:'Detonatore a tubo', sequenza:i+1, note:''})),
+    connessioni:[], tot_fori:14, tot_metri:126, tot_kg:112, tot_mc:1323,
+    note:'', createdBy:'user_fochino', createdAt:0, updatedAt:0 },
+  { id:'vol_2', cavaId:'cava_2', tipo:'cava', nomeProgetto:'Gradone Est · seconda fila', numero:1,
+    data:'2026-07-16', stato:'progetto',
+    fronte:{lunghezza_m:24,altezza_m:0,calotta_m:0,profilo:[],piede_attivo:false,piede_profondita:0},
+    maglia:{borraggio:3.2,spaziatura:3.8,file:2},
+    default:{diametro_mm:102,profondita_m:8.5,esplosivo:'ANFO',kg_per_foro:8,ritardo_ms:42,innesco:'Detonatore a tubo'},
+    /* caricata a meta': gli ultimi cinque fori non hanno ancora i chili */
+    fori:Array.from({length:12},(_,i)=>({id:'foro_v2_'+(i+1),num:i+1,
+      x:Math.round(((i%6)*3.8+1.9)*100)/100, y:i<6?3.2:6.4,
+      prof:8.5, diam:102, kg:i<7?8:'', esplosivo:i<7?'ANFO':'',
+      ritardo:i<7?42*(i+1):'', innesco:i<7?'Detonatore a tubo':'', sequenza:i+1, note:''})),
+    connessioni:[], tot_fori:12, tot_metri:102, tot_kg:56, tot_mc:1240.3,
+    note:'Caricamento da completare col deposito.', createdBy:'user_fochino', createdAt:0, updatedAt:0 },
+  { id:'vol_3', cavaId:'cava_1', tipo:'cava', nomeProgetto:'Fronte Nord · Banco 4', numero:2,
+    data:'2026-07-30', stato:'progetto',
+    fronte:{lunghezza_m:20,altezza_m:0,calotta_m:0,profilo:[],piede_attivo:false,piede_profondita:0},
+    maglia:{borraggio:3,spaziatura:3.5,file:2},
+    /* ⚠️ il ritardo di riferimento e' scritto anche qui, dove il carico non
+       c'e' ancora: `riassegnaSequenzaAuto` legge `v.default.ritardo_ms` e, se
+       lo trova vuoto, ripiega su un valore scritto nel codice. Lasciarlo vuoto
+       avrebbe fatto scegliere quel ripiego dalla dimostrazione. */
+    default:{diametro_mm:89,profondita_m:7.5,esplosivo:'',kg_per_foro:'',ritardo_ms:42,innesco:''},
+    /* i fori ci sono e sono misurati, i chili non li ha ancora scritti nessuno */
+    fori:Array.from({length:10},(_,i)=>({id:'foro_v3_'+(i+1),num:i+1,
+      x:Math.round(((i%5)*3.5+1.75)*100)/100, y:i<5?3:6,
+      prof:7.5, diam:89, kg:'', esplosivo:'', ritardo:'', innesco:'', sequenza:i+1, note:''})),
+    connessioni:[], tot_fori:10, tot_metri:75, tot_kg:0, tot_mc:787.5,
+    note:'Schema da far vedere al fochino prima del carico.', createdBy:'user_admin', createdAt:0, updatedAt:0 }
+];
 const DEFAULT_DEPOSITO = {
   punte:[{id:'pt_1',diametro:64,qta:12,note:''},{id:'pt_2',diametro:76,qta:8,note:''},{id:'pt_3',diametro:89,qta:20,note:''},{id:'pt_4',diametro:102,qta:5,note:''}],
   aste:[{id:'as_1',lunghezza:3.05,diametro:45,qta:30,note:''},{id:'as_2',lunghezza:3.66,diametro:45,qta:18,note:''},{id:'as_3',lunghezza:4.27,diametro:51,qta:12,note:''}],
@@ -386,7 +517,19 @@ const DEFAULT_DEPOSITO = {
 };
 const DEFAULT_PROMEMORIA = [
   {id:'prom_1',titolo:'Controllo settimanale Atlas Copco',data:'2026-04-20',tipo:'macchina',scaduto:false,letto:false},
-  {id:'prom_2',titolo:'Revisione IVECO Daily',data:'2026-04-10',tipo:'scadenza',scaduto:true,letto:false}
+  {id:'prom_2',titolo:'Revisione IVECO Daily',data:'2026-04-10',tipo:'scadenza',scaduto:true,letto:false},
+  /* `renderNotificheFull` ha tre sezioni e la dimostrazione ne riempiva UNA.
+     Questo e' un promemoria ancora da fare: senza, «Prossimi» non compariva
+     mai, e con lui compare anche il conto «fra N giorni». */
+  {id:'prom_3',titolo:'Taratura del misuratore di profondità',data:'2026-09-12',tipo:'manutenzione',scaduto:false,letto:false},
+  /* ⛔ E QUESTO E' IL CASO PER CUI LA DIFESA ESISTE: senza una data leggibile
+     «non lo so» non e' «scaduto». La sezione «Senza una data leggibile» e' li'
+     apposta — e la dimostrazione non ci mandava nessuno, cioe' mostrava la
+     difesa piu' importante del prodotto a schermo vuoto.
+     ⚠️ Un campo ASSENTE, non un campo corrotto: e' la stessa distinzione che
+     `run-demo.mjs` pretende per le app (una data che non esiste, tipo
+     2026-13-45, resterebbe vietata). */
+  {id:'prom_4',titolo:'Verifica estintori del container ufficio',data:'',tipo:'scadenza',scaduto:false,letto:false}
 ];
 const DEFAULT_MESSAGGI = [
   {id:'msg_1',fromId:'user_ufficio',toId:'user_fochino',testo:'Ciao Marco, confermi la volata di domani alle 10?',ts:Date.now()-3600000*8,letto:true},
@@ -429,8 +572,17 @@ function today(){ return isoLocale(new Date()); }
    esiste. La decisione la prende `misureVolataProgetto` in `shared/`, così
    elenco, scheda e documento dicono la stessa cosa — e il documento la diceva
    già giusta («-»): qui la copia debole era lo SCHERMO. */
+/* ⛔ E LA PAROLA «ESPLOSIVO» STA DENTRO, NON LA INCOLLA CHI CHIAMA. Trovato
+   il 06/08 nello scatto, appena la dimostrazione ha reso visibile una volata
+   senza chili: la riga della cava scriveva `${volKg(v)} esplosivo` e usciva
+   **«chili non ancora scritti esplosivo»**, una frase che in italiano non sta
+   in piedi. Il difetto non è la parola in più: è che questa funzione
+   restituisce DUE cose diverse — una misura («112 kg») o una dichiarazione di
+   non-misura — e chi chiama può incollare qualcosa che vale solo per la prima.
+   È lo stesso motivo per cui la forma delle parole sta scritta qui una volta
+   sola: chi chiama non deve comporre. */
 function volKg(v){ const m=misureVolataProgetto(v);
-  return m.kgNoto ? (m.kg+' kg'+(m.parziale?' ('+m.conKg+' fori su '+m.fori+' caricati)':''))
+  return m.kgNoto ? (m.kg+' kg di esplosivo'+(m.parziale?' ('+m.conKg+' fori su '+m.fori+' caricati)':''))
                   : 'chili non ancora scritti'; }
 function volMc(v){ const m=misureVolataProgetto(v);
   return m.mcNoto ? (m.mc+' mc') : 'mc non calcolabili'; }
@@ -976,6 +1128,7 @@ function initDBOfflineFallback(errore, online = true){
     DB.deposito.lubr = [...DEFAULT_DEPOSITO.lubr];
     DB.rapportini = [...DEFAULT_RAPPORTINI];
     DB.rapportiniFoc = [...DEFAULT_RAPPORTINI_FOC];
+    DB.volate = [...DEFAULT_VOLATE];
   }
   state.dbReady = true;
   // Lo stato NON è solo un toast che passa in due secondi e mezzo: resta
@@ -1006,6 +1159,7 @@ async function seedDB(){
   DEFAULT_DEPOSITO.lubr.forEach(l=>b1.set(ddoc('deposito_lubr',l.id),l));
   DEFAULT_RAPPORTINI.forEach(r=>b1.set(ddoc('rapportini',r.id),r));
   DEFAULT_RAPPORTINI_FOC.forEach(r=>b1.set(ddoc('rapportiniFoc',r.id),r));
+  DEFAULT_VOLATE.forEach(v=>b1.set(ddoc('volate',v.id),v));
   await b1.commit();
 }
 
@@ -2046,7 +2200,7 @@ function apriCava(id){
      come zero abbassa la barra del mese e nessuno se ne accorge */
   DB.rapportini.filter(r=>r.cavaId===id).forEach(r=>{const mk=(r.data||'').slice(0,7);const mm=months.find(x=>x.key===mk);const q=misureRapportino(r);if(mm){if(q.calcolabile)mm.mc+=q.mc;else mm.fuori++;}});
   const maxMc=Math.max(...months.map(m=>m.mc),1);
-  const chartHtml=`<div class="chart-wrap"><div class="chart-title">Produzione mc · ultimi 6 mesi</div><div class="chart-bars">${months.map(m=>`<div class="chart-col"><div class="chart-bar" style="height:${(m.mc/maxMc*100)}%" data-val="${m.mc.toFixed(1)} mc${m.fuori?` · ${m.fuori} senza volume`:''}"></div><div class="chart-label">${m.lbl}</div></div>`).join('')}</div></div>`;
+  const chartHtml=`<div class="chart-wrap"><div class="chart-title">Produzione mc · ultimi 6 mesi</div><div class="chart-bars">${months.map(m=>`<div class="chart-col"><div class="chart-track"><div class="chart-bar" style="height:${(m.mc/maxMc*100)}%" data-val="${m.mc.toFixed(1)} mc${m.fuori?` · ${m.fuori} senza volume`:''}"></div></div><div class="chart-label">${m.lbl}</div></div>`).join('')}</div></div>`;
   const mapHtml=c.lat?`<div class="map-wrap"><iframe loading="lazy" src="https://www.openstreetmap.org/export/embed.html?bbox=${c.lon-0.02}%2C${c.lat-0.015}%2C${c.lon+0.02}%2C${c.lat+0.015}&layer=mapnik&marker=${c.lat}%2C${c.lon}"></iframe></div><a class="link-small" href="https://www.openstreetmap.org/?mlat=${c.lat}&mlon=${c.lon}#map=15/${c.lat}/${c.lon}" target="_blank" style="display:block;text-align:center;margin-bottom:12px;">Apri in OpenStreetMap ↗</a>`:'';
   // Cliente collegato (E6)
   const cli=c.clienteId?DB.clienti.find(x=>x.id===c.clienteId):null;
@@ -2087,7 +2241,7 @@ function apriCava(id){
     <div class="sec-title" style="margin-top:16px;"><span class="dot"></span>Volate progettate <span class="scad-badge ok" style="margin-left:6px;">F1 nuovo</span></div>
     ${(()=>{const vols=DB.volate.filter(v=>v.cavaId===id);
       return vols.length?
-        vols.slice(-3).reverse().map(v=>`<div class="sitem" onclick="apriEditorCava('${v.id}')"><div class="av av-am">V${(v.numero||'?').toString().substr(0,2)}</div><div class="sinfo"><div class="sname">Volata #${v.numero||'?'} · ${fmt(v.data)}</div><div class="ssub">${(v.fori||[]).length} fori · ${volKg(v)} esplosivo · ${volMc(v)}</div></div><div class="sarr">›</div></div>`).join('')
+        vols.slice(-3).reverse().map(v=>`<div class="sitem" onclick="apriEditorCava('${v.id}')"><div class="av av-am">V${(v.numero||'?').toString().substr(0,2)}</div><div class="sinfo"><div class="sname">Volata #${v.numero||'?'} · ${fmt(v.data)}</div><div class="ssub">${(v.fori||[]).length} fori · ${volKg(v)} · ${volMc(v)}</div></div><div class="sarr">›</div></div>`).join('')
         : '<div class="empty-state" style="padding:18px;"><div class="empty-sub" style="font-size:11px;">Nessuna volata progettata</div></div>';
     })()}
     ${can('editCava')?`<button class="btn-sec" style="margin-top:6px;width:100%;" onclick="nuovaVolata('${id}')">+ Progetta nuova volata</button>`:''}
@@ -2135,7 +2289,7 @@ function apriGemello(id){
       <div class="kpi-card"><div class="kpi-lbl">Ultima attività</div><div class="kpi-val" style="font-size:18px;">${ultima}</div></div>
     </div>
     <div class="sec-title" style="margin-top:14px;"><span class="dot"></span>Produzione · ultimi 6 mesi</div>
-    <div class="chart-wrap"><div class="chart-bars">${mesi.map(m=>`<div class="chart-col"><div class="chart-bar" style="height:${(m.mc/maxMc*100)}%" data-val="${m.mc.toFixed(0)} mc${m.fuori?` · ${m.fuori} senza volume`:''}"></div><div class="chart-label">${m.l}</div></div>`).join('')}</div></div>
+    <div class="chart-wrap"><div class="chart-bars">${mesi.map(m=>`<div class="chart-col"><div class="chart-track"><div class="chart-bar" style="height:${(m.mc/maxMc*100)}%" data-val="${m.mc.toFixed(0)} mc${m.fuori?` · ${m.fuori} senza volume`:''}"></div></div><div class="chart-label">${m.l}</div></div>`).join('')}</div></div>
     <div class="sec-title" style="margin-top:14px;"><span class="dot"></span>Cronologia (${ev.length})</div>
     ${ev.length?ev.map(e=>`<div class="sitem" onclick="${e.go}"><div class="av" style="background:${e.col};color:#fff;">${e.ic}</div><div class="sinfo"><div class="sname">${escHtml(e.t)}</div><div class="ssub">${fmt(e.d)} · ${escHtml(e.s)}</div></div><div class="sarr">›</div></div>`).join(''):'<div class="empty-state"><div class="empty-sub">Nessuna attività registrata</div></div>'}
   `;
@@ -7664,8 +7818,26 @@ textarea.finput{resize:vertical;min-height:60px;}
 .preview-val{font-weight:600;text-align:right;word-break:break-word;}
 .chart-wrap{background:var(--card);border:1px solid var(--border);padding:12px;margin-bottom:10px;}
 .chart-title{font-size:11px;color:var(--muted);letter-spacing:2px;text-transform:uppercase;margin-bottom:10px;font-weight:700;}
-.chart-bars{display:flex;align-items:flex-end;gap:6px;height:120px;padding:0 4px;}
+/* ⛔ LA PISTA ESISTE PERCHE' UN'ALTEZZA IN PERCENTUALE VUOLE UN CONTENITORE
+   CHE UN'ALTEZZA CE L'HA. Fino al 06/08 `.chart-bars` era alto 120px ma la
+   colonna dentro, con `align-items:flex-end`, restava alta quanto il suo
+   contenuto: quindi `height:100%` sulla barra si risolveva contro `auto`, cioe'
+   contro niente, e vinceva `min-height:3px`. Effetto misurato sulla cava della
+   dimostrazione: la barra di luglio dichiarava `style="height:100%"` e
+   `data-val="2261.7 mc"` e veniva disegnata **3 px**, identica ai cinque mesi
+   a zero. Il numero era giusto, il disegno diceva «non si e' prodotto niente»
+   — ed e' il difetto della settimana nella sua forma piu' pura, perche' non
+   c'e' nessun errore da leggere: il CSS e' valido, la percentuale c'e', e la
+   pagina non si lamenta.
+   ⚠️ Non si vedeva perche' non c'era MAI stata una barra alta: senza dati
+   d'esempio tutti i mesi erano a zero, e sei stanghette uguali a 3px sono
+   esattamente quello che ci si aspetta da un grafico vuoto. E' stata la
+   dimostrazione a renderlo visibile.
+   ⚠️ E `min-height:3px` resta, ma adesso vuol dire un'altra cosa: e' il
+   pezzetto che tiene la colonna toccabile, non l'altezza di tutte. */
+.chart-bars{display:flex;align-items:flex-end;gap:6px;padding:0 4px;}
 .chart-col{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;}
+.chart-track{width:100%;height:120px;display:flex;align-items:flex-end;}
 .chart-bar{width:100%;background:linear-gradient(to top,#ff6d00,#ffab00);min-height:3px;transition:height .6s ease;position:relative;}
 .chart-bar:hover::after{content:attr(data-val);position:absolute;bottom:calc(100% + 4px);left:50%;transform:translateX(-50%);background:var(--dark);color:var(--amber);padding:3px 6px;font-size:10px;white-space:nowrap;font-weight:700;}
 .chart-label{font-size:9px;color:var(--muted);text-align:center;letter-spacing:1px;}
