@@ -198,7 +198,17 @@ const SCEGLI = ([fatti, forme, quanteVolte]) => {
   const FUORI = '.nav, #bottomnav, .modal-ov, #modal, .chgs';
   /* `.dw-exit` porta al login, e da lì non si torna: non apre modali, porta
      via la pagina */
-  const MAI = '[data-filtro], .chg, [data-goto], .dw-exit, [id*="tema"], [title^="Tema"], [aria-label^="Tema"]';
+  /* ⛔ E IL BOTTONE DEL TEMA NON SI CHIAMA «TEMA». Misurato il 06/08 sul core:
+     `#btn-outdoor` ha `title="Cambia tema (chiaro/scuro)"` e
+     `aria-label="Cambia tema chiaro o scuro"` — tutt'e due cominciano per
+     «Cambia», quindi `^="Tema"` non li prende, e `[id*="tema"]` non prende
+     `btn-outdoor`. Il banco quindi lo premeva a ogni giro, cioè ribaltava il
+     tema della pagina centinaia di volte per sezione mentre credeva di provare
+     comandi diversi. Adesso si cerca la PAROLA, dovunque stia e senza guardare
+     le maiuscole (`*=` con la bandiera `i`), invece della sua posizione: un
+     elenco scritto sul prefisso è un elenco che il primo sinonimo aggira. */
+  const MAI = '[data-filtro], .chg, [data-goto], .dw-exit, .outdoor-toggle,'
+    + '[id*="tema" i], [title*="tema" i], [aria-label*="tema" i]';
   /* ⛔ `.sitem[onclick]` È LA SECONDA CAUSA DELLA CECITÀ SUL CORE, trovata il
      03/08. Questo elenco era scritto sulla forma delle APP, che usano `.item`;
      il core usa `.sitem` — «SEGNALAZIONE item», la riga di lista da cui si apre
@@ -230,9 +240,27 @@ const SCEGLI = ([fatti, forme, quanteVolte]) => {
   const conta = (f) => forme.filter((x) => x === f).length;
   const el = lista.find((e) => !fatti.includes(identita(e)) && conta(forma(e)) < quanteVolte);
   if (!el) return { fine: true, restano: lista.length };
+  /* ⛔ L'IMPRONTA SI PRENDE PRIMA DEL CONTRASSEGNO, E QUESTA RIGA È LA CAUSA
+     VERA DELLO «0 MODALI SU 68». Misurata il 06/08, e per giorni si è cercata
+     altrove (nel selettore, poi nei dati della dimostrazione).
+     `identita` e `forma` leggono il `dataset`. Mettendo `data-dw-sonda`
+     **prima** di calcolarle, quello che tornava era
+     `BUTTON|btn-x|dwSonda=1` — cioè l'impronta dell'elemento **col
+     contrassegno addosso**. Ma `TOCCA` il contrassegno lo toglie, quindi al
+     giro dopo `find` confronta `BUTTON|btn-x|` con una lista che contiene
+     `BUTTON|btn-x|dwSonda=1`: non combaciano **mai**. Le due difese contro i
+     doppioni — `fatti` (il singolo comando) e `forme` (quante volte per
+     sagoma) — erano tutt'e due morte, e il banco ripremeva lo stesso comando
+     finché non finiva il programma. Da qui i 6.800 comandi provati che nel
+     commento qui sopra sembravano la prova di una superficie senza dati:
+     erano lo **stesso pugno di comandi** contato migliaia di volte.
+     ⚠️ La lezione oltre il caso: uno strumento che **scrive** sul soggetto che
+     sta misurando deve leggerlo **prima** di scriverci. Il contrassegno serve
+     a ritrovare l'elemento dopo, non a descriverlo. */
+  const chiave = identita(el), sagoma = forma(el), etichetta = eti(el);
   document.querySelectorAll('[data-dw-sonda]').forEach((x) => x.removeAttribute('data-dw-sonda'));
   el.setAttribute('data-dw-sonda', '1');
-  return { chiave: identita(el), sagoma: forma(el), etichetta: eti(el), restano: lista.length };
+  return { chiave, sagoma, etichetta, restano: lista.length };
 };
 
 const TOCCA = async (attesa) => {

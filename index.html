@@ -7858,9 +7858,22 @@ body.light-mode .map-wrap iframe,body.outdoor-mode .map-wrap iframe{filter:none;
 .chat-meta{font-size:9px;color:rgba(0,0,0,.4);margin-top:3px;}
 .chat-bubble.other .chat-meta{color:var(--muted);}
 .chat-input{display:flex;gap:6px;padding:10px;border-top:1px solid var(--border);background:var(--dark);}
-.chat-input input{flex:1;background:var(--card);border:1px solid var(--border);color:var(--text);padding:11px 13px;font-size:16px;outline:none;font-family:'Barlow',sans-serif;min-height:var(--tap);}
+/* ⛔ `min-width:0` SU QUESTO CAMPO, O IL BOTTONE «INVIA» ESCE DALLO SCHERMO.
+   Misurato il 06/08 a 320 px: la chat scorreva in orizzontale, 379 px su 320,
+   e il colpevole era «INVIA» — largo 81 px, da 298 a **379**. Cioè su un
+   telefono stretto il messaggio si scrive e non si manda.
+   La causa è la trappola classica del flex, e non si vede leggendo: un elemento
+   flex ha `min-width:auto`, che per un `<input>` di testo vale la sua larghezza
+   INTRINSECA (una ventina di caratteri). Quindi `flex:1` qui sopra dice «cedi»
+   e il minimo automatico risponde «non sotto 200 px»: vince il minimo, il campo
+   non cede, e il bottone dopo di lui viene spinto oltre il bordo.
+   È lo stesso difetto della topbar, trovato lo stesso giorno con la stessa
+   misura, e per la stessa ragione: **una regola provata a una larghezza sola**.
+   Il bottone si dichiara non cedevole di proposito (`flex:none`): se cedesse,
+   invece di uscire diventerebbe illeggibile, che non è meglio. */
+.chat-input input{flex:1;min-width:0;background:var(--card);border:1px solid var(--border);color:var(--text);padding:11px 13px;font-size:16px;outline:none;font-family:'Barlow',sans-serif;min-height:var(--tap);}
 .chat-input input:focus{border-color:var(--amber);}
-.chat-input button{background:var(--grad);border:none;color:#100d07;padding:0 18px;font-weight:800;letter-spacing:2px;cursor:pointer;font-family:'Barlow Condensed',sans-serif;font-size:13px;min-height:var(--tap);}
+.chat-input button{flex:none;white-space:nowrap;background:var(--grad);border:none;color:#100d07;padding:0 18px;font-weight:800;letter-spacing:2px;cursor:pointer;font-family:'Barlow Condensed',sans-serif;font-size:13px;min-height:var(--tap);}
 .contact-item{display:flex;align-items:center;gap:10px;padding:12px 13px;background:var(--card);border:1px solid var(--border);margin-bottom:5px;cursor:pointer;text-decoration:none;color:var(--text);transition:border-color .2s;min-height:var(--tap);}
 .contact-item:hover{border-color:var(--amber);}
 .contact-icon{font-size:20px;width:32px;text-align:center;}
@@ -7875,7 +7888,13 @@ body.light-mode .map-wrap iframe,body.outdoor-mode .map-wrap iframe{filter:none;
 /* ── Ricerca inline topbar ── */
 .topbar-search-wrap{position:relative;display:flex;align-items:center;}
 .topbar-search-icon{position:absolute;left:8px;color:var(--muted);font-size:13px;pointer-events:none;z-index:1;}
-.topbar-search-input{background:var(--card);border:1px solid var(--border);color:var(--text);padding:7px 10px 7px 28px;font-family:'Barlow',sans-serif;font-size:13px;outline:none;width:130px;transition:width .3s,border-color .2s;min-height:36px;}
+/* ⛔ `min-width:0` QUI È QUELLO CHE FA CEDERE LA RICERCA INVECE DEI BOTTONI.
+   Un `<input>` dentro un flex ha `min-width:auto` = la sua larghezza intrinseca,
+   quindi rifiuta di stringersi e lo spazio lo perde qualcun altro — che a 320 px
+   era il bottone «Esci», ridotto a 16 px. Una casella di ricerca che si stringe
+   resta una casella di ricerca; un bottone che si stringe smette di essere un
+   bottone. Fra i due, cede questa. */
+.topbar-search-input{background:var(--card);border:1px solid var(--border);color:var(--text);padding:7px 10px 7px 28px;font-family:'Barlow',sans-serif;font-size:13px;outline:none;width:130px;min-width:0;transition:width .3s,border-color .2s;min-height:36px;}
 .topbar-search-input:focus{border-color:var(--amber);width:200px;}
 /* SU SCHERMO STRETTO CEDE LA RICERCA, NON IL NOME. Misurato a 390 px: con la
    ricerca a 130 px fissi, al nome ne restavano 44 e diventava «Gi…». La
@@ -8280,8 +8299,15 @@ body.light-mode .ssub,body.light-mode .td,body.light-mode .cs,body.light-mode .f
 
 /* ════════ v4.4e — barre: nav flottante + attivo colore sezione + FAB ════════ */
 /* (ricerca: ripristinata barra+lente classica sempre visibile/cliccabile — vedi .topbar-search-* sopra) */
-/* ESCI come icona */
-.logout-btn{display:flex;align-items:center;justify-content:center;padding:7px;min-width:0;}
+/* ESCI come icona.
+   ⛔ `min-width:var(--tap)`, NON `0`, e la ragione l'ha detta la misura del
+   06/08: reso cedevole il blocco della topbar, «Esci» a 320 px si è ristretto a
+   **16 px** su 44 di altezza. Era dentro lo schermo — il documento non scorreva
+   più — e non si poteva premere lo stesso: «ci sta» e «si usa» sono due misure
+   diverse, e a rispondere alla prima si perde la seconda. Adesso cede la
+   **ricerca**, che è l'unica cosa qui dentro che stringendosi resta sé stessa;
+   il bottone tiene il suo bersaglio come lo tiene la campanella (`min-width:44px`). */
+.logout-btn{display:flex;align-items:center;justify-content:center;padding:7px;min-width:var(--tap);}
 .logout-btn svg{display:block;}
 /* BOTTOM NAV flottante */
 #global-nav.bnav{left:50%;right:auto;transform:translateX(-50%);width:calc(100% - 16px);max-width:520px;bottom:8px;border-radius:18px;border:1px solid var(--border);box-shadow:0 10px 28px rgba(0,0,0,.38);overflow:visible;}
@@ -8489,7 +8515,24 @@ body.outdoor-mode #search-results-wrap .search-results{top:56px;}
         <div class="role-sm" id="h-role">ruolo</div>
       </div>
     </div>
-    <div style="display:flex;gap:6px;align-items:center;flex:1 0 auto;justify-content:flex-end;">
+    <!-- ⛔ `flex:0 1 auto` E `min-width:0` ANCHE QUI, e la ragione è che la
+         correzione di sopra era stata provata a UNA LARGHEZZA SOLA. A 390 px
+         bastava rendere cedevole il blocco di sinistra; a **320** — il telefono
+         più stretto ancora in giro — non basta, perché questo blocco aveva
+         `flex:1 0 auto`, cioè `flex-shrink:0`: non cede **mai**, e spinge sé
+         stesso oltre il bordo destro. Misurato il 06/08 sulla home: la pagina
+         scorreva in orizzontale, **343 px su 320**, con il bottone «Esci» che
+         finisce a 343 — di nuovo il comando per uscire dal proprio account
+         fuori dallo schermo, un anno dopo lo stesso difetto e 70 px più
+         stretto.
+         ⚠️ E la difesa c'ERA, scollegata: il CSS qui sotto dice «se i pulsanti
+         non ci stanno, permetti shrink dell'area logout» e mette
+         `flex-shrink:1` sul BOTTONE — ma un figlio cedevole dentro un padre
+         che non cede non cede lo stesso. È la guardia scollegata di CLAUDE.md
+         applicata al layout: la regola era scritta, il posto era sbagliato.
+         `.topbar` è `justify-content:space-between`, quindi con tutt'e due i
+         blocchi cedevoli restano comunque agli estremi. -->
+    <div style="display:flex;gap:6px;align-items:center;flex:0 1 auto;min-width:0;justify-content:flex-end;">
       <span id="sync-badge" class="sync-badge" style="display:none;"></span>
       <button id="btn-install-pwa" class="install-btn" onclick="installPWA()" style="display:none;" title="Installa app" aria-label="Installa app">⤓</button>
       <button class="outdoor-toggle" id="btn-outdoor" onclick="toggleOutdoor()" title="Cambia tema (chiaro/scuro)" aria-label="Cambia tema chiaro o scuro">☀️</button>
