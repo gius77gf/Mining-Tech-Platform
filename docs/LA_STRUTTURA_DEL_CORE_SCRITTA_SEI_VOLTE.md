@@ -369,9 +369,19 @@ colore del genitore, un raggio che torna a zero. È la stessa forma del
 principio che il prodotto applica ai numeri: **l'assenza di un dato non è un
 dato favorevole**, e qui il dato assente si traveste da «va bene così».
 
-~~Il conto del contagio: **22 selettori** del foglio condiviso cadrebbero su
+~~Il conto del contagio: **23 selettori** del foglio condiviso cadrebbero su
 markup che Genesi **ha già** — non solo la famiglia `.modal-*` ma anche `.kpi`,
 `.kpi.ok`, `.kpi.warn`, `.badge.ok`, `.badge.tag`, `.note.ok`, `.dw-btn`.~~
+
+> ⚠️ **Il numero nella riga barrata si muove, ed è voluto.** La suite lo tiene
+> agganciato a una misura **viva** (`numeri-nei-documenti.mjs` ricalcola quanti
+> selettori del foglio condiviso cadono sul markup di Genesi), quindi cambia
+> ogni volta che il foglio condiviso guadagna un selettore: il 07/08 è passato
+> da 22 a **23** perché `.dw-btn.mini` è salita in `shared/dw-app-ui.css` — era
+> scritta identica in cinque app e mancava alla sesta. Il valore **storico**
+> — quello che il 03/08 fu dichiarato — resta dov'è: nella tabella qui sotto,
+> colonna «dichiarato il 03/08». Aggiornare la frase non cancella la storia,
+> la lascia dove è verificabile.
 
 > ⛔ **QUESTO CONTO ERA SBAGLIATO — rimisurato il 04/08.**
 >

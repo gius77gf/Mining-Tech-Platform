@@ -390,6 +390,30 @@ input[type=date].dw-input::-webkit-calendar-picker-indicator:hover{
 }
 .dw-btn.secondary:active{transform:translateY(1px); box-shadow:var(--edge)}
 
+/* ⛔ IL BOTTONE COMPATTO, E IL NUMERO CHE LO PORTA QUI È CINQUE. Questa riga
+   era scritta IDENTICA, carattere per carattere, nel `<style>` di Conti, Terra,
+   Scudo, Sentinella e Campo — e mancava in **Flotta**, che però la usa su
+   quattro bottoni (`dw-btn secondary mini`: importa/esporta ricambi e due
+   comandi dell'officina). Censendo il 07/08 le classi usate contro quelle
+   definite, quei bottoni risultavano senza nessuna regola: si disegnavano a
+   grandezza piena dove il disegno li vuole compatti. È la regola di CLAUDE.md
+   alla lettera — una regola che serve a due app vive in `shared/`; qui ne
+   serviva a sei.
+
+   ⛔ E STA IN QUESTO FOGLIO, NON IN `deepwork-style.css`, PERCHÉ LÌ NON MORDEVA.
+   Messa lì per prima cosa, il browser continuava a rispondere **13px**: la
+   colpa non era della specificità ma dell'ORDINE — `.dw-btn.secondary` qui
+   sopra dichiara `font-size:13px` con la **stessa** specificità (0,2,0) e
+   questo foglio le pagine lo caricano **dopo**, quindi vinceva lui. È la
+   trappola già scritta in CLAUDE.md, e l'ho ripresa in pieno. L'ha detta
+   `getComputedStyle` in tre secondi, elencando le quattro regole che toccano
+   quel bottone: dedurre chi vince non funziona, chiederlo sì.
+   ⚠️ È anche il motivo per cui le cinque copie locali funzionavano: il
+   `<style>` di una pagina viene dopo tutti e due i fogli condivisi.
+   ⚠️ `min-height:var(--tap)` resta: compatto vuol dire più basso e più stretto,
+   non più difficile da premere. */
+.dw-btn.mini{min-height:var(--tap); padding:6px 12px; font-size:11px; letter-spacing:1px}
+
 /* ─────────────── filtri a segmento (copia di .chg) ─────────────── */
 .chgs{display:flex; gap:6px; flex-wrap:wrap; margin-bottom:10px}
 .chg{

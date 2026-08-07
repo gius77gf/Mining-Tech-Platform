@@ -124,6 +124,19 @@ body.dw {
   color: var(--app-accent);
 }
 
+
+/* ⛔ E IL ROSSO DI UN AVVISO DENTRO UNA FRASE. `<b class="bad">` lo usano
+   **Campo** (5 volte) e **Flotta** (2), ma la regola stava solo in Campo e per
+   giunta ristretta a un contenitore (`.board-txt b.bad`): in Flotta «*N* pieni
+   senza la spesa» e la ragione di un consumo parziale uscivano **del colore
+   del testo normale**. Un avviso che non si vede come avviso è il principio
+   del fondatore rovesciato — il segno tranquillo dove tranquillo non è.
+   ⚠️ La regola è legata al tag `b` **di proposito**: in Conti `.bad` su un
+   `.fld` vuol dire tutt'altro (campo in errore, `.fld.bad .err-msg`), e una
+   `.bad` nuda qui dentro gliela cambierebbe sotto i piedi. Stesso nome, due
+   significati: si separano con l'elemento, non con la speranza. */
+b.bad { color: var(--danger); }
+
 .dw-input {
   min-height: var(--tap);
   width: 100%;

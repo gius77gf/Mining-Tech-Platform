@@ -357,7 +357,8 @@ input[type=number].dw-input,
   width:16px; height:16px; stroke:currentColor; fill:none; stroke-width:2.1;
   stroke-linecap:round; stroke-linejoin:round; flex-shrink:0;
 }
-.dw-btn.mini{min-height:var(--tap); padding:6px 12px; font-size:11px; letter-spacing:1px}
+/* `.dw-btn.mini` è salita in shared/deepwork-style.css il 07/08: era scritta
+   identica in cinque app e mancava proprio a Flotta, che la usa. */
 .dw-btn.mini svg{width:13px; height:13px}
 .dw-btn.mini.no{
   border-color:color-mix(in srgb,var(--danger) 55%,var(--border2)); color:var(--muted2);
