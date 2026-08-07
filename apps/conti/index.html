@@ -1748,7 +1748,10 @@ label.item:has(.dw-chk:checked){
   <div id="espo-list"></div>
   <div class="tools">
     <button class="dw-btn secondary" id="btn-rep-export">Esporta situazione (CSV)</button>
-    <button class="dw-btn secondary" id="btn-inc-export">Esporta incassi (CSV)</button>
+    <button class="dw-btn secondary" id="btn-inc-export" title="Prospetto: risolve la fattura e calcola il residuo. NON si ri-carica">Esporta incassi (CSV)</button>
+    <button class="dw-btn secondary" id="btn-inc-backup" title="Copia di sicurezza: lo stesso file che il bottone accanto sa ri-caricare">Copia di sicurezza (CSV)</button>
+    <button class="dw-btn secondary" id="btn-inc-restore">Ri-carica copia (CSV)</button>
+    <input type="file" id="inc-file" accept=".csv,text/csv" style="display:none;">
   </div>
   <!-- Due mestieri, due riquadri: l'esito dei comandi qui sopra, e la nota che
        dice se si sta lavorando sui dati veri. Erano lo stesso riquadro, e il
@@ -1789,7 +1792,7 @@ label.item:has(.dw-chk:checked){
   import { parseMovimentiCsv, abbinaMovimenti, ESTRATTO_ESEMPIO,
            contiData, giorni, kpiFrom, statoScadenzaFattura, agingIncassi, stileBarraPeso, gareRiepilogo, prioritaIncasso, incassoAtteso, incassoPerMese, esposizioneClienti, estrattoContoCliente, livelloSollecito, interessiMora, testoSollecito, TASSO_MORA_DEFAULT, statoTassoMora, parseFattureCsv, parseGareCsv, parseListinoCsv, chiaveNome, clienteDiFattura, nomeCliente, clientiDaCollegare,
     round2, baseGara, densitaValida, prezzoPerTonnellata, prezzoPerMetroCubo, convertiQuantita, imponibileRiga,
-    importiFattura, totaliDaRighe, riepilogoIvaFattura, prossimoNumero, nettoPesata, rigaPesata, valorePesata, valoreDdt, csvPesate, parsePesateCsv,
+    importiFattura, totaliDaRighe, riepilogoIvaFattura, prossimoNumero, nettoPesata, rigaPesata, valorePesata, valoreDdt, csvPesate, parsePesateCsv, csvIncassi, parseIncassiCsv,
     quantitaPesata, pesateDaFatturare, fatturaDaPesate, canonePeriodo, BASI_CANONE, venditePerProdotto,
     cavatoPeriodo, vendutoPeriodo, riconciliazione, valoreCavato, SOGLIA_DIVARIO,
     applicaIncassi, apertoDi, statoIncasso, movimentiDiFattura, incassatoPeriodo,
@@ -5483,6 +5486,41 @@ label.item:has(.dw-chk:checked){
   };
   // Prima nota degli incassi: ogni versamento con la sua data vera. È il file
   // che il commercialista incrocia con l'estratto conto della banca.
+  /* ⛔ DECISIONE 12a, terza voce: la COPIA DI SICUREZZA della prima nota.
+     Il bottone qui sotto è un **prospetto** — risolve la fattura nel suo numero
+     e calcola totale e residuo — e non rientra. Questo porta i quattro campi
+     crudi, `fatturaId` compreso: senza, un incasso rimesso dentro non si
+     riaggancerebbe a niente. */
+  $("btn-inc-backup").onclick = () => {
+    const a = document.createElement("a");
+    a.href = "data:text/csv;charset=utf-8," + encodeURIComponent(csvIncassi(INC));
+    a.download = "conti_incassi_copia.csv"; marchiaCsv(a); a.click();
+    esito("rep-esito", plurale(INC.length, "Salvato ", "Salvati ") + plur(INC.length, "incasso", "incassi")
+      + " nella copia che questa pagina sa ri-caricare.", "success");
+  };
+  $("btn-inc-restore").onclick = () => $("inc-file").click();
+  $("inc-file").onchange = async (e) => {
+    const file = e.target.files && e.target.files[0]; if (!file) return;
+    const righe = parseIncassiCsv(await file.text());
+    e.target.value = "";
+    if (!righe.length) {
+      esito("rep-esito", "Nel file non c'è nessun incasso leggibile: controlla che sia la copia di sicurezza e non il prospetto (le colonne sono diverse).", "err");
+      return;
+    }
+    /* non si sovrascrive: si aggiunge quello che non c'è già, per fattura,
+       data e importo. Due incassi identici lo stesso giorno sulla stessa
+       fattura esistono (due bonifici uguali), quindi il confronto NON basta a
+       riconoscerli — e infatti quello che si evita è il doppione da doppio
+       ripristino, non da doppio pagamento. */
+    const gia = new Set(INC.map(m => [m.fatturaId || "", m.data || "", String(m.importo)].join("|")));
+    const nuovi = righe.filter(r => !gia.has([r.fatturaId || "", r.data || "", String(r.importo)].join("|")));
+    for (const r of nuovi) await db.aggiungi("incassi", r);
+    await refresh();
+    esito("rep-esito", nuovi.length
+      ? plurale(nuovi.length, "Rimesso dentro ", "Rimessi dentro ") + plur(nuovi.length, "incasso", "incassi")
+        + (righe.length > nuovi.length ? ` · ${conta(righe.length - nuovi.length, "era già in archivio", "erano già in archivio")}, non duplicati.` : ".")
+      : "Erano tutti già in archivio: non è stato aggiunto niente.", nuovi.length ? "success" : "");
+  };
   $("btn-inc-export").onclick = () => {
     const righe = INC.map(m => ({ m, f: FAT.find(x => x.id === m.fatturaId) }))
       .filter(r => r.f)

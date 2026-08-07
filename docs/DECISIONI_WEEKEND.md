@@ -533,7 +533,10 @@ vere.
          andata e ritorno provato. Verificato coi comandi il 07/08 prima di
          aprire il cantiere — che sarebbe stato lavoro su una cosa fatta;
       3. **pesate e DDT (Conti)** — mesi di battitura, ma i DDT esistono;
-      4. **incassi (Conti)** — l'estratto conto li contiene;
+      4. ✅ **incassi (Conti)** — *fatto il 07/08*: quattro campi e il
+         `fatturaId`, senza il quale un incasso rimesso dentro non si
+         riaggancerebbe a niente. Il metodo esce con la **chiave**, non col
+         nome leggibile: un file che rientra parla la lingua del programma;
       5. **clienti (Conti)** — doloroso e ribattibile;
       6. **azioni correttive (Scudo)** — un ispettore può chiederle, e la carta
          di solito c'è.
@@ -860,7 +863,7 @@ ogni strumento), i **grafici** in tutte le app da un motore scritto in casa,
 **sei ponti** veri fra le app, l'**estetica unificata**, e le convenzioni
 condivise su numeri, unità di misura e soldi.
 
-**Le prove automatiche sono passate a 2.285** *(ricontate il 07/08 lanciando le
+**Le prove automatiche sono passate a 2.289** *(ricontate il 07/08 lanciando le
 suite)*, più **106** che girano con l'emulatore Firestore (58 sulle regole di
 sicurezza, 19 sull'SDK, 21 sulle funzioni, 8 sul primo avvio) e **19** banchi
 che aprono davvero le pagine in un browser.

@@ -21871,7 +21871,7 @@ test("⛔ etichettaStatoDocumento: la mappa esce dalla pagina e la leggono in du
        (decisione 12a). Il numero è scritto a mano di proposito — è un
        censimento, e un export nuovo deve costringere qualcuno a guardarlo
        invece di entrare in silenzio. */
-    eq(tot, 27, "i siti di export CSV censiti nelle quattro app");
+    eq(tot, 28, "i siti di export CSV censiti nelle quattro app");
     console.log(`     (${tot} siti di export guardati in ${PAGINE.length} pagine)`);
   });
 
@@ -23910,6 +23910,33 @@ test("csvPesate: i numeri escono col PUNTO e la data non scivola", () => {
 test("numeroDichiarato è LA STESSA funzione in shared, Sentinella e Conti", () => {
   eq(sentinella.numeroDichiarato, ponti.numeroDichiarato, "Sentinella ri-esporta, non ricopia");
   eq(conti.numeroDichiarato, ponti.numeroDichiarato, "e Conti la importa dalla stessa");
+});
+
+/* ── DECISIONE 12a, terza voce: la PRIMA NOTA che si ri-carica ── */
+test("csvIncassi → parseIncassiCsv: il giro torna identico", () => {
+  const dentro = { fatturaId: "f1", data: "2026-03-01", importo: 1200.5, metodo: "bonifico" };
+  const [fuori] = conti.parseIncassiCsv(conti.csvIncassi([dentro]));
+  for (const k of Object.keys(dentro)) eq(fuori[k], dentro[k], `campo ${k}`);
+  eq(conti.csvIncassi([]).split("\n")[0], conti.CSV_INCASSI_INTESTAZIONE, "una sola verità sulle colonne");
+});
+test("csvIncassi: il metodo esce con la CHIAVE, non col nome leggibile", () => {
+  const t = conti.csvIncassi([{ fatturaId: "f1", data: "2026-03-01", importo: 10, metodo: "riba" }]);
+  ok(/;riba$/m.test(t.trim()), t);
+  const [m] = conti.parseIncassiCsv(t);
+  eq(m.metodo, "riba", "un file che rientra parla la lingua del programma");
+});
+test("csvIncassi: senza importo o con una data impossibile NON rientra", () => {
+  eq(conti.parseIncassiCsv(conti.csvIncassi([{ fatturaId: "f1", data: "2026-03-01", importo: null }])).length, 0,
+    "un incasso senza importo non è un incasso");
+  eq(conti.parseIncassiCsv(conti.csvIncassi([{ fatturaId: "f1", data: "2026-02-30", importo: 10 }])).length, 0,
+    "e il 30 febbraio non scivola al 2 marzo dentro i tempi di pagamento");
+  eq(conti.parseIncassiCsv(conti.csvIncassi([{ fatturaId: "f1", data: "2026-03-01", importo: 0 }])).length, 1,
+    "ma uno ZERO dichiarato resta un movimento vero");
+});
+test("csvIncassi: i numeri escono col PUNTO", () => {
+  const t = conti.csvIncassi([{ fatturaId: "f1", data: "2026-03-01", importo: 1200.5 }]);
+  ok(/;1200\.5;/.test(t), t);
+  eq(/;1200,5;/.test(t), false, "una virgola la leggerebbe solo la nostra app");
 });
 
 console.log(`\nRisultato KPI app: ${passed} passati, ${failed} falliti${inVolo.length ? `  ·  ${inVolo.length} prove asincrone aspettate` : ""}`);

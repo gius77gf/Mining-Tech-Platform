@@ -4065,3 +4065,49 @@ export function parsePesateCsv(text) {
        riepiloghi, che sono i numeri con cui si fatturano le consegne */
     .filter((p) => dataISOEsiste(p.data));
 }
+
+/* ⛔ LA PRIMA NOTA CHE SI RI-CARICA — decisione 12a, terza voce.
+   ⚠️ Come per le pesate, `conti_incassi.csv` esiste già ed è un'altra cosa: un
+   **prospetto** che risolve la fattura nel suo numero e calcola `totale_fattura`
+   e `residuo_dopo`. Serve a chi controlla i pagamenti, e non rientra.
+   Qui i campi sono quattro e uno è un id — sono le date e gli importi veri dei
+   soldi arrivati, e senza il `fatturaId` un incasso rimesso dentro non si
+   riaggancerebbe a niente.
+   ⚠️ Il `metodo` esce con la CHIAVE (`bonifico`, `riba`…), non col nome
+   leggibile che il prospetto stampa: un file che rientra parla la lingua del
+   programma, non quella dell'occhio. E una chiave sconosciuta non diventa
+   «bonifico»: resta com'è scritta, perché inventare il metodo di un pagamento
+   è peggio che non saperlo. */
+export const CSV_INCASSI_INTESTAZIONE = "fatturaId;data;importo;metodo";
+
+export function csvIncassi(incassi) {
+  const num = (x) => { const v = numeroDichiarato(x); return v == null ? "" : String(Math.round(v * 100) / 100); };
+  const righe = [CSV_INCASSI_INTESTAZIONE];
+  for (const m of (incassi || []).slice()
+    .sort((a, b) => String(a.data || "").localeCompare(String(b.data || "")))) {
+    if (!m) continue;
+    righe.push([csvCell(m.fatturaId || ""), m.data || "", num(m.importo), csvCell(m.metodo || "")].join(";"));
+  }
+  return righe.join("\n") + "\n";
+}
+
+export function parseIncassiCsv(text) {
+  return (leggiCsv(String(text || "")).righe || [])
+    .filter((c) => c.length && !isIntestazione(c.join(";"), "fatturaId"))
+    .map((c) => {
+      const [fatturaId, data, importo, metodo] = c;
+      const t = (x) => { const v = String(x == null ? "" : x).trim(); return v || null; };
+      const n = numIt(importo);
+      return {
+        fatturaId: t(fatturaId),
+        data: (data || "").trim(),
+        importo: numeroDichiarato(n === null || Number.isNaN(n) ? null : n),
+        metodo: t(metodo) || "",
+      };
+    })
+    /* ⛔ un incasso senza data o senza importo NON rientra: sono i due campi
+       che lo rendono un incasso. Una riga a zero, o con una data che non
+       esiste, entrerebbe nei conti dei tempi di pagamento — e quelli dicono
+       chi sono i clienti puntuali. */
+    .filter((m) => dataISOEsiste(m.data) && m.importo != null);
+}
