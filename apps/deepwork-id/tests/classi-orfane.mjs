@@ -76,12 +76,17 @@ export const PAGINE = ["index.html", "apps/index.html", "apps/genesi/genesi.html
    che avrebbero dovuto scrivere. Sono nomi rimasti dopo che lo stile se n'è
    andato altrove — testo morto, non stile perduto. Vanno tolti, ma toglierli è
    una modifica al prodotto e va fatta ad albero fermo. */
-export const ACCETTATE = new Map([
-  ["index.html mac-gest-tabs", "1 uso. Lo stile lo fa `.atabs` scritta accanto; questo nome non lo dipinge e non lo cerca nessuno."],
-  ["index.html ec-miccia", "1 uso, su un `<g>` SVG. Il comportamento è nell'`onclick`, il puntatore in uno `style` in linea."],
-  ["index.html tipo-volata-btn", "3 usi. I tre riquadri hanno TUTTO lo stile in linea, ripetuto tre volte: è il segno che la classe era prevista e non è mai stata scritta."],
-  ["apps/genesi/genesi.html dc-rock", "1 uso. Lo stile lo fa `.dc-f` scritta accanto."],
-]);
+/* ✅ VUOTO, DAL 07/08, E LA SECONDA META' DELLA REGOLA E' QUELLA CHE L'HA
+   SVUOTATO. Le quattro dichiarate erano `mac-gest-tabs`, `ec-miccia` e
+   `tipo-volata-btn` nel core e `dc-rock` in Genesi: testo morto, non stile
+   perduto — nessuna era un refuso alla `ords`, e infatti toglierle non cambia
+   un pixel (nessun foglio le dipinge, nessun `querySelectorAll` le cerca).
+   Sono state tolte dalle pagine, e questa suite ha preteso che sparisse anche
+   la riga che le scusava: quattro KO col messaggio giusto, che e' esattamente
+   il comportamento per cui la seconda meta' esiste.
+   ⚠️ Un elenco vuoto NON e' un elenco morto: se domani nasce una classe morta,
+   il controllo la trova e la fa dichiarare qui con la sua ragione. */
+export const ACCETTATE = new Map([]);
 
 /* i commenti in tutt'e tre le sintassi. Si sostituisce con spazi invece che con
    niente perché le posizioni restino le stesse: serve a chi legge un allarme. */
@@ -150,6 +155,17 @@ for (const p of PAGINE) {
       + `Se è un refuso, la classe vera è vicina; se è testo morto, va tolta — non aggiunta qui senza la ragione.`);
   }
 }
+
+/* ⛔ E LA PROVA CHE LA SCANSIONE HA GUARDATO QUALCOSA, che dal 07/08 è
+   indispensabile: svuotato l'elenco delle eccezioni, questa suite stampava
+   «0 passati, 0 falliti» — cioè il verde di un file di test INERTE, che
+   CLAUDE.md dice essere indistinguibile da quello di uno che passa. Un
+   controllo senza soggetti non è un controllo pulito: è un controllo spento.
+   I due numeri sono un fondo, non un valore esatto: crescono da soli quando
+   nasce una schermata, e se crollano vuol dire che una pagina non si legge
+   più — che è il modo in cui questo file potrebbe diventare cieco. */
+dico(totPagine === PAGINE.length, `pagine lette: ${totPagine} su ${PAGINE.length} dichiarate`);
+dico(totClassi > 900, `classi guardate: ${totClassi} — troppo poche perché «nessuna morta» voglia dire qualcosa`);
 
 /* la seconda metà, quella che `sonda-vuoto.mjs` ha insegnato: ogni eccezione
    dichiarata deve presentarsi ancora, se no l'elenco è più vecchio del codice */

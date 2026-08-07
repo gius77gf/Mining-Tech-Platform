@@ -2910,7 +2910,7 @@ const _canMac=()=>can('editMac');
 function macGestTabsHtml(){
   const t=state.macGestTab||'log';const a=k=>t===k?' active':'';
   return `<div class="sec-title" style="margin-top:18px;"><span class="dot"></span>Gestione mezzo</div>
-  <div class="atabs mac-gest-tabs" style="margin-bottom:10px;">
+  <div class="atabs" style="margin-bottom:10px;">
     <div class="atab${a('log')}" onclick="macGestTab('log',this)">LAVORI</div>
     <div class="atab${a('check')}" onclick="macGestTab('check',this)">CHECK-LIST</div>
     <div class="atab${a('guasti')}" onclick="macGestTab('guasti',this)">GUASTI</div>
@@ -5243,7 +5243,7 @@ function renderEditorCanvas(){
       // Colore in base al ritardo
       const colorMap={9:'#ffd54f',17:'#ffab00',25:'#ff8a00',42:'#ff6d00',67:'#e64a19',100:'#bf360c'};
       const color=colorMap[conn.ritardo_ms]||'#ff6d00';
-      miccaLines+=`<g class="ec-miccia" data-id="${conn.id}" onclick="event.stopPropagation();eliminaMiccia('${conn.id}')" style="cursor:pointer;">
+      miccaLines+=`<g data-id="${conn.id}" onclick="event.stopPropagation();eliminaMiccia('${conn.id}')" style="cursor:pointer;">
         <line x1="${a.px}" y1="${a.py}" x2="${b.px}" y2="${b.py}" stroke="${color}" stroke-width="2.2" opacity="0.85"/>
         <rect x="${midX-13}" y="${midY-7}" width="26" height="13" rx="3" fill="${color}" opacity="0.95"/>
         <text x="${midX}" y="${midY+3}" font-family="'Barlow Condensed',sans-serif" font-size="9" fill="#100d07" text-anchor="middle" font-weight="800" pointer-events="none">${conn.ritardo_ms}ms</text>
@@ -7226,15 +7226,15 @@ function openSelezionaCavaPerVolata(){
   openModal('Nuovo progetto di volata',`
     <p style="font-size:13px;color:var(--muted);margin-bottom:12px;">Scegli il tipo di scavo per cui stai progettando la volata.</p>
     <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:16px;">
-      <div class="tipo-volata-btn active" id="tv-cava" onclick="selTipoVolata('cava')" style="background:linear-gradient(135deg,#66bb6a,#2e7d32);color:#fff;padding:14px 8px;text-align:center;cursor:pointer;border:2px solid #66bb6a;border-radius:4px;">
+      <div class="active" id="tv-cava" onclick="selTipoVolata('cava')" style="background:linear-gradient(135deg,#66bb6a,#2e7d32);color:#fff;padding:14px 8px;text-align:center;cursor:pointer;border:2px solid #66bb6a;border-radius:4px;">
         <div style="font-size:24px;">⛰️</div>
         <div style="font-family:'Barlow Condensed',sans-serif;font-weight:800;letter-spacing:1px;font-size:12px;margin-top:4px;">CAVA</div>
       </div>
-      <div class="tipo-volata-btn" id="tv-galleria" onclick="selTipoVolata('galleria')" style="background:var(--card);color:var(--text);padding:14px 8px;text-align:center;cursor:pointer;border:2px solid var(--border);border-radius:4px;">
+      <div id="tv-galleria" onclick="selTipoVolata('galleria')" style="background:var(--card);color:var(--text);padding:14px 8px;text-align:center;cursor:pointer;border:2px solid var(--border);border-radius:4px;">
         <div style="font-size:24px;">🚇</div>
         <div style="font-family:'Barlow Condensed',sans-serif;font-weight:800;letter-spacing:1px;font-size:12px;margin-top:4px;">GALLERIA</div>
       </div>
-      <div class="tipo-volata-btn" id="tv-altro" onclick="selTipoVolata('altro')" style="background:var(--card);color:var(--text);padding:14px 8px;text-align:center;cursor:pointer;border:2px solid var(--border);border-radius:4px;">
+      <div id="tv-altro" onclick="selTipoVolata('altro')" style="background:var(--card);color:var(--text);padding:14px 8px;text-align:center;cursor:pointer;border:2px solid var(--border);border-radius:4px;">
         <div style="font-size:24px;">🏗️</div>
         <div style="font-family:'Barlow Condensed',sans-serif;font-weight:800;letter-spacing:1px;font-size:12px;margin-top:4px;">ALTRO</div>
       </div>
