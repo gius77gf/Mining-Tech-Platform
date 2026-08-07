@@ -27,6 +27,7 @@
 
    Uso:  node apps/deepwork-id/tests/browser/barra-etichette.mjs [porta]
          node …/barra-etichette.mjs [porta] --solo=scudo
+         node …/barra-etichette.mjs [porta] --tema=chiaro   (o --tema=sole)
          node …/barra-etichette.mjs [porta] --controprova
 
    ⚠️ `--solo=` non e' un lusso: aprire tutte e quattordici le superfici costa
@@ -42,6 +43,34 @@ import { montaFintoFirebase } from './finto-firebase.mjs';
 const PORTA = +(process.argv[2] || 8823);
 const CONTROPROVA = process.argv.includes('--controprova');
 const SOLO = (process.argv.find((a) => a.startsWith('--solo=')) || '').slice(7);
+/* ⛔ IL TEMA È TRE, E FINO AL 07/08 QUESTO BANCO NE GUARDAVA UNO — e quel buco
+   ha lasciato passare un difetto grosso, non una sfumatura. Le verticali
+   girano fra `scuro`, `chiaro` e `sole` con `shared/dw-tema.js`; il sole è il
+   tema per chi legge il telefono IN CAVA, cioè il posto dove il prodotto vive.
+   Nel sole `body.dw.outdoor-mode .nav button{font-size:11px}` ha specificità
+   (0,3,2) e **batte ogni gradino** del foglio condiviso: le `@media` di
+   `dw-app-shell.css` scrivono 8,5 / 8 px con una specificità più bassa e non
+   mordono. Effetto misurato prima della correzione, e siccome `.nav` ha
+   `overflow:hidden` quello che esce **sparisce in silenzio**:
+     · Sentinella tagliata a TUTTE le larghezze (453 in 410 a 430 px, fino a
+       441 in 300 a 320 px: **due voci intere** che non ci sono più);
+     · Flotta a 320 px: 316 in 300;
+     · Terra  a 320 px: 311 in 300.
+   Nessuna di queste era visibile al buio, dove il banco era verde.
+   ⛔ E CHI NON HA IL TEMA VA DICHIARATO NON MISURATO, NON CONTATO A POSTO —
+   la difesa è copiata da `contrasto.mjs`, che l'ha pagata: la domanda giusta
+   non è «la classe è rimasta attaccata?» ma «questa superficie SA che cos'è
+   questo tema?». `sole` e `chiaro` sono concetti di `shared/dw-tema.js`, e chi
+   non lo carica non ha `window.dwTema`. Sono otto superfici su quattordici
+   (elencate con la ragione nella regola 27 di `run-stile.mjs`): il core, che
+   ha due temi suoi, la vetrina, Genesi e le pagine del servizio comune. Un
+   tema che non si accende non è un tema che passa. */
+const TEMA = (process.argv.find((a) => a.startsWith('--tema=')) || '').slice(7);
+const CLASSE_TEMA = { chiaro: 'light-mode', sole: 'outdoor-mode' };
+if (TEMA && !CLASSE_TEMA[TEMA]) {
+  console.error(`✗ tema sconosciuto: «${TEMA}». Sono ${Object.keys(CLASSE_TEMA).join(', ')} (o niente per il buio).`);
+  process.exit(2);
+}
 /* ⛔ 430 E 320 SONO ENTRATE IL 07/08, E PER UNA RAGIONE PRECISA. Un cantiere,
    guardando uno scatto di Conti a 430 px, ha riferito che le etichette della
    barra erano tagliate — «QUADR», «ATTUR», «BANCA», «ORDIN» — e io l'ho
@@ -107,13 +136,35 @@ const LARGHEZZE = [430, 390, 360, 320];
 const chromium = await prendiChromium();
 const browser = await chromium.launch({ executablePath: CHROMIUM });
 
-let etichette = 0, superfici = 0, conBarra = 0, guai = 0;
+let etichette = 0, superfici = 0, conBarra = 0, guai = 0, tagliate = 0;
 const dettagli = [];
+const temaRifiutato = [];
+let temaMisurate = 0;
 
 for (const [nome, via] of SUPERFICI) {
   if (SOLO && !nome.includes(SOLO)) continue;
   for (const larghezza of LARGHEZZE) {
     const { ctx, p } = await apriSuperficie(browser, { nome, via, porta: PORTA, larghezza, altezza: 844, montaFintoFirebase });
+    if (TEMA) {
+      /* si scrive la chiave che `dw-tema.js` rilegge E si chiama la sua
+         funzione: la classe appiccicata a mano verrebbe tolta al primo
+         `applica()`, e la chiave da sola arriverebbe troppo tardi (la pagina è
+         già aperta). Poi si PRETENDE che la classe ci sia: se non c'è, questa
+         superficie quel tema non ce l'ha. */
+      const messa = await p.evaluate(({ cls, t }) => {
+        if (!window.dwTema) return false;
+        try { localStorage.setItem('dw-tema', t); } catch (e) { /* niente */ }
+        window.dwTema(t);
+        return document.body.classList.contains(cls);
+      }, { cls: CLASSE_TEMA[TEMA], t: TEMA });
+      if (!messa) {
+        await ctx.close();
+        console.log(`  ⚠️  ${nome} non ha il tema «${TEMA}»: NON misurata (non carica dw-tema.js).`);
+        temaRifiutato.push(nome);
+        break;                        // le altre larghezze direbbero la stessa cosa
+      }
+      if (larghezza === LARGHEZZE[0]) temaMisurate++;
+    }
     if (CONTROPROVA) await p.addStyleTag({ content: '.nav button{font-size:11px !important}' });
     const d = await p.evaluate(() => {
       const n = document.querySelector('.nav');
@@ -146,13 +197,67 @@ for (const [nome, via] of SUPERFICI) {
         ? [{ testo: bs.map((b) => (b.textContent || '').trim()).join(' · '),
              largo, col: dentro, perche: 'il contenuto della barra non ci sta nella barra' }]
         : [];
-      return { voci: bs.length, male };
+      /* ⛔ E QUESTA E' LA SECONDA DOMANDA, che il 07/08 ha trovato piu' della
+         prima. La domanda di sopra e' sulla BARRA, e c'e' un modo di renderla
+         cieca senza volerlo: se il BOTTONE ha `overflow:hidden`, la sua
+         min-content va a zero, le colonne della griglia non crescono, la barra
+         non trabocca **mai** e il banco risponde «ok» qualunque cosa succeda
+         alle parole. E' il caso di Conti, che ha `overflow:hidden` sul bottone
+         dal giorno in cui gli sono state date dieci voci: nel tema sole
+         tagliava **otto etichette a 430 px e dieci a 320**, e questo banco le
+         dichiarava a posto a ogni larghezza.
+         La domanda giusta e' la stessa un piano piu' sotto — *il contenuto del
+         BOTTONE sta dentro il bottone?* — ed e' la lezione di `fuori-schermo`,
+         che chiedeva «esce dallo schermo?» mentre la pillola usciva dal proprio
+         riquadro. Vale per tutt'e due i casi: con `overflow:hidden` la parola
+         viene tagliata, senza viene stampata sopra la vicina. */
+      /* ⚠️ E LA PRIMA STESURA DI QUESTA SECONDA DOMANDA CHIEDEVA
+         `scrollWidth > clientWidth` SUL BOTTONE, che e' sbagliato per una
+         ragione che si vede solo misurando: in un bottone `.active` c'e' la
+         **pastiglia** `::before`, che e' piu' larga del bottone di proposito.
+         Scudo a 320 px veniva accusato con «40 su 37» mentre la parola
+         «Quadro» ne chiede **30,5**: un difetto finto, e sempre sulla PRIMA
+         voce — che e' il segno che si sta guardando il righello, non il
+         soggetto. Si misura la PAROLA, che e' un nodo di testo nudo e vuole un
+         `Range` (`querySelectorAll` non vede una scatola anonima).
+         ⚠️ Contro l'obiezione gia' scritta qui sopra al punto 4 — «gonfiando
+         l'etichetta la COLONNA cresce con lei, quindi non puo' essere
+         tagliata» — vale la differenza che rende vero questo caso: dove le
+         colonne sono FISSE (`--nav-cols`) e il bottone ha `overflow:hidden`,
+         la colonna **non** cresce, e la parola viene tagliata dentro di lei
+         senza che la barra trabocchi di un pixel. */
+      const parolaDi = (btn) => {
+        for (const nodo of btn.childNodes) {
+          if (nodo.nodeType !== 3 || !nodo.textContent.trim()) continue;
+          const rg = document.createRange();
+          rg.selectNodeContents(nodo);
+          return { testo: nodo.textContent.trim(), largo: rg.getBoundingClientRect().width };
+        }
+        return null;
+      };
+      const strette = [];
+      for (const x of bs) {
+        const w = parolaDi(x);
+        if (w && w.largo > x.clientWidth + 0.5) strette.push({ ...w, col: x.clientWidth });
+      }
+      if (strette.length) {
+        male.push({ testo: strette.map((x) => x.testo).join(' · '),
+          largo: +Math.max(...strette.map((x) => x.largo)).toFixed(1),
+          col: +Math.min(...strette.map((x) => x.col)).toFixed(1),
+          dentroIlBottone: true,
+          perche: `${strette.length} parole non ci stanno nel proprio bottone` });
+      }
+      return { voci: bs.length, male, tagliate: strette.length };
     });
     await ctx.close();
     if (!d.voci) continue;            // pagine senza barra: niente da misurare
-    conBarra++; etichette += d.voci; guai += d.male.length;
+    conBarra++; etichette += d.voci; guai += d.male.length; tagliate += (d.tagliate || 0);
     console.log(`  ${d.male.length ? '✗' : 'ok'}  ${nome} @${larghezza}: ${d.voci} voci`
-      + (d.male.length ? ` · la barra taglia (${d.male[0].largo} su ${d.male[0].col})` : ' · il contenuto sta dentro la barra'));
+      + (d.male.length
+        ? ' · ' + d.male.map((m) => m.dentroIlBottone
+            ? `${m.perche} (la più stretta ${m.col} px per ${m.largo} di parola)`
+            : `la barra taglia (${m.largo} su ${m.col})`).join(' · ')
+        : ' · ogni parola sta nel suo bottone, e i bottoni nella barra'));
     for (const m of d.male) dettagli.push(`    ⛔ ${nome} @${larghezza}: «${m.testo}» ${m.perche} (${m.largo} su ${m.col})`);
   }
   superfici++;
@@ -160,11 +265,27 @@ for (const [nome, via] of SUPERFICI) {
 await browser.close();
 
 for (const x of dettagli) console.log(x);
+/* ⛔ PRIMA DEI KO: quante superfici ha davvero guardato con questo tema. Un
+   «zero fuori posto» ottenuto su due superfici su quattordici non è una buona
+   notizia, ed è la riga «non ho guardato» che CLAUDE.md dice di leggere per
+   prima. */
+if (TEMA) {
+  console.log(`\n   TEMA «${TEMA}»: ${temaMisurate} superfici misurate`
+    + (temaRifiutato.length
+      ? `, ${temaRifiutato.length} NON misurate perché non hanno questo tema (${temaRifiutato.join(', ')})`
+      : ''));
+}
 /* ⚠️ Si stampa quante etichette e quante barre si sono guardate. Le superfici
    senza barra in basso (l'accesso, il profilo, il portone di Genesi) non sono
    un errore: sono zero soggetti, e un banco che ne trovasse zero dappertutto
    direbbe «tutto a posto» senza aver misurato niente. */
-console.log(`\n${etichette} etichette misurate su ${conBarra} barre (${superfici} superfici aperte) · ${guai} fuori posto`);
+console.log(`\n${etichette} etichette misurate su ${conBarra} barre (${superfici} superfici aperte)`
+  + ` nel tema «${TEMA || 'scuro'}» · ${guai} fuori posto`);
+/* le due domande si contano separate: sapere QUALE ha morso dice dove guardare,
+   e un totale unico le confonderebbe (la seconda, da sola, non allarga mai la
+   barra — taglia dentro il bottone e la barra resta serena). */
+console.log(`   di cui ${tagliate} etichette tagliate DENTRO il proprio bottone`
+  + ' — la domanda che una barra con `overflow:hidden` sul bottone non può sentirsi fare.');
 if (CONTROPROVA) {
   console.log(guai > 0
     ? `\n✓ controprova: con l'etichetta a 11 px il banco lo vede (${guai} fuori posto)`

@@ -358,7 +358,15 @@ test("docs/LA_STRUTTURA_DEL_CORE_SCRITTA_SEI_VOLTE.md: il conto del contagio è 
   const sezioni = [...testo.matchAll(/^## (\d+)\. /gm)].map((m) => m[1]);
   /* l'indice cita le sezioni in grassetto nelle celle: `| **13** | …` — e anche
      le lettere (`**18a**`), che qui si riducono al numero della sezione */
-  const citate = new Set([...testo.matchAll(/\|\s*\*\*(\d+)[a-z]?\*\*\s*\|/g)].map((m) => m[1]));
+  /* ⚠️ E IL `~~` DELLE DECISE VA AMMESSO, se no barrare una riga la fa SPARIRE
+     da questo controllo — che è la famiglia «dare un nome a un valore lo fa
+     sparire da un controllo statico», in versione punteggiatura. Successo il
+     07/08: barrate le sette prese dal ciclo, tre sezioni (6, 8, 11) risultavano
+     «fuori dalla porta d'ingresso» mentre erano lì, con la loro riga. La 13 e
+     le sue gemelle non se n'erano accorte solo perché comparivano anche in una
+     seconda tabella, in chiaro: cioè il controllo passava per un motivo diverso
+     da quello del suo nome. */
+  const citate = new Set([...testo.matchAll(/\|\s*(?:~~)?\*\*(\d+)[a-z]?\*\*(?:~~)?\s*\|/g)].map((m) => m[1]));
   test("docs/DECISIONI_WEEKEND.md: nessuna decisione resta fuori dalla porta d'ingresso", () => {
     const fuori = sezioni.filter((n) => !citate.has(n));
     ok(!fuori.length, `${fuori.length} sezioni non compaiono in nessuna tabella dell'indice: ${fuori.join(", ")}`);

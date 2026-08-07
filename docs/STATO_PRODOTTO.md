@@ -72,7 +72,7 @@ memoria)*: **2.260** prove automatiche che girano senza rete — **1853** sulle
 funzioni delle app, **295** sulle regole di stile, 63 sugli aiuti condivisi, 32
 sulla nuvola di punti, 9 sul manifesto, 8 sulla demo — più **106** che girano
 con l'emulatore Firestore (58 sulle **regole di sicurezza**, 19 sull'SDK, 21
-sulle funzioni, 8 sul primo avvio) e **138 esecuzioni** che aprono davvero le
+sulle funzioni, 8 sul primo avvio) e **141 esecuzioni** che aprono davvero le
 pagine in un browser.
 *(⚠️ Il **2.251** conta sei suite: il giro completo ne esegue **2.474**, ma le
 altre dieci contano **file** invece che casi — crescono da sole quando nasce un

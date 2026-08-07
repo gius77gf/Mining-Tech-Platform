@@ -37,7 +37,27 @@ chiuse. Le aperte sono **24**; la pagina d'ingresso di
   risposta si procede con la colonna «la mia risposta», **dichiarandolo nel
   commit**.
 
-- [ ] **D-bis. Il piano di applicazione delle quindici verdi** — preparato il
+- [x] ✅ **D-bis. SETTE DELLE QUINDICI PRESE il 07/08 — e otto restano aperte,
+      dichiarate.** Il piano preparato alle 14:45 si è rivelato giusto nella
+      divisione e va tenuto per la parte che resta. Applicate scrivendole:
+      **6** (la geometria del fronte resta chiusa finché la 7 non porta un volo
+      vero), **8** (il criterio: quella che l'ispettore chiede per prima),
+      **10c** (più utenti, e ne segue che la 10b va chiusa PRIMA del primo
+      cliente), **11a/11b/11c** (diario e tavolo da disegno; le tre
+      sovrapposizioni si tolgono da Deepwork in ordine dichiarato; due app e il
+      ponte), **12b** (si dice in chiaro comunque, anche quando la 12a
+      esisterà). ⛔ Ognuna porta scritto **decisa dal ciclo, non dal
+      fondatore**, e si cambia con una riga.
+      ⚠️ Le **otto che vogliono un cantiere** (5a, 5b, 10a, 10b, 12a, 15,
+      18a, 18b) NON sono state spuntate: la risposta c'è, ma dichiararle prese
+      senza averle costruite sarebbe esattamente la faccia tranquilla su un
+      lavoro non fatto. E per la **5b** la prima unità resta la **misura** (che
+      cosa succede a due persone che scrivono la stessa riga), non la funzione.
+
+- [ ] **D-ter. Le otto verdi che vogliono un cantiere** — 5a, 5b, 10a, 10b, 12a,
+      15, 18a, 18b, con la risposta già scritta in `docs/DECISIONI_WEEKEND.md`.
+
+- [x] ~~**D-bis. Il piano di applicazione delle quindici verdi**~~ — preparato il
       07/08 alle 14:45 perché a fine giornata l'applicazione sia meccanica e non
       improvvisata. ⚠️ **Sono quindici, non diciannove**: le quattro gemelle
       (13, 14, 16, 17) le ha decise il fondatore il 02/08 con «vai» e sono già

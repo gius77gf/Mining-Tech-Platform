@@ -346,8 +346,26 @@ const BANCHI = [
      Costa una mezz'ora sulle quattordici superfici: con `--solo=` sono secondi. */
   ['dentro le modali (unità, tagli, spazio)', 'modali-dentro.mjs', []],
   ['dentro le modali · controprova', 'modali-dentro.mjs', ['--controprova'], true],
+  /* ⛔ I TRE TEMI SONO ENTRATI IL 07/08, E IL BUCO ERA GROSSO. Questo banco
+     guardava il tema BUIO soltanto, e nel tema SOLE — quello che serve a
+     leggere il telefono in cava, cioè il posto dove il prodotto vive — la
+     regola condivisa `body.dw.outdoor-mode .nav button{font-size:11px}` sta
+     fuori da ogni `@media` e con specificità (0,3,2) batte i gradini `.nav
+     button` (0,1,1) di ogni foglio. Misurato prima della correzione:
+     Sentinella tagliata a TUTTE le larghezze (fino a 141 px a 320: due voci
+     intere sparite), Flotta 316 in 300, Terra 311 in 300 — e in Conti otto
+     etichette su dieci tagliate a 430 px, che nessuna delle due misure vedeva.
+     ⛔ E LA SECONDA DOMANDA HA TROVATO PIÙ DELLA PRIMA. La domanda sulla BARRA
+     («il contenuto ci sta?») diventa cieca se il BOTTONE ha `overflow:hidden`:
+     la sua min-content va a zero, le colonne non crescono, la barra non
+     trabocca MAI e il banco dice «ok» qualunque cosa succeda alle parole. È il
+     caso di Conti da quando ha dieci voci. Adesso il banco chiede anche *la
+     parola sta nel suo bottone?*, misurata con un `Range` sul nodo di testo. */
   ['le etichette della barra stanno nella loro colonna', 'barra-etichette.mjs', []],
+  ['etichette della barra · tema chiaro', 'barra-etichette.mjs', ['--tema=chiaro']],
+  ['etichette della barra · tema sole', 'barra-etichette.mjs', ['--tema=sole']],
   ['etichette della barra · controprova', 'barra-etichette.mjs', ['--controprova'], true],
+  ['etichette della barra · controprova sole', 'barra-etichette.mjs', ['--controprova', '--tema=sole'], true],
   ['la quota di base è nel sistema del rilievo', 'quota-base-reale.mjs', []],
   ['quota di base · controprova', 'quota-base-reale.mjs', ['--controprova'], true],
   ['il registro costi', 'registro-costi.mjs', []],

@@ -54,6 +54,16 @@
      · il tema `scuro` non ha mai avuto questo difetto: si misura lo stesso,
        perché una correzione fatta sul chiaro non deve rovinarlo.
 
+   ⚠️ LA GEOMETRIA DEI GRADIENTI È STATA PROVATA E RIMANDATA, COL NUMERO. Il
+   07/08 `contrasto.mjs` ha smesso di accoppiare a tappeto le fermate di un
+   gradiente e ha cominciato a leggere inchiostro e fondo nello STESSO PUNTO:
+   là serviva (forbice ≥4 su 63 casi). Qui la stessa misura dice **933
+   accoppiamenti, 54 con un vicino a più fermate, forbice peggiore 1,40, zero
+   verdetti che cambiano**. Portare la geometria costerebbe un cantiere e non
+   correggerebbe niente. Quello che si fa invece è la regola del righello che
+   **dichiara l'ampiezza del proprio dubbio**: la forbice si stampa a ogni
+   giro, così il giorno che sale si vede.
+
    LE CLASSI MAI COMPARSE. Un soggetto che la dimostrazione non fa mai vedere
    NON è un soggetto promosso: è un soggetto non misurato. In fondo il banco
    elenca le regole che dipingono una superficie di stato e che nel DOM non
@@ -219,7 +229,26 @@ const MISURA = (soglia) => {
     /* scelta 2: un vicino identico al soggetto non è un colore adiacente */
     const vicini = vicini0.filter((v) => !v.colori.every((b) => colori.some((c) => chiave(c) === chiave(b))));
     if (!vicini.length) return;
-    const rr = vicini.map((v) => Math.min(...v.colori.map((b) => Math.max(...colori.map((c) => rap(c, b))))));
+    /* ⛔ QUANTO VALE LA SCELTA DELLA FERMATA, DICHIARATO INVECE CHE NASCOSTO.
+       Quando il vicino è un gradiente, `rr` accoppia il soggetto con la sua
+       fermata PEGGIORE — ovunque quella fermata stia fisicamente. È lo stesso
+       accoppiamento «a tappeto» che `contrasto.mjs` ha smesso di fare il 07/08
+       passando alla geometria (inchiostro e fondo letti nello stesso punto).
+       ⚠️ QUI LA GEOMETRIA È STATA PROVATA E RIMANDATA, COL NUMERO, perché
+       nessuno la rifaccia alla cieca: sui 933 accoppiamenti del tema chiaro
+       solo **54** hanno un vicino a più fermate, la forbice peggiore è
+       **1,40** (cinque casi sopra 1, zero sopra 2), e gli accoppiamenti in cui
+       la scelta della fermata **cambia il verdetto** sono **ZERO**. Sui testi
+       la stessa misura dava 63 casi con forbice ≥4: lì il righello sbagliava
+       davvero, qui no — perché un soggetto non testuale è quasi sempre una
+       superficie piccola con vicini in tinta piena.
+       Quindi si tiene il caso peggiore (direzione prudente) e si STAMPA la
+       forbice accanto: il giorno che un gradiente conterà, il numero è già lì
+       e si vedrà salire. È la regola del righello che dichiara l'ampiezza del
+       proprio dubbio invece di essere corretto a metà. */
+    const perVicino = vicini.map((v) => v.colori.map((b) => Math.max(...colori.map((c) => rap(c, b)))));
+    const rr = perVicino.map((per) => Math.min(...per));
+    const forbice = Math.max(...perVicino.map((per) => Math.max(...per) - Math.min(...per)));
     const colore = colori[0];
     const peggio = Math.min(...rr), migliore = Math.max(...rr);
     /* ⛔ UN'ECCEZIONE CORTA E SCRITTA, non una regola larga. `--info` non dice
@@ -232,6 +261,7 @@ const MISURA = (soglia) => {
     const dest = /^--info(\/|$)/.test(nome) ? decorativi : soggetti;
     dest.push({ tipo, token: nome, col: scrivi(colore), pulsa: pulsa(el),
       peggio: +peggio.toFixed(2), migliore: +migliore.toFixed(2),
+      forbice: +forbice.toFixed(2), fermateVicino: Math.max(...vicini.map((v) => v.colori.length)),
       vicini: vicini.map((v, i) => `${v.dove} ${scrivi(v.colori[0])} ${rr[i].toFixed(2)}`).join(' · '),
       sel: (el.tagName.toLowerCase() + (el.id ? '#' + el.id : '')
         + (typeof el.className === 'string' && el.className.trim() ? '.' + el.className.trim().split(/\s+/).join('.') : '')).slice(0, 90),
@@ -309,6 +339,9 @@ const MISURA = (soglia) => {
 const b = await chromium.launch({ executablePath: CHROMIUM });
 let ko = 0, ok = 0, dipinte = 0, diStato = 0, visti = 0, misurate = 0;
 const rifiutate = [], mai = new Map(), peggiori = [], pulsanti = [], deco = new Map();
+/* la forbice di TUTTI i soggetti, non solo di quelli stampati: serve a vedere
+   il numero salire il giorno che un gradiente comincerà a contare */
+const forbici = [];
 for (const [nome, via] of APP) {
   if (SOLO && SOLO !== nome) continue;
   const { ctx, p } = await apriSuperficie(b, { nome, via, porta: PORTA });
@@ -340,6 +373,9 @@ for (const [nome, via] of APP) {
     const res = await p.evaluate(MISURA, SOGLIA);
     dipinte += res.conteggio.dipinte; diStato += res.conteggio.diStato; visti += res.conteggio.visti;
     for (const x of res.soggetti) perApp.push({ ...x, sez: s });
+    for (const x of [...res.soggetti, ...res.decorativi]) {
+      forbici.push({ app: nome, forbice: x.forbice, fermate: x.fermateVicino, peggio: x.peggio, migliore: x.migliore, sel: x.sel, token: x.token });
+    }
     for (const x of res.decorativi) {
       if (x.peggio < SOGLIA) deco.set(`${nome}: ${x.sel} · ${x.token} · ${x.peggio}`, 1);
     }
@@ -375,6 +411,23 @@ console.log(`\n─────────────────────�
 console.log(`${misurate} app misurate${rifiutate.length ? ` · NON misurate: ${rifiutate.join(', ')}` : ''}`);
 console.log(`${visti} elementi visibili guardati · ${dipinte} superfici non testuali dipinte · ${diStato} dipinte con un colore di STATO`);
 console.log(`${ok} sopra ${SOGLIA}:1, ${ko} sotto.`);
+/* ⛔ L'AMPIEZZA DEL DUBBIO DEL RIGHELLO, STAMPATA SEMPRE. Dove il vicino è un
+   gradiente il verdetto usa la sua fermata peggiore, ovunque quella fermata
+   stia: la forbice dice di quanto quella scelta pesa. Serve a due cose — a non
+   fidarsi di un numero che ha una forbice larga, e a far VEDERE il giorno che
+   questi numeri salgono, che è il giorno in cui varrà la pena portare qui la
+   geometria di `contrasto.mjs`. Oggi non vale: la misura è nell'intestazione. */
+{
+  const multi = forbici.filter((x) => x.fermate > 1);
+  const decisivi = multi.filter((x) => x.peggio < SOGLIA && x.peggio + x.forbice >= SOGLIA);
+  const sopra = (n) => multi.filter((x) => x.forbice >= n).length;
+  console.log(`\nFORBICE DEL RIGHELLO: ${forbici.length} accoppiamenti, ${multi.length} con un vicino a più fermate`
+    + ` · ≥4: ${sopra(4)} · ≥2: ${sopra(2)} · ≥1: ${sopra(1)}`
+    + ` · verdetti che dipendono da quale fermata si sceglie: ${decisivi.length}`);
+  for (const x of multi.filter((y) => y.forbice >= 1).slice(0, 8)) {
+    console.log(`   · ${x.app} ${x.token} ${x.sel} — da ${x.peggio} a ${(x.peggio + x.forbice).toFixed(2)}`);
+  }
+}
 if (deco.size) {
   console.log(`\n⚠️  ${deco.size} superfici DECORATIVE (--info) sotto ${SOGLIA}:1, fuori dal verdetto per dichiarazione.`);
   console.log('   È la striscia di serie di `.note`: il riquadro si riconosce da sé, e le sue varianti di');

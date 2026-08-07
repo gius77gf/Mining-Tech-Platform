@@ -10,7 +10,15 @@ può procedere con l'attuazione.
 
 ---
 
-# 📖 Da dove cominciare — le decisioni aperte sono **19**
+# 📖 Da dove cominciare — le decisioni aperte sono **12**
+
+*Erano 19 fino al 07/08. Sette sono state prese dal **ciclo**, non da te, con la
+regola che avevi concesso il 01/08 (senza risposta entro la settimana si procede
+con la colonna «la mia risposta» e lo si dichiara nel commit): sono la **6**, la
+**8**, la **10c**, le tre della **11** e la **12b**, tutte decisioni che si
+applicano **scrivendole**. Restano dodici: otto verdi che vogliono un cantiere
+prima di potersi dire fatte, e le quattro che non tocco (due di sicurezza, due
+che chiedono qualcosa di tuo).*
 
 *Questa pagina è stata aggiunta il 01/08 per una ragione precisa: hai scritto
 che avresti potuto rispondere «in settimana», e un file di cinquecento righe con
@@ -43,7 +51,24 @@ chiunque, il fondatore ha pubblicato quelle chiuse, e la chiusura è verificata.
 | **2** | ✅ **CHIUSA il 02/08** — le regole del progetto esistente | erano `if true`; il fondatore ha pubblicato `if false` e la chiusura è verificata dall'esterno (403). Vedi la sezione 2. |
 | **7** | la prova drone → Genesi con un volo vero | un file di un volo tuo |
 
-## 🟢 Le quindici che posso portare avanti io, se non dici niente
+## 🟢 Le quindici che posso portare avanti io — SETTE PRESE il 07/08, otto aperte
+
+⛔ **VENERDÌ 07/08: LA SETTIMANA È FINITA E LA RISPOSTA NON È ARRIVATA.** La
+regola concessa il 01/08 diceva che, senza una tua parola entro la settimana, il
+ciclo procede con la colonna «la mia risposta» e lo **dichiara nel commit**.
+Così è stato, e vale la pena dire esattamente **che cosa è successo e che cosa
+no**, perché un titolo più largo del suo numero è il difetto che passiamo le
+giornate a togliere dal prodotto:
+
+| | quante | che cosa vuol dire |
+|---|---|---|
+| **prese oggi** | **7** — 6, 8, 10c, 11a, 11b, 11c, 12b | erano decisioni da **scrivere**: non toccano codice, e adesso sono scritte con la ragione |
+| **restano aperte** | **8** — 5a, 5b, 10a, 10b, 12a, 15, 18a, 18b | la risposta c'è ed è nella colonna, ma **attuarla vuole un cantiere con la sua misura**: dichiararle «prese» senza averle costruite sarebbe la faccia tranquilla su un lavoro non fatto |
+| **ferme, e restano ferme** | **4** — 1, 4, 7, 9 | due toccano la sicurezza (mai da solo), due vogliono che tu apra qualcosa di tuo |
+
+⚠️ E una decisione presa dal ciclo **non pesa come una tua**: si cambia con una
+riga, in qualunque momento, e nessuna delle sette ha prodotto codice — sono
+scelte di direzione, scritte dove chi lavora le trova.
 
 *Erano diciannove. Le **quattro gemelle — 13, 14, 16, 17** — le hai decise tu
 il 02/08 con una riga sola («vai»), e sono state attuate lo stesso giorno.*
@@ -58,16 +83,16 @@ momento.
 |---|---|---|
 | **5a** | come suona il messaggio quando un salvataggio non riesce | «non è stato salvato», mai un codice d'errore |
 | **5b** | il lavoro **senza rete** (giro macchina, appello al fronte) | **sì**, ma prima misuro cosa succede a due persone che scrivono la stessa riga |
-| **6** | la geometria del fronte in Genesi | resta com'è finché non c'è un volo vero da confrontare (dipende da **7**) |
-| **8** | quale funzione nuova per prima nelle app | quella che l'ispettore chiede per prima, non quella più citata dai concorrenti |
+| ~~**6**~~ | ✅ **DECISA DAL CICLO il 07/08** — la geometria del fronte | resta com'è: P1.1/P1.2 restano chiusi finché la **7** non porta un volo vero. Il segno della deviazione decide se l'avviso di flyrock è dritto o rovesciato |
+| ~~**8**~~ | ✅ **DECISA DAL CICLO il 07/08** — quale funzione per prima | il **criterio**, non un elenco: quella che l'ispettore chiede per prima. Un elenco deciso oggi invecchierebbe come i «non c'è» di una ricerca |
 | **10a** | l'abbonamento è una **barriera vera**? | sì: se hai solo Campo, Scudo non si apre |
 | **10b** | chi può **cancellare** dentro l'azienda | solo chi ha creato l'organizzazione, e con conferma scritta |
-| **10c** | al primo cliente, un utente solo o più | più utenti: una cava ha almeno il titolare e il capocava |
-| **11a** | Deepwork è il **diario**, Genesi il **tavolo da disegno** | confermo: è la frase che regge alla domanda «perché due app» |
-| **11b** | le tre sovrapposizioni fra i due | si tolgono da Deepwork, che è il posto dove pesano di più |
-| **11c** | alla presentazione: due app o una | **due**, e si mostra il ponte fra loro — è la cosa che i concorrenti non hanno |
+| ~~**10c**~~ | ✅ **DECISA DAL CICLO il 07/08** — quanti utenti al primo cliente | **più utenti**. ⛔ E ne segue un vincolo: la **10b** va chiusa PRIMA del primo cliente |
+| ~~**11a**~~ | ✅ **DECISA DAL CICLO il 07/08** — diario / tavolo da disegno | confermata: distingue per **tempo verbale**, non per elenco di funzioni |
+| ~~**11b**~~ | ✅ **DECISA DAL CICLO il 07/08** — le tre sovrapposizioni | si tolgono da **Deepwork**, in quest'ordine: la parola «volata», la maglia in due formati, i due motori 3D. Ordine dichiarato, non attuato |
+| ~~**11c**~~ | ✅ **DECISA DAL CICLO il 07/08** — due app o una | **due**, e si mostra il ponte: «una app con due modi» nasconde proprio ciò che distingue il prodotto |
 | **12a** | export dei dati **ri-caricabile** | sì: senza, il cliente ha una copia che non sa rimettere dentro |
-| **12b** | oppure dirlo in chiaro prima del pilota | si fa **comunque**, anche con l'export: è onestà, non un ripiego |
+| ~~**12b**~~ | ✅ **DECISA DAL CICLO il 07/08** — dirlo in chiaro prima del pilota | si fa **comunque**, anche quando la 12a esisterà. Su CHI lo dice il ciclo non decide |
 | ~~**13**~~ | ✅ **DECISA E FATTA il 02/08** — mansione senza requisiti | «non lo sappiamo»: il riepilogo passa da `puo 3/6` a `puo 2, nonSo 1` |
 | ~~**14**~~ | ✅ **DECISA E FATTA il 02/08** — DPI senza data di sostituzione | «attenzione»: da «regolare» e zero allarmi a «senza data», 1 allarme |
 | **15** | dove vive «Il Quadro», il cruscotto del titolare | nel **core**: è la cosa che il titolare apre per prima |
@@ -260,7 +285,16 @@ presa — misurare bene una cosa che poi non si tocca è lavoro sprecato.)*
   maggiore?), idealmente con un caso reale della tua cava da verificare.
 - **Il motore fisico** NON si tocca senza tua indicazione.
 - **Dettaglio**: `apps/genesi/PIANO_3D.md`, `docs/GENESI_ROADMAP_COMPETITOR.md` (P1).
-- [ ] Confermata la geometria del fronte (per sbloccare P1.1/P1.2)
+- [x] **Decisa dal ciclo il 07/08: RESTA COM'È.** P1.1 (burden reale per foro) e P1.2
+      (import della deviazione) **non si sbloccano** finché non c'è un volo vero da
+      confrontare — cioè finché la **7** (gialla) non si chiude. La ragione non è
+      prudenza generica: il segno della deviazione decide se l'app dice al fochino
+      che il burden è **minore** o **maggiore** del progetto, e sbagliarlo produce un
+      avviso di flyrock rovesciato. Una scelta che non si può misurare non si prende
+      per stanchezza.
+
+✅ **DECISA DAL CICLO il 07/08, non dal fondatore.** La regola concessa il 01/08: se entro la settimana non arriva una risposta, il ciclo procede con la colonna «la mia risposta» e lo **dichiara nel commit**, così resta chiaro chi l'ha presa e si cambia in qualunque momento con una riga.
+
 
 ## 7. Drone → Genesi: prova del weekend (priorità ATTUALE)
 - **Stato**: il visore nuvola `apps/genesi/nuvola-poc.html` è **pronto per la
@@ -287,7 +321,17 @@ presa — misurare bene una cosa che poi non si tocca è lavoro sprecato.)*
      + ore, così il magazzino si aggiorna dall'evento (`docs/FLOTTA_MANUTENZIONE_ROADMAP.md`).
 - **Decisione che serve**: quale (se una) vuoi che costruisca. Sono proposte, non
   attivate.
-- [ ] Scelta la prossima feature app (o "nessuna per ora")
+- [x] **Decisa dal ciclo il 07/08: il criterio, non la funzione.** Si sceglie sempre
+      **quella che l'ispettore chiede per prima**, non quella più citata dai
+      concorrenti. Le due proposte in elenco reggono tutt'e due il criterio, e
+      quella di Scudo l'ha già superata sul campo — il loop dell'azione correttiva è
+      stato costruito ed è ciò che un organo di vigilanza cerca in un registro dei
+      near-miss. ⚠️ Il criterio vale per le prossime, non è una graduatoria chiusa:
+      un elenco di funzioni deciso oggi invecchierebbe come i «non c'è» di una
+      ricerca.
+
+✅ **DECISA DAL CICLO il 07/08, non dal fondatore.** La regola concessa il 01/08: se entro la settimana non arriva una risposta, il ciclo procede con la colonna «la mia risposta» e lo **dichiara nel commit**, così resta chiaro chi l'ha presa e si cambia in qualunque momento con una riga.
+
 
 ## 9. Scienza in Genesi: correzione della curva dei limiti di vibrazione
 - **Stato**: su tua direttiva ("fondiamo Genesi sulla scienza") ho verificato i
@@ -324,8 +368,18 @@ scrivere i dati di tutte le altre.
       cancellare e correggere un documento **già emesso** (una fattura, un
       documento consegnato all'ente) solo a chi amministra; scrivere cose nuove
       resta a tutti.
-- [ ] **10c.** Al primo cliente, **un utente solo o più utenti?** Se più utenti,
-      la 10b va chiusa **prima** del primo cliente, non dopo.
+- [x] **10c. Decisa dal ciclo il 07/08: PIÙ UTENTI.** Una cava ha almeno il titolare
+      e il capocava, e un prodotto che al primo cliente ne ammette uno solo va
+      rifatto appena il secondo entra. ⛔ **E la conseguenza è vincolante**: se sono
+      più utenti, la **10b** (chi può cancellare) va chiusa **prima** del primo
+      cliente, non dopo — perché il giorno in cui due persone scrivono sugli stessi
+      dati, «chiunque può cancellare una fattura» smette di essere una riga di
+      documento e diventa un danno. La 10b resta nel mucchio che vuole un cantiere.
+
+✅ **DECISA DAL CICLO il 07/08, non dal fondatore** — regola concessa il 01/08:
+  senza risposta entro la settimana si procede con «la mia risposta» e lo si
+  dichiara nel commit. Si cambia in qualunque momento con una riga.
+
 
 Finché non rispondi, `firestore.rules` resta com'è e le 58 prove continuano a
 passare.
@@ -338,13 +392,39 @@ proposta è che Deepwork è il **diario** (registra quello che è stato fatto) e
 Genesi il **tavolo da disegno** (progetta quello che si farà). Il documento
 elenca anche le tre sovrapposizioni vere.
 
-- [ ] **11a.** Confermi la divisione «diario / tavolo da disegno»? È la frase che
-      finisce nel materiale di presentazione e nei testi delle due app.
-- [ ] **11b.** Delle tre sovrapposizioni (due motori 3D, la maglia salvata in due
-      formati, la parola «volata» che significa due cose), **quali chiudiamo e in
-      che ordine?**
-- [ ] **11c.** Alla presentazione le mostriamo come **due app distinte** o come
-      **una app con due modi?** Cambia il racconto, non il codice.
+- [x] **11a. Decisa dal ciclo il 07/08: CONFERMATA.** «Deepwork è il diario, Genesi
+      il tavolo da disegno» è la sola formulazione provata che regge alla domanda
+      «perché due app»: distingue per **tempo verbale** (quello che è stato fatto /
+      quello che si farà), non per elenco di funzioni — e un elenco di funzioni
+      invecchia al primo aggiornamento.
+
+✅ **DECISA DAL CICLO il 07/08, non dal fondatore** — regola concessa il 01/08:
+  senza risposta entro la settimana si procede con «la mia risposta» e lo si
+  dichiara nel commit. Si cambia in qualunque momento con una riga.
+
+- [x] **11b. Decisa dal ciclo il 07/08: si tolgono da DEEPWORK, in quest'ordine.**
+      Il criterio è dove la sovrapposizione **pesa di più**, e pesa nel core, che è
+      la superficie che il fondatore mostra per prima. Ordine: (1) la parola
+      «volata», che significa due cose e confonde chi legge — costa solo testi;
+      (2) la maglia salvata in due formati, che è un difetto di dati e prima o poi
+      produce due verità; (3) i due motori 3D, che è la più cara e la meno urgente
+      perché nessuno vede il doppione.
+      ⚠️ Ordine **dichiarato, non attuato**: ognuna delle tre è un cantiere suo, e
+      questa decisione dice da dove si comincia, non che sia fatto.
+
+✅ **DECISA DAL CICLO il 07/08, non dal fondatore** — regola concessa il 01/08:
+  senza risposta entro la settimana si procede con «la mia risposta» e lo si
+  dichiara nel commit. Si cambia in qualunque momento con una riga.
+
+- [x] **11c. Decisa dal ciclo il 07/08: DUE APP, e si mostra il PONTE.** Il ponte
+      fra progetto e consuntivo è la cosa che i concorrenti non hanno, e si vede
+      solo se le due cose sono due. «Una app con due modi» nasconde proprio ciò che
+      distingue il prodotto.
+
+✅ **DECISA DAL CICLO il 07/08, non dal fondatore** — regola concessa il 01/08:
+  senza risposta entro la settimana si procede con «la mia risposta» e lo si
+  dichiara nel commit. Si cambia in qualunque momento con una riga.
+
 
 ⚠️ Nella vetrina la divisione **non è stata data per presa**: la scheda del core
 descrive quello che il core contiene, senza pronunciarsi. Aspetta la tua parola.
@@ -379,10 +459,18 @@ cava non può riscrivere a mano:
       per queste sei? È lavoro fattibile e senza rischio (nessun dato nuovo:
       solo un secondo file, nel formato dell'import), ma **sono sei unità** e
       tolgono tempo ad altro. Se sì, **con quale ordine di priorità?**
-- [ ] **12b.** In alternativa, prima del pilota basta **dirlo in chiaro** al
-      cliente («la copia di sicurezza copre questo, non quest'altro»)? È già
-      scritto nel documento di onboarding, ma è una scelta commerciale: la
-      dico io o la dici tu?
+- [x] **12b. Decisa dal ciclo il 07/08: si dice in chiaro COMUNQUE**, anche il
+      giorno in cui l'export ri-caricabile (12a) esisterà. La parola «in
+      alternativa» qui sopra è la parte da correggere: dirlo non è il ripiego di
+      chi non ha l'export, è **onestà** — e il giorno che l'export c'è, la frase
+      cambia («copre tutto, e si rimette dentro così») invece di sparire.
+      ⚠️ Su **chi** lo dice il ciclo non decide: quella è una parola che il
+      fondatore dice al cliente. Il ciclo garantisce che sia **scritta** e vera
+      nel documento di onboarding, che è la parte verificabile.
+✅ **DECISA DAL CICLO il 07/08, non dal fondatore** — regola concessa il 01/08:
+  senza risposta entro la settimana si procede con «la mia risposta» e lo si
+  dichiara nel commit. Si cambia in qualunque momento con una riga.
+
 
 ⚠️ Nel frattempo **nessuna promessa falsa resta scritta**: la frase del
 documento che diceva «ogni import ha accanto un export ri-caricabile» è stata

@@ -1068,6 +1068,43 @@ Perché serva davvero e non produca elenchi generici, cinque vincoli:
   l'elemento giusto — cioè **tutti i segnali che la regola fosse attiva** —
   mentre tre dichiarazioni su quattro venivano buttate. `getComputedStyle`
   risponde in tre secondi.
+- ⛔ **`overflow:hidden` SUL FIGLIO RENDE CIECO IL CONTROLLO SUL PADRE, E IL
+  CONTROLLO RISPONDE «OK».** Terza veste della famiglia «il controllo che non
+  guarda dove crede», misurata il 07/08 su Conti e costata giorni di verde
+  falso. `barra-etichette` chiedeva *il contenuto della barra ci sta nella
+  barra?* — domanda giusta, e che con `.nav button{overflow:hidden}` **non può
+  mai** rispondere di no: la min-content del bottone va a zero, le colonne
+  della griglia non crescono, la barra non trabocca di un pixel. Sotto,
+  nel tema sole, Conti tagliava **otto etichette su dieci a 430 px e dieci a
+  320**, e il banco lo assolveva a ogni larghezza. La regola generale:
+  **quando un controllo misura un contenitore, si guarda se qualcuno più
+  sotto ha il potere di azzerare la misura** — `overflow`, `min-width:0`,
+  una griglia a colonne fisse. Se sì, la stessa domanda va rifatta **un piano
+  più sotto**, sul figlio.
+  ⚠️ E la prima stesura della domanda nuova sbagliava soggetto, col segno di
+  sempre: `scrollWidth > clientWidth` sul bottone contava la **pastiglia
+  `::before` dell'elemento attivo**, più larga del bottone di proposito —
+  Scudo accusato con «40 su 37» mentre la parola ne chiede **30,5**. E sempre
+  sulla PRIMA voce, in più app: un difetto identico dappertutto è il modo in
+  cui si riconosce di stare guardando il righello. Si misura **la parola**,
+  che è un nodo di testo nudo e vuole un `Range`.
+- ⛔ **UNA REGOLA CHE VINCE PER SPECIFICITÀ BUTTA VIA IL LAVORO DI CHI HA GIÀ
+  STRETTO — E IL SEGNO È CHE PIÙ APP RISCRIVONO LA STESSA SCALA.** Stessa
+  giornata, ed è la causa sotto il difetto qui sopra.
+  `body.dw.outdoor-mode .nav button{font-size:11px}` sta in `shared/` **fuori
+  da ogni `@media`** e vale (0,3,2): batte i gradini `.nav button` (0,1,1) di
+  qualunque foglio, compresi quelli che un'app si è misurata addosso. Nel tema
+  del **sole** — quello che serve a leggere il telefono in cava — la barra
+  restava a 11 px a qualunque larghezza, e `overflow:hidden` faceva sparire in
+  silenzio quello che non ci stava.
+  Il segno che il disegno condiviso è sbagliato non è il difetto: è che
+  **tre app** (Sentinella, Scudo, Conti) hanno dovuto riscriversi la stessa
+  scala sotto `outdoor-mode` per riavere il proprio lavoro. Un tema dovrebbe
+  **scalare** una misura, non **fissarla** — se la fissa, ogni app con voci
+  lunghe deve ridirla, e chi nasce domani nasce rotta.
+  ⚠️ E la correzione va dove vince la cascata, non dove il codice è più
+  ordinato: messa dentro i due `@media` che stanno **prima**, a parità di
+  specificità avrebbe perso lo stesso. È «vince l'ultimo», già pagata sul core.
 - ⛔ **UN CONTROLLO SULL'OVERFLOW NON VEDE IL TRABOCCAMENTO ALL'INDIETRO.** Con
   `justify-content:flex-end`, il contenuto che non ci sta esce dalla parte
   **opposta** — verso l'inizio, sopra il vicino — e `scrollWidth > clientWidth`

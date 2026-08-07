@@ -738,6 +738,42 @@ label.item:has(.dw-chk:checked){
   .nav button{letter-spacing:-.15px}
 }
 
+/* ⛔ E LA SCALA QUI SOPRA ERA STATA MISURATA NEL TEMA BUIO SOLTANTO. Il commento
+   accanto dice «nessuna etichetta tagliata a 320, 360, 390 e 430 px», ed era
+   vero — al buio. Nel tema SOLE il foglio condiviso scrive
+   `body.dw.outdoor-mode .nav button{font-size:11px}` con specificità (0,3,2),
+   che batte tutti e tre i gradini di questo file (0,1,1): tutto il lavoro fatto
+   per far stare dieci voci veniva buttato via, e siccome il bottone ha
+   `overflow:hidden` il taglio NON si vedeva né dalla barra né da uno scatto
+   distratto. Misurato prima della correzione, nel sole: 8 etichette tagliate a
+   430 px, 10 a 320. La barra rispondeva «ci sta» a ogni larghezza — perché con
+   `overflow:hidden` non può traboccare: è la domanda a cui quel banco non
+   poteva rispondere, e adesso la fa.
+   ⚠️ Dieci voci sono il doppio della media (le altre app ne hanno sei), quindi
+   il gradino condiviso non basta e questa app la sua scala se la tiene. E il
+   risultato onesto, misurato invece che sperato: **sotto i 440 px il sole può
+   essere solo un'inezia più grande del buio** — 8,2 contro 8, 7,2 contro 7 —
+   perché lo spazio per dieci parole non c'è. Provate e scartate col numero,
+   a 767/620/480/441/430/390/360/345/320 px: 9,2/8/7,4 taglia dieci parole
+   (già «Fatture» a 430), e 9,5/8/7,6 ne taglia due a 345, dove il gradino
+   dei 380 è ancora quello che comanda. Sopra i 440 px la regola condivisa
+   a 11 px ci sta: misurata, non dedotta, e per questo qui non c'è una riga.
+   ⛔ E QUESTA È LA TERZA APP che deve riscrivere la propria scala della barra
+   sotto `outdoor-mode` (dopo Sentinella e Scudo): tre volte la stessa forma
+   vuol dire che il disegno condiviso chiede la cosa sbagliata — il sole
+   dovrebbe **scalare** il corpo della barra, non **fissarlo**, così una app
+   che l'ha già stretto resterebbe stretta. Finché è fissato, ogni app con voci
+   lunghe deve ridirlo. Dichiarato qui perché si veda, non risolto oggi. */
+@media(max-width:440px){
+  body.dw.outdoor-mode .nav button{font-size:8.2px; letter-spacing:0}
+}
+@media(max-width:380px){
+  body.dw.outdoor-mode .nav button{font-size:7.2px; letter-spacing:0}
+}
+@media(max-width:340px){
+  body.dw.outdoor-mode .nav button{font-size:7px; letter-spacing:-.15px}
+}
+
 /* ─────────────── azioni di riga su schermo stretto ───────────────
    Con tre azioni (stampa, modifica, elimina) il nome del cliente verrebbe
    strizzato in due righe con i puntini: su telefono le azioni prendono una

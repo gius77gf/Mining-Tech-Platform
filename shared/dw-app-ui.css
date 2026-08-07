@@ -945,3 +945,30 @@ body.dw.outdoor-mode .sec{font-size:12.5px; color:var(--muted2);}
 body.dw.outdoor-mode .kpi .l{font-size:11px;}
 body.dw.outdoor-mode .toast{font-size:15px; padding:14px 24px;}
 body.dw.outdoor-mode .dw-btn{font-size:15px;}
+
+/* ⛔ IL SOLE DEVE RISPETTARE LA LARGHEZZA, E FINO AL 07/08 NON LA GUARDAVA.
+   La riga qui sopra — `body.dw.outdoor-mode .nav button{font-size:11px;
+   letter-spacing:1px}` — sta FUORI da ogni `@media` e ha specificità (0,3,2):
+   batte i due gradini `.nav button` di questo stesso foglio, che valgono
+   (0,1,1). Effetto: nel tema che serve a leggere il telefono IN CAVA la barra
+   in basso restava a 11 px a QUALUNQUE larghezza, e siccome `.nav` ha
+   `overflow:hidden` quello che non ci stava spariva **in silenzio** — misurato
+   a 320 px: Flotta 316 in 300, Terra 311 in 300, Sentinella 441 in 300 (due
+   voci intere). Nel tema buio erano tutte verdi.
+   ⚠️ E LA CORREZIONE VA QUI IN FONDO, non dentro i due `@media` di sopra: a
+   parità di specificità vince l'ultima dichiarata, quindi una regola scritta
+   alla riga 736 perderebbe comunque contro la riga 942. È la trappola «vince
+   l'ultimo» già pagata sul core.
+   ⚠️ Ed è la SCALA DEL TEMA NORMALE, rifatta più grande — non una scala nuova:
+   stessi due gradini (400 e 360), corpi sempre sopra a quelli del buio (10 e
+   9,3 contro 8,5 e 8), perché il sole serve a leggere in piedi. Chi ha voci più
+   lunghe della media (Sentinella, Scudo, Conti) tiene la sua scala nel proprio
+   file: sta dopo questo foglio, quindi vince.
+   Misurato dopo, a 430/400/390/360/345/320 px su sei app: Flotta e Terra
+   rientrano già col primo gradino. */
+@media(max-width:400px){
+  body.dw.outdoor-mode .nav button{font-size:10px; letter-spacing:.8px}
+}
+@media(max-width:360px){
+  body.dw.outdoor-mode .nav button{font-size:9.3px; letter-spacing:.6px}
+}
