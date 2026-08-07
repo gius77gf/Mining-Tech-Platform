@@ -8504,6 +8504,21 @@ body.outdoor-mode #search-results-wrap .search-results{top:56px;}
   #search-results-wrap .search-results{top:calc(62px + env(safe-area-inset-top));}
   body.outdoor-mode #search-results-wrap .search-results{top:calc(56px + env(safe-area-inset-top));}
 }
+/* Il messaggio del viewer 3D quando il motore non parte. Lo scrive `build3D`
+   (`'3D non disponibile: '+e.message`) e dentro `e.message` c'è l'INDIRIZZO da
+   cui lo script non è arrivato: una parola sola di 60 caratteri, che a 320 px
+   chiede 345,6 px in uno spazio di 320. `#d3-loading` è un flex centrato, e un
+   figlio anonimo che non ci sta esce da TUTT'E DUE le parti — 12,8 px a destra
+   (il corpo si mette a scorrere) e 12,8 px a sinistra, dove nessuna misura
+   sull'overflow lo vede.
+   ⚠️ `overflow-wrap:break-word` NON basta, ed è la scelta ovvia perché è quella
+   che il core usa già in `.toast`: misurata, lascia il corpo a 333 px su 320.
+   La ragione è che non riduce la larghezza MINIMA del contenuto, e un elemento
+   di flex ha `min-width:auto`, cioè non scende sotto quella. Solo `anywhere` la
+   riduce. Il `padding` e il `text-align` tengono il testo a 19 px dai bordi
+   invece di farlo finire attaccato: a capo, il centraggio del flex vale per la
+   colonna, non per le righe dentro. */
+#d3-loading{overflow-wrap:anywhere;padding:0 16px;text-align:center;}
 /* Viewer 3D in landscape (telefono orizzontale in cava): mai più alto della viewport */
 @media (orientation:landscape) and (max-height:520px){
   #d3-wrap{height:calc(100dvh - 96px)!important;min-height:200px!important;}
