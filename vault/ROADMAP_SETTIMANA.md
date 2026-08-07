@@ -764,6 +764,24 @@ numero scritto dove non era stato misurato niente**.*
   dicevano 2.092 prove e 84 banchi, sono **2.193** e **120**. Con lo storico
   conservato e la nota che quei tre numeri non si scrivono a mente.
 
+- [x] ✅ **Scudo e Conti con un dato solo** (`4ecf023`): **30 frasi**, e in
+  tutt'e trenta **il sostantivo era già giusto** — a mancarlo erano il verbo, il
+  participio, l'aggettivo. Le due che escono: nel CSV L. 198/2025 «l'unico
+  near-miss … **Sono** meno di 5», e nel promemoria mandato al lavoratore
+  «SCADUTA dal 06/08 (**1 giorni fa**)». In Conti otto messaggi di export
+  («**Esportate** 1 fattura») e `margineMese` che scriveva «mancano **i costi
+  di** personale» con una voce sola.
+  ⛔ E il setaccio classico «1 <plurale>» è **cieco** su questa famiglia,
+  misurato: resta verde mentre 13 asserzioni cadono. Da lì un secondo setaccio
+  che guarda la parola **prima** del numero.
+  ⛔ E la mia proposta su `.acc` era **sbagliata**: il cantiere l'ha misurata —
+  `.dw-accent` è battuta da `.note b:not(.badge)`, non cambiava un pixel, e su
+  `--card2` fa 4,30:1, **sotto AA**. Tolta invece che sostituita.
+- [x] ✅ **Sei bottoni di Genesi erano bottoni di sistema** (`6781700`): grigio
+  `rgb(239,239,239)`, testo nero, raggio **0**, **Arial** — dentro un'app con la
+  sua palette, e sono proprio **quelli che producono i documenti**. `btn-sec` non
+  è mai esistita; la classe vera è `btn`, che usano già 35 bottoni suoi.
+
 ## Riferimenti
 
 - Ultimo checkpoint **per data vera**:
