@@ -714,6 +714,23 @@ numero scritto dove non era stato misurato niente**.*
   citazioni della norma in Conti sono invece **corrette**. Le due proposte
   restano buone come **prassi commerciale**, mai come obbligo di legge.
 
+- [x] ✅ **Venti classi che nessun foglio definiva** (`eb05653`): censite le
+  classi usate in un `class="…"` letterale su 12 pagine contro quelle davvero
+  definite — **20 orfane su 1158**. In **Flotta** due difetti veri: quattro
+  bottoni `mini` a **grandezza piena** (la riga era scritta identica in
+  **cinque** app e mancava alla sesta) e due avvisi che **non erano rossi**
+  (misurato: `rgb(242,228,237)`, cioè il colore del testo normale → dopo
+  `rgb(240,94,92)`). In **Scudo** altre due, passate al cantiere che ha il file.
+  ⛔ E la prima correzione **non mordeva**: messa nel foglio sbagliato, il
+  browser rispondeva ancora 13px — non la specificità, l'**ordine di
+  caricamento**. `getComputedStyle` l'ha detto in tre secondi.
+- [x] ✅ **L'etichetta che dichiarava più copertura di quella che aveva**
+  (`dc858f6`): «25 export, 4 app» quando ne preme **32** su **cinque**. Il conto
+  è stato **tolto**, non aggiornato — un numero a mano dentro un controllo
+  invecchia da solo. E l'elenco derivato della struttura condivisa adesso ha la
+  prova che non può riaccorciarsi: con quello a mano restavano fuori `avvisa`
+  (5 usi), `mostraTesto` (1) e `chiediDati` (6).
+
 ## Riferimenti
 
 - Ultimo checkpoint **per data vera**:
