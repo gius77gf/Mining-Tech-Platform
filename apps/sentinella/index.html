@@ -4536,8 +4536,21 @@ textarea.dw-input{
        stessa cosa di un valore uscito dal file dello strumento, e il report
        che va all'ente deve poterle distinguere. Il momento se lo scrive da
        sola `campiProvenienza`, con l'istante LOCALE di `shared/`. */
+    /* ⛔ E IL TETTO ERA UN 50 SCRITTO A MANO, mentre la regola di casa e'
+       `MAX_LETTURE = 500` — esportata dal modulo e gia' importata in questa
+       pagina (riga 1651), dove il percorso dell'IMPORT la usa e per giunta
+       DICHIARA il taglio all'utente («Lo storico tiene le ultime N letture»).
+       Qui no: nessun tetto dichiarato e un decimo dello spazio.
+       Misurato il 07/08: 200 letture importate, se ne digita UNA a mano e ne
+       restano 50 — **151 cancellate**. Non scartate: cancellate. Non compaiono
+       in `scartate` di `reportConformita`, perche' quello elenca cio' che ha
+       RIFIUTATO, e queste erano gia' entrate. Il report per l'ente coprirebbe
+       cinquanta letture credendo di coprirle tutte, e la campagna importata
+       sparirebbe senza lasciare traccia da nessuna parte.
+       E' la copia debole di una costante condivisa: la regola vive nel modulo,
+       la pagina se n'era tenuta un numero suo. */
     const letture = [ ...((m && m.letture) || []),
-                      { data: oggiISO(), valore, ...campiProvenienza(FONTE_MANO) } ].slice(-50);
+                      { data: oggiISO(), valore, ...campiProvenienza(FONTE_MANO) } ].slice(-MAX_LETTURE);
     await db.aggiorna("monitoraggi", id, { valore, letture });
     /* ⛔ `letture` va passato, se no la PRIMA misura di un punto direbbe «Mai
        misurato» proprio mentre la si registra: `...m` porta le letture VECCHIE,

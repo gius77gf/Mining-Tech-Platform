@@ -46,7 +46,7 @@ segnaposto («Funzione nav non ancora pronta»). Per aprirlo davvero si monta
 
 ## Le prove
 
-**2.302 prove girano senza rete e senza browser**, con `node` (contate lanciandole, non a memoria — al 07/08: 1886 + 296 + 63 + 32 + 9 + 8):
+**2.303 prove girano senza rete e senza browser**, con `node` (contate lanciandole, non a memoria — al 07/08: 1886 + 297 + 63 + 32 + 9 + 8):
 
 > ⚠️ **E quel numero conta SEI suite, non tutto quello che gira.** Misurato il
 > 07/08 sommando le righe «Risultato …» di un giro intero: il giro `node`

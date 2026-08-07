@@ -3165,5 +3165,36 @@ test("regola 28: in Sentinella ogni statoMisura( nasce da conSoglia", () => {
 });
 
 
+/* ═══ REGOLA 29 — NESSUN TETTO ALLO STORICO SCRITTO A MANO ═══
+   ────────────────────────────────────────────────────────────────────────
+   PERCHÉ ESISTE. `MAX_LETTURE = 500` è esportata dal modulo di Sentinella ed
+   è già importata nella pagina, dove il percorso dell'IMPORT la usa e per
+   giunta DICHIARA il taglio all'utente. La scrittura A MANO, invece, tagliava
+   con un `50` scritto lì: un decimo dello spazio, e senza dirlo.
+   Misurato il 07/08: 200 letture importate, se ne digita UNA a mano e ne
+   restano 50 — **151 cancellate**. Non scartate: cancellate. Non compaiono in
+   `scartate` di `reportConformita`, perché quello elenca ciò che ha RIFIUTATO,
+   e queste erano già entrate: sparivano senza lasciare traccia, e il report
+   per l'ente coprirebbe cinquanta letture credendo di coprirle tutte.
+   ⛔ La difesa non è ricordarsi la costante: è che un `slice(-N)` sulle letture
+   non possa nascere con un numero al posto suo. */
+test("regola 29: in Sentinella lo storico si taglia con MAX_LETTURE, non con un numero", () => {
+  const testo = leggi("apps/sentinella/index.html");
+  const vivo = mascheraCodice(testo);
+  const male = [];
+  let visti = 0;
+  for (const m of testo.matchAll(/\.slice\(\s*-\s*([A-Za-z_$][\w$]*|\d+)\s*\)/g)) {
+    if (vivo[m.index] !== 1) continue;      // dentro un commento o una stringa
+    visti++;
+    if (/^\d+$/.test(m[1])) {
+      const riga = testo.slice(0, m.index).split("\n").length;
+      male.push(`riga ${riga}: .slice(-${m[1]}) — se sono letture, sono dati cancellati in silenzio`);
+    }
+  }
+  ok(visti >= 1, `la regola 29 ha guardato solo ${visti} slice: non sta guardando dove crede`);
+  ok(male.length === 0,
+    "tetti scritti a mano invece di MAX_LETTURE:\n  " + male.join("\n  "));
+});
+
 console.log(`\nRisultato Stile: ${passed} passati, ${failed} falliti${inVolo.length ? `  ·  ${inVolo.length} prove asincrone aspettate` : ""}`);
 process.exit(failed > 0 ? 1 : 0);
