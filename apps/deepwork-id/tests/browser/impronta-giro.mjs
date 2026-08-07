@@ -62,6 +62,21 @@ const a = await giro(pulita, null);
 dice(a.codice === 0, "senza modifiche il giro finto esce con 0", a.uscita);
 dice(/Impronta di partenza: 3 file/.test(a.uscita), "e dichiara quanti file sta sorvegliando", a.uscita);
 dice(!/NON VALIDO/.test(a.uscita), "e non grida al lupo", a.uscita);
+/* ⛔ E l'intestazione dice quali passate sono CONTROPROVE. Il 07/08 un rosso
+   voluto è stato letto come un guasto due volte in due ore: la controprova
+   stampa le stesse identiche frasi della passata sana, e chi legge il registro
+   dall'alto apre un cantiere su difetti che non esistono. Il runner quel dato
+   ce l'ha in mano (`eControprova`); qui si pretende che lo SCRIVA, e che non lo
+   scriva dove non va — una riga che avvisa e che nessuno prova è una guardia
+   scollegata, ed è la famiglia di difetti che questo file esiste per prendere.
+   Nel giro finto «finto 2» è dichiarata controprova apposta. */
+const intestazioni = a.uscita.split("\n").filter((r) => r.includes("════════"));
+dice(intestazioni.length >= 4, `intestazioni viste nel giro finto: ${intestazioni.length}`, a.uscita);
+dice(/finto 2 ════════\n\s*⚠️\s*CONTROPROVA/.test(a.uscita),
+  "la passata dichiarata controprova lo scrive nella sua intestazione", a.uscita);
+dice(!/finto 1 ════════\n\s*⚠️\s*CONTROPROVA/.test(a.uscita)
+  && !/finto 3 ════════\n\s*⚠️\s*CONTROPROVA/.test(a.uscita),
+  "e le passate sane NON lo scrivono", a.uscita);
 rmSync(pulita, { recursive: true, force: true });
 
 /* 2 — un modulo dati cambia MENTRE gira: il giro deve dichiararsi non valido */

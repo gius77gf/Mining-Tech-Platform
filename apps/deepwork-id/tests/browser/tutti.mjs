@@ -637,12 +637,31 @@ console.log(`Impronta di partenza: ${base.size} file che le pagine caricano (tes
 const cambiamenti = [];
 
 const DA_FARE = BANCHI_FINTI
-  ? [['finto 1', null, []], ['finto 2', null, []], ['finto 3', null, []]]
+  /* «finto 2» è dichiarata CONTROPROVA di proposito: così `impronta-giro.mjs`,
+     che lancia questo giro finto, può pretendere che l'intestazione lo dica —
+     e che NON lo dica per le altre due. Una riga che avvisa e che nessuna prova
+     guarda è una guardia scollegata. */
+  ? [['finto 1', null, []], ['finto 2', null, [], true], ['finto 3', null, []]]
   : BANCHI;
 
 const esiti = [];
 for (const [nome, file, argomenti, eControprova] of DA_FARE) {
-  console.log(`\n════════ ${nome} ════════`);
+  /* ⛔ L'INTESTAZIONE DICE SE QUESTA PASSATA È UNA CONTROPROVA, e non è un
+     abbellimento: il 07/08 un rosso voluto è stato letto come un guasto DUE
+     VOLTE in due ore, la seconda da chi aveva appena scritto la difesa per la
+     prima. Una controprova stampa le stesse identiche frasi della passata sana
+     («26 passati, 10 falliti» contro «36 passati, 0 falliti») e sono
+     centosessanta righe distanti: chi legge il registro dall'alto vede un
+     rosso e apre un cantiere su difetti che non esistono.
+     Il runner SA quale passata è una controprova — è il quarto posto della
+     tupla, `eControprova` — e quel dato finiva solo nel riepilogo, cioè
+     un'ora e mezza di scorrimento più in là. Qui costa una riga.
+     ⚠️ E si è provato a leggerlo dal NOME (le controprove si chiamano quasi
+     tutte «… · controprova»): non regge, perché due passate su quattro di
+     `contrasto` si chiamano «non accusa chi pulsa» e «le classi mai comparse».
+     Un dato che il programma ha in mano non si indovina dal testo. */
+  console.log(`\n════════ ${nome} ════════`
+    + (eControprova ? '\n   ⚠️  CONTROPROVA: qui sotto il rosso è quello VOLUTO. Un KO qui è il banco che funziona.' : ''));
   const codice = await new Promise((ok) => {
     const p = file
       ? spawn(process.execPath, [join(QUI, file), PORTA, ...argomenti], { stdio: 'inherit' })

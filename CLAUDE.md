@@ -503,6 +503,22 @@ Perché serva davvero e non produca elenchi generici, cinque vincoli:
   Node e **fallirebbe nel browser**, cioè che blinda una verità che l'utente
   non vede mai. La regola 16 di `run-stile.mjs` lo pretende scritto (anche
   `false`, dove è la scelta giusta). Misura: `docs/MIGLIAIA_NODE_CONTRO_CHROMIUM.md`.
+- ⛔ **UNA CLASSE CHE NESSUNO DIPINGE E NESSUNO CERCA** è l'analogo CSS del nome
+  libero, e come quello non produce **niente da leggere**: il `class="ords"` di
+  Scudo — con la esse — ha disegnato tre filtri `display:block` con `gap: normal`
+  per cinque commit senza un errore, una prova rossa o una riga sbagliata da
+  trovare. Adesso c'è `apps/deepwork-id/tests/classi-orfane.mjs`.
+  ⚠️ **E la prima domanda era quella sbagliata**, che è la parte che serve
+  ricordare: «quale foglio la definisce?» dava **14** risposte su 1.154 classi e
+  almeno **sette erano ganci di JavaScript** (`chk-item`, `uf-cava`, `cv-dest`) —
+  classi vivissime, cercate con `querySelectorAll`, che nessun foglio dipinge di
+  proposito. La **seconda domanda** — *ogni occorrenza di questo nome, in tutto
+  il codice vivo, sta dentro un `class="…"`?* — porta 14 → **4**, tutte vere.
+  E due dei falsi allarmi venivano dai **commenti**, per la terza volta in un
+  giorno: i commenti vanno tolti in **tutt'e tre** le sintassi che una pagina
+  contiene (HTML fuori, `senzaCommenti` dentro `<script>`, `/* */` dentro
+  `<style>`), e un foglio può essere definito **in una stringa** (`CSS_ESEMPIO =
+  ".esempio{…}"`, la finestra di stampa di Campo e Terra).
 - **DUE CONTROLLI CONTANO AL POSTO DELLA MEMORIA**, e sono in coda alla suite:
   `copertura-funzioni.mjs` (quante funzioni sono provate: due volte in due
   giorni quel numero è finito sbagliato in un documento perché contato a mente)
@@ -727,6 +743,31 @@ Perché serva davvero e non produca elenchi generici, cinque vincoli:
   pronta»). Chi non lo sa passa un'ora a chiedersi perché `nav('ufficio')` non
   faccia niente: non è il `nav` del core. Si monta
   `tests/browser/finto-firebase.mjs` PRIMA di `goto` e il core parte davvero.
+- ⛔ **IL ROSSO DI UNA CONTROPROVA È IL VERDE DEL BANCO, E NEL REGISTRO DEL GIRO
+  I DUE SI SCRIVONO UGUALI.** Costato due volte in due ore il 07/08, e la
+  seconda **a chi aveva appena scritto la difesa per la prima**.
+  1. Ho letto `Risultato messaggio del ripiego: 26 passati, 10 falliti` e ho
+     aperto un cantiere su **dieci difetti che non esistevano**: era la
+     controprova, e centosessanta righe più su la passata sana diceva `36
+     passati, 0 falliti` **con la stessa identica frase**;
+  2. il setaccio scritto per non rifarlo ha sbagliato **due volte di seguito**:
+     cercava le intestazioni con `^════`, che combacia anche con le **sotto**
+     intestazioni a sei uguali (`══════ core ══════`) — dentro una sezione di
+     controprova il flag si azzerava e sono passati **60 KO voluti**; e poi
+     riconosceva la controprova dalla **parola** «controprova», mentre due
+     passate su quattro di `contrasto` si chiamano «non accusa chi pulsa» e «le
+     classi mai comparse».
+  ⛔ E la cura non è un setaccio più furbo: è che **il registro lo dica**.
+  `tutti.mjs` **sa** quale passata è una controprova — è il quarto posto della
+  tupla in `BANCHI` — e quel dato finiva solo nel riepilogo, cioè un'ora e mezza
+  di scorrimento più in là. Adesso l'intestazione lo scrive: *«⚠️ CONTROPROVA:
+  qui sotto il rosso è quello VOLUTO»*. **Un dato che il programma ha in mano
+  non si indovina dal testo** — ed è la regola generale, non un dettaglio di
+  questo file.
+  ⚠️ Finché una passata non lo dichiara da sé, il setaccio che regge è sulla
+  **forma** dell'intestazione, non sulle parole (sana = senza ` · `). E vale
+  quello che vale per ogni controllo: va chiesto **quanti soggetti ha guardato**
+  — le intestazioni si contano in un secondo, e il conto che non torna si vede.
 - ⚠️ **UNA PROVA CHE NON SA FALLIRE NON DIMOSTRA NIENTE.** Ogni controllo
   nuovo va provato **contro il difetto**: si rimette il difetto e si pretende
   che il controllo fallisca. Costa due minuti e ha già salvato due volte:
@@ -912,6 +953,22 @@ Perché serva davvero e non produca elenchi generici, cinque vincoli:
   dell'utente** nella prima schermata del core a 320 px senza che nessuna misura
   se ne accorgesse. Il segno da cercare: un figlio `position:static`, senza
   trasformazioni, il cui rettangolo cade **fuori dalla scatola del padre**.
+- ⛔ **E IL SOGGETTO PUÒ NON ESSERE UN ELEMENTO.** Seconda forma della regola qui
+  sopra, misurata il 07/08 sull'ultimo KO rimasto: a 320 px il corpo del core
+  andava a **333 px** e **nessun elemento sporgeva**, in nessuna direzione. Il
+  colpevole era il messaggio che `build3D` scrive quando il motore 3D non parte
+  — `'3D non disponibile: '+e.message`, dove `e.message` contiene **l'indirizzo
+  intero del CDN**: una parola sola di 60 caratteri, inspezzabile, che chiede
+  **345,6 px in uno spazio di 320** e dentro un flex centrato esce **12,8 px per
+  parte**. Un testo nudo dentro un flex è una **scatola anonima**, e
+  `querySelectorAll('*')` non la vede: 173 nodi guardati, 0 sporgenti; poi col
+  `TreeWalker` sui **nodi di testo**, 1 colpevole al primo colpo. Quando una
+  misura sull'overflow dice «esce ma non so chi», il passo dopo è **camminare i
+  nodi di testo con un `Range`**, non rileggere il CSS.
+  ⚠️ E la correzione ovvia era sbagliata, provata prima di scriverla:
+  `overflow-wrap:break-word` — la forma che il core usa già in `.toast` — lascia
+  il corpo a **333/320**, perché non riduce la larghezza **minima** del contenuto
+  e un elemento di flex ha `min-width:auto`. Solo `anywhere` la riduce.
 - ⚠️ **«CI STA» NON È «SI USA», e il primo verde è la trappola.** Stessa
   giornata: reso cedevole il blocco della barra, la pagina non scorreva più — e
   il bottone «Esci» era diventato largo **16 px** su 44 di altezza, dentro lo
