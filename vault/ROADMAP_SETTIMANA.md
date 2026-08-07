@@ -669,6 +669,30 @@ numero scritto dove non era stato misurato niente**.*
   `badge info` che è una **collisione di nomi** nel CSS condiviso: la pastiglia
   ereditava `flex:1 1 120px` e prendeva 460 px.
 
+- [x] ✅ **Il banco delle unità era cieco sulla tonnellata** (`65df01b`):
+  `unita-maiuscole.mjs` diceva «nessuna unità in maiuscolo» mentre «LORDO (T)»
+  era a schermo e **sul DDT stampato**. La `t` **nuda** non era in elenco (c'erano
+  `t/m³` e `€/t`: è quella somiglianza che rende il buco invisibile). Le due
+  misure fatte **prima** di cambiare, su una copia di `HEAD`: col difetto vero
+  rimesso, elenco vecchio **0** violazioni e nuovo **2**; su 14 superfici sane
+  **0** falsi allarmi. ⛔ E la sua controprova provava **una unità su 33**:
+  adesso ne inietta una per ognuna e stampa **35/35**.
+- [x] ✅ **Scudo · il testo che mente** (`4c323eb`): «1 segnalazione **SONO**
+  meno di 5» anche nel CSV che esce dall'azienda — il sostantivo il singolare
+  ce l'aveva, a mancarlo era il **verbo**. E dentro `cartellaLavoratore` una
+  copia debole di `conta` che su `null` scriveva «**null** scadenze» sul
+  fascicolo che si mostra a un ispettore: **quarta app in un giorno** a
+  riscriversela in casa. ⚠️ Tre `const conta` locali **ombreggiavano** il nome
+  importato: rinominate.
+- [x] ✅ **Flotta, Campo e Sentinella con UN dato solo** (`912a8b3`): **24**
+  frasi in Flotta, a partire dalla **prima che si legge aprendo l'app** («1
+  mezzi operativi su 1»); in Sentinella «misure registrate in **1 giorno
+  diversi**» sul foglio per l'**ARPA**; in Campo il verbo, perché «attività» è
+  invariabile. I casi si costruiscono nei **dati serviti** (`rotte` in
+  `apriSuperficie`), mai sul file. Banchi **112 → 116**. ⚠️ I due KO del banco
+  di Flotta erano **due id inventati dal banco**, non pezzi mancanti di
+  prodotto: sesta volta in un giorno che sbaglia il controllo.
+
 ## Riferimenti
 
 - Ultimo checkpoint **per data vera**:
