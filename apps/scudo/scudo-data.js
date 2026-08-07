@@ -3054,7 +3054,19 @@ export function organigrammaSicurezza(nomine, lavoratori, scadenze, oggi = new D
        Il form scrive sempre una data (`dal || oggiISO()`): ci si arriva con un
        import o con un dato vecchio. `dataISOEsiste` e non `!n.dal`, perché una
        data impossibile — «2025-02-30» — è illeggibile quanto una mancante. */
-    const senzaData = valide.filter(p => !dataISOEsiste(p.nomina.dal)).length;
+    /* ⛔ E GUARDAVA SOLO `dal`. Misurato il 07/08: con una data di FINE
+       illeggibile («2026-13-45», «2026-02-30», «boh») la nomina resta attiva —
+       `giorniTra` risponde `NaN` e la guardia di `nominaAttiva` non scatta —
+       e siccome `senzaData` non la guardava, il ruolo obbligatorio usciva
+       VERDE «In regola» su una nomina scaduta chissà quando.
+       ⚠️ E la correzione NON va in `nominaAttiva`: provata lì, faceva SPARIRE
+       la nomina dall'elenco, e due prove esistenti l'hanno fermata con la loro
+       ragione scritta — «la nomina resta comunque nell'elenco: si deve poter
+       capire chi era». Una data illeggibile non è un motivo per nascondere: è
+       un motivo per DICHIARARE. Quindi si allarga la bandiera, che è già il
+       posto dove questa app dice «questa data non si legge». */
+    const senzaData = valide.filter(p =>
+      !dataISOEsiste(p.nomina.dal) || (p.nomina.al && !dataISOEsiste(p.nomina.al))).length;
     const stato = (mancante || senzaFormazione || senzaPersona) ? "danger"
       : (inScadenza || senzaData) ? "warn" : (valide.length ? "ok" : "mute");
     return { ruolo: r, persone, valide, senzaPersona, senzaData, mancante, senzaFormazione, inScadenza, stato, requisito: req };

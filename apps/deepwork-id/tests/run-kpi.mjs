@@ -8262,7 +8262,27 @@ test("statoVuoto: la struttura è quella del core, invariata", () => {
   const LAV = [{ id: "L1", nome: "Mario", attivo: true }, { id: "L2", nome: "Anna", attivo: false }];
   const bloccoDi = (nomine, scadenze = []) =>
     scudo.organigrammaSicurezza(nomine, LAV, scadenze, OGGI).find((x) => x.ruolo.chiave === "rspp");
-
+  test("⛔ organigramma: una nomina con la FINE illeggibile non resta «in regola»", () => {
+    /* Misurato il 07/08: `giorniTra` su una data che non esiste risponde `NaN`,
+       quindi la guardia di `nominaAttiva` non scatta e la nomina resta attiva.
+       Il ruolo obbligatorio usciva VERDE su una nomina scaduta chissà quando.
+       ⚠️ La correzione NON sta in `nominaAttiva`: provata lì faceva SPARIRE la
+       nomina dall'elenco, e due prove esistenti l'hanno fermata con la loro
+       ragione — «la nomina resta comunque nell'elenco: si deve poter capire chi
+       era». Una data illeggibile non è un motivo per nascondere: è un motivo
+       per DICHIARARE, e la bandiera `senzaData` è già quel posto. */
+    for (const cattiva of ["2026-13-45", "2026-02-30", "boh"]) {
+      const b = bloccoDi([rspp({ al: cattiva })]);
+      eq(b.senzaData, 1, `la fine «${cattiva}» è dichiarata illeggibile`);
+      eq(b.stato, "warn", `e il ruolo NON è verde con la fine «${cattiva}»`);
+      eq(b.valide.length, 1, "ma la nomina resta in elenco: si deve capire chi era");
+    }
+    /* ⚠️ I casi SANI: se no il modo più facile di far passare tutto sarebbe
+       ingiallire ogni nomina, che su un obbligo di legge è l'errore opposto. */
+    const sana = bloccoDi([rspp({ al: "2027-01-01" })]);
+    eq(sana.senzaData, 0, "una fine LEGGIBILE non fa scattare niente");
+    eq(bloccoDi([rspp({})]).senzaData, 0, "e nemmeno l'assenza della fine, che è normale");
+  });
   test("nomina: è attiva quando è già decorsa e non è ancora finita", () => {
     eq(scudo.nominaAttiva({ ruolo: "rspp" }, OGGI), true, "senza date è in corso");
     eq(scudo.nominaAttiva({ dal: "2026-09-01" }, OGGI), false, "una che deve ancora partire");
