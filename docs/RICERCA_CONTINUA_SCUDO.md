@@ -345,3 +345,130 @@ essere uno stato dichiarabile**, non il valore più basso. Chi segnala di corsa
 sul piazzale spesso non sa dire che cosa sarebbe successo, e un registro che lo
 costringe a scegliere raccoglie un numero inventato — che è peggio di una cella
 vuota, perché poi qualcuno ci fa una media.
+
+---
+
+## Che cosa chiede davvero un ispettore ASL in una visita a cava italiana (07/08/2026)
+
+**Nota metodologica**: questa ricerca parte dal mondo (procedura effettiva di ispezione in cava italiana) e arriva al delta di Scudo. Le fonti sono ricerche web su D.Lgs 624/1996, D.Lgs 81/2008, procedure ASL generiche, ARPA vigilanza ambientale. La sequenza esatta e l'ordine non sono reperibili come "checklist ufficiale di cava specializzata" — quella descrizione è **[dedotto]** dai riferimenti normativi e dalle guide ASL generiche pubblicate. Dove la fonte è reperibile per nome, è citata.
+
+**Data verifica**: 07/08/2026 · **Commit contro cui è controllata**: 4743c69 (06/08 — Genesi gravità potenziale, Scudo permesso di lavoro)
+
+### Il mondo: ordine e contenuti di una visita ispettiva in cava
+
+Quando un ispettore ASL/ATS specializzato in industria estrattiva entra in una cava, l'ordine [dedotto] è:
+
+#### Fase 1: Accoglimento e Identificazione (5 min)
+1. Identificazione ispettore (nome, ente, mandato)
+2. Comunicazione del motivo della visita (controllo ordinario, segnalazione, follow-up)
+3. Comunicazione diritti e obblighi (mostra documenti, non li copia arbitrariamente — art. 19 D.Lgs 81/08 poteri ispettivi)
+4. Richiesta di un accompagnatore (preposto, RSPP, responsabile)
+
+#### Fase 2: Documenti Amministrativi e Organizzativi (15–20 min, in ufficio)
+Richiede di vedere, **non necessariamente di portare via**:
+
+1. **Autorizzazione all'esercizio** — documento della Regione/Provincia che autorizza la cava (D.Lgs 624/1996 art. 15, notifica di esercizio)
+2. **DSS — Documento di Sicurezza e Salute** (D.Lgs 624/1996 art. 6)
+   - Datato e sottoscritto
+   - Trasmesso all'ASL almeno 8 giorni prima dell'inizio lavori
+   - Aggiornato dopo ogni modifica rilevante dei luoghi di lavoro, eventi gravi, infortuni [dedotto: formulazione di art. 6 comma 3]
+   - Certificazione annuale sulla manutenzione dei luoghi (art. 6 comma 2 — affermazione del datore)
+3. **DVR — Documento di Valutazione dei Rischi** (D.Lgs 81/2008 art. 28) — generico, non estrattivo
+4. **Nomine della Sicurezza** — formalmente scritte:
+   - RSPP (interno o esterno)
+   - Medico competente (obbligatorio se sorveglianza sanitaria)
+   - RLS — rappresentante dei lavoratori per la sicurezza
+   - Sorvegliante (obbligatorio in cava — D.Lgs 624/1996)
+   - Preposti (per area: fronte, impianto, etc.)
+   - Addetti primo soccorso e antincendio
+   - **Tutte con data di decorrenza, non foto ricordo** [dedotto da pratica ASL]
+5. **Registro Infortuni** (ultimi 3 anni, copertina, sottoscrizioni, firme) — art. 18 D.Lgs 81/2008
+6. **Registro Near-miss / Mancati Infortuni** — L. 198/2025, nuovo obbligo dal 2026 per aziende > 15 addetti
+7. **Appaltatori e Subappaltatori** — traccia:
+   - Elenco ditte entrate
+   - DUVRI (Documento Unico di Valutazione dei Rischi da Interferenze) — firmato da entrambi
+   - Documentazione DURC (240 giorni), visura CCIAA
+   - Verifica antiriciclaggio (se richiesto dalla normativa regionale)
+   - DVR della ditta esterna [dedotto: pratica DUVRI]
+8. **Autorizzazione ambientale** (se vigente) e comunicazioni ad ARPA o Provincia
+
+#### Fase 3: Relazione Annuale di Stabilità (Fronte) (5 min, in ufficio)
+- D.Lgs 624/1996 art. 10 obbliga a relazione annuale sulla stabilità dei fronti, caduta massi, franamento
+- **Deve essere datata, sottoscritta da tecnico specializzato** [fonte: art. 10]
+- Allegare verbali di sopralluogo, se condotti
+
+#### Fase 4: Verifiche Periodiche delle Attrezzature (10 min, in ufficio)
+- Art. 71 D.Lgs 81/2008 + D.M. 11/04/2011 — attrezzature soggette
+- **Prima verifica INAIL** (generalmente entro 6 mesi dall'inizio esercizio)
+- **Controlli successivi** periodici (scadenze per categoria: ascensori 6 mesi, carroponte/paranchi 12 mesi, escavatori/pale ogni 2-3 anni, verbali)
+- Nessun'attrezzatura senza verbale, nessun verbale scaduto
+
+#### Fase 5: Documenti Personale (10 min)
+- **Idoneità sanitaria** (visite mediche periodiche per esposti — polveri, rumore, agenti biologici — art. 41 D.Lgs 81/2008)
+- **Certificati e abilitazioni** (patente escavatorista, certificato perforatore/brillamento, patente trasporto merci, etc.) — copie a norma
+- **Formazione generale** (data completamento, nome corso, ente)
+- **Formazione specifica mansione** (perforatore, operatore mezzo, etc. — aggiornamenti)
+- **Registro consegna DPI** (art. 77 D.Lgs 81/2008) — per ogni lavoratore, data, tipo, taglia, firma, addestramento per III categoria
+
+#### Fase 6: Sopralluogo Piazzale e Fronte (30–60 min, in campo)
+- Stato fronte (disgaggio in corso? Stabilità visibile? Segnaletica?)
+- Piste e raccordi (cordoli, drenaggio, larghezza minima)
+- Impianto di trasformazione (nastri a riparo? Manutenzione?)
+- Stoccaggio materiali (altezza, protezione)
+- Aree di emergenza, vie di fuga
+- Presidi antincendio
+- Osservazione diretta di comportamenti dei lavoratori
+
+#### Fase 7: Chiusura e Verbale (10 min)
+- Compilazione verbale ispettivo (esito: conforme / difetti corretti sul posto / prescrizioni / sanzioni)
+- **Prescrizioni**: cosa va fatto (termini di adempimento variabili, di solito 30–60 giorni)
+- **Eventuali Sanzioni Amministrative** (art. 300 D.Lgs 81/2008)
+- Consegna copia ispezionato
+- Firma ispettore e responsabile cava
+
+**Fonti verificabili**:
+- [D.Lgs 624/1996 art. 6, 10, 15](https://www.parlamento.it/parlam/leggi/deleghe/96624dl.htm) — DSS, relazione stabilità, notifica
+- [D.Lgs 81/2008 art. 18, 19, 26, 28, 71](https://www.ispettorato.gov.it/files/2023/11/TU-81-08-Ed.-Novembre-2023.pdf) — registro infortuni, poteri ispettivi, DUVRI, DVR, verifiche attrezzature
+- [L. 198/2025 (ex DL 159/2025)](https://www.certifico.com/sicurezza-lavoro/documenti-sicurezza/documenti-riservati-sicurezza/d-l-159-2025-obbligo-comunicazione-mancati-infortuni-near-miss-note) — near-miss obbligo
+- [Guide generiche ASL procedure ispezioni](https://asfo.sanita.fvg.it/export/sites/aas5/it/amministrazione_trasparente/10_controlli_imprese/_docs/documenti_richiesti_ispezione.pdf) — [dedotto] ordine e contenuti
+
+### Il delta: cosa Scudo ha e cosa no
+
+| Documento / Adempimento | Ispettore lo chiede | Scudo ha | Visibilità | Note |
+|---|---|---|---|---|
+| **Autorizzazione all'esercizio** | Sì (D.Lgs 624/1996 art. 15) | ❌ Come tipo "Autorizzazione esercizio" | Nominale, non controllabile | Non c'è data scadenza, se ciclica |
+| **DSS — Documento Sicurezza Salute** | Sì, con ciclo di vita (art. 6) | ✅ Come tipo di documento | Presente | Manca: aggiornamento obbligatorio post-evento grave, certificazione annuale |
+| **DVR — Documento Valutazione Rischi** | Sì (D.Lgs 81/08 art. 28) | ✅ Come tipo di documento | Presente | [verificato nel delta del 01/08] — è assente come entità indipendente, vive come documento generico |
+| **Nomine della Sicurezza formali** | Sì, 6 ruoli obbligatori (RSPP, medico, RLS, sorvegliante, preposti, emergenza) | ⚠️ Parziale — lavoratori `attivo`, ruoli elencabili, niente anagrafica formale | Confuso con "tipo di documento" | Il sorvegliante (obbligatorio cava, art. 624) è solo un ruolo anagrafica, non una nomina formale tracciata |
+| **Registro Infortuni** | Sì, ultimi 3 anni + copertina firmata | ✅ Tracciato in "Documenti" > infortuni | Visibile come CSV | [verificato] — esiste ma non è "registro ufficiale" tracciato con data primo evento e sottoscrizioni |
+| **Registro Near-miss (L. 198/2025)** | Sì, dal 2026 obbligo > 15 addetti | ✅ Tracciato come "infortuni" tipo near-miss | Visibile come elenco | Manca: comunicazione annuale aggregata, scadenza legale |
+| **Appaltatori — DURC, visura, DUVRI** | Sì, per ogni ditta con scadenze | ⚠️ Parziale — anagrafica `appalti`, tipo di documento "DUVRI", niente scadenze DURC/visura | Nominale | Nuovo (02/08) — ma senza scadenzario DURC (240 gg) e visura, è incompletezza visibile |
+| **Relazione Annuale Stabilità Fronti** | Sì, D.Lgs 624/1996 art. 10 | ✅ Nel preset di scadenze | Visibile nello scadenzario | [confermato 06/08] — "Relazione annuale sulla stabilità dei fronti" esiste |
+| **Verifiche Periodiche Attrezzature** | Sì, art. 71 + D.M. 11/04/2011 | ⚠️ Come preset scadenza generica | Nominale | Manca: anagrafica attrezzature con tipo e scadenza specifica |
+| **Idoneità Sanitaria** | Sì, periodiche per mansione (art. 41) | ✅ Come tipo di scadenza per lavoratore | Visibile, tracciabile per mansione | Presente |
+| **Certificati Abilitazioni** | Sì (patente escavatorista, perforatore, CQC) | ✅ Come tipo di scadenza | Visibile | [confermato] — generico "certificazione" ma funziona |
+| **Formazione Generale e Specifica** | Sì, con data e aggiornamenti (art. 37) | ✅ Come tipo di scadenza per lavoratore e mansione | Visibile nello scadenzario | Presente; manca: matrice di compliance (chi ha seguito cosa) |
+| **Registro DPI e Addestramento** | Sì, art. 77 — consegna per persona, taglia, firma, addestramento III cat. | ⚠️ Come tipo di documento "DPI" + scadenze generiche | Documentale, non "registro DPI" visibile | Presente come traccia, nascosto dentro documenti |
+
+### Le quattro proposte
+
+| # | Categoria | Che cosa non va | Come si vede | Quanto costa | Come si misura | Fonte |
+|---|---|---|---|---|---|---|
+| 1 | **Nomine della Sicurezza** | RSPP, medico, RLS, sorvegliante, preposti, emergenza non hanno una visibilità formale — vengono chiesti sulla carta come "nomina datata" e Scudo li tiene sparsi in "tipo di documento" | Aprire il Quadro di Scudo: c'è una sezione "Organigramma della Sicurezza" dove si legge "RSPP: Sara Conti, da 16/09/2024, formazione scade: 15/09/2026"? Oggi c'è solo come lista "Nomine della sicurezza" dentro la pagina Personale | Piccolo — riusare `nominaAttiva`, `nomineDaSistemare` (già in codice); aggiungerle al Quadro come widget separato | Nella demo (Scudo quadro): leggere il Personale, contare quante nomine sono visibili in modo formale (RSPP, medico, etc.) vs quante vanno cercate dentro i documenti. Esaminare se il sorvegliante obbligatorio è nomina o solo ruolo anagrafica | D.Lgs 624/1996 (sorvegliante obbligatorio cava — non vale per edilizia generica); ispettore lo chiede come "primo adempimento" — chi è, da quando, formazione certificata | **Motivazione**: quando arriva un ispettore vuole rispondere in 20 secondi "chi è il vostro RSPP, il vostro sorvegliante, da quando ricoprono il ruolo, quando scade la loro formazione" senza aprire 6 tab. Scudo ha tutto il dato ma non lo sa dire in quella forma |
+| 2 | **Appaltatori — scadenze DURC e Visura** | DURC (240 giorni, rinnovabile) e Visura CCIAA (12 mesi) non sono scadenze tracciabili — Scudo ha anagrafica appaltatori (nuovo 02/08) ma niente calendario | In Scudo, sezione Appalti: vedi un'azione/badge tipo "DURC di Trasporti Rossi scade il 30/11/2026"? Oppure le ditte entrano e non si ha traccia di scadenze loro? | Medio — nuovi campi in modello `appalti` (dataDURC, dataVisura, dataPolizza con le rispettive scadenze); riusare meccanica scadenzario | Nel codice (`apps/scudo/scudo-data.js` attorno riga 3000 dove stanno gli appaltatori): cercare "DURC" — [dedotto, non trovato], cercare "240" (giorni DURC) — assente | D.Lgs 81/2008 art. 26 DUVRI + [dedotto] pratica ASL: DURC sempre primo controllo su ditta esterna, scade ogni 240 giorni | **Motivazione**: su una cava con 5–10 ditte in rotazione è impossibile tracciare mentalmente chi ha DURC valido. L'ispettore controlla: "mi mostrate il DURC di Trasporti Rossi di oggi?" Se è scaduto è prescrizione. Scudo ha il dato (Appalti), manca il tracking della scadenza |
+| 3 | **Ciclo DSS post-evento** | Quando un infortunio grave è registrato, il DSS non riceve un flag "va aggiornato" — l'obbligo è legale (art. 6 comma 3 D.Lgs 624/1996) ma non è visibile nel sistema | Nel quadro di Scudo: registri un infortunio grave (tipo "caduta massi" con gravità "grave"). Il DSS va in alert, riceve un badge "DA AGGIORNARE", una prescrizione si crea automatica? Nessun segnale | Piccolo — meccanica: dopo ogni infortunio grave (gravità >= "grave"), il documento "DSS" cambia stato a "da-rivedere" e genera una scadenza aziendale "Aggiornamento DSS post-evento: giorni 30" | Nel codice: cercare il collegamento fra `infortuni.js` (evento grave registrato) e documenti tipo "DSS" — [dedotto] non c'è | D.Lgs 624/1996 art. 6 comma 3: "Il datore di lavoro aggiorna il documento di sicurezza e salute se i luoghi di lavoro hanno subito modifiche rilevanti oppure seguono eventi o infortuni che, anche se non gravi, comportino variazioni nella situazione dei rischi" | **Motivazione**: ispettore chiede "quando è stato aggiornato l'ultimo DSS?" e la risposta dovrebbe essere "il giorno dopo l'infortunio X, vedete la data". Oggi si sa l'infortunio ma non il collegamento di causa |
+| 4 | **Scadenza comunicazione L. 198/2025 dati aggregati** | La legge chiede comunicazione annuale dati aggregati near-miss, ma Scudo non ha una prescrizione/scadenza legale per ricordare la trasmissione INAIL | Nel quadro di Scudo: c'è un avviso tipo "Comunicazione INAIL near-miss: scade il 31/12/2026" o "Comunica gli ultimi 12 mesi di near-miss al Ministero"? No, invisibile | Piccolissimo — una riga in preset di scadenze tipo "Comunicazione dati aggregati L. 198/2025 — periodica annuale, data 31/12" | Nel codice (`apps/scudo/scudo-data.js` scadenzario — riga 1200–1300): cercare "198" o "comunicazione" o "INAIL" — [dedotto] assente | L. 198/2025 (DL 159/2025) art. 15: "comunicazione annuale al Ministero del Lavoro dei dati aggregati e analisi delle cause" — forma e periodicità da regolamento secondario (atteso aprile 2026), ma obbligo è dal gennaio 2026 | **Motivazione**: obbligo di legge con sanzione amministrativa se scaduto. Scudo traccia tutto via scadenzario: DVR, DSS, relazione fronti, verifiche. Questa scadenza entra se non per funzionalità almeno per tracciamento ricordanza |
+
+### Note metodologiche
+
+1. **Sequenza di visita non trovata per cava specifica**: cercate checklist ASL nome per nome di cave o mining, non esiste una "lista ufficiale di cava". L'ordine è [dedotto] da D.Lgs 624/1996 e 81/2008 in logica: amministrazione prima, campagna dopo. È l'ordine che la stragrande maggioranza delle guide ASL generiche suggerisce.
+
+2. **Fonti D.Lgs sempre citate per articolo**: quando un obbligo viene da una legge, è indicato l'articolo con link al testo completo.
+
+3. **Tre proposte su quattro sono miglioramento di funzioni che Scudo ha già**: non sono "cose nuove" — sono visibilità e tracciamento migliori di dati che il modello dati già tiene. Proposta 2 (DURC/Visura) è nuova come scadenze specifiche, ma il modello Appalti (Proposta 1 gemella) è stato costruito il 02/08.
+
+4. **Comandi di verifica puntati**: dove possibile, i "come si misura" includono il comando grep per cercare il dato nel codice, in modo che possano essere controllati al commit.
+
+---
+
+*Ricerca del 07/08/2026. Quattro proposte; zero false partenze.*
