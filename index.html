@@ -1833,7 +1833,7 @@ function rapportinoVuoto(){
   ]);
 }
 function generaRappVuotoPDF(tipo,nFori,nFile){
-  if(!window.jspdf){toast('Libreria PDF non caricata','err');return;}
+  if(pdfNonPronto())return;
   const {jsPDF}=window.jspdf;const d=new jsPDF({unit:'mm',format:'a4'});
   const isFoc=tipo==='foc';
   d.setFillColor(255,255,255);d.rect(0,0,210,297,'F');
@@ -3971,6 +3971,39 @@ function dashApriOperatore(userId){
    **tre volte di fila**, due delle quali in una colonna stretta la metà: si
    leggeva come un guasto ripetuto invece che come una cosa sola. Scritta una
    volta al posto del gruppo dice la stessa verità e si legge. */
+/* ⛔ LA GUARDIA DEL PDF GUARDAVA UNA LIBRERIA SOLA SU DUE.
+   `if(!window.jspdf){toast('Libreria PDF non caricata')}` era scritto **otto
+   volte identico** — otto copie, una per esportazione — e copriva `jspdf`.
+   Ma tutt'e otto le esportazioni disegnano le loro tabelle con `d.autoTable`,
+   che arriva da un **secondo** script (`jspdf-autotable`), e per quello i
+   controlli erano **zero su undici chiamate**.
+   ⚠️ E lo stato «una c'è e l'altra no» non è teorico: il service worker
+   precacha ogni indirizzo con il **proprio** `.catch()` — il suo commento lo
+   dice, «per non bloccare se una CDN fallisce» — quindi una libreria cachata
+   e l'altra no è uno stato che il disegno permette **apposta**.
+   Misurato servendo `jspdf` e lasciando cadere il plugin, poi premendo il
+   bottone: `d.autoTable is not a function`, **zero** PDF prodotti e **nessun
+   messaggio**. Cioè si preme «PDF» e non succede niente — la stessa famiglia
+   del `chiediDati()` di Flotta, dove premere «è ripartito» non faceva nulla.
+
+   ⚠️ PERCHÉ LA DOMANDA È FATTA IN DUE MODI E NON IN UNO. Il plugin si registra
+   su `jsPDF.API.autoTable`, ma questo controllo non può **misurare** la
+   libreria vera (in casa non c'è rete), e una guardia troppo stretta qui
+   sbaglierebbe nella direzione peggiore: bloccherebbe **tutti** i PDF anche
+   quando funzionano. Quindi si chiede all'API **e** a un documento vero — cioè
+   proprio `d.autoTable`, che è ciò che il codice chiama e ciò che si rompe —
+   e si blocca solo se rispondono di no tutt'e due. Nel dubbio si lascia
+   passare: un PDF che si genera non fa danno, un PDF bloccato per sbaglio sì. */
+function motivoPdfNonPronto(){
+  if(!window.jspdf||!window.jspdf.jsPDF) return 'La libreria del PDF non è arrivata: serve la rete per scaricarla.';
+  let saFareTabelle=false;
+  try{
+    const A=window.jspdf.jsPDF.API;
+    saFareTabelle = (A&&typeof A.autoTable==='function') || typeof (new window.jspdf.jsPDF()).autoTable==='function';
+  }catch(e){ saFareTabelle=false; }
+  return saFareTabelle ? null : 'Del PDF manca la parte che disegna le tabelle: serve la rete per scaricarla.';
+}
+function pdfNonPronto(){ const m=motivoPdfNonPronto(); if(m){toast(m,'err');return true;} return false; }
 function avvisoGraficiAssenti(){
   return `<div class="info-box">📶 <b>I grafici non si vedono</b>: la libreria che li disegna non è arrivata, e per scaricarla serve la rete. `
     + `I numeri e gli elenchi di questa pagina sono <b>giusti lo stesso</b> — vengono dai dati, non dalla libreria.</div>`;
@@ -3997,7 +4030,7 @@ function dashChartOpts(){
 
 // ══════════ EXPORT PDF — RAPPORTINO PERFORAZIONE (D1) ══════════
 function exportRapportinoPDF(r){
-  if(!window.jspdf){toast('Libreria PDF non caricata','err');return;}
+  if(pdfNonPronto())return;
   const {jsPDF}=window.jspdf;
   const d=new jsPDF({unit:'mm',format:'a4'});
   const c=DB.cave.find(x=>x.id===r.cavaId);
@@ -4128,7 +4161,7 @@ function exportRapportinoPDF(r){
 
 // ══════════ EXPORT PDF — RAPPORTINO FOCHINO (D2) ══════════
 function exportRapportinoFocPDF(r){
-  if(!window.jspdf){toast('Libreria PDF non caricata','err');return;}
+  if(pdfNonPronto())return;
   const {jsPDF}=window.jspdf;
   const d=new jsPDF({unit:'mm',format:'a4'});
   const c=DB.cave.find(x=>x.id===r.cavaId);
@@ -4358,7 +4391,7 @@ async function exportRapportiniXLSX(){
 // PDF mensile (un PDF con tabella riepilogativa di tutti i rapportini del mese)
 // ══════════ v4.5 — EXPORT REPORT TECNICO (data / macchina / cantiere) ══════════
 function exportReportTecnicoPDF(){
-  if(!window.jspdf){toast('Libreria PDF non caricata','err');return;}
+  if(pdfNonPronto())return;
   const oggi=today();const primo=oggi.slice(0,8)+'01';
   const macOpts=[...DB.mezziLav.map(m=>({id:'L:'+m.id,n:(m.modello||'')+' ('+m.targa+')'})),...DB.mezziStr.map(m=>({id:'S:'+m.id,n:((m.marca||'')+' '+(m.modello||''))+' ('+m.targa+')'}))];
   openModal('Report tecnico',`
@@ -4475,7 +4508,7 @@ function _genReportTecnico(da,a,cavaId,macRef){
 window.exportReportTecnicoPDF=exportReportTecnicoPDF;
 
 function exportRapportiniMeseCorrentePDF(){
-  if(!window.jspdf){toast('Libreria PDF non caricata','err');return;}
+  if(pdfNonPronto())return;
   const oggi=new Date();
   const mese=meseLocale(oggi);
   openModal('Esporta PDF mensile',`
@@ -6305,7 +6338,7 @@ function apriRiconciliazione(volataId){
 
 // Export PDF della riconciliazione
 function exportRiconciliazionePDF(v, rapportini){
-  if(!window.jspdf){toast('Libreria PDF non caricata','err');return;}
+  if(pdfNonPronto())return;
   const cava=DB.cave.find(c=>c.id===v.cavaId);
   const {jsPDF}=window.jspdf;
   const d=new jsPDF({unit:'mm',format:'a4'});
@@ -6558,7 +6591,7 @@ async function salvaFrammentazione(){
 
 // Export PDF della frammentazione
 function exportFrammentazionePDF(v){
-  if(!window.jspdf){toast('Libreria PDF non caricata','err');return;}
+  if(pdfNonPronto())return;
   const f=v.frammentazione;
   if(!f){toast('Nessun dato di frammentazione','err');return;}
   const cava=DB.cave.find(c=>c.id===v.cavaId);
@@ -7280,7 +7313,7 @@ function confermaDelVolata(id){
 // v3.4.7.4 — PDF SCENICO CON DISEGNO DEI FORI
 // ════════════════════════════════════════════════════
 function exportVolataPDF(volataId){
-  if(!window.jspdf){toast('Libreria PDF non caricata','err');return;}
+  if(pdfNonPronto())return;
   const v=DB.volate.find(x=>x.id===volataId);
   if(!v){toast('Volata non trovata','err');return;}
   const cava=DB.cave.find(c=>c.id===v.cavaId);

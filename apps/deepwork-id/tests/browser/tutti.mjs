@@ -531,6 +531,15 @@ const BANCHI = [
      principio del fondatore applicato a un DISEGNO invece che a un numero. */
   ['la Dashboard del core senza rete', 'core-dashboard-senza-rete.mjs', []],
   ['Dashboard senza rete · controprova', 'core-dashboard-senza-rete.mjs', ['--controprova'], true],
+  /* ⛔ AGGIUNTO IL 07/08, coda della Dashboard: i bottoni «PDF» stanno in fondo
+     a quella schermata, e la loro guardia guardava UNA libreria su due. La
+     riga `if(!window.jspdf)` era scritta otto volte identica, ma tutt'e otto
+     le esportazioni disegnano con `d.autoTable` — secondo script, zero
+     controlli su undici chiamate. E «una c'e' e l'altra no» e' uno stato che
+     il service worker permette apposta: precacha ogni indirizzo con il proprio
+     `.catch()`. Misurato: nessun PDF e NESSUN messaggio. */
+  ['il PDF senza il suo plugin', 'core-pdf-senza-plugin.mjs', []],
+  ['PDF senza plugin · controprova', 'core-pdf-senza-plugin.mjs', ['--controprova'], true],
   /* ⛔ AGGIUNTO IL 03/08, stessa famiglia di `terra-numeri-tranquilli` e stessa
      ragione: in Sentinella il principio del fondatore è NATO, il modulo lo
      applica in una dozzina di punti — e i quattro numeri tranquilli rimasti
