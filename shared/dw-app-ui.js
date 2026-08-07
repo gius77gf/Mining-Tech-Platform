@@ -207,6 +207,63 @@
     });
   }
 
+  // Richiesta di PIÙ valori in una volta: `Promise<{id: valore}|null>`.
+  // `campi` è un elenco di `{ id, label, tipo, valore, placeholder, modo,
+  // min, step, aiuto }`; `null` vuol dire che l'utente ha annullato.
+  //
+  // ⛔ ED È L'OTTAVA DI OTTO, RIMASTA INDIETRO PER UNA SETTIMANA. Il 31/07 il
+  // commit `486011d` ha portato qui la struttura del core, cancellando dalle
+  // sei pagine `toast`, `apriModale`, `chiudiModale`, `chiedi`,
+  // `chiediValore`, `avvisa`, `mostraTesto` e `chiediDati`. Le prime SETTE
+  // sono arrivate. Questa no — e la usava solo Flotta, quindi nessuno se n'è
+  // accorto: sei chiamate rimaste orfane, con l'effetto che l'utente toccava
+  // «è ripartito» su una macchina ferma e NON SUCCEDEVA NIENTE. Provato
+  // premendo il bottone: `chiediDati is not defined`, zero modali aperte.
+  // Nessuna suite `node` poteva vederlo (non aprono le pagine) e
+  // `sintassi-pagine` nemmeno: un identificatore libero è sintatticamente
+  // valido. È la quinta volta che questa famiglia passa, ed è la stessa che
+  // CLAUDE.md descrive — «togliere le funzioni dimenticando lo script non è un
+  // errore di sintassi: la pagina si apre e muore al primo tocco».
+  //
+  // Il corpo è quello di allora, carattere per carattere: una riscrittura
+  // sarebbe stata una copia più debole di una funzione che funzionava.
+  function chiediDati(titolo, corpo, campi, etichettaOk) {
+    return new Promise(function (res) {
+      var html = (corpo || "") + campi.map(function (c) {
+        return '<label class="fl" for="mc-' + c.id + '">' + c.label + '</label>'
+          + '<input class="dw-input" id="mc-' + c.id + '" type="' + (c.tipo || "text") + '"'
+          + ' value="' + (c.valore == null ? "" : String(c.valore)).replace(/"/g, "&quot;") + '"'
+          + ' placeholder="' + (c.placeholder || "").replace(/"/g, "&quot;") + '"'
+          + (c.modo ? ' inputmode="' + c.modo + '" autocomplete="off" spellcheck="false"' : "")
+          + (c.min != null ? ' min="' + c.min + '"' : "") + (c.step ? ' step="' + c.step + '"' : "") + '>'
+          + (c.aiuto ? '<div class="form-hint" style="margin-top:5px;">' + c.aiuto + '</div>' : "");
+      }).join("");
+      apriModale(titolo, html, [
+        { label: "Annulla", azione: function () { chiudiModale(); res(null); } },
+        { label: etichettaOk || "Salva", cls: "primary", azione: function () {
+            var out = {};
+            campi.forEach(function (c) {
+              var el = document.getElementById("mc-" + c.id);
+              out[c.id] = el ? el.value : "";
+            });
+            chiudiModale(); res(out);
+          } },
+      ]);
+      // Invio = premi il bottone principale. Il listener si aggiunge UNA volta
+      // sola: `#modal-body` è sempre lo stesso elemento, e ogni `chiediDati` ne
+      // appendeva un altro identico — dopo dieci finestre l'Invio scattava
+      // dieci volte. Non si vedeva perché la Promise, già risolta, ignora i
+      // colpi in più; ma è un accumulo, e adesso non c'è.
+      var box = document.getElementById("modal-body");
+      if (box && !box.dataset.invio) {
+        box.dataset.invio = "1";
+        box.addEventListener("keydown", function (e) {
+          if (e.key === "Enter") { e.preventDefault(); document.querySelector("#modal-foot .mbtn.primary").click(); }
+        });
+      }
+    });
+  }
+
   // ── AGGANCI ─────────────────────────────────────────────────────────
   // Si chiama una volta, quando la pagina è pronta. `alone` è il selettore
   // dei componenti che prendono l'alone dinamico: cambia da app a app
@@ -266,5 +323,6 @@
   window.avvisa = avvisa;
   window.mostraTesto = mostraTesto;
   window.chiediValore = chiediValore;
+  window.chiediDati = chiediDati;
   window.dwUiAggancia = dwUiAggancia;
 })();

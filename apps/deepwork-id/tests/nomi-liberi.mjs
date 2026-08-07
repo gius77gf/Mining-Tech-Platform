@@ -74,6 +74,17 @@ const GLOBALI = new Set(`Object Array String Number Boolean Math JSON Date RegEx
    loro nome è l'unica cosa che possiamo dichiarare. Corto e con la ragione. */
 const DA_CDN = new Set(["Chart", "THREE"]);
 
+/* ⚠️ NOMI CHE NON SONO FUNZIONI, E SONO EMERSI STRINGENDO LA REGOLA il 07/08.
+   Prima non si vedevano perché la riga larga li «legava» tutti; adesso vanno
+   dichiarati per nome, che è meglio — un elenco corto e scritto è leggibile,
+   una regola larga che li nasconde no.
+   · `import(` è l'import DINAMICO: sintassi del linguaggio, non una funzione
+     (e si distingue da `import {…} from` perché ha la parentesi tonda);
+   · `require(`, `module`, `exports` vivono in `apps/deepwork-id/functions/`,
+     che è codice **Node CommonJS** e non gira nel browser: sono i suoi
+     globali, come `window` lo è per le pagine. */
+const SINTASSI_E_NODE = new Set(["import", "require", "module", "exports"]);
+
 /* Il contenuto delle stringhe si sostituisce con spazi: così un `prompt(` dentro
    un testo non conta come chiamata, e le posizioni restano quelle vere. */
 function soloCodice(t) {
@@ -112,6 +123,60 @@ function nomiDegliScriptFratelli(relPagina, html) {
    falso negativo costa meno di un falso allarme, perché un allarme che sbaglia
    insegna a non guardarlo — è già successo con la colonna delle prove del
    delta, che sbagliava tre volte su quattro. */
+/* ⛔ I NOMI DICHIARATI DA UN `const/let/var`, E PERCHÉ NON È UNA REGEX.
+   Fino al 07/08 questa parte era `\b(?:const|let|var)\s+([^;\n]*)` — cioè
+   prendeva TUTTA la riga e la spezzava sui caratteri non alfanumerici. Effetto:
+   ogni parola che sta sulla stessa riga di una dichiarazione risultava
+   «legata», **compreso il nome della funzione chiamata lì dentro**. Cioè il
+   controllo era cieco su una riga come:
+
+       const avviso = sd ? `${conta(sd, "rapportino", "rapportini")}` : "";
+
+   e le righe così sono la maggioranza. Misurato togliendo `conta` dall'import
+   di Campo su una copia di HEAD: il controllo rispondeva **«nessun nome che non
+   esiste»**. Stringendola è saltato fuori un difetto VERO, vecchio di una
+   settimana e mai visto da nessuno — `chiediDati()`, chiamata **6 volte** in
+   Flotta e non definita da nessuna parte.
+
+   Una regex non basta: `const a = f(1), b = g(2)` ha una virgola dentro le
+   parentesi e una fuori, e sono cose diverse. Qui si scandisce tenendo la
+   profondità di `()`, `[]` e `{}`: si spezza sulle virgole di PRIMO LIVELLO e
+   di ogni dichiaratore si tiene la parte PRIMA del suo `=`.
+   ⚠️ La fermata su `of`/`in` serve a `for (const r of righe)`: senza, il
+   dichiaratore si mangia anche `righe`, che è un nome LIBERO — cioè proprio
+   quello che il controllo deve vedere. Provata su 12 casi in scratchpad prima
+   di finire qui, e uno dei 12 l'ha bocciata alla prima stesura. */
+function nomiDichiarati(codice) {
+  const out = new Set();
+  const re = /\b(?:const|let|var)\s+/g;
+  let m;
+  while ((m = re.exec(codice))) {
+    let i = m.index + m[0].length;
+    let tondo = 0, quadra = 0, graffa = 0;
+    let pezzo = "", primo = true;   // `primo` = siamo prima del `=` di questo dichiaratore
+    const chiudi = () => {
+      if (pezzo.trim()) for (const n of pezzo.split(/[^\w$]+/)) if (n) out.add(n);
+      pezzo = ""; primo = true;
+    };
+    for (; i < codice.length; i++) {
+      const c = codice[i];
+      if (c === "(") tondo++; else if (c === ")") { if (!tondo) break; tondo--; }
+      else if (c === "[") quadra++; else if (c === "]") { if (!quadra) break; quadra--; }
+      else if (c === "{") graffa++; else if (c === "}") { if (!graffa) break; graffa--; }
+      const fuori = !tondo && !quadra && !graffa;
+      if (fuori && (c === ";" || c === "\n")) break;
+      if (fuori && primo && /\s/.test(c) && /^\s*(?:of|in)\s/.test(codice.slice(i))) break;
+      /* `=>` non è un `=` di assegnamento, e `==`/`===` non compaiono a
+         livello zero dentro una dichiarazione. */
+      if (fuori && primo && c === "=" && codice[i + 1] !== ">" && codice[i + 1] !== "=") { primo = false; continue; }
+      if (fuori && c === ",") { chiudi(); continue; }
+      if (primo) pezzo += c;
+    }
+    chiudi();
+  }
+  return out;
+}
+
 function nomiLegati(codice) {
   const legati = new Set();
   const agg = (re, g = 1) => {
@@ -120,7 +185,7 @@ function nomiLegati(codice) {
   agg(/\b(?:function|class)\s*\*?\s*([\w$]+)/g);
   /* ⚠️ i dichiaratori multipli: `const a = 1, b = 2` — la prima stesura prendeva
      solo `a`, ed è da lì che venivano quattro dei «sospetti» (rnd, Y, my2, fmtD) */
-  agg(/\b(?:const|let|var)\s+([^;\n]*)/g);
+  for (const n of nomiDichiarati(codice)) legati.add(n);
   agg(/import\s*\{([^}]*)\}/g);
   agg(/import\s+([\w$]+)/g);
   agg(/\bcatch\s*\(\s*([\w$]+)/g);
@@ -150,7 +215,7 @@ export function nomiSospetti(relPagina) {
   for (const m of codice.matchAll(/(^|[^\w$.?])([A-Za-z_$][\w$]*)\s*\(/g)) {
     const n = m[2];
     chiamate++;
-    if (PAROLE.has(n) || GLOBALI.has(n) || DA_CDN.has(n) || legati.has(n) || daiFratelli.has(n)) continue;
+    if (PAROLE.has(n) || GLOBALI.has(n) || DA_CDN.has(n) || SINTASSI_E_NODE.has(n) || legati.has(n) || daiFratelli.has(n)) continue;
     sospetti.set(n, (sospetti.get(n) || 0) + 1);
   }
   return { chiamate, sospetti, blocchi: blocchi.length, fratelli };
@@ -189,7 +254,7 @@ export function nomiSospettiModulo(rel) {
   for (const m of codice.matchAll(/(^|[^\w$.?])([A-Za-z_$][\w$]*)\s*\(/g)) {
     const n = m[2];
     chiamate++;
-    if (PAROLE.has(n) || GLOBALI.has(n) || DA_CDN.has(n) || legati.has(n)) continue;
+    if (PAROLE.has(n) || GLOBALI.has(n) || DA_CDN.has(n) || SINTASSI_E_NODE.has(n) || legati.has(n)) continue;
     sospetti.set(n, (sospetti.get(n) || 0) + 1);
   }
   return { chiamate, sospetti };
@@ -285,6 +350,34 @@ test("la controprova — il nome che è successo davvero viene visto", () => {
     if (m[2] === "numeroIt" && !PAROLE.has(m[2]) && !GLOBALI.has(m[2]) && !DA_CDN.has(m[2])
         && !legati.has(m[2]) && !fratelli.has(m[2])) visto = true;
   ok(visto, "col difetto rimesso, `numeroIt` deve risultare sospetto — e non risulta");
+});
+
+/* ⛔ LA CONTROPROVA DEL BUCO CHE C'ERA DAVVERO, e vale più della precedente
+   perché quella passava anche con la regola larga. Il caso è: un nome libero
+   che sta sulla STESSA RIGA di una dichiarazione — la forma di gran lunga più
+   frequente, `const x = qualcosa(...)`. Fino al 07/08 la riga larga lo legava
+   e il controllo rispondeva «nessun nome che non esiste».
+   Si rimette il difetto vero misurato quel giorno: `conta` tolto dall'import di
+   Campo, dove è chiamato dentro due `const`. */
+test("la controprova del buco vero — un nome libero dentro un `const` viene visto", () => {
+  const rel = "apps/campo/index.html";
+  const html = leggi(rel);
+  const guasto = html.replace("nomeCsvDimostrazione, conta }", "nomeCsvDimostrazione }");
+  ok(guasto !== html, "l'iniezione non ha sostituito niente: la prova non prova niente");
+  const codice = blocchiDi(guasto).map(soloCodice).join("\n;\n");
+  ok(/\bconta\s*\(/.test(codice), "`conta(` dev'essere chiamato nella pagina, se no non si prova niente");
+
+  const legatiStretti = nomiLegati(codice);
+  ok(!legatiStretti.has("conta"),
+    "con la regola STRETTA `conta` non dev'essere legato — se lo è, la stretta non ha stretto");
+
+  /* e la prova che la regola LARGA lo nascondeva: si rifà il vecchio
+     riconoscitore qui dentro, così il confronto è nel test e non a memoria */
+  const larga = new Set();
+  for (const m of codice.matchAll(/\b(?:const|let|var)\s+([^;\n]*)/g))
+    for (const n of (m[1] || "").split(/[^\w$]+/)) if (n) larga.add(n);
+  ok(larga.has("conta"),
+    "la regola larga DOVEVA nascondere `conta`: se non lo nasconde, il racconto di questo file è sbagliato");
 });
 
 console.log(`\nRisultato nomi liberi: ${passed} passati, ${failed} falliti`

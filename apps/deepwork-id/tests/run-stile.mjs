@@ -1913,7 +1913,23 @@ console.log("\n── Regola 17: la struttura del core non si riscrive in casa �
    della struttura, sei copie in due versioni — cinque senza guardie e Flotta
    con guardie e mappa. Nella versione condivisa ci sono le guardie per tutti e
    la mappa come parametro. */
-const UI_CONDIVISA = ["go", "toast", "apriModale", "chiudiModale", "chiedi", "chiediValore"];
+/* ⛔ E DAL 07/08 QUESTO ELENCO È DERIVATO, NON SCRITTO A MANO — perché scritto
+   a mano ne aveva SEI e la struttura condivisa ne espone OTTO. Le due che
+   mancavano (`avvisa`, `mostraTesto`) non erano una svista qualunque: lo stesso
+   giorno si è scoperto che `chiediDati` — l'ottava — era stata cancellata dalle
+   pagine dal commit 486011d (31/07) e **mai portata in `dw-app-ui.js`**, con
+   sei chiamate rimaste orfane in Flotta per una settimana. Un elenco a mano non
+   avrebbe potuto accorgersene: non sapeva nemmeno che quel nome esistesse.
+   Adesso si legge da `window.X =` del file condiviso, cioè dalla stessa verità
+   che il browser vede. Se domani ne nasce una nona, entra da sola. */
+const UI_CONDIVISA = (() => {
+  const src = leggi("shared/dw-app-ui.js");
+  if (!src) return ["go", "toast", "apriModale", "chiudiModale", "chiedi", "chiediValore"];
+  const vivo = mascheraCodice(src);
+  const fuori = [];
+  for (const m of src.matchAll(/\bwindow\.([\w$]+)\s*=/g)) if (vivo[m.index]) fuori.push(m[1]);
+  return [...new Set(fuori)];
+})();
 const RE_UI_DEF = new RegExp(
   `\\b(?:function\\s+(?:${UI_CONDIVISA.join("|")})\\s*\\(`
   + `|(?:const|let|var)\\s+(?:${UI_CONDIVISA.join("|")})\\s*=\\s*(?:function\\b|\\(|async\\b))`, "g");
