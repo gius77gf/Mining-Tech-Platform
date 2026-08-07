@@ -1160,6 +1160,82 @@ lo vede nessuno.
 
 ---
 
+## PARTE 7 — Come si chiamano i due livelli (07/08, dopo che tutte e sei hanno finito)
+
+Le sei app hanno risolto **lo stesso problema** in sei cantieri paralleli che non
+si parlavano, e ci sono arrivate alla stessa conclusione con sei misure diverse.
+Vale la pena scriverla una volta, perché la settima volta non si rifaccia.
+
+### La regola, in una riga
+
+> **Un colore che fa anche da PIENO non si riscrive: gli si affianca un
+> inchiostro.** E gli inchiostri sono **due livelli**, non uno.
+
+Perché: `--warn`, `--success` e `--danger` dipingono anche il fondo delle
+pastiglie, e sopra quel fondo ci sta scritto qualcosa. Tirare l'unica variabile
+in mezzo rompe sempre uno dei due mestieri. Misurato tre volte, in tre app,
+senza che i tre cantieri si conoscessero:
+
+| app | la misura che l'ha deciso |
+|---|---|
+| Conti | scurendo `--danger` a `#c62924` la pastiglia «INSOLUTA» scende da **5,72 a 3,30** |
+| Terra | `.badge.warn` ci scrive sopra quasi-nero a **9,3:1**: scurirlo lo rovina |
+| Scudo | idem, e `--warn` è anche il pieno di `.chg.e-ok.active` |
+
+### I due livelli, e le due soglie
+
+Le soglie WCAG 1.4.3 sono **due davvero**: 4,5:1 sotto i 24 px (o i 18,66 in
+grassetto), 3:1 sopra. Un numerone da 32 px non ha bisogno di stare dove sta
+un'etichetta da 11, e **forzarlo lì lo rovina**: tutte e sei le app hanno
+provato la versione a un livello solo, e in tutte e sei l'ambra del numerone
+diventava **marrone** accanto al bordo della sua card, che resta ambra acceso
+perché è un fondo.
+
+| livello | nome | dove | soglia |
+|---|---|---|---|
+| inchiostro | `--ink-ok` · `--ink-wr` · `--ink-dg` | frasi, etichette, 11-17 px | **4,5:1** |
+| cifre | `--num-ok` · `--num-wr` · `--num-dg` | numeroni ritagliati nel gradiente, 20-38 px | **3:1** |
+
+In `:root` valgono il colore di stato (**zero differenza sul buio**, verificato
+al pixel e al md5 in tre app); cambiano **solo** dentro
+`body.dw.light-mode, body.dw.outdoor-mode`.
+
+### E i nomi sono questi, non altri
+
+Il 07/08 Conti ha scritto `--danger-ink / --warn-ink / --sup-ink` mentre le
+altre cinque scrivevano `--ink-dg / --ink-wr / --ink-ok`: **la stessa idea, due
+nomi**, e nessuno dei due sbagliato. Una divergenza di nome non rompe niente
+oggi, e rende impossibile domani portare la regola in `shared/` — quindi Conti è
+stata allineata (venti sostituzioni, `run-stile` 295 invariato).
+
+⚠️ **E una regola automatica è stata pensata e SCARTATA con la misura**, perché
+nessuno la rifaccia alla cieca. La forma ovvia era una regola di `run-stile`:
+*«una variabile che nomina un inchiostro deve chiamarsi `--ink-…`»*. Censite
+tutte le proprietà dichiarate che contengono `ink` o `num`: sono **13 nomi**, e
+**5** sarebbero da scusare per nome — `--grad-num`, `--grad3-ink`,
+`--grad-ok-num`, `--grad-wr-num`, `--grad-dg-num`, che sono legittimi (un
+gradiente qualificato, non uno stato) e portano proprio l'ordine che la regola
+vieterebbe. Una regola con il **38% di eccezioni** non è severa: è un allarme
+che insegna a non guardarlo. La convenzione sta scritta qui, che è dove si
+arriva prima di toccare una palette.
+
+### Il pezzo che resta aperto, e la sua misura
+
+La causa vera sta in `shared/dw-app-ui.css`, che deriva `--grad-ok/-wr/-dg` con
+una mano fissa — **86% / 78% / 82%** verso il nero — tarata su nessun fondo in
+particolare: è il motivo per cui il difetto era **identico in tutte e sei le
+app**. Le sei correzioni sono in casa di ciascuna, e sono legittime (una palette
+è dell'app), ma sono **sei copie dello stesso rimedio**.
+⚠️ Quello che NON va fatto è sostituirle con una settima derivazione generica:
+ognuna delle sei è stata misurata sul **fondo peggiore che quei due temi
+producono davvero in quell'app**, e quei fondi sono velati dell'accento di
+ciascuna — si scostano di ~0,3. Una formula unica sarebbe più elegante e meno
+vera. Il candidato giusto è che `shared/` fornisca il **ripiego** (i due livelli
+derivati) e ogni app conservi la facoltà di scavalcarlo coi suoi valori
+misurati, che è esattamente quello che oggi fanno tutte e sei.
+
+---
+
 ## Fuori perimetro
 
 Questo documento copre **le sei app verticali**. Restano fuori:

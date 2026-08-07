@@ -54,9 +54,15 @@
      bianco che ha sotto, e tirare l'unica variabile in mezzo ne rompe sempre
      uno dei due (misurato: vedi il blocco «le stesse tinte, di giorno»).
      Qui i tre inchiostri valgono il loro stato; di giorno cambiano solo loro. */
-  --danger-ink:var(--danger);
-  --warn-ink:  var(--warn);
-  --sup-ink:   var(--app-support2);
+  /* ⚠️ I NOMI SONO QUELLI DELLE ALTRE CINQUE APP, e non è pignoleria: il 07/08
+     questo blocco è nato `--danger-ink/--warn-ink/--sup-ink` mentre Sentinella,
+     Flotta, Terra, Campo e Scudo scrivevano `--ink-dg/--ink-wr/--ink-ok` —
+     sei cantieri paralleli, la stessa idea, due nomi. Una divergenza di nome
+     non rompe niente oggi e rende impossibile domani portare la regola in
+     `shared/`: si allineano finché costa venti sostituzioni. */
+  --ink-dg: var(--danger);
+  --ink-wr: var(--warn);
+  --ink-sup:var(--app-support2);
 
   /* ---- gradienti ---- */
   --grad:    linear-gradient(135deg,#00b1a1,#009284);
@@ -163,7 +169,7 @@
    pastiglia «INSOLUTA» scende da 5,72:1 a 3,30 — cioè si aggiusterebbe la
    cifra rompendo la pastiglia. Una tinta che fa da inchiostro e da fondo vuole
    due valori, non un compromesso: qui prendono il valore di giorno i gradienti
-   e i tre inchiostri (`--danger-ink`, `--warn-ink`, `--sup-ink`), mentre i
+   e i tre inchiostri (`--ink-dg`, `--ink-wr`, `--ink-sup`), mentre i
    pieni restano quelli che le pastiglie sanno reggere.
    ═══════════════════════════════════════════════════════════ */
 body.dw.light-mode, body.dw.outdoor-mode{
@@ -171,9 +177,9 @@ body.dw.light-mode, body.dw.outdoor-mode{
      (rosso 2°, ambra 25°, ottone 38°) e sola luminosità portata dove si legge
      sul bianco. Il rosso dei soldi da incassare resta il rosso: più cupo di
      mezzo tono, ma è ancora la sola cosa rossa della riga. */
-  --danger-ink:#c62924;   /* testo piccolo: 5,61:1 (era 3,24) */
-  --warn-ink:  #a35219;   /* testo piccolo: 5,56:1 (era 2,03) */
-  --sup-ink:   #80663a;   /* testo piccolo: 5,41:1 (era 2,50) */
+  --ink-dg: #c62924;   /* testo piccolo: 5,61:1 (era 3,24) */
+  --ink-wr: #a35219;   /* testo piccolo: 5,56:1 (era 2,03) */
+  --ink-sup:#80663a;   /* testo piccolo: 5,41:1 (era 2,50) */
   /* ⛔ E LE CIFRE NON STANNO AL LIVELLO DEL TESTO PICCOLO, PERCHÉ NON SONO
      TESTO PICCOLO. Le soglie WCAG sono due davvero — 4,5 sotto i 24 px (o i
      18,66 in grassetto), 3 sopra — e un numerone da 32 px non ha bisogno di
@@ -198,7 +204,7 @@ body.dw.light-mode, body.dw.outdoor-mode{
      `.avatar.sup`, con sopra due lettere bianche da 12 px, cioè testo piccolo.
      Schiarirlo al livello degli altri riporterebbe quel bianco sotto soglia
      (era lì che stava il 3,81:1). Due mestieri, e vince quello più esigente. */
-  --grad-sup:linear-gradient(135deg,var(--sup-ink),#574527);  /* cifre: 4,94:1 · bianco sopra: 5,41:1 (era 3,81) */
+  --grad-sup:linear-gradient(135deg,var(--ink-sup),#574527);  /* cifre: 4,94:1 · bianco sopra: 5,41:1 (era 3,81) */
 }
 
 /* ─────────────── pagine ─────────────── */
@@ -249,7 +255,7 @@ body.dw.light-mode, body.dw.outdoor-mode{
   background:radial-gradient(260px 150px at 8% 0%,rgba(196,158,93,.10),transparent 70%);
 }
 .cassa.vuota .cassa-ico{
-  color:var(--sup-ink); background:rgba(196,158,93,.14);
+  color:var(--ink-sup); background:rgba(196,158,93,.14);
   box-shadow:inset 0 1px 0 rgba(255,255,255,.10), 0 0 14px rgba(196,158,93,.14);
 }
 .cassa>*{position:relative}
@@ -294,7 +300,7 @@ body.dw.light-mode, body.dw.outdoor-mode{
   background:radial-gradient(260px 150px at 8% 0%,var(--glow-wr),transparent 70%);
 }
 .cassa.attenta .cassa-ico{
-  color:var(--warn-ink); background:var(--glow-wr);
+  color:var(--ink-wr); background:var(--glow-wr);
   box-shadow:inset 0 1px 0 rgba(255,255,255,.10), 0 0 14px var(--glow-wr);
 }
 .cassa.attenta .cassa-num{
@@ -305,7 +311,7 @@ body.dw.light-mode, body.dw.outdoor-mode{
   background:radial-gradient(260px 150px at 8% 0%,var(--glow-dg),transparent 70%);
 }
 .cassa.grave .cassa-ico{
-  color:var(--danger-ink); background:var(--glow-dg);
+  color:var(--ink-dg); background:var(--glow-dg);
   box-shadow:inset 0 1px 0 rgba(255,255,255,.10), 0 0 14px var(--glow-dg);
 }
 .cassa.grave .cassa-num{
@@ -388,7 +394,7 @@ body.dw.light-mode, body.dw.outdoor-mode{
   letter-spacing:.4px; color:var(--text); line-height:1.1; white-space:nowrap;
 }
 .amt-n.pos{color:var(--app-accent2)}
-.amt-n.neg{color:var(--danger-ink)}
+.amt-n.neg{color:var(--ink-dg)}
 .amt-n.mute{color:var(--muted2); font-weight:700}
 .amt-s{
   font-size:10px; color:var(--muted); letter-spacing:.4px; margin-top:2px;
@@ -404,7 +410,7 @@ body.dw.light-mode, body.dw.outdoor-mode{
   color:var(--app-accent2);
   background:color-mix(in srgb,var(--app-accent) 16%,transparent);
 }
-.arr.del:hover{color:var(--danger-ink); background:rgba(240,95,90,.14)}
+.arr.del:hover{color:var(--ink-dg); background:rgba(240,95,90,.14)}
 
 /* ─────────────── badge (copia di .scad-badge: raggio 3px, pieno) ─────────────── */
 .badge svg{
@@ -425,7 +431,7 @@ input[type=number].dw-input,
   letter-spacing:1.8px; text-transform:uppercase; color:var(--muted);
 }
 .fld .err-msg{
-  display:none; font-size:11px; color:var(--danger-ink); line-height:1.35;
+  display:none; font-size:11px; color:var(--ink-dg); line-height:1.35;
   align-items:center; gap:5px;
 }
 .fld.bad .err-msg{display:flex}
@@ -446,7 +452,7 @@ input[type=number].dw-input,
   border-color:color-mix(in srgb,var(--danger) 55%,var(--border2)); color:var(--muted2);
 }
 .dw-btn.mini.no:hover{
-  border-color:var(--danger); color:var(--danger-ink); background:rgba(240,95,90,.10);
+  border-color:var(--danger); color:var(--ink-dg); background:rgba(240,95,90,.10);
 }
 
 /* ─────────────── filtri a segmento (copia di .chg) ─────────────── */
@@ -527,7 +533,7 @@ input[type=number].dw-input,
   font-family:'Barlow Condensed',sans-serif; font-size:15px; font-weight:800;
   letter-spacing:.3px; font-variant-numeric:tabular-nums; min-width:112px;
 }
-.gcli-v.neg{color:var(--danger-ink)}
+.gcli-v.neg{color:var(--ink-dg)}
 .gcli-b .dwg{margin:0}
 .gcli-b .dwg-head{display:none}      /* il nome è già nell'intestazione di riga */
 .gcli-b .dwg-plot{margin-top:0}
@@ -627,7 +633,7 @@ label.item:has(.dw-chk:checked){
    devono farsi leggere sotto una voce di elenco. */
 .pesa-manca{
   flex:1 1 100%; font-size:11.5px; line-height:1.5; margin-top:3px;
-  color:var(--warn-ink);
+  color:var(--ink-wr);
 }
 .pesa-manca b{color:inherit; font-weight:700}
 
@@ -3493,7 +3499,7 @@ label.item:has(.dw-chk:checked){
         <button class="arr del" type="button" title="Elimina prodotto" aria-label="Elimina ${esc(p.nome)}" data-del-pro="${p.id}">${IC.croce}</button></div></div>`
       /* la scala va SOTTO la riga: in coda al dettaglio finirebbe nelle due
          righe tagliate dal `line-clamp` e non la leggerebbe nessuno. */
-      + (!v.ok ? `<div class="form-hint" style="margin:-2px 0 8px;color:var(--danger-ink);">${esc(v.problemi[0])}</div>`
+      + (!v.ok ? `<div class="form-hint" style="margin:-2px 0 8px;color:var(--ink-dg);">${esc(v.problemi[0])}</div>`
          : v.quanti ? `<div class="form-hint" style="margin:-2px 0 8px;">${
              v.scala.map(b => esc(etichettaScaglione(b, v.unita, qtS)) + ": "
                + (b.implicita ? "listino pieno"
