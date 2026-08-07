@@ -1150,6 +1150,19 @@ Perché serva davvero e non produca elenchi generici, cinque vincoli:
   dipingono un fondo non sono mai comparse: 1 fatta comparire, 17 solo elencate»
   — e nessuno l'aveva letto: è la regola delle righe «non ho guardato», da
   leggere **prima** dei KO.
+  ⚠️ **E la variante che non ha bisogno di nessun difetto per fare danno:
+  un'ETICHETTA PIÙ LARGA DEL SUO NUMERO.** Il 07/08 ne sono passate quattro in
+  un giorno. «**2.251 prove girano senza rete e senza browser**» è la somma di
+  **sei** suite, e il giro `node` ne esegue **2.474**: la frase promette *tutto
+  quello che gira*, il numero conta un pezzo. «13 regole» per le strisce di
+  stato era un censimento **per nome**, e per effetto erano 267. «54 mancanze
+  confermate» conta una **forma di scrittura**, e Scudo — che le scrive con
+  altre parole — dà **zero**. Nessuno dei tre numeri è sbagliato: è la frase
+  intorno a essere più larga. Il rimedio non è cambiare il numero — spesso
+  quello giusto è proprio il più stretto: **2.251 va tenuto** perché le altre
+  dieci suite contano *file* e crescono da sole quando nasce un file, cioè
+  misurano il repository invece del lavoro. Il rimedio è **scrivere accanto che
+  cosa conta e che cosa no**.
 - ⛔ **DARE UN NOME A UN VALORE LO FA SPARIRE DA UN CONTROLLO STATICO, IN
   SILENZIO.** Misurato il 07/08 sulla regola 24 di `run-stile`, che legge le
   fermate dei gradienti come `#hex`: una fermata scritta `var(--warn-ink)` non
