@@ -897,6 +897,19 @@ numero scritto dove non era stato misurato niente**.*
   delle misure» e «Provenienza dei dati di misura» a **1,92**, la riga «DATI DI
   ESEMPIO» a **1,69**, i numeroni dei KPI fermi a **2,92-2,95**. Quando è fatta,
   si registra `--tema=sole` in `tutti.mjs`.
+- [x] ✅ **Le quattro classi morte tolte** (`f576131`): 1.154 → **1.150** classi,
+  morte 4 → 0. La seconda metà della regola ha fatto il suo lavoro per la prima
+  volta, pretendendo che sparissero anche le righe che le scusavano. ⚠️ Svuotato
+  l'elenco, la suite stampava «0 passati, 0 falliti» — il verde di un file
+  **inerte**: aggiunte due prove che dicono che ha guardato qualcosa.
+- [x] ✅ **Il tema outdoor del core è codice morto** (`e331747`): **136**
+  occorrenze di stile che non si vedono mai, e ci abbiamo ragionato sopra **in
+  due** su un caso che non può succedere. Ora c'è un commento **e** una prova con
+  quattro condizioni, fra cui — all'opposto — che `dw-tema.js` quella classe la
+  metta davvero nelle app. La rimozione vera resta dichiarata e non fatta.
+- [x] ✅ **Terza avvertenza su `run-kpi`** (`006088f`): una prova scritta in
+  fondo non può essere `async`, perché l'`await` sta a metà file e il totale si
+  stampa senza aspettarla. Non è «dopo il `process.exit`»: è **dopo l'await**.
 
 ## Riferimenti
 
