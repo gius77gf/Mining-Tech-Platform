@@ -370,7 +370,7 @@ colore del genitore, un raggio che torna a zero. È la stessa forma del
 principio che il prodotto applica ai numeri: **l'assenza di un dato non è un
 dato favorevole**, e qui il dato assente si traveste da «va bene così».
 
-~~Il conto del contagio: **21 selettori** del foglio condiviso cadrebbero su
+~~Il conto del contagio: **22 selettori** del foglio condiviso cadrebbero su
 markup che Genesi **ha già** — non solo la famiglia `.modal-*` ma anche `.kpi`,
 `.kpi.ok`, `.kpi.warn`, `.badge.ok`, `.badge.tag`, `.note.ok`, `.dw-btn`.~~
 
@@ -393,6 +393,17 @@ markup che Genesi **ha già** — non solo la famiglia `.modal-*` ma anche `.kpi
 > `shared/dw-app-ui.css` c'è un commento che nomina `.btn-sec`, ed è finito
 > nell'elenco dei selettori. Cioè: uno dei match era un **artefatto**, e si è
 > visto solo perché il numero si è mosso.
+> ⏱️ **E il 07/08, in serata, è risalito a 22 — terza mossa, terza ragione, e
+> nessuna delle tre è un peggioramento del prodotto.** Stavolta è `.toast.warn`,
+> aggiunta a `shared/dw-app-ui.css`: `toast(msg, tipo)` accetta qualunque `tipo`
+> e ne fa una classe, ma il foglio ne dipingeva **due** — `err` e `success`.
+> Chi passava «warn» — un messaggio che non è né un successo né un errore —
+> otteneva il toast **neutro**, cioè quello che si legge «non è successo
+> niente». Un avviso che non avvisa, senza un errore da vedere: la stessa
+> famiglia dei bordi che spariscono, due paragrafi più su.
+> Cade su Genesi perché Genesi la classe `toast` ce l'ha già — ed è **voluto**:
+> quella famiglia il foglio condiviso la deve vestire.
+>
 > La lezione, che vale per qualunque censimento su testo: **un commento che
 > nomina un selettore non è un selettore**, e chi estrae con «tutto quello che
 > sta prima della graffa» se li porta dentro tutti. Dichiarato qui invece di

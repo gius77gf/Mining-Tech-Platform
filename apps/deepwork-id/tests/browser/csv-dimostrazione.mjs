@@ -129,6 +129,14 @@ const GIRI = {
   "sentinella_ricettori.csv": ["sentinella", "parseRicettoriCsv"],
   "sentinella_tarature.csv": ["sentinella", "parseTaratureCsv"],
   "sentinella_registro_volate.csv": ["sentinella", "parseVolateCsv"],
+  /* ⛔ MANCAVA, ED È QUELLO SU CUI IL BOTTONE FA UNA PROMESSA. Il file dei
+     rilievi è uno dei sette che rientrano davvero, e la sua etichetta dice «nel
+     formato che questa pagina sa ri-caricare»: il 07/08 scaricava **8** righe e
+     ne rientravano **7**. Il giro qui sotto non poteva accorgersene per due
+     ragioni, e tutt'e due sono state corrette: non era in elenco, e la sua
+     asserzione era `righe.length > 0` — larga abbastanza da passare anche se
+     ne fosse tornata **una** su otto. */
+  "terra_rilievi.csv": ["terra", "parseRilieviCsv"],
 };
 
 /* ── LE INIEZIONI ──────────────────────────────────────────────────────────
@@ -240,6 +248,8 @@ const ATTESO = !FINGE_LIVE;
    copie uguali oggi divergono domani senza che nessuno lo veda. */
 
 let nBottoni = 0, nFile = 0, nVeri = 0, nProgrammatici = 0, nGiri = 0, nRigheLette = 0;
+let nRigheScritte = 0, nPerse = 0;   // il denominatore del giro: scritte contro rientrate
+let nErrClic = 0;                    // errori sollevati PREMENDO, non caricando
 let nNumeri = 0, nScappati = 0;
 /* ⛔ LE RIGHE CHE DICONO «NON HO GUARDATO» VANNO LETTE PER PRIME. Un bottone
    premuto che non ha prodotto nessun file non è una prova passata: è una
@@ -278,6 +288,20 @@ const provaApp = async (app) => {
   await pg.goto(`http://127.0.0.1:${porta}/${rel}`);
   await pg.waitForTimeout(2600);
   dice(errori.length === 0, `${app}: la pagina non solleva errori`, errori.slice(0, 2));
+  /* ⛔ E QUESTA RIGA GUARDAVA PRIMA CHE I BOTTONI FOSSERO PREMUTI. L'ascoltatore
+     c'era, l'elenco si riempiva, e l'unica domanda arrivava DUE SECONDI DOPO IL
+     CARICAMENTO — cioè prima di ogni clic. Effetto misurato il 07/08: il bottone
+     «Scarica rilievi» di Terra chiamava `conta(...)`, che nella pagina non era
+     importata; il file usciva (l'`a.click()` viene prima) e poi il gestore
+     MORIVA, quindi nessun messaggio, nessun toast, e 41 bottoni premuti che
+     dicevano «0 KO». Un errore DURO che nessuno vedeva, in un banco costruito
+     apposta per premere quei bottoni.
+     Il segno da riconoscere: il conto degli errori si legge al momento
+     sbagliato. Adesso si legge anche DOPO, ed è la sola riga che può vedere
+     questa famiglia — `nomi-liberi` non la vede, e la ragione è misurata: nella
+     stessa pagina esiste un `const conta = …` locale a un'altra funzione, e
+     quel controllo guarda il FILE, non lo SCOPE. Tolto l'import, resta verde. */
+  const erroriAlCarico = errori.length;
 
   /* prova di aver caricato davvero la dimostrazione: un banco che misura una
      pagina vuota risponde «tutto a posto» senza aver guardato niente */
@@ -324,6 +348,13 @@ const provaApp = async (app) => {
       await pg.waitForTimeout(220);
     } else dice(false, "flotta: nessuna macchina da aprire per il libretto");
   }
+
+  /* la seconda lettura: quello che è saltato PREMENDO i bottoni */
+  const durante = errori.slice(erroriAlCarico);
+  nErrClic += durante.length;
+  dice(durante.length === 0,
+    `${app}: nessun bottone di export ha ucciso il suo gestore (${bottoni.length} premuti)`,
+    durante.slice(0, 3).join(" · "));
 
   const usciti = await pg.evaluate(() => window.__usciti);
   nFile += usciti.length;
@@ -400,6 +431,20 @@ const provaApp = async (app) => {
     nGiri++; nRigheLette += righe.length;
     dice(Array.isArray(righe) && righe.length > 0,
       `${app}: giro scrivi/leggi — «${pulito}» rientra da ${lettore}(): ${righe.length} righe`, righe.length);
+    /* ⛔ E «RIENTRA QUALCOSA» NON È «RIENTRA TUTTO». Fino al 07/08 la riga qui
+       sopra era tutto il giro: passava anche se di otto righe scritte ne fosse
+       tornata **una**. Il denominatore c'è nel file e nessuno lo guardava — le
+       righe scritte si contano togliendo l'intestazione. Non è un KO quando i
+       due numeri differiscono, perché una differenza può essere **giusta** (una
+       riga senza il dato che il lettore pretende non deve rientrare travestita
+       da zero): è un KO quando la pagina non lo DICE. Qui il banco lo stampa
+       sempre, così un file che perde righe non passa più in silenzio. */
+    const scritte = c.testo.split(/\r?\n/).filter((r) => r.trim()).length - 1;
+    nRigheScritte += scritte;
+    if (righe.length !== scritte) {
+      nPerse += scritte - righe.length;
+      console.log(`      ⚠️ «${pulito}»: scritte ${scritte}, rientrano ${righe.length} — ${scritte - righe.length} restano fuori`);
+    }
   }
 
   await ctx.close();
@@ -470,12 +515,23 @@ if (muti.length) {
     JSON.stringify(campioniScappati("emesso;2026-08-07;ora;10:45;importo;1.234.567,89;iva;22").scappati));
   /* la guardia collegata: la funzione può essere giusta e non essere chiamata
      da nessuno — è la forma per cui esistono i conti qui sotto */
-  dice(nNumeri > 100, `il controllo dei decimali ha guardato ${nNumeri} numeri veri, non zero`, nNumeri);
+  /* ⛔ E LA SOGLIA VA DIVISA PER I SOGGETTI CHE IL BANCO HA POTUTO VEDERE. Il
+     100 è il conto del giro INTERO: con `--solo=terra` i file sono tre e i
+     numeri sette, quindi la guardia cadeva — un KO che non è un difetto del
+     prodotto, ed è il modo più veloce di insegnare a non guardare i KO. Con un
+     filtro attivo la domanda giusta non è «ne ha guardati abbastanza?» ma «ne
+     ha guardato almeno uno?»: il resto lo dice la passata senza filtro, che è
+     quella che gira in `tutti.mjs`. Non è una regola più permissiva, è la
+     stessa regola con il suo denominatore. */
+  dice(nNumeri > (SOLO ? 0 : 100),
+    `il controllo dei decimali ha guardato ${nNumeri} numeri veri, non zero${SOLO ? ` (solo «${SOLO}»: la soglia piena vale sul giro intero)` : ""}`, nNumeri);
 }
 
 console.log(`\n${nBottoni} bottoni di export premuti (${nVeri} con un clic vero, ${nProgrammatici} su una sezione non visibile)`
-  + ` · ${nFile} file letti · ${nGiri} giri scrivi/leggi rifatti sul file vero (${nRigheLette} righe rientrate)`
-  + ` · ${nNumeri} numeri letti nei file, ${nScappati} con più di ${MAX_DECIMALI} decimali`);
+  + ` · ${nFile} file letti · ${nGiri} giri scrivi/leggi rifatti sul file vero (${nRigheLette} righe rientrate su ${nRigheScritte} scritte`
+  + (nPerse ? `, ${nPerse} restano fuori — vedi le righe ⚠️ qui sopra` : "") + ")"
+  + ` · ${nNumeri} numeri letti nei file, ${nScappati} con più di ${MAX_DECIMALI} decimali`
+  + ` · ${nErrClic} gestori di export morti premendo il bottone`);
 if (CONTROPROVA || FINGE_LIVE)
   console.log(`iniezioni: ${nDecisioni} decisioni ${FINGE_LIVE ? "rovesciate" : "spente"}, ${nChiamate} chiamate tolte`
     + `${nMancate ? `, ⛔ ${nMancate} MANCATE` : ""}`);

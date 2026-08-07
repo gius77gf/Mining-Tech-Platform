@@ -243,6 +243,14 @@ export const DEMO = {
 // posti, una regola. Qui resta il nome con cui Terra l'ha sempre chiamata.
 export { provenienzaDi as provenienzaRilievo } from "../../shared/dw-ponti.js";
 import { provenienzaDi } from "../../shared/dw-ponti.js";
+/* ⛔ «QUESTO NUMERO L'HA SCRITTO QUALCUNO?» — la regola sta in `shared/` e la
+   usano già Conti e Sentinella; Terra era la terza app a averne bisogno e se ne
+   teneva una versione più debole nel file che ESCE (`csvRilievi`). Non si
+   riscrive: si ri-esporta, e la prova pretende l'IDENTITÀ
+   (`terra.numeroDichiarato === ponti.numeroDichiarato`), non il comportamento —
+   due copie uguali oggi divergono domani senza che nessuno lo veda. */
+export { numeroDichiarato } from "../../shared/dw-ponti.js";
+import { numeroDichiarato } from "../../shared/dw-ponti.js";
 export function soloScavo(rilievi)  { return (rilievi || []).filter(r => provenienzaDi(r) === "scavo"); }
 export function soloCumulo(rilievi) { return (rilievi || []).filter(r => provenienzaDi(r) === "cumulo"); }
 
@@ -1778,8 +1786,19 @@ export function csvRilievi(rilievi) {
     righe.push([
       csvCell(r.data || ""),
       /* il punto decimale, non la virgola: il file esce dall'azienda e lo
-         riapre anche un altro programma */
-      r.volumeM3 == null || !Number.isFinite(+r.volumeM3) ? "" : String(+r.volumeM3),
+         riapre anche un altro programma.
+         ⛔ E `numeroDichiarato`, NON `Number.isFinite(+x)`: qui c'era la copia
+         debole della regola che sta in `shared/` da giorni. `+""` fa **0** e
+         `Number.isFinite(0)` risponde **true**, quindi un rilievo con il volume
+         lasciato in bianco usciva scritto **`0`** — e misurato il 07/08 il
+         danno non è nel file, è nel RITORNO: ri-caricandolo `parseRilieviCsv`
+         lo accetta, `rilievoUsabile` lo dichiara buono, e quello zero entra nei
+         KPI, nel riepilogo annuale e nella denuncia come un volume **misurato**.
+         Un'assenza che fa il giro e torna dentro travestita da dato. Ora esce
+         una cella vuota, e il lettore la scarta: la riga si perde, e
+         `rientroRilievi` lo dice PRIMA di scaricare invece di lasciarlo
+         scoprire. */
+      (() => { const v = numeroDichiarato(r.volumeM3); return v == null ? "" : String(v); })(),
       csvCell(r.metodo || ""),
       csvCell(r.gsd || ""),
       csvCell(r.fronte || ""),
@@ -1787,6 +1806,37 @@ export function csvRilievi(rilievi) {
     ].join(";"));
   }
   return righe.join("\n") + "\n";
+}
+
+/* ⛔ «QUANTE DI QUESTE RIGHE TORNERANNO DENTRO?» — e la risposta si DERIVA, non
+   si riscrive: ogni riga viene scritta da `csvRilievi` e riletta da
+   `parseRilieviCsv`, cioè dalle due funzioni vere. Un conto scritto a mano
+   invecchia appena una delle due cambia — è il banco col numero atteso dentro,
+   che il 07/08 accusava il core di una cosa che aveva fatto il core.
+   Perché serve: il bottone diceva «Scaricati 8 rilievi **nel formato che questa
+   pagina sa ri-caricare**», e ri-caricandolo ne rientravano **7**. Misurato
+   sulla dimostrazione: il rilievo ancora `pianificato` non ha un volume, quindi
+   il lettore lo scarta — giustamente, perché quel volume non c'è. Quello che non
+   va è **prometterlo**. Il file resta com'è (un CSV a sei colonne non può
+   portare uno stato che non ha una colonna): a cambiare è la frase, che adesso
+   dice quante righe rientrano e **quali no, con la ragione**.
+   ⚠️ Il costo è un giro di scrittura e lettura per riga: sono decine di righe,
+   non migliaia, e si paga una volta sola alla pressione del bottone. */
+export function rientroRilievi(rilievi) {
+  const l = (rilievi || []).filter(Boolean);
+  const persi = [];
+  for (const r of l) {
+    if (parseRilieviCsv(csvRilievi([r])).length) continue;
+    const v = numeroDichiarato(r.volumeM3);
+    persi.push({
+      nome: r.titolo || r.id || "(senza titolo)",
+      ragione: !dataISOEsiste(String(r.data || "")) ? "la data non esiste"
+        : v == null ? "il volume non è stato misurato"
+        : v < 0 ? "il volume è negativo"
+        : "il lettore la scarta",
+    });
+  }
+  return { scritti: l.length, rientrano: l.length - persi.length, persi };
 }
 
 export function kpiFrom(fronti, rilievi, piano, oggi = new Date()) {

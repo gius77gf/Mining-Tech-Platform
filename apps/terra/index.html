@@ -976,7 +976,7 @@ a.dw-btn{text-decoration:none}
 
 
 <script type="module">
-  import { terraData, kpiFrom, fmtM3, volumeFronte, valoreMateriale, qualitaRilievo, riservaResidua, proiezioneAnnua, parseRilieviCsv, csvRilievi, parseFrontiCsv, trendVolumi, volumiPerMese, classeAccuratezza, bandaVolume, DENSITA_PRESET, presetDensita, densitaDelMateriale,
+  import { terraData, kpiFrom, fmtM3, volumeFronte, valoreMateriale, qualitaRilievo, riservaResidua, proiezioneAnnua, parseRilieviCsv, csvRilievi, rientroRilievi, parseFrontiCsv, trendVolumi, volumiPerMese, classeAccuratezza, bandaVolume, DENSITA_PRESET, presetDensita, densitaDelMateriale,
            autorizzazioneVigente, vitaCava, statoScadenzaTerra, livelloScadenzaTerra, prossimaData, riepilogoScadenze, TIPI_SCADENZA_TERRA, presetScadenzaTerra, etichettaTipoScadenza,
            provenienzaRilievo, soloScavo, soloCumulo, rilievoUsabile, PROVENIENZE, etichettaProvenienza,
            anniConVolumi, riepilogoAnnuale, ripartizioneFronti, ripartizioneBanchi, banchiDaSempre, serieAnnuale,
@@ -995,7 +995,7 @@ a.dw-btn{text-decoration:none}
   /* `plurale` viene da shared/ e non da qui: la regola del singolare c'era
      già, ed è la stessa che usano le altre app. Riscriverla in casa è la
      copia debole che CLAUDE.md censisce — provata riga per riga e buttata. */
-  import { mountExit, esc, csvCell, statoVuoto, senzaDoppioni, montaGuardiaInteri, euro0, isoLocale, oggiISO, dataISOEsiste, dataIt, nomeCsvDimostrazione, modoDimostrazione, plurale, avvisaSeNonSalva} from "../../shared/deepwork-id-client/dw-shell.js";
+  import { mountExit, esc, csvCell, statoVuoto, senzaDoppioni, montaGuardiaInteri, euro0, isoLocale, oggiISO, dataISOEsiste, dataIt, nomeCsvDimostrazione, modoDimostrazione, plurale, conta, avvisaSeNonSalva} from "../../shared/deepwork-id-client/dw-shell.js";
   // gli agganci della struttura condivisa (modale con Escape, riquadri da
   // tastiera, alone che segue il mouse). Va chiamato QUI e non nel blocco
   // classico in linea: i moduli girano dopo gli script `defer`.
@@ -1105,7 +1105,12 @@ a.dw-btn{text-decoration:none}
   const vuoto = (icona, titolo, sotto, azione) => statoVuoto(icona, titolo, sotto, azione);
   // ── Messaggi: toast del core + traccia scritta accanto al form ────────
   const esito = (id, testo, tipo) => {
-    const el = $(id); if (el) { el.textContent = testo; el.className = "note esito" + (tipo === "err" ? " err" : ""); }
+    /* ⛔ «warn» NON è «success» e non è «err». Fino al 07/08 la mappa aveva due
+       voci su tre e un avviso ricadeva sul neutro, cioè si leggeva come «non è
+       successo niente» — la regola 18 di `run-stile` (una mappa copra tutti gli
+       stati che la sua funzione sa dire) applicata ai messaggi. La barra
+       gialla c'era già in `shared/` e si chiama `.note.avviso`. */
+    const el = $(id); if (el) { el.textContent = testo; el.className = "note esito" + (tipo === "err" ? " err" : tipo === "warn" ? " avviso" : ""); }
     if (testo) toast(testo, tipo);
   };
   // ── Errori di campo: bordo rosso, fuoco automatico, messaggio utile ───
@@ -4442,8 +4447,20 @@ a.dw-btn{text-decoration:none}
     const a = document.createElement("a");
     a.href = "data:text/csv;charset=utf-8," + encodeURIComponent(csvRilievi(RIL));
     a.download = "terra_rilievi.csv"; marchiaCsv(a); a.click();
-    esito("ril-esito", plurale(RIL.length, "Scaricato ", "Scaricati ") + conta(RIL.length, "rilievo", "rilievi")
-      + " nel formato che questa pagina sa ri-caricare.", "success");
+    /* ⛔ «NEL FORMATO CHE QUESTA PAGINA SA RI-CARICARE» ERA UNA PROMESSA CHE IL
+       FILE NON MANTENEVA. Misurato il 07/08 sulla dimostrazione: 8 righe
+       scaricate, **7** che rientrano — il rilievo ancora `pianificato` non ha
+       un volume, e il lettore lo scarta a ragione. Il numero era giusto e a
+       mentire era la frase intorno. Adesso lo dice `rientroRilievi`, che la
+       risposta la DERIVA dallo scrittore e dal lettore veri invece di
+       riscriverla. */
+    const rr = rientroRilievi(RIL);
+    esito("ril-esito", plurale(rr.scritti, "Scaricato ", "Scaricati ") + conta(rr.scritti, "rilievo", "rilievi")
+      + (rr.persi.length
+        ? `. Ri-caricando il file ne ${plurale(rr.rientrano, "rientra ", "rientrano ")}${rr.rientrano}: `
+          + rr.persi.map(p => `«${p.nome}» resta fuori perché ${p.ragione}`).join("; ") + "."
+        : " nel formato che questa pagina sa ri-caricare."),
+      rr.persi.length ? "warn" : "success");
   };
   $("ril-file").onchange = async (e) => {
     const file = e.target.files && e.target.files[0]; if (!file) return;

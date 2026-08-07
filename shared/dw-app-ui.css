@@ -706,6 +706,14 @@ body.modal-open{overflow:hidden}
 .toast.show{opacity:1; transform:translateX(-50%) translateY(0)}
 .toast.err{background:var(--danger); color:var(--on-dg)}
 .toast.success{background:var(--success); color:var(--on-ok)}
+/* ⛔ E LA TERZA VOCE MANCAVA. `toast(msg, tipo)` accetta qualunque `tipo` e ne
+   fa una classe: chi passava «warn» — un messaggio che non è né un successo né
+   un errore — otteneva il toast NEUTRO, cioè quello che si legge «non è
+   successo niente». Nessun errore, nessuna regola rossa: solo un avviso che
+   non avvisa. Trovato il 07/08 scrivendo il primo messaggio di Terra che deve
+   dire «il file esce, ma una riga non rientrerà». Le due variabili esistono già
+   e sono quelle di `.badge.warn`, che il contrasto lo ha misurato. */
+.toast.warn{background:var(--warn); color:var(--on-wr)}
 
 /* ─────────────── desktop ─────────────── */
 

@@ -24006,6 +24006,55 @@ test("csvRilievi: una riga senza volume non torna dentro invece di tornarci come
   const t = terra.csvRilievi([{ data: "2026-03-01", volumeM3: null, provenienza: "scavo" }]);
   ok(/^2026-03-01;;/m.test(t), "la cella resta vuota, non diventa 0");
   eq(terra.parseRilieviCsv(t).length, 0, "e l'importatore la scarta: uno zero sarebbe un volume misurato");
+  /* ⛔ E LA PROVA GUARDAVA UN CASO SOLO — `null` — mentre il difetto stava
+     nell'altro. `+""` fa **0** e `Number.isFinite(0)` risponde **true**: la
+     guardia era unilaterale, e un volume lasciato in bianco usciva scritto
+     `0`. È la quinta causa dell'elenco: il caso difeso non c'era nella prova. */
+  for (const [nome, v] of [["stringa vuota", ""], ["spazi", "  "], ["campo assente", undefined], ["non un numero", "abc"]]) {
+    const f = terra.csvRilievi([{ data: "2026-03-01", volumeM3: v, provenienza: "scavo" }]);
+    ok(/^2026-03-01;;/m.test(f), `${nome}: la cella resta vuota`);
+    eq(terra.parseRilieviCsv(f).length, 0, `${nome}: e non rientra come zero misurato`);
+  }
+  /* ⛔ ma uno zero VERO è un dato, e si scrive: un rilievo che ha misurato zero
+     non è un rilievo che nessuno ha fatto */
+  const z = terra.csvRilievi([{ data: "2026-03-01", volumeM3: 0, provenienza: "scavo" }]);
+  ok(/^2026-03-01;0;/m.test(z), "lo zero misurato si scrive");
+  eq(terra.parseRilieviCsv(z).length, 1, "e rientra");
+});
+test("⛔ il vuoto che usciva zero rientrava come volume MISURATO, non si perdeva", () => {
+  /* Il danno non era nel file: era nel RITORNO. Con la guardia unilaterale, un
+     rilievo col volume in bianco usciva `0`, rientrava, `rilievoUsabile` lo
+     dichiarava buono, e quello zero finiva nei KPI, nel riepilogo annuale e
+     nella denuncia come una misura. Un'assenza che fa il giro e torna dentro
+     travestita da dato — la forma peggiore, perché nel file è tutto coerente. */
+  const dentro = terra.parseRilieviCsv(terra.csvRilievi([{ data: "2026-03-01", volumeM3: "" }]));
+  eq(dentro.length, 0, "non rientra affatto");
+  eq(terra.rilievoUsabile({ stato: "elaborato", volumeM3: "" }), false,
+    "e la regola di casa lo diceva già: il file era l'unico posto che non la usava");
+});
+test("rientroRilievi: dice PRIMA quante righe torneranno dentro, e quali no", () => {
+  /* ⛔ La risposta è DERIVATA dallo scrittore e dal lettore veri, non riscritta:
+     un conto a mano invecchia appena una delle due funzioni cambia. */
+  const sano = terra.rientroRilievi([{ id: "a", data: "2026-03-01", volumeM3: 10 }]);
+  eq([sano.scritti, sano.rientrano, sano.persi.length], [1, 1, 0], "una riga buona rientra");
+  const muto = terra.rientroRilievi([{ id: "a", data: "2026-03-01", volumeM3: 10 },
+    { titolo: "Prossimo rilievo", data: "2026-08-01", volumeM3: null }]);
+  eq([muto.scritti, muto.rientrano], [2, 1], "quella senza volume no");
+  eq(muto.persi[0], { nome: "Prossimo rilievo", ragione: "il volume non è stato misurato" },
+    "e la ragione si dice con parole, col nome della riga");
+  eq(terra.rientroRilievi([{ id: "d", data: "2026-02-30", volumeM3: 10 }]).persi[0].ragione,
+    "la data non esiste", "⛔ il 30 febbraio ha la forma giusta e non esiste");
+  eq(terra.rientroRilievi([{ id: "n", data: "2026-03-01", volumeM3: -5 }]).persi[0].ragione,
+    "il volume è negativo", "e un volume negativo non è un volume");
+  eq(terra.rientroRilievi([{ id: "z", data: "2026-03-01", volumeM3: 0 }]).rientrano, 1,
+    "⛔ ma lo zero MISURATO rientra: è un dato, non un'assenza");
+  eq([terra.rientroRilievi([]).scritti, terra.rientroRilievi(null).scritti], [0, 0], "e la lista vuota non rompe");
+  eq(terra.rientroRilievi([null, { id: "a", data: "2026-03-01", volumeM3: 10 }]).scritti, 1,
+    "i buchi nella lista non si contano fra le righe scritte: `csvRilievi` non li scrive");
+  /* la misura che ha aperto il cantiere: sulla dimostrazione 8 righe, 7 rientrano */
+  const demo = terra.rientroRilievi(terra.DEMO.rilievi);
+  eq([demo.scritti, demo.rientrano], [8, 7],
+    "⛔ ed è il numero che il bottone prometteva sbagliato: «Scaricati 8 nel formato che questa pagina sa ri-caricare»");
 });
 
 /* ── DECISIONE 12a, seconda voce: le PESATE che si ri-caricano ── */
