@@ -47,6 +47,14 @@
 
   /* ---- stati (nessuno litiga con il lampone: min 44° di distanza) ---- */
   --success:#6abb6e; --warn:#f8ac3d; --danger:#f05e5c; --info:#55a6ec;
+  /* ---- gli stessi stati quando fanno da INCHIOSTRO ----
+     Sul fondo scuro il colore di stato e il suo inchiostro sono la stessa
+     cosa, e questi tre alias non cambiano niente. Servono perche' sul BIANCO
+     non lo sono piu': vedi il blocco «tema chiaro e modalita' sole» piu'
+     sotto, dove valgono tre tinte piu' profonde. Passandoci ora, chi scrive
+     una frase colorata domani non deve ricordarsi della regola: la scrive
+     con `var(--ink-wr)` e va bene in tutti e tre i temi. */
+  --ink-ok:var(--success); --ink-wr:var(--warn); --ink-dg:var(--danger);
 
   /* ---- gradienti ---- */
   --grad:    linear-gradient(135deg,#e677c5,#c65aa7);
@@ -102,6 +110,159 @@
   --ord-gap:8px;
 }
 
+/* ══════════════════════════════════════════════════════════════════════════
+   TEMA CHIARO E MODALITÀ SOLE — i colori di stato quando fanno da INCHIOSTRO
+   ══════════════════════════════════════════════════════════════════════════
+   ⛔ IL DIFETTO, MISURATO. `shared/dw-app-ui.css` ricalcola per il chiaro e per
+   il sole superfici, testo, bordi e luce, ma NON tocca `--success`, `--warn`,
+   `--danger`: restano quelli scelti per il fondo scuro. Su un fondo scuro
+   vanno benissimo (l'ambra fa 6,9:1 sul nero di casa); sul BIANCO della
+   modalità sole diventano illeggibili. Misurato con
+   `tests/browser/contrasto.mjs --tema=sole --solo=flotta`, verificato a mano
+   elemento per elemento con `getComputedStyle` su inchiostro e fondo veri:
+
+     .giallo  «1 in scadenza entro 30 gg»      1,78:1   (serve 4,5)
+     .apar    «+1 a ore: non si sa quando»     1,78:1   (serve 4,5)
+     .rosso   «1 scaduta»                      3,02:1   (serve 4,5)
+     .bad     «1 pieno senza la spesa»         3,25:1   (serve 4,5)
+     .n       il numero del KPI, 32px          2,91:1   (serve 3)
+
+   L'ambra a 1,78 è la peggiore, ed è la peggiore anche come DANNO: è il colore
+   con cui l'app dice «sta per scadere», sul tema fatto apposta per chi legge
+   il telefono in cava, sotto il sole. Il tema più esposto era quello meno
+   leggibile.
+
+   ⚠️ PERCHÉ NOMI NUOVI E NON I COLORI VERI. `--warn` e `--danger` in questi
+   due temi NON si possono scurire e basta: la stessa variabile fa anche da
+   PIENO (`.badge.warn` è ambra con sopra `--on-wr`, quasi nero). Scurendola,
+   il testo che passa oggi a 9,3:1 crollerebbe a 3,5 — si aggiusta il testo e
+   si rompe la pastiglia. È una firma troppo stretta: un token solo per due
+   mestieri. Si separa invece di riscriverlo — il pieno resta vivo, l'inchiostro
+   si approfondisce.
+
+   ⚠️ E LA SCALA DI GRAVITÀ È UN VINCOLO QUANTO IL CONTRASTO: un giallo scurito
+   finché passa diventa un arancione che si confonde col rosso, e allora il
+   contrasto è risolto e il significato è rotto. Le tre tinte tengono la TINTA
+   del colore di stato di Flotta (si scende in luminosità, non si ruota) e la
+   distanza fra loro è misurata, non sperata:
+
+     rosso  #bd1a18   6,32:1 su bianco   5,90:1 sulla nota   tinta Lab  37°
+     ambra  #94600b   5,33:1             4,98:1                         74°
+     verde  #1a6f2a   6,27:1             5,85:1                        142°
+     rosso ↔ ambra  ΔE 46,4 · Δtinta 37°   (sul tema scuro: ΔE 53,4 · 45°)
+     ambra ↔ verde  ΔE 58,6 · Δtinta 69°
+
+   Il fondo peggiore dei due temi non è il bianco puro ma la «nota»
+   (`--card2` = accento al 6% sul bianco, rgb 251 245 250): il conto è fatto
+   lì. Margine chiesto: 4,5 + 0,2.
+
+   ⛔ E I LIVELLI SONO DUE, NON UNO — è la parte che il conto da solo non dà.
+   Le soglie WCAG sono due davvero (4,5 per il testo piccolo, 3 per quello
+   grande: ≥24px, o ≥18,66px in grassetto). Portando ANCHE la cifra da 32-38px
+   al livello del testo piccolo la prova passa lo stesso, ma il numerone
+   d'ambra diventa MARRONE mentre il bordo della sua card resta `--warn` pieno,
+   ambra acceso, perché quello è un fondo e non si tocca: due ambre diverse a
+   tre pixel di distanza. A 4,9:1 sul bianco nessuna tinta della famiglia
+   ambra è più ambra — è fisica, non una scelta. Una cifra alta 32px non ha
+   bisogno di stare al livello di un'etichetta da 10px, quindi:
+
+     cifra grande   rosso #e53633  4,00:1   ambra #b6760e  3,51:1   verde #24983a  3,48:1
+
+   Stessa tinta e stessa saturazione del primo livello (cambia SOLO la
+   luminosità): uno stato non deve cambiare significato cambiando corpo del
+   carattere. E la prova che il numerone resta di famiglia col pieno che gli
+   sta accanto: fra `--num-wr` (#b6760e) e il bordo `--warn` (#f8ac3d) c'è
+   **ΔE 21,8 con la stessa tinta, a 1° di scarto** — la stessa ambra, più
+   profonda; col livello piccolo (#94600b) sarebbe stato ΔE 34,2.
+
+   ⚠️ E IL «2,91 (serve 3)» DEL BANCO È STATO VERIFICATO PRIMA DI TOCCARLO,
+   perché su un testo dipinto da un gradiente quel numero è nel verso che
+   ACCUSA: il banco accoppia ogni fermata del fondo con ogni fermata
+   dell'inchiostro e tiene il minimo, anche quando le due stanno agli angoli
+   opposti e non si incontrano mai (dal 07/08 lo dichiara da sé, «forbice»).
+   Rifatto il conto valutando i due gradienti **nello stesso punto fisico**,
+   sul rettangolo del numero, 625 punti:
+
+     ambra  banco 2,91  ·  co-locato **2,99**  → sotto il 3 davvero, per un pelo
+     verde  banco 2,93  ·  co-locato **3,01**  → SOPRA il 3: qui il banco ACCUSAVA A TORTO
+
+   Cioè delle due bocciature una era vera e una no, tutt'e due appoggiate alla
+   soglia. Quello che le rende un difetto lo stesso non è la cifra: è che una
+   cifra da 32px che vive **sul filo del 3** non ha nessun margine — basta un
+   fondo un filo più chiaro e cade. Col secondo livello vanno a **3,61 e 3,58**
+   co-locati (banco 3,51 e 3,48), e la forbice resta 0,10: qui i due gradienti
+   quasi coincidono, non è il caso da 1,8 visto altrove.
+   ⚠️ Una strada è stata provata e SCARTATA, perché nessuno la rifaccia: contare
+   i pixel dello scatto. I bordi **antialiasati** di un glifo sono più chiari
+   dell'inchiostro e passano per inchiostro: davano 2,66 dove il vero è 2,99,
+   cioè 0,33 di errore nel verso che accusa. Su un carattere sottile sarebbe
+   bastato a mandare a cambiare un colore sano.
+
+   ⚠️ L'AMBRA È STATA SCHIARITA ALLA TERZA PASSATA, E LA RAGIONE NON STA NEI
+   NUMERI DEL CONTRASTO — quelli passavano già. Guardando lo scatto affiancato,
+   «1 scaduta» e «1 in scadenza entro 30 gg» pesavano UGUALE: due inchiostri
+   scuri alla stessa luminosità (L* 40,6 e 43,6) si leggono come due allarmi,
+   e la scala di gravità che l'app esiste per raccontare spariva. Sul fondo
+   scuro la scala regge perché l'ambra è più CHIARA del rosso (L* 75,9 contro
+   59,3), cioè più accesa; sul bianco «più acceso» vuol dire più scuro, quindi
+   il verso si ribalta: il rosso deve essere il più profondo e il più carico
+   (L* 40,6 · croma 75,6), l'ambra deve arretrare verso la carta
+   (L* 45,2 · croma 52,5). Portandola da #8a5f00 a #94600b il margine scende da
+   5,27 a 4,98 — resta sopra il 4,7 chiesto — e l'avviso torna a sembrare un
+   avviso invece di un secondo allarme.
+   ⚠️ Il limite, dichiarato: sul bianco il pavimento del 4,5:1 comprime tutti
+   gli inchiostri di stato in una fascia scura stretta, e un divario di
+   luminosità largo come quello del tema scuro NON è ottenibile. Qui la
+   gerarchia la porta soprattutto la CROMA (75,6 contro 52,5), non la
+   luminosità.
+
+   ⚠️ Vale per light-mode E outdoor-mode perché il difetto c'è in tutti e due:
+   il banco dà 13 sotto soglia sul chiaro e 13 sul sole, gli stessi. */
+body.dw.light-mode,
+body.dw.outdoor-mode{
+  /* PRIMO LIVELLO — il testo piccolo, soglia 4,5 */
+  --ink-ok:#1a6f2a;
+  --ink-wr:#94600b;
+  --ink-dg:#bd1a18;
+  /* SECONDO LIVELLO — la cifra grande, soglia 3. Stessa tinta e stessa
+     saturazione del primo: cambia solo la luminosità. */
+  --num-ok:#24983a;
+  --num-wr:#b6760e;
+  --num-dg:#e53633;
+  /* i gradienti dei numeri ritagliati (`.kpi .n`, `.gauge-num`), costruiti sul
+     secondo livello. I `--grad-*` veri restano come sono perché fanno anche da
+     PIENO sotto `--on-ok`/`--on-wr`/`--on-dg`, che sono quasi neri: scurire
+     quelli spegnerebbe la scritta sopra. Stessa separazione di sopra, un piano
+     più in là. */
+  --grad-ok-num:linear-gradient(135deg,#24983a,#186428);
+  --grad-wr-num:linear-gradient(135deg,#b6760e,#784e09);
+  --grad-dg-num:linear-gradient(135deg,#e53633,#972422);
+}
+/* i numeri grandi ritagliati nel gradiente: sul chiaro e sul sole prendono la
+   versione inchiostro. La specificità basta a battere `.kpi.ok .n` del foglio
+   condiviso senza toccarlo.
+   ⛔ E SI SCRIVE `background-image`, NON `background`. L'abbreviazione azzera
+   anche `background-clip`, che sta in un'altra regola: scritta così, la prima
+   stesura ha spento il ritaglio sul testo e i tre numeri sono diventati
+   rettangoli pieni con dentro l'inchiostro trasparente. Il banco l'ha detto
+   nel modo che CLAUDE.md descrive — «1:1» tondo, cioè non un colore ma una
+   misura che non ha trovato l'inchiostro — più la `.gauge-num` a 1,85 che
+   PRIMA passava. Cioè la correzione stava peggiorando la superficie che
+   doveva sistemare, e senza il banco non si vedeva leggendo il codice. */
+body.dw.light-mode  .kpi.ok .n,     body.dw.outdoor-mode .kpi.ok .n,
+body.dw.light-mode  .gauge-num,     body.dw.outdoor-mode .gauge-num{background-image:var(--grad-ok-num)}
+body.dw.light-mode  .kpi.warn .n,   body.dw.outdoor-mode .kpi.warn .n,
+body.dw.light-mode  .gauge.warn .gauge-num,
+body.dw.outdoor-mode .gauge.warn .gauge-num{background-image:var(--grad-wr-num)}
+body.dw.light-mode  .kpi.danger .n, body.dw.outdoor-mode .kpi.danger .n,
+body.dw.light-mode  .gauge.danger .gauge-num,
+body.dw.outdoor-mode .gauge.danger .gauge-num{background-image:var(--grad-dg-num)}
+/* `b.bad` («1 pieno senza la spesa») è definita in `shared/deepwork-style.css`,
+   che è serializzato e non si tocca da qui: si passa il token invece del
+   valore. Sul tema scuro `--ink-dg` VALE `--danger`, quindi questa riga non
+   cambia niente lì — è la stessa dichiarazione, scritta una volta sola. */
+body.dw b.bad{color:var(--ink-dg)}
+
 /* ─────────────── pagine ─────────────── */
 .page.active{animation:flFade .22s var(--ease)}
 @keyframes flFade{from{opacity:0} to{opacity:1}}
@@ -127,7 +288,7 @@
 }
 .kpi .s:empty{display:none}
 .kpi .s b{color:var(--muted2); font-weight:700}
-.kpi .s .apar{color:var(--warn)}
+.kpi .s .apar{color:var(--ink-wr)}
 
 /* ─────────────── cartellone disponibilità flotta (quadro strumenti) ─────────────── */
 .gauge{
@@ -278,17 +439,17 @@
   border-color:color-mix(in srgb,var(--app-accent) 40%,transparent);
 }
 .arr.ok:hover{
-  color:var(--success); background:rgba(106,187,110,.14);
+  color:var(--ink-ok); background:rgba(106,187,110,.14);
   border-color:rgba(106,187,110,.4);
 }
 .arr.dan:hover{
-  color:var(--danger); background:rgba(240,94,92,.14); border-color:rgba(240,94,92,.4);
+  color:var(--ink-dg); background:rgba(240,94,92,.14); border-color:rgba(240,94,92,.4);
 }
 /* segnalare un guasto è un AVVISO, non una cancellazione: la terza tinta
    dello stesso schema (`ok` verde, `dan` rosso, `avv` ambra), perché usare
    il rosso della croce vorrebbe dire dire «qui si distrugge qualcosa» */
 .arr.avv:hover{
-  color:var(--warn); background:rgba(248,172,61,.14); border-color:rgba(248,172,61,.4);
+  color:var(--ink-wr); background:rgba(248,172,61,.14); border-color:rgba(248,172,61,.4);
 }
 
 /* ─────────────── badge (copia di .scad-badge: raggio 3px, pieno) ─────────────── */
@@ -328,8 +489,8 @@
 }
 .note.link:hover{border-left-color:var(--app-accent); background:var(--card)}
 .note .go{color:var(--app-accent2); white-space:nowrap}
-.note .rosso{color:var(--danger); font-weight:600}
-.note .giallo{color:var(--warn); font-weight:600}
+.note .rosso{color:var(--ink-dg); font-weight:600}
+.note .giallo{color:var(--ink-wr); font-weight:600}
 
 /* ─────────────── navigazione: pillola flottante (copia di #global-nav.bnav) ─────────────── */
 .nav{border-top:1px solid var(--border2); padding-bottom:0}
@@ -372,7 +533,7 @@
 .chk-cr{
   display:inline-block; vertical-align:1px; margin-left:6px; padding:1px 6px;
   border-radius:999px; background:color-mix(in srgb,var(--danger) 16%,transparent);
-  border:1px solid color-mix(in srgb,var(--danger) 42%,transparent); color:var(--danger);
+  border:1px solid color-mix(in srgb,var(--danger) 42%,transparent); color:var(--ink-dg);
   font-family:'Barlow Condensed',sans-serif; font-size:9.5px; font-weight:700;
   letter-spacing:1.2px; text-transform:uppercase;
 }

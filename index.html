@@ -4275,7 +4275,27 @@ function _genReportTecnico(da,a,cavaId,macRef){
   });
   const pages=d.internal.getNumberOfPages();
   for(let p=1;p<=pages;p++){d.setPage(p);d.setTextColor(150,130,80);d.setFont('helvetica','italic');d.setFontSize(8);d.text('Deepwork per Cofa Mineraria',14,205);d.setTextColor(160,160,160);d.setFont('helvetica','normal');d.text('pag. '+p+'/'+pages,283,205,{align:'right'});}
-  d.save('Report_tecnico_'+(da||'')+'_'+(a||'')+'.pdf');
+  /* ⛔ IL NOME DICE SU CHE COSA È IL REPORT, E A PERIODO APERTO NON DICEVA
+     NIENTE. Con le due date vuote — che è il caso normale, «tutto» — usciva
+     `Report_tecnico__.pdf`: due report salvati a periodo aperto **si
+     sovrascrivono a vicenda** senza che il browser chieda niente, e chi li
+     confronta a distanza di un mese ne ha uno solo e non sa quale.
+     Adesso l'estremo che manca lo dice con una parola invece che con un buco, e
+     se mancano tutti e due il nome porta il **giorno in cui il report è stato
+     prodotto**: due esportazioni dello stesso periodo restano due file finché
+     non si fanno nello stesso giorno, e sopra quella soglia il periodo è
+     davvero lo stesso.
+     ⚠️ La data si prende da `isoLocale`, che il core importa già da
+     `shared/`, e NON da `toISOString()`: il contenitore è in UTC, le cave sono
+     in Italia, e alle 23 di sera quelle due danno due giorni diversi
+     (`docs/RICERCA_GIORNO_LOCALE_202607.md`).
+     ⚠️⚠️ E scrivendo questa riga avevo chiamato un `oggiLocale()` che **non
+     esiste**: la famiglia di `chiediDati`, cioè un nome libero che fa morire la
+     pagina al primo tocco senza che nessuna prova `node` se ne accorga. L'ho
+     preso cercando in casa prima di committare, che è la regola; se non
+     l'avessi fatto l'avrebbe preso `nomi-liberi.mjs`, che esiste per questo. */
+  const pezzo=(da||a)?((da||'inizio')+'_'+(a||'oggi')):('tutto_'+isoLocale(new Date()));
+  d.save('Report_tecnico_'+pezzo+'.pdf');
   toast('Report tecnico generato','success');
 }
 window.exportReportTecnicoPDF=exportReportTecnicoPDF;
