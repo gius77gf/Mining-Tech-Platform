@@ -23967,5 +23967,40 @@ test("csvClienti: senza ragione sociale non è un cliente", () => {
     "sarebbe una voce senza nome nell'elenco e un intestatario mancante in fattura");
 });
 
+/* ── DECISIONE 12a, sesta voce: le AZIONI CORRETTIVE che si ri-caricano ── */
+test("csvAzioni → parseAzioniCsv: il giro torna identico, l'origine compresa", () => {
+  const dentro = { id: "a1", descrizione: "Rifare l'arginello della pista", responsabileId: "d3",
+    scadenza: "2026-09-01", stato: "in-corso", esito: "", dataChiusura: null,
+    origineTipo: "fermo", origineApp: "campo", origineEtichetta: "Fermo di produzione" };
+  const [fuori] = scudo.parseAzioniCsv(scudo.csvAzioni([dentro]));
+  for (const k of Object.keys(dentro)) eq(fuori[k], dentro[k], `campo ${k}`);
+  eq(scudo.csvAzioni([]).split("\n")[0], scudo.CSV_AZIONI_INTESTAZIONE);
+});
+test("csvAzioni: il collegamento con l'evento non si perde", () => {
+  /* è il legame che un organo di vigilanza cerca: da quale evento nasce
+     l'azione. Perderlo vorrebbe dire ri-caricare un registro in cui nessuna
+     azione sa più da dove viene. */
+  const [a] = scudo.parseAzioniCsv(scudo.csvAzioni([{ id: "a1", descrizione: "x",
+    origineTipo: "evento", origineId: "i7", origineVoce: "caduta massi", origineData: "2026-05-02" }]));
+  eq(a.origineTipo, "evento"); eq(a.origineId, "i7");
+  eq(a.origineVoce, "caduta massi"); eq(a.origineData, "2026-05-02");
+});
+test("csvAzioni: «responsabile da assegnare» resta null, non una stringa vuota", () => {
+  const [a] = scudo.parseAzioniCsv(scudo.csvAzioni([{ id: "a2", descrizione: "Senza responsabile" }]));
+  eq(a.responsabileId, null, "una stringa vuota sarebbe un id che non trova nessuno");
+  eq(a.scadenza, null, "e senza data è uno stato, non una data sbagliata");
+  eq("origineId" in a, false, "i campi facoltativi assenti non si inventano vuoti");
+});
+test("csvAzioni: uno stato sconosciuto ricade su «aperta», e una data impossibile non entra", () => {
+  const [a] = scudo.parseAzioniCsv("id;descrizione;responsabileId;scadenza;stato;esito;dataChiusura;origineTipo;origineId;origineVoce;origineNota;origineApp;origineData;origineEtichetta\n"
+    + "a3;Prova;;2026-02-30;boh;;;;;;;;;\n");
+  eq(a.stato, "aperta", "un'azione di cui non si sa lo stato non è chiusa");
+  eq(a.scadenza, null, "il 30 febbraio non scorre al 2 marzo dentro uno scadenzario");
+});
+test("csvAzioni: senza descrizione non è un'azione", () => {
+  eq(scudo.parseAzioniCsv(scudo.csvAzioni([{ id: "a9", descrizione: "" }])).length, 0,
+    "nel registro sarebbe una riga che non dice che cosa bisogna fare");
+});
+
 console.log(`\nRisultato KPI app: ${passed} passati, ${failed} falliti${inVolo.length ? `  ·  ${inVolo.length} prove asincrone aspettate` : ""}`);
 process.exit(failed > 0 ? 1 : 0);

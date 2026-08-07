@@ -1250,7 +1250,10 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
     </div>
   </div>
   <div class="tools">
-    <button class="dw-btn secondary" id="btn-azi-export">Esporta CSV</button>
+    <button class="dw-btn secondary" id="btn-azi-export" title="Prospetto: porta lo stato calcolato e la frase dell&rsquo;origine. NON si ri-carica">Esporta CSV</button>
+    <button class="dw-btn secondary" id="btn-azi-backup" title="Copia di sicurezza: campi crudi e collegamento con l&rsquo;evento">Copia di sicurezza (CSV)</button>
+    <button class="dw-btn secondary" id="btn-azi-restore">Ri-carica copia (CSV)</button>
+    <input type="file" id="azi-file" accept=".csv,text/csv" style="display:none;">
   </div>
   <div class="note esito" id="azi-esito-msg"></div>
   <div class="note">Ogni infortunio o near-miss dovrebbe portare a <b>un'azione correttiva</b>: cosa si fa, chi la fa, entro quando, e com'è finita. Tocca il badge dello stato per farla avanzare (aperta → in corso → chiusa); l'icona ✎ apre la modifica qui sopra e ↗ riporta all'evento che l'ha generata. Le azioni non chiuse con una data entrano nel <b>semaforo del Quadro e nello scadenzario</b> come tutte le altre scadenze.</div>
@@ -1693,7 +1696,7 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
 
 <script type="module">
   import { scudoData, statoScadenza, inTurnoOggi, kpiFrom, idoneitaLabel, idoneitaSuccessivo, idoneitaCriticita, livelloScadenza, coperturaFormazione, muroScadenze, MESI_NOMI, testoPromemoria, riepilogoInfortuni, parseInfortuniCsv, parseScadenzeCsv, parseLavoratoriCsv, SCADENZE_PRESET, presetScadenza, dataDaPeriodicita, TIPI_DOCUMENTO, azioneLabel, azioneStatoSuccessivo, statoAzione, azioniUrgenti, riepilogoAzioni, azioniDiEvento,
-    daAmbiente, etichettaAmbiente, riepilogoAmbiente, origineAzione, etichettaScadenza,
+    daAmbiente, etichettaAmbiente, riepilogoAmbiente, origineAzione, csvAzioni, parseAzioniCsv, etichettaScadenza,
     NEARMISS_CATEGORIE, NEARMISS_LUOGHI, categoriaNearMiss, luogoNearMiss, descrizioneNearMiss, riepilogoNearMiss, descriviLetturaNearMiss, bozzaNearMiss,
     GRAVITA_POTENZIALE, potenzialeDi, descriviPotenziale, riepilogoPotenziale, descriviRischioPotenziale,
     MODELLI_ISPEZIONE, modelloIspezione, nuovaIspezioneDaModello, riepilogoIspezione, riepilogoIspezioni, vociNonConformi, statoIspezione, azioniDiIspezione, esitoLabel, ESITI_ISPEZIONE, dataPiuGiorni,
@@ -4954,6 +4957,37 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
       $("azi-desc").focus();   // pronto per la prossima
     }
     await refresh();
+  };
+  /* ⛔ DECISIONE 12a, sesta e ultima voce: la COPIA DI SICUREZZA del registro.
+     Il bottone qui sotto è un prospetto — porta lo stato calcolato e la frase
+     dell'origine composta da `origineAzione`, che rientrando verrebbero
+     ricalcolate sbagliate. Questa porta i campi crudi e i SEI campi
+     dell'origine: il collegamento evento → azione è proprio quello che un
+     organo di vigilanza cerca. */
+  $("btn-azi-backup").onclick = () => {
+    const a = document.createElement("a");
+    a.href = "data:text/csv;charset=utf-8," + encodeURIComponent(csvAzioni(AZI));
+    a.download = "scudo_azioni_copia.csv"; marchiaCsv(a); a.click();
+    esito("azi-esito-msg", plurale(AZI.length, "Salvata ", "Salvate ") + conta(AZI.length, "azione correttiva", "azioni correttive")
+      + " nella copia che questa pagina sa ri-caricare.", "success");
+  };
+  $("btn-azi-restore").onclick = () => $("azi-file").click();
+  $("azi-file").onchange = async (e) => {
+    const file = e.target.files && e.target.files[0]; if (!file) return;
+    const righe = parseAzioniCsv(await file.text());
+    e.target.value = "";
+    if (!righe.length) {
+      esito("azi-esito-msg", "Nel file non c'è nessuna azione leggibile: controlla che sia la copia di sicurezza e non il prospetto (le colonne sono diverse).", "err");
+      return;
+    }
+    const gia = new Set(AZI.map(a => String(a.descrizione || "").trim().toLowerCase() + "|" + (a.scadenza || "")));
+    const nuove = righe.filter(r => !gia.has(String(r.descrizione || "").trim().toLowerCase() + "|" + (r.scadenza || "")));
+    for (const r of nuove) await db.aggiungi("azioni", r);
+    await refresh();
+    esito("azi-esito-msg", nuove.length
+      ? plurale(nuove.length, "Rimessa dentro ", "Rimesse dentro ") + conta(nuove.length, "azione", "azioni")
+        + (righe.length > nuove.length ? ` · ${conta(righe.length - nuove.length, "era già in registro", "erano già in registro")}, non duplicate.` : ".")
+      : "Erano tutte già in registro: non è stato aggiunto niente.", nuove.length ? "success" : "");
   };
   $("btn-azi-export").onclick = () => {
     // registro delle azioni correttive per l'RSPP, la direzione e (con la

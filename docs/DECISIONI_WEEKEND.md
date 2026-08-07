@@ -67,7 +67,7 @@ giornate a togliere dal prodotto:
 | | quante | che cosa vuol dire |
 |---|---|---|
 | **prese oggi** | **7** — 6, 8, 10c, 11a, 11b, 11c, 12b | erano decisioni da **scrivere**: non toccano codice, e adesso sono scritte con la ragione |
-| **prese E costruite** | **5** — 5a, 10b, 12a (1 delle 6), 18a, 18b | il messaggio del salvataggio fallito (montato nelle sei app, 30 asserzioni) e chi può cancellare un documento emesso (regole 58 → 68, con la controprova) |
+| **prese E costruite** | **5** — 5a, 10b, 12a (tutte e 6 le voci), 18a, 18b | il messaggio del salvataggio fallito (montato nelle sei app, 30 asserzioni) e chi può cancellare un documento emesso (regole 58 → 68, con la controprova) |
 | **restano aperte** | **1** — 5b, che è l'unica che tocca l'isolamento fra clienti | la risposta c'è ed è nella colonna, ma **attuarla vuole un cantiere con la sua misura**: dichiararle «prese» senza averle costruite sarebbe la faccia tranquilla su un lavoro non fatto |
 | **ferme, e restano ferme** | **4** — 1, 4, 7, 9 | due toccano la sicurezza (mai da solo), due vogliono che tu apra qualcosa di tuo |
 
@@ -96,7 +96,7 @@ momento.
 | ~~**11a**~~ | ✅ **DECISA DAL CICLO il 07/08** — diario / tavolo da disegno | confermata: distingue per **tempo verbale**, non per elenco di funzioni |
 | ~~**11b**~~ | ✅ **DECISA DAL CICLO il 07/08** — le tre sovrapposizioni | si tolgono da **Deepwork**, in quest'ordine: la parola «volata», la maglia in due formati, i due motori 3D. Ordine dichiarato, non attuato |
 | ~~**11c**~~ | ✅ **DECISA DAL CICLO il 07/08** — due app o una | **due**, e si mostra il ponte: «una app con due modi» nasconde proprio ciò che distingue il prodotto |
-| ~~**12a**~~ | ✅ **DECISA il 07/08, e la PRIMA DELLE SEI costruita** — export ri-caricabile | **sì**. Ordine ragionato: si parte da ciò che **non si ricostruisce da nessuna carta** — i rilievi di Terra (un volo di sei mesi fa non si rifà), non da ciò che vale di più. Le altre cinque restano da fare |
+| ~~**12a**~~ | ✅ **DECISA E FINITA il 07/08 — tutte e sei le voci** — export ri-caricabile | **sì**. Ordine ragionato: si parte da ciò che **non si ricostruisce da nessuna carta** — i rilievi di Terra (un volo di sei mesi fa non si rifà), non da ciò che vale di più. Due erano già fatte, quattro costruite: rilievi, pesate/DDT, incassi, clienti, azioni correttive |
 | ~~**12b**~~ | ✅ **DECISA DAL CICLO il 07/08** — dirlo in chiaro prima del pilota | si fa **comunque**, anche quando la 12a esisterà. Su CHI lo dice il ciclo non decide |
 | ~~**13**~~ | ✅ **DECISA E FATTA il 02/08** — mansione senza requisiti | «non lo sappiamo»: il riepilogo passa da `puo 3/6` a `puo 2, nonSo 1` |
 | ~~**14**~~ | ✅ **DECISA E FATTA il 02/08** — DPI senza data di sostituzione | «attenzione»: da «regolare» e zero allarmi a «senza data», 1 allarme |
@@ -543,8 +543,13 @@ vere.
          era agganciato restava orfano) e scriveva `0` dove nessuno aveva
          scritto niente — sul **fido** è la faccia tranquilla su un numero che
          decide se una consegna parte. Corretti tutt'e due;
-      6. **azioni correttive (Scudo)** — un ispettore può chiederle, e la carta
-         di solito c'è.
+      6. ✅ **azioni correttive (Scudo)** — *fatto il 07/08*: il prospetto porta
+         lo stato calcolato e la frase dell'origine, che rientrando sarebbero
+         ricalcolate sbagliate. La copia porta i campi crudi e i **sei campi
+         dell'origine**: il collegamento evento → azione è proprio quello che un
+         organo di vigilanza cerca.
+      ⛔ **E COSÌ LE SEI VOCI SONO CHIUSE**: due erano già fatte (rilievi no,
+      volate sì), quattro costruite oggi. La 12a è finita.
       ⚠️ Quindi le voci vere da fare **non sono cinque, sono quattro**: contarne
       cinque sarebbe stato un elenco di mancanze gonfiato, che è peggio di
       nessun elenco — manda a lavorare dove non serve.
@@ -868,7 +873,7 @@ ogni strumento), i **grafici** in tutte le app da un motore scritto in casa,
 **sei ponti** veri fra le app, l'**estetica unificata**, e le convenzioni
 condivise su numeri, unità di misura e soldi.
 
-**Le prove automatiche sono passate a 2.293** *(ricontate il 07/08 lanciando le
+**Le prove automatiche sono passate a 2.298** *(ricontate il 07/08 lanciando le
 suite)*, più **106** che girano con l'emulatore Firestore (58 sulle regole di
 sicurezza, 19 sull'SDK, 21 sulle funzioni, 8 sul primo avvio) e **19** banchi
 che aprono davvero le pagine in un browser.

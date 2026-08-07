@@ -124,6 +124,7 @@
    ombreggiavano questo nome: un `conta(n, "voce", "voci")` scritto dentro una
    di quelle funzioni avrebbe chiamato in silenzio l'altra cosa. */
 import { parseCsvLine, numIt, giorniTra, isIntestazione, senzaDoppioni, dataISOEsiste,
+         csvCell, leggiCsv,
          dataIt, pezziDataURL, LIMITE_ALLEGATO,
          conta, plurale } from "../../shared/deepwork-id-client/dw-shell.js";
 
@@ -4802,4 +4803,73 @@ export function riepilogoPermessi(permessi, ctx = {}, oggi = new Date()) {
 export function permessiDiCantiere(permessi, cantiereId) {
   if (!cantiereId) return [];
   return (permessi || []).filter((p) => p && p.cantiereId === cantiereId);
+}
+
+/* ⛔ IL REGISTRO DELLE AZIONI CORRETTIVE CHE SI RI-CARICA — decisione 12a,
+   sesta e ultima voce.
+   ⚠️ `scudo_azioni_correttive.csv` esiste già ed è un **prospetto**: porta lo
+   stato calcolato (`statoAzione`, che dice se è scaduta) e la frase
+   dell'origine composta da `origineAzione` — cose che servono a chi legge, e
+   che rientrando sarebbero ricalcolate sbagliate. Questa è la copia: i campi
+   crudi, id compresi.
+   ⚠️ E l'origine sono SEI campi, non una frase: `origineTipo`, `origineId`,
+   `origineVoce`, `origineNota`, `origineApp`, `origineData`,
+   `origineEtichetta`. Perderli vorrebbe dire ri-caricare un registro in cui
+   nessuna azione sa più da quale evento è nata — e il collegamento
+   evento → azione è proprio quello che un organo di vigilanza cerca. */
+export const CSV_AZIONI_INTESTAZIONE =
+  "id;descrizione;responsabileId;scadenza;stato;esito;dataChiusura;"
+  + "origineTipo;origineId;origineVoce;origineNota;origineApp;origineData;origineEtichetta";
+
+export function csvAzioni(azioni) {
+  const righe = [CSV_AZIONI_INTESTAZIONE];
+  for (const a of (azioni || []).slice()
+    .sort((x, y) => String(x.scadenza || "9999").localeCompare(String(y.scadenza || "9999")))) {
+    if (!a) continue;
+    righe.push([
+      csvCell(a.id || ""), csvCell(a.descrizione || ""), csvCell(a.responsabileId || ""),
+      a.scadenza || "", csvCell(a.stato || "aperta"), csvCell(a.esito || ""), a.dataChiusura || "",
+      csvCell(a.origineTipo || ""), csvCell(a.origineId || ""), csvCell(a.origineVoce || ""),
+      csvCell(a.origineNota || ""), csvCell(a.origineApp || ""), a.origineData || "",
+      csvCell(a.origineEtichetta || ""),
+    ].join(";"));
+  }
+  return righe.join("\n") + "\n";
+}
+
+export function parseAzioniCsv(text) {
+  return (leggiCsv(String(text || "")).righe || [])
+    .filter((c) => c.length && !isIntestazione(c.join(";"), "id"))
+    .map((c) => {
+      const [id, descrizione, responsabileId, scadenza, stato, esito, dataChiusura,
+        origineTipo, origineId, origineVoce, origineNota, origineApp, origineData, origineEtichetta] = c;
+      const t = (x) => { const v = String(x == null ? "" : x).trim(); return v || null; };
+      const out = {
+        id: t(id), descrizione: t(descrizione) || "",
+        /* ⛔ `null` e non `""`: lo schema dice `responsabileId|null`, e
+           «responsabile da assegnare» è uno stato che l'app mostra — una
+           stringa vuota lo trasformerebbe in un id che non trova nessuno. */
+        responsabileId: t(responsabileId),
+        /* una scadenza che non esiste NON diventa «senza data»: senza data è
+           uno stato dichiarato, una data impossibile è un dato da riparare */
+        scadenza: dataISOEsiste(String(scadenza || "").trim()) ? String(scadenza).trim() : null,
+        stato: ["aperta", "in-corso", "chiusa"].includes(String(stato || "").trim()) ? String(stato).trim() : "aperta",
+        esito: t(esito) || "",
+        dataChiusura: dataISOEsiste(String(dataChiusura || "").trim()) ? String(dataChiusura).trim() : null,
+        origineTipo: t(origineTipo) || "",
+      };
+      /* i campi facoltativi dell'origine si scrivono solo se ci sono: assenti
+         vogliono dire «questa azione non viene da lì», e metterli vuoti
+         inventerebbe un collegamento rotto */
+      for (const [k, v] of [["origineId", origineId], ["origineVoce", origineVoce],
+        ["origineNota", origineNota], ["origineApp", origineApp],
+        ["origineData", origineData], ["origineEtichetta", origineEtichetta]]) {
+        const x = t(v);
+        if (x) out[k] = x;
+      }
+      return out;
+    })
+    /* un'azione senza descrizione non è un'azione: nel registro sarebbe una
+       riga che non dice che cosa bisogna fare */
+    .filter((a) => a.descrizione);
 }
