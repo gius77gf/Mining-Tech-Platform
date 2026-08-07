@@ -74,6 +74,42 @@ export function arretrato(commitVerifica, app, radice = RADICE) {
     { cwd: radice, encoding: "utf8" }).trim();
 }
 
+/* ⛔ E IL CONTO DEI COMMIT NON È IL CONTO DI CIÒ CHE PUÒ AVER INVALIDATO IL
+   DOCUMENTO. Il 07/08 sei cantieri hanno rifatto le palette delle sei app: sei
+   commit, sei app, **zero** funzioni e zero bottoni toccati — e l'arretrato è
+   salito da 27 a 33 senza che una sola riga dei documenti potesse essere
+   scaduta. Questi documenti dicono **che cosa l'app SA FARE**; un colore
+   cambiato non può renderli falsi.
+   Il costo di un contatore che sale per ragioni che non contano è già misurato
+   in questa casa e sta in CLAUDE.md: un allarme che sbaglia tre volte su
+   quattro insegna a non guardarlo. Quindi accanto al numero grezzo si stampa
+   quello che **morde**: i commit che hanno aggiunto o tolto una `export
+   function` nel modulo dati o un `<button>` nella pagina — cioè le due forme
+   con cui in questo monorepo nasce e muore una funzione.
+   Misurato il 07/08 sulle sei: **33 commit di arretrato, 7 che mordono**
+   (campo 2, terra 2, conti 1, scudo 1, sentinella 1, flotta **0** — il suo
+   documento è aggiornato su ciò che conta, e il conto grezzo diceva 3).
+   ⚠️ Il grezzo NON si toglie: un commit che riscrive una frase può benissimo
+   smentire una riga del documento, e questo conto non lo vedrebbe. I due numeri
+   dicono due cose diverse e vanno letti tutt'e due — quello che morde dice
+   «qui si è sicuramente perso qualcosa», il grezzo «qui potrebbe». */
+/* `fino` è un argomento e non una costante `HEAD` perché serve alle prove qui
+   sotto: una controprova che può guardare solo fino a HEAD misurerebbe un
+   intervallo che cambia a ogni commit, cioè si smentirebbe da sola domani.
+   È la regola di casa — una copia nasce quasi sempre da una firma troppo
+   stretta: prima di ricopiare un corpo, chiedersi se manca un parametro. */
+export function arretratoCheMorde(commitVerifica, app, radice = RADICE, fino = "HEAD") {
+  const hash = execSync(`git rev-list ${commitVerifica}..${fino} -- apps/${app}/`,
+    { cwd: radice, encoding: "utf8" }).trim().split("\n").filter(Boolean);
+  let n = 0;
+  for (const h of hash) {
+    const diff = execSync(`git show --format= ${h} -- apps/${app}/`,
+      { cwd: radice, encoding: "utf8", maxBuffer: 64 * 1024 * 1024 });
+    if (/^[+-]\s*export function|^[+-].*<button/m.test(diff)) n++;
+  }
+  return n;
+}
+
 console.log("Quanto sono vecchi i documenti del delta — 6 documenti\n");
 
 const stato = storiaLeggibile();
@@ -126,19 +162,42 @@ for (const app of APP) {
       + "una data incollata non è una verifica");
   });
 
-  misure.push({ app, nome, corto, dietro: arretrato(corto, app) });
+  misure.push({ app, nome, corto, dietro: arretrato(corto, app), morde: arretratoCheMorde(corto, app) });
 }
 
+/* ⛔ LA CONTROPROVA, NEI DUE VERSI, SU INTERVALLI CHIUSI — se no misurerebbe
+   un intervallo che si allunga a ogni commit e domani direbbe un'altra cosa.
+   `a1bfee4` ha portato in Campo funzioni nuove: dev'essere visto. `b50c8b4` è
+   il commit delle palette di Flotta, che ha cambiato solo colori: NON dev'essere
+   visto — ed è quello che conta, perché è il caso per cui questo conto esiste. */
+test("il conto che morde SA vedere un commit che aggiunge funzioni", () => {
+  const n = arretratoCheMorde("a1bfee4~1", "campo", RADICE, "a1bfee4");
+  ok(n === 1, `su a1bfee4 (funzioni nuove in Campo) doveva contare 1, ha contato ${n}`);
+});
+test("il conto che morde NON vede un commit di sole palette", () => {
+  const n = arretratoCheMorde("b50c8b4~1", "flotta", RADICE, "b50c8b4");
+  ok(n === 0, `su b50c8b4 (solo colori in Flotta) doveva contare 0, ha contato ${n}`);
+});
+
 const dietro = misure.filter(x => x.dietro > 0);
-console.log("\nArretrato di ciascun documento — commit sull'app dopo la verifica:");
-for (const x of misure) console.log(`  ${x.dietro > 0 ? "⚠️ " : "✓  "}${x.app.padEnd(11)} verificato a \`${x.corto}\` · ${x.dietro} commit dopo`);
+console.log("\nArretrato di ciascun documento — commit sull'app dopo la verifica,");
+console.log("e quanti di quelli hanno aggiunto o tolto una funzione o un bottone:");
+for (const x of misure)
+  console.log(`  ${x.morde > 0 ? "⛔" : x.dietro > 0 ? "⚠️ " : "✓ "} ${x.app.padEnd(11)} verificato a \`${x.corto}\``
+    + ` · ${String(x.dietro).padStart(2)} commit dopo, di cui ${x.morde} che MORDONO`);
 
 if (dietro.length) {
   console.log(`\n⛔ ${dietro.length} documenti su ${misure.length} sono più vecchi del codice che descrivono.`);
   console.log("   Non è un guasto: è l'arretrato, e sta qui per essere visto scendere.");
   console.log("   Le righe già trovate scadute e corrette a mano portano la loro data accanto.");
+  console.log("   ⚠️  I due numeri dicono due cose diverse, e vanno letti tutt'e due: quelli che");
+  console.log("      MORDONO hanno aggiunto o tolto una `export function` o un `<button>`, cioè le");
+  console.log("      due forme con cui qui nasce e muore una funzione — lì si è sicuramente perso");
+  console.log("      qualcosa. Il grezzo dice «potrebbe»: una frase riscritta può smentire una riga");
+  console.log("      del documento senza toccare nessuna delle due.");
 }
 
 console.log(`\nRisultato documenti invecchiati: ${passed} passati, ${failed} falliti` +
-  `  ·  ${misure.length} documenti misurati, arretrato totale ${misure.reduce((s, x) => s + x.dietro, 0)} commit`);
+  `  ·  ${misure.length} documenti misurati, arretrato totale ${misure.reduce((s, x) => s + x.dietro, 0)} commit,`
+  + ` di cui ${misure.reduce((s, x) => s + x.morde, 0)} che mordono`);
 process.exit(failed ? 1 : 0);
