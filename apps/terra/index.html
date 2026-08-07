@@ -2878,10 +2878,25 @@ a.dw-btn{text-decoration:none}
     ] : [];
     for (const [et, s] of secchi) if (s)
       csv += `banco;${csvCell(et)};${s.misurabile ? s.scavo : ""};${s.cumulo};${s.rilieviScavo}\n`;
+    /* ⛔ E LE ULTIME QUATTRO RIGHE ERANO RIMASTE INDIETRO, nella stessa
+       funzione in cui la disciplina e' scritta due volte qui sopra
+       (`${b.misurabile ? b.scavo : ""}`, «qui si legge, non si rifa'»).
+       `pregressoDichiarato` non compariva nel blocco del CSV: misurato,
+       ZERO occorrenze fra la riga 2829 e la 2890. Il foglio STAMPATO, 107
+       righe piu' su, la cosa giusta la faceva gia' — «non dichiarato» invece
+       del numero, e «il cumulato e' da intendersi come valore minimo».
+       ⛔ E NON E' UNA RIGA SOLA CHE MENTE, SONO TRE, TUTTE NELLA DIREZIONE
+       CHE TRANQUILLIZZA. Con l'estratto pregresso non dichiarato:
+       `pregresso` vale 0, quindi `cumulatoFineAnno = pregresso + scavoSotto`
+       e' un MINIMO, e `residuoFineAnno = concesso - cumulato` e' un MASSIMO.
+       Il file diceva «prima di Terra non e' uscito niente» e «ne restano
+       tanti»: meno estratto e piu' concessione residua di quanto si sappia,
+       su un foglio che si ricopia nel modulo dell'ente. Il numero non e'
+       sbagliato — e' scritto come se fosse misurato. */
     csv += `titolo;${csvCell("Volume concesso")};${R.concesso || ""};;\n`;
-    csv += `titolo;${csvCell("Estratto prima di Terra")};${R.pregresso};;\n`;
-    csv += `titolo;${csvCell("Cumulato a fine " + R.anno)};${R.cumulatoFineAnno};;\n`;
-    csv += `titolo;${csvCell("Residuo del concesso")};${R.residuoFineAnno != null ? R.residuoFineAnno : ""};;\n`;
+    csv += `titolo;${csvCell("Estratto prima di Terra")};${R.pregressoDichiarato ? R.pregresso : ""};;\n`;
+    csv += `titolo;${csvCell("Cumulato a fine " + R.anno + (R.pregressoDichiarato ? "" : " (valore MINIMO: l'estratto prima di Terra non e' dichiarato)"))};${R.cumulatoFineAnno};;\n`;
+    csv += `titolo;${csvCell("Residuo del concesso" + (R.pregressoDichiarato || R.residuoFineAnno == null ? "" : " (valore MASSIMO: l'estratto prima di Terra non e' dichiarato)"))};${R.residuoFineAnno != null ? R.residuoFineAnno : ""};;\n`;
     const a = document.createElement("a");
     a.href = "data:text/csv;charset=utf-8," + encodeURIComponent(csv);
     a.download = "terra_riepilogo_" + R.anno + ".csv"; marchiaCsv(a); a.click();
