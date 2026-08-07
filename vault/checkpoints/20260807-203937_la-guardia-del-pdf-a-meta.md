@@ -67,12 +67,19 @@ quello che si committava.
 1. ⛔ **Raccogliere il giro** appena finisce: PRIMA le righe «non ho guardato»
    — stasera ne è uscita la Dashboard, cioè un difetto vero — poi i KO,
    distinguendo le controprove. Poi **rilanciarlo sul commit corrente**.
-2. ⏱️ **Le altre due esportazioni tacevano anche loro**, e non l'ho misurato:
-   `exportRapportiniMeseCorrentePDF` e `exportReportTecnicoPDF` rispondevano
-   `errore=null, pdf salvati=0` **senza** arrivare ad `autoTable`, cioè
-   rientravano prima per un'altra ragione. Va guardato se anche quel rientro
-   dice qualcosa all'utente o è un secondo silenzio. **Dichiarato, non
-   verificato.**
+2. ~~Le altre due esportazioni tacevano anche loro~~ — **RITIRATA, misurata
+   subito dopo: era un falso allarme.** `exportRapportiniMeseCorrentePDF` e
+   `exportReportTecnicoPDF` rispondevano `errore=null, pdf salvati=0` perché
+   **aprono una modale** e aspettano l'utente: misurato, `modale aperta=true`
+   per tutt'e due. Il PDF esce quando si conferma, non alla chiamata. Cioè il
+   comportamento era **giusto**, e il «silenzio» era il mio righello che
+   guardava `save()` invece della modale.
+   ⚠️ Vale la pena tenerne il metodo, non il caso: la riga era **mia**, scritta
+   un quarto d'ora prima con l'etichetta «dichiarato, non verificato», ed era
+   sbagliata. Se fosse rimasta lì avrebbe mandato il cantiere dopo a cercare un
+   difetto che non c'è — che è il modo di sprecare una giornata già censito nel
+   file. La difesa ha funzionato **perché l'etichetta c'era**: si va a
+   verificare ciò che è marcato non verificato.
 3. ⛔ **Il tema che scala invece di fissare** — cantiere su `shared/`.
 4. **Il Quadro nel core** (decisione 15), coi sei ponti scritti **uno solo**.
 
