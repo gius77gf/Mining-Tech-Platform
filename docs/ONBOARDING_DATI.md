@@ -8,7 +8,8 @@ PIANO_GO_LIVE**.
 *Cosa è cambiato il 31/07, e perché conviene rileggere le «Regole valide per
 tutti i file» prima delle schede: la regola sulle **righe ripetute** (uniformata
 in tutte le app, con due eccezioni volute), la verità misurata sul **backup**
-(sette file si ri-caricano, tutti gli altri sono prospetti), e quali colonne
+(al 07/08 **dodici** file si ri-caricano — erano sette — e tutti gli altri
+sono prospetti), e quali colonne
 sono diventate **obbligatorie** — il prezzo di un prodotto, e non per pignoleria:
 è quello che impedisce di caricare per sbaglio il file sbagliato.*
 
@@ -89,10 +90,28 @@ sono diventate **obbligatorie** — il prezzo di un prodotto, e non per pignoler
   calcolate (stato, residuo, giorni di pagamento) e **non si ri-caricano**: se
   provi, l'app dice che il file non è valido. Non è un difetto — è che quei
   file rispondono a un'altra domanda.
-  ⚠️ Quindi: **la copia di sicurezza di quello che il cliente ha scritto** si fa
-  con i sette qui sopra. Per tutto il resto — pesate, DDT, incassi, azioni
-  correttive — oggi **non esiste un file che si ri-carica**, e va saputo prima
-  di contarci.
+  ✅ **AGGIORNATO IL 07/08 — I FILE CHE RIENTRANO NON SONO PIÙ SETTE, SONO
+  DODICI.** La riga qui sotto diceva che di pesate, DDT, incassi e azioni
+  correttive «non esiste un file che si ri-carica»: era vero quando è stata
+  scritta il 31/07, e la decisione **12a** l'ha chiusa. Ai sette si aggiungono
+  ora:
+  **rilievi** (Terra — il primo, perché un volo di drone di sei mesi fa non si
+  rifà: il terreno nel frattempo è cambiato), **pesate/DDT**, **prima nota
+  incassi** e **anagrafica clienti** (Conti), **azioni correttive** (Scudo).
+  ⚠️ E una sesta voce dell'elenco era una **riga scaduta**: il **registro
+  volate** di Sentinella ce l'aveva già dal giorno in cui è stato costruito
+  (`csvRegistroVolate` e `parseVolateCsv` stanno nello stesso file, col giro di
+  andata e ritorno provato). Stava per aprirsi un cantiere su lavoro fatto.
+  ⛔ **E la distinzione fra i due file resta, anzi adesso è scritta accanto ai
+  bottoni**: dove c'è un prospetto E una copia (pesate, incassi, clienti,
+  azioni), i bottoni sono due e la pagina dice in cosa differiscono. Il
+  prospetto risolve i collegamenti in numeri leggibili e calcola; la copia
+  porta i campi crudi **con gli id**, senza i quali una fattura ri-caricata non
+  ritroverebbe il suo cliente.
+  ⚠️ **Quello che ancora NON ha un file che rientra**, e va saputo prima di
+  contarci: tutto il resto — i rapportini di Campo, gli interventi di Flotta, i
+  monitoraggi di Sentinella, i documenti di Scudo con i loro allegati. Per
+  quelli la copia di sicurezza **non c'è**.
   ⚠️ **Fino al 30/07 questa frase era vera solo a metà**, e vale la pena
   saperlo perché spiega cosa poteva succedere prima: le righe già in archivio
   venivano saltate, sì, ma un file che nominava la **stessa cosa più volte** le
