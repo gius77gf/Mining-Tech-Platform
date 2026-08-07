@@ -615,7 +615,12 @@ export function perCampo(v, decimali = 2) {
 // dove c'era `toFixed(n)` ci va `perLettura(v, n, true)`: si cambia il
 // separatore e NIENT'ALTRO. Un argomento in più invece di una seconda
 // funzione, che è la regola già pagata su `jitterGeo` e sul minimo delle barre.
-export function perLettura(v, decimali = 1, fisse = false) {
+// ⚠️ E il DEFAULT è 2 perché è quello che avevano le due copie fuori da qui
+// (`campo.numeroIt`, `flotta`): tenendo 1 l'alias non sarebbe stato un alias ma
+// un involucro, e un involucro è il posto da cui le due versioni ricominciano a
+// divergere. Nel core i decimali si passano sempre espliciti, quindi cambiarlo
+// non muove niente — verificato cercando le chiamate a un argomento solo.
+export function perLettura(v, decimali = 2, fisse = false) {
   if (v == null || v === "" || !Number.isFinite(+v)) return "";
   const d = Math.max(0, decimali);
   return (+v).toLocaleString("it-IT", {

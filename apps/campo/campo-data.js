@@ -50,7 +50,7 @@
 // ============================================================
 
 import { parseCsvLine, numIt, isIntestazione, csvCell, numeroScritto, oggiISO as oggiISOShell, isoLocale,
-         dataISOEsiste, dataPiuGiorni as dataPiuGiorniShell, conta, plurale } from "../../shared/deepwork-id-client/dw-shell.js";
+         dataISOEsiste, dataPiuGiorni as dataPiuGiorniShell, conta, plurale, perLettura } from "../../shared/deepwork-id-client/dw-shell.js";
 
 // ══════════════════════════════════════════════════════════════════════
 // NUMERI COME SI SCRIVONO IN ITALIA — un solo posto per la convenzione
@@ -82,15 +82,19 @@ import { parseCsvLine, numIt, isIntestazione, csvCell, numeroScritto, oggiISO as
 //  · null e "" NON sono zero. `+null` fa 0, e senza questo controllo una
 //    carica non registrata comparirebbe come «0 kg» — cioè un fatto, e falso,
 //    invece di un dato mancante.
-export function numeroIt(v, dec = 2) {
-  if (v === null || v === "" || v === undefined) return "";
-  const n = +v;
-  if (!Number.isFinite(n)) return "";
-  return n.toLocaleString("it-IT", {
-    maximumFractionDigits: Math.max(0, dec | 0),
-    useGrouping: true,
-  });
-}
+// ⛔ ADESSO È UN ALIAS, NON UNA COPIA (07/08). Questa funzione era identica a
+// `perLettura` di `shared/` — misurato prima di toccarla, campione per
+// campione: `null` → "", `3466.1` → «3.466,1», `6375` → «6.375». Due copie
+// uguali oggi divergono domani senza che nessuno lo veda, ed è successo nella
+// stanza accanto: la gemella di Flotta, scritta con lo stesso commento, su
+// `null` risponde **«0»** invece di "" — cioè un dato che manca raccontato
+// come una misura. Il test pretende l'IDENTITÀ (`campo.numeroIt ===
+// shell.perLettura`), non il comportamento, proprio perché il comportamento
+// uguale è ciò che c'era prima e non ha impedito niente.
+// Le due ragioni che reggevano il corpo restano vere e stanno ora in `shared/`:
+// `useGrouping` scritto a mano (al default Node non raggruppa le quattro cifre
+// e Chromium sì), e `null`/`""` che NON sono zero.
+export const numeroIt = perLettura;
 
 // segnoIt: come numeroIt ma col VERSO davanti, e il meno è il segno meno
 // tipografico (−, U+2212) non il trattino: «+4,7» / «−15,3». Serve agli

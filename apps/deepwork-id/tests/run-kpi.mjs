@@ -11708,6 +11708,16 @@ test("⛔ perLettura: la gemella di perCampo, per i numeri che si LEGGONO", () =
   eq(shell.perLettura(1071, 1, true), "1.071,0", "le migliaia si raggruppano lo stesso");
   eq(shell.perLettura(null, 2, true), "", "e un numero che manca resta vuoto anche con le cifre fisse");
 });
+test("⛔ numeroIt di Campo: alias di perLettura, non una seconda copia", () => {
+  /* L'identità e non il comportamento, ed è tutto il punto: il comportamento
+     era GIÀ uguale — misurato campione per campione prima di toccare niente —
+     e questo non ha impedito che la gemella di Flotta, scritta con lo stesso
+     commento, divergesse. Due copie uguali oggi divergono domani. */
+  ok(campo.numeroIt === shell.perLettura, "è lo stesso oggetto, non una copia identica");
+  eq(campo.numeroIt(3466.1), "3.466,1", "e quello che scriveva prima lo scrive ancora");
+  eq(campo.numeroIt(6375), "6.375", "quattro cifre raggruppate, in Node come in Chromium");
+  eq(campo.numeroIt(null), "", "⛔ e un dato che manca NON diventa «0»");
+});
 test("giorni: alias di giorniTra in tutt'e due le app che lo usavano", () => {
     ok(conti.giorni === shell.giorniTra, "Conti");
     ok(sentinella.giorni === shell.giorniTra, "Sentinella");
