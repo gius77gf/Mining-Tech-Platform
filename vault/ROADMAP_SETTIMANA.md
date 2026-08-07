@@ -1071,6 +1071,19 @@ numero scritto dove non era stato misurato niente**.*
   «foglio») e ne ha trovato **uno solo**, e la resa è senza `@media print`.
   Resta da fare: la stessa misura su Scudo, e portarla **dentro i due banchi**
   invece di lasciarla in una misura a mano che alla sessione dopo non esiste.
+- [ ] **`fuori-schermo` chiede la domanda A a 390 e 360, la B anche a 320** —
+  l'asimmetria si legge nel file, riga per riga: `LARGHEZZE = [390, 360]` per
+  «la pagina esce dallo schermo?» e `LARGHEZZE_RIQUADRO = [390, 360, 320]` per
+  «l'elemento esce dal suo riquadro?», col commento che dice — giustamente —
+  che 320 px «non è un caso limite ma lo schermo su cui vive» Campo.
+  ⛔ Il costo di quella riga è già stato pagato: il **traboccamento del corpo
+  del core a 320 px** (333 px in 320, l'indirizzo del CDN in una parola sola da
+  60 caratteri) è stato trovato **a mano**, non da questo banco — che a 320 la
+  domanda A non la fa. ⚠️ Prima di aggiungerla va **misurato quanti allarmi
+  nuovi porta** (la regola dell'ampiezza: si stringe su una copia e si contano),
+  e il tentativo di oggi non è riuscito perché il server statico di prova non
+  si è alzato — quindi il numero **non c'è ancora**, ed è dichiarato mancante
+  invece che inventato.
 - [ ] **Sentinella a 320 px**: la barra ha **328 px di contenuto in 302** e
   `.nav` ha `overflow:hidden`, quindi le ultime voci spariscono in silenzio.
   ⚠️ La strada ovvia è già scartata: rimpicciolire il carattere fa **salire**
