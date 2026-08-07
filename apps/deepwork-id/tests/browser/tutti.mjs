@@ -321,6 +321,21 @@ const BANCHI = [
      dichiarazione sappia anche tacere. Una guardia che parla sempre non
      protegge, infastidisce. */
   ['fogli di Scudo · coi dati veri tacciono', 'scudo-documenti.mjs', ['--live']],
+  /* ⛔ SCRITTO IL 07/08 LA SECONDA VOLTA, e la ragione va detta perché non
+     succeda una terza. La prima stesura — ventuno prove, tutte verdi — era
+     rimasta **nello scratchpad**, «da portare qui alla prossima occasione».
+     Poi il contenitore è ripartito, e non esiste più. È la riga di CLAUDE.md
+     che nessuno prende sul serio finché non costa: una difesa che resta nello
+     scratchpad, alla sessione dopo non esiste — e un banco non registrato qui
+     è la stessa cosa, perché non gira mai.
+     Guarda tre cose che nessuna suite `node` può vedere: la data delle
+     prescrizioni che compare SOLO col suo esito **e non resta scritta** quando
+     l'esito cambia (nascondere un campo non svuota quello che c'è dentro), e
+     la colonna del CSV che deve dire **esattamente** la parola della pastiglia
+     dello scadenzario — dove un'app compone qualcosa che ESCE, chi decide i
+     suoi numeri? */
+  ['la verifica periodica delle attrezzature (all. VII)', 'scudo-verifica-periodica.mjs', []],
+  ['verifica periodica · controprova', 'scudo-verifica-periodica.mjs', ['--controprova'], true],
   ['il verbale dice come è nato il numero', 'verbale-origine.mjs', []],
   ['verbale · controprova', 'verbale-origine.mjs', ['--controprova'], true],
   ['la manina promette un tocco che c\'è', 'promesse-tocco.mjs', []],
