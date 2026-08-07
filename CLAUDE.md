@@ -793,6 +793,27 @@ Perché serva davvero e non produca elenchi generici, cinque vincoli:
      per un prezzo al metro cubo.
   Le prime due si distinguono per **dove** si interviene; le altre tre per il
   fatto che il codice non è mai stato messo alla prova.
+- ⛔ **UN FILE DI SCAMBIO PORTA IL NOMINALE, NON IL CAMPIONE — E IL CAMPIONE NON
+  SI PUÒ TORNARE INDIETRO.** Famiglia nuova, misurata il 07/08 su Genesi, e
+  vicina di casa della regola qui sotto senza esserne un caso. Il pannello
+  diceva «42 ms», il piano di carico `0/42/84/126`, e
+  `genesi-demo.volata.json` — il file con cui una volata si **riapre** —
+  scriveva `0 · 42,332516881726825 · 84,36212721741676`. Non era un errore di
+  formato: è lo **scatter d'innesco** che `buildSim` somma di proposito
+  (`f.tNom = f.tDet; f.tDet = f.tDet + gauss*sd`), cioè un valore *arricchito da
+  una simulazione*, col nominale conservato lì accanto nello stesso oggetto.
+  Il danno sta nel ritorno: l'importatore ricava il passo dalla **mediana delle
+  differenze fra ritardi distinti**, e con lo scatto le differenze sono tutte
+  diverse — il ripiego riportava a **25 ms** una volata progettata a **42**.
+  La regola generale: ogni volta che un valore viene sporcato apposta (rumore,
+  scatter, jitter, arrotondamento di comodo), il file che esce deve portare
+  quello **da cui si è partiti**; il campione, se serve, ci va **accanto** e
+  dichiarato. Il segno da riconoscere è sempre lo stesso — **un numero con
+  quindici decimali dove lo schermo ne mostra zero**: non è precisione, è un
+  campione che è scappato dal suo recinto.
+  ⚠️ E il modo di prenderlo è **rifare il giro**: salvare, riaprire, e
+  pretendere che il valore mostrato sia quello di prima. Nessuna prova che
+  guardi solo il file lo vede, perché il file è *coerente con sé stesso*.
 - ⚠️ **UNA PROVA DI ANDATA E RITORNO RESTA VERDE SE LE DUE METÀ SBAGLIANO
   INSIEME.** Il giro `csvRegistroVolate` → `parseVolateCsv` pretende l'identità
   su 19 campi ed è la prova più forte che il registro non perda niente. Ma
