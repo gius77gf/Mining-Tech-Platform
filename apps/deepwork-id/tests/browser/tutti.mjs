@@ -142,7 +142,14 @@ const BANCHI = [
      numeri non sono veri» diventava essa stessa un numero falso: il difetto
      che si stava chiudendo, rifatto peggio. Restano il nome del file (montato)
      e la colonna in più (proposta, col suo costo misurato). */
-  ['i CSV che escono dalla dimostrazione (25 export, 4 app)', 'csv-dimostrazione.mjs', []],
+  /* ⚠️ L'ETICHETTA NON PORTA PIÙ UN CONTO, E LA RAGIONE È CHE QUELLO CHE
+     PORTAVA ERA FALSO. Diceva «25 export, 4 app»; il banco ne preme **32** su
+     **cinque** app e legge 29 file — lo stampa lui stesso in fondo. Un numero
+     scritto a mano dentro un'etichetta invecchia in silenzio e nessuna prova lo
+     guarda, e chi legge l'elenco dei banchi si fa un'idea sbagliata di quanto è
+     coperto: è la stessa famiglia del «0 su 68» che nessuno leggeva, in versione
+     rassicurante. Il conto vero lo dice il banco, che lo ricava dai soggetti. */
+  ['i CSV che escono dalla dimostrazione', 'csv-dimostrazione.mjs', []],
   ['CSV dimostrazione · su dati veri il marchio non c\'è', 'csv-dimostrazione.mjs', ['--live']],
   ['CSV dimostrazione · controprova', 'csv-dimostrazione.mjs', ['--controprova'], true],
   ['fogli stampati F/S/C/T · controprova', 'stampe-fs.mjs', ['--controprova'], true],

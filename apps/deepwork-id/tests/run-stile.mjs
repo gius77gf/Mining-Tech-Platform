@@ -2027,6 +2027,31 @@ test("la regola 17 distingue una definizione da un uso", () => {
   ok(usaLaStruttura("// qui una volta c'era toast('x')") === false, "e un commento nemmeno");
 });
 
+/* ⛔ L'ELENCO DERIVATO NON DEVE POTER RIACCORCIARSI IN SILENZIO. Fino al 07/08
+   era scritto a mano e aveva SEI nomi mentre la struttura condivisa ne espone
+   DIECI: fuori restavano `avvisa` (5 chiamate vere fra Conti e Flotta),
+   `mostraTesto` (1 in Conti) e `chiediDati` (6 in Flotta) — dodici punti che la
+   regola 17 non guardava. Se domani qualcuno rimettesse un elenco corto, o se
+   `dw-app-ui.js` smettesse di appendere a `window`, la regola tornerebbe cieca
+   **rispondendo verde**: questa prova è il collegamento che lo impedisce.
+   ⚠️ Onestà su che cosa dimostra: il guadagno è **in avanti**, non su oggi. Le
+   tre funzioni che mancavano sono chiamate solo da due pagine che il file
+   condiviso lo caricano già, quindi oggi nessuna violazione nuova esce. Quello
+   che cambia è che domani uscirebbe. */
+test("regola 17: l'elenco della struttura condivisa è derivato e non si accorcia", () => {
+  const src = leggi("shared/dw-app-ui.js");
+  ok(src, "shared/dw-app-ui.js non trovato");
+  ok(UI_CONDIVISA.length >= 8,
+    `la struttura condivisa espone ${UI_CONDIVISA.length} nomi: l'elenco si è accorciato — `
+    + `derivato da \`window.X =\`, oggi sono ${UI_CONDIVISA.join(", ")}`);
+  for (const n of ["toast", "apriModale", "chiudiModale", "chiedi", "chiediValore",
+                   "avvisa", "mostraTesto", "chiediDati"])
+    ok(UI_CONDIVISA.includes(n),
+      `\`${n}\` non è più esposto da dw-app-ui.js: o è stato tolto per sbaglio (è successo il 31/07 `
+      + "proprio con `chiediDati`, e sei chiamate in Flotta sono rimaste orfane per una settimana), "
+      + "oppure il cambiamento è voluto e va scritto qui");
+});
+
 /* ══ CONTROPROVE SUI FILE VERI, PER LE REGOLE CHE NE AVEVANO SOLO DI FINTE ══
    ────────────────────────────────────────────────────────────────────────
    La lezione del 01/08, pagata con la regola 1: **una controprova va misurata
