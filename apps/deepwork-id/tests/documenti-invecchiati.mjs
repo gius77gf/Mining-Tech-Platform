@@ -99,15 +99,28 @@ export function arretrato(commitVerifica, app, radice = RADICE) {
    È la regola di casa — una copia nasce quasi sempre da una firma troppo
    stretta: prima di ricopiare un corpo, chiedersi se manca un parametro. */
 export function arretratoCheMorde(commitVerifica, app, radice = RADICE, fino = "HEAD") {
+  return morsi(commitVerifica, app, radice, fino).length;
+}
+
+/* ⛔ E IL NUMERO DA SOLO NON BASTA A LAVORARCI. «7 commit che mordono» dice
+   quanto c'è da fare e non **dove**: chi riapre l'arretrato deve rifarsi da capo
+   il `git rev-list` e leggersi i diff, che è il lavoro che questo file esiste per
+   togliere. Restituire gli hash costa zero — sono già in mano — e trasforma un
+   numero in un elenco su cui si comincia.
+   ⚠️ È la stessa cosa che oggi si è imparata due volte sui banchi: un conteggio
+   senza i suoi soggetti accanto non si sa leggere. */
+export function morsi(commitVerifica, app, radice = RADICE, fino = "HEAD") {
   const hash = execSync(`git rev-list ${commitVerifica}..${fino} -- apps/${app}/`,
     { cwd: radice, encoding: "utf8" }).trim().split("\n").filter(Boolean);
-  let n = 0;
+  const out = [];
   for (const h of hash) {
     const diff = execSync(`git show --format= ${h} -- apps/${app}/`,
       { cwd: radice, encoding: "utf8", maxBuffer: 64 * 1024 * 1024 });
-    if (/^[+-]\s*export function|^[+-].*<button/m.test(diff)) n++;
+    if (!/^[+-]\s*export function|^[+-].*<button/m.test(diff)) continue;
+    const titolo = execSync(`git log --format=%s -1 ${h}`, { cwd: radice, encoding: "utf8" }).trim();
+    out.push({ hash: h.slice(0, 7), titolo });
   }
-  return n;
+  return out;
 }
 
 console.log("Quanto sono vecchi i documenti del delta — 6 documenti\n");
@@ -162,7 +175,8 @@ for (const app of APP) {
       + "una data incollata non è una verifica");
   });
 
-  misure.push({ app, nome, corto, dietro: arretrato(corto, app), morde: arretratoCheMorde(corto, app) });
+  const chiMorde = morsi(corto, app);
+  misure.push({ app, nome, corto, dietro: arretrato(corto, app), morde: chiMorde.length, quali: chiMorde });
 }
 
 /* ⛔ LA CONTROPROVA, NEI DUE VERSI, SU INTERVALLI CHIUSI — se no misurerebbe
@@ -182,9 +196,11 @@ test("il conto che morde NON vede un commit di sole palette", () => {
 const dietro = misure.filter(x => x.dietro > 0);
 console.log("\nArretrato di ciascun documento — commit sull'app dopo la verifica,");
 console.log("e quanti di quelli hanno aggiunto o tolto una funzione o un bottone:");
-for (const x of misure)
+for (const x of misure) {
   console.log(`  ${x.morde > 0 ? "⛔" : x.dietro > 0 ? "⚠️ " : "✓ "} ${x.app.padEnd(11)} verificato a \`${x.corto}\``
     + ` · ${String(x.dietro).padStart(2)} commit dopo, di cui ${x.morde} che MORDONO`);
+  for (const m of x.quali) console.log(`                 · ${m.hash}  ${m.titolo.slice(0, 76)}`);
+}
 
 if (dietro.length) {
   console.log(`\n⛔ ${dietro.length} documenti su ${misure.length} sono più vecchi del codice che descrivono.`);
