@@ -865,6 +865,20 @@ numero scritto dove non era stato misurato niente**.*
   povero, **lo schermo più povero**, tutt'e due che tacciono, e **un'uscita che
   nessun banco guardava** (gli appunti, che vanno a una persona). Il difetto che
   pesa: nel sollecito una **nota di credito** usciva come acconto del cliente.
+- [x] ✅ **Il banco del contrasto guardava un tema su tre** (`aca474d`). Le app ne
+  hanno **tre** e il non misurato che pesa è `sole`, quello per chi legge il
+  telefono **in cava, sotto il sole**. ⛔ E aperto quel tema il **righello** era
+  rotto: `color-mix()` Chromium lo risolve in `color(srgb 0.16 …)` coi canali da
+  **0 a 1**, e il banco li leggeva come 0-255 → **1,01:1** su testo nerissimo su
+  bianco. **560 bocciature → 29**, e le 29 sono ancora da guardare. Sul tema
+  scuro: 4.638 testi, **0 sotto soglia**.
+- [x] ✅ **Tre cantieri interrotti a metà da un limite, portati a termine**
+  (`a1bfee4`). `run-kpi` girava già 1841/1841: mancavano una funzione senza prova
+  (`terra.numeroRegistrato`), un banco **non registrato né tracciato**
+  (`genesi-piano-innesco.mjs`) e i conti dei documenti. Lanciando il banco è
+  saltato fuori il suo ultimo KO, vero: il messaggio di conferma non nominava
+  l'**innesco**, che è il campo che riaperto sbagliato porta lo scatter da 0,1 a
+  8,0 ms in silenzio.
 
 ## Riferimenti
 
