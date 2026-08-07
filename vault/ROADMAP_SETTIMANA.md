@@ -575,7 +575,20 @@ numero scritto dove non era stato misurato niente**.*
 
           | app | «CONFERMATA ASSENTE» | «SCADUTA» |
           | campo 11 · sentinella 13 · conti 8 · flotta 5 · terra 4 · scudo 0 |
-          | totale **41** (era 54) | totale **18** (erano 6) |
+          | totale **42** (era 54) | totale **18** (erano 6) |
+
+      ⚠️ **Correzione dello stesso pomeriggio: 41 → 42.** Il primo conto cercava
+      `CONFERMAT[AO] ASSENTE` e ha perso l'unica riga al plurale, «CONFERMATE
+      ASSENTI». Censito il vocabolario intero della colonna del verdetto:
+      **C'è 31 · CONFERMATO/A/E ASSENTE/I 42 · C'È A METÀ 19 · FALSA 4**.
+      Un conto fatto con un termine invece che col vocabolario sbaglia sempre in
+      difetto, ed è la ragione per cui il vocabolario adesso è scritto qui.
+      ⚠️ **E lo zero di Scudo va detto meglio di come l'avevo detto**: non «le
+      scrive con altre parole» — la sua tabella è organizzata **per funzione**
+      (`Redazione automatica DVR`, `Organigramma dinamico…`) invece che per
+      verdetto in grassetto, e la parola «assente» compare **7 volte nella
+      prosa**. Cioè quel documento non è confrontabile con gli altri cinque
+      finché le sei tabelle non parlano la stessa lingua.
 
       Cioè in cinque giorni **tredici mancanze si sono chiuse** e la riga se n'è
       accorta: è il numero che la regola «chi chiude un'unità aggiorna la riga
