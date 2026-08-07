@@ -1448,7 +1448,12 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
        stessa dinamica della compilazione di un'ispezione. -->
   <div id="perm-elenco">
     <div class="sec">Permessi di lavoro<span class="cnt" id="perm-count">0</span></div>
-    <div class="ords" id="perm-filtri">
+    <!-- ⛔ `ords` con la esse non esiste: era un refuso, e il refuso di una
+         classe non fa rumore — nessun errore, nessuna prova rossa, solo una
+         fila di filtri disegnata `display:block` invece che `flex`. Misurato
+         il 07/08 col censimento delle classi orfane: `gap normal` e margine 0
+         contro `flex` e `gap:8px` di ogni altra fila dell'ecosistema. -->
+    <div class="ord" id="perm-filtri">
       <button class="chg active" data-filtro-perm="vivi">In corso e da rilasciare</button>
       <button class="chg" data-filtro-perm="tutti">Tutti</button>
       <button class="chg" data-filtro-perm="chiusi">Chiusi</button>
