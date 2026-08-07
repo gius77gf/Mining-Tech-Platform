@@ -5,8 +5,8 @@
 > sotto. Se la data è vecchia, vuol dire che **la routine non sta
 > lavorando** — e si vede subito, senza dover cercare tra i commit.
 
-**Ultimo ciclo riuscito:** 2026-08-07 **02:47 UTC**
-**Commit di partenza:** `5b4c82e`
+**Ultimo ciclo riuscito:** 2026-08-07 **03:43 UTC**
+**Commit di partenza:** `54b6131`
 
 **Che cosa è successo nel blocco precedente.** Ventun commit, e il filo era uno:
 *il caso limite è sempre **UNO**, e la dimostrazione non ce l'ha mai.* Sei
@@ -44,6 +44,25 @@ citava un **articolo di legge inesistente**.
 ⚠️ **L'ampiezza di un controllo è un numero, e quel numero si misura**: il
 timore dei falsi allarmi era ragionevole, e la misura l'ha smentito in cinque
 minuti.
+
+**Che cosa è successo nel blocco appena chiuso (02:47 → 03:43).** Dieci unità.
+Il banco che controlla le finestre del core ne apriva **11 su 68** e adesso ne
+apre **38**: il controllo «sono rimasto dove ero?» era `p.url()`, e in un'app a
+schermata sola l'indirizzo **non cambia mai** — rispondeva sempre di sì. Dentro
+le finestre mai aperte: cinque collegamenti alti **15 px** (numeri di telefono, e
+l'unico ponte dalla scheda rapportino al progetto), una data tagliata proprio
+dove distingue cinque rapportini, e la Dashboard che rendeva il documento largo
+**678 px su uno schermo da 390**.
+
+⛔ **E la lezione più cara è un mio errore, scritto per intero.** Ho letto nel
+registro del giro `26 passati, 10 falliti` e ho aperto un cantiere su **dieci
+difetti che non esistevano**: erano la **controprova**, cioè il rosso voluto — e
+centosessanta righe più su la passata sana diceva `36 passati, 0 falliti` **con
+la stessa identica frase**. Anche la mia spiegazione era falsa.
+Ma sotto c'era un difetto vero e più grave: la controprova si accontentava di
+`falliti > 0`, quindi avrebbe dichiarato «il banco SA fallire» **anche col banco
+rotto** e il rilevatore mai messo alla prova. Adesso guarda **quali** asserzioni
+cadono, e su tre difetti rimessi dà tre diagnosi distinte e giuste.
 
 **Che cosa fa adesso.** Resta **un cantiere aperto**, sul **core**: il banco
 delle modali ne apre **11 su 68**, e il core è la superficie che il fondatore
