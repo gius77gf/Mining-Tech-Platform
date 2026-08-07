@@ -53,7 +53,28 @@ const BANCHI = [
   ['campi interi', 'interi-superfici.mjs', []],
   ['campi interi · controprova', 'interi-superfici.mjs', ['--senza-guardia'], true],
   ['contrasto', 'contrasto.mjs', []],
+  /* ⛔ AGGIUNTI IL 07/08, E NON PRIMA — la ragione è la parte che vale. Il banco
+     ha imparato i tre temi il 07/08 mattina e ha subito trovato **54**
+     violazioni AA nei due temi chiari, contro zero al buio: sei palette
+     verificate a contrasto in **un tema su tre**, e nessuno lo sapeva perché
+     nessuno le aveva mai aperte. Registrarli allora avrebbe messo il giro in
+     rosso per l'intera giornata, cioè avrebbe reso il giro un rumore da
+     ignorare invece di un segnale — il modo più sicuro di perdere una difesa.
+     Sono entrati quando l'ultima delle sei app è arrivata a zero: Sentinella
+     `24c4d89`, Flotta `b50c8b4`, Conti `099f375`, Terra `f73efba`, Campo
+     `98fe776`, Scudo `73d1ae3`.
+     ⚠️ E la loro guardia contro il verde vuoto è dentro il banco, non qui: chi
+     non carica `shared/dw-tema.js` non ha i tre temi e viene **dichiarato non
+     misurato** invece di contato a posto (le otto superfici sono elencate con
+     la ragione nella regola 27 di `run-stile`). Un tema che non si accende non
+     è un tema che passa. */
+  ['contrasto · tema chiaro', 'contrasto.mjs', ['--tema=chiaro']],
+  ['contrasto · tema sole', 'contrasto.mjs', ['--tema=sole']],
   ['contrasto · controprova', 'contrasto.mjs', ['--controprova'], true],
+  /* la controprova serve in TUTT'E TRE i temi per la stessa ragione per cui
+     serve al buio: il righello del giorno è nuovo, e un righello nuovo che non
+     sa fallire non dimostra niente. */
+  ['contrasto · controprova chiaro', 'contrasto.mjs', ['--controprova', '--tema=chiaro'], true],
   /* ⛔ AGGIUNTA IL 03/08, e non è un doppione della riga qui sopra: quella
      prova che il banco sappia BOCCIARE, questa che sappia NON bocciare. Il
      giro della notte aveva accusato quattro colori del core che sullo stesso
