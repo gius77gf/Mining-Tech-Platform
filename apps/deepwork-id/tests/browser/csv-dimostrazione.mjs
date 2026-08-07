@@ -65,6 +65,7 @@
 import { createServer } from "node:http";
 import { readFileSync, writeFileSync, existsSync, statSync, mkdirSync } from "node:fs";
 import { join, extname } from "node:path";
+import { campioniScappati, sogliaPer, MAX_DECIMALI } from "./campione-scappato.mjs";
 
 const R = process.env.DW_RADICE || "/home/user/Mining-Tech-Platform";
 const PORTA = Number((process.argv.find((a) => a.startsWith("--porta=")) || "").split("=")[1]) || 8752;
@@ -234,7 +235,12 @@ const dice = (c, t, x) => { if (c) { ok++; console.log(`  ok  ${t}`); } else { k
    vero: è la stessa prova letta nei due versi, non due prove. */
 const ATTESO = !FINGE_LIVE;
 
+/* la regola del campione scappato vive in un file suo (`campione-scappato.mjs`)
+   perché la usano DUE banchi: questo e `genesi-documenti-che-escono.mjs`. Due
+   copie uguali oggi divergono domani senza che nessuno lo veda. */
+
 let nBottoni = 0, nFile = 0, nVeri = 0, nProgrammatici = 0, nGiri = 0, nRigheLette = 0;
+let nNumeri = 0, nScappati = 0;
 /* ⛔ LE RIGHE CHE DICONO «NON HO GUARDATO» VANNO LETTE PER PRIME. Un bottone
    premuto che non ha prodotto nessun file non è una prova passata: è una
    prova che non c'è stata, e in fondo a una pagina di verde non si vede. */
@@ -377,6 +383,16 @@ const provaApp = async (app) => {
         `${app}: «${pulito}» — ${ATTESO ? "lo dichiara nelle prime righe, non solo nel nome" : "coi dati veri non dichiara niente"}`,
         primeRighe.slice(0, 120));
     }
+    /* il campione scappato: vale per OGNI file che esce, csv o txt che sia —
+       un `.txt` che si legge a occhio con quindici decimali in mezzo è anzi
+       peggio, perché nessuno lo riapre in un foglio di calcolo per accorgersene */
+    const soglia = sogliaPer(pulito);
+    const { guardati, scappati } = campioniScappati(c.testo, soglia);
+    nNumeri += guardati; nScappati += scappati.length;
+    dice(scappati.length === 0,
+      `${app}: «${pulito}» — nessun numero porta più di ${soglia} decimali (${guardati} numeri guardati)`,
+      scappati.slice(0, 4).join(" · "));
+
     const g = GIRI[pulito];
     if (!g) continue;
     const [modApp, lettore] = g;
@@ -436,8 +452,30 @@ if (muti.length) {
   console.log("   Se ne comparissero altri, vanno aperti: un bottone muto non è un bottone a posto.");
 }
 
+/* ⛔ LA CONTROPROVA DEL CAMPIONE SCAPPATO, e sta qui e non in un banco a parte
+   perché il difetto vero (`42,332516881726825` in un file di scambio) non si
+   può iniettare in una pagina senza mettere il rumore dentro un modulo che le
+   pagine caricano — cosa vietata mentre girano i cantieri. Si prova la
+   funzione sul testo, con il caso VERO accanto ai due che devono restare
+   quieti: la coda di un valore mai arrotondato, e le due forme che assomigliano
+   a un difetto senza esserlo. */
+{
+  const caso = (t) => campioniScappati(t).scappati.length;
+  dice(caso("ritardo_ms;42,332516881726825;84,36212721741676") === 2,
+    "controprova: lo scatter del .volata.json verrebbe visto (2 numeri su 2)");
+  dice(caso("foro;1;ritardo_ms;42.0;84.0;126.0") === 0,
+    "controprova: il piano di carico sano NON viene accusato");
+  dice(caso("emesso;2026-08-07;ora;10:45;importo;1.234.567,89;iva;22") === 0,
+    "controprova: date, orari e migliaia raggruppate non sono campioni scappati",
+    JSON.stringify(campioniScappati("emesso;2026-08-07;ora;10:45;importo;1.234.567,89;iva;22").scappati));
+  /* la guardia collegata: la funzione può essere giusta e non essere chiamata
+     da nessuno — è la forma per cui esistono i conti qui sotto */
+  dice(nNumeri > 100, `il controllo dei decimali ha guardato ${nNumeri} numeri veri, non zero`, nNumeri);
+}
+
 console.log(`\n${nBottoni} bottoni di export premuti (${nVeri} con un clic vero, ${nProgrammatici} su una sezione non visibile)`
-  + ` · ${nFile} file letti · ${nGiri} giri scrivi/leggi rifatti sul file vero (${nRigheLette} righe rientrate)`);
+  + ` · ${nFile} file letti · ${nGiri} giri scrivi/leggi rifatti sul file vero (${nRigheLette} righe rientrate)`
+  + ` · ${nNumeri} numeri letti nei file, ${nScappati} con più di ${MAX_DECIMALI} decimali`);
 if (CONTROPROVA || FINGE_LIVE)
   console.log(`iniezioni: ${nDecisioni} decisioni ${FINGE_LIVE ? "rovesciate" : "spente"}, ${nChiamate} chiamate tolte`
     + `${nMancate ? `, ⛔ ${nMancate} MANCATE` : ""}`);

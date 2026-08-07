@@ -59,6 +59,15 @@
       senza formattatore scriveva «77.7 mm/s» in mezzo a «3,48», «8,0» e
       «0,50 ms». Le cifre lette nel pannello: 0,50 · 3,48 · 3,48 · 1,00 · 8,0 ·
       77.7 — una sola col punto.
+   6. E DAL 07/08 LA LEZIONE DEL n. 4 NON È PIÙ AFFIDATA ALLA MEMORIA. Quel
+      difetto era stato trovato **a mano**, aprendo il file, e il segno che lo
+      tradiva — «un numero con quindici decimali dove lo schermo ne mostra
+      zero» — era rimasto scritto in prosa in CLAUDE.md. Adesso ogni file che
+      passa da `esce()` viene setacciato (`campione-scappato.mjs`, condiviso con
+      `csv-dimostrazione.mjs`): **2.097 numeri** su 8 file, con l'unica soglia
+      diversa dichiarata per nome e con la ragione. E il setaccio sa fallire
+      da solo su questo difetto: con `--controprova` le prove cadute passano
+      da 21 a **22**, ed è la sua riga sul `.volata.json`.
 
    ⛔ I CASI SI COSTRUISCONO NEI DATI, mai nel file su disco: la volata e la
    legge di sito entrano da `localStorage` (`genesiVolate`, `genesiSito`), le
@@ -73,6 +82,9 @@
 import { createServer } from "node:http";
 import { readFileSync, existsSync, statSync, writeFileSync, unlinkSync, mkdirSync } from "node:fs";
 import { join, extname } from "node:path";
+/* la regola del campione scappato vive dove è nata, e si importa: la stessa
+   domanda serve a questo banco e alle sei app di `csv-dimostrazione` */
+import { campioniScappati, sogliaPer, SOGLIE } from "./campione-scappato.mjs";
 
 const R = process.env.DW_RADICE || "/home/user/Mining-Tech-Platform";
 const CONTROPROVA = process.argv.includes("--controprova");
@@ -144,7 +156,8 @@ try {
 const { chromium } = await import("/opt/node22/lib/node_modules/playwright/index.mjs");
 const b = await chromium.launch({ executablePath: process.env.CHROMIUM || "/opt/pw-browsers/chromium" });
 
-let ok = 0, ko = 0, prove = 0, fileAperti = 0, numeriConfrontati = 0;
+let ok = 0, ko = 0, prove = 0, fileAperti = 0, numeriConfrontati = 0, numeriLetti = 0;
+const dichiarateViste = new Set();
 const dice = (c, t, x) => {
   prove++;
   if (c) { ok++; console.log(`  ok  ${t}`); }
@@ -219,6 +232,23 @@ async function esce(pg, id, nome) {
   if (!u) { dice(false, `${nome}: il file esce davvero premendo #${id}`, "nessun download"); return ""; }
   fileAperti++;
   dice(u.testo.length > 30, `${nome} esce davvero da #${id} (${u.nome}, ${u.testo.length} caratteri)`, u.testo.slice(0, 90));
+  /* ⛔ IL CAMPIONE SCAPPATO, CHIESTO A OGNI FILE CHE PASSA DI QUI. Il difetto
+     n. 4 di questo banco — lo scatter d'innesco consegnato al posto del
+     ritardo — è stato trovato **a mano**, aprendo il file, e la lezione era
+     rimasta scritta in prosa: «un numero con quindici decimali dove lo schermo
+     ne mostra zero». Adesso la domanda si fa da sé su ogni uscita, e la
+     funzione sta in un posto solo (`csv-dimostrazione.mjs`) perché la stessa
+     regola serve anche alle sei app che quel banco visita: due copie uguali
+     oggi divergono domani senza che nessuno lo veda.
+     ⚠️ La soglia non è indovinata: è misurata sui 33 file veri delle sei app
+     (113 numeri a una cifra, 12 a due, 18 a tre, ZERO a quattro o più). */
+  const soglia = sogliaPer(u.nome);
+  if (SOGLIE[u.nome]) dichiarateViste.add(u.nome);
+  const { guardati, scappati } = campioniScappati(u.testo, soglia);
+  numeriLetti += guardati;
+  dice(scappati.length === 0,
+    `${nome}: nessun numero porta più di ${soglia} decimali (${guardati} numeri guardati in ${u.nome})`,
+    scappati.slice(0, 4).join(" · "));
   if (DIMMI) console.log(`\n──────── ${u.nome} ────────\n${u.testo}\n────────`);
   return u.testo;
 }
@@ -442,7 +472,33 @@ srv.close();
    violazioni» senza il conto dei soggetti non distingue «pulito» da «non ho
    aperto niente»: il 03/08 un banco stampava «0 modali su 68» da mesi in fondo
    a una pagina di verde e nessuno l'ha letto. */
-console.log(`\nsoggetti: ${fileAperti} file salvati e riaperti · ${numeriConfrontati} numeri confrontati col loro valore a schermo o col file gemello`);
+/* ⛔ LA CONTROPROVA DEL CAMPIONE SCAPPATO, e non è iniettabile nella pagina:
+   il difetto vero — lo scatter al posto del ritardo — è già il difetto n. 4 qui
+   sopra, e rimetterlo prova che il banco vede la RIGA sbagliata, non che sa
+   riconoscere la coda di cifre in un file qualunque. Questa prova la funzione,
+   col caso vero accanto alle due forme che le assomigliano senza esserlo. */
+{
+  const caso = (t) => campioniScappati(t).scappati.length;
+  dice(caso("ritardo;42,332516881726825;84,36212721741676") === 2,
+    "controprova: lo scatter d'innesco verrebbe visto (2 numeri su 2)");
+  dice(caso("foro;1;ritardo_ms;42.0;84.0;126.0") === 0,
+    "controprova: il piano di carico sano NON viene accusato");
+  dice(caso("data;2026-08-07;ora;10:45;kg;1.234.567,89") === 0,
+    "controprova: date, orari e migliaia raggruppate non sono campioni scappati");
+  /* la guardia collegata: una funzione giusta che nessuno chiama non protegge
+     niente — è la forma per cui esiste il conto qui sotto */
+  dice(numeriLetti > 50, `il controllo dei decimali ha guardato ${numeriLetti} numeri veri, non zero`, numeriLetti);
+  /* ⛔ E OGNI ECCEZIONE DICHIARATA DEVE PRESENTARSI ANCORA: una riga che scusa
+     un file che non esce più copre un difetto che non c'è, e nasconde quello
+     che nascerebbe al suo posto. */
+  const attese = Object.keys(SOGLIE).filter((n) => SOGLIE[n].banco === "genesi");
+  for (const n of attese)
+    dice(dichiarateViste.has(n), `l'eccezione dichiarata «${n}» si presenta ancora (se no va tolta)`,
+      [...dichiarateViste].join(" · "));
+}
+
+console.log(`\nsoggetti: ${fileAperti} file salvati e riaperti · ${numeriConfrontati} numeri confrontati col loro valore a schermo o col file gemello`
+  + ` · ${numeriLetti} numeri passati al setaccio dei decimali`);
 if (CONTROPROVA) {
   console.log(`iniezioni: ${colpiti.size} difetti su ${DIFETTI.length} rimessi nella pagina`);
   if (colpiti.size < DIFETTI.length)
