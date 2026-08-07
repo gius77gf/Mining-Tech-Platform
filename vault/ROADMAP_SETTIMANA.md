@@ -549,10 +549,36 @@ numero scritto dove non era stato misurato niente**.*
 
 ### C — Ricerca continua, nei tempi morti
 
-- [ ] **C1. Verificare contro il codice** le tre proposte della ricerca sulle
-      verifiche periodiche delle attrezzature (D.Lgs 81/08 art. 71 e Allegato
-      VII, DM 11/04/2011): il **verificatore** non tracciato, il **verbale** non
-      allegato, l'**esito** come testo libero invece che come lista.
+- [x] ✅ **C1. Verificate contro il codice** (07/08) le tre proposte della
+      ricerca sulle verifiche periodiche delle attrezzature (D.Lgs 81/08 art. 71
+      e Allegato VII, D.M. 11/04/2011). **Una su tre era giusta com'era scritta**,
+      e le altre due andavano dette in un altro modo — che è il punto per cui
+      questa verifica esiste:
+      1. **il verificatore non è tracciato → VERO.**
+         `grep -ci verificator` e `grep -ci organismo` su `apps/scudo/scudo-data.js`
+         e `apps/scudo/index.html`: **0 e 0 in tutti e quattro**. Una
+         `scadenze/{id}` porta `{lavoratoreId, tipo, descrizione, dataScadenza,
+         stato}` e basta: **chi** ha eseguito la verifica (ASL/ARPA o organismo
+         abilitato) non ha un campo. È la seconda cosa che un ispettore chiede
+         dopo «quando».
+      2. **il verbale non allegato → DA RISCRIVERE.** Gli allegati **esistono**
+         (`documenti/{id}` ha `allegatoNome` e `allegatoData`, `grep -ci allegat`
+         dà 17 e 32), ma vivono sui **documenti**, non sulle **scadenze**:
+         il verbale si può archiviare e **niente lo lega alla scadenza che
+         chiude**. La mancanza vera è il *legame*, non l'allegato.
+      3. **l'esito come testo libero → FALSO, ed è peggio: non c'è affatto.**
+         `esito` compare 80 e 225 volte, ma su **azioni** e **ispezioni**: nello
+         schema di una `scadenze/{id}` non c'è nessun campo esito. Quindi non è
+         un campo da irrigidire, è un campo da **aggiungere** — e con l'esito
+         va deciso che cosa vuol dire «verifica con prescrizioni», che è lo
+         stato in cui una cava si trova davvero.
+      ⛔ Due «non c'è» su tre riscritti: è la stessa proporzione misurata il
+      01/08, e la ragione per cui niente entra in roadmap sulla parola di chi
+      propone.
+- [ ] **C1-bis. I tre campi che ne escono**, in ordine di quanto li chiede un
+      ispettore: il **verificatore** sulla scadenza, il **legame verbale →
+      scadenza**, l'**esito** con «conforme / con prescrizioni / non conforme»
+      e la data entro cui la prescrizione va chiusa.
 - [ ] **C2. Ricerca a rotazione**, una app per giro, col vincolo che ha fatto la
       differenza: **incollare il comando e la sua uscita** per ogni «non c'è».
       Misurato su tre tornate: chi va a cercare **il meccanismo** nel modulo
@@ -1025,12 +1051,16 @@ numero scritto dove non era stato misurato niente**.*
 - [x] ✅ **La parte 7 estesa col terzo livello** (`84de2d8`) e **la ricerca su
   Scudo** (`a01bbcc`, 127 righe, 34 con fonte, ~45 `[dedotto]` — da rimisurare
   prima di diventare unità).
-- [ ] **Le 54 dei temi chiari** — è una **palette**, non una correzione: va
-  decisa con la ricerca cromatica e verificata a contrasto. Fra le peggiori:
-  «Conforme» nell'esito del report a **2,35** (ne servono 3), «Riferibilità
-  delle misure» e «Provenienza dei dati di misura» a **1,92**, la riga «DATI DI
-  ESEMPIO» a **1,69**, i numeroni dei KPI fermi a **2,92-2,95**. Quando è fatta,
-  si registra `--tema=sole` in `tutti.mjs`.
+- [x] ✅ **Le 54 dei temi chiari — chiuse tutte e sei** (`24c4d89` Sentinella,
+  `b50c8b4` Flotta, `099f375` Conti, `f73efba` Terra, `98fe776` Campo,
+  `73d1ae3` Scudo). Ognuna decisa con la sua ricerca cromatica sul **proprio**
+  fondo peggiore, non con una formula unica: i fondi dei temi chiari sono velati
+  dell'accento di ciascuna app e si scostano di ~0,3. `--tema=chiaro` e
+  `--tema=sole` sono registrati in `tutti.mjs` da `d8a6f6d`, con la controprova
+  di giorno.
+  ⚠️ E il conto onesto: delle 32 accuse del banco **quattro erano false**, tutte
+  fra i casi con la forbice larga — la geometria del gradiente è il cantiere che
+  chiude quel dubbio.
 - [x] ✅ **Le quattro classi morte tolte** (`f576131`): 1.154 → **1.150** classi,
   morte 4 → 0. La seconda metà della regola ha fatto il suo lavoro per la prima
   volta, pretendendo che sparissero anche le righe che le scusavano. ⚠️ Svuotato
