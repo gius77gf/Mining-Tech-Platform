@@ -5,12 +5,25 @@
 > sotto. Se la data è vecchia, vuol dire che **la routine non sta
 > lavorando** — e si vede subito, senza dover cercare tra i commit.
 
-**Ultimo ciclo riuscito:** 2026-08-07 **09:44 UTC**
-**Commit di partenza:** `0f3d455`
+**Ultimo ciclo riuscito:** 2026-08-07 **14:33 UTC**
+**Commit di partenza:** `0f3d455` (blocco delle 09:44, tuttora in corso)
 
-**Che cosa fa adesso.** Raccoglie i **tre cantieri sul tema `sole`** (Sentinella,
-Flotta, Conti) e legge il **giro completo pulito** su `4643be7`, che a dieci
-sezioni non ha ancora un solo KO nelle passate sane.
+**Che cosa fa adesso.** Tiene aperti **quattro cantieri** e li raccoglie uno per
+uno: la **geometria del gradiente** nel righello del contrasto, la **barra di
+Sentinella a 320 px**, le **nove uscite del core** (solo due sono premute da un
+banco) e i **tre campi della verifica periodica** in Scudo.
+
+> ⛔ **L'ALBERO È SPORCO DI PROPOSITO, E NON VA COMMITTATO ALLA CIECA.** Alle
+> 14:33 risultano modificati `contrasto.mjs`, `barra-etichette.mjs`,
+> `apps/sentinella/index.html`, `apps/scudo/scudo-data.js` e `index.html`: sono
+> **cinque file di quattro cantieri vivi**, scritti negli ultimi minuti. Non è
+> lavoro dimenticato, è lavoro **a metà** — misurato, non supposto:
+> `copertura-funzioni.mjs` dice **«1 soggetto con funzioni senza prova»**,
+> perché Scudo ha già le funzioni nuove e non ancora le loro prove.
+> Chi riprende il ciclo da qui: **non fare `git add` di quei file**. Si aspetta
+> che il cantiere riconsegni, si verifica sulla copia di quello che si committa
+> (`git worktree` + `git diff --cached | git apply` + `git add -A`), e si
+> committa **app per app**. Tutto il lavoro *mio* è già committato e pushato.
 
 **Che cosa è successo nel blocco precedente (06:05 → 09:44).** Undici commit, e
 il filo è uno solo e scomodo: **tutte le cose che pesano riguardavano lo
