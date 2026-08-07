@@ -16717,6 +16717,16 @@ test("⛔ Flotta: le ore ignote arrivano ignote anche a chi le chiede due volte"
 // Le prove sono scritte attorno alla direzione pericolosa: non «sbaglia il
 // conto», ma «risponde la cosa tranquilla su un dato che non ha».
 {
+  /* ⚠️ QUESTA data fissa VA BENE, e la ragione va scritta perché la sua gemella
+     di Flotta è appena stata corretta e chi legge potrebbe «correggere» anche
+     questa. La differenza non è lo stile: è la PROVENIENZA DEI DATI. Qui i dati
+     sono scritti a mano nel blocco, con date fisse (`scadenza: "2027-01-01"`,
+     `data: "2026-06-01"`): due orologi fermi, che non si scostano mai. Nella
+     pagella di Flotta i dati venivano da `flotta.DEMO`, che le sue date le
+     costruisce **relative a `Date.now()`** — orologio fermo contro orologio che
+     cammina, e a mezzanotte di Roma si sono separati.
+     Misurato prima di scriverlo, non dedotto: riferimenti a `DEMO` in questo
+     blocco **zero**, nel blocco di Flotta **sei**. */
   const OGGI = new Date("2026-08-01T09:00:00");
   const CAVA = { id: "k1", nome: "Cava Monte Alto", tipo: "cava" };
   const FUORI = { id: "k2", nome: "Cantiere cliente", tipo: "cantiere" };
@@ -16967,6 +16977,16 @@ test("⛔ Flotta: le ore ignote arrivano ignote anche a chi le chiede due volte"
   const PROD_M = { id: "p3", nome: "Sabbia lavata 0/4", unitaPrezzo: "m3", prezzo: 22, densita: 1.6, iva: 22 };
   const PROD_ND = { id: "p5", nome: "Misto di cava", unitaPrezzo: "t", prezzo: 6.5, densita: null, iva: 22 };
   const CL5 = { id: "c1", sconto: 5 };
+  /* ⚠️ QUESTA data fissa VA BENE, e la ragione va scritta perché la sua gemella
+     di Flotta è appena stata corretta e chi legge potrebbe «correggere» anche
+     questa. La differenza non è lo stile: è la PROVENIENZA DEI DATI. Qui i dati
+     sono scritti a mano nel blocco, con date fisse (`scadenza: "2027-01-01"`,
+     `data: "2026-06-01"`): due orologi fermi, che non si scostano mai. Nella
+     pagella di Flotta i dati venivano da `flotta.DEMO`, che le sue date le
+     costruisce **relative a `Date.now()`** — orologio fermo contro orologio che
+     cammina, e a mezzanotte di Roma si sono separati.
+     Misurato prima di scriverlo, non dedotto: riferimenti a `DEMO` in questo
+     blocco **zero**, nel blocco di Flotta **sei**. */
   const OGGI = new Date("2026-08-01T12:00:00");
   const ordine = (id, stato, righe, extra) =>
     ({ id, clienteId: "c1", data: "2026-06-01", validoAl: "2026-08-31", stato, righe, ...extra });
