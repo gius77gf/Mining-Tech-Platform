@@ -1561,7 +1561,9 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
     dssDaSeguire } from "./scudo-data.js";
   import { mountExit, esc, csvCell, statoVuoto, giorniTra, montaGuardiaInteri, avvolgiUnita, oggiISO, dataISOEsiste,
            controllaAllegato, testoAllegatoRifiutato, pezziDataURL, dataIt,
-           numeroScritto, AVVISO_DECIMALE, timbroLocale, modoDimostrazione } from "../../shared/deepwork-id-client/dw-shell.js";
+           numeroScritto, AVVISO_DECIMALE, timbroLocale, modoDimostrazione,
+           /* il singolare non si scrive più a mano: `conta(1,"voce","voci")` → «1 voce» */
+           conta } from "../../shared/deepwork-id-client/dw-shell.js";
   // I campi INTERI restano `type=number` per lo spinner: la guardia rifiuta la
   // virgola, che lì non serve e che il browser scarterebbe in silenzio.
   montaGuardiaInteri((m) => toast(m, "err"));
@@ -2216,8 +2218,14 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
         formato: soloInteri,
         valori: (muro.scadute ? [{ etichetta: "scadute", valore: muro.scadute, stato: "danger" }] : [])
           .concat(muro.mesi.map(m => ({ etichetta: m.etichetta, valore: m.totale }))),
-        aria: "Muro delle scadenze: " + muro.nelPeriodo + " scadenze nei prossimi " + orizzonte
-          + (muro.scadute ? ", più " + muro.scadute + " già scadute" : "")
+        /* ⛔ E IL SINGOLARE VALE ANCHE PER CHI NON GUARDA LO SCHERMO. La `nota`
+           qui sotto ce l'aveva («1 scadenza già superata»), questa riga no —
+           e usciva «1 scadenze nei prossimi 6 mesi, più 1 già scadute». È la
+           frase che legge un lettore di schermo: l'unica versione del muro che
+           arriva a chi non lo vede disegnato, e per mesi è stata la sbagliata.
+           Le due frasi vanno tenute a fianco perché è lo stesso muro. */
+        aria: "Muro delle scadenze: " + conta(muro.nelPeriodo, "scadenza", "scadenze") + " nei prossimi " + orizzonte
+          + (muro.scadute ? ", più " + conta(muro.scadute, "già scaduta", "già scadute") : "")
           + (mesePieno.totale ? ". Il mese più carico è " + MESI_NOMI[mesePieno.mese] + " " + mesePieno.anno
              + " con " + mesePieno.totale + "." : "."),
         nota: (muro.scadute
@@ -2243,7 +2251,8 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
       });
     } else if (muro.totale) {
       grafVuoto("graf-muro", I.ok, "Nessuna scadenza nei prossimi " + orizzonte,
-        "Le " + muro.totale + (muro.totale === 1 ? " scadenza registrata cade" : " scadenze registrate cadono")
+        /* l'articolo stava fuori dal ternario: «Le 1 scadenza registrata cade» */
+        (muro.totale === 1 ? "L'unica scadenza registrata cade" : "Le " + muro.totale + " scadenze registrate cadono")
         + " più in là: per adesso il calendario è libero. Il <b>muro dei mesi</b> compare qui appena "
         + "una data rientra nel periodo." + testoMuroSenzaData(muro));
     } else if (muro.senzaData) {
@@ -2302,11 +2311,17 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
         : "";
       $("scad-turno").innerHTML = !schierati.length
         ? `<div class="note">In questo momento <b>nessuna squadra</b> risulta in turno in Campo, quindi nessuna di queste scadenze è urgente per il lavoro di oggi.</div>`
+        /* ⛔ QUI IL SINGOLARE C'ERA A METÀ, e la metà scoperta era sempre quella
+           che parla delle PERSONE. Con un solo turnista uscivano tre frasi
+           storte: «riguarda una persona SCHIERATE oggi» (l'aggettivo era fuori
+           dal ternario), «fra LE 1 PERSONE in turno» e «LE 1 PERSONE ... HANNO».
+           È la testata che dice chi oggi non può lavorare: la squadra di una
+           persona sola non è un caso di laboratorio, è una cava piccola. */
         : daFermare
-          ? `<div class="note avviso"><b>${daFermare} ${daFermare === 1 ? "documento scaduto riguarda una persona" : "documenti scaduti riguardano persone"}</b> schierate oggi (${schierati.length} in turno). Sono i contrassegnati <b>in turno</b> qui sotto.${coda}</div>`
+          ? `<div class="note avviso"><b>${daFermare} ${daFermare === 1 ? "documento scaduto riguarda una persona schierata" : "documenti scaduti riguardano persone schierate"}</b> oggi (${schierati.length} in turno). Sono i contrassegnati <b>in turno</b> qui sotto.${coda}</div>`
           : daPrenotare
-            ? `<div class="note recap">Nessun documento scaduto fra le <b>${schierati.length}</b> persone in turno oggi. ${daPrenotare === 1 ? "Una scadenza è" : daPrenotare + " scadenze sono"} entro trenta giorni: si prenota adesso senza fermare nessuno.${coda}</div>`
-            : `<div class="note recap">Le <b>${schierati.length}</b> persone in turno oggi hanno tutti i documenti in corso di validità.${coda}</div>`;
+            ? `<div class="note recap">Nessun documento scaduto ${schierati.length === 1 ? "per l'unica persona in turno oggi" : `fra le <b>${schierati.length}</b> persone in turno oggi`}. ${daPrenotare === 1 ? "Una scadenza è" : daPrenotare + " scadenze sono"} entro trenta giorni: si prenota adesso senza fermare nessuno.${coda}</div>`
+            : `<div class="note recap">${schierati.length === 1 ? "L'unica persona in turno oggi ha" : `Le <b>${schierati.length}</b> persone in turno oggi hanno`} tutti i documenti in corso di validità.${coda}</div>`;
     }
     // il contrassegno sta subito DOPO IL NOME, non in fondo: la riga della meta si
     // accorcia con i puntini quando è lunga, e in fondo spariva proprio lui —
@@ -3244,10 +3259,15 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
         fmtData(i.data) + (i.stato === "completata" ? "" : " · " + lv.label),
         cant ? cant.nome : "sito non indicato",
         resp ? resp.nome : "chi la esegue: da assegnare",
+        /* ⛔ LA STESSA FRASE, DUE DIALETTI: la modale che chiude l'ispezione
+           scrive già «1 conforme · 1 non conforme · 1 non applicabile» con i
+           tre singolari (vedi `corpo` in fondo al file); la riga dell'elenco —
+           quella che si legge per prima, e senza aprire niente — li aveva persi
+           tutti e tre, e su una checklist di una voce diceva «1 conformi». */
         i.stato === "completata"
-          ? `${r.conformi} conformi · ${r.nonConformi} non conformi · ${r.na} non applicabili`
+          ? `${conta(r.conformi, "conforme", "conformi")} · ${conta(r.nonConformi, "non conforme", "non conformi")} · ${conta(r.na, "non applicabile", "non applicabili")}`
             + (parziale ? ` · ${r.daFare} senza esito` : "")
-          : `${r.fatte} voci compilate su ${r.totale}`,
+          : `${conta(r.fatte, "voce compilata", "voci compilate")} su ${r.totale}`,
       ].join(" · ");
       const ab = naz.length ? badgeAzioni(naz.length, nazChiuse) : null;
       return `<div class="item tocca ${cls}" data-isp-apri="${i.id}" title="Apri la checklist">
@@ -3319,7 +3339,10 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
           ? "Tutte le voci hanno un esito." + (r.nonConformi
               ? " Le <b>" + r.nonConformi + "</b> non conformi diventano azioni correttive quando chiudi l'ispezione."
               : " Nessuna non conformità: alla chiusura non nascerà nessuna azione.")
-          : "Mancano <b>" + r.daFare + "</b> voci. Una voce che non c'entra con la tua cava si segna <b>non applicabile</b>: è un esito anche quello, e resta scritto.",
+          /* «Mancano 1 voci» era l'ultima riga scoperta di questa schermata:
+             il `meta` qui sopra il singolare ce l'aveva già. */
+          : (r.daFare === 1 ? "Manca <b>1</b> voce." : "Mancano <b>" + r.daFare + "</b> voci.")
+            + " Una voce che non c'entra con la tua cava si segna <b>non applicabile</b>: è un esito anche quello, e resta scritto.",
       });
       const bloccata = i.stato === "completata";
       $("isp-c-voci").innerHTML = (i.voci || []).map(v => {
@@ -3452,9 +3475,17 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
         <div class="reqs">${a.requisiti.map(r => pillReq(a, r)).join("")}${a.dpi.map(d => pillDpi(a, d)).join("")}</div></div>
         <span class="acts"><span class="badge ${e[0]}">${e[1]}</span></span></div>`;
     };
+    /* ⛔ «QUANTI POSSONO ANDARE» SI SCRIVE IN UN POSTO SOLO. La stessa frase
+       viveva due volte — qui col singolare e nel `title` della pastiglia senza
+       (là usciva «1 su 1 possono andare oggi») — ed è la forma di difetto che
+       questo repository ha già pagato quattro volte: la copia funziona sui
+       numeri grandi, e nessuno guarda il testo di un `title`. Il verbo segue
+       `totale`, com'era già scritto qui: la regola non cambia, cambia il fatto
+       che adesso ce n'è una sola. */
+    const quantiPossono = (r) => r.puo + " su " + r.totale + (r.totale === 1 ? " può" : " possono") + " andare";
     const bloccoMat = (r) => `<div class="sub-sec">${esc(r.mansione.nome)} — ${r.requisitiIgnoti && r.totale
         ? "non sappiamo chi può andare"
-        : r.puo + " su " + r.totale + (r.totale === 1 ? " può" : " possono") + " andare"}</div>`
+        : quantiPossono(r)}</div>`
       /* decisione 13: la ragione sta in un posto suo, sotto il titolo del
          blocco, con l'azione che la chiude scritta accanto. */
       + (r.requisitiIgnoti && r.totale
@@ -3530,7 +3561,7 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
         <div class="info"><div class="name">${esc(m.nome)}</div>
         <div class="meta">${esc(testoReq)} · ${ndpi} ${ndpi === 1 ? "DPI previsto" : "DPI previsti"} · ${r.totale} ${r.totale === 1 ? "persona" : "persone"}${r.senzaPersona ? ` · <b>${r.senzaPersona} ${r.senzaPersona === 1 ? "assegnato non più in anagrafica" : "assegnati non più in anagrafica"}</b>` : ""}</div></div>
         <span class="acts">
-        <span class="badge ${r.totale || r.senzaPersona ? (r.no ? "danger" : (r.attenzione || r.nonSo || r.senzaPersona ? "warn" : "ok")) : "tag"}" title="${r.senzaPersona ? r.senzaPersona + " degli " + r.assegnati + " assegnati non risultano più in anagrafica: di loro non si sa niente, e non sono contati né fra chi può né fra chi non può" : (r.totale ? (r.requisitiIgnoti ? "non si sa chi può andare: per questa mansione non è scritto nessun corso richiesto" : r.puo + " su " + r.totale + " possono andare oggi") : "nessuna persona assegnata")}">${r.totale || r.senzaPersona ? (r.requisitiIgnoti ? "?/" + r.assegnati : r.puo + "/" + r.assegnati) : "nessuno"}</span>
+        <span class="badge ${r.totale || r.senzaPersona ? (r.no ? "danger" : (r.attenzione || r.nonSo || r.senzaPersona ? "warn" : "ok")) : "tag"}" title="${r.senzaPersona ? r.senzaPersona + " su " + r.assegnati + (r.senzaPersona === 1 ? " assegnati non risulta più in anagrafica: di quella persona non si sa niente, e non è contata né fra chi può né fra chi non può" : " assegnati non risultano più in anagrafica: di loro non si sa niente, e non sono contati né fra chi può né fra chi non può") : (r.totale ? (r.requisitiIgnoti ? "non si sa chi può andare: per questa mansione non è scritto nessun corso richiesto" : quantiPossono(r) + " oggi") : "nessuna persona assegnata")}">${r.totale || r.senzaPersona ? (r.requisitiIgnoti ? "?/" + r.assegnati : r.puo + "/" + r.assegnati) : "nessuno"}</span>
         <span class="arr" style="cursor:pointer" title="Modifica la mansione" data-edit-mans="${m.id}">✎</span>
         <span class="arr" style="cursor:pointer" title="Rimuovi la mansione" data-del-mans="${m.id}">✕</span></span></div>`;
     }).join("") || vuoto(I.attrezzo, "Nessuna mansione descritta",
@@ -4660,11 +4691,21 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
        che manca e un dato che nessuno ha ancora deciso. In un foglio di
        conformità una cella vuota si legge «non serve». */
     const nome = (id) => { const l = LAV.find(x => x.id === id); return l ? l.nome : "da assegnare"; };
-    const orig = (a) => { if (daAmbiente(a)) return a.origineNota || (etichettaAmbiente(a) + " (Sentinella)" + (a.origineData ? " del " + a.origineData : ""));
+    /* ⛔ LA COLONNA DELL'ORIGINE È UNA FRASE, NON UNA DATA: si scrive con
+       `fmtData` come la scrive lo schermo (`origineTesto`), non in ISO. Il
+       file diceva «near-miss del 2026-05-18» dove la pagina, per lo stesso
+       evento, dice «da near-miss del 18/05/2026» — e questo CSV lo apre chi
+       non ha davanti l'app. Le colonne `scadenza` e `dataChiusura` restano in
+       ISO di proposito: quelle sono date da rileggere con un programma, e un
+       foglio di calcolo le ordina solo così. Qui invece la data sta dentro
+       una frase italiana, e lì vale la regola dello schermo.
+       ⚠️ `fmtData` su una data che non si legge scrive «—», dove prima usciva
+       uno spazio vuoto: dire che la data non c'è è meglio che non dirlo. */
+    const orig = (a) => { if (daAmbiente(a)) return a.origineNota || (etichettaAmbiente(a) + " (Sentinella)" + (a.origineData ? " del " + fmtData(a.origineData) : ""));
       if (a.origineTipo === "evento") { const e = INF.find(x => x.id === a.origineId);
-        return e ? (e.tipo || "evento") + " del " + (e.data || "") + (e.descrizione ? " — " + e.descrizione : "") : "evento non più in archivio"; }
+        return e ? (e.tipo || "evento") + " del " + fmtData(e.data) + (e.descrizione ? " — " + e.descrizione : "") : "evento non più in archivio"; }
       if (a.origineTipo === "ispezione") { const i = ISP.find(x => x.id === a.origineId);
-        return (i ? "ispezione " + i.nome + " del " + (i.data || "") : "ispezione non più in archivio") + (a.origineNota ? " — " + a.origineNota : ""); }
+        return (i ? "ispezione " + i.nome + " del " + fmtData(i.data) : "ispezione non più in archivio") + (a.origineNota ? " — " + a.origineNota : ""); }
       return a.origineNota ? "non conformità: " + a.origineNota : ""; };
     /* Lo stesso ordine dell'elenco a schermo (`aziCmp`): chiuse in fondo, le
        altre per data, e chi la data non ce l'ha in coda invece che in testa.
@@ -5667,7 +5708,9 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
          classifica per luogo: in fondo a un elenco ordinato si leggerebbero
          come i più tranquilli. Escono con la loro riga e la loro parola. */
       for (const l of rp.perLuogo)
-        csv += `potenziale;${csvCell(l.etichetta)} — episodi che potevano finire con un infortunio (su ${l.valutati} valutati, ${l.nonValutati} no);${l.alto}\n`;
+        /* «su 1 valutati» — e la frase del modulo, dodici righe più su in
+           `descriviRischioPotenziale`, il singolare ce l'aveva già. */
+        csv += `potenziale;${csvCell(l.etichetta)} — episodi che potevano finire con un infortunio (su ${conta(l.valutati, "valutato", "valutati")}, ${l.nonValutati} no);${l.alto}\n`;
       for (const l of rp.luoghiCiechi)
         csv += `potenziale;${csvCell(l.etichetta)} — nessun episodio valutato: non si sa come poteva finire;${l.eventi}\n`; }
     csv += `azioni;near-miss con almeno un'azione correttiva;${r.conAzione}\n`;

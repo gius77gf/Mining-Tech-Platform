@@ -103,8 +103,22 @@
 // (scaduta / entro 30gg / regolare) — niente dati derivati nel DB.
 // ============================================================
 
+/* ⛔ `conta` E `plurale` ARRIVANO DA `shared/`, E NON SI RISCRIVONO QUI. Il
+   06/08 questo file ne aveva una copia debole (`const q = (n, uno, tanti) =>
+   n + " " + (n === 1 ? uno : tanti)`, dentro `cartellaLavoratore`): identica
+   su un numero buono, diversa su `null` — dove la copia scriveva «null
+   scadenze» e quella di `shared/` scrive «— scadenze». Quel testo finisce sul
+   fascicolo che si stampa e si mostra a un ispettore. È la stessa copia debole
+   che lo stesso giorno è saltata fuori in Conti, Terra e Genesi, tre cantieri
+   che non si parlavano: quando una funzione si riscrive da sola in quattro app
+   il posto giusto è uno solo.
+   ⚠️ Le tre `const conta` locali di questo file — che contavano righe, non
+   parole — sono state rinominate (`raggruppa`, `quanti`) proprio perché
+   ombreggiavano questo nome: un `conta(n, "voce", "voci")` scritto dentro una
+   di quelle funzioni avrebbe chiamato in silenzio l'altra cosa. */
 import { parseCsvLine, numIt, giorniTra, isIntestazione, senzaDoppioni, dataISOEsiste,
-         dataIt, pezziDataURL, LIMITE_ALLEGATO } from "../../shared/deepwork-id-client/dw-shell.js";
+         dataIt, pezziDataURL, LIMITE_ALLEGATO,
+         conta, plurale } from "../../shared/deepwork-id-client/dw-shell.js";
 
 export const DEMO = {
   lavoratori: [
@@ -975,7 +989,7 @@ function etichettaLuogoNM(x) {
 export function riepilogoNearMiss(infortuni, azioni, giorni = 90, oggi = new Date()) {
   const tutti = (infortuni || []).filter(x => x.tipo === "near-miss");
   const list = tutti.filter(x => dentroFinestraNM(x, giorni, oggi));
-  const conta = (etichettaDi) => {
+  const raggruppa = (etichettaDi) => {
     const per = {};
     for (const x of list) {
       const lab = etichettaDi(x);
@@ -984,8 +998,8 @@ export function riepilogoNearMiss(infortuni, azioni, giorni = 90, oggi = new Dat
     return Object.entries(per).map(([etichetta, valore]) => ({ etichetta, valore }))
       .sort((a, b) => b.valore - a.valore || a.etichetta.localeCompare(b.etichetta, "it"));
   };
-  const perTipo = conta(x => categoriaNearMiss(x.categoria) || "Non classificato");
-  const perLuogo = conta(etichettaLuogoNM);
+  const perTipo = raggruppa(x => categoriaNearMiss(x.categoria) || "Non classificato");
+  const perLuogo = raggruppa(etichettaLuogoNM);
   const ids = new Set(list.map(x => x.id));
   const azi = (azioni || []).filter(a => a.origineTipo === "evento" && ids.has(a.origineId));
   const conAzione = new Set(azi.map(a => a.origineId)).size;
@@ -1024,8 +1038,11 @@ export function descriviLetturaNearMiss(riepilogo) {
         + "vuol dire che non si segnala.";
   }
   if (x.pochi)
-    return "ATTENZIONE alla lettura: " + t + (t === 1 ? " segnalazione" : " segnalazioni")
-      + " sono meno di " + MIN_TENDENZA + ", la soglia sotto la quale l'app non disegna nessuna "
+    /* ⚠️ IL VERBO STAVA FUORI DAL TERNARIO, e con una segnalazione sola la
+       frase usciva «1 segnalazione SONO meno di 5» — anche nel CSV che si
+       manda fuori. Il singolare c'era: era il verbo a non averlo. */
+    return "ATTENZIONE alla lettura: " + conta(t, "segnalazione", "segnalazioni")
+      + plurale(t, " è", " sono") + " meno di " + MIN_TENDENZA + ", la soglia sotto la quale l'app non disegna nessuna "
       + "classifica. Le righe «tipo» e «luogo» qui sotto sono un conteggio, non una tendenza.";
   return "";
 }
@@ -2797,9 +2814,8 @@ export function cartellaLavoratore(lavoratore, dati, oggi = new Date()) {
      un preavviso, e il foglio lo scrive già accanto alla riga. Metterlo qui
      avrebbe fatto uscire un avviso su quasi ogni cartella, e un avviso che
      c'è sempre non lo legge più nessuno. */
-  const q = (n, uno, tanti) => n + " " + (n === 1 ? uno : tanti);
   const stScad = sue.map(x => x.stato), stDpi = verbale.righe.map(r => r.stato);
-  const conta = [
+  const righeGuaste = [
     [stScad.filter(x => x === "scaduta").length, "scadenza già scaduta", "scadenze già scadute"],
     [stScad.filter(x => x === "senza data").length, "scadenza senza una data leggibile", "scadenze senza una data leggibile"],
     [stDpi.filter(x => x === "scaduta").length, "DPI da sostituire", "DPI da sostituire"],
@@ -2811,7 +2827,7 @@ export function cartellaLavoratore(lavoratore, dati, oggi = new Date()) {
     [suoiDoc.filter(x => !etichettaStatoDocumento(x.stato).valido).length,
       "documento non valido o dallo stato non registrato", "documenti non validi o dallo stato non registrato"],
   ];
-  const daSistemare = conta.filter(([n]) => n > 0).map(([n, uno, tanti]) => q(n, uno, tanti));
+  const daSistemare = righeGuaste.filter(([n]) => n > 0).map(([n, uno, tanti]) => conta(n, uno, tanti));
 
   return {
     trovato: true, lavoratore: l,
@@ -3735,17 +3751,17 @@ export function riepilogoAppalti(appalti, cantieri, appaltatori, documenti, oggi
   const attivi = (appalti || []).filter((a) => a && a.stato !== "chiuso");
   const righe = attivi.map((a) => ({ appalto: a,
     ...statoAppalto(a, perCant.get(a.cantiereId), perApp.get(a.appaltatoreId), documenti, oggi) }));
-  const conta = (e) => righe.filter((r) => r.esito === e).length;
+  const quanti = (e) => righe.filter((r) => r.esito === e).length;
 
   if (!attivi.length)
     return { quanti: 0, aPosto: 0, daSistemare: 0, nonVerificati: 0, righe: [], noto: false,
       testo: "Nessun appalto registrato. Non vuol dire che in cava non entri nessuna impresa esterna: vuol "
         + "dire che qui non ne risulta nessuna, e finché è così questa schermata non dimostra niente." };
 
-  const daSistemare = conta("da-sistemare"), nonVerificati = conta("non-verificato"), aPosto = conta("a-posto");
+  const daSistemare = quanti("da-sistemare"), nonVerificati = quanti("non-verificato"), aPosto = quanti("a-posto");
   return { quanti: attivi.length, aPosto, daSistemare, nonVerificati, righe, noto: nonVerificati === 0,
     testo: (daSistemare || nonVerificati)
-      ? [daSistemare ? daSistemare + (daSistemare === 1 ? " appalto da sistemare" : " appalti da sistemare") : "",
+      ? [daSistemare ? conta(daSistemare, "appalto da sistemare", "appalti da sistemare") : "",
          nonVerificati ? nonVerificati + (nonVerificati === 1 ? " su cui manca una verifica" : " su cui mancano verifiche") : ""]
           .filter(Boolean).join(", ") + ", su " + attivi.length + " attiv" + (attivi.length === 1 ? "o" : "i") + "."
       : "Tutt" + (attivi.length === 1 ? "o l'unico appalto attivo ha" : "i e " + attivi.length + " gli appalti attivi hanno")
@@ -4318,17 +4334,17 @@ export function conformiSenzaProva(ispezioni, permessi, ctx = {}, oggi = new Dat
 export function riepilogoPermessi(permessi, ctx = {}, oggi = new Date()) {
   const list = (permessi || []).filter(Boolean);
   const righe = list.map((p) => ({ permesso: p, ...statoPermesso(p, ctx, oggi) }));
-  const conta = (...e) => righe.filter((r) => e.includes(r.esito)).length;
-  const daFermare = conta("da-fermare", "non-rilasciabile");
-  const scaduti = conta("scaduto");
-  const daVerificare = conta("da-verificare", "da-completare");
+  const quanti = (...e) => righe.filter((r) => e.includes(r.esito)).length;
+  const daFermare = quanti("da-fermare", "non-rilasciabile");
+  const scaduti = quanti("scaduto");
+  const daVerificare = quanti("da-verificare", "da-completare");
   if (!list.length)
     return { quanti: 0, aperti: 0, validi: 0, daFermare: 0, scaduti: 0, daVerificare: 0, righe: [], noto: false,
       testo: "Nessun permesso di lavoro registrato. Non vuol dire che in cava non entri nessuno in una "
         + "tramoggia: vuol dire che qui non ne risulta nessuno, e finché è così le voci di checklist che "
         + "chiedono un permesso non hanno niente dietro." };
   return { quanti: list.length, aperti: righe.filter((r) => r.stato === "aperto").length,
-    validi: conta("valido"), daFermare, scaduti, daVerificare, righe, noto: daVerificare === 0,
+    validi: quanti("valido"), daFermare, scaduti, daVerificare, righe, noto: daVerificare === 0,
     testo: (daFermare || scaduti || daVerificare)
       ? [daFermare ? daFermare + " da fermare" : "",
          scaduti ? scaduti + (scaduti === 1 ? " scaduto e non chiuso" : " scaduti e non chiusi") : "",
