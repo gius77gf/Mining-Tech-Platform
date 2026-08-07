@@ -141,7 +141,7 @@ avvio) — servono `firebase-tools` e Java:
 cd apps/deepwork-id && firebase emulators:exec --project demo-deepwork "cd tests && npm test"
 ```
 
-**137 esecuzioni che aprono davvero le pagine** in Chromium — banchi distinti,
+**138 esecuzioni che aprono davvero le pagine** in Chromium — banchi distinti,
 ognuno seguito dalla sua **controprova** (Chromium è già installato in
 `/opt/pw-browsers/chromium`, **non** si lancia `playwright install`):
 

@@ -75,6 +75,15 @@ const BANCHI = [
      serve al buio: il righello del giorno è nuovo, e un righello nuovo che non
      sa fallire non dimostra niente. */
   ['contrasto · controprova chiaro', 'contrasto.mjs', ['--controprova', '--tema=chiaro'], true],
+  /* ⛔ AGGIUNTA IL 07/08 COL RIGHELLO NUOVO. La geometria dei gradienti non si
+     prova guardando i verdetti — quelli erano zero prima e sono zero dopo:
+     si prova su un caso **costruito** che i righelli più semplici promuovono.
+     Il caso è un fondo grigio uniforme con l'inchiostro che va dal nero al
+     bianco lungo le lettere: **4,56 e 4,61 ai due capi, 1,17 in mezzo**, cioè
+     illeggibile proprio dove nessuno guardava. Lo promuovevano tutt'e due i
+     righelli precedenti — gli angoli e l'accoppiamento a tappeto. Senza questa
+     riga la controprova non gira mai in CI, che è la guardia scollegata. */
+  ['contrasto · la geometria dei gradienti', 'contrasto.mjs', ['--controprova-gradiente'], true],
   /* ⛔ AGGIUNTA IL 03/08, e non è un doppione della riga qui sopra: quella
      prova che il banco sappia BOCCIARE, questa che sappia NON bocciare. Il
      giro della notte aveva accusato quattro colori del core che sullo stesso

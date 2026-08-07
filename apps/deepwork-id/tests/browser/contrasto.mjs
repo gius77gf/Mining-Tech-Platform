@@ -13,8 +13,9 @@
    tipo, la famiglia opposta non l'aveva cercata nessuno.
    1. **Sfondi a gradiente**: il colore vero sta in `background-image`, e
       cercando un fondo opaco fra gli antenati si finisce contro lo sfondo della
-      pagina. Bianco su arancione risultava 19:1. Si tiene il caso peggiore fra
-      i colori del gradiente.
+      pagina. Bianco su arancione risultava 19:1. Il colore si prende dal
+      gradiente — e dal 08/08 **nel punto in cui il testo sta davvero**, non
+      accoppiando tutte le fermate (vedi «LA GEOMETRIA DEI GRADIENTI»).
    2. **Trasparenza del colore del testo**: va composta col fondo.
    3. **`opacity` ereditata**: `opacity:.85` su un antenato portava 4,75 a 4,31.
    4. **`opacity` di un'ANIMAZIONE, colta a metà.** La guardia della trappola 2
@@ -54,6 +55,26 @@
    Questo banco esiste perché nessuno guardava i colori; se le sue bocciature
    si prendono per buone senza il conto a mano, diventa lui la fonte del danno.
 
+   ⛔ **OTTAVA TRAPPOLA, ED È QUELLA CHE HA PORTATO IL CANTIERE DEL 08/08: IL
+   PUNTO.** Fino al 07/08, quando l'inchiostro o il fondo venivano da un
+   gradiente, questo banco accoppiava TUTTE le fermate dell'uno con TUTTE
+   quelle dell'altro e teneva il minimo — cioè accoppiava anche pixel che
+   stanno agli angoli opposti del rettangolo e non si incontrano mai. Sei
+   cantieri hanno rimisurato a mano tutti e 32 i KO delle sei app leggendo i
+   pixel veri: **quattro erano accuse false**, tutte fra i casi a forbice
+   larga (Flotta `.n` 3,01 contro 2,93; Campo `.n` 3,15 contro 2,86; due
+   `.avatar.sup` di Scudo 4,92 e 4,78 contro 3,77). Sui casi senza forbice i
+   righelli indipendenti davano lo stesso numero alla cifra: il righello
+   sbagliava SOLO lì, e sempre nel verso che accusa.
+   ⚠️ E forbice larga non bastava a saperlo: il «759k» di Terra aveva forbice
+   3,85 ed era vero lo stesso, di 0,02. A dirlo è solo la geometria — ed è per
+   questo che la correzione non si poteva fare a metà.
+   Adesso inchiostro e fondo si leggono **nello stesso punto fisico** e il
+   peggiore si prende su quei punti. Il meccanismo che produceva le accuse
+   false, in una riga: **il testo copre solo una parte della retta del
+   gradiente**, e il vecchio accoppiamento gli metteva sotto una fermata che
+   sta cento pixel più in là.
+
    Cosa NON si misura, e perché: il testo dentro le immagini e gli SVG (il
    contrasto lì non si legge dal DOM), e il testo nascosto. Le soglie di
    sicurezza e i colori scelti dal fondatore non si toccano: questo banco
@@ -65,6 +86,8 @@
      node apps/deepwork-id/tests/browser/contrasto.mjs 8823 --tutti   (elenca anche i promossi)
      node apps/deepwork-id/tests/browser/contrasto.mjs 8823 --controprova
      node apps/deepwork-id/tests/browser/contrasto.mjs 8823 --controprova-pulsazione
+     node apps/deepwork-id/tests/browser/contrasto.mjs 8823 --controprova-gradiente
+     node apps/deepwork-id/tests/browser/contrasto.mjs 8823 --lato=2    (i soli angoli, vedi LATO)
      node apps/deepwork-id/tests/browser/contrasto.mjs 8823 --solo=conti --tutti
 */
 import { prendiChromium, CHROMIUM, SUPERFICI, sezioniDi, vaiA, apriSuperficie } from './giro.mjs';
@@ -129,10 +152,49 @@ const CONTROPULSA = process.argv.includes('--controprova-pulsazione');
 const CONTROCENS = process.argv.includes('--controprova-censimento');
 const CLASSE_CENS = 'dw-mai-vista-controprova';
 const MARCA_PULSA = 'controprova pulsazione';
+/* ⛔ LA CONTROPROVA DEL RIGHELLO CO-LOCATO (08/08). La correzione di oggi ha
+   tolto delle accuse; una correzione che toglie accuse va provata nel verso
+   opposto, se no «meno KO» si legge come «va meglio» e invece vuol dire «guarda
+   di meno» — è la stessa forma del fondo sulla copertura, che catturava le
+   prove tolte e non il codice aggiunto senza prove.
+   Qui si appendono DUE testi con un gradiente vero sotto:
+   · uno DAVVERO illeggibile (grigio su un gradiente grigio, sotto 1,5:1 in
+     ogni punto): deve essere bocciato — se passa, la geometria sta assolvendo;
+   · uno leggibilissimo su un gradiente a 135° con gli estremi lontani (bianco
+     su un fondo che va da quasi nero a scuro): NON deve essere bocciato, ed è
+     esattamente la famiglia delle quattro accuse false del 07/08. */
+const CONTROGRAD = process.argv.includes('--controprova-gradiente');
+const MARCA_GRAD_KO = 'controprova gradiente illeggibile';
+const MARCA_GRAD_OK = 'controprova gradiente leggibile';
+/* il terzo testimone: leggibile ai due capi, illeggibile in mezzo. Nome distinto
+   perché è l'unico che gli angoli da soli non sanno prendere, e va contato a parte. */
+const MARCA_GRAD_MEZZO = 'controprova gradiente cieco agli angoli';
+/* ⛔ QUANTI PUNTI SI GUARDANO DENTRO OGNI RIGA DI TESTO, PER LATO — e il numero
+   è stato SCELTO CON LA MISURA, non con un ragionamento.
+   `--lato=2` sono i quattro ANGOLI, che è la strada elegante: per un gradiente
+   lineare gli estremi della proiezione su un rettangolo stanno agli angoli, e
+   sembra che bastino. NON bastano, e la dimostrazione è costruita e permanente
+   (`--controprova-gradiente`): fondo grigio uniforme `rgb(117)`, inchiostro dal
+   nero al bianco lungo le lettere — ai due capi fa 4,56 e 4,61, **sopra** la
+   soglia, e a metà parola fa **1,17**. Quel caso lo promuovevano tutt'e due i
+   righelli più semplici, gli angoli e il vecchio accoppiamento a tappeto: il
+   minimo del rapporto NON è monotòno, quindi può cadere in mezzo.
+   I tre valori misurati sul giro intero (14 superfici, tema scuro), stesso
+   commit, stessa macchina:
+     · `--lato=2`  → 556 s, e su **548 testi** dà un numero più ALTO del vero;
+     · `--lato=9`  → 557 s;
+     · `--lato=25` → 564 s (+1,3%), e su **127 testi** ne dà uno più basso di 9,
+       fino a 0,14 — nessun verdetto cambiato oggi, ma la differenza è nella
+       direzione che conta.
+   Siccome venticinque costa l'uno per cento e non poggia su nessuna ipotesi,
+   il predefinito è venticinque: la strada che si sa provare batte quella
+   elegante. La prova che gli angoli non bastano: `--controprova-gradiente
+   --lato=2` DEVE fallire. */
+const LATO = Math.max(1, parseInt((process.argv.find((a) => a.startsWith('--lato=')) || '').slice(7), 10) || 25);
 
 /* La misura vive nella pagina: si passa una volta sola e si raccoglie tutto il
    testo visibile con il suo contrasto effettivo. */
-const MISURA = () => {
+const MISURA = (LATO) => {
   /* ⛔ SETTIMA TRAPPOLA, E LA PIÙ COSTOSA DI TUTTE: `color(srgb …)`.
      Questa funzione tirava fuori i numeri di una stringa e li trattava come
      0-255. Ma `color-mix()` — che i temi delle app usano per il `--muted` —
@@ -190,6 +252,341 @@ const MISURA = () => {
     const f = (x) => { x /= 255; return x <= 0.03928 ? x / 12.92 : Math.pow((x + 0.055) / 1.055, 2.4); };
     return 0.2126 * f(v[0]) + 0.7152 * f(v[1]) + 0.0722 * f(v[2]);
   };
+  /* ════════════════════════════════════════════════════════════════════
+     LA GEOMETRIA DEI GRADIENTI (08/08) — che cosa c'è DAVVERO in un punto
+     ════════════════════════════════════════════════════════════════════
+     Fino a ieri, quando l'inchiostro o il fondo venivano da un gradiente,
+     questo banco accoppiava TUTTE le fermate dell'uno con TUTTE quelle
+     dell'altro e teneva il minimo: il pixel d'inchiostro più chiaro col pixel
+     di fondo più scuro **anche quando stanno agli angoli opposti**, dove non
+     si incontrano mai. Il costo, misurato a mano da sei cantieri il 07/08 su
+     tutti e 32 i KO delle sei app: **quattro accuse false** — Flotta `.n`
+     (3,01 ai pixel contro 2,93 dichiarati), Campo `.n` a 32px (3,15 contro
+     2,86), due `.avatar.sup` di Scudo (4,92 e 4,78 contro 3,77). Tutte fra i
+     casi a forbice larga; sui casi senza forbice i righelli indipendenti
+     davano lo stesso numero alla cifra.
+     ⚠️ Ma forbice larga NON voleva dire accusa falsa: il «759k» di Terra
+     aveva forbice 3,85 ed era vero lo stesso, perché lì il `.n` copre dal 39%
+     all'83% dell'altezza e il gradiente a 135° mette la fermata chiara sopra
+     la parte scura del fondo — gli estremi si incontrano davvero. A dirlo è
+     solo la geometria, e per questo non si poteva correggere «a metà».
+     Adesso inchiostro e fondo si valutano NELLO STESSO PUNTO FISICO, e il
+     peggiore si prende su quei punti.
+
+     ⛔ E L'INTERPOLAZIONE NON SI CALCOLA: LA DIPINGE IL BROWSER. La stessa
+     regola per cui i colori si leggono da una tela invece di spezzarne la
+     stringa. Qui si calcola SOLO la retta del gradiente — che la CSS Images 3
+     definisce in tre righe — e il colore lungo quella retta lo dà una rampa
+     dipinta. Verificato in scratchpad contro i PIXEL VERI (screenshot): 198
+     punti su 22 gradienti (angoli in gradi, parole chiave `to …`, angoli agli
+     spigoli, tre fermate non monotone, fermate senza posizione, doppia
+     posizione, trasparenza, `color-mix`, `color()`, `oklab`, `oklch`), scarto
+     peggiore **2/255** — cioè la quantizzazione della rampa.
+     ⚠️ Due cose sono state trovate SOLO da quel confronto, e nessuna delle due
+     si vedeva leggendo il codice:
+     1. il CSS interpola in alfa PREMOLTIPLICATO e la tela no — 64/255 di
+        scarto su un gradiente che finisce trasparente;
+     2. se anche UNA fermata non è «legacy» (`rgb()`/`rgba()`, come Chromium
+        serializza hex, nomi e `hsl()`), l'interpolazione passa a **oklab** —
+        84/255 di scarto. Le palette delle app usano `color-mix()` per il
+        `--muted`, quindi non è un caso di laboratorio.
+     ⚠️ E la prova che NON distingueva era già scritta: il caso di prova
+     `oklab` passava a 2/255 con la rampa sRGB, perché quelle due fermate sono
+     vicine di tinta. Passava per il motivo sbagliato — la prima delle cinque
+     cause di «non distingue» di CLAUDE.md. */
+  const alLivelloAlto = (s, sep) => {
+    const out = []; let d = 0, cur = '';
+    for (const ch of s) {
+      if (ch === '(') d++;
+      else if (ch === ')') d--;
+      if (ch === sep && d === 0) { out.push(cur.trim()); cur = ''; } else cur += ch;
+    }
+    if (cur.trim()) out.push(cur.trim());
+    return out;
+  };
+  const ANG = { deg: 1, grad: 0.9, rad: 180 / Math.PI, turn: 360 };
+  const leggiAngolo = (t) => {
+    const m = /^([-+0-9.eE]+)(deg|grad|rad|turn)$/.exec(t.trim());
+    return m ? parseFloat(m[1]) * ANG[m[2]] : null;
+  };
+  /* LA RETTA DEL GRADIENTE, per la CSS Images 3: passa dal centro della
+     scatola, ha direzione (sinA, -cosA) con A misurato da «verso l'alto» in
+     senso orario, e lunghezza |w·sinA| + |h·cosA| — cioè esattamente quanto
+     basta perché le due fermate estreme tocchino gli angoli. Per le parole
+     chiave a due lati (`to bottom right`) la direzione è quella perpendicolare
+     alla congiungente dei due angoli vicini. */
+  const asseLineare = (dir, w, h) => {
+    let dx, dy;
+    const a = dir === null ? 180 : leggiAngolo(dir);
+    if (a !== null) { const r = a * Math.PI / 180; dx = Math.sin(r); dy = -Math.cos(r); }
+    else {
+      const m = /^to\s+(.+)$/.exec(dir.trim());
+      if (!m) return null;
+      let sx = 0, sy = 0;
+      for (const l of m[1].trim().split(/\s+/)) {
+        if (l === 'left') sx = -1; else if (l === 'right') sx = 1;
+        else if (l === 'top') sy = -1; else if (l === 'bottom') sy = 1;
+        else return null;
+      }
+      if (sx && sy) { const n = Math.hypot(h, w); dx = sx * h / n; dy = sy * w / n; }
+      else { dx = sx; dy = sy; }
+      if (!dx && !dy) return null;
+    }
+    const L = Math.abs(w * dx) + Math.abs(h * dy);
+    if (!(L > 0)) return null;
+    return { cx: w / 2, cy: h / 2, dx, dy, L };
+  };
+  const leggiPos = (t, L) => {
+    if (t == null) return null;                 // non dichiarata: la riempie `posizioni`
+    const s = t.trim();
+    let m = /^([-+0-9.eE]+)%$/.exec(s);
+    if (m) return parseFloat(m[1]) / 100;
+    m = /^([-+0-9.eE]+)px$/.exec(s);
+    if (m) return L > 0 ? parseFloat(m[1]) / L : NaN;
+    return NaN;                                 // scritta in un modo che non so leggere
+  };
+  /* Le posizioni delle fermate con l'algoritmo della specifica: la prima a 0,
+     l'ultima a 1, quelle scritte all'indietro portate avanti, le mancanti
+     distribuite in parti uguali fra le due dichiarate che le circondano. */
+  const posizioni = (grezze, L) => {
+    const p = grezze.map((g) => leggiPos(g, L));
+    if (p.some((x) => Number.isNaN(x))) return null;
+    if (p[0] === null) p[0] = 0;
+    if (p[p.length - 1] === null) p[p.length - 1] = 1;
+    for (let i = 1; i < p.length; i++) if (p[i] !== null && p[i] < p[i - 1]) p[i] = p[i - 1];
+    for (let i = 1; i < p.length - 1; i++) {
+      if (p[i] !== null) continue;
+      let j = i; while (p[j] === null) j++;
+      const a = p[i - 1], b = p[j], n = j - i + 1;
+      for (let k = i; k < j; k++) p[k] = a + (b - a) * (k - i + 1) / n;
+      i = j - 1;
+    }
+    return p;
+  };
+  /* ⛔ ANCHE I RADIALI, E NON PER COMPLETEZZA: SENZA, IL BANCO ACCUSAVA DUE
+     COLORI SANI. Prima stesura di oggi: risolti i lineari, i radiali lasciati
+     al vecchio «tutte le fermate». Risultato misurato sul giro al buio: **due
+     KO nuovi in Genesi**, 4,43 e 4,47 su una soglia di 4,5 — e la verifica ai
+     pixel veri (screenshot col testo reso trasparente) dava **5,46 e 5,51**,
+     cioè due colori che passano. La causa è geometrica quanto l'altra: gli
+     ALONI D'AMBIENTE delle app sono radiali, stanno su un piano `fixed` alto
+     quanto la finestra, e quel testo sta a y=1274 — **fuori dall'alone**,
+     dove la sua ultima fermata è trasparente e non schiarisce niente. Tenendo
+     tutte le fermate, l'alone veniva spalmato a tinta piena su un testo che
+     non tocca mai.
+     ⚠️ E il vecchio righello era sbagliato **nello stesso verso** (4,83
+     contro 5,46): non se n'era accorto nessuno perché per un pelo restava
+     sopra la soglia. Un difetto che non fa cadere niente non è un difetto
+     assente — è un difetto che aspetta che qualcuno cambi un colore.
+     ⚠️ Le posizioni delle fermate in pixel su un'ellisse NON si sanno leggere
+     (il raggio di riferimento cambia con la direzione): quel caso si dichiara
+     non risolto invece di indovinare. Nel prodotto non c'è — le fermate degli
+     aloni sono tutte in percentuale — ma la regola vale per quando ci sarà. */
+  const LUNG = (t, rif) => {
+    const s = String(t).trim();
+    let m = /^([-+0-9.eE]+)px$/.exec(s);
+    if (m) return parseFloat(m[1]);
+    m = /^([-+0-9.eE]+)%$/.exec(s);
+    if (m) return parseFloat(m[1]) / 100 * rif;
+    if (s === 'left' || s === 'top') return 0;
+    if (s === 'right' || s === 'bottom') return rif;
+    if (s === 'center') return rif / 2;
+    return null;
+  };
+  const asseRadiale = (testa, w, h) => {
+    const [pre, dopoAt] = String(testa).split(/\s+at\s+/);
+    let cerchio = false, chiave = null;
+    const misure = [];
+    for (const t of (pre || '').trim().split(/\s+/).filter(Boolean)) {
+      if (t === 'circle') { cerchio = true; continue; }
+      if (t === 'ellipse') continue;
+      if (/^(closest|farthest)-(side|corner)$/.test(t)) { chiave = t; continue; }
+      misure.push(t);
+    }
+    /* il centro */
+    let cx = w / 2, cy = h / 2;
+    if (dopoAt) {
+      const q = dopoAt.trim().split(/\s+/);
+      if (q.length > 2) return null;
+      const a = LUNG(q[0], w), b2 = q.length > 1 ? LUNG(q[1], h) : h / 2;
+      if (a === null || b2 === null) return null;
+      cx = a; cy = b2;
+    }
+    let rx, ry;
+    if (misure.length === 2) {
+      rx = LUNG(misure[0], w); ry = LUNG(misure[1], h);
+    } else if (misure.length === 1) {
+      /* un raggio solo = cerchio, e il CSS lì non ammette percentuali */
+      const v = /%$/.test(misure[0]) ? null : LUNG(misure[0], 0);
+      rx = ry = v;
+    } else {
+      /* nessuna misura: vale la parola chiave, e se manca è `farthest-corner` */
+      const k = chiave || 'farthest-corner';
+      const dxV = [Math.abs(cx), Math.abs(w - cx)], dyV = [Math.abs(cy), Math.abs(h - cy)];
+      const vicino = k.startsWith('closest');
+      const sx = vicino ? Math.min(...dxV) : Math.max(...dxV);
+      const sy = vicino ? Math.min(...dyV) : Math.max(...dyV);
+      if (k.endsWith('side')) {
+        if (cerchio) { rx = ry = vicino ? Math.min(sx, sy) : Math.max(sx, sy); } else { rx = sx; ry = sy; }
+      } else if (cerchio) {
+        rx = ry = Math.hypot(sx, sy);
+      } else {
+        /* l'ellisse dell'angolo ha lo stesso rapporto di quella dei lati e ci
+           passa attraverso: si scala della quantità che porta l'angolo su t=1 */
+        /* stesso rapporto dell'ellisse dei lati, e passa per l'angolo: se
+           rx = k·sx e ry = k·sy, l'angolo (sx,sy) sta su t=1 quando 2/k² = 1,
+           cioè k = √2 */
+        rx = sx * Math.SQRT2; ry = sy * Math.SQRT2;
+      }
+    }
+    if (rx === null || ry === null || !(rx > 0) || !(ry > 0)) return null;
+    return { radiale: true, cx, cy, rx, ry };
+  };
+  /* ⛔ IL COLORE SI STACCA CONTANDO LE PARENTESI, NON CON UN'ESPRESSIONE
+     GOLOSA. La prima stesura usava `[a-zA-Z-]+\([^]*\)`, e su una fermata
+     scritta `rgb(0, 0, 0) calc(25% + 1px)` — la forma delle tacche sulle barre
+     — il golosone si prendeva ANCHE la posizione, che quindi spariva: la
+     fermata finiva a un posto che non è il suo e nessuno se ne accorgeva,
+     perché il livello continuava a dirsi «risolto». È la famiglia del
+     tokenizzatore che perde la fase, in miniatura. */
+  const staccaColore = (pezzo) => {
+    const s = String(pezzo).trim();
+    const m = /^[a-zA-Z-]+\(/.exec(s);
+    if (m) {
+      let d = 0, i = 0;
+      for (; i < s.length; i++) {
+        if (s[i] === '(') d++;
+        else if (s[i] === ')') { d--; if (!d) { i++; break; } }
+      }
+      if (d !== 0) return null;
+      return [s.slice(0, i), s.slice(i).trim()];
+    }
+    const n = /^(#[0-9a-fA-F]+|[a-zA-Z]+)\s*(.*)$/.exec(s);
+    return n ? [n[1], n[2].trim()] : null;
+  };
+  const LEGACY = /^rgba?\(/i;
+  const rampaDi = (fermate, pos) => {
+    const N = 256;
+    const val = fermate.map(num);
+    if (val.some((v) => !v.length)) return null;
+    if (fermate.every((f) => LEGACY.test(f.trim()))) {
+      const c = document.createElement('canvas'); c.width = N; c.height = 2;
+      const g = c.getContext('2d', { willReadFrequently: true });
+      try {
+        /* riga 0 = RGB·α, riga 1 = α: così l'interpolazione della tela, che è
+           NON premoltiplicata, diventa quella premoltiplicata del CSS */
+        for (let riga = 0; riga < 2; riga++) {
+          const lg = g.createLinearGradient(0, 0, N, 0);
+          for (let i = 0; i < fermate.length; i++) {
+            const v = val[i], a = v.length > 3 ? v[3] : 1;
+            lg.addColorStop(Math.min(1, Math.max(0, pos[i])), riga === 0
+              ? `rgb(${v[0] * a}, ${v[1] * a}, ${v[2] * a})`
+              : `rgb(${255 * a}, ${255 * a}, ${255 * a})`);
+          }
+          g.fillStyle = lg; g.fillRect(0, riga, N, 1);
+        }
+      } catch (e) { return null; }
+      return g.getImageData(0, 0, N, 2).data;
+    }
+    /* almeno una fermata non legacy: il gradiente interpola in oklab, e
+       `color-mix(in oklab, …)` è la stessa interpolazione — di nuovo il
+       browser, non un conto mio */
+    const dati = new Uint8ClampedArray(N * 8);
+    for (let k = 0; k < N; k++) {
+      const t = k / (N - 1);
+      let i = 0;
+      while (i < pos.length - 2 && t > pos[i + 1]) i++;
+      const larg = pos[i + 1] - pos[i];
+      const f = larg > 0 ? Math.min(1, Math.max(0, (t - pos[i]) / larg)) : (t < pos[i] ? 0 : 1);
+      const v = num(`color-mix(in oklab, ${fermate[i + 1]} ${f * 100}%, ${fermate[i]})`);
+      if (!v.length) return null;
+      const a = v.length > 3 ? v[3] : 1;
+      dati[k * 4] = v[0] * a; dati[k * 4 + 1] = v[1] * a; dati[k * 4 + 2] = v[2] * a;
+      dati[N * 4 + k * 4] = a * 255;
+    }
+    return dati;
+  };
+  /* la stessa classe torna su decine di elementi: un gradiente si legge una
+     volta per (testo, larghezza, altezza), non trecento */
+  const memLiv = new Map();
+  const leggiLivello = (testo, w, h) => {
+    const chiave = `${testo}|${Math.round(w)}|${Math.round(h)}`;
+    if (memLiv.has(chiave)) return memLiv.get(chiave);
+    const r = leggiLivello0(testo, w, h);
+    memLiv.set(chiave, r);
+    return r;
+  };
+  const leggiLivello0 = (testo, w, h) => {
+    const m = /^(repeating-)?(linear|radial|conic)-gradient\((.*)\)$/s.exec(testo.trim());
+    if (!m) return null;
+    /* i RIPETUTI e i CONICI non si risolvono: si dichiarano, e chi chiama
+       torna al vecchio «tutte le fermate» — il caso peggiore, la direzione
+       prudente — invece di inventare una geometria che non ho scritto. */
+    if (m[1] || m[2] === 'conic') return { risolto: false };
+    const pezzi = alLivelloAlto(m[3], ',');
+    if (pezzi.length < 2) return { risolto: false };
+    let dir = null, primo = 0;
+    let asse;
+    if (m[2] === 'radial') {
+      /* nel radiale la testa c'è quasi sempre («260px 150px at 8% 0%») ma può
+         mancare del tutto: si riconosce dal fatto che non è un colore */
+      if (!/^(?:[a-zA-Z-]+\()/.test(pezzi[0]) && !/^#/.test(pezzi[0])
+          && (/\bat\b/.test(pezzi[0]) || /(px|%|circle|ellipse|closest|farthest)/.test(pezzi[0]))) {
+        dir = pezzi[0]; primo = 1;
+      }
+      asse = asseRadiale(dir === null ? '' : dir, w, h);
+    } else {
+      if (/^to\s/.test(pezzi[0]) || leggiAngolo(pezzi[0]) !== null) { dir = pezzi[0]; primo = 1; }
+      asse = asseLineare(dir, w, h);
+    }
+    if (!asse) return { risolto: false };
+    const fermate = [], grezze = [];
+    for (let i = primo; i < pezzi.length; i++) {
+      const mc = staccaColore(pezzi[i]);
+      if (!mc) return { risolto: false };
+      if (!mc[1]) { fermate.push(mc[0]); grezze.push(null); continue; }
+      /* UNA o DUE posizioni: la forma a doppia posizione (`#f00 0% 50%`) è uno
+         stacco netto, e le app la usano nelle barre. Tre pezzi vuol dire un
+         `calc()` spezzato dagli spazi, e allora si dichiara invece di leggerlo
+         a metà. */
+      const due = mc[1].split(/\s+/);
+      if (due.length > 2) return { risolto: false };
+      for (const d of due) { fermate.push(mc[0]); grezze.push(d); }
+    }
+    if (fermate.length < 2) return { risolto: false };
+    /* su un'ellisse una fermata in PIXEL non si sa collocare: il raggio di
+       riferimento cambia con la direzione. Si dichiara invece di indovinare. */
+    if (asse.radiale && grezze.some((g) => g && /px$/.test(String(g).trim()))) return { risolto: false };
+    const pos = posizioni(grezze, asse.radiale ? 0 : asse.L);
+    if (!pos) return { risolto: false };
+    const rampa = rampaDi(fermate, pos);
+    if (!rampa) return { risolto: false };
+    return { risolto: true, asse, rampa };
+  };
+  /* Il colore di un livello risolto nel punto (px,py) RELATIVO alla sua
+     scatola. Fuori dalla retta il CSS tiene la fermata estrema: `clamp`. */
+  const coloreNelPunto = (liv, px, py) => {
+    const g = liv.asse;
+    /* nel radiale il parametro è la distanza dal centro misurata in raggi:
+       t = 1 sul bordo dell'ellisse, e oltre vale l'ultima fermata */
+    let t = g.radiale
+      ? Math.hypot((px - g.cx) / g.rx, (py - g.cy) / g.ry)
+      : 0.5 + ((px - g.cx) * g.dx + (py - g.cy) * g.dy) / g.L;
+    t = Math.min(1, Math.max(0, t));
+    const i = Math.round(t * 255) * 4;
+    const d = liv.rampa;
+    const a = d[1024 + i] / 255;                // riga 1 della rampa: l'alfa interpolato
+    if (a <= 0) return 'rgba(0, 0, 0, 0)';
+    /* dividere per un alfa piccolo può portare un canale oltre 255 per pura
+       arrotondatura: si limita, se no `lum` eleva un numero maggiore di 1 e
+       restituisce una luminosità che non esiste */
+    const q = (k) => Math.min(255, d[i + k] / a);
+    const v = [q(0), q(1), q(2)];
+    const str = `rgba(${v[0]}, ${v[1]}, ${v[2]}, ${a})`;
+    if (!memoria.has(str)) memoria.set(str, [v[0], v[1], v[2], a]);
+    return str;
+  };
+
   /* IL FONDO VERO SI COMPONE, NON SI SCEGLIE. Terza volta che questa misura
      accusa il prodotto a torto: prendendo il primo `background-image` incontrato
      risalendo, gli ALONI D'AMBIENTE — gradienti quasi trasparenti come
@@ -197,8 +594,9 @@ const MISURA = () => {
      letti come tinta piena. Risultato: 183 bocciature su 228 in Genesi, su una
      pagina che si legge benissimo. Adesso si parte dal fondo della pagina e si
      spalmano sopra, uno per uno, tutti gli strati fino al testo, ciascuno con la
-     sua trasparenza. Dove c'è un gradiente si tengono TUTTE le sue fermate come
-     candidati, e alla fine vince il caso peggiore. */
+     sua trasparenza. Dove il gradiente si sa risolvere si prende il suo colore
+     NEL PUNTO; dove no, si tengono tutte le sue fermate come candidati e vince
+     il caso peggiore. */
   const mescola = (sopra, sotto) => {
     const f = num(sopra), s = num(sotto);
     if (!f.length) return sotto;
@@ -206,12 +604,66 @@ const MISURA = () => {
     if (a === 0) return sotto;
     if (a === 1) return `rgb(${f[0]}, ${f[1]}, ${f[2]})`;
     const m = (i) => Math.round(a * f[i] + (1 - a) * s[i]);
-    return `rgb(${m(0)}, ${m(1)}, ${m(2)})`;
+    const v = [m(0), m(1), m(2)];
+    const str = `rgb(${v[0]}, ${v[1]}, ${v[2]})`;
+    /* il valore è già calcolato: seminarlo nella memoria dei colori risparmia
+       una tela per ogni punto della griglia, che è quello che rende
+       sostenibile guardare 625 punti invece di uno */
+    if (!memoria.has(str)) memoria.set(str, [v[0], v[1], v[2], 1]);
+    return str;
   };
-  const sfondiDi = (el) => {
+  /* La scatola su cui si posa un gradiente: `background-origin`, che per
+     difetto è il riquadro dell'imbottitura. */
+  const scatolaSfondo = (nodo, cs) => {
+    const r = nodo.getBoundingClientRect();
+    const o = cs.backgroundOrigin || 'padding-box';
+    let l = 0, t = 0, rr = 0, bb = 0;
+    if (o !== 'border-box') {
+      l += parseFloat(cs.borderLeftWidth) || 0; t += parseFloat(cs.borderTopWidth) || 0;
+      rr += parseFloat(cs.borderRightWidth) || 0; bb += parseFloat(cs.borderBottomWidth) || 0;
+    }
+    if (o === 'content-box') {
+      l += parseFloat(cs.paddingLeft) || 0; t += parseFloat(cs.paddingTop) || 0;
+      rr += parseFloat(cs.paddingRight) || 0; bb += parseFloat(cs.paddingBottom) || 0;
+    }
+    return { x: r.left + l, y: r.top + t, w: Math.max(0, r.width - l - rr), h: Math.max(0, r.height - t - bb) };
+  };
+  /* Gli strati di sfondo di un nodo, dal primo dichiarato (che sta SOPRA) in
+     giù. Uno strato o è risolto geometricamente, o dichiara di non esserlo. */
+  const stratiDi = (nodo, cs) => {
+    const bi = cs.backgroundImage;
+    if (!bi || bi === 'none') return [];
+    const livelli = alLivelloAlto(bi, ',');
+    const dim = alLivelloAlto(cs.backgroundSize || '', ',');
+    const pos = alLivelloAlto(cs.backgroundPosition || '', ',');
+    const att = alLivelloAlto(cs.backgroundAttachment || '', ',');
+    const box = scatolaSfondo(nodo, cs);
+    const out = [];
+    for (let i = 0; i < livelli.length; i++) {
+      if (livelli[i] === 'none') continue;
+      /* con una dimensione, una posizione o un ancoraggio non predefiniti la
+         scatola del gradiente non è quella dell'elemento: non la so calcolare
+         e lo dico (è il caso dello scheletro di caricamento, `400% 100%`) */
+      const semplice = /^(auto|auto auto)$/.test((dim[i % Math.max(1, dim.length)] || 'auto').trim())
+        && /^0%\s+0%$/.test((pos[i % Math.max(1, pos.length)] || '0% 0%').trim())
+        && (att[i % Math.max(1, att.length)] || 'scroll').trim() === 'scroll';
+      const liv = semplice ? leggiLivello(livelli[i], box.w, box.h) : null;
+      if (liv && liv.risolto) { out.push({ risolto: true, asse: liv.asse, rampa: liv.rampa, box }); continue; }
+      const fermate = livelli[i].match(/(?:rgba?|hsla?|color|oklab|oklch|lab|lch|hwb)\([^)]*\)/g);
+      if (!fermate || !fermate.length) continue;
+      window.__dwNonRisolti = (window.__dwNonRisolti || 0) + 1;
+      (window.__dwNonRisoltiQuali = window.__dwNonRisoltiQuali || new Set()).add(livelli[i].slice(0, 46));
+      out.push({ risolto: false, fermate });
+    }
+    return out;
+  };
+  /* LA PILA degli sfondi, dalla radice al testo, con gli stili letti UNA VOLTA
+     SOLA: senza questo ogni punto della griglia rifarebbe tutta la salita, e
+     `getComputedStyle` è la cosa più cara che ci sia qui dentro. */
+  const pilaDi = (el) => {
     const catena = [];
     for (let a = el; a; a = a.parentElement) catena.push(a);
-    let fondi = ['rgb(0, 0, 0)'];               // sotto tutto c'è il nero della finestra
+    const pila = [];
     for (let i = catena.length - 1; i >= 0; i--) {
       const cs = getComputedStyle(catena[i]);
       /* Un antenato con `background-clip:text` NON dipinge nessuno sfondo: il
@@ -220,16 +672,63 @@ const MISURA = () => {
          scheda che si legge benissimo. È la quarta volta che questa misura
          accusa il prodotto al posto di sé stessa. */
       if ((cs.webkitBackgroundClip || cs.backgroundClip) === 'text' && catena[i] !== el) continue;
-      const stop = cs.backgroundImage && cs.backgroundImage.match(/(?:rgba?|hsla?|color|oklab|oklch|lab|lch|hwb)\([^)]*\)/g);
-      const prossimi = new Set();
-      for (const f of fondi) {
-        const conColore = mescola(cs.backgroundColor, f);
-        if (stop && stop.length) for (const t of stop) prossimi.add(mescola(t, conColore));
-        else prossimi.add(conColore);
+      pila.push({ colore: cs.backgroundColor, strati: stratiDi(catena[i], cs) });
+    }
+    return pila;
+  };
+  /* Gli strati si dipingono dal fondo verso l'alto: l'ULTIMO dichiarato sta
+     sotto. Un livello risolto dà un colore solo — quello che c'è lì; uno non
+     risolto continua a dare tutte le sue fermate, e il caso peggiore vince. */
+  const sopraGliStrati = (strati, base, x, y) => {
+    let cand = [base];
+    for (let k = strati.length - 1; k >= 0; k--) {
+      const s = strati[k], nuovi = [];
+      for (const c of cand) {
+        if (s.risolto) nuovi.push(mescola(coloreNelPunto(s, x - s.box.x, y - s.box.y), c));
+        else for (const t of s.fermate) nuovi.push(mescola(t, c));
       }
+      cand = nuovi.length > 12 ? nuovi.slice(0, 12) : nuovi;
+    }
+    return cand;
+  };
+  const sfondiNelPunto = (pila, x, y) => {
+    let fondi = ['rgb(0, 0, 0)'];               // sotto tutto c'è il nero della finestra
+    for (const p of pila) {
+      const prossimi = new Set();
+      for (const f of fondi) for (const c of sopraGliStrati(p.strati, mescola(p.colore, f), x, y)) prossimi.add(c);
       fondi = [...prossimi].slice(0, 12);       // basta: oltre si moltiplicano senza dire di più
     }
     return fondi;
+  };
+  /* ⛔ I PUNTI SI PRENDONO SULLE RIGHE DI TESTO, NON SUL RETTANGOLO
+     D'INGOMBRO. Un elemento in linea che va a capo ha un rettangolo che
+     comprende spazio dove non c'è nessuna lettera — e misurare il fondo lì
+     vuol dire accusare un colore che il testo non tocca, cioè rifare la stessa
+     famiglia di errore che questo cantiere esiste per togliere. Il `Range` sui
+     nodi di testo dà i riquadri delle righe VERE, che è la cosa che il browser
+     sa dire (CLAUDE.md l'ha già imparato sul traboccamento del core). */
+  const righeDi = (el) => {
+    let a = null, b = null;
+    for (const n of el.childNodes) if (n.nodeType === 3 && n.textContent.trim()) { if (!a) a = n; b = n; }
+    if (a) {
+      try {
+        const r = document.createRange();
+        r.setStart(a, 0); r.setEnd(b, b.textContent.length);
+        const rr = [...r.getClientRects()].filter((x) => x.width >= 1 && x.height >= 1);
+        if (rr.length) return rr.slice(0, 4);   // quattro righe bastano: oltre si ripete
+      } catch (e) { /* si ripiega sul rettangolo d'ingombro */ }
+    }
+    return [el.getBoundingClientRect()];
+  };
+  const puntiDi = (righe, n) => {
+    const out = [];
+    for (const r of righe) {
+      for (let i = 0; i < n; i++) for (let j = 0; j < n; j++) {
+        out.push([r.left + (n === 1 ? 0.5 : i / (n - 1)) * r.width,
+                  r.top + (n === 1 ? 0.5 : j / (n - 1)) * r.height]);
+      }
+    }
+    return out;
   };
   const opacitaEreditata = (el) => {
     let o = 1, a = el;
@@ -288,7 +787,10 @@ const MISURA = () => {
     const f = num(fg), s = num(sf);
     const alfa = (f.length > 3 ? f[3] : 1) * op;
     const m = (i) => Math.round(alfa * f[i] + (1 - alfa) * s[i]);
-    return `rgb(${m(0)}, ${m(1)}, ${m(2)})`;
+    const v = [m(0), m(1), m(2)];
+    const str = `rgb(${v[0]}, ${v[1]}, ${v[2]})`;
+    if (!memoria.has(str)) memoria.set(str, [v[0], v[1], v[2], 1]);
+    return str;
   };
   const rapporto = (f, s) => {
     const a = lum(f), b = lum(s);
@@ -359,17 +861,17 @@ const MISURA = () => {
        che «µg/m³» dentro un grafico risultava a 1,25:1. */
     const dentroSvg = el.ownerSVGElement || el.tagName.toLowerCase() === 'svg';
     const ritaglio = cs.webkitBackgroundClip || cs.backgroundClip;
-    let sfondi, inchiostri;
+    let pila, inkFisso = null, inkStrati = null;
     if (dentroSvg) {
       const f = cs.fill;
       if (!f || f === 'none') return;
-      inchiostri = [f];
-      sfondi = sfondiDi(el.ownerSVGElement ? el.ownerSVGElement.parentElement || el : el);
+      inkFisso = [f];
+      pila = pilaDi(el.ownerSVGElement ? el.ownerSVGElement.parentElement || el : el);
     } else if (ritaglio === 'text') {
-      const stop = (cs.backgroundImage || '').match(/(?:rgba?|hsla?|color|oklab|oklch|lab|lch|hwb)\([^)]*\)/g);
-      if (!stop || !stop.length) return;
-      inchiostri = stop;
-      sfondi = sfondiDi(el.parentElement || document.body);
+      const st = stratiDi(el, cs);
+      if (!st.length) return;
+      inkStrati = st;
+      pila = pilaDi(el.parentElement || document.body);
     } else if (ritagliatoDaSopra(el)) {
       /* ⛔ TRAPPOLA 5, ED È LA 1 UN PIANO PIÙ SOTTO. Il ramo qui sopra prende
          il caso dell'elemento che ha lui il `background-clip:text`. Ma
@@ -384,47 +886,64 @@ const MISURA = () => {
          Il modo di riconoscerlo è il colore trasparente, non il nome della
          classe: `-webkit-text-fill-color` a alfa zero. */
       const su = antenatoRitagliato(el);
-      const stop = (getComputedStyle(su).backgroundImage || '').match(/(?:rgba?|hsla?|color|oklab|oklch|lab|lch|hwb)\([^)]*\)/g);
-      if (!stop || !stop.length) return;
-      inchiostri = stop;
-      sfondi = sfondiDi(su.parentElement || document.body);
+      const st = stratiDi(su, getComputedStyle(su));
+      if (!st.length) return;
+      inkStrati = st;
+      pila = pilaDi(su.parentElement || document.body);
     } else {
-      inchiostri = [cs.color];
-      sfondi = sfondiDi(el);
+      inkFisso = [cs.color];
+      pila = pilaDi(el);
     }
+    /* ⛔ LA GRIGLIA SI PAGA SOLO DOVE SERVE. Se nessuno strato — né del fondo
+       né dell'inchiostro — è un gradiente risolto, il colore non cambia da un
+       punto all'altro del testo: un punto solo dà lo stesso identico numero
+       della griglia intera, e il banco resta veloce come prima sui testi che
+       stanno su una tinta piena. */
+    const varia = (inkStrati && inkStrati.some((s) => s.risolto))
+      || pila.some((p) => p.strati.some((s) => s.risolto));
+    if (varia) window.__dwConGriglia = (window.__dwConGriglia || 0) + 1;
+    const punti = puntiDi(varia ? righeDi(el) : [r], varia ? LATO : 1);
     out.push({
       testo: proprio.slice(0, 40),
       classe: (typeof el.className === 'string' ? el.className : '').slice(0, 40),
-      dim, grande, soglia: grande ? 3 : 4.5,
+      dim, grande, soglia: grande ? 3 : 4.5, punti: punti.length, varia,
       /* ⛔ i null NON entrano nel minimo: `Math.min` li tratterebbe come zero,
          cioe come il contrasto peggiore possibile, ed e esattamente la bugia
          comoda che ha prodotto 531 bocciature false. Se NESSUNA coppia si e
          potuta leggere, il rapporto e `null` e chi legge lo dichiara. */
       ...(() => {
-        const r = sfondi.flatMap((sf) => inchiostri.map((inc) => rapporto(composto(inc, sf, op), sf)))
-          .filter((x) => x !== null && Number.isFinite(x));
-        if (!r.length) return { rapporto: null, forbice: 0 };
-        const peggio = Math.min(...r), meglio = Math.max(...r);
+        let peggio = Infinity, meglio = -Infinity, viste = 0;
+        for (const [x, y] of punti) {
+          for (const sf of sfondiNelPunto(pila, x, y)) {
+            const inchiostri = inkFisso || sopraGliStrati(inkStrati, sf, x, y);
+            for (const inc of inchiostri) {
+              const v = rapporto(composto(inc, sf, op), sf);
+              if (v === null || !Number.isFinite(v)) continue;
+              viste++;
+              if (v < peggio) peggio = v;
+              if (v > meglio) meglio = v;
+            }
+          }
+        }
+        if (!viste) return { rapporto: null, forbice: 0 };
         return {
           rapporto: Math.round(peggio * 100) / 100,
-          /* ⛔ LA FORBICE, DAL 07/08 — la settima trappola, dichiarata invece
-             che corretta a meta. Quando il fondo o l'inchiostro vengono da un
-             GRADIENTE, qui sopra si accoppiano TUTTE le fermate dell'uno con
-             TUTTE quelle dell'altro e si prende il minimo: cioe il pixel
-             d'inchiostro piu chiaro col pixel di fondo piu scuro ANCHE QUANDO
-             STANNO AGLI ANGOLI OPPOSTI, dove non si incontrano mai.
-             Misurato leggendo i pixel veri dello schermo: su un elemento
-             piccolo all'estremita di un gradiente a 135° il banco dichiarava
-             2,92 e il valore renderizzato era 4,71 — cioe il prodotto passava
-             e il banco accusava.
-             La geometria vera (proiettare il rettangolo del testo sull'asse
-             del gradiente e tenere solo le fermate che lo coprono) e la
-             correzione giusta ed e un cantiere a se. Finche non c'e, il banco
-             NON tace e NON finge: tiene il caso peggiore — che e la direzione
-             prudente — e dichiara quanto e larga la FORBICE fra il peggiore e
-             il migliore accoppiamento. Una forbice larga vuol dire «questo
-             numero va verificato a mano prima di toccare un colore», che e la
-             regola gia scritta in cima a questo file. */
+          /* ⛔ LA FORBICE HA CAMBIATO SIGNIFICATO, E SI TIENE (08/08).
+             Fino a ieri misurava l'ampiezza del DUBBIO del righello: quanto
+             distavano fra loro accoppiamenti di fermate che in parte non si
+             incontrano mai. Quel dubbio non c'è più — inchiostro e fondo si
+             leggono adesso nello stesso punto fisico — e la riga «verifica a
+             mano prima di toccare il colore» sarebbe diventata una bugia
+             comoda, del tipo che questo file ha già pagato altre volte.
+             Adesso misura una cosa del PRODOTTO, non del banco: **di quanto
+             il contrasto cambia da un capo all'altro delle lettere**. Una
+             forbice larga vuol dire che il testo sta a cavallo di un
+             gradiente, cioè che una parte della parola si legge molto meglio
+             dell'altra; il numero riportato resta il capo peggiore, perché è
+             quello che decide se una parola si legge tutta.
+             ⚠️ Su un testo senza nessun gradiente risolto la forbice è **zero
+             per costruzione** (si guarda un punto solo): lì non dice niente, e
+             infatti non viene stampata. */
           forbice: Math.round((meglio - peggio) * 100) / 100,
         };
       })(),
@@ -595,6 +1114,10 @@ let superficiProvate = 0;
 const superficiCieche = [];
 const temaRifiutato = [];
 let mixBocciata = 0;
+let gradPresa = 0, gradPromossa = 0, gradFalsa = 0, gradSano = 0;
+let gradMezzoPresa = 0, gradMezzoPromossa = 0;
+let nonRisoltiTot = 0, conGrigliaTot = 0;
+const nonRisoltiQuali = new Set();
 let illeggibili = 0;
 let forbiciLarghe = 0;
 let temaMisurate = 0;
@@ -676,6 +1199,104 @@ for (const [nome, via] of SUPERFICI) {
       document.body.appendChild(d);
     }, MARCA_PULSA);
   }
+  if (CONTROGRAD) {
+    await p.evaluate(([ko, ok, mezzo]) => {
+      /* ⛔ I TESTIMONI STANNO IN UNA STANZA LORO, E NON È PIGNOLERIA: alla
+         prima stesura erano appesi al `body` con `position:relative`, e su una
+         superficie su quattordici — `genesi · accesso`, che ha
+         `body{display:flex;align-items:center}` — il testimone LEGGIBILE è
+         stato bocciato a 3,28. Non sbagliava il righello: il testimone era
+         diventato un elemento di flex e la sua altezza non era più quella che
+         gli avevo dato, quindi il testo non stava più dov'era stato messo.
+         Un testimone la cui geometria la decide la pagina ospite misura la
+         pagina, non il banco — ed è la forma peggiore, perché fallisce dando
+         la colpa a chi non c'entra. Adesso la stanza è `fixed`, `display:block`
+         e con le misure scritte: nessun `flex`, `grid` o `float` dell'ospite
+         può toccarla. */
+      const stanza = document.createElement('div');
+      stanza.id = 'dw-testimoni-gradiente';
+      stanza.setAttribute('style', 'position:fixed;left:0;top:0;z-index:2147483645;display:block;'
+        + 'width:430px;font-size:13px;line-height:normal');
+      document.body.appendChild(stanza);
+      const fai = (marca, stile) => {
+        const d = document.createElement('div');
+        d.textContent = marca;
+        d.setAttribute('style', stile + ';display:block;font-size:13px;padding:6px 10px;width:260px');
+        stanza.appendChild(d);
+      };
+      /* grigio su grigio lungo TUTTA la retta: in nessun punto arriva a 1,5:1 */
+      fai(ko, 'color:rgb(120,120,120);background-image:linear-gradient(135deg, rgb(96,96,96), rgb(140,140,140))');
+      /* ⛔ IL CASO CHE HA PRODOTTO LE QUATTRO ACCUSE FALSE, e non è «due
+         gradienti»: è **un testo che copre solo una PARTE della retta del
+         gradiente**. Qui il riquadro è alto 120 px e va dal bianco al quasi
+         nero; il testo sta spinto in fondo, dove il fondo è scuro, e
+         l'inchiostro è bianco: sullo schermo fa più di 15:1 e si legge
+         benissimo. Accoppiando tutte le fermate — cioè il bianco
+         dell'inchiostro con la fermata BIANCA del fondo, che sta 100 px più su
+         e che il testo non tocca mai — viene **1:1**.
+         ⚠️ E la prima stesura di questo testimone era sbagliata, il che val la
+         pena scrivere: erano due gradienti contrari (inchiostro chiaro→scuro
+         sopra un fondo scuro→chiaro). Il banco l'ha bocciato a 1,01:1 e aveva
+         RAGIONE — due rette contrarie si incrociano a metà, e lì le lettere
+         sono davvero dello stesso colore del fondo. Un testimone «leggibile»
+         che leggibile non è avrebbe fatto fallire il banco per il motivo
+         sbagliato: la prima delle cinque cause di «non distingue». */
+      const d = document.createElement('div');
+      d.setAttribute('style', 'background-image:linear-gradient(180deg, rgb(255,255,255), rgb(12,12,12));'
+        + 'display:block;height:120px;width:260px;position:relative;color:rgb(255,255,255);font-size:13px');
+      const s = document.createElement('div');
+      s.textContent = ok + ' in fondo';
+      s.setAttribute('style', 'position:absolute;left:8px;bottom:4px');
+      d.appendChild(s);
+      stanza.appendChild(d);
+      /* ⛔ E LO STESSO, UN PIANO PIÙ SOTTO: l'inchiostro dipinto dal gradiente
+         di un ANTENATO (la trappola 5). Il numero grande copre tutta la retta,
+         ma l'unità dentro di lui ne copre solo la coda — dove l'inchiostro è
+         chiaro. Su fondo scuro si legge; accoppiando le fermate, la coda scura
+         dell'inchiostro finisce sul fondo scuro e viene una bocciatura che
+         sullo schermo non c'è. */
+      const g = document.createElement('div');
+      g.setAttribute('style', 'background-color:rgb(16,16,16);display:block;padding:8px;width:420px');
+      const n = document.createElement('span');
+      n.setAttribute('style', 'font-size:13px;display:inline-block;width:400px;white-space:nowrap;'
+        + 'background-image:linear-gradient(90deg, rgb(14,14,14) 0%, rgb(255,255,255) 35%);'
+        + '-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent');
+      const vuoto = document.createElement('span');
+      vuoto.setAttribute('style', 'display:inline-block;width:170px');
+      const u = document.createElement('span');
+      u.textContent = ok + ' in coda';
+      n.appendChild(vuoto);
+      n.appendChild(u);
+      g.appendChild(n);
+      stanza.appendChild(g);
+      /* ⛔ IL CASO CHE DIMOSTRA PERCHÉ NON BASTANO I QUATTRO ANGOLI, e il
+         motivo per cui `LATO` non vale 2. Fondo grigio UNIFORME `rgb(117)`,
+         inchiostro che va dal nero al bianco lungo le lettere. Ai due capi il
+         contrasto è **4,56** e **4,61** — tutt'e due sopra la soglia di 4,5 —
+         e a metà parola l'inchiostro vale `rgb(128)` sul fondo `rgb(117)`:
+         **1,17**, cioè illeggibile. Il grigio è scelto al valore che massimizza
+         il minimo dei due capi (luminanza 0,179): oltre 4,58 non si può
+         andare, quindi il margine è sottile per costruzione, ma è aritmetica
+         esatta, non un pixel renderizzato.
+         Questo caso lo sbagliano **tutt'e due** i righelli più semplici: i
+         quattro angoli lo promuovono, e lo promuoveva anche il vecchio
+         accoppiamento a tappeto — che dell'inchiostro conosceva solo le due
+         fermate estreme, cioè esattamente i due capi. È la prova che la
+         correzione di oggi non è solo «meno accuse»: in questa direzione il
+         banco vede **di più** di prima. Lanciando `--lato=2` questa
+         controprova DEVE fallire: se non fallisce, la griglia non sta
+         guardando dentro le parole. */
+      const q = document.createElement('div');
+      q.setAttribute('style', 'background-color:rgb(117,117,117);display:block;padding:8px;width:300px');
+      const w = document.createElement('span');
+      w.textContent = mezzo;
+      w.setAttribute('style', 'font-size:13px;'
+        + 'background-image:linear-gradient(90deg, rgb(0,0,0), rgb(255,255,255));'
+        + '-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent');
+      q.appendChild(w);
+      stanza.appendChild(q);
+    }, [MARCA_GRAD_KO, MARCA_GRAD_OK, MARCA_GRAD_MEZZO]);
+  }
   if (CONTROCENS) {
     await p.evaluate((cls) => {
       const st = document.createElement('style');
@@ -691,7 +1312,7 @@ for (const [nome, via] of SUPERFICI) {
     await vaiA(p, nome, s);
     const { finite: portateAllaFine } = await fermaAnimazioni(p);
     finiteTot += portateAllaFine;
-    const misure = await p.evaluate(MISURA);
+    const misure = await p.evaluate(MISURA, LATO);
     for (const m of misure) {
       /* lo stesso testo con la stessa classe si incontra su più schermate:
          si segnala una volta sola, altrimenti l'elenco è illeggibile */
@@ -712,11 +1333,24 @@ for (const [nome, via] of SUPERFICI) {
         if (m.testo.startsWith(MARCA_PULSA)) { pulsaBocciata++; console.log('  ⚠️  il testo in pulsazione è stato BOCCIATO'
           + ` a ${m.rapporto}:1 — la guardia della trappola 4 non ha tenuto`); continue; }
         if (m.testo.startsWith(MARCA_MIX)) { mixBocciata++; }
+        if (m.testo.startsWith(MARCA_GRAD_KO)) { gradPresa++; continue; }
+        if (m.testo.startsWith(MARCA_GRAD_MEZZO)) { gradMezzoPresa++; continue; }
+        if (m.testo.startsWith(MARCA_GRAD_OK)) { gradFalsa++; console.log('  ⚠️  il testimone LEGGIBILE su gradiente è stato'
+          + ` BOCCIATO a ${m.rapporto}:1 («${m.testo}») — la geometria sta accusando un colore sano`); continue; }
         if (m.testo.startsWith(MARCA)) { presaQui++; continue; }   // è il veleno: non è un difetto del prodotto
         bocciati++; bocciatiQui++;
         if (m.forbice >= 1) forbiciLarghe++;
         console.log(`  KO  ${String(m.rapporto).padStart(6)}:1  (serve ${m.soglia})  ${m.dim}px  «${m.testo}»  .${m.classe}`
-          + (m.forbice >= 1 ? `\n        ⚠️  forbice ${m.forbice} — il fondo o l'inchiostro vengono da un gradiente e il caso peggiore accoppia due estremi che non si incontrano: VERIFICA A MANO prima di toccare il colore` : ''));
+          + (m.forbice >= 1 ? `\n        ⚠️  forbice ${m.forbice} su ${m.punti} punti — il testo sta a cavallo di un gradiente: il numero è il capo PEGGIORE delle lettere, all'altro capo si arriva a ${Math.round((m.rapporto + m.forbice) * 100) / 100}` : ''));
+      } else if (m.testo.startsWith(MARCA_GRAD_MEZZO)) {
+        gradMezzoPromossa++;
+        console.log(`  ⚠️  il gradiente illeggibile IN MEZZO è stato PROMOSSO a ${m.rapporto}:1`
+          + ' — la griglia non sta guardando dentro le parole (con --lato=2 è normale: è la sua dimostrazione)');
+      } else if (m.testo.startsWith(MARCA_GRAD_KO)) {
+        gradPromossa++;
+        console.log(`  ⚠️  il gradiente ILLEGGIBILE è stato PROMOSSO a ${m.rapporto}:1 — qui la geometria non giudica`);
+      } else if (m.testo.startsWith(MARCA_GRAD_OK)) {
+        gradSano++;
       } else if (m.testo.startsWith(MARCA_PULSA)) {
         pulsaMisurata++;
         console.log(`  ⚠️  il testo in pulsazione è stato MISURATO a ${m.rapporto}:1 invece che dichiarato`);
@@ -740,7 +1374,7 @@ for (const [nome, via] of SUPERFICI) {
   if (daFar.length) {
     await p.evaluate(FAI_COMPARIRE, daFar.map((c) => ({ classi: c.classi })));
     await fermaAnimazioni(p);
-    const misureMai = await p.evaluate(MISURA);
+    const misureMai = await p.evaluate(MISURA, LATO);
     /* si guardano SOLO gli elementi appena creati: il resto della pagina è già
        stato misurato, e rimisurarlo qui gonfierebbe il totale */
     const nomiFatti = new Set(daFar.map((c) => c.classi.join(' ')));
@@ -765,6 +1399,9 @@ for (const [nome, via] of SUPERFICI) {
   const sfumati = await p.evaluate(() => window.__dwSfumati || 0).catch(() => 0);
   const pulsanti = await p.evaluate(() => window.__dwPulsanti || 0).catch(() => 0);
   const spenti = await p.evaluate(() => window.__dwSpenti || 0).catch(() => 0);
+  const nonRis = await p.evaluate(() => [window.__dwNonRisolti || 0, [...(window.__dwNonRisoltiQuali || [])],
+    window.__dwConGriglia || 0]).catch(() => [0, [], 0]);
+  nonRisoltiTot += nonRis[0]; for (const q of nonRis[1]) nonRisoltiQuali.add(q); conGrigliaTot += nonRis[2];
   sfumatiTot += sfumati; pulsantiTot += pulsanti; spentiTot += spenti;
   console.log(`  ${misuratiQui} testi misurati, ${bocciatiQui} sotto soglia`
     + (sfumati ? ` · ${sfumati} in dissolvenza, non misurabili` : '')
@@ -786,10 +1423,24 @@ if (TEMA) {
 }
 console.log(`\n${misurati} testi misurati in tutto, ${bocciati} sotto soglia`
   + (illeggibili ? ` · ${illeggibili} NON misurabili, dichiarati e non giudicati` : '')
-  + (forbiciLarghe ? ` · ${forbiciLarghe} con FORBICE larga: il numero e il caso peggiore, non il renderizzato` : '')
+  + (forbiciLarghe ? ` · ${forbiciLarghe} con FORBICE larga: il contrasto cambia di oltre 1 da un capo all'altro delle lettere` : '')
   + (sfumatiTot ? ` · ${sfumatiTot} saltati perché in dissolvenza (dichiarati, non nascosti)` : '')
   + (pulsantiTot ? ` · ${pulsantiTot} saltati perché in pulsazione (dichiarati, non nascosti)` : '')
   + (spentiTot ? ` · ${spentiTot} comandi spenti, che la WCAG 1.4.3 esclude (dichiarati, non nascosti)` : ''));
+/* ⛔ E ANCHE QUESTA VA LETTA PRIMA DEI KO, perché è dove il RIGHELLO non sa
+   guardare. La geometria risolve i gradienti LINEARI e i RADIALI; restano
+   fuori i RIPETUTI, i CONICI, le fermate in pixel su un'ellisse e gli strati
+   con una dimensione, una posizione o un ancoraggio non predefiniti (lo
+   scheletro di caricamento, `400% 100%`). Per quelli vale ancora il vecchio
+   accoppiamento a tappeto — il caso peggiore fra tutte le fermate, cioè la
+   direzione prudente — e un KO su un testo che ci sta sopra va verificato a
+   mano. Il numero qui sotto dice quanto è grande quella zona d'ombra: se è
+   zero, ogni KO è stato deciso guardando il colore che c'è davvero. */
+console.log(`   (${conGrigliaTot} testi misurati su una griglia di ${LATO}×${LATO} punti PER RIGA DI TESTO,`
+  + ` perché sotto o dentro hanno un gradiente risolto geometricamente; tutti gli altri su un punto solo,`
+  + ` che lì dà lo stesso identico numero. ${nonRisoltiTot} incontri con uno strato NON risolto`
+  + `${nonRisoltiQuali.size ? `, di ${nonRisoltiQuali.size} forme diverse` : ''}: per quelli vale ancora`
+  + ' il caso peggiore fra tutte le fermate, cioè la direzione prudente)');
 /* ⛔ Questa riga va letta PRIMA dei KO, non dopo: è il banco che dice dove non
    ha guardato. Se le attese scadono, la misura è di nuovo a metà animazione —
    cioè il difetto del 03/08 che è tornato, e allora i KO non valgono. */
@@ -810,6 +1461,28 @@ if (CONTROCENS) {
   if (!maiMisurate) { console.log('⛔ il censimento non ha fatto comparire NIENTE: la passata non gira.'); process.exit(1); }
   if (!maiBocciate) { console.log(`⛔ la classe «${CLASSE_CENS}» a 1,15:1 non è stata bocciata: il censimento non giudica.`); process.exit(1); }
   console.log('il censimento sa fallire: la classe che nel DOM non compare mai è stata trovata e bocciata.');
+  process.exit(0);
+}
+
+if (CONTROGRAD) {
+  /* ⛔ I DUE VERSI, SEPARATI. Un banco che ha appena smesso di accusare va
+     provato PRIMA nel verso che assolve: se il gradiente illeggibile passa, la
+     correzione di oggi ha reso il righello cieco e i suoi «0 sotto soglia» non
+     valgono niente. Poi l'altro verso, che è la ragione per cui il cantiere è
+     nato: i due testimoni leggibili — uno con l'inchiostro fisso, uno con
+     inchiostro E fondo a gradiente — non devono essere bocciati. */
+  console.log(`\ncontroprova del gradiente (${LATO}×${LATO} punti per riga): ${gradPresa} illeggibili bocciati,`
+    + ` ${gradPromossa} promossi · ${gradMezzoPresa} illeggibili SOLO IN MEZZO bocciati, ${gradMezzoPromossa} promossi`
+    + ` · ${gradSano} leggibili promossi, ${gradFalsa} accusati a torto`);
+  if (gradPromossa) { console.log('⛔ un gradiente ILLEGGIBILE è passato: la valutazione co-locata non sa bocciare.'); process.exit(1); }
+  if (!gradPresa) { console.log('⛔ nessun gradiente illeggibile è arrivato alla misura: il veleno non è entrato, la prova non prova niente.'); process.exit(1); }
+  if (gradMezzoPromossa) { console.log(`⛔ il testo leggibile ai due capi e illeggibile in mezzo è passato: con ${LATO}×${LATO}`
+    + ' punti la griglia non guarda DENTRO le parole. Con --lato=2 questo è il risultato atteso, ed è la misura'
+    + ' che dimostra perché i quattro angoli non bastano.'); process.exit(1); }
+  if (!gradMezzoPresa) { console.log('⛔ il testimone cieco-agli-angoli non è arrivato alla misura: la prova non prova niente.'); process.exit(1); }
+  if (gradFalsa) { console.log('⛔ un testo LEGGIBILE su gradiente è stato bocciato: è tornata l\'accusa falsa del 07/08.'); process.exit(1); }
+  if (!gradSano) { console.log('⛔ nessun testimone leggibile è arrivato alla misura: il verso che conta non è stato provato.'); process.exit(1); }
+  console.log('la geometria sa fallire dove deve e tace dove deve: illeggibile bocciato, leggibile promosso.');
   process.exit(0);
 }
 
