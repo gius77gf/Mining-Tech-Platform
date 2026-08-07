@@ -47,6 +47,16 @@
 
   /* ---- stati: nessuno litiga con il teal ---- */
   --success:#79b862; --warn:#ffa566; --danger:#f05f5a; --info:#55a6ec;
+  /* ⛔ UNA TINTA CHE FA DA INCHIOSTRO È UNA COSA DIVERSA DALLA STESSA TINTA
+     CHE FA DA PIENO, e finché il fondo è nero i due valori coincidono — ed è
+     per questo che questa distinzione non c'era. Di giorno no: un pieno vuole
+     reggere il testo scuro che ci sta sopra, un inchiostro vuole reggere il
+     bianco che ha sotto, e tirare l'unica variabile in mezzo ne rompe sempre
+     uno dei due (misurato: vedi il blocco «le stesse tinte, di giorno»).
+     Qui i tre inchiostri valgono il loro stato; di giorno cambiano solo loro. */
+  --danger-ink:var(--danger);
+  --warn-ink:  var(--warn);
+  --sup-ink:   var(--app-support2);
 
   /* ---- gradienti ---- */
   --grad:    linear-gradient(135deg,#00b1a1,#009284);
@@ -119,6 +129,78 @@
   --ord-gap:8px;
 }
 
+/* ═══════════════ LE STESSE TINTE, DI GIORNO ═══════════════
+   ⛔ I GRADIENTI QUI SOPRA SONO SCELTI PER IL NERO, E DI GIORNO IL FONDO È
+   BIANCO. Il foglio condiviso ricalcola le superfici e il teal — `--grad-num`
+   diventa il teal profondo e misura 6,08:1 sulla scheda, quindi NON si tocca —
+   ma le tinte di STATO restano quelle di questa app, e le nostre nascono per
+   stare su `#070f0e`. Sul bianco sono le stesse tinte dalla parte sbagliata
+   della luce, e il banco del contrasto le ha misurate: `.kpi .n` e `.tot-n` a
+   2,93 e 2,97 (serve 3), `.amt-n.neg` a 3,24 e `.avatar.sup` a 3,81 (serve
+   4,5). Dieci testi bocciati, e IDENTICI nel chiaro e nel sole: non è un
+   difetto della modalità sole, è la palette di notte accesa di giorno.
+   Il rimedio è quello che questa app usa già nel buio, ribaltato: la fermata
+   che conta è **quella dalla parte del fondo** — di notte la scura, di giorno
+   la CHIARA — tinta invariata (stessa tonalità al grado) e sola luminosità
+   mossa. Le cifre restano ambra, verdi, rosse e ottone, e restano le
+   protagoniste.
+   ⚠️ I NUMERI ACCANTO SONO MISURATI, E SU COLORI CHE SI TOCCANO. Il banco del
+   contrasto, dove c'è di mezzo un gradiente, accoppia la fermata più chiara
+   dell'inchiostro col punto più scuro del fondo anche quando stanno agli
+   angoli opposti — la «forbice» che lui stesso dichiara. Qui il conto è fatto
+   dove i due colori si incontrano davvero: l'inchiostro della riga ALTA della
+   cifra (la prima fermata) contro il fondo dipinto a QUELLA riga, letto dal
+   pixel accanto. Per Conti la differenza è piccola (0,06-0,07: la scheda va da
+   `rgb(240,249,248)` al bianco, cioè quasi non sfuma) ma cambia il verdetto di
+   una riga: `.tot-n` valeva **2,99** co-locato, cioè sotto il 3 per davvero,
+   e i due numeroni **3,00 e 3,03**, cioè esattamente sul filo e senza margine.
+   Adesso valgono 3,52 · 3,48 · 3,51 nel chiaro (il fondo peggiore dei due
+   temi) e ~0,07 in più nel sole. Il numero scritto a destra è quello, più
+   severo, del banco: si tiene il più basso dei due, non il più comodo.
+   ⛔ E NON SI TOCCANO `--warn`, `--success`, `--danger`: quelle tre fanno
+   ANCHE da pieno sotto il testo scuro delle pastiglie (`.badge.warn` e
+   compagne, `dw-app-ui.css`). Misurato: scurendo `--danger` a #c62924 la
+   pastiglia «INSOLUTA» scende da 5,72:1 a 3,30 — cioè si aggiusterebbe la
+   cifra rompendo la pastiglia. Una tinta che fa da inchiostro e da fondo vuole
+   due valori, non un compromesso: qui prendono il valore di giorno i gradienti
+   e i tre inchiostri (`--danger-ink`, `--warn-ink`, `--sup-ink`), mentre i
+   pieni restano quelli che le pastiglie sanno reggere.
+   ═══════════════════════════════════════════════════════════ */
+body.dw.light-mode, body.dw.outdoor-mode{
+  /* gli inchiostri di stato, stessa tonalità al grado di quelli di notte
+     (rosso 2°, ambra 25°, ottone 38°) e sola luminosità portata dove si legge
+     sul bianco. Il rosso dei soldi da incassare resta il rosso: più cupo di
+     mezzo tono, ma è ancora la sola cosa rossa della riga. */
+  --danger-ink:#c62924;   /* testo piccolo: 5,61:1 (era 3,24) */
+  --warn-ink:  #a35219;   /* testo piccolo: 5,56:1 (era 2,03) */
+  --sup-ink:   #80663a;   /* testo piccolo: 5,41:1 (era 2,50) */
+  /* ⛔ E LE CIFRE NON STANNO AL LIVELLO DEL TESTO PICCOLO, PERCHÉ NON SONO
+     TESTO PICCOLO. Le soglie WCAG sono due davvero — 4,5 sotto i 24 px (o i
+     18,66 in grassetto), 3 sopra — e un numerone da 32 px non ha bisogno di
+     stare dove sta un'etichetta da 11. Prima stesura di questo blocco: tutto
+     al livello dell'inchiostro, 4,9-5,2:1. La prova passava. Ma guardando lo
+     scatto accanto alla riga delle pesate, l'ambra del numerone e l'ambra
+     della pastiglia «DA FATTURARE» non erano più lo stesso colore: la prima
+     era diventata **marrone**. Uno stato non deve cambiare significato
+     cambiando tema, e un conto che passa non è ancora un colore giusto —
+     questa parte l'ha detta solo il confronto affiancato.
+     Quindi due livelli: l'inchiostro dove si legge una frase, la cifra dove
+     basta a una cifra, con mezzo punto di margine sopra il 3 e la tinta
+     lasciata dov'era (ambra 25°, verde 104°, rosso 2°, gli stessi gradi del
+     buio). Il numerone resta il protagonista e resta del suo colore. */
+  --grad-wr: linear-gradient(135deg,#cb6924,#924c1a);  /* cifre: 3,43:1 (era 2,93) */
+  --grad-ok: linear-gradient(135deg,#49952d,#356b20);  /* cifre: 3,41:1 (era 2,97) */
+  --gradSuc: var(--grad-ok);
+  --grad3:   linear-gradient(135deg,#e8524c,#a73b37);  /* cifre: 3,34:1 */
+  --grad-dg: var(--grad3);
+  /* ⚠️ L'OTTONE RESTA AL LIVELLO DELL'INCHIOSTRO, E NON È UNA DIMENTICANZA:
+     `--grad-sup` è l'unico dei quattro che fa anche da PIENO — è il fondo di
+     `.avatar.sup`, con sopra due lettere bianche da 12 px, cioè testo piccolo.
+     Schiarirlo al livello degli altri riporterebbe quel bianco sotto soglia
+     (era lì che stava il 3,81:1). Due mestieri, e vince quello più esigente. */
+  --grad-sup:linear-gradient(135deg,var(--sup-ink),#574527);  /* cifre: 4,94:1 · bianco sopra: 5,41:1 (era 3,81) */
+}
+
 /* ─────────────── pagine ─────────────── */
 .page{display:none}
 .page.active{animation:scrFade .22s var(--ease)}
@@ -167,7 +249,7 @@
   background:radial-gradient(260px 150px at 8% 0%,rgba(196,158,93,.10),transparent 70%);
 }
 .cassa.vuota .cassa-ico{
-  color:var(--app-support2); background:rgba(196,158,93,.14);
+  color:var(--sup-ink); background:rgba(196,158,93,.14);
   box-shadow:inset 0 1px 0 rgba(255,255,255,.10), 0 0 14px rgba(196,158,93,.14);
 }
 .cassa>*{position:relative}
@@ -212,7 +294,7 @@
   background:radial-gradient(260px 150px at 8% 0%,var(--glow-wr),transparent 70%);
 }
 .cassa.attenta .cassa-ico{
-  color:var(--warn); background:var(--glow-wr);
+  color:var(--warn-ink); background:var(--glow-wr);
   box-shadow:inset 0 1px 0 rgba(255,255,255,.10), 0 0 14px var(--glow-wr);
 }
 .cassa.attenta .cassa-num{
@@ -223,7 +305,7 @@
   background:radial-gradient(260px 150px at 8% 0%,var(--glow-dg),transparent 70%);
 }
 .cassa.grave .cassa-ico{
-  color:var(--danger); background:var(--glow-dg);
+  color:var(--danger-ink); background:var(--glow-dg);
   box-shadow:inset 0 1px 0 rgba(255,255,255,.10), 0 0 14px var(--glow-dg);
 }
 .cassa.grave .cassa-num{
@@ -306,7 +388,7 @@
   letter-spacing:.4px; color:var(--text); line-height:1.1; white-space:nowrap;
 }
 .amt-n.pos{color:var(--app-accent2)}
-.amt-n.neg{color:var(--danger)}
+.amt-n.neg{color:var(--danger-ink)}
 .amt-n.mute{color:var(--muted2); font-weight:700}
 .amt-s{
   font-size:10px; color:var(--muted); letter-spacing:.4px; margin-top:2px;
@@ -322,7 +404,7 @@
   color:var(--app-accent2);
   background:color-mix(in srgb,var(--app-accent) 16%,transparent);
 }
-.arr.del:hover{color:var(--danger); background:rgba(240,95,90,.14)}
+.arr.del:hover{color:var(--danger-ink); background:rgba(240,95,90,.14)}
 
 /* ─────────────── badge (copia di .scad-badge: raggio 3px, pieno) ─────────────── */
 .badge svg{
@@ -343,7 +425,7 @@ input[type=number].dw-input,
   letter-spacing:1.8px; text-transform:uppercase; color:var(--muted);
 }
 .fld .err-msg{
-  display:none; font-size:11px; color:var(--danger); line-height:1.35;
+  display:none; font-size:11px; color:var(--danger-ink); line-height:1.35;
   align-items:center; gap:5px;
 }
 .fld.bad .err-msg{display:flex}
@@ -364,7 +446,7 @@ input[type=number].dw-input,
   border-color:color-mix(in srgb,var(--danger) 55%,var(--border2)); color:var(--muted2);
 }
 .dw-btn.mini.no:hover{
-  border-color:var(--danger); color:var(--danger); background:rgba(240,95,90,.10);
+  border-color:var(--danger); color:var(--danger-ink); background:rgba(240,95,90,.10);
 }
 
 /* ─────────────── filtri a segmento (copia di .chg) ─────────────── */
@@ -445,7 +527,7 @@ input[type=number].dw-input,
   font-family:'Barlow Condensed',sans-serif; font-size:15px; font-weight:800;
   letter-spacing:.3px; font-variant-numeric:tabular-nums; min-width:112px;
 }
-.gcli-v.neg{color:var(--danger)}
+.gcli-v.neg{color:var(--danger-ink)}
 .gcli-b .dwg{margin:0}
 .gcli-b .dwg-head{display:none}      /* il nome è già nell'intestazione di riga */
 .gcli-b .dwg-plot{margin-top:0}
@@ -507,13 +589,47 @@ label.item:has(.dw-chk:checked){
 
 /* ─────────────── riga della pesa: lordo − tara = netto ───────────────
    Sta su una riga sua, a tutta larghezza, sotto il resto della voce: è
-   il conto che il camionista rilegge, e non deve mai finire con «…». */
+   il conto che il camionista rilegge, e non deve mai finire con «…».
+   ⛔ E FINO AL 07/08 FINIVA CON «…», PROPRIO SULLA RIGA CHE LO VIETA. La
+   regola qui sotto scriveva `-webkit-line-clamp:2` due righe dopo il commento
+   che dice il contrario. Misurato prima di toccare, perché le due diagnosi
+   possibili portano a correzioni contrarie: **il taglio è VERTICALE**, non
+   orizzontale — su 14 righe `scrollWidth` è uguale a `clientWidth` a 430, 390
+   e 320 px (zero taglio in larghezza), mentre `scrollHeight` supera
+   `clientHeight` su 1 riga a 430 px (37→52, −15 px), su 2 a 390 (−15 e −31) e
+   su 2 a 320 (−15 e −46). Controprovato togliendo il solo `line-clamp` nella
+   pagina: 1 e 2 righe tagliate → **zero**.
+   ⚠️ E LA RAGIONE PER CUI SEMBRAVA IMPOSSIBILE VA SCRITTA, perché è il genere
+   di cosa che fa fermare la mano giusta: «senza `display:-webkit-box` il
+   line-clamp non morde, e in Conti non c'è». Tutt'e due le metà sono false
+   oggi. Il `display:-webkit-box` c'è — sta in `.meta` dentro
+   `shared/dw-app-ui.css`, non in questo file, e `.pesa` è una `.meta`. E
+   Chromium quel display lo RIPORTA come `flow-root` (`getComputedStyle` dice
+   `display:flow-root`, `-webkit-box-orient:vertical`, `-webkit-line-clamp:2`)
+   perché con il clamp attivo la scatola si comporta ormai da contenitore di
+   blocco: il clamp morde lo stesso. Cioè leggendo il codice si concludeva
+   «non morde» e leggendo il `display` si concludeva «non c'è la scatola» —
+   due strade che portano tutt'e due lontano dal difetto, che invece si vede
+   in tre secondi chiedendo al browser `scrollHeight` contro `clientHeight`. */
 .meta.pesa{
-  flex:1 1 100%; margin-top:0; -webkit-line-clamp:2;
+  flex:1 1 100%; margin-top:0; -webkit-line-clamp:none;
   font-variant-numeric:tabular-nums; color:var(--muted2);
   padding-top:6px; border-top:1px dashed var(--border2);
 }
 .meta.pesa b{color:var(--app-accent2)}
+/* ⛔ E QUELLO CHE VENIVA TAGLIATO ERA SEMPRE LA STESSA COSA: il «da
+   completare prima di stampare: …», cioè l'unico posto in cui l'elenco delle
+   mancanze del DDT si legge (il resto sta nel `title` della pastiglia, che su
+   un telefono non si apre). Appeso in coda a una somma era testo morto anche
+   quando ci stava: nessuno legge un avvertimento in fondo a «lordo − tara =
+   netto». Adesso ha una riga sua, nel colore dello stato, sul modello di
+   `.form-hint` — che è la forma che l'ecosistema usa già per i dati che
+   devono farsi leggere sotto una voce di elenco. */
+.pesa-manca{
+  flex:1 1 100%; font-size:11.5px; line-height:1.5; margin-top:3px;
+  color:var(--warn-ink);
+}
+.pesa-manca b{color:inherit; font-weight:700}
 
 /* ─────────────── campo calcolato: si legge, non si scrive ───────────────
    Il netto della pesata è lordo − tara: bordo tratteggiato e cifra
@@ -3377,7 +3493,7 @@ label.item:has(.dw-chk:checked){
         <button class="arr del" type="button" title="Elimina prodotto" aria-label="Elimina ${esc(p.nome)}" data-del-pro="${p.id}">${IC.croce}</button></div></div>`
       /* la scala va SOTTO la riga: in coda al dettaglio finirebbe nelle due
          righe tagliate dal `line-clamp` e non la leggerebbe nessuno. */
-      + (!v.ok ? `<div class="form-hint" style="margin:-2px 0 8px;color:var(--danger);">${esc(v.problemi[0])}</div>`
+      + (!v.ok ? `<div class="form-hint" style="margin:-2px 0 8px;color:var(--danger-ink);">${esc(v.problemi[0])}</div>`
          : v.quanti ? `<div class="form-hint" style="margin:-2px 0 8px;">${
              v.scala.map(b => esc(etichettaScaglione(b, v.unita, qtS)) + ": "
                + (b.implicita ? "listino pieno"
@@ -3438,10 +3554,19 @@ label.item:has(.dw-chk:checked){
          documento e' incompleto quando il camion e' gia' sotto e il camionista
          aspetta. Il posto giusto per accorgersene e' l'elenco, prima. */
       const manca = mancanzeDdt(p);
+      /* ⛔ LE MANCANZE NON STANNO PIÙ IN CODA ALLA SOMMA, e la ragione è
+         misurata: appese lì finivano sotto il taglio della riga (1 riga su 14
+         a 430 px, 2 a 390 e a 320, fino a 46 px persi) — cioè l'avvertimento
+         che dice «questo DDT non si può ancora stampare» era proprio la parte
+         che spariva. Il taglio adesso non c'è più, ma il posto resta sbagliato
+         lo stesso: nessuno legge un avvertimento in fondo a «lordo − tara =
+         netto». Ha una riga sua, sotto, nel colore del suo stato. */
       const dettaglio = ["lordo " + qt(p.lordo) + " − tara " + qt(p.tara) + " = netto <b>" + qt(p.netto) + " t</b>",
         p.mezzo ? esc(p.mezzo) : "", p.destinatario ? esc(p.destinatario) : ""]
-        .filter(Boolean).join(" · ")
-        + (manca.length ? ` · <b>da completare prima di stampare:</b> ${manca.map(x => esc(x.split(":")[0])).join(", ")}` : "");
+        .filter(Boolean).join(" · ");
+      const rigaManca = manca.length
+        ? `<div class="pesa-manca"><b>Da completare prima di stampare:</b> ${manca.map(x => esc(x.split(":")[0])).join(", ")}</div>`
+        : "";
       return `<div class="item ${p.fatturaId ? "st-ok" : "st-accent"}" style="flex-wrap:wrap;">
       <span class="avatar">${IC.camion}</span>
       <div class="info"><div class="name"><span class="num-doc">DDT ${esc(p.numero || "—")}</span> · ${esc(p.cliente || "—")}</div>
@@ -3460,7 +3585,7 @@ label.item:has(.dw-chk:checked){
       <span class="badge ${p.fatturaId ? "ok" : "warn"}">${p.fatturaId ? "Fatturato" : "Da fatturare"}</span>${
         manca.length ? `<span class="badge warn" title="${esc(manca.join("; "))}">DDT incompleto</span>` : ""}${badgePrezzo(p)}
       <div class="acts"><button class="arr" type="button" title="Stampa il DDT da dare al camionista (o salvalo in PDF)" aria-label="Stampa il DDT ${esc(p.numero || "")}" data-stampa-ddt="${p.id}">${IC.stampa}</button>${p.fatturaId ? "" : `<button class="arr del" type="button" title="Elimina pesata" aria-label="Elimina il DDT ${esc(p.numero || "")}" data-del-pes="${p.id}">${IC.croce}</button>`}</div>
-      <div class="frow"><div class="meta pesa">${dettaglio}</div></div>
+      <div class="frow"><div class="meta pesa">${dettaglio}</div>${rigaManca}</div>
       </div>`; }).join("")
       || (qPes ? vuoto("camion", "Nessun risultato", "Nessuna pesata trovata per «<b>" + esc(qPes) + "</b>». Prova con la targa, il prodotto o il numero del DDT.")
          : filtroPes === "tutte" ? vuoto("camion", "Nessuna pesata", "Registra la prima pesata qui sotto: lordo e tara li scrivi tu, il <b>netto</b> lo calcola Conti. Da questi DDT nasce poi la fattura differita.")

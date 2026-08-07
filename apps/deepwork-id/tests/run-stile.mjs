@@ -2678,23 +2678,112 @@ const _senzaParentesi = (s) => {
   do { prima = p; p = p.replace(/\([^()]*\)/g, ""); } while (p !== prima);
   return p;
 };
+/* ⛔ LO STESSO NOME DI GRADIENTE PUÒ VALERE DUE COLORI, SU DUE FONDI OPPOSTI.
+   Questa funzione teneva UNA mappa, `grad[nome]`, e UN fondo, il `--card` del
+   `:root`. Reggeva finché ogni app aveva una palette sola. Il 07/08 Conti ha
+   dato ai suoi gradienti un valore per il giorno (`body.dw.light-mode,
+   body.dw.outdoor-mode`, dove il `--card` è **bianco**), e la regola ha fatto
+   due cose sbagliate insieme: ha tenuto solo l'ULTIMA dichiarazione — quella
+   di giorno — e l'ha misurata contro la scheda **del buio**. Tre accuse false
+   (`--grad-sup` 1,82:1, `--grad-wr` 1,91, `--grad3` 1,87) su una palette che
+   `tests/browser/contrasto.mjs` misura a **zero** violazioni in tutti e tre i
+   temi. È il danno che l'intestazione di quel banco racconta — «un KO va
+   verificato come un OK» — prodotto da un controllo statico.
+   ⚠️ E il difetto peggiore era il secondo, quello che ASSOLVE: bastava che
+   Conti scrivesse la fermata di giorno con un `color-mix()` perché la mappa
+   piatta mettesse `[]` sopra la voce di NOTTE, e i tre gradienti del buio
+   sparissero dai giudicati senza che niente diventasse rosso. Cioè la stessa
+   svista poteva far accusare un colore sano o smettere di guardare quello
+   vero, a seconda di come lo si scriveva.
+   Adesso ogni dichiarazione porta con sé il tema del blocco che la contiene e
+   viene giudicata contro il fondo di QUEL tema; un gradiente dichiarato in
+   tutt'e due i posti si giudica due volte, perché sono due colori diversi. E
+   i due temi vogliono la risposta in versi opposti: di notte è la fermata
+   BASSA a essere la peggiore, di giorno quella ALTA — `_rapporto` è simmetrico
+   e `Math.min` prende comunque la peggiore, ma il messaggio deve dirlo giusto,
+   se no manda a muovere il colore sbagliato.
+   ⚠️ Il fondo di giorno: se l'app non se lo scrive vale `#ffffff`, che è
+   quello che `shared/dw-app-ui.css` dà a ogni app sia in `light-mode` sia in
+   `outdoor-mode`. Scritto qui invece che dedotto, così il giorno che quel
+   foglio cambiasse si sa dove guardare. */
+/* ⛔ «CARICA I TRE TEMI?» SI CHIEDE IN UN POSTO SOLO. La regola 24 (qui) e la
+   regola 27 (in fondo) sono nate a un'ora di distanza, in due cantieri che non
+   si parlavano, e si erano scritte la stessa riga con la stessa lezione dentro
+   — «il caricamento, non la menzione», perché il core nomina `dw-tema.js` in
+   due commenti che spiegano di NON caricarlo. Due copie uguali oggi divergono
+   domani senza che nessuno lo veda: sta scritta una volta.
+   ⚠️ È una `function` e non una `const` apposta: le dichiarazioni si issano, e
+   la regola 27 sta seicento righe più giù. */
+function caricaTemi(src) {
+  return /<script[^>]*src\s*=\s*["'][^"']*dw-tema\.js["']/.test(src);
+}
+const _FONDO_GIORNO = "#ffffff";
 function _cifreRitagliate(testo) {
-  const grad = {};
-  for (const m of testo.matchAll(/(--[\w-]*grad[\w-]*)\s*:\s*linear-gradient\(([^;]*)\)/gi))
-    grad[m[1]] = _senzaParentesi(m[2]).match(/#[0-9a-f]{3,6}/gi) || [];
-  const val = (n) => {
-    const m = testo.match(new RegExp(n.replace(/-/g, "\\-") + "\\s*:\\s*(#[0-9a-f]{3,6})", "i"));
-    return m && m[1];
-  };
-  const fondo = val("--card") || val("--bg");
-  const usate = new Set();
-  for (const blocco of testo.split("}")) {
-    if (!/background-clip\s*:\s*text/i.test(blocco)) continue;
-    for (const m of blocco.matchAll(/var\((--[\w-]+)\)/g)) usate.add(m[1]);
+  /* si spezza in blocchi tenendo il SELETTORE: è lui a dire in che tema vive
+     la dichiarazione, ed è esattamente quello che la mappa piatta buttava via */
+  const blocchi = testo.split("}").map((pezzo) => {
+    const i = pezzo.indexOf("{");
+    return i < 0 ? { sel: "", corpo: pezzo } : { sel: pezzo.slice(0, i), corpo: pezzo.slice(i + 1) };
+  });
+  const temaDi = (sel) => (/light-mode|outdoor-mode/i.test(sel) ? "giorno" : "notte");
+  /* ⛔ PRIMA PASSATA: LE TINTE SCRITTE COME VARIABILE. Fino al 07/08 una
+     fermata scritta `var(--warn-ink)` era invisibile a questa regola — legge
+     `#hex` e basta — quindi bastava dare un nome a un colore perché smettesse
+     di essere giudicato, in silenzio. È la seconda domanda: «se il difetto
+     stesse un piano più sotto, scritto come variabile invece che a mano,
+     questo controllo lo direbbe?». Rispondeva no. Adesso le variabili che
+     valgono un colore nudo si risolvono, per tema, col ripiego sul `:root`. */
+  const tinte = { notte: {}, giorno: {} };
+  for (const { sel, corpo } of blocchi)
+    for (const m of corpo.matchAll(/(--[\w-]+)\s*:\s*(#[0-9a-f]{3,6})\s*(?:;|$)/gi))
+      tinte[temaDi(sel)][m[1]] = m[2];
+  const risolvi = (testoGrad, tema) => testoGrad.replace(/var\((--[\w-]+)\)/g,
+    (tutto, nome) => tinte[tema][nome] || tinte.notte[nome] || tutto);
+  const grad = { notte: {}, giorno: {} };
+  const fondi = { notte: null, giorno: null };
+  for (const { sel, corpo } of blocchi) {
+    const tema = temaDi(sel);
+    for (const m of corpo.matchAll(/(--[\w-]*grad[\w-]*)\s*:\s*linear-gradient\(([^;]*)\)/gi))
+      grad[tema][m[1]] = _senzaParentesi(risolvi(m[2], tema)).match(/#[0-9a-f]{3,6}/gi) || [];
+    for (const n of ["--card", "--bg"]) {
+      const m = corpo.match(new RegExp(n.replace(/-/g, "\\-") + "\\s*:\\s*(#[0-9a-f]{3,6})", "i"));
+      if (m && !fondi[tema]) fondi[tema] = m[1];
+    }
   }
-  return { fondo, voci: [...usate].filter((v) => grad[v] && grad[v].length)
-    .map((v) => ({ nome: v, fermate: grad[v],
-                   peggio: fondo ? Math.min(...grad[v].map((x) => _rapporto(x, fondo))) : null })) };
+  if (!fondi.giorno) fondi.giorno = _FONDO_GIORNO;
+  /* ⛔ E IL GIORNO SI GIUDICA SOLO DOVE IL GIORNO SI PUÒ ACCENDERE. Il core ha
+     un blocco `body.outdoor-mode` che è **codice morto dichiarato**: non carica
+     `shared/dw-tema.js`, ha un suo `applyTheme()` che quella classe la toglie a
+     ogni giro, e il commento sopra il blocco lo dice («qui dentro non c'è
+     niente da correggere, perché niente di qui dentro si vede», con la prova in
+     `run-kpi.mjs`). Senza questa riga la separazione fra i temi accusa quel
+     blocco a 2,29:1 — un colore che nessuno vede, su una superficie che non
+     è nemmeno il soggetto di questa regola: cioè manda a rovinare la palette
+     del core per un difetto del righello, che è precisamente il danno da cui
+     l'intestazione di `contrasto.mjs` mette in guardia.
+     Il criterio non è il nome della superficie ma il fatto verificabile: chi
+     accende i tre temi è `dw-tema.js`, e chi non lo CARICA non li ha.
+     ⚠️ E si guarda il TAG, non il nome: il core la stringa `shared/dw-tema.js`
+     ce l'ha due volte, in due commenti che spiegano di NON caricarlo — cercarla
+     a testo dà la risposta esattamente rovesciata. È la terza volta che i
+     commenti si fanno prendere per codice in questo file. */
+  if (!caricaTemi(testo)) fondi.giorno = null;
+  const usate = new Set();
+  for (const { corpo } of blocchi) {
+    if (!/background-clip\s*:\s*text/i.test(corpo)) continue;
+    for (const m of corpo.matchAll(/var\((--[\w-]+)\)/g)) usate.add(m[1]);
+  }
+  const voci = [];
+  for (const tema of ["notte", "giorno"]) {
+    if (!fondi[tema]) continue;
+    for (const v of usate) {
+      const f = grad[tema][v];
+      if (!f || !f.length) continue;
+      voci.push({ nome: v, tema, fondo: fondi[tema], fermate: f,
+                  peggio: Math.min(...f.map((x) => _rapporto(x, fondi[tema]))) });
+    }
+  }
+  return { fondo: fondi.notte, voci };
 }
 const SOGLIA_CIFRE = 3;   // WCAG 1.4.3 per il testo grande: queste tinte dipingono solo numeri da 30 px in su
 
@@ -2705,24 +2794,33 @@ test("regola 24: nessun gradiente dipinge cifre sotto il 3:1", () => {
     if (!fondo) continue;
     for (const v of voci)
       if (v.peggio !== null && v.peggio < SOGLIA_CIFRE)
-        male.push(`${nome}: ${v.nome} (${v.fermate.join(" → ")}) fa ${v.peggio}:1 su ${fondo}`);
+        male.push(`${nome}: ${v.nome} di ${v.tema} (${v.fermate.join(" → ")}) fa ${v.peggio}:1 su ${v.fondo}`
+          + ` — ${v.tema === "notte" ? "la fermata BASSA è quella da ALZARE" : "la fermata ALTA è quella da ABBASSARE"}`);
   }
   ok(male.length === 0,
-    "gradienti che dipingono cifre sotto il 3:1 — la fermata BASSA è quella da alzare:\n  " + male.join("\n  "));
+    "gradienti che dipingono cifre sotto il 3:1:\n  " + male.join("\n  "));
 });
 
 test("regola 24: dichiara su quante superfici ha davvero guardato", () => {
-  let conSoggetti = 0, soggetti = 0;
+  let conSoggetti = 0, soggetti = 0, diGiorno = 0;
   for (const [, rel] of SUPERFICI) {
     const { fondo, voci } = _cifreRitagliate(leggi(rel));
     if (!fondo || !voci.length) continue;
     conSoggetti++; soggetti += voci.length;
+    diGiorno += voci.filter((v) => v.tema === "giorno").length;
   }
   /* Il numero è la difesa contro il «nessuna violazione» di un controllo che
      non ha guardato niente: se un giorno scende, o è sparito un ritaglio o è
      cambiata la forma con cui si scrivono i gradienti. */
   ok(conSoggetti >= 5 && soggetti >= 12,
     `la regola 24 ha guardato solo ${soggetti} gradienti su ${conSoggetti} superfici: troppo pochi, non sta guardando dove crede`);
+  /* ⛔ E IL CONTO DI GIORNO VA CHIESTO A PARTE, se no la metà nuova può essere
+     morta senza che niente diventi rosso: è la guardia scollegata, cioè la
+     stessa forma per cui il conto qui sopra esiste. Oggi le palette di giorno
+     scritte con fermate vere sono quelle di Conti; il giorno che sparissero,
+     questa riga lo dice invece di lasciare la funzione a girare a vuoto. */
+  ok(diGiorno > 0,
+    "nessun gradiente di GIORNO fra i giudicati: la metà che distingue i due temi non sta guardando niente");
 });
 
 /* ⚠️ LA CONTROPROVA DELLA CORREZIONE, nei DUE versi — se no si sarebbe
@@ -2757,8 +2855,27 @@ test("regola 24: la controprova — una fermata bassa scurita viene vista", () =
   ok(guasto !== sano, "l'iniezione non ha sostituito niente: la prova non prova niente");
   const dopo = _cifreRitagliate(guasto);
   const bocciati = dopo.voci.filter((v) => v.peggio < SOGLIA_CIFRE);
-  ok(bocciati.length === 1 && bocciati[0].nome === "--grad3",
-    `col difetto rimesso la regola deve vedere --grad3 e basta, ha visto: ${JSON.stringify(bocciati)}`);
+  ok(bocciati.length === 1 && bocciati[0].nome === "--grad3" && bocciati[0].tema === "notte",
+    `col difetto rimesso la regola deve vedere il --grad3 DI NOTTE e basta, ha visto: ${JSON.stringify(bocciati)}`);
+});
+
+/* ⛔ E LA CONTROPROVA DELL'ALTRA METÀ, che è quella nuova e quindi quella non
+   provata da niente. Di giorno il difetto ha il verso opposto — non una
+   fermata bassa troppo scura sul nero, ma una fermata ALTA troppo chiara sul
+   bianco — e va rimesso dov'è, cioè nel blocco `light-mode/outdoor-mode`. Se
+   questa passasse senza vedere niente, la separazione fra i due temi sarebbe
+   decorativa: la mappa `giorno` esisterebbe e non giudicherebbe mai. */
+test("regola 24: la controprova di giorno — una fermata alta schiarita viene vista", () => {
+  const sano = leggi("apps/conti/index.html");
+  /* si schiarisce la fermata ALTA del rosso di giorno fin sopra la soglia: è
+     il difetto vero di quel tema, nel verso in cui capita davvero — una tinta
+     nata per il nero lasciata accesa sul bianco */
+  const guasto = sano.replace("linear-gradient(135deg,#e8524c,#a73b37)",
+                              "linear-gradient(135deg,#f5a29f,#a73b37)");
+  ok(guasto !== sano, "l'iniezione non ha sostituito niente: la prova non prova niente");
+  const dopo = _cifreRitagliate(guasto).voci.filter((v) => v.peggio < SOGLIA_CIFRE);
+  ok(dopo.length === 1 && dopo[0].tema === "giorno",
+    `schiarendo l'inchiostro di giorno la regola deve bocciare una voce DI GIORNO, ha visto: ${JSON.stringify(dopo)}`);
 });
 
 /* ═══ REGOLA 25 — UN ELEMENTO FISSO E INVISIBILE NON DEVE MANGIARE I TOCCHI ═══
@@ -2977,7 +3094,7 @@ test("regola 27: chi carica dw-tema.js e chi no e' dichiarato, con la ragione", 
        prima stesura di questa riga lo contava fra quelli che ce l'hanno. È la
        famiglia che oggi è già costata tre volte: un commento che nomina una cosa
        non è quella cosa. */
-    const carica = /<script[^>]*src=["'][^"']*dw-tema\.js["']/.test(src);
+    const carica = caricaTemi(src);
     (carica ? conTema : senza).push([nome, rel]);
   }
   ok(conTema.length + senza.length === SUPERFICI.length,
