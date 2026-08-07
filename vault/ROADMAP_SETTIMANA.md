@@ -37,6 +37,34 @@ chiuse. Le aperte sono **24**; la pagina d'ingresso di
   risposta si procede con la colonna «la mia risposta», **dichiarandolo nel
   commit**.
 
+- [ ] **D-bis. Il piano di applicazione delle quindici verdi** — preparato il
+      07/08 alle 14:45 perché a fine giornata l'applicazione sia meccanica e non
+      improvvisata. ⚠️ **Sono quindici, non diciannove**: le quattro gemelle
+      (13, 14, 16, 17) le ha decise il fondatore il 02/08 con «vai» e sono già
+      attuate — il conto va detto giusto, e il documento lo dichiara già.
+      Si dividono in due mucchi, e vanno trattati in modo diverso:
+      · **Sette sono decisioni da SCRIVERE**, e si applicano in minuti perché
+        non toccano codice: **6** (la geometria del fronte resta com'è finché
+        non c'è un volo vero — dipende dalla 7, che è gialla), **8** (si sceglie
+        la funzione che l'ispettore chiede per prima, non quella più citata dai
+        concorrenti), **10c** (più utenti al primo cliente), **11a/11b/11c**
+        (Deepwork è il diario, Genesi il tavolo da disegno; le tre
+        sovrapposizioni si tolgono da Deepwork; alla presentazione due app e il
+        ponte), **12b** (lo si dice in chiaro prima del pilota **comunque**,
+        anche con l'export).
+      · **Otto vogliono un cantiere**, con la sua misura: **5a** (il messaggio
+        di un salvataggio non riuscito: «non è stato salvato», mai un codice),
+        **5b** (il lavoro senza rete — e la mia risposta dice «prima misuro cosa
+        succede a due persone che scrivono la stessa riga», quindi la **prima
+        unità è la misura**, non la funzione), **10a** (l'abbonamento come
+        barriera vera), **10b** (chi può cancellare), **12a** (export
+        ri-caricabile), **15** (dove vive «Il Quadro»), **18a/18b** (il volume
+        del recupero e l'anno in cui conta).
+      ⛔ **E ognuna, quando si applica, va scritta nel commit come decisa dal
+      ciclo e non dal fondatore** — è la condizione con cui è stata concessa, e
+      serve a poterla cambiare in qualunque momento.
+      ⚠️ Le quattro fuori dal mucchio restano ferme: due non si prendono da
+      soli mai (sicurezza), due vogliono che il fondatore apra qualcosa di suo.
 - [ ] **D. Le 24 decisioni ancora aperte** — `docs/DECISIONI_WEEKEND.md`,
       pagina d'ingresso in cima al file.
 
