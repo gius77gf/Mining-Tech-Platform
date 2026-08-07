@@ -1587,6 +1587,12 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
   import { mountExit, esc, csvCell, statoVuoto, giorniTra, montaGuardiaInteri, avvolgiUnita, oggiISO, dataISOEsiste,
            controllaAllegato, testoAllegatoRifiutato, pezziDataURL, dataIt,
            numeroScritto, AVVISO_DECIMALE, timbroLocale, modoDimostrazione,
+           /* il marchio sul NOME del file scaricato in dimostrazione. Scudo
+              dichiarava i dati d'esempio sui fogli STAMPATI (`avvisoEsempio`) e
+              non sui CSV: quattro file uscivano indistinguibili da quelli veri,
+              fra cui il registro infortuni, che è il documento che si porta a un
+              ispettore. Le altre cinque app lo facevano già. */
+           nomeCsvDimostrazione,
            /* il singolare non si scrive più a mano: `conta(1,"voce","voci")` → «1 voce»,
               `plurale(1,"è","sono")` → «è» quando a mancare è il VERBO e non il nome */
            conta, plurale } from "../../shared/deepwork-id-client/dw-shell.js";
@@ -4520,7 +4526,7 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
         + `${prognosiAperta(x) ? "prognosi ancora aperta: le giornate di assenza non sono ancora contate" : ""}\n`;
     const a = document.createElement("a");
     a.href = "data:text/csv;charset=utf-8," + encodeURIComponent(csv);
-    a.download = "scudo_registro_infortuni.csv"; a.click();
+    a.download = "scudo_registro_infortuni.csv"; marchiaCsv(a); a.click();
     esito("inf-esito", plurale(INF.length, "Esportato ", "Esportati ") + conta(INF.length, "evento del registro", "eventi del registro") + " (CSV).", "success");
   };
   $("btn-inf-import").onclick = () => $("inf-file").click();
@@ -4595,7 +4601,7 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
       csv += `AZIENDA;;;;${csvCell(s.descrizione)};${s.dataScadenza || ""};${statoScadenza(s.dataScadenza)}\n`;
     const a = document.createElement("a");
     a.href = "data:text/csv;charset=utf-8," + encodeURIComponent(csv);
-    a.download = "scudo_personale_scadenze.csv"; a.click();
+    a.download = "scudo_personale_scadenze.csv"; marchiaCsv(a); a.click();
     esito("import-esito", plurale(LAV.length, "Esportato ", "Esportati ") + conta(LAV.length, "lavoratore", "lavoratori") + " e " + conta(SCA.length, "scadenza", "scadenze") + " (CSV).", "success");
   };
   $("csv-file").onchange = async (e) => {
@@ -4749,7 +4755,7 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
       csv += `${csvCell(a.descrizione || "")};${csvCell(nome(a.responsabileId))};${a.scadenza || ""};${statoAzione(a)};${a.stato || "aperta"};${csvCell(a.esito || "")};${a.dataChiusura || ""};${csvCell(orig(a))}\n`;
     const a = document.createElement("a");
     a.href = "data:text/csv;charset=utf-8," + encodeURIComponent(csv);
-    a.download = "scudo_azioni_correttive.csv"; a.click();
+    a.download = "scudo_azioni_correttive.csv"; marchiaCsv(a); a.click();
     esito("azi-esito-msg", plurale(AZI.length, "Esportata ", "Esportate ") + conta(AZI.length, "azione correttiva", "azioni correttive") + " (CSV).", "success");
   };
 
@@ -5050,6 +5056,10 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
      ⚠️ E una cosa migliora: col modo assente usciva «modalità tour ()», due
      parentesi vuote (`esc(undefined)` è la stringa vuota). Adesso c'è scritto
      «non dichiarata», che è la cosa vera. */
+  /* Il marchio sul nome del file: la DECISIONE (che cosa conta come
+     dimostrazione, e che forma ha il marchio) sta in `nomeCsvDimostrazione`
+     di shared/. Qui resta solo l'impianto, perché `db.mode` è di casa. */
+  const marchiaCsv = (el) => { el.download = nomeCsvDimostrazione(el.download, db.mode); return el; };
   const avvisoEsempio = (frase) => { const m = modoDimostrazione(db.mode);
     return m
     ? `<div class="esempio"><b>DATI DI ESEMPIO — modalità tour (${esc(m)}).</b> ${frase}</div>`
@@ -5752,7 +5762,7 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
     csv += `azioni;di cui chiuse;${r.azioniChiuse}\n`;
     const a = document.createElement("a");
     a.href = "data:text/csv;charset=utf-8," + encodeURIComponent(csv);
-    a.download = "scudo_riepilogo_near_miss.csv"; a.click();
+    a.download = "scudo_riepilogo_near_miss.csv"; marchiaCsv(a); a.click();
     esito("inf-esito", "Riepilogo near-miss esportato (" + per + ").", "success");
   };
 

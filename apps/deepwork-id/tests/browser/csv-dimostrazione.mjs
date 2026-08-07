@@ -86,9 +86,16 @@ const MARCHIO = "DATI-DI-ESEMPIO_";
    la decisione sta in `shared/`, quel motivo è caduto — e le sue sei uscite
    (cinque CSV più la consegna di turno `.txt`) erano l'unico buco rimasto.
    L'elenco dei bottoni è derivato dal disco, quindi Campo entra da sola. */
+/* ⚠️ E QUESTO ELENCO VA TENUTO INSIEME AD `APP`, se no la controprova
+   inietta a metà. Aggiungendo Scudo il 07/08 il banco ha subito visto i suoi
+   quattro file (20 ok), ma la controprova stampava «**0 chiamate tolte**»:
+   il primo strato — spegnere la decisione in `shared/` — bastava a farla
+   cadere, il secondo — togliere le chiamate a `marchiaCsv` dalla pagina —
+   non trovava Scudo qui dentro e non toglieva niente. Cioè metà della
+   controprova non provava niente, e il banco l'ha DETTO invece di tacere. */
 const PAGINE = ["apps/conti/index.html", "apps/flotta/index.html",
                 "apps/sentinella/index.html", "apps/terra/index.html",
-                "apps/campo/index.html"];
+                "apps/campo/index.html", "apps/scudo/index.html"];
 
 /* ── I BOTTONI DI EXPORT, uno per punto censito ────────────────────────────
    L'elenco è DERIVATO dal disco, non scritto a mano: si legge la pagina, si
@@ -387,7 +394,16 @@ const provaApp = async (app) => {
    sono rimasti IDENTICI (26 bottoni, 23 file): il banco non l'aveva guardata,
    e diceva lo stesso «111 ok, 0 KO». Due elenchi per la stessa cosa sono due
    posti in cui dimenticarsi, ed è la ragione per cui questo commento sta qui. */
-const APP = ["conti", "flotta", "sentinella", "terra", "campo"];
+/* ⛔ SCUDO È ENTRATA IL 07/08, ed era l'unica app con `db.mode` e il banner
+   del tour i cui CSV NON portavano il marchio: quattro file — fra cui
+   `scudo_registro_infortuni.csv`, quello che si porta a un ispettore —
+   uscivano dalla dimostrazione indistinguibili da quelli veri. I fogli
+   STAMPATI di Scudo lo dichiaravano già (`avvisoEsempio`): mancava solo la
+   metà che si scarica.
+   ⚠️ Genesi resta fuori, e non per dimenticanza: dichiara di sé alla riga 1053
+   «localStorage, nessun account» — non ha una modalità dimostrazione, quindi
+   per lei questo controllo non vuol dire niente. */
+const APP = ["conti", "flotta", "sentinella", "terra", "campo", "scudo"];
 for (const a of APP) if (!SOLO || SOLO === a) await provaApp(a);
 
 /* Genesi resta FUORI, e la ragione è misurata invece che ricordata: non ha
