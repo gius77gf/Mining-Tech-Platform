@@ -618,6 +618,107 @@ body.dw.outdoor-mode .peggio-num small{
 /* ─────────────── navigazione: pillola flottante (copia di #global-nav.bnav) ─────────────── */
 .nav{border-top:1px solid var(--border2); padding-bottom:0}
 
+/* ⛔ SOTTO I 346 px LE SEI VOCI NON CI STANNO PIÙ, E SPARISCONO IN SILENZIO.
+   Misurato il 07/08: a 320px la barra chiede **328px di contenuto in 302**, e
+   siccome `.nav` ha `overflow:hidden` l'ultima voce viene tagliata a metà —
+   sullo scatto si legge «REGISTRI RE» e l'icona di Report **non c'è**. Nessun
+   errore, la pagina non scorre, niente da leggere: lo vede solo
+   `tests/browser/barra-etichette.mjs`, che da oggi guarda anche 320.
+   Il pavimento vero, misurato larghezza per larghezza: ci sta fino a **345**
+   (contenuto 328 in 327), esce da **344** in giù.
+
+   ⚠️ CHI GOVERNA QUEL MINIMO — provato, non dedotto. Chiedendo alla griglia
+   `repeat(6,min-content)`, ogni colonna misura **esattamente la parola più
+   due pixel di padding**: 42,36 · 68,88 · 63,42 · 66,81 · 46,19 · 40,14. Non
+   è l'icona (21px, non arriva mai a governare), non è `min-height:var(--tap)`
+   (è verticale), non è il `gap` (è fra icona e parola). È la **parola**, e il
+   minimo della barra è la **somma** delle sei colonne — non «sei volte la più
+   larga», che sarebbe 413: con `1fr` le tracce si equalizzano solo se ci
+   stanno, se no ognuna resta alla sua min-content.
+
+   ⛔ E LA STRADA CHE SEMBRAVA NON FUNZIONARE FUNZIONA: era la misura a essere
+   letta male. Era stato riferito che rimpicciolire il carattere faceva
+   **salire** il contenuto da 328 a 333 — vero il numero, sbagliata la causa.
+   A 320px il foglio condiviso applica già `@media(max-width:360px)`, cioè
+   font 8px e spaziatura **.8px**: quella prova non rimpiccioliva niente,
+   portava la spaziatura da .8 a **.9**. Le sei parole contano 51 lettere,
+   51 × 0,1 = **5,1px** — cioè esattamente i 5 px comparsi. Il carattere non
+   c'entrava: a muovere la barra è soprattutto la **spaziatura fra le
+   lettere**, che oggi vale 51 × 0,8 = 40,8px dei 328.
+
+   Quindi si scende di mezzo punto di corpo e si stringe la spaziatura, che è
+   la stessa leva (più mite) che Conti usa per dieci voci e Scudo per otto —
+   loro arrivano a 7px con spaziatura 0 e −0,1px. Misurato a 320px:
+     · oggi        8px / .8   → 327,80 in 302  ✗ esce di 25,8
+     · 8px / .3                → 302,30 in 302  ✗ esce di 0,3
+     · 8px / .2                → 297,22 in 302  ✓ avanzano 4,8 — ma le lettere
+       si toccano, e le maiuscole strette senza spaziatura diventano un blocco
+     · **7,5px / .45**         → 292,78 in 302  ✓ avanzano **9,2**
+     · 7,2px / .6              → 289,69 in 302  ✓ avanzano 12,3 (corpo più
+       piccolo per due pixel d'aria in più: non li vale)
+   ⚠️ `scrollWidth` NON serve a scegliere: quando il contenuto ci sta risponde
+   `clientWidth` e basta, quindi 292,78 e 302,30 si leggono tutt'e due «302 in
+   302». Il margine vero lo dà la somma delle min-content.
+
+   ⛔ QUELLO CHE RESTA, DICHIARATO INVECE CHE NASCOSTO:
+   · fra «Monitoraggi», «Programma» e «Adempimenti» restano **2px** di aria —
+     cioè il solo padding — e restano 2px anche a 390px e a 430px, perché
+     quelle tre tracce sono già alla loro min-content e l'avanzo lo prendono
+     solo le colonne strette. Non è questa correzione a introdurlo e non è una
+     correzione di foglio di stile a toglierlo: la strada vera è **accorciare
+     una parola**, che è una decisione di prodotto (proposta: «Adempimenti» →
+     «Scadenze», la parola che Scudo e Flotta usano già per la stessa cosa);
+   · il bersaglio di tocco delle voci strette resta **41,4 × 55px**, sotto i
+     44 di larghezza. Con sei colonne in 302px il massimo possibile sarebbe
+     50,3, ma solo se le colonne fossero uguali — e non possono esserlo finché
+     «Monitoraggi» ne chiede 61. Prima della correzione era 40,1 **e tagliato**:
+     si migliora di poco in larghezza e di molto in esistenza. */
+@media(max-width:345px){
+  .nav button{font-size:7.5px; letter-spacing:.45px}
+}
+
+/* ⛔ E NEL TEMA «SOLE» LA STESSA BARRA ERA TAGLIATA A TUTTE LE LARGHEZZE, non
+   solo a 320 — trovato il 07/08 ponendo la seconda domanda («e negli altri due
+   temi?») al banco che ne guarda uno solo. Le misure, prima:
+     430 → 453 in 410 (taglia 43) · 390 → 441 in 370 (71)
+     360 → 441 in 340 (101)       · 320 → 441 in 300 (**141**)
+   Cioè quasi metà barra fuori: a 320 px sparivano DUE voci intere. Il foglio
+   condiviso scrive `body.dw.outdoor-mode .nav button{font-size:11px}` per una
+   ragione giusta — sotto il sole si legge in piedi, col riflesso di traverso —
+   ma quella regola ha specificità (0,3,2) e batte tutti i gradini del foglio
+   condiviso: nel tema sole Sentinella tornava a 11 px a **qualunque**
+   larghezza. Con le sue sei parole lunghe non ci sta da nessuna parte.
+   ⚠️ Non è solo nostro: nello stesso giro `sole` taglia anche Flotta a 320
+   (16 px) e Terra a 320 (11). Scudo no, perché la sua scala outdoor ce l'ha
+   già — ed è da lì che è copiata la forma di questo blocco.
+
+   I gradini sono calcolati sul **caso peggiore di ogni intervallo** (non sulla
+   larghezza comoda: a 401 px il padding vale ancora 2 px per lato, a 400 uno
+   solo, e un gradino tarato su 430 tagliava da 401 a 416), poi rimisurati uno
+   per uno nel browser. Nel tema sole la barra ha il bordo da 2 px, quindi lo
+   spazio utile è `larghezza − 20`, non − 18.
+
+   ⛔ E QUELLO CHE NON SI PUÒ AVERE, DETTO INVECE CHE NASCOSTO: sotto i 346 px
+   il tema sole **non può essere più grande** di quello normale. Lì il tema
+   normale è già al pavimento (7,5 px: sotto, le sei parole non entrano), e una
+   scritta outdoor più piccola di quella di tutti i giorni sarebbe il contrario
+   di quello che il tema serve a fare. Quindi da 346 in su l'outdoor è più
+   grande (9,3 · 8,6 · 8,2 contro 9 · 8,5 · 8), e da 345 in giù è **uguale**.
+   La strada per averlo davvero più grande anche lì non è tipografica: è
+   accorciare una parola, o togliere una voce dalla barra. */
+@media(max-width:470px){
+  body.dw.outdoor-mode .nav button{font-size:9.3px; letter-spacing:.6px}
+}
+@media(max-width:400px){
+  body.dw.outdoor-mode .nav button{font-size:8.6px; letter-spacing:.5px}
+}
+@media(max-width:360px){
+  body.dw.outdoor-mode .nav button{font-size:8.2px; letter-spacing:.5px}
+}
+@media(max-width:345px){
+  body.dw.outdoor-mode .nav button{font-size:7.5px; letter-spacing:.45px}
+}
+
 /* ─────────────── modale (copia di .modal-* del core) ─────────────── */
 .modal-body .fl{
   display:block; font-family:'Barlow',sans-serif; font-size:11px; font-weight:600;

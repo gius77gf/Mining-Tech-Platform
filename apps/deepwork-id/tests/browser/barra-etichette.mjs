@@ -59,24 +59,50 @@ const SOLO = (process.argv.find((a) => a.startsWith('--solo=')) || '').slice(7);
    qualcuno guarda**: il banco misurava 390 e 360, la segnalazione parlava di
    430, e una domanda a cui il banco non può rispondere resta aperta anche
    quando la risposta è «no». Uno scatto **propone**, una misura **decide**. */
-const LARGHEZZE = [430, 390, 360];
-/* ⛔ E 320 NON C'È, DICHIARATO INVECE CHE OMESSO. Provato il 07/08: a 320 px la
-   barra di **Sentinella** esce — **328 px di contenuto in 302** — e siccome
-   `.nav` ha `overflow:hidden` le ultime voci spariscono in silenzio, che è
-   esattamente il difetto che questo banco esiste per prendere. È un difetto
-   vero e va corretto, ma registrarlo qui **prima** della correzione metterebbe
-   il giro in rosso: un giro rosso per un difetto noto è un giro che si impara a
-   non guardare (la stessa ragione per cui i due temi chiari sono entrati in
-   `tutti.mjs` solo a palette finite).
-   ⚠️ E il numero da sapere per chi lo corregge, perché la strada ovvia è già
-   stata provata e NON funziona: 328 è il **min-content** della griglia — a 340
-   e a 320 il contenuto è lo stesso, cioè il pavimento è raggiunto — e
-   rimpicciolire il carattere lo fa **salire**: `font-size:8px` con
-   `letter-spacing:.9px` e padding a 1 px porta 328 → **333**. Misurato due
-   volte, con l'iniezione e modificando il file vero. Le colonne sono `1fr`,
-   quindi il minimo della barra è **sei volte la colonna più larga**: finché il
-   soggetto non è identificato (l'icona? il padding? la parola?), toccare il
-   carattere è muovere la cosa sbagliata. */
+const LARGHEZZE = [430, 390, 360, 320];
+/* ⛔ 320 È ENTRATA IL 07/08, QUANDO IL DIFETTO CHE LA TENEVA FUORI È STATO
+   CHIUSO. Per mezza giornata questa riga è stata `[430, 390, 360]` con accanto
+   il difetto **dichiarato invece che registrato**: a 320 px la barra di
+   Sentinella chiedeva **328 px di contenuto dentro 302**, e siccome `.nav` ha
+   `overflow:hidden` l'ultima voce spariva in silenzio — sullo scatto si legge
+   «REGISTRI RE», e l'icona di Report **non c'è**. Registrarlo qui prima della
+   correzione avrebbe messo il giro in rosso su un difetto noto, cioè avrebbe
+   insegnato a non guardare il giro (la stessa ragione per cui i due temi
+   chiari sono entrati in `tutti.mjs` solo a palette finite).
+
+   ⚠️ E LA NOTA PER CHI DOVEVA CORREGGERLO DICEVA UNA COSA FALSA, che vale la
+   pena tenere scritta perché il numero era giusto e a sbagliare era la
+   **lettura**. Diceva: «la strada ovvia è già stata provata e non funziona —
+   rimpicciolire il carattere fa SALIRE il contenuto da 328 a 333». I 5 px in
+   più c'erano davvero. Ma a 320 px il foglio condiviso applica già
+   `@media(max-width:360px)`, cioè font **8 px** e spaziatura **.8 px**: quella
+   prova non rimpiccioliva niente — scriveva 8 px dov'erano già 8 e portava la
+   spaziatura da .8 a **.9**. Le sei parole contano 51 lettere, 51 × 0,1 =
+   **5,1 px**, cioè esattamente i 5 comparsi. Chi misura un `@media` deve
+   chiedere il valore **calcolato** al browser, non leggerlo nella regola base:
+   sta in CLAUDE.md, e questa nota è costata mezza giornata a qualcun altro.
+   ⚠️ Falsa anche la seconda metà: «le colonne sono `1fr`, quindi il minimo
+   della barra è sei volte la colonna più larga» — sarebbe 413. Con `1fr` le
+   tracce si equalizzano **solo se ci stanno**; quando non ci stanno ognuna
+   resta alla propria min-content, e il minimo è la loro **somma**: 42,36 +
+   68,88 + 63,42 + 66,81 + 46,19 + 40,14 = **327,8**, i 328 misurati.
+
+   Chi governava quel minimo, chiesto alla griglia con `repeat(6,min-content)`
+   invece che dedotto: ogni colonna misura **la parola più due pixel di
+   padding**, alla cifra. Non l'icona (21 px, non arriva mai a governare), non
+   `min-height:var(--tap)` (è verticale), non il `gap` (è fra icona e parola).
+   Chiuso in `apps/sentinella/index.html` con un gradino a `max-width:345px`
+   (la misura dice che fino a 345 ci sta e da 344 in giù no): 7,5 px di corpo e
+   0,45 di spaziatura → **292,78 in 302**, avanzano 9,2. È la stessa leva, più
+   mite, che Conti usa per dieci voci e Scudo per otto (7 px, spaziatura 0 e
+   −0,1). Il commento accanto alla regola porta le misure di tutti i candidati
+   e le due cose che restano aperte (2 px d'aria fra le tre parole lunghe, e i
+   41,4 px di larghezza del bersaglio di tocco).
+   ⚠️ E per misurare NON si usa `scrollWidth`: quando il contenuto ci sta
+   risponde `clientWidth` e basta, quindi 292,78 e 302,30 si leggono tutt'e due
+   «302 in 302». Qui va benissimo — al banco serve solo sapere se esce — ma chi
+   sceglie fra due valori deve sommare le min-content, se no sceglie alla
+   cieca il candidato che passa per 3 decimi di pixel. */
 
 const chromium = await prendiChromium();
 const browser = await chromium.launch({ executablePath: CHROMIUM });
