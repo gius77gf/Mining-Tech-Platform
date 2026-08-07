@@ -100,6 +100,88 @@
   --form-pad:13px;
   --frow-align:center;
   --ord-gap:8px 10px;
+
+  /* ---- gli stati come INCHIOSTRO (testo piccolo) e come NUMERONE (testo
+         grande). Al buio sono gli stessi colori di sopra: su #130b09 un verde
+         chiaro è esattamente quello che serve, e le due soglie WCAG le passa
+         già tutt'e due. Si separano solo sul chiaro, più sotto. ---- */
+  --ink-ok:var(--success); --ink-wr:var(--warn); --ink-dg:var(--danger);
+  --num-ok:var(--success); --num-wr:var(--warn); --num-dg:var(--danger);
+}
+
+/* ══════════════════════════════════════════════════════════════════════
+   GLI STATI SUL CHIARO — temi «chiaro» e «sole»
+   ══════════════════════════════════════════════════════════════════════
+   ⛔ IL DIFETTO, MISURATO IL 07/08. `--success`, `--warn` e `--danger` erano
+   dichiarati una volta sola, per il buio, e non venivano mai ridetti per i due
+   temi chiari. Al buio devono essere LUMINOSI (verde chiaro su #130b09); sul
+   chiaro quegli stessi valori sono nebbia — sul fondo peggiore che i due temi
+   producono davvero fanno **1,98 · 1,56 · 2,75**. Il banco del contrasto dava
+   DIECI testi sotto soglia AA, gli stessi identici nel tema `chiaro` e nel tema
+   `sole`: non è un difetto del sole, è un difetto di TUTTO ciò che non è buio.
+   ⚠️ E in Campo pesa più che altrove: è l'app che si usa in cava, col telefono
+   in mano e i guanti, cioè esattamente la condizione per cui il tema chiaro
+   esiste.
+
+   ⛔ E LA CURA NON È RIDEFINIRE `--warn`: quella variabile fa DUE mestieri. È
+   l'inchiostro di queste scritte, ma è anche il PIENO di `.badge.warn` e
+   `.toast.err`, che sopra ci scrivono con `--on-wr` (#221e02, quasi nero).
+   Scurendola per far leggere il testo si spegnerebbe il badge, e il nero sopra
+   un giallo scuro cadrebbe sotto soglia a sua volta: si sposta il difetto
+   invece di toglierlo. La regola di CLAUDE.md — «una copia nasce quasi sempre
+   da una firma troppo stretta» — qui dice di AGGIUNGERE un nome, non di
+   riscrivere il vecchio: `--ink-*` è lo stato quando fa da inchiostro,
+   `--success/--warn/--danger` restano lo stato quando fa da pieno.
+
+   PERCHÉ QUESTI COLORI E NON ALTRI, in tre passaggi misurati:
+   1. la TINTA non si tocca: 145° il verde, 100° il giallo, 20° il rosso — le
+      stesse di `--success/--warn/--danger` (§3.2 di docs/PALETTE_APP.md), così
+      uno stato non cambia significato cambiando tema. E conta doppio qui:
+      l'accento di Campo è cotto a 40°, cioè già in famiglia con l'ambra —
+      scurire un giallo verso l'ambra avvicinerebbe «attenzione» all'identità
+      dell'app invece di allontanarla. A 100° la distanza resta 60°.
+   2. la CROMA si tiene, non si lascia cadere. L'idioma di casa
+      `color-mix(… N%, #000)` scala tutti i canali, quindi la croma cala in
+      proporzione: misurato sui nostri colori, a 4,9:1 il verde diventa #3f6e41
+      (croma 87 contro 135) e il rosso #aa4248 (137 contro 180) — è così che
+      nasce «l'accozzaglia di colori che non porta da nessuna parte». Scendendo
+      di chiarezza a croma INVARIATA si arriva allo stesso contrasto restando
+      lo stesso colore: verde e rosso qui sotto hanno la croma identica a
+      quella del buio.
+      ⚠️ Il giallo NO, ed è dichiarato invece che nascosto: a quella chiarezza
+      il gamut sRGB non arriva a croma 145, il massimo è 105 (ink) e 121 (num).
+      Un giallo scuro è oro/oliva: è fisica, non scelta. Resta però un oro
+      SATURO — il `color-mix` avrebbe dato croma 88.
+   3. il bersaglio NON è la soglia, è la soglia PIÙ UN MARGINE, e i fondi sono
+      quelli che i due temi chiari di Campo producono DAVVERO (accento #d3633a):
+      `--bg` del chiaro #f3eae4 (il peggiore, ed è dove sta `.nm-riga`),
+      `--card2` del chiaro #fbf3ef, `--panel` #fdf9f7, il bianco pieno delle
+      card e `--card2` del sole #fcf6f3. I numeri qui sotto sono sul PEGGIORE.
+
+   ⛔ E DUE LIVELLI, NON UNO — le soglie WCAG sono due davvero (4,5 per il testo
+   piccolo, 3 per quello grande: ≥24px, o ≥18,66px in grassetto), e una cifra da
+   38px non ha nessun bisogno di stare al livello di un'etichetta da 11px.
+   Portando tutto a 4,9 la prova passa e il numerone del cartellone diventa
+   marrone accanto alla sua pastiglia «PIANIFICATA», che resta giallo pieno
+   perché è un fondo: due cose che dicono lo stesso stato e non si somigliano
+   più.
+        --ink-ok #20742a 4,93 (croma 135)   --num-ok #3b8c42 3,53 (croma 135)
+        --ink-wr #736500 4,93 (croma 105)   --num-wr #8d7c02 3,53 (croma 121)
+        --ink-dg #bd2d3e 4,90 (croma 179)   --num-dg #d94954 3,52 (croma 179)
+   cioè almeno 0,40 sopra il 4,5 del testo piccolo e almeno 0,52 sopra il 3 del
+   testo grande. Prima: verde 1,98 · giallo 1,56 · rosso 2,75, tutti e tre. */
+body.dw.light-mode,
+body.dw.outdoor-mode{
+  --ink-ok:#20742a; --num-ok:#3b8c42;
+  --ink-wr:#736500; --num-wr:#8d7c02;
+  --ink-dg:#bd2d3e; --num-dg:#d94954;
+  /* i numeroni ritagliati sulle proprie lettere (`.board-num` qui sotto e
+     `.kpi.ok/.warn/.danger .n` del foglio condiviso): la fermata CHIARA è il
+     pixel più chiaro della cifra, quindi è quella che decide il contrasto —
+     non la media. Parte dal livello «num» e finisce in una coda scura. */
+  --grad-ok:linear-gradient(135deg,var(--num-ok),color-mix(in srgb,var(--ink-ok) 70%,#000));
+  --grad-wr:linear-gradient(135deg,var(--num-wr),color-mix(in srgb,var(--ink-wr) 70%,#000));
+  --grad-dg:linear-gradient(135deg,var(--num-dg),color-mix(in srgb,var(--ink-dg) 70%,#000));
 }
 
 /* ─────────────── pagine ─────────────── */
@@ -149,11 +231,16 @@
   box-shadow:inset 0 1px 0 rgba(255,255,255,.10), 0 0 14px rgba(212,191,62,.14);
 }
 /* tema chiaro e modalità sole: i due pittogrammi del cartellone erano scelti
-   chiari per stare sul fondo scuro; sul bianco vanno riportati a terra. */
+   chiari per stare sul fondo scuro; sul bianco vanno riportati a terra.
+   ⚠️ Erano DUE scuriture scritte a mano (68% e 58% verso il nero) che facevano
+   lo stesso mestiere di `--ink-*` e per conto loro: 4,76 e 5,07 su bianco,
+   contro i 5,84 e 5,85 della decisione presa una volta sola più in alto. Un
+   pittogramma porta informazione (WCAG 1.4.11 → 3:1) e li passava tutt'e due,
+   quindi non erano un difetto: erano una terza copia della stessa regola. */
 body.dw.light-mode .board.ok .board-ico,
-body.dw.outdoor-mode .board.ok .board-ico{color:color-mix(in srgb,var(--success) 68%,#000);}
+body.dw.outdoor-mode .board.ok .board-ico{color:var(--ink-ok);}
 body.dw.light-mode .board.warn .board-ico,
-body.dw.outdoor-mode .board.warn .board-ico{color:color-mix(in srgb,var(--warn) 58%,#000);}
+body.dw.outdoor-mode .board.warn .board-ico{color:var(--ink-wr);}
 .board-num{
   font-family:'Barlow Condensed',sans-serif; font-size:38px; font-weight:800;
   line-height:.95; font-variant-numeric:tabular-nums; background:var(--grad-num);
@@ -174,7 +261,7 @@ body.dw.outdoor-mode .board.warn .board-ico{color:color-mix(in srgb,var(--warn) 
   font-size:12.5px; color:var(--muted2); line-height:1.55; flex:1 1 190px; min-width:0;
 }
 .board-txt b{color:var(--text); font-variant-numeric:tabular-nums}
-.board-txt b.bad{color:var(--danger)}
+.board-txt b.bad{color:var(--ink-dg)}
 
 /* ─────────────── titolo di sezione (copia di .sec-title) ─────────────── */
 .sec .cnt{font-variant-numeric:tabular-nums}
@@ -196,7 +283,7 @@ body.dw.outdoor-mode .board.warn .board-ico{color:color-mix(in srgb,var(--warn) 
   content:""; flex:0 0 auto; width:5px; height:5px; margin-top:5px; border-radius:50%;
   background:currentColor; box-shadow:0 0 0 2px rgba(255,255,255,.05);
 }
-.riposo.sotto{color:var(--danger)}
+.riposo.sotto{color:var(--ink-dg)}
 .riposo.ignoto{color:var(--muted)}
 
 /* ─────────────── orari veri del turno, per persona ───────────────
@@ -235,7 +322,7 @@ body.dw.outdoor-mode .board.warn .board-ico{color:color-mix(in srgb,var(--warn) 
   font-size:11px; color:var(--muted2); font-variant-numeric:tabular-nums;
   flex:1 1 100%; line-height:1.4;
 }
-.orari .ore.dubbio{color:var(--warn)}
+.orari .ore.dubbio{color:var(--ink-wr)}
 
 /* petrolio d'appoggio: rapportini */
 .avatar.mute{
@@ -263,7 +350,7 @@ button.arr:hover{
   border-color:color-mix(in srgb,var(--app-accent) 40%,transparent);
 }
 button.arr.del:hover{
-  color:var(--danger); background:rgba(239,93,102,.14);
+  color:var(--ink-dg); background:rgba(239,93,102,.14);
   border-color:rgba(239,93,102,.4);
 }
 
@@ -548,17 +635,22 @@ button.arr.del:hover{
 /* Tema chiaro e modalità sole: il foglio condiviso riporta OGNI .chg.active
    al colore dell'app (giusto per i filtri, sbagliato qui: «a posto» e «non a
    posto» non possono diventare tutti e due cotto). Si riafferma la coppia
-   verde/rosso con lo stesso metodo del foglio: tinta scurita e testo bianco,
-   per restare leggibile sotto il sole. */
+   verde/rosso, e il pieno è `--ink-*`: qui lo stato fa da FONDO e sopra ci va
+   il bianco, quindi il numero da guardare è il bianco sopra di lui.
+   ⛔ MISURATO IL 07/08, ed è uno dei dieci KO: il verde scritto a mano
+   (`color-mix(--success 86%,#000)` = #5ba15f) portava il bianco a **3,13:1**
+   su una soglia di 4,5 — cioè «C'è», la parola dell'appello del turno, era
+   sotto soglia. Il rosso a fianco stava a 4,66, cioè passava per 0,16: due
+   bottoni gemelli con due leggibilità diverse, e nessuno dei due con margine.
+   Con `--ink-*` diventano **5,84 e 5,82**: pari fra loro, come devono essere
+   due risposte alla stessa domanda. */
 body.dw.light-mode  .chk-row .chg.active.si,
 body.dw.outdoor-mode .chk-row .chg.active.si{
-  background:color-mix(in srgb,var(--success) 86%,#000);
-  border-color:color-mix(in srgb,var(--success) 86%,#000); color:#fff;
+  background:var(--ink-ok); border-color:var(--ink-ok); color:#fff;
 }
 body.dw.light-mode  .chk-row .chg.active.no,
 body.dw.outdoor-mode .chk-row .chg.active.no{
-  background:color-mix(in srgb,var(--danger) 82%,#000);
-  border-color:color-mix(in srgb,var(--danger) 82%,#000); color:#fff;
+  background:var(--ink-dg); border-color:var(--ink-dg); color:#fff;
 }
 body.dw.light-mode  .chk-row .chg.active.na,
 body.dw.outdoor-mode .chk-row .chg.active.na{
@@ -665,7 +757,7 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
 .nm-riga{
   margin:-8px 0 14px; padding:0 2px; font-size:11.5px; line-height:1.5; color:var(--muted2);
 }
-.nm-riga.non-so{color:var(--warn)}
+.nm-riga.non-so{color:var(--ink-wr)}
 
 /* ─── P5 · la modale della segnalazione: si tocca, non si scrive ─────── */
 .nm-lab{
