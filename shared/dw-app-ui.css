@@ -972,3 +972,24 @@ body.dw.outdoor-mode .dw-btn{font-size:15px;}
 @media(max-width:360px){
   body.dw.outdoor-mode .nav button{font-size:9.3px; letter-spacing:.6px}
 }
+
+/* ⛔ «SEI SENZA RETE» — LA FASCIA CHE MANCAVA A SEI APP SU SEI.
+   Misurato il 07/08: nessuna delle sei verticali guardava `navigator.onLine`
+   né ascoltava `online`/`offline`; il core sì, in due punti. E l'assenza di
+   segnale in cava non è un caso di scuola — è il modo in cui una scrittura
+   fallisce **più spesso** di tutti. Oggi un capoturno compila il rapportino
+   intero, tocca Salva, e scopre solo lì che non è partito.
+   ⚠️ La frase è vera e non promette niente: la persistenza offline di
+   Firestore **non è configurata** (decisione 5b, che resta al fondatore perché
+   mette una copia dei dati nel browser di un telefono di cantiere condiviso).
+   Scrivere «lo salvo appena torna la linea» sarebbe la peggior categoria di
+   messaggio, quello che rassicura a vuoto.
+   Veste: quella della fascia del tour, col bordo d'avviso invece di quello
+   d'accento — stessa struttura, colore diverso, come vuole la direttiva. */
+.dw-senza-rete{
+  background:var(--card2); border:1px solid var(--border);
+  border-left:3px solid var(--warn); border-radius:var(--r-sm);
+  color:var(--muted2); font-size:12px; line-height:1.5; padding:10px 13px;
+  margin:14px 16px 0; text-align:left; box-shadow:var(--edge);
+}
+.dw-senza-rete b{color:var(--text)}

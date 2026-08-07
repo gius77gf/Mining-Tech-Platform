@@ -344,6 +344,15 @@ const BANCHI = [
      database e 103 non hanno nessun `catch`, quindi un rifiuto era MUTO. */
   ['un salvataggio che fallisce non resta muto (6 app)', 'salvataggio-muto.mjs', []],
   ['salvataggio muto · controprova', 'salvataggio-muto.mjs', ['--controprova'], true],
+  /* ⛔ E IL VERSO PRIMA: accorgersi di essere senza rete PRIMA di compilare,
+     non dopo aver premuto Salva. Misurato il 07/08: zero app su sei guardavano
+     `navigator.onLine`, e in cava è il modo in cui una scrittura fallisce più
+     spesso di tutti. Il banco misura tutt'e due i versi — che la fascia
+     compaia e che sappia SPARIRE — e pretende che NON prometta di salvare
+     appena torna la linea: la persistenza offline non è configurata, e quella
+     sarebbe la peggior categoria di messaggio, quello che rassicura a vuoto. */
+  ['senza rete la fascia lo dice, e non promette niente (6 app)', 'senza-rete.mjs', []],
+  ['senza rete · controprova', 'senza-rete.mjs', ['--controprova'], true],
   ['il verbale dice come è nato il numero', 'verbale-origine.mjs', []],
   ['verbale · controprova', 'verbale-origine.mjs', ['--controprova'], true],
   ['la manina promette un tocco che c\'è', 'promesse-tocco.mjs', []],

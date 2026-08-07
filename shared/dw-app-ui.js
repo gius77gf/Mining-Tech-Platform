@@ -271,6 +271,10 @@
   // giusto che resti un parametro.
   function dwUiAggancia(opz) {
     var o = opz || {};
+    /* la fascia «senza rete» si monta qui, nel punto che TUTTE le app chiamano
+       già: aggiungerla a sei pagine sarebbe stato sei volte lo stesso codice, e
+       la settima app nascerebbe senza */
+    if (o.senzaRete !== false) montaSenzaRete();
     // la mappa della navigazione, per le app che hanno pagine senza una voce
     // loro nella pillola. Chi non la passa accende `nav-<id>`, come sempre.
     if (typeof o.navDi === "function") navDi = o.navDi;
@@ -315,8 +319,47 @@
     }, { passive: true });
   }
 
+  /* ⛔ SEI APP SU SEI NON SI ACCORGEVANO DI ESSERE SENZA RETE. Misurato il
+     07/08: nessuna guarda `navigator.onLine`, nessuna ascolta `online`/
+     `offline` — il core sì, in due punti. Ed è il modo in cui una scrittura
+     fallisce PIÙ SPESSO di tutti, perché il rapportino si compila al fronte e
+     il giro macchina in piazzale. Oggi si scopre premendo Salva, cioè dopo
+     aver compilato tutto.
+     Sta qui e non in sei pagine perché è la struttura condivisa: chi carica
+     questo file non la riscrive in casa (regola 17 di `run-stile`).
+     ⚠️ E la frase NON promette niente: la persistenza offline di Firestore non
+     è configurata — è la decisione 5b, che resta al fondatore perché mette una
+     copia dei dati nel browser di un telefono di cantiere condiviso. Dire «lo
+     salvo appena torna la linea» sarebbe falso, ed è la peggior categoria di
+     messaggio: quello che rassicura a vuoto.
+     ⚠️ `navigator.onLine === false` è affidabile in un verso solo: quando dice
+     «false» la rete non c'è davvero; quando dice «true» può esserci una rete
+     senza Internet. Per questo la fascia compare solo sul `false`, e il caso
+     opposto lo prende `avvisaSeNonSalva` al momento del guasto. */
+  function montaSenzaRete() {
+    if (typeof navigator === "undefined" || typeof navigator.onLine !== "boolean") return null;
+    var el = document.getElementById("dw-senza-rete");
+    if (!el) {
+      el = document.createElement("div");
+      el.id = "dw-senza-rete";
+      el.className = "dw-senza-rete";
+      el.setAttribute("role", "status");
+      el.innerHTML = "📶 <b>Sei senza rete.</b> Quello che scrivi adesso <b>non viene salvato</b>: "
+        + "torna in un punto con segnale e riprova, o segnalo su carta.";
+      var top = document.querySelector(".top");
+      if (top && top.parentNode) top.parentNode.insertBefore(el, top.nextSibling);
+      else document.body.insertBefore(el, document.body.firstChild);
+    }
+    var aggiorna = function () { el.style.display = navigator.onLine === false ? "block" : "none"; };
+    aggiorna();
+    window.addEventListener("online", aggiorna);
+    window.addEventListener("offline", aggiorna);
+    return el;
+  }
+
   window.go = go;
   window.toast = toast;
+  window.dwSenzaRete = montaSenzaRete;
   window.apriModale = apriModale;
   window.chiudiModale = chiudiModale;
   window.chiedi = chiedi;
