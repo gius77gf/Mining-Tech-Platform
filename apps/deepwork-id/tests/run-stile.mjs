@@ -7,7 +7,7 @@
 // perché non falliscono i test, si vedono solo aprendo la pagina giusta.
 // Qui diventano controlli che girano in automatico.
 //
-// 26 regole, al 06/08. *(Era rimasto scritto «tredici» per giorni mentre
+// 27 regole, al 07/08. *(Era rimasto scritto «tredici» per giorni mentre
 // l'elenco cresceva: un numero in un commento non fallisce, sta lì — la stessa
 // ragione per cui esiste `numeri-nei-documenti.mjs`. Adesso c'è una prova in
 // fondo al file che lo confronta con le voci davvero elencate qui sotto.)*
@@ -200,7 +200,18 @@
 //     NON prende gli usi travestiti, ed e' dichiarato: quel `|| 25` lei non lo
 //     vedrebbe, l'ha trovato leggere il codice.
 //
-// ⚠️ Le regole 21-23 sono nate senza entrare in questo elenco, e la prova in
+// 27. CHI NON HA I TRE TEMI E' DICHIARATO, NON SCOPERTO PER CASO. Le app
+//     verticali girano fra scuro, chiaro e sole caricando `shared/dw-tema.js`;
+//     il tema `sole` e' quello per chi legge il telefono IN CAVA, sotto il
+//     sole. Il 07/08, misurando il contrasto nei tre temi, e' saltato fuori
+//     che GENESI quel file non lo carica: chi progetta una volata non ha la
+//     modalita' sole, e nessuna riga lo diceva — l'ha detto il banco
+//     elencando le superfici che NON poteva misurare. Non e' per forza un
+//     difetto (la palette di Genesi e' dichiarata fuori perimetro in
+//     `docs/PALETTE_APP.md`), ma un'assenza scoperta per caso vale come non
+//     saperla: qui l'elenco di chi ce l'ha e di chi no e' scritto, con la
+//     ragione accanto, e una superficie nuova che se lo dimentica cade.
+//// ⚠️ Le regole 21-23 sono nate senza entrare in questo elenco, e la prova in
 // fondo al file **non se n'è accorta**: confronta il numero dichiarato con le
 // voci elencate qui, cioè verifica che il commento sia coerente **con sé
 // stesso**, non che copra il file. È il controllo che non guarda dove crede,
@@ -2930,6 +2941,59 @@ test("l'intestazione dice quante regole ci sono davvero", () => {
     `l'intestazione dice ${dichiarate} regole ma ne elenca ${voci.length}`);
   ok(voci.every((n, i) => n === i + 1),
     `la numerazione salta: ${voci.join(", ")}`);
+});
+
+/* ⛔ REGOLA 27 — chi non ha i tre temi e' dichiarato, non scoperto per caso.
+   `shared/dw-tema.js` e' quello che gira fra scuro, chiaro e sole; il sole e'
+   il tema per chi legge il telefono in cava. Il 07/08 e' saltato fuori per
+   caso — dal banco del contrasto, che elencava le superfici che NON poteva
+   misurare — che Genesi non lo carica. Un'assenza scoperta per caso vale come
+   non saperla. */
+const SENZA_TEMI = {
+  "apps/genesi/genesi.html":
+    "palette dichiarata FUORI PERIMETRO in docs/PALETTE_APP.md: usa l'ambra del core e ha token con nomi propri. "
+    + "⚠️ Conseguenza di prodotto, dichiarata: chi progetta una volata non ha la modalita' sole.",
+  "apps/index.html":
+    "la vetrina e' una pagina di presentazione, non uno strumento da cava: non ha schermate ne' dati.",
+  "apps/deepwork-id/index.html": "schermata d'accesso del servizio comune, non una verticale.",
+  "apps/deepwork-id/admin.html": "amministrazione del servizio comune, si usa da scrivania.",
+  "apps/deepwork-id/profilo.html": "profilo del servizio comune, si usa da scrivania.",
+  /* ⚠️ questa riga l ha aggiunta la regola stessa: la mia prima stesura dell
+     elenco se n era dimenticata una, e il controllo l ha detto al primo giro. */
+  "apps/deepwork-id/non-autorizzato.html": "pagina di errore del servizio comune: una frase e un bottone, nessuna schermata.",
+  "apps/genesi/login.html": "schermata d accesso di Genesi: segue la sua app, che i temi non li ha (vedi la riga sopra).",
+  "apps/genesi/nuvola-poc.html": "visore della nuvola di punti: una tela 3D a tutto schermo, dove il tema non dipinge niente.",
+  "index.html":
+    "il core ha DUE temi suoi dalla v4.4 (scuro e chiaro) e un `applyTheme()` che toglie sempre `outdoor-mode`: "
+    + "non carica dw-tema.js di proposito.",
+};
+test("regola 27: chi carica dw-tema.js e chi no e' dichiarato, con la ragione", () => {
+  const conTema = [], senza = [];
+  for (const [nome, rel] of SUPERFICI) {
+    const src = leggi(rel);
+    if (src === null) { ok(false, `superficie non letta: ${rel}`); continue; }
+    /* ⚠️ IL CARICAMENTO, NON LA MENZIONE. Il core nomina `shared/dw-tema.js` in
+       un commento — spiega perché scrive quella chiave nel `localStorage` — e la
+       prima stesura di questa riga lo contava fra quelli che ce l'hanno. È la
+       famiglia che oggi è già costata tre volte: un commento che nomina una cosa
+       non è quella cosa. */
+    const carica = /<script[^>]*src=["'][^"']*dw-tema\.js["']/.test(src);
+    (carica ? conTema : senza).push([nome, rel]);
+  }
+  ok(conTema.length + senza.length === SUPERFICI.length,
+    `superfici guardate: ${conTema.length + senza.length} su ${SUPERFICI.length}`);
+  ok(conTema.length >= 5, `solo ${conTema.length} superfici hanno i tre temi: erano cinque verticali`);
+  for (const [nome, rel] of senza) {
+    ok(rel in SENZA_TEMI,
+      `${nome} (${rel}) non carica dw-tema.js e non e' dichiarato: o glielo si mette, o si scrive qui perche' no`);
+  }
+  /* e la meta' che `sonda-vuoto.mjs` ha insegnato: una dichiarazione che non
+     serve piu' e' una dichiarazione che nasconde */
+  const seNza = new Set(senza.map(([, r]) => r));
+  for (const rel of Object.keys(SENZA_TEMI)) {
+    ok(seNza.has(rel),
+      `«${rel}» e' dichiarato SENZA temi ma adesso li carica: la riga che lo scusa va tolta`);
+  }
 });
 
 if (inVolo.length) await Promise.all(inVolo);   // si aspetta PRIMA di contare

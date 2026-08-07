@@ -68,8 +68,8 @@ Il racconto è in `docs/IL_CONFORME_CHE_NESSUNO_HA_MISURATO.md`.
   impediscono a un'app di riscriversene una propria.
 
 **Quanto è controllato, oggi** *(ricontato il 02/08 lanciando le suite, non a
-memoria)*: **2.248** prove automatiche che girano senza rete — **1843** sulle
-funzioni delle app, **293** sulle regole di stile, 63 sugli aiuti condivisi, 32
+memoria)*: **2.249** prove automatiche che girano senza rete — **1843** sulle
+funzioni delle app, **294** sulle regole di stile, 63 sugli aiuti condivisi, 32
 sulla nuvola di punti, 9 sul manifesto, 8 sulla demo — più **106** che girano
 con l'emulatore Firestore (58 sulle **regole di sicurezza**, 19 sull'SDK, 21
 sulle funzioni, 8 sul primo avvio) e **129 esecuzioni** che aprono davvero le
