@@ -1219,6 +1219,43 @@ vieterebbe. Una regola con il **38% di eccezioni** non è severa: è un allarme
 che insegna a non guardarlo. La convenzione sta scritta qui, che è dove si
 arriva prima di toccare una palette.
 
+### E i livelli sono TRE, non due (07/08, secondo cantiere)
+
+Il terzo non è testo: è la **barretta colorata** a lato di una riga, il filo in
+cima a un KPI, la striscia di un riquadro, il bordo di un campo sbagliato. La
+WCAG le chiama *non-text contrast* (1.4.11) e chiede **3:1 contro i colori
+adiacenti** — la stessa soglia dei numeroni, per un mestiere diverso. Nessun
+banco le guardava, perché tutti i banchi del contrasto misurano **testo**.
+
+| livello | nome | dove | soglia |
+|---|---|---|---|
+| inchiostro | `--ink-ok/wr/dg` | frasi, etichette, 11-17 px | **4,5:1** |
+| cifre | `--num-ok/wr/dg` | numeroni ritagliati nel gradiente | **3:1** |
+| **strisce** | **`--bar-ok/wr/dg`** | bordi, fili, barrette: superfici **non testuali** | **3:1** |
+
+Misurato il 07/08 su tutte e sei le app, contro i **due** vicini veri (la scheda
+dentro, il fondo pagina fuori, vince il peggiore): `--warn` **1,57-1,75**,
+`--success` 1,98-2,15, `--danger` 2,74-2,96 → **72 superfici sotto soglia** nel
+tema chiaro e 57 nel `sole`. Al buio: 117 superfici, **zero**.
+
+La catena è `--bar-ok → --num-ok → --success`, dichiarata **una volta** in
+`shared/dw-app-ui.css`: al buio le sei app pongono `--num-…: var(--stato)`,
+quindi il tema scuro non cambia di un pixel (provato al bit su quattro app; su
+Sentinella e Terra la sola differenza è il bordo che **pulsa**, colto in due
+istanti). Una pagina che non definisce nessun `--num-…` ricade sul colore di
+stato, cioè su quello che aveva prima: nessuna striscia sparisce.
+
+⚠️ **`--info` resta fuori, dichiarato**: 12 superfici a 2,16-2,22 nei due temi
+chiari. Quella barretta è **decorazione** — il riquadro si riconosce da sé, e le
+sue varianti di stato passano dai `--bar-*`. Nessuna delle sei app ha mai
+misurato un livello per `--info`, e inventarlo qui sarebbe la derivazione
+generica che il paragrafo qui sotto dice di non fare.
+
+⚠️ E il censimento **per nome** diceva 13 regole; quello **per effetto** ne trova
+**122** che citano un token di stato più **145 scritte con un colore letterale**,
+cioè invisibili a qualunque ricerca per nome. È la stessa lezione degli export di
+Scudo: si censisce per **effetto**, non per somiglianza.
+
 ### Il pezzo che resta aperto, e la sua misura
 
 La causa vera sta in `shared/dw-app-ui.css`, che deriva `--grad-ok/-wr/-dg` con
