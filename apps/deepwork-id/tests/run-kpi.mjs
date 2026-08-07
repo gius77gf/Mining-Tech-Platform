@@ -196,6 +196,17 @@ test("parseInfortuniCsv: legge data/tipo/gravità/giorni/descrizione; scarta dat
   eq(p[1].tipo, "near-miss", "near-miss riconosciuto");
   const solo = scudo.parseInfortuniCsv("2026-01-01;xyz;;;;");
   eq(solo[0].tipo, "near-miss", "tipo sconosciuto → near-miss (prudente)");
+  /* ⛔ E LA GRAVITÀ ERA LA VICINA DI CASA CHE SBAGLIAVA VERSO. Questa riga
+     esisteva già e asseriva il `tipo`; la colonna `gravita` della STESSA riga è
+     vuota e non veniva guardata da nessuno. Fino al 07/08 valeva
+     `... === "grave" ? "grave" : "lieve"`: colonna vuota → «lieve», e
+     soprattutto **«mortale» → «lieve»**, cioè un evento importato da un altro
+     gestionale usciva dal nostro CSV verso l'RSPP declassato. */
+  eq(solo[0].gravita, null, "⛔ e la gravità NON dichiarata non diventa «lieve»");
+  const gr = scudo.parseInfortuniCsv("2026-01-01;infortunio;mortale;;;");
+  eq(gr[0].gravita, null, "⛔ né una parola che non è delle nostre due: «mortale» non è «lieve»");
+  const ok2 = scudo.parseInfortuniCsv("2026-01-01;infortunio;GRAVE;;;");
+  eq(ok2[0].gravita, "grave", "e quelle che riconosce le legge ancora, maiuscole comprese");
 });
 test("parseScadenzeCsv: legge lav/tipo/desc/data, azienda=null, scarta data non valida", () => {
   const csv = "lavoratore;tipo;descrizione;scadenza\n"

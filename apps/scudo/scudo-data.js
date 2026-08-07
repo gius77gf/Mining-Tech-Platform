@@ -1801,7 +1801,23 @@ export function parseInfortuniCsv(text) {
       return {
         data: (data || "").trim(),
         tipo: tp,
-        gravita: (gravita || "").trim().toLowerCase() === "grave" ? "grave" : "lieve",
+        /* ⛔ UNA GRAVITÀ CHE NON SI RICONOSCE NON DIVENTA UNA FASCIA. Qui
+           c'era `... === "grave" ? "grave" : "lieve"`, cioè: colonna vuota →
+           «lieve», e soprattutto **«mortale» → «lieve»**. Un file scritto da un
+           altro gestionale non usa per forza le nostre due parole, ed è
+           esattamente il caso dell'import.
+           ⚠️ E la svista si vede meglio dai due vicini di casa, nello STESSO
+           oggetto: `tipo` su un valore ignoto ricade su «near-miss» — il caso
+           **prudente**, e il commento lo dice — e `giorniAssenza` ha tre righe
+           di ragione per non trasformare una colonna vuota in uno zero. La
+           gravità, in mezzo a loro, ricadeva sulla parola che tranquillizza.
+           `null` è la convenzione di casa per «non dichiarato» (la stessa di
+           `giorniAssenza` a prognosi aperta e di `scadenza` in
+           `parseAzioniCsv`): il KPI degli infortuni gravi conta `=== "grave"`
+           e quindi non cambia, l'export scrive la cella vuota invece di una
+           parola falsa, e la riga a schermo lo dichiara. */
+        gravita: ["grave", "lieve"].includes((gravita || "").trim().toLowerCase())
+          ? (gravita || "").trim().toLowerCase() : null,
         /* decisione 17: la colonna vuota di un INFORTUNIO non è uno zero — la
            prognosi può essere ancora aperta. Per un near-miss lo è, ed è il
            caso normale: la ragione scritta il 31/07 resta valida per lui. */
