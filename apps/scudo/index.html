@@ -105,7 +105,124 @@
   --form-pad:13px;
   --frow-align:center;
   --ord-gap:8px;
+
+  /* ---- gli stati come NUMERONE (testo grande) e come INCHIOSTRO (testo
+         piccolo). Al buio sono gli stessi colori di sopra: su #0d0c13 un
+         verde chiaro è esattamente quello che serve, e le due soglie WCAG le
+         passa già tutt'e due. Si separano solo sul bianco, più sotto. ---- */
+  --num-ok:var(--success); --num-wr:var(--warn); --num-dg:var(--danger);
+  --ink-ok:var(--success); --ink-wr:var(--warn); --ink-dg:var(--danger);
 }
+
+/* ══════════════════════════════════════════════════════════════════════
+   GLI STATI E L'INDACO SUL BIANCO — temi «chiaro» e «sole»
+   ══════════════════════════════════════════════════════════════════════
+   ⛔ IL DIFETTO, MISURATO. `--success`, `--warn` e `--danger` sono dichiarati
+   una volta sola, per il buio, e non vengono mai ridetti per i due temi
+   chiari; `shared/dw-app-ui.css` li riprende per i *gradienti*, ma con una
+   mano leggera (86% e 78% verso il nero) tarata su nessun fondo in
+   particolare. Il banco del contrasto, aperto sui temi chiari il 07/08, dà
+   NOVE testi sotto soglia AA in Scudo, gli stessi identici in `chiaro` e in
+   `sole`: non è un difetto del sole, è un difetto di tutto ciò che non è buio.
+
+   ⚠️ E IL NUMERO DEL BANCO NON È IL NUMERO VERO — tutti e nove portano la
+   «forbice larga» (3,63-4,04), cioè il banco accoppia la fermata più chiara
+   dell'inchiostro col pixel di fondo più scuro anche quando stanno agli
+   angoli opposti di due gradienti a 135°. Rimisurati a mano leggendo i PIXEL
+   dello scatto — e prendendo, per ogni pixel di CUORE del tratto, il pixel di
+   fondo che gli sta ACCANTO sulla stessa riga:
+
+     elemento                banco   forbice   a mano   soglia   verdetto
+     .kpi.warn .n «3»         2,87     4,04      2,97      3      vero, di un pelo
+     .kpi.ok   .n «0»         2,87     3,91      2,93      3      vero
+     .kpi.warn .n «5»         2,87     4,04      2,94      3      vero
+     .safety-num  «10»        2,87     4,04      2,93      3      vero
+     .avatar.sup ×5           3,77     3,63   4,14-4,92   4,5     3 su 5 veri
+
+   Cioè: il verso della bocciatura era giusto sette volte su nove, ma la
+   gravità era gonfiata — e DUE dei cinque avatar passavano già. Correggere
+   un colore sano è un danno, e su una scala di gravità è un danno doppio.
+
+   ⛔ E LA CURA NON È RIDEFINIRE `--warn`: quella variabile fa DUE mestieri.
+   È il colore dello stato quando fa da inchiostro, ma è anche il PIENO di
+   `.badge.warn`, di `.toast.err` e di `.chg.e-ok.active`, che sopra ci
+   scrivono con `--on-wr` (#231402, quasi nero). Scurendola per far leggere il
+   numerone si spegnerebbe il badge e il nero sopra cadrebbe sotto soglia a
+   sua volta: si sposta il difetto invece di toglierlo. Si AGGIUNGE un nome,
+   non si riscrive il vecchio.
+
+   ⛔ E DUE LIVELLI, NON UNO. Le soglie WCAG sono due davvero — 4,5 per il
+   testo piccolo, 3 per quello grande (≥24px, o ≥18,66px in grassetto) — e in
+   Scudo i due casi esistono tutt'e due: le cifre dei KPI stanno a 32px e il
+   numerone dei giorni senza infortuni a 38px (soglia 3), mentre `.foto-muta`
+   e il cestino acceso sono testo da 11-15px (soglia 4,5). Portare tutto al
+   livello del testo piccolo è quello che spegne le tinte: a 4,9:1 sul bianco
+   nessuna famiglia ambra è più ambra, ed è fisica, non scelta. Una cifra da
+   38px non ha nessun bisogno di stare al livello di un'etichetta.
+
+   PERCHÉ QUESTI COLORI E NON ALTRI, in quattro passaggi misurati:
+   1. la TINTA non si tocca: 123° il verde, 35,6° l'ambra, 2° il rosso — le
+      stesse di `--success/--warn/--danger`. Uno stato non deve cambiare
+      significato cambiando tema;
+   2. mescolare col nero tiene la tinta ma abbassa la CROMA in proporzione, ed
+      è come si finisce con «un'accozzaglia di colori che non porta da nessuna
+      parte». Qui invece la saturazione SALE mentre la chiarezza scende, e
+      resta quella che Scudo si è già scelta per ogni stato: il verde
+      trattenuto (era S 37%, qui 60%), l'ambra squillante (era 93%, qui 88%),
+      il rosso pieno (era 83%, qui 78%). L'ordine fra i tre — ambra più
+      cromatica del rosso, rosso più del verde — è quello di partenza;
+   3. il bersaglio non è la soglia, è la soglia PIÙ UN MARGINE, e va preso sul
+      fondo PEGGIORE che i due temi chiari producono davvero. Misurati:
+      `--bg` del chiaro rgb(239,235,238), `--card2` del chiaro rgb(246,244,252),
+      `--card2` del sole rgb(248,247,253), il bianco pieno. Il peggiore è
+      `--bg` del chiaro, ed è su quello che sono scritti i numeri qui sotto;
+   4. ⛔ e la scala di gravità è stata RIMISURATA, perché è il prodotto: se
+      l'ambra scurita si confonde col rosso, si è risolto il contrasto e rotto
+      il significato. La distanza in RGB fra ambra e rosso è **84** al livello
+      numerone e **82** al livello inchiostro, contro gli **83** delle tinte di
+      partenza: la separazione fra «in scadenza» e «scaduto» resta identica a
+      quella che Scudo ha oggi al buio.
+
+        --num-ok #25922a  3,41:1 (croma 109)    --ink-ok #1d7522  4,91:1
+        --num-wr #b46f0b  3,41:1 (croma 169)    --ink-wr #905909  4,92:1
+        --num-dg #e7413b  3,41:1 (croma 172)    --ink-dg #c71e19  4,90:1
+      cioè 0,41 sopra il 3 del testo grande e 0,40 sopra il 4,5 del piccolo.
+      Per confronto, quello che c'era prima sullo stesso fondo: verde 1,99:1,
+      ambra 1,62:1, rosso 2,74:1 — nessuno dei tre passava nemmeno la soglia
+      del testo grande.
+
+   ⛔ E L'INDACO DEGLI AVATAR: LA RISPOSTA ERA GIÀ IN CASA. `.avatar.sup`
+   scrive in bianco sopra `--grad-sup`, che sul chiaro parte da
+   `color-mix(--app-support2 80%, #000)` = #6b84b2: il bianco ci fa **3,77**
+   dichiarati e 4,14 renderizzati nel punto peggiore, contro i 4,5 che servono.
+   La tentazione era inventare un blu nuovo. Ma Scudo un indaco profondo ce
+   l'ha già dichiarato — `--app-support` #4467a9, «indigo d'appoggio» — e col
+   bianco fa **5,59:1**, con più croma di quello di adesso (101 contro 71).
+   Così `.avatar.sup` diventa il gemello esatto di `.avatar`, che sul chiaro
+   va da `--app-accent-deep` a un 74% verso il nero: stessa forma, colore
+   d'appoggio invece che d'accento. Nessun colore inventato.
+   ══════════════════════════════════════════════════════════════════════ */
+body.dw.light-mode,
+body.dw.outdoor-mode{
+  --num-ok:#25922a; --num-wr:#b46f0b; --num-dg:#e7413b;
+  --ink-ok:#1d7522; --ink-wr:#905909; --ink-dg:#c71e19;
+  /* il numerone parte dal livello «num» e scende verso il nero: il pixel PIÙ
+     CHIARO della cifra è la fermata di partenza, quindi è quello il numero da
+     guardare, non la media. */
+  --grad-ok:linear-gradient(135deg,var(--num-ok),color-mix(in srgb,var(--ink-ok) 70%,#000));
+  --grad-wr:linear-gradient(135deg,var(--num-wr),color-mix(in srgb,var(--ink-wr) 70%,#000));
+  --grad-dg:linear-gradient(135deg,var(--num-dg),color-mix(in srgb,var(--ink-dg) 70%,#000));
+  --gradSuc:var(--grad-ok);
+  --grad3:var(--grad-dg);
+  --grad-sup:linear-gradient(135deg,var(--app-support),
+                                    color-mix(in srgb,var(--app-support) 74%,#000));
+}
+/* ⚠️ Le due righe in cui uno stato fa da INCHIOSTRO su un testo piccolo
+   (`.foto-muta` e il cestino acceso) prendono i nomi nuovi LÀ DOVE SONO GIÀ
+   SCRITTE, più sotto. Riscriverle qui sarebbe una seconda regola sulla stessa
+   classe, e vincerebbe comunque quella che viene dopo nel foglio: una
+   dichiarazione che non dipinge niente e che il prossimo lettore crede attiva.
+   Scritto qui perché è il posto in cui verrebbe voglia di metterla. */
 
 /* ─────────────── pagine ─────────────── */
 .page.active{animation:scrFade .22s var(--ease)}
@@ -404,7 +521,9 @@
   background:color-mix(in srgb,var(--app-accent) 16%,transparent);
 }
 .arr[data-del-lav]:hover,.arr[data-del-scad]:hover,.arr[data-del-inf]:hover, .arr[data-del-cant]:hover,.arr[data-del-azi]:hover,.arr[data-del-isp]:hover{
-  color:var(--danger); background:rgba(240,95,90,.14);
+  /* `--ink-dg` e non `--danger`: al buio sono lo stesso colore, sul chiaro
+     `--danger` crudo fa 2,74:1 su carta e questo è testo da 15px. */
+  color:var(--ink-dg); background:rgba(240,95,90,.14);
 }
 
 /* badge dentro una riga di testo (idoneità, azioni dell'evento) */
@@ -746,7 +865,9 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
 .foto-did{width:100%; font-size:12.5px; padding:7px 9px}
 .foto-pie{display:flex; align-items:center; gap:8px; flex-wrap:wrap; font-size:11px; color:var(--muted)}
 .foto-pie .badge{margin:0}
-.foto-muta{color:var(--warn)}
+/* 11px dentro `.foto-pie`: soglia 4,5, quindi il livello «inchiostro». Al
+   buio `--ink-wr` vale `--warn` e non cambia niente. */
+.foto-muta{color:var(--ink-wr)}
 .foto-tog{margin-left:auto}
 .foto-vuota{margin-top:10px}
 #verbale{display:none}
