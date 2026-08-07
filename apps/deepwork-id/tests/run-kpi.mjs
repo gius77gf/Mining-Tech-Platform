@@ -16411,7 +16411,21 @@ test("⛔ Flotta: le ore ignote arrivano ignote anche a chi le chiede due volte"
 // ── Flotta · pagella del parco (costo orario × disponibilità)
 {
   const D = flotta.DEMO;
-  const OGGI = new Date("2026-08-01T09:00:00Z");
+  /* ⛔ QUESTO «OGGI» NON PUÒ ESSERE UNA DATA FISSA, e per un anno lo è stato
+     senza far danno solo perché le due date si somigliavano. Le date della
+     dimostrazione di Flotta sono **relative all'orologio** (`isoIndietro`, riga
+     99 di `flotta-data.js`: `Date.now() - giorni × 86400000`), mentre qui era
+     scritto `2026-08-01`: due orologi diversi per lo stesso confronto.
+     Effetto misurato il 07/08 a mezzanotte italiana: il fermo APERTO del Dumper
+     D3 nasce sei giorni indietro, quindi in UTC cadeva il 01/08 e in ora di
+     Roma — che aveva già passato la mezzanotte — il 02/08, cioè **dopo**
+     l'«oggi» fisso. Da lì `giorniFermo` andava a 0 e la prova cadeva, in
+     italiano e non in UTC: `orologio-cliente.mjs` la vedeva e il giro di casa
+     no. È la famiglia di `docs/RICERCA_GIORNO_LOCALE_202607.md`.
+     La cura non è spostare la data fissa di un giorno — si romperebbe di nuovo
+     domani: è prendere l'ora **dalla stessa fonte** da cui la dimostrazione
+     prende le sue. */
+  const OGGI = new Date();
   const costi = flotta.costoOrarioMezzo(D.interventi, D.rifornimenti);
   const aff = flotta.affidabilitaFlotta(D.fermi, D.mezzi, 30, OGGI);
   const pag = () => flotta.pagellaMezzi(costi, aff, D.mezzi);
