@@ -515,6 +515,14 @@ const BANCHI = [
      uno scratchpad, che alla sessione dopo non esistono. */
   ['il core e i rapportini mai misurati', 'core-rapportini-non-misurati.mjs', []],
   ['rapportini mai misurati · controprova', 'core-rapportini-non-misurati.mjs', ['--controprova'], true],
+  /* ⛔ AGGIUNTO IL 07/08, gemello del banco qui sopra sull'ALTRO documento del
+     core. Stessa decisione (`misureVolataProgetto` in `shared/`), quarta copia
+     debole: documento, scheda e riquadro la chiamavano, l'ELENCO no — e
+     scriveva «0 mc» dove nessuno aveva misurato le profondità, facendo sparire
+     del tutto i chili quando erano zero. La dimostrazione lo mostrava da mesi
+     («10 fori · 787.5 mc», tutti i fori con `kg:''`) e nessuna prova guardava. */
+  ['il core e le volate mai misurate', 'core-volate-non-misurate.mjs', []],
+  ['volate mai misurate · controprova', 'core-volate-non-misurate.mjs', ['--controprova'], true],
   /* ⛔ AGGIUNTO IL 03/08, stessa famiglia di `terra-numeri-tranquilli` e stessa
      ragione: in Sentinella il principio del fondatore è NATO, il modulo lo
      applica in una dozzina di punti — e i quattro numeri tranquilli rimasti

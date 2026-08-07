@@ -590,6 +590,48 @@ function volKg(v){ const m=misureVolataProgetto(v);
                   : 'chili non ancora scritti'; }
 function volMc(v){ const m=misureVolataProgetto(v);
   return m.mcNoto ? (m.mc+' mc') : 'mc non calcolabili'; }
+/* ⛔ LA RIGA DELL'ELENCO — ed è la QUARTA copia debole della stessa decisione,
+   l'ultima rimasta. Documento, scheda e riquadro passavano già da
+   `misureVolataProgetto`; l'elenco no, e scriveva
+   `${v.tot_fori||0} fori${v.tot_kg>0?' · '+v.tot_kg+' kg':''} · ${v.tot_mc||0} mc`.
+   Due bugie in una riga sola, e tutt'e due della famiglia tranquilla:
+   · **«0 mc»** su una volata i cui fori non portano ancora la profondità —
+     `tot_mc = tot_metri × B × S`, e senza profondità `tot_metri` è 0, quindi
+     il prodotto è 0. Zero metri cubi su un progetto **si legge «non rende
+     niente»**, non «nessuno ha ancora misurato»;
+   · i **chili che spariscono**: `v.tot_kg>0` fa cadere il pezzo intero, quindi
+     una volata mai caricata e una caricata a zero si scrivono **identiche** —
+     è il modo silenzioso di dire la stessa cosa, quello che nel 03/08 sui
+     rapportini era il caso peggiore perché non lascia niente da leggere.
+   La dimostrazione ce l'aveva già dentro: la terza volata ha tutti i fori con
+   `kg:''` e `tot_kg:0`, e l'elenco scriveva «10 fori · 787.5 mc».
+
+   ⚠️ PERCHÉ NON RIUSA `volKg`/`volMc`, che sarebbe la cosa ovvia: **misurato,
+   non ci stanno**. `.ssub` è `white-space:nowrap` + ellissi, e ha 252px a
+   390px di schermo, 234 a 360, 194 a 320. Con le parole intere la riga della
+   volata caricata a metà chiede **295px** — tagliata a ogni larghezza — perché
+   `volKg` allega «di esplosivo (7 fori su 12 caricati)», che nel riquadro sta
+   e in una riga di elenco no. Quindi la decisione resta una sola (questa
+   funzione chiama `misureVolataProgetto` come le altre tre) e cambia solo il
+   **vestito**: è la stessa forma di `rappRiga` per i rapportini.
+   «almeno» invece di «(parziale)» non è una scorciatoia: è la parola che il
+   PDF del fochino usa già (`fm.parziale?'almeno ':''`).
+
+   ⛔ E IL LIMITE VA DICHIARATO, non nascosto: a **320px** due combinazioni
+   escono lo stesso — «12 fori · almeno 56 kg · mc non calcolabili» chiede
+   203px su 194, e coi numeri a quattro cifre si arriva a 231. Non si accorcia
+   oltre: le parole diventerebbero sigle, e una riga cifrata non la legge
+   nessuno. La scelta è dichiarata perché è un peggioramento **in un punto** a
+   fronte di una bugia tolta: la forma di prima a 320px ci stava sempre, e
+   diceva il falso. Una dichiarazione tagliata dall'ellissi resta leggibile
+   («mc non calcola…»); uno zero al posto di un «non lo so» no. */
+function volRiga(v){ const m=misureVolataProgetto(v);
+  if(!m.fori) return 'nessun foro';
+  const fori=conta(m.fori,'foro','fori');
+  /* né chili né volume: si dice UNA volta, se no la riga è tutta caveat */
+  if(!m.kgNoto && !m.mcNoto) return fori+' · né chili né volume';
+  const kg=m.kgNoto ? ((m.parziale?'almeno ':'')+m.kg+' kg') : 'kg non scritti';
+  return fori+' · '+kg+' · '+(m.mcNoto ? (m.mc+' mc') : 'mc non calcolabili'); }
 function rappRiga(r){
   const m=misureRapportino(r);
   if(!m.misurato) return 'nessun foro misurato';
@@ -2277,7 +2319,7 @@ function apriCava(id){
     <div class="sec-title" style="margin-top:16px;"><span class="dot"></span>Volate progettate <span class="scad-badge ok" style="margin-left:6px;">F1 nuovo</span></div>
     ${(()=>{const vols=DB.volate.filter(v=>v.cavaId===id);
       return vols.length?
-        vols.slice(-3).reverse().map(v=>`<div class="sitem" onclick="apriEditorCava('${v.id}')"><div class="av av-am">V${(v.numero||'?').toString().substr(0,2)}</div><div class="sinfo"><div class="sname">Volata #${v.numero||'?'} · ${fmt(v.data)}</div><div class="ssub">${conta((v.fori||[]).length,'foro','fori')} · ${volKg(v)} · ${volMc(v)}</div></div><div class="sarr">›</div></div>`).join('')
+        vols.slice(-3).reverse().map(v=>`<div class="sitem" onclick="apriEditorCava('${v.id}')"><div class="av av-am">V${(v.numero||'?').toString().substr(0,2)}</div><div class="sinfo"><div class="sname">Volata #${v.numero||'?'} · ${fmt(v.data)}</div><div class="ssub">${volRiga(v)}</div></div><div class="sarr">›</div></div>`).join('')
         : '<div class="empty-state" style="padding:18px;"><div class="empty-sub" style="font-size:11px;">Nessuna volata progettata</div></div>';
     })()}
     ${can('editCava')?`<button class="btn-sec" style="margin-top:6px;width:100%;" onclick="nuovaVolata('${id}')">+ Progetta nuova volata</button>`:''}
@@ -7377,7 +7419,7 @@ function renderVolateList(){
         <div class="av av-am">${ticoIco}</div>
         <div class="sinfo">
           <div class="sname">${escHtml(titolo)} · ${fmt(v.data)}</div>
-          <div class="ssub">${conta(v.tot_fori||0,'foro','fori')}${v.tot_kg>0?' · '+v.tot_kg+' kg':''} · ${v.tot_mc||0} mc</div>
+          <div class="ssub">${volRiga(v)}</div>
         </div>
         <div class="sarr">›</div>
       </div>`;
