@@ -1289,11 +1289,32 @@ numero scritto dove non era stato misurato niente**.*
   i lotti il volume ce l'hanno. Ora `senzaM3` con la sua riga d'avviso (resa
   **misurata** nel DOM, non dedotta), **6 asserzioni** nuove, controprova che
   cade. `run-kpi` **1886 → 1887**.
+- [x] ✅ **Terra · il vuoto che usciva zero e RIENTRAVA come misura** (`8583a0b`):
+  `csvRilievi` teneva la copia debole di `numeroDichiarato` — che sta in
+  `shared/` e la usano già Conti e Sentinella — proprio nel posto che CLAUDE.md
+  indica per primo, **dove l'app compone qualcosa che ESCE**. La stringa vuota
+  convertita fa 0 e `Number.isFinite(0)` risponde true, quindi un volume in
+  bianco usciva scritto `0`; e il danno è nel **ritorno**: `parseRilieviCsv` lo
+  accetta, `rilievoUsabile` lo dichiara buono, e quello zero entra nei KPI, nel
+  riepilogo annuale e nella **denuncia** come un volume misurato. La prova che
+  difendeva quel punto c'era e guardava `null`: quinta causa dell'elenco, il
+  caso difeso non c'era nella prova. Poi la promessa sopra — «Scaricati 8
+  rilievi nel formato che questa pagina sa ri-caricare», e ne rientravano
+  **7**: ora `rientroRilievi` lo dice con la ragione, **derivando** la risposta
+  dalle due funzioni vere invece di riscriverla. ⛔ E quel messaggio **non si
+  era mai visto**: `conta(...)` non era importata nella pagina, quindi il
+  gestore moriva subito dopo il download — errore duro, presente su `HEAD`, su
+  un bottone che un banco preme 41 volte. `nomi-liberi` non lo vede perché
+  guarda il **file**, non lo **scope** (misurato: tolto l'import, resta verde).
+  Banco CSV **219 → 225 ok**: la lettura degli errori arrivava **prima** dei
+  clic, il giro scrivi/leggi diceva «> 0» senza denominatore, e
+  `terra_rilievi.csv` non era nemmeno in elenco. Prove **1887 → 1889**,
+  copertura **702 → 703**.
 
 ## Riferimenti
 
 - Ultimo checkpoint **per data vera**:
-  `vault/checkpoints/20260807-231533_il-divario-che-cambiava-segno.md`
+  `vault/checkpoints/20260807-234316_il-vuoto-che-rientrava-come-misura.md`
   *(dato da `node apps/deepwork-id/tests/date-checkpoint.mjs`, non letto a occhio:
   per NOME il più alto sarebbe `20260805-100000_…`, che è stato scritto **tre
   giorni prima**. Questa riga era ferma al 01/08: il puntatore al file più
