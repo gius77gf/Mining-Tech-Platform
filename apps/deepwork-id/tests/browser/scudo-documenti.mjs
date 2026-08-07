@@ -531,7 +531,19 @@ if (!pers.errore) {
     "una data mai scritta non esce come la parola «undefined»",
     righe(pers.testo).filter((r) => /undefined|null/.test(r)));
   const anna = righe(pers.testo).find((r) => r.startsWith("Anna Neri")) || "";
-  dice(/;senza data$/.test(anna), "e quella riga porta lo stato «senza data»", anna);
+  /* ⛔ SI LEGGE LA COLONNA PER NOME, NON LA FINE DELLA RIGA. Fino al 07/08
+     qui c'era `/;senza data$/`, che ancorava lo `stato` all'ULTIMA colonna:
+     ha fatto cadere il banco il giorno in cui l'export ha guadagnato la
+     colonna «verifica periodica», accusando Scudo di non scrivere più «senza
+     data» mentre lo scriveva benissimo, una colonna più in là. Il blocco
+     delle azioni, trenta righe più su, la colonna la cercava già per nome:
+     era la stessa domanda scritta due volte, e la più debole era questa.
+     L'asserzione così è più GIUSTA, non più permissiva: pretende il valore
+     esatto nella colonna esatta, e non le importa quante altre ne nascono. */
+  const cPers = righe(pers.testo)[0].split(";");
+  dice(cPers.indexOf("stato") >= 0, "il CSV del personale dichiara la colonna «stato»", cPers);
+  dice(anna.split(";")[cPers.indexOf("stato")] === "senza data",
+    "e quella riga porta lo stato «senza data»", anna);
   /* ⛔ LA SCADENZA CHE HA PERSO LA SUA PERSONA. La modale che toglie un
      lavoratore promette che le sue scadenze «resteranno in elenco come
      scadenze aziendali: non vanno perse», e lo schermo le disegna con

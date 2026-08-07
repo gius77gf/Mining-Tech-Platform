@@ -23544,5 +23544,217 @@ test("⛔ Terra · la dimostrazione supera la soglia di guardia (se no lo stato 
     "il già estratto resta DICHIARATO: senza, il consumato sarebbe un minimo e la scheda direbbe un'altra cosa");
 });
 
+/* ══════════════════════════════════════════════════════════════════════
+   SCUDO · LA VERIFICA PERIODICA DI UN'ATTREZZATURA (art. 71 c.11 D.Lgs 81/08)
+   Chi l'ha eseguita, com'è andata, e dov'è il verbale.
+   ⚠️ Prove SINCRONE, come pretende il paragrafo qui sopra: `await
+   Promise.all(inVolo)` sta migliaia di righe più su, e una prova `async`
+   scritta in fondo non verrebbe aspettata.
+   ══════════════════════════════════════════════════════════════════════ */
+{
+  const OGGI_V = new Date("2026-08-07T10:00:00");
+  const DOCS_V = [{ id: "v1", titolo: "Verbale verifica autogru" }];
+  const vp = (extra) => scudo.statoVerificaPeriodica(
+    { id: "x", tipo: scudo.TIPO_VERIFICA_PERIODICA, dataScadenza: "2027-01-01", ...extra }, DOCS_V, OGGI_V);
+
+  test("⛔ Scudo · una scadenza che NON è una verifica periodica non produce uno stato di verifica", () => {
+    /* `null` e non un oggetto tranquillo: è la convenzione di
+       `statoPeggioreScadenze` — «non si può calcolare» si dice null. */
+    eq(scudo.statoVerificaPeriodica({ tipo: "Corso", dataScadenza: "2027-01-01" }, DOCS_V, OGGI_V), null);
+    eq(scudo.statoVerificaPeriodica(null, DOCS_V, OGGI_V), null);
+    eq(scudo.scadenzaDiVerifica({ tipo: "Visita medica" }), false);
+    eq(scudo.scadenzaDiVerifica({ tipo: scudo.TIPO_VERIFICA_PERIODICA }), true);
+    /* ⛔ e il `tipo` arriva anche da un CSV scritto a mano: il confronto passa
+       da `normalizzaTesto`, non da un `===` che guarda com'è scritto il dato
+       invece di che cosa vale. Con un `===` secco queste tre righe cadono. */
+    eq(scudo.scadenzaDiVerifica({ tipo: "verifica periodica" }), true);
+    eq(scudo.scadenzaDiVerifica({ tipo: "  VERIFICA  PERIODICA " }), true);
+    eq(scudo.scadenzaDiVerifica({ tipo: "Verifica  Periòdica" }), true);
+    eq(scudo.scadenzaDiVerifica({ tipo: "Verifica straordinaria" }), false);
+  });
+
+  test("⛔ Scudo · una verifica SENZA esito non è «regolare»: è NON VERIFICATA", () => {
+    /* Il cuore del principio del fondatore in questa schermata: la data della
+       prossima verifica è LONTANA — lo scadenzario disegna verde — e di quella
+       attrezzatura non si sa se l'ultima verifica sia andata bene. */
+    const v = vp({});
+    eq(scudo.statoScadenza("2027-01-01", OGGI_V), "regolare");   // lo scadenzario è tranquillo
+    eq(v.esito, "non-verificata");
+    eq(v.cls, "warn");                                           // e la verifica no
+    eq(v.noto, false);
+    ok(/non lo sappiamo/i.test(scudo.descriviVerificaPeriodica(v)),
+      "e `noto: false` deve essere LETTO da qualcuno: senza il prefisso la bandiera non protegge niente");
+    ok(!/regolare|a posto\./i.test(v.badge), "il badge non dice niente di tranquillo: " + v.badge);
+  });
+
+  test("Scudo · gli esiti: idonea, con prescrizioni, non idonea", () => {
+    eq(vp({ verificaEsito: "idonea", verbaleId: "v1" }).esito, "idonea");
+    eq(vp({ verificaEsito: "idonea", verbaleId: "v1" }).cls, "ok");
+    eq(vp({ verificaEsito: "non-idonea", verbaleId: "v1" }).esito, "non-idonea");
+    eq(vp({ verificaEsito: "non-idonea", verbaleId: "v1" }).cls, "danger");
+    ok(/non va usata/.test(vp({ verificaEsito: "non-idonea", verbaleId: "v1" }).perche),
+      "e la frase dice la conseguenza, non solo l'etichetta");
+    /* ⛔ un esito che Scudo non sa leggere NON diventa un silenzio: si mostra,
+       e non è tranquillo. È la regola già scritta per `etichettaCausa`. */
+    const ignoto = vp({ verificaEsito: "boh", verbaleId: "v1" });
+    eq(ignoto.esito, "esito-non-letto");
+    eq(ignoto.noto, false);
+    ok(ignoto.badge.includes("non letto") && ignoto.perche.includes("boh"),
+      "il valore che non si sa leggere si mostra, non si nasconde: " + ignoto.badge);
+    eq(scudo.esitoVerifica("prescrizioni").cls, "warn");
+    eq(scudo.esitoVerifica("mai-visto"), null);
+    eq(scudo.ESITI_VERIFICA.length, 3);
+  });
+
+  test("⛔ Scudo · «conforme CON PRESCRIZIONI»: conta la data entro cui sanarle", () => {
+    /* il caso in cui una cava si trova davvero, e i tre modi in cui può stare */
+    eq(vp({ verificaEsito: "prescrizioni", verificaEntro: "2026-09-30", verbaleId: "v1" }).esito, "prescrizioni-aperte");
+    eq(vp({ verificaEsito: "prescrizioni", verificaEntro: "2026-09-30", verbaleId: "v1" }).cls, "warn");
+    eq(vp({ verificaEsito: "prescrizioni", verificaEntro: "2026-07-01", verbaleId: "v1" }).esito, "prescrizioni-scadute");
+    eq(vp({ verificaEsito: "prescrizioni", verificaEntro: "2026-07-01", verbaleId: "v1" }).cls, "danger");
+    /* ⛔ e il termine che scade OGGI non è ancora passato: `statoScadenzaHSE`
+       è la stessa regola dello scadenzario, non una seconda copia. */
+    eq(vp({ verificaEsito: "prescrizioni", verificaEntro: "2026-08-07", verbaleId: "v1" }).esito, "prescrizioni-aperte");
+    /* ⛔ LA FORMA NON È L'ESISTENZA: «2026-13-45» ha la forma di una data e non
+       è una data. Chi la giudicasse con un `Date.parse` la farebbe scivolare o
+       la prenderebbe per buona; qui il termine è NON LEGGIBILE, cioè non si sa
+       entro quando — e non lo si può dire «aperto». */
+    for (const rotta of [undefined, null, "", "2026-13-45", "2026-02-30", "boh"]) {
+      const v = vp({ verificaEsito: "prescrizioni", verificaEntro: rotta, verbaleId: "v1" });
+      eq(v.esito, "prescrizioni-senza-data", `entro «${rotta}»`);
+      eq(v.noto, false, `entro «${rotta}»: senza una data leggibile non si sa entro quando`);
+    }
+    ok(vp({ verificaEsito: "prescrizioni", verificaEntro: "2026-07-01", verbaleId: "v1" }).perche.includes("01/07/2026"),
+      "la data nella frase passa da `dataIt`, non da un rimontaggio a mano");
+  });
+
+  test("⛔ Scudo · «idonea» digitata senza il verbale non è una verifica provata", () => {
+    /* stessa forma di `provaVoce`: una spunta verde senza il documento dietro
+       non è «conforme», è «non lo sappiamo». Qui è il verbale che l'organo di
+       vigilanza chiede in mano (art. 71 c.9: risultati per iscritto, ultimi
+       tre anni a disposizione). */
+    const senza = vp({ verificaEsito: "idonea" });
+    eq(senza.esito, "idonea-senza-verbale");
+    eq(senza.cls, "warn");
+    eq(senza.noto, false);
+    /* ⛔ TRE STATI DEL LEGAME, NON DUE: «nessun verbale indicato» è un lavoro
+       da fare, «indicato e non trovato» è un dato da riparare — la stessa
+       distinzione che `idoneitaOperatore` fa fra non-collegato e
+       collegamento-rotto. Sommarli direbbe una cosa falsa del secondo. */
+    eq(scudo.verbaleDiScadenza({}, DOCS_V).stato, "assente");
+    eq(scudo.verbaleDiScadenza({ verbaleId: "v1" }, DOCS_V).stato, "trovato");
+    eq(scudo.verbaleDiScadenza({ verbaleId: "v1" }, DOCS_V).documento.titolo, "Verbale verifica autogru");
+    eq(scudo.verbaleDiScadenza({ verbaleId: "sparito" }, DOCS_V).stato, "rotto");
+    eq(scudo.verbaleDiScadenza({ verbaleId: "v1" }, []).stato, "rotto");
+    const rotto = vp({ verificaEsito: "idonea", verbaleId: "sparito" });
+    eq(rotto.esito, "idonea-senza-verbale");
+    ok(rotto.perche.includes("non è più nel registro"),
+      "e la frase distingue il legame rotto dal legame mai fatto: " + rotto.perche);
+    /* e il verbale mancante si DICE anche dove non cambia il colore: senza
+       questo, una «non idonea» senza verbale sarebbe muta sul punto */
+    ok(vp({ verificaEsito: "non-idonea" }).perche.includes("Il verbale non è allegato"));
+  });
+
+  test("⛔ Scudo · un esito senza verificatore lo dichiara (chi ha fatto la verifica è la prima domanda)", () => {
+    /* Nella prima stesura la coda sul verificatore stava nel SOLO ramo «non
+       verificata»: una verifica dichiarata idonea da nessuno usciva verde e
+       muta. Rimettendo quel difetto questa riga cade. */
+    const anonima = vp({ verificaEsito: "idonea", verbaleId: "v1" });
+    eq(anonima.esito, "idonea");
+    ok(anonima.perche.includes("non risulta chi l'abbia eseguita"),
+      "l'esito positivo di una verifica senza verificatore lo deve dire: " + anonima.perche);
+    const firmata = vp({ verificaEsito: "idonea", verbaleId: "v1", verificaEnte: "inail" });
+    ok(!firmata.perche.includes("non risulta chi"), "e non lo dice quando il verificatore c'è");
+    /* ⚠️ E LO DEVE DIRE IN TUTTI I RAMI, non solo in quello «idonea».
+       Misurato scrivendo la controprova: togliendo la coda dalla variabile
+       `fine` — quella che serve agli altri cinque rami — la suite restava
+       VERDE, perché il ramo «idonea» la coda se la aggiunge per conto suo.
+       Non era la prova a essere debole in sé: era l'iniezione a cadere su un
+       ramo che la prova non guardava (la quinta delle cause di CLAUDE.md, «il
+       caso difeso non c'è nella prova»). Queste tre righe chiudono il buco. */
+    for (const caso of [{ verificaEsito: "non-idonea" },
+                        { verificaEsito: "prescrizioni", verificaEntro: "2026-09-30" },
+                        { verificaEsito: "boh" }]) {
+      ok(vp({ ...caso, verbaleId: "v1" }).perche.includes("non risulta chi l'abbia eseguita"),
+        `anche il ramo «${caso.verificaEsito}» deve dire che il verificatore non risulta`);
+    }
+    eq(firmata.ente.nome, "INAIL");
+    /* i quattro soggetti dell'art. 71 c.11, ognuno con la sua fonte */
+    eq(scudo.ENTI_VERIFICA.length, 4);
+    eq(scudo.ENTI_VERIFICA.map(e => e.chiave), ["inail", "asl", "arpa", "abilitato"]);
+    ok(scudo.ENTI_VERIFICA.every(e => e.fonte && e.fonte.includes("71")),
+      "ogni soggetto porta la norma che lo indica");
+    eq(scudo.enteVerifica("inail").quando, "prima verifica");
+    eq(scudo.enteVerifica("mai-visto"), null);
+    eq(scudo.enteVerificaSicuro(""), null);
+    eq(scudo.enteVerificaSicuro(null), null);
+    /* una chiave sconosciuta torna sé stessa invece di sparire */
+    eq(scudo.enteVerificaSicuro("Ente Tal dei Tali").nome, "Ente Tal dei Tali");
+  });
+
+  test("⛔ Scudo · lo scadenzario senza nessuna verifica non è «tutte a posto»", () => {
+    const vuoto = scudo.verificheDaSistemare([], [], OGGI_V);
+    eq(vuoto.quante, 0);
+    eq(vuoto.noto, false);
+    ok(/non ne è registrata nessuna/.test(vuoto.testo),
+      "registro vuoto ≠ nessuna attrezzatura soggetta a verifica: " + vuoto.testo);
+    /* e con sole scadenze di ALTRO tipo la risposta è la stessa: il conto sta
+       sui soggetti che il controllo ha potuto vedere */
+    eq(scudo.verificheDaSistemare([{ tipo: "Corso", dataScadenza: "2027-01-01" }], [], OGGI_V).quante, 0);
+  });
+
+  test("Scudo · verificheDaSistemare ordina il peggio per primo e conta per famiglia", () => {
+    const righe = [
+      { id: "a", tipo: scudo.TIPO_VERIFICA_PERIODICA, dataScadenza: "2027-01-01", verificaEsito: "idonea", verbaleId: "v1" },
+      { id: "b", tipo: scudo.TIPO_VERIFICA_PERIODICA, dataScadenza: "2027-02-01" },
+      { id: "c", tipo: scudo.TIPO_VERIFICA_PERIODICA, dataScadenza: "2027-03-01", verificaEsito: "non-idonea", verbaleId: "v1" },
+      { id: "d", tipo: scudo.TIPO_VERIFICA_PERIODICA, dataScadenza: "2027-04-01", verificaEsito: "prescrizioni", verificaEntro: "2026-01-01", verbaleId: "v1" },
+      { id: "e", tipo: "Corso", dataScadenza: "2027-05-01" },
+    ];
+    const r = scudo.verificheDaSistemare(righe, DOCS_V, OGGI_V);
+    eq(r.quante, 4, "la scadenza che non è una verifica resta fuori");
+    eq(r.daSistemare.map(x => x.scadenza.id), ["c", "d", "b"], "prima i danger, poi i warn, e l'idonea non c'è");
+    eq(r.bloccate, 1);
+    eq(r.prescrizioniScadute, 1);
+    eq(r.nonVerificate, 1);
+    eq(r.noto, false);
+    /* tutte a posto: la frase cambia, e `noto` diventa vero */
+    const ok1 = scudo.verificheDaSistemare([righe[0]], DOCS_V, OGGI_V);
+    eq(ok1.noto, true);
+    ok(/L'unica verifica periodica registrata/.test(ok1.testo), ok1.testo);
+    const ok2 = scudo.verificheDaSistemare([righe[0], { ...righe[0], id: "a2" }], DOCS_V, OGGI_V);
+    ok(/Tutte le 2 verifiche/.test(ok2.testo), ok2.testo);
+  });
+
+  test("⛔ Scudo · la dimostrazione contiene le tre facce della verifica (se no non le vede nessuno)", () => {
+    /* Stessa ragione della prova di Terra qui sopra: un modulo che SA dire uno
+       stato che la dimostrazione non produce mai è uno stato che né il
+       fondatore né i banchi del browser vedono. E tre facce e non una perché
+       un campione solo non distingue «funziona» da «sono tutti uguali». */
+    const r = scudo.verificheDaSistemare(scudo.DEMO.scadenze, scudo.DEMO.documenti, OGGI_V);
+    eq(r.quante, 3);
+    eq(new Set(r.righe.map(x => x.esito)).size, 3, "tre stati diversi: " + r.righe.map(x => x.esito).join(", "));
+    eq(r.righe.filter(x => x.cls === "ok").length, 1);
+    eq(r.prescrizioniScadute, 1);
+    eq(r.nonVerificate, 1);
+    /* i due verbali della dimostrazione devono ESSERE nel registro documenti:
+       un `verbaleId` che non trova niente è un legame rotto, e in una
+       dimostrazione sarebbe un difetto, non uno stato da mostrare */
+    for (const s of scudo.DEMO.scadenze.filter(scudo.scadenzaDiVerifica).filter(s => s.verbaleId))
+      eq(scudo.verbaleDiScadenza(s, scudo.DEMO.documenti).stato, "trovato", `verbale di ${s.id}`);
+    /* ⛔ e sono le PRIME scadenze aziendali della dimostrazione: senza,
+       l'intero ramo «azienda» (riga dell'elenco, blocco AZIENDA del CSV,
+       promessa della modale che toglie una persona) non compariva mai */
+    ok(scudo.DEMO.scadenze.some(s => s.lavoratoreId == null),
+      "la dimostrazione contiene almeno una scadenza aziendale");
+    /* il preset dello scadenzario deve portare a QUESTO tipo: finché portava
+       «Altro» i tre campi non si accendevano mai, e il controllo rispondeva
+       «nessuna violazione» senza aver guardato niente */
+    eq(scudo.presetScadenza("verifica-attr").tipo, scudo.TIPO_VERIFICA_PERIODICA);
+    ok(scudo.TIPI_DOCUMENTO.includes("Verbale di verifica periodica"),
+      "e il verbale ha un tipo suo nel registro documenti");
+  });
+}
+
 console.log(`\nRisultato KPI app: ${passed} passati, ${failed} falliti${inVolo.length ? `  ·  ${inVolo.length} prove asincrone aspettate` : ""}`);
 process.exit(failed > 0 ? 1 : 0);

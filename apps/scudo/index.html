@@ -1166,6 +1166,9 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
   <input class="dw-input" id="scad-cerca" type="search" placeholder="Cerca per tipo o lavoratore…" style="margin-bottom:8px;">
   <div id="scad-count" class="count"></div>
   <div id="scad-turno"></div>
+  <!-- le verifiche periodiche delle attrezzature (art. 71 c.11 D.Lgs 81/08):
+       il riepilogo compare solo quando ce n'è almeno una registrata -->
+  <div id="scad-verifiche"></div>
   <div id="scad-list"></div>
   <div class="sec">Aggiungi scadenza</div>
   <div class="form col">
@@ -1183,7 +1186,13 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
       <select class="dw-input" id="new-scad-lav" style="flex:1 1 150px;"></select>
       <select class="dw-input" id="new-scad-tipo" style="flex:1 1 130px;">
         <option>Visita medica</option><option>Corso</option><option>Formazione</option>
-        <option>DPI</option><option>Patente</option><option selected>Altro</option>
+        <option>DPI</option><option>Patente</option>
+        <!-- il tipo che accende i tre campi della verifica periodica (chi
+             l'ha eseguita, l'esito, il verbale): il testo deve restare
+             identico a TIPO_VERIFICA_PERIODICA del modulo, ed è la prova
+             «l'opzione del form esiste» a pretenderlo -->
+        <option>Verifica periodica</option>
+        <option selected>Altro</option>
       </select>
     </div>
     <div class="frow">
@@ -1198,6 +1207,7 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
   </div>
   <div class="form-hint" style="margin-top:8px;">Colonne del file: <b>lavoratore; tipo; descrizione; scadenza</b>.</div>
   <div class="note esito" id="scad-esito"></div>
+  <div class="note">Le attrezzature dell'<b>allegato VII</b> (gru e autogru, piattaforme elevabili, carrelli semoventi a braccio telescopico, apparecchi a pressione, generatori di vapore&hellip;) vanno sottoposte a <b>verifiche periodiche</b>: art. 71 c.11 del D.Lgs 81/08. La <b>prima</b> la fa l'<b>INAIL</b>, entro 45 giorni dalla richiesta; le <b>successive</b>, a libera scelta, l'<b>ASL</b> (o l'<b>ARPA</b> dove lo prevede una legge regionale) oppure un <b>soggetto abilitato</b> iscritto nell'elenco del Ministero del Lavoro. Scegli il tipo <b>Verifica periodica</b> e la riga guadagna tre campi: chi l'ha eseguita, <b>com'è andata</b> e qual è il <b>verbale</b>. Una verifica <b>senza esito registrato</b> non risulta &laquo;regolare&raquo;: risulta <b>non verificata</b> &mdash; la data della prossima può essere lontana, ma di quell'attrezzatura non sappiamo com'è finita l'ultima. <b>Nota informativa, non un parere legale</b>: quali attrezzature e con che cadenza lo dicono l'allegato VII e il tuo consulente.</div>
 </div>
 
 <!-- AZIONI CORRETTIVE (CAPA) -->
@@ -1709,7 +1719,10 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
     conformiSenzaProva, voceChiedePermesso, permessiDelGiorno,
     MOTIVI_REVISIONE_DSS, motivoRevisioneDss, dssDiCantiere, dssScollegati, cicloDss,
     descriviCicloDss, descriviTrasmissioneDss, etichettaCicloDss, sintesiCicloDss,
-    dssDaSeguire } from "./scudo-data.js";
+    dssDaSeguire,
+    TIPO_VERIFICA_PERIODICA, ENTI_VERIFICA, enteVerificaSicuro, ESITI_VERIFICA, esitoVerifica,
+    scadenzaDiVerifica, verbaleDiScadenza, statoVerificaPeriodica, descriviVerificaPeriodica,
+    verificheDaSistemare } from "./scudo-data.js";
   import { mountExit, esc, csvCell, statoVuoto, giorniTra, montaGuardiaInteri, avvolgiUnita, oggiISO, dataISOEsiste,
            controllaAllegato, testoAllegatoRifiutato, pezziDataURL, dataIt,
            numeroScritto, AVVISO_DECIMALE, timbroLocale, modoDimostrazione,
@@ -1859,12 +1872,27 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
     lista:  '<svg viewBox="0 0 24 24"><path d="M9 4.2H7.5A2.3 2.3 0 0 0 5.2 6.5v12.2A2.3 2.3 0 0 0 7.5 21h9a2.3 2.3 0 0 0 2.3-2.3V6.5A2.3 2.3 0 0 0 16.5 4.2H15"/><rect x="9" y="2.6" width="6" height="3.4" rx="1.1"/><path d="M8.9 11.4l1.7 1.7 3.4-3.6"/><path d="M8.9 16.8h6.2"/></svg>',
     // la macchina fotografica: la prova che si fa col telefono, sul posto
     foto:   '<svg viewBox="0 0 24 24"><path d="M3 8.6A2.1 2.1 0 0 1 5.1 6.5h2l1.3-2.1h7.2l1.3 2.1h2A2.1 2.1 0 0 1 21 8.6v9A2.1 2.1 0 0 1 18.9 19.7H5.1A2.1 2.1 0 0 1 3 17.6z"/><circle cx="12" cy="12.8" r="3.5"/></svg>',
+    /* la chiave inglese: l'ATTREZZATURA soggetta a verifica periodica. Non si
+       riusa `attrezzo` — che nonostante il nome è una spunta dentro un cerchio
+       e serve già alle azioni correttive (`SVG_AZIONE`): due famiglie diverse
+       con la stessa icona nella stessa lista è un modo di non farle
+       distinguere. */
+    chiave: '<svg viewBox="0 0 24 24"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94z"/></svg>',
   };
 
   const SVG_AZIONE = I.attrezzo;
 
   // classe della striscia laterale: lo stato si legge anche senza colore
   const striscia = { danger: "st-danger", warn: "st-warn", ok: "st-ok", accent: "st-accent" };
+  /* IL PEGGIORE FRA DUE COLORI. Serve dove una riga porta DUE giudizi
+     indipendenti: la data della prossima verifica periodica (che può essere
+     lontanissima, quindi verde) e l'esito dell'ultima (che può essere «non
+     idonea», quindi rosso). Tenendo il colore della sola data la striscia
+     direbbe «tranquilla» accanto a un badge rosso — il numero giusto col
+     disegno che mente, che in questa casa è già costato sei difetti in un
+     giorno. Il peggiore è la direzione prudente. */
+  const ORD_CLS = { danger: 0, warn: 1, ok: 2, accent: 3 };
+  const peggiore = (a, b) => (ORD_CLS[b] == null || ORD_CLS[a] <= ORD_CLS[b]) ? a : b;
 
   const db = await scudoData();
   mountExit(db);
@@ -2185,9 +2213,22 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
           <div class="meta">Segnat${senzaProvaQuadro.length === 1 ? "a conforme" : "e conformi"}, ma di quel permesso di lavoro qui non risulta niente</div></div>
           <span class="acts"><span class="badge warn">Non lo sappiamo</span><span class="arr">›</span></span></div>`]
       : [];
+    /* ⛔ LE VERIFICHE PERIODICHE DELLE ATTREZZATURE NEL QUADRO (art. 71 c.11).
+       Devono stare QUI e non solo nello scadenzario, per la ragione che le fa
+       esistere: la data della prossima verifica può essere lontanissima —
+       quindi la riga non compare fra le scadenze non regolari qui sotto — e
+       intanto l'ultima verifica può essere andata male, o non esserci affatto.
+       Una attrezzatura dichiarata NON IDONEA non si usa, e non può essere una
+       cosa che si scopre scorrendo l'elenco. */
+    const verUrg = verificheDaSistemare(SCA, DOC).daSistemare.slice(0, 3).map(r =>
+      `<div class="item tocca ${striscia[r.cls]}" onclick="go('scad')" title="Vai allo scadenzario">
+        <div class="avatar sup">${I.chiave}</div>
+        <div class="info"><div class="name">${esc(etichettaScadenza(r.scadenza))}</div>
+        <div class="meta">Verifica periodica (all. VII) · ${esc(accorcia(descriviVerificaPeriodica(r), 90))}</div></div>
+        <span class="acts"><span class="badge ${r.cls}">${esc(r.badge)}</span><span class="arr">›</span></span></div>`);
     const urg = SCA.filter(s => statoScadenza(s.dataScadenza) !== "regolare")
                    .sort((a, b) => a.dataScadenza < b.dataScadenza ? -1 : 1).slice(0, 5);
-    $("urg-list").innerHTML = (idonUrg.join("") + manUrg.join("") + mansIgnUrg.join("") + nomUrg.join("") + aziUrg.join("") + anUrg.join("") + appUrg.join("") + dssUrg.join("") + permUrg.join("") + provaUrg.join("") + urg.map(sc => {
+    $("urg-list").innerHTML = (idonUrg.join("") + manUrg.join("") + mansIgnUrg.join("") + nomUrg.join("") + aziUrg.join("") + anUrg.join("") + appUrg.join("") + dssUrg.join("") + permUrg.join("") + verUrg.join("") + provaUrg.join("") + urg.map(sc => {
       const st = statoScadenza(sc.dataScadenza), l = byId[sc.lavoratoreId];
       return `<div class="item tocca ${striscia[B[st][0]]}" onclick="go('scad')" title="Vai allo scadenzario">
         <div class="avatar">${esc(initials(l && l.nome))}</div>
@@ -2198,7 +2239,7 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
        promette meno del vero, ma il giorno in cui ne dichiarasse otto facendone
        sei prometterebbe di più — ed è quella la direzione che rassicura. */
     }).join("")) || vuoto(I.ok, "Nessuna urgenza",
-        "Idoneità, mansioni, nomine, scadenze, azioni correttive, ciclo del DSS e <b>permessi di lavoro</b> sono tutti in regola, ogni evento del registro ha la sua analisi della causa, e nessuna voce di checklist è segnata conforme senza il permesso che dovrebbe starci dietro. Il quadro resta pulito finché una data non si avvicina.");
+        "Idoneità, mansioni, nomine, scadenze, azioni correttive, ciclo del DSS, <b>permessi di lavoro</b> e <b>verifiche periodiche delle attrezzature</b> sono tutti in regola, ogni evento del registro ha la sua analisi della causa, e nessuna voce di checklist è segnata conforme senza il permesso che dovrebbe starci dietro. Il quadro resta pulito finché una data non si avvicina.");
 
     const q = ($("pers-cerca").value || "").trim().toLowerCase();
     const lavVis = LAV.filter(l => !q || (l.nome + " " + (l.ruolo || "")).toLowerCase().includes(q))
@@ -2483,6 +2524,15 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
             ? `<div class="note recap">Nessun documento scaduto ${schierati.length === 1 ? "per l'unica persona in turno oggi" : `fra le <b>${schierati.length}</b> persone in turno oggi`}. ${daPrenotare === 1 ? "Una scadenza è" : daPrenotare + " scadenze sono"} entro trenta giorni: si prenota adesso senza fermare nessuno.${coda}</div>`
             : `<div class="note recap">${schierati.length === 1 ? "L'unica persona in turno oggi ha" : `Le <b>${schierati.length}</b> persone in turno oggi hanno`} tutti i documenti in corso di validità.${coda}</div>`;
     }
+    /* ── IL RIEPILOGO DELLE VERIFICHE PERIODICHE ──────────────────────
+       Compare solo se ce n'è almeno una registrata: su uno scadenzario che
+       non ne ha nessuna, la frase «non ne risulta nessuna» al posto giusto è
+       quella del Quadro, non un blocco in mezzo all'elenco delle scadenze.
+       ⚠️ La frase la scrive il MODULO (`riepVerifiche.testo`): è la stessa
+       che decide i numeri, quindi lo schermo e il CSV non possono divergere. */
+    const riepVerifiche = verificheDaSistemare(scadTutte, DOC);
+    $("scad-verifiche").innerHTML = !riepVerifiche.quante ? ""
+      : `<div class="note ${riepVerifiche.daSistemare.length ? "avviso" : "recap"}">Verifiche periodiche delle attrezzature (art. 71 c.11): ${esc(riepVerifiche.testo)}</div>`;
     // il contrassegno sta subito DOPO IL NOME, non in fondo: la riga della meta si
     // accorcia con i puntini quando è lunga, e in fondo spariva proprio lui —
     // misurato sulla riga di un DPI. Così a cadere è semmai l'etichetta di urgenza,
@@ -2503,9 +2553,45 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
       /* il nome della riga lo decide `etichettaScadenza`, la stessa che lo
          decide sul fascicolo stampato e nel CSV: una scadenza importata può
          non avere `descrizione`, e qui la riga restava SENZA NOME. */
-      return `<div class="item ${striscia[B[st][0]]}">
-        <div class="info"><div class="name">${esc(etichettaScadenza(sc))}</div><div class="meta">${esc(l ? l.nome : "azienda")}${segnoTurno(sc)} · ${fmtData(sc.dataScadenza)} · ${esc(lv.label)}</div></div>
-        <span class="acts"><span class="badge ${B[st][0]}">${B[st][1]}</span>
+      /* ⛔ DUE COSE IMPARATE SCRIVENDO LE RIGHE QUI SOTTO, e stanno QUI e non
+         dentro la stringa perché dentro una `backtick` un `<!-- -->` non è un
+         commento: è TESTO, e i suoi apostrofi chiudono la stringa. È la
+         trappola scritta in CLAUDE.md il 07/08, e l'ho rifatta: la pagina non
+         compilava più e `sintassi-pagine` è passata da 15 a 14.
+         1 · IL BADGE DELLA DATA SI MOSTRA SOLO SE HA QUALCOSA DA DIRE. Trovato
+             nello SCATTO e in nessun altro modo: la riga della piattaforma
+             elevabile portava una pastiglia VERDE «Regolare» attaccata a una
+             ROSSA «Prescrizioni scadute», e il verde era la cosa più forte
+             della riga. Sono due giudizi su due cose diverse — la data della
+             PROSSIMA verifica e l'esito dell'ULTIMA — ma nessuno legge due
+             pastiglie come due domande, e quella tranquilla vince. Il quando
+             resta scritto nella riga di dettaglio («tra 112 gg»).
+         2 · LA GRAFFETTA È DISEGNATA (`I.clip`), NON UN'EMOJI. Alla prima
+             stesura era un carattere emoji letterale, e nello scatto si vedeva
+             subito: colore suo, peso suo, fuori dalla famiglia di tutte le
+             altre icone. Il commento in cima all'elenco `I` lo dice da sempre,
+             e il registro documenti usa già `I.clip` per la stessa cosa. */
+      /* ── LA VERIFICA PERIODICA DI UN'ATTREZZATURA (art. 71 c.11) ──
+         `vf` è null su tutte le altre scadenze, e allora la riga resta quella
+         di sempre. Dove non è null porta CHI ha fatto la verifica, COM'È
+         ANDATA e il VERBALE, cioè le tre cose che un ispettore chiede in
+         quest'ordine — e il colore della riga diventa il peggiore fra la data
+         e l'esito, perché una «non idonea» con la prossima verifica fra un
+         anno sarebbe altrimenti una riga verde.
+         ⚠️ Il badge e il suo colore li decide il MODULO (`vf.cls`/`vf.badge`):
+         una mappa scritta qui sarebbe quella che la regola 18 esiste per
+         impedire — il giorno in cui `statoVerificaPeriodica` impara un settimo
+         stato, un `MAPPA[st][0]` ucciderebbe la pagina al disegno. */
+      const vf = statoVerificaPeriodica(sc, DOC);
+      const vfMeta = !vf ? "" :
+        " · " + (vf.ente ? vf.ente.nome + (vf.chi ? " (" + vf.chi + ")" : "") : "verificatore non indicato");
+      return `<div class="item ${striscia[vf ? peggiore(B[st][0], vf.cls) : B[st][0]]}">
+        <div class="info"><div class="name">${vf ? '<span class="badge tag" style="margin-right:6px;">all. VII</span>' : ""}${esc(etichettaScadenza(sc))}</div><div class="meta">${esc(l ? l.nome : "azienda")}${segnoTurno(sc)} · ${fmtData(sc.dataScadenza)} · ${esc(lv.label)}${esc(vfMeta)}</div>
+        ${vf ? `<div class="form-hint" style="margin-top:4px;">${esc(descriviVerificaPeriodica(vf))}</div>` : ""}</div>
+        <span class="acts">${(!vf || st !== "regolare") ? `<span class="badge ${B[st][0]}" title="${vf ? "Quando va rifatta la verifica" : ""}">${B[st][1]}</span>` : ""}
+        ${vf ? `<span class="badge ${vf.cls}" title="Esito dell'ultima verifica periodica">${esc(vf.badge)}</span>` : ""}
+        ${vf && vf.verbale.stato === "trovato" ? `<span class="arr" style="cursor:pointer" title="Apri il verbale nel registro documenti" data-vai-verbale="${vf.verbale.documento.id}">${I.clip}</span>` : ""}
+        ${vf ? `<button class="dw-btn secondary mini" data-verifica="${sc.id}" title="Registra chi ha eseguito la verifica, com'è andata e qual è il verbale">Verifica</button>` : ""}
         ${(st !== "regolare" && l) ? `<button class="dw-btn secondary mini" data-prom-scad="${sc.id}" title="Copia il promemoria da inviare al lavoratore">Promemoria</button>` : ""}
         <span class="arr" style="cursor:pointer" title="Rinnova a una nuova data" data-ren-scad="${sc.id}">↻</span>
         <span class="arr" style="cursor:pointer" title="Rimuovi scadenza" data-del-scad="${sc.id}">✕</span></span></div>`;
@@ -3949,6 +4035,21 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
     // tranne che sul suo bordo.
     const anEvt = e.target.closest && e.target.closest("[data-analisi]");
     if (anEvt) { e.stopPropagation(); apriAnalisi(anEvt.getAttribute("data-analisi")); return; }
+    /* --- la verifica periodica: dalla riga dello scadenzario ---
+       `closest` e non `getAttribute` per la ragione scritta due righe più su:
+       il dito atterra sul testo del bottone, che è un figlio. */
+    const vfBtn = e.target.closest && e.target.closest("[data-verifica]");
+    if (vfBtn) { e.stopPropagation(); await apriVerifica(vfBtn.getAttribute("data-verifica")); return; }
+    /* 📎 dal verbale collegato al documento nel registro: si NAVIGA e si
+       evidenzia la riga, invece di aprire l'allegato al volo — il verbale ha
+       intorno lo stato, la scadenza e la sua storia, e sono quelli che
+       servono a chi ce l'ha chiesto. */
+    const vfDoc = e.target.closest && e.target.closest("[data-vai-verbale]");
+    if (vfDoc) { e.stopPropagation(); const idd = vfDoc.getAttribute("data-vai-verbale");
+      go("doc"); await refresh();
+      const el = document.querySelector('[data-doc="' + idd + '"]');
+      if (el) { el.scrollIntoView({ behavior: "smooth", block: "center" }); el.classList.add("evidenzia"); setTimeout(() => el.classList.remove("evidenzia"), 2500); }
+      return; }
     /* «e se fosse andata male?»: stessa forma della pastiglia dell'analisi,
        `closest` per la stessa ragione scritta due righe più su. */
     const potEvt = e.target.closest && e.target.closest("[data-pot]");
@@ -4692,11 +4793,24 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
        l'export» — cioè il controllo smetteva di guardare senza dire che non
        stava più guardando. */
     const SENZA = "nessuna scadenza registrata";
-    let csv = "nome;ruolo;telefono;idoneita;scadenza;data;stato\n";
+    /* ⛔ E LA COLONNA `stato` DICE SOLO CHE COSA FA LA DATA. Su una verifica
+       periodica di attrezzatura non basta: la prossima verifica può cadere fra
+       un anno — quindi `stato` scrive «regolare» — e l'ultima può essere
+       andata male, o non esserci affatto. Un foglio di conformità che scrive
+       «regolare» accanto a un'attrezzatura dichiarata NON IDONEA è il file che
+       esce a dire una cosa più tranquilla dello schermo: la famiglia di
+       difetti che il 03/08 ne ha prodotti ventiquattro in cinque app.
+       La colonna in più la decide `statoVerificaPeriodica`, la STESSA
+       funzione che disegna il badge nello scadenzario — non una seconda
+       lettura dei campi.
+       ⚠️ E dove non è una verifica la cella non resta bianca: una cella vuota
+       in un foglio di conformità si legge «niente da segnalare». */
+    const vfCella = (sc) => { const v = statoVerificaPeriodica(sc, DOC); return v ? v.badge : "—"; };
+    let csv = "nome;ruolo;telefono;idoneita;scadenza;data;stato;verifica periodica\n";
     for (const l of LAV) {
       const idn = idoneitaLabel(l.idoneita).label;
       const sc = SCA.filter(s => s.lavoratoreId === l.id);
-      if (!sc.length) csv += `${csvCell(l.nome)};${csvCell(l.ruolo||"")};${csvCell(l.tel||"")};${csvCell(idn)};;;${SENZA}\n`;
+      if (!sc.length) csv += `${csvCell(l.nome)};${csvCell(l.ruolo||"")};${csvCell(l.tel||"")};${csvCell(idn)};;;${SENZA};—\n`;
       /* `s.dataScadenza || ""`: senza il ripiego una riga il cui campo non è
          mai stato scritto finiva nel file con la PAROLA «undefined» — è lo
          stesso difetto trovato in Conti («null» scritto per esteso). */
@@ -4705,7 +4819,7 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
          lasciava la cella VUOTA su una scadenza importata che ha solo il
          `tipo`, e una cella vuota in un foglio di conformità si legge
          «niente da segnalare». */
-      for (const s of sc) csv += `${csvCell(l.nome)};${csvCell(l.ruolo||"")};${csvCell(l.tel||"")};${csvCell(idn)};${csvCell(etichettaScadenza(s))};${s.dataScadenza || ""};${statoScadenza(s.dataScadenza)}\n`;
+      for (const s of sc) csv += `${csvCell(l.nome)};${csvCell(l.ruolo||"")};${csvCell(l.tel||"")};${csvCell(idn)};${csvCell(etichettaScadenza(s))};${s.dataScadenza || ""};${statoScadenza(s.dataScadenza)};${csvCell(vfCella(s))}\n`;
     }
     /* ⛔ LA SCADENZA RIMASTA SENZA LA SUA PERSONA (03/08). Il secondo giro
        filtrava `!x.lavoratoreId`, cioè «non è di nessuno»; ma un id che punta
@@ -4721,7 +4835,7 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
        lavoratore CONOSCIUTO è dell'azienda. */
     const noti = new Set(LAV.map(l => l.id));
     for (const s of SCA.filter(x => !noti.has(x.lavoratoreId)))
-      csv += `AZIENDA;;;;${csvCell(etichettaScadenza(s))};${s.dataScadenza || ""};${statoScadenza(s.dataScadenza)}\n`;
+      csv += `AZIENDA;;;;${csvCell(etichettaScadenza(s))};${s.dataScadenza || ""};${statoScadenza(s.dataScadenza)};${csvCell(vfCella(s))}\n`;
     const a = document.createElement("a");
     a.href = "data:text/csv;charset=utf-8," + encodeURIComponent(csv);
     a.download = "scudo_personale_scadenze.csv"; marchiaCsv(a); a.click();
@@ -5993,6 +6107,91 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
     if (box) box.querySelectorAll(".chg").forEach(b =>
       b.onclick = () => { scelto.chiave = b.getAttribute("data-pot-liv"); segna(); });
     if (boh) boh.onclick = () => { scelto.chiave = ""; segna(); };
+  }
+
+  // ══════════════════════════════════════════════════════════════════════
+  // REGISTRA LA VERIFICA PERIODICA DI UN'ATTREZZATURA (art. 71 c.11 D.Lgs 81/08)
+  //
+  // Tre domande in quest'ordine, che è l'ordine in cui le fa un ispettore:
+  // CHI l'ha eseguita, COM'È ANDATA, e DOV'È IL VERBALE.
+  //
+  // ⛔ NESSUNO DEI TRE CAMPI È OBBLIGATORIO, e non è una comodità: un campo
+  // obbligatorio si riempie per farlo sparire, e un esito inventato è peggio
+  // di un esito mancante — perché «non verificata» Scudo lo sa raccontare,
+  // mentre un «idonea» falso lo racconta come una cosa a posto. Lasciando
+  // vuoto l'esito la riga resta NON VERIFICATA, che è una risposta.
+  // ══════════════════════════════════════════════════════════════════════
+  async function apriVerifica(idScadenza) {
+    const sc = SCA.find(x => x.id === idScadenza);
+    if (!sc) { toast("Questa scadenza non è più nello scadenzario.", "err"); return; }
+    if (!scadenzaDiVerifica(sc)) { toast("Questa scadenza non è una verifica periodica di attrezzatura.", "err"); return; }
+    const v = statoVerificaPeriodica(sc, DOC);
+    /* ⛔ Le due tendine si COSTRUISCONO dagli elenchi del modulo, non a mano:
+       il giorno in cui `ENTI_VERIFICA` o `ESITI_VERIFICA` guadagnano una voce,
+       questa finestra la mostra da sola. È la stessa scelta di `CAUSA_ET`. */
+    const opz = (lista, scelto, vuoto) => `<option value="">${esc(vuoto)}</option>`
+      + lista.map(x => `<option value="${x.chiave}"${x.chiave === scelto ? " selected" : ""}>${esc(x.nome || x.etichetta)}</option>`).join("");
+    /* i documenti del registro fra cui scegliere il verbale: prima quelli che
+       sono già verbali di verifica, poi tutti gli altri — senza toglierne
+       nessuno, perché un archivio caricato da carta può avere il verbale
+       classificato «Altro» e nasconderglielo vorrebbe dire non farglielo
+       collegare mai. */
+    const docOrd = DOC.slice().sort((a, b) =>
+      (b.tipo === "Verbale di verifica periodica") - (a.tipo === "Verbale di verifica periodica")
+      || String(a.titolo || "").localeCompare(String(b.titolo || ""), "it"));
+    const opzDoc = '<option value="">— nessun verbale collegato —</option>'
+      + docOrd.map(d => `<option value="${d.id}"${d.id === sc.verbaleId ? " selected" : ""}>${esc(d.titolo)}${d.tipo ? " · " + esc(d.tipo) : ""}</option>`).join("");
+    apriModale("Verifica periodica · " + (etichettaScadenza(sc) || "attrezzatura"),
+      `<div class="note" style="margin-top:0;">${esc(descriviVerificaPeriodica(v))}</div>`
+      + '<label class="fl" for="vf-ente">Chi ha eseguito la verifica</label>'
+      + `<select class="dw-input" id="vf-ente">${opz(ENTI_VERIFICA, sc.verificaEnte || "", "— non indicato —")}</select>`
+      + '<div class="form-hint" style="margin-top:5px;" id="vf-ente-nota"></div>'
+      + '<label class="fl" for="vf-chi">Quale, per esteso</label>'
+      + `<input class="dw-input" id="vf-chi" value="${esc(sc.verificaChi || "")}" placeholder="ASL di… · ragione sociale del soggetto abilitato">`
+      + '<div class="form-hint" style="margin-top:5px;">Facoltativo, ma è il nome che l\'organo di vigilanza legge sul verbale.</div>'
+      + '<label class="fl" for="vf-esito">Com\'è andata</label>'
+      + `<select class="dw-input" id="vf-esito">${opz(ESITI_VERIFICA, sc.verificaEsito || "", "— nessun esito registrato —")}</select>`
+      + '<div class="form-hint" style="margin-top:5px;" id="vf-esito-nota"></div>'
+      + '<div id="vf-entro-riga" style="display:none;">'
+      + '<label class="fl" for="vf-entro">Le prescrizioni vanno sanate entro</label>'
+      + `<input class="dw-input" id="vf-entro" type="date" value="${esc(sc.verificaEntro || "")}">`
+      + '<div class="form-hint" style="margin-top:5px;">Senza una data, Scudo non può dire entro quando: la riga resta in avviso.</div></div>'
+      + '<label class="fl" for="vf-verbale">Il verbale</label>'
+      + `<select class="dw-input" id="vf-verbale">${opzDoc}</select>`
+      + '<div class="form-hint" style="margin-top:5px;">Il verbale è un documento del <b>registro documenti</b>, con la sua graffetta: si carica da lì e qui si collega. I risultati vanno tenuti per iscritto e a disposizione degli organi di vigilanza (art. 71 c.9).</div>',
+      [{ label: "Annulla", azione: chiudiModale },
+       { label: "Salva", cls: "primary", azione: async () => {
+          const ente = $("vf-ente").value, esitoV = $("vf-esito").value;
+          await db.aggiorna("scadenze", sc.id, {
+            verificaEnte: ente || null,
+            verificaChi: $("vf-chi").value.trim() || null,
+            verificaEsito: esitoV || null,
+            /* la data delle prescrizioni si scrive solo dove ha senso: tenuta
+               addosso a un esito «idonea» tornerebbe fuori il giorno in cui
+               qualcuno rimette «con prescrizioni», e sarebbe la data di
+               un'altra verifica */
+            verificaEntro: esitoV === "prescrizioni" ? ($("vf-entro").value || null) : null,
+            verbaleId: $("vf-verbale").value || null,
+          });
+          chiudiModale(); await refresh();
+          const dopo = statoVerificaPeriodica(SCA.find(x => x.id === sc.id) || sc, DOC);
+          esito("scad-esito", "Verifica registrata: " + (dopo ? dopo.badge.toLowerCase() : "aggiornata") + ".", "success");
+          toast("Verifica periodica registrata.", "success"); } }],
+      { autofocus: false });
+    /* le due note vive: la nota dell'ente dice QUANDO quel soggetto è
+       competente (informativa, non un divieto: Scudo non sa se questa è la
+       prima verifica dell'attrezzatura), e la riga della data compare solo
+       con l'esito «con prescrizioni» */
+    const notaEnte = () => { const e = enteVerificaSicuro($("vf-ente").value);
+      $("vf-ente-nota").innerHTML = e ? esc(e.quando ? e.quando.charAt(0).toUpperCase() + e.quando.slice(1) + ". " : "") + esc(e.fonte || "")
+        : "Finché non è indicato, l'esito registrato resta un'affermazione senza un autore."; };
+    const notaEsito = () => { const e = esitoVerifica($("vf-esito").value);
+      $("vf-esito-nota").textContent = e ? e.spiega
+        : "Senza esito la riga risulta NON VERIFICATA: non «a posto», non «da sistemare» — non lo sappiamo.";
+      $("vf-entro-riga").style.display = $("vf-esito").value === "prescrizioni" ? "block" : "none"; };
+    $("vf-ente").addEventListener("change", notaEnte);
+    $("vf-esito").addEventListener("change", notaEsito);
+    notaEnte(); notaEsito();
   }
 
   // ══════════════════════════════════════════════════════════════════════

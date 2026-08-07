@@ -67,7 +67,20 @@ test("scudo: id unici, scadenze→lavoratore risolve, date valide", () => {
   idsOk(S.lavoratori, "lavoratori"); idsOk(S.scadenze, "scadenze"); idsOk(S.documenti, "documenti");
   const lav = new Set(S.lavoratori.map(l => l.id));
   for (const s of S.scadenze) {
-    ok(lav.has(s.lavoratoreId), `scadenza ${s.id}: lavoratoreId ${s.lavoratoreId} inesistente`);
+    /* ⛔ `lavoratoreId: null` NON È UN DATO CORROTTO: è la SCADENZA AZIENDALE,
+       che l'app ha sempre saputo fare — il form ha l'opzione «— azienda —»,
+       l'import CSV la produce quando il nome non è in anagrafica, l'elenco la
+       disegna «azienda» e la modale che toglie una persona PROMETTE che le sue
+       scadenze restino «come scadenze aziendali». Questa riga la vietava,
+       quindi la dimostrazione non poteva contenere né una scadenza d'azienda
+       né il ramo AZIENDA del CSV, ed è la stessa correzione già fatta il 01/08
+       per la fattura senza scadenza: un campo assente è uno stato che il
+       prodotto sa raccontare, quello che va impedito è un id che non trova
+       niente. Il caso è arrivato con le verifiche periodiche delle
+       attrezzature (art. 71 c.11): un'autogru non è di nessuno in
+       particolare. */
+    ok(s.lavoratoreId == null || lav.has(s.lavoratoreId),
+      `scadenza ${s.id}: lavoratoreId ${s.lavoratoreId} non è né vuoto (scadenza aziendale) né un lavoratore esistente`);
     ok(isDate(s.dataScadenza), `scadenza ${s.id}: data non valida ${s.dataScadenza}`);
   }
   idsOk(S.infortuni, "infortuni");

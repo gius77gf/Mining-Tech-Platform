@@ -127,6 +127,16 @@ import { parseCsvLine, numIt, giorniTra, isIntestazione, senzaDoppioni, dataISOE
          dataIt, pezziDataURL, LIMITE_ALLEGATO,
          conta, plurale } from "../../shared/deepwork-id-client/dw-shell.js";
 
+/* IL `tipo` CHE FA DI UNA SCADENZA UNA VERIFICA PERIODICA DI ATTREZZATURA.
+   Sta qui sopra `SCADENZE_PRESET` perché il preset `verifica-attr` lo usa, e
+   `tipo` è l'unico contrassegno che TUTTE le strade scrivono: il form
+   (`btn-add-scad` salva `tipo`), il preset (che riempie il form) e l'import
+   CSV, che ha una colonna `tipo`. Il campo `preset` invece lo scrive solo il
+   flusso dei requisiti di mansione — misurato: `btn-add-scad` non lo salva —
+   quindi appenderci sopra il riconoscimento avrebbe dato un controllo cieco
+   proprio sulle righe create dal form, che sono la maggioranza. */
+export const TIPO_VERIFICA_PERIODICA = "Verifica periodica";
+
 export const DEMO = {
   lavoratori: [
     { id: "d1", nome: "Mario Rossi", ruolo: "Fochino", tel: "", attivo: true },
@@ -182,6 +192,27 @@ export const DEMO = {
        «non può» su tutte le altre. Un permesso rilasciato a chi quel corso non
        l'ha fatto è la cosa che il modulo esiste per fermare. */
     { id: "s23", lavoratoreId: "d6", tipo: "Formazione", descrizione: "Spazi confinati — informazione, formazione e addestramento", dataScadenza: "2027-09-30" },
+    /* LE VERIFICHE PERIODICHE DELLE ATTREZZATURE (art. 71 c.11 D.Lgs 81/08,
+       allegato VII). Sono le PRIME scadenze aziendali della dimostrazione
+       (`lavoratoreId: null`): un'autogru non è di nessuno in particolare, e
+       finché non ce n'era una l'intero ramo «azienda» — la riga «azienda»
+       dell'elenco, il blocco AZIENDA del CSV, la promessa della modale che
+       toglie una persona — non compariva mai nella dimostrazione.
+       ⛔ E LE TRE RIGHE SONO TRE STATI DIVERSI DI PROPOSITO, perché un
+       campione solo non distingue «funziona» da «sono tutti uguali»: una
+       verifica andata bene col suo verbale, una con prescrizioni il cui
+       termine è già passato, e una di cui non si sa niente — che è quella per
+       cui questo blocco esiste. */
+    { id: "s24", lavoratoreId: null, tipo: TIPO_VERIFICA_PERIODICA, descrizione: "Autogru 30 t — verifica periodica", dataScadenza: "2027-03-18",
+      verificaEnte: "abilitato", verificaChi: "Organismo abilitato — iscr. elenco MLPS", verificaEsito: "idonea", verbaleId: "c11" },
+    { id: "s25", lavoratoreId: null, tipo: TIPO_VERIFICA_PERIODICA, descrizione: "Piattaforma elevabile — verifica periodica", dataScadenza: "2026-11-27",
+      verificaEnte: "asl", verificaChi: "ASL territoriale", verificaEsito: "prescrizioni", verificaEntro: "2026-07-15", verbaleId: "c12" },
+    /* Nessun esito, nessun verificatore, nessun verbale: la data è LONTANA,
+       quindi lo scadenzario la disegna verde e tranquilla. È esattamente il
+       «numero tranquillo dove non è stato misurato niente», e serve nella
+       dimostrazione perché è il caso che `statoVerificaPeriodica` esiste per
+       raccontare — non un dato dimenticato. */
+    { id: "s26", lavoratoreId: null, tipo: TIPO_VERIFICA_PERIODICA, descrizione: "Carrello semovente a braccio telescopico — verifica periodica", dataScadenza: "2027-06-30" },
   ],
   documenti: [
     { id: "c1", titolo: "DVR — Documento Valutazione Rischi", meta: "Aggiornato 03/2026", tipo: "DVR", stato: "valido" },
@@ -221,6 +252,13 @@ export const DEMO = {
        «incompleto»: qualcuno ha guardato, e quello che ha trovato non vale più. */
     { id: "c10", titolo: "Visura CCIAA — Officina Meccanica Sud snc", meta: "Da rinnovare", tipo: "Altro",
       appaltatoreId: "ap2", tipoQualifica: "cciaa", scadenza: "2026-05-31", stato: "da-rivedere" },
+    /* I VERBALI DELLE VERIFICHE PERIODICHE, cioè i documenti che le scadenze
+       s24 e s25 chiudono (`verbaleId`). La terza attrezzatura (s26) non ne ha
+       nessuno, ed è il caso che conta: lo scadenzario la disegna verde perché
+       la data è lontana, e senza questo blocco nessuno saprebbe che di quella
+       verifica non si sa niente. */
+    { id: "c11", titolo: "Verbale verifica periodica — autogru 30 t", meta: "Esito positivo", tipo: "Verbale di verifica periodica", cantiereId: "k1", stato: "valido" },
+    { id: "c12", titolo: "Verbale verifica periodica — piattaforma elevabile", meta: "Positivo con prescrizioni", tipo: "Verbale di verifica periodica", cantiereId: "k1", stato: "valido" },
   ],
   cantieri: [
     { id: "k1", nome: "Cava Monte Alto", comune: "Comune di esempio", tipo: "cava", stato: "attivo" },
@@ -592,6 +630,11 @@ export const DEMO = {
    in cui l'azienda opera come impresa esecutrice — D.Lgs 81/08 art. 89). */
 export const TIPI_DOCUMENTO = [
   "DSS", "POS", "DVR", "DUVRI", "Nomina", "Verbale DPI",
+  /* Il verbale della verifica periodica di un'attrezzatura (art. 71 c.11
+     D.Lgs 81/08): è il documento che una scadenza di verifica CHIUDE, ed è
+     quello che l'organo di vigilanza chiede in mano. Sta in questo registro e
+     non in un archivio suo, come i documenti di qualifica degli appaltatori. */
+  "Verbale di verifica periodica",
   "Idoneità sanitaria", "Attestato formazione", "Altro",
 ];
 
@@ -1884,6 +1927,7 @@ export function muroScadenze(scadenze, oggi = new Date(), quantiMesi = 12) {
 export const MESI_NOMI = ["gennaio", "febbraio", "marzo", "aprile", "maggio", "giugno",
   "luglio", "agosto", "settembre", "ottobre", "novembre", "dicembre"];
 
+
 // Adempimenti HSE TIPICI di una cava, come voci preimpostate dello
 // scadenzario (stessa idea di SOGLIE_PRESET in Sentinella): l'utente sceglie
 // l'adempimento invece di digitarlo, e Scudo prepara descrizione e tipo. Fonti
@@ -1921,7 +1965,12 @@ export const SCADENZE_PRESET = [
   { chiave: "form-confinati",   categoria: "persona", tipo: "Formazione",    etichetta: "Spazi confinati — informazione, formazione e addestramento", mesi: null, riferimento: "D.P.R. 177/2011 art. 2 c.1 lett. f) e h) — formazione mirata ai rischi propri di queste attività e addestramento di tutto il personale impiegato, datore di lavoro compreso. La periodicità la fissa la procedura aziendale." },
   { chiave: "dss",              categoria: "azienda", tipo: "Altro",         etichetta: "DSS — Documento di Sicurezza e Salute (D.Lgs 624/96)", mesi: null, riferimento: "D.Lgs 624/96 artt. 6 e 10 — il DSS integra l'art. 28 del D.Lgs 81/08; va trasmesso all'autorità di vigilanza prima dell'inizio dei lavori." },
   { chiave: "dvr",              categoria: "azienda", tipo: "Altro",         etichetta: "DVR — aggiornamento", mesi: null, riferimento: "D.Lgs 81/2008 art. 29 — rielaborazione in occasione di modifiche significative, infortuni o nuovi rischi." },
-  { chiave: "verifica-attr",    categoria: "azienda", tipo: "Altro",         etichetta: "Verifica periodica attrezzature (D.M. 11/04/2011)", mesi: 12, riferimento: "D.M. 11/04/2011 — periodicità secondo l'allegato VII del D.Lgs 81/08: dipende dal tipo di attrezzatura." },
+  /* ⚠️ IL `tipo` DI QUESTA VOCE NON È PIÙ «Altro»: è `TIPO_VERIFICA_PERIODICA`,
+     ed è quello che accende i tre campi della verifica (chi l'ha eseguita,
+     l'esito, il verbale). Finché era «Altro» quei campi non si sarebbero
+     accesi mai, e il controllo avrebbe risposto «nessuna violazione» senza
+     aver guardato niente. */
+  { chiave: "verifica-attr",    categoria: "azienda", tipo: TIPO_VERIFICA_PERIODICA, etichetta: "Verifica periodica attrezzature (D.M. 11/04/2011)", mesi: 12, riferimento: "D.M. 11/04/2011 — periodicità secondo l'allegato VII del D.Lgs 81/08: dipende dal tipo di attrezzatura." },
   { chiave: "riunione-sic",     categoria: "azienda", tipo: "Altro",         etichetta: "Riunione periodica di sicurezza (art. 35)", mesi: 12, riferimento: "D.Lgs 81/2008 art. 35 — almeno una volta l'anno nelle aziende con più di 15 lavoratori, con verbale." },
   // --- Adempimenti tipici delle industrie estrattive (D.Lgs 624/96) ---
   { chiave: "stabilita-fronti", categoria: "cava"   , tipo: "Altro",         etichetta: "Relazione annuale sulla stabilità dei fronti", mesi: 12, riferimento: "D.Lgs 624/96 — coltivazioni a cielo aperto: relazione su stabilità dei fronti, caduta massi e franamento, predisposta o aggiornata annualmente." },
@@ -1955,6 +2004,263 @@ export function dataDaPeriodicita(mesi, oggi = new Date()) {
   d.setDate(giorno);
   const p = (n) => String(n).padStart(2, "0");
   return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
+}
+
+// ============================================================
+// LA VERIFICA PERIODICA DI UN'ATTREZZATURA — CHI L'HA FATTA, COM'È ANDATA,
+// E DOV'È IL VERBALE
+// ============================================================
+// PRIMA IL MONDO. Le attrezzature dell'allegato VII del D.Lgs 81/08 (gru,
+// autogru, piattaforme elevabili, carrelli semoventi a braccio telescopico,
+// apparecchi a pressione, generatori di vapore…) vanno sottoposte a VERIFICHE
+// PERIODICHE — art. 71 c.11. E la norma non dice solo «vanno fatte»: dice
+// anche CHI le fa.
+//   · la PRIMA verifica la fa l'INAIL, che vi provvede entro 45 giorni dalla
+//     richiesta; scaduto quel termine il datore di lavoro può rivolgersi a
+//     un altro soggetto pubblico o privato abilitato;
+//   · le SUCCESSIVE le fanno, a libera scelta del datore di lavoro, la ASL
+//     (o l'ARPA dove lo prevede una legge regionale) oppure un soggetto
+//     pubblico o privato ABILITATO, iscritto nell'elenco che il Ministero del
+//     Lavoro aggiorna con decreto direttoriale (al 03/08/2026 è il 74°).
+//     Il soggetto privato abilitato è incaricato di pubblico servizio.
+//   · i risultati dei controlli vanno riportati PER ISCRITTO e conservati —
+//     almeno quelli degli ultimi tre anni — a disposizione degli organi di
+//     vigilanza (art. 71 c.9).
+// Fonti (secondarie, non il testo primario riga per riga): art. 71 c.9 e c.11
+// D.Lgs 81/08; D.M. 11/04/2011; INAIL, «Istruzioni operative per la prima
+// verifica periodica»; decreti direttoriali di aggiornamento dell'elenco dei
+// soggetti abilitati.
+//
+// POI LA NOSTRA APP. Prima di questo blocco una `scadenze/{id}` portava
+// `{lavoratoreId, tipo, descrizione, dataScadenza}` e basta: misurato il
+// 07/08, `verificator` e `organismo` davano ZERO occorrenze sia nel modulo sia
+// nella pagina. Cioè Scudo sapeva dire QUANDO va rifatta una verifica e non
+// sapeva dire CHI ha fatto l'ultima, COM'È ANDATA e DOV'È il verbale — le tre
+// cose che un ispettore chiede in quest'ordine.
+//
+// ⛔ E IL PUNTO PER CUI ESISTE È LO STATO «NON VERIFICATA». Una scadenza di
+// verifica periodica senza esito NON è «regolare»: la sua data può essere
+// lontanissima e il semaforo dello scadenzario verde, ma di quell'attrezzatura
+// non si sa se l'ultima verifica sia andata bene. È il principio del fondatore
+// («l'assenza di un dato non è un dato favorevole») nella stessa forma già
+// scritta per l'anagrafe appaltatori (`qualificaAppaltatore`, «non vuol dire
+// che non sia idonea — vuol dire che non lo sappiamo») e per le voci di
+// checklist senza permesso (`provaVoce`).
+//
+// Campi sulla `scadenze/{id}`, tutti OPZIONALI e tutti letti solo quando
+// `scadenzaDiVerifica` dice di sì:
+//   verificaEnte:   chiave di ENTI_VERIFICA — chi ha eseguito la verifica
+//   verificaChi:    testo — QUALE ASL/ARPA, o la ragione sociale del soggetto
+//                   abilitato. Facoltativo: la sua assenza si DICE, non
+//                   cambia il semaforo (il verbale allegato porta quel nome).
+//   verificaEsito:  chiave di ESITI_VERIFICA
+//   verificaEntro:  ISO — entro quando vanno sanate le PRESCRIZIONI
+//   verbaleId:      id di `documenti/{id}` — il verbale che chiude la verifica
+
+/* CHI ESEGUE LA VERIFICA. Una lista e non un campo libero, perché le quattro
+   risposte sono quattro istituti giuridici diversi, non quattro modi di
+   scrivere lo stesso nome: chi mette «Ing. Rossi» in un campo di testo scrive
+   una cosa che nessuno può ricontrollare.
+   ⚠️ `quando` è una NOTA INFORMATIVA, non una regola: Scudo non rifiuta
+   «INAIL» su una verifica successiva né «ASL» su una prima. Sapere se una
+   verifica è la prima richiede la storia dell'attrezzatura, che Scudo non ha —
+   e un divieto costruito su un dato che non si possiede è un divieto che
+   sbaglia. */
+export const ENTI_VERIFICA = [
+  { chiave: "inail", nome: "INAIL", quando: "prima verifica",
+    fonte: "art. 71 c.11 D.Lgs 81/08 — per la prima verifica il datore di lavoro si avvale dell'INAIL, che vi provvede entro 45 giorni dalla richiesta." },
+  { chiave: "asl", nome: "ASL", quando: "verifiche successive alla prima",
+    fonte: "art. 71 c.11 D.Lgs 81/08 — le successive sono effettuate, su libera scelta del datore di lavoro, dalla ASL." },
+  { chiave: "arpa", nome: "ARPA", quando: "verifiche successive alla prima",
+    fonte: "art. 71 c.11 D.Lgs 81/08 — al posto della ASL dove ciò sia previsto con legge regionale." },
+  { chiave: "abilitato", nome: "Soggetto pubblico o privato abilitato", quando: "prima verifica (oltre i termini) e successive",
+    fonte: "art. 71 c.11 e c.13 D.Lgs 81/08 e D.M. 11/04/2011 — abilitazione con iscrizione nell'elenco tenuto dal Ministero del Lavoro e aggiornato con decreto direttoriale." },
+];
+export function enteVerifica(chiave) {
+  return ENTI_VERIFICA.find((e) => e.chiave === chiave) || null;
+}
+/* Una chiave sconosciuta (un dato vecchio, una migrazione) torna SÉ STESSA
+   invece di sparire: è la regola già scritta per `etichettaCausa` nella pagina
+   — un valore che non si sa leggere si mostra, non si nasconde. */
+export function enteVerificaSicuro(chiave) {
+  const k = String(chiave == null ? "" : chiave).trim();
+  if (!k) return null;
+  return enteVerifica(k) || { chiave: k, nome: k, quando: "", fonte: "" };
+}
+
+/* COM'È ANDATA. Tre risposte, non un campo di testo.
+   ⚠️ FONTE E DEDUZIONE, tenute separate. Che l'esito possa essere positivo o
+   negativo — e che con esito negativo l'attrezzatura non si usi finché non è
+   sanata e riverificata — è la sostanza della verifica periodica ed è scritto
+   nella prassi dei soggetti abilitati (fonti secondarie). Il caso di mezzo,
+   «idonea CON PRESCRIZIONI» — anomalia che non compromette la sicurezza
+   immediata, l'attrezzatura resta utilizzabile ma qualcosa va sistemato — è
+   la classificazione che i verificatori usano nei verbali; il D.Lgs 81/08 non
+   la nomina con queste parole. È DEDOTTO dalla prassi, non letto in una
+   norma, ed è anche il caso in cui una cava si trova davvero: per questo ha un
+   campo suo, la data ENTRO cui sanare. */
+export const ESITI_VERIFICA = [
+  { chiave: "idonea", etichetta: "Idonea", cls: "ok",
+    spiega: "Verifica superata: l'attrezzatura può essere usata." },
+  { chiave: "prescrizioni", etichetta: "Idonea con prescrizioni", cls: "warn",
+    spiega: "Può essere usata, ma il verbale chiede di sistemare qualcosa entro una data." },
+  { chiave: "non-idonea", etichetta: "Non idonea", cls: "danger",
+    spiega: "L'attrezzatura non va usata finché non è sanata e riverificata con esito positivo." },
+];
+export function esitoVerifica(chiave) {
+  return ESITI_VERIFICA.find((e) => e.chiave === chiave) || null;
+}
+
+/* QUESTA SCADENZA È UNA VERIFICA PERIODICA? Il confronto passa da
+   `normalizzaTesto`, che l'app usa già per riconoscere che «Corso antincendio»
+   e «Antincendio — aggiornamento» parlano della stessa cosa: il `tipo` arriva
+   anche da un CSV scritto a mano, dove «verifica periodica» minuscolo è la
+   norma e non un errore. Un `===` secco avrebbe guardato COM'È SCRITTO il dato
+   invece di CHE COSA VALE. */
+export function scadenzaDiVerifica(scadenza) {
+  return normalizzaTesto((scadenza || {}).tipo) === normalizzaTesto(TIPO_VERIFICA_PERIODICA);
+}
+
+/* IL LEGAME COL VERBALE. Il verbale è un documento del registro `documenti`,
+   con la sua graffetta e il suo allegato: nessun secondo archivio, come per i
+   documenti di qualifica degli appaltatori e per il ciclo del DSS.
+   ⛔ TRE STATI E NON DUE, ed è la distinzione che `idoneitaOperatore` fa già
+   fra «non collegato» e «collegamento rotto»: nessun verbale indicato è un
+   lavoro non ancora fatto; un `verbaleId` che non trova più niente è un dato
+   da riparare — qualcuno ha tolto quel documento dal registro. Sommarli
+   direbbe una cosa falsa del secondo. */
+export function verbaleDiScadenza(scadenza, documenti) {
+  const id = (scadenza || {}).verbaleId == null ? "" : String(scadenza.verbaleId).trim();
+  if (!id) return { stato: "assente", documento: null };
+  const d = (documenti || []).find((x) => x && String(x.id) === id) || null;
+  return d ? { stato: "trovato", documento: d } : { stato: "rotto", documento: null };
+}
+
+/* LO STATO DELLA VERIFICA. Torna `null` — e non un oggetto tranquillo — per
+   una scadenza che non è una verifica periodica: è la stessa convenzione di
+   `statoPeggioreScadenze`, «non si può calcolare» si dice `null`.
+   `cls` e `badge` escono da QUI e non da una mappa nella pagina: una mappa
+   scritta là è quello che la regola 18 di `run-stile` esiste per impedire —
+   il giorno in cui questa funzione impara un settimo stato, `B[st][0]`
+   ucciderebbe la pagina al disegno, senza nessun errore di sintassi da
+   vedere. È la stessa scelta già fatta per `livelloScadenza`.
+   La data delle prescrizioni la giudica `statoScadenza` (cioè
+   `statoScadenzaHSE` di `shared/dw-ponti.js`, la stessa dello scadenzario, dei
+   turni di Campo e dell'anagrafe appaltatori): una data «2026-13-45» non è né
+   scaduta né valida, è NON LEGGIBILE, e qui vuol dire che non si sa entro
+   quando. */
+export function statoVerificaPeriodica(scadenza, documenti, oggi = new Date()) {
+  if (!scadenzaDiVerifica(scadenza)) return null;
+  const s = scadenza || {};
+  const verbale = verbaleDiScadenza(s, documenti);
+  const ente = enteVerificaSicuro(s.verificaEnte);
+  const chi = String(s.verificaChi == null ? "" : s.verificaChi).trim();
+  const base = { scadenzaId: s.id == null ? null : s.id, ente, chi, verbale,
+    entro: s.verificaEntro || null };
+  /* Le due code si scrivono UNA volta e si appendono a ogni ramo: il verbale
+     che manca e il verificatore che non risulta vanno detti sempre, non solo
+     nel ramo in cui fanno cambiare colore. Nella prima stesura la coda sul
+     verificatore stava nel solo ramo «non verificata» — cioè una verifica
+     dichiarata IDONEA da nessuno usciva verde e muta, che è esattamente il
+     numero tranquillo su una cosa mai guardata. */
+  const codaVerbale = verbale.stato === "trovato" ? ""
+    : verbale.stato === "rotto"
+      ? " Il verbale collegato non è più nel registro documenti: il collegamento è rotto."
+      : " Il verbale non è allegato: qui non c'è il documento che lo dimostri.";
+  const codaChi = ente ? "" : " E non risulta chi l'abbia eseguita.";
+  const fine = codaVerbale + codaChi;
+
+  const es = s.verificaEsito == null ? "" : String(s.verificaEsito).trim();
+  if (!es) return { ...base, esito: "non-verificata", cls: "warn", badge: "Non verificata", noto: false,
+    /* qui la coda sul verificatore NON si appende: senza un esito registrato
+       «non risulta chi l'abbia eseguita» è una seconda volta la stessa cosa,
+       e una frase che si ripete si smette di leggere. */
+    /* ⚠️ e la frase NON ripete «non lo sappiamo»: quel prefisso lo mette già
+       `descriviVerificaPeriodica` leggendo `noto`, e la prima stesura lo
+       diceva due volte nella stessa riga. */
+    perche: "Di questa verifica periodica non risulta nessun esito: non vuol dire che l'attrezzatura non "
+      + "sia a posto, vuol dire che nessuno ha registrato com'è andata." + codaVerbale };
+  const e = esitoVerifica(es);
+  if (!e) return { ...base, esito: "esito-non-letto", cls: "warn", badge: "Esito non letto", noto: false,
+    perche: "L'esito registrato («" + es + "») non è fra quelli che Scudo sa leggere, quindi non si può "
+      + "dire se l'attrezzatura sia utilizzabile." + fine };
+  if (e.chiave === "non-idonea") return { ...base, esito: "non-idonea", cls: "danger", badge: "Non idonea", noto: true,
+    perche: "Verifica con ESITO NEGATIVO: l'attrezzatura non va usata finché non è sanata e riverificata "
+      + "con esito positivo." + fine };
+  if (e.chiave === "prescrizioni") {
+    const st = statoScadenza(s.verificaEntro, oggi);
+    if (st === "senza data") return { ...base, esito: "prescrizioni-senza-data", cls: "warn",
+      badge: "Prescrizioni", noto: false,
+      perche: "La verifica è andata bene MA CON PRESCRIZIONI, e non risulta una data leggibile entro cui "
+        + "sanarle: non si sa entro quando." + fine };
+    if (st === "scaduta") return { ...base, esito: "prescrizioni-scadute", cls: "danger",
+      badge: "Prescrizioni scadute", noto: true,
+      perche: "Le prescrizioni della verifica andavano sanate entro il " + dataIt(s.verificaEntro)
+        + ", e il termine è passato." + fine };
+    return { ...base, esito: "prescrizioni-aperte", cls: "warn", badge: "Prescrizioni", noto: true,
+      perche: "Verifica superata, ma con prescrizioni da sanare entro il " + dataIt(s.verificaEntro) + "." + fine };
+  }
+  /* ⛔ «IDONEA» DETTA DA NOI NON È UN VERBALE. Un esito positivo digitato senza
+     il documento che lo dimostra è la stessa cosa della voce di checklist
+     segnata conforme senza il permesso dietro (`provaVoce`): la verifica può
+     essere stata fatta davvero — il verbale magari è in un cassetto — ma qui
+     non c'è niente che lo provi, e questa è la schermata che si mostra a un
+     ispettore, che il verbale lo chiede in mano. */
+  if (verbale.stato !== "trovato") return { ...base, esito: "idonea-senza-verbale", cls: "warn",
+    badge: "Verbale mancante", noto: false,
+    perche: "L'esito registrato è positivo, ma non c'è il verbale che lo dimostri."
+      + (verbale.stato === "rotto" ? " Il documento collegato non è più nel registro." : "") + codaChi };
+  return { ...base, esito: "idonea", cls: "ok", badge: "Idonea", noto: true,
+    perche: "Verifica eseguita con esito positivo, con il verbale allegato." + codaChi };
+}
+
+/* Chi consuma la bandiera `noto`, e sta nel modulo per la stessa ragione di
+   `descriviQualifica` e `descriviProva`: la frase che distingue «non va bene»
+   da «non lo sappiamo» va decisa in un posto solo (regola 7 di run-stile). */
+export function descriviVerificaPeriodica(v) {
+  if (!v) return "";
+  return (v.noto ? "" : "Non lo sappiamo — ") + v.perche;
+}
+
+/* LE VERIFICHE CHE CHIEDONO QUALCOSA, per il Quadro e per il riepilogo.
+   ⛔ Su uno scadenzario SENZA nessuna verifica periodica torna `quante: 0` e
+   `noto: false`: non è «tutte le attrezzature sono a posto», è «di attrezzature
+   soggette a verifica periodica qui non ne risulta nessuna». È la stessa
+   distinzione di `riepilogoPermessi` sul registro vuoto, e serve per la stessa
+   ragione — il verde su una schermata dove non è stato registrato niente. */
+export function verificheDaSistemare(scadenze, documenti, oggi = new Date()) {
+  const ORDINE = { danger: 0, warn: 1, ok: 2 };
+  const righe = [];
+  for (const s of scadenze || []) {
+    const v = statoVerificaPeriodica(s, documenti, oggi);
+    if (v) righe.push({ scadenza: s, ...v });
+  }
+  const daSistemare = righe.filter((r) => r.cls !== "ok")
+    .sort((a, b) => (ORDINE[a.cls] - ORDINE[b.cls])
+      || String(a.scadenza.dataScadenza || "").localeCompare(String(b.scadenza.dataScadenza || "")));
+  const quanti = (...e) => righe.filter((r) => e.includes(r.esito)).length;
+  return {
+    quante: righe.length, righe, daSistemare,
+    bloccate: quanti("non-idonea"),
+    conPrescrizioni: quanti("prescrizioni-aperte", "prescrizioni-scadute", "prescrizioni-senza-data"),
+    prescrizioniScadute: quanti("prescrizioni-scadute"),
+    nonVerificate: quanti("non-verificata", "esito-non-letto"),
+    senzaVerbale: righe.filter((r) => r.verbale.stato !== "trovato" && r.esito !== "non-verificata").length,
+    noto: righe.length > 0 && daSistemare.length === 0,
+    testo: !righe.length
+      ? "Nello scadenzario non risulta nessuna verifica periodica di attrezzature. Non vuol dire che in "
+        + "cava non ce ne siano di soggette all'allegato VII: vuol dire che qui non ne è registrata nessuna."
+      : daSistemare.length
+        ? [quanti("non-idonea") ? quanti("non-idonea") + (quanti("non-idonea") === 1 ? " non idonea" : " non idonee") : "",
+           quanti("prescrizioni-scadute") ? quanti("prescrizioni-scadute") + " con prescrizioni scadute" : "",
+           quanti("prescrizioni-aperte", "prescrizioni-senza-data") ? quanti("prescrizioni-aperte", "prescrizioni-senza-data") + " con prescrizioni da sanare" : "",
+           quanti("non-verificata", "esito-non-letto") ? quanti("non-verificata", "esito-non-letto") + (quanti("non-verificata", "esito-non-letto") === 1 ? " mai verificata" : " mai verificate") : "",
+           quanti("idonea-senza-verbale") ? quanti("idonea-senza-verbale") + " senza il verbale" : ""]
+          .filter(Boolean).join(" · ") + ", su " + conta(righe.length, "verifica registrata", "verifiche registrate") + "."
+        : (righe.length === 1
+            ? "L'unica verifica periodica registrata è in regola, con il suo verbale."
+            : "Tutte le " + righe.length + " verifiche periodiche registrate sono in regola, con il loro verbale."),
+  };
 }
 
 // ============================================================

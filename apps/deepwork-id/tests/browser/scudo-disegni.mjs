@@ -407,10 +407,23 @@ function giudicaBarre(nome, g, attesi) {
 
 /* ══ SCADENZE · copertura della formazione e muro delle scadenze ══════════ */
 await vaiA("nav-scad", "page-scad");
+/* ⛔ QUESTI DUE ELENCHI SONO «INIETTATO + DIMOSTRAZIONE», E LA SECONDA METÀ
+   CRESCE. Il 07/08 sono caduti tutt'e due — copertura da 10 barre a 11, muro
+   da 1 a 2 nel mese +3 — perché la dimostrazione ha guadagnato le tre
+   verifiche periodiche delle attrezzature (art. 71 c.11). Il messaggio che il
+   banco stampava, «è il CASO a non essersi presentato», era una accusa FALSA:
+   il caso era arrivato benissimo, a cambiare era stato il prodotto. È la
+   famiglia già censita in CLAUDE.md — «un banco che porta dentro un numero
+   atteso invecchia col crescere della dimostrazione» — ed è la seconda volta
+   in due giorni.
+   ⚠️ NON È RISOLTA, è solo ri-misurata: la cura vera è DERIVARE l'attesa
+   invece di scriverla (dal modulo, con la stessa iniezione), ed è un cantiere
+   a sé. Finché non c'è, i numeri stanno qui con la loro data, così chi li
+   ritocca sa che sta ritoccando un'attesa invecchiata e non un difetto. */
 console.log("\n· A — copertura della formazione per tipo (barre orizzontali)");
-giudicaBarre("copertura", await barreDi("graf-copertura", true), [24, 6, 1, 1, 1, 1, 1, 1, 0, 0]);
+giudicaBarre("copertura", await barreDi("graf-copertura", true), [24, 6, 1, 1, 1, 1, 1, 1, 0, 0, 0]); // rimisurato 07/08
 console.log("\n· B — il muro delle scadenze (barre verticali, un mese a zero)");
-giudicaBarre("muro", await barreDi("graf-muro", false), [33, 2, 21, 5, 1, 0, 1]);
+giudicaBarre("muro", await barreDi("graf-muro", false), [33, 2, 21, 5, 2, 0, 1]); // rimisurato 07/08
 
 /* ══ PERSONALE · chi posso mandare ════════════════════════════════════════ */
 await vaiA("nav-pers", "page-pers", "mans");
