@@ -901,6 +901,14 @@ numero scritto dove non era stato misurato niente**.*
 - [x] ✅ **`PALETTE_APP` Parte 6** (`26c0a7a`): le sei palette erano verificate a
   contrasto in **un tema su tre**. La regola che si aggiunge alle otto: *una
   palette non è finita finché non è verificata nei tre temi*.
+- [x] ✅ **La forbice del righello** (`c9b0163` + `a3d71cc`): sopra un fondo a
+  gradiente il banco accoppiava il pixel d'inchiostro più chiaro col pixel di
+  fondo più scuro **anche agli angoli opposti** — 2,92 dichiarato contro **4,71**
+  renderizzato — e lo faceva mentre **cinque cantieri sceglievano colori
+  guardando quei numeri**. La geometria vera è un cantiere a sé; farla a metà
+  sarebbe peggio. Adesso tiene il caso peggiore e **dichiara la forbice**: 4,05
+  sui numeroni dentro un gradiente (dove il conto a mano lo smentiva), **zero**
+  sui testi su fondo pieno (dove aveva ragione alla cifra).
 - [ ] **Le 54 dei temi chiari** — è una **palette**, non una correzione: va
   decisa con la ricerca cromatica e verificata a contrasto. Fra le peggiori:
   «Conforme» nell'esito del report a **2,35** (ne servono 3), «Riferibilità
