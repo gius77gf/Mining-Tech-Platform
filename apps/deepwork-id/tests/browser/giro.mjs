@@ -61,10 +61,32 @@ export const SUPERFICI = [
 
 /* Il core è l'unico che non ha la barra delle sezioni delle app: si naviga con
    la sua funzione `nav`, la stessa che chiamano i suoi bottoni. Le sezioni con
-   la chiocciola sono queste. */
+   la chiocciola sono queste.
+
+   ⛔ E QUESTO ELENCO NE CONTENEVA DICIASSETTE SU TRENTATRÉ, misurato il 07/08.
+   È lo stesso difetto di `SUPERFICI` qui sopra, un piano più in basso: una
+   schermata che non sta qui non la guarda nessun banco del browser, e nessuno
+   se ne accorge — i banchi dicono «ok» su quelle che vedono. Le nove che
+   mancavano non erano schermate di servizio: `rapp` e `rapp-foc` sono i due
+   moduli che si compilano in cava (564 e 420 caratteri di testo, 9 e 10
+   comandi), `volate-list` è il portone dell'editor di volata, e `recon3d`,
+   `splat`, `3d` sono le tre schermate 3D. Il conto è stato fatto aprendo ogni
+   `.screen` del core con `nav()` e misurando testo e comandi visibili.
+
+   ⚠️ SEI RESTANO FUORI, PER DICHIARAZIONE E NON PER SVISTA: `cava-det`,
+   `mac-det`, `mezzo-det`, `editor-cava`, `gemello` e `chat` non si aprono con
+   `nav()` da sole — vogliono una riga scelta prima (`state.cavaSel`,
+   `state.macSel`, `state.chatWith`…). Navigandoci a mano si misura un guscio
+   da 6-21 caratteri
+   e si dichiara «pulito» avendo guardato una schermata vuota, che è il difetto
+   che questo commento esiste per non ripetere. Ci si arriva **cliccando la
+   riga** nella loro lista, ed è quello che fanno i banchi che camminano sui
+   comandi (`modali-dentro.mjs`). */
 export const SEZIONI_CORE = ['@home', '@volate', '@cave', '@menu', '@macchine',
   '@deposito', '@personale', '@clienti', '@ufficio', '@admin', '@strumenti-foc',
-  '@notifiche', '@messaggi', '@contatti', '@impostazioni', '@utenti', '@dashboard'];
+  '@notifiche', '@messaggi', '@contatti', '@impostazioni', '@utenti', '@dashboard',
+  '@rapp', '@rapp-foc', '@rapp-ok', '@volate-list', '@sismogrammi', '@audit',
+  '@recon3d', '@splat', '@3d'];
 
 /* L'utente finto per il core: senza, `renderHome` e mezze schermate non partono
    (`state.user` è nullo e le funzioni escono subito). Il ruolo si sceglie:

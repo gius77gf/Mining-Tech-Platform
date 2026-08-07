@@ -95,7 +95,15 @@ let PORTA = process.argv[2] && /^\d+$/.test(process.argv[2]) ? process.argv[2] :
 /* la controprova serve una COPIA, e la serve su una porta sua */
 const PORTA_COPIA = (process.argv.find((a) => a.startsWith('--porta-copia=')) || '').slice(14) || '8177';
 const SOLO = (process.argv.find((a) => a.startsWith('--solo=')) || '').slice(7);
+/* una sezione sola, per nome (`--sezione=@cave`). Stessa ragione di `--solo=`:
+   un banco che costringe ad aprire tutte le superfici per guardarne una si
+   lancia una volta al giorno, e quindi non si lancia. */
+const SEZIONE = (process.argv.find((a) => a.startsWith('--sezione=')) || '').slice(10);
 const CONTROPROVA = process.argv.includes('--controprova');
+/* stampa il testo di ogni finestra aperta, una volta per finestra: le misure
+   automatiche sono tre, quello che si legge dentro è di più */
+const DIMMI = process.argv.includes('--dimmi');
+const dette = new Set();
 /* `--iniezione=A` (solo il difetto esatto di Sentinella) o `=B` (solo la
    forma generica, su tutte le superfici). Senza, tutt'e due. */
 const QUALE = ((process.argv.find((a) => a.startsWith('--iniezione=')) || '').slice(12) || 'tutte').toUpperCase();
@@ -160,6 +168,60 @@ function quanteModaliEsistono(sorgente) {
   return n;
 }
 
+/* ⛔ E UN NUMERO NON SI PUÒ CONTROLLARE: «11 su 68» non dice QUALI mancano.
+   Dal 07/08 il censimento tira fuori anche il **titolo** di ogni chiamata —
+   il primo argomento — così l'appello si legge per nome, che è la sola forma
+   in cui si vede che cosa non è stato guardato. La regola del repo vale anche
+   qui: una riga che dice «non ho guardato questa» conta più di dieci verdi.
+
+   ⚠️ IL LIMITE È DICHIARATO, perché il confronto non è esatto. Un titolo
+   scritto per intero (`'Nuova cava'`) si riconosce; uno costruito
+   (`` `Rapportino ${fmt(r.data)}` ``) si riconosce dal suo pezzo **fisso**
+   («Rapportino»), perché a schermo le cifre diventano `#` e non tornerebbero
+   mai uguali; uno che di fisso non ha niente (`c.ragsoc`, `html`) non si può
+   confrontare e finisce in un elenco suo, dichiarato invece che dato per
+   raggiunto. Un titolo dato per raggiunto a torto è il modo di far sparire una
+   finestra dall'appello. */
+function titoliDalProgramma(sorgente) {
+  const vivo = mascheraCodice(sorgente);
+  const fuori = [];
+  const nomi = ['apriModale(', 'chiedi(', 'chiediValore(', 'openModal('];
+  for (const nome of nomi) {
+    let i = 0;
+    while ((i = sorgente.indexOf(nome, i)) >= 0) {
+      const prima = sorgente[i - 1] || ' ';
+      const dichiarazione = /function\s+$/.test(sorgente.slice(Math.max(0, i - 12), i));
+      if (vivo[i] !== 1 || dichiarazione || /[A-Za-z0-9_.$]/.test(prima)) { i += nome.length; continue; }
+      /* il primo argomento: dal `(` alla prima virgola di primo livello */
+      let j = i + nome.length, dep = 0, q = null, arg = '';
+      while (j < sorgente.length && j < i + nome.length + 400) {
+        const c = sorgente[j], p = sorgente[j - 1];
+        if (q) { if (c === q && p !== '\\') q = null; }
+        else if (c === "'" || c === '"' || c === '`') q = c;
+        else if ('(['.includes(c) || c === '{') dep++;
+        else if (')]'.includes(c) || c === '}') { if (dep === 0 && c === ')') break; dep--; }
+        else if (c === ',' && dep === 0) break;
+        arg += c; j++;
+      }
+      arg = arg.trim();
+      const riga = sorgente.slice(0, i).split('\n').length;
+      /* il pezzo fisso: quello che si legge a schermo comunque */
+      let fisso = null;
+      const sec = arg.match(/^'((?:[^'\\]|\\.)*)'$/) || arg.match(/^"((?:[^"\\]|\\.)*)"$/);
+      if (sec) fisso = sec[1];
+      else if (arg.startsWith('`')) fisso = arg.slice(1).split('${')[0];
+      else if (/^'/.test(arg)) fisso = arg.slice(1).split("'")[0];   // 'Guasto: '+(g.componente)
+      else if (/^"/.test(arg)) fisso = arg.slice(1).split('"')[0];
+      /* un template SENZA parti calcolate finisce col suo apice inverso:
+         va tolto, se no il nome nell'appello non è quello che si legge */
+      fisso = (fisso || '').replace(/`$/, '').replace(/\\'/g, "'").replace(/\s+/g, ' ').trim();
+      fuori.push({ riga, titolo: fisso, calcolato: fisso.length < 4, arg: arg.slice(0, 40) });
+      i += nome.length;
+    }
+  }
+  return fuori;
+}
+
 /* ══ IL GESTO CHE APRE ═════════════════════════════════════════════════════
    ⛔ IN DUE PASSI, E NON PER ELEGANZA. In un passo solo (scegli-e-clicca) un
    click che porta la pagina altrove distrugge il contesto: la chiamata
@@ -207,8 +269,36 @@ const SCEGLI = ([fatti, forme, quanteVolte]) => {
      comandi diversi. Adesso si cerca la PAROLA, dovunque stia e senza guardare
      le maiuscole (`*=` con la bandiera `i`), invece della sua posizione: un
      elenco scritto sul prefisso è un elenco che il primo sinonimo aggira. */
-  const MAI = '[data-filtro], .chg, [data-goto], .dw-exit, .outdoor-toggle,'
+  /* ⛔ `[data-scr]` È LA NAVIGAZIONE DEL CORE, e fino al 07/08 non era esclusa
+     da niente. `FUORI` toglie `.nav` e `#bottomnav`, che sono i nomi che usano
+     le APP; la barra in basso del core si chiama `.bnav#global-nav`, quindi le
+     sue quattro voci finivano fra i candidati e il banco, in fondo a ogni
+     sezione, si portava da solo su un'altra schermata — poi continuava a
+     cliccare credendo di essere ancora nella sezione di prima. È lo stesso
+     motivo per cui `[data-goto]` è escluso nelle app, e la forma generale è
+     `[data-scr]`: un comando che dichiara una SCHERMATA è navigazione, non
+     una finestra da aprire. (Il `.nav-fab` del core resta dentro: non naviga,
+     apre «Nuovo rapportino».) */
+  const MAI = '[data-filtro], [data-goto], [data-scr], .dw-exit, .outdoor-toggle,'
     + '[id*="tema" i], [title*="tema" i], [aria-label*="tema" i]';
+  /* ⛔ `.chg` NON È UNA PILLOLA DI FILTRO DAPPERTUTTO — misurato il 07/08.
+     L'esclusione era scritta sulla classe, e la ragione (le pillole
+     restringono la lista sotto) vale nelle app. Nel core `.chg` è il bottone
+     d'azione del deposito: PRELEVA, TOTALE, ✕, «+ Aggiungi tipo punta» —
+     quattro finestre del programma che nessun banco poteva aprire. In Campo
+     sono gli otto «C'è / Non c'è» dell'appello del turno, cioè il gesto
+     centrale di quella schermata.
+     Quindi il filtro si riconosce da come si COMPORTA, non da come si chiama:
+     una pillola fra sorelle di cui una è **accesa** (`.active`) sceglie una
+     vista; un bottone solo, o un gruppo senza nessuno acceso, fa una cosa.
+     Misura del cambio, contando i candidati visibili sezione per sezione su
+     tutte le superfici: core 187 → 176 (+48 forme, −4 voci di navigazione),
+     campo 56 → 64 (+8: l'appello), conti/flotta invariate. */
+  const filtro = (e) => {
+    if (!e.matches('.chg, .chip, [data-filtro]')) return false;
+    const padre = e.parentElement;
+    return !!(padre && padre.querySelector('.chg.active, .chip.active, [data-filtro].active'));
+  };
   /* ⛔ `.sitem[onclick]` È LA SECONDA CAUSA DELLA CECITÀ SUL CORE, trovata il
      03/08. Questo elenco era scritto sulla forma delle APP, che usano `.item`;
      il core usa `.sitem` — «SEGNALAZIONE item», la riga di lista da cui si apre
@@ -235,8 +325,19 @@ const SCEGLI = ([fatti, forme, quanteVolte]) => {
      **dichiarare** che sul core misura una superficie senza dati invece di
      dire «non raggiunta». Scritto qui perché il prossimo non ricominci dal
      selettore. */
-  const lista = [...document.querySelectorAll('button, [role="button"], summary, .item[onclick], .sitem[onclick], tr[data-id]')]
-    .filter((e) => vis(e) && !e.closest(FUORI) && !e.matches(MAI));
+  /* ⛔ E L'ELENCO ERA ANCORA SCRITTO SULLA FORMA DELLE APP. Dopo `.sitem`
+     (03/08) restavano fuori tutte le altre forme che nel core aprono qualcosa:
+     `.tile` e `.pcard` (le mattonelle della home e del menu, da cui si va nei
+     moduli), `.atab` (le linguette di deposito, macchine e impostazioni: senza
+     di loro ASTE e LUBRIFICANTI non si vedono, e con loro tre finestre), e
+     `.kpi-card`. Aggiungere un quarto nome all'elenco sarebbe stato il quarto
+     ritocco allo stesso selettore; la domanda giusta è un'altra e non ha nomi
+     dentro: **questo elemento porta un gestore di click?** In questo repo la
+     risposta è l'attributo `onclick`, che tutte le superfici usano. I
+     collegamenti veri (`a[href]`) restano fuori di proposito: portano via dalla
+     pagina, non aprono finestre. */
+  const lista = [...document.querySelectorAll('button, [role="button"], summary, [onclick], .item[onclick], .sitem[onclick], tr[data-id]')]
+    .filter((e) => vis(e) && !e.closest(FUORI) && !e.matches(MAI) && !filtro(e));
   const conta = (f) => forme.filter((x) => x === f).length;
   const el = lista.find((e) => !fatti.includes(identita(e)) && conta(forma(e)) < quanteVolte);
   if (!el) return { fine: true, restano: lista.length };
@@ -266,6 +367,21 @@ const SCEGLI = ([fatti, forme, quanteVolte]) => {
 const TOCCA = async (attesa) => {
   const el = document.querySelector('[data-dw-sonda]');
   if (!el) return { sparito: true };
+  /* ⛔ SI GUARDA COM'ERA PRIMA, se no «c'è una modale» si legge «l'ho aperta
+     io». Misurato il 07/08 sul core: 980 comandi provati e **436 aperture**
+     per **11 finestre diverse**. Il conto era gonfio perché una modale rimasta
+     aperta (la chiusura non sempre riesce, vedi `CHIUDI`) fa rispondere
+     `aperta: true` a ogni tocco successivo — e il banco misurava per centinaia
+     di volte la stessa schermata credendo di guardarne una nuova. È la stessa
+     famiglia dello strumento che scrive sul soggetto che misura: qui lo
+     strumento non azzera lo stato prima di leggerlo. */
+  const prima = (() => {
+    const m0 = document.getElementById('modal');
+    return {
+      cera: !!(m0 && m0.classList.contains('show')),
+      titolo: ((document.getElementById('modal-title') || {}).textContent || '').trim(),
+    };
+  })();
   el.removeAttribute('data-dw-sonda');
   el.click();
   await new Promise((r) => setTimeout(r, attesa));
@@ -275,17 +391,56 @@ const TOCCA = async (attesa) => {
   /* ⛔ LA PROVA DI AVER APERTO, non la speranza: la classe `show`, un riquadro
      largo davvero, e un titolo. Senza questa riga un banco che non apre niente
      risponde «tutto a posto». */
-  const aperta = !!(m && m.classList.contains('show')
+  const cePost = !!(m && m.classList.contains('show')
     && box && box.getBoundingClientRect().width > 1 && titolo.trim());
-  return { aperta, titolo: titolo.trim() };
+  /* nuova = non c'era prima, oppure c'era ma adesso dice un'altra cosa */
+  const nuova = cePost && (!prima.cera || prima.titolo !== titolo.trim());
+  return { aperta: nuova, restata: cePost && !nuova, titolo: titolo.trim() };
+};
+
+/* ⛔ DOVE SONO ADESSO — e non lo dice l'indirizzo. Fino al 07/08 il banco
+   controllava di essere rimasto nella sua sezione con `p.url()`: in una app a
+   schermata sola l'indirizzo non cambia MAI, quindi quel controllo rispondeva
+   sempre «sono a posto». Effetto misurato sul core: partito da `@cave`, il
+   primo comando in ordine di documento è il `←` (che torna indietro), il
+   secondo è il pulsante tondo (che apre «Nuovo rapportino», il cui primo
+   bottone del piede NAVIGA sul modulo) — e da lì in avanti il giro misurava
+   altre schermate credendo di essere fra le cave. Le finestre di `@cave` non
+   le ha aperte nessuno: «Nuova cava» e «Modifica cava» risultavano non
+   raggiungibili mentre il loro bottone era il terzo della lista.
+   La prova di essere nella sezione giusta è la stessa che CLAUDE.md pretende
+   per la navigazione: **quale schermata è visibile**. Se cambia, si torna
+   indietro invece di continuare a misurare un'altra pagina. */
+const DOVE = () => {
+  const a = document.querySelector('.screen.active');          /* il core */
+  if (a) return a.id;
+  const p = [...document.querySelectorAll('.page, .scr, [id^="page-"]')]
+    .filter((e) => getComputedStyle(e).display !== 'none');    /* le app */
+  return p.length ? p[0].id || p[0].className : '';
 };
 
 const CHIUDI = async () => {
+  /* ⛔ E LA CHIUSURA SI VERIFICA, non si spera: se la finestra resta aperta,
+     tutto quello che il banco misura dopo è la finestra di prima. Il primo
+     bottone del piede per convenzione annulla, ma non sempre chiude (nel core
+     «Nuovo rapportino» ha due bottoni che NAVIGANO), e il ripiego conosceva un
+     nome solo (`chiudiModale`, delle app: il core la chiama `closeModal`).
+     Si prova in ordine, e in ultima istanza si toglie la classe a mano — un
+     banco che non sa richiudere è un banco che dalla prima finestra in poi
+     misura sempre quella. Torna `false` quando ha dovuto forzare: chi chiama
+     lo conta e lo dichiara. */
+  const aperta = () => { const m = document.getElementById('modal'); return !!(m && m.classList.contains('show')); };
   const b = document.querySelector('#modal-foot .mbtn, #modal-foot button');
-  if (b) b.click(); else if (typeof window.chiudiModale === 'function') window.chiudiModale();
+  if (b) b.click();
   await new Promise((r) => setTimeout(r, 120));
+  if (!aperta()) return true;
+  for (const nome of ['chiudiModale', 'closeModal']) {
+    if (typeof window[nome] === 'function') { try { window[nome](); } catch (e) {} }
+    if (!aperta()) return true;
+  }
   const m = document.getElementById('modal');
-  return !(m && m.classList.contains('show'));
+  if (m) { m.classList.remove('show'); document.body.classList.remove('modal-open'); }
+  return false;
 };
 
 /* ══ LE TRE MISURE, dentro la modale aperta ════════════════════════════════ */
@@ -367,6 +522,28 @@ const MISURA = ([UNITA, larghezza]) => {
   }
   righello.remove();
 
+  /* 4 · UN BERSAGLIO DI TOCCO TROPPO PICCOLO. CLAUDE.md lo pretende dopo ogni
+     correzione di disposizione — «"ci sta" non è "si usa"», il bottone «Esci»
+     largo 16 px su 44 di altezza, dentro lo schermo e impossibile da premere.
+     Dentro una finestra di conferma vale doppio: è il posto dove si preme il
+     bottone che cancella qualcosa, e la finestra è l'unica parte
+     dell'interfaccia che nasce stretta di suo.
+     ⚠️ Si guardano i COMANDI, non i campi: un `input[type=checkbox]` è piccolo
+     per costruzione e il suo bersaglio vero è la `<label>` che lo contiene. E
+     si salta chi ha dentro un altro comando, se no si misura il contenitore e
+     si assolve il bottoncino. */
+  const piccoli = [];
+  for (const e of ov.querySelectorAll('button, [role="button"], [onclick], a[href]')) {
+    const r = e.getBoundingClientRect();
+    if (r.width < 1 || r.height < 1) continue;
+    if (e.querySelector('button, [role="button"], [onclick], a[href]')) continue;
+    if (r.width < 43.5 || r.height < 43.5) {
+      piccoli.push({ largo: Math.round(r.width), alto: Math.round(r.height),
+        testo: (e.textContent || '').trim().replace(/\s+/g, ' ').slice(0, 30) || e.tagName.toLowerCase(),
+        classe: cls(e) });
+    }
+  }
+
   /* 3 · QUALCOSA CHE ESCE DAL SUO SPAZIO. */
   const box = ov.querySelector('.modal-box, .modal-card');
   if (box) {
@@ -376,9 +553,30 @@ const MISURA = ([UNITA, larghezza]) => {
   }
   const de = document.documentElement;
   if (de.scrollWidth > de.clientWidth + 1) {
-    fuori.push({ che: 'il corpo scorre in orizzontale', largo: de.scrollWidth, schermo: de.clientWidth });
+    /* ⚠️ E SI DICE CHI SPORGE, non solo che il corpo scorre. «333 px su 320»
+       manda a cercare in tutta la pagina; il nome dell'elemento che esce dal
+       bordo destro è la stessa misura, e si può aprire. Il 07/08 il colpevole
+       delle Dashboard (`.chart-card` a 678 px) è saltato fuori così, chiedendo
+       al browser invece di dedurlo. */
+    /* ⚠️ `getBoundingClientRect()` risponde nel VIEWPORT: se la pagina è già
+       scorsa di lato, il bordo destro di chi sporge torna dentro lo schermo e
+       il colpevole non si trova più. Si somma lo scorrimento. */
+    const sx = window.scrollX || document.documentElement.scrollLeft || 0;
+    const sporge = [...document.querySelectorAll('*')]
+      .map((e) => ({ e, destra: e.getBoundingClientRect().right + sx, largo: e.getBoundingClientRect().width }))
+      .filter((x) => x.destra > de.clientWidth + 1 && x.largo > 0)
+      .sort((a, c) => c.destra - a.destra)[0];
+    fuori.push({ che: 'il corpo scorre in orizzontale'
+      + (sporge ? ` — sporge ${sporge.e.tagName.toLowerCase()}.${cls(sporge.e)} fino a ${Math.round(sporge.destra)}`
+                : ' — nessun elemento sporge a destra: guardare il traboccamento ALL\'INDIETRO'),
+      largo: de.scrollWidth, schermo: de.clientWidth });
   }
-  return { maiuscole, tagliati, tendine, fuori, guardati, opzioni };
+  /* per `--dimmi`: il testo che l'utente legge davvero dentro la finestra */
+  const corpo = ((document.getElementById('modal-body') || {}).innerText || '')
+    .replace(/\s+/g, ' ').trim();
+  const piede = ((document.getElementById('modal-foot') || {}).innerText || '')
+    .replace(/\s+/g, ' ').trim();
+  return { maiuscole, tagliati, tendine, fuori, piccoli, guardati, opzioni, corpo, piede };
 };
 
 /* ══ LA CONTROPROVA: I DUE DIFETTI VERI, RIMESSI IN UNA COPIA ══════════════
@@ -409,11 +607,14 @@ const INIEZIONI = [];
 let COPIA = null, servitore = null;
 
 const DENTRO_APRI_MODALE = `document.getElementById("modal-body").innerHTML = corpo;`;
+/* il punto corrispondente dentro il core: lì il corpo E il piede sono già
+   montati, quindi l'iniezione arriva su tutto quello che si vede */
+const DENTRO_OPEN_MODAL_CORE = `document.body.classList.add('modal-open'); // blocca lo scroll del fondo`;
 const INIETTA = `
     /* ── CONTROPROVA (solo nella copia servita dal banco delle modali) ── */
     try {
       var __mb = document.getElementById("modal-body");
-      window.__iniz = window.__iniz || { span: 0, opzioni: 0, unita: 0 };
+      window.__iniz = window.__iniz || { span: 0, opzioni: 0, unita: 0, piccoli: 0 };
       __mb.querySelectorAll("span.u").forEach(function (s) {
         s.replaceWith(document.createTextNode(s.textContent)); window.__iniz.span++;
       });
@@ -434,6 +635,15 @@ const INIETTA = `
         o.textContent = o.textContent + " \\u2014 rilevato in cantiere dallo strumento tarato";
         window.__iniz.opzioni++;
       });
+      /* la quarta misura (07/08): un comando sotto i 44x44 dentro la finestra.
+         Si AGGIUNGE un bottone piccolo invece di rimpicciolirne uno esistente,
+         perche' il piede della finestra qui non e' ancora montato — e un
+         rimpicciolimento che non trova il suo bersaglio e' un'iniezione che
+         non inietta, cioe' la terza causa dell'elenco di CLAUDE.md. */
+      var __pb = document.createElement("button");
+      __pb.textContent = "x";
+      __pb.style.cssText = "width:22px;height:18px;min-height:0;min-width:0;padding:0;";
+      __mb.appendChild(__pb); window.__iniz.piccoli = (window.__iniz.piccoli || 0) + 1;
     } catch (e) {}`;
 
 function inietta(rel, da, a, cosa) {
@@ -466,13 +676,33 @@ if (CONTROPROVA) {
   console.log(`▶ controprova: copia di HEAD in ${dove} — l'albero vivo non viene toccato.`);
   /* le due famiglie si possono lanciare separate: serve a sapere QUALE ha
      fatto cadere che cosa, invece di leggere un verde solo */
-  if (QUALE !== 'B') {
-    inietta('apps/sentinella/index.html', ',.flab .u{', ',.flab-tolta-dalla-controprova .u{',
+  if (QUALE === 'TUTTE' || QUALE === 'A') {
+    /* ⛔ E QUESTA RIGA ERA ROTTA DA GIORNI SENZA CHE NESSUNO LO SAPESSE. Fino
+       al 07/08 cercava `,.flab .u{`, cioè `.flab .u` come **ultimo** selettore
+       della regola; poi qualcuno ha aggiunto legittimamente `.fl .u` accanto
+       (`.flab .u,.fl .u{`) e il bersaglio non c'era più. Il banco lo dice a
+       voce alta ed esce con 2 — quindi non ha mentito — ma la controprova non
+       partiva, e una controprova che non parte è una difesa che non c'è.
+       Adesso si cerca `.flab .u,`, cioè il selettore con la sua virgola, che
+       non dipende da quanti fratelli ha dopo. */
+    inietta('apps/sentinella/index.html', '.flab .u,', '.flab-tolta-dalla-controprova .u,',
       'A · Sentinella: `.flab .u` fuori dalle esenzioni (il difetto del 01/08, alla lettera)');
   }
-  if (QUALE !== 'A') {
+  if (QUALE === 'TUTTE' || QUALE === 'B') {
     inietta('shared/dw-app-ui.js', DENTRO_APRI_MODALE, DENTRO_APRI_MODALE + INIETTA,
       'B · dw-app-ui: unità dentro una classe maiuscola dell\'app, span.u sciolto, voci di tendina allungate');
+  }
+  /* ⛔ E FINO AL 07/08 LA CONTROPROVA NON TOCCAVA IL CORE, cioè la superficie
+     che il fondatore mostra per prima. La famiglia A è di Sentinella, la B
+     entra in `shared/dw-app-ui.js` — e il core non lo carica: ha il suo
+     `openModal`, che è l'originale da cui quella struttura è stata estratta.
+     Quindi il banco poteva dire «so fallire» avendolo dimostrato su sette
+     superfici e mai su quella. È lo stesso difetto che questo file racconta
+     due volte (l'elenco scritto sulla forma delle app), spostato dentro la
+     controprova. */
+  if (QUALE === 'TUTTE' || QUALE === 'C') {
+    inietta('index.html', DENTRO_OPEN_MODAL_CORE, DENTRO_OPEN_MODAL_CORE + INIETTA,
+      'C · core: gli stessi difetti dentro il suo `openModal` (il core non carica dw-app-ui.js)');
   }
 
   /* il server della copia, col contrassegno che dice che stiamo misurando LA
@@ -511,7 +741,7 @@ process.on('exit', togliLaCopia);
 let ko = 0, appPulite = 0;
 let apertePerTutti = 0, elementiPerTutti = 0, opzioniPerTutti = 0, clickPerTutti = 0;
 const tendineTagliate = new Set();
-let inciampi = 0;
+let inciampi = 0, restate = 0, forzate = 0, sviate = 0, scese = 0;
 const interrotte = [];
 const raggiunte = [], nonRaggiunte = [];
 const censimento = [];
@@ -522,10 +752,12 @@ for (const [nome, via] of SUPERFICI) {
   if (SOLO && SOLO !== nome) continue;
   /* il censimento si fa sul file SERVITO, non su quello su disco: è la copia
      che il banco sta guardando */
-  let esistono = null;
+  let esistono = null, programma = [];
   try {
     const r = await fetch(`http://127.0.0.1:${PORTA}${via}`);
-    esistono = quanteModaliEsistono(await r.text());
+    const sorgente = await r.text();
+    esistono = quanteModaliEsistono(sorgente);
+    programma = titoliDalProgramma(sorgente);
   } catch (e) { esistono = null; }
 
   const titoli = new Set();
@@ -533,7 +765,7 @@ for (const [nome, via] of SUPERFICI) {
   /* per la controprova: quanto è ARRIVATA qui (span sciolti, voci allungate)
      e che cosa il banco ha VISTO. Sono due numeri diversi, e l'utile è il
      secondo diviso il primo. */
-  const conto = { span: 0, opzioni: 0, unita: 0, vistoMaiusc: 0, vistoTendina: 0 };
+  const conto = { span: 0, opzioni: 0, unita: 0, piccoli: 0, vistoMaiusc: 0, vistoTendina: 0, vistoPiccoli: 0 };
   /* ⛔ «NON RAGGIUNTA» E «SENZA DATI» SONO DUE COSE DIVERSE, e fino al 06/08 il
      banco le diceva con la stessa frase. Il core stampava «nessuna modale
      aperta — il banco NON ha guardato questa superficie», che si legge «c'è un
@@ -555,16 +787,52 @@ for (const [nome, via] of SUPERFICI) {
     const atteso = p.url();
     for (const s of await sezioniDi(p, nome)) {
       if (p.isClosed()) break;
+      if (SEZIONE && SEZIONE !== s) continue;
       await vaiA(p, nome, s);
       const fatti = [], forme = [];
       let diFila = 0;
+      /* la schermata di casa, letta DOPO essere arrivati */
+      const casa = await p.evaluate(DOVE).catch(() => '');
+      /* ⛔ E «MI SONO SPOSTATO» HA DUE SIGNIFICATI OPPOSTI, che vanno separati
+         o si sbaglia in un verso o nell'altro. Confinare il giro nella sua
+         sezione l'ha reso ripetibile, e ha tolto **tutte** le finestre di
+         dettaglio: la scheda di una cava, di un mezzo, di una macchina e
+         l'editor di volata NON sono sezioni — sono un piano più sotto, e ci si
+         arriva solo cliccando una riga. Rimettendo a posto anche quel tocco,
+         «Modifica cava» diventava irraggiungibile mentre il suo bottone era il
+         terzo dell'elenco. Quindi:
+         · di lato (una schermata che ha già il suo turno nel giro) → si torna
+           indietro: lì misurerebbe due volte e a caso;
+         · più sotto (una schermata che nessuna sezione visita) → si RESTA, e
+           si torna a casa quando i suoi comandi sono finiti. È l'unico modo di
+           aprire le finestre delle schede di dettaglio.
+         L'elenco delle «sue» schermate è **derivato** da quello delle sezioni,
+         non riscritto: per il core `@cave` è `screen-cave`. */
+      const sueSezioni = new Set((await sezioniDi(p, nome))
+        .filter((x) => typeof x === 'string' && x.startsWith('@')).map((x) => 'screen-' + x.slice(1)));
+      let inProfondita = false;
+      const rimettiti = async () => {
+        if (!casa || p.isClosed()) return;
+        const ora = await p.evaluate(DOVE).catch(() => casa);
+        if (ora === casa) { inProfondita = false; return; }
+        if (sueSezioni.size === 0 || sueSezioni.has(ora)) {
+          sviate++; await vaiA(p, nome, s); inProfondita = false; return;
+        }
+        if (!inProfondita) scese++;
+        inProfondita = true;
+      };
       for (let i = 0; i < TETTO; i++) {
         const scelto = await p.evaluate(SCEGLI, [fatti, forme, PER_FORMA]).catch(() => null);
         if (!scelto) {   /* nemmeno la scelta risponde: la pagina non c'è più */
           inciampi++; if (++diFila >= 5) { interrotte.push(`${nome}/${s}@${larghezza}`); break; } continue;
         }
         if (typeof scelto.restano === 'number' && scelto.restano > candidatiQui) candidatiQui = scelto.restano;
-        if (scelto.fine) break;
+        if (scelto.fine) {
+          /* finiti i comandi della scheda di dettaglio: si risale, non si
+             chiude la sezione — quello che restava da provare sta a casa */
+          if (inProfondita) { await vaiA(p, nome, s); inProfondita = false; continue; }
+          break;
+        }
         fatti.push(scelto.chiave); forme.push(scelto.sagoma);
         clickPerTutti++; clickQui++;
         const r = await p.evaluate(TOCCA, 170).catch(() => null);
@@ -588,16 +856,37 @@ for (const [nome, via] of SUPERFICI) {
           continue;
         }
         diFila = 0;
-        if (!r.aperta) continue;
+        /* la finestra c'era già e il tocco non l'ha cambiata: non è
+           un'apertura, è la stessa schermata riletta. Si conta a parte e si
+           richiude, se no il giro seguente la rilegge di nuovo. */
+        if (r.restata) { restate++; await p.evaluate(CHIUDI).catch(() => {}); await rimettiti(); continue; }
+        if (!r.aperta) { await rimettiti(); continue; }
         aperteQui++; apertePerTutti++;
         /* ⚠️ «QUANTE MODALI DIVERSE» NON È «QUANTI TITOLI DIVERSI»: il titolo
            si porta dentro la data e il nome della riga («Correggi la misura
            del 12/07/2026»), quindi contando i titoli vivi una chiamata sola
            sembrava ventisette modali — cioè un numero più alto del censimento,
            che è il segno che si sta contando un'altra cosa. Via le cifre. */
-        titoli.add(r.titolo.replace(/\d+/g, '#').replace(/\s+/g, ' ').slice(0, 46));
+        const magro = r.titolo.replace(/\d+/g, '#').replace(/\s+/g, ' ').slice(0, 46);
+        titoli.add(magro);
         const m = await p.evaluate(MISURA, [UNITA, larghezza]).catch(() => null);
-        await p.evaluate(CHIUDI).catch(() => {});
+        /* ⚠️ `--dimmi` STAMPA QUELLO CHE C'È DENTRO, una volta per finestra.
+           Serve perché tre misure automatiche non sono un occhio: i due difetti
+           per cui questo banco esiste li ha trovati una persona che guardava.
+           Un plurale sbagliato col numero 1, un numero tranquillo dove non è
+           stato misurato niente, una frase che si contraddice: si vedono
+           leggendo, e leggere costa solo se il testo non è stampato. */
+        if (DIMMI && m && !dette.has(magro)) {
+          dette.add(magro);
+          console.log(`\n  ▸ ${nome} «${r.titolo}»\n    ${(m.corpo || '(vuoto)').slice(0, 700)}\n    [piede] ${m.piede || '(nessun bottone)'}`);
+        }
+        const chiusa = await p.evaluate(CHIUDI).catch(() => null);
+        if (chiusa === false) forzate++;
+        /* ⚠️ E LA CHIUSURA STESSA PUÒ PORTARE ALTROVE: il primo bottone del
+           piede per convenzione annulla, ma nel core «Nuovo rapportino» ne ha
+           due che NAVIGANO sul modulo. Senza questa riga il giro proseguiva
+           sul modulo credendo di essere nella sezione di partenza. */
+        await rimettiti();
         if (!m) continue;
         elementiPerTutti += m.guardati; opzioniPerTutti += m.opzioni;
         for (const x of m.tendine) if (!x.scelta) tendineTagliate.add(`${nome}|${x.id}|${x.testo}`);
@@ -630,6 +919,12 @@ for (const [nome, via] of SUPERFICI) {
             console.log(`  KO  ${nome} @${larghezza} «${r.titolo.slice(0, 30)}»: la tendina #${x.id} mostra «${x.testo}» tagliato — chiede ${x.serve} px in ${x.spazio}`);
           }
         }
+        for (const x of m.piccoli) {
+          conto.vistoPiccoli++;
+          if (dillo(`TOCCO|${x.classe}|${x.testo}`)) {
+            console.log(`  KO  ${nome} @${larghezza} «${r.titolo.slice(0, 30)}»: il comando «${x.testo}» è ${x.largo}×${x.alto} px — sotto i 44×44  .${x.classe}`);
+          }
+        }
         for (const x of m.fuori) {
           if (dillo(`FUORI|${x.che}`)) {
             console.log(`  KO  ${nome} @${larghezza} «${r.titolo.slice(0, 30)}»: ${x.che} — ${x.largo} px su ${x.schermo}`);
@@ -638,12 +933,12 @@ for (const [nome, via] of SUPERFICI) {
       }
     }
     if (CONTROPROVA) {
-      const z = await p.evaluate(() => window.__iniz || { span: 0, opzioni: 0, unita: 0 }).catch(() => null);
-      if (z) { conto.span += z.span; conto.opzioni += z.opzioni; conto.unita += z.unita; }
+      const z = await p.evaluate(() => window.__iniz || { span: 0, opzioni: 0, unita: 0, piccoli: 0 }).catch(() => null);
+      if (z) { conto.span += z.span; conto.opzioni += z.opzioni; conto.unita += z.unita; conto.piccoli += (z.piccoli || 0); }
     }
     await ctx.close();
   }
-  censimento.push({ app: nome, esistono, aperte: titoli.size, conto, quali: [...titoli], candidati: candidatiQui, provati: clickQui });
+  censimento.push({ app: nome, esistono, aperte: titoli.size, conto, quali: [...titoli], programma, candidati: candidatiQui, provati: clickQui });
   if (aperteQui === 0) {
     nonRaggiunte.push(nome);
     if (candidatiQui === 0) {
@@ -673,7 +968,26 @@ for (const c of censimento) {
     + (c.aperte === 0 ? `   [${c.candidati} comandi trovati, ${c.provati} provati: ${c.candidati ? 'senza dati' : 'non raggiunta'}]` : ''));
   /* le finestre aperte si dicono per NOME: un numero non si può controllare,
      un elenco sì — e quello che manca all'appello si vede */
-  if (c.quali.length) console.log(`      ${c.quali.join(' · ').slice(0, 300)}`);
+  if (c.quali.length) console.log(`      aperte: ${c.quali.join(' · ')}`);
+  /* ⛔ E SOPRATTUTTO QUELLE CHE NON SI SONO APERTE, per nome e per riga: è la
+     riga «non ho guardato» che in questo repo è rimasta stampata per mesi
+     senza che nessuno la leggesse, adesso scritta in modo che si possa
+     controllare voce per voce invece che credere a un numero. */
+  if (c.programma && c.programma.length) {
+    const viste = c.quali;
+    const chiusa = (t) => viste.some((v) => v.toLowerCase().startsWith(t.toLowerCase().slice(0, 24)));
+    const mancanti = c.programma.filter((x) => !x.calcolato && !chiusa(x.titolo));
+    const calcolati = c.programma.filter((x) => x.calcolato);
+    const perNome = [...new Set(mancanti.map((x) => `${x.titolo} (r.${x.riga})`))];
+    if (perNome.length) {
+      console.log(`      NON APERTE (${perNome.length} titoli su ${c.programma.length} chiamate):`);
+      for (let k = 0; k < perNome.length; k += 3) console.log('        · ' + perNome.slice(k, k + 3).join(' · '));
+    }
+    if (calcolati.length) {
+      console.log(`      titolo COSTRUITO a tempo di esecuzione, non confrontabile (${calcolati.length}): `
+        + calcolati.map((x) => `r.${x.riga} ${x.arg}`).join(' · ').slice(0, 220));
+    }
+  }
 }
 console.log(`   ${'TOTALE'.padEnd(22)} ${String(esistonoTot).padStart(3)}                 →  ${String(aperteTot).padStart(3)}`);
 console.log(`\n${appPulite} superfici pulite, ${ko} cose da guardare (contate per larghezza: la stessa`);
@@ -689,6 +1003,15 @@ console.log(`soggetti guardati: ${apertePerTutti} aperture di modale, ${elementi
    a tendina chiusa: lì il valore mostrato è monco. Le altre si contano, così
    il numero resta sotto gli occhi invece di sparire. */
 console.log(`voci di tendina tagliate ma non scelte (dichiarate, non bocciate): ${tendineTagliate.size}`);
+/* ⚠️ E QUESTE DUE RIGHE DICONO SE IL RIGHELLO REGGE. «Restate» sono i tocchi
+   che hanno trovato la finestra di prima ancora aperta: fino al 07/08 venivano
+   contati come aperture (436 su 11 finestre vere). «Forzate» sono le chiusure
+   in cui il primo bottone del piede non ha chiuso: se quel numero cresce, il
+   banco sta misurando la finestra sbagliata da qualche parte. */
+console.log(`finestre già aperte ritrovate al tocco (non contate come aperture): ${restate}`
+  + ` · chiusure che hanno dovuto forzare: ${forzate}`
+  + ` · tocchi che hanno portato di lato (rimessi a posto): ${sviate}`
+  + ` · discese in una scheda di dettaglio (seguite fino in fondo): ${scese}`);
 /* ⚠️ GLI INCIAMPI SI DICHIARANO: un tocco che porta la pagina altrove fa
    perdere il resto della sezione, e un banco che non lo dice sembra averla
    guardata tutta. */
@@ -712,20 +1035,22 @@ if (CONTROPROVA) {
   if (QUALE === 'A') {
     console.log('   (solo la famiglia A: le colonne del conto a tempo di esecuzione sono di B e restano a zero)');
   }
-  let arrivate = 0, viste = 0, spanTot = 0, opzTot = 0, uniTot = 0;
+  let arrivate = 0, viste = 0, spanTot = 0, opzTot = 0, uniTot = 0, picTot = 0;
   for (const c of censimento) {
     const q = c.conto;
-    const arrivata = q.span + q.opzioni + q.unita > 0;
-    const vista = q.vistoMaiusc + q.vistoTendina > 0;
+    const arrivata = q.span + q.opzioni + q.unita + q.piccoli > 0;
+    const vista = q.vistoMaiusc + q.vistoTendina + q.vistoPiccoli > 0;
     if (arrivata) arrivate++;
     if (vista) viste++;
-    spanTot += q.span; opzTot += q.opzioni; uniTot += q.unita;
+    spanTot += q.span; opzTot += q.opzioni; uniTot += q.unita; picTot += q.piccoli;
     console.log(`   ${String(c.app).padEnd(22)} iniettato: ${String(q.span).padStart(3)} span sciolti, `
-      + `${String(q.unita).padStart(3)} unità messe in una classe maiuscola, ${String(q.opzioni).padStart(4)} voci allungate`
-      + `  →  visto: ${q.vistoMaiusc} unità in maiuscolo, ${q.vistoTendina} tendine tagliate`
+      + `${String(q.unita).padStart(3)} unità messe in una classe maiuscola, ${String(q.opzioni).padStart(4)} voci allungate,`
+      + ` ${String(q.piccoli).padStart(3)} comandi rimpiccioliti`
+      + `  →  visto: ${q.vistoMaiusc} unità in maiuscolo, ${q.vistoTendina} tendine tagliate, ${q.vistoPiccoli} bersagli piccoli`
       + `  ${arrivata ? (vista ? '✓' : '✗ ARRIVATA E NON VISTA') : (QUALE === 'A' ? '·' : '· non arrivata')}`);
   }
-  console.log(`   ${spanTot + uniTot + opzTot} iniezioni in tutto (${spanTot} span, ${uniTot} unità, ${opzTot} voci)`
+  console.log(`   ${spanTot + uniTot + opzTot + picTot} iniezioni in tutto (${spanTot} span, ${uniTot} unità, `
+    + `${opzTot} voci, ${picTot} comandi rimpiccioliti)`
     + ` su ${arrivate} superfici; il banco le ha viste su ${viste}.`);
   console.log(ko ? '  ✓ la controprova è stata vista: il banco sa fallire'
                  : '  ✗ IL BANCO NON SA FALLIRE: i difetti erano dentro e non se n\'è accorto');

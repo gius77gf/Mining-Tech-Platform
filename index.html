@@ -8076,9 +8076,23 @@ body.outdoor-mode .topbar-search-input:focus{border-color:#c77800;width:180px;}
 .kpi-card.kpi-warn .kpi-val{color:var(--warn);}
 .kpi-card.kpi-danger .kpi-val{color:var(--danger);}
 .kpi-sub{font-size:10px;color:var(--muted);margin-top:3px;}
-.chart-card{background:var(--card);border:1px solid var(--border);padding:12px;margin-bottom:10px;}
+/* ⛔ `min-width:0` NON È UNA RIFINITURA: senza, la Dashboard scorre di lato.
+   Le due torte secondarie stanno in una griglia `1fr 1fr`, e dentro ognuna
+   c'è un `<canvas>`. Una colonna `1fr` non scende sotto la larghezza
+   *intrinseca* del suo contenuto, e un canvas senza attributi vale **300 px**
+   per specifica: le due schede diventavano larghe 326 px l'una e il documento
+   678 px su uno schermo da 390 — la pagina intera si mette a scorrere in
+   orizzontale e le torte escono. Misurato il 07/08 chiedendo al browser quale
+   elemento sporgesse (`getBoundingClientRect().right`), non deducendolo.
+   ⚠️ Il limite della misura, dichiarato: Chart.js arriva da un CDN, e nel
+   banco non c'è rete — quindi il canvas resta alla sua misura di specifica.
+   Ma il core è una PWA che deve funzionare **anche senza rete**, e in cava
+   succede: questo è lo stato in cui si apre la Dashboard quando la libreria
+   non arriva, non un artificio del banco. */
+.chart-card{background:var(--card);border:1px solid var(--border);padding:12px;margin-bottom:10px;min-width:0;}
 .chart-card-title{font-size:11px;color:var(--muted);letter-spacing:2px;text-transform:uppercase;margin-bottom:10px;font-weight:700;}
-.chart-host{position:relative;height:220px;width:100%;}
+.chart-host{position:relative;height:220px;width:100%;min-width:0;}
+.chart-host canvas{max-width:100%;}
 .info-box{background:var(--card2);border-left:3px solid var(--info);padding:10px 12px;margin-top:10px;font-size:12px;color:var(--muted2);line-height:1.5;}
 .info-box b{color:var(--text);}
 /* ── F1: Editor fronte cava ── */
@@ -8284,6 +8298,22 @@ body.modal-open{overflow:hidden;}
 /* Tap target ≥44px (48px in outdoor) su utility piccole */
 .chg,.chip,.mbtn,.atab{min-height:44px;display:inline-flex;align-items:center;justify-content:center;}
 .add-btn{width:46px;height:46px;}.dep-btn{width:42px;height:42px;}
+/* ⛔ E I COLLEGAMENTI DENTRO UNA FINESTRA ERANO RIMASTI FUORI DA QUESTA RIGA.
+   Misurato il 07/08 aprendo le finestre una per una: il numero di telefono e
+   l'email nella scheda del cliente, il telefono nella scheda di una persona e
+   il collegamento «Volata #1 · 13/07/2026» che dalla scheda del rapportino
+   porta al progetto sono `<a>` in mezzo al testo — alti **15 px**. Sono
+   esattamente i comandi che si premono con i guanti in cava, e stanno
+   nell'unica parte dell'interfaccia che nasce stretta. */
+.modal-body a{display:inline-flex;align-items:center;min-height:44px;}
+/* ⛔ DENTRO UNA FINESTRA IL TAGLIO CON I PUNTINI SI PORTA VIA LA PARTE CHE
+   DISTINGUE UNA RIGA DALL'ALTRA. Nelle liste va bene (la riga è un elenco che
+   si scorre), ma in «Allega rapportino perforazione» la riga È la scelta: a
+   320 px «Cava Monte Serra · 28/07/2026» chiedeva 186 px in 168 e quello che
+   spariva era **la data**, cioè l'unica cosa che distingue i cinque
+   rapportini fra loro. Stessa cosa in «Riconciliazione», dove il pezzo tolto
+   erano i mc. In una finestra le righe sono poche: si va a capo. */
+.modal-body .sname,.modal-body .ssub{white-space:normal;overflow:visible;text-overflow:clip;}
 body.outdoor-mode .chg,body.outdoor-mode .chip,body.outdoor-mode .mbtn,body.outdoor-mode .atab{min-height:48px;}
 /* Stato input non valido percepibile */
 .finput.err,.fi.err{border-color:var(--danger)!important;background:rgba(239,83,80,.08);}

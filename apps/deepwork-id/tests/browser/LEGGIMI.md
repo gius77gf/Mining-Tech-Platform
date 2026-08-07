@@ -530,14 +530,15 @@ risponde **sempre di no**. Per loro si misura quanto spazio chiede il testo
 dell'opzione mettendolo in uno `<span>` col **font vero della tendina**: non è
 un calcolo, è la stessa domanda fatta a un elemento che sa rispondere.
 
-Le tre cose che misura, e non di più (un banco che ne misura otto e ne sbaglia
-una diventa un banco che nessuno guarda):
+Le **quattro** cose che misura, e non di più (un banco che ne misura otto e ne
+sbaglia una diventa un banco che nessuno guarda):
 
 | | come lo chiede al browser |
 |---|---|
 | un'unità di misura in maiuscolo | `getComputedStyle(...).textTransform` **effettivo** — `innerText` su un elemento nascosto ricade su `textContent` e il maiuscolo non si vede |
 | testo tagliato | `scrollWidth > clientWidth`, `scrollHeight > clientHeight` (verticale solo dove il taglio è netto), e per le tendine la misura del font |
-| qualcosa che esce dal suo spazio | la finestra più larga dello schermo, o il corpo che scorre in orizzontale — a **320 px** oltre che a 390 |
+| qualcosa che esce dal suo spazio | la finestra più larga dello schermo, o il corpo che scorre in orizzontale — a **320 px** oltre che a 390, e col **nome dell'elemento che sporge**, che è la differenza fra un allarme e una cosa da aprire |
+| un bersaglio di tocco sotto 44×44 | *(dal 07/08)* `getBoundingClientRect()` sui **comandi** della finestra — non sui campi, che sono piccoli per costruzione e il cui bersaglio vero è la loro `<label>` |
 
 L'elenco delle unità **non è riscritto qui**: si legge da `unita-maiuscole.mjs`,
 dove vive con la ragione di ogni voce. Una seconda copia nasce uguale e diverge
@@ -546,23 +547,119 @@ al primo cambiamento.
 ```sh
 node apps/deepwork-id/tests/browser/modali-dentro.mjs 8823
 node apps/deepwork-id/tests/browser/modali-dentro.mjs 8823 --solo=sentinella
+node apps/deepwork-id/tests/browser/modali-dentro.mjs 8823 --solo=core --sezione=@cave
+node apps/deepwork-id/tests/browser/modali-dentro.mjs 8823 --solo=core --dimmi
 node apps/deepwork-id/tests/browser/modali-dentro.mjs 8823 --controprova
 ```
 
 Costa una mezz'ora sulle quattordici superfici; con `--solo=` sono un paio di
-minuti. In fondo stampa **il censimento**: quante modali esistono nel programma
+minuti, con `--sezione=` una manciata di secondi. `--dimmi` stampa **il testo di
+ogni finestra aperta**, una volta per finestra: le misure automatiche sono
+quattro, quello che si legge dentro è di più — e i due difetti per cui questo
+banco esiste li ha trovati una persona che guardava.
+
+In fondo stampa **il censimento**: quante modali esistono nel programma
 di ogni superficie (le chiamate vere ad `apriModale`/`chiedi`/`chiediValore`/
 `openModal`, contate con `mascheraCodice` così un `chiedi(` dentro un commento
 non conta) e quante ne ha **aperte e guardate**, più i soggetti misurati e le
 superfici **non raggiunte**.
 
+⛔ **E dal 07/08 l'appello si legge PER NOME.** «11 su 68» non si può
+controllare: non dice quali mancano, quindi nessuno può accorgersi che manca
+proprio quella importante. Adesso il censimento tira fuori anche il **titolo**
+di ogni chiamata del programma e stampa l'elenco delle **non aperte** con la
+riga di ognuna. Il limite è dichiarato: un titolo scritto per intero si
+riconosce, uno costruito (`` `Rapportino ${fmt(r.data)}` ``) si riconosce dal
+suo pezzo fisso, e uno che di fisso non ha niente (`c.ragsoc`) finisce in un
+elenco a parte invece di essere dato per raggiunto — perché un titolo dato per
+raggiunto a torto è il modo di far sparire una finestra dall'appello.
+
+### ⛔ 07/08 — sul core: da 11 modali su 68 a 38, e le tre cause erano tutte nel banco
+
+Il buco era **dichiarato da mesi** in fondo a questo riepilogo e nessuno lo
+leggeva. Le due diagnosi precedenti (il selettore `.sitem`, poi «la
+dimostrazione del core è vuota») erano state chiuse, e restava «11 su 68».
+Misurando invece di dedurre sono venute fuori **tre** cause, tutte e tre della
+stessa famiglia — il banco scritto sulla forma delle app:
+
+1. **il giro non era mai stato dentro le sezioni che credeva.** Il controllo
+   «sono rimasto dove ero?» era `p.url()`, e in una app a schermata sola
+   l'indirizzo **non cambia mai**: rispondeva sempre di sì. Partendo da `@cave`
+   il primo comando in ordine di documento è il `←` e il secondo il pulsante
+   tondo — la cui finestra ha due bottoni che **navigano** — e da lì in poi il
+   giro misurava altre schermate. «Nuova cava» risultava irraggiungibile mentre
+   il suo bottone era il terzo dell'elenco. Adesso la prova è **quale schermata
+   è visibile** (`DOVE`), che è la stessa che CLAUDE.md pretende per la
+   navigazione;
+2. **e «mi sono spostato» ha due significati opposti.** Confinato nella sua
+   sezione, il giro è diventato ripetibile e ha perso **tutte** le finestre di
+   dettaglio: la scheda di una cava, di un mezzo, di una persona e l'editor di
+   volata non sono sezioni, sono un piano più sotto e ci si arriva solo
+   cliccando una riga. Adesso: **di lato** (una schermata che ha già il suo
+   turno) si torna indietro, **più sotto** (una schermata che nessuna sezione
+   visita) si resta finché i suoi comandi non finiscono. L'elenco delle «sue»
+   schermate è **derivato** da quello delle sezioni, non riscritto;
+3. **l'elenco delle sezioni del core ne conteneva 17 su 33** (corretto in
+   `giro.mjs`, e vale per **tutti** i banchi del browser, non solo per questo).
+
+E due conti erano gonfi: «436 aperture» su 11 finestre vere, perché una
+finestra rimasta aperta faceva rispondere «aperta» a ogni tocco successivo —
+`TOCCA` adesso guarda **com'era prima** del click, e `CHIUDI` verifica di aver
+chiuso invece di sperarlo (il ripiego conosceva un nome solo, `chiudiModale`
+delle app: il core la chiama `closeModal`).
+
+Misura, sul solo core: **11 → 38 finestre su 68**, 176 aperture vere, 3.632
+elementi misurati, 530 comandi provati, 190 tocchi rimessi in sezione, 32
+discese in una scheda di dettaglio. E **22 cose da guardare** che prima non
+vedeva nessuno: cinque `<a>` alti 15 px dentro le finestre (il telefono e
+l'email del cliente, il telefono di una persona, il collegamento dalla scheda
+del rapportino al progetto di volata), il taglio della **data** nelle righe di
+«Allega rapportino perforazione» a 320 px — cioè l'unica cosa che distingue i
+cinque rapportini fra loro — e la Dashboard che a 390 px rendeva il documento
+largo **678 px** (due `<canvas>` in una griglia `1fr 1fr` senza `min-width:0`:
+un canvas senza attributi vale 300 px per specifica).
+
+**Le 30 che restano chiuse, per famiglia** (l'elenco per nome lo stampa il
+banco):
+- **volute da un altro stato**: `Password dimenticata` sta sulla schermata
+  d'accesso, e il banco entra prima di guardare; `Rapportino non salvato` (×2) e
+  `Modifiche non salvate` vogliono che qualcuno abbia **scritto** nel modulo;
+- **volute da un dato che la dimostrazione non ha**: `〰️ Sismogramma` (nessun
+  sismogramma), `Volata` di `apriRappFocDett`;
+- **aperte da dentro un'altra finestra**: `Elimina cava`, `Modifica personale`,
+  `Conferma eliminazione`, `Eliminare utente?`, `Modifica cliente`,
+  `Elimina cliente` stanno nel **piede** di un'altra scheda, e il banco il piede
+  lo usa per chiudere;
+- **volute da una libreria che arriva da un CDN**: `Esporta Excel`,
+  `Report tecnico` e `Esporta PDF mensile` escono con un `toast` e un `return`
+  se `XLSX`/`jspdf` non ci sono (righe 4093, 4188, 4284) — e nel banco non c'è
+  rete. Non è un difetto del banco né del prodotto: è uno stato dichiarato;
+- **volute da un attrezzo dell'editor scelto prima**: `Reset`,
+  `Applica a tutti i fori`, `Incolla parametri`, `Rimuovi tutte le connessioni`,
+  `Distanza reale fra i due punti`, `Portare i fori nella volata`,
+  `📥 Import dati MWD`, `🪨 Frammentazione post-volata`;
+- **dietro una linguetta**: `Nuovo mezzo da strada`, `Nuovo tipo punta`,
+  `Nuovo tipo asta`, `Nuovo lavoro`, `Nuova check-list`, `Segnala guasto`,
+  `Guasto:` — la linguetta si preme, ma il comando che compare dopo ha la
+  **stessa impronta** di quello della linguetta di prima (`+`), quindi il giro
+  lo considera già fatto. È la prossima cosa da sistemare: l'impronta di un
+  comando dovrebbe portarsi dietro la linguetta attiva.
+
 ### Tre cose imparate guidando l'app, tutte e tre nel verso che fa guardare MENO
 
-1. le pillole dei filtri (`.chg`, `[data-filtro]`) **restringono la lista
-   sotto**: cliccando «Superamenti» i punti di misura di Sentinella scendono da
-   40 a 25 e i loro comandi spariscono dal giro. Si escludono;
+1. le pillole dei filtri **restringono la lista sotto**: cliccando
+   «Superamenti» i punti di misura di Sentinella scendono da 40 a 25 e i loro
+   comandi spariscono dal giro. Si escludono — ma **non per la classe**: il
+   07/08 si è misurato che `.chg` nel core è il bottone d'azione del deposito
+   (PRELEVA, TOTALE, ✕, «+ Aggiungi tipo punta») e in Campo sono gli otto
+   «C'è / Non c'è» dell'appello del turno. Il filtro si riconosce da come si
+   comporta: una pillola fra sorelle di cui **una è accesa**. Costo della
+   stretta, contando i candidati visibili su tutte le superfici: core 187 → 176,
+   campo 56 → 64, scudo 65 → 66, **tutte le altre invariate**;
 2. `[data-goto]` porta **in un'altra sezione**, e il giro finirebbe a misurare
-   una schermata credendo di essere altrove;
+   una schermata credendo di essere altrove. Dal 07/08 anche `[data-scr]`, che
+   è la stessa cosa nella barra in basso del **core** (`.bnav#global-nav`, un
+   nome che né `.nav` né `#bottomnav` prendevano);
 3. **l'impronta di un comando non può essere la sua etichetta**: la linguetta
    della serie storica si chiama «Apri…» da chiusa e «Chiudi…» da aperta,
    quindi al giro dopo sembrava un comando NUOVO e la **richiudeva** — e la
@@ -582,16 +679,23 @@ risponde qualcun altro il banco **si ferma** invece di misurare la copia di un
 altro. L'albero vivo non viene toccato in nessun momento, e non si usa mai
 `git checkout` né `git stash`.
 
-Due famiglie, perché «so fallire in un punto» non dimostra niente sugli altri:
+Tre famiglie, perché «so fallire in un punto» non dimostra niente sugli altri:
 
 - **A, esatta, una superficie**: in Sentinella si toglie `.flab .u` dall'elenco
   delle esenzioni. È alla lettera il difetto del 01/08.
 - **B, generica, tutte le superfici che caricano `shared/dw-app-ui.js`**: dentro
   `apriModale`, lo `<span class="u">` viene **sciolto** (la forma generale del
-  difetto 1) e le voci delle tendine vengono **allungate** (la forma generale
-  del difetto 2).
+  difetto 1), le voci delle tendine vengono **allungate** (la forma generale del
+  difetto 2) e si appende un bottone da 22×18 px (la forma del difetto 4).
+- **C, il core** *(dal 07/08)*: gli stessi difetti dentro il suo `openModal`.
+  ⛔ Serviva, e la sua mancanza era della stessa famiglia di tutto il resto di
+  questa pagina: la famiglia A è di Sentinella, la B entra in
+  `shared/dw-app-ui.js` — **e il core non lo carica**, perché ha il suo
+  `openModal`, che è l'originale da cui quella struttura è stata estratta.
+  Quindi il banco diceva «so fallire» avendolo dimostrato su sette superfici e
+  **mai** su quella che il fondatore mostra per prima.
 
-Si possono lanciare separate — `--iniezione=A` e `--iniezione=B` — e serve:
+Si possono lanciare separate — `--iniezione=A`, `=B`, `=C` — e serve:
 con la sola A si vede che il difetto **esatto** del 01/08 fa cadere il banco
 (`«(dB(A))» in maiuscolo … .u`, quattro bocciature che nel giro pulito non
 ci sono), invece di leggere un verde solo in cui le due famiglie si coprono
@@ -905,3 +1009,45 @@ istante `genesi_scheda_volata.csv` dice `Carica totale (kg);696` e il
 `.volata.json` **720**. Non è una copia debole (il file è d'accordo con il suo
 schermo, che è il pannello 3D): è la decisione, più grossa di un cantiere, su
 quale stato debba esportare il bottone «Esporta» della Home.
+
+---
+
+## `frasi-da-uno.mjs` — l'ATTREZZO del setaccio, non un banco
+
+⚠️ **Non gira da solo** (porta il marcatore `NON VA IN npm test`): è il posto
+dove stanno il **vocabolario** e i **tre rilevatori** che i banchi «frasi da
+uno» importano.
+
+**Perché esiste.** I tre rilevatori sono nati il 06/08 dentro
+`campo-sentinella-frasi.mjs`. Il 07/08 erano già scritti **due volte** — la
+seconda in `scudo-frasi-da-uno.mjs` — e stavano per essere scritti una terza
+per Terra. È la copia debole che CLAUDE.md censisce, applicata ai **controlli**
+invece che al prodotto: due elenchi di parole nati uguali divergono al primo
+cambiamento, e da quel momento la stessa domanda riceve due risposte diverse a
+seconda del banco che la fa.
+
+Cosa espone: `PAROLE`, `INVARIABILI`, `VERBI`, `AGGETTIVI`, i tre rilevatori
+`D1`/`D2`/`D3`, `setaccia(dove, testo)`, `testoDocumento(html)` (per i fogli
+che escono in una finestra nuova, dove non arriva `innerText`) e
+`AGGANCIO_DOPO_CARICO` (ferma i `<a download>` e intercetta il **toast** —
+che dal DOM non si legge, perché sparisce da solo).
+
+⛔ **Le due cose entrate il 07/08, con la ragione:**
+1. **D2 guarda anche i PARTICIPI**, non solo i verbi. Il difetto che l'ha
+   resa necessaria è `«Esportati 1 certificato (CSV)»` in Sentinella: il
+   ternario sul **sostantivo** c'era ed era giusto, a essere fisso al plurale
+   era il participio davanti. Leggendo il codice sembrava la riga corretta del
+   file — si è vista **premendo il bottone**.
+2. **L'ampiezza è un numero e quel numero si è misurato.** Le parole aggiunte
+   (`monitoraggi`, `rilievi`, `fronti`, `banchi`, `lotti`, `cumuli`, i
+   participi di D2) sono state provate su Terra e Sentinella con un dato solo —
+   18 schermate, 61.640 caratteri, più 3 documenti stampati — e hanno dato
+   **zero** falsi allarmi, Campo compresa. Chi ne aggiunge una rifaccia la
+   misura e scriva il numero nell'intestazione del file.
+
+⏱️ **Restato fuori, e dichiarato**: `scudo-frasi-da-uno.mjs` tiene ancora la
+**sua copia** dei tre rilevatori. Non è stata unita perché quel banco era in
+lavorazione da un altro cantiere nello stesso momento, e sovrapporsi a chi
+scrive è il difetto che `git stash` con cantieri aperti ha già fatto pagare.
+Va unita al primo passaggio: finché ci sono due elenchi, «nessuna frase al
+plurale» vuol dire due cose diverse a seconda di chi lo stampa.
