@@ -43,6 +43,26 @@
    prenderle: la sua lista di unità non contiene la «m» liscia, e non può
    contenerla senza riempirsi di rumore.
 
+   ── seconda tornata, 07/08: la modale e i due fogli in finestra nuova ────
+   Rifatta la stessa domanda sui posti che il giro precedente non toccava, ne è
+   uscito un dodicesimo difetto e un buco di copertura:
+     · «che si ripete ogni <b>1 mesi</b>» nella modale che si apre spuntando
+       una scadenza come **fatta** — la **terza copia** della stessa regola,
+       e l'unica rimasta sbagliata: le altre due (la riga dell'elenco e il
+       messaggio del salvataggio) erano già corrette e stanno qui sotto ai
+       numeri 2. Una ricorrenza mensile è il caso più comune che esista
+       (l'antincendio, il registro), quindi il difetto si vedeva ogni volta,
+       non nel caso raro. Con lui la frase dopo, «aggiungendo **quei mesi**»;
+     · e il **VERBALE DI RILIEVO** non lo apriva nessuno di questo banco. I
+       fogli stampati di Terra vivono in una finestra nuova, dove non arriva né
+       il `@media print` né `innerText`: il prospetto annuale aveva UNA frase
+       guardata a mano (la qualità dei rilievi), il verbale zero. Adesso
+       tutt'e due passano interi dai tre rilevatori condivisi di
+       `frasi-da-uno.mjs`, e il banco stampa quanti caratteri ha setacciato —
+       un «nessuna frase» senza quel numero non distingue «pulito» da «non ho
+       aperto niente». Misura al 07/08: **5.262 caratteri, zero frasi**, cioè
+       i due fogli su questa famiglia sono puliti e adesso si sa perché.
+
    ⚠️ NESSUNA DI QUESTE SI VEDE NELLE PROVE `node`. Le regole pure
    (`plurale` di shared/, `aEufonica` e `articoloNumero` di Terra) sono
    provate in `run-kpi.mjs`; quello che qui si controlla è che la PAGINA le
@@ -55,6 +75,12 @@
 import { createServer } from "node:http";
 import { readFileSync, existsSync, statSync, writeFileSync, unlinkSync } from "node:fs";
 import { join, extname } from "node:path";
+/* ⛔ IL SETACCIO NON SI RISCRIVE QUI. Il vocabolario e i tre rilevatori stanno
+   in `frasi-da-uno.mjs` da quando erano già scritti due volte (qui accanto, in
+   `campo-sentinella-frasi.mjs`, e in `scudo-frasi-da-uno.mjs`): due elenchi di
+   parole nati uguali divergono al primo cambiamento, e da quel momento la
+   stessa domanda riceve due risposte diverse a seconda del banco che la fa. */
+import { setaccia, testoDocumento, PAROLE, VERBI, AGGETTIVI } from "./frasi-da-uno.mjs";
 
 const R = process.env.DW_RADICE || "/home/user/Mining-Tech-Platform";
 const CONTROPROVA = process.argv.includes("--controprova");
@@ -105,6 +131,16 @@ const DIFETTI = [
      provando niente. Si sostituisce la CHIAMATA, non il testo intorno. */
   ['aEufonica(MESI_NOME[meseOggi - 1]) + " <b>"', '"a" + " <b>"'],
   ['"fino " + aEufonica(MESI_NOME[meseOggi - 1]) + " "', '"fino " + "a" + " "'],
+  /* 12 · LA TERZA COPIA DI «OGNI 1 MESI», nella modale che si apre spuntando
+     una scadenza come fatta. Le altre due — la riga dell'elenco e il messaggio
+     che conferma il salvataggio — erano già corrette e stanno qui sopra ai
+     numeri 2: questa no, ed è la stessa frase a due schermate di distanza.
+     Una ricorrenza mensile (l'antincendio, il registro) è il caso più comune
+     che esista, quindi il difetto si vedeva ogni volta, non nel caso raro. */
+  ['che si ripete " + (ric === 1 ? "<b>ogni mese</b>" : "ogni <b>" + ric + " mesi</b>") + ".<br><br>"',
+   'che si ripete ogni <b>" + ric + " mesi</b>.<br><br>"'],
+  ['aggiungendo " + plurale(ric, "quel mese", "quei mesi")\n          + " alla scadenza precedente.',
+   'aggiungendo quei mesi alla scadenza precedente.'],
   // 11 · le due unità dentro un\'etichetta maiuscola
   ['for="fro-quota">Quota (<span class="u">m</span>)</label>', 'for="fro-quota">Quota (m)</label>'],
   ['for="modal-campo">Volume annuo (<span class="u">m³</span>)</label>', 'for="modal-campo">Volume annuo (m³)</label>'],
@@ -381,6 +417,111 @@ FIXTURE = CASO_UNO;
   await pg.close();
 }
 
+// ── 7 · LA MODALE DELLA SCADENZA CHE TORNA OGNI MESE ────────────────────
+/* ⛔ TERZA COPIA DELLA STESSA REGOLA, e l'unica rimasta sbagliata: le due
+   sorelle — la riga dell'elenco e il messaggio del salvataggio — le guarda già
+   il caso 1 qui sopra. Questa vive dentro una MODALE, cioè in un pezzo di
+   pagina che nessun setaccio sulle schermate poteva leggere, perché per farla
+   comparire bisogna premere il bottone «fatta» su una scadenza ricorrente. */
+console.log("\n· la modale della scadenza che si ripete ogni mese");
+FIXTURE = CASO_UNO;
+{
+  const pg = await apri("nav-tit");
+  await pg.click("[data-fatta-scad]").catch(() => {});
+  await pg.waitForTimeout(800);
+  const m = await pg.evaluate(() => {
+    const x = [...document.querySelectorAll(".dw-modal, .modal, [role=dialog]")]
+      .find((e) => getComputedStyle(e).display !== "none");
+    return x ? x.innerText.replace(/\s+/g, " ") : null;
+  });
+  /* ⛔ LA PROVA DI AVER APERTO LA MODALE, prima di leggerla: senza, un
+     selettore che non trova niente dà `null`, le due prove sotto passano
+     entrambe perché la frase sbagliata non c'è — e il banco direbbe «pulito»
+     avendo guardato una pagina vuota. È il difetto raccolto sette volte in
+     CLAUDE.md: se un selettore non trova niente, il primo sospettato è il
+     selettore. */
+  dice(m !== null && m.length > 200, "la modale «Scadenza fatta» si apre davvero", m === null ? "nessuna modale visibile" : m.length);
+  dice(/si ripete ogni mese/.test(m || "") && !/ogni 1 mesi/.test(m || ""),
+    "⛔ «che si ripete ogni mese», non «ogni 1 mesi» — terza copia della stessa regola",
+    (String(m).match(/Hai chiuso[^.]*\./) || [])[0]);
+  dice(/aggiungendo quel mese/.test(m || "") && !/quei mesi/.test(m || ""),
+    "⛔ e la frase dopo va d'accordo con la prima: «aggiungendo quel mese», non «quei mesi»",
+    (String(m).match(/Terra propone[^.]*\./) || [])[0]);
+  await pg.close();
+}
+
+// ── 8 · I DUE FOGLI CHE ESCONO IN UNA FINESTRA NUOVA ────────────────────
+/* ⛔ IL SETACCIO A TAPPETO SUI DOCUMENTI, non tre asserzioni scelte a mano.
+   I fogli stampati di Terra vivono in una finestra nuova: lì non arriva né il
+   `@media print` della pagina né `innerText`, e nessun banco che guardi le
+   schermate li vede. Il caso 5 qui sopra ne legge UNA frase (la qualità dei
+   rilievi) del prospetto annuale; il VERBALE DI RILIEVO — il foglio che
+   accompagna la misura e che si esibisce a un controllo — non lo apriva
+   nessuno di questo banco.
+   Qui si aprono tutt'e due coi dati tagliati a uno e si passa il testo intero
+   ai tre rilevatori condivisi. Il numero di caratteri setacciati si stampa: un
+   «nessuna frase» senza quel numero non distingue «pulito» da «non ho aperto
+   niente». */
+console.log("\n· il setaccio sui due fogli stampati (riepilogo annuale e verbale)");
+FIXTURE = CASO_GIORNO;
+{
+  const pg = await apri("nav-den");
+  await pg.evaluate(() => {
+    window.__doc = {};
+    let n = 0;
+    window.open = () => { const k = "doc" + (++n); window.__doc[k] = "";
+      return { document: { write: (h) => { window.__doc[k] += h; }, close: () => {} },
+               focus: () => {}, print: () => {} }; };
+  });
+  await pg.click("#btn-den-stampa"); await pg.waitForTimeout(500);
+  // il verbale: si passa dalla modale che chiede CHI ha eseguito il rilievo
+  await pg.click("#nav-ril"); await pg.waitForTimeout(600);
+  const nVerb = await pg.$$eval("[data-verb-ril]", (e) => e.length).catch(() => 0);
+  dice(nVerb > 0, `i bottoni del verbale ci sono (${nVerb})`, nVerb);
+  if (nVerb) {
+    await pg.click("[data-verb-ril]"); await pg.waitForTimeout(700);
+    const bs = await pg.$$("button");
+    let premuto = false;
+    for (const bb of bs) {
+      const t = (await bb.textContent().catch(() => "")) || "";
+      if (/Prepara il verbale/i.test(t.trim())) { await bb.click().catch(() => {}); premuto = true; break; }
+    }
+    dice(premuto, "il bottone «Prepara il verbale» della modale è stato premuto", premuto);
+    await pg.waitForTimeout(800);
+  }
+  const docs = await pg.evaluate(() => window.__doc || {});
+  const nomi = Object.keys(docs);
+  /* ⛔ DUE DOCUMENTI, e si conta: un banco che ne apre uno solo e non lo dice
+     dichiara «pulito» sul foglio che non ha guardato. */
+  dice(nomi.length === 2, `escono DUE fogli in finestra nuova (${nomi.length}: ${nomi.join(", ") || "nessuno"})`, nomi);
+  let carDoc = 0;
+  const trovateDoc = [];
+  for (const k of nomi) {
+    const t = testoDocumento(docs[k]);
+    carDoc += t.length;
+    trovateDoc.push(...setaccia(`terra/STAMPA/${k}`, t));
+  }
+  for (const f of trovateDoc) console.log(`        ${f}`);
+  dice(trovateDoc.length === 0,
+    `nessuna frase lasciata al plurale sui fogli stampati (${carDoc} caratteri setacciati, `
+    + `${PAROLE.length} parole · ${VERBI.length} verbi · ${AGGETTIVI.length} aggettivi)`, trovateDoc[0]);
+  dice(carDoc > 4000, `i fogli sono stati letti davvero, non sono due gusci (${carDoc} caratteri)`, carDoc);
+  /* ⛔ E NESSUN MAIUSCOLO AUTOMATICO SU QUESTI DUE FOGLI. `unita-maiuscole.mjs`
+     guarda il RENDERIZZATO delle pagine, e in una finestra nuova non ci arriva:
+     se un giorno qualcuno mettesse `text-transform:uppercase` sulle
+     intestazioni di queste tabelle, «m³» diventerebbe «M³» — cioè mega — su un
+     foglio che va all'ente, e nessun banco lo direbbe. Il foglio del riepilogo
+     ha già il commento che spiega perché non c'è: qui il commento diventa una
+     misura. Si guarda il documento prodotto, non il codice della pagina.
+     ⚠️ `letter-spacing` e `font-weight` restano liberi: il difetto è la
+     TRASFORMAZIONE del testo, non il fatto che un'intestazione sia marcata. */
+  const maiuscoli = nomi.filter((k) => /text-transform\s*:\s*(uppercase|capitalize)/i.test(docs[k]));
+  dice(maiuscoli.length === 0,
+    `nessuno dei ${nomi.length} fogli stampati alza il testo in maiuscolo (là dentro «m³» diventerebbe «M³»)`,
+    maiuscoli);
+  await pg.close();
+}
+
 console.log(`\n${frasi} prove · ${ok} passate, ${ko} fallite`);
 await b.close(); srv.close();
 if (CONTROPROVA) {
@@ -389,15 +530,17 @@ if (CONTROPROVA) {
     console.log("⚠️ QUALCHE DIFETTO NON È STATO RIMESSO: la controprova non prova quello che dice");
     process.exit(3);
   }
-  /* La soglia sta a 17 perché con tutti e 18 i difetti rimessi ne cadono 18,
-     misurate: una soglia bassa renderebbe la controprova verde anche se metà
-     delle iniezioni non arrivasse mai nella pagina.
+  /* La soglia sta a 19 perché con tutti e 20 i difetti rimessi ne cadono 20,
+     rimisurate il 07/08 dopo i due difetti nuovi della modale (prima erano 18
+     su 18, con la soglia a 17): una soglia bassa renderebbe la controprova
+     verde anche se metà delle iniezioni non arrivasse mai nella pagina.
      ⚠️ E il numero da guardare non è solo quante ne cadono: è che le prove
      NON puntate su un difetto restino verdi. Qui lo sono — «l'etichetta è
-     maiuscola per struttura» e «le altre due voci dell'elenco» passano anche
-     con tutto il resto rotto. */
-  console.log(ko >= 17 ? "✓ il banco SA fallire: rimessi i difetti cadono le prove giuste"
+     maiuscola per struttura», «le altre due voci dell'elenco», «la modale si
+     apre davvero» e le cinque del setaccio sui fogli stampati passano anche
+     con tutto il resto rotto: 28 prove su 48 restano in piedi. */
+  console.log(ko >= 19 ? "✓ il banco SA fallire: rimessi i difetti cadono le prove giuste"
                        : `⚠️ troppo poche cadute (${ko})`);
-  process.exit(ko >= 17 ? 0 : 1);
+  process.exit(ko >= 19 ? 0 : 1);
 }
 process.exit(ko ? 1 : 0);

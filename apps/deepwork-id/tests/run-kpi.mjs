@@ -22428,5 +22428,49 @@ console.log("\n— Conti · la barra di peso: il numero è giusto e a mentire è
   });
 }
 
+/* ══════════════════════════════════════════════════════════════════════
+   IL SEPARATORE DECIMALE DEL FILE PER L'ARPA, LETTO NEL TESTO
+   ⛔ Le prove di `csvAmbiente` che stanno più su spezzano il file in colonne e
+   confrontano i valori: fanno il loro mestiere, ma non possono vedere COME è
+   scritto un decimale, perché lo spezzettamento sul punto e virgola sopravvive
+   sia a «1.8» sia a «1,8». È la stessa lezione della prova di andata e ritorno
+   che resta verde se scrittore e lettore sbagliano insieme — qui non c'è
+   nemmeno un lettore: `csvAmbiente` è un export e basta, il file lo apre
+   qualcun altro (l'ARPA, il consulente ambientale, un foglio di calcolo).
+   La convenzione di casa è il PUNTO, ed è già asserita sul testo per
+   `csvRegistroVolate` (`;3.2;`) e per `csvRefertiGenesi`: questo file la
+   seguiva e nessuno lo controllava.
+   ⚠️ Una virgola qui non spezzerebbe nessuna riga — quindi non farebbe cadere
+   niente — e cambierebbe in silenzio il significato della colonna per chi
+   apre il file con un'altra impostazione locale.
+   ══════════════════════════════════════════════════════════════════════ */
+{
+  test("⛔ Sentinella · il file per l'ARPA scrive i decimali col PUNTO (asserzione sul testo)", () => {
+    const RIC = [{ id: "rc1", nome: "Casa Rossi", tipo: "abitazione", soglia: 5.5, unita: "mm/s" }];
+    const m = { id: "x", nome: "Vibrazioni V9", tipo: "vibrazioni", unita: "mm/s",
+      soglia: 5.5, valore: 1.8, ricettoreId: "rc1",
+      letture: [{ data: "2026-07-20", valore: 2.4 }, { data: "2026-07-21", valore: 1.8 }] };
+    const testo = sentinella.csvAmbiente([m], [], RIC);
+    eq(testo.includes(";1.8;"), true, "il valore corrente: 1.8, non 1,8");
+    eq(testo.includes(";5.5;"), true, "la soglia applicata: 5.5, non 5,5");
+    eq(testo.includes("2026-07-20:2.4"), true, "e lo storico, dove i decimali sono due per cella");
+    /* ⛔ E LA CONTROPROVA DELLA PROVA: che nel file non ci sia NESSUNA virgola
+       fra due cifre. Senza questa riga basterebbe un decimale scritto bene e
+       nove scritti male perché la prova restasse verde — è il controllo che
+       guarda un campione e dichiara l'insieme. */
+    const virgoleFraCifre = (testo.match(/\d,\d/g) || []);
+    eq(virgoleFraCifre, [], "nessuna virgola fra due cifre in tutto il file");
+  });
+
+  test("⛔ Sentinella · e la stessa regola nel registro delle tarature", () => {
+    /* Le tarature non portano decimali oggi: la prova serve a dire che se un
+       giorno ne portassero (una tolleranza, un fattore di correzione) il file
+       non cambierebbe dialetto rispetto agli altri tre che escono dall'app. */
+    const testo = sentinella.csvTarature([{ id: "s", nome: "Sismografo", tarature: [
+      { data: "2026-02-10", scadenza: "2027-02-09", ente: "Centro LAT 118", certificato: "LAT 118-2026/441", nota: "canale terna" }] }]);
+    eq((testo.match(/\d,\d/g) || []), [], "nessuna virgola fra due cifre");
+  });
+}
+
 console.log(`\nRisultato KPI app: ${passed} passati, ${failed} falliti${inVolo.length ? `  ·  ${inVolo.length} prove asincrone aspettate` : ""}`);
 process.exit(failed > 0 ? 1 : 0);

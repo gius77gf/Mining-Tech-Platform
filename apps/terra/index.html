@@ -2984,8 +2984,18 @@ a.dw-btn{text-decoration:none}
       if (ric > 0) {
         const prop = prossimaData(s.dataScadenza, ric) || "";
         const v = await chiediValore("Scadenza fatta: quando torna?",
-          "Hai chiuso <b>«" + esc(s.descrizione) + "»</b>, che si ripete ogni <b>" + ric + " mesi</b>.<br><br>"
-          + "Terra propone la data ottenuta aggiungendo quei mesi alla scadenza precedente. <b>Controllala sul tuo atto</b> e correggila se lì è scritto altro: qui non c'è nessuna regola di legge.",
+          /* ⛔ TERZA COPIA DELLA STESSA REGOLA, E L'UNICA RIMASTA SBAGLIATA.
+             «Ogni 1 mesi» era già stato corretto nella riga della scadenza
+             (`· ogni mese`) e nel messaggio che conferma il salvataggio (`si
+             ripete ogni mese`): qui dentro, nella modale che si apre quando
+             si spunta la scadenza fatta, era rimasto. Una ricorrenza mensile
+             è il caso più comune di tutti — l'antincendio, il registro — cioè
+             il difetto si vede ogni volta, non nel caso raro. */
+          "Hai chiuso <b>«" + esc(s.descrizione) + "»</b>, che si ripete " + (ric === 1 ? "<b>ogni mese</b>" : "ogni <b>" + ric + " mesi</b>") + ".<br><br>"
+          /* e il rimando della frase dopo va d'accordo con la prima: con una
+             ricorrenza mensile «quei mesi» non rimanda a niente */
+          + "Terra propone la data ottenuta aggiungendo " + plurale(ric, "quel mese", "quei mesi")
+          + " alla scadenza precedente. <b>Controllala sul tuo atto</b> e correggila se lì è scritto altro: qui non c'è nessuna regola di legge.",
           '<label class="fl" for="modal-campo">Prossima scadenza</label><input class="dw-input" id="modal-campo" type="date" value="' + prop + '">',
           "Rinnova");
         if (v == null) return;

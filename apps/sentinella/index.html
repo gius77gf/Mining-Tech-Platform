@@ -2867,7 +2867,14 @@ textarea.dw-input{
         : `<div class="note ${conta.scoperta ? "avviso" : ""}" style="margin-top:0;">
             <span class="badge ${bt.cls}">${esc(bt.label)}</span>
             ${st.scadenza ? ` valida fino al <b>${fmtD(st.scadenza)}</b>` : ""}
-            <br>Delle <b>${letture.length}</b> ${letture.length === 1 ? "lettura" : "letture"} registrate su questo strumento:
+            ${/* ⛔ «DELLE 1 LETTURA REGISTRATE»: il sostantivo il ternario ce
+                  l'aveva, l'articolo davanti e il participio dietro no — e la
+                  frase parla della catena di taratura, cioè di quello che nel
+                  report per l'ARPA diventa «Riferibilità delle misure». È la
+                  stessa forma di «1 giorno diversi» sul foglio per l'ente:
+                  quando il sostantivo è già declinato, il difetto scivola
+                  sulle parole intorno. */""}
+            <br>${plurale(letture.length, "Della", "Delle")} <b>${letture.length}</b> ${plurale(letture.length, "lettura", "letture")} ${plurale(letture.length, "registrata", "registrate")} su questo strumento:
             <b>${conta.coperta}</b> ${conta.coperta === 1 ? "risulta coperta" : "risultano coperte"} da una taratura valida${
               conta.scoperta ? `, <b>${conta.scoperta}</b> ${conta.scoperta === 1 ? "cade" : "cadono"} in un giorno che nessuna taratura registrata copre` : ""}${
               conta["prima-dello-storico"] ? `, <b>${conta["prima-dello-storico"]}</b> ${conta["prima-dello-storico"] === 1 ? "è precedente" : "sono precedenti"} alla prima taratura registrata (lo strumento poteva essere tarato: qui non risulta)` : ""}${
@@ -3697,7 +3704,10 @@ textarea.dw-input{
          riga li scriveva sempre, mentre carica massima e distanza le ometteva
          già quando mancavano */
       const pezzi = [
-        v.nFori == null || !Number.isFinite(+v.nFori) ? "fori non dichiarati" : `${+v.nFori} fori`,
+        /* ⛔ «1 FORI» sulla riga del brogliaccio, che la nota sotto questa
+           stessa lista chiama «un documento verso gli enti». Una volata da un
+           foro solo è normale in cava (uno sfiancamento, un ripristino). */
+        v.nFori == null || !Number.isFinite(+v.nFori) ? "fori non dichiarati" : `${+v.nFori} ${plurale(+v.nFori, "foro", "fori")}`,
         v.kgTotali == null || !Number.isFinite(+v.kgTotali) ? "kg non dichiarati" : `${esc(numeroIt(+v.kgTotali))} kg`,
       ];
       if (+v.kgMaxRitardo) pezzi.push("max/ritardo " + esc(numeroIt(+v.kgMaxRitardo)) + " kg");
@@ -3991,8 +4001,18 @@ textarea.dw-input{
        sulla nota del modo (cancellando la conferma «dati reali») e il toast
        era ricopiato a mano accanto. Il quarto argomento è proprio il toast
        corto: la nota resta completa, la striscia annuncia. */
-    esito("reg-esito", "Esportati " + MON.length + " monitoraggi e " + ADE.length + " adempimenti (CSV).", "success",
-      "Esportati " + MON.length + " monitoraggi e " + ADE.length + " adempimenti.");
+    /* ⛔ «ESPORTATI 1 MONITORAGGI E 1 ADEMPIMENTI (CSV)», sul bottone che
+       prepara il file per l'ARPA. Due sostantivi sbagliati e un participio che
+       non si può accordare: con «1 monitoraggio e 0 adempimenti» il plurale
+       resterebbe sbagliato comunque, perché il soggetto è una coppia. La forma
+       giusta è quella che Terra usa già sul suo export («Esportato il CSV: 1
+       fronte e 1 rilievo»): il participio si accorda con *il CSV*, che è uno,
+       e i due conti si declinano ognuno per conto suo. Non è una scelta nuova:
+       è la stessa decisione, presa una volta e riusata. */
+    const contoAmb = MON.length + " " + plurale(MON.length, "monitoraggio", "monitoraggi")
+      + " e " + ADE.length + " " + plurale(ADE.length, "adempimento", "adempimenti");
+    esito("reg-esito", "Esportato il CSV: " + contoAmb + ".", "success",
+      "Esportato il CSV: " + contoAmb + ".");
   };
   // niente volate datate nel futuro: il registro è un documento verso gli enti e
   // il conteggio "questo mese" si baserebbe su un dato impossibile
@@ -4055,7 +4075,12 @@ textarea.dw-input{
     el.href = "data:text/csv;charset=utf-8," + encodeURIComponent(csv);
     el.download = "sentinella_registro_volate.csv"; marchiaCsv(el); el.click();
     const nP = VOL.filter(volataPrevista).length;
-    esito("vol-esito-msg", "Esportate " + VOL.length + " volate (CSV)"
+    /* ⛔ «ESPORTATE 1 VOLATE (CSV)»: il participio e il sostantivo erano fissi
+       al plurale mentre la coda, quattro parole più in là, il singolare lo
+       sapeva già fare («di cui 1 prevista»). È la firma di questa famiglia —
+       si guarda il pezzo che si sta scrivendo, non la frase intera. */
+    esito("vol-esito-msg", plurale(VOL.length, "Esportata ", "Esportate ") + VOL.length + " "
+      + plurale(VOL.length, "volata", "volate") + " (CSV)"
       + (nP ? ", di cui " + nP + (nP === 1 ? " prevista" : " previste") + " (la colonna «stato» lo dice riga per riga)" : "") + ".", "success");
   };
   $("btn-vol-import").onclick = () => $("vol-file").click();
@@ -4241,7 +4266,10 @@ textarea.dw-input{
     const a = document.createElement("a");
     a.href = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8" }));
     a.download = "sentinella_ricettori.csv"; marchiaCsv(a); a.click();
-    esito("ric-esito", "Esportati " + RIC.length + " ricettori (CSV).", "success");
+    /* ⛔ «ESPORTATI 1 RICETTORI (CSV)» — e una cava con una casa sola davanti
+       al fronte è il caso normale, non quello di laboratorio. */
+    esito("ric-esito", plurale(RIC.length, "Esportato ", "Esportati ") + RIC.length + " "
+      + plurale(RIC.length, "ricettore", "ricettori") + " (CSV).", "success");
   };
   $("mon-file").onchange = async (e) => {
     const file = e.target.files && e.target.files[0]; if (!file) return;
@@ -4449,7 +4477,12 @@ textarea.dw-input{
     const a = document.createElement("a");
     a.href = URL.createObjectURL(new Blob([csvTarature(MON)], { type: "text/csv;charset=utf-8" }));
     a.download = "sentinella_tarature.csv"; marchiaCsv(a); a.click();
-    esito("tar-esito", "Esportati " + n + (n === 1 ? " certificato (CSV)." : " certificati (CSV)."), "success");
+    /* ⛔ «ESPORTATI 1 CERTIFICATO (CSV)». Qui il ternario c'era — e guardava il
+       SOSTANTIVO — mentre il participio davanti restava plurale: leggendo il
+       codice sembra la riga corretta di questo file, ed è la ragione per cui
+       era sopravvissuta a una lettura. Si è vista premendo il bottone. */
+    esito("tar-esito", plurale(n, "Esportato ", "Esportati ") + n
+      + plurale(n, " certificato (CSV).", " certificati (CSV)."), "success");
   };
 
   // Libreria soglie normative preimpostate: riempie unità+soglia con un
@@ -4625,13 +4658,25 @@ textarea.dw-input{
     await db.aggiorna("monitoraggi", punto.id, { letture: u.letture, valore: ultima ? ultima.valore : punto.valore });
     impChiudi(); $("imp-testo").value = "";
     grafMon = punto.id;   // si vede subito l'andamento appena importato
+    /* ⛔ LA NOTA E LA STRISCIA DICEVANO LA STESSA COSA IN DUE DIALETTI. La nota
+       il singolare lo faceva («Importata 1 lettura»), il toast che le compare
+       accanto no: «Importate 1 letture.» Sono lo stesso evento a tre
+       centimetri di distanza, e la seconda frase è quella che l'utente legge
+       per prima. Il conto si scrive una volta e lo leggono tutt'e due. */
+    const contoLet = `${plurale(u.aggiunte, "Importata", "Importate")} ${u.aggiunte} ${plurale(u.aggiunte, "lettura", "letture")}`;
     esito("imp-esito",
-      `Importate ${u.aggiunte} ${u.aggiunte === 1 ? "lettura" : "letture"} su «${punto.nome}»` +
-      (u.duplicati ? `, ${u.duplicati} già presenti (saltate)` : "") +
-      (u.tagliate ? `. Lo storico tiene le ultime ${MAX_LETTURE} letture: le ${u.tagliate} più vecchie sono uscite` : "") +
+      `${contoLet} su «${punto.nome}»` +
+      /* ⚠️ QUESTI DUE NON SI RAGGIUNGONO DALL'INTERFACCIA e non hanno una prova:
+         l'anteprima toglie i doppioni prima di arrivare qui, quindi
+         `u.duplicati` vale sempre 0, e `u.tagliate` vuole più di MAX_LETTURE
+         letture in un colpo. Sono declinati lo stesso perché la frase è
+         sbagliata comunque — ma il banco non li copre, e dirlo è meglio che
+         lasciar credere il contrario. */
+      (u.duplicati ? `, ${u.duplicati} ${plurale(u.duplicati, "già presente (saltata)", "già presenti (saltate)")}` : "") +
+      (u.tagliate ? `. Lo storico tiene le ultime ${MAX_LETTURE} letture: ${plurale(u.tagliate, "la più vecchia è uscita", "le " + u.tagliate + " più vecchie sono uscite")}` : "") +
       (nOltre ? `. ATTENZIONE: ${nOltre} ${nOltre === 1 ? "lettura è" : "letture sono"} oltre la soglia di ${numeroIt(eff.valore)} ${unitaMisura(punto)}` : "") + ".",
       nOltre ? "err" : "success",
-      `Importate ${u.aggiunte} letture${nOltre ? ", " + nOltre + " oltre soglia" : ""}.`);
+      `${contoLet}${nOltre ? ", " + nOltre + " oltre soglia" : ""}.`);
     await refresh();
     const el = $("graf-" + punto.id);
     if (el) el.scrollIntoView({ behavior: "smooth", block: "center" });
@@ -4932,7 +4977,10 @@ textarea.dw-input{
     }
     const graf = p.abbastanza
       ? `<div id="and-graf-${i}" class="and-graf"></div>`
-      : `<div class="note avviso">Nella finestra ci sono <b>${p.n}</b> ${p.n === 1 ? "lettura" : "letture"}: troppo poche per disegnare un andamento. Servono almeno <b>3</b> misure — una linea fra due punti non è una tendenza, e disegnarla sarebbe una bugia.</div>`;
+      /* ⛔ «CI SONO 1 LETTURA: TROPPO POCHE»: il sostantivo era declinato, il
+         verbo davanti e l'aggettivo dietro no — e con una lettura sola questa
+         è proprio la frase che si legge, perché è il caso che la fa comparire. */
+      : `<div class="note avviso">Nella finestra ${plurale(p.n, "c'è", "ci sono")} <b>${p.n}</b> ${plurale(p.n, "lettura", "letture")}: ${plurale(p.n, "troppo poca", "troppo poche")} per disegnare un andamento. Servono almeno <b>3</b> misure — una linea fra due punti non è una tendenza, e disegnarla sarebbe una bugia.</div>`;
     return `<div class="and-card">
       <div class="and-tit">${esc(p.nome)}</div>
       <div class="and-sub">${sogliaTxt}</div>
