@@ -209,7 +209,18 @@ for (const [nome, via] of SUPERFICI) {
       const conParola = [...n.querySelectorAll('button')].filter((x) =>
         [...x.childNodes].some((z) => z.nodeType === 3 && z.textContent.trim()));
       if (!conParola.length) return { voci: 0, male: [], nonMisurata: 'barra senza etichette (non ancora costruita)' };
-      const bs = [...n.querySelectorAll('button')];
+      /* ⛔ LE VOCI NON SONO SEMPRE `<button>`, e per questo la barra del core
+         non la misurava nessuno. Nelle sei app le voci sono `<button>`; nel
+         core sono **`<div class="bn">`**, e l'unico `<button>` dentro
+         `#global-nav` e' il pulsante centrale (`.nav-fab`) — che di etichetta
+         non ne ha. Cercando `button` il banco trovava quindi UNA voce senza
+         parola e rispondeva «1 voce · 0 fuori posto»: un verde su una barra
+         che non aveva nemmeno guardato.
+         `.bn` e' del core soltanto — misurato: 4 nel core, ZERO in tutt'e sei
+         le app — quindi allargare qui non conta niente due volte. E il FAB
+         resta fuori di proposito: e' un comando, non una voce di navigazione,
+         e la sua etichetta e' l'`aria-label`. */
+      const bs = [...n.querySelectorAll('button, .bn')].filter((x) => !x.classList.contains('nav-fab'));
       /* ⛔ QUINTA VERSIONE, E LE QUATTRO PRIME ERANO TUTTE SBAGLIATE. Vale la
          pena elencarle, perche' il difetto era sempre lo stesso — **calcolare
          invece di chiedere**, e misurare il soggetto sbagliato:
@@ -272,6 +283,21 @@ for (const [nome, via] of SUPERFICI) {
           const rg = document.createRange();
           rg.selectNodeContents(nodo);
           return { testo: nodo.textContent.trim(), largo: rg.getBoundingClientRect().width };
+        }
+        /* ⛔ E NEL CORE LA PAROLA STA DENTRO UNO `<span>`, non nuda. Senza
+           questo ripiego le quattro voci del core si misuravano «senza
+           parola», cioe' zero etichette, cioe' di nuovo un verde su niente.
+           Si prende il primo figlio che porta SOLO testo — l'icona e' un
+           `<svg>` e non ne porta — e lo si misura con lo stesso `Range`: la
+           domanda resta «quanto e' larga la parola», non «quanto e' largo il
+           bottone». */
+        for (const el of btn.children) {
+          if (el.tagName === 'SVG' || el.tagName === 'svg') continue;
+          const testo = (el.textContent || '').trim();
+          if (!testo || el.children.length) continue;
+          const rg = document.createRange();
+          rg.selectNodeContents(el);
+          return { testo, largo: rg.getBoundingClientRect().width };
         }
         return null;
       };
