@@ -84,7 +84,16 @@ const DB_PIENO = "DEFAULT_RAPPORTINI.length=0;DEFAULT_RAPPORTINI.push(...["
    silenzioso di dire la stessa bugia) e il riepilogo che taceva su quello che
    aveva lasciato fuori. */
 const DIFETTI = [
-  ["  const m=misureRapportino(r);\n  if(!m.misurato) return 'nessun foro misurato';\n  return `${m.fori} fori · ${m.calcolabile?m.mc.toFixed(1)+' mc':'mc non calcolabili'}`;",
+  /* ⚠️ INVECCHIATO E RIALLINEATO IL 07/08: questo pezzo citava
+     «`${m.fori} fori`», e `rappRiga` nel frattempo era passata a
+     `conta(m.fori,'foro','fori')` per il plurale. Il difetto non trovava più
+     il suo pezzo di pagina — cioè l'iniezione non iniettava, la terza causa di
+     «non distingue» di CLAUDE.md. L'ha presa la guardia che questo banco ha in
+     fondo («CONTROPROVA A VUOTO»), che è la ragione per cui esiste: un pezzo
+     copiato dal codice invecchia ogni volta che il codice viene migliorato, e
+     senza quel conto la controprova avrebbe continuato a dire «so fallire»
+     avendo rimesso un difetto in meno. */
+  ["  const m=misureRapportino(r);\n  if(!m.misurato) return 'nessun foro misurato';\n  return `${conta(m.fori,'foro','fori')} · ${m.calcolabile?m.mc.toFixed(1)+' mc':'mc non calcolabili'}`;",
    "  return `${r.fori||0} fori · ${(r.mc||0).toFixed(1)} mc`;"],
   ["  if(t.senzaMisura) p.push(`${t.senzaMisura} senza nessun foro misurato`);\n  if(t.senzaVolume) p.push(`${t.senzaVolume} senza maglia, quindi senza volume`);",
    "  /* difetto rimesso: il totale non dice piu' che cosa ha lasciato fuori */"],
@@ -92,6 +101,13 @@ const DIFETTI = [
    "${r.mc?`<div class=\"preview-row\"><span class=\"preview-lab\">Mc in ballo</span><span class=\"preview-val\">${r.mc}</span></div>`:''}"],
   ['<div class="preview-row"><span class="preview-lab">Fori</span><span class="preview-val">${ms.misurato?`${ms.fori}${r.fori_fila2>0?\' (\'+r.fori_fila1+\'+\'+r.fori_fila2+\')\':\'\'}`:\'nessuno misurato\'}</span></div>',
    "${r.fori?`<div class=\"preview-row\"><span class=\"preview-lab\">Fori</span><span class=\"preview-val\">${r.fori}</span></div>`:''}"],
+  /* ⛔ E IL FORM, aggiunto il 07/08: una riga sola rimette TUTT'E DUE i difetti
+     che ci stavano, perché erano lo stesso pezzo di codice. `mc:grezzo` toglie
+     il giudizio di `misureRapportino` (torna «0.0 mc» con la maglia vuota) e
+     `metri: cnt>0?m:0` toglie il null (torna «0.0» metri a rapportino vuoto).
+     Non è una caricatura: è com'era scritto. */
+  ["  const ms=misureRapportino({fori:cnt,metri:m,media_prof:mediaProf,maglia_B:B,maglia_S:S,mc:grezzo});\n  const mc=ms.mc;",
+   "  const ms={metri:cnt>0?m:0,mediaProf:mediaProf};\n  const mc=grezzo;"],
 ];
 
 let colpiti = new Set(), iniettato = 0;
@@ -215,6 +231,77 @@ const s3 = await scheda("zz3");
 dice(/283\.5/.test(s3), "il rapportino sano mostra il suo volume", s3);
 
 dice(errori.length === 0, "la pagina non solleva errori", errori[0]);
+
+/* ══════════════════════════════════════════════════════════════════════════
+   I QUATTRO RIQUADRI DEL RAPPORTINO CHE SI STA SCRIVENDO
+   ──────────────────────────────────────────────────────────────────────────
+   Aggiunto il 07/08. Fin qui questo banco guardava il rapportino SALVATO —
+   l'elenco, la scheda, il documento. Il form che lo si scrive no, e ci
+   stavano due difetti della stessa famiglia, uno dentro l'altro:
+   1. **«0.0» metri** a rapportino appena aperto, in mezzo a `tot-media` e
+      `tot-mc` che dicevano già «—». Tre riquadri a due centimetri l'uno
+      dall'altro e quello di mezzo che smentisce gli altri due;
+   2. **«0.0 mc» con nove metri perforati**, perché la maglia è un campo
+      libero e opzionale: senza di lei `parseMaglia` risponde B=0 e S=0, e
+      `media × fori × 0 × 0 × 0.9` fa zero. Il guardiano c'era
+      (`mc===null?'—'`) ma copriva solo «nessuna profondità», non «nessuna
+      maglia» — cioè proprio il caso che `misureRapportino` esiste per
+      prendere, e che in `shared/` era già risolto per il rapportino salvato.
+   Adesso il form costruisce la forma e la fa giudicare a `misureRapportino`.
+   ⚠️ Il caso SANO è qui apposta: senza di lui il modo più facile di far
+   passare queste prove sarebbe spegnere ogni numero, che è l'errore opposto
+   e altrettanto grave. */
+{
+  const leggi = () => pg.evaluate(() => {
+    const o = {};
+    for (const id of ["tot-fori", "tot-m", "tot-media", "tot-mc"]) {
+      const e = document.getElementById(id);
+      o[id] = e ? e.textContent.trim() : "(riquadro assente)";
+    }
+    return o;
+  });
+  await pg.evaluate(() => window.nav && window.nav("rapp"));
+  await pg.waitForTimeout(400);
+  const suRapp = await pg.evaluate(() => {
+    const s = document.getElementById("screen-rapp");
+    return !!s && getComputedStyle(s).display !== "none";
+  });
+  dice(suRapp, "il form del rapportino è davvero aperto");
+
+  const campi = await pg.evaluate(() => document.querySelectorAll("#tbody .cinput").length);
+  dice(campi > 0, `i campi della profondità ci sono (${campi})`);
+
+  const vuoto = await leggi();
+  console.log(`  · a rapportino vuoto: ${JSON.stringify(vuoto)}`);
+  dice(vuoto["tot-m"] === "—" && vuoto["tot-media"] === "—" && vuoto["tot-mc"] === "—",
+    "a rapportino vuoto i tre riquadri dicono «—» INSIEME, nessuno scrive uno zero",
+    JSON.stringify(vuoto));
+
+  if (campi > 0) {
+    /* un foro misurato davvero, e la maglia lasciata come la trova l'utente */
+    await pg.fill("#tbody .cinput >> nth=0", "9");
+    await pg.fill("#r-m", "");
+    await pg.waitForTimeout(300);
+    const senzaMaglia = await leggi();
+    console.log(`  · un foro a 9 m, maglia vuota: ${JSON.stringify(senzaMaglia)}`);
+    dice(senzaMaglia["tot-m"] === "9.0" && senzaMaglia["tot-media"] === "9.00",
+      "i metri misurati restano quelli veri", JSON.stringify(senzaMaglia));
+    dice(senzaMaglia["tot-mc"] === "—",
+      "senza maglia i mc NON sono zero: sono non calcolabili", JSON.stringify(senzaMaglia));
+
+    /* ⚠️ IL CASO SANO: con la maglia compilata il numero deve tornare. */
+    await pg.fill("#r-m", "3,5x4");
+    await pg.waitForTimeout(300);
+    const conMaglia = await leggi();
+    console.log(`  · stesso foro, maglia 3,5x4: ${JSON.stringify(conMaglia)}`);
+    const mcNum = parseFloat(conMaglia["tot-mc"]);
+    dice(Number.isFinite(mcNum) && mcNum > 0,
+      "con la maglia compilata i mc tornano a essere un numero vero", JSON.stringify(conMaglia));
+    dice(Math.abs(mcNum - 9 * 1 * 3.5 * 4 * 0.9) < 0.05,
+      `e il numero è quello giusto (media x fori x B x S x 0.9 = ${(9 * 1 * 3.5 * 4 * 0.9).toFixed(1)})`,
+      conMaglia["tot-mc"]);
+  }
+}
 
 if (CONTROPROVA) {
   console.log(`\n  difetti rimessi: ${colpiti.size} su ${DIFETTI.length}`);

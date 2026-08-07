@@ -2024,11 +2024,41 @@ function aggiornaTotali(){
   const mediaProf=cnt>0?(m/cnt):null;
   const {B,S}=parseMaglia($('r-m').value);
   // Formula mc migliorata: profondità media × n.fori × B × S × 0.9 (fattore frangimento)
-  const mc=mediaProf===null?null:mediaProf*cnt*B*S*0.9;
+  const grezzo=mediaProf===null?null:mediaProf*cnt*B*S*0.9;
+  /* ⛔ E IL GIUDIZIO SU QUEL NUMERO NON LO DÀ QUESTA FUNZIONE: lo dà
+     `misureRapportino` in `shared/`, la stessa che governa il rapportino
+     SALVATO. Qui c'era la copia debole, e mancava proprio il caso che
+     `misureRapportino` esiste per prendere: `mc===null?'—'` copre «nessuna
+     profondità misurata» e NON «maglia non compilata». La maglia è un campo
+     libero e opzionale, senza di lei `parseMaglia` risponde B=0 e S=0, e
+     `mediaProf × cnt × 0 × 0 × 0.9` fa **zero**. Misurato: un foro scritto a
+     9 m dava «1/5 fori · 9.0 metri · 9.00 media · **0.0 mc**» — nove metri
+     perforati e accanto zero metri cubi, cioè la riga che si smentisce da sola.
+     Il difetto è già raccontato in CLAUDE.md sul rapportino salvato: là era
+     stato corretto nel modulo, e il FORM se n'era tenuta una versione propria.
+     Costruire la forma e passarla al modulo non è un giro lungo: è il modo di
+     avere UNA regola invece di due che divergono. */
+  const ms=misureRapportino({fori:cnt,metri:m,media_prof:mediaProf,maglia_B:B,maglia_S:S,mc:grezzo});
+  const mc=ms.mc;
   $('tot-fori').textContent=(cnt===tot)?cnt:`${cnt}/${tot}`;
-  $('tot-m').textContent=m.toFixed(1);
+  /* ⛔ E I METRI ERANO LA QUARTA, rimasta indietro quando le altre tre sono
+     state corrette: `m` somma solo i fori con `prof>0`, quindi a rapportino
+     appena aperto vale 0 e scriveva **«0.0»** — in mezzo a `tot-media` e
+     `tot-mc` che dicevano già «—». Tre riquadri accanto a due centimetri l'uno
+     dall'altro, e quello di mezzo che li smentisce: «zero metri perforati»
+     dove la verità è «nessuno ha ancora misurato».
+     ⚠️ È la TERZA volta per questa coppia. CLAUDE.md la registra già sul PDF
+     («`v.tot_metri+'m'` stampa 0m nello stesso riquadro in cui i mc dicono -»)
+     e sul foglio della volata: là il difetto era nel documento e lo schermo
+     aveva ragione, qui è il verso opposto. La condizione giusta è la stessa
+     che governa già i vicini — i fori davvero misurati — e non `m>0`, che
+     sarebbe una seconda regola scritta con un altro criterio. Adesso i tre
+     riquadri leggono tutt'e tre la STESSA risposta (`ms`), quindi non possono
+     più contraddirsi: o il modulo dice «misurato» e dicono i numeri, o dice di
+     no e dicono «—» insieme. */
+  $('tot-m').textContent=ms.metri===null?'—':ms.metri.toFixed(1);
   $('tot-mc').textContent=mc===null?'—':mc.toFixed(1);
-  if($('tot-media'))$('tot-media').textContent=mediaProf===null?'—':mediaProf.toFixed(2);
+  if($('tot-media'))$('tot-media').textContent=ms.mediaProf===null?'—':ms.mediaProf.toFixed(2);
 }
 function exitRapp(){
   if(state.unsaved){openModal('Rapportino non salvato','<p>Ci sono modifiche non salvate. Vuoi davvero uscire?</p>',[{label:'Continua',cls:'mbtn',action:closeModal},{label:'ESCI',cls:'mbtn danger',action:()=>{state.unsaved=false;closeModal();_goBackReal();}}]);}
@@ -8983,9 +9013,9 @@ body{min-height:100vh;min-height:100dvh;}
       <!-- Totali -->
       <div class="stats" style="margin-top:14px;">
         <div class="stat"><div class="sl">Fori</div><div class="sv" id="tot-fori">0</div></div>
-        <div class="stat"><div class="sl">Metri</div><div class="sv" id="tot-m">0.0</div></div>
-        <div class="stat"><div class="sl">Media prof</div><div class="sv" id="tot-media">0.00</div></div>
-        <div class="stat"><div class="sl">In ballo (<span class="u">mc</span>)</div><div class="sv" id="tot-mc">0.0</div></div>
+        <div class="stat"><div class="sl">Metri</div><div class="sv" id="tot-m">&mdash;</div></div>
+        <div class="stat"><div class="sl">Media prof</div><div class="sv" id="tot-media">&mdash;</div></div>
+        <div class="stat"><div class="sl">In ballo (<span class="u">mc</span>)</div><div class="sv" id="tot-mc">&mdash;</div></div>
       </div>
 
       <!-- Progetto volata opzionale -->
