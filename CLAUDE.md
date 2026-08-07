@@ -1033,6 +1033,26 @@ Perché serva davvero e non produca elenchi generici, cinque vincoli:
   salta: **un'operazione che non fallisce non ha per forza fatto qualcosa** — e
   qui non lascia nemmeno un valore vuoto da riconoscere, lascia un numero
   plausibile.
+- ⛔ **E PRIMA DI MISURARE L'EFFETTO DI UNA MODIFICA, SI GUARDA DA QUALE REGOLA
+  IL SOGGETTO È GIÀ GOVERNATO.** Il verso opposto della regola qui sotto, e il
+  07/08 mi è costato una **diagnosi pubblicata e falsa**. La barra di Sentinella
+  usciva a 320 px; ho provato a rimpicciolire il carattere e ho misurato che il
+  minimo **saliva** da 328 a 333, l'ho scritto in un commit e nel commento di un
+  banco come «rimpicciolire lo fa salire, non toccate il carattere».
+  Il numero era vero, **la causa no**: a 320 px il foglio condiviso applica già
+  `@media(max-width:360px)` con font **8px** e spaziatura **.8px**, quindi la
+  mia prova non rimpiccioliva niente — scriveva 8 dov'erano già 8 e portava la
+  spaziatura da .8 a **.9**. Sei parole, **51 lettere**, 51 × 0,1 = **5,1 px**:
+  esattamente i cinque comparsi. `getComputedStyle` lo dice in **tre secondi**.
+  ⚠️ E il danno non è il tempo perso: è che una diagnosi sbagliata **scritta con
+  sicurezza** manda il cantiere dopo a non provare la strada giusta. Lì la
+  strada giusta era proprio quella, e ha chiuso il difetto (7,5px/.45).
+  ⚠️ Nella stessa diagnosi c'era un secondo errore, dedotto e non misurato:
+  «le colonne sono `1fr`, quindi il minimo è **sei volte la più larga**». Con
+  `1fr` le tracce si equalizzano **solo se ci stanno**; se no ognuna resta alla
+  propria min-content, e il minimo è la **somma**. Chiesto alla griglia
+  (`repeat(6,min-content)`): 42,36 + 68,88 + 63,42 + 66,81 + 46,19 + 40,14 =
+  **327,80**, cioè i 328 misurati.
 - ⛔ **QUANDO UNA REGOLA CSS NON MORDE, SI GUARDA CHI VINCE — NON LO SI
   DEDUCE.** Il 06/08, correggendo la barra in alto del core a 320 px, ho dato
   la colpa a **due** cose sbagliate prima di trovare quella giusta:
