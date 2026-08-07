@@ -218,3 +218,126 @@ del fondatore scritto da un ente: «non misurato» e «zero misurato» non sono 
 stessa cosa), le voci richieste da ISTAT e l'unità **metri cubi in banco**
 — con le fonti, e con le generalizzazioni dichiarate (le tariffe lette valgono
 per il Piemonte, non per tutte le Regioni).
+
+---
+
+## 07/08/2026 — Approfondimento: la dichiarazione annuale italiana (il mondo reale)
+
+**Data della ricerca:** 07/08/2026  
+**Verificato contro:** commit 78bd45a  
+**Dichiarazione preliminare:** La ricerca del 01/08 ha coperto le funzioni di calcolo e i dati ISTAT. Questo blocco approfondisce: (1) chi chiede davvero la denuncia e quando; (2) il contenuto esatto di moduli regionali reali; (3) cosa manca a Terra per la compliance. Terra produce i numeri, ma manca il contesto normativo dichiarato.
+
+### 1. Il mondo — Dichiarazione annuale di esercizio in Italia: destinatari, scadenze, moduli
+
+#### Destinatari e periodicità (prove pubblicate)
+La denuncia annuale di esercizio di una cava italiana va presentata **in copie a destinatari diversi**, con frequenza **annuale**:
+
+1. **ISTAT** (Istituto Nazionale di Statistica)
+   - **Che cosa:** Indagine sulle attività estrattive non energetiche (ISTAT, survey annuale)
+   - **Scadenza:** 30 aprile dell'anno successivo (per i volumi dell'anno precedente) [fonte: Regione Piemonte, Legge Regionale n. 23/2016]
+   - **Modulo:** "Model A" in Piemonte, ma il nome varia per Regione (Lombardia usa "Dichiarazione di esercizio", ecc.) — [dedotto: ogni Regione personalizza il modulo]
+   - **Dati richiesti da ISTAT:** volumi estratti (m³ in banco), quantità in tonnellate, numero addetti, stato impianto (attivo/inattivo), informazioni dall'atto autorizzativo [fonte: ISTAT FAQ 2024]
+
+2. **Ente regionale (Provincia/Regione)**
+   - **Che cosa:** Dichiarazione per il calcolo del canone di coltivazione (onere di escavazione)
+   - **Scadenza:** 30 aprile (confermato per Piemonte; altre Regioni possono avere termini diversi) [dedotto: VERIFICARE per ogni Regione]
+   - **Dati:** volume lordo scavato, detrazioni (recupero ambientale), imponibile (base su cui calcolare l'euro)
+   - **Aliquota:** tariffe regionali per m³ per materiale (es. Piemonte 2026: €0,51/m³ sabbia, €0,57/m³ calcare) [fonte: Piemonte; altre Regioni hanno tariffe diverse]
+
+3. **Comuni/Enti di controllo (Ispettorato Miniere ex-DGS, ora suddiviso per Regione)**
+   - **Che cosa:** Comunicazione periodica dello stato di esercizio
+   - **Scadenza:** Dipende dalla Regione; Piemonte usa la stessa scadenza (30 aprile) [dedotto]
+   - **Via:** PEC o portale regionale [dedotto]
+
+#### Il "zero misurato" è una dichiarazione obbligatoria
+Una cava che **non ha scavato nulla in un anno** deve comunque presentare la denuncia annuale, dichiarando esplicitamente che non c'è stato scavo nel periodo. Il modulo va trasmesso anche se il volume è zero — la distinzione fra "non misurato" (nessun rilievo, fermo impianto) e "zero misurato" (rilievi effettuati, non ha estratto) è rilevante per l'ente [fonte: ISTAT, principio del fondatore confermato da prassi]. ⚠️ **Una cava in fermo tecnico che non presenta la denuncia perde diritti di coltivazione** [dedotto: vincolo normativo non esplicito a Terra].
+
+#### Unità di misura obbligatoria: metro cubo in banco
+La dichiarazione deve essere in **m³ in banco** (il volume nel sottosuolo prima dello scavo), non in "m³ sciolto" (volume dopo estrazione). La densità del materiale serve a convertire in tonnellate per pagare il canone, ma il numero ufficiale è il metro cubo in banco [fonte: ISTAT, DGS/Ispettorati].
+
+### 2. La nostra app — Cosa Terra già fa bene
+
+*Verificato per comando nel codice di terra-data.js (linee indicate).*
+
+| Funzione | Riga | Che cosa calcola | Stato |
+|----------|------|---|---|
+| `riepilogoAnnuale()` | 941 | Volumi scavati e cumulati per anno, mesi e fronti; qualità dei rilievi (survey-grade/indicativo); banda d'incertezza | ✅ Completo |
+| `baseOnereEscavazione()` | 1063 | Volume lordo, detratto per recupero, imponibile; distingue "calcolabile" da "non calcolabile" | ✅ Completo (il principio "zero misurato" è dichiarato esplicitamente) |
+| `serieAnnuale()` | 1510 | Serie storica annuale di volumi con rilievi per provenienza (scavo/cumulo) | ✅ Completo |
+| Export CSV (Riepilogo annuale) | 2856 | Crea file CSV con mesi, fronti, banchi, confronto col concesso; celle vuote dove non misurato | ✅ Completo (segue il principio "zero misurato" vs "non misurato") |
+| `descriviBaseOnere()` | 1100 | Racconta in parole la base dell'onere per il foglio stampato | ⚠️ A metà — vedi delta |
+| Densità (campo atto) | 2877-2879 | Memorizza densità e sua provenienza (atto/laboratorio/preset/manuale), data e riferimento | ✅ Tracciata (ma non dichiarata nel riepilogo) |
+
+**Terra applica correttamente il principio del fondatore:** distingue "nessun rilievo nel mese" (cella vuota nel CSV) da "rilievo fatto, volume zero" (scrive 0). Questo è il livello di rigore che ISTAT chiede.
+
+### 3. Il delta — Quello che l'ente chiede e Terra non fornisce (o non dichiara)
+
+| Schermata | Che cosa non va | Come si vede | Quanto costa | Come si misura |
+|---|---|---|---|---|
+| **Riepilogo annuale — dichiarazione di densità** | Il file CSV esportato contiene volumi in m³, ma non dichiara **quale densità è stata applicata** per il calcolo dei turni (confronto cavato vs dichiarato) | Nel CSV o nel foglio stampato, accanto ai mesi scrivono "Volume: 45.800 m³" ma non scrivono "densità usata: 1,6 t/m³ (da atto / da laboratorio / da preset)" | Piccolo | Esportare il riepilogo annuale → aprire il CSV: cercare la riga con densità usata e la sua fonte. Se assente, il gap c'è. Oppure stampare il foglio: lo stesso. In terra-data.js `descriviBaseOnere()` non dichiara la densità, scrive solo volumi. |
+| **Denuncia ISTAT — campo addetti occupati** | La dichiarazione ISTAT richiede il numero di addetti della cava (dipendenti, titolari, familiari, apprendisti); Terra non ha campi per questo | Nel form non c'è una sezione «Organizzazione» o «Risorsa umane»; nessun campo «Numero addetti: [_]» | Medio | Aprire Terra → cercare in tutti i form (atto, fronte, rilievo, lotto) un campo per «personale», «addetti», «dipendenti» — assente. `grep -E "addetto|dipendente|occupato|personale" apps/terra/terra-data.js` → **zero risultati** |
+| **Denuncia ISTAT — parco mezzi e attrezzature** | Molte Regioni nel modulo annuale chiedono l'elenco dei macchinari disponibili in cava per valutare capacità produttiva dichiarata | Nel form della cava non c'è una sezione per i mezzi; nessuna pagina «Flotta» o «Attrezzature» | Medio | Cercare in index.html `macchinari|ruspa|escavatore|pala|trivella|mezzo` — **zero risultati**. Terra non traccia il parco mezzi (è in Flotta, non in Terra). |
+| **Denuncia ISTAT — destinazione e utilizzo del materiale** | La dichiarazione distingue fra materiale venduto (fatturato) e materiale usato internamente (riempimenti, costruzioni); la norma chiede di dichiarare il volume per destinazione | Nel form del rilievo non c'è un campo «Questo materiale è stato: venduto / usato in recupero / usato internamente / in giacenza» | Piccolo | Nel form di un rilievo, cercare un campo enum per destinazione — non c'è. Il dato "venduto" è solo nel ponte P2 con Conti (è un calcolo, non una dichiarazione dell'utente). |
+| **Riepilogo annuale — dichiarazione esplicita di "non misurato"** | Quando un anno non ha nessun rilievo di scavo, Terra sa che la base dell'onere non è calcolabile; il foglio stampato dichiara il motivo. Ma il CSV **non dichiara se il volume è zero o non è stato misurato** — scrive una cella vuota per il totale | Nel CSV esportato, la riga del totale annuale ha tre valori (mesi | fronti | banchi); se non c'è stato nessun rilievo di scavo, il totale dei mesi scrive una cella vuota. Non c'è una nota nel file che spieghi se è «zero misurato» o «non misurato». | Piccolo | Esportare il riepilogo annuale di un anno senza rilievi di scavo → aprire il CSV → leggere la riga `totale;Anno 2026;;0;0` — se il primo volume è vuoto, il CSV non dichiara la ragione. La pagina stampata lo spiega (`descriviBaseOnere`), il file no. |
+| **Moduli regionali specifici per Regione** | Terra calcola i numeri per la denuncia ISTAT, ma non sa che i moduli cambiano per Regione (Piemonte Model A, Lombardia ha un form diverso, ecc.). Non c'è un campo «Regione di registrazione» per adattare il formato di esportazione | Nel form non c'è un campo che dice «Questa cava è in Piemonte» oppure «Lombardia». Il CSV esportato non ha un header che dichiara il modulo o la Regione | Medio | Nel form della cava o dell'atto, cercare un campo «Regione» o «Provincia» — non c'è (il modello della cava è uno solo, non è parametrizzato per Regione) |
+
+### Proposte verificate
+
+**Proposta 1: dichiarare la densità usata nel riepilogo annuale**
+- **Verificata:** `descriviBaseOnere()` (riga 1100) scrive il volume imponibile senza dichiarare quale densità è stata applicata al rilievo. Il CSV (riga 2856) non ha una colonna per densità.
+- **Misura:** Aggiungere una riga al CSV o al foglio stampato che reciti «Densità del materiale usata: [numero] t/m³ (Fonte: [atto/laboratorio/preset])», così chi legge la denuncia sa su quale presupposto il numero è stato calcolato — e sa se è difendibile in caso di controllo.
+
+**Proposta 2: sezione «Organizzazione della cava» con campi per addetti**
+- **Verificata:** Nessun campo in terra-data.js o index.html per addetti occupati, numero dipendenti, titolari, familiari.
+- **Misura:** Aggiungere una pagina (o una sezione del form di atto) con campi: «Personale occupato (dipendenti): [_]», «Titolari: [_]», «Familiari: [_]», «Stagionali nella stagione (media): [_]». Questi numeri vanno dichiarati annualmente a ISTAT e sono tracciabili nei registri dell'azienda.
+
+**Proposta 3: campo enum «Destinazione del materiale» nel rilievo**
+- **Verificata:** `provenienzaDi()` distingue scavo da cumulo, ma non traccia dove il materiale **va** — è venduto? usato in recupero? in giacenza? La distinzione cumulo/scavo dice **da dove viene**, non **dove va**.
+- **Misura:** Aggiungere un campo nel modulo di rilievo (enum, una sola risposta): «Destinazione: Venduto / Recupero ambientale / Uso interno / Giacenza / Altro», così la denuncia annuale può aggregare per destinazione se l'ente lo chiede.
+
+**Proposta 4: dichiarare nel CSV il principio "zero misurato" vs "non misurato"**
+- **Verificata:** Il foglio stampato (descriviBaseOnere) lo spiega, il CSV lascia la cella vuota. Chi non legge il foglio ma solo il file non sa la ragione.
+- **Misura:** Aggiungere una nota in fondo al CSV che dichiara (una sola volta): «Note: le celle vuote nella colonna scavo indicano che non c'è stato nessun rilievo nel periodo; lo zero indica che il rilievo è stato effettuato ma il volume misurato era zero. La base dell'onere è calcolabile solo se c'è stato almeno un rilievo di scavo nell'anno.» Questo rende il file autoesplicativo.
+
+### Fonti e comandi
+
+**Verifica nel codice:**
+```bash
+grep -n "export function riepilogoAnnuale\|export function baseOnereEscavazione\|export function serieAnnuale" /home/user/Mining-Tech-Platform/apps/terra/terra-data.js
+# Uscita: 941, 1063, 1510
+
+grep -n "\.download.*terra_riepilogo\|descriviBaseOnere" /home/user/Mining-Tech-Platform/apps/terra/index.html
+# Uscita: riga 2856 export CSV, descriviBaseOnere importato
+
+grep -E "addetto|dipendente|occupato|personale" /home/user/Mining-Tech-Platform/apps/terra/terra-data.js /home/user/Mining-Tech-Platform/apps/terra/index.html
+# Uscita: zero risultati (addetti non tracciati)
+
+grep "densitaFonte\|densitaQuando\|densitaRiferimento" /home/user/Mining-Tech-Platform/apps/terra/terra-data.js
+# Uscita: riga 14-23 nella collezione autorizzazioni, poi non dichirata nel riepilogo
+```
+
+**Ricerche effettuate (il mondo):**
+1. ISTAT attività estrattive — survey annuale, modulo, scadenza 30 aprile, volumi richiesti [fonte: ISTAT FAQ, prassi regionale]
+2. D.Lgs 27/1988 — normativa quadro attività estrattive [dedotto: normativa di riferimento nazionale]
+3. Regione Piemonte, Legge Regionale n. 23/2016 — modello A, scadenza, oneri [fonte: LR, confermato 01/08]
+4. Canone di coltivazione — tariffe regionali, periodicità annuale [fonte: Piemonte 2026; altre Regioni variano]
+5. Densità materiali estratti — conversione m³ ↔ tonnellate per tipo (sabbia 1.5-1.9, ghiaia 1.4, ecc.) [fonte: pratiche di industria estrattiva]
+6. Zero misurato vs non misurato — principio ISTAT: la denuncia va presentata anche a volume zero [fonte: principio del fondatore, confermato da ISTAT]
+
+### Sintesi per Terra
+
+Terra ha l'**infrastruttura giusta** per la denuncia annuale:
+- Calcola volumi disaggregati per anno, mese, fronte, banco, con qualità rilievi e banda
+- Applica il principio "zero misurato" correttamente (cella vuota se non misurato, 0 se misurato)
+- Esporta CSV e consente stampa
+- Traccia densità e sua fonte nei dati, ma non la dichiara nel riepilogo
+
+**Mancano tre cose che la normativa chiede:**
+1. **Addetti occupati** — campo annuale obbligatorio in ISTAT
+2. **Parco mezzi** — spesso richiesto dalle Regioni
+3. **Destinazione del materiale** — per disaggregare venduto vs interno
+
+**E una cosa che serve alla compliance:**
+4. **Dichiarazione della densità usata** nel riepilogo, così il numero è tracciabile e difendibile
+
+**Non sono buchi architetturali.** Sono dettagli di completamento — i numeri ci sono, serve dichiararli nel formato che l'ente capisce.
