@@ -840,6 +840,31 @@ numero scritto dove non era stato misurato niente**.*
   venivano dai **commenti**, per la terza volta in un giorno.
   Controprova su due versi: 12 refusi iniettati in memoria su 12 pagine, 12
   visti; e un gancio di JavaScript **non** segnalato.
+- [x] ✅ **Il registro del giro dice quali passate sono controprove** (`5d298c1`):
+  un rosso voluto letto come un guasto **due volte in due ore**, la seconda da chi
+  aveva appena scritto la difesa per la prima. La cura non è un setaccio più
+  furbo: `tutti.mjs` quel dato ce l'ha in mano (`eControprova`) e finiva solo nel
+  riepilogo. **Un dato che il programma ha in mano non si indovina dal testo.**
+- [x] ✅ **Non erano due difetti: era l'unico gradiente del core senza un
+  inchiostro** (`73f9380`). Le uniche 2 violazioni AA su 4.568 testi e 14
+  superfici, tutt'e due nel core: `--grad3` fallisce **alle estremità opposte con
+  inchiostri opposti**, quindi ogni superficie dipinta con quel gradiente nasceva
+  bocciata. Derivato da `--g-blast`, 452 testi / **0 sotto soglia**, e cinque
+  bottoni che scrivevano il rosso a mano diventati **una classe**.
+- [x] ✅ **Flotta: un pieno senza spesa metteva una macchina PRIMA in classifica
+  a zero euro l'ora** (`4938125`). `spesaInFinestra = 0` → `€ 0,00/h` → prima in
+  `pagellaMezzi`: il principio del fondatore nella sua forma più pura.
+- [x] ✅ **Le unità in maiuscolo: il banco non guardava le maiuscole**
+  (`c753ccc`). «Mc totali» renderizzato «MC TOTALI» e il banco diceva pulito. 15
+  casi in più, **11 veri** (17 etichette del core, unità in coda fra parentesi
+  come negli altri 44 punti) e **4 dichiarati** con la ragione.
+- [x] ✅ **Quattro cantieri insieme** (`e34aff3`): **24 grafici su 38 fuori
+  scala** in cinque app su sei (il documento diceva «uno su tre», misurato sulle
+  sole schermate d'apertura); e in Scudo, Conti e Sentinella la domanda «chi
+  decide i numeri di ciò che esce» ha risposto in **quattro versi** — il file più
+  povero, **lo schermo più povero**, tutt'e due che tacciono, e **un'uscita che
+  nessun banco guardava** (gli appunti, che vanno a una persona). Il difetto che
+  pesa: nel sollecito una **nota di credito** usciva come acconto del cliente.
 
 ## Riferimenti
 
