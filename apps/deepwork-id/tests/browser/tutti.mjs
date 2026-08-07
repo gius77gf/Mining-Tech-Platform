@@ -523,6 +523,14 @@ const BANCHI = [
      («10 fori · 787.5 mc», tutti i fori con `kg:''`) e nessuna prova guardava. */
   ['il core e le volate mai misurate', 'core-volate-non-misurate.mjs', []],
   ['volate mai misurate · controprova', 'core-volate-non-misurate.mjs', ['--controprova'], true],
+  /* ⛔ AGGIUNTO IL 07/08, ed è il banco che apre una schermata che NESSUN altro
+     aveva mai aperto: `nav('dashboard')` sollevava «Chart is not defined»
+     (Chart.js viene da un CDN), quindi ogni banco che «guardava il core» la
+     saltava in silenzio — la famiglia dello «0 modali su 68», un piano sotto.
+     Sotto ci stavano tre rettangoli vuoti che non dicevano perché: il
+     principio del fondatore applicato a un DISEGNO invece che a un numero. */
+  ['la Dashboard del core senza rete', 'core-dashboard-senza-rete.mjs', []],
+  ['Dashboard senza rete · controprova', 'core-dashboard-senza-rete.mjs', ['--controprova'], true],
   /* ⛔ AGGIUNTO IL 03/08, stessa famiglia di `terra-numeri-tranquilli` e stessa
      ragione: in Sentinella il principio del fondatore è NATO, il modulo lo
      applica in una dozzina di punti — e i quattro numeri tranquilli rimasti

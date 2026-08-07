@@ -3807,6 +3807,11 @@ function renderDashboard(){
   const mezzoDati=Object.entries(perMezzo).sort((a,b)=>b[1]-a[1]).slice(0,5)
     .map(([mid,mc])=>{const m=DB.mezziLav.find(x=>x.id===mid);return{nome:m?m.modello:'—',mc:+mc.toFixed(1)};});
 
+  // Dati fochini (numero volate per fochino nel periodo)
+  const perFoc={};
+  rappFoc.forEach(r=>{perFoc[r.userId]=(perFoc[r.userId]||0)+1;});
+  const focDati=Object.entries(perFoc).sort((a,b)=>b[1]-a[1]).slice(0,8).map(([uid,n])=>{const u=DB.users.find(x=>x.id===uid);return{nome:u?(u.nome[0]+'.'+u.cognome):'—',n};});
+
   const cavaOpts='<option value="">Tutte le cave</option>'+DB.cave.map(c=>`<option value="${c.id}" ${_dashFiltri.cavaId===c.id?'selected':''}>${escHtml(`${c.nome}`)}</option>`).join('');
   const userOpts='<option value="">Tutti gli operatori</option>'+DB.users.map(u=>`<option value="${u.id}" ${_dashFiltri.userId===u.id?'selected':''}>${escHtml(`${u.nome} ${u.cognome}`)}</option>`).join('');
   const mezzoOpts='<option value="">Tutti i mezzi</option>'+DB.mezziLav.map(m=>`<option value="${m.id}" ${_dashFiltri.mezzoId===m.id?'selected':''}>${escHtml(`${m.modello}`)}</option>`).join('');
@@ -3850,14 +3855,16 @@ function renderDashboard(){
       </div>
     </div>
 
+    <!-- Le tre torte, o la ragione per cui non ci sono -->
+    ${typeof Chart==='undefined' ? avvisoGraficiAssenti() : `
     <!-- Torta principale: totale periodo per cava (grande) -->
-    ${cavaDati.length?`<div class="chart-card"><div class="chart-card-title">Totale periodo · per cava</div><div class="chart-host" style="height:240px;"><canvas id="ch-cave-pie"></canvas></div></div>`:''}
+    ${cartaGrafico('Totale periodo · per cava','ch-cave-pie',240,cavaDati.length)}
 
     <!-- Torte secondarie: operatori e fochini -->
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;">
-      ${opDati.length?`<div class="chart-card"><div class="chart-card-title">Per operatore</div><div class="chart-host" style="height:190px;"><canvas id="ch-op-pie"></canvas></div></div>`:''}
-      <div class="chart-card"><div class="chart-card-title">Per fochino (volate)</div><div class="chart-host" style="height:190px;"><canvas id="ch-foc-pie"></canvas></div></div>
-    </div>
+      ${cartaGrafico('Per operatore','ch-op-pie',190,opDati.length)}
+      ${cartaGrafico('Per fochino (volate)','ch-foc-pie',190,focDati.length)}
+    </div>`}
 
     <!-- Dettaglio cave cliccabili -->
     <div class="sec-title" style="margin-top:14px;"><span class="dot"></span>Dettaglio per cava</div>
@@ -3898,10 +3905,6 @@ function renderDashboard(){
   const pieColors=['#ffab00','#66bb6a','#42a5f5','#ef5350','#ab47bc','#26a69a','#ffa726','#7e57c2','#26c6da','#d4e157','#ff7043','#8d6e63'];
   const legendCol=dashChartOpts().scales?.x?.ticks?.color||'#f0e8d8';
   const pieOpts={responsive:true,maintainAspectRatio:false,plugins:{legend:{display:true,position:'bottom',labels:{color:legendCol,font:{size:9},boxWidth:10}}}};
-  // Dati fochini (numero volate per fochino nel periodo)
-  const perFoc={};
-  rappFoc.forEach(r=>{perFoc[r.userId]=(perFoc[r.userId]||0)+1;});
-  const focDati=Object.entries(perFoc).sort((a,b)=>b[1]-a[1]).slice(0,8).map(([uid,n])=>{const u=DB.users.find(x=>x.id===uid);return{nome:u?(u.nome[0]+'.'+u.cognome):'—',n};});
 
   if(cavaDati.length&&$('ch-cave-pie')){
     state.chartInstances.cavePie=new Chart($('ch-cave-pie').getContext('2d'),{
@@ -3936,6 +3939,47 @@ function dashApriCava(cavaId){
 function dashApriOperatore(userId){
   _dashFiltri.userId=userId;
   renderDashboard();
+}
+/* ⛔ UN RIQUADRO VUOTO NON DICE «NON C'È NIENTE»: NON DICE NIENTE.
+   È il principio del fondatore applicato a un DISEGNO invece che a un numero,
+   e nella Dashboard costava tre buchi neri. Misurato il 07/08 aprendo la
+   schermata senza rete: i quattro KPI erano scritti giusti («5 rapportini ·
+   3466 mc · 3 operatori · 2 rapp. fochino») e sotto stavano **tre rettangoli
+   vuoti** — «TOTALE PERIODO · PER CAVA» con il nulla sotto. Da lì l'utente non
+   può sapere se non ci sono dati, se sta caricando o se l'app è rotta; e in
+   cava, dove il segnale non c'è, è lo stato NORMALE della schermata.
+   Le cause erano due, indipendenti, e portavano allo stesso buco:
+   1. **Chart.js arriva da un CDN.** Senza rete `new Chart(...)` solleva
+      «Chart is not defined» — misurato: 3 canvas, **0 pixel dipinti**. Il
+      core sa già come si fa quando una libreria non arriva (`_loadScript` per
+      l'Excel dice «serve connessione» e si ferma): qui non lo faceva nessuno;
+   2. **la torta dei fochini non aveva il controllo sui dati** che le sue due
+      sorelle avevano: il riquadro si disegnava sempre, e senza volate nel
+      periodo restava vuoto **anche con la rete**.
+   ⚠️ E la frase deve dire che i NUMERI sono giusti: se no un utente che vede
+   sparire i grafici smette di fidarsi anche dei totali, che invece sono
+   esatti. Una libreria di disegno che non arriva non tocca i conti.
+   La decisione sta qui, in un posto solo, per tutt'e tre i riquadri: erano
+   tre righe copiate, ed è il modo in cui la torta dei fochini aveva perso il
+   controllo che le altre due avevano.
+
+   ⚠️ E LE DUE CAUSE HANNO PORTATA DIVERSA, che è la ragione per cui sono
+   scritte in due funzioni invece che in un `if` solo. «Non ci sono dati» vale
+   per UN grafico — con un filtro stretto una torta può essere vuota e le altre
+   piene. «La libreria non è arrivata» vale per la PAGINA: riguarda tutt'e tre
+   allo stesso modo. Alla prima stesura la stessa frase da venti parole usciva
+   **tre volte di fila**, due delle quali in una colonna stretta la metà: si
+   leggeva come un guasto ripetuto invece che come una cosa sola. Scritta una
+   volta al posto del gruppo dice la stessa verità e si legge. */
+function avvisoGraficiAssenti(){
+  return `<div class="info-box">📶 <b>I grafici non si vedono</b>: la libreria che li disegna non è arrivata, e per scaricarla serve la rete. `
+    + `I numeri e gli elenchi di questa pagina sono <b>giusti lo stesso</b> — vengono dai dati, non dalla libreria.</div>`;
+}
+function cartaGrafico(titolo,id,altezza,ciSonoDati){
+  const dentro = ciSonoDati
+    ? `<div class="chart-host" style="height:${altezza}px;"><canvas id="${id}"></canvas></div>`
+    : `<div class="info-box" style="margin-top:0;">Nessun dato nel periodo e nei filtri scelti.</div>`;
+  return `<div class="chart-card"><div class="chart-card-title">${escHtml(titolo)}</div>${dentro}</div>`;
 }
 function dashChartOpts(){
   const lightMode=DB.settings.theme==='light';
