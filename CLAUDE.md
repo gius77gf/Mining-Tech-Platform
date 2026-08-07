@@ -613,6 +613,35 @@ Perché serva davvero e non produca elenchi generici, cinque vincoli:
   suite resta verde**, i 253 `eq(..., null)` erano tutti `null` davvero. Il
   buco c'era e non aveva ancora nascosto niente in ciò che è scritto: ha morso
   una prova **nuova**, mentre la si scriveva.
+- ⛔ **UN CONTROLLO TENUTO LARGO «PER NON FARE FALSI ALLARMI» PUÒ ESSERE CIECO
+  PROPRIO DOVE SERVE — E IL COSTO DELLA STRETTA SI MISURA, NON SI TEME.**
+  Misurato il 07/08, ed è costato **una settimana** di difetto in produzione.
+  `nomi-liberi.mjs` esiste per prendere un nome chiamato che non esiste (errore
+  **duro**: la pagina si apre e muore al primo tocco). Riconosceva i nomi
+  dichiarati con `\b(?:const|let|var)\s+([^;\n]*)` — cioè prendeva **tutta la
+  riga** e la spezzava sui non alfanumerici — e nel suo commento c'era scritta
+  la ragione, sensata: *«largo di proposito: un falso negativo costa meno di un
+  falso allarme»*. Effetto vero: legava **ogni parola sulla stessa riga di un
+  `const`**, compreso il nome della funzione chiamata lì dentro. Cioè era cieco
+  sulla forma più frequente che il codice abbia, `const x = qualcosa(...)`.
+  Sotto ci stava un difetto vero: `chiediDati()` chiamata **sei volte** in
+  Flotta e mai definita — il commit `486011d` del 31/07 aveva portato in
+  `shared/dw-app-ui.js` **sette** delle otto funzioni della struttura e non la
+  ottava, l'unica che usava una app sola. Premendo «è ripartito» su una
+  macchina ferma **non succedeva niente**, e nessuna delle 2.190 prove lo
+  vedeva.
+  ⚠️ **La lezione non è «stringere sempre»: è che l'ampiezza è un numero, e
+  quel numero si misura.** Stringendo, il costo del rumore è stato **due** nomi
+  da dichiarare in tutto (`import(` che è sintassi, `require(` che è Node) più
+  il difetto vero: zero falsi allarmi. Il timore era ragionevole e la misura
+  l'ha smentito in cinque minuti. Prima di lasciare largo un controllo,
+  **stringilo su una copia e conta gli allarmi nuovi**: se sono pochi e
+  dichiarabili per nome, un elenco corto e scritto è meglio di una regola larga
+  che nasconde.
+  ⚠️ E il corollario sugli elenchi: `UI_CONDIVISA` di `run-stile` aveva **sei**
+  nomi scritti a mano mentre la struttura condivisa ne espone **dieci**. Un
+  elenco a mano non poteva accorgersi di `chiediDati` — **non sapeva nemmeno
+  che quel nome esistesse.** Ora è derivato da `window.X =` del file condiviso.
 - ⚠️ **UNO STRUMENTO CONDIVISO DA TUTTI I CONTROLLI NON È CONTROLLATO DA
   NESSUNO.** Il 03/08 la scansione che sta sotto a tutte e sedici le regole
   **perdeva la fase**, per due difetti indipendenti: leggeva la pagina intera
