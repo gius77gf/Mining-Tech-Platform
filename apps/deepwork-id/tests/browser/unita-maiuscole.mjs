@@ -30,30 +30,51 @@ const CONTROPROVA = process.argv.includes('--controprova');
    trasformazione effettiva è maiuscola E il suo testo PROPRIO contiene
    un'unità: qualunque maiuscolo la corrompe, comprese quelle che di loro
    hanno già una maiuscola (MPa → MPA). */
-const CERCA = (controprova) => {
-  /* le unità che compaiono nell'ecosistema. Non un'espressione generica: una
-     lista, perché «t» dentro una parola non è una tonnellata e la lista con i
-     confini di parola è l'unico modo di non riempire il risultato di rumore */
-  /* «h» (l'ora) è entrata il 30/07 insieme a `UNITA_DA_SALVARE` in
-     `shared/deepwork-id-client/dw-shell.js`: là c'è scritto perché lei sì e il
-     litro no. Sta in fondo per la stessa ragione — «km/h» e «m³/h» vanno
-     riconosciute prima, o si segnalerebbe l'ora dentro una velocità. */
-  const UNITA = ['m³', 'm²', 'µg/m³', 'mg/m³', 'mm/s', 'dB(A)', 'dB(L)', 'dB',
-    'kg/m³', 'kg/foro', 'kg/m', 'kg', 'km/h', 'km', 'MPa', 'GPa', 'kbar', 'Hz',
-    'ms/m', 'ms', 'm/kg', 't/m³', '€/m³', '€/kg', '€/foro', '€/t', '€/m',
-    'cm', 'mm', 'gg', 'm³/giorno', 'm³/anno', 'h'];
+/* le unità che compaiono nell'ecosistema. Non un'espressione generica: una
+   lista, perché «t» dentro una parola non è una tonnellata e la lista con i
+   confini di parola è l'unico modo di non riempire il risultato di rumore */
+/* «h» (l'ora) è entrata il 30/07 insieme a `UNITA_DA_SALVARE` in
+   `shared/deepwork-id-client/dw-shell.js`: là c'è scritto perché lei sì e il
+   litro no. Sta in fondo per la stessa ragione — «km/h» e «m³/h» vanno
+   riconosciute prima, o si segnalerebbe l'ora dentro una velocità. */
+/* ⛔ «t» E «mc» NUDE SONO ENTRATE IL 06/08, E L'ELENCO SENZA DI LORO ERA CIECO
+   PROPRIO SULL'UNITÀ PIÙ COMUNE IN CAVA. Il banco diceva «nessuna unità in
+   maiuscolo» mentre in Conti erano a schermo — e su un DDT stampato — «LORDO
+   (T)», «TARA (T)», «NETTO (T)»: la tonnellata diventata un tesla. Misurato
+   rimettendo il difetto vero (6 punti) su una copia di `HEAD`: con l'elenco
+   vecchio **0 violazioni**, con «t» dentro **2**. E il costo del rumore è
+   stato misurato PRIMA di cambiare, non dopo: elenco esteso su tutte e
+   **quattordici** le superfici pulite, **0 falsi allarmi**. «mc» è una unità
+   vera del core (`${m.mc} mc`) e di Conti (colonna del listino), non
+   un'ipotesi. Stanno in fondo con «h» per la stessa ragione d'ordine. */
+const UNITA = ['m³', 'm²', 'µg/m³', 'mg/m³', 'mm/s', 'dB(A)', 'dB(L)', 'dB',
+  'kg/m³', 'kg/foro', 'kg/m', 'kg', 'km/h', 'km', 'MPa', 'GPa', 'kbar', 'Hz',
+  'ms/m', 'ms', 'm/kg', 't/m³', '€/m³', '€/kg', '€/foro', '€/t', '€/m',
+  'cm', 'mm', 'gg', 'm³/giorno', 'm³/anno', 'h', 'mc', 't'];
+
+const CERCA = ({ controprova, UNITA }) => {
   const out = [];
   if (controprova) {
-    /* si sporca una superficie che è a posto, per vedere se il controllo se ne
-       accorge: senza questo, «0 violazioni» può voler dire «non sto guardando» */
-    const vittima = document.querySelector('.kpi .l, .badge, .sec, .name');
-    if (vittima) {
+    /* ⛔ LA CONTROPROVA SI MISURA ANCHE NELLA COPERTURA, NON SOLO NELL'ESITO.
+       Fino al 06/08 sporcava la pagina con **una** unità sola («12 m³») e
+       chiedeva «hai visto qualcosa?»: sapere fallire su una delle trentacinque
+       non dice niente sulle altre trentaquattro — ed era esattamente il caso,
+       perché «t» non era nemmeno in elenco e la controprova diceva ok. Adesso
+       inietta **una riga per ogni unità** e pretende che siano riconosciute
+       tutte, stampando il conto. */
+    const box = document.createElement('div');
+    box.id = 'dw-cp-unita';
+    box.style.cssText = 'position:fixed;left:0;top:0;z-index:99999;background:#fff';
+    for (const u of UNITA) {
       const s = document.createElement('span');
-      s.textContent = ' 12 m³';
+      s.textContent = ' 12 ' + u;
       s.style.textTransform = 'uppercase';
+      s.style.display = 'inline-block';
       s.className = 'controprova-unita';
-      vittima.appendChild(s);
+      s.dataset.cp = u;
+      box.appendChild(s);
     }
+    document.body.appendChild(box);
   }
   document.querySelectorAll('body *').forEach((el) => {
     const proprio = [...el.childNodes]
@@ -74,22 +95,25 @@ const CERCA = (controprova) => {
       return /[\s\d(/·,]/.test(prima) && !/[a-zA-Zà-ù]/.test(dopo);
     });
     if (!unita) return;
-    out.push({ unita, testo: proprio.slice(0, 46),
+    out.push({ unita, testo: proprio.slice(0, 46), cp: el.dataset.cp || '',
       classe: (typeof el.className === 'string' ? el.className : '').slice(0, 44) });
   });
   return out;
 };
 
-let ok = 0, ko = 0;
+let ok = 0, ko = 0, superfici = 0;
 const b = await chromium.launch({ executablePath: CHROMIUM });
 const visti = new Set();
+const riconosciute = new Set();   // solo controprova: quali unità iniettate sono state viste
 for (const [nome, via] of SUPERFICI) {
   if (SOLO && SOLO !== nome) continue;
+  superfici++;
   const { ctx, p } = await apriSuperficie(b, { nome, via, porta: PORTA, montaFintoFirebase });
   let trovate = 0;
   for (const s of await sezioniDi(p, nome)) {
     await vaiA(p, nome, s);
-    for (const v of await p.evaluate(CERCA, CONTROPROVA)) {
+    for (const v of await p.evaluate(CERCA, { controprova: CONTROPROVA, UNITA })) {
+      if (v.cp) { riconosciute.add(v.cp); continue; }   // è la nostra iniezione, non il prodotto
       const chiave = `${nome}|${v.classe}|${v.testo}`;
       if (visti.has(chiave)) continue;
       visti.add(chiave);
@@ -101,6 +125,17 @@ for (const [nome, via] of SUPERFICI) {
   await ctx.close();
 }
 await b.close();
-console.log(`\n${ok} superfici pulite, ${ko} violazioni`);
-/* nella controprova il successo è il contrario */
-process.exit(CONTROPROVA ? (ko ? 0 : 1) : (ko ? 1 : 0));
+
+if (CONTROPROVA) {
+  /* ⛔ IL VERDETTO È LA COPERTURA, NON «HO VISTO QUALCOSA». Un'unità che
+     l'elenco contiene ma che il confine di parola non lascia mai passare è un
+     buco silenzioso: qui si vede, perché resta fuori dal conto. */
+  const mancanti = UNITA.filter((u) => !riconosciute.has(u));
+  console.log(`\ncontroprova su ${superfici} superfici: ${UNITA.length - mancanti.length}/${UNITA.length}`
+    + ` unità riconosciute quando sono in maiuscolo`);
+  if (mancanti.length) console.log(`  NON riconosciute: ${mancanti.join(', ')}`);
+  process.exit(mancanti.length ? 1 : 0);
+}
+
+console.log(`\n${ok} superfici pulite, ${ko} violazioni  ·  ${UNITA.length} unità cercate su ${superfici} superfici`);
+process.exit(ko > 0 ? 1 : 0);

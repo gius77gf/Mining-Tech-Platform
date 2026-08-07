@@ -221,6 +221,26 @@ node apps/deepwork-id/tests/browser/unita-maiuscole.mjs 8823 --controprova
 nascosta ricade su `textContent` e il maiuscolo non si vede. Il maiuscolo va
 chiesto a `getComputedStyle`, che risponde comunque.
 
+⛔ **E IL 06/08 QUESTO BANCO ERA CIECO SULLA TONNELLATA**, cioè sull'unità più
+comune in cava. Diceva «nessuna unità di misura in maiuscolo» mentre Conti aveva
+a schermo — e stampava sul **DDT** — «LORDO (T)», «TARA (T)», «NETTO (T)»: la
+`t` **nuda** non era in elenco (`t/m³` e `€/t` sì, e quella somiglianza è
+esattamente ciò che rende il buco invisibile a chi legge la riga). Aggiunte `t`
+e `mc`, con le due misure fatte **prima** di cambiare, su una copia di `HEAD`:
+
+| | elenco vecchio | elenco con `t` |
+|---|---|---|
+| difetto vero di Conti rimesso (6 punti) | **0 violazioni** — cieco | **2 violazioni** |
+| tutte e 14 le superfici sane | 0 | **0** — nessun falso allarme |
+
+⛔ **E LA CONTROPROVA SI MISURA ANCHE NELLA COPERTURA.** Prima sporcava la
+pagina con **una** unità sola (`12 m³`) e chiedeva «hai visto qualcosa?»: saper
+fallire su una su trentatré non dice niente sulle altre trentadue — ed era
+proprio il caso, perché `t` non c'era e la controprova rispondeva **ok**. Adesso
+inietta una riga **per ogni unità dell'elenco** e stampa il conto: `35/35 unità
+riconosciute quando sono in maiuscolo`. Un'unità che l'elenco contiene ma che il
+confine di parola non lascia mai passare resta fuori da quel conto e si vede.
+
 Al primo giro: **21 violazioni su cinque superfici**. La controprova sporca una
 superficie pulita e pretende di essere scoperta.
 
