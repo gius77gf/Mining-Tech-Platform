@@ -400,10 +400,33 @@ const MISURA = () => {
          cioe come il contrasto peggiore possibile, ed e esattamente la bugia
          comoda che ha prodotto 531 bocciature false. Se NESSUNA coppia si e
          potuta leggere, il rapporto e `null` e chi legge lo dichiara. */
-      rapporto: (() => {
+      ...(() => {
         const r = sfondi.flatMap((sf) => inchiostri.map((inc) => rapporto(composto(inc, sf, op), sf)))
           .filter((x) => x !== null && Number.isFinite(x));
-        return r.length ? Math.round(Math.min(...r) * 100) / 100 : null;
+        if (!r.length) return { rapporto: null, forbice: 0 };
+        const peggio = Math.min(...r), meglio = Math.max(...r);
+        return {
+          rapporto: Math.round(peggio * 100) / 100,
+          /* ⛔ LA FORBICE, DAL 07/08 — la settima trappola, dichiarata invece
+             che corretta a meta. Quando il fondo o l'inchiostro vengono da un
+             GRADIENTE, qui sopra si accoppiano TUTTE le fermate dell'uno con
+             TUTTE quelle dell'altro e si prende il minimo: cioe il pixel
+             d'inchiostro piu chiaro col pixel di fondo piu scuro ANCHE QUANDO
+             STANNO AGLI ANGOLI OPPOSTI, dove non si incontrano mai.
+             Misurato leggendo i pixel veri dello schermo: su un elemento
+             piccolo all'estremita di un gradiente a 135° il banco dichiarava
+             2,92 e il valore renderizzato era 4,71 — cioe il prodotto passava
+             e il banco accusava.
+             La geometria vera (proiettare il rettangolo del testo sull'asse
+             del gradiente e tenere solo le fermate che lo coprono) e la
+             correzione giusta ed e un cantiere a se. Finche non c'e, il banco
+             NON tace e NON finge: tiene il caso peggiore — che e la direzione
+             prudente — e dichiara quanto e larga la FORBICE fra il peggiore e
+             il migliore accoppiamento. Una forbice larga vuol dire «questo
+             numero va verificato a mano prima di toccare un colore», che e la
+             regola gia scritta in cima a questo file. */
+          forbice: Math.round((meglio - peggio) * 100) / 100,
+        };
       })(),
     });
   });
@@ -573,6 +596,7 @@ const superficiCieche = [];
 const temaRifiutato = [];
 let mixBocciata = 0;
 let illeggibili = 0;
+let forbiciLarghe = 0;
 let temaMisurate = 0;
 const visti = new Set();
 
@@ -690,7 +714,9 @@ for (const [nome, via] of SUPERFICI) {
         if (m.testo.startsWith(MARCA_MIX)) { mixBocciata++; }
         if (m.testo.startsWith(MARCA)) { presaQui++; continue; }   // è il veleno: non è un difetto del prodotto
         bocciati++; bocciatiQui++;
-        console.log(`  KO  ${String(m.rapporto).padStart(6)}:1  (serve ${m.soglia})  ${m.dim}px  «${m.testo}»  .${m.classe}`);
+        if (m.forbice >= 1) forbiciLarghe++;
+        console.log(`  KO  ${String(m.rapporto).padStart(6)}:1  (serve ${m.soglia})  ${m.dim}px  «${m.testo}»  .${m.classe}`
+          + (m.forbice >= 1 ? `\n        ⚠️  forbice ${m.forbice} — il fondo o l'inchiostro vengono da un gradiente e il caso peggiore accoppia due estremi che non si incontrano: VERIFICA A MANO prima di toccare il colore` : ''));
       } else if (m.testo.startsWith(MARCA_PULSA)) {
         pulsaMisurata++;
         console.log(`  ⚠️  il testo in pulsazione è stato MISURATO a ${m.rapporto}:1 invece che dichiarato`);
@@ -760,6 +786,7 @@ if (TEMA) {
 }
 console.log(`\n${misurati} testi misurati in tutto, ${bocciati} sotto soglia`
   + (illeggibili ? ` · ${illeggibili} NON misurabili, dichiarati e non giudicati` : '')
+  + (forbiciLarghe ? ` · ${forbiciLarghe} con FORBICE larga: il numero e il caso peggiore, non il renderizzato` : '')
   + (sfumatiTot ? ` · ${sfumatiTot} saltati perché in dissolvenza (dichiarati, non nascosti)` : '')
   + (pulsantiTot ? ` · ${pulsantiTot} saltati perché in pulsazione (dichiarati, non nascosti)` : '')
   + (spentiTot ? ` · ${spentiTot} comandi spenti, che la WCAG 1.4.3 esclude (dichiarati, non nascosti)` : ''));
