@@ -42,7 +42,41 @@ import { montaFintoFirebase } from './finto-firebase.mjs';
 const PORTA = +(process.argv[2] || 8823);
 const CONTROPROVA = process.argv.includes('--controprova');
 const SOLO = (process.argv.find((a) => a.startsWith('--solo=')) || '').slice(7);
-const LARGHEZZE = [390, 360];
+/* ⛔ 430 E 320 SONO ENTRATE IL 07/08, E PER UNA RAGIONE PRECISA. Un cantiere,
+   guardando uno scatto di Conti a 430 px, ha riferito che le etichette della
+   barra erano tagliate — «QUADR», «ATTUR», «BANCA», «ORDIN» — e io l'ho
+   riportato in due documenti **senza rimisurarlo**, che è esattamente quello
+   che la regola di casa vieta: niente entra sulla parola dell'agente.
+   Rimisurato: **164 voci a 430, 390, 360 e 320 px su sei app, ZERO parole più
+   larghe della loro colonna** — la parola è un nodo di testo nudo dentro il
+   bottone, e si misura con un `Range`, non con `querySelectorAll` (la prima
+   sonda cercava uno `span` e trovava l'**icona**, 20 px su 19, in tutte e sei
+   le app: un difetto finto, identico dappertutto, che è il segno che si sta
+   guardando il righello invece del soggetto).
+   La spiegazione la dà l'intestazione qui sotto: la colonna cresce con
+   l'etichetta, quindi tagliare non è nemmeno possibile. Il difetto non c'era.
+   ⚠️ Quello che 430 e 320 aggiungono davvero è **coprire le larghezze che
+   qualcuno guarda**: il banco misurava 390 e 360, la segnalazione parlava di
+   430, e una domanda a cui il banco non può rispondere resta aperta anche
+   quando la risposta è «no». Uno scatto **propone**, una misura **decide**. */
+const LARGHEZZE = [430, 390, 360];
+/* ⛔ E 320 NON C'È, DICHIARATO INVECE CHE OMESSO. Provato il 07/08: a 320 px la
+   barra di **Sentinella** esce — **328 px di contenuto in 302** — e siccome
+   `.nav` ha `overflow:hidden` le ultime voci spariscono in silenzio, che è
+   esattamente il difetto che questo banco esiste per prendere. È un difetto
+   vero e va corretto, ma registrarlo qui **prima** della correzione metterebbe
+   il giro in rosso: un giro rosso per un difetto noto è un giro che si impara a
+   non guardare (la stessa ragione per cui i due temi chiari sono entrati in
+   `tutti.mjs` solo a palette finite).
+   ⚠️ E il numero da sapere per chi lo corregge, perché la strada ovvia è già
+   stata provata e NON funziona: 328 è il **min-content** della griglia — a 340
+   e a 320 il contenuto è lo stesso, cioè il pavimento è raggiunto — e
+   rimpicciolire il carattere lo fa **salire**: `font-size:8px` con
+   `letter-spacing:.9px` e padding a 1 px porta 328 → **333**. Misurato due
+   volte, con l'iniezione e modificando il file vero. Le colonne sono `1fr`,
+   quindi il minimo della barra è **sei volte la colonna più larga**: finché il
+   soggetto non è identificato (l'icona? il padding? la parola?), toccare il
+   carattere è muovere la cosa sbagliata. */
 
 const chromium = await prendiChromium();
 const browser = await chromium.launch({ executablePath: CHROMIUM });

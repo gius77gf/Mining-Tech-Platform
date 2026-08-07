@@ -1223,6 +1223,29 @@ Perché serva davvero e non produca elenchi generici, cinque vincoli:
   solo prodotti: nella giornata del 29/07 un campo scomparso, una miniatura
   illeggibile e un'unità di misura stravolta dal maiuscolo sono stati trovati
   così, e nessuno di quei difetti si vedeva leggendo il codice.
+  ⛔ **MA UNO SCATTO PROPONE, UNA MISURA DECIDE — e la regola qui sopra è
+  esattamente ciò che rende facile dimenticarlo.** Misurato il 07/08 e costato
+  due documenti: un cantiere, guardando lo scatto di Conti a 430 px, ha
+  riferito che le etichette della barra in basso erano tagliate — «QUADR»,
+  «ATTUR», «BANCA», «ORDIN» — e io l'ho riportato in **due checkpoint senza
+  rimisurarlo**, perché veniva da uno scatto e in questa casa gli scatti sono
+  lo strumento di cui ci si fida. Rimisurato: **164 voci a 430, 390, 360 e 320
+  px su sei app, ZERO parole più larghe della loro colonna**; e il banco che lo
+  sorveglia lo spiegava già nella sua intestazione — la colonna è una frazione
+  della griglia e **cresce con l'etichetta**, quindi tagliare non è nemmeno
+  possibile. Il difetto non c'era.
+  La regola «niente entra sulla parola dell'agente» vale **anche quando la
+  parola è accompagnata da uno scatto**: un'immagine piccola e antialiasata è
+  una fonte di **candidati**, come una ricerca. Il costo di rimisurare era di
+  cinque minuti.
+  ⚠️ E la prima sonda scritta per rimisurare ha sbagliato soggetto, con lo
+  stesso segno di sempre: cercava `.nav button span` e trovava l'**icona** —
+  20 px su 19, in tutte e sei le app — cioè un difetto **finto, identico
+  dappertutto**, che è il modo in cui si riconosce di stare guardando il
+  righello invece del soggetto. La parola di quella barra è un **nodo di testo
+  nudo** dentro il bottone: si misura con un `Range`, e `querySelectorAll` non
+  la vede (è la scatola anonima, la stessa famiglia del traboccamento a 320 px
+  del core).
 - ⚠️ **NON SI INIETTANO DIFETTI MENTRE GIRA UN GIRO DEL BROWSER.** Per provare
   che un controllo sappia fallire si rimette il difetto nel file vero e si
   ripristina subito: giusto, ed è la regola qui sopra. Ma se il file è un
