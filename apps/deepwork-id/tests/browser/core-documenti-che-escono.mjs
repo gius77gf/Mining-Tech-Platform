@@ -87,8 +87,22 @@ const TIPI = { ".html": "text/html", ".js": "text/javascript", ".mjs": "text/jav
 /* ── I CASI ────────────────────────────────────────────────────────────────
    Tre volate, e sono tre perché servono tutt'e tre: una mai valutata, una
    valutata per bene, una a metà. Senza la seconda, il modo più facile di far
-   passare le prove sarebbe spegnere ogni numero — l'errore opposto. */
-const VOLATE = "volate:["
+   passare le prove sarebbe spegnere ogni numero — l'errore opposto.
+
+   ⛔ E L'AGGANCIO NON È PIÙ IL LETTERALE DI `DB`, PERCHÉ QUELLO VIENE
+   SOVRASCRITTO. Fino al 07/08 le volate si infilavano in `volate:[], // ← F1`,
+   cioè nella dichiarazione dell'oggetto `DB`. Poi il 06/08 la dimostrazione ha
+   guadagnato i suoi progetti di volata, e con loro la riga
+   `DB.volate = [...DEFAULT_VOLATE]` dentro `initDBOfflineFallback`: da quel
+   momento i casi di questo banco venivano **buttati via** un istante dopo
+   essere stati letti, `apriFrammentazione('vz1')` non trovava la volata, la
+   scheda non si apriva e `page.click` moriva per timeout portandosi via
+   undici prove. La sostituzione era avvenuta davvero — infatti la riga
+   «i casi hanno agganciato la pagina servita» diceva ok: **guardava il file,
+   non lo stato**. Adesso i casi si appendono a `DEFAULT_VOLATE`, che è la
+   sorgente da cui `DB` viene riempito, esattamente come già facevano i guasti;
+   e che siano ARRIVATI lo prova una riga sola, più sotto, invece di dedurlo. */
+const VOLATE = "DEFAULT_VOLATE.push("
   + "{id:'vz1',cavaId:'cava_1',numero:101,data:'2026-07-14',tipo:'cava',nomeProgetto:'',"
   + "fronte:{lunghezza_m:30,profilo:[],piede_profilo:[]},maglia:{file:2,borraggio_reale:2.5},"
   + "default:{esplosivo:'Emulsione',innesco:'Detonatore a tubo',profondita_m:9,diametro_mm:89,kg_per_foro:8},"
@@ -106,9 +120,27 @@ const VOLATE = "volate:["
   + "default:{esplosivo:'Emulsione',innesco:'Detonatore a tubo',profondita_m:9,diametro_mm:89,kg_per_foro:8},"
   + "fori:[],tot_fori:0,tot_metri:0,tot_kg:0,tot_mc:0,"
   + "frammentazione:{fine:20,media:null,grossa:null,oversize:2,note:'',foto:[],"
-  + "dataValutazione:'2026-07-21',valutatoreId:'user_ufficio'}}],";
-const VOLATE_VUOTE = "volate:[], // ← F1";
-const VOLATE_PIENE = VOLATE + " // ← F1";
+  + "dataValutazione:'2026-07-21',valutatoreId:'user_ufficio'}});\n";
+const ANCORA_VOLATE = "const DEFAULT_DEPOSITO = {";
+
+/* ⛔ IL TURNO RIAPERTO: I FORI AZZERATI, IL VOLUME RIMASTO DAL GIRO PRIMA.
+   Serve perché senza di lui i due numeri che questo banco confronta —
+   «somma di tutto» e «somma dei soli turni misurabili» — sulla dimostrazione
+   coincidono: gli unici rapportini che non sanno dire il volume hanno anche
+   `mc: 0`, quindi entrare o non entrare nel totale non cambia niente e le due
+   prove sui TOTALI non distinguerebbero nulla (è la causa 1 dell'elenco:
+   i dati fanno coincidere la risposta giusta con quella sbagliata).
+   Qui `fori: 0` e `mc: 640.5`: `misureRapportino` dice «non misurato», quindi
+   il volume non è suo — ma un `r.mc||0` lo sommerebbe. Somma ingenua 4106.6,
+   somma giusta 3466.1. Ed è un caso vero, non una caricatura: il campo del
+   volume resta scritto dal turno precedente quando si riaprono i fori. */
+const RAPP_RIAPERTO = "DEFAULT_RAPPORTINI.push("
+  + "{id:'rz1',userId:'user_operatore',cavaId:'cava_1',data:'2026-07-25',"
+  + "oi:'07:00',of:'',diametro:89,maglia:'3x3.5',maglia_B:3,maglia_S:3.5,"
+  + "mezzoId:'mlav_1',personale:[],fori:0,fori_fila1:0,fori_fila2:0,"
+  + "metri:0,media_prof:0,mc:640.5,fori_dettaglio:[],volataId:null,"
+  + "note:'Turno riaperto: i fori sono stati azzerati.',inviato:'2026-07-25'});\n";
+const ANCORA_RAPP = "const DEFAULT_RAPPORTINI_FOC = [";
 
 /* Due guasti sul primo mezzo: uno con la data e uno **senza**, che è lo stato
    che il modulo «Segnala guasto» produce se si svuota il campo. */
@@ -198,7 +230,7 @@ window.Chart.register = function(){};
 window.Chart.defaults = { font: {}, plugins: { legend: { labels: {} } } };
 `;
 
-let agganci = { volate: 0, guasti: 0 };
+let agganci = { volate: 0, guasti: 0, riaperto: 0 };
 let colpiti = new Set();
 const srv = createServer((q, s) => {
   let p = join(R, decodeURIComponent(q.url.split("?")[0]));
@@ -208,11 +240,14 @@ const srv = createServer((q, s) => {
   if (p === join(R, "index.html")) {
     let t = corpo.toString("utf8");
     let prima = t;
-    t = t.split(VOLATE_VUOTE).join(VOLATE_PIENE);
+    t = t.split(ANCORA_VOLATE).join(VOLATE + ANCORA_VOLATE);
     if (t !== prima) agganci.volate = 1;
     prima = t;
     t = t.split(ANCORA_GUASTI).join(GUASTI + ANCORA_GUASTI);
     if (t !== prima) agganci.guasti = 1;
+    prima = t;
+    t = t.split(ANCORA_RAPP).join(RAPP_RIAPERTO + ANCORA_RAPP);
+    if (t !== prima) agganci.riaperto = 1;
       if (CONTROPROVA) for (const [sano, malato] of DIFETTI) {
       const suoStrato = sano.includes("pointer-events");
       if (suoStrato !== CONTRO_TOCCO) continue;         // uno strato per volta
@@ -241,6 +276,7 @@ const { chromium } = await import("/opt/node22/lib/node_modules/playwright/index
 const b = await chromium.launch({ executablePath: "/opt/pw-browsers/chromium" });
 
 let ok = 0, ko = 0;
+const schedeNonAperte = [];
 const dice = (c, t, x) => {
   if (c) { ok++; console.log(`  ok  ${t}`); }
   else { ko++; console.log(`  KO  ${t}${x !== undefined ? `\n        -> ${JSON.stringify(String(x).slice(0, 400))}` : ""}`); }
@@ -275,8 +311,14 @@ for (let giro = 0; giro < 8 && !dentro; giro++) {
   dentro = await pg.evaluate(() => { const h = document.getElementById("screen-home"); return !!h && getComputedStyle(h).display !== "none"; });
 }
 dice(dentro, "si entra davvero nell'app");
-dice(agganci.volate === 1 && agganci.guasti === 1,
-  `i casi hanno agganciato la pagina servita (volate ${agganci.volate}, guasti ${agganci.guasti})`, JSON.stringify(agganci));
+/* ⚠️ Questa riga dice solo che la SOSTITUZIONE è avvenuta nel file servito.
+   Non dice che i casi siano arrivati nello stato dell'app — ed è esattamente
+   la distinzione che il 07/08 è costata undici prove. Che siano arrivati lo
+   provano due righe più sotto: la riga del turno riaperto nel foglio e la
+   scheda della frammentazione che si apre. */
+dice(agganci.volate === 1 && agganci.guasti === 1 && agganci.riaperto === 1,
+  `i casi hanno agganciato il TESTO della pagina servita (volate ${agganci.volate}, guasti ${agganci.guasti}, riaperto ${agganci.riaperto})`,
+  JSON.stringify(agganci));
 dice(await pg.evaluate(() => !!(window.jspdf && window.jspdf.jsPDF)), "il registratore ha preso il posto di jsPDF");
 
 /* ══ 1 · IL REPORT TECNICO, premendo il bottone della dashboard ══ */
@@ -285,10 +327,26 @@ await pg.waitForTimeout(900);
 const viste = await pg.$$eval("[id^=screen-]", (e) => e.filter((x) => getComputedStyle(x).display !== "none").map((x) => x.id));
 dice(viste.includes("screen-dashboard"), `navigato alla dashboard (${viste.join(",") || "niente"})`, viste);
 
-/* quello che la SCHERMATA dice, per poterlo confrontare col foglio */
+/* quello che la SCHERMATA dice, per poterlo confrontare col foglio.
+   ⛔ E SI LEGGE IL RIQUADRO, NON LA PAGINA. Fino al 07/08 questa controprova
+   cercava «2395» dentro l'`innerText` di tutta la dashboard e diceva ok: quel
+   numero c'era, ma era la riga «DETTAGLIO PER OPERATORE · L.Rossi 2395.1 mc»
+   — un totale per operatore che per pura coincidenza valeva quanto il totale
+   generale di quando la dimostrazione aveva quattro rapportini. Il KPI, nello
+   stesso istante, diceva 3466. Una controprova che pesca una sottostringa da
+   un blocco di testo di seicento caratteri non confronta niente: risponde ok
+   qualunque cosa succeda al numero che dovrebbe sorvegliare. */
 await pg.evaluate(() => window.dashSetPeriodo("totale"));
 await pg.waitForTimeout(600);
-const schermo = await pg.evaluate(() => document.getElementById("dashboard-body")?.innerText || "");
+const kpi = await pg.evaluate(() => {
+  const c = [...document.querySelectorAll(".kpi-card")].find((x) => /Totali/i.test(x.querySelector(".kpi-lbl")?.textContent || ""));
+  const n = [...document.querySelectorAll(".kpi-card")].find((x) => /Rapportini perf/i.test(x.querySelector(".kpi-lbl")?.textContent || ""));
+  return { val: c ? c.querySelector(".kpi-val")?.textContent.trim() : null,
+           sub: c ? c.querySelector(".kpi-sub")?.textContent.trim() : null,
+           righe: n ? n.querySelector(".kpi-val")?.textContent.trim() : null };
+});
+dice(kpi.val !== null && kpi.sub !== null && kpi.righe !== null,
+  `⚠️ il riquadro dei totali della dashboard si legge (val "${kpi.val}", sub "${kpi.sub}", righe "${kpi.righe}")`, JSON.stringify(kpi));
 
 /* ⚠️ DUE COSE COPRONO QUEL BOTTONE, e tutt'e due fanno morire il click per
    timeout invece di misurare qualcosa:
@@ -316,8 +374,18 @@ dice(premuto, "⛔ il bottone del Report tecnico si può PREMERE davvero (niente
   "il click non arriva mai al bottone: qualcosa lo copre");
 if (premuto) {
   await pg.waitForTimeout(500);
-  await pg.fill("#rt-da", "2026-07-01");
-  await pg.fill("#rt-a", "2026-07-31");
+  /* ⛔ LE DATE SI SVUOTANO, e non è pigrizia. Il confronto col riquadro della
+     dashboard vale solo se i due numeri parlano dello STESSO insieme di
+     righe: la dashboard sta su «TOTALE» (dal 2000 a oggi), quindi il foglio
+     deve prendere tutto. Con un intervallo scritto a mano — «01/07 → 31/07»,
+     com'era — i due insiemi coincidono finché la dimostrazione ha rapportini
+     solo di luglio, e il giorno che ne nasce uno di agosto la prova cade
+     accusando i totali di essere sbagliati mentre sono giusti tutt'e due.
+     `inRange` risponde vero a tutto quando `da` e `a` sono vuoti. Che i due
+     insiemi coincidano davvero non si dà per buono: si misura, confrontando
+     il conto delle righe. */
+  await pg.fill("#rt-da", "");
+  await pg.fill("#rt-a", "");
   await pg.click('#modal .mbtn.primary');
   await pg.waitForTimeout(900);
 }
@@ -344,15 +412,57 @@ dice(!!r23 && !/^0\.0$/.test(r23[5]), "⛔ ma i metri cubi NON sono «0.0»: la 
 const r14 = tabRp.body.find((r) => /14\/07/.test(r[0]));
 dice(!!r14 && r14[3] === "14" && /1190\.7/.test(r14[5]), "il turno misurato per bene continua a dire il suo volume", r14 && r14.join(" | "));
 
-// i totali, e che cosa hanno lasciato fuori
+/* ── I TOTALI ──────────────────────────────────────────────────────────────
+   ⛔ E I NUMERI ATTESI NON SI SCRIVONO A MANO. Fino al 07/08 qui c'era
+   `2395.1 / 317 / 34`: erano i totali giusti della dimostrazione **di quattro
+   rapportini**, e il 06/08 la dimostrazione ne ha guadagnato un quinto
+   (`rp_5`, 12 fori · 102 m · 1071 mc). Da quel commit le due righe accusavano
+   il core di sommare i turni non misurati mentre il foglio, misurato nello
+   stesso istante del riquadro della dashboard, diceva esattamente il suo
+   stesso numero. Un banco che porta dentro di sé una copia dei dati invecchia
+   ogni volta che i dati cambiano, e quando invecchia manda a cercare un
+   guasto che non c'è.
+   Le due domande, adesso, sono **derivate** e non hanno un numero dentro:
+   1. il piede è d'accordo con quello che il foglio ha stampato **da sé** —
+      cioè non somma le righe che ha appena dichiarato non misurabili;
+   2. il piede è d'accordo con il riquadro della dashboard che ospita il
+      bottone, che è la stessa domanda con cui questo banco è nato. */
 const piede = JSON.stringify(tabRp.foot || []);
-dice(/2395\.1/.test(piede), "⛔ il foglio ha una riga di TOTALI, e il volume è quello dei soli turni misurabili", piede);
-dice(/317/.test(piede) && /\b34\b/.test(piede), "con metri e fori sommati con la stessa regola dello schermo", piede);
+const num = (s) => { const v = parseFloat(String(s).replace(/\s/g, "")); return Number.isFinite(v) ? v : null; };
+const sommaCol = (i) => tabRp.body.reduce((s, r) => s + (num(r[i]) ?? 0), 0);
+const pf = (tabRp.foot && tabRp.foot[0]) || [];
+/* il piede ha quattro celle: l'etichetta (che vale per tre colonne) e i tre numeri */
+const pFori = num(pf[1]), pMetri = num(pf[2]), pMc = num(pf[3]);
+const vicino = (a, b) => a !== null && Math.abs(a - b) < 0.05;
+dice(pf.length === 4 && vicino(pMc, sommaCol(5)),
+  `⛔ il foglio ha una riga di TOTALI, e il volume è la somma di quello che il foglio stesso ha stampato (${sommaCol(5).toFixed(1)})`, piede);
+dice(vicino(pMetri, sommaCol(4)) && vicino(pFori, sommaCol(3)),
+  `con metri e fori sommati con la stessa regola (${sommaCol(4).toFixed(1)} m, ${sommaCol(3)} fori)`, piede);
+/* ⛔ E LA SOMMA INGENUA DEVE ESSERE DIVERSA, se no le due righe qui sopra non
+   distinguono niente: è il turno riaperto (fori azzerati, volume rimasto) a
+   renderle capaci di fallire. Se un giorno quel caso sparisse dai dati, questa
+   riga lo direbbe invece di lasciare due prove che passano sempre. */
+const r25 = tabRp.body.find((r) => /25\/07/.test(r[0]));
+dice(!!r25 && /non misurato/.test(r25[3]) && r25[5] === "—",
+  "⛔ il turno riaperto (fori azzerati, volume rimasto dal giro prima) non porta il suo volume nel foglio", r25 && r25.join(" | "));
 const testi = (rt ? rt.testi : []).join(" · ");
 dice(/senza nessun foro misurato/.test(testi) && /senza maglia/.test(testi),
   "⛔ e il foglio DICHIARA quanti turni sono rimasti fuori dal totale, con le due ragioni distinte", testi);
-dice(/2395/.test(schermo) || /2\.395/.test(schermo),
-  "controprova sullo schermo: la dashboard che ospita il bottone diceva già lo stesso numero", schermo.slice(0, 200));
+
+/* ── LA CONTROPROVA SULLO SCHERMO ──
+   Prima: gli insiemi coincidono? Il foglio è senza date (tutto), la dashboard
+   è su «TOTALE». Se i conti delle righe non combaciano, i numeri non sono
+   confrontabili e va detto — invece di dare la colpa ai totali. */
+const righeFoglio = ((rt ? rt.testi : []).find((t) => /^Rapportini perforazione/.test(t)) || "").match(/\((\d+)\)/);
+dice(!!righeFoglio && righeFoglio[1] === kpi.righe,
+  `⚠️ foglio e riquadro parlano dello stesso insieme di righe (foglio ${righeFoglio ? righeFoglio[1] : "?"}, riquadro ${kpi.righe})`,
+  JSON.stringify({ foglio: righeFoglio && righeFoglio[1], riquadro: kpi.righe }));
+/* il riquadro arrotonda all'intero (`toFixed(0)`), il piede tiene un decimale */
+const kMc = num(kpi.val), kFori = num((kpi.sub || "").match(/(\d+)\s*for/)?.[1]), kMetri = num((kpi.sub || "").match(/([\d.]+)\s*m\b/)?.[1]);
+dice(pMc !== null && kMc !== null && Math.abs(Math.round(pMc) - kMc) < 1
+     && kFori === pFori && kMetri !== null && Math.abs(Math.round(pMetri) - kMetri) < 1,
+  `controprova sullo schermo: il riquadro che ospita il bottone dice gli stessi numeri (riquadro ${kMc} mc · ${kFori} fori · ${kMetri} m — foglio ${pMc} · ${pFori} · ${pMetri})`,
+  JSON.stringify({ riquadro: kpi, piede: pf }));
 
 // il fochino: i chili non scritti
 const rf18 = tabRf.body.find((r) => /18\/07/.test(r[0]));
@@ -375,6 +485,22 @@ async function pdfFrammentazione(idVolata) {
      `apriFrammentazione` è l'unico modo che esiste di aprire questa scheda. */
   await pg.evaluate((id) => { window.apriEditorCava(id); window.apriFrammentazione(id); }, idVolata);
   await pg.waitForTimeout(400);
+  /* ⛔ LA SCHEDA PUÒ NON APRIRSI, E ALLORA NON SI ASPETTA TRENTA SECONDI UN
+     BOTTONE CHE NON C'È. Il 07/08 è successo — `apriFrammentazione` non
+     trovava la volata (`toast('Volata non trovata')` e via) — e `page.click`
+     è morto per timeout portandosi dietro **undici** prove che venivano dopo,
+     tutte mai eseguite: le tre sulla volata mai valutata, quella sulla
+     valutata per bene, le due sulla valutata a metà, le tre sulla striscia
+     invisibile del toast e quella sugli errori di pagina. Un banco che crolla
+     smette di guardare, e il riepilogo non lo dice: dichiara meno prove,
+     non un buco. Adesso si guarda se la scheda è aperta e si torna indietro
+     dicendolo, così le prove dopo girano lo stesso. */
+  const aperta = await pg.evaluate(() => {
+    const m = document.getElementById("modal");
+    return !!m && m.classList.contains("show")
+      && [...m.querySelectorAll(".mbtn")].some((b) => /PDF/.test(b.textContent));
+  });
+  if (!aperta) { schedeNonAperte.push(idVolata); return null; }
   const prima = await pg.evaluate(() => (window.__pdf?.salvati || []).length);
   await pg.click('#modal .mbtn:has-text("PDF")');
   await pg.waitForTimeout(700);
@@ -386,6 +512,9 @@ async function pdfFrammentazione(idVolata) {
 }
 
 const fr1 = await pdfFrammentazione("vz1");   // nessuno ha valutato niente
+dice(schedeNonAperte.length === 0,
+  `⛔ la scheda della frammentazione si APRE davvero: i casi sono arrivati nello stato, non solo nel file servito`,
+  "apriFrammentazione non ha trovato: " + schedeNonAperte.join(", "));
 dice(!!fr1, "il bottone PDF della frammentazione produce un documento", fr1 && fr1.nome);
 const t1 = (fr1 ? fr1.testi : []).join(" · ");
 const g1 = JSON.stringify(fr1 ? fr1.tabelle : []);
