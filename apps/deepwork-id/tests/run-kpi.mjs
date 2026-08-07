@@ -5684,7 +5684,14 @@ test("statoVuoto: la struttura è quella del core, invariata", () => {
     { app: "scudo", file: "scudo_personale_scadenze.csv", fn: scudo.parseLavoratoriCsv,
       colonne: ["nome", "ruolo", "telefono"],   // le colonne dopo la terza non le legge
       riga: "Rossi Mario;operatore;333 1112222;idoneo;Visita medica;2026-12-01;ok" },
+    /* ⚠️ `testa` SI CHIEDE AL COMPOSITORE, come per le fatture di Conti qui
+       sotto: dal 07/08 il file dei ricettori lo scrive `csvRicettori` nel
+       modulo (era l'ultimo export dell'app composto a mano nella pagina), e
+       una regex su `index.html` risponderebbe `null` — cioè farebbe cadere la
+       prova per il motivo sbagliato. Chiedendolo alla costante la prova
+       diventa anche più forte: guarda quello che ESCE. */
     { app: "sentinella", file: "sentinella_ricettori.csv", fn: sentinella.parseRicettoriCsv,
+      testa: sentinella.CSV_RICETTORI_INTESTAZIONE,
       colonne: ["nome", "tipo", "distanza", "classe", "soglia", "unita", "nota"],
       riga: "Casa Bianchi;abitazione;320;III;5;mm/s;la più vicina" },
   ];
@@ -5705,7 +5712,7 @@ test("statoVuoto: la struttura è quella del core, invariata", () => {
 
   for (const g of GIRI) {
     test(`giro completo: ${g.file} si ri-carica`, () => {
-      const testa = intestazioneExport(pagina(g.app), g.file);
+      const testa = g.testa || intestazioneExport(pagina(g.app), g.file);
       ok(testa, `nella pagina di ${g.app} non si trova l'export che scarica ${g.file}`);
       const scritte = testa.split(";");
       /* le colonne che il lettore legge devono stare all'INIZIO e in
@@ -5819,7 +5826,14 @@ test("statoVuoto: la struttura è quella del core, invariata", () => {
     ["conti_listino.csv", "conti", 1, "nome"],
     ["flotta_ricambi.csv", "flotta", 1, "nome"],
     ["scudo_registro_infortuni.csv", "scudo", 2, "descrizione e luogo"],
-    ["sentinella_ricettori.csv", "sentinella", 5, "nome, tipo, classe, unità, nota"],
+    /* ⛔ `sentinella_ricettori.csv` NON È PIÙ QUI, e non è un controllo tolto:
+       è lo stesso controllo fatto meglio, dieci righe più giù. Contare i
+       `csvCell(` nel sorgente era un ripiego, e la ragione è scritta qui
+       sopra — «per quello si guarda la riga vera nel sorgente». Dal 07/08 quel
+       file lo compone `csvRicettori` nel modulo, cioè una funzione che si può
+       CHIAMARE: e allora invece di contare le protezioni si prova che il giro
+       le regga, su tutte e cinque le colonne di testo insieme. Un conto ≥ 5 lo
+       passa anche chi protegge cinque volte la stessa colonna. */
   ];
   for (const [file, app, quante, quali] of PROTEZIONI) {
     test(`giro completo: ${file} protegge i campi di testo`, () => {
@@ -5841,12 +5855,88 @@ test("statoVuoto: la struttura è quella del core, invariata", () => {
      l'export delle fatture NON è un backup, e il documento non deve dire che
      lo sia. Se un giorno lo diventasse, questo controllo lo dice. */
   test("giro completo: l'export delle fatture di Conti resta un prospetto, non un backup", () => {
-    const testa = intestazioneExport(pagina("conti"), "conti_situazione_fatture.csv");
+    /* ⚠️ L'INTESTAZIONE SI CHIEDE AL COMPOSITORE, NON A UNA REGEX SULLA PAGINA.
+       Fino al 07/08 questa riga leggeva il letterale `csv = "…"` dal sorgente
+       di `index.html`; dal 07/08 il file lo compone `csvSituazioneFatture` nel
+       modulo — che è il punto della correzione — e una regex sulla pagina
+       avrebbe risposto `null`, cioè avrebbe fatto cadere la prova per il
+       motivo sbagliato. Chiedendolo alla funzione vera la prova diventa anche
+       più forte: guarda quello che ESCE, non quello che è scritto. */
+    const testa = conti.csvSituazioneFatture([], [], [], []).split("\n")[0];
     ok(testa, "l'export della situazione fatture esiste");
     const letto = conti.parseFattureCsv(
-      testa + "\n2026/001;Edil Rossi Srl;2026-07-15;1000;22;220;1220;2026-08-14;aperta;0;1220;;;0");
+      testa + "\n2026/001;Edil Rossi Srl;2026-07-15;1000;22;220;1220;0;2026-08-14;aperta;0;1220;;;0;no");
     eq(letto.length, 0,
        "oggi non rientra: se qualcuno lo rende ri-caricabile, va aggiornato anche ONBOARDING_DATI.md");
+  });
+
+  /* ══ SENTINELLA · IL FILE DEI RICETTORI, ADESSO CHE LO SCRIVE UNA FUNZIONE
+     ────────────────────────────────────────────────────────────────────────
+     Era l'ULTIMO export dell'app composto a mano dentro il gestore del
+     bottone, cioè l'ultimo che nessuna prova poteva chiamare. Il 03/08, salendo
+     `csvAmbiente` nel modulo, gli era stato scritto accanto «è l'unico export
+     dell'app che non passava da una funzione pura»: non era vero, e questo
+     bottone è rimasto indietro altri quattro giorni. Il difetto misurato il
+     07/08 premendo il bottone col modulo compilato a mano (distanza «0», che
+     il modulo accettava):
+       · SCHERMO → «Cascina al confine · distanza non indicata»
+       · FILE    → `Cascina al confine;abitazione;0;;;;`
+     cioè un ricettore a ZERO METRI dal fronte, in un file che si manda a un
+     consulente o a un ente. */
+  test("⛔ Sentinella · lo zero non è una distanza, e le due schermate lo dicevano già", () => {
+    eq(sentinella.distanzaDelRicettore({ distanza: 0 }), null, "0 m: sarebbe il ricettore dentro il fronte");
+    eq(sentinella.distanzaDelRicettore({ distanza: -5 }), null, "negativa");
+    eq(sentinella.distanzaDelRicettore({ distanza: "" }), null, "vuota");
+    eq(sentinella.distanzaDelRicettore({ distanza: "abc" }), null, "illeggibile");
+    eq(sentinella.distanzaDelRicettore({ distanza: null }), null, "assente");
+    eq(sentinella.distanzaDelRicettore(null), null, "ricettore che non c'è");
+    eq(sentinella.distanzaDelRicettore({ distanza: 320 }), 320, "una distanza vera resta");
+    eq(sentinella.sogliaDelRicettore({ soglia: 0 }), null, "soglia zero non è una soglia");
+    eq(sentinella.sogliaDelRicettore({ soglia: -3 }), null, "e nemmeno una negativa");
+    eq(sentinella.sogliaDelRicettore({ soglia: 5 }), 5, "una soglia vera resta");
+  });
+  test("⛔ Sentinella · il file dei ricettori dice quello che dice lo schermo", () => {
+    const riga = sentinella.csvRicettori(
+      [{ nome: "Cascina al confine", tipo: "abitazione", distanza: 0, soglia: 0, unita: "", nota: "muro sul fronte" }]
+    ).split("\n")[1];
+    /* asserzione sul TESTO del file, non sull'oggetto riletto: una coppia
+       scrivi/leggi resta verde anche quando sbagliano tutt'e due insieme */
+    eq(riga, "Cascina al confine;abitazione;;;;;muro sul fronte",
+       "la cella della distanza esce VUOTA, come lo schermo che scrive «distanza non indicata»");
+    ok(!/;0;/.test(riga), "e in nessuna colonna compare lo zero che il gestore a mano scriveva");
+  });
+  test("⛔ Sentinella · e lo zero non rientra dal file: il giro non riapre il difetto", () => {
+    const dentro = sentinella.parseRicettoriCsv(
+      sentinella.CSV_RICETTORI_INTESTAZIONE + "\nCascina;abitazione;0;;0;;\n");
+    eq(dentro.length, 1, "la riga entra: il ricettore esiste, è la distanza che non c'è");
+    eq(dentro[0].distanza, null, "lo zero scritto a mano in un file NON diventa una distanza");
+    eq(dentro[0].soglia, null, "e nemmeno una soglia");
+  });
+  test("giro completo: sentinella_ricettori.csv protegge TUTTE le colonne di testo insieme", () => {
+    /* il controllo che prima contava i `csvCell(` nel sorgente, fatto sul
+       comportamento: cinque colonne di testo, tutte col separatore dentro,
+       e si pretende che tornino identiche una per una */
+    const cattivo = "a; b";
+    const originale = { nome: "Cava" + cattivo, tipo: "abitazione", distanza: 320,
+                        classe: "III", soglia: 5, unita: "mm/s; dB(A)", nota: "nota" + cattivo };
+    const testo = sentinella.csvRicettori([originale]);
+    eq(testo.split("\n").filter(Boolean).length, 2, "il separatore non ha spezzato la riga in due");
+    const r = sentinella.parseRicettoriCsv(testo)[0];
+    eq(r.nome, originale.nome, "il nome torna intero");
+    eq(r.unita, originale.unita, "l'unità torna intera");
+    eq(r.nota, originale.nota, "e la nota non si prende il pezzo dell'unità");
+    eq(r.tipo, "abitazione", "il tipo resta il suo");
+    eq(r.classe, "III", "e la classe pure");
+    eq([r.distanza, r.soglia], [320, 5], "i numeri tornano identici");
+  });
+  test("giro completo: e un nome che sembra una formula torna identico dal file dei ricettori", () => {
+    const r = sentinella.parseRicettoriCsv(
+      sentinella.csvRicettori([{ nome: "=SOMMA(A1:A9)", tipo: "altro", distanza: 90 }]))[0];
+    eq(r.nome, "=SOMMA(A1:A9)", "l'apostrofo di guardia si toglie in lettura");
+  });
+  test("Sentinella · il file dei ricettori vuoto è l'intestazione e basta", () => {
+    eq(sentinella.csvRicettori([]), sentinella.CSV_RICETTORI_INTESTAZIONE + "\n", "elenco vuoto");
+    eq(sentinella.csvRicettori(null), sentinella.CSV_RICETTORI_INTESTAZIONE + "\n", "niente del tutto");
   });
 }
 
@@ -14966,6 +15056,133 @@ test("⛔ Flotta: le ore ignote arrivano ignote anche a chi le chiede due volte"
     ok(!scudo.daAmbiente(campo.bozzaAzioneFermo(campo.anomalieAperte(FERMI)[0])),
        "e il riepilogo dell'ambiente non conta i fermi di Campo");
   });
+
+  /* ⛔ IL FERMO DI CAMPO NEL FILE CHE ESCE DA SCUDO (07/08).
+     Misurato premendo «Esporta CSV» sulle azioni correttive e aprendo il file:
+     la colonna `origine` la componeva una SECONDA scrittura, che aveva perso
+     il ramo del fermo di produzione. Un'azione arrivata da Campo cadeva
+     nell'ultimo ramo e usciva scritta «non conformità: Fermo di produzione
+     (Campo) — …» — l'errore che lo schermo aveva corretto il 03/08 dichiarando
+     accanto la ragione, «finisce davanti a un ispettore»: e il documento che
+     finisce davanti all'ispettore è il file, non lo schermo.
+     La prova parte dalla bozza VERA di Campo, non da un oggetto scritto a
+     mano: se un giorno `bozzaAzioneFermo` smettesse di mettere `origineTipo`,
+     è qui che si vede. */
+  test("⛔ Campo→Scudo: nel CSV delle azioni un fermo NON è una «non conformità»", () => {
+    const az = campo.bozzaAzioneFermo(campo.anomalieAperte(FERMI)[0], { fmtData: shell.dataIt });
+    const doc = scudo.origineAzione(az, {}, { voce: "documento" });
+    const vid = scudo.origineAzione(az, {});
+    ok(!/non conformità/i.test(doc), "il file non chiama non conformità un fermo di macchina");
+    eq(doc, vid, "e sul fermo le due voci dicono la stessa cosa: è la fotografia che l'azione porta con sé");
+    ok(/Fermo di produzione \(Campo\)/.test(doc), "la nota di Campo arriva intera nel file");
+    /* ⛔ E SENZA LA NOTA LA CELLA ERA VUOTA — un'azione nata da niente in un
+       foglio di conformità. «L'assenza di un dato non è un dato favorevole». */
+    const nuda = { origineTipo: campo.ORIGINE_FERMO, origineData: "2026-06-20" };
+    eq(scudo.origineAzione(nuda, {}, { voce: "documento" }), "fermo di produzione (Campo) del 20/06/2026",
+       "e senza la nota il file dice comunque da dove viene, invece di lasciare la cella bianca");
+    ok(scudo.origineAzione({ origineTipo: campo.ORIGINE_FERMO }, {}, { voce: "documento" }).length > 0,
+       "e nemmeno senza la data resta vuota");
+  });
+}
+
+/* ── SCUDO · DA DOVE NASCE UN'AZIONE: UNA REGOLA, DUE VOCI ───────────────
+   La domanda di CLAUDE.md — «dove questa app compone qualcosa che ESCE, chi
+   decide i suoi numeri?» — applicata alla colonna `origine` del CSV delle
+   azioni correttive. La risposta era «una seconda funzione», e le due erano
+   divergenti in TUTT'E DUE i versi: il file più povero sul fermo di Campo (tre
+   casi, qui sopra), lo SCHERMO più povero su un'ispezione tolta dall'archivio.
+   Queste prove tengono ferme le due voci dove devono restare diverse, che è la
+   parte che una funzione sola rischia di appiattire. */
+{
+  const INF_O = [{ id: "i1", tipo: "near-miss", data: "2026-05-18", descrizione: "Caduta massi vicino al perforatore" },
+                 { id: "i2", tipo: "infortunio", data: "2026-02-03", descrizione: "Taglio alla mano" }];
+  const ISP_O = [{ id: "q1", nome: "Fronte di cava", data: "2026-07-10" }];
+  const ctx = { infortuni: INF_O, ispezioni: ISP_O };
+  const doc = (a) => scudo.origineAzione(a, ctx, { voce: "documento" });
+  const vid = (a) => scudo.origineAzione(a, ctx);
+
+  test("⛔ Scudo · un'ispezione TOLTA: lo schermo buttava via l'unica traccia rimasta", () => {
+    /* `origineNota` per le azioni nate da ispezione è il testo della voce non
+       conforme (`origineNota: v.nota || v.testo`): tolta l'ispezione,
+       quella frase è tutto ciò che resta di che cosa era stato trovato.
+       Il file la scriveva già, lo schermo no — il verso che nessuno cerca. */
+    const a = { origineTipo: "ispezione", origineId: "SPARITO", origineNota: "Fascia di rispetto non delimitata" };
+    eq(vid(a), "da un'ispezione rimossa — Fascia di rispetto non delimitata", "a schermo la nota resta");
+    eq(doc(a), "ispezione non più in archivio — Fascia di rispetto non delimitata", "e nel file era già così");
+    eq(vid({ origineTipo: "ispezione", origineId: "SPARITO" }), "da un'ispezione rimossa",
+       "senza nota non si inventa nessuna coda");
+  });
+
+  test("Scudo · le due voci restano due dove la differenza è voluta", () => {
+    /* In una riga di elenco «da ispezione «Fronte di cava» del 10/07/2026» si
+       legge; in una colonna che si chiama già `origine` il «da» è rumore e le
+       virgolette basse le mastica il foglio di calcolo. E la voce del
+       documento porta la DESCRIZIONE dell'evento, perché chi apre il CSV non
+       ha l'app davanti per andarsela a cercare. */
+    eq(vid({ origineTipo: "evento", origineId: "i1" }), "da near-miss del 18/05/2026", "elenco: corto");
+    eq(doc({ origineTipo: "evento", origineId: "i1" }), "near-miss del 18/05/2026 — Caduta massi vicino al perforatore",
+       "file: con la descrizione, che il CSV apre chi non ha l'app");
+    eq(vid({ origineTipo: "ispezione", origineId: "q1" }), "da ispezione «Fronte di cava» del 10/07/2026");
+    eq(doc({ origineTipo: "ispezione", origineId: "q1" }), "ispezione Fronte di cava del 10/07/2026");
+    eq(vid({ origineTipo: "superamento", origineData: "2026-04-01" }),
+       "da un superamento di soglia registrato in Sentinella il 01/04/2026");
+    eq(doc({ origineTipo: "superamento", origineData: "2026-04-01" }), "Superamento (Sentinella) del 01/04/2026");
+  });
+
+  test("Scudo · dove le due voci devono coincidere, coincidono", () => {
+    /* La fotografia che l'azione porta con sé è testo scritto in italiano da
+       chi l'ha generata: non si riscrive né di qua né di là. E una non
+       conformità senza nota resta la stringa vuota, in tutt'e due — l'elenco
+       la salta con `.filter(Boolean)`, il file lascia la cella vuota perché
+       lì non c'è davvero niente da dire. */
+    for (const a of [{ origineTipo: "superamento", origineNota: "Polveri oltre soglia al ricettore R2" },
+                     { origineTipo: "nc", origineNota: "Rilevata nel giro di sorveglianza" },
+                     { origineTipo: "nc" }, {}])
+      eq(doc(a), vid(a), "stessa risposta per " + JSON.stringify(a));
+    eq(vid({ origineTipo: "nc", origineNota: "Rilevata nel giro" }), "non conformità: Rilevata nel giro");
+    eq(vid({}), "", "un'azione senza origine non se ne inventa una");
+  });
+
+  test("⛔ Scudo · l'origine di un evento tolto NON è una cella vuota", () => {
+    eq(vid({ origineTipo: "evento", origineId: "SPARITO" }), "da un evento rimosso dal registro");
+    eq(doc({ origineTipo: "evento", origineId: "SPARITO" }), "evento non più in archivio");
+    /* e la ricerca a schermo cerca dentro questo testo: un'origine che sparisce
+       è anche una riga che smette di farsi trovare */
+    ok(vid({ origineTipo: "evento", origineId: "SPARITO" }).length > 0, "mai la stringa vuota");
+  });
+}
+
+/* ── SCUDO · COME SI CHIAMA UNA SCADENZA ─────────────────────────────────
+   Tre superfici, tre risposte, e la più povera era la STAMPA: la CARTELLA DEL
+   LAVORATORE — il fascicolo che si esibisce all'ispettore — scriveva la
+   FAMIGLIA (`tipo`) dove schermo e CSV scrivono l'adempimento (`descrizione`).
+   Misurato premendo il bottone sulla dimostrazione: per Mario Rossi due
+   obblighi distinti uscivano dalla stampante come due righe identiche. */
+{
+  test("⛔ Scudo · la cartella stampava la famiglia al posto dell'adempimento", () => {
+    const gen = { tipo: "Formazione", descrizione: "Formazione generale + specifica (art. 37)" };
+    const agg = { tipo: "Formazione", descrizione: "Aggiornamento formazione lavoratori" };
+    eq(scudo.etichettaScadenza(gen), "Formazione generale + specifica (art. 37)");
+    eq(scudo.etichettaScadenza(agg), "Aggiornamento formazione lavoratori");
+    ok(scudo.etichettaScadenza(gen) !== scudo.etichettaScadenza(agg),
+       "due obblighi diversi non escono come due righe identiche dalla stampante");
+    eq(scudo.etichettaScadenza({ tipo: "Patente", descrizione: "Fochino — abilitazione brillamento mine" }),
+       "Fochino — abilitazione brillamento mine", "e il patentino di cava non è «Patente»");
+  });
+
+  test("⛔ Scudo · e la scadenza importata senza descrizione non resta senza nome", () => {
+    /* `parseScadenzeCsv` scrive `descrizione: null` e `tipo: "Altro"` quando la
+       colonna manca: lì lo schermo e il CSV lasciavano il nome VUOTO e la
+       stampa scriveva «—», che su un foglio si legge «non serve». */
+    eq(scudo.etichettaScadenza({ tipo: "Altro", descrizione: null }), "Altro");
+    eq(scudo.etichettaScadenza({ tipo: "Corso", descrizione: "   " }), "Corso", "e una descrizione di soli spazi non conta");
+    eq(scudo.etichettaScadenza({}), "scadenza senza descrizione", "e senza nemmeno il tipo lo si dichiara");
+    eq(scudo.etichettaScadenza(null), "scadenza senza descrizione", "niente crash sul nulla");
+    /* il giro vero: una riga letta da CSV senza descrizione ha comunque un nome */
+    const letta = scudo.parseScadenzeCsv("Mario Rossi;Formazione;;2027-01-15")[0];
+    eq(letta.descrizione, null, "il lettore la lascia null di proposito");
+    eq(scudo.etichettaScadenza(letta), "Formazione", "e l'etichetta ripiega sulla famiglia");
+  });
 }
 
 // ── Conti · abbinamento dei movimenti bancari ──────────────────────────
@@ -18982,9 +19199,12 @@ test("⛔ piuGiorni: una data che non esiste non produce una scadenza", () => {
   test("Sentinella · csvAmbiente: intestazione, valore mai misurato, storico, niente crash sul vuoto", () => {
     eq(sentinella.csvAmbiente(null, null, null), sentinella.CSV_AMBIENTE_INTESTAZIONE + "\n",
       "senza dati esce la sola intestazione");
-    eq(sentinella.CSV_AMBIENTE_INTESTAZIONE.split(";").length, 8, "otto colonne, l'ottava in coda");
+    eq(sentinella.CSV_AMBIENTE_INTESTAZIONE.split(";").length, 10, "dieci colonne, le ultime tre in coda");
     eq(sentinella.CSV_AMBIENTE_INTESTAZIONE.split(";").slice(0, 7).join(";"),
       "tipo;nome;valore;unita;soglia;stato;dettaglio", "le prime sette sono quelle di prima");
+    eq(sentinella.CSV_AMBIENTE_INTESTAZIONE.split(";").slice(7).join(";"),
+      "origine_soglia;taratura;provenienza",
+      "e la coda si allunga in fondo: chi taglia alle prime sette ritrova il file di sempre");
     // il punto appena creato: `valore: 0` è il valore con cui NASCE, non una misura
     const nuovo = { nome: "Polveri — piazzale", tipo: "polveri", unita: "µg/m³", soglia: 40, valore: 0, letture: [] };
     eq(sentinella.statoMisura(nuovo).stato, "mai", "il modulo lo sa già dire");
@@ -19001,6 +19221,76 @@ test("⛔ piuGiorni: una data che non esiste non produce una scadenza", () => {
       letture: [{ data: "2026-07-01", valore: 62 }] };
     ok(colonne(righeCsv(sentinella.csvAmbiente([dB], [], RICu))[1])[7].includes("non applicata"),
       "l'unità che non coincide si dichiara, non si converte");
+  });
+
+  /* ══ IL FILE PER L'ARPA TACEVA DUE RISERVE CHE LO SCHERMO DICHIARA (07/08)
+     ────────────────────────────────────────────────────────────────────────
+     Sulla dimostrazione, «Polveri PM10 — confine Est» usciva dal file come
+     `36.8;µg/m³;40;Attenzione` e basta. Sulle STESSE letture:
+       · l'elenco dei punti porta il badge «Taratura non dichiarata»;
+       · il report ha una sezione intitolata «Riferibilità delle misure» e
+         scrive «NON DICHIARATA» su ognuna delle sue righe.
+     `provenienzaMisura` alza per questo la bandiera `noto`, e nel file non la
+     leggeva nessuno: una bandiera che l'export non legge non protegge niente
+     (regola 20 di run-stile, nel punto dove nessuna prova guardava). */
+  test("⛔ Sentinella · il file per l'ARPA legge la bandiera `noto` della provenienza", () => {
+    const m = { nome: "P", tipo: "polveri", unita: "µg/m³", soglia: 40, valore: 30, letture: [
+      { data: "2026-07-01", valore: 30, origine: { da: "import", file: "p.csv" } },
+      { data: "2026-07-02", valore: 28, origine: { da: "manuale" } },
+      { data: "2026-07-03", valore: 26 },
+      { data: "2026-07-04", valore: 24, origine: { da: "boh" } },
+    ] };
+    const prov = colonne(righeCsv(sentinella.csvAmbiente([m], [], []))[1])[9];
+    eq(prov, "1 da file dello strumento · 1 inserite a mano · 2 senza provenienza dichiarata",
+      "⛔ un'origine scritta ma non riconosciuta NON ricade su «a mano»");
+    // la correzione si conta a parte: è la cosa che un funzionario cerca per prima
+    const corretto = { ...m, letture: [{ data: "2026-07-01", valore: 5.2,
+      origine: { da: "manuale", corretta: { quando: "2026-06-28T08:30:00", prima: 4.2 } } }] };
+    ok(colonne(righeCsv(sentinella.csvAmbiente([corretto], [], []))[1])[9].includes("1 corretta dopo la registrazione"),
+      "una misura ritoccata dopo la registrazione si dichiara nel file, non solo a schermo");
+    // un punto senza letture non inventa una composizione
+    eq(colonne(righeCsv(sentinella.csvAmbiente([{ nome: "Q", tipo: "acque", valore: 12, soglia: 35 }], [], []))[1])[9],
+      "", "nessuna lettura: la cella resta vuota invece di dire qualcosa di tranquillo");
+  });
+  test("⛔ Sentinella · e la taratura nel file guarda QUEL GIORNO, non oggi", () => {
+    /* il buco fra due certificati: oggi lo strumento è in regola — il badge
+       dice «Taratura valida» — e in mezzo allo storico c'è una lettura che
+       nessun certificato copre. Scrivere il badge nel file sarebbe stato più
+       corto e sbagliato nel verso che rassicura. */
+    const m = { nome: "V2", tipo: "vibrazioni", unita: "mm/s", soglia: 5, valore: 3.9,
+      tarature: [{ data: "2025-07-01", scadenza: "2026-06-30" }, { data: "2026-07-10", scadenza: "2027-07-09" }],
+      letture: [{ data: "2026-06-05", valore: 3.2 }, { data: "2026-07-06", valore: 3.9 },
+                { data: "2026-07-17", valore: 4.1 }, { data: "2025-01-01", valore: 2 }] };
+    eq(sentinella.statoTaraturaStrumento(m, new Date("2026-08-07T09:00:00")).stato, "regolare",
+      "⛔ oggi lo strumento è in regola: è il numero tranquillo che il file avrebbe scritto");
+    const cella = colonne(righeCsv(sentinella.csvAmbiente([m], [], []))[1])[8];
+    eq(cella, "2 coperte da una taratura valida · 1 in un giorno che nessuna taratura registrata copre"
+      + " · 1 precedenti alla prima taratura registrata su 4",
+      "il file conta le SUE letture, e tiene separato «scoperta» da «prima dello storico»");
+    // nessun certificato: il file lo dice invece di tacere
+    eq(colonne(righeCsv(sentinella.csvAmbiente(
+      [{ nome: "P", tipo: "polveri", unita: "µg/m³", soglia: 40, valore: 30,
+         letture: [{ data: "2026-07-01", valore: 30 }, { data: "2026-07-02", valore: 28 }] }], [], []))[1])[8],
+      "2 senza nessuna taratura da confrontare su 2",
+      "⛔ «Attenzione» da sola era la riga tranquilla: adesso porta accanto di chi sono i numeri");
+    eq(colonne(righeCsv(sentinella.csvAmbiente([{ nome: "Q", tipo: "acque", valore: 12, soglia: 35 }], [], []))[1])[8],
+      "", "un punto senza letture non ha niente da coprire");
+  });
+  test("Sentinella · un adempimento non ha né taratura né provenienza, e le celle restano vuote", () => {
+    const r = colonne(righeCsv(sentinella.csvAmbiente([], [{ titolo: "AUA", scadenza: "2026-09-30" }], []))[1]);
+    eq(r.length, 10, "la riga ha comunque tutte le colonne");
+    eq([r[8], r[9]], ["", ""], "vuote: un adempimento non è una misura");
+  });
+  test("⛔ Sentinella · contaCoperture: un ciclo solo per il report, la scheda e il file", () => {
+    const tar = [{ data: "2026-01-01", scadenza: "2026-06-30" }];
+    const c = sentinella.contaCoperture(tar, [
+      { data: "2026-03-01" }, { data: "2025-12-01" }, { data: "2026-08-01" }, { data: "boh" }]);
+    eq([c.coperta, c["prima-dello-storico"], c.scoperta, c["non-dichiarata"]], [1, 1, 1, 1],
+      "i quattro casi restano quattro: era la firma a tre secchi a costringere a ricopiare il ciclo");
+    eq([c.totale, c.nonNote], [4, 2], "e chi ne vuole tre li somma invece di riscriverli");
+    eq(sentinella.contaCoperture(null, null).totale, 0, "niente del tutto non fa crash");
+    eq(sentinella.contaCoperture(null, [{ data: "2026-03-01" }])["non-dichiarata"], 1,
+      "⛔ senza nessun certificato la risposta non è «coperta»");
   });
 
   test("⛔ Sentinella · i chili del mese non sommano come zero le volate che non li dichiarano", () => {
@@ -21847,9 +22137,19 @@ test("⛔ etichettaStatoDocumento: la mappa esce dalla pagina e la leggono in du
       ok(!/const modoDimostrazione = /.test(codice), `${n}: se l'è riscritta in casa`);
       siti += chiamate;
     }
-    /* Cinque: uno per Conti, Scudo e Terra, DUE per Campo — che ha due vestiti,
-       il riquadro del foglio stampato e la riga in cima alla consegna .txt. */
-    eq(siti, 5, "i punti che chiedono la decisione nelle quattro pagine");
+    /* Sei: uno per Conti e Terra, DUE per Campo — che ha due vestiti, il
+       riquadro del foglio stampato e la riga in cima alla consegna .txt — e
+       DUE per Scudo dal 07/08, per la stessa ragione: al riquadro dei suoi due
+       fogli stampati si è aggiunta la riga in testa al PROMEMORIA che il
+       bottone dello scadenzario copia negli appunti. Era la terza uscita
+       dell'app, e non la vedeva nessuna delle due difese — il marchio vive nel
+       NOME del file e nella TESTATA del foglio, e un testo incollato in
+       un'email non ha né l'uno né l'altro.
+       ⚠️ Il numero è scritto a mano di proposito: è la sveglia che suona
+       quando qualcuno aggiunge un vestito senza dirlo, ed è quello che ha
+       fatto oggi. Chi lo alza scrive QUALE vestito ha aggiunto, come queste
+       righe. */
+    eq(siti, 6, "i punti che chiedono la decisione nelle quattro pagine");
     console.log(`     (${siti} chiamate in ${QUATTRO.length} pagine, tutte con db.mode passato dalla pagina)`);
   });
 
@@ -22551,6 +22851,232 @@ console.log("\n— Conti · la barra di peso: il numero è giusto e a mentire è
     const testo = sentinella.csvTarature([{ id: "s", nome: "Sismografo", tarature: [
       { data: "2026-02-10", scadenza: "2027-02-09", ente: "Centro LAT 118", certificato: "LAT 118-2026/441", nota: "canale terna" }] }]);
     eq((testo.match(/\d,\d/g) || []), [], "nessuna virgola fra due cifre");
+  });
+}
+
+/* ══ IL FILE CHE VA AL COMMERCIALISTA — CONTI, 07/08 ═══════════════════════
+   ────────────────────────────────────────────────────────────────────────
+   Misurato premendo il bottone e aprendo il file, con UNA nota di credito e
+   UNA fattura con righe iniettate nella risposta HTTP del server di prova: la
+   dimostrazione non ha nessuna nota (`DEMO.note` non esiste) e nessuna sua
+   fattura ha `righe`, quindi i due rami stavano fuori da qualunque misura —
+   il caso limite è sempre uno, e la dimostrazione non ce l'ha mai.
+
+   Le due metà della domanda di CLAUDE.md, e stavolta hanno risposto tutt'e due:
+   1. «dove questa app compone qualcosa che ESCE, chi decide i suoi numeri?»
+      → il CSV chiedeva `statoIncasso`, che le note di credito non conosce,
+        mentre il foglio STAMPATO della stessa fattura chiede `statoFattura`
+        da giorni. Schermo «Stornata», stampa «Annullata da nota di credito,
+        esigibile € 0,00», file `insoluta` con **residuo 9.750 €**;
+   2. «per ogni coppia schermo↔file, quale delle due dichiara il caveat?»
+      → qui a tacere era lo SCHERMO: `riepilogoIvaFattura(f).quadra` era letto
+        in **un punto solo** di tutta l'app, il foglio stampato. L'elenco delle
+        fatture e il CSV non dicevano niente.
+   ⚠️ La prova che conta più di tutte è l'ULTIMA: senza note di credito il file
+   esce identico a prima. Una correzione che cambia anche i numeri che erano
+   giusti non è una correzione.
+   ══════════════════════════════════════════════════════════════════════ */
+{
+  const FAT = [
+    { id: "f1", numero: "2026/031", cliente: "Edilcave Srl", importo: 18300,
+      emessa: "2026-06-07", scadenza: "2026-07-08", incassata: false },
+    { id: "f2", numero: "2026/034", cliente: "Stradesud", importo: 9750,
+      emessa: "2026-06-25", scadenza: "2026-07-25", incassata: false },
+  ];
+  const INC = [{ id: "i1", fatturaId: "f1", data: "2026-07-02", importo: 6000 }];
+  /* n1 annulla per intero la 2026/034; n2 ne storna 3.000 su 18.300 della 2026/031 */
+  const NOT = [{ id: "n1", fatturaId: "f2", totale: 9750, bozza: false },
+               { id: "n2", fatturaId: "f1", totale: 3000, bozza: false }];
+  const celle = (csv, numero) =>
+    (csv.split("\n").find((r) => r.startsWith(numero + ";")) || "").split(";");
+  const COL = (nome) => conti.csvSituazioneFatture([], [], [], []).split("\n")[0].split(";").indexOf(nome);
+
+  test("⛔ Conti · il CSV del commercialista conosce le note di credito (era la sua terza copia)", () => {
+    const csv = conti.csvSituazioneFatture(FAT, INC, NOT, []);
+    const r = celle(csv, "2026/034");
+    eq(r[COL("stato")], "stornata",
+       "annullata per intero: usciva «insoluta», cioè il file chiedeva soldi che la stampa dichiarava non più dovuti");
+    eq(r[COL("residuo")], "0", "e il residuo usciva 9750");
+    eq(r[COL("stornato")], "9750", "la colonna che spiega perché residuo ≠ totale − incassato");
+    /* ⛔ e lo storno PARZIALE è il caso più silenzioso: lo stato non cambia,
+       cambia solo il numero — ed è quello che il commercialista chiede. */
+    const p = celle(csv, "2026/031");
+    eq(p[COL("stato")], "acconto", "storno parziale: lo stato resta quello");
+    eq(p[COL("residuo")], "9300", "18.300 − 3.000 di nota − 6.000 di acconto; usciva 12.300");
+    eq(p[COL("stornato")], "3000", "e si vede da dove viene lo scarto");
+  });
+
+  test("⛔ Conti · una nota in BOZZA non storna niente (è la regola di `stornatoDi`, non una copia)", () => {
+    const csv = conti.csvSituazioneFatture(FAT, INC, [{ id: "b", fatturaId: "f2", totale: 9750, bozza: true }], []);
+    const r = celle(csv, "2026/034");
+    eq(r[COL("stato")], "insoluta", "una nota non ancora emessa non toglie il credito");
+    eq(r[COL("stornato")], "0", "e lo storno è zero MISURATO, non «non lo so»: la cella non resta vuota");
+  });
+
+  test("⛔ Conti · la fattura che non quadra lo diceva SOLO a chi la stampava", () => {
+    /* nata dai DDT (righe 5.000 + 2.000) e poi corretta a mano con la ✎, che
+       riscrive i totali e non tocca le righe: registrata 9.000 + 1.980. */
+    const rotta = { id: "f9", numero: "2026/038", cliente: "Edilcave Srl",
+      importo: 10980, imponibile: 9000, ivaImporto: 1980, totale: 10980,
+      emessa: "2026-07-20", scadenza: "2026-08-20", incassata: false,
+      righe: [{ descrizione: "a", imponibile: 5000, aliquota: 22 },
+              { descrizione: "b", imponibile: 2000, aliquota: 10 }] };
+    const sana = { ...rotta, id: "f8", numero: "2026/039", imponibile: 7000, ivaImporto: 1300, totale: 8300, importo: 8300 };
+    const csv = conti.csvSituazioneFatture([rotta, sana, FAT[0]], [], [], []);
+    eq(celle(csv, "2026/038")[COL("righe_non_tornano")], "si",
+       "le righe sommano 7.000 + 1.300, il documento è registrato per 9.000 + 1.980");
+    eq(celle(csv, "2026/039")[COL("righe_non_tornano")], "no",
+       "e quando tornano lo dice, se no un «si» che non compare mai non si distingue da una colonna morta");
+    /* ⛔ E LA CELLA VUOTA NON È UN «no». Una fattura senza righe non ha niente
+       da confrontare: scriverci «no» sarebbe la rassicurazione di un controllo
+       mai fatto — il principio del fondatore, nella sua forma esatta. */
+    eq(celle(csv, "2026/031")[COL("righe_non_tornano")], "",
+       "senza righe la cella resta VUOTA: non c'è niente da confrontare");
+  });
+
+  test("⛔ Conti · la decisione è UNA: il file dice quello che dice il foglio stampato", () => {
+    /* il difetto era esattamente questo — due uscite, gli stessi dati, due
+       affermazioni opposte. Si legano alla stessa funzione, non al risultato. */
+    const csv = conti.csvSituazioneFatture(FAT, INC, NOT, []);
+    for (const f of FAT) {
+      const s = conti.statoFattura(f, INC, NOT);
+      const r = celle(csv, f.numero);
+      eq(+r[COL("residuo")], s.residuo, `${f.numero}: il residuo del file è quello di statoFattura`);
+      eq(+r[COL("stornato")], s.stornato, `${f.numero}: e così lo stornato`);
+    }
+    const q = conti.riepilogoIvaFattura(FAT[0]);
+    eq(celle(csv, "2026/031")[COL("righe_non_tornano")] === "" , !q.daRighe,
+       "e la colonna del quadro legge `daRighe` di riepilogoIvaFattura");
+  });
+
+  test("⛔ Conti · le colonne di TESTO restano protette (il numero è un separatore)", () => {
+    /* ⚠️ E LA PRIMA STESURA DI QUESTA PROVA SBAGLIAVA IL VERSO, presa dalla
+       suite stessa: contava i campi di uno `split(";")` ingenuo e li aspettava
+       DI MENO, mentre un punto e virgola dentro una cella ne fa contare **di
+       più** (16 colonne → 18 campi). Il conto giusto è quello del lettore
+       vero, e la prova che conta è che le due celle tornino INTERE. */
+    const csv = conti.csvSituazioneFatture(
+      [{ id: "z", numero: "2026/0;99", cliente: "Rossi; Srl", importo: 100 }], [], [], []);
+    const righe = csv.split("\n");
+    const colonne = righe[0].split(";").length;
+    ok(righe[1].split(";").length > colonne,
+       "uno split ingenuo si perde: è esattamente il motivo per cui serve csvCell");
+    ok(righe[1].startsWith('"2026/0;99";"Rossi; Srl";'), "le due celle escono fra virgolette");
+    /* e il giro: il nostro lettore le riporta indietro intere, e ritrova le
+       sedici colonne dichiarate dall'intestazione */
+    const letta = shell.parseCsvLine(righe[1]);
+    eq(letta.length, colonne, `${colonne} colonne rilette, non ${righe[1].split(";").length} pezzi`);
+    eq(letta[0], "2026/0;99", "il numero torna intero");
+    eq(letta[1], "Rossi; Srl", "e la ragione sociale anche");
+  });
+
+  test("⛔ Conti · nel sollecito una NOTA DI CREDITO non è un acconto del cliente", () => {
+    /* Trovato premendo il bottone «Sollecito» e leggendo il testo copiato, non
+       leggendo il codice: € 18.300, un acconto vero da € 6.000, una nota da
+       € 3.000 → la lettera diceva «acconti per € 9.000». Il residuo era
+       giusto e la sottrazione tornava: è il difetto che ogni numero, preso da
+       solo, non mostra. */
+    const f = { id: "f1", numero: "2026/031", cliente: "Edilcave Srl", importo: 18300,
+                emessa: "2026-06-07", scadenza: "2026-07-08", incassata: false, residuo: 12300 };
+    const NC = [{ id: "n", fatturaId: "f1", totale: 3000, bozza: false }];
+    const t = conti.testoSollecito(f, new Date("2026-08-07T10:00:00Z"), 10.15, NC);
+    ok(t, "la fattura è scaduta e ancora scoperta: il sollecito esiste");
+    ok(t.includes("Acconti già ricevuti: € 6.000"), "l'acconto è quello VERO, e usciva € 9.000");
+    ok(!t.includes("€ 9.000"), "in nessun punto della lettera compare la somma dei due");
+    ok(t.includes("Note di credito emesse: − € 3.000"), "la nota ha una riga sua");
+    ok(t.includes("acconti per € 6.000 e di note di credito per € 3.000"),
+       "e la frase d'apertura le distingue");
+    ok(t.includes("Residuo scoperto: € 9.300"), "il residuo non cambia: era già giusto");
+    /* ⛔ e il numero dell'acconto è quello che dice `statoFattura`, non una
+       terza copia: le due strade devono dare lo stesso euro. */
+    const s = conti.statoFattura(f, [{ id: "i", fatturaId: "f1", data: "2026-07-02", importo: 6000 }], NC);
+    eq(s.incassato, 6000, "e statoFattura, che i due campi li tiene separati, dice lo stesso");
+  });
+
+  test("⛔ Conti · e su una fattura ANNULLATA il sollecito non parte proprio", () => {
+    const f = { id: "f2", numero: "2026/034", cliente: "Stradesud", importo: 9750,
+                emessa: "2026-06-25", scadenza: "2026-07-25", incassata: false, residuo: 9750 };
+    eq(conti.testoSollecito(f, new Date("2026-08-07T10:00:00Z"), 10.15,
+       [{ id: "n", fatturaId: "f2", totale: 9750, bozza: false }]), null,
+       "non si chiedono soldi su una fattura che una nota di credito ha annullato");
+    ok(conti.testoSollecito(f, new Date("2026-08-07T10:00:00Z"), 10.15, []),
+       "e senza la nota il sollecito c'è: la prova distingue i due casi");
+  });
+
+  test("⛔ Conti · e la STESSA bugia era nell'estratto conto, la lettera gemella", () => {
+    /* Le due lettere escono dalla stessa app e vanno allo stesso cliente: se
+       una dice «acconti € 6.000» e l'altra «acconti € 9.000», una delle due
+       mente — e prima del 07/08 mentivano tutt'e due. */
+    const f = { id: "f1", numero: "2026/031", cliente: "Edilcave Srl", importo: 18300,
+                emessa: "2026-06-07", scadenza: "2026-07-08", incassata: false, residuo: 12300 };
+    const NC = [{ id: "n", fatturaId: "f1", totale: 3000, bozza: false }];
+    const t = conti.estrattoContoCliente("Edilcave Srl", [f], new Date("2026-08-07T10:00:00Z"), 10.15, [], NC);
+    ok(t, "il cliente ha una fattura aperta: l'estratto conto esiste");
+    ok(t.includes("(residuo, acconti € 6.000, note di credito € 3.000)"),
+       "le due voci nominate una per una; usciva «(residuo, acconti € 9.000)»");
+    ok(!t.includes("acconti € 9.000"), "la somma dei due non compare da nessuna parte");
+    ok(t.includes("Totale aperto: € 9.300"), "e il totale non cambia: era già giusto");
+    /* ⛔ e le due lettere devono dire lo STESSO numero, non due numeri
+       plausibili: è la prova che le lega, non il risultato copiato a mano. */
+    const sol = conti.testoSollecito(f, new Date("2026-08-07T10:00:00Z"), 10.15, NC);
+    ok(sol.includes("Acconti già ricevuti: € 6.000") && t.includes("acconti € 6.000"),
+       "sollecito ed estratto conto dicono lo stesso acconto");
+  });
+
+  test("⚠️ Conti · senza note di credito l'estratto conto è quello di prima", () => {
+    const f = { id: "f1", numero: "2026/031", cliente: "Edilcave Srl", importo: 18300,
+                emessa: "2026-06-07", scadenza: "2026-07-08", incassata: false, residuo: 12300 };
+    const t = conti.estrattoContoCliente("Edilcave Srl", [f], new Date("2026-08-07T10:00:00Z"), 10.15, [], []);
+    ok(t.includes("(residuo, acconti € 6.000)"), "la forma di sempre, senza code che non c'entrano");
+    ok(!t.includes("note di credito"), "e non nomina niente che non esista");
+  });
+
+  test("⚠️ Conti · senza note di credito il sollecito è parola per parola quello di prima", () => {
+    /* stessa forma della prova sul CSV: la correzione non deve spostare i
+       testi che erano già giusti. Il ramo «solo acconti» è il più usato. */
+    const f = { id: "f1", numero: "2026/031", cliente: "Edilcave Srl", importo: 18300,
+                emessa: "2026-06-07", scadenza: "2026-07-08", incassata: false, residuo: 12300 };
+    const t = conti.testoSollecito(f, new Date("2026-08-07T10:00:00Z"), 10.15, []);
+    ok(t.includes("a fronte di acconti per € 6.000 resta scoperto € 12.300."),
+       "la frase del caso senza note è quella di sempre");
+    ok(!t.includes("note di credito"), "e non nomina niente che non c'entri");
+    const secco = conti.testoSollecito({ ...f, residuo: 18300 }, new Date("2026-08-07T10:00:00Z"), 10.15, []);
+    ok(secco.includes("risulta non ancora saldata la fattura n. 2026/031 di € 18.300"),
+       "e il caso senza acconti nemmeno");
+    ok(!secco.includes("Acconti già ricevuti"), "niente riga degli acconti dove non ce ne sono");
+  });
+
+  test("⚠️ Conti · SENZA note di credito il file è identico a prima (meno le due colonne nuove)", () => {
+    /* La prova che la correzione non ha spostato niente che fosse già giusto.
+       Si ricompone la riga com'era il 06/08 — `statoIncasso` e le quattordici
+       colonne di allora — e si pretende che, tolte `stornato` e
+       `righe_non_tornano`, il file nuovo la dia identica.
+       ⚠️ È il contrario del giro scrivi/leggi: lì le due metà possono sbagliare
+       insieme, qui la riga vecchia è scritta a mano e non passa da niente di
+       nostro. */
+    const F = conti.DEMO.fatture, I = conti.DEMO.incassi, C = conti.DEMO.clienti;
+    const vecchia = (f) => {
+      const im = conti.importiFattura(f), s = conti.statoIncasso(f, I), sc = conti.statoScadenzaFattura(f);
+      const st = s.saldata ? "incassata" : s.parziale ? "acconto"
+        : sc.stato === "insoluta" ? "insoluta"
+        : sc.stato === "senza-scadenza" ? "senza scadenza" : "aperta";
+      return [f.numero, conti.nomeCliente(f, C), f.emessa || "", im.imponibile,
+        im.aliquota == null ? "" : im.aliquota, im.conIva ? im.ivaImporto : "", im.totale,
+        f.scadenza || "", st, s.incassato, s.residuo,
+        s.dataSaldo || f.dataIncasso || "", s.giorniPagamento == null ? "" : s.giorniPagamento,
+        (f.ddtIds || []).length].map(String).join(";");
+    };
+    const nuove = conti.csvSituazioneFatture(F, I, [], C).split("\n").slice(1).filter(Boolean);
+    eq(nuove.length, F.length, "una riga per fattura, come prima");
+    const iStornato = COL("stornato"), iQuadro = COL("righe_non_tornano");
+    for (const r of nuove) {
+      const c = r.split(";");
+      const senzaNuove = c.filter((_, i) => i !== iStornato && i !== iQuadro).join(";");
+      const f = F.find((x) => x.numero === c[0]);
+      ok(f, `la riga ${c[0]} è di una fattura vera`);
+      eq(senzaNuove, vecchia(f), `${c[0]}: identica alla riga del 06/08`);
+    }
+    console.log(`     (${nuove.length} fatture d'esempio, tutte identiche alla composizione precedente)`);
   });
 }
 

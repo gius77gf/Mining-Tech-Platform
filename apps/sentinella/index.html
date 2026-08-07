@@ -1466,7 +1466,8 @@ textarea.dw-input{
            volateOrdinate, firmaVolata, csvRegistroVolate, CSV_VOLATE_INTESTAZIONE,
            coperturaTaratura, statoTaraturaStrumento, STATI_TARATURA, DICHIARAZIONI_TARATURA,
            parseTaratureCsv, abbinaTarature, csvTarature, allerteTaratura, CSV_TARATURE_INTESTAZIONE,
-           csvAmbiente,
+           csvAmbiente, csvRicettori, CSV_RICETTORI_INTESTAZIONE, contaCoperture,
+           distanzaDelRicettore, sogliaDelRicettore,
            provenienzaMisura, descriviProvenienza, campiProvenienza, correggiLettura,
            composizioneProvenienza, DICHIARAZIONI_PROVENIENZA, FONTI_MISURA,
            DICHIARAZIONI_COPERTURA,
@@ -2011,10 +2012,14 @@ textarea.dw-input{
         || String(a.nome || "").localeCompare(String(b.nome || ""), "it"))
       .map(r => {
         const n = collegati(r.id);
-        const dist = Number.isFinite(+r.distanza) && +r.distanza > 0 ? numeroIt(r.distanza) + " m dalla cava" : "distanza non indicata";
+        /* la stessa funzione che scrive il file: fino al 07/08 erano due
+           regole gemelle, e quella del file non chiedeva se lo zero fosse
+           una distanza */
+        const dm = distanzaDelRicettore(r), sm = sogliaDelRicettore(r);
+        const dist = dm != null ? numeroIt(dm) + " m dalla cava" : "distanza non indicata";
         const cls = r.classe ? " · classe acustica <b>" + esc(r.classe) + "</b>" : "";
-        const sog = Number.isFinite(+r.soglia) && +r.soglia > 0
-          ? " · soglia propria <b>" + esc(numeroIt(r.soglia)) + (r.unita ? " " + esc(r.unita) : "") + "</b>"
+        const sog = sm != null
+          ? " · soglia propria <b>" + esc(numeroIt(sm)) + (r.unita ? " " + esc(r.unita) : "") + "</b>"
           : " · nessuna soglia propria";
         return `<div class="item st-accent">
         <div class="avatar sup">${I.casa}</div>
@@ -2284,9 +2289,7 @@ textarea.dw-input{
   // serve a far vedere se combacia con la distanza scritta sulla volata.
   const distanzaDelPunto = (puntoId) => {
     const m = MON.find(x => x.id === puntoId);
-    const r = m ? trovaRicettore(RIC, m.ricettoreId) : null;
-    const d = r ? +r.distanza : NaN;
-    return Number.isFinite(d) && d > 0 ? d : null;
+    return distanzaDelRicettore(m ? trovaRicettore(RIC, m.ricettoreId) : null);
   };
 
   async function collegaPpv(id) {
@@ -2856,8 +2859,11 @@ textarea.dw-input{
        che dà senso alla sezione: senza, l'elenco dei certificati è
        burocrazia. E «non coperte» resta diviso in due, come nel modulo. */
     const letture = ((m && m.letture) || []);
-    const conta = { coperta: 0, scoperta: 0, "prima-dello-storico": 0, "non-dichiarata": 0 };
-    for (const l of letture) conta[coperturaTaratura(m && m.tarature, l.data).stato]++;
+    /* ⛔ IL CICLO ERA SCRITTO IN TRE POSTI (07/08): qui, in `taratureDelReport`
+       e — appena aggiunta — nella colonna del file per l'ARPA. `contaCoperture`
+       lo scrive una volta, con tutti e quattro i secchi: quella del report ne
+       teneva tre, ed è la firma troppo stretta che costringe a ricopiare. */
+    const conta = contaCoperture(m && m.tarature, letture);
     const st = statoTaraturaStrumento(m || {});
     const bt = STATI_TARATURA[st.stato] || STATI_TARATURA["non-dichiarata"];
 
@@ -3163,7 +3169,7 @@ textarea.dw-input{
         Questo foglio non riporta misure della tua cava: non va consegnato a nessun ente.</div>` : ""}
       <div class="rep-sub">Periodo: <b>${esc(periodo)}</b><br>
         Ricettore: <b>${R.ricettore ? esc(R.ricettore.nome) : "tutti i ricettori della cava"}</b>${
-          R.ricettore ? ` · ${esc(etichettaTipo(R.ricettore.tipo))}${Number.isFinite(+R.ricettore.distanza) && +R.ricettore.distanza > 0 ? " a " + esc(numeroIt(R.ricettore.distanza)) + " m dalla cava" : ""}${R.ricettore.classe ? " · classe acustica " + esc(R.ricettore.classe) : ""}` : ""}<br>
+          R.ricettore ? ` · ${esc(etichettaTipo(R.ricettore.tipo))}${distanzaDelRicettore(R.ricettore) != null ? " a " + esc(numeroIt(distanzaDelRicettore(R.ricettore))) + " m dalla cava" : ""}${R.ricettore.classe ? " · classe acustica " + esc(R.ricettore.classe) : ""}` : ""}<br>
         Documento generato il <b>${esc(genTxt)}</b></div>
     </div>`;
 
@@ -3176,7 +3182,7 @@ textarea.dw-input{
       ? `<br><b>Attenzione:</b> il ricettore <b>${esc(s.ricettore)}</b> ha una soglia in ${esc(s.unitaRicettore || "un'altra unità")}, diversa dall'unità di questo punto (${esc(p.unita)}): non è stata applicata e non è stata convertita.`
       : "";
     const ric = p.ricettore
-      ? `Ricettore: <b>${esc(p.ricettore.nome)}</b> · ${esc(etichettaTipo(p.ricettore.tipo))}${Number.isFinite(+p.ricettore.distanza) && +p.ricettore.distanza > 0 ? " a <b>" + esc(numeroIt(p.ricettore.distanza)) + " m</b>" : ""}${p.ricettore.classe ? " · classe acustica <b>" + esc(p.ricettore.classe) + "</b>" : ""}`
+      ? `Ricettore: <b>${esc(p.ricettore.nome)}</b> · ${esc(etichettaTipo(p.ricettore.tipo))}${distanzaDelRicettore(p.ricettore) != null ? " a <b>" + esc(numeroIt(distanzaDelRicettore(p.ricettore))) + " m</b>" : ""}${p.ricettore.classe ? " · classe acustica <b>" + esc(p.ricettore.classe) + "</b>" : ""}`
       : "Ricettore: <b>non collegato</b>";
     const E = ESITI[p.esito] || ESITI["senza-dati"];
     /* LA TARATURA DI QUESTO STRUMENTO, NELLA SCHEDA DI QUESTO PUNTO.
@@ -4255,14 +4261,18 @@ textarea.dw-input{
     await refresh();
   };
   $("btn-ric-export").onclick = () => {
-    let csv = "nome;tipo;distanza;classe;soglia;unita;nota\n";
-    /* ⚠️ Anche l'UNITÀ passa da csvCell, e non è pignoleria: è un campo libero
-       (uno può scriverci «mm/s; dB(A)») e senza la protezione il punto e
-       virgola spezza la riga — misurato il 31/07: il pezzo dopo il «;»
-       finiva dentro la NOTA del ricettore, in silenzio. Tipo e classe
-       vengono da un elenco chiuso, ma passano di lì per la stessa ragione
-       per cui si allaccia la cintura anche per un tratto corto. */
-    for (const r of RIC) csv += `${csvCell(r.nome)};${csvCell(r.tipo || "")};${r.distanza ?? ""};${csvCell(r.classe || "")};${r.soglia ?? ""};${csvCell(r.unita || "")};${csvCell(r.nota || "")}\n`;
+    /* ⛔ IL FILE LO SCRIVE `csvRicettori`, NON QUESTO GESTORE (07/08). Qui
+       c'erano nove parole di template, ed erano l'ULTIMO export dell'app che
+       non passasse da una funzione pura — cioè l'ultimo che nessuna prova
+       guardava. Il 03/08 la stessa riga era stata scritta accanto a
+       `csvAmbiente` come se fosse l'unico: una correzione puntuale non è un
+       censimento, e questo bottone è rimasto indietro altri quattro giorni.
+       Il difetto che ci si era sedimentato, misurato premendo il bottone col
+       modulo compilato a mano: `distanza: 0` — che il modulo accettava — usciva
+       nel file come `0`, mentre lo schermo sulla stessa riga scriveva
+       «distanza non indicata». Un ricettore a zero metri dal fronte, in un file
+       che si manda fuori. Le ragioni per esteso stanno accanto alla funzione. */
+    const csv = csvRicettori(RIC);
     const a = document.createElement("a");
     a.href = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8" }));
     a.download = "sentinella_ricettori.csv"; marchiaCsv(a); a.click();
@@ -4551,12 +4561,21 @@ textarea.dw-input{
       esito("ric-esito-form", "Serve il nome del ricettore: scrivi come lo chiamate voi (es. Casa Bianchi — via Cava 12), così lo riconosci nel report.", "err", "Serve il nome del ricettore."); return; }
     // distanza e soglia sono facoltative: vuote restano vuote. Piene devono
     // essere numeri, scritti con la virgola o col punto indifferentemente.
-    const rd = numeroDaCampo($("ric-dist").value, { min: 0 });
+    /* ⛔ `{ min: 0 }` ACCETTAVA LO ZERO IN SILENZIO, e il messaggio d'errore
+       accanto lo prometteva pure («un numero di metri NON NEGATIVO»). Ma tutte
+       e quattro le schermate che leggono quella distanza chiedono `> 0` e su
+       uno zero scrivono «distanza non indicata»: chi scriveva 0 vedeva la
+       propria risposta sparire, e il file esportato la riscriveva come «0 m».
+       Delle due strade — far mostrare lo zero, o non farlo scrivere — vale la
+       seconda: zero metri vuol dire il ricettore dentro il fronte, e non è un
+       dato, è un modo di dire «non lo so» che il prodotto ha già («lasciala
+       vuota»). Adesso il modulo lo DICE invece di accettarlo e ignorarlo. */
+    const rd = numeroDaCampo($("ric-dist").value, { positivo: true });
     if (!rd.vuoto && !rd.ok) {
       err("ric-dist", true); fuocoErr(["ric-dist"]);
       esito("ric-esito-form", rd.motivo === "non-numero"
         ? "«" + rd.grezzo + "» non è un numero che posso leggere come distanza. " + AVVISO_DECIMALE
-        : "La distanza dev'essere un numero di metri non negativo (o lasciala vuota se non la sai ancora).", "err", "Distanza non valida."); return; }
+        : "La distanza dev'essere un numero di metri maggiore di zero, oppure vuota: «0 m» vorrebbe dire che il ricettore sta dentro il fronte, e se non la sai ancora è meglio lasciarla vuota.", "err", "Distanza non valida."); return; }
     const rsg = numeroDaCampo($("ric-soglia").value, { positivo: true });
     if (!rsg.vuoto && !rsg.ok) {
       err("ric-soglia", true); fuocoErr(["ric-soglia"]);

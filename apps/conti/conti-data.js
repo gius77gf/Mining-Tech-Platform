@@ -65,7 +65,7 @@
 // KPI CALCOLATI: da incassare, in scadenza, gare aperte, età media del credito.
 // ============================================================
 
-import { parseCsvLine, leggiCsv, numIt, giorniTra, isIntestazione, dataISOEsiste, dataIt, conta, plurale,
+import { parseCsvLine, leggiCsv, csvCell, numIt, giorniTra, isIntestazione, dataISOEsiste, dataIt, conta, plurale,
          AVVISO_DECIMALE as AVVISO_DECIMALE_SHELL } from "../../shared/deepwork-id-client/dw-shell.js";
 import { provenienzaDi, misuratoPeriodo } from "../../shared/dw-ponti.js";
 /* la classificazione dei costi vive in shared/ perché serve anche a Flotta:
@@ -885,7 +885,24 @@ export function testoSollecito(fattura, oggi = new Date(), tassoAnnuo = TASSO_MO
   // acconto, chiedergli di nuovo l'intero sarebbe una lettera sbagliata.
   const totDoc = round2(+f.importo || 0);
   const imp = apertoDi(f, note);
-  const acconti = round2(Math.max(0, totDoc - imp));
+  /* ⛔ E UNA NOTA DI CREDITO NON È UN ACCONTO. `acconti = totDoc - imp` faceva
+     la differenza in un colpo solo, e `apertoDi` lo storno lo toglie già:
+     quindi tutto quello che una nota aveva stornato usciva dalla lettera come
+     denaro che il CLIENTE aveva versato. Misurato il 07/08 sulla 2026/031 —
+     € 18.300, un acconto vero da € 6.000, una nota di credito da € 3.000 —
+     premendo il bottone e leggendo il testo copiato: «a fronte di acconti per
+     **€ 9.000** resta scoperto € 9.300», e nel riepilogo «Acconti già
+     ricevuti: € 9.000». Il residuo era giusto e la sottrazione tornava, ed è
+     per questo che non si vedeva: ogni numero, preso da solo, sembra corretto.
+     Ma è una lettera che CHIEDE SOLDI, e dichiara al cliente un pagamento che
+     non ha fatto: chi riconcilia i propri versamenti contesta il sollecito, e
+     nel verso opposto la nostra prima nota sembra aver incassato di più.
+     Le due cose sono già separate da `statoFattura` (`incassato` e `stornato`
+     sono due campi diversi, e lo sono perché «stornata non è saldata»): qui
+     se ne teneva una versione più debole che le sommava. Le si separa allo
+     stesso modo, e la lettera le dice su due righe. */
+  const stornato = Math.min(stornatoDi(f.id, note), totDoc);
+  const acconti = round2(Math.max(0, totDoc - stornato - imp));
   const g = giorni(f.scadenza, oggi);
   if (imp <= 0 || !Number.isFinite(g) || g >= 0) return null;   // non scaduta, saldata o dati non validi
   const ritardo = -g;
@@ -899,15 +916,26 @@ export function testoSollecito(fattura, oggi = new Date(), tassoAnnuo = TASSO_MO
     `Oggetto: sollecito di pagamento — fattura ${numero}`,
     ``,
     `Spett.le ${cliente},`,
-    acconti > 0
-      ? `risulta ancora da saldare la fattura n. ${numero} di ${e(totDoc)}, scaduta il ${dataIt(f.scadenza)} (${conta(ritardo, "giorno", "giorni")} di ritardo): a fronte di acconti per ${e(acconti)} resta scoperto ${e(imp)}.`
+    /* ⚠️ tre cose diverse, tre frasi diverse: un acconto lo ha versato il
+       cliente, una nota di credito l'abbiamo emessa noi. Metterle insieme
+       sotto «acconti» è la bugia che questa unità toglie. */
+    acconti > 0 || stornato > 0
+      ? `risulta ancora da saldare la fattura n. ${numero} di ${e(totDoc)}, scaduta il ${dataIt(f.scadenza)} (${conta(ritardo, "giorno", "giorni")} di ritardo): ${
+          acconti > 0 && stornato > 0
+            ? `a fronte di acconti per ${e(acconti)} e di note di credito per ${e(stornato)}`
+            : acconti > 0 ? `a fronte di acconti per ${e(acconti)}`
+            : `al netto di note di credito per ${e(stornato)}`
+        } resta scoperto ${e(imp)}.`
       : `risulta non ancora saldata la fattura n. ${numero} di ${e(imp)}, scaduta il ${dataIt(f.scadenza)} (${conta(ritardo, "giorno", "giorni")} di ritardo).`,
     ``,
     `La preghiamo di provvedere al pagamento nel più breve tempo possibile. Ai sensi del D.Lgs 231/2002 sulle transazioni commerciali, dalla scadenza maturano interessi di mora al tasso del ${tassoTxt}% annuo, oltre a ${e(SPESE_RECUPERO_231)} di spese forfettarie di recupero (art. 6).${frasiTassoMora(oggi)}`,
     ``,
     `Riepilogo alla data odierna:`,
-    ...(acconti > 0
-      ? [`- Importo fattura: ${e(totDoc)}`, `- Acconti già ricevuti: ${e(acconti)}`, `- Residuo scoperto: ${e(imp)}`]
+    ...(acconti > 0 || stornato > 0
+      ? [`- Importo fattura: ${e(totDoc)}`,
+         ...(stornato > 0 ? [`- Note di credito emesse: − ${e(stornato)}`] : []),
+         ...(acconti > 0 ? [`- Acconti già ricevuti: ${e(acconti)}`] : []),
+         `- Residuo scoperto: ${e(imp)}`]
       : [`- Importo fattura: ${e(imp)}`]),
     `- Interessi di mora (stima, ${ritardo} gg): ${e(m.interessi)}`,
     `- Spese forfettarie art. 6: ${e(SPESE_RECUPERO_231)}`,
@@ -1042,7 +1070,17 @@ export function estrattoContoCliente(cliente, fatture, oggi = new Date(), tassoA
   let totale = 0, scaduto = 0, moraTot = 0, scaduteN = 0;
   const righe = aperte.map(f => {
     const imp = apertoDi(f, note);                        // residuo dovuto, meno lo stornato
-    const acconti = round2(Math.max(0, round2(+f.importo || 0) - imp));
+    /* ⛔ E QUI LA STESSA BUGIA DEL SOLLECITO, nella lettera gemella. La riga
+       sopra dice «meno lo stornato» — chi l'ha scritta lo sapeva — e poi la
+       differenza col totale veniva chiamata «acconti»: sull'estratto conto
+       della 2026/031 usciva «€ 9.300 (residuo, **acconti € 9.000**)» dove il
+       cliente aveva versato € 6.000 e € 3.000 li avevamo stornati noi.
+       Le due lettere escono dalla stessa app e vanno allo stesso cliente:
+       possono solo dire la stessa cosa, e quella cosa dev'essere vera.
+       Trovato il 07/08 premendo il bottone e leggendo il testo copiato — il
+       censimento a vista non lo aveva visto, perché la riga sembra giusta. */
+    const stornato = Math.min(stornatoDi(f.id, note), round2(+f.importo || 0));
+    const acconti = round2(Math.max(0, round2(+f.importo || 0) - stornato - imp));
     totale += imp;
     const g = giorni(f.scadenza, oggi);
     const ritardo = Number.isFinite(g) && g < 0 ? -g : 0;
@@ -1055,7 +1093,11 @@ export function estrattoContoCliente(cliente, fatture, oggi = new Date(), tassoA
     } else {
       coda = Number.isFinite(g) ? "non ancora scaduta" : "senza scadenza";
     }
-    return `- n. ${(f.numero || "—")} · ${e(imp)}${acconti > 0 ? ` (residuo, acconti ${e(acconti)})` : ""} · scad. ${dataIt(f.scadenza)} · ${coda}`;
+    /* le due voci si nominano una per una, nell'ordine in cui abbassano il
+       dovuto: quello che il cliente ha versato e quello che abbiamo stornato. */
+    const dettaglio = [acconti > 0 ? `acconti ${e(acconti)}` : "",
+                       stornato > 0 ? `note di credito ${e(stornato)}` : ""].filter(Boolean).join(", ");
+    return `- n. ${(f.numero || "—")} · ${e(imp)}${dettaglio ? ` (residuo, ${dettaglio})` : ""} · scad. ${dataIt(f.scadenza)} · ${coda}`;
   });
   const spese = scaduteN * SPESE_RECUPERO_231;
   const totaleDovuto = Math.round((totale + moraTot + spese) * 100) / 100;
@@ -2691,6 +2733,90 @@ export function notaDaFattura(fattura, causale, importo, numero) {
     aliquotaIva: imp.aliquota,
     integrale: Math.abs(totale - imp.totale) < 0.005,
   };
+}
+
+/* ── IL FILE CHE VA AL COMMERCIALISTA ──────────────────────────────────────
+   ⛔ STA QUI E NON NELLA PAGINA, e non è una questione di ordine. La domanda
+   di CLAUDE.md — «dove questa app compone qualcosa che ESCE, chi decide i suoi
+   numeri?» — su Conti aveva la risposta peggiore possibile: **nessuno dei nove
+   export aveva una funzione**, li componeva tutti la pagina, cioè il posto dove
+   nessuna prova guarda (le prove chiamano il modulo, i file li compone la
+   pagina). Cinque app su sei hanno già i loro `csv…` nel modulo — `csvStorico`
+   in Campo, `csvTarature`, `csvAmbiente`, `csvRegistroVolate` in Sentinella,
+   `csvRiconciliazione` in Genesi. Conti ne aveva zero.
+   Misurato il 07/08 premendo il bottone e aprendo il file, con UNA nota di
+   credito iniettata nella risposta HTTP (la dimostrazione non ne ha nessuna, e
+   nessuna sua fattura ha `righe`: i due rami stavano fuori da qualunque
+   misura). Due difetti, tutt'e due nella stessa riga di codice:
+
+   1. ⛔ LE NOTE DI CREDITO NON ARRIVAVANO AL COMMERCIALISTA. Il file chiedeva
+      `statoIncasso(f, INC)`, che le note non le conosce. Una fattura annullata
+      per intero da una nota usciva **`insoluta`, residuo 9.750 €** — mentre
+      l'elenco a schermo le metteva il badge «Stornata» e il foglio stampato
+      scriveva «Annullata da nota di credito, importo ancora esigibile € 0,00».
+      Sullo storno PARZIALE lo scarto è più silenzioso e peggiore: 3.000 € di
+      nota su 18.300, il file scriveva `residuo 12.300` dove l'esigibile è
+      **9.300**. È la stessa correzione che il foglio stampato ha già ricevuto,
+      col suo commento che diceva «le note si passano ai documenti che ESCONO,
+      **sempre**»: il CSV era rimasto indietro, ed è quello che va in mano al
+      commercialista per il registro IVA.
+   2. ⛔ E LA FATTURA CHE NON QUADRA LO DICEVA SOLO A CHI LA STAMPAVA.
+      `riepilogoIvaFattura(f).quadra` era letto in **un punto solo** di tutta
+      l'app, il foglio stampato. Una fattura nata dai DDT e poi corretta a mano
+      con la ✎ (che riscrive imponibile, IVA e totale e NON tocca le righe)
+      usciva nel file con i totali registrati e nient'altro: 9.000 + 1.980 dove
+      le righe sommano 7.000 + 1.300. Ogni numero, preso da solo, sembra
+      giusto — ed è il difetto che il foglio chiama «il peggiore che un
+      documento possa avere». La colonna `righe_non_tornano` lo dice.
+      ⚠️ La forma «una colonna in più» non è una scelta di gusto: è quella
+      misurata da `csv-dimostrazione.mjs` sui nostri nove lettori (9 su 9
+      reggono, e la dichiarazione resta attaccata ai dati), mentre una riga di
+      commento in cima o in coda viene riletta come un DATO da sei lettori su
+      nove.
+
+   Le tre celle e la ragione di ognuna:
+   · `stornato` — sempre un numero, anche `0`: senza note lo storno è misurato
+     e vale zero, non «non lo so». È la cella che spiega perché `residuo` non è
+     più `totale − incassato`;
+   · `residuo` — l'ESIGIBILE che resta, cioè quello che si può ancora chiedere;
+   · `righe_non_tornano` — VUOTA quando la fattura non ha righe (non c'è niente
+     da confrontare: un `no` lì sarebbe la rassicurazione di un controllo mai
+     fatto, che è esattamente il principio del fondatore), `no` quando le righe
+     ci sono e tornano, `si` quando non tornano.
+   ⚠️ Senza note di credito il file esce riga per riga IDENTICO a prima, meno le
+   due colonne nuove: la prova in `run-kpi.mjs` lo pretende, perché una
+   correzione che cambia numeri che erano giusti è una correzione che rompe.
+   Il file NON si ri-carica (`parseFattureCsv` legge altre colonne) ed è un
+   prospetto, non un backup: lo tiene fermo una prova apposta. */
+export function csvSituazioneFatture(fatture, incassi, note, clienti) {
+  let csv = "numero;cliente;emessa;imponibile;aliquota;iva;totale;stornato;scadenza;stato;"
+          + "incassato;residuo;data_incasso;giorni_pagamento;ddt;righe_non_tornano\n";
+  for (const f of (fatture || []).filter(Boolean).slice()
+       .sort((a, b) => String(a.scadenza || "").localeCompare(String(b.scadenza || "")))) {
+    const im = importiFattura(f);
+    const s = statoFattura(f, incassi, note);
+    const sc = statoScadenzaFattura(f);
+    const rie = riepilogoIvaFattura(f);
+    /* ⛔ «stornata» viene PRIMA di tutto il resto, come nel badge dell'elenco:
+       una fattura annullata non è né saldata né insoluta, e chiamarla insoluta
+       manda il commercialista a chiedere soldi che nessuno deve più. */
+    const st = s.stato === "stornata" ? "stornata"
+      : s.saldata ? "incassata" : s.parziale ? "acconto"
+      : sc.stato === "insoluta" ? "insoluta"
+      /* ⛔ e una scadenza che non c'è non è «aperta»: la regola sta in
+         `statoScadenzaFattura`, qui non si riscrive. */
+      : sc.stato === "senza-scadenza" ? "senza scadenza" : "aperta";
+    /* ⛔ e l'IVA NON DICHIARATA non è «IVA zero»: il foglio stampato delle
+       stesse fatture si rifiuta di scrivere «IVA € 0,00» perché sarebbe una
+       dichiarazione falsa, e le due uscite non possono dire cose opposte. */
+    csv += `${csvCell(f.numero)};${csvCell(nomeCliente(f, clienti))};${f.emessa || ""};`
+         + `${im.imponibile};${im.aliquota == null ? "" : im.aliquota};`
+         + `${im.conIva ? im.ivaImporto : ""};${im.totale};${s.stornato};`
+         + `${f.scadenza || ""};${st};${s.incassato};${s.residuo};`
+         + `${s.dataSaldo || f.dataIncasso || ""};${s.giorniPagamento == null ? "" : s.giorniPagamento};`
+         + `${(f.ddtIds || []).length};${rie.daRighe ? (rie.quadra ? "no" : "si") : ""}\n`;
+  }
+  return csv;
 }
 
 // ============================================================

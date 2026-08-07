@@ -152,6 +152,17 @@ const BANCHI = [
   ['i CSV che escono dalla dimostrazione', 'csv-dimostrazione.mjs', []],
   ['CSV dimostrazione · su dati veri il marchio non c\'è', 'csv-dimostrazione.mjs', ['--live']],
   ['CSV dimostrazione · controprova', 'csv-dimostrazione.mjs', ['--controprova'], true],
+  /* ⛔ LA TERZA USCITA, dal 07/08: non un file e non un foglio, ma un testo
+     COPIATO NEGLI APPUNTI — il promemoria che Scudo prepara per il lavoratore.
+     I due banchi qui sopra non potevano vederla: uno deriva i suoi soggetti da
+     `…download = …`, l'altro dai blocchi `@media print`, e un
+     `clipboard.writeText` non somiglia a nessuno dei due. Misurato: usciva un
+     sollecito completo e credibile, con nome e date, senza una parola che
+     dicesse che è finto — l'uscita con la difesa più debole, e l'unica che va
+     a una PERSONA invece che a un archivio. */
+  ['il testo che esce dagli appunti', 'appunti-dimostrazione.mjs', []],
+  ['appunti · su dati veri la dichiarazione non c\'è', 'appunti-dimostrazione.mjs', ['--live']],
+  ['appunti · controprova', 'appunti-dimostrazione.mjs', ['--controprova'], true],
   ['fogli stampati F/S/C/T · controprova', 'stampe-fs.mjs', ['--controprova'], true],
   ['unità in maiuscolo', 'unita-maiuscole.mjs', []],
   ['unità · controprova', 'unita-maiuscole.mjs', ['--controprova', '--solo=campo'], true],
@@ -478,6 +489,35 @@ const BANCHI = [
      già. La controprova rimette la frase vecchia e spegne il conto. */
   ['i disegni di Campo, misurati in pixel', 'campo-disegni.mjs', []],
   ['disegni di Campo · controprova', 'campo-disegni.mjs', ['--controprova'], true],
+  /* ⛔ AGGIUNTO IL 07/08. Stessa famiglia dei sei banchi qui sopra vista un
+     piano più sotto: là il disegno mentiva sul VALORE, qui non mente nemmeno
+     il disegno — mentono le sue DIMENSIONI. Il motore condiviso costruiva il
+     `viewBox` misurando l'OSPITE che l'app gli indica, ma dentro l'ospite ci va
+     una `<figure class="dwg">` col suo padding: il disegno nasceva alla misura
+     di fuori e il browser lo rimpiccioliva per farlo stare dentro. Proporzioni
+     giuste, valori giusti, console pulita — sbagliata la SCALA, cioè la
+     dimensione vera dei testi.
+     ⚠️ E il conto scritto il 06/08 era largo di due terzi al contrario: il
+     documento diceva «Terra ×0,925, Flotta ×1, Sentinella ×1, uno su tre»
+     perché aveva misurato le tre schermate d'APERTURA. A tappeto, su tutte le
+     sezioni di tutte le superfici: **24 grafici su 38 fuori scala, in cinque
+     app su sei**. La riga mandava a lavorare su una app sola.
+     Sta qui e non in `run-kpi` perché non c'è nessuna funzione pura da
+     chiamare: la misura è `clientWidth` di un elemento vivo contro
+     `svg.viewBox.baseVal`. Tre iniezioni, ognuna con l'insieme di asserzioni
+     che DEVE far cadere: la regola tolta, il solo ridisegno tolto (che è il
+     punto che scatta navigando verso una sezione che era nascosta) e il
+     viewBox inchiodato a 500 — quest'ultima perché le prime due cadono solo
+     dove c'è il padding, e senza resterebbe da dimostrare che sui quattordici
+     grafici già in scala il banco sappia bocciare. */
+  ['la scala dei grafici (pixel contro viewBox)', 'graf-scala.mjs', []],
+  /* ⚠️ LA CONTROPROVA GIRA A UNA VIEWPORT SOLA (`--stretto`), ed è una scelta
+     dichiarata invece che una svista: la seconda viewport serve a separare due
+     numeri che a 430 px COLLIDONO (l'ospite largo 398 e il ripiego
+     `innerWidth-32`, anche lui 398) — cioè serve a rendere LEGGIBILE la misura,
+     non a scoprire il difetto. Per far cadere il banco bastano i 38 grafici di
+     una viewport, e il giro ci mette la metà del tempo. */
+  ['scala dei grafici · controprova', 'graf-scala.mjs', ['--controprova', '--stretto'], true],
   /* ⛔ AGGIUNTO IL 03/08, stessa famiglia dei quattro qui sopra, su Scudo.
      Cinque punti, e tutti col colore o la parola tranquilla: la pastiglia
      «tutte regolari» su tre visite mediche dalla data illeggibile (il terzo

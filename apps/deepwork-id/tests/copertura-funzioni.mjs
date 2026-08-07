@@ -151,7 +151,15 @@ const APP = ["campo", "conti", "flotta", "scudo", "sentinella", "terra"];
    con le loro prove. È la risposta a «e se fosse andata male?», e serve a
    distinguere un masso caduto a due metri da un uomo da uno caduto in un
    piazzale deserto: contati insieme, il secondo diluisce il primo. */
-const FONDO = { campo: 109, conti: 117, flotta: 83, scudo: 163, sentinella: 126, terra: 58 };
+/* ⚠️ `scudo` SALE DA 163 A 165 il 07/08, e il fondo si alza DOPO aver visto il
+   conto salire (165/165, «il fondo era 163: alzalo»). Le due funzioni sono
+   `origineAzione` — da dove nasce un'azione correttiva — e `etichettaScadenza`
+   — come si chiama una scadenza: NON sono funzioni nuove, sono due regole che
+   la pagina scriveva DUE e TRE volte, e ogni copia aveva perso un pezzo
+   diverso. Il conto sale perché una regola che vive nel modulo si può provare,
+   e finché viveva nella pagina nessuna prova la guardava — che è esattamente
+   il motivo per cui aveva potuto divergere. */
+const FONDO = { campo: 109, conti: 117, flotta: 83, scudo: 165, sentinella: 126, terra: 58 };
 
 /* Quello che resta fuori per un motivo, non per dimenticanza: i caricatori
    dati vogliono la rete e lo SDK, i ponti demo vogliono il localStorage.

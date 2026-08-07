@@ -643,14 +643,19 @@ export function parseRicettoriCsv(text) {
       const [nome, tipo, distanza, classe, soglia, unita, nota] = parseCsvLine(r);
       const ti = (tipo || "").trim().toLowerCase();
       const cl = (classe || "").trim().toUpperCase();
-      const di = numIt(distanza);
-      const so = numIt(soglia);
+      /* ⛔ `di >= 0` FACEVA ENTRARE LO ZERO, e uno zero entrato qui è un
+         ricettore che nessuna schermata sa mostrare: tutte e quattro
+         chiedono `> 0` e scrivono «distanza non indicata». Restava un dato
+         morto in archivio che il file esportato però riscriveva come `0`
+         metri. La decisione è una: la prende `distanzaDelRicettore`. */
+      const di = distanzaDelRicettore({ distanza: numIt(distanza) });
+      const so = sogliaDelRicettore({ soglia: numIt(soglia) });
       return {
         nome: (nome || "").trim(),
         tipo: tipi.includes(ti) ? ti : "altro",
-        distanza: Number.isFinite(di) && di >= 0 ? di : null,
+        distanza: di,
         classe: classi.includes(cl) ? cl : "",
-        soglia: Number.isFinite(so) && so > 0 ? so : null,
+        soglia: so,
         unita: (unita || "").trim() || "",
         nota: (nota || "").trim() || "",
       };
@@ -1053,6 +1058,38 @@ export const CLASSI_ACUSTICHE = [
 export const trovaRicettore = (ricettori, id) =>
   (ricettori || []).find(r => r && r.id === id) || null;
 
+/* ⛔ QUANTI METRI DICHIARA UN RICETTORE — E ZERO NON È UNA DISTANZA.
+   Misurato il 07/08 compilando il modulo vero: scritto «0» nella distanza (il
+   modulo lo accettava, e il suo stesso messaggio d'errore diceva «un numero di
+   metri NON NEGATIVO»), sullo stesso ricettore, nello stesso istante:
+     · SCHERMO → «Cascina al confine · distanza non indicata»
+     · FILE    → `Cascina al confine;abitazione;0;;;;`
+   Cioè il file esportato collocava la casa a ZERO METRI dal fronte. È la
+   stessa frase che il report già rifiutava di scrivere sulle volate («distanza
+   0 m si legge come il ricettore dentro il fronte»), rifatta nell'unico export
+   che la pagina componeva ancora a mano.
+   La regola `> 0` non era mancante: era scritta QUATTRO volte nella pagina —
+   l'elenco dei ricettori, la testata del report, la scheda del punto e il
+   confronto con la distanza della volata — e zero volte dove il file si
+   compone. Adesso è una funzione sola, e chi la chiama non può divergere.
+   ⚠️ `+r.distanza` e non `numIt`: il valore in archivio è già un numero (lo
+   fanno `numeroDaCampo` nel modulo e `numIt` nell'import). Una stringa con la
+   virgola qui torna `null`, ed è esattamente quello che lo schermo fa già —
+   la funzione non cambia nessun comportamento, li unifica. */
+export function distanzaDelRicettore(r) {
+  const d = +((r || {}).distanza);
+  return Number.isFinite(d) && d > 0 ? d : null;
+}
+/* La soglia PROPRIA di un ricettore, o `null`. Stessa storia della distanza:
+   `sogliaValida` stava in questo file da sempre e la pagina se n'era tenuta
+   una copia (`Number.isFinite(+r.soglia) && +r.soglia > 0`), `sogliaEfficace`
+   una terza e `parseRicettoriCsv` una quarta. Un alias non è una seconda
+   implementazione: qui dentro la decisione la prende `sogliaValida`. */
+export function sogliaDelRicettore(r) {
+  const s = +((r || {}).soglia);
+  return sogliaValida(s) ? s : null;
+}
+
 // SOGLIA CHE VALE DAVVERO per un punto di misura.
 // Regola, dichiarata anche nell'interfaccia: se il punto è collegato a un
 // ricettore che ha una soglia propria E la stessa unità di misura, vince
@@ -1066,10 +1103,10 @@ export function sogliaEfficace(m, ricettori) {
   const propria = +((m || {}).soglia);
   const base = Number.isFinite(propria) && propria > 0 ? propria : null;
   const r = trovaRicettore(ricettori, (m || {}).ricettoreId);
-  const sr = r ? +r.soglia : NaN;
+  const sr = sogliaDelRicettore(r);
   const uR = r ? String(r.unita || "").trim().toLowerCase() : "";
   const nome = r ? r.nome : "";
-  if (r && Number.isFinite(sr) && sr > 0) {
+  if (r && sr != null) {
     if (!uR || !uM || uR === uM)
       return { valore: sr, fonte: "ricettore", ricettore: nome, unita: r.unita || unitaMisura(m), conflitto: false };
     return { valore: base, fonte: "punto", ricettore: nome, unita: unitaMisura(m), conflitto: true, unitaRicettore: r.unita };
@@ -1183,17 +1220,31 @@ export const STATI_TARATURA = {
 // ⛔ `stato` non risponde mai "coperte" quando non c'è niente di
 // dichiarato: senza nessun certificato la risposta è "non-dichiarata",
 // che è un avviso, non un via libera.
+/* ⛔ IL CONTO DELLE LETTURE COPERTE, IN UN POSTO SOLO. Lo scrivevano in tre:
+   qui dentro (tre secchi), la scheda della taratura nella pagina (quattro
+   secchi, perché lì «prima dello storico» e «nessuna taratura» si dicono
+   diverse) e — dal 07/08 — il file per l'ARPA ne voleva un quarto. Tre copie
+   dello stesso ciclo divergono senza che nessuno lo veda: la firma troppo
+   stretta era proprio quella dei tre secchi, che non sa dire il quarto caso.
+   Questa risponde con tutti e quattro; chi ne vuole tre li somma. */
+export function contaCoperture(tarature, letture) {
+  const c = { coperta: 0, scoperta: 0, "prima-dello-storico": 0, "non-dichiarata": 0 };
+  for (const l of (letture || [])) {
+    const s = coperturaTaratura(tarature, (l || {}).data).stato;
+    if (c[s] != null) c[s]++;
+  }
+  c.totale = c.coperta + c.scoperta + c["prima-dello-storico"] + c["non-dichiarata"];
+  // «non note» = le due che non sono né coperte né scoperte, come le conta il report
+  c.nonNote = c["prima-dello-storico"] + c["non-dichiarata"];
+  return c;
+}
+
 export function taratureDelReport(punti, oggi = new Date()) {
   let coperte = 0, scoperte = 0, nonNote = 0;
   const perPunto = (punti || []).map(p => {
     const m = (p || {}).m || {};
-    const conta = { coperte: 0, scoperte: 0, nonNote: 0 };
-    for (const l of ((p || {}).letture || [])) {
-      const c = coperturaTaratura(m.tarature, l.data);
-      if (c.stato === "coperta") conta.coperte++;
-      else if (c.stato === "scoperta") conta.scoperte++;
-      else conta.nonNote++;
-    }
+    const q = contaCoperture(m.tarature, (p || {}).letture);
+    const conta = { coperte: q.coperta, scoperte: q.scoperta, nonNote: q.nonNote };
     coperte += conta.coperte; scoperte += conta.scoperte; nonNote += conta.nonNote;
     return { nome: (p || {}).nome || m.nome || "Punto di misura", ...conta,
              oggi: statoTaraturaStrumento(m, oggi).stato };
@@ -1375,6 +1426,47 @@ export function abbinaTarature(voci, monitoraggi) {
 // Le colonne del file, in un posto solo: le scrive l'export e le riconosce
 // l'import (`isIntestazione` guarda la prima). Due elenchi in due punti
 // diversi si scollano.
+/* ══════════════════════════════════════════════════════════════════════
+   L'ARCHIVIO DEI RICETTORI IN UN FILE.
+
+   ⛔ PERCHÉ È SALITO QUI DENTRO, il 07/08 — ed è la seconda volta che questa
+   riga si scrive. Il 03/08 `csvAmbiente` è salito nel modulo con scritto
+   accanto «è l'unico export dell'app che non passava da una funzione pura».
+   Non era vero, e nessuno l'ha riletto: i ricettori uscivano da nove parole di
+   template dentro il gestore del bottone, ed erano rimasti indietro esattamente
+   come l'altro. Un censimento vale più di una correzione puntuale, ed è la
+   ragione per cui questo blocco esiste.
+   Il difetto misurato premendo il bottone (07/08, modulo compilato a mano con
+   distanza «0», che il modulo stesso accettava):
+     · SCHERMO → «distanza non indicata»
+     · FILE    → `Cascina al confine;abitazione;0;;;;`
+   Un ricettore a zero metri dal fronte, scritto in un file che si manda a un
+   consulente o a un ente. La colpa non era del `?? ""`, che sull'assenza è
+   giusto: era che il file non chiedeva a nessuno **se quel numero fosse una
+   distanza**, mentre le quattro schermate lo chiedevano tutte.
+
+   Le colonne restano quelle di `parseRicettoriCsv` — un posto solo decide le
+   colonne, se no export e import si scollano al primo cambiamento — e il giro
+   scrivi/leggi è provato in `run-kpi.mjs` sul TESTO, non solo sull'identità:
+   una coppia scrivi/leggi resta verde anche se sbagliano tutt'e due insieme.
+   ⚠️ `csvCell` anche su tipo e classe, che vengono da un elenco chiuso: è la
+   stessa ragione per cui ci passa l'unità, ed era già scritta qui accanto —
+   la cintura si allaccia anche per il tratto corto. */
+export const CSV_RICETTORI_INTESTAZIONE = "nome;tipo;distanza;classe;soglia;unita;nota";
+
+export function csvRicettori(ricettori) {
+  const righe = (ricettori || []).map(r => {
+    const d = distanzaDelRicettore(r), s = sogliaDelRicettore(r);
+    return [
+      csvCell((r || {}).nome || ""), csvCell((r || {}).tipo || ""),
+      d == null ? "" : String(d), csvCell((r || {}).classe || ""),
+      s == null ? "" : String(s), csvCell((r || {}).unita || ""),
+      csvCell((r || {}).nota || ""),
+    ].join(";");
+  });
+  return CSV_RICETTORI_INTESTAZIONE + "\n" + (righe.length ? righe.join("\n") + "\n" : "");
+}
+
 export const CSV_TARATURE_INTESTAZIONE = "strumento;data;scadenza;centro;certificato;nota";
 
 // L'ARCHIVIO DEI CERTIFICATI IN UN FILE.
@@ -1437,7 +1529,70 @@ export function csvTarature(monitoraggi) {
 // La colonna `origine_soglia` è IN CODA e facoltativa da leggere, come le
 // colonne aggiunte al registro volate: chi taglia alle prime sette ritrova
 // esattamente il file di prima.
-export const CSV_AMBIENTE_INTESTAZIONE = "tipo;nome;valore;unita;soglia;stato;dettaglio;origine_soglia";
+//
+// ⛔ E LE DUE COLONNE IN FONDO, dal 07/08: `taratura` e `provenienza`. Il file
+// diceva «Conforme» e basta, mentre le stesse misure, sullo SCHERMO e sul
+// REPORT, portavano due riserve che il file taceva:
+//   · ogni riga dell'elenco dei punti ha il badge della taratura, e il report
+//     ha una sezione intera intitolata «Riferibilità delle misure»;
+//   · la tabella del report dichiara la provenienza LETTURA PER LETTURA, e
+//     `provenienzaMisura` alza per questo la bandiera `noto` — che qui dentro
+//     non la leggeva nessuno. Una bandiera che l'export non legge non protegge
+//     niente: è la regola 20 di `run-stile` nel punto in cui nessuno guarda,
+//     perché le prove chiamano il modulo e il file lo compone chi esporta.
+// Misurato sulla dimostrazione: «Polveri PM10 — confine Est» usciva
+// `36.8;µg/m³;40;Attenzione` — sei letture, nessun certificato registrato e
+// nessuna delle sei che dichiari da dove viene. Il report, sulle stesse,
+// scrive «per 2 letture di questo punto non risulta nessuna taratura» e
+// «NON DICHIARATA» su ogni riga.
+//
+// ⛔ E LA DOMANDA GIUSTA NON È «È TARATO OGGI?»: è «era tarato QUEL GIORNO?»,
+// e sta scritta accanto a `coperturaTaratura` da quando quella sezione esiste.
+// Scrivere qui il badge di `statoTaraturaStrumento` sarebbe stato più corto e
+// SBAGLIATO nel verso che rassicura: sulla dimostrazione «Vibrazioni V2» oggi
+// ha un certificato valido — badge «Taratura valida» — e in mezzo al suo
+// storico c'è una lettura che cade nel buco fra due certificati. Il file porta
+// perciò il conto delle sue LETTURE, che sono quelle che il file contiene,
+// e lo conta con `contaCoperture`, la stessa del report e della scheda.
+export const CSV_AMBIENTE_INTESTAZIONE =
+  "tipo;nome;valore;unita;soglia;stato;dettaglio;origine_soglia;taratura;provenienza";
+
+/* La riferibilità delle letture di UN punto, in una cella. Le parole sono
+   quelle che la scheda della taratura usa già a schermo: «coperte», «cadono in
+   un giorno che nessuna taratura registrata copre», «precedenti alla prima
+   taratura registrata». Un punto senza letture non ha niente da coprire e la
+   cella resta vuota — l'assenza si dice tacendo solo quando non c'è nemmeno la
+   domanda, e qui la domanda non c'è. */
+function cellaTaratura(m) {
+  const c = contaCoperture((m || {}).tarature, (m || {}).letture);
+  if (!c.totale) return "";
+  const pezzi = [];
+  if (c.coperta) pezzi.push(c.coperta + " coperte da una taratura valida");
+  if (c.scoperta) pezzi.push(c.scoperta + " in un giorno che nessuna taratura registrata copre");
+  if (c["prima-dello-storico"]) pezzi.push(c["prima-dello-storico"] + " precedenti alla prima taratura registrata");
+  if (c["non-dichiarata"]) pezzi.push(c["non-dichiarata"] + " senza nessuna taratura da confrontare");
+  return pezzi.join(" · ") + " su " + c.totale;
+}
+/* La catena di custodia delle letture di UN punto, in una cella. Legge la
+   bandiera `noto` di `provenienzaMisura`: un'origine scritta ma non
+   riconosciuta NON ricade su «a mano», resta «senza provenienza dichiarata».
+   Le correzioni si contano a parte perché sono la cosa che un funzionario
+   cerca per prima, e sul dato di dimostrazione ce n'è una che ALZA il valore. */
+function cellaProvenienza(m) {
+  let file = 0, mano = 0, ignota = 0, corrette = 0;
+  for (const l of (((m || {}).letture) || [])) {
+    const p = provenienzaMisura(l);
+    if (!p.noto) ignota++; else if (p.da === FONTE_IMPORT) file++; else if (p.da === FONTE_MANO) mano++;
+    if (p.corretta) corrette++;
+  }
+  if (!(file + mano + ignota)) return "";
+  const pezzi = [];
+  if (file) pezzi.push(file + " da file dello strumento");
+  if (mano) pezzi.push(mano + " inserite a mano");
+  if (ignota) pezzi.push(ignota + " senza provenienza dichiarata");
+  if (corrette) pezzi.push(corrette + (corrette === 1 ? " corretta dopo la registrazione" : " corrette dopo la registrazione"));
+  return pezzi.join(" · ");
+}
 
 export function csvAmbiente(monitoraggi, adempimenti, ricettori, oggi = new Date()) {
   /* ⛔ `numeroDichiarato` e non `Number.isFinite(+x)`: `+null` fa 0. Scritta a
@@ -1461,6 +1616,7 @@ export function csvAmbiente(monitoraggi, adempimenti, ricettori, oggi = new Date
       "monitoraggio", csvCell((m || {}).nome || ""),
       st.stato === "mai" ? "" : n((m || {}).valore),
       csvCell(unitaMisura(m)), n(eff.valore), st.label, csvCell(storico), csvCell(origine),
+      csvCell(cellaTaratura(m)), csvCell(cellaProvenienza(m)),
     ].join(";"));
   }
   for (const a of adempimenti || []) {
@@ -1473,6 +1629,9 @@ export function csvAmbiente(monitoraggi, adempimenti, ricettori, oggi = new Date
       "adempimento", csvCell((a || {}).titolo || ""), "", "", "", stato,
       csvCell(ente + "entro " + (dataISOEsiste(String((a || {}).scadenza || "").slice(0, 10))
         ? String(a.scadenza).slice(0, 10) : "data non indicata")), "",
+      /* un adempimento non è una misura: non ha né taratura né provenienza, e
+         le due celle restano vuote invece di dire qualcosa di tranquillo */
+      "", "",
     ].join(";"));
   }
   return CSV_AMBIENTE_INTESTAZIONE + "\n" + (righe.length ? righe.join("\n") + "\n" : "");

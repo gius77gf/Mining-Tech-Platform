@@ -255,7 +255,14 @@
   }
 
   /* larghezza reale del contenitore: il disegno nasce alla misura giusta,
-     così 1 unità del viewBox ≈ 1 pixel e i testi non vengono "gonfiati" */
+     così 1 unità del viewBox ≈ 1 pixel e i testi non vengono "gonfiati".
+     ⚠️ IL PAVIMENTO DI 240 È UNA SCELTA, NON UNA MISURA: sotto quella larghezza
+     il viewBox resta a 240 e il disegno viene rimpicciolito dal browser, cioè
+     il rapporto torna a essere minore di 1 apposta — un grafico dentro una
+     colonna da 180 px con i testi alla misura vera sarebbe illeggibile.
+     Misurato: ospite 180 → riquadro 150 → viewBox 240, ×0,625. È dichiarato
+     qui perché il banco che misura la scala lo dichiari a sua volta invece di
+     bocciarlo. */
   function larghezzaUtile(el) {
     var w = el.clientWidth || el.getBoundingClientRect().width || 0;
     if (!w) w = Math.min(720, (global.innerWidth || 360) - 32);
@@ -356,6 +363,34 @@
     this.monta();
   }
 
+  /* ⛔ QUAL È IL RIGHELLO: IL RIQUADRO DEL DISEGNO, NON L'OSPITE.
+     Il motore misurava `this.el` — l'elemento che l'app gli indica — e ci
+     costruiva il `viewBox`. Ma dentro `this.el` ci va una `<figure class="dwg">`
+     che ha `padding: 13px 14px 14px` più il bordo (foglio `dw-grafici.css`):
+     il disegno nasceva alla misura di FUORI e il browser lo rimpiccioliva per
+     farlo stare DENTRO. Le proporzioni restano giuste e nessun errore compare:
+     a sbagliare è la SCALA, cioè la dimensione vera dei testi. Misurato il
+     07/08 a tappeto su 38 grafici in 41 schermate: 24 disegnavano 368 px in un
+     viewBox da 398 (**×0,925**), in cinque app su sei.
+     ⚠️ CHE COSA PROTEGGE DAVVERO `|| this.el`, detto con precisione perché non
+     lo si scambi per quello che non è: protegge il caso in cui questo metodo
+     venga chiamato PRIMA che `monta()` abbia costruito il riquadro (allora
+     `this.wrap` è `undefined` e `larghezzaUtile` morirebbe sul `clientWidth`).
+     NON protegge il caso «riquadro non misurabile»: quello è stato provato, e
+     in quattro scene — visibile, sezione `display:none`, ospite nascosto,
+     contenitore largo zero — `wrap` ed `el` rispondono **sempre insieme**, e
+     quando rispondono zero scatta comunque il ripiego dentro
+     `larghezzaUtile`. Cioè la coda n.3 del documento («grafico montato dentro
+     una sezione nascosta») non si chiude scegliendo un'altra scatola: la
+     scatola non c'entra, in quel caso NESSUNO dei due sa la misura. Resta
+     aperta e sta scritta nel banco, dichiarata invece che finta risolta.
+     Sta qui e non nei due punti che la usano perché «quale scatola è il
+     righello» è UNA decisione: scritta due volte, diverge alla prima modifica
+     — è la regola del 06/08 sulle firme troppo strette. */
+  Grafico.prototype.largoDisegno = function () {
+    return larghezzaUtile(this.wrap || this.el);
+  };
+
   Grafico.prototype.on = function (t, ev, fn, opt) {
     t.addEventListener(ev, fn, opt || false);
     this._ascolti.push([t, ev, fn, opt || false]);
@@ -397,13 +432,13 @@
     this.piede = fig;
 
     this.el.appendChild(fig);
-    this._larg = larghezzaUtile(this.el);
+    this._larg = this.largoDisegno();
     this.disegna();
 
     /* ridisegno quando la colonna cambia davvero misura (rotazione, desktop) */
     if (global.ResizeObserver && !s.fissa) {
       this._ro = new ResizeObserver(function () {
-        var w = larghezzaUtile(self.el);
+        var w = self.largoDisegno();
         if (Math.abs(w - self._larg) < 14) return;
         self._larg = w;
         clearTimeout(self._t);

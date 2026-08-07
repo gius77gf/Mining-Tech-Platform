@@ -318,6 +318,90 @@ node apps/deepwork-id/tests/browser/fuori-schermo.mjs 8823 --controprova --solo=
 
 Nove superfici per due larghezze (390 e 360 px): 18 schermate.
 
+## `graf-scala.mjs` — il grafico disegnato alla misura di fuori
+
+**I pixel del disegno stanno alle unità del suo `viewBox` come 1 sta a 1?** È
+la famiglia del 06/08 («il numero è giusto e a mentire è il disegno») vista un
+piano più sotto: qui non mente nemmeno il disegno, mentono le sue
+**dimensioni**. Il motore condiviso montava la sua `<figure class="dwg">`
+dentro l'ospite che l'app gli indica e poi costruiva il `viewBox` misurando
+**l'ospite** — ma `.dwg` ha `padding: 13px 14px 14px` più il bordo, quindi il
+disegno nasceva alla misura di **fuori** e il browser lo rimpiccioliva per
+farlo stare **dentro**. Proporzioni giuste, valori giusti, console pulita: a
+essere sbagliata è la **scala**, cioè la dimensione vera dei testi. Una tacca
+scritta 10 px veniva disegnata 9,25.
+
+⚠️ **E il conto che stava scritto era largo di due terzi, al contrario.** Il
+documento `docs/IL_GRAFICO_DISEGNATO_ALLA_MISURA_DI_FUORI.md` censiva «Terra
+×0,925, Flotta ×1, Sentinella ×1 — uno su tre, e dipende dall'ospite»: vero,
+ma misurato sulle tre schermate d'**apertura**. A tappeto, su tutte le sezioni
+di tutte le superfici (07/08): **24 grafici su 38 fuori scala, in cinque app su
+sei**. Sentinella era l'unica pulita, e non per virtù — le sue figure sono
+`nudo`, cioè senza padding, e per la stessa ragione erano già in scala i due
+indici di Scudo e le cinque esposizioni di Conti. La riga vecchia mandava a
+lavorare su una app sola.
+
+```sh
+node apps/deepwork-id/tests/browser/graf-scala.mjs --porta=8938
+node apps/deepwork-id/tests/browser/graf-scala.mjs --porta=8938 --solo=terra --stretto
+node apps/deepwork-id/tests/browser/graf-scala.mjs --porta=8938 --controprova
+```
+
+**Le superfici sono derivate dal disco**, non scritte a mano: le app sono
+quelle il cui `index.html` carica `shared/dw-grafici.js`, e le sezioni sono i
+loro `id="nav-…"`. Un'app nuova, o una sezione nuova, entra qui da sola — è la
+lezione dei tre elenchi a mano che in una settimana hanno reso cieco un
+controllo ciascuno.
+
+⚠️ **La coordinata che inganna, e per un'ora ci si misura senza saperlo.** A
+430 px di viewport l'ospite delle app è largo **398**, e il ripiego di
+`larghezzaUtile` per un contenitore non misurabile è `innerWidth - 32`, cioè
+**398 anche lui**: un `viewBox` da 398 non dice se il motore abbia misurato
+l'ospite o tirato a indovinare. Per questo il banco misura a **due viewport**
+— a 1200 px il ripiego vale 720 e l'ospite ne vale altri, e i due casi si
+separano. È il «rapporto fra due valori diversi» applicato al **righello**
+invece che al soggetto.
+
+⚠️ **Il pavimento di 240 è dichiarato, non misurato.** `larghezzaUtile` non
+scende sotto 240 unità: sotto quella larghezza il disegno viene rimpicciolito
+**apposta**, perché i testi alla misura vera sarebbero illeggibili (misurato:
+ospite 180 → riquadro 150 → viewBox 240, ×0,625). Il banco lo **stampa e lo
+conta** invece di saltarlo in silenzio, come le coppie appiattite dal minimo
+della barra.
+
+### La controprova: tre difetti, uno per volta, e si guarda *quali* cadono
+
+Una controprova che si accontenta di `falliti > 0` dichiara «il banco sa
+fallire» anche col banco rotto. Qui ogni iniezione porta l'insieme di
+asserzioni che **deve** far cadere, dedotto dalla misura sana e non da un
+elenco scritto a mano:
+
+1. **`regola-tolta`** — il motore torna a misurare l'ospite. Devono cadere
+   *tutti e soli* i grafici la cui figura ha un padding (ospite più largo del
+   riquadro); le figure `nudo` restano giuste, ed è giusto così.
+2. **`ridisegno-tolto`** — solo il ridisegno dopo un cambio di misura torna
+   all'ospite, `monta()` resta corretto. Esiste per la **copertura**: è il
+   secondo dei due punti che decidono la larghezza, e scatta proprio quando si
+   naviga verso una sezione che era nascosta. Non si può prevedere quali
+   grafici vengano ridisegnati, quindi l'attesa è più larga (qualcuno deve
+   cadere, e chi cade dev'essere fra quelli col padding) e il numero si stampa.
+3. **`scala-fissa`** — il `viewBox` inchiodato a 500, senza guardare nessuna
+   scatola. È quella che prova **l'altra metà del banco**: le prime due cadono
+   solo dove c'è il padding, e senza questa resterebbe da dimostrare che sui
+   quattordici grafici *già* in scala il banco sappia bocciare — cioè che stia
+   misurando il **rapporto** e non «hai chiamato il metodo giusto».
+
+⏱️ **Una coda resta aperta, ed è dichiarata invece che finta chiusa.** Un
+grafico montato dentro una sezione `display:none` non si può misurare:
+`clientWidth` risponde zero e scatta il ripiego `min(720, innerWidth-32)`, che
+è un numero plausibile e sbagliato. Il progetto proponeva di ripiegare
+sull'ospite; provato su quattro scene (visibile, sezione nascosta, ospite
+nascosto, contenitore a zero), **`wrap` ed `el` rispondono sempre insieme** —
+la scatola non c'entra, in quel caso nessuno dei due sa la misura. Quello che
+il banco garantisce è che appena la sezione si **apre** il grafico torni in
+scala, e lo garantisce per costruzione: le sezioni si raggiungono **navigando**,
+non ricaricando la pagina.
+
 ## `id-unici.mjs`
 
 **Due elementi con lo stesso `id`, nella pagina viva.** Il browser non protesta,

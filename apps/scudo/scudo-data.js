@@ -914,6 +914,113 @@ export const ORIGINI_CAMPO = ["fermo"];
 export function daCampo(a) {
   return ORIGINI_CAMPO.includes(String((a || {}).origineTipo || ""));
 }
+/* DA DOVE NASCE UN'AZIONE, DECISO IN UN POSTO SOLO (07/08).
+   ═══════════════════════════════════════════════════════════════════════
+   ⛔ ERANO DUE FUNZIONI: `origineTesto` disegnava la riga a schermo e `orig`
+   componeva la colonna `origine` del CSV delle azioni correttive — la copia
+   debole che CLAUDE.md descrive, nel posto esatto in cui la descrive («dove
+   questa app compone qualcosa che ESCE, chi decide i suoi numeri?»).
+   Misurato premendo il bottone e aprendo il file, sui 17 casi che l'origine
+   di un'azione può avere: **30 testi identici su 34 e 4 divergenti**, e tutti
+   e quattro erano difetti veri, in DUE VERSI OPPOSTI.
+     · il FILE era più povero (3 casi) — il ramo `daCampo` non c'era, quindi
+       un'azione nata da un FERMO DI PRODUZIONE cadeva nell'ultimo ramo e il
+       CSV la chiamava «non conformità: Fermo di produzione (Campo) — Frantoio
+       intasato…». È precisamente l'errore che lo schermo aveva corretto il
+       03/08, con scritto accanto il motivo: «un fermo di macchina non è una
+       non conformità, e finisce davanti a un ispettore» — e il documento che
+       finisce davanti all'ispettore è questo file, non lo schermo. Senza
+       `origineNota` era anche peggio: colonna VUOTA, cioè un'azione nata da
+       niente in un foglio di conformità;
+     · lo SCHERMO era più povero (1 caso) — su un'ispezione TOLTA dall'archivio
+       scriveva «da un'ispezione rimossa» e buttava via `origineNota`, che per
+       le azioni nate da ispezione è il testo della voce non conforme
+       (`origineNota: v.nota || v.testo`), cioè l'UNICA traccia rimasta di che
+       cosa era stato trovato. Il file quella coda la scriveva già.
+   ⛔ E LE DUE VOCI RESTANO DUE, con un PARAMETRO invece di due corpi: è la
+   regola «una copia nasce quasi sempre da una firma troppo stretta». La
+   differenza è vera e voluta — in una riga di elenco si legge «da ispezione
+   «Fronte di cava» del 10/07/2026», in una colonna che si chiama già
+   `origine` il «da» è rumore e le virgolette basse le mangia il foglio di
+   calcolo; e la voce del documento porta anche la DESCRIZIONE dell'evento,
+   perché chi apre il CSV non ha l'app davanti per andarsela a cercare.
+   `voce: "documento"` per il file, tutto il resto per lo schermo.
+   ⚠️ `ctx` prende gli ELENCHI e non due mappe già fatte: la pagina le mappe
+   ce le ha (`infById`, `ispById`) ma il CSV no, e chiedere a chi chiama di
+   costruirle sarebbe far decidere a lui una cosa che non lo riguarda.
+   Pura e testabile. */
+export function origineAzione(azione, ctx = {}, opts = {}) {
+  const a = azione || {};
+  const doc = opts.voce === "documento";
+  const infortuni = ctx.infortuni || [], ispezioni = ctx.ispezioni || [];
+  /* la fotografia che l'azione si porta dietro dalle altre app: è testo
+     scritto in italiano, e quando c'è vince su qualunque frase generica */
+  const nota = String(a.origineNota == null ? "" : a.origineNota).trim();
+  const coda = nota ? " — " + nota : "";
+  const quando = (iso, prep) => iso ? " " + prep + " " + dataIt(iso) : "";
+
+  if (daAmbiente(a)) return nota || (doc
+    ? etichettaAmbiente(a) + " (Sentinella)" + quando(a.origineData, "del")
+    : (a.origineTipo === "reclamo" ? "da un reclamo" : "da un superamento di soglia")
+      + " registrato in Sentinella" + quando(a.origineData, "il"));
+
+  if (daCampo(a)) return nota || (doc
+    ? "fermo di produzione (Campo)" + quando(a.origineData, "del")
+    : "da un fermo di produzione registrato in Campo" + quando(a.origineData, "il"));
+
+  if (a.origineTipo === "evento") {
+    const e = infortuni.find(x => x && x.id === a.origineId);
+    /* ⛔ `coda` anche qui, per la stessa ragione dell'ispezione: se un giorno
+       un'azione nata da un evento porterà una nota, sparire non è un'opzione.
+       Oggi non ne porta (`origineNota: daEvento ? "" : nota`), quindi questa
+       riga non cambia nessun testo — è la difesa, non una funzione nuova. */
+    if (!e) return (doc ? "evento non più in archivio" : "da un evento rimosso dal registro") + coda;
+    return doc
+      ? (e.tipo || "evento") + " del " + dataIt(e.data) + (e.descrizione ? " — " + e.descrizione : "")
+      : "da " + (e.tipo === "infortunio" ? "infortunio" : "near-miss") + " del " + dataIt(e.data);
+  }
+
+  if (a.origineTipo === "ispezione") {
+    const i = ispezioni.find(x => x && x.id === a.origineId);
+    if (!i) return (doc ? "ispezione non più in archivio" : "da un'ispezione rimossa") + coda;
+    return (doc ? "ispezione " + i.nome + " del " + dataIt(i.data)
+                : "da ispezione «" + i.nome + "» del " + dataIt(i.data)) + coda;
+  }
+
+  return nota ? "non conformità: " + nota : "";
+}
+
+/* COME SI CHIAMA UNA SCADENZA, DECISO IN UN POSTO SOLO (07/08).
+   ═══════════════════════════════════════════════════════════════════════
+   ⛔ TRE SUPERFICI, TRE RISPOSTE DIVERSE, e la più povera era la STAMPA — il
+   verso che nessuno cerca. Una riga dello scadenzario ha due campi: `tipo`,
+   che è la FAMIGLIA («Formazione», «Patente», «Visita medica»), e
+   `descrizione`, che è l'adempimento vero («Aggiornamento formazione
+   lavoratori», «Fochino — abilitazione brillamento mine»).
+   Lo scadenzario a schermo e il CSV del personale scrivevano `descrizione`;
+   la CARTELLA DEL LAVORATORE — cioè il fascicolo che si esibisce
+   all'ispettore — scriveva `tipo || "—"`. Misurato premendo il bottone sulla
+   dimostrazione, per Mario Rossi: due obblighi distinti uscivano dalla
+   stampante come due righe IDENTICHE, «Formazione 30/05/2029 · regolare»
+   ripetuta due volte, e il patentino di fochino usciva «Patente». È la stessa
+   famiglia della chiave interna stampata al posto dell'etichetta dei DPI,
+   corretta il 03/08 due sezioni più in là dello stesso foglio.
+   ⛔ E NESSUNA DELLE TRE ERA GIUSTA SUL CASO LIMITE: una scadenza importata
+   da CSV può avere `descrizione: null` e `tipo: "Altro"` (lo scrive
+   `parseScadenzeCsv`). Lì schermo e file lasciavano il nome VUOTO, e la
+   stampa scriveva «—» — che su un foglio si legge «non serve», la decisione
+   14 di questo stesso file. La regola vera le contiene tutt'e tre: la
+   descrizione se c'è, se no la famiglia, e se non c'è nemmeno quella lo si
+   DICE invece di lasciare il bianco.
+   Pura e testabile. */
+export function etichettaScadenza(scadenza) {
+  const s = scadenza || {};
+  const d = String(s.descrizione == null ? "" : s.descrizione).trim();
+  if (d) return d;
+  const t = String(s.tipo == null ? "" : s.tipo).trim();
+  return t || "scadenza senza descrizione";
+}
+
 // Quante azioni ambientali ci sono e come stanno: serve alla riga di
 // riepilogo della pagina Azioni. Compatibilità: senza nessuna, tutti zero.
 export function riepilogoAmbiente(azioni) {

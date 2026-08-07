@@ -1562,7 +1562,7 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
 
 <script type="module">
   import { scudoData, statoScadenza, inTurnoOggi, kpiFrom, idoneitaLabel, idoneitaSuccessivo, idoneitaCriticita, livelloScadenza, coperturaFormazione, muroScadenze, MESI_NOMI, testoPromemoria, riepilogoInfortuni, parseInfortuniCsv, parseScadenzeCsv, parseLavoratoriCsv, SCADENZE_PRESET, presetScadenza, dataDaPeriodicita, TIPI_DOCUMENTO, azioneLabel, azioneStatoSuccessivo, statoAzione, azioniUrgenti, riepilogoAzioni, azioniDiEvento,
-    daAmbiente, etichettaAmbiente, riepilogoAmbiente, daCampo,
+    daAmbiente, etichettaAmbiente, riepilogoAmbiente, origineAzione, etichettaScadenza,
     NEARMISS_CATEGORIE, NEARMISS_LUOGHI, categoriaNearMiss, luogoNearMiss, descrizioneNearMiss, riepilogoNearMiss, descriviLetturaNearMiss, bozzaNearMiss,
     GRAVITA_POTENZIALE, potenzialeDi, descriviPotenziale, riepilogoPotenziale, descriviRischioPotenziale,
     MODELLI_ISPEZIONE, modelloIspezione, nuovaIspezioneDaModello, riepilogoIspezione, riepilogoIspezioni, vociNonConformi, statoIspezione, azioniDiIspezione, esitoLabel, ESITI_ISPEZIONE, dataPiuGiorni,
@@ -2379,8 +2379,11 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
         <div class="meta">Dispositivo di protezione · ${esc(nomeScad(sc))}${segnoTurno(sc)} · ${fmtData(sc.dataScadenza)} · ${esc(lv.label)}</div></div>
         <span class="acts"><span class="badge ${B[st][0]}">${B[st][1]}</span>
         <span class="arr" style="cursor:pointer" title="Vai al registro DPI" data-vai-pers="dpi">↗</span></span></div>`;
+      /* il nome della riga lo decide `etichettaScadenza`, la stessa che lo
+         decide sul fascicolo stampato e nel CSV: una scadenza importata può
+         non avere `descrizione`, e qui la riga restava SENZA NOME. */
       return `<div class="item ${striscia[B[st][0]]}">
-        <div class="info"><div class="name">${esc(sc.descrizione)}</div><div class="meta">${esc(l ? l.nome : "azienda")}${segnoTurno(sc)} · ${fmtData(sc.dataScadenza)} · ${esc(lv.label)}</div></div>
+        <div class="info"><div class="name">${esc(etichettaScadenza(sc))}</div><div class="meta">${esc(l ? l.nome : "azienda")}${segnoTurno(sc)} · ${fmtData(sc.dataScadenza)} · ${esc(lv.label)}</div></div>
         <span class="acts"><span class="badge ${B[st][0]}">${B[st][1]}</span>
         ${(st !== "regolare" && l) ? `<button class="dw-btn secondary mini" data-prom-scad="${sc.id}" title="Copia il promemoria da inviare al lavoratore">Promemoria</button>` : ""}
         <span class="arr" style="cursor:pointer" title="Rinnova a una nuova data" data-ren-scad="${sc.id}">↻</span>
@@ -3154,32 +3157,17 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
 
     // --- AZIONI CORRETTIVE (CAPA) ---------------------------------------
     const ispById = Object.fromEntries(ISP.map(x => [x.id, x]));
-    // Da dove nasce l'azione, in una riga leggibile. Le origini AMBIENTALI
-    // (superamento di soglia, reclamo di un residente) arrivano da
-    // Sentinella e si portano dietro il testo del fatto: Scudo non può
-    // leggere le collezioni dell'altra app, quindi legge la fotografia che
-    // l'azione ha con sé — ed è anche ciò che si mostra all'ente.
-    const origineTesto = (a) => daAmbiente(a)
-      ? (a.origineNota || ((a.origineTipo === "reclamo" ? "da un reclamo" : "da un superamento di soglia")
-          + " registrato in Sentinella" + (a.origineData ? " il " + fmtData(a.origineData) : "")))
-      : a.origineTipo === "evento"
-      ? (infById[a.origineId]
-          ? "da " + (infById[a.origineId].tipo === "infortunio" ? "infortunio" : "near-miss") + " del " + fmtData(infById[a.origineId].data)
-          : "da un evento rimosso dal registro")
-      : a.origineTipo === "ispezione"
-        ? (ispById[a.origineId]
-            ? "da ispezione «" + ispById[a.origineId].nome + "» del " + fmtData(ispById[a.origineId].data)
-              + (a.origineNota ? " — " + a.origineNota : "")
-            : "da un'ispezione rimossa")
-        /* ⛔ IL FERMO DI PRODUZIONE (Campo) VA PRIMA DELL'ULTIMO RAMO. Senza
-           questa riga cadeva lì dentro e Scudo lo raccontava come «non
-           conformità: …» — che è un'altra cosa, e finisce davanti a un
-           ispettore. Come per le azioni ambientali, si legge la fotografia che
-           l'azione porta con sé: Scudo non vede le collezioni di Campo. */
-        : daCampo(a)
-          ? (a.origineNota || ("da un fermo di produzione registrato in Campo"
-              + (a.origineData ? " il " + fmtData(a.origineData) : "")))
-          : (a.origineNota ? "non conformità: " + a.origineNota : "");
+    /* Da dove nasce l'azione, in una riga leggibile. Le origini che arrivano
+       da un'ALTRA APP (superamento di soglia e reclamo da Sentinella, fermo di
+       produzione da Campo) si portano dietro il testo del fatto: Scudo non può
+       leggere le collezioni dell'altra app, quindi legge la fotografia che
+       l'azione ha con sé — ed è anche ciò che si mostra all'ente.
+       ⛔ LA REGOLA STA NEL MODULO (`origineAzione`) E NON QUI, dal 07/08: la
+       stessa domanda la faceva anche il CSV delle azioni correttive, con una
+       seconda scrittura che aveva perso il ramo del fermo di produzione. La
+       storia per esteso sta accanto alla funzione. Qui resta solo la VOCE
+       scelta — quella dell'elenco a schermo. */
+    const origineTesto = (a) => origineAzione(a, { infortuni: INF, ispezioni: ISP });
     $("azi-count-tot").textContent = AZI.length;
     $("azi-riep").innerHTML = AZI.length
       ? `Da chiudere: <b>${ra.daChiudere}</b> (di cui <b>${ra.scadute}</b> fuori tempo e ${ra.inScadenza} in scadenza entro 30 giorni) · in corso: <b>${ra.inCorso}</b> · chiuse: <b>${ra.chiuse}</b> su ${ra.totale}.`
@@ -4006,7 +3994,11 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
     const prom = e.target.getAttribute && e.target.getAttribute("data-prom-scad");
     if (prom) { const sc = SCA.find(x => x.id === prom);
       const lav = sc && LAV.find(x => x.id === sc.lavoratoreId);
-      const testo = sc && testoPromemoria(sc, lav);
+      /* il testo lo compone il modulo; la dichiarazione della dimostrazione la
+         mette la pagina, che è l'unica a sapere `db.mode` — la stessa
+         divisione dei fogli stampati. Vedi `avvisoEsempioTesto`. */
+      const nudo = sc && testoPromemoria(sc, lav);
+      const testo = nudo && avvisoEsempioTesto(nudo);
       /* La frase diceva «solo se è in scadenza o già scaduta» e lasciava fuori
          il quarto stato: su una riga «senza data» — che il bottone ce l'ha,
          perché il criterio è `stato !== "regolare"` — annunciava un motivo
@@ -4587,7 +4579,12 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
       /* `s.dataScadenza || ""`: senza il ripiego una riga il cui campo non è
          mai stato scritto finiva nel file con la PAROLA «undefined» — è lo
          stesso difetto trovato in Conti («null» scritto per esteso). */
-      for (const s of sc) csv += `${csvCell(l.nome)};${csvCell(l.ruolo||"")};${csvCell(l.tel||"")};${csvCell(idn)};${csvCell(s.descrizione)};${s.dataScadenza || ""};${statoScadenza(s.dataScadenza)}\n`;
+      /* il nome dell'adempimento lo decide `etichettaScadenza`, la stessa
+         dello schermo e del fascicolo stampato: `s.descrizione` da solo
+         lasciava la cella VUOTA su una scadenza importata che ha solo il
+         `tipo`, e una cella vuota in un foglio di conformità si legge
+         «niente da segnalare». */
+      for (const s of sc) csv += `${csvCell(l.nome)};${csvCell(l.ruolo||"")};${csvCell(l.tel||"")};${csvCell(idn)};${csvCell(etichettaScadenza(s))};${s.dataScadenza || ""};${statoScadenza(s.dataScadenza)}\n`;
     }
     /* ⛔ LA SCADENZA RIMASTA SENZA LA SUA PERSONA (03/08). Il secondo giro
        filtrava `!x.lavoratoreId`, cioè «non è di nessuno»; ma un id che punta
@@ -4603,7 +4600,7 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
        lavoratore CONOSCIUTO è dell'azienda. */
     const noti = new Set(LAV.map(l => l.id));
     for (const s of SCA.filter(x => !noti.has(x.lavoratoreId)))
-      csv += `AZIENDA;;;;${csvCell(s.descrizione)};${s.dataScadenza || ""};${statoScadenza(s.dataScadenza)}\n`;
+      csv += `AZIENDA;;;;${csvCell(etichettaScadenza(s))};${s.dataScadenza || ""};${statoScadenza(s.dataScadenza)}\n`;
     const a = document.createElement("a");
     a.href = "data:text/csv;charset=utf-8," + encodeURIComponent(csv);
     a.download = "scudo_personale_scadenze.csv"; marchiaCsv(a); a.click();
@@ -4736,21 +4733,23 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
        conformità una cella vuota si legge «non serve». */
     const nome = (id) => { const l = LAV.find(x => x.id === id); return l ? l.nome : "da assegnare"; };
     /* ⛔ LA COLONNA DELL'ORIGINE È UNA FRASE, NON UNA DATA: si scrive con
-       `fmtData` come la scrive lo schermo (`origineTesto`), non in ISO. Il
-       file diceva «near-miss del 2026-05-18» dove la pagina, per lo stesso
-       evento, dice «da near-miss del 18/05/2026» — e questo CSV lo apre chi
-       non ha davanti l'app. Le colonne `scadenza` e `dataChiusura` restano in
-       ISO di proposito: quelle sono date da rileggere con un programma, e un
-       foglio di calcolo le ordina solo così. Qui invece la data sta dentro
-       una frase italiana, e lì vale la regola dello schermo.
-       ⚠️ `fmtData` su una data che non si legge scrive «—», dove prima usciva
-       uno spazio vuoto: dire che la data non c'è è meglio che non dirlo. */
-    const orig = (a) => { if (daAmbiente(a)) return a.origineNota || (etichettaAmbiente(a) + " (Sentinella)" + (a.origineData ? " del " + fmtData(a.origineData) : ""));
-      if (a.origineTipo === "evento") { const e = INF.find(x => x.id === a.origineId);
-        return e ? (e.tipo || "evento") + " del " + fmtData(e.data) + (e.descrizione ? " — " + e.descrizione : "") : "evento non più in archivio"; }
-      if (a.origineTipo === "ispezione") { const i = ISP.find(x => x.id === a.origineId);
-        return (i ? "ispezione " + i.nome + " del " + fmtData(i.data) : "ispezione non più in archivio") + (a.origineNota ? " — " + a.origineNota : ""); }
-      return a.origineNota ? "non conformità: " + a.origineNota : ""; };
+       `dataIt` come la scrive lo schermo, non in ISO. Il file diceva
+       «near-miss del 2026-05-18» dove la pagina, per lo stesso evento, dice
+       «da near-miss del 18/05/2026» — e questo CSV lo apre chi non ha davanti
+       l'app. Le colonne `scadenza` e `dataChiusura` restano in ISO di
+       proposito: quelle sono date da rileggere con un programma, e un foglio
+       di calcolo le ordina solo così. Qui invece la data sta dentro una frase
+       italiana, e lì vale la regola dello schermo.
+       ⚠️ Su una data che non si legge esce «—», dove prima usciva uno spazio
+       vuoto: dire che la data non c'è è meglio che non dirlo.
+       ⛔ E LA FRASE LA DECIDE `origineAzione`, LA STESSA CHE LA DECIDE A
+       SCHERMO (07/08). Qui c'era la seconda scrittura, e le era rimasto
+       indietro il ramo del FERMO DI PRODUZIONE: un'azione arrivata da Campo
+       usciva in questo file come «non conformità: …», cioè con l'errore che lo
+       schermo aveva corretto il 03/08 dichiarando che «finisce davanti a un
+       ispettore» — ed è questo file a finirci. Il racconto per esteso e i
+       numeri stanno accanto alla funzione, in scudo-data.js. */
+    const orig = (a) => origineAzione(a, { infortuni: INF, ispezioni: ISP }, { voce: "documento" });
     /* Lo stesso ordine dell'elenco a schermo (`aziCmp`): chiuse in fondo, le
        altre per data, e chi la data non ce l'ha in coda invece che in testa.
        Ordinando per `scadenza || ""` un'azione SENZA data finiva prima di
@@ -5069,6 +5068,28 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
     return m
     ? `<div class="esempio"><b>DATI DI ESEMPIO — modalità tour (${esc(m)}).</b> ${frase}</div>`
     : ""; };
+  /* ⛔ LA TERZA USCITA DI SCUDO NON È UN FILE E NON È UN FOGLIO (07/08), e per
+     questo non la vedeva nessuna delle due difese: il bottone «Promemoria»
+     COPIA NEGLI APPUNTI un testo che finisce in un'email o in un SMS a un
+     lavoratore, con il suo nome, l'adempimento e la data. Il marchio della
+     dimostrazione vive nel NOME del file (`marchiaCsv`) e nella testata del
+     foglio (`avvisoEsempio`): un testo copiato non ha né l'uno né l'altro.
+     Misurato premendo il bottone in dimostrazione e leggendo gli appunti:
+     usciva «Gentile Mario Rossi, ti ricordiamo che «Visita medica periodica»
+     risulta SCADUTA dal 02/07/2026 (36 giorni fa)» — completo, credibile e
+     senza una parola che dicesse che è finto. Chi prova l'app e incolla per
+     vedere com'è fatto manda un sollecito vero a un indirizzo vero.
+     ⛔ È LO STESSO VESTITO, NON UNA SECONDA DECISIONE: `modoDimostrazione` di
+     `shared/` risponde qui come per i fogli, e sui dati veri (`live`) tace —
+     un avviso che c'è sempre non lo legge più nessuno. Cambia solo la forma,
+     perché questo esce come TESTO SEMPLICE e non come HTML: è la stessa
+     ragione per cui la frase dei fogli non è salita in `shared/`.
+     In TESTA e non in coda: un SMS si legge dalla prima riga, e in fondo a un
+     testo incollato in un'email la riga finisce sotto la firma. */
+  const avvisoEsempioTesto = (testo) => { const m = modoDimostrazione(db.mode);
+    return m
+    ? `[DATI DI ESEMPIO — modalità tour (${m}): questo promemoria non riguarda nessuna persona reale e non va inviato a nessuno.]\n\n${testo}`
+    : testo; };
   const scriviFoglio = (frase, html) => { $("verbale").innerHTML = avvisoEsempio(frase) + html; };
 
   // ── S5 · IL VERBALE DI CONSEGNA SU CARTA ─────────────────────────────
@@ -5206,8 +5227,21 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
       ${sezione("Mansioni assegnate",
           c.mansioni.map(m => riga(m.nome, esc((m.requisiti || []).length + " requisiti · " + (m.dpi || []).length + " DPI previsti"))),
           "Nessuna mansione assegnata: senza mansione non si sa quali corsi e quali DPI gli spettino.")}
+      ${/* ⛔ LA RIGA PORTAVA LA FAMIGLIA, NON L'ADEMPIMENTO (07/08). Scriveva
+            `x.scadenza.tipo`, cioè «Formazione», «Patente», «Visita medica» —
+            mentre lo scadenzario a schermo e il CSV del personale, sugli
+            stessi dati, scrivono `descrizione`, che è l'obbligo vero. Sul
+            fascicolo che si esibisce all'ispettore due adempimenti distinti
+            uscivano dalla stampante come due righe IDENTICHE («Formazione
+            30/05/2029 · regolare» ripetuta due volte, misurata su Mario Rossi
+            della dimostrazione), e il patentino di fochino usciva «Patente».
+            È la stessa famiglia della chiave interna stampata al posto
+            dell'etichetta dei DPI, corretta il 03/08 due sezioni più sotto.
+            E il ripiego «—» era la decisione 14 violata: su un foglio si
+            legge «non serve». Adesso decide `etichettaScadenza`, che la
+            leggono tutt'e tre le superfici. */""}
       ${sezione("Formazione e scadenze",
-          c.scadenze.map(x => riga(x.scadenza.tipo || "—",
+          c.scadenze.map(x => riga(etichettaScadenza(x.scadenza),
             (x.scadenza.dataScadenza ? fmtData(x.scadenza.dataScadenza) : "senza data") + " · " + esc(x.stato || "—"))),
           "Nessuna scadenza registrata: non vuol dire «in regola», vuol dire che non è stato registrato niente.")}
       ${/* ⛔ `r.tipo.nome` NON ESISTE: i tipi di DPI hanno `etichetta` (il campo
