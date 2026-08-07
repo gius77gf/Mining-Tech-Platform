@@ -879,6 +879,24 @@ numero scritto dove non era stato misurato niente**.*
   saltato fuori il suo ultimo KO, vero: il messaggio di conferma non nominava
   l'**innesco**, che è il campo che riaperto sbagliato porta lo scatter da 0,1 a
   8,0 ms in silenzio.
+- [x] ✅ **Il righello dei colori adesso lo chiede al browser** (`6043235`). La
+  prima correzione era una toppa: `oklab(…)` lo produce il **browser**
+  interpolando, e nessun foglio lo scrive. Si dipinge un pixel su una tela e lo
+  si rilegge — vale per ogni notazione, oggi e domani; e quando il colore non lo
+  capisce nemmeno il browser, la risposta è `null`: **non misurabile non è
+  bocciato e non è promosso**. Esito onesto: **54 vere su 3.694** nel tema
+  `sole`, due verificate a mano alla cifra.
+- [x] ✅ **Il runner del giro riusava il server di un altro giro** (`4643be7`).
+  Costato un giro intero e **ventidue KO** che accusavano Scudo di non esistere.
+  La regola del contrassegno col pid era scritta in CLAUDE.md dal 01/08 e la
+  rispettavano i singoli banchi: **non la rispettava il file da cui dipendono
+  tutti**. Controprova nei due versi, `impronta-giro` 10 → **15** prove.
+- [ ] **Le 54 del tema `sole`** — è una **palette**, non una correzione: va
+  decisa con la ricerca cromatica e verificata a contrasto. Fra le peggiori:
+  «Conforme» nell'esito del report a **2,35** (ne servono 3), «Riferibilità
+  delle misure» e «Provenienza dei dati di misura» a **1,92**, la riga «DATI DI
+  ESEMPIO» a **1,69**, i numeroni dei KPI fermi a **2,92-2,95**. Quando è fatta,
+  si registra `--tema=sole` in `tutti.mjs`.
 
 ## Riferimenti
 
