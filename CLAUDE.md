@@ -1012,6 +1012,18 @@ Perché serva davvero e non produca elenchi generici, cinque vincoli:
   false (il selettore `.sitem`, poi la dimostrazione vuota): quando una misura
   non torna, il sospettato più facile è il soggetto — ed è quasi sempre il
   righello.
+  ⚠️ **E la tela è un righello che sbaglia in silenzio tenendo la risposta di
+  prima.** `canvas.fillStyle = 'var(--danger)'` **non risolve la variabile e non
+  fallisce**: l'assegnazione a un valore non valido viene semplicemente
+  ignorata, e il pennello resta del colore dipinto un attimo prima. Il 07/08 la
+  prima misura sui gradienti di Terra ha stampato un onestissimo «2,98» che era
+  il fondo del badge `danger` misurato nel giro precedente. La forma giusta è
+  quella già scritta per il lettore dei colori: si chiede il colore a un
+  **elemento vero** con `getComputedStyle`, e alla tela si passa solo il
+  risultato. La famiglia è quella dello `sed` che non trova e dell'`assert` che
+  salta: **un'operazione che non fallisce non ha per forza fatto qualcosa** — e
+  qui non lascia nemmeno un valore vuoto da riconoscere, lascia un numero
+  plausibile.
 - ⛔ **QUANDO UNA REGOLA CSS NON MORDE, SI GUARDA CHI VINCE — NON LO SI
   DEDUCE.** Il 06/08, correggendo la barra in alto del core a 320 px, ho dato
   la colpa a **due** cose sbagliate prima di trovare quella giusta:
@@ -1109,6 +1121,43 @@ Perché serva davvero e non produca elenchi generici, cinque vincoli:
   *se il difetto stesse un piano più sotto — dentro il riquadro invece che
   dentro lo schermo, in un'app fuori convenzione, sul valore che sale invece
   che su quello che scende — questo controllo lo direbbe?*
+- ⛔ **UN NUMERO BASSO DI VIOLAZIONI VA DIVISO PER I SOGGETTI CHE IL CONTROLLO HA
+  POTUTO VEDERE.** Misurato il 07/08 su Terra, ed è la forma *rassicurante* della
+  regola qui sopra: non un controllo che guarda nel posto sbagliato, ma un
+  controllo che guarda nel posto giusto **dove non c'è niente**. Terra usciva dal
+  banco del contrasto con **2** violazioni contro le 13 di Flotta e le 10 di
+  Conti, e le due spiegazioni comode erano tutt'e due false alla misura — non
+  aveva «ridetto meno colori» (`--ink-ok`: zero anche in Campo, Conti e Scudo) e
+  non li usava di meno: `color:var(--warn|--danger|--success|--info)` dà Terra
+  **18**, il massimo delle sei app. La verità è che di quei 18 il banco ne poteva
+  vedere **uno**: 2 erano bordi, 7 icone SVG senza testo proprio, 2 solo
+  `:hover`, e 6 vivevano dentro `.vita.warn` / `.vita.danger`, che **nella
+  dimostrazione non compaiono mai**. Forzando quegli stati: **8 misure, 8 sotto
+  soglia**, fino a 1,77:1. Cioè Terra non era messa meglio, era **misurata di
+  meno** — e un «2» accanto a un «13» si legge esattamente al contrario.
+  La difesa non è un banco più severo: è che accanto a ogni conteggio di
+  violazioni stia il **denominatore** (quanti soggetti si sono presentati, e
+  quanti erano previsti). Il banco lo dichiarava già a modo suo — «18 classi che
+  dipingono un fondo non sono mai comparse: 1 fatta comparire, 17 solo elencate»
+  — e nessuno l'aveva letto: è la regola delle righe «non ho guardato», da
+  leggere **prima** dei KO.
+- ⛔ **DARE UN NOME A UN VALORE LO FA SPARIRE DA UN CONTROLLO STATICO, IN
+  SILENZIO.** Misurato il 07/08 sulla regola 24 di `run-stile`, che legge le
+  fermate dei gradienti come `#hex`: una fermata scritta `var(--warn-ink)` non
+  era **sbagliata**, era **invisibile** — bastava battezzare un colore perché
+  smettesse di essere giudicato, senza che niente diventasse rosso. Stessa
+  giornata, stessa regola, la variante che *accusa*: la mappa era piatta
+  (`grad[nome]`) e il fondo uno solo, quindi una palette dichiarata due volte —
+  una per il buio e una per `light-mode` — teneva solo l'ultima dichiarazione e
+  la misurava contro la scheda dell'altro tema: **tre accuse false** su una
+  palette che il banco del contrasto dà a zero in tutti e tre i temi.
+  Le due facce sono la stessa svista e portano a interventi opposti (muovere un
+  colore sano, o smettere di guardare quello vero), e quale delle due tocchi
+  dipende solo da **come lo scrivi**. La domanda da farsi scrivendo una regola
+  statica sui valori CSS: *se questo valore fosse scritto in un altro modo
+  ammesso — dietro una variabile, dentro un `color-mix()`, in un secondo blocco
+  — il mio controllo lo vedrebbe ancora?* Se la risposta è no, il controllo non
+  è severo: è **aggirabile per distrazione**.
 - ⛔ **UN CONTROLLO CHE DICHIARA DI ESSERE CIECO E CHE NESSUNO LEGGE È COME NON
   AVERLO.** Misurato il 03/08, ed è la forma più beffarda di tutte perché non
   richiede nessuna indagine: il banco delle modali stampava in fondo al suo
