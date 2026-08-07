@@ -2254,7 +2254,7 @@ function apriCava(id){
     ${can('editCava')?`<button class="btn-sec" style="margin-top:6px;width:100%;" onclick="nuovaVolata('${id}')">+ Progetta nuova volata</button>`:''}
     <div class="sec-title" style="margin-top:16px;"><span class="dot"></span>Ultimi rapportini</div>
     ${rapp.length?rapp.map(r=>{const u=DB.users.find(u=>u.id===r.userId);return`<div class="sitem" onclick="apriRapport('${r.id}')"><div class="av av-op">${(u?.nome||'?')[0]}</div><div class="sinfo"><div class="sname">${fmt(r.data)}</div><div class="ssub">${escHtml(u?u.nome+' '+u.cognome:'—')} · ${rappRiga(r)}</div></div><div class="sarr">›</div></div>`;}).join(''):'<div class="empty-state" style="padding:20px;"><div class="empty-sub">Nessun rapportino</div></div>'}
-    ${can('delCava')?`<button class="btn-sv" style="margin-top:16px;background:linear-gradient(135deg,#ef5350,#c62828);" onclick="confermaDelCava('${id}')">ELIMINA CAVA</button>`:''}
+    ${can('delCava')?`<button class="btn-sv btn-del" style="margin-top:16px;" onclick="confermaDelCava('${id}')">ELIMINA CAVA</button>`:''}
   `;
   nav('cava-det');
 }
@@ -2786,7 +2786,7 @@ function apriMacLavoro(id){
     <div class="sec-title" style="margin-top:16px;"><span class="dot"></span>Rapportini collegati</div>
     ${rappLink.length?rappLink.map(r=>{const cv=DB.cave.find(x=>x.id===r.cavaId);return`<div class="sitem" onclick="apriRapport('${r.id}')"><div class="av av-op">RP</div><div class="sinfo"><div class="sname">${escHtml(cv?cv.nome:'—')} · ${fmt(r.data)}</div><div class="ssub">${rappRiga(r)}</div></div><div class="sarr">›</div></div>`;}).join(''):'<div class="empty-state" style="padding:16px;"><div class="empty-sub">Nessun rapportino</div></div>'}
     ${macGestTabsHtml()}
-    ${can('delMac')?`<button class="btn-sv" style="margin-top:16px;background:linear-gradient(135deg,#ef5350,#c62828);" onclick="confermaDelMacLav('${id}')">ELIMINA MEZZO</button>`:''}
+    ${can('delMac')?`<button class="btn-sv btn-del" style="margin-top:16px;" onclick="confermaDelMacLav('${id}')">ELIMINA MEZZO</button>`:''}
   `;nav('mac-det');macGestRender();
 }
 function apriMezzoStr(id){
@@ -2815,7 +2815,7 @@ function apriMezzoStr(id){
     ${can('editMac')?`<button class="chg" style="margin-top:10px;" onclick="openRipForm('${id}')">+ Aggiungi riparazione</button>`:''}
     ${m.note?`<div class="preview-sec" style="margin-top:16px;"><div class="preview-head">Note</div><div style="font-size:13px;">${escHtml(m.note)}</div></div>`:''}
     ${macGestTabsHtml()}
-    ${can('delMac')?`<button class="btn-sv" style="margin-top:16px;background:linear-gradient(135deg,#ef5350,#c62828);" onclick="confermaDelMezzoStr('${id}')">ELIMINA MEZZO</button>`:''}
+    ${can('delMac')?`<button class="btn-sv btn-del" style="margin-top:16px;" onclick="confermaDelMezzoStr('${id}')">ELIMINA MEZZO</button>`:''}
   `;nav('mezzo-det');macGestRender();
 }
 function openMacForm(){
@@ -7375,7 +7375,37 @@ document.addEventListener('DOMContentLoaded', () => {
   --amber:#ffab00;--orange:#ff6d00;--amber2:#ffd54f;
   --success:#66bb6a;--danger:#ef5350;--info:#42a5f5;--warn:#ffa726;
   --grad:linear-gradient(135deg,#ffab00,#ff6d00);
-  --grad3:linear-gradient(135deg,#ef5350,#c62828);
+  /* ⛔ ERA `#ef5350 → #c62828`, ED ERA L'UNICO GRADIENTE DEL CORE SENZA UN
+     INCHIOSTRO. Le due estremità falliscono con inchiostri OPPOSTI: il nero
+     `#100d07` (quello di `.btn-sv`, `.btn-main`, `.tile-feat`, `.av`) fa 5,56
+     sul chiaro e **3,45** sullo scuro; il bianco fa 5,62 sullo scuro e **3,49**
+     sul chiaro. Non esisteva un colore di testo che passasse il 4,5 di WCAG
+     1.4.3 su tutt'e due, quindi ogni superficie dipinta con questo gradiente
+     nasceva bocciata comunque la si scrivesse — e infatti le due sole
+     violazioni del core stavano tutt'e due qui, una per estremità.
+     Il rosso vero del core è quello della v4.4, `--g-blast`/`--g-blast2`, il
+     gruppo «blast» a cui il fochino appartiene già (riga `.tile-red,.pcard-red`
+     più sotto): preso come gradiente segue la stessa struttura di `--grad`
+     — chiaro → un poco più profondo, stesso angolo — e regge l'inchiostro nero
+     di casa a **6,97 / 4,96**, cioè con il margine che l'ambra ha sempre avuto.
+     Derivato dalle variabili, non ricopiato: un quarto rosso scritto a mano
+     sarebbe la copia debole che CLAUDE.md dice di non scrivere. */
+  --grad3:linear-gradient(135deg,var(--g-blast2),var(--g-blast));
+  /* ⛔ E L'INCHIOSTRO VIAGGIA CON IL SUO FONDO, IN UNA VARIABILE. Un fondo e il
+     suo inchiostro sono UNA decisione: stanno in un posto solo, e chi
+     ridefinisce l'uno ridefinisce l'altro. Scritto in linea (`color:#100d07`)
+     l'inchiostro non seguirebbe un tema che ridipinge `--grad3`, e il banco del
+     contrasto non lo direbbe: misura il solo tema scuro.
+     ⚠️ E QUI VA DETTO CHE LA PROVA CHE AVEVAMO IN MANO ERA MORTA. Il caso
+     concreto con cui questa scelta era stata giustificata — «in `outdoor-mode`
+     ▶ SIMULAZIONE passerebbe da 3,49 a 1,94» — ha l'aritmetica giusta e NON
+     PUÒ SUCCEDERE: `applyTheme()` fa `classList.remove('outdoor-mode')` a ogni
+     giro, perché dalla v4.4 le modalità sono due e l'outdoor è stato assorbito
+     nel chiaro. Tutto il blocco `body.outdoor-mode` è codice morto. La
+     variabile resta perché la ragione buona è la prima; la seconda era una
+     misura su una superficie che non esiste, ed è il genere di prova che rende
+     non credibile anche il verdetto giusto che accompagna. */
+  --grad3-ink:#100d07;
   --gradSuc:linear-gradient(135deg,#66bb6a,#2e7d32);
   --tap:44px; /* B3: minima tap target size */
   /* v4.4 — palette funzionale per gruppo (base / glow) */
@@ -7401,7 +7431,7 @@ body.outdoor-mode{
   --amber:#c77800;--orange:#e65100;--amber2:#8a5000;
   --success:#2e7d32;--danger:#c62828;--info:#1565c0;--warn:#e65100;
   --grad:linear-gradient(135deg,#ff8f00,#e65100);
-  --grad3:linear-gradient(135deg,#c62828,#8b0000);
+  --grad3:linear-gradient(135deg,#c62828,#8b0000);--grad3-ink:#fff;
   --gradSuc:linear-gradient(135deg,#43a047,#1b5e20);
   /* Bottoni e tap target grandi per uso con guanti */
   --tap:60px;
@@ -7727,6 +7757,24 @@ textarea.finput{resize:vertical;min-height:60px;}
 .addbtn:hover{border-color:var(--amber);color:var(--amber);}
 .btn-sv{background:var(--grad);border:none;color:#100d07;padding:13px;font-family:'Barlow Condensed',sans-serif;font-size:14px;font-weight:800;letter-spacing:2px;text-transform:uppercase;cursor:pointer;position:relative;width:100%;min-height:var(--tap);}
 .btn-sv:disabled{opacity:.7;cursor:wait;}
+/* ⛔ IL BOTTONE DISTRUTTIVO PIENO, IN UN POSTO SOLO. Il gradiente rosso era
+   scritto a mano in **cinque** bottoni, e la ragione per cui adesso è una
+   classe non è l'eleganza: un fondo e il suo inchiostro sono UNA decisione, e
+   finché il fondo sta in linea e l'inchiostro arriva da `.btn-sv` le due metà
+   possono separarsi. È la regola di CLAUDE.md sulla firma troppo stretta:
+   cinque copie in linea non si correggono cinque volte, si tolgono aggiungendo
+   il pezzo che mancava.
+   ⚠️ E QUI VA DETTA UNA COSA CHE HO MISURATO DOPO AVER GIÀ SCRITTO IL
+   CONTRARIO. La ragione che avevo in mano era che in `outdoor-mode` il nero di
+   `.btn-sv` sarebbe finito a 1,94:1 sul rosso profondo. L'aritmetica è giusta e
+   il caso NON PUÒ SUCCEDERE: `applyTheme()` fa `classList.remove('outdoor-mode')`
+   a ogni giro — dalla v4.4 le modalità sono due, scuro e chiaro, e l'outdoor è
+   stato assorbito nel chiaro. Tutto il blocco `body.outdoor-mode` di questo
+   foglio è **codice morto**, e costa: ci abbiamo ragionato sopra in due, io e
+   il cantiere, su un caso che non si presenta. La classe resta perché la
+   ragione buona è l'altra (una decisione, un posto), non perché salvi
+   dall'outdoor. */
+.btn-sv.btn-del{background:var(--grad3);color:var(--grad3-ink);box-shadow:0 5px 16px rgba(229,72,77,.26);}
 .btn-sec{background:var(--card);border:1px solid var(--border);color:var(--text);padding:12px;font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:600;letter-spacing:1px;text-transform:uppercase;cursor:pointer;transition:all .2s;min-height:var(--tap);}
 .btn-sec:hover{border-color:var(--amber);}
 .btn-danger{background:rgba(239,83,80,.12);border:1px solid var(--danger);color:var(--danger);padding:11px;font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:700;letter-spacing:1px;text-transform:uppercase;cursor:pointer;transition:all .2s;min-height:var(--tap);}
@@ -7756,7 +7804,7 @@ textarea.finput{resize:vertical;min-height:60px;}
 .sitem.inactive{opacity:.5;}
 .av{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:'Barlow Condensed',sans-serif;font-size:12px;font-weight:800;color:#100d07;flex-shrink:0;letter-spacing:1px;}
 .av-op{background:var(--grad);}
-.av-fo{background:var(--grad3);}
+.av-fo{background:var(--grad3);color:var(--grad3-ink);}
 .av-uf{background:linear-gradient(135deg,#ffab00,#ffd54f);}
 .av-ad{background:linear-gradient(135deg,#ff6d00,#ffab00);}
 /* ⛔ 2,65:1, la peggiore rimasta nel core: qui dentro ci vanno le INIZIALI
@@ -9019,7 +9067,11 @@ body.outdoor-mode #search-results-wrap .search-results{top:56px;}
     </div>
 
     <div class="err-msg" id="rf-err" style="display:none;margin-top:10px;"></div>
-    <button class="btn-sv" style="margin-top:12px;background:linear-gradient(135deg,#ef5350,#c62828);" onclick="inviaRappFoc(event)">SALVA RAPPORTINO FOCHINO</button>
+    <!-- l'alone di `.btn-sv` è quello dell'ambra (`rgba(255,109,0,.26)`, cioè
+         l'estremità scura di `--grad`): sotto un bottone rosso è la tinta di
+         un altro bottone. Stessa struttura, tinta propria — l'estremità scura
+         di `--grad3`. -->
+    <button class="btn-sv btn-del" style="margin-top:12px;" onclick="inviaRappFoc(event)">SALVA RAPPORTINO FOCHINO</button>
   </div>
 </div>
 
@@ -9271,7 +9323,7 @@ body.outdoor-mode #search-results-wrap .search-results{top:56px;}
   </div>
   <div id="d3-wrap" style="position:relative;background:#0a0805;height:calc(100vh - 160px);height:calc(100dvh - 140px - env(safe-area-inset-bottom));min-height:340px;">
     <div id="d3-loading" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:13px;">Caricamento motore 3D…</div>
-    <button onclick="simulate3D()" style="position:absolute;top:10px;right:10px;z-index:5;background:linear-gradient(135deg,#ef5350,#c62828);color:#fff;border:none;padding:10px 16px;border-radius:4px;font-family:'Barlow Condensed',sans-serif;font-weight:800;letter-spacing:1px;cursor:pointer;">▶ SIMULAZIONE</button>
+    <button onclick="simulate3D()" style="position:absolute;top:10px;right:10px;z-index:5;background:var(--grad3);color:var(--grad3-ink);border:none;padding:10px 16px;border-radius:4px;font-family:'Barlow Condensed',sans-serif;font-weight:800;letter-spacing:1px;cursor:pointer;box-shadow:0 5px 16px rgba(229,72,77,.26);">▶ SIMULAZIONE</button>
     <button onclick="simReset()" style="position:absolute;top:10px;right:160px;z-index:5;background:var(--card);color:var(--text);border:1px solid var(--border);padding:10px 14px;border-radius:4px;font-family:'Barlow Condensed',sans-serif;font-weight:800;letter-spacing:1px;cursor:pointer;">↺ RESET</button>
   </div>
   <div style="padding:10px 14px;background:var(--card);border-top:1px solid var(--border);font-size:11px;color:var(--muted);">
