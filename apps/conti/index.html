@@ -2730,7 +2730,11 @@ label.item:has(.dw-chk:checked){
               d: (ritardo > 0 ? "scaduta da " + plur(ritardo, "giorno", "giorni")
                   : f.scadenza ? "scade il " + fmtD(f.scadenza) : "senza scadenza: non si sa entro quando")
                  + (f.parziale ? " · acconto " + eur(f.incassato) + " già arrivato" : ""),
-              v: eur(apertoDi(f)), s: f.parziale ? "residuo" : "", b: fatBadge(f),
+              /* ⛔ `NOT` VA PASSATO: senza, questa riga scrive «€ 1.000,00 residuo»
+                 su una fattura stornata per intero, mentre il KPI due centimetri
+                 sopra (riga 2673, che `NOT` lo passa) dice «da incassare € 0».
+                 Stessa app, stessa fattura, due numeri. */
+              v: eur(apertoDi(f, NOT)), s: f.parziale ? "residuo" : "", b: fatBadge(f),
               st: ritardo > 0 ? "st-danger" : "st-warn" })),
       ...GAR.filter(g => g.stato === "aperta" && giorni(g.scadenza) <= 15)
             .map(g => { const gg = giorni(g.scadenza); return {
@@ -2781,7 +2785,10 @@ label.item:has(.dw-chk:checked){
     $("fat-list").innerHTML = fatViste.map(f => { const b = fatBadge(f);
       const ritardo = !f.incassata ? Math.max(0, -giorni(f.scadenza)) : 0;
       const sol = !f.incassata ? livelloSollecito(ritardo) : null;
-      const mora = ritardo > 0 ? interessiMora(apertoDi(f), ritardo) : null;   // mora sul RESIDUO (231/2002)
+      /* ⛔ E QUI SI CHIEDEVANO SOLDI SU QUELLO CHE ERA GIÀ STATO STORNATO: la
+         mora ex D.Lgs 231/2002 si calcola sul residuo, e il residuo senza `NOT`
+         comprende ciò che una nota di credito ha già tolto. */
+      const mora = ritardo > 0 ? interessiMora(apertoDi(f, NOT), ritardo) : null;   // mora sul RESIDUO (231/2002)
       // scaduta secca = allarme; scaduta ma con un acconto già arrivato =
       // attenzione, non allarme: sono due situazioni diverse e si vedono diverse
       const st = f.incassata ? "st-ok"
@@ -2828,7 +2835,9 @@ label.item:has(.dw-chk:checked){
     { // sulle viste del credito la somma è il RESIDUO (quello che manca davvero);
       // su "tutte" e "incassate" resta il valore dei documenti emessi
       const suResiduo = filtroFat === "aperte" || filtroFat === "insolute" || filtroFat === "parziali";
-      const somma = fatViste.reduce((t,f) => t + (suResiduo ? apertoDi(f) : (+f.importo || 0)), 0);
+      /* `NOT` anche qui: il totale delle fatture viste è la somma degli stessi
+         residui che le righe mostrano, e deve tornare con loro. */
+      const somma = fatViste.reduce((t,f) => t + (suResiduo ? apertoDi(f, NOT) : (+f.importo || 0)), 0);
       const acconti = fatViste.reduce((t,f) => t + (f.parziale ? (+f.incassato || 0) : 0), 0);
       const etichetta = { tutte:"Totale fatturato", aperte:"Totale da incassare",
         insolute:"Totale insoluto (residuo)", parziali:"Residuo da incassare",
