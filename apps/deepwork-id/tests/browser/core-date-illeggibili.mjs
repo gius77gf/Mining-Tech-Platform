@@ -231,9 +231,20 @@ ok(!/30\/02\/2026/.test(not.testo),
   'e la data impossibile non viene stampata come se fosse vera', not.testo.slice(0, 200));
 
 console.log(`\n${sostituzioni} sostituzioni fatte nella pagina servita (0 = banco che non misura niente)`);
-console.log(`\nRisultato date illeggibili nel core: ${passati} passati, ${falliti} falliti`);
+/* ⛔ LE DUE PASSATE DEVONO PARLARE DUE LINGUE DIVERSE, e fino al 07/08 non lo
+   facevano: la controprova stampava la stessa identica frase della passata
+   normale — `Risultato …: N passati, M falliti` — e nel registro del giro
+   completo le due righe stanno a poche decine di distanza. Un rosso che vuol
+   dire VERDE, indistinguibile da un guasto: il 07/08 è costato l'apertura di
+   un cantiere su un difetto che non esisteva. È la famiglia del «controllo
+   che dichiara qualcosa che nessuno sa leggere», al rovescio — qui la frase
+   si legge benissimo e dice la cosa sbagliata. */
+if (!CONTROPROVA) console.log(`\nRisultato date illeggibili nel core: ${passati} passati, ${falliti} falliti`);
 await browser.close();
 if (CONTROPROVA) {
+  console.log(`\nCONTROPROVA — il difetto è stato rimesso dentro (${sostituzioni} sostituzioni),`
+    + ` quindi le cadute sono il risultato VOLUTO: ${falliti} asserzioni cadute su ${passati + falliti},`
+    + ` ${passati} rimaste in piedi.`);
   console.log(falliti > 0 ? 'controprova: il banco SA fallire' : 'controprova: NON distingue');
   process.exit(falliti > 0 ? 0 : 1);
 }
