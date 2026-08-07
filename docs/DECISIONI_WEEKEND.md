@@ -10,7 +10,7 @@ può procedere con l'attuazione.
 
 ---
 
-# 📖 Da dove cominciare — le decisioni aperte sono **7**
+# 📖 Da dove cominciare — le decisioni aperte sono **6**
 
 *Erano 19 fino al 07/08. **Nove** sono state chiuse dal **ciclo**, non da te, con
 la regola che avevi concesso il 01/08 (senza risposta entro la settimana si
@@ -20,7 +20,7 @@ procede con la colonna «la mia risposta» e lo si dichiara nel commit):
 · **due costruite** — la **5a** (il messaggio del salvataggio fallito, montato
   nelle sei app) e la **10b** (chi può cancellare un documento emesso, con le
   regole provate dall'emulatore).
-Restano **sette**: tre verdi che vogliono ancora un cantiere prima di potersi
+Restano **sei**: due verdi che vogliono ancora un cantiere prima di potersi
 dire fatte, e le quattro che non tocco (due di sicurezza, due che chiedono
 qualcosa di tuo).*
 
@@ -68,7 +68,7 @@ giornate a togliere dal prodotto:
 |---|---|---|
 | **prese oggi** | **7** — 6, 8, 10c, 11a, 11b, 11c, 12b | erano decisioni da **scrivere**: non toccano codice, e adesso sono scritte con la ragione |
 | **prese E costruite** | **4** — 5a, 10b, 18a, 18b | il messaggio del salvataggio fallito (montato nelle sei app, 30 asserzioni) e chi può cancellare un documento emesso (regole 58 → 68, con la controprova) |
-| **restano aperte** | **3** — 5b, 10a, 12a | la risposta c'è ed è nella colonna, ma **attuarla vuole un cantiere con la sua misura**: dichiararle «prese» senza averle costruite sarebbe la faccia tranquilla su un lavoro non fatto |
+| **restano aperte** | **2** — 5b, 12a | la risposta c'è ed è nella colonna, ma **attuarla vuole un cantiere con la sua misura**: dichiararle «prese» senza averle costruite sarebbe la faccia tranquilla su un lavoro non fatto |
 | **ferme, e restano ferme** | **4** — 1, 4, 7, 9 | due toccano la sicurezza (mai da solo), due vogliono che tu apra qualcosa di tuo |
 
 ⚠️ E una decisione presa dal ciclo **non pesa come una tua**: si cambia con una
@@ -90,7 +90,7 @@ momento.
 | **5b** | il lavoro **senza rete** (giro macchina, appello al fronte) | **sì**, ma prima misuro cosa succede a due persone che scrivono la stessa riga |
 | ~~**6**~~ | ✅ **DECISA DAL CICLO il 07/08** — la geometria del fronte | resta com'è: P1.1/P1.2 restano chiusi finché la **7** non porta un volo vero. Il segno della deviazione decide se l'avviso di flyrock è dritto o rovesciato |
 | ~~**8**~~ | ✅ **DECISA DAL CICLO il 07/08** — quale funzione per prima | il **criterio**, non un elenco: quella che l'ispettore chiede per prima. Un elenco deciso oggi invecchierebbe come i «non c'è» di una ricerca |
-| **10a** | l'abbonamento è una **barriera vera**? | sì: se hai solo Campo, Scudo non si apre |
+| ~~**10a**~~ | ✅ **DECISA DAL CICLO il 07/08** — l'abbonamento come barriera vera | **sì**, ma **non costruibile oggi**: misurato, gli entitlement non li scrive **nessuno** e `hasEntitlement` non la chiama **nessuna app**. Prima chi scrive l'abbonamento, poi la barriera |
 | ~~**10b**~~ | ✅ **DECISA E COSTRUITA DAL CICLO il 07/08** — chi può cancellare | solo chi **amministra** corregge o cancella un documento già emesso; scrivere cose nuove resta a tutti. Elenco corto e scritto: `conti/fatture`, `conti/note`, `scudo/documenti`. Regole 58 → **68** prove |
 | ~~**10c**~~ | ✅ **DECISA DAL CICLO il 07/08** — quanti utenti al primo cliente | **più utenti**. ⛔ E ne segue un vincolo: la **10b** va chiusa PRIMA del primo cliente |
 | ~~**11a**~~ | ✅ **DECISA DAL CICLO il 07/08** — diario / tavolo da disegno | confermata: distingue per **tempo verbale**, non per elenco di funzioni |
@@ -373,10 +373,30 @@ nessuna separazione: chi è stato invitato per compilare i rapportini può anche
 **cancellare una fattura**, e un cliente abbonato solo a un'app può leggere e
 scrivere i dati di tutte le altre.
 
-- [ ] **10a.** L'abbonamento dev'essere una **barriera vera** (chi ha solo Campo
-      non tocca i dati di Terra nemmeno volendo), oppure basta che l'interfaccia
-      non mostri le app non comprate? La prima è più corretta e costa mezza
-      giornata di lavoro sui claims.
+- [x] **10a. Decisa dal ciclo il 07/08: SÌ, BARRIERA VERA** — ma **non si può
+      costruire oggi**, e la ragione è misurata, non temuta.
+      ⛔ Il prerequisito manca a **due** livelli, e li ho contati uno per uno:
+      · **nessuno SCRIVE gli entitlement.** `organizations/{orgId}/entitlements/
+        {appId}` è letto dall'SDK (`_loadEntitlement`) e le regole lo aprono in
+        lettura ai membri — ma in tutto il progetto **zero** righe lo scrivono:
+        niente Cloud Function, niente webhook pagamenti, niente client. Oggi
+        ogni organizzazione ha **zero** documenti di abbonamento;
+      · **nessuna app LEGGE `hasEntitlement`.** L'intestazione dell'SDK la
+        mostra nell'esempio d'uso (`if (!id.hasEntitlement()) id.showLocked()`),
+        e chi la chiama sono **zero app su sei**.
+      ⛔ Quindi una regola scritta oggi avrebbe due esiti, tutt'e due sbagliati:
+      con «documento mancante = nego» **si chiuderebbe fuori ogni
+      organizzazione esistente**, che di documenti non ne ha; con «mancante =
+      concedo» la barriera sarebbe **decorativa** — ed è esattamente il difetto
+      trovato poche ore prima scrivendo la 10b, dove una restrizione scritta e
+      leggibile non restringeva niente.
+      ⚠️ E la stima di questa scheda — «mezza giornata di lavoro sui claims» —
+      **misura la cosa sbagliata**: il lavoro non è la regola, è **chi scrive
+      l'abbonamento**. Prima di questa decisione va deciso come nasce un
+      entitlement (a mano dal fondatore? da un pagamento? alla creazione
+      dell'organizzazione?), che è una domanda commerciale, non tecnica.
+      **L'ordine giusto: prima chi lo scrive, poi la barriera.** Scritto qui
+      perché il cantiere che la aprirà non ricominci dalla stima sbagliata.
 - [x] **10b. Decisa E costruita dal ciclo il 07/08: SOLO CHI AMMINISTRA**
       corregge o cancella un documento **già emesso**; scrivere cose nuove resta
       a tutti. Urgente per conseguenza della **10c** presa poche ore prima.
