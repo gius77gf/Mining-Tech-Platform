@@ -61,11 +61,28 @@ export const MAX_DECIMALI = 3;
    sparisce, la riga qui sotto diventa rossa invece di restare a coprire un
    difetto che non c'è più. */
 export const SOGLIE = {
-  "genesi_signature_composito.csv": { max: 4, banco: "genesi",
+  "genesi_composito_": { max: 4, banco: "genesi",
     perche: "traccia d'onda: `comp[i].toFixed(4)`, l'ampiezza in mm/s si rilegge per ridisegnarla" },
 };
 
-export const sogliaPer = (nome) => (SOGLIE[nome] || {}).max || MAX_DECIMALI;
+/* ⛔ LA CHIAVE È UN PREFISSO, E LA RAGIONE È UN DIFETTO CORRETTO IL 07/08. Quel
+   file usciva col nome **fisso** `genesi_signature_composito.csv`: due confronti
+   diversi — un'altra onda registrata, un'altra volata — si sovrascrivevano a
+   vicenda senza che il browser chiedesse niente. Adesso il nome porta l'onda da
+   cui viene, i fori e il ritardo, quindi un nome per esteso qui dentro non
+   combacerebbe mai più.
+   ⚠️ E il prefisso è la forma **stretta** che regge il cambiamento: non una
+   sottostringa e non una regex — `startsWith`, sull'inizio che l'app costruisce.
+   Un'eccezione dichiarata con una regex larga tornerebbe a scusare file che non
+   ha mai visto. */
+export const chiaveSoglia = (nome) => {
+  const n = String(nome || "");
+  return Object.keys(SOGLIE).find((x) => n === x || n.startsWith(x)) || null;
+};
+export const sogliaPer = (nome) => {
+  const k = chiaveSoglia(nome);
+  return k ? SOGLIE[k].max : MAX_DECIMALI;
+};
 
 /* ⛔ E LA PRIMA STESURA AVEVA LE GUARDIE, ED ERANO IL BUCO. Portava
    `(?<![\d.,]) … (?![\d.,])` per non farsi ingannare da un raggruppamento

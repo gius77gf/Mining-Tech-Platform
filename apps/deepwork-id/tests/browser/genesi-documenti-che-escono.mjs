@@ -84,7 +84,7 @@ import { readFileSync, existsSync, statSync, writeFileSync, unlinkSync, mkdirSyn
 import { join, extname } from "node:path";
 /* la regola del campione scappato vive dove è nata, e si importa: la stessa
    domanda serve a questo banco e alle sei app di `csv-dimostrazione` */
-import { campioniScappati, sogliaPer, SOGLIE } from "./campione-scappato.mjs";
+import { campioniScappati, sogliaPer, chiaveSoglia, SOGLIE } from "./campione-scappato.mjs";
 
 const R = process.env.DW_RADICE || "/home/user/Mining-Tech-Platform";
 const CONTROPROVA = process.argv.includes("--controprova");
@@ -243,7 +243,12 @@ async function esce(pg, id, nome) {
      ⚠️ La soglia non è indovinata: è misurata sui 33 file veri delle sei app
      (113 numeri a una cifra, 12 a due, 18 a tre, ZERO a quattro o più). */
   const soglia = sogliaPer(u.nome);
-  if (SOGLIE[u.nome]) dichiarateViste.add(u.nome);
+  /* ⚠️ si segna la CHIAVE che ha combaciato, non il nome del file: dal 07/08 la
+     chiave è un prefisso (il nome porta l'onda, i fori e il ritardo), quindi un
+     confronto per nome esatto direbbe «l'eccezione non si presenta più» su una
+     eccezione che si presenta eccome — un allarme falso al posto di una guardia */
+  const chiave = chiaveSoglia(u.nome);
+  if (chiave) dichiarateViste.add(chiave);
   const { guardati, scappati } = campioniScappati(u.testo, soglia);
   numeriLetti += guardati;
   dice(scappati.length === 0,

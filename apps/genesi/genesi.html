@@ -2698,7 +2698,9 @@ $('btnExport').onclick = ()=>{
       sequenzaTipicaMs:CAL.sequenza.durataTipicaMs } };
   const a = document.createElement('a');
   a.href = URL.createObjectURL(new Blob([JSON.stringify(out,null,1)],{type:'application/json'}));
-  a.download = 'genesi-demo.volata.json'; a.click();
+  /* ⛔ il nome porta la volata, se no due volate esportate si sovrascrivono:
+     è la stessa famiglia del report del core a periodo aperto, chiusa il 07/08 */
+  a.download = 'Volata_' + (out.volata.numero || 1) + '_' + out.volata.data + '.volata.json'; a.click();
   toast('✓ Volata esportata (.volata.json)');
 };
 $('btnImport').onclick = ()=> $('fileIn').click();
@@ -3339,7 +3341,16 @@ if($('riconCampoFile')) $('riconCampoFile').onchange=async(e)=>{
    foro singolo, ritardata secondo i tempi di detonazione della volata (metodo
    Orica AVM / letteratura). Più preciso della sola legge di Devine perché usa
    l'onda reale del sito. Tutto lato browser. ===== */
-let _sigData=null, _sigComp=null;
+/* ⛔ IL NOME DEL FILE IMPORTATO SI TIENE, e non è un dettaglio: il composito
+   dipende da DUE cose che l'utente sceglie — l'onda registrata e la volata su
+   cui la si sovrappone — e finché l'export usciva col nome fisso
+   `genesi_signature_composito.csv` due confronti diversi **si sovrascrivevano
+   a vicenda** senza che il browser chiedesse niente. Chi li riapre a distanza
+   di un mese ne ha uno solo e non sa quale.
+   ⚠️ Un nome può distinguere solo quello che l'app SA: la volata la conosce già
+   (fori e ritardo), l'onda no — la si prendeva e si buttava via il nome. Una
+   riga per tenerlo, ed è la sola cosa che rende i due file distinguibili. */
+let _sigData=null, _sigComp=null, _sigNome="";
 function _sigDetTimes(){
   const H=D2.holes;
   if(H&&H.length) return H.map(h=>+h.tDet||0);
@@ -3409,13 +3420,16 @@ function sigRender(){
 if($('sigOpen')) $('sigOpen').onclick=()=>{ sigRender(); $('sigModal').style.display='flex'; };
 if($('sigClose')) $('sigClose').onclick=()=>{ $('sigModal').style.display='none'; };
 if($('sigImport')) $('sigImport').onclick=()=>$('sigFile').click();
-if($('sigFile')) $('sigFile').onchange=async(e)=>{ const f=e.target.files&&e.target.files[0]; if(!f) return; const sig=_sigParse(await f.text()); e.target.value=''; if(!sig){ toast('CSV non valido: righe tempo_ms;ampiezza'); return; } _sigData=sig; sigRender(); };
+if($('sigFile')) $('sigFile').onchange=async(e)=>{ const f=e.target.files&&e.target.files[0]; if(!f) return; const sig=_sigParse(await f.text()); e.target.value=''; if(!sig){ toast('CSV non valido: righe tempo_ms;ampiezza'); return; } _sigData=sig; _sigNome=String(f.name||'').replace(/\.[^.]*$/,'').replace(/[^\w-]+/g,'_').slice(0,40); sigRender(); };
 if($('sigExport')) $('sigExport').onclick=()=>{
   if(!_sigComp){ toast('Importa prima un&rsquo;onda'); return; }
   const c=_sigComp; let csv='tempo_ms;ampiezza\n';
   for(let i=0;i<c.steps;i++) csv+=(i*c.dt).toFixed(2)+';'+c.comp[i].toFixed(4)+'\n';
   const a=document.createElement('a'); a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(csv);
-  a.download='genesi_signature_composito.csv'; a.click();
+  /* la volata la conosciamo (fori e ritardo), l'onda la nominiamo con il file
+     da cui viene: due confronti diversi non si sovrascrivono più */
+  const _pezzo=[(_sigNome||'onda'), _sigDetTimes().length+'fori', (D2.ritardo||0)+'ms'].join('_');
+  a.download='genesi_composito_'+_pezzo+'.csv'; a.click();
 };
 
 /* ═══════════ G3 — interfaccia della legge di sito ═══════════
