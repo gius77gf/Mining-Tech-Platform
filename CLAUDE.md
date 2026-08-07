@@ -150,6 +150,28 @@ stava guardando: è l'iniezione che non inietta, la terza delle cinque cause,
 nella sua veste più difficile da vedere. La difesa costa tre righe e va messa in
 ogni banco che alza un server: si scrive un **contrassegno col proprio pid**
 nella cartella servita e lo si **rilegge dal server**; se non torna, ci si ferma.
+⛔ **E IL 07/08 QUELLA REGOLA È COSTATA UN GIRO INTERO PROPRIO PERCHÉ IL FILE DA
+CUI DIPENDONO TUTTI GLI ALTRI NON LA RISPETTAVA.** `tutti.mjs` faceva
+`if (!(await rispondePorta(PORTA))) { lo alzo io }`: se qualcuno rispondeva, lo
+**riusava**. Lanciato un giro nuovo mentre il vecchio era ancora vivo, il nuovo
+ha misurato per venti minuti la copia dell'altro — un commit diverso — e poi,
+fermato il vecchio, ha letto **zero caratteri per schermata**: ventidue KO su
+Scudo del tipo «la barra di navigazione ha una voce», «nessuna schermata
+aperta», «0 caratteri letti», cioè un banco che accusa il prodotto di **non
+esistere**. Chi legge quel registro senza sapere la storia apre un cantiere su
+ventidue difetti immaginari.
+La lezione non è sul contrassegno, che era già scritto qui: è che **una regola
+scritta in questo file va cercata per prima cosa nel codice che la deve
+applicare più di tutti** — e il codice che tutti gli altri usano è l'ultimo
+posto in cui si pensa di guardare. Adesso il runner lo fa, e la controprova sta
+in `impronta-giro.mjs`, nei **due versi**: con un server estraneo si ferma
+(uscita 2, prima ancora di stampare l'impronta di partenza), col proprio riparte
+— perché una guardia che si ferma **sempre** passerebbe il primo verso e
+renderebbe il giro impossibile da lanciare.
+⚠️ E il corollario pratico, misurato lo stesso giorno: un server rimasto vivo
+dopo un giro ucciso **continua a rispondere sulla porta con una cartella che non
+esiste più** (404 su tutto). Prima di lanciare un giro si guarda chi tiene la
+porta, non solo se è occupata.
 
 ⛔ **MAI ASPETTARE GUARDANDO.** Un processo lungo si lancia **insieme alla
 condizione che dice quando è finito**, e nel frattempo si lavora su altro. Se
