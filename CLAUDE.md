@@ -719,6 +719,31 @@ Perché serva davvero e non produca elenchi generici, cinque vincoli:
   nomi scritti a mano mentre la struttura condivisa ne espone **dieci**. Un
   elenco a mano non poteva accorgersi di `chiediDati` — **non sapeva nemmeno
   che quel nome esistesse.** Ora è derivato da `window.X =` del file condiviso.
+  ⛔ **E LO STESSO GIORNO, LA STESSA FAMIGLIA IN UNA VESTE CHE LA STRETTA NON
+  COPRIVA: UN OMONIMO LOCALE RENDE INVISIBILE UN NOME LIBERO.** Il bottone
+  «Scarica rilievi» di Terra chiamava `conta(...)`, che nella pagina **non era
+  importata**: il file usciva (l'`a.click()` viene prima) e il gestore **moriva
+  subito dopo**, quindi nessun messaggio e nessun toast — un errore duro, in
+  produzione, su un bottone che un banco premeva 41 volte dicendo «0 KO».
+  `nomi-liberi` non lo vedeva perché raccoglie i nomi legati in un insieme
+  **unico per file**, e nella stessa pagina c'è un `const conta = …` **locale a
+  un'altra funzione**: guardava il FILE, non lo SCOPE. Bastava un omonimo
+  qualunque, dichiarato ovunque, per spegnere il controllo su quel nome.
+  La cura è la solita e non è «più severità»: una **seconda domanda** accanto
+  alla prima — *il nome esiste, ma esiste QUI?* — che giudica per blocchi di
+  graffe (l'ancora è la parola `const`, non il dichiaratore, se no
+  `const {jsPDF}=window.jspdf` scambia la graffa della **destrutturazione** per
+  il blocco che racchiude: 11 falsi allarmi).
+  ⚠️ **E i due falsi allarmi di prova venivano dal righello, non dalla
+  domanda**: `const N=60, gx=(i)=>…` con una regex perde il secondo
+  dichiaratore. Costo misurato prima di irrigidire, come pretende la regola qui
+  sopra: **0 allarmi** su 18.656 chiamate e 12 pagine sane, **1 e quello
+  giusto** col difetto rimesso.
+  ⚠️ Il difetto sotto ha un fratello che vale da solo: `csv-dimostrazione`
+  **ascoltava** gli errori di pagina e li leggeva **prima** di premere i
+  bottoni. L'ascoltatore c'era, l'elenco si riempiva, e la domanda arrivava due
+  secondi dopo il caricamento. **Un conto letto al momento sbagliato è un conto
+  che non esiste.**
 - ⚠️ **UNO STRUMENTO CONDIVISO DA TUTTI I CONTROLLI NON È CONTROLLATO DA
   NESSUNO.** Il 03/08 la scansione che sta sotto a tutte e sedici le regole
   **perdeva la fase**, per due difetti indipendenti: leggeva la pagina intera

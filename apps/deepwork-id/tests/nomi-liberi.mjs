@@ -15,10 +15,22 @@
    modulo, il `<script>` dimenticato, il `${...}` in mezzo a una catena di `+`,
    e adesso questo. Le prime tre sono raccontate in CLAUDE.md.
 
+   ⛔ E IL 07/08 È PASSATA LA QUINTA, con una veste che questo file non poteva
+   vedere: `conta(...)` nel bottone «Scarica rilievi» di Terra, mai importata —
+   e nella STESSA pagina un `const conta = …` **locale a un'altra funzione**.
+   L'insieme dei nomi legati è unico per file, quindi bastava quell'omonimo
+   qualunque per rendere invisibile un nome libero: il controllo guardava il
+   FILE e non lo SCOPE. Da lì la SECONDA DOMANDA in fondo a questo file — *il
+   nome esiste, ma esiste QUI?* — che non sostituisce la prima, le sta accanto.
+
    COME FUNZIONA, e dove NON guarda — dichiarato, non sottinteso:
    · guarda i nomi in posizione di CHIAMATA (`nome(`), non ogni riferimento:
-     `const x = pippo` non viene visto. È la metà che costa di più quando
-     manca, ed è quella che si può controllare senza un analizzatore di scope;
+     `const x = pippo` non viene visto. È la metà che costa di più quando manca;
+   · lo scope lo giudica per BLOCCHI di graffe, non con un analizzatore vero:
+     non distingue una funzione da un `if`, e non conosce l'hoisting di `var`.
+     Sbaglia quindi **per eccesso di prudenza** (un `var` usato prima del suo
+     blocco non lo accusa), mai accusando chi è sano — e il costo di questa
+     scelta è misurato: 0 falsi allarmi su 18.656 chiamate;
    · i nomi che il browser regala stanno in `GLOBALI`, corto di proposito: se
      ne manca uno si presenta come falso allarme e si aggiunge con la ragione;
    · i nomi che arrivano dagli SCRIPT FRATELLI (`<script src>`) si leggono dai
@@ -177,7 +189,12 @@ function nomiDichiarati(codice) {
   return out;
 }
 
-function nomiLegati(codice) {
+/* ⛔ IL SECONDO ARGOMENTO INVECE DI UNA COPIA. La seconda domanda (più sotto)
+   ha bisogno dei nomi legati **in ogni modo TRANNE** `const/let/var`, perché
+   quelli li giudica lei guardando lo scope. Ricopiare il corpo qui accanto
+   sarebbe stata la solita divergenza rimandata: all'originale mancava un
+   parametro, e costa una riga. */
+function nomiLegati(codice, conDichiarazioni = true) {
   const legati = new Set();
   const agg = (re, g = 1) => {
     for (const m of codice.matchAll(re)) if (m[g]) for (const n of m[g].split(/[^\w$]+/)) if (n) legati.add(n);
@@ -185,14 +202,23 @@ function nomiLegati(codice) {
   agg(/\b(?:function|class)\s*\*?\s*([\w$]+)/g);
   /* ⚠️ i dichiaratori multipli: `const a = 1, b = 2` — la prima stesura prendeva
      solo `a`, ed è da lì che venivano quattro dei «sospetti» (rnd, Y, my2, fmtD) */
-  for (const n of nomiDichiarati(codice)) legati.add(n);
+  if (conDichiarazioni) for (const n of nomiDichiarati(codice)) legati.add(n);
   agg(/import\s*\{([^}]*)\}/g);
   agg(/import\s+([\w$]+)/g);
   agg(/\bcatch\s*\(\s*([\w$]+)/g);
   agg(/\bfunction[^(]*\(([^)]*)\)/g);
   agg(/\(([^()]*)\)\s*=>/g);
   agg(/([\w$]+)\s*=>/g);
-  agg(/([\w$]+)\s*[:=]\s*(?:async\s*)?(?:function|\()/g);
+  /* ⛔ LE DUE FORME ERANO SCRITTE IN UNA, E UNA DELLE DUE È AMBIGUA.
+     `nome: function` e `nome: (` sono una PROPRIETÀ: legano sempre.
+     `nome = (` invece combacia anche con `const conta = (R.a + R.b)` — cioè con
+     una dichiarazione qualunque il cui valore comincia per parentesi. Per la
+     prima domanda non cambia niente (le dichiarazioni le lega comunque
+     `nomiDichiarati`); per la SECONDA sì, perché lì il giudizio sulle
+     dichiarazioni lo dà lo scope, e questa riga gliele portava via tutte —
+     misurato: la controprova di Terra restava verde col difetto dentro. */
+  agg(/([\w$]+)\s*:\s*(?:async\s*)?(?:function|\()/g);
+  if (conDichiarazioni) agg(/([\w$]+)\s*=\s*(?:async\s*)?(?:function|\()/g);
   /* ⚠️ I METODI IN FORMA ABBREVIATA, dentro una classe o un oggetto:
      `async inviteMember(email, role = "member") {` è una DEFINIZIONE, non una
      chiamata — ma al lettore di chiamate somiglia in tutto. Erano i nove
@@ -258,6 +284,114 @@ export function nomiSospettiModulo(rel) {
     sospetti.set(n, (sospetti.get(n) || 0) + 1);
   }
   return { chiamate, sospetti };
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   ⛔ LA SECONDA DOMANDA: IL NOME ESISTE NEL FILE, MA ESISTE NELLO SCOPE?
+   ──────────────────────────────────────────────────────────────────────────
+   Misurato il 07/08, e non su un caso di scuola: il bottone «Scarica rilievi»
+   di Terra chiamava `conta(...)`, che nella pagina **non era importata**.
+   Errore duro — il gestore muore appena si preme — e questo controllo, che
+   esiste apposta per quella famiglia, rispondeva «nessun nome che non esiste».
+   La ragione: `nomiLegati` raccoglie in un insieme **unico per file**, e nella
+   stessa pagina c'è un `const conta = …` **locale a un'altra funzione**. Cioè
+   guardava il FILE e non lo SCOPE, e bastava un omonimo qualunque, dichiarato
+   in un punto qualunque, per rendere invisibile un nome libero.
+   Non si aggiusta il filtro: la domanda era una sola e ne serve una **seconda**
+   accanto. Questa non sostituisce niente — la prima resta e continua a
+   rispondere «non esiste da nessuna parte»; questa risponde «esiste, ma non
+   qui».
+
+   ⚠️ COSTO MISURATO PRIMA DI IRRIGIDIRE, come pretende la regola del 07/08:
+   stretta su una copia dell'albero sano, **0 allarmi** su 18.656 chiamate e 12
+   pagine; col difetto vero rimesso, **1 allarme, quello giusto**. Le due
+   stesure precedenti sbagliavano e sono servite a capire dove:
+     · con una regex per le dichiarazioni, `const N=60, gx=(i)=>…` perdeva il
+       secondo dichiaratore → 2 falsi allarmi (`gx` in Genesi). Si riusa lo
+       stesso scandaglio di `nomiDichiarati`, che i dichiaratori multipli li
+       sa già leggere;
+     · ancorando il blocco al **dichiaratore**, `const {jsPDF}=window.jspdf`
+       faceva prendere la graffa della **destrutturazione** per il blocco che
+       racchiude → 11 falsi allarmi. L'ancora giusta è la parola `const`, che
+       sta fuori da quelle graffe.
+   Cioè i falsi allarmi non venivano dalla domanda: venivano dal righello. */
+
+/* Il blocco `{ … }` che racchiude una posizione: indietro contando le graffe
+   fino a quella aperta e non ancora chiusa, poi avanti fino alla sua gemella.
+   Fuori da ogni graffa il blocco è tutto il file. */
+export function bloccoAttorno(codice, pos) {
+  let liv = 0, apre = -1;
+  for (let i = pos; i >= 0; i--) {
+    const c = codice[i];
+    if (c === "}") liv++;
+    else if (c === "{") { if (!liv) { apre = i; break; } liv--; }
+  }
+  if (apre === -1) return [0, codice.length];
+  liv = 0;
+  for (let i = apre + 1; i < codice.length; i++) {
+    const c = codice[i];
+    if (c === "{") liv++;
+    else if (c === "}") { if (!liv) return [apre, i]; liv--; }
+  }
+  return [apre, codice.length];
+}
+
+/* Le stesse dichiarazioni di `nomiDichiarati`, con accanto la posizione della
+   parola `const`/`let`/`var` — l'ancora, non il dichiaratore. */
+export function dichiarazioniConPosizione(codice) {
+  const out = [];
+  const re = /\b(?:const|let|var)\s+/g;
+  let m;
+  while ((m = re.exec(codice))) {
+    let i = m.index + m[0].length;
+    const inizio = m.index;
+    let tondo = 0, quadra = 0, graffa = 0;
+    let pezzo = "", primo = true;
+    const chiudi = () => {
+      if (pezzo.trim()) for (const n of pezzo.split(/[^\w$]+/)) if (n) out.push([n, inizio]);
+      pezzo = ""; primo = true;
+    };
+    for (; i < codice.length; i++) {
+      const c = codice[i];
+      if (c === "(") tondo++; else if (c === ")") { if (!tondo) break; tondo--; }
+      else if (c === "[") quadra++; else if (c === "]") { if (!quadra) break; quadra--; }
+      else if (c === "{") graffa++; else if (c === "}") { if (!graffa) break; graffa--; }
+      const fuori = !tondo && !quadra && !graffa;
+      if (fuori && (c === ";" || c === "\n")) break;
+      if (fuori && primo && /\s/.test(c) && /^\s*(?:of|in)\s/.test(codice.slice(i))) break;
+      if (fuori && primo && c === "=" && codice[i + 1] !== ">" && codice[i + 1] !== "=") { primo = false; continue; }
+      if (fuori && c === ",") { chiudi(); continue; }
+      if (primo) pezzo += c;
+    }
+    chiudi();
+  }
+  return out;
+}
+
+/* Il giudizio, su un pezzo di codice già smascherato. `fuoriScope` elenca le
+   chiamate a un nome che nel file È dichiarato — ma solo da un `const/let/var`
+   che vive in un blocco che NON racchiude la chiamata. */
+export function fuoriScope(codice, daiFratelli = new Set()) {
+  const blocchiDelNome = new Map();
+  for (const [n, at] of dichiarazioniConPosizione(codice)) {
+    if (!blocchiDelNome.has(n)) blocchiDelNome.set(n, []);
+    blocchiDelNome.get(n).push(bloccoAttorno(codice, at));
+  }
+  /* legato in ogni ALTRO modo — funzioni, classi, import, parametri, metodi:
+     quelli questa domanda non li tocca, li giudica già la prima */
+  const altrove = nomiLegati(codice, false);
+  const fuori = [];
+  let chiamate = 0;
+  for (const m of codice.matchAll(/(^|[^\w$.?])([A-Za-z_$][\w$]*)\s*\(/g)) {
+    const n = m[2];
+    chiamate++;
+    if (PAROLE.has(n) || GLOBALI.has(n) || DA_CDN.has(n) || SINTASSI_E_NODE.has(n)) continue;
+    if (altrove.has(n) || daiFratelli.has(n) || !blocchiDelNome.has(n)) continue;
+    const pos = m.index + m[1].length;
+    if (blocchiDelNome.get(n).some(([a, z]) => pos > a && pos < z)) continue;
+    fuori.push({ nome: n, riga: codice.slice(0, pos).split("\n").length });
+  }
+  return { fuori, chiamate };
 }
 
 let passed = 0, failed = 0;
@@ -389,6 +523,66 @@ test("la controprova del buco vero — un nome libero dentro un `const` viene vi
     "la regola larga DOVEVA nascondere `conta`: se non lo nasconde, il racconto di questo file è sbagliato");
 });
 
+/* ── LA SECONDA DOMANDA, sulle stesse pagine ─────────────────────────────── */
+let chiamateScope = 0, pagineScope = 0;
+const maleScope = [];
+for (const p of PAGINE) {
+  let html;
+  try { html = leggi(p); } catch { continue; }
+  const bl = blocchiDi(html);
+  if (!bl.length) continue;
+  const codice = bl.map(soloCodice).join("\n;\n");
+  const { nomi: fratelli } = nomiDegliScriptFratelli(p, html);
+  const r = fuoriScope(codice, fratelli);
+  pagineScope++; chiamateScope += r.chiamate;
+  for (const f of r.fuori) maleScope.push(`${p}: ${f.nome}() alla riga ~${f.riga} del codice in linea`);
+}
+
+test("nessun nome chiamato che esiste nel FILE ma non nello SCOPE di chi lo chiama", () => {
+  ok(maleScope.length === 0,
+    "nomi la cui unica dichiarazione sta in un blocco che NON racchiude la chiamata:\n  "
+    + maleScope.join("\n  ")
+    + "\n  È l'errore di Terra del 07/08: un omonimo locale a un'altra funzione rendeva"
+    + "\n  invisibile un nome mai importato, e il gestore moriva al primo clic.");
+});
+
+test("la seconda domanda ha davvero guardato", () => {
+  ok(pagineScope >= 8, `solo ${pagineScope} pagine guardate dalla seconda domanda`);
+  ok(chiamateScope >= 10000, `solo ${chiamateScope} chiamate: troppo poche`);
+});
+
+test("la controprova della SECONDA domanda — il difetto di Terra del 07/08 viene visto", () => {
+  /* Si rimette esattamente quello che c'era: `conta` fuori dall'import di
+     Terra, mentre nella pagina resta un `const conta = …` locale a un'altra
+     funzione — ed è quell'omonimo a rendere la prima domanda cieca. */
+  const rel = "apps/terra/index.html";
+  const html = leggi(rel);
+  const guasto = html.replace(/plurale, conta(,|\s*\})/, "plurale$1");
+  ok(guasto !== html, "l'iniezione non ha sostituito niente: la prova non prova niente");
+  const codice = blocchiDi(guasto).map(soloCodice).join("\n;\n");
+  ok(/\bconst conta\s*=/.test(codice),
+    "serve che nella pagina resti un `const conta` LOCALE: è lui a nascondere il nome libero");
+  const { nomi: fratelli } = nomiDegliScriptFratelli(rel, guasto);
+
+  /* la PRIMA domanda, col difetto dentro: deve restare cieca — se un giorno lo
+     vedesse, questo racconto è invecchiato e va riscritto, non spento */
+  const legati = nomiLegati(codice);
+  ok(legati.has("conta"),
+    "la prima domanda DOVEVA essere cieca qui (l'omonimo locale lega il nome): se non lo è più, riscrivi questo commento");
+
+  /* la SECONDA: deve vederlo */
+  const { fuori } = fuoriScope(codice, fratelli);
+  ok(fuori.some((f) => f.nome === "conta"),
+    "col difetto rimesso, `conta` deve risultare fuori scope — e non risulta");
+
+  /* e sull'albero sano non deve accusare nessuno: una guardia che si accende
+     sempre non è una guardia (è la lezione delle regole Firestore del 07/08) */
+  const sano = blocchiDi(html).map(soloCodice).join("\n;\n");
+  ok(!fuoriScope(sano, fratelli).fuori.some((f) => f.nome === "conta"),
+    "e sulla pagina sana `conta` non dev'essere accusato");
+});
+
 console.log(`\nRisultato nomi liberi: ${passed} passati, ${failed} falliti`
-  + `  ·  ${chiamateTot} chiamate su ${pagineViste} pagine, ${chiamateMod} su ${moduliVisti} moduli`);
+  + `  ·  ${chiamateTot} chiamate su ${pagineViste} pagine, ${chiamateMod} su ${moduliVisti} moduli`
+  + `  ·  seconda domanda (lo scope): ${chiamateScope} chiamate su ${pagineScope} pagine, ${maleScope.length} fuori scope`);
 process.exit(failed > 0 ? 1 : 0);
