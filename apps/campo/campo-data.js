@@ -50,7 +50,7 @@
 // ============================================================
 
 import { parseCsvLine, numIt, isIntestazione, csvCell, numeroScritto, oggiISO as oggiISOShell, isoLocale,
-         dataISOEsiste, dataPiuGiorni as dataPiuGiorniShell } from "../../shared/deepwork-id-client/dw-shell.js";
+         dataISOEsiste, dataPiuGiorni as dataPiuGiorniShell, conta, plurale } from "../../shared/deepwork-id-client/dw-shell.js";
 
 // ══════════════════════════════════════════════════════════════════════
 // NUMERI COME SI SCRIVONO IN ITALIA — un solo posto per la convenzione
@@ -677,8 +677,18 @@ export function zeriDelGrafico(righe, unita) {
    questo caso — un secondo pezzo di codice è una seconda occasione di
    divergere. `data` resta la stringa vuota, che a schermo Campo scrive già
    «senza data». Pura e testabile. */
+/* UNA REGISTRAZIONE CHE NON STA IN NESSUNA GIORNATA — la domanda scritta una
+   volta sola. Era il `senza` chiuso dentro `registrazioniSenzaGiorno`: serve
+   anche alla RIGA di un documento («questo rapportino è senza data»), non solo
+   al conto, e una seconda scrittura sarebbe una seconda occasione di divergere.
+   Il giorno che non esiste («2026-02-30») conta come mancante, perché
+   `dataISOEsiste` guarda che cosa VALE la data, non com'è scritta. Pura. */
+export function senzaGiornoDiLavoro(rec) {
+  return !!rec && !dataISOEsiste(String(rec.data || "").trim());
+}
+
 export function registrazioniSenzaGiorno(attivita, rapportini) {
-  const senza = (r) => !!r && !dataISOEsiste(String(r.data || "").trim());
+  const senza = senzaGiornoDiLavoro;
   const att = (attivita || []).filter(senza);
   const rap = (rapportini || []).filter(senza);
   const prod = {};
@@ -705,6 +715,43 @@ export function registrazioniSenzaGiorno(attivita, rapportini) {
     rapTot: rap.length,
     rapInviati: rap.filter(r => r.stato === "inviato").length,
   };
+}
+
+/* ⛔ QUELLO CHE UN DOCUMENTO DATATO NON PUÒ TACERE.
+   `eDelGiorno` tiene DENTRO la giornata corrente le registrazioni senza data,
+   di proposito e con la ragione scritta: un dato vecchio non deve sparire.
+   Effetto: finiscono nei totali di OGGI. Sullo schermo Campo lo dice due
+   volte — «(1 rapportino ancora senza data)» accanto alla copertura e «senza
+   data» sulla riga della lista (`etData`) — quindi chi guarda lo sa.
+   Il RAPPORTO DI FINE TURNO e la CONSEGNA DI TURNO no, e sono i due documenti
+   DATATI che si archiviano e si consegnano: misurato il 07/08 sulla
+   dimostrazione, il foglio intestato «Rapporto di fine turno — 07/08/2026»
+   scriveva «Produzione · Mattina · 2.510 t» e, nella tabella dei rapportini,
+   «Rapportino trasporti | Squadra B · Mattina | 2.300 t» — cioè attribuiva al
+   turno Mattina di quel giorno 2.300 t su 2.510 di cui nessuno ha dichiarato
+   il giorno. Lo stesso app, nel CSV dello storico, quelle stesse tonnellate le
+   scrive in una riga con la data VUOTA: due file della stessa app, gli stessi
+   chili, due giorni diversi. È la copia debole nel posto che CLAUDE.md indica —
+   dove il documento si compone — e il principio del fondatore nella sua forma
+   più secca: l'assenza di un dato non è un dato favorevole.
+   Restituisce "" quando ogni registrazione ha il suo giorno. Pura e testabile. */
+export function avvisoSenzaGiorno(attivita, rapportini) {
+  const f = registrazioniSenzaGiorno(attivita, rapportini);
+  if (!f.totale) return "";
+  // la produzione sta sul RAPPORTINO: appesa in fondo a «2 rapportini e 1
+  // attività» direbbe che ha prodotto anche l'attività
+  const prod = Object.entries(f.prod).map(([u, q]) => formattaProduzione(q, u)).join(" + ");
+  const pezzi = [];
+  if (f.rapportini) pezzi.push(conta(f.rapportini, "rapportino", "rapportini") + (prod ? " (" + prod + ")" : ""));
+  if (f.attivita) pezzi.push(conta(f.attivita, "attività", "attività"));
+  /* ⛔ NESSUN PARTICIPIO in questa frase: «rapportino» è maschile e «attività»
+     femminile, e la frase le mescola. La prima stesura, provata in scratchpad
+     prima di finire qui, scriveva «1 attività … è contato». I verbi che
+     restano (`entra`, `sta`, `sia`) il genere non ce l'hanno. */
+  return pezzi.join(" e ") + " senza il giorno di lavoro: "
+    + plurale(f.totale, "entra", "entrano") + " nei totali di oggi perché non "
+    + plurale(f.totale, "sta", "stanno") + " in nessun'altra giornata, ma nessuno ha dichiarato che "
+    + plurale(f.totale, "sia", "siano") + " di oggi.";
 }
 
 /* LO STORICO CHE ESCE DALL'APP, e non è la stessa cosa di quello che si vede.

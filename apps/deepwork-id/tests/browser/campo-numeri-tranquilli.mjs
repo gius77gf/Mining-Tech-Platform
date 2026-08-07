@@ -29,6 +29,41 @@
       viaggi diceva «4 rapportini» dove ne avevano contribuito 2 — un numero
       sbagliato in modo credibile, perché sta fra il vero e il totale.
 
+   ── seconda passata, 07/08: «premi il bottone e apri il file» ──────────────
+   4. IL RAPPORTO DI FINE TURNO E LA CONSEGNA attribuivano al giorno stampato
+      chi il giorno non ce l'ha. `eDelGiorno` tiene DENTRO la giornata corrente
+      le registrazioni senza data — di proposito, perché un dato vecchio non
+      deve sparire — quindi i loro chili entrano nei totali di OGGI. Lo schermo
+      lo dichiara DUE volte («(1 rapportino ancora senza data)» accanto alla
+      copertura e «senza data» sulla riga della lista); i due documenti datati
+      che si consegnano e si archiviano, zero. Sulla sola dimostrazione il
+      foglio intestato «Rapporto di fine turno — 07/08/2026» scriveva
+
+          Produzione | Mattina | 2.510 t | Totale | 2.510 t
+          Rapportini | Rapportino trasporti | Squadra B · Mattina | 2.300 t
+
+      cioè 2.300 t su 2.510 attribuite a un turno e a un giorno che nessuno ha
+      dichiarato — mentre il CSV dello storico della STESSA app (difetto 2 qui
+      sopra) quelle tonnellate le scrive in una riga con la data VUOTA. Due
+      file, gli stessi chili, due giorni diversi.
+      ⚠️ Il NUMERO non era sbagliato: 2.510 è quello che dice anche lo schermo.
+      Mancava la DICHIARAZIONE. Per questo il banco confronta il totale del
+      documento con quello a schermo e pretende che siano UGUALI — un banco che
+      pretendesse un numero diverso starebbe chiedendo un difetto nuovo.
+      La regola giusta era già nel modulo (`registrazioniSenzaGiorno`), usata
+      dallo storico e non dai due documenti: la copia debole nel posto che
+      CLAUDE.md indica — dove il documento si compone. Difesa:
+      `senzaGiornoDiLavoro` (la domanda, una volta sola) e `avvisoSenzaGiorno`
+      (la frase), tutt'e due provate in `run-kpi.mjs`.
+   5. LE FRASI CHE ACCOMPAGNANO I FILE, COL NUMERO UNO — stessa famiglia di
+      `flotta-frasi-da-uno.mjs`, misurata costruendo una cava con una squadra,
+      una persona, un'attività e un rapportino: «Elenco per l'appello
+      esportato: **1 persone**», «**Esportate 1 attività**», «**Esportate 1
+      squadre**», «Consegna di turno esportata: **1 rapportini e 1 causali** di
+      fermo», e sulla scheda della squadra «**1 persone**». `conta` e `plurale`
+      erano in `shared/` da mesi. Sono le frasi che dicono all'utente che cosa
+      c'è dentro il file che ha appena salvato.
+
    ⚠️ NESSUNO DEI TRE LO PRENDE UNA SUITE `node` DA SOLA: le funzioni nuove
    sono provate in `run-kpi.mjs`, ma che la PAGINA le chiami, e che il file
    scaricato e la frase sullo schermo siano quelli, lo dice solo il browser.
@@ -71,6 +106,24 @@ const DIFETTI = [
   // 4 · la riga dei rapportini nel rapporto stampato, con l'unità GREZZA
   ["}${(() => { const p = produzioneDi(r); return p ? esc(formattaProduzione(p.qta, p.unita)) : esc(r.produzione || \"—\"); })()}</td>",
    "}${esc(+r.prodQta>0?formattaProduzione(r.prodQta,r.prodUnita):(r.produzione||\"—\"))}</td>"],
+  /* 5 · l'avviso «senza il giorno di lavoro» sui due documenti DATATI. La riga
+     è la stessa nella consegna e nel rapporto, quindi questa sola sostituzione
+     li spegne tutt'e due — ed è giusto così: è UNA decisione. */
+  ["const fuoriOggi = avvisoSenzaGiorno(ATT_OGGI, RAP_OGGI);",
+   "const fuoriOggi = \"\";"],
+  // 5b · e le tre RIGHE che se lo portavano addosso
+  ["senzaGiornoDiLavoro(r) ? \" [SENZA DATA]\" : \"\"", "false ? \" [SENZA DATA]\" : \"\""],
+  ["senzaGiornoDiLavoro(a)?", "false?"],
+  ["senzaGiornoDiLavoro(r)?", "false?"],
+  // 6 · le frasi col numero UNO che accompagnano i file
+  ["conta(app.totale, \"persona\", \"persone\")", "app.totale + \" persone\""],
+  ["plurale(SQU.length, \"Esportata \", \"Esportate \") + conta(SQU.length, \"squadra\", \"squadre\")",
+   "\"Esportate \" + SQU.length + \" squadre\""],
+  ["plurale(ATT_G.length, \"Esportata \", \"Esportate \") + conta(ATT_G.length, \"attività\", \"attività\")",
+   "\"Esportate \" + ATT_G.length + \" attività\""],
+  ["conta(RAP_OGGI.length, \"rapportino\", \"rapportini\") + \" e \" + conta(fermi.length, \"causale di fermo\", \"causali di fermo\")",
+   "RAP_OGGI.length + \" rapportini e \" + fermi.length + \" causali di fermo\""],
+  ["conta(q.persone, \"persona\", \"persone\")", "q.persone + \" persone\""],
 ];
 
 /* IL CASO DA COSTRUIRE, scelto prima di ogni `goto`. Si aggiunge in coda al
@@ -177,7 +230,15 @@ async function intercetta(pg) {
       focus: () => {}, print: () => {} });
     const clic = HTMLAnchorElement.prototype.click;
     HTMLAnchorElement.prototype.click = function () {
-      if (this.download) { window.__csv = decodeURIComponent(String(this.href).replace(/^data:text\/csv;charset=utf-8,/, "")); return; }
+      /* ⛔ QUALUNQUE tipo, non solo `text/csv`: la consegna di turno esce in
+         `text/plain` e con la vecchia forma (che toglieva un prefisso solo)
+         restava incollata al suo `data:…,`. Una firma troppo stretta, e la
+         copia sarebbe stata un secondo intercettatore. */
+      if (this.download) {
+        window.__csv = decodeURIComponent(String(this.href).replace(/^data:[^,]*,/, ""));
+        window.__nome = this.download;
+        return;
+      }
       return clic.apply(this, arguments);
     };
   });
@@ -303,6 +364,163 @@ FIXTURE = `
     `⛔ nessuna unità fuori dal vocabolario nel documento (${unita.length} trovate)`, unita.join(","));
   dice(/500 t/.test(doc),
     "e i 500 sono scritti nell'unità con cui il totale li somma", (doc.match(/500 \S+/) || [])[0]);
+  await pg.close();
+}
+
+/* ── 5 · I DUE DOCUMENTI DATATI E IL GIORNO CHE NESSUNO HA DICHIARATO ──────
+   ⛔ IL DIFETTO, misurato il 07/08 premendo il bottone e aprendo il file.
+   `eDelGiorno` tiene DENTRO la giornata corrente chi la data non ce l'ha — di
+   proposito, con la ragione scritta nel modulo: un dato vecchio non deve
+   sparire. Effetto: quei chili entrano nei totali di OGGI. Lo schermo lo
+   dichiara DUE volte («(1 rapportino ancora senza data)» accanto alla
+   copertura e «senza data» sulla riga della lista); il RAPPORTO DI FINE TURNO
+   e la CONSEGNA DI TURNO — i due documenti datati che si consegnano e si
+   archiviano — zero. Sulla sola dimostrazione, il foglio intestato «Rapporto
+   di fine turno — 07/08/2026» scriveva
+
+       Produzione | Mattina | 2.510 t | Totale | 2.510 t
+       Rapportini | Rapportino trasporti | Squadra B · Mattina | 2.300 t
+
+   cioè attribuiva al turno Mattina di quel giorno 2.300 t su 2.510 di cui
+   nessuno ha dichiarato il giorno — e la STESSA app, nel CSV dello storico
+   (blocco 2 qui sopra), quelle stesse tonnellate le scrive in una riga con la
+   data VUOTA. Due file, gli stessi chili, due giorni diversi.
+   ⚠️ E il numero NON è sbagliato: 2.510 è quello che dice anche lo schermo.
+   Quello che manca al file è la DICHIARAZIONE che lo schermo ha e lui no —
+   per questo il banco confronta il totale del documento con quello a schermo
+   e pretende che siano uguali, non che il documento ne scriva un altro. */
+console.log("\n· il rapporto e la consegna: il giorno che nessuno ha dichiarato");
+FIXTURE = `
+{
+  const p = (x) => String(x).padStart(2, "0"); const d = new Date();
+  const oggi = d.getFullYear() + "-" + p(d.getMonth() + 1) + "-" + p(d.getDate());
+  DEMO.rapportini = [
+    { id: "zg1", data: oggi, turno: "Mattina", titolo: "Turno datato", squadra: "Squadra A",
+      prodQta: 210, prodUnita: "t", ora: "13:00", stato: "inviato" },
+    { id: "zg2", data: "", turno: "Mattina", titolo: "Turno senza giorno", squadra: "Squadra B",
+      prodQta: 2300, prodUnita: "t", ora: "13:00", stato: "inviato" }];
+  DEMO.attivita = [
+    { id: "zg3", data: oggi, turno: "Mattina", titolo: "Attivita datata", squadra: "Squadra A", stato: "conclusa" },
+    { id: "zg4", data: "", turno: "Mattina", titolo: "Attivita senza giorno", squadra: "Squadra A", stato: "anomalia", causale: "Guasto meccanico", fermoMin: 20 }];
+}
+`;
+{
+  const pg = await apri("nav-rap");
+  // quello che lo SCHERMO dice sulla stessa giornata: è il metro di paragone
+  const schermo = testo(await pg.evaluate(() => document.body.innerText));
+  dice(/senza data/.test(schermo), "lo schermo dichiara «senza data» (il metro c'è)",
+    (schermo.match(/.{0,60}senza data.{0,40}/) || [])[0]);
+  const totSchermo = (schermo.match(/Produzione di oggi:\s*([\d.,]+ t)/) || [])[1] || "";
+  dice(totSchermo === "2.510 t", "e il totale a schermo è 2.510 t", totSchermo);
+
+  await intercetta(pg);
+  await pg.click("#btn-consegna");
+  await pg.waitForTimeout(400);
+  const cons = String(await pg.evaluate(() => window.__csv) || "");
+  const nomeCons = String(await pg.evaluate(() => window.__nome) || "");
+  dice(/consegna_turno\.txt$/.test(nomeCons), "la consegna di turno esce davvero", nomeCons);
+  dice(cons.includes("- totale: " + totSchermo),
+    "⛔ il totale del file è QUELLO DELLO SCHERMO: il numero non è il difetto",
+    (cons.match(/- totale:.*/) || [])[0]);
+  dice(/ATTENZIONE: .*senza il giorno di lavoro/.test(cons),
+    "⛔ e sotto il totale la consegna dichiara chi il giorno non ce l'ha",
+    (cons.match(/- ATTENZIONE:.*/) || [])[0] || cons.slice(0, 300));
+  dice(/2\.300 t/.test((cons.match(/- ATTENZIONE:.*/) || [""])[0]),
+    "dicendo anche quanti chili sono", (cons.match(/- ATTENZIONE:.*/) || [])[0]);
+  dice(/Turno senza giorno .*\[SENZA DATA\]/.test(cons),
+    "⛔ e la RIGA del rapportino lo porta addosso, non solo il totale in fondo",
+    (cons.match(/- Turno senza giorno.*/) || [])[0]);
+  dice(!/Turno datato.*\[SENZA DATA\]/.test(cons),
+    "mentre il rapportino datato non se lo prende", (cons.match(/- Turno datato.*/) || [])[0]);
+
+  await pg.click("#btn-rapporto-turno");
+  await pg.waitForTimeout(500);
+  const doc = testo(await pg.evaluate(() => window.__doc));
+  dice(doc.includes("Rapporto di fine turno"), "il rapporto stampato esce davvero", doc.length);
+  dice(doc.includes(totSchermo), "⛔ e porta lo stesso totale dello schermo", totSchermo);
+  dice(/Attenzione\s+—\s+.*senza il giorno di lavoro/.test(doc),
+    "⛔ con l'avviso in cima, sotto il Quadro",
+    (doc.match(/Attenzione[^|]{0,200}/) || [])[0] || doc.slice(0, 300));
+  const rigaRap = (doc.match(/Turno senza giorno[^|]{0,80}/) || [])[0] || "";
+  dice(/senza data/.test(rigaRap),
+    "⛔ la riga del rapportino dice «senza data» invece di attribuirlo al turno stampato", rigaRap);
+  /* ⚠️ E QUI IL BANCO HA SBAGLIATO MIRA LA PRIMA VOLTA, con la misura che lo
+     dice: il caso era un'attività datata «2026-02-30». Non arriva mai in
+     questo foglio, perché `eDelGiorno` è ASIMMETRICA di proposito — la data
+     VUOTA la tiene dentro il giorno corrente (un dato vecchio non deve
+     sparire), un giorno che non esiste lo lascia fuori da TUTTI i giorni. Chi
+     lo raccoglie è `registrazioniSenzaGiorno`, cioè il CSV dello storico del
+     blocco 2. Il soggetto giusto per un documento di oggi è la data vuota. */
+  const rigaAtt = (doc.match(/.{0,60}Attivita senza giorno/) || [])[0] || "";
+  dice(/senza data/.test(rigaAtt),
+    "⛔ e anche la riga dell'attività che il giorno non ce l'ha", rigaAtt);
+  dice(!/senza data\s*Attivita datata/.test(doc),
+    "mentre l'attività datata non se lo prende",
+    (doc.match(/.{0,50}Attivita datata/) || [])[0]);
+  await pg.close();
+}
+
+/* ── 6 · I MESSAGGI CHE ACCOMPAGNANO I FILE, COL NUMERO UNO ────────────────
+   Stessa famiglia di `flotta-frasi-da-uno.mjs`, misurata su Campo il 07/08
+   costruendo una cava con una squadra, una persona, un'attività e un
+   rapportino: «Elenco per l'appello esportato: 1 persone», «Esportate 1
+   attività», «Esportate 1 squadre», «Consegna di turno esportata: 1
+   rapportini e 1 causali di fermo» — e sulla scheda della squadra, «1
+   persone». `conta` e `plurale` erano in `shared/` da mesi.
+   ⚠️ Sono le frasi che si leggono DOPO aver premuto il bottone, cioè quelle
+   che dicono all'utente che cosa c'è dentro il file che ha appena salvato. */
+console.log("\n· una squadra, una persona, un'attività, un rapportino: le frasi col numero UNO");
+FIXTURE = `
+{
+  const p = (x) => String(x).padStart(2, "0"); const d = new Date();
+  const oggi = d.getFullYear() + "-" + p(d.getMonth() + 1) + "-" + p(d.getDate());
+  DEMO.squadre = [{ id: "u1", nome: "Squadra A", persone: 1, area: "Fronte nord", stato: "operativa" }];
+  DEMO.operatori = [{ id: "u2", nome: "Mario Rossi", ruolo: "Pala", squadra: "Squadra A", stato: "disponibile" }];
+  DEMO.presenze = [{ id: "u3", data: oggi, turno: "Mattina", operatoreId: "u2", stato: "presente", ora: "06:05", entrata: "06:00", uscita: "14:00" }];
+  DEMO.attivita = [{ id: "u4", data: oggi, turno: "Mattina", titolo: "Tiro nastro", squadra: "Squadra A", stato: "anomalia", causale: "Guasto meccanico", fermoMin: 1 }];
+  DEMO.rapportini = [{ id: "u5", data: oggi, turno: "Mattina", titolo: "Turno mattina", squadra: "Squadra A", prodQta: 1, prodUnita: "t", ora: "14:00", stato: "inviato" }];
+  DEMO.obiettivi = []; DEMO.checklist = []; DEMO.chiusure = []; DEMO.meteo = []; DEMO.durate = [];
+}
+`;
+{
+  const pg = await apri("nav-squ");
+  await intercetta(pg);
+  // il testo che compare dopo il bottone: `esito(...)` scrive nel riquadro,
+  // e lo stesso messaggio passa dal toast del core
+  const premi = async (bottone, riquadro) => {
+    await pg.evaluate((r) => { const e = document.getElementById(r); if (e) e.textContent = ""; }, riquadro);
+    await pg.click("#" + bottone).catch(() => {});
+    await pg.waitForTimeout(300);
+    return String(await pg.evaluate((r) => { const e = document.getElementById(r); return e ? e.innerText.trim() : ""; }, riquadro));
+  };
+  const scheda = testo(await pg.evaluate(() => document.getElementById("squ-list").innerHTML));
+  dice(/\b1 persona\b/.test(scheda) && !/\b1 persone\b/.test(scheda),
+    "⛔ la scheda della squadra dice «1 persona», non «1 persone»",
+    (scheda.match(/.{0,30}1 person[ae].{0,20}/) || [])[0]);
+
+  const frasi = [
+    ["btn-squ-export", "squ-esito", /^Esportata 1 squadra\b/, "Esportata 1 squadra"],
+    /* ⚠️ NIENTE `\\b` DOPO «attività»: la «à» non è un carattere di parola, il
+       confine fra lei e lo spazio non esiste, e l'asserzione falliva su una
+       frase GIUSTA. Il righello, non il soggetto. */
+    ["btn-att-export", "att-esito", /^Esportata 1 attività /, "Esportata 1 attività"],
+    ["btn-consegna", "rap-esito", /\b1 rapportino e 1 causale di fermo\b/, "1 rapportino e 1 causale di fermo"],
+    /* ⚠️ e l'elenco per l'appello sta in `page-rap`, non fra le squadre:
+       misurato, il bottone lì è largo 0×0 e il click va in timeout. */
+    ["btn-pre-export", "pre-esito", /^Elenco per l'appello esportato: 1 persona\.$/, "Elenco per l'appello esportato: 1 persona."],
+  ];
+  let misurate = 0;
+  for (const [b, r, atteso, nome] of frasi) {
+    // le tre sezioni stanno in pagine diverse: si naviga prima di premere
+    const sezione = { "btn-squ-export": "nav-squ", "btn-att-export": "nav-att",
+                      "btn-consegna": "nav-rap", "btn-pre-export": "nav-rap" }[b];
+    await pg.click("#" + sezione).catch(() => {});
+    await pg.waitForTimeout(400);
+    const t = await premi(b, r);
+    misurate++;
+    dice(atteso.test(t), `⛔ «${nome}»`, t);
+  }
+  console.log(`     (${misurate} frasi misurate premendo il bottone, non lette nel codice)`);
   await pg.close();
 }
 

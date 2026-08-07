@@ -1095,6 +1095,7 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
            idoneitaDiTurno, idoneitaOperatore, inTurnoOggi,
            UNITA_ATTIVITA, obiettivoDi, statoObiettivo,
            storicoSettimana, totaliSettimana, unitaPrevalente, zeriDelGrafico, registrazioniSenzaGiorno, csvStorico,
+           senzaGiornoDiLavoro, avvisoSenzaGiorno,
            produzioneDi, rapportiniInConto,
            CHECKLIST_INIZIO, ESITI_CHECK, statoChecklist, checklistDi,
            STATI_PRESENZA, presenzaDi, appelloTurno, chiusuraDi, riassuntoChiusura,
@@ -1112,7 +1113,7 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
            numeroIt, segnoIt, numeroItDa, numeroDaCampo } from "./campo-data.js";
   import { misuratoPeriodo, produzioneDichiarata, riconciliazioneTurni,
            periodoFraUltimiRilievi, densitaDellaCava } from "../../shared/dw-ponti.js";
-  import { mountExit, esc, csvCell, statoVuoto, senzaDoppioni, messaggioNumero, montaGuardiaInteri, dataIt, modoDimostrazione, nomeCsvDimostrazione, conta } from "../../shared/deepwork-id-client/dw-shell.js";
+  import { mountExit, esc, csvCell, statoVuoto, senzaDoppioni, messaggioNumero, montaGuardiaInteri, dataIt, modoDimostrazione, nomeCsvDimostrazione, conta, plurale } from "../../shared/deepwork-id-client/dw-shell.js";
   // gli agganci della struttura condivisa (modale con Escape, riquadri da
   // tastiera, alone che segue il mouse). Va chiamato QUI e non nel blocco
   // classico in linea: i moduli girano dopo gli script `defer`.
@@ -1930,7 +1931,7 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
       const inForza = operatoriDi(OPER, q.nome).filter(o => o.stato !== "non-disponibile").length;
       return `<div class="item ${q.stato==="ferma"?"st-danger":"st-ok"}" data-squ="${q.id}" role="button" tabindex="0" style="cursor:pointer" title="Tocca per fermare o rimettere in turno">
       <div class="avatar${q.stato==="ferma"?" mute":""}">${esc(sig(q.nome))}</div>
-      <div class="info"><div class="name">${esc(q.nome)}</div><div class="meta">${q.persone == null ? "persone non indicate" : esc(q.persone) + " persone"}${inForza?" · "+inForza+" in anagrafica":""} · ${esc(q.area||"area non indicata")}</div>
+      <div class="info"><div class="name">${esc(q.nome)}</div><div class="meta">${q.persone == null ? "persone non indicate" : esc(conta(q.persone, "persona", "persone"))}${inForza?" · "+inForza+" in anagrafica":""} · ${esc(q.area||"area non indicata")}</div>
         <div class="nota-riga">oggi: <b>${c.aperte}</b> ${c.aperte===1?"attività aperta":"attività aperte"} · ${c.concluse} ${c.concluse===1?"conclusa":"concluse"}</div></div>
       <span class="badge ${QB[q.stato][0]}">${q.stato==="ferma"?I.allarme:""}${QB[q.stato][1]}</span></div>`; }).join("")
       || vuoto(I.persone, "Nessuna squadra in turno",
@@ -2872,7 +2873,7 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
     const a = document.createElement("a");
     a.href = "data:text/csv;charset=utf-8," + encodeURIComponent(csv);
     a.download = "campo_appello.csv"; marchiaCsv(a); a.click();
-    esito("pre-esito", "Elenco per l'appello esportato: " + app.totale + " persone.", "success");
+    esito("pre-esito", "Elenco per l'appello esportato: " + conta(app.totale, "persona", "persone") + ".", "success");
   };
 
   // ══════════════════════════════════════════════════════════════════════
@@ -3258,7 +3259,7 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
     const a = document.createElement("a");
     a.href = "data:text/csv;charset=utf-8," + encodeURIComponent(csvStorico(SET_RIGHE, fuori));
     a.download = "campo_storico.csv"; marchiaCsv(a); a.click();
-    esito("set-esito", "Esportate " + SET_RIGHE.length + " giornate nel file campo_storico.csv."
+    esito("set-esito", plurale(SET_RIGHE.length, "Esportata ", "Esportate ") + conta(SET_RIGHE.length, "giornata", "giornate") + " nel file campo_storico.csv."
       + (fuori.totale ? " In coda c'è la riga senza giorno con " + fuori.totale
           + (fuori.totale === 1 ? " registrazione che non sta" : " registrazioni che non stanno")
           + " in nessuna giornata." : ""), "success");
@@ -3519,7 +3520,7 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
     const a = document.createElement("a");
     a.href = "data:text/csv;charset=utf-8," + encodeURIComponent(csv);
     a.download = "campo_attivita.csv"; marchiaCsv(a); a.click();
-    esito("att-esito", "Esportate " + ATT_G.length + " attività nel file campo_attivita.csv.", "success");
+    esito("att-esito", plurale(ATT_G.length, "Esportata ", "Esportate ") + conta(ATT_G.length, "attività", "attività") + " nel file campo_attivita.csv.", "success");
   };
   $("btn-add-rap").onclick = async () => {
     const titolo = $("new-rap-titolo").value.trim();
@@ -3923,7 +3924,7 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
     const a = document.createElement("a");
     a.href = "data:text/csv;charset=utf-8," + encodeURIComponent(csv);
     a.download = "campo_squadre.csv"; marchiaCsv(a); a.click();
-    esito("squ-esito", "Esportate " + SQU.length + " squadre nel file campo_squadre.csv.", "success");
+    esito("squ-esito", plurale(SQU.length, "Esportata ", "Esportate ") + conta(SQU.length, "squadra", "squadre") + " nel file campo_squadre.csv.", "success");
   };
   /* ⛔ SUI FOGLI DI CAMPO NON RESTAVA NIENTE CHE DICESSE «SONO DATI DI ESEMPIO».
      Misurato oggi con lo stesso comando di tre secondi che ha aperto il buco
@@ -4010,13 +4011,20 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
     const oggi = dmy(OGGI);
     let txt = "CONSEGNA DI TURNO — " + oggi + "\n\n";
     txt += avvisoEsempioTesto();
+    /* ⛔ CHI NON HA IL GIORNO SI DICHIARA ANCHE QUI. La consegna è datata in
+       cima e si archivia: senza questa riga i chili di un rapportino che
+       nessuno ha collocato passavano per prodotti oggi, in questo turno.
+       Lo schermo lo scrive due volte, questo foglio zero. */
+    const fuoriOggi = avvisoSenzaGiorno(ATT_OGGI, RAP_OGGI);
     txt += "RAPPORTINI\n";
-    txt += (RAP_OGGI.length ? RAP_OGGI.map(r => "- " + r.titolo + (riassuntoRapportino(r) ? " — " + riassuntoRapportino(r) : "") + " [" + r.stato + "]").join("\n") : "- nessun rapportino") + "\n\n";
+    txt += (RAP_OGGI.length ? RAP_OGGI.map(r => "- " + r.titolo + (riassuntoRapportino(r) ? " — " + riassuntoRapportino(r) : "")
+      + (senzaGiornoDiLavoro(r) ? " [SENZA DATA]" : "") + " [" + r.stato + "]").join("\n") : "- nessun rapportino") + "\n\n";
     const tp = totaliProduzione(RAP_OGGI), unita = Object.entries(tp.perUnita);
     txt += "PRODUZIONE\n";
     txt += (unita.length ? "- totale: " + unita.map(([u, q]) => formattaProduzione(q, u)).join(" + ") + "\n"
       + tp.perTurno.map(t => "- turno " + t.turno + ": " + Object.entries(t.perUnita).map(([u, q]) => formattaProduzione(q, u)).join(" + ")).join("\n")
-      : "- nessuna produzione registrata") + "\n\n";
+      : "- nessuna produzione registrata") + "\n";
+    txt += (fuoriOggi ? "- ATTENZIONE: " + fuoriOggi + "\n" : "") + "\n";
     const obT = OBIE.filter(o => String(o.data || "") === OGGI)
       .map(o => statoObiettivo(o, RAP_OGGI, ATT_OGGI)).filter(Boolean);
     txt += "OBIETTIVO DEL TURNO\n";
@@ -4073,7 +4081,7 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
     const el = document.createElement("a");
     el.href = "data:text/plain;charset=utf-8," + encodeURIComponent(txt);
     el.download = "consegna_turno.txt"; marchiaCsv(el); el.click();
-    esito("rap-esito", "Consegna di turno esportata: " + RAP_OGGI.length + " rapportini e " + fermi.length + " causali di fermo.", "success");
+    esito("rap-esito", "Consegna di turno esportata: " + conta(RAP_OGGI.length, "rapportino", "rapportini") + " e " + conta(fermi.length, "causale di fermo", "causali di fermo") + ".", "success");
   };
   // Rapporto di fine turno STAMPABILE (stesso pattern del report di Genesi):
   // il deliverable che i supervisori si aspettano — solo dati già presenti.
@@ -4086,7 +4094,9 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
     const tp = totaliProduzione(RAP_OGGI), unitaProd = Object.entries(tp.perUnita);
     const somma = (u) => Object.entries(u).map(([un, q]) => formattaProduzione(q, un)).join(" + ");
     const st = { "in-corso": "In corso", pianificata: "Pianificata", conclusa: "Conclusa", anomalia: "ANOMALIA" };
-    const riga = (a) => `<tr><td>${esc(a.turno||"—")}</td><td>${esc(a.titolo)}</td><td>${esc(a.dettaglio||"")}</td><td>${esc(etichettaAssegnazione(a)||"da assegnare")}</td><td>${st[a.stato]||esc(a.stato)}${a.stato==="anomalia"&&a.causale?" — "+esc(a.causale):""}</td></tr>`;
+    // ⛔ e la RIGA lo dice, non solo il totale: la colonna del turno di una
+    // registrazione senza giorno la attribuiva al turno del giorno stampato
+    const riga = (a) => `<tr><td>${esc(a.turno||"—")}${senzaGiornoDiLavoro(a)?` <b>· senza data</b>`:""}</td><td>${esc(a.titolo)}</td><td>${esc(a.dettaglio||"")}</td><td>${esc(etichettaAssegnazione(a)||"da assegnare")}</td><td>${st[a.stato]||esc(a.stato)}${a.stato==="anomalia"&&a.causale?" — "+esc(a.causale):""}</td></tr>`;
     const ordR = { anomalia:0, "in-corso":1, pianificata:2, conclusa:3 };
     // Obiettivi del giorno (uno per turno) con lo scostamento a consuntivo.
     const obOggi = OBIE.filter(o => String(o.data||"") === OGGI)
@@ -4133,6 +4143,9 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
     // Disponibilità, turno per turno. Entrano SOLO i turni che hanno qualcosa
     // — una durata dichiarata o almeno un'attività: in una cava che lavora un
     // turno solo, tre righe vuote su tre non sarebbero informazione.
+    // le registrazioni che il giorno non ce l'hanno: un foglio DATATO le deve
+    // dichiarare, perché nei suoi totali ci sono
+    const fuoriOggi = avvisoSenzaGiorno(ATT_OGGI, RAP_OGGI);
     const dispOggi = TURNI.map(t => disponibilitaTurno(ATT_OGGI, DUR, OGGI, t, CHI))
       .filter(d => d.durataMin !== null || d.attivita > 0);
     const html = `<!DOCTYPE html><html lang="it"><head><meta charset="utf-8"><title>Rapporto di fine turno — ${oggi}</title>
@@ -4165,6 +4178,14 @@ ${/* ⛔ IL QUADRO DICEVA «0 ANOMALIE APERTE» SU UNA GIORNATA IN CUI NESSUNO
 <span class="kpi">${av.totale?`<b>${av.anomalie}</b> ${av.anomalie===1?"anomalia aperta":"anomalie aperte"}`:`<b>—</b> anomalie: nessuna attività da cui contarle`}</span>
 <span class="kpi">${cop.totale?`<b>${cop.coperte}/${cop.totale}</b> squadre con rapportino`:`<b>—</b> squadre: nessuna in anagrafica`}</span>
 <span class="kpi"><b>${unitaProd.length?esc(somma(tp.perUnita)):"—"}</b> prodotti</span></div>
+${/* ⛔ E IL QUADRO DICEVA «2.510 t PRODOTTI» SU UN FOGLIO INTESTATO 07/08/2026
+     quando 2.300 di quelle tonnellate stavano su un rapportino che il giorno
+     non ce l'ha. `eDelGiorno` le tiene dentro oggi di proposito, e lo schermo
+     lo dichiara due volte — «(1 rapportino ancora senza data)» e «senza data»
+     sulla riga; questo foglio, che è quello che si consegna e si archivia,
+     zero. La stessa app, nel CSV dello storico, quelle tonnellate le scrive
+     con la data VUOTA: due file, gli stessi chili, due giorni diversi. */""}
+${fuoriOggi?`<div class="muted"><b>Attenzione</b> — ${esc(fuoriOggi)}</div>`:""}
 <h2>Checklist di inizio turno</h2>
 ${chkOggi.length?`<table><tr><th>Squadra</th><th>Turno</th><th>Risposte</th><th>Voci non a posto</th><th>Chiusa alle</th></tr>${chkOggi.map(x=>`<tr><td>${esc(x.c.squadra||"—")}</td><td>${esc(x.c.turno||"—")}</td><td>${x.st.ok} a posto · ${x.st.na} n.a. · ${x.st.mancanti} senza risposta</td><td>${x.st.problemi.length?x.st.problemi.map(esc).join("; "):"nessuna"}</td><td>${esc(x.c.ora||"non chiusa")}</td></tr>`).join("")}</table>`:"<div>Nessuna checklist di inizio turno compilata oggi.</div>"}
 <h2>Meteo e condizioni del sito</h2>
@@ -4200,7 +4221,7 @@ ${fotoOggi.length?`<h2>Foto delle anomalie</h2>${fotoOggi.map(a=>`<div class="fo
 <h2>Produzione</h2>
 ${unitaProd.length?`<table><tr><th>Turno</th><th>Produzione</th></tr>${tp.perTurno.map(t=>`<tr><td>${esc(t.turno)}</td><td>${esc(somma(t.perUnita))}</td></tr>`).join("")}<tr><th>Totale</th><th>${esc(somma(tp.perUnita))}</th></tr></table>`:"<div>Nessuna produzione registrata.</div>"}
 <h2>Rapportini</h2>
-${RAP_OGGI.length?`<table><tr><th>Titolo</th><th>Squadra · turno</th><th>Produzione</th><th>Consegne al turno dopo</th><th>Stato</th></tr>${RAP_OGGI.map(r=>`<tr><td>${esc(r.titolo)}</td><td>${esc(r.squadra||"—")}${r.turno?" · "+esc(r.turno):""}</td><td>${/* ⛔ la produzione la legge `produzioneDi`, non `+r.prodQta>0` con l'unità
+${RAP_OGGI.length?`<table><tr><th>Titolo</th><th>Squadra · turno</th><th>Produzione</th><th>Consegne al turno dopo</th><th>Stato</th></tr>${RAP_OGGI.map(r=>`<tr><td>${esc(r.titolo)}</td><td>${esc(r.squadra||"—")}${r.turno?" · "+esc(r.turno):""}${senzaGiornoDiLavoro(r)?` <b>· senza data</b>`:""}</td><td>${/* ⛔ la produzione la legge `produzioneDi`, non `+r.prodQta>0` con l'unità
      GREZZA accanto: un'unità fuori dall'elenco («m3» senza il ³, da un archivio
      vecchio) veniva STAMPATA com'era in questa tabella e SOMMATA come
      tonnellate due tabelle più giù — lo stesso documento che si contraddice */""

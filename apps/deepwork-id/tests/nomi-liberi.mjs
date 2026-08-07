@@ -362,8 +362,17 @@ test("la controprova — il nome che è successo davvero viene visto", () => {
 test("la controprova del buco vero — un nome libero dentro un `const` viene visto", () => {
   const rel = "apps/campo/index.html";
   const html = leggi(rel);
-  const guasto = html.replace("nomeCsvDimostrazione, conta }", "nomeCsvDimostrazione }");
+  /* ⚠️ L'ANCORA NON PUÒ FINIRE SULLA GRAFFA. Era la stringa esatta
+     `nomeCsvDimostrazione, conta }`, cioè presumeva che `conta` fosse
+     l'ULTIMO nome importato da Campo: il 07/08 la pagina ne ha importato uno
+     dopo (`plurale`) e l'iniezione non ha più sostituito niente — la
+     controprova si è dichiarata rotta da sola, che è il comportamento giusto
+     ma è una manutenzione che si poteva evitare. Adesso l'ancora toglie **il
+     solo specificatore `conta`**, qualunque cosa venga dopo. */
+  const guasto = html.replace(/nomeCsvDimostrazione, conta(,|\s*\})/, "nomeCsvDimostrazione$1");
   ok(guasto !== html, "l'iniezione non ha sostituito niente: la prova non prova niente");
+  ok(!/\bconta\b(?=[^{}]*\}\s*from\s*"\.\.\/\.\.\/shared\/deepwork-id-client\/dw-shell\.js")/.test(guasto),
+    "e `conta` non dev'essere più fra i nomi importati: se resta, l'iniezione ha tolto altro");
   const codice = blocchiDi(guasto).map(soloCodice).join("\n;\n");
   ok(/\bconta\s*\(/.test(codice), "`conta(` dev'essere chiamato nella pagina, se no non si prova niente");
 

@@ -19215,6 +19215,81 @@ test("⛔ Campo · lo storico dice quello che non sa mettere in nessuna giornata
   eq([sano.totale, sano.prod, sano.fermi], [0, {}, 0], "con tutto datato non c'è nessun avviso da dare");
 });
 
+test("⛔ Campo · la registrazione senza giorno la riconosce UNA funzione sola", () => {
+  /* Era il `senza` chiuso dentro `registrazioniSenzaGiorno`: il CONTO ce
+     l'aveva, la RIGA di un documento no — e una riga che ricopiasse la
+     condizione sarebbe la copia debole in casa. `dataISOEsiste` guarda che
+     cosa VALE la data, non com'è scritta: il 30 febbraio non è un giorno. */
+  eq(campo.senzaGiornoDiLavoro({ data: "" }), true, "campo vuoto");
+  eq(campo.senzaGiornoDiLavoro({ data: "   " }), true, "solo spazi");
+  eq(campo.senzaGiornoDiLavoro({}), true, "campo assente");
+  eq(campo.senzaGiornoDiLavoro({ data: "2026-02-30" }), true, "il 30 febbraio non esiste");
+  eq(campo.senzaGiornoDiLavoro({ data: "boh" }), true, "una parola non è una data");
+  eq(campo.senzaGiornoDiLavoro({ data: "2026-07-15" }), false, "un giorno vero");
+  eq(campo.senzaGiornoDiLavoro(null), false, "e su niente non risponde «senza giorno»: non c'è nessuna riga");
+  // ⛔ IDENTITÀ, non somiglianza: se un giorno le due condizioni divergessero,
+  //    il conto e la riga direbbero cose diverse sullo stesso rapportino
+  const misti = [{ data: "" }, { data: "2026-02-30" }, { data: "2026-07-15" }, {}];
+  eq(misti.filter(campo.senzaGiornoDiLavoro).length,
+    campo.registrazioniSenzaGiorno(misti, []).attivita,
+    "il predicato e il conto vedono lo stesso insieme");
+});
+
+test("⛔ Campo · un documento DATATO dichiara le registrazioni che il giorno non ce l'hanno", () => {
+  /* ⛔ IL DIFETTO, misurato il 07/08 premendo il bottone e aprendo il file.
+     `eDelGiorno` tiene DENTRO la giornata corrente chi la data non ce l'ha —
+     di proposito, perché un dato vecchio non deve sparire — quindi quei chili
+     entrano nei totali di OGGI. Lo schermo lo dichiara due volte («(1
+     rapportino ancora senza data)» e «senza data» sulla riga); il RAPPORTO DI
+     FINE TURNO e la CONSEGNA, che sono i due documenti datati che si
+     archiviano e si consegnano, zero. Sulla sola dimostrazione il foglio
+     intestato «Rapporto di fine turno — 07/08/2026» scriveva «Produzione ·
+     Mattina · 2.510 t» con 2.300 t di cui nessuno ha dichiarato il giorno, e
+     il CSV dello storico della STESSA app le scriveva in una riga con la data
+     vuota: due file, gli stessi chili, due giorni diversi. */
+  const O = "2026-07-15";
+  eq(campo.avvisoSenzaGiorno([{ data: O, stato: "conclusa" }], [{ data: O, prodQta: 10, prodUnita: "t" }]), "",
+    "con tutto datato il documento non ha niente da dichiarare: la frase è vuota");
+  eq(campo.avvisoSenzaGiorno([], []), "", "senza registrazioni non c'è nessun avviso");
+  eq(campo.avvisoSenzaGiorno(null, null), "", "e su niente non inventa una frase");
+
+  const uno = campo.avvisoSenzaGiorno([{ data: O, stato: "conclusa" }],
+    [{ data: O, prodQta: 210, prodUnita: "t" }, { data: "", prodQta: 2300, prodUnita: "t" }]);
+  eq(uno, "1 rapportino (2.300 t) senza il giorno di lavoro: entra nei totali di oggi perché "
+        + "non sta in nessun'altra giornata, ma nessuno ha dichiarato che sia di oggi.",
+    "il caso della dimostrazione: 2.300 t su 2.510 non sono di nessun giorno");
+
+  // ⛔ IL GENERE. «rapportino» è maschile e «attività» femminile, e la frase le
+  //    mescola: la prima stesura, provata in scratchpad prima di finire nel
+  //    modulo, scriveva «1 attività … è contato». I verbi il genere non ce
+  //    l'hanno, ed è per questo che la frase non ne usa nessun participio.
+  const soloAtt = campo.avvisoSenzaGiorno([{ data: "", stato: "anomalia" }], []);
+  eq(soloAtt, "1 attività senza il giorno di lavoro: entra nei totali di oggi perché "
+            + "non sta in nessun'altra giornata, ma nessuno ha dichiarato che sia di oggi.",
+    "una sola attività: nessun participio da accordare");
+  ok(!/contat[oiae]\b/.test(soloAtt), "e nessun participio ci è rientrato di nascosto");
+
+  // ⛔ LA PRODUZIONE STA SUL RAPPORTINO, non sull'attività: appesa in fondo a
+  //    «2 rapportini e 1 attività» direbbe che ha prodotto anche l'attività
+  const misto = campo.avvisoSenzaGiorno([{ data: "", stato: "anomalia" }],
+    [{ data: "", prodQta: 100, prodUnita: "t" }, { data: "2026-02-30", prodQta: 5, prodUnita: "m³" }]);
+  eq(misto, "2 rapportini (100 t + 5 m³) e 1 attività senza il giorno di lavoro: entrano nei "
+          + "totali di oggi perché non stanno in nessun'altra giornata, ma nessuno ha dichiarato "
+          + "che siano di oggi.",
+    "le parentesi della produzione stanno attaccate ai rapportini, e il plurale segue il totale");
+
+  // un rapportino senza data e senza produzione va dichiarato lo stesso: è una
+  // registrazione che non sta in nessuna giornata, che valga chili o no
+  ok(campo.avvisoSenzaGiorno([], [{ data: "", stato: "bozza" }]).startsWith("1 rapportino senza il giorno"),
+    "senza produzione la frase non porta parentesi vuote");
+
+  // ⚠️ e la frase NON dice «non sono nei totali»: qui ci sono. È il contrario
+  //    dello storico per giornate, dove restano fuori — due documenti diversi,
+  //    due verità diverse, e scriverle uguali sarebbe la copia debole al rovescio
+  ok(uno.includes("entra nei totali di oggi"), "nel documento di oggi ci SONO, e la frase lo dice");
+  ok(!uno.includes("non entra nei totali"), "non si copia la frase dello storico, che dice il contrario");
+});
+
 test("⛔ Campo · il CSV dello storico non scrive «0» dove lo schermo dice «senza minuti»", () => {
   /* PRIMA: `${g.minutiFermo};${g.fermi}` e `${g.prod[u] || 0}`. Una settimana
      con tre guasti mai misurati usciva dal file IDENTICA a una settimana senza

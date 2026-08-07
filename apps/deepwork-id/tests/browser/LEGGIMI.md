@@ -626,3 +626,201 @@ await pagina.goto('http://127.0.0.1:8823/index.html');
 
 Quello che così **non** si prova è il login vero e il traffico verso Firestore.
 Per quelli restano gli emulatori (`apps/deepwork-id/tests`, regole di sicurezza).
+
+## `scudo-frasi-da-uno.mjs` — Scudo aperta con UN dato per collezione
+
+**Perché ha un banco suo.** Il filo del «testo che mente» era stato chiuso su
+cinque app **rendendo** la pagina con un dato solo; su Scudo era stato chiuso
+**leggendo il modulo**. Aprendola davvero — un lavoratore, una scadenza, un
+near-miss, un DPI, un'ispezione, un appalto, un permesso, un documento — sono
+uscite **diciassette** frasi che leggendo il codice non si erano viste. Due
+finiscono in qualcosa che ESCE dall'azienda:
+
+- nel **CSV del riepilogo L. 198/2025**: «L'unico near-miss del periodo ha la
+  gravità potenziale scritta. **SONO** meno di 5» — il sostantivo il singolare
+  ce l'aveva, a mancarlo era il verbo, ed è la seconda volta che succede su
+  questo stesso riepilogo;
+- nel **promemoria che si copia negli appunti** e si manda per email o SMS al
+  lavoratore: «risulta SCADUTA dal 06/08/2026 (**1 giorni fa**)». Il giorno
+  dopo la scadenza è esattamente quando lo si manda.
+
+La più letta di tutte sta sul Quadro: «**1 near-miss registrati** — non
+azzerano il conteggio, ma vanno guardati» (tre pezzi, tutti e tre al plurale).
+
+**Quattro casi, e ognuno esiste perché un ramo non si raggiunge altrimenti.**
+È la lezione del banco delle modali, che dichiarava «0 su 68 aperte» e nessuno
+la leggeva: un caso solo lascia mezza pagina non misurata e il banco risponde
+verde.
+
+| caso | che cosa apre |
+|---|---|
+| `uno` | uno per collezione, scadenza scaduta: export, import, checklist, matrice, CSV |
+| `giorno` | un infortunio **e** un near-miss (il Quadro non disegna il near-miss senza infortuni), un permesso solo e **chiuso** (il ramo tranquillo), il DSS rivisto ieri, il promemoria |
+| `regolare` | la persona che **può** andare: «Oggi possono andare 1 persone» si vede solo quando è tutto a posto |
+| `due` | due tipi di adempimento e **uno** solo da sistemare: serve all'`aria` del grafico, la sola versione di quel numero che arriva a chi non guarda lo schermo |
+
+**Il taglio non è `slice(0,1)` e basta.** Tagliando alla cieca i riferimenti si
+rompono (la scadenza punta a un lavoratore sparito, la mansione a persone che
+non ci sono più) e mezza pagina finisce nei rami «non lo sappiamo» — che sono
+un'**altra** famiglia di frasi. Il caso ricuce gli id sull'unico lavoratore e
+sull'unico cantiere: è una cava piccola vera, non un archivio a pezzi. Tutto
+passa da `rotte` di `giro.mjs`, che riscrive la risposta HTTP del modulo: il
+file su disco non si tocca mai.
+
+**Tre rilevatori più le asserzioni esplicite.** D1 (`1 scadenze`), D2 (`ci sono
+1`), D3 (`1 già presenti`) setacciano ogni schermata. Ma il difetto peggiore di
+Scudo era di un quarto tipo che nessuno dei tre prende — «Tutte le voci hanno un
+esito» su una checklist di **una** voce, dove di numeri non ce n'è nemmeno uno:
+quelle si chiedono al testo reso, una per una.
+
+**I comandi si premono davvero**: gli export escono da un `<a download>`
+intercettato, gli import passano da `setInputFiles` con un file di una riga, il
+promemoria finisce negli **appunti** (`navigator.clipboard` sostituito) e non
+resta a schermo. Il riepilogo dichiara quante schermate ha letto, quanti
+caratteri e quanti comandi ha premuto: uno «zero violazioni» senza quei numeri
+non distingue «pulito» da «non ho aperto niente».
+
+```
+node apps/deepwork-id/tests/browser/scudo-frasi-da-uno.mjs 8823
+node apps/deepwork-id/tests/browser/scudo-frasi-da-uno.mjs 8823 --controprova
+node apps/deepwork-id/tests/browser/scudo-frasi-da-uno.mjs 8823 --dimmi
+```
+
+Misura al 07/08: **44 ok, 0 KO · 48 schermate, 93.938 caratteri, 10 comandi
+premuti**. Controprova: **17 difetti su 17 rimessi davvero, 0 iniezioni
+mancate, 19 prove cadute su 44** — e sei di quelle cadono per il **setaccio**,
+non per un'asserzione esplicita.
+
+**Che cosa NON guarda**, dichiarato perché non prometta troppo: i due fogli
+stampati (verbale DPI e cartella del lavoratore) — li apre
+`scudo-documenti.mjs`, e con un dato solo sono usciti puliti («1 dispositivo»,
+«1 sezione è senza righe», «1 scadenza già scaduta»); le unità di misura
+(`unita-maiuscole.mjs`); i numeri tranquilli sullo zero
+(`scudo-numeri-tranquilli.mjs`); il testo tagliato dal clamp.
+
+## `campo-numeri-tranquilli.mjs` — i documenti di Campo e il giorno che nessuno ha dichiarato
+
+Quattro blocchi storici (il CSV dello storico con gli zeri di comodo, il
+cartellone che diceva «niente registrato», la frase del ponte con Terra, la
+produzione stampata con l'unità grezza) più due della **seconda passata del
+07/08**, nate applicando a Campo la domanda di CLAUDE.md — *dove questa app
+compone qualcosa che ESCE, chi decide i suoi numeri?* — con il metodo che quella
+riga prescrive: **premere il bottone e aprire il file**, non leggere il codice.
+
+**Il difetto che è uscito.** `eDelGiorno` tiene **dentro** la giornata corrente
+le registrazioni senza data — di proposito, e la ragione è scritta nel modulo:
+un dato vecchio non deve sparire. Effetto: i loro chili entrano nei totali di
+oggi. Lo schermo lo dichiara **due volte** («(1 rapportino ancora senza data)»
+accanto alla copertura e «senza data» sulla riga della lista); il **rapporto di
+fine turno** e la **consegna di turno** — i due documenti datati che si
+consegnano e si archiviano — **zero**. Sulla sola dimostrazione, il foglio
+intestato «Rapporto di fine turno — 07/08/2026» scriveva `Produzione | Mattina |
+2.510 t` e, nella tabella dei rapportini, `Rapportino trasporti | Squadra B ·
+Mattina | 2.300 t`: 2.300 t su 2.510 attribuite a un giorno e a un turno che
+nessuno ha dichiarato. La **stessa app**, nel CSV dello storico, quelle
+tonnellate le scrive in una riga con la data **vuota** — due file, gli stessi
+chili, due giorni diversi.
+
+⚠️ **Il numero non era sbagliato**: 2.510 è quello che dice anche lo schermo.
+Mancava la **dichiarazione**. Per questo il banco confronta il totale del
+documento con quello a schermo e pretende che siano **uguali**: un banco che ne
+pretendesse uno diverso starebbe chiedendo un difetto nuovo.
+
+⚠️ **E `eDelGiorno` è asimmetrica**, misurato scrivendo questo banco e sbagliando
+mira la prima volta: la data **vuota** resta dentro il giorno corrente, un
+giorno che **non esiste** («2026-02-30») resta fuori da **tutti** i giorni e lo
+raccoglie solo `registrazioniSenzaGiorno`, cioè il CSV dello storico. Il
+soggetto giusto per un documento di oggi è la data vuota.
+
+**Sesto blocco: le frasi col numero UNO** che accompagnano ogni file — stessa
+famiglia di `flotta-frasi-da-uno.mjs`. Con una squadra, una persona,
+un'attività e un rapportino uscivano «Elenco per l'appello esportato: **1
+persone**», «**Esportate** 1 attività», «**Esportate 1 squadre**», «Consegna di
+turno esportata: **1 rapportini e 1 causali** di fermo» e, sulla scheda della
+squadra, «**1 persone**». `conta` e `plurale` erano in `shared/` da mesi.
+
+```sh
+node apps/deepwork-id/tests/browser/campo-numeri-tranquilli.mjs --porta=8563
+node apps/deepwork-id/tests/browser/campo-numeri-tranquilli.mjs --controprova
+```
+
+Misura al 07/08: **51 verifiche passate, 0 fallite**. Controprova: **14 difetti
+su 14 rimessi davvero, 24 prove cadute su 51** — e le 11 nuove cadono tutte.
+
+**Che cosa NON guarda**, dichiarato: i tre CSV composti a mano nella pagina
+(`campo_appello`, `campo_attivita`, `campo_squadre`) sono stati **aperti e
+confrontati col loro schermo il 07/08 e sono usciti puliti** — le celle non
+misurabili restano vuote e il riposo non calcolabile lo dichiara a parole — ma
+qui non c'è un'asserzione che lo tenga fermo; il foglio stampato in modalità
+tour lo guarda `campo-foglio-turno.mjs`; le unità di misura,
+`unita-maiuscole.mjs`.
+
+## `genesi-documenti-che-escono.mjs` — i nove file che Genesi salva
+
+La domanda di `CLAUDE.md` — *«dove questa app compone qualcosa che ESCE, chi
+decide i suoi numeri? Se la risposta non è la stessa funzione che li decide a
+schermo, lì c'è una copia debole»* — il 03/08 ha trovato ventiquattro difetti
+veri in cinque app. **Su Genesi non era mai stata fatta.** Il foglio stampabile
+e il confronto A/B li teneva già `genesi-foglio-in-cava.mjs`; i **nove bottoni
+che salvano un file** non li aveva aperti nessuno.
+
+⚠️ **Genesi è `apps/genesi/genesi.html`, non `index.html`.** È l'app fuori
+convenzione: un banco che costruisce il percorso per convenzione qui non guarda
+niente e risponde «pulito». È già successo il 03/08 alla regola 20 di
+`run-stile`.
+
+Quattro difetti veri, nessuno visibile leggendo il codice:
+
+| dove | schermo | file |
+|---|---|---|
+| `genesi_scheda_volata.csv` | «legge provvisoria: sotto gli 8 referti la pendenza si muove ancora parecchio» | **una riga su sedici** cambiava fra le due leggi — `PPV recettore (mm/s);1.9` contro `;4.1` — e niente diceva quale fosse quale |
+| la stessa scheda | riga «Airblast 143 dB(L)», rossa, dieci oltre il limite USBM/OSM | l'airblast **non c'era proprio** (la stessa mancanza corretta nel foglio stampato il 06/08) |
+| `genesi_riconciliazione.csv` | «+3,5 cm (+13%)» mentre si digita | salvato: storico «X50 28→**—** cm», e nel CSV `28;31,5;1.9;7,2` — due convenzioni decimali in colonne adiacenti |
+| `genesi-demo.volata.json` | pannello 3D «42 ms», piano di carico `0/42/84/126` | `0 · 42,332516881726825 · 84,36212721741676` — lo **scatter sorteggiato** al posto del ritardo di progetto |
+
+**Il quarto non era solo di lettura: il giro di andata e ritorno lo perdeva.**
+L'importatore ricava il passo dalla mediana delle differenze fra ritardi
+distinti; con lo scatter sono tutte diverse, la mediana non cade in
+`[17,25,42,65]` e il ripiego riportava a **25 ms** una volata progettata a
+**42**. Il banco fa il giro davvero — esporta, ridà il file a `#fileIn`, rilegge
+`#pRit` — perché un'asserzione sul contenuto non l'avrebbe mai detto.
+
+**Il terzo è la copia debole nella sua forma canonica**: `riconDelta` legge il
+valore scritto a mano con `gIn` e il suo commento spiega perché («con `+real` un
+"27,5" diventava NaN e la riga mostrava un trattino come se la misura non ci
+fosse»); il salvataggio, **dodici righe più giù**, faceva `isNaN(+v) ? v : +v`.
+La regola giusta era già nel modulo, nello stesso schermo, sotto gli occhi.
+
+⚠️ **L'asserzione sui decimali è sul TESTO del file**, non sul giro
+scrivi/leggi: una coppia resta verde se le due metà sbagliano insieme, perché il
+lettore di casa la virgola la legge — chi apre il file è un altro programma.
+
+**I casi si costruiscono nei dati**, da `localStorage` (`genesiVolate`,
+`genesiSito`), le stesse chiavi che l'app scrive da sé: il file su disco non si
+tocca mai, perché accanto girano cantieri che scrivono.
+
+```
+node apps/deepwork-id/tests/browser/genesi-documenti-che-escono.mjs
+node apps/deepwork-id/tests/browser/genesi-documenti-che-escono.mjs --controprova
+node apps/deepwork-id/tests/browser/genesi-documenti-che-escono.mjs --dimmi
+```
+
+Misura al 07/08: **53 ok, 0 KO · 8 file salvati e riaperti, 32 numeri
+confrontati** col loro valore a schermo o col file gemello. Controprova: **5
+difetti su 5 rimessi davvero, 21 prove cadute su 53**.
+
+**Che cosa NON guarda**, dichiarato perché non prometta troppo: il foglio
+stampabile e il confronto A/B (`genesi-foglio-in-cava.mjs`); i tre export che
+sono passati puliti — `genesi_legge_di_sito.csv`, `genesi_piano_innesco.xml` e
+`genesi_volata_per_sentinella_*.csv`, quest'ultimo il **solo** che dichiarasse
+già la legge provvisoria (`ppvPrevProvvisoria;si`, `ppvPrevReferti;3`) —, e
+`genesi_confronto_AB.csv`, che ha le sue asserzioni nel banco del foglio.
+
+⏱️ **Una cosa vista e non corretta, scritta qui perché non si perda.** Aprendo
+una volata salvata a 58 kg/foro, il pannello 3D resta su «Nuova volata» e su 60
+kg finché non si preme «Simula volata» dal 2D — e `hgEsporta` in Home fa
+scattare `btnExport`, cioè il bottone del 3D. Risultato misurato: nello stesso
+istante `genesi_scheda_volata.csv` dice `Carica totale (kg);696` e il
+`.volata.json` **720**. Non è una copia debole (il file è d'accordo con il suo
+schermo, che è il pannello 3D): è la decisione, più grossa di un cantiere, su
+quale stato debba esportare il bottone «Esporta» della Home.
