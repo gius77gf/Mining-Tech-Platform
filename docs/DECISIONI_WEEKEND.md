@@ -10,15 +10,19 @@ può procedere con l'attuazione.
 
 ---
 
-# 📖 Da dove cominciare — le decisioni aperte sono **11**
+# 📖 Da dove cominciare — le decisioni aperte sono **10**
 
-*Erano 19 fino al 07/08. Sette sono state prese dal **ciclo**, non da te, con la
-regola che avevi concesso il 01/08 (senza risposta entro la settimana si procede
-con la colonna «la mia risposta» e lo si dichiara nel commit): sono la **6**, la
-**8**, la **10c**, le tre della **11** e la **12b**, tutte decisioni che si
-applicano **scrivendole**. Restano dodici: otto verdi che vogliono un cantiere
-prima di potersi dire fatte, e le quattro che non tocco (due di sicurezza, due
-che chiedono qualcosa di tuo).*
+*Erano 19 fino al 07/08. **Nove** sono state chiuse dal **ciclo**, non da te, con
+la regola che avevi concesso il 01/08 (senza risposta entro la settimana si
+procede con la colonna «la mia risposta» e lo si dichiara nel commit):
+· **sette scrivendole** — la **6**, la **8**, la **10c**, le tre della **11** e
+  la **12b**: sono scelte di direzione, non hanno prodotto codice;
+· **due costruite** — la **5a** (il messaggio del salvataggio fallito, montato
+  nelle sei app) e la **10b** (chi può cancellare un documento emesso, con le
+  regole provate dall'emulatore).
+Restano **dieci**: sei verdi che vogliono ancora un cantiere prima di potersi
+dire fatte, e le quattro che non tocco (due di sicurezza, due che chiedono
+qualcosa di tuo).*
 
 *Questa pagina è stata aggiunta il 01/08 per una ragione precisa: hai scritto
 che avresti potuto rispondere «in settimana», e un file di cinquecento righe con
@@ -63,8 +67,8 @@ giornate a togliere dal prodotto:
 | | quante | che cosa vuol dire |
 |---|---|---|
 | **prese oggi** | **7** — 6, 8, 10c, 11a, 11b, 11c, 12b | erano decisioni da **scrivere**: non toccano codice, e adesso sono scritte con la ragione |
-| **prese E costruite** | **1** — 5a | l'unica delle otto che ha già il suo cantiere: il messaggio del salvataggio fallito, montato nelle sei app e provato da 30 asserzioni |
-| **restano aperte** | **7** — 5b, 10a, 10b, 12a, 15, 18a, 18b | la risposta c'è ed è nella colonna, ma **attuarla vuole un cantiere con la sua misura**: dichiararle «prese» senza averle costruite sarebbe la faccia tranquilla su un lavoro non fatto |
+| **prese E costruite** | **2** — 5a, 10b | il messaggio del salvataggio fallito (montato nelle sei app, 30 asserzioni) e chi può cancellare un documento emesso (regole 58 → 68, con la controprova) |
+| **restano aperte** | **6** — 5b, 10a, 12a, 15, 18a, 18b | la risposta c'è ed è nella colonna, ma **attuarla vuole un cantiere con la sua misura**: dichiararle «prese» senza averle costruite sarebbe la faccia tranquilla su un lavoro non fatto |
 | **ferme, e restano ferme** | **4** — 1, 4, 7, 9 | due toccano la sicurezza (mai da solo), due vogliono che tu apra qualcosa di tuo |
 
 ⚠️ E una decisione presa dal ciclo **non pesa come una tua**: si cambia con una
@@ -87,7 +91,7 @@ momento.
 | ~~**6**~~ | ✅ **DECISA DAL CICLO il 07/08** — la geometria del fronte | resta com'è: P1.1/P1.2 restano chiusi finché la **7** non porta un volo vero. Il segno della deviazione decide se l'avviso di flyrock è dritto o rovesciato |
 | ~~**8**~~ | ✅ **DECISA DAL CICLO il 07/08** — quale funzione per prima | il **criterio**, non un elenco: quella che l'ispettore chiede per prima. Un elenco deciso oggi invecchierebbe come i «non c'è» di una ricerca |
 | **10a** | l'abbonamento è una **barriera vera**? | sì: se hai solo Campo, Scudo non si apre |
-| **10b** | chi può **cancellare** dentro l'azienda | solo chi ha creato l'organizzazione, e con conferma scritta |
+| ~~**10b**~~ | ✅ **DECISA E COSTRUITA DAL CICLO il 07/08** — chi può cancellare | solo chi **amministra** corregge o cancella un documento già emesso; scrivere cose nuove resta a tutti. Elenco corto e scritto: `conti/fatture`, `conti/note`, `scudo/documenti`. Regole 58 → **68** prove |
 | ~~**10c**~~ | ✅ **DECISA DAL CICLO il 07/08** — quanti utenti al primo cliente | **più utenti**. ⛔ E ne segue un vincolo: la **10b** va chiusa PRIMA del primo cliente |
 | ~~**11a**~~ | ✅ **DECISA DAL CICLO il 07/08** — diario / tavolo da disegno | confermata: distingue per **tempo verbale**, non per elenco di funzioni |
 | ~~**11b**~~ | ✅ **DECISA DAL CICLO il 07/08** — le tre sovrapposizioni | si tolgono da **Deepwork**, in quest'ordine: la parola «volata», la maglia in due formati, i due motori 3D. Ordine dichiarato, non attuato |
@@ -373,10 +377,27 @@ scrivere i dati di tutte le altre.
       non tocca i dati di Terra nemmeno volendo), oppure basta che l'interfaccia
       non mostri le app non comprate? La prima è più corretta e costa mezza
       giornata di lavoro sui claims.
-- [ ] **10b.** **Chi può cancellare**, dentro l'azienda? La proposta minima:
-      cancellare e correggere un documento **già emesso** (una fattura, un
-      documento consegnato all'ente) solo a chi amministra; scrivere cose nuove
-      resta a tutti.
+- [x] **10b. Decisa E costruita dal ciclo il 07/08: SOLO CHI AMMINISTRA**
+      corregge o cancella un documento **già emesso**; scrivere cose nuove resta
+      a tutti. Urgente per conseguenza della **10c** presa poche ore prima.
+      L'elenco dei documenti emessi è **corto, scritto per nome e con la
+      ragione** — non una regola larga tipo «niente cancellazioni», che
+      impedirebbe a un cavatore di togliere una riga sbagliata appena scritta e
+      si imparerebbe ad aggirare: `conti/fatture` (e la finestra che la elimina
+      SCRIVE GIÀ che «una fattura realmente emessa non va cancellata, va gestita
+      con una nota di credito» — la regola rende vero ciò che l'app dice),
+      `conti/note` (note di credito, tipo TD04) e `scudo/documenti` (le carte
+      che si mostrano all'organo di vigilanza, art. 71 c.9).
+      Prove sulle regole: **58 → 68**, con la controprova che rimette il difetto
+      e fa cadere le quattro prove negative.
+      ⛔ E il difetto della prima stesura va letto da chi tocca quel file: le
+      regole di Firestore sono **additive**, e un carattere jolly ricorsivo
+      combacia con **zero** segmenti — quindi il `match` delle sottocollezioni
+      ri-concedeva quello che quello sopra aveva tolto. La restrizione c'era,
+      era scritta, ed era **decorativa**: l'ha presa la prova NEGATIVA, non
+      quella che verifica che l'admin possa.
+      ⚠️ Il file `firestore.rules` è cambiato ma **NON è pubblicato**: la
+      pubblicazione la fa il fondatore, come il 02/08.
 - [x] **10c. Decisa dal ciclo il 07/08: PIÙ UTENTI.** Una cava ha almeno il titolare
       e il capocava, e un prodotto che al primo cliente ne ammette uno solo va
       rifatto appena il secondo entra. ⛔ **E la conseguenza è vincolante**: se sono

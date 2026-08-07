@@ -203,6 +203,69 @@ await test("utente NON legge il profilo di un altro", () =>
 await test("utente NON scrive il profilo di un altro", () =>
   assertFails(setDoc(doc(alice, "users/eve"), { defaultOrgId: "orgA" })));
 
+// ============================================================
+// DECISIONE 10b — CHI PUÒ CANCELLARE UN DOCUMENTO GIÀ EMESSO
+// ------------------------------------------------------------
+// «Scrivere cose nuove resta a tutti; cancellare e correggere un documento
+// GIÀ EMESSO — una fattura, un documento consegnato all'ente — solo a chi
+// amministra.» Decisa dal ciclo il 07/08, urgente per conseguenza della 10c.
+//
+// ⛔ E QUESTE PROVE ESISTONO PER UNA TRAPPOLA PRECISA: le regole di Firestore
+// sono ADDITIVE. Finché il `match /apps/{appId}/{document=**}` concedeva
+// `allow write` a ogni membro, qualunque restrizione scritta in un match più
+// stretto sarebbe stata **decorativa** — e nessuna prova che guardi solo il
+// caso «l'admin può» se ne accorgerebbe. La prova che conta è quella
+// NEGATIVA: il membro semplice NON deve poter cancellare.
+console.log("\n— Decisione 10b: chi cancella un documento emesso —");
+await env.withSecurityRulesDisabled(async (ctx) => {
+  const db = ctx.firestore();
+  await setDoc(doc(db, "organizations/orgA/apps/conti/fatture/f1"), { numero: "2026/1", importo: 1000 });
+  await setDoc(doc(db, "organizations/orgA/apps/conti/fatture/f2"), { numero: "2026/2", importo: 2000 });
+  await setDoc(doc(db, "organizations/orgA/apps/conti/note/n1"), { numero: "NC/1", importo: 300 });
+  await setDoc(doc(db, "organizations/orgA/apps/scudo/documenti/d1"), { titolo: "Verbale di verifica periodica" });
+  // una collezione QUALUNQUE, per provare che la restrizione non è larga
+  await setDoc(doc(db, "organizations/orgA/apps/campo/rapportini/r1"), { turno: "mattina" });
+  await setDoc(doc(db, "organizations/orgA/apps/campo/rapportini/r2"), { turno: "pomeriggio" });
+});
+
+await test("un MEMBRO non cancella una fattura emessa", () =>
+  assertFails(deleteDoc(doc(alice, "organizations/orgA/apps/conti/fatture/f1"))));
+await test("un MEMBRO non corregge una fattura emessa", () =>
+  assertFails(setDoc(doc(alice, "organizations/orgA/apps/conti/fatture/f1"), { importo: 1 }, { merge: true })));
+await test("un MEMBRO non cancella una nota di credito", () =>
+  assertFails(deleteDoc(doc(alice, "organizations/orgA/apps/conti/note/n1"))));
+await test("un MEMBRO non cancella un documento del registro di Scudo", () =>
+  assertFails(deleteDoc(doc(alice, "organizations/orgA/apps/scudo/documenti/d1"))));
+
+await test("un MEMBRO PUÒ ancora emettere una fattura nuova", () =>
+  assertSucceeds(setDoc(doc(alice, "organizations/orgA/apps/conti/fatture/f3"), { numero: "2026/3", importo: 500 })));
+await test("un MEMBRO PUÒ ancora correggere e cancellare quello che non è emesso", async () => {
+  await assertSucceeds(setDoc(doc(alice, "organizations/orgA/apps/campo/rapportini/r1"), { turno: "sera" }, { merge: true }));
+  await assertSucceeds(deleteDoc(doc(alice, "organizations/orgA/apps/campo/rapportini/r2")));
+});
+
+await test("chi AMMINISTRA cancella e corregge un documento emesso", async () => {
+  await assertSucceeds(setDoc(doc(boss, "organizations/orgA/apps/conti/fatture/f2"), { importo: 2100 }, { merge: true }));
+  await assertSucceeds(deleteDoc(doc(boss, "organizations/orgA/apps/conti/fatture/f2")));
+  await assertSucceeds(deleteDoc(doc(boss, "organizations/orgA/apps/scudo/documenti/d1")));
+});
+
+// ⛔ E LA BARRIERA FRA ORGANIZZAZIONI NON SI È INDEBOLITA: è il requisito
+// fondante, e una riscrittura dei match delle scritture è esattamente il
+// momento in cui si perde per sbaglio.
+await test("il CONCORRENTE non cancella una fattura di orgA nemmeno da admin di casa sua", () =>
+  assertFails(deleteDoc(doc(eve, "organizations/orgA/apps/conti/fatture/f1"))));
+await test("il CONCORRENTE non scrive nulla dentro orgA", () =>
+  assertFails(setDoc(doc(eve, "organizations/orgA/apps/campo/rapportini/rX"), { turno: "rubato" })));
+await test("il TOUR legge la demo ma non scrive", async () => {
+  await env.withSecurityRulesDisabled(async (ctx) => {
+    await setDoc(doc(ctx.firestore(), "organizations/org_demo/apps/conti/fatture/d1"), { numero: "DEMO" });
+  });
+  await assertSucceeds(getDoc(doc(tour, "organizations/org_demo/apps/conti/fatture/d1")));
+  await assertFails(deleteDoc(doc(tour, "organizations/org_demo/apps/conti/fatture/d1")));
+  await assertFails(setDoc(doc(tour, "organizations/org_demo/apps/campo/rapportini/rZ"), { turno: "x" }));
+});
+
 await env.cleanup();
 
 console.log(`\nRisultato: ${passed} passati, ${failed} falliti`);

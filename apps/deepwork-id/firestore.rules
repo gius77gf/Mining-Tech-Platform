@@ -90,6 +90,71 @@ service cloud.firestore {
         // tour: il tenant demo è leggibile da qualunque utente
         // autenticato (inclusi gli anonimi della modalità tour)
         allow read:  if memberOf(orgId) || (isDemoOrg(orgId) && signedIn());
+        // ⛔ LA SCRITTURA NON STA PIÙ QUI, ed è la parte che va letta prima di
+        // toccare questo file. Le regole di Firestore sono ADDITIVE: un
+        // `match` più stretto non può TOGLIERE un permesso concesso da uno più
+        // largo. Finché questa riga diceva `allow write: if memberOf(...)`,
+        // qualunque restrizione scritta sotto sarebbe stata decorativa — la
+        // guardia che si crede di avere. Le scritture sono nei due `match`
+        // qui sotto, che coprono insieme lo stesso spazio.
+      }
+
+      // ⛔ DECISIONE 10b (07/08, presa dal ciclo): CHI PUÒ CANCELLARE.
+      // «Scrivere cose nuove resta a tutti; cancellare e correggere un
+      // documento GIÀ EMESSO — una fattura, un documento consegnato all'ente —
+      // solo a chi amministra.»
+      // È diventata urgente il giorno stesso, per conseguenza della 10c (al
+      // primo cliente ci sono più utenti): finché l'utente è uno, «chiunque
+      // può cancellare una fattura» è una riga di documento; con due, è un
+      // danno.
+      //
+      // ⚠️ E L'ELENCO È CORTO, SCRITTO PER NOME E CON LA RAGIONE — non una
+      // regola larga tipo «niente cancellazioni». Una regola larga
+      // impedirebbe a un cavatore di togliere una riga sbagliata appena
+      // scritta, e chi lavora imparerebbe ad aggirarla. Le tre voci:
+      //   · conti/fatture  — la fattura emessa. Non è una scelta mia: la
+      //     finestra che la elimina SCRIVE GIÀ, testuale, che «una fattura
+      //     realmente emessa non va cancellata, va gestita con una nota di
+      //     credito» (art. 26 DPR 633/1972). La regola rende vero quello che
+      //     l'app già dice;
+      //   · conti/note     — le note di credito, che sono documenti fiscali
+      //     emessi esattamente come le fatture (tipo TD04);
+      //   · scudo/documenti— il registro dei documenti con gli allegati: sono
+      //     le carte che si mostrano a un organo di vigilanza, e l'art. 71 c.9
+      //     chiede di tenerle a disposizione.
+      // Il giorno che ne servirà una quarta si aggiunge qui, con la sua
+      // ragione accanto: un elenco corto e scritto batte una regola larga che
+      // nasconde.
+      function documentoEmesso(appId, coll) {
+        return ['conti/fatture', 'conti/note', 'scudo/documenti']
+          .hasAny([appId + '/' + coll]);
+      }
+
+      match /apps/{appId}/{coll}/{docId} {
+        // scrivere cose nuove resta a tutti i membri
+        allow create: if memberOf(orgId) && !isDemoOrg(orgId);
+        // correggere e cancellare: su un documento emesso solo chi amministra
+        allow update, delete: if memberOf(orgId) && !isDemoOrg(orgId)
+          && (!documentoEmesso(appId, coll) || isAdmin(orgId));
+      }
+
+      // le sottocollezioni sotto un documento restano come prima: la
+      // decisione parla del documento emesso, non di quello che ci sta sotto.
+      //
+      // ⛔ E QUI STAVA IL DIFETTO DELLA PRIMA STESURA, misurato dalle prove
+      // negative il 07/08: era scritto `{docId}/{resto=**}`, e un carattere
+      // jolly ricorsivo in Firestore combacia con **ZERO o più** segmenti.
+      // Cioè quel `match` copriva anche il documento stesso, e il suo
+      // `allow write` ri-concedeva — per additività — proprio quello che il
+      // `match` di sopra aveva appena tolto: il membro cancellava la fattura
+      // e le quattro prove negative fallivano tutte insieme.
+      // Servono due segmenti dichiarati (`{sotto}/{docSotto}`) perché la
+      // regola parta davvero da un livello più in giù.
+      // ⚠️ È la stessa famiglia della guardia che non morde: la restrizione
+      // c'era, era scritta, ed era decorativa. L'ha presa la prova NEGATIVA —
+      // quella che pretende un rifiuto — non quella che verifica che l'admin
+      // possa.
+      match /apps/{appId}/{coll}/{docId}/{sotto}/{docSotto=**} {
         allow write: if memberOf(orgId) && !isDemoOrg(orgId);
       }
     }
