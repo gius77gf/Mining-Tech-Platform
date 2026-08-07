@@ -1002,6 +1002,29 @@ numero scritto dove non era stato misurato niente**.*
   di schema di `scudo-data.js:29` elencava le origini **senza `fermo`**, da sei
   giorni. ⛔ Commit di verifica **non** spostato: riverificata una riga, non il
   documento.
+- [x] ✅ **Il tema morto del core** (`a93f8ee`): **137** selettori
+  `body.outdoor-mode` tolti, −10.965 caratteri, e l'aspetto verificato con
+  **50 scatti su 52 byte-identici** (i due fuori sono la quota di storage, che
+  cambia col disco: sette md5 in sette giri, tre dei quali su HEAD). ⚠️ Le 13
+  `body:not(.outdoor-mode)` **non** sono morte e restano: `:not()` conta come
+  una classe, toglierlo abbassa la specificità.
+- [x] ✅ **Le strisce di stato, WCAG 1.4.11** (`f6b42ee`): chiaro **72 → 0**,
+  sole **57 → 0**, scuro invariato al bit. Terzo livello `--bar-*` dichiarato
+  una volta in `shared/`. ⛔ Censimento **per effetto**: 122 dichiarazioni con
+  un token di stato + **145 con un colore letterale**, invisibili al censimento
+  per nome che ne contava 13. Banco nuovo `contrasto-non-testo.mjs`, banchi
+  132 → **137**.
+- [x] ✅ **Il banco della barra a quattro larghezze** (`27655b4`): il difetto
+  riferito da uno scatto (etichette di Conti tagliate a 430) **non c'era** —
+  164 voci, zero tagliate — e io l'avevo riportato in due checkpoint senza
+  rimisurarlo. Allargando il banco è però uscito un difetto **vero**.
+- [ ] **Sentinella a 320 px**: la barra ha **328 px di contenuto in 302** e
+  `.nav` ha `overflow:hidden`, quindi le ultime voci spariscono in silenzio.
+  ⚠️ La strada ovvia è già scartata: rimpicciolire il carattere fa **salire**
+  il minimo (328 → 333). Cantiere aperto.
+- [x] ✅ **La parte 7 estesa col terzo livello** (`84de2d8`) e **la ricerca su
+  Scudo** (`a01bbcc`, 127 righe, 34 con fonte, ~45 `[dedotto]` — da rimisurare
+  prima di diventare unità).
 - [ ] **Le 54 dei temi chiari** — è una **palette**, non una correzione: va
   decisa con la ricerca cromatica e verificata a contrasto. Fra le peggiori:
   «Conforme» nell'esito del report a **2,35** (ne servono 3), «Riferibilità
