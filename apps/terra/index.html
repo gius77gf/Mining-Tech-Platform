@@ -2617,6 +2617,27 @@ a.dw-btn{text-decoration:none}
          µg/m³ in MG/M³), cioè un'unità di misura diversa da quella misurata */
       + "th{background:#eee;font-size:11px;letter-spacing:.3px}"
       + "td.n,th.n,.n{text-align:right;white-space:nowrap}span.n{display:block}"
+      /* ⛔ IL `nowrap` SERVE AL NUMERO, NON ALLA SUA ETICHETTA — e finché è
+         stato uno solo il foglio usciva dalla carta. `.n` sta sia sul valore
+         («79.400 m³», che non si spezza dall'unità) sia sull'intestazione della
+         colonna, e «Ripreso da cumuli (m³)» tenuto su una riga sola pretende
+         119,2 px di larghezza MINIMA. Con le altre tre colonne la tabella dei
+         mesi chiedeva 377,7 px e quella dei fronti 381,8 in uno spazio di
+         284,2: a 390 px di foglio il documento andava a 435 px, cioè 45 px di
+         prospetto tagliati via — su un foglio che si allega alla comunicazione
+         annuale. Su A4 non si vedeva: lì di spazio ce n'è.
+         Misurato, e provate tre strade: `overflow-wrap:anywhere` da solo lascia
+         402 px (non riduce il minimo di una cella di tabella, spezza le parole
+         a metà e resta fuori di 12); il margine di stampa più stretto da solo
+         lascia 412; l'etichetta che va a capo porta TUTTE e sei le tabelle a
+         284,2 px e il documento a 390 su 390. Il valore resta `nowrap`: è
+         l'etichetta a poter andare a capo, non la misura. */
+      + "th .n,th.n{white-space:normal}"
+      /* E la stessa distinzione dentro il valore: «441.400 m³ (36,8% del
+         concesso)» tenuto tutto su una riga pretende 201 px e schiaccia
+         l'etichetta accanto a una parola per riga. Quello che non si spezza è
+         «441.400 m³»; la parentesi che lo commenta può andare a capo. */
+      + ".n .via{white-space:normal;font-weight:normal}"
       + "tr.tot td{font-weight:bold;background:#f3f3f3}"
       + ".mini{color:#555;font-size:11px;margin:4px 0 0}"
       + ".firma{margin-top:26px;display:flex;gap:30px}.firma div{flex:1;border-top:1px solid #777;padding-top:5px;font-size:11px;color:#555}"
@@ -2723,7 +2744,7 @@ a.dw-btn{text-decoration:none}
               "<span class='n'>" + (R.pregressoDichiarato ? nD(R.pregresso) + " m³" : "non dichiarato") + "</span>"])
       + riga(["<b>Scavo misurato sotto questo titolo fino al 31/12/" + R.anno + "</b>", "<span class='n'>" + n0(Math.max(0, R.cumulatoFineAnno - R.pregresso)) + " m³</span>"])
       + "<tr class='tot'><td>Cumulato a fine " + R.anno + "</td><td class='n'>" + n0(R.cumulatoFineAnno) + " m³"
-      + (R.pctFineAnno != null ? " (" + un1(R.pctFineAnno) + "% del concesso)" : "") + "</td></tr>"
+      + (R.pctFineAnno != null ? "<span class='via'> (" + un1(R.pctFineAnno) + "% del concesso)</span>" : "") + "</td></tr>"
       + riga(["<b>Residuo del volume concesso</b>", "<span class='n'>" + (R.residuoFineAnno != null ? n0(R.residuoFineAnno) + " m³" : "non calcolabile") + "</span>"])
       + (soglia != null ? riga(["Soglia di guardia impostata", "<span class='n'>" + un1(soglia) + "%</span>"]) : "")
       + "</table>"

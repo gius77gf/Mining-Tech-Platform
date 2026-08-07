@@ -162,8 +162,23 @@ DEMO.scadenze.length = 1;
 DEMO.scadenze[0].ricorrenzaMesi = 1;
 `;
 /* un anno solo di storia (il ritmo medio) e la soglia superata (l'articolo) */
+/* ⛔ E IL «GIÀ ESTRATTO» SE LO SCRIVE IL CASO, perché lo stato che serve qui
+   dipende da un numero che il caso non toccava. Questo caso sostituisce i
+   rilievi (859.000 m³) e si teneva il pregresso della dimostrazione: con i
+   340.000 di allora faceva 1.199.000 su 1.200.000 concessi, cioè **99,9%** —
+   `warn` per un decimo di punto. Il 07/08 la dimostrazione è stata portata di
+   proposito sopra la soglia di guardia (il «già estratto» da 340.000 a
+   880.000, perché `.vita.warn` e `.kpi.warn` non comparivano MAI e un colore
+   mai comparso non lo misura nessuno) e questo caso è passato a 144,9%: stato
+   `danger`, la riga della soglia sparita, e il banco ha accusato il prodotto
+   di scrivere «al 80%» quando quella frase non veniva più scritta affatto.
+   Non era un difetto del prodotto: era un banco che portava dentro un numero
+   che non aveva dichiarato. Adesso il caso è chiuso in sé — e sta a 88,3%
+   invece che a 99,9%, così un rilievo in più nella dimostrazione non lo
+   ribalta un'altra volta. */
 const CASO_ANNO = `
 DEMO.rilievi.length = 0;
+DEMO.autorizzazioni[0].estrattoPregressoM3 = 200000;
 DEMO.rilievi.push({ id: "a", titolo: "R1", data: "2025-08-06", tipo: "Ortofoto + DEM",
   volumeM3: 400000, stato: "elaborato", metodo: "RTK", gsd: "2", fronteId: "f1" });
 DEMO.rilievi.push({ id: "b", titolo: "R2", data: "2026-08-05", tipo: "Ortofoto + DEM",

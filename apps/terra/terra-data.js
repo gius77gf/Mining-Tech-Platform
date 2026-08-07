@@ -129,7 +129,33 @@ export const DEMO = {
     { id: "a1", numeroAtto: "Atto n. 128 del 2021 (esempio)", ente: "Ente competente di esempio",
       dataRilascio: "2021-03-15", dataScadenza: "2031-03-14", superficieMq: 78000,
       volumeAutorizzatoM3: 1200000, quotaFondoM: 300,
-      estrattoPregressoM3: 340000, materiale: "Sabbia e ghiaia",
+      /* ⛔ IL «GIÀ ESTRATTO» PORTA LA CAVA OLTRE LA SOGLIA DI GUARDIA, E NON È
+         UN NUMERO SCELTO PER FARE COLORE. Con 340.000 la dimostrazione stava al
+         36,8% del concesso, cioè in `ok`: misurato il 07/08 navigando tutte e
+         sei le sezioni, `.vita.warn`, `.vita.danger`, `.kpi.warn`, `.riga.att` e
+         `.riga.dng` uscivano a ZERO in tutto il documento. Fra quelli c'è
+         l'avviso che Terra esiste per dare — «la soglia di guardia è superata,
+         prepara rinnovo o variante» — e finché non compare mai, nessuno lo
+         guarda: né chi vende, né chi misura il contrasto dei colori (un banco
+         che non trova la classe non la sa giudicare, e il suo «0 violazioni»
+         vale per i soggetti che si sono presentati, non per quelli che
+         esistono).
+         È la stessa ragione per cui questa dimostrazione contiene già l'anno
+         con la sola ripresa da cumulo (`r7`) e la scadenza senza data (`t5`):
+         uno stato che il prodotto sa raccontare va MOSTRATO, non solo
+         calcolato. Qui però non si forza nessuna classe — si cambia il dato, e
+         lo stato lo decide `vitaCava` come per qualunque cliente.
+         Il numero è coerente con la storia che l'atto racconta: 1.200.000 m³
+         concessi nel 2021 fino al 2031, cioè 120.000 m³ l'anno di ritmo
+         previsto (ed è quello che dichiara il piano, `pianificatoAnnuoM3:
+         125000`). Cinque anni dopo, 880.000 m³ vogliono dire che si è cavato
+         più in fretta del progetto: col misurato in Terra il cumulato fa
+         981.400 m³, l'81,8% del concesso — sopra la soglia di guardia
+         dell'80% — e al ritmo degli ultimi tre anni il volume finisce verso il
+         2028, tre anni PRIMA che scada il titolo. È esattamente la domanda per
+         cui il contatore vita cava è stato costruito, e con il 36,8% non aveva
+         risposta da dare. */
+      estrattoPregressoM3: 880000, materiale: "Sabbia e ghiaia",
       prescrizioni: "Recupero ambientale contestuale alla coltivazione, lotto per lotto.\nRilievo dei lavori da tenere aggiornato e trasmettere all'ente.",
       riferimenti: "Protocollo di esempio · progetto di coltivazione allegato all'atto",
       stato: "vigente", sogliaGuardiaPct: 80, preavvisoGiorni: 90, anniRitmo: 3 },

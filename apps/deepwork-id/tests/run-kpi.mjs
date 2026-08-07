@@ -23467,5 +23467,45 @@ test("⛔ core · il tema `outdoor-mode` non esiste nel core (e il blocco che lo
     "mentre `shared/dw-tema.js` la mette davvero: la classe NON è morta nell'ecosistema");
 });
 
+/* ⛔ Terra · LA DIMOSTRAZIONE DEVE MOSTRARE LO STATO DI ALLARME, NON SOLO
+   SAPERLO CALCOLARE. Misurato il 07/08 navigando tutte e sei le sezioni:
+   `.vita.warn`, `.vita.danger`, `.kpi.warn`, `.riga.att` e `.riga.dng` erano a
+   ZERO in tutto il documento, quindi l'avviso che Terra esiste per dare — «la
+   soglia di guardia è superata» — non lo vedeva nessuno: né chi guarda la
+   dimostrazione, né il banco del contrasto, il cui «0 violazioni» vale per i
+   soggetti che si presentano e non per quelli che esistono.
+   Questa prova non guarda una classe CSS (le classi non le vede `node`):
+   guarda il DATO da cui la classe nasce. Se qualcuno rimette il «già estratto»
+   sotto la soglia, il contatore torna `ok` e questa prova cade — che è l'unico
+   modo di accorgersene senza riaprire il browser.
+   ⚠️ Dichiarato, per non far cercare a vuoto: `danger` NON è raggiungibile
+   insieme a `warn`. `vitaCava` risponde `danger` solo con `pct >= 100`, e la
+   scheda della vita cava è UNA sola (l'autorizzazione vigente), quindi una
+   stessa dimostrazione può mostrare l'uno o l'altro, mai tutti e due. Qui si
+   è scelto `warn`: è lo stato in cui un cliente vero si trova davvero, ed è
+   l'unico su cui il consiglio dell'app («prepara rinnovo o variante») ha
+   ancora senso. `.vita.danger` e `.riga.dng` restano quindi non misurati dal
+   giro, e questo è il posto in cui c'è scritto. */
+test("⛔ Terra · la dimostrazione supera la soglia di guardia (se no lo stato di allarme non compare mai)", () => {
+  const d = terra.DEMO;
+  const aut = terra.autorizzazioneVigente(d.autorizzazioni);
+  ok(aut != null, "la dimostrazione ha un'autorizzazione vigente");
+  const vc = terra.vitaCava(aut, d.rilievi, new Date("2026-08-07T10:00:00"));
+  ok(vc != null, "e il contatore vita cava si accende");
+  eq(vc.stato, "warn",
+    `il contatore deve stare in guardia: pct ${vc.pct}% contro una soglia di ${vc.soglia}%`);
+  ok(vc.pct >= aut.sogliaGuardiaPct,
+    `il consumato (${vc.pct}%) deve stare sopra la soglia dichiarata (${aut.sogliaGuardiaPct}%)`);
+  ok(vc.pct < 100,
+    `e sotto il 100%, se no lo stato diventa «danger» e l'avviso della soglia sparisce (pct ${vc.pct}%)`);
+  /* e la stessa soglia deve mordere anche nella Denuncia, che è dove sta
+     l'unica tessera che sa dirsi `warn` (il residuo a fine anno) */
+  const R = terra.riepilogoAnnuale(d.rilievi, 2026, aut, new Date("2026-08-07T10:00:00"));
+  ok(R.pctFineAnno >= aut.sogliaGuardiaPct && R.pctFineAnno < 100,
+    `anche il riepilogo annuale deve stare in guardia: ${R.pctFineAnno}%`);
+  ok(vc.pregressoDichiarato,
+    "il già estratto resta DICHIARATO: senza, il consumato sarebbe un minimo e la scheda direbbe un'altra cosa");
+});
+
 console.log(`\nRisultato KPI app: ${passed} passati, ${failed} falliti${inVolo.length ? `  ·  ${inVolo.length} prove asincrone aspettate` : ""}`);
 process.exit(failed > 0 ? 1 : 0);
