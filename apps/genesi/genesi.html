@@ -1022,7 +1022,7 @@ import { sitoFit, ppvLimit, ppvSenzaSoglia, airblastDb, normaPpvLab,
 /* il verdetto sulla vibrazione, in un posto solo: fino al 03/08 lo prendeva
    la scheda validatori e il foglio stampato non lo prendeva affatto — vedi
    l'intestazione del blocco in `genesi-data.js`. */
-         esitoPpv, esitoAirblast, provenienzaPpv, vincitoreKpi, stessaBasePpv,
+         esitoPpv, esitoAirblast, AIRBLAST_LIMITE_DB, provenienzaPpv, vincitoreKpi, stessaBasePpv,
          _SITO_FONTI, _sitoFonte, _sitoFonteDaTesto,
          _sitoMappaColonne, _sitoTicks, _sitoNum,
 /* la riconciliazione previsto-vs-reale: il consuntivo di carico che torna da
@@ -2661,8 +2661,28 @@ function rebuild(){
 
 /* ============ import / export volata.json ============ */
 $('btnExport').onclick = ()=>{
+  /* ⛔ `ritardo` È IL RITARDO DI PROGETTO, NON QUELLO CHE LA SIMULAZIONE HA
+     SORTEGGIATO. Misurato il 07/08 premendo il bottone e aprendo il file: col
+     pannello 3D fermo su «42 ms» e il piano di carico che scrive 0/42/84/126,
+     questo file scriveva 0 · 42,332516881726825 · 84,36212721741676 ·
+     128,76780231479614 — cioè lo **scatter d'innesco**, che `buildSim` somma
+     apposta al tempo nominale per far vedere che i detonatori non sparano
+     tutti all'istante esatto (`f.tNom=f.tDet; f.tDet=f.tDet+_gauss(rng)*sd`).
+     Il tempo nominale era lì accanto, nello stesso oggetto, e nessuno lo
+     leggeva.
+     E il danno non era solo di lettura: il giro di andata e ritorno lo
+     perdeva. L'importatore qui sotto ricava il passo dalla mediana delle
+     differenze fra ritardi distinti; con lo scatter le differenze sono tutte
+     diverse (42,33 · 42,03 · 44,41 · 39,92 …), la mediana non cade in
+     `[17,25,42,65]` e il ripiego riportava a **25 ms** una volata progettata a
+     42. Un file di scambio che, riletto da chi l'ha scritto, cambia il
+     progetto. ⚠️ La sequenza resta quella del progetto: `sequenza` è l'ordine,
+     e riordinare i fori sui tempi sorteggiati vorrebbe dire consegnare come
+     ordine di sparo un'inversione che la simulazione mostra come rischio. */
   const fori = SIM.fori.map(f=>({ id:'foro_'+(f.i+1), num:f.i+1, x:+f.x.toFixed(2), prof:+(f.prof||P.prof), diam:P.diam,
-    kg:P.kg, esplosivo:(selEsplosivo()||{}).nome||'', ritardo:f.tDet, innesco:(selInnesco()||{}).short||'', sequenza:f.i+1 }));
+    kg:P.kg, esplosivo:(selEsplosivo()||{}).nome||'',
+    ritardo:+((f.tNom!=null?f.tNom:f.tDet)||0).toFixed(1),
+    innesco:(selInnesco()||{}).short||'', sequenza:f.i+1 }));
   const out = { schemaV:1, tipo:'volata-deepwork',
     volata:{ id:'vol_demo_genesi', sitoId:null, tipo:'cava', numero:1, data:oggiISO(),
       fronte:{ lunghezza_m:SIM.Lm, altezza_m:SIM.H, profilo:(P.profilo||[]).map(p=>({x:+p.x.toFixed(2),y:+p.z.toFixed(2)})) },
@@ -2888,6 +2908,31 @@ function cmpRender(){
 // archivia col rapportino. Stesse cifre della Scheda validatori.
 if($('btn-scheda-csv')) $('btn-scheda-csv').onclick=()=>{
   const k=computeKPI(), F=flyrockEst();
+  /* ⛔ IL 07/08 QUESTO FILE ERA LA QUARTA SUPERFICIE CHE NON DICEVA DA DOVE
+     VIENE LA PPV, dopo il foglio stampato (corretto il 06/08), la scheda
+     validatori e il riquadro «Manda a Sentinella». Misurato aprendo DUE VOLTE
+     lo stesso identico progetto, una volta con la legge di sito accesa su tre
+     referti e una volta senza, e affiancando i due file: **una riga su
+     sedici** cambiava — «PPV recettore (mm/s);1.9» contro «;4.1» — e nel file
+     non c'era una parola per distinguerle. Il numero più che dimezzato, tutto
+     il resto identico, e lo schermo intanto scriveva «legge provvisoria:
+     sotto gli 8 referti la pendenza si muove ancora parecchio». Due schede
+     archiviate col rapportino a due mesi di distanza sono confrontabili solo
+     per sbaglio.
+     La frase la compone `provenienzaPpv`, che è la stessa funzione che decide
+     il numero, e `csvRiconciliazione` la scrive già come `ppv_prev_base`: qui
+     era l'unica delle due uscite di Genesi a non prenderla.
+     ⛔ E L'AIRBLAST NON C'ERA PROPRIO — la stessa mancanza corretta nel foglio
+     il 06/08. La scheda validatori ha la sua riga (a 60 m dà 143 dB(L), rosso,
+     dieci sopra il limite USBM/OSM), il commento qui sopra prometteva «stesse
+     cifre della Scheda validatori», e nel file archiviato col rapportino la
+     sovrappressione d'aria non compariva da nessuna parte.
+     ⚠️ Il verdetto lo dicono `esitoPpv`/`esitoAirblast`, non un `>` scritto
+     qui: in un foglio di calcolo le due celle si potrebbero confrontare a
+     mano, ma «non si può dire se è sotto soglia» — il caso in cui il limite
+     non è calcolabile — non si ricava da due celle di cui una è vuota. */
+  const _mic=computeMIC(), _db=Math.round(airblastDb(D2.recDist,_mic));
+  const _eP=esitoPpv(k.ppv, k.lim), _eA=esitoAirblast(_db);
   const rows=[
     ['Maglia', k.maglia],
     ['Esplosivo', k.setup],
@@ -2900,6 +2945,19 @@ if($('btn-scheda-csv')) $('btn-scheda-csv').onclick=()=>{
        è l'unica cosa che dice perché — e quando è piena dice a che cosa si
        riferisce quel numero, che in un file archiviato col rapportino conta */
     ['Norma PPV', normaPpvLab(D2.recNorma)+' @ '+D2.recFreq+' Hz'],
+    ['Esito PPV', _eP.verdetto],
+    ['Distanza recettore (m)', D2.recDist],
+    ['MIC carica per ritardo (kg)', _mic],
+    ['Base della previsione PPV', k.ppvBase&&k.ppvBase.breve],
+    ['Referti della legge di sito', k.ppvBase&&k.ppvBase.fonte==='sito' ? k.ppvBase.referti : ''],
+    /* gli avvisi escono in una cella loro e per intero: «provvisoria» ed
+       «estrapola» sono le due ragioni per cui questo numero si muoverà, e in
+       `breve` ci stanno come due parole — qui c'è spazio per la frase che le
+       spiega, che è quella che legge lo schermo */
+    ['Avvisi sulla previsione PPV', (k.ppvBase&&k.ppvBase.avvisi||[]).join(' ')],
+    ['Airblast previsto (dB(L))', _db],
+    ['Limite airblast (dB(L))', AIRBLAST_LIMITE_DB],
+    ['Esito airblast', _eA.verdetto],
     ['Gittata flyrock (m)', k.fly],
     ['Sgombero mezzi 2x (m)', Math.round(F.Dmez)],
     ['Sgombero persone 4x (m)', Math.round(F.Dper)],
@@ -3200,7 +3258,28 @@ function riconRender(){
 }
 function riconSave(){
   const k=computeKPI();
-  const val=id=>{ const v=$(id)?$(id).value:''; return v===''?null:(isNaN(+v)?v:+v); };
+  /* ⛔ QUI STAVA LA COPIA PIÙ DEBOLE DELLA REGOLA CHE STA DODICI RIGHE PIÙ SU.
+     `riconDelta` legge il valore scritto a mano con `gIn` — e il suo commento
+     spiega perché: «con `+real` un “27,5” diventava NaN e la riga mostrava un
+     trattino come se la misura non ci fosse». Il salvataggio invece faceva
+     `isNaN(+v) ? v : +v`, cioè teneva la STRINGA «31,5». Misurato il 07/08
+     digitando i valori come li scrive chi lavora in cava, con la virgola:
+       · mentre si digita, lo schermo diceva «+3,5 cm (+13%)», giusto;
+       · salvato, la riga di storico diventava «X50 28→— cm · PPV 1,9→— mm/s ·
+         fly 101→— m», perché `gnum("31,5")` risponde «—»: tre misure fatte in
+         cava sparite dal registro che le deve conservare, e sostituite dal
+         segno che l'ecosistema usa per «nessuno ha misurato» — il numero
+         tranquillo del principio del fondatore, nella sua forma peggiore;
+       · e il CSV usciva «28;31,5;1.9;7,2»: due convenzioni decimali in
+         colonne adiacenti, in un file la cui intestazione dichiara «i numeri
+         restano col punto». Chi lo apre in Excel non può sottrarre le due
+         colonne, che è l'unica cosa per cui quel file esiste.
+     Ora si legge con `gIn`, la stessa metà del lettore condiviso che usa la
+     riga dello scostamento. Un testo che non si capisce come numero resta
+     testo (non diventa `null`): non si butta via quello che qualcuno ha
+     scritto, ma nemmeno lo si spaccia per una misura. */
+  const val=id=>{ const v=$(id)?String($(id).value).trim():''; if(v==='') return null;
+    const n=gIn(v); return isFinite(n)?n:v; };
   const rec={ ts:timbroLocale(), nome:($('ric-nome')&&$('ric-nome').value.trim())||'',
     prev:{x50:k.x50, ppv:k.ppv, fly:k.fly, ppvBase:k.ppvBase},
     real:{x50:val('ric-x50'), ppv:val('ric-ppv'), fly:val('ric-fly'), ovs:val('ric-ovs'), note:($('ric-note')&&$('ric-note').value.trim())||''} };
@@ -3312,7 +3391,13 @@ function sigRender(){
     +'<div style="color:var(--mut)">Limite norma</div><div>'+(lim===null
         ? '<b style="color:#ffca28">non calcolabile</b> — '+_rEsc(senza.che)+'. '+_rEsc(senza.come)
         : gfix(lim,1)+' mm/s '+(rat>=1?'<b style="color:#ef5350">SUPERATO</b>':''))+'</div>'
-    +'<div style="color:var(--mut)">Confronto stima Devine</div><div>'+dev+' mm/s</div>'
+    /* ⛔ `+dev+` SCRIVEVA IL NUMERO ALL'INGLESE. `dev` è `k.ppv`, un numero
+       JavaScript: concatenato senza formattatore usciva «77.7 mm/s» in mezzo a
+       «3,48», «8,0» e «0,50 ms», cioè l'unica cifra col punto in un pannello
+       tutto italiano. Misurato il 07/08 leggendo le cifre della modale:
+       ["0,50","3,48","3,48","1,00","8,0","77.7"]. `gfix` è il formattatore che
+       scrive le altre. */
+    +'<div style="color:var(--mut)">Confronto stima Devine</div><div>'+gfix(dev,1)+' mm/s</div>'
     +'</div>'
     +'<div style="margin-top:8px;color:var(--mut);font-size:12px;">Il composito dipende dai <b>ritardi</b>: se supera il limite, scegli ritardi che spezzino la somma d&rsquo;onda (evita che fori vicini cadano nella stessa finestra). Assunzione: ogni foro contribuisce con la <b>stessa firma</b> (stessa distanza/carica del foro registrato); per fori molto più lontani il composito è cautelativo. Stima da confermare col sismografo.</div>';
 }

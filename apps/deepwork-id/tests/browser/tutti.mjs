@@ -185,6 +185,19 @@ const BANCHI = [
      leggendo: si è visto premendo il bottone e aprendo il documento. */
   ['il foglio che si porta in cava (Genesi)', 'genesi-foglio-in-cava.mjs', []],
   ['foglio in cava · controprova', 'genesi-foglio-in-cava.mjs', ['--controprova'], true],
+  /* ⛔ AGGIUNTO IL 07/08, e completa la domanda qui sopra: il foglio stampato
+     era UNA delle uscite di Genesi, e i nove bottoni che salvano un FILE non
+     li aveva ancora aperti nessuno. Aprendoli: la scheda volata archiviata col
+     rapportino non diceva da dove viene la PPV (due file identici tranne una
+     riga, 1.9 contro 4.1, con la legge dichiarata provvisoria dallo schermo) e
+     non aveva l'airblast; la riconciliazione, coi valori reali scritti con la
+     virgola come si scrive in cava, faceva SPARIRE le tre misure dallo storico
+     («28→—») e le scriveva nel CSV con una convenzione decimale diversa da
+     quella della colonna accanto; e il `.volata.json` consegnava lo scatter
+     sorteggiato al posto del ritardo di progetto — 42,33 ms dove il pannello
+     diceva 42 — tanto che riletto da Genesi stessa il progetto tornava a 25. */
+  ['i documenti che escono da Genesi', 'genesi-documenti-che-escono.mjs', []],
+  ['documenti da Genesi · controprova', 'genesi-documenti-che-escono.mjs', ['--controprova'], true],
   ['nota di credito', 'nota-credito.mjs', []],
   ['nota di credito · controprova', 'nota-credito.mjs', ['--controprova'], true],
   /* ⛔ AGGIUNTO IL 03/08. I FOGLI di Conti — fattura, DDT — li compone la
@@ -326,6 +339,8 @@ const BANCHI = [
   ['frasi di Flotta · controprova', 'flotta-frasi-da-uno.mjs', ['--controprova'], true],
   ['le frasi di Campo e Sentinella con un dato solo', 'campo-sentinella-frasi.mjs', []],
   ['frasi di Campo e Sentinella · controprova', 'campo-sentinella-frasi.mjs', ['--controprova'], true],
+  ['le frasi di Scudo quando il numero è uno', 'scudo-frasi-da-uno.mjs', []],
+  ['frasi di Scudo · controprova', 'scudo-frasi-da-uno.mjs', ['--controprova'], true],
   /* ⛔ AGGIUNTO IL 06/08, ed è la famiglia che il 06/08 è stata censita nel
      core: il numero è giusto e a mentire è il DISEGNO. Là una barra da 2.261,7
      m³ ne disegnava 3, identica ai cinque mesi a zero, perché `height:100%` si
