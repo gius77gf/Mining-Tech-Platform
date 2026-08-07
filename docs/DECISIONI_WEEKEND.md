@@ -496,6 +496,14 @@ e va benissimo che sia così — quello che non va è **crederli un backup**.
 Restano quindi **senza nessun file che si ri-carica** proprio le cose che una
 cava non può riscrivere a mano:
 
+⏱️ **RIMISURATO IL 07/08, e delle sei righe DUE non valgono più.** Non erano
+sbagliate quando sono state scritte il 31/07: il lavoro è arrivato dopo, ed è
+la terza forma d'invecchiamento censita in `CLAUDE.md` — il «non c'è»
+**scaduto**. La prova, comando per comando invece che a memoria: cercando
+`parse<Nome>Csv` e `csv<Nome>` nei sei moduli dati, **volate** risponde 1 e 2,
+**rilievi** 1 e 1, e le altre quattro **zero e zero**. Le quattro restano
+vere.
+
 | Cosa | Dove | Perché fa male perderla |
 |---|---|---|
 | **pesate e DDT** | Conti | è il documento di consegna: mesi di lavoro, e sono la base delle fatture |
@@ -503,7 +511,7 @@ cava non può riscrivere a mano:
 | **clienti** | Conti | anagrafica con partita IVA, PEC/SDI, fido |
 | **azioni correttive** | Scudo | registro che un ispettore può chiedere |
 | **rilievi drone** | Terra | volumi che consumano la concessione |
-| **registro volate** | Sentinella | documento regolatorio |
+| ~~**registro volate**~~ | ~~Sentinella~~ | ⚠️ **RIGA SCADUTA, corretta il 07/08: ce l'ha già.** `csvRegistroVolate` e `parseVolateCsv` stanno **nello stesso file** — «le colonne le decide un posto solo», dice il commento della pagina — sono cablati tutt'e due in `apps/sentinella/index.html` (righe 4286 e 4302), e il giro di andata e ritorno è provato in `run-kpi.mjs:7811`. Non era sbagliata quando è stata scritta: il lavoro è arrivato dopo |
 
 - [x] **12a. Decisa dal ciclo il 07/08: SÌ**, e la **prima delle sei è fatta**.
       Senza, il cliente ha una copia che non sa rimettere dentro.
@@ -519,13 +527,19 @@ cava non può riscrivere a mano:
          un'asserzione sul TESTO**, perché il lettore accetta anche la virgola
          e senza quella il giro tornerebbe verde su un file che solo la nostra
          app sa aprire (`run-kpi` 1860 → **1864**);
-      2. **registro volate (Sentinella)** — documento regolatorio: la carta c'è
-         ma rifarla è un lavoro d'archivio;
+      2. ⏱️ ~~registro volate (Sentinella)~~ — **c'era già**, e la riga della
+         tabella qui sopra era scaduta: `csvRegistroVolate` e `parseVolateCsv`
+         stanno nello stesso file, cablati tutt'e due nella pagina, col giro di
+         andata e ritorno provato. Verificato coi comandi il 07/08 prima di
+         aprire il cantiere — che sarebbe stato lavoro su una cosa fatta;
       3. **pesate e DDT (Conti)** — mesi di battitura, ma i DDT esistono;
       4. **incassi (Conti)** — l'estratto conto li contiene;
       5. **clienti (Conti)** — doloroso e ribattibile;
       6. **azioni correttive (Scudo)** — un ispettore può chiederle, e la carta
          di solito c'è.
+      ⚠️ Quindi le voci vere da fare **non sono cinque, sono quattro**: contarne
+      cinque sarebbe stato un elenco di mancanze gonfiato, che è peggio di
+      nessun elenco — manda a lavorare dove non serve.
       ⚠️ Le cinque che restano NON sono spuntate: la risposta c'è, il lavoro no.
 - [x] **12b. Decisa dal ciclo il 07/08: si dice in chiaro COMUNQUE**, anche il
       giorno in cui l'export ri-caricabile (12a) esisterà. La parola «in
