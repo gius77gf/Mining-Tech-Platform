@@ -74,6 +74,9 @@ sulla nuvola di punti, 9 sul manifesto, 8 sulla demo — più **106** che girano
 con l'emulatore Firestore (58 sulle **regole di sicurezza**, 19 sull'SDK, 21
 sulle funzioni, 8 sul primo avvio) e **137 esecuzioni** che aprono davvero le
 pagine in un browser.
+*(⚠️ Il **2.251** conta sei suite: il giro completo ne esegue **2.474**, ma le
+altre dieci contano **file** invece che casi — crescono da sole quando nasce un
+file, quindi non sono il numero da citare. Misurato il 07/08.)*
 E **677 funzioni pure su 677** delle sei app sono chiamate per nome dalle prove:
 tutte al 100%. Vuol dire che non ne resta nessuna che nessuno ha ancora
 guardato — non che siano provate *bene*, che è un'altra domanda.

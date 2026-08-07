@@ -48,6 +48,19 @@ segnaposto («Funzione nav non ancora pronta»). Per aprirlo davvero si monta
 
 **2.251 prove girano senza rete e senza browser**, con `node` (contate lanciandole, non a memoria — al 07/08: 1844 + 295 + 63 + 32 + 9 + 8):
 
+> ⚠️ **E quel numero conta SEI suite, non tutto quello che gira.** Misurato il
+> 07/08 sommando le righe «Risultato …» di un giro intero: il giro `node`
+> completo esegue **2.474** asserzioni, perché ne lancia altre dieci (sonda del
+> vuoto 15, numeri nei documenti 23, orologio del vault 3, documenti invecchiati
+> 15, sintassi delle pagine 15, import esistenti 134, nomi liberi 7, classi
+> orfane 2 + 6, suite collegate 3 = **223**).
+> **Il numero da citare resta 2.251**, e la ragione è che le altre dieci contano
+> **file, non prove**: `import esistenti` fa un'asserzione per file e `classi
+> orfane` una per pagina, quindi il loro totale si muove ogni volta che nasce un
+> file — un numero che cresce senza che nessuno abbia scritto una prova è un
+> numero che non vuol dire niente. Le sei suite contano **casi**, e per questo
+> sono quelle sorvegliate da `numeri-nei-documenti.mjs`.
+
 E **677 funzioni pure su 677** sono chiamate per nome da quelle prove: tutte e
 sei le app al 100%. Non è «provate bene» — è «non ce n'è nessuna che nessuno ha
 ancora guardato», che è il minimo e finora non c'era.
