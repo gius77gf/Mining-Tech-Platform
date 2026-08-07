@@ -23434,5 +23434,38 @@ test("⛔ Terra · numeroRegistrato: un numero MESSO IN ARCHIVIO, non un numero 
   eq(dove.length, 4, "i quattro valori su cui la guardia debole sbaglia sono ancora quattro");
 });
 
+/* ⛔ IL BLOCCO `body.outdoor-mode` DEL CORE È CODICE MORTO, e questa prova
+   esiste perché il 07/08 ci abbiamo ragionato sopra in due — io e un cantiere —
+   su un caso che non può succedere, e la seconda volta ci sono ricascato da
+   solo un'ora dopo aver scritto la prima. Un commento lo si legge se si passa
+   di lì; una prova lo dice a chiunque.
+   Le due condizioni sono indipendenti e servono tutt'e due: il core toglie
+   sempre quella classe, e non carica il file che nelle APP la mette (dove il
+   tema `sole` è vivo). Il giorno in cui il core tornasse a saperlo, questa
+   cade e chi la ripara aggiorna il commento nel foglio. */
+/* ⚠️ E QUESTA PROVA E SINCRONA APPOSTA, dopo averla scritta `async` e averla
+   vista NON CONTARE: `await Promise.all(inVolo)` sta cinquemila righe piu su,
+   quindi una prova asincrona scritta in fondo viene messa in volo e il totale
+   si stampa senza aspettarla — 1842 prima e 1842 dopo, con «7 prove asincrone
+   aspettate» invece di 6 come unico segno. E la trappola del file di test
+   inerte di CLAUDE.md in una veste nuova: non «dopo il process.exit», ma
+   **dopo l await**. Il controllo che l ha presa e quello scritto lo stesso
+   giorno: si guarda che il TOTALE sia salito, non che i falliti siano zero. */
+const { readFileSync: _fsCore } = await import("node:fs");
+test("⛔ core · il tema `outdoor-mode` non esiste nel core (e il blocco che lo dipinge è morto)", () => {
+  const leggi = _fsCore;
+  const core = leggi(join(HERE, "../../../index.html"), "utf8");
+  ok(/classList\.remove\('outdoor-mode'\)/.test(core),
+    "`applyTheme` toglie `outdoor-mode` a ogni giro");
+  ok(!/classList\.(add|toggle)\('outdoor-mode'/.test(core),
+    "e nessuna riga del core la rimette");
+  ok(!/dw-tema\.js["']/.test(core),
+    "e il core non carica `shared/dw-tema.js`, che è chi la mette nelle app");
+  /* e il contrario, per non pinnare una falsità: nelle APP quel tema è vivo */
+  const tema = leggi(join(HERE, "../../../shared/dw-tema.js"), "utf8");
+  ok(/classList\.toggle\('outdoor-mode'/.test(tema),
+    "mentre `shared/dw-tema.js` la mette davvero: la classe NON è morta nell'ecosistema");
+});
+
 console.log(`\nRisultato KPI app: ${passed} passati, ${failed} falliti${inVolo.length ? `  ·  ${inVolo.length} prove asincrone aspettate` : ""}`);
 process.exit(failed > 0 ? 1 : 0);

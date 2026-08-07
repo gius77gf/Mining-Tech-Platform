@@ -7422,7 +7422,25 @@ body.light-mode{
   --gradSuc:linear-gradient(135deg,#66bb6a,#2e7d32);
   --glow-strength:.08;--shadow-amber:0 8px 24px rgba(120,80,0,.13);--glow-warm:rgba(229,72,76,.34);
 }
-/* ── B3 OUTDOOR MODE — Solar Light — alto contrasto per uso in cava/sole diretto ── */
+/* ⛔⛔ TUTTO QUESTO BLOCCO È CODICE MORTO NEL CORE, E COSTA A CHI LO LEGGE.
+   `applyTheme()` (in cima al file) fa `document.body.classList.remove('outdoor-mode')`
+   a OGNI giro: dalla v4.4 il core ha due modalità, scuro e chiaro, e l'outdoor
+   è stato assorbito nel chiaro. Nessun'altra riga del core mette quella classe,
+   e il core NON carica `shared/dw-tema.js` — che è invece chi la mette nelle
+   app, dove il tema `sole` è vivo e vegeto.
+   ⚠️ Misurato il 07/08 dopo averci ragionato sopra in DUE, io e un cantiere,
+   su un caso che non può succedere: la correzione di un contrasto era stata
+   giustificata con «in outdoor-mode andrebbe a 1,94», aritmetica giusta su una
+   superficie che non esiste. E un'ora dopo ci sono ricascato da solo,
+   misurando che i bottoni «ELIMINA» sarebbero finiti a 1,94.
+   Chi legge queste righe non deve rifare quel giro: qui dentro **non c'è
+   niente da correggere**, perché niente di qui dentro si vede.
+   La rimozione vera (136 occorrenze in questo file) è dichiarata come lavoro
+   aperto e va fatta guardando i selettori a mano: alcune regole elencano più
+   selettori e non tutti richiedono la classe. La prova che il blocco è morto
+   sta in `run-kpi.mjs` e cade da sola il giorno in cui il core tornasse a
+   sapere che cos'è l'outdoor.
+   ── B3 OUTDOOR MODE — Solar Light — alto contrasto per uso in cava/sole diretto ── */
 body.outdoor-mode{
   /* Palette Solar Light: sfondo chiaro caldo, testo scuro, accenti ambra scuri */
   --bg:#f7f3e8;--dark:#ffffff;--panel:#ffffff;--card:#ffffff;--card2:#f0ede4;
