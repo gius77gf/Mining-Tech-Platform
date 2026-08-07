@@ -909,6 +909,15 @@ numero scritto dove non era stato misurato niente**.*
   sarebbe peggio. Adesso tiene il caso peggiore e **dichiara la forbice**: 4,05
   sui numeroni dentro un gradiente (dove il conto a mano lo smentiva), **zero**
   sui testi su fondo pieno (dove aveva ragione alla cifra).
+- [x] ✅ **I due soli KO del giro pulito erano del banco, non del prodotto**
+  (`96d96f2`). Schermo e PDF, stesso istante, stesso stato: `46 · 419 · 3466`,
+  **coincidono**. Il banco pretendeva numeri esatti fino al 06/08, quando la
+  dimostrazione ha guadagnato un quinto rapportino. E crollando ne nascondeva
+  **altre undici** (19 prove invece di 30). Adesso i totali sono **derivati** e
+  il banco dichiara invece di morire: 19 → **34** prove.
+- [x] ✅ **Regola 27** (`1476d45`): **Genesi non ha la modalità sole** e nessuno
+  lo diceva — l'ha detto un banco elencando quello che non poteva misurare. Le
+  otto superfici senza i tre temi sono dichiarate con la ragione.
 - [ ] **Le 54 dei temi chiari** — è una **palette**, non una correzione: va
   decisa con la ricerca cromatica e verificata a contrasto. Fra le peggiori:
   «Conforme» nell'esito del report a **2,35** (ne servono 3), «Riferibilità
