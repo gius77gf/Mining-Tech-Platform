@@ -64,12 +64,22 @@ Ma sotto c'era un difetto vero e più grave: la controprova si accontentava di
 rotto** e il rilevatore mai messo alla prova. Adesso guarda **quali** asserzioni
 cadono, e su tre difetti rimessi dà tre diagnosi distinte e giuste.
 
-**Che cosa fa adesso.** Resta **un cantiere aperto**, sul **core**: il banco
-delle modali ne apre **11 su 68**, e il core è la superficie che il fondatore
-mostra per prima. Poi, ad albero fermo, tre cose già progettate e misurate:
-la correzione del **motore dei grafici** (Terra dipinge a ×0,925) col suo banco,
-il **pieno senza spesa** nei dati d'esempio di Flotta — che renderebbe visibile
-una funzione e misurabile una regola in un colpo solo — e il **censimento delle
-classi orfane** portato dentro le prove.
+**Che cosa fa adesso.** Due cose in corso e nessun'altra aperta finché non
+chiudono:
+· il **giro completo dei 122 banchi** su una copia del committato — è la prima
+  volta che gira con `SEZIONI_CORE` a **26 schermate** invece di 17, quindi
+  possono uscire violazioni vere mai viste;
+· un **cantiere** sul solo KO rimasto: a 320 px il documento del core va a
+  **333 px** e **nessun elemento sporge a destra**. È il traboccamento
+  **all'indietro**, quello che `scrollWidth > clientWidth` non sa raccontare.
+⛔ Un banco registrato che fallisce rende rosso il giro di tutti: quel KO va
+chiuso prima di aprire altro.
+
+Poi, ad albero fermo, tre cose già progettate e misurate: la correzione del
+**motore dei grafici** (Terra dipinge a ×0,925) col suo banco, il **pieno senza
+spesa** nei dati d'esempio di Flotta — che renderebbe **visibile** una funzione e
+**misurabile** una regola in un colpo solo — e il **censimento delle classi
+orfane** portato dentro le prove, corretto perché contava i commenti come usi
+(16 orfane dichiarate → **14** vere su 1.154 classi).
 
 ⚠️ **E le 19 decisioni scadono OGGI, venerdì 07/08.**
