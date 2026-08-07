@@ -805,6 +805,21 @@ numero scritto dove non era stato misurato niente**.*
   al plurale» voleva dire due cose diverse a seconda del banco — ed erano
   **tutt'e due verdi**.
 
+- [x] ✅ **Un rosso che voleva dire verde** (`ba8ede8`): la controprova di
+  `ripiego-messaggio` stampava **la stessa identica frase** della passata sana, e
+  nel registro del giro completo le due righe stanno a centosessanta di distanza.
+  Ci sono cascato: ho aperto un cantiere su **dieci difetti che non esistevano**.
+  ⛔ Ma sotto ce n'era uno vero e più grave: la controprova si accontentava di
+  `falliti > 0`, quindi avrebbe detto «SA fallire» anche col **banco rotto** e il
+  rilevatore mai messo alla prova. Adesso guarda **quali** asserzioni cadono —
+  zero sulla struttura, ogni caso morso — e su tre difetti rimessi dà tre
+  diagnosi giuste. Stessa trappola cercata negli altri quattro banchi: uno solo
+  ce l'aveva.
+- [x] ✅ **`ords` con la esse non esiste** (`9c5e3c1`): tre filtri di Scudo con
+  `display:block` e `gap: normal` invece di `flex` e `gap:8px`. Il refuso di una
+  classe **non fa rumore** — nessun errore, nessuna prova rossa, niente da
+  leggere. Trovato dal censimento delle classi orfane, misurato col browser.
+
 ## Riferimenti
 
 - Ultimo checkpoint **per data vera**:
