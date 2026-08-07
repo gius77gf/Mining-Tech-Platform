@@ -542,10 +542,23 @@ numero scritto dove non era stato misurato niente**.*
       È l'unico pezzo di prodotto che vive quasi tutto fuori dalla portata
       delle prove.
 - [ ] **B4. Le mancanze confermate del delta**, in ordine di quanto le chiede un
-      ispettore. Conto aggiornato al 02/08: **54 confermate**, 6 **scadute**
-      (colmate senza che la riga lo sapesse), 2 **colmate di proposito**. Regola
-      nuova: chi chiude un'unità **aggiorna la riga del documento che gliel'aveva
-      proposta** — è la sola cosa che fa scendere l'arretrato.
+      ispettore. ⏱️ **Ricontate il 07/08 leggendo i documenti**, non a memoria —
+      il conto qui scritto era del 02/08 e si era mosso parecchio:
+
+          | app | «CONFERMATA ASSENTE» | «SCADUTA» |
+          | campo 11 · sentinella 13 · conti 8 · flotta 5 · terra 4 · scudo 0 |
+          | totale **41** (era 54) | totale **18** (erano 6) |
+
+      Cioè in cinque giorni **tredici mancanze si sono chiuse** e la riga se n'è
+      accorta: è il numero che la regola «chi chiude un'unità aggiorna la riga
+      del documento che gliel'aveva proposta» esiste per far muovere, e si sta
+      muovendo nel verso giusto.
+      ⚠️ **E lo zero di Scudo non vuol dire che Scudo non abbia mancanze**: quel
+      documento le scrive con altre parole («gli export sono quattro, non tre»,
+      «resta assente il ponte»), quindi questo conto misura una **forma di
+      scrittura**, non la verità. Un conto che dipende da come è scritta una
+      riga va letto sapendolo — e sistemarlo vuol dire uniformare le sei
+      tabelle, non stringere la ricerca.
 
 ### C — Ricerca continua, nei tempi morti
 
