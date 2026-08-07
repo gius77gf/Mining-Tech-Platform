@@ -4542,7 +4542,21 @@ textarea.dw-input{
     /* ⛔ `letture` va passato, se no la PRIMA misura di un punto direbbe «Mai
        misurato» proprio mentre la si registra: `...m` porta le letture VECCHIE,
        e quella appena scritta è nella variabile qui sopra. */
-    const st = statoMisura({ ...m, valore, letture });
+    /* ⛔ E QUI CI VUOLE `conSoglia`, che era il SESTO POSTO — quello che il suo
+       commento non elenca e che nessuno aveva collegato. `m` viene da
+       `MON.find` (riga 4530), cioè GREZZO: porta la soglia scritta sulla
+       scheda del punto, non quella del ricettore collegato, che
+       nell'autorizzazione può essere più stretta. Effetto misurato: su un
+       punto con soglia propria 20 collegato a una casa da 5 mm/s, una lettura
+       di 8 faceva dire alla striscia di conferma «→ Conforme» mentre la riga
+       del punto, due centimetri sopra, diceva «Superamento» — perché quella
+       passa da `MONE = MON.map(conSoglia)`.
+       È il caso peggiore della famiglia: non un numero in un documento, ma la
+       frase che l'utente legge NELL'ISTANTE in cui scrive il dato, e che gli
+       dice che può stare tranquillo. Il commento di `conSoglia` elenca
+       «semaforo, KPI, grafico, allerte, report»: la conferma di scrittura
+       mancava, ed è l'unica che parla mentre si registra. */
+    const st = statoMisura(conSoglia({ ...m, valore, letture }));
     esito("mis-esito", "Misura su " + (m ? m.nome.split(" — ")[0] : id) + ": " + numeroIt(valore) + (m ? " " + m.unita : "") + " → " + st.label + ". La serie storica del punto è aggiornata.",
       st.cls === "danger" ? "err" : "success",
       numeroIt(valore) + (m ? " " + m.unita : "") + " → " + st.label);
