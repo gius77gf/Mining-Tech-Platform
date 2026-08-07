@@ -23434,15 +23434,27 @@ test("⛔ Terra · numeroRegistrato: un numero MESSO IN ARCHIVIO, non un numero 
   eq(dove.length, 4, "i quattro valori su cui la guardia debole sbaglia sono ancora quattro");
 });
 
-/* ⛔ IL BLOCCO `body.outdoor-mode` DEL CORE È CODICE MORTO, e questa prova
-   esiste perché il 07/08 ci abbiamo ragionato sopra in due — io e un cantiere —
-   su un caso che non può succedere, e la seconda volta ci sono ricascato da
-   solo un'ora dopo aver scritto la prima. Un commento lo si legge se si passa
-   di lì; una prova lo dice a chiunque.
+/* ⛔ IL TEMA `outdoor-mode` NON ESISTE NEL CORE, e questa prova esiste perché
+   il 07/08 ci abbiamo ragionato sopra in due — io e un cantiere — su un caso
+   che non può succedere, e la seconda volta ci sono ricascato da solo un'ora
+   dopo aver scritto la prima. Un commento lo si legge se si passa di lì; una
+   prova lo dice a chiunque.
    Le due condizioni sono indipendenti e servono tutt'e due: il core toglie
    sempre quella classe, e non carica il file che nelle APP la mette (dove il
    tema `sole` è vivo). Il giorno in cui il core tornasse a saperlo, questa
-   cade e chi la ripara aggiorna il commento nel foglio. */
+   cade e chi la ripara rimette anche il foglio.
+   ✅ E DAL 07/08 IL FOGLIO MORTO NON C'È PIÙ: 137 selettori `body.outdoor-mode`
+   (171 righe, 12 KB) sono stati tolti dopo aver misurato che l'aspetto non
+   cambia — 26 schermate × 2 temi, scatti confrontati per md5, e 58.284
+   impronte di stile calcolato in tre passate (normale, col mouse sopra, e con
+   le animazioni spente). La quarta condizione qui sotto impedisce che rinasca:
+   una regola che nessuno accende non dà niente da leggere, e la si riscopre
+   solo ragionandoci sopra una terza volta.
+   ⚠️ Restano — di proposito — i 15 selettori `body:not(.outdoor-mode)`, che
+   NON sono morti: la condizione è sempre vera, quindi quelle regole si
+   applicano sempre. Non sono stati semplificati perché `:not(.outdoor-mode)`
+   conta come una classe: toglierlo abbassa la specificità da (0,2,1) a (0,1,1)
+   e può far vincere un'altra regola senza nessun errore da leggere. */
 /* ⚠️ E QUESTA PROVA E SINCRONA APPOSTA, dopo averla scritta `async` e averla
    vista NON CONTARE: `await Promise.all(inVolo)` sta cinquemila righe piu su,
    quindi una prova asincrona scritta in fondo viene messa in volo e il totale
@@ -23465,6 +23477,31 @@ test("⛔ core · il tema `outdoor-mode` non esiste nel core (e il blocco che lo
   const tema = leggi(join(HERE, "../../../shared/dw-tema.js"), "utf8");
   ok(/classList\.toggle\('outdoor-mode'/.test(tema),
     "mentre `shared/dw-tema.js` la mette davvero: la classe NON è morta nell'ecosistema");
+
+  /* ── quarta condizione: e il foglio che lo dipingeva non deve tornare ──
+     Si contano i selettori che NOMINANO la classe, escludendo quelli che la
+     NEGANO (`body:not(.outdoor-mode)`), che sono vivi e restano. I commenti
+     vanno tolti: questo file stesso ne contiene, e una regola che legge la
+     prosa conta le parole invece dei selettori — è successo tre volte in un
+     giorno, sta in CLAUDE.md. */
+  const contaSelettori = (testo) => {
+    const a = testo.indexOf("<style>"), b = testo.indexOf("</style>");
+    const foglio = (a >= 0 && b > a ? testo.slice(a, b) : testo).replace(/\/\*[\s\S]*?\*\//g, "");
+    return (foglio.match(/\.outdoor-mode/g) || []).length
+         - (foglio.match(/:not\(\.outdoor-mode\)/g) || []).length;
+  };
+  /* ⚠️ il righello prima del soggetto: un conteggio che risponde sempre zero
+     passerebbe questa prova qualunque cosa succeda al foglio */
+  ok(contaSelettori("body.outdoor-mode .x{color:red}") === 1,
+    "il conteggio SA vedere un selettore del tema morto");
+  ok(contaSelettori("body:not(.outdoor-mode) .x{color:red}") === 0,
+    "e SA non contare quello che la nega, che è vivo");
+  ok(contaSelettori("/* body.outdoor-mode .x{} */ .y{color:red}") === 0,
+    "e non conta un esempio scritto in un commento");
+  ok(contaSelettori(core) === 0,
+    "nessun selettore dipinge `outdoor-mode` nel foglio del core: il tema morto non è tornato");
+  ok(/body:not\(\.outdoor-mode\)/.test(core),
+    "mentre i selettori che la NEGANO restano — sono sempre veri, e toglierli abbasserebbe la specificità");
 });
 
 /* ⛔ Terra · LA DIMOSTRAZIONE DEVE MOSTRARE LO STATO DI ALLARME, NON SOLO
