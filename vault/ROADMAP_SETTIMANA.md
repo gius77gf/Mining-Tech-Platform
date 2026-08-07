@@ -891,7 +891,17 @@ numero scritto dove non era stato misurato niente**.*
   La regola del contrassegno col pid era scritta in CLAUDE.md dal 01/08 e la
   rispettavano i singoli banchi: **non la rispettava il file da cui dipendono
   tutti**. Controprova nei due versi, `impronta-giro` 10 → **15** prove.
-- [ ] **Le 54 del tema `sole`** — è una **palette**, non una correzione: va
+- [x] ✅ **Sentinella nei temi chiari** (`24c4d89`): chiaro **10 → 0**, sole
+  **10 → 0**, scuro 0 → 0, testi misurati identici. ⛔ E la scoperta che allarga
+  tutto: **non è un difetto del sole, è un difetto di tutto ciò che non è buio**
+  — rimisurato da me su tutte e sei le app, `--tema=chiaro` dà **54 sotto
+  soglia**, lo stesso numero del sole. Causa unica: `--success/--warn/--danger`
+  dichiarati **una volta sola, per il buio**. E servono **due livelli**, non uno,
+  se no il numerone d'ambra diventa marrone: si vede solo affiancando gli scatti.
+- [x] ✅ **`PALETTE_APP` Parte 6** (`26c0a7a`): le sei palette erano verificate a
+  contrasto in **un tema su tre**. La regola che si aggiunge alle otto: *una
+  palette non è finita finché non è verificata nei tre temi*.
+- [ ] **Le 54 dei temi chiari** — è una **palette**, non una correzione: va
   decisa con la ricerca cromatica e verificata a contrasto. Fra le peggiori:
   «Conforme» nell'esito del report a **2,35** (ne servono 3), «Riferibilità
   delle misure» e «Provenienza dei dati di misura» a **1,92**, la riga «DATI DI
