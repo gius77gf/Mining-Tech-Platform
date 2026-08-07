@@ -1097,6 +1097,7 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
            idoneitaDiTurno, idoneitaOperatore, inTurnoOggi,
            UNITA_ATTIVITA, obiettivoDi, statoObiettivo,
            storicoSettimana, totaliSettimana, unitaPrevalente, zeriDelGrafico, registrazioniSenzaGiorno, csvStorico,
+           csvAttivita, csvAppello, descriviChecklist,
            senzaGiornoDiLavoro, avvisoSenzaGiorno,
            produzioneDi, rapportiniInConto,
            CHECKLIST_INIZIO, ESITI_CHECK, statoChecklist, checklistDi,
@@ -2844,34 +2845,11 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
     const turno = $("chk-turno").value || turnoCorrente();
     const app = appelloTurno(OPER, PRE, OGGI, turno, $("chk-squadra").value);
     if (!app.totale) { esito("pre-esito", "Non c'è nessuno da mettere nell'elenco.", "err"); return; }
-    // il riposo viaggia con l'elenco: chi lo apre col foglio di calcolo per una
-    // verifica non deve tornare nell'app a rileggerlo persona per persona
-    const rip = riposoDiTurno(OPER, PRE, DUR, OGGI, turno, $("chk-squadra").value);
-    const perId = {}; rip.righe.forEach(x => { perId[x.operatore.id] = x; });
-    /* Gli orari viaggiano con l'elenco, e ORE_LAVORATE resta VUOTA quando i due
-       orari non ci sono tutt'e due: uno zero in quella colonna, riletto da un
-       foglio di calcolo, diventa una somma sbagliata senza che nessuno se ne
-       accorga — è lo stesso motivo per cui `oreMinuti` non scrive «0 min». */
-    let csv = "data;turno;nome;ruolo;squadra;stato;ora;entrata;uscita;ore_lavorate;"
-            + "riposo_stato;riposo_ore;riposo_fonte;riposo_nota\n";
-    for (const r of app.righe) {
-      const rp = perId[r.operatore.id];
-      const p = presenzaDi(PRE, OGGI, turno, r.operatore.id);
-      const or = orariPresenza(p);
-      csv += `${OGGI};${csvCell(turno)};${csvCell(r.operatore.nome)};${csvCell(r.operatore.ruolo || "")};`
-           + `${csvCell(squadraBase(r.operatore.squadra))};${r.stato || "da spuntare"};${r.ora || ""};`
-           + `${csvCell((p && p.entrata) || "")};${csvCell((p && p.uscita) || "")};`
-           // ⛔ le ore restano col PUNTO decimale: la cella la rilegge un
-           // programma, e la virgola italiana è la convenzione di ciò che si
-           // MOSTRA, non di ciò che si scambia
-           + `${or.minuti === null ? "" : Math.round(or.minuti / 0.6) / 100};`
-           + `${rp ? rp.stato : "non-in-turno"};${rp && rp.ore !== null ? rp.ore : ""};`
-           // da dove viene la fine del turno precedente: «orario» è una misura,
-           // «durata» è il piano dei turni. Chi verifica col foglio di calcolo
-           // deve poter separare le due cose senza rileggere la nota a parole
-           + `${csvCell(rp ? (rp.daFine || "") : "")};`
-           + `${csvCell(rp ? testoRiposo(rp, dmy) : "")}\n`;
-    }
+    /* ⛔ IL FILE LO COMPONE IL MODULO. Finché lo componeva questa riga, la
+       colonna `ore_lavorate` usciva nuda anche quando `orariPresenza` aveva
+       già dichiarato di non fidarsi degli orari: ventitré ore da un refuso,
+       senza un segno, nell'unica uscita che qualcuno somma. */
+    const csv = csvAppello(OPER, PRE, DUR, OGGI, turno, $("chk-squadra").value, dmy);
     const a = document.createElement("a");
     a.href = "data:text/csv;charset=utf-8," + encodeURIComponent(csv);
     a.download = "campo_appello.csv"; marchiaCsv(a); a.click();
@@ -3513,12 +3491,11 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
   // Esporta l'elenco attività (registro/archivio della giornata, handover)
   $("btn-att-export").onclick = () => {
     if (!ATT_G.length) { esito("att-esito", "Non c'è nessuna attività da esportare: registrane almeno una.", "err"); return; }
-    const ordExp = { anomalia: 0, "in-corso": 1, pianificata: 2, conclusa: 3 };
-    // data e turno in testa: il CSV diventa un registro archiviabile, non una
-    // fotografia senza tempo.
-    let csv = "data;turno;titolo;dettaglio;stato;causale\n";
-    for (const a of ATT_G.slice().sort((x, y) => (ordExp[x.stato] ?? 4) - (ordExp[y.stato] ?? 4)))
-      csv += `${a.data || ""};${csvCell(a.turno || "")};${csvCell(a.titolo || "")};${csvCell(a.dettaglio || "")};${a.stato || ""};${csvCell(a.stato === "anomalia" ? (a.causale || "") : "")}\n`;
+    // ⛔ IL FILE LO COMPONE IL MODULO, non questa riga. Finché lo componeva
+    // qui, i minuti di fermo non ci entravano — e due anomalie, una da 55
+    // minuti e una mai misurata, uscivano identiche. Data e turno in testa: il
+    // CSV è un registro archiviabile, non una fotografia senza tempo.
+    const csv = csvAttivita(ATT_G);
     const a = document.createElement("a");
     a.href = "data:text/csv;charset=utf-8," + encodeURIComponent(csv);
     a.download = "campo_attivita.csv"; marchiaCsv(a); a.click();
@@ -4037,8 +4014,13 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
       : "- nessun obiettivo impostato") + "\n\n";
     const chkT = CHK.filter(c => String(c.data || "") === OGGI);
     txt += "CHECKLIST DI INIZIO TURNO\n";
+    /* ⛔ «4/9 a posto» NASCONDEVA LE VOCI CHE NESSUNO HA GUARDATO. La stessa
+       checklist usciva «6/9 · mancano 3 risposte» a schermo, «4 a posto · 1
+       n.a. · 3 senza risposta» sulla stampa e «4/9 a posto» qui — e questo è
+       il foglio che passa di mano fra due turni. La frase adesso è una sola,
+       `descriviChecklist`, e la scrivono tutt'e due i documenti. */
     txt += (chkT.length ? chkT.map(c => { const s = statoChecklist(c.esiti || {});
-      return "- " + (c.squadra || "—") + " (turno " + (c.turno || "—") + "): " + s.ok + "/" + s.totale + " a posto"
+      return "- " + (c.squadra || "—") + " (turno " + (c.turno || "—") + "): " + descriviChecklist(s)
         + (s.no ? ", NON A POSTO: " + s.problemi.join("; ") : "")
         + (c.ora ? " — chiusa alle " + c.ora : " — non chiusa"); }).join("\n")
       : "- nessuna checklist compilata") + "\n\n";
@@ -4189,7 +4171,7 @@ ${/* ⛔ E IL QUADRO DICEVA «2.510 t PRODOTTI» SU UN FOGLIO INTESTATO 07/08/20
      con la data VUOTA: due file, gli stessi chili, due giorni diversi. */""}
 ${fuoriOggi?`<div class="muted"><b>Attenzione</b> — ${esc(fuoriOggi)}</div>`:""}
 <h2>Checklist di inizio turno</h2>
-${chkOggi.length?`<table><tr><th>Squadra</th><th>Turno</th><th>Risposte</th><th>Voci non a posto</th><th>Chiusa alle</th></tr>${chkOggi.map(x=>`<tr><td>${esc(x.c.squadra||"—")}</td><td>${esc(x.c.turno||"—")}</td><td>${x.st.ok} a posto · ${x.st.na} n.a. · ${x.st.mancanti} senza risposta</td><td>${x.st.problemi.length?x.st.problemi.map(esc).join("; "):"nessuna"}</td><td>${esc(x.c.ora||"non chiusa")}</td></tr>`).join("")}</table>`:"<div>Nessuna checklist di inizio turno compilata oggi.</div>"}
+${chkOggi.length?`<table><tr><th>Squadra</th><th>Turno</th><th>Risposte</th><th>Voci non a posto</th><th>Chiusa alle</th></tr>${chkOggi.map(x=>`<tr><td>${esc(x.c.squadra||"—")}</td><td>${esc(x.c.turno||"—")}</td><td>${esc(descriviChecklist(x.st))}</td><td>${x.st.problemi.length?x.st.problemi.map(esc).join("; "):"nessuna"}</td><td>${esc(x.c.ora||"non chiusa")}</td></tr>`).join("")}</table>`:"<div>Nessuna checklist di inizio turno compilata oggi.</div>"}
 <h2>Meteo e condizioni del sito</h2>
 ${metOggi.length?`<table><tr><th>Turno</th><th>Condizioni</th><th>Note sul sito</th></tr>${metOggi.map(m=>`<tr><td>${esc(m.turno)}</td><td>${esc(riassuntoMeteo(m))}</td><td>${esc(m.note||"—")}</td></tr>`).join("")}</table>`:"<div>Meteo e condizioni del sito non registrati oggi.</div>"}
 <h2>Personale presente</h2>

@@ -1016,12 +1016,28 @@ node apps/deepwork-id/tests/browser/campo-numeri-tranquilli.mjs --controprova
 Misura al 07/08: **51 verifiche passate, 0 fallite**. Controprova: **14 difetti
 su 14 rimessi davvero, 24 prove cadute su 51** — e le 11 nuove cadono tutte.
 
-**Che cosa NON guarda**, dichiarato: i tre CSV composti a mano nella pagina
-(`campo_appello`, `campo_attivita`, `campo_squadre`) sono stati **aperti e
-confrontati col loro schermo il 07/08 e sono usciti puliti** — le celle non
-misurabili restano vuote e il riposo non calcolabile lo dichiara a parole — ma
-qui non c'è un'asserzione che lo tenga fermo; il foglio stampato in modalità
-tour lo guarda `campo-foglio-turno.mjs`; le unità di misura,
+**Che cosa NON guarda**, dichiarato: i CSV composti nella pagina. ⛔ E questa
+riga, fino al 07/08, diceva che erano stati «**aperti e confrontati col loro
+schermo e sono usciti puliti**». **Non era vero, ed è istruttivo perché la
+verifica c'era stata**: aveva chiesto *«una cella non misurabile resta vuota?»*
+— domanda giusta, risposta giusta — e non le altre due che contavano:
+
+- *una cella **misurata ma di cui il modulo dichiara di non fidarsi** porta il
+  suo dubbio?* No: `campo_appello.csv` scriveva `ore_lavorate = 23` su un
+  refuso che `orariPresenza` aveva già marcato `attendibile: false`, e che
+  schermo e stampa dichiaravano;
+- *quali colonne **non ci sono affatto**?* `campo_attivita.csv` non aveva i
+  minuti di fermo: due anomalie, una da 55 minuti e una mai misurata, uscivano
+  come due righe identiche.
+
+Cioè il controllo che non guarda dove crede, nella forma in cui il filtro va
+bene e a essere stretta è la **domanda**. I tre difetti (col terzo, «4/9 a
+posto» nella consegna di turno) sono chiusi portando la composizione nel modulo
+— `csvAppello`, `csvAttivita`, `descriviChecklist` — e tenuti fermi da
+**13 prove** in `run-kpi.mjs`, banda «Campo: i file che escono» (controprova:
+6 iniezioni, 13 prove nuove cadute su 13, più le 3 di `paretoFermi` che
+provano che `minutiFermoDi` è davvero condivisa). Il foglio stampato in
+modalità tour lo guarda `campo-foglio-turno.mjs`; le unità di misura,
 `unita-maiuscole.mjs`.
 
 ## `genesi-documenti-che-escono.mjs` — i nove file che Genesi salva

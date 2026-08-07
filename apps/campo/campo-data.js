@@ -793,6 +793,42 @@ export function csvStorico(righe, fuori) {
   return csv;
 }
 
+/* IL REGISTRO DELLE ATTIVITÀ CHE ESCE DALL'APP.
+   ⛔ FINO AL 07/08 NON PORTAVA I MINUTI DI FERMO, ed è la regola scritta qui
+   sopra — nell'intestazione di `csvStorico` — applicata un file più in là.
+   Misurato premendo il bottone su due anomalie, una col fermo di 55 minuti e
+   una che nessuno ha mai misurato:
+
+       2026-08-07;Mattina;Frantoio primario;…;anomalia;Intasamento impianto
+       2026-08-07;Mattina;Nastro 3 fermo;…;anomalia;Guasto meccanico
+
+   cioè due righe **indistinguibili**, mentre lo schermo scriveva «55 min» e
+   «senza minuti» e il rapporto stampato aggiungeva «1 fermo su 2 senza i
+   minuti registrati: il tempo perso qui sopra è un minimo». Il file era la
+   superficie più povera delle tre, ed è quella che si archivia.
+   La colonna segue la stessa convenzione dello storico: il numero quando c'è
+   (`0` compreso: fermarsi zero minuti è una misura), la cella VUOTA quando
+   nessuno l'ha scritto. Chi somma la colonna in un foglio di calcolo ottiene
+   un pavimento, non un totale finto.
+   ⚠️ Una riga che non è in anomalia ha la cella vuota per un'altra ragione —
+   non c'è nessun fermo — e le due si separano leggendo `stato`, che è la
+   colonna accanto. Pura e testabile. */
+export const ATTIVITA_COLONNE = ["data", "turno", "titolo", "dettaglio", "stato",
+  "causale", "minuti_fermo"];
+
+export function csvAttivita(righe) {
+  // le anomalie prima: chi apre il file cerca quelle
+  const ord = { anomalia: 0, "in-corso": 1, pianificata: 2, conclusa: 3 };
+  let csv = ATTIVITA_COLONNE.join(";") + "\n";
+  for (const a of (righe || []).slice().sort((x, y) => (ord[x.stato] ?? 4) - (ord[y.stato] ?? 4))) {
+    const m = minutiFermoDi(a);
+    csv += `${a.data || ""};${csvCell(a.turno || "")};${csvCell(a.titolo || "")};`
+         + `${csvCell(a.dettaglio || "")};${a.stato || ""};`
+         + `${csvCell(a.stato === "anomalia" ? (a.causale || "") : "")};${m === null ? "" : m}\n`;
+  }
+  return csv;
+}
+
 // ══════════════════════════════════════════════════════════════════════
 // CHECKLIST DI INIZIO TURNO (C3)
 // ══════════════════════════════════════════════════════════════════════
@@ -837,6 +873,23 @@ export function statoChecklist(esiti, voci = CHECKLIST_INIZIO) {
     problemi,
     pct: totale ? Math.round(100 * risposte / totale) : 0,
   };
+}
+
+/* LA CHECKLIST IN UNA RIGA — «4 a posto · 1 n.a. · 3 senza risposta».
+   ⛔ ESISTE PERCHÉ LE VOCI SENZA RISPOSTA SPARIVANO DA UNA DELLE DUE USCITE.
+   La stessa checklist, il 07/08, veniva raccontata in tre modi:
+     · schermo   → «6/9 · mancano 3 risposte · 1 voce non a posto»
+     · stampa    → «4 a posto · 1 n.a. · 3 senza risposta»
+     · consegna  → «**4/9 a posto**»
+   e la terza è il foglio che passa di mano fra due turni. Chi lo legge non
+   poteva sapere che tre controlli non li aveva guardati nessuno: «non lo so»
+   travestito da «non c'è», nel documento che serve proprio a dire al turno
+   dopo che cosa è rimasto in sospeso.
+   La frase è quella che la stampa scriveva già dentro di sé, tolta di lì e
+   messa qui: adesso è una sola, e non può più divergere. Pura e testabile. */
+export function descriviChecklist(st) {
+  if (!st) return "";
+  return st.ok + " a posto · " + st.na + " n.a. · " + st.mancanti + " senza risposta";
 }
 
 // ══════════════════════════════════════════════════════════════════════
@@ -1120,14 +1173,28 @@ export function riepilogoFermi(attivita) {
    Il numero non si spegne — un totale parziale è comunque una misura — ma
    diventa un **pavimento**, e chi lo disegna lo dice con `minutiFermoTesto`,
    che la regola ce l'ha già scritta. */
+/* I MINUTI DI FERMO DI UN'ANOMALIA, oppure `null` quando NESSUNO li ha
+   misurati — e sono due cose diverse: `0` è una misura («si è fermato e non è
+   costato niente»), l'assenza no.
+   ⛔ STA IN UNA FUNZIONE SOLA PERCHÉ SERVE A DUE POSTI, e il secondo è nato il
+   07/08: `paretoFermi` la teneva scritta dentro di sé, e il CSV delle attività
+   — che i minuti non li scriveva affatto — avrebbe dovuto ricopiarla. Prima di
+   ricopiare un corpo si guarda se all'originale manca un parametro; qui non
+   mancava un parametro, mancava un NOME. Pura e testabile. */
+export function minutiFermoDi(a) {
+  if (!a || a.stato !== "anomalia") return null;
+  const grezzo = (a.fermoMin === null || a.fermoMin === undefined || String(a.fermoMin).trim() === "")
+    ? null : +a.fermoMin;
+  return Number.isFinite(grezzo) && grezzo >= 0 ? grezzo : null;
+}
+
 export function paretoFermi(attivita) {
   const acc = {};
   for (const a of attivita || []) {
     if (a.stato !== "anomalia") continue;
     const c = CAUSALI_FERMO.includes(a.causale) ? a.causale : "Altro";
-    const grezzo = (a.fermoMin === null || a.fermoMin === undefined || String(a.fermoMin).trim() === "")
-      ? null : +a.fermoMin;
-    const noto = Number.isFinite(grezzo) && grezzo >= 0;
+    const grezzo = minutiFermoDi(a);
+    const noto = grezzo !== null;
     if (!acc[c]) acc[c] = { causale: c, conto: 0, minuti: 0, senzaMinuti: 0 };
     acc[c].conto++;
     if (noto) acc[c].minuti += grezzo; else acc[c].senzaMinuti++;
@@ -1849,6 +1916,63 @@ export function riposoDiTurno(operatori, presenze, durate, data, turno, squadra,
     // «sappiamo tutto e va tutto bene» è vero solo se non c'è nessun «non lo so»
     tuttiInRegola: righe.length > 0 && righe.every(r => r.stato === "regolare"),
   };
+}
+
+/* L'ELENCO PER L'APPELLO CHE ESCE DALL'APP — quello che qualcuno apre col
+   foglio di calcolo per verificare presenze e ore.
+   ⛔ E FINO AL 07/08 LA COLONNA `ore_lavorate` USCIVA NUDA ANCHE QUANDO IL
+   MODULO AVEVA GIÀ DETTO DI NON FIDARSENE. `orariPresenza` alza la bandiera
+   `attendibile: false` quando fra entrata e uscita passano più ore di quante
+   un turno possa durarne, e scrive anche il `perche`. Quella bandiera la
+   leggevano lo schermo («— orari da controllare: fra entrata e uscita ci sono
+   più di 13 ore»), la stampa («23 h (da controllare)») e il riepilogo del
+   turno («1 riga ha orari da controllare»). Il CSV no. Misurato premendo il
+   bottone su una persona con entrata 06:00 e uscita 05:00:
+
+       …;Paolo Gallo;Autista;Squadra B;presente;06:20;06:00;05:00;23;…
+
+   cioè ventitré ore di lavoro, senza un segno, nell'unica uscita che qualcuno
+   SOMMA. È la guardia scollegata: la dichiarazione c'era, e proprio la
+   superficie che ne aveva più bisogno non la leggeva.
+   Il numero non si spegne — è vero che fra i due orologi ci sono 23 ore — e
+   non si arrotonda: gli si mette accanto la colonna che dice perché non ci si
+   può fidare, come fa `riposo_nota` per il riposo.
+   ⚠️ La cella VUOTA resta la risposta per «non misurabile»: `ore_lavorate` è
+   vuota quando uno dei due orari manca, perché uno zero lì, riletto da un
+   foglio di calcolo, diventa una somma sbagliata senza che nessuno se ne
+   accorga. Le ore restano col PUNTO decimale: è un dato scambiato, non un
+   testo mostrato. Pura e testabile. */
+export const APPELLO_COLONNE = ["data", "turno", "nome", "ruolo", "squadra", "stato", "ora",
+  "entrata", "uscita", "ore_lavorate", "orari_da_controllare",
+  "riposo_stato", "riposo_ore", "riposo_fonte", "riposo_nota"];
+
+export function csvAppello(operatori, presenze, durate, data, turno, squadra, fmtData) {
+  const app = appelloTurno(operatori, presenze, data, turno, squadra);
+  // il riposo viaggia con l'elenco: chi lo apre col foglio di calcolo per una
+  // verifica non deve tornare nell'app a rileggerlo persona per persona
+  const rip = riposoDiTurno(operatori, presenze, durate, data, turno, squadra);
+  const perId = {}; rip.righe.forEach(x => { perId[x.operatore.id] = x; });
+  let csv = APPELLO_COLONNE.join(";") + "\n";
+  for (const r of app.righe) {
+    const rp = perId[r.operatore.id];
+    const p = presenzaDi(presenze, data, turno, r.operatore.id);
+    const or = orariPresenza(p);
+    csv += `${data};${csvCell(turno)};${csvCell(r.operatore.nome)};${csvCell(r.operatore.ruolo || "")};`
+         // ⛔ «da spuntare» e non «assente»: chi nessuno ha guardato non si
+         // conta né presente né assente — se suona l'allarme, contarlo assente
+         // vuol dire non andarlo a cercare
+         + `${csvCell(squadraBase(r.operatore.squadra))};${r.stato || "da spuntare"};${r.ora || ""};`
+         + `${csvCell((p && p.entrata) || "")};${csvCell((p && p.uscita) || "")};`
+         + `${or.minuti === null ? "" : Math.round(or.minuti / 0.6) / 100};`
+         + `${csvCell(or.attendibile === false ? or.perche : "")};`
+         + `${rp ? rp.stato : "non-in-turno"};${rp && rp.ore !== null ? rp.ore : ""};`
+         // da dove viene la fine del turno precedente: «orario» è una misura,
+         // «durata» è il piano dei turni. Chi verifica col foglio di calcolo
+         // deve poter separare le due cose senza rileggere la nota a parole
+         + `${csvCell(rp ? (rp.daFine || "") : "")};`
+         + `${csvCell(rp ? testoRiposo(rp, fmtData) : "")}\n`;
+  }
+  return csv;
 }
 
 // Minuti di fermo giorno per giorno, negli ultimi `giorni` giorni di

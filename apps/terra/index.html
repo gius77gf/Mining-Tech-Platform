@@ -919,7 +919,7 @@ a.dw-btn{text-decoration:none}
            produzioneDichiarata, misuratoPeriodo, riconciliazioneTurni,
            periodoFraUltimiRilievi, intervalliFraRilievi, avanzamentoDaUltimoRilievo, SOGLIA_TURNI,
            produzionePerFronte,
-           numeroDaCampo, AVVISO_DECIMALE, origineDi, descriviOrigine,
+           numeroDaCampo, AVVISO_DECIMALE, origineDi, descriviOrigine, numeroRegistrato,
            FONTI_DENSITA, densitaDichiarata, densitaPerEnte, descriviDensita, densitaDellaCava,
            DENS_ATTO, DENS_LABORATORIO, DENS_PRESET, DENS_MANO, DENS_NON_DICHIARATA,
            STATI_LOTTO, statoLotto, divarioRecupero, avanzamentoLotto,
@@ -2062,6 +2062,12 @@ a.dw-btn{text-decoration:none}
     const R = riepilogoAnnuale(RIL, annoDen, aut);
     const soglia = aut && +aut.sogliaGuardiaPct > 0 ? +aut.sogliaGuardiaPct : null;
     DEN = { R, aut, soglia };
+    /* ⛔ LA BASE SI CALCOLA QUI, IN CIMA, e non è un riordino di comodo: la sua
+       bandiera `calcolabile` risponde a «lo scavo di quest'anno l'ha misurato
+       qualcuno?», ed è la stessa domanda della PRIMA tessera in alto. Stava
+       duecentosettanta righe più giù, quindi le tessere non potevano leggerla e
+       si arrangiavano con `R.scavo` nudo. Vedi il commento della tessera. */
+    DEN.base = baseOnereEscavazione(R, {});
     const meseOggi = new Date().getMonth() + 1;
     const mesiVisti = R.inCorso ? R.mesi.slice(0, meseOggi) : R.mesi;
 
@@ -2081,8 +2087,24 @@ a.dw-btn{text-decoration:none}
     const stRes = R.pctFineAnno == null || !R.misurabile ? "" : R.pctFineAnno >= 100 ? "danger"
       : (soglia != null && R.pctFineAnno >= soglia) ? "warn" : "ok";
     const U = '<span class="u">m³</span>';
+    /* ⛔ E LA PRIMA TESSERA DICEVA «0» DOVE IL FOGLIO DICE «NON MISURATO».
+       Trovata il 07/08 premendo il bottone e leggendo il file: sull'anno senza
+       nessun rilievo di scavo il prospetto stampato scrive «Totale 2024 · non
+       misurato», il CSV lascia la cella **vuota**, la riga «anno per anno» di
+       questa stessa schermata — dieci centimetri più in basso — scrive «Scavo
+       non misurato», e il riquadro degli oneri spiega per esteso che «zero
+       misurato» e «non misurato» per l'ente non sono la stessa cosa.
+       Il numero grande in cima, quello che si legge per primo, diceva **0**.
+       È lo schermo più povero del file, sul dato che si ricopia nel modulo.
+       ⚠️ La bandiera giusta NON è `R.misurabile`: quella parla del TITOLO
+       (pregresso + rilievi complessivi) e resta vera mentre il singolo anno è
+       cieco — lo dice già il commento di `serieAnnuale`, che questa lezione
+       l'aveva imparata a livello di riga e non di tessera. Quella giusta è
+       `base.calcolabile`, che vale esattamente `rilieviScavo > 0` ed è la
+       stessa che leggono il foglio stampato e il CSV: una domanda, una
+       risposta, tre posti che la leggono. */
     const tessere = [
-      [U + " scavati nel " + R.anno, fmtM3(R.scavo), ""],
+      [U + " scavati nel " + R.anno, DEN.base.calcolabile ? fmtM3(R.scavo) : "—", ""],
       [U + " ripresi da cumuli", fmtM3(R.cumulo), ""],
       ["Cumulato sul titolo", R.concesso && R.misurabile ? fmtM3(R.cumulatoFineAnno) : "—", ""],
       ["Residuo a fine " + R.anno, R.residuoFineAnno != null && R.misurabile ? fmtM3(R.residuoFineAnno) : "—", stRes],
@@ -2091,12 +2113,20 @@ a.dw-btn{text-decoration:none}
       `<div class="kpi ${c}"><div class="l">${l}</div><div class="n">${n}</div></div>`).join("");
 
     // 3 · mese per mese, tutti e dodici (o fino a oggi se l'anno è in corso)
+    /* ⚠️ QUI LO ZERO RESTA UNO ZERO, di proposito: nel modulo dell'ente un mese
+       senza scavo si dichiara «0», non si salta, e la nota sotto l'elenco lo
+       dice. Quello che NON poteva restare è la conta accanto: «1 rilievo · 0 m³»
+       su un mese in cui l'unico rilievo era una ripresa da cumulo si legge
+       «misurato, ed era zero». La conta adesso è quella dei rilievi di SCAVO —
+       la stessa che il foglio stampato e il CSV mettono in colonna. */
     $("den-mesi").innerHTML = mesiVisti.map(m => {
       const zero = m.scavo === 0 && m.cumulo === 0;
+      const rs = +m.rilieviScavo || 0;
       return `<div class="item ${zero ? "st-mute" : "st-accent"}" style="cursor:default;">
         <div class="info"><div class="name">${MESI_NOME[m.mese - 1]} ${R.anno}</div>
-        <div class="meta">${zero ? "nessun volume registrato" : m.rilievi + (m.rilievi === 1 ? " rilievo" : " rilievi")
-          + (m.cumulo ? " · ripresi da cumuli " + n0(m.cumulo) + " m³" : "")}</div></div>
+        <div class="meta">${zero ? "nessun volume registrato"
+          : [rs ? rs + (rs === 1 ? " rilievo di scavo" : " rilievi di scavo") : "nessun rilievo di scavo",
+             m.cumulo ? "ripresi da cumuli " + n0(m.cumulo) + " m³" : ""].filter(Boolean).join(" · ")}</div></div>
         <span class="badge ${zero ? "tag" : "accent"}">${n0(m.scavo)} <span class="u">m³</span></span></div>`;
     }).join("");
     $("den-mesi-nota").innerHTML = "I mesi a <b>zero</b> restano in elenco apposta: nel modulo dell'ente un mese senza scavo va dichiarato zero, non saltato."
@@ -2119,16 +2149,29 @@ a.dw-btn{text-decoration:none}
     // badge «0 m³» che sembrava una riga rotta.
     // la regola di chi entra nell'elenco e con quale quota sta in `terra-data.js`,
     // dove si prova: qui resta il disegno
+    /* ⛔ E UN FRONTE MAI RILEVATO NELL'ANNO NON PRENDE «0 m³», esattamente come
+       il banco quaranta righe più giù. Fino al 07/08 lo prendeva, e la stessa
+       riga usciva così anche sul foglio stampato e nel CSV: tre posti che
+       dicevano «da questo fronte non è uscito niente» dove la verità è «lì non
+       ha volato nessuno». La bandiera la calcola `ripartizioneFronti`
+       (`rilieviScavo > 0`) e qui si legge — la ragione va nel `form-hint` e non
+       nel `.meta`, che è tagliato a due righe. */
     const RF = ripartizioneFronti(R);
     $("den-fronti").innerHTML = RF.righe.map(f => {
-      const meta = f.rilievi + (f.rilievi === 1 ? " rilievo" : " rilievi")
-        + (f.quotaPct != null ? " · " + un1(f.quotaPct) + "% dello scavo dell'anno" : "")
-        + (f.cumulo ? " · ripresi da cumuli " + n0(f.cumulo) + " m³" : "")
-        + (f.senzaFronte ? " · scavo non attribuito a nessun fronte" : "");
-      return `<div class="item ${f.scavo > 0 ? "st-accent" : "st-mute"}" style="cursor:default;">
+      const meta = [
+        /* la conta va spezzata per provenienza: «1 rilievo» accanto a un badge
+           «0 m³» faceva leggere «abbiamo misurato, ed è zero» quando quel
+           rilievo era una ripresa da cumulo */
+        f.misurabile ? f.rilieviScavo + (f.rilieviScavo === 1 ? " rilievo di scavo" : " rilievi di scavo") : "",
+        f.quotaPct != null ? un1(f.quotaPct) + "% dello scavo dell'anno" : "",
+        f.cumulo ? "ripresi da cumuli " + n0(f.cumulo) + " m³" : "",
+        f.senzaFronte ? "scavo non attribuito a nessun fronte" : "",
+      ].filter(Boolean).join(" · ");
+      return `<div class="item ${f.misurabile ? "st-accent" : "st-mute"}" style="cursor:default;">
         <div class="info"><div class="name">${esc(etFronte(f))}</div>
         <div class="meta">${meta}</div></div>
-        <span class="badge ${f.scavo > 0 ? "accent" : "tag"}">${n0(f.scavo)} <span class="u">m³</span></span></div>`;
+        <span class="badge ${f.misurabile ? "accent" : "tag"}">${f.misurabile ? n0(f.scavo) + ' <span class="u">m³</span>' : "mai misurato"}</span>
+        ${f.motivo ? `<div class="form-hint">${esc(f.motivo)}</div>` : ""}</div>`;
     }).join("")
       || vuoto(I.monte, "Nessun volume da ripartire nel " + R.anno,
           "Quando registri un rilievo scegliendo il <b>fronte</b>, qui compare la ripartizione che molti moduli chiedono: quanto è uscito da ciascun fronte.");
@@ -2142,6 +2185,16 @@ a.dw-btn{text-decoration:none}
             : "")
         + (RF.senzaFronte
             ? " C'è dello scavo <b>senza fronte</b>: se il modulo dell'ente chiede la ripartizione, apri quei rilievi e indica da quale fronte sono usciti."
+            : "")
+        /* la stessa frase dei banchi, che è la stessa dei mesi: dove non ha
+           misurato nessuno la riga resta ma il numero no */
+        + (RF.nonMisurate
+            ? " " + (RF.nonMisurate === 1 ? "Un fronte resta" : RF.nonMisurate + " fronti restano")
+              + " in elenco con <b>mai misurato</b>: nel " + R.anno + " su di "
+              + (RF.nonMisurate === 1 ? "lui" : "loro") + " non risulta nessun rilievo di scavo — non "
+              + (RF.nonMisurate === 1 ? "ha" : "hanno") + " cavato zero, non "
+              + (RF.nonMisurate === 1 ? "l'ha" : "li ha") + " misurat"
+              + (RF.nonMisurate === 1 ? "o" : "i") + " nessuno."
             : "");
 
     // 4-bis · da quale BANCO. Stessa ripartizione, un livello sopra: il banco lo
@@ -2329,8 +2382,10 @@ a.dw-btn{text-decoration:none}
        fatto. Uno zero che l'ente legge come «non ho estratto niente», su una
        cosa che nessuno aveva misurato. `baseOnereEscavazione` distingue i due
        casi e `descriviBaseOnere` scrive la frase — una volta sola, per la
-       pagina e per il foglio da consegnare. */
-    DEN.base = baseOnereEscavazione(R, {});
+       pagina e per il foglio da consegnare.
+       ⚠️ IL CONTO SI FA IN CIMA, non qui: dal 07/08 la stessa bandiera serve
+       anche alla prima tessera, e calcolarlo due volte sarebbe la seconda
+       scrittura della stessa domanda. Qui resta il disegno. */
     $("den-oneri").innerHTML = (DEN.base.calcolabile
         ? `<div class="note recap">Base di calcolo per il <b>${R.anno}</b>: <b>${n0(DEN.base.imponibile)} m³</b> di scavo misurato`
           + (R.cumulo ? `. I <b>${n0(R.cumulo)} m³</b> ripresi dai cumuli restano fuori: non sono nuovo scavo` : "")
@@ -2457,6 +2512,10 @@ a.dw-btn{text-decoration:none}
   // dati dell'utente e numeri calcolati dai suoi rilievi.
   function fogliaStampa() {
     const { R, aut, soglia } = DEN;
+    /* `tutte: true` = anche la voce senza fronte fatta di soli cumuli, che sul
+       foglio ha una colonna sua. La bandiera `misurabile` è la stessa che legge
+       lo schermo: la regola sta nel modulo, qui si legge (vedi più giù). */
+    const RFT = ripartizioneFronti(R, { tutte: true });
     const oggi = new Date();
     const dataOggi = fmtData(oggiISO(oggi));
     const meseOggi = oggi.getMonth() + 1;
@@ -2522,10 +2581,13 @@ a.dw-btn{text-decoration:none}
       + dati.map(d => riga(["<b>" + d[0] + "</b>", d[1]])).join("") + "</table>"
       + "<p class='mini'>Ditta titolare, sede e cava di riferimento vanno indicate secondo il modello richiesto dall'ente.</p>"
       + "<h2>Volumi dell'anno " + R.anno + "</h2><table>"
-      + riga(["Mese", "<span class='n'>Scavo (m³)</span>", "<span class='n'>Ripreso da cumuli (m³)</span>", "<span class='n'>Rilievi</span>"], "th")
+      /* ⚠️ «Rilievi di scavo», non «Rilievi»: la nota sotto la tabella promette
+         che questa colonna dica dove non ha misurato nessuno, e contando anche
+         le riprese da cumulo scriveva «1» accanto a uno scavo mai misurato. */
+      + riga(["Mese", "<span class='n'>Scavo (m³)</span>", "<span class='n'>Ripreso da cumuli (m³)</span>", "<span class='n'>Rilievi di scavo</span>"], "th")
       + mesiVisti.map(m => riga([MESI_NOME[m.mese - 1],
           "<span class='n'>" + n0(m.scavo) + "</span>", "<span class='n'>" + n0(m.cumulo) + "</span>",
-          "<span class='n'>" + m.rilievi + "</span>"])).join("")
+          "<span class='n'>" + (+m.rilieviScavo || 0) + "</span>"])).join("")
       /* ⛔ E LA RIGA DEL TOTALE PORTA «non misurato», come già fanno i banchi
          venti righe più giù su questo stesso foglio. Un «Totale 2026: 0» in
          grassetto, in un anno in cui nessuno ha volato, l'ente lo legge come
@@ -2535,24 +2597,46 @@ a.dw-btn{text-decoration:none}
          letta tre volte sullo stesso foglio. */
       + "<tr class='tot'><td>Totale " + R.anno + "</td><td class='n'>"
       + (DEN.base && DEN.base.calcolabile ? n0(R.scavo) : "non misurato") + "</td><td class='n'>"
-      + n0(R.cumulo) + "</td><td class='n'>" + (R.rilieviScavo + R.rilieviCumulo) + "</td></tr>"
+      + n0(R.cumulo) + "</td><td class='n'>" + R.rilieviScavo + "</td></tr>"
       + "</table>"
       + "<p class='mini'>Lo <b>scavo</b> è materiale nuovo tolto dal fronte e consuma il volume concesso. La <b>ripresa da cumuli</b> è materiale già estratto in passato e rimosso da un deposito: è indicata a parte perché non costituisce nuovo scavo."
       + (DEN.base && DEN.base.calcolabile ? ""
           : " Nel " + R.anno + " <b>non risulta nessun rilievo di scavo</b>: gli zeri dei mesi sono la forma con cui il modulo va compilato — la colonna «Rilievi» dice dove non ha misurato nessuno — e il totale dell'anno non è una misura.")
       + "</p>"
-      /* NOTA: qui si stampano TUTTE le voci di `R.fronti`, compresa quella senza
-         fronte fatta di sole riprese da cumuli — che invece l'elenco a schermo
-         esclude. Non è una svista: la tabella ha una colonna «Ripreso da cumuli»,
-         quindi quella riga porta un numero suo e non un badge «0 m³» che sembra un
-         errore. A schermo ogni riga ha un numero solo e quel posto non c'era. */
+      /* NOTA: qui si stampano TUTTE le voci, compresa quella senza fronte fatta
+         di sole riprese da cumuli — che invece l'elenco a schermo esclude. Non è
+         una svista: la tabella ha una colonna «Ripreso da cumuli», quindi quella
+         riga porta un numero suo e non un badge «0 m³» che sembra un errore. A
+         schermo ogni riga ha un numero solo e quel posto non c'era.
+         ⛔ E DAL 07/08 LE VOCI ARRIVANO DA `ripartizioneFronti`, NON DA
+         `R.fronti` GREZZO. Componendo di qui il foglio si teneva una versione
+         più debole della regola — `n0(f.scavo)`, cioè «0» per un fronte su cui
+         nell'anno non ha volato nessuno — mentre la tabella dei banchi, sedici
+         righe più giù su QUESTO stesso foglio, scriveva già «non misurato» per
+         la stessa identica situazione. Due convenzioni opposte a due centimetri
+         di distanza, su un documento che va all'ente.
+         L'unica differenza fra il foglio e lo schermo era il FILTRO, e adesso è
+         un parametro (`tutte`): la bandiera `misurabile` la decide il modulo e
+         qui si legge, come per i banchi. */
       + "<h2>Ripartizione per fronte</h2><table>"
-      + riga(["Fronte", "<span class='n'>Scavo (m³)</span>", "<span class='n'>Ripreso da cumuli (m³)</span>", "<span class='n'>Rilievi</span>"], "th")
-      + (R.fronti.length
-          ? R.fronti.map(f => riga([esc(etFronte(f)), "<span class='n'>" + n0(f.scavo) + "</span>",
-              "<span class='n'>" + n0(f.cumulo) + "</span>", "<span class='n'>" + f.rilievi + "</span>"])).join("")
+      + riga(["Fronte", "<span class='n'>Scavo (m³)</span>", "<span class='n'>Ripreso da cumuli (m³)</span>", "<span class='n'>Rilievi di scavo</span>"], "th")
+      + (RFT.righe.length
+          ? RFT.righe.map(f => riga([esc(etFronte(f)),
+              "<span class='n'>" + (f.misurabile ? n0(f.scavo) : "non misurato") + "</span>",
+              "<span class='n'>" + n0(f.cumulo) + "</span>",
+              /* ⚠️ LA COLONNA CONTAVA TUTTI I RILIEVI, cumuli compresi — e la
+                 nota qui sotto promette che «la colonna Rilievi dice dove non ha
+                 misurato nessuno». Con `f.rilievi` un fronte con una sola
+                 ripresa da cumulo scriveva «1» accanto a uno scavo che nessuno
+                 aveva misurato: la nota era smentita dalla colonna che spiega.
+                 Adesso la colonna conta i rilievi DI SCAVO e lo dice nel titolo;
+                 i cumuli hanno già la loro colonna. */
+              "<span class='n'>" + (+f.rilieviScavo || 0) + "</span>"])).join("")
           : riga(["Nessun volume registrato nell'anno", "<span class='n'>0</span>", "<span class='n'>0</span>", "<span class='n'>0</span>"]))
       + "</table>"
+      + (RFT.nonMisurate
+          ? "<p class='mini'>I fronti senza alcun rilievo di scavo nell'anno riportano «non misurato»: non hanno estratto zero, non risultano rilevati.</p>"
+          : "")
       /* ⛔ RIPARTIZIONE PER BANCO, e sul foglio che va all'ente la casella di un
          banco mai rilevato porta «non misurato», non uno «0». Uno zero qui è una
          dichiarazione in difetto su una cosa che nessuno ha misurato — la stessa
@@ -2641,16 +2725,32 @@ a.dw-btn{text-decoration:none}
     const { R } = DEN;
     const meseOggi = new Date().getMonth() + 1;
     const mesiVisti = R.inCorso ? R.mesi.slice(0, meseOggi) : R.mesi;
-    let csv = "sezione;voce;scavoM3;cumuloM3;rilievi\n";
-    for (const m of mesiVisti) csv += `mese;${csvCell(MESI_NOME[m.mese - 1] + " " + R.anno)};${m.scavo};${m.cumulo};${m.rilievi}\n`;
+    /* ⛔ L'ULTIMA COLONNA SI CHIAMAVA «rilievi» E VOLEVA DIRE DUE COSE. Le righe
+       dei banchi ci scrivevano `rilieviScavo`, quelle dei mesi, del totale e dei
+       fronti il conto di TUTTI i rilievi, cumuli compresi: nello stesso file,
+       sotto la stessa intestazione, due misure diverse. E quella larga è la
+       pericolosa — un mese con una sola ripresa da cumulo usciva `0;3100;1`, e
+       chi legge quell'`1` accanto allo zero conclude che lo scavo di settembre
+       è stato misurato ed era zero. Adesso la colonna dice `rilieviScavo` e
+       conta solo quelli: i cumuli hanno già la loro colonna in metri cubi. */
+    let csv = "sezione;voce;scavoM3;cumuloM3;rilieviScavo\n";
+    for (const m of mesiVisti) csv += `mese;${csvCell(MESI_NOME[m.mese - 1] + " " + R.anno)};${m.scavo};${m.cumulo};${m.rilieviScavo}\n`;
     /* ⛔ E LA STESSA REGOLA VALE PER IL TOTALE DELL'ANNO, che qui sotto era un
        «0» secco mentre sei righe più giù la cella di un banco mai rilevato è
        già vuota, con la ragione scritta. Misurato il 03/08 su un anno senza
        rilievi: il file diceva `totale;Anno 2026;0;0;0` e `banco;banco 1;;0;0`,
        cioè due convenzioni opposte nello stesso CSV — e chi apre il foglio in
        Excel somma lo zero del totale credendolo misurato. */
-    csv += `totale;${csvCell("Anno " + R.anno)};${DEN.base && DEN.base.calcolabile ? R.scavo : ""};${R.cumulo};${R.rilieviScavo + R.rilieviCumulo}\n`;
-    for (const f of R.fronti) csv += `fronte;${csvCell(etFronte(f))};${f.scavo};${f.cumulo};${f.rilievi}\n`;
+    csv += `totale;${csvCell("Anno " + R.anno)};${DEN.base && DEN.base.calcolabile ? R.scavo : ""};${R.cumulo};${R.rilieviScavo}\n`;
+    /* ⛔ E LA RIGA DI UN FRONTE MAI RILEVATO LASCIA LA CELLA VUOTA, come già
+       facevano i banchi otto righe più giù. Fino al 07/08 scriveva `0`, cioè la
+       terza convenzione nello stesso file: `banco;banco 3;;0;0` e
+       `fronte;Fronte Sud;0;4400;1` a quattro righe di distanza. Le voci
+       arrivano da `ripartizioneFronti` — la stessa che disegna lo schermo e
+       compone il foglio stampato — con `tutte: true` perché il file, come il
+       foglio, porta anche la voce senza fronte. */
+    for (const f of ripartizioneFronti(R, { tutte: true }).righe)
+      csv += `fronte;${csvCell(etFronte(f))};${f.misurabile ? f.scavo : ""};${f.cumulo};${+f.rilieviScavo || 0}\n`;
     /* ⛔ la cella dello scavo di un banco mai rilevato resta VUOTA, non «0»:
        chi apre il CSV in un foglio sommerebbe uno zero che nessuno ha misurato */
     for (const b of (DEN.banchi ? DEN.banchi.righe : []))
@@ -4157,15 +4257,30 @@ a.dw-btn{text-decoration:none}
        poteva dire niente di vero. Una misura che non si può rifare non si può
        difendere. */
     const c = ultimo.calcolo || {};
+    /* ⛔ E QUI C'ERA `Number.isFinite(+x)`, CIOÈ LA GUARDIA DEL MODULO SCRITTA
+       PIÙ DEBOLE NEL PUNTO IN CUI IL DATO NASCE. `+null` fa **0**, che è finito:
+       il `null` del visore — «la nuvola non è georeferenziata, la quota di base
+       non c'è» (`nuvola-poc.html` riga ~325) — entrava in archivio come uno
+       ZERO VERO. E da lì nessuno poteva più accorgersene: una quota di base 0 è
+       legittima (piano a quota zero), lo dice il modulo stesso.
+       Misurato in scratchpad passando il carico del visore con `quotaBase:
+       null` alla catena com'era: il verbale che va all'ente stampava «quota di
+       base 0,00 m» e fra i parametri mancanti listava il solo «ritaglio». Sono
+       le stesse due bugie che si coprono a vicenda tolte dal verbale il 02/08 —
+       tornate dal lato di chi SCRIVE, dove il danno è irreversibile.
+       La regola resta una sola: `numeroRegistrato` sta in `terra-data.js`
+       accanto a chi la legge, ed è `export` da oggi proprio perché serviva
+       anche qui. Gli altri quattro campi hanno un `> 0` a valle che li
+       salvava — `quotaBase` no, ed è l'unico che poteva morderci. */
     _origineDalVisore = {
       da: "visore",
       file: ultimo.nome || null,
       quandoVisore: ultimo.data || null,
-      puntiTotali: Number.isFinite(+ultimo.punti) ? +ultimo.punti : null,
-      puntiRitaglio: Number.isFinite(+ultimo.puntiRitaglio) ? +ultimo.puntiRitaglio : null,
-      cella: Number.isFinite(+c.cella) ? +c.cella : null,
-      quotaBase: Number.isFinite(+c.quotaBase) ? +c.quotaBase : null,
-      areaCoperta: Number.isFinite(+c.areaCoperta) ? Math.round(+c.areaCoperta) : null,
+      puntiTotali: numeroRegistrato(ultimo.punti) ? +ultimo.punti : null,
+      puntiRitaglio: numeroRegistrato(ultimo.puntiRitaglio) ? +ultimo.puntiRitaglio : null,
+      cella: numeroRegistrato(c.cella) ? +c.cella : null,
+      quotaBase: numeroRegistrato(c.quotaBase) ? +c.quotaBase : null,
+      areaCoperta: numeroRegistrato(c.areaCoperta) ? Math.round(+c.areaCoperta) : null,
       ritaglio: c.ritaglio || null,
       georeferenziato: c.georeferenziato === undefined ? null : !!c.georeferenziato,
     };

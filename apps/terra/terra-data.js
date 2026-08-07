@@ -924,8 +924,15 @@ export function riepilogoAnnuale(rilievi, anno, autorizzazione, oggi = new Date(
   for (let m = 1; m <= 12; m++) {
     const ym = y + "-" + String(m).padStart(2, "0");
     const dentro = dellAnno.filter(r => String(r.data).slice(0, 7) === ym);
-    const sc = soloScavo(dentro);
-    mesi.push({ mese: m, ym, scavo: somma(sc), cumulo: somma(soloCumulo(dentro)), rilievi: dentro.length });
+    const sc = soloScavo(dentro), cu = soloCumulo(dentro);
+    /* ⛔ ANCHE IL MESE SPEZZA LA CONTA, dal 07/08 e per la stessa ragione dei
+       fronti qui sotto — che era già scritta e valeva un piano più su. Il
+       prospetto stampato promette in una nota che «la colonna Rilievi dice dove
+       non ha misurato nessuno»: con la conta totale un mese con una sola ripresa
+       da cumulo stampa «0 | 3.100 | 1», e quell'`1` smentisce la nota che lo
+       spiega. Il CSV lo scriveva uguale, `mese;Settembre 2024;0;3100;1`. */
+    mesi.push({ mese: m, ym, scavo: somma(sc), cumulo: somma(cu), rilievi: dentro.length,
+      rilieviScavo: sc.length, rilieviCumulo: cu.length });
   }
 
   /* ⛔ E LA CONTA DEI RILIEVI VA SPEZZATA PER PROVENIENZA, non lasciata in un
@@ -1089,23 +1096,78 @@ export function descriviBaseOnere(base) {
 //  2. mancava la QUOTA, l'unico numero che un elenco di valori assoluti non sa
 //     dare: 40.700 e 38.700 dicono poco, 51,3% e 48,7% dicono che i due fronti
 //     pesano uguale. Nulla su un totale zero: non è 0%, è una domanda senza senso.
-export function ripartizioneFronti(riepilogo) {
+//
+/* ⛔ E IL 07/08 NE È SALTATA FUORI UNA TERZA, PREMENDO IL BOTTONE E APRENDO IL
+   FILE — la forma in cui SCHERMO E FILE TACCIONO TUTT'E DUE. Un fronte che
+   nell'anno ha solo una ripresa da cumulo (o nessun rilievo di scavo) usciva
+   dichiarato **«0 m³ di scavo»** in tutti e tre i posti: il badge dell'elenco,
+   il prospetto stampato che va all'ente e il CSV della denuncia. Non è zero:
+   è che su quel fronte, quell'anno, non ha volato nessuno.
+   Misurato con un rilievo di solo cumulo appeso a «Fronte Sud»:
+     schermo  →  «Fronte Sud · 1 rilievo · ripresi da cumuli 4.400 m³ · [0 m³]»
+     stampa   →  «Fronte Sud   0   4.400   1»
+     CSV      →  «fronte;Fronte Sud;0;4400;1»
+   e due centimetri più giù, sullo STESSO foglio, la tabella dei banchi scrive
+   già «non misurato» per la stessa identica situazione.
+   ⛔ E LA REGOLA C'ERA GIÀ, DUE VOLTE. `riepilogoAnnuale` calcola
+   `rilieviScavo` per ogni fronte, e il commento che l'ha introdotto dice
+   esattamente perché — «chi legge la voce di un fronte non ha modo di
+   distinguere "scavo misurato pari a zero" da "lo scavo non l'ha misurato
+   nessuno"». Quel campo **non lo leggeva nessuno**: né la pagina, né la
+   stampa, né il CSV. È la guardia scollegata della regola 20, su un campo che
+   il vocabolario delle bandiere non conosce e che quindi la regola non vede.
+   ⛔ E IL PARAMETRO, INVECE DELLA COPIA. Stampa e CSV non passavano di qui —
+   componevano da `R.fronti` grezzo — perché a loro serve anche la voce senza
+   fronte fatta di soli cumuli, che l'elenco a schermo esclude di proposito.
+   Cioè l'unica differenza era il FILTRO: `tutte: true` la toglie, e da lì in
+   poi i tre posti leggono la stessa `misurabile`. Ricopiare qui il corpo con
+   un filtro diverso sarebbe stata la copia che nasce da una firma troppo
+   stretta (CLAUDE.md), e sarebbe divergente entro il mese.
+   ⚠️ Con `tutte: true` NIENTE resta fuori, quindi `cumuliFuori` vale 0: è
+   giusto, e per questo il conto si fa sulle righe **escluse** invece che sulla
+   forma della riga — un filtro scritto due volte è la stessa copia debole un
+   piano più sotto. */
+export function ripartizioneFronti(riepilogo, opzioni = {}) {
+  const o = opzioni || {};
+  const anno = riepilogo && riepilogo.anno != null ? riepilogo.anno : "";
   const fronti = riepilogo && Array.isArray(riepilogo.fronti) ? riepilogo.fronti : [];
   const totale = riepilogo && +riepilogo.scavo > 0 ? +riepilogo.scavo : 0;
-  const righe = fronti
-    .filter(f => f.fronteId || +f.scavo > 0)
-    .map(f => ({ ...f,
+  const dentro = (f) => o.tutte === true || !!f.fronteId || +f.scavo > 0;
+  const righe = fronti.filter(dentro).map(f => {
+    /* la stessa decisione delle righe dei banchi, e per la stessa ragione:
+       `scavo > 0` confonderebbe un fronte mai rilevato con uno rilevato a zero */
+    const misurabile = +f.rilieviScavo > 0;
+    return { ...f,
       senzaFronte: !f.fronteId,
-      quotaPct: totale > 0 && +f.scavo > 0 ? Math.round(1000 * f.scavo / totale) / 10 : null }));
+      misurabile,
+      /* ⚠️ non è solo la bandiera: lo scavo diventa `null`. Chi disegnasse
+         `n0(f.scavo)` dimenticando la bandiera scriverebbe di nuovo «0», e una
+         difesa che si può dimenticare non è una difesa. */
+      scavo: misurabile ? r2(f.scavo) : null,
+      quotaPct: misurabile && totale > 0 && +f.scavo > 0
+        ? Math.round(1000 * f.scavo / totale) / 10 : null,
+      /* ⚠️ La frase è vicina di casa di quella dei banchi ma NON la stessa, e
+         il parametro non basterebbe: là il soggetto sono «i fronti di questo
+         banco» nella prima e «questo banco» nella seconda, cioè servirebbero
+         tre pezzi di testo per una funzione di due righe. Provato e scartato:
+         quello che si condivide davvero è la DECISIONE qui sopra, non le
+         parole. */
+      motivo: misurabile ? "" : (+f.rilieviCumulo > 0
+        ? `Su questo fronte nel ${anno} ci sono solo riprese da cumulo: è materiale già cavato prima, non scavo di questo fronte.`
+        : `Nessun rilievo di scavo su questo fronte nel ${anno}: il volume tolto non è stato misurato da nessuno.`),
+    };
+  });
   return {
     righe,
     // i cumuli che restano FUORI dalla ripartizione, da dire nella nota
-    cumuliFuori: fronti.filter(f => !f.fronteId && !(+f.scavo > 0))
-      .reduce((a, f) => a + (+f.cumulo || 0), 0),
+    cumuliFuori: fronti.filter(f => !dentro(f)).reduce((a, f) => a + (+f.cumulo || 0), 0),
     // c'è almeno una riga con dei cumuli? Serve alla nota: rimandare a «quanto
     // scritto nella riga» quando nessuna riga lo riporta manda a cercare il nulla
     conCumuliInRiga: righe.some(f => +f.cumulo > 0),
     senzaFronte: righe.filter(f => f.senzaFronte).length,
+    // quante righe non hanno una misura dello scavo: serve alla nota, che
+    // altrimenti dovrebbe ricontarle fuori (e riscrivere la regola)
+    nonMisurate: righe.filter(f => !f.misurabile).length,
   };
 }
 
@@ -1748,9 +1810,31 @@ export async function terraData() {
    ⚠️ E NON si scrive `> 0`: una quota di base può essere **0** (piano a quota
    zero) o **negativa** (sotto il livello del mare), e i lati del ritaglio pure.
    Il `> 0` accanto a `cella`, `areaCoperta` e `puntiRitaglio` resta perché lì
-   uno zero non è una misura possibile: un lato cella di 0 m non esiste. */
-const _numRegistrato = (v) => (typeof v === "number" || typeof v === "string")
+   uno zero non è una misura possibile: un lato cella di 0 m non esiste.
+
+   ⛔ ED È `export` DAL 07/08, PERCHÉ LA DIFESA STAVA SOLO DALLA PARTE DI CHI
+   LEGGE E IL DANNO SI FA DALLA PARTE DI CHI SCRIVE. Il 02/08 questa guardia ha
+   tolto «quota di base 0,00 m» dal verbale — ma la pagina, dove il rilievo dal
+   visore viene MESSO IN ARCHIVIO, teneva la versione debole:
+     `quotaBase: Number.isFinite(+c.quotaBase) ? +c.quotaBase : null`
+   e `+null` fa **0**, che è finito. Quindi il `null` del visore («la nuvola non
+   è georeferenziata, la quota di base non c'è») entrava in archivio come uno
+   **zero vero**, e da lì in poi nessuna guardia poteva più distinguerlo: una
+   quota di base 0 è legittima (piano a quota zero), ed è scritto tre righe più
+   su. Misurato in scratchpad sul carico del visore con `quotaBase: null` — il
+   verbale stampava «quota di base 0,00 m» e listava fra i mancanti il solo
+   «ritaglio», cioè le stesse due bugie che si coprono a vicenda, tornate dal
+   lato opposto della catena.
+   ⚠️ La lezione, e vale per ogni guardia sui dati: **si guarda anche chi
+   SCRIVE**. Una regola che vive nel modulo e non è raggiungibile dalla pagina
+   viene riscritta più debole nel punto in cui il dato nasce, e lì il danno è
+   irreversibile — mentre alla lettura si vedrebbe ancora. */
+export const numeroRegistrato = (v) => (typeof v === "number" || typeof v === "string")
   && String(v).trim() !== "" && Number.isFinite(+v);
+/* l'alias interno: le undici chiamate qui sotto restano com'erano — un alias
+   non è una seconda implementazione, e rinominarle avrebbe fatto rumore in un
+   diff che deve restare leggibile */
+const _numRegistrato = numeroRegistrato;
 const _n0org = (v) => Number(v).toLocaleString("it-IT", { maximumFractionDigits: 0, useGrouping: true });
 const _n2org = (v) => Number(v).toLocaleString("it-IT", { minimumFractionDigits: 2, maximumFractionDigits: 2, useGrouping: true });
 /* ── DA DOVE VIENE IL VOLUME ────────────────────────────────────────────────

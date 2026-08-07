@@ -4678,23 +4678,37 @@ test("Terra · ripartizione per fronte: uno scavo senza fronte invece RESTA", ()
   ok(RF.senzaFronte === 1, "c'è uno scavo da attribuire");
 });
 test("Terra · ripartizione per fronte: la quota, e quando non si può dare", () => {
-  const R = { scavo: 79400, fronti: [
-    { fronteId: "f1", scavo: 40700, cumulo: 0, rilievi: 2 },
-    { fronteId: "f2", scavo: 38700, cumulo: 0, rilievi: 2 }] };
+  /* ⚠️ LE FINTE DI QUESTE PROVE PORTANO `rilieviScavo`, dal 07/08. Non è una
+     concessione al codice nuovo: `riepilogoAnnuale` quel campo lo mette su OGNI
+     voce da quando esiste (è la conta spezzata per provenienza), e una finta
+     che non ce l'ha descrive una forma che il produttore non produce mai. Senza
+     il campo, `ripartizioneFronti` risponde adesso «mai misurato» — che è la
+     risposta giusta alla domanda sbagliata. */
+  const R = { anno: 2026, scavo: 79400, fronti: [
+    { fronteId: "f1", scavo: 40700, cumulo: 0, rilievi: 2, rilieviScavo: 2, rilieviCumulo: 0 },
+    { fronteId: "f2", scavo: 38700, cumulo: 0, rilievi: 2, rilieviScavo: 2, rilieviCumulo: 0 }] };
   const q = terra.ripartizioneFronti(R).righe.map(r => r.quotaPct);
   eq(q, [51.3, 48.7], "una cifra decimale, come il resto della denuncia");
   ok(Math.abs(q[0] + q[1] - 100) < 0.11, "e le quote fanno cento");
   /* su un totale zero la quota NON è zero: è una domanda senza senso, e un «0%»
      scritto accanto a un fronte direbbe una cosa falsa */
-  const zero = terra.ripartizioneFronti({ scavo: 0, fronti: [{ fronteId: "f1", scavo: 0, cumulo: 0, rilievi: 1 }] });
+  const zero = terra.ripartizioneFronti({ anno: 2026, scavo: 0,
+    fronti: [{ fronteId: "f1", scavo: 0, cumulo: 0, rilievi: 1, rilieviScavo: 1, rilieviCumulo: 0 }] });
   ok(zero.righe[0].quotaPct === null, "totale zero: nessuna quota, non «0%»");
   /* un fronte a zero dentro un anno che ha scavato: stessa risposta, per la stessa
      ragione — quel fronte non ha una quota, non ne ha una pari a zero */
-  const misto = terra.ripartizioneFronti({ scavo: 1000, fronti: [
-    { fronteId: "f1", scavo: 1000, cumulo: 0, rilievi: 1 },
-    { fronteId: "f2", scavo: 0, cumulo: 0, rilievi: 1 }] });
+  const misto = terra.ripartizioneFronti({ anno: 2026, scavo: 1000, fronti: [
+    { fronteId: "f1", scavo: 1000, cumulo: 0, rilievi: 1, rilieviScavo: 1, rilieviCumulo: 0 },
+    { fronteId: "f2", scavo: 0, cumulo: 0, rilievi: 1, rilieviScavo: 1, rilieviCumulo: 0 }] });
   ok(misto.righe[1].quotaPct === null, "fronte senza scavo: nessuna quota");
   ok(misto.righe[0].quotaPct === 100, "e chi ha scavato tutto ha il cento per cento");
+  /* ⛔ E UN FRONTE RILEVATO A ZERO NON È UN FRONTE MAI RILEVATO: qui sopra
+     `f2` ha un rilievo di scavo che ha misurato zero — è una misura, e lo
+     `scavo` resta `0`, non `null`. Se questa asserzione cadesse vorrebbe dire
+     che la bandiera sta guardando il volume invece della conta dei rilievi,
+     cioè la scorciatoia `scavo > 0` rimessa dentro. */
+  ok(misto.righe[1].misurabile === true, "rilevato a zero: misurato, e lo zero resta");
+  ok(misto.righe[1].scavo === 0, "e vale zero, non «non misurato»");
 });
 test("Terra · ripartizione per fronte: niente dati, niente errori", () => {
   eq(terra.ripartizioneFronti({ scavo: 0, fronti: [] }).righe, [], "elenco vuoto");
@@ -22409,8 +22423,19 @@ test("⛔ etichettaStatoDocumento: la mappa esce dalla pagina e la leggono in du
     for (const n of ["mulberry32", "vnoise3", "_rngDa", "_gauss", "_perc"])
       ok(!new RegExp(`function\\s+${n}\\s*\\(`).test(pag),
          `${n}: nella pagina non c'è più una seconda dichiarazione`);
-    ok(/mulberry32, vnoise3, _rngDa, _gauss, _perc\s*\}\s*from\s*'\.\/genesi-data\.js'/.test(pag),
-       "e la pagina le importa tutte e cinque da genesi-data.js");
+    /* ⚠️ QUESTA RIGA CHIEDEVA LA FORMA, NON LA SOSTANZA, e il 07/08 è caduta
+       per un motivo che non era un difetto: cercava i cinque nomi **in fila**
+       (`mulberry32, vnoise3, _rngDa, _gauss, _perc }`), quindi bastava che
+       qualcuno aggiungesse un sesto nome all'elenco — è successo con
+       `xmlPianoInnesco` — perché rispondesse «la pagina non le importa». Una
+       prova che accusa il codice quando il codice migliora fa perdere più
+       tempo di nessuna prova. Adesso guarda l'elenco vero dell'import di
+       `genesi-data.js` e pretende che i cinque nomi ci siano DENTRO: più
+       giusta, non più permissiva — un import da un altro file non varrebbe. */
+    const elenco = (pag.match(/import\s*\{([^}]*)\}\s*from\s*'\.\/genesi-data\.js'/) || [, ""])[1]
+      .split(",").map(s => s.trim());
+    for (const n of ["mulberry32", "vnoise3", "_rngDa", "_gauss", "_perc"])
+      ok(elenco.includes(n), `${n}: la pagina lo importa da genesi-data.js (${elenco.length} nomi nell'elenco)`);
     /* la seconda domanda: che il modulo le esporti davvero coi nomi che la
        pagina importa — un import ESM di un nome inesistente non fa partire la
        pagina, e nessuna suite `node` se ne accorgerebbe */
@@ -23079,6 +23104,335 @@ console.log("\n— Conti · la barra di peso: il numero è giusto e a mentire è
     console.log(`     (${nuove.length} fatture d'esempio, tutte identiche alla composizione precedente)`);
   });
 }
+
+/* ══════════════════════════════════════════════════════════════════════
+   CAMPO · I TRE FILE CHE ESCONO, E QUELLO CHE NON DICEVANO
+   ──────────────────────────────────────────────────────────────────────
+   La domanda di CLAUDE.md — «dove questa app compone qualcosa che ESCE, chi
+   decide i suoi numeri?» — applicata a Campo il 07/08 premendo i bottoni e
+   aprendo i file. Il censimento PER EFFETTO (`download`, `window.print`,
+   appunti, `mailto:`, `share`) dà **sette** uscite: sei file scaricati più il
+   rapporto stampato. Tre di quelle sette dicevano meno del loro schermo, e
+   ognuna in un modo diverso:
+
+     1. `campo_appello.csv` — la colonna `ore_lavorate` usciva NUDA anche dove
+        `orariPresenza` aveva già alzato la bandiera `attendibile: false`.
+        Ventitré ore da un refuso, senza un segno, nell'unica uscita che
+        qualcuno somma con un foglio di calcolo. Schermo e stampa la
+        leggevano, il file no: la guardia scollegata.
+     2. `campo_attivita.csv` — i minuti di fermo non c'erano AFFATTO. Due
+        anomalie, una da 55 minuti e una che nessuno ha mai misurato, uscivano
+        come due righe indistinguibili. È la regola scritta nell'intestazione
+        di `csvStorico` («una giornata con tre guasti mai misurati identica a
+        una senza fermi») applicata un file più in là.
+     3. `consegna_turno.txt` — la checklist diceva «4/9 a posto» dove la
+        stampa diceva «4 a posto · 1 n.a. · 3 senza risposta». Le voci che
+        nessuno ha guardato sparivano dal foglio che passa di mano fra due
+        turni: «non lo so» travestito da «non c'è».
+
+   Tutt'e tre erano copie deboli nate nella PAGINA, dove nessuna prova
+   guardava. Adesso i file li compone il modulo, e queste prove ci stanno
+   sopra. ══════════════════════════════════════════════════════════════ */
+console.log("\n— Campo: i file che escono —");
+{
+  const OG = "2026-08-07";
+  const A = [
+    { id: "a1", data: OG, turno: "Mattina", titolo: "Frantoio primario", dettaglio: "intasato",
+      stato: "anomalia", causale: "Intasamento impianto", fermoMin: 55 },
+    { id: "a2", data: OG, turno: "Mattina", titolo: "Nastro 3 fermo", dettaglio: "strappo",
+      stato: "anomalia", causale: "Guasto meccanico" },
+    { id: "a3", data: OG, turno: "Mattina", titolo: "Perforazione", dettaglio: "14/22 fori", stato: "in-corso" },
+    { id: "a4", data: OG, turno: "Mattina", titolo: "Fermo lampo", dettaglio: "", stato: "anomalia",
+      causale: "Altro", fermoMin: 0 },
+  ];
+  const righe = (csv) => csv.split("\n").filter(Boolean);
+  const col = (nome, cols) => cols.indexOf(nome);
+
+  test("⛔ Campo · minutiFermoDi: `0` è una misura, l'assenza è null", () => {
+    eq(campo.minutiFermoDi(A[0]), 55, "55 minuti scritti");
+    eq(campo.minutiFermoDi(A[1]), null, "nessuno li ha misurati");
+    eq(campo.minutiFermoDi(A[3]), 0, "zero minuti È una misura");
+    eq(campo.minutiFermoDi({ stato: "in-corso", fermoMin: 40 }), null, "non è un'anomalia: nessun fermo");
+    eq(campo.minutiFermoDi({ stato: "anomalia", fermoMin: "  " }), null, "spazi non sono un numero");
+    eq(campo.minutiFermoDi({ stato: "anomalia", fermoMin: "abc" }), null, "una parola non è un numero");
+    eq(campo.minutiFermoDi({ stato: "anomalia", fermoMin: -5 }), null, "minuti negativi non esistono");
+    eq(campo.minutiFermoDi(null), null, "niente non è un fermo");
+  });
+
+  test("⛔ Campo · minutiFermoDi è la STESSA regola di paretoFermi, non una copia", () => {
+    // l'identità del comportamento, misurata caso per caso invece che a occhio:
+    // due copie uguali oggi divergono domani senza che nessuno lo veda
+    const p = campo.paretoFermi(A);
+    const perCausale = Object.fromEntries(p.voci.map(v => [v.causale, v]));
+    eq(perCausale["Intasamento impianto"].minuti, campo.minutiFermoDi(A[0]), "55 in tutt'e due");
+    eq(perCausale["Intasamento impianto"].senzaMinuti, 0, "misurato");
+    eq(perCausale["Guasto meccanico"].minuti, 0, "non sommato");
+    eq(perCausale["Guasto meccanico"].senzaMinuti, 1, "e contato fra i non misurati");
+    eq(perCausale["Altro"].senzaMinuti, 0, "zero minuti NON è un fermo non misurato");
+    eq(p.senzaMinutiTot, 1, "uno solo non misurato su tre anomalie");
+  });
+
+  test("⛔ Campo · csvAttivita: 55 minuti e «mai misurato» NON escono uguali", () => {
+    const r = righe(campo.csvAttivita(A));
+    const cols = r[0].split(";");
+    eq(cols, campo.ATTIVITA_COLONNE, "l'intestazione è quella dichiarata");
+    const iMin = col("minuti_fermo", cols);
+    ok(iMin >= 0, "la colonna dei minuti esiste (fino al 07/08 non c'era)");
+    const perTitolo = {};
+    for (const x of r.slice(1)) { const c = x.split(";"); perTitolo[c[2]] = c; }
+    eq(perTitolo["Frantoio primario"][iMin], "55", "il fermo misurato porta i suoi minuti");
+    eq(perTitolo["Nastro 3 fermo"][iMin], "", "⛔ il fermo mai misurato lascia la cella VUOTA, non uno zero");
+    eq(perTitolo["Fermo lampo"][iMin], "0", "zero minuti è una misura e si scrive");
+    ok(perTitolo["Frantoio primario"].join(";") !== perTitolo["Nastro 3 fermo"].join(";"),
+      "⛔ le due anomalie non sono più indistinguibili");
+  });
+
+  test("⚠️ Campo · csvAttivita: una riga che non è in anomalia non ha né causale né minuti", () => {
+    const r = righe(campo.csvAttivita(A));
+    const cols = r[0].split(";");
+    const c = r.slice(1).map(x => x.split(";")).find(x => x[2] === "Perforazione");
+    eq(c[col("stato", cols)], "in-corso", "lo stato separa i due vuoti");
+    eq(c[col("causale", cols)], "", "nessuna causale");
+    eq(c[col("minuti_fermo", cols)], "", "nessun fermo");
+  });
+
+  test("⚠️ Campo · csvAttivita: le anomalie prima, e il file vuoto resta la sola intestazione", () => {
+    const r = righe(campo.csvAttivita(A));
+    const stati = r.slice(1).map(x => x.split(";")[4]);
+    eq(stati.slice(0, 3), ["anomalia", "anomalia", "anomalia"], "chi apre il file cerca le anomalie");
+    /* ⛔ L'INTESTAZIONE SI SCRIVE PER ESTESO, non ricavata da `ATTIVITA_COLONNE`.
+       Confrontare il file con la costante da cui il file nasce è una prova che
+       resta verde se le due metà sbagliano insieme: la controprova che toglie
+       una colonna la toglie da tutt'e due, e questa riga non se ne accorge. Il
+       testo scritto a mano è l'unica metà che non si muove. */
+    eq(campo.csvAttivita([]), "data;turno;titolo;dettaglio;stato;causale;minuti_fermo\n",
+      "niente da esportare: solo l'intestazione, e le colonne sono queste");
+    eq(campo.csvAttivita(null), "data;turno;titolo;dettaglio;stato;causale;minuti_fermo\n",
+      "e niente NON è un errore");
+  });
+
+  /* ── l'elenco per l'appello ─────────────────────────────────────────── */
+  const OPER = [
+    { id: "o1", nome: "Mario Rossi", ruolo: "Fochino", squadra: "Squadra A", stato: "in-forza" },
+    { id: "o2", nome: "Paolo Gallo", ruolo: "Autista", squadra: "Squadra B", stato: "in-forza" },
+    { id: "o3", nome: "Anna Neri", ruolo: "Palista", squadra: "Squadra B", stato: "in-forza" },
+  ];
+  const PRE = [
+    // orari sani: 8 ore tonde
+    { id: "p1", data: OG, turno: "Mattina", operatoreId: "o1", stato: "presente", ora: "06:05", entrata: "06:00", uscita: "14:00" },
+    // il refuso: fra entrata e uscita passano 23 ore
+    { id: "p2", data: OG, turno: "Mattina", operatoreId: "o2", stato: "presente", ora: "06:20", entrata: "06:00", uscita: "05:00" },
+    // o3 non è spuntato da nessuno: NON è assente
+  ];
+  const dmy = (d) => String(d || "").split("-").reverse().join("/");
+  const appello = () => {
+    const r = righe(campo.csvAppello(OPER, PRE, [], OG, "Mattina", "", dmy));
+    const cols = r[0].split(";");
+    const per = {}; for (const x of r.slice(1)) { const c = x.split(";"); per[c[col("nome", cols)]] = c; }
+    return { cols, per };
+  };
+
+  test("⛔ Campo · csvAppello: 23 ore da un refuso NON escono nude", () => {
+    const { cols, per } = appello();
+    eq(cols, campo.APPELLO_COLONNE, "l'intestazione è quella dichiarata");
+    const iOre = col("ore_lavorate", cols), iDub = col("orari_da_controllare", cols);
+    ok(iDub >= 0, "la colonna del dubbio esiste (fino al 07/08 non c'era)");
+    eq(per["Paolo Gallo"][iOre], "23", "il numero non si spegne: fra i due orologi ci sono 23 ore");
+    eq(per["Paolo Gallo"][iDub], "fra entrata e uscita ci sono più di 13 ore",
+      "⛔ ma accanto c'è scritto perché non ci si può fidare");
+    eq(per["Mario Rossi"][iOre], "8", "otto ore sane restano otto");
+    eq(per["Mario Rossi"][iDub], "", "⚠️ e una guardia che si accende sempre non è una guardia");
+  });
+
+  test("⛔ Campo · csvAppello: la colonna del dubbio legge la STESSA bandiera dello schermo", () => {
+    const { cols, per } = appello();
+    const o = campo.orariPresenza(PRE[1]);
+    eq(o.attendibile, false, "il modulo dichiara di non fidarsi");
+    eq(per["Paolo Gallo"][col("orari_da_controllare", cols)], o.perche,
+      "e il file scrive parola per parola il suo `perche`, non una frase sua");
+    const sano = campo.orariPresenza(PRE[0]);
+    eq(sano.attendibile, true, "l'altro è attendibile");
+  });
+
+  test("⛔ Campo · csvAppello: chi nessuno ha spuntato esce «da spuntare», mai «assente»", () => {
+    const { cols, per } = appello();
+    eq(per["Anna Neri"][col("stato", cols)], "da spuntare",
+      "⛔ se suona l'allarme, contarlo assente vuol dire non andarlo a cercare");
+    eq(per["Anna Neri"][col("ore_lavorate", cols)], "", "e senza orari la cella resta vuota, non zero");
+    eq(per["Anna Neri"][col("orari_da_controllare", cols)], "", "niente da controllare dove non c'è niente");
+  });
+
+  test("⚠️ Campo · csvAppello: un solo orario dichiarato non fa ore, e non fa nemmeno un dubbio", () => {
+    const solo = [{ id: "p9", data: OG, turno: "Mattina", operatoreId: "o1", stato: "presente", ora: "06:05", entrata: "06:00" }];
+    const r = righe(campo.csvAppello([OPER[0]], solo, [], OG, "Mattina", "", dmy));
+    const cols = r[0].split(";"), c = r[1].split(";");
+    eq(c[col("entrata", cols)], "06:00", "l'entrata c'è");
+    eq(c[col("uscita", cols)], "", "l'uscita no");
+    eq(c[col("ore_lavorate", cols)], "", "⛔ uno zero qui, sommato da un foglio di calcolo, sarebbe una bugia");
+    eq(c[col("orari_da_controllare", cols)], "", "senza uscita non c'è niente da giudicare");
+  });
+
+  test("⚠️ Campo · csvAppello: l'intestazione, scritta per esteso", () => {
+    // stessa ragione della riga qui sopra: la costante e il file nascono
+    // insieme, quindi una colonna che sparisce da tutt'e due non si vedrebbe
+    eq(righe(campo.csvAppello([], [], [], OG, "Mattina", "", dmy))[0],
+      "data;turno;nome;ruolo;squadra;stato;ora;entrata;uscita;ore_lavorate;"
+      + "orari_da_controllare;riposo_stato;riposo_ore;riposo_fonte;riposo_nota",
+      "quindici colonne, e la undicesima è quella nata il 07/08");
+  });
+
+  /* ── la consegna di turno ───────────────────────────────────────────── */
+  test("⛔ Campo · descriviChecklist: le voci che nessuno ha guardato si contano", () => {
+    const st = campo.statoChecklist({ 0: "ok", 1: "ok", 2: "no", 3: "ok", 4: "na", 5: "ok" });
+    contiene(st, { ok: 4, no: 1, na: 1, mancanti: 3, totale: 9 }, "quattro a posto, una no, una n.a., tre mai guardate");
+    eq(campo.descriviChecklist(st), "4 a posto · 1 n.a. · 3 senza risposta",
+      "⛔ «4/9 a posto» non diceva che tre non le ha guardate nessuno");
+    eq(campo.descriviChecklist(null), "", "niente non è una checklist");
+  });
+
+  test("⚠️ Campo · descriviChecklist: una checklist completa lo dice con gli stessi zeri", () => {
+    const piena = Object.fromEntries(campo.CHECKLIST_INIZIO.map((_, i) => [i, "ok"]));
+    const st = campo.statoChecklist(piena);
+    contiene(st, { mancanti: 0, completa: true }, "tutte risposte");
+    eq(campo.descriviChecklist(st), "9 a posto · 0 n.a. · 0 senza risposta",
+      "la stessa frase, e il conto dei non guardati resta leggibile a zero");
+  });
+
+  test("⛔ Campo · descriviChecklist: una checklist MAI toccata non è una checklist a posto", () => {
+    const st = campo.statoChecklist({});
+    eq(campo.descriviChecklist(st), "0 a posto · 0 n.a. · 9 senza risposta",
+      "⛔ nessun numero tranquillo dove non è stato guardato niente");
+  });
+}
+
+/* ══ GENESI · IL PIANO DI INNESCO CHE VA FUORI DI CASA (07/08) ══════════════
+   `genesi_piano_innesco.xml` è l'unica uscita di Genesi che NON leggiamo noi:
+   la leggono i software dei detonatori elettronici e delle perforatrici.
+   Censendo le uscite per EFFETTO invece che per somiglianza (`download =`,
+   `window.print`, `clipboard`, `mailto:`) è saltato fuori che dei nove bottoni
+   che salvano un file questo era **l'unico che nessun banco premeva**, né in
+   export né in import — e il suo testo lo componeva un `onclick` anonimo, cioè
+   codice senza un nome che nessuna prova poteva chiamare. È la stessa forma
+   che aveva `csvRiconciliazione` prima del 03/08.
+   ⚠️ E QUI LA PROVA DI ANDATA E RITORNO NON BASTA, per la ragione già scritta
+   in CLAUDE.md: il lettore fa `parseFloat(testo.replace(',','.'))`, quindi
+   scrivendo i numeri **con la virgola italiana** il giro resterebbe identico —
+   scrittore e lettore andrebbero d'accordo fra loro, e il file sarebbe
+   illeggibile per il software che deve programmare i detonatori. Le prove qui
+   sotto guardano il TESTO del file. */
+{
+  const v = await app("genesi", "genesi-data.js");
+  /* i fori entrano MESCOLATI di proposito: se entrassero già in ordine, la
+     prova sull'ordinamento passerebbe per un motivo diverso dal suo nome */
+  const FORI = [{ mx: 8.2, my: 3.4, tDet: 84, seq: 2 }, { mx: 0, my: 3.4, tDet: 0, seq: 0 },
+    { mx: 4.1, my: 3.4, tDet: 42, seq: 1 }];
+  const PIANO = { B: 3.4, S: 4.1, diam: 89, esplosivo: "emulsione-bulk-gassed",
+    innesco: { id: "elettronico", nome: "Detonatore elettronico" }, sequenza: "diagonale",
+    ritardo: 42, ritardoFila: 84, lastDet: 84, mic: 48, prof: 12, kg: 48, stem: 2.8, fori: FORI };
+
+  test("⛔ Genesi · xmlPianoInnesco: i numeri escono col PUNTO, che il giro di andata e ritorno non vedrebbe", () => {
+    const x = v.xmlPianoInnesco(PIANO);
+    ok(x.includes('<MeshBurden unit="m">3.40</MeshBurden>'), "la spalla col punto");
+    ok(x.includes('<MeshSpacing unit="m">4.10</MeshSpacing>'), "l'interasse col punto");
+    ok(x.includes('<Stemming unit="m">2.8</Stemming>'), "il borraggio col punto");
+    ok(!/\d,\d/.test(x), "e in tutto il file non c'è una virgola fra due cifre");
+  });
+
+  test("⛔ Genesi · xmlPianoInnesco: l'innesco porta l'id E il nome — è il campo per cui questo file esiste", () => {
+    /* uno schema in stile IREDES lo si scrive per i detonatori ELETTRONICI:
+       l'id serve a chi rilegge, il nome a chi apre il file e lo guarda. Fino
+       al 07/08 il nostro lettore l'attributo non lo guardava, e il giro
+       riportava «Nonel» — a schermo lo «Scatter innesco» da 0,1 a 8,0 ms. */
+    ok(v.xmlPianoInnesco(PIANO).includes('<Initiation id="elettronico">Detonatore elettronico</Initiation>'),
+      "id nell'attributo, nome nel testo");
+  });
+
+  test("Genesi · xmlPianoInnesco: il conto dei fori non mente, e l'ordine è quello di sparo", () => {
+    const x = v.xmlPianoInnesco(PIANO);
+    const conta = (x.match(/count="(\d+)"/) || [])[1];
+    eq(+conta, (x.match(/<Hole /g) || []).length, "count dichiarato = <Hole> scritti");
+    const ordine = [...x.matchAll(/<Hole id="(H\d+)"[\s\S]*?<Delay unit="ms">([\d.]+)</g)].map(m => [m[1], +m[2]]);
+    eq(ordine, [["H1", 0], ["H2", 42], ["H3", 84]], "entrati mescolati, escono in ordine di ritardo");
+    ok(/<Hole id="H1" seq="1">/.test(x), "la sequenza è 1-based, come la legge il fochino");
+    const senzaSeq = v.xmlPianoInnesco({ ...PIANO, fori: [{ mx: 1, my: 2, tDet: 5 }, { mx: 3, my: 2, tDet: 1 }] });
+    ok(/<Hole id="H1" seq="1">/.test(senzaSeq) && /<Hole id="H2" seq="2">/.test(senzaSeq),
+      "e un foro senza `seq` prende il suo posto in fila, non un buco");
+  });
+
+  test("⛔ Genesi · xmlPianoInnesco: un nome ostile non sfonda il documento", () => {
+    /* `apri` di una volata salvata fa `Object.assign` senza controlli: nel
+       campo dell'esplosivo può arrivare qualunque testo. In un CSV il rischio
+       è l'iniezione di formule; in un XML è un tag che si chiude e ne apre un
+       altro — e il file lo legge il software che programma i detonatori. */
+    const x = v.xmlPianoInnesco({ ...PIANO, esplosivo: 'ANFO <b>&"x"</b>',
+      innesco: { id: 'a"b', nome: "d'urto & <script>" } });
+    ok(x.includes("<Explosive>ANFO &lt;b&gt;&amp;&quot;x&quot;&lt;/b&gt;</Explosive>"), "l'esplosivo esce in entità");
+    ok(x.includes('<Initiation id="a&quot;b">d&apos;urto &amp; &lt;script&gt;</Initiation>'), "l'innesco anche, attributo compreso");
+    const dentro = x.split("<PlanData>")[1].split("</PlanData>")[0];
+    ok(!/<(?!\/?(MeshBurden|MeshSpacing|HoleDiameter|Explosive|Initiation|Sequence|HoleDelay|RowDelay|LastDetonation|MaxInstantCharge)\b)/.test(dentro),
+      "e in PlanData non è entrato nessun tag estraneo");
+  });
+
+  test("Genesi · xmlPianoInnesco: ogni numero porta la sua unità, e il file dichiara di non essere certificato", () => {
+    const x = v.xmlPianoInnesco(PIANO);
+    for (const t of ["MeshBurden", "MeshSpacing", "HoleDiameter", "HoleDelay", "RowDelay",
+      "LastDetonation", "MaxInstantCharge", "Depth", "Charge", "Stemming", "Delay"])
+      ok(new RegExp(`<${t} [^>]*unit="`).test(x), `${t}: l'unità è scritta accanto al numero`);
+    ok(/<Position [^>]*unit="m"\/>/.test(x), "Position: idem");
+    /* ⛔ l'assenza di un dato non è un dato favorevole: un file che SEMBRA
+       IREDES e non dice di non esserlo verrebbe creduto conforme */
+    ok(/non conformit/.test(x) && /IREDES/.test(x), "il file dichiara di non essere IREDES certificato");
+    const vuoto = v.xmlPianoInnesco({ ...PIANO, fori: [] });
+    ok(vuoto.includes('<Holes count="0">') && !vuoto.includes("<Hole "), "zero fori si scrivono zero");
+  });
+
+  const { senzaCommenti } = await import("./tokenizza.mjs");
+  const { readFileSync } = await import("node:fs");
+  test("⛔ Genesi · xmlPianoInnesco è USCITA dalla pagina, non copiata", () => {
+    /* la trappola del trasloco: lasciare la vecchia copia dentro `genesi.html`
+       e importare anche la nuova. La pagina userebbe la sua, e le prove qui
+       sopra blinderebbero un testo che nessuno scrive. */
+    const pag = senzaCommenti(readFileSync(join(HERE, "../../genesi/genesi.html"), "utf8"));
+    ok(!/<BlastPlan xmlns=/.test(pag), "nella pagina non c'è più un secondo compositore di BlastPlan");
+    ok(!/function\s+_xmlEsc\s*\(/.test(pag), "né la sua copia dell'escapatore XML");
+    const elenco = (pag.match(/import\s*\{([^}]*)\}\s*from\s*'\.\/genesi-data\.js'/) || [, ""])[1]
+      .split(",").map(s => s.trim());
+    ok(elenco.includes("xmlPianoInnesco"), "e la pagina la importa da genesi-data.js");
+    eq(typeof v.xmlPianoInnesco, "function", "il modulo la esporta");
+  });
+}
+
+/* ⛔ `terra.numeroRegistrato` — la guardia che dal 07/08 vive anche dalla parte
+   di CHI SCRIVE, e che era rimasta senza prova perché il cantiere che l'ha
+   esportata è stato interrotto a metà da un limite della piattaforma.
+   Il caso che la giustifica sta scritto nel suo commento e va provato qui: il
+   visore consegna `quotaBase: null` («la nuvola non è georeferenziata»), la
+   pagina lo metteva in archivio con `Number.isFinite(+c.quotaBase)` — e `+null`
+   fa **0**, che è finito. Da lì in poi quello zero è indistinguibile da un
+   piano a quota zero, che è legittimo: il danno è irreversibile, mentre alla
+   lettura si vedrebbe ancora. */
+test("⛔ Terra · numeroRegistrato: un numero MESSO IN ARCHIVIO, non un numero letto", () => {
+  ok(terra.numeroRegistrato(0), "lo zero è un numero registrato: una quota di base a zero è legittima");
+  ok(terra.numeroRegistrato(-3.5), "e anche un negativo");
+  ok(terra.numeroRegistrato("12,0" .replace(",", ".")), "una stringa numerica vale");
+  ok(terra.numeroRegistrato("  7  "), "con gli spazi attorno vale");
+  /* le tre forme che `Number.isFinite(+v)` promuove e che sono il difetto */
+  ok(!terra.numeroRegistrato(null), "null NON è zero: è la nuvola che non sa dire la quota");
+  ok(!terra.numeroRegistrato(""), "la stringa vuota nemmeno — è il campo lasciato in bianco");
+  ok(!terra.numeroRegistrato("   "), "né soli spazi");
+  ok(!terra.numeroRegistrato(undefined), "né il campo che non c'è");
+  ok(!terra.numeroRegistrato(true), "né un booleano, che pure `+true` porterebbe a 1");
+  ok(!terra.numeroRegistrato([]), "né un array vuoto, che `+[]` porterebbe a 0");
+  ok(!terra.numeroRegistrato("abc"), "e nemmeno un testo che numero non è");
+  ok(!terra.numeroRegistrato(NaN), "NaN non è finito");
+  ok(!terra.numeroRegistrato(Infinity), "e nemmeno l'infinito, che è quello che produce una divisione per zero");
+  /* ⚠️ la prova che conta più di tutte: la versione DEBOLE, quella che stava
+     nella pagina, dice il contrario su tre di questi. Se un giorno qualcuno
+     "semplificasse" la guardia, questa riga cade. */
+  const debole = (v) => Number.isFinite(+v);
+  const dove = [null, "", "   ", []].filter((v) => debole(v) !== terra.numeroRegistrato(v));
+  eq(dove.length, 4, "i quattro valori su cui la guardia debole sbaglia sono ancora quattro");
+});
 
 console.log(`\nRisultato KPI app: ${passed} passati, ${failed} falliti${inVolo.length ? `  ·  ${inVolo.length} prove asincrone aspettate` : ""}`);
 process.exit(failed > 0 ? 1 : 0);

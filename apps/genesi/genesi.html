@@ -1037,7 +1037,12 @@ import { sitoFit, ppvLimit, ppvSenzaSoglia, airblastDb, normaPpvLab,
    pure spostate parola per parola — vedi il blocco G7 di `genesi-data.js`.
    Restano nella pagina `jitterGeo`, `worldJitter` e `simulaPerforazione`, che
    scrivono in una geometria THREE o leggono lo stato del progetto. */
-         mulberry32, vnoise3, _rngDa, _gauss, _perc } from './genesi-data.js';
+         mulberry32, vnoise3, _rngDa, _gauss, _perc,
+/* il piano di innesco XML: l'unica uscita di Genesi che leggono software di
+   TERZI (detonatori elettronici, perforatrici). Era il corpo di un `onclick`
+   anonimo — vedi il blocco G8 di `genesi-data.js`. Qui resta la raccolta dello
+   stato del progetto; il testo del file lo compone la funzione. */
+         xmlPianoInnesco } from './genesi-data.js';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { OBJLoader } from 'three/examples/jsm/loaders/OBJLoader.js';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
@@ -4082,44 +4087,35 @@ $('btn-piano-csv').onclick=()=>{
 /* P1.3 — Export piano di innesco in XML stile IREDES (interoperabilità con
    detonatori elettronici e software terzi). NON è conformità IREDES certificata:
    è una bozza di interscambio con i dati che Genesi già calcola (posizione foro,
-   profondità, carica, ritardo della sequenza). Utile in fase di integrazione. */
-function _xmlEsc(s){ return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&apos;'}[c])); }
+   profondità, carica, ritardo della sequenza). Utile in fase di integrazione.
+   ⛔ IL TESTO DEL FILE LO COMPONE `xmlPianoInnesco` IN `genesi-data.js`, e non
+   è un riordino: fino al 07/08 stava qui dentro, nel corpo di un `onclick`
+   anonimo — cioè un file che esce dall'azienda, e verso software di TERZI, che
+   nessuna prova poteva chiamare perché non aveva un nome. È la stessa forma che
+   aveva `csvRiconciliazione` prima del 03/08. Le righe sono andate di là parola
+   per parola: la prova è che la funzione riproduce byte per byte l'XML che
+   usciva da questo bottone prima dello spostamento. */
 if($('btn-innesco-xml')) $('btn-innesco-xml').onclick=()=>{
   if(!D2.holes.length) genMaglia2D();
   computeSeq2D();
   const inn=selInnesco(), mic=computeMIC(), last=D2.lastDet||0;
   const rows=D2.holes.slice().sort((a,b)=>(a.tDet||0)-(b.tDet||0));
-  let xml='<?xml version="1.0" encoding="UTF-8"?>\n';
-  xml+='<!-- Genesi: bozza di interscambio in stile IREDES (non conformità certificata) -->\n';
-  xml+='<BlastPlan xmlns="urn:genesi:blastplan:draft" generator="Genesi" schema="IREDES-like/0.1">\n';
-  xml+='  <PlanData>\n';
-  xml+='    <MeshBurden unit="m">'+_xmlEsc((+D2.B||0).toFixed(2))+'</MeshBurden>\n';
-  xml+='    <MeshSpacing unit="m">'+_xmlEsc((+D2.S||0).toFixed(2))+'</MeshSpacing>\n';
-  xml+='    <HoleDiameter unit="mm">'+_xmlEsc(+D2.diam||0)+'</HoleDiameter>\n';
-  xml+='    <Explosive>'+_xmlEsc(D2.esplosivo)+'</Explosive>\n';
-  xml+='    <Initiation id="'+_xmlEsc(inn.id)+'">'+_xmlEsc(inn.nome)+'</Initiation>\n';
-  xml+='    <Sequence>'+_xmlEsc(D2.sequenza||'diagonale')+'</Sequence>\n';
-  xml+='    <HoleDelay unit="ms">'+_xmlEsc(+D2.ritardo||0)+'</HoleDelay>\n';
-  xml+='    <RowDelay unit="ms">'+_xmlEsc(+D2.ritardoFila||0)+'</RowDelay>\n';
-  xml+='    <LastDetonation unit="ms">'+_xmlEsc((+last).toFixed(1))+'</LastDetonation>\n';
-  xml+='    <MaxInstantCharge unit="kg" window_ms="8">'+_xmlEsc((+mic||0).toFixed(1))+'</MaxInstantCharge>\n';
-  xml+='  </PlanData>\n';
-  xml+='  <Holes count="'+rows.length+'">\n';
-  rows.forEach((h,i)=>{
-    xml+='    <Hole id="H'+(i+1)+'" seq="'+((h.seq!=null?h.seq:i)+1)+'">\n';
-    xml+='      <Position x="'+_xmlEsc((+h.mx||0).toFixed(2))+'" y="'+_xmlEsc((+h.my||0).toFixed(2))+'" unit="m"/>\n';
-    xml+='      <Depth unit="m">'+_xmlEsc(+D2.prof||0)+'</Depth>\n';
-    xml+='      <Charge unit="kg">'+_xmlEsc(+D2.kg||0)+'</Charge>\n';
-    xml+='      <Stemming unit="m">'+_xmlEsc(+D2.stem||0)+'</Stemming>\n';
-    xml+='      <Delay unit="ms">'+_xmlEsc((+h.tDet||0).toFixed(1))+'</Delay>\n';
-    xml+='    </Hole>\n';
-  });
-  xml+='  </Holes>\n';
-  xml+='</BlastPlan>\n';
+  const xml=xmlPianoInnesco({ B:D2.B, S:D2.S, diam:D2.diam, esplosivo:D2.esplosivo,
+    innesco:{ id:inn.id, nome:inn.nome }, sequenza:D2.sequenza, ritardo:D2.ritardo,
+    ritardoFila:D2.ritardoFila, lastDet:last, mic, prof:D2.prof, kg:D2.kg, stem:D2.stem,
+    fori:D2.holes });
   const a=document.createElement('a');
   a.href='data:application/xml;charset=utf-8,'+encodeURIComponent(xml);
   a.download='genesi_piano_innesco.xml'; a.click();
-  if(typeof toast==='function') toast('Piano di innesco XML esportato ('+_ricPlur(rows.length,'foro','fori')+')');
+  /* ⛔ IL MESSAGGIO NOMINA L'INNESCO, e non è cortesia. Questo file lo leggono
+     i software dei detonatori: l'innesco è il campo che, riaperto sbagliato,
+     porta lo «Scatter innesco» da 0,1 ms a 8,0 — ottanta volte — senza che
+     nulla lo dica. È il campo su cui il giro di andata e ritorno si era rotto
+     (rientrava sempre Nonel), quindi è quello che va detto ad alta voce: chi
+     esporta vede subito se il piano che sta consegnando è quello che ha in
+     mente. Dire solo «esportato (16 fori)» è confermare la parte che non
+     sbaglia mai. */
+  if(typeof toast==='function') toast('Piano di innesco XML esportato ('+_ricPlur(rows.length,'foro','fori')+' · '+inn.nome+')');
 };
 /* Import del piano di innesco XML: round-trip con l'export stile IREDES di Genesi.
    Rilegge geometria/esplosivo/sequenza/ritardi nel Progetto 2D. NON è un import
@@ -4146,6 +4142,19 @@ if($('fileXmlIn')) $('fileXmlIn').onchange=async e=>{
     // valida i valori testuali contro il vocabolario dell'app (difesa in profondità:
     // non conservare testo arbitrario da un file esterno; se ignoto, tieni il default)
     const esp=txtOf(plan,'Explosive'); if(esp && ESPL.some(e=>e.id===esp)) D2.esplosivo=esp;
+    /* ⛔ E L'INNESCO, CHE FINO AL 07/08 QUESTO LETTORE NON GUARDAVA. Misurato
+       rifacendo il giro — esporta, riapri in una pagina nuova, riesporta:
+       usciva `<Initiation id="elettronico">Detonatore elettronico</Initiation>`
+       e rientrava **Nonel**, il default. Non è un dettaglio d'anagrafica: è il
+       campo per cui questo file esiste — uno schema in stile IREDES lo si
+       scrive per i detonatori ELETTRONICI — e a schermo sposta lo «Scatter
+       innesco» da 0,1 ms a 8,0 ms, ottanta volte, senza che niente lo dica. Il
+       dato era già nel file, scritto bene (id nell'attributo, nome nel testo,
+       come l'esplosivo non fa); mancava solo chi lo leggesse. Stessa difesa in
+       profondità della riga qui sopra: se l'id non è nel vocabolario di casa,
+       si tiene il default invece di conservare testo arbitrario. */
+    const innEl=first(plan,'Initiation'), innId=innEl?String(innEl.getAttribute('id')||'').trim():'';
+    if(innId && INNESCHI.some(x=>x.id===innId)) D2.innesco=innId;
     const SEQ_OK=['riga','diagonale','vcut','box'];
     const seq=txtOf(plan,'Sequence'); if(seq && SEQ_OK.includes(seq)) D2.sequenza=seq;
     const hd=numOf(plan,'HoleDelay'); if(hd) D2.ritardo=Math.max(1,hd);
@@ -4166,7 +4175,10 @@ if($('fileXmlIn')) $('fileXmlIn').onchange=async e=>{
     D2.dir = tMin<=tMax ? 'sx' : 'dx';
     syncDesignInputs();
     genMaglia2D(); drawDesign2D(); renderScheda2D(); renderInspector();
-    if(typeof toast==='function') toast('✓ Piano XML importato: '+_ricPlur(holes.length,'foro','fori')+' · B '+gfix(D2.B,2)+'×S '+gfix(D2.S,2)+' · '+D2.sequenza);
+    /* l'innesco entra nel messaggio perché è il campo che decide lo scatter, e
+       finora era anche l'unico che il giro perdeva in silenzio: chi rilegge un
+       piano deve vedere che cosa è tornato, non solo quanti fori */
+    if(typeof toast==='function') toast('✓ Piano XML importato: '+_ricPlur(holes.length,'foro','fori')+' · B '+gfix(D2.B,2)+'×S '+gfix(D2.S,2)+' · '+D2.sequenza+' · '+((selInnesco()||{}).short||D2.innesco));
   }catch(err){ if(typeof toast==='function') toast('Import XML fallito: '+err.message); }
   e.target.value='';
 };

@@ -196,6 +196,17 @@ const BANCHI = [
      leggendo: si è visto premendo il bottone e aprendo il documento. */
   ['il foglio che si porta in cava (Genesi)', 'genesi-foglio-in-cava.mjs', []],
   ['foglio in cava · controprova', 'genesi-foglio-in-cava.mjs', ['--controprova'], true],
+  /* ⛔ IL PIANO DI INNESCO XML — l'uscita di Genesi che nessun banco premeva, e
+     l'unica delle dieci che NON leggiamo noi: la leggono i software dei
+     detonatori e delle perforatrici. Censendo per EFFETTO invece che per
+     somiglianza (non «chi scrive `download =`» ma «che cosa produce un file o
+     un testo che l'utente porta fuori») ne escono dieci; la seconda domanda —
+     «quali di queste dieci preme un banco?» — lasciava scoperta proprio lei.
+     Sotto c'era il difetto: l'import non leggeva `Initiation`, quindi una
+     volata a detonatori elettronici riaperta tornava Nonel e lo «Scatter
+     innesco» passava da 0,1 a 8,0 ms — ottanta volte — in silenzio. */
+  ['il piano di innesco XML di Genesi', 'genesi-piano-innesco.mjs', []],
+  ['piano di innesco · controprova', 'genesi-piano-innesco.mjs', ['--controprova'], true],
   /* ⛔ AGGIUNTO IL 07/08, e completa la domanda qui sopra: il foglio stampato
      era UNA delle uscite di Genesi, e i nove bottoni che salvano un FILE non
      li aveva ancora aperti nessuno. Aprendoli: la scheda volata archiviata col

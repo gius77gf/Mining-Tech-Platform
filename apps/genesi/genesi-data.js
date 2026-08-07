@@ -724,3 +724,61 @@ export function _rngDa(seme){
 }
 export function _gauss(r){ const u=Math.max(1e-9,r()), v=r(); return Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v); }
 export function _perc(v,p){ if(!v.length) return null; const a=v.slice().sort((x,y)=>x-y); const i=Math.min(a.length-1,Math.max(0,Math.round(p*(a.length-1)))); return a[i]; }
+
+/* ══════════════════════════════════════════════════════════════════════════
+   G8 — IL PIANO DI INNESCO CHE VA FUORI DI CASA
+   ══════════════════════════════════════════════════════════════════════════
+   `genesi_piano_innesco.xml` è l'unica uscita di Genesi che NON è per noi: la
+   leggono i software dei detonatori elettronici e delle perforatrici (schema
+   in stile IREDES, dichiarato non certificato nel file stesso). Ed era il
+   corpo di un `onclick` anonimo dentro la pagina — la stessa forma che aveva
+   `csvRiconciliazione` prima del 03/08: codice che scrive un file che esce
+   dall'azienda e che NESSUNA prova poteva chiamare, perché non aveva un nome.
+   ⛔ Misurato il 07/08 col censimento per EFFETTO: dei nove bottoni che
+   salvano un file, questo era l'unico che NESSUN banco premeva — né in export
+   né in import. Le righe sono arrivate qui parola per parola, e la prova che
+   non è cambiata una virgola è che la funzione riproduce **byte per byte**
+   l'XML che la pagina scriveva prima (confronto fatto sul file vero, uscito
+   dal bottone premuto nel browser).
+
+   ⚠️ PERCHÉ NON USA `_rEsc`, che sta dodici righe più su e fa lo stesso
+   lavoro: `_rEsc` scrive l'apostrofo come `&#39;`, qui esce `&apos;`. Le due
+   forme sono equivalenti per qualunque lettore XML, ma questo è un file di
+   scambio e i suoi byte non si cambiano per fare pulizia: unificarle è una
+   decisione, non un riordino, e va chiesta. Finché non lo è, la ragione sta
+   scritta qui invece che in nessun posto.
+   ══════════════════════════════════════════════════════════════════════════ */
+function _xmlEsc(s){ return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&apos;'}[c])); }
+
+export function xmlPianoInnesco(p){
+  const e=_xmlEsc, inn=(p&&p.innesco)||{};
+  let xml='<?xml version="1.0" encoding="UTF-8"?>\n';
+  xml+='<!-- Genesi: bozza di interscambio in stile IREDES (non conformità certificata) -->\n';
+  xml+='<BlastPlan xmlns="urn:genesi:blastplan:draft" generator="Genesi" schema="IREDES-like/0.1">\n';
+  xml+='  <PlanData>\n';
+  xml+='    <MeshBurden unit="m">'+e((+p.B||0).toFixed(2))+'</MeshBurden>\n';
+  xml+='    <MeshSpacing unit="m">'+e((+p.S||0).toFixed(2))+'</MeshSpacing>\n';
+  xml+='    <HoleDiameter unit="mm">'+e(+p.diam||0)+'</HoleDiameter>\n';
+  xml+='    <Explosive>'+e(p.esplosivo)+'</Explosive>\n';
+  xml+='    <Initiation id="'+e(inn.id)+'">'+e(inn.nome)+'</Initiation>\n';
+  xml+='    <Sequence>'+e(p.sequenza||'diagonale')+'</Sequence>\n';
+  xml+='    <HoleDelay unit="ms">'+e(+p.ritardo||0)+'</HoleDelay>\n';
+  xml+='    <RowDelay unit="ms">'+e(+p.ritardoFila||0)+'</RowDelay>\n';
+  xml+='    <LastDetonation unit="ms">'+e((+p.lastDet||0).toFixed(1))+'</LastDetonation>\n';
+  xml+='    <MaxInstantCharge unit="kg" window_ms="8">'+e((+p.mic||0).toFixed(1))+'</MaxInstantCharge>\n';
+  xml+='  </PlanData>\n';
+  const rows=((p&&p.fori)||[]).slice().sort((a,b)=>(a.tDet||0)-(b.tDet||0));
+  xml+='  <Holes count="'+rows.length+'">\n';
+  rows.forEach((h,i)=>{
+    xml+='    <Hole id="H'+(i+1)+'" seq="'+((h.seq!=null?h.seq:i)+1)+'">\n';
+    xml+='      <Position x="'+e((+h.mx||0).toFixed(2))+'" y="'+e((+h.my||0).toFixed(2))+'" unit="m"/>\n';
+    xml+='      <Depth unit="m">'+e(+p.prof||0)+'</Depth>\n';
+    xml+='      <Charge unit="kg">'+e(+p.kg||0)+'</Charge>\n';
+    xml+='      <Stemming unit="m">'+e(+p.stem||0)+'</Stemming>\n';
+    xml+='      <Delay unit="ms">'+e((+h.tDet||0).toFixed(1))+'</Delay>\n';
+    xml+='    </Hole>\n';
+  });
+  xml+='  </Holes>\n';
+  xml+='</BlastPlan>\n';
+  return xml;
+}
