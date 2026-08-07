@@ -1139,6 +1139,25 @@ numero scritto dove non era stato misurato niente**.*
   batte per specificità ogni gradino del foglio condiviso. Scala outdoor
   calcolata sul caso peggiore di ogni intervallo e rimisurata a **undici**
   larghezze: 0 tagliate.
+- [ ] **Un file che esce con un nome FISSO si sovrascrive, e oggi e' costato
+  quattro volte.** Censiti i nomi degli export sulle nove superfici (07/08):
+  **45 fissi contro 14 costruiti**. ⛔ Ma una regola lessicale «ogni export deve
+  avere un nome che distingue due salvataggi» sparerebbe **45 allarmi**, e la
+  maggior parte sarebbero falsi: per un registro intero (`conti_listino.csv`,
+  `flotta_ricambi.csv`) il nome fisso e' **giusto** — due salvataggi che si
+  sovrascrivono sono quello che si vuole. Scartata come regola, come e' stata
+  scartata quella sui nomi degli inchiostri: il discriminante non e' scrivibile
+  in una regex.
+  **La domanda che li separa, e va fatta a mano**: *il contenuto di questo file
+  dipende da qualcosa che l'utente ha SELEZIONATO?* Se si', due scelte diverse
+  escono con lo stesso nome e la seconda cancella la prima senza che il browser
+  chieda niente. I quattro casi di oggi erano tutti cosi': il report del core a
+  periodo aperto, due moduli vuoti di formato diverso, due turni della stessa
+  cava nello stesso giorno, e le due uscite 3D (queste ultime **non corrette**,
+  perche' irraggiungibili nella dimostrazione).
+  **I candidati rimasti, da aprire e misurare**: `genesi-demo.volata.json` e
+  `genesi_signature_composito.csv` — il primo e' *una* volata, il secondo *una*
+  onda importata, e tutt'e due escono con un nome fisso.
 - [ ] **Il banco della barra guarda un tema su tre** — è il buco che ha lasciato
   passare il difetto del sole di Sentinella per giorni. Aggiungergli `--tema=`
   chiude la classe intera, e lo strumento è già scritto.
