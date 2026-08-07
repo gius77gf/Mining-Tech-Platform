@@ -1088,6 +1088,29 @@ Perché serva davvero e non produca elenchi generici, cinque vincoli:
   sulla PRIMA voce, in più app: un difetto identico dappertutto è il modo in
   cui si riconosce di stare guardando il righello. Si misura **la parola**,
   che è un nodo di testo nudo e vuole un `Range`.
+- ⛔ **IN UN SISTEMA DI PERMESSI ADDITIVO, UNA RESTRIZIONE NON RESTRINGE — E NON
+  DÀ NESSUN SEGNO.** Misurato il 07/08 scrivendo la decisione 10b nelle regole
+  Firestore, e la famiglia è più grande del suo caso: vale per qualunque posto
+  dove i permessi si **sommano** invece di sovrascriversi.
+  1. `match /apps/{appId}/{document=**}` concedeva `allow write` a ogni membro.
+     Ho scritto sotto un `match` più stretto che toglieva la cancellazione dei
+     documenti emessi: **non toglie niente**. Le regole di Firestore sono
+     additive — un match più specifico **non può revocare** ciò che uno più
+     largo concede. La restrizione era scritta, si leggeva bene, ed era
+     **decorativa**;
+  2. e la variante che rifà il danno un livello più sotto: `{resto=**}` combacia
+     con **ZERO o più** segmenti. Quindi
+     `match /apps/{appId}/{coll}/{docId}/{resto=**}` copre **anche il documento
+     stesso**, e il suo `allow write` ri-concede quello che il match sopra aveva
+     appena tolto. Servono due segmenti dichiarati
+     (`{sotto}/{docSotto=**}`) perché la regola parta davvero più in giù.
+  ⛔ **E QUELLO CHE LE HA PRESE TUTT'E DUE È LA PROVA *NEGATIVA*.** Le tre prove
+  positive — «l'admin può cancellare», «il membro può ancora emettere» — erano
+  **verdi in tutt'e tre le stesure**, compresa quella che non restringeva
+  niente. Una prova che verifica un permesso **concesso** non dimostra nulla su
+  uno **tolto**: la sola che conta è quella che pretende un **rifiuto**. Chi
+  scrive una restrizione e la prova solo «dal lato di chi può» ha scritto un
+  commento, non una regola.
 - ⛔ **UNA REGOLA CHE VINCE PER SPECIFICITÀ BUTTA VIA IL LAVORO DI CHI HA GIÀ
   STRETTO — E IL SEGNO È CHE PIÙ APP RISCRIVONO LA STESSA SCALA.** Stessa
   giornata, ed è la causa sotto il difetto qui sopra.
