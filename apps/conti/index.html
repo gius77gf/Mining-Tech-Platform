@@ -1803,7 +1803,7 @@ label.item:has(.dw-chk:checked){
     preventiviDaSeguire, prezzoDaOrdine, descriviPrezzoOrdine,
     validaScaglioni, scaglionePer, applicaScaglione, etichettaScaglione,
     descriviScaglione } from "./conti-data.js";
-  import { mountExit, esc, csvCell, statoVuoto, senzaDoppioni, avvolgiUnita, conta, plurale, euro, euro0, conEuro, isoLocale, istanteLocale, oggiISO as oggiISOShell, meseLocale, dataIt, dataPiuGiorni, nomeCsvDimostrazione, modoDimostrazione } from "../../shared/deepwork-id-client/dw-shell.js";
+  import { mountExit, esc, csvCell, statoVuoto, senzaDoppioni, avvolgiUnita, conta, plurale, euro, euro0, conEuro, isoLocale, istanteLocale, oggiISO as oggiISOShell, meseLocale, dataIt, dataPiuGiorni, nomeCsvDimostrazione, modoDimostrazione, avvisaSeNonSalva} from "../../shared/deepwork-id-client/dw-shell.js";
   // gli agganci della struttura condivisa (modale con Escape, riquadri da
   // tastiera, alone che segue il mouse). Va chiamato QUI e non nel blocco
   // classico in linea: i moduli girano dopo gli script `defer`.
@@ -1988,6 +1988,16 @@ label.item:has(.dw-chk:checked){
     if (testo) toast(testo, tipo); };
 
   const db = await contiData();
+  /* ⛔ DECISIONE 5a (07/08, presa dal ciclo): se un salvataggio non riesce,
+     chi ha premuto Salva lo deve SAPERE — con parole sue, mai un codice
+     d'errore. La misura che l'ha resa urgente: nelle sei app 109 punti
+     scrivono sul database e 103 non hanno nessun `catch`, quindi oggi un
+     guasto è **muto** (la finestra resta aperta, nessun toast, e il dato non
+     c'è). L'avviso si monta qui, sul fabbricante delle scritture, invece che
+     nei 103 punti che le chiamano: sarebbero 103 occasioni di scriverlo
+     diverso. L'errore viene comunque RILANCIATO, così i punti che un `catch`
+     ce l'hanno continuano a fare il loro lavoro. */
+  avvisaSeNonSalva(db, toast);
   mountExit(db);
   if (db.mode !== "live") $("tour-banner").style.display = "block";
   $("mode-note").textContent = db.mode === "live" ? "Dati reali della tua organizzazione." : "Dati di esempio ("+db.mode+"): le modifiche non vengono salvate.";

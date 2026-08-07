@@ -1734,7 +1734,7 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
            nomeCsvDimostrazione,
            /* il singolare non si scrive più a mano: `conta(1,"voce","voci")` → «1 voce»,
               `plurale(1,"è","sono")` → «è» quando a mancare è il VERBO e non il nome */
-           conta, plurale } from "../../shared/deepwork-id-client/dw-shell.js";
+           conta, plurale, avvisaSeNonSalva} from "../../shared/deepwork-id-client/dw-shell.js";
   // I campi INTERI restano `type=number` per lo spinner: la guardia rifiuta la
   // virgola, che lì non serve e che il browser scarterebbe in silenzio.
   montaGuardiaInteri((m) => toast(m, "err"));
@@ -1895,6 +1895,16 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
   const peggiore = (a, b) => (ORD_CLS[b] == null || ORD_CLS[a] <= ORD_CLS[b]) ? a : b;
 
   const db = await scudoData();
+  /* ⛔ DECISIONE 5a (07/08, presa dal ciclo): se un salvataggio non riesce,
+     chi ha premuto Salva lo deve SAPERE — con parole sue, mai un codice
+     d'errore. La misura che l'ha resa urgente: nelle sei app 109 punti
+     scrivono sul database e 103 non hanno nessun `catch`, quindi oggi un
+     guasto è **muto** (la finestra resta aperta, nessun toast, e il dato non
+     c'è). L'avviso si monta qui, sul fabbricante delle scritture, invece che
+     nei 103 punti che le chiamano: sarebbero 103 occasioni di scriverlo
+     diverso. L'errore viene comunque RILANCIATO, così i punti che un `catch`
+     ce l'hanno continuano a fare il loro lavoro. */
+  avvisaSeNonSalva(db, toast);
   mountExit(db);
   if (db.mode !== "live") $("tour-banner").style.display = "block";
   $("mode-note").innerHTML = db.mode === "live"

@@ -1110,7 +1110,19 @@ export function dataIt(iso, vuoto = "—") {
    La bandiera `certo` dichiara proprio quello, e la legge questa funzione
    stessa scegliendo fra «Database non raggiungibile» (non lo sappiamo) e la
    causa detta per nome (lo sappiamo). */
-export function motivoDatiNonSalvati(errore, online = true) {
+/* ⛔ E IL TEMPO VERBALE È UN PARAMETRO, NON UNA SECONDA FUNZIONE. Aggiunto il
+   07/08 applicando la decisione 5a («come suona il messaggio quando un
+   salvataggio non riesce» → «non è stato salvato», mai un codice d'errore).
+   Ci sono due momenti, e chiedono due code diverse:
+     · `"continuo"` — lo stato in cui l'app si trova, che è quello che il core
+       dichiara nella sua fascia: *quello che scrivi non viene salvato*;
+     · `"adesso"` — un salvataggio che è appena fallito, sotto il dito di chi
+       ha premuto Salva: *questa modifica non è stata salvata*.
+   La testa (la causa, e il fatto che la causa a volte non si sappia) è la
+   stessa, e resta scritta in un posto solo. Una seconda funzione avrebbe
+   copiato quella parte, ed è la regola di questa casa: quando serve una
+   variante, si guarda se all'originale manca un **parametro**. */
+export function motivoDatiNonSalvati(errore, online = true, quando = "continuo") {
   // `_` oltre a `-`: l'SDK JS scrive `permission-denied`, l'API REST
   // `PERMISSION_DENIED`. Il prototipo sbagliava proprio questo caso.
   const codice = String((errore && (errore.code || errore.codice)) || "")
@@ -1125,7 +1137,9 @@ export function motivoDatiNonSalvati(errore, online = true) {
   else if (/failed to fetch|networkerror|network error|err_internet|offline/.test(testo)) causa = "rete";
 
   const certo = causa !== "ignota";
-  const CODA = "quello che scrivi non viene salvato";
+  const CODA = quando === "adesso"
+    ? "questa modifica non è stata salvata"
+    : "quello che scrivi non viene salvato";
   const messaggio = !certo
     ? "⚠ Database non raggiungibile — " + CODA
     : causa === "accesso"
@@ -1133,6 +1147,56 @@ export function motivoDatiNonSalvati(errore, online = true) {
       : "⚠ Nessun collegamento al database — " + CODA;
 
   return { causa, certo, messaggio, tono: causa === "accesso" ? "info" : "err" };
+}
+
+/* ⛔ UN SALVATAGGIO CHE FALLISCE IN SILENZIO È PEGGIO DI UNO CHE FALLISCE.
+   Decisione 5a, applicata il 07/08 — e la misura che l'ha resa urgente:
+   nelle sei app ci sono **109 punti** che scrivono sul database, e **103**
+   non hanno nessun `catch`. Cioè, oggi, se una scrittura non riesce: la
+   promessa `await` viene rifiutata dentro un gestore `async`, la finestra
+   resta aperta, nessun toast compare, e chi ha premuto Salva **non ha modo di
+   sapere** se il dato è entrato. Un rapportino compilato per intero si perde
+   al ricaricamento della pagina, e nessuno l'ha mai detto a chi lo scriveva.
+
+   ⛔ E LA CORREZIONE NON SONO 103 `try/catch`. Sarebbero 103 occasioni di
+   scriverne uno diverso — la copia debole, la famiglia di difetti che questa
+   casa conosce meglio. Il posto giusto è **uno solo**: il fabbricante delle
+   scritture. Ogni app costruisce il proprio `db` con tre o quattro funzioni
+   (`aggiungi`, `aggiorna`, `rimuovi`…); qui si avvolgono quelle, una volta.
+
+   ⚠️ E L'ERRORE SI RILANCIA. Chi un `catch` ce l'ha già (sei punti su 109, e
+   fanno cose loro: rimettono un elenco a posto, riaprono una modale) deve
+   continuare a vederlo. Questa funzione **aggiunge** la parola per l'utente,
+   non toglie il controllo a chi lo esercita — e un avviso che inghiotte
+   l'errore trasformerebbe un guasto rumoroso in un guasto silenzioso, cioè
+   esattamente il difetto che sta chiudendo.
+
+   ⚠️ `avvisa` è il toast dell'app (mai `alert()`: è vietato dalla direttiva
+   estetica). `online` è una FUNZIONE e non un valore, perché va letta
+   nell'istante del guasto: leggerla al montaggio vorrebbe dire dichiarare
+   «nessun collegamento» a chi la rete ce l'ha, e viceversa. */
+export function avvisaSeNonSalva(scritture, avvisa, opzioni = {}) {
+  const nomi = opzioni.nomi
+    || ["aggiungi", "aggiorna", "rimuovi", "crea", "elimina", "salva", "scrivi"];
+  const online = opzioni.online
+    || (() => (typeof navigator === "undefined" ? true : navigator.onLine !== false));
+  if (!scritture || typeof scritture !== "object") return { oggetto: scritture, avvolte: [] };
+  const avvolte = [];
+  for (const nome of nomi) {
+    const vera = scritture[nome];
+    if (typeof vera !== "function") continue;
+    avvolte.push(nome);
+    scritture[nome] = async function (...argomenti) {
+      try {
+        return await vera.apply(this, argomenti);
+      } catch (errore) {
+        const m = motivoDatiNonSalvati(errore, online(), "adesso");
+        try { avvisa(m.messaggio, m.tono); } catch (e) { /* un avviso rotto non peggiora il guasto */ }
+        throw errore;
+      }
+    };
+  }
+  return { oggetto: scritture, avvolte };
 }
 
 /* ⛔ CHE COSA DI UN RAPPORTINO È STATO MISURATO DAVVERO.

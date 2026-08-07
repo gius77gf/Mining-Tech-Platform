@@ -1272,7 +1272,7 @@ body.dw b.bad{color:var(--ink-dg)}
            numeroDaCampo, interoDaCampo, perCampo, messaggioNumero,
            AVVISO_DECIMALE, AVVISO_MIGLIAIA,
            scriviConEsito } from "./flotta-data.js";
-  import { mountExit, esc, csvCell, statoVuoto, senzaDoppioni, numIt, montaGuardiaInteri, avvolgiUnita, euro, conEuro, oggiISO, dataIt, nomeCsvDimostrazione, plurale, conta } from "../../shared/deepwork-id-client/dw-shell.js";
+  import { mountExit, esc, csvCell, statoVuoto, senzaDoppioni, numIt, montaGuardiaInteri, avvolgiUnita, euro, conEuro, oggiISO, dataIt, nomeCsvDimostrazione, plurale, conta, avvisaSeNonSalva} from "../../shared/deepwork-id-client/dw-shell.js";
   // gli agganci della struttura condivisa (modale con Escape, riquadri da
   // tastiera, alone che segue il mouse). Va chiamato QUI e non nel blocco
   // classico in linea: i moduli girano dopo gli script `defer`.
@@ -1474,6 +1474,16 @@ body.dw b.bad{color:var(--ink-dg)}
   const striscia = { danger: "st-danger", warn: "st-warn", ok: "st-ok", info: "st-sup", accent: "st-accent" };
 
   const db = await flottaData();
+  /* ⛔ DECISIONE 5a (07/08, presa dal ciclo): se un salvataggio non riesce,
+     chi ha premuto Salva lo deve SAPERE — con parole sue, mai un codice
+     d'errore. La misura che l'ha resa urgente: nelle sei app 109 punti
+     scrivono sul database e 103 non hanno nessun `catch`, quindi oggi un
+     guasto è **muto** (la finestra resta aperta, nessun toast, e il dato non
+     c'è). L'avviso si monta qui, sul fabbricante delle scritture, invece che
+     nei 103 punti che le chiamano: sarebbero 103 occasioni di scriverlo
+     diverso. L'errore viene comunque RILANCIATO, così i punti che un `catch`
+     ce l'hanno continuano a fare il loro lavoro. */
+  avvisaSeNonSalva(db, toast);
   mountExit(db);
   /* ── UNA SCRITTURA CHE NON RIESCE VA DETTA ────────────────────────────────
      Il perché, la misura e i tre esiti stanno in `scriviConEsito` dentro

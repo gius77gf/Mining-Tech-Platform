@@ -345,5 +345,86 @@ test("⛔ motivoDatiNonSalvati: tutti e tre i messaggi dicono la cosa che riguar
   eq(new Set(tutti.map((r) => r.messaggio)).size, 3, "e le tre teste restano diverse");
 });
 
+/* ── DECISIONE 5a: «non è stato salvato», mai un codice d'errore ──
+   Il tempo verbale è un parametro della stessa funzione, non una seconda
+   funzione: la testa (la causa, e il fatto che a volte non si sappia) resta
+   scritta in un posto solo. */
+test("motivoDatiNonSalvati: «adesso» parla al passato di QUESTA modifica", () => {
+  const r = motivoDatiNonSalvati({ code: "unavailable" }, true, "adesso");
+  eq(r.messaggio.endsWith("questa modifica non è stata salvata"), true, r.messaggio);
+  eq(r.causa, "rete", "la causa non cambia col tempo verbale");
+  eq(/permission|denied|firestore|firebase|unavailable/i.test(r.messaggio), false,
+    "nessun codice d'errore all'utente, come nell'altro tempo");
+});
+test("motivoDatiNonSalvati: senza il terzo argomento resta com'era", () => {
+  const a = motivoDatiNonSalvati({ code: "unavailable" });
+  const b = motivoDatiNonSalvati({ code: "unavailable" }, true, "continuo");
+  eq(a.messaggio, b.messaggio, "il difetto è «continuo»");
+  eq(a.messaggio.endsWith("quello che scrivi non viene salvato"), true, a.messaggio);
+});
+test("motivoDatiNonSalvati: le tre teste restano tre anche al passato", () => {
+  const teste = [
+    motivoDatiNonSalvati({ code: "permission-denied" }, true, "adesso"),
+    motivoDatiNonSalvati({ code: "unavailable" }, true, "adesso"),
+    motivoDatiNonSalvati({ code: "boh" }, true, "adesso"),
+  ];
+  eq(new Set(teste.map((r) => r.messaggio)).size, 3, "tre cause, tre messaggi");
+  for (const r of teste) eq(r.messaggio.endsWith("questa modifica non è stata salvata"), true, r.messaggio);
+});
+
+/* ── avvisaSeNonSalva: l'avviso sta sul FABBRICANTE delle scritture ──
+   ⛔ E LE PROVE QUI SOTTO SONO SINCRONE, con gli `await` fatti PRIMA, al
+   livello del modulo. La prima stesura le aveva messe dentro un
+   `inVolo.push(...)` — che è il meccanismo di `run-kpi.mjs` e in questo file
+   **non esiste**: sarebbero girate dopo il `process.exit`, cioè mai, e il
+   totale sarebbe salito di tre senza che nessuna asserzione fosse guardata.
+   È la trappola scritta in CLAUDE.md, ripescata dal punto 2 (si controlla
+   che il totale sia salito) e non dal punto 1. */
+const fatti5a = [];
+const finto5a = {
+  aggiungi: async () => { throw Object.assign(new Error("nope"), { code: "permission-denied" }); },
+  aggiorna: async (x) => "ok:" + x,
+  letture: () => "non è una scrittura",
+};
+const avvolto5a = H.avvisaSeNonSalva(finto5a, (m, t) => fatti5a.push([m, t]));
+let esito5a = null, buono5a = null;
+try { await avvolto5a.oggetto.aggiungi("x"); esito5a = "risolta"; }
+catch (e) { esito5a = "rifiutata:" + (e && e.code); }
+buono5a = await avvolto5a.oggetto.aggiorna("y");
+
+test("avvisaSeNonSalva: avvolge le scritture e NON le letture", () => {
+  eq(avvolto5a.avvolte.includes("aggiungi"), true, "aggiungi");
+  eq(avvolto5a.avvolte.includes("aggiorna"), true, "aggiorna");
+  eq(avvolto5a.avvolte.includes("letture"), false, "una lettura non è una scrittura");
+  eq(avvolto5a.oggetto.letture(), "non è una scrittura", "e continua a funzionare");
+});
+test("avvisaSeNonSalva: una scrittura che fallisce avvisa con le parole giuste", () => {
+  eq(fatti5a.length, 1, "un avviso solo, non uno per tentativo");
+  eq(String(fatti5a[0][0]).endsWith("questa modifica non è stata salvata"), true, fatti5a[0][0]);
+  eq(/permission|denied|nope/i.test(String(fatti5a[0][0])), false, "nessun codice d'errore all'utente");
+  eq(fatti5a[0][1], "info", "un accesso negato non è un guasto: tono informativo");
+});
+test("avvisaSeNonSalva: l'errore si RILANCIA a chi lo sa gestire", () => {
+  eq(esito5a, "rifiutata:permission-denied", "chi ha un catch continua a vederlo");
+});
+test("avvisaSeNonSalva: una scrittura riuscita passa il suo valore senza rumore", () => {
+  eq(buono5a, "ok:y", "il valore torna intatto");
+  eq(fatti5a.length, 1, "e nessun avviso in più");
+});
+/* ⚠️ E LA STESSA TRAPPOLA È STATA RIFATTA UNA RIGA DOPO AVERLA SCRITTA: questa
+   prova restituiva una promessa dal corpo del `test()`, che è sincrono e non
+   la aspetta. L'`await` va SEMPRE qui fuori, e nel test resta solo il
+   confronto. */
+let rotto5a = null;
+{
+  const b = H.avvisaSeNonSalva(
+    { aggiorna: async () => { throw Object.assign(new Error("x"), { code: "unavailable" }); } },
+    () => { throw new Error("il toast è rotto"); });
+  try { await b.oggetto.aggiorna(); } catch (e) { rotto5a = e && e.code; }
+}
+test("avvisaSeNonSalva: un avviso rotto non peggiora il guasto", () => {
+  eq(rotto5a, "unavailable", "arriva l'errore vero, non quello dell'avviso");
+});
+
 console.log(`\nRisultato Helper: ${passed} passati, ${failed} falliti`);
 process.exit(failed > 0 ? 1 : 0);

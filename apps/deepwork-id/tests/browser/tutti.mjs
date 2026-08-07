@@ -336,6 +336,14 @@ const BANCHI = [
      suoi numeri? */
   ['la verifica periodica delle attrezzature (all. VII)', 'scudo-verifica-periodica.mjs', []],
   ['verifica periodica · controprova', 'scudo-verifica-periodica.mjs', ['--controprova'], true],
+  /* ⛔ DECISIONE 5a, e la domanda è il COLLEGAMENTO. Le parole («non è stato
+     salvato», mai un codice d'errore) stanno in `shared/` e le prova
+     `run-helpers.mjs`; quello che `node` non può vedere è che ognuna delle sei
+     app le MONTI davvero — una funzione giusta che non chiama nessuno non
+     protegge niente. La misura che l'ha resa urgente: 109 punti scrivono sul
+     database e 103 non hanno nessun `catch`, quindi un rifiuto era MUTO. */
+  ['un salvataggio che fallisce non resta muto (6 app)', 'salvataggio-muto.mjs', []],
+  ['salvataggio muto · controprova', 'salvataggio-muto.mjs', ['--controprova'], true],
   ['il verbale dice come è nato il numero', 'verbale-origine.mjs', []],
   ['verbale · controprova', 'verbale-origine.mjs', ['--controprova'], true],
   ['la manina promette un tocco che c\'è', 'promesse-tocco.mjs', []],
