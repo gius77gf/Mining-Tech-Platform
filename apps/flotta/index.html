@@ -2424,12 +2424,29 @@
   const lt = (v) => (Math.round((+v || 0) * 10) / 10).toLocaleString("it-IT") + " l";
   const lh = (v) => (+v || 0).toLocaleString("it-IT", { minimumFractionDigits: 1, maximumFractionDigits: 1 }) + " l/h";
   const eh = (v) => eur(v) + "/h";   // «€ 19,02/h» — il simbolo lo mette shared/
+  /* ⛔ LA FRASE DEL PIENO SENZA LA SPESA, SCRITTA UNA VOLTA SOLA. La dicono due
+     posti — il riepilogo della schermata Carburante e il libretto macchina — e
+     la seconda è nata copiando la prima: è la forma in cui questa famiglia di
+     difetti comincia sempre («la stessa regola scritta due volte, più debole»).
+     La coda cambia fra i due (nel riepilogo si aggiunge «i litri no», perché lì
+     accanto ci sono anche i litri), e per questo la coda è un ARGOMENTO invece
+     che una seconda copia della funzione. */
+  const spesaMinimaTx = (n, coda = "") => n
+    ? ` <b class="bad">${n === 1 ? "Un pieno non porta la spesa" : n + " pieni non portano la spesa"}</b>: gli euro sono un minimo${coda}.`
+    : "";
 
   function disegnaRifornimenti() {
     const cons = consumoPerMezzo(RIF);
     $("rif-tot").textContent = RIF.length;
     $("rif-riep").innerHTML = !RIF.length ? ""
       : `Registrati <b>${lt(cons.totaleLitri)}</b>${cons.totaleEuro ? " per <b>" + eur(cons.totaleEuro) + "</b>" : ""} su ${cons.mezzi.length} ${cons.mezzi.length === 1 ? "mezzo" : "mezzi"}. `
+        /* ⛔ E SE UN PIENO NON PORTA LA SPESA, I DUE NUMERI QUI SOPRA NON
+           PARLANO DELLA STESSA COSA: i litri sono tutti, gli euro solo quelli
+           scritti. Chi legge li divide a mente e ne ricava un prezzo al litro
+           più basso del vero — un numero tranquillo che nessuno ha stampato.
+           La conta arriva da `consumoPerMezzo`, che la fa già per riga: qui
+           non si risomma niente. */
+        + spesaMinimaTx(cons.senzaSpesa, ", i litri no") + " "
         + (cons.calcolabili
             ? `Il consumo è calcolabile su <b>${cons.calcolabili}</b> ${cons.calcolabili === 1 ? "mezzo" : "mezzi"}: sugli altri manca ancora un secondo pieno col contatore.`
             : "Per il consumo in litri/ora servono almeno <b>due rifornimenti</b> dello stesso mezzo con le ore del contatore.");
@@ -2449,7 +2466,11 @@
         formato: (v) => (+v || 0).toLocaleString("it-IT", { maximumFractionDigits: 1 }), unita: "l/h",
         valori: calcolabili.map(m => ({ etichetta: m.mezzo, valore: m.litriOra })),
         nota: "In cima c'è chi consuma di più: <b>" + peggiore.mezzo + "</b>, " + lh(peggiore.litriOra)
-          + (peggiore.euroOra ? " (" + eh(peggiore.euroOra) + ")" : "")
+          // ⛔ il €/h della nota scende quando un pieno della finestra non porta
+          //    la spesa: è la stessa dichiarazione che la riga della lista fa
+          //    già, e qui serve uguale — questa frase la legge chi guarda solo
+          //    il grafico.
+          + (peggiore.euroOra ? " (" + eh(peggiore.euroOra) + (peggiore.pieniSenzaEuro ? " almeno" : "") + ")" : "")
           + ". Un consumo che sale rispetto al solito è spesso il primo segnale di un guasto: iniettori, filtri, freni che strisciano. "
           + "Il conto salta il primo pieno di ogni macchina, che serve solo a fissare il punto di partenza.",
       });
@@ -2457,7 +2478,7 @@
       const u = calcolabili[0];
       grafVuoto("graf-consumo", I.goccia, u.mezzo + ": " + lh(u.litriOra),
         "Su " + esc(u.mezzo) + " il consumo si può già calcolare (" + lh(u.litriOra)
-        + (u.euroOra ? ", " + eh(u.euroOra) : "") + " su " + conta(u.oreCoperte, "ora di lavoro", "ore di lavoro") + "), ma con una macchina sola non c'è "
+        + (u.euroOra ? ", " + eh(u.euroOra) + (u.pieniSenzaEuro ? " almeno" : "") : "") + " su " + conta(u.oreCoperte, "ora di lavoro", "ore di lavoro") + "), ma con una macchina sola non c'è "
         + "<b>niente da confrontare</b>. Registra i rifornimenti di un secondo mezzo e qui comparirà la classifica di chi beve di più.");
     } else if (RIF.length) {
       grafVuoto("graf-consumo", I.goccia, "Consumo non ancora calcolabile",
@@ -3249,10 +3270,19 @@
       + restoLibretto(f.controlli.length);
 
     const cons = f.consumo;
+    /* ⛔ E SUL LIBRETTO LA SPESA CHE MANCA VA DETTA, perché questo è il foglio
+       che si consegna a chi compra la macchina. La riga scriveva «2
+       rifornimenti per 580 l (€ 450,00)» con dentro un pieno di cui nessuno ha
+       scritto il prezzo: i litri sono tutti, gli euro no, e chi divide i due
+       numeri ne ricava un gasolio più a buon mercato del vero. Il CSV dello
+       stesso libretto lo diceva già («spesa non scritta», cella dell'importo
+       vuota): era la SCHERMATA a tenersi la versione più povera — la famiglia
+       «dove il documento si compone», al contrario del solito. */
+    const spesaMinima = spesaMinimaTx(cons && cons.senzaSpesa);
     $("sch-carb").innerHTML = (cons
         ? `<div class="note recap">${cons.litriOra != null
-            ? `Consuma <b>${lh(cons.litriOra)}</b>${cons.euroOra ? ` — <b>${eh(cons.euroOra)}</b>` : ""}, misurati su <b>${cons.oreCoperte} ${plurale(cons.oreCoperte, "ora", "ore")}</b> di lavoro e ${conta(cons.pieni, "rifornimento", "rifornimenti")} (${lt(cons.litri)}${cons.euro ? ", " + eur(cons.euro) : ""}).`
-            : `${cons.pieni} ${cons.pieni === 1 ? "rifornimento" : "rifornimenti"} per ${lt(cons.litri)}${cons.euro ? " (" + eur(cons.euro) + ")" : ""}: il consumo all'ora non si può ancora calcolare — ${esc(cons.perche)}.`}</div>`
+            ? `Consuma <b>${lh(cons.litriOra)}</b>${cons.euroOra ? ` — <b>${eh(cons.euroOra)}</b>` : ""}, misurati su <b>${cons.oreCoperte} ${plurale(cons.oreCoperte, "ora", "ore")}</b> di lavoro e ${conta(cons.pieni, "rifornimento", "rifornimenti")} (${lt(cons.litri)}${cons.euro ? ", " + eur(cons.euro) : ""}).${spesaMinima}`
+            : `${cons.pieni} ${cons.pieni === 1 ? "rifornimento" : "rifornimenti"} per ${lt(cons.litri)}${cons.euro ? " (" + eur(cons.euro) + ")" : ""}: il consumo all'ora non si può ancora calcolare — ${esc(cons.perche)}.${spesaMinima}`}</div>`
         : "")
       + (f.rifornimenti.slice(0, RIGHE_LIBRETTO).map(r => `<div class="item statico st-accent">
           <div class="avatar">${I.goccia}</div>

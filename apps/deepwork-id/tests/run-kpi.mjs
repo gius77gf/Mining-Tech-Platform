@@ -12022,6 +12022,88 @@ test("⛔ Flotta: senza le ore, il costo orario NON è zero", () => {
     }
     eq(toccati, 3, "tre mezzi su sei della dimostrazione avevano il numero gonfiato: sono questi");
   });
+
+  /* ══ IL PIENO SENZA LA SPESA: UN NUMERO CHE NON C'È NON VALE ZERO ═══════
+     La spesa del rifornimento è FACOLTATIVA da sempre (`validaRifornimento`
+     lascia il campo vuoto senza protestare), e in cava è il caso normale: il
+     gasolio della cisterna interna si conta in litri sul contalitri della
+     pompa, e quanto costa lo dirà la fattura del fornitore a fine mese.
+     Fino al 07/08 questa scena non stava in nessuna prova e in nessun dato
+     d'esempio, e sotto ci si era formato il difetto peggiore di tutti: il
+     costo orario rispondeva **0 €/h**. */
+  test("⛔ Flotta · €/h: se nella finestra nessuna spesa è scritta, NON è «0 €/h»", () => {
+    const g = (n) => new Date(Date.now() - n * 86400000).toISOString().slice(0, 10);
+    /* la macchina lavora e i litri si sanno; quello che non si sa è quanto
+       sono costati. L'unico intervento d'officina cade fuori dalla finestra,
+       quindi dentro non resta NIENTE di misurato. */
+    const rif = [{ mezzo: "Escavatore E9", data: g(20), litri: 300, euro: 450, ore: 3100 },
+                 { mezzo: "Escavatore E9", data: g(5), litri: 280, euro: 0, ore: 3140 }];
+    const inter = [{ mezzo: "Escavatore E9", data: g(90), titolo: "Tagliando", costo: 540 }];
+    const r = flotta.costoOrarioMezzo(inter, rif)[0];
+    eq(r.spesaInFinestra, 0, "nella finestra non c'è nessun euro scritto");
+    eq(r.euroOra, null, "e allora il costo orario non si dà: null, non zero");
+    ok(/non si può calcolare/.test(r.perche), `e si dice perché: ${r.perche}`);
+    /* ⛔ E LA RAGIONE VA DETTA CON LE PAROLE DEL NON-CALCOLABILE. `parziale`
+       era già alzata e diceva un'altra cosa — «il conto è un MINIMO» — che su
+       un conto di zero non vuol dire niente: un minimo di zero è il numero più
+       tranquillo che questa funzione sappia dire. */
+    ok(r.parziale, "la bandiera del minimo resta alzata, ma da sola non bastava");
+    /* ⛔ E IL DANNO VERO STAVA UN PIANO PIÙ IN LÀ, NELLA PAGELLA: con `0` la
+       macchina di cui nessuno ha scritto la spesa usciva PRIMA in classifica,
+       cioè quella che costa meno di tutto il parco. È il caso che la schermata
+       dei non giudicabili dichiara di voler evitare, e ci cascava lo stesso. */
+    const parco = [{ nome: "Escavatore E9" }];
+    const p = flotta.pagellaMezzi(flotta.costoOrarioMezzo(inter, rif),
+                                  flotta.affidabilitaFlotta([], parco), parco);
+    eq(p.righe.map((x) => x.mezzo), [], "non entra nella classifica del costo");
+    eq(p.senzaCosto.map((x) => x.mezzo), ["Escavatore E9"],
+       "sta fra i non giudicabili, che è la lista da cui nasce il lavoro");
+  });
+
+  test("Flotta · €/h: basta UNA spesa scritta nella finestra perché il numero torni", () => {
+    /* ⚠️ la controprova della prova qui sopra, nei due versi in cui il ramo
+       nuovo potrebbe essere troppo largo: un pieno prezzato, oppure
+       l'officina che cade DENTRO la finestra. Senza queste due righe la prova
+       sopra passerebbe anche con `euroOra` messo a `null` per tutti. */
+    const g = (n) => new Date(Date.now() - n * 86400000).toISOString().slice(0, 10);
+    const rif = [{ mezzo: "Escavatore E9", data: g(20), litri: 300, euro: 450, ore: 3100 },
+                 { mezzo: "Escavatore E9", data: g(5), litri: 280, euro: 0, ore: 3140 }];
+    const prezzato = [rif[0], { ...rif[1], euro: 420 }];
+    eq(flotta.costoOrarioMezzo([], prezzato)[0].euroOra, 10.5,
+       "col pieno prezzato il €/h è un numero (420 € su 40 ore)");
+    const dentro = [{ mezzo: "Escavatore E9", data: g(10), titolo: "Tagliando", costo: 540 }];
+    eq(flotta.costoOrarioMezzo(dentro, rif)[0].euroOra, 13.5,
+       "e con l'officina dentro la finestra pure (540 € su 40 ore)");
+  });
+
+  test("⛔ Flotta · la dimostrazione contiene il pieno senza la spesa, e lo dichiara", () => {
+    /* Il caso esisteva nel codice e non si vedeva MAI aprendo l'app: tutti i
+       pieni d'esempio portavano la loro spesa. Un campo assente non è un
+       refuso, è uno stato che il prodotto sa raccontare — e questa prova tiene
+       fermo che la dimostrazione continui a raccontarlo. */
+    const senza = flotta.DEMO.rifornimenti.filter((r) => !(+r.euro > 0));
+    eq(senza.length, 1, "un pieno d'esempio, e uno solo, non porta la spesa");
+    eq(senza[0].mezzo, "Escavatore E2", "ed è sull'Escavatore E2");
+    ok(+senza[0].litri > 0, `i litri invece ci sono (${senza[0].litri}): manca il prezzo, non il pieno`);
+    const c = flotta.consumoPerMezzo(flotta.DEMO.rifornimenti);
+    const e2 = c.mezzi.find((m) => m.mezzo === "Escavatore E2");
+    eq([e2.pieni, e2.litri, e2.euro, e2.senzaSpesa], [2, 580, 450, 1],
+       "580 litri messi, 450 € conosciuti, un pieno senza la spesa");
+    /* ⛔ LA RIGA CHE VALE: il €/l resta 1,500 perché si divide per i litri che
+       un prezzo ce l'hanno. Con «tutti gli euro diviso tutti i litri» — la
+       forma di prima del 03/08 — direbbe 0,776, cioè il gasolio a metà prezzo
+       proprio perché qualcuno non ha scritto quanto è costato. */
+    eq([e2.euroLitro, e2.litriConEuro], [1.5, 300], "il €/l si divide per i litri prezzati");
+    ok(Math.round(1000 * e2.euro / e2.litri) / 1000 < 0.8,
+       "e la forma sbagliata direbbe meno di 0,80 €/l: è di lì che si vede la differenza");
+    /* i casi che la dimostrazione aveva già non si perdono: E2 resta la
+       macchina di cui il consumo NON si può ancora dire, perché il contatore
+       lo porta un pieno solo. */
+    eq([e2.litriOra, c.calcolabili], [null, 3], "e il caso «consumo non ancora calcolabile» resta in piedi");
+    eq(c.senzaSpesa, 1, "il riepilogo di flotta sa quanti pieni non portano la spesa");
+    eq(c.totaleLitri > 0 && c.totaleEuro > 0, true,
+       "litri ed euro ci sono tutt'e due, e per questo vanno letti insieme alla riga qui sopra");
+  });
 }
 
 test("⛔ Campo: un turno ANCORA APERTO non prende il verde, e il 100% dice perché", () => {

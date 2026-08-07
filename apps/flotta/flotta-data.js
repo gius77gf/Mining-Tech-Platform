@@ -311,6 +311,25 @@ export const DEMO = {
   //  · Pala P1 ne copre 12 → è sotto la metà dell'orizzonte, e serve a far
   //    vedere il caso in cui il ritmo NON si può dire;
   //  · Escavatore E2 ha una lettura sola → non si può dire nemmeno il consumo.
+  // ⛔ E r10 È IL PIENO SENZA IL PREZZO (07/08). Fino a stamattina qui ogni
+  //    pieno portava la sua spesa, quindi il caso che il prodotto sa già
+  //    raccontare — la spesa del rifornimento è FACOLTATIVA in
+  //    `validaRifornimento`, e da lì scendono `senzaSpesa`, il denominatore
+  //    del €/l e `pieniSenzaEuro` — non si vedeva **mai** aprendo l'app: si
+  //    misurava solo nelle prove, con dati inventati lì per lì. Un campo
+  //    assente non è un refuso, è uno stato del prodotto, e metterlo nella
+  //    dimostrazione è il modo di mostrarlo (quello che la dimostrazione non
+  //    deve contenere è il dato CORROTTO, tipo «2026-13-45»).
+  //    È sull'Escavatore E2 di proposito: la sua unica lettura del contatore
+  //    resta una, quindi il caso «consumo non ancora calcolabile» qui sopra
+  //    non si perde, e la riga della schermata Carburante fa vedere la cosa
+  //    che conta — 580 litri messi, 450 € conosciuti, e il €/l che resta
+  //    **1,500** perché si divide per i litri che un prezzo ce l'hanno, con
+  //    accanto scritto in rosso che un pieno la spesa non ce l'ha.
+  //    Il perché suona vero in cava: alla cisterna del piazzale il contalitri
+  //    della pompa dice i litri, il prezzo lo dirà la fattura del gasolio a
+  //    fine mese. `euro: 0` e non `null` perché è esattamente quello che la
+  //    pagina salva quando il campo si lascia vuoto.
   rifornimenti: [
     { id: "r1", data: isoIndietro(18), mezzo: "Escavatore E1", litri: 480, euro: 720, ore: 5812, nota: "cisterna cava", costoId: null },
     { id: "r2", data: isoIndietro(10), mezzo: "Escavatore E1", litri: 505, euro: 762, ore: 5841, nota: "", costoId: null },
@@ -321,6 +340,7 @@ export const DEMO = {
     { id: "r7", data: isoIndietro(16), mezzo: "Pala P1", litri: 300, euro: 450, ore: 6498, nota: "", costoId: null },
     { id: "r8", data: isoIndietro(4), mezzo: "Pala P1", litri: 320, euro: 480, ore: 6531, nota: "", costoId: null },
     { id: "r9", data: isoIndietro(6), mezzo: "Escavatore E2", litri: 300, euro: 450, ore: 3195, nota: "primo pieno registrato", costoId: null },
+    { id: "r10", data: isoIndietro(1), mezzo: "Escavatore E2", litri: 280, euro: 0, ore: null, nota: "cisterna interna, fattura non ancora arrivata", costoId: null },
   ],
   // Le voci di costo hanno la data del giorno a cui la spesa si riferisce.
   // `c3` è di proposito SENZA data: è una voce come quelle registrate prima
@@ -1114,6 +1134,29 @@ export function costoOrarioMezzo(interventi, rifornimenti) {
     const carburanteInFinestra = ore && Number.isFinite(c.euroInFinestra) ? c.euroInFinestra : null;
     const senzaEuro = ore ? c.pieniSenzaEuro : 0;
     const spesaInFinestra = ore ? Math.round(100 * (inFinestra + carburanteInFinestra)) / 100 : null;
+    /* ⛔ E UNA SPESA DI ZERO NON È UNA SPESA MISURATA: È UNA SPESA NON SCRITTA.
+       Misurato il 07/08 sulla scena che la dimostrazione non conteneva — una
+       macchina i cui pieni della finestra arrivano dalla cisterna interna
+       (litri sì, prezzo non ancora) e senza nessun intervento d'officina
+       datato lì dentro. `inFinestra` vale 0 e `carburanteInFinestra` vale 0,
+       quindi `spesaInFinestra` è 0 e la divisione rispondeva **0 €/h**: il
+       numero più tranquillo che questa funzione sappia dire, su una macchina
+       di cui nessuno ha scritto quanto è costata. E non restava lì: la
+       pagella lo prendeva per buono e la macchina usciva **prima in
+       classifica**, quella che costa meno di tutto il parco — che è esattamente
+       il caso che la schermata dei non giudicabili dichiara di voler evitare
+       («un "0 €/h" al suo posto lo farebbe sembrare il più conveniente»).
+       La bandiera `parziale` c'era già ed era pure alzata, ma diceva un'altra
+       cosa: «questo conto è un MINIMO». Un minimo di zero non è un minimo, è
+       un non-calcolabile — e va detto con le parole del non-calcolabile,
+       insieme alle altre due ragioni che già vivono in `perche`.
+       ⚠️ Non è un ramo largo: `spesaInFinestra === 0` con la finestra aperta
+       può succedere SOLO se nessun pieno dal secondo in poi porta il prezzo
+       (uno che lo porta ha `euro > 0`), quindi `parziale` è sempre già vera
+       quando questo scatta. Provato su una copia prima di scriverlo qui: con
+       un solo pieno prezzato il €/h torna un numero, e con l'officina dentro
+       la finestra pure. */
+    const nienteSpesa = ore != null && spesaInFinestra === 0;
     const parziale = mancanti > 0 || sdN > 0 || senzaEuro > 0;
     const ragioni = [];
     if (mancanti > 0) ragioni.push(mancanti + (mancanti === 1 ? " intervento senza costo" : " interventi senza costo"));
@@ -1130,8 +1173,10 @@ export function costoOrarioMezzo(interventi, rifornimenti) {
       percheParziale: ragioni.length ? ragioni.join(" e ") + ": il conto è un minimo" : "",
       euroOraOfficina: ore ? Math.round(100 * inFinestra / ore) / 100 : null,
       euroOraCarburante: c && Number.isFinite(c.euroOra) ? c.euroOra : null,
-      euroOra: ore ? Math.round(100 * spesaInFinestra / ore) / 100 : null,
-      perche: ore ? "" : (oreNote
+      euroOra: ore && !nienteSpesa ? Math.round(100 * spesaInFinestra / ore) / 100 : null,
+      perche: ore ? (nienteSpesa
+        ? "le ore lavorate si sanno, ma nessuna delle spese che cadono in questo periodo porta il suo importo: il costo di un'ora non si può calcolare"
+        : "") : (oreNote
         ? "i rifornimenti col contatore non portano la data: non si sa che periodo coprono le ore"
         : ((c && c.perche)
           || "Nessun rifornimento porta la lettura del contatore: le ore lavorate non si sanno.")),
@@ -1786,10 +1831,22 @@ export function consumoPerMezzo(rifornimenti) {
     };
   }).sort((a, b) => (b.litriOra == null ? -1 : b.litriOra) - (a.litriOra == null ? -1 : a.litriOra)
     || a.mezzo.localeCompare(b.mezzo, "it"));
+  /* ⛔ E IL TOTALE DELLA FLOTTA VA DICHIARATO ANCH'ESSO UN MINIMO (07/08).
+     `senzaSpesa` di riga difendeva la singola macchina, ma il riepilogo in
+     cima alla schermata somma `totaleLitri` e `totaleEuro` e li mette uno
+     accanto all'altro: con un pieno senza il prezzo i litri salgono e gli
+     euro no, quindi chi legge «3.820 l per 5.307 €» ne ricava 1,39 €/l dove
+     il gasolio pagato costa 1,50. Nessuno lo scrive, quel 1,39: lo fa il
+     lettore, ed è per questo che il numero è tranquillo — non c'è niente da
+     leggere che sia falso, manca solo la riga che dice che il conto non è
+     tutto. Il conto sta QUI e non nella pagina: sommare a mano nella pagina
+     i `senzaSpesa` delle righe sarebbe la seconda copia di una regola che
+     questa funzione sa già. */
   return {
     mezzi, totaleLitri: Math.round(totaleLitri * 10) / 10,
     totaleEuro: Math.round(totaleEuro * 100) / 100,
     calcolabili: mezzi.filter(m => m.litriOra != null).length,
+    senzaSpesa: mezzi.reduce((t, m) => t + m.senzaSpesa, 0),
   };
 }
 
