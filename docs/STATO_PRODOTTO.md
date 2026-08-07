@@ -178,6 +178,39 @@ esistono tutti e due).
 
 ---
 
+## ⚠️ Aggiornamento del 7 agosto — i colori nei tre modi di guardare lo schermo
+
+Le app hanno **tre modi di mostrarsi**: scuro (di sera, in ufficio), chiaro, e
+un modo **«sole»** pensato per il telefono in cava, dove la luce di mezzogiorno
+sbianca tutto. Fino a stamattina i colori delle sei app erano stati controllati
+**solo nel modo scuro**: sugli altri due nessuno li aveva mai aperti.
+
+Aperti, sono venute fuori **54 scritte troppo pallide per essere lette** —
+compresa la parola «Conforme» nell'esito di un report per l'ente, e i numeroni
+grandi dei cruscotti. Adesso sono **zero in tutti e tre i modi**, in tutte e sei
+le app, e ogni palette è stata decisa sui **suoi** sfondi, non con una formula
+uguale per tutti (gli sfondi chiari di ogni app sono velati del suo colore, e
+la differenza si vede).
+
+**E c'era un secondo pezzo che nessuno guardava**: le **barrette colorate** a
+lato delle righe — quelle che dicono a colpo d'occhio se una cosa è a posto, in
+scadenza o scaduta. Non sono testo, quindi nessun controllo le misurava. Sul
+chiaro erano **quasi invisibili**: la gialla, che in Campo è *il* segno che una
+persona non è stata spuntata all'appello, si leggeva meno della metà di quanto
+serve. Anche quelle adesso sono a posto, e i **badge pieni** («SCADUTA»,
+«INSOLUTA») non sono cambiati di un pixel: si è aggiunto un colore per le
+scritte, non si è tirato quello dei fondi.
+
+**Nel core** è stato tolto un intero foglio di stile per un modo di
+visualizzazione che **non si accende dalla versione 4.4** (137 regole, 11 KB): non si
+vedeva, ma due volte in un giorno qualcuno ci ha ragionato sopra credendo che
+servisse. E la scheda «Sistema» delle Impostazioni scriveva «Outdoor mode:
+disattivato» — una riga che poteva stampare **una parola sola per sempre**, su
+un pannello che si apre proprio quando si vuole capire come sta l'app: adesso
+dice il tema che stai davvero usando.
+
+---
+
 ## Il quadro d'insieme
 Abbiamo **6 app verticali** (una per problema di cava) + **Genesi** (il
 simulatore di volata) + **Deepwork ID** (il login/abbonamenti comune, la
