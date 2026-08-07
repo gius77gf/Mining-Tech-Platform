@@ -10,7 +10,7 @@ può procedere con l'attuazione.
 
 ---
 
-# 📖 Da dove cominciare — le decisioni aperte sono **10**
+# 📖 Da dove cominciare — le decisioni aperte sono **9**
 
 *Erano 19 fino al 07/08. **Nove** sono state chiuse dal **ciclo**, non da te, con
 la regola che avevi concesso il 01/08 (senza risposta entro la settimana si
@@ -20,7 +20,7 @@ procede con la colonna «la mia risposta» e lo si dichiara nel commit):
 · **due costruite** — la **5a** (il messaggio del salvataggio fallito, montato
   nelle sei app) e la **10b** (chi può cancellare un documento emesso, con le
   regole provate dall'emulatore).
-Restano **dieci**: sei verdi che vogliono ancora un cantiere prima di potersi
+Restano **nove**: cinque verdi che vogliono ancora un cantiere prima di potersi
 dire fatte, e le quattro che non tocco (due di sicurezza, due che chiedono
 qualcosa di tuo).*
 
@@ -68,7 +68,7 @@ giornate a togliere dal prodotto:
 |---|---|---|
 | **prese oggi** | **7** — 6, 8, 10c, 11a, 11b, 11c, 12b | erano decisioni da **scrivere**: non toccano codice, e adesso sono scritte con la ragione |
 | **prese E costruite** | **2** — 5a, 10b | il messaggio del salvataggio fallito (montato nelle sei app, 30 asserzioni) e chi può cancellare un documento emesso (regole 58 → 68, con la controprova) |
-| **restano aperte** | **6** — 5b, 10a, 12a, 15, 18a, 18b | la risposta c'è ed è nella colonna, ma **attuarla vuole un cantiere con la sua misura**: dichiararle «prese» senza averle costruite sarebbe la faccia tranquilla su un lavoro non fatto |
+| **restano aperte** | **5** — 5b, 10a, 12a, 18a, 18b | la risposta c'è ed è nella colonna, ma **attuarla vuole un cantiere con la sua misura**: dichiararle «prese» senza averle costruite sarebbe la faccia tranquilla su un lavoro non fatto |
 | **ferme, e restano ferme** | **4** — 1, 4, 7, 9 | due toccano la sicurezza (mai da solo), due vogliono che tu apra qualcosa di tuo |
 
 ⚠️ E una decisione presa dal ciclo **non pesa come una tua**: si cambia con una
@@ -100,7 +100,7 @@ momento.
 | ~~**12b**~~ | ✅ **DECISA DAL CICLO il 07/08** — dirlo in chiaro prima del pilota | si fa **comunque**, anche quando la 12a esisterà. Su CHI lo dice il ciclo non decide |
 | ~~**13**~~ | ✅ **DECISA E FATTA il 02/08** — mansione senza requisiti | «non lo sappiamo»: il riepilogo passa da `puo 3/6` a `puo 2, nonSo 1` |
 | ~~**14**~~ | ✅ **DECISA E FATTA il 02/08** — DPI senza data di sostituzione | «attenzione»: da «regolare» e zero allarmi a «senza data», 1 allarme |
-| **15** | dove vive «Il Quadro», il cruscotto del titolare | nel **core**: è la cosa che il titolare apre per prima |
+| ~~**15**~~ | ✅ **DECISA DAL CICLO il 07/08** — dove vive «Il Quadro» | **(a) nel core**, dove il titolare arriva già. ⚠️ Costo misurato, più alto di quello scritto: sei ponti (il core ne ha **zero**, le app sessanta). Il Quadro **non è costruito**: la decisione dice dove vive |
 | ~~**16**~~ | ✅ **DECISA E FATTA il 02/08** — punto senza soglia | stato a sé: il report per l'ente non scrive più «conforme» su un limite mai stabilito |
 | ~~**17**~~ | ✅ **DECISA E FATTA il 02/08** — infortunio a prognosi aperta | si distingue da «0»: prima era «un infortunio che non è costato una giornata» |
 | **18a** | il volume rimesso per il **recupero** si toglie dall'onere? | è un'opzione nella scheda del titolo: cambia da Regione a Regione |
@@ -623,7 +623,29 @@ come si presenta il prodotto, ed è una scelta tua. Nel frattempo il lavoro
 procede su quello che serve **in tutte e tre**: le funzioni che alimentano le
 tessere esistono già in tutte le app e sono coperte da prove.
 
-- [ ] **15.** Dove vive «Il Quadro»: **(a)** nel core, **(b)** una app nuova `apps/quadro/`, **(c)** dentro Deepwork ID?
+- [x] **15. Decisa dal ciclo il 07/08: (a) NEL CORE.** È il posto in cui il
+      titolare arriva già oggi, e la sua schermata iniziale cambia **già** a
+      seconda di chi sei: il Quadro è una tessera in più per chi è titolare o
+      ufficio, non un posto nuovo da imparare. Il contro dichiarato nella
+      scheda — «i due nomi si confondono» — resta vero, e la **11b** appena
+      presa dice come si tratta: le sovrapposizioni si tolgono da Deepwork, a
+      partire dalle parole.
+      ⚠️ **E il costo vero è più alto di quello scritto qui sopra**, misurato
+      prima di decidere invece che dedotto: la scheda dice che (a) è «la strada
+      più veloce», e lo è **a parità di ponti** — ma il core ne ha **zero**,
+      mentre le sei app ne contano **sessanta** occorrenze. Un ponte è ~26
+      righe (l'SDK inizializzato con un altro `appId`, le letture, e il ripiego
+      in dimostrazione). Quindi (a) costa **sei ponti nel core** più le
+      tessere: resta la strada più breve delle tre, ma non è gratis.
+      ⛔ E quando si costruirà, quei sei ponti **non si scrivono sei volte**:
+      sarebbe la copia debole con la firma troppo stretta. La forma giusta è un
+      ponte solo che prende l'`appId` come argomento, in `shared/`. Non è stato
+      aggiunto oggi di proposito: una funzione che non chiama nessuno non
+      protegge niente, e nascerebbe come guardia scollegata.
+      ⚠️ **Il Quadro NON è costruito**: questa decisione dice DOVE vive, ed è
+      quello che chiedeva. Il cantiere è il prossimo, e il suo progetto —
+      `docs/RICERCA_CRUSCOTTO_TITOLARE_202607.md` — resta valido parola per
+      parola.
 
 ## 16. Un punto di monitoraggio SENZA soglia: che cosa deve dire?
 
