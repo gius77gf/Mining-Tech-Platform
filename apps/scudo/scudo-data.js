@@ -26,7 +26,14 @@
 //   cantieri/{id}:   { nome, comune, tipo: cava|cantiere, stato: attivo|chiuso }
 //   azioni/{id}:     { descrizione, responsabileId|null, scadenza (ISO),
 //                      stato: aperta|in-corso|chiusa, esito?, dataChiusura?,
-//                      origineTipo: evento|ispezione|nc|superamento|reclamo|"",
+//                      origineTipo: evento|ispezione|nc|superamento|reclamo|fermo|"",
+//                      ⚠️ `fermo` è entrato il 01/08 col ponte Campo → Scudo
+//                      (`ORIGINI_CAMPO`, riga 913) e questo elenco non se n'era
+//                      accorto per sei giorni: un commento di schema che non
+//                      elenca un valore che il codice accetta fa concludere che
+//                      quel caso non esista — ed è successo, in un documento del
+//                      delta (`docs/CONCORRENTI_CAMPO.md`, riga «anomalie:
+//                      radice, azione correttiva»).
 //                      origineId?|null, origineVoce?|null, origineNota?,
 //                      origineApp?, origineData?, origineEtichetta? }
 //                    → azione correttiva (CAPA) nata da un evento del registro
