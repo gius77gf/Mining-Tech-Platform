@@ -749,6 +749,21 @@ numero scritto dove non era stato misurato niente**.*
   ✅ E dove Campo era già a posto, col conto accanto: `ore_lavorate` resta
   **vuota** (non `0`) quando manca un orario, provato su 5 persone in 5 stati.
 
+- [x] ✅ **Il rosso che ho corretto non si vede nella dimostrazione**
+  (`4e13874`): avevo misurato `b.bad` su un elemento **iniettato**. Cercandolo
+  **vero** su tutte le sezioni di Flotta: **zero** `<b class="bad">` visibili —
+  i due casi che li producono nei dati d'esempio non capitano mai. La regola è
+  giusta, ma **nessun banco può vederla oggi**, e dirlo cambia quanto vale quel
+  verde. ⚠️ Un pieno senza spesa fra i dati d'esempio renderebbe **visibile la
+  funzione** e **misurabile la regola**: unità a sé, da fare ad albero fermo.
+- [x] ✅ **CLAUDE.md · un file di scambio porta il nominale, non il campione**
+  (`9bc3e66`): famiglia nuova, dal difetto di Genesi. Il segno da riconoscere è
+  **un numero con quindici decimali dove lo schermo ne mostra zero**, e il modo
+  di prenderlo è **rifare il giro** — il file da solo è coerente con sé stesso.
+- [x] ✅ **I riferimenti della roadmap erano fermi al 03/08** (`6d6727e`):
+  dicevano 2.092 prove e 84 banchi, sono **2.193** e **120**. Con lo storico
+  conservato e la nota che quei tre numeri non si scrivono a mente.
+
 ## Riferimenti
 
 - Ultimo checkpoint **per data vera**:
