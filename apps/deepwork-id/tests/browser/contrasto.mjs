@@ -146,20 +146,49 @@ const MISURA = () => {
      quello che la sua intestazione promette di non fare («un KO va verificato
      come un OK»). L'ha smentito il conto a mano su due elementi: `.note` di
      Terra in `sole` è `color(srgb .16 .19 .07)` su `color(srgb .96 .98 .95)`.
-     ⚠️ Restano fuori, dichiarate: `color(display-p3 …)`, `lab()`, `oklch()`.
-     Nessuna compare oggi nei fogli dell'ecosistema (`grep` a zero), e quando
-     compariranno si presenteranno con lo stesso sintomo — un rapporto vicino a
-     1 su un testo leggibile. */
+     ⚠️ E LA PRIMA CORREZIONE ERA ANCORA UNA TOPPA, scoperta un'ora dopo
+     verificando a mano le 29 bocciature rimaste: in Flotta il fondo effettivo
+     torna **`oklab(0.256758 0.0306113 -0.0107834)`** — che nessun foglio scrive,
+     e infatti il `grep` sul sorgente dava zero: lo produce il browser
+     interpolando. Coi suoi numeri letti come 0-255 il fondo diventa nero, e
+     `.rosso` e `.giallo` venivano misurati contro un colore che non esiste.
+     Aggiungere `oklab` all'elenco sarebbe stata la terza toppa, e la quarta
+     arriverebbe con `oklch` o `display-p3`.
+     ⛔ LA REGOLA DI CLAUDE.md È «CALCOLARE UNA COSA CHE IL BROWSER SA DIRE».
+     Il browser sa convertire QUALUNQUE colore in sRGB: si dipinge un pixel su
+     una tela e lo si rilegge. Non è un'approssimazione — è la stessa
+     conversione che fa per dipingere lo schermo, cioè esattamente quello che
+     l'utente vede.
+     E quando il colore NON lo capisce nemmeno lui, la risposta è `null`: non si
+     inventa un numero. Il principio del fondatore vale anche per il righello —
+     l'assenza di una misura non è una misura buona né una cattiva, ed è per
+     questo che i colori illeggibili si CONTANO e si dichiarano invece di
+     finire fra i bocciati. */
+  const tela = document.createElement('canvas');
+  tela.width = tela.height = 1;
+  const pennello = tela.getContext('2d', { willReadFrequently: true });
+  const memoria = new Map();
   const num = (c) => {
-    const v = (c.match(/[\d.]+/g) || []).map(Number);
-    if (!/^\s*color\(\s*srgb/i.test(c)) return v;
-    /* i primi tre canali sono 0-1; l'eventuale alfa dopo lo slash lo è già */
-    return v.map((x, i) => (i < 3 ? x * 255 : x));
+    if (memoria.has(c)) return memoria.get(c);
+    let v = [];
+    if (typeof c === 'string' && c && CSS.supports('color', c)) {
+      pennello.clearRect(0, 0, 1, 1);
+      pennello.fillStyle = c;
+      pennello.fillRect(0, 0, 1, 1);
+      const d = pennello.getImageData(0, 0, 1, 1).data;
+      v = [d[0], d[1], d[2], d[3] / 255];
+    }
+    memoria.set(c, v);
+    return v;
   };
+  /* null quando il colore non si e potuto leggere: chi chiama DEVE guardarlo.
+     Restituire 0 (nero) sarebbe la bugia comoda, ed e quella che ha prodotto le
+     531 bocciature false. */
   const lum = (c) => {
-    const [r, g, b] = num(c);
-    const f = (v) => { v /= 255; return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4); };
-    return 0.2126 * f(r) + 0.7152 * f(g) + 0.0722 * f(b);
+    const v = num(c);
+    if (!v.length) return null;
+    const f = (x) => { x /= 255; return x <= 0.03928 ? x / 12.92 : Math.pow((x + 0.055) / 1.055, 2.4); };
+    return 0.2126 * f(v[0]) + 0.7152 * f(v[1]) + 0.0722 * f(v[2]);
   };
   /* IL FONDO VERO SI COMPONE, NON SI SCEGLIE. Terza volta che questa misura
      accusa il prodotto a torto: prendendo il primo `background-image` incontrato
@@ -191,7 +220,7 @@ const MISURA = () => {
          scheda che si legge benissimo. È la quarta volta che questa misura
          accusa il prodotto al posto di sé stessa. */
       if ((cs.webkitBackgroundClip || cs.backgroundClip) === 'text' && catena[i] !== el) continue;
-      const stop = cs.backgroundImage && cs.backgroundImage.match(/rgba?\([^)]*\)/g);
+      const stop = cs.backgroundImage && cs.backgroundImage.match(/(?:rgba?|hsla?|color|oklab|oklch|lab|lch|hwb)\([^)]*\)/g);
       const prossimi = new Set();
       for (const f of fondi) {
         const conColore = mescola(cs.backgroundColor, f);
@@ -262,8 +291,9 @@ const MISURA = () => {
     return `rgb(${m(0)}, ${m(1)}, ${m(2)})`;
   };
   const rapporto = (f, s) => {
-    const L1 = Math.max(lum(f), lum(s)), L2 = Math.min(lum(f), lum(s));
-    return (L1 + 0.05) / (L2 + 0.05);
+    const a = lum(f), b = lum(s);
+    if (a === null || b === null) return null;   // non misurabile, non «zero»
+    return (Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05);
   };
   const out = [];
   document.querySelectorAll('body *').forEach((el) => {
@@ -336,7 +366,7 @@ const MISURA = () => {
       inchiostri = [f];
       sfondi = sfondiDi(el.ownerSVGElement ? el.ownerSVGElement.parentElement || el : el);
     } else if (ritaglio === 'text') {
-      const stop = (cs.backgroundImage || '').match(/rgba?\([^)]*\)/g);
+      const stop = (cs.backgroundImage || '').match(/(?:rgba?|hsla?|color|oklab|oklch|lab|lch|hwb)\([^)]*\)/g);
       if (!stop || !stop.length) return;
       inchiostri = stop;
       sfondi = sfondiDi(el.parentElement || document.body);
@@ -354,7 +384,7 @@ const MISURA = () => {
          Il modo di riconoscerlo è il colore trasparente, non il nome della
          classe: `-webkit-text-fill-color` a alfa zero. */
       const su = antenatoRitagliato(el);
-      const stop = (getComputedStyle(su).backgroundImage || '').match(/rgba?\([^)]*\)/g);
+      const stop = (getComputedStyle(su).backgroundImage || '').match(/(?:rgba?|hsla?|color|oklab|oklch|lab|lch|hwb)\([^)]*\)/g);
       if (!stop || !stop.length) return;
       inchiostri = stop;
       sfondi = sfondiDi(su.parentElement || document.body);
@@ -366,8 +396,15 @@ const MISURA = () => {
       testo: proprio.slice(0, 40),
       classe: (typeof el.className === 'string' ? el.className : '').slice(0, 40),
       dim, grande, soglia: grande ? 3 : 4.5,
-      rapporto: Math.round(Math.min(...sfondi.flatMap((sf) =>
-        inchiostri.map((inc) => rapporto(composto(inc, sf, op), sf)))) * 100) / 100,
+      /* ⛔ i null NON entrano nel minimo: `Math.min` li tratterebbe come zero,
+         cioe come il contrasto peggiore possibile, ed e esattamente la bugia
+         comoda che ha prodotto 531 bocciature false. Se NESSUNA coppia si e
+         potuta leggere, il rapporto e `null` e chi legge lo dichiara. */
+      rapporto: (() => {
+        const r = sfondi.flatMap((sf) => inchiostri.map((inc) => rapporto(composto(inc, sf, op), sf)))
+          .filter((x) => x !== null && Number.isFinite(x));
+        return r.length ? Math.round(Math.min(...r) * 100) / 100 : null;
+      })(),
     });
   });
   return out;
@@ -535,6 +572,7 @@ let superficiProvate = 0;
 const superficiCieche = [];
 const temaRifiutato = [];
 let mixBocciata = 0;
+let illeggibili = 0;
 let temaMisurate = 0;
 const visti = new Set();
 
@@ -623,6 +661,7 @@ for (const [nome, via] of SUPERFICI) {
   }
   const sezioni = await sezioniDi(p, nome);
   let bocciatiQui = 0, misuratiQui = 0, presaQui = 0;
+  const illeggibiliQui = [];
   const classiViste = new Set();
   for (const s of sezioni) {
     await vaiA(p, nome, s);
@@ -636,6 +675,13 @@ for (const [nome, via] of SUPERFICI) {
       const chiave = `${nome}|${m.classe}|${m.testo}`;
       if (visti.has(chiave)) continue;
       visti.add(chiave);
+      /* ⛔ NON MISURABILE NON E BOCCIATO, e nemmeno promosso. Se nessuna coppia
+         inchiostro/fondo si e potuta leggere, il rapporto e `null`: si conta a
+         parte e si dichiara in fondo. E il principio del fondatore applicato al
+         righello — l assenza di una misura non e un dato favorevole ne uno
+         sfavorevole — e la difesa contro il ritorno del difetto del 07/08, che
+         trasformava «non so leggere questo colore» in «1,01:1». */
+      if (m.rapporto === null) { illeggibili++; illeggibiliQui.push(m.classe || m.testo.slice(0, 24)); continue; }
       misurati++; misuratiQui++;
       const passa = m.rapporto >= m.soglia;
       if (!passa) {
@@ -699,6 +745,7 @@ for (const [nome, via] of SUPERFICI) {
     + (pulsanti ? ` · ${pulsanti} in pulsazione, non misurabili` : '')
     + (spenti ? ` · ${spenti} spenti, esclusi dalla WCAG 1.4.3` : '')
     + (CONTROPROVA ? ` · controprova ${presaQui ? 'PRESA' : 'NON PRESA'}` : ''));
+  if (illeggibiliQui.length) console.log(`  ⚠️  ${illeggibiliQui.length} testi NON misurabili qui (il browser non sa convertire il loro colore): ${[...new Set(illeggibiliQui)].slice(0, 5).join(", ")}`);
   if (CONTROPROVA) { superficiProvate++; if (!presaQui) superficiCieche.push(nome); }
   if (errori.length) console.log('  ⚠ errori pagina:', errori.slice(0, 2));
   await ctx.close();
@@ -712,6 +759,7 @@ if (TEMA) {
     + (temaRifiutato.length ? `, ${temaRifiutato.length} NON misurate perché non hanno questo tema (${temaRifiutato.join(', ')})` : ''));
 }
 console.log(`\n${misurati} testi misurati in tutto, ${bocciati} sotto soglia`
+  + (illeggibili ? ` · ${illeggibili} NON misurabili, dichiarati e non giudicati` : '')
   + (sfumatiTot ? ` · ${sfumatiTot} saltati perché in dissolvenza (dichiarati, non nascosti)` : '')
   + (pulsantiTot ? ` · ${pulsantiTot} saltati perché in pulsazione (dichiarati, non nascosti)` : '')
   + (spentiTot ? ` · ${spentiTot} comandi spenti, che la WCAG 1.4.3 esclude (dichiarati, non nascosti)` : ''));
