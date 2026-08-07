@@ -2640,10 +2640,37 @@ const _rapporto = (a, b) => {
 /* Il fondo su cui poggiano le cifre: la scheda, e se non c'è lo sfondo della
    pagina. È il fondo PIÙ CHIARO dei due, cioè il caso peggiore per un testo
    chiaro — la stessa scelta prudente del banco del contrasto. */
+/* ⛔ UN COLORE DENTRO UNA FUNZIONE NON È UNA FERMATA, e fino al 07/08 questa
+   regola lo credeva. Prendeva OGNI `#hex` che comparisse nel corpo del
+   gradiente, quindi in
+     linear-gradient(135deg, var(--num-ok), color-mix(in srgb, var(--ink-ok) 70%, #000))
+   leggeva una sola fermata, `#000`, e la giudicava contro la scheda scura:
+   **«--grad-ok (#000) fa 1.25:1»**, cioè accusava di illeggibilità un
+   gradiente in cui il nero è solo il secondo ingrediente di una miscela, e su
+   una superficie — il tema chiaro — in cui quel gradiente nemmeno si applica.
+   Tre accuse false in un colpo, su una palette che il banco del contrasto
+   misurava a zero violazioni nei tre temi: è esattamente il danno che
+   l'intestazione di `contrasto.mjs` racconta («un KO va verificato come un
+   OK»), qui prodotto da un controllo statico.
+   La cura è togliere i gruppi fra parentesi PIÙ INTERNI finché non ce ne sono
+   più: quello che resta sono le fermate scritte per davvero.
+   ⚠️ E il limite che ne segue va detto invece che scoperto: un gradiente
+   scritto TUTTO con `color-mix()` — come sono quelli dei temi chiari in
+   `shared/dw-app-ui.css` — non ha nessuna fermata in esadecimale, quindi
+   questa regola non lo giudica. Non è scoperto: quei gradienti li misura
+   `tests/browser/contrasto.mjs` con `--tema=chiaro` e `--tema=sole`, sul
+   renderizzato, che è anche l'unico posto in cui si può sapere su quale fondo
+   finiscono. Qui resta il caso che il browser NON vede: gli stati che la
+   dimostrazione non mette mai in scena. */
+const _senzaParentesi = (s) => {
+  let p = s, prima;
+  do { prima = p; p = p.replace(/\([^()]*\)/g, ""); } while (p !== prima);
+  return p;
+};
 function _cifreRitagliate(testo) {
   const grad = {};
   for (const m of testo.matchAll(/(--[\w-]*grad[\w-]*)\s*:\s*linear-gradient\(([^;]*)\)/gi))
-    grad[m[1]] = m[2].match(/#[0-9a-f]{3,6}/gi) || [];
+    grad[m[1]] = _senzaParentesi(m[2]).match(/#[0-9a-f]{3,6}/gi) || [];
   const val = (n) => {
     const m = testo.match(new RegExp(n.replace(/-/g, "\\-") + "\\s*:\\s*(#[0-9a-f]{3,6})", "i"));
     return m && m[1];
@@ -2685,6 +2712,29 @@ test("regola 24: dichiara su quante superfici ha davvero guardato", () => {
      cambiata la forma con cui si scrivono i gradienti. */
   ok(conSoggetti >= 5 && soggetti >= 12,
     `la regola 24 ha guardato solo ${soggetti} gradienti su ${conSoggetti} superfici: troppo pochi, non sta guardando dove crede`);
+});
+
+/* ⚠️ LA CONTROPROVA DELLA CORREZIONE, nei DUE versi — se no si sarebbe
+   scambiata un'accusa falsa per una regola che tace. Verso uno: il colore
+   dentro `color-mix` non deve più contare come fermata. Verso due: una
+   fermata VERA, scritta accanto a un `color-mix`, deve continuare a contare —
+   se no la correzione avrebbe reso cieca la regola invece di raddrizzarla, e
+   il suo «nessuna violazione» non varrebbe più niente. */
+test("regola 24: un colore dentro color-mix() non è una fermata (e una vera sì)", () => {
+  const conMix = ":root{--grad-x:linear-gradient(135deg,var(--a),color-mix(in srgb,var(--b) 70%,#000));}"
+    + ".z{background:var(--grad-x); -webkit-background-clip:text}"
+    + ":root{--card:#131e29}";
+  const misto = _cifreRitagliate(conMix);
+  ok(misto.voci.length === 0,
+    `un gradiente fatto solo di funzioni non ha fermate leggibili e non si giudica, invece: ${JSON.stringify(misto.voci)}`);
+  /* la stessa forma, ma con una fermata bassa VERA e illeggibile in mezzo */
+  const conVera = conMix.replace("linear-gradient(135deg,var(--a),color-mix(in srgb,var(--b) 70%,#000))",
+    "linear-gradient(135deg,var(--a),#1a1f26,color-mix(in srgb,var(--b) 70%,#000))");
+  ok(conVera !== conMix, "l'iniezione non ha sostituito niente: la prova non prova niente");
+  const vera = _cifreRitagliate(conVera);
+  ok(vera.voci.length === 1 && vera.voci[0].fermate.join(",") === "#1a1f26",
+    `la fermata vera va vista, e da sola (il #000 della miscela non è una fermata): ${JSON.stringify(vera.voci)}`);
+  ok(vera.voci[0].peggio < SOGLIA_CIFRE, "e va bocciata, se no la correzione ha spento la regola");
 });
 
 test("regola 24: la controprova — una fermata bassa scurita viene vista", () => {

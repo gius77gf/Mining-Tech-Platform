@@ -99,6 +99,102 @@
   --form-pad:13px;
   --frow-align:center;
   --ord-gap:8px;
+
+  /* ---- gli stati come INCHIOSTRO (testo piccolo) e come NUMERONE (testo
+         grande). Al buio sono gli stessi colori di sopra: su #090e13 un verde
+         chiaro è esattamente quello che serve, e le due soglie WCAG le passa
+         già tutt'e due. Si separano solo sul bianco, più sotto. ---- */
+  --ink-ok:var(--success); --ink-wr:var(--warn); --ink-dg:var(--danger);
+  --num-ok:var(--success); --num-wr:var(--warn); --num-dg:var(--danger);
+}
+
+/* ══════════════════════════════════════════════════════════════════════
+   GLI STATI SUL BIANCO — temi «chiaro» e «sole»
+   ══════════════════════════════════════════════════════════════════════
+   ⛔ IL DIFETTO, MISURATO: `--success`, `--warn` e `--danger` erano dichiarati
+   una volta sola, per il buio, e non venivano mai ridetti per i due temi
+   chiari. Al buio devono essere LUMINOSI (verde chiaro su #090e13); sul bianco
+   quegli stessi valori sono nebbia. Il banco del contrasto, aperto sul tema
+   `sole` il 07/08, dava DIECI testi sotto soglia AA, e i tre peggiori stanno
+   sul report che va all'ARPA:
+     · «Conforme» (.rep-esito-lab, 20px)         2,35:1  — ne servono 3
+     · «Riferibilità delle misure» (.rep-tar-lab) 1,92:1 — ne servono 4,5
+     · «Provenienza dei dati di misura»           1,92:1 — ne servono 4,5
+   Gli stessi dieci uscivano anche col tema `chiaro`: non è un difetto del
+   sole, è un difetto di TUTTO ciò che non è buio.
+
+   ⛔ E LA CURA NON È RIDEFINIRE `--warn`: quella variabile fa DUE mestieri.
+   È l'inchiostro di queste scritte, ma è anche il PIENO di `.badge.warn` e
+   `.toast.err`, che sopra ci scrivono con `--on-wr` (#231402, quasi nero).
+   Scurendola per far leggere il testo si spegnerebbe il badge, e il nero
+   sopra un ambra scuro cadrebbe sotto soglia a sua volta: si sposta il
+   difetto invece di toglierlo. La regola di CLAUDE.md — «una copia nasce
+   quasi sempre da una firma troppo stretta» — qui dice di AGGIUNGERE un
+   nome, non di riscrivere il vecchio: `--ink-*` è lo stato quando fa da
+   inchiostro, `--success/--warn/--danger` restano lo stato quando fa da
+   pieno. Una decisione per stato, usata in due posti (testo e gradiente).
+
+   PERCHÉ QUESTI COLORI E NON ALTRI, in tre passaggi misurati:
+   1. la TINTA non si tocca: 123° il verde, 36° l'ambra, 2° il rosso — le
+      stesse di `--success/--warn/--danger`, così Sentinella resta Sentinella
+      e uno stato non cambia significato cambiando tema;
+   2. mescolare col nero (`color-mix(… 58%, #000)`, l'idioma che Campo usa
+      già) tiene la tinta ma abbassa la CROMA in proporzione: a 4,9:1 l'ambra
+      diventa #865d21, un bronzo. Misurato: croma 41 contro 77 di partenza —
+      è così che nasce «l'accozzaglia di colori che non porta da nessuna
+      parte». Alzando invece la saturazione mentre si scende di chiarezza si
+      arriva allo stesso contrasto con quasi il doppio di croma (croma 53).
+      È quello che fanno i riferimenti di categoria a questa chiarezza
+      (Tailwind red-700 sta all'85% di saturazione, amber-700 al 95%);
+   3. il bersaglio NON è la soglia, è la soglia PIÙ UN MARGINE. Misurato sui
+      cinque fondi che i due temi chiari producono davvero — bianco pieno,
+      `--card2` del sole, `--card2` del chiaro, `--bg` del chiaro e il velo
+      ambra al 10% di `.rep-esempio` — il fondo peggiore è `--bg` del chiaro,
+      rgb(233,237,237), ed è su QUELLO che sono scritti i numeri qui sotto.
+
+   ⛔ E DUE LIVELLI, NON UNO — deciso GUARDANDO, non calcolando, ed è la sola
+   parte di questo blocco che un conto non poteva dare. La prima stesura
+   portava tutto al livello del testo piccolo (4,9:1): passava, e il numerone
+   d'ambra diventava MARRONE accanto alla sua pastiglia «ATTENZIONE», che
+   resta `--warn` pieno perché è un fondo. Due cose che dicono lo stesso stato
+   e non si somigliavano più. Il fatto è che a 4,9:1 sul bianco NESSUNA tinta
+   della famiglia ambra è ancora ambra: è fisica, non scelta.
+   Ma le due soglie WCAG sono due davvero — 4,5 per il testo piccolo, 3 per
+   quello grande (≥24px, o ≥18,66px in grassetto) — e una cifra da 34px non
+   ha nessun bisogno di stare al livello di un'etichetta da 8px. Quindi:
+        --num-ok #16911c 3,49:1 (croma 57)   --ink-ok #127617 4,90:1
+        --num-wr #af6f11 3,49:1 (croma 65)   --ink-wr #8e5a0e 4,92:1
+        --num-dg #d6352f 4,04:1 (croma 77)   --ink-dg #c6231e 4,86:1
+      cioè almeno 0,36 sopra il 4,5 del testo piccolo e almeno 0,49 sopra il
+      3 del testo grande. Per confronto, quello che c'era prima:
+      verde 2,49:1 (croma 39), ambra 2,44:1 (croma 55), rosso 3,90:1
+      (croma 57) — il rosso è l'unico che passava, e anche lui adesso sta
+      meglio su tutt'e due i conti.
+   ⚠️ E il gradiente del numerone va dal livello «num» a una coda al 70% verso
+   il nero (~7,9:1): il pixel PIÙ CHIARO della cifra è la fermata di partenza,
+   quindi è quello il numero da guardare, non la media.
+   ⚠️ L'UNITÀ DI MISURA VIVE DENTRO IL NUMERO (`.peggio-num small`, 14px) ed è
+   dipinta dal gradiente del padre: eredita il colore ma NON la soglia, perché
+   la soglia la decide il suo corpo. Con la fermata chiara di `shared/` (86%
+   del colore) stava a 2,92:1. Sotto le si dà l'inchiostro pieno. */
+body.dw.light-mode,
+body.dw.outdoor-mode{
+  --ink-ok:#127617; --num-ok:#16911c;
+  --ink-wr:#8e5a0e; --num-wr:#af6f11;
+  --ink-dg:#c6231e; --num-dg:#d6352f;
+  --grad-ok:linear-gradient(135deg,var(--num-ok),color-mix(in srgb,var(--ink-ok) 70%,#000));
+  --grad-wr:linear-gradient(135deg,var(--num-wr),color-mix(in srgb,var(--ink-wr) 70%,#000));
+  --grad-dg:linear-gradient(135deg,var(--num-dg),color-mix(in srgb,var(--ink-dg) 70%,#000));
+}
+/* l'unità dentro il numero: 14px, quindi soglia 4,5 — si sfila dal gradiente
+   del padre e prende l'inchiostro pieno dello stato. Il colore lo porta la
+   card, così la regola è una sola invece di tre. */
+.peggio{--ink-stato:var(--ink-ok)}
+.peggio.warn{--ink-stato:var(--ink-wr)}
+.peggio.danger{--ink-stato:var(--ink-dg)}
+body.dw.light-mode  .peggio-num small,
+body.dw.outdoor-mode .peggio-num small{
+  color:var(--ink-stato); -webkit-text-fill-color:var(--ink-stato);
 }
 
 /* ─────────────── pagine ─────────────── */
@@ -290,7 +386,7 @@
   color:var(--app-accent2);
   background:color-mix(in srgb,var(--app-accent) 22%,transparent);
 }
-.arr.rimuovi:hover{color:var(--danger); background:rgba(240,95,90,.14)}
+.arr.rimuovi:hover{color:var(--ink-dg); background:rgba(240,95,90,.14)}
 
 /* ─────────────── badge (copia di .scad-badge: raggio 3px, pieno) ─────────────── */
 .badge.inline{vertical-align:middle; margin:0 0 0 2px; font-size:9.5px; padding:2px 7px}
@@ -438,8 +534,8 @@
 .graf-stat .v small{
   font-size:11px; font-weight:600; color:var(--muted); letter-spacing:.5px;
 }
-.graf-stat.over .v{color:var(--danger)}
-.graf-stat.sotto .v{color:var(--success)}
+.graf-stat.over .v{color:var(--ink-dg)}
+.graf-stat.sotto .v{color:var(--ink-ok)}
 .graf svg.plot{display:block; width:100%; height:auto; overflow:visible}
 .graf-grid{stroke:color-mix(in srgb,var(--app-accent) 17%,transparent); stroke-width:1}
 .graf-ax{stroke:color-mix(in srgb,var(--app-accent) 38%,transparent); stroke-width:1}
@@ -513,7 +609,7 @@
 .graf-leg .lg{display:inline-flex; align-items:center; gap:6px}
 .graf-leg .lg svg{width:24px; height:11px; overflow:visible; flex-shrink:0}
 .graf-leg .lg b{color:var(--muted2); font-weight:600}
-.graf-leg .lg.over b{color:var(--danger)}
+.graf-leg .lg.over b{color:var(--ink-dg)}
 .graf-nota{
   margin-top:8px; font-size:11px; line-height:1.5; color:var(--muted); padding-left:9px;
   border-left:2px solid var(--warn);
@@ -613,10 +709,10 @@
    riga che porta la notizia era anche la meno leggibile dello schermo.
    Adesso si legge come le altre, e il mese prende il colore d'avviso. */
 .tab tr.ko td{color:var(--muted2)}
-.tab tr.ko td:first-child{color:var(--warn); font-weight:600}
+.tab tr.ko td:first-child{color:var(--ink-wr); font-weight:600}
 .tab tr.ko td.n{color:var(--muted2)}
-.tab tr.oltre td.n{color:var(--danger)}
-.tab tr.dup td.n{color:var(--warn)}
+.tab tr.oltre td.n{color:var(--ink-dg)}
+.tab tr.dup td.n{color:var(--ink-wr)}
 /* pillola di stato dentro la tabella: piccola, con micro-profondità */
 .tag{
   display:inline-block; font-family:'Barlow Condensed',sans-serif; font-size:9.5px;
@@ -699,9 +795,9 @@
   font-family:'Barlow Condensed',sans-serif; font-size:19px; font-weight:800; line-height:1.15;
   color:var(--text); font-variant-numeric:tabular-nums;
 }
-.imp-cifra.ok .v{color:var(--success)}
-.imp-cifra.warn .v{color:var(--warn)}
-.imp-cifra.danger .v{color:var(--danger)}
+.imp-cifra.ok .v{color:var(--ink-ok)}
+.imp-cifra.warn .v{color:var(--ink-wr)}
+.imp-cifra.danger .v{color:var(--ink-dg)}
 .imp-cifra.spento .v{color:var(--disabled)}
 textarea.dw-input{
   min-height:96px; resize:vertical; line-height:1.5; font-family:ui-monospace,'SFMono-Regular',Menlo,monospace;
@@ -744,7 +840,7 @@ textarea.dw-input{
   color:var(--muted2); border:1px solid var(--warn); border-radius:var(--r-sm);
   background:rgba(248,172,61,.10);
 }
-.rep-esempio b{color:var(--warn); font-weight:700; letter-spacing:.2px}
+.rep-esempio b{color:var(--ink-wr); font-weight:700; letter-spacing:.2px}
 
 /* il verdetto: è la prima cosa che legge chi riceve il documento */
 .rep-esito{
@@ -756,22 +852,22 @@ textarea.dw-input{
 .rep-esito.danger{border-left-color:var(--danger)}
 .rep-esito-ico{
   display:inline-flex; align-items:center; justify-content:center; flex-shrink:0;
-  width:40px; height:40px; border-radius:12px; line-height:0; color:var(--success);
+  width:40px; height:40px; border-radius:12px; line-height:0; color:var(--ink-ok);
   background:rgba(106,187,110,.14);
   box-shadow:inset 0 1px 0 rgba(255,255,255,.10);
 }
-.rep-esito.warn .rep-esito-ico{color:var(--warn); background:rgba(248,172,61,.14)}
-.rep-esito.danger .rep-esito-ico{color:var(--danger); background:rgba(240,95,90,.14)}
+.rep-esito.warn .rep-esito-ico{color:var(--ink-wr); background:rgba(248,172,61,.14)}
+.rep-esito.danger .rep-esito-ico{color:var(--ink-dg); background:rgba(240,95,90,.14)}
 .rep-esito-ico svg{
   width:22px; height:22px; stroke:currentColor; fill:none; stroke-width:1.8;
   stroke-linecap:round; stroke-linejoin:round;
 }
 .rep-esito-lab{
   font-family:'Barlow Condensed',sans-serif; font-size:20px; font-weight:800;
-  letter-spacing:.6px; color:var(--success); line-height:1.1;
+  letter-spacing:.6px; color:var(--ink-ok); line-height:1.1;
 }
-.rep-esito.warn .rep-esito-lab{color:var(--warn)}
-.rep-esito.danger .rep-esito-lab{color:var(--danger)}
+.rep-esito.warn .rep-esito-lab{color:var(--ink-wr)}
+.rep-esito.danger .rep-esito-lab{color:var(--ink-dg)}
 .rep-esito-txt{font-size:12px; color:var(--muted2); margin-top:3px; line-height:1.5}
 
 /* La riferibilità delle misure: sta SOTTO il verdetto e ha un peso minore,
@@ -791,8 +887,8 @@ textarea.dw-input{
   font-family:'Barlow',sans-serif; font-size:8px; font-weight:600; letter-spacing:1.1px;
   text-transform:uppercase; color:var(--muted);
 }
-.rep-tar.warn .rep-tar-lab{color:var(--warn)}
-.rep-tar.danger .rep-tar-lab{color:var(--danger)}
+.rep-tar.warn .rep-tar-lab{color:var(--ink-wr)}
+.rep-tar.danger .rep-tar-lab{color:var(--ink-dg)}
 .rep-tar-txt{font-size:12px; color:var(--muted2); margin-top:4px; line-height:1.5}
 .rep-tar-conto{font-size:11.5px; color:var(--muted); margin-top:5px; line-height:1.5}
 .rep-tar-conto b{color:var(--muted2); font-weight:700; font-variant-numeric:tabular-nums}
@@ -810,7 +906,7 @@ textarea.dw-input{
   font-family:'Barlow Condensed',sans-serif; font-size:21px; font-weight:800; line-height:1.15;
   color:var(--text); font-variant-numeric:tabular-nums;
 }
-.rep-cifra.danger .v{color:var(--danger)}
+.rep-cifra.danger .v{color:var(--ink-dg)}
 
 .rep-sez{
   font-family:'Barlow Condensed',sans-serif; font-size:11.5px; font-weight:800;
