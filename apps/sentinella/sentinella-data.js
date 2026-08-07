@@ -714,11 +714,14 @@ export function parseAdempimentiCsv(text) {
    tre prove nuove su cinque sono cadute qui il 03/08, in un blocco scritto per
    toglierlo. `csvRegistroVolate` la stessa regola ce l'aveva già, scritta
    dentro di sé come `cella`: adesso la chiama, così è una sola. */
-function numeroDichiarato(x) {
-  if (x == null || String(x).trim() === "") return null;
-  const v = +x;
-  return Number.isFinite(v) ? v : null;
-}
+/* ✅ TRASLOCATA IN `shared/dw-ponti.js` il 07/08, quando è servita anche a
+   Conti: qui resta l'alias col nome di sempre, così le trenta chiamate di
+   questo file non cambiano. Un alias non è una seconda implementazione, e la
+   prova pretende l'IDENTITÀ (`sentinella.numeroDichiarato === ponti.…`), non
+   il comportamento: due copie uguali oggi divergono domani senza che nessuno
+   lo veda. */
+export { numeroDichiarato } from "../../shared/dw-ponti.js";
+import { numeroDichiarato } from "../../shared/dw-ponti.js";
 
 export function riepilogoVolate(volate, oggi = new Date()) {
   const list = (volate || []).filter(v => !volataPrevista(v));

@@ -67,7 +67,8 @@
 
 import { parseCsvLine, leggiCsv, csvCell, numIt, giorniTra, isIntestazione, dataISOEsiste, dataIt, conta, plurale,
          AVVISO_DECIMALE as AVVISO_DECIMALE_SHELL } from "../../shared/deepwork-id-client/dw-shell.js";
-import { provenienzaDi, misuratoPeriodo } from "../../shared/dw-ponti.js";
+import { provenienzaDi, misuratoPeriodo, numeroDichiarato } from "../../shared/dw-ponti.js";
+export { numeroDichiarato } from "../../shared/dw-ponti.js";
 /* la classificazione dei costi vive in shared/ perché serve anche a Flotta:
    qui si RI-ESPORTA, non si riscrive. Un alias non è una seconda
    implementazione — è la regola che è costata una giornata sui numeri. */
@@ -3986,4 +3987,81 @@ export function preventiviDaSeguire(ordini, oggi = new Date(), entroGiorni = 7) 
   return out.sort((a, b) => a.urgenza - b.urgenza
     || (a.giorni == null ? 0 : a.giorni) - (b.giorni == null ? 0 : b.giorni)
     || String(a.ordine.numero || "").localeCompare(String(b.ordine.numero || ""), "it", { numeric: true }));
+}
+
+/* ⛔ IL FILE DELLE PESATE CHE SI RI-CARICA — decisione 12a, seconda voce vera.
+   ⚠️ NON è `conti_pesate_ddt.csv`, che c'è già ed è un'altra cosa: quello è un
+   **prospetto** per il commercialista — risolve gli id in numeri leggibili (il
+   numero della fattura, quello dell'ordine) e porta il `valore` calcolato.
+   Un prospetto non rientra, e va benissimo che sia così: quello che non va è
+   crederlo un backup. Questo porta i campi **crudi**, id compresi, ed è la
+   copia di sicurezza.
+   ⚠️ Gli id ci sono di proposito: un backup si rimette dentro nella stessa
+   organizzazione (o in una rifatta da zero con lo stesso export), e senza id
+   il collegamento con la fattura si perderebbe. Accanto agli id restano i
+   NOMI, che l'app salva già: se un id non trova più niente, la riga dice
+   ancora di chi e di che cosa parlava.
+   ⛔ E i vuoti restano vuoti. `numeroDichiarato` (in `shared/`, la stessa che
+   usa il registro volate di Sentinella — non una copia) tiene separato «zero»
+   da «nessuno l'ha scritto»: su una pesata è la differenza fra una consegna a
+   prezzo zero e una di cui il prezzo non si sa. E `fontePrezzo` vuoto NON vale
+   «listino»: lo dice il commento dello schema, e chi lo mostra scrive «non
+   dichiarata» invece di tirare a indovinare. */
+export const CSV_PESATE_INTESTAZIONE =
+  "numero;data;clienteId;cliente;prodottoId;prodotto;lordo;tara;netto;unitaVendita;"
+  + "quantita;densita;prezzoUnitario;scontoPct;aliquotaIva;mezzo;destinatario;fatturaId;ordineId;fontePrezzo";
+
+export function csvPesate(pesate) {
+  const num = (x) => { const v = numeroDichiarato(x); return v == null ? "" : String(Math.round(v * 1e4) / 1e4); };
+  const righe = [CSV_PESATE_INTESTAZIONE];
+  for (const p of (pesate || []).slice()
+    .sort((a, b) => String(a.data || "").localeCompare(String(b.data || "")))) {
+    if (!p) continue;
+    righe.push([
+      csvCell(p.numero || ""), p.data || "",
+      csvCell(p.clienteId || ""), csvCell(p.cliente || ""),
+      csvCell(p.prodottoId || ""), csvCell(p.prodotto || ""),
+      num(p.lordo), num(p.tara), num(p.netto),
+      p.unitaVendita === "m3" ? "m3" : "t",
+      num(p.quantita), num(p.densita), num(p.prezzoUnitario), num(p.scontoPct), num(p.aliquotaIva),
+      csvCell(p.mezzo || ""), csvCell(p.destinatario || ""),
+      csvCell(p.fatturaId || ""), csvCell(p.ordineId || ""),
+      csvCell(p.fontePrezzo === "ordine" ? "ordine" : p.fontePrezzo === "listino" ? "listino" : ""),
+    ].join(";"));
+  }
+  return righe.join("\n") + "\n";
+}
+
+export function parsePesateCsv(text) {
+  /* `leggiCsv` torna `{ delim, righe }` e non un array: legge il file INTERO
+     (le celle su più righe fra virgolette, che un lettore riga-per-riga
+     spezza — è il bonifico da 12.300 € che spariva in Conti). */
+  return (leggiCsv(String(text || "")).righe || [])
+    .filter((c) => c.length && !isIntestazione(c.join(";"), "numero"))
+    .map((c) => {
+      const [numero, data, clienteId, cliente, prodottoId, prodotto, lordo, tara, netto,
+        unitaVendita, quantita, densita, prezzoUnitario, scontoPct, aliquotaIva,
+        mezzo, destinatario, fatturaId, ordineId, fontePrezzo] = c;
+      const n = (x) => numeroDichiarato(numIt(x) === null || Number.isNaN(numIt(x)) ? null : numIt(x));
+      const t = (x) => { const v = String(x == null ? "" : x).trim(); return v || null; };
+      const out = {
+        numero: t(numero) || "", data: (data || "").trim(),
+        clienteId: t(clienteId), cliente: t(cliente) || "",
+        prodottoId: t(prodottoId), prodotto: t(prodotto) || "",
+        lordo: n(lordo), tara: n(tara), netto: n(netto),
+        unitaVendita: String(unitaVendita || "").trim() === "m3" ? "m3" : "t",
+        quantita: n(quantita), densita: n(densita),
+        prezzoUnitario: n(prezzoUnitario), scontoPct: n(scontoPct), aliquotaIva: n(aliquotaIva),
+        mezzo: t(mezzo) || "", destinatario: t(destinatario) || "",
+        fatturaId: t(fatturaId), ordineId: t(ordineId),
+      };
+      /* la provenienza del prezzo si scrive SOLO se dichiarata: il campo
+         assente è uno stato, e vale «non lo sappiamo» */
+      const fp = String(fontePrezzo || "").trim();
+      if (fp === "ordine" || fp === "listino") out.fontePrezzo = fp;
+      return out;
+    })
+    /* una pesata con una data impossibile finirebbe nell'anno sbagliato dei
+       riepiloghi, che sono i numeri con cui si fatturano le consegne */
+    .filter((p) => dataISOEsiste(p.data));
 }

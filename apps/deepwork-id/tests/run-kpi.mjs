@@ -21871,7 +21871,7 @@ test("⛔ etichettaStatoDocumento: la mappa esce dalla pagina e la leggono in du
        (decisione 12a). Il numero è scritto a mano di proposito — è un
        censimento, e un export nuovo deve costringere qualcuno a guardarlo
        invece di entrare in silenzio. */
-    eq(tot, 26, "i siti di export CSV censiti nelle quattro app");
+    eq(tot, 27, "i siti di export CSV censiti nelle quattro app");
     console.log(`     (${tot} siti di export guardati in ${PAGINE.length} pagine)`);
   });
 
@@ -23867,6 +23867,49 @@ test("csvRilievi: una riga senza volume non torna dentro invece di tornarci come
   const t = terra.csvRilievi([{ data: "2026-03-01", volumeM3: null, provenienza: "scavo" }]);
   ok(/^2026-03-01;;/m.test(t), "la cella resta vuota, non diventa 0");
   eq(terra.parseRilieviCsv(t).length, 0, "e l'importatore la scarta: uno zero sarebbe un volume misurato");
+});
+
+/* ── DECISIONE 12a, seconda voce: le PESATE che si ri-caricano ── */
+test("csvPesate → parsePesateCsv: il giro torna identico su venti campi", () => {
+  const dentro = {
+    numero: "2026/013", data: "2026-03-01", clienteId: "c1", cliente: "Edilcave",
+    prodottoId: "p1", prodotto: "Misto", lordo: 32.4, tara: 12.2, netto: 20.2,
+    unitaVendita: "m3", quantita: null, densita: null, prezzoUnitario: 8.5,
+    scontoPct: null, aliquotaIva: 22, mezzo: "AB123CD", destinatario: "Cantiere Nord",
+    fatturaId: "f1", ordineId: null, fontePrezzo: "ordine",
+  };
+  const [fuori] = conti.parsePesateCsv(conti.csvPesate([dentro]));
+  for (const k of Object.keys(dentro)) eq(fuori[k], dentro[k], `campo ${k}`);
+});
+test("csvPesate: una cella vuota NON torna dentro come zero", () => {
+  const t = conti.csvPesate([{ numero: "1", data: "2026-03-01", prezzoUnitario: null, netto: 0 }]);
+  const [p] = conti.parsePesateCsv(t);
+  eq(p.prezzoUnitario, null, "il prezzo non l'ha scritto nessuno");
+  eq(p.netto, 0, "e uno zero misurato resta uno zero");
+});
+test("csvPesate: `fontePrezzo` vuoto NON diventa «listino»", () => {
+  const [p] = conti.parsePesateCsv(conti.csvPesate([{ numero: "1", data: "2026-03-01" }]));
+  eq("fontePrezzo" in p, false, "il campo resta assente: è uno stato, non un valore di serie");
+});
+test("CSV_PESATE_INTESTAZIONE: il file esce con le colonne che il lettore si aspetta", () => {
+  eq(conti.csvPesate([]).split("\n")[0], conti.CSV_PESATE_INTESTAZIONE,
+    "una sola verità sulle colonne, come nel registro volate");
+  eq(conti.CSV_PESATE_INTESTAZIONE.split(";").length, 20, "venti campi");
+  eq(conti.parsePesateCsv(conti.csvPesate([])).length, 0,
+    "e la sola intestazione non porta dentro righe finte");
+});
+test("csvPesate: i numeri escono col PUNTO e la data non scivola", () => {
+  const t = conti.csvPesate([{ numero: "1", data: "2026-03-01", netto: 20.2 }]);
+  ok(/;20\.2;/.test(t), t);
+  eq(/;20,2;/.test(t), false, "una virgola la leggerebbe solo la nostra app");
+  eq(conti.parsePesateCsv(conti.csvPesate([{ numero: "1", data: "2026-02-30", netto: 1 }])).length, 0,
+    "il 30 febbraio non scorre al 2 marzo: la riga non rientra");
+});
+/* ⛔ L'IDENTITÀ, non il comportamento: due copie uguali oggi divergono domani
+   senza che nessuno lo veda. È la regola del `shared/` scritta in CLAUDE.md. */
+test("numeroDichiarato è LA STESSA funzione in shared, Sentinella e Conti", () => {
+  eq(sentinella.numeroDichiarato, ponti.numeroDichiarato, "Sentinella ri-esporta, non ricopia");
+  eq(conti.numeroDichiarato, ponti.numeroDichiarato, "e Conti la importa dalla stessa");
 });
 
 console.log(`\nRisultato KPI app: ${passed} passati, ${failed} falliti${inVolo.length ? `  ·  ${inVolo.length} prove asincrone aspettate` : ""}`);

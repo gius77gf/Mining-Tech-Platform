@@ -1262,8 +1262,12 @@ label.item:has(.dw-chk:checked){
   </div>
   <div id="pes-riep"></div>
   <div class="tools">
-    <button class="dw-btn secondary" id="btn-pes-export">Esporta pesate (CSV)</button>
+    <button class="dw-btn secondary" id="btn-pes-export" title="Prospetto per il commercialista: ha colonne calcolate e NON si ri-carica">Esporta pesate (CSV)</button>
+    <button class="dw-btn secondary" id="btn-pes-backup" title="Copia di sicurezza: lo stesso file che il bottone accanto sa ri-caricare">Copia di sicurezza (CSV)</button>
+    <button class="dw-btn secondary" id="btn-pes-restore">Ri-carica copia (CSV)</button>
+    <input type="file" id="pes-file" accept=".csv,text/csv" style="display:none;">
   </div>
+  <div class="form-hint">I due file <b>non</b> sono lo stesso. <b>Esporta pesate</b> &egrave; un <b>prospetto</b>: risolve i collegamenti in numeri leggibili e porta il valore calcolato &mdash; serve al commercialista e non rientra. <b>Copia di sicurezza</b> porta i campi cos&igrave; come sono salvati, ed &egrave; l&rsquo;unico che questa pagina sa rimettere dentro.</div>
   <div class="note esito" id="pes-esito"></div>
   <div class="note"><b>Il netto non si scrive: è lordo − tara</b>, lo calcola Conti mentre
     digiti. Il documento di trasporto (DPR 472/1996) non ha un modello obbligatorio, ma deve
@@ -1785,7 +1789,7 @@ label.item:has(.dw-chk:checked){
   import { parseMovimentiCsv, abbinaMovimenti, ESTRATTO_ESEMPIO,
            contiData, giorni, kpiFrom, statoScadenzaFattura, agingIncassi, stileBarraPeso, gareRiepilogo, prioritaIncasso, incassoAtteso, incassoPerMese, esposizioneClienti, estrattoContoCliente, livelloSollecito, interessiMora, testoSollecito, TASSO_MORA_DEFAULT, statoTassoMora, parseFattureCsv, parseGareCsv, parseListinoCsv, chiaveNome, clienteDiFattura, nomeCliente, clientiDaCollegare,
     round2, baseGara, densitaValida, prezzoPerTonnellata, prezzoPerMetroCubo, convertiQuantita, imponibileRiga,
-    importiFattura, totaliDaRighe, riepilogoIvaFattura, prossimoNumero, nettoPesata, rigaPesata, valorePesata, valoreDdt,
+    importiFattura, totaliDaRighe, riepilogoIvaFattura, prossimoNumero, nettoPesata, rigaPesata, valorePesata, valoreDdt, csvPesate, parsePesateCsv,
     quantitaPesata, pesateDaFatturare, fatturaDaPesate, canonePeriodo, BASI_CANONE, venditePerProdotto,
     cavatoPeriodo, vendutoPeriodo, riconciliazione, valoreCavato, SOGLIA_DIVARIO,
     applicaIncassi, apertoDi, statoIncasso, movimentiDiFattura, incassatoPeriodo,
@@ -5855,6 +5859,41 @@ label.item:has(.dw-chk:checked){
     // si svuotano solo i pesi: stesso camion, stesso prodotto, viaggio dopo viaggio
     ["pes-lordo", "pes-tara"].forEach(i => { $(i).value = ""; puliscoErr(i); });
     aggiornaNetto(); $("pes-lordo").focus(); await refresh();
+  };
+  /* ⛔ DECISIONE 12a, seconda voce vera: la COPIA DI SICUREZZA delle pesate.
+     ⚠️ Non è il bottone qui sotto, ed è la distinzione che il 31/07 mancava
+     anche al documento che la descriveva: `conti_pesate_ddt.csv` è un
+     **prospetto** — risolve gli id in numeri leggibili e porta il valore
+     calcolato — e non rientra. Va benissimo che sia così: quello che non va è
+     crederlo un backup. Questo porta i campi crudi, id compresi, ed è l'unico
+     che questa pagina sa rimettere dentro. */
+  $("btn-pes-backup").onclick = () => {
+    const a = document.createElement("a");
+    a.href = "data:text/csv;charset=utf-8," + encodeURIComponent(csvPesate(PES));
+    a.download = "conti_pesate_copia.csv"; marchiaCsv(a); a.click();
+    esito("pes-esito", plurale(PES.length, "Salvata ", "Salvate ") + plur(PES.length, "pesata", "pesate")
+      + " nella copia che questa pagina sa ri-caricare.", "success");
+  };
+  $("btn-pes-restore").onclick = () => $("pes-file").click();
+  $("pes-file").onchange = async (e) => {
+    const file = e.target.files && e.target.files[0]; if (!file) return;
+    const righe = parsePesateCsv(await file.text());
+    e.target.value = "";
+    if (!righe.length) {
+      esito("pes-esito", "Nel file non c'è nessuna pesata leggibile: controlla che sia la copia di sicurezza e non il prospetto (le colonne sono diverse).", "err");
+      return;
+    }
+    /* ⛔ non si sovrascrive niente: si aggiunge quello che NON c'è già, per
+       numero e data. Un ripristino che cancella è un ripristino che può
+       distruggere il lavoro fatto dopo il backup. */
+    const gia = new Set(PES.map(p => (p.numero || "") + "|" + (p.data || "")));
+    const nuove = righe.filter(r => !gia.has((r.numero || "") + "|" + (r.data || "")));
+    for (const r of nuove) await db.aggiungi("pesate", r);
+    await refresh();
+    esito("pes-esito", nuove.length
+      ? plurale(nuove.length, "Rimessa dentro ", "Rimesse dentro ") + plur(nuove.length, "pesata", "pesate")
+        + (righe.length > nuove.length ? ` · ${conta(righe.length - nuove.length, "era già in archivio", "erano già in archivio")}, non duplicate.` : ".")
+      : "Erano tutte già in archivio: non è stato aggiunto niente.", nuove.length ? "success" : "");
   };
   $("btn-pes-export").onclick = () => {
     /* ⛔ la PROVENIENZA del prezzo esce anche nel CSV, e vuota quando non si

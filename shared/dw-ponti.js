@@ -1114,3 +1114,23 @@ export function statoPonte(azioni) {
       ? (inCorso === 1 ? "Azione in corso" : inCorso + " azioni in corso")
       : daChiudere + (daChiudere === 1 ? " azione da chiudere" : " azioni da chiudere") };
 }
+
+/* ⛔ IL NUMERO CHE QUALCUNO HA DICHIARATO, oppure `null`. Traslocata qui dal
+   modulo di Sentinella il 07/08, quando è servita alla SECONDA app (Conti, per
+   il file delle pesate che si ri-carica) — ed è la regola di casa: una regola
+   che serve a due app vive in `shared/`, non nel modulo di una delle due, e
+   **non si riscrive**. L'app la ri-esporta col nome con cui l'ha sempre
+   chiamata: un alias non è una seconda implementazione.
+   Perché esiste: `Number.isFinite(+x)` da sola NON risponde a questa domanda,
+   perché `+null` fa **0** e `+""` fa **0**, e `Number.isFinite(0)` risponde
+   **true**. Cioè il controllo che sembra il più severo lascia passare le due
+   forme più comuni dell'assenza. Il 03/08 tre prove nuove su cinque sono
+   cadute qui, in un blocco scritto proprio per togliere quel difetto.
+   Dove morde: in un file che ESCE — o che rientra — una casella vuota non è
+   uno zero, ed è la differenza fra «il ricettore è a zero metri» e «la
+   distanza non l'ha scritta nessuno». */
+export function numeroDichiarato(x) {
+  if (x == null || String(x).trim() === "") return null;
+  const v = +x;
+  return Number.isFinite(v) ? v : null;
+}

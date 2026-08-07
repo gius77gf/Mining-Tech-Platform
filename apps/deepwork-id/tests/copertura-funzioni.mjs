@@ -159,7 +159,7 @@ const APP = ["campo", "conti", "flotta", "scudo", "sentinella", "terra"];
    diverso. Il conto sale perché una regola che vive nel modulo si può provare,
    e finché viveva nella pagina nessuna prova la guardava — che è esattamente
    il motivo per cui aveva potuto divergere. */
-const FONDO = { campo: 118, conti: 117, flotta: 83, scudo: 165, sentinella: 131, terra: 61 };
+const FONDO = { campo: 118, conti: 122, flotta: 83, scudo: 165, sentinella: 131, terra: 61 };
 
 /* Quello che resta fuori per un motivo, non per dimenticanza: i caricatori
    dati vogliono la rete e lo SDK, i ponti demo vogliono il localStorage.
