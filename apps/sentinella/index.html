@@ -208,7 +208,7 @@ body.dw.outdoor-mode .peggio-num small{
 .safety{
   position:relative; overflow:hidden; display:flex; align-items:center; gap:14px;
   background:linear-gradient(135deg,var(--card2),var(--card));
-  border:1px solid var(--border); border-left:3px solid var(--success);
+  border:1px solid var(--border); border-left:3px solid var(--bar-ok);
   border-radius:var(--r); padding:13px 16px; margin:0 0 4px;
   box-shadow:var(--sh2),var(--edge);
 }
@@ -216,11 +216,11 @@ body.dw.outdoor-mode .peggio-num small{
   content:""; position:absolute; inset:0; pointer-events:none;
   background:radial-gradient(260px 150px at 8% 0%,rgba(106,187,110,.10),transparent 70%);
 }
-.safety.warn{border-left-color:var(--warn)}
+.safety.warn{border-left-color:var(--bar-wr)}
 .safety.warn::before{
   background:radial-gradient(260px 150px at 8% 0%,rgba(248,172,61,.10),transparent 70%);
 }
-.safety.danger{border-left-color:var(--danger)}
+.safety.danger{border-left-color:var(--bar-dg)}
 .safety.danger::before{
   background:radial-gradient(260px 150px at 8% 0%,rgba(240,95,90,.11),transparent 70%);
 }
@@ -270,7 +270,7 @@ body.dw.outdoor-mode .peggio-num small{
 .peggio{
   position:relative; overflow:hidden;
   background:linear-gradient(135deg,var(--card2),var(--card));
-  border:1px solid var(--border); border-left:3px solid var(--success);
+  border:1px solid var(--border); border-left:3px solid var(--bar-ok);
   border-radius:var(--r); padding:12px 15px 13px; margin:0 0 4px;
   box-shadow:var(--sh2),var(--edge);
   cursor:pointer; transition:transform .16s var(--ease),border-color .16s var(--ease),box-shadow .16s var(--ease);
@@ -280,9 +280,9 @@ body.dw.outdoor-mode .peggio-num small{
   background:radial-gradient(280px 160px at var(--mx,10%) var(--my,0%),rgba(106,187,110,.10),transparent 70%);
   transition:background .2s var(--ease);
 }
-.peggio.warn{border-left-color:var(--warn)}
+.peggio.warn{border-left-color:var(--bar-wr)}
 .peggio.warn::before{background:radial-gradient(280px 160px at var(--mx,10%) var(--my,0%),rgba(248,172,61,.10),transparent 70%)}
-.peggio.danger{border-left-color:var(--danger)}
+.peggio.danger{border-left-color:var(--bar-dg)}
 .peggio.danger::before{background:radial-gradient(280px 160px at var(--mx,10%) var(--my,0%),rgba(240,95,90,.12),transparent 70%)}
 .peggio:hover{border-color:var(--border-hi); box-shadow:var(--sh3),var(--edge-hi)}
 .peggio:active{transform:scale(.99)}
@@ -315,7 +315,7 @@ body.dw.outdoor-mode .peggio-num small{
    non è sola, porta accanto il segno che si vede nel disegno */
 .peggio-sog i{
   display:inline-block; width:18px; height:0; flex-shrink:0;
-  border-top:2px dashed var(--danger);
+  border-top:2px dashed var(--bar-dg);
 }
 .peggio-sog b{color:var(--text); font-weight:600}
 /* la miniatura vive dentro un quadrantino incassato, come il display di
@@ -485,9 +485,9 @@ body.dw.outdoor-mode .peggio-num small{
 }
 /* il pannello continua la voce: stesso bordo, stessa striscia di stato */
 .pon-det{border-color:var(--border2); border-top:none}
-.pon-det.st-danger{border-left:3px solid var(--danger)}
-.pon-det.st-warn{border-left:3px solid var(--warn)}
-.pon-det.st-ok{border-left:3px solid var(--success)}
+.pon-det.st-danger{border-left:3px solid var(--bar-dg)}
+.pon-det.st-warn{border-left:3px solid var(--bar-wr)}
+.pon-det.st-ok{border-left:3px solid var(--bar-ok)}
 /* T9 · la volata ancora PREVISTA non è un giudizio di conformità: prende il
    colore dell'app, non quello del semaforo */
 .pon-det.st-accent{border-left:3px solid var(--app-accent)}
@@ -505,9 +505,9 @@ body.dw.outdoor-mode .peggio-num small{
   border-left:3px solid var(--app-support2); border-radius:var(--r-sm);
   box-shadow:var(--edge);
 }
-.pon-az.ok{border-left-color:var(--success)}
-.pon-az.warn{border-left-color:var(--warn)}
-.pon-az.danger{border-left-color:var(--danger)}
+.pon-az.ok{border-left-color:var(--bar-ok)}
+.pon-az.warn{border-left-color:var(--bar-wr)}
+.pon-az.danger{border-left-color:var(--bar-dg)}
 .pon-az-txt{flex:1 1 auto; min-width:0; font-size:12px; line-height:1.55; color:var(--muted2)}
 .pon-az-txt b{color:var(--text)}
 .pon-cmd{display:flex; gap:8px; flex-wrap:wrap; margin-top:10px}
@@ -612,7 +612,7 @@ body.dw.outdoor-mode .peggio-num small{
 .graf-leg .lg.over b{color:var(--ink-dg)}
 .graf-nota{
   margin-top:8px; font-size:11px; line-height:1.5; color:var(--muted); padding-left:9px;
-  border-left:2px solid var(--warn);
+  border-left:2px solid var(--bar-wr);
 }
 
 /* ─────────────── navigazione: pillola flottante (copia di #global-nav.bnav) ─────────────── */
@@ -837,7 +837,7 @@ textarea.dw-input{
    dirlo, visto che la fascia in alto è un comando e non un documento */
 .rep-esempio{
   margin:9px 0 0; padding:8px 11px; font-size:11.5px; line-height:1.5;
-  color:var(--muted2); border:1px solid var(--warn); border-radius:var(--r-sm);
+  color:var(--muted2); border:1px solid var(--bar-wr); border-radius:var(--r-sm);
   background:rgba(248,172,61,.10);
 }
 .rep-esempio b{color:var(--ink-wr); font-weight:700; letter-spacing:.2px}
@@ -845,11 +845,11 @@ textarea.dw-input{
 /* il verdetto: è la prima cosa che legge chi riceve il documento */
 .rep-esito{
   display:flex; align-items:center; gap:13px; margin:13px 0 0; padding:12px 14px;
-  border:1px solid var(--border); border-left:3px solid var(--success);
+  border:1px solid var(--border); border-left:3px solid var(--bar-ok);
   border-radius:var(--r-sm); background:var(--dark); box-shadow:var(--edge);
 }
-.rep-esito.warn{border-left-color:var(--warn)}
-.rep-esito.danger{border-left-color:var(--danger)}
+.rep-esito.warn{border-left-color:var(--bar-wr)}
+.rep-esito.danger{border-left-color:var(--bar-dg)}
 .rep-esito-ico{
   display:inline-flex; align-items:center; justify-content:center; flex-shrink:0;
   width:40px; height:40px; border-radius:12px; line-height:0; color:var(--ink-ok);
@@ -878,11 +878,11 @@ textarea.dw-input{
    contendono l'occhio, e quello che conta per l'ente resta il primo. */
 .rep-tar{
   margin:9px 0 0; padding:10px 13px;
-  border:1px solid var(--border); border-left:3px solid var(--success);
+  border:1px solid var(--border); border-left:3px solid var(--bar-ok);
   border-radius:var(--r-sm); background:var(--dark); box-shadow:var(--edge);
 }
-.rep-tar.warn{border-left-color:var(--warn)}
-.rep-tar.danger{border-left-color:var(--danger)}
+.rep-tar.warn{border-left-color:var(--bar-wr)}
+.rep-tar.danger{border-left-color:var(--bar-dg)}
 .rep-tar-lab{
   font-family:'Barlow',sans-serif; font-size:8px; font-weight:600; letter-spacing:1.1px;
   text-transform:uppercase; color:var(--muted);

@@ -358,9 +358,10 @@ dichiara i nomi che il condiviso pronuncia?**
 
 ### 4. La risposta è no, ed è il numero che decide il piano
 
-> Il foglio condiviso pronuncia **76** variabili. Genesi ne definisce **12**
+> Il foglio condiviso pronuncia **82** variabili. Genesi ne definisce **12**
 > (`--bg --cu --cuD --ease --line --mut --mut2 --ok --panel --panel2 --tx
-> --warn`). Le **non** definite sono **72 su 76**.
+> --warn`). Le **non** definite sono **78 su 82**.
+> *(⏱️ 07/08: 76 → 82 con i tre `--bar-*` del terzo livello, definiti e usati.)*
 
 E una variabile CSS che non esiste **non fallisce**: la dichiarazione diventa
 invalida e la proprietà ricade sull'ereditato o sull'iniziale. Nessun errore in
@@ -369,7 +370,7 @@ colore del genitore, un raggio che torna a zero. È la stessa forma del
 principio che il prodotto applica ai numeri: **l'assenza di un dato non è un
 dato favorevole**, e qui il dato assente si traveste da «va bene così».
 
-~~Il conto del contagio: **22 selettori** del foglio condiviso cadrebbero su
+~~Il conto del contagio: **21 selettori** del foglio condiviso cadrebbero su
 markup che Genesi **ha già** — non solo la famiglia `.modal-*` ma anche `.kpi`,
 `.kpi.ok`, `.kpi.warn`, `.badge.ok`, `.badge.tag`, `.note.ok`, `.dw-btn`.~~
 
@@ -419,8 +420,8 @@ markup che Genesi **ha già** — non solo la famiglia `.modal-*` ma anche `.kpi
 > **E cambia il ragionamento, non solo un numero.** Il «contagio» era l'argomento
 > più forte per tenere il foglio condiviso fuori da Genesi: *ti ridipinge le
 > schede*. Quell'argomento **non regge**. Resta l'altro, che è vero e misurato
-> due volte in modo indipendente: il foglio pronuncia **76** variabili, Genesi ne
-> definisce **12**, e le **72** scoperte non fallirebbero — decadrebbero in
+> due volte in modo indipendente: il foglio pronuncia **82** variabili, Genesi ne
+> definisce **12**, e le **78** scoperte non fallirebbero — decadrebbero in
 > silenzio. Gli **8** selettori che cadono sono proprio quelli della modale e del
 > toast, cioè quelli che Genesi si veste già da sé: caricare il foglio oggi
 > significherebbe **sostituire un vestito che funziona con uno senza colori**.

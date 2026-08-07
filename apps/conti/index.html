@@ -194,6 +194,29 @@ body.dw.light-mode, body.dw.outdoor-mode{
      basta a una cifra, con mezzo punto di margine sopra il 3 e la tinta
      lasciata dov'era (ambra 25°, verde 104°, rosso 2°, gli stessi gradi del
      buio). Il numerone resta il protagonista e resta del suo colore. */
+  /* ⛔ E IL LIVELLO DELLE CIFRE ADESSO HA UN NOME, perché serviva a qualcun
+     altro. Le altre cinque app lo chiamano `--num-ok/-wr/-dg`
+     (`docs/PALETTE_APP.md`, parte 7); Conti l'aveva misurato — sono questi tre
+     numeri, gli stessi di prima — ma scritto **dentro** i gradienti, dove
+     nessuno poteva riusarlo. Il 07/08 è servito: le strisce di stato vogliono
+     3:1 contro i vicini (WCAG 1.4.11) e `shared/dw-app-ui.css` le fa scendere
+     da `--num-…`. Senza il nome, Conti sarebbe stata l'unica delle sei a
+     ricadere sul colore crudo — cioè l'unica a restare col difetto.
+     I valori non cambiano di un bit: sono le prime fermate dei tre gradienti
+     qui sotto.
+     ⚠️ E SONO SCRITTI DUE VOLTE DI PROPOSITO — la strada elegante è stata
+     provata e scartata con la misura. Facendo leggere ai gradienti
+     `var(--num-…)` la duplicazione spariva, ma la **regola 24** di
+     `run-stile.mjs` giudica solo le fermate scritte per esteso (un colore
+     dietro un nome, per lei, non esiste) e la sua guardia dice a voce alta che
+     «le palette di GIORNO scritte con fermate vere sono quelle di Conti»:
+     dandole un nome, l'unica superficie che quella regola sa giudicare di
+     giorno sparisce, e il controllo resta verde senza guardare niente. Finché
+     la regola 24 non risolve un `var()`, qui la ripetizione è la scelta meno
+     peggiore, ed è dichiarata invece che subita.
+     Contro i due vicini dei temi chiari (scheda #fff e fondo pagina):
+       --num-ok 3,74 / 3,16   --num-wr 3,76 / 3,18   --num-dg 3,66 / 3,10 */
+  --num-ok:#49952d; --num-wr:#cb6924; --num-dg:#e8524c;
   --grad-wr: linear-gradient(135deg,#cb6924,#924c1a);  /* cifre: 3,43:1 (era 2,93) */
   --grad-ok: linear-gradient(135deg,#49952d,#356b20);  /* cifre: 3,41:1 (era 2,97) */
   --gradSuc: var(--grad-ok);
@@ -295,7 +318,7 @@ body.dw.light-mode, body.dw.outdoor-mode{
 /* due stati in più del cartellone, stessa costruzione di .vuota: cambia il
    bordo che prende la luce, l'alone d'ambiente, l'icona e la cifra. Servono
    al confronto cavato/venduto, dove il numero va letto col suo giudizio. */
-.cassa.attenta{border-left-color:var(--warn)}
+.cassa.attenta{border-left-color:var(--bar-wr)}
 .cassa.attenta::before{
   background:radial-gradient(260px 150px at 8% 0%,var(--glow-wr),transparent 70%);
 }
@@ -306,7 +329,7 @@ body.dw.light-mode, body.dw.outdoor-mode{
 .cassa.attenta .cassa-num{
   background:var(--grad-wr); -webkit-background-clip:text; background-clip:text;
 }
-.cassa.grave{border-left-color:var(--danger)}
+.cassa.grave{border-left-color:var(--bar-dg)}
 .cassa.grave::before{
   background:radial-gradient(260px 150px at 8% 0%,var(--glow-dg),transparent 70%);
 }
@@ -452,7 +475,7 @@ input[type=number].dw-input,
   border-color:color-mix(in srgb,var(--danger) 55%,var(--border2)); color:var(--muted2);
 }
 .dw-btn.mini.no:hover{
-  border-color:var(--danger); color:var(--ink-dg); background:rgba(240,95,90,.10);
+  border-color:var(--bar-dg); color:var(--ink-dg); background:rgba(240,95,90,.10);
 }
 
 /* ─────────────── filtri a segmento (copia di .chg) ─────────────── */
@@ -490,7 +513,7 @@ input[type=number].dw-input,
   -webkit-background-clip:text; background-clip:text;
   -webkit-text-fill-color:transparent;
 }
-.tot.warn{border-top-color:var(--warn)}
+.tot.warn{border-top-color:var(--bar-wr)}
 .tot.warn .tot-n{
   background:var(--grad-wr); -webkit-background-clip:text; background-clip:text;
 }
@@ -502,10 +525,10 @@ input[type=number].dw-input,
   opacity:.75; transition:width .4s var(--ease);
 }
 .item.st-warn .bar{
-  background:linear-gradient(90deg,var(--warn),color-mix(in srgb,var(--warn) 20%,transparent));
+  background:linear-gradient(90deg,var(--bar-wr),color-mix(in srgb,var(--bar-wr) 20%,transparent));
 }
 .item.st-danger .bar{
-  background:linear-gradient(90deg,var(--danger),color-mix(in srgb,var(--danger) 20%,transparent));
+  background:linear-gradient(90deg,var(--bar-dg),color-mix(in srgb,var(--bar-dg) 20%,transparent));
 }
 .item.st-sup .bar{
   background:linear-gradient(90deg,var(--app-support2),color-mix(in srgb,var(--app-support2) 20%,transparent));

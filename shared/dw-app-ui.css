@@ -36,6 +36,72 @@
                 --form-gap --form-pad --frow-align --ord-gap --empty-w --empty-tint
      ombre bottoni   --sh-btn --sh-btn-hi --sh-btn-act --sh-chg
    ══════════════════════════════════════════════════════════════════════════ */
+
+/* ══════════════════════════════════════════════════════════════════════════
+   LE STRISCE DI STATO — il terzo livello, e perché non sono due
+   ──────────────────────────────────────────────────────────────────────────
+   `docs/PALETTE_APP.md` (parte 7) mette per iscritto due livelli: `--ink-…`
+   per le frasi (4,5:1) e `--num-…` per i numeroni (3:1). Ne mancava uno, e
+   non è testo: la barretta colorata a lato di una riga, il filo in cima a un
+   KPI, la striscia di un riquadro, il bordo di un campo sbagliato. La WCAG le
+   chiama «non-text contrast» (1.4.11) e chiede **3:1 contro i colori
+   adiacenti** — cioè la stessa soglia dei numeroni, per un mestiere diverso.
+
+   ⛔ E NEI DUE TEMI CHIARI NON CI ARRIVAVANO. Misurato il 07/08 su tutte e sei
+   le app, contro i due vicini veri (la scheda dentro, il fondo pagina fuori):
+       --warn     1,57 – 1,75      --success  1,98 – 2,15
+       --danger   2,74 – 2,96      (--info    2,16 – 2,22, vedi sotto)
+   **92 superfici distinte sotto soglia** nel tema chiaro, e le stesse nel
+   tema `sole`. Al buio non è mai stato un problema: 122 superfici, zero
+   sotto. In Campo quella striscia gialla pesa più che altrove — è *il* segno
+   che una persona non è stata spuntata nell'appello, cioè il principio del
+   fondatore («non lo so» non è «non c'è») affidato a un colore.
+
+   PERCHÉ UN NOME NUOVO E NON `--warn` SCURITO: `--warn`, `--success` e
+   `--danger` fanno **anche da pieno** sotto il testo delle pastiglie
+   (`.badge.warn`, `.toast.err`, `.mbtn.danger`). Tirare quell'unica variabile
+   rompe sempre uno dei due mestieri — misurato in tre app, sta scritto nella
+   parte 7. Si affianca, non si riscrive.
+
+   PERCHÉ UN NOME NUOVO E NON `--num-…` USATO COSÌ COM'È: la soglia è la
+   stessa, il mestiere no. I `--num-…` sono la fermata CHIARA di un gradiente
+   che finisce scuro (`--grad-ok` e compagni): chi un giorno li muovesse per
+   una ragione di gradiente sposterebbe anche tutte le strisce, che sono
+   piatte. Un nome che mente è un nome che si sposta per sbaglio.
+
+   LA CATENA, e regge anche dove nessuno ha misurato niente:
+       --bar-ok  →  --num-ok  →  --success
+   Al buio le sei app dichiarano `--num-…: var(--success|--warn|--danger)`,
+   quindi **il tema scuro non cambia di un pixel** (verificato: 122 superfici,
+   stessi colori). Nei due temi chiari prende il valore che ogni app ha
+   misurato sui **propri** fondi. E una pagina che non definisce nessun
+   `--num-…` (`apps/deepwork-id/admin.html`) ricade sul colore di stato, cioè
+   su quello che aveva prima: nessuna regola muore, nessuna striscia sparisce.
+
+   ⚠️ COSA RESTA FUORI, DICHIARATO: `--info`. La striscia di serie di `.note`
+   sta a 2,16-2,22 nei temi chiari, ma quella barretta è DECORAZIONE — il
+   riquadro si riconosce da sé, e le sue varianti di stato (`.note.err`,
+   `.note.avviso`, `.note.ok`) passano di qui e sono a posto. Nessuna delle sei
+   app ha mai misurato un livello per `--info`: inventarne uno qui sarebbe la
+   derivazione generica che la parte 7 dice di non fare. Sta scritto perché il
+   giorno in cui qualcuno lo misurerà sappia che il posto è questo.
+   ══════════════════════════════════════════════════════════════════════════ */
+/* ⚠️ `body` E NON `body.dw`, e non è pigrizia. Un `var()` che non si risolve non
+   vale «colore di serie»: rende INVALIDA tutta la dichiarazione, e
+   `border-left:3px solid var(--bar-dg)` senza il suo valore torna allo stato
+   iniziale — `border-style:none`, cioè **la striscia sparisce**. Le regole
+   `.item.st-…` di questo foglio non sono annidate sotto `body.dw`: bastano il
+   foglio e la classe sulla riga. Se un giorno una pagina caricasse questo foglio
+   dimenticando `class="dw"` sul body, con `body.dw` qui sopra perderebbe le
+   strisce senza un errore da leggere; con `body` no. Le sei app e le altre tre
+   pagine che caricano il foglio oggi la classe ce l'hanno tutte — la riga costa
+   quattro caratteri e toglie una famiglia intera di guasti muti. */
+body{
+  --bar-ok: var(--num-ok, var(--success));
+  --bar-wr: var(--num-wr, var(--warn));
+  --bar-dg: var(--num-dg, var(--danger));
+}
+
 /* ─────────────── fondo e atmosfera ─────────────── */
 html{-webkit-text-size-adjust:100%; text-size-adjust:100%}
 body.dw{
@@ -108,7 +174,7 @@ img{max-width:100%}
 .dw-home:hover{
   color:var(--app-accent2); border-color:var(--app-accent); background:var(--card2);
 }
-.dw-exit:hover{color:var(--danger); border-color:var(--danger)}
+.dw-exit:hover{color:var(--danger); border-color:var(--bar-dg)}
 .top h1,body.has-exit .top h1{padding-right:0 !important}
 
 /* nastro "modalità tour" — forma .info-box del core */
@@ -176,17 +242,17 @@ img{max-width:100%}
   -webkit-background-clip:text; background-clip:text;
   -webkit-text-fill-color:transparent; color:transparent;
 }
-.kpi.ok{border-top-color:var(--success); --kpi-glow:var(--glow-ok)}
-.kpi.warn{border-top-color:var(--warn); --kpi-glow:var(--glow-wr)}
+.kpi.ok{border-top-color:var(--bar-ok); --kpi-glow:var(--glow-ok)}
+.kpi.warn{border-top-color:var(--bar-wr); --kpi-glow:var(--glow-wr)}
 .kpi.danger{
-  border-top-color:var(--danger); --kpi-glow:var(--glow-dg);
+  border-top-color:var(--bar-dg); --kpi-glow:var(--glow-dg);
   animation:pulseDanger 2.4s ease-in-out infinite;
 }
 .kpi.ok .n{background:var(--grad-ok)}
 .kpi.warn .n{background:var(--grad-wr)}
 .kpi.danger .n{background:var(--grad-dg)}
 .kpi.ok .n,.kpi.warn .n,.kpi.danger .n{-webkit-background-clip:text; background-clip:text}
-@keyframes pulseDanger{0%,100%{border-top-color:var(--danger)}50%{border-top-color:var(--danger-pulse)}}
+@keyframes pulseDanger{0%,100%{border-top-color:var(--bar-dg)}50%{border-top-color:var(--danger-pulse)}}
 
 /* ─────────────── titolo di sezione (copia di .sec-title) ─────────────── */
 .sec{
@@ -252,9 +318,9 @@ img{max-width:100%}
    partono dal verso opposto (campo, flotta, terra) sono a zero e si migrano
    senza fretta. Censimento: `docs/LA_MANINA_CHE_PROMETTE.md`. */
 .item.tocca{cursor:pointer}
-.item.st-danger{border-left:3px solid var(--danger)}
-.item.st-warn{border-left:3px solid var(--warn)}
-.item.st-ok{border-left:3px solid var(--success)}
+.item.st-danger{border-left:3px solid var(--bar-dg)}
+.item.st-warn{border-left:3px solid var(--bar-wr)}
+.item.st-ok{border-left:3px solid var(--bar-ok)}
 .item.st-accent{border-left:3px solid var(--app-accent)}
 .item.st-mute{border-left:3px solid var(--border2)}
 .avatar{
@@ -342,7 +408,7 @@ img{max-width:100%}
   border-color:var(--app-accent); background:var(--card2);
   box-shadow:0 0 0 3px var(--focus-ring),var(--edge);
 }
-.dw-input.err{border-color:var(--danger) !important; background:var(--err-bg)}
+.dw-input.err{border-color:var(--bar-dg) !important; background:var(--err-bg)}
 .dw-input[readonly],.dw-input[disabled]{color:var(--muted2); opacity:.7}
 /* Un'opzione più lunga della tendina viene TAGLIATA di netto dal browser, e il
    taglio netto sembra un difetto: «22% — ordinaria (inerti)» si legge
@@ -495,9 +561,9 @@ input[type=date].dw-input::-webkit-calendar-picker-indicator:hover{
    dice l'opposto dello stato — solo perché `.note.recap` era scritta due righe
    più sotto di `.note.err`. Le regole di stato stanno qui, una volta sola: le
    app non le riscrivono. */
-.note.err{border-left-color:var(--danger)}
-.note.avviso{border-left-color:var(--warn)}
-.note.ok{border-left-color:var(--success)}
+.note.err{border-left-color:var(--bar-dg)}
+.note.avviso{border-left-color:var(--bar-wr)}
+.note.ok{border-left-color:var(--bar-ok)}
 
 /* ─────────────── stato vuoto (copia di .empty-state) ─────────────── */
 .empty-state{

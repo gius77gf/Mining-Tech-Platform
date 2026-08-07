@@ -308,12 +308,22 @@ test("docs/LA_STRUTTURA_DEL_CORE_SCRITTA_SEI_VOLTE.md: il conto del contagio è 
   const classiInPagina = new Set();
   for (const m of genesi.matchAll(/class="([^"]+)"/g))
     for (const c of m[1].split(/\s+/)) if (c) classiInPagina.add(c);
-  const selettori = new Set();
-  for (const m of foglio.matchAll(/([^{}]+)\{[^{}]*\}/g)) {
-    const s = m[1].trim();
-    if (!s || s.startsWith("@")) continue;
-    for (const p of s.split(",")) selettori.add(p.trim());
-  }
+  /* ⛔ LA STESSA ESTRAZIONE ERA SCRITTA DUE VOLTE, E LA SECONDA ERA PIÙ DEBOLE.
+     Qui sopra c'è `SELETTORI_FOGLIO`, costruito su `FOGLIO_PULITO` — cioè coi
+     commenti tolti — e la prova che lo usa ha pure la riga che pretende che
+     nessun selettore porti un `/*` addosso. Questa prova, sedici righe più giù,
+     rileggeva il foglio **crudo**: e siccome i commenti di `dw-app-ui.css`
+     nominano le classi di cui parlano (`.badge.warn`, `.note.err`…), la prosa
+     finiva contata come selettore.
+     Misurato il 07/08: aggiungendo al foglio un commento che nomina sei classi,
+     il conto passava da **21 a 24** senza che il CSS fosse cambiato — cioè un
+     documento veniva accusato di essere invecchiato da un commento. È la terza
+     volta che questa famiglia — i commenti presi per la cosa che nominano —
+     compare in questo repository, e le altre due volte era già costata una
+     regola cieca e un'accusa falsa.
+     Adesso le due prove leggono lo **stesso** elenco: una regola usata due
+     volte si scrive una volta sola. */
+  const selettori = new Set(SELETTORI_FOGLIO);
   let toccati = 0;
   for (const s of selettori) {
     const classi = [...s.matchAll(/\.([a-zA-Z][\w-]*)/g)].map((x) => x[1]);

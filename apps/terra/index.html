@@ -216,11 +216,11 @@ body.dw.outdoor-mode{
   background:radial-gradient(320px 190px at 6% 0%,var(--tint-app),transparent 72%);
 }
 .vita>*{position:relative}
-.vita.warn{border-top-color:var(--warn)}
+.vita.warn{border-top-color:var(--bar-wr)}
 .vita.warn::before{
   background:radial-gradient(320px 190px at 6% 0%,rgba(255,167,82,.11),transparent 72%);
 }
-.vita.danger{border-top-color:var(--danger)}
+.vita.danger{border-top-color:var(--bar-dg)}
 .vita.danger::before{
   background:radial-gradient(320px 190px at 6% 0%,rgba(240,95,90,.12),transparent 72%);
 }
@@ -432,10 +432,10 @@ span.arr svg{width:15px; height:15px}
   background:color-mix(in srgb,var(--app-accent) 18%,var(--card2));
 }
 .arr.ok:hover{
-  color:var(--ink-ok); border-color:var(--success); background:rgba(39,190,165,.16);
+  color:var(--ink-ok); border-color:var(--bar-ok); background:rgba(39,190,165,.16);
 }
 .arr.del:hover{
-  color:var(--ink-dg); border-color:var(--danger); background:rgba(240,95,90,.16);
+  color:var(--ink-dg); border-color:var(--bar-dg); background:rgba(240,95,90,.16);
 }
 .arr:active{transform:scale(.94)}
 

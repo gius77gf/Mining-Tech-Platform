@@ -93,6 +93,25 @@ const BANCHI = [
      che nel DOM non compare MAI: il censimento deve trovarla e bocciarla, se
      no la passata nuova è una guardia scollegata. */
   ['contrasto · le classi mai comparse', 'contrasto.mjs', ['--controprova-censimento'], true],
+  /* ⛔ AGGIUNTO IL 07/08, E MISURA L'ALTRA METÀ. `contrasto.mjs` guarda i
+     TESTI; tutto ciò che parla senza parole — la barretta a lato di una riga,
+     il filo in cima a un KPI, la striscia di un riquadro, il bordo di un campo
+     sbagliato — non lo guardava nessuno, e la WCAG 1.4.11 chiede 3:1 contro i
+     colori adiacenti. Al buio erano a posto (122 superfici, zero sotto); nei
+     due temi chiari **92 superfici distinte sotto soglia** in tutte e sei le
+     app, con l'ambra a 1,57. Tre cantieri l'avevano segnalato lo stesso
+     giorno, nessuno l'aveva toccato: il segnale principale regge da solo, ma
+     in Campo quella striscia gialla è **il** segno che una persona non è
+     stata spuntata nell'appello.
+     ⚠️ La controprova gira solo nei temi chiari, e il banco lo pretende: al
+     buio `--bar-…` e il colore di stato sono lo stesso valore per costruzione,
+     quindi lì non c'è nessun difetto da rimettere e un verde non direbbe
+     niente. */
+  ['contrasto non testo (WCAG 1.4.11)', 'contrasto-non-testo.mjs', []],
+  ['contrasto non testo · tema chiaro', 'contrasto-non-testo.mjs', ['--tema=chiaro']],
+  ['contrasto non testo · tema sole', 'contrasto-non-testo.mjs', ['--tema=sole']],
+  ['contrasto non testo · controprova chiaro', 'contrasto-non-testo.mjs', ['--tema=chiaro', '--controprova'], true],
+  ['contrasto non testo · controprova sole', 'contrasto-non-testo.mjs', ['--tema=sole', '--controprova'], true],
   /* ⛔ AGGIUNTO IL 03/08. Stessa domanda che il giorno prima ha trovato
      ventiquattro difetti in cinque app — *dove il core compone qualcosa che
      ESCE, chi decide i suoi numeri?* — applicata ai due documenti del core

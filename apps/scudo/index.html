@@ -245,7 +245,7 @@ body.dw.outdoor-mode{
 .safety{
   position:relative; overflow:hidden; display:flex; align-items:center; gap:14px;
   background:linear-gradient(135deg,var(--card2),var(--card));
-  border:1px solid var(--border); border-left:3px solid var(--success);
+  border:1px solid var(--border); border-left:3px solid var(--bar-ok);
   border-radius:var(--r); padding:13px 16px; margin:0 0 4px;
   box-shadow:var(--sh2),var(--edge);
 }
@@ -253,7 +253,7 @@ body.dw.outdoor-mode{
   content:""; position:absolute; inset:0; pointer-events:none;
   background:radial-gradient(260px 150px at 8% 0%,rgba(106,187,110,.10),transparent 70%);
 }
-.safety.warn{border-left-color:var(--warn)}
+.safety.warn{border-left-color:var(--bar-wr)}
 .safety.warn::before{
   background:radial-gradient(260px 150px at 8% 0%,rgba(248,172,61,.10),transparent 70%);
 }
@@ -436,7 +436,7 @@ body.dw.outdoor-mode{
    8, dove il browser tace, la pagina si apre e l'avviso rende come un
    suggerimento qualunque. Qui è la frase che dice che dietro una spunta verde
    non c'è niente: deve staccarsi dal grigio degli altri. */
-.form-hint.avviso{color:var(--muted2); border-left:2px solid var(--warn);
+.form-hint.avviso{color:var(--muted2); border-left:2px solid var(--bar-wr);
   padding:2px 0 2px 9px; border-radius:0 3px 3px 0; background:linear-gradient(90deg,rgba(248,172,61,.06),transparent 70%)}
 /* ⛔ LE RAGIONI DI UN PERMESSO SI LEGGONO INTERE. `.name` è tagliato a due
    righe (`-webkit-line-clamp:2`), e in queste righe il testo non è un titolo:

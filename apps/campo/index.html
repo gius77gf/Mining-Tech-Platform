@@ -203,11 +203,11 @@ body.dw.outdoor-mode{
   content:""; position:absolute; inset:0; pointer-events:none;
   background:radial-gradient(260px 150px at 8% 0%,var(--tint-app),transparent 70%);
 }
-.board.ok{border-left-color:var(--success)}
+.board.ok{border-left-color:var(--bar-ok)}
 .board.ok::before{
   background:radial-gradient(260px 150px at 8% 0%,rgba(106,187,110,.10),transparent 70%);
 }
-.board.warn{border-left-color:var(--warn)}
+.board.warn{border-left-color:var(--bar-wr)}
 .board.warn::before{
   background:radial-gradient(260px 150px at 8% 0%,rgba(212,191,62,.10),transparent 70%);
 }
@@ -413,7 +413,7 @@ button.arr.del:hover{
    che dice cosa manca e dove scriverlo. */
 .senza-minuti{
   background:linear-gradient(180deg,var(--card2),var(--card));
-  border:1px solid var(--border); border-left:3px solid var(--warn);
+  border:1px solid var(--border); border-left:3px solid var(--bar-wr);
   border-radius:var(--r); padding:12px 14px; box-shadow:var(--sh2),var(--edge);
   font-size:12.5px; color:var(--muted2); line-height:1.55;
 }
@@ -436,9 +436,9 @@ button.arr.del:hover{
   border-radius:0 0 var(--r) var(--r); padding:11px 13px 12px; margin:0 0 10px;
   box-shadow:var(--sh2),var(--edge);
 }
-.pon-det.st-danger{border-left:3px solid var(--danger)}
-.pon-det.st-warn{border-left:3px solid var(--warn)}
-.pon-det.st-ok{border-left:3px solid var(--success)}
+.pon-det.st-danger{border-left:3px solid var(--bar-dg)}
+.pon-det.st-warn{border-left:3px solid var(--bar-wr)}
+.pon-det.st-ok{border-left:3px solid var(--bar-ok)}
 .pon-det.st-mute{border-left:3px solid var(--border-hi)}
 .pon-riga{font-size:12px; line-height:1.6; color:var(--muted2); margin-top:7px}
 .pon-riga:first-child{margin-top:0}
@@ -449,9 +449,9 @@ button.arr.del:hover{
   border-left:3px solid var(--app-support2); border-radius:var(--r-sm);
   box-shadow:var(--edge);
 }
-.pon-az.ok{border-left-color:var(--success)}
-.pon-az.warn{border-left-color:var(--warn)}
-.pon-az.danger{border-left-color:var(--danger)}
+.pon-az.ok{border-left-color:var(--bar-ok)}
+.pon-az.warn{border-left-color:var(--bar-wr)}
+.pon-az.danger{border-left-color:var(--bar-dg)}
 .pon-az-txt{flex:1 1 auto; min-width:0; font-size:12px; line-height:1.55; color:var(--muted2)}
 .pon-az-txt b{color:var(--text)}
 .pon-cmd{display:flex; gap:8px; flex-wrap:wrap; margin-top:10px}
@@ -562,7 +562,7 @@ button.arr.del:hover{
    numero — il senso è proprio che ogni correzione abbia un nome. */
 .riap{
   background:linear-gradient(180deg,var(--card2),var(--card));
-  border:1px solid var(--border); border-left:3px solid var(--warn);
+  border:1px solid var(--border); border-left:3px solid var(--bar-wr);
   border-radius:var(--r); padding:11px 14px; margin:8px 0 4px;
   box-shadow:var(--sh2),var(--edge);
 }

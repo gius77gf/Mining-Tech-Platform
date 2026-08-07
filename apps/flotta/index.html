@@ -294,7 +294,7 @@ body.dw b.bad{color:var(--ink-dg)}
 .gauge{
   position:relative; overflow:hidden; display:flex; align-items:center; gap:14px;
   background:linear-gradient(135deg,var(--card2),var(--card));
-  border:1px solid var(--border); border-left:3px solid var(--success);
+  border:1px solid var(--border); border-left:3px solid var(--bar-ok);
   border-radius:var(--r); padding:13px 16px; margin:0 0 4px;
   box-shadow:var(--sh2),var(--edge);
 }
@@ -302,11 +302,11 @@ body.dw b.bad{color:var(--ink-dg)}
   content:""; position:absolute; inset:0; pointer-events:none;
   background:radial-gradient(260px 150px at 8% 0%,rgba(106,187,110,.10),transparent 70%);
 }
-.gauge.warn{border-left-color:var(--warn)}
+.gauge.warn{border-left-color:var(--bar-wr)}
 .gauge.warn::before{
   background:radial-gradient(260px 150px at 8% 0%,rgba(248,172,61,.10),transparent 70%);
 }
-.gauge.danger{border-left-color:var(--danger)}
+.gauge.danger{border-left-color:var(--bar-dg)}
 .gauge.danger::before{
   background:radial-gradient(260px 150px at 8% 0%,rgba(240,94,92,.10),transparent 70%);
 }
@@ -521,12 +521,12 @@ body.dw b.bad{color:var(--ink-dg)}
   padding:11px 13px; margin-bottom:8px; box-shadow:var(--sh1),var(--edge);
   transition:border-color .18s var(--ease),background .18s var(--ease),box-shadow .18s;
 }
-.chk.ok{border-left-color:var(--success)}
+.chk.ok{border-left-color:var(--bar-ok)}
 .chk.no{
-  border-left-color:var(--danger); background:var(--err-bg);
+  border-left-color:var(--bar-dg); background:var(--err-bg);
   box-shadow:var(--sh2),var(--edge),0 0 0 1px rgba(240,94,92,.18);
 }
-.chk.manca{border-left-color:var(--warn)}
+.chk.manca{border-left-color:var(--bar-wr)}
 .chk-t{flex:1 1 190px; min-width:0}
 .chk-n{font-weight:600; font-size:14.5px; line-height:1.35}
 .chk-a{display:block; font-size:11.5px; color:var(--muted); margin-top:3px; line-height:1.45}
@@ -625,7 +625,7 @@ body.dw b.bad{color:var(--ink-dg)}
 /* nessun gradino toccato e si è premuto «Segnala»: i tre bordi si accendono
    di rosso come il bordo di un campo sbagliato, che è la grammatica che
    Flotta usa già dappertutto */
-.gua-op.err button{border-color:var(--danger)}
+.gua-op.err button{border-color:var(--bar-dg)}
 
 /* ═══════════════ FASCICOLO DEL MEZZO (libretto macchina) ═══════════════ */
 .sch-testa{
