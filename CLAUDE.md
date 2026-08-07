@@ -1140,6 +1140,20 @@ Perché serva davvero e non produca elenchi generici, cinque vincoli:
   stringe resta stretta anche nel sole, senza ridire niente. **Non fatta**: con
   un solo soggetto che morde, sei file di rischio non se li merita — e questo è
   il conto, non un'impressione.
+  ✅ **RIMISURATA IL 07/08 A NOTTE, e la decisione regge alla cifra** — perché
+  nel frattempo i miei checkpoint la portavano avanti come «prossimo passo
+  atomico», cioè un cantiere da sei file contro una decisione già presa con la
+  misura. Il tema del sole in `shared/` fissa un corpo su otto selettori
+  distinti (`.badge`, `.dw-btn`, `.kpi .l`, `.meta`, `.name`, `.sec`, `.toast`
+  e `.nav button`); le app che ne ridicono almeno uno sono **tre su sei** —
+  Conti 4, Scudo 3, Sentinella 5 — e Campo, Flotta e Terra **zero**. E le
+  dodici righe di quelle tre app sono **tutte e dodici `.nav button`**: nessun
+  altro corpo è stato ridetto da nessuno. Quindi «uno solo morde» non è
+  invecchiato, ed è ancora **una regola** e non un difetto del disegno.
+  ⚠️ La lezione non è sul tema: è che **una decisione presa con la misura va
+  tolta anche dalle liste che la propongono**, se no rinasce da sola. Qui a
+  proporla erano i checkpoint — cioè il posto in cui il ciclo si dice che cosa
+  fare dopo — e nessuno l'aveva confrontata con questa riga.
   ⚠️ E la correzione va dove vince la cascata, non dove il codice è più
   ordinato: messa dentro i due `@media` che stanno **prima**, a parità di
   specificità avrebbe perso lo stesso. È «vince l'ultimo», già pagata sul core.
