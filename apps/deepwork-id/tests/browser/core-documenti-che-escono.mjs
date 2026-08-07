@@ -142,6 +142,50 @@ const RAPP_RIAPERTO = "DEFAULT_RAPPORTINI.push("
   + "note:'Turno riaperto: i fori sono stati azzerati.',inviato:'2026-07-25'});\n";
 const ANCORA_RAPP = "const DEFAULT_RAPPORTINI_FOC = [";
 
+/* ⛔ LA VOLATA DISEGNATA E BASTA: i fori ci sono, le profondità e i chili no.
+   È l'unico stato in cui `v.tot_metri` vale zero mentre i metri cubi — che da
+   quei metri discendono — sono già dichiarati non noti: il riquadro del PDF si
+   contraddiceva a due centimetri di distanza. Non è una caricatura:
+   `ricalcolaTotaliVolata` lo produce da sé appena si disegna una maglia senza
+   aver scritto la profondità di serie (`prof:parseNum0(v.default.profondita_m)
+   ||0`). Serve anche alla riconciliazione, che su di lei scriveva «0,0» nella
+   colonna PROGETTO accanto a un perforato vero. */
+const VOLATA_NUDA = "DEFAULT_VOLATE.push("
+  + "{id:'vz9',cavaId:'cava_1',numero:9,data:'2026-06-09',tipo:'cava',"
+  + "nomeProgetto:'Banco 5 - da quotare',stato:'progetto',"
+  + "fronte:{lunghezza_m:18,altezza_m:0,calotta_m:0,profilo:[],piede_attivo:false,piede_profondita:0},"
+  + "maglia:{borraggio:3,spaziatura:3.5,file:1},"
+  + "default:{diametro_mm:89,profondita_m:'',esplosivo:'',kg_per_foro:'',ritardo_ms:42,innesco:''},"
+  + "fori:Array.from({length:6},(_,i)=>({id:'foro_vz9_'+(i+1),num:i+1,x:2+i*3,y:3,"
+  + "prof:'',diam:89,kg:'',esplosivo:'',ritardo:'',innesco:'',sequenza:i+1,note:''})),"
+  + "connessioni:[],tot_fori:6,tot_metri:0,tot_kg:0,tot_mc:0,note:'',"
+  + "createdBy:'user_admin',createdAt:0,updatedAt:0});\n";
+
+/* ⛔ TRE TURNI DI GIUGNO, e ognuno serve a una domanda che luglio non sa fare.
+   · `rg1` è l'unico turno di giugno della cava Monte Serra e non è misurato:
+     nel foglio «Riepilogo cave» dell'Excel quella cava non ha nessun volume da
+     dichiarare, ed è lì che usciva «Mc 0,00» mentre il primo foglio, per lo
+     stesso stato, lascia la cella vuota — due convenzioni nello stesso file;
+   · `rg2` e `rg3` sono **lo stesso giorno sulla stessa cava** (mattina e
+     pomeriggio, che in cava è la normalità): il nome del PDF del rapportino
+     portava solo cava e data, quindi il secondo cancellava il primo.
+   Si sceglie giugno di proposito: le prove sui totali di luglio, che sono
+   derivate ma parlano di righe precise (14/07, 21/07, 23/07, 25/07), restano
+   così com'erano e nessuna di loro cambia di significato. */
+const RAPP_GIUGNO = "DEFAULT_RAPPORTINI.push("
+  + "{id:'rg1',userId:'user_operatore',cavaId:'cava_1',data:'2026-06-09',oi:'07:00',of:'',"
+  + "diametro:89,maglia:'3x3.5',maglia_B:3,maglia_S:3.5,mezzoId:'mlav_1',personale:[],"
+  + "fori:0,fori_fila1:0,fori_fila2:0,metri:0,media_prof:0,mc:0,fori_dettaglio:[],"
+  + "volataId:null,note:'Turno aperto.',inviato:'2026-06-09'},"
+  + "{id:'rg2',userId:'user_operatore',cavaId:'cava_2',data:'2026-06-10',oi:'07:00',of:'12:00',"
+  + "diametro:102,maglia:'3.2x3.8',maglia_B:3.2,maglia_S:3.8,mezzoId:'mlav_2',personale:[],"
+  + "fori:8,fori_fila1:8,fori_fila2:0,metri:72,media_prof:9,mc:756,fori_dettaglio:[],"
+  + "volataId:null,note:'Turno di mattina.',inviato:'2026-06-10'},"
+  + "{id:'rg3',userId:'user_operatore',cavaId:'cava_2',data:'2026-06-10',oi:'13:00',of:'17:00',"
+  + "diametro:102,maglia:'3.2x3.8',maglia_B:3.2,maglia_S:3.8,mezzoId:'mlav_2',personale:[],"
+  + "fori:6,fori_fila1:6,fori_fila2:0,metri:54,media_prof:9,mc:567,fori_dettaglio:[],"
+  + "volataId:null,note:'Turno di pomeriggio, stessa cava e stesso giorno.',inviato:'2026-06-10'});\n";
+
 /* Due guasti sul primo mezzo: uno con la data e uno **senza**, che è lo stato
    che il modulo «Segnala guasto» produce se si svuota il campo. */
 const GUASTI = "DEFAULT_MEZZILAV[0].guasti=["
@@ -176,6 +220,45 @@ const DIFETTI = [
   // 7 · le righe senza data buttate via dal Report tecnico
   ["  const inRange=dt=>!dt||((!da||dt>=da)&&(!a||dt<=a));",
    "  const inRange=dt=>dt&&(!da||dt>=da)&&(!a||dt<=a);"],
+  /* 8 · lo schema di volata che dichiara come completo un carico a metà, e
+        stampa «0m» dove i mc dicono già «-» */
+  [`  const kpi=[['FORI',String(mv.fori)],
+             ['METRI',mv.metri===null?'-':mv.metri+'m'],
+             [mv.parziale?'KG · PARZIALE':'KG',mv.kgNoto?mv.kg+'kg':'-'],
+             ['MC',mv.mcNoto?mv.mc+'mc':'-']];`,
+   `  const kpi=[['FORI',String(v.tot_fori)],['METRI',v.tot_metri+'m'],['KG',v.tot_kg>0?v.tot_kg+'kg':'-'],['MC',v.tot_mc>0?v.tot_mc+'mc':'-']];`],
+  // 9 · e la riserva scritta sotto i riquadri, che spiega il trattino
+  ["    if(ris.length){\n      d.setTextColor(150,90,0);",
+   "    if(false&&ris.length){\n      d.setTextColor(150,90,0);"],
+  // 10 · i totali di pagina 3 dello stesso foglio
+  [`      const tt=[['Fori',String(mv.fori)],
+                ['Metri',mv.metri===null?'-':mv.metri+' m'],
+                ['Carica',mv.kgNoto?(mv.parziale?'almeno ':'')+mv.kg+' kg':'-'],
+                ['Mc',mv.mcNoto?mv.mc+' mc':'-']];`,
+   `      const tt=[['Fori',String(v.tot_fori)],['Metri',v.tot_metri+' m'],['Carica',v.tot_kg>0?v.tot_kg+' kg':'-'],['Mc',v.tot_mc>0?v.tot_mc+' mc':'-']];`],
+  // 11 · le due celle della maglia scritte «0» nel foglio che la dichiara mancante
+  ["          'Diametro (mm)':cellaNum(r.diametro),\n          'Maglia':r.maglia||'—',\n          'Burden (m)':cellaNum(r.maglia_B),\n          'Spaziatura (m)':cellaNum(r.maglia_S),",
+   "          'Diametro (mm)':r.diametro||0,\n          'Maglia':r.maglia||'—',\n          'Burden (m)':r.maglia_B||0,\n          'Spaziatura (m)':r.maglia_S||0,"],
+  // 12 · il secondo foglio dell'Excel con la convenzione del primo capovolta
+  ["                Mc:t.mc===null?'':+t.mc.toFixed(2),",
+   "                Mc:+(t.mc||0).toFixed(2),"],
+  // 13 · il modulo vuoto che si sovrascrive da solo
+  ["+'_'+nFori+'fori'+(nFile>1?'_'+nFile+'file':'')+'.pdf');",
+   "+'.pdf');"],
+  /* 14 · il rapportino che si sovrascrive da solo — due punti in un colpo solo
+         (perforazione e fochino), perché la stringa è la stessa */
+  ["_${r.data}_${r.id.substr(0,8).toUpperCase()}.pdf`);",
+   "_${r.data}.pdf`);"],
+  /* 15 · la striscia sopra il bottone «⤓ PDF»: quella che dava «0m · 0mc» sopra
+         un foglio che per lo stesso stato scrive «-». Il difetto qui è
+         **una sola riga in un posto solo** solo perché la copia gemella è
+         stata tolta: prima ce n'erano due, e rimetterne una sola avrebbe
+         lasciato passare metà delle schermate. */
+  ["    <span class=\"ec-stat\"><b>${mv.metri===null?'—':mv.metri}</b>m</span>\n    ${mv.kgNoto?`<span class=\"ec-stat\"><b>${mv.parziale?'≥':''}${mv.kg}</b>kg</span>`:''}\n    <span class=\"ec-stat\"><b>${mv.mcNoto?mv.mc:'—'}</b>mc</span>",
+   "    <span class=\"ec-stat\"><b>${v.tot_metri}</b>m</span>\n    ${v.tot_kg>0?`<span class=\"ec-stat\"><b>${v.tot_kg}</b>kg</span>`:''}\n    <span class=\"ec-stat\"><b>${v.tot_mc}</b>mc</span>"],
+  // 16 · la colonna PROGETTO della riconciliazione a «0,0» invece che «non quotato»
+  ["      ['Metri', cif(progMetri,'non quotato').replace('.',','), cif(realMetri).replace('.',','), seg(dM)],\n      ['Mc abbattuti', cif(progMc,'non quotato').replace('.',','), cif(realMc).replace('.',','), seg(dC)]",
+   "      ['Metri', (progMetri||0).toFixed(1).replace('.',','), cif(realMetri).replace('.',','), seg(dM)],\n      ['Mc abbattuti', (progMc||0).toFixed(1).replace('.',','), cif(realMc).replace('.',','), seg(dC)]"],
 ];
 
 /* ── IL REGISTRATORE AL POSTO DI jsPDF ──
@@ -230,7 +313,30 @@ window.Chart.register = function(){};
 window.Chart.defaults = { font: {}, plugins: { legend: { labels: {} } } };
 `;
 
-let agganci = { volate: 0, guasti: 0, riaperto: 0 };
+/* ⚠️ E UN REGISTRATORE AL POSTO DI SheetJS, con la stessa idea del jsPDF finto:
+   quello che si vuole guardare non è il file .xlsx impaginato, sono **le celle**
+   che il core chiede di scriverci. `json_to_sheet` riceve oggetti e ne fa righe,
+   `sheet_add_aoa` appende righe già fatte, `writeFile` chiude la cartella di
+   lavoro. Il bottone si preme davvero: il core, non trovando `window.XLSX`, va a
+   caricarlo dal CDN — ed è quella richiesta a essere intercettata. */
+const FINTO_XLSX = `
+(function(){
+  var reg = window.__xlsx = { salvati: [] };
+  function Foglio(){ this.__righe = []; }
+  window.XLSX = { utils: {
+      json_to_sheet: function(righe){ var f = new Foglio();
+        if (righe.length) { var col = Object.keys(righe[0]); f.__righe.push(col);
+          righe.forEach(function(r){ f.__righe.push(col.map(function(k){ return r[k]; })); }); }
+        return f; },
+      sheet_add_aoa: function(f, aoa){ (aoa || []).forEach(function(r){ f.__righe.push(r); }); return f; },
+      book_new: function(){ return { fogli: [] }; },
+      book_append_sheet: function(wb, f, nome){ wb.fogli.push({ nome: String(nome), righe: f.__righe }); }
+    },
+    writeFile: function(wb, nome){ reg.salvati.push({ nome: String(nome), fogli: wb.fogli }); } };
+})();
+`;
+
+let agganci = { volate: 0, guasti: 0, riaperto: 0, nuda: 0, giugno: 0 };
 let colpiti = new Set();
 const srv = createServer((q, s) => {
   let p = join(R, decodeURIComponent(q.url.split("?")[0]));
@@ -248,6 +354,12 @@ const srv = createServer((q, s) => {
     prima = t;
     t = t.split(ANCORA_RAPP).join(RAPP_RIAPERTO + ANCORA_RAPP);
     if (t !== prima) agganci.riaperto = 1;
+    prima = t;
+    t = t.split(ANCORA_VOLATE).join(VOLATA_NUDA + ANCORA_VOLATE);
+    if (t !== prima) agganci.nuda = 1;
+    prima = t;
+    t = t.split(ANCORA_RAPP).join(RAPP_GIUGNO + ANCORA_RAPP);
+    if (t !== prima) agganci.giugno = 1;
       if (CONTROPROVA) for (const [sano, malato] of DIFETTI) {
       const suoStrato = sano.includes("pointer-events");
       if (suoStrato !== CONTRO_TOCCO) continue;         // uno strato per volta
@@ -286,7 +398,18 @@ const dice = (c, t, x) => {
    dashboard, e a 844 finisce **sotto la barra di navigazione fissa** — il
    click non arriva mai al bottone e il banco muore per timeout invece di
    misurare. La larghezza resta quella del telefono. */
-const pg = await b.newPage({ viewport: { width: 390, height: 1200 } });
+/* ⛔ E IL SERVICE WORKER VA BLOCCATO, se no una rotta smette di funzionare DOPO
+   qualche secondo e non si capisce perché. Misurato il 07/08 e costato mezz'ora:
+   la libreria di Excel il core la va a prendere dal CDN solo quando si preme il
+   bottone — cioè **tardi**, quando `setupPWA` ha già registrato `./sw.js` e il
+   worker controlla la pagina. Da quel momento le richieste non passano più dal
+   livello delle rotte di Playwright (che di norma non intercetta quelle del
+   service worker): la richiesta usciva davvero, non c'era rete, e tornava
+   `net::ERR_ABORTED` → «Impossibile caricare Excel (serve connessione)».
+   Il segno che inganna: jsPDF e Chart.js, caricati all'AVVIO, arrivavano
+   benissimo — quindi «le rotte funzionano» era vero e falso allo stesso tempo,
+   a seconda di quando si chiede. */
+const pg = await b.newPage({ viewport: { width: 390, height: 1200 }, serviceWorkers: "block" });
 const errori = [];
 pg.on("pageerror", (e) => errori.push(e.message));
 await montaFintoFirebase(pg);
@@ -296,6 +419,8 @@ await pg.route("https://cdn.jsdelivr.net/npm/jspdf@**/jspdf.umd.min.js", (r) =>
   r.fulfill({ status: 200, contentType: "text/javascript", body: REGISTRATORE }));
 await pg.route("https://cdn.jsdelivr.net/npm/chart.js@**", (r) =>
   r.fulfill({ status: 200, contentType: "text/javascript", body: FINTO_CHART }));
+await pg.route("https://cdn.jsdelivr.net/npm/xlsx@**", (r) =>
+  r.fulfill({ status: 200, contentType: "text/javascript", body: FINTO_XLSX }));
 await pg.route("https://www.gstatic.com/firebasejs/**firebase-firestore.js", (r) =>
   r.fulfill({ status: 200, contentType: "text/javascript",
     body: MODULI["firebase-firestore.js"].replace(
@@ -316,8 +441,8 @@ dice(dentro, "si entra davvero nell'app");
    la distinzione che il 07/08 è costata undici prove. Che siano arrivati lo
    provano due righe più sotto: la riga del turno riaperto nel foglio e la
    scheda della frammentazione che si apre. */
-dice(agganci.volate === 1 && agganci.guasti === 1 && agganci.riaperto === 1,
-  `i casi hanno agganciato il TESTO della pagina servita (volate ${agganci.volate}, guasti ${agganci.guasti}, riaperto ${agganci.riaperto})`,
+dice(Object.values(agganci).every((x) => x === 1),
+  `i casi hanno agganciato il TESTO della pagina servita (${Object.entries(agganci).map(([k, v]) => k + " " + v).join(", ")})`,
   JSON.stringify(agganci));
 dice(await pg.evaluate(() => !!(window.jspdf && window.jspdf.jsPDF)), "il registratore ha preso il posto di jsPDF");
 
@@ -534,7 +659,248 @@ dice(/2%/.test(t3) || /2 %/.test(t3), "la valutazione a metà tiene i due valori
 dice(/incompleta|non attendibile|22/.test(t3 + g3),
   "⛔ ma dichiara che la distribuzione non fa 100: un oversize su un totale del 22% non è confrontabile", t3 + " | " + g3);
 
-/* ══ 3 · IL TOCCO ARRIVA DAVVERO AL BOTTONE? ══
+/* ══ 3 · LO SCHEMA DI VOLATA, e il numero più sorvegliato dell'app ══
+   ⛔ «56 KG» SU UNA VOLATA CARICATA PER META'. Misurato il 07/08 premendo il
+   bottone «⤓ PDF» dell'editor su `vol_2` della dimostrazione: sette fori su
+   dodici portano i chili, `tot_kg` vale 56, e il foglio scriveva nel riquadro
+   grande «56kg» e nei totali di pagina 3 «Carica: 56 kg», senza una parola.
+   La prova che quel totale sia incompleto sta DENTRO lo stesso documento —
+   pagina 3, colonna «Carica», cinque righe su dodici a «-» — quindi il foglio
+   porta il proprio smentimento e dichiara comunque il numero come definitivo.
+   La scheda della cava, nello stesso istante, la diceva giusta: passa da
+   `volKg` → `misureVolataProgetto` e scrive «56 kg di esplosivo (7 fori su 12
+   caricati)». Qui la copia debole era il DOCUMENTO — il verso opposto a quello
+   del 03/08, sulla stessa coppia di funzioni.
+   ⚠️ E LE DUE DOMANDE SONO SEPARATE. Il conto (56) può essere giusto mentre a
+   mentire è il modo in cui viene dichiarato: si guarda il numero **e** si
+   guarda che il foglio sia d'accordo con la propria tabella. */
+const volateProvate = [], ripieghi = [];
+const strisce = {};
+async function pdfVolata(id) {
+  await pg.evaluate((i) => window.apriEditorCava(i), id);
+  await pg.waitForTimeout(500);
+  /* ⛔ E LA STRISCIA SOPRA IL BOTTONE SI LEGGE PRIMA DI PREMERLO. È la domanda
+     di questo banco applicata al centimetro: quello che lo schermo dice
+     nell'istante in cui il dito tocca «⤓ PDF» e quello che il foglio scrive
+     devono essere la stessa cosa. Fino al 07/08 la striscia diceva «0m · 0mc»
+     su una volata non ancora quotata — e la stessa riga era scritta DUE volte
+     nel core, a millesettecento righe di distanza. */
+  strisce[id] = await pg.evaluate(() => (document.getElementById("ec-stats")?.textContent || "").replace(/\s+/g, " ").trim());
+  const prima = await pg.evaluate(() => (window.__pdf?.salvati || []).length);
+  /* il bottone vero della barra dell'editor, non la funzione */
+  let premuto = true;
+  try { await pg.click('.ec-tool:has-text("PDF")', { timeout: 6000 }); }
+  catch (e) { premuto = false; ripieghi.push(id); }
+  await pg.waitForTimeout(600);
+  const n = await pg.evaluate(() => (window.__pdf?.salvati || []).length);
+  volateProvate.push(id);
+  if (!premuto || n === prima) return null;
+  return await pg.evaluate(() => (window.__pdf?.salvati || []).slice(-1)[0] || null);
+}
+/* lo SCHERMO: la scheda della cava mostra le volate con `volKg`/`volMc` */
+await pg.evaluate(() => window.apriCava("cava_2"));
+await pg.waitForTimeout(600);
+const schermoVol2 = await pg.evaluate(() => {
+  /* ⚠️ solo i `.sitem` della scheda VISIBILE: le altre schermate restano nel
+     DOM con `display:none`, e una ricerca a tappeto pescherebbe la riga di
+     un'altra pagina credendola quella che si sta guardando. */
+  const r = [...document.querySelectorAll("#screen-cava-det .sitem")]
+    .filter((x) => x.getBoundingClientRect().height > 0)
+    .find((x) => /Volata #1/.test(x.querySelector(".sname")?.textContent || ""));
+  return r ? (r.querySelector(".ssub")?.textContent || "").trim() : "";
+});
+dice(/56/.test(schermoVol2) && /su 12/.test(schermoVol2),
+  `⚠️ lo SCHERMO dice il totale e la sua riserva ("${schermoVol2}")`, schermoVol2);
+
+const pv2 = await pdfVolata("vol_2");
+const t_v2 = (pv2 ? pv2.testi : []).join(" · ");
+const tabFori2 = (pv2 && pv2.tabelle[0]) ? pv2.tabelle[0].body : [];
+dice(!!pv2, `il bottone «PDF» dell'editor produce un documento (${pv2 ? pv2.nome : "nessuno"})`, pv2 && pv2.nome);
+/* i due numeri si prendono dai due posti e si confrontano, invece di scriverne uno */
+const kgSchermo = (schermoVol2.match(/([\d.,]+)\s*kg/i) || [])[1];
+const kgFoglio = (t_v2.match(/([\d.,]+)kg/) || [])[1];
+dice(!!kgSchermo && kgSchermo === kgFoglio,
+  `⛔ il riquadro KG del foglio porta lo stesso numero della scheda a schermo (schermo ${kgSchermo}, foglio ${kgFoglio})`,
+  JSON.stringify({ schermoVol2, t_v2: t_v2.slice(0, 300) }));
+dice(/PARZIALE/.test(t_v2) && /non portano i chili/.test(t_v2),
+  "⛔ e dichiara che il carico è a metà, invece di far passare il totale per definitivo", t_v2);
+dice(/almeno 56 kg/.test(t_v2), "e i totali di pagina 3 dicono «almeno», la stessa parola del foglio del fochino", t_v2);
+/* ⛔ LA PROVA DERIVATA: il foglio dev'essere d'accordo con la propria tabella.
+   Non c'è nessun numero scritto a mano qui dentro — se domani la dimostrazione
+   caricasse un foro in più, questa riga continuerebbe a dire il vero. */
+const senzaCarica = tabFori2.filter((r) => r[6] === "-").length;
+const dichiarati = Number((t_v2.match(/(\d+)\s+fori su (\d+) non portano/) || [])[1]);
+dice(tabFori2.length > 0 && senzaCarica === dichiarati,
+  `⛔ i fori che il foglio dichiara senza chili sono quelli che la sua tabella mostra senza chili (${dichiarati} dichiarati, ${senzaCarica} nella tabella su ${tabFori2.length} righe)`,
+  JSON.stringify({ dichiarati, senzaCarica, righe: tabFori2.length }));
+
+const pv3 = await pdfVolata("vol_3");
+const t_v3 = (pv3 ? pv3.testi : []).join(" · ");
+dice(/Nessun foro porta i chili/.test(t_v3),
+  "⛔ una volata i cui chili non ha ancora scritto nessuno lo DICE, invece di un «-» muto", t_v3);
+
+const pvN = await pdfVolata("vz9");
+const t_vN = (pvN ? pvN.testi : []).join(" · ");
+dice(!!pvN && !/"0m"/.test(JSON.stringify(pvN.testi)) && !/\b0m\b/.test(t_vN),
+  "⛔ una volata disegnata e non ancora quotata NON stampa «0m» di metri", t_vN);
+dice(/Nessun foro porta la profondit/.test(t_vN),
+  "e dice perché: metri e volume non sono zero, non ci sono", t_vN);
+dice(!!pvN && pvN.testi.some((x, i) => x === "Metri:" && pvN.testi[i + 1] === "-"),
+  "⛔ e nei totali di pagina 3 i metri sono un trattino, non uno zero", t_vN);
+
+/* ⚠️ E LA VOLATA SANA DEVE RESTARE UN NUMERO, se no il modo più facile di far
+   passare le tre righe qui sopra sarebbe spegnere ogni valore. */
+const pv1 = await pdfVolata("vol_1");
+const t_v1 = (pv1 ? pv1.testi : []).join(" · ");
+dice(/112kg/.test(t_v1) && /1323mc/.test(t_v1) && !/PARZIALE/.test(t_v1) && !/non portano i chili/.test(t_v1),
+  "la volata caricata per intero continua a dire i suoi numeri, senza riserve", t_v1);
+/* ── LO SCHERMO CHE OSPITA IL BOTTONE, CONFRONTATO COL FOGLIO ──
+   Le due domande sono le stesse per tutt'e quattro le volate, e la risposta si
+   ricava dai due testi: nessun numero scritto a mano qui dentro. */
+dice(!/\b0m\b/.test(strisce.vz9 || "") && /—m/.test(strisce.vz9 || ""),
+  `⛔ la striscia sopra il bottone NON dice «0m» sulla volata non quotata ("${strisce.vz9}")`, strisce.vz9);
+dice(!/\b0mc\b/.test(strisce.vz9 || "") && /—mc/.test(strisce.vz9 || ""),
+  "e nemmeno «0mc»: lo schermo e il foglio danno la stessa risposta", strisce.vz9);
+dice(/≥56kg/.test(strisce.vol_2 || ""),
+  `⛔ e sulla volata caricata a metà la striscia dichiara che il totale è un minimo ("${strisce.vol_2}")`, strisce.vol_2);
+dice(/126m/.test(strisce.vol_1 || "") && /112kg/.test(strisce.vol_1 || "") && /1323mc/.test(strisce.vol_1 || "") && !/≥/.test(strisce.vol_1 || ""),
+  "⚠️ e sulla volata sana continua a dire i suoi numeri, senza riserve", strisce.vol_1);
+dice(volateProvate.length === 4 && ripieghi.length === 0,
+  `⚠️ schemi di volata premuti col bottone vero: ${volateProvate.length} (${volateProvate.join(", ")})`,
+  "il bottone non si è potuto premere su: " + ripieghi.join(", "));
+
+/* ══ 4 · L'EXCEL MENSILE, che si smentiva di tre colonne ══
+   ⛔ Misurato premendo «📊 Excel» su luglio: la riga del 23/07 usciva
+   «Maglia: —», «Mc: (vuoto)» e in fondo al foglio la nota «1 senza maglia,
+   quindi senza volume calcolabile» — e in mezzo, **«Burden 0» e
+   «Spaziatura 0»**. Cioè il foglio dichiarava mancante proprio la maglia di cui
+   scriveva le due misure, e chi ne fa la media in Excel somma due zeri che
+   sembrano misure.
+   ⛔ E IL SECONDO FOGLIO AVEVA LA CONVENZIONE DEL PRIMO CAPOVOLTA: «Riepilogo
+   cave» partiva da `Mc:0` e sommava `mm.calcolabile?mm.mc:0`, quindi una cava i
+   cui rapportini del mese non sanno dire il volume usciva «Mc 0,00» — lo zero
+   tranquillo, due schede più in là dalla stessa cosa scritta vuota. */
+async function excelDi(mese) {
+  const prima = await pg.evaluate(() => (window.__xlsx?.salvati || []).length);
+  await pg.evaluate(() => window.exportRapportiniXLSX());
+  await pg.waitForTimeout(1500);           // il core va a prendere SheetJS dal CDN
+  const apertaX = await pg.evaluate(() => !!document.getElementById("xlsx-mese"));
+  if (!apertaX) return null;
+  await pg.fill("#xlsx-mese", mese);
+  await pg.click("#modal .mbtn.primary");
+  await pg.waitForTimeout(800);
+  const n = await pg.evaluate(() => (window.__xlsx?.salvati || []).length);
+  if (n === prima) { await pg.evaluate(() => window.closeModal()); return null; }
+  return await pg.evaluate(() => (window.__xlsx?.salvati || []).slice(-1)[0] || null);
+}
+const xLug = await excelDi("2026-07");
+dice(!!xLug, `il bottone «Excel» produce una cartella di lavoro (${xLug ? xLug.nome : "nessuna"})`, xLug && xLug.nome);
+const f1 = (xLug && xLug.fogli[0]) ? xLug.fogli[0].righe : [];
+const f2 = (xLug && xLug.fogli[1]) ? xLug.fogli[1].righe : [];
+const col = (nome) => (f1[0] || []).indexOf(nome);
+const rigaLug = (gg) => f1.find((r) => String(r[0]) === gg) || [];
+const r23x = rigaLug("23/07/2026"), r14x = rigaLug("14/07/2026");
+dice(r23x.length > 0 && r23x[col("Burden (m)")] === "" && r23x[col("Spaziatura (m)")] === "",
+  `⛔ la riga senza maglia lascia VUOTE le due celle della maglia, invece di scriverci due zeri (burden ${JSON.stringify(r23x[col("Burden (m)")])}, spaziatura ${JSON.stringify(r23x[col("Spaziatura (m)")])})`,
+  JSON.stringify(r23x));
+dice(r23x.length > 0 && r23x[col("Maglia")] === "—" && r23x[col("Mc")] === "",
+  "e nella stessa riga la maglia è «—» e il volume è vuoto: il foglio non si smentisce più di tre colonne",
+  JSON.stringify(r23x));
+dice(r14x.length > 0 && r14x[col("Burden (m)")] === 3 && r14x[col("Spaziatura (m)")] === 3.5,
+  "⚠️ e la riga sana tiene i suoi 3 × 3,5: non si è spento tutto", JSON.stringify(r14x));
+/* il piede del primo foglio è la somma di quello che il foglio stesso ha
+   stampato — derivata, come quella del Report tecnico */
+const totRiga = f1.find((r) => r.includes("TOTALI")) || [];
+const sommaMcF1 = f1.slice(1).filter((r) => r !== totRiga && typeof r[col("Mc")] === "number").reduce((s, r) => s + r[col("Mc")], 0);
+dice(totRiga.length > 0 && Math.abs(totRiga[col("Mc")] - sommaMcF1) < 0.05,
+  `la riga TOTALI è la somma delle celle che il foglio ha davvero scritto (${sommaMcF1.toFixed(1)})`, JSON.stringify(totRiga));
+
+const xGiu = await excelDi("2026-06");
+const g2 = (xGiu && xGiu.fogli[1]) ? xGiu.fogli[1].righe : [];
+const colG = (nome) => (g2[0] || []).indexOf(nome);
+const gSerra = g2.find((r) => /Monte Serra/.test(String(r[0]))) || [];
+const gSecca = g2.find((r) => /Valle Secca/.test(String(r[0]))) || [];
+dice(gSerra.length > 0 && gSerra[colG("Mc")] === "" && gSerra[colG("Metri")] === "",
+  `⛔ nel «Riepilogo cave» la cava senza nessun volume misurabile ha la cella VUOTA, come nel primo foglio (mc ${JSON.stringify(gSerra[colG("Mc")])})`,
+  JSON.stringify(gSerra));
+dice(gSerra.length > 0 && gSerra[colG("Senza misura")] === 1,
+  "e lo dichiara nella colonna che serve a quello", JSON.stringify(gSerra));
+dice(gSecca.length > 0 && typeof gSecca[colG("Mc")] === "number" && gSecca[colG("Mc")] > 0,
+  "⚠️ e la cava che il volume lo sa dire lo scrive: le due colonne distinguono ancora", JSON.stringify(gSecca));
+dice(!!xLug && !!xGiu && xLug.nome !== xGiu.nome,
+  `⚠️ due mesi, due file (${xLug && xLug.nome} · ${xGiu && xGiu.nome})`, JSON.stringify([xLug && xLug.nome, xGiu && xGiu.nome]));
+
+/* ══ 5 · I NOMI DEI FILE, che si sovrascrivevano da soli ══
+   ⛔ Misurato il 07/08 salvando due volte di fila: un modulo da 5 fori su 2
+   file e uno da 30 su 1 uscivano tutt'e due «Modulo_rapportino_perforazione
+   .pdf»; due turni della stessa cava nello stesso giorno — mattina e
+   pomeriggio, che in cava è la normalità — uscivano tutt'e due
+   «Rapportino_Cava_Valle_Secca_2026-06-10.pdf». Chi ne scarica due si tiene
+   solo il secondo, e il nome non gli dice quale sia rimasto. */
+const ultimoPdf = () => pg.evaluate(() => (window.__pdf?.salvati || []).slice(-1)[0] || null);
+async function nomeModulo(tipo, fori, file) {
+  await pg.evaluate(() => window.rapportinoVuoto());
+  await pg.waitForTimeout(350);
+  await pg.selectOption("#rv-tipo", tipo);
+  await pg.fill("#rv-fori", String(fori)); await pg.fill("#rv-file", String(file));
+  await pg.click("#modal .mbtn.primary");
+  await pg.waitForTimeout(500);
+  const d = await ultimoPdf();
+  return d ? d.nome : null;
+}
+const modA = await nomeModulo("perf", 5, 2), modB = await nomeModulo("perf", 30, 1);
+dice(!!modA && !!modB && modA !== modB,
+  `⛔ due moduli vuoti diversi, due nomi di file diversi (${modA} · ${modB})`, JSON.stringify([modA, modB]));
+dice(!!modA && /perforazione/.test(modA) && /5/.test(modA),
+  "e il nome resta leggibile: dice il tipo e quello che l'utente ha scelto", modA);
+
+async function nomeRapportino(id) {
+  await pg.evaluate((i) => window.apriRapport(i), id);
+  await pg.waitForTimeout(400);
+  await pg.click('#modal .mbtn:has-text("PDF")');
+  await pg.waitForTimeout(500);
+  const d = await ultimoPdf();
+  return d ? d.nome : null;
+}
+const nrA = await nomeRapportino("rg2"), nrB = await nomeRapportino("rg3");
+dice(!!nrA && !!nrB && nrA !== nrB,
+  `⛔ due turni della stessa cava nello stesso giorno, due nomi di file diversi (${nrA} · ${nrB})`, JSON.stringify([nrA, nrB]));
+dice(!!nrA && /Valle_Secca/.test(nrA) && /2026-06-10/.test(nrA),
+  "e il nome porta ancora la cava e il giorno, che è quello che si cerca in una cartella", nrA);
+
+/* ══ 6 · LA RICONCILIAZIONE DI UN PROGETTO NON ANCORA QUOTATO ══
+   ⛔ La colonna «Progetto» aveva lo stesso difetto della colonna «Perforato»,
+   dall'altra parte: `v.tot_metri||0` scriveva «0,0 PROGETTO» accanto a un
+   perforato vero, cioè uno sforamento totale, dove la verità è che il progetto
+   non è ancora stato quotato. E la colonna della differenza rispondeva già
+   «non calcolabile»: la riga si contraddiceva da sola.
+   ⚠️ Qui erano deboli tutt'e due le metà — schermo e documento — quindi il
+   confronto è che DICANO LA STESSA COSA e che nessuna delle due dica «0,0». */
+await pg.evaluate(() => { window.apriEditorCava("vz9"); window.apriRiconciliazione("vz9"); });
+await pg.waitForTimeout(700);
+const ricSchermo = await pg.evaluate(() => (document.getElementById("modal-body")?.innerText || "").replace(/\s+/g, " "));
+const ricAperta = /PROGETTO/.test(ricSchermo);
+let ricPdf = null;
+if (ricAperta) {
+  const prima = await pg.evaluate(() => (window.__pdf?.salvati || []).length);
+  await pg.click('#modal .mbtn:has-text("Esporta PDF")');
+  await pg.waitForTimeout(700);
+  const n = await pg.evaluate(() => (window.__pdf?.salvati || []).length);
+  if (n > prima) ricPdf = await ultimoPdf();
+}
+dice(ricAperta, "⚠️ la riconciliazione si apre davvero sul progetto non quotato", ricSchermo.slice(0, 200));
+const ricTab = (ricPdf && ricPdf.tabelle[0]) ? ricPdf.tabelle[0].body : [];
+const ricMetri = ricTab.find((r) => /Metri/.test(r[0])) || [];
+const ricMc = ricTab.find((r) => /Mc/.test(r[0])) || [];
+dice(ricMetri.length > 0 && /non quotato/.test(ricMetri[1]) && /non quotato/.test(ricMc[1]),
+  `⛔ la colonna PROGETTO dice «non quotato», non «0,0» (metri ${JSON.stringify(ricMetri[1])}, mc ${JSON.stringify(ricMc[1])})`,
+  JSON.stringify(ricTab));
+dice(ricAperta && !/0\.0 PROGETTO/.test(ricSchermo) && /— PROGETTO/.test(ricSchermo),
+  "e lo schermo, nello stesso istante, dice la stessa cosa a modo suo («—»)", ricSchermo.slice(0, 400));
+dice(ricMetri.length > 0 && /non calcolabile/.test(ricMetri[3]),
+  "e la differenza resta non calcolabile: la riga non si contraddice più", JSON.stringify(ricMetri));
+
+/* ══ 7 · IL TOCCO ARRIVA DAVVERO AL BOTTONE? ══
    ⛔ Trovato mentre si cercava di premere il bottone del Report tecnico, e non
    leggendo il codice: `.toast` non si nasconde mai. Resta `position:fixed` a
    80 px dal fondo con `opacity:0` ma `visibility:visible` e — questo era il

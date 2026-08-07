@@ -1830,7 +1830,13 @@ function generaRappVuotoPDF(tipo,nFori,nFile){
   // footer su ogni pagina
   const pages=d.internal.getNumberOfPages();
   for(let p=1;p<=pages;p++){d.setPage(p);d.setDrawColor(220,210,180);d.line(14,288,196,288);d.setTextColor(150,130,80);d.setFont('helvetica','italic');d.setFontSize(8);d.text('Deepwork per Cofa Mineraria',14,292);d.setTextColor(160,160,160);d.setFont('helvetica','normal');d.text('pag. '+p+'/'+pages,196,292,{align:'right'});}
-  d.save('Modulo_rapportino_'+(isFoc?'fochino':'perforazione')+'.pdf');
+  /* ⛔ DUE MODULI DIVERSI, LO STESSO NOME DI FILE. Misurato il 07/08: la
+     finestra chiede quante righe e quante file, e un modulo da 5 fori su 2 file
+     e uno da 30 su 1 uscivano tutt'e due «Modulo_rapportino_perforazione.pdf».
+     Chi ne stampa due per due macchine diverse, sullo stesso telefono, si
+     ritrova il primo cancellato dal secondo — e il nome non gli dice quale dei
+     due sia rimasto. Il nome porta adesso quello che l'utente ha scelto. */
+  d.save('Modulo_rapportino_'+(isFoc?'fochino':'perforazione')+'_'+nFori+'fori'+(nFile>1?'_'+nFile+'file':'')+'.pdf');
   toast('Modulo PDF generato','success');
 }
 
@@ -3994,7 +4000,13 @@ function exportRapportinoPDF(r){
   d.setFontSize(8);d.setTextColor(120,120,120);
   d.setFont('helvetica','italic');d.text('Deepwork per Cofa Mineraria',105,285,{align:'center'});d.setFont('helvetica','normal');
   d.text('Documento generato automaticamente da Deepwork — '+new Date().toLocaleString('it-IT'),105,290,{align:'center'});
-  d.save(`Rapportino_${(c?c.nome:'cava').replace(/[^\w]/g,'_')}_${r.data}.pdf`);
+  /* ⛔ E DUE TURNI NELLO STESSO GIORNO SULLA STESSA CAVA AVEVANO LO STESSO NOME.
+     Non e' un caso di laboratorio: mattina e pomeriggio sulla stessa cava sono
+     due rapportini con la stessa `data`, e il nome non portava nient'altro. Chi
+     li scaricava tutt'e due si teneva solo il secondo. Il nome porta adesso lo
+     stesso numero che il foglio stampa in alto a destra («Nr. ...»), cosi' il
+     file e la carta si riconoscono a vicenda. */
+  d.save(`Rapportino_${(c?c.nome:'cava').replace(/[^\w]/g,'_')}_${r.data}_${r.id.substr(0,8).toUpperCase()}.pdf`);
   toast('PDF generato','success');
 }
 
@@ -4099,7 +4111,8 @@ function exportRapportinoFocPDF(r){
   d.setFontSize(8);d.setTextColor(120,120,120);
   d.setFont('helvetica','italic');d.text('Deepwork per Cofa Mineraria',105,285,{align:'center'});d.setFont('helvetica','normal');
   d.text('Documento generato automaticamente da Deepwork — '+new Date().toLocaleString('it-IT'),105,290,{align:'center'});
-  d.save(`Fochino_${(c?c.nome:'cava').replace(/[^\w]/g,'_')}_${r.data}.pdf`);
+  // stessa ragione del rapportino di perforazione: il nome porta il «Nr.» del foglio
+  d.save(`Fochino_${(c?c.nome:'cava').replace(/[^\w]/g,'_')}_${r.data}_${r.id.substr(0,8).toUpperCase()}.pdf`);
   toast('PDF generato','success');
 }
 
@@ -4132,6 +4145,8 @@ async function exportRapportiniXLSX(){
       const cavaId=$('xlsx-cava').value;
       const filt=DB.rapportini.filter(r=>(r.data||'').startsWith(mese)&&(!cavaId||r.cavaId===cavaId));
       if(filt.length===0){toast('Nessun rapportino nel periodo','err');return;}
+      // una cella che nessuno ha scritto resta vuota, e chi lo decide e' `shared/`
+      const cellaNum=x=>{const n=numeroScritto(x,{positivo:true});return n.ok?n.valore:'';};
       const rows=filt.map(r=>{
         const c=DB.cave.find(x=>x.id===r.cavaId);
         const u=DB.users.find(x=>x.id===r.userId);
@@ -4144,10 +4159,21 @@ async function exportRapportiniXLSX(){
           'Cliente':cli?cli.ragsoc:(c?.cliente||'—'),
           'Operatore':u?(u.nome+' '+u.cognome):'—',
           'Mezzo':m?(m.modello+' ('+m.targa+')'):'—',
-          'Diametro (mm)':r.diametro||0,
+          /* ⛔ E LO STESSO FOGLIO SI SMENTIVA DI TRE COLONNE. Misurato il 07/08
+             premendo il bottone: la riga del 23/07 usciva «Maglia: —», «Mc:
+             (vuoto)» e in fondo la nota «1 senza maglia, quindi senza volume
+             calcolabile» — e in mezzo, **«Burden 0» e «Spaziatura 0»**. Cioe'
+             il foglio dichiarava mancante proprio la maglia di cui scriveva le
+             due misure, e chi ne fa la media in Excel ottiene un numero falso
+             da celle che *sembrano* misure. `||0` e' la stessa scorciatoia che
+             mette gli zeri nei totali, spostata sui parametri.
+             Il lettore e' quello di `shared/`: `numeroScritto` con `positivo`,
+             lo stesso che le guardie dei campi usano per decidere se un numero
+             e' stato scritto — non una regola nuova scritta qui. */
+          'Diametro (mm)':cellaNum(r.diametro),
           'Maglia':r.maglia||'—',
-          'Burden (m)':r.maglia_B||0,
-          'Spaziatura (m)':r.maglia_S||0,
+          'Burden (m)':cellaNum(r.maglia_B),
+          'Spaziatura (m)':cellaNum(r.maglia_S),
           /* ⛔ La cella si lascia VUOTA, non a zero: chi apre il file in un
              foglio somma gli zeri credendoli misure. È la convenzione che il
              riepilogo di Terra usa già per i banchi. */
@@ -4181,20 +4207,29 @@ async function exportRapportiniXLSX(){
       const wb=XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(wb,ws,'Rapportini '+mese);
       // Foglio 2: Riepilogo per cava
+      /* ⛔ DUE CONVENZIONI NELLO STESSO FILE. Il primo foglio lascia la cella
+         VUOTA quando il volume non si puo' calcolare (e la riga in fondo dice
+         quante righe sono rimaste fuori); questo secondo foglio partiva da
+         `Mc:0` e sommava `mm.calcolabile?mm.mc:0`, quindi una cava i cui
+         rapportini del mese non sanno dire il volume usciva **«Mc 0,00»** —
+         lo zero tranquillo, nella stessa cartella di lavoro in cui la stessa
+         cosa e' scritta vuota due schede piu' in la'. Adesso il conto lo fa
+         `totaliRapportini`, cioe' la funzione che decide anche la riga dei
+         totali del primo foglio e i numeri della dashboard: un file, una
+         regola. */
       const perCava={};
       filt.forEach(r=>{
         const c=DB.cave.find(x=>x.id===r.cavaId);
         const k=c?c.nome:'—';
-        perCava[k]=perCava[k]||{Cava:k,Rapportini:0,Fori:0,Metri:0,Mc:0,'Senza misura':0,'Senza volume':0};
-        perCava[k].Rapportini++;
-        const mm=misureRapportino(r);
-        perCava[k].Fori+=(mm.fori||0);
-        perCava[k].Metri+=(mm.metri||0);
-        perCava[k].Mc+=(mm.calcolabile?mm.mc:0);
-        if(!mm.misurato)perCava[k]['Senza misura']++;
-        else if(!mm.calcolabile)perCava[k]['Senza volume']++;
+        (perCava[k]=perCava[k]||[]).push(r);
       });
-      const riepRows=Object.values(perCava).map(x=>({...x,Metri:+x.Metri.toFixed(2),Mc:+x.Mc.toFixed(2)}));
+      const riepRows=Object.keys(perCava).map(k=>{
+        const t=totaliRapportini(perCava[k]);
+        return {Cava:k, Rapportini:t.su, Fori:t.fori,
+                Metri:t.metri===null?'':+t.metri.toFixed(2),
+                Mc:t.mc===null?'':+t.mc.toFixed(2),
+                'Senza misura':t.senzaMisura, 'Senza volume':t.senzaVolume};
+      });
       const ws2=XLSX.utils.json_to_sheet(riepRows);
       ws2['!cols']=[{wch:25},{wch:11},{wch:7},{wch:9},{wch:9},{wch:14},{wch:15}];
       XLSX.utils.book_append_sheet(wb,ws2,'Riepilogo cave');
@@ -5120,15 +5155,7 @@ function renderEditorCava(){
   // Statistiche live
   ricalcolaTotaliVolata(v);
   const Borr=getBorraggio(v);const Spaz=getSpaziatura(v);
-  $('ec-stats').innerHTML=`
-    <span class="ec-stat">${tipoLabel}</span>
-    <span class="ec-stat"><b>${v.tot_fori}</b>${plurale(v.tot_fori,'foro','fori')}</span>
-    <span class="ec-stat"><b>${v.maglia.file}</b>file</span>
-    <span class="ec-stat"><b>Sp${Borr}</b>×I<b>${Spaz}</b></span>
-    <span class="ec-stat"><b>${v.tot_metri}</b>m</span>
-    ${v.tot_kg>0?`<span class="ec-stat"><b>${v.tot_kg}</b>kg</span>`:''}
-    <span class="ec-stat"><b>${v.tot_mc}</b>mc</span>
-  `;
+  _aggiornaEcStats(v,tipoLabel);
   // Canvas SVG
   renderEditorCanvas();
   // Pannello laterale
@@ -5385,14 +5412,19 @@ function renderEditorSide(){
   // ── Sola lettura: riepilogo non modificabile ──
   if(state.volataReadonly){
     const cava=DB.cave.find(c=>c.id===v.cavaId);
+    const mvRo=misureVolataProgetto(v);
     $('ec-side').innerHTML=`
       <div class="info-box" style="margin-bottom:10px;border-left-color:var(--info);">🔒 Progetto condiviso in sola lettura.</div>
       <div class="preview-sec">
         <div class="preview-row"><span class="preview-lab">Nome</span><span class="preview-val">${escHtml(v.nomeProgetto||'Volata #'+v.numero)}</span></div>
         <div class="preview-row"><span class="preview-lab">Cava/Tipo</span><span class="preview-val">${escHtml(cava?cava.nome:(v.tipo||'—'))}</span></div>
-        <div class="preview-row"><span class="preview-lab">Fori</span><span class="preview-val">${v.tot_fori}</span></div>
+        <div class="preview-row"><span class="preview-lab">Fori</span><span class="preview-val">${mvRo.fori}</span></div>
         <div class="preview-row"><span class="preview-lab">Maglia</span><span class="preview-val">B ${Borr} × S ${Spaz}</span></div>
-        <div class="preview-row"><span class="preview-lab">Metri</span><span class="preview-val">${v.tot_metri}</span></div>
+        <!-- ⛔ e qui il riquadro sta ATTACCATO al bottone che genera il PDF:
+             un «0» di metri sopra un foglio che scrive «-» sono due risposte
+             diverse alla stessa domanda, date dallo stesso schermo. -->
+        <div class="preview-row"><span class="preview-lab">Metri</span><span class="preview-val">${mvRo.metri===null?'non ancora quotato':mvRo.metri}</span></div>
+        <div class="preview-row"><span class="preview-lab">Esplosivo</span><span class="preview-val">${mvRo.kgNoto?(mvRo.parziale?'almeno ':'')+mvRo.kg+' kg':'chili non ancora scritti'}</span></div>
       </div>
       <button class="btn-sec" style="width:100%;" onclick="exportVolataPDF('${v.id}')">⤓ Scarica PDF</button>
     `;
@@ -6047,11 +6079,19 @@ function apriRiconciliazione(volataId){
     const diff=Math.abs((dr-dataProgetto)/(1000*60*60*24));
     return diff<=7;
   }).sort((a,b)=>(a.data||'').localeCompare(b.data||''));
-  // Calcoli aggregati progetto
-  const progFori=v.tot_fori||0;
-  const progMetri=v.tot_metri||0;
-  const progKg=v.tot_kg||0;
-  const progMc=v.tot_mc||0;
+  /* ⛔ E LA COLONNA «PROGETTO» AVEVA LO STESSO DIFETTO DELLA COLONNA
+     «PERFORATO», DALL'ALTRA PARTE. `v.tot_metri||0` su una volata i cui fori
+     non portano ancora la profondita' scrive **«0,0» PROGETTO** accanto a
+     «102,0 PERFORATO»: chi legge vede un progetto a zero, cioe' uno sforamento
+     totale, dove la verita' e' che il progetto non e' ancora stato quotato. E
+     `delta()` risponde gia' «non calcolabile» — quindi la riga si contraddice
+     da sola, come il riquadro del PDF di volata. La regola e'
+     `misureVolataProgetto` in `shared/`, la stessa che decide `volKg`/`volMc`
+     a schermo: qui erano deboli tutt'e due le meta', schermo e documento. */
+  const mvR=misureVolataProgetto(v);
+  const progFori=mvR.fori;
+  const progMetri=mvR.metri;
+  const progMc=mvR.mc;
   /* ⛔ Calcoli aggregati perforato — e i turni che non sanno dire il volume
      NON entrano nella somma valendo zero: escono contati. `totaliRapportini`
      sta in `shared/`, ed è la stessa regola che decide le righe qui sotto. */
@@ -6100,7 +6140,7 @@ function apriRiconciliazione(volataId){
       <div style="background:var(--card);border:1px solid var(--border);padding:10px 12px;">
         <div style="font-size:10px;color:var(--muted);letter-spacing:1px;text-transform:uppercase;margin-bottom:4px;">Metri perforati</div>
         <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;align-items:center;">
-          <div><div style="font-family:'Barlow Condensed',sans-serif;font-size:24px;font-weight:800;color:var(--amber);">${progMetri.toFixed(1)}</div><div style="font-size:10px;color:var(--muted);">PROGETTO</div></div>
+          <div><div style="font-family:'Barlow Condensed',sans-serif;font-size:24px;font-weight:800;color:var(--amber);">${cifra(progMetri)}</div><div style="font-size:10px;color:var(--muted);">PROGETTO</div></div>
           <div><div style="font-family:'Barlow Condensed',sans-serif;font-size:24px;font-weight:800;color:var(--success);">${cifra(realMetri)}</div><div style="font-size:10px;color:var(--muted);">PERFORATO</div></div>
           <div style="text-align:right;"><div style="font-family:'Barlow Condensed',sans-serif;font-size:18px;font-weight:800;color:${colore(dMetriPct)};">${segno(dMetriPct)}</div><div style="font-size:10px;color:var(--muted);">DIFF</div></div>
         </div>
@@ -6108,7 +6148,7 @@ function apriRiconciliazione(volataId){
       <div style="background:var(--card);border:1px solid var(--border);padding:10px 12px;">
         <div style="font-size:10px;color:var(--muted);letter-spacing:1px;text-transform:uppercase;margin-bottom:4px;">Mc abbattuti</div>
         <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;align-items:center;">
-          <div><div style="font-family:'Barlow Condensed',sans-serif;font-size:24px;font-weight:800;color:var(--amber);">${progMc.toFixed(1)}</div><div style="font-size:10px;color:var(--muted);">PROGETTO</div></div>
+          <div><div style="font-family:'Barlow Condensed',sans-serif;font-size:24px;font-weight:800;color:var(--amber);">${cifra(progMc)}</div><div style="font-size:10px;color:var(--muted);">PROGETTO</div></div>
           <div><div style="font-family:'Barlow Condensed',sans-serif;font-size:24px;font-weight:800;color:var(--success);">${cifra(realMc)}</div><div style="font-size:10px;color:var(--muted);">PERFORATO</div></div>
           <div style="text-align:right;"><div style="font-family:'Barlow Condensed',sans-serif;font-size:18px;font-weight:800;color:${colore(dMcPct)};">${segno(dMcPct)}</div><div style="font-size:10px;color:var(--muted);">DIFF</div></div>
         </div>
@@ -6151,7 +6191,10 @@ function exportRiconciliazionePDF(v, rapportini){
   r1('Data progetto:',fmt(v.data));
   r1('Rapportini analizzati:',rapportini.length+' (±7 giorni)');
   y+=4;
-  const progFori=v.tot_fori||0, progMetri=v.tot_metri||0, progMc=v.tot_mc||0;
+  /* la colonna «Progetto» la decide `misureVolataProgetto`, come a schermo:
+     un progetto non ancora quotato dice «non quotato», non «0,0» */
+  const mvP=misureVolataProgetto(v);
+  const progFori=mvP.fori, progMetri=mvP.metri, progMc=mvP.mc;
   /* ⛔ Stessa regola della schermata: i turni che non sanno dire il volume non
      entrano nella somma valendo zero, e un rapporto col progetto a zero non è
      «+0,0%». Qui pesa di più che a schermo, perché questo è un PDF che esce
@@ -6162,14 +6205,18 @@ function exportRiconciliazionePDF(v, rapportini){
     ? ((real-prog)/prog*100) : null;
   const dF=dl(progFori,realFori), dM=dl(progMetri,realMetri), dC=dl(progMc,realMc);
   const seg=p=>(p===null||!Number.isFinite(p))?'non calcolabile':(p>=0?'+':'')+p.toFixed(1)+'%';
-  const cif=(x,dec=1)=>(x===null||!Number.isFinite(x))?'non misurato':x.toFixed(dec);
+  /* ⚠️ UN PARAMETRO IN PIÙ INVECE DI UNA SECONDA COPIA. Le due colonne dicono
+     la stessa cosa con due parole diverse — un perforato che nessuno ha
+     misurato e un progetto che nessuno ha quotato non sono lo stesso stato —
+     e la tentazione era riscrivere la funzione col secondo aggettivo dentro. */
+  const cif=(x,vuoto='non misurato',dec=1)=>(x===null||!Number.isFinite(x))?vuoto:x.toFixed(dec);
   d.autoTable({
     startY:y,
     head:[['Indicatore','Progetto','Perforato','Differenza %']],
     body:[
       ['Fori', progFori, realFori, seg(dF)],
-      ['Metri', progMetri.toFixed(1).replace('.',','), cif(realMetri).replace('.',','), seg(dM)],
-      ['Mc abbattuti', progMc.toFixed(1).replace('.',','), cif(realMc).replace('.',','), seg(dC)]
+      ['Metri', cif(progMetri,'non quotato').replace('.',','), cif(realMetri).replace('.',','), seg(dM)],
+      ['Mc abbattuti', cif(progMc,'non quotato').replace('.',','), cif(realMc).replace('.',','), seg(dC)]
     ],
     theme:'grid',
     headStyles:{fillColor:[255,171,0],textColor:[28,22,8],fontStyle:'bold',fontSize:10},
@@ -6784,17 +6831,32 @@ function onCanvasDragEnd(ev){
 }
 
 // Aggiornamenti
-function _aggiornaEcStats(v){
+/* ⛔ LA STRISCIA SOPRA IL BOTTONE «⤓ PDF», E ERA SCRITTA DUE VOLTE.
+   Due copie identiche a millesettecento righe di distanza (`apriEditorCava` e
+   `_aggiornaEcStats`), diverse solo per l'etichetta del tipo: e' la firma
+   troppo stretta nella sua forma piu' pura — all'originale mancava **un
+   parametro**, e chi aveva bisogno dell'altra etichetta ha ricopiato nove
+   righe. Una copia si toglie aggiungendo un argomento, non riscrivendo.
+   ⛔ E dicevano «0m» e «0mc» su una volata disegnata e non ancora quotata:
+   i due numeri tranquilli a due centimetri dal bottone che genera il PDF —
+   quello che, dal 07/08, per lo stesso stato scrive «-». Lo schermo che ospita
+   il bottone e il foglio che ne esce devono dire la stessa cosa, ed e'
+   `misureVolataProgetto` a deciderlo per tutt'e due.
+   ⚠️ Il «≥» sui chili non e' un vezzo: `tot_kg` su una volata caricata a
+   meta' e' un totale VERO ma piu' basso del vero, e il foglio scrive «almeno
+   56 kg». Qui lo spazio e' quello che e'. */
+function _aggiornaEcStats(v,etichetta){
   const Borr=getBorraggio(v);const Spaz=getSpaziatura(v);
-  const tipoLabel={'cava':'⛰️','galleria':'🚇','altro':'🏗️'}[v.tipo||'cava']||'⛰️';
+  const tipoLabel=etichetta||({'cava':'⛰️','galleria':'🚇','altro':'🏗️'}[v.tipo||'cava']||'⛰️');
+  const mv=misureVolataProgetto(v);
   $('ec-stats').innerHTML=`
     <span class="ec-stat">${tipoLabel}</span>
-    <span class="ec-stat"><b>${v.tot_fori}</b>${plurale(v.tot_fori,'foro','fori')}</span>
+    <span class="ec-stat"><b>${mv.fori}</b>${plurale(mv.fori,'foro','fori')}</span>
     <span class="ec-stat"><b>${v.maglia.file}</b>file</span>
     <span class="ec-stat"><b>Sp${Borr}</b>×I<b>${Spaz}</b></span>
-    <span class="ec-stat"><b>${v.tot_metri}</b>m</span>
-    ${v.tot_kg>0?`<span class="ec-stat"><b>${v.tot_kg}</b>kg</span>`:''}
-    <span class="ec-stat"><b>${v.tot_mc}</b>mc</span>
+    <span class="ec-stat"><b>${mv.metri===null?'—':mv.metri}</b>m</span>
+    ${mv.kgNoto?`<span class="ec-stat"><b>${mv.parziale?'≥':''}${mv.kg}</b>kg</span>`:''}
+    <span class="ec-stat"><b>${mv.mcNoto?mv.mc:'—'}</b>mc</span>
   `;
 }
 
@@ -7141,17 +7203,55 @@ function exportVolataPDF(volataId){
     d.setTextColor(20,16,8);d.setFont('helvetica','bold');d.text(String(row[1]||'-'),95,yi);
     yi+=8;
   });
-  const kpi=[['FORI',String(v.tot_fori)],['METRI',v.tot_metri+'m'],['KG',v.tot_kg>0?v.tot_kg+'kg':'-'],['MC',v.tot_mc>0?v.tot_mc+'mc':'-']];
+  /* ⛔ «56 KG» SU UNA VOLATA CARICATA PER META', SCRITTO COME SE FOSSE TUTTO.
+     Misurato il 07/08 premendo il bottone su `vol_2` della dimostrazione: sette
+     fori su dodici portano i chili, `tot_kg` vale 56, e questo foglio scriveva
+     nel riquadro grande **«56kg»** e nei totali di pagina 3 **«Carica: 56 kg»**.
+     La prova che quel totale e' incompleto sta DENTRO lo stesso documento —
+     pagina 3, colonna «Carica», righe 8..12 tutte a «-» — quindi il foglio
+     porta il proprio smentimento e dichiara comunque il numero come definitivo.
+     E' il numero piu' sorvegliato dell'app: ci stanno dietro l'autorizzazione,
+     il registro del deposito e la denuncia.
+     Lo schermo, nello stesso istante, la cosa giusta la diceva gia': `volKg`
+     (dashboard, riga 2274) scrive «56 kg di esplosivo (7 fori su 12 caricati)»,
+     perche' passa da `misureVolataProgetto` in `shared/`. Qui la copia debole
+     era il DOCUMENTO, ed e' il verso opposto a quello del 03/08 — la stessa
+     coppia di funzioni, con il difetto passato dall'altra parte.
+     ⚠️ E i metri: `v.tot_metri+'m'` stampa **«0m»** su una volata i cui fori
+     non portano ancora la profondita', nello stesso riquadro in cui i mc — che
+     da quella profondita' discendono — dicono gia' «-». Un foglio che si
+     contraddice a due centimetri di distanza. */
+  const mv=misureVolataProgetto(v);
+  const kpi=[['FORI',String(mv.fori)],
+             ['METRI',mv.metri===null?'-':mv.metri+'m'],
+             [mv.parziale?'KG · PARZIALE':'KG',mv.kgNoto?mv.kg+'kg':'-'],
+             ['MC',mv.mcNoto?mv.mc+'mc':'-']];
   const kw=43;
   kpi.forEach(function(k,i){const kx=16+i*(kw+2),ky=yi+4;
     d.setFillColor(255,248,232);d.setDrawColor(255,171,0);d.setLineWidth(0.4);d.rect(kx,ky,kw,22,'FD');
     d.setTextColor(200,120,0);d.setFont('helvetica','bold');d.setFontSize(15);d.text(k[1],kx+kw/2,ky+12,{align:'center'});
     d.setTextColor(140,120,60);d.setFont('helvetica','normal');d.setFontSize(7);d.text(k[0],kx+kw/2,ky+18,{align:'center'});
   });
+  /* la riserva scritta per esteso sotto i riquadri: un «-» senza la ragione
+     accanto si legge come una svista di chi ha compilato. Le parole sono quelle
+     che il PDF del fochino usa gia' per lo stesso stato — una sola formula per
+     una sola idea. */
+  let yr=yi+30;
+  {
+    const ris=[];
+    if(!mv.kgNoto&&mv.fori) ris.push('Nessun foro porta i chili caricati: il totale non è zero, non è stato scritto.');
+    else if(mv.parziale) ris.push(`${conta(mv.senzaKg,'foro','fori')} su ${mv.fori} non ${plurale(mv.senzaKg,'porta','portano')} i chili: il totale è un minimo.`);
+    if(!mv.mcNoto&&mv.fori) ris.push('Nessun foro porta la profondità: metri e volume non sono zero, non ci sono.');
+    if(ris.length){
+      d.setTextColor(150,90,0);d.setFont('helvetica','italic');d.setFontSize(8);
+      ris.forEach(function(t){d.text(t,16,yr);yr+=5;});
+      d.setFont('helvetica','normal');d.setTextColor(40,40,40);
+    }
+  }
   if(v.note){
-    d.setTextColor(120,100,50);d.setFont('helvetica','bold');d.setFontSize(9);d.text('NOTE',16,yi+36);
+    d.setTextColor(120,100,50);d.setFont('helvetica','bold');d.setFontSize(9);d.text('NOTE',16,yr+6);
     d.setTextColor(40,40,40);d.setFont('helvetica','normal');d.setFontSize(9);
-    d.text(d.splitTextToSize(v.note,180),16,yi+42);
+    d.text(d.splitTextToSize(v.note,180),16,yr+12);
   }
   footer(1);
   d.addPage();header('PLANIMETRIA FORI');
@@ -7206,7 +7306,12 @@ function exportVolataPDF(volataId){
     if(yt<250){
       d.setFillColor(255,248,232);d.setDrawColor(255,171,0);d.setLineWidth(0.4);d.rect(16,yt,178,26,'FD');
       d.setTextColor(120,100,50);d.setFont('helvetica','bold');d.setFontSize(8);d.text('TOTALI',105,yt+6,{align:'center'});
-      const tt=[['Fori',String(v.tot_fori)],['Metri',v.tot_metri+' m'],['Carica',v.tot_kg>0?v.tot_kg+' kg':'-'],['Mc',v.tot_mc>0?v.tot_mc+' mc':'-']];
+      /* stessa regola del riquadro di pagina 1, e qui c'e' lo spazio per dirlo
+         a parole: «almeno» e' la convenzione gia' usata dal PDF del fochino */
+      const tt=[['Fori',String(mv.fori)],
+                ['Metri',mv.metri===null?'-':mv.metri+' m'],
+                ['Carica',mv.kgNoto?(mv.parziale?'almeno ':'')+mv.kg+' kg':'-'],
+                ['Mc',mv.mcNoto?mv.mc+' mc':'-']];
       tt.forEach(function(t,i){const tx=20+(i%2)*90,ty=yt+13+Math.floor(i/2)*7;d.setTextColor(120,100,50);d.setFont('helvetica','normal');d.setFontSize(8);d.text(t[0]+':',tx,ty);d.setTextColor(20,16,8);d.setFont('helvetica','bold');d.text(t[1],tx+78,ty,{align:'right'});});
     }
   }
