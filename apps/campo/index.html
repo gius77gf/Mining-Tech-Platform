@@ -299,7 +299,9 @@ button.arr.del:hover{
   width:16px; height:16px; stroke:currentColor; fill:none; stroke-width:1.9;
   stroke-linecap:round; stroke-linejoin:round;
 }
-.dw-btn.mini{min-height:var(--tap); padding:6px 12px; font-size:11px; letter-spacing:1px}
+/* `.dw-btn.mini` è salita in shared/dw-app-ui.js il 07/08: era scritta identica
+   in cinque app e mancava proprio a Flotta, che la usa. Tolta da qui il 07/08,
+   dopo aver rimisurato che il bottone resta 11px. */
 
 /* ─────────────── form come oggetti veri (superficie del core) ─────────────── */
 .form.col{flex-direction:column; align-items:stretch}
