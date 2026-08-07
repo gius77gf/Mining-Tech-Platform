@@ -979,6 +979,29 @@ numero scritto dove non era stato misurato niente**.*
   raggruppamento delle migliaia rifiutavano **ogni numero seguito da virgola**,
   cioè tutto un JSON — `0 numeri guardati` con un **ok** accanto. L'ha preso il
   conto dei soggetti, non l'esito.
+- [x] ✅ **I due temi chiari nel giro** (`d8a6f6d`): esecuzioni **129 → 132**,
+  e sono entrate **solo adesso** che le sei app sono a zero — registrarle
+  stamattina avrebbe messo il giro in rosso tutto il giorno, cioè lo avrebbe
+  reso un rumore da ignorare. Tutt'e tre le passate provate a mano prima:
+  chiaro 3.694/0, sole 3.696/0, controprova di giorno 6 su 6 bocciate.
+- [x] ✅ **I nomi dei due livelli** (`d15fb80`): Conti li aveva chiamati
+  `--danger-ink`, le altre cinque `--ink-dg`. Allineati (20 sostituzioni,
+  contrasto identico). ⚠️ E la regola automatica per impedirlo è stata
+  **pensata e scartata con la misura**: sarebbe stata **5 eccezioni su 13
+  nomi**, e un allarme al 38% di eccezioni insegna a non guardarlo. La
+  convenzione sta in `PALETTE_APP.md` PARTE 7, con la regola che le sei app
+  hanno scoperto separatamente: *un colore che fa anche da pieno non si
+  riscrive, gli si affianca un inchiostro*, e gli inchiostri sono **due
+  livelli**.
+- [x] ✅ **L'arretrato dei documenti conta anche quello che morde** (`f49a3dd`):
+  **33 grezzi → 7 che mordono**, Flotta a **zero**. Le sei palette di stamattina
+  avevano alzato il contatore di sei senza toccare una funzione o un bottone.
+- [x] ✅ **La prima riga trovata dal conto nuovo** (`57b4107`):
+  `CONCORRENTI_CAMPO.md` si contraddiceva **dentro lo stesso riquadro** —
+  intestazione «completa dal 01/08», corpo «manca». Sotto, la causa: il commento
+  di schema di `scudo-data.js:29` elencava le origini **senza `fermo`**, da sei
+  giorni. ⛔ Commit di verifica **non** spostato: riverificata una riga, non il
+  documento.
 - [ ] **Le 54 dei temi chiari** — è una **palette**, non una correzione: va
   decisa con la ricerca cromatica e verificata a contrasto. Fra le peggiori:
   «Conforme» nell'esito del report a **2,35** (ne servono 3), «Riferibilità
