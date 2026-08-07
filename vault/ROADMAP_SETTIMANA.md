@@ -1310,11 +1310,26 @@ numero scritto dove non era stato misurato niente**.*
   clic, il giro scrivi/leggi diceva «> 0» senza denominatore, e
   `terra_rilievi.csv` non era nemmeno in elenco. Prove **1887 → 1889**,
   copertura **702 → 703**.
+- [x] ✅ **`nomi-liberi` · la seconda domanda: il nome esiste, ma esiste QUI?**
+  (`457fee6`). Il controllo raccoglieva i nomi legati in un insieme **unico per
+  file**: bastava un omonimo qualunque, dichiarato ovunque, per spegnerlo su
+  quel nome — guardava il FILE, non lo SCOPE. È così che il `conta` di Terra è
+  passato. Ora c'è una **seconda domanda** accanto alla prima, che giudica per
+  blocchi di graffe. ⚠️ Costo misurato **prima** di irrigidire, e ha diretto il
+  lavoro: **2** falsi allarmi con una regex per le dichiarazioni (`const N=60,
+  gx=(i)=>…` perde il secondo), **11** ancorando il blocco al dichiaratore
+  (`const {jsPDF}=window.jspdf` scambia la graffa della destrutturazione per il
+  blocco), **0** con l'ancora sulla parola `const` — e **1, quello giusto**, col
+  difetto rimesso. Cioè nessuno dei tredici veniva dalla domanda: venivano tutti
+  dal **righello**. `nomiLegati` ha guadagnato un argomento invece di una copia,
+  e nel farlo è emerso che una sua regex ne teneva due in una (`nome: (` è una
+  proprietà, `nome = (` combacia anche con un `const` qualunque): con quella
+  unita la controprova restava **verde col difetto dentro**. Prove **7 → 10**.
 
 ## Riferimenti
 
 - Ultimo checkpoint **per data vera**:
-  `vault/checkpoints/20260807-234316_il-vuoto-che-rientrava-come-misura.md`
+  `vault/checkpoints/20260807-235634_il-nome-esiste-ma-non-qui.md`
   *(dato da `node apps/deepwork-id/tests/date-checkpoint.mjs`, non letto a occhio:
   per NOME il più alto sarebbe `20260805-100000_…`, che è stato scritto **tre
   giorni prima**. Questa riga era ferma al 01/08: il puntatore al file più
