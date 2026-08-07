@@ -89,5 +89,49 @@ dice(/Hanno misurato il codice giusto solo i primi \d+ banchi/.test(b.uscita),
   "e dice quanti banchi sono ancora buoni", b.uscita);
 rmSync(sporca, { recursive: true, force: true });
 
+/* 3 — ⛔ IL SERVER SULLA PORTA È IL MIO? La guardia che il runner non aveva, e
+   che il 07/08 è costata un giro intero: due giri vivi insieme sulla stessa
+   porta, il secondo ha trovato «qualcuno risponde», ha riusato il server
+   dell'altro e ha misurato la copia di un commit diverso dal proprio. Poi il
+   primo è stato fermato, il suo server è morto, e da lì il secondo ha letto
+   ZERO caratteri per schermata — ventidue KO che accusavano il prodotto di non
+   esistere. È la forma silenziosa della trappola: non fallisce, misura la roba
+   di qualcun altro.
+   Qui si prova nei due versi, e il verso che conta è il secondo. */
+{
+  const { createServer } = await import("node:http");
+  const estraneo = radiceFinta();     // una cartella che NON è quella del giro
+  const PORTA_PROVA = 8907;
+  const srv = createServer((q, r) => { r.writeHead(200); r.end("non sono il tuo giro"); });
+  await new Promise((res, rej) => { srv.once("error", rej); srv.listen(PORTA_PROVA, res); });
+  const esito = await new Promise((res) => {
+    let uscita = "";
+    const p = spawn(process.execPath, [join(QUI, "tutti.mjs"), String(PORTA_PROVA), "--prova-contrassegno"],
+      { cwd: QUI, env: { ...process.env } });
+    p.stdout.on("data", (d) => { uscita += d; });
+    p.stderr.on("data", (d) => { uscita += d; });
+    p.on("close", (codice) => res({ codice, uscita }));
+  });
+  await new Promise((res) => srv.close(res));
+  rmSync(estraneo, { recursive: true, force: true });
+  dice(esito.codice === 2, "con un server ESTRANEO sulla porta il giro si ferma (uscita 2)", `codice ${esito.codice}`);
+  dice(/NON È IL MIO/.test(esito.uscita), "e dice perché, invece di misurare la roba di qualcun altro", esito.uscita);
+  dice(!/Impronta di partenza/.test(esito.uscita), "e si ferma PRIMA di cominciare a misurare", esito.uscita);
+
+  /* ⚠️ e il verso opposto, se no la guardia «sa fermarsi» ma non si sa se sappia
+     ANCHE ripartire: una che si ferma sempre passerebbe la prova qui sopra e
+     renderebbe il giro impossibile da lanciare. */
+  const suo = await new Promise((res) => {
+    let uscita = "";
+    const p = spawn(process.execPath, [join(QUI, "tutti.mjs"), "8908", "--prova-contrassegno"], { cwd: QUI });
+    p.stdout.on("data", (d) => { uscita += d; });
+    p.stderr.on("data", (d) => { uscita += d; });
+    p.on("close", (codice) => res({ codice, uscita }));
+  });
+  dice(suo.codice === 0, "e con il PROPRIO server il giro riparte (uscita 0)", `codice ${suo.codice}`);
+  dice(/Contrassegno riletto dal server: è il mio/.test(suo.uscita),
+    "dichiarando di aver riletto il proprio contrassegno", suo.uscita);
+}
+
 console.log(`\n${ok} passate, ${ko} fallite`);
 process.exit(ko ? 1 : 0);

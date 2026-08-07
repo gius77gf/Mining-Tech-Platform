@@ -19,7 +19,7 @@ import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 import { impronta, differenze } from './impronta.mjs';
 import { execFileSync } from 'node:child_process';
-import { rmSync, existsSync } from 'node:fs';
+import { rmSync, existsSync, writeFileSync } from 'node:fs';
 
 const QUI = dirname(fileURLToPath(import.meta.url));
 const RADICE = join(QUI, '..', '..', '..', '..');
@@ -680,6 +680,45 @@ if (!BANCHI_FINTI && !(await rispondePorta(PORTA))) {
   if (!(await aspetta(PORTA, 12))) {
     console.error(`✗ non riesco ad alzare un server statico sulla porta ${PORTA}.`);
     process.exit(2);
+  }
+}
+/* ⛔ IL CONTRASSEGNO COL PROPRIO PID — ed è la regola che CLAUDE.md pretende da
+   ogni banco che alza un server, e che il RUNNER non aveva. Il 07/08 è costato
+   un giro intero: due giri erano vivi insieme sulla stessa porta, il secondo ha
+   trovato «qualcuno risponde» e ha **riusato il server dell'altro**, quindi ha
+   misurato la copia di un commit diverso dal proprio. Poi il primo è stato
+   fermato, il suo server è morto, e da lì il secondo ha letto **zero
+   caratteri** per schermata: ventidue KO su Scudo che dicevano «la barra di
+   navigazione ha una voce», «nessuna schermata aperta», «0 caratteri letti» —
+   cioè un banco che accusa il prodotto di non esistere.
+   È la forma silenziosa della trappola, la peggiore: non fallisce, misura la
+   roba di qualcun altro. Tre righe, e vale per il file da cui dipendono tutti
+   gli altri. */
+if (!BANCHI_FINTI) {
+  const marchio = `.dw-giro-${process.pid}`;   // il punto lo tiene fuori dall'impronta
+  const atteso = `giro ${process.pid} su ${COMMIT_COPIA}`;
+  writeFileSync(join(SERVITA, marchio), atteso);
+  let torna = null;
+  try {
+    const r = await fetch(`http://127.0.0.1:${PORTA}/${marchio}`, { signal: AbortSignal.timeout(3000) });
+    torna = r.ok ? (await r.text()).trim() : null;
+  } catch (e) { torna = null; }
+  if (torna !== atteso) {
+    console.error(`\n⛔ IL SERVER SULLA PORTA ${PORTA} NON È IL MIO: gli ho chiesto il mio contrassegno`
+      + ` e mi ha risposto «${torna === null ? 'niente' : torna}».`);
+    console.error(`   Sta servendo la cartella di qualcun altro — probabilmente un altro giro ancora vivo.`);
+    console.error(`   Misurare così vuol dire attestare un commit che non è questo. Mi fermo.`);
+    try { rmSync(join(SERVITA, marchio), { force: true }); } catch (e) { /* niente */ }
+    process.exit(2);
+  }
+  console.log(`Contrassegno riletto dal server: è il mio (pid ${process.pid}).`);
+  try { rmSync(join(SERVITA, marchio), { force: true }); } catch (e) { /* niente */ }
+  /* la porta d uscita per la controprova: senza, provare questa guardia
+     vorrebbe dire far girare centoventinove banchi per leggere una riga. */
+  if (process.argv.includes("--prova-contrassegno")) {
+    if (COPIA) { try { execFileSync("git", ["worktree", "remove", "--force", COPIA], { cwd: RADICE, stdio: "ignore" }); } catch (e) { /* niente */ } }
+    if (server) { try { process.kill(-server.pid); } catch (e) { /* niente */ } }
+    process.exit(0);
   }
 }
 
