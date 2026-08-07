@@ -341,6 +341,21 @@ const BANCHI = [
   ['frasi di Campo e Sentinella · controprova', 'campo-sentinella-frasi.mjs', ['--controprova'], true],
   ['le frasi di Scudo quando il numero è uno', 'scudo-frasi-da-uno.mjs', []],
   ['frasi di Scudo · controprova', 'scudo-frasi-da-uno.mjs', ['--controprova'], true],
+  /* ⛔ AGGIUNTO IL 07/08 — lo stesso gesto portato in Conti, che una suite sui
+     casi limite ce l'aveva già (`conti-frasi.mjs`) ma nata LEGGENDO il codice.
+     Aprendo l'app con un dato per collezione sono usciti 13 difetti che quella
+     non poteva vedere, tutti col sostantivo GIÀ giusto e il resto della frase
+     no: gli otto «Esportate 1 fattura / Esportati 1 cliente», «Letti 1
+     movimento», «Vengono eliminati anche i 1 incasso registrato», «Escluse 1
+     già scadute» in due punti, e uno nel MODULO — `margineMese` scriveva
+     «mancano i costi di personale» con una voce sola, mentre quattro righe
+     sotto la stessa funzione il singolare lo faceva già.
+     ⚠️ Come `flotta-frasi-da-uno`, NON usa la porta che gli passiamo: alza un
+     server suo (col contrassegno del pid) perché deve servire DUE varianti
+     dello stesso `conti-data.js` nella stessa passata. `DW_RADICE` lo legge,
+     quindi sulla copia misura la copia. */
+  ['le frasi di Conti quando il numero è uno', 'conti-frasi-da-uno.mjs', []],
+  ['frasi di Conti da uno · controprova', 'conti-frasi-da-uno.mjs', ['--controprova'], true],
   /* ⛔ AGGIUNTO IL 06/08, ed è la famiglia che il 06/08 è stata censita nel
      core: il numero è giusto e a mentire è il DISEGNO. Là una barra da 2.261,7
      m³ ne disegnava 3, identica ai cinque mesi a zero, perché `height:100%` si

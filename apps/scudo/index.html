@@ -262,7 +262,26 @@
 /* Campo con la sua etichetta sopra. Un <input type="date"> vuoto è una
    casella muta: il title si vede solo passandoci sopra il mouse, e sul
    telefono il mouse non c'è. Due date affiancate senza etichetta sono un
-   indovinello — qui c'è scritto quale è quale. */
+   indovinello — qui c'è scritto quale è quale.
+   ⛔ E QUESTA CLASSE C'ERA GIÀ QUANDO NE È STATA CHIESTA UN'ALTRA. Il 07/08 il
+   censimento delle classi orfane ha trovato nove `class="fld"` in questa pagina
+   che NESSUN foglio definisce: `.fld` sta solo dentro il `<style>` di Conti
+   (`display:flex; flex-direction:column; gap:5px`) e, in una terza versione,
+   dentro quello di Terra (senza il `gap`). Qui quei nove blocchi restavano
+   `display:block`, cioè etichetta e campo affiancati invece che incolonnati.
+   La via ovvia era definire `.fld` — e sarebbe stata la copia debole che
+   CLAUDE.md censisce, la QUARTA copia della stessa regola. La risposta era già
+   in casa: `.fcamp` è quella regola, con lo stesso corpo di Conti, più le due
+   righe che a Conti mancano (l'etichetta a fondo colonna e l'input che in
+   colonna non si stira a 150 px di ALTEZZA — il `flex-basis` di `.form
+   .dw-input` letto come altezza). I nove `fld` sono diventati `fcamp`.
+   `min-width:0` non serve riscriverlo: lo dà già `.form>*,.frow>*` di
+   `shared/dw-app-ui.css`, e tutti e nove sono figli diretti di `.frow`/`.form`.
+   ⚠️ Resta aperto e NON è stato toccato: le tre copie di `.fld` (Conti, Terra e
+   la sua assenza qui) sono una regola che serve a tre app e per CLAUDE.md
+   dovrebbe vivere in `shared/` — ma le due copie esistenti già divergono sul
+   `gap`, quindi unificarle cambia il disegno di Terra. È una decisione con la
+   sua unità, non un effetto collaterale di questa. */
 .fcamp{display:flex; flex-direction:column; gap:5px}
 .fcamp>.nm-lab{margin:0; min-height:2.2em; display:flex; align-items:flex-end}
 /* In colonna il flex-basis dei campi del form diventa un'ALTEZZA: senza
@@ -428,7 +447,13 @@
 }
 
 /* ─────────────── bottoni (copia di .btn-sv / .btn-sec) ─────────────── */
-.dw-btn.mini{min-height:var(--tap); padding:6px 12px; font-size:11px; letter-spacing:1px}
+/* ⛔ `.dw-btn.mini` STAVA QUI, IDENTICA A QUELLA DI `shared/dw-app-ui.css`
+   (riga 415), e vinceva solo perché il `<style>` della pagina viene dopo i
+   fogli condivisi: una copia che non cambia niente e che al primo ritocco di
+   `shared/` diverge in silenzio. Tolta il 07/08 dopo averlo MISURATO invece
+   che dedotto — 160 occorrenze di `.dw-btn.mini` lette su tutte e otto le
+   sezioni, con la riga e senza: `11px | 6px 12px | 1px`, e i tredici bottoni
+   visibili identici al pixel (113×44 e 85×44). Nessuna differenza. */
 
 /* ─────────────── form come oggetti veri (superficie del core) ─────────────── */
 .form.col{flex-direction:column; align-items:stretch}
@@ -1200,11 +1225,11 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
       <select class="dw-input" id="dss-motivo" style="flex:2 1 220px;"></select>
     </div>
     <div class="frow">
-      <div class="fld" style="flex:1 1 170px;">
+      <div class="fcamp" style="flex:1 1 170px;">
         <label class="fl" for="dss-rev">Ultima revisione</label>
         <input class="dw-input" id="dss-rev" type="date">
       </div>
-      <div class="fld" style="flex:1 1 170px;">
+      <div class="fcamp" style="flex:1 1 170px;">
         <label class="fl" for="dss-tra">Trasmesso all'autorità il</label>
         <input class="dw-input" id="dss-tra" type="date">
       </div>
@@ -1224,7 +1249,7 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
        a che cosa serve. -->
   <div id="inf-indici" class="note recap" style="margin-top:10px;"></div>
   <div class="form" style="margin-top:8px;">
-    <div class="fld" style="flex:1 1 160px;">
+    <div class="fcamp" style="flex:1 1 160px;">
       <label class="fl" for="ore-anno">Ore lavorate nell'anno</label>
       <input class="dw-input" id="ore-anno" type="text" inputmode="numeric" autocomplete="off" placeholder="es. 21500">
     </div>
@@ -1362,11 +1387,11 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
     </div>
     <div class="frow">
       <select class="dw-input" id="appa-natura" style="flex:1 1 200px;"></select>
-      <div class="fld" style="flex:1 1 150px;">
+      <div class="fcamp" style="flex:1 1 150px;">
         <label class="fl" for="appa-ug">Durata in uomini-giorno</label>
         <input class="dw-input" id="appa-ug" type="number" min="0" step="1" inputmode="numeric" placeholder="es. 12">
       </div>
-      <div class="fld" style="flex:1 1 160px;">
+      <div class="fcamp" style="flex:1 1 160px;">
         <label class="fl" for="appa-costi">Costi da interferenze (&euro;)</label>
         <input class="dw-input" id="appa-costi" type="text" inputmode="decimal" autocomplete="off" placeholder="es. 900">
       </div>
@@ -1442,11 +1467,11 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
         <input class="dw-input" id="perm-luogo" placeholder="Dove, con precisione (es. Tramoggia TR-01)" style="flex:1 1 200px;">
       </div>
       <div class="frow">
-        <div class="fld" style="flex:1 1 200px;">
+        <div class="fcamp" style="flex:1 1 200px;">
           <label class="fl" for="perm-dal">Valido da</label>
           <input class="dw-input" id="perm-dal" type="datetime-local">
         </div>
-        <div class="fld" style="flex:1 1 200px;">
+        <div class="fcamp" style="flex:1 1 200px;">
           <label class="fl" for="perm-al">Valido fino a</label>
           <input class="dw-input" id="perm-al" type="datetime-local">
         </div>
@@ -1481,7 +1506,7 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
       <div class="form col">
         <div class="frow" id="perm-s-aria-campi"></div>
         <div class="frow">
-          <div class="fld" style="flex:1 1 140px;">
+          <div class="fcamp" style="flex:1 1 140px;">
             <label class="fl" for="perm-s-ora">Ora della lettura</label>
             <input class="dw-input" id="perm-s-ora" type="time">
           </div>
@@ -1562,8 +1587,9 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
   import { mountExit, esc, csvCell, statoVuoto, giorniTra, montaGuardiaInteri, avvolgiUnita, oggiISO, dataISOEsiste,
            controllaAllegato, testoAllegatoRifiutato, pezziDataURL, dataIt,
            numeroScritto, AVVISO_DECIMALE, timbroLocale, modoDimostrazione,
-           /* il singolare non si scrive più a mano: `conta(1,"voce","voci")` → «1 voce» */
-           conta } from "../../shared/deepwork-id-client/dw-shell.js";
+           /* il singolare non si scrive più a mano: `conta(1,"voce","voci")` → «1 voce»,
+              `plurale(1,"è","sono")` → «è» quando a mancare è il VERBO e non il nome */
+           conta, plurale } from "../../shared/deepwork-id-client/dw-shell.js";
   // I campi INTERI restano `type=number` per lo spinner: la guardia rifiuta la
   // virgola, che lì non serve e che il browser scarterebbe in silenzio.
   montaGuardiaInteri((m) => toast(m, "err"));
@@ -2128,8 +2154,8 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
           valore: daRinnovare(c),
           stato: c.scadute ? "danger" : (c.inScadenza || c.senzaData ? "warn" : "ok"),
         })),
-        aria: "Copertura della formazione per tipo: " + cop.length + " tipi di adempimento, "
-          + copTot + " adempimenti da sistemare in tutto. Il tipo più scoperto è "
+        aria: "Copertura della formazione per tipo: " + conta(cop.length, "tipo di adempimento", "tipi di adempimento") + ", "
+          + conta(copTot, "adempimento da sistemare", "adempimenti da sistemare") + " in tutto. Il tipo più scoperto è "
           + copPeggio.tipo + " con " + daRinnovare(copPeggio) + ".",
         nota: "Ogni barra è il numero di adempimenti <b>da sistemare</b> per quel tipo: "
           + "<b>critico</b> vuol dire che almeno uno è già scaduto, <b>da tenere d'occhio</b> "
@@ -2151,7 +2177,9 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
         + "coprirà più tipi di adempimento, qui vedrai il confronto <b>dal più scoperto</b>.");
     } else if (cop.length) {
       grafVuoto("graf-copertura", I.ok, "Nessun buco di copertura",
-        "Su tutti i tipi di adempimento registrati (<b>" + cop.length + "</b>) le persone sono in "
+        (cop.length === 1
+          ? "Sull'<b>unico</b> tipo di adempimento registrato le persone sono in "
+          : "Su tutti i tipi di adempimento registrati (<b>" + cop.length + "</b>) le persone sono in ")
         + "regola: niente di scaduto, niente in scadenza nei prossimi 30 giorni e nessuna data "
         + "illeggibile. Il confronto fra i tipi comparirà qui appena una data si avvicina.");
     } else {
@@ -2434,8 +2462,8 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
       $("dss-riep").innerHTML = !cave.length
         ? "Nessuna cava in anagrafe: senza un sito di tipo «cava» non c'è nessun DSS da seguire, e questo blocco non dimostra niente."
         : `<b>${cave.length === 1 ? "Una cava" : cave.length + " cave"}</b> in anagrafe · `
-          + `<b class="acc">${rossi}</b> con un adempimento da fare · `
-          + `<b class="acc">${nonNoti}</b> su cui non si può dire niente`
+          + `<b>${rossi}</b> con un adempimento da fare · `
+          + `<b>${nonNoti}</b> su cui non si può dire niente`
           + (scoll.length ? `<br>⚠ ${scoll.length === 1 ? "Un DSS è in archivio" : scoll.length + " DSS sono in archivio"} senza nessuna cava collegata: finché è così ${scoll.length === 1 ? "non viene contato" : "non vengono contati"} qui sopra.` : "");
       $("dss-list").innerHTML = cicli.map(x => {
         const b = etichettaCicloDss(x.stato);
@@ -2482,8 +2510,8 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
       $("appa-riep").className = "note " + cls;
       $("appa-riep").innerHTML = rA.quanti
         ? `<b>${esc(rA.testo)}</b>`
-          + `<br>A posto: <b class="acc">${rA.aPosto}</b> · da sistemare: <b class="acc">${rA.daSistemare}</b>`
-          + ` · <b class="acc">${rA.nonVerificati}</b> senza verifica`
+          + `<br>A posto: <b>${rA.aPosto}</b> · da sistemare: <b>${rA.daSistemare}</b>`
+          + ` · <b>${rA.nonVerificati}</b> senza verifica`
         : esc(rA.testo);
       $("appa-count").textContent = rA.quanti;
 
@@ -2565,9 +2593,9 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
       $("perm-riep").className = "note " + (permOk ? "recap" : "avviso");
       $("perm-riep").innerHTML = rP.quanti
         ? `<b>${esc(rP.testo)}</b>`
-          + `<br>Validi adesso: <b class="acc">${rP.validi}</b> · aperti: <b class="acc">${rP.aperti}</b>`
-          + ` · da fermare: <b class="acc">${rP.daFermare}</b> · scaduti e non chiusi: <b class="acc">${rP.scaduti}</b>`
-          + ` · <b class="acc">${rP.daVerificare}</b> su cui manca una verifica`
+          + `<br>Validi adesso: <b>${rP.validi}</b> · aperti: <b>${rP.aperti}</b>`
+          + ` · da fermare: <b>${rP.daFermare}</b> · scaduti e non chiusi: <b>${rP.scaduti}</b>`
+          + ` · <b>${rP.daVerificare}</b> su cui manca una verifica`
         : esc(rP.testo);
       $("perm-count").textContent = rP.quanti;
 
@@ -2701,7 +2729,7 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
              dichiarato valido dal browser, su una misura da cui dipende se
              qualcuno entra in un silo. */
           $("perm-s-aria-campi").innerHTML = LIMITI_ATMOSFERA.map(L =>
-            `<div class="fld" style="flex:1 1 130px;">
+            `<div class="fcamp" style="flex:1 1 130px;">
               <label class="fl" for="perm-a-${L.chiave}">${esc(L.nome)} <span class="u">${esc(L.unita)}</span></label>
               <input class="dw-input" id="perm-a-${L.chiave}" type="text" inputmode="decimal" autocomplete="off"
                 ${bloccato ? "disabled" : ""} value="${esc(a[L.chiave] == null ? "" : String(a[L.chiave]))}"
@@ -2878,7 +2906,7 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
       : `<div class="safety ${ri.giorniSenza >= 30 ? "" : "warn"}"><div class="safety-ico">${I.scudo}</div>
           <div><div class="safety-num">${ri.giorniSenza}</div>
           <div class="safety-lab">Giorni senza infortuni</div>
-          ${ri.nearMiss ? `<div class="safety-sub">${ri.nearMiss} near-miss registrati — non azzerano il conteggio, ma vanno guardati.</div>` : ""}</div></div>`;
+          ${ri.nearMiss ? `<div class="safety-sub">${conta(ri.nearMiss, "near-miss registrato", "near-miss registrati")} — ${plurale(ri.nearMiss, "non azzera", "non azzerano")} il conteggio, ma ${plurale(ri.nearMiss, "va guardato", "vanno guardati")}.</div>` : ""}</div></div>`;
     $("inf-riep").innerHTML =
       /* ⛔ decisione 17: «giorni di assenza totali: 0» su un infortunio a
          prognosi aperta era la frase più tranquilla che questa riga sapesse
@@ -3336,7 +3364,10 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
         valore: r.percento, massimo: 100, unita: "%", tabella: false,
         stato: r.nonConformi ? "warn" : (r.completa ? "ok" : null),
         nota: r.completa
-          ? "Tutte le voci hanno un esito." + (r.nonConformi
+          /* con una voce sola «Tutte le voci hanno un esito» è la stessa frase
+             sbagliata di «Tutti i 1 mezzi», solo senza il numero che la
+             tradisce: il `meta` qui sopra scrive già «1 voce su 1». */
+          ? plurale(r.totale, "L'unica voce ha un esito.", "Tutte le voci hanno un esito.") + (r.nonConformi
               ? " Le <b>" + r.nonConformi + "</b> non conformi diventano azioni correttive quando chiudi l'ispezione."
               : " Nessuna non conformità: alla chiusura non nascerà nessuna azione.")
           /* «Mancano 1 voci» era l'ultima riga scoperta di questa schermata:
@@ -3418,8 +3449,8 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
     $("mat-riep").innerHTML = !MANS.length
       ? "Nessuna mansione ancora descritta. Una mansione è il lavoro che una persona fa in cava — escavatorista, fochino, autista — con i corsi e i DPI che servono per farlo. Creane una qui sotto: puoi partire da quelle tipiche di cava."
       : !matTot
-        ? "Le mansioni ci sono, ma non è ancora assegnata nessuna persona. Tocca la ✎ di una mansione e scegli <b>chi la svolge</b>: da lì in poi Scudo sa dirti chi può andare."
-        : `Oggi possono andare <b>${matPuo}</b> persone su ${matTot}`
+        ? (MANS.length === 1 ? "La mansione c'è" : "Le mansioni ci sono") + ", ma non è ancora assegnata nessuna persona. Tocca la ✎ di una mansione e scegli <b>chi la svolge</b>: da lì in poi Scudo sa dirti chi può andare."
+        : `Oggi ${plurale(matPuo, "può", "possono")} andare <b>${matPuo}</b> ${plurale(matPuo, "persona", "persone")} su ${matTot}`
           + (matNo ? ` · <b>${matNo}</b> non ${matNo === 1 ? "può" : "possono"} per un corso mancante o scaduto` : "")
           /* ⛔ decisione 13: il «non lo sappiamo» si DICHIARA, non si somma ai
              verdi. Prima queste persone erano dentro il «possono andare», e
@@ -3533,7 +3564,9 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
       });
     } else if (manConGente.length && !buchiTot) {
       grafVuoto("graf-mansioni", I.ok, "Tutti pronti",
-        "Su tutte le mansioni con persone assegnate (<b>" + manConGente.length + "</b>) corsi e DPI sono in ordine: "
+        (manConGente.length === 1
+          ? "Sull'<b>unica</b> mansione con persone assegnate corsi e DPI sono in ordine: "
+          : "Su tutte le mansioni con persone assegnate (<b>" + manConGente.length + "</b>) corsi e DPI sono in ordine: ")
         + "chiunque può essere mandato al lavoro che gli compete. Il confronto fra le mansioni comparirà qui "
         + "appena una data si avvicina.");
     } else {
@@ -4488,7 +4521,7 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
     const a = document.createElement("a");
     a.href = "data:text/csv;charset=utf-8," + encodeURIComponent(csv);
     a.download = "scudo_registro_infortuni.csv"; a.click();
-    esito("inf-esito", "Esportati " + INF.length + " eventi del registro (CSV).", "success");
+    esito("inf-esito", plurale(INF.length, "Esportato ", "Esportati ") + conta(INF.length, "evento del registro", "eventi del registro") + " (CSV).", "success");
   };
   $("btn-inf-import").onclick = () => $("inf-file").click();
   $("inf-file").onchange = async (e) => {
@@ -4507,7 +4540,7 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
       agg++;
     }
     $("inf-file").value = "";
-    esito("inf-esito", `Import registro: ${agg} eventi aggiunti${dup ? `, ${dup} già presenti (saltati)` : ""}.`, agg ? "success" : "");
+    esito("inf-esito", `Import registro: ${conta(agg, "evento aggiunto", "eventi aggiunti")}${dup ? `, ${conta(dup, "già presente (saltato)", "già presenti (saltati)")}` : ""}.`, agg ? "success" : "");
     await refresh();
   };
   $("btn-import-csv").onclick = () => $("csv-file").click();
@@ -4563,7 +4596,7 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
     const a = document.createElement("a");
     a.href = "data:text/csv;charset=utf-8," + encodeURIComponent(csv);
     a.download = "scudo_personale_scadenze.csv"; a.click();
-    esito("import-esito", "Esportati " + LAV.length + " lavoratori e " + SCA.length + " scadenze (CSV).", "success");
+    esito("import-esito", plurale(LAV.length, "Esportato ", "Esportati ") + conta(LAV.length, "lavoratore", "lavoratori") + " e " + conta(SCA.length, "scadenza", "scadenze") + " (CSV).", "success");
   };
   $("csv-file").onchange = async (e) => {
     const file = e.target.files && e.target.files[0]; if (!file) return;
@@ -4583,7 +4616,7 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
       await db.aggiungi("lavoratori", l);
       aggiunti++;
     }
-    esito("import-esito", `Import completato: ${aggiunti} aggiunti, ${saltate} righe saltate (intestazioni o duplicati).`, aggiunti ? "success" : "");
+    esito("import-esito", `Import completato: ${aggiunti} ${plurale(aggiunti, "aggiunto", "aggiunti")}, ${conta(saltate, "riga saltata", "righe saltate")} (intestazioni o duplicati).`, aggiunti ? "success" : "");
     e.target.value = "";
     await refresh();
   };
@@ -4717,7 +4750,7 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
     const a = document.createElement("a");
     a.href = "data:text/csv;charset=utf-8," + encodeURIComponent(csv);
     a.download = "scudo_azioni_correttive.csv"; a.click();
-    esito("azi-esito-msg", "Esportate " + AZI.length + " azioni correttive (CSV).", "success");
+    esito("azi-esito-msg", plurale(AZI.length, "Esportata ", "Esportate ") + conta(AZI.length, "azione correttiva", "azioni correttive") + " (CSV).", "success");
   };
 
   async function collegaAzioneAllAnalisi(idEvento, idAzione) {
@@ -4824,7 +4857,7 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
     if (editMans) { await db.aggiorna("mansioni", editMans, rec); annullaEditMans();
       esito("mans-esito", "Mansione aggiornata: " + nome + ".", "success"); }
     else { await db.aggiungi("mansioni", rec); annullaEditMans();
-      esito("mans-esito", "Mansione aggiunta: " + nome + " (" + rec.requisiti.length + " corsi, " + rec.dpi.length + " DPI, " + rec.lavoratoriIds.length + " persone).", "success"); }
+      esito("mans-esito", "Mansione aggiunta: " + nome + " (" + conta(rec.requisiti.length, "corso", "corsi") + ", " + conta(rec.dpi.length, "DPI", "DPI") + ", " + conta(rec.lavoratoriIds.length, "persona", "persone") + ").", "success"); }
     await refresh();
   };
 

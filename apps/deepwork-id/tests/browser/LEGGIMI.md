@@ -698,6 +698,87 @@ stampati (verbale DPI e cartella del lavoratore) — li apre
 (`unita-maiuscole.mjs`); i numeri tranquilli sullo zero
 (`scudo-numeri-tranquilli.mjs`); il testo tagliato dal clamp.
 
+## `conti-frasi-da-uno.mjs` — Conti aperta con UN dato per collezione
+
+**Perché ha un banco suo, se `conti-frasi.mjs` c'è già.** Quello è nato
+**leggendo** il codice e provando i casi scelti a mano: prende i cinque plurali
+fissi che si era andati a cercare. Questo nasce dal gesto opposto — **si apre
+l'app con un dato per collezione e si guarda cosa si rompe** — ed è quello che
+in Flotta aveva tirato fuori ventiquattro frasi. Su Conti ne ha tirate fuori
+**tredici**, tutte con il sostantivo **già giusto** (`plur` c'era) e il resto
+della frase no:
+
+- gli **otto messaggi di export**, participio inchiodato al plurale:
+  «**Esportate** 1 fattura in CSV», «**Esportati** 1 incasso», «**Esportati** 1
+  cliente», «**Esportate** 1 voce di costo», «**Esportati** 1 prodotto col
+  prezzo convertito», «**Esportate** 1 pesata», «**Esportati** 1 prodotto
+  (CSV)», «**Esportate** 1 gara». Il nono — «1 preventivo esportato» — era già
+  giusto, e sta nel banco come guardia;
+- in **Banca**, appena letto il file: «**Letti** 1 movimento (su 2 righe:
+  l'intestazione non si conta)», mentre due centimetri sotto il riepilogo
+  scriveva già «1 riga letta»;
+- nella finestra che **elimina una fattura**: «Vengono eliminati anche **i 1
+  incasso registrato** su questa fattura (€ 220,00): senza la fattura non
+  **avrebbero** più un documento a cui riferirsi»;
+- nella **previsione incassi**, la stessa cosa in due punti: «**Escluse** 1
+  **già scadute** (€ 1.000,00): **quelle vanno** sollecitate» e «**Le 1 già
+  scadute** (€ 1.000) non **entrano** nella previsione: **vanno** sollecitate»;
+- e uno nel **MODULO**, che è il posto dove nessuna prova della pagina guarda:
+  `margineMese` scriveva «rispetto agli altri mesi **mancano i costi di**
+  personale» con una voce sola. Il segno da riconoscere era l'**asimmetria
+  dentro la stessa funzione**: quattro righe più sotto, il `motivo` del mese
+  CHIUSO il singolare lo faceva già. ⚠️ E si vedeva anche nella dimostrazione
+  com'è — a luglio manca l'energia e basta: non era un caso di laboratorio.
+  La prova pura sta in `run-kpi.mjs`, con la sua gemella al plurale.
+
+**Due setacci, e il secondo guarda dall'altra parte del numero.** Quello
+classico cerca «1 <parola al plurale>»: su questi tredici difetti è **cieco**,
+perché il sostantivo dopo il numero è al singolare — infatti nella controprova
+resta **verde** mentre tredici asserzioni cadono. Il secondo cerca la parola
+**prima** del numero («Esportate 1», «Letti 1», «i 1», «Escluse 1») con un
+vocabolario corto e scelto a mano: «aperte» non c'è di proposito, perché
+«Aperte 1 · Vinte 0 · Perse 0» è l'intestazione delle gare e sarebbe un allarme
+falso.
+
+⚠️ **Il righello ha sbagliato prima del prodotto, come sempre.** Schiacciando
+anche gli **a capo** uscivano due allarmi falsi, «1 INCASSATE» e «1 RIGHE»:
+`innerText` mette a capo fra un elemento e l'altro, e quel «1» è il contatore
+della pastiglia **precedente** («con acconto 1», «DDT scelti 1») mentre la
+parola al plurale è l'etichetta della **successiva**. Nessuno legge quella
+coppia come una frase. Si schiacciano solo gli spazi **orizzontali**.
+
+**Due varianti dello stesso modulo nella stessa passata.** La prima è «uno per
+collezione»; la seconda rende l'unico DDT **non valorizzabile** (venduto a
+metro cubo, prodotto senza densità), perché con una consegna sola e quella non
+convertibile **tutti** i totali dell'app valgono zero — ed è lì che si vede se
+la bandiera `calcolabile` la legge qualcuno. La risposta, misurata: sì. Il
+foglio del DDT scrive «non calcolabile» **e il perché**, la cella `valore` del
+CSV resta **vuota** (non «0»), e il totale delle consegne dichiara di essere
+per difetto. Il caso si costruisce **nei dati serviti**, mai sul disco.
+
+```
+node apps/deepwork-id/tests/browser/conti-frasi-da-uno.mjs
+node apps/deepwork-id/tests/browser/conti-frasi-da-uno.mjs --controprova
+node apps/deepwork-id/tests/browser/conti-frasi-da-uno.mjs --dimmi
+```
+
+Misura al 07/08: **41 ok, 0 KO** · 11 schermate (21.369 caratteri), 3 finestre,
+4 fogli di stampa, 10 file CSV (202 celle), 35 testi setacciati. Controprova:
+**14 difetti su 14 rimessi davvero, 0 iniezioni mancate, 19 prove cadute su
+41** — e una di quelle cade per il **secondo** setaccio.
+
+**Che cosa NON guarda**, dichiarato perché non prometta troppo: gli import CSV
+e le loro frasi di esito (li tiene `conti-frasi.mjs`), le barre delle liste
+(`conti-barre-peso.mjs`), i due fogli di `conti-stampe.mjs`, le unità di misura
+a schermo (`unita-maiuscole.mjs`). E **una cosa vista e non chiusa**: sul
+Quadro, «chi sollecitare per primo» chiama `apertoDi(f)` **senza** le note di
+credito (tre punti su cinque in tutta la pagina lo fanno), quindi una fattura
+stornata per intero resta in elenco con «€ 1.000,00 residuo» accanto a un KPI
+che dice «da incassare € 0». Il `apertoDi` senza note è una scelta **dichiarata
+nel modulo** (i chiamanti che ancora non sanno delle note hanno «esattamente il
+numero di prima»), quindi non è un difetto da correggere di nascosto: la
+lettera che parte al cliente le note le riceve già.
+
 ## `campo-numeri-tranquilli.mjs` — i documenti di Campo e il giorno che nessuno ha dichiarato
 
 Quattro blocchi storici (il CSV dello storico con gli zeri di comodo, il

@@ -1621,7 +1621,7 @@ label.item:has(.dw-chk:checked){
     preventiviDaSeguire, prezzoDaOrdine, descriviPrezzoOrdine,
     validaScaglioni, scaglionePer, applicaScaglione, etichettaScaglione,
     descriviScaglione } from "./conti-data.js";
-  import { mountExit, esc, csvCell, statoVuoto, senzaDoppioni, avvolgiUnita, conta, euro, euro0, conEuro, isoLocale, istanteLocale, oggiISO as oggiISOShell, meseLocale, dataIt, dataPiuGiorni, nomeCsvDimostrazione, modoDimostrazione } from "../../shared/deepwork-id-client/dw-shell.js";
+  import { mountExit, esc, csvCell, statoVuoto, senzaDoppioni, avvolgiUnita, conta, plurale, euro, euro0, conEuro, isoLocale, istanteLocale, oggiISO as oggiISOShell, meseLocale, dataIt, dataPiuGiorni, nomeCsvDimostrazione, modoDimostrazione } from "../../shared/deepwork-id-client/dw-shell.js";
   // gli agganci della struttura condivisa (modale con Escape, riquadri da
   // tastiera, alone che segue il mouse). Va chiamato QUI e non nel blocco
   // classico in linea: i moduli girano dopo gli script `defer`.
@@ -3199,7 +3199,7 @@ label.item:has(.dw-chk:checked){
       <div class="amt"><div class="amt-n${m.importo > 0 ? " pos" : " mute"}">${eur(m.importo)}</div></div>
       ${barraPeso(m.importo, prevMax)}</div>`).join("")
       : "")   // lo stato vuoto lo dà il grafico qui sopra: non si ripete due volte
-      + (prev.scadute.conto ? `<div class="note">Escluse <b>${prev.scadute.conto}</b> già scadute (<b>${eur(prev.scadute.importo)}</b>): quelle vanno sollecitate, le trovi nell'aging qui sopra.</div>` : "");
+      + (prev.scadute.conto ? `<div class="note">${plurale(prev.scadute.conto, "Esclusa", "Escluse")} <b>${prev.scadute.conto}</b> ${plurale(prev.scadute.conto, "già scaduta", "già scadute")} (<b>${eur(prev.scadute.importo)}</b>): ${plurale(prev.scadute.conto, "quella va sollecitata", "quelle vanno sollecitate")}, la trovi nell'aging qui sopra.</div>` : "");
 
     // ── Grafico della previsione incassi (N2): il tempo si legge in
     //    orizzontale, un mese per colonna. È la domanda «il mese prossimo
@@ -3209,7 +3209,7 @@ label.item:has(.dw-chk:checked){
     if (!prev.mesi.some(m => m.conto)) {
       grafVuoto("graf-prev", "grafico", "Niente in arrivo",
         "Nessuna fattura in scadenza nei prossimi 6 mesi: la previsione si riempie da sola man mano che emetti fatture con la loro scadenza."
-        + (prev.scadute.conto ? " Le <b>" + prev.scadute.conto + "</b> già scadute (" + eur0(prev.scadute.importo) + ") non entrano nella previsione: vanno sollecitate." : ""));
+        + (prev.scadute.conto ? " " + plurale(prev.scadute.conto, "L'<b>unica</b> già scaduta", "Le <b>" + prev.scadute.conto + "</b> già scadute") + " (" + eur0(prev.scadute.importo) + ") non " + plurale(prev.scadute.conto, "entra", "entrano") + " nella previsione: " + plurale(prev.scadute.conto, "va sollecitata", "vanno sollecitate") + "." : ""));
     } else if (G()) {
       {
         svuotaGraf("graf-prev");
@@ -5035,7 +5035,7 @@ label.item:has(.dw-chk:checked){
             /* la riga qui sotto usava `plur` e questa no, nella STESSA finestra:
                con un DDT solo diceva «I 1 DDT collegati tornano». */
             return n ? `<p>${n === 1 ? `Il <b>DDT collegato</b> torna` : `I <b>${n} DDT</b> collegati tornano`} fra quelli <b>da fatturare</b>: ${n === 1 ? "la consegna non si perde, si rimette" : "le consegne non si perdono, si rimettono"} in coda.</p>` : ""; })()}
-         ${movimentiDiFattura(f.id, INC).length ? `<p>Vengono eliminati anche i <b>${plur(movimentiDiFattura(f.id, INC).length, "incasso registrato", "incassi registrati")}</b> su questa fattura (${eur(movimentiDiFattura(f.id, INC).reduce((t, m) => t + m.importo, 0))}): senza la fattura non avrebbero più un documento a cui riferirsi.</p>` : ""}`,
+         ${movimentiDiFattura(f.id, INC).length ? `<p>${plurale(movimentiDiFattura(f.id, INC).length, "Viene eliminato anche l'", "Vengono eliminati anche i ")}<b>${plurale(movimentiDiFattura(f.id, INC).length, "unico incasso registrato", movimentiDiFattura(f.id, INC).length + " incassi registrati")}</b> su questa fattura (${eur(movimentiDiFattura(f.id, INC).reduce((t, m) => t + m.importo, 0))}): senza la fattura non ${plurale(movimentiDiFattura(f.id, INC).length, "avrebbe", "avrebbero")} più un documento a cui riferirsi.</p>` : ""}`,
         "Elimina", true, "Emetti nota di credito");
       /* la finestra spiegava la regola e poi offriva UN SOLO bottone, che era
          quello che la viola. Adesso la strada giusta è lì accanto. */
@@ -5246,7 +5246,7 @@ label.item:has(.dw-chk:checked){
     const a = document.createElement("a");
     a.href = "data:text/csv;charset=utf-8," + encodeURIComponent(csv);
     a.download = "conti_situazione_fatture.csv"; marchiaCsv(a); a.click();
-    esito("rep-esito", "Esportate " + plur(FAT.length, "fattura", "fatture") + " in CSV.", "success");
+    esito("rep-esito", plurale(FAT.length, "Esportata ", "Esportate ") + plur(FAT.length, "fattura", "fatture") + " in CSV.", "success");
   };
   // Prima nota degli incassi: ogni versamento con la sua data vera. È il file
   // che il commercialista incrocia con l'estratto conto della banca.
@@ -5266,7 +5266,7 @@ label.item:has(.dw-chk:checked){
     a.href = "data:text/csv;charset=utf-8," + encodeURIComponent(csv);
     a.download = "conti_incassi.csv"; marchiaCsv(a); a.click();
     esito("rep-esito", righe.length
-      ? "Esportati " + plur(righe.length, "incasso", "incassi") + " in CSV."
+      ? plurale(righe.length, "Esportato ", "Esportati ") + plur(righe.length, "incasso", "incassi") + " in CSV."
       : "Nessun incasso registrato: il file esce con la sola intestazione.", righe.length ? "success" : "err");
   };
   // Anagrafica clienti: aggiunta e modifica in-place (stesso form, come le
@@ -5318,7 +5318,7 @@ label.item:has(.dw-chk:checked){
     const a = document.createElement("a");
     a.href = "data:text/csv;charset=utf-8," + encodeURIComponent(csv);
     a.download = "conti_clienti.csv"; marchiaCsv(a); a.click();
-    esito("cl-esito", "Esportati " + plur(CLI.length, "cliente", "clienti") + " in CSV.", "success");
+    esito("cl-esito", plurale(CLI.length, "Esportato ", "Esportati ") + plur(CLI.length, "cliente", "clienti") + " in CSV.", "success");
   };
   // ══════════════════════════════════════════════════════════════════
   // LISTINO (N1): aggiunta e modifica di un prodotto. Densità obbligatoria:
@@ -5528,7 +5528,7 @@ label.item:has(.dw-chk:checked){
     a.href = URL.createObjectURL(new Blob(["﻿" + csv], { type: "text/csv;charset=utf-8" }));
     a.download = "conti_costi_" + d1 + "_" + d2 + ".csv"; marchiaCsv(a);
     a.click(); URL.revokeObjectURL(a.href);
-    esito("cos-esito", "Esportate " + plur(r.righe.length + r.righeSenzaData.length, "voce di costo", "voci di costo") + ".", "success");
+    esito("cos-esito", plurale(r.righe.length + r.righeSenzaData.length, "Esportata ", "Esportate ") + plur(r.righe.length + r.righeSenzaData.length, "voce di costo", "voci di costo") + ".", "success");
   };
 
   /* Il PROSPETTO dei prezzi: quello che il commercialista o il cliente
@@ -5551,7 +5551,7 @@ label.item:has(.dw-chk:checked){
     const a = document.createElement("a");
     a.href = "data:text/csv;charset=utf-8," + encodeURIComponent(csv);
     a.download = "conti_listino_prezzi.csv"; marchiaCsv(a); a.click();
-    esito("pr-esito", "Esportati " + plur(PRO.length, "prodotto", "prodotti") + " col prezzo convertito a tonnellata e a metro cubo. Per il file da ri-caricare usa Esporta CSV nella scheda Listino.", "success");
+    esito("pr-esito", plurale(PRO.length, "Esportato ", "Esportati ") + plur(PRO.length, "prodotto", "prodotti") + " col prezzo convertito a tonnellata e a metro cubo. Per il file da ri-caricare usa Esporta CSV nella scheda Listino.", "success");
   };
 
   // ══════════════════════════════════════════════════════════════════
@@ -5648,7 +5648,7 @@ label.item:has(.dw-chk:checked){
     const a = document.createElement("a");
     a.href = "data:text/csv;charset=utf-8," + encodeURIComponent(csv);
     a.download = "conti_pesate_ddt.csv"; marchiaCsv(a); a.click();
-    esito("pes-esito", "Esportate " + plur(PES.length, "pesata", "pesate") + " in CSV.", "success");
+    esito("pes-esito", plurale(PES.length, "Esportata ", "Esportate ") + plur(PES.length, "pesata", "pesate") + " in CSV.", "success");
   };
 
   // ══════════════════════════════════════════════════════════════════
@@ -6003,7 +6003,7 @@ label.item:has(.dw-chk:checked){
        non gli torna, senza capire perché. Qui non cadono nemmeno — restano in
        elenco col motivo — ma il numero va detto lo stesso. */
     esito("ban-esito",
-      `Letti ${plur(BANMOV.length, "movimento", "movimenti")}`
+      `${plurale(BANMOV.length, "Letto", "Letti")} ${plur(BANMOV.length, "movimento", "movimenti")}`
       + (grezze > BANMOV.length ? ` (su ${grezze} righe: l'intestazione non si conta)` : "")
       + (rotte ? `. ${plur(rotte, "riga non è leggibile", "righe non sono leggibili")} e ${rotte === 1 ? "sta" : "stanno"} in fondo, sotto «Non abbinati», col motivo scritto.` : "."),
       "success");
@@ -6081,7 +6081,7 @@ label.item:has(.dw-chk:checked){
        `PRO.length`, lo stesso numero che l'export dei prezzi convertiti
        quindici righe più su passa a `plur`. Con un prodotto solo in listino
        scriveva «Esportati 1 prodotti (CSV).» */
-    esito("lis-esito", "Esportati " + plur(PRO.length, "prodotto", "prodotti") + " (CSV).", "success");
+    esito("lis-esito", plurale(PRO.length, "Esportato ", "Esportati ") + plur(PRO.length, "prodotto", "prodotti") + " (CSV).", "success");
   };
   $("btn-gar-import").onclick = () => $("gar-file").click();
   $("gar-file").onchange = async (e) => {
@@ -6129,7 +6129,7 @@ label.item:has(.dw-chk:checked){
     const a = document.createElement("a");
     a.href = "data:text/csv;charset=utf-8," + encodeURIComponent(csv);
     a.download = "conti_gare.csv"; marchiaCsv(a); a.click();
-    esito("gar-esito", "Esportate " + plur(GAR.length, "gara", "gare") + " in CSV.", "success");
+    esito("gar-esito", plurale(GAR.length, "Esportata ", "Esportate ") + plur(GAR.length, "gara", "gare") + " in CSV.", "success");
   };
   $("btn-ft").onclick = async () => {
     const numero = $("ft-num").value.trim(), scelta = $("ft-cli").value,

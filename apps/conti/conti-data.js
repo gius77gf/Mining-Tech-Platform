@@ -65,7 +65,7 @@
 // KPI CALCOLATI: da incassare, in scadenza, gare aperte, età media del credito.
 // ============================================================
 
-import { parseCsvLine, leggiCsv, numIt, giorniTra, isIntestazione, dataISOEsiste, dataIt, conta,
+import { parseCsvLine, leggiCsv, numIt, giorniTra, isIntestazione, dataISOEsiste, dataIt, conta, plurale,
          AVVISO_DECIMALE as AVVISO_DECIMALE_SHELL } from "../../shared/deepwork-id-client/dw-shell.js";
 import { provenienzaDi, misuratoPeriodo } from "../../shared/dw-ponti.js";
 /* la classificazione dei costi vive in shared/ perché serve anche a Flotta:
@@ -2876,7 +2876,12 @@ export function margineMese(fatture, note, costi, chiusure, mese) {
     margine: null, marginePct: null, calcolabile: false };
   if (st.stato === "aperto")
     return { ...fuori, motivo: man.mancanti.length
-      ? `Il mese non è chiuso, e rispetto agli altri mesi mancano i costi di ${man.mancanti.map((x) => x.etichetta.toLowerCase()).join(", ")}. Un margine calcolato adesso sarebbe più alto del vero.`
+      /* ⛔ IL SINGOLARE VALE ANCHE QUI, e quattro righe più sotto il `motivo`
+         del mese CHIUSO lo faceva già («una voce non è mai stata dichiarata»):
+         l'asimmetria dentro la stessa funzione. Con UNA voce mancante — che è
+         il caso normale, non un caso di laboratorio — la frase diceva «mancano
+         i costi di personale». */
+      ? `Il mese non è chiuso, e rispetto agli altri mesi ${plurale(man.mancanti.length, "manca il costo di", "mancano i costi di")} ${man.mancanti.map((x) => x.etichetta.toLowerCase()).join(", ")}. Un margine calcolato adesso sarebbe più alto del vero.`
       : "Il mese non è ancora dichiarato chiuso: finché non lo è, i costi possono essere incompleti e il margine uscirebbe più alto del vero." };
   /* RICAVI PER COMPETENZA: le fatture emesse nel mese, al netto delle note di
      credito emesse nel mese. Confonderli con gli INCASSI darebbe due margini

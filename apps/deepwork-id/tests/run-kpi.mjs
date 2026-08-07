@@ -3030,6 +3030,27 @@ test("⛔ prima della chiusura il margine è ASSENTE, e la ragione nomina la voc
   ok(/personale/.test(a.motivo), "la ragione dice QUALE voce manca: " + a.motivo);
   eq(a.costi, 150, "ma i costi inseriti si vedono lo stesso");
 });
+test("⛔ e con UNA voce sola la ragione è al singolare: «manca il costo di»", () => {
+  /* Trovato aprendo Conti con un dato per collezione (`conti-frasi-da-uno.mjs`):
+     con una mancanza sola — che è il caso NORMALE, non di laboratorio, e
+     succede anche nella dimostrazione — la frase diceva «rispetto agli altri
+     mesi **mancano i costi di** personale». Il segno da riconoscere era
+     l'asimmetria dentro la stessa funzione: quattro righe più sotto il
+     `motivo` del mese CHIUSO il singolare lo faceva già («una voce non è mai
+     stata dichiarata»). */
+  const uno = conti.margineMese(FAT_M, NOTE_M, COSTI_M, [], "2026-07");
+  eq(uno.mancanti.length, 1, "in luglio manca una voce sola");
+  ok(/manca il costo di personale/.test(uno.motivo), "singolare: " + uno.motivo);
+  ok(!/mancano i costi/.test(uno.motivo), "⛔ e mai «mancano i costi» con una voce sola");
+  // e con DUE la frase resta al plurale: la regola non è «sempre singolare»
+  const senzaDue = COSTI_M.filter(c => !(c.data === "2026-07-14"))
+    .concat([{ voce: "energia", importo: 60, data: "2026-02-20" }, { voce: "energia", importo: 62, data: "2026-03-20" },
+             { voce: "energia", importo: 64, data: "2026-04-20" }, { voce: "energia", importo: 66, data: "2026-05-20" },
+             { voce: "energia", importo: 68, data: "2026-06-20" }, { voce: "generali", importo: 10, data: "2026-07-02" }]);
+  const due = conti.margineMese(FAT_M, NOTE_M, senzaDue, [], "2026-07");
+  ok(due.mancanti.length >= 2, "in questo scenario ne mancano almeno due: " + due.mancanti.length);
+  ok(/mancano i costi di/.test(due.motivo), "plurale quando è plurale: " + due.motivo);
+});
 test("a mese chiuso il margine esce, per COMPETENZA e al netto delle note di credito", () => {
   const c = conti.margineMese(FAT_M, NOTE_M, COSTI_M, CH_M, "2026-07");
   eq(c.calcolabile, true, "si calcola");

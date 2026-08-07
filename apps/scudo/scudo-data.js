@@ -710,7 +710,12 @@ export function testoPromemoria(scadenza, lavoratore, oggi = new Date()) {
   const quando = st === "senza data"
     ? "va rinnovata, ma nel nostro scadenzario non risulta una data di scadenza leggibile: non possiamo dirti entro quando"
     : st === "scaduta"
-      ? `risulta SCADUTA dal ${dataIt(sc.dataScadenza)} (${-g} giorni fa)`
+      /* ⛔ «(1 giorni fa)», e questo testo NON resta sullo schermo: il bottone
+         Promemoria lo copia negli appunti perché finisca in un'email o in un
+         SMS al lavoratore. È il documento che esce da questa schermata, e il
+         giorno dopo la scadenza è proprio quando lo si manda. Il ramo «tra N
+         giorni» qui sotto il singolare ce l'aveva già. */
+      ? `risulta SCADUTA dal ${dataIt(sc.dataScadenza)} (${conta(-g, "giorno", "giorni")} fa)`
       : g === 0
         ? `scade OGGI, ${dataIt(sc.dataScadenza)}`
         : `scade il ${dataIt(sc.dataScadenza)} (tra ${g} ${g === 1 ? "giorno" : "giorni"})`;
@@ -1249,7 +1254,13 @@ export function descriviRischioPotenziale(riepilogo) {
     : (ev === 1 ? "L'unico near-miss del periodo ha la gravità potenziale scritta. "
                 : "Tutti e " + ev + " i near-miss del periodo hanno la gravità potenziale scritta. ");
   if (!r.leggibile)
-    return testa + "Sono meno di " + MIN_TENDENZA + ": l'app non dice dove il rischio si concentra, "
+    /* ⛔ IL VERBO STAVA FUORI DAL TERNARIO, ed è la seconda volta in due giorni
+       su questo stesso riepilogo: la testa qui sopra il singolare l'ha imparato
+       («L'unico near-miss del periodo ha…») e la coda no, quindi con una sola
+       valutazione usciva «L'unico near-miss del periodo ha la gravità
+       potenziale scritta. SONO meno di 5». La frase esce anche nel CSV della
+       L. 198/2025, cioè nel foglio che l'azienda consegna. */
+    return testa + plurale(val, "È", "Sono") + " meno di " + MIN_TENDENZA + ": l'app non dice dove il rischio si concentra, "
       + "perché una classifica costruita su così pochi episodi sarebbe una bugia.";
   const d = r.dove;
   if (!d)
@@ -1954,19 +1965,26 @@ export function cicloDss(documento, infortuni, oggi = new Date()) {
   /* Una data di revisione nel FUTURO è un errore di digitazione, e senza questa
      riga darebbe il verde per un anno intero: è la stessa famiglia dello 0% di
      `avanzamentoLotto`, un numero tranquillo prodotto da un dato sbagliato. */
+  /* ⛔ E I GIORNI SI SCRIVONO CON `conta`, IN TUTT'E QUATTRO I RAMI. Il DSS
+     rivisto ieri faceva dire a questa funzione «Ultima revisione 1 giorni fa»
+     — ed è il primo giorno di vita del documento, cioè il momento in cui uno
+     lo apre per controllare di averlo registrato bene. Due dei quattro rami
+     (i dodici mesi) con un giorno solo non ci arrivano mai, ma la regola si
+     scrive una volta per tutte: due versioni della stessa frase divergono, ed
+     è il difetto che questo repository ha già pagato più volte. */
   if (giorni < 0) return { ...base, noto: false, stato: "revisione-futura",
-    perche: "La data dell'ultima revisione cade nel futuro (fra " + (-giorni) + " giorni): è un errore di "
+    perche: "La data dell'ultima revisione cade nel futuro (fra " + conta(-giorni, "giorno", "giorni") + "): è un errore di "
       + "compilazione, e tutto quello che verrebbe dopo sarebbe calcolato su una data falsa." };
   if (graviDopo.length) return { ...base, noto: true, stato: "da-aggiornare",
     perche: "Dopo l'ultima revisione " + (graviDopo.length === 1
       ? "è stato registrato un infortunio grave" : "sono stati registrati " + graviDopo.length + " infortuni gravi")
       + ": il DSS va aggiornato." };
   if (statoCertificazione === "scaduta") return { ...base, noto: true, stato: "certificazione-scaduta",
-    perche: "Ultima revisione " + giorni + " giorni fa: i dodici mesi sono passati. " + CIECO_DSS };
+    perche: "Ultima revisione " + conta(giorni, "giorno", "giorni") + " fa: i dodici mesi sono passati. " + CIECO_DSS };
   if (statoCertificazione === "in-scadenza") return { ...base, noto: true, stato: "certificazione-in-scadenza",
-    perche: "Ultima revisione " + giorni + " giorni fa: i dodici mesi scadono entro trenta giorni. " + CIECO_DSS };
+    perche: "Ultima revisione " + conta(giorni, "giorno", "giorni") + " fa: i dodici mesi scadono entro trenta giorni. " + CIECO_DSS };
   return { ...base, noto: true, stato: "regolare",
-    perche: "Ultima revisione " + giorni + " giorni fa, dentro i dodici mesi, e dopo di essa "
+    perche: "Ultima revisione " + conta(giorni, "giorno", "giorni") + " fa, dentro i dodici mesi, e dopo di essa "
       + (graviRegistrati ? "non risultano infortuni gravi" : "Scudo non ha registrato nessun infortunio grave")
       + ". " + CIECO_DSS };
 }
@@ -4350,7 +4368,13 @@ export function riepilogoPermessi(permessi, ctx = {}, oggi = new Date()) {
          scaduti ? scaduti + (scaduti === 1 ? " scaduto e non chiuso" : " scaduti e non chiusi") : "",
          daVerificare ? daVerificare + (daVerificare === 1 ? " su cui manca una verifica" : " su cui mancano verifiche") : ""]
         .filter(Boolean).join(" · ") + ", su " + list.length + " registrat" + (list.length === 1 ? "o" : "i") + "."
-      : "Tutti i " + list.length + " permessi registrati sono in ordine." };
+      /* ⛔ «Tutti i 1 permessi registrati sono in ordine»: il ramo tranquillo
+         era l'unico senza singolare — le tre voci del ramo storto ce l'hanno
+         una per una, dodici righe più su. Ed è la frase che si legge in cima
+         alla schermata quando va tutto bene, cioè quella che si legge di più. */
+      : (list.length === 1
+          ? "L'unico permesso registrato è in ordine."
+          : "Tutti i " + list.length + " permessi registrati sono in ordine.") };
 }
 
 /* I permessi che riguardano un sito, dal più recente: serve alla pagina e al
