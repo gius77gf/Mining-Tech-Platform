@@ -3114,5 +3114,56 @@ test("regola 27: chi carica dw-tema.js e chi no e' dichiarato, con la ragione", 
 });
 
 if (inVolo.length) await Promise.all(inVolo);   // si aspetta PRIMA di contare
+/* ═══ REGOLA 28 — OGNI STATO DI SENTINELLA PASSA DA `conSoglia` ═══
+   ────────────────────────────────────────────────────────────────────────
+   PERCHÉ ESISTE. `conSoglia` sostituisce la soglia del punto con quella del
+   RICETTORE quando l'autorizzazione ne prescrive una più stretta per QUELLA
+   casa. Il suo commento, nella pagina, elenca chi deve passare di lì:
+   «semaforo, KPI, grafico, allerte, report». È un elenco scritto a mano, e
+   come tutti gli elenchi scritti a mano si è accorciato da solo: il 07/08 la
+   **striscia di conferma** che compare quando si registra una misura prendeva
+   `m` da `MON.find` — grezzo — mentre badge e KPI giravano su
+   `MONE = MON.map(conSoglia)`.
+   Misurato, punto con soglia 20 collegato a una casa da 5 mm/s, lettura 8:
+   la conferma diceva «→ Conforme» e la riga due centimetri sopra
+   «Superamento». Non un numero in un documento: la frase che l'utente legge
+   NELL'ISTANTE in cui scrive il dato, e che gli dice di stare tranquillo.
+   ⛔ La difesa non è ricordarsi l'elenco: è che nessuna chiamata a
+   `statoMisura(` possa nascere fuori da `conSoglia`. Questa regola lo pretende
+   e stampa **quante chiamate ha guardato**, perché un «nessuna violazione» su
+   zero soggetti è il modo in cui un controllo mente.
+   ⚠️ Si guarda il CODICE e non il testo (`mascheraCodice`): un `statoMisura(`
+   dentro un commento o una stringa non è una chiamata. */
+test("regola 28: in Sentinella ogni statoMisura( nasce da conSoglia", () => {
+  const testo = leggi("apps/sentinella/index.html");
+  /* ⚠️ `mascheraCodice` NON torna una stringa: torna una maschera di byte
+     lunga quanto il testo (1 = codice vero). Si scorre il TESTO e le si chiede
+     se quel punto e' codice — chi la usa come stringa prende
+     «matchAll is not a function», ed e' quello che e' successo al primo giro. */
+  const vivo = mascheraCodice(testo);
+  const eCodice = (k) => vivo[k] === 1;
+  const male = [];
+  let visti = 0;
+  for (const m of testo.matchAll(/statoMisura\(/g)) {
+    if (!eCodice(m.index)) continue;   // dentro un commento o una stringa: non e' una chiamata
+    visti++;
+    /* si guarda che cosa gli si passa: o un oggetto che viene da `conSoglia`,
+       o una variabile presa da `MONE` (che è già `MON.map(conSoglia)`) */
+    const coda = testo.slice(m.index, m.index + 90);
+    const riga = testo.slice(0, m.index).split("\n").length;
+    if (/statoMisura\(\s*conSoglia\(/.test(coda)) continue;
+    /* le due chiamate che ricevono un elemento di MONE: si accettano solo se
+       la variabile arriva da lì, e la prova che sia così sta nel fatto che
+       MONE è l'unico posto in cui questa pagina mappa conSoglia */
+    if (/statoMisura\(\s*m\s*[),]/.test(coda) && /MONE\s*=\s*MON\.map\(conSoglia\)/.test(testo)) continue;
+    male.push(`riga ${riga}: ${coda.split("\n")[0].trim()}`);
+  }
+  ok(visti >= 3, `la regola 28 ha guardato solo ${visti} chiamate a statoMisura: non sta guardando dove crede`);
+  ok(male.length === 0,
+    "chiamate a statoMisura che NON passano da conSoglia (direbbero «Conforme» dove il badge dice «Superamento»):\n  "
+    + male.join("\n  "));
+});
+
+
 console.log(`\nRisultato Stile: ${passed} passati, ${failed} falliti${inVolo.length ? `  ·  ${inVolo.length} prove asincrone aspettate` : ""}`);
 process.exit(failed > 0 ? 1 : 0);
