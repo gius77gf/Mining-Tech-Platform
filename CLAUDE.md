@@ -820,6 +820,35 @@ Perché serva davvero e non produca elenchi generici, cinque vincoli:
   **forma** dell'intestazione, non sulle parole (sana = senza ` · `). E vale
   quello che vale per ogni controllo: va chiesto **quanti soggetti ha guardato**
   — le intestazioni si contano in un secondo, e il conto che non torna si vede.
+- ⛔ **UN BANCO CHE PORTA DENTRO UN NUMERO ATTESO INVECCHIA COL CRESCERE DELLA
+  DIMOSTRAZIONE — e accusa il prodotto per una cosa che ha fatto il prodotto.**
+  Misurato il 07/08 sui due soli KO di un giro pulito. Il banco pretendeva che i
+  totali del documento del core facessero `2395.1 / 317 / 34`: erano **esatti
+  fino al 06/08**, quando la dimostrazione ha guadagnato un quinto rapportino.
+  Da quel giorno accusava il core di sommare i turni mai misurati mentre il
+  foglio diceva **la stessa identica cosa** del riquadro sopra il bottone
+  (misurato: schermo e PDF, stesso istante, stesso stato, `46 · 419 · 3466`).
+  La cura è **derivare invece di scrivere**: il piede si confronta con la somma
+  di quello che il foglio **stesso** ha stampato, e col riquadro dello schermo
+  letto **per selettore**. Così un dato nuovo non fa più cadere niente.
+  ⚠️ E il `2395.1` che il banco «leggeva sullo schermo» non era il KPI: era il
+  totale **per operatore** di un'altra riga, pescato come **sottostringa** da
+  600 caratteri di `innerText`. Una controprova che cerca una sottostringa
+  risponde ok qualunque cosa succeda al numero che deve sorvegliare.
+- ⛔ **E UN BANCO CHE CROLLA DICHIARA MENO PROVE, CHE NON È UN BUCO CHE SI
+  VEDE.** Lo stesso giorno, lo stesso banco: un `page.click` scaduto lo ha ucciso
+  a metà e il registro ha stampato **19 prove invece di 30**. Undici asserzioni
+  sparite, e nessuna riga rossa a dirlo — un totale più basso si legge come «ha
+  guardato meno roba», non come «si è rotto». La difesa è la stessa del file di
+  test inerte: **si guarda che il totale sia quello di sempre**, e un banco che
+  non riesce a raggiungere il suo soggetto lo **dichiara** e tira avanti invece
+  di morire.
+  ⚠️ La causa sotto merita da sola: i casi venivano iniettati nel letterale di
+  `DB` e un `DB.volate = [...DEFAULT_VOLATE]` aggiunto dopo li buttava via un
+  istante più tardi. E la riga «i casi hanno agganciato la pagina servita»
+  diceva **ok**, perché guardava la sostituzione nel **file** invece dell'arrivo
+  nello **stato**. Un'iniezione si verifica dove il programma la legge, non dove
+  l'hai scritta.
 - ⚠️ **UNA PROVA CHE NON SA FALLIRE NON DIMOSTRA NIENTE.** Ogni controllo
   nuovo va provato **contro il difetto**: si rimette il difetto e si pretende
   che il controllo fallisca. Costa due minuti e ha già salvato due volte:
