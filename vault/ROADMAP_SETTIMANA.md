@@ -918,6 +918,16 @@ numero scritto dove non era stato misurato niente**.*
 - [x] ✅ **Regola 27** (`1476d45`): **Genesi non ha la modalità sole** e nessuno
   lo diceva — l'ha detto un banco elencando quello che non poteva misurare. Le
   otto superfici senza i tre temi sono dichiarate con la ragione.
+- [x] ✅ **Flotta nei temi chiari** (`b50c8b4`): chiaro **13 → 0**, sole **13 →
+  0**, testi identici. ⛔ E su **una delle tredici il banco aveva torto** (il
+  `.n` verde vale 3,01, non 2,93): l'ha smentito un righello che valuta i due
+  gradienti **nello stesso punto fisico**, ed è la settima trappola che la
+  forbice segnalava. ⚠️ Conferma indipendente: le tinte scelte sono a **ΔE 8,8 /
+  3,2 / 4,6** da quelle che Sentinella aveva già scelto per la **carta**.
+- [x] ✅ **Il report del core a periodo aperto si sovrascriveva da solo**: usciva
+  `Report_tecnico__.pdf`. ⚠️ E scrivendo la correzione avevo chiamato un
+  `oggiLocale()` che **non esiste** — la famiglia di `chiediDati`. Preso
+  cercando in casa; verificato che `nomi-liberi` l'avrebbe preso (7/0 → 6/1).
 - [ ] **Le 54 dei temi chiari** — è una **palette**, non una correzione: va
   decisa con la ricerca cromatica e verificata a contrasto. Fra le peggiori:
   «Conforme» nell'esito del report a **2,35** (ne servono 3), «Riferibilità
