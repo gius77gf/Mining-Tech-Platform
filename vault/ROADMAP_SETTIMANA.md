@@ -731,6 +731,24 @@ numero scritto dove non era stato misurato niente**.*
   prova che non può riaccorciarsi: con quello a mano restavano fuori `avvisa`
   (5 usi), `mostraTesto` (1) e `chiediDati` (6).
 
+- [x] ✅ **Genesi · i file che escono** (`d07ca2f`): i nove bottoni che salvano
+  un FILE non li aveva mai aperti nessuno. Aperti, **32 numeri** confrontati col
+  loro valore a schermo: il file di scambio scriveva lo **scatter d'innesco**
+  invece del ritardo (`42` → `42,332516881726825`) e il giro di andata e ritorno
+  riportava una volata da **42 ms a 25**; la scheda archiviata col rapportino
+  non diceva da dove viene la PPV (due file identici tranne una riga, 1,9 contro
+  4,1, con la legge dichiarata **provvisoria** dallo schermo); l'airblast non
+  c'era; e la riconciliazione, coi valori scritti **con la virgola** come si
+  scrive in cava, faceva **sparire** tre misure dallo storico.
+- [x] ✅ **Campo · i file che escono** (`3e03c7c`): 22 documenti aperti premendo
+  il bottone, **347 celle** confrontate. Il grave: un rapporto **datato 07/08**
+  con `2.510 t`, di cui **2.300 t** da un rapportino **senza data**, e zero
+  dichiarazioni — mentre lo schermo lo dice **due volte**. ⚠️ Il numero non era
+  sbagliato: mancava la dichiarazione, e la regola giusta era già nel modulo,
+  usata dallo storico e non dai documenti. Più cinque frasi col numero 1.
+  ✅ E dove Campo era già a posto, col conto accanto: `ore_lavorate` resta
+  **vuota** (non `0`) quando manca un orario, provato su 5 persone in 5 stati.
+
 ## Riferimenti
 
 - Ultimo checkpoint **per data vera**:
