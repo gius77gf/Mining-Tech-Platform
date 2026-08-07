@@ -1277,11 +1277,23 @@ numero scritto dove non era stato misurato niente**.*
   volate» della dashboard, tagliato da prima. Limite dichiarato: a 320px una
   combinazione esce lo stesso (197 su 194) e il banco la stampa. Banchi
   **147 → 149**, controprova 7 KO.
+- [x] ✅ **Terra · il divario di recupero che cambiava SEGNO** (`74aa564`): la
+  ragione era già scritta nel commento di `divarioRecupero` — «un divario
+  calcolato su tre lotti quando ce ne sono sei è più piccolo del vero» — ma per
+  i **m²** soltanto. La riga accanto usa lo stesso `somma` con `(+x[campo] ||
+  0)`: un lotto che il volume non lo dichiara valeva **zero m³**. E aperta la
+  pagina non era «più piccolo»: tolto il volume di `lo5`, il Piano scriveva
+  **-43.000 m³** dove il vero è **+97.000** — si legge «il recupero è avanti in
+  volume», cioè il contrario. Stato **previsto** dal prodotto (`volumeM3: m3.ok
+  ? m3.valore : null`), invisibile solo perché nella dimostrazione tutti e sei
+  i lotti il volume ce l'hanno. Ora `senzaM3` con la sua riga d'avviso (resa
+  **misurata** nel DOM, non dedotta), **6 asserzioni** nuove, controprova che
+  cade. `run-kpi` **1886 → 1887**.
 
 ## Riferimenti
 
 - Ultimo checkpoint **per data vera**:
-  `vault/checkpoints/20260807-201912_il-form-che-diceva-zero-mc-con-nove-metri.md`
+  `vault/checkpoints/20260807-231533_il-divario-che-cambiava-segno.md`
   *(dato da `node apps/deepwork-id/tests/date-checkpoint.mjs`, non letto a occhio:
   per NOME il più alto sarebbe `20260805-100000_…`, che è stato scritto **tre
   giorni prima**. Questa riga era ferma al 01/08: il puntatore al file più
