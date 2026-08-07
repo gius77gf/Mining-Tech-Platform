@@ -762,7 +762,13 @@ numero scritto dove non era stato misurato niente**.*
   (640 precedenti alla regola, contati da `date-checkpoint.mjs`). Chi va per
   nome apre il file sbagliato credendo che sia il più fresco.
 - Le decisioni: `docs/DECISIONI_WEEKEND.md` — pagina d'ingresso in cima.
-- Stato misurato al **03/08 pomeriggio**: **2.092 prove** che girano senza rete,
-  copertura **649/649** e nessuna funzione scoperta, **84 banchi** che aprono le
-  pagine in un browser vero, **21 comandi** nel giro `node` di casa.
-  *(Al 02/08 erano 1.838, 591/591 e 49 banchi.)*
+- Stato misurato al **07/08, notte** (lanciando le suite, non a memoria):
+  **2.193 prove** che girano senza rete, copertura **662/662** e nessuna
+  funzione scoperta, **120 banchi** che aprono le pagine in un browser vero,
+  **21 comandi** nel giro `node` di casa.
+  *(Al 03/08 pomeriggio erano 2.092, 649/649 e 84 banchi; al 02/08 1.838,
+  591/591 e 49 banchi.)*
+  ⚠️ **Questi tre numeri non si scrivono a mente**: `numeri-nei-documenti.mjs`
+  li rimisura e fa cadere il giro quando un documento se ne discosta — stanotte
+  li ha corretti **quattro volte**, e una volta ha preso non il totale ma gli
+  **addendi**, che dicevano da quale suite veniva il +1.
