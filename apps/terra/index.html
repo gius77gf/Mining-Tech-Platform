@@ -50,6 +50,18 @@
   /* ---- stati: il successo sta a 46° dall'accento, non si confondono ---- */
   --success:#27bea5; --warn:#ffa752; --danger:#f05f5a; --info:#55a6ec;
 
+  /* ---- lo stato quando fa da INCHIOSTRO ----
+     Sul buio `--success`, `--warn` e `--danger` vanno benissimo anche scritti:
+     sul fondo `--card` fanno 7,23 / 8,77 / 5,22. Sul chiaro no — `--warn` sul
+     `--card` chiaro fa **1,93:1**, cioè arancione su bianco, illeggibile.
+     La risposta NON è riscrivere `--warn`: quel nome fa due mestieri, ed è
+     anche il PIENO di `.badge.warn`, che sopra ci scrive `--on-wr` (quasi
+     nero). Scurirlo lì rovinerebbe un badge che oggi sta a 9,3:1.
+     Quindi si aggiunge un nome: `--ink-*` è lo stato quando fa da inchiostro.
+     Sul buio VALE lo stato (nessuna differenza, nessuna riga in più da
+     mantenere); nei due temi chiari vale un valore misurato più sotto. */
+  --ink-ok:var(--success); --ink-wr:var(--warn); --ink-dg:var(--danger);
+
   /* ---- gradienti ---- */
   --grad:    linear-gradient(135deg,#73af34,#579100);
   --grad-on: #0b0f09;
@@ -119,6 +131,48 @@ body.dw.outdoor-mode{
   --marker:#151b10;
   --marker-orlo:rgba(255,255,255,.92);
   --marker-alone:rgba(21,27,16,.35);
+
+  /* ══ GLI STATI SCRITTI, SUL CHIARO E SOTTO IL SOLE ══
+     Due livelli, perché le soglie WCAG sono due davvero: 4,5:1 per il testo
+     piccolo (1.4.3) e 3:1 per quello grande (≥24 px, o ≥18,66 in grassetto).
+     Un livello solo costringe a scurire anche i numeroni da 32 px fino a farli
+     diventare marroni; due tengono il colore dove la soglia lo permette.
+     · `--ink-*` = lo stato SCRITTO piccolo (righe, pillole, avvisi);
+     · `--num-*` = lo stato dentro un numerone (le fermate chiare dei
+       `--grad-*`, che il core ritaglia sul testo con `background-clip:text`).
+     TINTE INVARIATE: la tonalità è quella dello stato, non un colore nuovo —
+     uno stato non deve cambiare significato cambiando tema. Misurate:
+     successo 170,1° → 169,8 e 170,3; attenzione 29,5° → 29,7 e 29,5;
+     pericolo 2,0° → 2,5 e 2,0.
+     RAPPORTI MISURATI sui fondi VERI di Terra (banco `candidati`, tutte le
+     superfici chiare della pagina: fondo pagina, --card, --card2, cima del
+     .kpi, cima della .vita, fondo del .note). Il caso peggiore è sempre il
+     fondo pagina del tema chiaro, rgb(236,238,227):
+        --ink-ok #187666  4,68 → 5,49        (oggi --success:  1,99 → 2,33)
+        --ink-wr #8f5e2e  4,70 → 5,51        (oggi --warn:     1,64 → 1,93)
+        --ink-dg #bd342e  4,85 → 5,68        (oggi --danger:   2,76 → 3,24)
+        --num-ok #1e9481  3,19 → 3,74
+        --num-wr #b37539  3,24 → 3,80
+        --num-dg #c54e4a  3,92 → 4,60
+     ⚠️ `--num-dg` NON è un colore nuovo: è per esteso il valore che il tema
+     chiaro condiviso già produceva (`color-mix(--danger 82%, #000)`), e che
+     misurato sul suo posto vero fa 4,38:1 — cioè il rosso stava già bene.
+     È scritto qui solo perché i tre numeri si leggano e si rimisurino insieme,
+     non per cambiarlo. Gli altri due invece servivano. Misurando la fermata
+     chiara del vecchio gradiente condiviso sulla cima del `.kpi`:
+     `--grad-ok` 2,89 → 2,95 e `--grad-wr` **2,89 → 2,95**, sotto il 3 tutte e
+     due; adesso 3,45 → 3,52 e 3,51 → 3,58. Sul «759k» della Denuncia — dove
+     il numero sta davvero, al 39% dell'altezza del riquadro — il renderizzato
+     era 2,98 nel chiaro e 3,01 sotto il sole: il KO del banco è vero, ma di
+     un pelo, e la sua «forbice 3,85» va letta prima di crederci.
+     ⚠️ Di `--grad-wr` non se n'era mai accorto nessuno perché `.kpi.warn` in
+     tutta la dimostrazione non compare **mai**: un colore non misurato non è
+     un colore a posto. */
+  --ink-ok:#187666; --ink-wr:#8f5e2e; --ink-dg:#bd342e;
+  --num-ok:#1e9481; --num-wr:#b37539; --num-dg:#c54e4a;
+  --grad-ok:linear-gradient(135deg,var(--num-ok),color-mix(in srgb,var(--ink-ok) 70%,#000));
+  --grad-wr:linear-gradient(135deg,var(--num-wr),color-mix(in srgb,var(--ink-wr) 70%,#000));
+  --grad-dg:linear-gradient(135deg,var(--num-dg),color-mix(in srgb,var(--ink-dg) 70%,#000));
 }
 
 /* ─────────────── pagine ─────────────── */
@@ -178,11 +232,11 @@ body.dw.outdoor-mode{
   box-shadow:inset 0 1px 0 rgba(255,255,255,.10), 0 0 14px var(--tint-app);
 }
 .vita.warn   .vita-ico{
-  color:var(--warn); background:rgba(255,167,82,.13);
+  color:var(--ink-wr); background:rgba(255,167,82,.13);
   box-shadow:inset 0 1px 0 rgba(255,255,255,.10),0 0 14px rgba(255,167,82,.13);
 }
 .vita.danger .vita-ico{
-  color:var(--danger); background:rgba(240,95,90,.14);
+  color:var(--ink-dg); background:rgba(240,95,90,.14);
   box-shadow:inset 0 1px 0 rgba(255,255,255,.10),0 0 14px rgba(240,95,90,.14);
 }
 .vita-ico svg{
@@ -227,10 +281,10 @@ body.dw.outdoor-mode{
   border:1px solid var(--border2); box-shadow:var(--edge);
 }
 .vita.warn   .vita-pct{
-  color:var(--warn); border-color:color-mix(in srgb,var(--warn) 40%,var(--border2));
+  color:var(--ink-wr); border-color:color-mix(in srgb,var(--warn) 40%,var(--border2));
 }
 .vita.danger .vita-pct{
-  color:var(--danger); border-color:color-mix(in srgb,var(--danger) 45%,var(--border2));
+  color:var(--ink-dg); border-color:color-mix(in srgb,var(--danger) 45%,var(--border2));
 }
 
 /* la barra: incavata nella scheda (profondità), non un rettangolo piatto */
@@ -317,10 +371,10 @@ body.dw.outdoor-mode{
 }
 .vita .riga{font-size:12.5px; color:var(--muted2); line-height:1.6; margin-top:7px}
 .vita .riga b{color:var(--text)}
-.vita .riga.att{color:var(--warn)}
-.vita .riga.att b{color:var(--warn)}
-.vita .riga.dng{color:var(--danger)}
-.vita .riga.dng b{color:var(--danger)}
+.vita .riga.att{color:var(--ink-wr)}
+.vita .riga.att b{color:var(--ink-wr)}
+.vita .riga.dng{color:var(--ink-dg)}
+.vita .riga.dng b{color:var(--ink-dg)}
 .vita .riga.dng,.vita .riga.att{
   display:flex; gap:8px; align-items:flex-start; border-top:1px solid var(--border);
   padding-top:9px; margin-top:10px;
@@ -346,15 +400,15 @@ body.dw.outdoor-mode{
   box-shadow:inset 0 1px 0 rgba(255,255,255,.09), 0 0 12px var(--tint-app);
 }
 .avatar.ico.ok{
-  background:rgba(39,190,165,.16); color:var(--success);
+  background:rgba(39,190,165,.16); color:var(--ink-ok);
   box-shadow:inset 0 1px 0 rgba(255,255,255,.09), 0 0 12px rgba(39,190,165,.16);
 }
 .avatar.ico.warn{
-  background:rgba(255,167,82,.16); color:var(--warn);
+  background:rgba(255,167,82,.16); color:var(--ink-wr);
   box-shadow:inset 0 1px 0 rgba(255,255,255,.09), 0 0 12px rgba(255,167,82,.16);
 }
 .avatar.ico.danger{
-  background:rgba(240,95,90,.17); color:var(--danger);
+  background:rgba(240,95,90,.17); color:var(--ink-dg);
   box-shadow:inset 0 1px 0 rgba(255,255,255,.09), 0 0 12px rgba(240,95,90,.17);
 }
 .avatar.ico svg{width:20px; height:20px; stroke-width:1.8}
@@ -378,10 +432,10 @@ span.arr svg{width:15px; height:15px}
   background:color-mix(in srgb,var(--app-accent) 18%,var(--card2));
 }
 .arr.ok:hover{
-  color:var(--success); border-color:var(--success); background:rgba(39,190,165,.16);
+  color:var(--ink-ok); border-color:var(--success); background:rgba(39,190,165,.16);
 }
 .arr.del:hover{
-  color:var(--danger); border-color:var(--danger); background:rgba(240,95,90,.16);
+  color:var(--ink-dg); border-color:var(--danger); background:rgba(240,95,90,.16);
 }
 .arr:active{transform:scale(.94)}
 
@@ -1253,7 +1307,7 @@ a.dw-btn{text-decoration:none}
         : `Proiezione di fine anno al ritmo attuale: <b class="badge ${pr.stato}" style="font-size:inherit;">~${pr.proiezione.toLocaleString("it-IT")} <span class="u">m³</span></b> `
           + `(${pr.pctPiano}% dell'autorizzato ${fmtM3(pr.pianificato)} m³)`
           + (pr.stato === "danger"
-              ? ` — <b style="color:var(--danger);">rischio di superare il volume autorizzato</b>: rallenta o chiedi una variante.`
+              ? ` — <b style="color:var(--ink-dg);">rischio di superare il volume autorizzato</b>: rallenta o chiedi una variante.`
               : pr.stato === "warn"
                 ? ` — vicino al limite autorizzato, tienilo d'occhio.`
                 : ` — sotto il limite autorizzato.`);
