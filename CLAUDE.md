@@ -1125,6 +1125,21 @@ Perché serva davvero e non produca elenchi generici, cinque vincoli:
   scala sotto `outdoor-mode` per riavere il proprio lavoro. Un tema dovrebbe
   **scalare** una misura, non **fissarla** — se la fissa, ogni app con voci
   lunghe deve ridirla, e chi nasce domani nasce rotta.
+  ⚠️ **E IL DENOMINATORE, MISURATO LA SERA STESSA, RIDIMENSIONA LA FRASE QUI
+  SOPRA — che avevo scritta come se fosse generale.** Il tema del sole fissa
+  **undici** corpi (`.name`, `.meta`, `.badge`, `.sec`, `.kpi .l`, `.toast`,
+  `.dw-btn`, `.nav button`…), e di quegli undici **uno solo** ha mai morso:
+  `.nav button`, ridetto da tre app su sei. Gli altri dieci non li ha ridetti
+  **nessuna app**, perché nessuna tara quei corpi per larghezza. Quindi non è
+  un difetto sistemico del tema: è **una regola**, e la correzione fatta —
+  i due gradini per larghezza in `shared/` — la copre.
+  ⛔ La forma strutturale resta scritta perché chi la farà non la reinventi, e
+  costa sei file: `.nav button{font-size:calc(var(--nav-eti,8.5px) *
+  var(--nav-scala,1))}` con `outdoor-mode` che alza **solo** `--nav-scala`, e
+  ogni app che dichiara `--nav-eti` invece del `font-size`. Così un'app che si
+  stringe resta stretta anche nel sole, senza ridire niente. **Non fatta**: con
+  un solo soggetto che morde, sei file di rischio non se li merita — e questo è
+  il conto, non un'impressione.
   ⚠️ E la correzione va dove vince la cascata, non dove il codice è più
   ordinato: messa dentro i due `@media` che stanno **prima**, a parità di
   specificità avrebbe perso lo stesso. È «vince l'ultimo», già pagata sul core.
