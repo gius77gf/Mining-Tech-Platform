@@ -629,10 +629,25 @@ numero scritto dove non era stato misurato niente**.*
       ⛔ Due «non c'è» su tre riscritti: è la stessa proporzione misurata il
       01/08, e la ragione per cui niente entra in roadmap sulla parola di chi
       propone.
-- [ ] **C1-bis. I tre campi che ne escono**, in ordine di quanto li chiede un
-      ispettore: il **verificatore** sulla scadenza, il **legame verbale →
-      scadenza**, l'**esito** con «conforme / con prescrizioni / non conforme»
-      e la data entro cui la prescrizione va chiusa.
+- [x] ✅ **C1-bis. I tre campi della verifica periodica** (`7395e87`):
+      `ENTI_VERIFICA` (INAIL, ASL, ARPA, soggetto abilitato — quattro istituti
+      giuridici, ognuno con la sua fonte), `ESITI_VERIFICA` con «idonea con
+      prescrizioni» **dichiarato dedotto dalla prassi** e la data entro cui
+      chiuderle, e il legame col verbale.
+      ⛔ **E il legame NON è `origineTipo`/`origineId` come avevo detto io**: quella
+      forma è polimorfa perché l'altro capo sono sei collezioni, qui è una sola —
+      `origineTipo` sarebbe una costante e direbbe il verso sbagliato. È
+      `verbaleId`, coi **tre stati** di `idoneitaOperatore` (`assente` ≠ `rotto`).
+      ⚠️ E gli **scatti** hanno trovato due difetti che nessuna prova vedeva: una
+      pastiglia verde «REGOLARE» attaccata a una rossa «PRESCRIZIONI SCADUTE»
+      (nessuno legge due pastiglie come due domande: vince la tranquilla) e un
+      emoji dove l'elenco dice «icone disegnate».
+      Prove **1844 → 1853**, copertura **688/688**.
+- [ ] **Le due code della verifica periodica**: la prova della modale vive in
+      scratchpad (21 prove, 21 passate) e va portata in `tests/browser/` **e
+      registrata in `tutti.mjs`**, se no alla sessione dopo non esiste; e il
+      contrasto di Scudo è misurato **solo nel tema buio** (612 testi, 0 sotto
+      soglia) — chiaro e sole vanno rimisurati.
 - [ ] **C2. Ricerca a rotazione**, una app per giro, col vincolo che ha fatto la
       differenza: **incollare il comando e la sua uscita** per ogni «non c'è».
       Misurato su tre tornate: chi va a cercare **il meccanismo** nel modulo
