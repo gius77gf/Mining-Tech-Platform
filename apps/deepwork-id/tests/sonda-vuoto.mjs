@@ -824,12 +824,16 @@ const CENSITI = {
     "FALSO ALLARME: `+oreMezzo` assente vale 0, ma il solo effetto è che il confronto"
     + " «il contatore segna meno delle ore già registrate» non scatta. Non nasce nessun numero"
     + " da mostrare: una validazione che si allenta, non una misura inventata",
-  "flotta.mostra":
-    "DORMIENTE, non VERO: `mostra(null)` scrive «0» invece di «». Oggi i chiamanti le passano"
-    + " numeri già controllati, quindi lo zero non arriva sullo schermo — ma la guardia giusta"
-    + " (`v == null` prima di convertire) è a due righe di distanza in `numeroDaCampo` e qui non"
-    + " c'è. Sta qui perché il giorno in cui un chiamante nuovo le passasse un campo vuoto"
-    + " diventerebbe vero senza che nessuno tocchi questa riga",
+  /* ⛔ `flotta.mostra` STAVA QUI, ed è stata TOLTA il 07/08 perché la trappola
+     non c'è più: `mostra` è diventata un alias di `perLettura` in `shared/`,
+     che il `null` lo guarda prima di convertire. La riga diceva «DORMIENTE,
+     non VERO: `mostra(null)` scrive «0» invece di «»… il giorno in cui un
+     chiamante nuovo le passasse un campo vuoto diventerebbe vero senza che
+     nessuno tocchi questa riga». È esattamente com'è andata a finire, tranne
+     che a chiudere il buco è stata la traslocazione in `shared/` invece di un
+     chiamante nuovo. E il conto «N dichiarati / N che si presentano» ha
+     preteso che la riga sparisse: un'eccezione che non serve più è
+     un'eccezione che nasconde. */
 };
 
 /* ⛔ E GENESI CI VA, anche se `APP` qui sopra non la contiene. La sonda che

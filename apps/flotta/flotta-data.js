@@ -88,7 +88,7 @@ import { parseCsvLine, numIt, giorniTra, isIntestazione, numeroScritto, oggiISO,
          messaggioNumero as messaggioNumeroShell,
          perCampo as perCampoShell,
          AVVISO_DECIMALE as AVVISO_DECIMALE_SHELL,
-         AVVISO_MIGLIAIA as AVVISO_MIGLIAIA_SHELL } from "../../shared/deepwork-id-client/dw-shell.js";
+         AVVISO_MIGLIAIA as AVVISO_MIGLIAIA_SHELL, perLettura } from "../../shared/deepwork-id-client/dw-shell.js";
 
 // Data di oggi in formato ISO (aaaa-mm-gg) nel fuso dell'utente: la stessa
 // che scrive l'app quando registra la fotografia del giorno.
@@ -169,12 +169,19 @@ export const perCampo = perCampoShell;
 // il punto delle migliaia, che è come si scrive un migliaio in Italia. È il
 // contrario di perCampo, e la differenza non è un vezzo: dentro un campo il
 // punto delle migliaia rientrerebbe come ambiguo, dentro una frase serve.
-// ⛔ `useGrouping` scritto a mano: al valore di default Node NON raggruppa i
-// numeri di quattro cifre (6375 → «6375») e Chromium sì (→ «6.375»). Questo
-// file lo leggono tutt'e due, e senza questa riga una prova affermerebbe una
-// stringa che l'utente non vede mai. docs/MIGLIAIA_NODE_CONTRO_CHROMIUM.md
-const mostra = (v, dec = 2) =>
-  Number.isFinite(+v) ? (+v).toLocaleString("it-IT", { maximumFractionDigits: Math.max(0, dec), useGrouping: true }) : "";
+// ⛔ ERA UNA COPIA, ORA È `perLettura` DI `shared/` (07/08). Le due ragioni
+// scritte qui restano vere e stanno lì: `useGrouping` a mano (al default Node
+// non raggruppa le quattro cifre e Chromium sì), e un valore non leggibile che
+// risponde "" e non "0".
+// ⚠️ E questa copia era GIÀ DIVERGENTE dalla gemella di Campo, che è il motivo
+// per cui la regola «una regola che serve a due app vive in shared/» pretende
+// l'identità e non il comportamento: `Number.isFinite(+v)` con `v = null` dà
+// **true** (`+null` è 0), quindi qui un dato che manca usciva **«0»** mentre in
+// Campo usciva "". Nessuna delle quattro chiamate le passa un `null` — tutte e
+// quattro sono guardate a monte, verificato una per una — quindi non era ancora
+// un difetto: era la trappola pronta, del tipo che questo file ha già pagato
+// tre volte.
+const mostra = perLettura;
 
 // IL MESSAGGIO di un numero che non si è potuto leggere. Sta qui, in un posto
 // solo, perché i validatori di riga e le schermate dicono la stessa cosa: se
@@ -701,7 +708,7 @@ export function urgenzaOre(orePreviste, oreAttuali) {
   // avere i decimi, «tra 24.5 h» avrebbe messo un punto inglese in mezzo a
   // una schermata di virgole — e «tra 1000 h» resta «tra 1.000 h» come si
   // scrive un migliaio in Italia
-  const h = (n) => n.toLocaleString("it-IT", { maximumFractionDigits: 1, useGrouping: true });
+  const h = (n) => perLettura(n, 1);
   // ⛔ LA GUARDIA ERA SU META' FUNZIONE (chiusa il 03/08). Quella su
   // `oreAttuali`, tre righe sotto, c'era già ed è scritta bene; su
   // `orePreviste` no, ed era rimasto un `+orePreviste` nudo. Misurato, dava
