@@ -1125,10 +1125,34 @@ numero scritto dove non era stato misurato niente**.*
   e il tentativo di oggi non è riuscito perché il server statico di prova non
   si è alzato — quindi il numero **non c'è ancora**, ed è dichiarato mancante
   invece che inventato.
-- [ ] **Sentinella a 320 px**: la barra ha **328 px di contenuto in 302** e
-  `.nav` ha `overflow:hidden`, quindi le ultime voci spariscono in silenzio.
-  ⚠️ La strada ovvia è già scartata: rimpicciolire il carattere fa **salire**
-  il minimo (328 → 333). Cantiere aperto.
+- [x] ✅ **Sentinella a 320 px** (`69078fa`): la barra ci sta — 328 in 302 →
+  **302 in 302**, con la soglia misurata (ci sta fino a 345, esce da 344).
+  ⛔ E **la mia diagnosi era falsa**: «rimpicciolire il carattere fa salire il
+  minimo» aveva il numero giusto e la causa sbagliata — a 320 px il foglio
+  condiviso applicava già font 8px, e la mia prova alzava la **spaziatura** da
+  .8 a .9 (51 lettere × 0,1 = i 5 px comparsi). Anche il «minimo = sei volte la
+  colonna più larga» era dedotto e falso: è la **somma** (327,80 chiesti alla
+  griglia).
+  ✅ E la seconda domanda ha trovato il difetto grosso: nel tema **sole**
+  Sentinella era tagliata **a tutte le larghezze** (fino a **141 px** a 320, due
+  voci intere sparite), perché `body.dw.outdoor-mode .nav button{font-size:11px}`
+  batte per specificità ogni gradino del foglio condiviso. Scala outdoor
+  calcolata sul caso peggiore di ogni intervallo e rimisurata a **undici**
+  larghezze: 0 tagliate.
+- [ ] **Il banco della barra guarda un tema su tre** — è il buco che ha lasciato
+  passare il difetto del sole di Sentinella per giorni. Aggiungergli `--tema=`
+  chiude la classe intera, e lo strumento è già scritto.
+  ⛔ E il conto di che cosa trova: nel tema **sole** tagliano anche **Flotta a
+  320 px (16 px)** e **Terra a 320 px (11 px)**, misurati. ⚠️ E **Conti nel sole
+  risponde «ok» senza provare niente**: il suo `.nav button{overflow:hidden}`
+  azzera la min-width dell'elemento di griglia, quindi la barra non trabocca
+  **mai** e a essere tagliate sono le etichette dentro il bottone — una domanda
+  a cui quel banco, così com'è, non può rispondere.
+- [ ] **«Adempimenti» è la parola che governa il minimo di Sentinella** (11
+  lettere, 64,81 px): accorciarla toglierebbe ~18 px, ed è la sola strada per
+  portare i bersagli di tocco a 320 px sopra i 44 (oggi tre voci stanno a
+  41,4). È una decisione di **prodotto**, non presa — e «Scadenze» è già la voce
+  di Scudo e di Flotta.
 - [x] ✅ **La parte 7 estesa col terzo livello** (`84de2d8`) e **la ricerca su
   Scudo** (`a01bbcc`, 127 righe, 34 con fonte, ~45 `[dedotto]` — da rimisurare
   prima di diventare unità).
