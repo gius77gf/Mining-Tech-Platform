@@ -311,6 +311,14 @@ const BANCHI = [
   ['«1 fori» · controprova', 'uno-solo.mjs', ['--controprova'], true],
   ['le frasi di Terra quando il numero è uno', 'terra-frasi-da-uno.mjs', []],
   ['frasi da uno · controprova', 'terra-frasi-da-uno.mjs', ['--controprova'], true],
+  /* ⚠️ `flotta-frasi-da-uno` NON usa la porta che gli passiamo: alza un server
+     suo (con il contrassegno del pid, e fallisce se la porta è occupata),
+     perché deve servire un `flotta-data.js` con UN dato solo per riga. La
+     porta in coda gli arriva e la ignora — è dichiarato, non dimenticato. */
+  ['le frasi di Flotta quando il numero è uno', 'flotta-frasi-da-uno.mjs', []],
+  ['frasi di Flotta · controprova', 'flotta-frasi-da-uno.mjs', ['--controprova'], true],
+  ['le frasi di Campo e Sentinella con un dato solo', 'campo-sentinella-frasi.mjs', []],
+  ['frasi di Campo e Sentinella · controprova', 'campo-sentinella-frasi.mjs', ['--controprova'], true],
   /* ⛔ AGGIUNTO IL 06/08, ed è la famiglia che il 06/08 è stata censita nel
      core: il numero è giusto e a mentire è il DISEGNO. Là una barra da 2.261,7
      m³ ne disegnava 3, identica ai cinque mesi a zero, perché `height:100%` si

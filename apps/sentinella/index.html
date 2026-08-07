@@ -1472,7 +1472,8 @@ textarea.dw-input{
            FONTE_IMPORT, FONTE_MANO, FONTE_IGNOTA,
            numeroDaCampo, AVVISO_DECIMALE } from "./sentinella-data.js";
   import { mountExit, esc, csvCell, statoVuoto, senzaDoppioni, giorniTra, montaGuardiaInteri, avvolgiUnita, oggiISO,
-         controllaAllegato, testoAllegatoRifiutato, pezziDataURL, dataIt, nomeCsvDimostrazione } from "../../shared/deepwork-id-client/dw-shell.js";
+         controllaAllegato, testoAllegatoRifiutato, pezziDataURL, dataIt, nomeCsvDimostrazione,
+         plurale } from "../../shared/deepwork-id-client/dw-shell.js";
   // Il colore della riga di una taratura è quello di una scadenza qualunque:
   // la regola sta in shared/ e la usano già Scudo e Campo. Non se ne scrive
   // una copia qui dentro solo perché la parola è diversa.
@@ -2572,7 +2573,10 @@ textarea.dw-input{
     else quanto = `Referti pronti: <b>${R.nPronti}</b>. Abbastanza perché la legge del tuo sito abbia una base solida: continua ad aggiungerne a ogni volata misurata.`;
 
     $("ref-riep").innerHTML = quanto
-      + (motivi.length ? `<br>Restano fuori <b>${R.nMancanti}</b> volate: manca la ` + motivi.join(", la ") + "." : "")
+      /* ⚠️ «RESTANO FUORI 1 VOLATE», e il contrasto dice tutto: la riga qui
+         sotto (`testoPreviste`) declina SEI parole al singolare, questa
+         nessuna. Il plurale a mano si dimentica dove la frase sembra corta. */
+      + (motivi.length ? `<br>${plurale(R.nMancanti, "Resta", "Restano")} fuori <b>${R.nMancanti}</b> ${plurale(R.nMancanti, "volata", "volate")}: manca la ` + motivi.join(", la ") + "." : "")
       + testoPreviste
       + (R.nPronti >= R.minimo && R.sdTutteUguali
         ? `<br>Attenzione: i referti pronti hanno tutti la stessa distanza scalata (<b>${numeroIt(R.sdMin)}</b> m/√kg). Senza misure a distanze o cariche diverse la pendenza β non si ricava, e Genesi rifiuterà la legge.`
@@ -2951,12 +2955,20 @@ textarea.dw-input{
   function dichiarazioneCopertura(R) {
     const C = R.copertura || { stato: "senza-periodo" };
     const D = DICHIARAZIONI_COPERTURA[C.stato] || DICHIARAZIONI_COPERTURA["senza-periodo"];
-    const gg = (n) => `<b>${n}</b> ${n === 1 ? "giorno" : "giorni"}`;
+    /* la regola del singolare sta in `shared/`: qui si aggiunge solo il
+       grassetto sulla cifra, che è lo stile del core. Non se ne riscrive una
+       seconda — è la copia debole che CLAUDE.md censisce. */
+    const gg = (n) => `<b>${n}</b> ${plurale(n, "giorno", "giorni")}`;
     const parti = [];
     if (C.stato === "misurato") {
       parti.push(`Periodo dichiarato: ${gg(C.giorniDichiarati)}`
         + (C.oltreOggi ? `, contati fino a oggi (${fmtD(C.alUtile)}): i giorni successivi non sono ancora trascorsi` : ""));
-      parti.push(`misure registrate in <b>${C.nGiorniMisurati}</b> ${C.nGiorniMisurati === 1 ? "giorno" : "giorni"} diversi, dal <b>${fmtD(C.prima)}</b> al <b>${fmtD(C.ultima)}</b>`);
+      /* ⛔ «MISURE REGISTRATE IN 1 GIORNO DIVERSI», SUL FOGLIO PER L'ARPA. Il
+         sostantivo aveva il suo ternario, l'aggettivo che lo segue no — ed è
+         la stessa forma trovata lo stesso giorno in Terra («1 indicativi») sul
+         foglio per l'ente. Con un giorno solo «diversi» non ha nemmeno senso:
+         diverso da che cosa? Sparisce, che è la correzione giusta. */
+      parti.push(`misure registrate in ${gg(C.nGiorniMisurati)}${C.nGiorniMisurati === 1 ? "" : " diversi"}, dal <b>${fmtD(C.prima)}</b> al <b>${fmtD(C.ultima)}</b>`);
       if (C.giorniPrima) parti.push(`${gg(C.giorniPrima)} all'inizio del periodo senza nessuna misura`);
       if (C.giorniDopo) parti.push(`${gg(C.giorniDopo)} alla fine del periodo senza nessuna misura`);
       /* ⚠️ IL TRATTO PIÙ LUNGO SI SCRIVE SOLO SE È UN BUCO IN MEZZO, e la
@@ -3401,13 +3413,19 @@ textarea.dw-input{
       : daSistemare ? (daSistemare === 1 ? "punto senza soglia" : "punti senza soglia")
       : conf.totale ? (conf.conformi === 1 ? "punto entro soglia" : "punti entro soglia") : "punti di misura";
     const sub = conf.totale
-      ? `${conf.conformi} conformi · ${conf.attenzione} in attenzione · ${conf.superamento} in superamento`
+      /* ⚠️ E IL 06/08 SI È VISTO CHE LA CORREZIONE QUI SOTTO AVEVA GUARDATO UNA
+         PAROLA SOLA. Con un punto di misura solo questa riga diceva «1
+         conformi · 0 in attenzione · 0 in superamento, su 1 punti in ascolto»,
+         cioè DUE plurali sbagliati nella stessa frase — e nel riquadro
+         accanto, a caratteri grandi, «1 punto entro soglia» col singolare
+         giusto, perché quel ternario c'era. Chi ha corretto «possono» stava
+         guardando esattamente questa stringa. La lezione non è «essere più
+         attenti»: è che il singolare a mano non si vede leggendo, si vede
+         rendendo la pagina con UN dato solo. */
+      ? `${conf.conformi} ${plurale(conf.conformi, "conforme", "conformi")} · ${conf.attenzione} in attenzione · ${conf.superamento} in superamento`
         + (daLeggere ? ` · ${daLeggere} senza una lettura` : "")
-        /* ⚠️ Il singolare c'era e il verbo no: «1 senza soglia, che non si
-           POSSONO giudicare». Visto solo nello scatto — leggendo il codice la
-           stringa sembrava a posto. */
-        + (daSistemare ? ` · ${daSistemare} senza soglia, che non si ${daSistemare === 1 ? "può" : "possono"} giudicare` : "")
-        + `, su ${conf.totale} punti in ascolto.`
+        + (daSistemare ? ` · ${daSistemare} senza soglia, che non si ${plurale(daSistemare, "può", "possono")} giudicare` : "")
+        + `, su ${conf.totale} ${plurale(conf.totale, "punto", "punti")} in ascolto.`
       : "Nessun punto di misura configurato: aggiungi la prima centralina dai Monitoraggi.";
     $("conf-banner").innerHTML = `<div class="safety ${cls}">
       <div class="safety-ico">${ico}</div>
@@ -3475,8 +3493,8 @@ textarea.dw-input{
        conformi. Il totale resta scritto — è un dato vero — ma accanto, e la
        riga dice quanti punti restano fuori dal giudizio e perché. */
     $("mon-conf").innerHTML = conf.totale
-      ? `Conformità: <b>${conf.conformi}</b> conformi · <b>${conf.attenzione}</b> in attenzione · <b>${conf.superamento}</b> in superamento, su <b>${conf.giudicabili}</b> ${conf.giudicabili === 1 ? "punto giudicabile" : "punti giudicabili"}`
-        + (conf.maiMisurati ? ` · <b>${conf.maiMisurati}</b> mai ${conf.maiMisurati === 1 ? "misurato" : "misurati"}` : "")
+      ? `Conformità: <b>${conf.conformi}</b> ${plurale(conf.conformi, "conforme", "conformi")} · <b>${conf.attenzione}</b> in attenzione · <b>${conf.superamento}</b> in superamento, su <b>${conf.giudicabili}</b> ${plurale(conf.giudicabili, "punto giudicabile", "punti giudicabili")}`
+        + (conf.maiMisurati ? ` · <b>${conf.maiMisurati}</b> mai ${plurale(conf.maiMisurati, "misurato", "misurati")}` : "")
         + (conf.senzaSoglia ? ` · <b>${conf.senzaSoglia}</b> senza soglia: su ${conf.senzaSoglia === 1 ? "quello" : "quelli"} l'app non può dire né conforme né non conforme, finché non scrivi un limite` : "")
         + ` · <b>${conf.totale}</b> in ascolto in tutto.`
       : "";
@@ -4670,6 +4688,15 @@ textarea.dw-input{
   const MESI_IT = ["gennaio","febbraio","marzo","aprile","maggio","giugno",
                    "luglio","agosto","settembre","ottobre","novembre","dicembre"];
   const maiusc = (t) => String(t || "").charAt(0).toUpperCase() + String(t || "").slice(1);
+  /* ⛔ «RISPETTO A APRILE». La d eufonica si mette quando la parola dopo comincia
+     con la STESSA vocale della preposizione: «ad aprile», «ad agosto» — e non
+     «ad ottobre», che è la forma vecchia e oggi si scrive «a ottobre». Su
+     dodici mesi la regola morde due volte, quindi il difetto si vede due mesi
+     l'anno e negli altri dieci la frase sembra a posto: è il motivo per cui è
+     rimasto lì. Misurato rendendo la scheda con l'orologio fermo a maggio.
+     ⚠️ Sta in Sentinella e non in `shared/` perché per ora la usa una app sola;
+     il giorno che serve alla seconda, il posto è `shared/`, non una copia. */
+  const aMese = (m) => (String(m || "").toLowerCase().startsWith("a") ? "ad " : "a ") + m;
 
   // menù dei punti di misura e delle periodicità (si riempiono a ogni giro:
   // i punti cambiano quando se ne aggiunge uno)
@@ -4880,7 +4907,7 @@ textarea.dw-input{
         + ` Registra le misure o importale dallo strumento e il confronto compare da solo.</div>`;
     } else {
       const su = c.deltaMedia > 0, uguale = Math.abs(c.deltaMedia) < 0.0005;
-      verdetto = `<div class="note recap">Rispetto a ${esc(MESI_IT[pre.mese - 1])}, la media di ${esc(MESI_IT[cur.mese - 1])} `
+      verdetto = `<div class="note recap">Rispetto ${esc(aMese(MESI_IT[pre.mese - 1]))}, la media di ${esc(MESI_IT[cur.mese - 1])} `
         + (uguale ? "è <b>la stessa</b>"
           : `è <b>${su ? "salita" : "scesa"}</b> di <b>${esc(numeroIt(Math.abs(c.deltaMedia)))} ${esc(p.unita)}</b>`
             + (c.deltaPct != null ? ` (${su ? "+" : "−"}${esc(numeroIt(Math.abs(c.deltaPct)))}%)` : ""))

@@ -1826,7 +1826,7 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
              <div class="board-lab">Avanzamento di oggi</div>
            </div>
            <div class="board-txt"><b>${av.concluse}/${av.totale}</b> attività concluse ·
-             ${av.inCorso} in corso · ${av.pianificate} pianificate${av.anomalie
+             ${av.inCorso} in corso · ${conta(av.pianificate, "pianificata", "pianificate")}${av.anomalie
                ? ` · <b class="bad">${av.anomalie} in anomalia</b>` : ""}</div>
          </div>`
       : "";
@@ -3175,7 +3175,10 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
       // colonne tutte a zero: disegnarle direbbe «abbiamo lavorato zero»,
       // mentre la verità è che non è ancora stato chiuso niente.
       el.innerHTML = vuoto(I.calend, "Niente da mettere in colonna",
-        `In questo periodo ci sono <b>${attTot}</b> ${attTot === 1 ? "attività registrata" : "attività registrate"} ma nessuna conclusa e nessuna produzione. `
+        /* ⚠️ IL SOSTANTIVO CE L'AVEVA E IL VERBO NO: «ci sono 1 attività
+           registrata». `attività` è invariabile, quindi l'unica cosa che
+           distingue il singolare è il verbo — ed era l'unica scritta fissa. */
+        `In questo periodo ${attTot === 1 ? "c'è" : "ci sono"} <b>${attTot}</b> ${attTot === 1 ? "attività registrata" : "attività registrate"} ma nessuna conclusa e nessuna produzione. `
         + "Fai avanzare le attività fino a <b>conclusa</b>, oppure registra la produzione dentro un rapportino.");
       return;
     }

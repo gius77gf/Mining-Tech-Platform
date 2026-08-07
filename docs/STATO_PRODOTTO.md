@@ -72,7 +72,7 @@ memoria)*: **2.190** prove automatiche che girano senza rete — **1787** sulle
 funzioni delle app, **291** sulle regole di stile, 63 sugli aiuti condivisi, 32
 sulla nuvola di punti, 9 sul manifesto, 8 sulla demo — più **106** che girano
 con l'emulatore Firestore (58 sulle **regole di sicurezza**, 19 sull'SDK, 21
-sulle funzioni, 8 sul primo avvio) e **112 esecuzioni** che aprono davvero le
+sulle funzioni, 8 sul primo avvio) e **116 esecuzioni** che aprono davvero le
 pagine in un browser.
 E **660 funzioni pure su 660** delle sei app sono chiamate per nome dalle prove:
 tutte al 100%. Vuol dire che non ne resta nessuna che nessuno ha ancora

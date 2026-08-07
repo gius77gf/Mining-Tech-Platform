@@ -1111,7 +1111,7 @@
            numeroDaCampo, interoDaCampo, perCampo, messaggioNumero,
            AVVISO_DECIMALE, AVVISO_MIGLIAIA,
            scriviConEsito } from "./flotta-data.js";
-  import { mountExit, esc, csvCell, statoVuoto, senzaDoppioni, numIt, montaGuardiaInteri, avvolgiUnita, euro, conEuro, oggiISO, dataIt, nomeCsvDimostrazione } from "../../shared/deepwork-id-client/dw-shell.js";
+  import { mountExit, esc, csvCell, statoVuoto, senzaDoppioni, numIt, montaGuardiaInteri, avvolgiUnita, euro, conEuro, oggiISO, dataIt, nomeCsvDimostrazione, plurale, conta } from "../../shared/deepwork-id-client/dw-shell.js";
   // gli agganci della struttura condivisa (modale con Escape, riquadri da
   // tastiera, alone che segue il mouse). Va chiamato QUI e non nel blocco
   // classico in linea: i moduli girano dopo gli script `defer`.
@@ -1132,6 +1132,17 @@
   const ggTx = (n) => (+n||0).toLocaleString("it-IT", { maximumFractionDigits: 1 }) + (Math.abs(+n||0) === 1 ? " giorno" : " giorni");
   // un numero all'italiana, senza unità: per i ritmi d'uso (3,42 h/gg)
   const numTx = (v) => Number.isFinite(+v) ? (+v).toLocaleString("it-IT", { maximumFractionDigits: 2 }) : "—";
+  /* ⛔ LA RICORRENZA A MESI, SCRITTA UNA VOLTA SOLA. Il 06/08 questa frase
+     stava in OTTO punti della pagina, in due dialetti: sei scrivevano
+     «ogni ${n} mesi» e due avevano il singolare. Fra i sei c'erano tutt'e
+     due le righe del CSV del libretto — e sullo schermo, nella riga della
+     stessa scadenza, si leggeva «ogni 1 mese»: la schermata e il documento
+     che si consegna dicevano due cose diverse sullo stesso dato. È la
+     famiglia «dove il documento si compone»: la regola c'era, chi scriveva
+     il file se n'era tenuta una versione più debole. Il periodo è un intero
+     di mesi (`validaScadenzaMezzo` accetta da 1 a 600), quindi qui basta
+     `plurale`. */
+  const ogniMesiTx = (n) => "ogni " + plurale(n, "mese", n + " mesi");
   /* ⛔ IL CONTATORE CHE NESSUNO HA LETTO NON SEGNA ZERO. Fino al 01/08 le ore
      motore si scrivevano dappertutto come `(+m.ore || 0).toLocaleString(...)`:
      su un mezzo senza contatore uscivano «0 ore motore» — non un vuoto, una
@@ -1140,9 +1151,20 @@
      La guardia sta PRIMA della conversione: `+null` fa zero e
      `Number.isFinite(0)` risponde true. */
   const oreNote = (v) => !(v == null || v === "") && Number.isFinite(+v);
-  const oreMotoreTx = (v) => oreNote(v)
-    ? (+v).toLocaleString("it-IT") + " ore motore"
-    : "ore motore non registrate";
+  /* ⛔ E QUESTA FUNZIONE C'ERA GIÀ, USATA IN TRE PUNTI: altri QUATTRO se la
+     riscrivevano a mano. Tutt'e quattro le copie dicevano «1 ore motore» su
+     una macchina con un'ora sul contatore, e una delle quattro — la riga del
+     CSV del libretto, cioè il foglio che si consegna a chi compra la
+     macchina — scriveva anche il numero crudo (`6540` invece di «6.540»),
+     perché la conversione all'italiana l'aveva persa per strada. Il numero
+     lo può avvolgere chi chiama (`marca`), ma la parola la sceglie un posto
+     solo. */
+  const grassetto = (n) => "<b>" + n + "</b>";
+  const oreMotoreTx = (v, marca) => {
+    if (!oreNote(v)) return "ore motore non registrate";
+    const n = (+v).toLocaleString("it-IT");
+    return (marca ? marca(n) : n) + " " + plurale(v, "ora motore", "ore motore");
+  };
   // LE UNITÀ DI MISURA NON VANNO MAI IN MAIUSCOLO. Le etichette del semaforo
   // («tra 13 gg», «scaduta da 20 gg», «21 gg») nascono nel modulo dati come
   // TESTO SEMPLICE — lì devono restare, perché finiscono anche nei conteggi e
@@ -1529,10 +1551,18 @@
       }
       if (card) card.title = "Tagliandi che cadono entro 30 giorni: "
         + tag.aData + (tag.aData === 1 ? " programmato a data" : " programmati a data")
-        + " e " + tag.aOre + (tag.aOre === 1 ? " a ore motore" : " a ore motore")
+        /* ⚠️ QUI IL TERNARIO C'ERA E AVEVA LE DUE BRANCHE UGUALI («" a ore
+           motore" : " a ore motore"»): chi l'ha scritto sapeva che accanto a
+           un numero il singolare va guardato, ha aperto il ternario e poi ha
+           scritto due volte la stessa parola. E aveva ragione a non
+           cambiarla: «a ore motore» è il MODO in cui il tagliando è
+           programmato, non un conto — resta uguale a uno come a dieci. Il
+           ternario morto va tolto, non riempito: lasciato lì somiglia a una
+           guardia e non guarda niente. */
+        + " e " + tag.aOre + " a ore motore"
         + (tag.aOre ? " (le ore che il mezzo farà sono misurate sulle letture del contatore, non ipotizzate)" : "")
         + (tag.nonStimabili
-          ? ". Altri " + tag.nonStimabili + " sono a ore motore ma NON si possono collocare nel tempo, e non sono nel numero: "
+          ? ". " + plurale(tag.nonStimabili, "Un altro è", "Altri " + tag.nonStimabili + " sono") + " a ore motore ma NON si " + plurale(tag.nonStimabili, "può", "possono") + " collocare nel tempo, e non " + plurale(tag.nonStimabili, "è", "sono") + " nel numero: "
             + tag.daStimare.map(v => v.titolo + " — " + v.mezzo + " (" + v.perche + ")").join("; ") + "."
           : ".")
         + " Tocca per vedere le manutenzioni."; }
@@ -1620,7 +1650,7 @@
         <div class="gauge-ico">${I.tachi}</div>
         <div class="gauge-body"><div class="gauge-num">${disp.pct}%</div>
           <div class="gauge-lab">Disponibilità flotta</div>
-          <div class="gauge-sub"><b>${disp.operativi}</b> mezzi operativi su <b>${disp.totale}</b>, adesso. Una flotta tenuta bene sta stabilmente sopra il 90%.${affQ.episodi ? ` Sui <b>${affQ.finestra}</b> giorni appena passati la disponibilità <i>reale</i>, contando i fermi registrati, è stata <b>${affQ.pct.toLocaleString("it-IT", { maximumFractionDigits: 1 })}%</b>.` : ""}</div>
+          <div class="gauge-sub"><b>${disp.operativi}</b> ${plurale(disp.operativi, "mezzo operativo", "mezzi operativi")} su <b>${disp.totale}</b>, adesso. Una flotta tenuta bene sta stabilmente sopra il 90%.${affQ.episodi ? ` Sui <b>${affQ.finestra}</b> giorni appena passati la disponibilità <i>reale</i>, contando i fermi registrati, è stata <b>${affQ.pct.toLocaleString("it-IT", { maximumFractionDigits: 1 })}%</b>.` : ""}</div>
           <div class="gauge-bar-graf" id="dash-gauge-bar"></div></div></div>`;
       // F4 — la fotografia di ADESSO, con la tacca del riferimento di settore
       // disegnata sulla barra: così il 90% non è più solo una frase da leggere,
@@ -1632,7 +1662,7 @@
         stato: cls || null, etichettaValore: false, nudo: true,
         aria: `Disponibilità della flotta ${disp.pct}%, riferimento di settore 90%.`,
       });
-      $("mez-disp").innerHTML = `Disponibilità: <b>${disp.pct}%</b> — ${disp.operativi} mezzi operativi su ${disp.totale}.`;
+      $("mez-disp").innerHTML = `Disponibilità: <b>${disp.pct}%</b> — ${disp.operativi} ${plurale(disp.operativi, "mezzo operativo", "mezzi operativi")} su ${disp.totale}.`;
     }
 
     // ANDAMENTO DELLA DISPONIBILITÀ. Si legge dalle fotografie giornaliere, e
@@ -1689,7 +1719,7 @@
            scritto accanto. Dopo: la colonna «Quota» scrive «—». */
         quota: false,
         valori: puntiDisp.map(p => ({ etichetta: gg(p.data), valore: p.pct, stato: statoDisp(p.pct) })),
-        aria: `Disponibilità del parco in ${puntiDisp.length} giorni registrati, media ${media}%.`,
+        aria: `Disponibilità del parco in ${conta(puntiDisp.length, "giorno registrato", "giorni registrati")}, media ${media}%.`,
         nota: "Ogni colonna è la fotografia di un giorno — mezzi operativi sul totale — e Flotta la scrive da sola quando apri l'app o cambi lo stato di un mezzo. Media dei giorni mostrati: <b>"
           + media + "%</b>."
           + (buchi > 0
@@ -1699,7 +1729,8 @@
       });
     } else if (puntiDisp.length) {
       const unGiorno = puntiDisp.length === 1;
-      const elenco = puntiDisp.map(p => dataIt(p.data) + " (" + p.pct + "%, " + p.operativi + " mezzi su " + p.totale + ")").join(" e ");
+      const elenco = puntiDisp.map(p => dataIt(p.data) + " (" + p.pct + "%, "
+        + conta(p.operativi, "mezzo", "mezzi") + " su " + p.totale + ")").join(" e ");
       grafVuoto("graf-disp", I.tachi,
         unGiorno ? "Una sola giornata registrata" : "Due giornate registrate",
         "Finora c'è la fotografia di " + esc(elenco) + ". "
@@ -1837,7 +1868,7 @@
       <div class="sec">Quanto costa un'ora di macchina</div>
       ${conOra.map((m, i) => `<div class="item statico ${i === 0 ? "st-danger" : "st-mute"}">
         <div class="info"><div class="name">${esc(m.mezzo)} · <b>${eur(m.euroOra)}</b> <span class="u">/h</span></div>
-          <div class="meta">${eur(m.spesaInFinestra)} in ${numTx(m.ore)} ore misurate ·
+          <div class="meta">${eur(m.spesaInFinestra)} in ${numTx(m.ore)} ${plurale(m.ore, "ora misurata", "ore misurate")} ·
             officina ${eur(m.officinaInFinestra)} + carburante ${eur(m.carburanteInFinestra)}</div>
           <div class="meta norma">${finestraTx(m)}</div></div>
       </div>`).join("")}
@@ -1907,7 +1938,7 @@
     $("man-list").innerHTML = manFiltrate.map(n => {
       const u = urgDi(n);
       const ricN = n.ricambioId ? (RIC.find(r => r.id === n.ricambioId) || null) : null;
-      const ritmo = n.ogniOre ? " · piano: ogni " + numTx(n.ogniOre) + " h" : n.ogniMesi ? " · piano: ogni " + n.ogniMesi + " mesi" : "";
+      const ritmo = n.ogniOre ? " · piano: ogni " + numTx(n.ogniOre) + " h" : n.ogniMesi ? " · piano: " + ogniMesiTx(n.ogniMesi) : "";
       const so = statoOrdine(n);
       const q = costoOrdine(ordineDaManutenzione(n, RIC));
       const quando = stimaGiorni(n);
@@ -1952,7 +1983,9 @@
     $("ric-alert").innerHTML = RIC.length
       ? (scorta.length
           ? `<span class="rosso">${scorta.length} ${scorta.length === 1 ? "ricambio sotto scorta" : "ricambi sotto scorta"}</span> — da riordinare: ${scorta.map(r => esc(r.nome)).join(", ")}.`
-          : `Tutti i <b>${RIC.length}</b> ricambi sono sopra la soglia minima.`)
+          : RIC.length === 1
+            ? `L'<b>unico</b> ricambio è sopra la soglia minima.`
+            : `Tutti i <b>${RIC.length}</b> ricambi sono sopra la soglia minima.`)
       : "";
     $("ric-tot").textContent = RIC.length;
     const qRic = ($("ric-cerca") && $("ric-cerca").value || "").trim().toLowerCase();
@@ -2112,31 +2145,36 @@
     // salvato: si calcola dalla data e dalla soglia di preavviso scelta.
     // il PARCO va passato: senza, «tutte a posto» parla solo dei mezzi che
     // qualcuno ha messo a scadenzario, e tace di quelli che non ci sono
-    const conta = contaScadenzeMezzi(SCA, new Date(), preavvisoSca, MEZ);
+    const contaSca = contaScadenzeMezzi(SCA, new Date(), preavvisoSca, MEZ);
     const skn = document.querySelectorAll("#sca-kpis .kpi .n");
-    if (skn[0]) skn[0].textContent = conta.scadute;
-    if (skn[1]) skn[1].textContent = conta.inScadenza;
-    if (skn[2]) skn[2].textContent = conta.aPosto;
-    if (skn[3]) skn[3].textContent = conta.mezzi;
-    if ($("sca-kpi-parco")) $("sca-kpi-parco").innerHTML = !conta.parco ? ""
-      : conta.senzaNessuna
-        ? `<span class="apar">su ${conta.parco}: ${conta.senzaNessuna} senza nessuna scadenza</span>`
-        : `tutto il parco (${conta.parco})`;
+    if (skn[0]) skn[0].textContent = contaSca.scadute;
+    if (skn[1]) skn[1].textContent = contaSca.inScadenza;
+    if (skn[2]) skn[2].textContent = contaSca.aPosto;
+    if (skn[3]) skn[3].textContent = contaSca.mezzi;
+    if ($("sca-kpi-parco")) $("sca-kpi-parco").innerHTML = !contaSca.parco ? ""
+      : contaSca.senzaNessuna
+        ? `<span class="apar">su ${contaSca.parco}: ${contaSca.senzaNessuna} senza nessuna scadenza</span>`
+        : `tutto il parco (${contaSca.parco})`;
     /* ⛔ «TUTTE A POSTO» SI PUÒ DIRE SOLO DI CIÒ CHE È STATO GUARDATO. Le
        macchine che nessuno ha messo a scadenzario non sono in regola: sono
        fuori dalla misura, e vanno dette accanto al verde. */
-    const scoperti = conta.senzaNessuna
-      ? `<span class="giallo">${conta.senzaNessuna} ${conta.senzaNessuna === 1 ? "mezzo" : "mezzi"} su ${conta.parco} senza nessuna scadenza registrata</span>`
+    const scoperti = contaSca.senzaNessuna
+      ? `<span class="giallo">${contaSca.senzaNessuna} ${contaSca.senzaNessuna === 1 ? "mezzo" : "mezzi"} su ${contaSca.parco} senza nessuna scadenza registrata</span>`
       : "";
     $("dash-sca").className = "note link"
-      + ((conta.scadute + conta.inScadenza) === 0 && !conta.senzaNessuna ? "" : " recap");
-    $("dash-sca").innerHTML = conta.totale === 0
+      + ((contaSca.scadute + contaSca.inScadenza) === 0 && !contaSca.senzaNessuna ? "" : " recap");
+    $("dash-sca").innerHTML = contaSca.totale === 0
       ? 'Nessuna scadenza di legge registrata. <span class="go">Apri e aggiungi la prima →</span>'
-      : (conta.scadute + conta.inScadenza) === 0
+      : (contaSca.scadute + contaSca.inScadenza) === 0
         ? (scoperti
-            ? `Le <b>${conta.totale}</b> registrate sono a posto, ma ${scoperti}: di quelle macchine non si sa niente. <span class="go">Vedi →</span>`
-            : `Tutte a posto: <b>${conta.totale}</b> scadenze su ${conta.mezzi} ${conta.mezzi === 1 ? "mezzo" : "mezzi"}, nessuna entro ${preavvisoSca} giorni. <span class="go">Vedi →</span>`)
-        : `<span class="rosso">${conta.scadute} ${conta.scadute === 1 ? "scaduta" : "scadute"}</span> · <span class="giallo">${conta.inScadenza} in scadenza entro ${preavvisoSca} gg</span> · ${conta.aPosto} a posto${scoperti ? " · " + scoperti : ""}. <span class="go">Vedi →</span>`;
+            ? `Le <b>${contaSca.totale}</b> registrate sono a posto, ma ${scoperti}: di quelle macchine non si sa niente. <span class="go">Vedi →</span>`
+            /* ⛔ QUATTRO PEZZI DELLA STESSA FRASE, e col numero a uno ne
+               sbagliavano tre su quattro: «Tutte a posto: 1 scadenze su 1
+               mezzo, nessuna entro 1 giorni». Il pezzo giusto era il mezzo —
+               cioè la regola era nota a chi ha scritto quella parola, non
+               alla frase. */
+            : `${plurale(contaSca.totale, "A posto", "Tutte a posto")}: <b>${contaSca.totale}</b> ${plurale(contaSca.totale, "scadenza", "scadenze")} su ${contaSca.mezzi} ${plurale(contaSca.mezzi, "mezzo", "mezzi")}, ${plurale(contaSca.totale, "non scade", "nessuna")} entro ${conta(preavvisoSca, "giorno", "giorni")}. <span class="go">Vedi →</span>`)
+        : `<span class="rosso">${contaSca.scadute} ${contaSca.scadute === 1 ? "scaduta" : "scadute"}</span> · <span class="giallo">${contaSca.inScadenza} in scadenza entro ${preavvisoSca} gg</span> · ${contaSca.aPosto} a posto${scoperti ? " · " + scoperti : ""}. <span class="go">Vedi →</span>`;
     // GIRO MACCHINA sul Quadro: una riga sola, che dice quanti mezzi hanno
     // già il controllo di oggi. È la spinta a farlo: un elenco di chi manca
     // vale più di qualunque promemoria.
@@ -2147,7 +2185,7 @@
       : cop.fatti === 0
         ? `<span class="giallo">Nessun giro fatto oggi</span> su ${cop.totale} ${cop.totale === 1 ? "mezzo" : "mezzi"}. Bastano tre tocchi per macchina. <span class="go">Fai il primo →</span>`
         : cop.fatti === cop.totale
-          ? `Tutti i <b>${cop.totale}</b> mezzi hanno il giro di oggi${cop.conAnomalie ? `, <span class="giallo">${cop.conAnomalie} con qualcosa da vedere</span>` : ", nessuna anomalia"}. <span class="go">Vedi →</span>`
+          ? `${cop.totale === 1 ? "L'<b>unico</b> mezzo ha" : `Tutti i <b>${cop.totale}</b> mezzi hanno`} il giro di oggi${cop.conAnomalie ? `, <span class="giallo">${cop.conAnomalie} con qualcosa da vedere</span>` : ", nessuna anomalia"}. <span class="go">Vedi →</span>`
           : `<b>${cop.fatti}</b> su ${cop.totale} hanno il giro di oggi${cop.conAnomalie ? ` · <span class="giallo">${cop.conAnomalie} con anomalie</span>` : ""}. Manca: ${cop.mancanti.slice(0, 3).map(esc).join(", ")}${cop.mancanti.length > 3 ? " e altri " + (cop.mancanti.length - 3) : ""}. <span class="go">Vai →</span>`;
 
     const qSca = ($("sca-cerca") && $("sca-cerca").value || "").trim().toLowerCase();
@@ -2159,9 +2197,19 @@
       const p = presetScadenzaMezzo(s.chiave);
       const meta = [
         "scade il " + dataIt(s.dataScadenza),
-        s.mesi ? "ogni " + s.mesi + (s.mesi === 1 ? " mese" : " mesi") : "non si ripete",
-        s.documento ? "doc. " + s.documento : "",
-        s.ultimaData ? "ultima: " + dataIt(s.ultimaData) + (s.ultimoEsito ? " (" + s.ultimoEsito + ")" : "") : "",
+        s.mesi ? ogniMesiTx(s.mesi) : "non si ripete",
+      ].filter(Boolean).map(esc).join(" · ");
+      /* ⛔ LA VERIFICA PRECEDENTE STAVA IN CODA A UNA RIGA TAGLIATA A DUE
+         RIGHE, cioè era testo morto. Misurato a 320 px sulla verifica
+         periodica dell'Escavatore E1: la riga chiedeva più spazio di quello
+         che ha, e quello che restava fuori era «ultima: 10/07/2025
+         (regolare)» — la data che un ispettore chiede per seconda, subito
+         dopo la scadenza. La stessa lista dentro il libretto il documento
+         l'aveva già spostato in una riga sua, per questa identica ragione:
+         qui la correzione mancava. */
+      const meta2 = [
+        s.documento ? "documento: " + s.documento : "",
+        s.ultimaData ? "ultima verifica: " + dataIt(s.ultimaData) + (s.ultimoEsito ? " (" + s.ultimoEsito + ")" : "") : "",
         s.note || "",
       ].filter(Boolean).map(esc).join(" · ");
       /* `statico`: la riga non fa niente se la tocchi — quello che si tocca
@@ -2173,6 +2221,7 @@
         <div class="avatar">${esc(sig(s.mezzo))}</div>
         <div class="info"><div class="name">${esc(s.tipo || "Scadenza")} — ${esc(s.mezzo || "?")}</div>
           <div class="meta">${meta}</div>
+          ${meta2 ? `<div class="meta">${meta2}</div>` : ""}
           ${p && p.norma ? `<div class="meta norma">${I.bilancia}${esc(p.norma)}</div>` : ""}</div>
         <div class="acts"><span class="badge ${s.sem.cls}">${ggU(esc(s.sem.label))}</span>
         <span class="arr ok" role="button" tabindex="0" title="Registra che la verifica è stata fatta" aria-label="Registra ${esc(s.tipo || "scadenza")} fatta" data-sca-done="${s.id}">${I.spunta}</span>
@@ -2252,9 +2301,9 @@
     $("giro-sec-scelta").style.display = cop.totale ? "" : "none";
     $("giro-riep").innerHTML = !cop.totale ? ""
       : cop.fatti === cop.totale
-        ? `Tutti i <b>${cop.totale}</b> mezzi hanno il controllo di oggi${cop.conAnomalie ? `, <span class="giallo">${cop.conAnomalie} con qualcosa da vedere</span>.` : ", nessuna anomalia."}`
+        ? `${cop.totale === 1 ? "L'<b>unico</b> mezzo ha" : `Tutti i <b>${cop.totale}</b> mezzi hanno`} il controllo di oggi${cop.conAnomalie ? `, <span class="giallo">${cop.conAnomalie} con qualcosa da vedere</span>.` : ", nessuna anomalia."}`
         : cop.fatti === 0
-          ? `Nessuno dei <b>${cop.totale}</b> mezzi ha ancora il giro di oggi. Scegli qui sotto la macchina su cui stai per salire: ci vuole meno di un minuto.`
+          ? `${cop.totale === 1 ? "L'<b>unico</b> mezzo non ha" : `Nessuno dei <b>${cop.totale}</b> mezzi ha`} ancora il giro di oggi. Scegli qui sotto la macchina su cui stai per salire: ci vuole meno di un minuto.`
           : `<b>${cop.fatti}</b> su ${cop.totale} ${cop.totale === 1 ? "mezzo controllato" : "mezzi controllati"} oggi${cop.conAnomalie ? ` · <span class="giallo">${cop.conAnomalie} con anomalie</span>` : ""}. Scegli qui sotto la macchina su cui stai per salire.`;
 
     // I mezzi senza giro vengono prima: è l'ordine in cui servono.
@@ -2408,7 +2457,7 @@
       const u = calcolabili[0];
       grafVuoto("graf-consumo", I.goccia, u.mezzo + ": " + lh(u.litriOra),
         "Su " + esc(u.mezzo) + " il consumo si può già calcolare (" + lh(u.litriOra)
-        + (u.euroOra ? ", " + eh(u.euroOra) : "") + " su " + u.oreCoperte + " ore di lavoro), ma con una macchina sola non c'è "
+        + (u.euroOra ? ", " + eh(u.euroOra) : "") + " su " + conta(u.oreCoperte, "ora di lavoro", "ore di lavoro") + "), ma con una macchina sola non c'è "
         + "<b>niente da confrontare</b>. Registra i rifornimenti di un secondo mezzo e qui comparirà la classifica di chi beve di più.");
     } else if (RIF.length) {
       grafVuoto("graf-consumo", I.goccia, "Consumo non ancora calcolabile",
@@ -2428,7 +2477,7 @@
         <div class="info"><div class="name">${esc(m.mezzo)}</div>
           <div class="meta">${lt(m.litri)}${m.euro ? " · " + eur(m.euro) : ""} · ${m.pieni} ${m.pieni === 1 ? "pieno" : "pieni"}${m.euroLitro ? " · " + m.euroLitro.toLocaleString("it-IT", { minimumFractionDigits: 3, maximumFractionDigits: 3, useGrouping: false }) + " €/l" : ""}</div>
           <div class="meta norma">${m.litriOra != null
-            ? "misurato su " + m.oreCoperte + " ore di lavoro"
+            ? "misurato su " + conta(m.oreCoperte, "ora di lavoro", "ore di lavoro")
             : esc(m.perche.charAt(0).toUpperCase() + m.perche.slice(1)) + "."}${
             /* La dichiarazione va sulla SECONDA riga, non appesa in coda alla
                prima: la riga di dettaglio è tagliata a due righe, e i litri +
@@ -2494,7 +2543,7 @@
       ? esc(p.perchePochi) + " Il confronto fra le macchine nasce da lì: scrivi il <b>contatore delle ore</b> "
         + "quando registri un rifornimento, e la pagella si riempie da sola."
       : `Un'ora di macchina costa in media <b>${eur(p.mediaEuroOra)}</b><span class="u">/h</span> in tutta la flotta `
-        + `(${eur(p.spesaMisurata)} di spesa caduta dentro i periodi misurati, divisi ${numTx(p.oreTotali)} ore coperte dai contatori). `
+        + `(${eur(p.spesaMisurata)} di spesa caduta dentro i periodi misurati, divisi ${numTx(p.oreTotali)} ${plurale(p.oreTotali, "ora coperta", "ore coperte")} dai contatori). `
         + `La disponibilità media è <b>${pctTx(p.mediaDisponibilita)}</b> negli ultimi ${p.finestra} giorni (${periodo}) — `
         + `i due numeri <b>non coprono lo stesso periodo</b>, e il costo orario ha per di più `
         + `<b>un periodo per macchina</b> (quello scritto sotto ogni riga). Si segnala chi esce dalla banda: oltre il `
@@ -2622,8 +2671,13 @@
         : `Disponibilità reale <b>${aff.pct.toLocaleString("it-IT", { maximumFractionDigits: 1 })}%</b> negli ultimi ${aff.finestra} giorni (${periodo}). `
           + `Il conto: ${aff.parco} ${aff.parco === 1 ? "mezzo" : "mezzi"} × ${aff.finestra} giorni = <b>${aff.giorniMacchina}</b> giorni-macchina, `
           + `meno <span class="rosso">${aff.persi}</span> ${aff.persi === 1 ? "perso" : "persi"} per fermo = <b>${aff.disponibili}</b> giorni-macchina lavorabili. `
-          + `Ci sono stati <b>${aff.episodi}</b> ${aff.episodi === 1 ? "fermo" : "fermi"}${aff.aperti ? `, di cui <span class="rosso">${aff.aperti} ${aff.aperti === 1 ? "ancora aperto" : "ancora aperti"}</span>` : ", tutti già chiusi"}`
-          + `, lunghi in media <b>${ggTx(aff.durataMedia)}</b>.`
+          /* ⚠️ IL SOSTANTIVO AVEVA IL SINGOLARE, IL VERBO E GLI AGGETTIVI NO:
+             con un fermo solo si leggeva «Ci sono stati 1 fermo, tutti già
+             chiusi, lunghi in media 1 giorno». È la forma più frequente di
+             questa famiglia — si corregge il pezzo che si sta scrivendo, non
+             la frase intera. */
+          + `${plurale(aff.episodi, "C'è stato", "Ci sono stati")} <b>${aff.episodi}</b> ${plurale(aff.episodi, "fermo", "fermi")}${aff.aperti ? `, di cui <span class="rosso">${aff.aperti} ${plurale(aff.aperti, "ancora aperto", "ancora aperti")}</span>` : plurale(aff.episodi, ", già chiuso", ", tutti già chiusi")}`
+          + `, ${plurale(aff.episodi, "lungo", "lunghi")} in media <b>${ggTx(aff.durataMedia)}</b>.`
           + (aff.fraUnFermoELaltro != null ? ` Fra un fermo e l'altro il parco ha lavorato <b>${ggTx(aff.fraUnFermoELaltro)}</b>-macchina.` : "")
           + codaFuori + codaSenzaDate;
 
@@ -2754,7 +2808,7 @@
       return;
     }
     $("sco-riep").innerHTML = p.righe.length
-      ? `Con <b>${consegna}</b> giorni di consegna e <b>${sicurezza}</b> di margine, la scorta deve coprire <b>${consegna + sicurezza} giorni</b> di consumo. `
+      ? `Con <b>${consegna}</b> ${plurale(consegna, "giorno", "giorni")} di consegna e <b>${sicurezza}</b> di margine, la scorta deve coprire <b>${consegna + sicurezza} ${plurale(consegna + sicurezza, "giorno", "giorni")}</b> di consumo. `
         + `Il conto si può fare su <b>${p.righe.length}</b> ${p.righe.length === 1 ? "ricambio" : "ricambi"} (quelli davvero usati negli ultimi ${p.finestra} giorni, su ${p.interventi} ${p.interventi === 1 ? "intervento chiuso" : "interventi chiusi"})`
         + (p.senzaConsumo.length ? (p.senzaConsumo.length === 1 ? "; sull'<b>altro</b> no" : `; sugli altri <b>${p.senzaConsumo.length}</b> no`) + ", perché non risultano mai usati" : "")
         + ". "
@@ -2784,7 +2838,7 @@
         <div class="avatar sup">${I.bullone}</div>
         <div class="info"><div class="name">${esc(r.nome)}</div>
           <div class="meta">${conto}</div>
-          <div class="meta">× ${numTx(r.copertura)} giorni = <b>${numTx(r.sogliaProposta)}</b> da tenere · soglia oggi ${numTx(r.sogliaAttuale)} · in magazzino ${numTx(r.giacenza)}</div>
+          <div class="meta">× ${numTx(r.copertura)} ${plurale(r.copertura, "giorno", "giorni")} = <b>${numTx(r.sogliaProposta)}</b> da tenere · soglia oggi ${numTx(r.sogliaAttuale)} · in magazzino ${numTx(r.giacenza)}</div>
           ${terza ? `<div class="meta norma">${terza}</div>` : ""}</div>
         <div class="acts"><span class="badge ${cls}">${r.daOrdinare ? (r.daOrdinare === 1 ? "ne manca 1" : "ne mancano " + numTx(r.daOrdinare)) : r.differenza > 0 ? "alza a " + numTx(r.sogliaProposta) : "a posto"}</span>
         ${offri ? `<span class="arr ok" role="button" tabindex="0" title="Usa ${numTx(r.sogliaProposta)} come soglia minima di questo ricambio" aria-label="Porta la soglia di ${esc(r.nome)} a ${numTx(r.sogliaProposta)}" data-sco-usa="${r.id}">${I.spunta}</span>` : ""}</div></div>`;
@@ -2832,8 +2886,8 @@
       <div class="sch-b"><div class="sch-nome">${esc(n.titolo)}</div>
         <div class="sch-sotto"><span class="badge ${so.cls}">${so.etichetta}</span>
           <span class="badge ${u.cls}">${ggU(esc(u.label))}</span>
-          ${esc(nomeBreve(n.mezzo) || "senza mezzo")}${m ? " · " + (oreNote(m.ore) ? "<b>" + (+m.ore).toLocaleString("it-IT") + "</b> ore motore" : "ore motore non registrate") : " · mezzo non più nel parco"}</div>
-        <div class="sch-sotto">${n.orePreviste ? "Tagliando a <b>" + numTx(n.orePreviste) + "</b> ore motore" : "Previsto per il <b>" + dataIt(n.dataPrevista) + "</b>"}${n.ogniOre ? " · si ripete ogni " + numTx(n.ogniOre) + " h" : n.ogniMesi ? " · si ripete ogni " + n.ogniMesi + " mesi" : ""}${n.nota ? " · " + esc(n.nota) : ""}</div>
+          ${esc(nomeBreve(n.mezzo) || "senza mezzo")}${m ? " · " + oreMotoreTx(m.ore, grassetto) : " · mezzo non più nel parco"}</div>
+        <div class="sch-sotto">${n.orePreviste ? "Tagliando a <b>" + numTx(n.orePreviste) + "</b> ore motore" : "Previsto per il <b>" + dataIt(n.dataPrevista) + "</b>"}${n.ogniOre ? " · si ripete ogni " + numTx(n.ogniOre) + " h" : n.ogniMesi ? " · si ripete " + ogniMesiTx(n.ogniMesi) : ""}${n.nota ? " · " + esc(n.nota) : ""}</div>
       </div></div>`;
     $("odl-stati").innerHTML = STATI_ORDINE.map(s =>
       `<button class="chg${s.chiave === so.chiave ? " active" : ""}" data-odl-stato="${s.chiave}">${s.etichetta}</button>`).join("");
@@ -3080,7 +3134,7 @@
     $("sch-testa").innerHTML = `<div class="sch-testa">
       <div class="sch-av">${I.mezzo}</div>
       <div class="sch-b"><div class="sch-nome">${esc(m.nome)}</div>
-        <div class="sch-sotto"><span class="badge ${st[0]}">${st[1]}</span> ${esc(f.tipo.etichetta)}${m.area ? " · " + esc(m.area) : ""} · ${oreNote(m.ore) ? "<b>" + (+m.ore).toLocaleString("it-IT") + "</b> ore motore" + (m.oreDaTelemetria ? " (da telemetria)" : "") : "ore motore non registrate"}</div>
+        <div class="sch-sotto"><span class="badge ${st[0]}">${st[1]}</span> ${esc(f.tipo.etichetta)}${m.area ? " · " + esc(m.area) : ""} · ${oreMotoreTx(m.ore, grassetto)}${oreNote(m.ore) && m.oreDaTelemetria ? " (da telemetria)" : ""}</div>
         <div class="sch-sotto">${f.ultimoIntervento ? "Ultimo intervento: <b>" + esc(f.ultimoIntervento.titolo) + "</b> del " + dataIt(f.ultimoIntervento.data) : "Nessun intervento registrato"}${f.ultimoControllo ? " · ultimo giro macchina: " + dataIt(f.ultimoControllo.data) : " · nessun giro macchina"}</div>
       </div></div>`;
     $("sch-kpi").innerHTML = [
@@ -3101,7 +3155,7 @@
     $("sch-sca").innerHTML = f.scadenze.map(s => `<div class="item statico ${striscia[s.sem.cls] || "st-accent"}">
         <div class="avatar">${I.bilancia}</div>
         <div class="info"><div class="name">${esc(s.tipo || "Scadenza")}</div>
-          <div class="meta">scade il ${esc(dataIt(s.dataScadenza))}${s.mesi ? " · ogni " + s.mesi + (s.mesi === 1 ? " mese" : " mesi") : ""}${s.ultimaData ? " · ultima: " + esc(dataIt(s.ultimaData)) : ""}</div>
+          <div class="meta">scade il ${esc(dataIt(s.dataScadenza))}${s.mesi ? " · " + ogniMesiTx(s.mesi) : ""}${s.ultimaData ? " · ultima: " + esc(dataIt(s.ultimaData)) : ""}</div>
           ${/* ⚠️ IL DOCUMENTO STA IN UNA RIGA SUA, e non è pignoleria: la riga
                 di dettaglio è tagliata a due righe (`-webkit-line-clamp:2`) e
                 il riferimento al documento stava in FONDO, cioè era il primo
@@ -3118,7 +3172,7 @@
       return `<div class="item statico ${striscia[u.cls] || "st-accent"}">
         <div class="avatar">${icoOrigine(n.origine) || I.chiave}</div>
         <div class="info"><div class="name">${esc(n.titolo)}</div>
-          <div class="meta">${n.orePreviste ? "a " + numTx(n.orePreviste) + " ore motore" : "previsto " + esc(dataIt(n.dataPrevista))}${n.ogniOre ? " · piano: ogni " + numTx(n.ogniOre) + " h" : n.ogniMesi ? " · piano: ogni " + n.ogniMesi + " mesi" : ""}</div>${n.nota ? `<div class="meta norma">${esc(n.nota)}</div>` : ""}</div>
+          <div class="meta">${n.orePreviste ? "a " + numTx(n.orePreviste) + " ore motore" : "previsto " + esc(dataIt(n.dataPrevista))}${n.ogniOre ? " · piano: ogni " + numTx(n.ogniOre) + " h" : n.ogniMesi ? " · piano: " + ogniMesiTx(n.ogniMesi) : ""}</div>${n.nota ? `<div class="meta norma">${esc(n.nota)}</div>` : ""}</div>
         <span class="badge ${u.cls}">${ggU(esc(u.label))}</span></div>`;
     }).join("")
       || vuoto(I.chiave, "Niente in programma", "Nessun tagliando pianificato su questa macchina. Si pianifica dalla schermata <b>Officina</b>, a data oppure a ore motore.");
@@ -3197,7 +3251,7 @@
     const cons = f.consumo;
     $("sch-carb").innerHTML = (cons
         ? `<div class="note recap">${cons.litriOra != null
-            ? `Consuma <b>${lh(cons.litriOra)}</b>${cons.euroOra ? ` — <b>${eh(cons.euroOra)}</b>` : ""}, misurati su <b>${cons.oreCoperte} ore</b> di lavoro e ${cons.pieni} rifornimenti (${lt(cons.litri)}${cons.euro ? ", " + eur(cons.euro) : ""}).`
+            ? `Consuma <b>${lh(cons.litriOra)}</b>${cons.euroOra ? ` — <b>${eh(cons.euroOra)}</b>` : ""}, misurati su <b>${cons.oreCoperte} ${plurale(cons.oreCoperte, "ora", "ore")}</b> di lavoro e ${conta(cons.pieni, "rifornimento", "rifornimenti")} (${lt(cons.litri)}${cons.euro ? ", " + eur(cons.euro) : ""}).`
             : `${cons.pieni} ${cons.pieni === 1 ? "rifornimento" : "rifornimenti"} per ${lt(cons.litri)}${cons.euro ? " (" + eur(cons.euro) + ")" : ""}: il consumo all'ora non si può ancora calcolare — ${esc(cons.perche)}.`}</div>`
         : "")
       + (f.rifornimenti.slice(0, RIGHE_LIBRETTO).map(r => `<div class="item statico st-accent">
@@ -3502,7 +3556,7 @@
     const a = document.createElement("a");
     a.href = URL.createObjectURL(new Blob(["﻿" + righe.join("\r\n")], { type: "text/csv;charset=utf-8" }));
     a.download = "flotta-registro-interventi.csv"; marchiaCsv(a); a.click();
-    toast("Esportati " + INT.length + " interventi (CSV).", "success");
+    toast(plurale(INT.length, "Esportato ", "Esportati ") + conta(INT.length, "intervento", "interventi") + " (CSV).", "success");
   };
   // Nuova scadenza di legge: il tipo arriva dalle voci già pronte, la
   // periodicità è solo PROPOSTA (l'utente la può cambiare o svuotare).
@@ -3564,7 +3618,7 @@
     const a = document.createElement("a");
     a.href = URL.createObjectURL(new Blob(["﻿" + righe.join("\r\n")], { type: "text/csv;charset=utf-8" }));
     a.download = "flotta-scadenze-di-legge.csv"; marchiaCsv(a); a.click();
-    esito("sca-esito", "Esportate " + SCA.length + (SCA.length === 1 ? " scadenza" : " scadenze") + " (CSV)"
+    esito("sca-esito", plurale(SCA.length, "Esportata ", "Esportate ") + conta(SCA.length, "scadenza", "scadenze") + " (CSV)"
       + (scoperti.length ? ", più " + scoperti.length + (scoperti.length === 1 ? " mezzo senza nessuna scadenza registrata" : " mezzi senza nessuna scadenza registrata") + ": nel foglio ci sono, marcati «nessuna registrata»." : "."), "success");
   };
   // La data della spesa parte da OGGI: è quasi sempre giusta e non fa perdere
@@ -3614,7 +3668,7 @@
     a.href = URL.createObjectURL(new Blob(["﻿" + righe.join("\r\n")], { type: "text/csv;charset=utf-8" }));
     a.download = "flotta-costi.csv"; marchiaCsv(a); a.click();
     const senza = COS.filter(c => !/^\d{4}-\d{2}-\d{2}$/.test(String(c.data || "").slice(0,10))).length;
-    esito("cos-esito", "Esportate " + COS.length + " voci di costo (CSV)"
+    esito("cos-esito", plurale(COS.length, "Esportata ", "Esportate ") + conta(COS.length, "voce di costo", "voci di costo") + " (CSV)"
       + (senza ? ", di cui " + senza + " senza data." : "."), "success");
   };
   $("btn-ric").onclick = async () => {
@@ -3693,10 +3747,10 @@
     if (!rno.ok) return;
     const ore = rno.valore;
     if (ore < (m.ore||0)) { err("ore-nuove", true);
-      esito("ore-esito", "Hai scritto " + numTx(ore) + " ore, ma il mezzo ne ha già " + numTx(m.ore||0) + ": il contatore non può scendere. Controlla il numero.", "err");
+      esito("ore-esito", "Hai scritto " + conta(ore, "ora", "ore") + ", ma il mezzo ne ha già " + numTx(m.ore||0) + ": il contatore non può scendere. Controlla il numero.", "err");
       fuoco("ore-nuove"); return; }
     err("ore-nuove", false);
-    esito("ore-esito", "Registrate " + numTx(ore) + " ore su " + m.nome.split(" — ")[0] + ".", "success");
+    esito("ore-esito", plurale(ore, "Registrata ", "Registrate ") + conta(ore, "ora", "ore") + " su " + m.nome.split(" — ")[0] + ".", "success");
     await db.aggiorna("mezzi", id, { ore }); $("ore-nuove").value = ""; await refresh();
   };
   // Import telemetria da CSV (mezzo;ore[;carburante]): aggiorna le ore dei
@@ -3739,7 +3793,7 @@
     const a = document.createElement("a");
     a.href = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8" }));
     a.download = "flotta_ricambi.csv"; marchiaCsv(a); a.click();
-    esito("ric-esito", `Esportati ${RIC.length} ricambi (CSV).`, "success");
+    esito("ric-esito", `${plurale(RIC.length, "Esportato", "Esportati")} ${conta(RIC.length, "ricambio", "ricambi")} (CSV).`, "success");
   };
   $("mez-file").onchange = async (e) => {
     const file = e.target.files && e.target.files[0]; if (!file) return;
@@ -3794,7 +3848,7 @@
     const a = document.createElement("a");
     a.href = "data:text/csv;charset=utf-8," + encodeURIComponent(csv);
     a.download = "flotta_situazione.csv"; marchiaCsv(a); a.click();
-    esito("ore-esito", "Esportati " + MEZ.length + " mezzi, " + MAN.length + " manutenzioni, " + RIC.length + " ricambi (CSV).", "success");
+    esito("ore-esito", "Esportati: " + conta(MEZ.length, "mezzo", "mezzi") + ", " + conta(MAN.length, "manutenzione", "manutenzioni") + ", " + conta(RIC.length, "ricambio", "ricambi") + " (CSV).", "success");
   };
   $("btn-man").onclick = async () => {
     const titolo = $("man-titolo").value.trim(), dataPrevista = $("man-data").value;
@@ -3826,7 +3880,7 @@
       ogniOre, ogniMesi, piano: pianoOre ? pianoOre.chiave : null, origine: "manuale", nota: null });
     esito("man-esito", "Manutenzione pianificata: " + titolo + " su " + $("man-mezzo").value
       + (dataPrevista ? " per il " + dataIt(dataPrevista) : " a " + numTx(orePreviste) + " ore motore")
-      + (ogniOre ? ", e si ripete ogni " + numTx(ogniOre) + " ore" : ogniMesi ? ", e si ripete ogni " + ogniMesi + " mesi" : "") + ".", "success");
+      + (ogniOre ? ", e si ripete ogni " + numTx(ogniOre) + " ore" : ogniMesi ? ", e si ripete " + ogniMesiTx(ogniMesi) : "") + ".", "success");
     $("man-titolo").value = ""; $("man-data").value = ""; $("man-ore").value = ""; $("man-ricambio").value = ""; $("man-piano").value = "";
     fuoco("man-titolo"); await refresh();
   };
@@ -3908,7 +3962,7 @@
     let ore = null;
     if (rgo.ok) {
       if (rgo.valore < (+m.ore || 0)) { err("giro-ore", true);
-        esito("giro-esito", "Hai scritto " + numTx(rgo.valore) + " ore, ma il mezzo ne ha già " + numTx(+m.ore || 0) + ": il contatore non può scendere.", "err");
+        esito("giro-esito", "Hai scritto " + conta(rgo.valore, "ora", "ore") + ", ma il mezzo ne ha già " + numTx(+m.ore || 0) + ": il contatore non può scendere.", "err");
         fuoco("giro-ore"); return; }
       ore = rgo.valore;
     }
@@ -3994,7 +4048,7 @@
     const a = document.createElement("a");
     a.href = URL.createObjectURL(new Blob(["﻿" + righe.join("\r\n")], { type: "text/csv;charset=utf-8" }));
     a.download = "flotta-giri-macchina.csv"; marchiaCsv(a); a.click();
-    toast("Esportati " + CTR.length + " giri macchina (CSV).", "success");
+    toast(plurale(CTR.length, "Esportato ", "Esportati ") + conta(CTR.length, "giro macchina", "giri macchina") + " (CSV).", "success");
   };
 
   // ══════════════════════════════════════════════════════════════════════
@@ -4031,7 +4085,7 @@
     guasto = { mezzoId, gravita: "" };
     const t = tipoMezzoDi(m);
     apriModale("Segnala un guasto",
-      `<div class="note recap" style="margin:0 0 12px;"><b>${esc(nomeBreve(m.nome))}</b> · ${esc(t.etichetta)} · ${oreNote(m.ore) ? "<b>" + (+m.ore).toLocaleString("it-IT") + "</b> ore motore" : "ore motore non registrate"}${m.area ? " · " + esc(m.area) : ""}</div>
+      `<div class="note recap" style="margin:0 0 12px;"><b>${esc(nomeBreve(m.nome))}</b> · ${esc(t.etichetta)} · ${oreMotoreTx(m.ore, grassetto)}${m.area ? " · " + esc(m.area) : ""}</div>
        <label class="fl" for="gua-desc">Che cosa non va</label>
        <input class="dw-input" id="gua-desc" maxlength="120" autocomplete="off" spellcheck="false"
               placeholder="Es. perde olio dal braccio">
@@ -4167,7 +4221,7 @@
     const R = (s, v, d, det, imp) => righe.push([s, v, d, det, imp == null ? "" : imp].map(csvCell).join(";"));
     R("mezzo", m.nome, dataIt(oggiISO()),
       f.tipo.etichetta + " · " + (m.area || "senza area") + " · "
-      + (oreNote(m.ore) ? (+m.ore) + " ore motore" : "ore motore non registrate")
+      + oreMotoreTx(m.ore)
       + " · " + (MB[m.stato] || MB.operativo)[1], "");
     /* ⛔ UNA SEZIONE VUOTA VA DETTA, ALTRIMENTI IL FOGLIO MENTE PER OMISSIONE.
        Sullo schermo il libretto ha sei stati vuoti che lo dicono in lettere
@@ -4183,11 +4237,11 @@
        riga con le stesse parole dello stato vuoto che si vede. */
     const VUOTA = (sez, frase) => R(sez, "nessuna registrata", "", frase, null);
     if (f.scadenze.length) f.scadenze.forEach(s => R("scadenza di legge", s.tipo || "", dataIt(s.dataScadenza),
-      s.sem.label + (s.mesi ? " · ogni " + s.mesi + " mesi" : "") + (s.documento ? " · doc. " + s.documento : ""), ""));
+      s.sem.label + (s.mesi ? " · " + ogniMesiTx(s.mesi) : "") + (s.documento ? " · doc. " + s.documento : ""), ""));
     else VUOTA("scadenza di legge",
       "Nessuna scadenza di legge registrata su questa macchina. Non vuol dire che non ne abbia: vuol dire che in Flotta non ce n'è nessuna.");
     if (f.manutenzioni.length) f.manutenzioni.forEach(n => R("manutenzione in programma", n.titolo || "", n.dataPrevista ? dataIt(n.dataPrevista) : "",
-      (n.orePreviste ? "a " + n.orePreviste + " ore motore" : "a data") + (n.ogniOre ? " · ogni " + n.ogniOre + " h" : n.ogniMesi ? " · ogni " + n.ogniMesi + " mesi" : ""), ""));
+      (n.orePreviste ? "a " + n.orePreviste + " ore motore" : "a data") + (n.ogniOre ? " · ogni " + n.ogniOre + " h" : n.ogniMesi ? " · " + ogniMesiTx(n.ogniMesi) : ""), ""));
     else VUOTA("manutenzione in programma", "Nessun tagliando pianificato su questa macchina.");
     /* ⛔ LA CELLA DELL'IMPORTO RESTA VUOTA QUANDO IL COSTO NON C'È. `(+w.costo)
        || 0` scriveva `0` su un intervento chiuso senza scrivere quanto è
@@ -4230,16 +4284,16 @@
     R("consumo", "litri per ora", "", !f.consumo
       ? "Nessun rifornimento registrato: il consumo non si può calcolare."
       : f.consumo.litriOra != null
-        ? f.consumo.litriOra + " l/h su " + f.consumo.oreCoperte + " ore" + (f.consumo.euroOra ? " · " + f.consumo.euroOra + " €/h" : "")
+        ? f.consumo.litriOra + " l/h su " + conta(f.consumo.oreCoperte, "ora", "ore") + (f.consumo.euroOra ? " · " + f.consumo.euroOra + " €/h" : "")
         : "Non calcolabile: " + f.consumo.perche + ".", "");
-    R("totale officina", "interventi chiusi", "", f.officina.interventi + " interventi"
-      + (f.officina.ore ? " · " + f.officina.ore + " ore di manodopera" : "")
+    R("totale officina", "interventi chiusi", "", conta(f.officina.interventi, "intervento", "interventi")
+      + (f.officina.ore ? " · " + conta(f.officina.ore, "ora di manodopera", "ore di manodopera") : "")
       + (f.officina.senzaCosto ? " · " + f.officina.senzaCosto + " senza il costo scritto"
           + (f.officina.misurato ? " (il totale è un minimo)" : " (il totale non si sa)") : ""),
       f.officina.misurato ? f.officina.totale : null);
     R("totale fermi", "giorni non lavorati", "", f.fermo.episodi
       ? f.fermo.episodi + (f.fermo.episodi === 1 ? " fermo" : " fermi") + " · " + f.fermo.giorni + (f.fermo.giorni === 1 ? " giorno" : " giorni")
-        + (f.fermo.aperti ? " · " + f.fermo.aperti + " ancora aperto" : "")
+        + (f.fermo.aperti ? " · " + f.fermo.aperti + plurale(f.fermo.aperti, " ancora aperto", " ancora aperti") : "")
         // la stessa coda della riga a schermo: un totale che non comprende
         // tutte le righe del file va detto DENTRO il file
         + (f.fermo.senzaDurata ? " · " + f.fermo.senzaDurata
@@ -4474,7 +4528,7 @@
     const a = document.createElement("a");
     a.href = URL.createObjectURL(new Blob(["﻿" + righe.join("\r\n")], { type: "text/csv;charset=utf-8" }));
     a.download = "flotta-fermi-macchina.csv"; marchiaCsv(a); a.click();
-    esito("fer-esito", "Esportati " + FER.length + " fermi (CSV).", "success");
+    esito("fer-esito", plurale(FER.length, "Esportato ", "Esportati ") + conta(FER.length, "fermo", "fermi") + " (CSV).", "success");
   };
 
   // Recupero errore: appena l'utente corregge un campo, togli il bordo

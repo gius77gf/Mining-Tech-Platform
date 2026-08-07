@@ -76,14 +76,49 @@ const AGGANCIO = 'window.fabPrimary=fabPrimary;';
 
 /* Apre una superficie pronta all'uso. `trasforma(corpo)` permette a un banco di
    servire una versione modificata della pagina — è così che si fanno le
-   controprove: si rimette il difetto e si pretende che il banco fallisca. */
+   controprove: si rimette il difetto e si pretende che il banco fallisca.
+
+   ⛔ E `rotte` FA LA STESSA COSA PER I FILE CHE LA PAGINA IMPORTA, che è dove
+   stanno i DATI. Nasce il 06/08 dal banco delle frasi al singolare: per vedere
+   se una pagina dice «1 letture» bisogna darle **una lettura sola**, e la
+   dimostrazione ne ha dodici. Le tre strade sbagliate, scartate con la ragione:
+     · toccare `apps/<app>/<app>-data.js` sul disco → CLAUDE.md lo vieta (un
+       giro del browser che gira in quel momento misura il difetto iniettato);
+     · rifarsi un `newContext` + `goto` nel proprio banco → è la seconda copia
+       di `apriSuperficie`, cioè il difetto che questo file esiste per togliere;
+     · filtrare a schermo con i comandi dell'app → misura il filtro, non il
+       caso limite.
+   Forma: una coppia `[glob, funzione]`, dove il glob è quello di Playwright
+   (due asterischi, barra, `campo-data.js`) e la funzione prende il testo del
+   file e ne restituisce un altro. Si registrano PRIMA di `goto`, e il
+   `content-type` resta quello vero della risposta — un modulo ES servito come
+   `text/html` non viene eseguito.
+   ⚠️ Il glob NON si scrive qui dentro per esteso: la sua coda è la stessa
+   coppia di caratteri che chiude un commento, e la prima stesura di queste
+   righe ha spaccato il file. CLAUDE.md lo dice già — un esempio di codice
+   dentro un commento va scritto senza i suoi delimitatori — ed è stato rifatto
+   lo stesso. */
 export async function apriSuperficie(browser, { nome, via, porta, larghezza = 430, altezza = 950,
-                                                ruolo = 'admin', trasforma = null, montaFintoFirebase = null }) {
+                                                ruolo = 'admin', trasforma = null, montaFintoFirebase = null,
+                                                rotte = [] }) {
   const ctx = await browser.newContext({ viewport: { width: larghezza, height: altezza }, locale: 'it-IT' });
   const p = await ctx.newPage();
   const errori = [];
   p.on('pageerror', (e) => errori.push(e.message));
   if (nome === 'core' && montaFintoFirebase) await montaFintoFirebase(p);
+  for (const [glob, fn] of rotte) {
+    await p.route(glob, async (r) => {
+      const res = await r.fetch();
+      const prima = await res.text();
+      const dopo = fn(prima);
+      /* ⚠️ UN `replace` CHE NON TROVA NIENTE NON FALLISCE: restituisce il testo
+         identico, il banco gira su dati NON modificati e stampa verde. È la
+         trappola dello script che «non fallisce» senza aver fatto niente,
+         scritta in CLAUDE.md. Qui si vede subito. */
+      if (dopo === prima) { console.error(`✗ rotta ${glob}: la trasformazione non ha cambiato niente`); process.exit(2); }
+      await r.fulfill({ status: 200, headers: res.headers(), body: dopo });
+    });
+  }
   if (nome === 'core' || trasforma) {
     await p.route('**' + via, async (r) => {
       const res = await r.fetch();

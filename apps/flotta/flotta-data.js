@@ -84,7 +84,7 @@
 // ============================================================
 
 import { parseCsvLine, numIt, giorniTra, isIntestazione, numeroScritto, oggiISO,
-         dataISOEsiste, dataIt,
+         dataISOEsiste, dataIt, plurale,
          messaggioNumero as messaggioNumeroShell,
          perCampo as perCampoShell,
          AVVISO_DECIMALE as AVVISO_DECIMALE_SHELL,
@@ -1534,7 +1534,7 @@ export function propostaTagliando(nomeMezzo, oreMezzo, piano) {
   const oreProposte = passo > 0 ? Math.round(grezze) + passo : null;
   return {
     oreProposte, oreNote: true,
-    testo: testaPiano + " " + nome + " ha " + mostra(Math.round(grezze), 0) + " ore"
+    testo: testaPiano + " " + nome + " ha " + mostra(Math.round(grezze), 0) + " " + plurale(Math.round(grezze), "ora", "ore")
       + (oreProposte != null ? ": il tagliando è proposto a " + mostra(oreProposte, 0) + "." : ".")
       + coda,
   };
@@ -1633,7 +1633,7 @@ export function validaRifornimento(dati, oreMezzo) {
       ? "Il contatore va scritto in ore, un numero da zero in su."
       : messaggioNumero(ro, "le ore del contatore", { unita: "h", min: 0 });
     else if (Number.isFinite(+oreMezzo) && ro.valore + 0.5 < +oreMezzo)
-      errori.ore = "Il contatore segna meno delle " + mostra(+oreMezzo, 1) + " ore già registrate sul mezzo: controlla il numero.";
+      errori.ore = "Il contatore segna meno " + plurale(+oreMezzo, "di ", "delle ") + mostra(+oreMezzo, 1) + " " + plurale(+oreMezzo, "ora già registrata", "ore già registrate") + " sul mezzo: controlla il numero.";
     else ore = ro.valore;
   }
   /* ⛔ LA PORTA DAVANTI DEVE ESSERE LARGA QUANTO QUELLA DIETRO. Con la sola
