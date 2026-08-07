@@ -68,7 +68,7 @@ Il racconto è in `docs/IL_CONFORME_CHE_NESSUNO_HA_MISURATO.md`.
   impediscono a un'app di riscriversene una propria.
 
 **Quanto è controllato, oggi** *(ricontato il 02/08 lanciando le suite, non a
-memoria)*: **2.289** prove automatiche che girano senza rete — **1874** sulle
+memoria)*: **2.293** prove automatiche che girano senza rete — **1878** sulle
 funzioni delle app, **295** sulle regole di stile, 71 sugli aiuti condivisi, 32
 sulla nuvola di punti, 9 sul manifesto, 8 sulla demo — più **106** che girano
 con l'emulatore Firestore (58 sulle **regole di sicurezza**, 19 sull'SDK, 21
@@ -77,7 +77,7 @@ pagine in un browser.
 *(⚠️ Il **2.251** conta sei suite: il giro completo ne esegue **2.474**, ma le
 altre dieci contano **file** invece che casi — crescono da sole quando nasce un
 file, quindi non sono il numero da citare. Misurato il 07/08.)*
-E **696 funzioni pure su 696** delle sei app sono chiamate per nome dalle prove:
+E **699 funzioni pure su 699** delle sei app sono chiamate per nome dalle prove:
 tutte al 100%. Vuol dire che non ne resta nessuna che nessuno ha ancora
 guardato — non che siano provate *bene*, che è un'altra domanda.
 

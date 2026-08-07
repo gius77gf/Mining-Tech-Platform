@@ -21871,7 +21871,7 @@ test("⛔ etichettaStatoDocumento: la mappa esce dalla pagina e la leggono in du
        (decisione 12a). Il numero è scritto a mano di proposito — è un
        censimento, e un export nuovo deve costringere qualcuno a guardarlo
        invece di entrare in silenzio. */
-    eq(tot, 28, "i siti di export CSV censiti nelle quattro app");
+    eq(tot, 29, "i siti di export CSV censiti nelle quattro app");
     console.log(`     (${tot} siti di export guardati in ${PAGINE.length} pagine)`);
   });
 
@@ -23937,6 +23937,34 @@ test("csvIncassi: i numeri escono col PUNTO", () => {
   const t = conti.csvIncassi([{ fatturaId: "f1", data: "2026-03-01", importo: 1200.5 }]);
   ok(/;1200\.5;/.test(t), t);
   eq(/;1200,5;/.test(t), false, "una virgola la leggerebbe solo la nostra app");
+});
+
+/* ── DECISIONE 12a, quarta voce: l'ANAGRAFICA CLIENTI che si ri-carica ── */
+test("csvClienti → parseClientiCsv: il giro torna identico, id compreso", () => {
+  const dentro = { id: "c1", ragioneSociale: "Edilcave Srl", piva: "01234567890",
+    sdi: "ABC1234", indirizzo: "Zona industriale, Ragusa", sconto: 5, fido: 25000, note: "" };
+  const [fuori] = conti.parseClientiCsv(conti.csvClienti([dentro]));
+  for (const k of Object.keys(dentro)) eq(fuori[k], dentro[k], `campo ${k}`);
+});
+test("csvClienti: FIDO NON IMPOSTATO non diventa «fido zero»", () => {
+  const [c] = conti.parseClientiCsv(conti.csvClienti([{ id: "c2", ragioneSociale: "Senza fido" }]));
+  eq(c.fido, null, "«non gli si fa credito» e «nessuno ci ha pensato» sono due frasi opposte");
+  eq(c.sconto, null);
+  const [z] = conti.parseClientiCsv(conti.csvClienti([{ id: "c3", ragioneSociale: "Fido zero", fido: 0 }]));
+  eq(z.fido, 0, "e uno zero deciso resta uno zero");
+});
+test("csvClienti: l'intestazione non rientra come cliente", () => {
+  /* la prima colonna è `id`, non `ragioneSociale`: passando il nome sbagliato a
+     `isIntestazione` la riga d'intestazione rientrava come un cliente di nome
+     «ragioneSociale». Successo scrivendo questa funzione. */
+  eq(conti.parseClientiCsv(conti.csvClienti([])).length, 0);
+  eq(conti.csvClienti([]).split("\n")[0], conti.CSV_CLIENTI_INTESTAZIONE);
+  eq(conti.parseClientiCsv(conti.csvClienti([{ id: "c1", ragioneSociale: "Uno" }])).length, 1,
+    "e un cliente vero rientra");
+});
+test("csvClienti: senza ragione sociale non è un cliente", () => {
+  eq(conti.parseClientiCsv("id;ragioneSociale;piva;sdi;indirizzo;sconto;fido;note\nc9;;;;;;;\n").length, 0,
+    "sarebbe una voce senza nome nell'elenco e un intestatario mancante in fattura");
 });
 
 console.log(`\nRisultato KPI app: ${passed} passati, ${failed} falliti${inVolo.length ? `  ·  ${inVolo.length} prove asincrone aspettate` : ""}`);

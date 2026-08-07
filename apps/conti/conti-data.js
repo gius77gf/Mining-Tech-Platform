@@ -4111,3 +4111,56 @@ export function parseIncassiCsv(text) {
        chi sono i clienti puntuali. */
     .filter((m) => dataISOEsiste(m.data) && m.importo != null);
 }
+
+/* ⛔ L'ANAGRAFICA CLIENTI CHE SI RI-CARICA — decisione 12a, quarta voce.
+   ⚠️ Qui il file che c'era è quasi giusto: `conti_clienti.csv` porta già tutti
+   e sette i campi dello schema e non ne calcola nessuno. Gli mancavano due
+   cose, e la seconda è un difetto vero:
+     1. **l'id**. Fatture e pesate puntano al cliente con `clienteId`: un file
+        senza id si ri-carica come una rubrica nuova, e tutto quello che ci era
+        agganciato resta orfano;
+     2. **`+c.sconto || 0`**, che scrive `0` dove nessuno ha scritto niente. Su
+        uno sconto è già discutibile; sul **fido** è la faccia tranquilla del
+        principio del fondatore in un posto che decide se una consegna parte:
+        «fido 0» vuol dire *non gli si fa credito*, «fido non impostato» vuol
+        dire *nessuno ci ha pensato*. Sono due frasi opposte, e il file le
+        scriveva uguali.
+   Perciò questo file usa `numeroDichiarato` come gli altri due, e il vuoto
+   resta vuoto. */
+export const CSV_CLIENTI_INTESTAZIONE = "id;ragioneSociale;piva;sdi;indirizzo;sconto;fido;note";
+
+export function csvClienti(clienti) {
+  const num = (x) => { const v = numeroDichiarato(x); return v == null ? "" : String(Math.round(v * 100) / 100); };
+  const righe = [CSV_CLIENTI_INTESTAZIONE];
+  for (const c of (clienti || []).slice()
+    .sort((a, b) => String(a.ragioneSociale || "").localeCompare(String(b.ragioneSociale || ""), "it"))) {
+    if (!c) continue;
+    righe.push([csvCell(c.id || ""), csvCell(c.ragioneSociale || ""), csvCell(c.piva || ""),
+      csvCell(c.sdi || ""), csvCell(c.indirizzo || ""), num(c.sconto), num(c.fido),
+      csvCell(c.note || "")].join(";"));
+  }
+  return righe.join("\n") + "\n";
+}
+
+export function parseClientiCsv(text) {
+  return (leggiCsv(String(text || "")).righe || [])
+    /* ⚠️ `isIntestazione` guarda la PRIMA colonna, non una parola qualunque
+       della riga: passandogli «ragioneSociale» — che qui è la seconda — la
+       riga d'intestazione rientrava come se fosse un cliente di nome
+       «ragioneSociale». La prima colonna è `id`. */
+    .filter((c) => c.length && !isIntestazione(c.join(";"), "id"))
+    .map((c) => {
+      const [id, ragioneSociale, piva, sdi, indirizzo, sconto, fido, note] = c;
+      const t = (x) => { const v = String(x == null ? "" : x).trim(); return v || null; };
+      const n = (x) => { const v = numIt(x); return numeroDichiarato(v === null || Number.isNaN(v) ? null : v); };
+      return {
+        id: t(id), ragioneSociale: t(ragioneSociale) || "", piva: t(piva) || "",
+        sdi: t(sdi) || "", indirizzo: t(indirizzo) || "",
+        sconto: n(sconto), fido: n(fido), note: t(note) || "",
+      };
+    })
+    /* ⛔ un cliente senza ragione sociale non è un cliente: è una riga vuota
+       che nell'elenco comparirebbe come voce senza nome, e in una fattura
+       come intestatario mancante. */
+    .filter((c) => c.ragioneSociale);
+}

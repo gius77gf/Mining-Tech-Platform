@@ -537,7 +537,12 @@ vere.
          `fatturaId`, senza il quale un incasso rimesso dentro non si
          riaggancerebbe a niente. Il metodo esce con la **chiave**, non col
          nome leggibile: un file che rientra parla la lingua del programma;
-      5. **clienti (Conti)** — doloroso e ribattibile;
+      5. ✅ **clienti (Conti)** — *fatto il 07/08*: il prospetto c'era ed era
+         quasi giusto, ma perdeva l'**id** (fatture e pesate puntano al
+         cliente con `clienteId`: ri-caricato quel file, tutto quello che ci
+         era agganciato restava orfano) e scriveva `0` dove nessuno aveva
+         scritto niente — sul **fido** è la faccia tranquilla su un numero che
+         decide se una consegna parte. Corretti tutt'e due;
       6. **azioni correttive (Scudo)** — un ispettore può chiederle, e la carta
          di solito c'è.
       ⚠️ Quindi le voci vere da fare **non sono cinque, sono quattro**: contarne
@@ -863,7 +868,7 @@ ogni strumento), i **grafici** in tutte le app da un motore scritto in casa,
 **sei ponti** veri fra le app, l'**estetica unificata**, e le convenzioni
 condivise su numeri, unità di misura e soldi.
 
-**Le prove automatiche sono passate a 2.289** *(ricontate il 07/08 lanciando le
+**Le prove automatiche sono passate a 2.293** *(ricontate il 07/08 lanciando le
 suite)*, più **106** che girano con l'emulatore Firestore (58 sulle regole di
 sicurezza, 19 sull'SDK, 21 sulle funzioni, 8 sul primo avvio) e **19** banchi
 che aprono davvero le pagine in un browser.

@@ -46,7 +46,7 @@ segnaposto («Funzione nav non ancora pronta»). Per aprirlo davvero si monta
 
 ## Le prove
 
-**2.289 prove girano senza rete e senza browser**, con `node` (contate lanciandole, non a memoria — al 07/08: 1853 + 295 + 63 + 32 + 9 + 8):
+**2.293 prove girano senza rete e senza browser**, con `node` (contate lanciandole, non a memoria — al 07/08: 1853 + 295 + 63 + 32 + 9 + 8):
 
 > ⚠️ **E quel numero conta SEI suite, non tutto quello che gira.** Misurato il
 > 07/08 sommando le righe «Risultato …» di un giro intero: il giro `node`
@@ -61,7 +61,7 @@ segnaposto («Funzione nav non ancora pronta»). Per aprirlo davvero si monta
 > numero che non vuol dire niente. Le sei suite contano **casi**, e per questo
 > sono quelle sorvegliate da `numeri-nei-documenti.mjs`.
 
-E **696 funzioni pure su 696** sono chiamate per nome da quelle prove: tutte e
+E **699 funzioni pure su 699** sono chiamate per nome da quelle prove: tutte e
 sei le app al 100%. Non è «provate bene» — è «non ce n'è nessuna che nessuno ha
 ancora guardato», che è il minimo e finora non c'era.
 

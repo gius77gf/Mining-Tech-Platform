@@ -1633,7 +1633,10 @@ label.item:has(.dw-chk:checked){
     <button class="dw-btn" id="btn-cl">Aggiungi</button>
   </div>
   <div class="tools">
-    <button class="dw-btn secondary" id="btn-cli-export">Esporta clienti (CSV)</button>
+    <button class="dw-btn secondary" id="btn-cli-export" title="Prospetto per il commercialista: senza gli id interni">Esporta clienti (CSV)</button>
+    <button class="dw-btn secondary" id="btn-cli-backup" title="Copia di sicurezza: porta anche gli id, cos&igrave; fatture e pesate restano agganciate">Copia di sicurezza (CSV)</button>
+    <button class="dw-btn secondary" id="btn-cli-restore">Ri-carica copia (CSV)</button>
+    <input type="file" id="cli-file" accept=".csv,text/csv" style="display:none;">
   </div>
   <div class="note esito" id="cl-esito"></div>
   <div class="note">L'importo a destra è l'<b>esposizione aperta</b> del cliente: quanto ti deve
@@ -1792,7 +1795,7 @@ label.item:has(.dw-chk:checked){
   import { parseMovimentiCsv, abbinaMovimenti, ESTRATTO_ESEMPIO,
            contiData, giorni, kpiFrom, statoScadenzaFattura, agingIncassi, stileBarraPeso, gareRiepilogo, prioritaIncasso, incassoAtteso, incassoPerMese, esposizioneClienti, estrattoContoCliente, livelloSollecito, interessiMora, testoSollecito, TASSO_MORA_DEFAULT, statoTassoMora, parseFattureCsv, parseGareCsv, parseListinoCsv, chiaveNome, clienteDiFattura, nomeCliente, clientiDaCollegare,
     round2, baseGara, densitaValida, prezzoPerTonnellata, prezzoPerMetroCubo, convertiQuantita, imponibileRiga,
-    importiFattura, totaliDaRighe, riepilogoIvaFattura, prossimoNumero, nettoPesata, rigaPesata, valorePesata, valoreDdt, csvPesate, parsePesateCsv, csvIncassi, parseIncassiCsv,
+    importiFattura, totaliDaRighe, riepilogoIvaFattura, prossimoNumero, nettoPesata, rigaPesata, valorePesata, valoreDdt, csvPesate, parsePesateCsv, csvIncassi, parseIncassiCsv, csvClienti, parseClientiCsv, numeroDichiarato,
     quantitaPesata, pesateDaFatturare, fatturaDaPesate, canonePeriodo, BASI_CANONE, venditePerProdotto,
     cavatoPeriodo, vendutoPeriodo, riconciliazione, valoreCavato, SOGLIA_DIVARIO,
     applicaIncassi, apertoDi, statoIncasso, movimentiDiFattura, incassatoPeriodo,
@@ -5581,11 +5584,49 @@ label.item:has(.dw-chk:checked){
     $("cl-nome").focus();   // pronto per il prossimo cliente
     await refresh();
   };
+  /* ⛔ DECISIONE 12a, quarta voce: la COPIA DI SICUREZZA dell'anagrafica.
+     Il bottone qui sotto è quasi giusto — porta tutti e sette i campi e non ne
+     calcola nessuno — ma perde l'**id**, e fatture e pesate puntano al cliente
+     con `clienteId`: ri-caricato quel file, tutto quello che ci era agganciato
+     resterebbe orfano. */
+  $("btn-cli-backup").onclick = () => {
+    const a = document.createElement("a");
+    a.href = "data:text/csv;charset=utf-8," + encodeURIComponent(csvClienti(CLI));
+    a.download = "conti_clienti_copia.csv"; marchiaCsv(a); a.click();
+    esito("cl-esito", plurale(CLI.length, "Salvato ", "Salvati ") + plur(CLI.length, "cliente", "clienti")
+      + " nella copia che questa pagina sa ri-caricare.", "success");
+  };
+  $("btn-cli-restore").onclick = () => $("cli-file").click();
+  $("cli-file").onchange = async (e) => {
+    const file = e.target.files && e.target.files[0]; if (!file) return;
+    const righe = parseClientiCsv(await file.text());
+    e.target.value = "";
+    if (!righe.length) {
+      esito("cl-esito", "Nel file non c'è nessun cliente leggibile: controlla che sia la copia di sicurezza e non il prospetto (a quello manca la colonna degli id).", "err");
+      return;
+    }
+    const gia = new Set(CLI.map(c => String(c.ragioneSociale || "").trim().toLowerCase()));
+    const nuovi = righe.filter(r => !gia.has(String(r.ragioneSociale || "").trim().toLowerCase()));
+    for (const r of nuovi) await db.aggiungi("clienti", r);
+    await refresh();
+    esito("cl-esito", nuovi.length
+      ? plurale(nuovi.length, "Rimesso dentro ", "Rimessi dentro ") + plur(nuovi.length, "cliente", "clienti")
+        + (righe.length > nuovi.length ? ` · ${conta(righe.length - nuovi.length, "era già in anagrafica", "erano già in anagrafica")}, non duplicati.` : ".")
+      : "Erano tutti già in anagrafica: non è stato aggiunto niente.", nuovi.length ? "success" : "");
+  };
   $("btn-cli-export").onclick = () => {
     // anagrafica completa per il commercialista o per un altro gestionale
+    /* ⛔ E QUI C'ERA `+c.sconto || 0`, CORRETTO IL 07/08. Quella guardia scrive
+       `0` dove nessuno ha scritto niente: sullo sconto è discutibile, sul FIDO
+       è la faccia tranquilla del principio del fondatore in un posto che
+       decide se una consegna parte. «Fido 0» vuol dire *non gli si fa
+       credito*; «fido non impostato» vuol dire *nessuno ci ha pensato*. Sono
+       due frasi opposte, e il file le scriveva uguali — in un foglio che va al
+       commercialista o dentro un altro gestionale. */
+    const cellaNum = (x) => { const v = numeroDichiarato(x); return v == null ? "" : String(Math.round(v * 100) / 100); };
     let csv = "ragione_sociale;piva_cf;sdi_pec;indirizzo;sconto;fido;note\n";
     for (const c of CLI.slice().sort((a, b) => String(a.ragioneSociale || "").localeCompare(String(b.ragioneSociale || ""), "it")))
-      csv += `${csvCell(c.ragioneSociale)};${csvCell(c.piva)};${csvCell(c.sdi)};${csvCell(c.indirizzo)};${+c.sconto || 0};${+c.fido || 0};${csvCell(c.note)}\n`;
+      csv += `${csvCell(c.ragioneSociale)};${csvCell(c.piva)};${csvCell(c.sdi)};${csvCell(c.indirizzo)};${cellaNum(c.sconto)};${cellaNum(c.fido)};${csvCell(c.note)}\n`;
     const a = document.createElement("a");
     a.href = "data:text/csv;charset=utf-8," + encodeURIComponent(csv);
     a.download = "conti_clienti.csv"; marchiaCsv(a); a.click();
