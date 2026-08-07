@@ -93,11 +93,11 @@ const DIFETTI = [
      copiato dal codice invecchia ogni volta che il codice viene migliorato, e
      senza quel conto la controprova avrebbe continuato a dire «so fallire»
      avendo rimesso un difetto in meno. */
-  ["  const m=misureRapportino(r);\n  if(!m.misurato) return 'nessun foro misurato';\n  return `${conta(m.fori,'foro','fori')} · ${m.calcolabile?m.mc.toFixed(1)+' mc':'mc non calcolabili'}`;",
+  ["  const m=misureRapportino(r);\n  if(!m.misurato) return 'nessun foro misurato';\n  return `${conta(m.fori,'foro','fori')} · ${m.calcolabile?perLettura(m.mc,1,true)+' mc':'mc non calcolabili'}`;",
    "  return `${r.fori||0} fori · ${(r.mc||0).toFixed(1)} mc`;"],
   ["  if(t.senzaMisura) p.push(`${t.senzaMisura} senza nessun foro misurato`);\n  if(t.senzaVolume) p.push(`${t.senzaVolume} senza maglia, quindi senza volume`);",
    "  /* difetto rimesso: il totale non dice piu' che cosa ha lasciato fuori */"],
-  ['<div class="preview-row"><span class="preview-lab">Mc in ballo</span><span class="preview-val">${ms.calcolabile?ms.mc:(ms.misurato?\'non calcolabile: manca la maglia\':\'non calcolabile: nessun foro misurato\')}</span></div>',
+  ['<div class="preview-row"><span class="preview-lab">Mc in ballo</span><span class="preview-val">${ms.calcolabile?perLettura(ms.mc,1,true):(ms.misurato?\'non calcolabile: manca la maglia\':\'non calcolabile: nessun foro misurato\')}</span></div>',
    "${r.mc?`<div class=\"preview-row\"><span class=\"preview-lab\">Mc in ballo</span><span class=\"preview-val\">${r.mc}</span></div>`:''}"],
   ['<div class="preview-row"><span class="preview-lab">Fori</span><span class="preview-val">${ms.misurato?`${ms.fori}${r.fori_fila2>0?\' (\'+r.fori_fila1+\'+\'+r.fori_fila2+\')\':\'\'}`:\'nessuno misurato\'}</span></div>',
    "${r.fori?`<div class=\"preview-row\"><span class=\"preview-lab\">Fori</span><span class=\"preview-val\">${r.fori}</span></div>`:''}"],
@@ -197,9 +197,9 @@ dice(!!r2 && /mc non calcolabili/.test(r2), "⛔ venti fori veri senza maglia: i
 dice(!!r2 && !/0\.0 mc/.test(r2), "⛔ e da nessuna parte compare «0.0 mc»", r2);
 // 3 · il rapportino sano resta un numero
 const r3 = righe.find((t) => /18 fori/.test(t));
-dice(!!r3 && /283\.5 mc/.test(r3), "il turno misurato per bene continua a dire il suo volume", r3);
+dice(!!r3 && /283,5 mc/.test(r3), "il turno misurato per bene continua a dire il suo volume", r3);
 // 4 · il riepilogo dichiara che cosa ha lasciato fuori
-dice(/283\.5/.test(riepilogo), "il totale è quello del solo rapportino misurabile", riepilogo);
+dice(/283,5/.test(riepilogo), "il totale è quello del solo rapportino misurabile", riepilogo);
 dice(/non sono nel totale|non è nel totale/.test(riepilogo),
   "⛔ e il riepilogo DICHIARA quanti rapportini sono rimasti fuori", riepilogo);
 dice(/senza nessun foro misurato/.test(riepilogo) && /senza maglia/.test(riepilogo),
@@ -224,11 +224,11 @@ dice(!/\b0\.0\b/.test(s1) && !/\b0,0\b/.test(s1), "e nessuno zero rimasto in gir
 const s2 = await scheda("zz2");
 dice(/manca la maglia/.test(s2),
   "⛔ venti fori senza maglia: la scheda dice che manca la maglia, non «0»", s2);
-dice(/60/.test(s2) && /3\.00 m/.test(s2),
+dice(/60/.test(s2) && /3,00 m/.test(s2),
   "e i metri e la media, che sono misurati, si scrivono", s2);
 
 const s3 = await scheda("zz3");
-dice(/283\.5/.test(s3), "il rapportino sano mostra il suo volume", s3);
+dice(/283,5/.test(s3), "il rapportino sano mostra il suo volume", s3);
 
 dice(errori.length === 0, "la pagina non solleva errori", errori[0]);
 
@@ -284,7 +284,7 @@ dice(errori.length === 0, "la pagina non solleva errori", errori[0]);
     await pg.waitForTimeout(300);
     const senzaMaglia = await leggi();
     console.log(`  · un foro a 9 m, maglia vuota: ${JSON.stringify(senzaMaglia)}`);
-    dice(senzaMaglia["tot-m"] === "9.0" && senzaMaglia["tot-media"] === "9.00",
+    dice(senzaMaglia["tot-m"] === "9,0" && senzaMaglia["tot-media"] === "9,00",
       "i metri misurati restano quelli veri", JSON.stringify(senzaMaglia));
     dice(senzaMaglia["tot-mc"] === "—",
       "senza maglia i mc NON sono zero: sono non calcolabili", JSON.stringify(senzaMaglia));
@@ -294,12 +294,20 @@ dice(errori.length === 0, "la pagina non solleva errori", errori[0]);
     await pg.waitForTimeout(300);
     const conMaglia = await leggi();
     console.log(`  · stesso foro, maglia 3,5x4: ${JSON.stringify(conMaglia)}`);
-    const mcNum = parseFloat(conMaglia["tot-mc"]);
+    /* ⚠️ IL NUMERO SI LEGGE ALL'ITALIANA, quindi `parseFloat` non basta: su
+       «113,4» risponde 113 e la prova cadrebbe accusando il prodotto. Si
+       controlla la STRINGA che l'utente vede — che è anche il controllo più
+       giusto, perché il formato fa parte di quello che si sta provando — e
+       accanto il valore, sciolta la virgola. */
+    const mcTesto = conMaglia["tot-mc"];
+    const mcNum = parseFloat(String(mcTesto).replace(/\./g, "").replace(",", "."));
+    const atteso = 9 * 1 * 3.5 * 4 * 0.9;
     dice(Number.isFinite(mcNum) && mcNum > 0,
       "con la maglia compilata i mc tornano a essere un numero vero", JSON.stringify(conMaglia));
-    dice(Math.abs(mcNum - 9 * 1 * 3.5 * 4 * 0.9) < 0.05,
-      `e il numero è quello giusto (media x fori x B x S x 0.9 = ${(9 * 1 * 3.5 * 4 * 0.9).toFixed(1)})`,
-      conMaglia["tot-mc"]);
+    dice(Math.abs(mcNum - atteso) < 0.05,
+      `e il numero è quello giusto (media x fori x B x S x 0.9 = ${atteso.toFixed(1)})`, mcTesto);
+    dice(mcTesto === "113,4",
+      "⛔ e si scrive all'italiana, con la virgola: e' quello che l'utente legge", mcTesto);
   }
 }
 

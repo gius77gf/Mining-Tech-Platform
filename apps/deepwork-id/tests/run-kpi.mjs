@@ -11674,6 +11674,40 @@ test("statoVuoto: la struttura è quella del core, invariata", () => {
   eq(shell.perCampo(null), "", "un numero che manca lascia il campo vuoto, non «0»");
   eq(shell.perCampo(""), "", "e nemmeno una stringa vuota diventa zero");
 });
+test("⛔ perLettura: la gemella di perCampo, per i numeri che si LEGGONO", () => {
+  /* Le due si spiegano a vicenda e vanno provate insieme, se no fra un mese
+     qualcuno userà quella sbagliata: dentro un campo NIENTE punto delle
+     migliaia (rientrerebbe ambiguo), in una frase da leggere il punto CI VA. */
+  eq(shell.perLettura(3466.1), "3.466,1", "punto per le migliaia, virgola per i decimali");
+  eq(shell.perCampo(3466.1), "3466,1", "e nel campo lo stesso numero si scrive senza il punto");
+  /* ⛔ QUESTA È LA RIGA CHE GIUSTIFICA `useGrouping` SCRITTO A MANO. Al valore
+     di DEFAULT Node non raggruppa i numeri di quattro cifre e Chromium sì
+     (docs/MIGLIAIA_NODE_CONTRO_CHROMIUM.md), quindi una prova scritta qui
+     direbbe una cosa e l'utente ne vedrebbe un'altra. Con `true` esplicito i
+     due sono d'accordo, ed è per questo che il numero a quattro cifre è
+     proprio quello provato. */
+  eq(shell.perLettura(6375), "6.375", "quattro cifre: raggruppa, in Node come in Chromium");
+  eq((6375).toLocaleString("it-IT"), "6375", "…e al default Node NON raggrupperebbe: ecco perché è esplicito");
+  eq(shell.perLettura(787.5), "787,5", "sotto il migliaio non c'è niente da raggruppare");
+  eq(shell.perLettura(1071), "1.071", "un intero non si porta dietro decimali finti");
+  eq(shell.perLettura(12.345, 2), "12,35", "i decimali si arrotondano a quelli chiesti");
+  /* il principio del fondatore: un valore che non c'è non diventa zero */
+  eq(shell.perLettura(null), "", "un numero che manca non diventa «0»");
+  eq(shell.perLettura(""), "", "e nemmeno una stringa vuota");
+  eq(shell.perLettura("abc"), "", "né una scritta");
+  eq(shell.perLettura(0), "0", "lo zero VERO invece si scrive: è una misura");
+  /* ⛔ `fisse`: nata da una misura sbagliata. Sostituendo i `toFixed(2)` con
+     questa funzione, «Media prof. 3.00 m» era diventata «3 m» e il riquadro
+     accanto era rimasto a «9.0»: cambiando il separatore si era cambiato anche
+     il numero di CIFRE, e in un posto solo. Le cifre allineate sono una scelta
+     dello stile del core, quindi dove c'era `toFixed(n)` si scrive
+     `perLettura(v, n, true)` e si cambia il separatore e nient'altro. */
+  eq(shell.perLettura(3, 2), "3", "senza `fisse` i decimali inutili non si scrivono");
+  eq(shell.perLettura(3, 2, true), "3,00", "con `fisse` le cifre restano allineate, come faceva toFixed");
+  eq(shell.perLettura(9, 1, true), "9,0", "…e vale anche per un decimale solo");
+  eq(shell.perLettura(1071, 1, true), "1.071,0", "le migliaia si raggruppano lo stesso");
+  eq(shell.perLettura(null, 2, true), "", "e un numero che manca resta vuoto anche con le cifre fisse");
+});
 test("giorni: alias di giorniTra in tutt'e due le app che lo usavano", () => {
     ok(conti.giorni === shell.giorniTra, "Conti");
     ok(sentinella.giorni === shell.giorniTra, "Sentinella");

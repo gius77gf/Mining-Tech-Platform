@@ -205,9 +205,9 @@ const zeri = righe.filter((r) => /(^|[^\d.,])0(\s*(mc|kg))/.test(r.sub));
 dice(zeri.length === 0, "nessuna riga scrive «0 mc» o «0 kg» dove non è stato misurato niente",
   zeri.map((z) => z.sub).join(" | "));
 
-dice(/3 fori/.test(di("tutto misurato")) && /24 kg/.test(di("tutto misurato")) && /283\.5 mc/.test(di("tutto misurato")),
+dice(/3 fori/.test(di("tutto misurato")) && /24 kg/.test(di("tutto misurato")) && /283,5 mc/.test(di("tutto misurato")),
   "il caso sano dice ancora i suoi numeri", di("tutto misurato"));
-dice(/kg non scritti/.test(di("senza chili")) && /283\.5 mc/.test(di("senza chili")),
+dice(/kg non scritti/.test(di("senza chili")) && /283,5 mc/.test(di("senza chili")),
   "senza chili: lo dichiara, e i mc restano quelli veri", di("senza chili"));
 dice(/mc non calcolabili/.test(di("senza profondita")) && /24 kg/.test(di("senza profondita")),
   "senza profondità: «mc non calcolabili», non «0 mc»", di("senza profondita"));

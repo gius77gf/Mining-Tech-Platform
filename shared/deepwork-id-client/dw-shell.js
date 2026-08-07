@@ -585,6 +585,46 @@ export function perCampo(v, decimali = 2) {
   return (+v).toLocaleString("it-IT", { useGrouping: false, maximumFractionDigits: Math.max(0, decimali) });
 }
 
+// Come si scrive un numero DA LEGGERE — la gemella di `perCampo`, e le due si
+// spiegano a vicenda: dentro un campo si scrive senza punto delle migliaia
+// (rientrerebbe ambiguo dal lettore), in una frase da leggere il punto ci va,
+// perché è l'italiano e perché «3.466,1 mc» si legge e «3466.1 mc» no.
+// ⛔ NASCE PERCHÉ IL CORE NON L'AVEVA E SCRIVEVA I DECIMALI COL PUNTO. Misurato
+// il 07/08 aprendo tutte e 32 le schermate e leggendo il TESTO visibile:
+// **undici** numeri col punto decimale — «1071.0 mc», «3466.1», «2261.7 mc»,
+// «787.5 mc» — accanto a date scritte all'italiana («28/07/2026»). Non erano
+// sbagliati: erano scritti in un'altra lingua da quella del resto della riga.
+// ⚠️ E prima di scriverla si è cercata in casa, che è la regola: `perCampo`
+// c'era ma serve i CAMPI, e il formattatore da lettura era già scritto due
+// volte fuori da `shared/` (in `campo-data.js` e in `flotta-data.js`), ognuna
+// col suo commento su `useGrouping`. Quelle due restano come sono e sono
+// **dichiarate**: diventare alias di questa è l'unità dopo, e va fatta col
+// test di identità, non riscrivendole una terza volta.
+// ⛔ `useGrouping` ESPLICITO, e non per abitudine: al valore di DEFAULT Node
+// non raggruppa i numeri di quattro cifre e Chromium sì
+// (docs/MIGLIAIA_NODE_CONTRO_CHROMIUM.md). Misurato scrivendolo a mano: con
+// `true` esplicito i due sono d'accordo — Node dà «3.466,1» come il browser —
+// quindi una prova scritta in Node dice la verità su ciò che l'utente vede.
+// Un valore non leggibile risponde "" e non "0": lo zero è una misura.
+// ⛔ `fisse` NON È UN VEZZO, ed è nata da una misura sbagliata: sostituendo i
+// `toFixed(2)` con questa funzione, «Media prof. 3.00 m» è diventata «3 m» e
+// il riquadro accanto è rimasto a «9.0» — cioè, cambiando il separatore, si
+// era cambiato anche il NUMERO DI CIFRE, e per giunta in un posto solo. Le
+// cifre allineate sono una scelta dello stile del core (`docs/SPECIFICA_
+// ESTETICA_CORE.md`: «gerarchia tipografica vera con cifre allineate»), quindi
+// dove c'era `toFixed(n)` ci va `perLettura(v, n, true)`: si cambia il
+// separatore e NIENT'ALTRO. Un argomento in più invece di una seconda
+// funzione, che è la regola già pagata su `jitterGeo` e sul minimo delle barre.
+export function perLettura(v, decimali = 1, fisse = false) {
+  if (v == null || v === "" || !Number.isFinite(+v)) return "";
+  const d = Math.max(0, decimali);
+  return (+v).toLocaleString("it-IT", {
+    useGrouping: true,
+    maximumFractionDigits: d,
+    ...(fisse ? { minimumFractionDigits: d } : {}),
+  });
+}
+
 // IL MESSAGGIO di un numero che non si è potuto leggere. Sta accanto al lettore
 // perché la frase e la regola sono la stessa cosa: se ogni schermata se la
 // scrive per conto suo, una frase sbagliata diventa sei difetti. E soprattutto
