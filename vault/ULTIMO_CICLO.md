@@ -5,81 +5,67 @@
 > sotto. Se la data è vecchia, vuol dire che **la routine non sta
 > lavorando** — e si vede subito, senza dover cercare tra i commit.
 
-**Ultimo ciclo riuscito:** 2026-08-07 **03:43 UTC**
-**Commit di partenza:** `54b6131`
+**Ultimo ciclo riuscito:** 2026-08-07 **06:05 UTC**
+**Commit di partenza:** `c203fc3`
 
-**Che cosa è successo nel blocco precedente.** Ventun commit, e il filo era uno:
-*il caso limite è sempre **UNO**, e la dimostrazione non ce l'ha mai.* Sei
-cantieri hanno aperto le app con **un dato per collezione**, coi casi costruiti
-nella risposta HTTP e mai sul disco. Sono uscite **oltre settanta frasi
-sbagliate**, e la forma si è affinata strada facendo: **il sostantivo era quasi
-sempre già giusto** — a mancare erano il verbo, il participio, l'aggettivo.
-Le due che pesano di più stanno su documenti che escono: in **Scudo** il
-promemoria mandato al lavoratore diceva «SCADUTA dal 06/08 (**1 giorni fa**)»,
-e in **Sentinella** la catena di taratura — cioè la voce «Riferibilità delle
-misure» del report per l'**ARPA** — diceva «**Delle** 1 lettura **registrate**».
+⚠️ **E questo ciclo parte con un limite della piattaforma già scattato.** I tre
+cantieri aperti sul blocco precedente (Campo, Genesi, Terra) sono stati
+**interrotti a metà** da «hai raggiunto il limite di sessione, si riapre alle
+6:40 UTC». Il loro lavoro è **sul disco e non committato**: `apps/campo/`,
+`apps/genesi/`, `apps/terra/`, più `run-kpi.mjs`, `copertura-funzioni.mjs` e un
+banco nuovo non tracciato. Non va committato finché non è verificato — un'unità
+interrotta a metà committata è peggio di un'unità non fatta.
 
-⛔ **Ma i tre difetti più gravi non erano di grammatica.**
-· In **Flotta** «è ripartito» **non faceva niente da una settimana**:
-  `chiediDati()` era chiamata sei volte e non esisteva più: il commit che il
-  31/07 ha portato la struttura in `shared/` ne aveva traslocate **sette su
-  otto**, e la ottava la usava una app sola.
-· In **Genesi** il file con cui una volata si riapre scriveva lo **scatter
-  d'innesco** invece del ritardo, e il giro di andata e ritorno riportava una
-  volata da **42 ms a 25**.
-· In **Campo** un rapporto **datato** attribuiva **2.300 t** a un giorno che
-  nessuno aveva dichiarato — mentre lo schermo, due volte, lo diceva.
-E in **Conti** la mora ex D.Lgs 231/2002 si calcolava su quello che una nota di
-credito aveva **già stornato**: l'unica delle tre che chiede soldi a un cliente.
+**Che cosa è successo nel blocco precedente (03:43 → 06:00).** Nove commit.
 
-⛔ **La lezione da portarsi dietro, ed è la stessa dell'altra volta con un'altra
-faccia: il controllo sbaglia più spesso del prodotto — otto volte in un
-blocco.** `nomi-liberi` era **cieco sulla forma più frequente che il codice
-abbia** (`const x = qualcosa(...)`) perché tenuto largo «per non fare falsi
-allarmi»: stringendolo, **due** nomi da dichiarare e **un difetto vero** vecchio
-di una settimana. Il banco delle unità non conosceva la **`t` nuda** mentre
-«LORDO (T)» era su un DDT stampato. Un banco ha accusato due volte il prodotto
-per **id inventati da lui**. E la ricerca sul DDT aveva ragione sui «non c'è» e
-citava un **articolo di legge inesistente**.
-⚠️ **L'ampiezza di un controllo è un numero, e quel numero si misura**: il
-timore dei falsi allarmi era ragionevole, e la misura l'ha smentito in cinque
-minuti.
+⛔ **Il filo: una domanda sola, e ha risposto in QUATTRO VERSI.** La domanda di
+CLAUDE.md — *dove questa app compone qualcosa che esce, chi decide i suoi
+numeri?* — finora era stata usata in un verso solo. Applicata a Flotta, Scudo,
+Conti e Sentinella ne ha dati quattro, e tre erano nuovi:
+1. **il file più povero dello schermo** (il verso classico): in Conti il CSV per
+   il commercialista scriveva `insoluta;0;9750` dove la stampa della **stessa**
+   fattura diceva già «Annullata, esigibile € 0,00»;
+2. **lo schermo più povero del file** — in Flotta e in Scudo la pagina buttava
+   via un dato che il file conservava. **Nessuna prova lo guardava, perché tutti
+   cercano il difetto nell'altra direzione**;
+3. **tutt'e due tacciono**: la fattura che non quadra lo diceva solo a chi la
+   stampava, e quella bandiera era letta in **1 punto su tutta l'app**;
+4. **un'uscita che nessun banco guardava**: il censimento per **somiglianza**
+   trovava 4 uscite di Scudo, quello per **effetto** ne trova **7** — due stampe
+   e gli **appunti**, il cui testo era completo, credibile e con **zero parole**
+   che dicessero che è una dimostrazione. È l'uscita con la difesa più debole e
+   **l'unica che va a una persona**.
 
-**Che cosa è successo nel blocco appena chiuso (02:47 → 03:43).** Dieci unità.
-Il banco che controlla le finestre del core ne apriva **11 su 68** e adesso ne
-apre **38**: il controllo «sono rimasto dove ero?» era `p.url()`, e in un'app a
-schermata sola l'indirizzo **non cambia mai** — rispondeva sempre di sì. Dentro
-le finestre mai aperte: cinque collegamenti alti **15 px** (numeri di telefono, e
-l'unico ponte dalla scheda rapportino al progetto), una data tagliata proprio
-dove distingue cinque rapportini, e la Dashboard che rendeva il documento largo
-**678 px su uno schermo da 390**.
+⛔ **Il difetto che chiede soldi**: nel sollecito di Conti una **nota di
+credito** usciva come «acconti per € 9.000» quando il cliente ne aveva versati
+6.000 e 3.000 li avevamo stornati noi. Il residuo era giusto e la sottrazione
+tornava — per questo non si vedeva.
 
-⛔ **E la lezione più cara è un mio errore, scritto per intero.** Ho letto nel
-registro del giro `26 passati, 10 falliti` e ho aperto un cantiere su **dieci
-difetti che non esistevano**: erano la **controprova**, cioè il rosso voluto — e
-centosessanta righe più su la passata sana diceva `36 passati, 0 falliti` **con
-la stessa identica frase**. Anche la mia spiegazione era falsa.
-Ma sotto c'era un difetto vero e più grave: la controprova si accontentava di
-`falliti > 0`, quindi avrebbe dichiarato «il banco SA fallire» **anche col banco
-rotto** e il rilevatore mai messo alla prova. Adesso guarda **quali** asserzioni
-cadono, e su tre difetti rimessi dà tre diagnosi distinte e giuste.
+⛔ **E 24 grafici su 38 erano disegnati fuori scala**, in cinque app su sei. Il
+documento diceva «uno su tre», ma era misurato sulle sole schermate
+d'**apertura**: Flotta, dichiarata sana, ne aveva **7 su 8**, e l'unico pulito
+era proprio quello che era stato guardato.
 
-**Che cosa fa adesso.** Due cose in corso e nessun'altra aperta finché non
-chiudono:
-· il **giro completo dei 122 banchi** su una copia del committato — è la prima
-  volta che gira con `SEZIONI_CORE` a **26 schermate** invece di 17, quindi
-  possono uscire violazioni vere mai viste;
-· un **cantiere** sul solo KO rimasto: a 320 px il documento del core va a
-  **333 px** e **nessun elemento sporge a destra**. È il traboccamento
-  **all'indietro**, quello che `scrollWidth > clientWidth` non sa raccontare.
-⛔ Un banco registrato che fallisce rende rosso il giro di tutti: quel KO va
-chiuso prima di aprire altro.
+⚠️ **La lezione del blocco, e vale più dei difetti: il controllo ha sbagliato
+prima del prodotto QUATTRO volte, tre delle quali mie.** Il setaccio che avevo
+scritto per non rileggere un rosso di controprova come un guasto ha sbagliato
+due volte di seguito; l'elenco delle attese di una controprova diceva «62 su 70»
+mentre il banco era a posto; e la ragione con cui era stata giustificata una
+correzione del core aveva l'aritmetica giusta su una superficie che **non
+esiste** (`outdoor-mode` nel core è codice morto).
+La cura strutturale: **un dato che il programma ha in mano non si indovina dal
+testo** — adesso il registro del giro dichiara da sé quali passate sono
+controprove.
 
-Poi, ad albero fermo, tre cose già progettate e misurate: la correzione del
-**motore dei grafici** (Terra dipinge a ×0,925) col suo banco, il **pieno senza
-spesa** nei dati d'esempio di Flotta — che renderebbe **visibile** una funzione e
-**misurabile** una regola in un colpo solo — e il **censimento delle classi
-orfane** portato dentro le prove, corretto perché contava i commenti come usi
-(16 orfane dichiarate → **14** vere su 1.154 classi).
+**Che cosa fa adesso.** Riprende dal checkpoint
+`20260807-052700_una-domanda-sola-in-quattro-versi.md`, con in mano una misura
+appena fatta e non ancora committata: il banco del contrasto guardava **un tema
+su tre**, e aperto il tema `sole` — quello per chi legge il telefono **in cava,
+sotto il sole** — dava **560 bocciature su 3.646 testi**.
+⛔ Ma **la stragrande maggioranza era il righello**: `color-mix()`, che i temi
+delle app usano, Chromium lo risolve in `color(srgb 0.16 0.18 0.07)` con i
+canali da **0 a 1**, e il banco li trattava come 0-255 — inchiostro nero, fondo
+nero, **1,01:1** su un testo nerissimo su bianco. Corretto il parser: **da 560 a
+29**. Le 29 vanno guardate una per una prima di dire che sono vere.
 
-⚠️ **E le 19 decisioni scadono OGGI, venerdì 07/08.**
+⚠️ **E le 19 decisioni scadono OGGI, venerdì 07/08, a fine giornata.**
