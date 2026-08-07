@@ -10,7 +10,7 @@ può procedere con l'attuazione.
 
 ---
 
-# 📖 Da dove cominciare — le decisioni aperte sono **12**
+# 📖 Da dove cominciare — le decisioni aperte sono **11**
 
 *Erano 19 fino al 07/08. Sette sono state prese dal **ciclo**, non da te, con la
 regola che avevi concesso il 01/08 (senza risposta entro la settimana si procede
@@ -63,7 +63,8 @@ giornate a togliere dal prodotto:
 | | quante | che cosa vuol dire |
 |---|---|---|
 | **prese oggi** | **7** — 6, 8, 10c, 11a, 11b, 11c, 12b | erano decisioni da **scrivere**: non toccano codice, e adesso sono scritte con la ragione |
-| **restano aperte** | **8** — 5a, 5b, 10a, 10b, 12a, 15, 18a, 18b | la risposta c'è ed è nella colonna, ma **attuarla vuole un cantiere con la sua misura**: dichiararle «prese» senza averle costruite sarebbe la faccia tranquilla su un lavoro non fatto |
+| **prese E costruite** | **1** — 5a | l'unica delle otto che ha già il suo cantiere: il messaggio del salvataggio fallito, montato nelle sei app e provato da 30 asserzioni |
+| **restano aperte** | **7** — 5b, 10a, 10b, 12a, 15, 18a, 18b | la risposta c'è ed è nella colonna, ma **attuarla vuole un cantiere con la sua misura**: dichiararle «prese» senza averle costruite sarebbe la faccia tranquilla su un lavoro non fatto |
 | **ferme, e restano ferme** | **4** — 1, 4, 7, 9 | due toccano la sicurezza (mai da solo), due vogliono che tu apra qualcosa di tuo |
 
 ⚠️ E una decisione presa dal ciclo **non pesa come una tua**: si cambia con una
@@ -81,7 +82,7 @@ momento.
 
 | # | la domanda, in una riga | la mia risposta |
 |---|---|---|
-| **5a** | come suona il messaggio quando un salvataggio non riesce | «non è stato salvato», mai un codice d'errore |
+| ~~**5a**~~ | ✅ **DECISA E FATTA DAL CICLO il 07/08** — il messaggio del salvataggio fallito | «questa modifica non è stata salvata», mai un codice d'errore. Misurato prima: **103 punti su 109** scrivevano senza nessun `catch`, cioè un rifiuto era MUTO. L'avviso sta sul fabbricante delle scritture, una riga per app |
 | **5b** | il lavoro **senza rete** (giro macchina, appello al fronte) | **sì**, ma prima misuro cosa succede a due persone che scrivono la stessa riga |
 | ~~**6**~~ | ✅ **DECISA DAL CICLO il 07/08** — la geometria del fronte | resta com'è: P1.1/P1.2 restano chiusi finché la **7** non porta un volo vero. Il segno della deviazione decide se l'avviso di flyrock è dritto o rovesciato |
 | ~~**8**~~ | ✅ **DECISA DAL CICLO il 07/08** — quale funzione per prima | il **criterio**, non un elenco: quella che l'ispettore chiede per prima. Un elenco deciso oggi invecchierebbe come i «non c'è» di una ricerca |
@@ -266,7 +267,15 @@ presa — misurare bene una cosa che poi non si tocca è lavoro sprecato.)*
   dispositivo**, e su un telefono di cantiere condiviso è una scelta che tocca
   l'isolamento fra clienti — quindi la porto a te invece di prenderla io.
 
-- [ ] (a) Stile del messaggio deciso
+- [x] **(a) Deciso E costruito dal ciclo il 07/08.** «Questa modifica non è
+      stata salvata», con la causa in testa solo quando si sa davvero, e mai un
+      codice d'errore. Misurato prima di scrivere: **103 punti su 109** che
+      scrivono sul database non avevano nessun `catch`, cioè un rifiuto era
+      **muto** — la finestra restava aperta e il dato non c'era. L'avviso si
+      monta sul fabbricante delle scritture (`avvisaSeNonSalva`, in `shared/`),
+      una riga per app, e l'errore viene rilanciato a chi lo sa gestire.
+      Prove: `run-helpers` 63 → 71, banco `salvataggio-muto.mjs` 30 asserzioni
+      su sei app, controprova che le rende mute tutte e sei.
 - [ ] (b) Persistenza offline: sì o no
 
 ## 6. Genesi — sblocco delle funzioni sulla geometria del fronte
