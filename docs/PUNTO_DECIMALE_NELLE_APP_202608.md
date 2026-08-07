@@ -83,3 +83,35 @@ server statico sulla porta scelta, camminando i **nodi di testo** visibili con
 un `TreeWalker` — non `querySelectorAll`, che non vede le scatole anonime. Le
 voci della barra si leggono **dalla pagina**, così l'elenco non si accorcia da
 solo.
+
+---
+
+## ⛔ Il seguito: la barra del core non la misura NESSUNO
+
+Cercando quali altri banchi avessero lo stesso elenco di questa sonda, è saltato
+fuori un buco più grosso della domanda di partenza.
+
+Le barre delle app sono `.nav`; **la barra in basso del core è `.bnav`**
+(`id="global-nav"`). Ogni banco il cui selettore è `.nav button` la salta — e lo
+dichiara, in una riga che nessuno legge:
+
+```
+0 etichette misurate su 0 barre (1 superfici aperte) nel tema «scuro» · 0 fuori posto
+```
+
+Cioè `barra-etichette.mjs` **apre il core e non trova nessuna barra**, e risponde
+«0 fuori posto» — che si legge «a posto». È la famiglia dello «0 modali su 68»:
+il numero c'è, la riga c'è, e vale zero perché nessuno la guarda.
+
+Nella stessa condizione, e peggio:
+- **`navigazione.mjs`** ha un elenco scritto a mano —
+  `const APP = ["campo","conti","flotta","scudo","sentinella","terra"]` — che
+  **non dichiara** perché il core e Genesi sono fuori, e il suo riepilogo
+  (`N passate, M fallite · K navigazioni provate`) **non porta il denominatore**:
+  «0 fallite» si legge «la navigazione funziona dappertutto».
+
+**Non corretto**, e dichiarato qui perché la correzione è un'unità sua: allargare
+il selettore fa misurare **per la prima volta** la barra del core, e quello che
+ne verrà fuori va giudicato, non spento. Genesi resta fuori per una ragione vera
+(non ha una barra), e quella ragione va **scritta** invece che dedotta
+dall'assenza.
