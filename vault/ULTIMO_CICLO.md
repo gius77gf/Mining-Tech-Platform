@@ -5,13 +5,16 @@
 > sotto. Se la data è vecchia, vuol dire che **la routine non sta
 > lavorando** — e si vede subito, senza dover cercare tra i commit.
 
-**Ultimo ciclo riuscito:** 2026-08-07 **14:33 UTC**
-**Commit di partenza:** `0f3d455` (blocco delle 09:44, tuttora in corso)
+**Ultimo ciclo riuscito:** 2026-08-07 **14:51 UTC**
+**Commit di partenza:** `efcf16f`
 
-**Che cosa fa adesso.** Tiene aperti **quattro cantieri** e li raccoglie uno per
-uno: la **geometria del gradiente** nel righello del contrasto, la **barra di
-Sentinella a 320 px**, le **nove uscite del core** (solo due sono premute da un
-banco) e i **tre campi della verifica periodica** in Scudo.
+**Che cosa fa adesso.** Raccoglie i **quattro cantieri** che ha chiesto di
+riconsegnare (la geometria del gradiente nel righello del contrasto, la barra di
+Sentinella a 320 px, le nove uscite del core, i tre campi della verifica
+periodica in Scudo) e la **ricerca sulla denuncia annuale** delle cave per Terra.
+Poi, a fine giornata, applica le **quindici decisioni verdi** col piano già
+scritto in roadmap (`ae2255d`): sette si applicano scrivendole, otto vogliono un
+cantiere, e ognuna va dichiarata **decisa dal ciclo** nel messaggio di commit.
 
 > ⛔ **L'ALBERO È SPORCO DI PROPOSITO, E NON VA COMMITTATO ALLA CIECA.** Alle
 > 14:33 risultano modificati `contrasto.mjs`, `barra-etichette.mjs`,
