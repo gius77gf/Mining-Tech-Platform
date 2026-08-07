@@ -193,6 +193,27 @@ questa riga fa qualcosa se la tocchi? dove stanno davvero le differenze?*
 dire**. `scrollWidth > clientWidth` è la sua risposta a «esce?»; l'altezza
 divisa per il corpo del carattere non lo è.
 
+⛔ **E QUANDO IL RIGHELLO SBAGLIA E NON LO PUOI CORREGGERE ADESSO, FAGLI
+DICHIARARE L'AMPIEZZA DEL SUO DUBBIO — non correggerlo a metà.** Misurato il
+07/08 su `contrasto.mjs`, e in un momento in cui **cinque cantieri stavano
+scegliendo colori guardando quei numeri**. Sopra un fondo a gradiente il banco
+accoppiava il pixel d'inchiostro più chiaro col pixel di fondo più scuro **anche
+quando stanno agli angoli opposti**, dove non si incontrano mai: dichiarava
+2,92 dove il renderizzato faceva **4,71**, cioè accusava un colore che passava.
+La correzione giusta è geometrica (proiettare il rettangolo del testo sull'asse
+del gradiente) ed è un cantiere a sé; farla a metà è **peggio di non farla**,
+perché un accoppiamento «un po' meno sbagliato» non si sa più di quanto sbagli.
+La via che regge: **tenere il caso peggiore** — la direzione prudente — e
+stampare accanto **la forbice** fra il peggiore e il migliore. La prova che
+punta dove serve: sui numeroni dentro un gradiente la forbice è **4,05** ed è lì
+che il conto a mano smentiva il banco; sui testi su fondo pieno è **zero**, ed è
+lì che il banco aveva ragione alla cifra. Cioè l'avviso **separa le due
+famiglie** invece di spargere dubbio su tutto.
+È lo stesso principio del fondatore applicato allo strumento: come un colore
+illeggibile risponde `null` invece di zero, **una misura incerta si dichiara
+incerta**. Un righello che non sa quanto sbaglia manda a rovinare cose sane, e
+quel danno non lo vede nessuno.
+
 ## La ricerca che gira di fianco *(direttiva fondatore 01/08)*
 
 I crediti di una sessione restano in parte inutilizzati mentre si lavora in
