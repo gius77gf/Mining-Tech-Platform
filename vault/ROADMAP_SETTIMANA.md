@@ -782,6 +782,29 @@ numero scritto dove non era stato misurato niente**.*
   sua palette, e sono proprio **quelli che producono i documenti**. `btn-sec` non
   è mai esistita; la classe vera è `btn`, che usano già 35 bottoni suoi.
 
+- [x] ✅ **Il banco delle modali guardava 11 finestre su 68 del core**
+  (`e5b1405`): adesso ne apre **38**, con **176 aperture vere** (le 436 di prima
+  erano gonfie). Tre cause misurate, e la prima vale per chiunque scriva un
+  banco: il controllo «sono rimasto dove ero?» era `p.url()`, e in una app a
+  **schermata sola** l'indirizzo non cambia mai — rispondeva sempre di sì.
+  `SEZIONI_CORE` conteneva **17 schermate su 33**: ogni banco del browser
+  guardava metà core. Dentro le finestre nuove: **cinque `<a>` alti 15 px** (fra
+  cui numeri di telefono), la **data tagliata** dove distingue cinque rapportini,
+  e la Dashboard che rendeva il documento largo **678 px su uno schermo da 390**.
+- [x] ✅ **Terra e Sentinella con un dato solo** (`5b4c82e`): **9 frasi**, e una
+  finisce nella «**Riferibilità delle misure**» del report per l'ARPA. ✅ Il
+  report ARPA però è **pulito** (4.626 caratteri, 0 frasi) e con un punto senza
+  soglia dice «Senza soglia», non «Conforme».
+- [x] ✅ **Il registro infortuni usciva senza dirsi dimostrazione** (`38fdb23`):
+  Scudo lo dichiarava sui fogli **stampati** e non sui **CSV**. E la controprova
+  ha detto di essere **mezza cieca** invece di tacere.
+- [x] ✅ **La mora si calcolava sullo stornato** (`c59eb83`): `apertoDi` passava
+  le note di credito in **12 chiamate su 15**; le tre rimaste erano nella pagina,
+  e una chiedeva interessi ex D.Lgs 231/2002 su un importo **già stornato**.
+- [x] ✅ **Due elenchi di rilevatori invece di uno** (`38a03da`): «nessuna frase
+  al plurale» voleva dire due cose diverse a seconda del banco — ed erano
+  **tutt'e due verdi**.
+
 ## Riferimenti
 
 - Ultimo checkpoint **per data vera**:
