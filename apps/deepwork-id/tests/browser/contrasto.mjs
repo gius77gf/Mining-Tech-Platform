@@ -74,6 +74,25 @@ const chromium = await prendiChromium();
 const PORTA = process.argv[2];
 const SOLO = (process.argv.find((a) => a.startsWith('--solo=')) || '').slice(7);
 const TUTTI = process.argv.includes('--tutti');
+/* ⛔ IL TEMA SI SCEGLIE, E FINO AL 07/08 SI MISURAVA SOLO IL BUIO.
+   Le app dell'ecosistema hanno TRE temi — `shared/dw-tema.js` gira fra `scuro`,
+   `chiaro` e `sole` — e questo banco ne guardava uno. Cioè due terzi di quello
+   che un cliente vede non erano misurati da nessuno, e il terzo non misurato
+   che pesa di più è proprio `sole`: è il tema fatto per chi legge il telefono
+   IN CAVA, sotto il sole, che è il posto dove il prodotto vive.
+   ⚠️ Il core è un caso a parte e va detto: non carica `dw-tema.js`, ha un suo
+   `applyTheme()` che fa `classList.remove('outdoor-mode')` a ogni giro, e dalla
+   v4.4 ha due temi soli (l'outdoor è stato assorbito nel chiaro). Il suo blocco
+   `body.outdoor-mode` nel foglio è quindi codice morto — ma la classe NON lo è
+   nell'ecosistema, e chi legge solo il core si convince del contrario (è
+   successo stanotte, a me).
+   Uso: `--tema=chiaro`, `--tema=sole`. Senza, il buio, come è sempre stato. */
+const TEMA = (process.argv.find((a) => a.startsWith('--tema=')) || '').slice(7);
+const CLASSE_TEMA = { chiaro: 'light-mode', sole: 'outdoor-mode' };
+if (TEMA && !CLASSE_TEMA[TEMA]) {
+  console.error(`✗ tema sconosciuto: «${TEMA}». Sono ${Object.keys(CLASSE_TEMA).join(', ')} (o niente per il buio).`);
+  process.exit(2);
+}
 /* ⚠️ PERCHÉ QUESTO BANCO HA UNA CONTROPROVA (01/08).
    Misurava 3322 testi e rispondeva «0 sotto soglia» — ed è il banco che fa il
    maggior numero di misure di tutti. Ma niente dimostrava che ne sapesse
@@ -84,6 +103,12 @@ const TUTTI = process.argv.includes('--tutti');
    misura non sta guardando, e il suo «0 sotto soglia» non vale niente. */
 const CONTROPROVA = process.argv.includes('--controprova');
 const MARCA = 'controprova contrasto';
+/* il testimone del verso opposto: scritto con `color-mix()`, leggibilissimo,
+   e deve restare FUORI dai bocciati. Nome distinto apposta: se portasse la
+   stessa marca del veleno, una sua bocciatura verrebbe contata come «veleno
+   preso» e il difetto del righello si nasconderebbe dentro il suo stesso
+   controllo. */
+const MARCA_MIX = 'testimone color-mix';
 /* ⛔ LA CONTROPROVA DELLA TRAPPOLA 4, e serve perché la guardia nuova sul core
    NON SI ACCENDE MAI: le animazioni finite adesso si aspettano, e le infinite
    del core capitano quasi sempre sopra 0,95. Una guardia che non scatta non è
@@ -108,7 +133,29 @@ const MARCA_PULSA = 'controprova pulsazione';
 /* La misura vive nella pagina: si passa una volta sola e si raccoglie tutto il
    testo visibile con il suo contrasto effettivo. */
 const MISURA = () => {
-  const num = (c) => (c.match(/[\d.]+/g) || []).map(Number);
+  /* ⛔ SETTIMA TRAPPOLA, E LA PIÙ COSTOSA DI TUTTE: `color(srgb …)`.
+     Questa funzione tirava fuori i numeri di una stringa e li trattava come
+     0-255. Ma `color-mix()` — che i temi delle app usano per il `--muted` —
+     Chromium lo risolve in `color(srgb 0.163608 0.185412 0.0681569)`, con i
+     canali da **0 a 1**. Divisi ancora per 255 diventano tutti ~0: inchiostro
+     nero, fondo nero, rapporto **1,01:1** su un testo che a occhio è nerissimo
+     su bianco e fa più di 15:1.
+     Misurato il 07/08 aprendo il tema `sole`: **560 bocciature su 3.646 testi**,
+     e la stragrande maggioranza erano questa. Cioè il banco stava per mandare a
+     rifare la palette di sei app per un difetto del righello — che è esattamente
+     quello che la sua intestazione promette di non fare («un KO va verificato
+     come un OK»). L'ha smentito il conto a mano su due elementi: `.note` di
+     Terra in `sole` è `color(srgb .16 .19 .07)` su `color(srgb .96 .98 .95)`.
+     ⚠️ Restano fuori, dichiarate: `color(display-p3 …)`, `lab()`, `oklch()`.
+     Nessuna compare oggi nei fogli dell'ecosistema (`grep` a zero), e quando
+     compariranno si presenteranno con lo stesso sintomo — un rapporto vicino a
+     1 su un testo leggibile. */
+  const num = (c) => {
+    const v = (c.match(/[\d.]+/g) || []).map(Number);
+    if (!/^\s*color\(\s*srgb/i.test(c)) return v;
+    /* i primi tre canali sono 0-1; l'eventuale alfa dopo lo slash lo è già */
+    return v.map((x, i) => (i < 3 ? x * 255 : x));
+  };
   const lum = (c) => {
     const [r, g, b] = num(c);
     const f = (v) => { v /= 255; return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4); };
@@ -486,14 +533,52 @@ const nonMisurabili = [];
 let sfumatiTot = 0, pulsantiTot = 0, spentiTot = 0, finiteTot = 0, pulsaBocciata = 0, pulsaMisurata = 0;
 let superficiProvate = 0;
 const superficiCieche = [];
+const temaRifiutato = [];
+let mixBocciata = 0;
+let temaMisurate = 0;
 const visti = new Set();
 
 for (const [nome, via] of SUPERFICI) {
   if (SOLO && SOLO !== nome) continue;
   console.log(`\n══════ ${nome} ══════`);
   const { ctx, p, errori } = await apriSuperficie(b, { nome, via, porta: PORTA, montaFintoFirebase });
+  if (TEMA) {
+    /* si mette la classe E si scrive la chiave che `dw-tema.js` rilegge: la
+       classe da sola verrebbe tolta al primo `applica()`, e la chiave da sola
+       arriverebbe troppo tardi (la pagina è già aperta). E si PRETENDE che la
+       classe sia rimasta: se una superficie non ha quel tema, misurarla e
+       chiamarla col nome del tema sarebbe una bugia — il core è esattamente
+       questo caso, e lo dichiara invece di far finta. */
+    /* ⛔ IL TEMA SI CHIEDE AL PROGRAMMA DELLA SUPERFICIE, NON SI APPICCICA.
+       Prima stesura: si aggiungeva la classe e si guardava se era rimasta,
+       facendo girare `window.applyTheme` per il core. NON FUNZIONAVA, e nel
+       verso peggiore: il programma del core sta in un `<script type="module">`,
+       quindi `applyTheme` NON è su `window` — la classe restava attaccata e il
+       banco ha misurato tutto il core in un tema che quel core non può avere,
+       sputando decine di KO su una superficie che non esiste. È la trappola di
+       CLAUDE.md («il righello prima del soggetto») dentro il controllo scritto
+       per non caderci.
+       La domanda giusta non è «la classe è rimasta?» ma «questa superficie SA
+       che cos'è questo tema?»: `sole` e `chiaro` sono concetti di
+       `shared/dw-tema.js`, e chi non lo carica non ha `window.dwTema`. Il core
+       non lo carica — ha due temi suoi — e infatti va dichiarato NON misurato,
+       che è la verità. */
+    const messa = await p.evaluate(({ cls, t }) => {
+      if (!window.dwTema) return false;
+      try { localStorage.setItem('dw-tema', t); } catch (e) { /* niente */ }
+      window.dwTema(t);
+      return document.body.classList.contains(cls);
+    }, { cls: CLASSE_TEMA[TEMA], t: TEMA });
+    if (!messa) {
+      console.log(`  ⚠️  ${nome} non ha il tema «${TEMA}»: la classe viene tolta dalla pagina stessa. NON misurata.`);
+      temaRifiutato.push(nome);
+      await ctx.close();
+      continue;
+    }
+    temaMisurate++;
+  }
   if (CONTROPROVA) {
-    await p.evaluate((marca) => {
+    await p.evaluate(([marca, mix]) => {
       const d = document.createElement('div');
       d.textContent = marca;
       d.className = 'controprova';
@@ -501,7 +586,20 @@ for (const [nome, via] of SUPERFICI) {
          strati non deve indovinare niente: grigio su grigio, ~1,15:1 */
       d.setAttribute('style', 'color:rgb(51,51,51); background-color:rgb(42,42,42); font-size:13px; padding:4px; position:relative; z-index:1');
       document.body.appendChild(d);
-    }, MARCA);
+      /* ⛔ E IL VERSO OPPOSTO, che è quello su cui il banco era rotto fino al
+         07/08: un testo scritto con `color-mix()` — che Chromium risolve in
+         `color(srgb …)` con i canali da 0 a 1 — e che è LEGGIBILISSIMO. Deve
+         NON essere bocciato. Senza questa riga il difetto del righello
+         tornerebbe senza che nessuno se ne accorga: la controprova di prima
+         usa `rgb()` e passerebbe lo stesso, cioè proverebbe la lettura che non
+         è mai stata in dubbio. Nero mescolato su bianco: oltre 15:1. */
+      const g = document.createElement('div');
+      g.textContent = mix;
+      g.setAttribute('style', 'color:color-mix(in srgb, #000 90%, #123); '
+        + 'background-color:color-mix(in srgb, #fff 96%, #eee); '
+        + 'font-size:13px; padding:4px; position:relative; z-index:1');
+      document.body.appendChild(g);
+    }, [MARCA, MARCA_MIX]);
   }
   if (CONTROPULSA) {
     await p.evaluate((marca) => {
@@ -543,6 +641,7 @@ for (const [nome, via] of SUPERFICI) {
       if (!passa) {
         if (m.testo.startsWith(MARCA_PULSA)) { pulsaBocciata++; console.log('  ⚠️  il testo in pulsazione è stato BOCCIATO'
           + ` a ${m.rapporto}:1 — la guardia della trappola 4 non ha tenuto`); continue; }
+        if (m.testo.startsWith(MARCA_MIX)) { mixBocciata++; }
         if (m.testo.startsWith(MARCA)) { presaQui++; continue; }   // è il veleno: non è un difetto del prodotto
         bocciati++; bocciatiQui++;
         console.log(`  KO  ${String(m.rapporto).padStart(6)}:1  (serve ${m.soglia})  ${m.dim}px  «${m.testo}»  .${m.classe}`);
@@ -606,6 +705,12 @@ for (const [nome, via] of SUPERFICI) {
 }
 
 await b.close();
+if (TEMA) {
+  /* ⛔ prima dei KO: quante superfici ha davvero guardato con questo tema.
+     «0 sotto soglia» su due superfici su quattordici non è una buona notizia. */
+  console.log(`\n   TEMA «${TEMA}»: ${temaMisurate} superfici misurate`
+    + (temaRifiutato.length ? `, ${temaRifiutato.length} NON misurate perché non hanno questo tema (${temaRifiutato.join(', ')})` : ''));
+}
 console.log(`\n${misurati} testi misurati in tutto, ${bocciati} sotto soglia`
   + (sfumatiTot ? ` · ${sfumatiTot} saltati perché in dissolvenza (dichiarati, non nascosti)` : '')
   + (pulsantiTot ? ` · ${pulsantiTot} saltati perché in pulsazione (dichiarati, non nascosti)` : '')
@@ -668,6 +773,17 @@ if (CONTROPULSA || CONTROPROVA) {
    viene trovato, perché vorrebbe dire che la misura non sa fallire. */
 if (CONTROPROVA) {
   console.log(`${superficiProvate} superfici avvelenate, ${superficiProvate - superficiCieche.length} l'hanno bocciata`);
+  /* ⛔ IL VERSO OPPOSTO, e va guardato PRIMA: il testimone scritto con
+     `color-mix()` è leggibilissimo e non deve comparire fra i bocciati. Se
+     compare, il righello ha ripreso a leggere `color(srgb 0.16 …)` come se i
+     canali fossero 0-255 — il difetto del 07/08, che da solo produceva 560
+     bocciature false su 3.646 testi. Un banco che accusa colori sani è peggio
+     di un banco che non guarda: manda a rifare palette che stanno benissimo. */
+  console.log(`testimone color-mix: bocciato ${mixBocciata} volte su ${superficiProvate} superfici (deve essere 0)`);
+  if (mixBocciata) {
+    console.log('⛔ un testo LEGGIBILE scritto con `color-mix()` è stato bocciato: il righello non sa leggere `color(srgb …)`.');
+    process.exit(1);
+  }
   if (superficiCieche.length === 0) {
     console.log('La controprova è stata bocciata su tutte le superfici: il banco sa fallire.');
     process.exit(0);
