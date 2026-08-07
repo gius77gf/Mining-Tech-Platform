@@ -44,7 +44,7 @@
 // REGIONALE, quindi soglie, preavvisi e periodicità li imposta l'utente.
 // ============================================================
 
-import { parseCsvLine, numIt, isIntestazione, giorniTra, isoLocale, dataISOEsiste,
+import { parseCsvLine, numIt, isIntestazione, giorniTra, isoLocale, dataISOEsiste, conta,
          AVVISO_DECIMALE as AVVISO_DECIMALE_SHELL } from "../../shared/deepwork-id-client/dw-shell.js";
 
 export const DEMO = {
@@ -1060,6 +1060,67 @@ export function riepilogoAnnuale(rilievi, anno, autorizzazione, oggi = new Date(
    motivo dice esplicitamente che «zero misurato» e «non misurato» all'ente non
    sono la stessa cosa, così chi non ha davvero estratto niente lo dichiara
    invece di lasciarlo dedurre. */
+/* ⛔ LA DETRAZIONE PER RECUPERO AMBIENTALE — DECISIONE 18, presa dal ciclo il
+   07/08. Due domande, due risposte:
+     18a → **è un'opzione della concessione**, spenta finché nessuno l'accende.
+       Non è prudenza generica: l'errore ha un **costo asimmetrico**. Se la
+       concessione non ammette la detrazione e Terra la applica lo stesso, il
+       foglio che va all'ente dichiara **meno del dovuto**, e un errore in
+       quella direzione un ispettore non lo legge come una svista. L'errore
+       opposto — non detrarre dove si potrebbe — fa pagare di più: spiacevole,
+       non pericoloso. Quindi il difetto è NON detrarre, e chi sa che la sua
+       Regione lo ammette lo dichiara nella scheda del titolo;
+     18b → **conta nell'anno in cui il recupero FINISCE**, perché quella è
+       l'unica data verificabile. Ripartirlo su due anni vorrebbe dire volumi
+       per stato d'avanzamento, che non esistono.
+   Il dato sta sul LOTTO (`volumeRecuperoM3`) e non su un'entità «anno» nuova: i
+   lotti hanno già `recuperoIniziatoIl`/`recuperoFinitoIl` e l'atto prescrive il
+   recupero lotto per lotto. L'anno si ricava dalla data.
+
+   ⚠️ E QUESTA FUNZIONE DICHIARA TRE STATI, non due, perché tre sono le cose
+   diverse che può trovare — è il principio del fondatore applicato a un numero
+   che va all'ente:
+     · **completa**  — ogni lotto finito nell'anno ha il suo volume;
+     · **assente**   — un lotto ha finito il recupero e nessuno ha scritto
+       quanto materiale ci è andato. La detrazione che esce NON è parziale: è
+       **incompleta**, e va detto, se no chi legge la prende per intera;
+     · **illeggibile** — il volume c'è ma non è un numero. Non è la stessa cosa
+       di «non l'ha scritto nessuno»: uno è lavoro da fare, l'altro è un dato da
+       riparare, ed è la distinzione che `run-demo` fa fra il dato CORROTTO e
+       quello ASSENTE.
+   ⚠️ E il controllo sul vuoto viene PRIMA della conversione: `+null` fa `0` e
+   `Number.isFinite(0)` risponde `true`, quindi un lotto senza volume passerebbe
+   per «zero misurato». È la trappola di `avanzamentoLotto`, che rispondeva
+   «0%» a un lotto che nessuno aveva mai rilevato. */
+export function detrazioneRecupero(lotti, anno) {
+  const A = String(anno == null ? "" : anno);
+  const contati = [], assente = [], illeggibile = [], senzaData = [];
+  let m3 = 0;
+  for (const l of (lotti || [])) {
+    const fine = l && l.recuperoFinitoIl;
+    if (fine == null || fine === "") continue;              // il recupero non è finito
+    const nome = (l && (l.nome || l.id)) || "(senza nome)";
+    if (!dataISOEsiste(String(fine))) { senzaData.push(nome); continue; }
+    if (String(fine).slice(0, 4) !== A) continue;
+    contati.push(nome);
+    const v = l.volumeRecuperoM3;
+    if (v == null || v === "") { assente.push(nome); continue; }
+    if (!Number.isFinite(+v)) { illeggibile.push(nome); continue; }
+    m3 += Math.max(0, +v);
+  }
+  const completa = !assente.length && !illeggibile.length && !senzaData.length;
+  const pezzi = [];
+  if (assente.length) pezzi.push(`${conta(assente.length, "lotto ha", "lotti hanno")} finito il recupero nel ${A} senza il volume dichiarato (${assente.join(", ")})`);
+  if (illeggibile.length) pezzi.push(`${conta(illeggibile.length, "lotto ha", "lotti hanno")} un volume di recupero che non è un numero (${illeggibile.join(", ")})`);
+  if (senzaData.length) pezzi.push(`${conta(senzaData.length, "lotto ha", "lotti hanno")} una data di fine recupero che non esiste (${senzaData.join(", ")}): quel volume non si può attribuire a nessun anno`);
+  return {
+    m3: r2(m3), completa, lottiContati: contati.length,
+    assente, illeggibile, senzaData,
+    motivo: completa ? "" :
+      pezzi.join("; ") + ". La detrazione che esce è INCOMPLETA, non parziale: il volume detratto è più piccolo del vero.",
+  };
+}
+
 export function baseOnereEscavazione(riepilogo, opzioni = {}) {
   const R = riepilogo || {}, o = opzioni || {};
   const avvisi = [];
@@ -1067,7 +1128,15 @@ export function baseOnereEscavazione(riepilogo, opzioni = {}) {
     return { calcolabile: false, imponibile: null, avvisi,
       motivo: `Nessun rilievo di scavo nel ${R.anno}: il volume dell'anno non è stato misurato, quindi la base dell'onere non si può dichiarare. Se in quest'anno non si è estratto nulla va dichiarato a parte — per l'ente «zero misurato» e «non misurato» non sono la stessa cosa.` };
 
-  const det = o.volumeDetrattoM3;
+  /* ⛔ E LA DICHIARAZIONE DI INCOMPLETEZZA VIENE PORTATA FIN QUI, se no è una
+     bandiera che non legge nessuno — la regola 20, e in questo caso il numero
+     tranquillo lo leggerebbe un ispettore. Chi passa `detrazione` passa
+     l'oggetto intero di `detrazioneRecupero`, non solo il suo metro cubo. */
+  const D = o.detrazione;
+  if (D && typeof D === "object") {
+    if (D.motivo) avvisi.push(D.motivo);
+  }
+  const det = D && typeof D === "object" ? D.m3 : o.volumeDetrattoM3;
   const detNumerico = !(det == null || det === "") && Number.isFinite(+det);
   if (!(det == null || det === "") && !detNumerico)
     avvisi.push("Il volume detratto per recupero non è un numero: non è stato tolto dall'imponibile.");
@@ -1079,6 +1148,7 @@ export function baseOnereEscavazione(riepilogo, opzioni = {}) {
   return {
     calcolabile: true, motivo: "",
     lordo, detratto: r2(detratto), imponibile,
+    detrazioneIncompleta: !!(D && typeof D === "object" && D.completa === false),
     // la banda d'incertezza del volume: il riepilogo la calcola già, e questo è
     // l'unico foglio in circolazione che la dichiara invece di nasconderla
     banda: r2(R.banda || 0),
@@ -1104,6 +1174,11 @@ export function descriviBaseOnere(base) {
   return `Volume scavato ${m3(o.lordo)} m³`
     + (o.detratto ? `, meno ${m3(o.detratto)} m³ detratti per recupero` : "")
     + `: imponibile ${m3(o.imponibile)} m³.`
+    /* ⚠️ e se la detrazione è incompleta lo dice il FOGLIO, non solo lo schermo:
+       è il posto dove il numero tranquillo lo legge un ispettore, ed è la
+       famiglia di difetti censita il 03/08 in cinque app su cinque — il
+       documento che esce più tranquillo di quello che si sa */
+    + (o.detrazioneIncompleta ? " ⚠ La detrazione dichiarata è INCOMPLETA (vedi gli avvisi): il volume detratto è più piccolo del vero." : "")
     + (o.banda ? ` Incertezza del volume dichiarata: ± ${m3(o.banda)} m³.` : "")
     + " L'importo dovuto si ottiene applicando l'aliquota della concessione,"
     + " che si imposta in Deepwork Conti.";

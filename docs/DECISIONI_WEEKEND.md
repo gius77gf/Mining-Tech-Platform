@@ -10,7 +10,7 @@ può procedere con l'attuazione.
 
 ---
 
-# 📖 Da dove cominciare — le decisioni aperte sono **9**
+# 📖 Da dove cominciare — le decisioni aperte sono **7**
 
 *Erano 19 fino al 07/08. **Nove** sono state chiuse dal **ciclo**, non da te, con
 la regola che avevi concesso il 01/08 (senza risposta entro la settimana si
@@ -20,7 +20,7 @@ procede con la colonna «la mia risposta» e lo si dichiara nel commit):
 · **due costruite** — la **5a** (il messaggio del salvataggio fallito, montato
   nelle sei app) e la **10b** (chi può cancellare un documento emesso, con le
   regole provate dall'emulatore).
-Restano **nove**: cinque verdi che vogliono ancora un cantiere prima di potersi
+Restano **sette**: tre verdi che vogliono ancora un cantiere prima di potersi
 dire fatte, e le quattro che non tocco (due di sicurezza, due che chiedono
 qualcosa di tuo).*
 
@@ -67,8 +67,8 @@ giornate a togliere dal prodotto:
 | | quante | che cosa vuol dire |
 |---|---|---|
 | **prese oggi** | **7** — 6, 8, 10c, 11a, 11b, 11c, 12b | erano decisioni da **scrivere**: non toccano codice, e adesso sono scritte con la ragione |
-| **prese E costruite** | **2** — 5a, 10b | il messaggio del salvataggio fallito (montato nelle sei app, 30 asserzioni) e chi può cancellare un documento emesso (regole 58 → 68, con la controprova) |
-| **restano aperte** | **5** — 5b, 10a, 12a, 18a, 18b | la risposta c'è ed è nella colonna, ma **attuarla vuole un cantiere con la sua misura**: dichiararle «prese» senza averle costruite sarebbe la faccia tranquilla su un lavoro non fatto |
+| **prese E costruite** | **4** — 5a, 10b, 18a, 18b | il messaggio del salvataggio fallito (montato nelle sei app, 30 asserzioni) e chi può cancellare un documento emesso (regole 58 → 68, con la controprova) |
+| **restano aperte** | **3** — 5b, 10a, 12a | la risposta c'è ed è nella colonna, ma **attuarla vuole un cantiere con la sua misura**: dichiararle «prese» senza averle costruite sarebbe la faccia tranquilla su un lavoro non fatto |
 | **ferme, e restano ferme** | **4** — 1, 4, 7, 9 | due toccano la sicurezza (mai da solo), due vogliono che tu apra qualcosa di tuo |
 
 ⚠️ E una decisione presa dal ciclo **non pesa come una tua**: si cambia con una
@@ -103,8 +103,8 @@ momento.
 | ~~**15**~~ | ✅ **DECISA DAL CICLO il 07/08** — dove vive «Il Quadro» | **(a) nel core**, dove il titolare arriva già. ⚠️ Costo misurato, più alto di quello scritto: sei ponti (il core ne ha **zero**, le app sessanta). Il Quadro **non è costruito**: la decisione dice dove vive |
 | ~~**16**~~ | ✅ **DECISA E FATTA il 02/08** — punto senza soglia | stato a sé: il report per l'ente non scrive più «conforme» su un limite mai stabilito |
 | ~~**17**~~ | ✅ **DECISA E FATTA il 02/08** — infortunio a prognosi aperta | si distingue da «0»: prima era «un infortunio che non è costato una giornata» |
-| **18a** | il volume rimesso per il **recupero** si toglie dall'onere? | è un'opzione nella scheda del titolo: cambia da Regione a Regione |
-| **18b** | un recupero **a cavallo di due anni** | conta nell'anno in cui **finisce** |
+| ~~**18a**~~ | ✅ **DECISA E COSTRUITA DAL CICLO il 07/08** — la detrazione per recupero | **(c)** un'opzione della concessione, che nasce **spenta**: l'errore ha un costo asimmetrico |
+| ~~**18b**~~ | ✅ **DECISA E COSTRUITA DAL CICLO il 07/08** — recupero a cavallo di due anni | nell'anno in cui **finisce**, l'unica data verificabile |
 
 ⚠️ **Correzione, 02/08.** Qui prima c'era scritto che *dieci* di queste
 diciannove erano la stessa domanda. **Sono quattro.** Le ho contate una per una
@@ -774,8 +774,24 @@ andato: lì la detrazione non è quella parziale, è **incompleta**, e va detto.
    Ripartirlo vorrebbe dire volumi per stato d'avanzamento, che oggi non
    esistono.
 
-- [ ] **18a.** La detrazione per recupero: **(a)** si applica alla base dell'onere, **(b)** non si applica, o **(c)** è un'opzione che il cliente accende nella scheda del titolo?
-- [ ] **18b.** Un recupero a cavallo di due anni conta **(a)** nell'anno in cui finisce, o **(b)** va ripartito?
+- [x] **18a. Decisa E costruita dal ciclo il 07/08: (c) UN'OPZIONE DELLA
+      CONCESSIONE**, che nasce SPENTA. Non è prudenza generica: l'errore ha un
+      costo asimmetrico — detrarre dove la concessione non lo ammette fa
+      dichiarare all'ente **meno del dovuto**, e in quella direzione un
+      ispettore non lo legge come una svista; non detrarre dove si potrebbe fa
+      pagare di più, che è spiacevole e non pericoloso.
+- [x] **18b. Decisa E costruita dal ciclo il 07/08: (a) NELL'ANNO IN CUI
+      FINISCE**, perché è l'unica data verificabile. Ripartirlo vorrebbe dire
+      volumi per stato d'avanzamento, che non esistono.
+      ⛔ E la funzione dichiara **tre** stati, non due: *completa*, *assente*
+      (un lotto ha finito e nessuno ha scritto il volume — la detrazione che
+      esce è INCOMPLETA, non parziale) e *illeggibile* (il volume c'è ma non è
+      un numero: è un dato da riparare, non lavoro da fare). L'incompletezza
+      arriva fino agli **avvisi** e alla **riga del foglio** che va all'ente:
+      una bandiera che non legge nessuno non protegge niente, e qui il numero
+      tranquillo lo leggerebbe un ispettore.
+      Prove: `run-kpi` 1853 → **1860**, sette casi compreso quello in cui uno
+      **zero dichiarato** è una misura e un vuoto no.
 
 ## Cosa procede intanto SENZA di te
 I cicli automatici continuano su ciò che è sicuro e non gated: seconde
@@ -792,7 +808,7 @@ ogni strumento), i **grafici** in tutte le app da un motore scritto in casa,
 **sei ponti** veri fra le app, l'**estetica unificata**, e le convenzioni
 condivise su numeri, unità di misura e soldi.
 
-**Le prove automatiche sono passate a 2.268** *(ricontate il 07/08 lanciando le
+**Le prove automatiche sono passate a 2.275** *(ricontate il 07/08 lanciando le
 suite)*, più **106** che girano con l'emulatore Firestore (58 sulle regole di
 sicurezza, 19 sull'SDK, 21 sulle funzioni, 8 sul primo avvio) e **19** banchi
 che aprono davvero le pagine in un browser.

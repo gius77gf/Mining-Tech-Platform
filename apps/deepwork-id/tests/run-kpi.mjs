@@ -23756,5 +23756,77 @@ test("⛔ Terra · la dimostrazione supera la soglia di guardia (se no lo stato 
   });
 }
 
+/* ── DECISIONE 18: LA DETRAZIONE PER RECUPERO AMBIENTALE ──
+   18a → è un'OPZIONE della concessione, spenta finché nessuno l'accende:
+   l'errore ha un costo asimmetrico, e detrarre dove non si può fa dichiarare
+   all'ente MENO del dovuto. 18b → conta nell'anno in cui il recupero FINISCE,
+   che è l'unica data verificabile.
+   ⚠️ Prove SINCRONE, come vuole questo file: l'`await Promise.all(inVolo)` sta
+   cinquemila righe più su. */
+test("detrazioneRecupero: somma solo i lotti FINITI nell'anno", () => {
+  const r = terra.detrazioneRecupero([
+    { id: "a", recuperoFinitoIl: "2026-03-01", volumeRecuperoM3: 1200 },
+    { id: "b", recuperoFinitoIl: "2026-09-30", volumeRecuperoM3: 800 },
+    { id: "c", recuperoFinitoIl: "2025-12-31", volumeRecuperoM3: 5000 },
+    { id: "d", recuperoIniziatoIl: "2026-01-01", recuperoFinitoIl: null, volumeRecuperoM3: 9000 },
+  ], 2026);
+  eq(r.m3, 2000, "solo i due finiti nel 2026");
+  eq(r.lottiContati, 2);
+  eq(r.completa, true);
+  eq(r.motivo, "", "niente da dichiarare");
+});
+test("detrazioneRecupero: un lotto finito SENZA volume rende la detrazione INCOMPLETA, non parziale", () => {
+  const r = terra.detrazioneRecupero([
+    { id: "a", nome: "Lotto 1", recuperoFinitoIl: "2026-03-01", volumeRecuperoM3: 1200 },
+    { id: "b", nome: "Lotto 2", recuperoFinitoIl: "2026-09-30" },
+  ], 2026);
+  eq(r.m3, 1200);
+  eq(r.completa, false, "non si può dire completa");
+  eq(r.assente.length, 1);
+  ok(/Lotto 2/.test(r.motivo) && /INCOMPLETA/.test(r.motivo), r.motivo);
+});
+test("detrazioneRecupero: uno ZERO dichiarato è una misura, un vuoto no", () => {
+  const zero = terra.detrazioneRecupero([{ id: "a", recuperoFinitoIl: "2026-03-01", volumeRecuperoM3: 0 }], 2026);
+  eq(zero.m3, 0); eq(zero.completa, true, "zero è un numero misurato");
+  const vuoto = terra.detrazioneRecupero([{ id: "a", recuperoFinitoIl: "2026-03-01", volumeRecuperoM3: null }], 2026);
+  eq(vuoto.m3, 0); eq(vuoto.completa, false, "e un vuoto NON è uno zero");
+});
+test("detrazioneRecupero: un volume ILLEGGIBILE non è un volume assente", () => {
+  const r = terra.detrazioneRecupero([{ id: "a", nome: "L1", recuperoFinitoIl: "2026-03-01", volumeRecuperoM3: "boh" }], 2026);
+  eq(r.completa, false);
+  eq(r.illeggibile.length, 1, "il dato c'è ed è da riparare");
+  eq(r.assente.length, 0, "non è lavoro da fare: è un dato rotto");
+  ok(/non è un numero/.test(r.motivo), r.motivo);
+});
+test("detrazioneRecupero: una data che non esiste non attribuisce il volume a nessun anno", () => {
+  const r = terra.detrazioneRecupero([
+    { id: "a", nome: "L1", recuperoFinitoIl: "2026-02-30", volumeRecuperoM3: 900 },
+    { id: "b", nome: "L2", recuperoFinitoIl: "2026-04-04", volumeRecuperoM3: 100 },
+  ], 2026);
+  eq(r.m3, 100, "il 30 febbraio non scorre al 2 marzo");
+  eq(r.completa, false);
+  eq(r.senzaData.length, 1);
+});
+test("baseOnereEscavazione: l'incompletezza della detrazione arriva fino agli avvisi e al foglio", () => {
+  const det = terra.detrazioneRecupero([
+    { id: "a", nome: "L1", recuperoFinitoIl: "2026-03-01", volumeRecuperoM3: 1000 },
+    { id: "b", nome: "L2", recuperoFinitoIl: "2026-06-01" },
+  ], 2026);
+  const b = terra.baseOnereEscavazione({ anno: 2026, rilieviScavo: 3, scavo: 10000, banda: 0 }, { detrazione: det });
+  eq(b.calcolabile, true);
+  eq(b.detratto, 1000);
+  eq(b.imponibile, 9000);
+  eq(b.detrazioneIncompleta, true, "la bandiera esce dal modulo");
+  ok(b.avvisi.some((a) => /INCOMPLETA/.test(a)), "e l'avviso c'è");
+  ok(/INCOMPLETA/.test(terra.descriviBaseOnere(b)), "e lo dice anche la riga del foglio");
+});
+test("baseOnereEscavazione: senza detrazione la riga del foglio resta com'era", () => {
+  const b = terra.baseOnereEscavazione({ anno: 2026, rilieviScavo: 3, scavo: 10000, banda: 0 }, {});
+  eq(b.detratto, 0);
+  eq(b.imponibile, 10000);
+  eq(b.detrazioneIncompleta, false, "spenta: nessuno l'ha accesa");
+  eq(/INCOMPLETA|detratti/.test(terra.descriviBaseOnere(b)), false, terra.descriviBaseOnere(b));
+});
+
 console.log(`\nRisultato KPI app: ${passed} passati, ${failed} falliti${inVolo.length ? `  ·  ${inVolo.length} prove asincrone aspettate` : ""}`);
 process.exit(failed > 0 ? 1 : 0);

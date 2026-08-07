@@ -618,6 +618,11 @@ a.dw-btn{text-decoration:none}
       <div class="fld" style="flex:1 1 130px;"><label class="fl" for="aut-preavviso">Preavviso predefinito (<span class="u">gg</span>)</label>
         <input class="dw-input" id="aut-preavviso" type="number" min="0" max="1095" value="60"></div>
     </div>
+    <label for="aut-detrai" style="display:flex; gap:9px; align-items:flex-start; margin-top:4px; cursor:pointer;">
+      <input type="checkbox" id="aut-detrai" style="margin-top:3px;">
+      <span>La mia concessione ammette la <b>detrazione per recupero</b>: il volume rimesso in cava per il recupero ambientale si toglie dalla base dell&rsquo;onere.</span>
+    </label>
+    <div class="form-hint">Nasce <b>spenta</b>, e non per prudenza generica: se la concessione non l&rsquo;ammette e Terra la applica lo stesso, il foglio che va all&rsquo;ente dichiara <b>meno del dovuto</b> &mdash; un errore che un ispettore non legge come una svista. L&rsquo;errore opposto fa pagare di pi&ugrave;: spiacevole, non pericoloso. Il volume si scrive <b>sul lotto</b> e conta nell&rsquo;anno in cui il recupero <b>finisce</b>.</div>
     <div class="frow">
       <button class="dw-btn" id="btn-aut-salva">Salva scheda</button>
       <button class="dw-btn secondary" id="btn-aut-nuova">Nuova scheda</button>
@@ -876,6 +881,11 @@ a.dw-btn{text-decoration:none}
       <div class="fld" style="flex:1 1 180px;"><label class="fl" for="lot-collaudo">Collaudato il (verbale dell'ente)</label>
         <input class="dw-input" id="lot-collaudo" type="date" title="La data del verbale con cui l'ente ha verificato il recupero"></div>
     </div>
+    <div class="frow">
+      <div class="fld" style="flex:1 1 220px;"><label class="fl" for="lot-vol-rec">Volume rimesso per il recupero (m&sup3;)</label>
+        <input class="dw-input" id="lot-vol-rec" inputmode="decimal" placeholder="es. 1.200" title="Quanto materiale &egrave; stato rimesso in cava per il recupero ambientale di questo lotto"></div>
+    </div>
+    <div class="form-hint">Serve solo se la tua concessione ammette la <b>detrazione per recupero</b>: si accende nella scheda del titolo. Il volume conta nell'anno in cui il recupero <b>finisce</b>. Se il recupero &egrave; finito e questo campo resta vuoto, la detrazione dell'anno viene dichiarata <b>incompleta</b>: non &egrave; una detrazione parziale.</div>
     <div class="fld"><label class="fl" for="lot-nota">Nota</label>
       <textarea class="dw-input" id="lot-nota" rows="2" placeholder="Quello che serve ricordare su questo lotto" style="min-height:56px;"></textarea></div>
     <div class="frow">
@@ -968,7 +978,7 @@ a.dw-btn{text-decoration:none}
            autorizzazioneVigente, vitaCava, statoScadenzaTerra, livelloScadenzaTerra, prossimaData, riepilogoScadenze, TIPI_SCADENZA_TERRA, presetScadenzaTerra, etichettaTipoScadenza,
            provenienzaRilievo, soloScavo, soloCumulo, rilievoUsabile, PROVENIENZE, etichettaProvenienza,
            anniConVolumi, riepilogoAnnuale, ripartizioneFronti, ripartizioneBanchi, banchiDaSempre, serieAnnuale,
-           baseOnereEscavazione, descriviBaseOnere,
+           baseOnereEscavazione, descriviBaseOnere, detrazioneRecupero,
            rilieviScavoFronte, rilievoPrecedente, confrontoRilievi,
            produzioneDichiarata, misuratoPeriodo, riconciliazioneTurni,
            periodoFraUltimiRilievi, intervalliFraRilievi, avanzamentoDaUltimoRilievo, SOGLIA_TURNI,
@@ -2131,7 +2141,16 @@ a.dw-btn{text-decoration:none}
        qualcuno?», ed è la stessa domanda della PRIMA tessera in alto. Stava
        duecentosettanta righe più giù, quindi le tessere non potevano leggerla e
        si arrangiavano con `R.scavo` nudo. Vedi il commento della tessera. */
-    DEN.base = baseOnereEscavazione(R, {});
+    /* ⛔ DECISIONE 18: la detrazione entra SOLO se il titolo la dichiara. È
+       l'interruttore della scheda, e nasce spento — l'errore ha un costo
+       asimmetrico: detrarre dove non si può fa dichiarare all'ente MENO del
+       dovuto. E quando è acceso, `detrazioneRecupero` porta con sé la propria
+       dichiarazione di incompletezza, che `baseOnereEscavazione` mette negli
+       avvisi e `descriviBaseOnere` scrive sul foglio: una bandiera che non
+       legge nessuno non protegge niente, e qui il numero tranquillo lo
+       leggerebbe un ispettore. */
+    DEN.detrazione = aut && aut.detraiRecupero ? detrazioneRecupero(LOT, R.anno) : null;
+    DEN.base = baseOnereEscavazione(R, DEN.detrazione ? { detrazione: DEN.detrazione } : {});
     const meseOggi = new Date().getMonth() + 1;
     const mesiVisti = R.inCorso ? R.mesi.slice(0, meseOggi) : R.mesi;
 
@@ -2890,6 +2909,9 @@ a.dw-btn{text-decoration:none}
     disegnaDensAtto();
     v("aut-prescrizioni", a && a.prescrizioni); v("aut-riferimenti", a && a.riferimenti);
     $("aut-soglia").value = a && a.sogliaGuardiaPct != null ? a.sogliaGuardiaPct : 80;
+    // spenta di difetto: una concessione di cui non si sa niente NON ammette
+    // la detrazione (decisione 18a, l'errore ha un costo asimmetrico)
+    $("aut-detrai").checked = !!(a && a.detraiRecupero);
     $("aut-anni").value = a && a.anniRitmo != null ? a.anniRitmo : 3;
     $("aut-preavviso").value = a && a.preavvisoGiorni != null ? a.preavvisoGiorni : 60;
   }
@@ -2981,6 +3003,7 @@ a.dw-btn{text-decoration:none}
       densitaRiferimento: t("aut-dens-rif") || null,
       prescrizioni: t("aut-prescrizioni") || null, riferimenti: t("aut-riferimenti") || null,
       sogliaGuardiaPct: numInt("aut-soglia"), anniRitmo: numInt("aut-anni"), preavvisoGiorni: numInt("aut-preavviso"),
+      detraiRecupero: !!$("aut-detrai").checked,
     };
   }
   // ── CAMPI INTERI: la virgola si ferma sulla porta ────────────────────
@@ -3239,6 +3262,7 @@ a.dw-btn{text-decoration:none}
     $("lot-mq").value = l ? itDec(l.superficieMq == null ? "" : l.superficieMq) : "";
     $("lot-m3").value = l ? itDec(l.volumeM3 == null ? "" : l.volumeM3) : "";
     $("lot-fondo").value = l ? itDec(l.quotaFondoM == null ? "" : l.quotaFondoM) : "";
+    $("lot-vol-rec").value = l ? itDec(l.volumeRecuperoM3 == null ? "" : l.volumeRecuperoM3) : "";
     $("lot-nota").value = l ? (l.nota || "") : "";
     for (const [id, campo] of CAMPI_DATA_LOTTO) $(id).value = l && dataISOEsiste(l[campo]) ? l[campo] : "";
     frontiLot = l && Array.isArray(l.frontiId) ? l.frontiId.map(String) : [];
@@ -3252,6 +3276,12 @@ a.dw-btn{text-decoration:none}
     const mq = numCampo("lot-mq", { min: 0 }), m3 = numCampo("lot-m3", { min: 0 });
     // niente `min: 0` sulla quota: il fondo di una cava in fossa è negativo
     const fondo = numCampo("lot-fondo", { decimali: 2 });
+    /* il volume del recupero si legge con lo STESSO lettore degli altri volumi
+       (`numCampo`), non con `parseFloat`: è la regola di casa sui numeri
+       scritti a mano, e qui la virgola italiana arriva di sicuro. Vuoto resta
+       `null` — non zero: uno zero sarebbe «non ci è andato niente», che è una
+       misura, e il vuoto è «nessuno l'ha scritto» (decisione 18). */
+    const volRec = numCampo("lot-vol-rec", { decimali: 2, min: 0 });
     return {
       nome: t("lot-nome"),
       // senza ordine scritto, il lotto si mette in coda: un numero inventato in
@@ -3266,6 +3296,7 @@ a.dw-btn{text-decoration:none}
       apertoIl: d("lot-aperto"), esauritoIl: d("lot-esaurito"),
       recuperoIniziatoIl: d("lot-rec-inizio"), recuperoFinitoIl: d("lot-rec-fine"),
       collaudatoIl: d("lot-collaudo"),
+      volumeRecuperoM3: volRec.ok ? volRec.valore : null,
       frontiId: frontiLot.slice(),
       nota: t("lot-nota"),
     };
