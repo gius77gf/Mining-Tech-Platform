@@ -341,3 +341,41 @@ Terra ha l'**infrastruttura giusta** per la denuncia annuale:
 4. **Dichiarazione della densità usata** nel riepilogo, così il numero è tracciabile e difendibile
 
 **Non sono buchi architetturali.** Sono dettagli di completamento — i numeri ci sono, serve dichiararli nel formato che l'ente capisce.
+
+---
+
+### ⏱️ Verifica del 07/08, subito dopo — e la proposta sulla densità va riscritta
+
+Chi ha scritto il blocco qui sopra ha detto una cosa vera e ne ha dedotta una
+falsa, e la seconda **stavo per correggerla io** prima di misurare. Sta qui
+perché nessuno la rifaccia.
+
+**Vero, e verificato coi comandi:**
+- `grep -ci` per `addetti`, `occupati`, `dipendenti`, `parco mezzi`,
+  `macchinari` su `apps/terra/terra-data.js` e `apps/terra/index.html`:
+  **0 e 0 in tutti e dieci i casi**. Se sono righe obbligatorie del modulo
+  annuale, la mancanza è reale.
+- Il prospetto della denuncia (`fogliaStampa()`) e il secondo foglio non
+  nominano mai la densità: `grep -ci densit` in tutt'e due → **0 e 0**.
+
+**Falso come conseguenza, e questo è il punto:** «chi legge il prospetto o il
+CSV non sa su quale densità poggia il confronto cavato-dichiarato». Misurato:
+- il prospetto della denuncia non stampa **nessuna tonnellata** — `grep` per
+  `tonnellate|ton|t/m³` fra le sue 220 righe: **zero**. È tutto in metri cubi;
+- i due export CSV (`terra_riepilogo_<anno>.csv`, `terra_fronti_rilievi.csv`)
+  non nominano né tonnellate né densità.
+
+Cioè **la densità non entra in nessuno dei documenti che escono da Terra**, e
+aggiungere lì la sua dichiarazione sarebbe rumore, non una correzione: una riga
+che spiega su che cosa poggia un numero che quel foglio non contiene.
+⚠️ E lo schermo la dichiara già: `descriviDensita` e `densitaPerEnte` sono
+chiamate in tre punti della pagina (2922, 3751, 3754), e `densitaPerEnte`
+esiste apposta per la domanda «questo numero regge davanti a un ispettore?».
+
+**Dove la domanda invece vale davvero**, e resta aperta: il **ponte Terra ↔
+Conti**, cioè cavato in m³ contro venduto in tonnellate. Lì la densità entra nel
+conto per forza, ed è lì che va cercata la sua dichiarazione — non nel prospetto.
+
+*(Verificato al commit `9bae83a`. La proposta originale resta scritta sopra, non
+cancellata: serve a ricordare che la parte vera e la parte dedotta viaggiavano
+nella stessa riga.)*
