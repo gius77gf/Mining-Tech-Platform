@@ -819,6 +819,27 @@ numero scritto dove non era stato misurato niente**.*
   `display:block` e `gap: normal` invece di `flex` e `gap:8px`. Il refuso di una
   classe **non fa rumore** — nessun errore, nessuna prova rossa, niente da
   leggere. Trovato dal censimento delle classi orfane, misurato col browser.
+- [x] ✅ **Il traboccamento all'indietro non era di un elemento: era di una
+  parola** (`6a975bf`): l'unico KO del giro. A 320 px il corpo del core andava a
+  **333 px** e nessun elemento sporgeva a destra, perché il colpevole **non è un
+  elemento**: è il messaggio che `build3D` scrive senza rete, con dentro
+  l'indirizzo intero del CDN — una parola sola di 60 caratteri, **345,6 px in
+  uno spazio di 320**, che dentro un flex centrato esce **12,8 px per parte**.
+  Il testo nudo dentro un flex è una **scatola anonima**: `querySelectorAll('*')`
+  non la vede (173 nodi guardati, 0 sporgenti; col `TreeWalker` sui nodi di
+  testo, 1 colpevole al primo colpo). ⚠️ E la scelta ovvia era sbagliata,
+  provata prima di scriverla: `overflow-wrap:break-word` — la forma che il core
+  usa già in `.toast` — lascia il corpo a 333/320, perché non riduce la
+  larghezza **minima** e un elemento di flex ha `min-width:auto`.
+- [x] ✅ **La prima domanda dava 14 orfane e sette erano ganci di JavaScript**
+  (`ed8ec85`): il censimento buttato giù a mano per trovare `ords` è entrato
+  nelle prove, ma **non com'era**. «Quale foglio la definisce?» segnalava
+  `chk-item`, `uf-cava`, `cv-dest` — classi vivissime, cercate con
+  `querySelectorAll`. La **seconda domanda** («ogni occorrenza sta dentro un
+  `class="…"`?») porta 14 → **4**, tutte vere. ⚠️ E due dei falsi allarmi
+  venivano dai **commenti**, per la terza volta in un giorno.
+  Controprova su due versi: 12 refusi iniettati in memoria su 12 pagine, 12
+  visti; e un gancio di JavaScript **non** segnalato.
 
 ## Riferimenti
 
