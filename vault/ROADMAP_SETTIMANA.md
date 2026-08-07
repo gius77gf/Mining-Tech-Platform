@@ -1233,11 +1233,22 @@ numero scritto dove non era stato misurato niente**.*
 - [x] ✅ **Terza avvertenza su `run-kpi`** (`006088f`): una prova scritta in
   fondo non può essere `async`, perché l'`await` sta a metà file e il totale si
   stampa senza aspettarla. Non è «dopo il `process.exit`»: è **dopo l'await**.
+- [x] ✅ **L'elenco delle volate del core, quarta copia debole** (`f108ef0`):
+  `misureVolataProgetto` è in `shared/` **ed è importata in `index.html`** —
+  documento, scheda e riquadro la chiamavano, l'elenco no, e scriveva «0 mc»
+  dove nessuno aveva misurato le profondità facendo sparire i chili quando
+  erano zero. Ora `volRiga`, accanto a `volKg`/`volMc`, con la forma di
+  `rappRiga`. **La misura ha deciso il lavoro**: riusare `volKg`/`volMc` era la
+  cosa ovvia e non ci stanno (295px su 252 a 390, tagliati a ogni larghezza) —
+  e per quella strada è saltato fuori un **quinto** sito, il riquadro «ultime
+  volate» della dashboard, tagliato da prima. Limite dichiarato: a 320px una
+  combinazione esce lo stesso (197 su 194) e il banco la stampa. Banchi
+  **147 → 149**, controprova 7 KO.
 
 ## Riferimenti
 
 - Ultimo checkpoint **per data vera**:
-  `vault/checkpoints/20260803-141020_i-documenti-che-escono-tutte-e-sei-piu-il-core.md`
+  `vault/checkpoints/20260807-200555_la-quarta-copia-debole-del-core.md`
   *(dato da `node apps/deepwork-id/tests/date-checkpoint.mjs`, non letto a occhio:
   per NOME il più alto sarebbe `20260805-100000_…`, che è stato scritto **tre
   giorni prima**. Questa riga era ferma al 01/08: il puntatore al file più
@@ -1247,13 +1258,17 @@ numero scritto dove non era stato misurato niente**.*
   (640 precedenti alla regola, contati da `date-checkpoint.mjs`). Chi va per
   nome apre il file sbagliato credendo che sia il più fresco.
 - Le decisioni: `docs/DECISIONI_WEEKEND.md` — pagina d'ingresso in cima.
-- Stato misurato al **07/08, notte** (lanciando le suite, non a memoria):
-  **2.193 prove** che girano senza rete, copertura **662/662** e nessuna
-  funzione scoperta, **120 banchi** che aprono le pagine in un browser vero,
-  **21 comandi** nel giro `node` di casa.
-  *(Al 03/08 pomeriggio erano 2.092, 649/649 e 84 banchi; al 02/08 1.838,
-  591/591 e 49 banchi.)*
-  ⚠️ **Questi tre numeri non si scrivono a mente**: `numeri-nei-documenti.mjs`
-  li rimisura e fa cadere il giro quando un documento se ne discosta — stanotte
-  li ha corretti **quattro volte**, e una volta ha preso non il totale ma gli
-  **addendi**, che dicevano da quale suite veniva il +1.
+- Stato misurato al **07/08, sera** (lanciando le suite, non a memoria):
+  **2.298 prove** che girano senza rete — e la frase va letta stretta: sono la
+  somma delle **sei** suite che contano asserzioni (`run-kpi` 1883, `run-stile`
+  295, `run-helpers` 71, `run-pointcloud` 32, `run-manifest` 9, `run-demo` 8),
+  non tutto ciò che gira nel giro `node`, che di comandi ne ha **23**.
+  Copertura **702/702** e nessuna funzione scoperta; **149 esecuzioni** che
+  aprono le pagine in un browser vero (65 file di banco).
+  *(Al 07/08 notte erano 2.193, 662/662 e 120; al 03/08 pomeriggio 2.092,
+  649/649 e 84; al 02/08 1.838, 591/591 e 49.)*
+  ⚠️ **Questi numeri non si scrivono a mente** — ma attenzione al
+  denominatore: `numeri-nei-documenti.mjs` sorveglia `docs/DEVELOPMENT.md` e
+  `docs/STATO_PRODOTTO.md`, **non questo file**. Ed è per questo che la riga
+  qui sopra è rimasta ferma a «120 banchi» mentre ne erano già 147: qui il
+  controllo non arriva, e l'aggiornamento è a mano. Chi la legge lo sappia.
