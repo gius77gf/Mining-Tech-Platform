@@ -1057,6 +1057,20 @@ numero scritto dove non era stato misurato niente**.*
   riferito da uno scatto (etichette di Conti tagliate a 430) **non c'era** —
   164 voci, zero tagliate — e io l'avevo riportato in due checkpoint senza
   rimisurarlo. Allargando il banco è però uscito un difetto **vero**.
+- [ ] **Chi misura la larghezza dei fogli stampati, e chi no** — misurato il
+  07/08 dopo che il prospetto di Terra è uscito dalla larghezza del foglio a
+  390 px (435 in 390). Quel difetto l'ha trovato `stampe-fs.mjs`, che visita
+  **quattro** superfici: Flotta, Sentinella, Conti, Terra. Più `campo-foglio-turno`
+  per Campo. Restano **senza nessuna misura di larghezza** i fogli di **Genesi**
+  (`genesi-foglio-in-cava.mjs` non guarda le dimensioni) e di **Scudo**
+  (`scudo-documenti.mjs` idem).
+  ✅ Genesi **misurata a mano oggi e sana**: `btn-report` catturato da
+  `window.open` e reso a 390 e 320 px → documento 390 su 390 e 320 su 320,
+  **dentro** in tutt'e due, nessun elemento che sporge. ⚠️ Con due limiti
+  dichiarati: l'elenco dei bottoni è stato filtrato sul testo («stampa»,
+  «foglio») e ne ha trovato **uno solo**, e la resa è senza `@media print`.
+  Resta da fare: la stessa misura su Scudo, e portarla **dentro i due banchi**
+  invece di lasciarla in una misura a mano che alla sessione dopo non esiste.
 - [ ] **Sentinella a 320 px**: la barra ha **328 px di contenuto in 302** e
   `.nav` ha `overflow:hidden`, quindi le ultime voci spariscono in silenzio.
   ⚠️ La strada ovvia è già scartata: rimpicciolire il carattere fa **salire**
