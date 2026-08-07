@@ -515,7 +515,16 @@ Perché serva davvero e non produca elenchi generici, cinque vincoli:
      chiude con `process.exit`: appesi in coda non vengono mai eseguiti, e il
      totale resta invariato senza che nulla segnali l'errore;
   2. si controlla sempre che il **totale sia salito**, non solo che i falliti
-     siano zero: un file di test inerte dice «0 falliti» come uno che passa.
+     siano zero: un file di test inerte dice «0 falliti» come uno che passa;
+  3. ⛔ e una prova scritta in fondo **non può essere `async`**, che è la stessa
+     trappola in una veste che il punto 1 non copre: `await Promise.all(inVolo)`
+     sta a metà file, quindi una prova asincrona aggiunta dopo viene messa in
+     volo e il totale si stampa **senza aspettarla**. Misurato il 07/08: 1842
+     prima e 1842 dopo, e l'unico segno era «**7** prove asincrone aspettate»
+     invece di 6 — un numero che nessuno guarda. Non è «dopo il `process.exit`»:
+     è **dopo l'`await`**. Se serve leggere un file, l'`import` si fa fuori dal
+     test e la prova resta sincrona. L'ha presa il punto 2, che è la ragione per
+     cui il punto 2 esiste.
 - ⚠️ **`toLocaleString("it-IT")` NON RAGGRUPPA ALLO STESSO MODO** in Node e nel
   browser: sui numeri di **quattro cifre** Chromium scrive «6.375» e Node
   «6375» (strategia `min2`). Da cinque cifre in su sono d'accordo. Le pagine
