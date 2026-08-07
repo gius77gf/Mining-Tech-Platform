@@ -1292,12 +1292,15 @@ numero scritto dove non era stato misurato niente**.*
   nome apre il file sbagliato credendo che sia il più fresco.
 - Le decisioni: `docs/DECISIONI_WEEKEND.md` — pagina d'ingresso in cima.
 - Stato misurato al **07/08, sera** (lanciando le suite, non a memoria):
-  **2.298 prove** che girano senza rete — e la frase va letta stretta: sono la
-  somma delle **sei** suite che contano asserzioni (`run-kpi` 1883, `run-stile`
-  295, `run-helpers` 71, `run-pointcloud` 32, `run-manifest` 9, `run-demo` 8),
+  **2.304 prove** che girano senza rete — e la frase va letta stretta: sono la
+  somma delle **sei** suite che contano asserzioni (`run-kpi` 1887, `run-stile`
+  297, `run-helpers` 71, `run-pointcloud` 32, `run-manifest` 9, `run-demo` 8),
   non tutto ciò che gira nel giro `node`, che di comandi ne ha **23**.
-  Copertura **702/702** e nessuna funzione scoperta; **149 esecuzioni** che
-  aprono le pagine in un browser vero (65 file di banco).
+  Copertura **702/702** e nessuna funzione scoperta; **153 esecuzioni** che
+  aprono le pagine in un browser vero (**71** file di banco distinti, contati
+  dalla tabella `BANCHI` di `tutti.mjs` e non a occhio dalla cartella, che ne
+  ha 75 perché contiene anche gli aiuti — `giro.mjs`, `impronta.mjs`, il
+  runner stesso).
   *(Al 07/08 notte erano 2.193, 662/662 e 120; al 03/08 pomeriggio 2.092,
   649/649 e 84; al 02/08 1.838, 591/591 e 49.)*
   ⚠️ **Questi numeri non si scrivono a mente** — ma attenzione al

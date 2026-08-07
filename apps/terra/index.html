@@ -2006,6 +2006,7 @@ a.dw-btn{text-decoration:none}
           : `Il recupero è <b>avanti</b> allo scavo di <b>${n0(-dv.mq)} m²</b>: i lotti chiusi coprono più superficie di quelli ancora aperti.`}</div>
       <div class="riga">In volume di progetto: <b>${n0(dv.m3)} m³</b> di differenza fra i lotti aperti e quelli recuperati. ${dv.recuperati} ${dv.recuperati === 1 ? "lotto è chiuso" : "lotti sono chiusi"}, ${dv.aperti} ${dv.aperti === 1 ? "è ancora aperto" : "sono ancora aperti"}.</div>
       ${dv.senzaMq ? `<div class="riga att">${I.allarme}<span><b>${dv.senzaMq} ${dv.senzaMq === 1 ? "lotto non dichiara" : "lotti non dichiarano"} la superficie</b>: ${dv.senzaMq === 1 ? "non entra" : "non entrano"} in questo conto, quindi il divario che leggi è <b>più piccolo</b> di quello vero. Aprilo qui sotto e scrivi i m².</span></div>` : ""}
+      ${dv.senzaM3 ? `<div class="riga att">${I.allarme}<span><b>${dv.senzaM3} ${dv.senzaM3 === 1 ? "lotto non dichiara" : "lotti non dichiarano"} il volume di progetto</b>: ${dv.senzaM3 === 1 ? "non entra" : "non entrano"} nel divario in metri cubi, che quindi è <b>più piccolo</b> di quello vero. Aprilo qui sotto e scrivi i m³.</span></div>` : ""}
     </div>`;
   }
 

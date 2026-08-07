@@ -3230,6 +3230,36 @@ test("il divario somma gli aperti meno i recuperati, e il PREVISTO non entra", (
     "⛔ un lotto aperto senza superficie dichiarata si conta a parte, non sparisce");
   eq(terra.statoLotto({ stato: "inventato" }), "previsto", "uno stato sconosciuto non diventa «aperto»");
 });
+test("⛔ e un lotto SENZA volume di progetto non fa scendere i m³ in silenzio", () => {
+  /* ⛔ La ragione era già scritta nel commento della funzione, ma per i m²
+     soltanto: `somma` usa `(+x[campo] || 0)`, quindi il lotto che il volume
+     non ce l'ha vale ZERO e il divario si legge più piccolo del vero — la
+     buona notizia che nessuno ha misurato. E il caso è previsto dal prodotto,
+     non di laboratorio: il form scrive `volumeM3: m3.ok ? m3.valore : null`. */
+  eq(terra.divarioRecupero(LOTTI).senzaM3, 0, "sui quattro lotti d'esempio il volume c'è dappertutto");
+  const muto = LOTTI.concat([{ id: "l5", stato: "aperto", superficieMq: 5000 }]);
+  const d = terra.divarioRecupero(muto);
+  eq(d.senzaM3, 1, "⛔ il lotto senza volume si conta a parte");
+  eq(d.m3, 30000, "e il numero NON si muove: è esattamente il punto — sembra lo stesso divario");
+  eq(terra.divarioRecupero(muto.slice(0, 4).concat([{ ...muto[4], volumeM3: 40000 }])).m3, 70000,
+    "⛔ se quel lotto dichiarasse 40.000 m³ il divario vero sarebbe 70.000, più del doppio");
+  eq(terra.divarioRecupero(muto.slice(0, 4).concat([{ ...muto[4], volumeM3: 40000 }])).senzaM3, 0,
+    "e allora la bandiera si abbassa");
+  eq(terra.divarioRecupero([]).senzaM3, 0, "senza lotti la bandiera non accusa nessuno (misurabile è già false)");
+  eq(terra.divarioRecupero(LOTTI.concat([{ id: "l6", stato: "previsto" }])).senzaM3, 0,
+    "⛔ e un lotto ancora PREVISTO non è una mancanza: non è stato scavato, non deve entrare nel conto");
+  /* ⛔ E NON È SOLO «PIÙ PICCOLO»: SULLA DIMOSTRAZIONE IL SEGNO SI GIRA.
+     Misurato il 07/08 aprendo la pagina col volume di `lo5` tolto: il Piano
+     scriveva **-43.000 m³**, che si legge «il recupero è avanti in volume»,
+     dove la verità è **+97.000 m³ ancora aperti**. Il numero tranquillo, nella
+     sua forma peggiore: non attenuato, capovolto. */
+  const demo = terra.DEMO.lotti;
+  eq(terra.divarioRecupero(demo).senzaM3, 0, "nella dimostrazione tutti e sei i lotti il volume ce l'hanno");
+  const senzaLo5 = demo.map((x) => (x.id === "lo5" ? { ...x, volumeM3: null } : x));
+  eq(terra.divarioRecupero(senzaLo5).senzaM3, 1, "tolto quello di `lo5`, la bandiera si alza");
+  eq([terra.divarioRecupero(senzaLo5).m3, terra.divarioRecupero(demo).m3], [-43000, 97000],
+    "⛔ e il divario passa da +97.000 a -43.000: cambia SEGNO, non solo grandezza");
+});
 const RIL_L = [
   { id: "r1", fronteId: "f1", volumeM3: 19400, stato: "elaborato" },
   { id: "r2", fronteId: "f2", volumeM3: 18600, stato: "elaborato" },

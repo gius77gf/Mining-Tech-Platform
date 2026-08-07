@@ -102,6 +102,21 @@ davvero tolto da quel lotto è **misurato**, non dichiarato.
 quel caso da «tutti recuperati». Due situazioni opposte che senza questa
 distinzione producono lo **stesso zero verde**.
 
+⛔ **E il 07/08 si è visto che la stessa onestà era scritta a metà.** La
+funzione contava a parte i lotti **senza superficie dichiarata** (`senzaMq`) e
+lo spiegava nel suo commento — «un divario calcolato su tre lotti quando ce ne
+sono sei è più piccolo del vero» — ma la riga accanto, quella dei **metri
+cubi**, usa lo stesso aiuto `somma` con `(+x[campo] || 0)`: un lotto che il
+volume non lo dichiara valeva **zero m³**, e il divario scendeva in silenzio.
+Non è un caso di laboratorio: il form scrive `volumeM3: m3.ok ? m3.valore :
+null`, quindi è uno stato **previsto**, invisibile solo perché tutti e sei i
+lotti della dimostrazione un volume ce l'hanno.
+Misurato togliendo quello di `lo5`: il Piano scrive **-43.000 m³** dove il vero
+è **+97.000** — il divario non si attenua, **cambia segno**, e si legge «il
+recupero è avanti in volume». Ora c'è `senzaM3`, con la sua riga d'avviso nella
+pagina, e sei asserzioni in `run-kpi.mjs` (controprova: rimessa la bandiera a
+zero, la prova cade).
+
 `volumeMisuratoDiLotto` è il ponte vero: fa entrare i rilievi nel discorso dei
 lotti, e permette di dire «previsti 180.000 m³, misurati 96.400» invece di
 fidarsi del progetto. E `avanzamentoLotto` **non stima**: un lotto senza

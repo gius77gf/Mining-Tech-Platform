@@ -2241,7 +2241,7 @@ export function divarioRecupero(lotti) {
   const l = (lotti || []).filter((x) => x && STATI_LOTTO.includes(String(x.stato || "")));
   if (!l.length)
     return { misurabile: false, mq: null, m3: null, aperti: 0, recuperati: 0,
-      apertiMq: 0, chiusiMq: 0, senzaMq: 0,
+      apertiMq: 0, chiusiMq: 0, senzaMq: 0, senzaM3: 0,
       motivo: "Nessun lotto registrato: il divario fra quello che è stato aperto e quello che è stato recuperato non è stato misurato. Non vuol dire che è a posto." };
   const somma = (dove, campo) => r2(l.filter((x) => dove.includes(statoLotto(x)))
     .reduce((t, x) => t + (+x[campo] || 0), 0));
@@ -2251,9 +2251,24 @@ export function divarioRecupero(lotti) {
      vero, cioè di nuovo la buona notizia. */
   const senzaMq = l.filter((x) => !(+x.superficieMq > 0)
     && [...LOTTI_APERTI, ...LOTTI_CHIUSI].includes(statoLotto(x))).length;
+  /* ⛔ E LA RAGIONE SCRITTA QUI SOPRA VALEVA ANCHE PER I METRI CUBI, che sono
+     la riga accanto: `somma` usa `(+x[campo] || 0)`, quindi un lotto che NON
+     dichiara il volume vale 0 m³ e il divario scende senza dirlo. Misurato il
+     07/08 su tre lotti di cui uno senza volume: **30.000 invece di 70.000**,
+     con la bandiera dei m² che diceva tranquillamente «tutto dichiarato».
+     ⛔ E aprendo la pagina col volume di `lo5` tolto non è nemmeno «più
+     piccolo»: il Piano scriveva **-43.000 m³** dove il vero è **+97.000**,
+     cioè il divario CAMBIA SEGNO e si legge «il recupero è avanti in volume».
+     E non è un caso di laboratorio: il form scrive `volumeM3: m3.ok ?
+     m3.valore : null` — un lotto senza volume è uno stato PREVISTO, tant'è che
+     `avanzamentoLotto` ha la frase apposta («Il progetto non dichiara un
+     volume per questo lotto»). Nella dimostrazione non si vede perché tutti e
+     sei i lotti il volume ce l'hanno. */
+  const senzaM3 = l.filter((x) => !(+x.volumeM3 > 0)
+    && [...LOTTI_APERTI, ...LOTTI_CHIUSI].includes(statoLotto(x))).length;
   return { misurabile: true, mq: r2(apertiMq - chiusiMq),
     m3: r2(somma(LOTTI_APERTI, "volumeM3") - somma(LOTTI_CHIUSI, "volumeM3")),
-    apertiMq, chiusiMq, senzaMq,
+    apertiMq, chiusiMq, senzaMq, senzaM3,
     aperti: l.filter((x) => LOTTI_APERTI.includes(statoLotto(x))).length,
     recuperati: l.filter((x) => LOTTI_CHIUSI.includes(statoLotto(x))).length,
     motivo: "" };
