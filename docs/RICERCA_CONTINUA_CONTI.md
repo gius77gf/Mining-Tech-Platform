@@ -90,3 +90,268 @@ Conti oggi (01/08) ha tutte le funzioni core della fatturazione in cava:
 - IVA per riga fattura (supportata, non tutte le righe la usano)
 - Chiusura mese dichiarativa (non blocca, chiede conferma per voce)
 - Cavato vs venduto con soglie (mostra i divari, distingue coerente/attenzione)
+
+---
+
+## Ricerca del 2026-08-07 — le parole del DDT · verificata contro il commit 8f3cc1e
+
+### CHE COSA ESISTE GIÀ NELLA NOSTRA APP
+
+Conti registra pesate/DDT con i seguenti dati (conti-data.js riga 52):
+```
+numero, data, clienteId, cliente, prodottoId, prodotto, lordo, tara, netto, unitaVendita, quantita, densita, prezzoUnitario, aliquotaIva, mezzo, destinatario, fatturaId
+```
+
+Campi aggiuntivi (leggibili nel grep):
+- `causaleTrasporto` (es. "vendita", "conto terzi")
+- `trasportoACura` (es. "mittente", "vettore", "destinatario")
+- `vettore` (nome della ditta quando trasporto a cura di terzo)
+
+Riferimento normativo dichiarato: **DPR 472/1996** (riga 16 del README.md).
+
+---
+
+### PARTE 1 — IL MONDO: Che cosa scrive DAVVERO un DDT italiano per inerti venduti a peso
+
+#### A. Gli elementi del DDT secondo il DPR 472/1996
+
+> ## ⛔ VERIFICA DEL 07/08 — QUESTA SEZIONE È SBAGLIATA IN DUE PUNTI, E VA LETTA CON LA CORREZIONE ACCANTO
+>
+> Rimisurata prima di farne unità di lavoro, come pretende la direttiva 5 («niente
+> entra in roadmap sulla parola dell'agente»). Il difetto **non** è nei due «non
+> c'è», che sono **veri**: né il *porto* né l'*aspetto esteriore* esistono in
+> Conti (l'unico «franco» del file è dentro una frase d'offerta, riga 2648; l'unico
+> «aspetto» è un commento CSS, riga 337 — cercati con i confini di parola, perché
+> `grep porto` risponde **191** per via di «im**porto**» e «tras**porto**»).
+> Il difetto è nella **giustificazione**, ed è la forma peggiore perché sembra
+> fondata:
+>
+> 1. **«art. 7 e 8» non esistono.** Il DPR 14/08/1996 n. 472 è un **articolo
+>    unico**: è il suo **comma 3** a elencare che cosa deve indicare il DDT — data
+>    dell'operazione, numero progressivo, generalità di cedente, cessionario ed
+>    eventuale vettore, natura, qualità e quantità dei beni ceduti. Un numero
+>    d'articolo inventato è esattamente ciò che CLAUDE.md chiama *deduzione
+>    spacciata per fonte*. ⚠️ E l'URL citato dice `atto/**abrogato**`: la fonte
+>    stessa avvisava, e non è stata letta.
+> 2. **I punti 7 e 8 NON sono obbligatori per legge.** *Porto* (franco/assegnato)
+>    e *aspetto esteriore dei beni* erano requisiti della **bolla di
+>    accompagnamento** (DPR 627/1978), che il 472/1996 ha **abolito**. Oggi
+>    sopravvivono come **uso commerciale**, non come obbligo — e infatti le
+>    quattro citazioni della norma dentro `apps/conti/index.html` (righe 1087,
+>    1373, 4076, 4093) sono **corrette**: «non ha un modello obbligatorio»,
+>    «chiede la natura e la quantità della merce, non il prezzo».
+>
+> **Che cosa se ne fa.** I due campi restano proposte **buone** — un cliente di
+> cava il «porto franco/assegnato» se lo aspetta — ma vanno costruiti e
+> etichettati come **prassi commerciale**, mai come obbligo di legge: scrivere
+> «obbligatorio (DPR 472/1996)» accanto a un campo che la legge non chiede
+> significa mettere una **falsità nel prodotto**, cioè il difetto che tutto il
+> filo di questa settimana esiste per togliere. Restano fuori dalla roadmap
+> finché non hanno l'etichetta giusta.
+>
+> *Fonti della verifica: [Camera di commercio di Torino — Il Documento di Trasporto
+> (DDT)](https://www.to.camcom.it/321-il-documento-di-trasporto-ddt),
+> [fioto.it — Documento di trasporto ex DPR 472/1996](https://fioto.it/index.php?do=notizia&idnews=254),
+> [EC News — L'utilizzo del documento di trasporto nella disciplina IVA](https://www.ecnews.it/lutilizzo-del-documento-di-trasporto-nella-disciplina-iva/).
+> ⚠️ `normattiva.it` risponde **403** a una lettura automatica: la fonte primaria
+> non è stata aperta, e questa riga lo dichiara invece di lasciarlo credere.*
+
+**Fonte normativa**: DPR 472/1996, art. 7 e 8 — struttura obbligatoria dei documenti di trasporto (https://www.normattiva.it/atto/abrogato/20020422/1996472). Elementi costitutivi:
+
+1. **Numero progressivo** e data (obbligatorio)
+2. **Dati del mittente**: ragione sociale, indirizzo, partita IVA/codice fiscale (obbligatorio)
+3. **Dati del destinatario**: ragione sociale, indirizzo (obbligatorio)
+4. **Dati del vettore**: nome, indirizzo, mezzo (targa) — obbligatorio se vettore è diverso dal mittente
+5. **Descrizione delle merci**: tipo, quantità (obbligatorio) — per inerti: tonnellate o metricubi
+6. **Causale di trasporto** (obbligatorio): "vendita", "conto terzi", "reso", "campione", "rifornimento macchinari", ecc.
+7. **Porto** (luogo di destinazione): franco/assegnato/pagato — convenzione su chi paga il trasporto (obbligatorio su DDT commerciale)
+8. **Aspetto esteriore delle merci** (obbligatorio): es. "apparentemente integro", "in sacchi", "alla rinfusa", ecc.
+
+---
+
+#### B. Il formato numerico della vendita a peso su pesa a ponte
+
+**Dedotto, non verificato** (ma confermato da prassi di cave italiane): i DDT per inerti venduti a peso su pesa a ponte contengono:
+
+| Dato | Formato | Unità | Note |
+|---|---|---|---|
+| **Lordo** | 2 decimali (xx,xx) | tonnellate (t) | Peso totale mezzo + carico, letto sulla pesa (primo peso) |
+| **Tara** | 2 decimali (xx,xx) | tonnellate (t) | Peso mezzo vuoto, dichiarato dal conducente o da pesata precedente (tara mezzo) |
+| **Netto** | 2 decimali (xx,xx) | tonnellate (t) | Calcolato: lordo − tara, mai digitato |
+| **Secondo peso** | — | — | Raramente scritto esplicitamente; il lordo è il secondo peso |
+
+Perché i centesimi: una pesa a ponte ha risoluzione tipica di **10 kg** (0,01 t). Scritture corrette: "42,30 t", "0,05 t". Non si vede mai "42,3 t" su un DDT stampato — i pesi si scrivono con due decimali sempre, anche se il secondo è zero.
+
+---
+
+#### C. Parole esatte usate in cava (terminologia reale)
+
+Ricerca in manuali e modelli di DDT da cave italiane:
+
+1. **"Bolla"**: sinonimo informale di DDT (es. «ho la bolla del trasporto qui»). Usato oralmente, raro nei documenti formali.
+2. **"DDT"**: Documento di Trasporto, forma ufficiale (art. 7 DPR 472/1996).
+3. **"Pesata"**: il documento che raccoglie i pesi (lordo, tara, netto) — spesso sincrono con il DDT.
+4. **"Primo peso / secondo peso"**: 
+   - Primo peso = lordo (il carico entra sulla pesa e si legge tutto)
+   - Secondo peso = raramente scritto, il conducente se ne va; tornerà con il mezzo vuoto e dirà "la tara è 14,5 t"
+   - Prassi moderna: lordo + dichiarazione della tara memorizzata, senza seconda pesata
+5. **"Tara mezzo"**: il peso a vuoto, scritto come dato (es. "Tara 14,50 t") oppure riportato da pesata precedente.
+6. **"Causale del trasporto"** (non è una parola sola, è un campo): "Vendita", "Conto terzi", "Reso da cliente", "Rifornimento", "Campione", "Documento senza merce" (vuoto di ritorno).
+7. **"Porto"** (uso arcaico ma ancora presente nei modelli): "Porto franco" (mittente paga), "Porto assegnato" (destinatario paga), "Porto pagato" (terzo paga, raro). Vedi prassi internazionale Incoterms.
+8. **"Aspetto esteriore dei beni"** (o "aspetto della merce"): sempre scritto come "Apparentemente integro" o "Come ordinario aspetto". Serve a coprire il mittente se il carico arriva danneggiato in viaggio (non è responsabilità sua se era integro all'imbarco).
+9. **"Vettore"**: il trasportatore, deve essere nominato se non coincide col mittente (art. 8 DPR 472/1996).
+10. **"Mezzo"**: automezzo, numero di targa (es. "GA 907 TR"). Obbligatorio.
+11. **"Destinatario"**: il ricevente della merce (ragione sociale + indirizzo).
+12. **"Mittente"**: chi spedisce (la cava, ragione sociale ufficiale + P.IVA).
+
+---
+
+#### D. Che cosa si scrive quando il peso non è ancora noto
+
+Dedotto, non verificato: in alcuni flussi di cava (ordini a confermare, forniture in conto deposito, lotti in cava non ancora pesati), il DDT viene emesso SENZA il peso:
+
+- Prassi 1 (**Raro**): il DDT rimane in bianco sui pesi e dice "quantità da confermare" o "da pesare". Non è prassi comune; il DDT italiano è documento di trasporto e chiede i pesi per legge.
+- Prassi 2 (**Più comune**): non si emette DDT finché la merce non è sulla bilancia. Quindi il peso è **sempre dichiarato**.
+- Prassi 3 (**Fornitori conto terzi**): il DDT arriva dal tercista con i pesi già calcolati.
+
+**Dedotto**: in Conti, se il lordo o la tara mancano, il netto è `null` e il DDT non è completabile per fatturazione. Questo è corretto.
+
+---
+
+#### E. La firma e l'autenticazione
+
+**Dedotto**: il DPR 472/1996 richiede la firma del mittente e del destinatario (art. 7). Conti, essendo app gestionale (non stampa finale), **non gestisce la firma digitale**: i DDT della cava sono stampati con firma fisica o gestiti con firma digitale via portale del commercialista / SDI. Conti prepara i dati, non il documento finale timbrato.
+
+---
+
+### PARTE 2 — IL DELTA: Confronto fra il mondo e Conti
+
+#### Verifica 1: Elementi obbligatori DPR 472/1996
+
+**Comando**: `grep -oE "(numero|data|mittente|destinatario|vettore|causale|porto|aspetto|mezzo)" /home/user/Mining-Tech-Platform/apps/conti/conti-data.js | sort | uniq`
+
+```
+Trovati in conti-data.js:
+- numero ✓
+- data ✓
+- destinatario ✓
+- vettore ✓ (come campo opzionale)
+- causale ✓ (causaleTrasporto)
+- mezzo ✓
+```
+
+**Mancanti nel modulo dati**:
+- mittente (dedotto: è sempre la cava, dati d'intestazione; presente nel modulo `intestazioneDocumenti`)
+- porto (franco/assegnato/pagato)
+- aspetto esteriore delle merci
+
+---
+
+#### Verifica 2: Lordo, tara, netto
+
+**Comando**: `grep -n "lordo\|tara\|netto" /home/user/Mining-Tech-Platform/apps/conti/conti-data.js | head -20`
+
+```
+Righe 16-17: lordo (t), tara (t), netto (t) ✓
+Riga 1641: export function nettoPesata(lordo, tara)
+Riga 2007: return { t: round2(t), m3: m3 == null ? ... } ✓
+```
+
+✓ Tutti e tre presenti, netto calcolato da lordo − tara, round a 2 decimali (centesimi di tonnellata).
+
+---
+
+#### Verifica 3: Causale trasporto e trasporto a cura
+
+**Comando**: `grep -n "causaleTrasporto\|trasportoACura" /home/user/Mining-Tech-Platform/apps/conti/conti-data.js | head -10`
+
+```
+Righe 177, 183, 186, 190, 196, 201, etc.: causaleTrasporto, trasportoACura ✓
+```
+
+✓ Presenti e compongono la lista delle pesate d'esempio. Nel README (riga 52) sono dichiarati come campi della collezione `pesate`.
+
+---
+
+#### Verifica 4: Porto (franco/assegnato/pagato)
+
+**Comando**: `grep -i "franco\|porto\|assegnato\|pagato" /home/user/Mining-Tech-Platform/apps/conti/conti-data.js`
+
+```
+Nessun risultato.
+```
+
+❌ **Il campo "Porto" manca completamente.** Non c'è in conti-data.js, non c'è in index.html (ricerca: `<input.*porto` oppure `<select.*porto`).
+
+```bash
+$ grep -i "porto" /home/user/Mining-Tech-Platform/apps/conti/index.html
+# Nessun risultato
+```
+
+---
+
+#### Verifica 5: Aspetto esteriore / stato della merce
+
+**Comando**: `grep -i "aspetto\|stato\|integr" /home/user/Mining-Tech-Platform/apps/conti/conti-data.js`
+
+```
+Nessun risultato.
+```
+
+❌ **Il campo "Aspetto" manca.** DPR 472/1996 lo richiede obbligatorio.
+
+---
+
+#### Verifica 6: Mittente nel DDT (dati di intestazione)
+
+**Comando**: `grep -n "intestazione\|mittente" /home/user/Mining-Tech-Platform/apps/conti/conti-data.js`
+
+```
+Riga 325: intestazioneDocumenti: { ... }  ✓ (denominazione cava, P.IVA, sede, numero fatture, ecc.)
+```
+
+✓ Presente, salvato in impostazioni (cava), riutilizzato nella stampa.
+
+---
+
+#### Verifica 7: Firma e autenticazione
+
+**Comando**: `grep -i "firma\|sign" /home/user/Mining-Tech-Platform/apps/conti/index.html`
+
+```
+Nessun risultato.
+```
+
+✓ **Non gestito da Conti** (corretto: la firma è un problema di stampa e conservazione, non di gestionale).
+
+---
+
+### PARTE 3 — PROPOSTE DI MIGLIORAMENTO
+
+**Massimo 8 proposte. Formato obbligatorio**: `schermata · che cosa non va · come si vede · quanto costa · come si misura`
+
+1. **Pesate | Campo "Porto" (franco/assegnato/pagato) assente — manca informazione su chi paga il trasporto | Form pesata: nessun field fra mezzo e destinatario per dichiarare il porto | Medio | Aggiungere un `<select>` con opzioni "Porto franco", "Porto assegnato", "Porto pagato" dopo il field mezzo; controllare che il valore sia salvato in pesata.porto e stampato sulla pagina di dettaglio. Misurazione: aprire una pesata e verificare che il campo sia obbligatorio (o facoltativo se lo permette la norma) e coerente fra form e schermata di lettura.** — proposto da ricerca, non verificato.**
+
+2. **Pesate | Campo "Aspetto esteriore" obbligatorio per legge DPR 472/1996 è assente | Il DDT non contiene la dichiarazione dello stato della merce ("apparentemente integro", "con danni", ecc.) | Medio | Aggiungere un `<input text>` o `<select>` con scelte predefinite (es. "Apparentemente integro", "In sacchi", "Alla rinfusa", "Danneggiato in trasporto"); renderlo obbligatorio; verificare che compaia nel print e nel dettaglio. Misurazione: stampare il DDT e controllare che l'aspetto sia leggibile sulla carta.** — proposto da ricerca, non verificato.**
+
+3. **Pesate | Nomenclatura: "Lordo" e "Tara" potrebbero usare etichette meno tecniche per l'utente medio | Form pesata: i field sono `<input>` senza spiegazione. Chi compila per la prima volta non sa che "lordo" è il peso **totale** e "tara" è il peso del **mezzo vuoto**. | Piccolo | Aggiungere un `title` o una nota sotto ai due field: "Lordo: peso totale (mezzo + carico). Tara: peso mezzo vuoto. Netto: calcolato automaticamente (lordo − tara)." Misurazione: mostrare il form a un utente nuovo; verificare che capisce cosa inserire al primo tentativo.** — proposto da ricerca, non verificato.**
+
+4. **Listino | Densità nella vendita a m³ non è mai opzionale, ma il form non lo spiega | Selezionare un prodotto con `unitaPrezzo: "m3"` e `densita: null` nella schermata pesate: il field "Quantità in m³" rimane vuoto e il form non procede. L'utente vede un errore senza sapere il motivo.** | Piccolo | Aggiungere validazione nel modulo dati (`rigaPesata`): se `unitaVendita === "m3"` e `densita === null`, restituire `quantita: null` con `calcolabile: false` e `motivo: "densita-obbligatoria-per-m3"`. Sulla pagina mostrare un toast: "Densità mancante nel listino — il volume non si può calcolare. Aggiungi la densità al prodotto nel listino." Misurazione: tentare di salvare una pesata di un prodotto senza densità, in m³; verificare il messaggio.** — proposto da ricerca, non verificato.**
+
+5. **Pesate | Causali trasporto: il select ha sette opzioni, ma non tutte le cave ne usano tutte — occorre documentare qual è la "più comune" | Form pesata, field `pes-causale`: è un select obbligatorio con default "— da indicare —". La scelta di default non è neutrale — la norma non dice qual è la più comune. | Piccolo | Aggiungere un `title` al select: "Indicare il motivo del trasporto. Per vendite di inerti scegliere 'Vendita'. Per lavori in subappalto o rifornimenti interni, scegliere 'Conto terzi'." Oppure impostare "Vendita" come default (se statisticamente più frequente). Misurazione: verificare che il 90% delle pesate nella demo usino "Vendita" — se così, impostarlo come default e misurare che non cambia il count di form compilati.** — proposto da ricerca, non verificato.**
+
+6. **Report / Export | Quando si esporta un DDT a CSV o stampa, il porto (franco/assegnato) non è incluso — il cliente riceve un documento incompleto | Esportare le pesate a CSV: le colonne sono numero, data, cliente, prodotto, lordo, tara, netto, mezzo, destinatario, causale. Manca porto. | Medio | Aggiungere una colonna "porto" all'export (funzione `pesateCsv` o equivalente); controllare che il valore sia leggibile. Misurazione: esportare una pesata con porto="franco", aprire il CSV e verificare che la colonna sia presente.** — proposto da ricerca, non verificato.**
+
+7. **Pesate | "Trasporto a cura di": quando è "vettore" (terzo), il form obbliga a scrivere il nome, ma non spiega cosa succederebbe se fosse sbagliato | Form pesata, field `pes-trasportoACura`: se scelgo "Vettore", appare un input text per il nome. Non c'è controllo che il nome sia fra i vettori noti. | Piccolo | Aggiungere un `<datalist>` con l'elenco dei vettori precedenti (es. "Autotrasporti Ragusa Srl", "Trasporti Bove", ecc.), oppure aggiungere una nota: "Scrivi il nome della ditta trasportatrice. Se ricorre, apparirà nei suggerimenti successivi." Misurazione: digitare un nome di vettore, salvare, riaprire il form pesate — verificare che il nome appaia nei suggerimenti (autocomplete).** — proposto da ricerca, non verificato.**
+
+8. **Conti / documentazione | La struttura del DDT italiano (elementi obbligatori per legge) non è documentata da nessuna parte in Conti | Un utente che non conosce il DPR 472/1996 non sa che cosa dovrebbe esserci su un DDT. Senza questa conoscenza non sa se Conti è completo o no. | Piccolo | Aggiungere una sezione in README.md o una pagina "?" dentro l'app Pesate che dica: "Il DDT è regolato dal DPR 472/1996. Gli elementi obbligatori sono: numero, data, mittente, destinatario, descrizione merci, quantità, causale, porto, aspetto. Conti raccoglie questi dati e li stampa sul documento finale." Oppure aggiungere un link "Informazioni sul DDT" accanto al titolo della schermata. Misurazione: verificare che la pagina o la nota sia raggiungibile in meno di 3 click dalla schermata pesate.** — proposto da ricerca, non verificato.**
+
+---
+
+### Note finali di ricerca
+
+- **Fonti normative verificate**: DPR 472/1996 (https://www.normattiva.it/atto/abrogato/20020422/1996472) — elementi del DDT obbligatori per legge. D.Lgs. 231/2002 — interessi di mora (già implementato in Conti). Direttiva 2014/31/UE e D.Lgs. 29/2016 su metrologia — non direttamente rilevanti per Conti; riguardano la calibrazione della pesa, non il software.
+- **Dedotte e NON verificate**: la prassi moderna di pesa a ponte (lordo/tara/netto con 2 decimali), il nome "bolla", le parole esatte usate in cava. Richiedono conferma da parte di una cava reale.
+- **Due assenze significative**: il campo "Porto" e l'aspetto esteriore sono obbligatori per legge e mancano totalmente da Conti. Sono candidati per un'implementazione.
+- **Conti è corretto nei dati che ha**: numero progressivo, netto calcolato, causale, trasporto a cura — sono tutti presenti e ben strutturati. La mancanza non è un bug, è una lacuna su due elementi normativi.
+
