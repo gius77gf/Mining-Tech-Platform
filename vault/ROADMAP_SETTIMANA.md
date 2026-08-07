@@ -1233,6 +1233,29 @@ numero scritto dove non era stato misurato niente**.*
 - [x] ✅ **Terza avvertenza su `run-kpi`** (`006088f`): una prova scritta in
   fondo non può essere `async`, perché l'`await` sta a metà file e il totale si
   stampa senza aspettarla. Non è «dopo il `process.exit`»: è **dopo l'await**.
+- [x] ✅ **La Dashboard senza rete** (`4ee8f4e`): tre rettangoli vuoti che non
+  dicevano perche' — il principio del fondatore applicato a un DISEGNO invece
+  che a un numero. Chart.js viene da un CDN, quindi senza rete quello e' lo
+  stato NORMALE, e in cava il segnale non c'e'. Era anche **la schermata che
+  nessuna prova aveva mai aperto** (`nav('dashboard')` sollevava). Trovata da
+  una riga «non ho guardato», letta invece che saltata.
+- [x] ✅ **La guardia del PDF guardava una libreria su due** (`1678fa4`): otto
+  copie identiche su `jspdf`, **zero** controlli sulle undici chiamate ad
+  `autoTable`. E «una c'e' e l'altra no» e' uno stato che il service worker
+  permette **apposta** (precacha ogni indirizzo col proprio `.catch()`).
+  Misurato: nessun PDF e **nessun messaggio**.
+- [x] ✅ **I decimali col punto nel core** (`3776a30`): 11 numeri a schermo su
+  32 schermate, accanto a date italiane. Nasce `perLettura` in `shared/`, la
+  gemella di `perCampo` — e la convenzione giusta era gia' scritta a mano nel
+  PDF.
+- [x] ✅ **Le tre copie del formattatore** (`9818d4a`, `ecf5024`): `numeroIt` di
+  Campo e le DUE di Flotta diventano `perLettura`. La copia di Flotta era gia'
+  divergente (`null` → «0»), ed era **gia' censita** in `sonda-vuoto.mjs`: la
+  sua riga e' stata ritirata perche' la trappola non c'e' piu'.
+- [x] ✅ **Il punto decimale nelle sei app: non c'e'** (`8d9ed88`, `556f2db`):
+  0 su 41 sezioni, con la prova e il denominatore. La prima misura ne diceva
+  **217**, tutti falsi — erano migliaia scritte bene, e il segno era che il
+  conto era alto proprio dove la difesa e' piu' forte.
 - [x] ✅ **I riquadri del rapportino che si sta scrivendo** (`76ecc35`): a
   rapportino vuoto i metri dicevano «0.0» in mezzo a media e mc che dicevano
   gia' «—» (terza volta per questa coppia); e con **un foro a 9 m** e la maglia
