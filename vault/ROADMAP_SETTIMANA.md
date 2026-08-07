@@ -1233,6 +1233,16 @@ numero scritto dove non era stato misurato niente**.*
 - [x] ✅ **Terza avvertenza su `run-kpi`** (`006088f`): una prova scritta in
   fondo non può essere `async`, perché l'`await` sta a metà file e il totale si
   stampa senza aspettarla. Non è «dopo il `process.exit`»: è **dopo l'await**.
+- [x] ✅ **I riquadri del rapportino che si sta scrivendo** (`76ecc35`): a
+  rapportino vuoto i metri dicevano «0.0» in mezzo a media e mc che dicevano
+  gia' «—» (terza volta per questa coppia); e con **un foro a 9 m** e la maglia
+  vuota usciva «9.0 metri · 9.00 media · **0.0 mc**», perche' `parseMaglia("")`
+  da' B=0 e S=0. Il guardiano copriva «nessuna profondita'» e non «nessuna
+  maglia» — il caso per cui `misureRapportino` esiste, gia' risolto in
+  `shared/` per il rapportino salvato. Ora il form fa giudicare il modulo.
+  Banco 19 → **25** prove, controprova 5/5 difetti e 10 cadute. E la sonda che
+  contava i decimali col punto (**4 a schermo su 21 schermate**, quindi niente
+  cantiere sul separatore) e' quella che li ha fatti saltare fuori.
 - [x] ✅ **L'elenco delle volate del core, quarta copia debole** (`f108ef0`):
   `misureVolataProgetto` è in `shared/` **ed è importata in `index.html`** —
   documento, scheda e riquadro la chiamavano, l'elenco no, e scriveva «0 mc»
@@ -1248,7 +1258,7 @@ numero scritto dove non era stato misurato niente**.*
 ## Riferimenti
 
 - Ultimo checkpoint **per data vera**:
-  `vault/checkpoints/20260807-200555_la-quarta-copia-debole-del-core.md`
+  `vault/checkpoints/20260807-201912_il-form-che-diceva-zero-mc-con-nove-metri.md`
   *(dato da `node apps/deepwork-id/tests/date-checkpoint.mjs`, non letto a occhio:
   per NOME il più alto sarebbe `20260805-100000_…`, che è stato scritto **tre
   giorni prima**. Questa riga era ferma al 01/08: il puntatore al file più
