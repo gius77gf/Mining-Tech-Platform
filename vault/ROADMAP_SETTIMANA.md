@@ -693,6 +693,27 @@ numero scritto dove non era stato misurato niente**.*
   di Flotta erano **due id inventati dal banco**, non pezzi mancanti di
   prodotto: sesta volta in un giorno che sbaglia il controllo.
 
+- [x] ✅ **In Flotta «è ripartito» non faceva NIENTE da una settimana**
+  (`942db1e`): `chiediDati()` chiamata **sei volte** e mai definita — il commit
+  `486011d` del 31/07 aveva portato in `shared/dw-app-ui.js` **sette** delle
+  otto funzioni della struttura del core, e la ottava la usava una app sola.
+  Provato **premendo il bottone**: `chiediDati is not defined`, 0 modali. Dopo:
+  1 modale, 0 errori.
+  ⛔ La parte che vale più della correzione: `nomi-liberi.mjs` esiste apposta
+  per questa famiglia e diceva verde. Il riconoscitore dei dichiarati prendeva
+  **tutta la riga**, quindi legava ogni parola sulla stessa riga di un `const`
+  — cieco sulla forma più frequente che il codice abbia. Stretto: **2** falsi
+  allarmi nuovi in tutto, dichiarabili per nome, e **1 difetto vero**.
+  ⚠️ E `UI_CONDIVISA` di `run-stile` aveva **6** nomi a mano contro i **10**
+  che la struttura espone: adesso è derivato.
+- [x] ✅ **La ricerca sul DDT verificata prima di entrare in roadmap**
+  (`78fd448`): i due «non c'è» (*porto*, *aspetto esteriore*) sono **veri**, ma
+  la giustificazione era inventata — «DPR 472/1996 art. 7 e 8» non esistono (è
+  un **articolo unico**), e quei due elementi erano requisiti della **bolla di
+  accompagnamento** che proprio quel decreto ha **abolito**. Le nostre quattro
+  citazioni della norma in Conti sono invece **corrette**. Le due proposte
+  restano buone come **prassi commerciale**, mai come obbligo di legge.
+
 ## Riferimenti
 
 - Ultimo checkpoint **per data vera**:
