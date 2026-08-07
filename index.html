@@ -1273,13 +1273,36 @@ function aggiornaNotifBadge(){
 }
 
 // ── TEMA (v4.4: SOLO 2 modalità — Dark / Light. outdoor legacy assorbito in light) ──
-function applyTheme(){ const light=(DB.settings.theme==='light'||!!DB.settings.outdoor); document.body.classList.remove('outdoor-mode'); document.body.classList.toggle('light-mode',light); const b=$('btn-outdoor'); if(b)b.classList.toggle('active',light);
+/* ⛔ LA DECISIONE «SIAMO NEL CHIARO?» ERA SCRITTA TRE VOLTE, IDENTICA. Stava
+   dentro `applyTheme`, dentro `toggleOutdoor` e dentro `impCarica`, e la forma
+   `(DB.settings.theme==='light' || !!DB.settings.outdoor)` porta con sé una
+   regola di prodotto che non si vede: l'`outdoor` di un documento salvato prima
+   della v4.4 **vale chiaro**, ed è la migrazione silenziosa di chi aveva
+   acceso quel tema in cava. Tre copie della stessa migrazione sono tre posti in
+   cui dimenticarla il giorno che cambia — è la famiglia della «copia più
+   debole», che qui non aveva ancora divergito ma aveva già tutto il necessario
+   per farlo. Adesso la regola sta in un posto solo — ed è la quarta chiamata,
+   nel pannello diagnostico delle Impostazioni, la ragione per cui è stata
+   scritta: lì c'era la riga «Outdoor mode: disattivato», e **non poteva dire
+   altro**. Ogni salvataggio riscrive `outdoor:false` e `applyTheme` toglie
+   sempre quella classe, quindi era una **costante travestita da misura**, su un
+   pannello che è esattamente il posto dove si va a cercare la verità quando
+   qualcosa non torna. Adesso quella riga dice il tema che l'app sta davvero
+   usando, deciso dalla stessa funzione che lo applica.
+   ⚠️ E il commento che spiega tutto questo sta QUI e non accanto alla riga,
+   perché quella riga vive dentro un template literal: un `<!-- -->` là dentro
+   non è un commento, è testo — e i suoi apostrofi hanno chiuso la stringa e
+   fatto cadere `sintassi-pagine` (15 → 14) al primo tentativo. Un esempio di
+   codice dentro un commento va scritto senza i suoi delimitatori; un commento
+   dentro una stringa non va scritto affatto. */
+function temaChiaro(){ return DB.settings.theme==='light' || !!DB.settings.outdoor; }
+function applyTheme(){ const light=temaChiaro(); document.body.classList.remove('outdoor-mode'); document.body.classList.toggle('light-mode',light); const b=$('btn-outdoor'); if(b)b.classList.toggle('active',light);
   /* la scelta vale per tutto l'ecosistema: le app verticali la rileggono da qui
      (shared/dw-tema.js), così chi accende il chiaro in cava non torna al buio */
   try{ localStorage.setItem('dw-tema', light?'chiaro':'scuro'); }catch(e){} }
 function applyOutdoor(){ applyTheme(); }
 async function toggleOutdoor(){
-  const light=(DB.settings.theme==='light'||!!DB.settings.outdoor);
+  const light=temaChiaro();
   const ns={...DB.settings,theme:light?'dark':'light',outdoor:false};
   await fbSet('config','settings',ns);DB.settings=ns;applyTheme();
   toast('Tema: '+(light?'Scuro':'Chiaro'),'success');
@@ -3192,7 +3215,7 @@ function initImp(){
   $('imp-pwd-old').value='';$('imp-pwd-new').value='';$('imp-pwd-conf').value='';$('imp-err').style.display='none';
   $('imp-lang').value=DB.settings.lang;$('imp-unit').value=DB.settings.unit;
   $('imp-not-rem').checked=DB.settings.notRem;$('imp-not-scad').checked=DB.settings.notScad;$('imp-not-set').checked=DB.settings.notSet;
-  $('imp-theme').value=(DB.settings.theme==='light'||!!DB.settings.outdoor)?'light':'dark';
+  $('imp-theme').value=temaChiaro()?'light':'dark';
 }
 function impTab(t,el){document.querySelectorAll('#screen-impostazioni .atab').forEach(x=>x.classList.remove('active'));el.classList.add('active');$('imp-profilo-panel').style.display=t==='profilo'?'block':'none';$('imp-app-panel').style.display=t==='app'?'block':'none';}
 async function salvaProfilo(){
@@ -3331,7 +3354,7 @@ function renderSysInfo(){
       <div class="preview-row"><span class="preview-lab">Versione</span><span class="preview-val">v4.8</span></div>
       <div class="preview-row"><span class="preview-lab">Service Worker</span><span class="preview-val">${swStatus}</span></div>
       <div class="preview-row"><span class="preview-lab">PWA installabile</span><span class="preview-val">${$('btn-install-pwa')?.style.display!=='none'?'sì':'no/già installata'}</span></div>
-      <div class="preview-row"><span class="preview-lab">Outdoor mode</span><span class="preview-val">${DB.settings.outdoor?'attivo':'disattivato'}</span></div>
+      <div class="preview-row"><span class="preview-lab">Tema</span><span class="preview-val">${temaChiaro()?'chiaro':'scuro'}</span></div>
     </div>
     <div class="preview-sec" style="margin-top:8px;">
       <div class="preview-head">Browser</div>
