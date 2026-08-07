@@ -127,6 +127,15 @@ il browser).
 ⚠️ Scrivendo quel file l'errore è stato rifatto: il commento d'intestazione
 conteneva i delimitatori veri e chiudeva il commento a metà. Un esempio di
 codice dentro un commento va scritto **senza i suoi delimitatori**.
+⚠️ **E LA VESTE NUOVA, 07/08: UN COMMENTO DENTRO UNA STRINGA NON VA SCRITTO
+AFFATTO.** Correggendo una riga del pannello diagnostico del core ho messo la
+spiegazione in un `<!-- … -->` accanto alla riga — ma quella riga vive dentro un
+**template literal**, dove `<!-- -->` non è un commento, è **testo**: i suoi
+apostrofi («l'app», «c'era») hanno chiuso la stringa e `sintassi-pagine` è
+passata da 15 a **14**. La regola pratica: se il testo che stai commentando è
+dentro una `` ` ``, il commento va **fuori**, sopra la funzione che compone la
+stringa. E la prova che lo dice in tre secondi esiste già ed è quella —
+lanciarla prima di committare costa niente.
 
 ⛔ **IL COSTO DELLA VERIFICA VA A SCAGLIONI.** Rilanciare tutto a ogni unità è
 il modo più sicuro di lavorare piano: il giro completo dei banchi dura **una o
