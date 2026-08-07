@@ -1057,6 +1057,109 @@ aloni d'ambiente e le ombre si spengono, esattamente come nel core.
 
 ---
 
+## PARTE 6 — I due terzi che non erano mai stati verificati
+
+*(aggiunta il 07/08/2026, misurata, verificata contro il commit `24c4d89`)*
+
+⛔ **Le sei palette qui sopra sono state verificate a contrasto in UN tema su
+tre.** Le app hanno tre modalità — `shared/dw-tema.js` gira fra `scuro`,
+`chiaro` e `sole` — e fino al 07/08 il banco `contrasto.mjs` ne misurava
+soltanto il **buio**. Cioè due terzi di quello che un cliente può vedere non li
+guardava nessuno, e il terzo non misurato che pesa di più è `sole`: è il tema
+fatto per chi legge il telefono **in cava, sotto il sole**, che è il posto dove
+questo prodotto vive.
+
+### 6.1 Che cosa dice la misura
+
+| tema | testi misurati | sotto soglia AA | superfici |
+|---|---|---|---|
+| **scuro** | 4.638 | **0** | 14 |
+| **chiaro** | 3.692 | **54** | 6 (le altre 8 non hanno questo tema) |
+| **sole** | 3.694 | **54** | 6 |
+
+Per app, nel chiaro: **flotta 13 · sentinella 10 · campo 10 · conti 10 · scudo 9
+· terra 2**.
+
+⚠️ **E i due elenchi sono gli stessi.** Non è un difetto del tema `sole`: è un
+difetto di **tutto ciò che non è buio**. Il core e le altre otto superfici non
+compaiono perché non hanno questi temi — il core ne ha due suoi dalla v4.4, e
+va detto invece di lasciarlo dedurre.
+
+### 6.2 La causa, che è una sola per tutte e sei
+
+`--success`, `--warn` e `--danger` sono dichiarati **una volta sola, per il
+buio**, e non ridetti per i due temi chiari. `shared/dw-app-ui.css` l'aveva già
+previsto per i **gradienti** e per due `:hover` — mai per i `color:` che ogni
+app scrive in casa propria (venti punti nella sola Sentinella).
+
+⛔ **E non si risolve ridefinendo `--warn`.** Quella variabile fa **due
+mestieri**: è anche il *pieno* di `.badge.warn` e `.toast.err`, che sopra ci
+scrivono un quasi nero. Scurirla sposta il difetto invece di toglierlo. La
+strada che regge è **aggiungere un nome, non riscrivere il vecchio**.
+
+### 6.3 Perché due livelli e non uno — la parte che un conto non poteva dare
+
+Portando tutto a 4,9:1 la prova **passa**, e il numerone d'ambra diventa
+**marrone** accanto alla sua pastiglia «ATTENZIONE», che resta ambra piena
+perché è un fondo. A 4,9:1 sul bianco nessuna tinta della famiglia ambra è
+ancora ambra: è fisica. Ma le soglie WCAG sono **due davvero** — 4,5 per il
+testo piccolo, 3 per quello grande (≥24 px, o ≥18,66 px in grassetto) — e una
+cifra da 34 px non ha bisogno di stare al livello di un'etichetta da 8 px.
+Si vede **solo affiancando gli scatti**, alla terza iterazione.
+
+Riferimento, misurato su Sentinella (le altre rimisurano sui **propri** fondi):
+
+| | testo piccolo (4,5) | numerone (3) | prima |
+|---|---|---|---|
+| verde | `#127617` **4,90** | `#16911c` **3,49** | 2,49 |
+| ambra | `#8e5a0e` **4,92** | `#af6f11` **3,49** | 2,44 |
+| rosso | `#c6231e` **4,86** | `#d6352f` **4,04** | 3,90 |
+
+⚠️ **Le tinte non si toccano** (123°/36°/2°): uno stato non deve cambiare
+significato cambiando tema.
+⚠️ E l'idioma di casa `color-mix(… N%, #000)` è stato **provato e scartato con
+la misura**: scala tutti i canali, quindi la croma cala in proporzione — a
+4,9:1 l'ambra diventa `#865d21`, croma **41** contro 77. Alzando la saturazione
+mentre si scende di chiarezza si arriva **allo stesso contrasto con croma 53**.
+
+### 6.4 La regola che questa parte aggiunge alle otto della Parte 1
+
+> **Una palette non è finita finché non è verificata nei tre temi.** Un colore
+> scelto per il buio non è una palette: è un terzo di palette, e i due terzi
+> che restano sono quelli che si guardano fuori, con il sole in faccia.
+
+### 6.5 Il righello, e i suoi limiti dichiarati
+
+⚠️ Le 54 sono **segnalate**, non tutte vere. Verificandone dieci a mano con uno
+strumento indipendente (conto WCAG riscritto da zero + lettura dei **pixel**
+dallo screenshot dell'elemento) il banco è stato smentito **una volta su
+dieci**: «µg/m³» era dichiarato 2,92 e vale **4,71** — passava. Altre quattro
+sono vere ma prudenti (2,92 dichiarato contro 3,1-3,3 renderizzati).
+La causa è la **settima trappola** di `contrasto.mjs`, dichiarata nel suo
+commento: `sfondiDi` accoppia *tutte* le fermate del gradiente di fondo con
+*tutte* quelle dell'inchiostro e prende il minimo, cioè accoppia il pixel
+d'inchiostro più chiaro col pixel di fondo più scuro **anche quando stanno agli
+angoli opposti**. Su un elemento piccolo all'estremità di un gradiente a 135°
+costa fino a **1,8** di rapporto.
+⛔ Quindi vale, qui più che altrove, la regola scritta in cima a quel banco:
+**un KO va verificato come un OK**. Correggere un colore sano è un danno, e non
+lo vede nessuno.
+
+### 6.6 Che cosa resta aperto, coi numeri
+
+- **I bordi di stato non sono testo, e nessuno li misura.** Portano
+  informazione (WCAG 1.4.11 → 3:1) e nei temi chiari usano il colore crudo:
+  `--warn` **1,92:1** su bianco, `--success` **2,35:1**. Sotto il sole quella
+  striscia è **come si distingue una scheda a posto da una in attenzione**.
+- **La costruzione a due livelli è un candidato per `shared/`**: lì ogni app
+  darebbe le sue tre tinte e i due livelli si ricaverebbero **una volta invece
+  di sei**.
+- **Nove selettori su ventidue la dimostrazione non li fa mai comparire**
+  (misurato in Sentinella): l'aritmetica li copre perché usano gli stessi
+  token, ma nessuno scatto e nessuna passata del banco li ha visti.
+
+---
+
 ## Fuori perimetro
 
 Questo documento copre **le sei app verticali**. Restano fuori:
