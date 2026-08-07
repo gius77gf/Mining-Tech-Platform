@@ -369,7 +369,7 @@ colore del genitore, un raggio che torna a zero. È la stessa forma del
 principio che il prodotto applica ai numeri: **l'assenza di un dato non è un
 dato favorevole**, e qui il dato assente si traveste da «va bene così».
 
-~~Il conto del contagio: **23 selettori** del foglio condiviso cadrebbero su
+~~Il conto del contagio: **22 selettori** del foglio condiviso cadrebbero su
 markup che Genesi **ha già** — non solo la famiglia `.modal-*` ma anche `.kpi`,
 `.kpi.ok`, `.kpi.warn`, `.badge.ok`, `.badge.tag`, `.note.ok`, `.dw-btn`.~~
 
@@ -382,6 +382,21 @@ markup che Genesi **ha già** — non solo la famiglia `.modal-*` ma anche `.kpi
 > — quello che il 03/08 fu dichiarato — resta dov'è: nella tabella qui sotto,
 > colonna «dichiarato il 03/08». Aggiornare la frase non cancella la storia,
 > la lascia dove è verificabile.
+
+> ⚠️ **E un'ora dopo è tornato a 22, per una ragione diversa e istruttiva.**
+> Togliendo da Genesi sei `class="btn-sec"` (una classe che nessun foglio
+> definiva: sei bottoni disegnati come bottoni di sistema) il conto è sceso.
+> Non perché `.btn-sec` fosse un selettore condiviso, ma perché il censimento
+> ricava i selettori con `([^{}]+)\{` — e quello che sta **prima** di una
+> graffa comprende il **commento** che precede la regola. In
+> `shared/dw-app-ui.css` c'è un commento che nomina `.btn-sec`, ed è finito
+> nell'elenco dei selettori. Cioè: uno dei match era un **artefatto**, e si è
+> visto solo perché il numero si è mosso.
+> La lezione, che vale per qualunque censimento su testo: **un commento che
+> nomina un selettore non è un selettore**, e chi estrae con «tutto quello che
+> sta prima della graffa» se li porta dentro tutti. Dichiarato qui invece di
+> essere corretto in silenzio, perché il numero che ne esce è comunque un
+> ordine di grandezza, non una misura fine.
 
 > ⛔ **QUESTO CONTO ERA SBAGLIATO — rimisurato il 04/08.**
 >
