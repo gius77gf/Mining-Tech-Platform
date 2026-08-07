@@ -4770,6 +4770,23 @@ async function reconToVolata(){
        toast('Aggiunt'+plurale(n,'o','i')+' '+conta(n,'foro','fori')+' alla volata #'+(v.numero||'?')+' (nota di provenienza inclusa)','success');
      }}]);
 }
+/* ⛔ IL NOME DI UN FILE CHE ESCE DEVE DIRE DI QUALE FRONTE PARLA. I due file
+   del 3D uscivano con un nome FISSO — `deepwork_fori_fronte.csv` e
+   `deepwork_fronte_3d.png` — quindi due ricostruzioni diverse si
+   sovrascrivevano a vicenda nella cartella dei download, senza che il browser
+   chiedesse niente. È la stessa famiglia corretta il 07/08 su Genesi, dove un
+   confronto d'onda ne cancellava un altro.
+   Che cosa distingue due ricostruzioni: le MISURE del fronte, che sono quelle
+   che l'utente ha appena battuto (`rc-w` e `rc-h`), e il giorno.
+   ⚠️ Il giorno si prende con `isoLocale` e non con `toISOString()`: su una data
+   costruita in ora locale quello perde una o due ore, e attraversando la
+   mezzanotte cambia il giorno — un file datato ieri per un fronte di oggi. */
+function nomeRecon(){
+  const m=(x)=>Number.isFinite(+x)?String(Math.round(+x*10)/10).replace('.',','):'';
+  const w=_recon?m(_recon.W):'', h=_recon?m(_recon.H):'';
+  const misure=(w&&h)?w+'x'+h+'m':'fronte';
+  return misure+'_'+isoLocale(new Date());
+}
 function reconExportHoles(){
   // i fori segnati sul modello non devono andare persi (censimento E1):
   // esporta le posizioni IN METRI (origine: angolo in basso a sinistra del fronte)
@@ -4781,12 +4798,12 @@ function reconExportHoles(){
   });
   const a=document.createElement('a');
   a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(csv);
-  a.download='deepwork_fori_fronte.csv';a.click();
+  a.download='deepwork_fori_fronte_'+nomeRecon()+'.csv';a.click();
   toast('Esportat'+plurale(_recon.markers.length,'o','i')+' '+conta(_recon.markers.length,'foro','fori')+' (CSV in metri)','success');
 }
 function reconSnapshot(){
   if(!_recon||!_recon.renderer){toast('Ricostruisci prima il modello','err');return;}
-  try{_recon.renderer.render(_recon.scene,_recon.cam);const url=_recon.renderer.domElement.toDataURL('image/png');const a=document.createElement('a');a.href=url;a.download='deepwork_fronte_3d.png';a.click();toast('Immagine salvata','success');}
+  try{_recon.renderer.render(_recon.scene,_recon.cam);const url=_recon.renderer.domElement.toDataURL('image/png');const a=document.createElement('a');a.href=url;a.download='deepwork_fronte3d_'+nomeRecon()+'.png';a.click();toast('Immagine salvata','success');}
   catch(e){toast('Snapshot non riuscito','err');}
 }
 // Mappa di profondità AI (Depth Anything V2 via Transformers.js, nel browser)
