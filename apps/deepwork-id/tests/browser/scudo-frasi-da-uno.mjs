@@ -71,6 +71,15 @@
    guarda le unità di misura (`unita-maiuscole.mjs`), i numeri tranquilli sullo
    zero (`scudo-numeri-tranquilli.mjs`) e il testo tagliato dal clamp. */
 import { prendiChromium, sezioniDi, vaiA, apriSuperficie } from './giro.mjs';
+/* ⛔ I RILEVATORI VENGONO DALL'ATTREZZO CONDIVISO, NON RICOPIATI. Fino al
+   07/08 questo file teneva le SUE liste di invariabili, verbi e aggettivi,
+   scritte a poche ore di distanza da quelle di `frasi-da-uno.mjs` — e infatti
+   erano già DIVERSE. È il difetto che CLAUDE.md censisce, applicato ai
+   controlli invece che al prodotto: finché ci sono due elenchi, «nessuna
+   frase al plurale» vuol dire due cose diverse a seconda del banco che
+   risponde, e nessuno se ne accorge perché sono tutt'e due verdi. */
+import { INVARIABILI as INV_COM, VERBI as VERBI_COM, AGGETTIVI as AGG_COM }
+  from './frasi-da-uno.mjs';
 
 const PORTA = process.argv[2];
 const CONTROPROVA = process.argv.includes('--controprova');
@@ -97,11 +106,20 @@ const PAROLE = [
   'previste', 'assegnati', 'assegnate', 'valutati', 'chiuse', 'chiusi',
   'scadute', 'scaduti', 'aperte', 'aperti', 'gravi', 'presenti', 'coperte',
 ];
-const INVARIABILI = ['near-miss', 'analisi', 'DPI', 'specie', 'crisi', 'serie'];
-const VERBI = ['ci sono', 'restano', 'mancano', 'risultano', 'cadono', 'sono', 'hanno', 'vanno'];
-const AGGETTIVI = ['registrati', 'registrate', 'presenti', 'saltati', 'saltate', 'conformi',
-  'assegnati', 'assegnate', 'valutati', 'chiusi', 'chiuse', 'scaduti', 'scadute',
-  'aperti', 'aperte', 'gravi', 'previsti', 'previste', 'diversi', 'diverse'];
+/* ⚠️ E QUELLO CHE RESTA QUI È SOLO IL **DELTA**, dichiarato parola per parola
+   invece di essere nascosto dentro una copia. Aggiungere queste parole
+   all'elenco condiviso renderebbe più severi TUTTI gli altri banchi in una
+   volta, e l'ampiezza di un controllo è un numero che si misura prima di
+   cambiarlo (CLAUDE.md, 07/08): è un'unità sua, non una riga da infilare
+   qui di straforo. */
+const SOLO_SCUDO_INV = ['near-miss', 'DPI'];        // «1 near-miss» è giusto; «1 DPI» pure
+const SOLO_SCUDO_VERBI = ['sono', 'hanno', 'vanno']; // «sono 1 voce», «hanno 1 corso»
+const SOLO_SCUDO_AGG = ['assegnati', 'assegnate', 'valutati', 'chiusi', 'chiuse',
+  'scaduti', 'scadute', 'gravi', 'previsti', 'previste', 'saltati'];
+const unisci = (...liste) => [...new Set(liste.flat())];
+const INVARIABILI = unisci(INV_COM, SOLO_SCUDO_INV);
+const VERBI = unisci(VERBI_COM, SOLO_SCUDO_VERBI);
+const AGGETTIVI = unisci(AGG_COM, SOLO_SCUDO_AGG);
 
 /* ⚠️ `[^\d,./]` — lo slash è escluso perché «0/1 scadenze» è una frazione, non
    un plurale sbagliato. Fra il numero e la parola solo spazi veri, mai un a
