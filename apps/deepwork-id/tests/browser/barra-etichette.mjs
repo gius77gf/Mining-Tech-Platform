@@ -137,6 +137,7 @@ const chromium = await prendiChromium();
 const browser = await chromium.launch({ executablePath: CHROMIUM });
 
 let etichette = 0, superfici = 0, conBarra = 0, guai = 0, tagliate = 0;
+const senzaMisura = [];
 const dettagli = [];
 const temaRifiutato = [];
 let temaMisurate = 0;
@@ -165,10 +166,49 @@ for (const [nome, via] of SUPERFICI) {
       }
       if (larghezza === LARGHEZZE[0]) temaMisurate++;
     }
-    if (CONTROPROVA) await p.addStyleTag({ content: '.nav button{font-size:11px !important}' });
+    if (CONTROPROVA) await p.addStyleTag({ content: '.nav button,.bnav button{font-size:11px !important}' });
     const d = await p.evaluate(() => {
-      const n = document.querySelector('.nav');
-      if (!n) return { voci: 0, male: [] };
+      /* ⛔ DUE SELETTORI, E IL SECONDO È IL CORE (07/08). Le barre delle app
+         sono `.nav`; quella in basso del core è **`.bnav`** (`id="global-nav"`).
+         Con il solo `.nav` questo banco APRIVA il core e non trovava nessuna
+         barra, e stampava — a ogni giro, da mesi — «0 etichette misurate su 0
+         barre (1 superfici aperte) · 0 fuori posto»: un numero che si legge «a
+         posto» e vuol dire «non ho guardato». È la famiglia dello «0 modali su
+         68», e la regola che la prende è scritta in CLAUDE.md: *se un elenco di
+         soggetti è copiato dalla forma di un'app, provarlo su una superficie
+         che quella forma non ce l'ha*. Qui il soggetto è un SELETTORE, che è la
+         stessa cosa in una veste diversa. */
+      const n = document.querySelector('.nav, .bnav');
+      /* ⛔ E NON BASTA TROVARLA: VA PRETESA VISIBILE E PIENA, se no si passa da
+         uno zero evidente a un VERDE FALSO, che è peggio. Misurato il 07/08
+         allargando il selettore per il core: `.bnav#global-nav` esiste, ma in
+         questo stato è `offsetParent === null` e contiene **un bottone solo,
+         senza testo** — la barra vera la riempie il programma più tardi. Con la
+         sola aggiunta del selettore il banco passava da «0 barre» (che almeno
+         si vede) a «1 voce · 0 fuori posto», cioè dichiarava di aver misurato
+         una barra che non c'era. Adesso una barra nascosta o vuota si dichiara
+         NON MISURATA e finisce nel conto in fondo, dove le righe «non ho
+         guardato» vanno lette per prime. */
+      /* ⚠️ E LA VISIBILITÀ NON SI CHIEDE A `offsetParent`: su un elemento
+         `position:fixed` risponde **null** anche quando l'elemento è
+         perfettamente visibile — e OGNI barra in basso è fissa. Provato prima
+         di committare, su Conti: la guardia scritta così dichiarava «barra
+         nascosta» su tutte e quattro le larghezze e avrebbe portato la
+         copertura del banco da 164 etichette a ZERO, cioè avrebbe spento il
+         controllo per correggere un buco. Si chiede al rettangolo e al
+         `display`, che rispondono alla domanda vera. */
+      const st = n && getComputedStyle(n);
+      const r = n && n.getBoundingClientRect();
+      if (!n || !st || st.display === 'none' || st.visibility === 'hidden' || !r.width || !r.height)
+        return { voci: 0, male: [], nonMisurata: 'barra nascosta' };
+      /* ⚠️ E «vuota» si misura sulle ETICHETTE, non sui bottoni: la `.bnav` del
+         core è visibile e contiene UN bottone SENZA testo — la barra vera la
+         riempie il programma più tardi. Contando i bottoni, il banco tornava a
+         dire «1 voce · 0 fuori posto», cioè un verde su una barra che non c'è:
+         il difetto che questa guardia esiste per impedire, in terza stesura. */
+      const conParola = [...n.querySelectorAll('button')].filter((x) =>
+        [...x.childNodes].some((z) => z.nodeType === 3 && z.textContent.trim()));
+      if (!conParola.length) return { voci: 0, male: [], nonMisurata: 'barra senza etichette (non ancora costruita)' };
       const bs = [...n.querySelectorAll('button')];
       /* ⛔ QUINTA VERSIONE, E LE QUATTRO PRIME ERANO TUTTE SBAGLIATE. Vale la
          pena elencarle, perche' il difetto era sempre lo stesso — **calcolare
@@ -250,6 +290,11 @@ for (const [nome, via] of SUPERFICI) {
       return { voci: bs.length, male, tagliate: strette.length };
     });
     await ctx.close();
+    /* ⛔ E LA RAGIONE PER CUI NON SI E' MISURATO VA CONTATA, non saltata in
+       silenzio: «pagina senza barra» e «barra che c'e' ma e' nascosta o vuota»
+       sono due cose diverse, e la seconda e' un buco del BANCO, non del
+       prodotto. Finiscono nella riga «non ho guardato» in fondo. */
+    if (d.nonMisurata) { senzaMisura.push(`${nome}@${larghezza}: ${d.nonMisurata}`); continue; }
     if (!d.voci) continue;            // pagine senza barra: niente da misurare
     conBarra++; etichette += d.voci; guai += d.male.length; tagliate += (d.tagliate || 0);
     console.log(`  ${d.male.length ? '✗' : 'ok'}  ${nome} @${larghezza}: ${d.voci} voci`
@@ -265,6 +310,14 @@ for (const [nome, via] of SUPERFICI) {
 await browser.close();
 
 for (const x of dettagli) console.log(x);
+/* ⛔ PRIMA DI TUTTO: le barre TROVATE ma non misurabili. Il core sta qui — la
+   sua `.bnav#global-nav` esiste, ma in questo stato e' nascosta e vuota, quindi
+   la barra vera del core NON la misura ancora nessuno. Dichiararlo e' l'unica
+   cosa che impedisce a un «0 fuori posto» di sembrare una promozione. */
+if (senzaMisura.length) {
+  console.log(`\n   ⚠️ ${senzaMisura.length} barre TROVATE ma NON misurate — non vuol dire «a posto»:`);
+  for (const x of senzaMisura) console.log(`      · ${x}`);
+}
 /* ⛔ PRIMA DEI KO: quante superfici ha davvero guardato con questo tema. Un
    «zero fuori posto» ottenuto su due superfici su quattordici non è una buona
    notizia, ed è la riga «non ho guardato» che CLAUDE.md dice di leggere per
