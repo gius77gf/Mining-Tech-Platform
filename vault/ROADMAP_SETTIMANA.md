@@ -928,6 +928,27 @@ numero scritto dove non era stato misurato niente**.*
   `Report_tecnico__.pdf`. ⚠️ E scrivendo la correzione avevo chiamato un
   `oggiLocale()` che **non esiste** — la famiglia di `chiediDati`. Preso
   cercando in casa; verificato che `nomi-liberi` l'avrebbe preso (7/0 → 6/1).
+- [x] ✅ **Conti nei temi chiari** (`099f375`): chiaro **10 → 0**, sole **10 →
+  0**, buio invariato **ai pixel** (il fondo di rumore degli scatti è identico
+  alla differenza prima/dopo). ⛔ E la **regola 24** di `run-stile` accusava
+  Conti di **tre cose false**: teneva una mappa sola e un fondo solo, quindi
+  misurava la palette di giorno contro la scheda del buio. La faccia che
+  *assolve* era peggiore — bastava scrivere una fermata con `color-mix()` o
+  dietro un `var()` perché quel gradiente sparisse dai giudicati **in silenzio**.
+  Soggetti 17 → **20**, con la controprova di giorno. ⚠️ E `.meta.pesa` era
+  tagliata **in verticale**, non in larghezza: il `display:-webkit-box` sta in
+  `shared/`, e Chromium lo riporta `flow-root` col clamp ancora vivo.
+- [x] ✅ **Terra nei temi chiari** (`f73efba`): chiaro **2 → 0**, sole **2 → 0**,
+  testi identici, buio identico **al md5** degli scatti. ⛔ Ma il «2» non era un
+  merito: dei **18** `color:var(--stato)` di Terra — il massimo delle sei app —
+  il banco ne poteva vedere **uno**. Forzando gli stati mai mostrati dalla
+  dimostrazione: **8 misure, 8 sotto soglia**, fino a **1,77:1**. ⚠️ E la
+  forbice, letta sul «759k», **non ribalta** il verdetto: 0,08 di scarto, non
+  1,8 — dipende da dove stanno le due fermate, e lo dice solo la geometria.
+- [ ] **La copertura di Terra, non la sua palette**: `.vita.warn`,
+  `.vita.danger`, `.kpi.warn`, `.riga.att`, `.riga.dng` non compaiono **mai**
+  nella dimostrazione — sei punti d'interfaccia, fra cui l'avviso «volume
+  autorizzato esaurito», che nessun banco ha aperto in nessun tema.
 - [ ] **Le 54 dei temi chiari** — è una **palette**, non una correzione: va
   decisa con la ricerca cromatica e verificata a contrasto. Fra le peggiori:
   «Conforme» nell'esito del report a **2,35** (ne servono 3), «Riferibilità
