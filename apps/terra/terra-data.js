@@ -44,7 +44,7 @@
 // REGIONALE, quindi soglie, preavvisi e periodicità li imposta l'utente.
 // ============================================================
 
-import { parseCsvLine, numIt, isIntestazione, giorniTra, isoLocale, dataISOEsiste, conta,
+import { parseCsvLine, numIt, isIntestazione, giorniTra, isoLocale, dataISOEsiste, conta, csvCell,
          AVVISO_DECIMALE as AVVISO_DECIMALE_SHELL } from "../../shared/deepwork-id-client/dw-shell.js";
 
 export const DEMO = {
@@ -1748,6 +1748,45 @@ export function parseRilieviCsv(text) {
     // un rilievo con una data impossibile finirebbe nell'anno sbagliato del
     // riepilogo volumi, che è un documento per l'ente (03/08)
     .filter(p => dataISOEsiste(p.data) && Number.isFinite(p.volumeM3) && p.volumeM3 >= 0);
+}
+
+/* ⛔ IL FILE DEI RILIEVI CHE SI RI-CARICA — decisione 12a, presa dal ciclo il
+   07/08 e costruita qui nella sua prima delle sei voci.
+   Il fatto misurato il 31/07: ogni app scarica dei CSV, e questo faceva
+   credere — anche a chi scriveva il documento — che ci fosse un backup di
+   tutto. **Non è così**: i file che rientrano davvero sono sette, tutti gli
+   altri sono **prospetti** con colonne calcolate, che servono al
+   commercialista o all'ente e non si ri-caricano. Va benissimo che sia così:
+   quello che non va è **crederli un backup**.
+   ⚠️ E fra le sei cose rimaste senza un file che rientra, i **rilievi** sono
+   la sola che non si può ricostruire da nessuna carta: una pesata ha il suo
+   DDT in archivio e un incasso ha l'estratto conto, ma un volo di drone del
+   marzo scorso non si rifà — il terreno nel frattempo è cambiato. Per questo
+   è la prima.
+   ⛔ E il formato è **quello che `parseRilieviCsv` legge**, non uno nuovo: sei
+   colonne nello stesso ordine, i numeri col PUNTO (il lettore usa `numIt`, che
+   la virgola la legge, quindi una prova di andata e ritorno resterebbe verde
+   anche scrivendo la virgola — è la trappola delle due metà che sbagliano
+   insieme, e per quello la prova guarda anche il TESTO del file).
+   ⚠️ La `provenienza` si scrive **sempre**, anche quando vale «scavo»: è il
+   difetto del 03/08 in una veste nuova — una cella vuota in un file che
+   rientra si rilegge come «non dichiarata», e qui invece la si sa. */
+export function csvRilievi(rilievi) {
+  const righe = ["data;volumeM3;metodo;gsd;fronte;provenienza"];
+  for (const r of (rilievi || [])) {
+    if (!r) continue;
+    righe.push([
+      csvCell(r.data || ""),
+      /* il punto decimale, non la virgola: il file esce dall'azienda e lo
+         riapre anche un altro programma */
+      r.volumeM3 == null || !Number.isFinite(+r.volumeM3) ? "" : String(+r.volumeM3),
+      csvCell(r.metodo || ""),
+      csvCell(r.gsd || ""),
+      csvCell(r.fronte || ""),
+      csvCell(provenienzaDi(r)),
+    ].join(";"));
+  }
+  return righe.join("\n") + "\n";
 }
 
 export function kpiFrom(fronti, rilievi, piano, oggi = new Date()) {

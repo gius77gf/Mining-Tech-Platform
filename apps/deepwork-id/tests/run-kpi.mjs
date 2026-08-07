@@ -21867,7 +21867,11 @@ test("⛔ etichettaStatoDocumento: la mappa esce dalla pagina e la leggono in du
       ok(fuori.length === 0, `${n}: ${fuori.length} export senza marchiaCsv →${fuori.map((r) => "\n      " + r.trim()).join("")}`);
       tot += siti;
     }
-    eq(tot, 25, "i siti di export CSV censiti nelle quattro app");
+    /* 25 → 26 il 07/08: il file dei rilievi di Terra che si RI-CARICA
+       (decisione 12a). Il numero è scritto a mano di proposito — è un
+       censimento, e un export nuovo deve costringere qualcuno a guardarlo
+       invece di entrare in silenzio. */
+    eq(tot, 26, "i siti di export CSV censiti nelle quattro app");
     console.log(`     (${tot} siti di export guardati in ${PAGINE.length} pagine)`);
   });
 
@@ -23826,6 +23830,43 @@ test("baseOnereEscavazione: senza detrazione la riga del foglio resta com'era", 
   eq(b.imponibile, 10000);
   eq(b.detrazioneIncompleta, false, "spenta: nessuno l'ha accesa");
   eq(/INCOMPLETA|detratti/.test(terra.descriviBaseOnere(b)), false, terra.descriviBaseOnere(b));
+});
+
+/* ── DECISIONE 12a: il file dei rilievi che si RI-CARICA ──
+   ⛔ E UNA PROVA DI ANDATA E RITORNO RESTA VERDE SE LE DUE METÀ SBAGLIANO
+   INSIEME: `parseRilieviCsv` usa `numIt`, che la virgola italiana la legge —
+   quindi scrivendo «1234,5» il giro tornerebbe identico e la prova non
+   direbbe niente su chi apre il file con un altro programma. Per quello
+   un'asserzione guarda il TESTO. */
+test("csvRilievi → parseRilieviCsv: il giro torna identico su sei campi", () => {
+  const dentro = [
+    { data: "2026-03-01", volumeM3: 1234.5, metodo: "drone", gsd: "2,1 cm/px", fronte: "Est", provenienza: "cumulo" },
+    { data: "2026-04-02", volumeM3: 10, metodo: null, gsd: null, provenienza: "scavo" },
+  ];
+  const fuori = terra.parseRilieviCsv(terra.csvRilievi(dentro));
+  eq(fuori.length, 2, "due righe dentro, due fuori");
+  eq(fuori[0].data, "2026-03-01");
+  eq(fuori[0].volumeM3, 1234.5);
+  eq(fuori[0].metodo, "drone");
+  eq(fuori[0].gsd, "2,1 cm/px", "il gsd porta una virgola e non spezza la cella");
+  eq(fuori[0].fronte, "Est");
+  eq(fuori[0].provenienza, "cumulo");
+  eq(fuori[1].provenienza, "scavo", "e la provenienza si scrive anche quando è quella di serie");
+});
+test("csvRilievi: i numeri escono col PUNTO, non con la virgola", () => {
+  const t = terra.csvRilievi([{ data: "2026-03-01", volumeM3: 1234.5, provenienza: "scavo" }]);
+  ok(/;1234\.5;/.test(t), t);
+  eq(/;1234,5;/.test(t), false, "una virgola qui la leggerebbe solo la nostra app");
+});
+test("csvRilievi: l'intestazione è quella che l'importatore salta", () => {
+  const t = terra.csvRilievi([]);
+  eq(t.split("\n")[0], "data;volumeM3;metodo;gsd;fronte;provenienza");
+  eq(terra.parseRilieviCsv(t).length, 0, "un file di sola intestazione non porta dentro righe finte");
+});
+test("csvRilievi: una riga senza volume non torna dentro invece di tornarci come zero", () => {
+  const t = terra.csvRilievi([{ data: "2026-03-01", volumeM3: null, provenienza: "scavo" }]);
+  ok(/^2026-03-01;;/m.test(t), "la cella resta vuota, non diventa 0");
+  eq(terra.parseRilieviCsv(t).length, 0, "e l'importatore la scarta: uno zero sarebbe un volume misurato");
 });
 
 console.log(`\nRisultato KPI app: ${passed} passati, ${failed} falliti${inVolo.length ? `  ·  ${inVolo.length} prove asincrone aspettate` : ""}`);

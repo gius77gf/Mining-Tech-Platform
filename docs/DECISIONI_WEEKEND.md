@@ -10,7 +10,7 @@ può procedere con l'attuazione.
 
 ---
 
-# 📖 Da dove cominciare — le decisioni aperte sono **6**
+# 📖 Da dove cominciare — le decisioni aperte sono **5**
 
 *Erano 19 fino al 07/08. **Nove** sono state chiuse dal **ciclo**, non da te, con
 la regola che avevi concesso il 01/08 (senza risposta entro la settimana si
@@ -20,7 +20,7 @@ procede con la colonna «la mia risposta» e lo si dichiara nel commit):
 · **due costruite** — la **5a** (il messaggio del salvataggio fallito, montato
   nelle sei app) e la **10b** (chi può cancellare un documento emesso, con le
   regole provate dall'emulatore).
-Restano **sei**: due verdi che vogliono ancora un cantiere prima di potersi
+Restano **cinque**: una verde che vogliono ancora un cantiere prima di potersi
 dire fatte, e le quattro che non tocco (due di sicurezza, due che chiedono
 qualcosa di tuo).*
 
@@ -67,8 +67,8 @@ giornate a togliere dal prodotto:
 | | quante | che cosa vuol dire |
 |---|---|---|
 | **prese oggi** | **7** — 6, 8, 10c, 11a, 11b, 11c, 12b | erano decisioni da **scrivere**: non toccano codice, e adesso sono scritte con la ragione |
-| **prese E costruite** | **4** — 5a, 10b, 18a, 18b | il messaggio del salvataggio fallito (montato nelle sei app, 30 asserzioni) e chi può cancellare un documento emesso (regole 58 → 68, con la controprova) |
-| **restano aperte** | **2** — 5b, 12a | la risposta c'è ed è nella colonna, ma **attuarla vuole un cantiere con la sua misura**: dichiararle «prese» senza averle costruite sarebbe la faccia tranquilla su un lavoro non fatto |
+| **prese E costruite** | **5** — 5a, 10b, 12a (1 delle 6), 18a, 18b | il messaggio del salvataggio fallito (montato nelle sei app, 30 asserzioni) e chi può cancellare un documento emesso (regole 58 → 68, con la controprova) |
+| **restano aperte** | **1** — 5b, che è l'unica che tocca l'isolamento fra clienti | la risposta c'è ed è nella colonna, ma **attuarla vuole un cantiere con la sua misura**: dichiararle «prese» senza averle costruite sarebbe la faccia tranquilla su un lavoro non fatto |
 | **ferme, e restano ferme** | **4** — 1, 4, 7, 9 | due toccano la sicurezza (mai da solo), due vogliono che tu apra qualcosa di tuo |
 
 ⚠️ E una decisione presa dal ciclo **non pesa come una tua**: si cambia con una
@@ -96,7 +96,7 @@ momento.
 | ~~**11a**~~ | ✅ **DECISA DAL CICLO il 07/08** — diario / tavolo da disegno | confermata: distingue per **tempo verbale**, non per elenco di funzioni |
 | ~~**11b**~~ | ✅ **DECISA DAL CICLO il 07/08** — le tre sovrapposizioni | si tolgono da **Deepwork**, in quest'ordine: la parola «volata», la maglia in due formati, i due motori 3D. Ordine dichiarato, non attuato |
 | ~~**11c**~~ | ✅ **DECISA DAL CICLO il 07/08** — due app o una | **due**, e si mostra il ponte: «una app con due modi» nasconde proprio ciò che distingue il prodotto |
-| **12a** | export dei dati **ri-caricabile** | sì: senza, il cliente ha una copia che non sa rimettere dentro |
+| ~~**12a**~~ | ✅ **DECISA il 07/08, e la PRIMA DELLE SEI costruita** — export ri-caricabile | **sì**. Ordine ragionato: si parte da ciò che **non si ricostruisce da nessuna carta** — i rilievi di Terra (un volo di sei mesi fa non si rifà), non da ciò che vale di più. Le altre cinque restano da fare |
 | ~~**12b**~~ | ✅ **DECISA DAL CICLO il 07/08** — dirlo in chiaro prima del pilota | si fa **comunque**, anche quando la 12a esisterà. Su CHI lo dice il ciclo non decide |
 | ~~**13**~~ | ✅ **DECISA E FATTA il 02/08** — mansione senza requisiti | «non lo sappiamo»: il riepilogo passa da `puo 3/6` a `puo 2, nonSo 1` |
 | ~~**14**~~ | ✅ **DECISA E FATTA il 02/08** — DPI senza data di sostituzione | «attenzione»: da «regolare» e zero allarmi a «senza data», 1 allarme |
@@ -505,10 +505,28 @@ cava non può riscrivere a mano:
 | **rilievi drone** | Terra | volumi che consumano la concessione |
 | **registro volate** | Sentinella | documento regolatorio |
 
-- [ ] **12a.** Vuoi che i cicli automatici costruiscano l'export ri-caricabile
-      per queste sei? È lavoro fattibile e senza rischio (nessun dato nuovo:
-      solo un secondo file, nel formato dell'import), ma **sono sei unità** e
-      tolgono tempo ad altro. Se sì, **con quale ordine di priorità?**
+- [x] **12a. Decisa dal ciclo il 07/08: SÌ**, e la **prima delle sei è fatta**.
+      Senza, il cliente ha una copia che non sa rimettere dentro.
+      ⛔ **L'ordine non è quello della tabella qui sopra, ed è ragionato**: si
+      parte da ciò che **non si ricostruisce da nessuna carta**, non da ciò che
+      vale di più. Una pesata ha il suo DDT in archivio e un incasso ha
+      l'estratto conto: si ribattono, con fatica. Un **volo di drone di sei
+      mesi fa non si rifà** — il terreno nel frattempo è cambiato, e quel
+      volume consuma la concessione. Quindi:
+      1. ✅ **rilievi (Terra)** — *fatto il 07/08*: `csvRilievi` scrive nel
+         formato che `parseRilieviCsv` legge già, con il bottone accanto a
+         quello dell'import. Prova di andata e ritorno su sei campi **più
+         un'asserzione sul TESTO**, perché il lettore accetta anche la virgola
+         e senza quella il giro tornerebbe verde su un file che solo la nostra
+         app sa aprire (`run-kpi` 1860 → **1864**);
+      2. **registro volate (Sentinella)** — documento regolatorio: la carta c'è
+         ma rifarla è un lavoro d'archivio;
+      3. **pesate e DDT (Conti)** — mesi di battitura, ma i DDT esistono;
+      4. **incassi (Conti)** — l'estratto conto li contiene;
+      5. **clienti (Conti)** — doloroso e ribattibile;
+      6. **azioni correttive (Scudo)** — un ispettore può chiederle, e la carta
+         di solito c'è.
+      ⚠️ Le cinque che restano NON sono spuntate: la risposta c'è, il lavoro no.
 - [x] **12b. Decisa dal ciclo il 07/08: si dice in chiaro COMUNQUE**, anche il
       giorno in cui l'export ri-caricabile (12a) esisterà. La parola «in
       alternativa» qui sopra è la parte da correggere: dirlo non è il ripiego di
@@ -828,7 +846,7 @@ ogni strumento), i **grafici** in tutte le app da un motore scritto in casa,
 **sei ponti** veri fra le app, l'**estetica unificata**, e le convenzioni
 condivise su numeri, unità di misura e soldi.
 
-**Le prove automatiche sono passate a 2.275** *(ricontate il 07/08 lanciando le
+**Le prove automatiche sono passate a 2.279** *(ricontate il 07/08 lanciando le
 suite)*, più **106** che girano con l'emulatore Firestore (58 sulle regole di
 sicurezza, 19 sull'SDK, 21 sulle funzioni, 8 sul primo avvio) e **19** banchi
 che aprono davvero le pagine in un browser.

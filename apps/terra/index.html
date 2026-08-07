@@ -798,8 +798,10 @@ a.dw-btn{text-decoration:none}
   <div class="tools">
     <button class="dw-btn secondary" id="btn-imp-ril">Importa rilievi (CSV)</button>
     <button class="dw-btn secondary" id="btn-dal-drone" title="Riprende l'ultimo volume calcolato nel visore nuvola di Genesi">Dal visore drone</button>
+    <button class="dw-btn secondary" id="btn-exp-ril" title="Scarica i rilievi nello stesso formato che questa pagina sa ri-caricare">Scarica rilievi (CSV)</button>
     <input type="file" id="ril-file" accept=".csv,text/csv" style="display:none;">
   </div>
+  <div class="form-hint">Il file che esce da qui &egrave; <b>lo stesso</b> che questo bottone sa ri-caricare: &egrave; la copia di sicurezza dei rilievi, non un prospetto. Serve perch&eacute; un volo di drone di sei mesi fa <b>non si rif&agrave;</b> &mdash; il terreno nel frattempo &egrave; cambiato.</div>
   <div class="form-hint" style="margin-top:8px;">Colonne del file: <b>data; volumeM3; metodo; gsd; fronte; provenienza</b> — l'ultima vale <b>cumulo</b> solo se scritta così, altrimenti la riga conta come scavo.</div>
   <div class="note esito" id="ril-esito"></div>
   <div class="note" id="mode-note"></div>
@@ -974,7 +976,7 @@ a.dw-btn{text-decoration:none}
 
 
 <script type="module">
-  import { terraData, kpiFrom, fmtM3, volumeFronte, valoreMateriale, qualitaRilievo, riservaResidua, proiezioneAnnua, parseRilieviCsv, parseFrontiCsv, trendVolumi, volumiPerMese, classeAccuratezza, bandaVolume, DENSITA_PRESET, presetDensita, densitaDelMateriale,
+  import { terraData, kpiFrom, fmtM3, volumeFronte, valoreMateriale, qualitaRilievo, riservaResidua, proiezioneAnnua, parseRilieviCsv, csvRilievi, parseFrontiCsv, trendVolumi, volumiPerMese, classeAccuratezza, bandaVolume, DENSITA_PRESET, presetDensita, densitaDelMateriale,
            autorizzazioneVigente, vitaCava, statoScadenzaTerra, livelloScadenzaTerra, prossimaData, riepilogoScadenze, TIPI_SCADENZA_TERRA, presetScadenzaTerra, etichettaTipoScadenza,
            provenienzaRilievo, soloScavo, soloCumulo, rilievoUsabile, PROVENIENZE, etichettaProvenienza,
            anniConVolumi, riepilogoAnnuale, ripartizioneFronti, ripartizioneBanchi, banchiDaSempre, serieAnnuale,
@@ -4409,6 +4411,24 @@ a.dw-btn{text-decoration:none}
   };
   // Import rilievi elaborati da CSV (onboarding storico).
   $("btn-imp-ril").onclick = () => $("ril-file").click();
+  /* ⛔ DECISIONE 12a: il file che RIENTRA, non un prospetto. Il 31/07 si era
+     misurato che ogni app scarica dei CSV e che questo faceva credere — anche
+     al documento che lo scriveva — che ci fosse un backup di tutto: i file che
+     si ri-caricano davvero erano sette, tutti gli altri hanno colonne
+     calcolate e servono al commercialista o all'ente. Dei sei buchi rimasti,
+     i rilievi sono la sola cosa che non si ricostruisce da nessuna carta: una
+     pesata ha il suo DDT in archivio, un volo di drone di sei mesi fa no.
+     Il formato è quello che `parseRilieviCsv` legge, e la prova di andata e
+     ritorno sta in `run-kpi` — con un'asserzione sul TESTO, perché il lettore
+     accetta anche la virgola e senza quella il giro tornerebbe verde su un
+     file che solo la nostra app sa aprire. */
+  $("btn-exp-ril").onclick = () => {
+    const a = document.createElement("a");
+    a.href = "data:text/csv;charset=utf-8," + encodeURIComponent(csvRilievi(RIL));
+    a.download = "terra_rilievi.csv"; marchiaCsv(a); a.click();
+    esito("ril-esito", plurale(RIL.length, "Scaricato ", "Scaricati ") + conta(RIL.length, "rilievo", "rilievi")
+      + " nel formato che questa pagina sa ri-caricare.", "success");
+  };
   $("ril-file").onchange = async (e) => {
     const file = e.target.files && e.target.files[0]; if (!file) return;
     const righe = parseRilieviCsv(await file.text());
