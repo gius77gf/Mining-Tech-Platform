@@ -945,10 +945,40 @@ numero scritto dove non era stato misurato niente**.*
   dimostrazione: **8 misure, 8 sotto soglia**, fino a **1,77:1**. ⚠️ E la
   forbice, letta sul «759k», **non ribalta** il verdetto: 0,08 di scarto, non
   1,8 — dipende da dove stanno le due fermate, e lo dice solo la geometria.
-- [ ] **La copertura di Terra, non la sua palette**: `.vita.warn`,
-  `.vita.danger`, `.kpi.warn`, `.riga.att`, `.riga.dng` non compaiono **mai**
-  nella dimostrazione — sei punti d'interfaccia, fra cui l'avviso «volume
-  autorizzato esaurito», che nessun banco ha aperto in nessun tema.
+- [x] ✅ **La copertura di Terra, non la sua palette** (`4d611be`): quei cinque
+  stati erano a **zero in tutto il documento**. Cambiato il **dato** e non la
+  classe (`estrattoPregressoM3` 340.000 → 880.000, cumulato all'**81,8%**):
+  `.vita.warn` 0 → 2, `.kpi.warn` 0 → 1, `.riga.att` 0 → 2, e i colori messi
+  stamattina **alla cieca** sono adesso verificati sul vero (572 testi, 0 sotto
+  soglia nei tre temi). ⛔ E il cantiere ha **smentito il mandato con la
+  misura**: `.vita.danger` e `.riga.dng` non sono raggiungibili insieme a
+  `warn`, una dimostrazione mostra l'uno o l'altro. Resta aperto: quei due, e i
+  sei produttori di `.riga.att` fuori dalla scheda vita cava.
+- [x] ✅ **Il prospetto annuale di Terra usciva dal foglio** (`4d611be`), ultimo
+  KO aperto del giro: **435 px di documento in 390**, e non era un nodo di testo
+  (129 camminati col `TreeWalker`, zero parole inspezzabili) — erano **tre
+  tabelle**, perché `nowrap` su `.n` colpiva anche le **intestazioni**. Provate
+  e scartate col numero: `anywhere` da solo (402), il margine più stretto (412).
+- [x] ✅ **Campo nei temi chiari** (`98fe776`): chiaro **10 → 0**, sole 10 → 0.
+  Uno dei dieci era un'accusa falsa (3,15 ai pixel contro 2,86 del banco), e
+  cade **fra i quattro con la forbice**. ⚠️ Il giallo a quella chiarezza non
+  può restare giallo: il gamut sRGB non ci arriva, ed è dichiarato. E i due
+  bottoni gemelli non erano gemelli — «assente» **gridava più di** «presente»
+  (4,66 contro 3,13), che è un difetto di significato.
+- [x] ✅ **Scudo nei temi chiari** (`73d1ae3`): chiaro **9 → 0**, sole 9 → 0.
+  **Sesta app su sei.** Due dei nove passavano già. La risposta per gli avatar
+  era **già in casa**: `--app-support` che Scudo dichiara, 5,59:1 con più croma
+  di prima. ⚠️ E il righello nuovo ha sbagliato tre volte prima di misurare,
+  sempre con lo stesso segno — un rapporto di **1,02:1**, il fondo letto due
+  volte.
+- [x] ✅ **Il setaccio del campione scappato** (`0b7b46a`): la regola scritta in
+  prosa in CLAUDE.md — «quindici decimali dove lo schermo ne mostra zero» — è
+  adesso un controllo su **due** banchi, 143 + 2.097 numeri. Soglia **misurata**
+  (113/12/18/**zero**), unica eccezione dichiarata per nome. ⛔ E la prima
+  stesura era cieca proprio sul file per cui era nata: le guardie contro il
+  raggruppamento delle migliaia rifiutavano **ogni numero seguito da virgola**,
+  cioè tutto un JSON — `0 numeri guardati` con un **ok** accanto. L'ha preso il
+  conto dei soggetti, non l'esito.
 - [ ] **Le 54 dei temi chiari** — è una **palette**, non una correzione: va
   decisa con la ricerca cromatica e verificata a contrasto. Fra le peggiori:
   «Conforme» nell'esito del report a **2,35** (ne servono 3), «Riferibilità
