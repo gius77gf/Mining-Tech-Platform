@@ -538,6 +538,22 @@ for (const p of PAGINE) {
   for (const f of r.fuori) maleScope.push(`${p}: ${f.nome}() alla riga ~${f.riga} del codice in linea`);
 }
 
+/* ⛔ E ANCHE I MODULI, che nella prima stesura di questa domanda restavano
+   fuori. Lì il difetto è **peggiore** che in una pagina: un nome libero non fa
+   rumore all'import, esplode quando quella riga viene eseguita — cioè magari
+   in un ramo che le prove non toccano. E i moduli non hanno script fratelli,
+   quindi il conto è più stretto e più affidabile. */
+let chiamateScopeMod = 0, moduliScope = 0;
+const maleScopeMod = [];
+for (const p of moduliDelDisco()) {
+  let codice;
+  try { codice = soloCodice(leggi(p)); } catch { continue; }
+  const r = fuoriScope(codice);
+  if (!r.chiamate) continue;
+  moduliScope++; chiamateScopeMod += r.chiamate;
+  for (const f of r.fuori) maleScopeMod.push(`${p}: ${f.nome}() alla riga ~${f.riga}`);
+}
+
 test("nessun nome chiamato che esiste nel FILE ma non nello SCOPE di chi lo chiama", () => {
   ok(maleScope.length === 0,
     "nomi la cui unica dichiarazione sta in un blocco che NON racchiude la chiamata:\n  "
@@ -546,9 +562,45 @@ test("nessun nome chiamato che esiste nel FILE ma non nello SCOPE di chi lo chia
     + "\n  invisibile un nome mai importato, e il gestore moriva al primo clic.");
 });
 
+test("nessun nome fuori dallo SCOPE nei MODULI", () => {
+  /* Costo misurato prima di pretenderlo, come per le pagine: 0 allarmi su
+     6.698 chiamate e 18 moduli. */
+  ok(maleScopeMod.length === 0,
+    "nomi la cui unica dichiarazione sta in un blocco che NON racchiude la chiamata, dentro un modulo:\n  "
+    + maleScopeMod.join("\n  "));
+});
+
 test("la seconda domanda ha davvero guardato", () => {
   ok(pagineScope >= 8, `solo ${pagineScope} pagine guardate dalla seconda domanda`);
   ok(chiamateScope >= 10000, `solo ${chiamateScope} chiamate: troppo poche`);
+  ok(moduliScope >= 10, `solo ${moduliScope} moduli guardati dalla seconda domanda`);
+  ok(chiamateScopeMod >= 3000, `solo ${chiamateScopeMod} chiamate nei moduli: troppo poche`);
+});
+
+test("la controprova della seconda domanda NEI MODULI", () => {
+  /* Il caso: un aiuto locale a una funzione, chiamato da un'altra. In un modulo
+     è peggio che in una pagina — non fa rumore all'import, esplode quando quella
+     riga viene eseguita, cioè magari in un ramo che le prove non toccano.
+     `somma` in `terra-data.js` è dichiarata dentro tre funzioni diverse, ognuna
+     con la sua: è esattamente la forma dell'omonimo che inganna la prima
+     domanda. Si inietta una sua chiamata in `anniConVolumi`, che una `somma`
+     non ce l'ha. */
+  const rel = "apps/terra/terra-data.js";
+  const sano = leggi(rel);
+  const guasto = sano.replace("export function anniConVolumi(rilievi, oggi = new Date()) {",
+    "export function anniConVolumi(rilievi, oggi = new Date()) {\n  somma(rilievi);");
+  ok(guasto !== sano, "l'iniezione non ha sostituito niente: la prova non prova niente");
+  const codice = soloCodice(guasto);
+
+  /* la PRIMA domanda resta cieca: `somma` nel file c'è, tre volte */
+  ok(nomiLegati(codice).has("somma"),
+    "la prima domanda DOVEVA essere cieca (gli omonimi legano il nome): se non lo è più, riscrivi questo commento");
+
+  const { fuori } = fuoriScope(codice);
+  ok(fuori.some((f) => f.nome === "somma"),
+    "col difetto rimesso, `somma` deve risultare fuori scope in `anniConVolumi` — e non risulta");
+  ok(!fuoriScope(soloCodice(sano)).fuori.some((f) => f.nome === "somma"),
+    "e sul modulo sano `somma` non dev'essere accusata: le tre dichiarazioni vere stanno dove servono");
 });
 
 test("la controprova della SECONDA domanda — il difetto di Terra del 07/08 viene visto", () => {
@@ -584,5 +636,5 @@ test("la controprova della SECONDA domanda — il difetto di Terra del 07/08 vie
 
 console.log(`\nRisultato nomi liberi: ${passed} passati, ${failed} falliti`
   + `  ·  ${chiamateTot} chiamate su ${pagineViste} pagine, ${chiamateMod} su ${moduliVisti} moduli`
-  + `  ·  seconda domanda (lo scope): ${chiamateScope} chiamate su ${pagineScope} pagine, ${maleScope.length} fuori scope`);
+  + `  ·  seconda domanda (lo scope): ${chiamateScope} chiamate su ${pagineScope} pagine e ${chiamateScopeMod} su ${moduliScope} moduli, ${maleScope.length + maleScopeMod.length} fuori scope`);
 process.exit(failed > 0 ? 1 : 0);
