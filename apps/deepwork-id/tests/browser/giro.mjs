@@ -275,8 +275,25 @@ export async function vaiA(p, nome, sezione) {
     await p.click('#btnParams', { timeout: 2000 }).catch(() => {});
     await p.waitForTimeout(400);
   }
-  for (const acc of await p.$$('.dc-sec.closed .dc-sec-h, details:not([open]) > summary')) {
-    await acc.click({ timeout: 2500 }).catch(() => {});
-    await p.waitForTimeout(90);
+  /* ⛔ SOLO QUELLI CHE SI VEDONO, E IL NUMERO CHE LO IMPONE È 17 SECONDI PER
+     SEZIONE. Misurato l'08/08 inseguendo un giro del browser rimasto appeso
+     sette ore e mezza. Questa riga apriva OGNI accordion chiuso della pagina —
+     non solo quelli della sezione appena aperta — e su Flotta e Scudo sono
+     **sette, tutti INVISIBILI** perché stanno in sezioni che non sono a
+     schermo. Playwright aspetta che un elemento diventi *azionabile*: un
+     invisibile non lo diventa mai, quindi ogni click bruciava i 2.500 ms pieni
+     e il `.catch(() => {})` se li mangiava senza lasciare traccia.
+     Il costo, misurato con `vaiA` cronometrata: Conti **0,55 s** per sezione
+     (zero accordion chiusi), Terra 3,2 (uno), Flotta e Scudo **oltre 15** —
+     trenta volte Conti, e nessuno dei due click serviva a niente.
+     ⚠️ Non è un'ottimizzazione «per far prima»: era un'eccezione ingoiata che
+     costava ore e non produceva NIENTE DA LEGGERE. E la conta dice che non si
+     perde copertura — su quelle quattro superfici gli accordion chiusi e
+     VISIBILI sono zero: quel giro non ne apriva nessuno.
+     Il timeout resta corto di proposito: se un accordion visibile non si apre
+     in 800 ms non è lentezza, è un difetto, e va visto altrove. */
+  for (const acc of await p.$$('.dc-sec.closed .dc-sec-h:visible, details:not([open]) > summary:visible')) {
+    await acc.click({ timeout: 800 }).catch(() => {});
+    await p.waitForTimeout(60);
   }
 }
