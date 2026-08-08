@@ -1813,7 +1813,7 @@ label.item:has(.dw-chk:checked){
     preventiviDaSeguire, prezzoDaOrdine, descriviPrezzoOrdine,
     validaScaglioni, scaglionePer, applicaScaglione, etichettaScaglione,
     descriviScaglione } from "./conti-data.js";
-  import { mountExit, esc, csvCell, statoVuoto, senzaDoppioni, avvolgiUnita, conta, plurale, euro, euro0, conEuro, isoLocale, istanteLocale, oggiISO as oggiISOShell, meseLocale, dataIt, dataPiuGiorni, nomeCsvDimostrazione, modoDimostrazione, avvisaSeNonSalva} from "../../shared/deepwork-id-client/dw-shell.js";
+  import { mountExit, esc, csvCell, statoVuoto, senzaDoppioni, avvolgiUnita, conta, plurale, euro, euro0, conEuro, isoLocale, istanteLocale, oggiISO as oggiISOShell, meseLocale, dataIt, dataPiuGiorni, nomeCsvDimostrazione, modoDimostrazione, avvisoTestoDimostrazione, avvisaSeNonSalva} from "../../shared/deepwork-id-client/dw-shell.js";
   // gli agganci della struttura condivisa (modale con Escape, riquadri da
   // tastiera, alone che segue il mouse). Va chiamato QUI e non nel blocco
   // classico in linea: i moduli girano dopo gli script `defer`.
@@ -4253,6 +4253,18 @@ label.item:has(.dw-chk:checked){
      ⚠️ E una cosa migliora: col modo assente qui usciva «modalità tour ()» —
      due parentesi vuote, perché `esc(undefined)` è la stringa vuota. Adesso
      c'è scritto «non dichiarata». */
+  /* ⛔ E IL GEMELLO PER I TESTI CHE ESCONO, entrato l'08/08: `avvisoEsempio`
+     copre lo SCHERMO e la stampa, ma il sollecito di pagamento e l'estratto
+     conto **non passano di lì** — vanno negli appunti, e da lì in un'email che
+     una persona manda a un cliente per chiedergli soldi. Uscivano nudi.
+     Il difetto non l'ha visto nessuno per la ragione che il banco dichiarava
+     ogni giorno in fondo al suo riepilogo: «NON MISURATE: conti — copiano
+     negli appunti ma non hanno una riga in COME», cioè nessun bottone era mai
+     stato premuto. Le righe «non ho guardato» si leggono PRIMA dei KO.
+     La regola vive in `shared/`, perché serviva già a Campo e a Scudo con due
+     firme e due formati diversi: qui resta l'alias col nome di casa. */
+  const avvisoEsempioTesto = (testo, cosa) =>
+    avvisoTestoDimostrazione(modoDimostrazione(db.mode), cosa) + testo;
   const avvisoEsempio = () => { const m = modoDimostrazione(db.mode);
     return m
     ? `<div class="esempio"><b>DATI DI ESEMPIO — modalità tour (${esc(m)}).</b>
@@ -5378,7 +5390,9 @@ label.item:has(.dw-chk:checked){
     if (btnEspo) { const c = esposizioneClienti(FAT, new Date(), CLI, NOT)[+btnEspo.getAttribute("data-espo")];
       const testo = c && estrattoContoCliente(c, FAT, new Date(), TASSO_MORA_DEFAULT, CLI, NOT);
       if (!testo) { esito("rep-esito", "Nessuna fattura aperta per questo cliente.", "err"); return; }
-      const fatto = await copia(testo, "Estratto conto di " + c.cliente,
+      const fatto = await copia(avvisoEsempioTesto(testo,
+        "Questo estratto conto non riguarda nessun cliente reale: non è una richiesta di pagamento e non va inviato a nessuno."),
+        "Estratto conto di " + c.cliente,
         "Il browser non ha permesso la copia automatica: seleziona il testo qui sotto e copialo a mano.",
         "Estratto conto di " + c.cliente + " copiato.");
       /* scritto con esito() come tutti gli altri: la scrittura diretta saltava
@@ -5407,7 +5421,9 @@ label.item:has(.dw-chk:checked){
         esito("ft-esito", _st > 0 && apertoDi(f, NOT) <= 0
           ? "Niente sollecito: la fattura " + f.numero + " è stata annullata da una nota di credito, non c'è più niente da chiedere."
           : "Sollecito disponibile solo per fatture scadute.", "err"); return; }
-      const fatto = await copia(testo, "Sollecito per la fattura " + f.numero,
+      const fatto = await copia(avvisoEsempioTesto(testo,
+        "Questo sollecito non riguarda nessuna fattura reale: non è una richiesta di pagamento e non va inviato a nessuno."),
+        "Sollecito per la fattura " + f.numero,
         "Il browser non ha permesso la copia automatica: seleziona il testo qui sotto e copialo a mano.",
         "Sollecito per la fattura " + f.numero + " copiato.");
       $("ft-esito").textContent = fatto

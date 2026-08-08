@@ -1208,7 +1208,7 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
            numeroIt, segnoIt, numeroItDa, numeroDaCampo } from "./campo-data.js";
   import { misuratoPeriodo, produzioneDichiarata, riconciliazioneTurni,
            periodoFraUltimiRilievi, densitaDellaCava } from "../../shared/dw-ponti.js";
-  import { mountExit, esc, csvCell, statoVuoto, senzaDoppioni, messaggioNumero, montaGuardiaInteri, dataIt, modoDimostrazione, nomeCsvDimostrazione, conta, plurale, avvisaSeNonSalva} from "../../shared/deepwork-id-client/dw-shell.js";
+  import { mountExit, esc, csvCell, statoVuoto, senzaDoppioni, messaggioNumero, montaGuardiaInteri, dataIt, modoDimostrazione, avvisoTestoDimostrazione, nomeCsvDimostrazione, conta, plurale, avvisaSeNonSalva} from "../../shared/deepwork-id-client/dw-shell.js";
   // gli agganci della struttura condivisa (modale con Escape, riquadri da
   // tastiera, alone che segue il mouse). Va chiamato QUI e non nel blocco
   // classico in linea: i moduli girano dopo gli script `defer`.
@@ -4083,8 +4083,15 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
   // … e quello per la consegna in .txt, dove non c'è nessun riquadro da
   // disegnare: la riga sta in cima, prima di qualunque dato, perché un foglio
   // che si legge dall'alto deve dirlo prima di essere creduto.
-  const avvisoEsempioTesto = () => { const m = modoDimostrazione(db.mode);
-    return m ? "*** DATI DI ESEMPIO — modalita' tour (" + m + "). " + FRASE_ESEMPIO + " ***\n\n" : ""; };
+  /* ⛔ ERANO DUE COPIE CON DUE COMPORTAMENTI DIVERSI (08/08): qui la funzione
+     restituiva il PREFISSO e scriveva `*** … ***`, in Scudo AVVOLGEVA il testo
+     e scriveva `[…]`. Stesso nome, stessa idea, due formati — e Conti, che ne
+     aveva bisogno per il sollecito di pagamento, non ce l'aveva affatto.
+     Adesso la regola sta in `shared/` e qui resta l'alias col nome di casa.
+     ⚠️ E una cosa migliora: «modalita'» senza accento era una svista, non una
+     scelta — la riga gemella per lo schermo, tre righe più su, scriveva già
+     «modalità». */
+  const avvisoEsempioTesto = () => avvisoTestoDimostrazione(modoDimostrazione(db.mode), FRASE_ESEMPIO);
 
   // Consegna di turno (handover): un testo con i rapportini e le anomalie
   // aperte, pronto da passare al turno successivo o da archiviare.

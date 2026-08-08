@@ -73,19 +73,53 @@ const SOGGETTI = APP.map((a) => [a, copiaNegliAppunti(a)]).filter(([, r]) => r);
    dire il testo che ne esce. Un soggetto trovato dal disco e non descritto qui
    NON viene misurato — e allora il banco lo DICE, invece di lasciarlo cadere
    fuori da un riepilogo verde. */
+/* ⛔ UNA LISTA PER APP, NON UN BOTTONE — e la firma stretta è la ragione per
+   cui Conti non era misurata affatto. L'08/08, aggiungendola, si è visto che
+   ha DUE uscite negli appunti: il sollecito di pagamento (nelle fatture) e
+   l'estratto conto (nei report). Con la firma vecchia bisognava sceglierne
+   una, cioè lasciare l'altra fuori dal riepilogo — proprio la cosa che questo
+   banco esiste per non fare. Un argomento in più toglie la copia. */
 const COME = {
-  scudo: { sezione: "nav-scad", bottone: "#scad-list [data-prom-scad]",
-           dentro: /Gentile /, quale: "il promemoria di scadenza allo scadenzario" },
+  scudo: [
+    { sezione: "nav-scad", bottone: "#scad-list [data-prom-scad]",
+      dentro: /Gentile /, quale: "il promemoria di scadenza allo scadenzario" },
+  ],
+  /* ⛔ CONTI ERA CENSITA E MAI PREMUTA, e sotto ci stava un difetto vero: i suoi
+     due testi uscivano SENZA la dichiarazione «dati di esempio». Sono i due
+     documenti che una persona incolla in un'email e manda a un cliente per
+     chiedergli soldi. Il banco lo diceva da giorni in fondo al riepilogo —
+     «NON MISURATE: conti» — e nessuno l'aveva letto: è la regola delle righe
+     «non ho guardato», da leggere PRIMA dei KO. */
+  conti: [
+    { sezione: "nav-fat", bottone: "[data-sollecito]",
+      dentro: /Oggetto: sollecito di pagamento/, quale: "il sollecito di pagamento nelle fatture" },
+    { sezione: "nav-rep", bottone: "[data-espo]",
+      dentro: /Estratto conto —/, quale: "l'estratto conto del cliente nei report" },
+  ],
 };
 
 /* L'INIEZIONE della controprova: si toglie la dichiarazione dal testo, cioè
    si spegne il vestito e non la decisione — la decisione (`modoDimostrazione`)
    ce l'ha già la sua controprova in `csv-dimostrazione.mjs`, e due iniezioni
-   sullo stesso strato proverebbero due volte la stessa cosa. */
-const DA_TOGLIERE = /const avvisoEsempioTesto = \(testo\) => \{[\s\S]*?: testo; \};/;
+   sullo stesso strato proverebbero due volte la stessa cosa.
+
+   ⛔ L'INIEZIONE HA CAMBIATO BERSAGLIO L'08/08, ED È UN MIGLIORAMENTO NON UNA
+   TOPPA. Prima toglieva la dichiarazione dalla pagina di ogni app, dove ognuna
+   se l'era riscritta; adesso la regola sta in `shared/`, quindi si spegne LÌ —
+   in un posto solo, e la controprova copre tutte le app insieme invece di una
+   per volta. Il segno che il bersaglio è quello giusto: il conto delle
+   iniezioni non deve mai essere zero, e sotto c'è la riga che lo pretende. */
+const DA_TOGLIERE = /export function avvisoTestoDimostrazione\([^)]*\) \{[\s\S]*?\n\}/;
+const SHARED = "shared/deepwork-id-client/dw-shell.js";
 let nIniezioni = 0, nMancate = 0;
 const inietta = (rotta, t) => {
   const dentro = rotta.replace(/^\//, "");
+  if (CONTROPROVA && dentro === SHARED) {
+    const q = (t.match(DA_TOGLIERE) || []).length;
+    if (q !== 1) { console.log(`⛔ INIEZIONE MANCATA in ${rotta}: ${q} soggetti per la dichiarazione`); nMancate++; return t; }
+    nIniezioni++;
+    return t.replace(DA_TOGLIERE, "export function avvisoTestoDimostrazione() { return \"\"; }");
+  }
   /* ⛔ SI INIETTA SOLO DOVE SI MISURA. Il censimento trova più superfici di
      quante ne siano descritte in `COME`, e iniettare in una che nessuno preme
      produce un «INIEZIONE MANCATA» che non è un difetto — è rumore, e un
@@ -97,10 +131,8 @@ const inietta = (rotta, t) => {
     nIniezioni += q;
     return t.replace(/(modoDimostrazione\([^)]*?)db\.mode\)/g, '$1"live")');
   }
-  const q = (t.match(DA_TOGLIERE) || []).length;
-  if (q !== 1) { console.log(`⛔ INIEZIONE MANCATA in ${rotta}: ${q} soggetti per la dichiarazione`); nMancate++; return t; }
-  nIniezioni++;
-  return t.replace(DA_TOGLIERE, "const avvisoEsempioTesto = (testo) => testo;");
+  /* in controprova la pagina non si tocca: il bersaglio è `shared/`, sopra. */
+  return t;
 };
 
 const srv = createServer((q, s) => {
@@ -144,10 +176,12 @@ const muti = [], nonDescritti = [];
 
 console.log(`\n${SOGGETTI.length} superfici che copiano negli appunti, censite sul disco: ${SOGGETTI.map(([a]) => a).join(", ")}`);
 
+let misurate = 0;
 for (const [app, rel] of SOGGETTI) {
-  const c = COME[app];
-  if (!c) { nonDescritti.push(app); continue; }
-  console.log(`\n── ${app} · ${c.quale} ──`);
+  const ricette = COME[app];
+  if (!ricette) { nonDescritti.push(app); continue; }
+  /* la pagina si apre UNA volta per app e si preme un bottone per ricetta: le
+     ricette di una stessa app vivono in sezioni diverse, non in pagine diverse */
   const ctx = await b.newContext({ viewport: { width: 1100, height: 900 }, locale: "it-IT" });
   const pg = await ctx.newPage();
   /* si aggancia `writeText` invece di leggere gli appunti veri: il testo si
@@ -165,32 +199,39 @@ for (const [app, rel] of SOGGETTI) {
   const modo = await pg.evaluate(() => (document.getElementById("mode-note") || {}).textContent || "");
   dice(/esempio|reali/i.test(modo), `${app}: la pagina è partita e dichiara il suo modo`, modo);
 
-  const quanti = await pg.evaluate(([sez, bot]) => {
-    const n = document.getElementById(sez); if (n) n.click();
-    const b = document.querySelectorAll(bot);
-    if (b[0]) b[0].click();
-    return b.length;
-  }, [c.sezione, c.bottone]);
-  await pg.waitForTimeout(700);
-  const copiati = await pg.evaluate(() => window.__copiati);
-  dice(quanti > 0, `${app}: ci sono bottoni da premere nella dimostrazione`, quanti);
-  if (!copiati.length) { muti.push(`${app} — premuto ${c.bottone}, nessun testo copiato`); await ctx.close(); continue; }
-  const testo = copiati[0];
-  dice(c.dentro.test(testo), `${app}: il testo copiato è quello vero (${c.quale})`, testo.slice(0, 120));
-  const dichiara = /DATI DI ESEMPIO/.test(testo);
-  dice(dichiara === ATTESO,
-    `${app}: il testo copiato ${ATTESO ? "DICHIARA di essere una dimostrazione" : "esce PULITO (nessuna dichiarazione su un dato vero)"}`,
-    testo.slice(0, 200));
-  if (ATTESO) {
-    /* ⛔ IN TESTA E NON IN CODA: un SMS si legge dalla prima riga, e in fondo a
-       un'email incollata la riga finisce sotto la firma — cioè dove non la
-       legge nessuno. È la stessa lezione del dettaglio appeso in fondo a una
-       riga con `line-clamp`. */
-    dice(testo.trimStart().startsWith("[DATI DI ESEMPIO"),
-      `${app}: la dichiarazione sta in TESTA, dove si legge`, testo.slice(0, 80));
-    /* e resta un testo LEGGIBILE: la dichiarazione non mangia il messaggio */
-    dice(c.dentro.test(testo.split("\n").slice(1).join("\n")),
-      `${app}: e il messaggio vero è ancora tutto lì sotto`);
+  for (const c of ricette) {
+    console.log(`\n── ${app} · ${c.quale} ──`);
+    /* si azzera fra una ricetta e l'altra, se no la seconda leggerebbe il
+       testo della prima e direbbe verde senza aver premuto niente */
+    await pg.evaluate(() => { window.__copiati = []; });
+    const quanti = await pg.evaluate(([sez, bot]) => {
+      const n = document.getElementById(sez); if (n) n.click();
+      const b = document.querySelectorAll(bot);
+      if (b[0]) b[0].click();
+      return b.length;
+    }, [c.sezione, c.bottone]);
+    await pg.waitForTimeout(700);
+    const copiati = await pg.evaluate(() => window.__copiati);
+    dice(quanti > 0, `${app} · ${c.quale}: ci sono bottoni da premere nella dimostrazione`, quanti);
+    if (!copiati.length) { muti.push(`${app} · ${c.quale} — premuto ${c.bottone}, nessun testo copiato`); continue; }
+    misurate++;
+    const testo = copiati[0];
+    dice(c.dentro.test(testo), `${app}: il testo copiato è quello vero (${c.quale})`, testo.slice(0, 120));
+    const dichiara = /DATI DI ESEMPIO/.test(testo);
+    dice(dichiara === ATTESO,
+      `${app} · ${c.quale}: il testo copiato ${ATTESO ? "DICHIARA di essere una dimostrazione" : "esce PULITO (nessuna dichiarazione su un dato vero)"}`,
+      testo.slice(0, 200));
+    if (ATTESO) {
+      /* ⛔ IN TESTA E NON IN CODA: un SMS si legge dalla prima riga, e in fondo a
+         un'email incollata la riga finisce sotto la firma — cioè dove non la
+         legge nessuno. È la stessa lezione del dettaglio appeso in fondo a una
+         riga con `line-clamp`. */
+      dice(testo.trimStart().startsWith("[DATI DI ESEMPIO"),
+        `${app} · ${c.quale}: la dichiarazione sta in TESTA, dove si legge`, testo.slice(0, 80));
+      /* e resta un testo LEGGIBILE: la dichiarazione non mangia il messaggio */
+      dice(c.dentro.test(testo.split("\n").slice(1).join("\n")),
+        `${app} · ${c.quale}: e il messaggio vero è ancora tutto lì sotto`);
+    }
   }
   await ctx.close();
 }
@@ -203,6 +244,7 @@ if ((CONTROPROVA || FINGE_LIVE) && nIniezioni === 0)
 
 console.log(`\nRisultato appunti: ${ok} passati, ${ko} falliti`
   + `  ·  ${SOGGETTI.length} superfici censite, ${SOGGETTI.length - nonDescritti.length} misurate`
+  + `  ·  ${Object.values(COME).reduce((t, r) => t + r.length, 0)} uscite descritte, ${misurate} raggiunte`
   + ((CONTROPROVA || FINGE_LIVE) ? `  ·  ${nIniezioni} iniezioni, ${nMancate} mancate` : ""));
 await b.close();
 srv.close();

@@ -21685,6 +21685,50 @@ test("⛔ etichettaStatoDocumento: la mappa esce dalla pagina e la leggono in du
       "e nemmeno una giornata piena senza anomalie: identico all'elenco vuoto");
   });
 
+  test("shared · la DICHIARAZIONE «dati di esempio» sui testi che escono", () => {
+    /* ⛔ Entrata l'08/08 perché era scritta due volte con due comportamenti
+       diversi (Campo il prefisso e `*** … ***`, Scudo l'avvolgimento e `[…]`),
+       e la terza app che ne aveva bisogno — Conti, col sollecito di pagamento
+       e l'estratto conto che si copiano negli appunti — non ce l'aveva
+       affatto: il testo che chiede soldi a un cliente usciva NUDO. */
+    const f = shell.avvisoTestoDimostrazione;
+    ok(typeof f === "function", "avvisoTestoDimostrazione non è esportata da dw-shell.js");
+    /* su un dato VERO non deve marchiare niente: è il verso che conta di più,
+       perché marchiare un sollecito vero è peggio del difetto che chiude */
+    eq(f(null, "qualcosa"), "", "su un dato vero (modo risolto null) non si dichiara niente");
+    eq(f("", "qualcosa"), "", "e nemmeno con la stringa vuota");
+    const p = f("tour", "Non va inviato a nessuno.");
+    ok(p.startsWith("[DATI DI ESEMPIO"), `la dichiarazione sta in TESTA: ${p.slice(0, 40)}`);
+    ok(p.includes("modalità tour (tour)"), "il modo compare per esteso");
+    ok(p.includes("Non va inviato a nessuno."), "e la frase del documento con lui");
+    ok(p.endsWith("\n\n"), "finisce con la riga vuota: è un prefisso, non una riga incollata al testo");
+    /* la frase è FACOLTATIVA: Campo la passa, un chiamante futuro può non averla */
+    ok(f("tour", "").startsWith("[DATI DI ESEMPIO — modalità tour (tour).]"),
+      "senza frase non resta uno spazio penzolante");
+    ok(f("tour", null).includes("(tour)"), "e `null` si comporta come la stringa vuota");
+    /* ⛔ E NON RISOLVE IL MODO DUE VOLTE. `modoDimostrazione(null)` risponde
+       «non dichiarata», che è VERA: se questa funzione lo richiamasse, un dato
+       reale tornerebbe a essere una dimostrazione — cioè la marcatura
+       comparirebbe proprio sul sollecito vero. */
+    eq(f(shell.modoDimostrazione("live"), "x"), "", "il modo «live» risolto resta un dato vero anche passando di qui");
+    ok(f(shell.modoDimostrazione("tour"), "x").includes("(tour)"), "e «tour» resta una dimostrazione");
+  });
+
+  test("le tre app che dichiarano un testo usano QUELLA, non una copia", () => {
+    /* identità, non comportamento: due copie uguali oggi divergono domani. */
+    const fuori = [];
+    const pagina = (a) => readFileSync(join(HERE, `../../${a}/index.html`), "utf8");
+    for (const [nome, src] of [["campo", SRC_CAMPO], ["scudo", pagina("scudo")], ["conti", pagina("conti")]]) {
+      const def = src.match(/const avvisoEsempioTesto = [^\n]*\n(?:[^\n]*\n)?/);
+      if (!def) { fuori.push(`${nome}: non ha avvisoEsempioTesto`); continue; }
+      if (!/avvisoTestoDimostrazione\(/.test(def[0])) fuori.push(`${nome}: se la riscrive invece di chiamare shared/`);
+      if (!/\bavvisoTestoDimostrazione\b/.test((src.match(/^\s*import \{[^}]*\} from "\.\.\/\.\.\/shared\/deepwork-id-client\/dw-shell\.js";/m) || [""])[0]))
+        fuori.push(`${nome}: non la importa`);
+    }
+    eq(fuori.length, 0, `chi dichiara un testo deve passare da shared/: ${fuori.join(" · ")}`);
+    console.log(`     (3 app: campo, scudo, conti — tutte alias della stessa funzione)`);
+  });
+
   test("campo · la decisione «è una dimostrazione» è scritta in UN posto solo", () => {
     /* ✅ E DAL 06/08 QUEL POSTO NON È PIÙ QUI: la decisione è salita in
        `shared/deepwork-id-client/dw-shell.js`, perché la stessa domanda era
@@ -22329,8 +22373,17 @@ test("⛔ etichettaStatoDocumento: la mappa esce dalla pagina e la leggono in du
        ⚠️ Il numero è scritto a mano di proposito: è la sveglia che suona
        quando qualcuno aggiunge un vestito senza dirlo, ed è quello che ha
        fatto oggi. Chi lo alza scrive QUALE vestito ha aggiunto, come queste
-       righe. */
-    eq(siti, 6, "i punti che chiedono la decisione nelle quattro pagine");
+       righe.
+       ⛔ SETTE dall'08/08, e il settimo è di CONTI: la riga in testa ai due
+       testi che il bottone copia negli appunti — il **sollecito di pagamento**
+       e l'**estratto conto**. Sono i due documenti che una persona incolla in
+       un'email e manda a un cliente per chiedergli soldi, e uscivano NUDI: la
+       app aveva il riquadro per lo schermo e la stampa, e niente per il testo.
+       Non se n'era accorto nessuno perché il banco degli appunti dichiarava
+       ogni giorno «NON MISURATE: conti — copiano negli appunti ma non hanno
+       una riga in COME», cioè nessun bottone era mai stato premuto: è la riga
+       «non ho guardato» che va letta PRIMA dei KO. */
+    eq(siti, 7, "i punti che chiedono la decisione nelle quattro pagine");
     console.log(`     (${siti} chiamate in ${QUATTRO.length} pagine, tutte con db.mode passato dalla pagina)`);
   });
 
@@ -22354,11 +22407,25 @@ test("⛔ etichettaStatoDocumento: la mappa esce dalla pagina e la leggono in du
     };
     for (const [n] of QUATTRO)
       ok(suo[n].test(senzaCommenti(SRC4.get(n))), `${n}: la sua frase non c'è più — è diventata generica?`);
-    /* e la conferma dall'altro verso: la frase NON è salita in shared/ */
+    /* e la conferma dall'altro verso: le frasi NON sono salite in shared/.
+       ⚠️ L'08/08 questa riga cercava la stringa «DATI DI ESEMPIO» e basta, ed
+       è caduta quando in `shared/` è salito il MARCHIO — «[DATI DI ESEMPIO —
+       modalità tour (x).]» — che è la cosa opposta del vestito: era scritto in
+       tre forme diverse (`*** … ***` in Campo, `[…]` in Scudo, e in Conti NON
+       C'ERA, quindi il sollecito di pagamento usciva nudo negli appunti). La
+       correzione non allarga la maglia, la stringe: prima si guardava UNA
+       stringa generica, adesso si pretende che in `shared/` non ci sia
+       NESSUNA DELLE QUATTRO frasi — cioè proprio la cosa che la prova vuole
+       impedire, e che una sottostringa comune non sorvegliava. */
     const sh = readFileSync(join(HERE, "../../../shared/deepwork-id-client/dw-shell.js"), "utf8");
-    ok(!/DATI DI ESEMPIO/.test(senzaCommenti(sh)),
-      "shared/ non contiene il testo dell'avviso: lassù c'è la decisione, non il vestito");
+    const shNudo = senzaCommenti(sh);
+    for (const [n, re] of Object.entries(suo))
+      ok(!re.test(shNudo), `la frase di ${n} è salita in shared/: lassù ci va il marchio, non il vestito`);
     ok(!/class=.esempio/.test(sh), "e nemmeno il riquadro");
+    /* il marchio, invece, lassù ci deve stare: è la ragione per cui le tre
+       scritture diverse sono diventate una. */
+    ok(/DATI DI ESEMPIO/.test(shNudo) && /avvisoTestoDimostrazione/.test(shNudo),
+      "il marchio deve stare in shared/: erano tre formati diversi e una app che non ce l'aveva");
   });
 }
 

@@ -118,6 +118,49 @@ export function modoDimostrazione(modo) {
   return modo === "live" ? null : String(modo || "non dichiarata");
 }
 
+/* ⛔ LA DICHIARAZIONE «DATI DI ESEMPIO» SU UN TESTO CHE ESCE, SCRITTA UNA VOLTA
+   SOLA — e il numero che lo giustifica è due copie con DUE COMPORTAMENTI
+   DIVERSI, più una terza app che ne aveva bisogno e non ce l'aveva affatto.
+   Misurato l'08/08. Campo aveva `avvisoEsempioTesto()` che restituisce il
+   PREFISSO e scrive `*** … ***` senza accenti; Scudo aveva
+   `avvisoEsempioTesto(testo)` che AVVOLGE e scrive `[…]`. Stesso nome, stessa
+   idea, due firme e due formati. E Conti — che copia negli appunti il
+   **sollecito di pagamento** e l'**estratto conto**, cioè i due testi che una
+   persona incolla in un'email e manda a un cliente per chiedergli soldi — non
+   aveva né l'una né l'altra: usciva **nudo**.
+   Non se n'era accorto nessuno perché il banco che sorveglia gli appunti
+   dichiarava da giorni «NON MISURATE: conti — copiano negli appunti ma non
+   hanno una riga in COME», cioè nessun bottone era mai stato premuto. È la
+   riga «non ho guardato» che va letta PRIMA dei KO.
+
+   La firma prende il `cosa` perché la frase cambia col documento (un
+   promemoria «non va inviato a nessuno», un sollecito «non è una richiesta di
+   pagamento reale»): è l'argomento che toglie la copia, non una seconda
+   implementazione. Restituisce il PREFISSO — la forma di Campo — perché chi
+   avvolge lo concatena in una riga, mentre chi ha solo il prefisso da una
+   funzione che avvolge non lo può ricavare.
+
+   ⛔ IN TESTA E NON IN CODA: un SMS si legge dalla prima riga, e in fondo a
+   un'email incollata la riga finisce sotto la firma, cioè dove non la legge
+   nessuno.
+   ⚠️ E su un dato VERO deve restituire stringa vuota: marchiare «DATI DI
+   ESEMPIO» il sollecito vero mandato a un cliente vero sarebbe peggio del
+   difetto che chiude. È `modoDimostrazione` a deciderlo, non questa.
+
+   ⛔ PRENDE IL MODO GIÀ RISOLTO, E NON È UN DETTAGLIO DI COMODO: risolverlo qui
+   dentro capovolgerebbe la risposta nel caso che conta. `modoDimostrazione`
+   traduce «live» in `null` e QUALUNQUE ALTRA COSA — compreso `null` — in una
+   stringa («non dichiarata»), che è vera. Quindi chiamandola due volte un dato
+   reale tornerebbe a essere una dimostrazione, cioè la marcatura comparirebbe
+   proprio sul sollecito vero. Il chiamante risolve una volta e passa il
+   risultato; così resta anche una sola lettura del modo da rovesciare per la
+   controprova che finge il dato vero. */
+export function avvisoTestoDimostrazione(modoRisolto, cosa) {
+  if (!modoRisolto) return "";
+  const spiega = String(cosa || "").trim();
+  return `[DATI DI ESEMPIO — modalità tour (${modoRisolto}).${spiega ? " " + spiega : ""}]\n\n`;
+}
+
 /* ⛔ IL SINGOLARE, SCRITTO UNA VOLTA — E IL NUMERO CHE LO GIUSTIFICA È 359.
    Misurato il 06/08: nelle sei app ci sono **351** ternari del singolare
    scritti a mano (`n === 1 ? "voce" : "voci"`) e altri **8** nel core, e in

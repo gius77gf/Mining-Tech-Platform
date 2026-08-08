@@ -1728,7 +1728,7 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
     verificheDaSistemare } from "./scudo-data.js";
   import { mountExit, esc, csvCell, statoVuoto, giorniTra, montaGuardiaInteri, avvolgiUnita, oggiISO, dataISOEsiste,
            controllaAllegato, testoAllegatoRifiutato, pezziDataURL, dataIt,
-           numeroScritto, AVVISO_DECIMALE, timbroLocale, modoDimostrazione,
+           numeroScritto, AVVISO_DECIMALE, timbroLocale, modoDimostrazione, avvisoTestoDimostrazione,
            /* il marchio sul NOME del file scaricato in dimostrazione. Scudo
               dichiarava i dati d'esempio sui fogli STAMPATI (`avvisoEsempio`) e
               non sui CSV: quattro file uscivano indistinguibili da quelli veri,
@@ -5368,10 +5368,12 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
      ragione per cui la frase dei fogli non è salita in `shared/`.
      In TESTA e non in coda: un SMS si legge dalla prima riga, e in fondo a un
      testo incollato in un'email la riga finisce sotto la firma. */
-  const avvisoEsempioTesto = (testo) => { const m = modoDimostrazione(db.mode);
-    return m
-    ? `[DATI DI ESEMPIO — modalità tour (${m}): questo promemoria non riguarda nessuna persona reale e non va inviato a nessuno.]\n\n${testo}`
-    : testo; };
+  /* la regola sta in `shared/` dall'08/08 — la scrivevano anche Campo (col
+     prefisso e con `*** … ***`) e serviva a Conti, che non l'aveva: qui resta
+     l'alias col nome di casa. Un alias non è una seconda implementazione. */
+  const avvisoEsempioTesto = (testo) =>
+    avvisoTestoDimostrazione(modoDimostrazione(db.mode),
+      "Questo promemoria non riguarda nessuna persona reale e non va inviato a nessuno.") + testo;
   const scriviFoglio = (frase, html) => { $("verbale").innerHTML = avvisoEsempio(frase) + html; };
 
   // ── S5 · IL VERBALE DI CONSEGNA SU CARTA ─────────────────────────────
