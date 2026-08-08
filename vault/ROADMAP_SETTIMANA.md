@@ -1773,6 +1773,20 @@ numero scritto dove non era stato misurato niente**.*
   diretta della riga sui piani a chilometri; `budget` → 1, ed è un commento.
   📊 **Arretrato 71 → 59 → 46 → 38; tre documenti su sei a zero.**
 
+- [x] ✅ **L'arretrato dei sei documenti di ricerca va a ZERO** (`237c02b`),
+  chiudendo Campo, Conti e Scudo. `documenti-invecchiati.mjs` dichiarava **71
+  commit** «per essere visto scendere»: adesso dice **0, di cui 0 che
+  mordono**, per tutti e sei — la prima volta da quando il conto esiste.
+  📊 **71 → 59 → 46 → 38 → 29 → 15 → 0**; «mordono» 16 → 0; documenti a zero
+  0 → **6 su 6**. ⚠️ Due righe di Conti si sono mosse **intorno** senza
+  spostarsi, e sta scritto (la pesa: «si digitano» adesso è stretto, una pesata
+  può entrare da un file; l'SDI: il codice destinatario viaggia anche nel CSV,
+  ma `FatturaPA` e `p7m` restano a zero). ⛔ **E una prova è invecchiata per la
+  SECONDA volta sulla stessa riga** di Scudo («gli export CSV sono quattro» →
+  cinque): il verdetto regge, ma quel conto scade a ogni export nuovo, cioè
+  **è il numero sbagliato da scrivere** — la riga vive del `grep` su
+  `xlsx|excel|jspdf`, che dà zero anche oggi.
+
 ## Riferimenti
 
 - Ultimo checkpoint **per data vera**:
