@@ -15,6 +15,13 @@
 > | Flotta | 16 | 5 | 3 | 0 | 8 |
 > | **totale** | **106** | **47** | **18** | **13** | **28** |
 >
+> ✅ **E l'08/08 Sentinella è il primo documento ad arrivare a ZERO di
+> arretrato** (`documenti-invecchiati.mjs`: *0 commit dopo, di cui 0 che
+> mordono*), portando il totale delle sei app da **71 a 59** commit e i
+> «mordono» da 16 a 15. Le tredici righe confermate assenti sono state
+> **ricercate di nuovo**, non ridatate: la prova sta in fondo, in «Verifica del
+> delta», con i termini e i conti.
+>
 > ⏱️ **La riga «Sentinella» è del 02/08, le altre cinque sono del 01/08.** Questo
 > documento è stato **riverificato riga per riga** contro il codice di oggi: due
 > righe sono ⏱️ **scadute** (l'allegato dell'adempimento e — a metà — la
@@ -402,9 +409,52 @@ Ricerca web 01 agosto 2026:
 
 ## Verifica del delta (01/08 · riverificata riga per riga il 02/08 · **arretrato richiuso il 06/08**)
 
-> **Verificato contro il codice al commit `4743c69`** — l'ultimo che ha toccato
+> **Verificato contro il codice al commit `db04ac5`** — l'ultimo che ha toccato
 > `apps/sentinella/` al momento della verifica, cioè **il codice che è stato
 > davvero letto**.
+>
+> ### 08/08 — i dodici commit ripassati, e le tredici righe reggono tutte
+>
+> Fra `4743c69` e `db04ac5` Sentinella è andata avanti di **12 commit**,
+> **+622 righe** e −112 su `sentinella-data.js` e `index.html`. Uno solo di
+> quei dodici **morde** secondo `documenti-invecchiati.mjs` — `e34aff3` — cioè
+> è l'unico che ha aggiunto o tolto una `export function` o un `<button>`, le
+> due forme con cui qui nasce e muore una funzione. Le quattro funzioni che ha
+> aggiunto sono `distanzaDelRicettore`, `sogliaDelRicettore`, `contaCoperture`
+> e `csvRicettori`: **nessuna** costruisce una delle cose che questo documento
+> dichiara assenti.
+>
+> La prova non è la lettura, è la ricerca, rifatta con gli stessi termini che
+> ogni riga dichiara di aver cercato:
+>
+> ```
+> git diff 4743c69 HEAD -- apps/sentinella/ | grep -E "^\+" \
+>   | grep -oEi "SMS|e-?mail|notific|wireless|4G|LoRa|telemetr|FFT|ottav|
+>                spettro|temperatur|umidit|anemometr|\bvento\b|SO2|NO2|benzene|
+>                cittadin|webhook|endpoint|OAuth|android|matricola|61672|
+>                dispersion|AERMOD|cron|scheduler|widget|
+>                dashboard configurabil" | sort | uniq -c
+> →  (niente)
+> ```
+>
+> **Zero occorrenze su 34 termini in 622 righe aggiunte.** E la riga **a metà**
+> sulla certificazione degli strumenti rimisurata a parte sui file interi:
+> `61672`, `45669`, `matricola`, `serial`, `numero di serie`,
+> `classe.*strument` → **0 occorrenze ciascuno**; `modello` ne dà **1**, ed è
+> il *modello di calcolo* della PPV prevista. Il verdetto regge alla cifra.
+>
+> ⚠️ **E LA PRIMA RIVERIFICA È STATA SBAGLIATA DA ME, non dal documento.**
+> Rifacendo le ricerche sui file interi **senza distinzione fra maiuscole e
+> minuscole e senza confini di parola** mi risultavano cinque righe da
+> guardare: `LoRa`=14, `Hz`=7, `m/s`=50, `COV`=1, `API`=24. Guardate una per
+> una: `LoRa` combacia con «co·lora·to» e «a·llora», `COV` con `cover`, `API`
+> con «C·API·TO», e **tutte e 50** le `m/s` sono `mm/s`, che è l'unità della
+> PPV — cioè il dato centrale dell'app. Le `Hz` sono le sette etichette dei
+> preset DIN/USBM, come il documento diceva già. **Cinque falsi allarmi su
+> cinque, e il difetto era il mio righello**, non il codice né la riga: una
+> riverifica va fatta con la stessa cura della verifica, se no produce lavoro
+> su mancanze immaginarie — che è esattamente il danno contro cui questo
+> documento è nato.
 >
 > ### 06/08 — gli otto commit ripassati, e nessuna riga si è mossa
 >
