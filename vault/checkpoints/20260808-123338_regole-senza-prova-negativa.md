@@ -13,7 +13,7 @@ ab0ccff
 **Due affermazioni delle regole di sicurezza che nessuna prova sorvegliava**:
 le prove sulla barriera multi-tenant passano da **68 a 75**.
 
-Censite confrontando **ogni ** di `firestore.rules` con i titoli delle
+Censite confrontando **ogni `allow`** di `firestore.rules` con i titoli delle
 68 prove. La dottrina è già in CLAUDE.md — *«chi scrive una restrizione e la
 prova solo dal lato di chi PUÒ ha scritto un commento, non una regola»* — e
 queste due erano rimaste commenti:
@@ -46,6 +46,15 @@ preciso invece che grossolano:
 Regole ripristinate da una **copia** e confrontate con `diff -q`, mai con
 `git checkout`.
 
+## ⚠️ E un errore mio, di mestiere
+Il primo tentativo di scrivere questo checkpoint usava un heredoc **non
+quotato**: in bash i backtick del markdown diventano sostituzione di comando, e
+la shell ha provato a eseguire `allow`. Una coppia è stata mangiata e il file
+conteneva un buco. Il segno era una riga sola nell'uscita — `line 89: allow:
+command not found` — accanto a un push andato a buon fine: **un comando che
+sbaglia in mezzo a una catena che riesce**. Da qui in avanti, per i file che
+contengono codice: `<<'FINE'`, con l'apice.
+
 ## Verifica
 · **75 passate, 0 fallite** sotto l'emulatore Firestore
   (`firebase emulators:exec --only firestore --project demo-deepwork`);
@@ -57,7 +66,7 @@ Regole ripristinate da una **copia** e confrontate con `diff -q`, mai con
 ## Stato roadmap
 Prima unità di questo ciclo dopo il canarino. Il giro del browser lanciato alle
 ~11:10Z **sta ancora girando** (11 passate su 125 a 45 minuti quando l'ho
-guardato: la prima domanda è «sta ancora scrivendo?», e la risposta era sì,
+guardato: la prima domanda è «sta ancora scrivendo?», e la risposta era sì —
 171 byte in 25 secondi).
 
 ## Prossimo passo atomico
