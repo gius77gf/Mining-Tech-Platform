@@ -1738,6 +1738,19 @@ numero scritto dove non era stato misurato niente**.*
   di riepilogo della suite**, non dall'uscita del processo: un processo può
   uscire 0 anche senza aver provato niente.
 
+- [x] ✅ **Sentinella è il primo documento ad arrivare a ZERO di arretrato**
+  (`ca99a55`). **Riverificato, non ridatato**: zero occorrenze su 34 termini nel
+  diff dei 12 commit (622 righe aggiunte), e la riga a metà sulla
+  certificazione rimisurata sui file interi (`61672`, `matricola`, `serial`… →
+  0 ciascuno). L'unico commit che morde ha aggiunto quattro funzioni, nessuna
+  delle quali costruisce una cosa dichiarata assente. **Arretrato 12 → 0**,
+  totale delle sei app **71 → 59**, «mordono» 16 → 15. ⚠️ **E la prima
+  riverifica l'ho sbagliata io**: senza confini di parola `LoRa` combacia con
+  «co·lora·to», `API` con «C·API·TO», e tutte e 50 le `m/s` sono `mm/s` —
+  l'unità della PPV. Cinque falsi allarmi su cinque, **il righello**. Scritto
+  anche nel documento, perché una riverifica fatta male manda a lavorare su
+  mancanze immaginarie.
+
 ## Riferimenti
 
 - Ultimo checkpoint **per data vera**:
