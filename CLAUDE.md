@@ -715,6 +715,25 @@ Perché serva davvero e non produca elenchi generici, cinque vincoli:
   **stringilo su una copia e conta gli allarmi nuovi**: se sono pochi e
   dichiarabili per nome, un elenco corto e scritto è meglio di una regola larga
   che nasconde.
+  ⛔ **E NEL VERSO OPPOSTO IL CONTO SI FA UGUALE, MA CAMBIA COSA SI CONTA.**
+  Misurato l'08/08 allargando `nomiLegati` perché riconoscesse i parametri dei
+  metodi abbreviati (un metodo non ha la parola `function`, quindi i suoi
+  argomenti restavano liberi: 11 falsi allarmi nel solo SDK). Allargare ciò che
+  **lega** un nome non produce rumore: produce **cecità**, e la cecità non si
+  vede. Quindi non si contano gli allarmi nuovi, si contano **i nomi che
+  entrano**, e si **nomina** quello che costa: sono entrati **24 nomi su
+  10.711** già legati, in 4 file — diciannove parametri veri, tre cifre che non
+  si possono giudicare comunque, `null` che è già una parola chiave, e **una
+  sola cecità vera**, `getFullYear`, arrivata dallo spezzare
+  `new Date().getFullYear()`. Un nome contro diciannove falsi allarmi in meno,
+  e quel nome sta scritto accanto al codice invece che scomparire nel conto.
+  ⚠️ **E allargare un riconoscitore ricopiando il prefisso di quello accanto
+  può fermare tutto senza un messaggio**: `\s*(?:static\s+)?(?:async\s+)?\*?\s*`
+  sono due `\s*` separati da gruppi opzionali che a loro volta mangiano spazi —
+  un numero enorme di modi di spezzare la stessa indentazione, provati **tutti**
+  a ogni fallimento della coda. La suite non finiva più, e non c'era niente da
+  leggere. Con `[ \t]` gli a capo non entrano nell'ambiguità e il conto torna
+  lineare. È la copia-da-firma-troppo-stretta applicata a una **regex**.
   ⚠️ E il corollario sugli elenchi: `UI_CONDIVISA` di `run-stile` aveva **sei**
   nomi scritti a mano mentre la struttura condivisa ne espone **dieci**. Un
   elenco a mano non poteva accorgersi di `chiediDati` — **non sapeva nemmeno
@@ -765,6 +784,29 @@ Perché serva davvero e non produca elenchi generici, cinque vincoli:
   e pretendeva «è codice» dove basta «non è dentro una stringa» (l'esempio d'uso
   scritto in un commento è un commento). Racconto e misure:
   `docs/LA_SCANSIONE_CHE_PERDEVA_LA_FASE.md`.
+  ⛔ **E L'08/08 LA TERZA VOLTA, CON LA LEZIONE CHE CHIUDE LA FAMIGLIA: UN BUCO
+  TROVATO PER CASO VUOL DIRE CHE GLI ALTRI ASPETTANO IL PROSSIMO CASO.**
+  Dietro a `=>` l'ultimo carattere non bianco è un `>`, che non era fra quelli
+  dopo i quali ci sta un'espressione: `c => /carburante/i.test(c)` veniva letto
+  come una **divisione** e il corpo della regex restava codice — **158 `=> /`**
+  nel repository, **460 tratti, 18.420 caratteri**. Latente, e va detto com'è:
+  nessuna di quelle regex contiene una virgoletta, quindi la prova sulla fase
+  dava **10.304 dichiarazioni prima e 10.304 dopo**. Bastava un
+  `s => /['"]/.test(s)` — una regex ordinaria — perché l'apostrofo aprisse una
+  stringa fino in fondo al file.
+  L'avevo trovato **inseguendo un falso allarme di un'altra suite**. Quindi la
+  cura non è la correzione, è il **metodo**: si interroga lo strumento sui suoi
+  **punti di decisione**, uno per uno, con la risposta giusta scritta accanto —
+  `run-stile` ne ha adesso **34** (regex contro divisione in sedici posizioni,
+  ciò che sta dentro una regex, apostrofi italiani, template annidati,
+  commenti, sintassi moderna). Esito onesto: **nessun buco nuovo, 34 su 34**.
+  Il valore non è quello che ha trovato — è che nessuno dei 34 si può riaprire
+  in silenzio. Le prove sul **codice vero** contengono solo le forme che
+  qualcuno ha già scritto: un buco si vede il giorno in cui qualcuno ne scrive
+  una nuova.
+  ⚠️ Il `+` è stato provato e **scartato con la misura** perché nessuno lo
+  rimetta: porta 3 tratti, due dei quali erano artefatti del `>` mancante, e in
+  cambio rompe `i++ / 2` mangiandosi il resto della riga.
 - **Due tokenizzatori, e vanno scelti**: `mascheraCodice` maschera il
   **contenuto** delle stringhe (giusto per i dialoghi — un `prompt(` dentro una
   stringa non è una chiamata), `senzaCommenti` toglie **solo i commenti** e tiene
@@ -1223,6 +1265,24 @@ Perché serva davvero e non produca elenchi generici, cinque vincoli:
   che esiste già. **Una prova che invecchia non rende la riga sbagliata: la
   rende non credibile**, che è peggio, perché la fa buttare via insieme a
   quelle giuste.
+- ⏱️ **E LA QUARTA FORMA È LA PEGGIORE, PERCHÉ NON INVECCHIA: NASCE FUORI DAL
+  CONTROLLO.** Misurata l'08/08. `numeri-nei-documenti.mjs` sorveglia i numeri
+  che i documenti dichiarano, e funziona: quella notte ha fatto cadere il giro
+  perché due prove nuove avevano portato il totale da 2.307 a 2.309. Ma il suo
+  elenco `BROWSER` guardava **due documenti su tre**, e nel terzo —
+  `DECISIONI_WEEKEND.md`, cioè **quello che il fondatore apre per decidere** —
+  stava scritto «**19** banchi che aprono davvero le pagine» dove sono
+  **153**: vecchio di un **ordine di grandezza**, e verde da sempre.
+  Nello stesso giro è saltato fuori che in `DEVELOPMENT.md` **gli addendi non
+  tornavano** — «1890 + 297 + **63** + 32 + 9 + 8» fa 2299, non 2307 — perché
+  il controllo guarda il **totale** e non la somma scritta accanto.
+  > **Un numero è sorvegliato solo dove il controllo ARRIVA, e l'elenco di
+  > dove arriva va guardato quanto il numero.**
+  La domanda da farsi davanti a un controllo sui documenti non è «passa?» ma
+  **«quali documenti, e quali numeri dentro di essi, sono nel suo elenco?»**.
+  La roadmap questo lo dichiara di sé in fondo («qui il controllo non arriva,
+  l'aggiornamento è a mano»); i tre documenti no, e per questo il difetto è
+  vissuto lì.
 - ⚠️ **IL CONTROLLO CHE NON GUARDA DOVE CREDE.** Variante della regola qui
   sopra, e più insidiosa: il controllo **sa** fallire, ma il suo filtro esclude
   proprio i casi che contano, e allora risponde «pulito» senza aver guardato
