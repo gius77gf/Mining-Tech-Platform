@@ -1763,6 +1763,16 @@ numero scritto dove non era stato misurato niente**.*
   ⚠️ E la lezione dei **confini di parola** pagata su Sentinella è servita
   subito: senza, `pit` e `cut` sarebbero entrati in decine di parole.
 
+- [x] ✅ **Flotta è il terzo documento a zero — arretrato 71 → 38 in tre unità**
+  (`c292bd9`). Era la più economica delle quattro rimaste, e **il perché è
+  un'informazione**: **zero commit che mordono** su otto — in quell'intervallo
+  Flotta ha cambiato **come** dice le cose, non **quali** cose sa fare. Sul
+  diff due sole occorrenze, tutt'e due `fattura` e tutt'e due **prosa** (un
+  commento e la nota di un rifornimento della dimostrazione): nessun **legame**
+  fra fattura e ordine di lavoro. Sui file interi `km` → **0**, che è la prova
+  diretta della riga sui piani a chilometri; `budget` → 1, ed è un commento.
+  📊 **Arretrato 71 → 59 → 46 → 38; tre documenti su sei a zero.**
+
 ## Riferimenti
 
 - Ultimo checkpoint **per data vera**:
