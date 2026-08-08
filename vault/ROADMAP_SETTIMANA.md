@@ -1367,11 +1367,25 @@ numero scritto dove non era stato misurato niente**.*
   per tutto il resto: la mossa che la direttiva 5 vieta agli agenti, fatta da
   me la stessa notte in cui l'ho applicata a due cantieri. Un `grep -rln` di
   tre secondi la smentiva. La correzione sta **in cima** al documento.
+- [x] ✅ **Sentinella · i due trattini del report che va a un ente** (`db04ac5`).
+  Giudicati **uno per uno** gli otto «—» del report ambientale, invece di
+  contarli: **sei sono giusti** (colonna «Ora», che il prodotto dichiara
+  facoltativa fin dall'import — assenza prevista, non mancanza) e **due erano
+  difetti**. La cella **SD** smentiva il paragrafo sopra di sé, che dice a
+  parole «senza di essi la distanza scalata non si calcola»: era l'unica cella
+  della riga rimasta fuori da `cellaVolata`, ed è quella che dipende da tutte
+  le altre. E i **superamenti** di un punto senza soglia: il commento del
+  codice sapeva già che «0» sarebbe stata una cifra tranquilla, e aveva scelto
+  come rimedio **un trattino** — la stessa cifra tranquilla in un altro
+  vestito. Il banco adesso porta il **denominatore** («nessun trattino fuori
+  dalla colonna Ora» + «6 nella colonna Ora»), così un terzo trattino dove
+  serve una ragione si vedrebbe. Controprova: rimessi tutt'e due, 4 fuori
+  posto e il banco cade.
 
 ## Riferimenti
 
 - Ultimo checkpoint **per data vera**:
-  `vault/checkpoints/20260808-004109_scudo-entra-nel-banco-dei-fogli.md`
+  `vault/checkpoints/20260808-005257_i-due-trattini-del-report-per-l-ente.md`
   *(dato da `node apps/deepwork-id/tests/date-checkpoint.mjs`, non letto a occhio:
   per NOME il più alto sarebbe `20260805-100000_…`, che è stato scritto **tre
   giorni prima**. Questa riga era ferma al 01/08: il puntatore al file più
