@@ -1436,11 +1436,24 @@ numero scritto dove non era stato misurato niente**.*
   di `chiediDati` e di `conta`, vista **prima del commit** invece che una
   settimana dopo. Il banco ora **localizza** i trattini fuori tabella e guarda
   `#page-sch`, il foglio vero, invece di `body`.
+- [x] ✅ **Conti · la fattura a importo unico** (`4c1bb43`). Chiusi gli **ultimi
+  due trattini non giudicati** dei cinque fogli: quantità e prezzo unitario di
+  una fattura registrata a importo unico non mancano per sbaglio, **non ci sono
+  per scelta**, e due trattini in mezzo a una tabella di numeri si leggono
+  «niente da segnalare» — su un documento fiscale la differenza la nota chi
+  legge. Ora «non dettagliata». ⚠️ E nella **stessa riga** l'aliquota il
+  trattino lo **tiene**, per una decisione già scritta: un'aliquota che non c'è
+  è la dichiarazione di un'operazione **non imponibile**, cioè una cosa vera.
+  Tre celle vicine, due risposte diverse — la ragione per cui un trattino si
+  **giudica** e non si conta.
+  📊 **Bilancio chiuso sui quattro fogli raggiunti**: **11 difetti corretti**,
+  **11 giusti**, 10 che non erano nel foglio, **0 aperti**. Resta fuori solo la
+  denuncia di **Terra**, che apre una finestra nuova.
 
 ## Riferimenti
 
 - Ultimo checkpoint **per data vera**:
-  `vault/checkpoints/20260808-013256_dal-trattino-trattino-ancora-fermo.md`
+  `vault/checkpoints/20260808-013907_la-fattura-a-importo-unico.md`
   *(dato da `node apps/deepwork-id/tests/date-checkpoint.mjs`, non letto a occhio:
   per NOME il più alto sarebbe `20260805-100000_…`, che è stato scritto **tre
   giorni prima**. Questa riga era ferma al 01/08: il puntatore al file più
