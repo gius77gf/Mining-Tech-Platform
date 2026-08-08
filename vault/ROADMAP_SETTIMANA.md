@@ -68,6 +68,21 @@ chiuse. Le aperte sono **24**; la pagina d'ingresso di
             ⚠️ La **funzione** (coda offline) NON è fatta e non va fatta prima:
             mettere in coda scritture che si cancellano a vicenda moltiplica il
             problema invece di risolverlo.
+      - [ ] **Il tema del SOLE su quattro superfici su dieci — proposta misurata
+            (08/08)**. Nata da 24 righe «NON misurata» del giro del browser, che
+            si leggono prima dei KO. Misurato con `<script src>` (non a
+            occhio, e non contando i commenti — sbagliato una volta oggi):
+            caricano `shared/dw-tema.js` **solo le sei app verticali**. Fuori
+            restano il **core** (che ha un suo impianto a due temi, chiaro e
+            scuro, dichiarato nel suo commento), e — **senza nessun tema** — la
+            **vetrina**, **Genesi** e **Deepwork ID**.
+            ⚠️ Perché conta e non è un dettaglio: il sole è il tema che rende
+            leggibile un telefono **in cava**. Genesi si usa **al fronte**, e la
+            schermata di **accesso** è la prima cosa che si apre, all'aperto.
+            ⛔ **NON fatto di proposito**: l'estetica è una direttiva vincolante
+            del fondatore (palette propria per app, scelta con ricerca cromatica
+            vera e verificata per contrasto). Qui c'è la misura e il perché;
+            la scelta è sua.
       - [ ] **5b — i 12 punti al percorso puntato**, e `arrayUnion` dove si
             aggiunge in coda (`tarature`, `letture` di Sentinella).
 
