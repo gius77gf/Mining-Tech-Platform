@@ -1700,7 +1700,7 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
           : "")
       + `: ${tornano ? "<b>i due numeri si parlano</b>" : parole}.`;
     const spiega = r.parziale
-      ? `<b>Conto incompleto</b>: ${r.dich.viaggi > 0 ? `i <b>${r.dich.viaggi} viaggi</b> non entrano nei metri cubi (servirebbe la portata del mezzo)` : `parte delle tonnellate non si converte senza la densità`}. Il dichiarato vero è più alto, quindi il confronto non conclude.`
+      ? `<b>Conto incompleto</b>: ${r.dich.viaggi > 0 ? `${plurale(r.dich.viaggi, "il <b>viaggio</b> dichiarato non entra", `i <b>${r.dich.viaggi} viaggi</b> non entrano`)} nei metri cubi (servirebbe la portata del mezzo)` : `parte delle tonnellate non si converte senza la densità`}. Il dichiarato vero è più alto, quindi il confronto non conclude.`
       : tornano
         ? ""
         : `Lo scarto può venire dalla stima di turno o da un volo che non ha coperto tutto lo scavo: vale la pena guardarlo insieme a chi fa i rilievi.`;
@@ -2646,7 +2646,7 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
     CHECKLIST_INIZIO.forEach((v, i) => { if (!esiti[String(i)]) nuovi[String(i)] = "ok"; });
     if (!Object.keys(nuovi).length) return;
     if (!await chiedi("Segnare tutto a posto",
-          `Stai per mettere <b>a posto</b> le ${Object.keys(nuovi).length} voci a cui non hai ancora risposto.<br><br>
+          `Stai per mettere <b>a posto</b> ${plurale(Object.keys(nuovi).length, "l'unica voce", `le ${Object.keys(nuovi).length} voci`)} a cui non hai ancora risposto.<br><br>
            Fallo solo se i controlli li hai <b>davvero fatti</b>: la checklist resta scritta con la tua squadra,
            il giorno e l'ora. Le voci a cui hai già risposto non cambiano.`, "Sono tutte a posto")) return;
     await salvaEsiti(nuovi);
@@ -4417,8 +4417,8 @@ ${riapOggi.length?`<h2>Riaperture del turno</h2>
     dwGrafici.barre(el, {
       titolo: "Scostamento della carica per foro",
       meta: oltre
-        ? `i ${mostrati.length} più lontani dal progetto · su ${reg.length} fori registrati`
-        : `${mostrati.length} ${mostrati.length === 1 ? "foro fuori progetto" : "fori fuori progetto"} · su ${reg.length} registrati`,
+        ? `${plurale(mostrati.length, "il più lontano dal progetto", `i ${mostrati.length} più lontani dal progetto`)} · su ${reg.length} ${plurale(reg.length, "foro registrato", "fori registrati")}`
+        : `${mostrati.length} ${plurale(mostrati.length, "foro fuori progetto", "fori fuori progetto")} · su ${reg.length} ${plurale(reg.length, "registrato", "registrati")}`,
       orientamento: "orizzontale",
       unita: "kg",
       // il colore di stato si accende solo dove vuol dire qualcosa: fino al
@@ -4442,7 +4442,7 @@ ${riapOggi.length?`<h2>Riaperture del turno</h2>
         + `Le barre senza segnalazione stanno <b>dentro il 10%</b>, la tolleranza normale del carico`
         + (mostrati.some(x => scartoLivello(x.p.reale, x.p.prog) === "warn") ? "; quelle «da tenere d'occhio» sono oltre il 10%" : "")
         + (mostrati.some(x => scartoLivello(x.p.reale, x.p.prog) === "danger") ? "; quelle «critico» oltre il 25%" : "")
-        + (oltre ? `. Gli altri ${oltre} fori fuori progetto sono nell'elenco qui sotto.` : "."),
+        + (oltre ? `. ${plurale(oltre, "L'altro foro fuori progetto è", `Gli altri ${oltre} fori fuori progetto sono`)} nell'elenco qui sotto.` : "."),
       aria: "Scostamento della carica per foro: "
         + mostrati.map(x => "foro " + x.p.foro + " " + kg(Math.abs(x.diff)) + " chili "
             + (x.diff > 0 ? "in più" : "in meno")).join(", ") + ".",
@@ -4568,7 +4568,7 @@ ${riapOggi.length?`<h2>Riaperture del turno</h2>
     if (bloccato(dataPiano, turnoPiano, "il piano di carico")) return;
     if (PIANO.length && PIANO[0] && bloccato(PIANO[0].data, PIANO[0].turno, "il piano di carico già salvato")) return;
     if (PIANO.length && !await chiedi("Sostituire il piano salvato",
-          `C'è già un piano salvato di <b>${PIANO.length} fori</b> e stai per caricarne uno di <b>${righe.length}</b>.<br><br>
+          `C'è già un piano salvato di <b>${PIANO.length} ${plurale(PIANO.length, "foro", "fori")}</b> e stai per caricarne uno di <b>${righe.length}</b>.<br><br>
            Campo tiene <b>una volata alla volta</b>: il piano vecchio viene cancellato e con lui
            <b>le cariche reali già registrate</b>. Se ti servono, esporta prima il consuntivo.`,
           "Sostituisci il piano", true)) return;

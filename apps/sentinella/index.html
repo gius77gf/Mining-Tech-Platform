@@ -1964,7 +1964,7 @@ textarea.dw-input{
       <div class="graf-stat ${g.superamenti ? "over" : "sotto"}"><div class="k">Oltre</div><div class="v">${g.superamenti}</div></div>` : ""}
     </div>`;
 
-    const aria = `Serie storica di ${m.nome}: ${g.n} letture dal ${g.dal} al ${g.al}, massimo ${numeroIt(g.max)} ${unita}` +
+    const aria = `Serie storica di ${m.nome}: ${g.n} ${plurale(g.n, "lettura", "letture")} dal ${g.dal} al ${g.al}, massimo ${numeroIt(g.max)} ${unita}` +
       (g.soglia != null ? `, soglia ${numeroIt(g.soglia)} ${unita}, ${g.superamenti} superamenti` : "");
 
     /* ── legenda con i segni veri, non caratteri di ripiego ── */
@@ -2143,7 +2143,7 @@ textarea.dw-input{
           </div>
           ${valori.length >= 2 ? `<div class="peggio-spark">
             <div id="peggio-spark"></div>
-            <div class="peggio-spark-cap">${valori.length < g.n ? `ultime ${valori.length} letture` : "andamento"}</div>
+            <div class="peggio-spark-cap">${valori.length < g.n ? `${plurale(valori.length, "ultima lettura", `ultime ${valori.length} letture`)}` : "andamento"}</div>
           </div>` : ""}
         </div>
         <div class="peggio-note">${nota}</div>
@@ -2163,7 +2163,7 @@ textarea.dw-input{
         // su una lettura di 40 con soglia 40.
         soglia: sogliaOk ? { valore: +m.soglia, inclusiva: true } : null,
         larghezza: geo.larghezza, altezza: geo.altezza,
-        aria: `Andamento di ${m.nome}: ${valori.length} letture, da ${numeroIt(valori[0])} a ${numeroIt(valori[valori.length - 1])} ${unita}`
+        aria: `Andamento di ${m.nome}: ${valori.length} ${plurale(valori.length, "lettura", "letture")}, da ${numeroIt(valori[0])} a ${numeroIt(valori[valori.length - 1])} ${unita}`
           + (sogliaOk ? `, soglia ${numeroIt(m.soglia)} ${unita}` : "") + ".",
       });
     }
@@ -2957,8 +2957,8 @@ textarea.dw-input{
     $("imp-col-valore").value = String(Math.max(0, mp.colValore));
 
     $("imp-mappa").style.display = "block";
-    esito("imp-esito", `Letto «${impFonte}»: ${impRighe.length} righe, separatore «${impDelim === "\t" ? "tabulazione" : impDelim}». Controlla le colonne qui sotto, poi conferma.`,
-      "success", `Letto «${impFonte}»: ${impRighe.length} righe.`);
+    esito("imp-esito", `Letto «${impFonte}»: ${impRighe.length} ${plurale(impRighe.length, "riga", "righe")}, separatore «${impDelim === "\t" ? "tabulazione" : impDelim}». Controlla le colonne qui sotto, poi conferma.`,
+      "success", `Letto «${impFonte}»: ${impRighe.length} ${plurale(impRighe.length, "riga", "righe")}.`);
     impAnteprima();
     $("imp-mappa").scrollIntoView({ behavior: "smooth", block: "nearest" });
   }
@@ -3027,7 +3027,7 @@ textarea.dw-input{
 
     const resto = righe.length - mostra.length;
     const avvisi = [];
-    if (resto > 0) avvisi.push(`Nell'anteprima si vedono le prime ${mostra.length} righe: le altre ${resto} seguono le stesse regole.`);
+    if (resto > 0) avvisi.push(`Nell'anteprima ${plurale(mostra.length, "si vede la prima riga", `si vedono le prime ${mostra.length} righe`)}: ${plurale(resto, "l'altra segue", `le altre ${resto} seguono`)} le stesse regole.`);
     if (!punto) avvisi.push("Scegli prima il punto di misura che riceve le letture.");
     else if (eff.valore == null) avvisi.push("Questo punto non ha una soglia: le letture entrano lo stesso, ma nessuna può essere segnata come superamento.");
     $("btn-imp-conferma").textContent = nEntrano
@@ -3352,7 +3352,7 @@ textarea.dw-input{
         // pari alla soglia (>=). Senza dirlo al motore, la legenda del grafico
         // conterebbe con > e direbbe un numero diverso dalla tabella accanto.
         soglia: p.soglia.valore != null ? { valore: p.soglia.valore, etichetta: "soglia applicata", inclusiva: true } : null,
-        aria: `Andamento di ${p.nome} nel periodo: ${p.n} letture, massimo ${numeroIt(p.max)} ${p.unita}`
+        aria: `Andamento di ${p.nome} nel periodo: ${p.n} ${plurale(p.n, "lettura", "letture")}, massimo ${numeroIt(p.max)} ${p.unita}`
           + (p.soglia.valore != null ? `, soglia ${numeroIt(p.soglia.valore)} ${p.unita}, ${p.nSuperamenti} superamenti` : "") + ".",
       }));
     });

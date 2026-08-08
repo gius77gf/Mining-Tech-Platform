@@ -6380,7 +6380,7 @@ label.item:has(.dw-chk:checked){
        elenco col motivo — ma il numero va detto lo stesso. */
     esito("ban-esito",
       `${plurale(BANMOV.length, "Letto", "Letti")} ${plur(BANMOV.length, "movimento", "movimenti")}`
-      + (grezze > BANMOV.length ? ` (su ${grezze} righe: l'intestazione non si conta)` : "")
+      + (grezze > BANMOV.length ? ` (su ${grezze} ${plur(grezze, "riga", "righe")}: l'intestazione non si conta)` : "")
       + (rotte ? `. ${plur(rotte, "riga non è leggibile", "righe non sono leggibili")} e ${rotte === 1 ? "sta" : "stanno"} in fondo, sotto «Non abbinati», col motivo scritto.` : "."),
       "success");
     renderBanca();

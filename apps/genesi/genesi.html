@@ -1064,7 +1064,7 @@ import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js
    legge di sito (`sitoExport`) e il file che importa **Sentinella**
    (`_sentCell`). Misurato aprendo la pagina: un referto chiamato `=SUM(1+1)` e
    un fronte chiamato `=cmd|'/c calc'!A1` uscivano NUDI da tutt'e due. */
-import { numeroScritto, messaggioNumero, perCampo, montaGuardiaInteri, oggiISO, timbroLocale, numIt, leggiCsv, csvCell } from '../../shared/deepwork-id-client/dw-shell.js';
+import { numeroScritto, messaggioNumero, perCampo, montaGuardiaInteri, oggiISO, timbroLocale, numIt, leggiCsv, csvCell, plurale } from '../../shared/deepwork-id-client/dw-shell.js';
   // I campi INTERI restano `type=number` per lo spinner: la guardia rifiuta la
   // virgola, che lì non serve e che il browser scarterebbe in silenzio.
   montaGuardiaInteri((m) => toast(m, "err"));
@@ -2219,7 +2219,7 @@ function updateInfochip(){
   const _sqL={riga:'riga per riga',diagonale:'diagonale',vcut:'V-cut',box:'box'}[D2.sequenza]||'diagonale';
   const _inL=(typeof selInnesco==='function'&&selInnesco())?selInnesco().short:'Nonel';
   const _rkL=(typeof selRoccia==='function'&&selRoccia())?selRoccia().nome.split(' ')[0]:'';
-  $('infochip').innerHTML = `<b>${gnum(P.fori,0)} fori</b> · maglia ${gfix(SPALLA,1)}×${gfix(INTERASSE,1)} · ${_inL} <b>${gnum(P.ritardo,1)} ms</b> · ${_sqL} · ${_rkL} · sequenza <b>${gnum(seq,0)} ms</b> · PF ${gfix(pfVal,2)} kg/m³`;
+  $('infochip').innerHTML = `<b>${gnum(P.fori,0)} ${plurale(P.fori,'foro','fori')}</b> · maglia ${gfix(SPALLA,1)}×${gfix(INTERASSE,1)} · ${_inL} <b>${gnum(P.ritardo,1)} ms</b> · ${_sqL} · ${_rkL} · sequenza <b>${gnum(seq,0)} ms</b> · PF ${gfix(pfVal,2)} kg/m³`;
   if(fr){
     const mx = Math.max(fr.x80,1);
     const seg = (lab,val)=>`<div style="display:flex;align-items:center;gap:6px;margin-top:3px"><span style="width:26px;color:var(--mut2)">${lab}</span><div style="flex:1;height:6px;background:rgba(255,255,255,.07);border-radius:3px;overflow:hidden"><div style="height:100%;width:${Math.min(100,val/mx*100)}%;background:var(--cu)"></div></div><b style="width:46px;text-align:right">${val} cm</b></div>`;

@@ -2848,7 +2848,7 @@ function renderMacLavoro(){
       <div class="photo-avatar-sm">${m.foto?`<img src="${encodeURI(m.foto)}">`:'<span style="font-size:16px;">🚜</span>'}</div>
       <div class="sinfo">
         <div class="sname">${escHtml(m.modello)}</div>
-        <div class="ssub">${escHtml(m.targa)} · ${m.oreAttuali} ore · ${escHtml(c?c.nome:'—')}${assegn?' · 👤 '+escHtml(assegn.nome+' '+assegn.cognome):''}</div>
+        <div class="ssub">${escHtml(m.targa)} · ${m.oreAttuali} ${plurale(m.oreAttuali,'ora','ore')} · ${escHtml(c?c.nome:'—')}${assegn?' · 👤 '+escHtml(assegn.nome+' '+assegn.cognome):''}</div>
       </div>
       <div class="sarr">›</div>
     </div>`;
