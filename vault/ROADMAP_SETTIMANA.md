@@ -1551,11 +1551,22 @@ numero scritto dove non era stato misurato niente**.*
   restano sono censiti uno per uno, e quattro vengono dal **dichiaratore su più
   righe** (`nomiDichiarati` si ferma al `\n`) — la stessa causa di `_fSW`. Per
   questo la quarta forma **resta misura**: oggi accuserebbe **codice sano**.
+- [x] ✅ **Un a capo chiude la dichiarazione solo se la chiude davvero**
+  (`199bf05`). `nomiDichiarati` si fermava al primo `\n`, quindi in
+  `const a = …, b = …,` **a capo** `c = …` tutto ciò che stava sotto la prima
+  riga risultava **libero**: quattro nomi sani accusati, più `_fSW`. ⛔ **E la
+  verifica che conta qui è il SECONDO verso**, dichiarata nel checkpoint
+  **prima** della modifica: allargando un riconoscitore il rischio non è il
+  rumore, è renderlo **cieco**. Le tre controprove con dentro un difetto vero
+  restano rosse quando devono, 16 prove su 16. Quarta forma **9 → 7**.
+  📊 **Percorso completo 35 → 34 → 9 → 7, e ogni scalino era il righello**: il
+  lookahead senza `\b`, `const[` senza spazio, gli elenchi incompleti, il
+  dichiaratore multi-riga. Mai il prodotto.
 
 ## Riferimenti
 
 - Ultimo checkpoint **per data vera**:
-  `vault/checkpoints/20260808-024709_trentacinque-a-nove-e-ogni-scalino-era-il-righello.md`
+  `vault/checkpoints/20260808-025303_un-a-capo-che-chiude-solo-se-chiude.md`
   *(dato da `node apps/deepwork-id/tests/date-checkpoint.mjs`, non letto a occhio:
   per NOME il più alto sarebbe `20260805-100000_…`, che è stato scritto **tre
   giorni prima**. Questa riga era ferma al 01/08: il puntatore al file più
