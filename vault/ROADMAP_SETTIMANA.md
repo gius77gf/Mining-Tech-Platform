@@ -1539,11 +1539,23 @@ numero scritto dove non era stato misurato niente**.*
   righello: senza `\b` davanti al lookahead la regex combaciava con un
   **prefisso** del nome (3.354 allarmi tronchi di una lettera). **Quarto
   righello storto della notte.**
+- [x] ✅ **`nomi-liberi` 35 → 9, e ogni scalino era il righello** (`4b87ed4`).
+  ⛔ **La mia prima diagnosi era sbagliata e va letta per prima**: avevo scritto
+  che i tre `chiave` del core erano **commenti**, e che serviva `senzaCommenti`.
+  Falso — verificato mascherando il core e cercando il nome nel codice **vivo**:
+  `chiave` sta in `for(const[campo,chiave]of…)`, cioè **`const[` senza spazio**,
+  e il riconoscitore chiedeva `\s+`. `mascheraCodice` i commenti li toglie già:
+  **il tokenizzatore era giusto, a sbagliare era il riconoscitore** — e quel
+  riconoscitore sta sotto la **prima** e la **seconda** domanda. Poi undici
+  globali e cinque parole chiave, entrati con la ragione. ⏱️ I **nove** che
+  restano sono censiti uno per uno, e quattro vengono dal **dichiaratore su più
+  righe** (`nomiDichiarati` si ferma al `\n`) — la stessa causa di `_fSW`. Per
+  questo la quarta forma **resta misura**: oggi accuserebbe **codice sano**.
 
 ## Riferimenti
 
 - Ultimo checkpoint **per data vera**:
-  `vault/checkpoints/20260808-023705_la-quarta-forma-e-l-aspettativa-sbagliata.md`
+  `vault/checkpoints/20260808-024709_trentacinque-a-nove-e-ogni-scalino-era-il-righello.md`
   *(dato da `node apps/deepwork-id/tests/date-checkpoint.mjs`, non letto a occhio:
   per NOME il più alto sarebbe `20260805-100000_…`, che è stato scritto **tre
   giorni prima**. Questa riga era ferma al 01/08: il puntatore al file più
