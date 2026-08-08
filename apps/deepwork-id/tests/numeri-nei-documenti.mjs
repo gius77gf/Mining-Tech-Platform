@@ -111,6 +111,47 @@ test("la controprova: un addendo sbagliato viene visto, e uno zero non passa per
     "e se la frase non c'è deve dirlo, non rispondere che torna");
 });
 
+/* ⛔ E LA SECONDA NOTAZIONE, che questa regola non guardava: la SOMMA SCRITTA.
+   `STATO_PRODOTTO.md` scompone a parole («1890 sulle funzioni delle app, 300
+   sulle regole di stile…») e la funzione qui sopra la legge. `DEVELOPMENT.md`
+   la scompone in **aritmetica** — «(contate lanciandole: 1890 + 300 + 71 + 32
+   + 9 + 8)» — e quella forma non la guardava **nessuno**.
+   L'08/08 ci stava dentro un difetto vero: «1890 + 297 + **63** + 32 + 9 + 8»
+   fa **2299**, non i 2307 dichiarati due parole prima. Il `63` era un
+   `run-helpers` fermo da giorni. L'ho trovato **a occhio**, aggiornando il
+   totale — cioè per fortuna, non per controllo.
+   ⚠️ È la stessa lezione del `BROWSER` che guardava due documenti su tre: **un
+   numero è sorvegliato solo dove il controllo ARRIVA**, e qui non arrivava per
+   una differenza di *notazione*, non di contenuto. */
+export function sommaScrittaTorna(testo) {
+  const m = /\*\*([\d.]+) prove girano senza rete[^(]*\(([^)]*)\)/.exec(testo);
+  if (!m) return null;
+  const pezzi = [...m[2].matchAll(/(\d+)(?:\s*\+\s*|\s*\)|$)/g)];
+  /* si sommano solo i numeri legati da `+`: la frase contiene anche la data */
+  const catena = /(\d+(?:\s*\+\s*\d+)+)/.exec(m[2]);
+  if (!catena) return { dichiarato: numero(m[1]), somma: null, addendi: 0 };
+  const addendi = catena[1].split("+").map((x) => +x.trim());
+  return { dichiarato: numero(m[1]), somma: addendi.reduce((a, b) => a + b, 0), addendi: addendi.length };
+}
+test("docs/DEVELOPMENT.md: la somma scritta fa il totale che sta accanto", () => {
+  const r = sommaScrittaTorna(readFileSync(join(RADICE, "docs/DEVELOPMENT.md"), "utf8"));
+  ok(r, "non trovo la frase con la somma scritta: se l'hai riscritta, aggiorna la regola qui");
+  ok(r.addendi >= 5, `solo ${r.addendi} addendi trovati: il controllo non sta leggendo la catena`);
+  ok(r.somma === r.dichiarato,
+    `la frase dice ${r.dichiarato} ma la somma scritta accanto fa ${r.somma}: `
+    + "due numeri che si contraddicono nella stessa riga");
+});
+test("la controprova della somma scritta: un addendo cambiato viene visto", () => {
+  const buona = "**2.310 prove girano senza rete e senza browser**, con `node` (contate lanciandole, non a memoria — all'08/08: 1890 + 300 + 71 + 32 + 9 + 8):";
+  const r = sommaScrittaTorna(buona);
+  ok(r && r.somma === 2310 && r.addendi === 6, `la frase sana deve tornare: ${JSON.stringify(r)}`);
+  const rotta = sommaScrittaTorna(buona.replace("+ 71 +", "+ 63 +"));
+  ok(rotta && rotta.somma !== rotta.dichiarato,
+    `col difetto vero dell'08/08 rimesso (71 → 63) il controllo DEVE vedere la differenza: ${JSON.stringify(rotta)}`);
+  ok(sommaScrittaTorna("nessuna frase del genere") === null,
+    "e se la frase non c'è deve dirlo, non rispondere che torna");
+});
+
 /* Quanti documenti ha guardato davvero: un «tutto a posto» ottenuto non
    leggendo niente è il difetto raccolto tre volte in CLAUDE.md. */
 test("il controllo ha davvero letto tutti i documenti dell'elenco", () => {
