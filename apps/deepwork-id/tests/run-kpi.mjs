@@ -5724,13 +5724,21 @@ test("statoVuoto: la struttura è quella del core, invariata", () => {
     { app: "campo", file: "campo_squadre.csv", fn: campo.parseSquadreCsv,
       colonne: ["nome", "persone", "area", "stato"],
       riga: "Squadra A;4;Fronte Nord;operativa" },
+    /* ⚠️ `testa` SI CHIEDE AL COMPOSITORE — dall'08/08 questi tre file li
+       scrivono `csvGare`, `csvListino` e `csvRicambi` nel modulo (erano gli
+       ultimi tre composti a mano nella pagina), quindi una regex su
+       `index.html` risponderebbe `null` e farebbe cadere la prova per il
+       motivo sbagliato. È la stessa correzione già fatta per i ricettori. */
     { app: "conti", file: "conti_gare.csv", fn: conti.parseGareCsv,
+      testa: conti.csvGare([]).split("\n")[0],
       colonne: ["titolo", "base", "scadenza", "stato"],
       riga: "Fornitura inerti 2026;50000;2026-09-01;aperta" },
     { app: "conti", file: "conti_listino.csv", fn: conti.parseListinoCsv,
+      testa: conti.csvListino([]).split("\n")[0],
       colonne: ["nome", "unita", "prezzo", "densita", "iva"],
       riga: "Stabilizzato 0/30;t;8,50;1,9;22" },
     { app: "flotta", file: "flotta_ricambi.csv", fn: flotta.parseRicambiCsv,
+      testa: flotta.csvRicambi([]).split("\n")[0],
       colonne: ["nome", "giacenza", "sogliaMin", "prezzo"],
       riga: "Filtro olio motore;6;4;48,00" },
     { app: "scudo", file: "scudo_registro_infortuni.csv", fn: scudo.parseInfortuniCsv,
@@ -5830,6 +5838,24 @@ test("statoVuoto: la struttura è quella del core, invariata", () => {
       eq(letto[0].luogo, valore, "e anche il luogo");
     });
   }
+  /* ⛔ E PER I TRE CHE ERANO COMPOSTI NELLA PAGINA, LA PROVA FORTE: il valore
+     cattivo passa dallo SCRITTORE vero, non da una riga che ricostruisco io.
+     Le prove del blocco `CODA` qui sopra guardano il LETTORE — dimostrano che
+     sa disfare quello che `csvCell` ha fatto, non che l'export l'abbia usato.
+     Questa chiude il giro sulle colonne di testo di ognuno dei tre. */
+  for (const [che, valore] of CATTIVI) {
+    test(`giro completo: listino/gare/ricambi — un ${che} sopravvive allo SCRITTORE vero`, () => {
+      const l = conti.parseListinoCsv(conti.csvListino([{ nome: valore, unitaPrezzo: "t", prezzo: 8.5, densita: 1.9, iva: 22 }]));
+      eq(l.length, 1, "listino: la riga non si spezza");
+      eq(l[0].nome, valore, "listino: il nome torna carattere per carattere");
+      const g = conti.parseGareCsv(conti.csvGare([{ titolo: valore, base: 50000, scadenza: "2026-09-01", stato: "aperta" }]));
+      eq(g.length, 1, "gare: la riga non si spezza");
+      eq(g[0].titolo, valore, "gare: il titolo torna carattere per carattere");
+      const r = flotta.parseRicambiCsv(flotta.csvRicambi([{ nome: valore, giacenza: 6, sogliaMin: 4, prezzo: 48 }]));
+      eq(r.length, 1, "ricambi: la riga non si spezza");
+      eq(r[0].nome, valore, "ricambi: il nome torna carattere per carattere");
+    });
+  }
   test("giro completo: l'unità del ricettore sopravvive al punto e virgola", () => {
     /* la riga esattamente come la scrive l'export di Sentinella */
     const c = shell.csvCell;
@@ -5877,9 +5903,13 @@ test("statoVuoto: la struttura è quella del core, invariata", () => {
      l'unità usciva senza protezione. */
   const PROTEZIONI = [
     ["campo_squadre.csv", "campo", 2, "nome e area"],
-    ["conti_gare.csv", "conti", 1, "titolo"],
-    ["conti_listino.csv", "conti", 1, "nome"],
-    ["flotta_ricambi.csv", "flotta", 1, "nome"],
+    /* ⛔ I TRE FILE DI CONTI E FLOTTA NON SONO PIÙ QUI, e non è un controllo
+       tolto: è lo stesso controllo fatto meglio, nel blocco qui sotto. Contare
+       i `csvCell(` nel sorgente era un ripiego per gli export composti nella
+       pagina; dall'08/08 li compongono `csvGare`, `csvListino` e `csvRicambi`,
+       cioè funzioni che si possono CHIAMARE — e allora invece di contare le
+       protezioni si prova che il giro le REGGA. Un conto ≥ 1 lo passa anche chi
+       protegge la colonna sbagliata. */
     ["scudo_registro_infortuni.csv", "scudo", 2, "descrizione e luogo"],
     /* ⛔ `sentinella_ricettori.csv` NON È PIÙ QUI, e non è un controllo tolto:
        è lo stesso controllo fatto meglio, dieci righe più giù. Contare i
@@ -24146,6 +24176,81 @@ test("rientroRilievi: dice PRIMA quante righe torneranno dentro, e quali no", ()
   const demo = terra.rientroRilievi(terra.DEMO.rilievi);
   eq([demo.scritti, demo.rientrano], [8, 7],
     "⛔ ed è il numero che il bottone prometteva sbagliato: «Scaricati 8 nel formato che questa pagina sa ri-caricare»");
+});
+
+/* ⛔ I TRE FILE CHE SI RI-CARICANO E CHE NESSUNA PROVA `node` POTEVA GUARDARE.
+   Censiti l'08/08 seguendo la riga «33 righe rientrate su 34» del giro del
+   browser: dei sette file che rientrano davvero, TRE erano composti da una
+   stringa **dentro la pagina** — cioè nel posto che questo repository indica
+   come quello dove vivono le copie deboli. Effetto pratico: il loro giro
+   scrivi/leggi lo poteva provare **solo** il giro del browser, un'ora e mezza,
+   mentre i quattro fratelli scritti nel modulo si provano qui in millisecondi.
+   Adesso li scrivono `csvListino`, `csvGare` e `csvRicambi`.
+   ⚠️ Onestamente: nessuno dei tre perdeva righe sulla dimostrazione, e i due
+   casi che sembravano difetti sono stati **misurati e scartati** — Conti rifiuta
+   il salvataggio se non è `prezzo > 0`, e in Flotta una giacenza assente vale
+   zero in tutta la pagina (`+r.giacenza||0`), quindi lo zero nel file è la
+   convenzione dell'app, non una bugia. Quello che cambia è che il file non può
+   più contenere la parola «undefined», e che ora c'è una prova che lo dice. */
+test("csvListino → parseListinoCsv: il giro torna identico sui cinque campi", () => {
+  const dentro = [
+    { nome: "Pietrisco 8/12", unitaPrezzo: "t", prezzo: 12.5, densita: 1.6, iva: 22 },
+    { nome: "Misto; con punto e virgola", unitaPrezzo: "m3", prezzo: 8.4, densita: 1.45, iva: 10 },
+  ];
+  const fuori = conti.parseListinoCsv(conti.csvListino(dentro));
+  eq(fuori.length, 2, "rientrano tutte");
+  eq(fuori, dentro, "e identiche: il punto e virgola dentro un nome non spacca la riga");
+});
+test("csvListino: i numeri escono col PUNTO, e l'intestazione è quella che il lettore salta", () => {
+  /* la trappola delle due metà che sbagliano insieme: `numIt` legge anche la
+     virgola, quindi il giro resterebbe verde — si guarda il TESTO del file */
+  const t = conti.csvListino([{ nome: "X", unitaPrezzo: "t", prezzo: 1234.5, densita: 1.6, iva: 22 }]);
+  ok(/;1234\.5;/.test(t), t);
+  eq(/;1234,5;/.test(t), false, "una virgola qui la leggerebbe solo la nostra app");
+  eq(conti.csvListino([]).split("\n")[0], "nome;unita;prezzo;densita;iva");
+  eq(conti.parseListinoCsv(conti.csvListino([])).length, 0, "un file di sola intestazione non porta dentro righe finte");
+});
+test("csvListino: un prezzo che non c'è esce VUOTO, mai «undefined» né zero", () => {
+  /* ⛔ era il valore scritto crudo in mezzo a due guardati: `${p.densita ?? ""}`
+     e `${p.iva ?? 22}` avevano la guardia, `${p.prezzo}` no. Uno zero direbbe
+     «gratis» — ed è la regola che `parseListinoCsv` ha già scritta dentro. */
+  for (const [nome, v] of [["assente", undefined], ["null", null], ["stringa vuota", ""], ["non un numero", "abc"]]) {
+    const t = conti.csvListino([{ nome: "X", unitaPrezzo: "t", prezzo: v, densita: 1.6 }]);
+    ok(/^X;t;;/m.test(t), `${nome}: la cella resta vuota`);
+    eq(/undefined|null|NaN/.test(t), false, `${nome}: e nel file non compare una parola di JavaScript`);
+    eq(conti.parseListinoCsv(t).length, 0, `${nome}: e la riga non rientra come prodotto gratis`);
+  }
+  const z = conti.csvListino([{ nome: "Omaggio", unitaPrezzo: "t", prezzo: 0, densita: 1.6, iva: 22 }]);
+  ok(/^Omaggio;t;0;/m.test(z), "ma uno zero DICHIARATO si scrive: è una decisione di chi compila");
+  eq(conti.parseListinoCsv(z).length, 1, "e rientra");
+});
+test("csvGare: la base d'asta la decide baseGara, e l'ordine per scadenza è del file", () => {
+  const t = conti.csvGare([
+    { titolo: "Tarda", scadenza: "2026-09-01", stato: "aperta", base: 1000 },
+    { titolo: "Presto", scadenza: "2026-03-01", stato: "aperta", base: 2000 },
+  ]);
+  eq(t.split("\n")[1].startsWith("Presto;"), true, "la più vicina in cima");
+  /* ⛔ qui c'era già stata una copia debole (`${+g.base || 0}`): una gara senza
+     base rientrava come una gara da ZERO euro, e spegneva l'avviso «N sono
+     senza base d'asta e non entrano nel totale». */
+  const senza = conti.csvGare([{ titolo: "Senza base", scadenza: "2026-03-01", stato: "aperta" }]);
+  ok(/^Senza base;;/m.test(senza), "senza base la cella è VUOTA, non zero");
+  eq(conti.parseGareCsv(senza)[0].base, conti.parseGareCsv(senza)[0].base, "e rientra");
+  eq(conti.parseGareCsv(t).length, 2, "il giro non perde righe");
+  eq(conti.csvGare(null).split("\n")[0], "titolo;base;scadenza;stato", "e la lista vuota non rompe");
+});
+test("csvRicambi → parseRicambiCsv: il giro torna identico, con le tre convenzioni del lettore", () => {
+  const dentro = [{ nome: "Filtro olio", giacenza: 4, sogliaMin: 2, prezzo: 18.9 }];
+  eq(flotta.parseRicambiCsv(flotta.csvRicambi(dentro)), dentro, "una riga piena torna identica");
+  /* le tre convenzioni stanno scritte sopra `parseRicambiCsv` e qui si
+     RILEGGONO, non si riscrivono: giacenza assente = 0 (se no si nascondono i
+     pezzi finiti, che sono quelli da ordinare), soglia e prezzo assenti = vuoto */
+  const t = flotta.csvRicambi([{ nome: "Cinghia" }]);
+  ok(/^Cinghia;0;;$/m.test(t), t);
+  eq(flotta.parseRicambiCsv(t), [{ nome: "Cinghia", giacenza: 0, sogliaMin: null, prezzo: null }],
+    "e rientra con soglia e prezzo NON inventati");
+  eq(/undefined|null|NaN/.test(t), false, "nel file non compare una parola di JavaScript");
+  eq(flotta.csvRicambi([]).split("\n")[0], "nome;giacenza;sogliaMin;prezzo");
 });
 
 /* ── DECISIONE 12a, seconda voce: le PESATE che si ri-caricano ── */

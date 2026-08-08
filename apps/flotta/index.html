@@ -1262,7 +1262,7 @@ body.dw b.bad{color:var(--ink-dg)}
 
 
 <script type="module">
-  import { flottaData, urgenza, urgenzaOre, kpiFrom, previsioneGiorni, disponibilitaFlotta, sottoScorta, scaricoGiacenza, parseTelemetriaCsv, parseMezziCsv, parseRicambiCsv, ripartizioneCosti, costoOfficinaPerMezzo, costoOrarioMezzo, prioritaOperative,
+  import { flottaData, urgenza, urgenzaOre, kpiFrom, previsioneGiorni, disponibilitaFlotta, sottoScorta, scaricoGiacenza, parseTelemetriaCsv, parseMezziCsv, parseRicambiCsv, csvRicambi, ripartizioneCosti, costoOfficinaPerMezzo, costoOrarioMezzo, prioritaOperative,
            costiPerMese, disponibilitaStorico, fotografiaDaRegistrare, pagellaMezzi, BANDA_PAGELLA,
            SCADENZE_MEZZO_PRESET, presetScadenzaMezzo, statoScadenzaMezzo, scadenzeOrdinate, contaScadenzeMezzi, validaScadenzaMezzo, aggiungiMesi,
            nomeBreve, TIPI_MEZZO, tipoMezzo, tipoMezzoDi, checklistPreUso, riepilogoControllo,
@@ -4019,8 +4019,7 @@ body.dw b.bad{color:var(--ink-dg)}
     await refresh();
   };
   $("btn-ric-export").onclick = () => {
-    let csv = "nome;giacenza;sogliaMin;prezzo\n";
-    for (const r of RIC) csv += `${csvCell(r.nome)};${r.giacenza ?? 0};${r.sogliaMin ?? ""};${r.prezzo ?? ""}\n`;
+    const csv = csvRicambi(RIC);
     const a = document.createElement("a");
     a.href = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8" }));
     a.download = "flotta_ricambi.csv"; marchiaCsv(a); a.click();

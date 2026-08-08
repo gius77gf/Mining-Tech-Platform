@@ -83,7 +83,10 @@
 // L'urgenza delle manutenzioni si CALCOLA dalla data (mai salvata).
 // ============================================================
 
-import { parseCsvLine, numIt, giorniTra, isIntestazione, numeroScritto, oggiISO,
+/* la regola sui numeri dichiarati vive in `shared/`: qui si IMPORTA, non si
+   riscrive — è il difetto che questo repository ha già pagato quattro volte */
+import { numeroDichiarato } from "../../shared/dw-ponti.js";
+import { parseCsvLine, csvCell, numIt, giorniTra, isIntestazione, numeroScritto, oggiISO,
          dataISOEsiste, dataIt, plurale,
          messaggioNumero as messaggioNumeroShell,
          perCampo as perCampoShell,
@@ -631,6 +634,31 @@ export function parseRicambiCsv(text) {
       };
     })
     .filter(r => r.nome);
+}
+
+/* ⛔ E IL FILE DEI RICAMBI LO SCRIVE UNA FUNZIONE, per la stessa ragione del
+   listino di Conti: era una stringa composta nella pagina, cioè fuori dalla
+   portata di qualunque prova che non apra un browser.
+   Le tre convenzioni sono quelle del LETTORE qui sopra, e non si riscrivono:
+   la GIACENZA che manca vale **zero** (decisione 1: è la risposta giusta, e il
+   contrario nasconderebbe i pezzi finiti, che sono quelli da ordinare), la
+   SOGLIA e il PREZZO che mancano restano **vuoti** — uno zero farebbe suonare
+   un allarme che nessuno ha chiesto, o sembrare gratis un pezzo che non lo è. */
+export function csvRicambi(ricambi) {
+  const righe = ["nome;giacenza;sogliaMin;prezzo"];
+  for (const r of (ricambi || [])) {
+    if (!r) continue;
+    const g = numeroDichiarato(r.giacenza);
+    const s = numeroDichiarato(r.sogliaMin);
+    const p = numeroDichiarato(r.prezzo);
+    righe.push([
+      csvCell(r.nome || ""),
+      g == null ? "0" : String(g),
+      s == null ? "" : String(s),
+      p == null ? "" : String(p),
+    ].join(";"));
+  }
+  return righe.join("\n") + "\n";
 }
 
 export function parseMezziCsv(text) {

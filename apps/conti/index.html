@@ -1793,7 +1793,7 @@ label.item:has(.dw-chk:checked){
   /* l'estratto conto della banca: il file si legge e si abbina nel modulo dati,
      qui si disegna e si chiede conferma — `round2` è già importato più sotto */
   import { parseMovimentiCsv, abbinaMovimenti, ESTRATTO_ESEMPIO,
-           contiData, giorni, kpiFrom, statoScadenzaFattura, agingIncassi, stileBarraPeso, gareRiepilogo, prioritaIncasso, incassoAtteso, incassoPerMese, esposizioneClienti, estrattoContoCliente, livelloSollecito, interessiMora, testoSollecito, TASSO_MORA_DEFAULT, statoTassoMora, parseFattureCsv, parseGareCsv, parseListinoCsv, chiaveNome, clienteDiFattura, nomeCliente, clientiDaCollegare,
+           contiData, giorni, kpiFrom, statoScadenzaFattura, agingIncassi, stileBarraPeso, gareRiepilogo, prioritaIncasso, incassoAtteso, incassoPerMese, esposizioneClienti, estrattoContoCliente, livelloSollecito, interessiMora, testoSollecito, TASSO_MORA_DEFAULT, statoTassoMora, parseFattureCsv, parseGareCsv, parseListinoCsv, csvListino, csvGare, chiaveNome, clienteDiFattura, nomeCliente, clientiDaCollegare,
     round2, baseGara, densitaValida, prezzoPerTonnellata, prezzoPerMetroCubo, convertiQuantita, imponibileRiga,
     importiFattura, totaliDaRighe, riepilogoIvaFattura, prossimoNumero, nettoPesata, rigaPesata, valorePesata, valoreDdt, csvPesate, parsePesateCsv, csvIncassi, parseIncassiCsv, csvClienti, parseClientiCsv, numeroDichiarato,
     quantitaPesata, pesateDaFatturare, fatturaDaPesate, canonePeriodo, BASI_CANONE, venditePerProdotto,
@@ -6448,8 +6448,7 @@ label.item:has(.dw-chk:checked){
     await refresh();
   };
   $("btn-lis-export").onclick = () => {
-    let csv = "nome;unita;prezzo;densita;iva\n";
-    for (const p of PRO) csv += `${csvCell(p.nome)};${p.unitaPrezzo === "m3" ? "mc" : "t"};${p.prezzo};${p.densita ?? ""};${p.iva ?? 22}\n`;
+    const csv = csvListino(PRO);
     const a = document.createElement("a");
     a.href = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8" }));
     a.download = "conti_listino.csv"; marchiaCsv(a); a.click();
@@ -6499,9 +6498,7 @@ label.item:has(.dw-chk:checked){
        d'asta e non entrano nel totale» — cioè la sola frase che spiega perché
        il totale è più basso del vero. La regola sta in `baseGara`, dove la
        legge anche il riepilogo: qui non si riscrive. */
-    let csv = "titolo;base;scadenza;stato\n";
-    for (const g of GAR.slice().sort((a, b) => (a.scadenza || "9999").localeCompare(b.scadenza || "9999")))
-      csv += `${csvCell(g.titolo)};${baseGara(g) ?? ""};${g.scadenza || ""};${g.stato || "aperta"}\n`;
+    const csv = csvGare(GAR);
     const a = document.createElement("a");
     a.href = "data:text/csv;charset=utf-8," + encodeURIComponent(csv);
     a.download = "conti_gare.csv"; marchiaCsv(a); a.click();

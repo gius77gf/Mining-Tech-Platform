@@ -750,6 +750,61 @@ export function parseListinoCsv(text) {
     .filter(p => p.nome && p.prezzo != null);
 }
 
+/* ⛔ IL FILE DEL LISTINO LO SCRIVE UNA FUNZIONE, NON UN TEMPLATE NELLA PAGINA.
+   Censito l'08/08 seguendo la riga «33 righe rientrate su 34» del giro del
+   browser: dei sette file che si ri-caricano davvero, tre erano composti
+   **dentro la pagina** con una stringa — cioè nel posto che questo repository
+   ha già indicato come quello dove vivono le copie deboli («dove l'app compone
+   qualcosa che ESCE, chi decide i suoi numeri?»). E qui il segno c'era già:
+   `${p.densita ?? ""}` e `${p.iva ?? 22}` avevano la loro guardia, `${p.prezzo}`
+   **no** — un valore scritto crudo in mezzo a due guardati.
+   ⚠️ Detto onestamente e misurato: oggi quel caso **non è raggiungibile**, il
+   salvataggio rifiuta un prodotto se non è `prezzo > 0`. Quello che cambia è
+   che il file non può più contenere la parola «undefined» in una colonna di
+   prezzo, e che il giro scrivi/leggi si prova in `run-kpi` in millisecondi
+   invece che nel giro del browser da un'ora e mezza.
+   La convenzione è quella del LETTORE qui sopra, non una nuova: prezzo assente
+   → cella vuota (mai uno zero, che farebbe sembrare gratis un prodotto che non
+   lo è), densità assente → cella vuota, IVA assente → 22. */
+export function csvListino(prodotti) {
+  const righe = ["nome;unita;prezzo;densita;iva"];
+  for (const p of (prodotti || [])) {
+    if (!p) continue;
+    const pr = numeroDichiarato(p.prezzo);
+    const de = numeroDichiarato(p.densita);
+    const iv = numeroDichiarato(p.iva);
+    righe.push([
+      csvCell(p.nome || ""),
+      p.unitaPrezzo === "m3" ? "mc" : "t",
+      pr == null ? "" : String(pr),
+      de == null ? "" : String(de),
+      iv == null ? "22" : String(iv),
+    ].join(";"));
+  }
+  return righe.join("\n") + "\n";
+}
+
+/* ⛔ E LE GARE, con l'ordine per scadenza che fa parte della FORMA del file e
+   quindi sta qui, non nella pagina. La base d'asta la decide `baseGara` — la
+   stessa che la decide a schermo: il commento che stava nella pagina racconta
+   che qui c'era già stata una copia debole (`${+g.base || 0}`), che faceva
+   rientrare una gara senza base come una gara **da zero euro** e spegneva
+   l'avviso «N sono senza base d'asta e non entrano nel totale». */
+export function csvGare(gare) {
+  const righe = ["titolo;base;scadenza;stato"];
+  const ordinate = (gare || []).filter(Boolean)
+    .slice().sort((a, b) => (a.scadenza || "9999").localeCompare(b.scadenza || "9999"));
+  for (const g of ordinate) {
+    righe.push([
+      csvCell(g.titolo || ""),
+      baseGara(g) ?? "",
+      g.scadenza || "",
+      g.stato || "aperta",
+    ].join(";"));
+  }
+  return righe.join("\n") + "\n";
+}
+
 // Interessi di mora di legge (D.Lgs 231/2002, transazioni commerciali) su una
 // fattura insoluta: danno un NUMERO vero al sollecito. Decorrono dal giorno
 // dopo la scadenza, senza messa in mora. Interessi = importo × tasso%/100 ×
