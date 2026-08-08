@@ -6860,7 +6860,16 @@ label.item:has(.dw-chk:checked){
     a.href = URL.createObjectURL(new Blob(["\ufeff" + righe.join("\n") + "\n"], { type: "text/csv;charset=utf-8" }));
     a.download = "conti_preventivi.csv"; marchiaCsv(a);
     a.click(); URL.revokeObjectURL(a.href);
-    esito("ord-esito", plur(ORD.length, "preventivo esportato", "preventivi esportati") + ".", "success");
+    /* ⛔ LA FRASE DICEVA I PREVENTIVI, IL FILE PORTA LE LORO RIGHE. Non era una
+       bugia — otto preventivi erano davvero otto — ma il foglio che si apre ne
+       mostra NOVE, perché qui si scrive una riga per ogni riga di preventivo, e
+       chi conta le righe e rilegge il messaggio non torna. Un documento dice
+       che cosa contiene: due numeri costano una parola e tolgono la domanda.
+       È la terza gamba della domanda di casa — «un CSV, un PDF, una FRASE DI
+       RIEPILOGO» — e il confronto frase↔file del banco l'ha trovata. */
+    const nRighe = righe.length - 1;
+    esito("ord-esito", plur(ORD.length, "preventivo esportato", "preventivi esportati")
+      + " · " + conta(nRighe, "riga nel foglio", "righe nel foglio") + ".", "success");
   };
 
   /* i valori di partenza del preventivo: data di oggi e validità a trenta

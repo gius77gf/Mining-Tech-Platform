@@ -97,6 +97,7 @@ import { createServer } from "node:http";
 import { readFileSync, existsSync, statSync } from "node:fs";
 import { join, extname, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
+import { azzeraFrasi, frasiVisibili, contiNellaFrase, righeDiDato } from "./giro.mjs";
 
 const QUI = dirname(fileURLToPath(import.meta.url));
 const R = process.env.DW_RADICE || join(QUI, "..", "..", "..", "..");
@@ -291,29 +292,10 @@ const vaiA = async (navId, pageId) => {
   dice(viva, `sono davvero sulla schermata ${pageId}`);
   return viva;
 };
-/* ⛔ LA FRASE DI RIEPILOGO E IL FILE SONO DUE USCITE DELLA STESSA AZIONE.
-   La domanda di `CLAUDE.md` nomina tre cose che escono: «un CSV, un PDF, una
-   FRASE DI RIEPILOGO». Le prime due sono state girate; questa è la terza, e ha
-   una forma meccanica: **il numero che la frase dichiara deve essere il numero
-   di righe che il file contiene**. Se divergono, una delle due mente — e quella
-   che l'utente legge è la frase.
-   La forma in cui divergono è sempre la stessa: la frase conta l'array
-   SORGENTE (`INT.length`, `CTR.length`) mentre il file ne scrive un
-   sottoinsieme, perché il ciclo filtra. Qui si prende la frase visibile dopo il
-   click e la si confronta con le righe vere.
-   ⚠️ Non tutte le frasi portano un numero («Libretto macchina esportato»):
-   quelle si contano a parte e si dichiarano, invece di far finta che la
-   domanda non le riguardi. */
+/* La regola «la frase dichiara quello che il file contiene» sta in `giro.mjs`,
+   l'attrezzo che tutti i banchi importano: la usa anche il banco di Conti, e
+   una regola usata due volte in questa casa si scrive una volta. */
 let fraseConNumero = 0, fraseSenzaNumero = 0;
-const fraseDopoIlClick = async () => pg.evaluate(() => {
-  const vive = [...document.querySelectorAll(".esito, .note.esito, #toast, .toast")]
-    .filter((e) => e.textContent.trim() && getComputedStyle(e).display !== "none");
-  /* ⚠️ DEDUPLICATE: la stessa frase compare spesso in DUE elementi — la nota
-     della scheda e il toast — e sommandone i numeri il conto raddoppia
-     (`[6,3,1,6,3,1]` invece di `[6,3,1]`). Due copie della stessa frase sono
-     una frase sola. */
-  return [...new Set(vive.map((e) => e.textContent.replace(/\s+/g, " ").trim()))].join(" | ");
-});
 const scarica = async (btn) => {
   await pg.evaluate(() => { window.__scaricati = []; });
   /* ⛔ SI AZZERANO LE FRASI PRIMA DI PREMERE. La prima stesura leggeva tutti
@@ -323,9 +305,7 @@ const scarica = async (btn) => {
      prova che li smentiva stampata accanto («Esportati: 6 mezzi… | Esportati 2
      giri macchina»). Il righello, non il soggetto, per l'ennesima volta: la
      frase da guardare è quella che nasce da QUESTO click. */
-  await pg.evaluate(() => {
-    for (const e of document.querySelectorAll(".esito, .note.esito, #toast, .toast")) e.textContent = "";
-  });
+  await azzeraFrasi(pg);
   await pg.click("#" + btn).catch(() => {});
   await pg.waitForTimeout(500);
   const g = await pg.evaluate(() => window.__scaricati);
@@ -357,12 +337,11 @@ const scarica = async (btn) => {
      da mordere: **le righe di DATO del file devono essere fra i numeri che la
      frase dichiara, o la loro somma.** Le righe senza `;` non sono dati (sono
      avvertenze in coda, una cella sola), e l'intestazione non si conta. */
-  const frase = await fraseDopoIlClick();
-  const numeri = [...frase.matchAll(/(\d[\d.]*)(?!\s*[€%])/g)]
-    .map((x) => +x[1].replace(/\./g, "")).filter((x) => Number.isFinite(x));
+  const frase = await frasiVisibili(pg);
+  const numeri = contiNellaFrase(frase);
   if (numeri.length) {
     fraseConNumero++;
-    const dati = righe.slice(1).filter((r) => r.includes(";")).length;
+    const dati = righeDiDato(righe);
     const somma = numeri.reduce((t, x) => t + x, 0);
     dice(numeri.includes(dati) || somma === dati,
       `le righe del file sono fra i numeri che la frase dichiara (${btn})`,

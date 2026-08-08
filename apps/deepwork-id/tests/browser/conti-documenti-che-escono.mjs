@@ -57,6 +57,7 @@ import { createServer } from "node:http";
 import { readFileSync, existsSync, statSync } from "node:fs";
 import { join, extname, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
+import { azzeraFrasi, frasiVisibili, contiNellaFrase, righeDiDato } from "./giro.mjs";
 
 const QUI = dirname(fileURLToPath(import.meta.url));
 const R = process.env.DW_RADICE || join(QUI, "..", "..", "..", "..");
@@ -96,6 +97,12 @@ const DIFETTI = [
      difetto che si vedeva. */
   ["  const cellaNum = (x) => { const v = numeroDichiarato(x); return v == null ? \"\" : Math.round(v * 100) / 100; };",
    "  const cellaNum = (x) => (+x || 0);"],
+  /* 5 · il file perde una riga IN SILENZIO e la frase continua a contare
+     l'array sorgente: è la forma esatta del difetto che il confronto
+     frase↔file esiste per prendere. Un cliente sparisce dall'anagrafica
+     esportata, e il messaggio dice ancora quanti ce n'erano. */
+  ["    for (const c of CLI.slice().sort((a, b) => String(a.ragioneSociale || \"\").localeCompare(String(b.ragioneSociale || \"\"), \"it\")))",
+   "    for (const c of CLI.slice(1).sort((a, b) => String(a.ragioneSociale || \"\").localeCompare(String(b.ragioneSociale || \"\"), \"it\")))"],
 ];
 
 /* I casi si montano nel MODULO servito, mai sul disco.
@@ -220,8 +227,12 @@ const vaiA = async (navId, pageId) => {
   dice(viva, `sono davvero sulla schermata ${pageId}`);
   return viva;
 };
+/* la terza gamba della domanda di casa — la FRASE DI RIEPILOGO contro il file —
+   con la regola in `giro.mjs`, la stessa che usa il banco di Flotta. */
+let fraseConNumero = 0, fraseSenzaNumero = 0;
 const scarica = async (btn) => {
   await pg.evaluate(() => { window.__scaricati = []; });
+  await azzeraFrasi(pg);
   await pg.click("#" + btn).catch(() => {});
   await pg.waitForTimeout(500);
   const g = await pg.evaluate(() => window.__scaricati);
@@ -239,7 +250,17 @@ const scarica = async (btn) => {
     console.log(`  KO  non riesco a leggere il contenuto di ${g[g.length - 1].nome}: ${e.message}`);
     ko++; return null;
   }
-  return { nome: g[g.length - 1].nome, righe: testo.replace(/^﻿/, "").split(/\r?\n/).filter(Boolean) };
+  const righe = testo.replace(/^﻿/, "").split(/\r?\n/).filter(Boolean);
+  const frase = await frasiVisibili(pg);
+  const numeri = contiNellaFrase(frase);
+  if (numeri.length) {
+    fraseConNumero++;
+    const dati = righeDiDato(righe);
+    dice(numeri.includes(dati) || numeri.reduce((t, x) => t + x, 0) === dati,
+      `le righe del file sono fra i numeri che la frase dichiara (${btn})`,
+      { frase: frase.slice(0, 100), numeri, righeDiDato: dati });
+  } else fraseSenzaNumero++;
+  return { nome: g[g.length - 1].nome, righe };
 };
 const colonna = (riga, i) => (riga.split(";")[i] || "").replace(/^"|"$/g, "").replace(/""/g, '"');
 const soldi = (s) => Number(String(s).replace(/[^\d,.-]/g, "").replace(/\./g, "").replace(",", "."));
@@ -388,6 +409,7 @@ for (const [nome, nav, pagina, bottone] of [
 }
 
 await b.close(); srv.close();
+console.log(`  ·  frasi di riepilogo confrontate col file: ${fraseConNumero} · senza un numero da confrontare: ${fraseSenzaNumero}`);
 console.log(`\nRisultato documenti che escono da Conti: ${ok} passati, ${ko} falliti`
   + `  ·  12 punti d'uscita su 12 aperti`);
 if (CONTROPROVA) {

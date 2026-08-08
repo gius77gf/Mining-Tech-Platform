@@ -297,3 +297,57 @@ export async function vaiA(p, nome, sezione) {
     await p.waitForTimeout(60);
   }
 }
+
+/* ⛔ LA FRASE DI RIEPILOGO CONTRO IL FILE, in un posto solo.
+   La domanda di `CLAUDE.md` nomina tre cose che escono: «un CSV, un PDF, una
+   FRASE DI RIEPILOGO». Frase e file sono **due uscite della stessa azione**:
+   il numero che la frase dichiara deve rendere conto delle righe che il file
+   contiene. Se divergono, una delle due mente — e quella che l'utente legge è
+   la frase. La forma in cui divergono è sempre la stessa: la frase conta
+   l'array SORGENTE mentre il ciclo che scrive FILTRA.
+
+   Sta qui perché la usano già due banchi (Flotta e Conti), e una regola usata
+   due volte in questa casa si scrive una volta: due copie nascono uguali e
+   divergono al primo cambiamento.
+
+   ⚠️ TRE COSE IMPARATE SCRIVENDOLA, tutte nel righello e nessuna nel prodotto:
+   1. le frasi VECCHIE restano a schermo, quindi vanno azzerate PRIMA del click
+      (se no si legge il conto di un'altra esportazione: otto KO tutti falsi);
+   2. la stessa frase compare spesso in DUE elementi — la nota della scheda e
+      il toast — e sommandone i numeri il conto raddoppia: si deduplica;
+   3. «il primo numero = le righe» sbaglia, perché una frase può portare più
+      conti («6 mezzi, 3 manutenzioni, 1 ricambio» → 10 righe) e il file può
+      avere righe che non sono dati (un'avvertenza in coda, una cella sola).
+      La domanda che regge: le righe di DATO stanno fra i numeri della frase,
+      oppure sono la loro somma.
+   ⚠️ E gli IMPORTI non sono conti: «per circa € 18,00» non dice quante righe
+   ci sono. Si tolgono prima di leggere i numeri — in Flotta l'inclusione li
+   tollerava per caso, ma un numero di troppo fa passare il confronto per la
+   ragione sbagliata, che è peggio di un fallimento. */
+export async function azzeraFrasi(pg) {
+  await pg.evaluate(() => {
+    for (const e of document.querySelectorAll(".esito, .note.esito, #toast, .toast")) e.textContent = "";
+  });
+}
+export async function frasiVisibili(pg) {
+  return pg.evaluate(() => {
+    const vive = [...document.querySelectorAll(".esito, .note.esito, #toast, .toast")]
+      .filter((e) => e.textContent.trim() && getComputedStyle(e).display !== "none");
+    return [...new Set(vive.map((e) => e.textContent.replace(/\s+/g, " ").trim()))].join(" | ");
+  });
+}
+/* i numeri che in una frase sono CONTI: via gli importi (€ prima o dopo), le
+   percentuali e i decimali, che non dicono quante righe ci sono */
+export function contiNellaFrase(frase) {
+  const pulita = String(frase || "")
+    .replace(/€\s*[\d.]+(?:,\d+)?/g, " ")
+    .replace(/[\d.]+(?:,\d+)?\s*(?:€|%)/g, " ")
+    .replace(/\d+,\d+/g, " ");
+  return [...pulita.matchAll(/\b(\d[\d.]*)\b/g)]
+    .map((x) => +x[1].replace(/\./g, "")).filter(Number.isFinite);
+}
+/* le righe di DATO di un CSV: senza intestazione e senza le righe che non
+   hanno separatori (le avvertenze in coda, che sono una cella sola) */
+export function righeDiDato(righe) {
+  return (righe || []).slice(1).filter((r) => String(r).includes(";")).length;
+}
