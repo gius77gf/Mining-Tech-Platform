@@ -1623,7 +1623,7 @@ body.dw b.bad{color:var(--ink-dg)}
     if (!p) { $("sca-norma").innerHTML = ""; return; }
     $("sca-norma").innerHTML = (p.norma ? `<b>${esc(p.norma)}</b><br>` : "")
       + (p.nota ? esc(p.nota) : "")
-      + (p.mesi ? `<br><span style="color:var(--muted2);">Periodicità proposta: ogni ${p.mesi} mesi (modificabile).</span>`
+      + (p.mesi ? `<br><span style="color:var(--muted2);">Periodicità proposta: ogni ${p.mesi} ${plurale(p.mesi,'mese','mesi')} (modificabile).</span>`
                 : `<br><span style="color:var(--muted2);">Non ricorrente: nessuna periodicità proposta.</span>`);
   }
   $("sca-preset").onchange = () => {
@@ -1639,7 +1639,7 @@ body.dw b.bad{color:var(--ink-dg)}
   // PIANI RICORRENTI (L3): i quattro tagliandi a ore delle macchine da
   // movimento terra, più i ritmi a calendario più comuni.
   $("man-piano").innerHTML = '<option value="">— non si ripete —</option>'
-    + PIANI_TAGLIANDO.map(p => `<option value="o${p.chiave}">Ogni ${numTx(p.ogniOre)} ore — ${esc(p.etichetta)}</option>`).join("")
+    + PIANI_TAGLIANDO.map(p => `<option value="o${p.chiave}">Ogni ${numTx(p.ogniOre)} ${plurale(p.ogniOre,'ora','ore')} — ${esc(p.etichetta)}</option>`).join("")
     + [6, 12, 24].map(m => `<option value="m${m}">Ogni ${m} mesi (a calendario)</option>`).join("");
   // Scegliendo un piano a ore, titolo e ore motore vengono già proposti: chi
   // pianifica non deve fare i conti a mente col contatore del mezzo.
@@ -2279,7 +2279,7 @@ body.dw b.bad{color:var(--ink-dg)}
         meta: mesiCosti.length + " mesi registrati",
         formato: "euro",
         valori: mesiCosti.map(m => ({ etichetta: m.etichetta, valore: m.importo })),
-        aria: `Spesa registrata in ${mesiCosti.length} mesi, l'ultimo è ${mesiCosti[mesiCosti.length - 1].etichetta} con ${eur(mesiCosti[mesiCosti.length - 1].importo)}.`,
+        aria: `Spesa registrata in ${mesiCosti.length} ${plurale(mesiCosti.length,'mese','mesi')}, l'ultimo è ${mesiCosti[mesiCosti.length - 1].etichetta} con ${eur(mesiCosti[mesiCosti.length - 1].importo)}.`,
         nota: confronto
           + (inCorso
               ? " <b>" + inCorso.etichetta + " è il mese in corso</b>: la sua colonna cresce fino a fine mese, non è ancora un confronto alla pari."
@@ -2755,7 +2755,7 @@ body.dw b.bad{color:var(--ink-dg)}
         + "quando registri un rifornimento, e la pagella si riempie da sola."
       : `Un'ora di macchina costa in media <b>${eur(p.mediaEuroOra)}</b><span class="u">/h</span> in tutta la flotta `
         + `(${eur(p.spesaMisurata)} di spesa caduta dentro i periodi misurati, divisi ${numTx(p.oreTotali)} ${plurale(p.oreTotali, "ora coperta", "ore coperte")} dai contatori). `
-        + `La disponibilità media è <b>${pctTx(p.mediaDisponibilita)}</b> negli ultimi ${p.finestra} giorni (${periodo}) — `
+        + `La disponibilità media è <b>${pctTx(p.mediaDisponibilita)}</b> ${plurale(p.finestra, `nell'ultimo giorno`, `negli ultimi ${p.finestra} giorni`)} (${periodo}) — `
         + `i due numeri <b>non coprono lo stesso periodo</b>, e il costo orario ha per di più `
         + `<b>un periodo per macchina</b> (quello scritto sotto ogni riga). Si segnala chi esce dalla banda: oltre il `
         + `<b>${BANDA_PAGELLA.costo}%</b> sul costo, oltre <b>${BANDA_PAGELLA.disponibilita} punti</b> sulla disponibilità.`;
@@ -2878,9 +2878,9 @@ body.dw b.bad{color:var(--ink-dg)}
     $("fer-riep").innerHTML = !aff.parco
       ? "Il conto dell'affidabilità parte dal parco mezzi: aggiungi il primo mezzo e ogni fermo che registri comincerà a pesare sulla disponibilità."
       : !aff.episodi
-        ? `Nessun fermo registrato negli ultimi ${aff.finestra} giorni (${periodo}): <b>${aff.parco}</b> ${aff.parco === 1 ? "mezzo" : "mezzi"} × ${aff.finestra} giorni = <b>${aff.giorniMacchina}</b> giorni-macchina, tutti disponibili. Quando una macchina si ferma registrala qui sotto: è l'unico modo perché questo numero voglia dire qualcosa.${codaFuori}${codaSenzaDate}`
-        : `Disponibilità reale <b>${aff.pct.toLocaleString("it-IT", { maximumFractionDigits: 1 })}%</b> negli ultimi ${aff.finestra} giorni (${periodo}). `
-          + `Il conto: ${aff.parco} ${aff.parco === 1 ? "mezzo" : "mezzi"} × ${aff.finestra} giorni = <b>${aff.giorniMacchina}</b> giorni-macchina, `
+        ? `Nessun fermo registrato ${plurale(aff.finestra, `nell'ultimo giorno`, `negli ultimi ${aff.finestra} giorni`)} (${periodo}): <b>${aff.parco}</b> ${aff.parco === 1 ? "mezzo" : "mezzi"} × ${aff.finestra} ${plurale(aff.finestra,'giorno','giorni')} = <b>${aff.giorniMacchina}</b> giorni-macchina, tutti disponibili. Quando una macchina si ferma registrala qui sotto: è l'unico modo perché questo numero voglia dire qualcosa.${codaFuori}${codaSenzaDate}`
+        : `Disponibilità reale <b>${aff.pct.toLocaleString("it-IT", { maximumFractionDigits: 1 })}%</b> ${plurale(aff.finestra, `nell'ultimo giorno`, `negli ultimi ${aff.finestra} giorni`)} (${periodo}). `
+          + `Il conto: ${aff.parco} ${aff.parco === 1 ? "mezzo" : "mezzi"} × ${aff.finestra} ${plurale(aff.finestra,'giorno','giorni')} = <b>${aff.giorniMacchina}</b> giorni-macchina, `
           + `meno <span class="rosso">${aff.persi}</span> ${aff.persi === 1 ? "perso" : "persi"} per fermo = <b>${aff.disponibili}</b> giorni-macchina lavorabili. `
           /* ⚠️ IL SOSTANTIVO AVEVA IL SINGOLARE, IL VERBO E GLI AGGETTIVI NO:
              con un fermo solo si leggeva «Ci sono stati 1 fermo, tutti già
@@ -2899,7 +2899,7 @@ body.dw b.bad{color:var(--ink-dg)}
       const peggiore = aff.mezzi[0];
       grafico("graf-fermi", "barre", {
         titolo: "Giorni di fermo per mezzo",
-        meta: "ultimi " + aff.finestra + " giorni",
+        meta: plurale(aff.finestra, "ultimo giorno", "ultimi " + aff.finestra + " giorni"),
         orientamento: "orizzontale", ordina: true, rampa: true,
         formato: (v) => (+v || 0).toLocaleString("it-IT", { maximumFractionDigits: 1 }), unita: "gg",
         valori: aff.mezzi.map(m => ({ etichetta: m.mezzo, valore: m.giorni,
@@ -3012,7 +3012,7 @@ body.dw b.bad{color:var(--ink-dg)}
       $("sco-riep").innerHTML = "Manca il dato che serve: <b>quanti giorni ci mette il fornitore</b> a consegnare. "
         + "Scrivilo qui sopra e per ogni ricambio comparirà quanti pezzi tenere, calcolati sui consumi veri."
         + (consumati.righe.length
-            ? ` Intanto i consumi ci sono già: <b>${consumati.righe.length}</b> ${consumati.righe.length === 1 ? "ricambio è stato usato" : "ricambi sono stati usati"} negli ultimi ${consumati.finestra} giorni.`
+            ? ` Intanto i consumi ci sono già: <b>${consumati.righe.length}</b> ${consumati.righe.length === 1 ? "ricambio è stato usato" : "ricambi sono stati usati"} ${plurale(consumati.finestra, `nell'ultimo giorno`, `negli ultimi ${consumati.finestra} giorni`)}.`
             : " Per ora nessun ricambio risulta consumato negli interventi chiusi: la prima proposta arriverà dopo i primi lavori.")
         + codaSenzaData;
       $("sco-list").innerHTML = "";
@@ -3020,14 +3020,14 @@ body.dw b.bad{color:var(--ink-dg)}
     }
     $("sco-riep").innerHTML = p.righe.length
       ? `Con <b>${consegna}</b> ${plurale(consegna, "giorno", "giorni")} di consegna e <b>${sicurezza}</b> di margine, la scorta deve coprire <b>${consegna + sicurezza} ${plurale(consegna + sicurezza, "giorno", "giorni")}</b> di consumo. `
-        + `Il conto si può fare su <b>${p.righe.length}</b> ${p.righe.length === 1 ? "ricambio" : "ricambi"} (quelli davvero usati negli ultimi ${p.finestra} giorni, su ${p.interventi} ${p.interventi === 1 ? "intervento chiuso" : "interventi chiusi"})`
+        + `Il conto si può fare su <b>${p.righe.length}</b> ${p.righe.length === 1 ? "ricambio" : "ricambi"} (quelli davvero usati ${plurale(p.finestra, `nell'ultimo giorno`, `negli ultimi ${p.finestra} giorni`)}, su ${p.interventi} ${p.interventi === 1 ? "intervento chiuso" : "interventi chiusi"})`
         + (p.senzaConsumo.length ? (p.senzaConsumo.length === 1 ? "; sull'<b>altro</b> no" : `; sugli altri <b>${p.senzaConsumo.length}</b> no`) + ", perché non risultano mai usati" : "")
         + ". "
         + (p.daOrdinare
             ? `<span class="rosso">${p.daOrdinare} ${p.daOrdinare === 1 ? "ricambio è sotto quello che servirebbe" : "ricambi sono sotto quello che servirebbe"}</span>`
               + (p.spesaTotale ? `: rimetterli a posto costa circa <b>${eur(p.spesaTotale)}</b>.` : ".")
             : "Nessun ricambio è sotto la soglia che verrebbe fuori dai consumi.")
-      : `Nessun ricambio del magazzino risulta consumato negli ultimi ${p.finestra} giorni: senza consumi non si può dire quanti pezzi tenere, e l'app non se lo inventa. `
+      : `Nessun ricambio del magazzino risulta consumato ${plurale(p.finestra, `nell'ultimo giorno`, `negli ultimi ${p.finestra} giorni`)}: senza consumi non si può dire quanti pezzi tenere, e l'app non se lo inventa. `
         + "Le soglie restano quelle che hai scritto tu.";
     $("sco-riep").innerHTML += codaSenzaData;
 
@@ -3055,7 +3055,7 @@ body.dw b.bad{color:var(--ink-dg)}
         ${offri ? `<span class="arr ok" role="button" tabindex="0" title="Usa ${numTx(r.sogliaProposta)} come soglia minima di questo ricambio" aria-label="Porta la soglia di ${esc(r.nome)} a ${numTx(r.sogliaProposta)}" data-sco-usa="${r.id}">${I.spunta}</span>` : ""}</div></div>`;
     }).join("")
       + (p.senzaConsumo.length
-        ? `<div class="note">${p.senzaConsumo.length === 1 ? "<b>1 ricambio</b> non risulta mai usato" : "<b>" + p.senzaConsumo.length + " ricambi</b> non risultano mai usati"} negli ultimi ${p.finestra} giorni: ${p.senzaConsumo.slice(0, 6).map(r => esc(r.nome)).join(", ")}${p.senzaConsumo.length > 6 ? " e altri " + (p.senzaConsumo.length - 6) : ""}. Per ${p.senzaConsumo.length === 1 ? "lui" : "loro"} non c'è nessuna proposta: la soglia resta quella che hai scritto tu.</div>`
+        ? `<div class="note">${p.senzaConsumo.length === 1 ? "<b>1 ricambio</b> non risulta mai usato" : "<b>" + p.senzaConsumo.length + " ricambi</b> non risultano mai usati"} ${plurale(p.finestra, `nell'ultimo giorno`, `negli ultimi ${p.finestra} giorni`)}: ${p.senzaConsumo.slice(0, 6).map(r => esc(r.nome)).join(", ")}${p.senzaConsumo.length > 6 ? " e altri " + (p.senzaConsumo.length - 6) : ""}. Per ${p.senzaConsumo.length === 1 ? "lui" : "loro"} non c'è nessuna proposta: la soglia resta quella che hai scritto tu.</div>`
         : "");
   }
 
@@ -3255,9 +3255,9 @@ body.dw b.bad{color:var(--ink-dg)}
     const px = prossimoTagliando(n, oreMezzo, oggiISO());
     if (px && px.da === "ore") {
       const nx = await chiediNumero("Il prossimo tagliando",
-        `<b>${esc(n.titolo)} — ${esc(n.mezzo)}</b> si ripete <b>ogni ${numTx(px.ogniOre)} ore</b>.<br>
-         Il contatore segna adesso <b>${numTx(px.oreBase)} ore</b>: il prossimo cade a
-         <b>${numTx(px.orePreviste)} ore</b>. Confermalo, correggilo,
+        `<b>${esc(n.titolo)} — ${esc(n.mezzo)}</b> si ripete <b>ogni ${numTx(px.ogniOre)} ${plurale(px.ogniOre,'ora','ore')}</b>.<br>
+         Il contatore segna adesso <b>${numTx(px.oreBase)} ${plurale(px.oreBase,'ora','ore')}</b>: il prossimo cade a
+         <b>${numTx(px.orePreviste)} ${plurale(px.orePreviste,'ora','ore')}</b>. Confermalo, correggilo,
          oppure <b>svuota il campo</b> per chiudere qui il piano.`,
         [{ id: "ore", label: "A quante ore motore", tipo: "text", modo: "decimal", valore: perCampo(px.orePreviste, 1),
            aiuto: "Vuoto = il tagliando non si ripete più: lo potrai sempre ripianificare a mano. Scrivilo senza il punto delle migliaia: 6500, non 6.500." }],
