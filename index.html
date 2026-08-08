@@ -2308,7 +2308,7 @@ function apriCava(id){
      come zero abbassa la barra del mese e nessuno se ne accorge */
   DB.rapportini.filter(r=>r.cavaId===id).forEach(r=>{const mk=(r.data||'').slice(0,7);const mm=months.find(x=>x.key===mk);const q=misureRapportino(r);if(mm){if(q.calcolabile)mm.mc+=q.mc;else mm.fuori++;}});
   const maxMc=Math.max(...months.map(m=>m.mc),1);
-  const chartHtml=`<div class="chart-wrap"><div class="chart-title">Produzione mc · ultimi 6 mesi</div><div class="chart-bars">${months.map(m=>`<div class="chart-col"><div class="chart-track"><div class="chart-bar" style="height:${(m.mc/maxMc*100)}%" data-val="${perLettura(m.mc,1,true)} mc${m.fuori?` · ${m.fuori} senza volume`:''}"></div></div><div class="chart-label">${m.lbl}</div></div>`).join('')}</div></div>`;
+  const chartHtml=`<div class="chart-wrap"><div class="chart-title">Produzione <span class="u">mc</span> · ultimi 6 mesi</div><div class="chart-bars">${months.map(m=>`<div class="chart-col"><div class="chart-track"><div class="chart-bar" style="height:${(m.mc/maxMc*100)}%" data-val="${perLettura(m.mc,1,true)} mc${m.fuori?` · ${m.fuori} senza volume`:''}"></div></div><div class="chart-label">${m.lbl}</div></div>`).join('')}</div></div>`;
   const mapHtml=c.lat?`<div class="map-wrap"><iframe loading="lazy" src="https://www.openstreetmap.org/export/embed.html?bbox=${c.lon-0.02}%2C${c.lat-0.015}%2C${c.lon+0.02}%2C${c.lat+0.015}&layer=mapnik&marker=${c.lat}%2C${c.lon}"></iframe></div><a class="link-small" href="https://www.openstreetmap.org/?mlat=${c.lat}&mlon=${c.lon}#map=15/${c.lat}/${c.lon}" target="_blank" style="display:block;text-align:center;margin-bottom:12px;">Apri in OpenStreetMap ↗</a>`:'';
   // Cliente collegato (E6)
   const cli=c.clienteId?DB.clienti.find(x=>x.id===c.clienteId):null;
@@ -2934,7 +2934,7 @@ function openMacForm(){
     openModal('Nuovo mezzo da strada',`
       <div class="frow"><div><label class="fl">Targa *</label><input type="text" class="finput" id="mf-tar"></div><div><label class="fl">Anno</label><input type="number" inputmode="numeric" class="finput" id="mf-anno"></div></div>
       <div class="frow"><div><label class="fl">Marca</label><input type="text" class="finput" id="mf-mar"></div><div><label class="fl">Modello</label><input type="text" class="finput" id="mf-mod"></div></div>
-      <label class="fl">Km</label><input type="number" inputmode="numeric" class="finput" id="mf-km">
+      <label class="fl">Contachilometri (<span class="u">km</span>)</label><input type="number" inputmode="numeric" class="finput" id="mf-km">
       <div class="sec-title" style="margin-top:10px;"><span class="dot"></span>Scadenze</div>
       <div class="frow"><div><label class="fl">Revisione</label><input type="date" class="finput" id="mf-rev"></div><div><label class="fl">Assicurazione</label><input type="date" class="finput" id="mf-ass"></div></div>
       <div class="frow"><div><label class="fl">Bollo</label><input type="date" class="finput" id="mf-bol"></div><div><label class="fl">Tagliando</label><input type="date" class="finput" id="mf-tag"></div></div>
@@ -2968,7 +2968,7 @@ function openMezzoEdit(){
   openModal('Modifica mezzo da strada',`
     <div class="frow"><div><label class="fl">Targa *</label><input type="text" class="finput" id="mf-tar" value="${escHtml(m.targa)}"></div><div><label class="fl">Anno</label><input type="number" inputmode="numeric" class="finput" id="mf-anno" value="${m.anno||''}"></div></div>
     <div class="frow"><div><label class="fl">Marca</label><input type="text" class="finput" id="mf-mar" value="${escHtml(m.marca||'')}"></div><div><label class="fl">Modello</label><input type="text" class="finput" id="mf-mod" value="${escHtml(m.modello||'')}"></div></div>
-    <label class="fl">Km</label><input type="number" inputmode="numeric" class="finput" id="mf-km" value="${m.km||0}">
+    <label class="fl">Contachilometri (<span class="u">km</span>)</label><input type="number" inputmode="numeric" class="finput" id="mf-km" value="${m.km||0}">
     <div class="sec-title" style="margin-top:10px;"><span class="dot"></span>Scadenze</div>
     <div class="frow"><div><label class="fl">Revisione</label><input type="date" class="finput" id="mf-rev" value="${m.scadenze?.revisione||''}"></div><div><label class="fl">Assicurazione</label><input type="date" class="finput" id="mf-ass" value="${m.scadenze?.assicurazione||''}"></div></div>
     <div class="frow"><div><label class="fl">Bollo</label><input type="date" class="finput" id="mf-bol" value="${m.scadenze?.bollo||''}"></div><div><label class="fl">Tagliando</label><input type="date" class="finput" id="mf-tag" value="${m.scadenze?.tagliando||''}"></div></div>
@@ -7020,9 +7020,9 @@ function _aggiornaEcStats(v,etichetta){
     <span class="ec-stat"><b>${mv.fori}</b>${plurale(mv.fori,'foro','fori')}</span>
     <span class="ec-stat"><b>${v.maglia.file}</b>file</span>
     <span class="ec-stat"><b>Sp${Borr}</b>×I<b>${Spaz}</b></span>
-    <span class="ec-stat"><b>${mv.metri===null?'—':mv.metri}</b>m</span>
-    ${mv.kgNoto?`<span class="ec-stat"><b>${mv.parziale?'≥':''}${mv.kg}</b>kg</span>`:''}
-    <span class="ec-stat"><b>${mv.mcNoto?mv.mc:'—'}</b>mc</span>
+    <span class="ec-stat"><b>${mv.metri===null?'—':mv.metri}</b><span class="u">m</span></span>
+    ${mv.kgNoto?`<span class="ec-stat"><b>${mv.parziale?'≥':''}${mv.kg}</b><span class="u">kg</span></span>`:''}
+    <span class="ec-stat"><b>${mv.mcNoto?mv.mc:'—'}</b><span class="u">mc</span></span>
   `;
 }
 
@@ -7757,7 +7757,11 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
    grandezza (M = mega), e «g/cm³» diventa «G/CM³». Il difetto non sta nel testo
    né nella classe: sta nel loro incontro, ed è per questo che si vede solo sul
    renderizzato. L'unità si avvolge in `.u` e qui il maiuscolo si spegne. */
-.fl .u,.sl .u,.kpi-lbl .u,.ss-lab .u,.preview-head .u{text-transform:none; letter-spacing:.2px;}
+/* `.chart-title` e `.ec-stat` sono entrate l'08/08 con la regola statica: il
+   banco del browser filtra gli elementi senza area, quindi non vedeva né il
+   titolo del grafico né la riga di riepilogo della volata, dove «mc» e «kg»
+   erano nudi e si leggevano «MC» e «KG». */
+.fl .u,.sl .u,.kpi-lbl .u,.ss-lab .u,.preview-head .u,.chart-title .u,.ec-stat .u{text-transform:none; letter-spacing:.2px;}
 .fi{width:100%;background:var(--card);border:1px solid var(--border);color:var(--text);padding:11px 14px;font-family:'Barlow',sans-serif;font-size:16px;outline:none;transition:border-color .2s;margin-bottom:12px;min-height:var(--tap);}
 .fi:focus{border-color:var(--amber);}
 .fi.err{border-color:var(--danger);}
@@ -9613,7 +9617,7 @@ body{min-height:100vh;min-height:100dvh;}
       <label class="fl">Potenza relativa esplosivo (ANFO=100)</label>
       <input type="text" inputmode="decimal" class="finput" id="kr-e" placeholder="100" value="100" oninput="calcKuzRam()">
       <div class="stats" id="kr-out" style="margin-top:10px;display:none;">
-        <div class="stat"><div class="sl">X50 (cm)</div><div class="sv" id="kr-x">—</div></div>
+        <div class="stat"><div class="sl">X50 (<span class="u">cm</span>)</div><div class="sv" id="kr-x">—</div></div>
         <div class="stat"><div class="sl">Powder factor</div><div class="sv" id="kr-pf">—</div></div>
       </div>
     </div>

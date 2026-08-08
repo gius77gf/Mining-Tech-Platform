@@ -1134,6 +1134,159 @@ test("paiUnita non prende una data per un'unità", async () => {
   ok(/coda\.length\s*>\s*8/.test(js), "manca il limite di lunghezza: oltre 8 caratteri è una parola, non un'unità");
 });
 
+/* ⛔ E LA REGOLA 2 GUARDAVA SOLO IL MOTORE DEI GRAFICI, MENTRE SETTE UNITÀ NUDE
+   STAVANO NELLE PAGINE. Misurato l'08/08, ed è la storia del «controllo che non
+   arriva» nella sua veste più semplice: il difetto è sorvegliato da un banco
+   del browser (`tests/browser/unita-maiuscole.mjs`), che però scarta gli
+   elementi senza area — `if (r.width < 1 || r.height < 1) return` — perché un
+   maiuscolo che nessuno vede non è un difetto. Ragionevole, e cieco su tutto
+   ciò che compare DOPO: il riquadro Kuz-Ram del core è `display:none` finché
+   non si calcola, e dentro c'era «X50 (cm)» → «X50 (CM)». Il banco diceva
+   «nessuna unità in maiuscolo» sul core da sempre.
+   I sette, tutti corretti nella stessa unità: due «Km» del contachilometri,
+   «X50 (cm)», il titolo «Produzione mc», i tre pezzi della riga di riepilogo
+   della volata (`m`, `kg`, `mc`) e «Volume rimesso per il recupero (m³)» di
+   Terra — quest'ultimo l'unico che il banco vedeva.
+   ⚠️ IL RIGHELLO HA SBAGLIATO TRE VOLTE PRIMA DI REGGERE, e le tre correzioni
+   sono nel codice qui sotto perché nessuno le rifaccia:
+   1. chiudeva l'elemento sul PRIMO tag omonimo, quindi
+      `<span class="vita-pct">… <span class="u">m³</span></span>` perdeva la
+      protezione e accusava Terra per un caso sano;
+   2. `<input>` non si chiude: senza l'elenco degli elementi vuoti
+      l'annidamento non tornava mai giù e la lettura correva oltre `</label>`,
+      dentro un commento HTML e dentro codice — due falsi allarmi in Sentinella;
+   3. il commento CSS entra nel selettore che lo segue, quindi `.fl` di Terra
+      non risultava nemmeno maiuscola: il controllo era cieco proprio sull'unico
+      caso che il banco del browser aveva già trovato.
+   Costo della regola, misurato prima di adottarla: 10 allarmi su 925 elementi,
+   7 veri e 3 simboli che si scrivono come un'unità, dichiarati qui per nome. */
+const UNITA_NUDE_ACCETTATE = new Map([
+  ['core (radice)|fl|H banco', '«H» è il simbolo dell\'altezza del banco, non l\'ora: la sua unità è già avvolta, «H banco (<span class="u">m</span>)».'],
+  ['core (radice)|sl|DB', 'il database, in una scheda di diagnosi. Acronimo, e in maiuscolo ci va: il decibel non c\'entra.'],
+  ['Genesi|sv-lab|Rapporto di rigidità H/B', 'il rapporto di rigidità: due simboli geometrici, nessuna ora.'],
+]);
+/* le unità con una maiuscola DIVERSA da sé. «€» e «%» non ne hanno una, quindi
+   il maiuscolo non le corrompe e stare in elenco le renderebbe solo rumorose. */
+const UNITA_CORRUTTIBILI = ['m³', 'm²', 'µg/m³', 'mg/m³', 'mm/s', 'dB', 'kg/m³', 'kg/foro',
+  'kg/m', 'kg', 'km/h', 'km', 'MPa', 'GPa', 'kbar', 'Hz', 'ms/m', 'ms', 'm/kg', 't/m³',
+  '€/m³', '€/kg', '€/foro', '€/t', '€/m', 'cm', 'mm', 'gg', 'mc', 't', 'h'];
+const VUOTI_HTML = new Set(['input', 'br', 'img', 'hr', 'meta', 'link', 'source', 'area', 'base', 'col', 'embed', 'param', 'track', 'wbr']);
+
+/* le classi che il foglio DELLA PAGINA STESSA mette in maiuscolo: derivate, non
+   scritte a mano. Un selettore con un discendente (`.fl .u`) parla del figlio —
+   è la protezione, non la condanna — quindi resta fuori. */
+function classiMaiuscole(css) {
+  const su = new Set();
+  for (const m of css.replace(/\/\*[\s\S]*?\*\//g, " ").matchAll(/([^{}]+)\{([^}]*)\}/g)) {
+    if (!/text-transform\s*:\s*uppercase/.test(m[2])) continue;
+    for (const s of m[1].split(",")) {
+      const parti = s.trim().split(/\s+/);
+      if (parti.length !== 1) continue;
+      const cl = [...parti[0].matchAll(/\.([\w-]+)/g)].map((x) => x[1]);
+      if (cl.length === 1) su.add(cl[0]);
+    }
+  }
+  return su;
+}
+
+/* il testo PROPRIO di un elemento: quello suo, tolti i figli col loro
+   contenuto. Si cammina contando l'annidamento — vedi le tre correzioni sopra. */
+function testoProprioHtml(html, dopoApertura, tag) {
+  let liv = 0, out = "", ultimo = dopoApertura;
+  const re = /<(\/?)([a-z][\w-]*)\b[^>]*?(\/?)>/gi;
+  re.lastIndex = dopoApertura;
+  let m;
+  while ((m = re.exec(html))) {
+    if (liv === 0) out += html.slice(ultimo, m.index);
+    const chiude = m[1] === "/", nome = m[2].toLowerCase();
+    if (nome === tag.toLowerCase() && chiude && liv === 0) return out;
+    if (chiude) { if (liv > 0) liv--; }
+    else if (!VUOTI_HTML.has(nome) && m[3] !== "/") liv++;
+    ultimo = re.lastIndex;
+  }
+  return out;
+}
+
+function unitaNude(soloQuesta = null, testoDato = null) {
+  const fuori = [];
+  let elementi = 0, classi = 0, pagine = 0;
+  for (const [nome, rel] of SUPERFICI) {
+    if (soloQuesta && soloQuesta !== rel) continue;
+    let html = testoDato !== null && soloQuesta === rel ? testoDato : leggi(rel);
+    if (html === null) continue;
+    pagine++;
+    html = html.replace(/<!--[\s\S]*?-->/g, " ");   // un commento può contenere «<»
+    const css = [...html.matchAll(/<style[^>]*>([\s\S]*?)<\/style>/g)].map((m) => m[1]).join("\n");
+    const su = classiMaiuscole(css);
+    classi += su.size;
+    for (const cl of su) {
+      const re = new RegExp(`<([a-z]+)[^>]*\\bclass="[^"]*\\b${cl}\\b[^"]*"[^>]*>`, "g");
+      for (const m of html.matchAll(re)) {
+        elementi++;
+        const proprio = testoProprioHtml(html, m.index + m[0].length, m[1])
+          .replace(/&sup3;/g, "³").replace(/&sup2;/g, "²").replace(/&nbsp;/g, " ");
+        const basso = proprio.toLowerCase();
+        const u = UNITA_CORRUTTIBILI.find((u) => {
+          const i = basso.indexOf(u.toLowerCase());
+          if (i < 0) return false;
+          const prima = i === 0 ? " " : proprio[i - 1];
+          const dopo = proprio[i + u.length] || " ";
+          return /[\s\d(/·,]/.test(prima) && !/[a-zA-Zà-ù]/.test(dopo);
+        });
+        if (!u) continue;
+        fuori.push({ nome, cl, u, testo: proprio.replace(/\s+/g, " ").trim().slice(0, 52) });
+      }
+    }
+  }
+  return { fuori, elementi, classi, pagine };
+}
+const scusataNuda = (v) => [...UNITA_NUDE_ACCETTATE.keys()]
+  .find((k) => { const [n, c, t] = k.split("|"); return n === v.nome && c === v.cl && v.testo.startsWith(t); });
+
+test("regola 2: nessuna unità nuda dentro una classe che il foglio mette in maiuscolo", () => {
+  const { fuori } = unitaNude();
+  const veri = fuori.filter((v) => !scusataNuda(v));
+  ok(veri.length === 0, "unità nude (vanno avvolte in `<span class=\"u\">`):\n     "
+    + veri.map((v) => `${v.nome}: «${v.testo}» — «${v.u}» in .${v.cl}`).join("\n     "));
+});
+
+test("regola 2: dichiara su quanti soggetti ha davvero guardato", () => {
+  /* Un «nessuna violazione» non vale niente senza il denominatore: se il
+     riconoscimento delle classi si rompesse — ed è già successo, col commento
+     CSS — questa regola resterebbe verde guardando zero elementi. */
+  const { elementi, classi, pagine } = unitaNude();
+  console.log(`     (${elementi} elementi sotto ${classi} classi maiuscole derivate dai fogli, su ${pagine} superfici)`);
+  ok(pagine >= 12, `solo ${pagine} superfici lette: l'elenco non sta arrivando alle pagine`);
+  ok(classi >= 60, `solo ${classi} classi maiuscole derivate: il riconoscimento nel foglio si è rotto`);
+  ok(elementi >= 700, `solo ${elementi} elementi guardati: la regola non sta guardando dove crede`);
+});
+
+test("regola 2: ogni eccezione si presenta ancora", () => {
+  /* Come in `sonda-vuoto.mjs`: una riga che scusa un caso che non c'è più sta
+     coprendo un difetto che non esiste, e nasconde quello che nascerà lì. */
+  const { fuori } = unitaNude();
+  const viste = new Set(fuori.map(scusataNuda).filter(Boolean));
+  const orfane = [...UNITA_NUDE_ACCETTATE.keys()].filter((k) => !viste.has(k));
+  ok(orfane.length === 0, `eccezioni che non si presentano più (il testo è cambiato: la riga va tolta): ${orfane.join(" · ")}`);
+});
+
+test("regola 2: la controprova — rimette il difetto vero e pretende che cada", () => {
+  /* Il difetto rimesso è quello VERO, quello dell'08/08: «X50 (cm)» dentro un
+     riquadro `display:none`, cioè il caso su cui il banco del browser non
+     poteva arrivare. Si inietta in memoria, mai sul file. */
+  const sano = leggi("index.html");
+  ok(sano !== null, "index.html non trovato");
+  const guasto = sano.replace('<div class="sl">X50 (<span class="u">cm</span>)</div>', '<div class="sl">X50 (cm)</div>');
+  ok(guasto !== sano, "l'iniezione non ha sostituito niente: la riga del difetto è cambiata, la controprova non prova più nulla");
+  const { fuori } = unitaNude("index.html", guasto);
+  const veri = fuori.filter((v) => !scusataNuda(v));
+  ok(veri.some((v) => v.u === "cm"), `col difetto rimesso la regola deve vederlo — ha trovato: ${veri.map((v) => v.testo).join(" · ") || "niente"}`);
+  /* e la protezione deve contare davvero: rimessa, il caso sparisce */
+  const { fuori: dopo } = unitaNude("index.html", sano);
+  ok(!dopo.filter((v) => !scusataNuda(v)).some((v) => v.u === "cm"),
+    "col file sano la regola accusa lo stesso: allora non sta guardando lo `<span class=\"u\">`");
+});
+
 console.log("\n── Regola 3: un campo decimale non è mai type=number ──");
 // Misurato in Chromium: in un `<input type="number">`, digitando «2,4» da
 // tastiera il `.value` diventa «24» e `checkValidity()` risponde true. Il

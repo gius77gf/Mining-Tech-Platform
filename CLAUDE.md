@@ -1324,6 +1324,35 @@ Perché serva davvero e non produca elenchi generici, cinque vincoli:
   *se il difetto stesse un piano più sotto — dentro il riquadro invece che
   dentro lo schermo, in un'app fuori convenzione, sul valore che sale invece
   che su quello che scende — questo controllo lo direbbe?*
+- ⛔ **UN FILTRO RAGIONEVOLE DIVENTA UNA CECITÀ STRUTTURALE, E ALLORA IL
+  CONTROLLO VA RIFATTO NELL'ALTRA SINTASSI.** Misurato l'08/08 sulle unità di
+  misura, ed è diverso dal «controllo che non guarda dove crede»: qui il filtro
+  è **giusto**, e proprio per questo non si aggiusta.
+  `tests/browser/unita-maiuscole.mjs` scarta gli elementi senza area
+  (`if (r.width < 1 || r.height < 1) return`) — sensato, un maiuscolo che
+  nessuno vede non è un difetto. Effetto: cieco su **tutto ciò che compare
+  dopo**. Il riquadro Kuz-Ram del core è `display:none` finché non si calcola,
+  e dentro c'era «X50 (cm)» → **«X50 (CM)»**; il banco dichiarava il core
+  pulito da sempre. Rifatta la stessa domanda **staticamente** — leggendo dal
+  foglio di ogni pagina quali classi mette in maiuscolo, e cercando un'unità
+  nuda nel testo proprio degli elementi che le portano — sono usciti **sette**
+  difetti veri su 925 elementi, e **uno solo** era quello che il banco vedeva.
+  La regola: quando un banco del browser filtra per **visibilità**, la stessa
+  domanda va rifatta sul **sorgente**; le due non si sostituiscono (il
+  renderizzato prende l'incontro fra classe e contenuto, il sorgente prende
+  quello che non è ancora comparso). Costo misurato prima di adottarla: 10
+  allarmi, 7 veri e 3 simboli che si scrivono come un'unità (`H` altezza, `DB`
+  database, `H/B` rigidità), dichiarati per nome.
+  ⚠️ **E il righello ha sbagliato tre volte prima di reggere**, tutte e tre
+  nella stessa famiglia già scritta qui: chiudeva l'elemento sul **primo** tag
+  omonimo (e `<span class="vita-pct">…<span class="u">m³</span></span>` perdeva
+  la protezione: accusa falsa su un caso sano); non sapeva che `<input>` è un
+  elemento **vuoto**, quindi l'annidamento non tornava giù e la lettura correva
+  oltre `</label>` dentro un commento e dentro codice; e il **commento CSS
+  entra nel selettore che lo segue**, quindi `.fl` di Terra non risultava
+  nemmeno maiuscola — cioè il controllo era cieco proprio sull'unico caso che
+  il banco aveva già trovato. Per la terza volta in una settimana: **i commenti
+  vanno tolti in tutte e tre le sintassi che una pagina contiene.**
 - ⛔ **UN NUMERO BASSO DI VIOLAZIONI VA DIVISO PER I SOGGETTI CHE IL CONTROLLO HA
   POTUTO VEDERE.** Misurato il 07/08 su Terra, ed è la forma *rassicurante* della
   regola qui sopra: non un controllo che guarda nel posto sbagliato, ma un
