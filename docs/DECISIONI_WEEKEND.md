@@ -368,7 +368,7 @@ presa — misurare bene una cosa che poi non si tocca è lavoro sprecato.)*
 *(nuova, 30/07 · dettaglio in `docs/REVISIONE_SICUREZZA_202607.md`)*
 
 Misurato con l'emulatore, non dedotto. Il muro fra **aziende concorrenti tiene
-ed è provato** (58 test). Dentro la stessa azienda, invece, non c'è ancora
+ed è provato** (68 test, rimisurati l'08/08). Dentro la stessa azienda, invece, non c'è ancora
 nessuna separazione: chi è stato invitato per compilare i rapportini può anche
 **cancellare una fattura**, e un cliente abbonato solo a un'app può leggere e
 scrivere i dati di tutte le altre.
@@ -874,8 +874,8 @@ ogni strumento), i **grafici** in tutte le app da un motore scritto in casa,
 condivise su numeri, unità di misura e soldi.
 
 **Le prove automatiche sono passate a 2.310** *(ricontate l'08/08 lanciando le
-suite)*, più **106** che girano con l'emulatore Firestore (58 sulle regole di
-sicurezza, 19 sull'SDK, 21 sulle funzioni, 8 sul primo avvio) e **153
+suite)*, più **116** che girano con l'emulatore Firestore (**68** sulle regole
+di sicurezza, 19 sull'SDK, 21 sulle funzioni, 8 sul primo avvio) e **153
 esecuzioni** che aprono davvero le pagine in un browser.
 
 Nella sola giornata del 31/07 le prove sulle funzioni delle app sono passate da

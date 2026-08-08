@@ -520,7 +520,7 @@ Perché serva davvero e non produca elenchi generici, cinque vincoli:
   con l'`appId` dell'istanza SDK, e le regole aprono `/apps/{appId}/**` a
   **qualunque membro dell'organizzazione**. Chiunque può inizializzare l'SDK con
   un altro `appId` — ed è esattamente quello che i **ponti** fanno di proposito
-  (`ponteScudo` in Sentinella). La barriera vera, provata da 58 test, è quella
+  (`ponteScudo` in Sentinella). La barriera vera, provata da 68 test, è quella
   fra **organizzazioni**. Le due cose non vanno raccontate come se fossero la
   stessa: se un giorno servirà «chi lavora in cava non tocca i documenti di
   sicurezza», non è un problema di `appId`, è la decisione aperta sui **ruoli**
@@ -1431,9 +1431,28 @@ Perché serva davvero e non produca elenchi generici, cinque vincoli:
   accusa il codice fa perdere più tempo di nessuna prova. Se invece il test è
   invecchiato perché il prodotto è migliorato, si corregge rendendo
   l'asserzione **più giusta, non più permissiva** (vedi `contiene`).
-- Regole di sicurezza Firestore: `cd apps/deepwork-id && firebase
-  emulators:exec --project demo-deepwork "cd tests && npm test"`
-  (richiede firebase-tools + Java; 19 test, devono passare tutti).
+- ⛔ **REGOLE DI SICUREZZA FIRESTORE — E IL COMANDO SCRITTO QUI NON FUNZIONAVA
+  IN QUESTO CONTENITORE.** Misurato l'08/08, e la riga precedente sbagliava due
+  volte: dava `emulators:exec … "cd tests && npm test"` (che qui **non parte**)
+  e diceva «19 test», che è il conto dell'**SDK**, non delle regole.
+  Il comando che gira davvero, e che verifica la **barriera multi-tenant** — il
+  requisito fondante, quello fra aziende concorrenti — è:
+
+      cd apps/deepwork-id && firebase emulators:exec --only firestore \
+        --project demo-deepwork "cd tests && node run.mjs"
+
+  **68 prove, tutte verdi**, in pochi minuti. E con `--only firestore,auth`
+  girano anche `run-sdk.mjs` (**19**) e `run-bootstrap.mjs` (**8**).
+  ⚠️ **Quello che NON gira qui è l'emulatore delle FUNZIONI**, e con lui
+  `run-fns.mjs` (21): chiede la rete e la politica del contenitore la nega
+  («Unable to parse JSON … "denied by …"»). È per questo che `npm test` intero
+  sotto l'emulatore fallisce — non per un difetto nostro. Quei 21 restano
+  verificabili **solo in CI**, e va detto invece che lasciato credere che
+  l'emulatore «non si possa usare».
+  ⚠️ La lezione oltre al caso: **un comando scritto in un file di istruzioni è
+  una promessa, e le promesse invecchiano.** Quel `58` sulle regole di
+  sicurezza stava in tre documenti e valeva **68** perché nessuno lo lanciava
+  più in casa — sul numero che riguarda la sicurezza, per giunta.
 - Verifica visiva pagine: server statico locale + screenshot
   (Playwright/Chromium preinstallato). Gli screenshot vanno **guardati**, non
   solo prodotti: nella giornata del 29/07 un campo scomparso, una miniatura

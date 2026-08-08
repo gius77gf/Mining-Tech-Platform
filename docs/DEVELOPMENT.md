@@ -48,13 +48,17 @@ segnaposto («Funzione nav non ancora pronta»). Per aprirlo davvero si monta
 
 **2.310 prove girano senza rete e senza browser**, con `node` (contate lanciandole, non a memoria — all'08/08: 1890 + 300 + 71 + 32 + 9 + 8):
 
-> ⚠️ **E quel numero conta SEI suite, non tutto quello che gira.** Misurato il
-> 07/08 sommando le righe «Risultato …» di un giro intero: il giro `node`
-> completo esegue **2.474** asserzioni, perché ne lancia altre dieci (sonda del
-> vuoto 15, numeri nei documenti 23, orologio del vault 3, documenti invecchiati
-> 15, sintassi delle pagine 15, import esistenti 134, nomi liberi 7, classi
-> orfane 2 + 6, suite collegate 3 = **223**).
-> **Il numero da citare resta 2.251**, e la ragione è che le altre dieci contano
+> ⚠️ **E quel numero conta SEI suite, non tutto quello che gira.** Rimisurato
+> l'08/08 sommando le righe «Risultato …» di un giro intero: il giro `node`
+> completo esegue **2.576** asserzioni, perché ne lancia altre dieci (sonda del
+> vuoto 15, numeri nei documenti 24, orologio del vault 3, documenti invecchiati
+> 15, sintassi delle pagine 34, import esistenti 140, nomi liberi 24, classi
+> orfane 2 + 6, suite collegate 3 = **266**).
+> ⚠️ *Questa nota era ferma al 07/08 e diceva 2.474 e «il numero da citare resta
+> 2.251» mentre il titolo sopra diceva già 2.310: il controllo sorveglia il
+> **totale**, non la prosa che lo spiega. È la quarta forma di invecchiamento
+> raccolta in `CLAUDE.md`.*
+> **Il numero da citare resta 2.310**, e la ragione è che le altre dieci contano
 > **file, non prove**: `import esistenti` fa un'asserzione per file e `classi
 > orfane` una per pagina, quindi il loro totale si muove ogni volta che nasce un
 > file — un numero che cresce senza che nessuno abbia scritto una prova è un
@@ -134,12 +138,29 @@ node apps/deepwork-id/tests/copertura-funzioni.mjs --elenco   # dice anche QUALI
 node apps/deepwork-id/tests/nomi-doppi.mjs
 ```
 
-**106 con l'emulatore Firestore** (regole di sicurezza, SDK, funzioni, primo
-avvio) — servono `firebase-tools` e Java:
+**116 con l'emulatore Firestore** (**68** regole di sicurezza, 19 SDK, 21
+funzioni, 8 primo avvio) — servono `firebase-tools` e Java. ⚠️ Tre addendi su
+quattro sono stati **rimisurati l'08/08 lanciandoli**; le 21 sulle funzioni no,
+per la ragione scritta qui sotto. Il vecchio **106** portava un **58** sulle
+regole di sicurezza che era fermo da tempo:
 
 ```sh
 cd apps/deepwork-id && firebase emulators:exec --project demo-deepwork "cd tests && npm test"
 ```
+
+⚠️ **Nel contenitore di sviluppo quel comando non parte**, e la ragione non è
+un difetto nostro: l'emulatore delle **funzioni** chiede la rete e la politica
+del contenitore la nega. Quello che gira — misurato l'08/08 — è la parte che
+conta di più, la **barriera multi-tenant**:
+
+```sh
+cd apps/deepwork-id && firebase emulators:exec --only firestore \
+  --project demo-deepwork "cd tests && node run.mjs"      # 68 prove
+cd apps/deepwork-id && firebase emulators:exec --only firestore,auth \
+  --project demo-deepwork "cd tests && node run-sdk.mjs"  # 19 prove
+```
+
+Restano fuori solo le **21** prove sulle funzioni, verificabili in CI.
 
 **153 esecuzioni che aprono davvero le pagine** in Chromium — banchi distinti,
 ognuno seguito dalla sua **controprova** (Chromium è già installato in

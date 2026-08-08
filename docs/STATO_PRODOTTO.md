@@ -70,13 +70,22 @@ Il racconto è in `docs/IL_CONFORME_CHE_NESSUNO_HA_MISURATO.md`.
 **Quanto è controllato, oggi** *(ricontato il 02/08 lanciando le suite, non a
 memoria)*: **2.310** prove automatiche che girano senza rete — **1890** sulle
 funzioni delle app, **300** sulle regole di stile, 71 sugli aiuti condivisi, 32
-sulla nuvola di punti, 9 sul manifesto, 8 sulla demo — più **106** che girano
-con l'emulatore Firestore (58 sulle **regole di sicurezza**, 19 sull'SDK, 21
+sulla nuvola di punti, 9 sul manifesto, 8 sulla demo — più **116** che girano
+con l'emulatore Firestore (**68** sulle **regole di sicurezza**, 19 sull'SDK, 21
 sulle funzioni, 8 sul primo avvio) e **153 esecuzioni** che aprono davvero le
 pagine in un browser.
-*(⚠️ Il **2.251** conta sei suite: il giro completo ne esegue **2.474**, ma le
+⚠️ *Dei quattro addendi dell'emulatore, l'08/08 ne sono stati **rimisurati
+tre** — 68, 19 e 8 — lanciandoli davvero. Il quarto (**21** sulle funzioni)
+resta **non verificato**: vuole l'emulatore delle funzioni, che in questo
+contenitore non parte perché chiede la rete e la politica la nega. Il numero
+era 58 e non 68 perché nessuno l'aveva più lanciato in casa: la suite delle
+regole si lancia con* `firebase emulators:exec --only firestore --project
+demo-deepwork "cd tests && node run.mjs"`.
+*(⚠️ Il **2.310** conta sei suite: il giro completo ne esegue **2.576**, ma le
 altre dieci contano **file** invece che casi — crescono da sole quando nasce un
-file, quindi non sono il numero da citare. Misurato il 07/08.)*
+file, quindi non sono il numero da citare. Rimisurato l'08/08; questa riga era
+ferma a 2.251 e 2.474 mentre il titolo sopra era già stato aggiornato, perché
+il controllo sorveglia il **totale** e non la prosa che lo spiega.)*
 E **703 funzioni pure su 703** delle sei app sono chiamate per nome dalle prove:
 tutte al 100%. Vuol dire che non ne resta nessuna che nessuno ha ancora
 guardato — non che siano provate *bene*, che è un'altra domanda.
