@@ -1840,6 +1840,17 @@ numero scritto dove non era stato misurato niente**.*
   📊 Filo delle tre unità sugli elenchi a mano: `BROWSER` perdeva 1 documento su
   3, `MODULI` 3 moduli condivisi, `PAGINE` 2 pagine vere.
 
+- [x] ✅ **`leggi-giro`: il lettore che separa il rosso VOLUTO da quello VERO**
+  (`087ef5b`). In un registro da cinquemila righe le due specie di rosso si
+  scrivono uguali, e il 07/08 questo è costato **due volte in due ore**. La
+  cura era già metà fatta — `tutti.mjs` dichiara nell'intestazione quali
+  passate sono controprove — ma **mancava chi lo leggesse**. Questo legge la
+  **dichiarazione**, non le parole, e mette **prima** le righe «non ho
+  guardato». Provato sul registro vero: **42 passate, 369 KO voluti tenuti
+  fuori, 4 KO veri, 49 righe cieche**; e dichiara il registro **tronco** quando
+  manca la riga d'uscita. Controprova sulle due trappole vere (la
+  sotto-intestazione a sei uguali, il KO dentro una controprova).
+
 ## Riferimenti
 
 - Ultimo checkpoint **per data vera**:
