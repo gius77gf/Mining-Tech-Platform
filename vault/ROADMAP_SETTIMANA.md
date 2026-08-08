@@ -1704,6 +1704,26 @@ numero scritto dove non era stato misurato niente**.*
   temporanea. Costo: **0,3 secondi**; 19 moduli compilati, controprova 14/14
   pagine e 19/19 moduli.
 
+- [x] ✅ **Le regole di sicurezza si possono provare QUI, e il numero era 58
+  invece di 68** (`a5dca00`). Il comando scritto in `CLAUDE.md` sbagliava due
+  volte: dava `emulators:exec … "npm test"` (che qui **non parte**) e diceva
+  «19 test», che è il conto dell'**SDK**. Misurato lanciandolo:
+  `--only firestore` + `node run.mjs` → **68 prove, 0 fallite**, cioè la
+  **barriera multi-tenant** — il muro fra aziende concorrenti — **verificabile
+  prima del push, e nessuno lo faceva**; `--only firestore,auth` conferma SDK
+  **19** e primo avvio **8**. ⛔ L'emulatore delle **funzioni** non parte:
+  chiede la rete e la politica del contenitore la nega — quindi `npm test`
+  intero fallisce **non per un difetto nostro**, e le 21 prove sulle funzioni
+  restano solo in CI. Detto invece che lasciato credere che «l'emulatore non si
+  possa usare». ⛔ E **58 → 68** in tre posti, totale emulatore **106 → 116**,
+  con dichiarato **quale addendo non è stato rimisurato e perché**.
+  ⛔ **E la quarta forma di invecchiamento colta sul fatto un'ora dopo averla
+  scritta**: `DEVELOPMENT.md` diceva ancora «il numero da citare resta 2.251» e
+  «il giro completo esegue 2.474» mentre il titolo sopra diceva già 2.310 — il
+  controllo sorveglia il **totale**, non la prosa che lo spiega. Rimisurato:
+  sei suite **2.310**, giro completo **2.576**, e **ogni** addendo della nota
+  era vecchio (sintassi 15 → 34, import 134 → 140, nomi liberi 7 → 24).
+
 ## Riferimenti
 
 - Ultimo checkpoint **per data vera**:
