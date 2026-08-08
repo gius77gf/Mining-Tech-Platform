@@ -2359,7 +2359,28 @@ cosa più tranquilla di quella che lo schermo mostra.
 - [x] **Igiene degli strumenti** — `porte-banchi.mjs`: nessun banco riusa la
       porta di un altro (48 con server, 36 col contrassegno, **0** che
       riusano). Ha corretto una mia diagnosi falsa scritta in due checkpoint.
-- [ ] **Scudo (5)** e **Genesi (9)** — restano da aprire.
+- [x] **Genesi · la TERZA gamba della domanda** — la domanda di `CLAUDE.md`
+      nomina «un CSV, un PDF, **una frase di riepilogo**», e la terza su Genesi
+      non era mai stata chiesta. Misurata: dei sette file CSV che il banco apre,
+      **sette uscivano in silenzio** — il posto per dirlo (`#toast`) c'era ed era
+      **vuoto**, mentre Flotta, Conti, Scudo e Campo annunciano tutti quanto ne
+      esce. Non un numero che mente: un numero che non c'è. Adesso i **sei**
+      export CSV di Genesi dicono quanto ne è uscito, col conto preso dalle
+      righe VERE del file. Banco **66 → 73 prove**, `7 muti → 7 confrontate`,
+      0 falliti; iniezione nuova (un foro in più annunciato di quanti ne escono),
+      6/6 rimesse, **23** prove cadute in controprova.
+      ⚠️ Il conto NON è un ornamento: `sitoExport` **filtra** (`d>0 && w>0 &&
+      ppv>0`), e oggi lo schermo filtra allo stesso modo — verificato leggendo
+      `sitoRender`, che usa la stessa `P` — ma niente tiene in passo due filtri
+      scritti in due punti. La frase è ciò che rende visibile la divergenza.
+- [x] **E il righello si è accusato da solo, prima del prodotto.** Il primo
+      conteggio diceva «non viste dal selettore: 7», cioè una cosa sul RIGHELLO,
+      e stavo per allargare il selettore: `#toast` in Genesi c'è (riga 972). Le
+      due cause del silenzio sono **opposte** — nessun posto dove dirlo (misura
+      cieca) oppure posto vuoto (prodotto muto) — e contarle insieme fa passare
+      la prima per la seconda. Separate (`postiDaFrase` in `giro.mjs`, che riusa
+      il selettore invece di riscriverlo): **7 muti, 0 senza posto**.
+- [ ] **Scudo (5)** — resta da aprire.
 - [ ] **Domanda aperta**: una voce di costo senza importo sparisce dal
       riepilogo e dal file **in silenzio** (`riepilogoCosti` la scarta a monte).
       Da decidere, non da correggere di slancio.

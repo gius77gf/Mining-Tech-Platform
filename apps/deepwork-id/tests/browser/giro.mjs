@@ -324,17 +324,33 @@ export async function vaiA(p, nome, sezione) {
    ci sono. Si tolgono prima di leggere i numeri — in Flotta l'inclusione li
    tollerava per caso, ma un numero di troppo fa passare il confronto per la
    ragione sbagliata, che è peggio di un fallimento. */
+/* ⚠️ E IL SELETTORE STA IN UNA COSTANTE SOLA perché la domanda che segue non
+   si può fare senza di lui: «la frase è vuota» ha DUE cause opposte — la
+   pagina non ha nessun posto dove dirla (il RIGHELLO non guarda dove crede),
+   oppure il posto c'è e il prodotto non ci ha scritto niente (il PRODOTTO non
+   annuncia quanto esce). Contarle insieme fa passare la prima per la seconda,
+   e il 08/08 su Genesi è successo: sette uscite marcate «non viste dal
+   selettore» mentre `#toast` in quella pagina c'è, alla riga 972. Chi vuole
+   distinguerle chiama `postiDaFrase`, che riusa QUESTO selettore: scritto una
+   seconda volta a mano, il giorno che si allarga uno dei due, l'altro risponde
+   su una domanda diversa senza dirlo. */
+export const SEL_FRASI = ".esito, .note.esito, #toast, .toast";
 export async function azzeraFrasi(pg) {
-  await pg.evaluate(() => {
-    for (const e of document.querySelectorAll(".esito, .note.esito, #toast, .toast")) e.textContent = "";
-  });
+  await pg.evaluate((s) => {
+    for (const e of document.querySelectorAll(s)) e.textContent = "";
+  }, SEL_FRASI);
 }
 export async function frasiVisibili(pg) {
-  return pg.evaluate(() => {
-    const vive = [...document.querySelectorAll(".esito, .note.esito, #toast, .toast")]
+  return pg.evaluate((s) => {
+    const vive = [...document.querySelectorAll(s)]
       .filter((e) => e.textContent.trim() && getComputedStyle(e).display !== "none");
     return [...new Set(vive.map((e) => e.textContent.replace(/\s+/g, " ").trim()))].join(" | ");
-  });
+  }, SEL_FRASI);
+}
+/* quanti posti ha questa pagina per dire una frase di riepilogo: zero vuol
+   dire che il silenzio misurato sopra è del righello, non del prodotto */
+export async function postiDaFrase(pg) {
+  return pg.evaluate((s) => document.querySelectorAll(s).length, SEL_FRASI);
 }
 /* i numeri che in una frase sono CONTI: via gli importi (€ prima o dopo), le
    percentuali e i decimali, che non dicono quante righe ci sono */

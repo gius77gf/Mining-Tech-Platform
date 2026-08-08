@@ -121,6 +121,15 @@ const DIFETTI = [
   [`    ritardo:+((f.tNom!=null?f.tNom:f.tDet)||0).toFixed(1),`, `    ritardo:f.tDet,`],
   // 5 · il numero all'inglese nella modale del composito
   [`+gfix(dev,1)+' mm/s</div>'`, `+dev+' mm/s</div>'`],
+  /* 6 · LA FRASE CHE CONTA UNA COSA E IL FILE CHE NE SCRIVE UN'ALTRA. È la
+     forma esatta in cui questa famiglia si presenta — la frase conta l'array
+     sorgente mentre il ciclo che scrive filtra — e qui la si rimette nel modo
+     più corto possibile: un foro in più annunciato di quanti ne escono.
+     ⚠️ L'ancora è CORTA di proposito: una citazione di cinque righe scade in
+     poche ore (misurato l'08/08: tre iniezioni morte in venti banchi) e una
+     controprova che non aggancia gira su un prodotto sano dicendo «distingue».
+     Qui basta il numero, che è il soggetto della prova. */
+  [`_ricPlur(D2.holes.length,'foro','fori')`, `_ricPlur(D2.holes.length+1,'foro','fori')`],
 ];
 
 const colpiti = new Set();
@@ -222,16 +231,40 @@ async function apri(sito, design) {
 /* ⛔ SI PRETENDE CHE IL FILE SIA USCITO DAVVERO. Un banco che preme un bottone
    che non salva niente e poi non trova il testo che cerca stampa un KO che
    sembra un difetto di prodotto: qui il conto dei file aperti lo distingue. */
+import { azzeraFrasi, frasiVisibili, contiNellaFrase, righeDiDato, postiDaFrase } from "./giro.mjs";
+
+let fraseConNumero = 0, fraseSenzaNumero = 0, fraseNonCsv = 0, fraseMuta = 0, senzaPosto = 0;
 async function esce(pg, id, nome) {
   const prima = await pg.evaluate(() => window.__usciti.length);
   const bot = await pg.$("#" + id);
   if (!bot) { dice(false, `il bottone #${id} esiste`, "assente"); return ""; }
+  await azzeraFrasi(pg);   // se no si legge la frase di un'altra esportazione
   await pg.evaluate((i) => document.getElementById(i).click(), id);
   await pg.waitForTimeout(900);
   const u = await pg.evaluate((n) => (window.__usciti.length > n ? window.__usciti[window.__usciti.length - 1] : null), prima);
   if (!u) { dice(false, `${nome}: il file esce davvero premendo #${id}`, "nessun download"); return ""; }
   fileAperti++;
   dice(u.testo.length > 30, `${nome} esce davvero da #${id} (${u.nome}, ${u.testo.length} caratteri)`, u.testo.slice(0, 90));
+  /* ⛔ LA TERZA GAMBA DELLA DOMANDA DI CASA: la frase di riepilogo contro il
+     file. La regola sta in `giro.mjs` — la usano Flotta, Conti, Scudo e Campo.
+     Qui si aggancia al punto unico da cui passa OGNI uscita, come già fa la
+     domanda del campione scappato.
+     ⚠️ Solo sui CSV: in un XML o in un JSON «le righe» non vogliono dire
+     niente, e chiederlo lo stesso sarebbe un controllo che non guarda dove
+     crede. Quelli si contano a parte. */
+  if (/\.csv$/i.test(u.nome || "")) {
+    const frase = await frasiVisibili(pg);
+    const numeri = contiNellaFrase(frase);
+    if (numeri.length) {
+      fraseConNumero++;
+      const dati = righeDiDato(u.testo.split(/\r?\n/).filter(Boolean));
+      dice(numeri.includes(dati) || numeri.reduce((t, x) => t + x, 0) === dati,
+        `le righe del file sono fra i numeri che la frase dichiara (${id})`,
+        `frase «${frase.slice(0, 80)}» · numeri [${numeri}] · righe di dato ${dati}`);
+    } else if (frase.trim()) fraseSenzaNumero++;
+      else if (await postiDaFrase(pg) > 0) fraseMuta++;
+      else senzaPosto++;
+  } else fraseNonCsv++;
   /* ⛔ IL CAMPIONE SCAPPATO, CHIESTO A OGNI FILE CHE PASSA DI QUI. Il difetto
      n. 4 di questo banco — lo scatter d'innesco consegnato al posto del
      ritardo — è stato trovato **a mano**, aprendo il file, e la lezione era
@@ -513,5 +546,19 @@ if (CONTROPROVA) {
     : `✗ coi difetti rimessi il banco non distingue (${ko} cadute, ${colpiti.size}/${DIFETTI.length} iniezioni)`);
   process.exit(colpiti.size === DIFETTI.length && ko > 0 ? 0 : 1);
 }
+/* ⛔ IL DENOMINATORE DI QUESTA DOMANDA, e diviso in quattro perché tre dei
+   quattro casi NON sono difetti e uno non riguarda nemmeno il prodotto:
+   · «confrontate» è quello che il banco ha davvero misurato;
+   · «mostrata senza un conto» e «muta» dicono qualcosa sul PRODOTTO — Genesi
+     salva il file e non annuncia quanto ne esce. Non è un difetto: è una
+     scelta, e sta scritta qui perché si veda invece di essere dedotta;
+   · «nessun posto per dirla» direbbe una cosa sul RIGHELLO (il selettore non
+     trova dove guardare) e va tenuto separato: contarlo insieme ai muti
+     farebbe passare un buco della misura per una scelta di prodotto. */
+console.log(`  ·  frasi di riepilogo confrontate col file: ${fraseConNumero}`
+  + ` · MOSTRATE ma senza un conto: ${fraseSenzaNumero}`
+  + ` · il posto per dirla c'è e resta MUTO: ${fraseMuta}`
+  + ` · nessun posto per dirla (sarebbe il righello): ${senzaPosto}`
+  + ` · uscite non-CSV (XML/JSON, dove «le righe» non vogliono dire niente): ${fraseNonCsv}`);
 console.log(`Risultato documenti che escono da Genesi: ${ok} passati, ${ko} falliti su ${prove}`);
 process.exit(ko > 0 ? 1 : 0);

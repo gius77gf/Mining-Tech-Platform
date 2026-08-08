@@ -2991,6 +2991,19 @@ if($('btn-scheda-csv')) $('btn-scheda-csv').onclick=()=>{
   const a=document.createElement('a');
   a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(csv);
   a.download='genesi_scheda_volata.csv'; a.click();
+  /* ⛔ LA FRASE DI RIEPILOGO È LA TERZA COSA CHE ESCE, e Genesi non la diceva.
+     La domanda di casa — «dove questa app compone qualcosa che ESCE, chi
+     decide i suoi numeri?» — nomina un CSV, un PDF e **una frase di
+     riepilogo**. Misurato l'08/08 col banco: dei sette file CSV che passano di
+     qui, **sette uscivano in silenzio** (il posto per dirlo — `#toast` — c'era
+     ed era vuoto), mentre Flotta, Conti, Scudo e Campo annunciano tutti quanto
+     ne esce. Non era un numero che mentiva: era un numero che non c'era.
+     Il conto NON è un ornamento: è l'unica cosa che rende visibile un filtro.
+     Qui la riga esce per ogni voce di `rows`; dove il ciclo che scrive filtra
+     (la legge di sito) la frase dichiara le righe VERE del file, così se un
+     giorno schermo e file divergessero lo si leggerebbe invece di scoprirlo
+     aprendo il CSV. */
+  toast('✓ Scheda volata esportata: '+_ricPlur(rows.length,'parametro','parametri'));
 };
 /* DA DOVE VIENE LA PPV PREVISTA, scritto UNA VOLTA per i due posti che devono
    dirlo (il foglio stampabile e la riconciliazione).
@@ -3124,6 +3137,9 @@ if($('cmpExport')) $('cmpExport').onclick=()=>{
   const a=document.createElement('a');
   a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(csv);
   a.download='genesi_confronto_AB.csv'; a.click();
+  /* `R[0]` è l'intestazione: si annunciano le righe di DATO, che sono quelle
+     che il file contiene davvero (vedi la scheda volata) */
+  toast('✓ Confronto A/B esportato: '+_ricPlur(R.length-1,'riga di confronto','righe di confronto'));
 };
 
 /* ===== Riconciliazione previsto-vs-reale (P0.1): chiude il cerchio col dato
@@ -3315,6 +3331,7 @@ if($('riconExport')) $('riconExport').onclick=()=>{
   const csv=csvRiconciliazione(st);
   const a=document.createElement('a'); a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(csv);
   a.download='genesi_riconciliazione.csv'; a.click();
+  toast('✓ Storico riconciliazione esportato: '+_ricPlur(st.length,'volata','volate'));
 };
 /* Il pulsante che chiude il giro: il file esportato da Campo torna qui. Un
    file sbagliato NON deve rompere la pagina: si spiega e si resta com'era. */
@@ -3436,6 +3453,7 @@ if($('sigExport')) $('sigExport').onclick=()=>{
      da cui viene: due confronti diversi non si sovrascrivono più */
   const _pezzo=[(_sigNome||'onda'), _sigDetTimes().length+'fori', (D2.ritardo||0)+'ms'].join('_');
   a.download='genesi_composito_'+_pezzo+'.csv'; a.click();
+  toast('✓ Onda composita esportata: '+_ricPlur(c.steps,'campione','campioni'));
 };
 
 /* ═══════════ G3 — interfaccia della legge di sito ═══════════
@@ -3751,6 +3769,15 @@ if($('sitoExport')) $('sitoExport').onclick=()=>{
     +P.map(p=>[p.ts||'',p.nome||'',p.d,p.w,p.ppv,(p.d/Math.sqrt(p.w)).toFixed(2),p.fonte||''].map(csvCell).join(';')).join('\n')+'\n';
   const a=document.createElement('a'); a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(csv);
   a.download='genesi_legge_di_sito.csv'; a.click();
+  /* ⛔ QUI IL CONTO SERVE PIÙ CHE ALTROVE: `P` è FILTRATO (`d>0 && w>0 &&
+     ppv>0`), quindi il file può contenere meno referti di quanti ne ha in
+     pancia lo store. Oggi lo schermo filtra allo stesso modo — «Referti
+     (P.length)» a sei righe da qui — e i due numeri coincidono; ma niente
+     tiene in passo due filtri scritti in due punti, ed è esattamente la forma
+     in cui questa famiglia di difetti si presenta: la frase conta l'array
+     SORGENTE mentre il ciclo che scrive filtra. Annunciando le righe VERE del
+     file, il giorno che divergessero lo dice la frase. */
+  toast('✓ Legge di sito esportata: '+_ricPlur(P.length,'referto','referti'));
 };
 
 /* ═══ T9 · MANDA A SENTINELLA — la volata progettata entra nel registro ══════
@@ -4103,6 +4130,7 @@ $('btn-piano-csv').onclick=()=>{
   const a=document.createElement('a');
   a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(csv);
   a.download='genesi_piano_carico.csv'; a.click();
+  toast('✓ Piano di carico esportato: '+_ricPlur(D2.holes.length,'foro','fori'));
 };
 /* P1.3 — Export piano di innesco in XML stile IREDES (interoperabilità con
    detonatori elettronici e software terzi). NON è conformità IREDES certificata:
