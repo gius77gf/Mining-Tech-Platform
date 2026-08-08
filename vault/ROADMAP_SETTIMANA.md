@@ -1487,11 +1487,23 @@ numero scritto dove non era stato misurato niente**.*
   riusi `nomiDichiarati` e l'elenco vero. ⛔ **Terza volta in una notte che i
   falsi allarmi vengono dal RIGHELLO e non dalla domanda** — sta diventando il
   segno più affidabile che ci sia.
+- [x] ✅ **`nomi-liberi` · la TERZA domanda: un nome riferito che non esiste**
+  (`8136ab2`). `${nome}` dentro un template è il modo in cui queste pagine
+  compongono **ogni riga di interfaccia**: un nome libero lì **uccide il
+  disegno** come una chiamata inesistente uccide il tocco, e le prime due
+  domande non lo vedono. ⚠️ Si cerca sul **testo** e non sul codice mascherato
+  — i template vivono dentro le stringhe, e `mascheraCodice` spegnerebbe proprio
+  ciò che si vuole leggere. Ampiezza già misurata: **3.771 usi su 10 pagine,
+  zero liberi**. Controprova con la forma esatta che le altre non vedono:
+  `RIPOSO_MINIMO_ORE`, importata da Campo e usata **solo** dentro due template —
+  tolta dall'import la pagina morirebbe al primo disegno dell'appello, e la
+  prova pretende **quattro** cose, fra cui che la **prima** domanda resti cieca.
+  Prove **12 → 15**.
 
 ## Riferimenti
 
 - Ultimo checkpoint **per data vera**:
-  `vault/checkpoints/20260808-020147_il-costo-della-terza-domanda.md`
+  `vault/checkpoints/20260808-020944_la-terza-domanda-i-riferimenti.md`
   *(dato da `node apps/deepwork-id/tests/date-checkpoint.mjs`, non letto a occhio:
   per NOME il più alto sarebbe `20260805-100000_…`, che è stato scritto **tre
   giorni prima**. Questa riga era ferma al 01/08: il puntatore al file più
