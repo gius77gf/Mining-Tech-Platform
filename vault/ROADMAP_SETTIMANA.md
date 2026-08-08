@@ -1335,11 +1335,25 @@ numero scritto dove non era stato misurato niente**.*
   prova pretende che la prima resti cieca, che la seconda la veda, e che sul
   modulo sano non accusi nessuna delle tre dichiarazioni vere. Prove
   **10 → 12**.
+- [x] ✅ **Scudo · la data di consegna dei DPI che si leggeva «non serve»**
+  (`c26971b`). Sul **verbale** — il foglio che il lavoratore **firma**, prova
+  della consegna ex art. 77 D.Lgs 81/2008 — la colonna «Consegnato il»
+  scriveva **«—»** per una data assente, vuota o **impossibile**; e su un
+  foglio stampato «—» si legge «non serve». La colonna **accanto** era stata
+  corretta il 03/08 per la stessa identica ragione: misurate affiancate sugli
+  stessi dati, «Sostituire entro» diceva «non indicata» e «Consegnato il» «—».
+  Ora `statoConsegnaDpi` porta la bandiera `leggibile` (nome preso dal
+  vocabolario della **regola 20**, così il controllo la governa) e la leggono
+  **tre** stampe: verbale, registro DPI, cartella del lavoratore. ⚠️
+  Raggiungibilità **dichiarata**: il form pretende la data e un import dei DPI
+  non c'è — latente, non impossibile. Misurato premendo il bottone e leggendo
+  il foglio riga per riga (iniezione nella risposta HTTP): sei righe tengono la
+  data, l'iniettata dice «non indicata». Prove **1889 → 1890**.
 
 ## Riferimenti
 
 - Ultimo checkpoint **per data vera**:
-  `vault/checkpoints/20260808-000540_la-seconda-domanda-sui-moduli.md`
+  `vault/checkpoints/20260808-001851_la-data-di-consegna-che-si-leggeva-non-serve.md`
   *(dato da `node apps/deepwork-id/tests/date-checkpoint.mjs`, non letto a occhio:
   per NOME il più alto sarebbe `20260805-100000_…`, che è stato scritto **tre
   giorni prima**. Questa riga era ferma al 01/08: il puntatore al file più
