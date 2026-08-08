@@ -1424,6 +1424,16 @@ Perché serva davvero e non produca elenchi generici, cinque vincoli:
   ⚠️ **E la regola generale per chi legge un registro lungo: la prima domanda
   non è «che cosa dice», è «sta ancora scrivendo?».** Due `stat` a venticinque
   secondi di distanza costano niente.
+  ⚠️ **Ma venticinque secondi sono il MINIMO, non la risposta — tarato l'08/08.**
+  Con un giro vivo da 2h33 il registro è rimasto fermo per **oltre venti
+  secondi** fra due scritture, e un controllo a 20s avrebbe detto «FERMO» su un
+  giro sanissimo: nei 55 secondi dopo sono arrivati 727 byte. Un banco lento fra
+  una schermata e l'altra tace a lungo, e l'allarme falso costa quanto quello
+  mancato — perché fa uccidere un giro da tre ore. La domanda che **non** ha
+  falsi allarmi non è sul file, è sul processo: `ps -eo pid=,ppid=,time=` per
+  vedere se il giro ha un **figlio vivo** e se il suo tempo di CPU sale. Un
+  figlio che c'è e macina sta lavorando; nessun figlio, o un figlio a CPU ferma
+  da minuti, è il piantone vero.
   ⛔ **E LA CAUSA SOTTO VALEVA PIÙ DEL SINTOMO: 17 SECONDI PER SEZIONE SPESI A
   CLICCARE ELEMENTI CHE NON SI POSSONO CLICCARE.** `vaiA` apriva **ogni**
   accordion chiuso della pagina — non solo quelli della sezione appena aperta —
