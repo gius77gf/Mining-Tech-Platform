@@ -37,6 +37,21 @@ import { execSync } from "node:child_process";
    ragione per cui il primo setaccio lasciò passare sessanta KO voluti. */
 const INTESTAZIONE = /^════════ (.+?) ════════\s*$/;
 const DICHIARA_CONTROPROVA = /CONTROPROVA: qui sotto il rosso è quello VOLUTO/;
+/* ⛔ E LA CHIUSURA, che è la metà che mancava — misurata l'08/08 su un registro
+   vero. La dichiarazione era un'etichetta su UNA riga, e un banco che stampa
+   una PROPRIA intestazione a otto uguali apriva qui una sezione nuova, non
+   coperta: i suoi KO **voluti** tornavano a leggersi come difetti veri.
+   Successo su `struttura di Genesi · controprova`, che dichiarava, e poi il
+   banco apriva «Genesi: la struttura è quella del core? · controprova» —
+   quattordici KO voluti finiti fra i veri, cioè esattamente il cantiere-fantasma
+   che questo file esiste per impedire. La cura del 07/08 valeva solo per i
+   banchi che non si intestano da sé.
+   Adesso `tutti.mjs` chiude la dichiarazione, e qui la si legge come un
+   INTERVALLO: ogni sezione aperta fra l'apertura e la chiusura eredita il
+   flag. ⚠️ Si eredita solo DENTRO l'intervallo: fuori, una sezione nuova
+   riparte da zero — se no la prima controprova del giro dipingerebbe di
+   «voluto» tutto quello che viene dopo, che è il difetto opposto e peggiore. */
+const FINE_CONTROPROVA = /FINE CONTROPROVA/;
 /* «non ho guardato», in tutte le forme che i banchi usano davvero */
 const NON_GUARDATO = /NON RAGGIUNTE|non ho guardato|\b0 su \d+|mai comparse|solo elencate|non misurat|salt(at|o)\b|dichiarat[oe] fuori/i;
 const KO = /^\s*(✗|KO\b)/;
@@ -48,12 +63,16 @@ export function leggiGiro(testo) {
   const righe = testo.split("\n");
   const sezioni = [];
   let corrente = null;
+  let dentroControprova = false;   // l'intervallo fra la dichiarazione e la sua chiusura
   for (const r of righe) {
     const m = INTESTAZIONE.exec(r);
-    if (m) { corrente = { nome: m[1], controprova: false, ko: [], ciechi: [] }; sezioni.push(corrente); continue; }
+    if (m) { corrente = { nome: m[1], controprova: dentroControprova, ko: [], ciechi: [] }; sezioni.push(corrente); continue; }
+    /* la chiusura si legge ANCHE senza una sezione aperta: è il runner a
+       stamparla, e vale comunque da qui in giù */
+    if (FINE_CONTROPROVA.test(r)) { dentroControprova = false; continue; }
     if (!corrente) continue;
     /* la dichiarazione arriva SUBITO dopo l'intestazione */
-    if (DICHIARA_CONTROPROVA.test(r)) { corrente.controprova = true; continue; }
+    if (DICHIARA_CONTROPROVA.test(r)) { corrente.controprova = true; dentroControprova = true; continue; }
     if (KO.test(r)) corrente.ko.push(r.trim());
     else if (NON_GUARDATO.test(r)) corrente.ciechi.push(r.trim());
   }
@@ -111,16 +130,28 @@ if (process.argv.includes("--controprova")) {
     "════════ pagine vive · controprova ════════",
     "   ⚠️  CONTROPROVA: qui sotto il rosso è quello VOLUTO. Un KO qui è il banco che funziona.",
     "  ✗ questo rosso è voluto",
-    "  ✗ anche questo",
+    /* ⛔ IL CASO CHE HA MORSO DAVVERO: il banco stampa una PROPRIA intestazione
+       a otto uguali dentro la controprova. Prima apriva una sezione nuova non
+       coperta, e i suoi KO voluti finivano fra i difetti veri. */
+    "════════ pagine vive: la sua intestazione ════════",
+    "  ✗ anche questo è voluto, ma sta sotto un'intestazione del BANCO",
+    "   ⚠️  FINE CONTROPROVA — da qui in giù il rosso torna a essere quello VERO.",
+    "════════ un banco sano dopo la controprova ════════",
+    "  ✗ e QUESTO è un difetto vero",
     "USCITA 0",
   ].join("\n");
   const r = leggiGiro(finto);
   const male = [];
-  if (r.sezioni.length !== 2) male.push(`sezioni: ${r.sezioni.length} invece di 2 — la sotto-intestazione a sei uguali ne ha aperta una in più`);
-  if (r.sane.length !== 1) male.push(`passate sane: ${r.sane.length} invece di 1`);
-  if (r.controprove.length !== 1) male.push(`controprove: ${r.controprove.length} invece di 1`);
+  if (r.sezioni.length !== 4) male.push(`sezioni: ${r.sezioni.length} invece di 4 — la sotto-intestazione a sei uguali ne ha aperta una in più`);
+  if (r.sane.length !== 2) male.push(`passate sane: ${r.sane.length} invece di 2`);
+  if (r.controprove.length !== 2) male.push(`controprove: ${r.controprove.length} invece di 2 — l'intestazione del BANCO dentro la controprova non ha ereditato il flag`);
   const koSani = r.sane.flatMap((s) => s.ko);
-  if (koSani.length !== 1) male.push(`KO veri: ${koSani.length} invece di 1 — i due voluti sono stati contati`);
+  if (koSani.length !== 2) male.push(`KO veri: ${koSani.length} invece di 2 — i voluti sono stati contati, o quello dopo la FINE è stato perso`);
+  /* ⛔ e il verso opposto, che è il difetto peggiore: dopo la chiusura il rosso
+     torna VERO. Ereditare per sempre dipingerebbe di «voluto» tutto il resto
+     del giro, cioè nasconderebbe i difetti invece di mostrarli. */
+  if (!r.sane.some((x) => x.nome === "un banco sano dopo la controprova"))
+    male.push("dopo la FINE CONTROPROVA una sezione nuova deve tornare SANA");
   if (r.sane[0] && r.sane[0].ciechi.length !== 1) male.push("la riga «0 su 68» non è stata raccolta");
   if (r.uscita !== 0) male.push(`uscita: ${r.uscita}`);
   /* ⛔ E LA CONTROPROVA DELL'ETÀ, NEI TRE VERSI CHE CONTANO. Una guardia che
@@ -136,11 +167,29 @@ if (process.argv.includes("--controprova")) {
   const testa = etaDelGiro("HEAD");
   if (!testa.noto) male.push("su HEAD dovrebbe saperlo");
   else if (testa.dopo !== 0 || testa.sulleSuperfici !== 0) male.push(`su HEAD dovrebbe dare 0 e 0, dà ${testa.dopo} e ${testa.sulleSuperfici}`);
-  /* il verso che conta davvero: un commit vecchio DEVE risultare vecchio */
-  let vecchio = null;
-  try { vecchio = etaDelGiro(execSync("git rev-parse HEAD~5", { encoding: "utf8" }).trim()); } catch (e) { /* storia corta */ }
-  if (vecchio && vecchio.noto && vecchio.dopo !== 5) male.push(`cinque commit indietro dovrebbero dare 5, danno ${vecchio.dopo}`);
-  if (vecchio && !vecchio.noto) male.push("un commit vero della storia dovrebbe essere noto");
+  /* ⛔ IL VERSO CHE CONTA: un commit vecchio DEVE risultare più vecchio di uno
+     recente. E la forma dell'asserzione è stata PAGATA, l'08/08, con una CI
+     rossa: la prima stesura pretendeva che `HEAD~5` desse esattamente **5**, e
+     in casa era vero. In CI no — **1407** — perché GitHub non prova il branch,
+     prova il MERGE del branch col ramo di destinazione: da un commit di fusione
+     `HEAD~5..HEAD` raccoglie anche tutto il secondo genitore. È la variante
+     dell'ambiente che misura sé stesso invece del prodotto, e vale la regola di
+     casa: *sotto un ambiente diverso, prima di scrivere un'asserzione su uno
+     stato, si chiede che FORMA ha quello stato lì.*
+     Quello che si prova adesso è una proprietà vera dappertutto, e non
+     tautologica: il conto **cresce** andando indietro, e non è mai zero per un
+     commit che non è HEAD. Sul numero esatto non si può dire niente di
+     portatile, e dirlo lo stesso è come scriverlo a mano in un banco. */
+  let uno = null, cinque = null;
+  try {
+    uno = etaDelGiro(execSync("git rev-parse HEAD~1", { encoding: "utf8" }).trim());
+    cinque = etaDelGiro(execSync("git rev-parse HEAD~5", { encoding: "utf8" }).trim());
+  } catch (e) { /* storia corta o clone superficiale: si salta, dichiarandolo */ }
+  if (uno && !uno.noto) male.push("un commit vero della storia dovrebbe essere noto");
+  if (uno && uno.noto && uno.dopo < 1) male.push(`un commit che non è HEAD dovrebbe dare almeno 1, dà ${uno.dopo}`);
+  if (uno && cinque && uno.noto && cinque.noto && !(cinque.dopo > uno.dopo))
+    male.push(`andando indietro il conto deve CRESCERE: HEAD~1 dà ${uno.dopo}, HEAD~5 dà ${cinque.dopo}`);
+  if (!uno) console.log("  ⚠️  storia troppo corta (o clone superficiale): il verso «vecchio» non è stato provato");
 
   console.log(male.length ? "⛔ NON DISTINGUE:\n  " + male.join("\n  ") : "controprova: il lettore separa il rosso VOLUTO da quello VERO, la sotto-intestazione non lo inganna, e l'ETÀ del giro sa dire «vecchio», «fresco» e «non lo so»");
   process.exit(male.length ? 1 : 0);

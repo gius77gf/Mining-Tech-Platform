@@ -916,6 +916,18 @@ for (const [nome, file, argomenti, eControprova, appeso] of DA_FARE) {
     p.on('close', (c) => { clearTimeout(sveglia); ok({ codice: c, scaduto: false }); });
   });
   const durata = Math.round((Date.now() - partito) / 1000);
+  /* ⛔ E LA CHIUSURA DELLA DICHIARAZIONE, che l'08/08 si è misurato non essere
+     un dettaglio. L'apertura da sola non basta perché un banco stampa spesso
+     una PROPRIA intestazione a otto uguali: chi legge il registro apre lì una
+     sezione nuova, che la dichiarazione non copre più, e i KO **voluti** di
+     quella sezione tornano a leggersi come difetti veri. Successo davvero:
+     `struttura di Genesi · controprova` dichiarava, poi il banco apriva
+     «Genesi: la struttura è quella del core? · controprova» e i suoi quattordici
+     KO voluti finivano fra quelli veri — cioè la cura scritta il 07/08 valeva
+     solo per i banchi che non si intestano da sé.
+     Con una riga di chiusura la dichiarazione diventa un INTERVALLO invece che
+     un'etichetta su una riga sola, e chi legge sa dove finisce. */
+  if (eControprova) console.log('   ⚠️  FINE CONTROPROVA — da qui in giù il rosso torna a essere quello VERO.');
   /* una controprova riuscita esce con 0 perché ha fallito come doveva: il
      banco stesso gira il verdetto, qui basta leggerlo */
   esiti.push({ nome, ok: !scaduto && codice === 0, eControprova: !!eControprova, scaduto, durata });
