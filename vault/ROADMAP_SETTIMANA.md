@@ -2310,23 +2310,56 @@ numero scritto dove non era stato misurato niente**.*
   (640 precedenti alla regola, contati da `date-checkpoint.mjs`). Chi va per
   nome apre il file sbagliato credendo che sia il più fresco.
 - Le decisioni: `docs/DECISIONI_WEEKEND.md` — pagina d'ingresso in cima.
-- Stato misurato all'**08/08** (lanciando le suite, non a memoria):
-  **2.326 prove** che girano senza rete — e la frase va letta stretta: sono la
-  somma delle **sei** suite che contano asserzioni (`run-kpi` 1892, `run-stile`
-  314, `run-helpers` 71, `run-pointcloud` 32, `run-manifest` 9, `run-demo` 8),
-  non tutto ciò che gira nel giro `node`, che di comandi ne ha **28** — i **32**
-  di `npm test` meno le quattro che vogliono gli emulatori. *(Erano 23 il
-  07/08; il numero sale ogni volta che una controprova viene collegata, ed è
-  esattamente quello che deve fare.)*
-  Copertura **703/703** e nessuna funzione scoperta; **153 esecuzioni** che
-  aprono le pagine in un browser vero (**71** file di banco distinti, contati
-  dalla tabella `BANCHI` di `tutti.mjs` e non a occhio dalla cartella, che ne
-  ha 75 perché contiene anche gli aiuti — `giro.mjs`, `impronta.mjs`, il
-  runner stesso).
-  *(Al 07/08 sera erano 2.307; al 07/08 notte 2.193, 662/662 e 120; al 03/08 pomeriggio 2.092,
-  649/649 e 84; al 02/08 1.838, 591/591 e 49.)*
+- Stato misurato all'**08/08 sera** (lanciando le suite, non a memoria):
+  **2.366 prove** che girano senza rete. La frase va letta stretta: è la somma
+  delle **sette** suite che contano asserzioni (`run-kpi` 1921, `run-stile` 318,
+  `run-helpers` 71, `run-pointcloud` 32, `run-manifest` 9, `run-demo` 8,
+  `bootstrap-rivendicazioni` 7), non tutto ciò che gira nel giro `node` — che di
+  asserzioni ne esegue **2.663** e di comandi ne ha **32**.
+  ⚠️ *Fino a stasera questa riga contava **sei** suite e i tre documenti
+  sorvegliati ne contavano sette: due convenzioni per lo stesso numero, che è
+  il modo più facile di far sembrare sbagliato un conto giusto. Adesso è una
+  sola.*
+  Copertura **713/713** e nessuna funzione scoperta; **157 esecuzioni** che
+  aprono le pagine in un browser vero, da **70** file di banco distinti (contati
+  dalla tabella `BANCHI` di `tutti.mjs`, non a occhio dalla cartella, che di
+  `.mjs` ne ha 82 perché contiene anche gli aiuti — `giro.mjs`, `impronta.mjs`,
+  il runner stesso).
+  *(Al 08/08 pomeriggio 2.326, 703/703 e 153; al 07/08 sera 2.307; al 07/08
+  notte 2.193, 662/662 e 120; al 03/08 pomeriggio 2.092, 649/649 e 84; al 02/08
+  1.838, 591/591 e 49.)*
   ⚠️ **Questi numeri non si scrivono a mente** — ma attenzione al
-  denominatore: `numeri-nei-documenti.mjs` sorveglia `docs/DEVELOPMENT.md` e
-  `docs/STATO_PRODOTTO.md`, **non questo file**. Ed è per questo che la riga
-  qui sopra è rimasta ferma a «120 banchi» mentre ne erano già 147: qui il
-  controllo non arriva, e l'aggiornamento è a mano. Chi la legge lo sappia.
+  denominatore: `numeri-nei-documenti.mjs` sorveglia `docs/DEVELOPMENT.md`,
+  `docs/STATO_PRODOTTO.md` e `docs/DECISIONI_WEEKEND.md`, **non questo file**.
+  Ed è per questo che la riga qui sopra era rimasta a «120 banchi» mentre ne
+  erano già 147: qui il controllo non arriva, e l'aggiornamento è a mano. Chi
+  la legge lo sappia.
+
+## 08/08 sera — «chi decide i numeri di ciò che ESCE?»
+
+Filone della settimana (*i numeri che mentono con la faccia tranquilla*),
+portato su tutte le app con la domanda di `CLAUDE.md`. **Otto difetti veri in
+un pomeriggio, tutti della stessa famiglia**: il documento che esce dice una
+cosa più tranquilla di quella che lo schermo mostra.
+
+- [x] **core** — i fori del modello 3D avevano DUE numerazioni e si chiamavano
+      tutt'e due «foro N» (4 righe su 4 indicavano un foro diverso nei due
+      documenti). Decisione unica in `foriDalModello` + regola 31 di `run-stile`.
+- [x] **Flotta 9/9** — «pianificata» su un ordine fermo ad aspettare un
+      ricambio (a schermo ROSSO); «tutto a posto» su un giro con anomalie
+      dichiarate; lo ZERO SOMMABILE sul costo mai scritto; due incertezze
+      dichiarate dal modulo e mai lette dalla lista della spesa. Banco nuovo,
+      nove documenti su nove aperti.
+- [x] **Conti 3/12** — il residuo che ignorava le NOTE DI CREDITO nel file che
+      va in banca **e** nella riga della lista (la schermata si smentiva da
+      sola in tre punti); un prodotto senza prezzo che usciva **GRATIS** nel
+      listino che si manda al cliente.
+- [x] **Campo 6/6, Sentinella 5/5, Terra 3/3** — aperti e puliti: negativi
+      **misurati**, col denominatore dichiarato.
+- [x] **Igiene degli strumenti** — `porte-banchi.mjs`: nessun banco riusa la
+      porta di un altro (48 con server, 36 col contrassegno, **0** che
+      riusano). Ha corretto una mia diagnosi falsa scritta in due checkpoint.
+- [ ] **Scudo (5)** e **Genesi (9)** — restano da aprire.
+- [ ] **Domanda aperta**: una voce di costo senza importo sparisce dal
+      riepilogo e dal file **in silenzio** (`riepilogoCosti` la scarta a monte).
+      Da decidere, non da correggere di slancio.
