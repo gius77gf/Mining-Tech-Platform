@@ -2739,6 +2739,34 @@ export function ponteDemoScrivi(lista) {
   } catch (e) { return false; }   // navigazione privata, quota piena: si prosegue senza
 }
 
+/* ⛔ «RESPONSABILE DA ASSEGNARE» NON È LA STESSA COSA DI «NON RIESCO A LEGGERE
+   CHI È». Misurato l'08/08, ed è il filo di questa settimana: un'etichetta
+   tranquilla dove non è stato misurato niente.
+   Sullo schermo di Sentinella il responsabile di un'azione correttiva si
+   ricava cercando il suo id nell'elenco dei lavoratori che arriva **da
+   Scudo**. Se quella lettura fallisce — rete, permessi, l'altra app non
+   raggiungibile — l'elenco arriva vuoto, e un'azione **che il responsabile ce
+   l'ha** veniva mostrata come «responsabile da assegnare». Cioè un'affermazione
+   sull'AZIONE, mentre il fatto riguarda la NOSTRA lettura: chi legge quella
+   riga pensa che nessuno se ne stia occupando, e magari lo riassegna.
+   I tre stati sono diversi e vanno detti diversi:
+     · l'id c'è e il nome si trova           → si dice il nome;
+     · l'id NON c'è                          → «da assegnare», ed è vero;
+     · l'id c'è ma l'elenco non è leggibile  → si dice CHE NON SI SA, non che
+                                               non c'è.
+   La bandiera `leggibile` la mette `ponteScudo` e la legge questa funzione:
+   una non-misurabilità dichiarata e non letta non protegge niente (regola 20). */
+export function descriviResponsabile(azione, lavoratori, leggibile = true) {
+  const id = azione && azione.responsabileId;
+  if (!id) return { testo: "responsabile da assegnare", noto: true };
+  const trovato = (lavoratori || []).find((l) => l && l.id === id);
+  if (trovato && trovato.nome) return { testo: "responsabile " + trovato.nome, noto: true };
+  if (!leggibile) return { testo: "responsabile assegnato, il nome non si legge da Scudo", noto: false };
+  /* leggibile ma non trovato: la persona non è più in anagrafica. È un fatto,
+     e va detto — non è «da assegnare», perché qualcuno era stato scelto. */
+  return { testo: "responsabile non più in anagrafica", noto: true };
+}
+
 export async function ponteScudo() {
   try {
     const { DeepworkID } = await import("../../shared/deepwork-id-client/index.js");
@@ -2750,7 +2778,11 @@ export async function ponteScudo() {
       return {
         mode: "live",
         azioni: () => read("azioni"),
-        lavoratori: () => read("lavoratori").catch(() => []),
+        /* ⛔ la lettura fallita NON diventa «non ce n'è»: si dichiara con la
+           bandiera, che `descriviResponsabile` legge. */
+        lavoratori: () => read("lavoratori").then(
+          (lista) => ({ lista, leggibile: true }),
+          () => ({ lista: [], leggibile: false })),
         aggiungi: (rec) => addDoc(id.orgCollection("azioni"), rec),
       };
     }
@@ -2758,7 +2790,9 @@ export async function ponteScudo() {
   return {
     mode: "demo",
     azioni: async () => ponteDemoLeggi(),
-    lavoratori: async () => [],
+    /* in dimostrazione Scudo non si può interrogare affatto: è «non leggibile»,
+       non «non ce n'è» — la differenza è quella che questa unità esiste per fare */
+    lavoratori: async () => ({ lista: [], leggibile: false }),
     aggiungi: async (rec) => {
       const nuova = { id: "pn" + Math.random().toString(36).slice(2, 8), ...rec };
       ponteDemoScrivi([...ponteDemoLeggi(), nuova]);

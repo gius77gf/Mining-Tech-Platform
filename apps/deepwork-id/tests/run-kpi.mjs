@@ -24516,6 +24516,33 @@ test("⛔ nessun campo COMPOSITO torna a essere scritto intero da un aggiornamen
   ok(/db\.aggiorna\("permessi", p\.id, \{ atmosfera/.test(perm),
     "e `atmosfera` resta scritta intera di proposito: se un giorno cambiasse, questa riga va rivista");
 });
+test("⛔ descriviResponsabile: «da assegnare» e «non riesco a leggere chi è» sono due cose diverse", () => {
+  /* Il filo della settimana, su un'etichetta invece che su un numero. Il
+     responsabile di un'azione correttiva si ricava cercando il suo id
+     nell'elenco che arriva DA SCUDO: se quella lettura fallisce l'elenco
+     arriva vuoto, e un'azione CHE IL RESPONSABILE CE L'HA veniva mostrata come
+     «responsabile da assegnare» — un'affermazione sull'azione, mentre il fatto
+     riguarda la nostra lettura. Chi legge quella riga pensa che nessuno se ne
+     stia occupando, e magari la riassegna. */
+  const con = { responsabileId: "l1" };
+  eq(sentinella.descriviResponsabile(con, [{ id: "l1", nome: "Mario Rossi" }], true),
+     { testo: "responsabile Mario Rossi", noto: true }, "il nome si legge e si dice");
+  eq(sentinella.descriviResponsabile(con, [], false).noto, false,
+     "elenco NON leggibile: la frase si dichiara non nota");
+  ok(/non si legge da Scudo/.test(sentinella.descriviResponsabile(con, [], false).testo),
+     "e dice CHE NON SI SA, non che non c'è");
+  eq(sentinella.descriviResponsabile(con, [], true),
+     { testo: "responsabile non più in anagrafica", noto: true },
+     "letto davvero e non trovato: è un fatto, e non è «da assegnare»");
+  eq(sentinella.descriviResponsabile({}, [], true),
+     { testo: "responsabile da assegnare", noto: true }, "senza id, «da assegnare» è VERO");
+  eq(sentinella.descriviResponsabile(null, null, true).testo, "responsabile da assegnare",
+     "e il niente non rompe");
+  /* ⛔ la prova che separa i due stati che prima erano identici */
+  ok(sentinella.descriviResponsabile(con, [], false).testo
+     !== sentinella.descriviResponsabile({}, [], true).testo,
+     "⛔ le due frasi che prima erano la stessa adesso sono diverse");
+});
 test("percorsiDi: costruisce i percorsi, e dice NO quando non si può", () => {
   eq(ponti.percorsiDi("esiti", { dpi: true, luci: false }),
      { "esiti.dpi": true, "esiti.luci": false }, "da voci a percorsi");

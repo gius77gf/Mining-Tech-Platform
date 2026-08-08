@@ -1647,7 +1647,7 @@ textarea.dw-input{
 
 
 <script type="module">
-  import { sentinellaData, statoMisura, giorni, kpiFrom, SOGLIE_PRESET, presetSoglia, scaledDistance, caricaMax, riepilogoConformita, prioritaConformita, riepilogoVolate, parseVolateCsv, parseAdempimentiCsv, parseMonitoraggiCsv, parseRicettoriCsv, serieStorica, numeroIt, unitaMisura,
+  import { sentinellaData, descriviResponsabile, statoMisura, giorni, kpiFrom, SOGLIE_PRESET, presetSoglia, scaledDistance, caricaMax, riepilogoConformita, prioritaConformita, riepilogoVolate, parseVolateCsv, parseAdempimentiCsv, parseMonitoraggiCsv, parseRicettoriCsv, serieStorica, numeroIt, unitaMisura,
            leggiCsv, paresIntestazione, proponiMappa, preparaLetture, unisciLetture, MAX_LETTURE,
            TIPI_RICETTORE, CLASSI_ACUSTICHE, etichettaTipo, trovaRicettore, sogliaEfficace,
            reportConformita, ESITI, TIPI_RECLAMO, etichettaReclamo, riepilogoReclami, firmaLettura,
@@ -1837,7 +1837,7 @@ textarea.dw-input{
   // Sentinella, si leggono da Scudo (stessa organizzazione, app diversa) e
   // qui si tengono solo in memoria per mostrare a che punto sono.
   const ponte = await ponteScudo();
-  let AZI = [], LAV = [], ponteKO = "";
+  let AZI = [], LAV = [], LAV_LEGGIBILI = true, ponteKO = "";
   let filtroPrg = "tutte";   // filtro dell'elenco del programma
   let editPrg = null;        // id della riga di programma in modifica
   let andRic = null;         // ricettore scelto per l'andamento nel tempo
@@ -2310,12 +2310,12 @@ textarea.dw-input{
       .sort((a, b) => String(a.scadenza || "9999").localeCompare(String(b.scadenza || "9999")))
       .map(a => {
         const s = STATO_AZ[a.stato] || STATO_AZ.aperta;
-        const resp = (LAV.find(l => l.id === a.responsabileId) || {}).nome;
+        const resp = descriviResponsabile(a, LAV, LAV_LEGGIBILI);
         return `<div class="pon-az ${s[0]}">
           <span class="badge ${s[0]}">${s[1]}</span>
           <span class="pon-az-txt"><b>${esc(a.descrizione || "Azione correttiva")}</b><br>
           ${a.scadenza ? "entro il <b>" + fmtD(a.scadenza) + "</b>" : "senza data"}
-          · ${resp ? "responsabile <b>" + esc(resp) + "</b>" : "responsabile da assegnare"}
+          · ${resp.noto ? esc(resp.testo) : "<b>" + esc(resp.testo) + "</b>"}
           ${a.stato === "chiusa" ? " · chiusa il <b>" + fmtD(a.dataChiusura) + "</b>" + (a.esito ? " · esito: " + esc(a.esito) : "") : ""}</span>
         </div>`;
       }).join("");
@@ -2425,7 +2425,12 @@ textarea.dw-input{
       + '<label class="fl" for="pon-scad">Entro quando</label>'
       + `<input class="dw-input" id="pon-scad" type="date" value="${esc(bozza.scadenza)}">`
       + (LAV.length ? '<label class="fl" for="pon-resp">Chi la fa</label>'
-          + `<select class="dw-input" id="pon-resp">${opzResp}</select>` : "")
+          + `<select class="dw-input" id="pon-resp">${opzResp}</select>`
+        /* ⛔ e se l'elenco è vuoto PERCHÉ non si è potuto leggere, lo si dice:
+           togliere il campo in silenzio fa credere che a Scudo non ci sia
+           nessuno, e chi apre l'azione non sa perché non può assegnarla. */
+        : !LAV_LEGGIBILI ? '<div class="note" style="margin-bottom:0;">I nomi non si leggono da <b>Scudo</b> in questo momento: '
+          + 'l\'azione si apre lo stesso e il responsabile si assegna da lì.</div>' : "")
       + '<div class="note" style="margin-bottom:0;">L\'azione nasce in <b>Scudo</b>, nell\'elenco delle azioni correttive: '
       + 'da lì entra nello scadenzario e nel semaforo, e si chiude quando il problema è risolto.</div>';
     const scelta = await new Promise(res => {
@@ -3611,7 +3616,10 @@ textarea.dw-input{
     // esattamente com'era prima: elenco vuoto e una riga che lo spiega.
     try { AZI = await ponte.azioni(); ponteKO = ""; }
     catch (e) { AZI = []; ponteKO = "Le azioni correttive non si riescono a leggere da Scudo: qui sotto vedi i fatti, non il loro stato."; }
-    try { LAV = await ponte.lavoratori(); } catch (e) { LAV = []; }
+    /* ⛔ la lettura fallita si DICHIARA invece di diventare «non ce n'è»:
+       la bandiera arriva dal modulo e la legge `descriviResponsabile`. */
+    try { const r = await ponte.lavoratori(); LAV = (r && r.lista) || []; LAV_LEGGIBILI = !!(r && r.leggibile); }
+    catch (e) { LAV = []; LAV_LEGGIBILI = false; }
     // MONE = i punti con la SOGLIA CHE VALE (quella del ricettore se c'è).
     // Da qui in giù si conta sempre su MONE: KPI, semafori, grafici e
     // report leggono tutti lo stesso numero.
