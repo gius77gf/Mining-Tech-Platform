@@ -1575,8 +1575,8 @@ Perché serva davvero e non produca elenchi generici, cinque vincoli:
       cd apps/deepwork-id && firebase emulators:exec --only firestore \
         --project demo-deepwork "cd tests && node run.mjs"
 
-  **68 prove, tutte verdi**, in pochi minuti. E con `--only firestore,auth`
-  girano anche `run-sdk.mjs` (**19**) e `run-bootstrap.mjs` (**8**).
+  **75 prove, tutte verdi**, in pochi minuti. E con `--only firestore,auth`
+  girano anche `run-sdk.mjs` (**19**) e `run-bootstrap.mjs` (**10**).
   ⚠️ **Quello che NON gira qui è l'emulatore delle FUNZIONI**, e con lui
   `run-fns.mjs` (21): chiede la rete e la politica del contenitore la nega
   («Unable to parse JSON … "denied by …"»). È per questo che `npm test` intero

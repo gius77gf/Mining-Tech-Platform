@@ -106,5 +106,29 @@ await test("le 8 app risultano attive nel profilo (listEntitlements)", async () 
   expect(attive.length === APP_IDS.length, `attive ${attive.length}/${APP_IDS.length}`);
 });
 
+/* ⛔ IL PRIMO AVVIO PROVAVA QUELLO CHE FA, MAI QUELLO CHE NON DEVE ROMPERE.
+   Censito l'08/08: otto prove su nove sono affermazioni positive («crea
+   l'org», «scrive il claim», «attiva le 8 app»), e l'unica negativa guarda
+   un'email non registrata. Manca la domanda che conta quando lo script si
+   rilancia — e si rilancia, perché è il percorso «vai in live» che il
+   fondatore usa a mano.
+   `setCustomUserClaims(uid, { orgs: { [orgId]: "owner" } })` SOSTITUISCE
+   l'intero oggetto delle rivendicazioni. Se quell'utente appartiene già a
+   un'altra organizzazione, quel legame sparisce — in silenzio, senza errore,
+   e la persona si ritrova fuori da un'org in cui lavorava. È un numero
+   tranquillo scritto dove nessuno ha guardato. */
+await test("un secondo primo avvio NON cancella l'appartenenza a un'altra organizzazione", async () => {
+  await aauth.createUser({ uid: "socio", email: "socio@cava.it", password: "password-123" });
+  await aauth.setCustomUserClaims("socio", { orgs: { orgVecchia: "member" }, altro: "da tenere" });
+  await bootstrapOwner(aauth, adb, "socio@cava.it", "Seconda Cava", FieldValue);
+  const claims = (await aauth.getUser("socio")).customClaims || {};
+  expect(claims.orgs && claims.orgs.orgVecchia === "member",
+    `l'appartenenza a orgVecchia è sparita: ${JSON.stringify(claims)}`);
+});
+await test("…e non butta via le altre rivendicazioni dell'utente", async () => {
+  const claims = (await aauth.getUser("socio")).customClaims || {};
+  expect(claims.altro === "da tenere", `rivendicazioni perse: ${JSON.stringify(claims)}`);
+});
+
 console.log(`\nRisultato Bootstrap: ${passed} passati, ${failed} falliti`);
 process.exit(failed > 0 ? 1 : 0);
