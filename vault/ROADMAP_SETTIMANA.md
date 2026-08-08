@@ -1683,6 +1683,27 @@ numero scritto dove non era stato misurato niente**.*
   nello stesso commit (2.309 → **2.310**) perché la prova nuova li fa
   invecchiare nell'istante in cui esiste.
 
+- [x] ✅ **`sw.js` rotto passava il giro intero — chiusi i moduli a sé stanti**
+  (`c71ea57`). ⛔ **Misurato, non supposto**: rotto `sw.js` con un
+  `const rotto = ;` su una copia staccata, il giro `node` ha risposto **23
+  comandi, 0 caduti, uscita 0**. Un errore di sintassi **duro** nel **service
+  worker del core** — che va in produzione a ogni merge e tiene la cache della
+  PWA — passava la verifica «sulla copia di quello che si committa», e lo
+  trovava solo la CI **dopo** il push. È la regola scritta nell'intestazione di
+  quel file stesso, trovata violata un'altra volta. ⚠️ **«Lo nomina» non vuol
+  dire «lo compila»**: il primo controllo era un `grep` dei nomi dentro le
+  suite e diceva che `sw.js` era «nominato da `nomi-liberi`» — vero e
+  irrilevante, lo legge come **testo**. I moduli dati erano davvero coperti
+  perché `run-kpi` li **importa**. La differenza non si vede da un elenco di
+  nomi: si vede **rompendo il file e guardando chi se ne accorge**. ⚠️ L'elenco
+  è **derivato** (service worker, funzioni, moduli condivisi e dati per
+  convenzione), non ricopiato da quello della CI. ⛔ **E la prima stesura della
+  controprova scriveva sul modulo VERO**: avrebbe funzionato, ma sarebbe stata
+  una trappola armata a ogni commit, perché il giro `node` si lancia **proprio**
+  mentre il giro del browser cammina. Ora l'iniezione va in una cartella
+  temporanea. Costo: **0,3 secondi**; 19 moduli compilati, controprova 14/14
+  pagine e 19/19 moduli.
+
 ## Riferimenti
 
 - Ultimo checkpoint **per data vera**:
