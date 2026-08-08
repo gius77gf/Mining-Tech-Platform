@@ -771,6 +771,13 @@ if (fai("terra")) {
       dice(/Titolo autorizzativo/i.test(d.testo) && /Volumi dell'anno/i.test(d.testo),
         "e non ha coperto il documento: il prospetto è ancora tutto lì");
       dice(d.doc <= d.win + 1, "il prospetto non esce dalla larghezza del foglio a 390 px", d);
+      /* ⏱️ MISURA, non ancora regola: era l'ULTIMO foglio che nessuna misura
+         sui trattini raggiungeva, perché vive in una finestra a parte — e
+         «non misurato» non è «a posto». Si stampa l'elenco delle colonne: il
+         giudizio è foglio per foglio, e l'08/08 la stessa forma ha dato
+         verdetti opposti su app diverse. */
+      const trTe = await pop.evaluate(TRATTINI, { sel: "body", ammesse: [] });
+      console.log(`     [misura] riepilogo annuale: ${trTe ? trTe.altri : "?"} trattini «—», colonne: ${JSON.stringify(trTe ? trTe.dove : null)}`);
       await pop.close();
     }
   }

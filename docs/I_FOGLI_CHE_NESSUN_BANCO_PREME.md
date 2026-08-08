@@ -200,3 +200,26 @@ no accusa lo schermo credendo di guardare la stampa.
 Scudo 5 **corretti**, 0 restanti; Flotta 10 **giusti** + 5 **non ancora
 localizzati**; Conti 2 giusti (sconto), 0 sul DDT, **2 candidati** (fattura a
 importo unico); Terra **non misurata** (apre una finestra nuova).
+
+
+## Il censimento chiuso — 08/08, notte
+
+Tutti i fogli raggiungibili sono stati **premuti e letti**, e ogni trattino
+**giudicato**. Terra era l'ultimo scoperto perché vive in una finestra a parte,
+e «non misurato» non è «a posto»: misurato, **zero trattini**.
+
+| foglio | trattini | esito |
+|---|---|---|
+| Sentinella · report ambientale | 8 | 6 giusti («Ora»), **2 corretti** |
+| Scudo · verbale DPI | 5 | **5 corretti** («Modello») |
+| Scudo · cartella | 0 | pulita |
+| Flotta · libretto macchina | 4 (dopo aver ristretto il righello al foglio) | **1 corretto**, 3 giusti |
+| Conti · preventivo | 2 | **giusti** («Sconto») |
+| Conti · DDT | 0 | pulito |
+| Conti · fattura | 2 | **2 corretti** (riga a importo unico) |
+| Terra · riepilogo annuale | **0** | pulito |
+
+**10 difetti veri corretti, 11 trattini giusti, 0 aperti.** E i «giusti» sono
+la metà che vale di più: sono i posti in cui il prodotto **si rifiuta** di
+scrivere un numero comodo, e accusarli sarebbe stato il danno peggiore che
+questa notte potesse fare.
