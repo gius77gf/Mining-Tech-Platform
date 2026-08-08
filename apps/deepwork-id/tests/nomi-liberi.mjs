@@ -23,6 +23,18 @@
    FILE e non lo SCOPE. Da lì la SECONDA DOMANDA in fondo a questo file — *il
    nome esiste, ma esiste QUI?* — che non sostituisce la prima, le sta accanto.
 
+   ⏱️ LA TERZA DOMANDA — I RIFERIMENTI, MISURATA L'08/08 E NON ANCORA SCRITTA.
+   Oggi si guardano i nomi CHIAMATI (`nome(`); un `${nome}` dentro un template
+   con `nome` inesistente non lo vede nessuno, e in queste pagine è la forma con
+   cui si compone ogni riga di interfaccia. Misurata prima di irrigidire, come
+   pretende la regola: **3.742 riferimenti `${nome}` su 12 pagine, 2 allarmi, e
+   tutt'e due FALSI** — `CSS`, che è un globale del browser già dichiarato in
+   `GLOBALI`, e `_fSW` di Genesi, che è il **terzo dichiaratore** di un `const`
+   spezzato su due righe. Cioè: il rumore atteso è **zero**, purché il
+   riconoscitore riusi `nomiDichiarati` (che i dichiaratori multi-riga li sa
+   leggere) invece della forma larga, e l'elenco `GLOBALI` vero invece di uno
+   corto scritto per la misura. Il lavoro è quello, ed è piccolo.
+
    COME FUNZIONA, e dove NON guarda — dichiarato, non sottinteso:
    · guarda i nomi in posizione di CHIAMATA (`nome(`), non ogni riferimento:
      `const x = pippo` non viene visto. È la metà che costa di più quando manca;
