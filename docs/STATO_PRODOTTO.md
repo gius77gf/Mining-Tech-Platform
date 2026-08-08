@@ -70,8 +70,8 @@ Il racconto è in `docs/IL_CONFORME_CHE_NESSUNO_HA_MISURATO.md`.
 **Quanto è controllato, oggi** *(ricontato il 02/08 lanciando le suite, non a
 memoria)*: **2.326** prove automatiche che girano senza rete — **1892** sulle
 funzioni delle app, **314** sulle regole di stile, 71 sugli aiuti condivisi, 32
-sulla nuvola di punti, 9 sul manifesto, 8 sulla demo — più **116** che girano
-con l'emulatore Firestore (**68** sulle **regole di sicurezza**, 19 sull'SDK, 21
+sulla nuvola di punti, 9 sul manifesto, 8 sulla demo — più **123** che girano
+con l'emulatore Firestore (**75** sulle **regole di sicurezza**, 19 sull'SDK, 21
 sulle funzioni, 8 sul primo avvio) e **153 esecuzioni** che aprono davvero le
 pagine in un browser.
 ⚠️ *Dei quattro addendi dell'emulatore, l'08/08 ne sono stati **rimisurati

@@ -266,6 +266,43 @@ await test("il TOUR legge la demo ma non scrive", async () => {
   await assertFails(setDoc(doc(tour, "organizations/org_demo/apps/campo/rapportini/rZ"), { turno: "x" }));
 });
 
+/* ⛔ DUE AFFERMAZIONI DELLE REGOLE CHE NESSUNA PROVA SORVEGLIAVA — censite
+   l'08/08 confrontando ogni `allow` del file con i titoli delle prove. La
+   dottrina di questo repository è netta: «chi scrive una restrizione e la
+   prova solo dal lato di chi PUÒ ha scritto un commento, non una regola», e
+   queste due erano rimaste commenti. */
+
+// 1. `users/{uid}` dichiara `allow delete: if false` con accanto scritto
+//    «cancellazione account: solo via Cloud Function». Nessuna prova lo
+//    pretendeva: le tre prove su `users/` guardano lettura e scrittura, e la
+//    cancellazione è proprio il verso in cui un errore non si recupera.
+await test("l'utente NON cancella il proprio profilo dal client (solo Cloud Function)", () =>
+  assertFails(deleteDoc(doc(alice, "users/alice"))));
+await test("e nemmeno quello di un altro", () =>
+  assertFails(deleteDoc(doc(alice, "users/eve"))));
+
+// 2. La regola finale — `match /{document=**} { allow read, write: if false }`
+//    — è la rete che tiene tutto ciò che nessuno ha previsto. Le 68 prove
+//    toccavano TRE radici sole (`organizations/`, `invites/`, `users/`):
+//    nessuna aveva mai chiesto che cosa succede a una QUARTA. Ed è la domanda
+//    che conta, perché in un sistema di permessi ADDITIVO un `match` nuovo può
+//    solo allargare: il giorno in cui qualcuno ne aggiunge uno con un `allow`
+//    largo, questa rete smette di coprire e nessuno se ne accorge.
+await test("una collezione di radice NON prevista è negata in lettura", () =>
+  assertFails(getDoc(doc(alice, "pagamenti/p1"))));
+await test("…e in scrittura, anche a un utente autenticato", () =>
+  assertFails(setDoc(doc(alice, "pagamenti/p1"), { importo: 1 })));
+await test("…e non basta elencarla per aggirarla", () =>
+  assertFails(getDocs(collection(alice, "pagamenti"))));
+await test("…e a un utente NON autenticato è negata uguale", () =>
+  assertFails(getDoc(doc(ghost, "pagamenti/p1"))));
+/* ⚠️ E il verso opposto, che è quello che rende la prova utile invece che
+   rumorosa: la rete NON deve negare ciò che le regole concedono davvero. Senza
+   questa riga, un `allow read, write: if false` messo per sbaglio in cima al
+   file passerebbe tutte e quattro le prove qui sopra. */
+await test("…ma la rete non nega ciò che è concesso: il profilo proprio si legge ancora", () =>
+  assertSucceeds(getDoc(doc(alice, "users/alice"))));
+
 await env.cleanup();
 
 console.log(`\nRisultato: ${passed} passati, ${failed} falliti`);

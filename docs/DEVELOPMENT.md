@@ -139,7 +139,7 @@ node apps/deepwork-id/tests/copertura-funzioni.mjs --elenco   # dice anche QUALI
 node apps/deepwork-id/tests/nomi-doppi.mjs
 ```
 
-**116 con l'emulatore Firestore** (**68** regole di sicurezza, 19 SDK, 21
+**123 con l'emulatore Firestore** (**75** regole di sicurezza, 19 SDK, 21
 funzioni, 8 primo avvio) — servono `firebase-tools` e Java. ⚠️ Tre addendi su
 quattro sono stati **rimisurati l'08/08 lanciandoli**; le 21 sulle funzioni no,
 per la ragione scritta qui sotto. Il vecchio **106** portava un **58** sulle
@@ -155,7 +155,7 @@ del contenitore la nega. Quello che gira — misurato l'08/08 — è la parte ch
 conta di più, la **barriera multi-tenant**:
 
 ```sh
-node apps/deepwork-id/tests/giro-sicurezza.mjs   # 95 prove: 68 regole, 19 SDK, 8 primo avvio
+node apps/deepwork-id/tests/giro-sicurezza.mjs   # 102 prove: 75 regole, 19 SDK, 8 primo avvio
 ```
 
 Un comando solo, che alza l'emulatore da sé e **dichiara in fondo quello che

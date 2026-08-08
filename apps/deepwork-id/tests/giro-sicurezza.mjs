@@ -10,7 +10,7 @@
    parte**, e 19 è il conto dell'**SDK**, non delle regole.
    Quello che gira davvero — misurato lanciandolo — è la parte che conta di
    più: la **barriera multi-tenant**, cioè il muro fra aziende **concorrenti**
-   che è il requisito fondante di tutto il prodotto. **68 prove**, pochi
+   che è il requisito fondante di tutto il prodotto. **75 prove**, pochi
    minuti, e si possono lanciare PRIMA del push. Nessuno lo faceva, e il numero
    scritto nei documenti era fermo a 58 proprio perché nessuno le lanciava più
    in casa — sul numero che riguarda la sicurezza.
