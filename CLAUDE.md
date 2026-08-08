@@ -1324,6 +1324,33 @@ Perché serva davvero e non produca elenchi generici, cinque vincoli:
   *se il difetto stesse un piano più sotto — dentro il riquadro invece che
   dentro lo schermo, in un'app fuori convenzione, sul valore che sale invece
   che su quello che scende — questo controllo lo direbbe?*
+- ⚠️ **IL SINGOLARE CERCATO NEL SORGENTE: 32 FRASI CORRETTE, E LA REGOLA
+  AUTOMATICA PROVATA E SCARTATA COI NUMERI.** I tre banchi che sorvegliano il
+  singolare guardano quello che la **dimostrazione rende** con n=1; il sorgente
+  li ha tutti. Cercando i punti `${…} <plurale>` senza guardia sono uscite 32
+  frasi vere in sette file — «Letto: 1 righe» sull'import di un CSV (una riga
+  sola è normalissima), «negli ultimi 1 giorni» in nove punti di Flotta perché
+  `finestra = Math.max(1, …)`, «ogni 1 mesi» su un campo `type="number"` con
+  `min="0"`, «1 letture», «1 fori», «1 ore».
+  ⛔ **E la sostituzione NON è meccanica**, che è la ragione per cui un
+  `plurale()` messo a tappeto non basterebbe: con «1» cambiano l'**articolo**,
+  la **preposizione** e il **verbo**. «i 1 viaggi non entrano» → «il viaggio
+  dichiarato non entra»; «Gli altri 1 fori sono» → «L'altro foro è»; «negli
+  ultimi 1 giorni» → «**nell'**ultimo giorno» — ma nel moltiplicatore
+  «3 mezzi × 1 giorni» resta «giorno». Ogni punto è una frase da riscrivere,
+  non una parola da scambiare.
+  ⛔ **La regola automatica è stata provata e SCARTATA, e il numero è questo:**
+  cercare un confronto qualunque in una finestra di 120 caratteri sbaglia **22
+  volte su 38**. Con la *seconda domanda* — non «c'è una guardia vicino» ma
+  «c'è una guardia **su questa variabile**», più lo scarto delle costanti in
+  maiuscolo — il rumore scende a **5 su 28**, e quei cinque hanno un nome: una
+  lista letterale `[6,12,24]`, due termini di legge (12 o 24 mesi) dietro un
+  `if`, e «foto», che in italiano è **invariabile**. Restano falsi perché la
+  guardia vera sta quasi sempre nella **riga prima** (`if (n >= 2)`), e vederla
+  vuol dire leggere la struttura dei blocchi: la stessa analisi, in
+  `nomi-liberi`, era costata 11 falsi allarmi prima di trovare l'ancora giusta.
+  Quindi: **misura in scratchpad, non regola** — e questo paragrafo esiste
+  perché nessuno la rifaccia alla cieca.
 - ⛔ **UN CENSIMENTO CHE DICHIARA IL SUO DENOMINATORE VA POI LETTO — E QUANDO
   LO SI LEGGE, IL BUCO È QUASI SEMPRE NEL RIGHELLO.** L'08/08, la riga più
   grossa di tutto il giro del browser diceva: «**234 classi con un fondo
