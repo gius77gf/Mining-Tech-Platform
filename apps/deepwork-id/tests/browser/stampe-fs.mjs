@@ -360,11 +360,19 @@ const TRATTINI = ({ sel, ammesse }) => {
     if ((n.textContent || "").trim() !== "\u2014") continue;
     const cel = n.parentElement, td = cel && cel.closest("td");
     const rg = td && td.closest("tr"), tab = td && td.closest("table");
-    let col = "(fuori tabella)";
+    let col = "";
     if (td && rg && tab) {
       const i = Array.from(rg.children).indexOf(td);
       const th = tab.querySelectorAll("thead th")[i];
       if (th) col = th.innerText.trim();
+    }
+    /* ⚠️ «(fuori tabella)» non basta: un banco che dice DOVE non ha guardato è
+       inutile quanto uno che non guarda. Fuori da una tabella l'etichetta è il
+       fratello che precede, o il testo del genitore ripulito dal trattino. */
+    if (!col) {
+      const pr = cel.previousElementSibling;
+      const testo = pr ? pr.innerText : ((cel.parentElement || cel).innerText || "").replace(/\u2014/g, " ");
+      col = "fuori tabella: " + (testo || "").replace(/\s+/g, " ").trim().slice(0, 40);
     }
     if (ok.includes(col.toLowerCase())) dichiarati++; else { altri++; dove.push(col); }
   }
@@ -425,7 +433,11 @@ if (fai("flotta")) {
      comodo, non un difetto. Prima di stringere: restringere il selettore al
      contenitore del foglio, se no si accusa lo schermo credendo di guardare
      la stampa. */
-  const trFl = await pg.evaluate(TRATTINI, { sel: "body", ammesse: ["Quota"] });
+  /* ✅ RISTRETTO l'08/08: in `@media print` Flotta nasconde tutto e lascia
+     `.page#page-sch.active`, quindi IL FOGLIO È QUELLO — non `body`, che
+     portava dentro anche pezzi di schermo. Il selettore giusto lo dice il
+     foglio di stile della pagina, non si indovina. */
+  const trFl = await pg.evaluate(TRATTINI, { sel: "#page-sch", ammesse: ["Quota"] });
   console.log(`     [misura] libretto macchina: ${trFl ? trFl.altri : "?"} trattini «—» fuori da «Quota» (${trFl ? trFl.dichiarati : "?"} in «Quota», spenta di proposito), colonne: ${JSON.stringify(trFl ? trFl.dove : null)}`);
 
   const kpi = await pg.evaluate(TAGLIATI, "#sch-kpi .n");

@@ -1272,7 +1272,7 @@ body.dw b.bad{color:var(--ink-dg)}
            numeroDaCampo, interoDaCampo, perCampo, messaggioNumero,
            AVVISO_DECIMALE, AVVISO_MIGLIAIA,
            scriviConEsito } from "./flotta-data.js";
-  import { mountExit, esc, csvCell, statoVuoto, senzaDoppioni, numIt, montaGuardiaInteri, avvolgiUnita, euro, conEuro, oggiISO, dataIt, nomeCsvDimostrazione, plurale, conta, avvisaSeNonSalva} from "../../shared/deepwork-id-client/dw-shell.js";
+  import { mountExit, esc, csvCell, statoVuoto, senzaDoppioni, numIt, montaGuardiaInteri, avvolgiUnita, euro, conEuro, oggiISO, dataIt, dataISOEsiste, nomeCsvDimostrazione, plurale, conta, avvisaSeNonSalva} from "../../shared/deepwork-id-client/dw-shell.js";
   // gli agganci della struttura condivisa (modale con Escape, riquadri da
   // tastiera, alone che segue il mouse). Va chiamato QUI e non nel blocco
   // classico in linea: i moduli girano dopo gli script `defer`.
@@ -1290,6 +1290,25 @@ body.dw b.bad{color:var(--ink-dg)}
   const eur = euro;
   // ore di lavoro: mezz'ora è mezz'ora, ma «4,00 h» è precisione finta
   const oreTx = (v) => (+v||0).toLocaleString("it-IT", { maximumFractionDigits: 2 }) + " h";
+  /* ⛔ «DAL — — ANCORA FERMO» — misurato l'08/08 leggendo il libretto macchina
+     stampato, non il codice. La frase si componeva con `dataIt(x.inizio)` a
+     mano in DUE punti (l'elenco dei fermi e il foglio), e su un fermo senza
+     data d'inizio usciva letteralmente «dal — — ancora fermo»: un trattino al
+     posto della data, e la frase che si spezza. Su un foglio che si porta a chi
+     compra la macchina, «dal —» si legge come una data che non conta, quando la
+     verità è che nessuno l'ha scritta.
+     Scritta una volta sola e usata da tutt'e due: è la regola del `shared/`
+     applicata dentro una pagina, e il segno che serviva era proprio quello —
+     la stessa frase in due posti, corretta in uno solo.
+     ⚠️ Raggiungibilità dichiarata: il form pretende la data d'inizio, quindi
+     oggi il caso arriva da dati vecchi — latente, non impossibile. */
+  const quandoFermo = (f) => {
+    const i = f && f.inizio, fn = f && f.fine;
+    const dal = dataISOEsiste(String(i == null ? "" : i).slice(0, 10))
+      ? "dal " + dataIt(i) : "senza data d'inizio registrata";
+    const al = fn ? " al " + dataIt(fn) : " · ancora fermo";
+    return dal + al;
+  };
   const ggTx = (n) => (+n||0).toLocaleString("it-IT", { maximumFractionDigits: 1 }) + (Math.abs(+n||0) === 1 ? " giorno" : " giorni");
   // un numero all'italiana, senza unità: per i ritmi d'uso (3,42 h/gg)
   const numTx = (v) => Number.isFinite(+v) ? (+v).toLocaleString("it-IT", { maximumFractionDigits: 2 }) : "—";
@@ -2935,7 +2954,7 @@ body.dw b.bad{color:var(--ink-dg)}
     const lista = fermiOrdinati(FER, new Date());
     $("fer-list").innerHTML = lista.slice(0, 12).map(f => {
       const cls = f.aperto ? "danger" : "mute";
-      const quando = "dal " + dataIt(f.inizio) + (f.fine ? " al " + dataIt(f.fine) : " — ancora fermo");
+      const quando = quandoFermo(f);
       return `<div class="item statico ${striscia[cls] || "st-mute"}">
         <div class="avatar${f.aperto ? "" : " sup"}">${I.fermo}</div>
         <div class="info"><div class="name">${esc(nomeBreve(f.mezzo) || "Mezzo")} · ${esc(f.causaleTx)}</div>
@@ -3411,7 +3430,7 @@ body.dw b.bad{color:var(--ink-dg)}
       + (f.fermi.slice(0, RIGHE_LIBRETTO).map(x => `<div class="item statico ${x.aperto ? "st-danger" : "st-mute"}">
           <div class="avatar${x.aperto ? "" : " sup"}">${I.fermo}</div>
           <div class="info"><div class="name">${esc(x.causaleTx)}</div>
-            <div class="meta">dal ${esc(dataIt(x.inizio))}${x.fine ? " al " + esc(dataIt(x.fine)) : " — ancora fermo"}</div>
+            <div class="meta">${esc(quandoFermo(x))}</div>
             ${x.note ? `<div class="meta norma">${esc(x.note)}</div>` : ""}</div>
           <span class="badge ${x.aperto ? "danger" : "tag"}">${x.giorni != null ? ggTx(x.giorni) : "—"}</span></div>`).join("")
         || vuoto(I.fermo, "Mai ferma", "Su questa macchina non risulta nessun fermo registrato: nessuna giornata persa per guasto, attesa di un pezzo o verifica. I fermi si registrano dalla schermata <b>Mezzi</b>."))
