@@ -1,5 +1,23 @@
 # Ultimo ciclo di lavoro automatico
 
+**2026-08-08T12:21Z** · commit di partenza **`ca0a78d`** · branch
+`claude/scheduled-tasks-remote-control-bk4ap6`
+
+## Ciclo in corso adesso
+
+Riprendo dal «Prossimo passo atomico» dell'ultimo checkpoint per data VERA di
+git: raccogliere il giro del browser lanciato alle ~11:10Z — il primo che
+**non può più restare appeso** — e leggerlo con `leggi-giro.mjs`, sezione 1
+(«non ho guardato») prima della 2 (i KO). Poi la riga nuova «le tre passate più
+lente», che adesso che `vaiA` è ventisei volte più veloce dice se il limite di
+trenta minuti è ancora tarato o è diventato una guardia che non scatta mai.
+⚠️ Quel giro attesta `c3888fe`: le due unità dopo (i cinque contrasti dei fondi
+non coprenti e la lezione in CLAUDE.md) non ci sono dentro.
+
+*(Il paragrafo qui sotto racconta il ciclo precedente.)*
+
+---
+
 **2026-08-08T10:37Z** · commit di partenza **`3b496a8`** · branch
 `claude/scheduled-tasks-remote-control-bk4ap6`
 
