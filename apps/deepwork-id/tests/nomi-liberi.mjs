@@ -692,15 +692,46 @@ for (const p of PAGINE) {
   for (const [n, c] of r.liberi) male3.push(`${p}: \${${n}} ×${c}`);
 }
 
+/* ⛔ E ANCHE I MODULI: lì un nome libero dentro un template non fa rumore
+   all'import, esplode quando quella riga viene eseguita — magari in un ramo che
+   le prove non toccano. I moduli non hanno script fratelli, quindi il conto è
+   più stretto. Costo misurato prima di pretenderlo, con una riga di stampa
+   provvisoria e solo dopo trasformata in asserzione. */
+let visti3m = 0, moduli3 = 0;
+const male3m = [];
+for (const p of moduliDelDisco()) {
+  let testo;
+  try { testo = leggi(p); } catch { continue; }
+  const legati = nomiLegati(soloCodice(testo));
+  for (const m of testo.matchAll(/\$\{\s*([A-Za-z_$][\w$]*)\s*(\.|\}|\s|\[|\?|\)|,|\+)/g)) {
+    const n = m[1];
+    visti3m++;
+    if (PAROLE.has(n) || GLOBALI.has(n) || DA_CDN.has(n) || SINTASSI_E_NODE.has(n) || legati.has(n)) continue;
+    male3m.push(`${p}: \${${n}}`);
+  }
+  moduli3++;
+}
+
 test("nessun nome RIFERITO in un `${…}` che non esiste da nessuna parte", () => {
   ok(male3.length === 0,
     "nomi usati dentro un template e mai dichiarati:\n  " + male3.join("\n  ")
     + "\n  Un nome libero lì uccide il DISEGNO, come una chiamata inesistente uccide il tocco.");
 });
 
+test("nessun nome RIFERITO libero nei MODULI", () => {
+  ok(male3m.length === 0,
+    "nomi usati dentro un template di un modulo e mai dichiarati:\n  " + male3m.slice(0, 12).join("\n  "));
+});
+
 test("la terza domanda ha davvero guardato", () => {
   ok(pagine3 >= 8, `solo ${pagine3} pagine guardate dalla terza domanda`);
   ok(visti3 >= 3000, `solo ${visti3} riferimenti guardati: troppo pochi`);
+  ok(moduli3 >= 10, `solo ${moduli3} moduli guardati dalla terza domanda`);
+  /* ⚠️ 150 e non 200: il 200 l'avevo scritto a occhio e la prova è caduta al
+     primo giro su **181** misurati. Una soglia si prende dalla misura, non
+     dall'impressione — è la stessa regola dei numeri nei documenti, in
+     miniatura. Serve solo a dire «ha guardato», non a fissare un traguardo. */
+  ok(visti3m >= 150, `solo ${visti3m} riferimenti nei moduli: troppo pochi (misurati 181 l'08/08)`);
 });
 
 test("la controprova della TERZA domanda — un nome usato SOLO dentro un `${…}`", () => {
@@ -736,5 +767,5 @@ test("la controprova della TERZA domanda — un nome usato SOLO dentro un `${…
 console.log(`\nRisultato nomi liberi: ${passed} passati, ${failed} falliti`
   + `  ·  ${chiamateTot} chiamate su ${pagineViste} pagine, ${chiamateMod} su ${moduliVisti} moduli`
   + `  ·  seconda domanda (lo scope): ${chiamateScope} chiamate su ${pagineScope} pagine e ${chiamateScopeMod} su ${moduliScope} moduli, ${maleScope.length + maleScopeMod.length} fuori scope`
-  + `  ·  terza domanda (i riferimenti): ${visti3} usi di ${"$"}{…} su ${pagine3} pagine, ${male3.length} liberi`);
+  + `  ·  terza domanda (i riferimenti): ${visti3} usi di ${"$"}{…} su ${pagine3} pagine e ${visti3m} su ${moduli3} moduli, ${male3.length + male3m.length} liberi`);
 process.exit(failed > 0 ? 1 : 0);
