@@ -969,6 +969,17 @@ numero scritto dove non era stato misurato niente**.*
 - [x] ✅ **Flotta: un pieno senza spesa metteva una macchina PRIMA in classifica
   a zero euro l'ora** (`4938125`). `spesaInFinestra = 0` → `€ 0,00/h` → prima in
   `pagellaMezzi`: il principio del fondatore nella sua forma più pura.
+- [x] ✅ **Le unità nude che il banco NON POTEVA vedere** (`d5692f6`). Il banco
+  scarta gli elementi senza area — filtro **giusto**, e proprio per questo non si
+  aggiusta: lo rende cieco su tutto ciò che compare **dopo**. Il riquadro
+  Kuz-Ram del core è `display:none` finché non si calcola, e dentro c'era
+  «X50 (cm)» → «X50 (CM)». Rifatta la stessa domanda **staticamente** sul
+  sorgente: **7 difetti veri** su 925 elementi, sei nel core, e **uno solo** era
+  quello che il banco vedeva. Regola 2 estesa alle pagine (310 → **314**), con
+  denominatore (986 elementi, 102 classi, 15 superfici), tre eccezioni per nome
+  e la controprova. Il righello ha sbagliato **tre volte** prima di reggere, e
+  la terza — il commento CSS che entra nel selettore che lo segue — lo rendeva
+  cieco proprio sull'unico caso già noto.
 - [x] ✅ **Le unità in maiuscolo: il banco non guardava le maiuscole**
   (`c753ccc`). «Mc totali» renderizzato «MC TOTALI» e il banco diceva pulito. 15
   casi in più, **11 veri** (17 etichette del core, unità in coda fra parentesi
@@ -1890,17 +1901,17 @@ numero scritto dove non era stato misurato niente**.*
   (640 precedenti alla regola, contati da `date-checkpoint.mjs`). Chi va per
   nome apre il file sbagliato credendo che sia il più fresco.
 - Le decisioni: `docs/DECISIONI_WEEKEND.md` — pagina d'ingresso in cima.
-- Stato misurato al **07/08, sera** (lanciando le suite, non a memoria):
-  **2.307 prove** che girano senza rete — e la frase va letta stretta: sono la
+- Stato misurato all'**08/08** (lanciando le suite, non a memoria):
+  **2.324 prove** che girano senza rete — e la frase va letta stretta: sono la
   somma delle **sei** suite che contano asserzioni (`run-kpi` 1890, `run-stile`
-  297, `run-helpers` 71, `run-pointcloud` 32, `run-manifest` 9, `run-demo` 8),
+  314, `run-helpers` 71, `run-pointcloud` 32, `run-manifest` 9, `run-demo` 8),
   non tutto ciò che gira nel giro `node`, che di comandi ne ha **23**.
   Copertura **703/703** e nessuna funzione scoperta; **153 esecuzioni** che
   aprono le pagine in un browser vero (**71** file di banco distinti, contati
   dalla tabella `BANCHI` di `tutti.mjs` e non a occhio dalla cartella, che ne
   ha 75 perché contiene anche gli aiuti — `giro.mjs`, `impronta.mjs`, il
   runner stesso).
-  *(Al 07/08 notte erano 2.193, 662/662 e 120; al 03/08 pomeriggio 2.092,
+  *(Al 07/08 sera erano 2.307; al 07/08 notte 2.193, 662/662 e 120; al 03/08 pomeriggio 2.092,
   649/649 e 84; al 02/08 1.838, 591/591 e 49.)*
   ⚠️ **Questi numeri non si scrivono a mente** — ma attenzione al
   denominatore: `numeri-nei-documenti.mjs` sorveglia `docs/DEVELOPMENT.md` e
