@@ -1408,11 +1408,24 @@ numero scritto dove non era stato misurato niente**.*
   («Quantità», «Prezzo unitario», sulla riga a **importo unico**), Terra non
   misurata (finestra nuova). ⛔ **Nessuno corretto, di proposito**: un trattino
   si **giudica**, non si conta, e sono candidati dichiarati nel documento.
+- [x] ✅ **Flotta · i 15 trattini «Quota» erano il principio applicato**
+  (`d974936`). Guardati uno per uno, il verdetto si **ribalta**: quella colonna
+  è spenta **di proposito** (`quota: false`) perché sommare percentuali non ha
+  senso, e il commento porta la misura che l'ha fatta spegnere — «la giornata a
+  0 mezzi operativi si dichiarava *quota 0,0%*», il numero più tranquillo
+  proprio sul giorno in cui la cava era ferma. Accusarlo sarebbe stato mandare a
+  rovinare una cosa sana. ⚠️ E il **righello era largo**: guardava `body` in
+  `@media print`, cioè tutta la pagina e non il foglio — dichiarando «Quota»
+  ammessa i quindici si dividono in **10 giusti** e **5 fuori tabella**, che
+  finché il banco non sa localizzare **non si giudicano**.
+  📊 **Bilancio della notte sui trattini**: 30 guardati — **9 difetti veri
+  corretti**, **18 giusti**, **3 aperti e dichiarati**. Un trattino su tre era
+  una faccia tranquilla; due su tre erano il prodotto che diceva la verità.
 
 ## Riferimenti
 
 - Ultimo checkpoint **per data vera**:
-  `vault/checkpoints/20260808-011527_la-regola-dei-trattini-scritta-una-volta.md`
+  `vault/checkpoints/20260808-012201_i-quindici-trattini-che-erano-il-principio.md`
   *(dato da `node apps/deepwork-id/tests/date-checkpoint.mjs`, non letto a occhio:
   per NOME il più alto sarebbe `20260805-100000_…`, che è stato scritto **tre
   giorni prima**. Questa riga era ferma al 01/08: il puntatore al file più
