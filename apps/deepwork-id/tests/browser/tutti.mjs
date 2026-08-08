@@ -163,7 +163,7 @@ const BANCHI = [
      arriva). L'etichetta diceva «Flotta e Sentinella» ed era la solita lista
      tenuta a mente: si aggiorna col banco, se no il giro dice di aver
      guardato meno di quello che guarda — o più. */
-  ['i fogli stampati di Flotta, Sentinella, Conti e Terra', 'stampe-fs.mjs', []],
+  ['i fogli stampati di Flotta, Sentinella, Conti, Terra e Scudo', 'stampe-fs.mjs', []],
   /* ⛔ AGGIUNTO IL 06/08, e Campo ha voluto un banco suo perché il suo foglio
      non è come gli altri: Campo **non stampa sé stesso** (`grep -c "@media
      print" apps/campo/index.html` → 0). Il rapporto di fine turno è un HTML
@@ -212,7 +212,7 @@ const BANCHI = [
   ['il testo che esce dagli appunti', 'appunti-dimostrazione.mjs', []],
   ['appunti · su dati veri la dichiarazione non c\'è', 'appunti-dimostrazione.mjs', ['--live']],
   ['appunti · controprova', 'appunti-dimostrazione.mjs', ['--controprova'], true],
-  ['fogli stampati F/S/C/T · controprova', 'stampe-fs.mjs', ['--controprova'], true],
+  ['fogli stampati F/S/C/T/S · controprova', 'stampe-fs.mjs', ['--controprova'], true],
   ['unità in maiuscolo', 'unita-maiuscole.mjs', []],
   ['unità · controprova', 'unita-maiuscole.mjs', ['--controprova', '--solo=campo'], true],
   ['collegamenti della vetrina', 'vetrina-collegamenti.mjs', []],

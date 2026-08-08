@@ -1,8 +1,8 @@
-# I fogli stampati che nessun banco preme — misurato l'08/08
+# I fogli stampati e la domanda che nessuno faceva a Scudo — 08/08
 
-Risultato **parziale e dichiarato tale**, scritto perché senza questa pagina il
-cantiere dopo rifà le stesse due misure sbagliate. Verificato contro il commit
-`6ae0490`.
+Verificato contro il commit `53427a3`, poi **corretto** un'ora dopo: la prima
+stesura di questa pagina conteneva un «non c'è» **falso**, e la correzione è la
+parte che vale di più.
 
 ## Da dove nasce la domanda
 
@@ -16,75 +16,87 @@ foglio**.
 
 Domanda ovvia: **e gli altri fogli?**
 
-## La risposta, in una riga
+## ⛔ La prima risposta era sbagliata, e va letta prima del resto
 
-`apps/deepwork-id/tests/browser/stampe-fs.mjs` preme i bottoni di stampa e
-legge il foglio in `@media print` — ma solo di **quattro** app su sei.
-**Scudo e Campo non ci sono**, e sono tre fogli:
+Questa pagina diceva, in tabella:
 
-| foglio | app | chi lo preme oggi |
-|---|---|---|
-| Verbale di consegna dei DPI | scudo | **nessun banco** |
-| Cartella del lavoratore | scudo | **nessun banco** |
-| Rapporto di turno | campo | **nessun banco** |
-| Libretto macchina | flotta | `stampe-fs` |
-| Report ambientale | sentinella | `stampe-fs` |
-| Preventivo · DDT · Fattura | conti | `stampe-fs` |
-| Denuncia annuale | terra | `stampe-fs` |
+> | Verbale di consegna dei DPI | scudo | **nessun banco** |
+> | Cartella del lavoratore | scudo | **nessun banco** |
+> | Rapporto di turno | campo | **nessun banco** |
 
-⚠️ **E non è che il contenuto manchi**: la dichiarazione «dati di esempio» c'è
-in tutt'e due (`grep -c "solo-stampa\|DATI DI ESEMPIO"` dà **4** per Campo e
-**4** per Scudo; `avvisoEsempio` compare **7** volte in Scudo e **4** in Campo).
-Quello che manca è **qualcuno che verifichi che arrivi fino al foglio**. È la
-forma della guardia scollegata: la difesa è scritta, e nessuno chiede se regge.
-E il commento di `stampe-fs` dichiara Scudo fuori — ma lo dichiara in una riga
-che racconta la storia del 03/08, non in un elenco che si legge.
+**Due righe su tre erano false.** Avevo cercato dentro `stampe-fs.mjs` e
+concluso «non c'è» per tutto il resto — la stessa mossa che la direttiva 5
+vieta agli agenti di ricerca, fatta da chi quella regola l'aveva appena
+applicata a due cantieri.
 
-## ⛔ Due righelli sbagliati prima di arrivarci, scritti perché nessuno li rifaccia
+Un `grep` di tre secondi la smentiva:
 
-L'elenco dei bottoni di stampa **non si deriva dal testo del sorgente**, e ci
-sono volute due misure per saperlo. La tecnica che funziona per gli export CSV
-— cercare `download = "…"` e risalire al `$("btn-…").onclick` che la contiene —
-qui **non regge**, perché `window.print()` non sta quasi mai dentro un gestore:
+    grep -rln "btn-dpi-verb\|btn-cartella" apps/deepwork-id/tests/browser/*.mjs
+      scudo-documenti.mjs  ·  scudo-numeri-tranquilli.mjs
+      stati-non-misurati.mjs  ·  stampe-fs.mjs
+
+    grep -n "campo-foglio-turno" apps/deepwork-id/tests/browser/tutti.mjs
+      → tre passate: normale, --controprova, --live
+
+Cioè: il rapporto di turno di **Campo ha un banco tutto suo** (che apre la
+finestra nuova, legge il foglio in `@media print` e scarica anche la consegna
+`.txt`), e i due fogli di **Scudo venivano premuti da tre banchi**.
+
+## La risposta vera, più stretta e ancora utile
+
+I due fogli di Scudo venivano premuti — ma per **altre domande**: i documenti,
+i numeri tranquilli, gli stati non misurati. **Nessuno chiedeva loro la domanda
+di `stampe-fs`**: *questo foglio dichiara di essere fatto di dati d'esempio, e
+dice che cosa comporta?*
+
+E il file lo diceva di sé, in una riga che raccontava una storia invece di
+essere un elenco:
+
+> *«…Scudo resta fuori da questo banco.»*
+
+Rimasta lì **cinque giorni**. Intanto, sui due fogli meno guardati, il 03/08
+usciva la scadenza stampata come una qualunque e l'08/08 la data di consegna
+che si leggeva «non serve».
+
+**Chiuso l'08/08**: Scudo è dentro `stampe-fs.mjs` con i suoi due fogli, nei
+**due versi** — `--controprova` (spenta la decisione `avvisoEsempio`, 4 KO) e
+`--live` (sui dati veri i fogli escono **puliti**: marchiare «DATI DI ESEMPIO»
+il fascicolo personale di un lavoratore vero sarebbe il danno più grosso che
+questo banco possa causare).
+Banco: **58 → 73** prove; controprova 26 KO con **0 iniezioni mancate**;
+`--live` 50 su 50.
+
+⚠️ **Resta fuori Genesi**, con la ragione già misurata (non ha una modalità
+dimostrazione), e **nient'altro**: le sei app verticali sono coperte.
+
+## ⛔ E l'elenco dei bottoni di stampa non si deriva dal sorgente
+
+Due misure per saperlo, scritte perché nessuno le rifaccia. La tecnica che
+funziona per gli export CSV — cercare `download = "…"` e risalire al
+`$("btn-…").onclick` che la contiene — qui **non regge**, perché
+`window.print()` non sta quasi mai dentro un gestore:
 
 1. **risalendo al gestore più vicino**: 6 bottoni censiti su sei app, **1
-   foglio uscito su ~8**. Pescava `#btn-dpi` invece di `#btn-dpi-verb`, cioè il
-   gestore sbagliato, e su Terra e Conti nessuno;
+   foglio uscito su ~8**. Pescava `#btn-dpi` invece di `#btn-dpi-verb`;
 2. **inseguendo la catena a tre anelli** (`window.print()` → la funzione che lo
    contiene → chi la chiama → l'`onclick`): **peggio**, 3 bottoni e sempre 1
-   foglio. La funzione che contiene la stampa non è quella che il passo
-   all'indietro trova: in `stampaVerbale` di Scudo, prima di `window.print()`,
-   c'è `const fine = () => {…}` — e il riconoscitore aggancia **`fine`**.
+   foglio. In `stampaVerbale`, prima di `window.print()`, c'è
+   `const fine = () => {…}`: il riconoscitore aggancia **`fine`**.
 
-La conclusione misurata: **l'elenco dei fogli va scoperto a RUNTIME**, premendo
-i bottoni e guardando chi chiama `print`, oppure — come fa `stampe-fs` oggi —
-scritto a mano **con l'elenco delle superfici dichiarato**, così un'app fuori
-elenco si vede invece di sparire. La seconda è quella che regge adesso; la
-prima è il lavoro giusto se un giorno i fogli diventassero molti.
+Conclusione misurata: o si scopre a **runtime**, o si tiene l'elenco a mano
+**con le superfici dichiarate**, così un'app fuori elenco si vede invece di
+sparire. La seconda è quella che regge, ed è quella che questa giornata ha
+rafforzato.
 
-## Il censimento parziale che si è potuto fare
+## Quello che resta da giudicare
 
-Sul solo foglio raggiunto — il **report ambientale di Sentinella** — ci sono
-**10 trattini «—»**, e vanno **giudicati uno per uno**, non contati: un «—» su
-un campo facoltativo va bene, su un dato che il foglio esiste per portare no.
+Sul report ambientale di **Sentinella** — il foglio che va a un ente — ci sono
+**10 trattini «—»**, censiti per etichetta e **non giudicati**: sono candidati,
+non difetti. Un «—» su un campo facoltativo va bene; su un dato che il foglio
+esiste per portare no, e lì la differenza fra «non misurato» e «zero» è
+esattamente il principio del fondatore.
 
     2 × «Superamenti»      2 × «ORA»
     1 × «Media mm/s»       1 × «Massimo mm/s»
     1 × «Media dB(A)»      1 × «Massimo dB(A)»
     1 × «SD»               1 × (cella accanto a «22,03 µg/m³»)
-
-**Non giudicati**, e la ragione è che il giudizio è il lavoro vero: quel report
-va a un ente, e la differenza fra «non misurato» e «zero» lì è esattamente il
-principio del fondatore. Sono candidati, non difetti.
-
-## Il lavoro che ne segue, in ordine
-
-1. **Portare Scudo e Campo dentro `stampe-fs.mjs`** — tre fogli, con la stessa
-   forma già usata: si preme il bottone, si legge il foglio in `@media print`,
-   si pretende che dichiari di essere un esempio e che dica **che cosa
-   comporta**. Il verbale DPI ha già la sua frase («non va fatto firmare, non
-   va allegato ai Documenti, non prova la consegna»): va **verificata**, non
-   riscritta.
-2. **Giudicare i dieci trattini di Sentinella**, uno per uno, con la domanda:
-   *questo «—» dice «non serve» dove la verità è «nessuno l'ha misurato»?*
-3. Solo dopo, e se serve, il riconoscitore a runtime dei bottoni di stampa.

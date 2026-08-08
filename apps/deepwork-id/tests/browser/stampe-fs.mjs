@@ -1,13 +1,13 @@
-/* I FOGLI CHE SI STAMPANO — Flotta, Sentinella, Conti e Terra, provati
+/* I FOGLI CHE SI STAMPANO — Flotta, Sentinella, Conti, Terra e Scudo, provati
    premendo il bottone e leggendo il foglio in `@media print`.
    ────────────────────────────────────────────────────────────────────────
    Uso:
      node stampe-fs.mjs [--porta=8613]
      node stampe-fs.mjs --controprova   (rimette i difetti: DEVE fallire)
-     node stampe-fs.mjs --solo=flotta   (flotta · sentinella · conti · terra)
+     node stampe-fs.mjs --solo=flotta   (flotta · sentinella · conti · terra · scudo)
      node stampe-fs.mjs --scatti        (salva gli scatti in @media print a 390 px)
-     node stampe-fs.mjs --live          (Conti e Terra credono di essere in
-                                         produzione: i fogli devono uscire PULITI)
+     node stampe-fs.mjs --live          (Conti, Terra e Scudo credono di essere
+                                         in produzione: i fogli escono PULITI)
 
    ⛔ IL «FOGLIO CHE NON DICE DI ESSERE UN ESEMPIO» NON ERA DI DUE APP: ERA
    DELL'ECOSISTEMA. Il banco è nato su Flotta e Sentinella, dove il difetto è
@@ -27,8 +27,19 @@
    dimostrazione** (`grep -c tour-banner apps/genesi/genesi.html` -> 0, e in
    tutta la pagina non compare `db.mode`), quindi non c'è nessun foglio di
    esempio da distinguere da uno vero: il suo report dichiara già di essere una
-   stima e non una misura, che è la cosa vera da dichiarare lì. Scudo resta
-   fuori da questo banco.
+   stima e non una misura, che è la cosa vera da dichiarare lì.
+   ⏱️ **E «Scudo resta fuori da questo banco» è rimasto scritto qui per cinque
+   giorni**, in una riga che racconta una storia invece che in un elenco che si
+   legge. Intanto i suoi due fogli — il verbale di consegna dei DPI e la
+   cartella del lavoratore — non li premeva **nessuno**, ed è esattamente lì
+   che il 03/08 è saltata fuori la scadenza stampata come una qualunque e
+   l'08/08 la data di consegna che si leggeva «non serve»: due difetti veri
+   sulla superficie meno guardata. Dall'08/08 Scudo è dentro, nei due versi
+   (`--controprova` e `--live`).
+   ⛔ Resta fuori **Campo**, e per una ragione vera: il suo rapporto di turno
+   apre una **finestra nuova** come Terra, quindi vuole l'impianto che raccoglie
+   il popup — non è dimenticanza, è il lavoro dopo. Censimento e misure:
+   `docs/I_FOGLI_CHE_NESSUN_BANCO_PREME.md`.
 
    ⛔ E IL MODO DI STAMPARE NON È LO STESSO, quindi la difesa non poteva essere
    copiata: Flotta, Sentinella e Conti stampano SÉ STESSE con un `@media print`
@@ -129,6 +140,18 @@ const DIFETTI = {
     ['${db.mode !== "live" ? `<div class="rep-esempio">', '${false ? `<div class="rep-esempio">'],
     ["    const S = R.scartate || { totale: 0 };", "    const S = { totale: 0 };"],
   ],
+  /* ⛔ SCUDO, dall'08/08. Si spegne la DECISIONE, non la frase — come per Conti
+     e Terra: `avvisoEsempio` è il posto unico che decide «questo è un foglio di
+     dimostrazione», e tutt'e due i fogli lo leggono. Spegnendolo si toglie
+     tutto lo strato, e una prova che restasse verde direbbe che sta guardando
+     un foglio che non passa di lì — cioè una copia debole nata nel frattempo.
+     ⚠️ Si tocca `avvisoEsempio` e NON `avvisoEsempioTesto`, che è la terza
+     uscita di Scudo (il promemoria negli appunti) e non c'entra con i fogli:
+     iniettarli insieme confonderebbe due strati che sono separati apposta. */
+  "apps/scudo/index.html": [
+    ["  const avvisoEsempio = (frase) => { const m = modoDimostrazione(db.mode);",
+     '  const avvisoEsempio = (frase) => { const m = modoDimostrazione("live");'],
+  ],
   "apps/sentinella/sentinella-data.js": [
     // 4. il filtro che giudica la data da com'è scritta
     ["    if (!dataUsabile(g)) return false;", "    if (!g) return false;"],
@@ -190,6 +213,15 @@ const COME_LIVE = {
      '  const avvisoEsempio = () => { const m = modoDimostrazione("live");'],
   ],
   "apps/terra/index.html": [
+    ["  const avvisoEsempio = (frase) => { const m = modoDimostrazione(db.mode);",
+     '  const avvisoEsempio = (frase) => { const m = modoDimostrazione("live");'],
+  ],
+  /* Scudo entra anche qui, e non è una ripetizione: è la stessa prova letta al
+     ROVESCIO. Su dati veri i due fogli devono uscire PULITI — marchiare «DATI
+     DI ESEMPIO» il fascicolo personale di un lavoratore vero sarebbe il danno
+     più grosso che questo banco possa causare, e una guardia che si accende
+     sempre non è una guardia. */
+  "apps/scudo/index.html": [
     ["  const avvisoEsempio = (frase) => { const m = modoDimostrazione(db.mode);",
      '  const avvisoEsempio = (frase) => { const m = modoDimostrazione("live");'],
   ],
@@ -483,6 +515,94 @@ if (fai("conti")) {
   await ctx.close();
 }
 
+// ══ SCUDO · i due fogli che si mettono in mano a un ispettore ════════════
+/* ⛔ ERA L'APP RIMASTA FUORI, E NON PER CASO: il commento in cima a questo
+   file la dichiara fuori in una riga che racconta la storia del 03/08 — cioè
+   in un posto che non si legge come un elenco. Intanto i suoi due fogli
+   (il verbale di consegna dei DPI e la cartella del lavoratore) non li premeva
+   nessuno, ed è **esattamente lì** che l'08/08 è saltata fuori la data di
+   consegna che si leggeva «non serve», e il 03/08 la scadenza stampata come
+   una qualunque. Due difetti veri sulla superficie meno guardata.
+   ⚠️ La dichiarazione dei dati d'esempio **nel sorgente c'era già**
+   (`avvisoEsempio`, 7 punti): quello che mancava era qualcuno che verificasse
+   che **arriva fino al foglio**. È la guardia scritta e mai chiesta.
+   Scudo stampa come Flotta, Sentinella e Conti — `@media print` sulla propria
+   pagina, con la classe `stampa-verbale` — non come Terra, che apre una
+   finestra. Campo invece apre una finestra come Terra, e resta fuori per
+   questa ragione, scritta invece che dedotta dall'assenza. */
+if (fai("scudo")) {
+  console.log("\n── Scudo · verbale DPI e cartella del lavoratore, sul foglio A4 (688 px) ──");
+  const { ctx, pg } = await APRI(688);
+  const errori = []; pg.on("pageerror", (e) => errori.push(e.message));
+  await pg.goto(`http://127.0.0.1:${porta}/apps/scudo/index.html`);
+  await pg.waitForTimeout(2400);
+  dice(errori.length === 0, "la pagina non solleva errori", errori.slice(0, 2));
+
+  /* la prova che l'app sia DAVVERO in dimostrazione: senza, «foglio pulito» e
+     «difetto assente» si leggono uguali */
+  dice(await pg.evaluate(() => !!document.getElementById("tour-banner")
+    && getComputedStyle(document.getElementById("tour-banner")).display !== "none"),
+    "Scudo è in modalità dimostrazione (se no la prova qui sotto non vuol dire niente)");
+
+  await pg.click("#nav-pers").catch(() => {});
+  await pg.waitForTimeout(700);
+  await pg.evaluate(() => { const t = document.querySelector('.chg[data-tab="dpi"]'); if (t) t.click(); });
+  await pg.waitForTimeout(700);
+
+  /* si sceglie una persona vera: senza, i due bottoni si fermano sull'errore
+     di campo e il banco misurerebbe una pagina che non ha stampato niente */
+  const quante = await pg.evaluate(() => {
+    const s = document.getElementById("dpi-verb-lav");
+    if (!s || s.options.length < 2) return 0;
+    s.value = s.options[1].value; s.dispatchEvent(new Event("change", { bubbles: true }));
+    return s.options.length;
+  });
+  dice(quante > 1, "c'è almeno una persona da cui partire", quante);
+
+  const FOGLI_SCUDO = [
+    ["btn-dpi-verb", "verbale di consegna dei DPI", /Verbale di consegna dei DPI/i,
+     /non va fatto firmare/i, "non si fa firmare, non si allega, non prova la consegna"],
+    /* ⚠️ La conseguenza si pretende ALLA LETTERA, non con un `/non/i` che
+       combacia con qualunque frase: un controllo largo qui direbbe «ok» anche
+       se la riga sparisse, ed è il difetto che questo file esiste per prendere.
+       Le due cose vietate sono quelle scritte nel foglio, e sono diverse da
+       quelle del verbale — la cartella è il fascicolo personale. */
+    ["btn-cartella", "cartella del lavoratore", /Cartella del lavoratore|Fascicolo/i,
+     /non va esibita a un ispettore/i, "non si esibisce a un ispettore, non si tiene agli atti"],
+  ];
+  let stampatiScudo = 0;
+  for (const [id, nome, titolo, conseguenza, cosaDice] of FOGLI_SCUDO) {
+    await pg.evaluate(() => { window.__stampato = 0; });
+    await pg.evaluate((x) => { const e = document.getElementById(x); if (e) e.click(); }, id);
+    await pg.waitForTimeout(500);
+    /* tutt'e due passano da una conferma che dice che cosa si troverà dentro */
+    const confermato = await pg.evaluate(() => {
+      const b = Array.from(document.querySelectorAll("#modal-foot button, .mbtn"))
+        .find((x) => /stampa/i.test(x.textContent || ""));
+      if (!b) return false; b.click(); return true;
+    });
+    dice(confermato, `«${nome}»: la finestra di conferma è comparsa e dice che cosa si sta per stampare`);
+    await pg.waitForTimeout(700);
+    dice(await pg.evaluate(() => window.__stampato > 0), `«${nome}»: il bottone ha chiesto la stampa`);
+
+    await pg.emulateMedia({ media: "print" });
+    await pg.waitForTimeout(300);
+    const foglio = await pg.evaluate(() => (document.getElementById("verbale") || {}).innerText || "");
+    await pg.emulateMedia({ media: "screen" });
+    if (!titolo.test(foglio)) { dice(false, `«${nome}»: il foglio composto è davvero quello`, foglio.slice(0, 90)); continue; }
+    stampatiScudo++;
+    dice(true, `«${nome}»: il foglio composto è davvero quello`);
+    diceAvviso(/DATI DI ESEMPIO/i.test(foglio), `⛔ «${nome}» dichiara di essere fatto di dati di esempio`);
+    diceAvviso(conseguenza.test(foglio), `e dice che cosa comporta: ${cosaDice}`,
+      foglio.slice(0, 140));
+  }
+  dice(stampatiScudo === FOGLI_SCUDO.length,
+    `tutti e ${FOGLI_SCUDO.length} i fogli di Scudo sono stati composti davvero`, stampatiScudo);
+  console.log(`     (${stampatiScudo} fogli su ${FOGLI_SCUDO.length} letti in @media print)`);
+  if (SCATTI) await scatta(pg, "scudo");
+  dice(errori.length === 0, "e nessun errore in pagina alla fine del giro", errori.slice(0, 2));
+  await ctx.close();
+}
 // ══ TERRA · i due fogli, che vivono in una FINESTRA NUOVA ════════════════
 /* Qui il `@media print` della pagina non c'entra niente: `fogliaStampa` e
    `fogliaVerbale` compongono un HTML intero e lo scrivono in una finestra
