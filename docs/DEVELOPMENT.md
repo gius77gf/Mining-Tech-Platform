@@ -50,14 +50,14 @@ segnaposto («Funzione nav non ancora pronta»). Per aprirlo davvero si monta
 
 > ⚠️ **E quel numero conta SETTE suite, non tutto quello che gira.** Rimisurato
 > l'08/08 **a sera** sommando le righe «Risultato …» di un giro intero: il giro
-> `node` completo esegue **2.658** asserzioni, perché ne lancia altre **dodici**
+> `node` completo esegue **2.662** asserzioni, perché ne lancia altre **tredici**
 > (sonda del vuoto 15, limite del giro 9, numeri nei documenti 26, orologio del
 > vault 3, documenti invecchiati 15, sintassi delle pagine 34, import esistenti
-> 151, nomi liberi 24, classi orfane 2 + 6, funzioni mai usate 4, suite collegate
-> 3 = **292**).
+> 152, nomi liberi 24, classi orfane 2 + 6, funzioni mai usate 4, porte dei banchi 3,
+> suite collegate 3 = **296**).
 > ⚠️ *E l'elenco NON conta le due controprove nate l'08/08 —* `iniezioni fresche`
 > *e* `server orfani` *— che stampano un verdetto invece di un totale: girano nel
-> giro (che è passato da 28 a **30** comandi) ma non hanno una riga «Risultato»
+> giro (che è passato da 28 a **32** comandi) ma non hanno una riga «Risultato»
 > da sommare. È l'etichetta più larga del suo numero, presa mentre la si
 > scriveva: qui il numero è stretto e la frase lo dichiara.*
 > ⚠️ *Questa nota era ferma al 07/08 e diceva 2.474 e «il numero da citare resta
