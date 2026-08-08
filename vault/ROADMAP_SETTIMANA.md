@@ -1799,6 +1799,21 @@ numero scritto dove non era stato misurato niente**.*
   e pretende **almeno cinque addendi**, perché una catena letta a metà
   tornerebbe «a posto» sommando due numeri. 24 → 26 prove.
 
+- [x] ✅ **L'elenco dei MODULI di `run-stile` non era confrontato con niente**
+  (`577b5cf`). `SUPERFICI` ha la sua guardia dal 03/08; `MODULI` no, ed è
+  scritto a mano **nello stesso file, dieci righe più in là**. Al primo colpo:
+  **tre moduli condivisi fuori da ogni regola** — `deepwork-id-client/index.js`
+  (l'SDK da cui passa ogni accesso ai dati), `dw-tema.js` (il motore dei temi,
+  proprio dove le regole del colore avrebbero più da dire) e `dw-fluido.js`.
+  Aggiunti: 300 → 309 prove e **nessuna cade**. ⚠️ **Il risultato onesto è che
+  lì dentro non si nascondeva un difetto** — il punto è che per trovarlo
+  bisognava **avere l'idea di guardare**, e la guardia toglie quel bisogno.
+  Controprova: tolto `dw-tema.js`, il controllo cade e lo **nomina**.
+  ⚠️ Terza volta stanotte per la stessa lezione (`BROWSER` due documenti su
+  tre, la somma scritta, questo elenco): **un elenco scritto a mano si accorcia
+  da solo**. E i numeri sono stati **rimisurati**: 2.320 e 2.589 — il mio conto
+  a mano dava 2.588, il +1 era `import esistenti` che conta per file.
+
 ## Riferimenti
 
 - Ultimo checkpoint **per data vera**:
