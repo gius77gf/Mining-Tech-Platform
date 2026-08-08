@@ -2102,6 +2102,37 @@ numero scritto dove non era stato misurato niente**.*
   gira è la stessa cosa di una guardia che non c'è, e questo file è pieno di
   quella lezione.
 
+- [x] ✅ **La dichiarazione di controprova era un'etichetta su una riga, e non
+  bastava** (`23712e6`). Trovato **leggendo il registro con lo strumento appena
+  scritto**, che è il modo in cui doveva andare. Il runner dichiara «qui sotto
+  il rosso è quello VOLUTO» subito dopo la **propria** intestazione — ma molti
+  banchi stampano una **propria** intestazione a otto uguali, e da lì in giù la
+  dichiarazione non copre più niente: i KO voluti tornano a leggersi come
+  difetti veri. Successo davvero: `struttura di Genesi · controprova`
+  dichiarava, poi il banco apriva «Genesi: la struttura è quella del core? ·
+  controprova» e i suoi **quattordici** KO voluti finivano fra quelli veri.
+  È la **terza** volta che questa famiglia morde, e la cura del 07/08 valeva
+  solo per i banchi che non si intestano da sé.
+  Adesso `tutti.mjs` **chiude** la dichiarazione e il lettore la legge come un
+  **intervallo**. L'ereditarietà finisce alla chiusura — ereditare per sempre
+  dipingerebbe di «voluto» tutto il resto del giro, che è il difetto opposto e
+  peggiore: provato nei due versi.
+- [x] ✅ **E l'asserzione sull'età era vera in casa e falsa in CI** (`23712e6`).
+  La CI è caduta sul commit precedente, e **aveva ragione**: pretendevo che
+  `HEAD~5` desse esattamente **5**, e in CI ha dato **1407**. Causa: GitHub non
+  prova il branch, prova il **merge** del branch col ramo di destinazione, e da
+  un commit di fusione `HEAD~5..HEAD` raccoglie anche tutto il secondo genitore.
+  **Riprodotto in casa** su un commit di fusione vero (`5a4c5b6`): **126**
+  invece di 5 — cioè la causa è misurata, non dedotta. Adesso si prova una
+  proprietà vera dappertutto e non tautologica: il conto **cresce** andando
+  indietro, e non è mai zero per un commit che non è HEAD; e il caso «storia
+  corta o clone superficiale» si **dichiara** invece di sparire.
+  ⚠️ È la regola «verde in casa, rosso in CI» in una veste nuova: le altre due
+  volte erano gli **scrittori** diversi (un trigger assente in casa) e
+  l'**ordine** di due eventi; questa è la **forma della storia di git**. La
+  domanda da farsi resta la stessa: *sotto un ambiente diverso, che forma ha
+  lo stato su cui sto scrivendo un'asserzione?*
+
 ## Riferimenti
 
 - Ultimo checkpoint **per data vera**:
