@@ -154,13 +154,13 @@ del contenitore la nega. Quello che gira — misurato l'08/08 — è la parte ch
 conta di più, la **barriera multi-tenant**:
 
 ```sh
-cd apps/deepwork-id && firebase emulators:exec --only firestore \
-  --project demo-deepwork "cd tests && node run.mjs"      # 68 prove
-cd apps/deepwork-id && firebase emulators:exec --only firestore,auth \
-  --project demo-deepwork "cd tests && node run-sdk.mjs"  # 19 prove
+node apps/deepwork-id/tests/giro-sicurezza.mjs   # 95 prove: 68 regole, 19 SDK, 8 primo avvio
 ```
 
-Restano fuori solo le **21** prove sulle funzioni, verificabili in CI.
+Un comando solo, che alza l'emulatore da sé e **dichiara in fondo quello che
+non ha potuto guardare** — le **21** prove sulle funzioni, verificabili solo in
+CI. Se `firebase` o `java` non rispondono si ferma dicendolo (uscita 2) invece
+di stampare «0 caduti», che sarebbe il verde più falso che ci sia.
 
 **153 esecuzioni che aprono davvero le pagine** in Chromium — banchi distinti,
 ognuno seguito dalla sua **controprova** (Chromium è già installato in
