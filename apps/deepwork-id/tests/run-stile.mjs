@@ -897,6 +897,33 @@ test(`lo strumento risponde giusto su tutti i suoi ${PUNTI_DI_DECISIONE.length} 
   const male = puntiSbagliati(mascheraCodice);
   ok(male.length === 0, `${male.length} punti sbagliati:\n  ` + male.join("\n  "));
 });
+/* ⛔ LE DUE VISTE DEVONO CONTINUARE A ESSERE DUE.
+   `CLAUDE.md` dice che i tokenizzatori sono due e vanno **scelti**:
+   `mascheraCodice` maschera il CONTENUTO delle stringhe (giusto per le regole
+   sul CODICE — un `prompt(` dentro un testo non è una chiamata),
+   `senzaCommenti` toglie SOLO i commenti e tiene il resto (giusto per le
+   regole sui TESTI, che vivono dentro le stringhe). Dal 31/07 leggono la
+   **stessa** classificazione, che è la cosa giusta — ma è anche la cosa che
+   rende possibile il guasto peggiore: se un giorno una delle due finisse per
+   comportarsi come l'altra, **tutte** le regole sui testi diventerebbero
+   cieche e continuerebbero a rispondere «nessuna violazione».
+   Nessuna prova lo sorvegliava. Questa sì, e non guarda com'è scritto il
+   codice ma **che cosa sopravvive**: la stessa parola messa in tre posti —
+   dentro una stringa, dentro un commento di riga, dentro un commento di
+   blocco — dev'essere vista **zero** volte dalla prima vista e **una** dalla
+   seconda. Se i due numeri diventano uguali, le viste si sono fuse. */
+test("le due viste del tokenizzatore restano due: la stringa sopravvive solo a senzaCommenti", () => {
+  const src = 'const t = "unita in SPIA"; // un commento con SPIA\n/* blocco con SPIA */ const x = 1;';
+  const quante = (s) => (s.match(/SPIA/g) || []).length;
+  ok(quante(src) === 3, "il modello dev'essere quello che credo: tre occorrenze, una per posto");
+  const m = mascheraCodice(src);
+  let masc = "";
+  for (let i = 0; i < src.length; i++) masc += m[i] ? src[i] : " ";
+  ok(quante(masc) === 0, `mascheraCodice ne lascia ${quante(masc)}: dovrebbe mascherare sia la stringa sia i commenti`);
+  ok(quante(senzaCommenti(src)) === 1,
+    `senzaCommenti ne lascia ${quante(senzaCommenti(src))}: dovrebbe togliere i due commenti e TENERE la stringa`);
+});
+
 test("e la sonda sa fallire: uno slash giudicato dall'ultimo carattere perde le regex", () => {
   /* Il difetto vero, rimesso: la versione che decide senza guardare la parola
      intera né la freccia. Se la sonda passasse anche con questo, non starebbe
