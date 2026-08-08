@@ -1851,6 +1851,20 @@ numero scritto dove non era stato misurato niente**.*
   manca la riga d'uscita. Controprova sulle due trappole vere (la
   sotto-intestazione a sei uguali, il KO dentro una controprova).
 
+- [x] ✅ **I soggetti del modo erano TRE, e il commento diceva DUE**
+  (`b646f9e`). Primo KO del giro raccolto, e più interessante di come sembrava.
+  `--live` fa credere a Campo di essere in produzione e iniettava il modo in
+  **due** posti; dal 06/08 sono **tre** (c'è anche il **nome del file**). Il
+  commento del banco diceva testualmente «I SOGGETTI SONO DUE» proprio mentre
+  ne mancava uno. Effetto **doppio e in direzioni opposte**: nella passata
+  normale accusava il prodotto per il marchio che il prodotto mette di
+  proposito; nella passata `--live` **non poteva accorgersi** se il nome
+  smettesse di obbedire al modo — «i fogli escono puliti» detto avendo guardato
+  **due vestiti su tre**. Corretti tutt'e due, e l'asserzione è **più giusta,
+  non più permissiva** (uguaglianza esatta nei due versi, non un suffisso).
+  35/35 in entrambe le passate, iniezioni «come live» **6 → 9**. ⚠️ Il prodotto
+  non è stato toccato: mancava chi lo verificasse.
+
 ## Riferimenti
 
 - Ultimo checkpoint **per data vera**:
