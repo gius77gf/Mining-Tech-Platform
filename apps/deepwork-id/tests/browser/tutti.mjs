@@ -19,7 +19,7 @@ import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 import { impronta, differenze } from './impronta.mjs';
 import { execFileSync } from 'node:child_process';
-import { rmSync, existsSync, writeFileSync } from 'node:fs';
+import { rmSync, existsSync, writeFileSync, readlinkSync } from 'node:fs';
 
 const QUI = dirname(fileURLToPath(import.meta.url));
 const RADICE = join(QUI, '..', '..', '..', '..');
@@ -842,9 +842,41 @@ if (SU_COPIA && !BANCHI_FINTI) {
     COPIA = null;
   }
 }
+/* ⛔ E IL SERVER DEL GIRO MORTO TIENE LA PORTA, SERVENDO UNA CARTELLA CHE NON
+   C'È PIÙ. Seconda metà della pulizia qui sopra, misurata l'08/08 subito dopo:
+   tolte le 71 copie, il giro nuovo si è rifiutato di partire — «non riesco ad
+   alzare un server statico sulla porta 8823» — e il colpevole era il
+   `python3 -m http.server 8823` del giro ucciso, ancora vivo, con
+   `cwd = /home/user/giro-copia-16814 (deleted)`. È l'orfano che CLAUDE.md
+   descrive: risponde, ma con 404 su tutto.
+   Il criterio è preciso e non può sbagliare bersaglio: si guarda **solo la
+   nostra porta**, e si uccide solo se la cartella che sta servendo **non esiste
+   più**. Il server di un giro VIVO ha una cwd che esiste, quindi non si tocca —
+   e se la porta è tenuta da un giro vivo, il contrassegno più in basso ci ferma
+   comunque, com'è giusto. */
+function togliServerOrfano(porta) {
+  let tolti = 0;
+  try {
+    const su = execFileSync('ps', ['-eo', 'pid=,args='], { encoding: 'utf8' });
+    for (const r of su.split('\n')) {
+      const m = /^\s*(\d+)\s+(.*http\.server\s+\d+.*)$/.exec(r);
+      if (!m || !new RegExp(`http\\.server\\s+${porta}(\\s|$)`).test(m[2])) continue;
+      let cwd = '';
+      try { cwd = readlinkSync(`/proc/${m[1]}/cwd`); } catch (e) { continue; }
+      if (!cwd.endsWith(' (deleted)')) continue;   // serve una cartella viva: non è orfano
+      try { process.kill(Number(m[1]), 'SIGKILL'); tolti++; } catch (e) { /* già morto */ }
+    }
+  } catch (e) { /* niente ps: non è un motivo per non partire */ }
+  return tolti;
+}
+
 const SERVITA = COPIA || RADICE;
 dichiaraSuCosaGira();
 let server = null;
+if (!BANCHI_FINTI) {
+  const orfani = togliServerOrfano(PORTA);
+  if (orfani) console.log(`  (tolto ${orfani === 1 ? 'un server' : orfani + ' server'} di un giro morto: teneva la porta ${PORTA} servendo una cartella cancellata)`);
+}
 /* i banchi finti non aprono niente: servono solo a provare la guardia
    dell'impronta, e alzare un server per loro li renderebbe inadatti alla CI */
 if (!BANCHI_FINTI && !(await rispondePorta(PORTA))) {
