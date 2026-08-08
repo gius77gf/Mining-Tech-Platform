@@ -2052,6 +2052,32 @@ numero scritto dove non era stato misurato niente**.*
   trovato **nel mio stesso testo** dallo scatto e non dalla rilettura: «1
   ispezione non ancora **chiuse**».
 
+- [x] ✅ **L'arretrato dei sei documenti torna a ZERO — 11 commit e 2 ⛔ in
+  un'unità sola** (`57b6ca3`). È la direttiva 7 che funziona come deve: i due
+  ⛔ erano lì **per due modifiche mie di poche ore prima**, e chi chiude un'unità
+  aggiorna il documento che quell'unità tocca — se no il conto sale da solo e
+  chi lo legge non sa più se guarda un ritardo o rumore di fondo.
+  Riverificato **per davvero**, non incollando una data (la suite la
+  rifiuterebbe, ma la suite guarda le date e non le righe — la lettura è mia):
+  · **Scudo** `924c442`→`079ebe3`: 1 commit, morde, **una** funzione nuova
+    (`etichettaResponsabile`). I sei verdetti «confermato assente» reggono, con
+    le ricerche rifatte — zero `xlsx`, `excel`, `jspdf`, `notific`,
+    `versionamento`, `offline` sui file di oggi **e** sulle 93 righe aggiunte.
+    E il conto degli export, la riga già scaduta **due volte**, resta **cinque**
+    — ricontato aprendo i nomi dei file, non a memoria: quest'unità ha cambiato
+    *che cosa c'è dentro* una colonna, non *quanti file escono*.
+  · **Sentinella** `db04ac5`→`079ebe3`: 9 commit, uno morde, **una** funzione
+    (`descriviResponsabile`). Nessuna delle tredici confermate la riguarda, e
+    non a occhio: quelle parlano di **condizioni della misura**, di **come esce
+    il documento** e di **quanto ci si mette ad accorgersene**. Una funzione che
+    sceglie una frase non costruisce niente di tutto ciò.
+  · **Terra** `8583a0b`→`57c78cf`: 4 commit, **nessuno morde**, +18 righe — un
+    inchiostro alzato per il contrasto, un `m³` avvolto nella sua `<span>`, il
+    passaggio ad `applicaPercorsi`. Zero funzioni nuove, zero verdetti mossi:
+    era **rumore**, e valeva la pena scriverlo perché smettesse di sembrare
+    ritardo.
+  Misura: **arretrato 11 → 0 commit, 2 ⛔ → 0**, tutti e sei ✓.
+
 ## Riferimenti
 
 - Ultimo checkpoint **per data vera**:
