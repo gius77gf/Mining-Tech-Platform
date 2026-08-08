@@ -31,6 +31,7 @@
          node apps/deepwork-id/tests/browser/leggi-giro.mjs --controprova     */
 
 import { readFileSync } from "node:fs";
+import { execSync } from "node:child_process";
 
 /* L'intestazione di una passata: OTTO uguali, non sei. La differenza è la
    ragione per cui il primo setaccio lasciò passare sessanta KO voluti. */
@@ -39,6 +40,9 @@ const DICHIARA_CONTROPROVA = /CONTROPROVA: qui sotto il rosso è quello VOLUTO/;
 /* «non ho guardato», in tutte le forme che i banchi usano davvero */
 const NON_GUARDATO = /NON RAGGIUNTE|non ho guardato|\b0 su \d+|mai comparse|solo elencate|non misurat|salt(at|o)\b|dichiarat[oe] fuori/i;
 const KO = /^\s*(✗|KO\b)/;
+/* Il commit che il giro ATTESTA: `tutti.mjs` lo scrive nella prima riga, perché
+   serve una copia immobile del committato per misurare. */
+const ATTESTA = /gira(?:ndo)? su una COPIA di ([0-9a-f]{7,40})\b/;
 
 export function leggiGiro(testo) {
   const righe = testo.split("\n");
@@ -60,7 +64,38 @@ export function leggiGiro(testo) {
     controprove: sezioni.filter((s) => s.controprova),
     uscita: uscita ? +uscita[1] : null,
     nonValido: /NON VALIDO/.test(testo),
+    commit: (ATTESTA.exec(testo) || [])[1] || null,
   };
+}
+
+/* ⛔ QUANTO È VECCHIO QUESTO GIRO — E PERCHÉ SENZA QUESTA RIGA SI APRE UN
+   CANTIERE SU DIFETTI CHE NON ESISTONO PIÙ.
+   Misurato l'08/08, e mi è successo di persona: un giro lungo cinque ore e
+   mezza dichiarava cinque contrasti sotto soglia nel core e in Flotta. Erano
+   VERI — al commit che il giro attesta. Ma erano stati chiusi da `5d57cbc`
+   **trentotto minuti dopo** quel commit, cioè quasi cinque ore prima che io
+   leggessi il registro. Stavo per riaprirli.
+   Il dato c'era già: `tutti.mjs` scrive nella prima riga il commit su cui gira,
+   ed è la stessa disciplina di `documenti-invecchiati.mjs` — un arretrato
+   **dichiarato e misurato**. Quello che mancava era la sottrazione, che costa
+   un `git rev-list`. E non basta contare i commit: contano quelli che hanno
+   toccato le SUPERFICI che il giro misura (il core, le app, `shared/`) —
+   altrimenti un pomeriggio di documenti fa sembrare vecchio un giro fresco.
+   ⚠️ Se il commit non è nella storia (registro di un'altra macchina, o branch
+   riscritto) si dichiara che non si sa, invece di stampare uno zero
+   tranquillizzante: l'assenza di un dato non è un dato favorevole. */
+export function etaDelGiro(commit) {
+  if (!commit) return { noto: false, perche: "il registro non dichiara su quale commit ha girato" };
+  const git = (c) => execSync(c, { encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] }).trim();
+  try { git(`git cat-file -e ${commit}^{commit}`); }
+  catch { return { noto: false, perche: `il commit ${commit} non è in questa storia di git` }; }
+  try {
+    const tutti = git(`git rev-list --count ${commit}..HEAD`);
+    const superfici = git(`git rev-list --count ${commit}..HEAD -- index.html apps shared`);
+    return { noto: true, commit, dopo: +tutti, sulleSuperfici: +superfici };
+  } catch (e) {
+    return { noto: false, perche: "git non risponde: " + String(e.message || e).slice(0, 80) };
+  }
 }
 
 if (process.argv.includes("--controprova")) {
@@ -88,13 +123,48 @@ if (process.argv.includes("--controprova")) {
   if (koSani.length !== 1) male.push(`KO veri: ${koSani.length} invece di 1 — i due voluti sono stati contati`);
   if (r.sane[0] && r.sane[0].ciechi.length !== 1) male.push("la riga «0 su 68» non è stata raccolta");
   if (r.uscita !== 0) male.push(`uscita: ${r.uscita}`);
-  console.log(male.length ? "⛔ NON DISTINGUE:\n  " + male.join("\n  ") : "controprova: il lettore separa il rosso VOLUTO da quello VERO, e la sotto-intestazione non lo inganna");
+  /* ⛔ E LA CONTROPROVA DELL'ETÀ, NEI TRE VERSI CHE CONTANO. Una guardia che
+     dice sempre «vecchio» sarebbe rumore; una che dice sempre «fresco»
+     sarebbe la cosa che è appena costata un cantiere sfiorato. */
+  const conCommit = (c) => leggiGiro(`▶ Il giro sta girando su una COPIA di ${c} (il committato), non sulla cartella viva.\nUSCITA 0`).commit;
+  if (conCommit("c3888fe") !== "c3888fe") male.push("il commit attestato non viene letto dalla prima riga");
+  if (leggiGiro("nessuna intestazione\nUSCITA 0").commit !== null) male.push("un registro senza dichiarazione dovrebbe dare null");
+  const inventato = etaDelGiro("0000000000000000000000000000000000000000");
+  if (inventato.noto) male.push("un commit che non esiste dovrebbe dare «non lo so», non un numero");
+  const senza = etaDelGiro(null);
+  if (senza.noto) male.push("senza commit dichiarato dovrebbe dire che non lo sa");
+  const testa = etaDelGiro("HEAD");
+  if (!testa.noto) male.push("su HEAD dovrebbe saperlo");
+  else if (testa.dopo !== 0 || testa.sulleSuperfici !== 0) male.push(`su HEAD dovrebbe dare 0 e 0, dà ${testa.dopo} e ${testa.sulleSuperfici}`);
+  /* il verso che conta davvero: un commit vecchio DEVE risultare vecchio */
+  let vecchio = null;
+  try { vecchio = etaDelGiro(execSync("git rev-parse HEAD~5", { encoding: "utf8" }).trim()); } catch (e) { /* storia corta */ }
+  if (vecchio && vecchio.noto && vecchio.dopo !== 5) male.push(`cinque commit indietro dovrebbero dare 5, danno ${vecchio.dopo}`);
+  if (vecchio && !vecchio.noto) male.push("un commit vero della storia dovrebbe essere noto");
+
+  console.log(male.length ? "⛔ NON DISTINGUE:\n  " + male.join("\n  ") : "controprova: il lettore separa il rosso VOLUTO da quello VERO, la sotto-intestazione non lo inganna, e l'ETÀ del giro sa dire «vecchio», «fresco» e «non lo so»");
   process.exit(male.length ? 1 : 0);
 }
 
 const file = process.argv[2];
 if (!file) { console.error("uso: node leggi-giro.mjs <registro.txt>"); process.exit(2); }
 const r = leggiGiro(readFileSync(file, "utf8"));
+
+/* ⛔ SEZIONE 0, E VIENE PRIMA DI TUTTO: un KO vecchio si legge esattamente come
+   uno nuovo, e costa un cantiere. */
+const eta = etaDelGiro(r.commit);
+console.log(`\n══ 0. QUANTO È VECCHIO QUESTO GIRO ══`);
+if (!eta.noto) {
+  console.log(`  ⚠️  non lo so: ${eta.perche}.`);
+  console.log("      I KO qui sotto vanno riverificati sul codice di adesso prima di toccare qualcosa.");
+} else if (eta.sulleSuperfici === 0) {
+  console.log(`  ✓ attesta \`${eta.commit}\` · il branch è avanti di ${eta.dopo} commit, `
+    + `ma NESSUNO tocca le superfici misurate: i KO valgono ancora.`);
+} else {
+  console.log(`  ⛔ attesta \`${eta.commit}\` · il branch è avanti di ${eta.dopo} commit, `
+    + `di cui ${eta.sulleSuperfici} toccano le superfici misurate (core, app, shared).`);
+  console.log("      Ogni KO qui sotto è vero A QUEL COMMIT, non adesso: si riverifica prima di aprire un cantiere.");
+}
 
 console.log(`\n══ 1. QUELLO CHE IL GIRO NON HA GUARDATO — si legge PRIMA dei KO ══`);
 let ciechiTot = 0;
