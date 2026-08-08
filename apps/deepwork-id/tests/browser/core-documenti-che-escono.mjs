@@ -709,8 +709,27 @@ const schermoVol2 = await pg.evaluate(() => {
     .find((x) => /Volata #1/.test(x.querySelector(".sname")?.textContent || ""));
   return r ? (r.querySelector(".ssub")?.textContent || "").trim() : "";
 });
-dice(/56/.test(schermoVol2) && /su 12/.test(schermoVol2),
-  `⚠️ lo SCHERMO dice il totale e la sua riserva ("${schermoVol2}")`, schermoVol2);
+/* ⛔ QUESTA RIGA PORTAVA DENTRO DUE NUMERI E UNA PAROLA, e tutt'e tre sono
+   invecchiati — corretto l'08/08, dopo tre KO per giro.
+   Chiedeva `/56/` e `/su 12/`. Il «su 12» non c'è più perché la frase è
+   cambiata **di proposito**: `f108ef0` («l'elenco delle volate era la quarta
+   copia debole: "0 mc" dove nessuno aveva misurato») l'ha riscritta in
+   «12 fori · almeno 56 kg · 1.240,3 mc», e la forma nuova sta scritta nel
+   commento del core (`index.html:621`). Cioè il banco accusava il prodotto per
+   una **correzione** del prodotto — e per giunta una correzione fatta in nome
+   del principio del fondatore, che è l'ultima cosa che un banco dovrebbe
+   ostacolare.
+   ⚠️ E il `56` era peggio del «su 12»: un numero atteso scritto a mano
+   invecchia col crescere della dimostrazione. Quattro righe più in basso
+   questo stesso file fa già la cosa giusta — «i due numeri si prendono dai due
+   posti e si confrontano, invece di scriverne uno» — e infatti `kgSchermo` lo
+   ricava dalla frase. Qui si prova quindi il **significato**: che la riga dica
+   quanti fori sono, e che quando il totale è parziale lo **dichiari** con
+   «almeno» invece di spacciarlo per completo. I numeri li confronta il
+   confronto, non questa riga. */
+const foriSchermo = (schermoVol2.match(/(\d+)\s*fori\b/i) || [])[1];
+dice(!!foriSchermo && /\balmeno\b/i.test(schermoVol2) && /[\d.,]+\s*kg/i.test(schermoVol2),
+  `⚠️ lo SCHERMO dice quanti fori sono e dichiara la riserva con «almeno» ("${schermoVol2}")`, schermoVol2);
 
 const pv2 = await pdfVolata("vol_2");
 const t_v2 = (pv2 ? pv2.testi : []).join(" · ");
