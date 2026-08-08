@@ -1669,6 +1669,20 @@ numero scritto dove non era stato misurato niente**.*
   banchi l'ho chiesto al file che lo sa: con una regex mia ne trovavo **143**,
   dieci in meno — il righello più debole era di nuovo il mio.
 
+- [x] ✅ **Le due viste del tokenizzatore devono continuare a essere due**
+  (`d8a47f4`). `CLAUDE.md` dice da tempo che i tokenizzatori sono **due e vanno
+  scelti**; dal 31/07 leggono la **stessa** classificazione — la cosa giusta,
+  ed è anche quella che rende possibile il guasto peggiore: se una delle due
+  finisse per comportarsi come l'altra, **tutte** le regole sui TESTI
+  diventerebbero cieche e continuerebbero a rispondere «nessuna violazione».
+  **Nessuna prova lo sorvegliava.** La prova non guarda com'è scritto il codice
+  — quello cambia — ma **che cosa sopravvive**: la stessa parola in tre posti
+  (stringa, commento di riga, commento di blocco) dev'essere vista **0** volte
+  dalla prima vista e **1** dalla seconda; se i due numeri diventano uguali, le
+  viste si sono fuse. `run-stile` **299 → 300**, e i tre documenti seguono
+  nello stesso commit (2.309 → **2.310**) perché la prova nuova li fa
+  invecchiare nell'istante in cui esiste.
+
 ## Riferimenti
 
 - Ultimo checkpoint **per data vera**:
