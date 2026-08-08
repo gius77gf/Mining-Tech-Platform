@@ -170,32 +170,54 @@ const DIFETTI = [
   // 1a. l'intestazione delle azioni senza la colonna del semaforo
   ['let csv = "descrizione;responsabile;scadenza;semaforo;stato;esito;dataChiusura;origine\\n";',
    'let csv = "descrizione;responsabile;scadenza;stato;esito;dataChiusura;origine\\n";'],
-  // 1b. la riga senza `statoAzione`, e il responsabile mancante come cella vuota
-  ['const nome = (id) => { const l = LAV.find(x => x.id === id); return l ? l.nome : "da assegnare"; };',
-   'const nome = (id) => { const l = LAV.find(x => x.id === id); return l ? l.nome : ""; };'],
+  /* 1b. la riga senza `statoAzione`, e il responsabile mancante come cella vuota.
+     ⏱️ RI-ANCORATA l'08/08: citava il vecchio `LAV.find(...)` scritto a mano, e
+     quel pezzo è diventato `etichettaResponsabile` — cioè è MIGLIORATO, che è
+     il modo in cui queste iniezioni scadono quasi sempre. */
+  ['const nome = (id) => etichettaResponsabile({ responsabileId: id }, LAV).nome;',
+   'const nome = (id) => { const l = LAV.find((x) => x.id === id); return l ? l.nome : ""; };'],
   ["${a.scadenza || \"\"};${statoAzione(a)};${a.stato || \"aperta\"}", "${a.scadenza || \"\"};${a.stato || \"aperta\"}"],
-  // 2. la persona senza nemmeno una riga, con la cella `stato` bianca
-  ['${csvCell(idn)};;;${SENZA}\\n`;', '${csvCell(idn)};;;\\n`;'],
+  /* 1c. LA COPIA DI SICUREZZA CHE PERDE UN'AZIONE IN SILENZIO. È il difetto
+     che una copia di sicurezza non può permettersi — e non lascia niente da
+     leggere: il file esce, si ri-carica, e manca una riga. Prima dell'08/08
+     questo punto d'uscita non lo apriva nessun banco. */
+  ["encodeURIComponent(csvAzioni(AZI))", "encodeURIComponent(csvAzioni(AZI.slice(1)))"],
+  /* 2. la persona senza nemmeno una riga, con la cella `stato` bianca.
+     ⏱️ RI-ANCORATA l'08/08 sul MODULO: questo export è salito in
+     `csvPersonaleScadenze` accanto alle funzioni che decidono le stesse cose a
+     schermo — di nuovo, il pezzo si è mosso perché è migliorato. */
+  ['righe.push([...chi, "", "", SENZA, "—"].join(";"));',
+   'righe.push([...chi, "", "", "", "—"].join(";"));', MODULO],
   // 3. il riepilogo L.198 senza lo storico e senza la nota di lettura
   ['csv += `totale;near-miss nello storico (fuori periodo compresi);${r.totaleStorico}\\n`;', ""],
   ['{ const nota = descriviLetturaNearMiss(r);\n      if (nota) csv += `lettura;${csvCell(nota)};\\n`; }', ""],
-  // 4. il registro infortuni senza la colonna che dice la prognosi aperta
-  ['let csv = "data;tipo;gravita;giorniAssenza;descrizione;luogo;nota\\n";',
-   'let csv = "data;tipo;gravita;giorniAssenza;descrizione;luogo\\n";'],
-  ['${csvCell(x.luogo||"")};`\n        + `${prognosiAperta(x) ? "prognosi ancora aperta: le giornate di assenza non sono ancora contate" : ""}\\n`;',
-   '${csvCell(x.luogo||"")}\\n`;'],
+  /* 4. il registro infortuni senza la colonna che dice la prognosi aperta.
+     ⏱️ RI-ANCORATE l'08/08 sul MODULO (`csvRegistroInfortuni`), dove l'export è
+     salito: la riga si compone con un array e `join`, non più concatenando
+     stringhe, quindi la vecchia citazione non poteva più combaciare. */
+  ['const righe = ["data;tipo;gravita;giorniAssenza;descrizione;luogo;nota"];',
+   'const righe = ["data;tipo;gravita;giorniAssenza;descrizione;luogo"];', MODULO],
+  ['      aperta ? NOTA_PROGNOSI_APERTA : "",\n', "", MODULO],
   /* 5. l'ordine del file delle azioni: `scadenza || ""` mandava in TESTA — cioè
         nel posto delle più urgenti — chi la data non ce l'ha, e mescolava le
         chiuse alle aperte. */
   ['AZI.slice().sort((x, y) => (x.stato === "chiusa") - (y.stato === "chiusa")\n        || String(x.scadenza || "9999").localeCompare(String(y.scadenza || "9999")))',
    'AZI.slice().sort((x, y) => String(x.scadenza || "").localeCompare(String(y.scadenza || "")))'],
-  // 6. la data mai scritta che usciva come la PAROLA «undefined»
-  ['${csvCell(s.descrizione)};${s.dataScadenza || ""};${statoScadenza(s.dataScadenza)}\\n`;\n    }',
-   '${csvCell(s.descrizione)};${s.dataScadenza};${statoScadenza(s.dataScadenza)}\\n`;\n    }'],
+  /* 6. la data mai scritta che usciva come la PAROLA «undefined».
+     ⏱️ RI-ANCORATA l'08/08 sul MODULO. ⚠️ E l'ancora è la riga INTERA, non il
+     solo `s.dataScadenza || ""`: quel pezzo compare DUE volte in
+     `csvPersonaleScadenze` (la riga della persona e la riga dell'AZIENDA), e
+     un'iniezione che trova due soggetti viene scartata dal conto — che è la
+     difesa giusta, ma qui vuol dire che la controprova non parte. */
+  ['      righe.push([...chi, csvCell(etichettaScadenza(s)), s.dataScadenza || "",',
+   '      righe.push([...chi, csvCell(etichettaScadenza(s)), s.dataScadenza,', MODULO],
   /* 8. il secondo giro che chiedeva «non è di nessuno?» invece di «non è di
         nessuno di QUESTI?»: le scadenze della persona tolta sparivano. */
-  ['const noti = new Set(LAV.map(l => l.id));\n    for (const s of SCA.filter(x => !noti.has(x.lavoratoreId)))',
-   'for (const s of SCA.filter(x => !x.lavoratoreId))'],
+  /* ⏱️ RI-ANCORATA l'08/08 sul MODULO: stesso pezzo, ma i parametri delle
+     funzioni freccia adesso hanno le parentesi. Una citazione testuale scade
+     anche per una virgola di stile. */
+  ['  const noti = new Set(LAV.map((l) => l.id));\n  for (const s of SCA.filter((x) => !noti.has(x.lavoratoreId))) {',
+   '  for (const s of SCA.filter((x) => !x.lavoratoreId)) {', MODULO],
   /* 7. la colonna «Sostituire entro» del VERBALE che ri-decideva invece di
         leggere `r.stato`: una maschera da sostituire da anni stampata come una
         valida fino al 2099. */
@@ -546,6 +568,37 @@ if (!azi.errore) {
   dice(pos("Rivedere il piano di emergenza") > pos("Rifare l'arginello"),
     "chi non ha una data non sta in testa al file", [pos("Rifare l'arginello"), pos("Rivedere il piano di emergenza")]);
   dice(pos("Consegna guanti antitaglio") === R2.length - 1, "e le chiuse stanno in fondo", pos("Consegna guanti antitaglio"));
+}
+
+/* ── 1b · LA COPIA DI SICUREZZA, l'ULTIMO punto d'uscita che nessun banco
+   apriva ───────────────────────────────────────────────────────────────────
+   ⛔ E il modo in cui è saltato fuori vale più della prova. Cercando i punti
+   d'uscita di Scudo avevo grepato `__usciti` in questo file, trovato **zero**,
+   e concluso che «Scudo non ha nessun banco che apra un CSV»: stavo per
+   scrivere un banco nuovo da trecento righe con quella frase falsa
+   nell'intestazione. Il gancio qui si chiama `__scaricati` e vive 380 righe
+   più in giù. Cioè: **un censimento che cerca UN nome risponde «non c'è» con
+   la stessa faccia con cui direbbe la verità** — la risposta era in casa, ed è
+   la regola di CLAUDE.md che è costata quattro volte in due giorni.
+   Aperti da qui: `btn-azi-export`, `btn-export-csv`, `btn-nm-export`,
+   `btn-inf-export`. Mancava solo questo — **cinque su cinque**.
+   Che cosa chiede: la copia non è il prospetto. Il prospetto porta lo stato
+   CALCOLATO e la frase dell'origine, che rientrando verrebbero ricalcolate
+   sbagliate; la copia porta i campi CRUDI e il collegamento evento → azione,
+   che è quello che un organo di vigilanza cerca. Se i due file uscissero
+   uguali, uno dei due non starebbe facendo il suo mestiere. */
+const aziCopia = await scarica("nav-azio", "btn-azi-backup");
+dice(!aziCopia.errore, "la copia di sicurezza delle azioni esce", aziCopia.errore);
+if (!aziCopia.errore && !azi.errore) {
+  if (DIMMI) console.log("\n[azioni · copia]\n" + aziCopia.testo + "\n");
+  dice(aziCopia.testo !== azi.testo, "la copia di sicurezza NON è lo stesso file del prospetto");
+  const R3 = righe(aziCopia.testo), int3 = R3[0].split(";");
+  dice(int3.indexOf("semaforo") < 0,
+    "la copia NON porta il semaforo: è uno stato calcolato, e rientrando sarebbe ricalcolato sbagliato", int3);
+  dice(righe(azi.testo).length === R3.length,
+    "e porta le stesse azioni del prospetto, nessuna persa per strada", [righe(azi.testo).length, R3.length]);
+  dice(!/\b(undefined|NaN|\[object)\b/.test(aziCopia.testo),
+    "nessuna cella dice «undefined», «NaN» o «[object …]»");
 }
 
 // ── 2 · PERSONALE E SCADENZE ───────────────────────────────────────────────

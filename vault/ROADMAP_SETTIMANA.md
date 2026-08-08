@@ -2182,6 +2182,54 @@ numero scritto dove non era stato misurato niente**.*
   che nasconde. Controprova: una stringa inventata non deve essere trovata (se
   no il confronto è rotto), e col difetto rimesso il controllo **nomina** il
   banco colpevole.
+- [x] ✅ **E QUELL'ECCEZIONE ERA ESATTAMENTE IL POSTO DOVE IL DIFETTO VIVEVA.**
+  L'unico banco tenuto fuori — `scudo-documenti`, «la tabella si costruisce da
+  variabili» — è stato aperto l'08/08 e dentro c'erano **sei iniezioni scadute
+  su ventisei**. Il banco stampava «✔ CONTROPROVA OK», perché le venti rimaste
+  bastavano a farlo cadere: il rosso c'era, sembrava tutto a posto, e nessuno
+  aveva letto la riga «20/26 difetti rimessi». È la forma peggiore — un
+  controllo che passa avendo guardato meno di quello che crede — e la ragione
+  è la solita e **buona**: il codice si è mosso perché è migliorato (quattro
+  export saliti nel modulo accanto alle funzioni che decidono le stesse cose a
+  schermo, un `LAV.find(…)` a mano diventato `etichettaResponsabile`, e le
+  parentesi dei parametri delle funzioni freccia).
+  Ri-ancorate tutte e sei: **26/26 rimesse, 41 prove cadute** (erano 20/26 e 34).
+  E l'eccezione è **tolta, non dichiarata meglio**: le variabili che la tabella
+  usa sono costanti di stringa del banco stesso, quindi si leggono e si passano
+  all'`eval` come preambolo. Adesso **212 iniezioni su 212, 23 banchi, ZERO
+  eccezioni** (erano 174 in 20 con una).
+  ⚠️ **E il righello ha rifatto l'errore che sta già scritto qui sopra**, in
+  senso contrario: leggeva il terzo elemento come `[file, cerca, sostituisci]`
+  (la forma di `scudo-disegni`) mentre `scudo-documenti` scrive
+  `[cerca, sostituisci, file]` — sei falsi allarmi, tutti nello stesso banco,
+  che è il segno con cui si riconosce di guardare il righello. Adesso non
+  indovina la posizione: **chiede ai dati** qual è il percorso di prodotto vero,
+  e le due convenzioni si leggono uguali.
+  ⚠️ E l'unità è nata da un errore mio, che vale più della correzione: cercando
+  i punti d'uscita di Scudo avevo grepato `__usciti` in quel banco, trovato
+  **zero**, e concluso «Scudo non ha nessun banco che apra un CSV». Il gancio si
+  chiama `__scaricati` e vive 380 righe più in giù. Avevo già scritto **trecento
+  righe** di banco nuovo con quella frase falsa nell'intestazione, e l'ho
+  buttato: quattro dei cinque punti d'uscita erano già aperti. **Un censimento
+  che cerca UN nome risponde «non c'è» con la stessa faccia con cui direbbe la
+  verità.**
+- [x] ✅ **`scudo_azioni_copia.csv` era l'ultimo punto d'uscita che nessun banco
+  apriva — adesso Scudo è 5 su 5.** La copia di sicurezza non è il prospetto: il
+  prospetto porta lo stato CALCOLATO e la frase dell'origine (che rientrando
+  verrebbero ricalcolate sbagliate), la copia i campi CRUDI e il collegamento
+  evento → azione, che è quello che un organo di vigilanza cerca. Quattro prove
+  nuove (esce, non è lo stesso file del prospetto, non porta il semaforo, non
+  perde azioni per strada) e la loro iniezione: la copia che perde un'azione **in
+  silenzio**. Banco **80 → 86**, 0 KO.
+  ⚠️ **La generalizzazione della regola delle frasi è stata provata e SCARTATA
+  di nuovo, e stavolta la decisione era già scritta.** Il banco nuovo accusava
+  «Esportati 7 lavoratori e 26 scadenze, di cui 2 senza nessuna scadenza» contro
+  28 righe (= 26 + 2), e stavo per allargare `giro.mjs` a una **somma parziale
+  qualunque**. Quella strada era già stata misurata e respinta, con la ragione
+  scritta accanto all'eccezione: con `[6,3,1]` anche 9 è una somma parziale, e
+  l'iniezione di Flotta smetterebbe di essere vista. **Una regola indebolita per
+  far passare un caso vale meno di un caso dichiarato** — e una decisione presa
+  con la misura va cercata prima di rifarla.
 - [x] ✅ **E l'ultimo KO di Conti era il banco che pinnava il testo di ieri**
   (`e26ff87`). `conti-frasi` chiedeva «**Esportati** 1 prodotto (CSV)» e la
   pagina scrive «**Esportato** 1 prodotto», che in italiano è la forma giusta:

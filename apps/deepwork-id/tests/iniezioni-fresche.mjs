@@ -58,9 +58,34 @@ const testi = SORGENTI.map((p) => {
    ragione — e l'elenco è **sorvegliato**: se uno di questi diventa leggibile,
    o se ne compare uno nuovo, il controllo cade. È la disciplina di
    `sonda-vuoto`: un'eccezione che non serve più è un'eccezione che nasconde. */
-const NON_LEGGIBILI = [
-  ["scudo-documenti.mjs", "la tabella si costruisce da variabili del banco (`MODULO`), non da letterali"],
-];
+const NON_LEGGIBILI = [];
+/* ⛔ E L'ELENCO È VUOTO DALL'08/08, PERCHÉ L'UNICA ECCEZIONE È DIVENTATA IL
+   POSTO DOVE IL DIFETTO VIVEVA. `scudo-documenti.mjs` era dichiarato non
+   leggibile «perché la tabella si costruisce da variabili del banco
+   (`MODULO`)»: ragione vera, eccezione onesta — e in quel buco, l'unico che
+   questo controllo non guardava, si erano scadute **sei iniezioni su
+   ventisei**. Il banco stampava «✔ CONTROPROVA OK» perché le venti rimaste
+   bastavano a farlo cadere, quindi il rosso c'era e sembrava tutto a posto:
+   la forma peggiore, un controllo che passa avendo guardato meno di quello
+   che crede.
+   Le sei erano scadute per la ragione di sempre — il codice si era MOSSO
+   perché era migliorato: quattro export saliti da `index.html` al modulo
+   accanto alle funzioni che decidono le stesse cose a schermo, un
+   `LAV.find(...)` scritto a mano diventato `etichettaResponsabile`, e le
+   parentesi dei parametri delle funzioni freccia.
+   La cura non è dichiarare meglio l'eccezione: è **toglierla**. Le variabili
+   che la tabella usa sono costanti di stringa dichiarate nel banco stesso —
+   `const PAGINA = "…", MODULO = "…"` — quindi si leggono e si passano
+   all'`eval` come preambolo. ⚠️ Si guarda solo la parte di sorgente PRIMA
+   della tabella: dopo ci sono le stringhe da iniettare, che possono contenere
+   qualunque cosa somigli a un'assegnazione. */
+const costantiDi = (src, finoA) => {
+  const preambolo = [];
+  for (const m of src.slice(0, finoA).matchAll(/\b([A-Z_][A-Z0-9_]*)\s*=\s*("(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*')/g)) {
+    preambolo.push(`const ${m[1]} = ${m[2]};`);
+  }
+  return preambolo.join("\n");
+};
 
 let banchi = 0, totali = 0;
 const scadute = [], illeggibili = [];
@@ -71,13 +96,25 @@ for (const f of readdirSync(BANCHI).filter((x) => x.endsWith(".mjs")).sort()) {
   const fine = src.indexOf("\n];", i);
   if (fine < 0) continue;
   let tabella;
-  try { tabella = eval(src.slice(i, fine).replace(/const DIFETTI\s*=\s*\[/, "[") + "]"); }
+  try { tabella = eval(costantiDi(src, i) + "\n" + src.slice(i, fine).replace(/const DIFETTI\s*=\s*\[/, "[") + "]"); }
   catch (e) { illeggibili.push(f); continue; }
   if (!Array.isArray(tabella) || !tabella.length) continue;
   banchi++;
   for (const d of tabella) {
-    /* tre elementi = il primo è il file; due = la stringa da cercare è la prima */
-    const cerca = !Array.isArray(d) ? d : (d.length >= 3 ? d[1] : d[0]);
+    /* ⛔ DUE CONVENZIONI, E IL RIGHELLO NE CONOSCEVA UNA SOLA. `scudo-disegni`
+       scrive `[file, cerca, sostituisci]`, `scudo-documenti` scrive
+       `[cerca, sostituisci, file]` — e il suo commento lo dice, «terzo elemento
+       = il file da toccare». Leggendo sempre `d[1]` come la stringa da cercare
+       si finiva a controllare la SOSTITUZIONE: sei falsi allarmi, tutti nello
+       stesso banco, che è il segno con cui in questa casa si riconosce di stare
+       guardando il righello. È la seconda volta per questa identica famiglia:
+       la prima è scritta in CLAUDE.md e riguardava lo stesso file.
+       La cura è non indovinare la posizione ma **chiedere ai dati**: il file è
+       l'elemento che è un percorso di prodotto vero, e la stringa da cercare è
+       la prima delle altre. Così le due convenzioni si leggono uguali e una
+       terza, se nascesse, non romperebbe niente. */
+    const parti = (Array.isArray(d) ? d : [d]).filter((x) => !SORGENTI.includes(x));
+    const cerca = parti[0];
     if (typeof cerca !== "string" || !cerca.trim()) continue;
     totali++;
     if (!testi.some((t) => t.includes(cerca))) scadute.push([f, cerca]);

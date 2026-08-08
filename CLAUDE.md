@@ -975,6 +975,36 @@ Perché serva davvero e non produca elenchi generici, cinque vincoli:
   sei ore. ⚠️ E il suo primo righello sbagliava col segno di sempre — tre allarmi
   identici nello stesso banco — perché leggeva ogni tabella come
   `[cerca, sostituisci]` mentre `scudo-disegni` usa `[file, cerca, sostituisci]`.
+  ⛔ **E L'ECCEZIONE CHE QUEL CONTROLLO DICHIARAVA ERA IL POSTO DOVE IL DIFETTO
+  VIVEVA.** Misurato l'08/08: `iniezioni-fresche` teneva fuori **un** banco,
+  `scudo-documenti`, con la ragione scritta e sorvegliata («la tabella si
+  costruisce da variabili»). In quell'unico buco stavano **sei iniezioni scadute
+  su ventisei** — e il banco stampava «✔ CONTROPROVA OK», perché le venti
+  rimaste bastavano a farlo cadere: il rosso c'era, il verdetto pure, e la sola
+  riga che lo diceva era «20/26 difetti rimessi», che nessuno legge. Cioè **un
+  controllo che passa avendo guardato meno di quello che crede**.
+  La regola generale, e vale per ogni elenco di eccezioni: **un'eccezione
+  dichiarata onestamente resta un posto in cui nessuno guarda**, quindi non
+  basta sorvegliarla — si guarda dentro almeno una volta, e se si può si
+  **toglie**. Qui si toglieva leggendo le costanti di stringa del banco stesso e
+  passandole all'`eval` come preambolo: da **174 iniezioni in 20 banchi con
+  un'eccezione** a **212 in 23 con zero**.
+  ⚠️ E il righello ha rifatto l'errore della riga qui sopra **al contrario**:
+  imparata la forma `[file, cerca, sostituisci]`, leggeva così anche
+  `scudo-documenti`, che scrive `[cerca, sostituisci, file]` — sei falsi
+  allarmi, tutti nello stesso banco. La cura non è imparare la terza forma: è
+  **non indovinare la posizione e chiedere ai dati** qual è il percorso di
+  prodotto vero, così una quarta convenzione non romperebbe niente.
+  ⛔ **E LA STESSA UNITÀ È NATA DA UN «NON C'È» FALSO, PRODOTTO DA UN CENSIMENTO
+  CHE CERCAVA UN NOME SOLO.** Cercando i punti d'uscita di Scudo ho grepato
+  `__usciti` in `scudo-documenti.mjs`, trovato **zero**, e concluso «Scudo non ha
+  nessun banco che apra un CSV»: il gancio lì si chiama `__scaricati` e vive 380
+  righe più in giù. Erano già aperti **quattro** dei cinque punti d'uscita, e io
+  avevo scritto **trecento righe** di banco nuovo con quella frase falsa
+  nell'intestazione, buttate. **Un censimento che cerca UN nome risponde «non
+  c'è» con la stessa faccia con cui direbbe la verità** — ed è la regola «la
+  risposta è quasi sempre già in casa» nella sua veste più cara, perché il
+  duplicato sarebbe entrato con una misura sbagliata scritta sopra.
 - ⛔ **UN BANCO CHE PORTA DENTRO UN NUMERO ATTESO INVECCHIA COL CRESCERE DELLA
   DIMOSTRAZIONE — e accusa il prodotto per una cosa che ha fatto il prodotto.**
   Misurato il 07/08 sui due soli KO di un giro pulito. Il banco pretendeva che i
