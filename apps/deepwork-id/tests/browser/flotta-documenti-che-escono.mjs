@@ -15,7 +15,9 @@
    che ne aprisse uno: `flotta-disegni` guarda i pixel, `flotta-frasi-da-uno`
    il singolare, e i file non li apriva nessuno.
 
-   CHE COSA HA TROVATO, l'08/08, e sono tutt'e due parole TRANQUILLE:
+   CHE COSA HA TROVATO, l'08/08: **quattro** difetti in quattro file, e tutti
+   e quattro nella stessa famiglia — il documento che esce dice una cosa più
+   TRANQUILLA di quella che lo schermo mostra.
 
    1 · `flotta_situazione.csv` — «PIANIFICATA» DOVE LO SCHERMO È ROSSO.
        La colonna `stato` di ogni manutenzione era la parola `pianificata`,
@@ -46,6 +48,31 @@
        nel commento racconta esattamente questo difetto). Una correzione fatta
        a un export e non all'altro: è la firma della copia debole.
 
+   3 · `flotta-registro-interventi.csv` — LO ZERO SOMMABILE. La cella
+       dell'importo era `(+w.costo) || 0`: un intervento chiuso senza scrivere
+       quanto è costato usciva con uno **0**, e chi apre il file in un foglio
+       quello zero lo SOMMA credendolo misurato. Lo schermo la pastiglia
+       dell'importo non la disegna affatto; il libretto scrive «costo non
+       scritto». Ed è l'export più grande dell'app, quello che si porta al
+       commercialista.
+       ⚠️ La correzione non è `> 0` ma `numeroDichiarato`, perché uno **zero
+       scritto** è un dato — una riparazione in garanzia costa davvero zero — e
+       va tenuto distinto dal campo mai compilato. Il banco misura tutt'e due i
+       casi INSIEME: da soli, «0» e «vuoto» sembrano la stessa scelta.
+
+   4 · `flotta-lista-della-spesa.csv` — DUE INCERTEZZE DICHIARATE E MAI LETTE.
+       È la regola 20 applicata a un export: il modulo si accorge di non poter
+       misurare bene e lo dice con una bandiera, e se quella bandiera non la
+       legge nessuno il numero tranquillo si stampa lo stesso.
+       · `r.affidabile` (`episodi >= 2`) — a schermo «un solo consumo
+         registrato: è un ordine di grandezza, non una media», e quella
+         bandiera decide perfino se PROPORRE una soglia più bassa. Nel file il
+         consumo usciva come un numero fermo: chi lo riceve ordina una quantità
+         calcolata su un episodio solo credendola una media;
+       · `p.senzaData` — gli interventi con ricambi il cui giorno non si legge
+         restano FUORI dal consumo, e l'errore va nella direzione che
+         tranquillizza: un magazzino più magro del vero.
+
    ⛔ IL BANCO NON PORTA DENTRO NESSUN VALORE ATTESO. È la lezione del 07/08:
    un banco che si scrive in pancia «il totale fa 2395,1» invecchia col
    crescere della dimostrazione e poi **accusa il prodotto** di una cosa che
@@ -54,10 +81,10 @@
    le parole cambiano, cambiano in tutt'e due i posti e il banco resta verde
    per la ragione giusta.
 
-   ⚠️ E IL CENSIMENTO È DICHIARATO. Questo banco apre **due** dei nove punti
-   d'uscita di Flotta. Gli altri sette — registro interventi, scadenze di
-   legge, costi, ricambi, libretto, lista della spesa, fermi macchina — qui
-   NON sono misurati: «due su nove» non vuol dire «gli altri vanno bene».
+   ⚠️ E IL CENSIMENTO È DICHIARATO. Questo banco apre **quattro** dei nove
+   punti d'uscita di Flotta. Gli altri cinque — scadenze di legge, costi,
+   ricambi, libretto, fermi macchina — qui NON sono misurati: «quattro su
+   nove» non vuol dire «gli altri cinque vanno bene».
 */
 import { createServer } from "node:http";
 import { readFileSync, existsSync, statSync } from "node:fs";
@@ -72,7 +99,7 @@ const CONTROPROVA = process.argv.includes("--controprova");
 const PAGINA = join("apps", "flotta", "index.html");
 const MODULO = join("apps", "flotta", "flotta-data.js");
 
-/* I due difetti, nella forma testuale che avevano prima della correzione.
+/* I cinque difetti, nella forma testuale che avevano prima della correzione.
    ⚠️ Una tabella d'iniezione cita il codice TESTUALMENTE, e il codice si
    muove — quasi sempre perché è migliorato. Quando non combacia più non
    succede niente di visibile: la pagina servita resta sana e la controprova
@@ -100,6 +127,18 @@ const DIFETTI = [
      due il banco lo dice invece di sceglierne uno a caso. */
   ["        const s = statoGiro(c);",
    "        const s = (() => { const male = (c.voci || []).filter(v => v.esito === \"no\");\n          return { etichetta: male.length ? \"con anomalie\" : \"tutto a posto\", anomalie: male.length,\n                   nominate: true, voci: male.map(v => v.etichetta), dettaglio: male }; })();"],
+  // 3 · lo zero sommabile al posto della cella vuota, nel registro interventi
+  ["                   numeroDichiarato(w.costo) == null ? \"\" : numeroDichiarato(w.costo), w.note || \"\",",
+   "                   (+w.costo) || 0, w.note || \"\","],
+  // 4 · la lista della spesa senza la colonna `episodi`
+  ["                           r.episodi == null ? \"\" : r.episodi].map(csvCell).join(\";\")));",
+   "                           \"\"].map(csvCell).join(\";\")));"],
+  /* 5 · e la lista della spesa senza l'avvertenza sugli interventi rimasti
+     fuori dal conto. Sta qui perché senza di lei quelle due prove non
+     sapevano fallire: la quarta iniezione toglie la COLONNA, non la CODA, e
+     una prova che nessuna iniezione può far cadere è una prova che non
+     dimostra niente — anche quando il riepilogo intorno a lei è rosso. */
+  ["    if (p.senzaData) {", "    if (false) {"],
 ];
 
 /* I casi si montano nel MODULO servito, mai sul disco: la cartella viva resta
@@ -131,6 +170,29 @@ const CASI = `
       ore: 3210, anomalie: 1, note: "",
       voci: [{ chiave: "freni", etichetta: "Freni, sterzo e comandi", esito: "no", nota: "", critica: true },
              { chiave: "livelli", etichetta: "Livelli", esito: "ok", nota: "", critica: false }] },
+  ];
+  /* Gli interventi servono a DUE documenti insieme: il registro (la cella
+     dell'importo) e la lista della spesa (che si costruisce dai ricambi
+     consumati). I tre costi sono i tre casi che la cella deve distinguere —
+     scritto, ZERO scritto (una riparazione in garanzia costa davvero zero) e
+     mai scritto — e non si possono ridurre a due: è proprio la coppia
+     «zero vero / zero inventato» che il difetto confondeva. */
+  const gg = (n) => new Date(Date.now() - n * 86400000).toISOString().slice(0, 10);
+  DEMO.interventi = [
+    { id: "i-caro", data: gg(10), titolo: "Sostituzione filtro", mezzo: "Escavatore E2",
+      ricambio: "Filtro olio", costo: 120, note: "" },
+    { id: "i-zero", data: gg(20), titolo: "Ripasso in garanzia", mezzo: "Pala P1",
+      ricambio: "Filtro olio", costo: 0, note: "" },
+    { id: "i-muto", data: gg(30), titolo: "Registrazione cingoli", mezzo: "Dumper D3",
+      ricambio: "Filtro olio", note: "" },
+    /* e uno il cui GIORNO NON SI LEGGE, con un ricambio dentro: resta fuori
+       dal consumo, quindi la proposta è un minimo — ed è la cosa che il file
+       non diceva */
+    { id: "i-senzadata", data: "2026-02-30", titolo: "Intervento con data impossibile",
+      mezzo: "Pala P1", ricambio: "Filtro olio", costo: 40, note: "" },
+  ];
+  DEMO.ricambi = [
+    { id: "r-filtro", nome: "Filtro olio", giacenza: 0, sogliaMin: 1, prezzo: 18 },
   ];
 }
 `;
@@ -306,9 +368,53 @@ if (await vaiA("nav-giro", "page-giro")) {
   }
 }
 
+// ═══════════ 3 · il registro interventi: la cella dell'importo ═══════════
+console.log("\n════════ flotta-registro-interventi.csv ════════");
+if (await vaiA("nav-man", "page-man")) {
+  const f = await scarica("btn-int-csv");
+  dice(!!f, "il file esce davvero");
+  if (f) {
+    const righe = f.righe.slice(1);
+    const cella = (titolo) => colonna(righe.find((r) => colonna(r, 1).includes(titolo)) || "", 4);
+    dice(righe.length >= 3, "gli interventi sono nel file", righe.length);
+    dice(cella("Sostituzione filtro") === "120", "un costo scritto esce com'è", cella("Sostituzione filtro"));
+    /* ⛔ i due casi che il difetto confondeva, e che vanno letti INSIEME:
+       senza la coppia, «0» e «vuoto» sembrano la stessa scelta */
+    dice(cella("garanzia") === "0", "uno ZERO scritto resta zero: una riparazione in garanzia costa davvero zero",
+      cella("garanzia"));
+    dice(cella("Registrazione cingoli") === "",
+      "un costo MAI scritto lascia la cella vuota: in un foglio uno zero si somma credendolo misurato",
+      cella("Registrazione cingoli"));
+  }
+}
+
+// ═══════════ 4 · la lista della spesa: le due incertezze dichiarate ═══════════
+console.log("\n════════ flotta-lista-della-spesa.csv ════════");
+if (await vaiA("nav-man", "page-man")) {
+  /* la proposta non si può fare senza i giorni di consegna: è l'app a dirlo,
+     e senza questo passaggio il banco misurerebbe un rifiuto invece di un file */
+  await pg.fill("#sco-consegna", "7").catch(() => {});
+  await pg.dispatchEvent("#sco-consegna", "change").catch(() => {});
+  await pg.waitForTimeout(400);
+  const f = await scarica("btn-sco-csv");
+  dice(!!f, "il file esce davvero");
+  if (f) {
+    const intest = f.righe[0].split(";");
+    dice(intest.includes("episodi"),
+      "c'è la colonna «episodi»: chi riceve il foglio sa su quanti consumi è calcolata la media", intest);
+    const riga = f.righe.slice(1).find((r) => colonna(r, 0).includes("Filtro"));
+    dice(!!riga && colonna(riga, 7) !== "", "e la colonna è piena", riga && colonna(riga, 7));
+    /* il quarto intervento ha la data «30 febbraio», che non esiste: resta
+       fuori dal consumo, quindi le quantità sono un MINIMO — e il file lo dice */
+    const avviso = f.righe.find((r) => /fuori dal conto/i.test(r));
+    dice(!!avviso, "il file dichiara gli interventi rimasti fuori dal conto", f.righe.slice(-1));
+    dice(!!avviso && /MINIMO/.test(avviso), "e dice da che parte tira l'errore", avviso);
+  }
+}
+
 await b.close(); srv.close();
 console.log(`\nRisultato documenti che escono da Flotta: ${ok} passati, ${ko} falliti`
-  + `  ·  2 punti d'uscita su 9 aperti (gli altri sette NON sono misurati qui)`);
+  + `  ·  4 punti d'uscita su 9 aperti (gli altri cinque NON sono misurati qui)`);
 /* ⛔ In controprova il rosso è quello VOLUTO: si esce 0 se il banco ha saputo
    distinguere, cioè se almeno una prova è caduta. */
 if (CONTROPROVA) {

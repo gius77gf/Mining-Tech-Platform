@@ -919,6 +919,14 @@ export function prioritaOperative(mezzi, manutenzioni, ricambi, oggi = new Date(
    due elenchi diversi, i costi del mezzo e quelli della cava smetterebbero di
    sommarsi senza che nessun controllo se ne accorga. */
 export { VOCI_COSTO, voceCosto, gruppoDiVoce } from "../../shared/dw-ponti.js";
+/* ⛔ E `numeroDichiarato` SI RI-ESPORTA, non si riscrive. La regola che
+   distingue «zero misurato» da «campo mai compilato» vive in `shared/` e qui
+   dentro la usano già `csvRicambi` e `propostaScorte`; le serviva anche alla
+   PAGINA, per la cella dell'importo del registro interventi. Un alias non è
+   una seconda implementazione — è la forma che questa casa ha scelto perché
+   le pagine non importino `shared/` per conto loro e perché `nomi-doppi` veda
+   lo STESSO oggetto invece di due gemelli destinati a divergere. */
+export { numeroDichiarato } from "../../shared/dw-ponti.js";
 
 export function ripartizioneCosti(costi) {
   const per = {};

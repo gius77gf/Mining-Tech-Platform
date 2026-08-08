@@ -1267,6 +1267,7 @@ body.dw b.bad{color:var(--ink-dg)}
            SCADENZE_MEZZO_PRESET, presetScadenzaMezzo, statoScadenzaMezzo, scadenzeOrdinate, contaScadenzeMezzi, validaScadenzaMezzo, aggiungiMesi,
            nomeBreve, TIPI_MEZZO, tipoMezzo, tipoMezzoDi, checklistPreUso, riepilogoControllo,
            manutenzioniDaControllo, coperturaControlli, controlliDelMezzo, giriDelGiorno, statoGiro,
+           numeroDichiarato,
            GRAVITA_GUASTO, gravitaGuasto, validaGuasto, manutenzioneDaGuasto,
            PIANI_TAGLIANDO, pianoTagliando, propostaTagliando, prossimoTagliando,
            validaRifornimento, consumoPerMezzo, fascicoloMezzo,
@@ -3785,7 +3786,22 @@ body.dw b.bad{color:var(--ink-dg)}
     const righe = [["data", "titolo", "mezzo", "ricambio", "costo", "note",
                     "ore_manodopera", "costo_manodopera", "costo_ricambi", "chi_ha_lavorato"].join(";")]
       .concat(INT.slice().sort((a, b) => (a.data || "") < (b.data || "") ? 1 : -1)
-        .map(w => [w.data || "", w.titolo || "", w.mezzo || "", w.ricambio || "", (+w.costo) || 0, w.note || "",
+        /* ⛔ LA CELLA DELL'IMPORTO RESTA VUOTA QUANDO IL COSTO NON C'È, e qui
+           c'era ancora `(+w.costo) || 0`. La ragione sta scritta per esteso a
+           riga 4505, sopra il CSV del libretto, dove la correzione era già
+           stata fatta: *chi apre il file in un foglio quello zero lo SOMMA
+           credendolo misurato*. Questo è il registro che si porta al
+           commercialista, ed è l'export più grande dell'app.
+           Lo schermo (2182) la pastiglia dell'importo non la disegna affatto
+           quando il costo non c'è; il libretto (3423) scrive «costo non
+           scritto». Solo questo file inventava uno zero.
+           ⚠️ E la convenzione era già nelle TRE CELLE QUI SOTTO
+           (`== null ? ""`): la riga sbagliata era una sola, in mezzo a quelle
+           giuste. `numeroDichiarato` di `shared/` la dice meglio di `> 0`,
+           perché tiene lo zero DICHIARATO — un intervento in garanzia costa
+           davvero zero, ed è un dato, non un buco. */
+        .map(w => [w.data || "", w.titolo || "", w.mezzo || "", w.ricambio || "",
+                   numeroDichiarato(w.costo) == null ? "" : numeroDichiarato(w.costo), w.note || "",
                    w.oreManodopera == null ? "" : w.oreManodopera,
                    w.costoManodopera == null ? "" : w.costoManodopera,
                    w.costoRicambi == null ? "" : w.costoRicambi,
@@ -4709,9 +4725,36 @@ body.dw b.bad{color:var(--ink-dg)}
         : "Prima scrivi in quanti giorni consegna il fornitore: senza quel numero la lista della spesa non si può fare.", "err");
       return;
     }
-    const righe = [["ricambio", "giacenza", "da_ordinare", "prezzo_unitario", "spesa", "consumo_al_giorno", "copertura_giorni"].join(";")]
+    /* ⛔ IL FILE PERDEVA DUE DICHIARAZIONI D'INCERTEZZA CHE LO SCHERMO SCRIVE
+       IN ROSSO. È la regola 20 applicata a un export: il modulo si accorge di
+       non poter misurare bene e lo dice con una bandiera, e se quella bandiera
+       non la legge nessuno il numero tranquillo si stampa lo stesso.
+       · `r.affidabile` (`episodi >= 2`): a schermo, riga 3058, «un solo
+         consumo registrato: è un ordine di grandezza, non una media» — e alla
+         riga 3054 quella bandiera decide perfino se PROPORRE una soglia più
+         bassa. Nel file il consumo usciva come un numero fermo, e chi lo
+         riceve ordina una quantità calcolata su un episodio solo credendola
+         una media. Adesso c'è la colonna `episodi`, che è il dato invece del
+         giudizio: chi legge il foglio si fa la sua idea.
+       · `p.senzaData`: gli interventi con ricambi il cui giorno non si legge
+         restano FUORI dal consumo, quindi la proposta è calcolata su meno di
+         tutto — e l'errore va nella direzione che tranquillizza, un magazzino
+         più magro del vero. Lo schermo lo scrive in coda a tutti i rami; qui
+         non c'era. Va in fondo al file come riga di avvertenza, perché una
+         colonna la ripeterebbe uguale su ogni riga.
+       ⚠️ L'avvertenza si scrive DOPO le righe e con una sola cella piena: un
+       foglio di calcolo la legge come una riga di testo in fondo, non come un
+       dato che si somma. */
+    const righe = [["ricambio", "giacenza", "da_ordinare", "prezzo_unitario", "spesa", "consumo_al_giorno", "copertura_giorni", "episodi"].join(";")]
       .concat(da.map(r => [r.nome, r.giacenza, r.daOrdinare, r.prezzo == null ? "" : r.prezzo,
-                           r.spesa == null ? "" : r.spesa, r.alGiorno, r.copertura].map(csvCell).join(";")));
+                           r.spesa == null ? "" : r.spesa, r.alGiorno, r.copertura,
+                           r.episodi == null ? "" : r.episodi].map(csvCell).join(";")));
+    if (p.senzaData) {
+      righe.push("");
+      righe.push(csvCell("ATTENZIONE: " + conta(p.senzaData, "intervento con ricambi resta", "interventi con ricambi restano")
+        + " fuori dal conto perché il giorno non si legge. Il consumo qui sopra è calcolato su meno di tutto,"
+        + " quindi le quantità da ordinare sono un MINIMO."));
+    }
     const a = document.createElement("a");
     a.href = URL.createObjectURL(new Blob(["﻿" + righe.join("\r\n")], { type: "text/csv;charset=utf-8" }));
     a.download = "flotta-lista-della-spesa.csv"; marchiaCsv(a); a.click();
