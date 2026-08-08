@@ -52,7 +52,7 @@
 import { parseCsvLine, numIt, isIntestazione, csvCell, numeroScritto, oggiISO as oggiISOShell, isoLocale,
          dataISOEsiste, dataPiuGiorni as dataPiuGiorniShell, conta, plurale, perLettura } from "../../shared/deepwork-id-client/dw-shell.js";
 /* la regola sui numeri dichiarati vive in `shared/`: si importa, non si riscrive */
-import { numeroDichiarato } from "../../shared/dw-ponti.js";
+import { numeroDichiarato, applicaPercorsi } from "../../shared/dw-ponti.js";
 
 // ══════════════════════════════════════════════════════════════════════
 // NUMERI COME SI SCRIVONO IN ITALIA — un solo posto per la convenzione
@@ -3032,7 +3032,7 @@ export async function campoData() {
       pianocarico: async () => mem.pianocarico || (mem.pianocarico = []),
       logout: async () => {},
       aggiungi: async (name, data) => { const id = "m" + Math.random().toString(36).slice(2, 8); (mem[name] = mem[name] || []).push({ id, ...data }); return { id }; },
-      aggiorna: async (name, docId, data) => { const x = (mem[name] || (mem[name] = [])).find(v => v.id === docId); if (x) Object.assign(x, data); },
+      aggiorna: async (name, docId, data) => { const x = (mem[name] || (mem[name] = [])).find(v => v.id === docId); if (x) applicaPercorsi(x, data); },
       rimuovi: async (name, docId) => { mem[name] = (mem[name] || []).filter(v => v.id !== docId); },
     };
   }

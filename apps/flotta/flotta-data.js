@@ -85,7 +85,7 @@
 
 /* la regola sui numeri dichiarati vive in `shared/`: qui si IMPORTA, non si
    riscrive — è il difetto che questo repository ha già pagato quattro volte */
-import { numeroDichiarato } from "../../shared/dw-ponti.js";
+import { numeroDichiarato, applicaPercorsi } from "../../shared/dw-ponti.js";
 import { parseCsvLine, csvCell, numIt, giorniTra, isIntestazione, numeroScritto, oggiISO,
          dataISOEsiste, dataIt, plurale,
          messaggioNumero as messaggioNumeroShell,
@@ -3027,7 +3027,7 @@ export async function flottaData() {
       mezzi: async () => mem.mezzi, manutenzioni: async () => mem.manutenzioni, costi: async () => mem.costi, ricambi: async () => mem.ricambi, interventi: async () => mem.interventi, scadenze: async () => mem.scadenze, disponibilita: async () => mem.disponibilita || [], controlli: async () => mem.controlli || [], rifornimenti: async () => mem.rifornimenti || [], fermi: async () => mem.fermi || [],
       logout: async () => {},
       aggiungi: async (n, d) => { const id = "m" + Math.random().toString(36).slice(2, 8); (mem[n] = mem[n] || []).push({ id, ...d }); return { id }; },
-      aggiorna: async (n, i, d) => { const x = (mem[n] || (mem[n] = [])).find(v => v.id === i); if (x) Object.assign(x, d); },
+      aggiorna: async (n, i, d) => { const x = (mem[n] || (mem[n] = [])).find(v => v.id === i); if (x) applicaPercorsi(x, d); },
       rimuovi: async (n, i) => { mem[n] = (mem[n] || []).filter(v => v.id !== i); },
     };
   }

@@ -26,7 +26,7 @@ import { parseCsvLine, csvCell, numIt, giorniTra, isIntestazione, numeroScritto,
 // Una scadenza è una scadenza: lo stato della taratura lo dice la stessa
 // funzione che lo dice per le visite mediche di Scudo e per i documenti di
 // Campo. Non se ne scrive una quarta (regola del `shared/`).
-import { statoScadenzaHSE } from "../../shared/dw-ponti.js";
+import { statoScadenzaHSE, applicaPercorsi } from "../../shared/dw-ponti.js";
 /* ⛔ `statoPonte` e `azioniDiOrigine` STAVANO QUI, ed erano identiche — misurate
    byte per byte — alle due di Campo. Una regola che serve a due app vive in
    `shared/`: qui restano col nome con cui le pagine le hanno sempre chiamate,
@@ -3358,7 +3358,7 @@ export async function sentinellaData() {
       ricettori: async () => mem.ricettori, reclami: async () => mem.reclami, programma: async () => mem.programma || [],
       logout: async () => {},
       aggiungi: async (n, d) => { const id = "m" + Math.random().toString(36).slice(2, 8); (mem[n] = mem[n] || []).push({ id, ...d }); return { id }; },
-      aggiorna: async (n, i, d) => { const x = (mem[n] || (mem[n] = [])).find(v => v.id === i); if (x) Object.assign(x, d); },
+      aggiorna: async (n, i, d) => { const x = (mem[n] || (mem[n] = [])).find(v => v.id === i); if (x) applicaPercorsi(x, d); },
       rimuovi: async (n, i) => { mem[n] = (mem[n] || []).filter(v => v.id !== i); },
     };
   }

@@ -1134,3 +1134,38 @@ export function numeroDichiarato(x) {
   const v = +x;
   return Number.isFinite(v) ? v : null;
 }
+
+/* ⛔ IL PERCORSO PUNTATO, ANCHE NELLA DIMOSTRAZIONE — e senza questa funzione la
+   correzione contro la perdita silenziosa funzionerebbe SOLO col database vero.
+   ══════════════════════════════════════════════════════════════════════════
+   L'08/08 la misura della decisione 5b (`docs/DUE_PERSONE_STESSA_RIGA.md`) ha
+   detto che due persone che spuntano voci DIVERSE della stessa lista si
+   cancellano a vicenda, in silenzio: la lista viene letta, cambiata in un
+   punto e riscritta INTERA. La cura è scrivere il **percorso puntato**
+   (`"esiti.dpi"`), che Firestore applica al singolo campo — misurato: le due
+   spunte convivono.
+   Ma il livello dati di ogni app ha DUE strade: Firestore quando c'è il login,
+   e un elenco in memoria per la dimostrazione. Quella in memoria fa
+   `Object.assign(x, data)`, e `Object.assign` di una chiave `"esiti.dpi"`
+   crea una proprietà **letterale con il punto dentro**: misurato,
+   `{"esiti":{"dpi":false},"esiti.dpi":true}` — la spunta non si vede, e non
+   c'è nessun errore da leggere. Cioè la correzione avrebbe funzionato con i
+   dati veri e **rotto la dimostrazione**, che è quello che il fondatore mostra.
+   Sta in `shared/` perché serve a tutte e sei le app, e per la ragione di
+   sempre: una regola scritta sei volte diverge sei volte. */
+export function applicaPercorsi(oggetto, dati) {
+  for (const [k, v] of Object.entries(dati || {})) {
+    if (!k.includes(".")) { oggetto[k] = v; continue; }
+    const parti = k.split(".");
+    let cur = oggetto;
+    for (let i = 0; i < parti.length - 1; i++) {
+      const p = parti[i];
+      /* un ramo che non esiste, o che non è un oggetto, si apre: è quello che
+         fa Firestore, e il caso «era `null`» capita davvero su una riga vecchia */
+      if (cur[p] === null || typeof cur[p] !== "object" || Array.isArray(cur[p])) cur[p] = {};
+      cur = cur[p];
+    }
+    cur[parti[parti.length - 1]] = v;
+  }
+  return oggetto;
+}

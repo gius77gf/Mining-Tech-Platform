@@ -10,6 +10,12 @@
 
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
+/* ⚠️ in cima e non dentro una prova: una prova che deve leggere un file non
+   può diventare `async`, se no viene messa in volo DOPO `await Promise.all` e
+   il totale si stampa senza aspettarla (misurato il 07/08: 1842 prima e 1842
+   dopo). Più giù ci sono dei `const { readFileSync } = await import(...)`
+   locali: sono ombre dentro blocchi async, e restano valide. */
+import { readFileSync } from "node:fs";
 import { mostra } from "./mostra.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
@@ -24363,6 +24369,56 @@ test("csvPesate: i numeri escono col PUNTO e la data non scivola", () => {
 });
 /* ⛔ L'IDENTITÀ, non il comportamento: due copie uguali oggi divergono domani
    senza che nessuno lo veda. È la regola del `shared/` scritta in CLAUDE.md. */
+/* ⛔ IL PERCORSO PUNTATO ANCHE NELLA DIMOSTRAZIONE (misura 5b, 08/08).
+   Senza questa funzione la cura contro la perdita silenziosa funzionerebbe
+   **solo col database vero**: il livello in memoria fa `Object.assign`, e
+   `Object.assign` di una chiave `"esiti.dpi"` crea una proprietà **letterale
+   col punto dentro** — nessun errore, e la spunta non si vede. Cioè la
+   correzione avrebbe rotto la DIMOSTRAZIONE, che è quello che il fondatore
+   mostra, mentre i dati veri andavano bene. */
+test("applicaPercorsi: un percorso puntato tocca il singolo campo, come fa Firestore", () => {
+  eq(ponti.applicaPercorsi({ esiti: { dpi: false, luci: false } }, { "esiti.dpi": true }),
+     { esiti: { dpi: true, luci: false } }, "cambia una voce e lascia stare l'altra");
+  eq(ponti.applicaPercorsi({ a: 1 }, { b: 2 }), { a: 1, b: 2 }, "un campo senza punto resta un campo");
+  eq(ponti.applicaPercorsi({ esiti: { a: false } }, { "esiti.a": true, ora: "08:00" }),
+     { esiti: { a: true }, ora: "08:00" }, "puntati e piani insieme");
+  eq(ponti.applicaPercorsi({}, { "a.b.c": 1 }), { a: { b: { c: 1 } } }, "due livelli di profondità");
+  /* i rami che non sono un oggetto si aprono, come fa Firestore: capita
+     davvero su una riga vecchia che quel campo non l'aveva */
+  for (const [che, v] of [["assente", undefined], ["null", null], ["scalare", 5], ["array", [1, 2]]])
+    eq(ponti.applicaPercorsi(v === undefined ? {} : { esiti: v }, { "esiti.dpi": true }),
+       { esiti: { dpi: true } }, `ramo ${che}`);
+  eq(ponti.applicaPercorsi({ esiti: { a: 1 } }, { "esiti.a": null }), { esiti: { a: null } },
+     "⛔ e un null DICHIARATO si scrive: è la convenzione «non si può calcolare», non un'assenza");
+  eq(ponti.applicaPercorsi({ a: 1 }, null), { a: 1 }, "niente da applicare non rompe");
+  /* ⛔ la controprova, dentro la prova: quello che faceva prima */
+  const ingenuo = Object.assign({ esiti: { dpi: false } }, { "esiti.dpi": true });
+  eq(ingenuo.esiti.dpi, false, "con Object.assign la spunta NON arriva…");
+  eq(ingenuo["esiti.dpi"], true, "…perché la chiave resta letterale, col punto dentro");
+});
+test("⛔ e le SEI dimostrazioni la usano davvero: una guardia scollegata non protegge niente", () => {
+  /* La funzione può essere giusta e non essere chiamata da nessuno — è la
+     famiglia del `<script>` dimenticato. Qui si guarda il livello in memoria
+     di ognuna delle sei app: deve passare da `applicaPercorsi`, e NON deve
+     essere rimasto l'`Object.assign` che tratta «esiti.dpi» come una chiave. */
+  const APP = ["campo", "conti", "flotta", "scudo", "sentinella", "terra"];
+  const senza = [], vecchie = [];
+  for (const a of APP) {
+    const src = readFileSync(join(HERE, `../../${a}/${a}-data.js`), "utf8");
+    if (!/applicaPercorsi\(x,\s*d(ata)?\)/.test(src)) senza.push(a);
+    if (/Object\.assign\(x,\s*d(ata)?\)/.test(src)) vecchie.push(a);
+  }
+  eq(senza, [], "queste dimostrazioni non applicano i percorsi puntati");
+  eq(vecchie, [], "queste hanno ancora l'Object.assign che tratta «esiti.dpi» come una chiave");
+  eq(APP.length, 6, "e ha guardato tutte e sei le app");
+});
+test("applicaPercorsi è LA STESSA funzione in tutte e sei le app", () => {
+  /* l'identità, non il comportamento: due copie uguali oggi divergono domani */
+  for (const [nome, m] of [["campo", campo], ["conti", conti], ["flotta", flotta],
+                           ["scudo", scudo], ["sentinella", sentinella], ["terra", terra]])
+    ok(m.applicaPercorsi === undefined || m.applicaPercorsi === ponti.applicaPercorsi,
+      `${nome} non deve tenersene una copia`);
+});
 test("numeroDichiarato è LA STESSA funzione in shared, Sentinella e Conti", () => {
   eq(sentinella.numeroDichiarato, ponti.numeroDichiarato, "Sentinella ri-esporta, non ricopia");
   eq(conti.numeroDichiarato, ponti.numeroDichiarato, "e Conti la importa dalla stessa");

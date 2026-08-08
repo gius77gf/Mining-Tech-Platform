@@ -242,7 +242,7 @@ export const DEMO = {
 // serve a Terra, al ponte P2 e a Conti nel confronto cavato-contro-venduto: tre
 // posti, una regola. Qui resta il nome con cui Terra l'ha sempre chiamata.
 export { provenienzaDi as provenienzaRilievo } from "../../shared/dw-ponti.js";
-import { provenienzaDi } from "../../shared/dw-ponti.js";
+import { provenienzaDi, applicaPercorsi } from "../../shared/dw-ponti.js";
 /* ⛔ «QUESTO NUMERO L'HA SCRITTO QUALCUNO?» — la regola sta in `shared/` e la
    usano già Conti e Sentinella; Terra era la terza app a averne bisogno e se ne
    teneva una versione più debole nel file che ESCE (`csvRilievi`). Non si
@@ -1958,7 +1958,7 @@ export async function terraData() {
       rapportiniCampo: async () => mem.rapportiniCampo || [],
       logout: async () => {},
       aggiungi: async (name, data) => { const id = "m" + Math.random().toString(36).slice(2, 8); (mem[name] = mem[name] || []).push({ id, ...data }); return { id }; },
-      aggiorna: async (name, docId, data) => { const x = (mem[name] || (mem[name] = [])).find(v => v.id === docId); if (x) Object.assign(x, data); },
+      aggiorna: async (name, docId, data) => { const x = (mem[name] || (mem[name] = [])).find(v => v.id === docId); if (x) applicaPercorsi(x, data); },
       rimuovi: async (name, docId) => { mem[name] = (mem[name] || []).filter(v => v.id !== docId); },
     };
   }

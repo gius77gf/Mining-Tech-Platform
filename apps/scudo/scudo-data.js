@@ -649,7 +649,7 @@ export const TIPI_DOCUMENTO = [
 // nome locale, quindi le trenta chiamate interne a `statoScadenza` di questo file
 // restavano scoperte — dieci prove rosse subito, che è il comportamento giusto
 // della suite. Serve importare e poi ri-esportare il nome.
-import { statoScadenzaHSE } from "../../shared/dw-ponti.js";
+import { statoScadenzaHSE, applicaPercorsi } from "../../shared/dw-ponti.js";
 import { dataPiuGiorni as dataPiuGiorniShell } from "../../shared/deepwork-id-client/dw-shell.js";
 const statoScadenza = statoScadenzaHSE;
 export { statoScadenza };
@@ -3615,7 +3615,7 @@ export async function scudoData() {
       aggiungi: async (name, data) => { const id = "m" + Math.random().toString(36).slice(2, 8); (mem[name] = mem[name] || []).push({ id, ...data }); return { id }; },
       aggiorna: async (name, docId, data) => {
         const x = (mem[name] || (mem[name] = [])).find(v => v.id === docId);
-        if (x) { Object.assign(x, data); return; }
+        if (x) { applicaPercorsi(x, data); return; }
         // azione arrivata da Sentinella: l'avanzamento si scrive dove sta,
         // così tornando sul superamento se ne vede lo stato aggiornato.
         if (name !== "azioni") return;

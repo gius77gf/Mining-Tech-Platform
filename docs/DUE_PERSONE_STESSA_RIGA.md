@@ -93,10 +93,30 @@ sparisce senza dirlo è peggio di un errore*.
   dodici punti. La frequenza dipende da come lavora una cava vera, e non la
   sappiamo — non va inventata.
 
-## Che cosa segue (non fatto qui, dichiarato)
-1. I dodici punti passano al **percorso puntato** (caso 4) dove la modifica è di
-   una voce sola — è una riga per punto;
-2. dove invece si aggiunge in coda a un elenco (`tarature`, `letture`), la forma
-   giusta è `arrayUnion`, che non richiede di rileggere l'elenco;
-3. solo dopo ha senso parlare di **coda offline**: mettere in coda scritture che
-   si cancellano a vicenda vorrebbe dire moltiplicare il problema, non risolverlo.
+## Che cosa segue — e il piano CORRETTO dopo aver aperto i dodici punti
+
+⚠️ **La prima stesura di questo piano diceva «una riga per punto» e
+«`arrayUnion` dove si aggiunge in coda». Aprendo i dodici punti si è visto che
+è falso per otto di essi**, ed è scritto qui perché nessuno ci riprovi alla
+cieca — è la stessa regola del *misurare prima di irrigidire*.
+
+### Fatto (08/08) — il passo che rende possibile tutto il resto
+`applicaPercorsi` in `shared/dw-ponti.js`, e le **sei** dimostrazioni che la
+usano al posto di `Object.assign`.
+⛔ **Senza questo, la cura avrebbe funzionato solo col database vero e rotto la
+dimostrazione**: il livello in memoria fa `Object.assign`, e `Object.assign` di
+una chiave `"esiti.dpi"` crea una proprietà **letterale col punto dentro** —
+misurato: `{"esiti":{"dpi":false},"esiti.dpi":true}`. Nessun errore da leggere,
+la spunta non si vede, e a rompersi sarebbe stato proprio ciò che il fondatore
+mostra.
+
+### I dodici punti, divisi per quello che vogliono davvero
+| Forma | Punti | Che cosa serve |
+|---|---|---|
+| **oggetto, cambia UNA voce** | Scudo `esiti` ×2, Campo `esiti` | percorso puntato — **ma** le due di Scudo sanno anche **togliere** una voce, e per cancellare col percorso puntato serve `deleteField()`: cioè un **contrassegno** che il livello dati traduca (`deleteField` con Firestore, `delete` in memoria). Non è una riga: è una riga **più** il contrassegno |
+| **elenco** | Sentinella `letture` ×3, `tarature` ×3, Scudo `azioniId`, `misure` | ⛔ `arrayUnion` **non basta**, misurato punto per punto: 4121 **corregge** una lettura già dentro (l'indice di un array non si scrive col percorso puntato), 4573 aggiunge **e taglia** a `MAX_LETTURE`, 4930 è un **import in blocco**. La forma giusta è una **transazione** (`runTransaction`), che rilegge e riscrive in modo atomico |
+| **modulo intero** | Scudo `atmosfera` | non è il caso della spunta persa: l'utente invia **tutte** le misure di gas insieme. Due persone che compilano lo stesso permesso sono un conflitto sullo **stesso campo** (caso 2), e la risposta lì non è tecnica |
+
+### E solo dopo, la coda offline
+Mettere in coda scritture che si cancellano a vicenda vorrebbe dire
+**moltiplicare** il problema, non risolverlo.

@@ -67,7 +67,7 @@
 
 import { parseCsvLine, leggiCsv, csvCell, numIt, giorniTra, isIntestazione, dataISOEsiste, dataIt, conta, plurale,
          AVVISO_DECIMALE as AVVISO_DECIMALE_SHELL } from "../../shared/deepwork-id-client/dw-shell.js";
-import { provenienzaDi, misuratoPeriodo, numeroDichiarato } from "../../shared/dw-ponti.js";
+import { provenienzaDi, misuratoPeriodo, numeroDichiarato, applicaPercorsi } from "../../shared/dw-ponti.js";
 export { numeroDichiarato } from "../../shared/dw-ponti.js";
 /* la classificazione dei costi vive in shared/ perché serve anche a Flotta:
    qui si RI-ESPORTA, non si riscrive. Un alias non è una seconda
@@ -2570,7 +2570,7 @@ export async function contiData() {
       rilieviTerra: async () => mem.rilieviTerra || [],
       logout: async () => {},
       aggiungi: async (n, d) => { const id = "m" + Math.random().toString(36).slice(2, 8); (mem[n] = mem[n] || []).push({ id, ...d }); return { id }; },
-      aggiorna: async (n, i, d) => { const x = (mem[n] || (mem[n] = [])).find(v => v.id === i); if (x) Object.assign(x, d); },
+      aggiorna: async (n, i, d) => { const x = (mem[n] || (mem[n] = [])).find(v => v.id === i); if (x) applicaPercorsi(x, d); },
       rimuovi: async (n, i) => { mem[n] = (mem[n] || []).filter(v => v.id !== i); },
     };
   }
