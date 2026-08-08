@@ -110,3 +110,11 @@ caduti» mentre il service worker non compila; un «58» sulla sicurezza fermo d
 settimane; una nota che spiega un totale citando il totale di due settimane
 prima. In tutti e tre i casi il numero era tranquillo e non era stato misurato
 niente — che è esattamente la stessa cosa che cerchiamo nel prodotto.
+
+## 2026-08-08 16:22 UTC — ciclo automatico
+- **Commit di partenza**: `822265a`
+- **Che cosa sto per fare**: riprendere dal «prossimo passo atomico» dell'ultimo
+  checkpoint — **raccogliere il giro del browser** (PID 16670, avviato ~11:10Z,
+  registro in `scratchpad/nomi4/giro-nuovo.txt`) con `leggi-giro.mjs`, sezione 1
+  prima della 2; poi proseguire con le unità della settimana.
+  ⚠️ Quel giro attesta `c3888fe`: nessuna delle ventun unità dell'08/08 è dentro.
