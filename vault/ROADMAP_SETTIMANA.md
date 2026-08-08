@@ -1514,7 +1514,7 @@ numero scritto dove non era stato misurato niente**.*
 ## Riferimenti
 
 - Ultimo checkpoint **per data vera**:
-  `vault/checkpoints/20260808-021859_la-terza-domanda-sui-moduli.md`
+  `vault/checkpoints/20260808-022101_il-giro-rilanciato-sul-commit-corrente.md`
   *(dato da `node apps/deepwork-id/tests/date-checkpoint.mjs`, non letto a occhio:
   per NOME il più alto sarebbe `20260805-100000_…`, che è stato scritto **tre
   giorni prima**. Questa riga era ferma al 01/08: il puntatore al file più
