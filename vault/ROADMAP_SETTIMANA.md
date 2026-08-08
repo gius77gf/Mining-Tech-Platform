@@ -1381,11 +1381,26 @@ numero scritto dove non era stato misurato niente**.*
   dalla colonna Ora» + «6 nella colonna Ora»), così un terzo trattino dove
   serve una ragione si vedrebbe. Controprova: rimessi tutt'e due, 4 fuori
   posto e il banco cade.
+- [x] ✅ **Scudo · «Modello: —» sul verbale firmato, e la chiave doppia**
+  (`976e2a0`). Stessa domanda dei trattini portata sui due fogli appena entrati
+  nel banco: il verbale ne aveva **cinque**, tutti nella colonna «Modello». Su
+  un foglio che il lavoratore firma quel segno si legge «questo dispositivo non
+  ha un modello», mentre nessuno l'ha registrato — e l'art. 77 chiede che il DPI
+  sia **identificabile**. Ora «non registrato». ⚠️ La colonna «Taglia» tiene il
+  trattino ed è **voluto** («unica» è una risposta vera): l'eccezione sta nel
+  banco **per nome**, non in una regola larga.
+  ⛔ **E la lezione vera**: le due iniezioni di Scudo erano **due voci con la
+  stessa chiave** nello stesso oggetto — la seconda cancella la prima **senza un
+  errore da leggere**. La controprova rispondeva «ok» proprio sulla riga dei
+  trattini e stampava «0 iniezioni mancate», cioè tutti i segnali di una
+  controprova sana; l'ha smascherata solo il fatto che la riga che doveva cadere
+  non cadeva. È la **sesta causa** dell'elenco: lo strumento sotto. Banco
+  **73 → 76**.
 
 ## Riferimenti
 
 - Ultimo checkpoint **per data vera**:
-  `vault/checkpoints/20260808-005257_i-due-trattini-del-report-per-l-ente.md`
+  `vault/checkpoints/20260808-010434_il-modello-non-registrato-e-la-chiave-doppia.md`
   *(dato da `node apps/deepwork-id/tests/date-checkpoint.mjs`, non letto a occhio:
   per NOME il più alto sarebbe `20260805-100000_…`, che è stato scritto **tre
   giorni prima**. Questa riga era ferma al 01/08: il puntatore al file più
