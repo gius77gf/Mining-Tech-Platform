@@ -523,8 +523,26 @@ if (muti.length) {
      ha guardato almeno uno?»: il resto lo dice la passata senza filtro, che è
      quella che gira in `tutti.mjs`. Non è una regola più permissiva, è la
      stessa regola con il suo denominatore. */
-  dice(nNumeri > (SOLO ? 0 : 100),
-    `il controllo dei decimali ha guardato ${nNumeri} numeri veri, non zero${SOLO ? ` (solo «${SOLO}»: la soglia piena vale sul giro intero)` : ""}`, nNumeri);
+  /* ⛔ E CON UNA APP SOLA IL DENOMINATORE PUÒ ESSERE ZERO PER NATURA, e allora
+     un KO è la risposta sbagliata. Misurato l'08/08: `--solo=scudo` dava
+     «33 ok, 1 KO» su una copia PULITA di HEAD — i CSV di Scudo nella
+     dimostrazione non contengono **nessun** numero decimale, quindi il
+     controllo non ha un soggetto, non ne ha uno guasto. Un KO che non può mai
+     essere un difetto insegna a non guardare i KO: è la stessa famiglia del
+     rosso di una controprova letto per rosso vero, e costa allo stesso modo —
+     qualcuno apre un cantiere, o (peggio) smette di leggere la colonna.
+     La forma giusta è quella che questo repository usa già per i soggetti mai
+     comparsi: una riga «NON HO GUARDATO», che si legge PRIMA dei KO, invece di
+     un rosso. Il KO resta dov'è vero — sul giro intero, dove i numeri sono 215
+     e uno zero vorrebbe dire che il banco non sta più leggendo i file. */
+  if (SOLO && nNumeri === 0) {
+    console.log(`  ⚠️  NON MISURATO: nei CSV di «${SOLO}» non c'è nessun numero decimale da guardare,`
+      + ` quindi il controllo dei decimali non ha un soggetto — non vuol dire «a posto».`
+      + ` La soglia vera (>100) vale sul giro intero, che è quello che gira in tutti.mjs.`);
+  } else {
+    dice(nNumeri > (SOLO ? 0 : 100),
+      `il controllo dei decimali ha guardato ${nNumeri} numeri veri, non zero${SOLO ? ` (solo «${SOLO}»: la soglia piena vale sul giro intero)` : ""}`, nNumeri);
+  }
 }
 
 console.log(`\n${nBottoni} bottoni di export premuti (${nVeri} con un clic vero, ${nProgrammatici} su una sezione non visibile)`
