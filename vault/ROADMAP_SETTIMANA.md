@@ -1787,6 +1787,18 @@ numero scritto dove non era stato misurato niente**.*
   **è il numero sbagliato da scrivere** — la riga vive del `grep` su
   `xlsx|excel|jspdf`, che dà zero anche oggi.
 
+- [x] ✅ **Anche la SOMMA SCRITTA deve fare il totale** (`2d905ff`). Il
+  controllo sugli addendi c'era, ma leggeva **una notazione sola**: quella a
+  parole di `STATO_PRODOTTO.md`. La forma **aritmetica** di `DEVELOPMENT.md`
+  («1890 + 300 + 71 + 32 + 9 + 8») non la guardava nessuno — e ci stava dentro
+  un difetto vero: «1890 + 297 + **63** + 32 + 9 + 8» fa **2299**, non i 2307
+  dichiarati due parole prima. ⚠️ **L'ho trovato a occhio, cioè per fortuna e
+  non per controllo.** Stessa lezione dell'elenco `BROWSER` che guardava due
+  documenti su tre, in un'altra veste: qui il controllo non arrivava per una
+  differenza di **notazione**. La controprova rimette il difetto vero (71 → 63)
+  e pretende **almeno cinque addendi**, perché una catena letta a metà
+  tornerebbe «a posto» sommando due numeri. 24 → 26 prove.
+
 ## Riferimenti
 
 - Ultimo checkpoint **per data vera**:
