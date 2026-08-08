@@ -161,18 +161,35 @@ const DIFETTI = {
    `modoDimostrazione` di `shared/`. Spegnendola dall'interno il giro
    resterebbe verde anche se quella funzione smettesse di saper tacere sui dati
    veri — cioè proverebbe l'opposto di quello che dice di provare.
-   ⛔ E I SOGGETTI SONO DUE, non uno: i due vestiti di Campo — il riquadro del
-   foglio stampato e la riga in cima alla consegna .txt — chiedono ognuno per
-   conto suo. Toccandone uno solo l'altro continuerebbe a dichiarare, e il
-   banco griderebbe a un difetto che non c'è. */
+   ⛔ E I SOGGETTI SONO TRE, non due — corretto l'08/08, e la riga qui sotto
+   diceva «DUE» proprio mentre ne mancava uno. I vestiti di Campo che chiedono
+   il modo per conto loro sono: il riquadro del foglio stampato, la riga in
+   cima alla consegna `.txt`, e — dal 06/08 — il **nome del file scaricato**
+   (`marchiaCsv` → `nomeCsvDimostrazione(el.download, db.mode)`).
+   Il terzo era rimasto fuori, e l'effetto era **doppio e in due direzioni
+   opposte**:
+   · nella passata normale l'asserzione sul nome pretendeva `consegna_turno.txt`
+     **esatto**, quindi cadeva sul marchio che il prodotto mette di proposito —
+     un banco invecchiato che accusa il prodotto per una cosa che ha fatto il
+     prodotto (tre KO per giro, uno per passata);
+   · nella passata `--live` il nome restava **marchiato** anche fingendo la
+     produzione, perché l'iniezione non arrivava lì: cioè il banco **non poteva
+     accorgersi** se il nome smettesse di obbedire al modo. Il verde diceva
+     «i fogli escono puliti» avendo guardato due vestiti su tre.
+   Toccandone uno solo gli altri continuerebbero a dichiarare, e il banco
+   griderebbe a un difetto che non c'è. */
 const COME_LIVE = {
   "apps/campo/index.html": [
     ["  const avvisoEsempio = () => { const m = modoDimostrazione(db.mode);",
      '  const avvisoEsempio = () => { const m = modoDimostrazione("live");'],
     ["  const avvisoEsempioTesto = () => { const m = modoDimostrazione(db.mode);",
      '  const avvisoEsempioTesto = () => { const m = modoDimostrazione("live");'],
+    ["  const marchiaCsv = (el) => { el.download = nomeCsvDimostrazione(el.download, db.mode); return el; };",
+     '  const marchiaCsv = (el) => { el.download = nomeCsvDimostrazione(el.download, "live"); return el; };'],
   ],
 };
+/* Il marchio, scritto una volta sola: è quello di `shared/dw-shell.js`. */
+const MARCHIO = "DATI-DI-ESEMPIO_";
 
 let nCasi = 0, nDifetti = 0, difettiMancati = 0;
 const inietta = (rotta, testo) => {
@@ -407,7 +424,18 @@ if (fai("consegna")) {
   ]);
   if (!dl) { console.log("  ✗ nessun file scaricato: il banco non prova niente"); await b.close(); srv.close(); process.exit(2); }
   scaricati++;
-  dice(dl.suggestedFilename() === "consegna_turno.txt", "il file si chiama consegna_turno.txt", dl.suggestedFilename());
+  /* ⛔ IL NOME DIPENDE DAL MODO, e pretenderlo esatto in tutt'e due i casi era
+     il difetto del banco. In dimostrazione il file DEVE portare il marchio in
+     testa — è il modo in cui un `.txt` che finisce sulla scrivania di
+     qualcuno dichiara di non essere un turno vero; fingendo la produzione
+     DEVE uscirne pulito. Si pretende l'uguaglianza esatta in tutt'e due i
+     versi, non un suffisso: così il banco continua a vedere un nome sbagliato,
+     e in più vede il marchio che manca o che avanza. */
+  const atteso = (FINGE_LIVE ? "" : MARCHIO) + "consegna_turno.txt";
+  dice(dl.suggestedFilename() === atteso,
+    FINGE_LIVE ? "sui dati veri il file si chiama consegna_turno.txt, senza marchio"
+               : "in dimostrazione il file porta il marchio: " + atteso,
+    dl.suggestedFilename());
   let testo = ""; { const s = await dl.createReadStream(); for await (const c of s) testo += c; }
   dice(/CONSEGNA DI TURNO/.test(testo), "e contiene la consegna di turno", testo.slice(0, 40));
   diceAvviso(/DATI DI ESEMPIO/.test(testo), "⛔ la consegna dichiara di essere fatta di dati di esempio");
