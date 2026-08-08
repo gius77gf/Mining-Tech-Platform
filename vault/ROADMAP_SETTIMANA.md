@@ -1477,11 +1477,21 @@ numero scritto dove non era stato misurato niente**.*
   ⏱️ Terra resta **senza** controprova, e dichiarato: sui suoi fogli i trattini
   sono **zero**, quindi non c'è un difetto vero da rimettere — inventarne uno
   proverebbe il **rilevatore**, non il prodotto.
+- [x] ✅ **Misurato il costo della TERZA domanda di `nomi-liberi`** (`219f2cf`).
+  I nomi **riferiti** dentro un template (`${nome}`) sono la forma con cui
+  queste pagine compongono ogni riga di interfaccia, e oggi non li guarda
+  nessuno. Misurato **prima** di scrivere codice, come pretende la regola:
+  **3.742 riferimenti su 12 pagine, 2 allarmi, tutt'e due FALSI** — `CSS` (già
+  in `GLOBALI`) e `_fSW` di Genesi, che è il **terzo dichiaratore** di un
+  `const` spezzato su due righe. Rumore atteso: **zero**, purché il controllo
+  riusi `nomiDichiarati` e l'elenco vero. ⛔ **Terza volta in una notte che i
+  falsi allarmi vengono dal RIGHELLO e non dalla domanda** — sta diventando il
+  segno più affidabile che ci sia.
 
 ## Riferimenti
 
 - Ultimo checkpoint **per data vera**:
-  `vault/checkpoints/20260808-015743_la-controprova-della-regola-di-conti.md`
+  `vault/checkpoints/20260808-020147_il-costo-della-terza-domanda.md`
   *(dato da `node apps/deepwork-id/tests/date-checkpoint.mjs`, non letto a occhio:
   per NOME il più alto sarebbe `20260805-100000_…`, che è stato scritto **tre
   giorni prima**. Questa riga era ferma al 01/08: il puntatore al file più
