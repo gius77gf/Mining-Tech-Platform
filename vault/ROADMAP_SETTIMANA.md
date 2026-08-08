@@ -2078,6 +2078,30 @@ numero scritto dove non era stato misurato niente**.*
     ritardo.
   Misura: **arretrato 11 → 0 commit, 2 ⛔ → 0**, tutti e sei ✓.
 
+- [x] ✅ **Un giro lungo non diceva quanto era vecchio, e stavo per riaprire
+  cinque difetti chiusi** (`237fd67`). Successo **di persona**, ed è il modo
+  in cui questa riga vale più della correzione. Il giro del browser lanciato
+  stamattina — cinque ore e mezza — dichiarava **cinque contrasti sotto soglia**
+  fra core e Flotta: `.login-msg` 4,10 · `.sync-badge.offline` 3,75 ·
+  `.btn-danger` 3,89 · `.photo-del` 4,01 · `.chk-cr` 3,90. Tutti **veri**, e
+  tutti **già chiusi** da `5d57cbc` — **trentotto minuti dopo** il commit che
+  quel giro attesta, cioè quasi cinque ore prima che io leggessi il registro.
+  Ero a un passo dall'aprire un cantiere su difetti che non esistono.
+  ⛔ Il dato c'era già e non veniva sottratto: `tutti.mjs` scrive nella prima
+  riga il commit su cui gira. Adesso `leggi-giro.mjs` apre con una **sezione 0**
+  — prima ancora delle righe «non ho guardato» — che dice di quanti commit il
+  branch è andato avanti **e quanti di quelli toccano le superfici misurate**
+  (core, app, `shared/`). Su questo registro stampa: *«attesta `c3888fe`, il
+  branch è avanti di 55 commit, di cui **20** toccano le superfici misurate»*.
+  Un pomeriggio di soli documenti non fa più sembrare vecchio un giro fresco.
+  Controprova nei **tre** versi che contano — vecchio, fresco (`HEAD` → 0 e 0),
+  e **non lo so** quando il commit non è nella storia, invece di uno zero
+  tranquillizzante. Provata contro il difetto rimesso: fallisce con «*un commit
+  che non esiste dovrebbe dare «non lo so», non un numero*».
+  ⚠️ E la controprova è stata **registrata in `npm test`**: una guardia che non
+  gira è la stessa cosa di una guardia che non c'è, e questo file è pieno di
+  quella lezione.
+
 ## Riferimenti
 
 - Ultimo checkpoint **per data vera**:
@@ -2095,7 +2119,10 @@ numero scritto dove non era stato misurato niente**.*
   **2.326 prove** che girano senza rete — e la frase va letta stretta: sono la
   somma delle **sei** suite che contano asserzioni (`run-kpi` 1892, `run-stile`
   314, `run-helpers` 71, `run-pointcloud` 32, `run-manifest` 9, `run-demo` 8),
-  non tutto ciò che gira nel giro `node`, che di comandi ne ha **23**.
+  non tutto ciò che gira nel giro `node`, che di comandi ne ha **28** — i **32**
+  di `npm test` meno le quattro che vogliono gli emulatori. *(Erano 23 il
+  07/08; il numero sale ogni volta che una controprova viene collegata, ed è
+  esattamente quello che deve fare.)*
   Copertura **703/703** e nessuna funzione scoperta; **153 esecuzioni** che
   aprono le pagine in un browser vero (**71** file di banco distinti, contati
   dalla tabella `BANCHI` di `tutti.mjs` e non a occhio dalla cartella, che ne
