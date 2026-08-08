@@ -1814,6 +1814,19 @@ numero scritto dove non era stato misurato niente**.*
   da solo**. E i numeri sono stati **rimisurati**: 2.320 e 2.589 — il mio conto
   a mano dava 2.588, il +1 era `import esistenti` che conta per file.
 
+- [x] ✅ **Dichiarata l'altra metà del perimetro della copertura** (`23dcd43`).
+  Il censimento diceva già che Genesi resta fuori; **cinque moduli condivisi**
+  no — quindi «703 su 703, tutte al 100%», il numero che finisce nei documenti
+  del fondatore, si leggeva **più largo di quello che è**. La ragione è tecnica
+  (legge gli `export` ESM, e quei cinque espongono globali o sono una classe) e
+  **non sono scoperti**: adesso è scritto **dove** sono provati.
+  ⚠️ **Una ragione tecnica non dichiarata è indistinguibile da una
+  dimenticanza** — ed è per questo che un'ora prima tre moduli erano fuori da
+  ogni regola di `run-stile` senza che nessuno lo sapesse. ⚠️ E due risultati
+  **negativi** scritti come i positivi: `genesi-formato.js` era già nel
+  censimento (sembrava il candidato più probabile), e `run-kpi` e
+  `import-esistenti` il disco lo leggono già.
+
 ## Riferimenti
 
 - Ultimo checkpoint **per data vera**:
