@@ -649,7 +649,10 @@ export const TIPI_DOCUMENTO = [
 // nome locale, quindi le trenta chiamate interne a `statoScadenza` di questo file
 // restavano scoperte — dieci prove rosse subito, che è il comportamento giusto
 // della suite. Serve importare e poi ri-esportare il nome.
-import { statoScadenzaHSE, applicaPercorsi } from "../../shared/dw-ponti.js";
+import { statoScadenzaHSE, applicaPercorsi, traduciCancellazioni } from "../../shared/dw-ponti.js";
+/* le pagine lo chiamano col nome di casa: un alias non è una seconda
+   implementazione (regola del `shared/`) */
+export { percorsiDi, DW_CANCELLA } from "../../shared/dw-ponti.js";
 import { dataPiuGiorni as dataPiuGiorniShell } from "../../shared/deepwork-id-client/dw-shell.js";
 const statoScadenza = statoScadenzaHSE;
 export { statoScadenza };
@@ -3514,7 +3517,7 @@ export async function scudoData() {
     const { DeepworkID } = await import("../../shared/deepwork-id-client/index.js");
     const id = await DeepworkID.init({ appId: "scudo" });
     if (id.user && id.authState() === "member") {
-      const { getDocs, addDoc, deleteDoc, doc, updateDoc } =
+      const { getDocs, addDoc, deleteDoc, doc, updateDoc, deleteField } =
         await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
       mode = "live";
       const read = async (name) =>
@@ -3553,7 +3556,7 @@ export async function scudoData() {
         permessi:    () => read("permessi"),
         aggiungi: (name, data) => addDoc(id.orgCollection(name), data),
         logout: () => id.logout(),
-        aggiorna: (name, docId, data) => updateDoc(doc(id.orgCollection(name), docId), data),
+        aggiorna: (name, docId, data) => updateDoc(doc(id.orgCollection(name), docId), traduciCancellazioni(data, deleteField)),
         rimuovi: (name, docId) => deleteDoc(doc(id.orgCollection(name), docId)),
       };
       // ── PONTE P3 CON CAMPO — SOLA LETTURA ─────────────────────────────

@@ -1183,7 +1183,7 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
 
 
 <script type="module">
-  import { campoData, kpiFrom, parsePianoCsv, mappaPianoCsv, foriRipetuti, parseSquadreCsv, csvSquadre, scartoPct, scartoLivello, pianoRiepilogo, CAUSALI_FERMO, riepilogoFermi, paretoFermi, fermiPerGiorno, fermiSenzaGiorno, riassuntoRapportino, avanzamentoGiornata, coperturaRapportini,
+  import { campoData, kpiFrom, parsePianoCsv, mappaPianoCsv, foriRipetuti, parseSquadreCsv, csvSquadre, percorsiDi, scartoPct, scartoLivello, pianoRiepilogo, CAUSALI_FERMO, riepilogoFermi, paretoFermi, fermiPerGiorno, fermiSenzaGiorno, riassuntoRapportino, avanzamentoGiornata, coperturaRapportini,
            oggiISO, TURNI, turnoCorrente, diGiorno, senzaData, UNITA_PRODUZIONE, totaliProduzione, formattaProduzione, normalizzaPiano,
            squadraBase, RUOLI, operatoriDi, etichettaAssegnazione, eMia, caricoSquadre,
            idoneitaDiTurno, idoneitaOperatore, inTurnoOggi,
@@ -2611,8 +2611,19 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
       if (!doc) {
         await db.aggiungi("checklist", { data: OGGI, turno, squadra: squ, esiti: nuovi, note: "", ora: "" });
       } else {
-        const esiti = Object.assign({}, doc.esiti || {}, nuovi);
-        await db.aggiorna("checklist", doc.id, { esiti, ora: "" });
+        /* ⛔ SI SCRIVONO LE VOCI CAMBIATE, NON LA LISTA INTERA. Misura 5b
+           (08/08): due persone che spuntano voci DIVERSE della stessa
+           checklist si cancellavano a vicenda, in silenzio — la lista veniva
+           letta, cambiata in un punto e riscritta intera. Col percorso puntato
+           le due spunte convivono, misurato contro l'emulatore.
+           `percorsiDi` risponde `null` se una voce ha un punto nel nome: lì il
+           percorso la spezzerebbe e scriverebbe nel posto sbagliato senza
+           errori, quindi si torna a riscrivere l'oggetto — meno buono, non
+           sbagliato. */
+        const percorsi = percorsiDi("esiti", nuovi);
+        await db.aggiorna("checklist", doc.id, percorsi
+          ? { ...percorsi, ora: "" }
+          : { esiti: Object.assign({}, doc.esiti || {}, nuovi), ora: "" });
         if (doc.ora) toast("Checklist riaperta: hai cambiato una risposta.", "");
       }
       await refresh();

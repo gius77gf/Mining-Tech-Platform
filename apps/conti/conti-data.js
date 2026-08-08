@@ -67,7 +67,7 @@
 
 import { parseCsvLine, leggiCsv, csvCell, numIt, giorniTra, isIntestazione, dataISOEsiste, dataIt, conta, plurale,
          AVVISO_DECIMALE as AVVISO_DECIMALE_SHELL } from "../../shared/deepwork-id-client/dw-shell.js";
-import { provenienzaDi, misuratoPeriodo, numeroDichiarato, applicaPercorsi } from "../../shared/dw-ponti.js";
+import { provenienzaDi, misuratoPeriodo, numeroDichiarato, applicaPercorsi, traduciCancellazioni } from "../../shared/dw-ponti.js";
 export { numeroDichiarato } from "../../shared/dw-ponti.js";
 /* la classificazione dei costi vive in shared/ perché serve anche a Flotta:
    qui si RI-ESPORTA, non si riscrive. Un alias non è una seconda
@@ -2505,7 +2505,7 @@ export async function contiData() {
     const { DeepworkID } = await import("../../shared/deepwork-id-client/index.js");
     const id = await DeepworkID.init({ appId: "conti" });
     if (id.user && id.authState() === "member") {
-      const { getDocs, addDoc, updateDoc, deleteDoc, doc } =
+      const { getDocs, addDoc, updateDoc, deleteDoc, doc, deleteField } =
         await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
       mode = "live";
       const read = async (n) => (await getDocs(id.orgCollection(n))).docs.map(d => ({ id: d.id, ...d.data() }));
@@ -2530,7 +2530,7 @@ export async function contiData() {
         impostazioni: () => read("impostazioni"),
         aggiungi: (n, d) => addDoc(id.orgCollection(n), d),
         logout: () => id.logout(),
-        aggiorna: (n, i, d) => updateDoc(doc(id.orgCollection(n), i), d),
+        aggiorna: (n, i, d) => updateDoc(doc(id.orgCollection(n), i), traduciCancellazioni(d, deleteField)),
         rimuovi: (n, i) => deleteDoc(doc(id.orgCollection(n), i)),
       };
       // ── PONTE CON TERRA — SOLA LETTURA ────────────────────────────────

@@ -242,7 +242,7 @@ export const DEMO = {
 // serve a Terra, al ponte P2 e a Conti nel confronto cavato-contro-venduto: tre
 // posti, una regola. Qui resta il nome con cui Terra l'ha sempre chiamata.
 export { provenienzaDi as provenienzaRilievo } from "../../shared/dw-ponti.js";
-import { provenienzaDi, applicaPercorsi } from "../../shared/dw-ponti.js";
+import { provenienzaDi, applicaPercorsi, traduciCancellazioni } from "../../shared/dw-ponti.js";
 /* ⛔ «QUESTO NUMERO L'HA SCRITTO QUALCUNO?» — la regola sta in `shared/` e la
    usano già Conti e Sentinella; Terra era la terza app a averne bisogno e se ne
    teneva una versione più debole nel file che ESCE (`csvRilievi`). Non si
@@ -1901,7 +1901,7 @@ export async function terraData() {
     const { DeepworkID } = await import("../../shared/deepwork-id-client/index.js");
     const id = await DeepworkID.init({ appId: "terra" });
     if (id.user && id.authState() === "member") {
-      const { getDocs, addDoc, updateDoc, deleteDoc, doc } =
+      const { getDocs, addDoc, updateDoc, deleteDoc, doc, deleteField } =
         await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
       mode = "live";
       const read = async (name) =>
@@ -1915,7 +1915,7 @@ export async function terraData() {
         lotti: () => read("lotti"),
         aggiungi: (name, data) => addDoc(id.orgCollection(name), data),
         logout: () => id.logout(),
-        aggiorna: (name, docId, data) => updateDoc(doc(id.orgCollection(name), docId), data),
+        aggiorna: (name, docId, data) => updateDoc(doc(id.orgCollection(name), docId), traduciCancellazioni(data, deleteField)),
         rimuovi: (name, docId) => deleteDoc(doc(id.orgCollection(name), docId)),
       };
       // ── PONTE P2 CON CAMPO — SOLA LETTURA ─────────────────────────────

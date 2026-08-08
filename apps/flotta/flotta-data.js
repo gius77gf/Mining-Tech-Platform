@@ -85,7 +85,7 @@
 
 /* la regola sui numeri dichiarati vive in `shared/`: qui si IMPORTA, non si
    riscrive — è il difetto che questo repository ha già pagato quattro volte */
-import { numeroDichiarato, applicaPercorsi } from "../../shared/dw-ponti.js";
+import { numeroDichiarato, applicaPercorsi, traduciCancellazioni } from "../../shared/dw-ponti.js";
 import { parseCsvLine, csvCell, numIt, giorniTra, isIntestazione, numeroScritto, oggiISO,
          dataISOEsiste, dataIt, plurale,
          messaggioNumero as messaggioNumeroShell,
@@ -3008,7 +3008,7 @@ export async function flottaData() {
     const { DeepworkID } = await import("../../shared/deepwork-id-client/index.js");
     const id = await DeepworkID.init({ appId: "flotta" });
     if (id.user && id.authState() === "member") {
-      const { getDocs, addDoc, updateDoc, deleteDoc, doc } =
+      const { getDocs, addDoc, updateDoc, deleteDoc, doc, deleteField } =
         await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
       mode = "live";
       const read = async (n) => (await getDocs(id.orgCollection(n))).docs.map(d => ({ id: d.id, ...d.data() }));
@@ -3016,7 +3016,7 @@ export async function flottaData() {
         mezzi: () => read("mezzi"), manutenzioni: () => read("manutenzioni"), costi: () => read("costi"), ricambi: () => read("ricambi"), interventi: () => read("interventi"), scadenze: () => read("scadenze"), disponibilita: () => read("disponibilita"), controlli: () => read("controlli"), rifornimenti: () => read("rifornimenti"), fermi: () => read("fermi"),
         aggiungi: (n, d) => addDoc(id.orgCollection(n), d),
         logout: () => id.logout(),
-        aggiorna: (n, i, d) => updateDoc(doc(id.orgCollection(n), i), d),
+        aggiorna: (n, i, d) => updateDoc(doc(id.orgCollection(n), i), traduciCancellazioni(d, deleteField)),
         rimuovi: (n, i) => deleteDoc(doc(id.orgCollection(n), i)),
       };
     } else if (id.authState() === "tour") mode = "tour";

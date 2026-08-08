@@ -52,7 +52,10 @@
 import { parseCsvLine, numIt, isIntestazione, csvCell, numeroScritto, oggiISO as oggiISOShell, isoLocale,
          dataISOEsiste, dataPiuGiorni as dataPiuGiorniShell, conta, plurale, perLettura } from "../../shared/deepwork-id-client/dw-shell.js";
 /* la regola sui numeri dichiarati vive in `shared/`: si importa, non si riscrive */
-import { numeroDichiarato, applicaPercorsi } from "../../shared/dw-ponti.js";
+import { numeroDichiarato, applicaPercorsi, traduciCancellazioni } from "../../shared/dw-ponti.js";
+/* le pagine lo chiamano col nome di casa: un alias non è una seconda
+   implementazione (regola del `shared/`) */
+export { percorsiDi, DW_CANCELLA } from "../../shared/dw-ponti.js";
 
 // ══════════════════════════════════════════════════════════════════════
 // NUMERI COME SI SCRIVONO IN ITALIA — un solo posto per la convenzione
@@ -2856,7 +2859,7 @@ export async function campoData() {
     const { DeepworkID } = await import("../../shared/deepwork-id-client/index.js");
     const id = await DeepworkID.init({ appId: "campo" });
     if (id.user && id.authState() === "member") {
-      const { getDocs, addDoc, updateDoc, deleteDoc, doc } =
+      const { getDocs, addDoc, updateDoc, deleteDoc, doc, deleteField } =
         await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
       mode = "live";
       const read = async (name) =>
@@ -2875,7 +2878,7 @@ export async function campoData() {
         pianocarico: () => read("pianocarico"),
         aggiungi: (name, data) => addDoc(id.orgCollection(name), data),
         logout: () => id.logout(),
-        aggiorna: (name, docId, data) => updateDoc(doc(id.orgCollection(name), docId), data),
+        aggiorna: (name, docId, data) => updateDoc(doc(id.orgCollection(name), docId), traduciCancellazioni(data, deleteField)),
         rimuovi: (name, docId) => deleteDoc(doc(id.orgCollection(name), docId)),
       };
       // ── PONTE P2 CON TERRA — SOLA LETTURA ─────────────────────────────

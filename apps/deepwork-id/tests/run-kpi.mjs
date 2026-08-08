@@ -24396,20 +24396,76 @@ test("applicaPercorsi: un percorso puntato tocca il singolo campo, come fa Fires
   eq(ingenuo.esiti.dpi, false, "con Object.assign la spunta NON arriva…");
   eq(ingenuo["esiti.dpi"], true, "…perché la chiave resta letterale, col punto dentro");
 });
+/* ⛔ E IL GIRO VERO, ATTRAVERSO IL LIVELLO DATI DELL'APP — non contro la
+   funzione condivisa, che potrebbe essere giusta e non arrivare mai lì.
+   ⚠️ È `await test(...)`, non `test(...)`: una prova asincrona **lasciata in
+   volo** in fondo al file verrebbe messa in coda dopo `await Promise.all` e il
+   totale si stamperebbe senza aspettarla (misurato il 07/08: 1842 prima e 1842
+   dopo). `test` restituisce la sua promessa apposta, e qui si aspetta. */
+await test("⛔ il giro vero: due spunte diverse sulla stessa checklist convivono nella DIMOSTRAZIONE", async () => {
+  const db = await campo.campoData();
+  eq(db.mode, "demo", "senza login il livello dati è quello della dimostrazione");
+  const { id } = await db.aggiungi("checklist",
+    { data: "2026-08-08", turno: "mattina", esiti: { dpi: false, luci: false } });
+  const riga = async () => (await db.checklist()).find((r) => r.id === id);
+  /* Anna spunta i DPI, Bruno le luci: due scritture separate, come due telefoni */
+  await db.aggiorna("checklist", id, { "esiti.dpi": true });
+  await db.aggiorna("checklist", id, { "esiti.luci": true });
+  const dopo = await riga();
+  eq(dopo.esiti, { dpi: true, luci: true }, "convivono: nessuna delle due si perde");
+  eq(Object.keys(dopo).filter((k) => k.includes(".")), [],
+    "e non è rimasta nessuna chiave letterale col punto dentro");
+  await db.aggiorna("checklist", id, { "esiti.dpi": ponti.DW_CANCELLA });
+  eq((await riga()).esiti, { luci: true }, "e il contrassegno toglie la voce davvero");
+});
+test("percorsiDi: costruisce i percorsi, e dice NO quando non si può", () => {
+  eq(ponti.percorsiDi("esiti", { dpi: true, luci: false }),
+     { "esiti.dpi": true, "esiti.luci": false }, "da voci a percorsi");
+  eq(ponti.percorsiDi("esiti", {}), {}, "niente voci, niente percorsi");
+  /* ⛔ la ragione per cui questa funzione esiste invece di due righe sul posto:
+     una chiave che contiene GIÀ un punto verrebbe spezzata, e il dato finirebbe
+     in un ramo che non esiste **senza nessun errore**. Si risponde `null` —
+     la convenzione di casa per «non si può» — e chi chiama riscrive l'oggetto. */
+  eq(ponti.percorsiDi("esiti", { "a.b": 1 }), null, "una voce col punto nel nome: non si può");
+  eq(ponti.percorsiDi("esiti", { ok: 1, "a.b": 2 }), null, "e basta UNA a far rispondere no");
+});
+test("DW_CANCELLA: togliere una voce col percorso puntato, sulle due strade", () => {
+  /* col database vero la cancellazione è `deleteField()`, in memoria è `delete`:
+     la pagina scrive lo stesso contrassegno e non sa quale strada sta usando */
+  const o = { esiti: { a: 1, b: 2 } };
+  ponti.applicaPercorsi(o, { "esiti.a": ponti.DW_CANCELLA });
+  eq(o, { esiti: { b: 2 } }, "in memoria la voce sparisce davvero");
+  eq(ponti.applicaPercorsi({ x: 1, y: 2 }, { x: ponti.DW_CANCELLA }), { y: 2 },
+     "e vale anche senza percorso puntato");
+  eq(ponti.traduciCancellazioni({ a: ponti.DW_CANCELLA, b: 1 }, () => "<<del>>"),
+     { a: "<<del>>", b: 1 }, "sulla strada di Firestore diventa deleteField(), il resto passa");
+  eq(ponti.traduciCancellazioni(null, () => "<<del>>"), {}, "niente da tradurre non rompe");
+  /* ⛔ è un oggetto CONGELATO e unico, non una stringa: una sentinella scritta
+     come testo può collidere con un dato vero, e quella collisione non produce
+     niente da leggere */
+  ok(Object.isFrozen(ponti.DW_CANCELLA), "il contrassegno è congelato");
+  eq(ponti.applicaPercorsi({ x: 1 }, { x: "__dwCancella__" }), { x: "__dwCancella__" },
+     "una STRINGA che gli somiglia resta un dato, non diventa una cancellazione");
+});
 test("⛔ e le SEI dimostrazioni la usano davvero: una guardia scollegata non protegge niente", () => {
   /* La funzione può essere giusta e non essere chiamata da nessuno — è la
      famiglia del `<script>` dimenticato. Qui si guarda il livello in memoria
      di ognuna delle sei app: deve passare da `applicaPercorsi`, e NON deve
      essere rimasto l'`Object.assign` che tratta «esiti.dpi» come una chiave. */
   const APP = ["campo", "conti", "flotta", "scudo", "sentinella", "terra"];
-  const senza = [], vecchie = [];
+  const senza = [], vecchie = [], senzaTrad = [];
   for (const a of APP) {
     const src = readFileSync(join(HERE, `../../${a}/${a}-data.js`), "utf8");
     if (!/applicaPercorsi\(x,\s*d(ata)?\)/.test(src)) senza.push(a);
     if (/Object\.assign\(x,\s*d(ata)?\)/.test(src)) vecchie.push(a);
+    /* e la STRADA DI FIRESTORE: senza la traduzione, il contrassegno arriverebbe
+       al database come un oggetto qualunque e verrebbe SCRITTO invece che
+       cancellare — un dato finto al posto di una voce tolta */
+    if (!/traduciCancellazioni\(d(ata)?,\s*deleteField\)/.test(src)) senzaTrad.push(a);
   }
   eq(senza, [], "queste dimostrazioni non applicano i percorsi puntati");
   eq(vecchie, [], "queste hanno ancora l'Object.assign che tratta «esiti.dpi» come una chiave");
+  eq(senzaTrad, [], "queste non traducono il contrassegno di cancellazione per Firestore");
   eq(APP.length, 6, "e ha guardato tutte e sei le app");
 });
 test("applicaPercorsi è LA STESSA funzione in tutte e sei le app", () => {

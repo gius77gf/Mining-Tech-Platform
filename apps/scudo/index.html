@@ -1706,7 +1706,7 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
 
 
 <script type="module">
-  import { scudoData, statoScadenza, inTurnoOggi, kpiFrom, idoneitaLabel, idoneitaSuccessivo, idoneitaCriticita, livelloScadenza, coperturaFormazione, muroScadenze, MESI_NOMI, testoPromemoria, riepilogoInfortuni, parseInfortuniCsv, csvRegistroInfortuni, csvPersonaleScadenze, parseScadenzeCsv, parseLavoratoriCsv, SCADENZE_PRESET, presetScadenza, dataDaPeriodicita, TIPI_DOCUMENTO, azioneLabel, azioneStatoSuccessivo, statoAzione, azioniUrgenti, riepilogoAzioni, azioniDiEvento,
+  import { scudoData, statoScadenza, inTurnoOggi, kpiFrom, idoneitaLabel, idoneitaSuccessivo, idoneitaCriticita, livelloScadenza, coperturaFormazione, muroScadenze, MESI_NOMI, testoPromemoria, riepilogoInfortuni, parseInfortuniCsv, csvRegistroInfortuni, csvPersonaleScadenze, percorsiDi, DW_CANCELLA, parseScadenzeCsv, parseLavoratoriCsv, SCADENZE_PRESET, presetScadenza, dataDaPeriodicita, TIPI_DOCUMENTO, azioneLabel, azioneStatoSuccessivo, statoAzione, azioniUrgenti, riepilogoAzioni, azioniDiEvento,
     daAmbiente, etichettaAmbiente, riepilogoAmbiente, origineAzione, csvAzioni, parseAzioniCsv, etichettaScadenza,
     NEARMISS_CATEGORIE, NEARMISS_LUOGHI, categoriaNearMiss, luogoNearMiss, descrizioneNearMiss, riepilogoNearMiss, descriviLetturaNearMiss, bozzaNearMiss,
     GRAVITA_POTENZIALE, potenzialeDi, descriviPotenziale, riepilogoPotenziale, descriviRischioPotenziale,
@@ -4194,11 +4194,20 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
         '<label class="fl" for="modal-campo">Nota</label><textarea class="dw-input" id="modal-campo" rows="3" placeholder="Es. arginello mancante per una quarantina di metri">' + esc(e.nota || "") + "</textarea>",
         "Salva la nota");
       if (v === null) return;
-      const esiti = Object.assign({}, i.esiti || {});
+      /* ⛔ SI SCRIVE LA VOCE, NON LA LISTA INTERA. Misura 5b (08/08): due
+         persone che annotano voci DIVERSE della stessa ispezione si
+         cancellavano a vicenda, in silenzio. Col percorso puntato convivono.
+         E togliere una voce vuole il contrassegno: col percorso puntato una
+         cancellazione non si scrive con `undefined`, si scrive con
+         `deleteField()` — che il livello dati traduce da `DW_CANCELLA`. */
       const nota = v.trim();
-      if (!nota && !(e.esito)) delete esiti[notaV];
-      else esiti[notaV] = { esito: e.esito || "", nota };
-      await db.aggiorna("ispezioni", i.id, { esiti });
+      const via = !nota && !(e.esito);
+      const percorsi = percorsiDi("esiti", { [notaV]: via ? DW_CANCELLA : { esito: e.esito || "", nota } });
+      await db.aggiorna("ispezioni", i.id, percorsi || (() => {
+        const esiti = Object.assign({}, i.esiti || {});
+        if (via) delete esiti[notaV]; else esiti[notaV] = { esito: e.esito || "", nota };
+        return { esiti };
+      })());
       await refresh();
       esito("isp-c-esito", nota ? "Nota salvata." : "Nota rimossa.", "");
       return; }
@@ -5863,13 +5872,19 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
          farebbero 2,6 volte il tetto. */
       bilancio: () => bilancioFotoVoce(isp(), voceId),
       salva: async (foto) => {
-        const i = isp(), esiti = Object.assign({}, i.esiti || {});
-        const e = Object.assign({ esito: "", nota: "" }, esiti[voceId] || {});
+        const i = isp();
+        const e = Object.assign({ esito: "", nota: "" }, (i.esiti || {})[voceId] || {});
         if (foto.length) e.foto = foto; else delete e.foto;
         /* Una voce che resta senza esito, senza nota e senza foto non ha più
-           niente da dire: si toglie invece di restare una casella vuota. */
-        if (!e.esito && !e.nota && !e.foto) delete esiti[voceId]; else esiti[voceId] = e;
-        await db.aggiorna("ispezioni", ispId, { esiti });
+           niente da dire: si toglie invece di restare una casella vuota — e
+           col percorso puntato «togliere» è il contrassegno, non `undefined`. */
+        const via = !e.esito && !e.nota && !e.foto;
+        const percorsi = percorsiDi("esiti", { [voceId]: via ? DW_CANCELLA : e });
+        await db.aggiorna("ispezioni", ispId, percorsi || (() => {
+          const esiti = Object.assign({}, i.esiti || {});
+          if (via) delete esiti[voceId]; else esiti[voceId] = e;
+          return { esiti };
+        })());
         await refresh();
       },
     };

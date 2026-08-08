@@ -1155,7 +1155,7 @@ export function numeroDichiarato(x) {
    sempre: una regola scritta sei volte diverge sei volte. */
 export function applicaPercorsi(oggetto, dati) {
   for (const [k, v] of Object.entries(dati || {})) {
-    if (!k.includes(".")) { oggetto[k] = v; continue; }
+    if (!k.includes(".")) { if (v === DW_CANCELLA) delete oggetto[k]; else oggetto[k] = v; continue; }
     const parti = k.split(".");
     let cur = oggetto;
     for (let i = 0; i < parti.length - 1; i++) {
@@ -1165,7 +1165,51 @@ export function applicaPercorsi(oggetto, dati) {
       if (cur[p] === null || typeof cur[p] !== "object" || Array.isArray(cur[p])) cur[p] = {};
       cur = cur[p];
     }
-    cur[parti[parti.length - 1]] = v;
+    const ultima = parti[parti.length - 1];
+    if (v === DW_CANCELLA) delete cur[ultima]; else cur[ultima] = v;
   }
   return oggetto;
+}
+
+/* ⛔ TOGLIERE UNA VOCE COL PERCORSO PUNTATO — il contrassegno che serviva.
+   ══════════════════════════════════════════════════════════════════════════
+   Aprendo i dodici punti della misura 5b si è visto che i tre a OGGETTO non
+   sono «una riga»: le due ispezioni di Scudo sanno anche **togliere** una voce
+   («una voce senza esito, senza nota e senza foto non ha più niente da dire»),
+   e col percorso puntato una cancellazione non si scrive con `undefined` — si
+   scrive con `deleteField()` di Firestore.
+   Ma le pagine non hanno in mano le primitive di Firestore: il livello dati le
+   nasconde apposta. Serve quindi un **contrassegno** che la pagina possa
+   scrivere e che ognuna delle due strade traduca a modo suo — `deleteField()`
+   col database vero, `delete` nella dimostrazione.
+   È un oggetto **congelato e unico**, non una stringa: una stringa sentinella
+   può collidere con un dato vero scritto da una persona, e questo è il genere
+   di collisione che non produce niente da leggere. */
+export const DW_CANCELLA = Object.freeze({ __dwCancella: true });
+
+/* La traduzione per la strada di Firestore. `deleteField` arriva come
+   ARGOMENTO invece di essere importata qui: `shared/dw-ponti.js` è un modulo
+   puro che gira anche in `node`, e importare Firebase da gstatic lo
+   spezzerebbe. È la firma allargata al posto della copia. */
+export function traduciCancellazioni(dati, deleteField) {
+  const out = {};
+  for (const [k, v] of Object.entries(dati || {})) out[k] = v === DW_CANCELLA ? deleteField() : v;
+  return out;
+}
+
+/* ⛔ E COSTRUIRE I PERCORSI SI FA QUI, PERCHÉ HA UN CASO CHE NON SI PUÒ FARE.
+   Da `{ dpi: true, luci: false }` si ricava `{ "esiti.dpi": true, … }`. Ma se
+   una chiave contiene **già un punto**, il percorso puntato la spezzerebbe e
+   scriverebbe in un ramo che non esiste: un dato che finisce nel posto
+   sbagliato **senza nessun errore**, cioè la forma peggiore.
+   Qui si risponde `null` invece di indovinare — è la convenzione di casa per
+   «non si può» — e chi chiama torna a riscrivere l'oggetto intero, che è meno
+   buono ma non è sbagliato. */
+export function percorsiDi(campo, voci) {
+  const out = {};
+  for (const [k, v] of Object.entries(voci || {})) {
+    if (String(k).includes(".")) return null;
+    out[`${campo}.${k}`] = v;
+  }
+  return out;
 }
