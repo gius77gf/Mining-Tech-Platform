@@ -121,3 +121,32 @@ banco lo sorveglia con una riga che porta il **denominatore**: *«nessun
 trattino fuori dalla colonna Ora»* + *«6 trattini nella colonna Ora,
 facoltativa dichiarata all'import»*. Controprova: rimessi tutt'e due i
 trattini, 4 trattini fuori posto e il banco cade.
+
+
+## E i trattini di Scudo, misurati subito dopo
+
+Stessa domanda, stessi due fogli appena entrati nel banco. Il **verbale** ne
+aveva **cinque**, tutti nella colonna **«Modello»**; la **cartella** zero.
+
+Su un foglio che il lavoratore firma, «Modello: —» si legge *«questo
+dispositivo non ha un modello»*, mentre la verità è che **nessuno l'ha
+registrato** — e l'art. 77 chiede che il DPI consegnato sia **identificabile**.
+Adesso scrive «non registrato», la stessa parola delle due colonne accanto,
+corrette lo stesso giorno.
+
+⚠️ **La colonna «Taglia» resta col trattino, ed è voluto**: «unica» esiste
+davvero come risposta, quindi una taglia vuota su un dispositivo a taglia unica
+non è una mancanza. Sono **due domande diverse** e vanno scritte diverse —
+l'eccezione sta nel banco **per nome**, non in una regola larga che le confonde.
+
+## ⛔ E una chiave doppia in un oggetto letterale non fa rumore
+
+Costata mezz'ora lo stesso giorno. Le due iniezioni di Scudo erano scritte come
+**due voci** `"apps/scudo/index.html"` dentro lo stesso oggetto `DIFETTI`: la
+seconda **cancella** la prima, senza un errore da leggere. Effetto: la
+controprova rispondeva **«ok»** proprio sulla riga dei trattini mentre le altre
+cadevano, e il riepilogo diceva «2 difetti rimessi, **0 iniezioni mancate**» —
+cioè tutti i segnali di una controprova sana.
+Il segno che l'ha smascherata: **la riga che doveva cadere non cadeva**, e
+nient'altro. Unite in una chiave sola: 3 difetti rimessi, 5 KO, e la riga
+stampa le colonne colpevoli (`["Modello" ×5]`).

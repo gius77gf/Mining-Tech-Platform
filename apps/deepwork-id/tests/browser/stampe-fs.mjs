@@ -156,9 +156,19 @@ const DIFETTI = {
      ⚠️ Si tocca `avvisoEsempio` e NON `avvisoEsempioTesto`, che è la terza
      uscita di Scudo (il promemoria negli appunti) e non c'entra con i fogli:
      iniettarli insieme confonderebbe due strati che sono separati apposta. */
+  /* ⛔ E LE DUE INIEZIONI DI SCUDO STANNO IN UNA CHIAVE SOLA, per una ragione
+     pagata subito: scritte come DUE voci `"apps/scudo/index.html"` nello stesso
+     oggetto, la seconda **cancella** la prima senza un errore da leggere — e la
+     controprova rispondeva «ok» sulla riga dei trattini mentre le altre
+     cadevano. Una chiave doppia in un oggetto letterale non fa rumore: è la
+     stessa famiglia dell'elenco a mano che si accorcia da solo. */
   "apps/scudo/index.html": [
     ["  const avvisoEsempio = (frase) => { const m = modoDimostrazione(db.mode);",
      '  const avvisoEsempio = (frase) => { const m = modoDimostrazione("live");'],
+    /* il modello non registrato che sul verbale firmato si leggeva «questo
+       dispositivo non ha un modello» */
+    ['<td>${c.modello ? esc(c.modello) : "non registrato"}</td>',
+     '<td>${esc(c.modello || "—")}</td>'],
   ],
   "apps/sentinella/sentinella-data.js": [
     // 4. il filtro che giudica la data da com'è scritta
@@ -638,6 +648,37 @@ if (fai("scudo")) {
     diceAvviso(/DATI DI ESEMPIO/i.test(foglio), `⛔ «${nome}» dichiara di essere fatto di dati di esempio`);
     diceAvviso(conseguenza.test(foglio), `e dice che cosa comporta: ${cosaDice}`,
       foglio.slice(0, 140));
+
+    /* ⛔ I TRATTINI DI QUESTO FOGLIO, con l'eccezione DICHIARATA. L'08/08 il
+       verbale ne aveva cinque, tutti nella colonna «Modello»: su un foglio
+       firmato quel segno si legge «questo dispositivo non ha un modello»,
+       mentre la verità è che nessuno l'ha registrato — e l'art. 77 chiede che
+       il DPI consegnato sia identificabile. La colonna «Taglia» resta invece
+       col trattino, ed è voluto: «unica» esiste davvero come risposta, quindi
+       una taglia vuota su un dispositivo a taglia unica non è una mancanza.
+       Due domande diverse, due scritture diverse — e l'eccezione sta qui, per
+       nome, invece che in una regola larga che le confonde. */
+    const tr = await pg.evaluate(() => {
+      const doc = document.getElementById("verbale"); if (!doc) return null;
+      const w = document.createTreeWalker(doc, NodeFilter.SHOW_TEXT);
+      let n, taglia = 0, altri = 0, dove = [];
+      while ((n = w.nextNode())) {
+        if ((n.textContent || "").trim() !== "—") continue;
+        const cel = n.parentElement, td = cel && cel.closest("td");
+        const rg = td && td.closest("tr"), tab = td && td.closest("table");
+        let col = "(fuori tabella)";
+        if (td && rg && tab) {
+          const i = Array.from(rg.children).indexOf(td);
+          const th = tab.querySelectorAll("thead th")[i];
+          if (th) col = th.innerText.trim();
+        }
+        if (/^taglia$/i.test(col)) taglia++; else { altri++; dove.push(col); }
+      }
+      return { taglia, altri, dove: dove.slice(0, 5) };
+    });
+    dice(tr && tr.altri === 0,
+      `⛔ «${nome}»: nessun trattino «—» fuori dalla colonna «Taglia», l'unica in cui il vuoto è una risposta`, tr);
+    console.log(`     («${nome}»: ${tr ? tr.taglia : "?"} trattini nella colonna Taglia, dichiarata)`);
   }
   dice(stampatiScudo === FOGLI_SCUDO.length,
     `tutti e ${FOGLI_SCUDO.length} i fogli di Scudo sono stati composti davvero`, stampatiScudo);
