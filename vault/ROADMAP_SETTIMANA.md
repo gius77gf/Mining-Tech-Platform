@@ -1449,11 +1449,21 @@ numero scritto dove non era stato misurato niente**.*
   📊 **Bilancio chiuso sui quattro fogli raggiunti**: **11 difetti corretti**,
   **11 giusti**, 10 che non erano nel foglio, **0 aperti**. Resta fuori solo la
   denuncia di **Terra**, che apre una finestra nuova.
+- [x] ✅ **Terra · l'ultimo foglio scoperto, e il censimento chiuso** (`36c7815`).
+  Il riepilogo annuale vive in una **finestra a parte**, e per questo nessuna
+  misura lo raggiungeva — «non misurato» non è «a posto». Misurato: **zero**
+  trattini. Con questo **tutti** i fogli raggiungibili sono stati premuti,
+  letti e giudicati: **10 difetti corretti, 11 trattini giusti, 0 aperti**.
+  ⛔ E gli undici «giusti» sono la metà che vale di più: sono i posti in cui il
+  prodotto **si rifiuta** di scrivere un numero comodo (la «Quota» spenta
+  perché sommare percentuali non ha senso, l'ora facoltativa per disegno,
+  l'aliquota assente che su una fattura dichiara un'operazione **non
+  imponibile**). Accusarli sarebbe stato il danno peggiore della notte.
 
 ## Riferimenti
 
 - Ultimo checkpoint **per data vera**:
-  `vault/checkpoints/20260808-013907_la-fattura-a-importo-unico.md`
+  `vault/checkpoints/20260808-014519_il-censimento-dei-trattini-chiuso.md`
   *(dato da `node apps/deepwork-id/tests/date-checkpoint.mjs`, non letto a occhio:
   per NOME il più alto sarebbe `20260805-100000_…`, che è stato scritto **tre
   giorni prima**. Questa riga era ferma al 01/08: il puntatore al file più
