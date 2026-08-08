@@ -1,5 +1,60 @@
 # Ultimo ciclo di lavoro automatico
 
+**2026-08-08T18:31Z** · ultimo commit **`140b323`** · branch
+`claude/scheduled-tasks-remote-control-bk4ap6`
+
+## Il blocco appena chiuso — quattordici unità
+
+Filo della giornata: **le cose che dicono una cosa tranquilla dove non è stato
+misurato niente**, e — nella seconda metà — **gli strumenti che mentivano**.
+
+**Nel prodotto**
+1. Sentinella diceva «responsabile da assegnare» anche quando la lettura da
+   Scudo **falliva**: un'affermazione sull'azione, mentre il fatto riguardava la
+   nostra lettura. Quattro stati distinti, e il non-so in neretto.
+2. Scudo faceva lo stesso ma peggio: un responsabile **tolto dall'anagrafica**
+   diventava «da assegnare» in quattro punti dello schermo **e nel CSV che va
+   all'ispettore**. La finestra di conferma adesso dice *prima* che cosa resta
+   appeso a quel nome.
+3. Flotta scriveva nel CSV del commercialista una data che **non esiste**
+   (`2026-02-30`), e la contava fra quelle *con* la data — mentre lo schermo
+   diceva «—». Poi la stessa domanda alle altre cinque app: **venti punti in
+   sei**, adesso **zero**, con la **regola 30** che li tiene fuori.
+
+**Negli strumenti**
+4. Un giro del browser da sei ore dichiarava cinque contrasti **già corretti**
+   cinque ore prima: adesso `leggi-giro` apre dicendo **quanto è vecchio**.
+5. La dichiarazione «qui il rosso è voluto» copriva **una riga sola**:
+   quattordici KO intenzionali letti come difetti veri.
+6. **Tre iniezioni di controprova su 174** non trovavano più il loro pezzo —
+   controprove spente in silenzio. Adesso una suite lo dice in tre secondi.
+7. Un giro ucciso lasciava **71 copie** (1,3 GB) e il **server** che teneva la
+   porta: il giro dopo le toglie, con la controprova nei due versi.
+
+**Igiene**
+8. L'arretrato dei sei documenti di ricerca è **a zero per la prima volta**.
+9. La decisione **5b** adesso dice che la prima metà è costruita e isola la sola
+   domanda che resta al fondatore.
+
+## Che cosa aspetta te
+
+⛔ **La coda offline (decisione 5b, seconda metà).** È misurata, non dedotta:
+staccata la rete la scrittura si fa e **arriva da sola** quando la rete torna.
+Ma se intanto un altro scrive la stessa riga, **vince chi era staccato** e la
+scrittura di chi era in linea **sparisce in silenzio**. Non l'ho accesa, e la
+domanda è tua: *quando due si incontrano al ritorno, chi vince e come lo diciamo
+a chi ha perso?*
+
+## Adesso
+
+Gira il giro completo del browser sul commit `4358487` — lanciato **a blocco
+chiuso**, com'è la regola, dopo che lanciarlo a metà aveva fatto durare ogni
+verifica dieci volte tanto.
+
+*(I paragrafi qui sotto raccontano i cicli precedenti.)*
+
+---
+
 **2026-08-08T12:21Z** · commit di partenza **`ca0a78d`** · branch
 `claude/scheduled-tasks-remote-control-bk4ap6`
 
