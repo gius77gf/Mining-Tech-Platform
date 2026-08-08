@@ -896,6 +896,58 @@ Perché serva davvero e non produca elenchi generici, cinque vincoli:
   **forma** dell'intestazione, non sulle parole (sana = senza ` · `). E vale
   quello che vale per ogni controllo: va chiesto **quanti soggetti ha guardato**
   — le intestazioni si contano in un secondo, e il conto che non torna si vede.
+  ⛔ **E L'08/08 LA TERZA VOLTA, PERCHÉ LA DICHIARAZIONE ERA UN'ETICHETTA SU UNA
+  RIGA E NON UN INTERVALLO.** Il runner dichiara subito dopo la **propria**
+  intestazione; ma molti banchi ne stampano una **loro**, a otto uguali, e da lì
+  in giù chi legge apre una sezione nuova che la dichiarazione non copre.
+  Misurato: `struttura di Genesi · controprova` dichiarava, poi il banco apriva
+  «Genesi: la struttura è quella del core? · controprova» e i suoi **quattordici**
+  KO voluti finivano fra quelli veri. Adesso `tutti.mjs` **chiude** la
+  dichiarazione (`FINE CONTROPROVA`) e `leggi-giro` eredita il flag **dentro
+  l'intervallo** — e solo lì: ereditare per sempre dipingerebbe di «voluto» tutto
+  il resto del giro, cioè nasconderebbe i difetti, ed è provato nei due versi.
+  La lezione oltre al caso: **una dichiarazione che vale per un TRATTO va scritta
+  con un inizio e una fine**, se no il primo che stampa qualcosa in mezzo la
+  cancella senza saperlo.
+- ⛔ **UN GIRO LUNGO NON DICE QUANTO È VECCHIO, E I SUOI KO SI LEGGONO COME SE
+  FOSSERO DI ADESSO.** Misurato l'08/08 e a un passo dal costare un cantiere
+  intero. Un giro da cinque ore e mezza dichiarava **cinque contrasti sotto
+  soglia** fra core e Flotta — tutti **veri**, e tutti **già chiusi** trentotto
+  minuti dopo il commit che quel giro attesta, cioè quasi cinque ore prima che
+  io leggessi il registro. Stavo aprendo il file del core per correggerli.
+  Il dato per accorgersene **c'era già** in cima al registro («gira su una COPIA
+  di `c3888fe`»): mancava la **sottrazione**, che costa un `git rev-list`.
+  Adesso `leggi-giro.mjs` apre con una **sezione 0** — prima ancora delle righe
+  «non ho guardato» — che dice di quanti commit il branch è andato avanti **e
+  quanti di quelli toccano le superfici misurate** (il core, le app, `shared/`):
+  contare solo i commit non basta, un pomeriggio di documenti farebbe sembrare
+  vecchio un giro fresco. Se il commit non è nella storia si dichiara «**non lo
+  so**» invece di stampare uno zero tranquillizzante.
+  ⚠️ **E la prima asserzione che lo provava era vera in casa e falsa in CI**:
+  pretendeva che `HEAD~5` desse **5**, e in CI ha dato **1407**, perché GitHub
+  non prova il branch ma il **merge** del branch col ramo di destinazione — da un
+  commit di fusione `HEAD~5..HEAD` raccoglie anche tutto il secondo genitore.
+  Riprodotto in casa su un merge vero: 126 invece di 5. È la terza veste di
+  «verde in casa, rosso in CI» — dopo gli **scrittori** diversi e l'**ordine**
+  di due eventi, la **forma della storia di git**.
+- ⛔ **UN'INIEZIONE DI CONTROPROVA CHE NON TROVA PIÙ IL SUO PEZZO SPEGNE LA
+  CONTROPROVA IN SILENZIO.** Famiglia nuova, misurata l'08/08 col denominatore:
+  **174 iniezioni in 20 banchi, TRE scadute**. Un banco prova di saper fallire
+  cercando una stringa di codice e sostituendola con la versione rotta; ma quella
+  stringa cita il codice **testualmente**, e il codice si muove — e si muove
+  quasi sempre perché è **migliorato**. Quando non combacia più non succede
+  niente di visibile: la pagina servita resta **sana**, la controprova gira su un
+  prodotto sano, e il banco dichiara «non distingue». È la **terza delle cinque
+  cause**, quella in cui non si tocca né la prova né il codice.
+  Le tre, e la loro origine buona: una decisione spostata in `provenienzaPpv`
+  perché il foglio stampabile non ce l'aveva; le unità avvolte in
+  `<span class="u">` dal cantiere dei maiuscoli; una riga diventata la funzione
+  `_ppvBaseHtml` perché la usano in due.
+  Adesso c'è `apps/deepwork-id/tests/iniezioni-fresche.mjs`, che fa la domanda
+  **senza browser e senza server** e gira in `npm test`: tre secondi invece di
+  sei ore. ⚠️ E il suo primo righello sbagliava col segno di sempre — tre allarmi
+  identici nello stesso banco — perché leggeva ogni tabella come
+  `[cerca, sostituisci]` mentre `scudo-disegni` usa `[file, cerca, sostituisci]`.
 - ⛔ **UN BANCO CHE PORTA DENTRO UN NUMERO ATTESO INVECCHIA COL CRESCERE DELLA
   DIMOSTRAZIONE — e accusa il prodotto per una cosa che ha fatto il prodotto.**
   Misurato il 07/08 sui due soli KO di un giro pulito. Il banco pretendeva che i
