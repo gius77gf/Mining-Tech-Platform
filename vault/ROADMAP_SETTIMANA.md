@@ -1459,11 +1459,20 @@ numero scritto dove non era stato misurato niente**.*
   perché sommare percentuali non ha senso, l'ora facoltativa per disegno,
   l'aliquota assente che su una fattura dichiara un'operazione **non
   imponibile**). Accusarli sarebbe stato il danno peggiore della notte.
+- [x] ✅ **I trattini diventano regola su Conti e Terra** (`1ab3654`). Dopo aver
+  giudicato ogni trattino uno per uno, le misure diventano **regole** — ma solo
+  dove il giudizio è chiuso, e con le colonne ammesse dichiarate **per nome**:
+  Conti soglia **zero** fuori da «Sconto» (l'unica in cui il vuoto è uno stato
+  vero), Terra soglia **zero** senza colonne ammesse. ⛔ **Flotta resta una
+  misura**, e la ragione è scritta: dei quattro trattini rimasti tre sono
+  legittimi ma stanno **fuori da qualunque tabella**, e un elenco che dovesse
+  nominare testo di pagina invece di intestazioni sarebbe **fragile** — una
+  regola fragile che sbaglia insegna a non guardarla. Banco **76 → 82**.
 
 ## Riferimenti
 
 - Ultimo checkpoint **per data vera**:
-  `vault/checkpoints/20260808-014519_il-censimento-dei-trattini-chiuso.md`
+  `vault/checkpoints/20260808-015138_i-trattini-diventano-regola.md`
   *(dato da `node apps/deepwork-id/tests/date-checkpoint.mjs`, non letto a occhio:
   per NOME il più alto sarebbe `20260805-100000_…`, che è stato scritto **tre
   giorni prima**. Questa riga era ferma al 01/08: il puntatore al file più
