@@ -52,7 +52,7 @@
    Uso:  node classi-orfane.mjs           (regola)
          node classi-orfane.mjs --controprova
 */
-import { readFileSync } from "node:fs";
+import { readFileSync, readdirSync } from "node:fs";
 import { join, dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { senzaCommenti } from "./tokenizza.mjs";
@@ -61,10 +61,34 @@ const QUI = dirname(fileURLToPath(import.meta.url));
 const R = resolve(QUI, "..", "..", "..");
 const leggi = (p) => { try { return readFileSync(join(R, p), "utf8"); } catch { return null; } };
 
-export const PAGINE = ["index.html", "apps/index.html", "apps/genesi/genesi.html",
-  "apps/conti/index.html", "apps/flotta/index.html", "apps/scudo/index.html",
-  "apps/campo/index.html", "apps/sentinella/index.html", "apps/terra/index.html",
-  "apps/deepwork-id/admin.html", "apps/deepwork-id/profilo.html", "apps/deepwork-id/index.html"];
+/* ⛔ L'ELENCO ERA SCRITTO A MANO E NE PERDEVA QUATTRO — trovato l'08/08.
+   `run-stile` ha la sua guardia («ogni pagina del repo è guardata o esclusa con
+   la ragione») dal 03/08, e quel giorno aveva scoperto quattro pagine
+   dimenticate — fra cui, testualmente, «due che l'utente apre davvero: quella
+   in cui si finisce quando manca un permesso, e il portone di Genesi». Qui la
+   guardia non c'era, e mancavano **le stesse due**, più due superfici di
+   collaudo. Cioè la correzione era stata fatta in un file e non nell'altro: è
+   la copia debole, applicata a un elenco invece che a una funzione.
+   Adesso l'elenco si **deriva dal disco**, così una pagina nuova entra da sé, e
+   chi resta fuori lo dice con la ragione. */
+const FUORI_PAGINE = {
+  "shared/_collaudo-grafici.html":
+    "il collaudo del motore dei grafici — l'underscore nel nome lo dichiara: "
+    + "serve a guardare i grafici affiancati, non è un'interfaccia",
+  "apps/genesi/nuvola-poc.html":
+    "la prova di concetto del lettore di nuvole di punti: una pagina di "
+    + "collaudo, non una schermata del prodotto",
+};
+function tutteLePagine(dir = "", trovate = []) {
+  for (const v of readdirSync(join(R, dir), { withFileTypes: true })) {
+    if (["node_modules", ".git", "vendor", "img", "immagini"].includes(v.name)) continue;
+    const rel = dir ? `${dir}/${v.name}` : v.name;
+    if (v.isDirectory()) tutteLePagine(rel, trovate);
+    else if (v.name.endsWith(".html")) trovate.push(rel);
+  }
+  return trovate;
+}
+export const PAGINE = tutteLePagine().filter((p) => !(p in FUORI_PAGINE)).sort();
 
 /* ⛔ LE ECCEZIONI SI DICHIARANO UNA PER UNA CON LA RAGIONE, e la suite pretende
    che ognuna **si presenti ancora**: un'eccezione che non serve più è
