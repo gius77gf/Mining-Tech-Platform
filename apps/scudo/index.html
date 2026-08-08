@@ -3974,7 +3974,10 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
         // «tra 1671 giorni» non dice niente: il conto alla rovescia serve solo
         // quando c'è davvero qualcosa da fare.
         const meta = [
-          "consegnato il " + fmtData(c.dataConsegna),
+          /* stessa regola della colonna del verbale: il «—» di una data che
+             nessuno ha scritto si legge «non serve», e qui la data è il fatto
+             che il registro esiste per tenere. Lo stato lo dice il modulo. */
+          st.leggibile ? "consegnato il " + fmtData(c.dataConsegna) : "data di consegna non indicata",
           /* decisione 14: le tre letture sono diverse e vanno dette diverse —
              la data c'è; nessuno l'ha scritta; oppure qualcuno ha dichiarato
              che quel pezzo non ha una vita utile. La terza è una risposta, le
@@ -5406,7 +5409,7 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
              che è quello che il modulo dice («senza data»).
              ⚠️ Questo commento è dentro un template literal: niente apici
              inversi qui, chiuderebbero la stringa a metà. -->
-        <td>${fmtData(c.dataConsegna)}</td><td>${
+        <td>${r.leggibile ? fmtData(c.dataConsegna) : "non indicata"}</td><td>${
           c.nonScade === true ? "non scade (dichiarato)"
           : r.stato === "senza data" ? "non indicata"
           : fmtData(c.scadenza) + (r.stato === "scaduta" ? " — DA SOSTITUIRE"
@@ -5536,7 +5539,8 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
             impedire, un piano più sotto. */""}
       ${sezione("Dispositivi di protezione consegnati",
           c.verbale.righe.map(r => riga(r.tipo.etichetta || r.consegna.tipo,
-            fmtData(r.consegna.dataConsegna) + (r.consegna.taglia ? " · taglia " + esc(r.consegna.taglia) : "")
+            (r.leggibile ? fmtData(r.consegna.dataConsegna) : "data di consegna non indicata")
+            + (r.consegna.taglia ? " · taglia " + esc(r.consegna.taglia) : "")
             + (r.stato === "scaduta" ? " · <b>da sostituire</b>"
              : r.stato === "in-scadenza" ? " · da sostituire a breve"
              : r.stato === "senza data" ? " · <b>senza data di sostituzione</b>" : "")

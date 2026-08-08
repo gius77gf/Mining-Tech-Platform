@@ -1350,8 +1350,8 @@ numero scritto dove non era stato misurato niente**.*
   nome apre il file sbagliato credendo che sia il più fresco.
 - Le decisioni: `docs/DECISIONI_WEEKEND.md` — pagina d'ingresso in cima.
 - Stato misurato al **07/08, sera** (lanciando le suite, non a memoria):
-  **2.306 prove** che girano senza rete — e la frase va letta stretta: sono la
-  somma delle **sei** suite che contano asserzioni (`run-kpi` 1889, `run-stile`
+  **2.307 prove** che girano senza rete — e la frase va letta stretta: sono la
+  somma delle **sei** suite che contano asserzioni (`run-kpi` 1890, `run-stile`
   297, `run-helpers` 71, `run-pointcloud` 32, `run-manifest` 9, `run-demo` 8),
   non tutto ciò che gira nel giro `node`, che di comandi ne ha **23**.
   Copertura **703/703** e nessuna funzione scoperta; **153 esecuzioni** che

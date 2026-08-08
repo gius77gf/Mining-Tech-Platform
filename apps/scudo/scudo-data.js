@@ -2783,8 +2783,23 @@ export function ultimaConsegnaDpi(consegne, lavoratoreId, tipo) {
 // nemmeno proporre. Chi dichiara che quel pezzo non ha una vita utile lo
 // scrive, e da quel momento il verde è una risposta MISURATA invece che un
 // vuoto travestito.
+/* ⛔ `leggibile` DICE SE LA DATA DI CONSEGNA SI PUÒ LEGGERE, e non c'era.
+   Misurato il 08/08 mettendo i due fogli sugli stessi dati: la colonna
+   «Sostituire entro» del verbale, corretta il 03/08 per questa identica
+   ragione, su una scadenza assente scrive «non indicata»; la colonna accanto —
+   «Consegnato il» — su una data assente, vuota o **impossibile** scriveva
+   «—», che su un foglio stampato si legge «non serve». Ed è la data che quel
+   foglio esiste per provare: un verbale di consegna dei DPI (art. 77 D.Lgs
+   81/2008) lo firma il lavoratore, e senza il giorno non prova niente.
+   Lo stato lo decide il modulo e le tre stampe lo LEGGONO — è la regola già
+   scritta nel commento della colonna vicina: «la colonna legge lo stato della
+   riga, non ri-decide».
+   ⚠️ Raggiungibilità dichiarata, non gonfiata: il form pretende la data
+   (`if (!lavoratoreId || !tipo || !dataConsegna)`) e un import dei DPI non
+   esiste, quindi oggi il caso arriva solo da dati vecchi o scritti a mano —
+   **latente, non impossibile**, come per `rilievoUsabile` in Terra. */
 export function statoConsegnaDpi(consegna, oggi = new Date()) {
-  if (!consegna) return { stato: "mancante", scadenza: null, addestramentoMancante: false, nonScade: false };
+  if (!consegna) return { stato: "mancante", scadenza: null, addestramentoMancante: false, nonScade: false, leggibile: false };
   const t = tipoDpi(consegna.tipo);
   const nonScade = consegna.nonScade === true;
   return {
@@ -2792,6 +2807,7 @@ export function statoConsegnaDpi(consegna, oggi = new Date()) {
     scadenza: consegna.scadenza || null,
     addestramentoMancante: !!(t && t.addestramento) && !consegna.addestramento,
     nonScade,
+    leggibile: dataISOEsiste(String(consegna.dataConsegna == null ? "" : consegna.dataConsegna).slice(0, 10)),
   };
 }
 
@@ -3173,7 +3189,7 @@ export function verbaleDpi(lavoratore, consegne, oggi = new Date()) {
     .map(c => {
       const t = tipoDpiSicuro(c.tipo);
       const st = statoConsegnaDpi(c, oggi);
-      return { consegna: c, tipo: t, stato: st.stato,
+      return { consegna: c, tipo: t, stato: st.stato, leggibile: st.leggibile,
         addestramentoRichiesto: !!t.addestramento, addestramentoFatto: !!c.addestramento };
     });
   return {

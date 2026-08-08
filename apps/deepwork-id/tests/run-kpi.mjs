@@ -8463,6 +8463,30 @@ test("statoVuoto: la struttura è quella del core, invariata", () => {
     eq(v.righe[0].consegna.id, "x2", "la più recente in cima");
     eq(v.righe.length, 2, "e la storia resta tutta");
   });
+  test("⛔ la DATA DI CONSEGNA che non si può leggere si dichiara, non diventa «—»", () => {
+    /* Su un foglio stampato «—» si legge «non serve». Qui la data è il fatto
+       che il verbale esiste per provare: lo firma il lavoratore ed è la prova
+       della consegna (art. 77 D.Lgs 81/2008). La colonna ACCANTO — «Sostituire
+       entro» — era stata corretta il 03/08 per questa identica ragione, e
+       questa era rimasta indietro: misurate affiancate l'08/08 sugli stessi
+       dati, «Sostituire entro» scriveva «non indicata» e «Consegnato il» «—».
+       ⚠️ Raggiungibilità dichiarata: il form pretende la data e un import dei
+       DPI non c'è, quindi il caso arriva da dati vecchi o scritti a mano —
+       latente, non impossibile. */
+    for (const [nome, d] of [["assente", null], ["vuota", ""], ["a spazi", "  "],
+                             ["impossibile", "2026-02-30"], ["non una data", "boh"]]) {
+      const st = scudo.statoConsegnaDpi({ tipo: "elmetto", dataConsegna: d, scadenza: "2031-01-01" }, OGGI);
+      eq(st.leggibile, false, `data ${nome}: il modulo lo dichiara`);
+      eq(st.stato, "regolare", `data ${nome}: e NON si confonde con lo stato della SCADENZA, che è un'altra domanda`);
+    }
+    eq(scudo.statoConsegnaDpi({ tipo: "elmetto", dataConsegna: "2026-01-12", scadenza: "2031-01-01" }, OGGI).leggibile, true,
+      "una data vera resta leggibile");
+    eq(scudo.statoConsegnaDpi(null).leggibile, false,
+      "⛔ e una consegna che non esiste non ha una data leggibile: la pagina legge questa bandiera prima di stampare");
+    const v = scudo.verbaleDpi({ id: "L1" },
+      [{ id: "y1", lavoratoreId: "L1", tipo: "elmetto", dataConsegna: null, scadenza: "2031-01-01" }], OGGI);
+    eq(v.righe[0].leggibile, false, "e la riga del verbale se la porta dietro: la stampa non ri-decide");
+  });
 }
 
 /* ══ LE ISPEZIONI PERIODICHE ════════════════════════════════════════════
