@@ -3242,7 +3242,7 @@ a.dw-btn{text-decoration:none}
           '<label class="fl" for="modal-campo">Prossima scadenza</label><input class="dw-input" id="modal-campo" type="date" value="' + prop + '">',
           "Rinnova");
         if (v == null) return;
-        if (!/^\d{4}-\d{2}-\d{2}$/.test(String(v).trim())) {
+        if (!dataISOEsiste(String(v).trim())) {
           esito("scad-esito", "Data non valida: la scadenza «" + s.descrizione + "» è rimasta com'era.", "err"); return;
         }
         await db.aggiorna("scadenze", s.id, { dataScadenza: String(v).trim() });
@@ -4392,7 +4392,7 @@ a.dw-btn{text-decoration:none}
        rilievi, nei giorni fra i due, nel ritmo al mese e nel periodo del
        canone. Il visore la sa già (`data`, il momento del caricamento): si usa
        quella, si dice DA DOVE VIENE, e si lascia il campo da confermare. */
-    const dataVisore = /^\d{4}-\d{2}-\d{2}/.test(String(ultimo.data || "")) ? String(ultimo.data).slice(0, 10) : "";
+    const dataVisore = dataISOEsiste(String(ultimo.data || "").slice(0, 10)) ? String(ultimo.data).slice(0, 10) : "";
     $("new-ril-data").value = dataVisore || "";
     $("new-ril-vol").value = itDec(vol);
     $("new-ril-metodo").value = "senza GCP";   // drone consumer: scala approssimata, onesto

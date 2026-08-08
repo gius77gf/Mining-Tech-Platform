@@ -1671,7 +1671,7 @@ textarea.dw-input{
            FONTE_IMPORT, FONTE_MANO, FONTE_IGNOTA,
            numeroDaCampo, AVVISO_DECIMALE } from "./sentinella-data.js";
   import { mountExit, esc, csvCell, statoVuoto, senzaDoppioni, giorniTra, montaGuardiaInteri, avvolgiUnita, oggiISO,
-         controllaAllegato, testoAllegatoRifiutato, pezziDataURL, dataIt, nomeCsvDimostrazione,
+         controllaAllegato, testoAllegatoRifiutato, pezziDataURL, dataIt, dataISOEsiste, nomeCsvDimostrazione,
          plurale, avvisaSeNonSalva} from "../../shared/deepwork-id-client/dw-shell.js";
   // Il colore della riga di una taratura è quello di una scadenza qualunque:
   // la regola sta in shared/ e la usano già Scudo e Campo. Non se ne scrive
@@ -2445,7 +2445,7 @@ textarea.dw-input{
       ]);
     });
     if (!scelta) return;
-    if (!scelta.descrizione || !/^\d{4}-\d{2}-\d{2}$/.test(scelta.scadenza)) {
+    if (!scelta.descrizione || !dataISOEsiste(scelta.scadenza)) {
       esito("pon-esito", "Servono cosa fare e la data entro cui farlo: senza una data l'azione non entra in nessuno scadenzario.", "err",
         "Manca il testo o la data.");
       return;
@@ -5158,7 +5158,7 @@ textarea.dw-input{
     $("prg-giorni").value = g;
     $("prg-freq").value = PERIODICITA.some(p => String(p.giorni) === g) ? g : "";
     $("prg-toll").value = r && r.tolleranzaGiorni != null ? r.tolleranzaGiorni : "";
-    $("prg-dal").value = r && /^\d{4}-\d{2}-\d{2}$/.test(String(r.dal || "")) ? r.dal : "";
+    $("prg-dal").value = r && dataISOEsiste(String(r.dal || "")) ? r.dal : "";
     $("prg-nota").value = r ? (r.nota || "") : "";
   }
   function annullaEditPrg() { editPrg = null; riempiFormPrg(null); $("prg-giorni").value = "7"; $("prg-freq").value = "7"; }

@@ -798,8 +798,38 @@ function dichiaraSuCosaGira(inFondo = false) {
     console.log('  Niente di non committato: la copia è identica a quello che hai su disco.');
   }
 }
+/* ⛔ LE COPIE DEI GIRI MORTI LE TOGLIE IL GIRO DOPO, PERCHÉ CHI MUORE NON PUÒ.
+   Misurato l'08/08: **71 worktree abbandonate**, ~1,3 GB, e il disco di questa
+   sessione è un'allocazione fissa — quando finisce, le SCRITTURE falliscono
+   mentre `df` mostra spazio libero. In fondo a questo file la copia si toglie
+   «SEMPRE, anche se il giro è caduto», e quella riga vale per un giro che
+   **arriva** in fondo: un `SIGKILL` — o una sessione che finisce — non esegue
+   nessun `finally`. L'unico momento in cui qualcuno può pulire è **l'avvio del
+   giro successivo**, ed è qui.
+   Si toglie solo ciò che ha il nostro nome (`giro-copia-<pid>`) e il cui pid
+   NON è più vivo: una copia di un giro che sta girando adesso non si tocca —
+   sarebbe la stessa famiglia del server riusato, un giro che sabota l'altro. */
+function pulisciCopieMorte(radice) {
+  let tolte = 0;
+  try {
+    const su = execFileSync('git', ['worktree', 'list', '--porcelain'], { cwd: radice, encoding: 'utf8' });
+    for (const r of su.split('\n')) {
+      const m = /^worktree (.*\/giro-copia-(\d+))$/.exec(r.trim());
+      if (!m) continue;
+      if (Number(m[2]) === process.pid) continue;
+      try { process.kill(Number(m[2]), 0); continue; } catch (e) { /* il pid non c'è più: si può togliere */ }
+      try { execFileSync('git', ['worktree', 'remove', '--force', m[1]], { cwd: radice, stdio: 'ignore' }); tolte++; }
+      catch (e) { /* già sparita a mano: la toglie `prune` */ }
+    }
+    execFileSync('git', ['worktree', 'prune'], { cwd: radice, stdio: 'ignore' });
+  } catch (e) { /* niente git, niente pulizia: non è un motivo per non partire */ }
+  return tolte;
+}
+
 if (SU_COPIA && !BANCHI_FINTI) {
   const dove = join(RADICE, '..', 'giro-copia-' + process.pid);
+  const tolte = pulisciCopieMorte(RADICE);
+  if (tolte) console.log(`  (tolte ${tolte} copie di giri morti: chi viene ucciso non può pulire da sé)`);
   try {
     if (existsSync(dove)) rmSync(dove, { recursive: true, force: true });
     execFileSync('git', ['worktree', 'add', '--detach', dove, 'HEAD'], { cwd: RADICE, stdio: 'ignore' });

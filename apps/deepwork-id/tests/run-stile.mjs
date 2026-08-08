@@ -3542,5 +3542,59 @@ test("regola 29: in Sentinella lo storico si taglia con MAX_LETTURE, non con un 
     "tetti scritti a mano invece di MAX_LETTURE:\n  " + male.join("\n  "));
 });
 
+/* ═══ REGOLA 30 — «HA UNA DATA» SI DECIDE CON L'ESISTENZA, NON CON LA FORMA ═══
+   ⛔ Misurata l'08/08 su un caso vero: il CSV dei costi di Flotta — quello che
+   si porta al commercialista — scriveva `2026-02-30` come una data qualunque,
+   e il conto in fondo al messaggio la contava fra quelle CON la data. Lo
+   SCHERMO era già onesto, perché `dataIt` una data impossibile la rifiuta: a
+   mentire era il FILE, che è il posto dove nessuna prova guarda.
+   La regola sta in `shared/` da mesi (`dataISOEsiste`, che usa `Date.parse` e
+   poi ricontrolla i pezzi: `Date.parse` un giorno che non esiste non lo rifiuta,
+   lo fa SCORRERE al 2 marzo). Le pagine se n'erano tenute una copia più debole:
+   **8 in Flotta, 4 in Scudo, 3 in Genesi, 2 in Sentinella, 2 in Terra, 1 in
+   Campo — venti in sei app**, e il modulo di Genesi la regola giusta l'aveva
+   imparata il 03/08.
+   ⚠️ Il costo della stretta è stato misurato PRIMA di scriverla, come pretende
+   la regola di casa: dopo la correzione le occorrenze sono **zero su otto
+   superfici**, quindi questa regola nasce senza nessun falso allarme da
+   dichiarare. Se un giorno ne servisse una legittima — una chiave di mese, il
+   taglio di un istante — si dichiara qui con la ragione, che è meglio di una
+   regola larga che non prende niente. */
+test("regola 30: nessuna pagina decide una data dalla FORMA invece che dall'esistenza", () => {
+  /* la forma cercata è quella della data ISO intera usata come TEST, non un
+     `slice` o una chiave di mese: `/^\d{4}-\d{2}-\d{2}` con l'ancora */
+  const SOSPETTA = /\/\^\\d\{4\}-\\d\{2\}-\\d\{2\}/g;
+  const male = [];
+  let superfici = 0;
+  for (const [nome, via] of SUPERFICI) {
+    const testo = leggi(via);
+    if (!testo) continue;
+    superfici++;
+    const vivo = mascheraCodice(testo);
+    for (const m of testo.matchAll(SOSPETTA)) {
+      if (vivo[m.index] !== 1) continue;    // dentro un commento o una stringa
+      const riga = testo.slice(0, m.index).split("\n").length;
+      male.push(`${nome} riga ${riga}: la forma di una data decide al posto di dataISOEsiste`);
+    }
+  }
+  ok(superfici >= 8, `la regola 30 ha guardato solo ${superfici} superfici: non sta guardando dove crede`);
+  ok(male.length === 0,
+    "la FORMA decide al posto dell'ESISTENZA (2026-02-30 ha la forma giusta e non esiste):\n  " + male.join("\n  "));
+});
+test("regola 30: la controprova — rimessa la forma, la regola la vede", () => {
+  /* ⛔ senza questa, «zero violazioni» potrebbe voler dire «non guardo niente»:
+     è la lezione pagata due volte in questa casa. */
+  const finto = 'const ok = /^\\d{4}-\\d{2}-\\d{2}$/.test(x);';
+  const SOSPETTA = /\/\^\\d\{4\}-\\d\{2\}-\\d\{2\}/g;
+  const vivo = mascheraCodice(finto);
+  const trovati = [...finto.matchAll(SOSPETTA)].filter((m) => vivo[m.index] === 1).length;
+  ok(trovati === 1, `la regola 30 non vede la forma rimessa: ${trovati} invece di 1`);
+  /* e il verso opposto: dentro un COMMENTO non deve vederla */
+  const commentato = '/* esempio: la forma /^\\d{4}-\\d{2}-\\d{2}$/ non va usata */';
+  const vivo2 = mascheraCodice(commentato);
+  const trovati2 = [...commentato.matchAll(SOSPETTA)].filter((m) => vivo2[m.index] === 1).length;
+  ok(trovati2 === 0, `la regola 30 accusa un commento: ${trovati2} invece di 0`);
+});
+
 console.log(`\nRisultato Stile: ${passed} passati, ${failed} falliti${inVolo.length ? `  ·  ${inVolo.length} prove asincrone aspettate` : ""}`);
 process.exit(failed > 0 ? 1 : 0);

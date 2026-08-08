@@ -1043,6 +1043,12 @@ import { sitoFit, ppvLimit, ppvSenzaSoglia, airblastDb, normaPpvLab,
    anonimo — vedi il blocco G8 di `genesi-data.js`. Qui resta la raccolta dello
    stato del progetto; il testo del file lo compone la funzione. */
          xmlPianoInnesco } from './genesi-data.js';
+/* ⛔ «ha una data» si decide con l'ESISTENZA, non con la forma: «2026-02-30» ha
+   la forma giusta e non esiste. Il modulo di Genesi questa regola l'ha imparata
+   il 03/08 — il commento in cima a `genesi-data.js` lo racconta — e la pagina
+   se n'era tenuta la copia più debole in tre punti, uno dei quali datava il file
+   che Sentinella importa. */
+import { dataISOEsiste } from '../../shared/deepwork-id-client/dw-shell.js';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { OBJLoader } from 'three/examples/jsm/loaders/OBJLoader.js';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
@@ -3708,7 +3714,7 @@ function sitoImportaConferma(){
     const dt=txt(r,map.data);
     gia.add(chiave);
     st.punti.push({ d, w, ppv:p, nome:txt(r,cr),
-      ts: /^\d{4}-\d{2}-\d{2}$/.test(dt)?dt:oggi,
+      ts: dataISOEsiste(dt)?dt:oggi,
       fonte: map.org>=0 ? _sitoFonteDaTesto(r[map.org]) : fonteFile }); ok++;
   }
   sitoSalva(st); _sitoCsv=null;
@@ -3848,7 +3854,7 @@ function _sentCodice(d,data,fronte){
 function sentRender(){
   const body=$('sentBody'); if(!body) return;
   const s=_sentStore(), d=_sentDati(), it=(n,dec)=>gnum(n,dec==null?1:dec);
-  const data=s.data&&/^\d{4}-\d{2}-\d{2}$/.test(s.data)?s.data:_sentOggi();
+  const data=s.data&&dataISOEsiste(s.data)?s.data:_sentOggi();
   const fronte=s.fronte||'';
   const riga=(l,v,n)=>'<div style="display:flex;justify-content:space-between;gap:10px;border-top:1px solid rgba(255,255,255,.07);padding:4px 0">'
     +'<span style="color:var(--mut)">'+l+'</span><span style="font-variant-numeric:tabular-nums'+(n?';color:#ffd54f;font-weight:600':'')+'">'+v+'</span></div>';
@@ -3883,7 +3889,7 @@ if($('sentOpen')) $('sentOpen').onclick=()=>{ _sentFatto=null; sentRender(); $('
 if($('sentClose')) $('sentClose').onclick=()=>{ $('sentModal').style.display='none'; };
 if($('sentExport')) $('sentExport').onclick=()=>{
   const data=$('sent-data')?$('sent-data').value:'';
-  if(!/^\d{4}-\d{2}-\d{2}$/.test(data)){ toast('Serve la data prevista della volata'); return; }
+  if(!dataISOEsiste(data)){ toast('Serve la data prevista della volata'); return; }
   const fronte=$('sent-fronte')?$('sent-fronte').value.trim():'';
   const d=_sentDati(), codice=_sentCodice(d,data,fronte);
   /* le 8 colonne di sempre · le 4 della PPV misurata (VUOTE: la volata non è

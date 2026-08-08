@@ -4303,7 +4303,7 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
           '<label class="fl" for="modal-campo">Nuova scadenza</label><input class="dw-input" id="modal-campo" type="date" value="' + esc(s.dataScadenza || "") + '">',
           "Rinnova");
         if (v === null) return;
-        if (!/^\d{4}-\d{2}-\d{2}$/.test((v || "").trim())) { esito("scad-esito", "Serve una data valida per rinnovare la scadenza.", "err"); return; }
+        if (!dataISOEsiste((v || "").trim())) { esito("scad-esito", "Serve una data valida per rinnovare la scadenza.", "err"); return; }
         await db.aggiorna("scadenze", rn, { dataScadenza: v.trim() });
         await refresh();
         esito("scad-esito", "«" + s.descrizione + "» rinnovata al " + fmtData(v.trim()) + ".", "success");
@@ -5324,7 +5324,7 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
       '<label class="fl" for="modal-campo">Valido fino al</label><input class="dw-input" id="modal-campo" type="date" value="' + esc(sc ? (sc.dataScadenza || "") : proposta) + '">',
       sc ? "Rinnova" : "Aggiungi allo scadenzario");
     if (v === null) return;
-    if (!/^\d{4}-\d{2}-\d{2}$/.test((v || "").trim())) {
+    if (!dataISOEsiste((v || "").trim())) {
       esito(esitoId || "mans-esito", "Serve una data valida (giorno, mese e anno).", "err"); return; }
     if (sc) await db.aggiorna("scadenze", sc.id, { dataScadenza: v.trim(), preset: chiave });
     else await db.aggiungi("scadenze", { lavoratoreId: lavId, tipo: req.tipo || "Formazione",
@@ -6583,7 +6583,7 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
       ], { autofocus: false });
     });
     if (!scelta) return;
-    const scad = /^\d{4}-\d{2}-\d{2}$/.test(scelta.scadenza) ? scelta.scadenza : scadProposta;
+    const scad = dataISOEsiste(scelta.scadenza) ? scelta.scadenza : scadProposta;
     for (const v of daCreare) {
       await db.aggiungi("azioni", {
         descrizione: "Risolvere: " + v.testo,
@@ -6595,7 +6595,7 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
     }
     await db.aggiorna("ispezioni", i.id, { stato: "completata", dataChiusura: oggiISO() });
     let programmata = "";
-    if (/^\d{4}-\d{2}-\d{2}$/.test(scelta.prossima)) {
+    if (dataISOEsiste(scelta.prossima)) {
       const nuova = nuovaIspezioneDaModello(i.modello, {
         data: scelta.prossima, cantiereId: i.cantiereId || null,
         responsabileId: i.responsabileId || null, stato: "programmata" });

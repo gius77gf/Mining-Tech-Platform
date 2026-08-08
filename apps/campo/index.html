@@ -1208,7 +1208,7 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
            numeroIt, segnoIt, numeroItDa, numeroDaCampo } from "./campo-data.js";
   import { misuratoPeriodo, produzioneDichiarata, riconciliazioneTurni,
            periodoFraUltimiRilievi, densitaDellaCava } from "../../shared/dw-ponti.js";
-  import { mountExit, esc, csvCell, statoVuoto, senzaDoppioni, messaggioNumero, montaGuardiaInteri, dataIt, modoDimostrazione, avvisoTestoDimostrazione, nomeCsvDimostrazione, conta, plurale, avvisaSeNonSalva} from "../../shared/deepwork-id-client/dw-shell.js";
+  import { mountExit, esc, csvCell, statoVuoto, senzaDoppioni, messaggioNumero, montaGuardiaInteri, dataIt, dataISOEsiste, modoDimostrazione, avvisoTestoDimostrazione, nomeCsvDimostrazione, conta, plurale, avvisaSeNonSalva} from "../../shared/deepwork-id-client/dw-shell.js";
   // gli agganci della struttura condivisa (modale con Escape, riquadri da
   // tastiera, alone che segue il mouse). Va chiamato QUI e non nel blocco
   // classico in linea: i moduli girano dopo gli script `defer`.
@@ -1847,7 +1847,7 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
       ]);
     });
     if (!scelta) return;
-    if (!scelta.descrizione || !/^\d{4}-\d{2}-\d{2}$/.test(scelta.scadenza)) {
+    if (!scelta.descrizione || !dataISOEsiste(scelta.scadenza)) {
       esito("pon-esito", "Servono cosa fare e la data entro cui farlo: senza una data l'azione non entra in nessuno scadenzario.", "err");
       return;
     }
