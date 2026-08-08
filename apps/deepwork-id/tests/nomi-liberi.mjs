@@ -441,6 +441,54 @@ export function riferimentiLiberi(relPagina) {
   return { visti, liberi };
 }
 
+/* ⛔ LA QUARTA FORMA: UN NOME RIFERITO **NUDO** — `const x = pippo`,
+   `f(a, pippo)`, `return pippo`. Fuori dai template, e fuori dalle chiamate.
+   ⚠️ E la misura ha SMENTITO l'aspettativa, che è il motivo per cui si misura:
+   me l'ero segnata come «rumore atteso molto più alto, potrebbe dire di
+   lasciar perdere». Con un elenco di globali scritto a mano per l'occasione
+   dava **17 nomi** su 68.851 riferimenti; ma quei diciassette erano quasi tutti
+   `toast`, `chiudiModale`, `dwGrafici` — cioè **script fratelli** — più
+   `NaN`, `AbortSignal`, `devicePixelRatio`. Riusando gli elenchi VERI di questo
+   file non resta niente. Il costo era un'impressione, non un numero.
+   ⛔ E MESSA A TERRA CON GLI ELENCHI VERI, i 17 sono diventati **35**, e sono
+   ancora TUTTI falsi — ma per tre ragioni diverse, che è il vero risultato di
+   questa misura:
+     1. **globali e parole chiave** che l'elenco non ha ancora (`NaN`,
+        `Infinity`, `AbortSignal`, `caches`, `innerWidth`, `innerHeight`,
+        `devicePixelRatio`, `from`, `as`, `get`) e una libreria da CDN
+        (`XLSX`): una decina di nomi, **dichiarabili per nome**;
+     2. **i COMMENTI**: `chiave ×3` nel core sono tre commenti in italiano.
+        `mascheraCodice` maschera le stringhe, non i commenti — e questa forma,
+        a differenza delle altre tre, li incontra. Servono **tutt'e due** i
+        tokenizzatori, non uno;
+     3. **i flag di una regex**: `gu ×1` in Conti è `/…/gu`.
+   Cioè la quarta forma **si può fare** — l'aspettativa «rumore troppo alto,
+   lasciar perdere» era sbagliata — ma vuole `senzaCommenti` sopra
+   `mascheraCodice` e una decina di nomi in più. Resta **misura** finché non è
+   fatta: una guardia che accusa 35 volte a vuoto insegna a non guardarla.
+   ⚠️ Prima ancora, il righello: senza `\b` davanti al lookahead la regex fa
+   backtracking e combacia con un PREFISSO del nome — «escHtml» → «escHtm»,
+   «toast» → «toas», 3.354 allarmi tronchi di una lettera. Quarto righello
+   storto della notte, e il segno era leggibile subito. */
+export function nudiLiberi(relPagina) {
+  const html = leggi(relPagina);
+  const bl = blocchiDi(html);
+  if (!bl.length) return { visti: 0, liberi: new Map() };
+  const codice = soloCodice(bl.join("\n;\n"));
+  const legati = nomiLegati(codice);
+  const { nomi: fratelli } = nomiDegliScriptFratelli(relPagina, html);
+  const liberi = new Map();
+  let visti = 0;
+  for (const m of codice.matchAll(/(^|[^\w$.?'"`])([A-Za-z_$][\w$]*)\b(?!\s*[(:])/g)) {
+    const n = m[2];
+    visti++;
+    if (PAROLE.has(n) || GLOBALI.has(n) || DA_CDN.has(n) || SINTASSI_E_NODE.has(n)
+        || legati.has(n) || fratelli.has(n)) continue;
+    liberi.set(n, (liberi.get(n) || 0) + 1);
+  }
+  return { visti, liberi };
+}
+
 let passed = 0, failed = 0;
 const test = (nome, fn) => {
   try { fn(); passed++; console.log(`  ✓ ${nome}`); }
@@ -722,6 +770,19 @@ test("nessun nome RIFERITO libero nei MODULI", () => {
   ok(male3m.length === 0,
     "nomi usati dentro un template di un modulo e mai dichiarati:\n  " + male3m.slice(0, 12).join("\n  "));
 });
+
+/* la QUARTA forma, sulle stesse pagine */
+let visti4 = 0, pagine4 = 0;
+const male4 = [];
+for (const p of PAGINE) {
+  let r;
+  try { r = nudiLiberi(p); } catch { continue; }
+  if (!r.visti) continue;
+  pagine4++; visti4 += r.visti;
+  for (const [n, c] of r.liberi) male4.push(`${p}: ${n} ×${c}`);
+}
+console.log(`   [misura] quarta forma (riferimenti nudi): ${visti4} su ${pagine4} pagine, ${male4.length} liberi`);
+for (const x of male4.slice(0, 15)) console.log("      · " + x);
 
 test("la terza domanda ha davvero guardato", () => {
   ok(pagine3 >= 8, `solo ${pagine3} pagine guardate dalla terza domanda`);
