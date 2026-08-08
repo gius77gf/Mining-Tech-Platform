@@ -173,3 +173,19 @@ niente — che è esattamente la stessa cosa che cerchiamo nel prodotto.
   registro in `scratchpad/nomi4/giro-nuovo.txt`) con `leggi-giro.mjs`, sezione 1
   prima della 2; poi proseguire con le unità della settimana.
   ⚠️ Quel giro attesta `c3888fe`: nessuna delle ventun unità dell'08/08 è dentro.
+
+## 2026-08-08 21:26 UTC — ciclo automatico
+- **Commit di partenza**: `918eb75`
+- **Che cosa sto per fare**: riprendere dal «Prossimo passo atomico» del
+  checkpoint più recente — **leggere il giro del browser** (PID 21084, avviato
+  ~18:30Z, registro in `scratchpad/resp/giro/registro3.txt`) con
+  `leggi-giro.mjs`, partendo dalla **sezione 0** (l'età del giro) e dalle righe
+  «non ho guardato», che in questa casa si leggono PRIMA dei KO.
+  ⚠️ **Quel giro attesta un commit di venti indietro**: nessuna delle
+  diciannove unità della sera è dentro, quindi i suoi KO vanno letti come
+  vecchi di venti commit — leggerli come attuali aprirebbe cantieri su difetti
+  già chiusi, ed è un errore che questa casa ha già pagato una volta.
+  Poi si prosegue con le unità della settimana.
+- **Da dove riparte**: il giro «chi decide i numeri di ciò che ESCE?» è chiuso
+  (51 punti d'uscita su 51, otto difetti veri corretti, 21 documenti aperti col
+  browser). Nessuna domanda di prodotto in sospeso. CI verde su tutta la serie.
