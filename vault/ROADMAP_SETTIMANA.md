@@ -1525,11 +1525,25 @@ numero scritto dove non era stato misurato niente**.*
   **Un'eccezione che non si riesce a nominare è spesso il segno che non è
   un'eccezione.** ⚠️ E una prova esistente era agganciata **al segno** invece
   che alla cosa: pretendeva il trattino. Ora pretende la parola.
+- [x] ✅ **Misurata la QUARTA forma di `nomi-liberi`, e l'aspettativa era
+  sbagliata** (`dd15588`). Un nome riferito **nudo** (`const x = pippo`,
+  `f(a, pippo)`, `return pippo`), fuori dai template e dalle chiamate. Me
+  l'ero segnata come «rumore troppo alto, potrebbe dire di lasciar perdere»:
+  **35 allarmi su 69.412 riferimenti**, tutti falsi per **tre ragioni diverse**
+  — una decina di globali dichiarabili per nome; ⛔ **i COMMENTI** (`chiave ×3`
+  nel core sono tre commenti in italiano: `mascheraCodice` maschera le
+  **stringhe**, non i commenti, e questa forma **li incontra** — servono
+  **tutt'e due** i tokenizzatori); e i **flag di una regex** (`/…/gu`).
+  **Verdetto: si può fare.** Resta misura finché non è fatta — una guardia che
+  accusa 35 volte a vuoto insegna a non guardarla. ⚠️ E prima ancora il
+  righello: senza `\b` davanti al lookahead la regex combaciava con un
+  **prefisso** del nome (3.354 allarmi tronchi di una lettera). **Quarto
+  righello storto della notte.**
 
 ## Riferimenti
 
 - Ultimo checkpoint **per data vera**:
-  `vault/checkpoints/20260808-022849_l-eccezione-che-non-si-riusciva-a-nominare.md`
+  `vault/checkpoints/20260808-023705_la-quarta-forma-e-l-aspettativa-sbagliata.md`
   *(dato da `node apps/deepwork-id/tests/date-checkpoint.mjs`, non letto a occhio:
   per NOME il più alto sarebbe `20260805-100000_…`, che è stato scritto **tre
   giorni prima**. Questa riga era ferma al 01/08: il puntatore al file più
