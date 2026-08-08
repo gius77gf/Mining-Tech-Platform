@@ -1325,11 +1325,21 @@ numero scritto dove non era stato misurato niente**.*
   e nel farlo è emerso che una sua regex ne teneva due in una (`nome: (` è una
   proprietà, `nome = (` combacia anche con un `const` qualunque): con quella
   unita la controprova restava **verde col difetto dentro**. Prove **7 → 10**.
+- [x] ✅ **La seconda domanda anche sui MODULI** (`ba14cdc`). Nei moduli il
+  difetto è **peggiore**: un nome libero non fa rumore all'import, esplode
+  quando quella riga viene **eseguita** — magari in un ramo che le prove non
+  toccano. ⚠️ Costo misurato **prima** di pretenderlo: **0 allarmi su 6.698
+  chiamate e 18 moduli**. Controprova: `somma` è dichiarata dentro **tre**
+  funzioni diverse di `terra-data.js`, cioè la forma esatta dell'omonimo che
+  inganna la prima domanda; iniettata una sua chiamata in `anniConVolumi`, la
+  prova pretende che la prima resti cieca, che la seconda la veda, e che sul
+  modulo sano non accusi nessuna delle tre dichiarazioni vere. Prove
+  **10 → 12**.
 
 ## Riferimenti
 
 - Ultimo checkpoint **per data vera**:
-  `vault/checkpoints/20260807-235634_il-nome-esiste-ma-non-qui.md`
+  `vault/checkpoints/20260808-000540_la-seconda-domanda-sui-moduli.md`
   *(dato da `node apps/deepwork-id/tests/date-checkpoint.mjs`, non letto a occhio:
   per NOME il più alto sarebbe `20260805-100000_…`, che è stato scritto **tre
   giorni prima**. Questa riga era ferma al 01/08: il puntatore al file più
