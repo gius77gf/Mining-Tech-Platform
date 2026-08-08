@@ -345,8 +345,43 @@
 
 ## Verifica del delta (01/08 · **riverificata riga per riga il 03/08**)
 
-> **Verificato contro il codice al commit `4916275`** *(riverificato il 06/08; la
-> verifica precedente era a `ecc65d5`, undici commit prima)* — l'ultimo che ha toccato
+> **Verificato contro il codice al commit `4c1bb43`** *(riverificato l'08/08;
+> le precedenti erano a `4916275` il 06/08 e a `ecc65d5` il 01/08).*
+>
+> ### 08/08 (terzo passaggio) — quattordici commit, quattro che mordono, otto righe che reggono
+>
+> Fra `4916275` e `4c1bb43` Conti è andata avanti di **14 commit**, **+830
+> righe** e −96, **quattro** dei quali mordono. Quello che hanno costruito è
+> tutto **import/export CSV**: `csvClienti`, `csvIncassi`, `csvPesate`,
+> `csvSituazioneFatture`, i tre lettori corrispondenti, e cinque bottoni
+> («Esporta clienti / incassi / pesate», «Copia di sicurezza», «Ri-carica
+> copia»).
+>
+> **Le otto righe confermate assenti reggono tutte**, e le ricerche sui file
+> interi danno **zero** per: `pesa ponte`, `weighbridge`, `seriale`,
+> `webserial`, `driver`, `loadrite`, `firma digitale`, `e-ticket`, `eticket`,
+> `ticket`, `ritenuta`, `foto prodotto`, `magazzino`, `giacenz`, `ruolo`,
+> `permess`, `FatturaPA`, `p7m`, `trasmission`.
+>
+> ⚠️ **Due righe si sono mosse INTORNO senza spostarsi, e vanno dette**, se no
+> chi le riapre fra un mese trova la prova invecchiata e butta via il verdetto
+> insieme a lei (è la terza forma di invecchiamento raccolta in `CLAUDE.md`):
+> · **Pesa / bilancia digitale.** Il verdetto è sul **driver hardware** e
+>   regge alla cifra: zero occorrenze di `seriale`, `webserial`, `loadrite`.
+>   Ma la frase «le pesate **si digitano**» adesso è **stretta**: dal
+>   `csvPesate` / `parsePesateCsv` una pesata può anche **entrare da un file**.
+>   Fra digitare e leggere un apparecchio c'è ancora tutto lo spazio che quella
+>   riga descrive — ma il modo di far entrare i dati non è più uno solo.
+> · **Fattura elettronica SDI.** `sdi` passa da 22 a **28** occorrenze, e le
+>   sei nuove sono la colonna `sdi` dentro l'export/import dei clienti
+>   (`CSV_CLIENTI_INTESTAZIONE = "id;ragioneSociale;piva;sdi;…"`): il codice
+>   destinatario adesso **viaggia anche nel CSV**. Il verdetto non cambia,
+>   perché parla di **file XML e trasmissione**: `FatturaPA` e `p7m` restano a
+>   **0**, e delle tre `xml` due sono il `manifest` e la terza è la frase del
+>   piede di stampa (*«l'originale è il file XML trasmesso al Sistema di
+>   Interscambio»*, `index.html:4456` — era 3946, il file è cresciuto).
+>
+> — l'ultimo che ha toccato
 > `apps/conti/`, quindi l'arretrato riparte da **zero**. Il codice è stato letto
 > dal **committato** (`git show HEAD:apps/conti/conti-data.js`, 3.543 righe;
 > `git show HEAD:apps/conti/index.html`, 6.103 righe), non dal disco, perché

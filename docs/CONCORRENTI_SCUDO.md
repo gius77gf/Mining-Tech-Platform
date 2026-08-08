@@ -444,7 +444,37 @@
 
 ## 7. Verifica del Delta (01/08 · riverificata riga per riga il 03/08 · **arretrato richiuso il 06/08**)
 
-> **Verificato contro il codice al commit `4743c69`** (06/08).
+> **Verificato contro il codice al commit `976e2a0`** (08/08; la precedente era
+> a `4743c69` il 06/08).
+>
+> ### 08/08 — quindici commit, tre che mordono: nessun verdetto si muove, una PROVA sì (di nuovo)
+>
+> Fra `4743c69` e `976e2a0` Scudo è andata avanti di **15 commit**, **+1.217
+> righe** e −137: è l'app che si è mossa di più delle sei. **Tre** mordono, e
+> quello che hanno costruito è la **verifica periodica delle attrezzature**
+> (`statoVerificaPeriodica`, `scadenzaDiVerifica`, `enteVerifica`,
+> `enteVerificaSicuro`, `esitoVerifica`, `descriviVerificaPeriodica`) più
+> l'export e la copia di sicurezza delle azioni correttive (`csvAzioni`,
+> `parseAzioniCsv`, `origineAzione`, `etichettaScadenza`).
+>
+> **Nessuno dei sei verdetti «confermato assente» si muove**, e le ricerche
+> danno **zero** su tutt'e due i file: `xlsx`, `excel`, `jspdf`, `notific`,
+> `offline`, `controllo version`, `versionamento`. Sul diff delle 1.217 righe
+> aggiunte: **zero** occorrenze di `xlsx`, `excel`, `jspdf`, `notific`,
+> `service worker`.
+>
+> ⛔ **Ma una PROVA è invecchiata, ed è la seconda volta per la stessa riga.**
+> «Esportazione report PDF/Excel» dichiarava «gli export CSV sono **quattro**»
+> — numero già corretto il 06/08 da «tre». Oggi sono **cinque**, perché è
+> arrivata la copia di sicurezza delle azioni (`scudo_azioni_copia.csv`).
+> Il verdetto non cambia — semmai si rafforza, perché una copia che nasce per
+> essere **ri-caricata** non è un documento da consegnare a un ispettore — ma
+> il fatto che quel conto scada a ogni export nuovo dice una cosa sul
+> **documento**, non sul prodotto: **è il numero sbagliato da scrivere**. La
+> riga vive del `grep` su `xlsx|excel|jspdf`, che dà zero anche oggi; il conto
+> dei CSV è un dettaglio che invecchia da solo e che, invecchiando, rende non
+> credibile un verdetto giusto. È la **terza forma** di invecchiamento raccolta
+> in `CLAUDE.md`, colta due volte sulla stessa riga.
 >
 > ### 06/08 — i sette commit ripassati: nessun verdetto si muove, due PROVE sì
 >
@@ -545,7 +575,7 @@ Il riferimento a `§2` è la riga corrispondente della tabella «Cosa Abbiamo».
 | **CONFERMATE ASSENTI** — in ordine di quanto le chiederebbe un ispettore |  |  |
 | Controllo versioni documenti (§2 «Controllo versioni documenti») | CONFERMATA | `grep -ciE 'versionamento\|storico documenti\|cronologia\|revisione precedente'` → **0 e 0**. Le 38 occorrenze di «revisione» sono tutte del ciclo DSS, che tiene **una sola data** (`dssRevisione`, `scudo-data.js:1471-1494`): dice qual è l'ultima revisione, non quali erano le precedenti. Un documento sostituito sparisce. |
 | Report PDF automatico — ispezioni (§2 «Report PDF automatico») | CONFERMATA | ⏱️ *Prova rimisurata il 06/08: le stampe sono **due**, non una.* Il **verbale DPI** (`stampaVerbale`, `index.html:5059`, `:5087`, `window.print()` a `:5069`) e la **cartella del personale** (`costruisciCartella` + `window.print()` a `index.html:5192`, da `1857d83`), tutt'e due con le regole `@media print` della classe `stampa-verbale`. Il verdetto regge lo stesso, perché la domanda è un'altra: **nessuna delle due parte da un'ispezione**. |
-| Esportazione report PDF/Excel (§2 «Esportazione report PDF/Excel») | CONFERMATA | `grep -ciE 'xlsx\|excel\|jspdf'` → **0 e 0** (rimisurato il 06/08). ⏱️ *Ma gli export CSV sono **quattro**, non tre*: `scudo_registro_infortuni.csv` (`index.html:4455`), `scudo_personale_scadenze.csv` (`:4530`, **nuovo**), `scudo_azioni_correttive.csv` (`:4674`), `scudo_riepilogo_near_miss.csv` (`:5675`). Verdetto invariato: restano quattro estrazioni puntuali, nessun documento unico da consegnare. |
+| Esportazione report PDF/Excel (§2 «Esportazione report PDF/Excel») | CONFERMATA | `grep -ciE 'xlsx\|excel\|jspdf'` → **0 e 0** (rimisurato il 06/08). ⏱️ *E questa prova è invecchiata DUE volte: era «tre», è stata corretta in «quattro» il 06/08, e l'08/08 sono **cinque***: `scudo_registro_infortuni.csv`, `scudo_personale_scadenze.csv`, `scudo_azioni_correttive.csv`, `scudo_riepilogo_near_miss.csv` e `scudo_azioni_copia.csv` (la **copia di sicurezza**, che nasce per essere ri-caricata e non per essere consegnata). Verdetto invariato, e semmai rafforzato: restano **estrazioni puntuali**, nessun documento unico da consegnare a un ispettore. ⚠️ Che questo conto scada a ogni export nuovo è il segno che è **il numero sbagliato da scrivere**: la riga vive del `grep` su `xlsx|excel|jspdf` (che dà **0 e 0** anche oggi), non del conto dei CSV. |
 | Notifiche automatiche (§2 «Notifiche automatiche») | CONFERMATA | `grep -ci 'notific'` → **0 e 0**. Le uniche tre righe con «email/SMS» sono il **testo da copiare a mano**: `scudo-data.js:552` `testoPromemoria()` e `index.html:3302`, `:3310` («incollalo nell'email o nell'SMS»). L'app scrive il messaggio, non lo manda: la scadenza la deve vedere un umano che apre l'app. |
 | Segnalazioni osservazioni (§2, quattro righe «Segnalazioni Osservazioni») | CONFERMATA | `grep -ciE 'osservazion\|buona pratica\|buone pratiche\|safety observation'` → **0 e 0**. Il registro eventi ha due soli tipi, `infortunio` e `near-miss` (`scudo-data.js:43`): manca il terzo, quello che si segnala **prima** che accada qualcosa. |
 | Mobile app offline (§2 «Mobile app offline») | CONFERMATA | `grep -ciE 'offline\|serviceworker\|caches\.'` → **0 e 0**. C'è il `manifest` PWA (`index.html:12`, `display:standalone`), che rende l'app installabile ma **non** utilizzabile senza rete: in cava, dove il campo non c'è, la checklist non si compila. |

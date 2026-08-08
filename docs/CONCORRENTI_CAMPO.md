@@ -340,7 +340,37 @@ Fonti: Newtrax MDP product page, Micromine Pitram short-interval control docs.
 
 ## Verifica del delta (01/08 · riverificato il 03/08 · **arretrato richiuso il 06/08**)
 
-> **Verificato contro il codice al commit `4743c69`** (06/08).
+> **Verificato contro il codice al commit `9818d4a`** (08/08; le verifiche
+> precedenti erano a `4743c69` il 06/08).
+>
+> ### 08/08 (terzo passaggio) — nove commit, tre che mordono, nessuna riga mossa
+>
+> Fra `4743c69` e `9818d4a` Campo è andata avanti di **9 commit**, **+374
+> righe** e −89, **tre** dei quali mordono. Quello che hanno costruito:
+> `avvisoSenzaGiorno`, `csvAppello`, `csvAttivita`, `descriviChecklist`,
+> `minutiFermoDi`, `senzaGiornoDiLavoro` — cioè due export CSV, il conto dei
+> minuti di un fermo e il caso del rapporto **senza giorno di lavoro**.
+> **Nessuna** di quelle cose è una delle undici dichiarate assenti, che parlano
+> tutte di **hardware e di integrazioni**: GPS e geofencing, sensori IoT,
+> tablet in cabina, dispatch dinamico, RFID/barcode, telemetria multi-marca,
+> sincronizzazione offline, cruscotto multi-cava, griglia meteo DTN,
+> manutenzione predittiva.
+>
+> La prova è doppia, e tutt'e due danno **zero**:
+>
+> ```
+> git diff 4743c69 HEAD -- apps/campo/ | grep -E "^\+" \
+>   | grep -oEi "\b(geofenc|GPS|IoT|sensore|tablet|in-cab|cabina|dispatch|RFID|
+>                    barcode|QR|telemetri|multi-sito|multi-cava|DTN|predittiv|
+>                    service worker)\b" | sort | uniq -c
+> →  (niente)
+> ```
+>
+> e sui **file interi**, con i confini di parola: `geofenc`, `GPS`, `IoT`,
+> `tablet`, `dispatch`, `RFID`, `barcode`, `DTN`, `predittiv`, `multi-cava`,
+> `multi-sito` → **0 ciascuno**. Cioè non solo i nove commit non hanno
+> costruito niente di quello: **non c'è traccia di nessuno dei termini in tutta
+> l'app**, che è la forma più forte in cui una riga «non c'è» può reggere.
 >
 > ### 06/08 — l'ultimo arretrato dei sei documenti va a zero
 >
