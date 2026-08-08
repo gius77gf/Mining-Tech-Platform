@@ -339,9 +339,17 @@ export async function frasiVisibili(pg) {
 /* i numeri che in una frase sono CONTI: via gli importi (€ prima o dopo), le
    percentuali e i decimali, che non dicono quante righe ci sono */
 export function contiNellaFrase(frase) {
+  /* ⚠️ E NON SONO CONTI NEMMENO I PERIODI E LE DURATE. «Riepilogo near-miss
+     esportato (ultimi 90 giorni)» non dice quante righe ci sono: dice su che
+     finestra. Misurato su Scudo, dove quel 90 accusava un export sano.
+     La domanda da farsi davanti a ogni numero di una frase — ed è la stessa
+     che serve per le ore di Campo e le soglie di Sentinella — è: **è un conto
+     o è una misura?** */
   const pulita = String(frase || "")
     .replace(/€\s*[\d.]+(?:,\d+)?/g, " ")
     .replace(/[\d.]+(?:,\d+)?\s*(?:€|%)/g, " ")
+    .replace(/\b(?:ultim|prossim|prim)[aeio]\s+[\d.]+/gi, " ")
+    .replace(/[\d.]+(?:,\d+)?\s*(?:giorn[io]|mes[ei]|ann[io]|or[ae]|minut[io]|gg|mm\/s|kg|m³|t)\b/gi, " ")
     .replace(/\d+,\d+/g, " ");
   return [...pulita.matchAll(/\b(\d[\d.]*)\b/g)]
     .map((x) => +x[1].replace(/\./g, "")).filter(Number.isFinite);

@@ -75,6 +75,7 @@
 import { createServer } from "node:http";
 import { readFileSync, existsSync, statSync } from "node:fs";
 import { join, extname } from "node:path";
+import { azzeraFrasi, frasiVisibili, contiNellaFrase, righeDiDato } from "./giro.mjs";
 
 const R = process.env.DW_RADICE || "/home/user/Mining-Tech-Platform";
 const PORTA = Number((process.argv.find((a) => a.startsWith("--porta=")) || "").split("=")[1]) || 8730;
@@ -410,6 +411,7 @@ const apriTutto = async () => {
     await acc.click({ timeout: 2000 }).catch(() => {}); await pg.waitForTimeout(70);
   }
 };
+let fraseConNumero = 0, fraseSenzaNumero = 0;
 const scarica = async (nav, id) => {
   if (nav) {
     await pg.click("#" + nav).catch(() => {});
@@ -425,12 +427,40 @@ const scarica = async (nav, id) => {
     await apriTutto(); await pg.waitForTimeout(250);
   }
   if (!(await pg.$("#" + id))) return { errore: "bottone assente: " + id };
+  await azzeraFrasi(pg);            // se no si legge la frase di un altro export
   await pg.evaluate((i) => document.getElementById(i).scrollIntoView(), id);
   await pg.click("#" + id, { timeout: 4000 }).catch((e) => {});
   await pg.waitForTimeout(400);
   const g = await pg.evaluate(() => { const l = window.__scaricati.slice(); window.__scaricati = []; return l; });
   if (!g.length) return { errore: "nessun file uscito da " + id };
-  return { nome: g[0].nome, testo: decodeURIComponent(g[0].href.replace(/^data:text\/csv;charset=utf-8,/, "")) };
+  const testo = decodeURIComponent(g[0].href.replace(/^data:text\/csv;charset=utf-8,/, ""));
+  /* ⛔ LA TERZA GAMBA: la frase di riepilogo contro il file. La regola sta in
+     `giro.mjs` — la usano anche Flotta e Conti — e la domanda è che le righe di
+     DATO stiano fra i numeri che la frase dichiara, o siano la loro somma. */
+  const frase = await frasiVisibili(pg);
+  const numeri = contiNellaFrase(frase);
+  if (numeri.length) {
+    fraseConNumero++;
+    const dati = righeDiDato(testo.split(/\r?\n/).filter(Boolean));
+    /* ⛔ UN'ECCEZIONE DICHIARATA, CON LA SUA RAGIONE E LA SUA MISURA.
+       `scudo_personale_scadenze.csv` scrive una riga per ogni coppia
+       (lavoratore, scadenza) **più una riga per ogni lavoratore che non ha
+       nessuna scadenza**: le sue righe sono `scadenze + scoperti`, non uno dei
+       numeri della frase né la loro somma (che conterebbe due volte i
+       lavoratori). Con «7 lavoratori, 29 scadenze, di cui 1 scoperto» il file
+       ne ha **30** = 29 + 1.
+       ⚠️ La generalizzazione ovvia — «una qualunque somma parziale» — è stata
+       provata e SCARTATA con la misura, perché DISTRUGGEREBBE la prova: con
+       `[6,3,1]` anche 9 è una somma parziale, e l'iniezione di Flotta (il file
+       che perde un mezzo, righe 9) smetterebbe di essere vista. Una regola
+       indebolita per far passare un caso vale meno di un caso dichiarato. */
+    const combinazione = numeri.length >= 2
+      && numeri.slice(1).reduce((t, x) => t + x, 0) === dati;
+    dice(numeri.includes(dati) || numeri.reduce((t, x) => t + x, 0) === dati || combinazione,
+      `le righe del file sono fra i numeri che la frase dichiara (${id})`,
+      { frase: frase.slice(0, 100), numeri, righeDiDato: dati });
+  } else fraseSenzaNumero++;
+  return { nome: g[0].nome, testo };
 };
 const righe = (t) => t.split("\n").filter(Boolean);
 

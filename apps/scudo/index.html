@@ -4879,7 +4879,19 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
     const a = document.createElement("a");
     a.href = "data:text/csv;charset=utf-8," + encodeURIComponent(csv);
     a.download = "scudo_personale_scadenze.csv"; marchiaCsv(a); a.click();
-    esito("import-esito", plurale(LAV.length, "Esportato ", "Esportati ") + conta(LAV.length, "lavoratore", "lavoratori") + " e " + conta(SCA.length, "scadenza", "scadenze") + " (CSV).", "success");
+    /* ⛔ LA FRASE NON NOMINAVA LA RIGA CHE CONTA DI PIÙ. Il file scrive una
+       riga per ogni coppia (lavoratore, scadenza), **più una riga per ogni
+       lavoratore che non ha NESSUNA scadenza registrata** — che è esattamente
+       la riga per cui questo export esiste: l'assenza di un dato non è un dato
+       favorevole, e un lavoratore senza scadenze è una lacuna, non un foglio
+       pulito. Il messaggio diceva «7 lavoratori e 29 scadenze» e il foglio ne
+       aveva **30**: il trentesimo era proprio quello.
+       Adesso quei lavoratori si contano e si dicono. Trovato dal confronto
+       frase↔file del banco, che nessuna prova faceva prima. */
+    const noti = new Set(SCA.map((x) => x.lavoratoreId));
+    const scoperti = LAV.filter((l) => !noti.has(l.id)).length;
+    esito("import-esito", plurale(LAV.length, "Esportato ", "Esportati ") + conta(LAV.length, "lavoratore", "lavoratori") + " e " + conta(SCA.length, "scadenza", "scadenze")
+      + (scoperti ? ", di cui " + conta(scoperti, "senza nessuna scadenza registrata", "senza nessuna scadenza registrata") : "") + " (CSV).", "success");
   };
   $("csv-file").onchange = async (e) => {
     const file = e.target.files && e.target.files[0]; if (!file) return;
