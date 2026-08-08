@@ -88,15 +88,36 @@ Conclusione misurata: o si scopre a **runtime**, o si tiene l'elenco a mano
 sparire. La seconda è quella che regge, ed è quella che questa giornata ha
 rafforzato.
 
-## Quello che resta da giudicare
+## I trattini di Sentinella, giudicati — e sono due su otto
 
-Sul report ambientale di **Sentinella** — il foglio che va a un ente — ci sono
-**10 trattini «—»**, censiti per etichetta e **non giudicati**: sono candidati,
-non difetti. Un «—» su un campo facoltativo va bene; su un dato che il foglio
-esiste per portare no, e lì la differenza fra «non misurato» e «zero» è
-esattamente il principio del fondatore.
+Il primo conto, «10», comprendeva due cifre del riquadro **fuori** dal
+documento. Dentro `#rep-doc` sono **otto**, ed erano da **giudicare**, non da
+contare: un «—» su un campo facoltativo va bene, su un dato che il foglio
+esiste per portare no.
 
-    2 × «Superamenti»      2 × «ORA»
-    1 × «Media mm/s»       1 × «Massimo mm/s»
-    1 × «Media dB(A)»      1 × «Massimo dB(A)»
-    1 × «SD»               1 × (cella accanto a «22,03 µg/m³»)
+| quanti | dove | verdetto |
+|---|---|---|
+| **6** | colonna «Ora» delle letture | **giusti.** Il prodotto dichiara l'ora **facoltativa** fin dall'import (`Ora (facoltativa)`): un'assenza prevista, non una mancanza |
+| **1** | cella **SD** della tabella delle volate | ⛔ **difetto** |
+| **1** | **superamenti** di un punto senza soglia | ⛔ **difetto** |
+
+**La cella SD smentiva il paragrafo sopra di sé.** Quel paragrafo dice, a
+parole: *«Le caselle marcate "non dichiarato" non sono zeri: sono valori che
+nessuno ha registrato, e senza di essi la distanza scalata (SD) non si
+calcola»*. E poi la cella SD scriveva **«—»**, in mezzo a una colonna di
+numeri, dove si legge «niente da segnalare». Tutte le altre celle della riga
+passano da `cellaVolata`, che marca «non dichiarato»: questa era **l'unica
+rimasta con la copia debole**, ed è quella che dipende da tutte le altre.
+
+**I superamenti senza soglia**: «letture 6 · massimo 42,1 · media 22,0 ·
+superamenti **—**». La ragione c'è ed è scritta bene — il riquadro
+`senza-soglia` — ma sta **dopo**, e questa riga la si legge per prima. Il
+commento del codice diceva già che «superamenti: 0» sarebbe stato una cifra
+tranquilla ricavata dal nulla: il rimedio scelto allora era **un trattino**,
+cioè la stessa cifra tranquilla in un altro vestito.
+
+Adesso scrivono «non calcolabile» e «non calcolabili: nessuna soglia», e il
+banco lo sorveglia con una riga che porta il **denominatore**: *«nessun
+trattino fuori dalla colonna Ora»* + *«6 trattini nella colonna Ora,
+facoltativa dichiarata all'import»*. Controprova: rimessi tutt'e due i
+trattini, 4 trattini fuori posto e il banco cade.

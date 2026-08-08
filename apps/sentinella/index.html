@@ -3451,8 +3451,16 @@ textarea.dw-input{
         ${/* ⛔ «superamenti: 0» SU UN PUNTO SENZA SOGLIA è la solita cifra
               tranquilla ricavata dal nulla: nessuna lettura può essere «oltre»
               un limite che non esiste, quindi quello zero non è un risultato,
-              è l'assenza del confronto. */""}
-        superamenti: <b>${p.soglia.valore == null ? "—" : p.nSuperamenti}</b> · esito: <b>${esc(E.label)}</b></div>
+              è l'assenza del confronto.
+              ⏱️ E il rimedio era un TRATTINO, che è la stessa cifra tranquilla
+              in un altro vestito: in mezzo a «letture 6 · massimo 42,1 · media
+              22,0 · superamenti —» quel segno si legge «niente da segnalare»,
+              non «non si è potuto contare». La ragione c'è ed è scritta bene
+              — il riquadro `senza-soglia` due righe più sotto — ma sta DOPO,
+              e questa riga la si legge per prima. Detto in chiaro l'08/08,
+              insieme alla cella SD della tabella delle volate, che aveva
+              esattamente lo stesso difetto. */""}
+        superamenti: <b>${p.soglia.valore == null ? "non calcolabili: nessuna soglia" : p.nSuperamenti}</b> · esito: <b>${esc(E.label)}</b></div>
         ${/* ⚠️ QUI LA FRASE È AL SINGOLARE, e non è pignoleria: il testo di
               `ESITI` parla del DOCUMENTO («su questi punti non è impostata
               nessuna soglia») ed è giusto lì, in testa al report. Riusarlo
@@ -3508,7 +3516,18 @@ textarea.dw-input{
         return `<tr><td>${fmtD(v.data)}</td><td class="n">${esc(v.fronte || "—")}</td>
         <td>${cellaVolata(v.nFori, 0)}</td><td>${cellaVolata(v.kgTotali)}</td>
         <td>${cellaVolata(v.kgMaxRitardo)}</td><td>${cellaVolata(v.distanzaRicettore)}</td>
-        <td>${sd != null ? esc(numeroIt(sd)) : "—"}</td>
+        ${/* ⛔ LA CELLA CHE SMENTIVA IL PARAGRAFO SOPRA DI SÉ. Il testo qui
+             sopra lo dice a parole — «senza di essi la distanza scalata (SD)
+             non si calcola» — e poi questa cella scriveva «—», che in mezzo a
+             una colonna di numeri si legge «niente da segnalare», non «non
+             calcolabile». Tutte le altre celle della riga passano da
+             `cellaVolata`, che marca «non dichiarato»: questa era l'unica
+             rimasta con la copia debole, ed è quella che dipende dalle altre.
+             Misurato l'08/08 premendo il bottone e leggendo il foglio: una
+             riga su cinque della dimostrazione (24/07, Fronte Nord).
+             Il documento va a un ente: lì «—» accanto a un numero è la faccia
+             tranquilla di un dato che non c'è. */""}
+        <td>${sd != null ? esc(numeroIt(sd)) : '<span class="tag">non calcolabile</span>'}</td>
         <td class="stato">${v.esito === "contestazione" ? '<span class="tag danger">contestazione</span>' : '<span class="tag ok">regolare</span>'}</td></tr>`;
       }).join("")}</tbody></table></div>`;
 

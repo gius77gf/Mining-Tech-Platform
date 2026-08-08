@@ -139,6 +139,14 @@ const DIFETTI = {
   "apps/sentinella/index.html": [
     ['${db.mode !== "live" ? `<div class="rep-esempio">', '${false ? `<div class="rep-esempio">'],
     ["    const S = R.scartate || { totale: 0 };", "    const S = { totale: 0 };"],
+    /* i due trattini che dicevano «niente da segnalare» dove la verità era
+       «non si è potuto calcolare» (08/08), rimessi tutt'e due: toglierne uno
+       solo lascerebbe in piedi l'altro e la controprova direbbe «non
+       distingue» per il motivo sbagliato */
+    ['<td>${sd != null ? esc(numeroIt(sd)) : \'<span class="tag">non calcolabile</span>\'}</td>',
+     '<td>${sd != null ? esc(numeroIt(sd)) : "—"}</td>'],
+    ['superamenti: <b>${p.soglia.valore == null ? "non calcolabili: nessuna soglia" : p.nSuperamenti}</b>',
+     'superamenti: <b>${p.soglia.valore == null ? "—" : p.nSuperamenti}</b>'],
   ],
   /* ⛔ SCUDO, dall'08/08. Si spegne la DECISIONE, non la frase — come per Conti
      e Terra: `avvisoEsempio` è il posto unico che decide «questo è un foglio di
@@ -435,6 +443,41 @@ if (fai("sentinella")) {
     "⛔ nessuna riga del documento porta un trattino al posto della data", righeSenzaData);
   dice(/non ha potuto usare/i.test(foglio),
     "⛔ e il documento dichiara le righe che ha dovuto lasciare fuori");
+  /* ⛔ I TRATTINI DEL FOGLIO CHE VA A UN ENTE, giudicati l'08/08 uno per uno
+     invece di contarli. Erano otto: sei nella colonna «Ora», che il prodotto
+     dichiara FACOLTATIVA fin dall'import («Ora (facoltativa)») — lì il «—» è
+     giusto e resta; e due che dicevano «niente da segnalare» dove la verità
+     era «non si è potuto calcolare»:
+       · la cella **SD** della tabella delle volate, che smentiva il paragrafo
+         sopra di sé — «senza di essi la distanza scalata non si calcola» —
+         mentre tutte le altre celle della riga passano da `cellaVolata` e
+         marcano «non dichiarato»;
+       · i **superamenti** di un punto senza soglia, in mezzo a «letture 6 ·
+         massimo 42,1 · media 22,0 · superamenti —».
+     Il conto qui sotto è per FAMIGLIA, non un totale: se domani nascesse un
+     terzo trattino dove serve una ragione, questa riga lo direbbe. */
+  const trattini = await pg.evaluate(() => {
+    const doc = document.getElementById("rep-doc"); if (!doc) return null;
+    const w = document.createTreeWalker(doc, NodeFilter.SHOW_TEXT);
+    let n, ora = 0, altri = 0;
+    while ((n = w.nextNode())) {
+      if ((n.textContent || "").trim() !== "—") continue;
+      const cel = (n.parentElement || {}).closest ? n.parentElement.closest("td") : null;
+      const tr = cel && cel.closest("tr"), tab = cel && cel.closest("table");
+      let col = "";
+      if (tr && tab) {
+        const i = Array.from(tr.children).indexOf(cel);
+        const th = tab.querySelectorAll("thead th")[i];
+        col = th ? th.innerText.trim().toLowerCase() : "";
+      }
+      if (col === "ora") ora++; else altri++;
+    }
+    return { ora, altri };
+  });
+  dice(trattini && trattini.altri === 0,
+    "⛔ nessun trattino «—» fuori dalla colonna «Ora», che è l'unica facoltativa per disegno",
+    trattini);
+  console.log(`     (${trattini ? trattini.ora : "?"} trattini nella colonna «Ora», facoltativa dichiarata all'import)`);
   dice(/2 righe che questo documento non ha potuto usare/i.test(foglio),
     "sono due: la lettura del 30 febbraio e la volata senza data leggibile",
     (foglio.match(/[^.]*non ha potuto usare[^.]*\./) || [""])[0]);
