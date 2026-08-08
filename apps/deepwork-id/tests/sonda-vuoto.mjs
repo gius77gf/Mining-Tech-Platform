@@ -201,7 +201,21 @@ for (const [nomeSoggetto, percorso] of SOGGETTI) {
     const out = []; let riuscita = false;
     for (const args of VUOTI) {
       if (!valePer(f, args)) { formeScartate++; continue; }
-      try { segnali(f(...args), n, out); riuscita = true; } catch (e) { /* firma sbagliata */ }
+      /* ⛔ E UNA FUNZIONE `async` NON LANCIA: RESTITUISCE UNA PROMESSA
+         RIFIUTATA, che questo `catch` non vede. Nessuno la aspetta, quindi
+         diventa un rifiuto non gestito e **uccide il processo** invece di
+         essere una firma scartata come tutte le altre.
+         Misurato l'08/08 e costato un commit rosso: `trasformaAtomico`
+         chiamata a vuoto faceva cadere la sonda con un `TypeError`, e in casa
+         **passava** — `process.exit(0)` arrivava prima che il rifiuto
+         emergesse. Una corsa: verde qui, rosso in CI. Basta agganciare un
+         `catch` a ciò che torna, e la firma sbagliata torna a essere solo una
+         firma sbagliata. */
+      try {
+        const r = f(...args);
+        if (r && typeof r.then === "function") { r.catch(() => {}); continue; }
+        segnali(r, n, out); riuscita = true;
+      } catch (e) { /* firma sbagliata */ }
     }
     if (!riuscita) continue;
     chiamate++;

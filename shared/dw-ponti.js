@@ -1229,7 +1229,13 @@ export function percorsiDi(campo, voci) {
    Le primitive arrivano come ARGOMENTI perché questo modulo è puro e gira anche
    in `node`: importare Firebase da gstatic lo spezzerebbe. È la firma allargata
    al posto della copia, per la terza volta in questo file. */
-export async function trasformaAtomico({ rif, runTransaction, deleteField }, cambia) {
+export async function trasformaAtomico({ rif, runTransaction, deleteField } = {}, cambia) {
+  /* ⛔ CHI NON RICEVE QUELLO CHE GLI SERVE LO DICE, non muore su un `TypeError`.
+     Trovato dalla `sonda-vuoto` l'08/08: chiamata senza niente, questa funzione
+     esplodeva leggendo `rif.firestore`. Un errore di lettura di proprietà non
+     dice a nessuno che cosa manca; una frase sì. */
+  if (!rif || typeof runTransaction !== "function" || typeof cambia !== "function")
+    throw new Error("trasformaAtomico: servono la riga, runTransaction e la funzione che decide i cambi.");
   return runTransaction(rif.firestore, async (tx) => {
     const scatto = await tx.get(rif);
     /* ⛔ una riga cancellata nel frattempo non si RESUSCITA: `update` su un
@@ -1248,6 +1254,8 @@ export async function trasformaAtomico({ rif, runTransaction, deleteField }, cam
    errore se la riga non c'è più. Se i due contratti divergono, la
    dimostrazione smette di dimostrare. */
 export function trasformaInMemoria(riga, cambia) {
+  if (typeof cambia !== "function")
+    throw new Error("trasformaInMemoria: serve la funzione che decide i cambi.");
   if (!riga) throw new Error("La riga non c'è più: qualcuno l'ha tolta mentre la modificavi.");
   const cambi = cambia({ ...riga });
   if (!cambi) return riga;
