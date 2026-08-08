@@ -2190,6 +2190,37 @@ numero scritto dove non era stato misurato niente**.*
   giusta, non più permissiva** — si pretende il participio singolare **e** che
   il plurale non compaia, invece di allargare a `Esportat[oi]`.
 
+- [x] ✅ **Flotta: il CSV che va al commercialista scriveva una data che non
+  esiste, e lo schermo diceva «—»** (`a21f50a`). Trovato applicando la domanda
+  di `CLAUDE.md` — *dove questa app compone qualcosa che ESCE, chi decide i suoi
+  numeri?* — e la risposta era **no**: la pagina decideva «ha una data» dalla
+  **forma** (`/^\d{4}-\d{2}-\d{2}$/`) in **otto punti**, mentre il suo stesso
+  modulo usa `dataISOEsiste` **undici** volte. La regola sta in `shared/` da mesi.
+  Misurato iniettando una voce di costo datata **2026-02-30** nella risposta
+  HTTP (mai sul file: la dimostrazione non può contenerla, `run-demo` vieta di
+  proposito una data corrotta), e servendo come controprova **la versione vera
+  di `HEAD`**, non una mia ricostruzione:
+  | | prima (`HEAD`) | adesso |
+  |---|---|---|
+  | schermo | «—» | «senza data» |
+  | **CSV** | `2026-02-30` | cella **vuota** |
+  | messaggio | «di cui **1** senza data» | «di cui **2**» |
+  ⛔ Cioè lo **schermo era già onesto** — lo salvava `dataIt`, che una data
+  impossibile la rifiuta — e a mentire era **il file**, che è esattamente il
+  posto dove nessuna prova guarda. E il conto in fondo al messaggio contava
+  quella voce fra quelle **con** la data.
+  Gli otto punti erano la stessa decisione otto volte: quali costi di
+  carburante entrano nel mese, come si scrive la data a schermo, se si programma
+  la manutenzione successiva, il precompilato e la guardia della modifica, i
+  giorni di distanza (dove `Date.parse` faceva **scorrere** il 30/02 al 2 marzo,
+  cioè dava un numero **sbagliato** invece che sconosciuto), la cella del CSV e
+  il conto dei «senza data».
+  ⚠️ **E la prima controprova era disonesta senza volerlo**: rimetteva la regola
+  della forma in **due** punti su otto, e faceva sembrare che lo schermo dicesse
+  già «senza data». Una ricostruzione a metà non è lo stato di prima — è un
+  terzo stato che non è mai esistito. Con `git show HEAD:` il confronto è quello
+  vero.
+
 ## Riferimenti
 
 - Ultimo checkpoint **per data vera**:
