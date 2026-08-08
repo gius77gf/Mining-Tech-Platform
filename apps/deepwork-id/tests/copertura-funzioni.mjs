@@ -373,6 +373,33 @@ console.log(`\n⛔ Fuori dal conto, e va detto: **Genesi non ha ancora un modulo
   + `\n   Quindi il 100% qui sopra vale per il perimetro misurato, non per tutto il prodotto.`
   + `\n   Quanto e' grande il resto: node apps/deepwork-id/tests/genesi-estraibili.mjs`);
 
+/* ⛔ E L'ALTRA META' DEL PERIMETRO, che fino all'08/08 non era dichiarata.
+   Il blocco qui sopra dice che Genesi resta fuori, e lo dice bene. Ma restano
+   fuori anche **cinque moduli condivisi**, e quello non lo diceva nessuno —
+   cioè il numero «703 su 703, tutte al 100%» si leggeva più largo di quello
+   che è. È la regola dell'etichetta più larga del suo numero, applicata al
+   controllo che quel numero lo produce.
+   La ragione è **tecnica e legittima**: questo censimento legge gli `export`
+   ESM, e quei cinque non ne hanno nessuno — espongono un oggetto globale
+   (`dwGrafici`, `dwFluido`), attaccano funzioni a `window` (la struttura
+   condivisa) o sono una classe (l'SDK). Non sono **non provati**: sono provati
+   **altrove**, e qui sotto è scritto dove. Ma una ragione tecnica non
+   dichiarata è indistinguibile da una dimenticanza — ed è esattamente per
+   questo che stanotte tre moduli erano fuori da `run-stile` senza che nessuno
+   lo sapesse. */
+const FUORI_ESM = [
+  ["shared/dw-grafici.js", "espone l'oggetto globale `dwGrafici`. La sua parte pura — la geometria dei tracciati — è esposta apposta in `dwGrafici.geometria` ed è provata da `run-kpi`; il resto disegna, e lo guardano i banchi `*-disegni.mjs`"],
+  ["shared/dw-app-ui.js", "la struttura del core (toast, modale, alone): attacca 11 funzioni a `window` e vive solo dentro una pagina. La guardano i banchi del browser e la regola 17 di `run-stile`"],
+  ["shared/deepwork-id-client/index.js", "l'SDK è una **classe**, non un modulo di funzioni pure: lo provano le 19 di `run-sdk.mjs` sotto l'emulatore (`giro-sicurezza.mjs`)"],
+  ["shared/dw-tema.js", "due funzioni su `window` che scelgono il tema: si vedono solo in una pagina, e le guardano i banchi del contrasto nei tre temi"],
+  ["shared/dw-fluido.js", "espone l'oggetto globale `dwFluido` (animazioni): nessuna logica di prodotto da provare senza browser"],
+];
+console.log(`\n⛔ E fuori dal conto ci sono anche ${FUORI_ESM.length} moduli condivisi, per una ragione tecnica`
+  + ` che va DETTA e non lasciata intuire: questo censimento legge gli \`export\` ESM, e loro`
+  + ` non ne hanno. Sono provati altrove, e qui c'e' dove:`);
+for (const [f, perche] of FUORI_ESM) console.log(`   · ${f} — ${perche}`);
+console.log(`   Cioe' il perimetro vero e': 6 app + 5 moduli con export ESM. Gli altri ${FUORI_ESM.length} non sono scoperti, sono contati da un'altra parte.`);
+
 console.log(`\nRisultato copertura: ${passed} soggetti a posto, ${failed} con funzioni senza prova`
   + ` (o sotto il fondo)  ·  ${APP.length} app + ${CONDIVISI.length} moduli condivisi`
   + ` (Genesi: ${genesiPagina == null ? "?" : genesiPagina} funzioni nella pagina, fuori portata di node)`);
