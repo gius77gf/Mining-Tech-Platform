@@ -1631,6 +1631,24 @@ numero scritto dove non era stato misurato niente**.*
   contrassegno e mi ha risposto niente») invece di misurare la copia di
   qualcun altro: la difesa scritta in CLAUDE.md ha funzionato alla lettera.
 
+- [x] ✅ **La QUINTA domanda: un nome importato e mai usato** (`ed444ea`),
+  cioè il **verso opposto** delle prime quattro — non «questo nome esiste?» ma
+  «questo nome, che esiste, serve a qualcuno?». **990 import su 21 file, 59
+  inerti.** Non è un errore duro: un import inutile è **inerte**. Il danno è di
+  lettura e **mente sul legame fra due file** — chi apre la pagina di Terra
+  crede che usi `SOGLIA_TURNI`, chi tocca `terra-data.js` crede di avere un
+  consumatore in più. Stessa famiglia dell'**eccezione che non serve più** di
+  `sonda-vuoto`. ⚠️ **Il righello sbaglia nel verso giusto, ed è una scelta**:
+  legge su **tutto** il testo e non sul codice mascherato, così se sbaglia dice
+  «è usato» — il verso giusto per una domanda che propone di **cancellare
+  righe**; la controprova prova tutt'e due i versi. ⚠️ **E il primo sospetto è
+  stato verificato invece che creduto**: Flotta importa `statoScadenzaMezzo`
+  senza usarlo e sembrava la **copia debole** di CLAUDE.md — non lo è, la
+  pagina usa `scadenzeOrdinate`, che quello stato lo calcola dentro. Sono
+  **pulizia, non un difetto**, e dirlo evita di mandare il cantiere dopo a
+  cercare una cosa che non c'è. ⏱️ Resta **misura** finché le 59 righe non sono
+  tolte: è lavoro sulle **pagine**, e va fatto col giro del browser fermo.
+
 ## Riferimenti
 
 - Ultimo checkpoint **per data vera**:
