@@ -1649,6 +1649,26 @@ numero scritto dove non era stato misurato niente**.*
   cercare una cosa che non c'è. ⏱️ Resta **misura** finché le 59 righe non sono
   tolte: è lavoro sulle **pagine**, e va fatto col giro del browser fermo.
 
+- [x] ✅ **I 34 punti di decisione dello strumento, e tre numeri veri nei
+  documenti** (`2116de4`). Il buco della freccia l'avevo trovato **per caso**:
+  vuol dire che gli altri, se ci sono, aspettano il **prossimo caso**. Adesso i
+  punti in cui `mascheraCodice` deve decidere qualcosa sono interrogati uno per
+  uno con la risposta giusta accanto — **34**. ⚠️ **Esito onesto: nessun buco
+  nuovo, 34 su 34.** Il valore non è quello che ha trovato oggi, è che da
+  domani nessuno dei 34 si può riaprire in silenzio; e **sa fallire** (33/34
+  sul tokenizzatore di prima). Le due prove nuove hanno fatto invecchiare i
+  documenti **nello stesso istante** (2.307 → 2.309) e `numeri-nei-documenti`
+  ha fatto cadere il giro: ha funzionato come deve. Aggiornandoli, due cose che
+  nessuno guardava: in `DEVELOPMENT.md` **gli addendi non tornavano** (1890 +
+  297 + **63** + 32 + 9 + 8 = 2299, non 2307), e in `DECISIONI_WEEKEND.md`
+  c'era «**19** banchi che aprono le pagine» dove sono **153** — vecchio di un
+  **ordine di grandezza**, perché l'elenco `BROWSER` del controllo ne guardava
+  **due su tre**, e il documento fuori elenco è proprio quello che si apre per
+  **decidere**. ⛔ **Un numero è sorvegliato solo dove il controllo ARRIVA, e
+  l'elenco di dove arriva va guardato quanto il numero.** ⚠️ E il conto dei
+  banchi l'ho chiesto al file che lo sa: con una regex mia ne trovavo **143**,
+  dieci in meno — il righello più debole era di nuovo il mio.
+
 ## Riferimenti
 
 - Ultimo checkpoint **per data vera**:
