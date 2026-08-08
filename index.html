@@ -7700,6 +7700,15 @@ document.addEventListener('DOMContentLoaded', () => {
      ⚠️ I tre pieni valgono uguale nei due temi del core (sono dichiarati una
      volta sola, qui sopra): questi conti valgono per tutt'e due. */
   --ink-su-pieno:#100d07;
+  /* ⛔ E IL GEMELLO OPPOSTO: l'inchiostro che va sopra una VELATURA di stato.
+     `--ink-su-pieno` serve quando la tinta è piena; qui la tinta è al 10-15% e
+     sotto c'è la carta scura, quindi serve un inchiostro CHIARO. Scrivere
+     `var(--danger)` sembrava naturale ed è troppo scuro: misurato l'08/08,
+     `.login-msg` 4,10 · `.sync-badge.offline` 3,75 · `.btn-danger` 3,89, tutti
+     sotto il 4,5 che la WCAG chiede al testo piccolo. Il nome è quello che
+     usano già le sei app (`--ink-dg`), per non aprire una seconda convenzione.
+     Misurato dopo: 5,7 nel caso peggiore, che è sopra `--card2`. */
+  --ink-dg:#ff8f8b;
   --grad:linear-gradient(135deg,#ffab00,#ff6d00);
   /* ⛔ ERA `#ef5350 → #c62828`, ED ERA L'UNICO GRADIENTE DEL CORE SENZA UN
      INCHIOSTRO. Le due estremità falliscono con inchiostri OPPOSTI: il nero
@@ -7791,7 +7800,7 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
 @keyframes spinMini{to{transform:rotate(360deg)}}
 .busy{opacity:.7;cursor:wait!important;pointer-events:none;}
 .link-small{font-size:11px;color:var(--amber);text-align:center;margin-top:14px;cursor:pointer;display:block;text-decoration:underline;text-underline-offset:3px;}
-.login-msg{background:rgba(239,83,80,.08);border:1px solid rgba(239,83,80,.3);color:var(--danger);font-size:12px;padding:8px 11px;margin-bottom:14px;display:none;}
+.login-msg{background:rgba(239,83,80,.08);border:1px solid rgba(239,83,80,.3);color:var(--ink-dg);font-size:12px;padding:8px 11px;margin-bottom:14px;display:none;}
 .login-msg.show{display:block;}
 .login-msg.info{background:rgba(66,165,245,.08);border-color:rgba(66,165,245,.3);color:var(--info);}
 .login-msg.success{background:rgba(102,187,106,.08);border-color:rgba(102,187,106,.3);color:var(--success);}
@@ -7824,7 +7833,7 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
 .notif-badge{position:absolute;top:-5px;right:-5px;background:#b71c1c;color:#fff;font-size:9px;font-weight:700;min-width:15px;height:15px;border-radius:50%;display:flex;align-items:center;justify-content:center;padding:0 3px;}
 /* ── Sync badge (B1+B2) ── */
 .sync-badge{display:flex;align-items:center;gap:5px;padding:5px 10px;font-family:'Barlow Condensed',sans-serif;font-size:10px;font-weight:800;letter-spacing:2px;text-transform:uppercase;border-radius:3px;cursor:default;user-select:none;}
-.sync-badge.offline{background:rgba(239,83,80,.15);border:1px solid var(--danger);color:var(--danger);}
+.sync-badge.offline{background:rgba(239,83,80,.15);border:1px solid var(--danger);color:var(--ink-dg);}
 .sync-badge.syncing{background:rgba(255,167,38,.15);border:1px solid var(--warn);color:var(--warn);animation:pulseSync 1.5s ease-in-out infinite;}
 /* Solo memoria: il database non risponde e niente di quello che si scrive
    viene salvato. NON lampeggia — non è un'attesa che passerà da sola, è lo
@@ -7952,7 +7961,7 @@ textarea.finput{resize:vertical;min-height:60px;}
 .btn-sv.btn-del{background:var(--grad3);color:var(--grad3-ink);box-shadow:0 5px 16px rgba(229,72,77,.26);}
 .btn-sec{background:var(--card);border:1px solid var(--border);color:var(--text);padding:12px;font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:600;letter-spacing:1px;text-transform:uppercase;cursor:pointer;transition:all .2s;min-height:var(--tap);}
 .btn-sec:hover{border-color:var(--amber);}
-.btn-danger{background:rgba(239,83,80,.12);border:1px solid var(--danger);color:var(--danger);padding:11px;font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:700;letter-spacing:1px;text-transform:uppercase;cursor:pointer;transition:all .2s;min-height:var(--tap);}
+.btn-danger{background:rgba(239,83,80,.12);border:1px solid var(--danger);color:var(--ink-dg);padding:11px;font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:700;letter-spacing:1px;text-transform:uppercase;cursor:pointer;transition:all .2s;min-height:var(--tap);}
 .btn-danger:hover{background:var(--danger);color:#fff;}
 .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(100px,1fr));gap:6px;}
 .stat{background:var(--card);border:1px solid var(--border);padding:10px;text-align:center;}
@@ -8229,7 +8238,7 @@ body.light-mode .map-wrap iframe{filter:none;}
 .photo-item img{width:100%;height:100%;object-fit:cover;}
 .photo-item.add{border-style:dashed;color:var(--muted);font-size:24px;}
 .photo-item.add:hover{border-color:var(--amber);color:var(--amber);}
-.photo-del{position:absolute;top:3px;right:3px;width:22px;height:22px;background:rgba(239,83,80,.9);color:#fff;border-radius:50%;font-size:13px;display:flex;align-items:center;justify-content:center;cursor:pointer;}
+.photo-del{position:absolute;top:3px;right:3px;width:22px;height:22px;background:rgba(239,83,80,.9);color:var(--ink-su-pieno);border-radius:50%;font-size:13px;display:flex;align-items:center;justify-content:center;cursor:pointer;}
 /* ⛔ IL TESTO VA A CAPO, NON VIENE TAGLIATO (02/08). Qui c'era
    `white-space:nowrap` + `text-overflow:ellipsis`: su un telefono a 320px
    nel toast ci stanno ~45 caratteri, e **dieci** messaggi del core sono piu'

@@ -1128,10 +1128,14 @@ const CLASSI_CANDIDATE = () => {
    Poi la misura la fa `MISURA`: **una scansione sola**, come pretende
    CLAUDE.md — se sbaglia, sbaglia uguale nei due posti invece di sbagliare in
    due modi diversi. */
-const FAI_COMPARIRE = (elenco) => {
+/* `fondo` serve alle classi NON coprenti: un fondo semitrasparente si giudica
+   solo sapendo che cosa ha sotto, e sotto ci si mette una delle superfici che
+   l'app DICHIARA (`--bg`, `--card`, `--card2`) — non un colore inventato. */
+const FAI_COMPARIRE = ({ elenco, fondo }) => {
   const host = document.createElement('div');
   host.id = 'dw-mai-comparse';
-  host.setAttribute('style', 'position:fixed;left:0;top:0;z-index:2147483646;display:flex;flex-wrap:wrap');
+  host.setAttribute('style', 'position:fixed;left:0;top:0;z-index:2147483646;display:flex;flex-wrap:wrap'
+    + (fondo ? `;background:${fondo}` : ''));
   for (const c of elenco) {
     const d = document.createElement('div');
     d.className = c.classi.join(' ');
@@ -1156,7 +1160,8 @@ const FAI_COMPARIRE = (elenco) => {
 
 const b = await chromium.launch({ executablePath: CHROMIUM });
 let misurati = 0, bocciati = 0;
-let maiComparse = 0, maiMisurate = 0, maiBocciate = 0, maiCieche = 0;
+let maiComparse = 0, maiMisurate = 0, maiBocciate = 0, maiCieche = 0, maiComposte = 0;
+const scusateComposte = new Set();
 const nonMisurabili = [];
 let sfumatiTot = 0, pulsantiTot = 0, spentiTot = 0, finiteTot = 0, pulsaBocciata = 0, pulsaMisurata = 0;
 let superficiProvate = 0;
@@ -1441,7 +1446,7 @@ for (const [nome, via] of SUPERFICI) {
   maiComparse += mai.length;
   if (soloElencate.length) nonMisurabili.push(`${nome}: ${soloElencate.length}`);
   if (daFar.length) {
-    await p.evaluate(FAI_COMPARIRE, daFar.map((c) => ({ classi: c.classi })));
+    await p.evaluate(FAI_COMPARIRE, { elenco: daFar.map((c) => ({ classi: c.classi })) });
     await fermaAnimazioni(p);
     const misureMai = await p.evaluate(MISURA, LATO);
     /* si guardano SOLO gli elementi appena creati: il resto della pagina è già
@@ -1460,9 +1465,77 @@ for (const [nome, via] of SUPERFICI) {
     }
     await p.evaluate(() => { const h = document.getElementById('dw-mai-comparse'); if (h) h.remove(); });
   }
+  /* ── E QUELLE CHE NON COPRONO: caso peggiore, con la forbice accanto ──
+     ⛔ Il limite dichiarato fin qui era: «misurarle in un contenitore inventato
+     vuol dire accusare un colore per il posto in cui ce l'ho messo io». Vero, e
+     per questo NON si inventa un posto: si usano le superfici che l'app stessa
+     dichiara (`--bg`, `--card`, `--card2`). Un fondo semitrasparente composto
+     su ognuna dà tre numeri; si tiene il **peggiore** — la direzione prudente —
+     e si stampa la **forbice**, cioè quanto quel numero dipende dal posto. È
+     la stessa forma già usata per i gradienti, e la stessa lezione: una misura
+     incerta si dichiara incerta invece di sparire.
+     ⚠️ La resa è stata misurata PRIMA di scriverlo, e va detta perché nessuno
+     si aspetti un filone: su sei app le classi davvero semitrasparenti con un
+     inchiostro dichiarato sono **diciassette**, e una sola cade sotto soglia. */
+  /* ⛔ LE ECCEZIONI DELLA PASSATA COMPOSTA, DICHIARATE CON LA PROVA — e sono
+     esattamente il caso che l'intestazione di questo banco impone di
+     verificare: «un KO di questa passata si verifica come un OK: si va a
+     cercare dove la classe è usata DAVVERO, prima di toccare un colore».
+     Il campione che si fa comparire porta la scritta «Ag», quindi la soglia
+     applicata è quella del testo piccolo (4,5). Ma queste cinque classi, nel
+     prodotto, non contengono testo: sono **contenitori d'icona** — un `<svg>`
+     e basta, e in Terra perfino con `aria-hidden="true"`. Per il contenuto non
+     testuale la WCAG 1.4.11 chiede **3:1**, e tutte e cinque stanno fra 4,08 e
+     4,47: passano con margine.
+     La prova sta accanto a ognuna. Se un giorno una di loro comincerà a
+     contenere del testo, questa riga sarà da togliere — e il modo di
+     accorgersene è che il conto delle presentate qui sotto non torni. */
+  const COMPOSTE_ACCETTATE = new Map([
+    ['terra|avatar ico ok', 'contenitore d\'icona: `<div class="avatar ico ok" aria-hidden="true">${I.monte}</div>`, dentro solo un <svg> 20×20. Soglia non-testo 3:1 — misurato 4,19.'],
+    ['terra|avatar ico warn', 'stesso contenitore, stato warn. Misurato 4,34.'],
+    ['terra|avatar ico danger', 'stesso contenitore, stato danger. Misurato 4,08 (chiaro) e 4,44 (sole).'],
+    ['sentinella|rep-esito-ico', 'contenitore d\'icona del riquadro d\'esito: `line-height:0` e dentro un <svg> 40×40. Misurato 4,47.'],
+  ]);
+  const scusataComposta = (classe) => COMPOSTE_ACCETTATE.has(`${nome}|${classe}`);
+  let compostiQui = 0;
+  if (soloElencate.length) {
+    const superfici = await p.evaluate(() => {
+      const cs = getComputedStyle(document.body);
+      return ['--bg', '--card', '--card2'].map((v) => [v, cs.getPropertyValue(v).trim()]).filter(([, c]) => c);
+    }).catch(() => []);
+    const perClasse = new Map();
+    for (const [nomeSup, colore] of superfici) {
+      await p.evaluate(FAI_COMPARIRE, { elenco: soloElencate.map((c) => ({ classi: c.classi })), fondo: colore });
+      await fermaAnimazioni(p);
+      const nomiFatti = new Set(soloElencate.map((c) => c.classi.join(' ')));
+      for (const m of await p.evaluate(MISURA, LATO)) {
+        if (m.testo !== 'Ag' || !nomiFatti.has(m.classe) || m.rapporto == null) continue;
+        const q = perClasse.get(m.classe) || { min: Infinity, max: -Infinity, soglia: m.soglia, dim: m.dim, dove: '' };
+        if (m.rapporto < q.min) { q.min = m.rapporto; q.dove = nomeSup; }
+        if (m.rapporto > q.max) q.max = m.rapporto;
+        perClasse.set(m.classe, q);
+      }
+      await p.evaluate(() => { const h = document.getElementById('dw-mai-comparse'); if (h) h.remove(); });
+    }
+    for (const [classe, q] of perClasse) {
+      compostiQui++; maiComposte++;
+      if (q.min < q.soglia && scusataComposta(classe)) {
+        scusateComposte.add(`${nome}|${classe}`);
+        if (TUTTI) console.log(`  ok  ${String(q.min).padStart(6)}:1  .${classe}  (contenitore d'icona: soglia non-testo 3:1)`);
+      } else if (q.min < q.soglia) {
+        maiBocciate++; bocciati++; bocciatiQui++;
+        console.log(`  KO  ${String(q.min).padStart(6)}:1  (serve ${q.soglia})  ${q.dim}px  .${classe}`
+          + `  — fondo NON coprente, caso peggiore su «${q.dove}»`
+          + `  · forbice ${Math.round((q.max - q.min) * 100) / 100} fra le ${superfici.length} superfici che l'app dichiara`);
+      } else if (TUTTI) {
+        console.log(`  ok  ${String(q.min).padStart(6)}:1  .${classe}  (composta, peggiore su «${q.dove}», forbice ${Math.round((q.max - q.min) * 100) / 100})`);
+      }
+    }
+  }
   if (mai.length) {
     console.log(`  ⚠️  ${mai.length} classi che dipingono un fondo non sono mai comparse:`
-      + ` ${daFar.length} fatte comparire e misurate, ${soloElencate.length} solo elencate`);
+      + ` ${daFar.length} fatte comparire e misurate, ${soloElencate.length} non coprenti`
+      + ` (di cui ${compostiQui} composte sulle superfici dichiarate, ${soloElencate.length - compostiQui} senza inchiostro leggibile)`);
   }
 
   const sfumati = await p.evaluate(() => window.__dwSfumati || 0).catch(() => 0);
@@ -1526,7 +1599,9 @@ if (!SOLO && maiCieche === 0)
   console.log(`   ⛔ ZERO: o il criterio vecchio è tornato, o il censimento non sta più guardando dove crede.`);
 console.log(`   (${maiComparse} classi con un fondo proprio non sono mai comparse durante il giro:`
   + ` ${maiMisurate} fatte comparire e misurate, ${maiBocciate} sotto soglia`
-  + (nonMisurabili.length ? ` · non giudicabili fuori dal loro posto: ${nonMisurabili.join(', ')}` : '')
+  + (scusateComposte.size ? ` · ${scusateComposte.size} contenitori d'icona scusati con la prova (soglia non-testo 3:1): ${[...scusateComposte].join(', ')}` : '')
+  + (maiComposte ? ` · ${maiComposte} col fondo NON coprente, composte sulle superfici che l'app dichiara e giudicate col caso PEGGIORE (la forbice è stampata accanto a ognuna)` : '')
+  + (nonMisurabili.length ? ` · per superficie: ${nonMisurabili.join(', ')}` : '')
   + ')');
 
 if (CONTROCENS) {

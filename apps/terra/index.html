@@ -60,7 +60,19 @@
      Quindi si aggiunge un nome: `--ink-*` è lo stato quando fa da inchiostro.
      Sul buio VALE lo stato (nessuna differenza, nessuna riga in più da
      mantenere); nei due temi chiari vale un valore misurato più sotto. */
-  --ink-ok:var(--success); --ink-wr:var(--warn); --ink-dg:var(--danger);
+  /* ⛔ `--ink-dg` NON È PIÙ `var(--danger)`, e il numero che lo impone è 3,88.
+     Misurato l'08/08, quando il banco del contrasto ha imparato a giudicare
+     anche i fondi NON coprenti componendoli sulle superfici che l'app dichiara:
+     `.avatar.ico.danger` — pastiglia rossa al 17% sopra `--card2` — dava
+     **3,88:1** dove ne servono 4,5. Le sorelle `.ok` e `.warn` passavano: il
+     rosso è intrinsecamente il più scuro dei tre, e lo stesso valore che va
+     bene da PIENO non basta da INCHIOSTRO su una tinta velata.
+     Alzato di luminosità, tinta invariata. Non tocca nessun pieno: delle otto
+     occorrenze di `--ink-dg` **sette sono `color:`** e nessuna è un fondo o un
+     bordo, quindi il contrasto qui può solo salire.
+     Misurato sui tre fondi composti: --bg **7,22** · --card **6,17** ·
+     --card2 **5,72** (era 4,90 · 4,19 · 3,88). */
+  --ink-ok:var(--success); --ink-wr:var(--warn); --ink-dg:#ff8f8b;
 
   /* ---- gradienti ---- */
   --grad:    linear-gradient(135deg,#73af34,#579100);

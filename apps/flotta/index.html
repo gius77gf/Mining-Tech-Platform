@@ -54,7 +54,14 @@
      sotto, dove valgono tre tinte piu' profonde. Passandoci ora, chi scrive
      una frase colorata domani non deve ricordarsi della regola: la scrive
      con `var(--ink-wr)` e va bene in tutti e tre i temi. */
-  --ink-ok:var(--success); --ink-wr:var(--warn); --ink-dg:var(--danger);
+  /* ⛔ `--ink-dg` NON È PIÙ `var(--danger)`: la pastiglia `.chk-cr` — rosso al
+     16% sopra `--card2`, corpo 9,5 — dava **3,90:1** dove ne servono 4,5,
+     misurato l'08/08 quando il banco ha imparato a comporre i fondi non
+     coprenti sulle superfici che l'app dichiara. Stessa causa di Terra: il
+     rosso è il più scuro dei tre stati, e il valore che va bene da PIENO non
+     basta da INCHIOSTRO su una velatura. Tinta invariata, luminosità alzata;
+     tutte e quattro le occorrenze sono `color:`, nessuna è un fondo. */
+  --ink-ok:var(--success); --ink-wr:var(--warn); --ink-dg:#ff8e8c;
 
   /* ---- gradienti ---- */
   --grad:    linear-gradient(135deg,#e677c5,#c65aa7);
