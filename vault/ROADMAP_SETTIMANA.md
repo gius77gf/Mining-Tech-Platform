@@ -1349,11 +1349,29 @@ numero scritto dove non era stato misurato niente**.*
   non c'è — latente, non impossibile. Misurato premendo il bottone e leggendo
   il foglio riga per riga (iniezione nella risposta HTTP): sei righe tengono la
   data, l'iniettata dice «non indicata». Prove **1889 → 1890**.
+- [x] ✅ **Scudo entra nel banco dei fogli stampati** (`65037a2`, doc
+  `docs/I_FOGLI_CHE_NESSUN_BANCO_PREME.md`). «Scudo resta fuori da questo
+  banco» stava nell'intestazione di `stampe-fs.mjs` da **cinque giorni**, in
+  una riga che racconta una storia invece di essere un elenco che si legge — e
+  intanto ai suoi due fogli (verbale DPI, cartella del lavoratore) **nessuno
+  faceva la domanda di quel banco**: dichiari di essere fatto di dati
+  d'esempio, e dici che cosa comporta? È la stessa superficie su cui il 03/08 e
+  l'08/08 sono usciti due difetti veri. Ora è dentro nei **due versi**:
+  controprova che spegne la **decisione** (4 KO su Scudo, 26 sul giro, 0
+  iniezioni mancate) e `--live` che pretende il foglio **pulito** sui dati veri
+  (50/50). Banco **58 → 73** prove.
+  ⛔ **E l'errore mio vale più dell'unità**: la prima stesura del documento
+  diceva «rapporto di turno di Campo: nessun banco». **Falso** —
+  `campo-foglio-turno.mjs` ha tre passate, e i fogli di Scudo erano premuti da
+  altri tre banchi. Avevo cercato **dentro un file solo** e concluso «non c'è»
+  per tutto il resto: la mossa che la direttiva 5 vieta agli agenti, fatta da
+  me la stessa notte in cui l'ho applicata a due cantieri. Un `grep -rln` di
+  tre secondi la smentiva. La correzione sta **in cima** al documento.
 
 ## Riferimenti
 
 - Ultimo checkpoint **per data vera**:
-  `vault/checkpoints/20260808-001851_la-data-di-consegna-che-si-leggeva-non-serve.md`
+  `vault/checkpoints/20260808-004109_scudo-entra-nel-banco-dei-fogli.md`
   *(dato da `node apps/deepwork-id/tests/date-checkpoint.mjs`, non letto a occhio:
   per NOME il più alto sarebbe `20260805-100000_…`, che è stato scritto **tre
   giorni prima**. Questa riga era ferma al 01/08: il puntatore al file più
