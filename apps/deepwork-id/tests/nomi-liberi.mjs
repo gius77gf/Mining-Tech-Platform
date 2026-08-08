@@ -666,6 +666,40 @@ export function nudiLiberiModulo(rel, testoDato = null) {
   return { visti, liberi };
 }
 
+/* ⏱️ LA QUINTA DOMANDA — il verso opposto delle prime quattro.
+   Quelle chiedono «questo nome esiste?»; questa chiede «questo nome, che
+   esiste, serve a qualcuno?». Non è un errore duro: un import inutile è
+   **inerte**, la pagina si apre e funziona. Il danno è un altro, ed è di
+   lettura: **mente sul legame fra due file**. Chi apre la pagina di Terra
+   crede che usi `SOGLIA_TURNI`; chi tocca `terra-data.js` crede di avere un
+   consumatore in più e sta attento a non cambiarne il significato. È la stessa
+   famiglia dell'eccezione che non serve più (`sonda-vuoto`): una riga che
+   descrive un rapporto che non c'è.
+   ⚠️ SI LEGGE NEL MODO PIÙ PRUDENTE, cioè su TUTTO il testo e non sul codice
+   mascherato: un nome può comparire dentro un `${…}`, dentro un attributo
+   `on*`, o dentro una stringa che poi diventa codice. Se questo righello
+   sbaglia, sbaglia dicendo «è usato» — che è il verso giusto in cui sbagliare
+   per una domanda che propone di CANCELLARE righe. */
+export function importatiInerti(rel, testoDato = null) {
+  const src = testoDato === null ? leggi(rel) : testoDato;
+  const testo = rel.endsWith(".html") ? blocchiDi(src).join("\n;\n") : src;
+  const inerti = [];
+  let guardati = 0;
+  if (!testo.trim()) return { guardati, inerti };
+  for (const m of testo.matchAll(/import\s*\{([^}]*)\}\s*from[^\n;]*/g)) {
+    const clausola = m[0];
+    /* si toglie la clausola stessa, se no ogni nome «si usa» da sé */
+    const resto = testo.slice(0, m.index) + " ".repeat(clausola.length) + testo.slice(m.index + clausola.length);
+    for (const pezzo of m[1].split(",")) {
+      const n = pezzo.trim().split(/\s+as\s+/).pop().trim();
+      if (!n || !/^[A-Za-z_$][\w$]*$/.test(n)) continue;
+      guardati++;
+      if (!new RegExp("(^|[^\\w$])" + n + "($|[^\\w$])").test(resto)) inerti.push(n);
+    }
+  }
+  return { guardati, inerti };
+}
+
 let passed = 0, failed = 0;
 const test = (nome, fn) => {
   try { fn(); passed++; console.log(`  ✓ ${nome}`); }
@@ -974,6 +1008,23 @@ for (const p of moduliDelDisco()) {
 console.log(`   [misura] quarta forma nei MODULI: ${visti4m} su ${moduli4} moduli, ${male4m.length} liberi`);
 for (const x of male4m.slice(0, 20)) console.log("      · " + x);
 
+/* la QUINTA domanda: per ora MISURA, come lo sono state tutte prima di essere
+   pretese. Diventa regola quando il conto è a zero — cioè quando le righe
+   inerti sono state tolte dalle pagine, che è lavoro sul prodotto e va fatto
+   con il giro del browser fermo. */
+let importati5 = 0, file5 = 0;
+const inerti5 = [];
+for (const p of PAGINE.concat(moduliDelDisco())) {
+  let r;
+  try { r = importatiInerti(p); } catch { continue; }
+  if (!r.guardati) continue;
+  file5++; importati5 += r.guardati;
+  for (const n of r.inerti) inerti5.push(`${p}: ${n}`);
+}
+console.log(`   [misura] quinta forma (importati e mai usati): ${importati5} import su ${file5} file, ${inerti5.length} inerti`);
+for (const x of inerti5.slice(0, 12)) console.log("      · " + x);
+if (inerti5.length > 12) console.log(`      … e altri ${inerti5.length - 12}`);
+
 /* ⛔ E ANCHE NEI MODULI DIVENTA REGOLA, nella stessa unità — perché la strada
    dai 67 allarmi allo zero è stata tutta di RIGHELLO, e nessuno di prodotto:
    1. i **parametri dei metodi abbreviati**: `nomiLegati` legava il NOME del
@@ -998,6 +1049,31 @@ test("la quarta domanda ha davvero guardato anche i moduli", () => {
   ok(moduli4 >= 15, `solo ${moduli4} moduli guardati dalla quarta domanda`);
   /* misurati 38.022 l'08/08 */
   ok(visti4m >= 25000, `solo ${visti4m} riferimenti nudi nei moduli: troppo pochi (misurati 38.022 l'08/08)`);
+});
+
+test("la quinta domanda ha davvero guardato", () => {
+  ok(file5 >= 18, `solo ${file5} file guardati dalla quinta domanda`);
+  /* misurati 990 l'08/08 */
+  ok(importati5 >= 700, `solo ${importati5} import guardati: troppo pochi (misurati 990 l'08/08)`);
+});
+
+test("la controprova della QUINTA domanda — sa distinguere l'inerte dall'usato", () => {
+  /* Due versi nello stesso colpo, perché una domanda che propone di
+     CANCELLARE righe deve sbagliare solo dicendo «è usato»:
+     · un nome aggiunto all'import e mai scritto altrove dev'essere visto;
+     · un nome che compare SOLO dentro un template non dev'essere toccato — è
+       la forma che un lettore distratto scambierebbe per inutile. */
+  const rel = "apps/campo/index.html";
+  const src = leggi(rel);
+  const conInutile = src.replace(/import\s*\{/, "import { _maiUsatoQui,");
+  ok(conInutile !== src, "l'iniezione non ha sostituito niente: la prova non prova niente");
+  ok(importatiInerti(rel, conInutile).inerti.includes("_maiUsatoQui"),
+    "un import mai usato dev'essere visto");
+
+  const N = "RIPOSO_MINIMO_ORE";
+  ok(new RegExp("\\$\\{" + N + "\\}").test(src), `${N} dev'essere usato dentro un template`);
+  ok(!importatiInerti(rel).inerti.includes(N),
+    `${N} si usa solo dentro un template: dichiararlo inutile sarebbe un consiglio di cancellare codice vivo`);
 });
 
 test("la controprova della QUARTA domanda NEI MODULI", () => {
@@ -1130,5 +1206,6 @@ console.log(`\nRisultato nomi liberi: ${passed} passati, ${failed} falliti`
         verso opposto — che un nome *importato* esista dall'altra parte, non
         che un nome *riferito* sia stato importato;
      2. «i moduli restano fuori»: vera per un'ora, poi chiusa qui sotto. */
-  + `  ·  quarta domanda (i riferimenti nudi): ${visti4} su ${pagine4} pagine e ${visti4m} su ${moduli4} moduli, ${male4.length + male4m.length} liberi`);
+  + `  ·  quarta domanda (i riferimenti nudi): ${visti4} su ${pagine4} pagine e ${visti4m} su ${moduli4} moduli, ${male4.length + male4m.length} liberi`
+  + `  ·  quinta domanda (importati e mai usati): ${importati5} import su ${file5} file, ${inerti5.length} inerti — MISURA, non ancora regola`);
 process.exit(failed > 0 ? 1 : 0);
