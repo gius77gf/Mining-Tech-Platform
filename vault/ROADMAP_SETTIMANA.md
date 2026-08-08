@@ -2133,6 +2133,40 @@ numero scritto dove non era stato misurato niente**.*
   domanda da farsi resta la stessa: *sotto un ambiente diverso, che forma ha
   lo stato su cui sto scrivendo un'asserzione?*
 
+- [x] ✅ **Tre iniezioni di controprova erano SCADUTE: puntavano a codice che
+  non esiste più** (`6b9d419`). Famiglia nuova, e il denominatore è misurato:
+  **174 iniezioni in 20 banchi, 3 che non trovavano più il loro pezzo → 0**.
+  Una controprova con l'iniezione scaduta non fa rumore: il file resta **sano**,
+  il banco «non distingue», e la riga che lo dice — «*1 non hanno trovato il
+  loro pezzo: la controprova vale meno di quello che sembra*» — sta in fondo a
+  un registro di cinquemila righe. È la **terza delle cinque cause** di «non
+  distingue», quella in cui non si tocca né la prova né il codice.
+  E la causa di tutte e tre è la stessa, ed è **buona**: il prodotto è
+  migliorato e l'iniezione è rimasta indietro.
+  · `genesi-numeri-tranquilli`: cercava `const _prov = (_st.fonte==='sito' && …)`
+    scritto a mano nella schermata; il 03/08 quella decisione è passata a
+    `provenienzaPpv` perché il **foglio stampabile** non ce l'aveva. Ora 7/7
+    iniezioni, **18** prove cadute, uscita 0 (prima 6/7 e uscita 1).
+  · `core-documenti-che-escono`: cercava la `m` **nuda**, e le unità sono state
+    avvolte in `<span class="u">` dal cantiere delle unità sotto le maiuscole.
+    Ora 15/15, **29** cadute, uscita 0; passata sana **67/0**.
+  · `genesi-foglio-in-cava`: cercava la riga della base PPV scritta per esteso,
+    diventata la funzione `_ppvBaseHtml` perché la usano in due. Ora 6/6,
+    **12** cadute, uscita 0; passata sana **35/35**.
+  ⚠️ **E il primo righello sbagliava**, con il segno di sempre — un difetto
+  identico in tre righe dello stesso banco: leggeva ogni tabella come
+  `[cerca, sostituisci]` e `scudo-disegni` usa `[file, cerca, sostituisci]`,
+  quindi il **nome del file** finiva nel posto della stringa. Sei allarmi
+  diventano **tre veri** appena il righello impara la seconda forma.
+  ⚠️ E un secondo censimento — «quali banchi non guardano il modo controprova
+  nella riga di uscita» — è stato **provato e scartato**: dava 54 su 66, ma
+  molti invertono il verdetto **prima**, dentro `dice()`, e la riga d'uscita non
+  deve nominarlo. Misurava la forma, non la sostanza. La lista vera la dà il
+  giro, che sta girando.
+  ⚠️ Il crollo di `genesi-foglio-in-cava` visto durante la verifica era **della
+  mia sonda**: tre banchi di fila sulla **stessa porta**, e il server di prima
+  non l'aveva ancora liberata. Da solo: 35/35.
+
 ## Riferimenti
 
 - Ultimo checkpoint **per data vera**:
