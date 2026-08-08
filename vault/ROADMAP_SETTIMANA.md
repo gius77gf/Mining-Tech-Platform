@@ -1468,11 +1468,20 @@ numero scritto dove non era stato misurato niente**.*
   legittimi ma stanno **fuori da qualunque tabella**, e un elenco che dovesse
   nominare testo di pagina invece di intestazioni sarebbe **fragile** — una
   regola fragile che sbaglia insegna a non guardarla. Banco **76 → 82**.
+- [x] ✅ **La controprova della regola nuova di Conti** (`290f72b`). Una regola
+  senza controprova è una riga che **non si sa se sappia fallire**: rimessi i
+  due trattini della riga a importo unico, la regola cade e **nomina le colonne
+  colpevoli**. ⚠️ L'iniezione sta in una chiave **nuova**, guardato prima di
+  scriverla — `DIFETTI` non aveva Conti, e una chiave doppia cancella la prima
+  senza far rumore: la lezione di mezz'ora prima ha funzionato al primo riuso.
+  ⏱️ Terra resta **senza** controprova, e dichiarato: sui suoi fogli i trattini
+  sono **zero**, quindi non c'è un difetto vero da rimettere — inventarne uno
+  proverebbe il **rilevatore**, non il prodotto.
 
 ## Riferimenti
 
 - Ultimo checkpoint **per data vera**:
-  `vault/checkpoints/20260808-015138_i-trattini-diventano-regola.md`
+  `vault/checkpoints/20260808-015743_la-controprova-della-regola-di-conti.md`
   *(dato da `node apps/deepwork-id/tests/date-checkpoint.mjs`, non letto a occhio:
   per NOME il più alto sarebbe `20260805-100000_…`, che è stato scritto **tre
   giorni prima**. Questa riga era ferma al 01/08: il puntatore al file più
