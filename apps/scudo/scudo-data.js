@@ -1831,6 +1831,90 @@ export function parseInfortuniCsv(text) {
     .filter(x => dataISOEsiste(x.data));
 }
 
+/* ⛔ IL REGISTRO CHE SI CONSEGNA ALL'RSPP LO SCRIVE UNA FUNZIONE, non una
+   stringa nella pagina — e qui la ragione pesa più che altrove, perché le sue
+   celle le decidono `prognosiAperta` e `giornateAssenza`, cioè **le stesse che
+   decidono lo schermo**. Finché la riga stava nella pagina, che restassero le
+   stesse era un fatto, non una prova: nessuna suite `node` poteva guardarlo.
+   La decisione 17, riletta qui invece che riscritta: la prognosi ancora aperta
+   esce come **cella vuota**, mai come `0`. Uno zero in questo file sarebbe un
+   dato inventato in un documento che si consegna. La settima colonna dice a
+   parole perché quella cella è vuota — in **coda** e non in mezzo, perché
+   `parseInfortuniCsv` legge sei colonne per posizione e il giro deve restare
+   identico.
+   L'ordine per data fa parte della forma del file e sta qui. */
+/* ⛔ IL FOGLIO DI CONFORMITÀ DEL PERSONALE — l'ultimo dei sette file che si
+   ri-caricano a stare dentro la pagina, e quello che portava più regole scritte
+   nei commenti e provate da nessuno. Adesso stanno qui, accanto alle funzioni
+   che le decidono, e `run-kpi` le può guardare.
+   `documenti` arriva come ARGOMENTO invece che da una variabile del modulo: è
+   la firma allargata che questo repository preferisce alla copia — nella pagina
+   era un `vfCella` chiuso su `DOC`.
+   Le quattro regole, riLETTE e non riscritte:
+   1. la colonna `stato` dice solo che cosa fa la DATA; su una verifica
+      periodica non basta, perché la prossima può cadere fra un anno («regolare»)
+      e l'ultima può essere andata male. La colonna in più la decide
+      `statoVerificaPeriodica`, la stessa che disegna il badge a schermo;
+   2. dove non è una verifica la cella NON resta bianca: in un foglio di
+      conformità una cella vuota si legge «niente da segnalare»; ci va «—»;
+   3. `s.dataScadenza || ""`: senza il ripiego una riga il cui campo non è mai
+      stato scritto usciva con la PAROLA «undefined» (lo stesso difetto trovato
+      in Conti col «null» scritto per esteso);
+   4. la scadenza rimasta SENZA la sua persona è dell'AZIENDA. Il criterio è
+      quello dello schermo — chi non è agganciato a un lavoratore CONOSCIUTO —
+      non «chi non ha un lavoratoreId»: un id che punta a una persona tolta
+      dall'anagrafica non è vuoto, è un id che non trova niente, e quelle righe
+      sparivano dal file mentre la modale PROMETTE che non vanno perse.
+   ⛔ E la riga «AZIENDA» è un accordo con `parseLavoratoriCsv`, che la salta
+      per nome (`/^(nome|azienda)$/i`). Finché il file lo componeva la pagina,
+      quell'accordo era tenuto da una coincidenza fra due posti che non si
+      parlano: nessuna prova poteva vederlo, e cambiando questa parola si
+      sarebbe importato un lavoratore fantasma. Adesso c'è la prova. */
+export function csvPersonaleScadenze(lavoratori, scadenze, documenti) {
+  const SENZA = "nessuna scadenza registrata";
+  const LAV = (lavoratori || []).filter(Boolean);
+  const SCA = (scadenze || []).filter(Boolean);
+  const vf = (sc) => { const v = statoVerificaPeriodica(sc, documenti); return v ? v.badge : "—"; };
+  const righe = ["nome;ruolo;telefono;idoneita;scadenza;data;stato;verifica periodica"];
+  for (const l of LAV) {
+    const idn = idoneitaLabel(l.idoneita).label;
+    const sue = SCA.filter((s) => s.lavoratoreId === l.id);
+    const chi = [csvCell(l.nome || ""), csvCell(l.ruolo || ""), csvCell(l.tel || ""), csvCell(idn)];
+    if (!sue.length) { righe.push([...chi, "", "", SENZA, "—"].join(";")); continue; }
+    for (const s of sue) {
+      righe.push([...chi, csvCell(etichettaScadenza(s)), s.dataScadenza || "",
+        statoScadenza(s.dataScadenza), csvCell(vf(s))].join(";"));
+    }
+  }
+  const noti = new Set(LAV.map((l) => l.id));
+  for (const s of SCA.filter((x) => !noti.has(x.lavoratoreId))) {
+    righe.push(["AZIENDA", "", "", "", csvCell(etichettaScadenza(s)), s.dataScadenza || "",
+      statoScadenza(s.dataScadenza), csvCell(vf(s))].join(";"));
+  }
+  return righe.join("\n") + "\n";
+}
+
+export const NOTA_PROGNOSI_APERTA =
+  "prognosi ancora aperta: le giornate di assenza non sono ancora contate";
+export function csvRegistroInfortuni(eventi) {
+  const righe = ["data;tipo;gravita;giorniAssenza;descrizione;luogo;nota"];
+  const ordinati = (eventi || []).filter(Boolean)
+    .slice().sort((a, b) => ((a.data || "") < (b.data || "") ? -1 : 1));
+  for (const x of ordinati) {
+    const aperta = prognosiAperta(x);
+    righe.push([
+      x.data || "",
+      x.tipo || "",
+      x.gravita || "",
+      aperta ? "" : giornateAssenza(x),
+      csvCell(x.descrizione || ""),
+      csvCell(x.luogo || ""),
+      aperta ? NOTA_PROGNOSI_APERTA : "",
+    ].join(";"));
+  }
+  return righe.join("\n") + "\n";
+}
+
 // Copertura formazione/competenze PER TIPO (visite mediche, corsi, DPI,
 // patentini…): per ogni tipo conta quante scadenze sono regolari / in
 // scadenza / scadute. È la "matrice" che dice se l'azienda è coperta su

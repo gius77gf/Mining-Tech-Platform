@@ -51,6 +51,8 @@
 
 import { parseCsvLine, numIt, isIntestazione, csvCell, numeroScritto, oggiISO as oggiISOShell, isoLocale,
          dataISOEsiste, dataPiuGiorni as dataPiuGiorniShell, conta, plurale, perLettura } from "../../shared/deepwork-id-client/dw-shell.js";
+/* la regola sui numeri dichiarati vive in `shared/`: si importa, non si riscrive */
+import { numeroDichiarato } from "../../shared/dw-ponti.js";
 
 // ══════════════════════════════════════════════════════════════════════
 // NUMERI COME SI SCRIVONO IN ITALIA — un solo posto per la convenzione
@@ -2211,6 +2213,31 @@ export function parseSquadreCsv(text) {
       };
     })
     .filter(q => q.nome);
+}
+
+/* ⛔ E IL FILE DELLE SQUADRE LO SCRIVE UNA FUNZIONE, non una stringa nella
+   pagina: era l'ultimo dei sette che si ri-caricano a essere composto lì, e
+   finché ci stava il suo giro export → import lo poteva provare **solo** il
+   giro del browser (un'ora e mezza) invece di `run-kpi` (millisecondi).
+   La regola che porta con sé è quella del lettore qui sopra e va letta insieme
+   a lui: le persone che **non sono indicate** escono come cella **vuota**.
+   Scrivendoci 0, il giro trasformava «non lo so» in «zero persone» — `numIt`
+   legge lo zero come un numero vero, e l'informazione mancante spariva senza
+   che nessuno l'avesse tolta. Uno zero **scritto apposta** resta zero: una
+   squadra si può svuotare. */
+export function csvSquadre(squadre) {
+  const righe = ["nome;persone;area;stato"];
+  for (const q of (squadre || [])) {
+    if (!q) continue;
+    const n = numeroDichiarato(q.persone);
+    righe.push([
+      csvCell(q.nome || ""),
+      n == null ? "" : String(Math.max(0, Math.round(n))),
+      csvCell(q.area || ""),
+      q.stato || "operativa",
+    ].join(";"));
+  }
+  return righe.join("\n") + "\n";
 }
 
 // ══════════════════════════════════════════════════════════════════════

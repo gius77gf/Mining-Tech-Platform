@@ -1706,7 +1706,7 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
 
 
 <script type="module">
-  import { scudoData, statoScadenza, inTurnoOggi, kpiFrom, idoneitaLabel, idoneitaSuccessivo, idoneitaCriticita, livelloScadenza, coperturaFormazione, muroScadenze, MESI_NOMI, testoPromemoria, riepilogoInfortuni, parseInfortuniCsv, parseScadenzeCsv, parseLavoratoriCsv, SCADENZE_PRESET, presetScadenza, dataDaPeriodicita, TIPI_DOCUMENTO, azioneLabel, azioneStatoSuccessivo, statoAzione, azioniUrgenti, riepilogoAzioni, azioniDiEvento,
+  import { scudoData, statoScadenza, inTurnoOggi, kpiFrom, idoneitaLabel, idoneitaSuccessivo, idoneitaCriticita, livelloScadenza, coperturaFormazione, muroScadenze, MESI_NOMI, testoPromemoria, riepilogoInfortuni, parseInfortuniCsv, csvRegistroInfortuni, csvPersonaleScadenze, parseScadenzeCsv, parseLavoratoriCsv, SCADENZE_PRESET, presetScadenza, dataDaPeriodicita, TIPI_DOCUMENTO, azioneLabel, azioneStatoSuccessivo, statoAzione, azioniUrgenti, riepilogoAzioni, azioniDiEvento,
     daAmbiente, etichettaAmbiente, riepilogoAmbiente, origineAzione, csvAzioni, parseAzioniCsv, etichettaScadenza,
     NEARMISS_CATEGORIE, NEARMISS_LUOGHI, categoriaNearMiss, luogoNearMiss, descrizioneNearMiss, riepilogoNearMiss, descriviLetturaNearMiss, bozzaNearMiss,
     GRAVITA_POTENZIALE, potenzialeDi, descriviPotenziale, riepilogoPotenziale, descriviRischioPotenziale,
@@ -4763,13 +4763,10 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
        ancora contate»); nel file non c'era.
        In coda e non in mezzo: `parseInfortuniCsv` legge sei colonne per
        posizione, quindi il giro export → import resta identico. */
-    let csv = "data;tipo;gravita;giorniAssenza;descrizione;luogo;nota\n";
-    for (const x of INF.slice().sort((a, b) => (a.data || "") < (b.data || "") ? -1 : 1))
-      // decisione 17: una prognosi aperta esce come CELLA VUOTA, non come 0 —
-      // e `parseInfortuniCsv` la rilegge vuota. Uno zero scritto qui sarebbe un
-      // dato inventato nel documento che si consegna all'RSPP.
-      csv += `${x.data||""};${x.tipo||""};${x.gravita||""};${prognosiAperta(x) ? "" : giornateAssenza(x)};${csvCell(x.descrizione||"")};${csvCell(x.luogo||"")};`
-        + `${prognosiAperta(x) ? "prognosi ancora aperta: le giornate di assenza non sono ancora contate" : ""}\n`;
+    // decisione 17: una prognosi aperta esce come CELLA VUOTA, non come 0. La
+    // regola sta in `csvRegistroInfortuni`, insieme alle funzioni che la
+    // decidono anche a schermo.
+    const csv = csvRegistroInfortuni(INF);
     const a = document.createElement("a");
     a.href = "data:text/csv;charset=utf-8," + encodeURIComponent(csv);
     a.download = "scudo_registro_infortuni.csv"; marchiaCsv(a); a.click();
@@ -4820,49 +4817,12 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
        l'export» — cioè il controllo smetteva di guardare senza dire che non
        stava più guardando. */
     const SENZA = "nessuna scadenza registrata";
-    /* ⛔ E LA COLONNA `stato` DICE SOLO CHE COSA FA LA DATA. Su una verifica
-       periodica di attrezzatura non basta: la prossima verifica può cadere fra
-       un anno — quindi `stato` scrive «regolare» — e l'ultima può essere
-       andata male, o non esserci affatto. Un foglio di conformità che scrive
-       «regolare» accanto a un'attrezzatura dichiarata NON IDONEA è il file che
-       esce a dire una cosa più tranquilla dello schermo: la famiglia di
-       difetti che il 03/08 ne ha prodotti ventiquattro in cinque app.
-       La colonna in più la decide `statoVerificaPeriodica`, la STESSA
-       funzione che disegna il badge nello scadenzario — non una seconda
-       lettura dei campi.
-       ⚠️ E dove non è una verifica la cella non resta bianca: una cella vuota
-       in un foglio di conformità si legge «niente da segnalare». */
-    const vfCella = (sc) => { const v = statoVerificaPeriodica(sc, DOC); return v ? v.badge : "—"; };
-    let csv = "nome;ruolo;telefono;idoneita;scadenza;data;stato;verifica periodica\n";
-    for (const l of LAV) {
-      const idn = idoneitaLabel(l.idoneita).label;
-      const sc = SCA.filter(s => s.lavoratoreId === l.id);
-      if (!sc.length) csv += `${csvCell(l.nome)};${csvCell(l.ruolo||"")};${csvCell(l.tel||"")};${csvCell(idn)};;;${SENZA};—\n`;
-      /* `s.dataScadenza || ""`: senza il ripiego una riga il cui campo non è
-         mai stato scritto finiva nel file con la PAROLA «undefined» — è lo
-         stesso difetto trovato in Conti («null» scritto per esteso). */
-      /* il nome dell'adempimento lo decide `etichettaScadenza`, la stessa
-         dello schermo e del fascicolo stampato: `s.descrizione` da solo
-         lasciava la cella VUOTA su una scadenza importata che ha solo il
-         `tipo`, e una cella vuota in un foglio di conformità si legge
-         «niente da segnalare». */
-      for (const s of sc) csv += `${csvCell(l.nome)};${csvCell(l.ruolo||"")};${csvCell(l.tel||"")};${csvCell(idn)};${csvCell(etichettaScadenza(s))};${s.dataScadenza || ""};${statoScadenza(s.dataScadenza)};${csvCell(vfCella(s))}\n`;
-    }
-    /* ⛔ LA SCADENZA RIMASTA SENZA LA SUA PERSONA (03/08). Il secondo giro
-       filtrava `!x.lavoratoreId`, cioè «non è di nessuno»; ma un id che punta
-       a una persona TOLTA dall'anagrafica non è vuoto, è un id che non trova
-       niente. Quelle righe non erano nel primo giro (nessun lavoratore le
-       reclama) e non erano in questo: sparivano dal file.
-       E non è un caso di scuola: la modale che toglie una persona PROMETTE
-       «Le sue N scadenze resteranno in elenco come scadenze aziendali: non
-       vanno perse», e lo schermo la promessa la mantiene (le disegna con
-       «azienda», `l ? l.nome : "azienda"`). Il file no. È lo stesso difetto
-       che in Flotta ha fatto sparire 4 mezzi su 7 dallo scadenzario.
-       Il criterio giusto è quello dello schermo: chi non è agganciato a un
-       lavoratore CONOSCIUTO è dell'azienda. */
-    const noti = new Set(LAV.map(l => l.id));
-    for (const s of SCA.filter(x => !noti.has(x.lavoratoreId)))
-      csv += `AZIENDA;;;;${csvCell(etichettaScadenza(s))};${s.dataScadenza || ""};${statoScadenza(s.dataScadenza)};${csvCell(vfCella(s))}\n`;
+    /* Le quattro regole di questo foglio (la colonna della verifica periodica,
+       la cella «—» invece che vuota, il ripiego sulla data mai scritta, e le
+       scadenze rimaste senza la loro persona che sono dell'AZIENDA) stanno in
+       `csvPersonaleScadenze`, accanto alle funzioni che le decidono anche a
+       schermo — e da lì `run-kpi` le può finalmente provare. */
+    const csv = csvPersonaleScadenze(LAV, SCA, DOC);
     const a = document.createElement("a");
     a.href = "data:text/csv;charset=utf-8," + encodeURIComponent(csv);
     a.download = "scudo_personale_scadenze.csv"; marchiaCsv(a); a.click();

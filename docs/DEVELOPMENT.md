@@ -46,11 +46,11 @@ segnaposto («Funzione nav non ancora pronta»). Per aprirlo davvero si monta
 
 ## Le prove
 
-**2.338 prove girano senza rete e senza browser**, con `node` (contate lanciandole, non a memoria — all'08/08: 1897 + 314 + 71 + 32 + 9 + 8 + 7):
+**2.340 prove girano senza rete e senza browser**, con `node` (contate lanciandole, non a memoria — all'08/08: 1899 + 314 + 71 + 32 + 9 + 8 + 7):
 
 > ⚠️ **E quel numero conta SETTE suite, non tutto quello che gira.** Rimisurato
 > l'08/08 sommando le righe «Risultato …» di un giro intero: il giro `node`
-> completo esegue **2.624** asserzioni, perché ne lancia altre **dodici** (sonda
+> completo esegue **2.626** asserzioni, perché ne lancia altre **dodici** (sonda
 > del vuoto 15, numeri nei documenti 26, orologio del vault 3, documenti
 > invecchiati 15, sintassi delle pagine 34, import esistenti 145, nomi liberi 24,
 > classi orfane 2 + 6, funzioni mai usate 4, **limite del giro 9**, suite
@@ -59,18 +59,18 @@ segnaposto («Funzione nav non ancora pronta»). Per aprirlo davvero si monta
 > 2.251» mentre il titolo sopra diceva già 2.310: il controllo sorveglia il
 > **totale**, non la prosa che lo spiega. È la quarta forma di invecchiamento
 > raccolta in `CLAUDE.md`.*
-> **Il numero da citare resta 2.338**, e la ragione è che le altre dieci contano
+> **Il numero da citare resta 2.340**, e la ragione è che le altre dieci contano
 > **file, non prove**: `import esistenti` fa un'asserzione per file e `classi
 > orfane` una per pagina, quindi il loro totale si muove ogni volta che nasce un
 > file — un numero che cresce senza che nessuno abbia scritto una prova è un
 > numero che non vuol dire niente. Le sei suite contano **casi**, e per questo
 > sono quelle sorvegliate da `numeri-nei-documenti.mjs`.
 
-E **706 funzioni pure su 706** sono chiamate per nome da quelle prove: tutte e
+E **710 funzioni pure su 710** sono chiamate per nome da quelle prove: tutte e
 sei le app al 100%. Non è «provate bene» — è «non ce n'è nessuna che nessuno ha
 ancora guardato», che è il minimo e finora non c'era.
 
-⚠️ **Quel 706 conta le sei app, non i moduli condivisi**, e la riga di riepilogo
+⚠️ **Quel 710 conta le sei app, non i moduli condivisi**, e la riga di riepilogo
 lo dice («in 6 app»). I condivisi si contano a parte — **136 su 136** in cinque
 moduli: `dw-shell.js` **46/46**, `dw-ponti.js` **40/40**, `genesi-data.js`
 **37/37**, `genesi-formato.js` **8/8**, `pointcloud.js` **5/5**. Vanno guardati

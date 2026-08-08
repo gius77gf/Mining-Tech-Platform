@@ -5722,6 +5722,7 @@ test("statoVuoto: la struttura è quella del core, invariata", () => {
      quante righe deve restituire. */
   const GIRI = [
     { app: "campo", file: "campo_squadre.csv", fn: campo.parseSquadreCsv,
+      testa: campo.csvSquadre([]).split("\n")[0],
       colonne: ["nome", "persone", "area", "stato"],
       riga: "Squadra A;4;Fronte Nord;operativa" },
     /* ⚠️ `testa` SI CHIEDE AL COMPOSITORE — dall'08/08 questi tre file li
@@ -5742,9 +5743,11 @@ test("statoVuoto: la struttura è quella del core, invariata", () => {
       colonne: ["nome", "giacenza", "sogliaMin", "prezzo"],
       riga: "Filtro olio motore;6;4;48,00" },
     { app: "scudo", file: "scudo_registro_infortuni.csv", fn: scudo.parseInfortuniCsv,
+      testa: scudo.csvRegistroInfortuni([]).split("\n")[0],
       colonne: ["data", "tipo", "gravita", "giorniAssenza", "descrizione", "luogo"],
       riga: "2026-07-30;infortunio;lieve;3;taglio alla mano;officina" },
     { app: "scudo", file: "scudo_personale_scadenze.csv", fn: scudo.parseLavoratoriCsv,
+      testa: scudo.csvPersonaleScadenze([], [], []).split("\n")[0],
       colonne: ["nome", "ruolo", "telefono"],   // le colonne dopo la terza non le legge
       riga: "Rossi Mario;operatore;333 1112222;idoneo;Visita medica;2026-12-01;ok" },
     /* ⚠️ `testa` SI CHIEDE AL COMPOSITORE, come per le fatture di Conti qui
@@ -5901,40 +5904,34 @@ test("statoVuoto: la struttura è quella del core, invariata", () => {
      sorgente, e si contano le protezioni: ogni colonna di TESTO ne vuole una.
      Sull'export dei ricettori ce n'erano 2 dove ne servivano 5, ed è così che
      l'unità usciva senza protezione. */
-  const PROTEZIONI = [
-    ["campo_squadre.csv", "campo", 2, "nome e area"],
-    /* ⛔ I TRE FILE DI CONTI E FLOTTA NON SONO PIÙ QUI, e non è un controllo
-       tolto: è lo stesso controllo fatto meglio, nel blocco qui sotto. Contare
-       i `csvCell(` nel sorgente era un ripiego per gli export composti nella
-       pagina; dall'08/08 li compongono `csvGare`, `csvListino` e `csvRicambi`,
-       cioè funzioni che si possono CHIAMARE — e allora invece di contare le
-       protezioni si prova che il giro le REGGA. Un conto ≥ 1 lo passa anche chi
-       protegge la colonna sbagliata. */
-    ["scudo_registro_infortuni.csv", "scudo", 2, "descrizione e luogo"],
-    /* ⛔ `sentinella_ricettori.csv` NON È PIÙ QUI, e non è un controllo tolto:
-       è lo stesso controllo fatto meglio, dieci righe più giù. Contare i
-       `csvCell(` nel sorgente era un ripiego, e la ragione è scritta qui
-       sopra — «per quello si guarda la riga vera nel sorgente». Dal 07/08 quel
-       file lo compone `csvRicettori` nel modulo, cioè una funzione che si può
-       CHIAMARE: e allora invece di contare le protezioni si prova che il giro
-       le regga, su tutte e cinque le colonne di testo insieme. Un conto ≥ 5 lo
-       passa anche chi protegge cinque volte la stessa colonna. */
-  ];
-  for (const [file, app, quante, quali] of PROTEZIONI) {
-    test(`giro completo: ${file} protegge i campi di testo`, () => {
-      const src = pagina(app).split("\n");
-      const giu = src.findIndex(r => r.includes(`.download = "${file}"`));
-      ok(giu >= 0, `non si trova l'export che scarica ${file}`);
-      /* le righe che compongono il CSV stanno fra l'intestazione e il download */
-      let inizio = -1;
-      for (let k = giu; k >= 0 && k > giu - 40; k--) if (/csv = "/.test(src[k])) { inizio = k; break; }
-      ok(inizio >= 0, "non si trova dove l'export dichiara le colonne");
-      const corpo = src.slice(inizio, giu).join("\n");
-      const trovate = (corpo.match(/csvCell\(/g) || []).length;
-      ok(trovate >= quante,
-         `${file}: ${trovate} protezioni csvCell, ne servono almeno ${quante} (${quali})`);
-    });
-  }
+  /* ⛔ IL CONTROLLO CHE CONTAVA I `csvCell(` NEL SORGENTE NON C'È PIÙ, E AL SUO
+     POSTO C'È LA REGOLA CHE ADESSO REGGE DAVVERO.
+     Era un ripiego per gli export composti DENTRO la pagina: si contavano le
+     protezioni perché non c'era una funzione da chiamare. Fra il 07 e l'08/08
+     tutti e sette i file che si ri-caricano sono passati nei moduli
+     (`csvRicettori`, poi `csvListino`, `csvGare`, `csvRicambi`, `csvSquadre`,
+     `csvRegistroInfortuni`, `csvRilievi`), e allora la domanda giusta cambia
+     due volte:
+       · le protezioni non si CONTANO, si PROVANO — un conto ≥ 1 lo passa anche
+         chi protegge la colonna sbagliata, e il giro col valore cattivo no
+         (blocco «sopravvive allo SCRITTORE vero», qui sotto);
+       · e la cosa da sorvegliare diventa che nessuno ne scriva un OTTAVO a
+         mano nella pagina, perché lì tornerebbe fuori dalla portata di `node`.
+     ⚠️ Lasciare l'elenco vuoto con il suo `for` sarebbe stato peggio di
+     toglierlo: un ciclo su zero soggetti non fallisce mai e continua a
+     sembrare un controllo. */
+  test("giro completo: nessuno dei sette file che si ri-caricano è composto DENTRO la pagina", () => {
+    const inLinea = GIRI.filter((g) => intestazioneExport(pagina(g.app), g.file) !== null)
+      .map((g) => g.file);
+    eq(inLinea, [],
+      "questi file dichiarano ancora le colonne con una stringa nella pagina: lì il giro"
+      + " export → import lo può provare solo il giro del browser");
+    /* e ha davvero guardato: se `intestazioneExport` smettesse di trovare
+       qualunque cosa, la riga qui sopra sarebbe verde per il motivo sbagliato */
+    eq(GIRI.length, 7, "i file che si ri-caricano sono sette");
+    ok(GIRI.every((g) => typeof g.testa === "string" && g.testa.includes(";")),
+      "e l'intestazione di ognuno arriva dal suo COMPOSITORE, non da una regex sulla pagina");
+  });
 
   /* Il caso trovato per strada, tenuto fermo perché non torni di nascosto:
      l'export delle fatture NON è un backup, e il documento non deve dire che
@@ -24238,6 +24235,81 @@ test("csvGare: la base d'asta la decide baseGara, e l'ordine per scadenza è del
   eq(conti.parseGareCsv(senza)[0].base, conti.parseGareCsv(senza)[0].base, "e rientra");
   eq(conti.parseGareCsv(t).length, 2, "il giro non perde righe");
   eq(conti.csvGare(null).split("\n")[0], "titolo;base;scadenza;stato", "e la lista vuota non rompe");
+});
+test("csvSquadre → parseSquadreCsv: «non lo so» non diventa «zero persone»", () => {
+  const dentro = [{ nome: "Squadra A", persone: 4, area: "Fronte Nord", stato: "operativa" }];
+  eq(campo.parseSquadreCsv(campo.csvSquadre(dentro)), dentro, "una riga piena torna identica");
+  /* ⛔ il caso per cui la regola esiste: `numIt` legge lo 0 come un numero
+     vero, quindi uno zero scritto qui cancellerebbe l'informazione mancante
+     senza che nessuno l'abbia tolta. */
+  for (const [che, v] of [["assente", undefined], ["null", null], ["vuoto", ""], ["non un numero", "abc"]]) {
+    const t = campo.csvSquadre([{ nome: "Squadra B", persone: v, area: "", stato: "operativa" }]);
+    ok(/^Squadra B;;/m.test(t), `${che}: la casella resta vuota`);
+    eq(campo.parseSquadreCsv(t)[0].persone, null, `${che}: e rientra come «non indicate»`);
+  }
+  const z = campo.csvSquadre([{ nome: "Squadra C", persone: 0, area: "", stato: "ferma" }]);
+  ok(/^Squadra C;0;/m.test(z), "ma uno zero SCRITTO APPOSTA resta zero: una squadra si può svuotare");
+  eq(campo.parseSquadreCsv(z)[0].persone, 0, "e rientra come zero");
+  eq(campo.csvSquadre(null).split("\n")[0], "nome;persone;area;stato");
+});
+test("csvRegistroInfortuni: una prognosi APERTA esce vuota e rientra vuota, mai come zero", () => {
+  /* decisione 17. Uno zero in questo file sarebbe un dato inventato in un
+     documento che si consegna all'RSPP — e il giro lo riporterebbe dentro
+     come «zero giornate perse», che è un'affermazione, non un'assenza. */
+  /* ⚠️ E LA CONTROPROVA HA DETTO «NON DISTINGUE» AL PRIMO COLPO, per la seconda
+     causa dell'elenco: la regola è difesa in profondità. Togliendo la guardia
+     (`aperta ? "" : …`) il file resta IDENTICO carattere per carattere, perché
+     `giornateAssenza` risponde già `null` su una prognosi aperta e un `null`
+     dentro un `join` è una cella vuota. Per vedere il danno bisogna togliere
+     tutto lo strato — scrivere `0` — ed è esattamente il difetto che la
+     decisione 17 vieta: allora questa prova cade. */
+  const aperta = { data: "2026-07-30", tipo: "infortunio", gravita: "lieve", descrizione: "taglio", luogo: "officina" };
+  const t = scudo.csvRegistroInfortuni([aperta]);
+  ok(scudo.prognosiAperta(aperta), "il caso di prova è davvero una prognosi aperta");
+  ok(/^2026-07-30;infortunio;lieve;;/m.test(t), t);
+  ok(t.includes(scudo.NOTA_PROGNOSI_APERTA), "e la settima colonna dice a parole perché è vuota");
+  eq(scudo.parseInfortuniCsv(t)[0].giorniAssenza, null, "rientra come «non ancora contate», non come 0");
+  /* e la nota in CODA non sposta le sei colonne che il lettore legge per posizione */
+  const chiusa = { data: "2026-06-01", tipo: "infortunio", gravita: "grave", giorniAssenza: 12, descrizione: "caduta", luogo: "fronte" };
+  const c = scudo.parseInfortuniCsv(scudo.csvRegistroInfortuni([chiusa]))[0];
+  eq([c.data, c.tipo, c.gravita, c.giorniAssenza, c.descrizione, c.luogo],
+     ["2026-06-01", "infortunio", "grave", 12, "caduta", "fronte"], "il giro resta identico sulle sei colonne");
+  eq(scudo.csvRegistroInfortuni([chiusa, aperta]).split("\n")[1].startsWith("2026-06-01"), true,
+     "e l'ordine per data è del file, non della pagina");
+});
+test("⛔ csvPersonaleScadenze: la riga AZIENDA non rientra come un lavoratore fantasma", () => {
+  /* L'accordo: il foglio scrive `AZIENDA;;;;…` per le scadenze rimaste senza
+     la loro persona, e `parseLavoratoriCsv` salta quella riga PER NOME
+     (`/^(nome|azienda)$/i`). Finché il file lo componeva la pagina, l'accordo
+     era tenuto da una coincidenza fra due posti che non si parlano: cambiando
+     quella parola in un template si sarebbe importato un lavoratore fantasma
+     chiamato «SOCIETÀ», senza un errore e senza una prova rossa. Adesso lo
+     scrittore si può chiamare, e la coincidenza diventa una prova. */
+  const lavoratori = [{ id: "l1", nome: "Rossi Mario", ruolo: "operatore", tel: "333 1112222", idoneita: "idoneo" }];
+  const scadenze = [
+    { lavoratoreId: "l1", tipo: "visita", dataScadenza: "2026-12-01" },
+    { lavoratoreId: "sparito", tipo: "visita", dataScadenza: "2026-11-01" },
+  ];
+  const t = scudo.csvPersonaleScadenze(lavoratori, scadenze, []);
+  ok(/^AZIENDA;;;;/m.test(t),
+    "⛔ la scadenza di una persona TOLTA dall'anagrafica resta nel file: la modale promette che non va persa");
+  const letti = scudo.parseLavoratoriCsv(t);
+  eq(letti.map((l) => l.nome), ["Rossi Mario"],
+    "e rientra UNA sola persona: «AZIENDA» non è un lavoratore");
+  /* e il verso opposto, se no la prova passerebbe anche con un lettore che
+     scarta tutto: una persona vera dev'essere riconosciuta */
+  eq(letti[0].ruolo, "operatore", "la persona vera rientra intera");
+  /* la 2ª regola: in un foglio di conformità una cella vuota si legge
+     «niente da segnalare», quindi dove non c'è una verifica ci va «—» */
+  ok(t.trim().split("\n").slice(1).every((r) => r.split(";")[7] === "—"),
+    "senza documenti la colonna della verifica periodica dice «—», non resta vuota");
+  /* la 3ª: mai la parola «undefined» in un documento che si consegna */
+  const senzaData = scudo.csvPersonaleScadenze([{ id: "l1", nome: "X" }], [{ lavoratoreId: "l1", tipo: "visita" }], []);
+  eq(/undefined|null|NaN/.test(senzaData), false, "una data mai scritta non esce come parola di JavaScript");
+  /* e un lavoratore senza nessuna scadenza compare lo stesso, dichiarandolo */
+  const solo = scudo.csvPersonaleScadenze([{ id: "l9", nome: "Bianchi" }], [], []);
+  ok(/Bianchi;.*nessuna scadenza registrata/.test(solo),
+    "chi non ha scadenze non sparisce dal foglio: lo dice");
 });
 test("csvRicambi → parseRicambiCsv: il giro torna identico, con le tre convenzioni del lettore", () => {
   const dentro = [{ nome: "Filtro olio", giacenza: 4, sogliaMin: 2, prezzo: 18.9 }];

@@ -1183,7 +1183,7 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
 
 
 <script type="module">
-  import { campoData, kpiFrom, parsePianoCsv, mappaPianoCsv, foriRipetuti, parseSquadreCsv, scartoPct, scartoLivello, pianoRiepilogo, CAUSALI_FERMO, riepilogoFermi, paretoFermi, fermiPerGiorno, fermiSenzaGiorno, riassuntoRapportino, avanzamentoGiornata, coperturaRapportini,
+  import { campoData, kpiFrom, parsePianoCsv, mappaPianoCsv, foriRipetuti, parseSquadreCsv, csvSquadre, scartoPct, scartoLivello, pianoRiepilogo, CAUSALI_FERMO, riepilogoFermi, paretoFermi, fermiPerGiorno, fermiSenzaGiorno, riassuntoRapportino, avanzamentoGiornata, coperturaRapportini,
            oggiISO, TURNI, turnoCorrente, diGiorno, senzaData, UNITA_PRODUZIONE, totaliProduzione, formattaProduzione, normalizzaPiano,
            squadraBase, RUOLI, operatoriDi, etichettaAssegnazione, eMia, caricoSquadre,
            idoneitaDiTurno, idoneitaOperatore, inTurnoOggi,
@@ -3995,13 +3995,9 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
   $("btn-squ-export").onclick = () => {
     // backup/condivisione delle squadre, nello STESSO formato dell'import
     // (nome;persone;area;stato): il file esportato si può re-importare.
-    let csv = "nome;persone;area;stato\n";
-    // ⛔ e nel file la casella resta VUOTA se le persone non sono indicate.
-    // Scrivendoci 0, il giro esporta→reimporta trasformava «non lo so» in
-    // «zero persone»: `parseSquadreCsv` legge lo 0 come un numero vero, e
-    // l'informazione che mancava spariva senza che nessuno la togliesse.
-    for (const q of SQU)
-      csv += `${csvCell(q.nome)};${q.persone == null ? "" : Math.max(0, Math.round(+q.persone) || 0)};${csvCell(q.area || "")};${q.stato || "operativa"}\n`;
+    // ⛔ la casella resta VUOTA se le persone non sono indicate: la regola sta
+    // in `csvSquadre`, accanto al lettore che la deve capire.
+    const csv = csvSquadre(SQU);
     const a = document.createElement("a");
     a.href = "data:text/csv;charset=utf-8," + encodeURIComponent(csv);
     a.download = "campo_squadre.csv"; marchiaCsv(a); a.click();
