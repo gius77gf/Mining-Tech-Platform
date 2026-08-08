@@ -1351,6 +1351,43 @@ Perché serva davvero e non produca elenchi generici, cinque vincoli:
   `nomi-liberi`, era costata 11 falsi allarmi prima di trovare l'ancora giusta.
   Quindi: **misura in scratchpad, non regola** — e questo paragrafo esiste
   perché nessuno la rifaccia alla cieca.
+- ⛔ **UN REGISTRO CHE SI TRONCA A METÀ SEMBRA COMPLETO — E CHI LO LEGGE NON HA
+  NIENTE CHE GLI DICA DI NO.** Misurato l'08/08, e mi ha ingannato **di
+  persona**: il giro del browser lanciato alle 03:00Z era ancora vivo alle
+  10:37 — **sette ore e trentasette** — e la sera prima avevo letto il suo
+  registro **tre volte**, con `leggi-giro.mjs`, che è lo strumento scritto
+  apposta per leggerlo bene. Nessuna delle tre volte mi sono chiesto se il file
+  stesse ancora **crescendo**. Non cresceva da ore.
+  Sotto c'era `p.on('close', …)` senza limite, e un banco appeso da **quattro
+  ore e trentotto**. Un giro che si pianta non stampa un errore: si ferma a metà
+  di una sezione, e le passate mai eseguite **non compaiono in nessuna riga** —
+  spariscono invece di dichiararsi. È la famiglia del banco che crolla e
+  dichiara meno prove, in una veste peggiore: qui non crolla nemmeno, **tace**.
+  La difesa, in `tutti.mjs`: un limite per passata (`--limite=`, 30 minuti),
+  che uccide l'**albero** del processo (`detached:true` + kill del gruppo, se no
+  un Chromium orfano tiene porta e memoria), **dichiara** che quella passata non
+  è stata misurata, **tira avanti**, e la conta a parte — un soggetto non
+  misurato non è un soggetto a posto, quindi il giro non può uscire zero.
+  Provata nei due versi da `browser/limite-giro.mjs` (9 prove, due giri finti).
+  ⚠️ **E la regola generale per chi legge un registro lungo: la prima domanda
+  non è «che cosa dice», è «sta ancora scrivendo?».** Due `stat` a venticinque
+  secondi di distanza costano niente.
+  ⛔ **E LA CAUSA SOTTO VALEVA PIÙ DEL SINTOMO: 17 SECONDI PER SEZIONE SPESI A
+  CLICCARE ELEMENTI CHE NON SI POSSONO CLICCARE.** `vaiA` apriva **ogni**
+  accordion chiuso della pagina — non solo quelli della sezione appena aperta —
+  e su Flotta e Scudo sono **sette, tutti INVISIBILI**. Playwright aspetta che
+  un elemento diventi *azionabile*: un invisibile non lo diventa mai, quindi
+  ogni click bruciava i 2.500 ms pieni e il `.catch(() => {})` se li mangiava
+  **senza lasciare una riga**. Misurato: Conti 0,55 s per sezione (zero
+  accordion), Terra 3,2, Flotta 9-15, **Scudo oltre 15** — e nessuno di quei
+  click apriva niente. Con `:visible` nel selettore: tutte a **0,58**, e il
+  banco che era appeso 4h38 finisce in **4m18s** con la stessa identica
+  copertura (614 testi su Scudo, prima e dopo).
+  La lezione non è «ottimizzare»: è che **un'eccezione ingoiata in un ciclo si
+  moltiplica**, e il costo non compare da nessuna parte — non c'è un rosso, non
+  c'è un avviso, c'è solo un giro che dura ore e che qualcuno finirà per
+  spegnere senza leggerlo. Il `.catch(() => {})` va guardato con lo stesso
+  sospetto del `catch` vuoto: se sta dentro un `for`, va misurato.
 - ⛔ **UN CENSIMENTO CHE DICHIARA IL SUO DENOMINATORE VA POI LETTO — E QUANDO
   LO SI LEGGE, IL BUCO È QUASI SEMPRE NEL RIGHELLO.** L'08/08, la riga più
   grossa di tutto il giro del browser diceva: «**234 classi con un fondo
