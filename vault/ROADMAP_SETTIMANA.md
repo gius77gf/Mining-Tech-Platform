@@ -969,6 +969,30 @@ numero scritto dove non era stato misurato niente**.*
 - [x] ✅ **Flotta: un pieno senza spesa metteva una macchina PRIMA in classifica
   a zero euro l'ora** (`4938125`). `spesaInFinestra = 0` → `€ 0,00/h` → prima in
   `pagellaMezzi`: il principio del fondatore nella sua forma più pura.
+- [x] ✅ **Le 57 classi che il banco elencava e non giudicava** (`5d57cbc`).
+  Composte sulle superfici che l'app **dichiara** (`--bg`, `--card`, `--card2`),
+  caso peggiore + forbice: **57 su 57 giudicate, cinque difetti veri** —
+  `var(--danger)` usato come **inchiostro** su una velatura rossa, che va
+  benissimo da pieno ed è troppo scuro da inchiostro. Il core guadagna
+  `--ink-dg`, gemello chiaro di `--ink-su-pieno`. ⚠️ E **quattro KO respinti**
+  dopo verifica: sono contenitori d'icona (`<svg>` con `aria-hidden`), per cui
+  la soglia è 3 e non 4,5 — dichiarati con la prova invece di spostare quattro
+  colori sani. La resa l'avevo stimata in **1** difetto: erano cinque, perché il
+  prototipo guardava solo le sei app e non il core.
+- [x] ✅ **`vaiA` spendeva 17 secondi per sezione cliccando l'incliccabile**
+  (`33b5251`). Apriva **ogni** accordion chiuso della pagina — sette su Flotta e
+  Scudo, **tutti invisibili** — e Playwright bruciava 2,5 s per ognuno prima che
+  un `.catch(() => {})` se li mangiasse. Scudo da **oltre 15 s a 0,59**, Flotta
+  da 9–15 a 0,57, **senza perdere copertura** (614 testi identici, in 22 secondi
+  invece di minuti). Non l'avevo causata io: sul commit di ieri gli stessi
+  numeri alla decina di millisecondi.
+- [x] ✅ **Un banco che si pianta fermava il giro in silenzio, per sempre**
+  (`744af32`). Sette ore e trentasette di giro, quattro e trentotto delle quali
+  su un banco appeso, aspettato da un `p.on('close')` senza limite. Il danno non
+  è il tempo: **il registro si tronca a metà e sembra completo** — l'avevo letto
+  tre volte senza vedere che era fermo. Ora un limite per passata uccide
+  l'albero, **dichiara** che quella passata non è stata misurata e tira avanti,
+  e il giro non può dirsi verde. Controprova nei due versi, 9 prove.
 - [x] ✅ **Trentadue frasi che con «1» dicevano «1 righe»** (`a3086fa`,
   `7517c07`). I banchi del singolare guardano quello che la **dimostrazione**
   rende con n=1; il sorgente le ha tutte: «Letto: 1 righe» sull'import di un
