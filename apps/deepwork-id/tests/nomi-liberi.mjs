@@ -406,6 +406,41 @@ export function fuoriScope(codice, daiFratelli = new Set()) {
   return { fuori, chiamate };
 }
 
+/* ══════════════════════════════════════════════════════════════════════════
+   ⛔ LA TERZA DOMANDA: UN NOME RIFERITO — NON CHIAMATO — CHE NON ESISTE.
+   ──────────────────────────────────────────────────────────────────────────
+   `${nome}` dentro un template è il modo in cui queste pagine compongono ogni
+   riga di interfaccia, e un nome libero lì **uccide il disegno** esattamente
+   come una chiamata inesistente uccide il tocco. La prima domanda non lo vede
+   (guarda `nome(`), la seconda nemmeno.
+   ⚠️ SI CERCA SUL TESTO, NON SUL CODICE MASCHERATO, ed è l'unico punto di
+   questo file dove serve: i template **vivono dentro le stringhe**, e
+   `mascheraCodice` — che è la cosa giusta per i dialoghi — qui spegnerebbe
+   proprio ciò che si vuole leggere.
+   ⚠️ E l'ampiezza è stata MISURATA prima di scriverla: 3.742 riferimenti su 12
+   pagine, **0 allarmi**. I due che la prima misura dava erano tutt'e due del
+   righello — `CSS` (che sta in `GLOBALI`) e `_fSW`, terzo dichiaratore di un
+   `const` spezzato su due righe, che solo `nomiDichiarati` sa leggere. Per
+   questo qui si riusano quelli veri invece di scriverne di nuovi. */
+export function riferimentiLiberi(relPagina) {
+  const html = leggi(relPagina);
+  const bl = blocchiDi(html);
+  if (!bl.length) return { visti: 0, liberi: new Map() };
+  const testo = bl.join("\n;\n");
+  const legati = nomiLegati(soloCodice(testo));
+  const { nomi: fratelli } = nomiDegliScriptFratelli(relPagina, html);
+  const liberi = new Map();
+  let visti = 0;
+  for (const m of testo.matchAll(/\$\{\s*([A-Za-z_$][\w$]*)\s*(\.|\}|\s|\[|\?|\)|,|\+)/g)) {
+    const n = m[1];
+    visti++;
+    if (PAROLE.has(n) || GLOBALI.has(n) || DA_CDN.has(n) || SINTASSI_E_NODE.has(n)
+        || legati.has(n) || fratelli.has(n)) continue;
+    liberi.set(n, (liberi.get(n) || 0) + 1);
+  }
+  return { visti, liberi };
+}
+
 let passed = 0, failed = 0;
 const test = (nome, fn) => {
   try { fn(); passed++; console.log(`  ✓ ${nome}`); }
@@ -646,7 +681,60 @@ test("la controprova della SECONDA domanda — il difetto di Terra del 07/08 vie
     "e sulla pagina sana `conta` non dev'essere accusato");
 });
 
+/* ── LA TERZA DOMANDA, sulle stesse pagine ───────────────────────────────── */
+let visti3 = 0, pagine3 = 0;
+const male3 = [];
+for (const p of PAGINE) {
+  let r;
+  try { r = riferimentiLiberi(p); } catch { continue; }
+  if (!r.visti) continue;
+  pagine3++; visti3 += r.visti;
+  for (const [n, c] of r.liberi) male3.push(`${p}: \${${n}} ×${c}`);
+}
+
+test("nessun nome RIFERITO in un `${…}` che non esiste da nessuna parte", () => {
+  ok(male3.length === 0,
+    "nomi usati dentro un template e mai dichiarati:\n  " + male3.join("\n  ")
+    + "\n  Un nome libero lì uccide il DISEGNO, come una chiamata inesistente uccide il tocco.");
+});
+
+test("la terza domanda ha davvero guardato", () => {
+  ok(pagine3 >= 8, `solo ${pagine3} pagine guardate dalla terza domanda`);
+  ok(visti3 >= 3000, `solo ${visti3} riferimenti guardati: troppo pochi`);
+});
+
+test("la controprova della TERZA domanda — un nome usato SOLO dentro un `${…}`", () => {
+  /* Il soggetto è scelto perché ha ESATTAMENTE la forma che le prime due
+     domande non vedono: `RIPOSO_MINIMO_ORE` è importata da Campo e usata **due
+     volte, tutt'e due dentro un template**, mai chiamata. Tolta dall'import, la
+     pagina si aprirebbe e morirebbe al primo disegno dell'appello — e le prime
+     due domande resterebbero verdi, perché non c'è nessuna `(` da vedere. */
+  const rel = "apps/campo/index.html";
+  const N = "RIPOSO_MINIMO_ORE";
+  const html = leggi(rel);
+  ok(new RegExp("\\$\\{" + N + "\\}").test(html), `${N} dev'essere usato dentro un template`);
+  const guasto = html.replace(new RegExp("\\s*" + N + ",", ""), "");
+  ok(guasto !== html, "l'iniezione non ha sostituito niente: la prova non prova niente");
+  const testo = blocchiDi(guasto).join("\n;\n");
+  const legati = nomiLegati(soloCodice(testo));
+  const { nomi: fratelli } = nomiDegliScriptFratelli(rel, guasto);
+  ok(!legati.has(N) && !fratelli.has(N) && !GLOBALI.has(N),
+    `tolto dall'import, ${N} non dev'essere legato altrove — se no la controprova non distingue`);
+
+  /* la PRIMA domanda resta cieca: non c'è nessuna chiamata da vedere */
+  let chiamato = false;
+  for (const m of soloCodice(testo).matchAll(/(^|[^\w$.?])([A-Za-z_$][\w$]*)\s*\(/g)) if (m[2] === N) chiamato = true;
+  ok(!chiamato, `la prima domanda DOVEVA essere cieca su ${N}: se ora lo chiama qualcuno, riscrivi questo commento`);
+
+  /* la TERZA lo vede */
+  let visto = false;
+  for (const m of testo.matchAll(/\$\{\s*([A-Za-z_$][\w$]*)\s*(\.|\}|\s|\[|\?|\)|,|\+)/g)) if (m[1] === N) visto = true;
+  ok(visto, `col difetto rimesso, ${N} deve risultare libero in un template — e non risulta`);
+  ok(riferimentiLiberi(rel).liberi.size === 0, "e sulla pagina sana non accusa nessuno");
+});
+
 console.log(`\nRisultato nomi liberi: ${passed} passati, ${failed} falliti`
   + `  ·  ${chiamateTot} chiamate su ${pagineViste} pagine, ${chiamateMod} su ${moduliVisti} moduli`
-  + `  ·  seconda domanda (lo scope): ${chiamateScope} chiamate su ${pagineScope} pagine e ${chiamateScopeMod} su ${moduliScope} moduli, ${maleScope.length + maleScopeMod.length} fuori scope`);
+  + `  ·  seconda domanda (lo scope): ${chiamateScope} chiamate su ${pagineScope} pagine e ${chiamateScopeMod} su ${moduliScope} moduli, ${maleScope.length + maleScopeMod.length} fuori scope`
+  + `  ·  terza domanda (i riferimenti): ${visti3} usi di ${"$"}{…} su ${pagine3} pagine, ${male3.length} liberi`);
 process.exit(failed > 0 ? 1 : 0);
