@@ -383,7 +383,13 @@ const TRATTINI = ({ sel, ammesse }) => {
       const testo = pr ? pr.innerText : ((cel.parentElement || cel).innerText || "").replace(/\u2014/g, " ");
       col = "fuori tabella: " + (testo || "").replace(/\s+/g, " ").trim().slice(0, 40);
     }
-    if (ok.includes(col.toLowerCase())) dichiarati++; else { altri++; dove.push(col); }
+    /* ⚠️ Il confronto guarda anche l'etichetta di un trattino FUORI da una
+       tabella («fuori tabella: CONSUMO»): le tessere di un foglio non hanno
+       un'intestazione di colonna, e senza questo il loro «—» non si potrebbe
+       dichiarare per nome — resterebbe solo la scelta fra accusarle e non
+       guardarle. */
+    const nudo = col.replace(/^fuori tabella:\s*/, "").trim().toLowerCase();
+    if (ok.includes(col.toLowerCase()) || ok.includes(nudo)) dichiarati++; else { altri++; dove.push(col); }
   }
   return { dichiarati, altri, dove: dove.slice(0, 6) };
 };
@@ -446,8 +452,28 @@ if (fai("flotta")) {
      `.page#page-sch.active`, quindi IL FOGLIO È QUELLO — non `body`, che
      portava dentro anche pezzi di schermo. Il selettore giusto lo dice il
      foglio di stile della pagina, non si indovina. */
-  const trFl = await pg.evaluate(TRATTINI, { sel: "#page-sch", ammesse: ["Quota"] });
-  console.log(`     [misura] libretto macchina: ${trFl ? trFl.altri : "?"} trattini «—» fuori da «Quota» (${trFl ? trFl.dichiarati : "?"} in «Quota», spenta di proposito), colonne: ${JSON.stringify(trFl ? trFl.dove : null)}`);
+  /* ✅ REGOLA dall'08/08, dopo aver guardato i quattro trattini rimasti uno per
+     uno: sono TUTTI il principio applicato, e le loro etichette stanno qui per
+     nome invece che in una soglia larga.
+       · «Quota» — colonna spenta di proposito (`quota: false`): sommare
+         percentuali non ha senso, e il conto sul totale non esiste;
+       · «Consumo», «Gasolio», «Ore motore», «Officina» — le tessere del foglio,
+         dove il commento del codice lo dice da sé: «non misurato non è zero».
+         Lì il «—» ha SOSTITUITO un «€ 0,00» in verde, che era il numero più
+         tranquillo della tessera proprio dove nessuno aveva scritto niente;
+     ⚠️ E il sesto NON è finito in elenco: il conto dei giorni di un fermo senza
+     data d'inizio scriveva «—» accanto a righe che dicono «11 giorni», cioè
+     «nessun giorno». La sua etichetta è la frase intera della riga, quindi un
+     elenco per nome sarebbe stato **fragile** — e la via giusta non era
+     allargare la regola, era **dare la parola al prodotto**: adesso scrive
+     «non calcolabili». Un'eccezione che non si riesce a nominare è spesso il
+     segno che non è un'eccezione.
+     Cioè: qui la soglia zero non è severità, è l'elenco delle risposte vere. */
+  const trFl = await pg.evaluate(TRATTINI, { sel: "#page-sch",
+    ammesse: ["Quota", "CONSUMO", "GASOLIO", "ORE MOTORE", "OFFICINA"] });
+  dice(trFl && trFl.altri === 0,
+    "⛔ nessun trattino «—» del libretto fuori dalle risposte vere dichiarate per nome", trFl);
+  console.log(`     (${trFl ? trFl.dichiarati : "?"} trattini nelle voci dichiarate del libretto)`);
 
   const kpi = await pg.evaluate(TAGLIATI, "#sch-kpi .n");
   console.log(`     (${kpi.guardati} tessere misurate sul foglio)`);
@@ -466,8 +492,13 @@ if (fai("flotta")) {
       righe: [...box.querySelectorAll(".item")].map(i => (i.querySelector(".badge") || {}).textContent || "") };
   });
   dice(fermi.righe.length === 3, "i tre fermi sono tutti sul foglio: nessuno sparisce", fermi.righe);
-  dice(fermi.righe.filter(t => t.trim() === "—").length === 2,
-    "due righe dichiarano di non avere una durata", fermi.righe);
+  /* ⏱️ L'08/08 la pastiglia è passata da «—» a «non calcolabili», e questa
+     riga era **agganciata al segno** invece che alla cosa: un trattino accanto
+     a «11 giorni» si legge «nessun giorno», ed è il difetto che il foglio
+     esiste per non fare. La prova adesso pretende la PAROLA — che è anche
+     l'unica forma che un elenco di eccezioni può nominare. */
+  dice(fermi.righe.filter(t => /non calcolabili/.test(t)).length === 2,
+    "due righe dichiarano, CON LA PAROLA, di non avere una durata", fermi.righe);
   dice(/2 fermi non sono in questo conto/i.test(fermi.recap),
     "⛔ e la riga del totale dice quanti fermi NON ci sono dentro", fermi.recap);
   dice(/3 fermi registrati/.test(fermi.recap) && /11 giorni|5 giorni/.test(fermi.recap),

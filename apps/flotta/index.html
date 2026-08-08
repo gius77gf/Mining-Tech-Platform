@@ -3432,7 +3432,11 @@ body.dw b.bad{color:var(--ink-dg)}
           <div class="info"><div class="name">${esc(x.causaleTx)}</div>
             <div class="meta">${esc(quandoFermo(x))}</div>
             ${x.note ? `<div class="meta norma">${esc(x.note)}</div>` : ""}</div>
-          <span class="badge ${x.aperto ? "danger" : "tag"}">${x.giorni != null ? ggTx(x.giorni) : "—"}</span></div>`).join("")
+          ${/* ⛔ E il conto dei giorni di un fermo SENZA data d'inizio non si
+                può fare: scriverlo «—» accanto a righe che dicono «11 giorni»
+                lo fa leggere «nessun giorno», cioè la buona notizia. Si dice
+                con la parola, come tutto il resto di questo foglio. */""}
+          <span class="badge ${x.aperto ? "danger" : "tag"}">${x.giorni != null ? ggTx(x.giorni) : "non calcolabili"}</span></div>`).join("")
         || vuoto(I.fermo, "Mai ferma", "Su questa macchina non risulta nessun fermo registrato: nessuna giornata persa per guasto, attesa di un pezzo o verifica. I fermi si registrano dalla schermata <b>Mezzi</b>."))
       + restoLibretto(f.fermi.length);
 
