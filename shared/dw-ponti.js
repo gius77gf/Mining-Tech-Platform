@@ -1213,3 +1213,43 @@ export function percorsiDi(campo, voci) {
   }
   return out;
 }
+
+/* ⛔ RILEGGI-E-RISCRIVI IN MODO ATOMICO — per gli ELENCHI, dove il percorso
+   puntato non arriva.
+   ══════════════════════════════════════════════════════════════════════════
+   La misura 5b divide i dodici punti in due famiglie. Per gli OGGETTI basta il
+   percorso puntato. Per gli ELENCHI no, e la ragione è stata misurata punto per
+   punto invece che dedotta: uno **corregge** una lettura già dentro (l'indice di
+   un array non si scrive col percorso puntato), uno aggiunge **e taglia** a un
+   massimo, uno è un **import in blocco**. Nessuno dei tre è un `arrayUnion`.
+   Quello che serve davvero è rileggere la riga e riscriverla **senza che
+   nessuno si infili in mezzo**: una transazione. Firestore la rifà da capo se
+   qualcuno ha scritto nel frattempo, quindi la lettura su cui si decide è
+   sempre quella vera — che è esattamente ciò che mancava.
+   Le primitive arrivano come ARGOMENTI perché questo modulo è puro e gira anche
+   in `node`: importare Firebase da gstatic lo spezzerebbe. È la firma allargata
+   al posto della copia, per la terza volta in questo file. */
+export async function trasformaAtomico({ rif, runTransaction, deleteField }, cambia) {
+  return runTransaction(rif.firestore, async (tx) => {
+    const scatto = await tx.get(rif);
+    /* ⛔ una riga cancellata nel frattempo non si RESUSCITA: `update` su un
+       documento che non c'è viene rifiutata (misurato, caso 5), e qui si
+       risponde con la stessa chiarezza invece di ricrearla di nascosto. */
+    if (!scatto.exists()) throw new Error("La riga non c'è più: qualcuno l'ha tolta mentre la modificavi.");
+    const cambi = cambia(scatto.data());
+    if (!cambi) return;                       // niente da fare: si esce senza scrivere
+    tx.update(rif, traduciCancellazioni(cambi, deleteField));
+  });
+}
+
+/* La stessa cosa per la DIMOSTRAZIONE, dove non c'è nessuna transazione da
+   fare (un solo browser, nessuno con cui accavallarsi) ma il CONTRATTO deve
+   essere identico: stessa firma, stesso «niente da fare non scrive», stesso
+   errore se la riga non c'è più. Se i due contratti divergono, la
+   dimostrazione smette di dimostrare. */
+export function trasformaInMemoria(riga, cambia) {
+  if (!riga) throw new Error("La riga non c'è più: qualcuno l'ha tolta mentre la modificavi.");
+  const cambi = cambia({ ...riga });
+  if (!cambi) return riga;
+  return applicaPercorsi(riga, cambi);
+}

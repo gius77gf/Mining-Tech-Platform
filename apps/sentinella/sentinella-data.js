@@ -26,7 +26,7 @@ import { parseCsvLine, csvCell, numIt, giorniTra, isIntestazione, numeroScritto,
 // Una scadenza è una scadenza: lo stato della taratura lo dice la stessa
 // funzione che lo dice per le visite mediche di Scudo e per i documenti di
 // Campo. Non se ne scrive una quarta (regola del `shared/`).
-import { statoScadenzaHSE, applicaPercorsi, traduciCancellazioni } from "../../shared/dw-ponti.js";
+import { statoScadenzaHSE, applicaPercorsi, traduciCancellazioni, trasformaAtomico, trasformaInMemoria } from "../../shared/dw-ponti.js";
 /* ⛔ `statoPonte` e `azioniDiOrigine` STAVANO QUI, ed erano identiche — misurate
    byte per byte — alle due di Campo. Una regola che serve a due app vive in
    `shared/`: qui restano col nome con cui le pagine le hanno sempre chiamate,
@@ -3337,7 +3337,7 @@ export async function sentinellaData() {
     const { DeepworkID } = await import("../../shared/deepwork-id-client/index.js");
     const id = await DeepworkID.init({ appId: "sentinella" });
     if (id.user && id.authState() === "member") {
-      const { getDocs, addDoc, updateDoc, deleteDoc, doc, deleteField } =
+      const { getDocs, addDoc, updateDoc, deleteDoc, doc, deleteField, runTransaction } =
         await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
       mode = "live";
       const read = async (n) => (await getDocs(id.orgCollection(n))).docs.map(d => ({ id: d.id, ...d.data() }));
@@ -3347,6 +3347,13 @@ export async function sentinellaData() {
         aggiungi: (n, d) => addDoc(id.orgCollection(n), d),
         logout: () => id.logout(),
         aggiorna: (n, i, d) => updateDoc(doc(id.orgCollection(n), i), traduciCancellazioni(d, deleteField)),
+        /* ⛔ per gli ELENCHI: rileggi-e-riscrivi in modo ATOMICO. Il percorso
+           puntato non arriva su un array (un indice non si scrive così), e
+           `arrayUnion` non copre né la correzione di una lettura già dentro né
+           il taglio a un massimo. La transazione rifà il giro se qualcuno ha
+           scritto nel frattempo: la lettura su cui si decide è sempre vera. */
+        trasforma: (n, i, cambia) => trasformaAtomico(
+          { rif: doc(id.orgCollection(n), i), runTransaction, deleteField }, cambia),
         rimuovi: (n, i) => deleteDoc(doc(id.orgCollection(n), i)),
       };
     } else if (id.authState() === "tour") mode = "tour";
@@ -3359,6 +3366,9 @@ export async function sentinellaData() {
       logout: async () => {},
       aggiungi: async (n, d) => { const id = "m" + Math.random().toString(36).slice(2, 8); (mem[n] = mem[n] || []).push({ id, ...d }); return { id }; },
       aggiorna: async (n, i, d) => { const x = (mem[n] || (mem[n] = [])).find(v => v.id === i); if (x) applicaPercorsi(x, d); },
+      /* stesso CONTRATTO della strada vera, transazione a parte: se i due
+         divergono, la dimostrazione smette di dimostrare */
+      trasforma: async (n, i, cambia) => trasformaInMemoria((mem[n] || (mem[n] = [])).find(v => v.id === i), cambia),
       rimuovi: async (n, i) => { mem[n] = (mem[n] || []).filter(v => v.id !== i); },
     };
   }

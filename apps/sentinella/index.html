@@ -4568,9 +4568,16 @@ textarea.dw-input{
        sparirebbe senza lasciare traccia da nessuna parte.
        E' la copia debole di una costante condivisa: la regola vive nel modulo,
        la pagina se n'era tenuta un numero suo. */
-    const letture = [ ...((m && m.letture) || []),
-                      { data: oggiISO(), valore, ...campiProvenienza(FONTE_MANO) } ].slice(-MAX_LETTURE);
-    await db.aggiorna("monitoraggi", id, { valore, letture });
+    /* ⛔ SI RILEGGE DENTRO LA TRANSAZIONE, non dallo stato locale. Misura 5b
+       (08/08): due persone che registrano una misura sullo stesso punto si
+       cancellavano a vicenda in silenzio, perché l'elenco veniva letto,
+       allungato e riscritto INTERO. Qui il taglio a `MAX_LETTURE` c'è ancora,
+       ed è la ragione per cui `arrayUnion` non bastava. */
+    const nuova = { data: oggiISO(), valore, ...campiProvenienza(FONTE_MANO) };
+    await db.trasforma("monitoraggi", id, (m2) => {
+      const letture = [ ...((m2 && m2.letture) || []), nuova ].slice(-MAX_LETTURE);
+      return { valore, letture };
+    });
     /* ⛔ `letture` va passato, se no la PRIMA misura di un punto direbbe «Mai
        misurato» proprio mentre la si registra: `...m` porta le letture VECCHIE,
        e quella appena scritta è nella variabile qui sopra. */
@@ -4927,7 +4934,17 @@ textarea.dw-input{
     const ultima = u.letture[u.letture.length - 1];
     // l'ultimo valore della scheda segue la lettura più recente dello storico:
     // il semaforo del punto deve raccontare la stessa cosa della serie storica
-    await db.aggiorna("monitoraggi", punto.id, { letture: u.letture, valore: ultima ? ultima.valore : punto.valore });
+    /* l'import in blocco: si rilegge dentro la transazione e si aggiunge alle
+       letture VERE del momento, non a quelle che avevo in mano quando ho
+       aperto la finestra — due import sullo stesso punto ne perdevano uno, e
+       quelle letture finiscono nel report per l'ARPA. */
+    await db.trasforma("monitoraggi", punto.id, (m2) => {
+      /* si unisce alle letture VERE del momento con la stessa `unisciLetture`
+         che decide l'anteprima — non con una seconda regola scritta qui */
+      const u2 = unisciLetture((m2 && m2.letture) || [], impPronte.map(r => ({ ...r, ...prov })));
+      const ult = u2.letture[u2.letture.length - 1];
+      return { letture: u2.letture, valore: ult ? ult.valore : punto.valore };
+    });
     impChiudi(); $("imp-testo").value = "";
     grafMon = punto.id;   // si vede subito l'andamento appena importato
     /* ⛔ LA NOTA E LA STRISCIA DICEVANO LA STESSA COSA IN DUE DIALETTI. La nota

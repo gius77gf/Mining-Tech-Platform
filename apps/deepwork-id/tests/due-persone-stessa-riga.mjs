@@ -85,5 +85,30 @@ await seme({ stato: "presente", ora: "08:00", note: "vento forte" });
 await setDoc(rA, { stato: "assente" });
 mostra("dopo un set senza merge", await leggi());
 
+console.log("\n══ CASO 7 · e con una TRANSAZIONE, che è la cura per gli ELENCHI ══");
+{
+  /* la stessa scena del caso 3, ma con `trasformaAtomico`: le due persone
+     aggiungono una lettura ciascuna allo stesso punto di monitoraggio */
+  const { trasformaAtomico } = await import("../../../shared/dw-ponti.js");
+  const { runTransaction, deleteField } = await import("firebase/firestore");
+  await seme({ letture: [{ v: 1 }] });
+  const aggiungi = (rif, v) => trasformaAtomico({ rif, runTransaction, deleteField },
+    (m) => ({ letture: [...(m.letture || []), { v }] }));
+  await Promise.all([aggiungi(rA, 2), aggiungi(rB, 3)]);
+  const d7 = await leggi();
+  mostra("dopo", d7);
+  const vv = d7.letture.map((x) => x.v).sort();
+  console.log(`   → ci sono TUTTE E TRE le letture? ${JSON.stringify(vv) === "[1,2,3]" ? "SÌ" : "NO"}`);
+  /* e il verso opposto, se no non si saprebbe se la transazione serve: le
+     stesse due scritture SENZA transazione, leggendo prima come fa la pagina */
+  await seme({ letture: [{ v: 1 }] });
+  const base = (await getDoc(rA)).data().letture;
+  await updateDoc(rA, { letture: [...base, { v: 2 }] });
+  await updateDoc(rB, { letture: [...base, { v: 3 }] });
+  const d7b = await leggi();
+  console.log(`   → senza transazione: ${JSON.stringify(d7b.letture.map((x) => x.v))} — una si perde`);
+}
+
+
 await env.cleanup();
 process.exit(0);

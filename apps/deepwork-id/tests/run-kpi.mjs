@@ -24418,6 +24418,70 @@ await test("⛔ il giro vero: due spunte diverse sulla stessa checklist convivon
   await db.aggiorna("checklist", id, { "esiti.dpi": ponti.DW_CANCELLA });
   eq((await riga()).esiti, { luci: true }, "e il contrassegno toglie la voce davvero");
 });
+await test("⛔ il giro vero: `trasforma` esiste sulle DUE strade e la dimostrazione lo usa", async () => {
+  /* la guardia collegata, versione elenchi: la funzione condivisa può essere
+     giusta e non arrivare mai al livello dati. Qui si passa dal db vero
+     dell'app, in modo dimostrazione. */
+  const db = await sentinella.sentinellaData();
+  eq(db.mode, "demo", "senza login il livello dati è quello della dimostrazione");
+  ok(typeof db.trasforma === "function", "la dimostrazione espone `trasforma`");
+  const { id } = await db.aggiungi("monitoraggi", { nome: "P1", letture: [{ data: "2026-01-01", valore: 1 }] });
+  const riga = async () => (await db.monitoraggi()).find((m) => m.id === id);
+  await db.trasforma("monitoraggi", id, (m) => ({ letture: [...m.letture, { data: "2026-01-02", valore: 2 }] }));
+  eq((await riga()).letture.map((l) => l.valore), [1, 2], "la lettura si aggiunge a quelle VERE del momento");
+  await db.trasforma("monitoraggi", id, () => null);
+  eq((await riga()).letture.length, 2, "«niente da fare» non tocca niente");
+  /* e la riga che non c'è più dice la stessa frase dell'altra strada */
+  let msg = "";
+  try { await db.trasforma("monitoraggi", "mai-esistito", () => ({ x: 1 })); } catch (e) { msg = e.message; }
+  ok(/non c'è più/.test(msg), `una riga inesistente va detta: ${msg}`);
+});
+await test("trasformaAtomico: rilegge DENTRO la transazione, e non resuscita una riga tolta", async () => {
+  /* con dei finti: il soggetto è il CONTRATTO (rileggo, decido, scrivo una
+     volta), non Firestore — quello lo prova la misura sotto l'emulatore */
+  const finto = (dati) => {
+    const scritte = [];
+    const rif = { firestore: "db-finto" };
+    const runTransaction = async (_db, corpo) => corpo({
+      get: async () => ({ exists: () => dati !== null, data: () => dati }),
+      update: (_r, c) => scritte.push(c),
+    });
+    return { rif, runTransaction, deleteField: () => "<<del>>", scritte };
+  };
+  const a = finto({ letture: [{ v: 1 }] });
+  await ponti.trasformaAtomico(a, (m) => ({ letture: [...m.letture, { v: 2 }] }));
+  eq(a.scritte, [{ letture: [{ v: 1 }, { v: 2 }] }], "decide sulla lettura fatta DENTRO, e scrive una volta sola");
+  const b = finto({ letture: [] });
+  await ponti.trasformaAtomico(b, () => null);
+  eq(b.scritte, [], "⛔ «niente da fare» non scrive: una scrittura a vuoto è comunque un giro perso");
+  const c = finto({ x: 1 });
+  await ponti.trasformaAtomico(c, () => ({ x: ponti.DW_CANCELLA }));
+  eq(c.scritte, [{ x: "<<del>>" }], "e il contrassegno passa dalla traduzione");
+  /* la riga tolta nel frattempo: non si ricrea di nascosto */
+  let msg = "";
+  try { await ponti.trasformaAtomico(finto(null), () => ({ x: 1 })); } catch (e) { msg = e.message; }
+  ok(/non c'è più/.test(msg), `una riga cancellata va detta, non ricreata: ${msg}`);
+});
+test("trasformaInMemoria: stesso contratto della strada vera", () => {
+  /* ⛔ se i due contratti divergono, la dimostrazione smette di dimostrare */
+  const riga = { letture: [{ v: 1 }] };
+  ponti.trasformaInMemoria(riga, (m) => ({ letture: [...m.letture, { v: 2 }] }));
+  eq(riga.letture, [{ v: 1 }, { v: 2 }], "aggiunge davvero");
+  const ferma = { a: 1 };
+  ponti.trasformaInMemoria(ferma, () => null);
+  eq(ferma, { a: 1 }, "«niente da fare» non tocca niente");
+  const conPercorso = { esiti: { a: false } };
+  ponti.trasformaInMemoria(conPercorso, () => ({ "esiti.a": true }));
+  eq(conPercorso, { esiti: { a: true } }, "e capisce anche i percorsi puntati");
+  let msg = "";
+  try { ponti.trasformaInMemoria(undefined, () => ({ x: 1 })); } catch (e) { msg = e.message; }
+  ok(/non c'è più/.test(msg), "e dice la STESSA frase dell'altra strada");
+  /* la funzione riceve una COPIA: chi la scrive non può cambiare la riga di
+     nascosto e far credere che l'abbia fatto la transazione */
+  const orig = { a: 1 };
+  ponti.trasformaInMemoria(orig, (m) => { m.a = 99; return null; });
+  eq(orig, { a: 1 }, "quello che arriva alla funzione è una copia");
+});
 test("percorsiDi: costruisce i percorsi, e dice NO quando non si può", () => {
   eq(ponti.percorsiDi("esiti", { dpi: true, luci: false }),
      { "esiti.dpi": true, "esiti.luci": false }, "da voci a percorsi");

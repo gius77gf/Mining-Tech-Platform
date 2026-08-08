@@ -117,6 +117,22 @@ mostra.
 | **elenco** | Sentinella `letture` ×3, `tarature` ×3, Scudo `azioniId`, `misure` | ⛔ `arrayUnion` **non basta**, misurato punto per punto: 4121 **corregge** una lettura già dentro (l'indice di un array non si scrive col percorso puntato), 4573 aggiunge **e taglia** a `MAX_LETTURE`, 4930 è un **import in blocco**. La forma giusta è una **transazione** (`runTransaction`), che rilegge e riscrive in modo atomico |
 | **modulo intero** | Scudo `atmosfera` | non è il caso della spunta persa: l'utente invia **tutte** le misure di gas insieme. Due persone che compilano lo stesso permesso sono un conflitto sullo **stesso campo** (caso 2), e la risposta lì non è tecnica |
 
+### Fatto (08/08) — i tre punti a OGGETTO e DUE dei sette a elenco
+- **oggetti**: Campo `esiti`, Scudo `esiti` ×2 → percorso puntato, con
+  `DW_CANCELLA` per togliere una voce e `percorsiDi` che risponde `null` (e fa
+  ripiegare sull'oggetto intero) se una voce ha un punto nel nome;
+- **elenchi**: Sentinella `letture` ×2 — la misura a mano e l'import in blocco —
+  passano da `trasformaAtomico`, cioè una **transazione**: si rilegge dentro, e
+  se qualcuno ha scritto nel frattempo Firestore rifà il giro.
+  ⛔ **Provato contro l'emulatore, nei due versi** (caso 7 della misura): con la
+  transazione le tre letture ci sono **tutte**; con le stesse due scritture
+  lette prima, come faceva la pagina, resta `[1,3]` — **una si perde**.
+
+**Restano cinque punti**: Sentinella `letture` (la correzione di una lettura già
+dentro) e `tarature` ×3, Scudo `azioniId` e `misure`. Vogliono lo stesso
+`trasforma`, che oggi ce l'ha **solo Sentinella**: quando servirà a Scudo va
+aggiunto al suo livello dati — la funzione condivisa c'è già, e non va ricopiata.
+
 ### E solo dopo, la coda offline
 Mettere in coda scritture che si cancellano a vicenda vorrebbe dire
 **moltiplicare** il problema, non risolverlo.
