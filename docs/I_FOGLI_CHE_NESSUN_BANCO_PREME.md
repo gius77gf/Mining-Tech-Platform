@@ -150,3 +150,24 @@ cioè tutti i segnali di una controprova sana.
 Il segno che l'ha smascherata: **la riga che doveva cadere non cadeva**, e
 nient'altro. Unite in una chiave sola: 3 difetti rimessi, 5 KO, e la riga
 stampa le colonne colpevoli (`["Modello" ×5]`).
+
+
+## Gli altri tre fogli: misurati, giudizio preliminare
+
+La riga dei trattini è ora una funzione sola (`TRATTINI`, con l'elenco
+**dichiarato** delle colonne in cui il vuoto è una risposta) e su Flotta e
+Conti gira come **misura**, non ancora come regola — perché il giudizio è
+foglio per foglio, e l'08/08 la stessa forma ha dato **verdetti opposti**:
+«Ora» in Sentinella è giusta, «Modello» in Scudo era un difetto.
+
+| foglio | trattini | dove | giudizio preliminare |
+|---|---|---|---|
+| Flotta · libretto macchina | 15 | colonna **«Quota»** (6 nominate) | **da guardare**: è il conto più alto dei tre |
+| Conti · preventivo | 2 | **«Sconto»** | **giusti**: «nessuno sconto» è uno stato vero, non un dato mancante |
+| Conti · DDT | 0 | — | pulito |
+| Conti · fattura | 2 | **«Quantità»**, **«Prezzo unitario»** | **da guardare**: sono sulla riga unica delle fatture registrate a **importo unico**, dove il dettaglio non esiste per scelta — ma la riga non lo dice, ed è la stessa forma dei «superamenti —» di Sentinella |
+| Terra · denuncia | non misurato | — | apre una **finestra nuova**: vuole il ramo che raccoglie il popup |
+
+⚠️ **Nessuno di questi è stato corretto**, e la ragione è la regola di casa: un
+numero riportato si rimisura prima di scriverlo altrove, e un trattino si
+**giudica**, non si conta. Le due righe «da guardare» sono **candidati**.

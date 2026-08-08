@@ -336,6 +336,41 @@ const scatta = async (pagina, nome) => {
   if (prima && prima.width !== 390) await pagina.setViewportSize(prima);
 };
 
+/* ⛔ I TRATTINI DI UN FOGLIO, contati DIVIDENDOLI: quelli che stanno in una
+   colonna dove il vuoto è una risposta vera, e tutti gli altri. Scritta una
+   volta sola perché la usano tre sezioni — il 08/08 era già stata copiata due
+   volte prima che se ne accorgessi, ed è il modo in cui nascono le divergenze.
+   `ammesse` è l'elenco DICHIARATO delle colonne in cui il «—» è giusto: in
+   Sentinella «Ora», che il prodotto chiama facoltativa fin dall'import; in
+   Scudo «Taglia», perché «unica» esiste davvero come risposta. Un elenco corto
+   e scritto batte una regola larga che le confonde — e la misura di quel
+   giorno lo dice: stessa forma, verdetti opposti su due app.
+   Restituisce anche i NOMI delle colonne colpevoli: un numero nudo non dice
+   dove guardare. */
+/* ⚠️ Un argomento SOLO, e un oggetto: `pg.evaluate(fn, x)` passa un valore
+   solo — scritta a due parametri, `ammesse` arriverebbe `undefined` e la
+   guardia accuserebbe le colonne legittime. */
+const TRATTINI = ({ sel, ammesse }) => {
+  const doc = document.querySelector(sel);
+  if (!doc) return null;
+  const ok = (ammesse || []).map((x) => x.toLowerCase());
+  const w = document.createTreeWalker(doc, NodeFilter.SHOW_TEXT);
+  let n, dichiarati = 0, altri = 0; const dove = [];
+  while ((n = w.nextNode())) {
+    if ((n.textContent || "").trim() !== "\u2014") continue;
+    const cel = n.parentElement, td = cel && cel.closest("td");
+    const rg = td && td.closest("tr"), tab = td && td.closest("table");
+    let col = "(fuori tabella)";
+    if (td && rg && tab) {
+      const i = Array.from(rg.children).indexOf(td);
+      const th = tab.querySelectorAll("thead th")[i];
+      if (th) col = th.innerText.trim();
+    }
+    if (ok.includes(col.toLowerCase())) dichiarati++; else { altri++; dove.push(col); }
+  }
+  return { dichiarati, altri, dove: dove.slice(0, 6) };
+};
+
 /* La domanda «esce dal proprio riquadro?» la sa dire il browser: si chiede a
    lui, non si calcola. Stampa quanti soggetti ha guardato davvero. */
 const TAGLIATI = (sel) => {
@@ -375,6 +410,14 @@ if (fai("flotta")) {
 
   await pg.emulateMedia({ media: "print" });
   await pg.waitForTimeout(400);
+
+  /* ⏱️ MISURA, NON ANCORA REGOLA: i trattini del libretto macchina. Si stampa
+     l'elenco delle colonne, perché il giudizio è foglio per foglio — misurato
+     l'08/08 due volte con esiti OPPOSTI sulla stessa forma: «Ora» in
+     Sentinella è giusta (facoltativa per disegno), «Modello» in Scudo era un
+     difetto. Una regola unica li appiattirebbe. */
+  const trFl = await pg.evaluate(TRATTINI, { sel: "body", ammesse: [] });
+  console.log(`     [misura] libretto macchina: ${trFl ? trFl.altri : "?"} trattini «—», colonne: ${JSON.stringify(trFl ? trFl.dove : null)}`);
 
   const kpi = await pg.evaluate(TAGLIATI, "#sch-kpi .n");
   console.log(`     (${kpi.guardati} tessere misurate sul foglio)`);
@@ -466,28 +509,11 @@ if (fai("sentinella")) {
          massimo 42,1 · media 22,0 · superamenti —».
      Il conto qui sotto è per FAMIGLIA, non un totale: se domani nascesse un
      terzo trattino dove serve una ragione, questa riga lo direbbe. */
-  const trattini = await pg.evaluate(() => {
-    const doc = document.getElementById("rep-doc"); if (!doc) return null;
-    const w = document.createTreeWalker(doc, NodeFilter.SHOW_TEXT);
-    let n, ora = 0, altri = 0;
-    while ((n = w.nextNode())) {
-      if ((n.textContent || "").trim() !== "—") continue;
-      const cel = (n.parentElement || {}).closest ? n.parentElement.closest("td") : null;
-      const tr = cel && cel.closest("tr"), tab = cel && cel.closest("table");
-      let col = "";
-      if (tr && tab) {
-        const i = Array.from(tr.children).indexOf(cel);
-        const th = tab.querySelectorAll("thead th")[i];
-        col = th ? th.innerText.trim().toLowerCase() : "";
-      }
-      if (col === "ora") ora++; else altri++;
-    }
-    return { ora, altri };
-  });
+  const trattini = await pg.evaluate(TRATTINI, { sel: "#rep-doc", ammesse: ["Ora"] });
   dice(trattini && trattini.altri === 0,
     "⛔ nessun trattino «—» fuori dalla colonna «Ora», che è l'unica facoltativa per disegno",
     trattini);
-  console.log(`     (${trattini ? trattini.ora : "?"} trattini nella colonna «Ora», facoltativa dichiarata all'import)`);
+  console.log(`     (${trattini ? trattini.dichiarati : "?"} trattini nella colonna «Ora», facoltativa dichiarata all'import)`);
   dice(/2 righe che questo documento non ha potuto usare/i.test(foglio),
     "sono due: la lettura del 30 febbraio e la volata senza data leggibile",
     (foglio.match(/[^.]*non ha potuto usare[^.]*\./) || [""])[0]);
@@ -550,6 +576,9 @@ if (fai("conti")) {
     const f = await pg.evaluate(() => (document.getElementById("stampa") || {}).innerText || "");
     stampati++;
     dice(titolo.test(f), `il foglio composto è davvero «${nome}»`, f.slice(0, 90));
+    /* ⏱️ MISURA, non ancora regola: vedi la nota nella sezione di Flotta */
+    const trCo = await pg.evaluate(TRATTINI, { sel: "#stampa", ammesse: [] });
+    console.log(`     [misura] «${nome}»: ${trCo ? trCo.altri : "?"} trattini «—», colonne: ${JSON.stringify(trCo ? trCo.dove : null)}`);
     diceAvviso(/DATI DI ESEMPIO/i.test(f), `⛔ il foglio «${nome}» dichiara di essere fatto di dati di esempio`);
     diceAvviso(/non ha valore fiscale/i.test(f) && /non va esibito a un controllo/i.test(f),
       `e dice che cosa comporta: niente valore fiscale, non si consegna, non si esibisce`);
@@ -658,27 +687,10 @@ if (fai("scudo")) {
        una taglia vuota su un dispositivo a taglia unica non è una mancanza.
        Due domande diverse, due scritture diverse — e l'eccezione sta qui, per
        nome, invece che in una regola larga che le confonde. */
-    const tr = await pg.evaluate(() => {
-      const doc = document.getElementById("verbale"); if (!doc) return null;
-      const w = document.createTreeWalker(doc, NodeFilter.SHOW_TEXT);
-      let n, taglia = 0, altri = 0, dove = [];
-      while ((n = w.nextNode())) {
-        if ((n.textContent || "").trim() !== "—") continue;
-        const cel = n.parentElement, td = cel && cel.closest("td");
-        const rg = td && td.closest("tr"), tab = td && td.closest("table");
-        let col = "(fuori tabella)";
-        if (td && rg && tab) {
-          const i = Array.from(rg.children).indexOf(td);
-          const th = tab.querySelectorAll("thead th")[i];
-          if (th) col = th.innerText.trim();
-        }
-        if (/^taglia$/i.test(col)) taglia++; else { altri++; dove.push(col); }
-      }
-      return { taglia, altri, dove: dove.slice(0, 5) };
-    });
+    const tr = await pg.evaluate(TRATTINI, { sel: "#verbale", ammesse: ["Taglia"] });
     dice(tr && tr.altri === 0,
       `⛔ «${nome}»: nessun trattino «—» fuori dalla colonna «Taglia», l'unica in cui il vuoto è una risposta`, tr);
-    console.log(`     («${nome}»: ${tr ? tr.taglia : "?"} trattini nella colonna Taglia, dichiarata)`);
+    console.log(`     («${nome}»: ${tr ? tr.dichiarati : "?"} trattini nella colonna Taglia, dichiarata)`);
   }
   dice(stampatiScudo === FOGLI_SCUDO.length,
     `tutti e ${FOGLI_SCUDO.length} i fogli di Scudo sono stati composti davvero`, stampatiScudo);
