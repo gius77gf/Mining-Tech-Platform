@@ -1,5 +1,26 @@
 # Ultimo ciclo di lavoro automatico
 
+**2026-08-08T10:37Z** · commit di partenza **`3b496a8`** · branch
+`claude/scheduled-tasks-remote-control-bk4ap6`
+
+## Ciclo in corso adesso
+
+Riprendo dal «Prossimo passo atomico» dell'ultimo checkpoint per data VERA di
+git. Il blocco precedente ha chiuso **nove unità** sul filo *«le righe in cui
+un banco dichiara quello che NON ha guardato»*: sette unità di misura nude
+sotto una classe maiuscola, sei contrasti illeggibili nel core, le tre
+pastiglie d'esito che nel tema chiaro diventavano lo stesso viola, il sollecito
+di pagamento di Conti che usciva negli appunti senza dichiararsi una
+dimostrazione, e trentadue frasi che con «1» dicevano «1 righe».
+⚠️ Il giro del browser lanciato alle 03:00Z ha girato **oltre sette ore e
+mezza** e attesta un commit **precedente** a tutte e nove: i suoi quattro KO
+sono **già chiusi**, e c'è una pagina in `vault/checkpoints/` che lo dice per
+impedire che qualcuno riapra un cantiere su difetti che non esistono più.
+
+*(Il paragrafo qui sotto racconta il ciclo precedente.)*
+
+---
+
 **2026-08-08T04:57Z** · commit di partenza **`40640da`** · branch
 `claude/scheduled-tasks-remote-control-bk4ap6`
 
