@@ -2282,6 +2282,21 @@ numero scritto dove non era stato misurato niente**.*
   calcolare a mano ciò che il programma sa già dire* — pagata due volte in dieci
   minuti.
 
+- [x] ✅ **Campo: la stessa domanda, e la risposta è «niente da correggere»**
+  (misura, nessun commit sul prodotto). Applicata la domanda di `CLAUDE.md` —
+  *dove questa app compone qualcosa che ESCE, chi decide i suoi numeri?* — ai
+  **cinque** file che Campo esporta: `campo_appello`, `campo_storico`,
+  `campo_attivita`, `campo_squadre`, `campo_consuntivo_carico`. Tutti e cinque
+  chiamano il **modulo** (`csvAppello`, `csvStorico`, `csvAttivita`,
+  `csvSquadre`, `pianoConsuntivoCsv`), e accanto all'appello c'è il commento che
+  racconta quando non era così: *«finché lo componeva questa riga, la colonna
+  `ore_lavorate` usciva nuda anche quando `orariPresenza` aveva già dichiarato
+  di non fidarsi degli orari»*.
+  ⚠️ **Scritto perché un risultato negativo misurato vale più di un censimento
+  non fatto**: senza questa riga, il prossimo che legge la regola in `CLAUDE.md`
+  rifà lo stesso giro su Campo per scoprire la stessa cosa. Il denominatore è
+  cinque su cinque.
+
 ## Riferimenti
 
 - Ultimo checkpoint **per data vera**:
