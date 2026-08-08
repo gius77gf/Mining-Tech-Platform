@@ -2230,6 +2230,29 @@ numero scritto dove non era stato misurato niente**.*
   l'iniezione di Flotta smetterebbe di essere vista. **Una regola indebolita per
   far passare un caso vale meno di un caso dichiarato** — e una decisione presa
   con la misura va cercata prima di rifarla.
+- [x] ✅ **E l'ULTIMA superficie della terza gamba era il core, con un CSV solo
+  e la frase che contava un'altra cosa.** Il core ha **un** export di file
+  (`deepwork_fori_fronte_*.csv`): il file lo scrive `foriDalModello`, che
+  **filtra** (`m && m.position`), e il messaggio contava
+  `_recon.markers.length`. Un segno senza posizione entrava nel numero
+  annunciato e non nel file — la forma esatta di questa famiglia. Corretto
+  **contando una volta sola**: l'array si calcola, e la sua lunghezza va sia
+  nel file sia nella frase.
+  ⚠️ **Onestà sulla gravità**: oggi i segni li crea un punto solo, che scrive
+  sempre `position`, quindi la divergenza è **latente** — vive per un modello
+  ricaricato, un record vecchio, una scrittura parziale. Resta corretta perché
+  il difetto gemello in Flotta era latente allo stesso modo.
+  ⚠️ **E quell'export non lo apre nessun banco per una ragione MISURATA, non
+  per svista**: `_recon` è una variabile del modulo (`let _recon=null`), quindi
+  non si inietta da fuori, e senza rete il 3D non parte affatto. A sorvegliarlo
+  è la **regola 31** di `run-stile`, che è statica: la riga della frase non può
+  contenere `markers.length`. Controprova nei due versi, e provata a fallire
+  rimettendo il difetto nel core (poi ripristinato **da copia**, non con
+  `git checkout`).
+  ⚠️ Il righello ha sbagliato una volta, col segno di sempre: l'ancora era una
+  regex che provava a scavalcare le parentesi (`[^)]*` si ferma alla prima `)`
+  di `plurale(...)`), quindi non trovava la frase **né nel core né nella sua
+  controprova** — cioè la regola accusava sé stessa. Adesso l'ancora è la riga.
 - [x] ✅ **E l'ultimo KO di Conti era il banco che pinnava il testo di ieri**
   (`e26ff87`). `conti-frasi` chiedeva «**Esportati** 1 prodotto (CSV)» e la
   pagina scrive «**Esportato** 1 prodotto», che in italiano è la forma giusta:

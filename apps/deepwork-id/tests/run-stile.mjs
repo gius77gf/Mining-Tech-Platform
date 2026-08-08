@@ -3645,6 +3645,27 @@ test("regola 31: nel core l'origine dei fori 3D non si ricalcola nella pagina", 
   const RIGA_IMPORT = /import\s*\{[^}]*\bforiDalModello\b[^}]*\}\s*from\s*["'][^"']*dw-shell\.js["']/;
   ok(RIGA_IMPORT.test(testo),
     "foriDalModello è chiamata ma non importata da dw-shell.js: la pagina si apre e muore al primo tocco");
+  /* ⛔ E LA TERZA COSA CHE ESCE DA QUEL BOTTONE È LA FRASE. La domanda di
+     `CLAUDE.md` nomina «un CSV, un PDF, **una frase di riepilogo**», e qui la
+     frase contava `_recon.markers.length` mentre il file lo scrive
+     `foriDalModello`, che **filtra** (`m && m.position`). Un segno senza
+     posizione entrava nel numero annunciato e non nel file: la forma esatta in
+     cui questa famiglia si presenta — la frase conta l'array SORGENTE mentre
+     il ciclo che scrive filtra.
+     ⚠️ Perché la guardia è QUI e non in un banco: `_recon` è una variabile del
+     modulo (`let _recon=null`), quindi non si può iniettare da fuori, e senza
+     rete il 3D non parte affatto. Nessun banco può aprire quel file — è un
+     limite MISURATO, non una svista, e per questo la proprietà si sorveglia
+     dove si legge, cioè nel testo della pagina.
+     La domanda: nella riga del messaggio non ci deve stare `markers.length`. */
+  /* ⚠️ L'ancora è la RIGA che contiene la frase, non una regex che prova a
+     scavalcare le parentesi: `[^)]*` si ferma alla prima `)` di `plurale(...)`,
+     quindi la prima stesura non trovava la frase né nel core né nella sua
+     controprova — e la regola accusava sé stessa. Il righello, non il soggetto. */
+  const frase = testo.split("\n").find((r) => r.includes("(CSV in metri)")) || "";
+  ok(!!frase, "la regola 31 non trova più la frase del CSV dei fori: sta guardando dove crede?");
+  ok(!/markers\s*\.\s*length/.test(frase),
+    `la frase del CSV dei fori conta i segni sul modello invece delle righe uscite: «${frase.slice(0, 120)}»`);
 });
 test("regola 31: la controprova — nei due versi", () => {
   const finto = "v.fori.push({x:Math.round((m.position.x+W/2)*100)/100});";
@@ -3657,6 +3678,16 @@ test("regola 31: la controprova — nei due versi", () => {
   const vivo2 = mascheraCodice(commentato);
   const trovati2 = [...commentato.matchAll(/position\.[xy]\s*\+\s*[WH]\s*\/\s*2/g)].filter((m) => vivo2[m.index] === 1).length;
   ok(trovati2 === 0, `la regola 31 accusa un commento: ${trovati2} invece di 0`);
+  /* e la controprova della FRASE, nei due versi: col difetto rimesso deve
+     cadere, e sulla forma sana non deve accusare */
+  const RIGA_FRASE = /toast\([^)]*conta\([^)]*\)[^)]*\(CSV in metri\)/;
+  const rotta = "toast('Esportat'+plurale(_recon.markers.length,'o','i')+' '+conta(_recon.markers.length,'foro','fori')+' (CSV in metri)','success');";
+  const sana = "toast('Esportat'+plurale(fori.length,'o','i')+' '+conta(fori.length,'foro','fori')+' (CSV in metri)','success');";
+  const rigaConLaFrase = (t) => t.split("\n").find((r) => r.includes("(CSV in metri)")) || "";
+  ok(/markers\s*\.\s*length/.test(rigaConLaFrase(rotta)),
+    "la regola 31 non vede la frase che conta i segni del modello invece delle righe uscite");
+  ok(!/markers\s*\.\s*length/.test(rigaConLaFrase(sana)),
+    "la regola 31 accusa la frase sana");
 });
 
 console.log(`\nRisultato Stile: ${passed} passati, ${failed} falliti${inVolo.length ? `  ·  ${inVolo.length} prove asincrone aspettate` : ""}`);

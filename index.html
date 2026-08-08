@@ -4947,14 +4947,31 @@ function reconExportHoles(){
   // `foriDalModello`. Le celle non finite restano VUOTE — un numero inventato
   // per far quadrare una colonna è peggio di una colonna vuota.
   const cella=(v)=>Number.isFinite(v)?v.toFixed(2):'';
+  /* ⛔ LA FRASE CONTAVA I SEGNI SUL MODELLO, IL FILE NE SCRIVE UN ALTRO NUMERO.
+     `foriDalModello` FILTRA (`m && m.position`), e il messaggio contava
+     `_recon.markers.length`: un segno senza posizione usciva dal conto
+     annunciato ma non dal file. È la forma esatta in cui questa famiglia si
+     presenta — la frase conta l'array SORGENTE mentre il ciclo che scrive
+     filtra — e l'unico modo di non farla tornare è **contare una volta sola**.
+     ⚠️ Onestà sulla gravità, perché la misura la ridimensiona: oggi i segni li
+     crea un solo punto, che scrive sempre `position`, quindi la divergenza è
+     LATENTE (vive per un modello ricaricato, per un record vecchio, per una
+     scrittura parziale). Resta scritta perché il difetto gemello, in Flotta,
+     era latente allo stesso modo e la versione giusta stava già nello stesso
+     file duecento righe più in là.
+     ⚠️ E questo export non lo apre nessun banco, per una ragione MISURATA e
+     non per svista: `_recon` è una variabile del modulo (`let _recon=null`),
+     quindi non si può iniettare da fuori, e senza rete il 3D non parte affatto.
+     A sorvegliarlo è la regola 31 di `run-stile`, che è statica. */
+  const fori=foriDalModello(_recon.markers,_recon.W,_recon.H);
   let csv='foro;x_m;y_m;rilievo_m\n';
-  foriDalModello(_recon.markers,_recon.W,_recon.H).forEach(f=>{
+  fori.forEach(f=>{
     csv+=f.num+';'+cella(f.x)+';'+cella(f.y)+';'+cella(f.z)+'\n';
   });
   const a=document.createElement('a');
   a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(csv);
   a.download='deepwork_fori_fronte_'+nomeRecon()+'.csv';a.click();
-  toast('Esportat'+plurale(_recon.markers.length,'o','i')+' '+conta(_recon.markers.length,'foro','fori')+' (CSV in metri)','success');
+  toast('Esportat'+plurale(fori.length,'o','i')+' '+conta(fori.length,'foro','fori')+' (CSV in metri)','success');
 }
 function reconSnapshot(){
   if(!_recon||!_recon.renderer){toast('Ricostruisci prima il modello','err');return;}
