@@ -1421,11 +1421,26 @@ numero scritto dove non era stato misurato niente**.*
   📊 **Bilancio della notte sui trattini**: 30 guardati — **9 difetti veri
   corretti**, **18 giusti**, **3 aperti e dichiarati**. Un trattino su tre era
   una faccia tranquilla; due su tre erano il prodotto che diceva la verità.
+- [x] ✅ **Flotta · «dal — — ancora fermo» sul libretto** (`e27fe4a`).
+  Localizzati i quattro trattini «fuori tabella» — il passo che il checkpoint
+  prima diceva di fare **prima** di giudicare — e uno era un difetto vero: un
+  fermo senza data d'inizio usciva sul foglio stampato come «Guasto meccanico ·
+  **dal — — ancora fermo**», con un trattino al posto della data e la frase
+  spezzata a metà, su un documento che si porta a chi compra la macchina. La
+  causa era il segno che serviva: la frase composta **a mano in due punti**.
+  Ora `quandoFermo`, scritta una volta e usata da tutt'e due. Gli altri tre
+  trattini sono **giusti** (tessere «Consumo»/«Gasolio» e il conto dei giorni,
+  che senza la data d'inizio non si può fare).
+  ⛔ **E il controllo scritto stanotte ha preso il MIO errore**: `dataISOEsiste`
+  usata senza importarla, `nomi-liberi` rosso al primo giro — la stessa famiglia
+  di `chiediDati` e di `conta`, vista **prima del commit** invece che una
+  settimana dopo. Il banco ora **localizza** i trattini fuori tabella e guarda
+  `#page-sch`, il foglio vero, invece di `body`.
 
 ## Riferimenti
 
 - Ultimo checkpoint **per data vera**:
-  `vault/checkpoints/20260808-012201_i-quindici-trattini-che-erano-il-principio.md`
+  `vault/checkpoints/20260808-013256_dal-trattino-trattino-ancora-fermo.md`
   *(dato da `node apps/deepwork-id/tests/date-checkpoint.mjs`, non letto a occhio:
   per NOME il più alto sarebbe `20260805-100000_…`, che è stato scritto **tre
   giorni prima**. Questa riga era ferma al 01/08: il puntatore al file più
