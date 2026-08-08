@@ -553,6 +553,26 @@ vere.
       ⚠️ Quindi le voci vere da fare **non sono cinque, sono quattro**: contarne
       cinque sarebbe stato un elenco di mancanze gonfiato, che è peggio di
       nessun elenco — manda a lavorare dove non serve.
+      ⏱️ **SEGUITO DELL'08/08 — la 12a resta chiusa, cambia DOVE vivono i suoi
+      file.** Tirando la riga «33 righe rientrate su 34» del giro del browser si
+      è visto che **sei dei sette** file che si ri-caricano erano composti da una
+      stringa **dentro la pagina**, cioè dove nessuna prova `node` arriva: il
+      loro giro export → import lo poteva controllare solo il giro del browser,
+      un'ora e mezza. Adesso li scrivono `csvListino`, `csvGare`, `csvRicambi`,
+      `csvSquadre`, `csvRegistroInfortuni` e `csvPersonaleScadenze` nei moduli,
+      e un controllo pretende che **nessuno degli otto futuri** torni nella
+      pagina. Non è una voce nuova della 12a: è la stessa promessa resa
+      **verificabile in millisecondi**.
+      ⛔ E il pezzo che vale più dello spostamento: il foglio del personale
+      scrive `AZIENDA;;;;…` e `parseLavoratoriCsv` salta quella riga **per
+      nome** — un accordo tenuto da una **coincidenza** fra due posti che non si
+      parlano. Cambiando quella parola si sarebbe importato un **lavoratore
+      fantasma**, senza errori e senza prove rosse. Adesso è una prova.
+      ⚠️ Detto onestamente: **nessun difetto raggiungibile** è stato trovato in
+      quei sei file, e i due sospetti sono stati misurati e **scartati** (Conti
+      rifiuta il salvataggio senza `prezzo > 0`; in Flotta una giacenza assente
+      vale zero in tutta la pagina). Il giro intero del banco dà gli stessi 215
+      numeri e le stesse 33 righe su 34 di prima.
       ⚠️ Le cinque che restano NON sono spuntate: la risposta c'è, il lavoro no.
 - [x] **12b. Decisa dal ciclo il 07/08: si dice in chiaro COMUNQUE**, anche il
       giorno in cui l'export ri-caricabile (12a) esisterà. La parola «in
