@@ -24486,6 +24486,36 @@ test("trasformaInMemoria: stesso contratto della strada vera", () => {
   ponti.trasformaInMemoria(orig, (m) => { m.a = 99; return null; });
   eq(orig, { a: 1 }, "quello che arriva alla funzione è una copia");
 });
+test("⛔ nessun campo COMPOSITO torna a essere scritto intero da un aggiornamento", () => {
+  /* Il censimento della misura 5b, reso una regola: erano DODICI punti in cui
+     una lista veniva letta, cambiata in un punto e riscritta intera — e due
+     persone che toccavano voci diverse si cancellavano a vicenda in silenzio.
+     Undici sono passati al percorso puntato o alla transazione; qui si
+     pretende che non ne rinasca uno. */
+  const CAMPI = [["campo", "esiti"], ["scudo", "azioniId"], ["scudo", "esiti"],
+                 ["scudo", "misure"], ["sentinella", "tarature"], ["sentinella", "letture"]];
+  const tornati = [];
+  for (const [app, campo] of CAMPI) {
+    const src = readFileSync(join(HERE, `../../${app}/index.html`), "utf8");
+    /* ⚠️ il RIPIEGO dichiarato non è una violazione: quando una voce ha un
+       punto nel nome `percorsiDi` risponde `null` e si riscrive l'oggetto
+       intero, di proposito. Si guarda quindi il contorno della chiamata: se
+       cita `percorsiDi`, è il ripiego; se no, è una scrittura intera vera. */
+    for (const m of src.matchAll(new RegExp(`db\\.aggiorna\\([^)]*\\b${campo}\\b`, "g"))) {
+      const intorno = src.slice(Math.max(0, m.index - 400), m.index + 200);
+      if (!/percorsiDi\(/.test(intorno)) { tornati.push(`${app}.${campo}`); break; }
+    }
+  }
+  eq(tornati, [], "questi campi compositi sono tornati a essere riscritti interi");
+  eq(CAMPI.length, 6, "e ha guardato tutti e sei i campi del censimento");
+  /* ⛔ `atmosfera` NON è in elenco, e la ragione va scritta invece che
+     lasciata intuire: lì l'utente invia TUTTE le misure di gas insieme, quindi
+     non è la spunta persa — è un conflitto sullo stesso campo (caso 2 della
+     misura), e la risposta a quello non è tecnica. */
+  const perm = readFileSync(join(HERE, "../../scudo/index.html"), "utf8");
+  ok(/db\.aggiorna\("permessi", p\.id, \{ atmosfera/.test(perm),
+    "e `atmosfera` resta scritta intera di proposito: se un giorno cambiasse, questa riga va rivista");
+});
 test("percorsiDi: costruisce i percorsi, e dice NO quando non si può", () => {
   eq(ponti.percorsiDi("esiti", { dpi: true, luci: false }),
      { "esiti.dpi": true, "esiti.luci": false }, "da voci a percorsi");

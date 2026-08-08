@@ -147,9 +147,25 @@ filtro su **due** chiavi (`data`, `scadenza`) mentre l'originale ne usa **tre**
 perché nel file c'è un altro `tar` in scope, cioè l'**omonimo** che questo
 repository ha già censito. Corretto sulle tre chiavi vere.
 
-**Restano DUE siti**, dichiarati: la **correzione** di una lettura già dentro
-(l'unico caso in cui si tocca un elemento in mezzo all'elenco) e il punto di
-Sentinella che scrive `letture` insieme a `valore` dalla scheda.
+E infine la **correzione di una lettura già dentro** — l'unico dei dodici in cui
+si tocca un elemento **in mezzo** all'elenco.
+⛔ Lì un controllo «la serie è cambiata mentre correggevi» **c'era già ed era
+cieco**: confrontava lo scatto locale con la firma presa **dallo stesso
+scatto**, quindi passava sempre, e poi riscriveva l'elenco vecchio buttando via
+la lettura che qualcun altro aveva aggiunto. Adesso il confronto si fa **dentro**
+la transazione, sulle letture vere, e la lettura si ritrova per la sua **firma**
+e non per l'**indice** — che si sposta appena qualcuno aggiunge o toglie
+qualcosa. Quando non c'è più, non si scrive niente e la frase lo dice.
+
+## Dove siamo arrivati (08/08)
+**Undici punti su dodici** non riscrivono più l'elenco intero. Il dodicesimo è
+`atmosfera` di Scudo, e **resta così di proposito**: lì l'utente invia tutte le
+misure di gas insieme, quindi non è la spunta persa — è un conflitto sullo
+stesso campo (caso 2), e la risposta a quello non è tecnica.
+E il censimento è diventato una **regola**: una prova rifà il conto e pretende
+che nessuno di quei campi torni a essere scritto intero — col **ripiego
+dichiarato** (chiave col punto nel nome) riconosciuto come tale, e `atmosfera`
+fuori **con la ragione scritta accanto**, non per dimenticanza.
 `trasforma` ce l'hanno **Sentinella e Scudo**: quando servirà a una terza app va
 aggiunto al suo livello dati — la funzione condivisa c'è già e **non va
 ricopiata**. Una prova lo pretende per nome su tutt'e due.

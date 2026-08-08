@@ -46,11 +46,11 @@ segnaposto («Funzione nav non ancora pronta»). Per aprirlo davvero si monta
 
 ## Le prove
 
-**2.349 prove girano senza rete e senza browser**, con `node` (contate lanciandole, non a memoria — all'08/08: 1908 + 314 + 71 + 32 + 9 + 8 + 7):
+**2.350 prove girano senza rete e senza browser**, con `node` (contate lanciandole, non a memoria — all'08/08: 1909 + 314 + 71 + 32 + 9 + 8 + 7):
 
 > ⚠️ **E quel numero conta SETTE suite, non tutto quello che gira.** Rimisurato
 > l'08/08 sommando le righe «Risultato …» di un giro intero: il giro `node`
-> completo esegue **2.635** asserzioni, perché ne lancia altre **dodici** (sonda
+> completo esegue **2.636** asserzioni, perché ne lancia altre **dodici** (sonda
 > del vuoto 15, numeri nei documenti 26, orologio del vault 3, documenti
 > invecchiati 15, sintassi delle pagine 34, import esistenti 145, nomi liberi 24,
 > classi orfane 2 + 6, funzioni mai usate 4, **limite del giro 9**, suite
@@ -59,7 +59,7 @@ segnaposto («Funzione nav non ancora pronta»). Per aprirlo davvero si monta
 > 2.251» mentre il titolo sopra diceva già 2.310: il controllo sorveglia il
 > **totale**, non la prosa che lo spiega. È la quarta forma di invecchiamento
 > raccolta in `CLAUDE.md`.*
-> **Il numero da citare resta 2.349**, e la ragione è che le altre dieci contano
+> **Il numero da citare resta 2.350**, e la ragione è che le altre dieci contano
 > **file, non prove**: `import esistenti` fa un'asserzione per file e `classi
 > orfane` una per pagina, quindi il loro totale si muove ogni volta che nasce un
 > file — un numero che cresce senza che nessuno abbia scritto una prova è un

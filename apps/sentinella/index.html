@@ -4113,22 +4113,40 @@ textarea.dw-input{
              if (!r.ok) { dire(r.vuoto ? "Scrivi il valore corretto (anche zero è un dato valido)."
                  : r.motivo === "sotto-minimo" ? "Il valore non può essere negativo: uno strumento non misura meno di zero."
                  : esc(AVVISO_DECIMALE)); return; }
-             const nuove = (m.letture || []).slice();
-             if (!nuove[idx] || firmaLettura(nuove[idx]) !== firmaPrima) {
+             /* ⛔ IL CONTROLLO «la serie è cambiata» ESISTEVA GIÀ ED ERA CIECO:
+                confrontava `m.letture` — lo scatto locale — con la firma presa
+                dallo stesso scatto, quindi passava sempre, e poi riscriveva
+                l'elenco VECCHIO buttando via la lettura che qualcun altro
+                aveva aggiunto nel frattempo. Adesso il confronto si fa DENTRO
+                la transazione, sulle letture vere, e la lettura si ritrova per
+                la sua FIRMA e non per l'indice: l'indice si sposta appena
+                qualcuno aggiunge o toglie qualcosa.
+                Misura 5b (08/08): è l'unico dei dodici punti in cui si tocca un
+                elemento in MEZZO all'elenco. */
+             const primo = (m.letture || [])[idx];
+             const corretta = primo ? correggiLettura(primo, r.valore) : null;
+             if (!primo || firmaLettura(primo) !== firmaPrima) {
                chiudiModale();
                toast("La serie è cambiata mentre correggevi: non ho scritto niente.", "err");
                await refresh(); return; }
-             const corretta = correggiLettura(nuove[idx], r.valore);
              if (!corretta) { dire("Questo valore non si può registrare."); return; }
-             if (corretta.valore === nuove[idx].valore) {
+             if (corretta.valore === primo.valore) {
                chiudiModale();
                toast("Il valore è lo stesso: non c'era niente da correggere.");
                return; }
-             nuove[idx] = corretta;
-             const ultima = nuove[nuove.length - 1];
              chiudiModale();
-             await db.aggiorna("monitoraggi", m.id, { letture: nuove,
-               valore: ultima ? ultima.valore : m.valore });
+             let cambiata = false;
+             await db.trasforma("monitoraggi", m.id, (m2) => {
+               const letture = [ ...((m2 && m2.letture) || []) ];
+               const i2 = letture.findIndex((l) => firmaLettura(l) === firmaPrima);
+               if (i2 < 0) { cambiata = true; return null; }   // qualcuno l'ha già toccata
+               letture[i2] = corretta;
+               const ult = letture[letture.length - 1];
+               return { letture, valore: ult ? ult.valore : (m2 && m2.valore) };
+             });
+             if (cambiata) {
+               toast("Quella misura è cambiata mentre correggevi: non ho scritto niente.", "err");
+               await refresh(); return; }
              await refresh();
              toast("Misura corretta: la riga resta segnata come corretta, con il valore di origine.", "success");
            } }]);
