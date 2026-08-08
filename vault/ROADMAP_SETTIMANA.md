@@ -1562,6 +1562,42 @@ numero scritto dove non era stato misurato niente**.*
   📊 **Percorso completo 35 → 34 → 9 → 7, e ogni scalino era il righello**: il
   lookahead senza `\b`, `const[` senza spazio, gli elenchi incompleti, il
   dichiaratore multi-riga. Mai il prodotto.
+- [x] ✅ **Una regex dopo una FRECCIA era letta come una divisione** (`31af9a3`).
+  Terza volta che questa famiglia morde, e stavolta nel **tokenizzatore
+  condiviso**, cioè sotto tutte e 29 le regole di `run-stile`. Dietro a `=>`
+  l'ultimo carattere non bianco è un `>`, che non era fra quelli dopo i quali
+  ci sta un'espressione: `c => /carburante/i.test(c)` veniva preso per una
+  **divisione** e il corpo della regex restava codice. Misurato: **158 `=> /`**
+  nel repository, **460 tratti e 18.420 caratteri** che tornano a essere quello
+  che sono. ⚠️ **Il difetto era LATENTE e va detto com'è**: nessuna delle sette
+  regex dopo una freccia contiene una virgoletta, quindi non aveva ancora
+  nascosto niente — la prova sulla fase dava **10.304 dichiarazioni prima e
+  10.304 dopo**, perché nessuna ancora cadeva dentro quei tratti. Basterà una
+  regex ordinaria come `s => /['"]/.test(s)` perché l'apostrofo apra una
+  stringa che corre fino in fondo al file. ⛔ **Il `+` è stato provato e
+  SCARTATO con la misura**, perché nessuno lo rimetta alla cieca: porta **3
+  tratti**, due dei quali erano artefatti del `>` mancante, e in cambio rompe
+  `i++ / 2` mangiandosi il resto della riga.
+- [x] ✅ **La quarta forma a ZERO, e da misura diventa REGOLA** (`nomi-liberi`
+  16 → **19 prove**). ⛔ **Il percorso vale più del numero d'arrivo: 35 → 34 →
+  9 → 7 → 6 → 0, e nessuno dei sei scalini era il prodotto.** Gli ultimi tre:
+  la regex dopo la freccia (`carburante`, difetto del tokenizzatore, non di
+  questo file); i **flag di una regex** presi per un nome — e non si
+  riconoscono dalla forma, perché `i`, `g`, `s` sono anche nomi veri, ma dalla
+  **posizione**, che la maschera sa dire alla lettera; e lo **IIFE che espone
+  il globale col nome del suo parametro** (`global.dwGrafici = api`) invece che
+  con la parola `window`.
+  ⚠️ **E le due stesure sbagliate restano scritte nel file, perché qui il
+  rischio è la CECITÀ**: quell'elenco alimenta tutte e quattro le domande.
+  Elencando per nome le scritture del globale entravano `_larg` e `_t`, che
+  sono `var self = this`; prendendo ogni `function(x){` per uno IIFE entravano
+  `className` e `textContent`. Derivando invece lo IIFE **più esterno**:
+  **2 nomi in più in tutto** su 325 già legati.
+  ⚠️ **E una riga che avevo scritto era falsa, corretta prima di lasciarla**:
+  «nei moduli ci pensa `import-esistenti`». No — quello verifica il verso
+  **opposto** (che un nome importato esista dall'altra parte). ⏱️ **I moduli
+  restano fuori dalla quarta domanda e nessun altro controllo li copre**:
+  dichiarato nel riepilogo invece che taciuto.
 
 ## Riferimenti
 

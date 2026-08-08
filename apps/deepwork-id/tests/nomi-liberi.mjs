@@ -105,7 +105,10 @@ const GLOBALI = new Set(`Object Array String Number Boolean Math JSON Date RegEx
 
 /* Librerie di terze parti caricate da CDN: non stanno in un file nostro, e il
    loro nome è l'unica cosa che possiamo dichiarare. Corto e con la ragione. */
-const DA_CDN = new Set(["Chart", "THREE"]);
+/* `XLSX` è entrato il 08/08 con la quarta forma: il core lo carica a richiesta
+   da `cdn.jsdelivr.net` (index.html, `_loadScript(…/xlsx@0.18.5/…)`) e poi lo
+   usa come `XLSX.utils.…`, cioè non lo dichiara mai — come `Chart` e `THREE`. */
+const DA_CDN = new Set(["Chart", "THREE", "XLSX"]);
 
 /* ⚠️ NOMI CHE NON SONO FUNZIONI, E SONO EMERSI STRINGENDO LA REGOLA il 07/08.
    Prima non si vedevano perché la riga larga li «legava» tutti; adesso vanno
@@ -131,9 +134,36 @@ function blocchiDi(html) {
   return [...html.matchAll(/<script(?![^>]*\bsrc=)[^>]*>([\s\S]*?)<\/script>/gi)].map((m) => m[1]);
 }
 
+/* ⛔ IL NOME CHE UN FILE DÀ ALL'OGGETTO GLOBALE SI DERIVA, NON SI INDOVINA.
+   Fino al 08/08 qui si cercava alla lettera `window.X =`, e il commento diceva
+   «alcuni file girano in uno IIFE e appendono a `window`» — ma appendono al
+   PARAMETRO, non alla parola. `dw-grafici.js` finisce con
+   `global.dwGrafici = api;` dentro `(function (global) { … })(typeof window
+   !== 'undefined' ? window : globalThis)`: quindi `dwGrafici` risultava libero
+   in Campo, Sentinella e Terra, ed erano tre falsi allarmi.
+   ⚠️ E LE DUE STESURE SBAGLIATE VANNO LASCIATE SCRITTE, perché il rischio qui
+   è la CECITÀ — questo elenco alimenta tutte e quattro le domande, e ogni nome
+   che entra è un nome su cui il controllo smette di guardare:
+   1. elencare per nome le scritture del globale (`window|globalThis|self|
+      global`) fa entrare `_larg` e `_t`, che sono `self._larg = w` con
+      `var self = this` — l'idioma più vecchio del mestiere;
+   2. prendere ogni `function(x){` per uno IIFE fa entrare `className` e
+      `textContent`, cioè le proprietà scritte su un elemento che si chiamava
+      `a` o `n`.
+   Lo IIFE più esterno invece sta a colonna zero e si chiude a colonna zero:
+   quella forma si riconosce senza ambiguità. Misura della stretta giusta:
+   **2 nomi in più in tutto** — `dwGrafici` e `dwFluido` — su 325 già legati. */
+function aliasDelGlobale(codice) {
+  const nomi = new Set(["window", "globalThis"]);
+  const apre = codice.match(/^\(function\s*\(\s*([\w$]+)\s*\)\s*\{/m);
+  const chiude = codice.match(/^\}\s*\)\s*\(([^\n]*)\)\s*;?\s*$/m);
+  if (apre && chiude && /\b(?:window|globalThis)\b/.test(chiude[1])) nomi.add(apre[1]);
+  return nomi;
+}
+
 /* Gli script fratelli che la pagina dichiara, letti dal disco. I nomi che
-   espongono sono quelli che finiscono su `window.`, più le loro dichiarazioni
-   di primo livello (alcuni file girano in uno IIFE e appendono a `window`). */
+   espongono sono quelli che finiscono sull'oggetto globale — comunque quel
+   file lo chiami — più le loro dichiarazioni di primo livello. */
 function nomiDegliScriptFratelli(relPagina, html) {
   const base = dirname(relPagina);
   const nomi = new Set();
@@ -145,7 +175,8 @@ function nomiDegliScriptFratelli(relPagina, html) {
     try { testo = leggi(join(base, src)); } catch { continue; }
     quanti++;
     const codice = soloCodice(testo);
-    for (const x of codice.matchAll(/window\.([\w$]+)\s*=/g)) nomi.add(x[1]);
+    const alias = aliasDelGlobale(codice);
+    for (const x of codice.matchAll(/\b([\w$]+)\.([\w$]+)\s*=[^=]/g)) if (alias.has(x[1])) nomi.add(x[2]);
     for (const x of codice.matchAll(/\b(?:function|class)\s+([\w$]+)/g)) nomi.add(x[1]);
     for (const x of codice.matchAll(/\b(?:const|let|var)\s+([\w$]+)/g)) nomi.add(x[1]);
   }
@@ -533,17 +564,32 @@ export function riferimentiLiberi(relPagina) {
    backtracking e combacia con un PREFISSO del nome — «escHtml» → «escHtm»,
    «toast» → «toas», 3.354 allarmi tronchi di una lettera. Quarto righello
    storto della notte, e il segno era leggibile subito. */
-export function nudiLiberi(relPagina) {
-  const html = leggi(relPagina);
+/* ⚠️ `htmlDato` serve alla controprova, e c'è per non RICOPIARE il corpo.
+   La prima stesura rifaceva questo ciclo dentro il test per poter iniettare il
+   difetto senza scrivere su disco: due copie che oggi sono uguali e domani
+   divergono senza che nessuno lo veda — è la regola di CLAUDE.md, «una copia
+   nasce quasi sempre da una firma troppo stretta». Un argomento, non un gemello. */
+export function nudiLiberi(relPagina, htmlDato = null) {
+  const html = htmlDato === null ? leggi(relPagina) : htmlDato;
   const bl = blocchiDi(html);
   if (!bl.length) return { visti: 0, liberi: new Map() };
-  const codice = soloCodice(bl.join("\n;\n"));
+  const grezzo = bl.join("\n;\n");
+  const codice = soloCodice(grezzo);
+  const masc = mascheraCodice(grezzo);
   const legati = nomiLegati(codice);
   const { nomi: fratelli } = nomiDegliScriptFratelli(relPagina, html);
   const liberi = new Map();
   let visti = 0;
   for (const m of codice.matchAll(/(^|[^\w$.?'"`])([A-Za-z_$][\w$]*)\b(?!\s*[(:])/g)) {
     const n = m[2];
+    /* ⛔ I FLAG DI UNA REGEX NON SONO UN NOME. `/[^\p{L}\s]/gu` lascia dietro
+       di sé un `gu` che sembra un riferimento nudo: il corpo della regex è
+       mascherato, ma le lettere DOPO la barra di chiusura no. Non si
+       riconoscono dalla forma — `i`, `g`, `s` sono anche nomi di variabile
+       veri — ma dalla POSIZIONE, che la maschera sa dire alla lettera: la
+       barra che chiude una regex è l'unico `/` marcato come non-codice. */
+    const j = m.index + m[1].length;
+    if (j > 0 && grezzo[j - 1] === "/" && !masc[j - 1]) continue;
     visti++;
     if (PAROLE.has(n) || GLOBALI.has(n) || DA_CDN.has(n) || SINTASSI_E_NODE.has(n)
         || legati.has(n) || fratelli.has(n)) continue;
@@ -847,6 +893,66 @@ for (const p of PAGINE) {
 console.log(`   [misura] quarta forma (riferimenti nudi): ${visti4} su ${pagine4} pagine, ${male4.length} liberi`);
 for (const x of male4.slice(0, 15)) console.log("      · " + x);
 
+/* ⛔ DA MISURA A REGOLA, l'08/08 — e il percorso vale più del numero d'arrivo:
+   **35 → 34 → 9 → 7 → 6 → 0**, e NESSUNO dei sei scalini era il prodotto.
+   1. il lookahead senza `\b` (prefissi: «escHtml» → «escHtm», 3.354 allarmi);
+   2. `const[` senza spazio — e la prima diagnosi («sono commenti») era falsa;
+   3. undici globali e cinque parole chiave che mancavano all'elenco;
+   4. il dichiaratore su più righe, che si fermava al primo a capo;
+   5. la regex dopo una FRECCIA letta come una divisione (`carburante`), che
+      era un difetto del tokenizzatore condiviso, non di questo file;
+   6. i flag di una regex presi per un nome, e lo IIFE che espone il globale
+      col nome del suo parametro invece che con la parola `window`.
+   Finché accusava codice sano restava una misura, perché una guardia che
+   accusa a vuoto insegna a non guardarla. Adesso che è a zero può pretendere. */
+test("nessun nome RIFERITO NUDO che non esiste da nessuna parte", () => {
+  ok(male4.length === 0,
+    "nomi riferiti (non chiamati, non in un template) e mai dichiarati:\n  "
+    + male4.slice(0, 12).join("\n  ")
+    + "\n  Se uno è legittimo va dichiarato CON LA RAGIONE in GLOBALI o DA_CDN, non tolto in silenzio.");
+});
+
+test("la quarta domanda ha davvero guardato", () => {
+  ok(pagine4 >= 8, `solo ${pagine4} pagine guardate dalla quarta domanda`);
+  /* misurati 69.353 l'08/08: la soglia dice «ha guardato», non fissa un traguardo */
+  ok(visti4 >= 50000, `solo ${visti4} riferimenti nudi guardati: troppo pochi (misurati 69.353 l'08/08)`);
+});
+
+test("la controprova della QUARTA domanda — un nome usato SOLO come riferimento nudo", () => {
+  /* Il soggetto ha esattamente la forma che le prime tre domande non vedono:
+     `FOTO_MAX_BYTE` è importata da Campo e compare UNA volta sola, in
+     `if (ultimo.byte <= FOTO_MAX_BYTE)`. Non è chiamata — non c'è nessuna `(`
+     da vedere — e non sta in nessun `${…}`. Tolta dall'import, la pagina si
+     apre e muore quando qualcuno comprime una foto: errore duro. */
+  const rel = "apps/campo/index.html";
+  const N = "FOTO_MAX_BYTE";
+  const html = leggi(rel);
+  const guasto = html.replace(new RegExp("\\s*" + N + ",", ""), "");
+  ok(guasto !== html, "l'iniezione non ha sostituito niente: la prova non prova niente");
+
+  const testo = blocchiDi(guasto).join("\n;\n");
+  const cod = soloCodice(testo);
+  ok(!nomiLegati(cod).has(N) && !nomiDegliScriptFratelli(rel, guasto).nomi.has(N) && !GLOBALI.has(N),
+    `tolto dall'import, ${N} non dev'essere legato altrove — se no la controprova non distingue`);
+
+  /* la PRIMA domanda resta cieca: non c'è nessuna chiamata da vedere */
+  let chiamato = false;
+  for (const m of cod.matchAll(/(^|[^\w$.?])([A-Za-z_$][\w$]*)\s*\(/g)) if (m[2] === N) chiamato = true;
+  ok(!chiamato, `la prima domanda DOVEVA essere cieca su ${N}: se ora lo chiama qualcuno, riscrivi questo commento`);
+
+  /* la TERZA pure: non sta dentro nessun `${…}` */
+  let inTemplate = false;
+  for (const m of testo.matchAll(/\$\{\s*([A-Za-z_$][\w$]*)\s*(\.|\}|\s|\[|\?|\)|,|\+)/g)) if (m[1] === N) inTemplate = true;
+  ok(!inTemplate, `la terza domanda DOVEVA essere cieca su ${N}`);
+
+  /* la QUARTA lo vede — e a rispondere è la FUNZIONE VERA, non una sua copia
+     scritta qui dentro: è l'unico modo perché questa controprova resti legata
+     al codice che sorveglia. */
+  const r = nudiLiberi(rel, guasto);
+  ok(r.liberi.has(N), `la quarta domanda non vede ${N} riferito nudo: non sa fallire`);
+  ok(nudiLiberi(rel).liberi.size === 0, "e sulla pagina sana non accusa niente");
+});
+
 test("la terza domanda ha davvero guardato", () => {
   ok(pagine3 >= 8, `solo ${pagine3} pagine guardate dalla terza domanda`);
   ok(visti3 >= 3000, `solo ${visti3} riferimenti guardati: troppo pochi`);
@@ -891,5 +997,13 @@ test("la controprova della TERZA domanda — un nome usato SOLO dentro un `${…
 console.log(`\nRisultato nomi liberi: ${passed} passati, ${failed} falliti`
   + `  ·  ${chiamateTot} chiamate su ${pagineViste} pagine, ${chiamateMod} su ${moduliVisti} moduli`
   + `  ·  seconda domanda (lo scope): ${chiamateScope} chiamate su ${pagineScope} pagine e ${chiamateScopeMod} su ${moduliScope} moduli, ${maleScope.length + maleScopeMod.length} fuori scope`
-  + `  ·  terza domanda (i riferimenti): ${visti3} usi di ${"$"}{…} su ${pagine3} pagine e ${visti3m} su ${moduli3} moduli, ${male3.length + male3m.length} liberi`);
+  + `  ·  terza domanda (i riferimenti): ${visti3} usi di ${"$"}{…} su ${pagine3} pagine e ${visti3m} su ${moduli3} moduli, ${male3.length + male3m.length} liberi`
+  /* ⚠️ IL PERIMETRO VA DETTO, se no il denominatore si legge più largo di
+     quello che è. La quarta domanda guarda le PAGINE e **non i moduli**, e
+     quel buco non lo copre nessun altro: la prima riga che avevo scritto qui
+     diceva «nei moduli ci pensa import-esistenti», ed era **falsa** —
+     `import-esistenti` verifica il verso opposto, che un nome importato esista
+     dall'altra parte, non che un nome riferito sia stato importato. Verificato
+     leggendo la sua intestazione prima di lasciarla scritta. */
+  + `  ·  quarta domanda (i riferimenti nudi): ${visti4} su ${pagine4} pagine, ${male4.length} liberi (i MODULI restano fuori: nessun altro controllo li copre)`);
 process.exit(failed > 0 ? 1 : 0);
