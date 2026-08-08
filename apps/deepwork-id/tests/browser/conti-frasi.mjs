@@ -24,6 +24,13 @@
    4. import gare     → «1 aggiunte, 1 già presenti (saltate), 1 ripetute»;
    5. export listino  → «Esportati 1 prodotti (CSV)» — l'unico dei SETTE export
       dell'app che non passava da `plur`.
+      ⚠️ E l'asserzione che lo sorveglia è stata **ristretta** l'08/08: chiedeva
+      «Esportati 1 prodotto», cioè il nome giusto e il PARTICIPIO ancora al
+      plurale. La pagina intanto ha imparato anche quello (`plurale(...)`,
+      07/08) e scriveva la forma corretta — «Esportato» — che questo banco
+      contava come un KO. Un banco che pinna il testo di ieri ostacola la
+      correzione di domani: adesso pretende il singolare **e** che il plurale
+      non compaia.
 
    Nessuno di questi cinque si vede da `run-kpi.mjs`: le suite `node` chiamano
    il modulo, e queste frasi le compone la PAGINA. E nessuno si vede nemmeno
@@ -418,7 +425,16 @@ if (await vai("lis")) {
     await pg.waitForTimeout(700);
     const t = await pg.evaluate(() => ((document.getElementById("lis-esito") || {}).innerText || "").replace(/\s+/g, " ").trim());
     segnala("export:listino", { t, up: false, cls: "@esito" });
-    dice(/Esportati 1 prodotto \(CSV\)/.test(t), "export listino: «Esportati 1 prodotto (CSV)»", t);
+    /* ⛔ L'ASSERZIONE È INVECCHIATA PERCHÉ IL PRODOTTO È MIGLIORATO, e allora
+       si corregge rendendola PIÙ GIUSTA, non più permissiva. Pretendeva
+       «EsportatI 1 prodotto», che era il testo del 06/08; il 07/08 è arrivato
+       `plurale(...)` sul PARTICIPIO e la pagina scrive «EsportatO 1 prodotto»,
+       che in italiano è la forma giusta — con «1» cambiano l'articolo, la
+       preposizione **e il verbo**.
+       Quindi non si allarga a `/Esportat[oi]/`: si pretende il participio
+       SINGOLARE, e in più che il plurale non compaia. */
+    dice(/Esportato 1 prodotto \(CSV\)/.test(t) && !/Esportati/.test(t),
+      "export listino con UN prodotto: «Esportato 1 prodotto (CSV)», participio al singolare", t);
   }
 }
 
