@@ -24425,6 +24425,10 @@ await test("⛔ il giro vero: `trasforma` esiste sulle DUE strade e la dimostraz
   const db = await sentinella.sentinellaData();
   eq(db.mode, "demo", "senza login il livello dati è quello della dimostrazione");
   ok(typeof db.trasforma === "function", "la dimostrazione espone `trasforma`");
+  /* e la seconda app che ne ha bisogno: se domani se ne aggiunge una terza,
+     questa riga dice subito che le manca invece di lasciarlo scoprire a mano */
+  const dbS = await scudo.scudoData();
+  ok(typeof dbS.trasforma === "function", "anche la dimostrazione di Scudo espone `trasforma`");
   const { id } = await db.aggiungi("monitoraggi", { nome: "P1", letture: [{ data: "2026-01-01", valore: 1 }] });
   const riga = async () => (await db.monitoraggi()).find((m) => m.id === id);
   await db.trasforma("monitoraggi", id, (m) => ({ letture: [...m.letture, { data: "2026-01-02", valore: 2 }] }));

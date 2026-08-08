@@ -4554,9 +4554,13 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
     const k = e.target.getAttribute && e.target.getAttribute("data-misura");
     if (!k || !permAperto) return;
     const p = PERM.find(x => x.id === permAperto); if (!p) return;
-    const messe = Array.isArray(p.misure) ? p.misure : [];
-    const on = messe.includes(k);
-    await db.aggiorna("permessi", p.id, { misure: on ? messe.filter(x => x !== k) : [...messe, k] });
+    /* ⛔ la spunta si decide sulle misure VERE del momento: due persone che
+       spuntano misure diverse dello stesso permesso si cancellavano a vicenda.
+       Anche il verso della spunta (mettere o togliere) si rilegge lì dentro. */
+    await db.trasforma("permessi", p.id, (p2) => {
+      const messe = Array.isArray(p2.misure) ? p2.misure : [];
+      return { misure: messe.includes(k) ? messe.filter((x) => x !== k) : [...messe, k] };
+    });
     await refresh();
   });
 
@@ -5027,11 +5031,16 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
 
   async function collegaAzioneAllAnalisi(idEvento, idAzione) {
     const an = analisiDiEvento(ANA, idEvento);
-    if (!an || !an.id || !idAzione || !db.aggiorna) return;
-    const ids = Array.isArray(an.azioniId) ? an.azioniId.slice() : [];
-    if (ids.includes(idAzione)) return;
-    ids.push(idAzione);
-    await db.aggiorna("analisi", an.id, { azioniId: ids });
+    if (!an || !an.id || !idAzione || !db.trasforma) return;   // la guardia guarda ciò che si usa
+    /* ⛔ si rilegge DENTRO la transazione: due persone che collegano azioni
+       diverse alla stessa analisi si cancellavano a vicenda (misura 5b). Il
+       controllo «c'è già» va rifatto lì dentro, se no si torna a decidere su
+       una lettura vecchia. */
+    await db.trasforma("analisi", an.id, (a2) => {
+      const ids = Array.isArray(a2.azioniId) ? a2.azioniId.slice() : [];
+      if (ids.includes(idAzione)) return null;          // già collegata: non si scrive
+      return { azioniId: [...ids, idAzione] };
+    });
   }
 
   // "+ Azione" da un evento del registro: porta alla pagina Azioni con

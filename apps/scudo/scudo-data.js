@@ -649,7 +649,7 @@ export const TIPI_DOCUMENTO = [
 // nome locale, quindi le trenta chiamate interne a `statoScadenza` di questo file
 // restavano scoperte — dieci prove rosse subito, che è il comportamento giusto
 // della suite. Serve importare e poi ri-esportare il nome.
-import { statoScadenzaHSE, applicaPercorsi, traduciCancellazioni } from "../../shared/dw-ponti.js";
+import { statoScadenzaHSE, applicaPercorsi, traduciCancellazioni, trasformaAtomico, trasformaInMemoria } from "../../shared/dw-ponti.js";
 /* le pagine lo chiamano col nome di casa: un alias non è una seconda
    implementazione (regola del `shared/`) */
 export { percorsiDi, DW_CANCELLA } from "../../shared/dw-ponti.js";
@@ -3517,7 +3517,7 @@ export async function scudoData() {
     const { DeepworkID } = await import("../../shared/deepwork-id-client/index.js");
     const id = await DeepworkID.init({ appId: "scudo" });
     if (id.user && id.authState() === "member") {
-      const { getDocs, addDoc, deleteDoc, doc, updateDoc, deleteField } =
+      const { getDocs, addDoc, deleteDoc, doc, updateDoc, deleteField, runTransaction } =
         await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
       mode = "live";
       const read = async (name) =>
@@ -3557,6 +3557,10 @@ export async function scudoData() {
         aggiungi: (name, data) => addDoc(id.orgCollection(name), data),
         logout: () => id.logout(),
         aggiorna: (name, docId, data) => updateDoc(doc(id.orgCollection(name), docId), traduciCancellazioni(data, deleteField)),
+        /* per gli ELENCHI: rileggi-e-riscrivi in modo ATOMICO — la stessa
+           funzione condivisa che usa Sentinella, non una seconda copia */
+        trasforma: (name, docId, cambia) => trasformaAtomico(
+          { rif: doc(id.orgCollection(name), docId), runTransaction, deleteField }, cambia),
         rimuovi: (name, docId) => deleteDoc(doc(id.orgCollection(name), docId)),
       };
       // ── PONTE P3 CON CAMPO — SOLA LETTURA ─────────────────────────────
@@ -3616,6 +3620,9 @@ export async function scudoData() {
       permessi:    async () => mem.permessi || (mem.permessi = []),
       logout: async () => {},
       aggiungi: async (name, data) => { const id = "m" + Math.random().toString(36).slice(2, 8); (mem[name] = mem[name] || []).push({ id, ...data }); return { id }; },
+      /* stesso CONTRATTO della strada vera, transazione a parte */
+      trasforma: async (name, docId, cambia) =>
+        trasformaInMemoria((mem[name] || (mem[name] = [])).find(v => v.id === docId), cambia),
       aggiorna: async (name, docId, data) => {
         const x = (mem[name] || (mem[name] = [])).find(v => v.id === docId);
         if (x) { applicaPercorsi(x, data); return; }

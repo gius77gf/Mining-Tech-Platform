@@ -128,10 +128,18 @@ mostra.
   transazione le tre letture ci sono **tutte**; con le stesse due scritture
   lette prima, come faceva la pagina, resta `[1,3]` — **una si perde**.
 
-**Restano cinque punti**: Sentinella `letture` (la correzione di una lettura già
-dentro) e `tarature` ×3, Scudo `azioniId` e `misure`. Vogliono lo stesso
-`trasforma`, che oggi ce l'ha **solo Sentinella**: quando servirà a Scudo va
-aggiunto al suo livello dati — la funzione condivisa c'è già, e non va ricopiata.
+E poi (08/08, stessa giornata) i **due di Scudo**: `azioniId` — due persone che
+collegano azioni diverse alla stessa analisi — e `misure` del permesso di
+lavoro, dove si rilegge **anche il verso della spunta** (mettere o togliere),
+perché deciderlo su una lettura vecchia è lo stesso errore un passo più in là.
+⚠️ E il `collegaAzioneAllAnalisi` aveva una guardia `if (!db.aggiorna) return`
+rimasta a guardare **la funzione che non usa più**: allineata.
+
+**Restano tre punti**: Sentinella `letture` (la **correzione** di una lettura
+già dentro) e `tarature` ×3 → in tutto tre siti. Vogliono lo stesso
+`trasforma`, che adesso ce l'hanno **Sentinella e Scudo**: quando servirà a una
+terza app va aggiunto al suo livello dati — la funzione condivisa c'è già, e
+**non va ricopiata**. Una prova lo pretende per nome su tutt'e due.
 
 ### E solo dopo, la coda offline
 Mettere in coda scritture che si cancellano a vicenda vorrebbe dire
