@@ -828,6 +828,93 @@ test("la scansione sa fallire: i due difetti rimessi le fanno perdere la fase", 
     "e una divisione vera resta una divisione");
 });
 
+/* ══ I PUNTI DI DECISIONE DELLO STRUMENTO, INTERROGATI UNO PER UNO ══
+   ────────────────────────────────────────────────────────────────────────
+   Nata l'08/08, e la ragione è nel modo in cui era stato trovato il difetto
+   della freccia: **per caso**, inseguendo un falso allarme di un'altra suite.
+   Un buco trovato per caso vuol dire che gli altri, se ci sono, aspettano il
+   prossimo caso — e nel frattempo ogni regola costruita sopra risponde
+   «nessuna violazione» senza aver guardato.
+   Le prove qui sopra verificano la scansione sul CODICE VERO, che è la misura
+   che conta; questa la interroga sui suoi **punti di decisione**, con la
+   risposta giusta scritta accanto. Le due cose sono diverse: il codice vero
+   contiene solo le forme che qualcuno ha già scritto, e un buco si vede il
+   giorno in cui qualcuno ne scrive una nuova.
+   Esito onesto, che non va gonfiato: **nessun buco nuovo**. I 34 punti sono
+   tutti giusti. Il valore di questa prova non è quello che ha trovato oggi —
+   è che da domani nessuno dei 34 si può riaprire in silenzio.
+   ⚠️ E sa fallire: girata sul tokenizzatore di prima della correzione della
+   freccia dà **33 su 34**, e il punto che casca è esattamente quello. */
+const PUNTI_DI_DECISIONE = [
+  /* [nome, sorgente, l'ago da guardare, atteso: true = CODICE] */
+  ["divisione dopo un nome", "const q = larghezza / 2;", "2;", true],
+  ["divisione dopo una parentesi chiusa", "const q = (a + b) / 2;", "2;", true],
+  ["divisione dopo una quadra chiusa", "const q = v[0] / 2;", "2;", true],
+  ["divisione dopo un numero", "const q = 10 / 2;", "2;", true],
+  ["regex dopo una freccia", "const f = s => /xQ/.test(s);", "xQ", false],
+  ["regex dopo return", "function f(s){ return /xQ/.test(s); }", "xQ", false],
+  ["regex dopo una virgola", "f(a, /xQ/)", "xQ", false],
+  ["regex dopo una parentesi aperta", "f(/xQ/)", "xQ", false],
+  ["regex dopo un uguale", "const r = /xQ/;", "xQ", false],
+  ["regex dopo una doppia e commerciale", "a && /xQ/.test(b)", "xQ", false],
+  ["regex dopo due punti", "({ r: /xQ/ })", "xQ", false],
+  ["regex dopo punto e virgola", "a = 1; /xQ/.test(b)", "xQ", false],
+  ["regex dopo graffa aperta", "{ /xQ/.test(b); }", "xQ", false],
+  ["regex dopo un punto interrogativo", "c ? /xQ/ : 0", "xQ", false],
+  ["regex dopo un punto esclamativo", "!/xQ/.test(b)", "xQ", false],
+  ["regex dopo una barra verticale", "a || /xQ/.test(b)", "xQ", false],
+  ["apostrofo dentro una regex", "const r = /['\"]/; const dopo = 1;", "dopo", true],
+  ["barra dentro una classe di caratteri", "const r = /[/]/; const dopo = 1;", "dopo", true],
+  ["barra sfuggita dentro una regex", "const r = /a\\/b/; const dopo = 1;", "dopo", true],
+  ["apostrofo dentro una stringa doppia", "const s = \"l'ora\"; const dopo = 1;", "dopo", true],
+  ["virgoletta sfuggita", "const s = 'l\\'ora'; const dopo = 1;", "dopo", true],
+  ["il contenuto di una stringa non e' codice", "const s = \"xQ\";", "xQ", false],
+  ["dentro una interpolazione e' CODICE", "const s = `a${xQ}b`;", "xQ", true],
+  ["la parte letterale di un template non e' codice", "const s = `xQ${a}`;", "xQ", false],
+  ["template annidato", "const s = `a${b ? `c${xQ}` : ''}d`; const dopo = 1;", "dopo", true],
+  ["apostrofo nella parte letterale di un template", "const s = `l'ora`; const dopo = 1;", "dopo", true],
+  ["commento di riga", "// xQ\nconst dopo = 1;", "xQ", false],
+  ["commento di blocco", "/* xQ */ const dopo = 1;", "xQ", false],
+  ["un commento non apre nessuna stringa", "// l'ora\nconst dopo = 1;", "dopo", true],
+  ["due barre dentro una stringa non sono un commento", "const s = \"http://x\"; const dopo = 1;", "dopo", true],
+  ["due barre dentro una regex non sono un commento", "const r = /a\\/\\/b/; const dopo = 1;", "dopo", true],
+  ["i delimitatori di blocco dentro una stringa", "const s = \"/*\"; const dopo = 1;", "dopo", true],
+  ["concatenamento opzionale", "const v = a?.b; const xQ = 1;", "xQ", true],
+  ["separatore di migliaia", "const n = 1_000; const xQ = 1;", "xQ", true],
+];
+function puntiSbagliati(masc) {
+  const male = [];
+  for (const [nome, src, ago, atteso] of PUNTI_DI_DECISIONE) {
+    const i = src.indexOf(ago);
+    /* l'ago che non c'è è la prova che non prova niente: si dichiara, non si salta */
+    if (i < 0) { male.push(`${nome}: l'ago «${ago}» non e' nel modello`); continue; }
+    const vero = !!masc(src)[i];
+    if (vero !== atteso) male.push(`${nome}: «${ago}» risulta ${vero ? "CODICE" : "DENTRO"}, doveva essere ${atteso ? "CODICE" : "DENTRO"}`);
+  }
+  return male;
+}
+test(`lo strumento risponde giusto su tutti i suoi ${PUNTI_DI_DECISIONE.length} punti di decisione`, () => {
+  const male = puntiSbagliati(mascheraCodice);
+  ok(male.length === 0, `${male.length} punti sbagliati:\n  ` + male.join("\n  "));
+});
+test("e la sonda sa fallire: uno slash giudicato dall'ultimo carattere perde le regex", () => {
+  /* Il difetto vero, rimesso: la versione che decide senza guardare la parola
+     intera né la freccia. Se la sonda passasse anche con questo, non starebbe
+     misurando niente. */
+  const ingenua = (t) => {
+    const m = new Uint8Array(t.length).fill(1);
+    let str = null;
+    for (let i = 0; i < t.length; i++) {
+      const c = t[i];
+      if (str) { m[i] = 0; if (c === "\\") { if (i + 1 < t.length) m[++i] = 0; continue; } if (c === str) str = null; continue; }
+      if (c === "'" || c === '"' || c === "`") { str = c; m[i] = 0; }
+    }
+    return m;
+  };
+  const male = puntiSbagliati(ingenua);
+  ok(male.length >= 8, `la sonda ha visto solo ${male.length} punti sbagliati con lo strumento rotto: non sa fallire`);
+});
+
 /* LA CONTROPROVA A TAPPETO: il difetto rimesso DOVE OGNI STRINGA SI CHIUDE.
    ────────────────────────────────────────────────────────────────────────
    Quella qui sopra inietta in tre superfici a un punto ciascuna, e nessuno di

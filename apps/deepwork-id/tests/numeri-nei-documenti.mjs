@@ -142,9 +142,22 @@ for (const [rel, regola] of COPERTURA) {
   });
 }
 
+/* ⛔ E IL TERZO DOCUMENTO È ENTRATO L'08/08, DOPO AVERLO TROVATO SBAGLIATO.
+   `DECISIONI_WEEKEND.md` dichiarava «**19** banchi che aprono davvero le
+   pagine in un browser»: erano **153**, cioè il numero era vecchio di un
+   ordine di grandezza. Nessuno se n'era accorto perché questo elenco ne
+   guardava due su tre — e il documento fuori elenco è proprio quello che il
+   fondatore apre per **decidere**.
+   La lezione è la stessa della riga in fondo alla roadmap: un numero è
+   sorvegliato solo dove il controllo ARRIVA, e l'elenco di dove arriva va
+   guardato quanto il numero. ⚠️ E il conto giusto si chiede a questo file, non
+   a un `grep` scritto sul momento: contandole a mano con una regex mia ne
+   avevo trovate **143**, dieci in meno, perché la mia riconosceva una forma
+   sola delle voci di `BANCHI`. Il righello più debole era di nuovo il mio. */
 const BROWSER = [
   ["docs/DEVELOPMENT.md", /\*\*(\d+) esecuzioni che aprono davvero le pagine\*\*/],
   ["docs/STATO_PRODOTTO.md", /\*\*(\d+) esecuzioni\*\* che aprono davvero le\s+pagine/],
+  ["docs/DECISIONI_WEEKEND.md", /\*\*(\d+)\s+esecuzioni\*\* che aprono davvero le pagine in un browser/],
 ];
 for (const [rel, regola] of BROWSER) {
   const testo = readFileSync(join(RADICE, rel), "utf8");
