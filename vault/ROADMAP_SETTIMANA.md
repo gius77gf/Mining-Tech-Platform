@@ -1751,6 +1751,18 @@ numero scritto dove non era stato misurato niente**.*
   anche nel documento, perché una riverifica fatta male manda a lavorare su
   mancanze immaginarie.
 
+- [x] ✅ **Terra è il secondo documento a zero — arretrato 71 → 46 in due
+  unità** (`2d292ad`). Terra aveva il caso più insidioso: 13 commit e **cinque
+  che mordono**, il numero più alto delle sei. Quei cinque hanno costruito sei
+  funzioni e un bottone «Scarica rilievi (CSV)», e **nessuna** è una delle
+  quattro cose dichiarate assenti. **Zero occorrenze su 11 termini in 815 righe
+  aggiunte**; sui file interi restano quattro parole, tutte estranee (`fill` è
+  l'attributo SVG, `taglio` è la classe CSS `dwg-taglio`, `riempimento` un
+  commento sulla barra, `floating` la frase «floating-point number»).
+  📊 **Arretrato 71 → 59 → 46, «mordono» 16 → 10, documenti a zero 0 → 2 su 6.**
+  ⚠️ E la lezione dei **confini di parola** pagata su Sentinella è servita
+  subito: senza, `pit` e `cut` sarebbero entrati in decine di parole.
+
 ## Riferimenti
 
 - Ultimo checkpoint **per data vera**:
