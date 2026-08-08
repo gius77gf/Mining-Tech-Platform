@@ -68,20 +68,25 @@ Il racconto è in `docs/IL_CONFORME_CHE_NESSUNO_HA_MISURATO.md`.
   impediscono a un'app di riscriversene una propria.
 
 **Quanto è controllato, oggi** *(ricontato il 02/08 lanciando le suite, non a
-memoria)*: **2.326** prove automatiche che girano senza rete — **1892** sulle
+memoria)*: **2.333** prove automatiche che girano senza rete — **1892** sulle
 funzioni delle app, **314** sulle regole di stile, 71 sugli aiuti condivisi, 32
-sulla nuvola di punti, 9 sul manifesto, 8 sulla demo — più **125** che girano
-con l'emulatore Firestore (**75** sulle **regole di sicurezza**, 19 sull'SDK, 21
-sulle funzioni, 10 sul primo avvio) e **153 esecuzioni** che aprono davvero le
-pagine in un browser.
+sulla nuvola di punti, 9 sul manifesto, 8 sulla demo, 7 sulle rivendicazioni del
+primo avvio — più **123** che girano con l'emulatore Firestore (**75** sulle
+**regole di sicurezza**, 19 sull'SDK, 21 sulle funzioni, 8 sul primo avvio) e
+**153 esecuzioni** che aprono davvero le pagine in un browser.
+⚠️ *Il primo avvio è tornato da 10 a **8** l'08/08, e non è un passo indietro:
+le due prove aggiunte quel giorno chiedevano lo* stato finale *delle
+rivendicazioni, che dove le Cloud Functions girano è di* `rebuildClaims` *e non
+dello script. Sono diventate le* **7** *senza emulatore qui sopra, che guardano
+il soggetto giusto — ciò che* `bootstrapOwner` **scrive** *— e girano ovunque.*
 ⚠️ *Dei quattro addendi dell'emulatore, l'08/08 ne sono stati **rimisurati
-tre** — 68, 19 e 8 — lanciandoli davvero. Il quarto (**21** sulle funzioni)
+tre** — 75, 19 e 8 — lanciandoli davvero. Il quarto (**21** sulle funzioni)
 resta **non verificato**: vuole l'emulatore delle funzioni, che in questo
 contenitore non parte perché chiede la rete e la politica la nega. Il numero
 era 58 e non 68 perché nessuno l'aveva più lanciato in casa: la suite delle
 regole si lancia con* `firebase emulators:exec --only firestore --project
 demo-deepwork "cd tests && node run.mjs"`.
-*(⚠️ Il **2.326** conta sei suite: il giro completo ne esegue **2.611**, ma le
+*(⚠️ Il **2.333** conta sette suite: il giro completo ne esegue **2.619**, ma le
 altre dieci contano **file** invece che casi — crescono da sole quando nasce un
 file, quindi non sono il numero da citare. Rimisurato l'08/08; questa riga era
 ferma a 2.251 e 2.474 mentre il titolo sopra era già stato aggiornato, perché

@@ -1576,13 +1576,30 @@ Perché serva davvero e non produca elenchi generici, cinque vincoli:
         --project demo-deepwork "cd tests && node run.mjs"
 
   **75 prove, tutte verdi**, in pochi minuti. E con `--only firestore,auth`
-  girano anche `run-sdk.mjs` (**19**) e `run-bootstrap.mjs` (**10**).
+  girano anche `run-sdk.mjs` (**19**) e `run-bootstrap.mjs` (**8**).
   ⚠️ **Quello che NON gira qui è l'emulatore delle FUNZIONI**, e con lui
   `run-fns.mjs` (21): chiede la rete e la politica del contenitore la nega
   («Unable to parse JSON … "denied by …"»). È per questo che `npm test` intero
   sotto l'emulatore fallisce — non per un difetto nostro. Quei 21 restano
   verificabili **solo in CI**, e va detto invece che lasciato credere che
   l'emulatore «non si possa usare».
+  ⛔ **E QUELLA RIGA NON È UN DETTAGLIO DI CONTABILITÀ: È IL MOTIVO PER CUI UNA
+  PROVA PUÒ ESSERE VERDE IN CASA E ROSSA IN CI.** Misurato l'08/08 e costato un
+  commit rosso in cima al branch. Avevo aggiunto a `run-bootstrap.mjs` due prove
+  sul primo avvio: verdi qui, cadute in CI. La causa non era la prova né il
+  codice — era che **le due esecuzioni non hanno gli stessi scrittori**. Le
+  rivendicazioni le scrivono in due, `bootstrap-owner.mjs` e il trigger
+  `onMemberWrite` → `rebuildClaims`; quest'ultimo vive nell'emulatore delle
+  funzioni, che **qui non parte**. Cioè in casa avevo misurato un mondo con un
+  solo scrittore, e avevo scritto un'asserzione sullo **stato finale** che in
+  quel mondo era dello script e nell'altro no.
+  La regola pratica: **sotto l'emulatore, prima di scrivere un'asserzione su uno
+  stato, si chiede chi altro lo scrive in CI** — e se la risposta è «un trigger»,
+  quell'asserzione lì non ci va. Il contratto di una funzione pura si prova con
+  dei finti e senza emulatore, e allora la risposta è la stessa nei due posti
+  (`tests/bootstrap-rivendicazioni.mjs`). È la variante dell'ambiente che misura
+  sé stesso invece del prodotto, con l'aggravante che il verde di casa **sembra**
+  la stessa suite che gira in CI: stesso nome, stesso file, due prove diverse.
   ⚠️ La lezione oltre al caso: **un comando scritto in un file di istruzioni è
   una promessa, e le promesse invecchiano.** Quel `58` sulle regole di
   sicurezza stava in tre documenti e valeva **68** perché nessuno lo lanciava
