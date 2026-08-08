@@ -49,12 +49,17 @@ segnaposto («Funzione nav non ancora pronta»). Per aprirlo davvero si monta
 **2.355 prove girano senza rete e senza browser**, con `node` (contate lanciandole, non a memoria — all'08/08: 1912 + 316 + 71 + 32 + 9 + 8 + 7):
 
 > ⚠️ **E quel numero conta SETTE suite, non tutto quello che gira.** Rimisurato
-> l'08/08 sommando le righe «Risultato …» di un giro intero: il giro `node`
-> completo esegue **2.636** asserzioni, perché ne lancia altre **dodici** (sonda
-> del vuoto 15, numeri nei documenti 26, orologio del vault 3, documenti
-> invecchiati 15, sintassi delle pagine 34, import esistenti 145, nomi liberi 24,
-> classi orfane 2 + 6, funzioni mai usate 4, **limite del giro 9**, suite
-> collegate 3 = **286**).
+> l'08/08 **a sera** sommando le righe «Risultato …» di un giro intero: il giro
+> `node` completo esegue **2.646** asserzioni, perché ne lancia altre **dodici**
+> (sonda del vuoto 15, limite del giro 9, numeri nei documenti 26, orologio del
+> vault 3, documenti invecchiati 15, sintassi delle pagine 34, import esistenti
+> 150, nomi liberi 24, classi orfane 2 + 6, funzioni mai usate 4, suite collegate
+> 3 = **291**).
+> ⚠️ *E l'elenco NON conta le due controprove nate l'08/08 —* `iniezioni fresche`
+> *e* `server orfani` *— che stampano un verdetto invece di un totale: girano nel
+> giro (che è passato da 28 a **30** comandi) ma non hanno una riga «Risultato»
+> da sommare. È l'etichetta più larga del suo numero, presa mentre la si
+> scriveva: qui il numero è stretto e la frase lo dichiara.*
 > ⚠️ *Questa nota era ferma al 07/08 e diceva 2.474 e «il numero da citare resta
 > 2.251» mentre il titolo sopra diceva già 2.310: il controllo sorveglia il
 > **totale**, non la prosa che lo spiega. È la quarta forma di invecchiamento
