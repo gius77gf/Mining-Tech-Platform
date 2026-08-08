@@ -288,6 +288,16 @@ const BANCHI = [
      diceva 42 — tanto che riletto da Genesi stessa il progetto tornava a 25. */
   ['i documenti che escono da Genesi', 'genesi-documenti-che-escono.mjs', []],
   ['documenti da Genesi · controprova', 'genesi-documenti-che-escono.mjs', ['--controprova'], true],
+  /* ⛔ AGGIUNTO L'08/08. Flotta ha NOVE punti d'uscita ed era l'app grossa
+     senza nessun banco che ne aprisse uno: `flotta-disegni` guarda i pixel,
+     `flotta-frasi-da-uno` il singolare, e i file non li apriva nessuno. Ne ha
+     misurati due, e tutt'e due dicevano una parola TRANQUILLA: la situazione
+     scriveva «pianificata» su ogni ordine di lavoro — anche su quello fermo
+     ad aspettare un ricambio, che a schermo è ROSSO — e il registro dei giri
+     dava «tutto a posto» a un controllo che dichiara anomalie senza portarne
+     l'elenco. */
+  ['i documenti che escono da Flotta', 'flotta-documenti-che-escono.mjs', []],
+  ['documenti da Flotta · controprova', 'flotta-documenti-che-escono.mjs', ['--controprova'], true],
   ['nota di credito', 'nota-credito.mjs', []],
   ['nota di credito · controprova', 'nota-credito.mjs', ['--controprova'], true],
   /* ⛔ AGGIUNTO IL 03/08. I FOGLI di Conti — fattura, DDT — li compone la

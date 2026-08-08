@@ -1442,6 +1442,86 @@ export function controlliDelMezzo(controlli, nome) {
    ⚠️ E un giro che non porta le sue `voci` ma dichiara `anomalie` non
    diventa «tutto a posto»: quelle anomalie si contano lo stesso, anche se
    non si sanno chiamare per nome. Pura e testabile. */
+/* L'ESITO DI **UN** GIRO MACCHINA, in un posto solo.
+   La regola giusta stava già qui sotto, dentro `giriDelGiorno` — ma quella
+   risponde a una domanda **per mezzo e per giorno**, e al file, alla riga
+   della lista e al libretto serve **per record**. È la firma troppo stretta
+   da cui nasce la copia: la pagina se n'era scritte TRE versioni, e nessuna
+   delle tre uguale alle altre.
+   · l'export dei giri decideva dalle sole `voci`, quindi un giro che dichiara
+     `anomalie: 2` senza portare l'elenco usciva «tutto a posto»;
+   · `etichettaControllo` decideva dal solo contatore `anomalie`;
+   · il CSV del libretto aveva già la versione a tre rami, quella giusta —
+     una correzione fatta a un export e non all'altro.
+   ⚠️ ONESTÀ SULLA PORTATA, misurata su dieci casi prima di scrivere questa
+   riga: fra le tre versioni ci sono **sei** disaccordi, ma cinque sono di
+   VOCABOLARIO («con anomalie» contro «2 da vedere»), tutt'e due veri. La
+   bugia vera è una sola — il giro muto che esce «tutto a posto» — e **oggi
+   non è producibile dall'app**: l'unico punto che crea un controllo scrive
+   sempre `voci`, e `anomalie` esce dallo stesso elenco. Resta difesa perché
+   vive per i record vecchi, per un import e per una scrittura parziale, e
+   perché tre copie di una regola divergono da sole appena qualcuno ne tocca
+   una.
+   ⚠️ Le voci si contano per CHIAVE DISTINTA, come in `giriDelGiorno`. Dentro
+   un giro solo le chiavi sono già uniche (una per voce di checklist), quindi
+   sui dati veri il conto non cambia: la distinzione serve a chi somma più
+   giri, e sta qui perché la regola sia una. */
+export function statoGiro(controllo) {
+  const etichettaDi = (n) => (n === 0 ? "tutto a posto" : n === 1 ? "1 da vedere" : n + " da vedere");
+  /* ⛔ NESSUN GIRO NON È UN GIRO ANDATO BENE. L'ha preteso `sonda-vuoto`, e
+     al primo tentativo avevo tracciato il confine nel posto sbagliato: dicevo
+     «se il record ESISTE, che sia stato salvato dimostra che qualcuno l'ha
+     fatto», e quindi `{}` restava «tutto a posto». Ma quella è una deduzione
+     sulla PROVENIENZA del dato, non una cosa che il dato dica: un `{}` non
+     porta né la lista né il contatore, cioè non porta nessuna prova che
+     qualcuno abbia guardato la macchina.
+     Il confine giusto è la PROVA: o c'è l'elenco delle voci (qualcuno ha
+     compilato la checklist), o c'è un numero di anomalie **dichiarato** —
+     anche zero, che è un'ottima notizia e va detta. Se non c'è né l'uno né
+     l'altro, lo stato è «da fare» con `gravita: null`, che è la convenzione
+     di casa per «non si può calcolare» ed è la stessa parola che la sorella
+     `giriDelGiorno` usa per una macchina senza giri. Uno stato che non c'è
+     non si dipinge di verde.
+     ⚠️ «Dichiarato» lo decide `numeroDichiarato` di `shared/`, che distingue
+     lo zero scritto dal campo mai compilato: riscriverlo qui sarebbe la copia
+     debole che questa casa ha già pagato quattro volte. */
+  const NON_MISURATO = { anomalie: 0, voci: [], dettaglio: [], nominate: false,
+                         critica: false, gravita: null, etichetta: "da fare" };
+  if (!controllo || typeof controllo !== "object") return NON_MISURATO;
+  const c = controllo;
+  const voci = Array.isArray(c.voci) ? c.voci : null;
+  if (!voci) {
+    /* ⛔ NIENTE VOCI NON VUOL DIRE NIENTE ANOMALIE: quelle dichiarate si
+       contano lo stesso, anche se non si sanno chiamare per nome. `nominate`
+       lo dice a chi compone un documento, che deve scriverlo invece di
+       lasciare una cella vuota — l'assenza di un dato non è un dato
+       favorevole. */
+    const dichiarate = numeroDichiarato(c.anomalie);
+    if (dichiarate === null) return NON_MISURATO;
+    const anomalie = Math.max(0, Math.round(dichiarate));
+    return { anomalie, voci: [], dettaglio: [], nominate: false, critica: false,
+             gravita: anomalie ? "warn" : "ok", etichetta: etichettaDi(anomalie) };
+  }
+  const trovate = new Map();
+  let critica = false;
+  for (const v of voci) {
+    if (!v || v.esito !== "no") continue;
+    const k = String(v.chiave || v.etichetta || "");
+    if (!trovate.has(k)) trovate.set(k, { chiave: k,
+      etichetta: String(v.etichetta || v.chiave || "").trim() || "voce senza nome",
+      nota: String(v.nota || "").trim(), critica: !!v.critica });
+    if (v.critica) critica = true;
+  }
+  const anomalie = trovate.size;
+  /* `voci` sono le etichette nude, per chi deve solo leggerle; `dettaglio`
+     porta accanto la CHIAVE (serve a chi unisce più giri: la stessa voce non
+     si riconosce dal nome) e la NOTA di chi ha fatto il giro, che il registro
+     stampa fra parentesi e che senza questo campo si perderebbe. */
+  return { anomalie, voci: [...trovate.values()].map((d) => d.etichetta),
+           dettaglio: [...trovate.values()], nominate: true, critica,
+           gravita: critica ? "danger" : anomalie ? "warn" : "ok", etichetta: etichettaDi(anomalie) };
+}
+
 export function giriDelGiorno(controlli, nome, iso) {
   const giorno = String(iso || "").slice(0, 10);
   const n = nomeBreve(nome);
@@ -1450,18 +1530,28 @@ export function giriDelGiorno(controlli, nome, iso) {
   /* Le voci si raccolgono in una MAPPA chiave → etichetta: la chiave è
      l'identità (serve a non contare due volte la stessa perdita), l'etichetta
      è quello che si legge («Freni, sterzo e comandi», non «freni»). */
+  /* la decisione su UN giro sta in `statoGiro`: qui si sommano i giri della
+     giornata, non si ridecide che cosa vuol dire un giro. Le voci restano
+     raccolte per chiave DISTINTA — la stessa perdita trovata al mattino e al
+     pomeriggio è un problema, non due — mentre quelle non nominate si
+     sommano, perché di loro non si sa se siano la stessa cosa. */
+  /* la decisione su UN giro sta in `statoGiro`: qui si sommano i giri della
+     giornata, non si ridecide che cosa vuol dire un giro. Le voci si uniscono
+     per chiave DISTINTA — la stessa perdita trovata al mattino e al pomeriggio
+     è un problema, non due — mentre quelle non nominate si sommano, perché di
+     loro non si sa se siano la stessa cosa.
+     ⚠️ Per unire servono le CHIAVI, non le etichette: `statoGiro` le restituisce
+     accanto (`dettaglio`). Una prima stesura provava a ripescarle dall'array
+     originale per indice — e gli indici non corrispondono, perché `voci` è già
+     deduplicata e l'originale no. */
   const trovate = new Map();
   let critica = false, senzaNome = 0;
   for (const c of giri) {
-    const voci = Array.isArray(c.voci) ? c.voci : null;
-    if (voci) {
-      for (const v of voci) {
-        if (!v || v.esito !== "no") continue;
-        const k = String(v.chiave || v.etichetta || "");
-        if (!trovate.has(k)) trovate.set(k, String(v.etichetta || v.chiave || "").trim() || "voce senza nome");
-        if (v.critica) critica = true;
-      }
-    } else senzaNome += Math.max(0, Math.round(+c.anomalie || 0));
+    const s = statoGiro(c);
+    if (s.nominate) {
+      for (const d of s.dettaglio) if (!trovate.has(d.chiave)) trovate.set(d.chiave, d.etichetta);
+      if (s.critica) critica = true;
+    } else senzaNome += s.anomalie;
   }
   const anomalie = trovate.size + senzaNome;
   return {

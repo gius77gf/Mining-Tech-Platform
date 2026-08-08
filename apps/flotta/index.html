@@ -1266,7 +1266,7 @@ body.dw b.bad{color:var(--ink-dg)}
            costiPerMese, disponibilitaStorico, fotografiaDaRegistrare, pagellaMezzi, BANDA_PAGELLA,
            SCADENZE_MEZZO_PRESET, presetScadenzaMezzo, statoScadenzaMezzo, scadenzeOrdinate, contaScadenzeMezzi, validaScadenzaMezzo, aggiungiMesi,
            nomeBreve, TIPI_MEZZO, tipoMezzo, tipoMezzoDi, checklistPreUso, riepilogoControllo,
-           manutenzioniDaControllo, coperturaControlli, controlliDelMezzo, giriDelGiorno,
+           manutenzioniDaControllo, coperturaControlli, controlliDelMezzo, giriDelGiorno, statoGiro,
            GRAVITA_GUASTO, gravitaGuasto, validaGuasto, manutenzioneDaGuasto,
            PIANI_TAGLIANDO, pianoTagliando, propostaTagliando, prossimoTagliando,
            validaRifornimento, consumoPerMezzo, fascicoloMezzo,
@@ -2479,12 +2479,13 @@ body.dw b.bad{color:var(--ink-dg)}
   // mezzo (un tocco), si segna «tutto a posto» (un tocco), si aprono solo le
   // voci che non vanno, si salva (un tocco). Tre tocchi quando va tutto bene.
   // ══════════════════════════════════════════════════════════════════════
-  const gravitaControllo = (c) => (+c.anomalie || 0) === 0 ? "ok"
-    : (c.voci || []).some(v => v.esito === "no" && v.critica) ? "danger" : "warn";
-  const etichettaControllo = (c) => {
-    const n = +c.anomalie || 0;
-    return n === 0 ? "tutto a posto" : n === 1 ? "1 da vedere" : n + " da vedere";
-  };
+  /* ⛔ ERANO DUE COPIE DEBOLI DELLA STESSA DOMANDA, e ognuna guardava metà
+     record: il conto veniva da `anomalie`, la gravità da `voci`. Su un giro
+     con due voci «no» e il contatore fermo a zero rispondevano «tutto a posto»
+     **e** «ok». La regola sta in `statoGiro`, che è la stessa che usano il
+     registro CSV, il libretto e `giriDelGiorno`. */
+  const gravitaControllo = (c) => statoGiro(c).gravita;
+  const etichettaControllo = (c) => statoGiro(c).etichetta;
 
   function disegnaGiro() {
     const oggi = oggiISO();
@@ -4079,8 +4080,20 @@ body.dw b.bad{color:var(--ink-dg)}
     let csv = "tipo;nome;stato;dettaglio\n";
     for (const m of MEZ.slice().sort((a, b) => a.nome.localeCompare(b.nome, "it")))
       csv += `mezzo;${csvCell(m.nome)};${m.stato};${csvCell((oreNote(m.ore) ? (+m.ore).toLocaleString("it-IT") + " h" : "ore non registrate") + (m.area ? " · " + m.area : ""))}\n`;
+    /* ⛔ QUI C'ERA LA PAROLA «pianificata», SCRITTA FISSA, PER OGNI ORDINE.
+       `statoOrdine` sa dire tre cose — «da fare», «in corso» e «attesa pezzi»
+       — e l'ultima sullo schermo è ROSSA (`cls: "danger"`), col suo perché
+       scritto nel modulo: *il lavoro è fermo perché manca un pezzo, è la
+       ragione più frequente di una macchina ferma a lungo*. Una macchina
+       ferma ad aspettare un ricambio finiva in questo foglio — quello che si
+       gira al responsabile o all'officina — come «pianificata»: la parola più
+       tranquilla che l'app sappia dire, esattamente dove lo schermo è rosso.
+       Lo stato si mette a mano dalla scheda dell'ordine, quindi il caso non è
+       teorico: è un tocco.
+       ⚠️ E le ore uscivano grezze (`6000`) dove lo schermo raggruppa
+       (`6.000`): stessa riga, stessa famiglia. */
     for (const n of MAN.slice().sort((a, b) => (a.dataPrevista || "9999") < (b.dataPrevista || "9999") ? -1 : 1))
-      csv += `manutenzione;${csvCell(n.titolo + " — " + n.mezzo)};pianificata;${csvCell(n.orePreviste ? "a " + n.orePreviste + " h motore" : "previsto " + dataIt(n.dataPrevista))}\n`;
+      csv += `manutenzione;${csvCell(n.titolo + " — " + n.mezzo)};${csvCell(statoOrdine(n).breve)};${csvCell(n.orePreviste ? "a " + (+n.orePreviste).toLocaleString("it-IT", { useGrouping: true }) + " h motore" : "previsto " + dataIt(n.dataPrevista))}\n`;
     const scorta = new Set(sottoScorta(RIC).map(r => r.id));
     for (const r of RIC.slice().sort((a, b) => a.nome.localeCompare(b.nome, "it")))
       csv += `ricambio;${csvCell(r.nome)};${scorta.has(r.id) ? "sotto scorta" : "ok"};${csvCell("giacenza " + (+r.giacenza || 0) + " · soglia min " + (+r.sogliaMin || 0))}\n`;
@@ -4279,10 +4292,17 @@ body.dw b.bad{color:var(--ink-dg)}
   $("btn-giro-csv").onclick = () => {
     const righe = [["data", "mezzo", "tipo", "operatore", "ore", "esito", "anomalie", "voci_non_ok", "note"].join(";")]
       .concat(CTR.slice().sort((a, b) => String(b.data || "").localeCompare(String(a.data || ""))).map(c => {
-        const male = (c.voci || []).filter(v => v.esito === "no");
+        /* ⛔ QUI L'ESITO SI DECIDEVA DALLE SOLE `voci`, e un giro che dichiara
+           delle anomalie senza portarne l'elenco usciva «tutto a posto ; 0»
+           mentre lo schermo, sullo stesso record, scrive «N da vedere». La
+           versione a tre rami stava già 220 righe più in basso, nel CSV del
+           libretto: una correzione fatta a un export e non all'altro. Adesso
+           la domanda la fa `statoGiro`, e la fanno tutti allo stesso modo. */
+        const s = statoGiro(c);
         return [c.data || "", nomeBreve(c.mezzo), (tipoMezzo(c.tipo) || {}).etichetta || "", c.operatore || "",
-                c.ore || "", male.length ? "con anomalie" : "tutto a posto", male.length,
-                male.map(v => v.etichetta + (v.nota ? " (" + v.nota + ")" : "")).join(" | "), c.note || ""].map(csvCell).join(";");
+                c.ore || "", s.etichetta, s.anomalie,
+                s.nominate ? s.dettaglio.map(v => v.etichetta + (v.nota ? " (" + v.nota + ")" : "")).join(" | ")
+                           : s.anomalie + " segnate, dettaglio delle voci non registrato", c.note || ""].map(csvCell).join(";");
       }));
     const a = document.createElement("a");
     a.href = URL.createObjectURL(new Blob(["﻿" + righe.join("\r\n")], { type: "text/csv;charset=utf-8" }));
@@ -4503,12 +4523,15 @@ body.dw b.bad{color:var(--ink-dg)}
        porta il badge «N da vedere»: il documento che si consegna diceva il
        contrario di quello che l'app mostra. */
     if (f.controlli.length) f.controlli.forEach(c => {
-      const voci = Array.isArray(c.voci) ? c.voci.filter(v => v && v.esito === "no") : null;
-      const n = +c.anomalie || 0;
+      /* la stessa domanda del registro e dello schermo: `statoGiro`. Prima
+         questi tre rami erano scritti qui, ed erano l'UNICA versione giusta
+         delle tre che la pagina si teneva. */
+      const s = statoGiro(c);
       R("giro macchina", "controllo pre-uso", dataIt(c.data),
         (c.operatore ? c.operatore + " · " : "")
-        + (voci ? (voci.map(v => v.etichetta || v.chiave).join(" | ") || "nessuna anomalia")
-                : n > 0 ? n + (n === 1 ? " anomalia segnata" : " anomalie segnate") + ", dettaglio delle voci non registrato"
+        + (s.nominate ? (s.voci.join(" | ") || "nessuna anomalia")
+                      : s.anomalie > 0
+                        ? s.anomalie + (s.anomalie === 1 ? " anomalia segnata" : " anomalie segnate") + ", dettaglio delle voci non registrato"
                         : "nessuna anomalia"), "");
     });
     else VUOTA("giro macchina", "Nessun controllo pre-uso registrato su questa macchina.");

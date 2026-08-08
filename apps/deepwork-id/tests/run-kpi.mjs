@@ -20366,6 +20366,61 @@ test("⛔ Scudo · andamento indici: il verso letto su giornate ancora da contar
        "senza voci di sicurezza resta un avviso");
   });
 
+  /* ── statoGiro: l'esito di UN giro, che la pagina decideva in tre modi ──
+     Il difetto: il registro CSV decideva dalle sole `voci`, i due aiuti dello
+     schermo dal solo contatore `anomalie`, e il libretto — l'unico giusto —
+     dai due insieme. Misurato su dieci casi prima di estrarre la funzione:
+     **sei** disaccordi fra le tre versioni. Cinque erano di vocabolario, uno
+     era una bugia. */
+  test("⛔ statoGiro: le anomalie DICHIARATE si contano anche senza il loro elenco", () => {
+    /* la bugia: il registro che si consegna diceva «tutto a posto ; 0» dove lo
+       schermo, sullo stesso record, scrive «2 da vedere» */
+    const muto = flotta.statoGiro({ anomalie: 2 });
+    eq([muto.anomalie, muto.etichetta, muto.gravita, muto.nominate],
+       [2, "2 da vedere", "warn", false],
+       "l'assenza dell'elenco non è l'assenza di anomalie");
+    eq(muto.voci, [], "e non se ne inventano i nomi");
+    eq(flotta.statoGiro({ anomalie: 0 }).etichetta, "tutto a posto",
+       "uno zero DICHIARATO è un'ottima notizia e va detta");
+  });
+  test("⛔ statoGiro: nessun giro non è un giro andato bene", () => {
+    /* l'ha preteso `sonda-vuoto`, e il confine è la PROVA che qualcuno abbia
+       guardato — non l'esistenza del record: un `{}` non porta né la lista né
+       il contatore, quindi non dimostra niente. */
+    for (const [che, x] of [["niente", undefined], ["null", null], ["una stringa", "boh"],
+                            ["un record vuoto", {}], ["il contatore lasciato in bianco", { anomalie: "" }]]) {
+      const r = flotta.statoGiro(x);
+      eq([r.etichetta, r.gravita], ["da fare", null], `${che}: uno stato che non c'è non si dipinge di verde`);
+    }
+  });
+  test("statoGiro: una voce critica è rossa, una qualunque è gialla", () => {
+    const v = (chiave, critica) => ({ chiave, etichetta: chiave, esito: "no", critica });
+    eq(flotta.statoGiro({ voci: [v("luci", false)] }).gravita, "warn");
+    eq(flotta.statoGiro({ voci: [v("freni", true)] }).gravita, "danger",
+       "i freni non sono una lampadina");
+    eq(flotta.statoGiro({ voci: [{ chiave: "luci", esito: "ok" }] }).gravita, "ok",
+       "un elenco guardato e tutto in ordine è «ok», non «non so»");
+    eq(flotta.statoGiro({ voci: [] }).nominate, true,
+       "un elenco VUOTO è comunque un elenco: qualcuno ha guardato");
+  });
+  test("statoGiro: le voci si contano per chiave distinta, e la nota non si perde", () => {
+    const due = { voci: [{ chiave: "luci", etichetta: "Luci", esito: "no", nota: "posteriore" },
+                         { chiave: "luci", etichetta: "Luci", esito: "no" }] };
+    eq(flotta.statoGiro(due).anomalie, 1, "la stessa voce due volte è un problema, non due");
+    eq(flotta.statoGiro(due).dettaglio[0].nota, "posteriore",
+       "e la nota di chi ha fatto il giro arriva fino al registro");
+    eq(flotta.statoGiro({ voci: [{ esito: "no" }] }).voci, ["voce senza nome"],
+       "una voce senza nome si dichiara, non sparisce");
+  });
+  test("⛔ statoGiro: il contatore fermo non assolve un elenco che dice di no", () => {
+    /* il verso opposto della bugia, e quello che gli aiuti dello schermo
+       sbagliavano: `anomalie: 0` con due voci «no» dava «tutto a posto» e «ok» */
+    const r = flotta.statoGiro({ anomalie: 0,
+      voci: [{ chiave: "a", etichetta: "Olio", esito: "no" }, { chiave: "b", etichetta: "Luci", esito: "no" }] });
+    eq([r.anomalie, r.etichetta, r.gravita], [2, "2 da vedere", "warn"],
+       "quando l'elenco c'è, è l'elenco a dire la verità");
+  });
+
   test("⛔ giriDelGiorno: un giro che non porta le sue voci non diventa «tutto a posto»", () => {
     // l'assenza di un dato non è un dato favorevole: le anomalie dichiarate
     // si contano anche quando non si sa come si chiamano
