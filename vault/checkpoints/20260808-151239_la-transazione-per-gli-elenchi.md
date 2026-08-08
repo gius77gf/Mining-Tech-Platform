@@ -43,10 +43,15 @@ stessa `unisciLetture` che decide l'anteprima.
 
 ## ⚠️ Un mio errore, corretto per strada
 Avevo scritto `uniscoLetture`, che **non esiste** — la funzione vera è
-`unisciLetture`, e prende le letture con la loro **provenienza**. L'ha presa la
-rilettura prima del commit, **non una prova**: `nomi-liberi` non l'ha vista
-perché il nome inventato stava in una pagina fra i nomi importati… no: l'ha
-vista la lettura umana. Vale come promemoria che il controllo non copre tutto.
+`unisciLetture`, e prende le letture con la loro **provenienza**. L'ho corretto
+rileggendo, prima di lanciare qualunque prova.
+⚠️ E la prima stesura di questo checkpoint diceva, senza averlo misurato, che
+l'aveva presa «la lettura umana, non una prova». **Rimisurato rimettendo il
+nome inventato**: `nomi-liberi` lo prende — *23 passati, 1 fallito*, «nessun
+nome chiamato che non esiste da nessuna parte». Cioè la rete c'era; io sono
+arrivato prima. Scrivere il contrario avrebbe fatto credere a un buco che non
+c'è, ed è esattamente il genere di frase che in questa casa non deve entrare
+senza misura.
 
 ## Restano CINQUE punti, dichiarati
 Sentinella `letture` (la **correzione** di una lettura già dentro) e
