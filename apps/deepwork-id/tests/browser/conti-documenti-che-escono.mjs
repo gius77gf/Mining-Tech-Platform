@@ -38,10 +38,20 @@
    della dimostrazione e poi accusa il prodotto di una cosa che ha fatto il
    prodotto.
 
-   ⚠️ IL CENSIMENTO È DICHIARATO: questo banco apre **un** punto d'uscita su
-   dodici. Gli altri undici qui NON sono misurati — «uno su dodici» non vuol
-   dire «gli altri vanno bene». I cinque che compongono in pagina e restano da
-   aprire sono: clienti, costi, listino prezzi, pesate/DDT, preventivi.
+   ⚠️ IL CENSIMENTO È DICHIARATO, E ADESSO CHIUSO: **dodici su dodici**.
+   I tre difetti stanno tutti fra i sei documenti che compongono il CSV **dentro
+   la pagina** — è lì che questa famiglia vive, ed è la ragione per cui il
+   censimento strutturale (chi chiama chi) è il primo setaccio da passare.
+   Gli altri nove sono stati aperti lo stesso, e non per completismo: un
+   negativo DEDOTTO non vale niente, e su cinque app il censimento statico su
+   questa stessa domanda aveva dato **zero** mentre i difetti c'erano.
+   ⚠️ E la profondità NON è uniforme, il che va detto invece di lasciarlo
+   intendere. Sui tre dove il difetto c'era le prove confrontano **numero per
+   numero** il file con quello che la schermata dice nello stesso istante. Sui
+   nove restanti le domande sono più larghe — il file esce, non è la sola
+   intestazione, nessuna cella dice «undefined», «null» o «NaN» — cioè le due
+   forme in cui questa famiglia si è già presentata nei file. «Pulito» lì vuol
+   dire «nessuna di QUESTE domande ha trovato niente».
 */
 import { createServer } from "node:http";
 import { readFileSync, existsSync, statSync } from "node:fs";
@@ -351,6 +361,18 @@ if (await vaiA("nav-cos", "page-cos")) {
 for (const [nome, nav, pagina, bottone] of [
   ["conti_pesate_ddt.csv", "nav-pes", "page-pes", "btn-pes-export"],
   ["conti_preventivi.csv", "nav-ord", "page-ord", "btn-or-export"],
+  /* i sei che delegano a una funzione del modulo, più le tre copie di backup.
+     Il valore aggiunto qui è minore — la decisione la prende il modulo, che le
+     prove `node` già chiamano — ma è MISURA, non deduzione: si preme il
+     bottone e si apre il file, che è l'unico modo in cui questa famiglia si
+     lascia prendere. Con questi il censimento di Conti è 12 su 12. */
+  ["conti_situazione_fatture.csv", "nav-rep", "page-rep", "btn-rep-export"],
+  ["conti_incassi_copia.csv", "nav-rep", "page-rep", "btn-inc-backup"],
+  ["conti_clienti.csv", "nav-cli", "page-cli", "btn-cli-export"],
+  ["conti_clienti_copia.csv", "nav-cli", "page-cli", "btn-cli-backup"],
+  ["conti_pesate_copia.csv", "nav-pes", "page-pes", "btn-pes-backup"],
+  ["conti_listino.csv", "nav-lis", "page-lis", "btn-lis-export"],
+  ["conti_gare.csv", "nav-gar", "page-gar", "btn-gar-export"],
 ]) {
   console.log(`\n════════ ${nome} ════════`);
   if (!(await vaiA(nav, pagina))) continue;
@@ -367,7 +389,7 @@ for (const [nome, nav, pagina, bottone] of [
 
 await b.close(); srv.close();
 console.log(`\nRisultato documenti che escono da Conti: ${ok} passati, ${ko} falliti`
-  + `  ·  5 punti d'uscita su 12 aperti (gli altri sette NON sono misurati qui)`);
+  + `  ·  12 punti d'uscita su 12 aperti`);
 if (CONTROPROVA) {
   console.log(ko > 0 ? "✔ CONTROPROVA: il banco distingue (i KO qui sopra sono voluti)"
                      : "⛔ CONTROPROVA: NON DISTINGUE — rimesso il difetto, nessuna prova è caduta");
