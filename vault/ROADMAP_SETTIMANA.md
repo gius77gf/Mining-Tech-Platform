@@ -1865,6 +1865,18 @@ numero scritto dove non era stato misurato niente**.*
   35/35 in entrambe le passate, iniezioni «come live» **6 → 9**. ⚠️ Il prodotto
   non è stato toccato: mancava chi lo verificasse.
 
+- [x] ✅ **La riga accusava il prodotto per una CORREZIONE del prodotto**
+  (`3a2fc27`). Secondo KO del giro: l'asserzione portava dentro `/56/` e
+  `/su 12/`, e la frase è cambiata **di proposito** con `f108ef0` («"0 mc" dove
+  nessuno aveva misurato») — cioè il banco ostacolava una correzione fatta in
+  nome del **principio del fondatore**. ⚠️ E il `56` era **peggio**: un numero
+  atteso scritto a mano. **Quattro righe più in basso lo stesso file fa già la
+  cosa giusta** («i due numeri si prendono dai due posti e si confrontano»): la
+  riga sbagliata stava **sopra** quella giusta. Adesso prova il **significato**
+  — quanti fori, e la riserva dichiarata con «almeno». Provato che distingue su
+  cinque casi, e **accetta anche la frase vecchia** (non ho pinnato la nuova al
+  posto di quella vecchia). 67 passate, 0 cadute; prodotto non toccato.
+
 ## Riferimenti
 
 - Ultimo checkpoint **per data vera**:
