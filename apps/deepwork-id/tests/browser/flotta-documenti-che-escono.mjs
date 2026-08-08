@@ -97,7 +97,7 @@ import { createServer } from "node:http";
 import { readFileSync, existsSync, statSync } from "node:fs";
 import { join, extname, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
-import { azzeraFrasi, frasiVisibili, contiNellaFrase, righeDiDato } from "./giro.mjs";
+import { azzeraFrasi, frasiVisibili, contiNellaFrase, righeDiDato, postiDaFrase } from "./giro.mjs";
 
 const QUI = dirname(fileURLToPath(import.meta.url));
 const R = process.env.DW_RADICE || join(QUI, "..", "..", "..", "..");
@@ -295,7 +295,7 @@ const vaiA = async (navId, pageId) => {
 /* La regola «la frase dichiara quello che il file contiene» sta in `giro.mjs`,
    l'attrezzo che tutti i banchi importano: la usa anche il banco di Conti, e
    una regola usata due volte in questa casa si scrive una volta. */
-let fraseConNumero = 0, fraseSenzaNumero = 0;
+let fraseConNumero = 0, fraseSenzaNumero = 0, fraseMuta = 0, senzaPosto = 0;
 const scarica = async (btn) => {
   await pg.evaluate(() => { window.__scaricati = []; });
   /* ⛔ SI AZZERANO LE FRASI PRIMA DI PREMERE. La prima stesura leggeva tutti
@@ -346,7 +346,9 @@ const scarica = async (btn) => {
     dice(numeri.includes(dati) || somma === dati,
       `le righe del file sono fra i numeri che la frase dichiara (${btn})`,
       { frase: frase.slice(0, 100), numeri, righeDiDato: dati });
-  } else fraseSenzaNumero++;
+  } else if (frase.trim()) fraseSenzaNumero++;
+    else if (await postiDaFrase(pg) > 0) fraseMuta++;
+    else senzaPosto++;
   return { nome: g[g.length - 1].nome, righe };
 };
 const colonna = (riga, i) => (riga.split(";")[i] || "").replace(/^"|"$/g, "").replace(/""/g, '"');
@@ -527,7 +529,15 @@ if (await vaiA("nav-mez", "page-mez")) {
 }
 
 await b.close(); srv.close();
-console.log(`  ·  frasi di riepilogo confrontate col file: ${fraseConNumero} · senza un numero da confrontare: ${fraseSenzaNumero}`);
+/* ⛔ IL SILENZIO HA DUE CAUSE OPPOSTE, E VANNO SEPARATE. «Frase mostrata senza
+   un conto» dice qualcosa sul PRODOTTO; «nessun posto dove dirla» direbbe che
+   il selettore non guarda dove crede, cioè una cosa sul RIGHELLO. Contarle
+   insieme fa passare la seconda per la prima — misurato l'08/08 su Genesi,
+   dove stavo per allargare un selettore che invece funzionava. */
+console.log(`  ·  frasi di riepilogo confrontate col file: ${fraseConNumero}`
+  + ` · MOSTRATE ma senza un conto: ${fraseSenzaNumero}`
+  + ` · il posto per dirla c'è e resta MUTO: ${fraseMuta}`
+  + ` · nessun posto per dirla (sarebbe il righello): ${senzaPosto}`);
 console.log(`\nRisultato documenti che escono da Flotta: ${ok} passati, ${ko} falliti`
   + `  ·  9 punti d'uscita su 9 aperti`);
 /* ⛔ In controprova il rosso è quello VOLUTO: si esce 0 se il banco ha saputo

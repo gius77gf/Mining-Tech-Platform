@@ -909,6 +909,33 @@ Perché serva davvero e non produca elenchi generici, cinque vincoli:
   La lezione oltre al caso: **una dichiarazione che vale per un TRATTO va scritta
   con un inizio e una fine**, se no il primo che stampa qualcosa in mezzo la
   cancella senza saperlo.
+  ⛔ **E LA QUARTA VOLTA, LO STESSO GIORNO, NEL POSTO CHE NESSUNO SOSPETTA: IL
+  RIEPILOGO FINALE È UNA RIPETIZIONE, E CONTARLO GONFIA I DIFETTI DI QUATTRO
+  VOLTE.** Leggendo un giro vero con `leggi-giro.mjs` — cioè con lo strumento
+  scritto apposta per non sbagliare questo — il denominatore diceva «**KO veri:
+  47**». Erano **10**: le altre **37** erano le righe di `════ RIEPILOGO ════`,
+  un rigo per passata, cioè lo **stesso rosso già stampato più su**. E fra
+  quelle 37 c'erano tutte le controprove, il cui rosso è VOLUTO: la loro
+  dichiarazione vale nell'**intervallo della passata**, e il riepilogo sta in
+  fondo al registro, fuori da ogni intervallo — quindi rientravano dalla
+  finestra tutte insieme. Il numero che quel file esiste per rendere leggibile
+  era il più sbagliato di tutti, e nella direzione che fa aprire cantieri
+  fantasma.
+  La cura è **la stessa già imparata due volte e non applicata qui**: un dato
+  che il programma ha in mano non si indovina dal testo — `tutti.mjs` sa che
+  quel blocco è il conto delle passate, e adesso lo **dichiara**
+  (`⚠️ RIPETIZIONE: qui sotto NON ci sono difetti nuovi`). Il ripiego sul nome
+  resta, **dichiarato**, perché i registri scritti prima non hanno la
+  dichiarazione e sono esattamente quelli che si riaprono per capire com'è
+  andata. Le righe non spariscono: si stampano a parte («37 passate cadute,
+  ripetute nel riepilogo»), perché un numero tolto in silenzio è un numero che
+  qualcuno rimetterà.
+  ⚠️ **E la regola generale che le lega tutt'e quattro: quando si scrive uno
+  strumento per non farsi ingannare da un registro, si chiede subito CHI ALTRO
+  scrive in quel registro.** Le prime tre volte era un banco che stampava una
+  propria intestazione; questa è il runner stesso, che ricapitola. Il posto in
+  cui il difetto si nasconde è sempre quello che non si guarda perché «quello
+  lo scriviamo noi».
 - ⛔ **UN GIRO LUNGO NON DICE QUANTO È VECCHIO, E I SUOI KO SI LEGGONO COME SE
   FOSSERO DI ADESSO.** Misurato l'08/08 e a un passo dal costare un cantiere
   intero. Un giro da cinque ore e mezza dichiarava **cinque contrasti sotto

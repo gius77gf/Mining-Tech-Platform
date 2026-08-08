@@ -52,6 +52,22 @@ const DICHIARA_CONTROPROVA = /CONTROPROVA: qui sotto il rosso è quello VOLUTO/;
    riparte da zero — se no la prima controprova del giro dipingerebbe di
    «voluto» tutto quello che viene dopo, che è il difetto opposto e peggiore. */
 const FINE_CONTROPROVA = /FINE CONTROPROVA/;
+/* ⛔ IL RIEPILOGO FINALE È UNA RIPETIZIONE, E CONTARLO GONFIA I DIFETTI DI
+   QUATTRO VOLTE. Misurato l'08/08 su un registro vero: «KO veri: 47», di cui
+   **37** erano le righe del riepilogo di `tutti.mjs` — un rigo per passata, cioè
+   lo stesso rosso già stampato più su. E fra quelle 37 c'erano le controprove,
+   il cui rosso è VOLUTO: la loro dichiarazione vale nell'intervallo della
+   passata, non in fondo al registro, quindi qui rientravano tutte dalla
+   finestra. Il numero che questo file esiste per rendere leggibile era il più
+   sbagliato di tutti.
+   Si legge la DICHIARAZIONE che il runner stampa, non la parola «RIEPILOGO»:
+   è la lezione già pagata due volte (la controprova riconosciuta dal nome, le
+   sotto-intestazioni a sei uguali). ⚠️ Il ripiego sul nome resta, dichiarato,
+   perché i registri scritti PRIMA di questa riga non hanno la dichiarazione e
+   sono esattamente quelli che si riaprono per capire com'è andata: senza
+   ripiego, un giro vecchio continuerebbe a contare 47 dove sono 10. */
+const DICHIARA_RIPETIZIONE = /RIPETIZIONE: qui sotto NON ci sono difetti nuovi/;
+const NOME_RIEPILOGO = /^RIEPILOGO$/;
 /* «non ho guardato», in tutte le forme che i banchi usano davvero */
 const NON_GUARDATO = /NON RAGGIUNTE|non ho guardato|\b0 su \d+|mai comparse|solo elencate|non misurat|salt(at|o)\b|dichiarat[oe] fuori/i;
 const KO = /^\s*(✗|KO\b)/;
@@ -66,21 +82,28 @@ export function leggiGiro(testo) {
   let dentroControprova = false;   // l'intervallo fra la dichiarazione e la sua chiusura
   for (const r of righe) {
     const m = INTESTAZIONE.exec(r);
-    if (m) { corrente = { nome: m[1], controprova: dentroControprova, ko: [], ciechi: [] }; sezioni.push(corrente); continue; }
+    if (m) {
+      corrente = { nome: m[1], controprova: dentroControprova, ripetizione: NOME_RIEPILOGO.test(m[1]), ko: [], ciechi: [] };
+      sezioni.push(corrente); continue;
+    }
     /* la chiusura si legge ANCHE senza una sezione aperta: è il runner a
        stamparla, e vale comunque da qui in giù */
     if (FINE_CONTROPROVA.test(r)) { dentroControprova = false; continue; }
     if (!corrente) continue;
     /* la dichiarazione arriva SUBITO dopo l'intestazione */
     if (DICHIARA_CONTROPROVA.test(r)) { corrente.controprova = true; dentroControprova = true; continue; }
+    if (DICHIARA_RIPETIZIONE.test(r)) { corrente.ripetizione = true; continue; }
     if (KO.test(r)) corrente.ko.push(r.trim());
     else if (NON_GUARDATO.test(r)) corrente.ciechi.push(r.trim());
   }
   const uscita = /USCITA (\d+)/.exec(testo);
   return {
     sezioni,
-    sane: sezioni.filter((s) => !s.controprova),
+    /* «sane» = le passate i cui KO sono difetti VERI e NUOVI: né le controprove
+       (rosso voluto) né il riepilogo finale (rosso già contato più su) */
+    sane: sezioni.filter((s) => !s.controprova && !s.ripetizione),
     controprove: sezioni.filter((s) => s.controprova),
+    ripetizioni: sezioni.filter((s) => s.ripetizione),
     uscita: uscita ? +uscita[1] : null,
     nonValido: /NON VALIDO/.test(testo),
     commit: (ATTESTA.exec(testo) || [])[1] || null,
@@ -138,12 +161,29 @@ if (process.argv.includes("--controprova")) {
     "   ⚠️  FINE CONTROPROVA — da qui in giù il rosso torna a essere quello VERO.",
     "════════ un banco sano dopo la controprova ════════",
     "  ✗ e QUESTO è un difetto vero",
+    /* ⛔ E IL RIEPILOGO FINALE, che è una RIPETIZIONE: le sue righe sono lo
+       stesso rosso già stampato sopra, controprove comprese. Contarle porta il
+       conto dei difetti da 2 a 5 — sul registro vero, da 10 a 47. */
+    "════════ RIEPILOGO ════════",
+    "   ⚠️  RIPETIZIONE: qui sotto NON ci sono difetti nuovi — è il conto delle passate già stampate sopra.",
+    "  KO  pagine vive · controprova",
+    "  KO  un banco sano dopo la controprova",
+    "  KO  pagine vive: la sua intestazione",
     "USCITA 0",
   ].join("\n");
   const r = leggiGiro(finto);
   const male = [];
-  if (r.sezioni.length !== 4) male.push(`sezioni: ${r.sezioni.length} invece di 4 — la sotto-intestazione a sei uguali ne ha aperta una in più`);
-  if (r.sane.length !== 2) male.push(`passate sane: ${r.sane.length} invece di 2`);
+  if (r.sezioni.length !== 5) male.push(`sezioni: ${r.sezioni.length} invece di 5 — la sotto-intestazione a sei uguali ne ha aperta una in più`);
+  if (r.sane.length !== 2) male.push(`passate sane: ${r.sane.length} invece di 2 — il riepilogo finale è stato contato fra le sane`);
+  if (r.ripetizioni.length !== 1) male.push(`riepiloghi: ${r.ripetizioni.length} invece di 1`);
+  if (r.ripetizioni[0] && r.ripetizioni[0].ko.length !== 3)
+    male.push(`righe del riepilogo raccolte: ${r.ripetizioni[0].ko.length} invece di 3 — vanno tenute per poterle DICHIARARE, non buttate`);
+  /* ⚠️ E il ripiego sul NOME, per i registri scritti prima che la
+     dichiarazione esistesse: sono quelli che si riaprono per capire com'è
+     andata, e senza ripiego continuerebbero a contare 47 dove sono 10. */
+  const vecchio = leggiGiro(["════════ RIEPILOGO ════════", "  KO  un banco qualunque", "USCITA 0"].join("\n"));
+  if (vecchio.sane.length !== 0 || vecchio.ripetizioni.length !== 1)
+    male.push("un registro SENZA la dichiarazione (scritto prima) non viene riconosciuto dal nome del riepilogo");
   if (r.controprove.length !== 2) male.push(`controprove: ${r.controprove.length} invece di 2 — l'intestazione del BANCO dentro la controprova non ha ereditato il flag`);
   const koSani = r.sane.flatMap((s) => s.ko);
   if (koSani.length !== 2) male.push(`KO veri: ${koSani.length} invece di 2 — i voluti sono stati contati, o quello dopo la FINE è stato perso`);
@@ -220,16 +260,22 @@ let ciechiTot = 0;
 for (const s of r.sane) for (const c of s.ciechi) { ciechiTot++; console.log(`  [${s.nome}] ${c}`); }
 if (!ciechiTot) console.log("  (nessuna riga: nessun banco ha dichiarato di non aver guardato qualcosa)");
 
-console.log(`\n══ 2. I KO VERI — le controprove sono escluse perché il registro le dichiara ══`);
+console.log(`\n══ 2. I KO VERI — fuori le controprove (rosso voluto) e il riepilogo finale (già contato) ══`);
 let koTot = 0;
 for (const s of r.sane) for (const k of s.ko) { koTot++; console.log(`  [${s.nome}] ${k}`); }
 if (!koTot) console.log("  (nessun KO nelle passate sane)");
 
 console.log(`\n══ 3. IL DENOMINATORE ══`);
-console.log(`  passate lette: ${r.sezioni.length} — di cui ${r.controprove.length} controprove (il loro rosso è VOLUTO) e ${r.sane.length} sane`);
+console.log(`  passate lette: ${r.sezioni.length} — di cui ${r.controprove.length} controprove (il loro rosso è VOLUTO), `
+  + `${r.ripetizioni.length} riepiloghi finali (ripetizione) e ${r.sane.length} sane`);
 console.log(`  KO veri: ${koTot} · righe «non ho guardato»: ${ciechiTot}`);
 const koVoluti = r.controprove.reduce((t, s) => t + s.ko.length, 0);
 console.log(`  KO voluti, tenuti fuori: ${koVoluti}`);
+/* si stampa invece di sparire: un numero tolto in silenzio è un numero che
+   qualcuno rimetterà, e queste righe dicono comunque QUALI passate sono cadute */
+const koRipetuti = r.ripetizioni.reduce((t, s) => t + s.ko.length, 0);
+if (koRipetuti) console.log(`  passate cadute, ripetute nel riepilogo finale: ${koRipetuti}`
+  + `  (non sono difetti in più: sono quelli di sopra, ricontati)`);
 if (r.uscita !== null) console.log(`  uscita del giro: ${r.uscita}${r.uscita === 2 ? "  ⛔ il giro si è dichiarato NON VALIDO: va rifatto" : ""}`);
 else console.log("  ⚠️  nessuna riga «USCITA»: il registro è tronco, il giro non è arrivato in fondo");
 if (r.nonValido) console.log("  ⛔ il registro contiene «NON VALIDO»: qualcuno ha cambiato il codice sotto al giro");

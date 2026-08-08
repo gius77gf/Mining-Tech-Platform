@@ -1035,6 +1035,18 @@ function togliLaCopia() {
 }
 
 console.log('\n════════ RIEPILOGO ════════');
+/* ⛔ E QUESTO BLOCCO DICHIARA DI ESSERE UNA RIPETIZIONE. Misurato l'08/08
+   leggendo un giro con `leggi-giro.mjs`: dei suoi «47 KO veri», **37 erano le
+   righe di qui sotto** — cioè lo stesso rosso già stampato più su, contato una
+   seconda volta, e per giunta comprese le controprove, il cui rosso è VOLUTO
+   (la dichiarazione `CONTROPROVA` vale nell'intervallo della passata, non qui
+   in fondo). Un numero gonfiato di quattro volte manda a cercare difetti che
+   non esistono, che è il danno contro cui `leggi-giro` è stato scritto.
+   La cura è quella già imparata sulle controprove: **un dato che il programma
+   ha in mano non si indovina dal testo.** Il runner sa che questo è il conto
+   delle passate, e lo scrive. */
+console.log('   ⚠️  RIPETIZIONE: qui sotto NON ci sono difetti nuovi — è il conto'
+  + ' delle passate già stampate sopra. Un KO qui è quello di lassù, non un altro.');
 /* ⛔ La dichiarazione si RIPETE qui in fondo. Stampata solo in cima, dopo
    un'ora e mezza di scorrimento non l'ha letta nessuno — e il caso in cui
    serve davvero (ci sono file non committati, quindi il verde vale per una

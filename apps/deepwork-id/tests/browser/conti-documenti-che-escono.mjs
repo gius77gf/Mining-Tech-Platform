@@ -57,7 +57,7 @@ import { createServer } from "node:http";
 import { readFileSync, existsSync, statSync } from "node:fs";
 import { join, extname, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
-import { azzeraFrasi, frasiVisibili, contiNellaFrase, righeDiDato } from "./giro.mjs";
+import { azzeraFrasi, frasiVisibili, contiNellaFrase, righeDiDato, postiDaFrase } from "./giro.mjs";
 
 const QUI = dirname(fileURLToPath(import.meta.url));
 const R = process.env.DW_RADICE || join(QUI, "..", "..", "..", "..");
@@ -229,7 +229,7 @@ const vaiA = async (navId, pageId) => {
 };
 /* la terza gamba della domanda di casa — la FRASE DI RIEPILOGO contro il file —
    con la regola in `giro.mjs`, la stessa che usa il banco di Flotta. */
-let fraseConNumero = 0, fraseSenzaNumero = 0;
+let fraseConNumero = 0, fraseSenzaNumero = 0, fraseMuta = 0, senzaPosto = 0;
 const scarica = async (btn) => {
   await pg.evaluate(() => { window.__scaricati = []; });
   await azzeraFrasi(pg);
@@ -259,7 +259,9 @@ const scarica = async (btn) => {
     dice(numeri.includes(dati) || numeri.reduce((t, x) => t + x, 0) === dati,
       `le righe del file sono fra i numeri che la frase dichiara (${btn})`,
       { frase: frase.slice(0, 100), numeri, righeDiDato: dati });
-  } else fraseSenzaNumero++;
+  } else if (frase.trim()) fraseSenzaNumero++;
+    else if (await postiDaFrase(pg) > 0) fraseMuta++;
+    else senzaPosto++;
   return { nome: g[g.length - 1].nome, righe };
 };
 const colonna = (riga, i) => (riga.split(";")[i] || "").replace(/^"|"$/g, "").replace(/""/g, '"');
@@ -409,7 +411,11 @@ for (const [nome, nav, pagina, bottone] of [
 }
 
 await b.close(); srv.close();
-console.log(`  ·  frasi di riepilogo confrontate col file: ${fraseConNumero} · senza un numero da confrontare: ${fraseSenzaNumero}`);
+/* le due cause opposte del silenzio, separate: vedi il banco di Flotta */
+console.log(`  ·  frasi di riepilogo confrontate col file: ${fraseConNumero}`
+  + ` · MOSTRATE ma senza un conto: ${fraseSenzaNumero}`
+  + ` · il posto per dirla c'è e resta MUTO: ${fraseMuta}`
+  + ` · nessun posto per dirla (sarebbe il righello): ${senzaPosto}`);
 console.log(`\nRisultato documenti che escono da Conti: ${ok} passati, ${ko} falliti`
   + `  ·  12 punti d'uscita su 12 aperti`);
 if (CONTROPROVA) {
