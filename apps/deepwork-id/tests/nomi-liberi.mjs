@@ -79,7 +79,8 @@ const PAGINE = [
    più frequente: `async (x) => …` sembra una chiamata a una funzione «async». */
 const PAROLE = new Set(`if for while switch catch return typeof instanceof void delete new in of do
   else try finally function class const let var await async yield throw case default break continue
-  extends super this null true false undefined`.split(/\s+/).filter(Boolean));
+  extends super this null true false undefined
+  export from as get set`.split(/\s+/).filter(Boolean));
 
 const GLOBALI = new Set(`Object Array String Number Boolean Math JSON Date RegExp Map Set WeakMap WeakSet
   Promise Symbol BigInt Error TypeError RangeError SyntaxError EvalError ReferenceError Function Proxy Reflect Intl
@@ -92,7 +93,15 @@ const GLOBALI = new Set(`Object Array String Number Boolean Math JSON Date RegEx
   TextEncoder TextDecoder Uint8Array Int8Array Uint16Array Int16Array Uint32Array Int32Array
   Float32Array Float64Array ArrayBuffer DataView atob btoa print open close matchMedia getComputedStyle
   scrollTo scrollBy requestIdleCallback CSS Notification WebSocket Worker addEventListener
-  removeEventListener dispatchEvent postMessage getSelection`.split(/\s+/).filter(Boolean));
+  removeEventListener dispatchEvent postMessage getSelection
+  NaN Infinity caches innerWidth innerHeight devicePixelRatio scrollX scrollY
+  NodeFilter Node HTMLElement Element Text Range Storage AbortSignal
+  Uint16Array Int32Array Uint32Array`.split(/\s+/).filter(Boolean));
+/* ⚠️ LE TRE RIGHE IN FONDO SONO ENTRATE L'08/08, misurando la QUARTA forma (un
+   nome riferito **nudo**). Le prime tre domande non le incontravano: `NaN` e
+   `Infinity` non si chiamano e non stanno dentro un `${…}`, `innerWidth` e
+   `devicePixelRatio` nemmeno. Sono globali veri del browser, non eccezioni —
+   e per questo stanno in `GLOBALI` e non in un elenco a parte. */
 
 /* Librerie di terze parti caricate da CDN: non stanno in un file nostro, e il
    loro nome è l'unica cosa che possiamo dichiarare. Corto e con la ragione. */
@@ -172,7 +181,11 @@ function nomiDegliScriptFratelli(relPagina, html) {
    di finire qui, e uno dei 12 l'ha bocciata alla prima stesura. */
 function nomiDichiarati(codice) {
   const out = new Set();
-  const re = /\b(?:const|let|var)\s+/g;
+  /* ⛔ `\s*` E NON `\s+`: `for (const[campo,chiave] of …)` — senza spazio dopo
+     `const` — esiste, ed è scritto due volte nel core. Con `\s+` quella
+     dichiarazione non veniva vista affatto, e i due nomi risultavano LIBERI.
+     Il `\b` dopo la parola impedisce di agganciare `constante`. */
+  const re = /\b(?:const|let|var)\b\s*(?=[\[{\w$])/g;
   let m;
   while ((m = re.exec(codice))) {
     let i = m.index + m[0].length;
@@ -352,7 +365,11 @@ export function bloccoAttorno(codice, pos) {
    parola `const`/`let`/`var` — l'ancora, non il dichiaratore. */
 export function dichiarazioniConPosizione(codice) {
   const out = [];
-  const re = /\b(?:const|let|var)\s+/g;
+  /* ⛔ `\s*` E NON `\s+`: `for (const[campo,chiave] of …)` — senza spazio dopo
+     `const` — esiste, ed è scritto due volte nel core. Con `\s+` quella
+     dichiarazione non veniva vista affatto, e i due nomi risultavano LIBERI.
+     Il `\b` dopo la parola impedisce di agganciare `constante`. */
+  const re = /\b(?:const|let|var)\b\s*(?=[\[{\w$])/g;
   let m;
   while ((m = re.exec(codice))) {
     let i = m.index + m[0].length;
@@ -450,22 +467,42 @@ export function riferimentiLiberi(relPagina) {
    `toast`, `chiudiModale`, `dwGrafici` — cioè **script fratelli** — più
    `NaN`, `AbortSignal`, `devicePixelRatio`. Riusando gli elenchi VERI di questo
    file non resta niente. Il costo era un'impressione, non un numero.
-   ⛔ E MESSA A TERRA CON GLI ELENCHI VERI, i 17 sono diventati **35**, e sono
-   ancora TUTTI falsi — ma per tre ragioni diverse, che è il vero risultato di
-   questa misura:
+   ⛔ MESSA A TERRA CON GLI ELENCHI VERI e corretta due volte, la misura è scesa
+   a **9** — e il percorso 35 → 34 → 9 vale più del numero d'arrivo, perché ogni
+   scalino era il RIGHELLO e non il prodotto. Le cause, tutte misurate:
      1. **globali e parole chiave** che l'elenco non ha ancora (`NaN`,
         `Infinity`, `AbortSignal`, `caches`, `innerWidth`, `innerHeight`,
         `devicePixelRatio`, `from`, `as`, `get`) e una libreria da CDN
         (`XLSX`): una decina di nomi, **dichiarabili per nome**;
-     2. **i COMMENTI**: `chiave ×3` nel core sono tre commenti in italiano.
-        `mascheraCodice` maschera le stringhe, non i commenti — e questa forma,
-        a differenza delle altre tre, li incontra. Servono **tutt'e due** i
-        tokenizzatori, non uno;
+     2. ⛔ **UNA DICHIARAZIONE SENZA SPAZIO**, e la prima diagnosi era SBAGLIATA:
+        avevo scritto «sono commenti, serve `senzaCommenti`». Falso, e
+        verificato mascherando il core e cercando il nome nel codice **vivo**:
+        `chiave` sopravvive alla maschera perché sta in
+        `for(const[campo,chiave]of[…])` — **`const[` senza spazio**. Il
+        riconoscitore chiedeva `\s+` e quella dichiarazione non la vedeva
+        affatto, quindi i due nomi risultavano liberi. `mascheraCodice` i
+        commenti li toglie già (sono `COMMENTO`, non `CODICE`): il tokenizzatore
+        era quello giusto, a sbagliare era il riconoscitore. Corretto con
+        `\b…\b\s*` e un lookahead: nel repository quella forma compare **due
+        volte**, tutt'e due nel core;
      3. **i flag di una regex**: `gu ×1` in Conti è `/…/gu`.
+   ⏱️ **E i NOVE che restano sono ancora tutti del righello o dichiarabili**,
+   censiti uno per uno perché chi chiude questa forma non li ricerchi:
+     · `XLSX ×8` (core) — libreria da CDN: va in `DA_CDN`, con la ragione;
+     · `dwGrafici ×5/×3/×6` (Campo, Sentinella, Terra) — arriva da uno **script
+       fratello** che non lo espone con `window.X =`, la forma che
+       `nomiDegliScriptFratelli` cerca;
+     · `gu ×1` (Conti) — i **flag di una regex**, `/…/gu`;
+     · `nuovoCli ×4`, `aliquota ×3`, `carburante ×1`, `i ×1` — ⛔ il
+       **dichiaratore su più righe**: `const numero = …, scelta = …,` a capo
+       `nuovoCli = …`. `nomiDichiarati` si ferma al `\n`, quindi tutto ciò che
+       sta dopo la prima riga risulta libero. È la stessa causa di `_fSW` nella
+       misura di un'ora prima, e **non riguarda solo questa forma**: quel
+       riconoscitore sta sotto la prima e la seconda domanda.
    Cioè la quarta forma **si può fare** — l'aspettativa «rumore troppo alto,
-   lasciar perdere» era sbagliata — ma vuole `senzaCommenti` sopra
-   `mascheraCodice` e una decina di nomi in più. Resta **misura** finché non è
-   fatta: una guardia che accusa 35 volte a vuoto insegna a non guardarla.
+   lasciar perdere» era sbagliata. Resta **misura** finché il dichiaratore
+   multi-riga non è chiuso: una guardia che accusa a vuoto insegna a non
+   guardarla, e qui accuserebbe **codice sano**.
    ⚠️ Prima ancora, il righello: senza `\b` davanti al lookahead la regex fa
    backtracking e combacia con un PREFISSO del nome — «escHtml» → «escHtm»,
    «toast» → «toas», 3.354 allarmi tronchi di una lettera. Quarto righello
