@@ -1994,6 +1994,36 @@ numero scritto dove non era stato misurato niente**.*
   cinque casi, e **accetta anche la frase vecchia** (non ho pinnato la nuova al
   posto di quella vecchia). 67 passate, 0 cadute; prodotto non toccato.
 
+- [x] ✅ **«Responsabile da assegnare» detto a una lettura fallita** (`48450a2`).
+  Difetto **vero nel prodotto**, ed è il filo della settimana nella sua forma
+  più pura: un'etichetta tranquilla dove non è stato misurato niente.
+  In Sentinella il responsabile di un'azione correttiva si ricava cercando il
+  suo id nell'elenco dei lavoratori che arriva **da Scudo**, e il ponte diceva
+  `read("lavoratori").catch(() => [])`: una lettura fallita — rete, permessi,
+  l'altra app non raggiungibile — diventava **«non c'è nessuno»**. Misurati i
+  tre stati affiancati, due erano **indistinguibili**:
+  · Scudo letto e il responsabile c'è → «responsabile Mario Rossi»
+  · Scudo letto e davvero non c'è nessuno → «responsabile da assegnare»
+  · **Scudo NON letto** → «responsabile da assegnare» ⛔ **falso**: quell'azione
+    un responsabile ce l'ha, e chi legge la riga può riassegnarla a un altro.
+  Adesso il ponte dichiara la bandiera `leggibile` e `descriviResponsabile` la
+  **legge** (regola 20: una non-misurabilità che non legge nessuno non protegge
+  niente): la frase diventa «responsabile assegnato, il **nome** non si legge da
+  Scudo» — e si stampa in **neretto**, perché è un non-so, non un fatto. Quarto
+  stato che prima non esisteva: id presente ed elenco leggibile ma persona non
+  trovata → «non più in anagrafica», che non è «da assegnare» perché qualcuno
+  era stato scelto. E la modale non toglie più il campo in silenzio: dice
+  perché non si può assegnare da qui.
+  Prove: run-kpi **1908 → 1910**, controprova che morde (rimesso il vecchio
+  comportamento: «atteso false, ottenuto true»), file ripristinato da una copia
+  `cp`. Scatti **guardati** sui due stati, con la schermata visibile dichiarata
+  (`page-dash`): lo stato B in dimostrazione **non si raggiunge premendo i
+  bottoni** — non si sceglie un nome da un elenco che non si legge — quindi il
+  record lo costruisce la pagina e la sonda gli aggiunge l'id, che è esattamente
+  ciò che in produzione lascia un'azione aperta quando Scudo era leggibile e
+  adesso non lo è. Limite dichiarato: in dimostrazione Scudo non si interroga
+  affatto, quindi la frase che si vede sempre è quella del **non leggibile**.
+
 ## Riferimenti
 
 - Ultimo checkpoint **per data vera**:
