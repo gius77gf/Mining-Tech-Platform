@@ -2024,6 +2024,34 @@ numero scritto dove non era stato misurato niente**.*
   adesso non lo è. Limite dichiarato: in dimostrazione Scudo non si interroga
   affatto, quindi la frase che si vede sempre è quella del **non leggibile**.
 
+- [x] ✅ **In Scudo «da assegnare» copriva anche chi non è più in anagrafica**
+  (`079ebe3`). Nata da una riga di ricerca che era **falsa** — diceva che
+  un'azione senza responsabile «appare in lista senza che nessuno sappia che è
+  un buco», e invece Scudo scriveva già «responsabile da assegnare» in due
+  punti. Aprendola per verificarla è saltato fuori il difetto vero, che è
+  **l'opposto**: non l'azione *senza* responsabile, ma quella **con** un
+  responsabile che dall'anagrafica è stato tolto. Percorso ordinario, misurato
+  premendo i bottoni: si rimuove un lavoratore, le sue azioni restano con l'id
+  dentro, e da quel momento dicono «da assegnare» — cioè *nessuno se ne
+  occupa*, di un'azione che un responsabile ce l'ha.
+  **Quattro copie della stessa domanda**, nessuna delle quali conosceva quello
+  stato: le urgenze del Quadro, l'elenco delle azioni, le due righe delle
+  ispezioni (dove il responsabile **spariva** dalla frase invece di dichiararsi),
+  lo scadenzario — e la **quinta nel CSV**, che è il foglio che va all'ispettore.
+  La decisione adesso è una sola e sta in `shared/dw-ponti.js`
+  (`statoResponsabile`, cinque stati); la **frase** resta di ogni app, perché
+  Sentinella nomina Scudo — lo legge da fuori — e Scudo no.
+  ⛔ E la **causa** è dichiarata prima: la finestra che chiede conferma della
+  rimozione elencava le scadenze e taceva sulle azioni e ispezioni di cui quella
+  persona è responsabile. Adesso le conta e dice che restano senza responsabile
+  in anagrafica — è l'ultimo momento in cui si possono riassegnare.
+  Verifiche: `run-kpi` **1910 → 1912**, controprova che morde in **tre** prove;
+  scatto **guardato** con le due frasi diverse **nella stessa schermata** («da
+  assegnare» su a3, «non più in anagrafica» su a1 e a4), e il **CSV scaricato e
+  aperto** che dice le stesse parole dello schermo. ⚠️ Un difetto è stato
+  trovato **nel mio stesso testo** dallo scatto e non dalla rilettura: «1
+  ispezione non ancora **chiuse**».
+
 ## Riferimenti
 
 - Ultimo checkpoint **per data vera**:
