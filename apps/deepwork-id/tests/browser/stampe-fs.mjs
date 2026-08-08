@@ -597,9 +597,15 @@ if (fai("conti")) {
     const f = await pg.evaluate(() => (document.getElementById("stampa") || {}).innerText || "");
     stampati++;
     dice(titolo.test(f), `il foglio composto è davvero «${nome}»`, f.slice(0, 90));
-    /* ⏱️ MISURA, non ancora regola: vedi la nota nella sezione di Flotta */
-    const trCo = await pg.evaluate(TRATTINI, { sel: "#stampa", ammesse: [] });
-    console.log(`     [misura] «${nome}»: ${trCo ? trCo.altri : "?"} trattini «—», colonne: ${JSON.stringify(trCo ? trCo.dove : null)}`);
+    /* ✅ REGOLA dall'08/08, dopo aver giudicato i trattini uno per uno: sui tre
+       fogli ne restavano due, tutt'e due nella colonna «Sconto» del preventivo,
+       e sono GIUSTI — «nessuno sconto» è uno stato vero, non un dato mancante.
+       Quelli della fattura (riga a importo unico) sono stati corretti. Quindi
+       la soglia è zero, con l'unica colonna ammessa dichiarata per nome. */
+    const trCo = await pg.evaluate(TRATTINI, { sel: "#stampa", ammesse: ["Sconto"] });
+    dice(trCo && trCo.altri === 0,
+      `⛔ «${nome}»: nessun trattino «—» fuori da «Sconto», l'unica in cui il vuoto è uno stato vero`, trCo);
+    console.log(`     («${nome}»: ${trCo ? trCo.dichiarati : "?"} trattini in «Sconto», dichiarata)`);
     diceAvviso(/DATI DI ESEMPIO/i.test(f), `⛔ il foglio «${nome}» dichiara di essere fatto di dati di esempio`);
     diceAvviso(/non ha valore fiscale/i.test(f) && /non va esibito a un controllo/i.test(f),
       `e dice che cosa comporta: niente valore fiscale, non si consegna, non si esibisce`);
@@ -776,8 +782,13 @@ if (fai("terra")) {
          «non misurato» non è «a posto». Si stampa l'elenco delle colonne: il
          giudizio è foglio per foglio, e l'08/08 la stessa forma ha dato
          verdetti opposti su app diverse. */
+      /* ✅ REGOLA dall'08/08: misurato, ZERO trattini. Era l'ultimo foglio che
+         nessuna misura raggiungeva — vive in una finestra a parte — e «non
+         misurato» non è «a posto». Nessuna colonna ammessa: qui non ce n'è
+         bisogno, e se un giorno servisse va **dichiarata per nome**. */
       const trTe = await pop.evaluate(TRATTINI, { sel: "body", ammesse: [] });
-      console.log(`     [misura] riepilogo annuale: ${trTe ? trTe.altri : "?"} trattini «—», colonne: ${JSON.stringify(trTe ? trTe.dove : null)}`);
+      dice(trTe && trTe.altri === 0,
+        "⛔ il riepilogo annuale non porta nessun trattino «—»: ogni dato assente si dichiara a parole", trTe);
       await pop.close();
     }
   }
