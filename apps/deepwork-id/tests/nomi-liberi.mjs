@@ -201,7 +201,16 @@ function nomiDichiarati(codice) {
       else if (c === "[") quadra++; else if (c === "]") { if (!quadra) break; quadra--; }
       else if (c === "{") graffa++; else if (c === "}") { if (!graffa) break; graffa--; }
       const fuori = !tondo && !quadra && !graffa;
-      if (fuori && (c === ";" || c === "\n")) break;
+      /* ⛔ UN A CAPO CHIUDE LA DICHIARAZIONE SOLO SE LA CHIUDE DAVVERO. Il
+         dichiaratore multi-riga esiste ed è frequente:
+             const numero = …, scelta = …,
+                   nuovoCli = …,
+         e fermandosi al primo `\n` tutto quello che sta sotto risultava
+         LIBERO — quattro nomi sani accusati, più `_fSW` di Genesi. Si guarda
+         l'ultimo carattere non bianco prima dell'a capo: se è una virgola, la
+         dichiarazione continua. */
+      if (fuori && c === ";") break;
+      if (fuori && c === "\n" && !/,\s*$/.test(codice.slice(Math.max(0, i - 200), i))) break;
       if (fuori && primo && /\s/.test(c) && /^\s*(?:of|in)\s/.test(codice.slice(i))) break;
       /* `=>` non è un `=` di assegnamento, e `==`/`===` non compaiono a
          livello zero dentro una dichiarazione. */
@@ -386,7 +395,16 @@ export function dichiarazioniConPosizione(codice) {
       else if (c === "[") quadra++; else if (c === "]") { if (!quadra) break; quadra--; }
       else if (c === "{") graffa++; else if (c === "}") { if (!graffa) break; graffa--; }
       const fuori = !tondo && !quadra && !graffa;
-      if (fuori && (c === ";" || c === "\n")) break;
+      /* ⛔ UN A CAPO CHIUDE LA DICHIARAZIONE SOLO SE LA CHIUDE DAVVERO. Il
+         dichiaratore multi-riga esiste ed è frequente:
+             const numero = …, scelta = …,
+                   nuovoCli = …,
+         e fermandosi al primo `\n` tutto quello che sta sotto risultava
+         LIBERO — quattro nomi sani accusati, più `_fSW` di Genesi. Si guarda
+         l'ultimo carattere non bianco prima dell'a capo: se è una virgola, la
+         dichiarazione continua. */
+      if (fuori && c === ";") break;
+      if (fuori && c === "\n" && !/,\s*$/.test(codice.slice(Math.max(0, i - 200), i))) break;
       if (fuori && primo && /\s/.test(c) && /^\s*(?:of|in)\s/.test(codice.slice(i))) break;
       if (fuori && primo && c === "=" && codice[i + 1] !== ">" && codice[i + 1] !== "=") { primo = false; continue; }
       if (fuori && c === ",") { chiudi(); continue; }
@@ -468,7 +486,7 @@ export function riferimentiLiberi(relPagina) {
    `NaN`, `AbortSignal`, `devicePixelRatio`. Riusando gli elenchi VERI di questo
    file non resta niente. Il costo era un'impressione, non un numero.
    ⛔ MESSA A TERRA CON GLI ELENCHI VERI e corretta due volte, la misura è scesa
-   a **9** — e il percorso 35 → 34 → 9 vale più del numero d'arrivo, perché ogni
+   a **7** — e il percorso 35 → 34 → 9 → 7 vale più del numero d'arrivo, perché ogni
    scalino era il RIGHELLO e non il prodotto. Le cause, tutte misurate:
      1. **globali e parole chiave** che l'elenco non ha ancora (`NaN`,
         `Infinity`, `AbortSignal`, `caches`, `innerWidth`, `innerHeight`,
@@ -493,12 +511,20 @@ export function riferimentiLiberi(relPagina) {
        fratello** che non lo espone con `window.X =`, la forma che
        `nomiDegliScriptFratelli` cerca;
      · `gu ×1` (Conti) — i **flag di una regex**, `/…/gu`;
-     · `nuovoCli ×4`, `aliquota ×3`, `carburante ×1`, `i ×1` — ⛔ il
-       **dichiaratore su più righe**: `const numero = …, scelta = …,` a capo
-       `nuovoCli = …`. `nomiDichiarati` si ferma al `\n`, quindi tutto ciò che
-       sta dopo la prima riga risulta libero. È la stessa causa di `_fSW` nella
-       misura di un'ora prima, e **non riguarda solo questa forma**: quel
-       riconoscitore sta sotto la prima e la seconda domanda.
+     · ✅ `nuovoCli ×4`, `aliquota ×3` — erano il **dichiaratore su più righe**
+       (`const numero = …, scelta = …,` a capo `nuovoCli = …`): `nomiDichiarati`
+       si fermava al `\n`, quindi tutto ciò che stava sotto la prima riga
+       risultava libero. Stessa causa di `_fSW`, e **non riguardava solo questa
+       forma** — quel riconoscitore sta sotto la prima e la seconda domanda.
+       **Chiuso l'08/08**: un a capo termina la dichiarazione solo se l'ultimo
+       carattere non bianco prima non è una virgola. 9 → 7, e le tre controprove
+       con dentro un difetto vero restano tutte rosse quando devono — che è la
+       prova del **secondo verso**, l'unico che conta quando si ALLARGA un
+       riconoscitore: allargando si rischia di rendere il controllo cieco, non
+       rumoroso;
+     · `carburante ×1`, `i ×1` — il **testo di un template**: la parola sta
+       nella parte letterale di una `` ` ``, fra due `${…}`. Da guardare
+       insieme a `dwGrafici`, non prima.
    Cioè la quarta forma **si può fare** — l'aspettativa «rumore troppo alto,
    lasciar perdere» era sbagliata. Resta **misura** finché il dichiaratore
    multi-riga non è chiuso: una guardia che accusa a vuoto insegna a non
