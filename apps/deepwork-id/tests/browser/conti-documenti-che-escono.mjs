@@ -337,9 +337,37 @@ if (await vaiA("nav-cos", "page-cos")) {
   }
 }
 
+/* ═══════════ pesate/DDT e preventivi ═══════════
+   ⛔ QUI CI SI ASPETTA DI NON TROVARE NIENTE, ed è per questo che si aprono.
+   Tutt'e due sono stati LETTI riga per riga e risultano curati — il DDT legge
+   la bandiera con `valoreDdt`, i preventivi lasciano vuote la quantità e le
+   due metà dello sconto — ma un negativo DEDOTTO non vale niente: su cinque
+   app il censimento statico su questa stessa domanda aveva dato zero mentre i
+   difetti c'erano. Aprirli li porta dal «letto» al «misurato».
+   Le domande sono le due in cui questa famiglia si manifesta nei file: nessuna
+   cella che dica «undefined», «null» o «NaN» — le tre firme di un dato
+   mancante scritto come se fosse un valore — e, sul DDT, che un valore in euro
+   non compaia accanto a una quantità sconosciuta. */
+for (const [nome, nav, pagina, bottone] of [
+  ["conti_pesate_ddt.csv", "nav-pes", "page-pes", "btn-pes-export"],
+  ["conti_preventivi.csv", "nav-ord", "page-ord", "btn-or-export"],
+]) {
+  console.log(`\n════════ ${nome} ════════`);
+  if (!(await vaiA(nav, pagina))) continue;
+  const f = await scarica(bottone);
+  dice(!!f, "il file esce davvero");
+  if (!f) continue;
+  dice(f.righe.length >= 2, "e non è la sola intestazione", f.righe.length);
+  const testo = f.righe.join("\n");
+  dice(!/(^|;)"?(undefined|null|NaN)"?(;|$)/m.test(testo),
+    "nessuna cella dice «undefined», «null» o «NaN»",
+    f.righe.find((r) => /(^|;)"?(undefined|null|NaN)"?(;|$)/.test(r)));
+  dice(!/\bundefined\b/.test(testo), "e nemmeno dentro una frase composta");
+}
+
 await b.close(); srv.close();
 console.log(`\nRisultato documenti che escono da Conti: ${ok} passati, ${ko} falliti`
-  + `  ·  3 punti d'uscita su 12 aperti (gli altri nove NON sono misurati qui)`);
+  + `  ·  5 punti d'uscita su 12 aperti (gli altri sette NON sono misurati qui)`);
 if (CONTROPROVA) {
   console.log(ko > 0 ? "✔ CONTROPROVA: il banco distingue (i KO qui sopra sono voluti)"
                      : "⛔ CONTROPROVA: NON DISTINGUE — rimesso il difetto, nessuna prova è caduta");
