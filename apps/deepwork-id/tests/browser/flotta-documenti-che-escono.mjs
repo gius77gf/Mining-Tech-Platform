@@ -81,10 +81,17 @@
    le parole cambiano, cambiano in tutt'e due i posti e il banco resta verde
    per la ragione giusta.
 
-   ⚠️ E IL CENSIMENTO È DICHIARATO. Questo banco apre **quattro** dei nove
-   punti d'uscita di Flotta. Gli altri cinque — scadenze di legge, costi,
-   ricambi, libretto, fermi macchina — qui NON sono misurati: «quattro su
-   nove» non vuol dire «gli altri cinque vanno bene».
+   ⚠️ E IL CENSIMENTO È DICHIARATO, ADESSO CHIUSO: **nove su nove**. Gli altri
+   cinque documenti — fermi macchina, scadenze di legge, costi, ricambi e il
+   libretto del mezzo — sono stati aperti e sono risultati **puliti**. Il
+   cantiere che aveva letto il codice li dava per puliti, ma un negativo
+   DEDOTTO non vale niente: su cinque app il censimento statico su questa
+   stessa domanda aveva dato zero mentre i difetti c'erano. Adesso è misurato.
+   Su quei cinque le prove sono più larghe (il file esce, non è la sola
+   intestazione, nessuna cella dice «undefined», «null» o «NaN») più, sul
+   libretto, che i vuoti li dichiari a parole: sono i due modi in cui Flotta è
+   già stata morsa. Non è la stessa profondità dei primi quattro, e va detto:
+   «pulito» qui vuol dire «nessuna di QUESTE domande ha trovato niente».
 */
 import { createServer } from "node:http";
 import { readFileSync, existsSync, statSync } from "node:fs";
@@ -412,9 +419,73 @@ if (await vaiA("nav-man", "page-man")) {
   }
 }
 
+/* ═══════════ 5-9 · gli altri cinque documenti ═══════════
+   ⛔ QUI CI SI ASPETTA DI NON TROVARE NIENTE, ED È PROPRIO PER QUESTO CHE SI
+   APRONO. Il cantiere che ha letto il codice li aveva dichiarati puliti, con
+   la riga citata — ma su cinque app il censimento **statico** su questa stessa
+   domanda aveva dato **zero** mentre i difetti c'erano: il modo di misurarlo
+   non è leggere, è premere il bottone e aprire il file. Un negativo misurato
+   vale quanto un difetto; un negativo dedotto non vale niente.
+   Le prove qui sotto non ripetono per ognuno tutta la famiglia: chiedono le
+   due cose che in Flotta sono già morse — che il file non sia vuoto quando lo
+   schermo mostra righe, e che **nessuna cella tranquilla** (uno `0` o una
+   parola fissa) stia dove il dato non c'è. */
+const CONVENZIONI = [
+  ["flotta-fermi-macchina.csv", "nav-mez", "page-mez", "btn-fer-csv"],
+  ["flotta-scadenze-di-legge.csv", "nav-sca", "page-sca", "btn-sca-csv"],
+  ["flotta-costi.csv", "nav-cos", "page-cos", "btn-cos-csv"],
+  ["flotta_ricambi.csv", "nav-man", "page-man", "btn-ric-export"],
+];
+for (const [nome, nav, pagina, bottone] of CONVENZIONI) {
+  console.log(`\n════════ ${nome} ════════`);
+  if (!(await vaiA(nav, pagina))) continue;
+  const f = await scarica(bottone);
+  dice(!!f, "il file esce davvero");
+  if (!f) continue;
+  dice(f.righe.length >= 2, "e non è la sola intestazione", f.righe.length);
+  /* ⚠️ La domanda è sulle celle, non sulle righe: uno zero SCRITTO è un dato
+     (una spesa di zero euro, zero giorni di fermo), quindi non si può
+     accusare uno `0` a vista. Quello che si pretende è più stretto e più
+     onesto: che il file non contenga la parola `undefined` né `null` né `NaN`
+     — le tre firme di un dato mancante scritto come se fosse un valore. */
+  const male = f.righe.filter((r) => /(^|;)"?(undefined|null|NaN)"?(;|$)/.test(r));
+  dice(male.length === 0, "nessuna cella dice «undefined», «null» o «NaN»", male.slice(0, 2));
+  dice(!/\bundefined\b/.test(f.righe.join("\n")),
+    "e nemmeno dentro una frase composta", (f.righe.find((r) => /undefined/.test(r)) || "").slice(0, 120));
+}
+
+console.log("\n════════ libretto-<mezzo>.csv ════════");
+if (await vaiA("nav-mez", "page-mez")) {
+  /* il libretto vive nella scheda di UN mezzo: si apre la prima */
+  await pg.evaluate(() => {
+    const r = document.querySelector("#mez-list .item [data-scheda-mezzo]");
+    if (r) r.click();
+  });
+  await pg.waitForTimeout(600);
+  const aperta = await pg.evaluate(() => {
+    const el = document.getElementById("page-sch");
+    return !!el && getComputedStyle(el).display !== "none";
+  });
+  dice(aperta, "la scheda del mezzo si è aperta");
+  if (aperta) {
+    const f = await scarica("btn-sch-csv");
+    dice(!!f, "il libretto esce davvero");
+    if (f) {
+      dice(f.righe.length >= 2, "e non è la sola intestazione", f.righe.length);
+      dice(!/\bundefined\b/.test(f.righe.join("\n")), "nessun «undefined» nel libretto");
+      /* il libretto è il documento che questa app cura di più: dichiara i
+         vuoti a parole invece di lasciarli vuoti. Si pretende che almeno una
+         di quelle dichiarazioni ci sia, se no vuol dire che il caso non è
+         stato costruito e la prova non sta guardando niente. */
+      const dichiara = f.righe.filter((r) => /nessun|non registrat|non scritto|non calcolabile/i.test(r)).length;
+      dice(dichiara > 0, "e i vuoti li dichiara a parole invece di lasciarli in bianco", dichiara);
+    }
+  }
+}
+
 await b.close(); srv.close();
 console.log(`\nRisultato documenti che escono da Flotta: ${ok} passati, ${ko} falliti`
-  + `  ·  4 punti d'uscita su 9 aperti (gli altri cinque NON sono misurati qui)`);
+  + `  ·  9 punti d'uscita su 9 aperti`);
 /* ⛔ In controprova il rosso è quello VOLUTO: si esce 0 se il banco ha saputo
    distinguere, cioè se almeno una prova è caduta. */
 if (CONTROPROVA) {
