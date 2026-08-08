@@ -170,6 +170,15 @@ const DIFETTI = {
     ['<td>${c.modello ? esc(c.modello) : "non registrato"}</td>',
      '<td>${esc(c.modello || "—")}</td>'],
   ],
+  /* ⛔ CONTI, dall'08/08: i due trattini della riga a IMPORTO UNICO, rimessi.
+     È il difetto vero corretto un'ora prima — quantità e prezzo unitario che
+     su una fattura si leggevano «niente da segnalare» invece di «non
+     dettagliati». Serve perché una regola nuova senza la sua controprova è una
+     riga che non si sa se sappia fallire. */
+  "apps/conti/index.html": [
+    ['<td class="num">non dettagliata</td><td class="num">non dettagliato</td>',
+     '<td class="num">—</td><td class="num">—</td>'],
+  ],
   "apps/sentinella/sentinella-data.js": [
     // 4. il filtro che giudica la data da com'è scritta
     ["    if (!dataUsabile(g)) return false;", "    if (!g) return false;"],
