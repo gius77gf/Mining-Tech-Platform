@@ -298,14 +298,52 @@ Nella roadmap, il ponte P2 (riconciliazione volume vs tonnellate) è il prossimo
 
 ## Verifica del delta (01/08)
 
-> **Verificato contro il codice al commit `4916275`** *(riverificato il 06/08;
-> la verifica precedente era a `e9f9b0d`, sedici commit prima).* Ogni riga qui sotto
+> **Verificato contro il codice al commit `8583a0b`** *(riverificato l'08/08;
+> le verifiche precedenti erano a `4916275` il 06/08 e a `e9f9b0d` il 01/08).*
+> Ogni riga qui sotto
 > era vera **a quel commit**, e non lo è più per forza adesso: il 01/08 una riga è
 > scaduta in **trentacinque minuti**, perché la verifica e il cantiere che la
 > colmava sono girati lo stesso pomeriggio senza sapere l'uno dell'altro.
 > Di quanti commit l'app sia andata avanti da allora lo dice
 > `node apps/deepwork-id/tests/documenti-invecchiati.mjs`. Le righe già trovate
 > scadute portano la loro correzione accanto, con la data.
+>
+> ### 08/08 (terzo passaggio) — tredici commit, cinque che mordono, zero righe mosse
+>
+> Fra `4916275` e `8583a0b` Terra è andata avanti di **13 commit**, **+815
+> righe** e −109. **Cinque** mordono secondo `documenti-invecchiati.mjs`, cioè
+> hanno aggiunto o tolto una `export function` o un `<button>` — è il numero più
+> alto delle sei app, e per questo Terra era il documento da riprendere per
+> primo dopo Sentinella. Quello che hanno costruito:
+> `aEufonica`, `articoloNumero`, `csvRilievi`, `detrazioneRecupero`,
+> `rientroRilievi`, `ripartizioneFronti`, e un bottone **«Scarica rilievi
+> (CSV)»**.
+>
+> **Nessuna di quelle cose è una delle quattro dichiarate assenti**, e la prova
+> è la ricerca sul diff, non la lettura:
+>
+> ```
+> git diff 4916275 HEAD -- apps/terra/ | grep -E "^\+" \
+>   | grep -oEi "\b(cut|fill|taglio|riempimento|stockpile|detection|pit|
+>                   scheduling|floating|cone|conical)\b" | sort | uniq -c
+> →  (niente)
+> ```
+>
+> **Zero occorrenze su 11 termini in 815 righe aggiunte.** Sui file interi
+> restano quattro parole, tutte già note e tutte estranee al mestiere di cui
+> parlano le righe: `fill`=17 è l'attributo di disegno degli SVG (`fill=%27…`
+> nelle icone), `taglio`=5 è il nome della classe CSS `dwg-taglio` (una linea
+> tratteggiata), `riempimento`=2 è un commento sulla barra di avanzamento, e
+> l'unico `floating` è la frase «*floating-point number*» in un commento su come
+> il browser sanitizza i decimali (`terra-data.js:275`). `cut`, `stockpile`,
+> `detection`, `pit`, `scheduling`, `cone`, `conical`: **zero**.
+>
+> ⚠️ **E i confini di parola non sono un dettaglio**: è la lezione pagata
+> un'ora prima riverificando Sentinella, dove una ricerca senza confini dava
+> cinque falsi allarmi su cinque (`LoRa` dentro «co·lora·to», `m/s` dentro
+> `mm/s`, che è l'unità della PPV). Qui senza confini `pit` e `cut` sarebbero
+> entrati in decine di parole italiane e inglesi, e la riverifica avrebbe
+> proposto lavoro su mancanze immaginarie.
 >
 > ### 06/08 (secondo passaggio) — riallineato al commit `4916275`
 >
