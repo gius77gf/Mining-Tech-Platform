@@ -4368,7 +4368,20 @@ label.item:has(.dw-chk:checked){
                 diversa da «non lo sappiamo». `perc(null)` faceva 0%. */""}
           <td class="num">${r.aliquota == null ? "—" : perc(r.aliquota)}</td>
           <td class="num">${r.imponibile == null ? "—" : eur(r.imponibile)}</td></tr>`).join("")
-      : `<tr><td>Fornitura di materiali inerti</td><td class="num">—</td><td class="num">—</td>
+      : `<tr><td>Fornitura di materiali inerti${/* ⛔ QUANTITÀ E PREZZO UNITARIO NON SONO «—», SONO NON DETTAGLIATI.
+             Questa riga esce quando la fattura è registrata a IMPORTO UNICO,
+             senza il dettaglio delle righe: quei due dati non mancano per
+             sbaglio, non ci sono PER SCELTA. Due trattini in mezzo a una
+             tabella di numeri si leggono «niente da segnalare» — e su una
+             fattura, che è un documento fiscale, la differenza fra «non
+             dettagliato» e «vuoto» la nota chi la legge. Misurato l'08/08
+             premendo il bottone e leggendo il foglio: erano gli ultimi due
+             trattini non giudicati dei cinque fogli.
+             L'aliquota invece il trattino lo TIENE, ed è la decisione scritta
+             dodici righe più su: su una fattura un'aliquota che non c'è è la
+             dichiarazione di un'operazione non imponibile, cioè una cosa vera,
+             non un'assenza. Tre celle, due risposte diverse. */""}</td>
+          <td class="num">non dettagliata</td><td class="num">non dettagliato</td>
           <td class="num">${im.conIva ? (im.aliquota == null ? "—" : perc(im.aliquota)) : "n.d."}</td>
           <td class="num">${eur(im.conIva ? im.imponibile : im.totale)}</td></tr>`;
     /* IL PIEDE DEL FOGLIO: una riga per ALIQUOTA, non una media.
