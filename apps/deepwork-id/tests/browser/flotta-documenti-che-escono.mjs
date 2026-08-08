@@ -146,6 +146,11 @@ const DIFETTI = [
      una prova che nessuna iniezione può far cadere è una prova che non
      dimostra niente — anche quando il riepilogo intorno a lei è rosso. */
   ["    if (p.senzaData) {", "    if (false) {"],
+  /* 6 · il file perde una riga in silenzio e la FRASE non se ne accorge: è la
+     forma esatta del difetto che il confronto frase↔file esiste per prendere.
+     Un mezzo sparisce dalla situazione, e il riepilogo continua a dire sei. */
+  ["    for (const m of MEZ.slice().sort((a, b) => a.nome.localeCompare(b.nome, \"it\")))",
+   "    for (const m of MEZ.slice(1).sort((a, b) => a.nome.localeCompare(b.nome, \"it\")))"],
 ];
 
 /* I casi si montano nel MODULO servito, mai sul disco: la cartella viva resta
@@ -286,8 +291,41 @@ const vaiA = async (navId, pageId) => {
   dice(viva, `sono davvero sulla schermata ${pageId}`);
   return viva;
 };
+/* ⛔ LA FRASE DI RIEPILOGO E IL FILE SONO DUE USCITE DELLA STESSA AZIONE.
+   La domanda di `CLAUDE.md` nomina tre cose che escono: «un CSV, un PDF, una
+   FRASE DI RIEPILOGO». Le prime due sono state girate; questa è la terza, e ha
+   una forma meccanica: **il numero che la frase dichiara deve essere il numero
+   di righe che il file contiene**. Se divergono, una delle due mente — e quella
+   che l'utente legge è la frase.
+   La forma in cui divergono è sempre la stessa: la frase conta l'array
+   SORGENTE (`INT.length`, `CTR.length`) mentre il file ne scrive un
+   sottoinsieme, perché il ciclo filtra. Qui si prende la frase visibile dopo il
+   click e la si confronta con le righe vere.
+   ⚠️ Non tutte le frasi portano un numero («Libretto macchina esportato»):
+   quelle si contano a parte e si dichiarano, invece di far finta che la
+   domanda non le riguardi. */
+let fraseConNumero = 0, fraseSenzaNumero = 0;
+const fraseDopoIlClick = async () => pg.evaluate(() => {
+  const vive = [...document.querySelectorAll(".esito, .note.esito, #toast, .toast")]
+    .filter((e) => e.textContent.trim() && getComputedStyle(e).display !== "none");
+  /* ⚠️ DEDUPLICATE: la stessa frase compare spesso in DUE elementi — la nota
+     della scheda e il toast — e sommandone i numeri il conto raddoppia
+     (`[6,3,1,6,3,1]` invece di `[6,3,1]`). Due copie della stessa frase sono
+     una frase sola. */
+  return [...new Set(vive.map((e) => e.textContent.replace(/\s+/g, " ").trim()))].join(" | ");
+});
 const scarica = async (btn) => {
   await pg.evaluate(() => { window.__scaricati = []; });
+  /* ⛔ SI AZZERANO LE FRASI PRIMA DI PREMERE. La prima stesura leggeva tutti
+     gli `.esito` visibili DOPO il click, e ne raccoglieva anche di vecchi —
+     rimasti a schermo da un export precedente — quindi il «primo numero della
+     frase» era il conto di un'altra esportazione: otto KO tutti falsi, con la
+     prova che li smentiva stampata accanto («Esportati: 6 mezzi… | Esportati 2
+     giri macchina»). Il righello, non il soggetto, per l'ennesima volta: la
+     frase da guardare è quella che nasce da QUESTO click. */
+  await pg.evaluate(() => {
+    for (const e of document.querySelectorAll(".esito, .note.esito, #toast, .toast")) e.textContent = "";
+  });
   await pg.click("#" + btn).catch(() => {});
   await pg.waitForTimeout(500);
   const g = await pg.evaluate(() => window.__scaricati);
@@ -303,8 +341,34 @@ const scarica = async (btn) => {
   const testo = href.startsWith("blob:")
     ? await pg.evaluate((u) => fetch(u).then((r) => r.text()), href)
     : decodeURIComponent(href.slice(href.indexOf(",") + 1));
-  return { nome: g[g.length - 1].nome,
-           righe: testo.replace(/^﻿/, "").split(/\r?\n/).filter(Boolean) };
+  const righe = testo.replace(/^﻿/, "").split(/\r?\n/).filter(Boolean);
+  /* il confronto frase↔file: si guarda il PRIMO numero della frase, che è
+     quello del conto («Esportati 12 interventi»), e lo si mette accanto alle
+     righe di dato (tolta l'intestazione). */
+  /* ⚠️ LA PRIMA STESURA DI QUESTO CONFRONTO SBAGLIAVA TRE VOLTE SU OTTO, e i
+     tre KO erano tutti il righello: prendeva il PRIMO numero della frase e lo
+     voleva uguale alle righe. Ma «Esportati: 6 mezzi, 3 manutenzioni, 1
+     ricambio» porta TRE conti (e 6+3+1 fa esattamente le 10 righe del file);
+     «Esportate 3 scadenze, più 3 mezzi senza nessuna» ne porta due; e la lista
+     della spesa ha una riga in più che è l'AVVERTENZA sugli interventi fuori
+     dal conto, non un dato. Un allarme che sbaglia tre volte su otto insegna a
+     non guardarlo — e il prodotto, in tutt'e tre i casi, aveva ragione.
+     La domanda giusta è più larga di un'uguaglianza e resta stretta abbastanza
+     da mordere: **le righe di DATO del file devono essere fra i numeri che la
+     frase dichiara, o la loro somma.** Le righe senza `;` non sono dati (sono
+     avvertenze in coda, una cella sola), e l'intestazione non si conta. */
+  const frase = await fraseDopoIlClick();
+  const numeri = [...frase.matchAll(/(\d[\d.]*)(?!\s*[€%])/g)]
+    .map((x) => +x[1].replace(/\./g, "")).filter((x) => Number.isFinite(x));
+  if (numeri.length) {
+    fraseConNumero++;
+    const dati = righe.slice(1).filter((r) => r.includes(";")).length;
+    const somma = numeri.reduce((t, x) => t + x, 0);
+    dice(numeri.includes(dati) || somma === dati,
+      `le righe del file sono fra i numeri che la frase dichiara (${btn})`,
+      { frase: frase.slice(0, 100), numeri, righeDiDato: dati });
+  } else fraseSenzaNumero++;
+  return { nome: g[g.length - 1].nome, righe };
 };
 const colonna = (riga, i) => (riga.split(";")[i] || "").replace(/^"|"$/g, "").replace(/""/g, '"');
 
@@ -484,6 +548,7 @@ if (await vaiA("nav-mez", "page-mez")) {
 }
 
 await b.close(); srv.close();
+console.log(`  ·  frasi di riepilogo confrontate col file: ${fraseConNumero} · senza un numero da confrontare: ${fraseSenzaNumero}`);
 console.log(`\nRisultato documenti che escono da Flotta: ${ok} passati, ${ko} falliti`
   + `  ·  9 punti d'uscita su 9 aperti`);
 /* ⛔ In controprova il rosso è quello VOLUTO: si esce 0 se il banco ha saputo
