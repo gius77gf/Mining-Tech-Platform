@@ -1770,7 +1770,12 @@ body.dw b.bad{color:var(--ink-dg)}
     // caso si mostra il totale e l'etichetta lo dichiara.
     const meseOra = oggiISO().slice(0, 7);
     const carb = COS.filter(c => /carburante/i.test(c.voce || ""));
-    const carbConData = carb.filter(c => /^\d{4}-\d{2}-\d{2}$/.test(String(c.data || "").slice(0,10)));
+    /* ⛔ «ha una data» si decide con `dataISOEsiste`, non con la FORMA: «2026-02-30»
+       ha la forma giusta e non esiste — `Date.parse` non la rifiuta, la fa SCORRERE
+       al 2 marzo. La regola sta in `shared/` da mesi ed è la stessa che lo
+       scadenzario usa già; qui la pagina se n'era tenuta una copia più debole in
+       otto punti, compresa la cella del CSV che va al commercialista. */
+    const carbConData = carb.filter(c => dataISOEsiste(String(c.data || "").slice(0,10)));
     const carbMese = carbConData.filter(c => String(c.data).slice(0,7) === meseOra)
                                 .reduce((t, c) => t + (+c.importo || 0), 0);
     const carbValore = carbConData.length ? carbMese : k.carburante;
@@ -2321,7 +2326,7 @@ body.dw b.bad{color:var(--ink-dg)}
     // «senza data»: si vedono, si contano, e con la matita si sistemano.
     const dataCos = (c) => {
       const iso = String(c.data || "").slice(0, 10);
-      return /^\d{4}-\d{2}-\d{2}$/.test(iso)
+      return dataISOEsiste(iso)
         ? dataIt(iso)
         : `<span class="nodata">${I.tempo}senza data</span>`;
     };
@@ -3292,7 +3297,7 @@ body.dw b.bad{color:var(--ink-dg)}
         "Pianifica");
       if (nx && String(nx.data || "").trim() !== "") {
         const iso = String(nx.data).slice(0, 10);
-        if (/^\d{4}-\d{2}-\d{2}$/.test(iso)) {
+        if (dataISOEsiste(iso)) {
           await db.aggiungi("manutenzioni", { titolo: px.titolo, mezzo: px.mezzo, dataPrevista: iso,
             orePreviste: null, ricambioId: px.ricambioId, ogniOre: null, ogniMesi: px.ogniMesi,
             piano: px.piano, origine: "piano", nota: null, stato: "da-fare",
@@ -3643,12 +3648,12 @@ body.dw b.bad{color:var(--ink-dg)}
       const r = await chiediDati("Data della spesa",
         `<b>${esc(c.voce)}</b> — ${eur(c.importo)}.`,
         [{ id: "data", label: "Giorno a cui si riferisce", tipo: "date",
-           valore: /^\d{4}-\d{2}-\d{2}$/.test(iso0) ? iso0 : "",
+           valore: dataISOEsiste(iso0) ? iso0 : "",
            aiuto: "Se lo lasci vuoto la voce resta <b>senza data</b>: continuerà a contare nel totale e in «dove va la spesa», ma non nell'andamento mese per mese." }],
         "Salva");
       if (r === null) return;
       const iso = String(r.data || "").slice(0, 10);
-      if (iso && !/^\d{4}-\d{2}-\d{2}$/.test(iso)) { esito("cos-esito", "La data non è valida: riprova.", "err"); return; }
+      if (iso && !dataISOEsiste(iso)) { esito("cos-esito", "La data non è valida: riprova.", "err"); return; }
       if (iso === iso0 || (!iso && !iso0)) return;      // niente da salvare
       await db.aggiorna("costi", c.id, { data: iso || null });
       esito("cos-esito", iso ? "Data aggiornata: " + c.voce + " → " + dataIt(iso) + "." : "Data tolta: " + c.voce + " torna senza data.", "success");
@@ -3859,7 +3864,11 @@ body.dw b.bad{color:var(--ink-dg)}
   $("btn-cos").onclick = async () => {
     const voce = $("cos-voce").value.trim();
     const iso = String($("cos-data").value || "").slice(0, 10);
-    const gg = /^\d{4}-\d{2}-\d{2}$/.test(iso)
+    /* ⚠️ e qui la forma faceva peggio che dire una bugia: su «2026-02-30»
+       `Date.parse` scorre al 2 marzo e i giorni di distanza uscivano SBAGLIATI
+       invece che sconosciuti. Con `dataISOEsiste` resta `NaN`, che il codice
+       qui sotto sa già raccontare. */
+    const gg = dataISOEsiste(iso)
       ? Math.round((Date.parse(iso + "T12:00:00") - Date.parse(oggiISO() + "T12:00:00")) / 86400000) : NaN;
     const dataOk = !iso || (Number.isFinite(gg) && gg >= -3650 && gg <= 365);
     if (!voce || !dataOk) {
@@ -3893,12 +3902,12 @@ body.dw b.bad{color:var(--ink-dg)}
   $("btn-cos-csv").onclick = () => {
     const righe = ["data;voce;importo;nota"].concat(
       COS.slice().sort((a, b) => String(a.data || "").localeCompare(String(b.data || "")))
-        .map(c => [/^\d{4}-\d{2}-\d{2}$/.test(String(c.data || "").slice(0,10)) ? String(c.data).slice(0,10) : "",
+        .map(c => [dataISOEsiste(String(c.data || "").slice(0,10)) ? String(c.data).slice(0,10) : "",
                    c.voce || "", (+c.importo) || 0, c.nota || ""].map(csvCell).join(";")));
     const a = document.createElement("a");
     a.href = URL.createObjectURL(new Blob(["﻿" + righe.join("\r\n")], { type: "text/csv;charset=utf-8" }));
     a.download = "flotta-costi.csv"; marchiaCsv(a); a.click();
-    const senza = COS.filter(c => !/^\d{4}-\d{2}-\d{2}$/.test(String(c.data || "").slice(0,10))).length;
+    const senza = COS.filter(c => !dataISOEsiste(String(c.data || "").slice(0,10))).length;
     esito("cos-esito", plurale(COS.length, "Esportata ", "Esportate ") + conta(COS.length, "voce di costo", "voci di costo") + " (CSV)"
       + (senza ? ", di cui " + senza + " senza data." : "."), "success");
   };
