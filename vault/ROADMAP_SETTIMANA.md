@@ -1510,11 +1510,26 @@ numero scritto dove non era stato misurato niente**.*
   denominatore stampato e ognuna con una controprova che porta dentro un difetto
   **vero** (il `conta` di Terra, il `somma` di `terra-data`, il
   `RIPOSO_MINIMO_ORE` di Campo).
+- [x] ✅ **Flotta · i trattini diventano regola, e l'eccezione che non si
+  riusciva a nominare era un difetto**. Guardati uno per uno i quattro trattini
+  rimasti sul libretto macchina: cinque sono **risposte vere** e stanno
+  nell'elenco **per nome** («Quota», spenta di proposito perché sommare
+  percentuali non ha senso; «Consumo», «Gasolio», «Ore motore», «Officina», le
+  tessere dove il commento del codice dice già «non misurato non è zero» — e
+  dove quel «—» ha **sostituito** un «€ 0,00» in verde). ⛔ Il sesto **non è
+  finito in elenco**, ed è la parte che insegna: il conto dei giorni di un fermo
+  senza data d'inizio scriveva «—» accanto a righe che dicono «11 giorni», cioè
+  «nessun giorno». La sua etichetta è la frase intera della riga, quindi
+  nominarlo sarebbe stato **fragile** — e la via giusta non era allargare la
+  regola, era **dare la parola al prodotto**: adesso scrive «non calcolabili».
+  **Un'eccezione che non si riesce a nominare è spesso il segno che non è
+  un'eccezione.** ⚠️ E una prova esistente era agganciata **al segno** invece
+  che alla cosa: pretendeva il trattino. Ora pretende la parola.
 
 ## Riferimenti
 
 - Ultimo checkpoint **per data vera**:
-  `vault/checkpoints/20260808-022101_il-giro-rilanciato-sul-commit-corrente.md`
+  `vault/checkpoints/20260808-022849_l-eccezione-che-non-si-riusciva-a-nominare.md`
   *(dato da `node apps/deepwork-id/tests/date-checkpoint.mjs`, non letto a occhio:
   per NOME il più alto sarebbe `20260805-100000_…`, che è stato scritto **tre
   giorni prima**. Questa riga era ferma al 01/08: il puntatore al file più
