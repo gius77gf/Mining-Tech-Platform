@@ -1598,6 +1598,38 @@ numero scritto dove non era stato misurato niente**.*
   **opposto** (che un nome importato esista dall'altra parte). ⏱️ **I moduli
   restano fuori dalla quarta domanda e nessun altro controllo li copre**:
   dichiarato nel riepilogo invece che taciuto.
+- [x] ✅ **La quarta domanda anche nei MODULI** (`bad3fc4`), cioè il buco
+  dichiarato un'ora prima. `nomi-liberi` **19 → 22 prove**, e la strada dai
+  **67 allarmi allo ZERO** è stata tutta di **righello**, nessuno di prodotto:
+  1. i **parametri dei metodi abbreviati** — `nomiLegati` legava il **nome**
+     del metodo e non i suoi argomenti, perché un metodo non ha la parola
+     `function` (11 nel solo SDK), e non si vedeva perché le prime tre domande
+     un parametro non lo incontrano: non si chiama e non sta in un `${…}`;
+  2. le **ri-esportazioni** — `export { A, B } from "…"` non dichiara e non
+     usa, **inoltra** (6 in Campo);
+  3. `globalThis` e `self` mancanti fra i globali, e `self` è il globale di un
+     **service worker**, dove `window` non esiste (5 in `genesi-sw.js`);
+  4. il **valore di default che tronca l'elenco dei parametri**: con `[^)]*`
+     la cattura finiva sulla parentesi di `new Date()` e tutto quello che
+     veniva dopo restava libero (`preavvisoGiorni` ×10, `semestre` ×4) — otto
+     dei nove ultimi.
+  ⚠️ **Il costo della stretta è misurato e dichiarato, non arrotondato**:
+  entrano **24 nomi su 10.711** già legati, in 4 file. Diciannove sono
+  parametri veri, tre sono cifre, `null` è già una parola chiave: resta **una
+  sola cecità vera**, `getFullYear`, scritta accanto al codice.
+  ⚠️ E due inciampi che valgono più della correzione: la suite **non finiva
+  più** (due `\s*` separati da gruppi opzionali che mangiano spazi — con
+  `[ \t]` torna lineare), e il **primo soggetto della controprova era
+  sbagliato** (`SOGLIA_TURNI` in `terra-data.js` non è dichiarato, sta in una
+  ri-esportazione): a fermarlo è stata la riga «l'iniezione non ha sostituito
+  niente», che è lì apposta.
+- [x] ✅ **Tolte 191 `git worktree` morte** (3 GB liberati). Non è
+  manutenzione oziosa: una di quelle — `giro-copia-7002`, su un commit
+  vecchio — era la cartella che un `python3 -m http.server` **sopravvissuto al
+  riavvio del contenitore** stava ancora servendo sulla porta 8823 da **7 ore
+  e 52 minuti**. Il giro nuovo si è fermato da sé («gli ho chiesto il mio
+  contrassegno e mi ha risposto niente») invece di misurare la copia di
+  qualcun altro: la difesa scritta in CLAUDE.md ha funzionato alla lettera.
 
 ## Riferimenti
 
