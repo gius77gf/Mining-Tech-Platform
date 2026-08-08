@@ -744,6 +744,9 @@ const tendineTagliate = new Set();
 let inciampi = 0, restate = 0, forzate = 0, sviate = 0, scese = 0;
 const interrotte = [];
 const raggiunte = [], nonRaggiunte = [];
+/* le superfici che non hanno modali PER COSTRUZIONE: non sono mancate, e
+   tenerle nel conto delle mancate falserebbe il denominatore in basso */
+const senzaModali = [];
 const censimento = [];
 const visto = new Set();
 
@@ -941,10 +944,29 @@ for (const [nome, via] of SUPERFICI) {
   censimento.push({ app: nome, esistono, aperte: titoli.size, conto, quali: [...titoli], programma, candidati: candidatiQui, provati: clickQui });
   if (aperteQui === 0) {
     nonRaggiunte.push(nome);
-    if (candidatiQui === 0) {
+    if (esistono === 0) {
+      /* ⛔ LA TERZA DIAGNOSI, e mancava proprio sulla pagina che il fondatore
+         apre per prima. L'08/08 la vetrina usciva come «NON RAGGIUNTA — il
+         banco non ci è arrivato: accesso, navigazione o selettore», cioè con
+         la diagnosi che sul core è costata due giorni di caccia al selettore.
+         Misurato aprendo `apps/index.html`: **zero** `<button>`, zero
+         `onclick`, zero `<summary>`, zero modali — quattro `<a href>` e basta.
+         È una vetrina statica: non c'è niente da aprire **per costruzione**.
+         Il conto dei candidati non basta a separarle, perché qui è zero in
+         tutt'e due i casi; il numero che le separa è quante modali il suo
+         programma ne contiene, e il banco ce l'ha già in mano.
+         ⚠️ Perché conta: queste righe sono quelle che questo repository legge
+         PRIMA dei KO. Una riga che accusa il banco dove non c'è niente da
+         accusare insegna a non leggerle — ed è il modo più veloce di perdere
+         il controllo più prezioso che c'è. */
+      console.log(`  ✓  ${nome}: NIENTE DA APRIRE — questa superficie non ha modali nel suo programma`
+        + ` (zero comandi cliccabili, zero finestre): non è un buco del banco, è com'è fatta.`);
+      nonRaggiunte.pop();   // non è una superficie mancata: non va nel conto
+      senzaModali.push(nome);
+    } else if (candidatiQui === 0) {
       console.log(`  ⚠️  ${nome}: NON RAGGIUNTA — zero comandi cliccabili trovati in tutte le sezioni.`
         + ` Il banco non ci è arrivato: accesso, navigazione o selettore.`
-        + (esistono ? ` (nel suo programma ce ne sono ${esistono} da aprire)` : ''));
+        + ` (nel suo programma ce ne sono ${esistono} da aprire)`);
     } else {
       console.log(`  ⚠️  ${nome}: RAGGIUNTA MA SENZA DATI — ${candidatiQui} comandi cliccabili trovati,`
         + ` ${clickQui} provati, 0 modali aperte. Il banco ci è arrivato e non c'era niente da aprire:`
@@ -994,7 +1016,8 @@ console.log(`\n${appPulite} superfici pulite, ${ko} cose da guardare (contate pe
 console.log(`   riga sbagliata a 390 e a 320 sono due misure, non una)`);
 console.log(`soggetti guardati: ${apertePerTutti} aperture di modale, ${elementiPerTutti} elementi misurati, `
   + `${opzioniPerTutti} voci di tendina, ${clickPerTutti} comandi provati, `
-  + `${raggiunte.length} superfici raggiunte su ${raggiunte.length + nonRaggiunte.length}`);
+  + `${raggiunte.length} superfici raggiunte su ${raggiunte.length + nonRaggiunte.length}`
+  + (senzaModali.length ? `, più ${senzaModali.length} senza modali per costruzione (${senzaModali.join(', ')})` : ''));
 /* ⚠️ DICHIARATE, NON BOCCIATE, e la ragione è già misurata: il commento di
    `shared/dw-app-ui.css` racconta il conto del 31/07 — 19 tendine su 84
    tagliano almeno un'opzione a 390 px e NESSUNA diventa ambigua. Un banco che
