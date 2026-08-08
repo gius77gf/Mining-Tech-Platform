@@ -1724,6 +1724,20 @@ numero scritto dove non era stato misurato niente**.*
   sei suite **2.310**, giro completo **2.576**, e **ogni** addendo della nota
   era vecchio (sintassi 15 → 34, import 134 → 140, nomi liberi 7 → 24).
 
+- [x] ✅ **`giro-sicurezza`: un comando solo per la barriera fra aziende
+  concorrenti** (`40640da`). La scoperta dell'unità prima era scritta in un
+  checkpoint, cioè in un posto che si dimentica: ora è un comando che alza
+  l'emulatore da sé e prova **95 casi** (68 regole di sicurezza, 19 SDK, 8
+  primo avvio), tre giri su tre. ⛔ **Dichiara quello che non ha guardato,
+  sopra il riepilogo e non in fondo**: `run-fns.mjs` (21) vuole l'emulatore
+  delle funzioni, che qui non parte. ⛔ **E se `firebase` o `java` non
+  rispondono si ferma dicendolo (uscita 2)** invece di stampare «0 caduti», che
+  sarebbe il verde più falso che ci sia. Controprova nei due versi: una suite
+  **inesistente** → «non ha girato», una suite che **gira e fallisce** → ✗ col
+  conto vero, tutt'e due 0 su 1 e uscita 1. ⚠️ Il conto si legge dalla **riga
+  di riepilogo della suite**, non dall'uscita del processo: un processo può
+  uscire 0 anche senza aver provato niente.
+
 ## Riferimenti
 
 - Ultimo checkpoint **per data vera**:
