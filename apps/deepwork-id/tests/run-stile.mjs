@@ -287,6 +287,16 @@ const MODULI = [
      guardava, ed è il file che le sei app caricano tutte. */
   ["struttura condivisa", "shared/dw-app-ui.js"],
   ["guscio SDK", "shared/deepwork-id-client/dw-shell.js"],
+  /* ⛔ ENTRATI L'08/08, e non perché siano nuovi: erano **fuori da ogni regola
+     di questo file** da sempre, perché `MODULI` è un elenco scritto a mano e
+     — a differenza di `SUPERFICI` — nessuno lo confrontava col disco. Il
+     confronto sta qui sotto; questi tre sono quello che ha trovato al primo
+     colpo. `index.js` è l'SDK da cui passa **ogni** accesso ai dati di ogni
+     app, e `dw-tema.js` è il motore dei temi, cioè proprio il file su cui le
+     regole del colore avrebbero più da dire. */
+  ["SDK identità", "shared/deepwork-id-client/index.js"],
+  ["motore dei temi", "shared/dw-tema.js"],
+  ["animazioni fluide", "shared/dw-fluido.js"],
   ["ponti fra le app", "shared/dw-ponti.js"],
   ["Genesi (formato)", "apps/genesi/genesi-formato.js"],
   ["Genesi (dati)", "apps/genesi/genesi-data.js"],
@@ -336,6 +346,63 @@ console.log("\n── L'elenco delle superfici è completo ──");
     ok(fantasmi.length === 0, `SUPERFICI nomina file che non esistono più: ${fantasmi.join(", ")}`);
     ok(escluseSparite.length === 0,
       `FUORI_SUPERFICI esclude file che non ci sono più: ${escluseSparite.join(", ")} — righe da togliere`);
+  });
+}
+
+/* ⛔ E L'ELENCO DEI MODULI NON ERA CONFRONTATO CON NIENTE — trovato l'08/08.
+   `SUPERFICI` aveva la sua guardia dal 03/08 (qui sopra); `MODULI` no, ed è
+   scritto a mano nello stesso file, dieci righe più in là. La misura al primo
+   colpo: **tre moduli condivisi fuori da OGNI regola di questo file**, e non
+   perché fossero nuovi —
+   · `shared/deepwork-id-client/index.js`, l'SDK da cui passa **ogni** accesso
+     ai dati di **ogni** app;
+   · `shared/dw-tema.js`, il motore dei temi, cioè proprio il file su cui le
+     regole del colore avrebbero più da dire;
+   · `shared/dw-fluido.js`.
+   Aggiunti: le prove passano da 300 a **309** e **nessuna cade** — quindi lì
+   dentro non si nascondeva un difetto. Il punto non è quello che si è trovato:
+   è che per trovarlo bisognava **avere l'idea di guardare**, e la guardia
+   toglie quel bisogno.
+   ⚠️ È la stessa lezione di stanotte per la terza volta: l'elenco `BROWSER` di
+   `numeri-nei-documenti` guardava due documenti su tre, la somma scritta di
+   `DEVELOPMENT.md` non la guardava nessuno, e qui un elenco a mano stava
+   accanto a uno sorvegliato. **Un elenco scritto a mano si accorcia da solo, e
+   ogni volta che si accorcia il verde che stampa vale un po' meno.** */
+const FUORI_MODULI = {
+  "apps/genesi/pointcloud.js":
+    "il lettore di nuvole di punti e mesh: matematica pura, nessun testo "
+    + "d'interfaccia e nessun colore — le regole di questo file non hanno "
+    + "niente da dirgli. Le sue prove stanno in run-pointcloud.mjs (32).",
+};
+function tuttiIModuli(dir = "", trovate = []) {
+  for (const v of readdirSync(join(root, dir), { withFileTypes: true })) {
+    if (["node_modules", ".git", "vendor", "tests", "functions", "img", "immagini"].includes(v.name)) continue;
+    const rel = dir ? `${dir}/${v.name}` : v.name;
+    if (v.isDirectory()) { if (rel === "shared" || rel === "apps" || rel.startsWith("shared/") || rel.startsWith("apps/")) tuttiIModuli(rel, trovate); continue; }
+    /* i moduli del prodotto: i dati delle app e tutto ciò che sta in shared/.
+       Restano fuori i service worker (li compila `sintassi-pagine`) e i file
+       che non sono moduli ESM. */
+    if (!v.name.endsWith(".js")) continue;
+    if (/(^|-)sw\.js$/.test(v.name)) continue;
+    if (rel.startsWith("shared/") || /-data\.js$/.test(v.name) || /-formato\.js$/.test(v.name) || v.name === "pointcloud.js") trovate.push(rel);
+  }
+  return trovate;
+}
+console.log("\n── L'elenco dei moduli è completo ──");
+{
+  const sulDisco = tuttiIModuli().sort();
+  const conosciuti = new Set(MODULI.map(([, r]) => r));
+  const dimenticati = sulDisco.filter((r) => !conosciuti.has(r) && !(r in FUORI_MODULI));
+  const fantasmi = [...conosciuti].filter((r) => r.endsWith(".js") && !sulDisco.includes(r));
+  const escluseSparite = Object.keys(FUORI_MODULI).filter((r) => !sulDisco.includes(r));
+  test(`ogni modulo del prodotto è guardato o escluso con la ragione (${sulDisco.length} file .js)`, () => {
+    ok(sulDisco.length >= 14, `solo ${sulDisco.length} moduli trovati: la scansione delle cartelle non sta guardando niente`);
+    ok(dimenticati.length === 0,
+      `${dimenticati.length} moduli che nessuna regola guarda → ${dimenticati.join(", ")}`
+      + " — o entrano in MODULI, o la ragione va scritta in FUORI_MODULI");
+    ok(fantasmi.length === 0, `MODULI nomina file che non esistono più: ${fantasmi.join(", ")}`);
+    ok(escluseSparite.length === 0,
+      `FUORI_MODULI esclude file che non ci sono più: ${escluseSparite.join(", ")} — righe da togliere`);
   });
 }
 

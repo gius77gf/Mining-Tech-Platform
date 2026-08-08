@@ -68,8 +68,8 @@ Il racconto è in `docs/IL_CONFORME_CHE_NESSUNO_HA_MISURATO.md`.
   impediscono a un'app di riscriversene una propria.
 
 **Quanto è controllato, oggi** *(ricontato il 02/08 lanciando le suite, non a
-memoria)*: **2.310** prove automatiche che girano senza rete — **1890** sulle
-funzioni delle app, **300** sulle regole di stile, 71 sugli aiuti condivisi, 32
+memoria)*: **2.320** prove automatiche che girano senza rete — **1890** sulle
+funzioni delle app, **310** sulle regole di stile, 71 sugli aiuti condivisi, 32
 sulla nuvola di punti, 9 sul manifesto, 8 sulla demo — più **116** che girano
 con l'emulatore Firestore (**68** sulle **regole di sicurezza**, 19 sull'SDK, 21
 sulle funzioni, 8 sul primo avvio) e **153 esecuzioni** che aprono davvero le
@@ -81,7 +81,7 @@ contenitore non parte perché chiede la rete e la politica la nega. Il numero
 era 58 e non 68 perché nessuno l'aveva più lanciato in casa: la suite delle
 regole si lancia con* `firebase emulators:exec --only firestore --project
 demo-deepwork "cd tests && node run.mjs"`.
-*(⚠️ Il **2.310** conta sei suite: il giro completo ne esegue **2.576**, ma le
+*(⚠️ Il **2.320** conta sei suite: il giro completo ne esegue **2.589**, ma le
 altre dieci contano **file** invece che casi — crescono da sole quando nasce un
 file, quindi non sono il numero da citare. Rimisurato l'08/08; questa riga era
 ferma a 2.251 e 2.474 mentre il titolo sopra era già stato aggiornato, perché
