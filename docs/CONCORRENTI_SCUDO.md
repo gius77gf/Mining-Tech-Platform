@@ -444,8 +444,28 @@
 
 ## 7. Verifica del Delta (01/08 · riverificata riga per riga il 03/08 · **arretrato richiuso il 06/08**)
 
-> **Verificato contro il codice al commit `924c442`** (08/08; la precedente era
-> a `4743c69` il 06/08).
+> **Verificato contro il codice al commit `079ebe3`** (08/08 sera; le precedenti
+> erano a `924c442` lo stesso giorno e a `4743c69` il 06/08).
+>
+> ### 08/08, sera — un commit, uno che morde, e la riga del conto tenuta d'occhio
+>
+> Fra `924c442` e `079ebe3` Scudo è andata avanti di **un commit**, **+93 righe**
+> e −16. **Morde**, e la funzione che ha aggiunto è **una**:
+> `etichettaResponsabile`, che decide come si dice *chi* deve fare un'azione —
+> a schermo **e nella cella del CSV**, che prima erano due copie diverse.
+>
+> **Nessuno dei sei verdetti «confermato assente» si muove**, e la prova è la
+> stessa di ogni ripasso, rifatta: sui due file di oggi danno **zero** `xlsx`,
+> `excel`, `jspdf`, `notific`, `controllo version`, `versionamento`, `offline`;
+> sulle 93 righe aggiunte, **zero** `xlsx`, `excel`, `jspdf`, `notific`,
+> `service worker`.
+>
+> ⛔ **E il conto degli export CSV — quello che è già invecchiato due volte —
+> resta CINQUE**, ricontato aprendo i nomi dei file invece che a memoria:
+> `scudo_azioni_correttive`, `scudo_azioni_copia`, `scudo_personale_scadenze`,
+> `scudo_registro_infortuni`, `scudo_riepilogo_near_miss`. Questa unità ha
+> cambiato **che cosa c'è dentro** una di quelle colonne, non quanti file
+> escono: è la distinzione che quella riga, scadendo due volte, insegna a fare.
 >
 > ### 08/08 — quindici commit, tre che mordono: nessun verdetto si muove, una PROVA sì (di nuovo)
 >

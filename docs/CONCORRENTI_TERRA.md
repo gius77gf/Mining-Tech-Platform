@@ -298,8 +298,20 @@ Nella roadmap, il ponte P2 (riconciliazione volume vs tonnellate) è il prossimo
 
 ## Verifica del delta (01/08)
 
-> **Verificato contro il codice al commit `8583a0b`** *(riverificato l'08/08;
-> le verifiche precedenti erano a `4916275` il 06/08 e a `e9f9b0d` il 01/08).*
+> **Verificato contro il codice al commit `57c78cf`** *(riverificato l'08/08 sera;
+> le precedenti erano a `8583a0b` lo stesso giorno, a `4916275` il 06/08 e a
+> `e9f9b0d` il 01/08).*
+>
+> **08/08, sera — quattro commit, NESSUNO che morde.** Fra `8583a0b` e `57c78cf`
+> Terra è andata avanti di quattro commit e **+18 righe** e −6. Nessuno aggiunge
+> o toglie una `export function` o un `<button>` — le due forme con cui qui nasce
+> e muore una funzione — e aprendo il diff si vede perché: un colore
+> d'inchiostro alzato per il contrasto (`--ink-dg`, 3,88 → 5,72 sul fondo più
+> chiaro), un `m³` avvolto nella sua `<span class="u">` perché il maiuscolo non
+> lo tocchi, e il passaggio ad `applicaPercorsi` per non riscrivere un campo
+> composto per intero. **Zero funzioni nuove, zero verdetti che si muovono**:
+> non c'è nessuna riga da riaprire, e questo blocco serve a dirlo — un arretrato
+> che nessuno chiude si legge come un ritardo anche quando è rumore.
 > Ogni riga qui sotto
 > era vera **a quel commit**, e non lo è più per forza adesso: il 01/08 una riga è
 > scaduta in **trentacinque minuti**, perché la verifica e il cantiere che la

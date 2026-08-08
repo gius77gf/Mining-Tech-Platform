@@ -409,9 +409,34 @@ Ricerca web 01 agosto 2026:
 
 ## Verifica del delta (01/08 · riverificata riga per riga il 02/08 · **arretrato richiuso il 06/08**)
 
-> **Verificato contro il codice al commit `db04ac5`** — l'ultimo che ha toccato
+> **Verificato contro il codice al commit `079ebe3`** — l'ultimo che ha toccato
 > `apps/sentinella/` al momento della verifica, cioè **il codice che è stato
-> davvero letto**.
+> davvero letto**. *(La precedente era a `db04ac5`, lo stesso 08/08.)*
+>
+> ### 08/08, sera — nove commit, uno che morde, e tredici righe che non si muovono
+>
+> Fra `db04ac5` e `079ebe3` Sentinella è andata avanti di **nove commit**. Uno
+> solo **morde** secondo `documenti-invecchiati.mjs`, e la funzione che ha
+> aggiunto è **una**: `descriviResponsabile`, che sceglie come dire *chi* deve
+> fare un'azione correttiva quando l'elenco dei lavoratori arriva da Scudo e la
+> lettura può fallire. Il nono commit non aggiunge niente qui: sposta la
+> **decisione** di quella funzione in `shared/dw-ponti.js`, perché la stessa
+> domanda serviva anche a Scudo, e lascia in Sentinella solo la **frase**.
+>
+> **Nessuna delle tredici confermate assenti la riguarda**, e non è un giudizio
+> a occhio: quelle tredici parlano di **condizioni della misura** (umidità,
+> temperatura, vento), di **come il documento esce** (report periodico
+> automatico, FFT e terzi d'ottava, PDF/Excel) e di **quanto ci si mette ad
+> accorgersene** (allarmi SMS/email). Le ricerche sui due file di oggi danno
+> **zero** su `xlsx`, `excel`, `jspdf`, `notific` e `offline` — le stesse di
+> ogni ripasso. Una funzione che sceglie una **frase** non costruisce nessuna
+> di quelle cose.
+>
+> ⚠️ **E questo blocco esiste perché il numero scendesse, non perché la data
+> fosse vecchia.** L'arretrato era diventato ⛔ per una modifica **mia**, fatta
+> il giorno stesso: chi chiude un'unità aggiorna il documento che quell'unità
+> tocca, se no il conto sale da solo e chi lo legge non sa più se stia guardando
+> un ritardo o un rumore di fondo.
 >
 > ### 08/08 — i dodici commit ripassati, e le tredici righe reggono tutte
 >
