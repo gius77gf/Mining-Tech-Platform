@@ -56,6 +56,20 @@ chiuse. Le aperte sono **24**; la pagina d'ingresso di
 
 - [ ] **D-ter. Le otto verdi che vogliono un cantiere** — 5a, 5b, 10a, 10b, 12a,
       15, 18a, 18b, con la risposta già scritta in `docs/DECISIONI_WEEKEND.md`.
+      - [x] **5b — la MISURA, che viene prima della funzione** *(08/08)*: fatta e
+            scritta in `docs/DUE_PERSONE_STESSA_RIGA.md`, con lo strumento che la
+            rifà (`tests/due-persone-stessa-riga.mjs`, sotto emulatore). Sei casi
+            misurati con due contesti autenticati e le regole vere. Campi diversi
+            **convivono**; lo stesso campo **vince l'ultimo**; ma il caso che le
+            app usano davvero — la lista letta, cambiata in un punto e
+            **riscritta intera** — fa **sparire in silenzio** la spunta
+            dell'altro. Censiti **12 punti in 4 app**; la cura è una riga per
+            punto (il percorso puntato), provata nella misura stessa.
+            ⚠️ La **funzione** (coda offline) NON è fatta e non va fatta prima:
+            mettere in coda scritture che si cancellano a vicenda moltiplica il
+            problema invece di risolverlo.
+      - [ ] **5b — i 12 punti al percorso puntato**, e `arrayUnion` dove si
+            aggiunge in coda (`tarature`, `letture` di Sentinella).
 
 - [x] ~~**D-bis. Il piano di applicazione delle quindici verdi**~~ — preparato il
       07/08 alle 14:45 perché a fine giornata l'applicazione sia meccanica e non
