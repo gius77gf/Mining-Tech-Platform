@@ -70,6 +70,22 @@ const DIFETTI = [
      (riga 4388, quattro spazi), e i soggetti devono restare uno. */
   ["          const st = statoFattura(f, INC, NOT);",
    "          const st = { stato: f.incassata ? \"saldata\" : \"aperta\", saldata: !!f.incassata,\n            parziale: !!f.parziale, residuo: +f.residuo || 0, stornato: 0 };"],
+  /* 3 · il prezzo del listino scritto `|| 0`: un prodotto senza prezzo esce
+     GRATIS, nel foglio che si manda al cliente — mentre le tre celle accanto
+     (densità, prezzo_t, prezzo_m3) lasciavano già la cella vuota. */
+  ["${numeroDichiarato(p.prezzo) ?? \"\"};${p.unitaPrezzo === \"m3\" ? \"m3\" : \"t\"}",
+   "${+p.prezzo || 0};${p.unitaPrezzo === \"m3\" ? \"m3\" : \"t\"}"],
+  /* 4 · e l'importo di una voce di costo, stessa famiglia.
+     ⚠️ QUESTA INIEZIONE NON PRODUCE UN KO, ED È GIUSTO COSÌ — sta scritto qui
+     perché chi conta «4 difetti rimessi, 3 KO» non pensi a una regressione.
+     Misurato: `riepilogoCosti` SCARTA a monte le voci senza importo (su due
+     costi, uno con 1.200 € e uno senza, ne restituisce uno solo), quindi la
+     cella vuota in quel file non è raggiungibile e le due versioni del
+     `cellaNum` scrivono la stessa cosa. La correzione resta giusta — è la
+     stessa regola delle altre due celle — ma è difesa in profondità, non un
+     difetto che si vedeva. */
+  ["  const cellaNum = (x) => { const v = numeroDichiarato(x); return v == null ? \"\" : Math.round(v * 100) / 100; };",
+   "  const cellaNum = (x) => (+x || 0);"],
 ];
 
 /* I casi si montano nel MODULO servito, mai sul disco.
@@ -98,6 +114,17 @@ const CASI = `
   DEMO.incassi = [{ id: "m1", fatturaId: "f1", data: gg(20), importo: 500, metodo: "bonifico" }];
   DEMO.note = [{ id: "n1", fatturaId: "f1", numero: "NC/1", data: gg(15), totale: 200,
     imponibile: 200, motivo: "abbuono su contestazione", bozza: false }];
+  /* un prodotto col prezzo MAI SCRITTO accanto a uno che ce l'ha: da soli,
+     «0» e «vuoto» sembrano la stessa scelta */
+  DEMO.prodotti = [
+    { id: "p1", nome: "Misto cava 0-30", prezzo: 8.5, unitaPrezzo: "t", densita: 1.6, iva: 22 },
+    { id: "p2", nome: "Prodotto non classificato", unitaPrezzo: "t", iva: 22 },
+  ];
+  /* e una voce di costo senza importo accanto a una che ce l'ha */
+  DEMO.costi = [
+    { id: "k1", data: gg(5), voce: "gasolio", importo: 1200, nota: "" },
+    { id: "k2", data: gg(6), voce: "gasolio", nota: "fattura non ancora arrivata" },
+  ];
 }
 `;
 
@@ -147,6 +174,14 @@ const b = await chromium.launch({ executablePath: "/opt/pw-browsers/chromium" })
 const pg = await b.newPage({ viewport: { width: 430, height: 950 } });
 await pg.addInitScript(() => {
   window.__scaricati = [];
+  /* ⛔ `revokeObjectURL` RESO INERTE. L'export dei costi fa
+     `a.click(); URL.revokeObjectURL(a.href)` nella stessa riga: giustissimo
+     nel prodotto (non si tiene in memoria un blob che non serve più), ma il
+     banco legge il contenuto un istante DOPO, e trovava un URL già morto —
+     `Failed to fetch`, eccezione non gestita, banco ucciso a metà. Qui il
+     blob si lascia vivo: è l'ambiente di misura a doversi adattare al
+     prodotto, non il contrario. */
+  URL.revokeObjectURL = () => {};
   const orig = HTMLAnchorElement.prototype.click;
   HTMLAnchorElement.prototype.click = function () {
     if (this.download) { window.__scaricati.push({ nome: this.download, href: this.href }); return; }
@@ -182,9 +217,18 @@ const scarica = async (btn) => {
   const g = await pg.evaluate(() => window.__scaricati);
   if (!g.length) return null;
   const href = g[g.length - 1].href;
-  const testo = href.startsWith("blob:")
-    ? await pg.evaluate((u) => fetch(u).then((r) => r.text()), href)
-    : decodeURIComponent(href.slice(href.indexOf(",") + 1));
+  /* ⛔ E se il contenuto non si riesce a leggere si DICHIARA, non si muore: un
+     banco che crolla stampa meno prove, e un totale più basso si legge come
+     «ha guardato meno roba», non come «si è rotto». */
+  let testo = null;
+  try {
+    testo = href.startsWith("blob:")
+      ? await pg.evaluate((u) => fetch(u).then((r) => r.text()), href)
+      : decodeURIComponent(href.slice(href.indexOf(",") + 1));
+  } catch (e) {
+    console.log(`  KO  non riesco a leggere il contenuto di ${g[g.length - 1].nome}: ${e.message}`);
+    ko++; return null;
+  }
   return { nome: g[g.length - 1].nome, righe: testo.replace(/^﻿/, "").split(/\r?\n/).filter(Boolean) };
 };
 const colonna = (riga, i) => (riga.split(";")[i] || "").replace(/^"|"$/g, "").replace(/""/g, '"');
@@ -254,9 +298,48 @@ if (await vaiA("nav-rep", "page-rep")) {
   }
 }
 
+console.log("\n════════ conti_listino_prezzi.csv ════════");
+if (await vaiA("nav-lis", "page-lis")) {
+  const f = await scarica("btn-lis-prezzi");
+  dice(!!f, "il file esce davvero");
+  if (f) {
+    const r = (t) => f.righe.slice(1).find((x) => colonna(x, 0).includes(t)) || "";
+    /* ⚠️ `Number`, non `soldi`: questa cella porta un numero GREZZO col punto
+       decimale (`8.5`), non un importo formattato all'italiana. Il primo
+       righello ci ha applicato `soldi`, che toglie i punti credendoli
+       separatori di migliaia, e ha letto 85 accusando un valore giusto. */
+    dice(Number(colonna(r("Misto cava"), 1)) === 8.5, "un prezzo scritto esce com'è", colonna(r("Misto cava"), 1));
+    dice(colonna(r("non classificato"), 1) === "",
+      "un prodotto SENZA prezzo lascia la cella vuota: uno zero in un listino vuol dire GRATIS",
+      colonna(r("non classificato"), 1));
+  }
+}
+
+console.log("\n════════ conti_costi_<periodo>.csv ════════");
+if (await vaiA("nav-cos", "page-cos")) {
+  const f = await scarica("btn-cos-export");
+  dice(!!f, "il file esce davvero");
+  if (f) {
+    const righe = f.righe.slice(1);
+    /* ⚠️ MISURATO, E RIDIMENSIONA LA PROVA: `riepilogoCosti` SCARTA a monte le
+       voci senza importo — su due costi d'esempio, uno con 1.200 € e uno senza,
+       ne restituisce **uno solo**. Quindi la cella vuota, in questo file, non
+       si può nemmeno raggiungere: la correzione della cella resta giusta (è la
+       stessa regola delle altre due), ma è una difesa in profondità, non un
+       difetto che si vedeva. Scritto qui perché il prossimo non lo rimisuri —
+       e perché la domanda vera che ne esce è UN'ALTRA, da aprire a parte: una
+       voce di costo registrata senza importo sparisce dal riepilogo E dal
+       file, in silenzio. */
+    dice(righe.length === 1, "nel file c'è la sola voce che ha un importo", righe.length);
+    dice(Number(colonna(righe[0] || "", 3)) === 1200, "e il suo importo esce com'è", colonna(righe[0] || "", 3));
+    dice(!righe.some((x) => colonna(x, 3) === "0"),
+      "nessuna riga porta uno ZERO al posto di un importo mai scritto");
+  }
+}
+
 await b.close(); srv.close();
 console.log(`\nRisultato documenti che escono da Conti: ${ok} passati, ${ko} falliti`
-  + `  ·  1 punto d'uscita su 12 aperto (gli altri undici NON sono misurati qui)`);
+  + `  ·  3 punti d'uscita su 12 aperti (gli altri nove NON sono misurati qui)`);
 if (CONTROPROVA) {
   console.log(ko > 0 ? "✔ CONTROPROVA: il banco distingue (i KO qui sopra sono voluti)"
                      : "⛔ CONTROPROVA: NON DISTINGUE — rimesso il difetto, nessuna prova è caduta");

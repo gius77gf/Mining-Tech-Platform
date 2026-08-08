@@ -2051,6 +2051,15 @@ label.item:has(.dw-chk:checked){
      `new Function`. Una prova costretta a leggere il codice per misurarne il
      comportamento sta dicendo che quel comportamento non vive dove si può
      chiamare. */
+  /* ⛔ UNA CELLA DI CSV CHE PORTA UN NUMERO: vuota se il dato non è
+     DICHIARATO, e lo zero scritto tenuto — un fido di zero, un prodotto in
+     omaggio, una voce a costo zero sono dati; un campo mai compilato no, e in
+     un foglio di calcolo quello zero si somma credendolo misurato.
+     ⚠️ Definita UNA volta: l'08/08 stavo per lasciarne due copie a duecento
+     righe di distanza (una per i clienti, una per i costi) che differivano
+     solo per il tipo di ritorno — cioè la copia debole che nasce da una firma
+     troppo stretta, scritta mentre correggevo esattamente quella famiglia. */
+  const cellaNum = (x) => { const v = numeroDichiarato(x); return v == null ? "" : Math.round(v * 100) / 100; };
   const marchiaCsv = (el) => { el.download = nomeCsvDimostrazione(el.download, db.mode); return el; };
 
   let FAT=[], GAR=[], CLI=[], PRO=[], PES=[], INC=[], NOT=[], COS=[], CHI=[], IMP=null;
@@ -5688,7 +5697,6 @@ label.item:has(.dw-chk:checked){
        credito*; «fido non impostato» vuol dire *nessuno ci ha pensato*. Sono
        due frasi opposte, e il file le scriveva uguali — in un foglio che va al
        commercialista o dentro un altro gestionale. */
-    const cellaNum = (x) => { const v = numeroDichiarato(x); return v == null ? "" : String(Math.round(v * 100) / 100); };
     let csv = "ragione_sociale;piva_cf;sdi_pec;indirizzo;sconto;fido;note\n";
     for (const c of CLI.slice().sort((a, b) => String(a.ragioneSociale || "").localeCompare(String(b.ragioneSociale || ""), "it")))
       csv += `${csvCell(c.ragioneSociale)};${csvCell(c.piva)};${csvCell(c.sdi)};${csvCell(c.indirizzo)};${cellaNum(c.sconto)};${cellaNum(c.fido)};${csvCell(c.note)}\n`;
@@ -5896,11 +5904,19 @@ label.item:has(.dw-chk:checked){
     /* Nell'export ci vanno ANCHE le voci senza data, marcate: un file che le
        lascia fuori in silenzio è lo stesso totale tranquillo di prima, solo
        che stavolta finisce dal commercialista. */
+    /* ⛔ E L'IMPORTO DI UNA VOCE DI COSTO SEGUE LA STESSA REGOLA. `${+c.importo
+       || 0}` scriveva `0` su una voce registrata senza dire quanto è costata,
+       e in un foglio di calcolo quello zero si SOMMA credendolo misurato — è
+       lo stesso difetto corretto oggi nel registro interventi di Flotta, e la
+       riga qui sopra dichiara già le voci senza data proprio per non lasciare
+       un totale tranquillo al commercialista. Uno zero SCRITTO resta (una
+       voce a costo zero è un dato); quello mai compilato lascia la cella
+       vuota. */
     let csv = "data;voce;gruppo;importo;nota;nel_periodo\n";
     for (const c of r.righe.slice().sort((a, b) => String(a.data || "").localeCompare(String(b.data || ""))))
-      csv += `${csvCell(c.data)};${csvCell(leggiVoce(c.voce))};${csvCell(etichettaGruppo(gruppoDiVoce(c.voce)))};${+c.importo || 0};${csvCell(c.nota || "")};si\n`;
+      csv += `${csvCell(c.data)};${csvCell(leggiVoce(c.voce))};${csvCell(etichettaGruppo(gruppoDiVoce(c.voce)))};${cellaNum(c.importo)};${csvCell(c.nota || "")};si\n`;
     for (const c of r.righeSenzaData)
-      csv += `;${csvCell(leggiVoce(c.voce))};${csvCell(etichettaGruppo(gruppoDiVoce(c.voce)))};${+c.importo || 0};${csvCell(c.nota || "")};no (senza data)\n`;
+      csv += `;${csvCell(leggiVoce(c.voce))};${csvCell(etichettaGruppo(gruppoDiVoce(c.voce)))};${cellaNum(c.importo)};${csvCell(c.nota || "")};no (senza data)\n`;
     const a = document.createElement("a");
     a.href = URL.createObjectURL(new Blob(["﻿" + csv], { type: "text/csv;charset=utf-8" }));
     a.download = "conti_costi_" + d1 + "_" + d2 + ".csv"; marchiaCsv(a);
@@ -5915,7 +5931,17 @@ label.item:has(.dw-chk:checked){
      file hanno nomi DIVERSI: prima si chiamavano tutti e due
      conti_listino.csv e nella cartella dei download uno copriva l'altro. */
   $("btn-lis-prezzi").onclick = () => {
-    /* ⛔ LA DENSITÀ CHE NON C'È NON È UNA DENSITÀ ZERO. `${+p.densita || 0}`
+    /* ⛔ E NEMMENO IL PREZZO, e questa riga è stata scritta l'08/08 accanto a
+       quella qui sotto — che dice la stessa cosa della DENSITÀ, e che era già
+       corretta. Nella stessa riga del CSV `densita_t_m3`, `prezzo_t` e
+       `prezzo_m3` lasciavano la cella vuota col loro `?? ""`, e la colonna
+       `prezzo` scriveva `${+p.prezzo || 0}`: un prodotto senza prezzo usciva
+       a **zero**, cioè GRATIS, nel listino che si manda al cliente. Tre celle
+       giuste e una sbagliata, a quattro caratteri di distanza.
+       `numeroDichiarato` tiene lo zero SCRITTO (un prodotto in omaggio) e
+       svuota quello mai compilato — la stessa regola di `shared/` che il CSV
+       dei clienti, in questo stesso file, usa già per il fido.
+       ⛔ LA DENSITÀ CHE NON C'È NON È UNA DENSITÀ ZERO. `${+p.densita || 0}`
        scriveva `0` per il prodotto non classificato — una densità nulla non
        esiste in natura, e nella STESSA riga la colonna `prezzo_m3` restava
        vuota perché senza densità non si converte: il foglio si smentiva da
@@ -5924,7 +5950,7 @@ label.item:has(.dw-chk:checked){
        usano le conversioni. */
     let csv = "prodotto;prezzo;unita_prezzo;densita_t_m3;prezzo_t;prezzo_m3;iva\n";
     for (const p of PRO.slice().sort((a, b) => String(a.nome || "").localeCompare(String(b.nome || ""), "it")))
-      csv += `${csvCell(p.nome)};${+p.prezzo || 0};${p.unitaPrezzo === "m3" ? "m3" : "t"};${densitaValida(p) ?? ""};${prezzoPerTonnellata(p) ?? ""};${prezzoPerMetroCubo(p) ?? ""};${+p.iva || 0}\n`;
+      csv += `${csvCell(p.nome)};${numeroDichiarato(p.prezzo) ?? ""};${p.unitaPrezzo === "m3" ? "m3" : "t"};${densitaValida(p) ?? ""};${prezzoPerTonnellata(p) ?? ""};${prezzoPerMetroCubo(p) ?? ""};${+p.iva || 0}\n`;
     const a = document.createElement("a");
     a.href = "data:text/csv;charset=utf-8," + encodeURIComponent(csv);
     a.download = "conti_listino_prezzi.csv"; marchiaCsv(a); a.click();
