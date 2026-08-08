@@ -342,8 +342,39 @@ Telematica **anticipatoria**, non solo tracking: mostrare il guasto prima che ca
 
 ## Verifica del delta (01/08)
 
-> **Verificato contro il codice al commit `4743c69`** *(riverificato il 06/08;
-> la verifica precedente era a `f3432f4`, dodici commit prima).* Ogni riga qui sotto
+> **Verificato contro il codice al commit `5df42f6`** *(riverificato l'08/08;
+> le verifiche precedenti erano a `4743c69` il 06/08 e a `f3432f4` il 01/08).*
+>
+> ### 08/08 (terzo passaggio) — otto commit, ZERO che mordono
+>
+> Fra `4743c69` e `5df42f6` Flotta è andata avanti di **8 commit**, **+442
+> righe** e −100 — ed è l'unica delle sei con **zero commit che mordono**:
+> nessuna `export function` e nessun `<button>` aggiunti o tolti. Detto in
+> chiaro, perché è la ragione per cui questa riverifica costa poco: in
+> quell'intervallo Flotta ha cambiato **come** dice le cose, non **quali** cose
+> sa fare.
+>
+> La ricerca sul diff con i termini che ogni riga dichiara dà **due sole
+> occorrenze**, tutt'e due `fattura`, e tutt'e due **prosa**:
+> · un commento sul rifornimento (*«la pompa dice i litri, il prezzo lo dirà la
+>   fattura del gasolio»*);
+> · la nota di un rifornimento della dimostrazione (*«cisterna interna, fattura
+>   non ancora arrivata»*).
+> Nessun **legame** fra una fattura e un ordine di lavoro, che è quello che
+> quella riga dichiara assente.
+>
+> Sui file interi: `firma digitale`, `firma grafometrica`, `stanziam`,
+> `sforat`, `contabil`, `miglia`, `mile` → **0 ciascuno**; `km` → **0**, che è
+> la prova diretta della riga sui piani a chilometri; `budget` → **1**, ed è un
+> commento che spiega la domanda da cui nasce la decisione «la riparo ancora?»
+> (`index.html:1969`), non un preventivo di spesa.
+>
+> ⚠️ Come per Terra e Sentinella, le ricerche sono fatte **con i confini di
+> parola**: senza, `mile` entrerebbe in «si**mile**» e `km` in ogni `200km/h`
+> di un testo qualunque. È la lezione pagata su Sentinella, dove senza confini
+> uscivano cinque falsi allarmi su cinque.
+>
+> Ogni riga qui sotto
 > era vera **a quel commit**, e non lo è più per forza adesso: il 01/08 una riga è
 > scaduta in **trentacinque minuti**, perché la verifica e il cantiere che la
 > colmava sono girati lo stesso pomeriggio senza sapere l'uno dell'altro.
