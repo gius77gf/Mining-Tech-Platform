@@ -243,6 +243,36 @@ async function intercetta(pg) {
     };
   });
 }
+import { azzeraFrasi, frasiVisibili, contiNellaFrase, righeDiDato } from "./giro.mjs";
+/* ⛔ LA TERZA GAMBA DELLA DOMANDA DI CASA: la frase di riepilogo contro il file.
+   La regola sta in `giro.mjs` — la usano Flotta, Conti e Scudo — e la domanda è
+   che le righe di DATO stiano fra i numeri che la frase dichiara, o siano la
+   loro somma.
+   ⚠️ Qui NON si mette un ciclo in coda: questo banco rilegge il file dentro
+   scenari suoi, ognuno con la propria FIXTURE, e un ciclo finale misurerebbe il
+   file di uno scenario contro la frase di un altro. Il confronto si chiama
+   dove ciascuno scenario legge. */
+async function confrontaFraseColFile(pg, btn, righe, inPiu = 0) {
+  /* `inPiu` è per il caso — misurato su Campo — in cui la frase dichiara una
+     riga in più **a parole invece che con un numero**: «Esportate 7 giornate…
+     in coda c'è LA RIGA senza giorno». Il file ne ha 8, e la frase è onesta:
+     dice che quella riga c'è, semplicemente non la conta. Chi chiama dichiara
+     quante righe sono annunciate così, invece di allargare la regola
+     condivisa — allargarla vorrebbe dire far passare anche i casi in cui una
+     riga sparisce davvero. */
+  const frase = await frasiVisibili(pg);
+  const numeri = contiNellaFrase(frase);
+  if (!numeri.length) return false;
+  const dati = righeDiDato(righe) - inPiu;
+  dice(numeri.includes(dati) || numeri.reduce((t, x) => t + x, 0) === dati,
+    `le righe del file sono fra i numeri che la frase dichiara (${btn})`,
+    /* ⚠️ il `dice` di questo banco fa `String(x)` sull'extra, quindi un oggetto
+       diventa «[object Object]» e la prova non si può giudicare: gli si passa
+       già una frase. Un banco che non sa dire PERCHÉ è caduto costringe a
+       rifare la misura a mano. */
+    `frase «${frase.slice(0, 90)}» · numeri [${numeri}] · righe di dato ${dati}`);
+  return true;
+}
 const testo = (h) => String(h || "").replace(/<[^>]+>/g, " ").replace(/\s+/g, " ");
 
 console.log(`\n════════ i documenti di Campo e gli zeri mai misurati${CONTROPROVA ? " · controprova" : ""} ════════`);
@@ -253,9 +283,11 @@ FIXTURE = FIXTURE_FERMI_MUTI;
 {
   const pg = await apri("nav-set");
   await intercetta(pg);
+  await azzeraFrasi(pg);
   await pg.click("#btn-set-export");
   await pg.waitForTimeout(400);
   const righe = String(await pg.evaluate(() => window.__csv) || "").split("\n");
+  await confrontaFraseColFile(pg, "btn-set-export", righe.filter(Boolean));
   const testa = righe[0] || "";
   dice(righe.length > 5, "il file viene prodotto davvero", righe.length + " righe");
   dice(/;fermi;fermi_senza_minuti;/.test(testa),
@@ -302,9 +334,13 @@ FIXTURE = FIXTURE_SENZA_GIORNO;
     "con quante tonnellate portano con sé", avviso.slice(0, 240));
   // e il file che esce porta la riga con la data vuota
   await intercetta(pg);
+  await azzeraFrasi(pg);
   await pg.click("#btn-set-export");
   await pg.waitForTimeout(400);
   const righe = String(await pg.evaluate(() => window.__csv) || "").split("\n").filter(Boolean);
+  /* la frase annuncia A PAROLE la riga in coda senza giorno («in coda c'è la
+     riga senza giorno con 15 rapportini»): è una riga dichiarata, non persa. */
+  await confrontaFraseColFile(pg, "btn-set-export (fermi muti)", righe, 1);
   const ultima = righe[righe.length - 1] || "";
   dice(/^;/.test(ultima) && /\d/.test(ultima),
     "⛔ nel file la riga senza giorno esce con la data vuota e i suoi numeri", ultima);
