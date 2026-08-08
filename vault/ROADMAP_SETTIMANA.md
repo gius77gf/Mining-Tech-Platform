@@ -1499,11 +1499,22 @@ numero scritto dove non era stato misurato niente**.*
   tolta dall'import la pagina morirebbe al primo disegno dell'appello, e la
   prova pretende **quattro** cose, fra cui che la **prima** domanda resti cieca.
   Prove **12 → 15**.
+- [x] ✅ **La terza domanda anche sui MODULI** (`aabadeb`). Lì un nome libero
+  dentro un template **non fa rumore all'import**: esplode quando quella riga
+  viene **eseguita**, magari in un ramo che le prove non toccano. Misurato:
+  **181 riferimenti su 18 moduli, zero liberi**. ⚠️ E la soglia del «ha davvero
+  guardato» l'avevo scritta **a occhio** (200): la prova è caduta al primo giro
+  sui 181 veri — una soglia si prende dalla **misura**, non dall'impressione, ed
+  è la quarta volta stanotte che il righello sbaglia prima del soggetto.
+  📊 **`nomi-liberi` chiude la notte a 7 → 16 prove**, tre domande ognuna col suo
+  denominatore stampato e ognuna con una controprova che porta dentro un difetto
+  **vero** (il `conta` di Terra, il `somma` di `terra-data`, il
+  `RIPOSO_MINIMO_ORE` di Campo).
 
 ## Riferimenti
 
 - Ultimo checkpoint **per data vera**:
-  `vault/checkpoints/20260808-020944_la-terza-domanda-i-riferimenti.md`
+  `vault/checkpoints/20260808-021859_la-terza-domanda-sui-moduli.md`
   *(dato da `node apps/deepwork-id/tests/date-checkpoint.mjs`, non letto a occhio:
   per NOME il più alto sarebbe `20260805-100000_…`, che è stato scritto **tre
   giorni prima**. Questa riga era ferma al 01/08: il puntatore al file più
