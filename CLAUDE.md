@@ -1324,6 +1324,47 @@ Perché serva davvero e non produca elenchi generici, cinque vincoli:
   *se il difetto stesse un piano più sotto — dentro il riquadro invece che
   dentro lo schermo, in un'app fuori convenzione, sul valore che sale invece
   che su quello che scende — questo controllo lo direbbe?*
+- ⛔ **UN CENSIMENTO CHE DICHIARA IL SUO DENOMINATORE VA POI LETTO — E QUANDO
+  LO SI LEGGE, IL BUCO È QUASI SEMPRE NEL RIGHELLO.** L'08/08, la riga più
+  grossa di tutto il giro del browser diceva: «**234 classi con un fondo
+  proprio non sono mai comparse durante il giro: 41 fatte comparire e
+  misurate**». Cioè il banco del contrasto, che stampa «4700 testi misurati, 0
+  sotto soglia», su quel fronte ne guardava **una su sei**. Aprendolo sono
+  usciti **tre difetti del righello**, indipendenti, tutti nella stessa
+  famiglia — *un controllo che sembra completo e non lo è*:
+  1. **«copre?» era deciso dal TESTO della dichiarazione**, non dal browser: un
+     `#hex`, un `rgb()` o una parola erano «pieno», tutto il resto finiva fra
+     le «non giudicabili». Ma la forma più comune di questo prodotto è
+     `var(--card)`, e `var(--grad)` è un **gradiente dietro un nome**. Misura:
+     122 marcate «non coprente», di cui **68 opache davvero**. È la stessa
+     lezione della regola 24 — *dare un nome a un valore lo fa sparire da un
+     controllo statico* — e la cura è quella che questo file predica altrove:
+     **non calcolare una cosa che il browser sa dire** (`getComputedStyle` su
+     un campione, e si legge l'alfa vera);
+  2. **una COMBINAZIONE di classi risultava «già vista» se le sue parti erano
+     comparse separatamente.** `.toast.success` era considerata vista perché
+     `.toast` e `.success` erano passate ognuna per conto suo, su elementi che
+     non si sono mai incontrati: quindi usciva dal censimento (perché «vista»)
+     **e** non veniva misurata (perché quel toast non è mai stato a schermo).
+     Spariva da tutt'e due i conti **senza comparire in nessuna riga «non ho
+     guardato»**. Si tiene l'insieme intero delle classi di ogni elemento
+     misurato, e si chiede se QUALCUNO le portava tutte insieme;
+  3. **un campione che nasce nascosto non viene misurato, e il banco lo contava
+     lo stesso fra i «fatti comparire».** Il segno era uno scarto di due fra
+     due numeri stampati sulla stessa riga (51 e 49) e nessuno lo aveva letto.
+     Sotto ci stava il **toast di errore** del core.
+  Esito: **41 → 182** classi misurate su 239, e **sei difetti di contrasto veri
+  nel core** che nessun banco aveva mai visto — fra cui il toast d'errore
+  (3,49:1) e il badge «scaduta» dei documenti del mezzo, a corpo 9 (2,36:1).
+  ⚠️ E la lezione sul PRODOTTO, che vale per ogni tinta di stato: **il bianco
+  su un pieno di stato non regge** (2,36 sul verde, 3,49 sul rosso). Il core lo
+  sapeva già in due punti su otto — `.toast` e `.scad-badge.warn` usavano un
+  inchiostro scuro — e sono esattamente i due che passavano. Adesso quel valore
+  ha un nome (`--ink-su-pieno`) con i tre conti scritti accanto.
+  ⚠️ E un gradiente con le fermate troppo distanti **non ha nessun inchiostro
+  che regga tutt'e due**: sul verde del successo il bianco cadeva sulla fermata
+  chiara (2,36) e lo scuro sulla scura (3,78). Non si sceglie l'inchiostro: si
+  **stringe la forbice** del gradiente.
 - ⛔ **UN FILTRO RAGIONEVOLE DIVENTA UNA CECITÀ STRUTTURALE, E ALLORA IL
   CONTROLLO VA RIFATTO NELL'ALTRA SINTASSI.** Misurato l'08/08 sulle unità di
   misura, ed è diverso dal «controllo che non guarda dove crede»: qui il filtro

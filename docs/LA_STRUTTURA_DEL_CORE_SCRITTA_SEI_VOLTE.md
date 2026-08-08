@@ -358,10 +358,13 @@ dichiara i nomi che il condiviso pronuncia?**
 
 ### 4. La risposta è no, ed è il numero che decide il piano
 
-> Il foglio condiviso pronuncia **82** variabili. Genesi ne definisce **12**
+> Il foglio condiviso pronuncia **83** variabili. Genesi ne definisce **12**
 > (`--bg --cu --cuD --ease --line --mut --mut2 --ok --panel --panel2 --tx
-> --warn`). Le **non** definite sono **78 su 82**.
-> *(⏱️ 07/08: 76 → 82 con i tre `--bar-*` del terzo livello, definiti e usati.)*
+> --warn`). Le **non** definite sono **79 su 83**.
+> *(⏱️ 07/08: 76 → 82 con i tre `--bar-*` del terzo livello, definiti e usati.
+> 08/08: 82 → 83 con `--chg-pieno`, che porta il pieno della pastiglia attiva
+> su una variabile perché il tema chiaro smetta di buttare via i colori di
+> stato che un'app ha già scelto.)*
 
 E una variabile CSS che non esiste **non fallisce**: la dichiarazione diventa
 invalida e la proprietà ricade sull'ereditato o sull'iniziale. Nessun errore in
@@ -431,8 +434,8 @@ markup che Genesi **ha già** — non solo la famiglia `.modal-*` ma anche `.kpi
 > **E cambia il ragionamento, non solo un numero.** Il «contagio» era l'argomento
 > più forte per tenere il foglio condiviso fuori da Genesi: *ti ridipinge le
 > schede*. Quell'argomento **non regge**. Resta l'altro, che è vero e misurato
-> due volte in modo indipendente: il foglio pronuncia **82** variabili, Genesi ne
-> definisce **12**, e le **78** scoperte non fallirebbero — decadrebbero in
+> due volte in modo indipendente: il foglio pronuncia **83** variabili, Genesi ne
+> definisce **12**, e le **79** scoperte non fallirebbero — decadrebbero in
 > silenzio. Gli **8** selettori che cadono sono proprio quelli della modale e del
 > toast, cioè quelli che Genesi si veste già da sé: caricare il foglio oggi
 > significherebbe **sostituire un vestito che funziona con uno senza colori**.

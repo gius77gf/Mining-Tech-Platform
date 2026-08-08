@@ -1066,25 +1066,62 @@ const CLASSI_CANDIDATE = () => {
            dentro ci va del testo, e lo voglio di questo colore»: è la sola
            dichiarazione d'intenzione che un foglio di stile sappia dare. */
         if (!r.style.getPropertyValue('color')) continue;
-        const gradiente = /gradient\(/.test(bg);
-        /* `rgba(...,.15)` non copre niente e va misurata dove sta davvero */
-        const pieno = /^\s*(#[0-9a-f]{3,8}|rgb\([^)]*\)|[a-z]+)\s*$/i.test(bg)
-          && !/^\s*(none|transparent|inherit|initial|currentcolor)\s*$/i.test(bg);
         for (const pezzo of r.selectorText.split(',')) {
           const sel = pezzo.trim();
           /* solo i selettori fatti di classi: `.av.av-fc` va bene, `div > .x` no
              — lì il posto conta, e il posto non lo so inventare */
           if (!/^(\.[A-Za-z0-9_-]+)+$/.test(sel)) continue;
           const chiavi = sel.slice(1).split('.');
-          const nome = chiavi.join(' ');
-          if (!trovate.has(nome)) trovate.set(nome, { classi: chiavi, coprente: false });
-          if (gradiente || pieno) trovate.get(nome).coprente = true;
+          /* `scritto` serve al confronto col criterio VECCHIO, qui sotto:
+             un numero che cala non si racconta, si stampa. */
+          const gradiente = /gradient\(/.test(bg);
+          const pieno = /^\s*(#[0-9a-f]{3,8}|rgb\([^)]*\)|[a-z]+)\s*$/i.test(bg)
+            && !/^\s*(none|transparent|inherit|initial|currentcolor)\s*$/i.test(bg);
+          const p = trovate.get(chiavi.join(' '));
+          trovate.set(chiavi.join(' '), { classi: chiavi,
+            coprenteScritto: (p && p.coprenteScritto) || gradiente || pieno });
         }
       }
     };
     scendi(regole);
   }
-  return [...trovate.entries()].map(([nome, v]) => ({ nome, classi: v.classi, coprente: v.coprente }));
+  /* ⛔ E «COPRE?» LO DECIDE IL BROWSER, NON COM'È SCRITTO — misurato l'08/08, e
+     costava 68 classi di cecità su 122.
+     Fino a oggi la copertura si leggeva dal TESTO della dichiarazione: un
+     `#hex`, un `rgb(...)` o una parola erano «pieno», `gradient(` era
+     gradiente, tutto il resto finiva fra le «solo elencate» — cioè NON
+     misurate. Ma la forma più comune in questo prodotto è `var(--card)`, che
+     quella regex non riconosce: `.fi`, `.btn-main`, `.tag.ok`, `.vita-pct`,
+     `.avatar.mute`… tutte opachissime, tutte invisibili al banco. E
+     `var(--grad)` è un GRADIENTE dietro un nome, quindi spariva due volte.
+     È la stessa lezione già scritta in CLAUDE.md per la regola 24 dei
+     gradienti — «dare un nome a un valore lo fa sparire da un controllo
+     statico, in silenzio» — e la cura è quella che il file predica altrove:
+     **non calcolare una cosa che il browser sa dire**. Si crea un elemento con
+     quelle classi, gli si chiede `backgroundColor` e `backgroundImage`, e si
+     legge l'alfa vera.
+     Misura: 122 marcate «non coprente», di cui **68 opache davvero** (o
+     gradiente), 36 semitrasparenti e 18 senza nessun fondo effettivo. Le 36
+     restano fuori, e adesso per la ragione VERA — un fondo che non copre va
+     misurato dove sta, non in un contenitore inventato — invece che per come
+     qualcuno ha scritto il colore. */
+  const banco = document.createElement('div');
+  banco.setAttribute('style', 'position:fixed;left:-99999px;top:0;visibility:hidden');
+  document.body.appendChild(banco);
+  const out = [];
+  for (const [nome, v] of trovate) {
+    const d = document.createElement('div');
+    d.className = v.classi.join(' ');
+    banco.appendChild(d);
+    const s = getComputedStyle(d);
+    const m = (s.backgroundColor.match(/[\d.]+/g) || []).map(Number);
+    const alfa = m.length > 3 ? m[3] : (m.length ? 1 : 0);
+    const coprente = /gradient/.test(s.backgroundImage) || alfa === 1;
+    d.remove();
+    out.push({ nome, classi: v.classi, coprente, alfa, coprenteScritto: !!v.coprenteScritto });
+  }
+  banco.remove();
+  return out;
 };
 
 /* Fa comparire le classi mai viste, una accanto all'altra in fondo al `body`.
@@ -1099,6 +1136,18 @@ const FAI_COMPARIRE = (elenco) => {
     const d = document.createElement('div');
     d.className = c.classi.join(' ');
     d.textContent = 'Ag';                      // due lettere: una alta e una con la coda
+    /* ⛔ UNA CLASSE CHE NASCE NASCOSTA NON VIENE MISURATA, E IL BANCO LA CONTAVA
+       FRA LE «FATTE COMPARIRE» LO STESSO — misurato l'08/08 sullo scarto fra
+       «51 fatte comparire» e «49 misurate»: i due mancanti erano i toast del
+       core, che stanno a `opacity:0` finché non li si mostra. Sparivano da
+       tutt'e due i conti senza una riga che lo dicesse, e sotto ci stava
+       `.toast.err` — bianco su `--danger` — che a corpo 13 fa 3,49:1.
+       Si forza SOLO ciò che riguarda la visibilità e il posto: mai il colore,
+       mai l'animazione (quella la ferma `fermaAnimazioni`, che sa portarla al
+       suo ultimo fotogramma invece di spegnerla a metà). */
+    for (const [k, v] of [['opacity', '1'], ['visibility', 'visible'], ['display', 'inline-block'],
+      ['position', 'static'], ['transform', 'none'], ['pointer-events', 'auto']])
+      d.style.setProperty(k, v, 'important');
     host.appendChild(d);
   }
   document.body.appendChild(host);
@@ -1107,7 +1156,7 @@ const FAI_COMPARIRE = (elenco) => {
 
 const b = await chromium.launch({ executablePath: CHROMIUM });
 let misurati = 0, bocciati = 0;
-let maiComparse = 0, maiMisurate = 0, maiBocciate = 0;
+let maiComparse = 0, maiMisurate = 0, maiBocciate = 0, maiCieche = 0;
 const nonMisurabili = [];
 let sfumatiTot = 0, pulsantiTot = 0, spentiTot = 0, finiteTot = 0, pulsaBocciata = 0, pulsaMisurata = 0;
 let superficiProvate = 0;
@@ -1308,6 +1357,18 @@ for (const [nome, via] of SUPERFICI) {
   let bocciatiQui = 0, misuratiQui = 0, presaQui = 0;
   const illeggibiliQui = [];
   const classiViste = new Set();
+  /* ⛔ E LE COMBINAZIONI VANNO TENUTE INTERE, non spezzate — misurato l'08/08.
+     Fin qui una candidata `.toast.success` risultava «già vista» se `.toast` e
+     `.success` erano comparse ognuna PER CONTO SUO, magari su due elementi che
+     non si sono mai incontrati. Effetto: la coppia veniva esclusa dal
+     censimento (perché «vista») e non veniva misurata da nessuna parte (perché
+     quel toast non è mai stato a schermo), cioè spariva da tutt'e due i conti
+     senza comparire in nessuna riga «non ho guardato». Sotto ci stanno il
+     toast di errore e quello di successo del core, che scrivono bianco su
+     `--danger` e sul gradiente verde.
+     Adesso si tiene l'insieme INTERO delle classi di ogni elemento misurato, e
+     una candidata è «vista» solo se QUALCHE elemento le portava tutte insieme. */
+  const combinazioniViste = [];
   for (const s of sezioni) {
     await vaiA(p, nome, s);
     const { finite: portateAllaFine } = await fermaAnimazioni(p);
@@ -1316,7 +1377,9 @@ for (const [nome, via] of SUPERFICI) {
     for (const m of misure) {
       /* lo stesso testo con la stessa classe si incontra su più schermate:
          si segnala una volta sola, altrimenti l'elenco è illeggibile */
-      for (const t of m.classe.split(/\s+/)) if (t) classiViste.add(t);
+      const suoi = m.classe.split(/\s+/).filter(Boolean);
+      for (const t of suoi) classiViste.add(t);
+      if (suoi.length) combinazioniViste.push(new Set(suoi));
       const chiave = `${nome}|${m.classe}|${m.testo}`;
       if (visti.has(chiave)) continue;
       visti.add(chiave);
@@ -1366,8 +1429,14 @@ for (const [nome, via] of SUPERFICI) {
      rispondeva «0 classi» e sembrava una risposta: era l'eccezione ingoiata. */
   const candidate = await p.evaluate(CLASSI_CANDIDATE)
     .catch((e) => { console.log('  ⚠️  il censimento delle classi non è girato:', String(e).slice(0, 120)); return []; });
-  const mai = candidate.filter((c) => !c.classi.every((k) => classiViste.has(k)));
+  const mai = candidate.filter((c) => !combinazioniViste.some((ins) => c.classi.every((k) => ins.has(k))));
   const daFar = mai.filter((c) => c.coprente);
+  /* ⛔ QUANTE NE PERDEVA IL CRITERIO VECCHIO — stampato, non raccontato. Fino
+     all'08/08 «copre?» si leggeva dal TESTO della dichiarazione, e `var(--card)`
+     non lo soddisfaceva: erano opachissime e finivano fra le «non giudicabili».
+     Questo numero è la prova che il cambio serve: se un giorno tornasse a
+     zero vorrebbe dire che qualcuno ha rimesso il criterio vecchio. */
+  maiCieche += daFar.filter((c) => !c.coprenteScritto).length;
   const soloElencate = mai.filter((c) => !c.coprente);
   maiComparse += mai.length;
   if (soloElencate.length) nonMisurabili.push(`${nome}: ${soloElencate.length}`);
@@ -1450,6 +1519,11 @@ console.log(`   (${finiteTot} animazioni finite portate al loro ultimo fotogramm
    prodotto che il giro non incontra da solo — il pallino delle notifiche, la
    pillola «non salva», il toast; a destra quella che nemmeno facendola
    comparire si può giudicare senza inventarle un contesto. */
+console.log(`   (col criterio vecchio — «copre?» deciso dal TESTO della dichiarazione invece che dal browser —`
+  + ` ${maiCieche} di quelle misurate qui sotto sarebbero rimaste FUORI: sono i fondi scritti`
+  + ` \`var(--card)\`, \`var(--grad)\`, \`var(--success)\`… cioè la forma più comune di questo prodotto)`);
+if (!SOLO && maiCieche === 0)
+  console.log(`   ⛔ ZERO: o il criterio vecchio è tornato, o il censimento non sta più guardando dove crede.`);
 console.log(`   (${maiComparse} classi con un fondo proprio non sono mai comparse durante il giro:`
   + ` ${maiMisurate} fatte comparire e misurate, ${maiBocciate} sotto soglia`
   + (nonMisurabili.length ? ` · non giudicabili fuori dal loro posto: ${nonMisurabili.join(', ')}` : '')

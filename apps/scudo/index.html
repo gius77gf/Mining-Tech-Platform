@@ -214,6 +214,8 @@ body.dw.outdoor-mode{
   --grad-dg:linear-gradient(135deg,var(--num-dg),color-mix(in srgb,var(--ink-dg) 70%,#000));
   --gradSuc:var(--grad-ok);
   --grad3:var(--grad-dg);
+  /* il pieno del «non applicabile» di giorno: vedi il conto sulla sua regola */
+  --chg-na:color-mix(in srgb, var(--app-accent) 12%, #e7e4de);
   --grad-sup:linear-gradient(135deg,var(--app-support),
                                     color-mix(in srgb,var(--app-support) 74%,#000));
 }
@@ -427,7 +429,16 @@ body.dw.outdoor-mode{
 .voce .acts .arr{flex:0 0 auto; min-width:34px; min-height:34px}
 .chg.e-ok.active{background:var(--success); border-color:var(--success); color:var(--on-ok)}
 .chg.e-no.active{background:var(--danger); border-color:var(--danger); color:var(--on-dg)}
-.chg.e-na.active{background:var(--border2); border-color:var(--border-hi); color:var(--text)}
+/* ⛔ IL «NON APPLICABILE» HA UN PIENO SUO, e non per gusto: col `--border2`
+   nudo il tema del SOLE — quello che serve a leggere il telefono in cava —
+   dava 4,02:1 contro i 4,5 che la WCAG chiede a un testo di 11px. È il terzo
+   stato di una lista d'ispezione: deve restare grigio accanto al verde e al
+   rosso, ma abbastanza chiaro da reggere l'inchiostro scuro del giorno.
+   Schiarirlo fino a `--card2` non si poteva: `--card` è il fondo della
+   pastiglia SPENTA, e il terzo stato sarebbe diventato indistinguibile da
+   «non ho ancora risposto» — che è un'altra cosa, e in una lista di controllo
+   è proprio la differenza che conta (l'assenza di un dato non è un dato). */
+.chg.e-na.active{background:var(--chg-na,var(--border2)); border-color:var(--border-hi); color:var(--text)}
 .voce .name{-webkit-line-clamp:3}
 .isp-nota{font-style:italic}
 /* ⛔ LA RIGA DELLA PROVA, e ha un colore perché è un avviso, non un consiglio.

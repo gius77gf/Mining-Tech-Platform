@@ -491,8 +491,23 @@ input[type=date].dw-input::-webkit-calendar-picker-indicator:hover{
   transition:all .15s var(--ease);
 }
 .chg:hover{border-color:var(--app-accent); color:var(--app-accent2)}
+/* ⛔ IL PIENO DELLA PASTIGLIA ATTIVA PASSA DA UNA VARIABILE, E NON È
+   ELEGANZA: È L'UNICO MODO PERCHÉ IL TEMA NON BUTTI VIA IL COLORE DI STATO
+   CHE UN'APP HA GIÀ SCELTO. Fino all'08/08 il tema chiaro scriveva
+   `body.dw.light-mode .chg.active{background:var(--app-accent-deep)}` —
+   specificità (0,4,1) — che batte il `.chg.e-ok.active` di Scudo (0,3,0).
+   Effetto misurato aprendo la pagina in luce: le TRE pastiglie dell'esito di
+   un'ispezione — «conforme», «non conforme», «non applicabile» — venivano
+   dipinte tutte e tre dello STESSO viola, `rgb(94,73,157)`. Non è un problema
+   di contrasto: è una lista di controllo che in pieno sole, cioè proprio dove
+   la si compila, perde i suoi tre stati. Cinque pastiglie di stato in due app
+   (Scudo 4, Campo 1) sparivano così.
+   Con la variabile il tema SCALA invece di FISSARE: la regola dell'app resta
+   a (0,3,0) contro la base a (0,2,0) e vince lei, mentre chi non dichiara
+   niente prende il gradino profondo come prima. È la stessa lezione già
+   scritta in CLAUDE.md per `.nav button` e il tema del sole. */
 .chg.active{
-  background:var(--app-accent); border-color:var(--app-accent); color:var(--grad-on);
+  background:var(--chg-pieno,var(--app-accent)); border-color:var(--chg-pieno,var(--app-accent)); color:var(--grad-on);
   box-shadow:var(--sh-chg),var(--edge-hi);
 }
 .chg:active{transform:scale(.95)}
@@ -824,6 +839,8 @@ body.dw.outdoor-mode{
   --border:    color-mix(in srgb, var(--app-accent) 24%, #d6d2ca);
   --border2:   color-mix(in srgb, var(--app-accent) 34%, #c3beb3);
   --border-hi: color-mix(in srgb, var(--app-accent) 46%, #aca699);
+  /* il pieno della pastiglia attiva quando l'app non ne dichiara uno suo */
+  --chg-pieno: var(--app-accent-deep);
 
   /* testo: scuro, con dentro un soffio del colore dell'app */
   --text:      color-mix(in srgb, var(--app-accent-deep) 16%, #17150f);
@@ -890,8 +907,9 @@ body.dw.outdoor-mode .dw-exit:hover{color:color-mix(in srgb,var(--danger) 82%,#0
 /* pieni nell'accento: sul chiaro si usa il gradino profondo, il bianco sopra deve reggere */
 body.dw.light-mode  .badge.accent,
 body.dw.outdoor-mode .badge.accent{background:var(--app-accent-deep);}
-body.dw.light-mode  .chg.active,
-body.dw.outdoor-mode .chg.active{background:var(--app-accent-deep); border-color:var(--app-accent-deep);}
+/* la pastiglia attiva: si alza la VARIABILE, non si ridipinge la classe —
+   vedi il conto sopra la regola base. `--chg-pieno` è dichiarata nel blocco
+   delle variabili di questi due temi. */
 /* le icone dei campi data/ricerca sono disegnate per il fondo scuro */
 body.dw.light-mode  input[type=date].dw-input::-webkit-calendar-picker-indicator,
 body.dw.light-mode  input[type=search].dw-input::-webkit-search-cancel-button,
