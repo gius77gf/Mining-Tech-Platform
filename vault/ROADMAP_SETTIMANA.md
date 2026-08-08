@@ -1396,11 +1396,23 @@ numero scritto dove non era stato misurato niente**.*
   controprova sana; l'ha smascherata solo il fatto che la riga che doveva cadere
   non cadeva. È la **sesta causa** dell'elenco: lo strumento sotto. Banco
   **73 → 76**.
+- [x] ✅ **La regola dei trattini scritta UNA volta, e la misura sugli altri
+  fogli** (`ce62251`). Me n'ero accorto **dopo** averla copiata due volte, a
+  un'ora di distanza: ora è `TRATTINI`, con l'elenco **dichiarato** delle
+  colonne in cui il vuoto è una risposta vera («Ora» in Sentinella, «Taglia» in
+  Scudo) e i **nomi** delle colonne colpevoli in uscita. ⚠️ La firma vuole **un
+  argomento solo**: `pg.evaluate(fn, x)` ne passa uno, e a due parametri
+  `ammesse` sarebbe arrivata `undefined` — la guardia avrebbe accusato proprio
+  le colonne legittime. Sugli altri fogli gira come **misura**: Flotta 15
+  («Quota»), Conti preventivo 2 («Sconto», **giusti**), DDT 0, fattura 2
+  («Quantità», «Prezzo unitario», sulla riga a **importo unico**), Terra non
+  misurata (finestra nuova). ⛔ **Nessuno corretto, di proposito**: un trattino
+  si **giudica**, non si conta, e sono candidati dichiarati nel documento.
 
 ## Riferimenti
 
 - Ultimo checkpoint **per data vera**:
-  `vault/checkpoints/20260808-010434_il-modello-non-registrato-e-la-chiave-doppia.md`
+  `vault/checkpoints/20260808-011527_la-regola-dei-trattini-scritta-una-volta.md`
   *(dato da `node apps/deepwork-id/tests/date-checkpoint.mjs`, non letto a occhio:
   per NOME il più alto sarebbe `20260805-100000_…`, che è stato scritto **tre
   giorni prima**. Questa riga era ferma al 01/08: il puntatore al file più
