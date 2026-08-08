@@ -81,7 +81,7 @@ contenitore non parte perché chiede la rete e la politica la nega. Il numero
 era 58 e non 68 perché nessuno l'aveva più lanciato in casa: la suite delle
 regole si lancia con* `firebase emulators:exec --only firestore --project
 demo-deepwork "cd tests && node run.mjs"`.
-*(⚠️ Il **2.326** conta sei suite: il giro completo ne esegue **2.601**, ma le
+*(⚠️ Il **2.326** conta sei suite: il giro completo ne esegue **2.611**, ma le
 altre dieci contano **file** invece che casi — crescono da sole quando nasce un
 file, quindi non sono il numero da citare. Rimisurato l'08/08; questa riga era
 ferma a 2.251 e 2.474 mentre il titolo sopra era già stato aggiornato, perché

@@ -50,10 +50,11 @@ segnaposto («Funzione nav non ancora pronta»). Per aprirlo davvero si monta
 
 > ⚠️ **E quel numero conta SEI suite, non tutto quello che gira.** Rimisurato
 > l'08/08 sommando le righe «Risultato …» di un giro intero: il giro `node`
-> completo esegue **2.601** asserzioni, perché ne lancia altre **undici** (sonda
+> completo esegue **2.611** asserzioni, perché ne lancia altre **dodici** (sonda
 > del vuoto 15, numeri nei documenti 26, orologio del vault 3, documenti
-> invecchiati 15, sintassi delle pagine 34, import esistenti 143, nomi liberi 24,
-> classi orfane 2 + 6, **funzioni mai usate 4**, suite collegate 3 = **275**).
+> invecchiati 15, sintassi delle pagine 34, import esistenti 144, nomi liberi 24,
+> classi orfane 2 + 6, funzioni mai usate 4, **limite del giro 9**, suite
+> collegate 3 = **285**).
 > ⚠️ *Questa nota era ferma al 07/08 e diceva 2.474 e «il numero da citare resta
 > 2.251» mentre il titolo sopra diceva già 2.310: il controllo sorveglia il
 > **totale**, non la prosa che lo spiega. È la quarta forma di invecchiamento

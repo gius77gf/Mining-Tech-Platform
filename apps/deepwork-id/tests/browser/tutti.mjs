@@ -35,6 +35,25 @@ const RADICE = join(QUI, '..', '..', '..', '..');
    venticinque banchi per una modifica arrivata all'ultimo. */
 const RADICE_IMPRONTA = (process.argv.find((a) => a.startsWith('--radice-impronta=')) || '').split('=')[1] || RADICE;
 const BANCHI_FINTI = process.argv.includes('--banchi-finti');   // solo per la controprova della guardia
+/* un quarto banco finto che NON finisce mai: serve alla controprova del limite
+   qui sotto, e non entra nel giro finto normale perché lo allungherebbe */
+const FINTO_APPESO = process.argv.includes('--banchi-finti-appeso');
+/* ⛔ UN BANCO CHE SI PIANTA FERMAVA IL GIRO IN SILENZIO, PER SEMPRE. Misurato
+   l'08/08: `uno-solo.mjs --controprova` è rimasto appeso **quattro ore e
+   trentotto minuti** dentro un giro che ne aveva già girate tre, e il giro non
+   è mai finito — `p.on('close', ok)` senza limite aspetta all'infinito.
+   Il danno non è il tempo perso: è che il registro **si tronca a metà di una
+   sezione e sembra completo**. Chi lo apre legge le passate fatte, non vede
+   nessun errore, e crede di avere davanti il verdetto di tutto il giro; le
+   passate mai eseguite non compaiono in nessuna riga — spariscono, invece di
+   dichiararsi. È la famiglia del banco che crolla e dichiara meno prove, in
+   una veste peggiore: qui non crolla nemmeno, tace.
+   Il limite è generoso di proposito — la passata più lunga misurata (contrasto
+   su 14 superfici) sta sotto i venti minuti — e si può alzare con
+   `--limite=<secondi>`. Quando scatta, il banco viene ucciso, il giro DICE che
+   quella passata non è stata misurata e **tira avanti**: un soggetto non
+   misurato non è un soggetto a posto, e il riepilogo lo conta a parte. */
+const LIMITE_MS = (Number((process.argv.find((a) => a.startsWith('--limite=')) || '').split('=')[1]) || 1800) * 1000;
 
 const BANCHI = [
   /* PRIMO DI TUTTI, e di proposito: se una pagina non si apre, ogni misura
@@ -855,11 +874,12 @@ const DA_FARE = BANCHI_FINTI
      che lancia questo giro finto, può pretendere che l'intestazione lo dica —
      e che NON lo dica per le altre due. Una riga che avvisa e che nessuna prova
      guarda è una guardia scollegata. */
-  ? [['finto 1', null, []], ['finto 2', null, [], true], ['finto 3', null, []]]
+  ? [['finto 1', null, []], ['finto 2', null, [], true], ['finto 3', null, []],
+     ...(FINTO_APPESO ? [['finto appeso', null, [], false, true]] : [])]
   : BANCHI;
 
 const esiti = [];
-for (const [nome, file, argomenti, eControprova] of DA_FARE) {
+for (const [nome, file, argomenti, eControprova, appeso] of DA_FARE) {
   /* ⛔ L'INTESTAZIONE DICE SE QUESTA PASSATA È UNA CONTROPROVA, e non è un
      abbellimento: il 07/08 un rosso voluto è stato letto come un guasto DUE
      VOLTE in due ore, la seconda da chi aveva appena scritto la difesa per la
@@ -876,15 +896,29 @@ for (const [nome, file, argomenti, eControprova] of DA_FARE) {
      Un dato che il programma ha in mano non si indovina dal testo. */
   console.log(`\n════════ ${nome} ════════`
     + (eControprova ? '\n   ⚠️  CONTROPROVA: qui sotto il rosso è quello VOLUTO. Un KO qui è il banco che funziona.' : ''));
-  const codice = await new Promise((ok) => {
+  const partito = Date.now();
+  const { codice, scaduto } = await new Promise((ok) => {
+    /* `detached` serve al kill dell'ALBERO qui sotto: senza, il figlio resta
+       nel gruppo del runner e `process.kill(-pid)` ammazzerebbe il runner
+       stesso. Con lui, un Chromium orfano non sopravvive al limite. */
     const p = file
-      ? spawn(process.execPath, [join(QUI, file), PORTA, ...argomenti], { stdio: 'inherit' })
-      : spawn(process.execPath, ['-e', 'setTimeout(() => {}, 600)'], { stdio: 'inherit' });
-    p.on('close', ok);
+      ? spawn(process.execPath, [join(QUI, file), PORTA, ...argomenti], { stdio: 'inherit', detached: true })
+      : spawn(process.execPath, ['-e', appeso ? 'setInterval(() => {}, 1000)' : 'setTimeout(() => {}, 600)'],
+              { stdio: 'inherit', detached: true });
+    /* si uccide l'ALBERO, non solo il capo: un banco che alza un browser lascia
+       vivi i suoi figli, e un Chromium orfano tiene la porta e la memoria */
+    const sveglia = setTimeout(() => {
+      console.log(`\n  ⛔ «${nome}» NON HA FINITO in ${Math.round(LIMITE_MS / 60000)} minuti: lo fermo e tiro avanti.`);
+      console.log('     ⚠️  Questa passata NON È STATA MISURATA. Non vuol dire «a posto»: vuol dire che non si sa.');
+      try { process.kill(-p.pid, 'SIGKILL'); } catch (e) { try { p.kill('SIGKILL'); } catch (e2) { /* già morto */ } }
+      ok({ codice: null, scaduto: true });
+    }, LIMITE_MS);
+    p.on('close', (c) => { clearTimeout(sveglia); ok({ codice: c, scaduto: false }); });
   });
+  const durata = Math.round((Date.now() - partito) / 1000);
   /* una controprova riuscita esce con 0 perché ha fallito come doveva: il
      banco stesso gira il verdetto, qui basta leggerlo */
-  esiti.push({ nome, ok: codice === 0, eControprova: !!eControprova });
+  esiti.push({ nome, ok: !scaduto && codice === 0, eControprova: !!eControprova, scaduto, durata });
 
   /* e subito dopo: qualcuno ha toccato il codice mentre questo banco girava? */
   const d = differenze(base, impronta(COPIA || RADICE_IMPRONTA));
@@ -918,9 +952,24 @@ console.log('\n════════ RIEPILOGO ════════');
    Il giro dichiarava di aver provato codice che non aveva mai visto, e la riga
    dopo aggiungeva «la copia è identica a quello che hai su disco» — falsa. */
 dichiaraSuCosaGira(true);
-for (const e of esiti) console.log(`  ${e.ok ? 'ok ' : 'KO '} ${e.nome}`);
-const caduti = esiti.filter((e) => !e.ok);
-console.log(`\n${esiti.length - caduti.length} banchi a posto, ${caduti.length} da guardare`);
+for (const e of esiti) console.log(`  ${e.scaduto ? '⛔ ' : e.ok ? 'ok ' : 'KO '} ${e.nome}${e.scaduto ? '  — NON MISURATA (fermata dopo il limite)' : ''}`);
+const scadute = esiti.filter((e) => e.scaduto);
+const caduti = esiti.filter((e) => !e.ok && !e.scaduto);
+console.log(`\n${esiti.length - caduti.length - scadute.length} banchi a posto, ${caduti.length} da guardare`
+  + (scadute.length ? `, ${scadute.length} NON MISURATE` : ''));
+/* ⛔ LE PASSATE NON MISURATE SI LEGGONO PRIMA DEI KO, ed è la regola di questo
+   repository: un rosso lo si vede, un «non ho guardato» in fondo a una pagina
+   di verde no. Una passata fermata dal limite non è né passata né caduta: è un
+   soggetto di cui non si sa niente, e il giro non può dirsi verde. */
+if (scadute.length) {
+  console.log(`\n⛔ ${scadute.length} passate NON MISURATE perché non hanno finito entro il limite`
+    + ` (${Math.round(LIMITE_MS / 60000)} minuti — si alza con --limite=<secondi>):`);
+  for (const e of scadute) console.log(`   · ${e.nome}`);
+  console.log('   Il registro qui sotto NON è il verdetto di tutto il giro.');
+}
+/* la passata più lenta, per sapere se il limite è ancora tarato bene */
+const lente = esiti.filter((e) => !e.scaduto).sort((a, b) => b.durata - a.durata).slice(0, 3);
+if (lente.length) console.log(`\n   (le tre passate più lente: ${lente.map((e) => `${e.nome} ${Math.floor(e.durata / 60)}m${String(e.durata % 60).padStart(2, '0')}s`).join(' · ')})`);
 
 if (cambiamenti.length) {
   /* ⛔ Il verdetto NON è «ci sono anche dei cambiamenti»: è che il giro non
@@ -937,4 +986,4 @@ if (cambiamenti.length) {
   process.exit(2);
 }
 togliLaCopia();
-process.exit(caduti.length ? 1 : 0);
+process.exit(caduti.length || scadute.length ? 1 : 0);
