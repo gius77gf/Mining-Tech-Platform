@@ -162,7 +162,7 @@ foglio per foglio, e l'08/08 la stessa forma ha dato **verdetti opposti**:
 
 | foglio | trattini | dove | giudizio preliminare |
 |---|---|---|---|
-| Flotta · libretto macchina | 15 | colonna **«Quota»** (6 nominate) | **da guardare**: è il conto più alto dei tre |
+| Flotta · libretto macchina | 15 → **10 in «Quota» + 5 fuori tabella** | vedi sotto | ✅ i 10 sono **il principio applicato**; i 5 restano da localizzare |
 | Conti · preventivo | 2 | **«Sconto»** | **giusti**: «nessuno sconto» è uno stato vero, non un dato mancante |
 | Conti · DDT | 0 | — | pulito |
 | Conti · fattura | 2 | **«Quantità»**, **«Prezzo unitario»** | **da guardare**: sono sulla riga unica delle fatture registrate a **importo unico**, dove il dettaglio non esiste per scelta — ma la riga non lo dice, ed è la stessa forma dei «superamenti —» di Sentinella |
@@ -171,3 +171,32 @@ foglio per foglio, e l'08/08 la stessa forma ha dato **verdetti opposti**:
 ⚠️ **Nessuno di questi è stato corretto**, e la ragione è la regola di casa: un
 numero riportato si rimisura prima di scriverlo altrove, e un trattino si
 **giudica**, non si conta. Le due righe «da guardare» sono **candidati**.
+
+
+## ⛔ I 15 «Quota» di Flotta erano il principio applicato, non un difetto
+
+Guardati uno per uno, e il verdetto si ribalta. La colonna «Quota» di quel
+grafico è **spenta di proposito** (`quota: false`), e il commento accanto porta
+la misura che l'ha fatta spegnere:
+
+> *una giornata all'83% si dichiarava «quota 12,8%» sul totale di 650, e la
+> giornata a 0 mezzi operativi «quota 0,0%» — cioè il numero più tranquillo che
+> questa schermata sappia dire proprio sul giorno in cui la cava era ferma.*
+
+Sommare percentuali non ha senso, quindi la quota sul totale **non esiste**: il
+«—» lì è l'app che si **rifiuta** di scrivere un numero comodo. È il principio
+del fondatore nella sua forma migliore, e accusarlo sarebbe stato mandare a
+rovinare una cosa sana.
+
+⚠️ **E il righello era largo**: la misura di Flotta guardava `body` in
+`@media print`, cioè **tutta la pagina**, non il foglio. Dichiarando «Quota»
+come colonna ammessa, i quindici si dividono: **10 sono in «Quota»** (giusti) e
+**5 stanno fuori da qualunque tabella** — quelli il banco non sa ancora dire
+dove siano, e finché non lo dice **non si giudicano**. Prima di trasformare
+quella misura in regola va ristretto il selettore al contenitore del foglio: se
+no accusa lo schermo credendo di guardare la stampa.
+
+**Bilancio dei trattini all'08/08**: Sentinella 6 giusti + 2 **corretti**;
+Scudo 5 **corretti**, 0 restanti; Flotta 10 **giusti** + 5 **non ancora
+localizzati**; Conti 2 giusti (sconto), 0 sul DDT, **2 candidati** (fattura a
+importo unico); Terra **non misurata** (apre una finestra nuova).

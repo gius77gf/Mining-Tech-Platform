@@ -416,8 +416,17 @@ if (fai("flotta")) {
      l'08/08 due volte con esiti OPPOSTI sulla stessa forma: «Ora» in
      Sentinella è giusta (facoltativa per disegno), «Modello» in Scudo era un
      difetto. Una regola unica li appiattirebbe. */
-  const trFl = await pg.evaluate(TRATTINI, { sel: "body", ammesse: [] });
-  console.log(`     [misura] libretto macchina: ${trFl ? trFl.altri : "?"} trattini «—», colonne: ${JSON.stringify(trFl ? trFl.dove : null)}`);
+  /* ⛔ E QUESTA MISURA GUARDA `body`, CIOÈ TUTTA LA PAGINA, NON IL FOGLIO —
+     scritto qui perché non diventi una regola così com'è. I 15 trattini
+     dell'08/08 venivano in buona parte dalla tabella dati di un grafico che
+     sullo schermo c'è comunque; guardati uno per uno sono **giusti**, ed è la
+     colonna «Quota» spenta di proposito (`quota: false`) perché sommare
+     percentuali non ha senso — l'app che si rifiuta di scrivere un numero
+     comodo, non un difetto. Prima di stringere: restringere il selettore al
+     contenitore del foglio, se no si accusa lo schermo credendo di guardare
+     la stampa. */
+  const trFl = await pg.evaluate(TRATTINI, { sel: "body", ammesse: ["Quota"] });
+  console.log(`     [misura] libretto macchina: ${trFl ? trFl.altri : "?"} trattini «—» fuori da «Quota» (${trFl ? trFl.dichiarati : "?"} in «Quota», spenta di proposito), colonne: ${JSON.stringify(trFl ? trFl.dove : null)}`);
 
   const kpi = await pg.evaluate(TAGLIATI, "#sch-kpi .n");
   console.log(`     (${kpi.guardati} tessere misurate sul foglio)`);
