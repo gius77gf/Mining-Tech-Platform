@@ -86,7 +86,7 @@ const GLOBALI = new Set(`Object Array String Number Boolean Math JSON Date RegEx
   Promise Symbol BigInt Error TypeError RangeError SyntaxError EvalError ReferenceError Function Proxy Reflect Intl
   parseInt parseFloat isNaN isFinite encodeURIComponent decodeURIComponent encodeURI decodeURI eval
   setTimeout clearTimeout setInterval clearInterval requestAnimationFrame cancelAnimationFrame
-  queueMicrotask structuredClone fetch alert confirm prompt console window document navigator
+  queueMicrotask structuredClone fetch alert confirm prompt console window document navigator globalThis self
   location history localStorage sessionStorage indexedDB screen performance crypto URL URLSearchParams
   Blob File FileReader FormData Headers Request Response AbortController Image Audio Option
   Event CustomEvent MutationObserver ResizeObserver IntersectionObserver DOMParser XMLHttpRequest
@@ -271,7 +271,24 @@ function nomiLegati(codice, conDichiarazioni = true) {
   agg(/import\s*\{([^}]*)\}/g);
   agg(/import\s+([\w$]+)/g);
   agg(/\bcatch\s*\(\s*([\w$]+)/g);
-  agg(/\bfunction[^(]*\(([^)]*)\)/g);
+  /* ⛔ UN LIVELLO DI PARENTESI ANNIDATE, se no il valore di default TRONCA
+     l'elenco dei parametri. `export function statoScadenzaMezzo(dataISO,
+     oggi = new Date(), preavvisoGiorni = 30)`: con `[^)]*` la cattura finisce
+     sulla parentesi di `new Date()` e **tutto quello che viene dopo resta
+     libero** — `preavvisoGiorni` ×10 in Flotta, `semestre` ×4 in Conti,
+     `orizzonte` ×6, e così via. Otto dei nove allarmi rimasti erano questo.
+     `(?:[^()]|\([^()]*\))*` non è ambiguo — le due alternative si distinguono
+     al primo carattere — quindi non fa backtracking.
+     ⚠️ IL COSTO DELLA STRETTA È MISURATO E DICHIARATO, non arrotondato: fra
+     questa correzione e i parametri dei metodi entrano **24 nomi** su 10.711
+     già legati, in 4 file. Diciannove sono parametri veri; tre sono cifre
+     (`3`, `7`, `12`) che non possono essere giudicate comunque; `null` è già
+     una parola chiave. Resta **UNA sola cecità vera**, e va detta:
+     **`getFullYear`**, che arriva dallo spezzare un valore di default come
+     `new Date().getFullYear()`. Da oggi una chiamata nuda a `getFullYear(…)`
+     in `conti-data.js` e `scudo-data.js` sarebbe scusata. Un nome contro
+     diciannove falsi allarmi in meno. */
+  agg(/\bfunction[^(]*\(((?:[^()]|\([^()]*\))*)\)/g);
   agg(/\(([^()]*)\)\s*=>/g);
   agg(/([\w$]+)\s*=>/g);
   /* ⛔ LE DUE FORME ERANO SCRITTE IN UNA, E UNA DELLE DUE È AMBIGUA.
@@ -291,6 +308,25 @@ function nomiLegati(codice, conDichiarazioni = true) {
      nove, e un allarme che sbaglia nove volte su nove insegna a non guardarlo.
      Si riconoscono dalla graffa che segue la parentesi. */
   agg(/(?:^|\n)\s*(?:static\s+)?(?:async\s+)?\*?\s*([\w$]+)\s*\([^()]*\)\s*\{/g);
+  /* ⛔ E I LORO PARAMETRI, che la riga qui sopra non lega: lì il gruppo è il
+     NOME del metodo. Un metodo abbreviato non ha la parola `function`, quindi
+     `agg(/\bfunction[^(]*\(([^)]*)\)/)` non lo incontra e i suoi parametri
+     restano liberi: `_entitlementAttivo(ent, tier = null)` dava `ent` ×5 e
+     `tier` ×5 nell'SDK. Non si vedeva perché le prime tre domande un
+     parametro non lo incontrano — non si chiama e non sta in un `${…}`.
+     ⚠️ LA PAROLA CHIAVE VA ESCLUSA, se no il rimedio è peggio del male:
+     `[\w$]+` combacia anche con `if`, `for`, `while`, `switch`, e allora
+     TUTTO quello che sta dentro una condizione risulterebbe legato — cioè il
+     controllo diventerebbe cieco proprio dove il codice lavora. */
+  /* ⚠️ E LO SPAZIO SI SCRIVE `[ \t]`, NON `\s`. La prima stesura ricopiava il
+     prefisso della riga qui sopra (`\s*(?:static\s+)?(?:async\s+)?\*?\s*`) e
+     la suite non finiva più: due `\s*` separati da gruppi opzionali che a
+     loro volta possono mangiare spazi danno un numero enorme di modi di
+     spezzare la stessa indentazione, e quando la coda fallisce — cioè quasi
+     sempre — il motore li prova tutti. Con `[ \t]` gli a capo non entrano
+     nell'ambiguità e il conto torna lineare. Misurato: da «non finisce» a
+     pochi secondi. */
+  agg(/(?:^|\n)[ \t]*(?:static[ \t]+)?(?:async[ \t]+)?(?!(?:if|for|while|switch|catch|with|function|return|do|else|new|typeof|await|yield)\b)[\w$]+[ \t]*\(((?:[^()]|\([^()]*\))*)\)[ \t]*\{/g);
   return legati;
 }
 
@@ -598,6 +634,38 @@ export function nudiLiberi(relPagina, htmlDato = null) {
   return { visti, liberi };
 }
 
+/* ⏱️ LA QUARTA FORMA NEI MODULI — il buco che il riepilogo dichiarava.
+   Nelle pagine è già regola; qui parte come MISURA, che è il modo in cui è
+   nata anche di là: una guardia che accusa codice sano insegna a non
+   guardarla, quindi prima si conta e poi si pretende.
+   ⚠️ E la misura fatta in scratchpad NON vale e non va riportata: 60 allarmi
+   su 38.119, ma tre allarmi guardati su tre erano il **righello** — avevo
+   riscritto una versione più debole di `nomiLegati` invece di usarlo. Qui
+   `nomiLegati` è quello vero, e la differenza è tutta lì. */
+export function nudiLiberiModulo(rel, testoDato = null) {
+  const grezzo = testoDato === null ? leggi(rel) : testoDato;
+  /* ⛔ UNA RI-ESPORTAZIONE NON È UN RIFERIMENTO. `export { ESITI_TURNO,
+     statoScadenzaHSE } from "…/dw-ponti.js"` non dichiara e non usa quei nomi:
+     li **inoltra**, e chi li risolve è il modulo dall'altra parte. Campo ne
+     dava sei, tutti sani. Si toglie solo la forma CON `from` — in un
+     `export { a, b }` senza `from` i nomi sono locali, e lì restano legati
+     dalle loro dichiarazioni come è giusto. */
+  const codice = soloCodice(grezzo).replace(/export\s*\{[^}]*\}\s*from/g, (s) => " ".repeat(s.length));
+  const masc = mascheraCodice(grezzo);
+  const legati = nomiLegati(codice);
+  const liberi = new Map();
+  let visti = 0;
+  for (const m of codice.matchAll(/(^|[^\w$.?'"`])([A-Za-z_$][\w$]*)\b(?!\s*[(:])/g)) {
+    const n = m[2];
+    const j = m.index + m[1].length;
+    if (j > 0 && grezzo[j - 1] === "/" && !masc[j - 1]) continue;
+    visti++;
+    if (PAROLE.has(n) || GLOBALI.has(n) || DA_CDN.has(n) || SINTASSI_E_NODE.has(n) || legati.has(n)) continue;
+    liberi.set(n, (liberi.get(n) || 0) + 1);
+  }
+  return { visti, liberi };
+}
+
 let passed = 0, failed = 0;
 const test = (nome, fn) => {
   try { fn(); passed++; console.log(`  ✓ ${nome}`); }
@@ -893,6 +961,63 @@ for (const p of PAGINE) {
 console.log(`   [misura] quarta forma (riferimenti nudi): ${visti4} su ${pagine4} pagine, ${male4.length} liberi`);
 for (const x of male4.slice(0, 15)) console.log("      · " + x);
 
+/* la stessa forma nei MODULI, ancora come misura */
+let visti4m = 0, moduli4 = 0;
+const male4m = [];
+for (const p of moduliDelDisco()) {
+  let r;
+  try { r = nudiLiberiModulo(p); } catch { continue; }
+  if (!r.visti) continue;
+  moduli4++; visti4m += r.visti;
+  for (const [n, c] of r.liberi) male4m.push(`${p}: ${n} ×${c}`);
+}
+console.log(`   [misura] quarta forma nei MODULI: ${visti4m} su ${moduli4} moduli, ${male4m.length} liberi`);
+for (const x of male4m.slice(0, 20)) console.log("      · " + x);
+
+/* ⛔ E ANCHE NEI MODULI DIVENTA REGOLA, nella stessa unità — perché la strada
+   dai 67 allarmi allo zero è stata tutta di RIGHELLO, e nessuno di prodotto:
+   1. i **parametri dei metodi abbreviati**: `nomiLegati` legava il NOME del
+      metodo e non i suoi argomenti, perché un metodo non ha la parola
+      `function` (11 allarmi nel solo SDK);
+   2. le **ri-esportazioni**: `export { A, B } from "…"` non dichiara e non usa,
+      inoltra (6 in Campo);
+   3. `globalThis` e `self` mancanti fra i globali — e `self` è il globale di un
+      **service worker**, dove non c'è nessun `window` (5 in `genesi-sw.js`);
+   4. il **valore di default che tronca l'elenco dei parametri**: con `[^)]*` la
+      cattura finiva sulla parentesi di `new Date()` e tutto quello che veniva
+      dopo restava libero (8 dei 9 ultimi).
+   Nei moduli questa forma morde più che nelle pagine: un nome libero non fa
+   rumore all'import, esplode quando quella riga viene eseguita — cioè magari
+   in un ramo che le prove non toccano. */
+test("nessun nome RIFERITO NUDO libero nei MODULI", () => {
+  ok(male4m.length === 0,
+    "nomi riferiti nudi in un modulo e mai dichiarati né importati:\n  " + male4m.slice(0, 12).join("\n  "));
+});
+
+test("la quarta domanda ha davvero guardato anche i moduli", () => {
+  ok(moduli4 >= 15, `solo ${moduli4} moduli guardati dalla quarta domanda`);
+  /* misurati 38.022 l'08/08 */
+  ok(visti4m >= 25000, `solo ${visti4m} riferimenti nudi nei moduli: troppo pochi (misurati 38.022 l'08/08)`);
+});
+
+test("la controprova della QUARTA domanda NEI MODULI", () => {
+  /* `LOTTI_APERTI` è dichiarata in `terra-data.js` (`const LOTTI_APERTI =
+     [...]`, nemmeno esportata) e riferita **nuda** quattro volte lì dentro:
+     in `STATI_LOTTO`, e in tre `[...LOTTI_APERTI, ...LOTTI_CHIUSI]`. Mai
+     chiamata, mai in un template. Tolta la dichiarazione, il modulo muore.
+     ⚠️ Il primo soggetto che avevo scelto — `SOGLIA_TURNI` — in questo modulo
+     NON è dichiarato: sta in un elenco di ri-esportazione. L'iniezione non
+     sostituiva niente e la prova sarebbe passata per il motivo sbagliato; a
+     fermarla è stata la riga qui sotto, che è lì apposta. */
+  const rel = "apps/terra/terra-data.js";
+  const N = "LOTTI_APERTI";
+  const src = leggi(rel);
+  const guasto = src.replace(new RegExp("^const " + N + "\\s*=[^\\n]*\\n", "m"), "");
+  ok(guasto !== src, "l'iniezione non ha sostituito niente: la prova non prova niente");
+  ok(nudiLiberiModulo(rel, guasto).liberi.has(N), `la quarta domanda non vede ${N} riferito nudo nel modulo`);
+  ok(nudiLiberiModulo(rel).liberi.size === 0, "e sul modulo sano non accusa niente");
+});
+
 /* ⛔ DA MISURA A REGOLA, l'08/08 — e il percorso vale più del numero d'arrivo:
    **35 → 34 → 9 → 7 → 6 → 0**, e NESSUNO dei sei scalini era il prodotto.
    1. il lookahead senza `\b` (prefissi: «escHtml» → «escHtm», 3.354 allarmi);
@@ -999,11 +1124,11 @@ console.log(`\nRisultato nomi liberi: ${passed} passati, ${failed} falliti`
   + `  ·  seconda domanda (lo scope): ${chiamateScope} chiamate su ${pagineScope} pagine e ${chiamateScopeMod} su ${moduliScope} moduli, ${maleScope.length + maleScopeMod.length} fuori scope`
   + `  ·  terza domanda (i riferimenti): ${visti3} usi di ${"$"}{…} su ${pagine3} pagine e ${visti3m} su ${moduli3} moduli, ${male3.length + male3m.length} liberi`
   /* ⚠️ IL PERIMETRO VA DETTO, se no il denominatore si legge più largo di
-     quello che è. La quarta domanda guarda le PAGINE e **non i moduli**, e
-     quel buco non lo copre nessun altro: la prima riga che avevo scritto qui
-     diceva «nei moduli ci pensa import-esistenti», ed era **falsa** —
-     `import-esistenti` verifica il verso opposto, che un nome importato esista
-     dall'altra parte, non che un nome riferito sia stato importato. Verificato
-     leggendo la sua intestazione prima di lasciarla scritta. */
-  + `  ·  quarta domanda (i riferimenti nudi): ${visti4} su ${pagine4} pagine, ${male4.length} liberi (i MODULI restano fuori: nessun altro controllo li copre)`);
+     quello che è — e questa riga ha già portato due affermazioni sbagliate in
+     un'ora, tutt'e due corrette prima di restare scritte:
+     1. «nei moduli ci pensa `import-esistenti`»: **falsa**, quello verifica il
+        verso opposto — che un nome *importato* esista dall'altra parte, non
+        che un nome *riferito* sia stato importato;
+     2. «i moduli restano fuori»: vera per un'ora, poi chiusa qui sotto. */
+  + `  ·  quarta domanda (i riferimenti nudi): ${visti4} su ${pagine4} pagine e ${visti4m} su ${moduli4} moduli, ${male4.length + male4m.length} liberi`);
 process.exit(failed > 0 ? 1 : 0);
