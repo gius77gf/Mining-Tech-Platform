@@ -969,6 +969,24 @@ numero scritto dove non era stato misurato niente**.*
 - [x] ✅ **Flotta: un pieno senza spesa metteva una macchina PRIMA in classifica
   a zero euro l'ora** (`4938125`). `spesaInFinestra = 0` → `€ 0,00/h` → prima in
   `pagellaMezzi`: il principio del fondatore nella sua forma più pura.
+- [x] ✅ **Trentadue frasi che con «1» dicevano «1 righe»** (`a3086fa`,
+  `7517c07`). I banchi del singolare guardano quello che la **dimostrazione**
+  rende con n=1; il sorgente le ha tutte: «Letto: 1 righe» sull'import di un
+  CSV, «negli ultimi 1 giorni» in nove punti di Flotta (`finestra =
+  Math.max(1, …)`), «ogni 1 mesi» su un campo libero, «1 letture», «1 fori».
+  E la sostituzione **non è meccanica**: con «1» cambiano articolo,
+  preposizione e verbo. La regola automatica è stata **provata e scartata coi
+  numeri** — 22 falsi su 38 con la finestra di caratteri, **5 su 28** con la
+  guardia cercata sulla variabile giusta — e i cinque residui hanno un nome
+  (una lista letterale, due termini di legge, «foto» che è invariabile).
+- [x] ✅ **La guardia che vede una funzione provata e mai usata** (`1290225`,
+  `60d55ce`). `copertura-funzioni` dice «703 su 703» ed è vero: a chiamarle
+  sono le **prove**. Su 645 funzioni esportate, **sei** non le chiama il
+  prodotto. Il righello ha sbagliato **quattro** volte prima di reggere (i
+  commenti spogliati a mano, l'elenco delle pagine a mano, un'iniezione che
+  non iniettava, il riepilogo non in fondo). ⚠️ E due delle sei le avevo
+  etichettate «da collegare» **giudicando dal nome**: aprendo le pagine erano
+  **superate** da forme migliori. «Mai chiamata» non vuol dire «manca».
 - [x] ✅ **Il censimento del contrasto guardava una classe su sei** (`bdb7e05`).
   La riga più grossa del giro diceva «234 classi con un fondo proprio non sono
   mai comparse: **41** fatte comparire e misurate», e il banco intanto stampava
