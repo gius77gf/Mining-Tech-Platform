@@ -969,6 +969,26 @@ numero scritto dove non era stato misurato niente**.*
 - [x] ✅ **Flotta: un pieno senza spesa metteva una macchina PRIMA in classifica
   a zero euro l'ora** (`4938125`). `spesaInFinestra = 0` → `€ 0,00/h` → prima in
   `pagellaMezzi`: il principio del fondatore nella sua forma più pura.
+- [x] ✅ **Il censimento del contrasto guardava una classe su sei** (`bdb7e05`).
+  La riga più grossa del giro diceva «234 classi con un fondo proprio non sono
+  mai comparse: **41** fatte comparire e misurate», e il banco intanto stampava
+  «4700 testi, 0 sotto soglia». Tre difetti del righello, indipendenti:
+  «copre?» deciso dal **testo** della dichiarazione invece che dal browser
+  (`var(--card)` non lo soddisfaceva: 68 opache su 122 marcate «non
+  coprente»); una **combinazione** di classi data per vista perché lo erano le
+  sue parti; un campione che **nasce nascosto** e veniva contato fra i
+  misurati. **41 → 182 su 239**, e sei difetti veri nel core — fra cui il toast
+  d'errore e il badge «scaduta» a corpo 9 — più le **tre pastiglie d'esito** di
+  Scudo che in luce diventavano dello stesso viola, perché una regola di
+  `shared/` vince per specificità su quella dell'app.
+- [x] ✅ **Il sollecito di pagamento di Conti usciva nudo negli appunti**
+  (`3177317`). Trovato leggendo la riga «NON MISURATE: conti — copiano negli
+  appunti ma non hanno una riga in COME», che il banco dichiarava da giorni in
+  fondo a un riepilogo verde. I due testi che una persona incolla in un'email
+  per chiedere soldi a un cliente non dichiaravano di essere una dimostrazione.
+  La regola sale in `shared/` (era scritta **due volte con due comportamenti
+  diversi** e a Conti mancava del tutto); il banco passa da un bottone per app
+  a una **lista**: 7 → 19 prove, 1 → 3 uscite raggiunte.
 - [x] ✅ **Le unità nude che il banco NON POTEVA vedere** (`d5692f6`). Il banco
   scarta gli elementi senza area — filtro **giusto**, e proprio per questo non si
   aggiusta: lo rende cieco su tutto ciò che compare **dopo**. Il riquadro
@@ -1902,8 +1922,8 @@ numero scritto dove non era stato misurato niente**.*
   nome apre il file sbagliato credendo che sia il più fresco.
 - Le decisioni: `docs/DECISIONI_WEEKEND.md` — pagina d'ingresso in cima.
 - Stato misurato all'**08/08** (lanciando le suite, non a memoria):
-  **2.324 prove** che girano senza rete — e la frase va letta stretta: sono la
-  somma delle **sei** suite che contano asserzioni (`run-kpi` 1890, `run-stile`
+  **2.326 prove** che girano senza rete — e la frase va letta stretta: sono la
+  somma delle **sei** suite che contano asserzioni (`run-kpi` 1892, `run-stile`
   314, `run-helpers` 71, `run-pointcloud` 32, `run-manifest` 9, `run-demo` 8),
   non tutto ciò che gira nel giro `node`, che di comandi ne ha **23**.
   Copertura **703/703** e nessuna funzione scoperta; **153 esecuzioni** che
