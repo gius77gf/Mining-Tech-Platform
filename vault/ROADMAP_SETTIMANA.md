@@ -2167,6 +2167,29 @@ numero scritto dove non era stato misurato niente**.*
   mia sonda**: tre banchi di fila sulla **stessa porta**, e il server di prima
   non l'aveva ancora liberata. Da solo: 35/35.
 
+- [x] ✅ **Un'iniezione scaduta adesso la prende una suite, in tre secondi
+  invece che in sei ore** (`e26ff87`). Le tre di prima le ha trovate il giro
+  del browser — cioè un registro da cinquemila righe letto a mano. Adesso c'è
+  `apps/deepwork-id/tests/iniezioni-fresche.mjs`, che **non apre un browser e
+  non alza un server**: guarda le stringhe e i file, e gira in `npm test`, cioè
+  **prima** del commit. Misura dichiarata: **174 iniezioni sul bersaglio su
+  174**, 20 banchi letti, su 32 file di prodotto — e l'elenco dei file è
+  **derivato dal disco**, così un'app nuova entra da sola.
+  Il banco la cui tabella non si legge da fermi (`scudo-documenti`, la costruisce
+  da variabili) è **dichiarato con la ragione**, e l'elenco è **sorvegliato**:
+  se diventasse leggibile, o se ne comparisse un altro, il controllo cade — è
+  la disciplina di `sonda-vuoto`, un'eccezione che non serve più è un'eccezione
+  che nasconde. Controprova: una stringa inventata non deve essere trovata (se
+  no il confronto è rotto), e col difetto rimesso il controllo **nomina** il
+  banco colpevole.
+- [x] ✅ **E l'ultimo KO di Conti era il banco che pinnava il testo di ieri**
+  (`e26ff87`). `conti-frasi` chiedeva «**Esportati** 1 prodotto (CSV)» e la
+  pagina scrive «**Esportato** 1 prodotto», che in italiano è la forma giusta:
+  il 07/08 `plurale(...)` ha imparato anche il **participio**. Cioè il banco
+  contava come difetto una **correzione**. Corretto rendendo l'asserzione **più
+  giusta, non più permissiva** — si pretende il participio singolare **e** che
+  il plurale non compaia, invece di allargare a `Esportat[oi]`.
+
 ## Riferimenti
 
 - Ultimo checkpoint **per data vera**:
