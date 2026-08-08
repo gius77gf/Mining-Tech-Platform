@@ -2259,6 +2259,29 @@ numero scritto dove non era stato misurato niente**.*
   durare ogni giro `node` **venti minuti invece di due**, e l'ho fermato per
   questo — trovando le 71 copie solo perché mi sono fermato a guardare.
 
+- [x] ✅ **E il server del giro morto teneva la porta, servendo una cartella
+  cancellata** (`85978b2`). Seconda metà, misurata **subito dopo**: tolte le 71
+  copie, il giro nuovo si è **rifiutato di partire** — «non riesco ad alzare un
+  server statico sulla porta 8823». Il colpevole era il `python3 -m http.server`
+  del giro ucciso, ancora vivo, con `cwd = /home/user/giro-copia-16814
+  **(deleted)**`: l'orfano che `CLAUDE.md` descrive da giorni, quello che
+  risponde con **404 su tutto**.
+  ⚠️ E il rifiuto di partire è la guardia che **funziona**: meglio fermarsi che
+  misurare la copia di un altro. Ma nessuno toglieva l'orfano, quindi il giro
+  restava impossibile da lanciare finché non ci si metteva a mano.
+  Adesso lo toglie il giro successivo, con un criterio che non può sbagliare
+  bersaglio: **solo la nostra porta**, e solo se la cartella servita **non
+  esiste più**. Un giro vivo ha una cwd che esiste e non viene toccato.
+  Controprova in `tests/browser/server-orfani.mjs`, **collegata a `npm test`**:
+  alza due server, cancella la cartella di uno, e pretende che ne tolga **uno**
+  e lasci **l'altro** — se uccidesse il sano sarebbe peggio del difetto.
+  ⚠️ **E le due sonde in shell che l'hanno preceduta erano sbagliate tutt'e
+  due**, con lo stesso segno di sempre: un `cd` dentro una catena messa in
+  background non vale per il processo che parte, e `pgrep` conta **sé stesso**.
+  Riscritta in node, dove i pid li dà chi li genera. È la regola di casa — *non
+  calcolare a mano ciò che il programma sa già dire* — pagata due volte in dieci
+  minuti.
+
 ## Riferimenti
 
 - Ultimo checkpoint **per data vera**:
