@@ -4049,7 +4049,16 @@ textarea.dw-input{
                     : "Nessuna lettura di questo strumento perde la copertura."}
          <br><br>Toglilo solo se l'hai inserito per sbaglio: la taratura è un documento, non una nota.`,
         "Rimuovi", true)) {
-        await db.aggiorna("monitoraggi", m.id, { tarature: resta }); await refresh();
+        /* si toglie DALLE tarature vere del momento: `resta` è calcolato su
+           una lettura vecchia, e chi nel frattempo ne avesse aggiunta una la
+           perderebbe. La riconosce per le sue due date, come fa il controllo
+           dei doppioni qui sotto. */
+        await db.trasforma("monitoraggi", m.id, (m2) => ({
+          tarature: ((m2 && m2.tarature) || []).filter((t) =>
+            !(String(t.data || "") === dTar && String(t.scadenza || "") === sTar
+              && String(t.certificato || "") === cTar)),
+        }));
+        await refresh();
         toast("Taratura rimossa da «" + m.nome.split(" — ")[0] + "»."); } return; }
     const delVol = attr(e, "data-del-vol");
     if (delVol) { const v = VOL.find(x => x.id === delVol);
@@ -4657,8 +4666,16 @@ textarea.dw-input{
     const gia = ((m && m.tarature) || []).some(t => String(t.data || "") === data && String(t.scadenza || "") === scad);
     if (gia) { esito("tar-esito", "Su questo strumento c'è già una taratura con le stesse due date: controlla lo storico qui sotto prima di aggiungerne un'altra.", "err", "Taratura già registrata."); return; }
 
-    const tarature = [ ...((m && m.tarature) || []), { data, scadenza: scad, ente, certificato: cert } ];
-    await db.aggiorna("monitoraggi", id, { tarature });
+    /* ⛔ il controllo del doppione si RIFÀ dentro la transazione: farlo solo
+       fuori vuol dire deciderlo su una lettura vecchia, ed è proprio il caso
+       in cui due persone registrano la stessa taratura nello stesso momento. */
+    let doppia = false;
+    await db.trasforma("monitoraggi", id, (m2) => {
+      const gia2 = ((m2 && m2.tarature) || []);
+      if (gia2.some((t) => String(t.data || "") === data && String(t.scadenza || "") === scad)) { doppia = true; return null; }
+      return { tarature: [ ...gia2, { data, scadenza: scad, ente, certificato: cert } ] };
+    });
+    if (doppia) { esito("tar-esito", "Su questo strumento c'è già una taratura con le stesse due date: qualcuno l'ha appena registrata.", "err", "Taratura già registrata."); return; }
 
     /* Il messaggio dice che cosa CAMBIA, non che il salvataggio è riuscito:
        quante letture questo certificato copre è il motivo per cui lo si è
@@ -4719,7 +4736,9 @@ textarea.dw-input{
     for (const [id, lista] of perPunto) {
       const m = MON.find(x => x.id === id);
       const nuove = lista.map(v => ({ data: v.data, scadenza: v.scadenza, ente: v.ente, certificato: v.certificato, nota: v.nota }));
-      await db.aggiorna("monitoraggi", id, { tarature: [ ...((m && m.tarature) || []), ...nuove ] });
+      await db.trasforma("monitoraggi", id, (m2) => ({
+        tarature: [ ...((m2 && m2.tarature) || []), ...nuove ],
+      }));
       for (const l of ((m && m.letture) || []))
         if (coperturaTaratura(nuove, l.data).stato === "coperta") coperte++;
     }

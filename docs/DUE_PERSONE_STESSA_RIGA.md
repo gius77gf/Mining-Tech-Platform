@@ -135,11 +135,24 @@ perché deciderlo su una lettura vecchia è lo stesso errore un passo più in l�
 ⚠️ E il `collegaAzioneAllAnalisi` aveva una guardia `if (!db.aggiorna) return`
 rimasta a guardare **la funzione che non usa più**: allineata.
 
-**Restano tre punti**: Sentinella `letture` (la **correzione** di una lettura
-già dentro) e `tarature` ×3 → in tutto tre siti. Vogliono lo stesso
-`trasforma`, che adesso ce l'hanno **Sentinella e Scudo**: quando servirà a una
-terza app va aggiunto al suo livello dati — la funzione condivisa c'è già, e
-**non va ricopiata**. Una prova lo pretende per nome su tutt'e due.
+E infine le **tarature** di Sentinella (08/08): l'aggiunta a mano — dove **il
+controllo del doppione si rifà dentro** la transazione, perché farlo solo fuori
+vuol dire deciderlo su una lettura vecchia, ed è proprio il caso di due persone
+che registrano la stessa taratura insieme —, l'**import in blocco**, e la
+**rimozione**, che ora toglie dalle tarature vere del momento invece che da un
+elenco calcolato prima.
+⚠️ Lì ho sbagliato e l'ha preso il rileggere, non una prova: avevo scritto il
+filtro su **due** chiavi (`data`, `scadenza`) mentre l'originale ne usa **tre**
+(anche il `certificato`), e il codice **compilava** — `nomi-liberi` taceva
+perché nel file c'è un altro `tar` in scope, cioè l'**omonimo** che questo
+repository ha già censito. Corretto sulle tre chiavi vere.
+
+**Restano DUE siti**, dichiarati: la **correzione** di una lettura già dentro
+(l'unico caso in cui si tocca un elemento in mezzo all'elenco) e il punto di
+Sentinella che scrive `letture` insieme a `valore` dalla scheda.
+`trasforma` ce l'hanno **Sentinella e Scudo**: quando servirà a una terza app va
+aggiunto al suo livello dati — la funzione condivisa c'è già e **non va
+ricopiata**. Una prova lo pretende per nome su tutt'e due.
 
 ### E solo dopo, la coda offline
 Mettere in coda scritture che si cancellano a vicenda vorrebbe dire
