@@ -1882,10 +1882,19 @@ export function scaglionePer(prodotto, quantita, unita) {
            scontoScaglione: b.sconto == null ? 0 : b.sconto };
 }
 
-/* La frase che accompagna lo scaglione, e il posto in cui la bandiera
-   `calcolabile` viene LETTA (regola 20 di run-stile: una non-misurabilità che
-   non legge nessuno non protegge niente). Stessa forma di `descriviAvanzamento`.
-   Il formattatore dei numeri si passa da fuori, per la ragione scritta sopra. */
+/* La frase che accompagna lo scaglione. Stessa forma di `descriviAvanzamento`;
+   il formattatore dei numeri si passa da fuori, per la ragione scritta sopra.
+   ⚠️ QUESTA INTESTAZIONE DICEVA UNA COSA CHE NON È PIÙ VERA, ed è la quarta
+   forma di invecchiamento raccolta in CLAUDE.md — il verdetto regge e scade la
+   PROVA. Diceva: «e il posto in cui la bandiera `calcolabile` viene LETTA
+   (regola 20 di run-stile)». Misurato l'08/08: la pagina di Conti **non chiama
+   mai** questa funzione, e la bandiera `calcolabile` la legge in **otto** punti
+   suoi. Cioè il lettore dichiarato qui non è il lettore vero, e chi si fidasse
+   di questa riga crederebbe protetto un punto che protegge qualcun altro.
+   La funzione resta: dice bene i casi non calcolabili, e serve a chi mostrerà
+   il risultato di `scaglionePer` invece dello scatto appiattito che la riga
+   salva (`{da,a,unita,tipo,prezzo,sconto}`) — che è quello su cui lavora
+   `spiegaScaglioneRiga` nella pagina, un oggetto DIVERSO da questo. */
 export function descriviScaglione(sc, fmt) {
   const s = sc || {};
   const n = typeof fmt === "function" ? fmt : String;

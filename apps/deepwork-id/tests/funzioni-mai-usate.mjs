@@ -51,14 +51,17 @@ const MODULI = [
    segnalata: se qualcuno collega una di queste, il conto scende e si vede. */
 const ACCETTATE = new Map([
   ["apps/conti/conti-data.js|descriviScaglione",
-    "DA COLLEGARE. Spiega perché uno scaglione si applica («Scaglione 100–500 t: 5% sulla quantità»). "
-    + "Il resto della famiglia è vivo — `etichettaScaglione` e `validaScaglioni` la pagina le usa, e "
-    + "`applicaScaglione` la chiama il modulo — quindi lo sconto si applica davvero: quello che manca è "
-    + "la FRASE che lo spiega a chi legge il preventivo."],
+    "SUPERATA. Sembrava «una frase che il prodotto calcola e non mostra»: NON lo è, e la differenza l'ha "
+    + "detta solo l'apertura del codice. La pagina ha `spiegaScaglioneRiga`, che dice la stessa cosa e in "
+    + "più separa le due metà dello sconto (scaglione + cliente), perché chi riceve l'offerta deve poter "
+    + "rifare il conto. E lavora su un oggetto DIVERSO: la riga salva uno scatto appiattito dello "
+    + "scaglione (`{da,a,unita,tipo,prezzo,sconto}`), non il risultato di `scaglionePer`. La bandiera "
+    + "`calcolabile` la pagina la legge in otto punti suoi."],
   ["apps/scudo/scudo-data.js|descriviPotenziale",
-    "DA COLLEGARE. È il «se andava male: grave» accanto a un mancato infortunio, cioè la ragione per cui "
-    + "un near-miss si registra. La pagina mostra `descriviRischioPotenziale`, che è l'aggregato: la riga "
-    + "del singolo evento non dice niente."],
+    "SUPERATA, e anche qui l'etichetta «da collegare» era sbagliata. La riga del near-miss mostra già la "
+    + "gravità potenziale come PASTIGLIA in testa al nome, col titolo «Se fosse andata male: …» e la "
+    + "possibilità di cambiarla toccandola — cioè la stessa informazione in una forma migliore di una "
+    + "frase in coda, che il `line-clamp:2` delle righe taglierebbe."],
   ["apps/scudo/scudo-data.js|appaltiDiCantiere",
     "TENUTA. È il gemello di `appaltiDiAppaltatore`, che la pagina usa: filtra gli appalti di un CANTIERE "
     + "invece che di un appaltatore. Serve alla scheda del cantiere, che non c'è ancora. Toglierla vorrebbe "
