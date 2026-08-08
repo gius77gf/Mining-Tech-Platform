@@ -3040,8 +3040,25 @@ label.item:has(.dw-chk:checked){
             volte, in due app, nello stesso giorno. */""}
       <div class="meta">${rieF.quadra ? "" : `<b title="Le righe sommano ${eur(rieF.imponibileRighe)} di imponibile e ${eur(rieF.ivaRighe)} di IVA; il documento è registrato per ${eur(im.imponibile)} + ${eur(im.ivaImporto)}. Rifalla dai DDT, oppure correggi le righe, prima di consegnarla.">le righe non tornano col totale</b> · `}${esc(meta)}${mora && mora.interessi > 0 ? ` · <span title="Interessi di mora D.Lgs 231/2002 al ${String(TASSO_MORA_DEFAULT).replace('.', ',')}% annuo — tasso di legge del ${statoTassoMora().etichetta}${statoTassoMora().aggiornato === false ? ", da riconfermare per il semestre in corso" : ""} + € 40,00 di spese art. 6">mora ~${eur(mora.interessi)}</span>` : ""}</div></div>
       <div class="amt"><div class="amt-n${f.incassata ? " mute" : f.parziale ? "" : ritardo > 0 ? " neg" : ""}">${eur(f.importo)}</div>
-        <div class="amt-s">${f.incassata ? "saldata" : f.parziale ? "residuo " + eur(f.residuo)
-          : ritardo > 0 ? "in ritardo di " + ritardo + " gg" : "da incassare"}</div></div>
+        <div class="amt-s">${(() => {
+          /* ⛔ LA RIGA LEGGEVA `f.residuo` DAL RECORD, e una nota di credito
+             quel campo non lo riscrive: è salvato quando si registra un
+             incasso, e le note vivono in un'altra collezione. Su una fattura
+             da 1.000 € con una nota da 200 e un acconto da 500 la riga diceva
+             «residuo 500», il foglio STAMPATO della stessa fattura «residuo
+             300» (usa `statoFattura(f, INC, NOT)`) e il totale in fondo a
+             questa stessa lista era già note-aware (`apertoDi(f, NOT)`): la
+             schermata si smentiva da sola, in tre punti, e quello sbagliato
+             era proprio quello che si legge tutti i giorni.
+             Il residuo lo decide `statoFattura`, come per il foglio stampato e
+             — da oggi — per il CSV degli incassi. */
+          const st = statoFattura(f, INC, NOT);
+          if (st.stato === "stornata") return "annullata da nota di credito";
+          if (st.saldata) return "saldata";
+          if (st.parziale) return "residuo " + eur(st.residuo);
+          if (st.stornato > 0) return "residuo " + eur(st.residuo) + " (dopo la nota)";
+          return ritardo > 0 ? "in ritardo di " + ritardo + " gg" : "da incassare";
+        })()}</div></div>
       <span class="badge ${b[0]}">${ggU(esc(b[1]))}</span>${
         /* ⛔ E IL BADGE DA SOLO DICEVA «REGOLARE», IN VERDE, SU UN DOCUMENTO
            ROTTO. `fatBadge` parla della SCADENZA, e una fattura che non quadra
@@ -5557,13 +5574,32 @@ label.item:has(.dw-chk:checked){
     const righe = INC.map(m => ({ m, f: FAT.find(x => x.id === m.fatturaId) }))
       .filter(r => r.f)
       .sort((a, b) => String(a.m.data || "").localeCompare(String(b.m.data || "")));
-    let csv = "data;fattura;cliente;importo;metodo;totale_fattura;residuo_dopo\n";
+    /* ⛔ IL RESIDUO IGNORAVA LE NOTE DI CREDITO. È il file che il
+       commercialista incrocia con l'estratto conto della banca, e il residuo
+       lo calcolava come `importiFattura(f).totale - incassato`: quel totale è
+       il lordo della fattura, e `importiFattura` le note non le guarda. Lo
+       schermo invece passa da `statoFattura(f, INC, NOT)`, che toglie lo
+       stornato e ricava l'ESIGIBILE — tanto che la riga stampata lo dice a
+       parole: «Da incassare … (dopo la nota di credito)».
+       Su una fattura da 1.000 € con una nota da 200 € e un acconto da 500 €,
+       lo schermo diceva «residuo 300 €» e questo file «500».
+       È lo stesso difetto che il CSV della SITUAZIONE FATTURE, quaranta righe
+       più su, ha già corretto — e il suo commento lo dice: *la pagina si era
+       tenuta una copia più debole di due regole che l'app aveva già, le note
+       di credito e `quadra`*. Corretto a un export e non all'altro.
+       ⚠️ La colonna `totale_fattura` NON cambia significato: resta il lordo,
+       che è quello che il commercialista si aspetta di trovare accanto al
+       numero di fattura. Quello che mancava si AGGIUNGE — `note_di_credito` —
+       così il foglio mostra da dove viene la differenza invece di farla
+       comparire dentro un numero che si chiama in un altro modo. */
+    let csv = "data;fattura;cliente;importo;metodo;totale_fattura;note_di_credito;residuo_dopo\n";
     for (const r of righe) {
       const fino = movimentiDiFattura(r.f.id, INC)
         .filter(x => String(x.data || "") < String(r.m.data || "") || (String(x.data || "") === String(r.m.data || "") && String(x.id) <= String(r.m.id)))
         .reduce((t, x) => t + x.importo, 0);
+      const st = statoFattura(r.f, INC, NOT);
       const tot = round2(importiFattura(r.f).totale);
-      csv += `${r.m.data || ""};${csvCell(r.f.numero)};${csvCell(nomeCliente(r.f, CLI))};${round2(+r.m.importo || 0)};${csvCell(nomeMetodo(r.m.metodo))};${tot};${round2(Math.max(0, tot - round2(fino)))}\n`;
+      csv += `${r.m.data || ""};${csvCell(r.f.numero)};${csvCell(nomeCliente(r.f, CLI))};${round2(+r.m.importo || 0)};${csvCell(nomeMetodo(r.m.metodo))};${tot};${round2(st.stornato || 0)};${round2(Math.max(0, round2(st.esigibile) - round2(fino)))}\n`;
     }
     const a = document.createElement("a");
     a.href = "data:text/csv;charset=utf-8," + encodeURIComponent(csv);

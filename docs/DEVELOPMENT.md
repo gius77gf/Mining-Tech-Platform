@@ -50,11 +50,11 @@ segnaposto («Funzione nav non ancora pronta»). Per aprirlo davvero si monta
 
 > ⚠️ **E quel numero conta SETTE suite, non tutto quello che gira.** Rimisurato
 > l'08/08 **a sera** sommando le righe «Risultato …» di un giro intero: il giro
-> `node` completo esegue **2.662** asserzioni, perché ne lancia altre **tredici**
+> `node` completo esegue **2.663** asserzioni, perché ne lancia altre **tredici**
 > (sonda del vuoto 15, limite del giro 9, numeri nei documenti 26, orologio del
 > vault 3, documenti invecchiati 15, sintassi delle pagine 34, import esistenti
-> 152, nomi liberi 24, classi orfane 2 + 6, funzioni mai usate 4, porte dei banchi 3,
-> suite collegate 3 = **296**).
+> 153, nomi liberi 24, classi orfane 2 + 6, funzioni mai usate 4, porte dei banchi 3,
+> suite collegate 3 = **297**).
 > ⚠️ *E l'elenco NON conta le due controprove nate l'08/08 —* `iniezioni fresche`
 > *e* `server orfani` *— che stampano un verdetto invece di un totale: girano nel
 > giro (che è passato da 28 a **32** comandi) ma non hanno una riga «Risultato»
@@ -175,7 +175,7 @@ non ha potuto guardare** — le **21** prove sulle funzioni, verificabili solo i
 CI. Se `firebase` o `java` non rispondono si ferma dicendolo (uscita 2) invece
 di stampare «0 caduti», che sarebbe il verde più falso che ci sia.
 
-**155 esecuzioni che aprono davvero le pagine** in Chromium — banchi distinti,
+**157 esecuzioni che aprono davvero le pagine** in Chromium — banchi distinti,
 ognuno seguito dalla sua **controprova** (Chromium è già installato in
 `/opt/pw-browsers/chromium`, **non** si lancia `playwright install`):
 

@@ -296,6 +296,15 @@ const BANCHI = [
      ad aspettare un ricambio, che a schermo è ROSSO — e il registro dei giri
      dava «tutto a posto» a un controllo che dichiara anomalie senza portarne
      l'elenco. */
+  /* ⛔ AGGIUNTO L'08/08, e ha trovato la stessa famiglia per la terza volta in
+     un giorno: `conti_incassi.csv` — il file che il commercialista incrocia con
+     l'estratto conto — calcolava il residuo sul LORDO della fattura, ignorando
+     le note di credito, mentre il foglio stampato della stessa fattura scrive
+     «Da incassare … (dopo la nota di credito)». E la riga della lista leggeva
+     `f.residuo` dal record, che una nota non riscrive: la schermata si
+     smentiva da sola in tre punti. */
+  ['i documenti che escono da Conti', 'conti-documenti-che-escono.mjs', []],
+  ['documenti da Conti · controprova', 'conti-documenti-che-escono.mjs', ['--controprova'], true],
   ['i documenti che escono da Flotta', 'flotta-documenti-che-escono.mjs', []],
   ['documenti da Flotta · controprova', 'flotta-documenti-che-escono.mjs', ['--controprova'], true],
   ['nota di credito', 'nota-credito.mjs', []],
