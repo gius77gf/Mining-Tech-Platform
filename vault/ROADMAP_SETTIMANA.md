@@ -2221,6 +2221,44 @@ numero scritto dove non era stato misurato niente**.*
   terzo stato che non è mai esistito. Con `git show HEAD:` il confronto è quello
   vero.
 
+- [x] ✅ **La stessa domanda alle altre cinque app: venti punti in sei, adesso
+  zero — e una regola che li tiene fuori** (`4a5175a`). Dopo Flotta (8) sono
+  stati letti **uno per uno** gli altri dodici: Scudo **4**, Genesi **3**,
+  Sentinella **2**, Terra **2**, Campo **1**. Tutti la stessa decisione, e i
+  posti dicono perché conta: sei sono **guardie sull'ingresso** («Serve una data
+  valida», «Serve la data prevista della volata») — cioè quelle che decidono se
+  una data impossibile **entra in archivio** — e uno data il **file che
+  Sentinella importa** da Genesi.
+  ⛔ E il caso più eloquente: il **modulo** di Genesi questa regola l'aveva
+  imparata il **03/08**, e il commento in cima a `genesi-data.js` lo racconta
+  per esteso — mentre la **pagina** teneva ancora la copia più debole in tre
+  punti. La forma peggiore del difetto non è l'invenzione, è la copia più
+  debole di una regola che sta già in casa.
+  **Regola 30** di `run-stile`, con la controprova nei due versi (la vede
+  rimessa in una pagina vera; non accusa un commento). ⚠️ Il costo della stretta
+  è stato misurato **prima** di scriverla: dopo la correzione le occorrenze sono
+  **zero su otto superfici**, quindi la regola nasce senza nessun falso allarme
+  da dichiarare. Stile **314 → 316**.
+
+- [x] ✅ **Settantuno copie di giri morti, 1,3 GB — e chi muore non può pulire**
+  (`4a5175a`). Trovata **fermando** un giro: `git worktree list` ne elencava
+  **71**. In fondo a `tutti.mjs` c'è scritto che la copia si toglie «SEMPRE,
+  anche se il giro è caduto», e quella riga vale per un giro che **arriva** in
+  fondo: un `SIGKILL` — o una sessione che finisce — non esegue nessun `finally`.
+  ⛔ E su questa macchina il disco è un'**allocazione fissa**: quando finisce, le
+  **scritture** falliscono mentre `df` mostra spazio libero. Cioè il costo non è
+  ordine, è un giro che un giorno muore per un motivo che non c'entra niente.
+  L'unico momento in cui qualcuno può pulire è **l'avvio del giro successivo**,
+  e adesso è lì. Si toglie solo ciò che ha il nome del giro (`giro-copia-<pid>`)
+  **e il cui pid non è più vivo**: una copia di un giro che sta girando adesso
+  non si tocca, se no sarebbe la stessa famiglia del server riusato — un giro
+  che sabota l'altro. Controprova nei due versi: con una copia finta dal pid
+  morto e una dal pid vivo, ne toglie **una** e lascia l'altra.
+  ⚠️ **E la regola violata era di casa**: «il giro completo si lancia una volta
+  per blocco, alla fine, mai mentre si lavora». Lanciandolo a metà ho fatto
+  durare ogni giro `node` **venti minuti invece di due**, e l'ho fermato per
+  questo — trovando le 71 copie solo perché mi sono fermato a guardare.
+
 ## Riferimenti
 
 - Ultimo checkpoint **per data vera**:
