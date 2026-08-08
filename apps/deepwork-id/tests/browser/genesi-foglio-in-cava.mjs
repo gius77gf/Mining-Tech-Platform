@@ -74,11 +74,15 @@ const DIFETTI = [
   [`      ['Airblast (sovrappressione) a '+gnum(D2.recDist,0)+' m',
         gnum(_rDb,0)+' dB(L)<br><b>'+esc(_rEa.verdetto)+'</b>'+(_rEa.consiglio?' — '+esc(_rEa.consiglio):'')],\n`, ""],
   // 3 · la base della previsione, che il foglio non dichiarava
-  [`      ['Base della previsione PPV',
-        esc(_rPv.testo) + (_rPv.avvisi.length
-          ? '<br>'+_rPv.avvisi.map(a=>{ const i=a.indexOf(':');
-              return i<0 ? '<b>'+esc(a)+'</b>' : '<b>'+esc(a.slice(0,i))+'</b>'+esc(a.slice(i)); }).join('<br>')
-          : '')],\n`, ""],
+  /* ⛔ RIPUNTATA L'08/08. Cercava la riga com'era scritta **per esteso** dentro
+     il report; nel frattempo quel corpo è diventato una funzione,
+     `_ppvBaseHtml`, perché lo usano in due. L'iniezione non trovava più il suo
+     pezzo, il foglio restava sano, e il banco «non distingueva»: la terza delle
+     cinque cause, quella in cui non si tocca né la prova né il codice, si
+     guarda l'iniezione.
+     Il difetto rimesso è lo stesso di prima — la **base della previsione** che
+     sparisce dal foglio che si porta in cava — solo tolta dove sta adesso. */
+  [`      ['Base della previsione PPV', _ppvBaseHtml(_rPv)],\n`, ""],
   // 5a · il verde regalato ai pareggi e a chi non è confrontabile
   ["['X50 previsto', gnum(A.kpi.x50,1)+' cm', gnum(B.kpi.x50,1)+' cm', vincitoreKpi(A.kpi.x50,B.kpi.x50)]",
    "['X50 previsto', gnum(A.kpi.x50,1)+' cm', gnum(B.kpi.x50,1)+' cm', A.kpi.x50<=B.kpi.x50?'A':'B']"],

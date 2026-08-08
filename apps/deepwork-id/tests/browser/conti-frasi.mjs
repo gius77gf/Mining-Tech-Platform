@@ -93,7 +93,12 @@ const DIFETTI = [
   [`"Import fatture: " + plur(add, "fattura aggiunta", "fatture aggiunte")`,
    `"Import fatture: " + add + " aggiunte"`],
   // 5. l'export del listino
-  [`esito("lis-esito", "Esportati " + plur(PRO.length, "prodotto", "prodotti") + " (CSV).", "success");`,
+  /* ⛔ INIEZIONE SCADUTA E RIPUNTATA (08/08). Cercava la frase com'era prima
+     che arrivasse `plurale(...)` per il PARTICIPIO — «Esportato/Esportati» —
+     e da allora non trovava più niente: la pagina restava sana, il banco «non
+     distingueva», e la riga che lo diceva stava in fondo al registro. È la
+     terza delle cinque cause: l'iniezione che non inietta. */
+  [`esito("lis-esito", plurale(PRO.length, "Esportato ", "Esportati ") + plur(PRO.length, "prodotto", "prodotti") + " (CSV).", "success");`,
    `esito("lis-esito", \`Esportati \${PRO.length} prodotti (CSV).\`, "success");`],
   /* 6-8. le UNITÀ NUDE dentro le etichette in maiuscolo. Tre iniezioni e non
      una: il difetto stava su tre etichette della stessa riga di form, e la

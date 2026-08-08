@@ -74,9 +74,18 @@ const DIFETTI = [
   // 3b · la copia più debole nel file che importa Sentinella
   ["function _sentCell(v){ return csvCell(String(v==null?'':v).replace(/[\\r\\n\\t]+/g,' ').trim()); }",
    "function _sentCell(v){ const s=String(v==null?'':v).replace(/[\\r\\n\\t]+/g,' ').trim(); return /[;\"]/.test(s)?'\"'+s.replace(/\"/g,'\"\"')+'\"':s; }"],
-  // 4a · la legge provvisoria non dichiarata nella scheda validatori
-  ["  const _prov = (_st.fonte==='sito' && _st.fit && _st.fit.avviso==='pochi');",
-   "  const _prov = false;"],
+  /* 4a · la legge provvisoria non dichiarata nella scheda validatori.
+     ⛔ QUESTA INIEZIONE ERA SCADUTA, e la controprova lo diceva da sé — «1 non
+     hanno trovato il loro pezzo» — senza che nessuno leggesse quella riga.
+     Cercava `const _prov = (_st.fonte==='sito' && _st.fit && …)`, cioè la
+     decisione scritta a mano dentro la schermata; il 03/08 (`56747db`) quella
+     decisione è passata a `provenienzaPpv` **di proposito**, perché il foglio
+     stampabile non ce l'aveva e con la legge su tre referti stampava un numero
+     diverso da quello a schermo. Da allora l'iniezione non trovava più niente,
+     la pagina restava SANA, e il banco «non distingueva» — la terza delle
+     cinque cause: l'iniezione che non inietta.
+     Adesso punta dove la decisione **si legge** oggi. */
+  ["  const _prov = _pv.provvisoria;", "  const _prov = false;"],
   // 4b · e nel riquadro da cui parte il file per Sentinella
   ["    provvisoria: st.fonte==='sito' && !!(st.fit && st.fit.avviso==='pochi'),",
    "    provvisoria: false,"],

@@ -254,8 +254,14 @@ const DIFETTI = [
          **una sola riga in un posto solo** solo perché la copia gemella è
          stata tolta: prima ce n'erano due, e rimetterne una sola avrebbe
          lasciato passare metà delle schermate. */
-  ["    <span class=\"ec-stat\"><b>${mv.metri===null?'—':mv.metri}</b>m</span>\n    ${mv.kgNoto?`<span class=\"ec-stat\"><b>${mv.parziale?'≥':''}${mv.kg}</b>kg</span>`:''}\n    <span class=\"ec-stat\"><b>${mv.mcNoto?mv.mc:'—'}</b>mc</span>",
-   "    <span class=\"ec-stat\"><b>${v.tot_metri}</b>m</span>\n    ${v.tot_kg>0?`<span class=\"ec-stat\"><b>${v.tot_kg}</b>kg</span>`:''}\n    <span class=\"ec-stat\"><b>${v.tot_mc}</b>mc</span>"],
+  /* ⛔ RIPUNTATA L'08/08: le tre unità sono state avvolte in `<span class="u">`
+     dal cantiere delle unità nude sotto le classi maiuscole, e questa iniezione
+     cercava ancora la `m` nuda. Non trovava più niente, la pagina restava sana,
+     e il banco «non distingueva» senza che il numero delle prove si muovesse.
+     Il difetto rimesso è lo stesso di prima — i totali della VOLATA al posto
+     dei metri MISURATI — solo scritto com'è scritto oggi. */
+  ["    <span class=\"ec-stat\"><b>${mv.metri===null?'—':mv.metri}</b><span class=\"u\">m</span></span>\n    ${mv.kgNoto?`<span class=\"ec-stat\"><b>${mv.parziale?'≥':''}${mv.kg}</b><span class=\"u\">kg</span></span>`:''}\n    <span class=\"ec-stat\"><b>${mv.mcNoto?mv.mc:'—'}</b><span class=\"u\">mc</span></span>",
+   "    <span class=\"ec-stat\"><b>${v.tot_metri}</b><span class=\"u\">m</span></span>\n    ${v.tot_kg>0?`<span class=\"ec-stat\"><b>${v.tot_kg}</b><span class=\"u\">kg</span></span>`:''}\n    <span class=\"ec-stat\"><b>${v.tot_mc}</b><span class=\"u\">mc</span></span>"],
   // 16 · la colonna PROGETTO della riconciliazione a «0,0» invece che «non quotato»
   ["      ['Metri', cif(progMetri,'non quotato').replace('.',','), cif(realMetri).replace('.',','), seg(dM)],\n      ['Mc abbattuti', cif(progMc,'non quotato').replace('.',','), cif(realMc).replace('.',','), seg(dC)]",
    "      ['Metri', (progMetri||0).toFixed(1).replace('.',','), cif(realMetri).replace('.',','), seg(dM)],\n      ['Mc abbattuti', (progMc||0).toFixed(1).replace('.',','), cif(realMc).replace('.',','), seg(dC)]"],
