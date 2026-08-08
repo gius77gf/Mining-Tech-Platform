@@ -24757,5 +24757,54 @@ test("csvAzioni: senza descrizione non è un'azione", () => {
     "nel registro sarebbe una riga che non dice che cosa bisogna fare");
 });
 
+/* ── i fori segnati sul modello 3D del core ─────────────────────────────────
+   Il difetto che ha fatto nascere `foriDalModello`: la stessa scelta — in che
+   ordine si numerano i fori — era presa DUE VOLTE nel core, ordinata da
+   sinistra a destra per la volata e in ordine di click per il CSV. Misurato su
+   quattro fori: 4 righe su 4 in cui lo stesso numero indicava un foro diverso.
+   Le prove stanno sull'ORDINE e sul cambio d'origine, non sulla formattazione:
+   quella resta ai due consumatori, ed è giusto che sia diversa (la volata
+   SALVA un numero arrotondato, il CSV STAMPA una stringa). */
+const _mk = (x, y, z) => ({ position: { x, y, z } });
+test("foriDalModello: numera da sinistra a destra, non nell'ordine dei click", () => {
+  const f = shell.foriDalModello([_mk(4, -2, 0.3), _mk(-8, 1, 0.1), _mk(9, 0, -0.2)], 20, 8);
+  eq(f.map((v) => v.num), [1, 2, 3]);
+  eq(f.map((v) => v.x), [2, 14, 19], "è l'ordine con cui un perforatore cammina il fronte");
+});
+test("foriDalModello: l'origine è l'angolo in basso a sinistra, e la z NON si trasla", () => {
+  const [f] = shell.foriDalModello([_mk(0, 0, -0.4)], 20, 8);
+  eq(f.x, 10, "metà larghezza: un foro al centro del modello sta a 10 m dal bordo sinistro");
+  eq(f.y, 4, "metà altezza: e a 4 m sopra il piede");
+  eq(f.z, -0.4, "il rilievo ha uno zero suo, che è il piano del modello");
+});
+test("foriDalModello: nessun foro non è un foro a zero", () => {
+  eq(shell.foriDalModello([], 20, 8), []);
+  eq(shell.foriDalModello(null, 20, 8), [], "e non esplode se il modello non c'è ancora");
+  eq(shell.foriDalModello([null, { nulla: 1 }], 20, 8), [], "un marcatore senza posizione non è un foro");
+});
+test("foriDalModello: un foro non collocabile va in fondo e non trascina i sani", () => {
+  /* prima della guardia bastava un NaN in mezzo perché il confronto del sort
+     diventasse indefinito e 14,00 finisse DAVANTI a 2,00: i fori buoni
+     perdevano l'ordine per colpa di uno cattivo. Non viene buttato via —
+     sparire in silenzio da un documento è peggio che uscirne strano. */
+  const f = shell.foriDalModello([_mk(4, 0, 0), _mk(NaN, 0, 0), _mk(-8, 0, 0)], 20, 8);
+  eq(f.map((v) => v.num), [1, 2, 3]);
+  eq(f.slice(0, 2).map((v) => v.x), [2, 14], "i due sani restano nel loro ordine vero");
+  eq(Number.isFinite(f[2].x), false, "e quello non collocabile resta, ultimo");
+});
+/* ⚠️ QUI C'ERA UNA PROVA CHE NON SAPEVA FALLIRE, e la controprova l'ha presa.
+   Si chiamava «i due consumatori del core non possono più discordare» e faceva
+   così: prendeva `f = foriDalModello(...)`, ne ricavava la vista della volata
+   (arrotonda e salva) e quella del CSV (formatta e stampa), e pretendeva che
+   fossero uguali. Tolta la riga del `sort`, le altre due prove diventavano
+   rosse e **questa restava verde**: è la prima delle cinque cause di «non
+   distingue» — i dati fanno COINCIDERE la risposta giusta con quella
+   sbagliata. Non poteva essere altrimenti: derivando tutt'e due le viste dalla
+   STESSA chiamata, concordano qualunque cosa faccia la funzione. Era una
+   tautologia col nome della cosa che conta.
+   E la cosa che conta non è provabile qui: «le due righe del core leggono la
+   stessa fonte» è una proprietà della PAGINA, non della funzione. Sta nella
+   regola 31 di `run-stile.mjs`, che guarda `index.html`. */
+
 console.log(`\nRisultato KPI app: ${passed} passati, ${failed} falliti${inVolo.length ? `  ·  ${inVolo.length} prove asincrone aspettate` : ""}`);
 process.exit(failed > 0 ? 1 : 0);

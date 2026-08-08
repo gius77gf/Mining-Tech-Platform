@@ -108,7 +108,7 @@ import {
 // per il core e per tutte e sei le app. Quando era scritta in ogni app, le sei
 // leggevano «1.250» in tre modi diversi senza che nessun test se ne accorgesse.
 // È un modulo di sole funzioni pure, senza effetti al caricamento.
-import { numeroScritto, messaggioNumero, perCampo, perLettura, montaGuardiaInteri, isoLocale, meseLocale, motivoDatiNonSalvati, giorniTra, dataIt, misureRapportino, totaliRapportini, misureVolataFochino, misureVolataProgetto, misureFrammentazione, riservaFrammentazione, plurale, conta } from "./shared/deepwork-id-client/dw-shell.js";
+import { numeroScritto, messaggioNumero, perCampo, perLettura, montaGuardiaInteri, isoLocale, meseLocale, motivoDatiNonSalvati, giorniTra, dataIt, misureRapportino, totaliRapportini, misureVolataFochino, misureVolataProgetto, misureFrammentazione, riservaFrammentazione, plurale, conta, foriDalModello } from "./shared/deepwork-id-client/dw-shell.js";
 
 // ── Config Firebase ──
 const firebaseConfig = {
@@ -4903,10 +4903,13 @@ async function reconToVolata(){
     [{label:'Annulla',cls:'mbtn',action:closeModal},
      {label:'AGGIUNGI ALLA VOLATA',cls:'mbtn primary',action:async(e)=>{
        closeModal();
-       const W=_recon.W;
-       _recon.markers.slice().sort((a,b)=>a.position.x-b.position.x).forEach(m=>{
+       // l'ordine e la numerazione li decide `foriDalModello`, lo stesso posto
+       // da cui li prende il CSV: prima erano due decisioni diverse e «foro 3»
+       // voleva dire due fori diversi nei due documenti. `f.y` (l'altezza sul
+       // fronte) qui NON si usa: la pianta vuole la distanza DAL fronte.
+       foriDalModello(_recon.markers,_recon.W,_recon.H).forEach(f=>{
          const num=v.fori.length+1;
-         v.fori.push({id:'foro_'+genId(),num,x:Math.round((m.position.x+W/2)*100)/100,y:1,
+         v.fori.push({id:'foro_'+genId(),num,x:Math.round(f.x*100)/100,y:1,
            prof:parseNum0(v.default.profondita_m)||0,diam:parseNum0(v.default.diametro_mm)||45,
            kg:v.default.kg_per_foro||'',esplosivo:v.default.esplosivo||'',ritardo:'',innesco:v.default.innesco||'',
            sequenza:num,note:'da ricostruzione 3D '+today()});
@@ -4940,10 +4943,13 @@ function reconExportHoles(){
   // i fori segnati sul modello non devono andare persi (censimento E1):
   // esporta le posizioni IN METRI (origine: angolo in basso a sinistra del fronte)
   if(!_recon||!_recon.markers||!_recon.markers.length){toast('Nessun foro segnato sul modello','err');return;}
-  const W=_recon.W,H=_recon.H;
+  // stessa fonte della numerazione che finisce nella volata: vedi
+  // `foriDalModello`. Le celle non finite restano VUOTE — un numero inventato
+  // per far quadrare una colonna è peggio di una colonna vuota.
+  const cella=(v)=>Number.isFinite(v)?v.toFixed(2):'';
   let csv='foro;x_m;y_m;rilievo_m\n';
-  _recon.markers.forEach((m,i)=>{
-    csv+=(i+1)+';'+(m.position.x+W/2).toFixed(2)+';'+(m.position.y+H/2).toFixed(2)+';'+m.position.z.toFixed(2)+'\n';
+  foriDalModello(_recon.markers,_recon.W,_recon.H).forEach(f=>{
+    csv+=f.num+';'+cella(f.x)+';'+cella(f.y)+';'+cella(f.z)+'\n';
   });
   const a=document.createElement('a');
   a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(csv);

@@ -1469,3 +1469,39 @@ export function riservaFrammentazione(m) {
   if (!m.attendibile) return `le quattro classi sommano ${m.totale}%, non 100%: le percentuali non sono confrontabili`;
   return "";
 }
+
+/* ⛔ I FORI SEGNATI SUL MODELLO 3D AVEVANO DUE NUMERAZIONI, E SI CHIAMAVANO
+   TUTT'E DUE «foro N». È la domanda di casa — *dove questa app compone
+   qualcosa che ESCE, chi decide i suoi numeri?* — applicata al core:
+   · «Porta i fori nella volata» li ordinava da sinistra a destra
+     (`.sort((a,b)=>a.position.x-b.position.x)`) e poi li numerava 1..n, che è
+     l'ordine con cui un perforatore cammina il fronte;
+   · «Esporta CSV» li numerava `(i+1)` **nell'ordine in cui erano stati
+     cliccati** sul modello, che è l'ordine in cui a nessuno interessano.
+   Effetto misurato su quattro fori cliccati sparsi: **4 righe su 4** in cui lo
+   stesso numero indica un foro diverso nei due documenti. Il CSV diceva
+   «foro 1 a 14,00 m» e la volata «foro 1 a 2,00 m» — e il numero del foro è
+   proprio il modo in cui chi perfora sa dove andare.
+   Adesso l'ordine, la numerazione e il cambio d'origine si decidono QUI, una
+   volta, e i due consumatori formattano soltanto.
+   ⚠️ L'origine è l'angolo in BASSO A SINISTRA del fronte: `x` è la distanza
+   lungo il fronte, `y` l'altezza sul piede. `z` è il rilievo rispetto al piano
+   del modello e NON viene traslato — ha uno zero suo, che è il piano stesso.
+   ⚠️ Chi importa nella volata usa `num` e `x` e **lascia stare `y`**: lì la
+   pianta vuole la distanza DAL fronte, che il modello non sa: è un'altra
+   grandezza con la stessa lettera, e il modale lo dice all'utente.
+   ⚠️ Un `x` non finito NON viene buttato via — sparire in silenzio da un
+   documento è peggio che uscirne strano — ma viene spinto in fondo, così non
+   trascina con sé l'ordine dei fori sani: prima della guardia bastava un NaN
+   in mezzo perché 14,00 finisse davanti a 2,00. Non sono riuscito a produrne
+   uno (le posizioni vengono dal raycaster di THREE su una mesh): è un
+   contenimento misurato, non la correzione di un difetto visto. */
+export function foriDalModello(markers, larghezzaM, altezzaM) {
+  const dx = (+larghezzaM || 0) / 2, dy = (+altezzaM || 0) / 2;
+  const l = (markers || []).filter((m) => m && m.position).map((m) => ({
+    x: m.position.x + dx, y: m.position.y + dy, z: m.position.z,
+  }));
+  const fuori = (f) => (Number.isFinite(f.x) ? 0 : 1);
+  l.sort((a, b) => fuori(a) - fuori(b) || a.x - b.x);
+  return l.map((f, i) => ({ num: i + 1, x: f.x, y: f.y, z: f.z }));
+}

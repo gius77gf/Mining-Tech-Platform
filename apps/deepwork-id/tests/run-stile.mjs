@@ -3596,5 +3596,68 @@ test("regola 30: la controprova — rimessa la forma, la regola la vede", () => 
   ok(trovati2 === 0, `la regola 30 accusa un commento: ${trovati2} invece di 0`);
 });
 
+/* ⛔ REGOLA 31 — I FORI SEGNATI SUL MODELLO 3D SI NUMERANO IN UN POSTO SOLO.
+   Il difetto: nel core la stessa scelta era presa due volte. «Porta i fori
+   nella volata» li ordinava da sinistra a destra e li numerava 1..n; «Esporta
+   CSV» li numerava `(i+1)` nell'ordine in cui erano stati CLICCATI. Misurato
+   su quattro fori cliccati sparsi: **4 righe su 4** in cui lo stesso numero
+   indicava un foro diverso nei due documenti — e il numero del foro è il modo
+   in cui chi perfora sa dove andare.
+   ⚠️ PERCHÉ LA REGOLA STA QUI E NON FRA LE PROVE DEL MODULO. Ci avevo provato,
+   in `run-kpi.mjs`, con una prova che derivava tutt'e due le viste da una sola
+   chiamata a `foriDalModello` e pretendeva che coincidessero: **restava verde
+   col difetto rimesso**, perché due viste della stessa chiamata concordano
+   qualunque cosa faccia la funzione. Era la prima delle cinque cause di «non
+   distingue». La proprietà vera — *le due righe del core leggono la stessa
+   fonte* — è della PAGINA, e si guarda dove la pagina si legge.
+   La regola cerca il segno del ritorno indietro: la matematica dell'origine
+   (`+ W/2`, `+ H/2`) rifatta a mano nella pagina, che è il modo in cui questa
+   decisione era scritta prima. */
+test("regola 31: nel core l'origine dei fori 3D non si ricalcola nella pagina", () => {
+  const testo = leggi("index.html");
+  ok(!!testo, "la regola 31 non ha trovato il core: non sta guardando dove crede");
+  const vivo = mascheraCodice(testo);
+  /* `position.x + W/2` e sorelle: il cambio d'origine rifatto a mano */
+  const SOSPETTA = /position\.[xy]\s*\+\s*[WH]\s*\/\s*2/g;
+  const male = [];
+  for (const m of testo.matchAll(SOSPETTA)) {
+    if (vivo[m.index] !== 1) continue;      // dentro un commento o una stringa
+    male.push(`riga ${testo.slice(0, m.index).split("\n").length}: «${m[0]}» invece di foriDalModello`);
+  }
+  ok(male.length === 0,
+    "l'origine dei fori del modello 3D è ricalcolata nella pagina:\n  " + male.join("\n  "));
+  /* e il verso positivo: i DUE consumatori devono esserci davvero. Senza
+     questo, cancellare tutt'e due le funzioni farebbe passare la regola.
+     ⚠️ Qui si contano le CHIAMATE, e l'import non è una chiamata: la prima
+     stesura pretendeva 3 («l'import più i due consumatori») e la regola è
+     caduta subito — su sé stessa, non sul prodotto. `foriDalModello }` in una
+     lista di import non ha la parentesi, quindi non combacia. Il righello,
+     non il soggetto: è la ragione per cui l'import si guarda a parte. */
+  const usi = [...testo.matchAll(/foriDalModello\s*\(/g)].filter((m) => vivo[m.index] === 1).length;
+  ok(usi >= 2, `foriDalModello è chiamata ${usi} volte nel core: i consumatori sono due (volata e CSV)`);
+  /* ⚠️ E il righello ha sbagliato una SECONDA volta qui, nella stessa
+     famiglia: cercavo l'import in `testo.slice(0, indexOf("</script>"))`
+     dando per scontato che il primo `</script>` chiudesse il modulo. Il primo
+     sta a riga **13**, l'import a **111**: la fetta buttava via il file
+     intero e la regola accusava un core sano. Adesso si cerca la RIGA
+     dell'import per quello che è — il nome dentro una `import … from
+     …dw-shell.js` — invece di dedurre dove finisce il codice. */
+  const RIGA_IMPORT = /import\s*\{[^}]*\bforiDalModello\b[^}]*\}\s*from\s*["'][^"']*dw-shell\.js["']/;
+  ok(RIGA_IMPORT.test(testo),
+    "foriDalModello è chiamata ma non importata da dw-shell.js: la pagina si apre e muore al primo tocco");
+});
+test("regola 31: la controprova — nei due versi", () => {
+  const finto = "v.fori.push({x:Math.round((m.position.x+W/2)*100)/100});";
+  const vivo = mascheraCodice(finto);
+  const trovati = [...finto.matchAll(/position\.[xy]\s*\+\s*[WH]\s*\/\s*2/g)].filter((m) => vivo[m.index] === 1).length;
+  ok(trovati === 1, `la regola 31 non vede il conto rimesso a mano: ${trovati} invece di 1`);
+  /* e dentro un commento non deve vederlo: è il difetto che in questa casa è
+     già passato tre volte, l'ultima scrivendo questa stessa famiglia di regole */
+  const commentato = "/* prima era m.position.x + W/2, adesso no */";
+  const vivo2 = mascheraCodice(commentato);
+  const trovati2 = [...commentato.matchAll(/position\.[xy]\s*\+\s*[WH]\s*\/\s*2/g)].filter((m) => vivo2[m.index] === 1).length;
+  ok(trovati2 === 0, `la regola 31 accusa un commento: ${trovati2} invece di 0`);
+});
+
 console.log(`\nRisultato Stile: ${passed} passati, ${failed} falliti${inVolo.length ? `  ·  ${inVolo.length} prove asincrone aspettate` : ""}`);
 process.exit(failed > 0 ? 1 : 0);
