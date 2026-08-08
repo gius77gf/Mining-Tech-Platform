@@ -1827,6 +1827,19 @@ numero scritto dove non era stato misurato niente**.*
   censimento (sembrava il candidato più probabile), e `run-kpi` e
   `import-esistenti` il disco lo leggono già.
 
+- [x] ✅ **`classi-orfane`: l'elenco delle pagine si deriva dal disco — ne
+  perdeva quattro** (`f77a45a`). `run-stile` ha la sua guardia dal 03/08 e quel
+  giorno trovò quattro pagine dimenticate, «**due che l'utente apre davvero**».
+  Qui la guardia non c'era e mancavano **le stesse due**
+  (`non-autorizzato.html` e il portone di Genesi): la correzione era stata
+  fatta in un file e non nell'altro — **la copia debole applicata a un elenco**.
+  12 → **14 pagine**, 1.152 → **1.184 classi**, **zero morte**; la controprova
+  scala (14 iniezioni su 14). ⚠️ E per la quarta volta stanotte **il righello
+  sono stato io**: un `grep` che pretendeva un prefisso di cartella mi ha
+  nascosto che il **core** era già nella lista.
+  📊 Filo delle tre unità sugli elenchi a mano: `BROWSER` perdeva 1 documento su
+  3, `MODULI` 3 moduli condivisi, `PAGINE` 2 pagine vere.
+
 ## Riferimenti
 
 - Ultimo checkpoint **per data vera**:
