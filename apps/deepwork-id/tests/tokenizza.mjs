@@ -147,6 +147,27 @@ function scansionaJs(t, tipo, marca, da, a, spie) {
      (`larghezza / 2`) è per forza una divisione. */
   const PAROLE = new Set(["return", "typeof", "instanceof", "in", "of", "new",
     "delete", "void", "throw", "case", "do", "else", "yield", "await"]);
+  /* ⛔ I CARATTERI DOPO I QUALI CI STA UN'ESPRESSIONE, e il `>` che mancava.
+     Terza volta che questa famiglia morde (il 03/08 era la pagina letta come
+     JavaScript, e lo slash giudicato dall'ultimo carattere invece che dalla
+     parola). Qui il buco era la FRECCIA: dietro a `=>` l'ultimo carattere non
+     bianco è un `>`, che nell'elenco non c'era — quindi
+     `c => /carburante/i.test(c)` veniva letto come una DIVISIONE e il corpo
+     della regex restava codice. Misurato: 158 `=> /` nel repository, 460
+     tratti e 18.420 caratteri che tornano a essere ciò che sono.
+     Il danno vero non è quello, ed è latente: basta una regex ordinaria come
+     `s => /['"]/.test(s)` perché l'apostrofo apra una stringa che corre fino
+     in fondo al file, e ogni regola costruita su questa scansione diventi
+     cieca rispondendo «nessuna violazione». Oggi nessuna delle sette regex
+     dopo una freccia contiene una virgoletta: il difetto c'è e non ha ancora
+     nascosto niente.
+     ⚠️ IL `+` È STATO PROVATO E SCARTATO, con la misura, perché nessuno lo
+     rimetta alla cieca: porta **3 tratti** in tutto (due dei quali erano
+     artefatti del `>` mancante, cioè sparivano da soli con questa correzione),
+     e in cambio rompe `i++ / 2` — un incremento seguito da una divisione, dove
+     il carattere prima dello slash è un `+` — mangiandosi il resto della riga.
+     Un guadagno di uno contro una cecità su codice ordinario. */
+  const PRIMA_CI_STA_UN_ESPRESSIONE = "(,=:[!&|?{};>\n";
   const pila = [];        // template in attesa che finisca la loro interpolazione
   let stringa = null;     // il delimitatore della stringa in cui ci troviamo
   let graffe = 0;         // profondità di graffe nel codice corrente
@@ -187,7 +208,7 @@ function scansionaJs(t, tipo, marca, da, a, spie) {
       graffe--; tipo[i] = CODICE; i++; continue;
     }
     // un'espressione regolare comincia con / solo dove non può stare una divisione
-    if (c === "/" && (() => { const p = primaDi(i); return p.length === 1 ? "(,=:[!&|?{};\n".includes(p) : PAROLE.has(p); })()) {
+    if (c === "/" && (() => { const p = primaDi(i); return p.length === 1 ? PRIMA_CI_STA_UN_ESPRESSIONE.includes(p) : PAROLE.has(p); })()) {
       tipo[i] = CODICE; i++;
       let inClasse = false;
       while (i < a) {

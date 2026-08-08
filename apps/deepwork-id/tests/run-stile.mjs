@@ -812,6 +812,18 @@ test("la scansione sa fallire: i due difetti rimessi le fanno perdere la fase", 
   const conRegex = "function a(s){ return /[;\"\\n]/.test(s); }\nfunction b(){ }\n";
   ok(dichiarazioniFuoriFase(conRegex).length === 0,
     "`return /…\"…/` è un'espressione regolare, non una divisione: la virgoletta dentro non apre niente");
+  /* (3) LO SLASH DOPO UNA FRECCIA — il terzo della famiglia, chiuso il 08/08.
+     Dietro a `=>` l'ultimo carattere non bianco è un `>`: non era fra quelli
+     dopo i quali ci sta un'espressione, quindi la regex veniva presa per una
+     divisione e il suo corpo restava codice. Nel repository ci sono 158 `=> /`
+     e nessuno di loro contiene una virgoletta — il difetto c'era e non aveva
+     ancora nascosto niente. Questa prova esiste perché la prossima regex
+     scritta dopo una freccia non lo riapra in silenzio. */
+  const conFreccia = "const g = s => /['\"]/.test(s);\nfunction b(){ }\n";
+  ok(dichiarazioniFuoriFase(conFreccia).length === 0,
+    "`=> /…'…/` è un'espressione regolare: l'apostrofo dentro non apre una stringa che si mangia il resto del file");
+  ok(dichiarazioniFuoriFase("const m = i++ / 2;\nfunction b(){ }\n").length === 0,
+    "e un incremento seguito da una divisione resta una divisione: è il caso per cui il `+` è stato scartato");
   ok(dichiarazioniFuoriFase("const q = larghezza / 2, r = altezza / 3;\nfunction b(){ }\n").length === 0,
     "e una divisione vera resta una divisione");
 });
