@@ -649,7 +649,8 @@ export const TIPI_DOCUMENTO = [
 // nome locale, quindi le trenta chiamate interne a `statoScadenza` di questo file
 // restavano scoperte — dieci prove rosse subito, che è il comportamento giusto
 // della suite. Serve importare e poi ri-esportare il nome.
-import { statoScadenzaHSE, applicaPercorsi, traduciCancellazioni, trasformaAtomico, trasformaInMemoria } from "../../shared/dw-ponti.js";
+import { statoScadenzaHSE, applicaPercorsi, traduciCancellazioni, trasformaAtomico, trasformaInMemoria,
+         statoResponsabile } from "../../shared/dw-ponti.js";
 /* le pagine lo chiamano col nome di casa: un alias non è una seconda
    implementazione (regola del `shared/`) */
 export { percorsiDi, DW_CANCELLA } from "../../shared/dw-ponti.js";
@@ -906,6 +907,35 @@ export function statoAzione(azione, oggi = new Date()) {
   if (a.stato === "chiusa") return "regolare";
   return statoScadenza(a.scadenza, oggi);
 }
+/* ⛔ CHI DEVE FARE QUESTA AZIONE — DETTO IN UN POSTO SOLO, PER LO SCHERMO E PER
+   IL FILE CHE ESCE. Scritta l'08/08 su un difetto vero, e la domanda che l'ha
+   trovato è quella di CLAUDE.md: *dove questa app compone qualcosa che ESCE,
+   chi decide i suoi numeri?* Qui la risposta era **no**: la lista faceva
+   `byId[a.responsabileId]` e l'export del CSV teneva la sua terza copia
+   (`const nome = (id) => …` dentro la funzione d'export). Tutt'e due
+   rispondevano «da assegnare» a un id che punta a qualcuno **non più in
+   anagrafica** — cioè dicevano che nessuno se ne occupa di un'azione che un
+   responsabile ce l'ha, e lo dicevano anche al foglio che va all'ispettore.
+   E il percorso che ci porta è ordinario: si toglie un lavoratore
+   dall'anagrafica e le sue azioni restano, con l'id dentro.
+   La decisione (quale dei cinque stati) sta in `shared/dw-ponti.js` perché la
+   condivide con Sentinella; qui c'è solo come Scudo la scrive.
+   Due campi perché due consumatori, **una decisione sola**:
+     · `testo` — la riga della lista, con «resp.» davanti al nome;
+     · `nome`  — la cella del CSV, senza prefisso.
+   `noto` resta a `false` solo quando la risposta è un non-so: in Scudo non
+   succede mai (la sua anagrafica se la legge in casa), e sta qui perché la
+   funzione è la stessa che serve ai ponti. */
+export function etichettaResponsabile(azione, lavoratori) {
+  const s = statoResponsabile(azione, lavoratori);
+  if (s.stato === "trovato") return { testo: "resp. " + s.nome, nome: s.nome, stato: s.stato, noto: true };
+  if (s.stato === "assente") return { testo: "responsabile da assegnare", nome: "da assegnare", stato: s.stato, noto: true };
+  if (s.stato === "senza-nome") return { testo: "responsabile senza nome in anagrafica",
+    nome: "senza nome in anagrafica", stato: s.stato, noto: true };
+  return { testo: "responsabile non più in anagrafica", nome: "non più in anagrafica",
+    stato: s.stato, noto: s.noto };
+}
+
 // Azioni ancora da chiudere che sono scadute o in scadenza: sono quelle che
 // devono entrare nel semaforo del Quadro e nello scadenzario, prima le più
 // urgenti. Pura e testabile; `oggi` iniettabile.

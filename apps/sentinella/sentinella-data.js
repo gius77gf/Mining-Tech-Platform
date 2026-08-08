@@ -26,7 +26,8 @@ import { parseCsvLine, csvCell, numIt, giorniTra, isIntestazione, numeroScritto,
 // Una scadenza è una scadenza: lo stato della taratura lo dice la stessa
 // funzione che lo dice per le visite mediche di Scudo e per i documenti di
 // Campo. Non se ne scrive una quarta (regola del `shared/`).
-import { statoScadenzaHSE, applicaPercorsi, traduciCancellazioni, trasformaAtomico, trasformaInMemoria } from "../../shared/dw-ponti.js";
+import { statoScadenzaHSE, applicaPercorsi, traduciCancellazioni, trasformaAtomico, trasformaInMemoria,
+         statoResponsabile } from "../../shared/dw-ponti.js";
 /* ⛔ `statoPonte` e `azioniDiOrigine` STAVANO QUI, ed erano identiche — misurate
    byte per byte — alle due di Campo. Una regola che serve a due app vive in
    `shared/`: qui restano col nome con cui le pagine le hanno sempre chiamate,
@@ -2755,16 +2756,23 @@ export function ponteDemoScrivi(lista) {
      · l'id c'è ma l'elenco non è leggibile  → si dice CHE NON SI SA, non che
                                                non c'è.
    La bandiera `leggibile` la mette `ponteScudo` e la legge questa funzione:
-   una non-misurabilità dichiarata e non letta non protegge niente (regola 20). */
+   una non-misurabilità dichiarata e non letta non protegge niente (regola 20).
+   ⛔ E LA DECISIONE NON STA PIÙ QUI: sta in `shared/dw-ponti.js`, perché lo
+   stesso giorno è servita alla seconda app — **Scudo**, che quel dato lo
+   possiede. Qui resta solo la FRASE, che è di Sentinella: è lei a nominare
+   Scudo, perché è lei che deve leggerlo da fuori. Una regola che serve a due
+   app vive in `shared/` e non si riscrive; una frase che parla di un'altra app
+   non è una regola condivisa. */
 export function descriviResponsabile(azione, lavoratori, leggibile = true) {
-  const id = azione && azione.responsabileId;
-  if (!id) return { testo: "responsabile da assegnare", noto: true };
-  const trovato = (lavoratori || []).find((l) => l && l.id === id);
-  if (trovato && trovato.nome) return { testo: "responsabile " + trovato.nome, noto: true };
-  if (!leggibile) return { testo: "responsabile assegnato, il nome non si legge da Scudo", noto: false };
-  /* leggibile ma non trovato: la persona non è più in anagrafica. È un fatto,
-     e va detto — non è «da assegnare», perché qualcuno era stato scelto. */
-  return { testo: "responsabile non più in anagrafica", noto: true };
+  const s = statoResponsabile(azione, lavoratori, leggibile);
+  const testo = s.stato === "trovato" ? "responsabile " + s.nome
+    : s.stato === "assente" ? "responsabile da assegnare"
+    : s.stato === "illeggibile" ? "responsabile assegnato, il nome non si legge da Scudo"
+    : s.stato === "senza-nome" ? "responsabile assegnato, in anagrafica non ha un nome"
+    /* leggibile ma non trovato: la persona non è più in anagrafica. È un fatto,
+       e va detto — non è «da assegnare», perché qualcuno era stato scelto. */
+    : "responsabile non più in anagrafica";
+  return { testo, noto: s.noto };
 }
 
 export async function ponteScudo() {

@@ -24542,6 +24542,68 @@ test("⛔ descriviResponsabile: «da assegnare» e «non riesco a leggere chi è
   ok(sentinella.descriviResponsabile(con, [], false).testo
      !== sentinella.descriviResponsabile({}, [], true).testo,
      "⛔ le due frasi che prima erano la stessa adesso sono diverse");
+  /* la riga c'è ma il nome è vuoto: non è «non più in anagrafica» — c'è.
+     ⚠️ Caso NON raggiungibile dai percorsi del prodotto (vedi il commento di
+     `statoResponsabile`): sta qui perché il disegno non menta, non perché
+     capiti. */
+  eq(sentinella.descriviResponsabile(con, [{ id: "l1", nome: "" }], true).testo,
+     "responsabile assegnato, in anagrafica non ha un nome",
+     "in anagrafica senza nome: si dice quello, non «non c'è più»");
+});
+test("⛔ statoResponsabile: la DECISIONE è una sola, e le due app la chiamano", () => {
+  /* La regola del `shared/`: una regola che serve a due app vive lì e non si
+     riscrive. Qui non si pretende l'identità delle FRASI — sono diverse
+     apposta, e Sentinella nomina Scudo perché lo legge da fuori — ma che
+     nessuna delle due decida per conto suo. La prova che lo mostra: uno stato
+     che le due app scrivono con parole diverse partendo dallo stesso caso. */
+  const con = { responsabileId: "l1" }, LAV = [{ id: "l1", nome: "Mario Rossi" }];
+  eq(ponti.statoResponsabile(con, LAV), { stato: "trovato", nome: "Mario Rossi", noto: true },
+     "id e nome: trovato");
+  eq(ponti.statoResponsabile(con, []), { stato: "fuori-anagrafica", nome: "", noto: true },
+     "elenco leggibile e nessuno: fuori anagrafica");
+  eq(ponti.statoResponsabile(con, [], false), { stato: "illeggibile", nome: "", noto: false },
+     "elenco NON leggibile: è un non-so, e si dichiara");
+  eq(ponti.statoResponsabile({}, LAV), { stato: "assente", nome: "", noto: true },
+     "nessun id: assente");
+  eq(ponti.statoResponsabile(con, [{ id: "l1", nome: "" }]), { stato: "senza-nome", nome: "", noto: true },
+     "la riga c'è e il nome no: è un terzo caso");
+  eq(ponti.statoResponsabile(null, null).stato, "assente", "e il niente non rompe");
+  /* ⛔ LO STESSO CASO, LE DUE APP: stessa decisione, due frasi. */
+  const fuori = { responsabileId: "l9" };
+  eq(ponti.statoResponsabile(fuori, LAV).stato, "fuori-anagrafica", "la decisione");
+  eq(sentinella.descriviResponsabile(fuori, LAV).testo, "responsabile non più in anagrafica",
+     "come la scrive Sentinella");
+  eq(scudo.etichettaResponsabile(fuori, LAV).testo, "responsabile non più in anagrafica",
+     "come la scrive Scudo sullo schermo");
+  eq(scudo.etichettaResponsabile(fuori, LAV).nome, "non più in anagrafica",
+     "e nel CSV, senza il prefisso «resp.»");
+});
+test("⛔ Scudo: lo schermo e il CSV dicono la STESSA cosa sul responsabile", () => {
+  /* La domanda di CLAUDE.md — *dove questa app compone qualcosa che ESCE, chi
+     decide i suoi numeri?* — qui rispondeva NO in tre posti: la lista faceva
+     `byId[...]`, l'export teneva la sua copia, e lo scadenzario una terza. Tutte
+     e tre dicevano «da assegnare» a un id che punta a chi non è più in
+     anagrafica: cioè il foglio che va all'ispettore diceva che di
+     quell'azione non si occupa nessuno mentre un responsabile era stato scelto. */
+  const LAV = [{ id: "d3", nome: "Mario Rossi" }];
+  eq(scudo.etichettaResponsabile({ responsabileId: "d3" }, LAV),
+     { testo: "resp. Mario Rossi", nome: "Mario Rossi", stato: "trovato", noto: true },
+     "trovato: «resp.» a schermo, il nome nudo nel file");
+  eq(scudo.etichettaResponsabile({ responsabileId: null }, LAV),
+     { testo: "responsabile da assegnare", nome: "da assegnare", stato: "assente", noto: true },
+     "senza id, «da assegnare» è vero anche nel file");
+  eq(scudo.etichettaResponsabile({ responsabileId: "d9" }, LAV).nome, "non più in anagrafica",
+     "⛔ e l'id che punta a nessuno NON è «da assegnare»");
+  eq(scudo.etichettaResponsabile({ responsabileId: "dx" }, [{ id: "dx", nome: "" }]).nome,
+     "senza nome in anagrafica", "e la riga senza nome non esce come cella vuota");
+  /* ⛔ la prova che separa i due stati che prima erano la stessa cella */
+  ok(scudo.etichettaResponsabile({ responsabileId: "d9" }, LAV).nome
+     !== scudo.etichettaResponsabile({ responsabileId: null }, LAV).nome,
+     "⛔ le due celle che prima erano identiche adesso sono diverse");
+  /* e la cella non è mai vuota: in un foglio di conformità il vuoto si legge
+     «non serve» — è la ragione scritta accanto all'export */
+  for (const a of [{ responsabileId: null }, { responsabileId: "d9" }, { responsabileId: "d3" }, {}])
+    ok(scudo.etichettaResponsabile(a, LAV).nome.length > 0, "nessuna cella vuota");
 });
 test("percorsiDi: costruisce i percorsi, e dice NO quando non si può", () => {
   eq(ponti.percorsiDi("esiti", { dpi: true, luci: false }),

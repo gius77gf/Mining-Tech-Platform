@@ -1115,6 +1115,45 @@ export function statoPonte(azioni) {
       : daChiudere + (daChiudere === 1 ? " azione da chiudere" : " azioni da chiudere") };
 }
 
+/* ⛔ CHI È IL RESPONSABILE: LA DECISIONE STA QUI, LA FRASE È DI OGNI APP.
+   Nata in Sentinella l'08/08 e traslocata qui **il giorno stesso**, quando è
+   servita alla seconda app — è la regola di casa, e la seconda app è proprio
+   quella che possiede il dato: **Scudo**.
+   Il difetto che chiude, misurato affiancando i casi: un id che punta a
+   qualcuno che **non è più in anagrafica** veniva detto «responsabile da
+   assegnare», in quattro punti di Scudo e nel CSV che va all'ispettore. È
+   falso, e nel modo che fa danno: chi legge crede che nessuno se ne stia
+   occupando e magari riassegna. Un id che c'è dice che **qualcuno era stato
+   scelto**, sempre; se il nome non si trova, il fatto riguarda l'ANAGRAFICA o
+   la NOSTRA lettura, non l'azione.
+   Cinque stati, e la ragione di ognuno:
+     · `assente`          — nessun id: «da assegnare» è vero;
+     · `trovato`          — id e nome: si dice il nome;
+     · `illeggibile`      — l'elenco non si è potuto leggere (`leggibile:false`,
+                            che è il caso dei PONTI: Sentinella legge i
+                            lavoratori da Scudo). `noto:false`, perché è un
+                            non-so e va scritto in modo che si veda;
+     · `fuori-anagrafica` — l'elenco si legge e la persona non c'è più;
+     · `senza-nome`       — la riga c'è ma il nome è vuoto. ⚠️ NON è
+                            raggiungibile dai percorsi del prodotto (il form di
+                            Scudo pretende il nome e `parseLavoratoriCsv`
+                            scarta le righe senza), e sta qui lo stesso perché
+                            oggi produceva un «resp. » con il nome mancante —
+                            un vuoto con la faccia tranquilla. Dichiarato
+                            irraggiungibile invece che spacciato per frequente.
+   ⚠️ `leggibile` vale `true` per difetto: chi legge la PROPRIA anagrafica non
+   ha nessuna lettura che possa fallire, e passare la bandiera a mano ovunque
+   sarebbe un modo di dimenticarla dove serve. */
+export function statoResponsabile(azione, lavoratori, leggibile = true) {
+  const id = (azione && azione.responsabileId) || "";
+  if (!id) return { stato: "assente", nome: "", noto: true };
+  const trovato = (lavoratori || []).find((l) => l && l.id === id);
+  if (trovato && trovato.nome) return { stato: "trovato", nome: String(trovato.nome), noto: true };
+  if (trovato) return { stato: "senza-nome", nome: "", noto: true };
+  if (!leggibile) return { stato: "illeggibile", nome: "", noto: false };
+  return { stato: "fuori-anagrafica", nome: "", noto: true };
+}
+
 /* ⛔ IL NUMERO CHE QUALCUNO HA DICHIARATO, oppure `null`. Traslocata qui dal
    modulo di Sentinella il 07/08, quando è servita alla SECONDA app (Conti, per
    il file delle pesate che si ri-carica) — ed è la regola di casa: una regola

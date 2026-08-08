@@ -1706,7 +1706,7 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
 
 
 <script type="module">
-  import { scudoData, statoScadenza, inTurnoOggi, kpiFrom, idoneitaLabel, idoneitaSuccessivo, idoneitaCriticita, livelloScadenza, coperturaFormazione, muroScadenze, MESI_NOMI, testoPromemoria, riepilogoInfortuni, parseInfortuniCsv, csvRegistroInfortuni, csvPersonaleScadenze, percorsiDi, DW_CANCELLA, parseScadenzeCsv, parseLavoratoriCsv, SCADENZE_PRESET, presetScadenza, dataDaPeriodicita, TIPI_DOCUMENTO, azioneLabel, azioneStatoSuccessivo, statoAzione, azioniUrgenti, riepilogoAzioni, azioniDiEvento,
+  import { scudoData, statoScadenza, inTurnoOggi, kpiFrom, idoneitaLabel, idoneitaSuccessivo, idoneitaCriticita, livelloScadenza, coperturaFormazione, muroScadenze, MESI_NOMI, testoPromemoria, riepilogoInfortuni, parseInfortuniCsv, csvRegistroInfortuni, csvPersonaleScadenze, percorsiDi, DW_CANCELLA, parseScadenzeCsv, parseLavoratoriCsv, SCADENZE_PRESET, presetScadenza, dataDaPeriodicita, TIPI_DOCUMENTO, azioneLabel, azioneStatoSuccessivo, statoAzione, etichettaResponsabile, azioniUrgenti, riepilogoAzioni, azioniDiEvento,
     daAmbiente, etichettaAmbiente, riepilogoAmbiente, origineAzione, csvAzioni, parseAzioniCsv, etichettaScadenza,
     NEARMISS_CATEGORIE, NEARMISS_LUOGHI, categoriaNearMiss, luogoNearMiss, descrizioneNearMiss, riepilogoNearMiss, descriviLetturaNearMiss, bozzaNearMiss,
     GRAVITA_POTENZIALE, potenzialeDi, descriviPotenziale, riepilogoPotenziale, descriviRischioPotenziale,
@@ -2124,11 +2124,14 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
     // nelle urgenze con lo stesso semaforo delle scadenze: chi apre Scudo
     // deve vedere subito che una correzione promessa non è stata fatta.
     const aziUrg = azioniUrgenti(AZI).slice(0, 5).map(a => {
-      const st = statoAzione(a), r = byId[a.responsabileId], lv = livelloScadenza(a.scadenza);
+      const st = statoAzione(a), lv = livelloScadenza(a.scadenza);
+      /* ⛔ non piu' `byId[...] ? nome : "da assegnare"`: un id che punta a chi non
+         e' piu' in anagrafica non e' «da assegnare». La decisione sta nel modulo. */
+      const resp = etichettaResponsabile(a, LAV);
       return `<div class="item tocca ${striscia[B[st][0]]}" onclick="go('azio')" title="Vai all'azione correttiva">
         <div class="avatar sup">${SVG_AZIONE}</div>
         <div class="info"><div class="name">${esc(a.descrizione)}</div>
-        <div class="meta">Azione correttiva · ${esc(r ? r.nome : "responsabile da assegnare")} · ${fmtData(a.scadenza)} · ${esc(lv.label)}</div></div>
+        <div class="meta">Azione correttiva · ${esc(resp.testo)} · ${fmtData(a.scadenza)} · ${esc(lv.label)}</div></div>
         <span class="acts"><span class="badge ${B[st][0]}">${B[st][1]}</span><span class="arr">›</span></span></div>`; });
     // S4 — chi oggi NON può fare la mansione che gli è assegnata: è la cosa
     // che ferma il lavoro domani mattina, e va vista prima di tutto il resto.
@@ -2507,8 +2510,18 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
       id: c.id, dpiRiga: true, lavoratoreId: c.lavoratoreId || null, tipo: "DPI",
       descrizione: tipoDpiSicuro(c.tipo).etichetta + " — da sostituire", dataScadenza: c.scadenza }));
     const scadTutte = SCA.concat(scadAzioni, scadDpi);
+    /* ⛔ LA QUARTA COPIA DELLA STESSA DOMANDA, e la sola che ne conoscesse già
+       metà: sulla riga DPI diceva «lavoratore non più in anagrafica», sulla
+       riga di un'AZIONE diceva «da assegnare» anche quando l'id c'era. Le due
+       risposte convivevano a due parole di distanza. Adesso l'azione passa da
+       `etichettaResponsabile`, che è la funzione dello schermo e del CSV.
+       ⚠️ La riga di una scadenza normale resta «azienda», e NON è la stessa
+       cosa: togliendo un lavoratore le sue scadenze diventano aziendali di
+       proposito — lo dichiara la finestra che chiede conferma. */
     const nomeScad = (s) => { const l = byId[s.lavoratoreId];
-      return l ? l.nome : (s.azione ? "da assegnare" : s.dpiRiga ? "lavoratore non più in anagrafica" : "azienda"); };
+      if (l) return l.nome;
+      if (s.azione) return etichettaResponsabile({ responsabileId: s.lavoratoreId }, LAV).nome;
+      return s.dpiRiga ? "lavoratore non più in anagrafica" : "azienda"; };
     const qScad = ($("scad-cerca") && $("scad-cerca").value || "").trim().toLowerCase();
     const scaVis = scadTutte.filter(s => filtroScad === "tutte" || statoScadenza(s.dataScadenza) === filtroScad)
                       .filter(s => !qScad || ((s.descrizione || "") + " " + (s.tipo || "") + " " + nomeScad(s)).toLowerCase().includes(qScad));
@@ -3413,17 +3426,18 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
       : (a.stato || "aperta") === filtroAzi;
     const aziVis = AZI.filter(passaFiltroAzi).filter(a => {
       if (!qAzi) return true;
-      const r = byId[a.responsabileId];
-      return ((a.descrizione || "") + " " + (r ? r.nome : "") + " " + (a.esito || "") + " " + origineTesto(a)).toLowerCase().includes(qAzi);
+      /* la ricerca guarda il NOME vero, non l'etichetta: chi cerca «Rossi» non
+         sta cercando «non piu' in anagrafica». */
+      return ((a.descrizione || "") + " " + etichettaResponsabile(a, LAV).nome + " " + (a.esito || "") + " " + origineTesto(a)).toLowerCase().includes(qAzi);
     });
     // Prima le più urgenti: non chiuse in ordine di scadenza, chiuse in fondo.
     const aziCmp = (a, b) => (a.stato === "chiusa") - (b.stato === "chiusa")
       || String(a.scadenza || "9999").localeCompare(String(b.scadenza || "9999"));
     $("azi-list").innerHTML = aziVis.slice().sort(aziCmp).map(a => {
       const al = azioneLabel(a.stato), st = statoAzione(a), lv = livelloScadenza(a.scadenza);
-      const r = byId[a.responsabileId], org = origineTesto(a);
+      const resp = etichettaResponsabile(a, LAV), org = origineTesto(a);
       const meta = [
-        r ? "resp. " + esc(r.nome) : "responsabile da assegnare",
+        esc(resp.testo),
         a.scadenza ? "entro il " + fmtData(a.scadenza) + (a.stato === "chiusa" ? "" : " · " + esc(lv.label)) : "senza data",
         a.stato === "chiusa" ? "chiusa il " + fmtData(a.dataChiusura) + (a.esito ? " · esito: " + esc(a.esito) : "") : "",
         org ? esc(org) : "",
@@ -3505,7 +3519,7 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
                                    : String(a.data || "").localeCompare(String(b.data || "")));
     $("isp-list").innerHTML = ispVis.slice().sort(ispCmp).map(i => {
       const r = riepilogoIspezione(i), st = statoIspezione(i), lv = livelloScadenza(i.data);
-      const cant = cById[i.cantiereId], resp = byId[i.responsabileId];
+      const cant = cById[i.cantiereId], resp = etichettaResponsabile(i, LAV);
       const naz = azioniDiIspezione(AZI, i.id), nazChiuse = naz.filter(a => a.stato === "chiusa").length;
       // una chiusa con delle voci indietro NON è una chiusa a posto: il verde
       // direbbe «guardata tutta» dove metà non è stata guardata
@@ -3516,7 +3530,9 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
       const meta = [
         fmtData(i.data) + (i.stato === "completata" ? "" : " · " + lv.label),
         cant ? cant.nome : "sito non indicato",
-        resp ? resp.nome : "chi la esegue: da assegnare",
+        /* «da assegnare» solo quando NESSUNO e' stato scelto: un id che punta a
+           chi non e' piu' in anagrafica e' un'altra cosa, e va detta. */
+        resp.stato === "trovato" ? resp.nome : "chi la esegue: " + resp.nome,
         /* ⛔ LA STESSA FRASE, DUE DIALETTI: la modale che chiude l'ispezione
            scrive già «1 conforme · 1 non conforme · 1 non applicabile» con i
            tre singolari (vedi `corpo` in fondo al file); la riga dell'elenco —
@@ -3565,7 +3581,7 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
     if (!ispAperta) puliscoGrafico("isp-c-avanz");
     else {
       const i = ISP.find(x => x.id === ispAperta), r = riepilogoIspezione(i);
-      const cant = cById[i.cantiereId], resp = byId[i.responsabileId];
+      const cant = cById[i.cantiereId], resp = etichettaResponsabile(i, LAV);
       $("isp-c-cnt").textContent = r.fatte + "/" + r.totale;
       /* ⛔ «ZERO NON CONFORMI» È UN NUMERO TRANQUILLO SE UNA DELLE CONFORMI NON
          HA NIENTE DIETRO. Lo dice lo scatto: la testata scriveva «0 voci non
@@ -3575,7 +3591,10 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
       const senzaProvaQui = conformiSenzaProva([i], PERM, ctxPerm).length;
       $("isp-c-testa").className = "note " + (senzaProvaQui ? "avviso" : "recap");
       $("isp-c-testa").innerHTML = `<b>${esc(i.nome)}</b> · ${fmtData(i.data)}`
-        + (cant ? " · " + esc(cant.nome) : "") + (resp ? " · esegue " + esc(resp.nome) : "")
+        + (cant ? " · " + esc(cant.nome) : "")
+        /* ⛔ prima il responsabile SPARIVA dalla frase quando non si trovava:
+           un'assegnazione che c'e' e non si vede e' peggio di una che manca. */
+        + (resp.stato === "assente" ? "" : " · esegue " + esc(resp.nome))
         + (i.stato === "completata"
             ? ` — <b>completata</b> il ${fmtData(i.dataChiusura || i.data)}: <b>${r.nonConformi}</b> ${r.nonConformi === 1 ? "voce non conforme" : "voci non conformi"}`
               + (r.daFare ? `, e <b>${r.daFare}</b> ${r.daFare === 1 ? "voce chiusa" : "voci chiuse"} senza esito.` : ".")
@@ -4304,9 +4323,30 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
     const ds = e.target.getAttribute && e.target.getAttribute("data-del-scad");
     if (dl) { const l = LAV.find(x => x.id === dl);
       const nsc = SCA.filter(s => s.lavoratoreId === dl).length;
+      /* ⛔ CHE COSA RESTA APPESO AL SUO NOME, DETTO PRIMA. Le scadenze erano già
+         dichiarate; le AZIONI CORRETTIVE e le ISPEZIONI di cui è responsabile no,
+         e sono la causa dell'id che punta a nessuno: dopo la rimozione quelle
+         righe restano, con l'id dentro, e da oggi dicono «non più in anagrafica»
+         invece di mentire con «da assegnare». Chi rimuove deve saperlo PRIMA:
+         è il momento in cui può ancora riassegnarle a qualcuno. */
+      const naz = AZI.filter(a => a.responsabileId === dl && a.stato !== "chiusa").length;
+      const nisp = ISP.filter(i => i.responsabileId === dl && i.stato !== "completata").length;
+      /* ⚠️ E IL VERBO SEGUE IL NUMERO: la prima stesura scriveva «1 ispezione non
+         ancora CHIUSE», che è il difetto del singolare che questa casa insegue
+         da giorni — con «1» cambiano l'articolo, la preposizione e il verbo, e
+         una sola parola scambiata non basta. Preso allo scatto, non leggendo. */
+      const appese = [
+        naz ? "<b>" + conta(naz, "azione correttiva", "azioni correttive") + "</b>"
+              + (naz === 1 ? " ancora aperta" : " ancora aperte") : "",
+        nisp ? "<b>" + conta(nisp, "ispezione", "ispezioni") + "</b>"
+              + (nisp === 1 ? " non ancora chiusa" : " non ancora chiuse") : "",
+      ].filter(Boolean);
       const ok = await chiedi("Rimuovere il lavoratore?",
         "Stai per togliere <b>" + esc(l ? l.nome : "questo lavoratore") + "</b> dall'anagrafica."
-        + (nsc ? "<br><br>Le sue <b>" + nsc + (nsc === 1 ? " scadenza resterà</b> in elenco" : " scadenze resteranno</b> in elenco") + " come scadenze aziendali: non vanno perse." : ""),
+        + (nsc ? "<br><br>Le sue <b>" + nsc + (nsc === 1 ? " scadenza resterà</b> in elenco" : " scadenze resteranno</b> in elenco") + " come scadenze aziendali: non vanno perse." : "")
+        + (appese.length ? "<br><br>È il responsabile di " + appese.join(" e ")
+            + ": non spariscono, ma da lì in poi risulteranno <b>senza un responsabile in anagrafica</b>."
+            + " Se puoi, riassegnale prima." : ""),
         "Rimuovi", true);
       if (ok) { await db.rimuovi("lavoratori", dl); await refresh();
         esito("import-esito", (l ? l.nome : "Lavoratore") + " rimosso dall'anagrafica.", "success"); } }
@@ -4996,8 +5036,15 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
     /* ⛔ «da assegnare» e non una cella vuota: è quello che la riga dice a
        schermo («responsabile da assegnare»), ed è la differenza fra un dato
        che manca e un dato che nessuno ha ancora deciso. In un foglio di
-       conformità una cella vuota si legge «non serve». */
-    const nome = (id) => { const l = LAV.find(x => x.id === id); return l ? l.nome : "da assegnare"; };
+       conformità una cella vuota si legge «non serve».
+       ⛔ E LA DECIDE `etichettaResponsabile`, LA STESSA CHE LA DECIDE A SCHERMO
+       (08/08). Qui c'era la TERZA copia della stessa domanda, e le mancava lo
+       stesso stato che mancava alle altre due: un id che punta a chi non è più
+       in anagrafica usciva «da assegnare», cioè questo foglio diceva
+       all'ispettore che di quell'azione non si occupa nessuno mentre un
+       responsabile era stato scelto. `.nome` è la cella senza il prefisso —
+       nel CSV «resp.» non ci va. */
+    const nome = (id) => etichettaResponsabile({ responsabileId: id }, LAV).nome;
     /* ⛔ LA COLONNA DELL'ORIGINE È UNA FRASE, NON UNA DATA: si scrive con
        `dataIt` come la scrive lo schermo, non in ISO. Il file diceva
        «near-miss del 2026-05-18» dove la pagina, per lo stesso evento, dice
