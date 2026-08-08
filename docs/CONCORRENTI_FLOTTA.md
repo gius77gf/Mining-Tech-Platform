@@ -342,7 +342,7 @@ Telematica **anticipatoria**, non solo tracking: mostrare il guasto prima che ca
 
 ## Verifica del delta (01/08)
 
-> **Verificato contro il codice al commit `5df42f6`** *(riverificato l'08/08;
+> **Verificato contro il codice al commit `57c78cf`** *(riverificato l'08/08;
 > le verifiche precedenti erano a `4743c69` il 06/08 e a `f3432f4` il 01/08).*
 >
 > ### 08/08 (terzo passaggio) — otto commit, ZERO che mordono
@@ -393,6 +393,18 @@ Telematica **anticipatoria**, non solo tracking: mostrare il guasto prima che ca
 > sopra, con la sua data). È il controllo che un commit noto non abbia colmato
 > una mancanza dichiarata. Serve a tenere a zero l'arretrato che
 > `documenti-invecchiati.mjs` misura; la prova vera resta quella riga per riga.
+>
+> ⏱️ **Riverificato a `57c78cf` (08/08, sera).** L'arretrato segnalava **un commit
+> che MORDE** — cioè che ha aggiunto o tolto una `export function` o un
+> `<button>`, le due forme con cui qui nasce e muore una funzione. Aperto:
+> sono i due rifacimenti dei CSV di oggi, e **nessuna riga di questo documento
+> cambia**. La ragione è misurata, non dedotta: quei commit hanno cambiato
+> **zero `<button>`** e hanno aggiunto **sei scrittori interni**
+> (`csvListino`, `csvGare`, `csvRicambi`, `csvSquadre`,
+> `csvRegistroInfortuni`, `csvPersonaleScadenze`) per export che **esistevano
+> già come bottoni**: è cambiato **dove** si compone il file, non che cosa
+> l'utente può fare. Un confronto coi concorrenti si muove quando si muove
+> una **capacità**, e qui non se n'è mossa nessuna.
 
 *Verificate tutte le righe delle liste «C'è a metà 🟡» e «Non c'è ❌», più le
 righe della tabella DELTA che non vi comparivano. Due coppie erano lo stesso

@@ -345,7 +345,7 @@
 
 ## Verifica del delta (01/08 · **riverificata riga per riga il 03/08**)
 
-> **Verificato contro il codice al commit `4c1bb43`** *(riverificato l'08/08;
+> **Verificato contro il codice al commit `57c78cf`** *(riverificato l'08/08;
 > le precedenti erano a `4916275` il 06/08 e a `ecc65d5` il 01/08).*
 >
 > ### 08/08 (terzo passaggio) — quattordici commit, quattro che mordono, otto righe che reggono
@@ -418,6 +418,18 @@
 > colmato una mancanza dichiarata. Costa un minuto e serve a tenere a zero
 > l'arretrato che `documenti-invecchiati.mjs` misura; la prova vera resta
 > quella riga per riga.
+>
+> ⏱️ **Riverificato a `57c78cf` (08/08, sera).** L'arretrato segnalava **un commit
+> che MORDE** — cioè che ha aggiunto o tolto una `export function` o un
+> `<button>`, le due forme con cui qui nasce e muore una funzione. Aperto:
+> sono i due rifacimenti dei CSV di oggi, e **nessuna riga di questo documento
+> cambia**. La ragione è misurata, non dedotta: quei commit hanno cambiato
+> **zero `<button>`** e hanno aggiunto **sei scrittori interni**
+> (`csvListino`, `csvGare`, `csvRicambi`, `csvSquadre`,
+> `csvRegistroInfortuni`, `csvPersonaleScadenze`) per export che **esistevano
+> già come bottoni**: è cambiato **dove** si compone il file, non che cosa
+> l'utente può fare. Un confronto coi concorrenti si muove quando si muove
+> una **capacità**, e qui non se n'è mossa nessuna.
 
 *Ogni riga marcata «Non c'è» o «C'è a metà» nella tabella §2 e ogni riga della
 tabella §3 è stata riaperta sul codice. Le righe che comparivano in tutt'e due

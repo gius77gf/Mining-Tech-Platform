@@ -444,7 +444,7 @@
 
 ## 7. Verifica del Delta (01/08 · riverificata riga per riga il 03/08 · **arretrato richiuso il 06/08**)
 
-> **Verificato contro il codice al commit `976e2a0`** (08/08; la precedente era
+> **Verificato contro il codice al commit `924c442`** (08/08; la precedente era
 > a `4743c69` il 06/08).
 >
 > ### 08/08 — quindici commit, tre che mordono: nessun verdetto si muove, una PROVA sì (di nuovo)
@@ -539,6 +539,18 @@
 > sopra, con la sua data). È il controllo che un commit noto non abbia colmato
 > una mancanza dichiarata. Serve a tenere a zero l'arretrato che
 > `documenti-invecchiati.mjs` misura; la prova vera resta quella riga per riga.
+>
+> ⏱️ **Riverificato a `924c442` (08/08, sera).** L'arretrato segnalava **un commit
+> che MORDE** — cioè che ha aggiunto o tolto una `export function` o un
+> `<button>`, le due forme con cui qui nasce e muore una funzione. Aperto:
+> sono i due rifacimenti dei CSV di oggi, e **nessuna riga di questo documento
+> cambia**. La ragione è misurata, non dedotta: quei commit hanno cambiato
+> **zero `<button>`** e hanno aggiunto **sei scrittori interni**
+> (`csvListino`, `csvGare`, `csvRicambi`, `csvSquadre`,
+> `csvRegistroInfortuni`, `csvPersonaleScadenze`) per export che **esistevano
+> già come bottoni**: è cambiato **dove** si compone il file, non che cosa
+> l'utente può fare. Un confronto coi concorrenti si muove quando si muove
+> una **capacità**, e qui non se n'è mossa nessuna.
 
 > **Verificato al commit `ecc65d5`** (03/08). Era l'ultimo commit
 > che ha toccato `apps/scudo/`, quindi il contenuto letto è identico a quello di
