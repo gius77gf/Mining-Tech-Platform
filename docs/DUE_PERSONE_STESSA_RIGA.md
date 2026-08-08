@@ -173,3 +173,49 @@ ricopiata**. Una prova lo pretende per nome su tutt'e due.
 ### E solo dopo, la coda offline
 Mettere in coda scritture che si cancellano a vicenda vorrebbe dire
 **moltiplicare** il problema, non risolverlo.
+
+---
+
+# La seconda metà della 5b: il lavoro SENZA RETE — la misura
+
+*08/08/2026. Rifatta con* `firebase emulators:exec --only firestore,auth --project
+demo-deepwork "cd .. && node tests/browser/coda-offline.mjs"` *(dentro
+`apps/deepwork-id`). Due schede autenticate come due telefoni della stessa cava,
+regole vere, e la cache locale accesa (`persistentLocalCache`, la forma nuova di
+`enableIndexedDbPersistence`). Anche qui: ogni riga è quello che è successo.*
+
+| # | Caso | Esito misurato |
+|---|---|---|
+| 1 | rete staccata, si scrive | la scrittura **si fa** (la promessa resta in sospeso), ma la **rilettura non riesce**: `unavailable` |
+| 2 | rete riattaccata | la scrittura **arriva da sola**: `chi = anna-offline` |
+| 3 | Anna staccata scrive, **Bruno online scrive la stessa riga** | al ritorno **vince Anna**, e la scrittura di Bruno **sparisce senza che nessuno lo dica** |
+| 4 | scheda **chiusa** con la scrittura in coda | il database resta a `prima-della-chiusura`: quella scrittura **non è arrivata** |
+
+## Che cosa dicono, in ordine di quanto pesano
+
+⛔ **Il caso 3 è il motivo per cui questa misura veniva prima della funzione.**
+La coda offline di Firestore, al ritorno, riscrive e basta: chi era staccato
+**sovrascrive in silenzio** il lavoro fatto nel frattempo da chi era in linea.
+È lo stesso difetto che abbiamo appena tolto dai dodici punti — *la spunta persa
+senza un errore* — ma un piano più in su, e le transazioni **non lo coprono**:
+una transazione offline non può rileggere niente.
+
+⚠️ **Il caso 1 ridimensiona l'idea di «lavorare come se ci fosse la rete»**: la
+cache locale serve solo quello che è **già stato letto** una volta. Chi apre
+l'app già senza campo non vede i dati, vede `unavailable`.
+
+⚠️ **Il caso 4 va letto per quello che è, e il limite è del banco, non del
+prodotto**: qui la scheda si chiude con `context.close()`, che butta via **anche
+il profilo del browser** (e con lui l'IndexedDB che tiene la coda). Quindi
+questa riga dimostra che *una coda non sopravvive a un profilo nuovo* — **non**
+che un utente che riapre lo stesso browser la perda. Per rispondere a quella
+domanda serve riaprire lo **stesso** profilo (`userDataDir`), e non è stato
+fatto: scriverlo come «la coda si perde chiudendo la scheda» sarebbe stato più
+comodo e falso.
+
+## Che cosa NON si può concludere da qui
+Che la coda offline «non si può fare». Si può — arriva da sola (caso 2), ed è la
+metà buona. Quello che questa misura dice è che **accenderla così com'è
+introdurrebbe una perdita silenziosa** (caso 3), cioè esattamente la famiglia di
+difetti che questa settimana sta togliendo. Prima della funzione serve una
+risposta a *«chi ha scritto per ultimo, e come lo diciamo a chi ha perso»*.

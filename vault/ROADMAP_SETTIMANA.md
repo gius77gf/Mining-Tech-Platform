@@ -83,8 +83,23 @@ chiuse. Le aperte sono **24**; la pagina d'ingresso di
             del fondatore (palette propria per app, scelta con ricerca cromatica
             vera e verificata per contrasto). Qui c'è la misura e il perché;
             la scelta è sua.
-      - [ ] **5b — i 12 punti al percorso puntato**, e `arrayUnion` dove si
-            aggiunge in coda (`tarature`, `letture` di Sentinella).
+      - [x] ✅ **5b — i 12 punti**: **11 su 12** non riscrivono più l'elenco
+            intero (percorso puntato, contrassegno di cancellazione,
+            transazioni); il dodicesimo (`atmosfera`) è fuori **con la ragione**,
+            e una prova pretende che resti così.
+      - [x] ✅ **5b — la MISURA del lavoro senza rete** *(08/08)*, che il
+            fondatore aveva messo prima della funzione. Fatta col ponteggio
+            nuovo (`tests/browser/ponte-emulatore.mjs`) e
+            `tests/browser/coda-offline.mjs`. Esito in
+            `docs/DUE_PERSONE_STESSA_RIGA.md`: la coda **arriva da sola** al
+            ritorno della rete (buono), ma **chi era staccato sovrascrive in
+            silenzio** chi era in linea — la stessa perdita silenziosa che
+            questa settimana sta togliendo, un piano più in su, e **le
+            transazioni non la coprono**.
+      - [ ] **5b — la DECISIONE che ne segue, ed è del fondatore**: accendere la
+            coda offline vuol dire scegliere *chi vince* e *come si dice a chi ha
+            perso*. Senza quella risposta, accenderla introdurrebbe una perdita
+            silenziosa: quindi **non è stata accesa**.
 
 - [x] ~~**D-bis. Il piano di applicazione delle quindici verdi**~~ — preparato il
       07/08 alle 14:45 perché a fine giornata l'applicazione sia meccanica e non
