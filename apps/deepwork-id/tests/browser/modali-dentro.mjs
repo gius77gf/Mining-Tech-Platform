@@ -31,11 +31,22 @@
        <div>     scrollWidth 235, clientWidth 120   ← lo dice
 
    Quindi `scrollWidth > clientWidth`, che è la domanda giusta per tutto il
-   resto, sulle tendine risponde **sempre di no**. Per loro si misura quanto
-   spazio chiede il testo dell'opzione — e lo misura il browser, mettendo il
-   testo in uno `<span>` col **font vero della tendina** e chiedendo la
-   larghezza del suo riquadro. Non è un calcolo: è la stessa domanda fatta a
-   un elemento che sa rispondere.
+   resto, sulle tendine risponde **sempre di no**. Per loro si CLONA la tendina
+   con la sola opzione da provare, le si toglie la larghezza imposta
+   (`width:max-content`) e si legge quanto il browser dice di volere per
+   mostrarla intera. Non è un calcolo: è la stessa domanda fatta a un elemento
+   che sa rispondere.
+
+   ⛔ E FINO AL 09/08 QUELLA MISURA ERA UNA SOTTRAZIONE, CON UN'IPOTESI FALSA
+   SCRITTA ACCANTO. Confrontava la larghezza del solo TESTO con
+   `clientWidth - padding`, e il commento diceva che la freccia della tendina
+   sta dentro il padding, quindi «la misura è prudente, cioè assolve». Chromium
+   la freccia la disegna dentro la **scatola di contenuto**: erano ~20 px di
+   cecità, nella direzione che assolve. Sotto ci viveva il taglio di
+   «— nessun esito registrato —» in Scudo (201,9 px di testo contro 214 di
+   spazio dichiarato: assolto, e sullo schermo si leggeva
+   «— nessun esito registrat…»). Il costo della stretta è misurato e scritto
+   accanto alla misura, com'è la regola: si misura, non si teme.
 
    CHE COSA MISURA, e perché queste tre cose e non otto (un banco che ne
    misura otto e ne sbaglia una diventa un banco che nessuno guarda):
@@ -112,8 +123,16 @@ const TETTO = +((process.argv.find((a) => a.startsWith('--tetto=')) || '').slice
    testo tagliato dipende dai dati e una riga sola non lo dimostrerebbe */
 const PER_FORMA = 2;
 /* ⛔ ANCHE A 320 px, e non è pignoleria: il difetto vero di Terra si vedeva
-   solo stretto. 320 è il telefono più piccolo che si trova in cava. */
-const LARGHEZZE = [390, 320];
+   solo stretto. 320 è il telefono più piccolo che si trova in cava.
+   ⚠️ E DUE BASTANO, misurato: per il TAGLIO 320 domina. La scatola di una
+   tendina cresce con la finestra, e la voce ha una larghezza sua che non
+   cambia — quindi ciò che taglia a 360 taglia anche a 320, e larghezze
+   intermedie non possono trovare niente di nuovo. Aggiungerle costa metà giro
+   e non porta un soggetto. L'unica che le vuole è la controprova a soglie
+   (famiglia D), che deve far vedere DOVE una voce smette di tagliare: lì 360
+   serve, e infatti il costo se lo prende quella passata sola. */
+const LARGHEZZE = ((process.argv.find((a) => a.startsWith('--iniezione=')) || '').slice(12) || '').toUpperCase() === 'D'
+  ? [390, 360, 320] : [390, 320];
 
 /* ⛔ L'ELENCO DELLE UNITÀ NON SI RISCRIVE QUI. Esiste già, dentro
    `unita-maiuscole.mjs`, con accanto le ragioni di ogni voce (perché «h» sì e
@@ -467,6 +486,30 @@ if (CONTROPROVA) {
     inietta('index.html', DENTRO_OPEN_MODAL_CORE, DENTRO_OPEN_MODAL_CORE + INIETTA,
       'C · core: gli stessi difetti dentro il suo `openModal` (il core non carica dw-app-ui.js)');
   }
+  /* ⛔ LA FAMIGLIA D — E SERVE A DIMOSTRARE UNA COSA CHE LE ALTRE TRE NON
+     POSSONO. A, B e C allungano OGNI opzione di una frase intera: provano che
+     il banco sa vedere un taglio, e va benissimo — ma cadono a tutte le
+     larghezze, quindi non distinguono «misura la larghezza» da «si accorge che
+     qualcosa non va». Un banco che cade dappertutto passerebbe quella prova
+     anche misurando l'umore.
+     Qui invece si rimettono i DUE difetti veri chiusi il 09/08, con le loro due
+     soglie diverse — e sono state misurate, non scelte:
+       · «— nessun esito registrato —» chiede 250 px: cade a 320 (scatola 242),
+         passa a 360 (282) e a 390 (312);
+       · «Soggetto pubblico o privato abilitato» chiede 302 px: cade a 320 E a
+         360, passa a 390.
+     Se le due soglie si separano, il righello sta misurando la larghezza. Se il
+     banco cadesse su tutt'e due dappertutto, o su nessuna delle due, questa
+     passata lo direbbe — ed è per questo che non sta dentro `TUTTE`: girando
+     insieme all'allungamento generico ogni voce taglierebbe ovunque e la
+     separazione sparirebbe.
+     ⚠️ Vuole 360 px, che il giro normale non fa: le larghezze in più costano, e
+     costano solo qui (vedi `LARGHEZZE`). */
+  if (QUALE === 'D') {
+    for (const [rel, coppie] of Object.entries(DIFETTI_SOGLIE)) {
+      for (const [da, a, cosa] of coppie) inietta(rel, da, a, cosa);
+    }
+  }
 
   /* il server della copia, col contrassegno che dice che stiamo misurando LA
      NOSTRA copia e non quella di qualcun altro rimasta su quella porta */
@@ -504,6 +547,10 @@ process.on('exit', togliLaCopia);
 let ko = 0, appPulite = 0;
 let apertePerTutti = 0, elementiPerTutti = 0, opzioniPerTutti = 0, clickPerTutti = 0;
 const tendineTagliate = new Set();
+/* per la controprova a soglie (famiglia D): a QUALI larghezze una voce
+   visibile risulta tagliata. È il dato che separa «misura la larghezza» da
+   «si accorge che qualcosa non va». */
+const soglieViste = new Map();
 const __costo = new Set(), __gia = new Set();
 let inciampi = 0, restate = 0, forzate = 0, sviate = 0, scese = 0;
 const interrotte = [];
@@ -698,6 +745,8 @@ for (const [nome, via] of SUPERFICI) {
             `${nome}@${larghezza} #${x.id} «${x.testo}» — chiede ${x.serve} in ${x.spazio}` +
             ` (testo ${x.__testo}, righello vecchio ${x.__vecchio})`);
           conto.vistoTendina++;
+          if (!soglieViste.has(x.id)) soglieViste.set(x.id, new Set());
+          soglieViste.get(x.id).add(larghezza);
           if (dillo(`TENDINA|${x.id}|${x.testo}`)) {
             const come = x.scelta ? 'mostra' : 'mostrerà, finché il campo è vuoto,';
             console.log(`  KO  ${nome} @${larghezza} «${r.titolo.slice(0, 30)}»: la tendina #${x.id} ${come} «${x.testo}» tagliato — chiede ${x.serve} px in ${x.spazio}`);
@@ -864,6 +913,43 @@ if (CONTROPROVA) {
     + ` su ${arrivate} superfici; il banco le ha viste su ${viste}.`);
   console.log(ko ? '  ✓ la controprova è stata vista: il banco sa fallire'
                  : '  ✗ IL BANCO NON SA FALLIRE: i difetti erano dentro e non se n\'è accorto');
-  process.exit(ko && viste ? 0 : 1);
+  /* ⛔ LA FAMIGLIA D SI GIUDICA A PARTE, PERCHÉ CHIEDE UNA COSA PIÙ FORTE.
+     Le altre pretendono che un rosso ci sia; questa pretende che il rosso
+     compaia SOTTO una certa larghezza e sparisca sopra — cioè che il righello
+     misuri i pixel e non l'umore. Le due soglie sono diverse apposta: se il
+     banco cadesse dappertutto, o da nessuna parte, il verdetto lo direbbe.
+     ⚠️ E si pretende anche il verso «non cade»: una prova che verifica solo
+     dove cade passerebbe anche con un banco che accusa tutto. È la stessa
+     lezione delle regole di sicurezza — la sola prova che conta è quella che
+     pretende un RIFIUTO. */
+  if (QUALE === 'D') {
+    const SOGLIE = [
+      ['vf-esito', 'la voce vuota lunga (250 px)', [320], [360, 390]],
+      ['vf-ente', 'il soggetto per esteso (302 px)', [320, 360], [390]],
+    ];
+    let vKo = 0;
+    console.log('\n── la controprova a SOGLIE: è la larghezza che decide? ──');
+    for (const [id, che, cade, passa] of SOGLIE) {
+      const dove = soglieViste.get(id) || new Set();
+      /* ⛔ e prima ancora: la tendina l'ho INCONTRATA? Un verdetto «non cade a
+         390» è vero anche se il banco quella finestra non l'ha mai aperta —
+         cioè un verde che ha guardato altrove. Se non l'ho vista, non assolvo
+         e non accuso: dichiaro NON MISURATO e faccio fallire la passata. */
+      const incontrata = opzioniPerTutti > 0 && (dove.size > 0 || soglieViste.has(id));
+      if (!incontrata) {
+        console.log(`  ⚠️ NON MISURATO  #${id}: ${che} — la tendina non è comparsa in nessuna finestra aperta.`);
+        vKo++; continue;
+      }
+      const giu = cade.filter((l) => dove.has(l)), su = passa.filter((l) => dove.has(l));
+      const bene = giu.length === cade.length && su.length === 0;
+      if (!bene) vKo++;
+      console.log(`  ${bene ? 'ok ' : '✗  '} #${id}: ${che} — cade a [${[...dove].sort((a, b) => a - b).join(', ')}]`
+        + `, atteso cade a [${cade.join(', ')}] e NON a [${passa.join(', ')}]`);
+    }
+    console.log(vKo === 0
+      ? '  ✓ le due soglie si separano: il righello misura la LARGHEZZA'
+      : '  ✗ le soglie non si separano: il banco non sta misurando la larghezza');
+    process.exit(vKo === 0 && ko && viste ? 0 : 1);
+  }
 }
 process.exit(ko ? 1 : 0);
