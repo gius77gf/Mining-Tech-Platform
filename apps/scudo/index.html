@@ -6289,7 +6289,28 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
       + `<input class="dw-input" id="vf-chi" value="${esc(sc.verificaChi || "")}" placeholder="ASL di… · ragione sociale del soggetto abilitato">`
       + '<div class="form-hint" style="margin-top:5px;">Facoltativo, ma è il nome che l\'organo di vigilanza legge sul verbale.</div>'
       + '<label class="fl" for="vf-esito">Com\'è andata</label>'
-      + `<select class="dw-input" id="vf-esito">${opz(ESITI_VERIFICA, sc.verificaEsito || "", "— nessun esito registrato —")}</select>`
+      /* ⚠️ «— nessun esito —» e non «— nessun esito registrato —»: è la stessa
+         correzione già fatta su «— nessun verbale —» (il suo racconto sta più
+         su, sopra `opzDoc`), su un campo diverso e con la misura dello stesso
+         segno. Chiesto al browser — clone della tendina con la sola opzione
+         scelta e `width:max-content`, cioè testo + padding + la freccia che
+         Chromium disegna DENTRO la scatola del contenuto, e che il conto a
+         mano `clientWidth - padding` non toglie: la versione lunga chiedeva
+         250 px in 242 a 320 px e usciva «— nessun esito registrat…», la corta
+         ne chiede 179. A 360, 390 e 430 ci stavano tutt'e due: il difetto
+         viveva SOLO sullo schermo più stretto, ed è per questo che a guardare
+         la finestra non si vedeva — e per cui misurare a una larghezza sola
+         avrebbe risposto «a posto».
+         ⚠️ E la parola tolta non porta via niente: che l'esito non sia
+         REGISTRATO — e che questo non voglia dire «a posto» — lo dicono già la
+         nota in cima alla finestra (`descriviVerificaPeriodica`) e la nota viva
+         qui sotto, che va a capo e si legge tutta. Una frase che si ripete tre
+         volte si smette di leggere.
+         ⛔ E non si tronca con i puntini: `#vf-esito` è un'etichetta NOSTRA, non
+         il titolo di un documento scritto dall'utente. `accorciaVoceTendina` di
+         Sentinella taglia a un budget di pixel un testo che non controlliamo;
+         qui il testo lo scriviamo noi, e allora lo si scrive corto. */
+      + `<select class="dw-input" id="vf-esito">${opz(ESITI_VERIFICA, sc.verificaEsito || "", "— nessun esito —")}</select>`
       + '<div class="form-hint" style="margin-top:5px;" id="vf-esito-nota"></div>'
       + '<div id="vf-entro-riga" style="display:none;">'
       + '<label class="fl" for="vf-entro">Le prescrizioni vanno sanate entro</label>'
