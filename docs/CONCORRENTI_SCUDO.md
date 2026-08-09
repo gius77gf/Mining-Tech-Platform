@@ -444,12 +444,18 @@
 
 ## 7. Verifica del Delta (01/08 · riverificata riga per riga il 03/08 · **arretrato richiuso il 06/08**)
 
-> **Verificato contro il codice al commit `7ee192c`** *(09/08 · le **sei**
-> «CONFERMATA ASSENTE» rilanciate una per una: **sei ricerche su sei tornano
-> identiche** — `versionamento|storico documenti|cronologia|revisione precedente`,
+> **Verificato contro il codice al commit `6645782`** *(09/08 pomeriggio · le
+> **sei** «CONFERMATA ASSENTE» rilanciate una per una **dopo** il lavoro sulle
+> tendine tagliate: **sei ricerche su sei tornano identiche** —
+> `versionamento|storico documenti|cronologia|revisione precedente`,
 > `xlsx|excel|jspdf`, `notific`, `osservazion|buona pratica|safety obs`,
-> `offline|serviceworker|caches.` danno tutte **zero**, e le stampe sono ancora
-> **due**.)*
+> `offline|serviceworker|caches.`, `video` danno tutte **zero e zero** su
+> `scudo-data.js` e `index.html`, e le stampe sono ancora **due**.)*
+> ⏱️ *Ristampigliato perché l'app era andata avanti di un commit che MORDE
+> (`6645782`, le quattro tendine `#vf-verbale`): il verdetto di nessuna delle
+> sei cambia — quel lavoro tocca l'etichetta di una voce di tendina, non una
+> funzione che quelle righe censiscono — ma **la data non si incolla**, si
+> rilancia il comando. Costo: sei `grep`.*
 > ⛔ **ED È L'UNICO DEI SEI DOCUMENTI CHE RIPRODUCE AL 100%**, contro Terra 1 su 4
 > e Flotta 2 su 5. La ragione è nella FORMA della prova, ed è trasferibile: qui
 > ogni riga porta **il comando con le sue alternative e l'uscita attesa**
