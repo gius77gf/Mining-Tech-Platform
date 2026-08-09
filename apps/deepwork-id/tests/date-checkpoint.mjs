@@ -102,6 +102,35 @@ export function oreNelFuturo(mappa, eccezioni = new Set()) {
 }
 const giorniFra = (a, b) => Math.round((Date.parse(b + "T00:00:00Z") - Date.parse(a + "T00:00:00Z")) / 864e5);
 
+/* ⛔ E QUESTA FUNZIONE NASCE DA UN «NaN» STAMPATO NELLA RIGA PIÙ IMPORTANTE DEL
+   FILE. `giorniFra` vuole due `YYYY-MM-DD` — li incolla a `"T00:00:00Z"` — ed è
+   giusta dov'è usata (il confronto per GIORNI, qui sopra). Ma il 09/08 la
+   `MAPPA` è passata da date a **timestamp interi**, per rendere il guardiano
+   sensibile alle ORE, e il diagnostico in fondo ha continuato a chiamarla:
+   `Date.parse("2026-08-09T11:09:51+00:00" + "T00:00:00Z")` fa **NaN**, e la
+   riga che dice al ciclo da dove ripartire stampava «un file scritto **NaN
+   giorni PRIMA**».
+   È la famiglia già scritta in CLAUDE.md — *una funzione nuova che prende il
+   posto di una vecchia si porta dietro il mestiere, non le difese* — nella
+   veste in cui a cambiare non è la funzione ma **il tipo di ciò che le si
+   passa**: nessun errore, nessuna prova rossa, solo tre lettere in mezzo a una
+   frase sensata.
+   ⚠️ E la correzione ovvia — dividere per 864e5 invece che incollare la
+   mezzanotte — sarebbe stata **la correzione facile che dà il verde falso**:
+   oggi i due candidati distano **cinquantasei minuti**, quindi «0 giorni»,
+   che si legge «nessuna differenza» proprio dove la differenza c'è ed è il
+   motivo per cui questo file esiste. Un righello che arrotonda a giorni è lo
+   stesso difetto che il guardiano ha appena smesso di avere. */
+export function scartoFra(isoA, isoB) {
+  const a = Date.parse(isoA), b = Date.parse(isoB);
+  if (!Number.isFinite(a) || !Number.isFinite(b)) return null;
+  const min = Math.round(Math.abs(b - a) / 60000);
+  if (min < 60) return `${min} minut${min === 1 ? "o" : "i"}`;
+  if (min < 1440) return `${Math.floor(min / 60)}h${String(min % 60).padStart(2, "0")}`;
+  const g = Math.floor(min / 1440), h = Math.floor((min % 1440) / 60);
+  return `${g} giorn${g === 1 ? "o" : "i"}${h ? ` e ${h}h` : ""}`;
+}
+
 /* ⛔ IL LASCITO, DICHIARATO PER DATA E NON A ELENCO. Lo scarto non è nato il
    31/07: la misura dice che comincia il **22/07** e attraversa tutto l'archivio.
    Rinominare quei file romperebbe i rimandi «Unità precedente» che li legano in
@@ -241,6 +270,21 @@ test("la controprova: un nome nel futuro viene visto, uno giusto no", () => {
     "un caso dichiarato non deve comparire fra le violazioni");
 });
 
+test("lo scarto fra i due candidati si sa dire, e nell'unità giusta", () => {
+  /* il caso vero del 09/08: 56 minuti, che «0 giorni» avrebbe cancellato */
+  ok(scartoFra("2026-08-09T10:13:30+00:00", "2026-08-09T11:09:51+00:00") === "56 minuti",
+    `56 minuti devono restare minuti: ${scartoFra("2026-08-09T10:13:30+00:00", "2026-08-09T11:09:51+00:00")}`);
+  ok(scartoFra("2026-08-09T06:00:00Z", "2026-08-09T10:15:00Z") === "4h15", "le ore si dicono in ore");
+  ok(scartoFra("2026-07-21T10:00:00Z", "2026-08-01T13:00:00Z") === "11 giorni e 3h", "i giorni si dicono in giorni");
+  ok(scartoFra("2026-08-09T10:00:00Z", "2026-08-09T10:01:00Z") === "1 minuto", "e il singolare è singolare");
+  /* ⛔ e il verso che conta: col difetto vero rimesso — un timestamp intero
+     passato a `giorniFra`, che vuole una data — deve rispondere «non lo so»
+     invece di stampare NaN dentro una frase sensata. */
+  ok(scartoFra("2026-08-09T11:09:51+00:00T00:00:00Z", "2026-08-09T11:09:51+00:00") === null,
+    "un argomento illeggibile deve dare null, non NaN");
+  ok(scartoFra(undefined, "2026-08-09T11:09:51+00:00") === null, "e nemmeno un assente deve produrre un numero");
+});
+
 /* ── LA RISPOSTA CHE SERVE AL CICLO CHE RIPARTE ──────────────────────── */
 const perData = [...MAPPA.entries()].sort((a, b) =>
   a[1] === b[1] ? (a[0] < b[0] ? 1 : -1) : (a[1] < b[1] ? 1 : -1));
@@ -249,9 +293,11 @@ const perNome = [...MAPPA.keys()].sort().reverse()[0];
 console.log(`\n⛔ Da quale checkpoint riparte davvero un ciclo:`);
 console.log(`   per DATA DI GIT (giusto):  ${veroUltimo[0].replace(/^.*\//, "")}  (${veroUltimo[1]})`);
 console.log(`   per NOME    (la regola vecchia): ${perNome.replace(/^.*\//, "")}  (${MAPPA.get(perNome)})`);
-if (veroUltimo[0] !== perNome)
+if (veroUltimo[0] !== perNome) {
+  const scarto = scartoFra(MAPPA.get(perNome), veroUltimo[1]);
   console.log(`   ⚠️ SONO DIVERSI. Chi segue il nome apre un file scritto`
-    + ` ${giorniFra(MAPPA.get(perNome), veroUltimo[1])} giorni PRIMA di quello vero, credendo che sia il più fresco.`);
+    + ` ${scarto || "di un tempo che non so misurare"} PRIMA di quello vero, credendo che sia il più fresco.`);
+}
 
 console.log(`\nRisultato orologio del vault: ${passed} passati, ${failed} falliti  ·  ${MAPPA.size} checkpoint (archivio escluso), ${lascito.size} precedenti alla regola`);
 process.exit(failed > 0 ? 1 : 0);
