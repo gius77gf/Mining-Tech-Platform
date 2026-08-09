@@ -5109,9 +5109,25 @@ label.item:has(.dw-chk:checked){
       });
     }
 
-    // ── il dettaglio per prodotto: dove il venduto si converte e dove no ──
+    /* ── il dettaglio per prodotto: dove il venduto si converte e dove no ──
+       ⛔ L'AVATAR NON PORTA « warn», ed è una correzione: Conti non dipinge
+       `.avatar.warn` (il foglio condiviso conosce solo `.avatar.sup`), quindi
+       quella classe non faceva NIENTE e non lasciava niente da leggere —
+       nessun errore, nessuna prova rossa, un avatar identico a quello sano.
+       Il segno di «senza densità» c'è già DUE volte su questa riga: la classe
+       di stato sul contenitore (il filo arancio) e le tonnellate in grassetto
+       nel dettaglio.
+       ⚠️ E `classi-orfane` non poteva vederla: lo DICHIARA nella sua
+       intestazione — le classi composte a pezzi, cioè scritte con
+       un'interpolazione dentro l'attributo, non entrano nel censimento.
+       Un'eccezione dichiarata onestamente resta un posto in cui nessuno
+       guarda, ed è esattamente lì che questa viveva.
+       ⚠️ Questo commento sta QUI e non dentro la stringa qui sotto: là un
+       `<!-- -->` non è un commento, è testo, e i suoi apostrofi e i suoi
+       backtick chiudono il template. Provato oggi, e `sintassi-pagine` l'ha
+       detto in tre secondi. */
     $("ric-list").innerHTML = ven.prodotti.map(p => `<div class="item${p.senzaDensita ? " st-warn" : " st-accent"}">
-      <span class="avatar${p.senzaDensita ? " warn" : ""}">${IC.listino}</span>
+      <span class="avatar">${IC.listino}</span>
       <div class="info"><div class="name">${esc(p.prodotto)}</div>
       <div class="meta">${qt(p.t)} t · ${plur(p.viaggi, "viaggio", "viaggi")}${p.senzaDensita
         ? " · <b>" + qt(p.tSenzaDensita) + " t senza densità</b>" : ""}</div></div>
