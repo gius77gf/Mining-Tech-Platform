@@ -884,6 +884,33 @@ numero scritto dove non era stato misurato niente**.*
 - [ ] **Q1.** Proposte di `docs/RICERCA_DEEPWORKID_202607.md` (ruoli reali
       dentro l'organizzazione) — legata alla decisione **10b/10c**.
 
+- [ ] **I 20 KO del giro del 09/08, riverificati sul commit di adesso** — la
+  riverifica è cominciata e i primi due fronti hanno risposto in modo opposto,
+  che è esattamente perché la sezione 0 esiste:
+  · ✅ **Conti, i due KO sul CSV dei costi: GIÀ CHIUSI.** `conti-documenti-che-escono`
+    sul commit di adesso dà **81 passati, 0 falliti, 12 punti d'uscita su 12
+    aperti**. Erano veri a `7cddb59` e li ha chiusi il lavoro sulle voci senza
+    importo. Senza la sottrazione dell'età si sarebbe aperto un cantiere su un
+    difetto che non c'è più;
+  · ⛔ **Scudo, le tendine tagliate: ANCORA VERE, 5 su 5.** `modali-dentro
+    --solo=scudo` le ridà tutte (12 aperture di modale, 324 elementi, 120 voci
+    di tendina, 1 superficie su 1). È la famiglia più numerosa del giro e
+    nessuna unità del 08-09/08 l'ha toccata.
+  ⛔ **La diagnosi, che è la parte che vale**: nella modale «Verifica
+  periodica» le voci si compongono come `${d.titolo} · ${d.tipo}`, e i titoli
+  della dimostrazione cominciano **tutti** con la stessa frase — «Verbale
+  verifica periodica — ». Dentro *quel* menù a tendina quel prefisso porta
+  **zero informazione** (il menù elenca solo verbali, e l'etichetta sopra dice
+  già «Il verbale»): quello che distingue è la **coda** — «piattaforma
+  elevabile», «autogru 30 t» — ed è proprio la coda che viene tagliata. 561 px
+  di testo in 284 a 390 px, in 214 a 320.
+  La strada: **togliere ciò che è identico fra tutte le voci e tenere ciò che
+  distingue**, calcolandolo (prefisso comune) invece di scriverlo a mano — se
+  il prefisso comune è corto non si toglie niente e non si rompe nulla.
+  ⚠️ Restano da riverificare gli altri 13: Genesi (4, frasi della nuvola),
+  Campo (3 foglio di turno + 2 stati non misurati + 1 manina), Conti (1 barre
+  di peso), Sentinella (2 tendine, non coperte dal `--solo=scudo`).
+
 ## Vincoli
 
 - Non pushare mai su `main`: si lavora sul branch di sessione, per `main` si
