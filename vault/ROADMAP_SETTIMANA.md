@@ -865,6 +865,24 @@ numero scritto dove non era stato misurato niente**.*
       scrittura**, non la verità. Un conto che dipende da come è scritta una
       riga va letto sapendolo — e sistemarlo vuol dire uniformare le sei
       tabelle, non stringere la ricerca.
+      ✅ **CENSIMENTO CHIUSO IL 09/08: tutte e 47 rilanciate una per una, ZERO
+      verdetti cambiati, DODICI prove che non tornavano più.** Per app: terra 4
+      (3 prove scadute), flotta 5 (3), scudo 6 (**0**), conti 8 (4), campo 11
+      (1), sentinella 13 (1).
+      ⛔ Il risultato che conta non è il 47: è che **le verifiche erano fatte
+      bene e a marcire è solo il modo in cui sono scritte** — e marcisce
+      **perché il repository cresce**. Le quattro cause, adesso in `CLAUDE.md`:
+      un termine corto dentro parole comuni (`miglia` in `famiglia`), una
+      parola polisemica (`firma` di una **funzione**), il nostro gergo che
+      entra nel conto («questo cantiere» detto del **nostro** lavoro), e
+      un'unità che è un pezzo di un'altra (`m/s` dentro `mm/s`).
+      ✅ **E lo zero di Scudo, che questa riga chiamava «non confrontabile», non
+      c'era mai stato**: il documento scrive `CONFERMATA` senza grassetto, ecco
+      tutto. Ne ha **sei**, e sono anche le uniche sei prove che riproducono
+      **tutte** — perché ogni sua riga porta il **comando** con le alternative
+      e l'uscita attesa invece di un conteggio. Cade quindi il «uniformare le
+      sei tabelle»: quello che va uniformato è la **forma della prova**, non la
+      tabella, ed è scritto in `CLAUDE.md`.
 
 ### C — Ricerca continua, nei tempi morti
 
