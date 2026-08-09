@@ -537,8 +537,21 @@ numero scritto dove non era stato misurato niente**.*
 - [ ] **I ternari del singolare che restano nelle app** — ⏱️ *censito da capo
       l'09/08, e adesso c'è un numero invece di un'impressione: **54 punti da
       leggere** in 12 file su 16 guardati, con **69 scartati** perché hanno una
-      guardia sulla loro variabile e **9** perché sono costanti.* Sette chiusi
-      su Sentinella. Non si traducono in una notte; quando si fa,
+      guardia sulla loro variabile e **9** perché sono costanti.* Poi lavorati
+      su cinque superfici — Sentinella 7, Scudo 3, Genesi 10 (pagina e modulo),
+      Campo 5, core 1 — e il conto è sceso a **24 in 8 file**. Restano Conti,
+      Flotta (il gruppo più numeroso: ore motore, giorni di copertura, mesi
+      registrati, finestra dei fermi) e Terra.
+      ⛔ **E IL CASO CHE NESSUN CENSIMENTO PUÒ PRENDERE: la guardia c'era, ma su
+      un altro numero.** In Campo `r.scadute.length > 1` decide **se** scrivere
+      la coda, ma il numero **stampato** è `length - 1`, che vale esattamente
+      **1** quando i documenti sono due — il caso più comune. «e altri 1
+      documenti». Sono due variabili diverse che sembrano la stessa: quella che
+      decide e quella che si legge.
+      ⚠️ E una riga segnalata **non è ancora un difetto**: in Scudo una
+      correzione è stata fatta e poi **ripristinata**, perché `quantiMesi` vale
+      12, 6 o 4 — mai 1. Non si tocca un soggetto sano perché lo dice il
+      righello. Non si traducono in una notte; quando si fa,
       si fa con `conta`/`plurale`, non a mano.
       ⛔ **E IL CENSIMENTO PRECEDENTE VEDEVA IL 14% DEI SUOI SOGGETTI**, per la
       ragione di sempre: conosceva **una sintassi sola**. Cercava solo i
