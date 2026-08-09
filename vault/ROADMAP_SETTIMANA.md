@@ -973,8 +973,26 @@ numero scritto dove non era stato misurato niente**.*
   dichiarata del turno) invece di dire «non calcolabile». Il secondo è l'unico
   caso del banco che **non può stare nella dimostrazione** — è un dato
   *corrotto*, non *assente* — e si raggiunge digitando.
-  ⛔ **È il prossimo da aprire**: è prodotto vero e non dipende da nessuna
-  delle due decisioni in sospeso.
+  ⛔ **E ANCHE IL SECONDO NON È UN BUCO DI PRODOTTO — ma qui la correzione
+  facile avrebbe prodotto un VERDE FALSO, ed è la ragione per cui non l'ho
+  fatta.** Riprodotto il caso del banco passo per passo (apri `#nav-rap`,
+  scrivi `0,5` in `#disp-ore`, tocca `#btn-disp`, leggi `#disp-stato`):
+  · il prodotto dice **«DISPONIBILITÀ NON CALCOLATA»** e **non stampa nessuna
+    percentuale** — cioè fa esattamente quello che il principio del fondatore
+    chiede — mentre il banco cerca «non calcolab**ile**». **Una parola di
+    scarto fra l'attesa e il prodotto**, come per il rapportino al plurale;
+  · ma il motivo che la pagina scrive è **«non è registrata nessuna attività
+    per questo turno»**, non la contraddizione fra fermo e durata: nella
+    dimostrazione quel turno **non ha attività**, quindi lo scenario **non
+    raggiunge il caso** che il banco esiste per provare.
+  ⛔ Quindi correggere solo la parola lo farebbe passare **senza aver mai
+  provato la contraddizione**: è la prova che non prova niente. Il lavoro vero
+  è **lo scenario** — registrare prima un'attività con dei minuti di fermo, poi
+  dichiarare un turno più corto — e allora la parola si aggiusta da sé perché
+  si vedrà che cosa la pagina scrive **in quel** caso.
+  ⚠️ Due KO su due, in questa famiglia, erano **attese del banco** e non
+  difetti del prodotto. Vale la pena dirlo: il conto «17 veri» di stanotte è
+  una stima **per eccesso**, e ogni riverifica lo sta abbassando.
   ⛔ **APERTO IL PIÙ PICCOLO PER PRIMO — e ha risposto alla domanda di disegno,
   ma non come credevo: QUESTA FAMIGLIA NON SI CHIUDE ACCORCIANDO IL TESTO.**
   La tendina di Sentinella sfora di **6 px** a 390 (290 contro 284) e di 76 a
