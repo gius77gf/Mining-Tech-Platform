@@ -930,8 +930,37 @@ numero scritto dove non era stato misurato niente**.*
       larga la banda cieca**. Cioè la formula sbagliata sopravvive solo dove
       serve a misurare sé stessa.
 
-- [ ] **B0-quinquies. `#sm-cava` DEL CORE — l'altro dei due tagli, e NON è detto
-      che si corregga con la parola.** Trovato il 09/08 dal righello di
+- [x] **B0-quinquies. `#sm-cava` DEL CORE — l'altro dei due tagli, e NON è detto
+      che si corregga con la parola.** ✅ *Chiuso: la correzione era **già** in
+      `b1cb14c` (18:09), e la scatola era davvero il colpevole — Data e Cava
+      tolte dalla `.frow`, quindi 142 → **312 px** a 390. Questa riga è nata in
+      `8df983b` alle **21:29**, tre ore e venti DOPO, leggendo il commit vecchio
+      (`7717de1`, 17:49): è il «non c'è» **scaduto** di `CLAUDE.md` nella forma
+      peggiore — e la riga sotto, che si lamentava che il difetto «viveva solo
+      in un messaggio di commit», descriveva senza saperlo anche la sua
+      correzione.*
+      ⛔ **E il perché dei 142 px non era «metà della riga»: era il campo
+      accanto.** Chiesto alla griglia con `min-content`, non dedotto:
+      `input[type=date]` ha min-content **161 px** e non sa stringersi (tre
+      caselle e l'icona del calendario le disegna il browser); a 390 la riga
+      vale 312 meno 9 di gap = **303**, e `1fr` è `minmax(auto, 1fr)` — la data
+      si tiene i suoi 161 e alla tendina resta **303 − 161 = 142**. Predetto
+      142, misurato 142. Chi divideva per due sbagliava di 9,5 px e cercava nel
+      posto sbagliato.
+      ⚠️ **E il difetto viveva anche a 430**, dove `modali-dentro` non guarda
+      (gira a 390 e 320): lì «— nessuna —» ci stava e a essere tagliati erano i
+      **due nomi di cava**. Accorciare la parola avrebbe fatto tornare verde il
+      banco lasciando in piedi il taglio del **dato** — cioè la prova che la
+      correzione ovvia era quella sbagliata.
+      **Soggetti guardati, prima e dopo** (`modali-dentro --solo=core`): KO
+      1 → **0**; aperture 176 = 176, voci 106 = 106, comandi 530 = 530;
+      elementi 3642 → 3636, e i **sei** in meno sono i tre `<div>` di sola
+      impaginazione moltiplicati per le due larghezze — non «vinto misurando di
+      meno». Bersagli di tocco rimisurati: 6 × 4 larghezze, **zero** sotto
+      44×44.
+
+      ⏱️ *Il testo originale della riga, tenuto perché è la misura di com'era:*
+      Trovato il 09/08 dal righello di
       `modali-dentro` una volta corretto: nella finestra «Nuovo sismogramma» la
       voce vuota **«— nessuna —»** chiede **149 px in 142** a 390. Da `7717de1`
       il banco è **rosso lì**, di proposito.
@@ -971,6 +1000,88 @@ numero scritto dove non era stato misurato niente**.*
       **Come si misura**: apri una volata con `design.B:null` e guarda il burden
       dei fori disegnati — se è 0,3 m, il difetto è ancora lì.
 
+- [ ] **B0-nonies. CON L'INTERASSE ASSENTE LA PAGINA DI GENESI *MUORE*, E IL
+      MESSAGGIO CHE DOVEVA SPIEGARLO NON ARRIVA MAI.** ⏱️ *Trovato il 09/08
+      misurando i campi di B0-sexies; **pre-esistente**, non nato oggi
+      (`git show aec46eb^:apps/genesi/genesi.html | grep -n "isFinite(Sm)"` dà
+      la stessa riga).* In `measureGeom2D`: `if(!isFinite(Sm)) Sm=D2.S;` e poi
+      `S:+Sm.toFixed(2)` — con `D2.S` assente `Sm` diventa `null` e il
+      `.toFixed` è un **TypeError**: `measureGeom2D → renderScheda2D → draw2D →
+      setScreen` si spezza, la scheda validatori esce a **0 righe** invece di
+      29.
+      ⛔ **E il danno peggiore è il secondo**: il toast di `volataSenzaValori` —
+      quello scritto apposta per dire *«un valore non si legge»* — sta nella
+      riga **dopo** `setScreen('design')`, quindi non viene mai eseguito.
+      Misurato: con `design.S:null` il toast è `""` e c'è 1 errore di pagina;
+      con `design.B:null` (che non passa di lì) il toast compare regolarmente.
+      Cioè la difesa costruita per l'assenza **è disinnescata proprio dal caso
+      che deve coprire**.
+      ⚠️ La correzione ovvia — `S:(Sm===null?null:+Sm.toFixed(2))` — è stata
+      provata **nella risposta HTTP** e la pagina smette di morire (28 righe, 0
+      errori, nessun «NaN»), ma **lascia due numeri tranquilli**: «Rapporto S/B
+      **0,00**» e «Carica consigliata **~0 kg/foro**». Le due si chiudono col
+      motivo già presente due righe sopra (`if(pf===null) … 'non calcolabile'`);
+      la terza cosa che resta — «12 fori · **0 m** fronte» — è la maglia, cioè
+      **B0-septies**, e farla a metà è la trappola dichiarata lì.
+      **Come si misura**: apri una volata con `design.S:null` e guarda se la
+      scheda validatori ha righe e se il toast compare.
+
+- [ ] **B0-decies. IL RECETTORE ASSENTE FA DIRE A GENESI «SUPERA» CON UN NUMERO
+      DI CINQUE CIFRE — e una delle tre esclusioni non regge alla misura.**
+      ⏱️ *Misurato il 09/08 sui tre campi che B0-sexies teneva fuori.*
+      · **`recDist`**: il danno non è al secondo clic, è a **ZERO clic**.
+        Subito dopo «Apri», con la distanza assente, la scheda dichiara **PPV al
+        recettore 67.627,4 mm/s** (riferimento 6,4) e **Airblast 172 dB(L)**
+        (riferimento 127), col verdetto **«SUPERA»** — e nel «perché» scrive
+        «a **— m** (SD 0,0 m/kg^½)»: cioè **sa** di non avere la distanza e
+        calcola lo stesso. È il principio del fondatore rovesciato — non un
+        numero tranquillo, un'**accusa** — la stessa famiglia della geometria
+        chiusa in `aec46eb`.
+      · **`recFreq`**: ⛔ **la ragione dell'esclusione era sbagliata.** Era
+        «c'è `ppvLimit` in mezzo, e le soglie non si toccano»; misurando, a zero
+        clic la scheda dice già *«Non si può dire se è sotto soglia: la
+        frequenza dominante attesa non è un numero leggibile»* — cioè
+        `ppvLimit` **gestisce già** la frequenza assente, e il `Math.max(2, …)`
+        non protegge una soglia: la **distrugge**, trasformando quel «non si può
+        dire» in «Soglia DIN residenziale 5 mm/s @ 2 Hz → SUPERA». Si corregge
+        **senza decidere niente** su `ppvLimit`.
+      · **`psCharge`**: la ragione scritta («metterlo a null farebbe dire
+        *carica lineare troppo bassa*») descrive uno stato **che c'è già**: a
+        zero clic il valore mostra «— kg/m» e il «perché» dice già «Carica
+        lineare troppo bassa», perché `null < 0.25` è vero. Correggere il campo
+        cambierebbe solo `0,10` → `—`; l'allarme falso **è già lì** e va chiuso
+        comunque.
+      ⛔ **Resta fermo il vincolo vero**: le soglie di sicurezza (curve
+      USBM/DIN, `ppvLimit`) non si toccano senza conferma del fondatore. Qui non
+      si toccano — si smette di **inventare gli ingressi** che ci vanno dentro.
+
+- [ ] **B3-ter. «Sui 1 fori già caricati» — e undici righe sotto la guardia
+      giusta c'è già.** ⏱️ *Trovato il 09/08 dal banco del ponte di Campo.*
+      Con **esattamente un** foro registrato, `apps/campo/index.html` compone
+      «Sui **1** fori già caricati: 118,5 kg contro 100 kg previsti +19%».
+      Con «1» cambia anche la preposizione («**Sul** foro già caricato»). ⚠️ E
+      la stessa pagina, undici righe più sotto, la guardia ce l'ha:
+      `dopo.registrati === 1 ? "sul primo foro caricato" : "sui " + … + " fori
+      caricati"`. Cioè **la regola scritta due volte, la seconda più debole** —
+      la famiglia raccolta in `CLAUDE.md`, qui in casa e nello stesso file.
+      **Come si misura**: un piano con un foro solo registrato, e si legge la
+      riga di riepilogo.
+
+- [ ] **B4-bis. LE TENDINE DEL CORE NON LE MISURA NESSUN BANCO, E IL BANCO CHE
+      DOVREBBE NON DICE «non ho guardato»: MUORE.** ⏱️ *Trovato il 09/08
+      chiudendo B0-quinquies.* `tendine-nelle-finestre.mjs --solo=core` **non
+      monta il finto Firebase**, quindi non entra nel core e cade su
+      `window.__provaUtente is not a function` (uscita 1); vale anche per
+      `--tutte`, che il core ce l'ha in `CANDIDATE`. Conseguenza **dichiarata**:
+      a 360 e 430 px le tendine del core oggi non le guarda nessuno — e
+      `modali-dentro` gira a 390 e 320, cioè proprio le due larghezze dove il
+      taglio di `#sm-cava` **non** si vedeva.
+      ⛔ È la forma peggiore della famiglia «un banco che dichiara di essere
+      cieco»: qui non dichiara niente, **muore**, e un banco morto in un giro si
+      legge come una riga rossa qualunque. La cura è un argomento
+      (`montaFintoFirebase` passato ad `apriSuperficie`), come già fatto per gli
+      altri banchi che aprono il core.
+
 - [x] **B0-octies. LA TABELLA DEL CANTIERE DI GENESI ERA FALSA IN SETTE NUMERI
       SU SETTE, SOTTO UN AVVERTIMENTO CHE DICEVA COME SAREBBE SUCCESSO.**
       *(chiuso il 09/08, commit `1805f43`)* `genesi-estraibili.mjs` misura
@@ -1002,8 +1113,27 @@ numero scritto dove non era stato misurato niente**.*
       deve stampare «cantiere di Genesi: N funzioni nella pagina, M estraibili,
       5 scaglioni confrontati col documento».
 
-- [ ] **B0-sexies. GLI ALTRI QUINDICI CAMPI CHE INVENTANO IL PROPRIO MINIMO —
-      contati, non stimati.** Chiuso il clamp della **carica** (B0-quater), il
+- [x] **B0-sexies. GLI ALTRI QUINDICI CAMPI CHE INVENTANO IL PROPRIO MINIMO —
+      contati, non stimati.** ✅ *Rimisurato il 09/08: **ne restano TRE**, non
+      quindici, e sono esattamente i tre che questa riga escludeva già —
+      `psCharge`, `recDist`, `recFreq`. Gli altri dodici erano stati chiusi da
+      `aec46eb`, che è il commit della riga qui sotto: il «15» era vero quando è
+      stato scritto e scaduto poche ore dopo.* Il comando che lo dice, ancorato
+      ai **nomi** e coi commenti tolti (due commenti dentro `applyDesign`
+      **citano** la forma vecchia, e un `grep` grezzo li conta come codice: dà 5
+      invece di 3): si prende `senzaCommenti` da `tests/tokenizza.mjs`, si
+      taglia il corpo fra `function applyDesign(){` e `function
+      syncDesignInputs(`, e si contano le righe con `||D2.` e `Math.max(` →
+      **8 ripieghi, 3 col clamp**.
+      **Verificato anche nel browser**, campo per campo con `design.<campo>:
+      null` e due tocchi: dodici restano **vuoti**, tre si riempiono
+      (`psCharge` 0,1 · `recDist` 20 · `recFreq` 2). Statica e browser danno lo
+      stesso numero.
+      ⚠️ E la controprova che il banco sa fallire: rimettendo `Math.max(1.5,
+      Math.min(8, gvv('dB')||D2.B))` **nella risposta HTTP** (mai sul file, +7
+      caratteri), `dB` torna a riempirsi di «1,5» **e il powder factor passa da
+      «non calcolabile» a 1,10 kg/m³** — un KPI fabbricato.
+      ⏱️ *Il testo originale, tenuto perché è la misura di com'era:* Chiuso il clamp della **carica** (B0-quater), il
       cantiere ha censito il resto: in `applyDesign` ci sono **20** ripieghi
       `||D2.x`, di cui **16 numerici col clamp**; corretto quello della carica,
       ne restano **15**. Misurato nel browser aprendo i campi **uno alla volta**
@@ -1152,8 +1282,30 @@ numero scritto dove non era stato misurato niente**.*
       pulito resta da fare: rilanciare **le stesse** passate della coda a
       macchina scarica, e costa un giro.
 
-- [ ] **B3-bis. Il bottone d'uscita di Campo che nessun banco preme — e non è
-      un bottone qualunque: è il PONTE con Genesi.** ⏱️ *Misurato il 09/08
+- [x] **B3-bis. Il bottone d'uscita di Campo che nessun banco preme — e non è
+      un bottone qualunque: è il PONTE con Genesi.** ✅ *Chiuso il 09/08.*
+      **Perché non era premuto, misurato e non dedotto**: il bottone esiste e
+      non è disabilitato, ma nasce `style="display:none"` e `pianoRender` lo
+      accende **solo** se `PIANO.length`, mentre `DEMO.pianocarico` è `[]`.
+      Con un piano iniettato passa da `display:none` / 0×0 a `flex` /
+      267,7×44. ⚠️ La riga diceva «serve un piano in stato utile»: **non
+      serve** — basta un piano qualunque, anche di un foro solo.
+      **Che cosa guarda adesso il banco** (`campo-numeri-tranquilli.mjs`,
+      69 → **92** verifiche): 1 bottone premuto · 5 righe di dato · **15 valori
+      confrontati fra schermo, file e lettore di Genesi** · 6 asserzioni sul
+      **testo** del file. Tre gambe indipendenti, e servono tutte: `numIt` legge
+      `1234.567` e `1.234,567` allo stesso modo, quindi **il solo giro di andata
+      e ritorno non avrebbe visto un file scritto all'italiana** — ed è
+      esattamente l'avvertimento di `CLAUDE.md` sulle coppie scrivi/leggi.
+      **Esito**: 15 valori su 15 tornano identici dal lettore di Genesi, con la
+      coppia che conta — il foro mai pesato torna «non lo so», quello a zero
+      torna zero. **Nessun difetto di prodotto nel ponte.**
+      **Controprova**: il consuntivo ricomposto **a mano nella pagina** invece
+      che da `pianoConsuntivoCsv` (la copia debole dove il documento si compone),
+      iniettato nella risposta HTTP — 40 KO, 17 iniezioni su 17 a segno, e sotto
+      ci sta la conferma che le tre gambe servono: con quel difetto **Genesi
+      legge 1.250 kg di progetto come 1,25 kg, in silenzio**.
+      ⏱️ *Il testo originale della riga:* ⏱️ *Misurato il 09/08
       chiedendo a Campo la domanda che `CLAUDE.md` fa alle altre cinque app —
       «dove questa app compone qualcosa che ESCE, chi decide i suoi numeri?».*
       ✅ **La parte statica è pulita, e va detto che è la parte DEBOLE**: tutti e

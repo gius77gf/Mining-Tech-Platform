@@ -2743,9 +2743,27 @@ function renderSismoModal(){
   const files=(s.files||[]).map((f,i)=>`<div class="sitem"><div class="av av-mz">${/pdf/i.test(f.formato)?'📄':(/(jpg|jpeg|png|tif)/i.test(f.formato)?'🖼️':'📈')}</div><div class="sinfo"><div class="sname">${escHtml(f.nome)}</div><div class="ssub">${f.formato}</div></div><div class="sarr" onclick="event.stopPropagation();rimuoviSismoFile(${i})">✕</div></div>`).join('');
   /* ⛔ DATA E CAVA NON STANNO IN UNA `.frow`, E NON È UNA SCELTA ESTETICA.
      `.frow` è una griglia `1fr 1fr` che si ripiega su una colonna solo sotto i
-     360 px: sopra, ogni colonna vale 142 px a 390 e 171,5 a 430. La tendina
-     delle cave contiene NOMI DI CAVA, cioè testo che scrive l'utente e che noi
-     non possiamo accorciare — e una tendina chiusa non manda a capo.
+     360 px.
+     ⛔ E SOPRA I 360 LE DUE COLONNE NON SONO UGUALI — qui prima c'era scritto
+     «ogni colonna vale 142 px a 390», che è una DEDUZIONE (303 di tracce diviso
+     due farebbe 151,5, e nemmeno quello torna) ed è FALSA. Chiesto alla griglia
+     il 09/08 mettendole `min-content min-content` e rileggendo le due tracce:
+     a 390 le colonne sono **161 e 142**, non 142 e 142.
+     La ragione è che `1fr` è `minmax(auto, 1fr)`: una traccia non scende sotto
+     la min-content del suo contenuto. L'`input[type=date]` chiede **161 px** e
+     non sa stringersi — sono i suoi tre campi `gg/mm/aaaa` più l'icona del
+     calendario, che li disegna il browser e noi non li possiamo accorciare.
+     A 390 la riga è larga 312, meno i 9 px di gap restano 303 per le tracce:
+     la data si tiene i suoi 161 e alla tendina resta **il resto, 142**. A 430
+     lo spazio basta (171,5 > 161) e allora sì che si pareggiano.
+     ⚠️ Quindi il colpevole dei 142 è il campo ACCANTO, non la tendina e non la
+     parola dentro di lei: chi divide per due cerca nel posto sbagliato. È la
+     stessa trappola del 07/08 sulla barra («le colonne sono 1fr, quindi il
+     minimo è sei volte la più larga»), e `getComputedStyle` la scioglie in tre
+     secondi.
+     La tendina delle cave, poi, contiene NOMI DI CAVA, cioè testo che scrive
+     l'utente e che noi non possiamo accorciare — e una tendina chiusa non manda
+     a capo.
      Misurato il 09/08 con la larghezza chiesta al browser (clone a
      `max-content`, cioè testo + padding + freccia): «Cava Monte Serra» chiede
      **178 px** e «Cava Valle Secca» 174, quindi a 390 tagliavano tutt'e due, e
@@ -2755,10 +2773,25 @@ function renderSismoModal(){
      avrebbe fatto tornare verde il banco lasciando tagliati **i due nomi di
      cava**, cioè il dato. È il verde falso — si corregge la scatola, non la
      parola, tutte le volte che dentro la scatola ci va un dato dell'utente.
-     ⚠️ Il limite dei 360 px NON si è toccato: `.frow` la usano 54 righe di
-     questo file, quasi tutte con due campi corti (Diametro, Prof. media) che in
-     due colonne stanno benissimo. Allargare il limite per tutti avrebbe reso
-     più lunghi cinquantatré moduli per sistemarne uno. */
+     ⚠️ Il limite dei 360 px NON si è toccato: tolta questa, `.frow` la usano
+     ancora **53** righe di questo file, quasi tutte con due campi corti
+     (Diametro, Prof. media) che in due colonne stanno benissimo. Allargare il
+     limite per tutti avrebbe reso più lunghi cinquantatré moduli per
+     sistemarne uno.
+     ⚠️ E IL DIFETTO NON VIVEVA SOLO A 390, DOVE IL BANCO GUARDA: a **430** la
+     scatola era 171,5 e i due nomi di cava (178 e 174) tagliavano lo stesso,
+     mentre «— nessuna —» (150) ci stava. `modali-dentro` gira a 390 e 320 e
+     basta — quel taglio non l'ha visto nessuno, l'ha trovato una sonda a mano.
+     Cioè: accorciare «— nessuna —» avrebbe fatto tornare **verde il banco**
+     lasciando in piedi, a 430, il taglio del dato. Il verde falso in forma
+     pura, ed è la ragione per cui si corregge la scatola.
+     ⛔ E QUI SOTTO C'ERA SCRITTO, DEDOTTO, che a 430 ci pensa
+     `tendine-nelle-finestre.mjs` «che gira a quattro larghezze». Provato il
+     09/08 invece di crederci: `--solo=core` **muore** — non monta il finto
+     Firebase, quindi non entra nel core e cade su `window.__provaUtente is not
+     a function`; e senza `--tutte` guarda solo Scudo. Quindi, dichiarato invece
+     che nascosto: **a 430 le tendine del core oggi non le misura nessun banco**.
+     Il difetto è chiuso, la guardia no. */
   openModal('〰️ Nuovo sismogramma',`
     <label class="fl">Data</label><input type="date" class="finput" id="sm-data" value="${s.data||today()}" onchange="window._sismoRecalc()">
     <label class="fl">Cava / cantiere</label><select class="finput" id="sm-cava" onchange="window._sismoRecalc()">${cavaOpts}</select>

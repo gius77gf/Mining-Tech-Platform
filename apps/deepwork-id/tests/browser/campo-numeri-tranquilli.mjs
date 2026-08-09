@@ -133,6 +133,23 @@ const DIFETTI = [
   // 8 · il cartellone del meteo che prende il verde senza aver guardato tutto
   ["${brutto ? \"warn\" : (bloc && sm.stato === \"buono\" ? \"ok\" : \"\")}",
    "${brutto ? \"warn\" : (bloc ? \"ok\" : \"\")}"],
+  /* 9 · IL CONSUNTIVO VERSO GENESI COMPOSTO NELLA PAGINA invece che nel modulo.
+     È la copia debole nel posto che `CLAUDE.md` indica — dove il documento si
+     compone — e porta con sé, tutte insieme, le quattro cose che il blocco 9
+     sorveglia: i numeri scritti all'italiana (virgola decimale e punto delle
+     migliaia, cioè quello che si legge sullo SCHERMO), il foro mai pesato
+     spacciato per uno zero, `csvCell` messo anche sui NUMERI — che davanti a
+     un meno ci mette l'apostrofo anti-formula e trasforma lo scarto in testo —
+     e i campi di testo senza virgolette. Nessuna di queste rompe la pagina:
+     il file esce, si apre, e Genesi lo legge lo stesso. */
+  ["a.href = \"data:text/csv;charset=utf-8,\" + encodeURIComponent(pianoConsuntivoCsv(PIANO));",
+   "a.href = \"data:text/csv;charset=utf-8,\" + encodeURIComponent((() => {"
+   + " let c = \"data;turno;foro;carica_prog_kg;carica_reale_kg;scarto_pct;scarto_kg;squadra;operatore\\n\";"
+   + " for (const p of PIANO) { const r = p.reale != null ? p.reale : 0;"
+   + " c += [p.data || \"\", p.turno || \"\", p.foro, numeroIt(p.prog, 3), numeroIt(r, 3),"
+   + " Math.round(Math.abs(r - p.prog) / (p.prog || 1) * 100), csvCell(numeroIt(r - p.prog, 3)),"
+   + " p.squadra || \"\", p.da || \"\"].join(\";\") + \"\\n\"; }"
+   + " return c; })());"],
 ];
 
 /* IL CASO DA COSTRUIRE, scelto prima di ogni `goto`. Si aggiunge in coda al
@@ -213,6 +230,21 @@ const dice = (c, t, x) => {
   if (c) { ok++; console.log(`  ok  ${t}`); }
   else { ko++; console.log(`  KO  ${t}${x !== undefined ? `\n        -> ${JSON.stringify(String(x).slice(0, 300))}` : ""}`); }
 };
+/* ⛔ UN SOGGETTO CHE NON SI RIESCE A RAGGIUNGERE NON È UN SOGGETTO A POSTO —
+   E NON È NEMMENO UN DIFETTO DEL PRODOTTO. Le due cose si scrivevano uguali:
+   una scena che non si costruisce faceva cadere `dice` e il registro mostrava
+   un KO indistinguibile da un'accusa vera (misurato il 09/08 sul blocco 8, che
+   fra le 22 e le 6 accusava Campo di cinque difetti perché il suo meteo era
+   scritto per il turno di Mattina e alle 23 il turno corrente è la Notte: il
+   cartellone non si disegnava affatto). Adesso una precondizione mancata si
+   DICHIARA, si elenca fra le righe «non ho guardato» — che si leggono prima
+   dei KO — e tiene l'uscita diversa da zero, perché un verde su un soggetto
+   mai misurato sarebbe peggio del difetto. */
+const nonMisurati = [];
+const nonMisurato = (t, perche) => {
+  nonMisurati.push(`${t} — ${perche}`);
+  console.log(`  ~~  NON MISURATO  ${t}\n        -> ${perche}`);
+};
 
 /* Apre Campo e va in una sezione PRETENDENDO la prova di aver navigato: il
    selettore è l'id del BOTTONE, e un banco che non naviga risponde «tutto a
@@ -253,6 +285,12 @@ async function intercetta(pg) {
   });
 }
 import { azzeraFrasi, frasiVisibili, contiNellaFrase, righeDiDato } from "./giro.mjs";
+/* ⛔ IL LETTORE DELL'ALTRA APP, NON UNA MIA VERSIONE DI ESSO. Il quinto punto
+   d'uscita di Campo (blocco 9) scrive un file che a rileggere è **Genesi**:
+   la prova che conta è quella che chiama il codice di prodotto dell'altra app,
+   non un lettore scritto qui dentro — è la quarta causa di «non distingue»,
+   la copia debole dentro la difesa. */
+import { _riconParseCampo, _riconRiassuntoCampo } from "../../../genesi/genesi-data.js";
 /* ⛔ LA TERZA GAMBA DELLA DOMANDA DI CASA: la frase di riepilogo contro il file.
    La regola sta in `giro.mjs` — la usano Flotta, Conti e Scudo — e la domanda è
    che le righe di DATO stiano fra i numeri che la frase dichiara, o siano la
@@ -621,15 +659,29 @@ FIXTURE = `
    incompleto e RESTARE su quello completo. Una passata sola non distingue
    «giusto» da «il verde non c'è mai». */
 console.log("\n· turno chiuso e meteo a metà: il cartellone prende il verde?");
+/* ⛔ IL TURNO DELLA SCENA È QUELLO CHE LA PAGINA STA GUARDANDO, NON «MATTINA».
+   Misurato il 09/08 alle 23:10Z: queste cinque prove cadevano tutte insieme
+   con l'extra `null`, cioè `#met-board .board` non esisteva affatto — e non
+   era un difetto di Campo. La scena scriveva il meteo sul turno di Mattina
+   mentre la pagina disegna il cartellone del turno CORRENTE, che a quell'ora è
+   la Notte: `meteoDi(oggi, "Notte")` non trovava niente, `riassuntoMeteo`
+   tornava vuoto e il cartellone non veniva disegnato. Cioè fra le 22 e le 6 il
+   banco accusava il prodotto di cinque difetti che non ha, e nelle altre ore
+   passava — l'accusa intermittente, che è peggio di una stabile perché quando
+   si presenta è indistinguibile da un difetto vero.
+   `turnoCorrente()` è esportato dal modulo dati, e la fixture gira DENTRO quel
+   modulo: la scena si aggancia alla stessa funzione che la pagina usa per
+   scegliere il turno, invece di indovinarne il nome. */
 const METEO_SCENA = (piste, vis) => `
 {
   const p = (x) => String(x).padStart(2, "0"); const d = new Date();
   const oggi = d.getFullYear() + "-" + p(d.getMonth() + 1) + "-" + p(d.getDate());
-  DEMO.attivita = [{ id: "zq1", data: oggi, turno: "Mattina", titolo: "Perforazione", squadra: "Squadra A", stato: "conclusa" }];
+  const T = turnoCorrente();
+  DEMO.attivita = [{ id: "zq1", data: oggi, turno: T, titolo: "Perforazione", squadra: "Squadra A", stato: "conclusa" }];
   DEMO.rapportini = []; DEMO.obiettivi = []; DEMO.presenze = []; DEMO.checklist = []; DEMO.pianocarico = [];
-  DEMO.durate = [{ id: "zq2", data: oggi, turno: "Mattina", minuti: 480, ora: "06:00" }];
-  DEMO.chiusure = [{ id: "zq3", data: oggi, turno: "Mattina", consegna: "Giulia Verdi", ricevuta: "Mario Rossi", ora: "14:05" }];
-  DEMO.meteo = [{ id: "zq4", data: oggi, turno: "Mattina", cielo: "Sereno", piste: ${JSON.stringify(piste)}, visibilita: ${JSON.stringify(vis)}, note: "", ora: "06:05" }];
+  DEMO.durate = [{ id: "zq2", data: oggi, turno: T, minuti: 480, ora: "06:00" }];
+  DEMO.chiusure = [{ id: "zq3", data: oggi, turno: T, consegna: "Giulia Verdi", ricevuta: "Mario Rossi", ora: "14:05" }];
+  DEMO.meteo = [{ id: "zq4", data: oggi, turno: T, cielo: "Sereno", piste: ${JSON.stringify(piste)}, visibilita: ${JSON.stringify(vis)}, note: "", ora: "06:05" }];
 }
 `;
 async function classeMeteo() {
@@ -642,31 +694,261 @@ async function classeMeteo() {
   return r;
 }
 {
+  /* la PRECONDIZIONE di tutte e tre le passate: il cartellone deve esserci.
+     Se non c'è, la domanda sul colore non ha senso e il banco non accusa. */
   FIXTURE = METEO_SCENA("", "");
   const mezzo = await classeMeteo();
   dice(!!mezzo, "il cartellone del meteo si disegna anche col solo cielo compilato", mezzo);
-  dice(mezzo && !/\bok\b/.test(mezzo.classi),
-    "⛔ meteo a metà su un turno CHIUSO: niente verde",
-    mezzo && mezzo.classi);
-  dice(mezzo && /non registrate/.test(mezzo.testo),
-    "⛔ e le voci mai guardate sono dichiarate sul cartellone",
-    mezzo && mezzo.testo.replace(/\n/g, " | ").slice(0, 200));
+  if (!mezzo) {
+    nonMisurato("il colore del cartellone del meteo (3 passate)",
+      "`#met-board .board` non è sullo schermo: la scena non si è costruita per il turno che la pagina guarda");
+  } else {
+    dice(!/\bok\b/.test(mezzo.classi),
+      "⛔ meteo a metà su un turno CHIUSO: niente verde", mezzo.classi);
+    dice(/non registrate/.test(mezzo.testo),
+      "⛔ e le voci mai guardate sono dichiarate sul cartellone",
+      mezzo.testo.replace(/\n/g, " | ").slice(0, 200));
 
-  FIXTURE = METEO_SCENA("Asciutte", "Buona");
-  const pieno = await classeMeteo();
-  dice(pieno && /\bok\b/.test(pieno.classi),
-    "⛔ e il verde RESTA dove è stato guadagnato: tutte e tre le voci registrate e nessuna difficile",
-    pieno && pieno.classi);
+    /* ⚠️ E LA PRECONDIZIONE VALE PER OGNI PASSATA, NON SOLO PER LA PRIMA.
+       Misurato il 09/08 con la macchina carica (due giri di browser insieme):
+       la terza passata ha risposto `null` — cartellone mai disegnato — e senza
+       questa guardia avrebbe scritto un KO indistinguibile da un'accusa vera,
+       una volta ogni tanto e solo sotto carico. È l'accusa intermittente:
+       peggio di una stabile, perché quando si presenta la si incontra da sola. */
+    const passata = async (piste, vis, titolo) => {
+      FIXTURE = METEO_SCENA(piste, vis);
+      const r = await classeMeteo();
+      if (!r) { nonMisurato(titolo, `il cartellone non si è disegnato (piste=${piste || "—"}, visibilità=${vis || "—"})`); return null; }
+      return r;
+    };
+    const pieno = await passata("Asciutte", "Buona",
+      "il verde che RESTA dove è stato guadagnato");
+    if (pieno) dice(/\bok\b/.test(pieno.classi),
+      "⛔ e il verde RESTA dove è stato guadagnato: tutte e tre le voci registrate e nessuna difficile",
+      pieno.classi);
 
-  FIXTURE = METEO_SCENA("Ghiacciate", "");
-  const brutto = await classeMeteo();
-  dice(brutto && /\bwarn\b/.test(brutto.classi),
-    "⛔ una voce avversa accusa anche se le altre mancano (il dato incompleto sa ancora accusare)",
-    brutto && brutto.classi);
+    const brutto = await passata("Ghiacciate", "",
+      "la voce avversa che accusa anche col dato incompleto");
+    if (brutto) dice(/\bwarn\b/.test(brutto.classi),
+      "⛔ una voce avversa accusa anche se le altre mancano (il dato incompleto sa ancora accusare)",
+      brutto.classi);
+  }
+}
+
+/* ── 9 · IL QUINTO BOTTONE D'USCITA: IL CONSUNTIVO CHE TORNA A GENESI ──────
+   ⛔ PERCHÉ NASCE, col comando che lo dice. Al 09/08
+   `grep -rl btn-piano-export apps/deepwork-id/tests/browser/` non tornava
+   NIENTE — uscita 1, zero file — mentre gli altri quattro punti d'uscita di
+   Campo (`btn-att-export`, `btn-squ-export`, `btn-pre-export`,
+   `btn-set-export`) sono premuti qui sopra. Quattro su cinque premuti, e il
+   quinto è l'unico che attraversa il confine fra DUE app: il file che compone,
+   `campo_consuntivo_carico.csv`, è quello che il messaggio invita a rileggere
+   in Genesi → Riconciliazione.
+
+   ⛔ E LA RAGIONE PER CUI NESSUNO LO PREMEVA È STATA MISURATA APRENDO LA
+   PAGINA, non dedotta: il bottone c'è ed è abilitato (`disabled: false`), ma
+   nasce `style="display:none"` e `pianoRender` lo accende solo se
+   `PIANO.length` — mentre `DEMO.pianocarico` è `[]`. Cioè non è un difetto
+   della pagina: la dimostrazione non ha un piano di carico, quindi il bottone
+   non compare mai e per premerlo serve una fixture. Verificato nei due versi
+   sulla stessa pagina: senza fixture `display:none` e rettangolo 0×0, con la
+   fixture `display:flex` e 267,7×44.
+
+   ⛔ E LA DOMANDA NON PUÒ ESSERE «I DUE SI CAPISCONO»: `CLAUDE.md` avverte che
+   «una prova di andata e ritorno resta verde se le due metà sbagliano
+   insieme», e qui sarebbe successo davvero — `numIt` legge tanto `1234.567`
+   quanto `1.234,567` e ne fa lo stesso numero, quindi Campo potrebbe scrivere
+   il file all'italiana e Genesi continuerebbe a capirlo, mentre chiunque lo
+   aprisse con un altro programma leggerebbe un'altra cosa. Quindi il banco
+   fa TRE domande diverse, e sono tre gambe indipendenti:
+     1. il TESTO del file, per chi lo apre fuori di qui: intestazione con i
+        nove nomi di colonna, separatore `;`, decimale col PUNTO — lo stesso
+        con cui il piano è ARRIVATO da Genesi — nessun separatore delle
+        migliaia, il meno davanti allo scarto negativo e NON l'apostrofo
+        anti-formula (che lo trasformerebbe in testo), le virgolette solo sui
+        campi di testo che le chiedono;
+     2. ogni valore del file contro quello che la pagina mostra NELLO STESSO
+        istante, letto per SELETTORE (`#piano-list .item`, `#piano-riep`) e mai
+        cercato come sottostringa dentro `innerText`;
+     3. il file dato in pasto al lettore VERO di Genesi (`_riconParseCampo` e
+        `_riconRiassuntoCampo`, importati in cima), con l'identità pretesa
+        valore per valore.
+
+   ⛔ E IL CASO CHE CONTA È UNA COPPIA, non un valore solo: il foro 4 non è mai
+   stato registrato (cella VUOTA → `reale: null` in Genesi) e il foro 5 ha una
+   carica reale di ZERO scritta da qualcuno (cella `0` → `reale: 0`). Un
+   campione solo non distingue «l'assenza si dichiara» da «esce tutto zero» —
+   è la stessa ragione per cui le barre si provano sul RAPPORTO fra due valori.
+
+   ⚠️ IL RIGHELLO, DICHIARATO: i numeri dello SCHERMO non si leggono con
+   `numIt`. `numIt` deve indovinare, e su «1.508» — millecinquecentotto scritto
+   all'italiana, senza decimali — risponde **1,508**, perché un punto solo lo
+   tratta da decimale (ed è la scelta giusta per un CSV, dove «19.4» è un
+   decimale). Sullo schermo il formato non è ambiguo: è sempre italiano, quindi
+   il punto è SEMPRE migliaia. Sono due domande diverse, non due copie della
+   stessa: il file lo legge `numIt` per bocca di Genesi, lo schermo lo legge la
+   riga qui sotto, e la ragione sta scritta perché nessuno le unisca. */
+const daSchermo = (s) => {
+  const t = String(s == null ? "" : s).trim().replace(/\./g, "").replace(",", ".");
+  const n = +t;
+  return t !== "" && Number.isFinite(n) ? n : NaN;
+};
+console.log("\n· il piano di carico e il consuntivo che torna a Genesi: il quinto bottone");
+/* La data è FISSA di proposito: il piano non filtra per giornata né per turno,
+   quindi legarlo all'orologio aggiungerebbe una dipendenza che non serve — ed
+   è il difetto che il blocco 8 aveva. */
+FIXTURE = `
+{
+  DEMO.pianocarico = [
+    { id:"pc1", data:"2026-07-29", turno:"Mattina", foro:1, fila:"A", x:1.5, prof:12, borr:2.4, rit:0,   prog:100,  reale:118.5,    squadra:"Squadra A", da:"Rossi Mario" },
+    { id:"pc2", data:"2026-07-29", turno:"Mattina", foro:2, fila:"A", x:4.5, prof:12, borr:2.4, rit:25,  prog:100,  reale:86.7,     squadra:"Squadra A", da:"Rossi;Mario" },
+    { id:"pc3", data:"2026-07-29", turno:"Mattina", foro:3, fila:"A", x:7.5, prof:12, borr:2.4, rit:50,  prog:1250, reale:1234.567, squadra:"Squadra \\"B\\"", da:"Bianchi Luca" },
+    { id:"pc4", data:"2026-07-29", turno:"Mattina", foro:4, fila:"B", x:1.5, prof:12, borr:2.4, rit:75,  prog:58,   reale:null,     squadra:"", da:"" },
+    { id:"pc5", data:"2026-07-29", turno:"Mattina", foro:5, fila:"B", x:4.5, prof:12, borr:2.4, rit:100, prog:58,   reale:0,        squadra:"Squadra A", da:"Verdi Anna" }
+  ];
+}
+`;
+{
+  const pg = await apri("nav-rap");
+  /* ⛔ L'INIEZIONE SI VERIFICA DOVE IL PROGRAMMA LA LEGGE, non dove l'ho
+     scritta: la precondizione di tutto il blocco è che il piano sia arrivato
+     fino a `PIANO` e che il bottone sia comparso. Se non c'è, il banco non
+     accusa: dichiara e tira avanti. */
+  const scena = await pg.evaluate(() => {
+    const el = document.getElementById("btn-piano-export");
+    const r = el ? el.getBoundingClientRect() : null;
+    return { fori: document.querySelectorAll("#piano-list .item[data-foro-id]").length,
+      esiste: !!el, display: el ? getComputedStyle(el).display : null,
+      largo: r ? Math.round(r.width) : 0, alto: r ? Math.round(r.height) : 0 };
+  });
+  if (scena.fori !== 5 || !scena.esiste || scena.display === "none") {
+    nonMisurato("il consuntivo di carico verso Genesi (17 confronti)",
+      `la scena non si è costruita: ${scena.fori} fori nella lista, bottone ${JSON.stringify(scena)}`);
+    await pg.close();
+  } else {
+  dice(scena.largo >= 44 && scena.alto >= 44,
+    `⛔ col piano importato il bottone d'export compare davvero (${scena.largo}×${scena.alto} px, ${scena.display})`,
+    JSON.stringify(scena));
+
+  // ── quello che la PAGINA dice, per selettore, un istante prima del clic ──
+  const schermo = await pg.evaluate(() => ({
+    righe: [...document.querySelectorAll("#piano-list .item[data-foro-id]")].map((it) => ({
+      avatar: ((it.querySelector(".avatar") || {}).textContent || "").trim(),
+      nome: ((it.querySelector(".name") || {}).textContent || "").trim(),
+      badge: ((it.querySelector(".badge") || {}).textContent || "").trim(),
+    })),
+    riep: (document.getElementById("piano-riep") || {}).innerText || "",
+  }));
+  const attesi = schermo.righe.map((r) => ({
+    foro: daSchermo(r.avatar),
+    prog: daSchermo((r.nome.match(/progettati\s+([\d.,]+)\s*kg/) || [])[1]),
+    // «da registrare» è la PAROLA con cui la lista dice che nessuno ha pesato
+    // quel foro: da lì deve nascere una cella vuota, non uno zero
+    reale: /da registrare/i.test(r.badge) ? null : daSchermo((r.badge.match(/([\d.,]+)\s*kg/) || [])[1]),
+  }));
+
+  // ── si preme, e si apre il file ──
+  await intercetta(pg);
+  await azzeraFrasi(pg);
+  await pg.click("#btn-piano-export");
+  await pg.waitForTimeout(400);
+  const csv = String(await pg.evaluate(() => window.__csv) || "");
+  const nome = String(await pg.evaluate(() => window.__nome) || "");
+  const righe = csv.split("\n").filter(Boolean);
+  const testa = righe[0] || "";
+  const dati = righe.slice(1);
+
+  dice(/campo_consuntivo_carico\.csv$/.test(nome), "il file esce col nome che Genesi si aspetta", nome);
+  dice(dati.length === schermo.righe.length,
+    `⛔ il file ha una riga di dato per ogni foro dello schermo (${dati.length} su ${schermo.righe.length})`, csv.slice(0, 200));
+  await confrontaFraseColFile(pg, "btn-piano-export", righe);
+
+  // ── gamba 1 · IL TESTO, per chi apre il file con un altro programma ──
+  dice(testa === "data;turno;foro;carica_prog_kg;carica_reale_kg;scarto_pct;scarto_kg;squadra;operatore",
+    "⛔ l'intestazione porta i nove nomi di colonna, separati da «;»", testa);
+  dice(csv.includes(";118.5;") && !csv.includes("118,5"),
+    "⛔ i decimali col PUNTO, come nel piano arrivato da Genesi: mai la virgola", csv.slice(0, 300));
+  dice(csv.includes(";1234.567;") && !csv.includes("1.234,567") && !csv.includes(";1.250;"),
+    "⛔ e nessun separatore delle migliaia, che sullo schermo c'è («1.234,567 kg»)",
+    (csv.match(/.{0,30}1234?[.,]\d+.{0,20}/) || [])[0]);
+  dice(csv.includes(";-13.3;") && !csv.includes("'-13.3") && !csv.includes(";'-"),
+    "⛔ lo scarto negativo tiene il MENO e non l'apostrofo anti-formula (che lo farebbe testo)",
+    (csv.match(/.{0,24}-13[.,]3.{0,10}/) || [])[0]);
+  dice(csv.includes(';"Rossi;Mario"'),
+    "⛔ un campo di testo che contiene un «;» esce fra virgolette",
+    (csv.match(/.{0,20}Rossi.Mario.{0,10}/) || [])[0]);
+  dice(csv.includes(';"Squadra ""B""";'),
+    "⛔ e le virgolette dentro un campo di testo sono raddoppiate",
+    (csv.match(/.{0,10}Squadra .{0,14}B.{0,10}/) || [])[0]);
+  /* la coppia che conta. Le due righe non hanno virgolette, quindi qui lo
+     spezzettamento su «;» è esatto e non serve un lettore. */
+  const col = testa.split(";");
+  const iReale = col.indexOf("carica_reale_kg"), iPct = col.indexOf("scarto_pct"), iKg = col.indexOf("scarto_kg");
+  const cella = (foro, i) => (dati.find((r) => r.split(";")[col.indexOf("foro")] === String(foro)) || "").split(";")[i];
+  dice(cella(4, iReale) === "" && cella(4, iPct) === "" && cella(4, iKg) === "",
+    "⛔ il foro che nessuno ha pesato esce con le celle VUOTE, non con degli zeri",
+    dati.find((r) => r.split(";")[2] === "4"));
+  dice(cella(5, iReale) === "0",
+    "⛔ e uno zero SCRITTO resta uno zero: le due assenze non si confondono",
+    dati.find((r) => r.split(";")[2] === "5"));
+
+  // ── gamba 3 · il lettore VERO di Genesi ──
+  const letto = _riconParseCampo(csv);
+  dice(!letto.errore, "⛔ il lettore di Genesi accetta il file senza dire perché no", letto.errore);
+  let confronti = 0;
+  if (!letto.errore) {
+    dice(letto.colonneDaNome === true,
+      "e legge le colonne PER NOME: l'intestazione è riconoscibile all'altra app", letto.colonneDaNome);
+    dice(letto.righe.length === attesi.length,
+      `⛔ Genesi rilegge tutti i fori (${letto.righe.length} su ${attesi.length})`, letto.scartate);
+    // ── gamba 2+3 insieme: schermo → file → Genesi, valore per valore ──
+    const storti = [];
+    for (let i = 0; i < attesi.length; i++) {
+      const a = attesi[i], g = letto.righe[i] || {};
+      for (const [n, x, y] of [["foro", a.foro, g.foro], ["carica_prog_kg", a.prog, g.prog],
+                               ["carica_reale_kg", a.reale, g.reale]]) {
+        confronti++;
+        if (!Object.is(x, y)) storti.push(`foro ${a.foro} · ${n}: schermo ${JSON.stringify(x)} → Genesi ${JSON.stringify(y)}`);
+      }
+    }
+    dice(storti.length === 0,
+      `⛔ i ${confronti} valori che lo schermo mostra tornano IDENTICI dal lettore di Genesi`,
+      storti.join(" | "));
+    const q = letto.righe.find((r) => r.foro === 4), z = letto.righe.find((r) => r.foro === 5);
+    dice(!!q && !!z && Object.is(q.reale, null) && z.reale === 0,
+      "⛔ e la coppia regge fino in fondo: il foro mai pesato torna «non lo so», quello a zero torna zero",
+      `foro 4 → ${JSON.stringify(q && q.reale)} · foro 5 → ${JSON.stringify(z && z.reale)}`);
+
+    // ── i totali: quello che il fochino legge e quello che Genesi somma ──
+    const ris = _riconRiassuntoCampo(letto, nome);
+    const m = schermo.riep.match(/Sui\s+([\d.]+)\s+fori già caricati:\s*([\d.,]+)\s*kg contro\s*([\d.,]+)\s*kg previsti/);
+    if (!m) {
+      nonMisurato("i totali dello schermo contro quelli di Genesi (3 confronti)",
+        `la riga «Sui N fori già caricati» non è sullo schermo: ${JSON.stringify(schermo.riep.slice(0, 120))}`);
+    } else {
+      dice(daSchermo(m[1]) === ris.foriReg,
+        `⛔ i fori già caricati sono gli stessi di qua e di là (${m[1]} contro ${ris.foriReg})`, m[0]);
+      dice(daSchermo(m[2]) === +ris.kgReale.toFixed(1),
+        `⛔ i chili caricati che il fochino legge sono quelli che Genesi somma dal file (${m[2]} contro ${ris.kgReale})`, m[0]);
+      dice(daSchermo(m[3]) === +ris.kgProgReg.toFixed(1),
+        `⛔ e così i chili previsti su QUEI fori (${m[3]} contro ${ris.kgProgReg})`, m[0]);
+    }
+    dice(ris.misurabile === true && ris.foriReg === 4 && ris.foriTot === 5,
+      "⛔ e Genesi sa che lo scostamento è misurabile su 4 fori su 5, non su 5 su 5",
+      JSON.stringify({ misurabile: ris.misurabile, foriReg: ris.foriReg, foriTot: ris.foriTot }));
+  }
+  console.log(`     (1 bottone premuto · ${dati.length} righe di dato lette · ${confronti} valori confrontati`
+    + ` fra schermo, file e lettore di Genesi · 6 asserzioni sul TESTO del file)`);
+  await pg.close();
+  }
 }
 
 await b.close();
 srv.close();
+if (nonMisurati.length) {
+  console.log(`\n  ⚠️ NON HO GUARDATO (${nonMisurati.length}): un soggetto non misurato non è un soggetto a posto`);
+  for (const n of nonMisurati) console.log(`     · ${n}`);
+}
 if (CONTROPROVA) {
   console.log(`\n  difetti rimessi nella pagina: ${iniezioni} su ${DIFETTI.length}`);
   if (iniezioni < DIFETTI.length) {
@@ -674,6 +956,9 @@ if (CONTROPROVA) {
     process.exit(2);
   }
 }
-console.log(`\n${ko ? "✗" : "✓"} ${ok} verifiche passate, ${ko} fallite`
+console.log(`\n${ko || nonMisurati.length ? "✗" : "✓"} ${ok} verifiche passate, ${ko} fallite`
+  + (nonMisurati.length ? `, ${nonMisurati.length} soggetti NON MISURATI` : "")
   + (CONTROPROVA ? "  (controprova: DEVONO fallire)" : ""));
-process.exit(CONTROPROVA ? (ko > 0 ? 0 : 1) : (ko > 0 ? 1 : 0));
+// un soggetto non misurato tiene l'uscita diversa da zero anche nella passata
+// sana: se uscisse verde, la difesa sarebbe peggiore del difetto
+process.exit(CONTROPROVA ? (ko > 0 ? 0 : 1) : (ko > 0 || nonMisurati.length ? 1 : 0));
