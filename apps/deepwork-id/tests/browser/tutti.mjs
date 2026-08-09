@@ -143,6 +143,14 @@ const BANCHI = [
   ['contrasto dentro le finestre', 'contrasto.mjs', ['--modali']],
   ['contrasto dentro le finestre · tema chiaro', 'contrasto.mjs', ['--modali', '--tema=chiaro']],
   ['contrasto dentro le finestre · tema sole', 'contrasto.mjs', ['--modali', '--tema=sole']],
+  /* ⛔ E LE FINESTRE CHE IL GESTO NON RAGGIUNGE. `--modali` ne apre 90 su 186:
+     le altre sono quasi tutte CONFERME, e ci si arriva solo scegliendo prima
+     una riga. Fermarsi lì vuol dire dichiarare «0 sotto soglia» avendo
+     guardato una finestra su due. `--forzate` le fa comparire chiamando le
+     funzioni VERE della pagina — 206 aperture su 9 superfici — e di prova sono
+     le PAROLE della struttura condivisa, non il corpo che ogni app si
+     costruisce. Le due passate stanno INSIEME: nessuna delle due basta. */
+  ['contrasto nelle finestre fatte comparire', 'contrasto.mjs', ['--forzate']],
   /* il veleno va messo DENTRO la finestra aperta, non appeso al corpo della
      pagina: fuori da `#modal *` non entrerebbe mai nella misura e la
      controprova direbbe «non so fallire» per il motivo sbagliato. Insieme al
@@ -150,6 +158,7 @@ const BANCHI = [
      deve essere bocciato — se no il righello ha ripreso a leggere
      `color(srgb …)` come se i canali fossero 0-255. */
   ['contrasto dentro le finestre · controprova', 'contrasto.mjs', ['--modali', '--controprova'], true],
+  ['contrasto nelle finestre fatte comparire · controprova', 'contrasto.mjs', ['--forzate', '--controprova'], true],
   /* ⛔ AGGIUNTO IL 07/08, E MISURA L'ALTRA METÀ. `contrasto.mjs` guarda i
      TESTI; tutto ciò che parla senza parole — la barretta a lato di una riga,
      il filo in cima a un KPI, la striscia di un riquadro, il bordo di un campo

@@ -175,7 +175,7 @@ non ha potuto guardare** — le **21** prove sulle funzioni, verificabili solo i
 CI. Se `firebase` o `java` non rispondono si ferma dicendolo (uscita 2) invece
 di stampare «0 caduti», che sarebbe il verde più falso che ci sia.
 
-**165 esecuzioni che aprono davvero le pagine** in Chromium — banchi distinti,
+**167 esecuzioni che aprono davvero le pagine** in Chromium — banchi distinti,
 ognuno seguito dalla sua **controprova** (Chromium è già installato in
 `/opt/pw-browsers/chromium`, **non** si lancia `playwright install`):
 

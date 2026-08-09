@@ -243,6 +243,22 @@ const LATO = Math.max(1, parseInt((process.argv.find((a) => a.startsWith('--lato
    una passata che supera la mezz'ora. Sommandola a quella delle sezioni si
    sarebbe perso tutto il banco invece di guadagnare le finestre. */
 const MODALI = process.argv.includes('--modali');
+/* ⛔ LE FINESTRE CHE IL GESTO NON RAGGIUNGE. Il denominatore di `--modali` è
+   onesto e basso: **90 su 186**. Le mancanti sono quasi tutte CONFERME
+   («Rimuovere l'azione?», «Chiudere il permesso?») e ci si arriva solo
+   scegliendo prima una riga. Fermarsi lì vuol dire dichiarare «0 sotto soglia»
+   avendo guardato una finestra su due.
+   Quindi si fa quello che questo banco fa GIÀ per le classi che non compaiono
+   mai: **si fanno comparire** — chiamando le funzioni VERE della pagina
+   (`chiedi`, `avvisa`, `chiediValore`, e `openModal` per il core), non
+   costruendo una finestra a mano.
+   ⚠️ IL LIMITE, DICHIARATO: di prova sono le PAROLE, non la struttura di ogni
+   app. Titolo, corpo e i bottoni del piede sono quelli che la struttura
+   condivisa costruisce per TUTTE le conferme, quindi il loro colore è quello
+   vero; un corpo che una app si costruisce con classi sue — un badge, una
+   tabella — questa passata NON lo copre. Per quello serve il gesto, ed è la
+   ragione per cui le due passate stanno INSIEME e non una al posto dell'altra. */
+const FORZATE = process.argv.includes('--forzate');
 /* quante volte si prova la stessa FORMA di comando, e il tetto per sezione:
    gli stessi numeri di `modali-dentro.mjs`, che quel gesto lo ha tarato. */
 const PER_FORMA = 2, TETTO = 200;
@@ -1228,6 +1244,9 @@ const scusateComposte = new Set();
 const nonMisurabili = [];
 let sfumatiTot = 0, pulsantiTot = 0, spentiTot = 0, finiteTot = 0, pulsaBocciata = 0, pulsaMisurata = 0;
 let superficiProvate = 0;
+let forzateAperte = 0;      /* quante finestre ha fatto comparire la passata --forzate */
+const forzateViste = new Set();   /* le superfici su cui almeno una si è aperta */
+const forzateSenzaVeleno = [];    /* quelle dove NON si apre nessuna finestra: non cieche, non misurate */
 const superficiCieche = [];
 const temaRifiutato = [];
 let mixBocciata = 0;
@@ -1553,7 +1572,97 @@ for (const [nome, via] of SUPERFICI) {
       }
       return raccolte;
     };
-    const misure = MODALI ? await giroDelleFinestre() : await p.evaluate(MISURA, LATO);
+    /* ⛔ E ANCHE QUESTA RACCOGLIE E BASTA: le sue misure finiscono nello
+       STESSO ciclo che giudica quelle delle sezioni. Un secondo giudice qui
+       sarebbe la copia debole — due verdetti identici oggi che fra un mese
+       dicono due cose diverse, e nessuno se ne accorge perché tutt'e due
+       stampano «0 sotto soglia». */
+    const finestreForzate = async () => {
+      const raccolte = [];
+      let apertaQui = false;
+      const quali = await p.evaluate(async () => {
+        const fatte = [];
+        const apri = async (f) => { try { f(); } catch (e) { return false; }
+          await new Promise((r) => setTimeout(r, 260));
+          const m = document.getElementById('modal');
+          return !!(m && (m.classList.contains('show') || getComputedStyle(m).display !== 'none')); };
+        const chiudi = () => { try { (window.chiudiModale || window.closeModal || (() => {}))(); } catch (e) {}
+          const m = document.getElementById('modal');
+          if (m) { m.classList.remove('show'); document.body.classList.remove('modal-open'); } };
+        window.__dwForzate = [];
+        const casi = [
+          ['conferma pericolosa', () => window.chiedi && window.chiedi('Confermi?', '<p>Un corpo di prova con <b>grassetto</b> e una parola lunga.</p>', 'Elimina', true)],
+          ['conferma normale', () => window.chiedi && window.chiedi('Confermi?', '<p>Un corpo di prova.</p>', 'Conferma')],
+          ['avviso', () => window.avvisa && window.avvisa('Attenzione', '<p>Un avviso di prova.</p>')],
+          ['richiesta di un valore', () => window.chiediValore && window.chiediValore('Quanto?', '<p>Scrivi un numero.</p>', '<input class="dw-input" value="12">')],
+          ['modale del core', () => window.openModal && window.openModal('Finestra di prova', '<p>Un corpo di prova.</p>', [])],
+        ];
+        for (const [q, f] of casi) {
+          if (await apri(f)) { fatte.push(q); window.__dwForzate.push(q); chiudi(); await new Promise((r) => setTimeout(r, 120)); }
+        }
+        return fatte;
+      }).catch(() => []);
+      for (const q of quali) {
+        const ok = await p.evaluate(async (quale) => {
+          const casi = {
+            'conferma pericolosa': () => window.chiedi('Confermi?', '<p>Un corpo di prova con <b>grassetto</b> e una parola lunga.</p>', 'Elimina', true),
+            'conferma normale': () => window.chiedi('Confermi?', '<p>Un corpo di prova.</p>', 'Conferma'),
+            'avviso': () => window.avvisa('Attenzione', '<p>Un avviso di prova.</p>'),
+            'richiesta di un valore': () => window.chiediValore('Quanto?', '<p>Scrivi un numero.</p>', '<input class="dw-input" value="12">'),
+            'modale del core': () => window.openModal('Finestra di prova', '<p>Un corpo di prova.</p>', []),
+          };
+          try { casi[quale](); } catch (e) { return false; }
+          await new Promise((r) => setTimeout(r, 260));
+          const m = document.getElementById('modal');
+          return !!(m && (m.classList.contains('show') || getComputedStyle(m).display !== 'none'));
+        }, q).catch(() => false);
+        if (!ok) continue;
+        await fermaAnimazioni(p);
+        /* ⛔ IL VELENO VA DENTRO ANCHE QUI, e alla prima stesura NON c'era: la
+           controprova diceva «su scudo il testo a 1,15:1 è passato», cioè la
+           passata non sapeva fallire. È la terza delle cinque cause —
+           l'iniezione che non inietta — nella veste in cui il difetto è vero e
+           il percorso che lo porta è un altro. L'ambito è `#modal *`: un veleno
+           appeso al `body` non entrerebbe mai in questa misura. */
+        if (CONTROPROVA) {
+          const messo = await p.evaluate(([marca, mix]) => {
+            const corpo = document.querySelector('#modal .modal-body') || document.querySelector('#modal');
+            if (!corpo) return false;
+            const g = document.createElement('div');
+            g.textContent = marca;
+            g.setAttribute('style', 'color:#8a8a8a; background:#9a9a9a; font-size:13px; padding:4px;'
+              + ' position:relative; z-index:1');
+            corpo.appendChild(g);
+            const t = document.createElement('div');
+            t.textContent = mix;
+            t.setAttribute('style', 'color:#111; background-color:color-mix(in srgb, #fff 96%, #eee);'
+              + ' font-size:13px; padding:4px; position:relative; z-index:1');
+            corpo.appendChild(t);
+            return true;
+          }, [MARCA, MARCA_MIX]).catch(() => false);
+          if (messo) { velenoQui++; modaliSuperficiConVeleno++; }
+        }
+        await p.evaluate(() => { window.__dwAmbito = '#modal *'; }).catch(() => {});
+        const dentro = await p.evaluate(MISURA, LATO).catch(() => []);
+        await p.evaluate(() => { window.__dwAmbito = null; }).catch(() => {});
+        for (const m of dentro) { m.finestra = 'forzata · ' + q; raccolte.push(m); }
+        forzateAperte++;
+        apertaQui = true;
+        await p.evaluate(() => {
+          try { (window.chiudiModale || window.closeModal || (() => {}))(); } catch (e) {}
+          const m = document.getElementById('modal');
+          if (m) { m.classList.remove('show'); document.body.classList.remove('modal-open'); }
+        }).catch(() => {});
+      }
+      /* ⚠️ e NON si conta qui: questa funzione gira una volta per SEZIONE, e
+         contando qui «71 superfici» su quattordici — il denominatore gonfiato
+         di cinque volte, che è peggio di non averlo. Si segna la superficie e
+         si conta una volta sola, in fondo. */
+      if (apertaQui) forzateViste.add(nome);
+      return raccolte;
+    };
+    const misure = FORZATE ? await finestreForzate()
+      : MODALI ? await giroDelleFinestre() : await p.evaluate(MISURA, LATO);
     for (const m of misure) {
       /* lo stesso testo con la stessa classe si incontra su più schermate:
          si segnala una volta sola, altrimenti l'elenco è illeggibile */
@@ -1766,7 +1875,20 @@ for (const [nome, via] of SUPERFICI) {
         + (CONTROPROVA ? ` · ${velenoQui} avvelenate` : ''));
     }
   }
-  if (CONTROPROVA) { superficiProvate++; if (!presaQui) superficiCieche.push(nome); }
+  /* ⛔ UNA SUPERFICIE DOVE IL VELENO NON È MAI ENTRATO NON È UNA SUPERFICIE
+     CIECA: è una superficie NON MISURATA, e le due cose vanno separate come si
+     fa già per i temi che una pagina non ha. Con `--forzate` succede davvero:
+     la vetrina e le pagine del servizio comune non hanno la struttura
+     condivisa delle finestre, quindi non se ne apre nessuna, quindi non c'è
+     niente da avvelenare — e contarle fra le cieche farebbe fallire la
+     controprova su un fatto che non riguarda il righello.
+     ⚠️ Ma non si scusano in silenzio: si contano e si NOMINANO, se no «la
+     controprova è stata bocciata su tutte le superfici» direbbe più di quello
+     che ha guardato. */
+  if (CONTROPROVA) {
+    if (FORZATE && !velenoQui) { forzateSenzaVeleno.push(nome); }
+    else { superficiProvate++; if (!presaQui) superficiCieche.push(nome); }
+  }
   if (errori.length) console.log('  ⚠ errori pagina:', errori.slice(0, 2));
   await ctx.close();
 }
@@ -1830,6 +1952,25 @@ if (MODALI) {
     console.log(`   ⚠️ NESSUNA FINESTRA APERTA su: ${modaliNonAperte.join(', ')}.`);
     console.log('      Non vuol dire «a posto»: vuol dire che lì dentro il colore non è stato misurato.');
   }
+} else if (FORZATE) {
+  /* ⛔ IL DENOMINATORE DI QUESTA PASSATA, e la sua metà mancante. Le finestre
+     qui NON si raggiungono col gesto: si chiamano le funzioni vere della
+     pagina. Quindi il numero da leggere non è «quante ne esistono» ma «quante
+     ne ho fatte comparire», e accanto va detto CHE COSA copre — le parole
+     della struttura condivisa — e che cosa no: il corpo che ogni app si
+     costruisce con classi sue. Senza questa riga un «0 sotto soglia» qui
+     sembrerebbe il verdetto su tutte le finestre, e sarebbe il verde più falso
+     di tutti. */
+  /* ⚠️ «testi» qui sono i testi DISTINTI: la stessa parola con la stessa classe
+     si ripete in ogni finestra forzata (il piede è sempre lo stesso), e si
+     conta una volta sola — se no il numero sarebbe gonfio e direbbe di aver
+     guardato più cose di quante ne abbia guardate. */
+  console.log(`   (⛔ FINESTRE FATTE COMPARIRE, non raggiunte col gesto: ${forzateAperte} aperture su`
+    + ` ${forzateViste.size} superfici, ${misurati} testi DISTINTI misurati dentro.`
+    + ` Di prova sono le PAROLE della struttura condivisa — titolo, corpo, bottoni del piede —`
+    + ` che sono le stesse per TUTTE le conferme; il corpo che una app si costruisce con classi`
+    + ` sue questa passata NON lo copre, e per quello serve \`--modali\`. Le due stanno insieme,`
+    + ` non una al posto dell'altra.)`);
 } else {
   console.log(`   (⛔ QUESTA PASSATA NON APRE NESSUNA FINESTRA DI DIALOGO: cammina sulle sezioni,`
     + ` e \`#modal\` resta \`display:none\`. Nei programmi delle superfici guardate qui ci sono`
@@ -1932,9 +2073,15 @@ if (CONTROPROVA) {
     console.log('⛔ un testo LEGGIBILE scritto con `color-mix()` è stato bocciato: il righello non sa leggere `color(srgb …)`.');
     process.exit(1);
   }
+  if (forzateSenzaVeleno.length) {
+    console.log(`   ⚠️ NON MISURATE (nessuna finestra si è aperta, quindi niente da avvelenare):`
+      + ` ${forzateSenzaVeleno.join(', ')}. Non vuol dire «a posto»: vuol dire che lì questa`
+      + ` controprova non ha potuto dire niente.`);
+  }
   if (superficiCieche.length === 0) {
-    console.log('La controprova è stata bocciata su tutte le superfici: il banco sa fallire.');
-    process.exit(0);
+    console.log(`La controprova è stata bocciata su tutte le ${superficiProvate} superfici avvelenate:`
+      + ` il banco sa fallire.`);
+    process.exit(superficiProvate > 0 ? 0 : 1);
   }
   console.log(`\n⚠️ CONTROPROVA INCOMPLETA: su ${superficiCieche.join(', ')} il testo a 1,15:1 è passato.`);
   process.exit(1);
