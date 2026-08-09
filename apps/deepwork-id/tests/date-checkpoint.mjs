@@ -60,12 +60,43 @@ export function dateDiIngresso(testoGit) {
    controprova non ha bisogno di inventare commit. */
 export function datateNelFuturo(mappa, eccezioni = new Set()) {
   const out = [];
-  for (const [file, giornoGit] of mappa) {
+  for (const [file, quandoGit] of mappa) {
     const m = /(\d{4})(\d{2})(\d{2})-\d{6}_/.exec(file.replace(/^.*\//, ""));
     if (!m) continue;
     const nome = `${m[1]}-${m[2]}-${m[3]}`;
+    const giornoGit = String(quandoGit).slice(0, 10);
     if (nome > giornoGit && !eccezioni.has(file))
       out.push({ file, nome, giornoGit, avanti: giorniFra(giornoGit, nome) });
+  }
+  return out;
+}
+
+/* ⛔ LA SECONDA DOMANDA, dal 09/08: non «in che GIORNO», ma «a che ORA».
+   Trovata scrivendo il canarino di un ciclo nuovo: l'ora vera erano le 10:15Z
+   e il checkpoint più recente si chiamava `20260809-143000_...`, scritto in
+   realtà alle 10:13 — **quattro ore e diciassette minuti avanti**. La prima
+   prova diceva ✓, perché il giorno era lo stesso.
+   ⚠️ E il conto che ne è uscito ridimensiona il lascito dichiarato: i
+   checkpoint datati avanti sono **508**, non 184. I 184 sono quelli avanti di
+   GIORNI; gli altri **324 sono avanti di ORE nello stesso giorno**, fino a
+   **1112 minuti** (diciotto ore e mezza), e nessun controllo li ha mai visti.
+   Cioè: **il numero dichiarato non misurava il difetto, misurava la
+   granularità del righello.**
+   Perché conta e non è pignoleria: il nome del file è quello che questo
+   repository usa per dire «riprendi da qui». Un file che si dichiara delle
+   14:30 quando è stato scritto alle 10:13 sposta il punto di ripresa avanti
+   di quattro ore rispetto al lavoro vero — ed è la stessa famiglia del
+   «cinque date diverse in un giorno solo» che sta in cima a CLAUDE.md. */
+export function oreNelFuturo(mappa, eccezioni = new Set()) {
+  const out = [];
+  for (const [file, quandoGit] of mappa) {
+    const m = /(\d{4})(\d{2})(\d{2})-(\d{2})(\d{2})(\d{2})_/.exec(file.replace(/^.*\//, ""));
+    if (!m || eccezioni.has(file)) continue;
+    const nome = Date.parse(`${m[1]}-${m[2]}-${m[3]}T${m[4]}:${m[5]}:${m[6]}Z`);
+    const git = Date.parse(quandoGit);
+    if (!Number.isFinite(nome) || !Number.isFinite(git)) continue;
+    const minuti = Math.round((nome - git) / 60000);
+    if (minuti > 0) out.push({ file, minuti, quandoGit });
   }
   return out;
 }
@@ -112,7 +143,12 @@ if (execSync("git rev-parse --is-shallow-repository", { cwd: RADICE, encoding: "
    accanto un commento che spiega una trappola inesistente — e un commento
    sbagliato è peggio della riga, perché lo crede anche il prossimo. */
 const git = execSync(
-  "git log --diff-filter=A --format='C %ad' --date=short --name-only -- vault/checkpoints/",
+  /* ⛔ `--date=iso-strict` E NON PIÙ `--date=short`, dal 09/08. Il giorno era
+     tutto quello che questo controllo poteva vedere, e quindi era tutto quello
+     che il difetto doveva evitare: un checkpoint datato quattro ore avanti,
+     nello stesso giorno, passava senza che niente diventasse rosso. La misura
+     è nella seconda prova qui sotto. */
+  "git log --diff-filter=A --format='C %ad' --date=iso-strict --name-only -- vault/checkpoints/",
   { cwd: RADICE, encoding: "utf8", maxBuffer: 32 * 1024 * 1024 });
 /* ⚠️ `archivio/` sta fuori, come dice CLAUDE.md quando spiega dove cercare il
    checkpoint più recente: se entrasse, il conto parlerebbe di file che la
@@ -140,7 +176,56 @@ test("il lascito è misurato, non dimenticato", () => {
     "zero checkpoint del lascito datati nel futuro: o è stato sistemato — e allora questa prova va tolta — o il controllo non sta guardando");
 });
 
+/* ⛔ LA REGOLA SULL'ORA, e la sua data d'inizio. Come `DAL`, non è retroattiva
+   e non può esserlo: i 324 checkpoint già dentro non si possono rinominare
+   senza riscrivere la storia di git, e riscriverla per una data nel nome
+   costerebbe più di quanto valga. Quindi la regola parte da ADESSO — il
+   momento in cui è stata scritta — e tutto quello che c'era prima diventa
+   lascito **misurato**, esattamente come si è fatto per i giorni il 01/08.
+   ⚠️ Scritta così non può marcire: un checkpoint nuovo ha sempre un'ora di git
+   ≥ `DALL_ORA`, quindi entra nel controllo per costruzione. */
+const DALL_ORA = "2026-08-09T10:30:00Z";
+const daAdesso = new Set([...MAPPA].filter(([, q]) => Date.parse(q) >= Date.parse(DALL_ORA)).map(([f]) => f));
+const primaDiAdesso = new Set([...MAPPA.keys()].filter((f) => !daAdesso.has(f)));
+
+test("nessun checkpoint NUOVO è datato dopo l'ORA in cui è entrato in git", () => {
+  const v = oreNelFuturo(MAPPA, primaDiAdesso);
+  ok(v.length === 0,
+    v.map((x) => `${x.file.replace(/^.*\//, "")} è entrato alle ${x.quandoGit} (${x.minuti} minuti avanti)`).join("\n      "));
+});
+
+test("il lascito delle ORE è misurato, non dimenticato", () => {
+  const v = oreNelFuturo(MAPPA, daAdesso);
+  /* «stesso giorno» = il giorno nel NOME e il giorno di GIT combaciano: sono
+     quelli che il controllo per giorni non poteva vedere nemmeno in linea di
+     principio, ed è il numero che questa prova esiste per far comparire. */
+  const soloOre = v.filter((x) =>
+    x.file.replace(/^.*\//, "").slice(0, 8) === String(x.quandoGit).slice(0, 10).replace(/-/g, ""));
+  const max = v.length ? Math.max(...v.map((x) => x.minuti)) : 0;
+  console.log(`      lascito delle ore: ${v.length} checkpoint datati avanti di almeno un minuto, fino a ${max} minuti`);
+  console.log(`         di cui ${soloOre.length} nello STESSO giorno — invisibili al controllo per giorni, e mai contati prima del 09/08`);
+  ok(v.length > 0,
+    "zero checkpoint del lascito datati avanti di ore: o è stato sistemato — e allora questa prova va tolta — o il controllo non sta guardando");
+});
+
 /* ⚠️ LA CONTROPROVA, e non tocca nessun file: la funzione prende la mappa. */
+test("la controprova delle ORE: un'ora avanti si vede, e il giorno da solo non basta", () => {
+  /* ⛔ IL CASO CHE CONTA È IL SECONDO, ed è il difetto vero di stamattina: un
+     checkpoint datato **nello stesso giorno** ma quattro ore avanti. La prova
+     per GIORNI lo lascia passare — e va dimostrato qui, non dedotto, se no
+     nessuno sa che le due domande sono diverse. */
+  const avantiDiOre = new Map([["vault/checkpoints/20260809-143000_x.md", "2026-08-09T10:13:30+00:00"]]);
+  ok(datateNelFuturo(avantiDiOre).length === 0,
+    "la prova per GIORNI non vede uno scarto di ore: se lo vedesse, questa seconda prova non servirebbe");
+  const v = oreNelFuturo(avantiDiOre);
+  ok(v.length === 1 && v[0].minuti === 257,
+    `quattro ore e diciassette minuti avanti devono fare 257: ${JSON.stringify(v)}`);
+  const sano = new Map([["vault/checkpoints/20260809-101000_x.md", "2026-08-09T10:13:30+00:00"]]);
+  ok(oreNelFuturo(sano).length === 0, "un nome tre minuti INDIETRO è normale: si scrive il file e poi si committa");
+  ok(oreNelFuturo(avantiDiOre, new Set(["vault/checkpoints/20260809-143000_x.md"])).length === 0,
+    "e l'eccezione del lascito deve funzionare, se no la regola sarebbe retroattiva");
+});
+
 test("la controprova: un nome nel futuro viene visto, uno giusto no", () => {
   const sana = new Map([["vault/checkpoints/20260801-120000_x.md", "2026-08-01"]]);
   ok(datateNelFuturo(sana).length === 0, "un nome che coincide col giorno di git non è una violazione");

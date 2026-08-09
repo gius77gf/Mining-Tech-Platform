@@ -32,7 +32,27 @@ in italiano, senza dare conoscenze per scontate).
    Il comando che risponde giusto, e che stampa anche i due candidati a
    confronto: `node apps/deepwork-id/tests/date-checkpoint.mjs`.
    La stessa suite impedisce che il difetto si riformi: un checkpoint **nuovo**
-   non può essere datato dopo il giorno in cui entra in git. Il lascito è
+   non può essere datato dopo il giorno in cui entra in git — **né dopo l'ORA**,
+   dal 09/08.
+   ⛔ **E QUELLA PAROLA, «GIORNO», ERA IL BUCO: il numero dichiarato non
+   misurava il difetto, misurava la GRANULARITÀ DEL RIGHELLO.** Trovato
+   scrivendo il canarino di un ciclo: l'ora vera erano le 10:15Z e il
+   checkpoint più recente si chiamava `20260809-143000_…`, scritto alle 10:13
+   — **quattro ore e diciassette minuti avanti**. Il controllo diceva ✓, perché
+   il giorno era lo stesso; e lo diceva leggendo `--date=short`, cioè su dati
+   che **l'ora non ce l'avevano**.
+   Il conto vero: i checkpoint datati avanti sono **506**, non 184. I 184 sono
+   quelli avanti di **giorni**; gli altri **322 sono avanti di ORE nello stesso
+   giorno**, fino a **1112 minuti**, e nessun controllo li aveva mai visti.
+   ⚠️ Perché conta: il nome del file è ciò che questo repository usa per dire
+   «riprendi da qui». Un checkpoint che si dichiara delle 14:30 quando è stato
+   scritto alle 10:13 sposta il punto di ripresa **avanti di quattro ore**
+   rispetto al lavoro vero.
+   ⚠️ E la lezione generale, che vale per ogni soglia: **quando un controllo
+   dichiara un arretrato, si guarda con che UNITÀ lo misura.** Un guardiano che
+   confronta i giorni non può che trovare difetti da giorni — e chi legge il
+   suo numero crede che sia l'arretrato, non la parte di arretrato che quel
+   righello sa vedere. Il lascito è
    dichiarato per data (non a elenco) e **misurato**, così il giorno in cui
    qualcuno lo sistemasse il numero scenderebbe e si vedrebbe.
 2. Unità piccole, commit frequenti. Al completamento di OGNI unità:
