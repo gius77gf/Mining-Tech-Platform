@@ -930,6 +930,29 @@ numero scritto dove non era stato misurato niente**.*
       larga la banda cieca**. Cioè la formula sbagliata sopravvive solo dove
       serve a misurare sé stessa.
 
+- [ ] **B0-quinquies. `#sm-cava` DEL CORE — l'altro dei due tagli, e NON è detto
+      che si corregga con la parola.** Trovato il 09/08 dal righello di
+      `modali-dentro` una volta corretto: nella finestra «Nuovo sismogramma» la
+      voce vuota **«— nessuna —»** chiede **149 px in 142** a 390. Da `7717de1`
+      il banco è **rosso lì**, di proposito.
+      ⚠️ **Sta scritto qui perché finora viveva solo in un messaggio di commit**,
+      che è il posto dove le cose si perdono: `grep -c 'sm-cava'` sulla roadmap
+      dava **0**.
+      ⛔ **E la correzione ovvia probabilmente è quella sbagliata.** «— nessuna —»
+      è **già** la forma più corta della convenzione dell'ecosistema
+      («— nessun esito —», «— nessun verbale —»): accorciarla vorrebbe dire
+      rompere la convenzione per sette pixel. Il numero sospetto è **l'altro**:
+      la tendina è una `.finput` **a tutta larghezza** dentro una modale, e a
+      390 px di schermo la sua scatola è **142**. Prima si chiede **perché è
+      così stretta** — `getComputedStyle`, non deduzione — e solo dopo si decide
+      fra la parola e la scatola.
+      ⚠️ Il precedente da non ripetere: il 07/08 una diagnosi scritta con
+      sicurezza e **dedotta invece che misurata** ha mandato il cantiere dopo a
+      non provare la strada giusta.
+      **Come si misura**: `modali-dentro.mjs --solo=core` deve tornare verde
+      **senza che i soggetti guardati calino** (aperture, elementi, voci,
+      comandi).
+
 - [ ] **B0-quater. UN CLAMP CHE FABBRICA 5 kg/FORO IN DUE CLIC, E RENDE
       RAGGIUNGIBILE UNO STATO PEGGIORE DI QUELLO APPENA CHIUSO.** Trovato il
       09/08 dal cantiere della frammentazione, **misurato e non corretto** perché
