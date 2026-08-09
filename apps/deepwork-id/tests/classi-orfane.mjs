@@ -36,9 +36,29 @@
    tokenizzatore è quello condiviso, non un altro scritto qui.
 
    DOVE NON GUARDA, dichiarato invece che sottinteso:
-   · le classi **composte a pezzi** (`class="riga ${st}"`) non entrano: si
-     leggono solo gli attributi letterali. È la direzione prudente — fa
-     scendere il numero dei soggetti, non salire quello degli allarmi;
+   · le classi **composte a pezzi** (un'interpolazione dentro l'attributo) non
+     entrano: si leggono solo gli attributi letterali. È la direzione prudente —
+     fa scendere il numero dei soggetti, non salire quello degli allarmi.
+     ⛔ **E IL 09/08 UN DIFETTO VERO VIVEVA PROPRIO LÌ**: in Conti l'avatar del
+     prodotto senza densità nasceva `avatar warn`, e `.avatar.warn` non la
+     dipinge nessuno nel contesto di Conti (il foglio condiviso conosce solo
+     `.avatar.sup`, e `.warn` da sola lì non esiste). Classe inerte, nessun
+     errore, nessuna prova rossa, un avatar identico a quello sano. È la regola
+     che questa casa ha già scritto: *un'eccezione dichiarata onestamente resta
+     un posto in cui nessuno guarda* — quindi ci si guarda dentro almeno una
+     volta, ed è stato fatto.
+     ⚠️ **E ALLARGARE IL CENSIMENTO A QUELLE CLASSI È STATO PROVATO E SCARTATO
+     COL NUMERO, perché nessuno lo rifaccia alla cieca.** Prendendo i pezzi
+     letterali (le parole fuori dall'interpolazione più le stringhe dentro) e
+     chiedendo «questa coppia è definita da un foglio della sua pagina?» escono
+     **365 attributi, 396 coppie, 43 sospette — e UNA sola vera**. Le altre 42
+     sono dipinte per altre vie che una regex sulle coppie adiacenti non vede:
+     dalla classe di stato **da sola** (`.warn{}`, `.danger{}`, `.st-ok{}`) o da
+     un selettore **discendente** (`.warn .board-ico`, `.danger .n`). Un allarme
+     che sbaglia 42 volte su 43 insegna a non guardarlo.
+     La domanda giusta non è statica: è **se l'elemento dipinto davvero
+     differisca dal suo gemello senza quella classe**, e quella risposta la sa
+     solo il browser con `getComputedStyle`;
    · un nome che **collide con un identificatore comune** si salva da solo:
      `class="msg"` non è dipinta da niente, ma la parola `msg` compare in mezzo
      mondo (`toast(msg, tipo)`) e quindi non viene segnalata. Miss dichiarato,
