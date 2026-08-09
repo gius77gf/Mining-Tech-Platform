@@ -2207,8 +2207,24 @@ export const ENTI_VERIFICA = [
     fonte: "art. 71 c.11 D.Lgs 81/08 — le successive sono effettuate, su libera scelta del datore di lavoro, dalla ASL." },
   { chiave: "arpa", nome: "ARPA", quando: "verifiche successive alla prima",
     fonte: "art. 71 c.11 D.Lgs 81/08 — al posto della ASL dove ciò sia previsto con legge regionale." },
-  { chiave: "abilitato", nome: "Soggetto pubblico o privato abilitato", quando: "prima verifica (oltre i termini) e successive",
-    fonte: "art. 71 c.11 e c.13 D.Lgs 81/08 e D.M. 11/04/2011 — abilitazione con iscrizione nell'elenco tenuto dal Ministero del Lavoro e aggiornato con decreto direttoriale." },
+  /* ⚠️ «Soggetto abilitato» e non «Soggetto pubblico o privato abilitato»: il
+     `nome` è la voce di una TENDINA, e una tendina chiusa non va a capo. Chiesto
+     al browser (clone con `width:max-content`, cioè testo + padding + la freccia
+     che Chromium disegna dentro la scatola) la voce lunga chiedeva 302 px e
+     tagliava a DUE larghezze — 320 px (in 242) e 360 px (in 282) — mentre le
+     altre tre voci sono INAIL, ASL e ARPA e ci stanno ovunque.
+     ⛔ E LA PAROLA DI LEGGE NON SI PERDE: «soggetto pubblico o privato
+     abilitato» è il termine dell'art. 71 c.11, quindi è stato spostato — per
+     esteso e fra virgolette — dentro `fonte`, che la finestra stampa sotto la
+     tendina in un `form-hint` che VA A CAPO e si legge tutto. La regola è
+     quella già applicata due volte in questa app: quello che una tendina non
+     può mostrare si scrive nella nota viva sotto, non lo si taglia coi puntini.
+     ⚠️ Misurato prima di scrivere: la voce non esce da nessun documento — i
+     cinque file prodotti premendo tutti i comandi di export non la contengono
+     (il CSV del personale scrive `badge`, non `ente.nome`), e nel codice vivo
+     `ente.nome` compare in UN punto solo, la riga dello scadenzario. */
+  { chiave: "abilitato", nome: "Soggetto abilitato", quando: "prima verifica (oltre i termini) e successive",
+    fonte: "art. 71 c.11 e c.13 D.Lgs 81/08 e D.M. 11/04/2011 — il «soggetto pubblico o privato abilitato»: abilitazione con iscrizione nell'elenco tenuto dal Ministero del Lavoro e aggiornato con decreto direttoriale." },
 ];
 export function enteVerifica(chiave) {
   return ENTI_VERIFICA.find((e) => e.chiave === chiave) || null;
