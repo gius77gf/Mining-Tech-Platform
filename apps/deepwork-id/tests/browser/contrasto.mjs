@@ -92,6 +92,9 @@
 */
 import { prendiChromium, CHROMIUM, SUPERFICI, sezioniDi, vaiA, apriSuperficie } from './giro.mjs';
 import { montaFintoFirebase } from './finto-firebase.mjs';
+/* ⛔ L'APRITORE NON SI RISCRIVE: è quello di `modali-dentro.mjs`, che dal 09/08
+   vive in un file suo perché lo usano in due. Vedi `apri-modali.mjs`. */
+import { SCEGLI, TOCCA, CHIUDI, DOVE, quanteModaliEsistono } from './apri-modali.mjs';
 
 const chromium = await prendiChromium();
 const PORTA = process.argv[2];
@@ -191,6 +194,30 @@ const MARCA_GRAD_MEZZO = 'controprova gradiente cieco agli angoli';
    elegante. La prova che gli angoli non bastano: `--controprova-gradiente
    --lato=2` DEVE fallire. */
 const LATO = Math.max(1, parseInt((process.argv.find((a) => a.startsWith('--lato=')) || '').slice(7), 10) || 25);
+/* ⛔ NONA TRAPPOLA, E LA PIÙ GRANDE DI TUTTE PERCHÉ NON ERA UNA TRAPPOLA DEL
+   RIGHELLO: ERA UN POSTO DOVE IL RIGHELLO NON ANDAVA MAI. Fino al 09/08 questo
+   banco camminava sulle SEZIONI e basta, e `#modal` sta a `display:none` finché
+   qualcuno non lo apre — quindi **il contrasto dentro le finestre di dialogo
+   non era misurato da nessun banco, in nessuna app, in nessuno dei tre temi**.
+   Non si vedeva perché il numero che stampava era vero: «613 testi su Scudo, 0
+   sotto soglia» è una risposta esatta a una domanda più stretta di quella che
+   sembra. Misurato prima di scrivere una riga: rifacendo lo STESSO cammino e
+   chiedendo quanti dei testi misurati stessero dentro `#modal`, la risposta è
+   **zero su 1050**; e la stessa domanda, appena una finestra si apre, risponde
+   4. Cioè lo zero non era cecità del righello, era il cammino.
+   Con `--modali` il banco apre le finestre col gesto di `modali-dentro.mjs` —
+   non con un apritore nuovo — e misura SOLO quello che sta dentro `#modal`.
+   Il primo giro ha trovato un difetto vero che nessuno aveva mai visto: nel
+   core il riquadro «CAVA» di «Nuovo progetto di volata» era bianco su un
+   gradiente verde, **3,28:1** dove ne servono 4,5.
+   ⚠️ È una passata a parte e non un'aggiunta a quella normale, per una ragione
+   misurata: aprire le finestre costa ~13 minuti a tema, e `tutti.mjs` uccide
+   una passata che supera la mezz'ora. Sommandola a quella delle sezioni si
+   sarebbe perso tutto il banco invece di guadagnare le finestre. */
+const MODALI = process.argv.includes('--modali');
+/* quante volte si prova la stessa FORMA di comando, e il tetto per sezione:
+   gli stessi numeri di `modali-dentro.mjs`, che quel gesto lo ha tarato. */
+const PER_FORMA = 2, TETTO = 200;
 
 /* La misura vive nella pagina: si passa una volta sola e si raccoglie tutto il
    testo visibile con il suo contrasto effettivo. */
@@ -798,7 +825,15 @@ const MISURA = (LATO) => {
     return (Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05);
   };
   const out = [];
-  document.querySelectorAll('body *').forEach((el) => {
+  /* ⛔ L'INSIEME SU CUI GIRA È UNA VARIABILE, E SERVE A UNA COSA SOLA: guardare
+     DENTRO UNA FINESTRA APERTA (`--modali`, dal 09/08). Senza `window.__dwAmbito`
+     resta `'body *'`, cioè esattamente quello che questo banco ha sempre fatto.
+     La ragione per cui il righello NON si riscrive più stretto: dentro una
+     modale il fondo vero è la pila degli antenati (velo, riquadro, pagina), e
+     tutta la geometria dei gradienti qui sotto serve identica. Una seconda
+     copia «per le modali» sarebbe la copia debole che questo repository paga
+     più cara — e divergerebbe al primo gradiente nuovo. */
+  document.querySelectorAll(window.__dwAmbito || 'body *').forEach((el) => {
     /* solo le foglie che contengono testo proprio: prendendo anche i
        contenitori si misurerebbe più volte lo stesso testo, e con lo sfondo
        sbagliato */
@@ -1173,6 +1208,18 @@ let gradMezzoPresa = 0, gradMezzoPromossa = 0;
 let nonRisoltiTot = 0, conGrigliaTot = 0;
 const nonRisoltiQuali = new Set();
 let illeggibili = 0;
+/* ⛔ IL DENOMINATORE DELLE FINESTRE, che si stampa SEMPRE — anche (soprattutto)
+   nella passata normale, dove vale zero su tutto. È la riga «non ho guardato»
+   che qui mancava: un «0 sotto soglia» senza sotto scritto quante finestre
+   esistono e quante ne sono state aperte è il difetto che questo repository ha
+   già pagato con «68 modali da aprire, 0 aperte» stampato per mesi. */
+let modaliEsistonoTot = 0, modaliAperteTot = 0, modaliApertureTot = 0, modaliTestiTot = 0;
+const modaliCensimento = [];
+const modaliNonAperte = [];
+/* quante finestre hanno ricevuto il veleno: è il denominatore della
+   controprova, non il suo esito — «so fallire» detto su zero iniezioni è la
+   forma silenziosa dell'iniezione che non inietta. */
+let modaliSuperficiConVeleno = 0;
 let forbiciLarghe = 0;
 let temaMisurate = 0;
 const visti = new Set();
@@ -1360,6 +1407,17 @@ for (const [nome, via] of SUPERFICI) {
   }
   const sezioni = await sezioniDi(p, nome);
   let bocciatiQui = 0, misuratiQui = 0, presaQui = 0;
+  /* quante finestre ha il PROGRAMMA di questa superficie: si conta sul file
+     SERVITO, che è quello che il banco sta guardando (una worktree, durante il
+     giro), non su quello che c'è su disco. */
+  let modaliEsistonoQui = null;
+  try {
+    const rr = await fetch(`http://127.0.0.1:${PORTA}${via}`);
+    modaliEsistonoQui = quanteModaliEsistono(await rr.text());
+  } catch (e) { modaliEsistonoQui = null; }
+  modaliEsistonoTot += modaliEsistonoQui || 0;
+  const titoliQui = new Set();
+  let apertureQui = 0, candidatiQui = 0, testiModaliQui = 0, velenoQui = 0;
   const illeggibiliQui = [];
   const classiViste = new Set();
   /* ⛔ E LE COMBINAZIONI VANNO TENUTE INTERE, non spezzate — misurato l'08/08.
@@ -1378,7 +1436,96 @@ for (const [nome, via] of SUPERFICI) {
     await vaiA(p, nome, s);
     const { finite: portateAllaFine } = await fermaAnimazioni(p);
     finiteTot += portateAllaFine;
-    const misure = await p.evaluate(MISURA, LATO);
+    /* ══ DENTRO LE FINESTRE (--modali) ═══════════════════════════════════════
+       Il gesto è quello di `modali-dentro.mjs`, importato: si sceglie un
+       comando mai provato, lo si tocca, e se si apre una finestra si misura
+       SOLO quello che sta dentro `#modal`. Poi si richiude e ci si rimette
+       dove si era — un tocco può portare la pagina altrove, e senza rimettersi
+       il giro misurerebbe un'altra schermata credendo di essere qui.
+       ⛔ E QUESTA FUNZIONE NON GIUDICA NIENTE: RACCOGLIE. Le misure che
+       restituisce finiscono nello STESSO ciclo che giudica quelle delle
+       sezioni, dieci righe più in giù. Scriverne un secondo qui sarebbe la
+       copia debole di CLAUDE.md: due giudizi identici oggi che fra un mese
+       dicono due cose diverse, e nessuno se ne accorge perché tutt'e due
+       stampano «0 sotto soglia». */
+    const giroDelleFinestre = async () => {
+      const raccolte = [];
+      const fatti = [], forme = [];
+      let diFila = 0;
+      const casa = await p.evaluate(DOVE).catch(() => '');
+      const sueSezioni = new Set(sezioni.filter((x) => typeof x === 'string' && x.startsWith('@'))
+        .map((x) => 'screen-' + x.slice(1)));
+      let inProfondita = false;
+      const rimettiti = async () => {
+        if (!casa || p.isClosed()) return;
+        const ora = await p.evaluate(DOVE).catch(() => casa);
+        if (ora === casa) { inProfondita = false; return; }
+        /* di lato = una schermata che ha già il suo turno nel giro: si torna
+           indietro. Più sotto = una scheda di dettaglio, che nessuna sezione
+           visita: si RESTA, se no le sue finestre non le apre nessuno. */
+        if (sueSezioni.size === 0 || sueSezioni.has(ora)) { await vaiA(p, nome, s); inProfondita = false; return; }
+        inProfondita = true;
+      };
+      for (let i = 0; i < TETTO; i++) {
+        if (p.isClosed()) break;
+        const scelto = await p.evaluate(SCEGLI, [fatti, forme, PER_FORMA]).catch(() => null);
+        if (!scelto) { if (++diFila >= 5) break; continue; }
+        if (typeof scelto.restano === 'number' && scelto.restano > candidatiQui) candidatiQui = scelto.restano;
+        if (scelto.fine) {
+          if (inProfondita) { await vaiA(p, nome, s); inProfondita = false; continue; }
+          break;
+        }
+        fatti.push(scelto.chiave); forme.push(scelto.sagoma);
+        const r = await p.evaluate(TOCCA, 170).catch(() => null);
+        if (p.isClosed()) break;
+        if (!r) { if (++diFila >= 5) break; await p.waitForTimeout(300); continue; }
+        diFila = 0;
+        if (r.restata) { await p.evaluate(CHIUDI).catch(() => {}); await rimettiti(); continue; }
+        if (!r.aperta) { await rimettiti(); continue; }
+        apertureQui++; modaliApertureTot++;
+        titoliQui.add(r.titolo.replace(/\d+/g, '#').replace(/\s+/g, ' ').slice(0, 46));
+        await fermaAnimazioni(p);
+        /* ⛔ IL VELENO VA DENTRO LA FINESTRA, non appeso al corpo della pagina.
+           Quello appeso al `body` lo misura la passata delle sezioni; qui
+           l'ambito è `#modal *`, quindi un veleno fuori NON entrerebbe mai
+           nella misura e la controprova direbbe «non so fallire» per il motivo
+           sbagliato — la terza causa dell'elenco di CLAUDE.md, l'iniezione che
+           non inietta. */
+        if (CONTROPROVA) {
+          const messo = await p.evaluate(([marca, mix]) => {
+            const corpo = document.getElementById('modal-body');
+            if (!corpo) return false;
+            const d = document.createElement('div');
+            d.textContent = marca;
+            d.setAttribute('style', 'color:rgb(51,51,51); background-color:rgb(42,42,42); font-size:13px; padding:4px; position:relative; z-index:1');
+            corpo.appendChild(d);
+            /* ⛔ E IL TESTIMONE DEL VERSO OPPOSTO VA MESSO QUI DENTRO ANCHE LUI.
+               Appeso al `body` — dov'è per la passata delle sezioni — starebbe
+               FUORI da `#modal *`, quindi non verrebbe mai misurato: e la riga
+               «testimone color-mix bocciato 0 volte» direbbe «zero» perché non
+               ha guardato, con la faccia di chi dice la verità. È la guardia
+               scollegata, nella sua forma più difficile da vedere: un controllo
+               che non può fallire. */
+            const g = document.createElement('div');
+            g.textContent = mix;
+            g.setAttribute('style', 'color:color-mix(in srgb, #000 90%, #123);'
+              + ' background-color:color-mix(in srgb, #fff 96%, #eee);'
+              + ' font-size:13px; padding:4px; position:relative; z-index:1');
+            corpo.appendChild(g);
+            return true;
+          }, [MARCA, MARCA_MIX]).catch(() => false);
+          if (messo) { velenoQui++; modaliSuperficiConVeleno++; }
+        }
+        await p.evaluate(() => { window.__dwAmbito = '#modal *'; }).catch(() => {});
+        const dentro = await p.evaluate(MISURA, LATO).catch(() => []);
+        await p.evaluate(() => { window.__dwAmbito = null; }).catch(() => {});
+        for (const m of dentro) { m.finestra = r.titolo.slice(0, 30); raccolte.push(m); }
+        await p.evaluate(CHIUDI).catch(() => {});
+        await rimettiti();
+      }
+      return raccolte;
+    };
+    const misure = MODALI ? await giroDelleFinestre() : await p.evaluate(MISURA, LATO);
     for (const m of misure) {
       /* lo stesso testo con la stessa classe si incontra su più schermate:
          si segnala una volta sola, altrimenti l'elenco è illeggibile */
@@ -1396,6 +1543,13 @@ for (const [nome, via] of SUPERFICI) {
          trasformava «non so leggere questo colore» in «1,01:1». */
       if (m.rapporto === null) { illeggibili++; illeggibiliQui.push(m.classe || m.testo.slice(0, 24)); continue; }
       misurati++; misuratiQui++;
+      /* ⛔ E IL CONTO DEI TESTI DENTRO LE FINESTRE SI FA QUI, dove si conta
+         tutto il resto: contandolo dove le misure si raccolgono darebbe il
+         numero PRIMA dei doppioni, e il riepilogo stamperebbe due numeri
+         diversi per la stessa cosa (misurato su Terra: «37 testi misurati» e
+         «70 dentro»). Due numeri che si contraddicono nella stessa pagina
+         fanno dubitare di tutti gli altri. */
+      if (m.finestra) { testiModaliQui++; modaliTestiTot++; }
       const passa = m.rapporto >= m.soglia;
       if (!passa) {
         if (m.testo.startsWith(MARCA_PULSA)) { pulsaBocciata++; console.log('  ⚠️  il testo in pulsazione è stato BOCCIATO'
@@ -1409,6 +1563,9 @@ for (const [nome, via] of SUPERFICI) {
         bocciati++; bocciatiQui++;
         if (m.forbice >= 1) forbiciLarghe++;
         console.log(`  KO  ${String(m.rapporto).padStart(6)}:1  (serve ${m.soglia})  ${m.dim}px  «${m.testo}»  .${m.classe}`
+          /* dove sta: senza il nome della finestra un KO di `--modali` manda a
+             cercare in tutta l'app una riga che si vede solo aprendo un dialogo */
+          + (m.finestra ? `  ← finestra «${m.finestra}»` : '')
           + (m.forbice >= 1 ? `\n        ⚠️  forbice ${m.forbice} su ${m.punti} punti — il testo sta a cavallo di un gradiente: il numero è il capo PEGGIORE delle lettere, all'altro capo si arriva a ${Math.round((m.rapporto + m.forbice) * 100) / 100}` : ''));
       } else if (m.testo.startsWith(MARCA_GRAD_MEZZO)) {
         gradMezzoPromossa++;
@@ -1432,7 +1589,13 @@ for (const [nome, via] of SUPERFICI) {
   /* ── La seconda domanda: le classi che dipingono e non sono mai comparse ── */
   /* ⛔ NIENTE `.catch(() => [])` QUI. La prima stesura ce l'aveva, il censimento
      rispondeva «0 classi» e sembrava una risposta: era l'eccezione ingoiata. */
-  const candidate = await p.evaluate(CLASSI_CANDIDATE)
+  /* ⛔ NELLA PASSATA DELLE FINESTRE IL CENSIMENTO DELLE CLASSI NON GIRA, ed è
+     una scelta con la sua ragione: quelle classi le fa comparire in fondo al
+     `body`, cioè FUORI da `#modal`, e le misura già la passata delle sezioni —
+     rifarlo qui non aggiungerebbe un soggetto e raddoppierebbe il tempo di una
+     passata che ha già un limite di mezz'ora addosso. Detto invece che
+     lasciato dedurre: `mai` resta vuoto e le righe qui sotto non stampano. */
+  const candidate = MODALI ? [] : await p.evaluate(CLASSI_CANDIDATE)
     .catch((e) => { console.log('  ⚠️  il censimento delle classi non è girato:', String(e).slice(0, 120)); return []; });
   const mai = candidate.filter((c) => !combinazioniViste.some((ins) => c.classi.every((k) => ins.has(k))));
   const daFar = mai.filter((c) => c.coprente);
@@ -1551,6 +1714,30 @@ for (const [nome, via] of SUPERFICI) {
     + (spenti ? ` · ${spenti} spenti, esclusi dalla WCAG 1.4.3` : '')
     + (CONTROPROVA ? ` · controprova ${presaQui ? 'PRESA' : 'NON PRESA'}` : ''));
   if (illeggibiliQui.length) console.log(`  ⚠️  ${illeggibiliQui.length} testi NON misurabili qui (il browser non sa convertire il loro colore): ${[...new Set(illeggibiliQui)].slice(0, 5).join(", ")}`);
+  /* ⛔ IL DENOMINATORE DELLE FINESTRE, per superficie e SUBITO — non in fondo.
+     Le tre risposte sono diverse e vanno separate, se no «0 aperte» si legge
+     come «a posto»: niente da aprire (il programma non ha finestre), non
+     raggiunta (nessun comando cliccabile: accesso, navigazione o selettore),
+     raggiunta ma senza dati (i comandi ci sono e non aprono niente). È la
+     stessa distinzione che `modali-dentro.mjs` ha già pagato. */
+  if (MODALI) {
+    modaliAperteTot += titoliQui.size;
+    modaliCensimento.push({ app: nome, esistono: modaliEsistonoQui, aperte: titoliQui.size,
+      aperture: apertureQui, testi: testiModaliQui, candidati: candidatiQui, quali: [...titoliQui] });
+    if (titoliQui.size === 0) {
+      if (modaliEsistonoQui === 0) console.log('  ✓  NIENTE DA APRIRE: questa superficie non ha finestre nel suo programma.');
+      else {
+        modaliNonAperte.push(nome);
+        console.log(`  ⚠️  NESSUNA FINESTRA APERTA — ${candidatiQui} comandi cliccabili trovati`
+          + ` (nel programma ce ne sono ${modaliEsistonoQui ?? '?'}). Non vuol dire «a posto»:`
+          + ' vuol dire che qui dentro non è stato misurato NIENTE.');
+      }
+    } else {
+      console.log(`  ${titoliQui.size} finestre diverse su ${modaliEsistonoQui ?? '?'} nel programma,`
+        + ` ${apertureQui} aperture, ${testiModaliQui} testi misurati dentro`
+        + (CONTROPROVA ? ` · ${velenoQui} avvelenate` : ''));
+    }
+  }
   if (CONTROPROVA) { superficiProvate++; if (!presaQui) superficiCieche.push(nome); }
   if (errori.length) console.log('  ⚠ errori pagina:', errori.slice(0, 2));
   await ctx.close();
@@ -1588,16 +1775,45 @@ console.log(`   (${conGrigliaTot} testi misurati su una griglia di ${LATO}×${LA
    cioè il difetto del 03/08 che è tornato, e allora i KO non valgono. */
 console.log(`   (${finiteTot} animazioni finite portate al loro ultimo fotogramma prima di misurare:`
   + ' in secondo piano Chromium non le fa avanzare, e senza questo si misurerebbero a metà)');
+/* ⛔ E QUESTA VA LETTA PRIMA DI TUTTE, perché fino al 09/08 non c'era e il buco
+   che dichiara era il più grande del banco: **le finestre di dialogo**. Nella
+   passata normale il numero a destra è ZERO per costruzione — `#modal` sta a
+   `display:none` finché qualcuno non lo apre, e qui non lo apre nessuno — e
+   averlo scritto è tutta la differenza fra «0 sotto soglia» e «0 sotto soglia
+   fra i testi che ho guardato». */
+if (MODALI) {
+  console.log('\n── il denominatore delle finestre: quante ne esistono, quante ne ho aperte ──');
+  for (const c of modaliCensimento) {
+    console.log(`   ${String(c.app).padEnd(22)} ${String(c.esistono ?? '?').padStart(3)} nel programma  →  ${String(c.aperte).padStart(3)} aperte`
+      + ` · ${String(c.aperture).padStart(4)} aperture · ${String(c.testi).padStart(5)} testi misurati dentro`
+      + (c.aperte === 0 ? `   [${c.candidati} comandi trovati: ${c.candidati ? 'senza dati' : 'non raggiunta'}]` : ''));
+    if (c.quali.length) console.log(`      aperte: ${c.quali.join(' · ')}`);
+  }
+  console.log(`   ${'TOTALE'.padEnd(22)} ${String(modaliEsistonoTot).padStart(3)}                 →  ${String(modaliAperteTot).padStart(3)}`);
+  console.log(`   ${modaliTestiTot} testi misurati DENTRO le finestre, in ${modaliApertureTot} aperture.`);
+  if (modaliNonAperte.length) {
+    console.log(`   ⚠️ NESSUNA FINESTRA APERTA su: ${modaliNonAperte.join(', ')}.`);
+    console.log('      Non vuol dire «a posto»: vuol dire che lì dentro il colore non è stato misurato.');
+  }
+} else {
+  console.log(`   (⛔ QUESTA PASSATA NON APRE NESSUNA FINESTRA DI DIALOGO: cammina sulle sezioni,`
+    + ` e \`#modal\` resta \`display:none\`. Nei programmi delle superfici guardate qui ci sono`
+    + ` ${modaliEsistonoTot} finestre, e **zero** dei ${misurati} testi qui sopra sta dentro una di`
+    + ` loro — misurato, non dedotto. Per il colore dentro le finestre: \`--modali\`.)`);
+}
 /* ⛔ ANCHE QUESTA RIGA VA LETTA PRIMA DEI KO. A sinistra c'è la parte di
    prodotto che il giro non incontra da solo — il pallino delle notifiche, la
    pillola «non salva», il toast; a destra quella che nemmeno facendola
    comparire si può giudicare senza inventarle un contesto. */
-console.log(`   (col criterio vecchio — «copre?» deciso dal TESTO della dichiarazione invece che dal browser —`
+if (!MODALI) console.log(`   (col criterio vecchio — «copre?» deciso dal TESTO della dichiarazione invece che dal browser —`
   + ` ${maiCieche} di quelle misurate qui sotto sarebbero rimaste FUORI: sono i fondi scritti`
   + ` \`var(--card)\`, \`var(--grad)\`, \`var(--success)\`… cioè la forma più comune di questo prodotto)`);
-if (!SOLO && maiCieche === 0)
+/* ⚠️ e non in `--modali`, dove il censimento non gira per scelta dichiarata:
+   un allarme che scatta sempre insegna a non guardarlo, ed è una lezione già
+   pagata in questa casa su `leggi-giro.mjs`. */
+if (!SOLO && !MODALI && maiCieche === 0)
   console.log(`   ⛔ ZERO: o il criterio vecchio è tornato, o il censimento non sta più guardando dove crede.`);
-console.log(`   (${maiComparse} classi con un fondo proprio non sono mai comparse durante il giro:`
+if (!MODALI) console.log(`   (${maiComparse} classi con un fondo proprio non sono mai comparse durante il giro:`
   + ` ${maiMisurate} fatte comparire e misurate, ${maiBocciate} sotto soglia`
   + (scusateComposte.size ? ` · ${scusateComposte.size} contenitori d'icona scusati con la prova (soglia non-testo 3:1): ${[...scusateComposte].join(', ')}` : '')
   + (maiComposte ? ` · ${maiComposte} col fondo NON coprente, composte sulle superfici che l'app dichiara e giudicate col caso PEGGIORE (la forbice è stampata accanto a ognuna)` : '')

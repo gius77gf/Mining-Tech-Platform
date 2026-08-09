@@ -7563,7 +7563,7 @@ function openSelezionaCavaPerVolata(){
   openModal('Nuovo progetto di volata',`
     <p style="font-size:13px;color:var(--muted);margin-bottom:12px;">Scegli il tipo di scavo per cui stai progettando la volata.</p>
     <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:16px;">
-      <div class="active" id="tv-cava" onclick="selTipoVolata('cava')" style="background:linear-gradient(135deg,#66bb6a,#2e7d32);color:#fff;padding:14px 8px;text-align:center;cursor:pointer;border:2px solid #66bb6a;border-radius:4px;">
+      <div class="active" id="tv-cava" onclick="selTipoVolata('cava')" style="background:var(--card);color:var(--text);padding:14px 8px;text-align:center;cursor:pointer;border:2px solid var(--border);border-radius:4px;">
         <div style="font-size:24px;">⛰️</div>
         <div style="font-family:'Barlow Condensed',sans-serif;font-weight:800;letter-spacing:1px;font-size:12px;margin-top:4px;">CAVA</div>
       </div>
@@ -7591,6 +7591,25 @@ function openSelezionaCavaPerVolata(){
       nuovaVolata(cavaId, tipo, nomeProgetto);
     }}
   ]);
+  /* ⛔ LO STATO ACCESO LO DECIDE UNA FUNZIONE SOLA, E FINO AL 09/08 ERA SCRITTO
+     IN DUE POSTI CON DUE COLORI DIVERSI. Il riquadro «CAVA» nasceva acceso nel
+     markup qui sopra con `linear-gradient(135deg,#66bb6a,#2e7d32)` e
+     `color:#fff` — bianco su verde, **3,28:1** al capo peggiore delle lettere e
+     4,08 all'altro, su una soglia di 4,5 (12px, il grassetto conta solo da
+     18,66px). `selTipoVolata`, cioe' la stessa identica decisione presa al
+     click, usava gia' l'ambra con l'inchiostro scuro `#100d07`: **6,87:1** sul
+     capo arancione e **10,23:1** su quello ambra. La correzione era stata fatta
+     in uno dei due posti, e quello rimasto indietro e' proprio quello che si
+     vede APRENDO la finestra.
+     Non si e' ritoccato il colore nel markup: si e' tolto il colore DAL markup
+     — che adesso nasce spento come i suoi due fratelli — e si chiama la
+     funzione, cosi' la decisione resta una sola. E' la regola di CLAUDE.md
+     sulla copia debole, applicata a uno stile in linea.
+     ⚠️ Perche' nessuno lo aveva visto: nessun banco apre le modali per
+     misurarne il colore. Misurato il 09/08 aprendone 89 su 186 in tutte e
+     quattordici le superfici: 2.182 testi dentro le finestre, questo era
+     l'unico sotto soglia. */
+  selTipoVolata('cava');
 }
 
 // ══════════ AUDIT LOG VIEW (A5) ══════════

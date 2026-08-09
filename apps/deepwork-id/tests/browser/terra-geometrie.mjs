@@ -67,19 +67,41 @@
    soglia e l'etichetta), i due avanzamenti del motore (`#dash-anno`,
    `#den-barra`), i tre grafici a barre (`#ril-mese`, `#fro-volumi`,
    `#den-graf`) e la riga del pro-quota che Terra disegna da sé sopra le barre.
-   Qui dentro se ne misurano in pixel SEI. La settima — il grafico a LINEE
-   `#tur-graf`, misurato contro dichiarato volo per volo — è stata censita e
-   guardata (due serie, i buchi al posto dei periodi senza rapportini) ma **non
-   misurata col righello**: la sua geometria pura (`tratti`, `percorso`) è già
-   provata senza browser in `run-kpi.mjs`, e leggere i valori dal `d` di un
-   percorso curvo vorrebbe dire riscrivere qui l'interpolazione del motore —
-   cioè misurare la propria copia. Chi ci torna sopra sappia che quel grafico,
-   in pixel, non l'ha ancora guardato nessuno.
+   ✅ **DAL 09/08 SI MISURANO IN PIXEL TUTTE E SETTE.** La settima — il grafico
+   a LINEE `#tur-graf` — era rimasta fuori con una ragione scritta qui («leggere
+   i valori dal `d` di un percorso CURVO vorrebbe dire riscrivere l'interpolazione
+   del motore, cioè misurare la propria copia»), e la ragione era buona: a
+   sbagliare era il soggetto. Non serve leggere il percorso. I PUNTI
+   (`circle.dwg-pt`, `circle.dwg-fine`) stanno esattamente su `py(v)` e le righe
+   della GRIGLIA stanno su `py` delle tacche: la scala si legge dall'asse — che è
+   quella che legge l'utente — e i punti si confrontano con quella, senza nessuna
+   interpolazione da rifare. Misurato: scarto massimo **0,05 px** su sette punti,
+   e con un dichiarato **33 volte** più piccolo degli altri il rapporto disegnato
+   è 0,02960 contro lo 0,02965 dichiarato. Nessun difetto di geometria: il
+   grafico a linee di Terra dice la stessa cosa dei suoi numeri.
+   ⚠️ E il primo righello sbagliava del solito segno: prendeva la scala dalle
+   ETICHETTE delle tacche invece che dalle righe di griglia, e
+   `getBoundingClientRect` su un `<text>` dà il riquadro dell'INCHIOSTRO, che sta
+   qualche pixel sotto la riga. Dava 0,005233 px/m³ contro 0,005250 — lo 0,3%,
+   cioè un righello che accusa un disegno sano.
 
-   ⚠️ I DUE CASI SI COSTRUISCONO NEI DATI, MAI NEL DISEGNO. L'anno cieco, lo
-   zero misurato e il mese altissimo si ottengono aggiungendo righe alla
-   risposta HTTP di `terra-data.js` — la via vera, il modulo dati dell'app. Il
-   file su disco non si tocca mai. */
+   3 · E QUELLO CHE IL RIGHELLO NUOVO HA TROVATO NON ERA UNA GEOMETRIA, ERA LA
+       FRASE SOTTO DI ESSA. Il grafico lascia un BUCO dove il dichiarato non c'è,
+       ed è giusto; ma la nota sotto lo raccontava sempre allo stesso modo — «in
+       N intervalli i turni non hanno dichiarato niente» — anche dove i turni
+       AVEVANO dichiarato viaggi o tonnellate senza densità, cioè dove a mancare
+       non è la registrazione ma la conversione. Misurato iniettando un intervallo
+       di soli viaggi: «In 2 intervalli i turni non hanno dichiarato niente», con
+       61 viaggi veri dentro uno dei due. La distinzione era già in casa quaranta
+       righe più su nella stessa pagina (`riconciliazioneTurni` → `no-dichiarato`
+       contro `no-densita`): il grafico ne teneva la copia più debole. Corretto in
+       `serieDichiaratoTurni` / `descriviBuchiTurni` di `terra-data.js`.
+
+   ⚠️ I CASI SI COSTRUISCONO NEI DATI, MAI NEL DISEGNO. L'anno cieco, lo zero
+   misurato, il mese altissimo, il dichiarato trenta volte più piccolo e
+   l'intervallo di soli viaggi si ottengono aggiungendo righe alla risposta HTTP
+   di `terra-data.js` — la via vera, il modulo dati dell'app. Il file su disco non
+   si tocca mai. */
 import { createServer } from "node:http";
 import { readFileSync, existsSync, statSync, writeFileSync, unlinkSync } from "node:fs";
 import { join, extname } from "node:path";
@@ -93,12 +115,40 @@ const TIPI = { ".html": "text/html", ".js": "text/javascript", ".mjs": "text/jav
 /* I DIFETTI DA RIMETTERE. Contati uno per uno: un `replace` che non trova
    niente esce in silenzio, e una controprova che non ha iniettato niente
    dichiara «non so fallire» misurando un file sano. */
+/* ⚠️ DUE FORME NELLA STESSA TABELLA, e la ragione è dichiarata: una coppia
+   `[cerca, sostituisci]` tocca `apps/terra/index.html` (il caso di gran lunga
+   più frequente), una terna `[file, cerca, sostituisci]` dice il file. Serve
+   perché la geometria del grafico a LINEE non la scrive Terra, la scrive il
+   motore condiviso: per provare che il righello sappia fallire il difetto va
+   rimesso LÌ. `iniezioni-fresche.mjs` legge tutte e due le forme (toglie gli
+   elementi che sono un percorso di prodotto e prende la coppia rimasta). */
+const PAGINA = "apps/terra/index.html";
 const DIFETTI = [
   // 1 · il disegno che non legge la bandiera «senza-rilievi» del modulo
   ['if (pr.stato === "senza-rilievi") {', 'if (false) {'],
   // 2 · la testa del riempimento accesa anche su un consumo di zero m³
   ['<i class="vita-fill${wVuota}"', '<i class="vita-fill"'],
+  /* 3 · IL DISEGNO CHE NON STA AL VALORE. La scala del grafico a linee diventa
+     una radice: i punti restano tutti, la tabella accessibile non cambia di una
+     virgola, e i pixel smettono di stare fra loro come stanno i m³ — cioè
+     esattamente la forma di difetto che questo banco esiste per prendere. */
+  ["shared/dw-grafici.js",
+    "var py = function (v) { return box.y1 - (box.y1 - box.y0) * (v - sc.min) / (sc.max - sc.min); };",
+    "var py = function (v) { return box.y1 - (box.y1 - box.y0) * Math.sqrt((v - sc.min) / (sc.max - sc.min)); };"],
+  /* 4 · IL BUCO DISEGNATO A ZERO. Un intervallo senza dichiarato torna a valere
+     0 m³: la linea scende a terra e dice «hanno prodotto zero» dove nessuno ha
+     registrato niente. */
+  ["const S = serieDichiaratoTurni(dichiarati);",
+    "const S = { valori: dichiarati.map((d) => (d && d.m3) || 0), conto: serieDichiaratoTurni(dichiarati).conto };"],
+  /* 5 · LA FRASE CHE ACCUSA I TURNI. Rimessa la vecchia riga, la nota torna a
+     dire «non hanno dichiarato niente» anche dove i turni hanno dichiarato
+     viaggi o tonnellate senza densità. */
+  ["apps/terra/terra-data.js",
+    "nessun turno ha registrato una produzione`);",
+    "i turni non hanno dichiarato niente`);"],
 ];
+const difettiDi = (percorso) => DIFETTI.filter((d) => (d.length === 3 ? d[0] : PAGINA) === percorso)
+  .map((d) => (d.length === 3 ? [d[1], d[2]] : d));
 
 /* LE SCENE. Ognuna è un caso che la dimostrazione da sola non contiene. */
 const SCENE = {
@@ -120,6 +170,20 @@ const SCENE = {
   // contatore è misurabile e vale zero, ed è l'unico caso in cui la barra
   // della vita cava deve restare completamente vuota
   zeroVero: "\nDEMO.rilievi.length = 0;\nDEMO.autorizzazioni[0].estrattoPregressoM3 = 0;\n",
+  /* IL DICHIARATO TRENTA VOLTE PIÙ PICCOLO. Nella dimostrazione i quattro
+     intervalli si somigliano tutti (dal 17.298 al 21.300 m³: rapporto 0,81), e
+     su valori così vicini «i pixel stanno fra loro come i m³» lo direbbe anche
+     un disegno mezzo sbagliato. Qui un intervallo scende a 1.200 t, cioè 631,6
+     m³ alla densità dell'atto: rapporto 0,03. */
+  turniScala: '\nDEMO.rapportiniCampo = DEMO.rapportiniCampo.filter((r) => !(r.data >= "2026-06-17" && r.data <= "2026-07-01"));'
+    + '\nDEMO.rapportiniCampo.push({ id:"p1", data:"2026-06-19", turno:"Mattina", squadra:"Squadra B", prodQta:1200, prodUnita:"t", stato:"inviato" });\n',
+  /* UN INTERVALLO DI SOLI VIAGGI. I turni HANNO registrato, e niente di quello
+     che hanno registrato si porta in metri cubi (servirebbe la portata del
+     mezzo). Il buco nel grafico è giusto; la frase che lo racconta diceva «i
+     turni non hanno dichiarato niente», che è falso. */
+  turniViaggi: '\nDEMO.rapportiniCampo = DEMO.rapportiniCampo.filter((r) => !(r.data >= "2026-06-17" && r.data <= "2026-07-01"));'
+    + '\n[["v1","2026-06-19",12],["v2","2026-06-23",13],["v3","2026-06-26",11],["v4","2026-06-30",14],["v5","2026-07-01",11]]'
+    + '.forEach(([id, data, q]) => DEMO.rapportiniCampo.push({ id, data, turno:"Mattina", squadra:"Squadra C", prodQta:q, prodUnita:"viaggi", stato:"inviato" }));\n',
 };
 
 let FIXTURE = "";
@@ -132,10 +196,14 @@ const srv = createServer((q, s) => {
   if (p.endsWith("apps/terra/terra-data.js") && FIXTURE) {
     corpo = Buffer.from(corpo.toString("utf8") + FIXTURE, "utf8");
   }
-  if (CONTROPROVA && p.endsWith("apps/terra/index.html")) {
-    let t = corpo.toString("utf8");
-    for (const [a, b] of DIFETTI) { if (t.includes(a)) { colpiti.add(a); t = t.split(a).join(b); } }
-    corpo = Buffer.from(t, "utf8");
+  if (CONTROPROVA) {
+    const rel = p.slice(R.length + 1);
+    const mie = difettiDi(rel);
+    if (mie.length) {
+      let t = corpo.toString("utf8");
+      for (const [a, b] of mie) { if (t.includes(a)) { colpiti.add(a); t = t.split(a).join(b); } }
+      corpo = Buffer.from(t, "utf8");
+    }
   }
   s.writeHead(200, { "content-type": TIPI[extname(p)] || "application/octet-stream" });
   s.end(corpo);
@@ -165,7 +233,7 @@ const dice = (c, t, x) => {
 /* QUANTI SOGGETTI HO GUARDATO DAVVERO. Un «nessuna violazione» senza il conto
    accanto non vale niente: è la difesa contro il controllo che non guarda dove
    crede. */
-const CONTO = { schermate: 0, geometrie: 0, barre: 0, confronti: 0, sottoMinimo: 0 };
+const CONTO = { schermate: 0, geometrie: 0, barre: 0, confronti: 0, sottoMinimo: 0, punti: 0 };
 
 /* LA SONDA. Per ogni geometria: che cosa DICHIARA (la percentuale nello style,
    il valore nell'etichetta accessibile, la quota nella tabella del grafico) e
@@ -222,6 +290,34 @@ const SONDA = () => {
     const fig = svg.closest("figure");
     const tab = fig ? [...fig.querySelectorAll("tbody tr")].map((tr) => [...tr.children].map((c) => c.textContent)) : [];
     out.push({ g: "barre", host: (svg.closest("[id]") || {}).id || "", oriz: !!oriz, dim, tab,
+      aria: svg.getAttribute("aria-label") || "" });
+  });
+  /* IL GRAFICO A LINEE. Fino al 09/08 questo banco dichiarava di non averlo
+     mai guardato in pixel, e la ragione era buona: leggere i valori dal `d` di
+     un percorso CURVO vorrebbe dire riscrivere qui l'interpolazione del motore,
+     cioè misurare la propria copia. La via che non la riscrive c'era: i PUNTI
+     (`circle.dwg-pt`, `circle.dwg-fine`) stanno esattamente su `py(v)`, e le
+     GRIGLIE orizzontali stanno su `py` delle tacche. Quindi la scala si legge
+     dall'asse — che è quello che l'utente legge — e i punti si confrontano con
+     quella, senza nessuna interpolazione da rifare.
+     ⚠️ Le tacche NON si leggono dal testo delle etichette: `getBoundingClientRect`
+     su un <text> dà il riquadro dell'inchiostro, che sta qualche pixel sotto la
+     riga. Misurato: la scala presa dai testi dava 0,005233 px/m³ e quella vera
+     0,005250 — lo 0,3% di sbaglio, cioè un righello che accusa un disegno sano.
+     Si prendono le righe della GRIGLIA, che stanno su `py(v)` alla virgola. */
+  att.querySelectorAll("svg").forEach((svg) => {
+    const punti = [...svg.querySelectorAll("circle.dwg-pt, circle.dwg-fine")];
+    if (!punti.length) return;
+    const grid = [...svg.querySelectorAll("line.dwg-grid")].map((l) => n2(l.getBoundingClientRect().top));
+    /* le tacche dell'asse Y sono le prime del documento: il motore le disegna
+       nel `forEach` delle tacche, le date dell'asse X vengono dopo */
+    const tickY = [...svg.querySelectorAll("text.dwg-tick")].slice(0, grid.length).map((t) => t.textContent);
+    const fig = svg.closest("figure");
+    out.push({ g: "linea", host: (svg.closest("[id]") || {}).id || "", grid, tickY,
+      intest: fig ? [...fig.querySelectorAll("thead th, thead td")].map((c) => c.textContent.trim()) : [],
+      tab: fig ? [...fig.querySelectorAll("tbody tr")].map((tr) => [...tr.children].map((c) => c.textContent.trim())) : [],
+      punti: punti.map((c) => { const r = c.getBoundingClientRect();
+        return { s: /\bs2\b/.test(c.getAttribute("class")) ? 2 : 1, cx: n2(r.left + r.width / 2), cy: n2(r.top + r.height / 2) }; }),
       aria: svg.getAttribute("aria-label") || "" });
   });
   /* la riga del pro-quota: la disegna TERRA, non il motore, leggendo la scala
@@ -307,6 +403,100 @@ function confrontaBarre(x, etichetta) {
    comunque, ed è per questo che quelle sotto il minimo si saltano). */
 const tolleranza = (v) => Math.max(0.8, v * 0.02);
 
+/* IL CONFRONTO SUL GRAFICO A LINEE. Tre domande, in quest'ordine:
+   1 · quanti punti sono disegnati? Devono essere quanti sono i valori che la
+       tabella accessibile dichiara — un buco NON si disegna, e un buco disegnato
+       a zero è la faccia tranquilla dell'assenza (regola del fondatore);
+   2 · ogni punto sta alla sua altezza? Si confronta la distanza dallo ZERO
+       dell'asse con il valore per la scala che l'asse stesso dichiara;
+   3 · e il RAPPORTO fra il valore più piccolo e il più grande. È la sola domanda
+       che distingue «funziona» da «sono tutti uguali», e con soli campioni
+       vicini fra loro non prova quasi niente — per questo c'è una scena con un
+       dichiarato trenta volte più piccolo.
+   ⚠️ Nessun minimo di visibilità qui: i punti sono cerchi veri, non passano da
+   `lunghezzaBarra`. Se un giorno ce ne fosse uno, la coppia appiattita si
+   stampa invece di essere saltata in silenzio. */
+function confrontaLinea(x, etichetta) {
+  const tacche = x.tickY.map(numIt);
+  const scendono = x.grid.every((y, i) => i === 0 || y < x.grid[i - 1]);
+  const salgono = tacche.every((v, i) => v != null && (i === 0 || v > tacche[i - 1]));
+  const iZero = tacche.indexOf(0);
+  if (x.grid.length < 2 || x.grid.length !== tacche.length || !scendono || !salgono || iZero < 0) {
+    dice(false, `${etichetta}: l'asse dichiara le sue tacche, in ordine, e una è lo zero`,
+      `tacche ${JSON.stringify(x.tickY)} · righe di griglia ${JSON.stringify(x.grid)}`);
+    return;
+  }
+  const y0 = x.grid[iZero], vAlta = tacche[tacche.length - 1];
+  const scala = (y0 - x.grid[tacche.length - 1]) / vAlta;        // px per m³, DALL'ASSE
+  let misurati = [];
+  let serie = 0;
+  for (const s of [1, 2]) {
+    const dichiarati = x.tab.map((r) => r[s]).filter((v) => v !== undefined)
+      .map((v) => (v === "—" ? null : numIt(v)));
+    const disegnati = x.punti.filter((p) => p.s === s).sort((a, b) => a.cx - b.cx);
+    const valori = dichiarati.filter((v) => v != null);
+    if (!dichiarati.length) continue;
+    serie++;
+    dice(disegnati.length === valori.length,
+      `${etichetta} · serie ${s}: si disegna un punto per ogni valore dichiarato, e i buchi restano buchi`,
+      `${disegnati.length} punti disegnati, ${valori.length} valori su ${dichiarati.length} righe`
+      + ` (${dichiarati.length - valori.length} buchi)`);
+    if (disegnati.length !== valori.length) continue;
+    let peggio = null;
+    disegnati.forEach((p, i) => {
+      const v = valori[i], alto = y0 - p.cy, atteso = v * scala;
+      misurati.push({ v, alto });
+      CONTO.punti++;
+      const scarto = Math.abs(alto - atteso);
+      if (!peggio || scarto > peggio.scarto) peggio = { scarto, v, alto, atteso };
+    });
+    dice(peggio && peggio.scarto <= Math.max(0.6, peggio.atteso * 0.01),
+      `${etichetta} · serie ${s}: ogni punto sta sopra lo zero di quanto vale, per la scala che l'asse dichiara`,
+      peggio && `il peggiore: ${peggio.v} m³ → attesi ${peggio.atteso.toFixed(2)} px, disegnati ${peggio.alto.toFixed(2)}`);
+  }
+  dice(serie >= 1, `${etichetta}: la tabella accessibile ha almeno una serie`, serie);
+  /* ⛔ E IL BUCO DEVE RESTARE UN BUCO, non diventare uno zero. La colonna del
+     DICHIARATO si trova per INTESTAZIONE, non per posizione: in questo grafico
+     `produzioneDichiarata` mette il totale in metri cubi a zero solo quando non
+     ha potuto convertire — quindi uno «0 m³» in quella colonna non è mai una
+     produzione nulla, è un'assenza travestita. Senza questa riga il difetto
+     numero 4 della controprova (il buco disegnato a terra) passava inosservato:
+     con gli zeri al posto dei buchi la tabella non ha più nessun «—», i punti
+     tornano a essere tanti quanti i valori e ogni altra asserzione dice ok. */
+  const iDich = x.intest.findIndex((t) => /dichiarat/i.test(t));
+  if (iDich > 0) {
+    const col = x.tab.map((r) => r[iDich]);
+    const zeri = col.filter((v) => /^0(?:[.,]0+)?\s/.test(v));
+    dice(col.includes("—") && zeri.length === 0,
+      `${etichetta}: l'intervallo senza dichiarato resta un «—», non uno «0 m³»`,
+      `colonna «${x.intest[iDich]}»: ${JSON.stringify(col)}`);
+  } else {
+    dice(false, `${etichetta}: la tabella dichiara quale colonna è il dichiarato dei turni`, JSON.stringify(x.intest));
+  }
+  /* uno ZERO dichiarato si disegna sulla riga dello zero: è la stessa regola
+     delle barre (`lunghezzaBarra`), qui sui punti */
+  for (const m of misurati.filter((x) => x.v === 0))
+    dice(Math.abs(m.alto) <= 0.6, `${etichetta}: uno zero dichiarato si disegna SULLA riga dello zero`,
+      `disegnato ${m.alto.toFixed(2)} px sopra lo zero`);
+  /* il rapporto: due valori DIVERSI, e si dichiara quanto sono diversi — un
+     rapporto vicino a 1 non distingue un disegno giusto da uno piatto.
+     ⛔ E LO ZERO RESTA FUORI DA QUESTA COPPIA, per una ragione misurata il
+     09/08 nella controprova di questo stesso banco: con un buco disegnato a
+     zero il valore più piccolo diventa 0, e `0/21300` fa 0 tanto nei m³ quanto
+     nei pixel — il rapporto tornava «0,00000 contro 0,00000», cioè la prova
+     passava **col difetto dentro**. È la prima delle cinque cause di CLAUDE.md:
+     i dati della prova facevano coincidere la risposta giusta con quella
+     sbagliata. Lo zero ha già la sua asserzione qui sopra. */
+  misurati = misurati.filter((x) => x.v > 0).sort((a, b) => a.v - b.v);
+  const pic = misurati[0], gra = misurati[misurati.length - 1];
+  if (!pic || pic.v === gra.v) { dice(false, `${etichetta}: servono DUE valori diversi e maggiori di zero, se no il rapporto non prova niente`, misurati.length); return; }
+  const rv = pic.v / gra.v, rp = pic.alto / gra.alto;
+  dice(Math.abs(rv - rp) <= 0.01,
+    `${etichetta}: i pixel stanno fra loro come i m³ — rapporto dichiarato ${rv.toFixed(5)}, disegnato ${rp.toFixed(5)}`
+    + ` (${misurati.length} punti, dal più piccolo ${pic.v} al più grande ${gra.v})`,
+    `${pic.alto.toFixed(2)} px su ${gra.alto.toFixed(2)}`);
+}
+
 console.log(`\n════════ Terra: il disegno dice la stessa cosa del numero?${CONTROPROVA ? " · controprova" : ""} ════════`);
 
 // ── SCENA 1 · la dimostrazione com'è ──────────────────────────────────────
@@ -346,6 +536,7 @@ for (const [sez, atteso] of [["nav-dash", 3], ["nav-tit", 2], ["nav-fro", 1], ["
         `${val} su ${max} = ${attesa && attesa.toFixed(2)}%, disegnato ${x.pctPx}% (${x.px} px su ${x.traccia})`);
     }
     if (x.g === "barre") confrontaBarre(x, `${sez} · «${x.host}»`);
+    if (x.g === "linea") confrontaLinea(x, `${sez} · «${x.host}» a linee`);
     if (x.g === "riga-riferimento") {
       /* il pro-quota è nella legenda che Terra scrive da sé; il massimo è nel
          titolo accessibile del grafico. La riga deve stare in mezzo nello
@@ -432,11 +623,42 @@ FIXTURE = SCENE.zeroVero;
   await pg.close();
 }
 
+// ── SCENA 5 · il grafico a LINEE, col righello sui punti ──────────────────
+console.log("\n· misurato e dichiarato volo per volo: i punti stanno dove dicono di stare?");
+for (const [scena, nota] of [["turniScala", "un dichiarato 30 volte più piccolo"],
+                             ["turniViaggi", "un intervallo di soli viaggi"]]) {
+  FIXTURE = SCENE[scena];
+  const pg = await apri("nav-ril");
+  const r = await pg.evaluate(SONDA);
+  CONTO.geometrie += r.length;
+  const linee = r.filter((x) => x.g === "linea");
+  dice(linee.length === 1, `${scena}: il grafico a linee dei turni c'è (${nota})`, JSON.stringify(r.map((x) => x.g)));
+  for (const x of linee) confrontaLinea(x, `${scena} · «${x.host}»`);
+  /* ⛔ E LA FRASE SOTTO IL GRAFICO NON ACCUSA CHI HA REGISTRATO. Il buco è
+     giusto — quello che non si converte non si disegna — ma fino al 09/08 la
+     nota lo raccontava come «i turni non hanno dichiarato niente» anche qui,
+     dove i turni hanno dichiarato 61 viaggi veri. È il numero che mente con la
+     faccia tranquilla, nella sua veste di FRASE. */
+  const note = await pg.evaluate(() => [...document.querySelectorAll("#tur-graf .note")].map((n) => n.textContent.replace(/\s+/g, " ").trim()));
+  if (scena === "turniViaggi") {
+    const t = note.join(" ");
+    dice(!/non hanno dichiarato niente/.test(t),
+      "⛔ la nota NON dice «non hanno dichiarato niente» dove i turni hanno dichiarato viaggi", t.slice(0, 260));
+    dice(/61 viaggi/.test(t) && /non si converte in metri cubi/.test(t),
+      "e dice che cosa hanno dichiarato e perché non entra nel grafico", t.slice(0, 260));
+  } else {
+    dice(note.some((t) => /nessun turno ha registrato una produzione/.test(t)),
+      "la nota chiama col suo nome l'intervallo in cui nessuno ha registrato", note.join(" | ").slice(0, 260));
+  }
+  await pg.close();
+}
+
 // ── riepilogo ─────────────────────────────────────────────────────────────
 console.log(`\n${"─".repeat(72)}`);
 console.log(`Soggetti guardati: ${CONTO.geometrie} geometrie su ${CONTO.schermate} schermate`
   + ` · ${CONTO.barre} barre, ${CONTO.confronti} confrontate a due a due`
-  + ` · ${CONTO.sottoMinimo} sotto il minimo del motore (2 unità, dichiarate e non confrontate)`);
+  + ` · ${CONTO.sottoMinimo} sotto il minimo del motore (2 unità, dichiarate e non confrontate)`
+  + ` · ${CONTO.punti} punti del grafico a linee, misurati contro la scala che l'asse dichiara`);
 if (CONTROPROVA) {
   console.log(`Difetti rimessi: ${colpiti.size} su ${DIFETTI.length}`);
   if (colpiti.size !== DIFETTI.length) {

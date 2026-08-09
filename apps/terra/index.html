@@ -996,7 +996,7 @@ a.dw-btn{text-decoration:none}
            rilieviScavoFronte, rilievoPrecedente, confrontoRilievi,
            produzioneDichiarata, misuratoPeriodo, riconciliazioneTurni,
            periodoFraUltimiRilievi, intervalliFraRilievi, avanzamentoDaUltimoRilievo, SOGLIA_TURNI,
-           produzionePerFronte,
+           produzionePerFronte, serieDichiaratoTurni, descriviBuchiTurni,
            numeroDaCampo, AVVISO_DECIMALE, origineDi, descriviOrigine, numeroRegistrato,
            FONTI_DENSITA, densitaDichiarata, densitaPerEnte, descriviDensita, densitaDellaCava,
            DENS_ATTO, DENS_LABORATORIO, DENS_PRESET, DENS_MANO, DENS_NON_DICHIARATA,
@@ -3759,15 +3759,21 @@ a.dw-btn{text-decoration:none}
       el.innerHTML = ""; return;
     }
     const cron = intervalli.slice().reverse();          // dal più vecchio al più recente
-    const mis = [], dich = [];
-    let senza = 0;
+    const mis = [], dichiarati = [];
     for (const i of cron) {
       const m = misuratoPeriodo(RIL, i.dal, i.al);
-      const d = produzioneDichiarata(RAPP, i.dal, i.al, dens);
       mis.push(m && m.m3 > 0 ? m.m3 : null);
-      if (d && d.turni && d.m3 > 0) dich.push(d.m3);
-      else { dich.push(null); senza++; }
+      dichiarati.push(produzioneDichiarata(RAPP, i.dal, i.al, dens));
     }
+    /* ⛔ CHI DECIDE DOV'È UN BUCO E COME SI RACCONTA STA NEL MODULO. Qui c'era
+       `d && d.turni && d.m3 > 0`, e sotto una frase che chiamava «non hanno
+       dichiarato niente» anche l'intervallo in cui i turni avevano dichiarato
+       viaggi o tonnellate senza densità — cioè un'accusa falsa nella forma più
+       tranquilla. La distinzione la fa già `riconciliazioneTurni` quaranta
+       righe più su, e adesso la serie e la sua nota escono dalla stessa
+       passata di `serieDichiaratoTurni`. */
+    const S = serieDichiaratoTurni(dichiarati);
+    const dich = S.valori;
     // Un grafico di UN punto non è un grafico: la legenda promette una linea
     // tratteggiata che non si vede, e il puntino finisce sopra quello del
     // misurato. Visto guardando lo screenshot, non leggendo il codice. Sotto i
@@ -3787,10 +3793,11 @@ a.dw-btn{text-decoration:none}
       serie: [{ nome: "Misurato dal rilievo", valori: mis, area: true },
               { nome: "Dichiarato dai turni", valori: dich }],
     });
-    if (senza) {
+    const testoBuchi = descriviBuchiTurni(S.conto);
+    if (testoBuchi) {
       const nota = document.createElement("div");
       nota.className = "note";
-      nota.innerHTML = `In ${senza === 1 ? "<b>un intervallo</b>" : `<b>${senza} intervalli</b>`} i turni non hanno dichiarato niente: nel grafico ${senza === 1 ? "resta un buco" : "restano buchi"}, non uno zero — non aver registrato non vuol dire aver prodotto zero.`;
+      nota.textContent = testoBuchi;      // testo puro dal modulo, come descriviBaseOnere
       el.appendChild(nota);
     }
   }

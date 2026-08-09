@@ -25629,5 +25629,94 @@ test("voceDocumentoInElenco: la regola vale per documento, non per la lista", ()
   });
 }
 
+/* ⛔ TERRA · I TRE BUCHI DEL GRAFICO DEI TURNI NON SONO LA STESSA COSA.
+   Il grafico «misurato e dichiarato, volo per volo» scriveva sotto di sé
+   «In N intervalli i turni non hanno dichiarato niente» contando anche gli
+   intervalli in cui i turni AVEVANO dichiarato viaggi o tonnellate senza
+   densità: un'accusa falsa, e nella forma più tranquilla che ci sia.
+   ⚠️ Prove SINCRONE e messe PRIMA del riepilogo: l'`await Promise.all(inVolo)`
+   sta cinquemila righe più su, quindi una prova `async` aggiunta qui verrebbe
+   messa in volo e il totale si stamperebbe senza aspettarla. */
+{
+  const T_DENS = 1.9;
+  const rappT = (qta) => [{ id: "t1", data: "2026-06-20", prodQta: qta, prodUnita: "t", stato: "inviato" }];
+  const rappV = (qta) => [{ id: "v1", data: "2026-06-20", prodQta: qta, prodUnita: "viaggi", stato: "inviato" }];
+  const DAL = "2026-06-02", AL = "2026-06-30";
+  /* due rilievi VERI ai capi dell'intervallo: senza di loro
+     `riconciliazioneTurni` risponde `no-misura` e coprirebbe la ragione del
+     buco che qui si sta misurando */
+  const rilSani = [{ id: "r1", data: "2026-06-01", volumeM3: 1000, stato: "elaborato" },
+                   { id: "r2", data: "2026-06-30", volumeM3: 9000, stato: "elaborato" }];
+  const dich = (rapp, dens) => terra.produzioneDichiarata(rapp, DAL, AL, dens);
+
+  test("Terra · serieDichiaratoTurni: un buco per causa, e il valore quando si converte", () => {
+    const s = terra.serieDichiaratoTurni([null, dich([], T_DENS), dich(rappV(61), T_DENS),
+                                          dich(rappT(5000), null), dich(rappT(5000), T_DENS)]);
+    eq(s.valori.slice(0, 4), [null, null, null, null], "i primi quattro sono buchi");
+    eq(s.valori[4] > 0, true, "l'ultimo, convertibile, porta il suo numero");
+    eq(s.conto.intervalli, 5, "gli intervalli guardati sono cinque");
+    eq(s.conto.senzaRapportini, 1, "un intervallo senza rapportini");
+    eq(s.conto.senzaTurni, 1, "un intervallo in cui nessun turno ha registrato");
+    eq(s.conto.nonConvertibile, 2, "DUE in cui i turni hanno dichiarato e non si converte");
+    eq(s.conto.viaggi, 61, "i viaggi si contano");
+    eq(s.conto.tSenzaDensita, 5000, "e le tonnellate rimaste senza densità pure");
+  });
+
+  test("Terra · i tre secchi combaciano con gli stati di riconciliazioneTurni, uno per uno", () => {
+    /* ⛔ IL TEST PRETENDE LA CORRISPONDENZA, non se ne fida. Le due
+       classificazioni oggi dicono la stessa cosa; senza questa prova domani
+       divergono e il grafico tornerebbe a raccontare una causa per un'altra. */
+    const casi = [
+      [[], null, "senzaTurni", "no-dichiarato"],
+      [rappV(61), T_DENS, "nonConvertibile", "no-densita"],
+      [rappT(5000), null, "nonConvertibile", "no-densita"],
+    ];
+    for (const [rapp, dens, secchio, stato] of casi) {
+      const c = terra.serieDichiaratoTurni([dich(rapp, dens)]).conto;
+      eq(c[secchio], 1, `${secchio}: il secchio è quello giusto`);
+      eq(terra.riconciliazioneTurni(rilSani, rapp, DAL, AL, dens).stato, stato,
+        `e riconciliazioneTurni sugli stessi dati dice «${stato}»`);
+    }
+    /* e il verso opposto: dove si converte non c'è nessun buco */
+    const c = terra.serieDichiaratoTurni([dich(rappT(5000), T_DENS)]).conto;
+    eq(c.senzaTurni + c.nonConvertibile + c.senzaRapportini, 0, "niente buchi quando il dichiarato si converte");
+  });
+
+  test("Terra · descriviBuchiTurni NON dice «non hanno dichiarato niente» dove i turni hanno dichiarato", () => {
+    const c = terra.serieDichiaratoTurni([dich(rappV(61), T_DENS)]).conto;
+    const f = terra.descriviBuchiTurni(c);
+    eq(/non hanno dichiarato niente|nessun turno/.test(f), false,
+      "la frase non accusa i turni di non aver registrato: " + f);
+    eq(f.includes("61 viaggi"), true, "e dice che cosa hanno dichiarato: " + f);
+    eq(f.includes("non si converte in metri cubi"), true, "con la ragione vera del buco: " + f);
+  });
+
+  test("Terra · descriviBuchiTurni: le due cause insieme restano due frasi diverse", () => {
+    const c = terra.serieDichiaratoTurni([dich([], T_DENS), dich(rappV(61), T_DENS)]).conto;
+    const f = terra.descriviBuchiTurni(c);
+    eq(f.includes("nessun turno ha registrato una produzione"), true, "la prima causa c'è: " + f);
+    eq(f.includes("qualcosa che non si converte in metri cubi"), true, "e la seconda anche: " + f);
+    eq(f.includes("restano dei buchi, non degli zeri"), true, "e i buchi restano buchi: " + f);
+  });
+
+  test("Terra · descriviBuchiTurni: «in un intervallo», mai «in 1 intervallo», e vuota quando non c'è nessun buco", () => {
+    const uno = terra.descriviBuchiTurni(terra.serieDichiaratoTurni([dich([], T_DENS)]).conto);
+    eq(/\bin 1 intervall/.test(uno), false, "col singolare si scrive la parola: " + uno);
+    eq(uno.startsWith("In un intervallo"), true, uno);
+    const due = terra.descriviBuchiTurni(terra.serieDichiaratoTurni([dich([], T_DENS), dich([], T_DENS)]).conto);
+    eq(due.startsWith("In 2 intervalli"), true, due);
+    eq(terra.descriviBuchiTurni(terra.serieDichiaratoTurni([dich(rappT(5000), T_DENS)]).conto), "",
+      "senza buchi la nota non esiste: una nota che non dice niente è rumore");
+    eq(terra.descriviBuchiTurni(null), "", "e su un conto che non c'è non si inventa una frase");
+  });
+
+  test("Terra · serieDichiaratoTurni: le tonnellate senza densità si SOMMANO fra intervalli", () => {
+    const c = terra.serieDichiaratoTurni([dich(rappT(5000), null), dich(rappT(2500.5), null)]).conto;
+    eq(c.tSenzaDensita, 7500.5, "7.500,5 t restano fuori dai metri cubi in due intervalli");
+    eq(terra.descriviBuchiTurni(c).includes("7.500,5 tonnellate senza densità"), true,
+      terra.descriviBuchiTurni(c));
+  });
+}
+
 console.log(`\nRisultato KPI app: ${passed} passati, ${failed} falliti${inVolo.length ? `  ·  ${inVolo.length} prove asincrone aspettate` : ""}`);
 process.exit(failed > 0 ? 1 : 0);

@@ -1880,6 +1880,94 @@ export function kpiFrom(fronti, rilievi, piano, oggi = new Date()) {
   };
 }
 
+/* ⛔ PERCHÉ UN PUNTO DEL GRAFICO DEI TURNI MANCA — E LE RAGIONI NON SONO LA
+   STESSA COSA. Il grafico «misurato e dichiarato, volo per volo» lascia un BUCO
+   dove il dichiarato non c'è, ed è giusto: uno zero disegnato sembra una
+   produzione nulla invece di un'assenza di informazione. Ma un buco ha tre
+   cause diverse, e fino al 09/08 la pagina le scriveva tutte con la stessa
+   frase — «i turni non hanno dichiarato niente»:
+     · senzaRapportini  · i rapportini di Campo non arrivano (non lo so);
+     · senzaTurni       · i rapportini ci sono e nessun turno ha registrato una
+                          produzione in quell'intervallo;
+     · nonConvertibile  · i turni HANNO dichiarato — tonnellate senza densità,
+                          o viaggi — e niente di quello è portabile in metri
+                          cubi. I viaggi non si convertono mai (servirebbe la
+                          portata del mezzo, che Terra non ha).
+   Nel terzo caso la frase era FALSA, ed è la faccia tranquilla dell'assenza:
+   accusa i turni di non aver registrato mentre il turno ha registrato e a
+   mancare è la conversione. Misurato il 09/08 iniettando nella dimostrazione
+   un intervallo di soli viaggi: il grafico scriveva «In 2 intervalli i turni
+   non hanno dichiarato niente» dove uno dei due portava 61 viaggi veri.
+   ⚠️ E LA DISTINZIONE ERA GIÀ IN CASA, quaranta righe più su nella stessa
+   pagina: la sezione del confronto legge `riconciliazioneTurni` e scrive due
+   frasi diverse per `no-dichiarato` e `no-densita`. Il grafico ne teneva la
+   copia più debole — la forma esatta che CLAUDE.md dice di cercare dove il
+   documento (qui: la frase di riepilogo) si compone.
+   I tre secchi corrispondono uno a uno agli stati di `riconciliazioneTurni`
+   (`no-campo`, `no-dichiarato`, `no-densita`), e una prova in `run-kpi.mjs`
+   pretende quella corrispondenza invece di fidarsene: due classificazioni
+   uguali oggi divergono domani senza che nessuno lo veda.
+   ⚠️ La serie e il conto escono dalla STESSA passata di proposito: se il conto
+   lo facesse un secondo giro, un buco disegnato e un buco raccontato
+   potrebbero divergere. Pure, quindi si provano senza browser. */
+export function serieDichiaratoTurni(dichiarati) {
+  const valori = [];
+  const conto = { intervalli: 0, senzaRapportini: 0, senzaTurni: 0, nonConvertibile: 0, viaggi: 0, tSenzaDensita: 0 };
+  for (const d of (dichiarati || [])) {
+    conto.intervalli++;
+    if (!d) { conto.senzaRapportini++; valori.push(null); continue; }
+    if (!d.turni) { conto.senzaTurni++; valori.push(null); continue; }
+    /* ⚠️ `!(d.m3 > 0)` e non `d.m3 === 0`: `produzioneDichiarata` il totale in
+       metri cubi lo lascia a zero quando non ha potuto convertire, e un
+       confronto sulla forma del numero qui rileggerebbe uno zero comodo. */
+    if (!(d.m3 > 0)) {
+      conto.nonConvertibile++;
+      if (Number.isFinite(+d.viaggi)) conto.viaggi += +d.viaggi;
+      if (Number.isFinite(+d.tSenzaDensita)) conto.tSenzaDensita = Math.round((conto.tSenzaDensita + +d.tSenzaDensita) * 100) / 100;
+      valori.push(null); continue;
+    }
+    valori.push(d.m3);
+  }
+  return { valori, conto };
+}
+
+/* LA FRASE SOTTO IL GRAFICO, scritta dal modulo e non dalla pagina: è la stessa
+   scelta di `descriviBaseOnere` e `descriviOrigine`, e per la stessa ragione —
+   il modo di raccontare un'assenza è una regola del prodotto, non un dettaglio
+   di quella schermata. Testo puro, senza tag: la pagina lo stampa con `esc`.
+   ⚠️ «In 1 intervallo» è la forma che si legge male e che questa casa ha già
+   censito trentadue volte: con uno si scrive «in un intervallo».
+   ⚠️ E l'elenco di ciò che non si converte sta in PARENTESI apposta: appeso
+   con un «che non si convertono» costringerebbe a far concordare il verbo con
+   una lista che cambia numero — la stessa trappola dell'«Esportati 1 fronti».
+   Torna "" quando non c'è nessun buco: una nota che non dice niente è rumore. */
+export function descriviBuchiTurni(c) {
+  if (!c) return "";
+  const mancante = (c.senzaRapportini || 0) + (c.senzaTurni || 0);
+  const buchi = mancante + (c.nonConvertibile || 0);
+  if (!buchi) return "";
+  const inQuanti = (n) => n === 1 ? "in un intervallo" : "in " + conta(n, "intervallo", "intervalli");
+  const parti = [];
+  if (c.senzaRapportini) parti.push(`${inQuanti(c.senzaRapportini)} i rapportini di Campo non arrivano`);
+  if (c.senzaTurni) parti.push(`${inQuanti(c.senzaTurni)} nessun turno ha registrato una produzione`);
+  if (c.nonConvertibile) {
+    const fuori = [];
+    if (c.tSenzaDensita > 0) fuori.push(conta(c.tSenzaDensita, "tonnellata", "tonnellate") + " senza densità");
+    if (c.viaggi > 0) fuori.push(conta(c.viaggi, "viaggio", "viaggi"));
+    parti.push(`${inQuanti(c.nonConvertibile)} i turni hanno dichiarato qualcosa che non si converte in metri cubi`
+      + (fuori.length ? ` (${fuori.join(" e ")})` : ""));
+  }
+  const coda = c.nonConvertibile && mancante
+    ? "quello che nessuno ha registrato e quello che non si sa portare in metri cubi non sono una produzione a zero."
+    : c.nonConvertibile
+      ? "un dichiarato che non si sa portare in metri cubi non è un dichiarato a zero."
+      : "quello che nessuno ha registrato non è una produzione a zero.";
+  const testa = parti.join("; ");
+  return testa.charAt(0).toUpperCase() + testa.slice(1)
+    + ". Nel grafico " + (buchi === 1 ? "resta un buco, non uno zero" : "restano dei buchi, non degli zeri")
+    + ": " + coda;
+}
+
 // ══════════════════════════════════════════════════════════════════════
 // PONTE P2 — CAMPO → TERRA
 // La logica sta in `shared/dw-ponti.js`, perché serve anche a Campo e non
