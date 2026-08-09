@@ -791,6 +791,21 @@ numero scritto dove non era stato misurato niente**.*
       resta come sta: è un'altra cosa).
 - [ ] **E8.** Verifica finale: le sette pagine affiancate devono sembrare la
       stessa famiglia.
+      ✅ **La METÀ misurabile è chiusa l'09/08 ed è dentro il giro**:
+      `tests/browser/famiglia-strutture.mjs` (20 asserzioni, **6 superfici su
+      6**, 0 dichiarate non misurate) pinza ciò che
+      `docs/E8_LE_PAGINE_AFFIANCATE.md` aveva trovato **identico** — barra alta,
+      altezza e tipografia del titolo di sezione — col riferimento preso dalla
+      prima superficie invece che scritto a mano, e con la controprova.
+      ⛔ Prima viveva **nello scratchpad**: il documento, alla riga «come si
+      rifà», mandava a `scratchpad/<tuo>/famiglia.mjs`. Una difesa nello
+      scratchpad alla sessione dopo non esiste — è lo stesso difetto della prova
+      della verifica periodica di Scudo, e adesso la riga del documento è
+      corretta (direttiva 7).
+      ⚠️ **Resta aperta la metà che i numeri non sanno fare**: il foglio a
+      contatto va **guardato**. I numeri dicono se una barra è alta uguale, non
+      se la pagina *sembra* della stessa famiglia — e il banco non finge di
+      saperlo.
 - [ ] **G7–G9.** Genesi: ottimizzatore di volata, report professionale,
       rifiniture di scena.
 - [ ] **Q1.** Proposte di `docs/RICERCA_DEEPWORKID_202607.md` (ruoli reali
