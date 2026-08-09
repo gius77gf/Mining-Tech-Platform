@@ -2890,6 +2890,33 @@ test("gli importi non positivi non entrano nei totali", () => {
   ok(!Object.keys(conti.riepilogoCosti(COSTI).perGruppo).includes("generali"),
     "il -50 non crea un gruppo");
 });
+test("⛔ ma non entrare nei totali non vuol dire SPARIRE: si contano a parte", () => {
+  /* Era la domanda aperta del filone: una voce di costo senza importo usciva
+     alla PRIMA riga della funzione e da lì in poi non esisteva per nessuno —
+     non nel totale, non in `conto`, non nell'elenco a schermo, non nel CSV.
+     La stessa funzione, dieci righe più giù, per le voci senza DATA aveva già
+     scelto il contrario: contarle e dirlo. Una correzione fatta a metà del
+     proprio file è la firma della copia debole. */
+  const CON_VUOTI = COSTI.concat([
+    { voce: "personale", importo: null, data: "2026-03-10" },   // mai compilato
+    { voce: "energia", importo: "", data: "2026-03-11" },       // svuotato a mano
+    { voce: "canone", importo: "abc", data: "2026-03-12" },     // illeggibile
+    { voce: "generali", importo: 0, data: "2026-03-13" },       // zero SCRITTO
+  ]);
+  const r = conti.riepilogoCosti(CON_VUOTI, "2026-03-01", "2026-03-31");
+  eq(r.senzaImporto, 3, "tre voci con l'importo che non si legge");
+  eq(r.importoNonPositivo, 2, "e due scritte ma non positive: lo zero e il -50");
+  /* ⚠️ lo ZERO SCRITTO non si confonde col campo mai riempito: è un dato — un
+     costo può essere davvero zero — e va dalla parte di chi l'ha scritto */
+  ok(r.righeSenzaImporto.every(c => c.importo !== 0),
+    "lo zero scritto non finisce fra i «senza importo»");
+  ok(r.righeImportoNonPositivo.some(c => c.importo === 0),
+    "…ci finisce fra i «non positivi», che è dove lo si va a guardare");
+  eq(r.totale, 6200, "e i totali NON cambiano: si dichiara l'omissione, non si somma l'illeggibile");
+  /* e si dichiarano anche SENZA periodo, perché il filtro sull'importo il
+     periodo non lo guarda: quelle voci sono fuori da qualunque totale */
+  eq(conti.riepilogoCosti(CON_VUOTI).senzaImporto, 3, "anche senza periodo");
+});
 test("⛔ senza il volume il costo al metro cubo NON si calcola", () => {
   for (const v of [null, 0, "", NaN, -5]) {
     const r = conti.costoPerMetroCubo(COSTI, v);

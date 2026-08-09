@@ -4783,8 +4783,25 @@ label.item:has(.dw-chk:checked){
       <div class="cassa-lab">Costi del periodo</div></div>
       <div class="cassa-txt" style="margin-left:auto;text-align:right;">
       ${plur(r.conto, "voce registrata", "voci registrate")}.<br>
-      ${r.senzaData ? plur(r.senzaData, "voce senza data", "voci senza data") + ": <b>fuori da questo totale</b>."
-                    : "Nessuna voce lasciata fuori."}</div></div>`
+      ${(() => {
+        /* ⛔ «NESSUNA VOCE LASCIATA FUORI» ERA LA FRASE PIÙ TRANQUILLA DELLA
+           SCHERMATA, E POTEVA ESSERE FALSA. Guardava solo le voci senza DATA;
+           ma `riepilogoCosti` lascia fuori dai totali anche le voci il cui
+           importo non si legge e quelle non positive — e prima dell'09/08
+           quelle uscivano alla prima riga della funzione, senza essere
+           contate da nessuno. Cioè la pagina dichiarava «nessuna» avendo in
+           mano soltanto uno dei tre motivi.
+           I tre restano SEPARATI perché portano a gesti diversi: una data si
+           mette, un importo mai scritto si compila, uno zero o un negativo
+           l'ha scritto qualcuno e va capito. */
+        const fuori = [];
+        if (r.senzaData) fuori.push(plur(r.senzaData, "voce senza data", "voci senza data"));
+        if (r.senzaImporto) fuori.push(plur(r.senzaImporto, "voce senza importo", "voci senza importo"));
+        if (r.importoNonPositivo) fuori.push(plur(r.importoNonPositivo, "voce a zero o in negativo", "voci a zero o in negativo"));
+        return fuori.length
+          ? fuori.join(", ") + ": <b>fuori da questo totale</b>."
+          : "Nessuna voce lasciata fuori.";
+      })()}</div></div>`
       /* ⚠️ Questo testo diceva che le voci non classificate «non entrano nella
          ripartizione per gruppo» — e sullo schermo, tre centimetri più sotto,
          il loro gruppo c'è: si chiama «Voci non classificate». Una nota che
@@ -5917,11 +5934,31 @@ label.item:has(.dw-chk:checked){
       csv += `${csvCell(c.data)};${csvCell(leggiVoce(c.voce))};${csvCell(etichettaGruppo(gruppoDiVoce(c.voce)))};${cellaNum(c.importo)};${csvCell(c.nota || "")};si\n`;
     for (const c of r.righeSenzaData)
       csv += `;${csvCell(leggiVoce(c.voce))};${csvCell(etichettaGruppo(gruppoDiVoce(c.voce)))};${cellaNum(c.importo)};${csvCell(c.nota || "")};no (senza data)\n`;
+    /* ⛔ E LE VOCI SENZA IMPORTO NON C'ERANO PROPRIO, in un file il cui
+       commento qui sopra dichiara che lasciarle fuori in silenzio «è lo stesso
+       totale tranquillo di prima, solo che stavolta finisce dal
+       commercialista». Uscivano alla prima riga di `riepilogoCosti`, quindi non
+       arrivavano né in `righe` né in `righeSenzaData`: il file era più
+       tranquillo dello schermo, che è la cosa che questo filone esiste per
+       impedire. Escono marcate, come le altre, e la cella dell'importo resta
+       VUOTA — `cellaNum` non inventa uno zero sommabile. */
+    for (const c of r.righeSenzaImporto)
+      csv += `${csvCell(c.data)};${csvCell(leggiVoce(c.voce))};${csvCell(etichettaGruppo(gruppoDiVoce(c.voce)))};${cellaNum(c.importo)};${csvCell(c.nota || "")};no (senza importo)\n`;
+    for (const c of r.righeImportoNonPositivo)
+      csv += `${csvCell(c.data)};${csvCell(leggiVoce(c.voce))};${csvCell(etichettaGruppo(gruppoDiVoce(c.voce)))};${cellaNum(c.importo)};${csvCell(c.nota || "")};no (importo a zero o negativo)\n`;
     const a = document.createElement("a");
     a.href = URL.createObjectURL(new Blob(["﻿" + csv], { type: "text/csv;charset=utf-8" }));
     a.download = "conti_costi_" + d1 + "_" + d2 + ".csv"; marchiaCsv(a);
     a.click(); URL.revokeObjectURL(a.href);
-    esito("cos-esito", plurale(r.righe.length + r.righeSenzaData.length, "Esportata ", "Esportate ") + plur(r.righe.length + r.righeSenzaData.length, "voce di costo", "voci di costo") + ".", "success");
+    /* ⛔ IL CONTO DELLA FRASE SI PRENDE DALLE RIGHE CHE SONO USCITE DAVVERO,
+       non da un pezzo di esse: è la terza gamba della domanda di casa — la
+       frase conta l'array SORGENTE mentre il ciclo che scrive filtra — e qui
+       aggiungendo due gruppi al file senza toccare questa riga la frase
+       sarebbe rimasta indietro di colpo. Il banco di Conti confronta le due
+       cose a ogni giro. */
+    const usciteCsv = r.righe.length + r.righeSenzaData.length
+      + r.righeSenzaImporto.length + r.righeImportoNonPositivo.length;
+    esito("cos-esito", plurale(usciteCsv, "Esportata ", "Esportate ") + plur(usciteCsv, "voce di costo", "voci di costo") + ".", "success");
   };
 
   /* Il PROSPETTO dei prezzi: quello che il commercialista o il cliente

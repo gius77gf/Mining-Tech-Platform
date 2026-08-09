@@ -73,6 +73,14 @@ const MODULO = join("apps", "conti", "conti-data.js");
    è caduto un altro difetto. Qui si àncora alla sola riga che deve restare
    ferma, e il vecchio comportamento si rimette ombreggiando `st`. */
 const DIFETTI = [
+  /* 0 · IL RITORNO DEL SILENZIO: il CSV dei costi senza le voci che nessun
+     totale contiene. È il difetto chiuso il 09/08 — una voce di costo senza
+     importo usciva dalla prima riga di `riepilogoCosti` e non arrivava né a
+     schermo né nel file — e l'iniezione lo rimette togliendo la riga che le
+     scrive. ⚠️ L'ancora è **corta** apposta: cita solo il ciclo, non il suo
+     commento, perché un commento si riscrive e l'iniezione scadrebbe senza
+     fare rumore. */
+  ["    for (const c of r.righeSenzaImporto)", "    for (const c of [])"],
   // 1 · il CSV degli incassi che ignora le note di credito
   ["      const st = statoFattura(r.f, INC, NOT);",
    "      const st = { esigibile: round2(importiFattura(r.f).totale), stornato: 0 };"],
@@ -354,17 +362,23 @@ if (await vaiA("nav-cos", "page-cos")) {
   dice(!!f, "il file esce davvero");
   if (f) {
     const righe = f.righe.slice(1);
-    /* ⚠️ MISURATO, E RIDIMENSIONA LA PROVA: `riepilogoCosti` SCARTA a monte le
-       voci senza importo — su due costi d'esempio, uno con 1.200 € e uno senza,
-       ne restituisce **uno solo**. Quindi la cella vuota, in questo file, non
-       si può nemmeno raggiungere: la correzione della cella resta giusta (è la
-       stessa regola delle altre due), ma è una difesa in profondità, non un
-       difetto che si vedeva. Scritto qui perché il prossimo non lo rimisuri —
-       e perché la domanda vera che ne esce è UN'ALTRA, da aprire a parte: una
-       voce di costo registrata senza importo sparisce dal riepilogo E dal
-       file, in silenzio. */
-    dice(righe.length === 1, "nel file c'è la sola voce che ha un importo", righe.length);
-    dice(Number(colonna(righe[0] || "", 3)) === 1200, "e il suo importo esce com'è", colonna(righe[0] || "", 3));
+    /* ⛔ E QUESTA PROVA BENEDICEVA IL SILENZIO. Fino all'09/08 diceva «nel file
+       c'è la SOLA voce che ha un importo» — cioè pretendeva esattamente il
+       difetto: `riepilogoCosti` scartava a monte le voci senza importo, e il
+       file usciva senza di loro **senza dirlo**. Il commento che stava qui lo
+       aveva perfino scritto («la domanda vera è un'altra, da aprire a parte»),
+       e intanto l'asserzione la teneva chiusa.
+       Adesso la voce senza importo ESCE, marcata, con la sua cella vuota. La
+       prova è più GIUSTA, non più permissiva: si pretende che ci sia **e** che
+       non porti un numero inventato. */
+    dice(righe.length === 2,
+      "nel file ci sono tutt'e due le voci: quella con l'importo e quella senza, marcata", righe.length);
+    const conImporto = righe.filter((x) => colonna(x, 3).trim());
+    const senza = righe.filter((x) => !colonna(x, 3).trim());
+    dice(conImporto.length === 1 && Number(colonna(conImporto[0], 3)) === 1200,
+      "l'importo scritto esce com'è", conImporto.map((x) => colonna(x, 3)));
+    dice(senza.length === 1 && /senza importo/i.test(senza[0]),
+      "e la voce senza importo dichiara PERCHÉ è fuori dal totale, invece di sparire", senza);
     dice(!righe.some((x) => colonna(x, 3) === "0"),
       "nessuna riga porta uno ZERO al posto di un importo mai scritto");
   }

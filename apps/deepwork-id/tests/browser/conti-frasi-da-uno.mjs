@@ -137,8 +137,13 @@ const DIFETTI = [
    '? "Esportati " + plur(righe.length, "incasso", "incassi") + " in CSV."'],
   ['esito("cl-esito", plurale(CLI.length, "Esportato ", "Esportati ") + plur(CLI.length, "cliente", "clienti") + " in CSV.", "success");',
    'esito("cl-esito", "Esportati " + plur(CLI.length, "cliente", "clienti") + " in CSV.", "success");'],
-  ['esito("cos-esito", plurale(r.righe.length + r.righeSenzaData.length, "Esportata ", "Esportate ") + plur(r.righe.length + r.righeSenzaData.length, "voce di costo", "voci di costo") + ".", "success");',
-   'esito("cos-esito", "Esportate " + plur(r.righe.length + r.righeSenzaData.length, "voce di costo", "voci di costo") + ".", "success");'],
+  /* ⏱️ RI-ANCORATA il 09/08: il conto della frase adesso si prende da una
+     variabile - `usciteCsv` - perche' il file ha guadagnato le voci senza
+     importo, e senza di lei la frase sarebbe rimasta indietro di colpo.
+     A prenderla e' stata `iniezioni-fresche` in tre secondi, che e' la ragione
+     per cui quel controllo esiste. */
+  ['esito("cos-esito", plurale(usciteCsv, "Esportata ", "Esportate ") + plur(usciteCsv, "voce di costo", "voci di costo") + ".", "success");',
+   'esito("cos-esito", "Esportate " + plur(usciteCsv, "voce di costo", "voci di costo") + ".", "success");'],
   ['esito("pr-esito", plurale(PRO.length, "Esportato ", "Esportati ") + plur(PRO.length, "prodotto", "prodotti") + " col prezzo convertito',
    'esito("pr-esito", "Esportati " + plur(PRO.length, "prodotto", "prodotti") + " col prezzo convertito'],
   ['esito("pes-esito", plurale(PES.length, "Esportata ", "Esportate ") + plur(PES.length, "pesata", "pesate") + " in CSV.", "success");',
@@ -449,7 +454,18 @@ const EXPORT = [
   ["pes", "btn-pes-export", /Esportata 1 pesata in CSV\./, "«Esportata 1 pesata», non «Esportate»"],
   ["lis", "btn-lis-export", /Esportato 1 prodotto \(CSV\)\./, "«Esportato 1 prodotto (CSV)», non «Esportati»"],
   ["gar", "btn-gar-export", /Esportata 1 gara in CSV\./, "«Esportata 1 gara», non «Esportate»"],
-  ["ord", "btn-or-export", /1 preventivo esportato\./, "«1 preventivo esportato» — questo era già giusto, e resta"],
+  /* ⛔ E QUESTA RIGA PINNAVA LA PUNTEGGIATURA, NON IL SINGOLARE. Chiedeva
+     `1 preventivo esportato\.` — col PUNTO — e la frase nel frattempo è
+     diventata «1 preventivo esportato **· 1 riga nel foglio.**», perché
+     l'export adesso dichiara quanto ne esce. Cioè il banco contava come
+     difetto un MIGLIORAMENTO: è la stessa famiglia già capitata a
+     `conti-frasi` con «Esportati/Esportato», scritta nella roadmap.
+     La correzione rende l'asserzione **più giusta, non più permissiva**: il
+     punto non diceva niente sul singolare, e al suo posto c'è una guardia che
+     dice esattamente quello che questo banco esiste per pretendere — dopo
+     «esportato» non ci può essere un'altra lettera, cioè non ci può essere
+     «esportati». */
+  ["ord", "btn-or-export", /\b1 preventivo esportato(?![a-z])/, "«1 preventivo esportato», non «preventivi esportati»"],
 ];
 for (const [sez, id, re, nome] of EXPORT) {
   if (!(await vai(A.pg, sez))) continue;

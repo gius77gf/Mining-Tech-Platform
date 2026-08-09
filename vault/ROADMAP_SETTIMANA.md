@@ -2479,6 +2479,31 @@ cosa più tranquilla di quella che lo schermo mostra.
       la prima per la seconda. Separate (`postiDaFrase` in `giro.mjs`, che riusa
       il selettore invece di riscriverlo): **7 muti, 0 senza posto**.
 - [ ] **Scudo (5)** — resta da aprire.
-- [ ] **Domanda aperta**: una voce di costo senza importo sparisce dal
-      riepilogo e dal file **in silenzio** (`riepilogoCosti` la scarta a monte).
-      Da decidere, non da correggere di slancio.
+- [x] ✅ **Domanda chiusa (09/08): una voce di costo senza importo spariva in
+      silenzio — adesso lo dichiara.** `riepilogoCosti` la scartava alla
+      **prima riga**, e da lì in poi non esisteva per nessuno: né nel totale,
+      né in `conto`, né nell'elenco a schermo, né nel CSV.
+      ⛔ **E la decisione non andava presa: era già presa, dieci righe più giù
+      nella stessa funzione**, dove le voci senza **data** vengono contate e
+      dichiarate invece che buttate — col commento che spiega perché. Una
+      correzione fatta a metà del proprio file è la firma della copia debole,
+      e qui i due casi erano nello stesso posto.
+      ⚠️ **Quello che NON cambia, di proposito: che cosa si somma.** Sommare un
+      importo che non si legge è impossibile, e se un negativo sia una
+      correzione da contare è una domanda di prodotto **a sé**, che resta
+      aperta. Qui cambia solo che l'omissione **si vede**: totali invariati
+      (6200 prima e dopo).
+      ⚠️ **E i tre motivi restano separati perché portano a gesti diversi**: una
+      data si mette, un importo mai scritto si compila, uno zero o un negativo
+      **l'ha scritto qualcuno** e va capito. Lo zero SCRITTO non si confonde col
+      campo mai riempito — `numeroDichiarato`, la funzione che in questa casa
+      distingue le due cose.
+      ⛔ **E la frase più tranquilla della schermata poteva essere falsa**:
+      «Nessuna voce lasciata fuori» guardava **solo** le voci senza data, cioè
+      dichiarava «nessuna» avendo in mano uno dei tre motivi. Adesso li nomina
+      tutti e tre.
+      Verifiche: `run-kpi` **1921 → 1922**, 0 falliti (il caso nuovo mette alla
+      prova tutti e quattro i modi in cui un importo non si legge — `null`,
+      stringa vuota, «abc», e lo zero scritto); `run-stile` 318/0,
+      `sonda-vuoto` 15/0 con **5 tranquilli trovati e 5 dichiarati**,
+      sintassi delle pagine 34/0.

@@ -2897,7 +2897,29 @@ export function riepilogoCosti(costi, dal = "", al = "") {
     if (!/^\d{4}-\d{2}-\d{2}$/.test(d)) return false;   // senza data non si può collocare
     return (!d1 || d >= d1) && (!d2 || d <= d2);
   };
-  const righe = (costi || []).filter(c => c && +c.importo > 0);
+  /* ⛔ E LE VOCI SENZA IMPORTO SPARIVANO PRIMA DI ESSERE CONTATE. Questo filtro
+     è la prima riga della funzione: una voce di costo il cui importo non si
+     legge — o è zero, o è negativo — usciva **qui**, e da qui in poi non
+     esisteva più per nessuno: non nel totale, non in `conto`, non nell'elenco
+     che la schermata mostra, non nel CSV. Cioè spariva **in silenzio**, ed è
+     esattamente il principio del fondatore al contrario: un totale tranquillo
+     ottenuto lasciando fuori quello che non si sapeva leggere.
+     ⚠️ Quello che NON cambia, di proposito: **che cosa si somma**. Sommare un
+     importo che non si legge è impossibile, e se un negativo sia una
+     correzione da contare è una domanda di prodotto a sé. Qui cambia solo che
+     l'omissione **si dichiara** — che è la stessa scelta già fatta dieci righe
+     più in giù per le voci senza data, con le stesse parole. Una correzione
+     fatta a metà del proprio file è la firma della copia debole, e qui i due
+     casi sono nello stesso posto.
+     ⚠️ E i due motivi si tengono SEPARATI perché portano a gesti diversi: un
+     importo mai scritto si va a compilare, un importo negativo o zero è stato
+     scritto da qualcuno e va capito. `numeroDichiarato` è la funzione che in
+     questa casa distingue lo zero SCRITTO dal campo mai riempito. */
+  const leggibile = (c) => numeroDichiarato(c && c.importo) !== null;
+  const tutte = (costi || []).filter(Boolean);
+  const righe = tutte.filter(c => +c.importo > 0);
+  const senzaImporto = tutte.filter(c => !leggibile(c));
+  const importoNonPositivo = tutte.filter(c => leggibile(c) && +c.importo <= 0);
   const nelPeriodo = righe.filter(dentro);
   const perGruppo = {};
   let totale = 0, nonClassificate = 0, importoNonClassificate = 0;
@@ -2921,7 +2943,13 @@ export function riepilogoCosti(costi, dal = "", al = "") {
   return { totale, perGruppo, conto: nelPeriodo.length,
            nonClassificate, importoNonClassificate,
            senzaData: (d1 || d2) ? nonDatate.length : 0,
-           righe: nelPeriodo, righeSenzaData: (d1 || d2) ? nonDatate : [] };
+           righe: nelPeriodo, righeSenzaData: (d1 || d2) ? nonDatate : [],
+           /* ⚠️ Questi due si dichiarano SEMPRE, anche senza periodo, perché il
+              filtro sull'importo non guarda il periodo: una voce senza importo
+              è fuori da **qualunque** totale, non solo da quello del mese. */
+           senzaImporto: senzaImporto.length, righeSenzaImporto: senzaImporto,
+           importoNonPositivo: importoNonPositivo.length,
+           righeImportoNonPositivo: importoNonPositivo };
 }
 
 // ⛔ E IL COSTO AL METRO CUBO NON SI CALCOLA SENZA I METRI CUBI. È la stessa
