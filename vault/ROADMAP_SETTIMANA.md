@@ -1022,11 +1022,28 @@ numero scritto dove non era stato misurato niente**.*
   In pratica non si vede — fori di una volata e referti stanno sotto il
   migliaio — ma **il principio è rotto lo stesso**, e va rivisto insieme a
   questo.
-  ⛔ **La forma della correzione** (non fatta: tocca `shared/` o nove punti, e
-  va decisa con calma): comporre `gnum(n,0) + ' ' + plurale(n, sing, plur)`
-  invece di `conta(n, …)` dove il numero può superare il migliaio — oppure dare
-  a `conta` il raggruppamento, che però è una decisione su `shared/` e
-  cambierebbe **tutte** le app in una volta.
+  ✅ **CHIUSO IL PEZZO DI GENESI** (`9907c75`): `_puntiNuvola` compone
+  `gnum(n,0) + ' ' + plurale(n, sing, plur)` — il conto lo formatta chi sa
+  formattarlo, la parola la accorda chi sa accordarla — e `punti-nuvola` passa
+  da **4 KO a 7 passate, 0 fallite**. `shared/` **non è stato toccato**.
+  ⚠️ Effetto collaterale preso subito dal giro `node`: l'iniezione di
+  `genesi-frasi-limite` citava la riga vecchia. Ri-ancorata, 215/215.
+  ⛔ **RESTA IL RESTO, E LA SCOPERTA È CHE NON È SOLO MIO — misurato.** La
+  griglia del disegno è limitata (`perRow` fra 3 e **30**), quindi i conti
+  costruiti *nell'interfaccia* stanno sotto il migliaio e non si vedrebbero
+  mai. Ma i conti che arrivano da un **file importato** non hanno tetto:
+  · `holes.length` del **piano XML** — «Piano XML importato: 1234 fori»;
+  · `r.campo.foriTot` del **consuntivo di Campo**.
+  Il primo passava da `gnum` **prima del 06/08** e ha perso il raggruppamento
+  quando è stato portato a `_ricPlur` per correggere il singolare: cioè la
+  stessa trappola, **fatta da altri prima che da me**, sulla riga che legge un
+  file di un cliente.
+  ⛔ **Prossimo passo**: i nove punti miei + i due da import, tutti con la forma
+  già provata in `_puntiNuvola`. Non l'ho fatto adesso di proposito — nove
+  modifiche a contesto quasi esaurito, dopo che una sola ha già mosso
+  un'iniezione, è il modo di lasciare il branch peggio di come si è trovato.
+  ⚠️ E la strada alternativa — dare il raggruppamento a `conta` in `shared/` —
+  resta **aperta e non mia**: cambierebbe tutte le app in una volta.
   ⚠️ Da verificare per prima cosa: `docs/MIGLIAIA_NODE_CONTRO_CHROMIUM.md` dice
   che sui numeri di **quattro cifre** Node e Chromium raggruppano diversamente
   — quindi la scelta va fatta con `useGrouping` **scritto**, non implicito.
