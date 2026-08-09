@@ -206,6 +206,53 @@ esistono tutti e due).
 
 ---
 
+## ⚠️ Aggiornamento del 9 agosto — i numeri che dicevano una cosa tranquilla senza aver misurato niente
+
+C'è una regola del prodotto che vale per tutte le app: **quando un dato manca,
+l'app deve dirlo, non tirare a indovinare.** Un numero rassicurante dove nessuno
+ha misurato niente è peggio di nessun numero, perché nessuno va a
+controllarlo.
+
+Oggi quella regola è stata applicata a **Genesi**, e ha trovato tre numeri che
+la violavano — tutt'e tre fra quelli con cui si decide se una volata si può
+sparare:
+
+- **la carica massima che parte insieme.** Su un progetto senza fori disegnati
+  l'app rispondeva la carica di **un solo foro**: il valore più basso possibile,
+  quindi la vibrazione prevista più tranquilla. Nei numeri: **3,28 mm/s invece
+  di 23,95**, sette volte più bassa. Adesso dice «non calcolabile» e spiega
+  perché.
+- **la carica totale e il costo.** Con la carica per foro illeggibile il foglio
+  scriveva «0 kg» e un costo **più basso del vero** — cioè un margine più alto
+  di quello reale. Adesso il costo non calcolabile si dichiara: gli addendi che
+  si possono ancora contare restano contati, e manca solo quello che manca.
+- **la pezzatura prevista** (quanto vengono grossi i blocchi). Sbagliava in
+  **due direzioni opposte sullo stesso schermo**: il consumo specifico scriveva
+  «0,00 kg/m³», che rassicura, e la pezzatura passava da 27 a **97 cm**, che
+  allarma.
+
+⛔ **E la cosa più importante è arrivata dopo.** Sistemate tutte e tre, si è
+scoperto che **bastavano due clic per rimetterle a inventare**: aprendo una
+volata con un valore illeggibile e toccando **un campo qualunque** — anche uno
+che con la carica non c'entra niente — l'app rimetteva **5 kg per foro** al
+posto del «non calcolabile», senza nessun avviso. Una difesa che si spegne così
+non è una difesa. Adesso un campo il cui valore non si legge **resta vuoto** e
+l'app lo **dice per nome** quando apri la volata.
+
+⚠️ **Quello che resta da fare, detto chiaro**: la stessa cosa vale ancora per la
+**geometria** (spalla, spaziatura, profondità) e per altri dodici campi — ci sto
+lavorando. E per due valori del **recettore** delle vibrazioni l'invenzione va
+nella direzione che *allarma* invece che rassicurare: sono meno pericolosi, ma
+restano invenzioni.
+
+E in **Scudo** sono state corrette due tendine che sul telefono si leggevano a
+metà: una diceva «— nessun esito registrat…» e l'altra tagliava il nome
+dell'ente che fa la verifica. ⚠️ La cosa che vale la pena sapere: la frase era
+scritta bene e la funzione che la accorcia funzionava — **a sbagliare era il
+righello**, che si dimenticava dei venti pixel della freccina della tendina. E
+il controllo automatico che avrebbe dovuto accorgersene **aveva lo stesso identico
+errore**: sorvegliante e sorvegliato sbagliavano insieme.
+
 ## ⚠️ Aggiornamento del 7 agosto — i colori nei tre modi di guardare lo schermo
 
 Le app hanno **tre modi di mostrarsi**: scuro (di sera, in ufficio), chiaro, e
