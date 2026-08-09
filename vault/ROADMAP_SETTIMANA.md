@@ -953,6 +953,36 @@ numero scritto dove non era stato misurato niente**.*
       **senza che i soggetti guardati calino** (aperture, elementi, voci,
       comandi).
 
+- [ ] **B0-sexies. GLI ALTRI QUINDICI CAMPI CHE INVENTANO IL PROPRIO MINIMO —
+      contati, non stimati.** Chiuso il clamp della **carica** (B0-quater), il
+      cantiere ha censito il resto: in `applyDesign` ci sono **20** ripieghi
+      `||D2.x`, di cui **16 numerici col clamp**; corretto quello della carica,
+      ne restano **15**. Misurato nel browser aprendo i campi **uno alla volta**
+      col proprio valore a `null`: **24 campi su 27 inventano il proprio minimo
+      al secondo clic**. I tre che non lo fanno sono `dRit` (nessun clamp) e
+      `dErrColl`/`dDev`, che hanno già la guardia esplicita.
+      Al secondo clic diventano: `B` 1,5 · `S` 1,5 · `diam` 50 · `perRow` 3 ·
+      `file` 1 · `prof` 6 · `stem` 0,5 · `sub` 0 · `ritardoFila` 8 · `ucs` 5 ·
+      `eMod` 2 · `psSpacing` 0,3 · `psCharge` 0,1 · `recDist` 20 · `recFreq` 2.
+      `valoreCampo` è già in casa: ognuno è **una riga**.
+      ⛔ **MA LA GEOMETRIA NON SI CORREGGE SOLO IN `applyDesign`, e questa è la
+      ragione per cui non è stata toccata**: `pfNominale()` scrive
+      `consumoSpecifico(D2.kg, (D2.B||3)*(D2.S||3.5)*(D2.prof||10))` — una
+      **seconda invenzione a valle**, raggiungibile **già subito dopo `apri`**,
+      senza nemmeno il secondo clic. Con `B:null` il consumo specifico si
+      calcola su una spalla di **3 m che nessuno ha scritto**, e la leggono
+      quattro punti (mappa dell'energia, riquadro 3D, relief, scheda ispettore).
+      Correggere la geometria a metà **lascerebbe la bugia dov'era**.
+      ⚠️ E i due campi del **recettore** (`recDist` 300 → 20 m, `recFreq`
+      25 → 2 Hz) inventano nella direzione che **allarma**, non che rassicura:
+      resta invenzione, ma è un cantiere con `ppvLimit` dentro.
+      ⚠️ I ripieghi `||0` su costi e acqua **non sono un difetto**: `costoVolata`
+      dichiara la scelta — «un prezzo non inserito è *non lo addebito*».
+      ⚠️ E `psCharge` è una carica, ma metterla a `null` senza toccare la riga
+      «Presplit» farebbe dire *«carica lineare troppo bassa: taglio
+      incompleto»* su un valore che nessuno ha scritto: **farla a metà è
+      peggio**.
+
 - [ ] **B0-quater. UN CLAMP CHE FABBRICA 5 kg/FORO IN DUE CLIC, E RENDE
       RAGGIUNGIBILE UNO STATO PEGGIORE DI QUELLO APPENA CHIUSO.** Trovato il
       09/08 dal cantiere della frammentazione, **misurato e non corretto** perché
@@ -3660,8 +3690,8 @@ numero scritto dove non era stato misurato niente**.*
   nome apre il file sbagliato credendo che sia il più fresco.
 - Le decisioni: `docs/DECISIONI_WEEKEND.md` — pagina d'ingresso in cima.
 - Stato misurato al **09/08** (lanciando le suite, non a memoria):
-  **2.469 prove girano senza rete**. La frase va letta stretta: è la somma
-  delle **otto** suite che contano asserzioni (`run-kpi` 2017, `run-stile` 318,
+  **2.478 prove girano senza rete**. La frase va letta stretta: è la somma
+  delle **otto** suite che contano asserzioni (`run-kpi` 2026, `run-stile` 318,
   `run-helpers` 75, `run-pointcloud` 32, `run-manifest` 9, `run-demo` 8,
   `bootstrap-rivendicazioni` 7, `fogli-guardati` 3), non tutto ciò che gira nel
   giro `node` — che di comandi ne ha **34** e di asserzioni ne esegue di più:

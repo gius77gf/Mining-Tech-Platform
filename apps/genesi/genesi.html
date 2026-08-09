@@ -657,7 +657,7 @@ body.scr-sim #tl{bottom:80px}
             <label class="dc-f"><span>Esplosivo <button type="button" class="dc-info" id="dEsplInfo" title="Approfondimento esplosivo">ⓘ</button></span><select id="dEspl"></select></label>
             <label class="dc-f"><span>Innesco <button type="button" class="dc-info" id="dInnInfo" title="Approfondimento innesco">ⓘ</button></span><select id="dInnSel"></select></label>
             <label class="dc-f"><span>Esplosivo totale <u class="uni">(kg)</u></span><input type="text" inputmode="decimal" id="dKgTot" step="10" min="0" placeholder="tutta la volata"></label>
-            <label class="dc-f"><span>Carica <u class="uni">(kg/foro)</u></span><input type="text" inputmode="decimal" id="dKg" step="5" min="10" max="120" value="60"></label>
+            <label class="dc-f"><span>Carica <u class="uni">(kg/foro)</u></span><input type="text" inputmode="decimal" id="dKg" step="5" min="10" max="120" value="60" placeholder="vuoto = non calcolabile"></label>
             <label class="dc-f"><span>Ritardo foro <u class="uni">(ms)</u></span><select id="dRit"><option>17</option><option>25</option><option selected>42</option><option>65</option></select></label>
             <label class="dc-f"><span>Ritardo fila <u class="uni">(ms)</u></span><input type="number" id="dRitFila" step="1" min="8" max="200" value="84"></label>
             <label class="dc-f"><span>Sequenza di sparo</span><select id="dSeq"><option value="riga">Riga per riga</option><option value="diagonale" selected>Diagonale (echelon)</option><option value="vcut">V-cut</option><option value="box">Box cut</option></select></label>
@@ -1076,7 +1076,15 @@ import { sitoFit, ppvLimit, ppvSenzaSoglia, airblastDb, normaPpvLab,
    `fragSenzaConto`, che chiede se il dato c'è. La bandiera da leggere è
    `calcolabile`; senza, `pf` a zero e `x50` a 97 cm si ridisegnano tranquilli
    come prima, in due direzioni opposte. */
-         FRAG_SENZA_CONTO, fragSenzaConto, consumoSpecifico, fragKuzRam, rosinRammler } from './genesi-data.js';
+         FRAG_SENZA_CONTO, fragSenzaConto, consumoSpecifico, fragKuzRam, rosinRammler,
+/* i CAMPI, un piano sopra ai tre blocchi qui sopra — vedi il blocco G14.
+   ⛔ Le tre guardie non servivano a niente finché due clic le spegnevano:
+   `Math.max(5, Math.min(200, gvv('dKg')||D2.kg))` con la carica assente
+   inventava **5 kg/foro**, e da lì MIC, costo e pezzatura tornavano tutti a
+   dire un numero. `valoreCampo` mette la domanda «il dato c'è?» PRIMA del
+   clamp e lascia i clamp dov'erano; `volataSenzaValori` è l'altra metà — un
+   campo lasciato vuoto è muto, e all'apertura si dice quali valori mancano. */
+         valoreCampo, volataSenzaValori } from './genesi-data.js';
 /* ⛔ «ha una data» si decide con l'ESISTENZA, non con la forma: «2026-02-30» ha
    la forma giusta e non esiste. Il modulo di Genesi questa regola l'ha imparata
    il 03/08 — il commento in cima a `genesi-data.js` lo racconta — e la pagina
@@ -4515,7 +4523,14 @@ if($('hgVolate')) $('hgVolate').addEventListener('click',e=>{
     Object.assign(D2, JSON.parse(JSON.stringify(arr[i].design)));
     D2.holes=[]; D2.sel=-1; D2.selPt=-1;
     fillEsplSelects(); setScreen('design');
-    toast('✓ «'+arr[i].nome+'» aperta nel 2D');
+    /* ⛔ QUESTA È LA PORTA da cui entrano i dati che nessuno ha controllato —
+       `Object.assign` da `localStorage` — ed è quella da cui il 03/08 è
+       entrato il codice di normativa che Genesi non riconosce. Un campo che
+       arriva illeggibile adesso lascia il suo input VUOTO invece di scriverci
+       uno zero inventato: giusto, ma muto. Quindi lo si dice qui, una volta,
+       con i nomi che si leggono sullo schermo. */
+    const _senza=volataSenzaValori(arr[i].design);
+    toast('✓ «'+arr[i].nome+'» aperta nel 2D'+(_senza?' — ⚠️ '+_senza.che+'. '+_senza.come:''));
   }
 });
 if($('btn-salva-volata')) $('btn-salva-volata').onclick=()=>salvaVolata(': la trovi in Home');
@@ -5922,7 +5937,14 @@ function applyDesign(){
   D2.prof = Math.max(6, Math.min(18, gvv('dH')||D2.prof));
   if($('dEspl') && $('dEspl').value) D2.esplosivo=$('dEspl').value;
   if($('dInnSel') && $('dInnSel').value) D2.innesco=$('dInnSel').value;
-  D2.kg = Math.max(5, Math.min(200, gvv('dKg')||D2.kg)); deriveCharge();
+  /* ⛔ QUI STAVA IL DIFETTO CHE SPEGNEVA LE TRE GUARDIE DEL BLOCCO G13 (vedi
+     G14 in `genesi-data.js`): `Math.max(5, Math.min(200, gvv('dKg')||D2.kg))`
+     con la carica assente faceva `Math.min(200, null)` = **0** e il clamp
+     basso lo portava a **5 kg/foro** — un valore inventato, non un ripiego
+     dichiarato, e bastava toccare un campo qualunque perché comparisse.
+     `valoreCampo` chiede prima se il dato c'è; il clamp 5–200 è lo stesso di
+     prima e morde come prima sui dati veri ed estremi. */
+  D2.kg = valoreCampo(gvv('dKg'), D2.kg, 5, 200); deriveCharge();
   D2.ritardo = +$('dRit').value||D2.ritardo;
   D2.incl = Math.max(0, Math.min(30, +($('dIncl')?$('dIncl').value:D2.incl)||0));
   if($('dStem')) D2.stem = Math.max(0.5, Math.min(6, gvv('dStem')||D2.stem));
@@ -5957,7 +5979,15 @@ function applyDesign(){
 function syncDesignInputs(){
   if(!$('dB')) return;
   gsv('dB',D2.B,2); gsv('dS',D2.S,2); $('dD').value=D2.diam; $('dN').value=D2.perRow;
-  if($('dFile')) $('dFile').value=D2.file; gsv('dH',D2.prof,1); gsv('dKg',Math.round(D2.kg),0);
+  /* ⛔ E QUI STAVA LA PRIMA METÀ DEI DUE CLIC: `Math.round(D2.kg)` con la
+     carica assente fa **0**, e `gsv` quello zero lo scrive nel campo — uno
+     zero INVENTATO dentro un input, che si legge come un dato che qualcuno ha
+     scritto. `gsv` sa già arrotondare (`dec` = 0) e sa già che un valore che
+     non c'è si scrive con un campo VUOTO: l'arrotondamento a mano non serviva
+     e distruggeva il `null` prima che `gsv` lo vedesse.
+     Che il campo vuoto non resti muto lo garantisce `volataSenzaValori`,
+     chiamata quando la volata si apre. */
+  if($('dFile')) $('dFile').value=D2.file; gsv('dH',D2.prof,1); gsv('dKg',D2.kg,0);
   if($('dIncl')) $('dIncl').value=D2.incl; $('dRit').value=D2.ritardo;
   if($('dErrColl')) gsv('dErrColl',D2.errColl,2); if($('dDev')) gsv('dDev',D2.dev,2);
   if($('dStem')) gsv('dStem',D2.stem,2); if($('dSub')) gsv('dSub',D2.sub,2); if($('dRitFila')) $('dRitFila').value=D2.ritardoFila;
@@ -6084,7 +6114,13 @@ if($('dKg')) $('dKg').addEventListener('input', ()=>{ D2.kgAuto=false; });
    Sta in una funzione perché la chiamano in due — il ridisegno della scheda e la
    guardia sul campo vuoto — e due copie della stessa riga prima o poi scrivono
    due totali diversi. */
-function syncKgTot(){ if($('dKgTot')) gsv('dKgTot',Math.round(D2.kg*(measureGeom2D().n||0)),0); }
+/* ⛔ E LA STESSA COSA UN CAMPO PIÙ SU: `D2.kg*(n)` con la carica assente fa
+   **0**, e il campo dell'esplosivo totale scriveva «0» su una volata che
+   nessuno aveva mai caricato. La moltiplicazione non si rifà qui: la decide
+   `caricaTotale`, che è la funzione del blocco G12 e risponde `null` quando
+   non c'è niente da moltiplicare — `gsv` un `null` lo scrive come campo vuoto.
+   Era la terza scrittura della stessa riga, ed è il difetto della copia debole. */
+function syncKgTot(){ if($('dKgTot')) gsv('dKgTot',caricaTotale(measureGeom2D().n||0, D2.kg),0); }
 if($('dKgTot')) $('dKgTot').addEventListener('change', ()=>{
   /* ⛔ E SVUOTARLO NON VUOL DIRE «ZERO CHILI»: qui `tot` diventava 0, il ramo
      non partiva, e il campo restava VUOTO mentre la volata continuava ad avere

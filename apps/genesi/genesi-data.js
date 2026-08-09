@@ -1300,3 +1300,108 @@ export function rosinRammler(x50, n){
     x80: xc * Math.pow(-Math.log(0.2), 1/u),
     x20: xc * Math.pow(-Math.log(0.8), 1/u) };
 }
+
+/* ══════════════════════════════════════════════════════════════════════════
+   G14 · UN CLAMP NON È UNA GUARDIA — UN PIANO PIÙ SU, NEI CAMPI
+   ══════════════════════════════════════════════════════════════════════════
+   ⛔ IL BLOCCO G13 HA CHIUSO TRE NUMERI TRANQUILLI (la MIC, la carica totale
+   col costo, la pezzatura) E SI POTEVANO RIAPRIRE IN DUE CLIC. Misurato nel
+   browser il 09/08 su una volata salvata con `design.kg:null`:
+   · primo clic, «Apri»: il campo «Carica» mostrava **«0»** e «Esplosivo
+     totale» **«0»** — uno zero inventato DENTRO un campo, che è peggio di uno
+     zero in un riquadro perché sembra un dato che qualcuno ha scritto. La
+     scheda però diceva già il vero: MIC, X50 e PPV «non calcolabile»;
+   · secondo clic su un campo QUALUNQUE (provato con la **sequenza**, che con
+     la carica non c'entra niente): `applyDesign` faceva
+     `Math.max(5, Math.min(200, gvv('dKg')||D2.kg))` — `Math.min(200, null)` fa
+     **0** e il clamp basso lo porta a **5**. Da lì «Esplosivo totale 60 kg»,
+     MIC **30 kg**, X50 **127 cm**, PPV **3,8 mm/s**: quattro numeri, nessun
+     toast, nessun errore, e il «non calcolabile» appena costruito sparito.
+   `Math.max(min, …)` esiste per un valore VERO e piccolo, non per un valore
+   ASSENTE — è la stessa frase del blocco G13, applicata ai campi invece che
+   al calcolo. Quindi prima si chiede se il dato c'è, POI si stringe: i clamp
+   restano dove sono e mordono come prima sui dati veri ed estremi.
+
+   ⚠️ DUE COSE LE HA BOCCIATE LA PROVA IN SCRATCHPAD, prima che la funzione
+   entrasse qui, e tutt'e due sono già scritte in CLAUDE.md:
+   1. il controllo sui LIMITI era `Number.isFinite(+min)`, e `+null` fa **0**,
+      che è finito: `valoreCampo(5, 5, null, 200)` passava e stringeva contro
+      un minimo di zero. Il `null` va nominato per nome anche qui — è lo stesso
+      inciampo di `micSenzaConto`, in un argomento a cui non si guarda;
+   2. l'arrotondamento va PRIMA del clamp, come lo scrive la pagina. Non è
+      indifferente: con un minimo non intero (2,5) un `2,4` esce **2,5**
+      arrotondando prima e **3** arrotondando dopo. Oggi i campi interi hanno
+      limiti interi e i due modi coincidono; domani no.
+
+   ⚠️ IL CONTRATTO. `letto` è quello che si legge dal campo (`gvv`, che su un
+   testo incomprensibile risponde NaN — MAI zero); `progetto` è il valore che
+   il progetto sta usando. La risposta è, in ordine: il campo se si legge, il
+   progetto se il campo non si legge, e `null` se non c'è nessuno dei due.
+   Quel `null` è la convenzione di tutto l'ecosistema, e i tre blocchi qui
+   sopra la sanno già trattare (`micSenzaConto`, `caricaSenzaConto`,
+   `fragSenzaConto`): non serve inventare niente di nuovo a valle.
+   ⚠️ Uno zero SCRITTO resta un dato: `valoreCampo(0, 60, 5, 200)` dà **5**,
+   cioè il clamp su un valore vero, non il ripiego sul progetto. È la
+   differenza fra «ho scritto zero» e «non ho scritto niente», la stessa che
+   `micFinestra` e `caricaTotale` fanno un piano più giù. */
+export function valoreCampo(letto, progetto, min, max, intero){
+  const n = (x) => (x === null || x === undefined || x === '') ? NaN : +x;
+  const lo = n(min), hi = n(max);
+  if (!Number.isFinite(lo) || !Number.isFinite(hi) || lo > hi)
+    throw new TypeError('valoreCampo: i limiti vogliono due numeri, con min ≤ max');
+  const stretto = (v) => Math.max(lo, Math.min(hi, intero ? Math.round(v) : v));
+  const l = n(letto);
+  if (Number.isFinite(l)) return stretto(l);
+  const p = n(progetto);
+  if (Number.isFinite(p)) return stretto(p);
+  return null;
+}
+
+/* ⛔ E L'ALTRA METÀ: UN CAMPO CHE RESTA VUOTO È MUTO, e il silenzio è il
+   difetto di partenza — non lo zero. Togliere lo «0» dal campo della carica
+   senza dire niente sposterebbe la bugia dal numero al vuoto: chi apre una
+   volata vecchia vedrebbe un campo bianco e penserebbe a un difetto della
+   pagina, non a un dato che quella volata non ha mai avuto.
+   Quindi all'apertura si NOMINANO i campi senza un valore leggibile, con la
+   stessa forma delle tre famiglie qui sopra: `che` (che cosa manca) e `come`
+   (che cosa si fa). La tabella è una sola perché la frase è una sola: due
+   copie prima o poi chiamano lo stesso campo con due nomi diversi.
+   ⚠️ I nomi sono quelli che si LEGGONO sullo schermo, non le chiavi. */
+export const CAMPI_VOLATA = {
+  B:'spalla', S:'interasse', prof:'altezza del banco', diam:'diametro',
+  perRow:'fori per fila', file:'numero di file', kg:'carica per foro',
+  stem:'borraggio', sub:'sottoperforazione', incl:'inclinazione',
+  ritardo:'ritardo tra fori', ritardoFila:'ritardo tra file',
+  ucs:'resistenza della roccia', eMod:'modulo elastico',
+  acquaCol:'colonna d’acqua', psSpacing:'interasse del presplit',
+  psCharge:'carica lineare del presplit', recDist:'distanza del recettore',
+  recFreq:'frequenza al recettore', decks:'cariche per foro',
+  deckStem:'borraggio tra deck',
+};
+/* `null` quando la volata ha un numero leggibile in ogni campo; altrimenti
+   dice QUALI mancano. Legge solo le chiavi che conosce: un `design` che porta
+   roba in più (o in meno) non è un errore, è una volata salvata da una
+   versione diversa dell'app.
+   ⚠️ `undefined` e chiave ASSENTE sono la stessa cosa e NON si segnalano: una
+   volata salvata prima che il campo esistesse non ha un dato mancante, ha un
+   campo che allora non c'era. Quello che si segnala è il valore che c'è ed è
+   illeggibile — `null`, `''`, una parola. È la differenza fra il dato ASSENTE
+   e il dato CORROTTO, la stessa che `run-demo` pretende. */
+export function volataSenzaValori(design){
+  const d = design || {};
+  const campi = [];
+  for (const k of Object.keys(CAMPI_VOLATA)){
+    if (!Object.prototype.hasOwnProperty.call(d, k)) continue;
+    const v = d[k];
+    if (v === undefined) continue;
+    const x = (v === null || v === '') ? NaN : +v;
+    if (!Number.isFinite(x)) campi.push({ chiave:k, nome:CAMPI_VOLATA[k] });
+  }
+  if (!campi.length) return null;
+  const nomi = campi.map(c => c.nome), uno = nomi.length === 1;
+  return { campi,
+    che: (uno ? 'un valore non si legge: ' : nomi.length + ' valori non si leggono: ') + nomi.join(', '),
+    come: uno
+      ? 'Riscrivilo nei parametri: finché manca, i numeri che dipendono da lui restano «non calcolabile» invece di essere inventati.'
+      : 'Riscrivili nei parametri: finché mancano, i numeri che dipendono da loro restano «non calcolabile» invece di essere inventati.' };
+}

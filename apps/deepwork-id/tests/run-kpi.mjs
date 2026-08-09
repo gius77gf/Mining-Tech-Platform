@@ -26341,5 +26341,215 @@ test("voceDocumentoInElenco: la regola vale per documento, non per la lista", ()
   });
 }
 
+/* ══════════════════════════════════════════════════════════════════════════
+   G14 · LE TRE GUARDIE SI SPEGNEVANO IN DUE CLIC — il clamp nei CAMPI
+   ══════════════════════════════════════════════════════════════════════════
+   ⛔ IL BLOCCO G13 QUI SOPRA HA CHIUSO TRE NUMERI TRANQUILLI, e il 09/08 si è
+   misurato nel browser che si riaprivano tutti con DUE clic. Volata salvata
+   con `design.kg:null` (la porta è `apri`, che fa `Object.assign(D2, …)` da
+   `localStorage`):
+   · «Apri» → il campo «Carica» mostrava **«0»** e «Esplosivo totale» **«0»**;
+     la scheda invece diceva già il vero, «non calcolabile» in tre righe;
+   · un tocco su un campo QUALUNQUE — provato con la **sequenza**, che con la
+     carica non c'entra — e `applyDesign` faceva
+     `Math.max(5, Math.min(200, gvv('dKg')||D2.kg))`: `Math.min(200, null)` fa
+     **0**, il clamp basso lo porta a **5 kg/foro**, e da lì «Esplosivo totale
+     60 kg», MIC **30 kg**, X50 **127 cm**, PPV **3,8 mm/s**. Nessun toast,
+     nessun errore in console: il «non calcolabile» appena costruito sparito e
+     sostituito da quattro numeri inventati.
+   ⛔ È «UN CLAMP NON È UNA GUARDIA» un piano più su: nei CAMPI invece che nel
+   calcolo. `Math.max(5, …)` esiste per un valore VERO e piccolo, non per un
+   valore ASSENTE — e le prove qui sotto pretendono tutt'e due le metà, perché
+   togliere i clamp «già che ci siamo» romperebbe i dati veri ed estremi.
+   ⚠️ Prove SINCRONE e messe PRIMA del riepilogo: l'`await Promise.all(inVolo)`
+   sta seimila righe più su, quindi una prova `async` aggiunta qui verrebbe
+   messa in volo e il totale si stamperebbe senza aspettarla. */
+{
+  const gz14 = await app("genesi", "genesi-data.js");
+  const { readFileSync: _rfG14 } = await import("node:fs");
+  /* ⚠️ SENZA COMMENTI, e non è un dettaglio: la correzione del 09/08 CITA nel
+     suo commento la riga che ha tolto — «Math.max(5, Math.min(200,
+     gvv('dKg')||D2.kg))» — per spiegare che cosa faceva. Letto grezzo, il file
+     contiene ancora quella riga e la prova «non c'è più» falliva sul commento
+     che documenta la decisione. È la trappola dell'esempio dentro il commento,
+     già pagata due volte in questa casa: si usa il tokenizzatore, non se ne
+     scrive un altro. */
+  const { senzaCommenti: _scG14 } = await import("./tokenizza.mjs");
+  const srcG14 = _scG14(_rfG14(join(HERE, "../../genesi/genesi.html"), "utf8"));
+
+  test("⛔ Genesi · valoreCampo: il campo che si legge vince, e i CLAMP restano", () => {
+    eq(gz14.valoreCampo(58, 60, 5, 200), 58, "il numero scritto nel campo è quello che conta");
+    eq(gz14.valoreCampo(900, 60, 5, 200), 200, "e il clamp alto morde ancora su un dato vero ed estremo");
+    eq(gz14.valoreCampo(1, 60, 5, 200), 5, "e il clamp basso pure");
+    /* uno zero SCRITTO è un dato, non un'assenza: si stringe, non si butta.
+       È la differenza che `micFinestra` e `caricaTotale` fanno un piano più
+       giù, e il vecchio `gvv(...)||D2.kg` non sapeva farla. */
+    eq(gz14.valoreCampo(0, 60, 5, 200), 5, "uno zero scritto è un dato vero, e il clamp lo stringe");
+    eq(gz14.valoreCampo(12.4, 18, 3, 30, true), 12, "e con gli interi si arrotonda, come faceva la pagina");
+  });
+
+  test("⛔ Genesi · valoreCampo: il campo illeggibile NON butta via il valore del progetto", () => {
+    /* la metà che si perde facilmente: chi legge «il ripiego era il difetto» è
+       tentato di toglierlo, e allora un campo con dentro «quattroemezzo»
+       cancellerebbe il numero che la volata sta usando davvero */
+    for (const letto of [NaN, null, undefined, "", "abc"])
+      eq(gz14.valoreCampo(letto, 60, 5, 200), 60,
+        `campo ${String(letto)}: il progetto tiene il suo valore`);
+    eq(gz14.valoreCampo(NaN, 900, 5, 200), 200, "e il valore del progetto si stringe come sempre");
+  });
+
+  test("⛔ Genesi · valoreCampo: IL CASO DEI DUE CLIC — niente campo e niente progetto dà null, non 5", () => {
+    for (const salvato of [null, undefined, "", "abc", NaN]) {
+      eq(gz14.valoreCampo(NaN, salvato, 5, 200), null,
+        `progetto ${String(salvato)}: non si inventa il minimo`);
+      eq(gz14.valoreCampo(NaN, salvato, 5, 200) === 5, false,
+        `progetto ${String(salvato)}: e i 5 kg/foro misurati nel browser non tornano`);
+    }
+    /* la trappola nominata in CLAUDE.md, ed è quella che ha prodotto il 5:
+       `Math.min(200, null)` fa 0, e `Math.max(5, 0)` fa 5 */
+    eq(Math.max(5, Math.min(200, null)), 5, "promemoria: è così che nasceva il numero inventato");
+  });
+
+  test("⛔ Genesi · valoreCampo: dei limiti che non sono numeri si accorge, invece di rispondere NaN", () => {
+    /* ⚠️ QUESTA PROVA VIENE DA UNA BOCCIATURA IN SCRATCHPAD: la prima stesura
+       controllava i limiti con `Number.isFinite(+min)`, e `+null` fa **0** —
+       che è finito. `valoreCampo(5, 5, null, 200)` passava e stringeva contro
+       un minimo di zero, cioè lo stesso inciampo che il blocco G11 nomina per
+       `kg`, in un argomento a cui nessuno guarda. */
+    for (const [mn, mx] of [[null, 200], [5, null], [undefined, 200], ["", 200], [200, 5], ["abc", 200]]) {
+      let fermata = null;
+      try { gz14.valoreCampo(58, 60, mn, mx); } catch (e) { fermata = e; }
+      ok(fermata instanceof TypeError,
+        `limiti ${String(mn)}/${String(mx)}: si ferma invece di rispondere un numero storto`);
+      ok(/limiti/.test(fermata.message), `limiti ${String(mn)}/${String(mx)}: e dice che cosa non va`);
+    }
+    eq(gz14.valoreCampo(58, 60, 0, 200), 58, "e con limiti buoni non si ferma per niente");
+  });
+
+  test("⛔ Genesi · IL GIRO INTERO: salvo con la carica illeggibile, riapro, tocco un altro campo", () => {
+    /* ⛔ È LA PROVA CHE CONTA: le altre guardano le funzioni, questa guarda il
+       PERCORSO. Il modello è quello che il browser ha misurato — `apri` copia
+       il `design` dentro `D2`, `syncDesignInputs` riscrive i campi, e ogni
+       tocco su un campo qualunque fa girare `applyDesign` da capo. Qui il
+       campo della carica è VUOTO (nessuno lo ha ricompilato), quindi la
+       lettura è NaN e l'unico ripiego possibile è il valore salvato. */
+    const design = { B: 3, S: 3.5, prof: 10, perRow: 12, file: 1, kg: null };
+    const D2 = { ...design };                                   // apri: Object.assign(D2, design)
+    const tocca = () => { D2.kg = gz14.valoreCampo(NaN, D2.kg, 5, 200); };   // applyDesign su un campo diverso
+    const nf = D2.perRow * D2.file, vol = D2.B * D2.S * D2.prof;
+    const fori = Array.from({ length: nf }, (_, i) => ({ tDet: i * 42 }));
+    const numeri = () => ({
+      kg: D2.kg,
+      mic: gz14.micFinestra(fori, D2.kg),
+      qtot: gz14.caricaTotale(nf, D2.kg),
+      costo: gz14.costoVolata({ nf, kg: D2.kg, mPerf: nf * D2.prof, cPerf: 8, cExpl: 1.5, cInnesco: 12 }).tot,
+      pf: gz14.consumoSpecifico(D2.kg, vol),
+      x50: gz14.fragKuzRam({ kg: D2.kg, vol, A: 8.1, RWS: 100 }).x50,
+    });
+    const apertura = numeri();
+    eq(apertura, { kg: null, mic: null, qtot: null, costo: null, pf: null, x50: null },
+      "appena aperta: tutti e cinque i numeri dicono «non lo so»");
+    /* i DUE CLIC, e poi altri tre per essere sicuri che non si logori */
+    for (let clic = 1; clic <= 5; clic++) {
+      tocca();
+      eq(numeri(), apertura, `dopo ${clic} tocchi su un campo diverso: nessun numero è comparso dal niente`);
+      eq(D2.kg === 5, false, `dopo ${clic} tocchi: non sono comparsi i 5 kg/foro del difetto`);
+    }
+    /* e i quattro numeri INVENTATI che il browser aveva misurato col difetto:
+       se una di queste righe cade, il difetto è tornato per intero */
+    eq(gz14.caricaTotale(nf, 5), 60, "promemoria: col difetto la volata dichiarava 60 kg di esplosivo");
+    eq(Math.round(gz14.fragKuzRam({ kg: 5, vol, A: 8.1, RWS: 100 }).x50), 127,
+      "e una pezzatura di 127 cm su una carica che nessuno aveva scritto");
+    eq(numeri().qtot === 60, false, "col giro corretto quei 60 kg non ci sono");
+    eq(numeri().x50 === null, true, "e nemmeno i 127 cm");
+    /* ⚠️ e il verso opposto: appena qualcuno SCRIVE la carica, tutto torna */
+    D2.kg = gz14.valoreCampo(58, D2.kg, 5, 200);
+    const scritta = numeri();
+    eq(scritta.kg, 58, "scritta la carica, il progetto la prende");
+    eq(scritta.qtot, 696, "e la carica totale torna un numero");
+    eq(Math.round(scritta.x50), 28, "e la pezzatura pure");
+  });
+
+  test("⛔ Genesi · volataSenzaValori: un campo vuoto è muto, e all'apertura si dicono i nomi", () => {
+    eq(gz14.volataSenzaValori({ B: 3, S: 3.5, kg: 60 }), null, "una volata sana non ha niente da dichiarare");
+    const uno = gz14.volataSenzaValori({ B: 3, kg: null });
+    eq(uno.campi.map(c => c.chiave), ["kg"], "nomina il campo che manca");
+    eq(uno.che.includes("carica per foro"), true, "col nome che si legge sullo schermo: " + uno.che);
+    eq(/Riscrivilo/.test(uno.come), true, "e al singolare, se ne manca uno solo: " + uno.come);
+    const due = gz14.volataSenzaValori({ B: null, kg: "abc", S: 3.5 });
+    eq(due.campi.length, 2, "due mancanze restano due nomi");
+    eq(/Riscrivili/.test(due.come), true, "e la frase si accorda al plurale");
+    eq(due.che.includes("spalla") && due.che.includes("carica per foro"), true, due.che);
+    /* ⚠️ il dato ASSENTE non è il dato CORROTTO: una volata salvata prima che
+       il campo esistesse non ha una mancanza, ha un campo che allora non c'era */
+    eq(gz14.volataSenzaValori({ B: 3, S: 3.5 }), null, "una chiave che non c'è non è una mancanza");
+    eq(gz14.volataSenzaValori({ B: 3, kg: undefined }), null, "e nemmeno un undefined");
+    eq(gz14.volataSenzaValori({ kg: 0 }), null, "uno zero scritto è un dato: non si segnala");
+    eq(gz14.volataSenzaValori(null), null, "e senza design non si inventa un elenco");
+    /* la frase viene dalla tabella, non è una seconda scrittura */
+    eq(uno.campi[0].nome, gz14.CAMPI_VOLATA.kg, "il nome viene da CAMPI_VOLATA");
+  });
+
+  test("⛔ Genesi · CAMPI_VOLATA: ogni campo salvato che è un numero ha il suo nome da schermo", () => {
+    for (const k of Object.keys(gz14.CAMPI_VOLATA)) {
+      const nome = gz14.CAMPI_VOLATA[k];
+      ok(typeof nome === "string" && nome.length > 2, `${k}: ha un nome`);
+      ok(nome === nome.toLowerCase(), `${k}: minuscolo, perché finisce dentro una frase`);
+      ok(!/undefined|null|D2\./.test(nome), `${k}: senza parole da programmatore`);
+    }
+    /* i nomi devono essere DIVERSI: due campi con lo stesso nome danno una
+       frase che manda a sistemare il campo sbagliato */
+    const nomi = Object.values(gz14.CAMPI_VOLATA);
+    eq(new Set(nomi).size, nomi.length, "e nessun nome è ripetuto");
+    /* ⚠️ la tabella deve coprire i campi NUMERICI che `salvaVolata` mette nel
+       `design`: se domani se ne aggiunge uno e qui non si aggiunge, la volata
+       lo perde in silenzio — è l'elenco a mano di CLAUDE.md, e qui il
+       confronto lo fa la pagina invece della memoria */
+    /* ⚠️ LE RIGHE SONO DUE, e la prima è la più CORTA: `cmpSave` salva 14
+       chiavi per il confronto A/B, `salvaVolata` ne salva trenta. Prendendo la
+       prima che combacia, il confronto qui sotto girava su metà dei campi e
+       diceva ok. Si prende la più lunga, e si dichiara quante ne ha viste. */
+    const righeSalva = [...srcG14.matchAll(/design:JSON\.parse\(JSON\.stringify\(\{([^}]*)\}\)\)/g)].map(m => m[1]);
+    ok(righeSalva.length >= 2, `le righe che salvano un design si leggono (${righeSalva.length})`);
+    const rigaSalva = righeSalva.sort((a, b) => b.length - a.length)[0] || "";
+    const chiaviSalvate = [...rigaSalva.matchAll(/(\w+):D2\.(\w+)/g)].map(m => m[1]);
+    ok(chiaviSalvate.length > 20, `la riga del salvataggio si legge (${chiaviSalvate.length} chiavi)`);
+    const mancanti = Object.keys(gz14.CAMPI_VOLATA).filter(k => !chiaviSalvate.includes(k));
+    eq(mancanti, [], "ogni campo dichiarato qui viene davvero salvato: " + mancanti.join(", "));
+  });
+
+  test("⛔ Genesi · la pagina non stringe più un valore ASSENTE, e non scrive più uno zero nel campo", () => {
+    /* le tre righe misurate nel browser il 09/08, pinnate una per una */
+    eq(/Math\.max\(5,\s*Math\.min\(200,\s*gvv\('dKg'\)\|\|D2\.kg\)\)/.test(srcG14), false,
+      "il clamp che inventava 5 kg/foro non c'è più");
+    eq(/D2\.kg\s*=\s*valoreCampo\(gvv\('dKg'\),\s*D2\.kg,\s*5,\s*200\)/.test(srcG14), true,
+      "e al suo posto c'è la domanda «il dato c'è?» prima del clamp");
+    eq(/gsv\('dKg',\s*Math\.round\(D2\.kg\)/.test(srcG14), false,
+      "l'arrotondamento a mano che trasformava il null in uno zero dentro il campo non c'è più");
+    eq(/gsv\('dKgTot',\s*Math\.round\(D2\.kg\s*\*/.test(srcG14), false,
+      "e nemmeno quello dell'esplosivo totale");
+    eq(/gsv\('dKgTot',\s*caricaTotale\(/.test(srcG14), true,
+      "che adesso chiede la moltiplicazione a `caricaTotale`, invece di rifarla in casa");
+    /* la dichiarazione: un campo vuoto senza una frase accanto è muto */
+    eq(/volataSenzaValori\(/.test(srcG14), true, "e all'apertura la volata dichiara i campi senza valore");
+    eq(/placeholder="vuoto = non calcolabile"/.test(srcG14), true,
+      "col campo che dice da sé che cosa vuol dire restare vuoto");
+  });
+
+  test("⛔ Genesi · i CLAMP dei dati veri non sono stati portati via insieme al difetto", () => {
+    /* ⛔ LA METÀ CHE SI PERDE FACILMENTE, gemella della prova di G13: la
+       correzione toglie il ripiego sbagliato, NON i limiti. Se qualcuno
+       togliesse i clamp da `applyDesign` «già che ci siamo», una spalla di
+       80 m o una carica di 900 kg entrerebbero nel progetto. */
+    const limiti = [...srcG14.matchAll(/valoreCampo\((?:gvv\('(\w+)'\)|[^,]+),\s*D2\.\w+,\s*([\d.]+),\s*([\d.]+)/g)];
+    ok(limiti.length >= 1, `i campi passati da valoreCampo portano i loro limiti (${limiti.length})`);
+    for (const m of limiti)
+      ok(Number.isFinite(+m[2]) && Number.isFinite(+m[3]) && +m[2] < +m[3],
+        `${m[1] || "campo"}: i limiti ci sono e sono ordinati (${m[2]}–${m[3]})`);
+    eq(limiti.some(m => m[1] === "dKg" && m[2] === "5" && m[3] === "200"), true,
+      "e la carica per foro ha ancora i suoi 5–200 kg");
+  });
+}
+
 console.log(`\nRisultato KPI app: ${passed} passati, ${failed} falliti${inVolo.length ? `  ·  ${inVolo.length} prove asincrone aspettate` : ""}`);
 process.exit(failed > 0 ? 1 : 0);
