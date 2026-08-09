@@ -137,6 +137,7 @@ const chromium = await prendiChromium();
 const browser = await chromium.launch({ executablePath: CHROMIUM });
 
 let etichette = 0, superfici = 0, conBarra = 0, guai = 0, tagliate = 0;
+const perSuperficie = {};
 const senzaMisura = [];
 const dettagli = [];
 const temaRifiutato = [];
@@ -206,9 +207,31 @@ for (const [nome, via] of SUPERFICI) {
          riempie il programma più tardi. Contando i bottoni, il banco tornava a
          dire «1 voce · 0 fuori posto», cioè un verde su una barra che non c'è:
          il difetto che questa guardia esiste per impedire, in terza stesura. */
-      const conParola = [...n.querySelectorAll('button')].filter((x) =>
-        [...x.childNodes].some((z) => z.nodeType === 3 && z.textContent.trim()));
-      if (!conParola.length) return { voci: 0, male: [], nonMisurata: 'barra senza etichette (non ancora costruita)' };
+      /* ⛔ E QUESTA GUARDIA HA TENUTO IL CORE FUORI DAL BANCO PER DUE GIORNI,
+         CON UNA DIAGNOSI INVENTATA. Chiedeva `querySelectorAll('button')` — la
+         forma delle sei app — e il core le voci le ha come `<div class="bn">`:
+         quindi rispondeva sempre zero, usciva di qui, e la riga sotto che
+         allarga la ricerca a `.bn` (commit `4ac0790`, lo stesso giorno di
+         questa guardia) **non veniva mai raggiunta**. Widening morto dal
+         giorno in cui è stato scritto.
+         ⚠️ Il danno non è il buco: è che la frase stampata nel registro —
+         «barra senza etichette (**non ancora costruita**)» — è una **causa
+         inventata dal banco**, e falsa. La barra del core è costruita e piena;
+         quello che manca è nel righello. Chi leggeva quella riga per due giorni
+         pensava a un problema di tempi e non andava a guardare.
+         La regola: **la domanda «ci sono etichette?» e la domanda «quanto
+         larghe sono?» devono guardare la STESSA lista.** Finché sono due
+         elenchi, allargarne uno solo non produce un errore — produce una
+         cecità che si dichiara con parole rassicuranti. Adesso la lista è una
+         (`VOCI`), e quando non trova niente lo dice **senza inventarsi il
+         perché**. */
+      const VOCI = 'button, .bn';
+      const conParola = [...n.querySelectorAll(VOCI)]
+        .filter((x) => !x.classList.contains('nav-fab'))
+        .filter((x) => [...x.querySelectorAll('span')].concat(x)
+          .some((y) => [...y.childNodes].some((z) => z.nodeType === 3 && z.textContent.trim())));
+      if (!conParola.length)
+        return { voci: 0, male: [], nonMisurata: `nessuna voce con un'etichetta fra «${VOCI}»` };
       /* ⛔ LE VOCI NON SONO SEMPRE `<button>`, e per questo la barra del core
          non la misurava nessuno. Nelle sei app le voci sono `<button>`; nel
          core sono **`<div class="bn">`**, e l'unico `<button>` dentro
@@ -220,7 +243,7 @@ for (const [nome, via] of SUPERFICI) {
          le app — quindi allargare qui non conta niente due volte. E il FAB
          resta fuori di proposito: e' un comando, non una voce di navigazione,
          e la sua etichetta e' l'`aria-label`. */
-      const bs = [...n.querySelectorAll('button, .bn')].filter((x) => !x.classList.contains('nav-fab'));
+      const bs = conParola;   /* la STESSA lista della guardia qui sopra */
       /* ⛔ QUINTA VERSIONE, E LE QUATTRO PRIME ERANO TUTTE SBAGLIATE. Vale la
          pena elencarle, perche' il difetto era sempre lo stesso — **calcolare
          invece di chiedere**, e misurare il soggetto sbagliato:
@@ -323,6 +346,7 @@ for (const [nome, via] of SUPERFICI) {
     if (d.nonMisurata) { senzaMisura.push(`${nome}@${larghezza}: ${d.nonMisurata}`); continue; }
     if (!d.voci) continue;            // pagine senza barra: niente da misurare
     conBarra++; etichette += d.voci; guai += d.male.length; tagliate += (d.tagliate || 0);
+    perSuperficie[nome] = (perSuperficie[nome] || 0) + d.male.length;
     console.log(`  ${d.male.length ? '✗' : 'ok'}  ${nome} @${larghezza}: ${d.voci} voci`
       + (d.male.length
         ? ' · ' + d.male.map((m) => m.dentroIlBottone
@@ -366,8 +390,17 @@ console.log(`\n${etichette} etichette misurate su ${conBarra} barre (${superfici
 console.log(`   di cui ${tagliate} etichette tagliate DENTRO il proprio bottone`
   + ' — la domanda che una barra con `overflow:hidden` sul bottone non può sentirsi fare.');
 if (CONTROPROVA) {
+  /* ⛔ E IL VERDETTO SI SCOMPONE, se no una superficie che il difetto non lo sa
+     produrre si nasconde dentro il totale. Il core è entrato in questo banco
+     oggi e ha quattro parole corte in una barra larga: gonfiarle a 11 px non
+     la fa traboccare, e va bene così — quello che NON va bene è che il totale
+     dica «✓» senza far vedere quel numero. È la lezione già pagata due volte:
+     ogni addendo ha un lettore che lo conosce, il totale no. */
+  const mute = Object.entries(perSuperficie).filter(([, n]) => !n).map(([s]) => s);
   console.log(guai > 0
     ? `\n✓ controprova: con l'etichetta a 11 px il banco lo vede (${guai} fuori posto)`
+      + (mute.length ? `\n   ⚠️ ma su ${mute.length} superfici l'iniezione non morde: ${mute.join(', ')}`
+        + ' — la loro barra ha spazio da vendere, quindi lì questa controprova non dimostra niente' : '')
     : '\n✗ controprova: con l\'etichetta a 11 px il banco NON lo vede — non sa fallire');
   process.exit(guai > 0 ? 0 : 1);
 }
