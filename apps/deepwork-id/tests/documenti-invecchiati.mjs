@@ -281,6 +281,25 @@ if (dietro.length) {
   console.log("   Non è un guasto e non fa fallire niente: i NOMI sono giusti, era il NUMERO DI RIGA");
   console.log("   che invecchiava a ogni commit — 87 su 91 erano scadute il 09/08, prima di toglierli.");
   console.log("   Una prova cita il nome, che si verifica con un grep in tre secondi ed è stabile.");
+
+  /* ⛔ E IL RESTO DELLA POPOLAZIONE, DICHIARATO PERCHÉ NON SI PUÒ CONTROLLARE.
+     Restano **157** citazioni della forma `file.js:123` **senza un nome
+     accanto** (spesso un intervallo: «il blocco dell'allegato a
+     `index.html:1237-1248`»). Non sono verificabili in automatico: senza un
+     nome da cercare non c'è niente da confrontare con quella riga.
+     ⚠️ **E la scorciatoia è stata provata e SCARTATA con la misura**, perché
+     nessuno la rifaccia: «quante puntano OLTRE la fine del file?» dà **0 su
+     157** — e quello zero non vuol dire niente, perché i file **crescono**.
+     È la stessa trappola del fondo su un valore monotòno già censita in
+     `CLAUDE.md` per `copertura-funzioni`: un controllo che può solo diventare
+     più difficile da far scattare col passare del tempo.
+     ⛔ Quindi NON si tolgono: sulle citazioni col nome la staleness era
+     **misurata** (87 su 91), qui sarebbe **dedotta** — e in questa casa non si
+     tocca un soggetto sano perché lo dice un'inferenza. Chi riscrive una di
+     quelle righe le toglie il numero, come le altre. */
+  console.log("   ⚠️ Restano 157 citazioni `file:riga` SENZA un nome accanto: non verificabili in");
+  console.log("      automatico, e non tolte — sulle altre la staleness era misurata, qui sarebbe");
+  console.log("      dedotta. («oltre la fine del file» dà 0 su 157, e non vuol dire niente: i file crescono.)");
 }
 
 console.log(`\nRisultato documenti invecchiati: ${passed} passati, ${failed} falliti` +
