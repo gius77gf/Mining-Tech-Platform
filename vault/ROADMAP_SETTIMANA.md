@@ -871,6 +871,52 @@ numero scritto dove non era stato misurato niente**.*
       misurate**. Ogni KO lì dentro è vero **a quel commit**, non adesso — e
       questo ne è la dimostrazione, non un'ipotesi.
 
+- [x] ⛔ **B0-quater. SORVEGLIANTE E SORVEGLIATO SBAGLIAVANO INSIEME — ed è la
+      ragione per cui nessun banco l'aveva mai visto.** È la scoperta più grossa
+      del 09/08, e non è un difetto in più: è una **famiglia nuova**.
+      `accorciaVoceTendina` di Sentinella accorcia una voce contro un budget di
+      pixel. Quel budget lo calcolava `adattaVoci()` così:
+      `const spazio = s.clientWidth - paddingLeft - paddingRight;` — cioè **la
+      formula identica, carattere per carattere**, che `modali-dentro` usava per
+      **giudicare** se la voce ci stesse. Comando: `git show b1cb14c~1:
+      apps/sentinella/index.html | grep -n 'clientWidth - .*padding'` → la riga
+      c'era, nel **prodotto**.
+      ⛔ **Quindi il prodotto accorciava con un righello cieco di 20 px e il
+      banco lo assolveva con lo stesso righello cieco.** La frase non era
+      sbagliata e nemmeno la funzione: era sbagliata **la misura**, e i due si
+      davano ragione a vicenda. **Un errore condiviso fra chi misura e chi è
+      misurato è invisibile per costruzione** — nessuna quantità di prove lo
+      trova, perché le prove sono d'accordo col difetto.
+      ⚠️ Il budget vero contro quello usato: 320 px → **194** invece di 214;
+      360 → 234 invece di 254; 390 → **264** invece di 284; 430 → 304 invece di
+      324. L'ingombro non testuale è 48 px (28 di padding + 20 di freccia e
+      bordi), e il codice ne toglieva 28.
+      ⚠️ **La domanda da farsi d'ora in poi**, quando un banco assolve qualcosa
+      che a occhio non torna: *il prodotto e il banco stanno usando la stessa
+      formula?* Se sì, il verde non vuol dire niente. La cura è un **righello
+      indipendente** — qui `tendine-nelle-finestre`, scritto separatamente, che
+      infatti dà lo stesso verdetto con un pixel di scarto.
+      ⛔ **E LA CORREZIONE FACILE ERA IL VERDE FALSO, sull'altro difetto.** Nel
+      core il banco accusava l'etichetta «— nessuna —» (150 px in 142), che è
+      **nostra**: accorciarla avrebbe fatto tornare **verde il banco** lasciando
+      tagliati i due **nomi di cava** — «Cava Monte Serra» chiede 178 px, «Cava
+      Valle Secca» 174 — cioè **il dato dell'utente**. La causa vera era la
+      **scatola**: `.frow` è una griglia `1fr 1fr` che si ripiega solo sotto i
+      360 px, quindi a 390 la tendina è larga **142**. Tolto quel contenitore
+      attorno a Data e Cava: 0 tagliate su 3 a tutte e quattro le larghezze.
+      ⚠️ E il limite dei 360 px **non** è stato toccato: `.frow` la usano **54
+      righe** del core, quasi tutte con due campi corti che in due colonne stanno
+      benissimo. Allargarlo per tutti avrebbe allungato cinquantatré moduli per
+      sistemarne uno.
+      ⚠️ **Regola che ne esce, piccola e cara**: quando si corregge un righello,
+      si rileggono **i numeri che quel righello aveva scritto in giro** — nei
+      commenti c'erano misure vecchie («289,6 contro 284 disponibili») che
+      raccontavano la versione sbagliata **con la faccia della misura**.
+      ✅ Soggetti guardati da `modali-dentro`, prima e dopo: core 38 modali · 176
+      aperture · 3.636 elementi · 530 comandi, Sentinella 11 · 50 · 594 · 140 —
+      **identici**, KO **1 → 0** su tutt'e due. Il banco è verde perché i difetti
+      non ci sono più, non perché guardi meno roba.
+
 - [x] ✅ **B0-ter. MENTRE UN CANTIERE SCRIVE, UN ROSSO LETTO SULL'ALBERO VIVO NON
       È UN VERDETTO.** Misurato il 09/08 su me stesso: leggendo l'albero mentre
       un cantiere ci scriveva, `run-stile` ha detto **316 passati e 2 falliti**;
