@@ -1,7 +1,29 @@
 # Ultimo ciclo di lavoro automatico
 
-**2026-08-08T18:31Z** · ultimo commit **`140b323`** · branch
+**2026-08-09T10:15Z** · commit di partenza **`a2bc081`** · branch
 `claude/scheduled-tasks-remote-control-bk4ap6`
+
+## 🐤 Canarino — il ciclo è vivo
+
+Il repository risponde, `git pull` è allineato, si riparte da `a2bc081`.
+
+**Che cosa sto per fare, in ordine:**
+1. ⛔ **Correggere un difetto che ho appena scoperto scrivendo questa riga, ed è
+   MIO, di oggi.** L'ora vera è **10:15Z**; i checkpoint che ho scritto stamattina
+   sono datati **fino alle 14:30Z**, cioè **oltre quattro ore avanti**. Il più
+   recente si chiama `20260809-143000_...` ed è stato scritto alle **10:13**.
+   È esattamente il difetto che la prima regola di `CLAUDE.md` descrive — «184
+   checkpoint su 640 sono datati avanti» — rifatto oggi, mentre passavo la
+   giornata a correggere numeri che mentono. Prima unità del ciclo.
+2. Leggere il **giro del browser** che sta girando da stanotte (lanciato alle
+   **06:56Z** — un altro numero che avevo scritto sbagliato, «07:55Z», nei
+   checkpoint), quando finisce: `leggi-giro.mjs`, nell'ordine età → «non ho
+   guardato» → KO veri.
+3. Poi la fila della roadmap.
+
+---
+
+## Blocco precedente
 
 ## Il blocco appena chiuso — quattordici unità
 
