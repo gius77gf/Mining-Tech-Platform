@@ -30,24 +30,49 @@
       tranquilla o una barra a zero — il principio del fondatore applicato al
       disegno.
 
-   ⛔ QUELLO CHE HA TROVATO, e sta in `shared/dw-grafici.js` (non in Sentinella):
-   la MINIATURA del Quadro contraddice il badge che le sta sopra. Sentinella
-   conta superamento anche una lettura ESATTAMENTE pari alla soglia (`>=`), e lo
-   fa ovunque: `serieStorica` (`l.valore >= soglia`), i due `dwGrafici.linea`
-   che le passano `inclusiva: true`, il badge, il conteggio «Oltre», il file per
-   l'ARPA. `disegnaSpark` invece decide da sola con `ult > s.soglia`, e
-   `inclusiva` non lo legge nemmeno. Misurato su un punto con ultima lettura 40
-   e soglia 40: badge «Superamento», frase «1 volta oltre soglia», serie storica
-   col rombo rosso — e in mezzo la miniatura che disegna il **pallino di fine
-   corsa** nella tinta dell'app, a `cy 604,28 px`, esattamente sulla linea di
-   soglia. Tre affermazioni sulla stessa scheda e a stonare è l'unica che non si
-   legge a parole. È la «copia più debole» di CLAUDE.md nella sua versione
-   grafica: la regola giusta esiste già nel motore (`disegnaLinea` legge
-   `s.soglia.inclusiva`), e chi disegna la miniatura se n'è tenuta una versione
-   più corta.
-   Finché `disegnaSpark` non legge `inclusiva`, il controllo H resta KO: è un
-   difetto vero, non una prova storta, e non si spegne il controllo per farlo
-   diventare verde.
+   ⛔ QUELLO CHE HA TROVATO IL 06/08, e stava in `shared/dw-grafici.js` (non in
+   Sentinella): la MINIATURA del Quadro contraddiceva il badge che le sta sopra.
+   Sentinella conta superamento anche una lettura ESATTAMENTE pari alla soglia
+   (`>=`), e lo fa ovunque: `serieStorica` (`l.valore >= soglia`), i due
+   `dwGrafici.linea` che le passano `inclusiva: true`, il badge, il conteggio
+   «Oltre», il file per l'ARPA. `disegnaSpark` invece decideva da sola con
+   `ult > s.soglia`. ✅ Corretto: il contratto di `soglia` è stato allargato,
+   e adesso accetta tanto un numero quanto `{ valore, inclusiva }`.
+
+   ⛔ E QUELLA CORREZIONE HA APERTO IL DIFETTO CHE QUESTO BANCO NON VEDEVA, che
+   è la ragione per cui i controlli qui sotto sono cambiati il 09/08. Il
+   contratto è stato allargato **dove si legge il verdetto** (riga ~1382:
+   `var sog = (s.soglia && typeof s.soglia === 'object') ? … `) e **non dove si
+   costruisce la scala** (riga ~1344, quaranta righe più in su):
+
+       var min = Math.min.apply(null, v), max = Math.max.apply(null, v);
+       if (s.soglia != null) { min = Math.min(min, s.soglia); max = Math.max(max, s.soglia); }
+
+   `Math.min(10, { valore: 40 })` fa **NaN**. Da lì `min` e `max` sono NaN, `py`
+   restituisce NaN, e la miniatura esce così:
+
+       d="M2.0 NaNC10.5 NaN,29.7 NaN,46.7 NaN…"   line.dwg-soglia y1="NaN"
+
+   Effetto misurato sulla dimostrazione, senza nessuna iniezione: nel Quadro —
+   la PRIMA schermata dell'app — la miniatura non disegna **niente**. Linea e
+   area 0×0 px, la linea di soglia appiattita sul bordo alto, il rombo del
+   superamento pure. Nessun errore in console: un attributo SVG non valido non
+   solleva, l'elemento resta nel DOM.
+   ⚠️ E il verso è quello che inganna: con `soglia: null` (punto senza limite)
+   la miniatura funziona benissimo. Si rompe **solo dove ha qualcosa da dire**.
+   ⛔ Perché questo banco lo assolveva: i suoi tre controlli chiedevano se
+   l'elemento C'È, mai DOVE STA — e un elemento con geometria NaN c'è, con un
+   rettangolo schiacciato in cima da cui `cy` ricava un numero plausibile.
+   43 ok · 0 KO su un disegno inesistente. Adesso si misura il percorso.
+
+   La correzione (UNA riga, in `shared/dw-grafici.js`, non in questa cartella):
+   la normalizzazione di `sog`/`sVal` va spostata **prima** del calcolo di
+   min/max, e min/max devono usare `sVal` invece di `s.soglia`. Provata
+   applicandola alla sola risposta HTTP: la miniatura torna proporzionale
+   (10·20·30·40 → 0 · 13,3 · 26,7 · 40,0 px, scarto massimo 0,033 px) e il
+   rombo cade esattamente sulla linea di soglia.
+   Finché quella riga non è corretta il controllo H resta KO: è un difetto vero,
+   non una prova storta, e non si spegne il controllo per farlo diventare verde.
 
    ⚠️ I CASI SI COSTRUISCONO NEI DATI, NON NEL DOCUMENTO: si aggiungono righe in
    coda alla risposta HTTP di `sentinella-data.js`, cioè si passa dalla via vera
@@ -215,9 +240,18 @@ console.log("\n· H — il Quadro: badge, frase e miniatura sullo STESSO punto")
       badge: (box.querySelector(".badge") || {}).textContent || "",
       nota: (box.querySelector(".peggio-note") || {}).textContent || "",
       spark: svg ? {
+        /* ⚠️ NON BASTA CHIEDERE SE L'ELEMENTO C'È: con una geometria `NaN`
+           l'elemento esiste, il suo rettangolo si schiaccia in cima all'svg,
+           e `cy` restituisce un numero plausibile. Si porta via anche il `d`
+           GREZZO e il bordo dell'svg, cioè i due dati da cui si vede se il
+           disegno ha davvero una forma. */
         soglia: (() => { const l = svg.querySelector("line.dwg-soglia"); return l ? cy(l) : null; })(),
+        sogliaY1: (() => { const l = svg.querySelector("line.dwg-soglia"); return l ? l.getAttribute("y1") : null; })(),
         oltre: (() => { const d = svg.querySelector("path.dwg-oltre"); return d ? cy(d) : null; })(),
         fine: (() => { const c = svg.querySelector("circle.dwg-fine"); return c ? cy(c) : null; })(),
+        d: (() => { const l = svg.querySelector("path.dwg-linea"); return l ? l.getAttribute("d") : null; })(),
+        largo: (() => { const l = svg.querySelector("path.dwg-linea"); return l ? +l.getBoundingClientRect().width.toFixed(2) : null; })(),
+        alto: (() => { const l = svg.querySelector("path.dwg-linea"); return l ? +l.getBoundingClientRect().height.toFixed(2) : null; })(),
       } : null,
     };
   });
@@ -228,8 +262,53 @@ console.log("\n· H — il Quadro: badge, frase e miniatura sullo STESSO punto")
   dice(q.spark && q.spark.soglia != null, "la miniatura disegna la linea di soglia", JSON.stringify(q.spark));
   dice(!!(q.spark && q.spark.oltre != null),
     "⛔ e disegna l'ULTIMA LETTURA come superamento (rombo), non come pallino tranquillo",
-    `soglia a ${q.spark && q.spark.soglia} px · rombo ${q.spark && q.spark.oltre} · pallino ${q.spark && q.spark.fine}`
-    + " — `disegnaSpark` di shared/dw-grafici.js decide con `ult > s.soglia` e non legge `inclusiva`");
+    `soglia a ${q.spark && q.spark.soglia} px · rombo ${q.spark && q.spark.oltre} · pallino ${q.spark && q.spark.fine}`);
+  /* ⛔ E QUI SI CHIEDE DOVE STA, NON SE C'È — la domanda che mancava.
+     Le tre righe qui sopra erano verdi il 09/08 mentre la miniatura non
+     disegnava NIENTE: `d="M2.0 NaNC10.5 NaN,…"`, linea 0×0 px, `y1="NaN"`
+     sulla soglia. Un attributo SVG non valido non solleva niente e non si
+     legge in console: l'elemento resta nel DOM, il suo rettangolo si
+     appiattisce in cima, e un controllo che guarda la PRESENZA lo assolve.
+     Le letture di gS sono 10 · 25 · 30 · 40 con soglia 40: i rapporti sono
+     noti, e un campione solo non distinguerebbe «funziona» da «sono tutti
+     uguali». */
+  if (q.spark) {
+    misurati += 5;
+    const senzaNaN = !!q.spark.d && !/NaN/.test(q.spark.d) && !/NaN/.test(String(q.spark.sogliaY1));
+    dice(senzaNaN, "⛔ la miniatura ha una geometria NUMERICA (nessun NaN nel percorso né sulla soglia)",
+      `d=${String(q.spark.d).slice(0, 90)} · soglia y1=${q.spark.sogliaY1}`);
+    dice(q.spark.alto > 1 && q.spark.largo > 1,
+      "⛔ e il tratto occupa davvero dello spazio, invece di schiacciarsi a zero",
+      `linea ${q.spark.largo}×${q.spark.alto} px`);
+    /* i punti dato di una curva di Bézier sono il `M` e l'ULTIMO vertice di
+       ogni `C`: i due di mezzo sono i punti di controllo, e prenderli farebbe
+       fallire il rapporto su un disegno sano */
+    const ys = [];
+    const mm = /M\s*([-\d.]+)[ ,]+([-\d.]+|NaN)/.exec(q.spark.d || "");
+    if (mm) ys.push(Number(mm[2]));
+    const re = /C[^C]*?[ ,]([-\d.]+|NaN)[ ,]+([-\d.]+|NaN)\s*(?=C|$)/g;
+    let g3; while ((g3 = re.exec(q.spark.d || ""))) ys.push(Number(g3[2]));
+    const VAL = [10, 25, 30, 40];
+    const buoni = ys.length === VAL.length && ys.every((y) => Number.isFinite(y));
+    dice(buoni, "quattro ordinate leggibili nel percorso della miniatura",
+      `${ys.length} lette: ${ys.join(" · ")}`);
+    if (buoni) {
+      const base = Math.max(...ys);
+      const dist = ys.map((y) => +(base - y).toFixed(3));
+      const per = dist[3] / (VAL[3] - VAL[0]);
+      console.log(`      campione: ${VAL.map((v, i) => `${v}→${dist[i]} px`).join(" · ")}`
+        + ` (scala ${+per.toFixed(4)} px per µg/m³)`);
+      dice(VAL.every((v, i) => vicino(dist[i], (v - VAL[0]) * per, 0.3)),
+        "⛔ e i quattro valori stanno nel loro RAPPORTO anche in miniatura",
+        VAL.map((v, i) => `${v}: ${dist[i]} contro ${+((v - VAL[0]) * per).toFixed(3)}`).join(" · "));
+      /* il pareggio: l'ultima lettura VALE la soglia, quindi il rombo deve
+         cadere ESATTAMENTE sulla linea — è la stessa domanda del caso G, che
+         il motore supera quando disegna una `linea` invece di una `spark` */
+      dice(q.spark.oltre != null && q.spark.soglia != null && vicino(q.spark.oltre, q.spark.soglia, 0.3),
+        "⛔ e il rombo del pareggio cade ESATTAMENTE sulla linea di soglia",
+        `rombo ${q.spark.oltre} px · soglia ${q.spark.soglia} px`);
+    }
+  }
 }
 
 /* ══ Le serie storiche: il codice di disegno è di Sentinella ══════════════ */

@@ -294,7 +294,18 @@ const VOCABOLARIO_MANCANTE = [
      con cui giudicarla. Confonderle manderebbe qualcuno a cercare letture che
      ha già. Vive su due badge, quello del punto e quello dell'esito del
      report. */
-  [/^Senza soglia$/, "manca il LIMITE con cui giudicare una misura che c'è: né conforme né non conforme — diverso da «Mai misurato» (lì manca la misura) e da «Senza dati» (lì manca l'intero periodo)"],
+  /* ⚠️ E IL 09/08 LA STESSA PORTATA È COMPARSA IN FLOTTA, in minuscolo: la
+     `sogliaMin` di un ricambio è il limite sotto cui riordinarlo, e senza di
+     essa la giacenza c'è ma non si può giudicare — parola per parola la
+     definizione qui sotto, in un altro mestiere. La sonda dice «se è la stessa
+     va usato il termine che c'è già», e questo È lo stesso termine: cambia
+     solo la maiuscola, perché le pastiglie di Sentinella cominciano grandi e
+     quelle del magazzino di Flotta piccole (accanto a «sotto scorta», «ok»),
+     e la stessa parola finisce in `flotta_situazione.csv` fra quelle. Quindi
+     si allarga la famiglia con `i`, non se ne dichiara una seconda: due
+     famiglie per la stessa idea sono esattamente ciò che questo elenco
+     esiste per impedire. */
+  [/^senza soglia$/i, "manca il LIMITE con cui giudicare una misura che c'è: né conforme né non conforme (Sentinella), né sotto né sopra scorta (Flotta) — diverso da «Mai misurato» (lì manca la misura) e da «Senza dati» (lì manca l'intero periodo)"],
   [/^senza data$/, "il record non porta una data — convenzione di Flotta, Scudo e Terra"],
   [/ n\.?d\.$/, "un GIUDIZIO che non si può dare per mancanza di dati (idoneità, accuratezza)"],
   /* ⛔ LE DUE DELLA TARATURA, e il prefisso NON è ridondanza (01/08). Stanno
@@ -418,6 +429,22 @@ const ALLARMI_ACCETTATI = {
      ⚠️ E anche questo l'ha preteso la sonda, non la memoria. */
   "flotta.urgenzaOre":
     "resta solo per `[]`, che JavaScript converte a zero: nessun chiamante passa un array dove va un numero di ore",
+  /* ⛔ E QUESTE DUE NON SONO UN ALLARME NUOVO: È QUELLO DI SEMPRE CHE HA
+     APPENA PRESO UN NOME. Fino al 09/08 la stessa decisione stava scritta
+     dentro un filtro senza etichette (`giacenza||0 <= sogliaMin||0`), quindi
+     la sonda non aveva niente da leggere; adesso `statoScorta` risponde con
+     uno stato e un colore, e si presenta qui. Chi entra nell'avviso non è
+     cambiato di un caso — c'è una prova in `run-kpi` che lo pretende caso per
+     caso confrontandolo col filtro di prima. */
+  "flotta.statoScorta":
+    "VOLUTO, ed è la decisione 1 di `parseRicambiCsv`, scritta e provata dal 30/07: «la GIACENZA che manca vale ZERO,"
+    + " ed è l'unico posto in cui il valore di comodo è quello giusto — un ricambio in magazzino senza quantità è un"
+    + " ricambio che non c'è, e zero è ciò che fa scattare il sotto-scorta, cioè l'avviso che serve». Il rosso su un"
+    + " ricambio di cui non si sa niente è la risposta giusta: la faccia tranquilla sarebbe dire «ok» a un pezzo che"
+    + " forse non c'è, e chi va a montarlo lo scopre a macchina ferma."
+    + " ⚠️ E la SOGLIA che manca fa l'opposto e non è un allarme: risponde «senza soglia», giallo, non giudicabile.",
+  "flotta.sottoScorta":
+    "eredita `statoScorta` sopra, che è il posto dove quella decisione è scritta: qui la lista dei pezzi da riordinare",
 };
 
 const allarmi = new Map();

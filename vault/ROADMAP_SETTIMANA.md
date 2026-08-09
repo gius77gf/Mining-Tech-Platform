@@ -3235,8 +3235,8 @@ numero scritto dove non era stato misurato niente**.*
   nome apre il file sbagliato credendo che sia il più fresco.
 - Le decisioni: `docs/DECISIONI_WEEKEND.md` — pagina d'ingresso in cima.
 - Stato misurato al **09/08** (lanciando le suite, non a memoria):
-  **2.384 prove girano senza rete**. La frase va letta stretta: è la somma
-  delle **otto** suite che contano asserzioni (`run-kpi` 1932, `run-stile` 318,
+  **2.405 prove girano senza rete**. La frase va letta stretta: è la somma
+  delle **otto** suite che contano asserzioni (`run-kpi` 1953, `run-stile` 318,
   `run-helpers` 75, `run-pointcloud` 32, `run-manifest` 9, `run-demo` 8,
   `bootstrap-rivendicazioni` 7, `fogli-guardati` 3), non tutto ciò che gira nel
   giro `node` — che di comandi ne ha **34** e di asserzioni ne esegue di più:
@@ -3246,7 +3246,7 @@ numero scritto dove non era stato misurato niente**.*
   sorvegliati ne contavano sette: due convenzioni per lo stesso numero, che è
   il modo più facile di far sembrare sbagliato un conto giusto. Adesso è una
   sola.*
-  Copertura **713/713** e nessuna funzione scoperta; **159 esecuzioni** che
+  Copertura **719/719** e nessuna funzione scoperta; **159 esecuzioni** che
   aprono le pagine in un browser vero, da **71** file di banco distinti (contati
   dalla tabella `BANCHI` di `tutti.mjs`, non a occhio dalla cartella, che di
   `.mjs` ne ha di più perché contiene anche gli aiuti — `giro.mjs`,

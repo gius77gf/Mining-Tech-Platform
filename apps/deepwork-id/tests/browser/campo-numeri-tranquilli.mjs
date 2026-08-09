@@ -124,6 +124,15 @@ const DIFETTI = [
   ["conta(RAP_OGGI.length, \"rapportino\", \"rapportini\") + \" e \" + conta(fermi.length, \"causale di fermo\", \"causali di fermo\")",
    "RAP_OGGI.length + \" rapportini e \" + fermi.length + \" causali di fermo\""],
   ["conta(q.persone, \"persona\", \"persone\")", "q.persone + \" persone\""],
+  /* 7 · la media dei fermi divisa per TUTTE le colonne, comprese le giornate in
+     cui non è stato registrato niente */
+  ["const mf = mediaFermiAlGiorno(righe);",
+   "const mf = { media: Math.round(righe.reduce((t, r) => t + r.minuti, 0) / righe.length),"
+   + " giorniMisurati: righe.length, giorniVuoti: 0,"
+   + " giorni: righe.length, totale: righe.reduce((t, r) => t + r.minuti, 0) };"],
+  // 8 · il cartellone del meteo che prende il verde senza aver guardato tutto
+  ["${brutto ? \"warn\" : (bloc && sm.stato === \"buono\" ? \"ok\" : \"\")}",
+   "${brutto ? \"warn\" : (bloc ? \"ok\" : \"\")}"],
 ];
 
 /* IL CASO DA COSTRUIRE, scelto prima di ogni `goto`. Si aggiunge in coda al
@@ -558,6 +567,102 @@ FIXTURE = `
   }
   console.log(`     (${misurate} frasi misurate premendo il bottone, non lette nel codice)`);
   await pg.close();
+}
+
+/* ── 7 · LA MEDIA DEI FERMI E IL SUO DENOMINATORE ──────────────────────────
+   ⛔ Misurato il 09/08 aprendo la pagina: tre giornate registrate su
+   quattordici, cento minuti di fermo ciascuna, e la nota del grafico scriveva
+   «In media 21 min al giorno» — 300 diviso 14, di cui UNDICI colonne in cui
+   non è stato registrato niente. Sulle giornate misurate la media è 100: le
+   assenti tiravano il numero giù di quasi cinque volte, nella direzione che
+   rassicura. Il grafico gemello della settimana, dieci righe più sotto nella
+   STESSA pagina, il conto giusto ce l'aveva già e lo dichiarava pure. Era la
+   regola scritta due volte, la seconda più debole.
+   ⚠️ La prova che conta è il RAPPORTO fra due numeri: che compaia «100» e non
+   «21». Un solo numero non distingue «giusto» da «per caso uguale». */
+console.log("\n· tre giornate registrate su quattordici: per cosa si divide la media dei fermi");
+FIXTURE = `
+{
+  const p = (x) => String(x).padStart(2, "0");
+  const gf = (n) => { const d = new Date(); d.setDate(d.getDate() - n);
+    return d.getFullYear() + "-" + p(d.getMonth() + 1) + "-" + p(d.getDate()); };
+  DEMO.attivita = [
+    { id: "zm1", data: gf(13), turno: "Mattina", titolo: "Frantoio", squadra: "Squadra C", stato: "anomalia", causale: "Guasto meccanico", fermoMin: 100 },
+    { id: "zm2", data: gf(7),  turno: "Mattina", titolo: "Frantoio", squadra: "Squadra C", stato: "anomalia", causale: "Guasto meccanico", fermoMin: 100 },
+    { id: "zm3", data: gf(0),  turno: "Mattina", titolo: "Frantoio", squadra: "Squadra C", stato: "anomalia", causale: "Guasto meccanico", fermoMin: 100 }];
+  DEMO.rapportini = []; DEMO.obiettivi = []; DEMO.durate = []; DEMO.chiusure = [];
+  DEMO.presenze = []; DEMO.checklist = []; DEMO.meteo = []; DEMO.pianocarico = [];
+}
+`;
+{
+  const pg = await apri("nav-att");
+  const nota = String(await pg.evaluate(() => {
+    const e = document.getElementById("fermi-storico");
+    return e ? e.innerText : "";
+  }));
+  dice(/media/.test(nota), "la nota del grafico dei fermi è stata trovata", nota.slice(0, 120));
+  dice(/\b100 min\b/.test(nota) && !/\b21 min\b/.test(nota),
+    "⛔ la media si divide per le giornate MISURATE (100 min), non per le colonne (21 min)",
+    (nota.match(/.{0,60}media.{0,80}/) || [])[0]);
+  dice(/11 giornate sono a zero perché non vi è stato registrato niente/.test(nota),
+    "⛔ e le undici giornate fuori dal conto sono DICHIARATE, non tolte in silenzio",
+    (nota.match(/.{0,40}giornate sono a zero.{0,90}/) || [])[0]);
+  await pg.close();
+}
+
+/* ── 8 · IL COLORE DEL METEO SU UN TURNO CHIUSO ────────────────────────────
+   ⛔ Misurato il 09/08 leggendo la CLASSE dal browser, non il codice: turno
+   chiuso e firmato, del meteo registrato solo il cielo («Sereno»), piste e
+   visibilità mai guardate. Il cartellone usciva `board ok` — bordo e cifra
+   verdi — cioè «condizioni a posto» su un turno di cui nessuno sapeva se le
+   piste fossero ghiacciate. `meteoAvverso` è un sì/no, e un sì/no non sa
+   distinguere «guardato e va bene» da «nessuno ha guardato».
+   ⚠️ Le due passate sono la prova che conta: il verde deve SPARIRE sul turno
+   incompleto e RESTARE su quello completo. Una passata sola non distingue
+   «giusto» da «il verde non c'è mai». */
+console.log("\n· turno chiuso e meteo a metà: il cartellone prende il verde?");
+const METEO_SCENA = (piste, vis) => `
+{
+  const p = (x) => String(x).padStart(2, "0"); const d = new Date();
+  const oggi = d.getFullYear() + "-" + p(d.getMonth() + 1) + "-" + p(d.getDate());
+  DEMO.attivita = [{ id: "zq1", data: oggi, turno: "Mattina", titolo: "Perforazione", squadra: "Squadra A", stato: "conclusa" }];
+  DEMO.rapportini = []; DEMO.obiettivi = []; DEMO.presenze = []; DEMO.checklist = []; DEMO.pianocarico = [];
+  DEMO.durate = [{ id: "zq2", data: oggi, turno: "Mattina", minuti: 480, ora: "06:00" }];
+  DEMO.chiusure = [{ id: "zq3", data: oggi, turno: "Mattina", consegna: "Giulia Verdi", ricevuta: "Mario Rossi", ora: "14:05" }];
+  DEMO.meteo = [{ id: "zq4", data: oggi, turno: "Mattina", cielo: "Sereno", piste: ${JSON.stringify(piste)}, visibilita: ${JSON.stringify(vis)}, note: "", ora: "06:05" }];
+}
+`;
+async function classeMeteo() {
+  const pg = await apri("nav-rap");
+  const r = await pg.evaluate(() => {
+    const b = document.querySelector("#met-board .board");
+    return b ? { classi: b.className, testo: b.innerText } : null;
+  });
+  await pg.close();
+  return r;
+}
+{
+  FIXTURE = METEO_SCENA("", "");
+  const mezzo = await classeMeteo();
+  dice(!!mezzo, "il cartellone del meteo si disegna anche col solo cielo compilato", mezzo);
+  dice(mezzo && !/\bok\b/.test(mezzo.classi),
+    "⛔ meteo a metà su un turno CHIUSO: niente verde",
+    mezzo && mezzo.classi);
+  dice(mezzo && /non registrate/.test(mezzo.testo),
+    "⛔ e le voci mai guardate sono dichiarate sul cartellone",
+    mezzo && mezzo.testo.replace(/\n/g, " | ").slice(0, 200));
+
+  FIXTURE = METEO_SCENA("Asciutte", "Buona");
+  const pieno = await classeMeteo();
+  dice(pieno && /\bok\b/.test(pieno.classi),
+    "⛔ e il verde RESTA dove è stato guadagnato: tutte e tre le voci registrate e nessuna difficile",
+    pieno && pieno.classi);
+
+  FIXTURE = METEO_SCENA("Ghiacciate", "");
+  const brutto = await classeMeteo();
+  dice(brutto && /\bwarn\b/.test(brutto.classi),
+    "⛔ una voce avversa accusa anche se le altre mancano (il dato incompleto sa ancora accusare)",
+    brutto && brutto.classi);
 }
 
 await b.close();

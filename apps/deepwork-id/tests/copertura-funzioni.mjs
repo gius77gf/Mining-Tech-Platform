@@ -159,7 +159,27 @@ const APP = ["campo", "conti", "flotta", "scudo", "sentinella", "terra"];
    diverso. Il conto sale perché una regola che vive nel modulo si può provare,
    e finché viveva nella pagina nessuna prova la guardava — che è esattamente
    il motivo per cui aveva potuto divergere. */
-const FONDO = { campo: 118, conti: 122, flotta: 83, scudo: 165, sentinella: 131, terra: 61 };
+/* ⚠️ `campo` SALE DA 118 A 123 il 09/08, e il fondo si alza DOPO aver visto il
+   conto salire (123/123, «il fondo era 118: alzalo»). I tre nomi nuovi —
+   `mediaFermiAlGiorno`, `statoMeteo`, `VOCI_METEO` (più `STATI_METEO`) — non
+   sono funzioni nuove nel senso di funzioni in più: sono DECISIONI che stavano
+   nella pagina, dove nessuna prova le guardava, ed è per questo che avevano
+   potuto sbagliare. La media dei fermi si divideva per tutte le colonne del
+   grafico, comprese le giornate in cui non è stato registrato niente (21 min
+   al giorno invece di 100); e il colore del meteo veniva da un sì/no che non
+   distingue «guardato e va bene» da «nessuno ha guardato», quindi un turno
+   chiuso col solo cielo compilato usciva verde. Stessa forma dei due traslochi
+   di Scudo qui sopra. */
+/* ⚠️ `flotta` SALE DA 85 A 87 il 09/08, e per la stessa ragione di `campo`
+   qui sopra: i due nomi nuovi non sono lavoro in più, sono DECISIONI che
+   stavano nella pagina. `statoScorta` — la soglia minima mai scritta letta
+   come uno zero, quindi «soglia minima 0» e la pastiglia verde «ok» su un
+   pezzo che nessuno ha deciso quando riordinare; `statoFermo` — il terzo
+   stato di `durataFermo`, che nel file dei fermi diventava «chiuso» con la
+   colonna dei giorni vuota. Tutt'e due sbagliavano **perché** vivevano dove
+   nessuna prova guarda: la pagina compone i file, e le prove chiamano il
+   modulo. Il fondo si alza DOPO aver visto il conto salire (87/87). */
+const FONDO = { campo: 123, conti: 122, flotta: 87, scudo: 165, sentinella: 131, terra: 61 };
 
 /* Quello che resta fuori per un motivo, non per dimenticanza: i caricatori
    dati vogliono la rete e lo SDK, i ponti demo vogliono il localStorage.

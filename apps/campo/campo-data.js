@@ -1121,13 +1121,62 @@ export function riassuntoMeteo(m) {
   return parti.join(" · ");
 }
 
+/* LE TRE VOCI DEL METEO, con il nome per chi legge e i valori che, in quella
+   voce, contano come condizione difficile. Un posto solo: la pagina se li
+   riscriveva accanto al cartellone. */
+export const VOCI_METEO = [
+  { campo: "cielo",      nome: "il cielo",      avverse: METEO_AVVERSO },
+  { campo: "piste",      nome: "le piste",      avverse: PISTE_AVVERSE },
+  { campo: "visibilita", nome: "la visibilità", avverse: ["Scarsa"] },
+];
+
+/* I quattro stati che il meteo di un turno sa dire. Elenco esplicito perché
+   chi disegna una mappa di colori la faccia coprire tutti (regola 18). */
+export const STATI_METEO = ["non-registrato", "incompleto", "buono", "avverso"];
+
+/* ⛔ «NON AVVERSO» E «NESSUNO HA GUARDATO» NON SONO LA STESSA COSA, e finché la
+   risposta è stata un SÌ/NO il cartellone le dipingeva uguali.
+   Misurato nel browser il 09/08: turno CHIUSO e firmato, del meteo registrato
+   solo il cielo («Sereno»), piste e visibilità mai guardate. `meteoAvverso`
+   rispondeva `false` e il cartellone usciva con la classe **`board ok`** —
+   bordo e cifra verdi — cioè «condizioni a posto» su un turno in cui le piste
+   potevano essere ghiacciate e nessuno lo sapeva. Il testo sotto lo diceva
+   («mancano ancora le piste e la visibilità») e il colore diceva il contrario:
+   il colore tranquillo dove non è stato misurato niente.
+   ⚠️ E il commento accanto a quella riga raccontava la correzione del caso
+   GEMELLO — «un turno chiuso con pioggia e piste ghiacciate usciva VERDE» —
+   fatta guardando il dato PRESENTE. Il caso del dato ASSENTE non l'aveva
+   guardato nessuno: è la seconda faccia della stessa svista.
+   L'asimmetria è la stessa del riposo fra due turni: una voce avversa ACCUSA
+   anche se le altre due mancano (una pista ghiacciata è ghiacciata comunque),
+   ma per ASSOLVERE servono tutte e tre. Il dato incompleto sa ancora accusare,
+   non sa più dire «è andata bene».
+   Ritorna { stato, avverse, mancano, lette, totale, completo }. Pura e
+   testabile. */
+export function statoMeteo(m) {
+  const lette = [], mancano = [], avverse = [];
+  for (const v of VOCI_METEO) {
+    const val = String((m && m[v.campo]) || "").trim();
+    if (!val) { mancano.push(v.nome); continue; }
+    lette.push(v.campo);
+    if (v.avverse.includes(val)) avverse.push(val);
+  }
+  return {
+    stato: avverse.length ? "avverso"
+         : !lette.length ? "non-registrato"
+         : mancano.length ? "incompleto" : "buono",
+    avverse, mancano, lette: lette.length, totale: VOCI_METEO.length,
+    completo: lette.length > 0 && mancano.length === 0,
+  };
+}
+
 // Il turno ha condizioni difficili? (serve a colorare il cartellone e a
-// scriverlo nel rapporto, mai a "decidere" al posto di chi c'è). Pura.
+// scriverlo nel rapporto, mai a "decidere" al posto di chi c'è).
+// ⛔ NON SI RISCRIVE: è `statoMeteo` letta con una domanda sola. Due copie
+// uguali oggi divergono domani senza che nessuno lo veda — e questa è già la
+// funzione da cui il difetto qui sopra è passato. Pura.
 export function meteoAvverso(m) {
-  if (!m) return false;
-  return METEO_AVVERSO.includes(String(m.cielo || "").trim())
-      || PISTE_AVVERSE.includes(String(m.piste || "").trim())
-      || String(m.visibilita || "").trim() === "Scarsa";
+  return statoMeteo(m).stato === "avverso";
 }
 
 // La checklist di quel giorno, turno e squadra (l'ultima salvata vince).
@@ -2020,6 +2069,25 @@ export function csvAppello(operatori, presenze, durate, data, turno, squadra, fm
    La difesa è `dataISOEsiste`, già importata qui sopra, messa nel punto UNICO
    in cui la data entra: da lì `primo` è per forza un giorno vero, l'accumulatore
    non ha più chiavi orfane e `meta` non riceve più niente da inventare. */
+/* ⛔ E OGNI RIGA DICE SE IN QUEL GIORNO SIA STATO REGISTRATO QUALCOSA
+   (`registrate`), perché senza quel campo le colonne a zero sono di DUE specie
+   e chi le somma non può distinguerle:
+     · una giornata di lavoro registrata in cui non ci si è fermati — uno zero
+       MISURATO, che nella media ci deve stare;
+     · una giornata in cui non è stato registrato niente — non si sa se ci si
+       sia fermati, e quello zero non è una misura.
+   ⛔ MISURATO NEL BROWSER IL 09/08, ED È IL NUMERO TRANQUILLO DEL PRINCIPIO DEL
+   FONDATORE. Con tre giornate registrate su quattordici, ognuna con 100 minuti
+   di fermo, la nota del grafico scriveva «In media **21 min** al giorno»: 300
+   minuti divisi per quattordici colonne, di cui **undici mai misurate**. Sulle
+   giornate misurate la media è **100**, cioè quasi cinque volte tanto, e le
+   undici assenti tiravano il numero giù — nella direzione che rassicura.
+   Il grafico gemello, dieci righe più sotto nella stessa pagina, la stessa
+   regola ce l'aveva già e la dichiarava pure: «Nelle giornate con qualcosa
+   registrato la media è …». Era la regola scritta due volte, la seconda più
+   debole — e il campo che serviva a scriverla giusta qui non c'era.
+   `registrate` conta le ATTIVITÀ registrate quel giorno, non i fermi: una
+   giornata con dieci attività e nessuna anomalia è misurata eccome. */
 export function fermiPerGiorno(attivita, giorni = 14, oggi = new Date()) {
   const fine = oggiISO(oggi);
   const acc = {};
@@ -2028,7 +2096,8 @@ export function fermiPerGiorno(attivita, giorni = 14, oggi = new Date()) {
     const d = String((a && a.data) || "").trim();
     if (!dataISOEsiste(d) || d > fine) continue;
     if (!primo || d < primo) primo = d;
-    if (!acc[d]) acc[d] = { data: d, minuti: 0, fermi: 0 };
+    if (!acc[d]) acc[d] = { data: d, minuti: 0, fermi: 0, registrate: 0 };
+    acc[d].registrate++;
     if (a.stato === "anomalia") {
       acc[d].minuti += Math.max(0, +a.fermoMin || 0);
       acc[d].fermi++;
@@ -2041,8 +2110,32 @@ export function fermiPerGiorno(attivita, giorni = 14, oggi = new Date()) {
   const da = primo > inizio ? primo : inizio;
   const out = [];
   for (let t = meta(da); oggiISO(t) <= fine; t = new Date(t.getTime() + 86400000))
-    out.push(acc[oggiISO(t)] || { data: oggiISO(t), minuti: 0, fermi: 0 });
+    out.push(acc[oggiISO(t)] || { data: oggiISO(t), minuti: 0, fermi: 0, registrate: 0 });
   return out;
+}
+
+/* LA MEDIA DEI MINUTI DI FERMO AL GIORNO, con il suo denominatore dichiarato.
+   Sta qui e non nella pagina perché è la decisione, non il disegno: chi
+   mostrerà questo numero da un'altra parte (un export, un riepilogo, una
+   stampa) non deve poterla rifare più debole — è il difetto che in questa casa
+   è già costato ventiquattro volte.
+   Ritorna `{ media, giorniMisurati, giorniVuoti, giorni, totale }`, e `media` è
+   `null` — mai zero — quando nessuna giornata del periodo è stata registrata:
+   uno zero lì direbbe «non ci fermiamo mai» dove la verità è «non lo sa
+   nessuno». Pura e testabile. */
+export function mediaFermiAlGiorno(righe) {
+  const r = (righe || []).filter(Boolean);
+  const misurate = r.filter(g => (+g.registrate || 0) > 0);
+  const totale = r.reduce((t, g) => t + Math.max(0, +g.minuti || 0), 0);
+  return {
+    totale,
+    giorni: r.length,
+    giorniMisurati: misurate.length,
+    giorniVuoti: r.length - misurate.length,
+    media: misurate.length
+      ? Math.round(misurate.reduce((t, g) => t + Math.max(0, +g.minuti || 0), 0) / misurate.length)
+      : null,
+  };
 }
 
 /* Quanti fermi NON compaiono in nessuna colonna del grafico qui sopra perché il

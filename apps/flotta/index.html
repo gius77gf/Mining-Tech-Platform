@@ -1262,7 +1262,7 @@ body.dw b.bad{color:var(--ink-dg)}
 
 
 <script type="module">
-  import { flottaData, urgenza, urgenzaOre, kpiFrom, previsioneGiorni, disponibilitaFlotta, sottoScorta, scaricoGiacenza, parseTelemetriaCsv, parseMezziCsv, parseRicambiCsv, csvRicambi, ripartizioneCosti, costoOfficinaPerMezzo, costoOrarioMezzo, prioritaOperative,
+  import { flottaData, urgenza, urgenzaOre, kpiFrom, previsioneGiorni, disponibilitaFlotta, sottoScorta, statoScorta, scaricoGiacenza, parseTelemetriaCsv, parseMezziCsv, parseRicambiCsv, csvRicambi, ripartizioneCosti, costoOfficinaPerMezzo, costoOrarioMezzo, prioritaOperative,
            costiPerMese, disponibilitaStorico, fotografiaDaRegistrare, pagellaMezzi, BANDA_PAGELLA,
            SCADENZE_MEZZO_PRESET, presetScadenzaMezzo, statoScadenzaMezzo, scadenzeOrdinate, contaScadenzeMezzi, validaScadenzaMezzo, aggiungiMesi,
            nomeBreve, TIPI_MEZZO, tipoMezzo, tipoMezzoDi, checklistPreUso, riepilogoControllo,
@@ -2183,24 +2183,49 @@ body.dw b.bad{color:var(--ink-dg)}
         ${(+w.costo) ? `<span class="badge tag euro">${eur(+w.costo)}</span>` : ""}</div>`).join("")
       || vuoto(I.registro, "Libretto ancora bianco",
           "Nessun intervento registrato. Quando segni <b>eseguita</b> una manutenzione programmata, finisce qui con data, ricambio usato e costo: è lo storico che vale in garanzia e alla rivendita del mezzo.");
+    /* ⛔ «TUTTI SOPRA LA SOGLIA MINIMA» NON SI PUÒ DIRE DI UN PEZZO CHE UNA
+       SOGLIA NON CE L'HA. Era la frase più tranquilla della schermata detta
+       proprio dove non era stato misurato niente: l'app dichiara nel
+       messaggio d'import «N sono senza soglia minima e non entreranno
+       nell'avviso di sotto-scorta», e un istante dopo si smentiva. La
+       decisione la prende `statoScorta` nel modulo, in un posto solo. */
+    const senzaSoglia = RIC.filter(r => statoScorta(r).stato === "senza-soglia");
+    const codaSenzaSoglia = senzaSoglia.length
+      ? ` <span class="giallo">${senzaSoglia.length === 1
+          ? "1 ricambio non ha una soglia minima"
+          : senzaSoglia.length + " ricambi non hanno una soglia minima"}</span>: ${senzaSoglia.map(r => esc(r.nome)).join(", ")} — finché non gliela scrivi non ${senzaSoglia.length === 1 ? "entra" : "entrano"} in nessun avviso.`
+      : "";
+    /* ⚠️ QUANDO NESSUNO È SENZA SOGLIA LA FRASE RESTA QUELLA DI PRIMA, PAROLA
+       PER PAROLA: lì era vera, e riscriverla avrebbe fatto due danni invece
+       di zero — un giro di parole in più a chi legge, e l'iniezione di
+       `flotta-frasi-da-uno` (che su questa frase prova il singolare) scaduta
+       in silenzio, cioè una controprova che gira su un prodotto sano dicendo
+       «non distingue». Si aggiunge un ramo, non si riscrive quello giusto. */
+    const giudicabili = RIC.length - senzaSoglia.length;
     $("ric-alert").innerHTML = RIC.length
-      ? (scorta.length
+      ? ((scorta.length
           ? `<span class="rosso">${scorta.length} ${scorta.length === 1 ? "ricambio sotto scorta" : "ricambi sotto scorta"}</span> — da riordinare: ${scorta.map(r => esc(r.nome)).join(", ")}.`
+          : senzaSoglia.length
+            ? (giudicabili === 0
+                ? ""
+                : giudicabili === 1
+                  ? `L'<b>unico</b> ricambio con una soglia minima è sopra la soglia.`
+                  : `Tutti i <b>${giudicabili}</b> ricambi con una soglia minima sono sopra la soglia.`)
           : RIC.length === 1
             ? `L'<b>unico</b> ricambio è sopra la soglia minima.`
-            : `Tutti i <b>${RIC.length}</b> ricambi sono sopra la soglia minima.`)
+            : `Tutti i <b>${RIC.length}</b> ricambi sono sopra la soglia minima.`) + codaSenzaSoglia).trim()
       : "";
     $("ric-tot").textContent = RIC.length;
     const qRic = ($("ric-cerca") && $("ric-cerca").value || "").trim().toLowerCase();
     $("ric-list").innerHTML = RIC.slice()
       .sort((a,b) => ((+a.giacenza||0)-(+a.sogliaMin||0)) - ((+b.giacenza||0)-(+b.sogliaMin||0)))
       .filter(r => !qRic || (r.nome || "").toLowerCase().includes(qRic))
-      .map(r => { const sotto = (+r.giacenza||0) <= (+r.sogliaMin||0);
-      return `<div class="item statico ${sotto ? "st-danger" : "st-ok"}">
+      .map(r => { const s = statoScorta(r);
+      return `<div class="item statico ${striscia[s.cls] || "st-ok"}">
         <div class="avatar sup">${I.bullone}</div>
-        <div class="info"><div class="name">${esc(r.nome)}</div><div class="meta">giacenza ${numTx(r.giacenza||0)} · soglia minima ${numTx(r.sogliaMin||0)}${+r.prezzo > 0 ? " · " + eur(r.prezzo) + " al pezzo" : ""}</div></div>
+        <div class="info"><div class="name">${esc(r.nome)}</div><div class="meta">giacenza ${numTx(s.giacenza)} · ${s.soglia == null ? "soglia minima non impostata" : "soglia minima " + numTx(s.soglia)}${+r.prezzo > 0 ? " · " + eur(r.prezzo) + " al pezzo" : ""}</div></div>
         <div class="acts"><span class="arr" role="button" tabindex="0" title="Scarico: togli 1 pezzo" aria-label="Scarica un ${esc(r.nome)}" data-ric-meno="${r.id}">${I.meno}</span>
-        <span class="badge ${sotto ? "danger" : "ok"}">${sotto ? "sotto scorta" : "ok"}</span>
+        <span class="badge ${s.cls}">${s.label}</span>
         <span class="arr" role="button" tabindex="0" title="Carico: aggiungi 1 pezzo" aria-label="Carica un ${esc(r.nome)}" data-ric-piu="${r.id}">${I.piu}</span>
         <span class="arr dan" role="button" tabindex="0" title="Rimuovi il ricambio dal magazzino" aria-label="Rimuovi ${esc(r.nome)}" data-ric-del="${r.id}">${I.croce}</span></div></div>`; }).join("")
       || (qRic
@@ -2966,6 +2991,14 @@ body.dw b.bad{color:var(--ink-dg)}
       puliscoGrafico("graf-fermi-causali");
     }
 
+    /* Lo STATO della pastiglia lo decide statoFermo nel modulo, come per la
+       colonna del file che esce: qui si aggiunge solo la durata, che sullo
+       schermo c'è spazio per scriverla e in una cella di CSV no.
+       ⚠️ E questa spiegazione sta QUI, sopra la funzione, non accanto alla
+       riga: quella riga vive dentro un template literal, dove un commento non
+       è un commento ma testo — e i suoi apostrofi (o un accento grave) chiudono
+       la stringa. È scritto in CLAUDE.md, ed è stato rifatto lo stesso: la
+       pagina non compilava più e sintassi-pagine l'ha detto in tre secondi. */
     const lista = fermiOrdinati(FER, new Date());
     $("fer-list").innerHTML = lista.slice(0, 12).map(f => {
       const cls = f.aperto ? "danger" : "mute";
@@ -2975,7 +3008,7 @@ body.dw b.bad{color:var(--ink-dg)}
         <div class="info"><div class="name">${esc(nomeBreve(f.mezzo) || "Mezzo")} · ${esc(f.causaleTx)}</div>
           <div class="meta">${esc(quando)}${f.giorni != null ? " · " + ggTx(f.giorni) : ""}</div>
           ${f.note ? `<div class="meta norma">${esc(f.note)}</div>` : ""}</div>
-        <div class="acts"><span class="badge ${f.aperto ? "danger" : "tag"}">${f.giorni != null ? (f.aperto ? "fermo da " + ggTx(f.giorni) : ggTx(f.giorni)) : "data non valida"}</span>
+        <div class="acts"><span class="badge ${f.stato === "aperto" ? "danger" : f.stato === "chiuso" ? "tag" : "warn"}">${f.stato === "data-non-valida" ? f.statoTx : f.aperto ? "fermo da " + ggTx(f.giorni) : ggTx(f.giorni)}</span>
         ${f.aperto ? `<span class="arr ok" role="button" tabindex="0" title="Segna che la macchina è ripartita" aria-label="${esc(nomeBreve(f.mezzo))} è ripartito" data-fer-fine="${f.id}">${I.riparte}</span>` : ""}
         <span class="arr dan" role="button" tabindex="0" title="Rimuovi questo fermo" aria-label="Rimuovi il fermo di ${esc(nomeBreve(f.mezzo))}" data-fer-del="${f.id}">${I.croce}</span></div></div>`;
     }).join("")
@@ -4111,9 +4144,17 @@ body.dw b.bad{color:var(--ink-dg)}
        (`6.000`): stessa riga, stessa famiglia. */
     for (const n of MAN.slice().sort((a, b) => (a.dataPrevista || "9999") < (b.dataPrevista || "9999") ? -1 : 1))
       csv += `manutenzione;${csvCell(n.titolo + " — " + n.mezzo)};${csvCell(statoOrdine(n).breve)};${csvCell(n.orePreviste ? "a " + (+n.orePreviste).toLocaleString("it-IT", { useGrouping: true }) + " h motore" : "previsto " + dataIt(n.dataPrevista))}\n`;
-    const scorta = new Set(sottoScorta(RIC).map(r => r.id));
-    for (const r of RIC.slice().sort((a, b) => a.nome.localeCompare(b.nome, "it")))
-      csv += `ricambio;${csvCell(r.nome)};${scorta.has(r.id) ? "sotto scorta" : "ok"};${csvCell("giacenza " + (+r.giacenza || 0) + " · soglia min " + (+r.sogliaMin || 0))}\n`;
+    /* ⛔ E LA COLONNA DELLO STATO DICEVA «ok» A UN PEZZO CHE NON HA UNA
+       SOGLIA. Stessa famiglia della riga qui sopra e stesso posto — il foglio
+       che si gira al responsabile — solo un pezzo più in giù: `sottoScorta`
+       non lo contiene (giusto: senza soglia non c'è niente sotto cui stare) e
+       il file traduceva quel «non c'è» in «ok», con accanto «soglia min 0»,
+       una soglia che nessuno ha scritto. Adesso la parola la decide
+       `statoScorta`, la stessa che disegna la pastiglia sullo schermo. */
+    for (const r of RIC.slice().sort((a, b) => a.nome.localeCompare(b.nome, "it"))) {
+      const s = statoScorta(r);
+      csv += `ricambio;${csvCell(r.nome)};${csvCell(s.label)};${csvCell("giacenza " + s.giacenza + (s.soglia == null ? " · soglia minima non impostata" : " · soglia min " + s.soglia))}\n`;
+    }
     const a = document.createElement("a");
     a.href = "data:text/csv;charset=utf-8," + encodeURIComponent(csv);
     a.download = "flotta_situazione.csv"; marchiaCsv(a); a.click();
@@ -4827,10 +4868,29 @@ body.dw b.bad{color:var(--ink-dg)}
   // Il registro dei fermi: è quello che si guarda quando si decide se una
   // macchina va tenuta o sostituita, e quello che si porta al noleggiatore.
   $("btn-fer-csv").onclick = () => {
+    /* ⛔ LA COLONNA «STATO» SAPEVA DIRE DUE COSE E `durataFermo` NE DICE TRE.
+       È la regola 18 applicata a un file: una mappa di stati deve coprire
+       tutti gli stati che la sua funzione sa dire. `durataFermo` risponde
+       «aperto», «chiuso» e — quando una delle due date non si legge —
+       `giorni: null`, che sullo schermo diventa la pastiglia «data non
+       valida». Il file quella terza risposta non ce l'aveva: un fermo con la
+       ripartenza illeggibile usciva **«chiuso»**, con la colonna dei giorni
+       vuota, cioè un episodio concluso a zero giornate perse — la parola più
+       tranquilla, esattamente dove lo schermo grida. Misurato affiancando le
+       due rese sullo stesso istante: schermo «Pala P1 · Verifica o revisione
+       dal 31/07 al — DATA NON VALIDA», file «Pala P1;…;2026-07-31;
+       2026-02-30;;chiuso».
+       ⚠️ ONESTÀ SULLA GRAVITÀ: quella forma di record oggi l'app non la sa
+       PRODURRE — `validaFermo` rifiuta la data che non esiste e la
+       ripartenza prima della partenza, e il bottone «è ripartito» ripassa
+       dalla stessa funzione. È un difetto **latente**, per i record vecchi o
+       per un import; resta corretto perché la versione giusta era già in
+       questo stesso file, nello scadenzario, che il suo terzo stato
+       (`senza-data`) lo scrive da sempre. */
     const righe = [["mezzo", "causale", "inizio", "fine", "giorni", "stato", "note"].join(";")]
       .concat(fermiOrdinati(FER, new Date()).map(f =>
         [nomeBreve(f.mezzo), f.causaleTx, f.inizio || "", f.fine || "", f.giorni == null ? "" : f.giorni,
-         f.aperto ? "ancora fermo" : "chiuso", f.note || ""].map(csvCell).join(";")));
+         f.statoTx, f.note || ""].map(csvCell).join(";")));
     const a = document.createElement("a");
     a.href = URL.createObjectURL(new Blob(["﻿" + righe.join("\r\n")], { type: "text/csv;charset=utf-8" }));
     a.download = "flotta-fermi-macchina.csv"; marchiaCsv(a); a.click();

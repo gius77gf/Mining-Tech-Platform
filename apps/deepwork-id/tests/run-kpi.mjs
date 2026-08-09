@@ -1507,6 +1507,78 @@ test("sottoScorta: ricambi con giacenza ≤ soglia, ordinati per gravità", () =
 });
 test("sottoScorta: nessun ricambio = lista vuota (niente crash)", () =>
   eq(flotta.sottoScorta([]), [], "vuoto"));
+/* ⛔ LA SOGLIA MAI SCRITTA, E LE TRE FRASI CHE LA INVENTAVANO.
+   ══════════════════════════════════════════════════════════════════════════
+   `parseRicambiCsv` la decide da sempre — «la SOGLIA MINIMA che manca resta
+   null: una soglia inventata fa suonare un allarme che nessuno ha chiesto,
+   OPPURE LO TACE» — ed è la prova qui sopra, scritta il 30/07. Poi ogni posto
+   che doveva DIRE qualcosa di quel ricambio se n'è tenuto una copia più
+   debole (`+r.sogliaMin || 0`), cioè la soglia inventata: la riga del
+   magazzino scriveva «soglia minima 0 · ok», `flotta_situazione.csv` scriveva
+   «ok» e «soglia min 0», e la priorità operativa «/ min 0».
+   Riprodotto il 09/08 premendo il bottone VERO «Importa ricambi CSV» con due
+   righe a colonna `sogliaMin` vuota: l'app dichiara «2 sono senza soglia
+   minima e non entreranno nell'avviso di sotto-scorta» e un istante dopo le
+   stesse due righe dicono «soglia minima 0 · OK» — e il CSV che esce dallo
+   stesso magazzino, un bottone più in là, la scrive **vuota**. Cioè il file
+   sapeva e lo schermo no: la copia debole, per una volta, era la schermata.
+   ⚠️ Il conto che vale più del racconto: `statoScorta` NON sposta nessun
+   avviso — chi entra in `sottoScorta` è identico a prima (la prova sotto lo
+   pretende caso per caso). Quello che cambia è che il quarto stato adesso si
+   può DIRE, e che `mancano` non è più uno zero dove non c'è niente da
+   contare. */
+test("statoScorta: una soglia mai scritta non è una soglia a zero", () => {
+  const s = flotta.statoScorta({ nome: "Cinghia", giacenza: 3 });
+  eq(s.stato, "senza-soglia", "non giudicabile: nessuno ha detto quando riordinarla");
+  eq(s.soglia, null, "e la soglia resta assente, non zero");
+  eq(s.mancano, null, "quanti ne manchino per arrivare a un numero che non c'è non lo sa nessuno");
+  eq(s.cls, "warn", "e il colore non è quello tranquillo");
+  eq(flotta.statoScorta({ nome: "Cinghia", giacenza: 3 }).label, "senza soglia", "la pastiglia lo dice");
+});
+test("statoScorta: gli altri tre stati, e lo zero che resta un allarme", () => {
+  eq(flotta.statoScorta({ giacenza: 0 }).stato, "esaurito",
+    "giacenza a zero è MISURATA: vale anche senza soglia, un pezzo che non c'è non si monta");
+  eq(flotta.statoScorta({ giacenza: 0 }).mancano, null, "ma quanti ordinarne, senza soglia, non si dice");
+  eq(flotta.statoScorta({ giacenza: 0, sogliaMin: 3 }).mancano, 3, "con la soglia scritta, sì");
+  eq(flotta.statoScorta({ giacenza: 2, sogliaMin: 4 }).stato, "sotto-scorta", "sotto la soglia scritta");
+  eq(flotta.statoScorta({ giacenza: 1, sogliaMin: 1 }).stato, "sotto-scorta", "pari alla soglia = sotto");
+  eq(flotta.statoScorta({ giacenza: 6, sogliaMin: 4 }).stato, "a-posto", "sopra la soglia scritta");
+  eq(flotta.statoScorta({ giacenza: 6, sogliaMin: 4 }).cls, "ok", "e solo qui il colore è tranquillo");
+});
+test("statoScorta: i quattro stati coprono tutto, e nessuno risponde undefined", () => {
+  const casi = [{ giacenza: 0 }, { giacenza: 3 }, { giacenza: 0, sogliaMin: 3 },
+                { giacenza: 2, sogliaMin: 4 }, { giacenza: 6, sogliaMin: 4 }, {}, null];
+  const stati = casi.map(c => flotta.statoScorta(c));
+  eq(stati.every(s => ["esaurito", "sotto-scorta", "senza-soglia", "a-posto"].includes(s.stato)), true,
+    "nessuno stato fuori vocabolario: " + JSON.stringify(stati.map(s => s.stato)));
+  eq(stati.every(s => typeof s.label === "string" && s.label && ["danger", "warn", "ok"].includes(s.cls)), true,
+    "ogni stato porta la sua etichetta e il suo colore");
+});
+test("sottoScorta: il quarto stato non sposta nessun avviso (chi entra è identico a prima)", () => {
+  const ric = [
+    { id: "a", nome: "A", giacenza: 0 },                  // esaurito, soglia mai scritta
+    { id: "b", nome: "B", giacenza: 3 },                  // senza soglia, con pezzi → fuori
+    { id: "c", nome: "C", giacenza: 0, sogliaMin: 3 },    // esaurito
+    { id: "d", nome: "D", giacenza: 2, sogliaMin: 4 },    // sotto scorta
+    { id: "e", nome: "E", giacenza: 6, sogliaMin: 4 },    // a posto → fuori
+    { id: "f", nome: "F", giacenza: 1, sogliaMin: 1 },    // pari alla soglia → dentro
+  ];
+  // il filtro di PRIMA, scritto qui perché il confronto sia un conto e non una promessa
+  const prima = ric.filter(r => (+r.giacenza || 0) <= (+r.sogliaMin || 0)).map(r => r.id).sort();
+  eq(flotta.sottoScorta(ric).map(r => r.id).sort(), prima, "stessa lista, caso per caso");
+  eq(flotta.sottoScorta(ric).find(r => r.id === "a").mancano, null,
+    "e l'unica differenza è dichiarata: sull'esaurito senza soglia «mancano» non è più 0");
+});
+test("prioritaOperative: su un ricambio senza soglia non scrive «min 0»", () => {
+  const items = flotta.prioritaOperative([], [], [{ id: "a", nome: "Perno snodo", giacenza: 0 }]);
+  const r = items.find(x => x.categoria === "ricambio");
+  eq(!!r, true, "il pezzo esaurito resta in priorità");
+  eq(/min 0/.test(r.dettaglio), false, "niente soglia inventata: " + r.dettaglio);
+  eq(r.dettaglio, "giacenza 0 / soglia minima non impostata", "lo dice a parole");
+  const conSoglia = flotta.prioritaOperative([], [], [{ id: "b", nome: "Filtro", giacenza: 1, sogliaMin: 4 }]);
+  eq(conSoglia.find(x => x.categoria === "ricambio").dettaglio, "giacenza 1 / min 4",
+    "e dove la soglia c'è, si scrive");
+});
 test("parseTelemetriaCsv: legge mezzo/ore/carburante, scarta righe non valide", () => {
   const csv = "mezzo;ore;carburante\nEscavatore E1;5900;8400\nDumper D1;8420\n;100;0\nPala P1;abc;10\n";
   const p = flotta.parseTelemetriaCsv(csv);
@@ -9465,13 +9537,25 @@ test("statoVuoto: la struttura è quella del core, invariata", () => {
     eq(g.length, 3, "tre giorni, non quattordici");
   });
   test("fermiPerGiorno: un giorno DENTRO la finestra senza fermi vale zero", () => {
-    /* e questo invece è un dato vero: quel giorno c'eravamo e non ci siamo fermati */
-    eq(campo.fermiPerGiorno(ATT_FERMI, 14, OGGI)[1], { data: "2026-07-30", minuti: 0, fermi: 0 },
-      "il 30 luglio a zero");
+    /* ⚠️ E QUI L'ASSERZIONE È DIVENTATA PIÙ GIUSTA, NON PIÙ PERMISSIVA. Il
+       commento diceva «questo invece è un dato vero: quel giorno c'eravamo e
+       non ci siamo fermati» — ma il 30 luglio in `ATT_FERMI` non ha NESSUNA
+       registrazione: non c'eravamo affatto, e la riga non aveva modo di dirlo.
+       È `registrate` a distinguere le due specie di zero. */
+    eq(campo.fermiPerGiorno(ATT_FERMI, 14, OGGI)[1],
+      { data: "2026-07-30", minuti: 0, fermi: 0, registrate: 0 },
+      "il 30 luglio a zero, e con NIENTE registrato: uno zero che non è una misura");
   });
   test("fermiPerGiorno: somma i minuti del giorno e conta i fermi", () => {
-    eq(campo.fermiPerGiorno(ATT_FERMI, 14, OGGI)[2], { data: "2026-07-31", minuti: 45, fermi: 2 },
-      "30 + 15 minuti, due fermi; la conclusa non è un fermo");
+    eq(campo.fermiPerGiorno(ATT_FERMI, 14, OGGI)[2],
+      { data: "2026-07-31", minuti: 45, fermi: 2, registrate: 3 },
+      "30 + 15 minuti, due fermi; la conclusa non è un fermo — ma è registrata");
+  });
+  test("fermiPerGiorno: `registrate` conta le ATTIVITÀ, non i fermi", () => {
+    /* una giornata con dieci attività e nessuna anomalia è misurata eccome: il
+       suo zero minuti è un dato, e nella media ci deve stare */
+    const g = campo.fermiPerGiorno(ATT_FERMI, 14, OGGI);
+    eq(g.map(r => r.registrate), [1, 0, 3], "29 luglio 1, 30 luglio nessuna, 31 luglio tre");
   });
   test("fermiPerGiorno: senza data o nel futuro non entrano", () => {
     /* i 999 minuti senza data e i 777 del 5 agosto non compaiono da nessuna parte */
@@ -9480,6 +9564,53 @@ test("statoVuoto: la struttura è quella del core, invariata", () => {
     eq(campo.fermiPerGiorno([], 14, OGGI), [], "nessuna registrazione: nessuna finestra");
     eq(campo.fermiPerGiorno([{ data: "", stato: "anomalia", fermoMin: 10 }], 14, OGGI), [],
       "solo registrazioni senza data: idem");
+  });
+
+  /* ⛔ LA MEDIA DEI FERMI SI DIVIDE PER LE GIORNATE MISURATE, NON PER LE
+     COLONNE. Misurato nel browser il 09/08 sulla pagina di Campo: tre giornate
+     registrate su quattordici, 100 minuti di fermo ciascuna, e la nota del
+     grafico scriveva «In media 21 min al giorno» — 300 diviso 14, di cui
+     undici colonne mai misurate. Sulle giornate misurate erano 100. Il numero
+     tranquillo del principio del fondatore, e nella direzione che rassicura.
+     Il grafico gemello della settimana, dieci righe più sotto nella stessa
+     pagina, la regola giusta ce l'aveva già e la dichiarava («Nelle giornate
+     con qualcosa registrato la media è …»): era la regola scritta due volte,
+     la seconda più debole. */
+  test("mediaFermiAlGiorno: le giornate senza NIENTE registrato non tirano giù la media", () => {
+    const righe = campo.fermiPerGiorno([
+      { data: "2026-07-27", stato: "anomalia", fermoMin: 100 },
+      { data: "2026-08-02", stato: "anomalia", fermoMin: 100 },
+      { data: "2026-08-09", stato: "anomalia", fermoMin: 100 },
+    ], 14, new Date("2026-08-09T12:00:00"));
+    eq(righe.length, 14, "quattordici colonne");
+    const m = campo.mediaFermiAlGiorno(righe);
+    eq(m.giorniMisurati, 3, "tre giornate registrate");
+    eq(m.giorniVuoti, 11, "undici colonne senza niente registrato");
+    eq(m.totale, 300, "trecento minuti in tutto");
+    eq(m.media, 100, "cento minuti al giorno, non ventuno");
+  });
+  test("mediaFermiAlGiorno: una giornata registrata SENZA fermi resta nel denominatore", () => {
+    /* è uno zero MISURATO — quel giorno c'eravamo e non ci siamo fermati — e
+       toglierlo gonfierebbe la media, che è l'errore opposto e altrettanto
+       falso */
+    const m = campo.mediaFermiAlGiorno([
+      { data: "2026-08-01", minuti: 100, fermi: 1, registrate: 2 },
+      { data: "2026-08-02", minuti: 0, fermi: 0, registrate: 4 },
+    ]);
+    eq(m.giorniMisurati, 2, "tutte e due misurate");
+    eq(m.media, 50, "cento diviso due, non cento");
+  });
+  test("mediaFermiAlGiorno: senza nessuna giornata registrata la media è null, non zero", () => {
+    /* uno zero direbbe «non ci fermiamo mai» dove la verità è «non lo sa
+       nessuno»; ed è la trappola del `+null` che fa zero e passa per un numero */
+    const m = campo.mediaFermiAlGiorno([
+      { data: "2026-08-01", minuti: 0, fermi: 0, registrate: 0 },
+      { data: "2026-08-02", minuti: 0, fermi: 0, registrate: 0 },
+    ]);
+    eq(m.media, null, "non calcolabile");
+    eq(m.giorniMisurati, 0, "nessuna giornata misurata");
+    eq(campo.mediaFermiAlGiorno([]).media, null, "e nemmeno senza righe");
+    eq(campo.mediaFermiAlGiorno(null).media, null, "né senza argomento");
   });
 
   /* ⛔ UN GIORNO CHE NON ESISTE NON È UN GIORNO. Le tre prove qui sotto sono
@@ -9757,6 +9888,82 @@ test("statoVuoto: la struttura è quella del core, invariata", () => {
     eq(campo.riassuntoMeteo(campo.meteoDi([], "2026-07-31", "Notte")), "", "turno mai compilato");
   });
 
+  /* ⛔ E LA DIFESA QUI SOPRA COPRIVA UN CASO SOLO SU DUE: il turno MAI
+     compilato. Quello compilato A METÀ il cartellone lo disegna eccome —
+     `riassuntoMeteo({cielo:"Sereno"})` dice «Sereno» — e `meteoAvverso`
+     rispondeva `false`, quindi su un turno CHIUSO usciva con la classe
+     `board ok`: bordo e cifra verdi, cioè «condizioni a posto», su un turno di
+     cui nessuno aveva guardato le piste. Misurato nel browser il 09/08.
+     L'asimmetria che regge, la stessa del riposo fra due turni: una voce
+     avversa ACCUSA anche se le altre mancano; per ASSOLVERE servono tutte e
+     tre. Il dato incompleto sa ancora accusare, non sa più dire «è andata
+     bene». */
+  test("statoMeteo: compilato a metà è INCOMPLETO, non «buono»", () => {
+    const s = campo.statoMeteo({ cielo: "Sereno" });
+    eq(s.stato, "incompleto", "il solo cielo non assolve il turno");
+    eq(s.mancano, ["le piste", "la visibilità"], "e dice per nome che cosa manca");
+    eq(s.lette, 1, "una voce su tre");
+    ok(!s.completo, "non completo");
+    eq(campo.statoMeteo({ cielo: "Nuvoloso", piste: "Asciutte" }).stato, "incompleto",
+      "due su tre non bastano");
+  });
+  test("statoMeteo: «buono» vuole tutte e tre le voci", () => {
+    const s = campo.statoMeteo({ cielo: "Sereno", piste: "Asciutte", visibilita: "Buona" });
+    eq(s.stato, "buono", "guardate tutte e tre, e nessuna difficile");
+    eq(s.mancano, [], "niente da chiedere");
+    ok(s.completo, "completo");
+    eq(campo.statoMeteo({ cielo: "Sereno", piste: "Asciutte", visibilita: "Ridotta" }).stato, "buono",
+      "«Ridotta» non è «Scarsa»: è una condizione registrata e non avversa");
+  });
+  test("statoMeteo: una voce avversa accusa anche se le altre mancano", () => {
+    const s = campo.statoMeteo({ cielo: "Sereno", piste: "Ghiacciate" });
+    eq(s.stato, "avverso", "le piste ghiacciate sono ghiacciate comunque");
+    eq(s.avverse, ["Ghiacciate"], "e si dice quale");
+    eq(s.mancano, ["la visibilità"], "il buco resta dichiarato, ma non salva il giudizio");
+  });
+  test("statoMeteo: niente registrato non è «buono» e non è «incompleto»", () => {
+    /* è un terzo stato: la pagina su questo NON disegna il cartellone affatto,
+       ed è giusto che sia distinguibile da «compilato a metà», che invece lo
+       disegna */
+    eq(campo.statoMeteo(null).stato, "non-registrato", "nessuna registrazione");
+    eq(campo.statoMeteo({}).stato, "non-registrato", "registrazione vuota");
+    eq(campo.statoMeteo({ cielo: "  ", piste: "", visibilita: "" }).stato, "non-registrato",
+      "e nemmeno gli spazi sono una risposta");
+  });
+  test("VOCI_METEO: le tre voci, e i valori avversi di ciascuna, in un posto solo", () => {
+    /* la pagina si riscriveva accanto al cartellone i nomi di ciò che manca
+       («il cielo», «le piste», «la visibilità»): una regola scritta due volte
+       diverge al primo cambiamento */
+    eq(campo.VOCI_METEO.map(v => v.campo), ["cielo", "piste", "visibilita"],
+      "le tre voci, nell'ordine in cui si compilano");
+    eq(campo.VOCI_METEO.map(v => v.nome), ["il cielo", "le piste", "la visibilità"],
+      "col nome che si legge nella frase");
+    ok(campo.VOCI_METEO.every(v => Array.isArray(v.avverse) && v.avverse.length),
+      "e ognuna sa quali suoi valori sono difficili");
+    /* i valori avversi devono stare fra quelli che la tendina propone, se no
+       sono una condizione che nessuno potrà mai scegliere */
+    const menu = { cielo: campo.METEO_CIELO, piste: campo.METEO_PISTE, visibilita: campo.METEO_VISIBILITA };
+    ok(campo.VOCI_METEO.every(v => v.avverse.every(x => menu[v.campo].includes(x))),
+      "e ogni valore avverso è una voce vera della sua tendina");
+  });
+  test("statoMeteo: STATI_METEO li elenca tutti e quattro (regola 18)", () => {
+    /* chi disegna una mappa di colori la deve far coprire a tutti: uno stato
+       nuovo senza la sua voce ucciderebbe il disegno, senza errori di sintassi */
+    const visti = [null, { cielo: "Sereno" }, { cielo: "Sereno", piste: "Asciutte", visibilita: "Buona" },
+                   { cielo: "Pioggia" }].map(m => campo.statoMeteo(m).stato);
+    eq(visti.slice().sort(), campo.STATI_METEO.slice().sort(), "tutti e quattro, e nessuno in più");
+  });
+  test("meteoAvverso NON è una seconda implementazione: è statoMeteo letta", () => {
+    /* due copie uguali oggi divergono domani senza che nessuno lo veda, ed è
+       proprio da questa funzione che il difetto del verde era passato */
+    for (const m of [null, {}, { cielo: "Sereno" }, { cielo: "Pioggia" },
+                     { cielo: "Sereno", piste: "Ghiacciate" },
+                     { cielo: "Sereno", piste: "Asciutte", visibilita: "Scarsa" },
+                     { cielo: "Nuvoloso", piste: "Bagnate", visibilita: "Ridotta" }])
+      eq(campo.meteoAvverso(m), campo.statoMeteo(m).stato === "avverso",
+        "stessa risposta su " + JSON.stringify(m));
+  });
+
   test("checklistDi: l'ultima salvata vince e la squadra si riconosce dal nome breve", () => {
     const CHK = [
       { data: "2026-07-31", turno: "Mattino", squadra: "Squadra A", esiti: { "0": "ok" } },
@@ -9964,6 +10171,53 @@ test("statoVuoto: la struttura è quella del core, invariata", () => {
     eq(flotta.fermiOrdinati(FERMI, OGGI).map(f => f.mezzo), ["B", "A", "D", "C"], "ordine");
     contiene(flotta.fermiOrdinati(FERMI, OGGI)[0], { aperto: true, giorni: 12, causaleTx: "Attesa ricambi" },
       "la riga porta con sé durata, stato e motivo per esteso");
+  });
+  /* ⛔ IL TERZO STATO DEL FERMO, E IL FILE CHE LO CHIAMAVA «CHIUSO».
+     ══════════════════════════════════════════════════════════════════════
+     `durataFermo` sa dire tre cose e `flotta-fermi-macchina.csv` ne scriveva
+     due: la colonna `stato` era `f.aperto ? "ancora fermo" : "chiuso"`,
+     quindi un fermo con la ripartenza illeggibile usciva **«chiuso»** con la
+     colonna dei giorni **vuota** — un episodio concluso a zero giornate
+     perse, esattamente dove lo schermo scrive la pastiglia «data non valida».
+     Misurato il 09/08 affiancando le due rese sullo stesso istante:
+       schermo  «Pala P1 · Verifica o revisione dal 31/07 al — DATA NON VALIDA»
+       file     «Pala P1;Verifica o revisione;2026-07-31;2026-02-30;;chiuso;»
+     ⚠️ ONESTÀ SULLA GRAVITÀ: quel record oggi l'app non lo sa PRODURRE —
+     `validaFermo` rifiuta sia la data che non esiste sia la ripartenza prima
+     della partenza, e il bottone «è ripartito» ripassa di lì. È latente, e
+     resta corretto perché la versione giusta era già nello stesso file 950
+     righe più su: lo scadenzario il suo terzo stato (`senza-data`) lo scrive
+     da sempre. */
+  test("statoFermo: la ripartenza illeggibile NON è «chiuso»", () => {
+    eq(flotta.statoFermo({ inizio: "2026-07-29", fine: "2026-02-30" }, OGGI).stato, "data-non-valida",
+      "una data che non esiste non chiude niente");
+    eq(flotta.statoFermo({ inizio: "2026-07-29", fine: "2026-02-30" }, OGGI).parola, "data non valida",
+      "e la parola che finisce nel file è quella che sta sulla pastiglia");
+    eq(flotta.statoFermo({ inizio: "2026-07-29", fine: "2026-02-30" }, OGGI).giorni, null,
+      "nessuna giornata persa da sommare: non si sa");
+    eq(flotta.statoFermo({ inizio: "2026-07-30", fine: "2026-07-28" }, OGGI).stato, "data-non-valida",
+      "e nemmeno una ripartenza PRIMA della partenza");
+    eq(flotta.statoFermo({ inizio: "2026-02-30" }, OGGI).stato, "data-non-valida",
+      "né una partenza illeggibile, che pure resta aperta");
+  });
+  test("statoFermo: gli altri due stati, e la parola per ciascuno", () => {
+    const ap = flotta.statoFermo({ inizio: "2026-07-29" }, OGGI);
+    eq([ap.stato, ap.parola, ap.giorni, ap.aperto], ["aperto", "ancora fermo", 3, true], "aperto");
+    const ch = flotta.statoFermo({ inizio: "2026-07-28", fine: "2026-07-30" }, OGGI);
+    eq([ch.stato, ch.parola, ch.giorni, ch.aperto], ["chiuso", "chiuso", 3, false], "chiuso");
+  });
+  test("statoFermo: i tre stati coprono tutto, e fermiOrdinati porta la parola con sé", () => {
+    const CASI = [{ inizio: "2026-07-29" }, { inizio: "2026-07-28", fine: "2026-07-30" },
+                  { inizio: "2026-07-29", fine: "2026-02-30" }, { inizio: "2026-02-30" }, {}];
+    const stati = CASI.map(f => flotta.statoFermo(f, OGGI));
+    eq(stati.every(s => ["aperto", "chiuso", "data-non-valida"].includes(s.stato)), true,
+      "nessuno stato fuori vocabolario: " + JSON.stringify(stati.map(s => s.stato)));
+    /* e la riga che la pagina e il CSV leggono deve portarla: senza questa
+       asserzione la funzione potrebbe essere giusta e nessuno usarla —
+       la guardia scollegata, che non è un errore di sintassi */
+    const righe = flotta.fermiOrdinati(CASI.map((f, i) => ({ ...f, mezzo: "M" + i })), OGGI);
+    eq(righe.every(r => typeof r.statoTx === "string" && r.statoTx), true, "ogni riga porta la parola");
+    eq(righe.filter(r => r.stato === "data-non-valida").length, 3, "tre righe su cinque sono illeggibili");
   });
 
   test("etichettaMese: «lug 2026», e un mese che non esiste non diventa gennaio", () => {
@@ -10767,6 +11021,54 @@ test("statoVuoto: la struttura è quella del core, invariata", () => {
     eq([sotto.oltre, sopra.oltre, g.punti[2].oltre], [false, true, false],
       "e solo quella oltre porta il segno del superamento");
     eq(g.superamenti, 1, "uno solo contato");
+  });
+  /* ⛔ IL PAREGGIO, che è il caso da cui questa famiglia è nata e l'unico che
+     le due prove qui sopra NON toccano: 10,1 e 9,9 stanno a un decimo DA una
+     parte e DALL'ALTRA, e passerebbero identiche con `>` o con `>=`. Il 06/08
+     il difetto era esattamente sul pareggio — ultima lettura 40 su soglia 40 —
+     e a sbagliare era il DISEGNO mentre il badge diceva giusto.
+     Qui si pretende che le tre affermazioni coincidano sullo stesso punto:
+     il verdetto (`oltre`), il conto (`superamenti`) e la GEOMETRIA (la y del
+     punto identica alla y della linea di soglia). Una sola delle tre che
+     scivoli, e la scheda dice due cose diverse di sé stessa. */
+  test("⛔ serieStorica: la lettura PARI alla soglia è disegnata SULLA linea, e contata oltre", () => {
+    const g = sentinella.serieStorica({ tipo: "polveri", soglia: 40, letture: [
+      { data: "2026-05-04", valore: 10 }, { data: "2026-05-14", valore: 20 },
+      { data: "2026-05-24", valore: 30 }, { data: "2026-06-04", valore: 40 },
+    ] }, {});
+    const y = g.lineaSoglia.y;
+    eq(g.punti[3].y, y, `40 disegnata a y ${g.punti[3].y}, e la soglia 40 è a ${y}: lo stesso posto`);
+    eq(g.punti.map(p => p.oltre), [false, false, false, true], "e solo il pareggio porta il segno");
+    eq(g.superamenti, 1, "il conto dice uno, come il segno");
+    /* il rapporto, perché un campione solo non distingue «funziona» da «sono
+       tutti uguali»: 10 · 20 · 30 · 40 devono stare 1:2:3:4 dall'asse */
+    const zero = g.yTicks.find(t => t.valore === 0);
+    const per = (zero.y - g.punti[3].y) / 40;
+    for (const p of g.punti)
+      ok(Math.abs((zero.y - p.y) - p.valore * per) <= 0.1,
+        `${p.valore} è a ${+(zero.y - p.y).toFixed(2)} dall'asse, e sulla scala ne servono ${+(p.valore * per).toFixed(2)}`);
+  });
+  /* ⛔ E LO ZERO SI DISEGNA ZERO. È la seconda metà della stessa regola —
+     `lunghezzaBarra` la tiene per le barre, e qui nessuno la teneva per la
+     linea: un «minimo di visibilità» messo in `py` solleverebbe lo zero
+     dall'asse, e una centralina che legge zero polveri sembrerebbe averne
+     misurate un po'. Il caso di tutte-a-zero prende anche la divisione per
+     zero: senza soglia `vmax` è 0, e la scala si costruisce lo stesso. */
+  test("⛔ serieStorica: una lettura a zero sta SULL'ASSE, e tutte a zero non spaccano la scala", () => {
+    const z = sentinella.serieStorica({ tipo: "polveri", soglia: 50, letture: [
+      { data: "2026-05-04", valore: 0 }, { data: "2026-05-14", valore: 0 }, { data: "2026-05-24", valore: 0 },
+    ] }, {});
+    ok(z.punti.every(p => p.y === z.box.y1), `ogni zero è sull'asse ${z.box.y1}: ${z.punti.map(p => p.y).join(" ")}`);
+    eq(z.superamenti, 0, "e nessuno di loro è un superamento");
+    ok(z.lineaSoglia && !z.lineaSoglia.fuoriScala, "la soglia 50 resta dentro la scala, sopra i dati");
+    ok(z.lineaSoglia.y < z.box.y1, `la soglia è disegnata SOPRA lo zero (${z.lineaSoglia.y} contro ${z.box.y1})`);
+    // senza nessuna soglia il massimo è 0: la scala non può dividere per zero
+    const z2 = sentinella.serieStorica({ tipo: "polveri", letture: [
+      { data: "2026-05-04", valore: 0 }, { data: "2026-05-14", valore: 0 },
+    ] }, {});
+    ok(z2.punti.every(p => Number.isFinite(p.y)), `geometria finita anche senza soglia: ${z2.punti.map(p => p.y).join(" ")}`);
+    ok(z2.punti.every(p => p.y === z2.box.y1), "e sempre sull'asse dello zero");
+    eq(z2.lineaSoglia, null, "nessuna linea di soglia inventata");
   });
   test("i tipi di ricettore sono una lista chiusa, e uno sconosciuto non diventa «abitazione»", () => {
     eq(sentinella.TIPI_RICETTORE.map(t => t.chiave),

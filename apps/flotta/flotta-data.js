@@ -692,14 +692,70 @@ export function scaricoGiacenza(giacenza, qta = 1) {
   return Math.max(0, (+giacenza || 0) - (+qta || 0));
 }
 
+/* ⛔ UNA SOGLIA MAI SCRITTA NON È UNA SOGLIA A ZERO — e la regola era già
+   scritta, provata, e riscritta più debole dove il documento si compone.
+   ══════════════════════════════════════════════════════════════════════════
+   `parseRicambiCsv` la decide da sempre, e il commento della sua prova dice
+   perché con parole che descrivono esattamente il difetto: «la SOGLIA MINIMA
+   che manca resta null: una soglia inventata fa suonare un allarme che
+   nessuno ha chiesto, **oppure lo tace**». Poi ogni posto che deve DIRE
+   qualcosa di quel ricambio se ne teneva una copia più debole, `+r.sogliaMin
+   || 0`, che è precisamente la soglia inventata — e quindi taceva:
+     · la riga del magazzino scriveva «soglia minima 0» e la pastiglia verde
+       «ok» su un pezzo che nessuno ha mai deciso quando riordinare;
+     · `flotta_situazione.csv` — il foglio che si gira al responsabile —
+       scriveva «giacenza 3 · soglia min 0» e la colonna «ok»;
+     · la priorità operativa scriveva «/ min 0».
+   Riprodotto premendo il bottone vero «Importa ricambi CSV» con due righe a
+   colonna `sogliaMin` vuota: l'app dichiara nel messaggio d'import «2 sono
+   senza soglia minima e non entreranno nell'avviso di sotto-scorta», e un
+   istante dopo le stesse due righe dicono «soglia minima 0 · OK». Cioè
+   l'app SA, lo dice una volta sola in una frase che sparisce, e poi si
+   smentisce per sempre.
+   Qui la risposta diventa una sola, con QUATTRO stati invece di due, perché
+   sono quattro le cose che si possono dire di un pezzo a magazzino:
+     · `esaurito`     — giacenza a zero: è misurato, e vale anche senza
+                        soglia (un pezzo che non c'è non si monta);
+     · `sotto-scorta` — sotto la soglia che qualcuno ha scritto;
+     · `senza-soglia` — non giudicabile: nessuno ha detto quando riordinarlo;
+     · `a-posto`      — sopra la soglia scritta.
+   ⚠️ `mancano` resta `null` quando la soglia non c'è: quanti pezzi manchino
+   per arrivare a un numero che nessuno ha scritto non lo sa nessuno, e uno
+   zero lì è la stessa bugia un piano più in giù. */
+export function statoScorta(ricambio) {
+  const r = ricambio || {};
+  // la GIACENZA che manca vale zero: è la decisione 1, scritta in
+  // `parseRicambiCsv`, e lì lo zero è la risposta giusta — un ricambio senza
+  // quantità è un ricambio che non c'è, ed è quello da ordinare.
+  const giacenza = +r.giacenza || 0;
+  const soglia = numeroDichiarato(r.sogliaMin);
+  if (giacenza <= 0)
+    return { stato: "esaurito", cls: "danger", label: "esaurito", giacenza, soglia,
+             mancano: soglia == null ? null : Math.max(0, soglia - giacenza) };
+  if (soglia == null)
+    return { stato: "senza-soglia", cls: "warn", label: "senza soglia", giacenza,
+             soglia: null, mancano: null };
+  return giacenza <= soglia
+    ? { stato: "sotto-scorta", cls: "danger", label: "sotto scorta", giacenza, soglia,
+        mancano: Math.max(0, soglia - giacenza) }
+    : { stato: "a-posto", cls: "ok", label: "ok", giacenza, soglia, mancano: 0 };
+}
+
 // Ricambi SOTTO SCORTA: giacenza ≤ soglia minima. Sono quelli da
 // riordinare per non fermare un mezzo in attesa del pezzo (il 34% dei
 // ritardi di riparazione nasce dai ricambi mancanti). Ordinati per gravità
 // (prima i più sotto scorta). Funzione pura e testabile.
+/* ⚠️ CHI ENTRA NON CAMBIA, e va detto perché il conto lo prova: il filtro di
+   prima era `giacenza||0 <= sogliaMin||0`, e con la soglia mancante letta
+   come zero coincideva con «giacenza a zero», cioè con `esaurito`. I quattro
+   stati qui sopra lo dicono in chiaro senza spostare nessun avviso: quello
+   che cambia è `mancano`, che sull'esaurito senza soglia era `0` — un numero
+   tranquillo dove non c'è niente da contare — e adesso è `null`. */
 export function sottoScorta(ricambi) {
   return (ricambi || [])
-    .filter(r => (+r.giacenza || 0) <= (+r.sogliaMin || 0))
-    .map(r => ({ ...r, mancano: Math.max(0, (+r.sogliaMin || 0) - (+r.giacenza || 0)) }))
+    .map(r => ({ ...r, scorta: statoScorta(r) }))
+    .filter(r => r.scorta.stato === "esaurito" || r.scorta.stato === "sotto-scorta")
+    .map(r => ({ ...r, mancano: r.scorta.mancano }))
     .sort((a, b) => (a.giacenza - a.sogliaMin) - (b.giacenza - b.sogliaMin));
 }
 
@@ -883,10 +939,13 @@ export function prioritaOperative(mezzi, manutenzioni, ricambi, oggi = new Date(
       dettaglio, badge: u.label });
   }
   for (const r of sottoScorta(ricambi)) {
-    const zero = (+r.giacenza || 0) <= 0;
+    const s = r.scorta;
+    const zero = s.stato === "esaurito";
     items.push({ gravita: zero ? "danger" : "warn", categoria: "ricambio",
       titolo: r.nome || "Ricambio",
-      dettaglio: "giacenza " + (+r.giacenza || 0) + " / min " + (+r.sogliaMin || 0),
+      // ⚠️ «min 0» era la soglia inventata: se nessuno l'ha scritta si dice
+      // che non c'è, non si mette uno zero che sembra una decisione.
+      dettaglio: "giacenza " + s.giacenza + (s.soglia == null ? " / soglia minima non impostata" : " / min " + s.soglia),
       badge: zero ? "Esaurito" : "Sotto scorta" });
   }
   for (const m of mezzi || []) {
@@ -2525,13 +2584,34 @@ export function validaFermo(dati, oggi = new Date()) {
   return { ok: Object.keys(errori).length === 0, errori, inizio: inizio || null, fine: errori.fine ? null : fine };
 }
 
+/* ⛔ `durataFermo` SA DIRE TRE COSE, E CHI LA LEGGEVA NE SCRIVEVA DUE.
+   Risponde «ancora fermo», «chiuso» e — quando una delle due date non si
+   legge — `giorni: null`, che sullo schermo diventa la pastiglia «data non
+   valida». Ma la terza non aveva un nome, quindi ogni lettore se lo doveva
+   inventare: la pagina lo faceva bene nel badge (`f.giorni != null ? … :
+   "data non valida"`) e male in `flotta-fermi-macchina.csv`, dove la colonna
+   `stato` era `f.aperto ? "ancora fermo" : "chiuso"` — cioè un fermo con la
+   ripartenza illeggibile usciva **«chiuso»** con la colonna dei giorni vuota:
+   un episodio concluso a zero giornate perse, la parola più tranquilla
+   esattamente dove lo schermo grida. È la regola 18 applicata a un file, ed è
+   la ragione per cui il nome dello stato sta qui e non in chi lo stampa. */
+export function statoFermo(fermo, oggi = new Date()) {
+  const d = durataFermo(fermo, oggi);
+  if (d.giorni == null)
+    return { stato: "data-non-valida", parola: "data non valida", cls: "warn", giorni: null, aperto: d.aperto };
+  return d.aperto
+    ? { stato: "aperto", parola: "ancora fermo", cls: "danger", giorni: d.giorni, aperto: true }
+    : { stato: "chiuso", parola: "chiuso", cls: "tag", giorni: d.giorni, aperto: false };
+}
+
 // I fermi ORDINATI come servono a chi guarda: prima quelli ancora aperti (dal
 // più lungo), poi i chiusi dal più recente. Ognuno arricchito con durata,
 // stato e etichetta della causale. Pura.
 export function fermiOrdinati(fermi, oggi = new Date()) {
   return (fermi || []).map(f => {
-    const d = durataFermo(f, oggi);
-    return { ...f, giorni: d.giorni, aperto: d.aperto, causaleTx: etichettaCausale(f.causale) };
+    const s = statoFermo(f, oggi);
+    return { ...f, giorni: s.giorni, aperto: s.aperto, stato: s.stato, statoTx: s.parola,
+             causaleTx: etichettaCausale(f.causale) };
   }).sort((a, b) =>
     (a.aperto === b.aperto ? 0 : a.aperto ? -1 : 1)
     || (a.aperto ? (b.giorni || 0) - (a.giorni || 0)

@@ -92,6 +92,49 @@
    libretto, che i vuoti li dichiari a parole: sono i due modi in cui Flotta è
    già stata morsa. Non è la stessa profondità dei primi quattro, e va detto:
    «pulito» qui vuol dire «nessuna di QUESTE domande ha trovato niente».
+
+   ⛔ E IL 09/08 QUELLA RIGA È STATA MESSA ALLA PROVA, PERCHÉ ERA UN INVITO:
+   dichiarava di sé la propria superficialità e nessuno l'aveva raccolto. Su
+   due dei cinque, RIFACENDO LE DOMANDE DEI PRIMI QUATTRO — ogni cella
+   confrontata con la schermata sullo stesso istante, e i record **degradati**
+   (una data che non esiste, un numero mai scritto) montati apposta — sono
+   usciti **due difetti veri**. Cioè il «pulito» era esatto e la domanda era
+   corta, che è la differenza fra un negativo misurato e un negativo completo.
+
+   5 · `flotta-fermi-macchina.csv` — «CHIUSO» SU UN FERMO CHE NESSUNO SA
+       QUANDO È FINITO. `durataFermo` sa dire tre cose e la colonna `stato` ne
+       scriveva due (`f.aperto ? "ancora fermo" : "chiuso"`): un fermo con una
+       delle due date illeggibile usciva **«chiuso»** con la colonna dei
+       giorni **vuota** — un episodio concluso a zero giornate perse, dove lo
+       schermo scrive la pastiglia «data non valida». È la regola 18 applicata
+       a un file. Lo stato ha adesso un nome nel modulo (`statoFermo`) e lo
+       leggono in due, la pastiglia e la cella.
+       ⚠️ ONESTÀ SULLA GRAVITÀ: quel record oggi l'app non lo sa produrre —
+       `validaFermo` rifiuta sia il giorno che non esiste sia la ripartenza
+       prima della partenza. **Latente**, come il difetto 2, e corretto per la
+       stessa ragione: la versione giusta era già in questo stesso file, nello
+       scadenzario, che il suo terzo stato (`senza-data`) lo scrive da sempre.
+
+   6 · `flotta_situazione.csv` — «ok» E «soglia min 0» SU UN PEZZO CHE UNA
+       SOGLIA NON CE L'HA, e stavolta la copia debole era **la schermata**.
+       `parseRicambiCsv` decide dal 30/07 che la soglia mancante resta `null`,
+       col perché scritto nella sua prova: *«una soglia inventata fa suonare
+       un allarme che nessuno ha chiesto, oppure lo tace»*. Ogni posto che
+       doveva DIRE qualcosa di quel ricambio se ne teneva una copia più
+       debole, `+r.sogliaMin || 0`, cioè la soglia inventata — e quindi
+       taceva: la riga del magazzino scriveva «soglia minima 0» con la
+       pastiglia verde «ok», questo foglio scriveva «ok» e «soglia min 0», e
+       la priorità operativa «/ min 0».
+       ⚠️ E questo NON è latente: si riproduce premendo il bottone vero
+       «Importa ricambi CSV» con la colonna `sogliaMin` vuota. L'app dichiara
+       nel messaggio d'import «2 sono senza soglia minima e non entreranno
+       nell'avviso di sotto-scorta» — e un istante dopo, nella riga che resta,
+       si smentiva. Il CSV del magazzino, un bottone più in là, la soglia la
+       scriveva **vuota** da sempre: il file sapeva e lo schermo no.
+       Adesso la parola la decide `statoScorta`, che ha quattro stati
+       (`esaurito`, `sotto-scorta`, `senza-soglia`, `a-posto`) e **non sposta
+       nessun avviso** — c'è una prova in `run-kpi` che confronta caso per
+       caso chi entra in `sottoScorta` col filtro di prima.
 */
 import { createServer } from "node:http";
 import { readFileSync, existsSync, statSync } from "node:fs";
@@ -152,6 +195,19 @@ const DIFETTI = [
      Un mezzo sparisce dalla situazione, e il riepilogo continua a dire sei. */
   ["    for (const m of MEZ.slice().sort((a, b) => a.nome.localeCompare(b.nome, \"it\")))",
    "    for (const m of MEZ.slice(1).sort((a, b) => a.nome.localeCompare(b.nome, \"it\")))"],
+  /* 7 · la colonna «stato» dei fermi che sa dire due cose su tre: un fermo con
+     una data illeggibile usciva «chiuso», e la colonna dei giorni vuota.
+     ⚠️ L'ancora è la riga della CELLA, non l'intero modello: sopra di lei c'è
+     un commento lungo che racconta il difetto, e citarlo lo renderebbe
+     un'iniezione scaduta al primo ritocco della prosa. */
+  ["         f.statoTx, f.note || \"\"].map(csvCell).join(\";\")));",
+   "         f.aperto ? \"ancora fermo\" : \"chiuso\", f.note || \"\"].map(csvCell).join(\";\")));"],
+  /* 8 · e la riga del ricambio nella situazione, che a un pezzo senza soglia
+     minima diceva «ok» con accanto «soglia min 0» — una soglia che nessuno ha
+     scritto. La decisione adesso la prende `statoScorta`, la stessa che
+     disegna la pastiglia sullo schermo. */
+  ["      const s = statoScorta(r);\n      csv += `ricambio;${csvCell(r.nome)};${csvCell(s.label)};${csvCell(\"giacenza \" + s.giacenza + (s.soglia == null ? \" · soglia minima non impostata\" : \" · soglia min \" + s.soglia))}\\n`;",
+   "      const scorta = new Set(sottoScorta(RIC).map(x => x.id));\n      csv += `ricambio;${csvCell(r.nome)};${scorta.has(r.id) ? \"sotto scorta\" : \"ok\"};${csvCell(\"giacenza \" + (+r.giacenza || 0) + \" · soglia min \" + (+r.sogliaMin || 0))}\\n`;"],
 ];
 
 /* I casi si montano nel MODULO servito, mai sul disco: la cartella viva resta
@@ -204,9 +260,29 @@ const CASI = `
     { id: "i-senzadata", data: "2026-02-30", titolo: "Intervento con data impossibile",
       mezzo: "Pala P1", ricambio: "Filtro olio", costo: 40, note: "" },
   ];
+  /* ⚠️ QUI DENTRO NIENTE ACCENTI GRAVI: questo blocco è un template literal
+     letto dal banco, quindi un nome di funzione scritto fra apici inversi
+     NON è una citazione, chiude la stringa — e il file non si compila più.
+     È scritto in CLAUDE.md e mi è successo due volte in un'ora.
+     Il secondo pezzo NON ha la soglia minima, ed è la forma che l'app produce
+     davvero: parseRicambiCsv scrive sogliaMin null da sempre e il messaggio
+     d'import la conta («N sono senza soglia minima e non entreranno
+     nell'avviso di sotto-scorta»). Serve accanto al primo perché un campione
+     solo non distingue «lo dichiara» da «dice sempre la stessa cosa». */
   DEMO.ricambi = [
     { id: "r-filtro", nome: "Filtro olio", giacenza: 0, sogliaMin: 1, prezzo: 18 },
+    { id: "r-nosogl", nome: "Cinghia ventola", giacenza: 3, prezzo: 40 },
   ];
+  /* Due fermi con una data che non si legge, in coda a quelli della
+     dimostrazione. ⚠️ ONESTÀ SULLA GRAVITÀ: l'app di oggi non li sa produrre
+     — validaFermo rifiuta sia il giorno che non esiste sia la ripartenza
+     prima della partenza, e il bottone «è ripartito» ripassa di lì. Sono
+     latenti (record vecchi, un import), e stanno qui perché la colonna
+     dello stato li chiamava «chiuso» con la colonna dei giorni vuota. */
+  DEMO.fermi = (DEMO.fermi || []).concat([
+    { id: "f-fineNo", mezzo: "Pala P1", causale: "verifica", inizio: gg(9), fine: "2026-02-30", note: "" },
+    { id: "f-inizioNo", mezzo: "Dumper D3", causale: "guasto", inizio: "2026-02-30", fine: "", note: "" },
+  ]);
 }
 `;
 
@@ -392,6 +468,88 @@ if (await vaiA("nav-mez", "page-mez")) {
     const rigaOre = man.find((r) => colonna(r, 1).includes("Tagliando"));
     dice(/6\.000/.test(colonna(rigaOre || "", 3)),
       "le ore escono raggruppate come a schermo", colonna(rigaOre || "", 3));
+
+    /* ⛔ E NELLO STESSO FOGLIO, LE RIGHE DEL MAGAZZINO: un pezzo senza soglia
+       minima usciva «ok» con accanto «soglia min 0». La soglia che manca è
+       una decisione dichiarata e provata dal 30/07 (`parseRicambiCsv`: «una
+       soglia inventata fa suonare un allarme che nessuno ha chiesto, oppure
+       lo tace»), e qui veniva inventata. Le parole si prendono dalla
+       SCHERMATA del magazzino, nello stesso istante. */
+    const ric = f.righe.filter((r) => r.startsWith("ricambio;"));
+    const magazzino = await (async () => {
+      await pg.click("#nav-man").catch(() => {});
+      await pg.waitForTimeout(500);
+      return pg.evaluate(() => [...document.querySelectorAll("#ric-list .item")].map((el) => ({
+        nome: (el.querySelector(".name") || {}).textContent || "",
+        badge: [...el.querySelectorAll(".acts .badge")].map((x) => x.textContent.trim().toLowerCase()),
+        meta: (el.querySelector(".meta") || {}).textContent || "",
+      })));
+    })();
+    dice(ric.length === magazzino.length && ric.length === 2,
+      "i due ricambi ci sono nel file e a schermo", { file: ric.length, schermo: magazzino.length });
+    for (const riga of ric) {
+      const nome = colonna(riga, 1);
+      const aVideo = magazzino.find((x) => x.nome.trim() === nome.trim());
+      if (!aVideo) { dice(false, `«${nome}» a schermo non c'è: NON MISURATO`, magazzino.map((x) => x.nome)); continue; }
+      dice(aVideo.badge.includes(colonna(riga, 2).toLowerCase()),
+        `«${nome}»: la parola del file è quella della pastiglia`,
+        { file: colonna(riga, 2), schermo: aVideo.badge });
+    }
+    /* la prova che conta è la COPPIA: da sola, una riga senza soglia non
+       distingue «lo dichiara» da «dice sempre la stessa cosa» */
+    const senzaSoglia = ric.find((r) => colonna(r, 1).includes("Cinghia"));
+    dice(!/soglia min 0\b/.test(colonna(senzaSoglia || "", 3)),
+      "il pezzo senza soglia non porta più la soglia inventata «soglia min 0»", colonna(senzaSoglia || "", 3));
+    dice(colonna(senzaSoglia || "", 2) !== "ok",
+      "e la sua colonna di stato non è la parola tranquilla «ok»", colonna(senzaSoglia || "", 2));
+    const conSoglia = ric.find((r) => colonna(r, 1).includes("Filtro olio"));
+    dice(/soglia min 1\b/.test(colonna(conSoglia || "", 3)),
+      "mentre dove la soglia c'è si scrive, com'è sempre stato", colonna(conSoglia || "", 3));
+  }
+}
+
+/* ═══════ 1b · i fermi: la colonna «stato» che sapeva dire due cose su tre ═══════
+   `durataFermo` risponde «ancora fermo», «chiuso» e — quando una delle due
+   date non si legge — `giorni: null`, che sullo schermo è la pastiglia «data
+   non valida». Il file quella terza risposta non ce l'aveva: usciva
+   **«chiuso»** con la colonna dei giorni **vuota**, cioè un episodio concluso
+   a zero giornate perse esattamente dove lo schermo grida.
+   ⚠️ Il confronto è con la SCHERMATA, non con una parola scritta qui dentro. */
+console.log("\n════════ flotta-fermi-macchina.csv · la terza risposta ════════");
+if (await vaiA("nav-mez", "page-mez")) {
+  const f = await scarica("btn-fer-csv");
+  dice(!!f, "il file dei fermi esce davvero");
+  if (f) {
+    const aVideo = await pg.evaluate(() => [...document.querySelectorAll("#fer-list .item")].map((el) => ({
+      nome: (el.querySelector(".name") || {}).textContent || "",
+      badge: [...el.querySelectorAll(".acts .badge")].map((x) => x.textContent.trim().toLowerCase()),
+    })));
+    const illeggibili = aVideo.filter((x) => x.badge.some((b) => b.includes("data non valida")));
+    /* ⛔ LA PRECONDIZIONE, DICHIARATA: se i due fermi con la data storta non
+       sono a schermo la domanda non ha senso, e allora il banco NON accusa —
+       dice «non misurato» ed esce diverso da zero. Un soggetto non misurato
+       non è un soggetto a posto. */
+    dice(illeggibili.length === 2,
+      "PRECONDIZIONE: i due fermi con la data illeggibile sono a schermo",
+      aVideo.map((x) => x.badge.join("/")));
+    if (illeggibili.length === 2) {
+      const righe = f.righe.slice(1).filter(Boolean);
+      const conGiorniVuoti = righe.filter((r) => colonna(r, 4) === "");
+      dice(conGiorniVuoti.length === 2,
+        "e nel file due righe hanno la colonna dei giorni vuota", righe.map((r) => colonna(r, 4)));
+      const statiVuoti = conGiorniVuoti.map((r) => colonna(r, 5));
+      dice(statiVuoti.every((s) => s !== "chiuso"),
+        "nessuna di quelle righe si dichiara «chiuso»: senza giorni non si è chiuso niente", statiVuoti);
+      dice(statiVuoti.every((s) => aVideo.some((x) => x.badge.includes(s.toLowerCase()))),
+        "e la parola del file è quella che lo schermo mostra sulla stessa riga",
+        { file: statiVuoti, schermo: aVideo.map((x) => x.badge).flat() });
+      /* la coppia: le righe leggibili devono dire ancora le due parole di
+         sempre, se no la prova passerebbe anche con un file che dice
+         «data non valida» dappertutto */
+      const statiSani = righe.filter((r) => colonna(r, 4) !== "").map((r) => colonna(r, 5));
+      dice(statiSani.length > 0 && statiSani.every((s) => s === "ancora fermo" || s === "chiuso"),
+        "e i fermi leggibili dicono ancora «ancora fermo» / «chiuso»", statiSani);
+    }
   }
 }
 

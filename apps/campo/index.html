@@ -1193,7 +1193,7 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
 
 
 <script type="module">
-  import { campoData, kpiFrom, parsePianoCsv, mappaPianoCsv, foriRipetuti, parseSquadreCsv, csvSquadre, percorsiDi, scartoPct, scartoLivello, pianoRiepilogo, CAUSALI_FERMO, riepilogoFermi, paretoFermi, fermiPerGiorno, fermiSenzaGiorno, riassuntoRapportino, avanzamentoGiornata, coperturaRapportini,
+  import { campoData, kpiFrom, parsePianoCsv, mappaPianoCsv, foriRipetuti, parseSquadreCsv, csvSquadre, percorsiDi, scartoPct, scartoLivello, pianoRiepilogo, CAUSALI_FERMO, riepilogoFermi, paretoFermi, fermiPerGiorno, mediaFermiAlGiorno, fermiSenzaGiorno, riassuntoRapportino, avanzamentoGiornata, coperturaRapportini,
            oggiISO, TURNI, turnoCorrente, diGiorno, senzaData, UNITA_PRODUZIONE, totaliProduzione, formattaProduzione, normalizzaPiano,
            squadraBase, RUOLI, operatoriDi, etichettaAssegnazione, eMia, caricoSquadre,
            idoneitaDiTurno, idoneitaOperatore, inTurnoOggi,
@@ -1208,7 +1208,7 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
            RIPOSO_MINIMO_ORE, riposoDiTurno, testoRiposo,
            turnoChiuso, riaperture, riassuntoRiapertura, ultimaRiapertura,
            FOTO_MAX_BYTE, FOTO_TENTATIVI, eImmagine, byteFoto, eFotoValida, misuraRidotta, formattaByte,
-           METEO_CIELO, METEO_PISTE, METEO_VISIBILITA, meteoDi, riassuntoMeteo, meteoAvverso,
+           METEO_CIELO, METEO_PISTE, METEO_VISIBILITA, meteoDi, riassuntoMeteo, meteoAvverso, statoMeteo,
            durataTurnoDi, ultimaDurataTurno, disponibilitaTurno, oreMinuti, minutiFermoTesto,
            anomalieAperte, azioniDelFermo, statoRisposta, bozzaAzioneFermo, fermiEAzioni,
            coperturaFermi, dataPiuGiorni,
@@ -1395,7 +1395,14 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
             + `Se invece qualche fermo c'è stato, registralo come <b>anomalia</b> e scrivi i <b>minuti</b>.` + codaFuori);
       return;
     }
-    const media = Math.round(totale / righe.length);
+    /* ⛔ LA MEDIA SI DIVIDE PER LE GIORNATE MISURATE, NON PER LE COLONNE. Le
+       colonne coprono tutti i giorni di calendario del periodo, comprese quelle
+       in cui non è stato registrato NIENTE: dividere per quelle tira il numero
+       giù nella direzione che rassicura (misurato: 21 min al giorno invece di
+       100, con tre giornate registrate su quattordici). Il denominatore lo
+       decide `mediaFermiAlGiorno`, non questa riga, ed è lo stesso conto che il
+       grafico della settimana fa già qui sotto. */
+    const mf = mediaFermiAlGiorno(righe);
     const senzaMin = righe.filter(r => r.fermi && !r.minuti).length;
     const peggiore = righe.reduce((a, b) => b.minuti > a.minuti ? b : a);
     if (!window.dwGrafici) return;
@@ -1408,9 +1415,17 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
       // colonne verrebbe troncata coi puntini
       valori: righe.map(r => ({ etichetta: r.data.slice(8, 10), valore: r.minuti })),
       nota: `Ogni colonna è una giornata di lavoro: i minuti persi per fermi. `
-        + `In media <b>${numeroIt(media, 0)} min</b> al giorno; la giornata peggiore è il <b>${dmy(peggiore.data)}</b> `
+        + `Nelle <b>${mf.giorniMisurati}</b> giornate con qualcosa registrato la media è `
+        + `<b>${numeroIt(mf.media, 0)} min</b> al giorno; la giornata peggiore è il <b>${dmy(peggiore.data)}</b> `
         + `con <b>${numeroIt(peggiore.minuti, 0)} min</b>. Un giorno storto capita a tutti; se le colonne restano alte `
         + `per settimane il problema è la manutenzione, non la sfortuna.`
+        // le colonne senza NIENTE registrato non sono giornate senza fermi: non
+        // entrano nella media, e va detto o il numero sembra riguardare tutto
+        // il periodo
+        + (mf.giorniVuoti
+            ? (mf.giorniVuoti === 1
+                ? ` <b>Una</b> giornata è a zero perché non vi è stato registrato niente: non si sa se ci si sia fermati, quindi non entra nella media.`
+                : ` <b>${mf.giorniVuoti}</b> giornate sono a zero perché non vi è stato registrato niente: non si sa se ci si sia fermati, quindi non entrano nella media.`) : "")
         + (righe.length < FERMI_GIORNI
             ? ` Il conto parte dalla prima giornata registrata: prima non c'era ancora niente da contare.` : "")
         // una colonna a zero su una giornata che ha avuto fermi non dice «non
@@ -3007,6 +3022,16 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
     const m = meteoDi(MET, OGGI, turno);
     const bloc = eChiuso(OGGI, turno);
     const riass = riassuntoMeteo(m);
+    // ⛔ IL GIUDIZIO LO DÀ IL MODULO, e ha QUATTRO risposte, non due. Il
+    // sì/no di `meteoAvverso` non sa distinguere «guardato e va bene» da
+    // «nessuno ha guardato», e su un turno chiuso col solo cielo compilato il
+    // cartellone usciva VERDE: il colore tranquillo dove non è stato misurato
+    // niente. `statoMeteo` porta anche l'elenco di ciò che manca, che questa
+    // riga si riscriveva per conto suo.
+    const sm = statoMeteo(m);
+    // la domanda del colore d'allarme ha già il suo nome, ed è quello che
+    // legge `statoMeteo` per conto di chi vuole un sì/no: si chiama lei, non si
+    // riscrive il confronto qui
     const brutto = meteoAvverso(m);
     // Il cartellone dice il cielo in grande; la riga sotto AGGIUNGE quello che
     // il titolo non dice già (piste, visibilità) e nomina quello che manca:
@@ -3015,19 +3040,27 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
       m && m.piste ? "piste " + String(m.piste).toLowerCase() : "",
       m && m.visibilita ? "visibilità " + String(m.visibilita).toLowerCase() : "",
     ].filter(Boolean).join(" · ");
-    const mancano = m ? [!m.cielo ? "il cielo" : "", !m.piste ? "le piste" : "", !m.visibilita ? "la visibilità" : ""].filter(Boolean) : [];
+    const mancano = sm.mancano;
     $("met-board").innerHTML = riass
       // ⛔ e il lucchetto non vince nemmeno qui: un turno chiuso con pioggia e
       // piste ghiacciate usciva VERDE, cioè il colore diceva «condizioni a
       // posto» sopra le condizioni difficili scritte due righe più sotto.
-      ? `<div class="board ${brutto ? "warn" : (bloc ? "ok" : "")}">
+      // ⛔ E IL VERDE VUOLE TUTTE E TRE LE VOCI: un turno chiuso di cui si sa
+      // solo il cielo non è un turno con le condizioni a posto, è un turno di
+      // cui non si sanno le piste. Verde solo su `buono`.
+      ? `<div class="board ${brutto ? "warn" : (bloc && sm.stato === "buono" ? "ok" : "")}">
            <div class="board-ico">${bloc ? I.lucchetto : I.nuvola}</div>
            <div><div class="board-num" style="font-size:24px">${esc(String(m.cielo || "—"))}</div>
              <div class="board-lab">Turno ${esc(turno)} · ${dmy(OGGI)}</div></div>
            <div class="board-txt">${dettagli ? "<b>" + esc(dettagli) + "</b>" : ""}${dettagli && mancano.length ? " · " : ""}${mancano.length ? (mancano.length === 1 ? "manca ancora " : "mancano ancora ") + esc(mancano.join(" e ")) : ""}
              ${m.note ? "<br>" + esc(m.note) : ""}
              ${brutto ? "<br>Condizioni difficili: <b>spiegano i fermi</b> e vanno scritte sul rapporto." : ""}
-             ${bloc ? "<br><b>Turno chiuso e firmato</b>: le condizioni non si possono più cambiare." : ""}</div>
+             ${bloc ? "<br><b>Turno chiuso e firmato</b>: le condizioni non si possono più cambiare." : ""}
+             ${bloc && sm.stato === "incompleto"
+                ? "<br>Il turno è chiuso e " + (mancano.length === 1
+                    ? "quella voce resta <b>non registrata</b>"
+                    : "quelle voci restano <b>non registrate</b>")
+                  + ": non sapere non vuol dire che andasse bene." : ""}</div>
          </div>`
       : "";
     $("met-scelte").innerHTML = MET_GRUPPI.map(g => `<div class="met-g">
