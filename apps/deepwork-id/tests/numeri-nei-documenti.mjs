@@ -39,9 +39,16 @@ const ok = (cond, perche) => { if (!cond) throw new Error(perche); };
    senza browser, cioè esattamente ciò che l'etichetta promette. Restandone
    fuori sarebbe stata la quarta forma dell'invecchiamento — un numero vero,
    sorvegliato, e più stretto della frase che lo presenta. */
+/* ⏱️ E dal 09/08 c'e' dentro anche `fogli-guardati.mjs`, per la STESSA ragione
+   scritta qui sopra per `bootstrap-rivendicazioni`: sono prove di
+   comportamento, senza rete e senza browser — cioe' esattamente cio' che
+   l'etichetta promette. Lasciarla fuori avrebbe fatto della frase «2.367 prove
+   girano senza rete e senza browser» un numero piu' STRETTO di quello che
+   dice, che e' la quarta forma dell'invecchiamento e sta scritta due righe piu'
+   su. Una suite nuova che risponde al criterio entra qui il giorno che nasce. */
 const SUITE = ["run-kpi.mjs", "run-stile.mjs", "run-helpers.mjs",
   "run-pointcloud.mjs", "run-manifest.mjs", "run-demo.mjs",
-  "bootstrap-rivendicazioni.mjs"];
+  "bootstrap-rivendicazioni.mjs", "fogli-guardati.mjs"];
 let totale = 0;
 const dettaglio = [];
 for (const s of SUITE) {

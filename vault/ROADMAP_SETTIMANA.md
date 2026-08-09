@@ -2554,3 +2554,13 @@ cosa più tranquilla di quella che lo schermo mostra.
       prende. Senza quello spoglio il core risultava premuto da **25** banchi
       (ne sono 12) e Campo restava «coperto» anche cancellando il suo unico
       banco vero: 7 prove, 0 falliti, quattro controprove nei due versi.
+      ⏱️ **E la suite nuova è entrata SUBITO nel numero che si cita al
+      fondatore**, perché lasciarla fuori sarebbe stata la **quarta forma
+      dell'invecchiamento** — un numero vero, sorvegliato, e più **stretto**
+      della frase che lo presenta («2.367 prove girano senza rete e senza
+      browser»). Il criterio era già scritto in `numeri-nei-documenti`, per la
+      stessa ragione, il giorno che entrò `bootstrap-rivendicazioni`: **prove di
+      comportamento, senza rete e senza browser**. Adesso **2.370**, otto suite.
+      ⚠️ E il controllo sugli **addendi** ha fatto il suo mestiere: aggiornato
+      il totale, ha visto che la scomposizione accanto sommava ancora 2.367 —
+      «due numeri che si contraddicono nella stessa riga».
