@@ -1288,7 +1288,8 @@ numero scritto dove non era stato misurato niente**.*
   ⚠️ Le due iniezioni di `genesi-frasi-limite` si sono mosse per la **terza**
   volta in due giorni, stavolta all'indietro: ri-ancorate con la ragione,
   **296/296** e il banco 31/0 sano, 11/11 iniezioni, 16 prove cadute.
-  ⚠️ E i tre documenti che dichiarano il conto delle prove sono stati aggiornati
+  ⚠️ E i tre documenti che dichiarano il conto delle prove *(allora tre; dal
+  09/08 sono **quattro**, è entrata questa roadmap)* sono stati aggiornati
   **addendi compresi** (1922 → 1923, 2.370 → 2.371): il controllo guarda il
   totale e non la somma scritta accanto, ed è la quarta forma d'invecchiamento.
   ⛔ **APERTO IL PIÙ PICCOLO PER PRIMO — e ha risposto alla domanda di disegno,
@@ -3230,30 +3231,40 @@ numero scritto dove non era stato misurato niente**.*
   (640 precedenti alla regola, contati da `date-checkpoint.mjs`). Chi va per
   nome apre il file sbagliato credendo che sia il più fresco.
 - Le decisioni: `docs/DECISIONI_WEEKEND.md` — pagina d'ingresso in cima.
-- Stato misurato all'**08/08 sera** (lanciando le suite, non a memoria):
-  **2.366 prove** che girano senza rete. La frase va letta stretta: è la somma
-  delle **sette** suite che contano asserzioni (`run-kpi` 1921, `run-stile` 318,
+- Stato misurato al **09/08** (lanciando le suite, non a memoria):
+  **2.380 prove girano senza rete**. La frase va letta stretta: è la somma
+  delle **otto** suite che contano asserzioni (`run-kpi` 1932, `run-stile` 318,
   `run-helpers` 71, `run-pointcloud` 32, `run-manifest` 9, `run-demo` 8,
-  `bootstrap-rivendicazioni` 7), non tutto ciò che gira nel giro `node` — che di
-  asserzioni ne esegue **2.663** e di comandi ne ha **32**.
-  ⚠️ *Fino a stasera questa riga contava **sei** suite e i tre documenti
+  `bootstrap-rivendicazioni` 7, `fogli-guardati` 3), non tutto ciò che gira nel
+  giro `node` — che di comandi ne ha **34** e di asserzioni ne esegue di più:
+  `node apps/deepwork-id/tests/giro-node.mjs | grep -oE '[0-9]+ passati' | awk '{s+=$1} END {print s}'`
+  → **2691** al 09/08.
+  ⚠️ *Fino all'08/08 questa riga contava **sei** suite e i tre documenti
   sorvegliati ne contavano sette: due convenzioni per lo stesso numero, che è
   il modo più facile di far sembrare sbagliato un conto giusto. Adesso è una
   sola.*
-  Copertura **713/713** e nessuna funzione scoperta; **157 esecuzioni** che
-  aprono le pagine in un browser vero, da **70** file di banco distinti (contati
+  Copertura **713/713** e nessuna funzione scoperta; **159 esecuzioni** che
+  aprono le pagine in un browser vero, da **71** file di banco distinti (contati
   dalla tabella `BANCHI` di `tutti.mjs`, non a occhio dalla cartella, che di
-  `.mjs` ne ha 82 perché contiene anche gli aiuti — `giro.mjs`, `impronta.mjs`,
-  il runner stesso).
+  `.mjs` ne ha di più perché contiene anche gli aiuti — `giro.mjs`,
+  `impronta.mjs`, il runner stesso).
   *(Al 08/08 pomeriggio 2.326, 703/703 e 153; al 07/08 sera 2.307; al 07/08
   notte 2.193, 662/662 e 120; al 03/08 pomeriggio 2.092, 649/649 e 84; al 02/08
   1.838, 591/591 e 49.)*
-  ⚠️ **Questi numeri non si scrivono a mente** — ma attenzione al
-  denominatore: `numeri-nei-documenti.mjs` sorveglia `docs/DEVELOPMENT.md`,
-  `docs/STATO_PRODOTTO.md` e `docs/DECISIONI_WEEKEND.md`, **non questo file**.
-  Ed è per questo che la riga qui sopra era rimasta a «120 banchi» mentre ne
-  erano già 147: qui il controllo non arriva, e l'aggiornamento è a mano. Chi
-  la legge lo sappia.
+  ⚠️ **Questi numeri non si scrivono a mente, e dal 09/08 tre di loro non si
+  scrivono nemmeno a mano**: `numeri-nei-documenti.mjs` adesso sorveglia anche
+  **questo file** — il totale delle prove, le esecuzioni del browser e i file
+  di banco distinti. Tutto il resto di questa roadmap resta a mano: il
+  controllo arriva su tre numeri, non su tutti, e chi la legge lo sappia.
+  ⛔ *Perché è cambiato: la riga vecchia diceva onestamente «qui il controllo
+  non arriva» — ed era nata la prima volta che questo file era invecchiato
+  («120 banchi» quando ne erano 147). **Non ha impedito la seconda.** Al 09/08
+  lo stesso numero era scritto qui dentro in **tre valori diversi** (2.366
+  nella riga di stato, 2.370 in fondo, 2.371 in un racconto di mezzo) mentre le
+  suite ne eseguivano **2.380**, e le esecuzioni del browser erano ferme a 157
+  su 159. **Dichiarare un punto cieco non lo illumina**: chi incontra il numero
+  non ha modo di sapere se la riga è di oggi o di tre giorni fa, e la
+  dichiarazione sta duecento righe più in basso di lui.*
 
 ## 08/08 sera — «chi decide i numeri di ciò che ESCE?»
 
@@ -3394,7 +3405,11 @@ cosa più tranquilla di quella che lo schermo mostra.
       della frase che lo presenta («2.367 prove girano senza rete e senza
       browser»). Il criterio era già scritto in `numeri-nei-documenti`, per la
       stessa ragione, il giorno che entrò `bootstrap-rivendicazioni`: **prove di
-      comportamento, senza rete e senza browser**. Adesso **2.370**, otto suite.
+      comportamento, senza rete e senza browser**. Quella sera **2.370**, otto
+      suite — *e quel «adesso» è invecchiato in un giorno: il valore vivo sta
+      nella riga di stato dei Riferimenti, che dal 09/08 è sorvegliata. Un
+      racconto datato resta vero; un racconto che dice «adesso» diventa falso
+      da solo, ed è la terza forma dell'invecchiamento applicata a noi.*
       ⚠️ E il controllo sugli **addendi** ha fatto il suo mestiere: aggiornato
       il totale, ha visto che la scomposizione accanto sommava ancora 2.367 —
       «due numeri che si contraddicono nella stessa riga».

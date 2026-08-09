@@ -65,14 +65,46 @@ console.log(`\nprove eseguite: ${totale}  (${dettaglio.join(", ")})\n`);
 const tutti = readFileSync(join(QUI, "browser", "tutti.mjs"), "utf8");
 const blocco = /const BANCHI = \[([\s\S]*?)\n\];/.exec(tutti);
 const banchi = blocco ? (blocco[1].match(/^\s*\[/gm) || []).length : 0;
+/* ⛔ E IL SECONDO NUMERO DI QUELLA TABELLA — quanti FILE distinti — non lo
+   guardava nessuno, ed è quello che il 09/08 era rimasto a 70 su 71. Le due
+   cifre non sono la stessa cosa e nei documenti stanno nella stessa frase: le
+   *esecuzioni* contano anche le controprove (`--controprova` è una riga in
+   più sullo stesso file), i *file* no. Un lettore che ne trova uno vecchio
+   dubita anche dell'altro.
+   ⚠️ Il nome del banco si prende dalla PRIMA stringa `.mjs` di ogni riga —
+   che è il posto dichiarato dal contratto della tabella `[nome, file, argomenti]`
+   — e non da tutte le stringhe del blocco: un `.mjs` nominato dentro un
+   commento gonfierebbe il conto senza che nessuno se ne accorga. */
+const fileBanchi = blocco
+  ? new Set(blocco[1].split(/\n(?=\s*\[)/).map((r) => (/['"]([\w.-]+\.mjs)['"]/.exec(r) || [])[1]).filter(Boolean)).size
+  : 0;
 
 // ── i documenti che dichiarano quei numeri ────────────────────────────
 // Ognuno dice dove sta il numero e come si scrive: «1.066» col punto delle
 // migliaia in un testo per il fondatore, «1066» dove serve la cifra secca.
+/* ⛔ E IL QUARTO È LA ROADMAP, ENTRATA IL 09/08 DOPO CHE LA DICHIARAZIONE DI
+   ESSERE FUORI ELENCO AVEVA FALLITO PER LA SECONDA VOLTA.
+   In fondo a `vault/ROADMAP_SETTIMANA.md` c'era scritto, onestamente: «qui il
+   controllo non arriva, e l'aggiornamento è a mano. Chi la legge lo sappia».
+   Quella dichiarazione è nata la prima volta che il file era invecchiato («120
+   banchi» quando ne erano 147), e non ha impedito la seconda: al 09/08 lo
+   STESSO numero era scritto lì dentro in **tre valori diversi** — 2.366 nella
+   riga di stato, 2.370 in fondo, 2.371 in un racconto di mezzo — mentre le
+   suite ne eseguivano 2.380. Anche le esecuzioni del browser erano ferme a 157
+   su 159 e i file di banco a 70 su 71.
+   ⛔ La lezione, ed è più forte di quella dell'08/08: **dichiarare un punto
+   cieco non lo illumina.** Un lettore che incontra il numero non ha modo di
+   sapere se quella riga è di oggi o di tre giorni fa, e la dichiarazione sta
+   duecento righe più in basso. Il costo di portarcelo dentro è una voce in
+   questo elenco; il costo di lasciarlo fuori l'ha appena pagato il documento
+   che il fondatore apre per primo.
+   ⚠️ Il file resta sorvegliato **solo su questi numeri**, non tutto: la riga in
+   fondo alla roadmap adesso lo dice così, invece di dire «qui non si arriva». */
 const DOCUMENTI = [
   ["docs/DEVELOPMENT.md", /\*\*([\d.]+) prove girano senza rete/],
   ["docs/STATO_PRODOTTO.md", /\*\*([\d.]+)\*\* prove automatiche che girano senza rete/],
   ["docs/DECISIONI_WEEKEND.md", /prove automatiche sono passate a ([\d.]+)\*\*/],
+  ["vault/ROADMAP_SETTIMANA.md", /\*\*([\d.]+) prove girano senza rete\*\*/],
 ];
 const numero = (s) => +String(s).replace(/\./g, "");
 
@@ -212,6 +244,7 @@ const BROWSER = [
   ["docs/DEVELOPMENT.md", /\*\*(\d+) esecuzioni che aprono davvero le pagine\*\*/],
   ["docs/STATO_PRODOTTO.md", /\*\*(\d+) esecuzioni\*\* che aprono davvero le\s+pagine/],
   ["docs/DECISIONI_WEEKEND.md", /\*\*(\d+)\s+esecuzioni\*\* che aprono davvero le pagine in un browser/],
+  ["vault/ROADMAP_SETTIMANA.md", /\*\*(\d+) esecuzioni\*\* che\s+aprono le pagine in un browser vero/],
 ];
 for (const [rel, regola] of BROWSER) {
   const testo = readFileSync(join(RADICE, rel), "utf8");
@@ -222,6 +255,28 @@ for (const [rel, regola] of BROWSER) {
     ok(+m[1] === banchi, `il documento dice ${m[1]}, tutti.mjs ne elenca ${banchi}`);
   });
 }
+
+const FILE_BANCHI = [
+  ["vault/ROADMAP_SETTIMANA.md", /da \*\*(\d+)\*\* file di banco distinti/],
+];
+for (const [rel, regola] of FILE_BANCHI) {
+  const testo = readFileSync(join(RADICE, rel), "utf8");
+  const m = regola.exec(testo);
+  test(`${rel}: il numero dei FILE di banco distinti è quello vero`, () => {
+    ok(fileBanchi > 0, "non sono riuscito a contare i file distinti di tutti.mjs");
+    ok(m, "non trovo la frase col numero dei file di banco distinti");
+    ok(+m[1] === fileBanchi,
+      `il documento dice ${m[1]}, tutti.mjs ne nomina ${fileBanchi} distinti (su ${banchi} esecuzioni)`);
+  });
+}
+/* ⚠️ E i due numeri devono restare DIVERSI: se un giorno coincidessero non
+   sarebbe una bella notizia, vorrebbe dire che il conto dei file ha smesso di
+   deduplicare — cioè che sto guardando due volte lo stesso numero credendo di
+   guardarne due. È la controprova del righello, non del documento. */
+test("i file distinti sono meno delle esecuzioni: il conto deduplica davvero", () => {
+  ok(fileBanchi < banchi,
+    `${fileBanchi} file su ${banchi} esecuzioni: se sono uguali il Set non sta deduplicando niente`);
+});
 
 /* ── le mancanze confermate del delta, contate dai documenti stessi ────
    ⛔ NASCE DA UN NUMERO SBAGLIATO PER DUE GIORNI, e il segno era in bella
