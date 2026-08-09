@@ -129,7 +129,15 @@ chiuse. Le aperte sono **24**; la pagina d'ingresso di
       serve a poterla cambiare in qualunque momento.
       ⚠️ Le quattro fuori dal mucchio restano ferme: due non si prendono da
       soli mai (sicurezza), due vogliono che il fondatore apra qualcosa di suo.
-- [ ] **D. Le 24 decisioni ancora aperte** — `docs/DECISIONI_WEEKEND.md`,
+- [ ] **D. Le 24 decisioni ancora aperte** *(⏱️ **verificato il 09/08, e il 24 è
+      giusto — ma la derivazione non era scritta da nessuna parte, quindi la
+      scrivo qui perché nessuno debba rifarla**: `docs/DECISIONI_WEEKEND.md` ha
+      **18** titoli `## N`, di cui **cinque** (5, 10, 11, 12, 18) si aprono in
+      **dodici** sotto-decisioni con la lettera. Gli atomi contabili sono quindi
+      13 + 12 = **25**, meno la **3** che è chiusa → **24**. Un numero senza la
+      sua derivazione si ricontrolla da capo ogni volta, e ogni volta può dare un
+      risultato diverso — è la lezione del 42/41/47 di stamattina.)* —
+      `docs/DECISIONI_WEEKEND.md`,
       pagina d'ingresso in cima al file.
 
 ---
