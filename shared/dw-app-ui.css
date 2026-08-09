@@ -358,10 +358,39 @@ img{max-width:100%}
    il chevron le prendeva da lì. Tolto quel `<link>` (01/08) sarebbero sparite,
    e il censimento dei doppioni non poteva vederlo — confrontava i NOMI dei
    selettori, e `.arr` era in tutt'e due i fogli, quindi «ridefinito».
-   Le regole qui sopra servono all'`svg`; ma nelle sei app `.arr` contiene il
-   CARATTERE `›` (52 volte), che senza queste due righe eredita il colore pieno
-   del testo e la misura di serie: più acceso e più piccolo di quanto deve.
+   Le regole qui sopra servono all'`svg`; ma `.arr` contiene anche il CARATTERE
+   `›`, che senza queste due righe eredita il colore pieno del testo e la misura
+   di serie: più acceso e più piccolo di quanto deve.
    Sono le stesse del core (`.sarr{color:var(--muted); font-size:18px}`).
+   ⏱️ **RIMISURATO IL 09/08, e le due righe NON valgono più la stessa cosa: una
+   regge sei app, l'altra oggi non governa nessun carattere.** Questo commento
+   diceva «nelle sei app, **52 volte**»; il carattere `›` dentro un `class="arr"`
+   sopravvive in **Scudo soltanto, 14 volte** — le altre cinque app sono passate
+   a un'icona SVG interpolata (`${I.…}`). Comando:
+   `grep -oE 'class="arr[^"]+"[^>]+>\s*›' apps/<app>/index.html | wc -l` → **14**
+   (scritto `<app>` e non la stellina, perché la stellina seguita da una barra
+   CHIUDE questo commento: è la trappola che sta in CLAUDE.md, e l'ho appena
+   rifatta — `run-stile` l'ha detta in tre secondi, 316 su 318).
+   · `color:var(--muted)` è **viva e portante**: `.arr svg` dipinge con
+     `stroke:currentColor`, quindi è questa riga a dare il colore alle icone di
+     **campo, conti, scudo e sentinella**; flotta e terra la scavalcano con
+     `--muted2`.
+   · `font-size:18px` agisce **solo su un carattere di testo**, e l'unica app
+     che ne ha ancora uno — Scudo — se lo riscrive a 15px. Cioè oggi quella
+     riga governa **zero caratteri renderizzati**. Resta perché è la difesa di
+     chi rimettesse un `›`, ma va saputo prima di toccarla.
+   ⛔ **E LA CONSEGUENZA CONTA, perché la roadmap leggeva il contrario**: che
+   *quattro* app su sei riscrivano `font-size:15px` (flotta, scudo, sentinella,
+   terra) sembrava il segnale «il valore sbagliato è quello condiviso» — la
+   forma del caso `.nav button` del tema del sole. Non lo è: in tre di quelle
+   quattro `.arr` **non contiene testo**, e la misura delle loro icone la decide
+   `--arr-ico`, che ogni app dichiara per sé (campo 16, conti 15, flotta 15,
+   scudo 15, sentinella 17, terra 17). Sono **dichiarazioni inerti** rimaste da
+   quando `.arr` conteneva un carattere, non un accordo fra app.
+   ⚠️ La lezione, che è quella di sempre in questa casa: **prima di leggere un
+   conteggio come un accordo, si guarda se quelle dichiarazioni fanno ancora
+   qualcosa.** Cambiare il valore condiviso sulla forza di tre righe morte
+   avrebbe toccato le sei pagine per niente.
    📌 Il core gli dà anche `padding:4px 8px`: qui manca di proposito, per non
    mescolare un ripristino con un miglioramento — vedi `docs/DUE_FOGLI_PER_LA_STESSA_BARRA.md`. */
 .arr{

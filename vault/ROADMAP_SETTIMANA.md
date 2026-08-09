@@ -1078,6 +1078,39 @@ numero scritto dove non era stato misurato niente**.*
       quello condiviso — è la forma esatta del caso `.nav button` del tema del
       sole, dove tre app che ridicevano la stessa scala hanno rivelato che il
       difetto stava in `shared/`.
+      ⛔ **⏱️ RIMISURATO IL 09/08, E DELLE TRE «DECISIONI» NE RESTA UNA: DUE SU
+      TRE ERANO RIGHE MORTE.** Il ragionamento qui sopra è giusto in generale ed
+      è stato applicato ai soggetti sbagliati — la terza (`cursor`) era già
+      caduta come falso allarme del righello, e adesso cade anche la prima.
+      · **`font-size:15px` — INERTE in tre app su quattro.** Prima cosa: gli
+        scavalcamenti non sono tre ma **quattro** (c'è anche Sentinella), il che
+        sembrava rafforzare il segnale. Poi il carattere: `.arr` conteneva il
+        chevron `›`, e il commento in `shared/dw-app-ui.css` dichiarava
+        «**nelle sei app, 52 volte**». Oggi il `›` dentro un `class="arr"`
+        sopravvive in **Scudo soltanto, 14 volte** — le altre cinque app sono
+        passate a un'icona SVG interpolata. Comando:
+        `grep -oE 'class="arr[^"]*"[^>]*>\s*›' apps/*/index.html | wc -l` → **14**.
+        Le icone le dimensiona `--arr-ico`, che **ogni app dichiara per sé**
+        (campo 16, conti 15, flotta 15, scudo 15, sentinella 17, terra 17),
+        quindi in Flotta, Sentinella e Terra quel `font-size` non tocca niente:
+        sono **residui** di quando `.arr` era un carattere, non un accordo.
+        E l'unica che un carattere ce l'ha ancora — Scudo — se lo riscrive a
+        15px, cioè la riga condivisa oggi governa **zero caratteri**.
+      · **`color:var(--muted2)` — VIVA, e questa sì è una decisione.** `.arr svg`
+        dipinge con `stroke:currentColor`, quindi il `color` di `.arr` è ciò che
+        colora le icone: campo, conti, scudo e sentinella lo prendono dal foglio
+        condiviso, **flotta e terra** lo scavalcano. Due app su sei: sotto la
+        soglia con cui `.nav button` è stato cambiato, e resta una scelta di
+        palette per app, non un difetto del condiviso.
+      ⛔ **DECISIONE, con la misura invece che con l'impressione: NON si cambia
+      il valore condiviso.** Toccarlo avrebbe modificato sei pagine sulla forza
+      di **tre dichiarazioni che non fanno niente**. È la stessa uscita del
+      `.nav button`: «con un solo soggetto che morde, sei file di rischio non se
+      li merita — e questo è il conto, non un'impressione».
+      ⚠️ La lezione generale, che vale per ogni conteggio letto come consenso:
+      **prima di leggere N scavalcamenti come un accordo, si guarda se quelle
+      dichiarazioni fanno ancora qualcosa.** Un residuo e una decisione si
+      scrivono identici.
       ⚠️ **Misura, non regola** (e scritto qui perché nessuno la rifaccia alla
       cieca): con un denominatore di 16 proprietà e 5 falsi allarmi su 13, un
       controllo automatico su questo fronte oggi **non regge**. Servirebbe prima
