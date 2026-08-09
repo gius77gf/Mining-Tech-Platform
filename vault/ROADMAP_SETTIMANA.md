@@ -953,6 +953,24 @@ numero scritto dove non era stato misurato niente**.*
       **senza che i soggetti guardati calino** (aperture, elementi, voci,
       comandi).
 
+- [ ] **B0-septies. CHE COSA DISEGNA UNA PIANTA SENZA MAGLIA — i ripieghi
+      rimasti, e sono una DECISIONE, non un trasloco.** Cinque funzioni di
+      disegno tengono ancora `D2.S||3.5`, `D2.B||3`, `D2.prof||10`:
+      `computeEnergia2D`, `computeSeq2D`, `computeRelief2D`, `_spazTipico`,
+      `drawInnesco`. Sono la ragione per cui, con la spalla illeggibile, **la
+      maglia degenera a un burden di 0,3 m** — ed è da lì che nasceva l'8,33
+      kg/m³ che accusava dodici fori.
+      ⚠️ **Non è la stessa cosa dei numeri**: un numero che non si può calcolare
+      si dichiara «non calcolabile» e chi lo legge lo capisce. Una **pianta** non
+      può dichiararsi: o disegna qualcosa, o non disegna niente. Quindi la
+      domanda è di prodotto, non di codice — *che cosa vede l'utente che apre il
+      2D di una volata a cui manca la maglia?* Una pianta vuota con una frase, o
+      la maglia di progetto dichiarata come proposta?
+      ⛔ Farla a metà è la trappola: se le cinque divergono, la pianta e i numeri
+      raccontano due volate diverse.
+      **Come si misura**: apri una volata con `design.B:null` e guarda il burden
+      dei fori disegnati — se è 0,3 m, il difetto è ancora lì.
+
 - [ ] **B0-sexies. GLI ALTRI QUINDICI CAMPI CHE INVENTANO IL PROPRIO MINIMO —
       contati, non stimati.** Chiuso il clamp della **carica** (B0-quater), il
       cantiere ha censito il resto: in `applyDesign` ci sono **20** ripieghi
