@@ -2289,7 +2289,7 @@ body.dw b.bad{color:var(--ink-dg)}
       }
       grafico("graf-costi-mese", "barre", {
         titolo: "La spesa mese per mese",
-        meta: mesiCosti.length + " mesi registrati",
+        meta: conta(mesiCosti.length, "mese registrato", "mesi registrati"),
         formato: "euro",
         valori: mesiCosti.map(m => ({ etichetta: m.etichetta, valore: m.importo })),
         aria: `Spesa registrata in ${mesiCosti.length} ${plurale(mesiCosti.length,'mese','mesi')}, l'ultimo è ${mesiCosti[mesiCosti.length - 1].etichetta} con ${eur(mesiCosti[mesiCosti.length - 1].importo)}.`,
@@ -2928,12 +2928,13 @@ body.dw b.bad{color:var(--ink-dg)}
     } else if (aff.mezzi.length === 1) {
       const m = aff.mezzi[0];
       grafVuoto("graf-fermi", I.fermo, esc(m.mezzo) + ": " + ggTx(m.giorni) + " di fermo",
-        "In questi " + aff.finestra + " giorni si è fermata una macchina sola — <b>" + esc(m.mezzo) + "</b>, "
+        plurale(aff.finestra, "In questo giorno", "In questi " + aff.finestra + " giorni")
+          + " si è fermata una macchina sola — <b>" + esc(m.mezzo) + "</b>, "
         + m.episodi + (m.episodi === 1 ? " fermo" : " fermi") + " per " + esc(m.causali.join(", "))
         + " — e con una sola non c'è <b>niente da confrontare</b>. Quando anche un secondo mezzo avrà un fermo, "
         + "qui comparirà la classifica di chi ferma di più.");
     } else if (aff.parco) {
-      grafVuoto("graf-fermi", I.fermo, "Nessun fermo in questi " + aff.finestra + " giorni",
+      grafVuoto("graf-fermi", I.fermo, "Nessun fermo " + plurale(aff.finestra, "in questo giorno", "in questi " + aff.finestra + " giorni"),
         "Qui comparirà, mezzo per mezzo, <b>quanti giorni</b> ogni macchina non ha potuto lavorare. "
         + "Si riempie da solo: ogni fermo che registri qui sotto entra nel conto e abbassa la disponibilità reale.");
     } else {
@@ -3564,7 +3565,7 @@ body.dw b.bad{color:var(--ink-dg)}
       const riga = p.righe.find(x => x.id === scoUsa); if (!riga) return;
       await db.aggiorna("ricambi", r.id, { sogliaMin: riga.sogliaProposta });
       esito("ric-esito", "Soglia di " + r.nome + ": da " + riga.sogliaAttuale + " a " + riga.sogliaProposta
-        + " (" + riga.alGiorno.toLocaleString("it-IT", { maximumFractionDigits: 3 }) + " pezzi al giorno × " + riga.copertura + " giorni).", "success");
+        + " (" + riga.alGiorno.toLocaleString("it-IT", { maximumFractionDigits: 3 }) + " pezzi al giorno × " + riga.copertura + " " + plurale(riga.copertura, "giorno", "giorni") + ").", "success");
       await refresh(); return; }
     // FERMI MACCHINA (L6): «è ripartito» chiude il fermo di oggi e propone di
     // rimettere la macchina operativa; la croce lo toglie del tutto.

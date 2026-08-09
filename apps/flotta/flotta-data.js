@@ -1696,7 +1696,7 @@ export function propostaTagliando(nomeMezzo, oreMezzo, piano) {
   const nome = String(nomeMezzo || "").trim();
   const testaPiano = (p.etichetta || "Tagliando") + (p.nota ? ": " + p.nota : "");
   const coda = passo > 0
-    ? " Alla chiusura, il prossimo nascerà da solo a +" + passo + " ore sulle ore di quel momento."
+    ? " Alla chiusura, il prossimo nascerà da solo a +" + passo + " " + plurale(passo, "ora", "ore") + " sulle ore di quel momento."
     : "";
   if (!nome) return { oreProposte: null, oreNote: false, testo: testaPiano + coda };
   // ⛔ null e "" PRIMA di convertire: `+null` fa 0 e `Number.isFinite(0)` è true
@@ -2878,7 +2878,8 @@ export function ritmoOreMezzi(letture, oggi = new Date(), orizzonte = ORIZZONTE_
     r.giorniCoperti = giorni;
     if (giorni < minGiorni) {
       r.perche = "le letture del contatore coprono " + giorni + (giorni === 1 ? " giorno" : " giorni")
-        + ": per stimare " + orizzonte + " giorni servono almeno " + minGiorni;
+        + ": per stimare " + orizzonte + " " + plurale(orizzonte, "giorno", "giorni")
+        + " servono almeno " + minGiorni;
       out.push(r); continue;
     }
     if (dOre <= 0) {
@@ -2886,7 +2887,8 @@ export function ritmoOreMezzi(letture, oggi = new Date(), orizzonte = ORIZZONTE_
       out.push(r); continue;
     }
     if (r.eta > orizzonte) {
-      r.perche = "l'ultima lettura del contatore è di " + r.eta + " giorni fa: quel ritmo racconta un periodo passato, non questo";
+      r.perche = "l'ultima lettura del contatore è di " + r.eta + " " + plurale(r.eta, "giorno", "giorni")
+        + " fa: quel ritmo racconta un periodo passato, non questo";
       out.push(r); continue;
     }
     r.oreGiorno = Math.round(100 * dOre / giorni) / 100;
