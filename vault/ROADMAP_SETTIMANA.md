@@ -3521,10 +3521,28 @@ di scriverlo qui**: niente entra sulla parola dell'agente.
 - ⚠️ **`#vf-esito` di Scudo**: «— nessun esito registrato —» chiede 201,9 px in
   196 a 320. Stesso difetto latente appena chiuso su `#vf-verbale`, su un campo
   diverso, mai finito in un KO. **Non toccato**, segnalato.
-- ⚠️ **`contrasto.mjs` non apre le modali** (613 testi, 0 sotto soglia, ma
-  nessuno dentro una finestra): il contrasto delle note nuove è stato misurato
-  a mano in scratchpad — 6,03:1 buio, 7,38:1 chiaro, 10,39:1 sole — e **quella
-  copertura resta un buco del banco**, non colmato.
+- ✅ **`contrasto.mjs` non apre le modali** — *era* un buco del banco (613 testi,
+  0 sotto soglia, ma nessuno dentro una finestra): il contrasto delle note nuove
+  era stato misurato **a mano in scratchpad** — 6,03:1 buio, 7,38:1 chiaro,
+  10,39:1 sole — cioè fuori da qualunque prova che giri da sola.
+  **CHIUSO il 09/08 con DUE passate, che stanno insieme e non una al posto
+  dell'altra**, perché rispondono a due domande diverse:
+  · `--modali` **raggiunge le finestre col gesto**: 90 finestre aperte su 186
+    candidate, **4.686 testi**, 1 sotto soglia (il core, poi corretto). Copre il
+    **corpo** che ogni app si costruisce con classi sue;
+  · `--forzate` **fa comparire le finestre che il gesto non raggiunge**: 206
+    aperture su 9 superfici, **124 testi distinti**, 0 sotto soglia. Copre le
+    **parole della struttura condivisa** — titolo, corpo, bottoni del piede —
+    che sono le stesse per tutte le conferme e che nessun gesto apre da solo.
+  ⚠️ **Denominatore dichiarato, non nascosto**: su **cinque** superfici
+  (`vetrina`, `id · non autorizzato`, `genesi · accesso`, `id · accesso`,
+  `id · profilo`) la passata forzata misura **0 testi**, perché lì nessuna
+  finestra si apre. Il banco le **nomina** e dice a lettere che «non vuol dire
+  *a posto*: vuol dire che lì questa controprova non ha potuto dire niente» —
+  invece di contarle fra le cieche, che le avrebbe fatte sparire in un numero.
+  ✅ Controprova completa: **9 superfici avvelenate, 9 l'hanno bocciata**, e il
+  testimone `color-mix` bocciato **0 volte su 9** (deve essere 0, se no il
+  righello accuserebbe un colore sano).
 - ⚠️ **`.avatar.warn` non è dipinta da nessuno** (l'unico stato che il foglio
   condiviso conosce è `.sup`), e resta viva in `ric-list` di Conti da prima di
   oggi. `classi-orfane` non la vede perché guarda il **nome** — `warn` è
