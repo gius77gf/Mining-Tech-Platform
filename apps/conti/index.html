@@ -3803,20 +3803,85 @@ label.item:has(.dw-chk:checked){
         : vuoto("spunta", "Niente in sospeso", "Tutte le pesate registrate sono già state fatturate. Le nuove consegne le registri nella scheda <b>Pesate</b>."); }
 
     // ── Venduto per prodotto (Report): tonnellate, metri cubi e valore ──
+    /* ⛔ QUI IL VALORE PUÒ ESSERE PER DIFETTO, E VA DETTO. `valorePesata`
+       risponde 0 su una consegna che non si può valorizzare (venduta a metro
+       cubo, prodotto senza densità, quantità non scritta): la somma la salta,
+       e questo elenco era l'unico dei tre a non contare quello che saltava.
+       Le due bandiere le alza `venditePerProdotto`, che è dove la decisione si
+       forma — qui c'è solo il modo di scriverla. */
     { const anno = new Date().getFullYear();
       const vend = venditePerProdotto(PES, anno + "-01-01", anno + "-12-31");
+      /* La coda della riga di dettaglio: quello che nella cifra non c'è.
+         ⚠️ L'accordo va sulle CONSEGNE, non sulle tonnellate: «24,30 t non
+         valorizzabile» è sbagliato in italiano qualunque sia il conto, perché
+         «tonnellate» è plurale sempre. Il numero che cambia la frase è quante
+         consegne sono, e le tonnellate stanno fra parentesi. */
+      /* ⛔ E I METRI CUBI CHE NON CI SONO VANNO DETTI, non solo omessi. La nota
+         del grafico PROMETTE che «le tonnellate e i metri cubi di ogni prodotto
+         sono nell'elenco qui sotto»: per un prodotto senza densità i m³ non
+         compaiono, e chi legge conclude che quel materiale non abbia volume
+         invece che «non lo sappiamo». `ric-list` lo dichiara già con queste
+         parole; qui mancava.
+         ⚠️ Si scrive solo l'ECCEDENZA, se no la riga dice due volte la stessa
+         cosa: una consegna non valorizzabile è SEMPRE anche senza densità —
+         `valoreDdt` non calcola solo quando è venduta a metro cubo e la
+         conversione non si può fare, che è la stessa condizione di
+         `senzaDensita`. Il contenimento non è dedotto a parole: è una prova in
+         `run-kpi.mjs`, così il giorno che una delle due regole cambia si vede. */
+      const vendMeta = (v) => {
+        const soloM3 = Math.max(0, v.senzaDensita - v.nonValorizzabili);
+        return (v.nonValorizzabili
+          ? ` · <b>${plur(v.nonValorizzabili, "consegna non valorizzabile", "consegne non valorizzabili")}</b> (${qt(v.tNonValorizzabile)} t)`
+          : "")
+          + (soloM3 ? ` · ${plur(soloM3, "consegna senza densità", "consegne senza densità")}` : "");
+      };
+      /* ⛔ E LA CIFRA: quando NESSUNA consegna del prodotto si è potuta
+         valorizzare, «€ 0,00» non è un importo — è una misura mai fatta
+         scritta come se fosse un risultato, per giunta in verde. Al suo posto
+         un trattino e la ragione, che è la convenzione dell'app in cinque
+         altri punti (il valore del DDT, il costo al metro cubo, il canone). */
+      const vendCifra = (v, an) => v.valoreNoto
+        ? `<div class="amt-n pos">${eur(v.valore)}</div><div class="amt-s">venduto ${an}${v.valoreParziale ? ", per difetto" : ""}</div>`
+        : `<div class="amt-n mute">—</div><div class="amt-s">valore non calcolabile</div>`;
+      const vendNonVal = vend.reduce((t, v) => t + v.nonValorizzabili, 0);
+      const vendTNonVal = round2(vend.reduce((t, v) => t + v.tNonValorizzabile, 0));
       $("vend-list").innerHTML = vend.length
-        ? vend.map(v => `<div class="item st-accent">
+        /* ⚠️ IL SEGNO VISIVO STA SU `st-warn` (il filo arancio a sinistra della
+           riga), NON sull'avatar: `.avatar.warn` NON È DIPINTA DA NESSUNO —
+           l'unico stato che il foglio condiviso conosce per l'avatar è `.sup`.
+           Una classe che nessuno dipinge e nessuno cerca non produce niente da
+           leggere, e `classi-orfane` non la vede perché `warn` è vivissima
+           altrove (`.badge.warn`, `.tot.warn`): il controllo guarda il NOME,
+           non la combinazione. Misurato allo scatto, che è l'unico posto in
+           cui si vede. */
+        ? vend.map(v => `<div class="item ${v.nonValorizzabili ? "st-warn" : "st-accent"}">
           <span class="avatar">${IC.listino}</span>
           <div class="info"><div class="name">${esc(v.prodotto)}</div>
-          <div class="meta">${qt(v.t)} t${v.m3 ? " · " + qt(v.m3) + " m³" : ""} · ${plur(v.viaggi, "viaggio", "viaggi")}</div></div>
-          <div class="amt"><div class="amt-n pos">${eur(v.valore)}</div><div class="amt-s">venduto ${anno}</div></div></div>`).join("")
-          + `<div class="tot"><span class="tot-l">Venduto ${anno}</span>
+          <div class="meta">${qt(v.t)} t${v.m3 ? " · " + qt(v.m3) + " m³" : ""} · ${plur(v.viaggi, "viaggio", "viaggi")}${vendMeta(v)}</div></div>
+          <div class="amt">${vendCifra(v, anno)}</div></div>`).join("")
+          + `<div class="tot${vendNonVal ? " warn" : ""}"><span class="tot-l">Venduto ${anno}</span>
              <span class="tot-n">${eur(vend.reduce((t, v) => t + v.valore, 0))}</span></div>`
+          + (vendNonVal ? `<div class="form-hint" style="margin-top:4px;">⚠ ${vendNonVal === 1
+              ? "una consegna non è valorizzabile e non entra in questo totale"
+              : vendNonVal + " consegne non sono valorizzabili e non entrano in questo totale"}
+              (<b>${qt(vendTNonVal)} t</b> su ${qt(vend.reduce((t, v) => t + v.t, 0))}): il valore è <b>per difetto</b>.
+              ${vendNonVal === 1 ? "È venduta" : "Sono vendute"} a metro cubo e al prodotto manca la densità: aggiungila nel <b>Listino</b> ed ${vendNonVal === 1 ? "entra" : "entrano"} nel conto da ${vendNonVal === 1 ? "sola" : "sole"}.</div>` : "")
         : "";
+      /* ⛔ E IL GRAFICO NON DISEGNA UNO ZERO CHE NESSUNO HA MISURATO. Un
+         prodotto il cui valore non si può calcolare non ha una barra corta:
+         non ha una barra. `lunghezzaBarra` disegna lo zero a zero e fa
+         benissimo — a essere falso sarebbe il valore che gli arriva, e un
+         cartellino «€ 0» accanto a quaranta tonnellate consegnate afferma una
+         misura mai fatta. Quello che resta fuori si DICHIARA nella nota, con
+         il nome: nascondere in silenzio sarebbe lo stesso difetto al rovescio. */
+      const vendDisegno = vend.filter(v => v.valoreNoto);
+      const vendFuori = vend.filter(v => !v.valoreNoto);
       if (!vend.length) {
         grafVuoto("graf-vend", "camion", "Nessuna consegna quest'anno",
           "Il venduto per prodotto si riempie dalle <b>pesate</b>: registra il primo DDT e qui compare quanto pesa ogni pezzatura sul fatturato.");
+      } else if (!vendDisegno.length) {
+        grafVuoto("graf-vend", "camion", "Nessun valore da mettere in scala",
+          `Le consegne di quest'anno ci sono, ma <b>nessuna è valorizzabile</b>: sono vendute a metro cubo e ai prodotti manca la densità. Aggiungila nel <b>Listino</b> e il grafico compare da solo.`);
       } else if (G()) {
         svuotaGraf("graf-vend");
         G().barre("#graf-vend", {
@@ -3825,9 +3890,14 @@ label.item:has(.dw-chk:checked){
           orientamento: "orizzontale",
           formato: eur0,
           tabella: false,
-          valori: vend.map(v => ({ etichetta: v.prodotto, valore: Math.round(v.valore) })),
-          aria: "Venduto per prodotto: " + vend.map(v => v.prodotto + " " + eur0(v.valore)).join(", ") + ".",
-          nota: "Le tonnellate e i metri cubi di ogni prodotto sono nell'elenco qui sotto: la barra è il <b>valore</b>, che è quello che decide dove conviene spingere.",
+          valori: vendDisegno.map(v => ({ etichetta: v.prodotto, valore: Math.round(v.valore),
+            stato: v.valoreParziale ? "warn" : null })),
+          aria: "Venduto per prodotto: " + vendDisegno.map(v => v.prodotto + " " + eur0(v.valore)
+            + (v.valoreParziale ? " (per difetto)" : "")).join(", ")
+            + (vendFuori.length ? ". Fuori dal grafico: " + vendFuori.map(v => v.prodotto).join(", ") + ", di cui non si può calcolare il valore." : "") + ".",
+          nota: "Le tonnellate e i metri cubi di ogni prodotto sono nell'elenco qui sotto: la barra è il <b>valore</b>, che è quello che decide dove conviene spingere."
+            + (vendFuori.length ? ` <b>Fuori dal grafico</b>: ${vendFuori.map(v => esc(v.prodotto)).join(", ")} — ${vendFuori.length === 1 ? "il suo valore non è calcolabile" : "i loro valori non sono calcolabili"}, e una barra a zero direbbe «venduto niente» al posto di «non lo so».` : "")
+            + (vendDisegno.some(v => v.valoreParziale) ? ` Le barre in <b>arancio</b> hanno un valore <b>per difetto</b>: di quel prodotto qualche consegna non è valorizzabile.` : ""),
         });
       } }
   }

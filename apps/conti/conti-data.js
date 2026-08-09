@@ -2338,6 +2338,32 @@ export function canonePeriodo(pesate, impostazioni, dal, al, rilievi) {
 // Tiene conto a parte del materiale SENZA densità: le sue tonnellate sono
 // vere (le ha pesate la bilancia), i suoi metri cubi no — e quindi né i m³
 // né il valore per metro cubo possono comprenderlo.
+/* ⛔ E CONTA ANCHE QUELLO CHE LA SOMMA SALTA — `nonValorizzabili`.
+   `valorePesata` risponde **0** quando il valore di un DDT non si può
+   calcolare, ed è una scelta dichiarata dodici righe sopra la sua firma: un
+   `null` dentro una somma si sommerebbe come zero comunque, e in silenzio.
+   Ma allora questo totale ESCLUDE qualcosa, e un totale che esclude senza
+   dirlo è un totale che inganna: **chi somma deve anche contare quello che ha
+   saltato**. La difesa esisteva già in due punti della pagina — il totale del
+   registro Pesate («N consegne non sono valorizzabili e non entrano in questo
+   totale: il valore è per difetto») e le righe di «Consegnato da fatturare»
+   («· N non valorizzabili») — e mancava qui, cioè la stessa correzione fatta a
+   due elenchi su tre: la firma della copia debole.
+   Misurato il 09/08 sulla dimostrazione COSÌ COM'È, senza inventare niente: il
+   DDT 2026/013 (Sabbia lavata 0/4, venduta a metro cubo, prodotto senza
+   densità) non è valorizzabile, e la riga del Report diceva
+   «Sabbia lavata 0/4 · 68,30 t · 3 viaggi   € 605,00» in verde — con 24,3 t su
+   68,3, più di un terzo, fuori da quei 605 €. Con un prodotto TUTTO non
+   valorizzabile il difetto arriva anche nella geometria: «€ 0,00» e una barra
+   di **0 px**, identica a un prodotto che non ha venduto niente.
+   ⚠️ `senzaDensita` NON basta a saperlo, e per questo il conto è nuovo invece
+   che dedotto: le due bandiere non coincidono. «Misto di cava», venduto a
+   TONNELLATA senza densità, ha `senzaDensita = 1` e un valore perfettamente
+   calcolabile — non ha i m³, ha gli euro. Dedurre l'uno dall'altro avrebbe
+   messo un avviso su una riga sana.
+   ⚠️ Il valore lo somma `valorePesata` e la bandiera la legge `valoreDdt`:
+   sono due domande diverse sullo stesso DDT, e la regola dello zero resta
+   scritta in un posto solo. */
 export function venditePerProdotto(pesate, dal, al) {
   const d1 = String(dal || ""), d2 = String(al || "");
   const per = {};
@@ -2347,14 +2373,24 @@ export function venditePerProdotto(pesate, dal, al) {
     const nome = String(p.prodotto || "Prodotto");
     const q = quantitaPesata(p);
     const r = per[nome] || (per[nome] = { prodotto: nome, t: 0, m3: 0, valore: 0, viaggi: 0,
-      senzaDensita: 0, tSenzaDensita: 0, valoreConvertibile: 0 });
+      senzaDensita: 0, tSenzaDensita: 0, valoreConvertibile: 0,
+      nonValorizzabili: 0, tNonValorizzabile: 0 });
     r.viaggi++; r.t = round2(r.t + q.t);
     const v = valorePesata(p);
+    if (!valoreDdt(p).calcolabile) { r.nonValorizzabili++; r.tNonValorizzabile = round2(r.tNonValorizzabile + q.t); }
     if (q.m3 == null) { r.senzaDensita++; r.tSenzaDensita = round2(r.tSenzaDensita + q.t); }
     else { r.m3 = round3(r.m3 + q.m3); r.valoreConvertibile = round2(r.valoreConvertibile + v); }
     r.valore = round2(r.valore + v);
   }
-  return Object.values(per).sort((a, b) => b.valore - a.valore || b.t - a.t);
+  /* `valoreNoto` è la bandiera che la pagina legge per decidere se scrivere
+     una cifra o il perché non c'è: falsa quando NESSUNA consegna del prodotto
+     si è potuta valorizzare, cioè quando quello zero non è una misura.
+     `valoreParziale` è il caso più frequente e più insidioso — una cifra vera
+     ma per difetto — e va detto accanto al numero, non al posto suo. */
+  return Object.values(per).map((r) => ({ ...r,
+    valoreNoto: r.nonValorizzabili < r.viaggi,
+    valoreParziale: r.nonValorizzabili > 0 && r.nonValorizzabili < r.viaggi,
+  })).sort((a, b) => b.valore - a.valore || b.t - a.t);
 }
 
 // ============================================================
@@ -2432,7 +2468,8 @@ export function cavatoPeriodo(rilievi, dal, al) {
 export function vendutoPeriodo(pesate, dal, al) {
   const prodotti = venditePerProdotto(pesate, dal, al);
   let t = 0, m3 = 0, valore = 0, valoreConvertibile = 0, viaggi = 0,
-      tSenzaDensita = 0, viaggiSenzaDensita = 0;
+      tSenzaDensita = 0, viaggiSenzaDensita = 0,
+      nonValorizzabili = 0, tNonValorizzabile = 0;
   for (const p of prodotti) {
     t = round2(t + p.t); m3 = round3(m3 + p.m3);
     valore = round2(valore + p.valore);
@@ -2440,11 +2477,17 @@ export function vendutoPeriodo(pesate, dal, al) {
     viaggi += p.viaggi;
     tSenzaDensita = round2(tSenzaDensita + p.tSenzaDensita);
     viaggiSenzaDensita += p.senzaDensita;
+    nonValorizzabili += p.nonValorizzabili;
+    tNonValorizzabile = round2(tNonValorizzabile + p.tNonValorizzabile);
   }
   const tConvertite = round2(t - tSenzaDensita);
   return {
     t, m3, valore, valoreConvertibile, viaggi, tSenzaDensita, tConvertite,
     viaggiSenzaDensita, prodotti,
+    /* quante consegne del periodo NON entrano in `valore`, e quanto pesano.
+       Senza questi due `valore` è un totale per difetto che non lo dice. */
+    nonValorizzabili, tNonValorizzabile,
+    valoreParziale: nonValorizzabili > 0,
     // quota di tonnellate che è stato possibile convertire in m³ (0–100)
     copertura: t > 0 ? round2(100 * tConvertite / t) : null,
     // densità media di quello che è uscito davvero dal cancello (t/m³).

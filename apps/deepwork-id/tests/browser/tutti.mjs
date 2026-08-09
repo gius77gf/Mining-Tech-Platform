@@ -343,6 +343,20 @@ const BANCHI = [
      alto il difetto non si presenta, com'era successo nel core. */
   ['le barre di peso di Conti', 'conti-barre-peso.mjs', []],
   ['barre di peso di Conti · controprova', 'conti-barre-peso.mjs', ['--controprova'], true],
+  /* ⛔ AGGIUNTO IL 09/08 — il filone «un numero tranquillo dove non è stato
+     misurato niente», portato dove Conti non era mai stata guardata: le tele di
+     `dwGrafici`. `conti-barre-peso` misura le `span.bar` delle liste e
+     `graf-scala` la SCALA di queste tele; le loro QUANTITÀ, in pixel, non le
+     controllava nessuno.
+     Il difetto che tiene chiuso stava nella dimostrazione com'è: `valorePesata`
+     risponde 0 su un DDT che non si può valorizzare — scelta dichiarata, perché
+     un `null` in una somma si sommerebbe come zero comunque — ma «Venduto per
+     prodotto» era l'unico dei tre elenchi a non CONTARE quello che saltava.
+     Sabbia lavata 0/4 diceva «68,30 t · 3 viaggi — € 605,00» in verde con 24,3 t
+     fuori da quei 605 €; e un prodotto tutto non valorizzabile usciva «€ 0,00»
+     con una barra di 0 px, identica a chi non ha venduto niente. */
+  ['i numeri tranquilli di Conti', 'conti-numeri-tranquilli.mjs', []],
+  ['numeri tranquilli di Conti · controprova', 'conti-numeri-tranquilli.mjs', ['--controprova'], true],
   /* ⛔ AGGIUNTO IL 03/08, stessa domanda applicata a Scudo: dove l'app compone
      qualcosa che ESCE, chi decide i suoi numeri? I quattro CSV li scrive la
      pagina, e ognuno era più tranquillo dello schermo — un'azione scaduta da

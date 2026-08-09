@@ -1656,6 +1656,7 @@ textarea.dw-input{
            ponteScudo, superamentiAperti, puntiSenzaSoglia, azioniDiOrigine, statoPonte, bozzaAzioneSuperamento,
            bozzaAzioneReclamo, coincidenzaVolata, dataPiuGiorni, AVVISO_COINCIDENZA,
            ppvDiVolata, testoFontePpv, lettureVibrazioniDelGiorno, campiPpvVolata, CAMPI_PPV_VUOTI,
+           accorciaVoceTendina,
            refertiDaVolate, motivoReferto, MOTIVI_REFERTO, csvRefertiGenesi, riferimentoReferto,
            PPV_STRUMENTO, PPV_MANUALE,
            VOL_PREVISTA, statoVolata, volataPrevista, etichettaStatoVolata, previsioneDiVolata,
@@ -2530,12 +2531,19 @@ textarea.dw-input{
         && Math.abs(c.valore - gia.valore) < 1e-6);
       pre = i >= 0 ? i : -1;
     }
-    // etichette corte: dentro un <select> di una modale da 440 px una riga
-    // lunga viene tagliata, e un dato tagliato non si legge. Il dettaglio del
-    // punto scelto (e il confronto delle distanze) va nella riga sotto.
+    // ⛔ ETICHETTE CHE CI STANNO, e il testo intero sotto. Un `<select>` chiuso
+    // non manda a capo: «5,6 mm/s · Vibrazioni V2 — confine Nord» chiede 289,6
+    // px e ne ha 284 a 390 di schermo (214 a 320), quindi il browser si mangia
+    // la CODA — cioè il nome del punto, che è la sola cosa che distingue una
+    // lettura dall'altra. Il testo vero resta in `data-intero` e lo accorcia
+    // `adattaVoci()` **misurando**; il nome per esteso del punto scelto si
+    // legge nella riga `#ppv-info` qui sotto, che va a capo e non è tagliata.
+    // ⚠️ La voce «nessuna» è testo NOSTRO, non un dato: si scrive corta invece
+    // di farla accorciare (misurata: 204,5 px, ci sta anche a 320).
+    const voce = (t) => `data-intero="${esc(t)}">${esc(t)}`;
     const opz = usabili.map((c, i) =>
-      `<option value="${i}"${i === pre ? " selected" : ""}>${esc(numeroIt(c.valore))} mm/s · ${esc(c.punto)}</option>`
-    ).join("") + `<option value="mano"${pre === -1 || !usabili.length ? " selected" : ""}>— nessuna: trascrivo il valore dal referto —</option>`;
+      `<option value="${i}"${i === pre ? " selected" : ""} ${voce(numeroIt(c.valore) + " mm/s · " + c.punto)}</option>`
+    ).join("") + `<option value="mano"${pre === -1 || !usabili.length ? " selected" : ""} ${voce("— nessuna: la trascrivo io —")}</option>`;
 
     const corpo = `<div class="note" style="margin-top:0;">Volata del <b>${fmtD(v.data)}</b>${v.fronte ? " sul fronte <b>" + esc(v.fronte) + "</b>" : ""}${(+v.kgMaxRitardo) ? " · carica massima per ritardo <b>" + esc(numeroIt(+v.kgMaxRitardo)) + " kg</b>" : ""}${dist > 0 ? " · distanza del ricettore <b>" + esc(numeroIt(dist)) + " m</b>" : ""}.</div>`
       + (usabili.length
@@ -2563,6 +2571,38 @@ textarea.dw-input{
       // il campo a mano si accende solo quando non si sta usando una misura
       // dello strumento: due valori contemporanei non si possono confermare
       const s = $("ppv-scelta"), n = $("ppv-val"), info = $("ppv-info"), lab = $("ppv-lab");
+      // ⛔ LE VOCI SI ACCORCIANO MISURANDO, non contando i caratteri — e non
+      // si sceglie un corpo più piccolo: `shared/dw-app-ui.css` scrive
+      // `font-size:16px !important` dentro `@media (pointer:coarse)`, cioè sul
+      // telefono della cava qualunque corpo deciso qui verrebbe buttato via.
+      // Misurato il 09/08: con puntatore fine 15px arrivano, con puntatore
+      // grossolano tornano 16px. Il righello è il browser, col font VERO.
+      // ⚠️ Si riparte sempre da `data-intero`: uno strumento che riscrive il
+      // soggetto che sta misurando deve leggerlo PRIMA di scriverci, se no al
+      // secondo giro accorcia una voce già accorciata.
+      const adattaVoci = () => {
+        if (!s || s.tagName !== "SELECT") return;
+        const cs = getComputedStyle(s);
+        const righello = document.createElement("span");
+        righello.style.cssText = "position:fixed;left:-9999px;top:0;visibility:hidden;white-space:pre";
+        righello.style.font = cs.font;
+        righello.style.letterSpacing = cs.letterSpacing;
+        document.body.appendChild(righello);
+        const quanto = (t) => { righello.textContent = t; return righello.getBoundingClientRect().width; };
+        const spazio = s.clientWidth - (parseFloat(cs.paddingLeft) || 0) - (parseFloat(cs.paddingRight) || 0);
+        for (const o of s.options) {
+          const intero = o.getAttribute("data-intero") || o.textContent;
+          o.textContent = accorciaVoceTendina(intero, spazio, quanto);
+          // il testo intero resta raggiungibile anche da chi ha un puntatore;
+          // per tutti gli altri c'è la riga `#ppv-info`, che è quella che conta
+          o.title = intero;
+        }
+        righello.remove();
+      };
+      adattaVoci();
+      // se la finestra non è ancora disegnata `clientWidth` è 0 e la funzione
+      // — giustamente — non mutila niente: si rifà al primo fotogramma buono
+      requestAnimationFrame(adattaVoci);
       // ECO DEL NUMERO CAPITO: il campo è di testo (perché la virgola deve
       // poter entrare), quindi l'utente ha diritto di vedere, mentre scrive,
       // QUALE numero verrà salvato. Su questo campo più che su ogni altro:

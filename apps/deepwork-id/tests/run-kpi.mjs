@@ -25343,5 +25343,291 @@ test("foriDalModello: un foro non collocabile va in fondo e non trascina i sani"
    stessa fonte» è una proprietà della PAGINA, non della funzione. Sta nella
    regola 31 di `run-stile.mjs`, che guarda `index.html`. */
 
+/* ══ SCUDO · LA VOCE DEL DOCUMENTO NEL MENÙ «IL VERBALE» ══════════════════
+   Il difetto misurato: una tendina CHIUSA non manda a capo, e la voce scritta
+   `titolo · tipo` chiedeva 561 px dove ce ne sono 266 a 390 e 196 a 320 —
+   tagliando proprio la coda che distingue un verbale dall'altro. Queste prove
+   pinzano la regola che toglie la ripetizione, NON il layout: che ci stia lo
+   dice `tests/browser/modali-dentro.mjs`, che il testo lo misura col font vero.
+   ⚠️ La prova che conta di più è la penultima: il titolo che NON ripete il
+   proprio tipo non deve perdere niente — è il caso in cui una regola di taglio
+   scritta male fa sparire dati veri, e nessuno se ne accorge. */
+test("voceDocumentoInElenco: il tipo ripetuto in testa al titolo esce una volta sola", () => {
+  const d = { titolo: "Verbale verifica periodica — piattaforma elevabile", tipo: "Verbale di verifica periodica" };
+  eq(scudo.titoloSenzaTipoRipetuto(d.titolo, d.tipo), "piattaforma elevabile");
+  eq(scudo.voceDocumentoInElenco(d), "piattaforma elevabile",
+    "nella voce resta SOLO la coda che distingue un verbale dall'altro");
+  eq(scudo.voceDocumentoInElenco({ titolo: "Verbale verifica periodica — autogru 30 t", tipo: "Verbale di verifica periodica" }),
+    "autogru 30 t");
+});
+test("voceDocumentoInElenco: il confronto guarda che cosa VALE il titolo, non com'è scritto", () => {
+  /* il titolo arriva anche da un CSV scritto a mano: maiuscole, «di» in più o
+     in meno, e quattro separatori diversi. Un `startsWith` avrebbe guardato la
+     forma — è la copia debole che questa casa paga da mesi. */
+  const t = "Verbale di verifica periodica";
+  eq(scudo.titoloSenzaTipoRipetuto("VERBALE VERIFICA PERIODICA - Paranco", t), "Paranco");
+  eq(scudo.titoloSenzaTipoRipetuto("Verbale di verifica periodica: gru a torre", t), "gru a torre");
+  eq(scudo.titoloSenzaTipoRipetuto("Verbale verifica periodica – nastro", t), "nastro");
+  eq(scudo.titoloSenzaTipoRipetuto("Verbale verifica periodica — molazza", t), "molazza");
+  eq(scudo.titoloSenzaTipoRipetuto("Verbale verifica periodica, sollevatore", t), "sollevatore");
+});
+test("voceDocumentoInElenco: un titolo che NON ripete il suo tipo non perde niente", () => {
+  /* il caso in cui un taglio scritto male mangia dati veri e nessuno lo vede:
+     qui il tipo va appeso, perché in un elenco di TUTTI i documenti è l'unica
+     cosa che dice che quel documento non è un verbale. */
+  eq(scudo.voceDocumentoInElenco({ titolo: "DVR 2026", tipo: "Documento di valutazione dei rischi" }),
+    "DVR 2026 · Documento di valutazione dei rischi");
+  eq(scudo.voceDocumentoInElenco({ titolo: "POS scavi lotto 3", tipo: "Piano operativo di sicurezza" }),
+    "POS scavi lotto 3 · Piano operativo di sicurezza");
+  /* «Verbalizzazione» COMINCIA come «Verbale» ma è un'altra parola: si
+     confrontano parole intere, non prefissi di caratteri */
+  eq(scudo.voceDocumentoInElenco({ titolo: "Verbalizzazione riunione", tipo: "Verbale di verifica periodica" }),
+    "Verbalizzazione riunione · Verbale di verifica periodica");
+  /* un titolo più corto del proprio tipo non lo ripete: non si taglia niente */
+  eq(scudo.voceDocumentoInElenco({ titolo: "Verbale", tipo: "Verbale di verifica periodica" }),
+    "Verbale · Verbale di verifica periodica");
+});
+test("voceDocumentoInElenco: nessuna voce esce vuota, e il tipo non si scrive due volte", () => {
+  /* il documento intitolato ESATTAMENTE come il proprio tipo: togliendo la
+     ripetizione non resterebbe niente, e una voce vuota non si può scegliere.
+     ⛔ Ed è il caso che ha fatto cadere la prima stesura, che deduceva «ho
+     tagliato» confrontando le due stringhe: qui il taglio non lascia niente,
+     la funzione restituisce il titolo intero, e il tipo finiva appeso una
+     seconda volta. */
+  eq(scudo.voceDocumentoInElenco({ titolo: "Verbale di verifica periodica", tipo: "Verbale di verifica periodica" }),
+    "Verbale di verifica periodica");
+  eq(scudo.voceDocumentoInElenco({ titolo: "", tipo: "Verbale di verifica periodica" }),
+    "Verbale di verifica periodica", "senza titolo si mostra quello che si sa");
+  eq(scudo.voceDocumentoInElenco({ titolo: null, tipo: null }), "(documento senza titolo)",
+    "e se non si sa niente lo si DICHIARA, invece di lasciare una riga muta");
+  eq(scudo.voceDocumentoInElenco(null), "(documento senza titolo)");
+  eq(scudo.titoloSenzaTipoRipetuto(null, "Verbale di verifica periodica"), "");
+  eq(scudo.titoloSenzaTipoRipetuto("Verbale verifica periodica — gru", ""), "Verbale verifica periodica — gru",
+    "senza un tipo non c'è niente da confrontare: il titolo resta intero");
+});
+test("voceDocumentoInElenco: la regola vale per documento, non per la lista", () => {
+  /* ⛔ È la differenza con la strada provata e SCARTATA (il prefisso COMUNE fra
+     le voci): quella non toglieva niente, perché l'elenco non sono i verbali ma
+     TUTTI i documenti e il prefisso comune fra «DVR» e «Verbale…» è vuoto.
+     Qui la risposta su un documento è la stessa che il menù ne contenga due o
+     duecento — e questa prova cadrebbe se qualcuno ci rimettesse la lista. */
+  const uno = { titolo: "Verbale verifica periodica — piattaforma elevabile", tipo: "Verbale di verifica periodica" };
+  const conLista = [uno, { titolo: "DVR 2026", tipo: "Documento di valutazione dei rischi" }].map(scudo.voceDocumentoInElenco);
+  eq(conLista[0], scudo.voceDocumentoInElenco(uno), "la voce non cambia per via dei suoi vicini");
+  eq(conLista[0], "piattaforma elevabile");
+});
+
+// ── Conti · venduto per prodotto: quello che la somma SALTA ───────────────
+/* ⛔ IL FILONE «UN NUMERO TRANQUILLO DOVE NON È STATO MISURATO NIENTE», 09/08.
+   `valorePesata` risponde 0 su una consegna che non si può valorizzare — è
+   una scelta dichiarata nel modulo, perché un `null` dentro una somma si
+   sommerebbe come zero comunque e in silenzio. Ma allora il totale ESCLUDE
+   qualcosa, e chi somma deve anche CONTARE quello che ha saltato: la pagina
+   lo faceva già nel registro Pesate e in «Consegnato da fatturare», e non qui.
+   Il difetto si vedeva sulla dimostrazione com'è: «Sabbia lavata 0/4 · 68,30 t
+   · 3 viaggi — € 605,00» in verde, con 24,3 t fuori da quei 605 €.
+   ⚠️ Prove SINCRONE e messe PRIMA del riepilogo: l'`await Promise.all(inVolo)`
+   sta a metà file, e una prova asincrona appesa qui verrebbe messa in volo e
+   il totale si stamperebbe senza aspettarla. */
+{
+  const P = (o) => ({ data: "2026-06-10", scontoPct: 0, ...o });
+  /* venduta a METRO CUBO, senza densità e senza quantità scritta: non c'è
+     nessun modo di sapere quanti m³ siano, quindi nessun valore */
+  const cieca = (n, netto) => P({ id: "c" + n, numero: "2026/9" + n, prodotto: "Ghiaia 4/8",
+    unitaVendita: "m3", netto, quantita: null, densita: null, prezzoUnitario: 14 });
+  /* venduta a TONNELLATA senza densità: i m³ non ci sono, gli EURO sì */
+  const aTonnellata = P({ id: "t1", numero: "2026/950", prodotto: "Misto di cava",
+    unitaVendita: "t", netto: 10, quantita: null, densita: null, prezzoUnitario: 5 });
+
+  test("venditePerProdotto: una consegna che non si può valorizzare viene CONTATA, non solo saltata", () => {
+    const v = conti.venditePerProdotto([cieca(1, 22.5), cieca(2, 18.4)], "2026-01-01", "2026-12-31");
+    eq(v.length, 1, "un prodotto solo");
+    contiene(v[0], { prodotto: "Ghiaia 4/8", t: 40.9, valore: 0, viaggi: 2,
+      nonValorizzabili: 2, tNonValorizzabile: 40.9, valoreNoto: false, valoreParziale: false },
+      "40,9 t consegnate e zero euro: quello zero NON è una misura, e la bandiera lo dice");
+  });
+
+  test("venditePerProdotto: valore PARZIALE — la cifra è vera ma per difetto, e si dichiara", () => {
+    const buona = P({ id: "b1", numero: "2026/960", prodotto: "Ghiaia 4/8",
+      unitaVendita: "m3", netto: 16, quantita: 10, densita: 1.6, prezzoUnitario: 14 });
+    const v = conti.venditePerProdotto([buona, cieca(3, 22.5)], "2026-01-01", "2026-12-31");
+    contiene(v[0], { valore: 140, viaggi: 2, nonValorizzabili: 1, tNonValorizzabile: 22.5,
+      valoreNoto: true, valoreParziale: true },
+      "140 € sono i soli 10 m³ misurati: l'altra consegna non entra e la riga lo deve dire");
+  });
+
+  test("venditePerProdotto: «senza densità» NON è «non valorizzabile», e dedurne uno dall'altro accusa una riga sana", () => {
+    /* ⛔ La strada comoda era leggere `senzaDensita`, che c'era già. È FALSA:
+       un prodotto venduto a tonnellata senza densità non ha i metri cubi e ha
+       benissimo gli euro — la bilancia le ha pesate. Nella dimostrazione è il
+       caso di «Misto di cava (non classificato)», che con quella deduzione si
+       sarebbe preso un avviso senza averne motivo.
+       ⚠️ E questa prova, DA SOLA, non cade se si toglie il conto nuovo — perché
+       pretende uno ZERO, e senza il conto lo zero c'è lo stesso. È voluto: le
+       altre quattro difendono il conto, questa difende dal FALSO ALLARME. Sta
+       scritto qui perché nessuno la «aggiusti» credendola inerte. */
+    const v = conti.venditePerProdotto([aTonnellata], "2026-01-01", "2026-12-31");
+    contiene(v[0], { t: 10, m3: 0, valore: 50, senzaDensita: 1, tSenzaDensita: 10,
+      nonValorizzabili: 0, tNonValorizzabile: 0, valoreNoto: true, valoreParziale: false },
+      "senza densità sì, senza valore no");
+  });
+
+  test("vendutoPeriodo: il totale del periodo dichiara quante consegne ne restano fuori", () => {
+    const v = conti.vendutoPeriodo([aTonnellata, cieca(4, 22.5), cieca(5, 18.4)], "2026-01-01", "2026-12-31");
+    contiene(v, { viaggi: 3, valore: 50, nonValorizzabili: 2, tNonValorizzabile: 40.9, valoreParziale: true },
+      "50 € su 50,9 t: due consegne su tre non sono in quel numero");
+    const pulito = conti.vendutoPeriodo([aTonnellata], "2026-01-01", "2026-12-31");
+    contiene(pulito, { nonValorizzabili: 0, tNonValorizzabile: 0, valoreParziale: false },
+      "e senza consegne cieche la bandiera resta abbassata: un avviso che c'è sempre non avvisa di niente");
+  });
+
+  test("venditePerProdotto: «non valorizzabile» è sempre anche «senza densità», e la pagina ci conta sopra", () => {
+    /* ⛔ LA RIGA DEL REPORT SCRIVE SOLO L'ECCEDENZA (`senzaDensita −
+       nonValorizzabili`) per non dire due volte la stessa cosa, e quella
+       sottrazione regge solo se il contenimento è vero: `valoreDdt` non
+       calcola SOLO quando la consegna è venduta a metro cubo e la conversione
+       non si può fare — che è esattamente la condizione di `senzaDensita`.
+       Qui il contenimento è PROVATO invece che dedotto in un commento: il
+       giorno che una delle due regole cambia, questa cade e la sottrazione
+       nella pagina non diventa un numero negativo in silenzio. */
+    const casi = [[cieca(6, 22.5)], [aTonnellata], [aTonnellata, cieca(7, 12)],
+      conti.DEMO.pesate];
+    for (const pes of casi)
+      for (const r of conti.venditePerProdotto(pes, "2020-01-01", "2099-12-31"))
+        eq(r.nonValorizzabili <= r.senzaDensita, true,
+          `${r.prodotto}: ${r.nonValorizzabili} non valorizzabili su ${r.senzaDensita} senza densità`);
+  });
+
+  test("venditePerProdotto: il conto è DERIVATO dai DDT della dimostrazione, non scritto in pancia al test", () => {
+    /* ⛔ Un banco che porta dentro un numero atteso invecchia col crescere
+       della dimostrazione e poi accusa il prodotto di una cosa che ha fatto il
+       prodotto. Qui l'atteso si ricava dagli stessi dati, contando i DDT che
+       `valoreDdt` dichiara non calcolabili: se domani la dimostrazione ne
+       guadagna o ne perde uno, questa prova resta vera. */
+    const pes = conti.DEMO.pesate;
+    const anno = String(pes[0].data).slice(0, 4);
+    const nelPeriodo = pes.filter((p) => String(p.data).slice(0, 4) === anno);
+    const attesi = nelPeriodo.filter((p) => !conti.valoreDdt(p).calcolabile).length;
+    const v = conti.vendutoPeriodo(pes, anno + "-01-01", anno + "-12-31");
+    eq(v.viaggi, nelPeriodo.length, "tutti i DDT dell'anno sono nel conto");
+    eq(v.nonValorizzabili, attesi, "e quelli senza valore sono contati uno per uno");
+    eq(v.valoreParziale, attesi > 0, "la bandiera segue il conto, non un'opinione");
+  });
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   SENTINELLA · `accorciaVoceTendina` — la voce di una tendina che ci sta
+   ══════════════════════════════════════════════════════════════════════════
+   PERCHÉ. Un `<select>` CHIUSO non manda a capo: la voce scelta più larga del
+   campo viene tagliata dal browser, e quello che sparisce è la CODA — cioè in
+   una tendina la parte che DISTINGUE una voce dall'altra. Misurato il 09/08
+   sulla modale che collega la PPV: «5,6 mm/s · Vibrazioni V2 — confine Nord»
+   chiede 289,6 px e ne ha 284 a 390 di schermo, 214 a 320.
+   ⛔ E la strada tipografica è stata provata e SCARTATA con la misura, perché
+   nessuno la rifaccia: `shared/dw-app-ui.css` scrive
+   `font-size:16px !important` dentro `@media (hover:none),(pointer:coarse)`.
+   Col puntatore FINE — cioè come gira il banco — un 15px scritto dall'app
+   arriva; col puntatore GROSSOLANO — cioè il telefono in cava — torna 16px.
+   Un corpo più piccolo avrebbe chiuso il RIGHELLO e non il prodotto.
+   ⚠️ Prove SINCRONE e messe PRIMA del riepilogo: l'`await Promise.all(inVolo)`
+   sta a metà file, e una prova asincrona appesa qui verrebbe messa in volo e
+   il totale si stamperebbe senza aspettarla. */
+{
+  /* righello finto a passo fisso: le prove non devono dipendere da un font.
+     Quello vero è il browser, e sta nella pagina. */
+  const dieci = (x) => String(x).length * 10;
+  const corta = (t, s) => sentinella.accorciaVoceTendina(t, s, dieci);
+
+  test("accorciaVoceTendina: quello che ci sta torna INTERO, senza puntini", () => {
+    eq(corta("abcde", 50), "abcde", "50 px chiesti in 50 disponibili: nessun taglio");
+    eq(corta("abcd", 50), "abcd", "e a maggior ragione se avanza spazio");
+  });
+
+  test("accorciaVoceTendina: quello che non ci sta si taglia E si dichiara col puntino", () => {
+    eq(corta("abcdefghij", 50), "abcd…", "quattro caratteri più il puntino: cinque per cinquanta");
+    /* ⛔ la prova che conta non è «è più corta»: è che il RISULTATO CI STA.
+       Un taglio che lascia fuori un pixel non ha risolto niente. */
+    eq(dieci(corta("abcdefghij", 50)) <= 50, true, "e il risultato sta davvero nello spazio");
+  });
+
+  test("accorciaVoceTendina: senza una misura NON mutila — l'assenza di un dato non autorizza il taglio", () => {
+    eq(corta("abcdefghij", 0), "abcdefghij", "spazio 0 (finestra non ancora disegnata): torna intera");
+    eq(corta("abcdefghij", NaN), "abcdefghij", "spazio non misurabile: torna intera");
+    eq(corta("abcdefghij", -5), "abcdefghij", "spazio negativo: torna intera");
+    eq(sentinella.accorciaVoceTendina("abcdefghij", 50, null), "abcdefghij", "righello mancante: torna intera");
+    eq(sentinella.accorciaVoceTendina("abcdefghij", 50, () => NaN), "abcdefghij", "righello che non sa rispondere: torna intera");
+  });
+
+  test("accorciaVoceTendina: quando non ci sta nemmeno il puntino resta il puntino", () => {
+    eq(corta("abcdefghij", 10), "…", "dieci px: ci sta solo il puntino");
+    eq(corta("abcdefghij", 5), "…", "meno del puntino: il puntino lo stesso, mai una voce vuota");
+  });
+
+  test("accorciaVoceTendina: niente separatore appeso davanti al puntino", () => {
+    /* «Vibrazioni V2 —…» si legge come un errore di battitura: il separatore
+       che resta orfano si toglie, e il puntino dice da solo che manca roba. */
+    eq(corta("ab · cdefgh", 60), "ab…", "il punto mediano non resta appeso");
+    eq(corta("abcd efgh", 60), "abcd…", "e nemmeno lo spazio");
+    eq(corta("ab — cdefgh", 60), "ab…", "e nemmeno il trattino lungo del nome di un punto");
+  });
+
+  test("accorciaVoceTendina: il vuoto resta vuoto, e un dato che non c'è non diventa «undefined»", () => {
+    eq(corta("", 50), "", "vuoto");
+    eq(corta(null, 50), "", "null");
+    eq(corta(undefined, 50), "", "undefined");
+  });
+
+  test("accorciaVoceTendina: taglia sui PUNTI DI CODICE, non a metà di un carattere", () => {
+    /* ⚠️ LA PRIMA STESURA DI QUESTA PROVA NON PROVAVA NIENTE, ed è la causa 1
+       dell'elenco di CLAUDE.md: con spazio 30 la risposta giusta e quella
+       sbagliata COINCIDEVANO (tutt'e due «😀…»), tanto che passava anche con
+       la funzione che non taglia. Il budget che le separa è 20:
+       · a punti di codice: un emoji «pesa» 2 (String.length), quindi ci sta
+         solo il puntino → «…»;
+       · a unità UTF-16: `slice(0,1)` lascia mezza coppia surrogata, cioè un
+         carattere rotto a schermo. */
+    const t = "😀😀😀😀😀";
+    const r = corta(t, 20);
+    eq(r !== t, true, "qualcosa è stato tagliato davvero");
+    eq(/[\uD800-\uDBFF](?![\uDC00-\uDFFF])|(?<![\uD800-\uDBFF])[\uDC00-\uDFFF]/.test(r), false,
+      "e non è rimasta mezza coppia surrogata");
+    eq([...r].every((c) => c === "😀" || c === "…"), true, "nessun mezzo carattere nel risultato");
+  });
+
+  test("accorciaVoceTendina: il caso vero della modale PPV, col righello del browser misurato", () => {
+    /* le larghezze qui sotto sono quelle MISURATE il 09/08 con Chromium sul
+       font vero della tendina (Barlow 16px), non un conto a mano */
+    const PX = { "5,6 mm/s · Vibrazioni V2 — confine Nord": 289.6, "5,6 mm/s · Vibrazioni V2 — confine": 266.5,
+      "5,6 mm/s · Vibrazioni V2": 190, "5,6 mm/s · Vibrazioni": 166, "5,6 mm/s · Vibr": 124.2,
+      "5,6 mm/s · V": 106.7, "5,6 mm/s": 65.8, "…": 8 };
+    /* il righello: se la sottostringa non è in tabella si interpola sui
+       caratteri della più lunga conosciuta — basta che sia MONOTÒNO */
+    const righello = (x) => {
+      const senza = String(x).replace(/…$/, "");
+      if (PX[senza] != null) return PX[senza] + (x.endsWith("…") ? PX["…"] : 0);
+      return senza.length * 7.4 + (x.endsWith("…") ? PX["…"] : 0);
+    };
+    const intero = "5,6 mm/s · Vibrazioni V2 — confine Nord";
+    const a390 = sentinella.accorciaVoceTendina(intero, 284, righello);
+    const a320 = sentinella.accorciaVoceTendina(intero, 214, righello);
+    eq(a390 !== intero, true, "a 390 px la voce NON ci sta e viene accorciata");
+    eq(righello(a390) <= 284, true, "e quella accorciata ci sta");
+    eq(righello(a320) <= 214, true, "a 320 pure, dove ne sforava 75");
+    eq(a390.startsWith("5,6 mm/s"), true, "e il valore, che è il dato, resta in testa");
+    eq(a320.startsWith("5,6 mm/s"), true, "anche a 320");
+  });
+
+  test("accorciaVoceTendina: la voce «nessuna» della modale PPV ci sta anche a 320 SENZA essere accorciata", () => {
+    /* ⛔ è testo NOSTRO, non un dato dell'utente: si scrive corto invece di
+       farlo accorciare. 204,5 px misurati contro i 214 disponibili a 320 —
+       se domani qualcuno la riallunga, questa prova cade prima del banco. */
+    const VOCE = "— nessuna: la trascrivo io —";
+    const sorgente = readFileSync(join(HERE, "../../sentinella/index.html"), "utf8");
+    eq(sorgente.includes(VOCE), true, "la pagina usa ancora la voce corta");
+    eq(sorgente.includes("— nessuna: trascrivo il valore dal referto —"), false,
+      "e non è tornata quella lunga, che chiedeva 306,8 px in 214");
+  });
+}
+
 console.log(`\nRisultato KPI app: ${passed} passati, ${failed} falliti${inVolo.length ? `  ·  ${inVolo.length} prove asincrone aspettate` : ""}`);
 process.exit(failed > 0 ? 1 : 0);

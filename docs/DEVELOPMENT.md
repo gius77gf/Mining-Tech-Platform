@@ -46,7 +46,7 @@ segnaposto («Funzione nav non ancora pronta»). Per aprirlo davvero si monta
 
 ## Le prove
 
-**2.405 prove girano senza rete e senza browser**, con `node` (contate lanciandole, non a memoria — al 09/08: 1953 + 318 + 75 + 32 + 9 + 8 + 7 + 3):
+**2.425 prove girano senza rete e senza browser**, con `node` (contate lanciandole, non a memoria — al 09/08: 1973 + 318 + 75 + 32 + 9 + 8 + 7 + 3):
 
 > ⚠️ **E quel numero conta SETTE suite, non tutto quello che gira.** Rimisurato
 > l'08/08 **a sera** sommando le righe «Risultato …» di un giro intero: il giro
@@ -64,18 +64,18 @@ segnaposto («Funzione nav non ancora pronta»). Per aprirlo davvero si monta
 > 2.251» mentre il titolo sopra diceva già 2.310: il controllo sorveglia il
 > **totale**, non la prosa che lo spiega. È la quarta forma di invecchiamento
 > raccolta in `CLAUDE.md`.*
-> **Il numero da citare resta 2.405**, e la ragione è che le altre dieci contano
+> **Il numero da citare resta 2.425**, e la ragione è che le altre dieci contano
 > **file, non prove**: `import esistenti` fa un'asserzione per file e `classi
 > orfane` una per pagina, quindi il loro totale si muove ogni volta che nasce un
 > file — un numero che cresce senza che nessuno abbia scritto una prova è un
 > numero che non vuol dire niente. Le sei suite contano **casi**, e per questo
 > sono quelle sorvegliate da `numeri-nei-documenti.mjs`.
 
-E **719 funzioni pure su 719** sono chiamate per nome da quelle prove: tutte e
+E **722 funzioni pure su 722** sono chiamate per nome da quelle prove: tutte e
 sei le app al 100%. Non è «provate bene» — è «non ce n'è nessuna che nessuno ha
 ancora guardato», che è il minimo e finora non c'era.
 
-⚠️ **Quel 719 conta le sei app, non i moduli condivisi**, e la riga di riepilogo
+⚠️ **Quel 722 conta le sei app, non i moduli condivisi**, e la riga di riepilogo
 lo dice («in 6 app»). I condivisi si contano a parte — **142 su 142** in cinque
 moduli: `dw-shell.js` **46/46**, `dw-ponti.js` **46/46**, `genesi-data.js`
 **37/37**, `genesi-formato.js` **8/8**, `pointcloud.js` **5/5**. Vanno guardati
@@ -175,7 +175,7 @@ non ha potuto guardare** — le **21** prove sulle funzioni, verificabili solo i
 CI. Se `firebase` o `java` non rispondono si ferma dicendolo (uscita 2) invece
 di stampare «0 caduti», che sarebbe il verde più falso che ci sia.
 
-**159 esecuzioni che aprono davvero le pagine** in Chromium — banchi distinti,
+**161 esecuzioni che aprono davvero le pagine** in Chromium — banchi distinti,
 ognuno seguito dalla sua **controprova** (Chromium è già installato in
 `/opt/pw-browsers/chromium`, **non** si lancia `playwright install`):
 

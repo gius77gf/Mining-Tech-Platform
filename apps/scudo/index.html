@@ -1736,7 +1736,7 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
     dssDaSeguire,
     TIPO_VERIFICA_PERIODICA, ENTI_VERIFICA, enteVerificaSicuro, ESITI_VERIFICA, esitoVerifica,
     scadenzaDiVerifica, verbaleDiScadenza, statoVerificaPeriodica, descriviVerificaPeriodica,
-    verificheDaSistemare } from "./scudo-data.js";
+    verificheDaSistemare, voceDocumentoInElenco } from "./scudo-data.js";
   import { mountExit, esc, csvCell, statoVuoto, giorniTra, montaGuardiaInteri, avvolgiUnita, oggiISO, dataISOEsiste,
            controllaAllegato, testoAllegatoRifiutato, pezziDataURL, dataIt,
            numeroScritto, AVVISO_DECIMALE, timbroLocale, modoDimostrazione, avvisoTestoDimostrazione,
@@ -6265,8 +6265,21 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
     const docOrd = DOC.slice().sort((a, b) =>
       (b.tipo === "Verbale di verifica periodica") - (a.tipo === "Verbale di verifica periodica")
       || String(a.titolo || "").localeCompare(String(b.titolo || ""), "it"));
-    const opzDoc = '<option value="">— nessun verbale collegato —</option>'
-      + docOrd.map(d => `<option value="${d.id}"${d.id === sc.verbaleId ? " selected" : ""}>${esc(d.titolo)}${d.tipo ? " · " + esc(d.tipo) : ""}</option>`).join("");
+    /* ⛔ L'ETICHETTA DELLA VOCE LA DECIDE IL MODULO (`voceDocumentoInElenco`), e
+       la ragione è misurata: una tendina CHIUSA non manda a capo, quindi la
+       voce scritta `titolo · tipo` chiedeva 561 px dove ce ne sono 266 a 390 e
+       196 a 320 — e a essere tagliata era proprio la coda che distingue un
+       verbale dall'altro. Il titolo per esteso non si perde: sta nella nota
+       viva qui sotto, che va a capo. */
+    /* ⚠️ «— nessun verbale —» e non «— nessun verbale collegato —»: la voce
+       vuota è quella SELEZIONATA finché nessuno ha collegato niente, cioè lo
+       stato normale di una verifica appena aperta — e a 320 px la versione
+       lunga chiedeva 217,9 px in 196, quindi tagliava. Non lo diceva nessun
+       banco perché nella dimostrazione tutt'e due le verifiche il verbale ce
+       l'hanno già: è il caso più comune del prodotto, e il meno misurato.
+       Che cosa comporta non averlo lo dice la nota in cima alla finestra. */
+    const opzDoc = '<option value="">— nessun verbale —</option>'
+      + docOrd.map(d => `<option value="${d.id}"${d.id === sc.verbaleId ? " selected" : ""}>${esc(voceDocumentoInElenco(d))}</option>`).join("");
     apriModale("Verifica periodica · " + (etichettaScadenza(sc) || "attrezzatura"),
       `<div class="note" style="margin-top:0;">${esc(descriviVerificaPeriodica(v))}</div>`
       + '<label class="fl" for="vf-ente">Chi ha eseguito la verifica</label>'
@@ -6284,6 +6297,7 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
       + '<div class="form-hint" style="margin-top:5px;">Senza una data, Scudo non può dire entro quando: la riga resta in avviso.</div></div>'
       + '<label class="fl" for="vf-verbale">Il verbale</label>'
       + `<select class="dw-input" id="vf-verbale">${opzDoc}</select>`
+      + '<div class="form-hint" style="margin-top:5px;" id="vf-verbale-nota"></div>'
       + '<div class="form-hint" style="margin-top:5px;">Il verbale è un documento del <b>registro documenti</b>, con la sua graffetta: si carica da lì e qui si collega. I risultati vanno tenuti per iscritto e a disposizione degli organi di vigilanza (art. 71 c.9).</div>',
       [{ label: "Annulla", azione: chiudiModale },
        { label: "Salva", cls: "primary", azione: async () => {
@@ -6315,9 +6329,29 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
       $("vf-esito-nota").textContent = e ? e.spiega
         : "Senza esito la riga risulta NON VERIFICATA: non «a posto», non «da sistemare» — non lo sappiamo.";
       $("vf-entro-riga").style.display = $("vf-esito").value === "prescrizioni" ? "block" : "none"; };
+    /* ⛔ LA TERZA NOTA VIVA, ED È QUI CHE ARRIVA LA PARTE CHE LA TENDINA NON PUÒ
+       MOSTRARE. Un `<select>` chiuso non manda a capo: con un titolo lungo
+       taglia SEMPRE, qualunque cosa si tolga dall'etichetta. Quindi il titolo
+       per esteso del documento scelto — con il suo tipo, che nella voce non è
+       ripetuto — si scrive QUI, in un `form-hint` che va a capo e si legge
+       tutto. `textContent` e non `innerHTML`: il titolo lo scrive l'utente.
+       ⚠️ Sul «nessuno» la nota resta CORTA di proposito: che cosa comporta un
+       esito senza il documento che lo prova lo dice già la nota in cima alla
+       finestra (`descriviVerificaPeriodica`), e una frase che si ripete si
+       smette di leggere — è la stessa scelta già presa in
+       `statoVerificaPeriodica` per la coda sul verificatore. */
+    const notaVerbale = () => {
+      const d = DOC.find(x => String(x.id) === $("vf-verbale").value);
+      const tit = d ? String(d.titolo == null ? "" : d.titolo).trim() : "";
+      $("vf-verbale-nota").textContent = !d
+        ? "Nessun documento collegato."
+        : "Collegato: " + (tit || "documento senza titolo")
+          + (d.tipo ? " · " + d.tipo : "");
+    };
     $("vf-ente").addEventListener("change", notaEnte);
     $("vf-esito").addEventListener("change", notaEsito);
-    notaEnte(); notaEsito();
+    $("vf-verbale").addEventListener("change", notaVerbale);
+    notaEnte(); notaEsito(); notaVerbale();
   }
 
   // ══════════════════════════════════════════════════════════════════════

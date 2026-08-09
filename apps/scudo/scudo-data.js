@@ -2270,6 +2270,83 @@ export function verbaleDiScadenza(scadenza, documenti) {
   return d ? { stato: "trovato", documento: d } : { stato: "rotto", documento: null };
 }
 
+/* COME SI SCRIVE UN DOCUMENTO DENTRO IL MENÙ «IL VERBALE».
+   ══════════════════════════════════════════════════════════════════════════
+   ⛔ IL DIFETTO, MISURATO. Le voci si scrivevano `titolo · tipo`, e un verbale
+   di verifica periodica dice il proprio tipo DUE VOLTE: una nel titolo
+   («Verbale verifica periodica — piattaforma elevabile») e una nel suffisso.
+   In una tendina CHIUSA — che non manda a capo — quelle due ripetizioni si
+   mangiano tutto lo spazio, e a essere tagliata è proprio la coda che
+   distingue un verbale dall'altro: «piattaforma elevabile», «autogru 30 t».
+   Chiesto al browser col font vero della tendina: la voce intera chiede
+   561 px dove ce ne sono 266 a 390 e 196 a 320; la sola coda ne chiede 148.
+   ⛔ E LA STRADA OVVIA È GIÀ STATA PROVATA E SCARTATA — non si rifà: calcolare
+   il prefisso COMUNE fra le voci non toglie niente, perché l'elenco non sono i
+   verbali, sono TUTTI i documenti (un archivio caricato da carta può avere il
+   verbale classificato «Altro», e nasconderglielo vorrebbe dire non farglielo
+   collegare mai): fra «DVR», «POS» e «Verbale verifica periodica — …» il
+   prefisso comune è vuoto. Qui la domanda è un'altra e non guarda l'elenco:
+   questo titolo apre RIPETENDO IL PROPRIO tipo? È una domanda per documento,
+   quindi risponde uguale che il menù ne contenga due o duecento.
+   ⚠️ Il confronto passa da `normalizzaTesto` — la stessa di `scadenzaDiVerifica`
+   — perché il titolo arriva anche da un CSV scritto a mano: «VERBALE VERIFICA
+   PERIODICA - Paranco» e «Verbale di verifica periodica: paranco» sono la
+   stessa cosa scritta in due modi, e un `startsWith` avrebbe guardato COM'È
+   SCRITTO il dato invece di CHE COSA VALE.
+   ⚠️ E niente si perde: il titolo per esteso la pagina lo scrive in un
+   `form-hint` sotto il campo, che va a capo e si legge. */
+const PAROLE_VUOTE_TITOLO = new Set(["di", "del", "dello", "della", "dei", "degli",
+  "delle", "da", "il", "lo", "la", "i", "gli", "le", "l", "un", "uno", "una", "e", "per", "a"]);
+const paroleUtiliTitolo = (s) => normalizzaTesto(s).split(" ")
+  .filter((w) => w && !PAROLE_VUOTE_TITOLO.has(w));
+
+/* ⛔ LA DOMANDA SI FA UNA VOLTA SOLA, E NON SI DEDUCE DAL RISULTATO. La prima
+   stesura chiedeva a `voceDocumentoInElenco` se il taglio fosse avvenuto
+   CONFRONTANDO le due stringhe: ma sul documento intitolato esattamente come
+   il proprio tipo il taglio non lascia niente, la funzione restituisce il
+   titolo intero (una voce vuota sarebbe peggio), il confronto risponde «non ho
+   tagliato» e il tipo finiva scritto DUE VOLTE — «Verbale di verifica
+   periodica · Verbale di verifica periodica». Preso dalla prova in
+   scratchpad, prima che entrasse nel modulo. */
+function apreColProprioTipo(titolo, tipo) {
+  const a = paroleUtiliTitolo(titolo), b = paroleUtiliTitolo(tipo);
+  if (!b.length || a.length < b.length) return false;
+  return b.every((w, i) => a[i] === w);
+}
+
+/* Il titolo senza l'apertura che ripete il suo stesso tipo. Se non la ripete —
+   o se togliendola non resterebbe niente — torna il titolo INTERO: una voce di
+   tendina vuota non si sceglie, e sparire è peggio che essere lunghi. */
+export function titoloSenzaTipoRipetuto(titolo, tipo) {
+  const t = String(titolo == null ? "" : titolo).trim();
+  if (!t || !apreColProprioTipo(t, tipo)) return t;
+  const attese = paroleUtiliTitolo(tipo);
+  const re = /[0-9A-Za-zÀ-ÖØ-öø-ÿ]+/g;
+  let m, k = 0, fine = 0;
+  while (k < attese.length && (m = re.exec(t)) !== null) {
+    const p = normalizzaTesto(m[0]);
+    if (!p || PAROLE_VUOTE_TITOLO.has(p)) continue;
+    k++; fine = m.index + m[0].length;
+  }
+  const coda = t.slice(fine).replace(/^[\s·:;,.‐-―-]+/, "").trim();
+  return coda || t;
+}
+
+/* L'etichetta con cui un documento del registro compare in un menù a tendina.
+   Il tipo si appende SOLO se il titolo non lo dice già: dirlo una terza volta
+   è il rumore che mangiava lo spazio della coda. */
+export function voceDocumentoInElenco(documento) {
+  const d = documento || {};
+  const titolo = String(d.titolo == null ? "" : d.titolo).trim();
+  const tipo = String(d.tipo == null ? "" : d.tipo).trim();
+  /* un documento senza titolo esiste (import da carta): non si mostra una voce
+     vuota, si mostra quello che si sa — e se non si sa niente lo si dichiara,
+     invece di lasciare una riga muta che sembra un errore di caricamento */
+  if (!titolo) return tipo || "(documento senza titolo)";
+  if (apreColProprioTipo(titolo, tipo)) return titoloSenzaTipoRipetuto(titolo, tipo);
+  return tipo ? titolo + " · " + tipo : titolo;
+}
+
 /* LO STATO DELLA VERIFICA. Torna `null` — e non un oggetto tranquillo — per
    una scadenza che non è una verifica periodica: è la stessa convenzione di
    `statoPeggioreScadenze`, «non si può calcolare» si dice `null`.

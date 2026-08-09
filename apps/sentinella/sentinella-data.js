@@ -2897,6 +2897,57 @@ export function testoFontePpv(ppv) {
   return "trascritta a mano dal referto";
 }
 
+// Accorcia la voce di una tendina fino a farla stare nello spazio che c'è.
+//
+// ⛔ PERCHÉ ESISTE, e non è una scelta estetica. Un `<select>` CHIUSO non manda
+// a capo: quando la voce scelta è più larga del campo, il browser la taglia da
+// solo e quello che sparisce è la CODA — cioè, in una tendina, esattamente la
+// parte che distingue una voce dall'altra. Misurato il 09/08 sulla modale che
+// collega la PPV: «5,6 mm/s · Vibrazioni V2 — confine Nord» chiede 289,6 px e
+// ne ha 284 a 390 px di schermo, 214 a 320. Non si combatte la piattaforma:
+// si taglia noi, si DICHIARA il taglio col puntino, e il testo intero resta
+// leggibile nel suggerimento sotto il campo (mai solo nel `title`: in cava si
+// tocca, e un tooltip non lo apre nessuno).
+//
+// ⚠️ `quanto(testo)` deve tornare la larghezza in PIXEL, e a darla è il
+// browser (uno span col font vero della tendina). Un conto sui CARATTERI qui
+// sarebbe la solita copia debole: sbaglia su ogni carattere proporzionale, e
+// «Vibrazioni V2 — confine Nord» è pieno di lettere strette.
+//
+// ⚠️ Se lo spazio non è misurabile o il righello non c'è, la voce torna
+// INTERA: meglio un testo che il browser taglia (e che si rilegge sotto) che
+// un testo mutilato da noi su una misura che non abbiamo. È il principio del
+// fondatore applicato al taglio — una misura che non c'è non autorizza niente.
+//
+// ⚠️ VIVREBBE IN `shared/`: la stessa domanda ce l'ha Scudo (le voci della
+// verifica periodica, 5 KO sullo stesso banco). Sta qui perché il cantiere che
+// l'ha scritta non poteva toccare `shared/`: quando le due app si incontrano,
+// questa funzione va portata in `shared/dw-ponti.js` e ri-esportata da qui col
+// suo nome — un alias, non una seconda copia.
+export function accorciaVoceTendina(testo, spazio, quanto) {
+  const t = String(testo == null ? "" : testo);
+  if (typeof quanto !== "function") return t;
+  const s = +spazio;
+  if (!Number.isFinite(s) || s <= 0) return t;
+  const intero = +quanto(t);
+  if (!Number.isFinite(intero)) return t;
+  if (intero <= s) return t;
+  const PUNTINI = "…";
+  if (+quanto(PUNTINI) > s) return PUNTINI;
+  // si lavora sui PUNTI DI CODICE, non sulle unità UTF-16: tagliare a metà una
+  // coppia surrogata lascerebbe mezzo carattere nella voce
+  const c = [...t];
+  // e il separatore appeso si toglie, se no resta «Vibrazioni V2 —…»
+  const componi = (n) => c.slice(0, n).join("").replace(/[\s·—–-]+$/u, "") + PUNTINI;
+  let basso = 0, alto = c.length;
+  while (basso < alto) {
+    const mezzo = Math.ceil((basso + alto) / 2);
+    const w = +quanto(componi(mezzo));
+    if (Number.isFinite(w) && w <= s) basso = mezzo; else alto = mezzo - 1;
+  }
+  return componi(basso);
+}
+
 // Le letture di VIBRAZIONE registrate nel giorno di una volata: sono le
 // candidate a diventare la PPV di quella volata. Ordinate dalla più alta,
 // che è quella che conta per la conformità e per la legge di sito.

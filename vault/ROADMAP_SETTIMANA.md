@@ -3249,8 +3249,8 @@ numero scritto dove non era stato misurato niente**.*
   nome apre il file sbagliato credendo che sia il più fresco.
 - Le decisioni: `docs/DECISIONI_WEEKEND.md` — pagina d'ingresso in cima.
 - Stato misurato al **09/08** (lanciando le suite, non a memoria):
-  **2.405 prove girano senza rete**. La frase va letta stretta: è la somma
-  delle **otto** suite che contano asserzioni (`run-kpi` 1953, `run-stile` 318,
+  **2.425 prove girano senza rete**. La frase va letta stretta: è la somma
+  delle **otto** suite che contano asserzioni (`run-kpi` 1973, `run-stile` 318,
   `run-helpers` 75, `run-pointcloud` 32, `run-manifest` 9, `run-demo` 8,
   `bootstrap-rivendicazioni` 7, `fogli-guardati` 3), non tutto ciò che gira nel
   giro `node` — che di comandi ne ha **34** e di asserzioni ne esegue di più:
@@ -3260,8 +3260,8 @@ numero scritto dove non era stato misurato niente**.*
   sorvegliati ne contavano sette: due convenzioni per lo stesso numero, che è
   il modo più facile di far sembrare sbagliato un conto giusto. Adesso è una
   sola.*
-  Copertura **719/719** e nessuna funzione scoperta; **159 esecuzioni** che
-  aprono le pagine in un browser vero, da **71** file di banco distinti (contati
+  Copertura **722/722** e nessuna funzione scoperta; **161 esecuzioni** che
+  aprono le pagine in un browser vero, da **72** file di banco distinti (contati
   dalla tabella `BANCHI` di `tutti.mjs`, non a occhio dalla cartella, che di
   `.mjs` ne ha di più perché contiene anche gli aiuti — `giro.mjs`,
   `impronta.mjs`, il runner stesso).
@@ -3430,3 +3430,93 @@ cosa più tranquilla di quella che lo schermo mostra.
       ⚠️ E il controllo sugli **addendi** ha fatto il suo mestiere: aggiornato
       il totale, ha visto che la scomposizione accanto sommava ancora 2.367 —
       «due numeri che si contraddicono nella stessa riga».
+
+## 09/08 pomeriggio — le tendine tagliate, e i righelli che dichiarano meno di quello che credono
+
+Blocco a tre cantieri paralleli (Scudo, Sentinella, Conti) lanciati dopo la
+lettura del giro, più le unità mie sugli strumenti. **Rimisurato tutto io prima
+di scriverlo qui**: niente entra sulla parola dell'agente.
+
+- [x] **Sentinella, le 2 tendine tagliate: chiuse, e la strada tipografica
+      SCARTATA COI NUMERI.** `modali-dentro --solo=sentinella` dà adesso
+      **1 superficie pulita, 0 cose da guardare** (50 aperture, 594 elementi,
+      8 voci di tendina, 140 comandi — denominatori **identici** al prima:
+      il banco ha guardato la stessa roba, non di meno).
+      ⛔ **I 6 px a 390 non si chiudevano col carattere**, ed è una misura non
+      un'opinione: dentro `@media (hover:none),(pointer:coarse)` il foglio
+      condiviso scrive `font-size:16px !important`. Col puntatore **fine**
+      (come gira il banco) 15 px si ottengono e bastavano; col puntatore
+      **grossolano** — il telefono in cava, cioè dove il prodotto vive — restano
+      **16**. Rimpicciolire avrebbe chiuso *il righello e non il prodotto*.
+      È la regola «si guarda CHI VINCE, non lo si deduce» nella veste peggiore:
+      la correzione sembrava funzionare proprio dove nessuno la usa.
+- [x] **Conti: un terzo di una consegna spariva da un totale verde.**
+      `venditePerProdotto` contava il valore ma non **quello che saltava**, e la
+      pagina la correzione ce l'aveva già in **due elenchi su tre** (registro
+      Pesate e «Consegnato da fatturare»): la firma della copia debole.
+      Rimisurato da me sulla dimostrazione: *Sabbia lavata 0/4 — 68,3 t per
+      €605, di cui **24,3 t non valorizzabili**, più di un terzo*, prima
+      dichiarati da nessuna parte.
+      ⚠️ E la discriminazione che il cantiere ha tenuto invece di collassare:
+      «Misto di cava», venduto a tonnellata **senza densità**, ha un valore
+      perfettamente calcolabile e resta **non segnalato** — dedurre
+      «non valorizzabile» da «senza densità» avrebbe messo un avviso su una
+      riga sana. Verificato: `parziale false`.
+- [x] **`barra-etichette`: il core entra nel banco dopo due giorni di diagnosi
+      inventata**, e la controprova guadagna la scomposizione.
+      Copertura **164 → 180 etichette su 28 barre, 14 superfici**; il core
+      **16/0** a 430/390/360/320.
+      ⛔ **E la scomposizione ha fruttato subito più del core**: la controprova
+      completa passa (13 fuori posto) ma dichiara che **su tre superfici
+      l'iniezione non morde — core, campo, flotta**. Campo e Flotta erano nel
+      banco *da prima*: per loro quella controprova **non ha mai dimostrato
+      niente**, e nessuno lo sapeva perché il verdetto era un totale unico.
+      *Ogni addendo ha un lettore che lo conosce; il totale no.*
+- [x] **`id · amministrazione`, la superficie «NON RAGGIUNTA» del banco delle
+      modali: NON è un difetto, è una scelta — misurata, non dedotta.**
+      Le sue due conferme («Rimuovere dall'organizzazione?», «Revocare
+      l'invito?») non si aprono perché `guard()` in `admin.html` corto-circuita
+      senza backend vivo: *«Anteprima: le azioni saranno attive quando il
+      backend Firebase sarà configurato»*. Premuto davvero il bottone: `#modal`
+      resta senza `show`, zero errori di pagina. La pagina è raggiungibile e
+      piena (3 membri + 1 invito, bottoni visibili) — quindi il banco ha
+      ragione a dire «non ho misurato niente», e ha torto a lasciarla fra i
+      buchi da colmare: va **dichiarata con la sua ragione**, accanto alle
+      cinque già dichiarate «senza modali per costruzione».
+      ⚠️ Il mio righello ha sbagliato due volte prima di arrivarci: cercava
+      `.modal`/`[role=dialog]` quando il contenitore è `#modal` con `.show`, e
+      ha risposto «nessuna modale» su una pagina sana. Il sospettato più facile
+      è il soggetto; era il righello.
+- [x] **Scudo, le 4 tendine `#vf-verbale`: chiuse. Resta `#vf-ente`, che aspetta
+      te.** `modali-dentro --solo=scudo` va da **5 KO a 1**, rimisurato da me;
+      i denominatori reggono (12 aperture, 120 voci di tendina, 1 superficie su
+      1) e le «voci tagliate ma non scelte» scendono da 13 a 10.
+      La strada NON è stata quella del prefisso comune (scartata in roadmap):
+      è per **singolo documento** — si toglie dal titolo l'apertura che ripete
+      il tipo del documento stesso — quindi risponde uguale con due voci o con
+      duecento, e il confronto passa da `normalizzaTesto`, che esisteva già.
+      ⚠️ E ha trovato un difetto **latente che nessun banco diceva**: la voce
+      vuota «— nessun verbale collegato —» è quella **selezionata di default**
+      su una verifica appena aperta e a 320 px chiedeva 217,9 px in 196. Nella
+      dimostrazione tutt'e due le verifiche il verbale ce l'hanno già, quindi
+      quel caso non si presentava mai.
+
+### Quello che questi tre cantieri lasciano aperto (dichiarato, non taciuto)
+
+- ⛔ **`accorciaVoceTendina` di Sentinella dovrebbe vivere in `shared/dw-ponti.js`.**
+  Scudo ha la stessa domanda e ha imboccato un'altra strada
+  (`voceDocumentoInElenco`, per singolo documento), quindi **oggi non c'è
+  collisione di nomi** — ma è esattamente la «regola che serve a due app scritta
+  due volte», e va chiusa quando i due lavori si incontrano. Nessuno dei due
+  cantieri poteva toccare `shared/`.
+- ⚠️ **`#vf-esito` di Scudo**: «— nessun esito registrato —» chiede 201,9 px in
+  196 a 320. Stesso difetto latente appena chiuso su `#vf-verbale`, su un campo
+  diverso, mai finito in un KO. **Non toccato**, segnalato.
+- ⚠️ **`contrasto.mjs` non apre le modali** (613 testi, 0 sotto soglia, ma
+  nessuno dentro una finestra): il contrasto delle note nuove è stato misurato
+  a mano in scratchpad — 6,03:1 buio, 7,38:1 chiaro, 10,39:1 sole — e **quella
+  copertura resta un buco del banco**, non colmato.
+- ⚠️ **`.avatar.warn` non è dipinta da nessuno** (l'unico stato che il foglio
+  condiviso conosce è `.sup`), e resta viva in `ric-list` di Conti da prima di
+  oggi. `classi-orfane` non la vede perché guarda il **nome** — `warn` è
+  vivissima come `.badge.warn` — non la **combinazione**.
