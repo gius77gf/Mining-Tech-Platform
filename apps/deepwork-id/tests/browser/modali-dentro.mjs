@@ -184,6 +184,11 @@ const MISURA = ([UNITA, larghezza]) => {
     .map((n) => n.textContent.trim()).join(' ');
   const maiuscole = [], tagliati = [], tendine = [], fuori = [];
   let guardati = 0, opzioni = 0;
+  /* quante tendine hanno dovuto rinunciare alla scorciatoia (le due sonde non
+     davano lo stesso ingombro) e sono tornate a clonare voce per voce. Va
+     STAMPATO: se un giorno diventa la maggioranza, la passata torna lenta e si
+     scopre dal numero invece che dal limite che la uccide. */
+  let perVoce = 0, alBordo = 0;
 
   /* 1 · UN'UNITÀ IN MAIUSCOLO. La trasformazione effettiva, non il testo. */
   for (const e of dentro) {
@@ -244,43 +249,73 @@ const MISURA = ([UNITA, larghezza]) => {
      stretta si MISURA, non si teme.* Misurato: la stretta porta **{N} allarmi
      nuovi** su tutte le superfici, dichiarati per nome nel commento in fondo.
 
-     ⛔ LA DOMANDA GIUSTA NON SI CALCOLA, SI CHIEDE. Niente sottrazioni: si
-     clona la tendina con la SOLA opzione da provare, le si toglie la larghezza
-     imposta (`width:max-content`) e si legge quanto il browser dice di volere
-     per mostrarla intera — testo, padding, freccia e bordi insieme, senza che
-     il banco debba sapere quanto misura nessuno dei pezzi. Se chiede più della
-     scatola vera, il testo è tagliato. È la stessa disciplina del resto del
-     file: `scrollWidth > clientWidth` è la risposta del BROWSER a «esce?».
-     Il clone non tocca il documento (nasce fuori schermo e muore subito) e
-     porta `cssText` della tendina vera, quindi eredita font, padding e bordi
-     senza che nessuno li elenchi. */
+     ⛔ LA DOMANDA GIUSTA NON SI CALCOLA, SI CHIEDE — E SI CHIEDE UNA VOLTA PER
+     TENDINA, NON UNA PER VOCE. Si clona la tendina con una sola opzione, le si
+     toglie la larghezza imposta (`width:max-content`) e si legge quanto il
+     browser dice di volere per mostrarla intera: testo, padding, freccia e
+     bordi insieme, senza che il banco debba sapere quanto misura nessuno dei
+     pezzi. Togliendo la larghezza del solo testo resta l'INGOMBRO NON
+     TESTUALE, che è una proprietà della tendina e non della voce.
+     ⚠️ E LA SCORCIATOIA È VERIFICATA, NON ASSUNTA: l'ingombro si misura con DUE
+     sonde di lunghezza molto diversa e si pretende che diano lo stesso numero.
+     Se non lo danno — un minimo di larghezza del browser, un `max-content` che
+     non è lineare — la semplificazione non vale e si torna a clonare voce per
+     voce. È la stessa disciplina del resto del file: quando si sostituisce una
+     misura con un conto, il conto va provato contro la misura.
+     ⚠️ E NON È UN'OTTIMIZZAZIONE FACOLTATIVA: la prima stesura clonava per ogni
+     voce, e con qualche migliaio di voci la passata ha sfondato la mezz'ora
+     che `tutti.mjs` concede a un banco (`--limite=`). Un banco troppo lento non
+     diventa lento: viene UCCISO, e il giro dichiara quella superficie non
+     misurata. La correzione al righello si sarebbe pagata in copertura. */
   for (const s of ov.querySelectorAll('select')) {
     const r = s.getBoundingClientRect();
     if (r.width < 1) continue;
     const cs = getComputedStyle(s);
     const scatola = r.width;
-    for (const o of s.options) {
-      opzioni++;
+    const righello = document.createElement('span');
+    righello.style.cssText = 'position:absolute; left:-9999px; top:0; visibility:hidden; white-space:pre';
+    righello.style.font = cs.font;
+    righello.style.letterSpacing = cs.letterSpacing;
+    document.body.appendChild(righello);
+    const largo = (t) => { righello.textContent = t; return righello.getBoundingClientRect().width; };
+    const chiedi = (t) => {
       const cl = s.cloneNode(false);
       cl.removeAttribute('id');
       const solo = document.createElement('option');
-      solo.textContent = o.textContent;
+      solo.textContent = t;
       cl.appendChild(solo);
       cl.style.cssText = cs.cssText;
       cl.style.position = 'absolute'; cl.style.left = '-9999px'; cl.style.top = '0';
       cl.style.width = 'max-content'; cl.style.minWidth = '0';
       cl.style.maxWidth = 'none'; cl.style.flex = '0 0 auto';
       s.parentNode.appendChild(cl);
-      const serve = cl.getBoundingClientRect().width;
+      const w = cl.getBoundingClientRect().width;
       cl.remove();
+      return w;
+    };
+    const SONDA_A = 'Wg', SONDA_B = 'WgWgWgWgWgWgWgWgWgWgWgWgWgWgWgWgWgWgWgWg';
+    const iA = chiedi(SONDA_A) - largo(SONDA_A), iB = chiedi(SONDA_B) - largo(SONDA_B);
+    const ingombro = Math.abs(iA - iB) < 0.75 ? (iA + iB) / 2 : null;
+    if (ingombro === null) perVoce++;
+    for (const o of s.options) {
+      opzioni++;
+      const testo = largo(o.textContent);
+      let serve = ingombro === null ? chiedi(o.textContent) : ingombro + testo;
+      /* ⛔ E DOVE IL VERDETTO SI DECIDE, LA SCORCIATOIA NON BASTA: si rimisura
+         col clone vero. La somma `ingombro + testo` e il clone diretto della
+         stessa voce non danno sempre lo stesso numero al decimo — misurato
+         una differenza di ~1 px su `#sm-cava` del core — perché il testo dentro
+         un `<option>` e lo stesso testo dentro uno `<span>` non vengono
+         composti in modo identico fino all'ultimo sub-pixel. Un pixel non conta
+         quasi mai; conta ESATTAMENTE quando la voce sfiora il bordo, cioè
+         proprio dove il banco deve dire sì o no. Quindi la scorciatoia serve a
+         scartare in fretta i casi lontani, e chi entra nella fascia di tre
+         pixel intorno al bordo viene rimisurato per intero.
+         È la stessa disciplina della sonda doppia qui sopra: si può sostituire
+         una misura con un conto, ma non dove il conto decide. */
+      if (ingombro !== null && Math.abs(serve - scatola) <= 3) { serve = chiedi(o.textContent); alBordo++; }
       /* ── MISURA TEMPORANEA (costo della stretta), da togliere ── */
-      const __sp = document.createElement('span');
-      __sp.style.cssText = 'position:absolute;left:-9999px;top:0;white-space:pre;visibility:hidden';
-      __sp.style.font = cs.font; __sp.style.letterSpacing = cs.letterSpacing;
-      __sp.textContent = o.textContent;
-      document.body.appendChild(__sp);
-      const __testo = __sp.getBoundingClientRect().width;
-      __sp.remove();
+      const __testo = testo;
       const __vecchio = s.clientWidth - (parseFloat(cs.paddingLeft) || 0) - (parseFloat(cs.paddingRight) || 0);
       if (serve > scatola + 0.5) {
         tendine.push({ serve: Math.round(serve), spazio: Math.round(scatola),
@@ -299,9 +334,11 @@ const MISURA = ([UNITA, larghezza]) => {
           vuota: o.value === '',
           __vistoDalVecchio: __testo > __vecchio + 1,
           __testo: Math.round(__testo * 10) / 10,
-          __vecchio: Math.round(__vecchio * 10) / 10 });
+          __vecchio: Math.round(__vecchio * 10) / 10,
+          __ingombro: ingombro === null ? null : Math.round(ingombro * 10) / 10 });
       }
     }
+    righello.remove();
   }
 
   /* 4 · UN BERSAGLIO DI TOCCO TROPPO PICCOLO. CLAUDE.md lo pretende dopo ogni
@@ -358,7 +395,7 @@ const MISURA = ([UNITA, larghezza]) => {
     .replace(/\s+/g, ' ').trim();
   const piede = ((document.getElementById('modal-foot') || {}).innerText || '')
     .replace(/\s+/g, ' ').trim();
-  return { maiuscole, tagliati, tendine, fuori, piccoli, guardati, opzioni, corpo, piede };
+  return { maiuscole, tagliati, tendine, fuori, piccoli, guardati, opzioni, perVoce, alBordo, corpo, piede };
 };
 
 /* ══ LA CONTROPROVA: I DUE DIFETTI VERI, RIMESSI IN UNA COPIA ══════════════
@@ -590,6 +627,7 @@ process.on('exit', togliLaCopia);
 /* ══ IL GIRO ═══════════════════════════════════════════════════════════════ */
 let ko = 0, appPulite = 0;
 let apertePerTutti = 0, elementiPerTutti = 0, opzioniPerTutti = 0, clickPerTutti = 0;
+let perVoceTot = 0, alBordoTot = 0;
 const tendineTagliate = new Set();
 /* per la controprova a soglie (famiglia D): a QUALI larghezze una voce
    visibile risulta tagliata. È il dato che separa «misura la larghezza» da
@@ -746,7 +784,7 @@ for (const [nome, via] of SUPERFICI) {
            sul modulo credendo di essere nella sezione di partenza. */
         await rimettiti();
         if (!m) continue;
-        elementiPerTutti += m.guardati; opzioniPerTutti += m.opzioni;
+        elementiPerTutti += m.guardati; opzioniPerTutti += m.opzioni; perVoceTot += m.perVoce || 0; alBordoTot += m.alBordo || 0;
         /* le voci che nessuno vedrà mai a tendina chiusa: né scelte né vuote.
            Si contano e si dichiarano — un numero tolto in silenzio è un numero
            che qualcuno rimetterà. */
@@ -900,6 +938,8 @@ console.log(`soggetti guardati: ${apertePerTutti} aperture di modale, ${elementi
    a tendina chiusa: lì il valore mostrato è monco. Le altre si contano, così
    il numero resta sotto gli occhi invece di sparire. */
 console.log(`voci di tendina tagliate ma non scelte (dichiarate, non bocciate): ${tendineTagliate.size}`);
+console.log(`tendine in cui l'ingombro non testuale non era una costante (misurate voce per voce): ${perVoceTot}`
+  + ` · voci vicine al bordo rimisurate col clone vero: ${alBordoTot}`);
 console.log(`\n──── COSTO DELLA STRETTA ────`);
 console.log(`  il righello vecchio ne vedeva ${__gia.size}; quello nuovo ne vede ${__gia.size + __costo.size}.`);
 console.log(`  ALLARMI NUOVI: ${__costo.size}`);
@@ -937,6 +977,18 @@ if (CONTROPROVA) {
   for (const i of INIEZIONI) console.log(`   nel testo: ${i.cosa}\n              ${i.quante} punto/i in ${i.rel}`);
   if (QUALE === 'A') {
     console.log('   (solo la famiglia A: le colonne del conto a tempo di esecuzione sono di B e restano a zero)');
+  }
+  /* ⚠️ la famiglia D non inietta JavaScript dentro la modale: cambia due
+     etichette nel sorgente servito. Le colonne «span sciolti / unità / voci
+     allungate / comandi rimpiccioliti» le riempie il codice iniettato da B e
+     C, quindi qui restano a zero — e senza questa riga la tabella stampa
+     «non arrivata» accanto a una superficie in cui l'iniezione è arrivata
+     benissimo. Un conto che vale per un'altra famiglia va dichiarato, se no
+     si legge come un buco. */
+  if (QUALE === 'D') {
+    console.log('   (famiglia D: cambia due etichette nel sorgente, non inietta codice —');
+    console.log('    le colonne del conto a tempo di esecuzione sono di B/C e restano a zero.');
+    console.log('    Quello che conta qui è il verdetto sulle SOGLIE, in fondo.)');
   }
   let arrivate = 0, viste = 0, spanTot = 0, opzTot = 0, uniTot = 0, picTot = 0;
   for (const c of censimento) {
