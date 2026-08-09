@@ -85,8 +85,21 @@ const DIFETTI = [
      sparisce dal foglio che si porta in cava — solo tolta dove sta adesso. */
   [`      ['Base della previsione PPV', _ppvBaseHtml(_rPv)],\n`, ""],
   // 5a · il verde regalato ai pareggi e a chi non è confrontabile
-  ["['X50 previsto', gnum(A.kpi.x50,1)+' cm', gnum(B.kpi.x50,1)+' cm', vincitoreKpi(A.kpi.x50,B.kpi.x50)]",
-   "['X50 previsto', gnum(A.kpi.x50,1)+' cm', gnum(B.kpi.x50,1)+' cm', A.kpi.x50<=B.kpi.x50?'A':'B']"],
+  /* ⏱️ ANCORA ACCORCIATA il 09/08, ed è la terza volta in un giorno che questa
+     famiglia si presenta: un'iniezione che cita il codice TESTUALMENTE scade
+     quando il codice si muove — e si muove quasi sempre perché **migliora**.
+     Qui `gnum(A.kpi.x50,1)+' cm'` è diventato `_cmpCm(A.kpi,'x50')`, che sa
+     scrivere «non calcolabile» quando la frammentazione non si può calcolare:
+     `iniezioni-fresche` è caduta a 308 su 309 **nello stesso commit che
+     costruiva la difesa**, che è precisamente il caso per cui quel controllo
+     esiste.
+     Adesso l'ancora è **solo il pezzo che il difetto deve toccare** —
+     `vincitoreKpi(A.kpi.x50,B.kpi.x50)`, unico nella pagina (verificato:
+     `grep -c` → 1). Il difetto rimesso è identico: il vincitore deciso col
+     confronto ingenuo, che regala il verde ai pareggi e a chi non è
+     confrontabile. Meno codice citato, meno superficie che può marcire. */
+  ["vincitoreKpi(A.kpi.x50,B.kpi.x50)",
+   "(A.kpi.x50<=B.kpi.x50?'A':'B')"],
   ["      _stessaBase ? vincitoreKpi(A.kpi.ppv,B.kpi.ppv) : null],",
    "      A.kpi.ppv<=B.kpi.ppv?'A':'B'],"],
   // 5b · e la riga che dichiara la base nel confronto

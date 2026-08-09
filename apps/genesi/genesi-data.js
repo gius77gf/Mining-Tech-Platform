@@ -1159,3 +1159,144 @@ export function costoVolata(v){
     che:  parti.map(p => p.che).join('; e '),
     come: parti.map(p => p.come).join(' ') };
 }
+
+/* ══════════════════════════════════════════════════════════════════════════
+   G13 · IL CONSUMO SPECIFICO E LA PEZZATURA PREVISTA — e la differenza fra
+         un CLAMP e una GUARDIA
+   ══════════════════════════════════════════════════════════════════════════
+   ⛔ IL TERZO DELLA FAMIGLIA DI OGGI, dopo la MIC (G11) e la carica col costo
+   (G12), e l'unico che sbaglia nei DUE VERSI insieme. Nella pagina c'era
+   scritto, quattro volte:
+
+       const pf  = kg / vol;
+       const x50 = A * Math.pow(Math.max(0.05, pf), -0.8)
+                     * Math.pow(Math.max(1, kg), 1/6) * Math.pow(115/RWS, 19/30);
+
+   Con la carica per foro illeggibile — `apri` fa `Object.assign(D2, …)` da
+   `localStorage` senza controlli, e `kg` sta nel `design` che `volSnapshot`
+   salva — misurato aprendo una volata salvata con `kg:null`:
+   · `pf` va a **0** e la pagina scrive «**0,00 kg/m³**» in cinque posti (il
+     riquadro del 3D, la scheda validatori, il CSV, il foglio stampabile, il
+     confronto A/B). È il verso che RASSICURA: uno zero si legge «poca
+     carica», non «nessuno ha letto la carica»;
+   · `x50` fa il contrario: i due `Math.max` **trasformano il dato che manca
+     in un numero plausibile**, e la pezzatura prevista passa da **27 a 97
+     cm** — con x20 da 13 a 45 e x80 da 49 a **173**. È il verso che ALLARMA,
+     e manda a rifare una maglia che non ha niente che non va.
+   Le due direzioni sono opposte e i testi devono distinguerle: un `pf` a
+   zero e un x50 a 97 nascono dallo stesso dato mancante.
+
+   ⛔ **UN CLAMP NON È UNA GUARDIA, ED È IL PUNTO TECNICO DI QUESTO BLOCCO.**
+   `Math.max(0.05, pf)` e `Math.max(1, kg)` **servono** e restano: tengono in
+   piedi il conto su dati VERI ma estremi (un consumo specifico bassissimo,
+   una caricheta sotto il chilo), dove `pf^-0.8` esploderebbe. Quello che non
+   va è che lo STESSO clamp coprisse anche il caso «il dato non c'è»: il
+   clamp non sa distinguere un pf piccolo da un pf assente, e non è compito
+   suo. Quindi l'ordine è: **prima si chiede se il dato c'è** (`fragSenzaConto`,
+   che nomina il `null` per nome perché `+null` fa 0 e `Number.isFinite(0)`
+   risponde `true`), **poi** si protegge il calcolo col clamp di sempre. Le
+   prove di `run-kpi` pretendono tutt'e due le metà: che l'assenza dia `null`
+   e che i clamp mordano ancora su un dato vero e piccolo.
+
+   ⚠️ **UNO ZERO MISURATO RESTA ZERO**, come per `micFinestra` e
+   `caricaTotale`: `kg` a 0 dà `pf` 0 — un consumo specifico davvero nullo è
+   un fatto — e un `x50` vero, grosso, calcolato dal clamp. Quello che non
+   deve passare è l'assenza travestita da zero.
+
+   ⚠️ LA FORMULA NON CAMBIA DI UNA VIRGOLA, e nemmeno le sue costanti: A
+   (Lilly/Cunningham), RWS, gli esponenti −0,8, 1/6 e 19/30 sono quelli di
+   prima, spostati e non riscritti. L'unica differenza è che la scheda
+   validatori scriveva l'ultimo esponente come **0,633** invece di **19/30**
+   (0,6333…): su x50 vale un fattore 1,00005, cioè zero centimetri arrotondati
+   — ma era la divergenza già nata fra due copie della stessa riga, ed è
+   esattamente il motivo per cui adesso la riga è una sola.
+
+   ⚠️ PERCHÉ DUE FUNZIONI E NON UNA. `fragKuzRam` risponde a «quanto è grosso
+   il 50% passante»; `rosinRammler` a «che forma ha la curva intorno a quel
+   numero», e vuole in più l'indice di uniformità `n`. Sono separate perché
+   **la scheda validatori chiede solo la prima** — non calcola `n`, usa la
+   curva KCO/Swebrec al suo posto — e una funzione sola l'avrebbe costretta a
+   passare un `n` che non ha, cioè a farsi rispondere «non calcolabile» per
+   un dato che non le serviva. Un «non calcolabile» dato per la ragione
+   sbagliata è la famiglia del ponte che dà la colpa a chi compila.
+   ⚠️ E `n` resta un ARGOMENTO invece di essere calcolato qui: le due copie
+   della pagina lo calcolano in modi diversi di proposito (quella del 3D
+   corregge con la precisione dell'innesco, quella dei KPI no), e unificarlo
+   sarebbe una decisione sulla fisica, non un trasloco. */
+export const FRAG_SENZA_CONTO = {
+  carica:  { che:'la carica per foro non è un numero leggibile, e il consumo specifico è quella divisa per la roccia che il foro serve',
+             come:'Reimposta la carica per foro nei parametri della volata.' },
+  volume:  { che:'la maglia del foro (spalla × interasse × altezza del banco) non dà un volume leggibile, e senza quello non c’è un consumo specifico',
+             come:'Reimposta spalla, interasse e altezza del banco nei parametri della volata.' },
+  modello: { che:'il fattore roccia o l’energia relativa dell’esplosivo non sono numeri leggibili, e la formula di Kuznetsov li vuole tutt’e due',
+             come:'Riscegli la litologia e l’esplosivo dagli elenchi.' },
+};
+/* `null` quando la pezzatura si può prevedere; altrimenti dice QUALI dei tre
+   dati mancano — e se ne mancano più d'uno li nomina tutti, gemella di
+   `micSenzaConto`, `caricaSenzaConto` e `ppvSenzaSoglia`.
+   ⚠️ `modello` è un controllo di CONTRATTO, non un caso che la pagina possa
+   raggiungere oggi: `rockFactorA` chiude A fra 1 e 16 e RWS ha già il suo
+   `Math.max(8, …)`. Sta qui perché un chiamante nuovo non ci caschi in
+   silenzio, e la prova lo dichiara per quello che è. */
+export function fragSenzaConto(kg, vol, A, RWS){
+  const n = (x) => (x === null || x === undefined || x === '') ? NaN : +x;
+  const q = n(kg), v = n(vol), a = n(A), r = n(RWS);
+  const senzaCarica  = !Number.isFinite(q) || q < 0;
+  const senzaVolume  = !Number.isFinite(v) || v <= 0;
+  const senzaModello = !Number.isFinite(a) || a <= 0 || !Number.isFinite(r) || r <= 0;
+  if (!senzaCarica && !senzaVolume && !senzaModello) return null;
+  const parti = [];
+  if (senzaCarica)  parti.push(FRAG_SENZA_CONTO.carica);
+  if (senzaVolume)  parti.push(FRAG_SENZA_CONTO.volume);
+  if (senzaModello) parti.push(FRAG_SENZA_CONTO.modello);
+  return { carica:senzaCarica, volume:senzaVolume, modello:senzaModello,
+    che:  parti.map(p => p.che).join('; e '),
+    come: parti.map(p => p.come).join(' ') };
+}
+/* I chili di esplosivo per metro cubo di roccia, o `null` se uno dei due non
+   c'è. Sta a parte perché la pagina lo chiede in QUATTRO posti che non hanno
+   niente a che fare con Kuznetsov — il riferimento della mappa dell'energia,
+   il consumo del singolo foro, la forma del cumulo e il riquadro del 3D — e
+   perché con la carica illeggibile rispondeva **0**, cioè il numero più
+   tranquillo che si possa dare a una cosa mai letta. */
+export function consumoSpecifico(kg, vol){
+  const n = (x) => (x === null || x === undefined || x === '') ? NaN : +x;
+  const q = n(kg), v = n(vol);
+  if (!Number.isFinite(q) || q < 0 || !Number.isFinite(v) || v <= 0) return null;
+  return q / v;
+}
+/* Il consumo specifico (kg/m³) e la pezzatura mediana prevista (cm), o `null`
+   per quello dei due che non si può contare — e sono DUE domande diverse: il
+   consumo specifico è un numero vero anche quando il fattore roccia non c'è.
+   `vol` è il volume di roccia che UN foro serve (spalla × interasse × altezza).
+   La bandiera `calcolabile` è quella che i disegnatori devono leggere: senza,
+   un `null` si stamperebbe tranquillo lo stesso (regola 20 di `run-stile`). */
+export function fragKuzRam(v){
+  const o = v || {};
+  const n = (x) => (x === null || x === undefined || x === '') ? NaN : +x;
+  const perche = fragSenzaConto(o.kg, o.vol, o.A, o.RWS);
+  const pf = consumoSpecifico(o.kg, o.vol);
+  if (perche) return { pf, x50:null, calcolabile:false,
+    carica:perche.carica, volume:perche.volume, modello:perche.modello,
+    che:perche.che, come:perche.come };
+  /* I CLAMP, dopo la guardia e non al posto suo: qui `pf` e `kg` ci sono di
+     sicuro, e questi due numeri servono soltanto a tenere in piedi il conto
+     su un dato vero ma estremo. */
+  const x50 = n(o.A) * Math.pow(Math.max(0.05, pf), -0.8)
+            * Math.pow(Math.max(1, n(o.kg)), 1/6) * Math.pow(115 / n(o.RWS), 19/30);
+  return { pf, x50, calcolabile:true, carica:false, volume:false, modello:false, che:'', come:'' };
+}
+/* La curva Rosin-Rammler intorno a una pezzatura mediana: dimensione
+   caratteristica e i due passanti che la pagina mostra. `null` su tutt'e tre
+   quando manca `x50` o l'indice di uniformità — un x20 inventato è la stessa
+   bugia dell'x50 inventato, un gradino più in giù. */
+export function rosinRammler(x50, n){
+  const num = (x) => (x === null || x === undefined || x === '') ? NaN : +x;
+  const x = num(x50), u = num(n);
+  if (!Number.isFinite(x) || x <= 0 || !Number.isFinite(u) || u <= 0)
+    return { calcolabile:false, n:null, xc:null, x80:null, x20:null };
+  const xc = x / Math.pow(0.693, 1/u);
+  return { calcolabile:true, n:u, xc,
+    x80: xc * Math.pow(-Math.log(0.2), 1/u),
+    x20: xc * Math.pow(-Math.log(0.8), 1/u) };
+}

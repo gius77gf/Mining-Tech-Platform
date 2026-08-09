@@ -930,6 +930,36 @@ numero scritto dove non era stato misurato niente**.*
       larga la banda cieca**. Cioè la formula sbagliata sopravvive solo dove
       serve a misurare sé stessa.
 
+- [ ] **B0-quater. UN CLAMP CHE FABBRICA 5 kg/FORO IN DUE CLIC, E RENDE
+      RAGGIUNGIBILE UNO STATO PEGGIORE DI QUELLO APPENA CHIUSO.** Trovato il
+      09/08 dal cantiere della frammentazione, **misurato e non corretto** perché
+      fuori dai file del suo mandato.
+      `apps/genesi/genesi.html`, in `applyDesign`:
+      `D2.kg = Math.max(5, Math.min(200, gvv('dKg')||D2.kg));`
+      Con la carica illeggibile: `Math.min(200, null)` fa **0**, e il clamp
+      inferiore lo porta a **5**. Cioè un valore **inventato**, non un ripiego
+      dichiarato.
+      ⛔ **La via è di due clic e non passa dalla carica**: aperta la volata,
+      `syncDesignInputs` scrive **«0»** dentro il campo «Carica per foro» (uno
+      zero inventato **dentro un input**); poi basta toccare **un campo
+      qualunque** — provato con la sequenza, che con la carica non c'entra —
+      perché `applyDesign` giri e fissi 5. Da lì consumo specifico **0,05
+      kg/m³** e X50 **127 cm**, **senza un toast e senza un errore**.
+      ⚠️ E il danno è peggiore di quello di partenza: il «non calcolabile»
+      appena costruito **sparisce, sostituito da numeri inventati**. Una difesa
+      che si può spegnere con due clic su un campo che non c'entra è una difesa
+      che non c'è.
+      È «un clamp non è una guardia» applicato ai **campi** invece che al
+      calcolo: `Math.max(5, …)` esiste per un valore **vero e piccolo**, non per
+      un valore **assente**.
+      **Non toccato** perché è una decisione — che cosa deve fare `applyDesign`
+      con un valore salvato illeggibile — e tocca `gsv`/`syncDesignInputs`/
+      `applyDesign` più una quindicina di campi.
+      **Come si misura**: apri una volata con `design.kg:null`, guarda il campo
+      «Carica per foro» (deve dire «—», non «0»), tocca la sequenza, e chiedi a
+      schermo il consumo specifico: se dice 0,05 invece di «non calcolabile», il
+      difetto è ancora lì.
+
 - [x] ✅ **B0-ter. MENTRE UN CANTIERE SCRIVE, UN ROSSO LETTO SULL'ALBERO VIVO NON
       È UN VERDETTO.** Misurato il 09/08 su me stesso: leggendo l'albero mentre
       un cantiere ci scriveva, `run-stile` ha detto **316 passati e 2 falliti**;
@@ -3607,8 +3637,8 @@ numero scritto dove non era stato misurato niente**.*
   nome apre il file sbagliato credendo che sia il più fresco.
 - Le decisioni: `docs/DECISIONI_WEEKEND.md` — pagina d'ingresso in cima.
 - Stato misurato al **09/08** (lanciando le suite, non a memoria):
-  **2.457 prove girano senza rete**. La frase va letta stretta: è la somma
-  delle **otto** suite che contano asserzioni (`run-kpi` 2005, `run-stile` 318,
+  **2.469 prove girano senza rete**. La frase va letta stretta: è la somma
+  delle **otto** suite che contano asserzioni (`run-kpi` 2017, `run-stile` 318,
   `run-helpers` 75, `run-pointcloud` 32, `run-manifest` 9, `run-demo` 8,
   `bootstrap-rivendicazioni` 7, `fogli-guardati` 3), non tutto ciò che gira nel
   giro `node` — che di comandi ne ha **34** e di asserzioni ne esegue di più:

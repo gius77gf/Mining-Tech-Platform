@@ -26151,5 +26151,195 @@ test("voceDocumentoInElenco: la regola vale per documento, non per la lista", ()
   });
 }
 
+/* ══════════════════════════════════════════════════════════════════════════
+   G13 · IL CONSUMO SPECIFICO E LA PEZZATURA — e la differenza fra un CLAMP e
+         una GUARDIA
+   ══════════════════════════════════════════════════════════════════════════
+   ⛔ IL TERZO DELLA FAMIGLIA DI OGGI, dopo la MIC (G11) e la carica col costo
+   (G12), e l'unico che sbaglia nei DUE VERSI insieme. Misurato aprendo nel
+   browser una volata salvata con `kg:null` — `apri` fa `Object.assign(D2, …)`
+   da `localStorage` senza controlli, e `kg` sta nel `design` che `volSnapshot`
+   scrive:
+   · il consumo specifico usciva **0,00 kg/m³** in cinque posti (il riquadro
+     del 3D, la scheda validatori col pallino ROSSO, il CSV archiviato col
+     rapportino, il foglio stampabile, il confronto A/B). Verso che RASSICURA;
+   · la pezzatura prevista faceva il contrario: **27 → 97 cm**, con x20 da 13 a
+     45 e x80 da 49 a **173**, perché i due `Math.max` trasformano il dato
+     assente in un numero plausibile. Verso che ALLARMA.
+   ⛔ E IL PUNTO TECNICO: un CLAMP NON È UNA GUARDIA. `Math.max(0.05, pf)` e
+   `Math.max(1, kg)` servono e restano — tengono in piedi il conto su dati veri
+   ma estremi — ma non sanno distinguere un pf piccolo da un pf assente, e non
+   è compito loro. Prima si chiede se il dato c'è, poi si protegge il calcolo:
+   le prove qui sotto pretendono TUTT'E DUE le metà, perché togliere i clamp
+   «già che ci siamo» romperebbe i casi veri.
+   ⚠️ Prove SINCRONE e messe PRIMA del riepilogo: l'`await Promise.all(inVolo)`
+   sta seimila righe più su, quindi una prova `async` aggiunta qui verrebbe
+   messa in volo e il totale si stamperebbe senza aspettarla. */
+{
+  const gz = await app("genesi", "genesi-data.js");
+  const { readFileSync: _rfG13 } = await import("node:fs");
+  const srcG13 = _rfG13(join(HERE, "../../genesi/genesi.html"), "utf8");
+  /* il progetto di partenza di Genesi: maglia 3,0 × 3,5 su un banco di 10 m,
+     60 kg per foro, calcare (A = 8,1 da `rockFactorA`), ANFO (RWS 100) */
+  const VOL = 3 * 3.5 * 10;
+  const BASE13 = { kg: 60, vol: VOL, A: 8.1, RWS: 100 };
+
+  test("⛔ Genesi · fragKuzRam: i numeri veri del progetto di partenza", () => {
+    const f = gz.fragKuzRam(BASE13);
+    eq(+f.pf.toFixed(4), 0.5714, "consumo specifico 60 kg su 105 m³");
+    eq(Math.round(f.x50), 27, "e la pezzatura mediana che lo schermo mostra: 27 cm");
+    eq(f.calcolabile, true, "si può contare");
+    eq(f.che, "", "e non c'è niente da spiegare");
+  });
+
+  test("⛔ Genesi · fragKuzRam: la carica illeggibile dà null nei DUE versi, non 0 e non 97", () => {
+    for (const kg of [null, undefined, "", "abc", -5, NaN]) {
+      const f = gz.fragKuzRam({ ...BASE13, kg });
+      eq(f.pf, null, `kg ${String(kg)}: il consumo specifico non è uno zero`);
+      eq(f.x50, null, `kg ${String(kg)}: e la pezzatura non è un numero plausibile`);
+      eq(f.calcolabile, false, `kg ${String(kg)}: la bandiera lo dice`);
+    }
+    /* ⛔ I DUE NUMERI CHE IL DIFETTO PRODUCEVA. Se queste due righe cadessero,
+       la guardia sarebbe tornata a essere il solo clamp. */
+    eq(gz.fragKuzRam({ ...BASE13, kg: null }).pf === 0, false, "il pf NON è tornato zero");
+    eq(gz.fragKuzRam({ ...BASE13, kg: null }).x50 === null, true, "e l'x50 NON è tornato 97 cm");
+    /* la trappola nominata in CLAUDE.md: `+null` fa 0 ed è finito */
+    eq(Number.isFinite(+null), true, "promemoria: il null va nominato per nome");
+  });
+
+  test("⛔ Genesi · fragKuzRam: uno zero MISURATO resta zero, e la pezzatura si conta", () => {
+    const f = gz.fragKuzRam({ ...BASE13, kg: 0 });
+    eq(f.pf, 0, "una volata caricata a zero ha un consumo specifico di zero: è un fatto");
+    eq(f.calcolabile, true, "e la pezzatura si conta lo stesso");
+    eq(f.x50 > 90, true, "coi clamp, ed è GROSSA — che è la risposta giusta: " + f.x50);
+    eq(gz.fragSenzaConto(0, VOL, 8.1, 100), null, "non c'è niente da spiegare");
+  });
+
+  test("⛔ Genesi · UN CLAMP NON È UNA GUARDIA: sui dati veri ed estremi i clamp mordono ancora", () => {
+    /* ⛔ LA METÀ CHE SI PERDE FACILMENTE. Chi legge «il clamp era il difetto»
+       è tentato di toglierlo: allora `pf^-0.8` con pf minuscolo esplode, e un
+       consumo specifico VERO ma bassissimo non si può più prevedere. */
+    const pfMinuscolo = gz.fragKuzRam({ ...BASE13, kg: 0.5, vol: 1e6 });   // pf = 5e-7, sotto 0,05
+    eq(pfMinuscolo.calcolabile, true, "un pf minuscolo ma vero resta calcolabile");
+    eq(+pfMinuscolo.x50.toFixed(6),
+       +(8.1 * Math.pow(0.05, -0.8) * Math.pow(1, 1 / 6) * Math.pow(1.15, 19 / 30)).toFixed(6),
+       "e il clamp 0,05 decide il conto, come prima");
+    const caricaSottoIlChilo = gz.fragKuzRam({ ...BASE13, kg: 0.4, vol: 1 });
+    eq(caricaSottoIlChilo.calcolabile, true, "una caricheta sotto il chilo è un dato vero");
+    eq(+caricaSottoIlChilo.x50.toFixed(6),
+       +(8.1 * Math.pow(0.4, -0.8) * Math.pow(1, 1 / 6) * Math.pow(1.15, 19 / 30)).toFixed(6),
+       "e il clamp 1 sul kg decide il conto, come prima");
+  });
+
+  test("⛔ Genesi · fragKuzRam: il volume è l'altro ingresso, e va nominato lui", () => {
+    for (const vol of [null, undefined, "", 0, -3, "boh", NaN]) {
+      const f = gz.fragKuzRam({ ...BASE13, vol });
+      eq(f.pf, null, `vol ${String(vol)}: niente consumo specifico`);
+      eq(f.volume, true, `vol ${String(vol)}: e incolpa il volume`);
+      eq(f.carica, false, `vol ${String(vol)}: NON manda a sistemare la carica, che è sana`);
+    }
+    /* uno zero al denominatore non è un dato estremo, è una maglia che non c'è:
+       `60/0` farebbe Infinity, che è esattamente il difetto della sesta causa */
+    eq(gz.fragKuzRam({ ...BASE13, vol: 0 }).pf === Infinity, false, "e non è un infinito");
+  });
+
+  test("⛔ Genesi · fragKuzRam: il consumo specifico sopravvive al modello che manca", () => {
+    /* sono DUE domande diverse: quanti chili per metro cubo è un numero vero
+       anche quando il fattore roccia non si legge. Spegnere tutto insieme
+       butterebbe via un dato sano — è il ponte che dà la colpa a chi compila. */
+    for (const rotto of [{ A: null }, { A: 0 }, { RWS: "" }, { RWS: -1 }]) {
+      const f = gz.fragKuzRam({ ...BASE13, ...rotto });
+      eq(+f.pf.toFixed(4), 0.5714, `${JSON.stringify(rotto)}: il consumo specifico resta vero`);
+      eq(f.x50, null, `${JSON.stringify(rotto)}: la pezzatura no`);
+      eq(f.modello, true, `${JSON.stringify(rotto)}: e la ragione è il modello`);
+    }
+  });
+
+  test("⛔ Genesi · fragSenzaConto: nomina i campi giusti, e due mancanze restano due frasi", () => {
+    eq(gz.fragSenzaConto(60, VOL, 8.1, 100), null, "sul caso sano non c'è nessuna ragione da dare");
+    const soloKg = gz.fragSenzaConto(null, VOL, 8.1, 100);
+    eq(soloKg.carica, true, "dice che manca la carica");
+    eq(soloKg.volume === false && soloKg.modello === false, true, "e non accusa il resto");
+    eq(soloKg.che.includes("carica per foro"), true, soloKg.che);
+    const tutt2 = gz.fragSenzaConto(null, null, 8.1, 100);
+    eq(tutt2.che.includes("; e "), true, "mancando tutt'e due li nomina tutt'e due: " + tutt2.che);
+    eq(tutt2.come.split(".").length > 2, true, "e dà tutt'e due i rimedi: " + tutt2.come);
+  });
+
+  test("⛔ Genesi · FRAG_SENZA_CONTO: ogni ragione dice CHE COSA manca e COME si rimedia", () => {
+    eq(Object.keys(gz.FRAG_SENZA_CONTO).sort(), ["carica", "modello", "volume"],
+      "tre cause, e sono i tre ingressi della formula");
+    for (const k of Object.keys(gz.FRAG_SENZA_CONTO)) {
+      const r = gz.FRAG_SENZA_CONTO[k];
+      ok(typeof r.che === "string" && r.che.length > 20, `${k}: dice che cosa manca`);
+      ok(typeof r.come === "string" && /\.$/.test(r.come), `${k}: e come si rimedia, in una frase`);
+      ok(!/undefined|null/.test(r.che + r.come), `${k}: senza parole da programmatore`);
+    }
+    /* la ragione VIENE dalla tabella, non è una seconda scrittura */
+    eq(gz.fragSenzaConto(null, VOL, 8.1, 100).che, gz.FRAG_SENZA_CONTO.carica.che,
+      "la spiegazione della carica viene dalla tabella");
+    eq(gz.fragKuzRam({ ...BASE13, vol: 0 }).che, gz.FRAG_SENZA_CONTO.volume.che,
+      "e quella del volume pure");
+  });
+
+  test("⛔ Genesi · consumoSpecifico è UNA funzione sola, e fragKuzRam la chiama", () => {
+    /* la stessa domanda con due risposte è la copia debole di CLAUDE.md: il
+       `pf` di `fragKuzRam` VIENE da `consumoSpecifico`, e il test lo pretende */
+    for (const kg of [60, 0, null, "abc", -1, 12.5, ""])
+      eq(gz.fragKuzRam({ ...BASE13, kg }).pf, gz.consumoSpecifico(kg, VOL),
+        `stessa risposta su kg=${String(kg)}`);
+    for (const vol of [VOL, 0, null, -1])
+      eq(gz.fragKuzRam({ ...BASE13, vol }).pf, gz.consumoSpecifico(60, vol),
+        `stessa risposta su vol=${String(vol)}`);
+  });
+
+  test("⛔ Genesi · rosinRammler: senza x50 o senza uniformità non inventa una curva", () => {
+    const r = gz.rosinRammler(27.397817288977084, 1.5);
+    eq(r.calcolabile, true, "col caso sano la curva c'è");
+    eq(Math.round(r.x20), 13, "x20 del progetto di partenza");
+    eq(Math.round(r.x80), 48, "e x80");
+    eq(r.x20 < 27 && 27 < r.x80, true, "la curva è ordinata");
+    for (const n of [null, undefined, 0, -1, "x", NaN]) {
+      const b = gz.rosinRammler(27, n);
+      eq(b.calcolabile, false, `n ${String(n)}: nessuna curva`);
+      eq([b.xc, b.x80, b.x20], [null, null, null], `n ${String(n)}: e nessun numero inventato`);
+    }
+    /* il caso che arriva davvero: x50 nullo perché la carica non si legge */
+    eq(gz.rosinRammler(null, 1.5).x20, null, "senza x50 non c'è un x20");
+    eq(gz.rosinRammler(0, 1.5).calcolabile, false, "e nemmeno con un x50 a zero");
+  });
+
+  test("⛔ Genesi · la formula di Kuznetsov è scritta UNA volta, e la pagina la chiama", () => {
+    /* ⛔ ERA SCRITTA QUATTRO VOLTE — nel 3D, nei KPI, nella scheda validatori e
+       ribaltata nel calcolo inverso — e una delle quattro aveva già divergiuto:
+       scriveva l'esponente `0.633` dove le altre scrivono `19/30` (0,6333…). */
+    eq(/Math\.pow\(115\s*\/\s*_?RWS\s*,\s*0\.633\)/.test(srcG13), false,
+      "l'esponente scritto a mano come 0.633 non c'è più");
+    eq(/Math\.pow\(Math\.max\(0\.05\s*,\s*pf\)\s*,\s*-0\.8\)/.test(srcG13), false,
+      "e la formula diretta non è più nella pagina");
+    const chiamate = (srcG13.match(/fragKuzRam\s*\(/g) || []).length;
+    eq(chiamate >= 4, true, `i punti che prevedevano la pezzatura la chiedono al modulo (trovate ${chiamate})`);
+    const cs = (srcG13.match(/consumoSpecifico\s*\(/g) || []).length;
+    eq(cs >= 3, true, `e le divisioni sparse chiedono il consumo specifico al modulo (trovate ${cs})`);
+    eq(/D2\.kg\s*\/\s*Math\.max\(\.?0?\.1\s*,/.test(srcG13), false,
+      "nessuna divisione a mano col ripiego sul volume è rimasta");
+  });
+
+  test("⛔ Genesi · i lettori di pf e della pezzatura leggono la non-misurabilità", () => {
+    /* regola 20 in versione mirata: una bandiera che nessuno legge non
+       protegge niente. I soggetti sono i file che ESCONO e i riquadri. */
+    eq(/fragCalcolabile/.test(srcG13), true, "la bandiera esiste");
+    eq((srcG13.match(/fragCalcolabile/g) || []).length >= 4, true,
+      "e la leggono il CSV, il foglio stampabile, lo storico e la riconciliazione");
+    eq(/Esito frammentazione/.test(srcG13), true, "il CSV della scheda volata dichiara l'esito");
+    eq(/Perche la frammentazione non e calcolabile/.test(srcG13), true,
+      "con la ragione accanto alle celle vuote");
+    /* la sintesi salvata nello storico è un DOCUMENTO: ci finiva «X50 97 cm»
+       su una volata sana, e con la correzione a metà «X50 null cm» */
+    eq(/\+' · X50 '\+k\.x50\+' cm'/.test(srcG13), false,
+      "la sintesi della volata non incolla più il valore grezzo");
+  });
+}
+
 console.log(`\nRisultato KPI app: ${passed} passati, ${failed} falliti${inVolo.length ? `  ·  ${inVolo.length} prove asincrone aspettate` : ""}`);
 process.exit(failed > 0 ? 1 : 0);

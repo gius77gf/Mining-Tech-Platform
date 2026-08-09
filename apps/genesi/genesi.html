@@ -1065,7 +1065,18 @@ import { sitoFit, ppvLimit, ppvSenzaSoglia, airblastDb, normaPpvLab,
    `calcolabile`: un costo con un addendo mancante non è un costo più basso,
    è un costo che non c'è — e i derivati (€/m³, €/t, margine) li restituisce
    lei, perché ricavarli qui li riportava a zero. */
-         caricaTotale, caricaSenzaConto, costoVolata } from './genesi-data.js';
+         caricaTotale, caricaSenzaConto, costoVolata,
+/* il consumo specifico e la pezzatura prevista — vedi il blocco G13.
+   ⛔ La riga `A·max(0,05,pf)^-0,8·max(1,kg)^(1/6)·(115/RWS)^(19/30)` era
+   scritta QUATTRO volte (il 3D, i KPI, la scheda validatori, e in mezzo il
+   calcolo inverso che la ribalta), e una delle quattro aveva già divergiuto
+   sull'ultimo esponente (0,633 invece di 19/30). Adesso è una sola.
+   ⛔ E il punto di questo blocco è che un CLAMP non è una GUARDIA: i due
+   `Math.max` restano — servono ai dati veri ma estremi — ma prima di loro c'è
+   `fragSenzaConto`, che chiede se il dato c'è. La bandiera da leggere è
+   `calcolabile`; senza, `pf` a zero e `x50` a 97 cm si ridisegnano tranquilli
+   come prima, in due direzioni opposte. */
+         FRAG_SENZA_CONTO, fragSenzaConto, consumoSpecifico, fragKuzRam, rosinRammler } from './genesi-data.js';
 /* ⛔ «ha una data» si decide con l'ESISTENZA, non con la forma: «2026-02-30» ha
    la forma giusta e non esiste. Il modulo di Genesi questa regola l'ha imparata
    il 03/08 — il commento in cima a `genesi-data.js` lo racconta — e la pagina
@@ -1581,8 +1592,23 @@ function buildSim(){
   const tEnd = lastDet + 15000;                   // estensione timeline (polvere)
   // powder factor -> ampiezza bulge e velocità
   const vol = SPALLA*INTERASSE*prof;              // m3 per foro
-  const pf = P.kg / vol;                          // kg/m3
-  const pfN = Math.min(1.5, Math.max(0.4, pf/0.35));  // normalizzato su 0.35 kg/m3 tipico
+  /* ⛔ IL CONSUMO SPECIFICO LO DECIDE IL MODULO, E PUÒ RISPONDERE «NON LO SO».
+     Qui c'era `const pf = P.kg / vol`: con la carica per foro illeggibile —
+     `simulaVolata2D` fa `P.kg=D2.kg` senza clamp, e `D2.kg` arriva da `apri`
+     che fa `Object.assign` da `localStorage` — la divisione fa **0**, e il
+     riquadro del 3D scriveva «PF 0,00 kg/m³». Vedi il blocco G13. */
+  /* ⚠️ QUI SERVE SOLO IL CONSUMO SPECIFICO, e si chiede quello: la pezzatura
+     arriva quaranta righe più giù, quando il fattore roccia e l'RWS efficace
+     sono stati calcolati. Chiedere `fragKuzRam` qui avrebbe voluto una SECONDA
+     scrittura del ripiego sui fori bagnati — cioè la copia debole rifatta
+     nell'unità che esiste per toglierla. */
+  const pf = consumoSpecifico(P.kg, vol);         // kg/m3, `null` se non si conta
+  /* ⚠️ QUESTO È UN NUMERO PER L'ANIMAZIONE, NON UNA MISURA: scala l'ampiezza
+     del rigonfiamento nel 3D. Quando il consumo specifico non si può contare
+     si usa il valore NEUTRO (1,0 = il tipico 0,35 kg/m³) invece del minimo,
+     perché un cartone che mostra la volata più debole possibile su un dato
+     che nessuno ha letto è lo stesso «tranquillo» dei numeri, in figura. */
+  const pfN = Math.min(1.5, Math.max(0.4, (pf===null?0.35:pf)/0.35));  // normalizzato su 0.35 kg/m3 tipico
   const bulgeAmp = Math.min(CAL.bulge.ampiezzaRangeM[1], Math.max(CAL.bulge.ampiezzaRangeM[0], CAL.bulge.ampiezzaBaseM*pfN));
   /* ---- frammentazione Kuz-Ram: granulometria prevista ---- */
   const _wetE = (D2.bagnato ? ({Nulla:0.70,Bassa:0.40,Media:0.18,Buona:0.05,Eccellente:0}[(selEsplosivo()||{}).acqua]||0) : 0); // perdita energia da fori bagnati con esplosivo non idoneo
@@ -1593,17 +1619,24 @@ function buildSim(){
   const _shk = Math.max(0.04, Math.min(0.96, (_eVOD*_eVOD-9e6)/(36e6-9e6)));
   const heaveFac = (0.82 + 0.48*(1-_shk)) * (1-0.5*_wetE);   // ANFO ~1.18 (lancia di piu), emulsione ~1.0, alto-shock ~0.84; ridotto se foro bagnato (lancia meno → muckpile basso/oversize)
   const Lc = Math.max(0.5, prof + (D2.sub||0) - stemming);      // lunghezza carica (m), sottoperforazione inclusa
-  const x50 = A_rock * Math.pow(Math.max(0.05,pf), -0.8) * Math.pow(Math.max(1,P.kg), 1/6) * Math.pow(115/RWS, 19/30); // cm — Kuznetsov
+  const _fr = fragKuzRam({ kg:P.kg, vol, A:A_rock, RWS });      // blocco G13: guardia PRIMA dei clamp
+  const x50 = _fr.x50;                            // cm — Kuznetsov, dal modulo (`null` se non si conta)
   let nU = (2.2 - 14*SPALLA/diamMM) * Math.sqrt((1+INTERASSE/SPALLA)/2) * (1 - 0.3/SPALLA) * (Lc/prof);  // indice uniformità — Cunningham
   /* precisione dell'innesco → uniformità (Cunningham 2005: ns=0.206+(1−Rs/4)^0.8, Rs=scatter/ritardo): elettronico = curva più ripida, Nonel = più dispersa */
   { const _sdT=(_innId==='elettronico')?0.1:((_innId==='elettrico')?0.5:((_innId==='cordtex')?0.03*Math.max(rit,lastDet):0.02*Math.max(rit,lastDet)));
     const _RsT=_sdT/Math.max(1,rit), _ns=0.206+Math.pow(Math.max(0,1-_RsT/4),0.8);
     nU *= Math.max(0.8, Math.min(1.25, _ns)); }
   nU = Math.max(0.7, Math.min(2.2, nU));
-  const xc = x50 / Math.pow(0.693, 1/nU);                       // size caratteristica Rosin-Rammler
-  const x80 = xc * Math.pow(-Math.log(0.2), 1/nU);              // 80% passante
-  const x20 = xc * Math.pow(-Math.log(0.8), 1/nU);              // 20% passante
-  const frag = { x50:Math.round(x50), x80:Math.round(x80), x20:Math.round(x20), n:+nU.toFixed(2), xc, pf:+pf.toFixed(2),
+  const _rr = rosinRammler(x50, nU);                            // curva intorno a x50 — blocco G13
+  const xc = _rr.xc;                                            // size caratteristica Rosin-Rammler
+  const x80 = _rr.x80;                                          // 80% passante
+  const x20 = _rr.x20;                                          // 20% passante
+  /* ⚠️ `calcolabile` viaggia CON i numeri: chi disegna la granulometria deve
+     poter distinguere «non si conta» da un numero, e `Math.round(null)` fa 0
+     mentre `+null.toFixed(2)` solleva. */
+  const frag = { calcolabile:_fr.calcolabile && _rr.calcolabile, che:_fr.che, come:_fr.come,
+    x50:x50===null?null:Math.round(x50), x80:x80===null?null:Math.round(x80), x20:x20===null?null:Math.round(x20),
+    n:+nU.toFixed(2), xc, pf:pf===null?null:+pf.toFixed(2),
     A:+A_rock.toFixed(3), RWS:+RWS.toFixed(1), kg:P.kg, prof:prof, sbRatio:+(INTERASSE/Math.max(0.1,SPALLA)).toFixed(3) };  // input per il calcolo inverso della maglia
   /* ---- chunk per foro (forma chiusa, atterraggio precalcolato) ---- */
   const chunks = [];
@@ -1636,8 +1669,13 @@ function buildSim(){
       const damp = Math.abs(DRAG_K*tl) > 1e-5 ? (1-Math.exp(-DRAG_K*tl))/(DRAG_K*tl) : 1 - DRAG_K*tl/2; // Taylor per tl piccoli: evita perdita di precisione
       const lx = px + vx*tl*damp;
       const lz = pz + vz*tl*damp;
-      const xcm = xc * Math.pow(-Math.log(1-Math.max(1e-4,rng())), 1/nU);  // dimensione frammento (cm) campionata dalla curva Rosin-Rammler
-      const scl = fly ? 0.4+rng()*0.3 : Math.max(0.18, Math.min(2.2, xcm/100*1.3));   // cm -> scala visiva (pezzature realistiche)
+      /* ⚠️ SENZA CURVA IL MASSO NON HA UNA DIMENSIONE, MA IL 3D DEVE PARTIRE
+         LO STESSO: `xc` a `null` darebbe `NaN` e i frammenti sparirebbero
+         dalla scena. Il ripiego è una scala VISIVA neutra — il cartone non
+         dichiara nessuna pezzatura, e il numero che la dichiarerebbe (il
+         riquadro «Granulometria prevista») dice «non calcolabile». */
+      const xcm = xc===null ? null : xc * Math.pow(-Math.log(1-Math.max(1e-4,rng())), 1/nU);  // dimensione frammento (cm) campionata dalla curva Rosin-Rammler
+      const scl = fly ? 0.4+rng()*0.3 : (xcm===null ? 0.55 : Math.max(0.18, Math.min(2.2, xcm/100*1.3)));   // cm -> scala visiva (pezzature realistiche)
       chunks.push({ f:f.i, px,py,pz, vx,vy,vz, td, tl, lx, lz, scl,
         rotAx: rng()<0.85?0:1, rotW: (0.5+rng()*2.2)*(vz<0?1:-1)*0.6,
         e0:rng()*6.28, e1:rng()*6.28, e2:rng()*6.28, rest:0 });
@@ -2280,12 +2318,29 @@ function buildTicks(){
 }
 function updateInfochip(){
   const seq = Math.round(SIM.lastDet), fr = SIM.frag;
-  const pfVal = fr ? fr.pf : (P.kg/(SPALLA*INTERASSE*P.prof));
+  /* ⚠️ IL RIPIEGO ERA UNA QUINTA COPIA della divisione, e con la carica
+     illeggibile scriveva «PF 0,00 kg/m³». Adesso è la stessa funzione del
+     blocco G13 che decide il numero dentro `SIM.frag`: `gfix(null)` scrive
+     «—», che accanto a «kg/m³» si legge «non lo so» e non «zero». */
+  const pfVal = fr ? fr.pf : fragKuzRam({ kg:P.kg, vol:SPALLA*INTERASSE*P.prof,
+    A:rockFactorA().A, RWS:Math.max(8,((selEsplosivo()&&selEsplosivo().rws_pct)||100)) }).pf;
   const _sqL={riga:'riga per riga',diagonale:'diagonale',vcut:'V-cut',box:'box'}[D2.sequenza]||'diagonale';
   const _inL=(typeof selInnesco==='function'&&selInnesco())?selInnesco().short:'Nonel';
   const _rkL=(typeof selRoccia==='function'&&selRoccia())?selRoccia().nome.split(' ')[0]:'';
-  $('infochip').innerHTML = `<b>${gnum(P.fori,0)} ${plurale(P.fori,'foro','fori')}</b> · maglia ${gfix(SPALLA,1)}×${gfix(INTERASSE,1)} · ${_inL} <b>${gnum(P.ritardo,1)} ms</b> · ${_sqL} · ${_rkL} · sequenza <b>${gnum(seq,0)} ms</b> · PF ${gfix(pfVal,2)} kg/m³`;
-  if(fr){
+  /* ⚠️ «PF — kg/m³» si legge come un refuso, non come una non-misurabilità:
+     la frase si compone PRIMA, fuori dal modello di stringa. */
+  const _pfTx = pfVal===null ? '<i style="color:#ffca28">PF non calcolabile</i>' : ('PF '+gfix(pfVal,2)+' kg/m³');
+  $('infochip').innerHTML = `<b>${gnum(P.fori,0)} ${plurale(P.fori,'foro','fori')}</b> · maglia ${gfix(SPALLA,1)}×${gfix(INTERASSE,1)} · ${_inL} <b>${gnum(P.ritardo,1)} ms</b> · ${_sqL} · ${_rkL} · sequenza <b>${gnum(seq,0)} ms</b> · ${_pfTx}`;
+  /* ⛔ IL RIQUADRO DELLA GRANULOMETRIA DICE «NON CALCOLABILE» INVECE DI
+     DISEGNARE TRE BARRE. Con la carica per foro illeggibile qui uscivano
+     «x20 50 · x50 97 · x80 160 cm» e «Fini <2,5 cm: 0%», cioè una volata che
+     fa masselli — l'ALLARME nato da un dato che nessuno ha letto. La ragione
+     è quella del modulo, la stessa che leggono la scheda e i file che escono. */
+  if(fr && !fr.calcolabile){
+    $('fragchip').innerHTML = `<b>Granulometria prevista</b> · <i style="color:#ffca28">non calcolabile</i>`
+      + `<div style="font-size:10px;color:var(--mut2);margin-top:5px">${fr.che}. ${fr.come}</div>`;
+    _fragLast = fr; _invUpdate(); _measUpdate();
+  } else if(fr){
     const mx = Math.max(fr.x80,1);
     const seg = (lab,val)=>`<div style="display:flex;align-items:center;gap:6px;margin-top:3px"><span style="width:26px;color:var(--mut2)">${lab}</span><div style="flex:1;height:6px;background:rgba(255,255,255,.07);border-radius:3px;overflow:hidden"><div style="height:100%;width:${Math.min(100,val/mx*100)}%;background:var(--cu)"></div></div><b style="width:46px;text-align:right">${val} cm</b></div>`;
     // parametri KCO/Swebrec con la STESSA formula della scheda (onesto, non stimato):
@@ -2309,6 +2364,12 @@ function updateInfochip(){
 let _fragLast=null;
 function _inverseMesh(targetX50){
   const fr=_fragLast; if(!(targetX50>0)||!fr||!fr.A) return null;
+  /* ⛔ ANCHE IL VERSO INVERSO VUOLE LA CARICA. Senza, `fr.kg` a `null` faceva
+     `Math.max(1,null)`=1 e `fr.kg/(pfT*prof)` = 0: la proposta usciva
+     «B 0,00 × S 0,00 m · PF 0,18 kg/m³», cioè una maglia di dimensione zero
+     stampata come un consiglio. `calcolabile` è la stessa bandiera del
+     riquadro diretto, e chi la legge è `_invUpdate`. */
+  if(!fr.calcolabile) return { nonCalcolabile:true, che:fr.che, come:fr.come };
   const k = fr.A * Math.pow(Math.max(1,fr.kg),1/6) * Math.pow(115/Math.max(8,fr.RWS),19/30);
   const pfT = Math.pow(k/targetX50, 1/0.8);                       // powder factor richiesto
   const area = fr.kg / (pfT * Math.max(0.5, fr.prof));            // B·S per foro (m²)
@@ -2322,6 +2383,8 @@ function _invUpdate(){
   if(!(t>0)){ out.innerHTML=''; return; }
   const r=_inverseMesh(t);
   if(!r){ out.innerHTML='<span style="color:var(--mut2)">imposta prima una volata</span>'; return; }
+  if(r.nonCalcolabile){ out.innerHTML=`<i style="color:#ffca28">proposta non calcolabile</i>`
+    +`<div style="font-size:9.5px;color:var(--mut2);line-height:1.35;margin-top:3px">${r.che}. ${r.come}</div>`; return; }
   const irreale = (r.pf<0.15 || r.pf>2.2 || r.B<1 || r.B>9);   // fuori range pratico → obiettivo poco realistico con carica/altezza attuali
   out.innerHTML=`<b style="color:${irreale?'#ffa726':'var(--cu)'}">B ${gfix(r.B,2)} × S ${gfix(r.S,2)} m</b> · PF ${gfix(r.pf,2)} kg/m³`
     +(irreale?`<div style="font-size:9.5px;color:#ffa726;line-height:1.35;margin-top:3px">Obiettivo poco realistico con carica/altezza attuali: cambia kg carica o profondità, o rivedi l'obiettivo.</div>`:'')
@@ -2389,6 +2452,16 @@ function _measUpdate(){
   const m=_measFromSizes(nums); _measDist=m;
   const fr=_fragLast;
   if(!fr){ out.innerHTML='<span style="color:var(--mut2)">imposta prima una volata</span>'; return; }
+  /* ⛔ UNO SCARTO CONTRO UNA PREVISIONE CHE NON C'È NON È UNO SCARTO. Con
+     `fr.x50` a `null` il conto faceva `(m.x50-0)/0*100` = `Infinity`, e la
+     riga avrebbe dichiarato un divario enorme fra una misura VERA fatta sul
+     cumulo e un numero mai calcolato — cioè avrebbe dato la colpa al fochino
+     che ha misurato bene. La misura resta e si mostra: quello che manca è il
+     confronto. */
+  if(!fr.calcolabile){
+    out.innerHTML=`<div>x50 misurato <b style="color:#4fc3f7">${gfix(m.x50,1)} cm</b> <span style="color:var(--mut2)">(${gnum(m.n,0)} campioni)</span> · scarto <i style="color:#ffca28">non calcolabile</i></div>`
+      +`<div style="font-size:9.5px;color:var(--mut2);line-height:1.35;margin-top:3px">non c'è una pezzatura prevista con cui confrontarla: ${fr.che}. ${fr.come}</div>`;
+    return; }
   const dev=(m.x50-fr.x50)/fr.x50*100;
   out.innerHTML=`<div>x50 misurato <b style="color:#4fc3f7">${gfix(m.x50,1)} cm</b> vs previsto <b style="color:#ffd54f">${gfix(fr.x50,1)} cm</b> · scarto <b style="color:${Math.abs(dev)>25?'#ffa726':'var(--cu)'}">${gseg(dev,0)}%</b> <span style="color:var(--mut2)">(${gnum(m.n,0)} campioni)</span></div>`
     + _fragCurveSVG(fr, null, m)
@@ -2890,15 +2963,23 @@ dwUiAggancia({ alone: '.hg-item' });
 /* ===== Confronto A/B tra progetti (A10): snapshot KPI in localStorage ===== */
 function computeKPI(){
   const B=D2.B, S=D2.S, H=D2.prof, Q=D2.kg, Dm=D2.diam/1000;
-  const pf=Q/(B*S*H);
   const wet=(D2.bagnato?({Nulla:0.70,Bassa:0.40,Media:0.18,Buona:0.05,Eccellente:0}[(selEsplosivo()||{}).acqua]||0):0);
   const RWS=Math.max(8,((selEsplosivo()||{}).rws_pct||100)*(1-wet));
   const A=rockFactorA().A;
-  const x50=A*Math.pow(Math.max(0.05,pf),-0.8)*Math.pow(Math.max(1,Q),1/6)*Math.pow(115/RWS,19/30);
+  /* ⛔ SENZA LA CARICA PER FORO NON C'È UN CONSUMO SPECIFICO, E NON C'È
+     NEMMENO UNO ZERO — e la pezzatura prevista sbaglia nel verso OPPOSTO.
+     `Q/(B*S*H)` con `Q` a `null` faceva **0**, scritto «0,00 kg/m³» nel CSV
+     archiviato col rapportino, nel foglio stampabile e nel confronto A/B; e i
+     due `Math.max` della riga sotto trasformavano lo stesso dato mancante in
+     un x50 di **97 cm** contro i 27 veri, con x80 a **173**. Un clamp non è
+     una guardia: la guardia è `fragSenzaConto`, i clamp restano dentro
+     `fragKuzRam` per i dati veri ma estremi. Vedi il blocco G13. */
+  const _fk=fragKuzRam({ kg:Q, vol:B*S*H, A, RWS });
+  const pf=_fk.pf, x50=_fk.x50;
   const Lc=Math.max(0.4,H+(D2.sub||0)-(D2.stem||2.5));
   let nU=(2.2-14*B/D2.diam)*Math.sqrt((1+S/B)/2)*(1-0.3/B)*(Lc/H); nU=Math.max(0.7,Math.min(2.2,nU));
-  const xc=x50/Math.pow(0.693,1/nU);
-  const x80=xc*Math.pow(-Math.log(0.2),1/nU), x20=xc*Math.pow(-Math.log(0.8),1/nU);
+  const _rr=rosinRammler(x50, nU);
+  const xc=_rr.xc, x80=_rr.x80, x20=_rr.x20;
   /* ⛔ SENZA MIC NON C'È UNA PPV, E NON C'È NEMMENO UN NUMERO PICCOLO.
      `Math.max(1, null)` fa **1**, quindi la distanza scalata diventerebbe la
      distanza nuda (300 m invece di 11,2) e la PPV prevista **0,12 mm/s** —
@@ -2944,11 +3025,18 @@ function computeKPI(){
      ⚠️ Stessa forma per il costo: `cost` è `null` quando non si può contare, e
      `costCalcolabile` è la bandiera che i suoi tre lettori devono leggere —
      `gnum(null)` scrive «—», che accanto a un `€` sembra un refuso e non una
-     non-misurabilità. `costChe`/`costCome` dicono quale campo sistemare. */
-  return { nf, qtot:qtot===null?null:Math.round(qtot), pf:+pf.toFixed(2),
+     non-misurabilità. `costChe`/`costCome` dicono quale campo sistemare.
+     ⚠️ E la TERZA della famiglia: `pf` e la pezzatura. `Math.round(null)` fa
+     **0** e `+null.toFixed(2)` **solleva**, quindi i due «non lo so» vanno
+     passati come `null` prima dell'arrotondamento. `fragCalcolabile` è la
+     bandiera dei loro lettori — il CSV, il foglio, il confronto A/B, lo
+     storico e la riconciliazione — e `fragChe`/`fragCome` dicono quale campo
+     sistemare, come per il costo. */
+  return { nf, qtot:qtot===null?null:Math.round(qtot), pf:pf===null?null:+pf.toFixed(2),
     cost:_cK.calcolabile?Math.round(_cK.tot):null, costCalcolabile:_cK.calcolabile,
     costChe:_cK.che, costCome:_cK.come,
-    x20:Math.round(x20), x50:Math.round(x50), x80:Math.round(x80),
+    fragCalcolabile:_fk.calcolabile && _rr.calcolabile, fragChe:_fk.che, fragCome:_fk.come,
+    x20:x20===null?null:Math.round(x20), x50:x50===null?null:Math.round(x50), x80:x80===null?null:Math.round(x80),
     mic:_m.calcolabile?+mic.toFixed(1):null, micCalcolabile:_m.calcolabile,
     micChe:_m.che, micCome:_m.come, db:_m.db===null?null:Math.round(_m.db),
     ppv:ppv===null?null:+ppv.toFixed(1), lim:lim===null?null:+lim.toFixed(1), fly:Math.round(fly.Lpred),
@@ -2972,6 +3060,12 @@ function _cmpLoad(k){ try{ return JSON.parse(localStorage.getItem(k)||'null'); }
 function _cmpNum(v){ return (v===null||v===undefined||v==='')?null:(isFinite(+v)?+v:null); }
 function _cmpKg(k){ const v=_cmpNum(k&&k.qtot); return v===null?'<i style="color:#ffca28">non calcolabile</i>':gnum(v,0)+' kg'; }
 function _cmpEur(k){ const v=_cmpNum(k&&k.cost); return v===null?'<i style="color:#ffca28">non calcolabile</i>':'€'+gnum(v,0); }
+/* ⚠️ GLI SCATTI VECCHI NON HANNO LA BANDIERA. Uno snapshot A/B salvato prima
+   del 09/08 ha `pf:0` e `x50:97` senza `fragCalcolabile`: si giudica dal
+   NUMERO (`_cmpNum` risponde `null` su `null`), e la bandiera, quando c'è,
+   vale in più — così un salvataggio vecchio non fa sparire una riga sana. */
+function _cmpPf(k){ const v=_cmpNum(k&&k.pf); return (v===null||(k&&k.fragCalcolabile===false))?'<i style="color:#ffca28">non calcolabile</i>':gfix(v,2)+' kg/m³'; }
+function _cmpCm(k,campo){ const v=_cmpNum(k&&k[campo]); return (v===null||(k&&k.fragCalcolabile===false))?'<i style="color:#ffca28">non calcolabile</i>':gnum(v,1)+' cm'; }
 function cmpRender(){
   const A=_cmpLoad('genesiCmpA');
   const B=_cmpLoad('genesiCmpB');
@@ -2999,9 +3093,12 @@ function cmpRender(){
        PPV con `esitoPpv`. Il confronto non si dipinge: `vincitoreKpi` su un
        `null` risponde già `null`, cioè nessuna colonna in verde. */
     ['Fori · kg totali', gnum(A.kpi.nf,0)+' · '+_cmpKg(A.kpi), gnum(B.kpi.nf,0)+' · '+_cmpKg(B.kpi), null],
-    ['Powder factor', gfix(A.kpi.pf,2)+' kg/m³', gfix(B.kpi.pf,2)+' kg/m³', null],
-    ['X50 previsto', gnum(A.kpi.x50,1)+' cm', gnum(B.kpi.x50,1)+' cm', vincitoreKpi(A.kpi.x50,B.kpi.x50)],
-    ['X80 (oversize)', gnum(A.kpi.x80,1)+' cm', gnum(B.kpi.x80,1)+' cm', vincitoreKpi(A.kpi.x80,B.kpi.x80)],
+    /* ⛔ stessa regola per il consumo specifico e la pezzatura: «0,00 kg/m³»
+       e «97 cm» erano tutt'e due il segno della carica per foro illeggibile,
+       nei due versi opposti — uno tranquillo, l'altro allarmante. */
+    ['Powder factor', _cmpPf(A.kpi), _cmpPf(B.kpi), null],
+    ['X50 previsto', _cmpCm(A.kpi,'x50'), _cmpCm(B.kpi,'x50'), vincitoreKpi(A.kpi.x50,B.kpi.x50)],
+    ['X80 (oversize)', _cmpCm(A.kpi,'x80'), _cmpCm(B.kpi,'x80'), vincitoreKpi(A.kpi.x80,B.kpi.x80)],
     /* ⛔ e la PPV si confronta solo se le due previsioni vengono dalla stessa
        legge: se no un cambio di CALIBRAZIONE si legge come un miglioramento
        del PROGETTO — misurato, 6,4 → 2,8 senza toccare un parametro. */
@@ -3086,6 +3183,15 @@ if($('btn-scheda-csv')) $('btn-scheda-csv').onclick=()=>{
     ['Esito carica totale', k.qtot===null?'non calcolabile':'contata sulla griglia di progetto'],
     ['Powder factor (kg/m3)', k.pf],
     ['X20 (cm)', k.x20], ['X50 (cm)', k.x50], ['X80 (cm)', k.x80],
+    /* ⛔ E LE QUATTRO CELLE SOPRA MENTIVANO IN DUE VERSI INSIEME. Con la
+       carica per foro illeggibile il file archiviato col rapportino usciva
+       con «Powder factor (kg/m3);0» — che si legge «poca carica» — e
+       «X50 (cm);97» contro i 27 veri, cioè una previsione di masselli. Adesso
+       le celle restano VUOTE (la regola della cella vuota, come per la MIC e
+       il limite di norma) e questa riga dice che è una non-misurabilità e
+       QUALE campo la produce. */
+    ['Esito frammentazione', k.fragCalcolabile?'calcolata (Kuz-Ram / Rosin-Rammler)':'non calcolabile'],
+    ['Perche la frammentazione non e calcolabile', k.fragCalcolabile?'':k.fragChe],
     ['PPV recettore (mm/s)', k.ppv], ['Limite PPV (mm/s)', k.lim],
     /* la norma esce ACCANTO alla sua soglia: quando la cella del limite è vuota
        è l'unica cosa che dice perché — e quando è piena dice a che cosa si
@@ -3238,9 +3344,15 @@ if($('btn-report')) $('btn-report').onclick=()=>{
   const sec=(t,rows)=>'<h2>'+esc(t)+'</h2><table>'+rows.map(r=>'<tr><td>'+esc(r[0])+'</td><td>'+r[1]+'</td></tr>').join('')+'</table>';
   const body=
     sec('Geometria',[['Maglia (spalla × interasse)',gfix(D2.B,1)+' × '+gfix(D2.S,1)+' m'],['Diametro foro',gnum(D2.diam,0)+' mm'],['Fori × file',gnum(nf,0)+' ('+gnum(D2.perRow,0)+' × '+gnum(D2.file,0)+')'],['Profondità / sottoperf.',gnum(D2.prof,1)+' / '+gnum(D2.sub||0,1)+' m'],['Borraggio',gnum(D2.stem,1)+' m'],['Inclinazione',gnum(D2.incl||0,0)+'°'],['Fronte',gnum(g.Lm,1)+' m']])
-   +sec('Carica & sequenza',[['Esplosivo',esc(E.nome||D2.esplosivo)],['Carica per foro',gnum(D2.kg,1)+' kg'],['Carica totale',nc(kgTot,gnum(kgTot,0)+' kg')],['Powder factor',gfix(k.pf,2)+' kg/m³'],['Innesco',esc(I.nome||D2.innesco)],['Sequenza',esc(seqL)],['Ritardo foro / fila',gnum(D2.ritardo,1)+' / '+gnum(D2.ritardoFila||0,1)+' ms']].concat((D2.decks||1)>1?[['Decking',gnum(D2.decks,0)+' cariche/foro (~'+gnum(D2.kg/D2.decks,0)+' kg/deck, borraggio tra deck '+gnum(D2.deckStem,1)+' m)']]:[]))
+   +sec('Carica & sequenza',[['Esplosivo',esc(E.nome||D2.esplosivo)],['Carica per foro',gnum(D2.kg,1)+' kg'],['Carica totale',nc(kgTot,gnum(kgTot,0)+' kg')],['Powder factor',nc(k.pf,gfix(k.pf,2)+' kg/m³')],['Innesco',esc(I.nome||D2.innesco)],['Sequenza',esc(seqL)],['Ritardo foro / fila',gnum(D2.ritardo,1)+' / '+gnum(D2.ritardoFila||0,1)+' ms']].concat((D2.decks||1)>1?[['Decking',gnum(D2.decks,0)+' cariche/foro (~'+gnum(D2.kg/D2.decks,0)+' kg/deck, borraggio tra deck '+gnum(D2.deckStem,1)+' m)']]:[]))
    +sec('Roccia',[['Litologia',esc(R.nome||D2.roccia)],['UCS',gnum(D2.ucs,0)+' MPa'],['Fratturazione',esc(D2.frat)],['Fori bagnati',D2.bagnato?'sì':'no']])
-   +sec('Previsioni (PREVISTO — non misura)',[['Frammentazione x20 / x50 / x80',gnum(k.x20,1)+' / '+gnum(k.x50,1)+' / '+gnum(k.x80,1)+' cm'],
+   +sec('Previsioni (PREVISTO — non misura)',[['Frammentazione x20 / x50 / x80',
+        /* ⛔ IL FOGLIO CHE SI PORTA IN CAVA SCRIVEVA «45 / 97 / 173 cm» su una
+           volata di cui nessuno aveva letto la carica: tre numeri buoni da
+           leggere, nati da un dato che non c'è. `nc` è la stessa forma che il
+           foglio usa già per la carica totale e per la MIC. */
+        k.fragCalcolabile ? gnum(k.x20,1)+' / '+gnum(k.x50,1)+' / '+gnum(k.x80,1)+' cm'
+                          : '<b>Non calcolabile</b> — '+esc(k.fragChe)+'. '+esc(k.fragCome)],
       ['MIC (carica massima per ritardo)',
         _rM.calcolabile ? gnum(_rMic,1)+' kg (finestra 8 ms)'
                         : '<b>Non calcolabile</b> — '+esc(_rM.che)+'. '+esc(_rM.come)],
@@ -3323,7 +3435,11 @@ if($('cmpExport')) $('cmpExport').onclick=()=>{
     ['Esito costo', _cmpNum(A.kpi.cost)===null?'non calcolabile: '+(A.kpi.costChe||''):'contato',
                     _cmpNum(B.kpi.cost)===null?'non calcolabile: '+(B.kpi.costChe||''):'contato'],
     ['Carica totale non calcolabile',
-      _cmpNum(A.kpi.qtot)===null?'si':'no', _cmpNum(B.kpi.qtot)===null?'si':'no']];
+      _cmpNum(A.kpi.qtot)===null?'si':'no', _cmpNum(B.kpi.qtot)===null?'si':'no'],
+    /* stessa forma per le quattro celle della frammentazione, che con la
+       carica illeggibile uscivano «0» e «97/173» invece che vuote */
+    ['Esito frammentazione', _cmpNum(A.kpi.pf)===null?'non calcolabile: '+(A.kpi.fragChe||''):'calcolata',
+                             _cmpNum(B.kpi.pf)===null?'non calcolabile: '+(B.kpi.fragChe||''):'calcolata']];
   /* `null` non si scrive in un file (il limite manca quando la normativa non è
      riconosciuta): cella VUOTA, come già fa la scheda volata */
   const csv=R.map(r=>r.map(v=>csvCell(v===null||v===undefined?'':v)).join(';')).join('\n')+'\n';
@@ -3472,6 +3588,15 @@ function riconRender(){
        che mancava era dirlo. */
     +(prev.ppv===null?'<div style="margin-top:8px;color:#ffca28;font-size:12px;line-height:1.4">'
       +'<b>La PPV prevista non c’è</b>: '+_rEsc(k.micChe||'la MIC non è calcolabile')+'. '+_rEsc(k.micCome||'')
+      +' Il valore misurato si può registrare lo stesso, ma lo scostamento non si calcola e nel CSV la cella del previsto resta vuota.</div>':'')
+    /* ⛔ E LA STESSA COSA PER LA PEZZATURA, che qui è la prima riga della
+       griglia: prima della guardia la colonna «Previsto» scriveva 97 cm, e il
+       fochino che ne misurava 26 sul cumulo si trovava uno scostamento del
+       −73% — cioè la riconciliazione dava la colpa alla SUA misura invece che
+       al campo mai compilato. È lo stesso difetto del confronto in fondo al
+       riquadro del 3D, un piano più in là. */
+    +(!k.fragCalcolabile?'<div style="margin-top:8px;color:#ffca28;font-size:12px;line-height:1.4">'
+      +'<b>La pezzatura prevista non c’è</b>: '+_rEsc(k.fragChe||'')+'. '+_rEsc(k.fragCome||'')
       +' Il valore misurato si può registrare lo stesso, ma lo scostamento non si calcola e nel CSV la cella del previsto resta vuota.</div>':'')
     +'<div id="ric-ppv-base" style="margin-top:8px;color:var(--mut);font-size:12px;line-height:1.4">Base della PPV prevista: '+_ppvBaseHtml(prev.ppvBase)+'</div>'
     +'<div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:10px;align-items:center;font-size:13px;color:var(--mut)">'
@@ -4280,7 +4405,12 @@ function volSnapshot(nome){
      sintesi lo dice, invece di scrivere «null kg» o un rassicurante «0 kg». */
   try{ const k=computeKPI(); sintesi=_ricPlur(k.nf,'foro','fori')
         +' · '+(k.qtot===null?'carica totale non calcolabile':gnum(k.qtot,0)+' kg')
-        +' · X50 '+k.x50+' cm'; }catch(e){}
+        /* ⛔ E LA STESSA TRAPPOLA, DUE CAMPI PIÙ IN LÀ: `+k.x50+` con `x50` a
+           `null` incolla la PAROLA «null» — la sintesi finisce nello storico
+           e si rilegge in Home mesi dopo. Ed è il caso peggiore da rileggere,
+           perché prima della guardia scriveva «X50 97 cm» su una volata sana:
+           un allarme archiviato per sempre. */
+        +' · '+(k.fragCalcolabile?'X50 '+gnum(k.x50,0)+' cm':'X50 non calcolabile'); }catch(e){}
   return { id:'v'+Date.now(), nome:nome,
     data:timbroLocale(),
     design:JSON.parse(JSON.stringify({B:D2.B,S:D2.S,file:D2.file,perRow:D2.perRow,diam:D2.diam,prof:D2.prof,kg:D2.kg,kgAuto:D2.kgAuto,ritardo:D2.ritardo,ritardoFila:D2.ritardoFila,stem:D2.stem,sub:D2.sub,incl:D2.incl,esplosivo:D2.esplosivo,innesco:D2.innesco,roccia:D2.roccia,ucs:D2.ucs,eMod:D2.eMod,frat:D2.frat,bagnato:D2.bagnato,acquaCol:D2.acquaCol,presplit:D2.presplit,psSpacing:D2.psSpacing,psCharge:D2.psCharge,sequenza:D2.sequenza,recDist:D2.recDist,recNorma:D2.recNorma,recFreq:D2.recFreq,decks:D2.decks,deckStem:D2.deckStem,profilo:D2.profilo,piede:D2.piede})),
@@ -4695,12 +4825,22 @@ function computeEnergia2D(){
       h.burdenVero = dPerp!=null ? +dPerp.toFixed(2) : null; // quanto ha davvero davanti, misurato in perpendicolare
       const s=Math.max(.2, sx+dx), vol=b*s*Hb;
       h.burdenLoc=+b.toFixed(2); h.spazLoc=+s.toFixed(2);
-      h.volLoc=+vol.toFixed(1); h.pfLoc=+(D2.kg/Math.max(.1,vol)).toFixed(3);
+      /* ⚠️ QUINTA E SESTA COPIA DELLA STESSA DIVISIONE (qui e in `pfNominale`
+         due righe più giù): con la carica per foro illeggibile davano **0**, e
+         la riga «Energia per foro» della scheda usciva «0,000–0,000 kg/m³ ·
+         0 diluiti / 0 concentrati» col pallino **VERDE** — cioè dichiarava una
+         distribuzione perfetta della carica su una carica mai letta. */
+      h.volLoc=+vol.toFixed(1); { const _p=consumoSpecifico(D2.kg, vol); h.pfLoc = _p===null?null:+_p.toFixed(3); }
       h.enX0=h.mx-sx; h.enX1=h.mx+dx; h.enY0=yPrec; h.enY1=h.my; h.enFila=r;
     }
   }
 }
-function pfNominale(){ return D2.kg/Math.max(.1,(D2.B||3)*(D2.S||3.5)*(D2.prof||10)); }
+/* Il consumo specifico MEDIO di progetto: il riferimento con cui si giudica
+   quello del singolo foro. `null` quando la carica per foro non è leggibile.
+   ⚠️ I ripieghi `||3`, `||3.5`, `||10` sulla MAGLIA restano come erano: sono
+   una decisione vecchia e diversa da questa, e toccarli sposterebbe la
+   geometria della mappa dell'energia. Qui si chiude solo la carica. */
+function pfNominale(){ return consumoSpecifico(D2.kg, (D2.B||3)*(D2.S||3.5)*(D2.prof||10)); }
 
 /* ═══════════ G4 — LE LINEE DI INNESCO ═══════════
    La sequenza dice a che millisecondo spara ogni foro. Sul campo però nessuno
@@ -4771,15 +4911,22 @@ function simulaPerforazione(N){
     if(n>0){ minimi.push(mn); medie.push(som/n); }
   }
   if(!minimi.length) return null;
-  const x50=computeKPI().x50;
+  const _k=computeKPI(), x50=_k.x50;
   /* propagazione al primo ordine sulla pezzatura: il consumo specifico va
-     come 1/burden, e Kuz-Ram dà X50 ∝ pf^−0,8 */
-  const x50k=medie.map(b=>x50*Math.pow(Math.max(0.2,b)/Bnom,0.8));
+     come 1/burden, e Kuz-Ram dà X50 ∝ pf^−0,8
+     ⛔ MA SI PROPAGA UN NUMERO, NON UN'ASSENZA: con `x50` a `null` la mappa
+     dava `null*qualcosa` = **0** per tutti i tiri, e la riga della scheda
+     avrebbe scritto «X50 0–0 cm» — la banda d'incertezza più tranquilla che
+     esista, su un dato mai letto. La banda del BURDEN invece è vera e resta:
+     dipende solo dalla geometria della perforazione, non dalla carica. */
+  const x50k = x50===null ? null : medie.map(b=>x50*Math.pow(Math.max(0.2,b)/Bnom,0.8));
   const sotto=minimi.filter(b=>b<0.7*Bnom).length/minimi.length;
   return {
     n:M, Bnom:+Bnom.toFixed(2),
     bMin5:+_perc(minimi,0.05).toFixed(2), bMin50:+_perc(minimi,0.50).toFixed(2), bMin95:+_perc(minimi,0.95).toFixed(2),
-    x5:Math.round(_perc(x50k,0.05)), x50:Math.round(_perc(x50k,0.50)), x95:Math.round(_perc(x50k,0.95)),
+    pezzatura: x50k!==null, fragChe:_k.fragChe, fragCome:_k.fragCome,
+    x5:x50k===null?null:Math.round(_perc(x50k,0.05)), x50:x50k===null?null:Math.round(_perc(x50k,0.50)),
+    x95:x50k===null?null:Math.round(_perc(x50k,0.95)),
     rischio:+(sotto*100).toFixed(0)
   };
 }
@@ -4957,6 +5104,9 @@ function drawIsocrone2D(ctx,g){
 function drawEnergia2D(ctx,g){
   const H=D2.holes; if(!H||!H.length) return null;
   const pfNom=pfNominale();
+  /* senza il riferimento non c'è un confronto da colorare: `pfCls(NaN)`
+     risponde 'ok', cioè dipingerebbe di VERDE tutti i blocchi */
+  if(pfNom===null) return null;
   const conta={moltoBassa:0,bassa:0,ok:0,alta:0,moltoAlta:0};
   let pmin=Infinity, pmax=-Infinity;
   ctx.save();
@@ -5067,8 +5217,13 @@ function muckShape(){
   const _e=selEsplosivo()||{}, vod=_e.vod_ms||3800, shk=Math.max(0.04,Math.min(0.96,(vod*vod-9e6)/(36e6-9e6)));
   const _wet=(D2.bagnato ? ({Nulla:0.70,Bassa:0.40,Media:0.18,Buona:0.05,Eccellente:0}[_e.acqua]||0) : 0);
   const heaveFac=(0.82+0.48*(1-shk))*(1-0.5*_wet);                    // stessa formula del 3D (fori bagnati inclusi)
-  const vol=B*S*Hb, pf=D2.kg/Math.max(0.1,vol), vFace0=(CAL.muckpile&&CAL.muckpile.vFace0)||8;
-  const v0=vFace0*heaveFac*Math.sqrt(Math.max(0.3,pf/0.35))*(B/Be);   // ancorata a heave (E_gas) + boost echelon B/Be
+  /* ⚠️ SETTIMA COPIA, e qui il numero è di FORMA, non di misura: scala la
+     velocità di partenza della faccia nel modello balistico del cumulo. Con la
+     carica assente si usa il valore NEUTRO (0,35 kg/m³, il tipico) invece dello
+     zero, per la stessa ragione del `pfN` del 3D: un cumulo disegnato al minimo
+     su un dato mai letto è un «tranquillo» in figura. */
+  const vol=B*S*Hb, pf=consumoSpecifico(D2.kg, vol), vFace0=(CAL.muckpile&&CAL.muckpile.vFace0)||8;
+  const v0=vFace0*heaveFac*Math.sqrt(Math.max(0.3,(pf===null?0.35:pf)/0.35))*(B/Be);   // ancorata a heave (E_gas) + boost echelon B/Be
   const aDeg=(CAL.muckpile&&CAL.muckpile.throwAlphaDeg)||42, a=aDeg*Math.PI/180, g=9.81, h0=Hb/2;   // quota di partenza ~metà banco
   const L=(v0*Math.cos(a)/g)*(v0*Math.sin(a)+Math.sqrt(Math.pow(v0*Math.sin(a),2)+2*g*h0));
   const A=rockFactorA().A, SF=+(1.3+Math.max(0,Math.min(1,(A-5)/9))*0.3).toFixed(2);  // rigonfiamento 1.3–1.6 su brillabilità calcolata
@@ -5277,7 +5432,16 @@ function renderScheda2D(){
   if($('d2-mat')) $('d2-mat').textContent='⛏ '+(selEsplosivo()?selEsplosivo().nome.split(' ')[0]:'—')+' · '+(selInnesco()?selInnesco().short:'—')+(D2.bagnato?' · 💧':'');
   if(document.activeElement!==$('dKgTot')) syncKgTot();
   const B=g.B, S=g.S, H=D2.prof, Dmm=D2.diam, Dm=Dmm/1000, Q=D2.kg, rit=D2.ritardo;
-  const pf=Q/(B*S*H), sb=S/B, hb=H/B, bd=B/Dm, stem=D2.stem, stemB=stem/B, msmHole=rit/S, msmRow=(D2.ritardoFila||rit)/B, sub=D2.sub, subB=sub/B, subRec=0.3*B;
+  /* ⛔ IL CONSUMO SPECIFICO E LA PEZZATURA LI DECIDE IL MODULO (blocco G13).
+     Qui c'erano la QUARTA copia della divisione e la QUARTA della formula di
+     Kuznetsov — e quest'ultima aveva già divergiuto: scriveva l'esponente
+     `0.633` dove le altre tre scrivono `19/30`. Con la carica per foro
+     illeggibile la scheda mostrava «Powder factor 0,00 kg/m³» col pallino
+     ROSSO (un consiglio a caricare di più, su un dato mai letto) e «X50
+     prevista 97 cm» contro i 27 veri. */
+  const _fg=fragKuzRam({ kg:Q, vol:B*S*H, A:rockFactorA().A,
+    RWS:Math.max(8, ((selEsplosivo()||{}).rws_pct||100)*(1-(D2.bagnato?({Nulla:0.70,Bassa:0.40,Media:0.18,Buona:0.05,Eccellente:0}[(selEsplosivo()||{}).acqua]||0):0))) });
+  const pf=_fg.pf, sb=S/B, hb=H/B, bd=B/Dm, stem=D2.stem, stemB=stem/B, msmHole=rit/S, msmRow=(D2.ritardoFila||rit)/B, sub=D2.sub, subB=sub/B, subRec=0.3*B;
   function badge(x,lab,valStr,lo,hi,wlo,whi,whyOk,whyLo,whyHi){
     let cls='sv-ok',why=whyOk;
     if(x<lo){ cls=(x<wlo?'sv-bad':'sv-warn'); why=whyLo; }
@@ -5297,7 +5461,14 @@ function renderScheda2D(){
     'spalla coerente con Ø ed esplosivo ('+_kbLo+'–'+_kbHi+'·Ø ≈ '+gfix(_kbLo*Dm,1)+'–'+gfix(_kbHi*Dm,1)+' m).',
     'spalla piccola per Ø'+Dmm+' mm con questo esplosivo; consigliata ~'+gfix(_Bcons,1)+' m.',
     'spalla elevata per Ø'+Dmm+' mm con questo esplosivo (consigliata ~'+gfix(_Bcons,1)+' m, '+_kbLo+'–'+_kbHi+'·Ø). Riduci spalla o aumenta Ø.'));
-  rows.push(badge(pf,'Powder factor',gfix(pf,2)+' <span>kg/m³</span>',0.30,0.55,0.22,0.7,
+  /* ⚠️ `badge` giudica con `<` e `>`: su un `null` tutt'e due rispondono
+     `false`, quindi il pallino sarebbe uscito VERDE — il caso peggiore. Il
+     `null` si intercetta PRIMA, e la riga porta la ragione al posto della
+     fascia consigliata: `sv-warn` e non `sv-bad`, perché non sappiamo che il
+     consumo specifico sia sbagliato, sappiamo di non poterlo dire. */
+  if(pf===null) rows.push({lab:'Powder factor',valStr:'<i style="color:#ffca28">non calcolabile</i>',cls:'sv-warn',
+    why:_fg.che+'. '+_fg.come});
+  else rows.push(badge(pf,'Powder factor',gfix(pf,2)+' <span>kg/m³</span>',0.30,0.55,0.22,0.7,
     'carica specifica nel range consigliato (0,30–0,55 kg/m³).',
     'PF basso → rischio blocchi/oversize; tipico 0,30–0,50 kg/m³.',
     'PF alto → rischio proiezioni/sovra-frammentazione.'));
@@ -5403,9 +5574,21 @@ function renderScheda2D(){
      è diluita e dove è concentrata. Qui la sintesi della mappa. */
   (function(){
     const HH=(D2.holes||[]).filter(h=>h.pfLoc!=null);
+    /* ⛔ DUE «—» CHE SEMBRANO LO STESSO E NON LO SONO. Il filtro toglie i fori
+       il cui consumo specifico non si conta, quindi con la carica per foro
+       illeggibile `HH` resta VUOTO anche su una maglia piena di fori — e la
+       riga scriveva «con un foro solo non c'è un confronto: il consumo
+       specifico locale coincide con quello di progetto», cioè una frase
+       tranquilla su una situazione tutt'altra. I fori disegnati si contano
+       PRIMA del filtro. */
+    const _disegnati=(D2.holes||[]).length;
+    if(_disegnati>=2 && HH.length<2){ rows.push({lab:'Energia per foro',valStr:'<i style="color:#ffca28">non calcolabile</i>',cls:'sv-warn',
+      why:'ci sono '+_ricPlur(_disegnati,'foro','fori')+' nel disegno, ma il consumo specifico del singolo foro non si conta: '+_fg.che+'. '+_fg.come}); return; }
     if(HH.length<2){ rows.push({lab:'Energia per foro',valStr:'—',cls:'sv-info',
       why:'con un foro solo non c\'è un confronto: il consumo specifico locale coincide con quello di progetto.'}); return; }
     const pfRif=pfNominale(), rr=HH.map(h=>h.pfLoc), mn=Math.min(...rr), mx=Math.max(...rr);
+    if(pfRif===null){ rows.push({lab:'Energia per foro',valStr:'<i style="color:#ffca28">non calcolabile</i>',cls:'sv-warn',
+      why:'il consumo specifico del singolo foro si confronta con quello medio di progetto, e quello non c\'è: '+_fg.che+'. '+_fg.come}); return; }
     const gi=HH.filter(h=>pfCls(h.pfLoc/pfRif)==='moltoBassa').length + HH.filter(h=>pfCls(h.pfLoc/pfRif)==='bassa').length;
     const su=HH.filter(h=>{const c=pfCls(h.pfLoc/pfRif); return c==='alta'||c==='moltoAlta';}).length;
     const estremi=HH.filter(h=>{const c=pfCls(h.pfLoc/pfRif); return c==='moltoBassa'||c==='moltoAlta';}).length;
@@ -5437,8 +5620,12 @@ function renderScheda2D(){
     const banda=S.bMin95-S.bMin5;
     const cls = S.rischio>=20 ? 'sv-bad' : (S.rischio>=5 ? 'sv-warn' : 'sv-ok');
     rows.push({lab:'Precisione di perforazione',
-      valStr:fmtMs(S.bMin5)+'–'+fmtMs(S.bMin95)+' <span>m di burden minimo · X50 '+gnum(S.x5,0)+'–'+gnum(S.x95,0)+' cm</span>', cls:cls,
-      why:'la maglia disegnata è perfetta, quella perforata no: il foro parte spostato dal punto segnato ('+fmtKg(D2.errColl)+' m) e scende scappando dal suo asse ('+fmtMs(D2.dev)+'% della lunghezza). Perturbando la geometria vera '+gnum(S.n,0)+' volte, il <b>burden minimo al piede</b> sta fra '+fmtMs(S.bMin5)+' e '+fmtMs(S.bMin95)+' m (mediana '+fmtMs(S.bMin50)+'), contro '+fmtMs(S.Bnom)+' m di progetto; la pezzatura X50 fra '+gnum(S.x5,0)+' e '+gnum(S.x95,0)+' cm. La banda sulla pezzatura è <b>stretta</b>, e non è un errore: su tanti fori gli scarti si compensano e il burden <i>medio</i> resta quasi quello di progetto. Quello che peggiora è il <b>minimo</b>, cioè il singolo foro sfortunato — e i guai in cava li fa quello, non la media. '
+      /* ⚠️ LA BANDA DEL BURDEN È VERA ANCHE QUANDO LA PEZZATURA NON C'È:
+         la prima dipende solo dalla geometria della perforazione, la seconda
+         dalla carica. Spegnerle insieme butterebbe via una misura sana. */
+      valStr:fmtMs(S.bMin5)+'–'+fmtMs(S.bMin95)+' <span>m di burden minimo · '
+        +(S.pezzatura?('X50 '+gnum(S.x5,0)+'–'+gnum(S.x95,0)+' cm'):'X50 non calcolabile')+'</span>', cls:cls,
+      why:'la maglia disegnata è perfetta, quella perforata no: il foro parte spostato dal punto segnato ('+fmtKg(D2.errColl)+' m) e scende scappando dal suo asse ('+fmtMs(D2.dev)+'% della lunghezza). Perturbando la geometria vera '+gnum(S.n,0)+' volte, il <b>burden minimo al piede</b> sta fra '+fmtMs(S.bMin5)+' e '+fmtMs(S.bMin95)+' m (mediana '+fmtMs(S.bMin50)+'), contro '+fmtMs(S.Bnom)+' m di progetto; '+(S.pezzatura?('la pezzatura X50 fra '+gnum(S.x5,0)+' e '+gnum(S.x95,0)+' cm. La banda sulla pezzatura è <b>stretta</b>, e non è un errore: su tanti fori gli scarti si compensano e il burden <i>medio</i> resta quasi quello di progetto.'):('la pezzatura invece <b>non si propaga</b>, perché non c\'è una previsione da cui partire: '+S.fragChe+'. '+S.fragCome))+' Quello che peggiora è il <b>minimo</b>, cioè il singolo foro sfortunato — e i guai in cava li fa quello, non la media. '
         +(S.rischio>=5
           ? '<b>Nel '+gnum(S.rischio,0)+'% dei casi almeno un foro finisce con meno del 70% del burden di progetto</b>: è la condizione classica delle proiezioni, perché quel foro si scarica verso la faccia invece che nella roccia. Si riduce marcando meglio la maglia, curando il posizionamento del carro, o accorciando i fori — la deviazione cresce con la lunghezza.'
           : 'Il rischio che un foro scenda sotto il 70% del burden di progetto resta sotto il 5%: la maglia regge la precisione dichiarata.')
@@ -5483,16 +5670,31 @@ function renderScheda2D(){
   rows.push({lab:'Direzione cumulo',valStr:(_mk.phiDeg>0?'~'+_mk.phiDeg+'° ':'')+'<span>'+(_mk.seq==='diagonale'?'↗ asimmetrico':'↑ simmetrico')+'</span>',cls:'sv-info',
     why:_mk.dirTxt+'. Burden effettivo Be '+gfix(_mk.Be,1)+' m (angolo isocrono '+gnum(_mk.theta,0)+'°); spread laterale '+_mk.spreadLat+'.'});
   const _rk=selRoccia(), _rf=rockFactorA(), _A=_rf.A, _RWS0=(selEsplosivo()||{}).rws_pct||100, _RWS=Math.max(8,_RWS0*(1-_penE));
-  const _x50=_A*Math.pow(Math.max(0.05,pf),-0.8)*Math.pow(Math.max(1,Q),1/6)*Math.pow(115/_RWS,0.633);
+  /* ⚠️ QUESTA RIGA SCRIVEVA `0.633` DOVE LE ALTRE TRE COPIE SCRIVONO `19/30`
+     (0,6333…): una divergenza da 1,00005 su x50, cioè zero centimetri
+     arrotondati — e la prova che due copie della stessa formula si scostano
+     da sole. Adesso la formula è una sola, nel modulo, e con la guardia
+     davanti ai clamp. `_fg` è calcolato in cima a questa funzione, con lo
+     stesso RWS effettivo (bagnato incluso) di prima. */
+  const _x50=_fg.x50;
   const _Th=rit, _sd=scatterMs(), _Rs=_sd/Math.max(1,_Th);   // scatter: unica formula, condivisa col relief per foro
   rows.push({lab:'Brillabilità (BI/A)',valStr:gfix(_A,1)+' <span>A · BI '+gnum(_rf.BI,0)+'</span>',cls:(_A<=6?'sv-ok':(_A<=10?'sv-warn':'sv-bad')),
     why:'rock factor A=0,06·(RMD+JF+RDI+HF) (Lilly/Cunningham): '+_rk.nome+', UCS '+(D2.ucs||_rk.ucs)+' MPa, E '+(D2.eMod||_rk.eMod)+' GPa, fratturazione '+D2.frat+'. RDI '+_rf.RDI+', HF '+_rf.HF+', JF '+_rf.JF+'. '+(_A<=6?'roccia facile: frammenta bene con PF moderato.':(_A<=10?'brillabilità media: cura PF e timing per evitare oversize.':'roccia dura/massiccia: serve PF alto, Ø piccolo o esplosivo ad alta VOD.'))});
-  rows.push({lab:'X50 prevista',valStr:Math.round(_x50)+' <span>cm</span>'+(_penE>0?' <span>↑bagnato</span>':''),cls:'sv-info',
+  rows.push(_x50===null
+    ? {lab:'X50 prevista',valStr:'<i style="color:#ffca28">non calcolabile</i>',cls:'sv-warn',
+       why:_fg.che+'. '+_fg.come}
+    : {lab:'X50 prevista',valStr:Math.round(_x50)+' <span>cm</span>'+(_penE>0?' <span>↑bagnato</span>':''),cls:'sv-info',
     why:'frammentazione mediana (Kuz-Ram, '+_rk.nome+' A='+gfix(_A,1)+' calcolato, RWS '+gnum(_RWS,0)+(_penE>0?' effettiva, ridotta da fori bagnati':'')+'): roccia piu dura (A alto) o meno carica/RWS la rende piu grossolana.'});
   /* === secondo modello: curva KCO/Swebrec (Ouchterlony 2005) — code più realistiche
      del Rosin-Rammler perché il massello è limitato dal blocco in situ e dalla maglia === */
   (function(){
     const _blk={compatta:2.0, media:1.0, fratturata:0.4}[D2.frat]||1.0;      // blocco in situ tipico (m)
+    /* ⛔ IL SECONDO MODELLO PARTE DAL PRIMO: senza x50 Kuz-Ram non c'è una
+       curva KCO. Con `_x50` a `null` `Math.max(null*1.2, …)` dava il massello
+       della maglia e la riga usciva «74/109 cm · max 117» — un secondo parere
+       che sembrava confermare il primo, e nasceva dallo stesso dato assente. */
+    if(_x50===null){ rows.push({lab:'Curva KCO (Swebrec)',valStr:'<i style="color:#ffca28">non calcolabile</i>',cls:'sv-warn',
+      why:'il secondo modello di frammentazione (KCO/Swebrec, Ouchterlony 2005) parte dallo stesso X50 di Kuz-Ram, e quello non c\'è: '+_fg.che+'. '+_fg.come}); return; }
     const _xmax=Math.max(_x50*1.2, Math.min(B, S, _blk)*100);                // cm, mai sotto x50
     const _b=Math.max(1.5, 0.5*Math.pow(Math.max(1,_x50),0.25)*Math.log(_xmax/_x50));   // undulation (fit Swebrec)
     const _at=(P)=>_xmax*Math.exp(-Math.log(_xmax/_x50)*Math.pow((1-P)/P,1/_b));
@@ -5504,11 +5706,17 @@ function renderScheda2D(){
   (function(){
     const _t=_A<=6?[0.25,0.40]:(_A<=10?[0.40,0.55]:[0.55,0.80]);
     const _pfMid=(_t[0]+_t[1])/2, _Qsug=Math.round(_pfMid*B*S*H);
-    const _ok=pf>=_t[0]&&pf<=_t[1];
+    /* ⚠️ IL CONSIGLIO RESTA VERO (dipende dal fattore roccia e dalla maglia,
+       non dalla carica), È IL CONFRONTO CHE SPARISCE: `null>=0.40` è `false` e
+       `null<0.40` è `true`, quindi la riga scriveva «Il PF attuale (—) è
+       SOTTO: rischio massello grosso — più carica», cioè mandava ad alzare la
+       carica per colpa del campo che nessuno aveva compilato. */
+    const _ok=pf!==null&&pf>=_t[0]&&pf<=_t[1];
     rows.push({lab:'Carica consigliata (regola)',valStr:'~'+gnum(_Qsug,0)+' <span>kg/foro (PF '+gfix(_t[0],2)+'–'+gfix(_t[1],2)+')</span>',
       cls:(_ok?'sv-ok':'sv-warn'),
       why:'regola di caricamento dalla brillabilità: con A='+gfix(_A,1)+' ('+(_A<=6?'roccia facile':(_A<=10?'brillabilità media':'roccia dura/massiccia'))+') il PF obiettivo è '+gfix(_t[0],2)+'–'+gfix(_t[1],2)+' kg/m³ → ~'+gnum(_Qsug,0)+' kg/foro su questa maglia. '
-        +(_ok?'Il PF attuale ('+gfix(pf,2)+') è nell\'intervallo.':'Il PF attuale ('+gfix(pf,2)+') è '+(pf<_t[0]?'SOTTO: rischio massello grosso — più carica o maglia più stretta.':'SOPRA: energia in eccesso — meno carica o maglia più larga (costo e vibrazioni).'))
+        +(pf===null?'Il PF attuale non è calcolabile, quindi il confronto con l\'intervallo non si può fare: '+_fg.che+'. '+_fg.come
+          :(_ok?'Il PF attuale ('+gfix(pf,2)+') è nell\'intervallo.':'Il PF attuale ('+gfix(pf,2)+') è '+(pf<_t[0]?'SOTTO: rischio massello grosso — più carica o maglia più stretta.':'SOPRA: energia in eccesso — meno carica o maglia più larga (costo e vibrazioni).')))
         +' Regola indicativa: la carica resta decisa dal responsabile del tiro.'});
   })();
   /* === impedance matching roccia <-> esplosivo: frazione d'urto trasmessa all'interfaccia === */
@@ -5859,7 +6067,7 @@ if($('dlIso')) $('dlIso').addEventListener('click', ()=>{ D2.iso=!D2.iso; syncLa
 if($('dlRel')) $('dlRel').addEventListener('click', ()=>{ D2.rel=!D2.rel; syncLayerUI(); drawDesign2D(); renderInspector();
   if(typeof toast==='function') toast(D2.rel?('Relief per foro attivo — finestra '+fmtMs(D2.relLo)+'–'+fmtMs(D2.relHi)+' ms/m'):'Mappa del relief disattivata'); });
 if($('dlEne')) $('dlEne').addEventListener('click', ()=>{ D2.ene=!D2.ene; syncLayerUI(); drawDesign2D(); renderInspector();
-  if(typeof toast==='function') toast(D2.ene?('Mappa dell’energia attiva — riferimento '+fmtKg(pfNominale())+' kg/m³ di progetto'):'Mappa dell’energia disattivata'); });
+  if(typeof toast==='function') toast(D2.ene?('Mappa dell’energia attiva — riferimento '+(pfNominale()===null?'non calcolabile':fmtKg(pfNominale())+' kg/m³')+' di progetto'):'Mappa dell’energia disattivata'); });
 if($('dlInn')) $('dlInn').addEventListener('click', ()=>{ D2.inn=!D2.inn; syncLayerUI(); drawDesign2D();
   if(typeof toast==='function') toast(D2.inn?'Rete di innesco attiva — sulle linee il ritardo che deve avere il raccordo':'Rete di innesco disattivata'); });
 if($('dlIsoStep')) $('dlIsoStep').addEventListener('change', ()=>{ D2.isoStep=Math.max(0,+$('dlIsoStep').value||0); drawDesign2D(); });
