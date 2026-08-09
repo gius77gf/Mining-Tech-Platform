@@ -1329,7 +1329,25 @@ const forzateViste = new Set();   /* le coppie larghezza|superficie su cui almen
    apre e a 320 no è ESATTAMENTE il risultato che le larghezze cercano, e in un
    totale più basso sparirebbe. */
 const forzateSenzaFinestre = [];
-const forzateSenzaVeleno = [];    /* quelle dove NON si apre nessuna finestra: non cieche, non misurate */
+/* ⛔ LE SUPERFICI DOVE NON C'ERA NIENTE DA AVVELENARE, ED È VALSO PER `--forzate`
+   E NON PER `--modali` — che è un difetto vero, trovato il 09/08 misurando le
+   larghezze e NON causato da esse: si presenta identico a 430 px, cioè alla
+   larghezza con cui la passata è registrata nel giro.
+   `--modali --controprova` contava fra le CIECHE le sei superfici che di
+   finestre non ne hanno nessuna (`vetrina`, `id · non autorizzato`,
+   `genesi · accesso`, `id · accesso`, `id · profilo`, `id · amministrazione`):
+   lì il veleno non entra perché non c'è dove metterlo, non perché il righello
+   non guardi. Effetto: «CONTROPROVA INCOMPLETA» e uscita 1 — una passata
+   registrata come controprova che NON PUÒ passare, cioè un rosso che non
+   segnala niente e insegna a non guardare il registro.
+   Riprodotto in un minuto e senza larghezze: `--modali --controprova
+   --solo=vetrina` → «1 superfici avvelenate, 0 l'hanno bocciata», uscita 1.
+   ⚠️ L'esenzione è STRETTA di proposito: vale solo dove non si è aperta NESSUNA
+   finestra. Se una finestra si apre e il veleno non ci arriva, quella resta una
+   superficie CIECA e la controprova deve cadere — è la terza delle cinque cause
+   di «non distingue», l'iniezione che non inietta, e scusarla qui la
+   nasconderebbe. */
+const senzaVeleno = [];
 const superficiCieche = [];
 const temaRifiutato = [];
 let mixBocciata = 0;
@@ -2034,8 +2052,10 @@ for (const [nome, via] of SUPERFICI) {
     perW.finestre = perW.finestreQuali.size;
     if (!forzateViste.has(`${LARGH}|${nome}`)) { forzateSenzaFinestre.push(conLargh(nome)); perW.senzaFinestre.push(nome); }
   }
+  const nessunaFinestraQui = MODALI ? titoliQui.size === 0
+    : FORZATE ? !forzateViste.has(`${LARGH}|${nome}`) : false;
   if (CONTROPROVA) {
-    if (FORZATE && !velenoQui) { forzateSenzaVeleno.push(conLargh(nome)); }
+    if (nessunaFinestraQui && !velenoQui) senzaVeleno.push(conLargh(nome));
     else { superficiProvate++; if (!presaQui) superficiCieche.push(conLargh(nome)); }
   }
   if (errori.length) console.log('  ⚠ errori pagina:', errori.slice(0, 2));
@@ -2289,9 +2309,9 @@ if (CONTROPROVA) {
     console.log('⛔ un testo LEGGIBILE scritto con `color-mix()` è stato bocciato: il righello non sa leggere `color(srgb …)`.');
     process.exit(1);
   }
-  if (forzateSenzaVeleno.length) {
+  if (senzaVeleno.length) {
     console.log(`   ⚠️ NON MISURATE (nessuna finestra si è aperta, quindi niente da avvelenare):`
-      + ` ${forzateSenzaVeleno.join(', ')}. Non vuol dire «a posto»: vuol dire che lì questa`
+      + ` ${senzaVeleno.join(', ')}. Non vuol dire «a posto»: vuol dire che lì questa`
       + ` controprova non ha potuto dire niente.`);
   }
   if (superficiCieche.length === 0) {

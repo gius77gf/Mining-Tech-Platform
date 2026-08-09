@@ -428,6 +428,52 @@ const INIETTA = `
       __mb.appendChild(__pb); window.__iniz.piccoli = (window.__iniz.piccoli || 0) + 1;
     } catch (e) {}`;
 
+/* ⛔ LE INIEZIONI DELLA FAMIGLIA D STANNO IN UNA TABELLA, E NON È ESTETICA.
+   `iniezioni-fresche.mjs` — il controllo che in tre secondi dice se una
+   controprova ha smesso di mordere perché il codice si è mosso — sa leggere
+   due forme sole: le tabelle il cui nome comincia per `DIFETT`/`INIEZION`, e
+   le `.replace("…")` scritte a mano. Le chiamate `inietta(rel, da, a, cosa)`
+   di questo file **non sono nessuna delle due**, quindi le famiglie A, B e C
+   NON sono sorvegliate da lì: se il loro bersaglio sparisce lo si scopre solo
+   lanciando il giro, cioè ore dopo. Che non sia teoria lo dice la storia di
+   questo stesso file: l'iniezione A è rimasta rotta per giorni quando qualcuno
+   ha aggiunto `.fl .u` accanto a `.flab .u`.
+   Scritta come tabella, la famiglia D entra nel censimento e il giorno in cui
+   qualcuno riscrive quelle etichette il controllo lo dice subito.
+   ⚠️ A, B e C restano fuori: portarle qui dentro vuol dire toccare tre
+   iniezioni che stanno reggendo, e non è il lavoro di questa unità — è
+   dichiarato perché si veda, non taciuto.
+   ⚠️ E LA FORMA È UNA MAPPA `rotta → {da, a}`, non una terna e non un elenco,
+   e tutt'e due i dettagli sono stati pagati in cinque minuti l'uno.
+   Terna `[cerca, sostituisci, descrizione]`: il censimento prende il SECONDO
+   elemento per l'ago — cioè la versione ROTTA — e dichiara scadute due
+   iniezioni sanissime; il suo commento avverte che di terne ne esistono già
+   tre convenzioni diverse qui dentro e che indovinare la posizione è il modo
+   di sbagliare.
+   Elenco che chiude con una quadra: il censimento cerca la fine di una tabella
+   col primo `\n];` che trova dopo la sua apertura, e `const INIEZIONI = []`
+   sta settanta righe più su — la MIA quadra è diventata la sua fine, quel
+   `eval` è saltato e l'elenco dei banchi «non leggibili da fermi» è passato da
+   zero a uno. Una tabella nuova può quindi rendere illeggibile una vecchia che
+   non ha toccato: chiusa con la graffa, il problema non si pone.
+   Scritta come
+   `[cerca, sostituisci, descrizione]` il censimento ha preso il SECONDO
+   elemento per l'ago — cioè la versione ROTTA — e ha dichiarato due iniezioni
+   scadute che erano sanissime. Non è un suo difetto: il suo commento racconta
+   che di terne ne esistono già tre convenzioni diverse in questo repository e
+   che indovinare la posizione è il modo di sbagliare. La forma a oggetto dice
+   quale campo è quale e non si può leggere male. */
+const DIFETTI_SOGLIE = {
+  'apps/scudo/index.html': {
+    da: '"— nessun esito —")}</select>`',
+    a: '"— nessun esito registrato —")}</select>`',
+    cosa: 'D1 · Scudo: la voce vuota lunga di `#vf-esito` (250 px: cade solo a 320)' },
+  'apps/scudo/scudo-data.js': {
+    da: 'nome: "Soggetto abilitato", quando:',
+    a: 'nome: "Soggetto pubblico o privato abilitato", quando:',
+    cosa: 'D2 · Scudo: il soggetto abilitato per esteso in `#vf-ente` (302 px: cade a 320 e a 360)' },
+};
+
 function inietta(rel, da, a, cosa) {
   const f = join(COPIA, rel);
   const t = readFileSync(f, 'utf8');
@@ -506,9 +552,7 @@ if (CONTROPROVA) {
      ⚠️ Vuole 360 px, che il giro normale non fa: le larghezze in più costano, e
      costano solo qui (vedi `LARGHEZZE`). */
   if (QUALE === 'D') {
-    for (const [rel, coppie] of Object.entries(DIFETTI_SOGLIE)) {
-      for (const [da, a, cosa] of coppie) inietta(rel, da, a, cosa);
-    }
+    for (const [rel, d] of Object.entries(DIFETTI_SOGLIE)) inietta(rel, d.da, d.a, d.cosa);
   }
 
   /* il server della copia, col contrassegno che dice che stiamo misurando LA
