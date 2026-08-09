@@ -745,6 +745,29 @@ numero scritto dove non era stato misurato niente**.*
       stato del progetto»). Il censimento la conta fra le 25: sono **tre** i
       motivi per cui quel numero è ottimista — il DOM ricevuto come argomento,
       la `<canvas>` creata, e ora lo **stato del browser**.
+      ⛔ **E ALLORA LA TERZA FETTA NON È STATA ALTRO CODICE SPOSTATO: È IL
+      RIGHELLO.** Aperti a mano tutti i candidati rimasti, **quasi nessuno era
+      un trasloco** — otto leggono `localStorage`, due creano una `<canvas>`,
+      due maneggiano THREE, una ferma nodi Web Audio, una riceve un elemento
+      del DOM. Continuare a estrarre dalla lista voleva dire lavorare dove non
+      si può; correggere la lista vale per tutte le volte dopo.
+      `genesi-estraibili.mjs` fa adesso la **seconda domanda** — *tocca il DOM
+      in qualunque modo, anche ricevendolo, o l'ambiente del browser?* — e la
+      **propaga per chiamata**, perché senza propagazione rispondeva di no a
+      metà dei colpevoli (`sitoLegge` chiama `sitoStore`, `gvv` chiama
+      `gLeggi`).
+      **Effetto sui numeri, che è il punto:** «si portano fuori come sono»
+      **23 → 6**, ed estraibili in totale **81 → 62**. Delle 6 rimaste, aperte
+      una per una, **solo `_sentOggi` è davvero pura** — ed è un alias di una
+      riga di `shared/`, quindi non serve. **La colonna è esaurita**: il
+      cantiere che resta sono le **56** che leggono una o due variabili del
+      modulo, cioè un **cambio di firma**, non un trasloco.
+      ⚠️ E il righello **dichiara quello che ancora non vede** invece di
+      stringere a metà: le tre cause rimaste (uno stato in un `let` che
+      l'euristica salta, un oggetto THREE ricevuto come argomento, una funzione
+      di libreria) non si distinguono senza sapere i **tipi**, e un righello «un
+      po' meno sbagliato» è peggio di uno che dichiara il suo dubbio — regola
+      già pagata su `contrasto.mjs`.
 - [ ] **B4. Le mancanze confermate del delta**, in ordine di quanto le chiede un
       ispettore. ⏱️ **Ricontate il 07/08 leggendo i documenti**, non a memoria —
       il conto qui scritto era del 02/08 e si era mosso parecchio:

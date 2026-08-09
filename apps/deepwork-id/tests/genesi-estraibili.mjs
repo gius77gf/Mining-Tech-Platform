@@ -99,6 +99,32 @@ for (const g of src.matchAll(/\n\s{0,4}(?:let|const|var)\s+([A-Za-z_$][\w$]*)/g)
    totale. */
 const DOM_NASCOSTO = /(?:^|[^\w$])\$\s*\(/;
 
+/* ⛔ LA SECONDA DOMANDA, dal 09/08: «nessuna variabile del modulo e nessun
+   `$(...)`» dice DOVE VIVE LO STATO, non DOVE PUÒ VIVERE LA FUNZIONE.
+   Trovata portando fuori la prima fetta e aprendo la lista uno per uno: fra le
+   «25 che si portano fuori come sono» ce n'erano che in un modulo dati non ci
+   vanno affatto, per tre ragioni diverse e tutte invisibili al filtro di
+   prima —
+   · il **DOM ricevuto come argomento**: `nomeCampoD2` fa `el.closest('label')`,
+     e `el` arriva da fuori, quindi nessun `$(` compare;
+   · l'**ambiente del browser**: otto funzioni leggono o scrivono
+     `localStorage` (`_lsGet`, `_lsSet`, `_cmpLoad`, `_sentStore`, `_sentSave`,
+     `sitoStore`, `sitoSalva`, `riconStorico`), e in Node solleverebbero. Il
+     commento della pagina lo diceva già — *«restano qui `riconStorico`,
+     `riconSave`… che leggono `localStorage`, il DOM o lo stato del progetto»* —
+     mentre il censimento le contava fra le estraibili;
+   · la **tela e il 3D**: `skyTexture` e `softTexture` creano una `<canvas>`,
+     `applyRockMaterial` e `mdlSet` maneggiano oggetti THREE, `cancelAudio`
+     ferma nodi Web Audio.
+   ⚠️ Non è severità in più: è che il numero stampato **voglia dire quello che
+   promette**. Un elenco di candidati sbagliato manda a lavorare dove non si
+   può, ed è lo stesso danno di un «non c'è» falso. */
+const AMBIENTE_BROWSER = new RegExp("(?:^|[^\\w$.])(?:localStorage|sessionStorage|document|window|navigator|"
+  + "location|fetch|AudioContext|FileReader|URL|requestAnimationFrame|THREE|createElement|"
+  + "getContext|addEventListener|alert|Blob)\\b");
+/* il DOM che arriva come ARGOMENTO: metodi che solo un elemento ha */
+const DOM_ARGOMENTO = /\.(?:closest|querySelector|querySelectorAll|appendChild|classList|getBoundingClientRect|innerHTML|innerText|textContent|dataset)\b/;
+
 const BUILTIN = new Set(("Math Number String Array Object JSON Boolean Date Map Set WeakMap "
   + "isNaN isFinite parseFloat parseInt console Infinity NaN undefined null true false "
   + "RegExp Promise Error Symbol BigInt Intl encodeURIComponent decodeURIComponent").split(" "));
@@ -130,8 +156,34 @@ const censite = funzioni.map((f) => {
     if (globali.has(n)) glob.add(n);
     else if (nomiFunzioni.has(n) && n !== f.nome) chiama.add(n);
   }
-  return { ...f, glob: [...glob], chiama: [...chiama], dom: DOM_NASCOSTO.test(f.corpo) };
+  return { ...f, glob: [...glob], chiama: [...chiama],
+           dom: DOM_NASCOSTO.test(f.corpo),
+           /* la seconda domanda: tocca il DOM in QUALUNQUE modo, anche
+              ricevendolo, o l'ambiente del browser? */
+           ambiente: AMBIENTE_BROWSER.test(f.corpo) || DOM_ARGOMENTO.test(f.corpo) };
 });
+
+/* ⛔ E LA SECONDA DOMANDA VA PROPAGATA, se no risponde di no a metà dei
+   colpevoli. Misurato subito dopo averla scritta: restavano «pure» otto
+   funzioni e almeno cinque non lo erano — `sitoLegge` chiama `sitoStore` che
+   legge `localStorage`, `gvv` chiama `gLeggi` che legge un campo del DOM,
+   `lithoTint` chiama `selRoccia`. Il tocco all'ambiente **si eredita per
+   chiamata**: chi chiama una funzione che tocca il browser tocca il browser.
+   Si chiude a punto fisso — poche decine di giri su 163 funzioni, e il ciclo
+   si ferma da sé perché l'insieme può solo crescere. */
+{
+  const per = new Map(censite.map((c) => [c.nome, c]));
+  let cambia = true;
+  while (cambia) {
+    cambia = false;
+    for (const c of censite) {
+      if (c.ambiente || c.dom) continue;
+      if (c.chiama.some((n) => { const d = per.get(n); return d && (d.ambiente || d.dom); })) {
+        c.ambiente = true; cambia = true;
+      }
+    }
+  }
+}
 
 const scaglione = (n) => n === 0 ? "0" : n <= 2 ? "1-2" : n <= 5 ? "3-5" : n <= 10 ? "6-10" : "11+";
 const conto = {};
@@ -143,12 +195,36 @@ for (const k of ["0", "1-2", "3-5", "6-10", "11+"]) {
   const n = conto[k] || 0;
   console.log(`  ${k.padStart(5)}${" ".padEnd(32)}${String(n).padStart(4)}  ${"█".repeat(Math.round(n / 3))}`);
 }
-const subito = censite.filter((c) => !c.glob.length && !c.dom);
+const subito = censite.filter((c) => !c.glob.length && !c.dom && !c.ambiente);
 const conDom = censite.filter((c) => !c.glob.length && c.dom);
+/* la seconda domanda, contata a parte: senza stato del modulo e senza `$(`,
+   ma con il DOM ricevuto, la tela, il 3D o `localStorage` dentro */
+const conAmbiente = censite.filter((c) => !c.glob.length && !c.dom && c.ambiente);
 const facili = censite.filter((c) => c.glob.length && c.glob.length <= 2);
 const duri = censite.filter((c) => c.glob.length > 10);
 console.log(`\n  ${subito.length} si portano fuori COME SONO (nessuna variabile del modulo, nessun tocco al DOM)`);
 console.log(`  ${conDom.length} non leggono variabili del modulo ma SCRIVONO NEL DOM con \`$(...)\`: restano nella pagina`);
+console.log(`  ${conAmbiente.length} idem, ma toccano l'AMBIENTE del browser (DOM ricevuto, tela, THREE, localStorage): restano`);
+/* ⛔ E QUELLO CHE IL RIGHELLO ANCORA NON VEDE, dichiarato invece che nascosto.
+   Le poche rimaste in cima sono state aperte A MANO il 09/08, una per una, e
+   quasi nessuna è davvero un trasloco: `worldJitter` e `jitterGeo` scrivono
+   dentro una geometria THREE che arriva come argomento; `cancelAudio` ferma
+   nodi Web Audio tenuti in un `let` che l'euristica delle globali non prende;
+   `mdlSet` sceglie fra due liste di maniglie 3D; `lithoTint` chiama
+   `selRoccia`. Resta `_sentOggi`, che è pura — ed è un alias di una riga di
+   `shared/`, quindi portarla fuori non aggiungerebbe niente.
+   Detto in chiaro: dopo le due fette del 09/08 (`interpProf`, e poi `_sentNum`
+   e `isoColore`) la colonna «si portano fuori come sono» è **praticamente
+   esaurita**, e il cantiere che resta sono le 56 che leggono una o due
+   variabili del modulo — cioè un cambio di firma, non un trasloco.
+   ⚠️ Perché non si stringe ancora: le tre cause rimaste (uno stato in un `let`
+   che l'euristica salta, un oggetto THREE ricevuto come argomento, una
+   funzione di libreria) non si distinguono da una regex senza sapere i TIPI, e
+   un righello «un po' meno sbagliato» è peggio di uno che dichiara il suo
+   dubbio — è la regola già pagata su `contrasto.mjs`. */
+console.log(`     ⚠️ delle ${subito.length} qui sopra, aperte a mano il 09/08: solo \`_sentOggi\` è davvero pura`);
+console.log(`        (e non serve: è un alias di una riga di shared/). La colonna è ESAURITA — il cantiere`);
+console.log(`        che resta sono le ${facili.length} che leggono una o due variabili: cambio di firma, non trasloco.`);
 console.log(`  ${facili.length} ne leggono una o due: si portano fuori passandogliela`);
 console.log(`  ${duri.length} ne leggono più di dieci: lì è un rifacimento, non un trasloco`);
 console.log(`\n⛔ E il numero che conta non è 192: è ${subito.length + facili.length} —`);
