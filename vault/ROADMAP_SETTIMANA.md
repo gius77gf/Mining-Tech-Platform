@@ -925,9 +925,22 @@ numero scritto dove non era stato misurato niente**.*
   ⚠️ E `#vf-ente` («Soggetto pubblico o privato abilitato», 254 px in 214) è un
   caso diverso e **non si tocca senza il fondatore**: è il termine dell'**art.
   71 c.11**, non una nostra etichetta.
-  ⚠️ Restano da riverificare gli altri 13: Genesi (4, frasi della nuvola),
-  Campo (3 foglio di turno + 2 stati non misurati + 1 manina), Conti (1 barre
-  di peso), Sentinella (2 tendine, non coperte dal `--solo=scudo`).
+  · ⛔ **Campo, i 3 del foglio di turno: ANCORA VERI, e nella direzione che
+    pesa.** La passata normale dà **35 passati, 0 falliti** — è la variante
+    `--live` a cadere (32/3), cioè quella che finge i **dati veri**: con i dati
+    veri la consegna `.txt` **continua a dichiararsi fatta di dati d'esempio**
+    (la riga sta al carattere 33, prima del primo dato). È il danno peggiore
+    che questa famiglia di banchi esiste per impedire — l'opposto del caso di
+    Scudo, dove il rischio era marchiare il fascicolo di un lavoratore vero.
+    ⚠️ E non è un'iniezione scaduta: `iniezioni-fresche` dà **215/215 sul
+    bersaglio**, e il banco dichiara «6 iniezioni come live».
+    ⚠️ **Da riverificare col flag giusto**: la prima passata che ho lanciato era
+    quella di serie e diceva 0 falliti — la riga del giro si chiama «foglio di
+    turno · **coi dati veri tace**», e in `tutti.mjs` è `['--live']`. Riverificare
+    un KO con la passata sbagliata è il modo più facile di dichiararlo chiuso.
+  ⚠️ Restano da riverificare gli altri 10: Genesi (4, frasi della nuvola),
+  Campo (2 stati non misurati + 1 manina), Conti (1 barre di peso), Sentinella
+  (2 tendine, non coperte dal `--solo=scudo`).
 
 ## Vincoli
 
