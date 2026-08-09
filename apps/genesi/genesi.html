@@ -3205,7 +3205,7 @@ function _riconCampoHtml(){
        percentuale non è zero, è assente — e `_ricColore` la spegne da sola
        invece di dipingere di verde una divisione che non si può fare */
     const vsGenesi = k.qtot?(c.kgReale-k.qtot)/k.qtot*100:null;
-    h+=riga('Carica prevista da Genesi (progetto aperto)',_ricKg(k.qtot)+' kg su '+gnum(k.nf,0)+' fori','previsto qui');
+    h+=riga('Carica prevista da Genesi (progetto aperto)',_ricKg(k.qtot)+' kg su '+_ricPlur(k.nf,'foro','fori'),'previsto qui');
     h+= confrontabile
       ? riga('Reale contro il previsto di Genesi',
              _ricSegno(c.kgReale-k.qtot)+' kg ('+_ricPct(vsGenesi)+')',
@@ -3277,7 +3277,7 @@ function riconRender(){
            riga non ce l'hanno e lo dicono, invece di farsela attribuire. */
         +'<br><span style="color:var(--mut2)">base PPV: '
           +_rEsc(r.prev&&r.prev.ppvBase&&r.prev.ppvBase.breve ? r.prev.ppvBase.breve : 'non registrata')+'</span>'
-        +(r.campo?'<br><span style="color:var(--mut2)">da Campo: '+_ricKg(r.campo.kgReale)+' kg caricati su '+r.campo.foriReg+'/'+r.campo.foriTot+' fori ('+(r.campo.scostPct==null?'scostamento non misurabile':_ricPct(+r.campo.scostPct)+' sul progetto')+')'+(r.campo.chi&&r.campo.chi.length?' · '+_rEsc(r.campo.chi.join(', ')):'')+'</span>':'')
+        +(r.campo?'<br><span style="color:var(--mut2)">da Campo: '+_ricKg(r.campo.kgReale)+' kg caricati su '+r.campo.foriReg+'/'+r.campo.foriTot+' '+plurale(r.campo.foriTot,'foro','fori')+' ('+(r.campo.scostPct==null?'scostamento non misurabile':_ricPct(+r.campo.scostPct)+' sul progetto')+')'+(r.campo.chi&&r.campo.chi.length?' · '+_rEsc(r.campo.chi.join(', ')):'')+'</span>':'')
         +(r.real.note?' · '+_rEsc(r.real.note):'')+'</div>').join('')
       +'</div>'):'<div style="margin-top:12px;color:var(--mut);font-size:12px;">Nessuna riconciliazione salvata: inserisci i valori reali e premi “Salva”.</div>');
   const upd=()=>{ $('ric-d-x50').innerHTML=riconDelta(prev.x50,$('ric-x50').value,'cm'); $('ric-d-ppv').innerHTML=riconDelta(prev.ppv,$('ric-ppv').value,'mm/s'); $('ric-d-fly').innerHTML=riconDelta(prev.fly,$('ric-fly').value,'m'); };
@@ -3906,7 +3906,7 @@ function sentRender(){
     +riga('Norma citata',_rEsc(d.norma))
     +riga('Airblast previsto',it(d.db,0)+' dB(L)')
     +riga('Base della previsione',d.calibrata
-      ? ('legge di sito calibrata sui tuoi '+gnum(d.referti,0)+' referti'
+      ? ('legge di sito calibrata sui tuoi '+_ricPlur(d.referti,'referto','referti')
          + (d.provvisoria?' — <b style="color:#ffca28">provvisoria</b>: sotto gli 8 referti la pendenza si muove ancora a ogni misura nuova':''))
       : 'stima dalla litologia')
     +'</div>'
@@ -4007,8 +4007,8 @@ document.querySelectorAll('#scr-home .card').forEach(c=> c.onclick=()=>setScreen
 function _lsGet(k){ try{ return JSON.parse(localStorage.getItem(k)||'[]'); }catch(e){ return []; } }
 function _lsSet(k,v){ try{ localStorage.setItem(k, JSON.stringify(v)); }catch(e){} }
 function volSnapshot(nome){
-  let sintesi=(D2.perRow*D2.file)+' fori';
-  try{ const k=computeKPI(); sintesi=k.nf+' fori · '+k.qtot+' kg · X50 '+k.x50+' cm'; }catch(e){}
+  let sintesi=_ricPlur(D2.perRow*D2.file,'foro','fori');
+  try{ const k=computeKPI(); sintesi=_ricPlur(k.nf,'foro','fori')+' · '+k.qtot+' kg · X50 '+k.x50+' cm'; }catch(e){}
   return { id:'v'+Date.now(), nome:nome,
     data:timbroLocale(),
     design:JSON.parse(JSON.stringify({B:D2.B,S:D2.S,file:D2.file,perRow:D2.perRow,diam:D2.diam,prof:D2.prof,kg:D2.kg,kgAuto:D2.kgAuto,ritardo:D2.ritardo,ritardoFila:D2.ritardoFila,stem:D2.stem,sub:D2.sub,incl:D2.incl,esplosivo:D2.esplosivo,innesco:D2.innesco,roccia:D2.roccia,ucs:D2.ucs,eMod:D2.eMod,frat:D2.frat,bagnato:D2.bagnato,acquaCol:D2.acquaCol,presplit:D2.presplit,psSpacing:D2.psSpacing,psCharge:D2.psCharge,sequenza:D2.sequenza,recDist:D2.recDist,recNorma:D2.recNorma,recFreq:D2.recFreq,decks:D2.decks,deckStem:D2.deckStem,profilo:D2.profilo,piede:D2.piede})),
@@ -4885,7 +4885,7 @@ function drawDesign2D(){
   ctx.beginPath(); ctx.moveTo(ax1,34); ctx.lineTo(ax1-sign*8,30); ctx.lineTo(ax1-sign*8,38); ctx.fillStyle='#66bb6a'; ctx.fill();
   ctx.fillStyle='#8fcf92'; ctx.textAlign=sign>0?'left':'right'; ctx.font="11px 'Barlow',sans-serif"; ctx.fillText('sequenza di sparo', sign>0?padX:W-padX, 52);
   ctx.fillStyle='#f0e8d8'; ctx.textAlign='right'; ctx.font="600 12px 'Barlow Condensed',sans-serif";
-  ctx.fillText(H.length+' fori · '+D2.file+(D2.file>1?' file':' fila')+' · '+(selInnesco()?selInnesco().short:'Nonel')+' '+D2.ritardo+' ms', W-padX, 30);
+  ctx.fillText(_ricPlur(H.length,'foro','fori')+' · '+D2.file+(D2.file>1?' file':' fila')+' · '+(selInnesco()?selInnesco().short:'Nonel')+' '+D2.ritardo+' ms', W-padX, 30);
   if(isoInfo){ ctx.fillStyle=isoColore(.35); ctx.textAlign='right'; ctx.font="600 11px 'Barlow Condensed',sans-serif";
     ctx.fillText('isocrone ogni '+isoInfo.passo+' ms · ultimo foro a '+Math.round(D2.lastDet||0)+' ms', W-padX, 48); }
   if(D2.rel) drawReliefLegenda(ctx,gGeo);
@@ -5266,7 +5266,7 @@ function renderScheda2D(){
   const _pv = provenienzaPpv(_st, _sd2, _rk.nome);
   const _prov = _pv.provvisoria;
   const _fonte = (_pv.fonte==='sito')
-    ? ('K≈'+gnum(_pv.K,0)+'/β≈'+gnum(_pv.beta,2)+' ricavati dai <b>tuoi '+gnum(_pv.referti,0)+' referti</b> (riga al 95° percentile, R²='+gnum(_pv.r2,3)+')'
+    ? ('K≈'+gnum(_pv.K,0)+'/β≈'+gnum(_pv.beta,2)+' ricavati dai <b>tuoi '+_ricPlur(_pv.referti,'referto','referti')+'</b> (riga al 95° percentile, R²='+gnum(_pv.r2,3)+')'
        + (_prov ? '. <b>Legge provvisoria</b>: sotto gli 8 referti la pendenza si muove ancora parecchio a ogni misura nuova, quindi anche questa PPV si muoverà' : '')
        + (_pv.fuoriIntervallo ? '. <b>Attenzione</b>: SD '+gfix(_sd2,1)+' è fuori dall\'intervallo calibrato ('+gnum(_pv.sdMin,1)+'–'+gnum(_pv.sdMax,1)+'): qui la legge estrapola' : ''))
     : ('K≈'+gnum(_pv.K,0)+'/β≈'+gnum(_pv.beta,2)+' stimati da '+_rk.nome+' (valori da manuale, cautelativi)');
@@ -5333,7 +5333,7 @@ function renderScheda2D(){
   const _crow=(l,v,ex)=>'<div style="display:flex;justify-content:space-between;gap:8px;font-size:11px;padding:2px 0;'+(ex||'')+'"><span style="color:var(--mut2)">'+l+'</span><b>'+v+'</b></div>';
   let _costRows=_crow('Perforazione',gnum(_mPerf,0)+' m · '+_eur(_cP))
     +_crow('Esplosivo',gnum(_kgTot,0)+' kg · '+_eur(_cE))
-    +_crow('Inneschi',gnum(_nf,0)+' fori · '+_eur(_cI))
+    +_crow('Inneschi',_ricPlur(_nf,'foro','fori')+' · '+_eur(_cI))
     +_crow('Totale volata',_eur(_cTot),'border-top:1px solid rgba(255,171,0,.2);margin-top:3px;padding-top:4px;color:var(--cu)')
     +_crow('Costo unitario',gfix(_cM3,2)+' €/m³ · '+gfix(_cT,2)+' €/t');
   if((D2.valMat||0)>0){ const _ric=_ton*D2.valMat, _marg=_ric-_cTot; _costRows+=_crow('Margine (materiale '+gnum(D2.valMat,2)+' €/t)',_eur(_marg)+' <span style="color:var(--mut2);font-weight:400">('+_eur(_ric)+' ricavo)</span>','color:'+(_marg>=0?'#66bb6a':'#ef5350')); }
@@ -5360,7 +5360,7 @@ function renderScheda2D(){
       +'<div style="color:var(--mut2);margin-top:3px">Se i deck sono innescati su <b>ritardi separati</b>, la carica per ritardo scende a ≈ '+gnum(_kgDeck,0)+' kg (−'+gnum((1-1/_N)*100,0)+'%): <b>vibrazioni minori</b> al recettore. La vista 3D (raggi-X) mostra i deck e gli inneschi come sono qui.</div></div></div>';
     }
   }
-  el.innerHTML='<div class="sv-card"><div class="sv-h"><b>Scheda volata</b><span class="sv-sub">'+gnum(g.n,0)+' fori · '+gnum(g.Lm,1)+' m fronte<br>Ø'+gnum(Dmm,0)+' mm · '+gnum(Q,1)+' kg/foro · H '+gnum(H,1)+' m<br>'+(selEsplosivo()?'Esplosivo: '+selEsplosivo().nome:'')+(selInnesco()?' / innesco '+selInnesco().short:'')+(selRoccia()?'<br>Roccia: '+selRoccia().nome+' ('+selRoccia().cls+')':'')+'<br><i style="color:var(--mut2)">tocca una voce per i dettagli</i></span></div>'
+  el.innerHTML='<div class="sv-card"><div class="sv-h"><b>Scheda volata</b><span class="sv-sub">'+_ricPlur(g.n,'foro','fori')+' · '+gnum(g.Lm,1)+' m fronte<br>Ø'+gnum(Dmm,0)+' mm · '+gnum(Q,1)+' kg/foro · H '+gnum(H,1)+' m<br>'+(selEsplosivo()?'Esplosivo: '+selEsplosivo().nome:'')+(selInnesco()?' / innesco '+selInnesco().short:'')+(selRoccia()?'<br>Roccia: '+selRoccia().nome+' ('+selRoccia().cls+')':'')+'<br><i style="color:var(--mut2)">tocca una voce per i dettagli</i></span></div>'
     +bipHtml
     +'<div class="sv-grid">'+rowsHtml+'</div>'
     +'<div class="sv-scale"><div class="sv-lab">Rapporto di rigidità H/B — frammentazione attesa</div>'
