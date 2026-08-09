@@ -137,27 +137,35 @@ const VOCABOLARIO = /^(DIFETT|INIEZION|COME_LIVE)/;
    `scudo-verifica-periodica` — dove la stringa da cercare ha un **nome**, `da`,
    e non va indovinata affatto. Quando c'è, si legge quella. */
 const stringhe = (a) => a.filter((x) => typeof x === "string");
-const coppieDi = (v) => {
-  if (v && typeof v === "object" && !Array.isArray(v) && typeof v.da === "string") return [[v.da, String(v.a ?? "")]];
+/* Ogni coppia esce come `{parti, file}`: `file` è il bersaglio DICHIARATO,
+   quando c'è — il campo `file` della forma a oggetto, oppure la CHIAVE di
+   `DIFETTI = { "apps/x/index.html": […] }`, che è la rotta servita. */
+const coppieDi = (v, chiave) => {
+  if (v && typeof v === "object" && !Array.isArray(v) && typeof v.da === "string") {
+    return [{ parti: [v.da, String(v.a ?? "")], file: v.file || chiave }];
+  }
   if (Array.isArray(v)) {
-    if (v.every((x) => typeof x === "string" || typeof x === "number") && stringhe(v).length >= 2) return [stringhe(v)];
+    if (v.every((x) => typeof x === "string" || typeof x === "number") && stringhe(v).length >= 2) {
+      return [{ parti: stringhe(v), file: chiave }];
+    }
     if (v.length && v.every((x) => x && typeof x === "object")) {
       const out = [];
-      for (const x of v) { const c = coppieDi(x); if (!c) return null; out.push(...c); }
+      for (const x of v) { const c = coppieDi(x, chiave); if (!c) return null; out.push(...c); }
       return out;
     }
     return null;
   }
   if (v && typeof v === "object") {   // `DIFETTI = { "rotta": [ [cerca, sost], … ] }`
     const out = [];
-    for (const k of Object.keys(v)) { const c = coppieDi(v[k]); if (!c) return null; out.push(...c); }
+    for (const k of Object.keys(v)) { const c = coppieDi(v[k], k); if (!c) return null; out.push(...c); }
     return out;
   }
   return null;
 };
 
-let totali = 0;
-const scadute = [], illeggibili = [], tabelle = [], fuoriVocabolario = [];
+let totali = 0, conFile = 0, senzaFile = 0;
+const scadute = [], illeggibili = [], tabelle = [], fuoriVocabolario = [], fuoriPosto = [];
+const testiPer = Object.fromEntries(SORGENTI.map((p, i) => [p, testi[i]]));
 const banchiVisti = new Set();
 for (const f of readdirSync(BANCHI).filter((x) => x.endsWith(".mjs")).sort()) {
   const src = readFileSync(join(BANCHI, f), "utf8");
@@ -191,11 +199,37 @@ for (const f of readdirSync(BANCHI).filter((x) => x.endsWith(".mjs")).sort()) {
          allarmi. Quello che tutte e tre hanno in comune è che l'iniezione è una
          coppia **adiacente**: quindi con tre elementi rimasti si guarda il
          **penultimo**, non il primo. */
-      const parti = (Array.isArray(d) ? d : [d]).filter((x) => !SORGENTI.includes(x));
+      const norm = (x) => String(x || "").replace(/^\.?\//, "");
+      const parti = d.parti.filter((x) => !SORGENTI.includes(norm(x)));
       const cerca = parti.length >= 3 ? parti[parti.length - 2] : parti[0];
       if (typeof cerca !== "string" || !cerca.trim()) continue;
       totali++;
-      if (!testi.some((t) => t.includes(cerca))) scadute.push([f, nome, cerca]);
+      if (!testi.some((t) => t.includes(cerca))) { scadute.push([f, nome, cerca]); continue; }
+      /* ⛔ LA SECONDA DOMANDA, dal 09/08: l'ancora è viva — ma è viva NEL FILE
+         CHE IL BANCO SERVE? La prima domanda cerca in qualunque file di
+         prodotto, e questo lascia un buco della forma esatta che stamattina è
+         costata una controprova muta: `scudo-verifica-periodica` iniettava in
+         `apps/scudo/index.html` una riga che nel frattempo era **salita nel
+         modulo dati** — se l'avesse cercata a tappeto l'avrebbe trovata lì e
+         detto «viva», mentre il banco non la trovava dove sostituiva.
+         Si può chiedere solo dove il bersaglio è **dichiarato**: il percorso
+         dentro la tupla, il campo `file` della forma a oggetto, o la chiave
+         dell'oggetto per rotta. Sono **38 su 296** — quindi è una guardia
+         PARZIALE, e il numero si stampa invece di lasciar credere che valga
+         per tutte.
+         ⚠️ Costo misurato prima di scriverla, come pretende la regola:
+         **zero allarmi nuovi** su 38. Non trova niente oggi; chiude una forma
+         che oggi non c'è. */
+      let file = d.parti.map(norm).find((x) => SORGENTI.includes(x)) || null;
+      if (!file && d.file) {
+        const c = norm(d.file);
+        file = SORGENTI.includes(c) ? c
+          : (SORGENTI.filter((p) => p.endsWith("/" + String(d.file))).length === 1
+              ? SORGENTI.filter((p) => p.endsWith("/" + String(d.file)))[0] : null);
+      }
+      if (!file) { senzaFile++; continue; }
+      conFile++;
+      if (!testiPer[file].includes(cerca)) fuoriPosto.push([f, nome, file, cerca]);
     }
   }
 }
@@ -211,6 +245,10 @@ console.log("\n════════ le iniezioni delle controprove sono anco
 dice(scadute.length === 0,
   "ogni iniezione trova ancora il suo pezzo nel codice",
   scadute.length ? scadute.map(([f, n, c]) => `\n      ${f} · ${n} cerca ${JSON.stringify(c.slice(0, 90))}`).join("") : "");
+
+dice(fuoriPosto.length === 0,
+  `e quelle che dichiarano il file lo trovano PROPRIO LÌ (${conFile} su ${totali}; ${senzaFile} non dichiarano un file)`,
+  fuoriPosto.length ? fuoriPosto.map(([f, n, file, c]) => `\n      ${f} · ${n} → ${file} non contiene ${JSON.stringify(c.slice(0, 80))}`).join("") : "");
 
 /* ⛔ E IL DENOMINATORE, che è la ragione per cui questo controllo non si legge
    come un «zero violazioni» qualunque: quanti soggetti ha guardato davvero.
@@ -246,5 +284,6 @@ dice(!testi.some((t) => t.includes(finta)),
 
 console.log(`\nRisultato iniezioni fresche: ${totali - scadute.length} sul bersaglio su ${totali}`
   + `  ·  ${tabelle.length} tabelle in ${banchi} banchi, ${illeggibili.length} non leggibili da fermi (dichiarati)`
+  + `  ·  ${conFile} con il file dichiarato e verificato lì, ${senzaFile} senza`
   + `  ·  ${fuoriVocabolario.length} tabelle di coppie fuori dal vocabolario`);
 process.exit(male ? 1 : 0);

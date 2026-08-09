@@ -2740,6 +2740,31 @@ numero scritto dove non era stato misurato niente**.*
   un valore che sale, una soglia bassa è cieca proprio nel verso che rassicura.
   Controprova rifatta rimettendo l'ancora vecchia di `COME_LIVE`: il controllo
   **nomina banco e tabella** e cade.
+  ✅ **E LA SECONDA DOMANDA, aggiunta lo stesso giorno: l'ancora è viva — ma è
+  viva NEL FILE CHE IL BANCO SERVE?** La prima cerca in qualunque file di
+  prodotto, e questo lascia un buco della forma **esatta** che stamattina è
+  costata una controprova muta: la riga di `scudo-verifica-periodica` era
+  **salita nel modulo dati**, e cercata a tappeto si sarebbe trovata lì e
+  dichiarata «viva» mentre il banco non la trovava dove sostituisce.
+  Si può chiedere solo dove il bersaglio è **dichiarato** — il percorso nella
+  tupla, il campo `file` della forma a oggetto, o la **chiave** dell'oggetto
+  per rotta: sono **38 su 296**, quindi è una guardia **parziale** e il numero
+  si stampa invece di lasciar credere che valga per tutte.
+  ⚠️ Costo misurato prima di scriverla: **zero allarmi nuovi** su 38. Non trova
+  niente oggi; chiude una forma che oggi non c'è.
+  ⚠️ Provata sul caso storico vero (rimettendo `file: PAGINA` su un'ancora che
+  ormai vive nel modulo): la prima domanda dice **✓ viva**, la seconda **✗ non
+  lì** e nomina file e riga. È il modo in cui si riconosce che le due domande
+  non sono la stessa.
+  ⛔ **E una terza strada è stata provata e SCARTATA con la misura**, perché
+  nessuno la rifaccia: censire i banchi che **applicano** un'iniezione senza
+  dichiarare se l'hanno trovata. Il righello a `grep` dava «2 muti, 36 senza un
+  `.replace` riconoscibile» — cioè misurava i **nomi delle variabili**, non il
+  comportamento, e 36 identici sono il segno di sempre che si guarda il
+  righello. Ma soprattutto la domanda è **già risolta un piano più su**:
+  `iniezioni-fresche` gira in `npm test` e controlla tutte e 296 le ancore
+  contro il sorgente vero, quindi un'ancora non può più morire in silenzio per
+  più di un commit — che un singolo banco lo dichiari o no.
 
 - [x] ✅ **La stessa famiglia senza iniezioni: un banco che porta dentro un
   conto della DIMOSTRAZIONE** *(09/08)*. `conti-barre-peso` dava 14 ok e 1 KO,
