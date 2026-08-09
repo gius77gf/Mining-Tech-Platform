@@ -2529,3 +2529,28 @@ cosa più tranquilla di quella che lo schermo mostra.
       buttato. Il documento `docs/I_FOGLI_CHE_NESSUN_BANCO_PREME.md` la
       correzione **l'aveva già fatta**: a restare indietro era il commento nel
       codice, cioè il posto dove uno la legge mentre lavora.
+- [x] ✅ **E quel censimento è diventato un controllo, `fogli-guardati.mjs`, in
+      `npm test`** — perché una difesa che resta nello scratchpad, alla sessione
+      dopo non esiste. Domanda: *ogni superficie che sa stampare è premuta da
+      almeno un banco?* Oggi **8 su 8**, con 79 banchi letti e l'elenco delle
+      superfici **derivato** da `SUPERFICI` di `giro.mjs` (un terzo elenco a
+      mano sarebbe quello che si accorcia da solo).
+      ⛔ **E la prima stesura dichiarava Genesi SCOPERTA. Non lo era.**
+      «Premere un foglio» è scritto in **quattro** modi — `emulateMedia`,
+      l'evento `popup`, un gancio `__stampa`, e `window.open` **sostituita** in
+      un `addInitScript` — e la quarta è quella che usano proprio Genesi e
+      Campo. È lo stesso errore del censimento delle iniezioni (che conosceva
+      una sola forma di tabella) e di quello che poche ore prima è costato
+      trecento righe: **un censimento che conosce N convenzioni chiama
+      «mancante» la N+1**. Per questo i quattro gesti sono **dichiarati e
+      contati**, e una prova pretende che servano ancora tutti e quattro: quando
+      il controllo accusa, la prima domanda è «è nata una quinta convenzione?».
+      ⚠️ **E la controprova ha trovato un buco nel controllo stesso**: lo
+      spoglio dei commenti stava dal **chiamante**, quindi un secondo chiamante
+      col testo grezzo perdeva la difesa — e un gesto scritto dentro un
+      commento contava come codice. È la guardia scollegata (regola 17) nel
+      posto più beffardo: dentro il controllo scritto per non farsi ingannare.
+      Adesso `senzaCommenti` sta **dentro `chiPreme`**, dove la decisione si
+      prende. Senza quello spoglio il core risultava premuto da **25** banchi
+      (ne sono 12) e Campo restava «coperto» anche cancellando il suo unico
+      banco vero: 7 prove, 0 falliti, quattro controprove nei due versi.
