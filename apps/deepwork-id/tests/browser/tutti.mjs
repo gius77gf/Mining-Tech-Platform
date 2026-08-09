@@ -159,6 +159,55 @@ const BANCHI = [
      `color(srgb …)` come se i canali fossero 0-255. */
   ['contrasto dentro le finestre · controprova', 'contrasto.mjs', ['--modali', '--controprova'], true],
   ['contrasto nelle finestre fatte comparire · controprova', 'contrasto.mjs', ['--forzate', '--controprova'], true],
+  /* ⛔ AGGIUNTE IL 09/08, E COPRONO IL BUCO CHE LE DUE PASSATE QUI SOPRA
+     AVEVANO IN COMUNE: **misuravano a una larghezza sola**, e quella larghezza
+     non era scritta da nessuna parte — è il valore predefinito di
+     `apriSuperficie` in `giro.mjs` (`larghezza = 430`), che `contrasto.mjs`
+     non ha mai sovrascritto. Quattordici superfici, tre temi, quattro passate,
+     e un telefono solo: il numero non si presentava come una decisione, quindi
+     nessuno l'ha mai messo in discussione.
+     ⚠️ Perché conta, e non è estetica: le app si usano IN CAVA, sul telefono.
+     A 320 px il foglio condiviso entra in `@media(max-width:360px)`, la pagina
+     si rimpagina e i corpi si rimpiccioliscono — e la soglia della WCAG cambia
+     da sé, perché il «testo grande» che si accontenta di 3:1 comincia a 24 px
+     (18,66 in grassetto). Un titolo che a 430 px sta di là dal confine, a 320
+     può scenderne di qua e passare a pretendere 4,5:1 **senza che nessuno
+     abbia toccato un colore**.
+     ⛔ E NON È UN'IPOTESI: è misurato, e il banco adesso lo stampa coi nomi.
+     Con `--modali --larghezze=430,390,320` su 14 superfici, 90 finestre
+     diverse e 202 aperture per larghezza, i testi che prendono la soglia 3:1
+     passano da **20 a 430 e 390 px** a **15 a 320 px**: cinque cambiano
+     soglia. Verdetti al 09/08: **0 sotto soglia a tutt'e tre le larghezze**,
+     cioè oggi quei cinque reggono anche la soglia più severa — ma fino a ieri
+     nessuno lo sapeva, e il giorno che qualcuno tocca uno di quei colori il
+     difetto nascerebbe **solo sullo schermo stretto**, dove nessun banco
+     guardava.
+     ⚠️ UNA LARGHEZZA PER PASSATA, ed è un numero: `--modali` costa ~13 minuti,
+     e `--limite=` uccide una passata oltre la mezz'ora. Ciclarne tre dentro
+     una sola la farebbe uccidere — si perderebbe tutto invece di guadagnare le
+     larghezze, che è la stessa misura per cui `--modali` è una passata a parte.
+     Il ciclo dentro il banco (`--larghezze=430,390,320`) resta per l'uso a
+     mano, e lì i conti si tengono per larghezza. */
+  ['contrasto dentro le finestre · 390 px', 'contrasto.mjs', ['--modali', '--larghezze=390']],
+  ['contrasto dentro le finestre · 320 px', 'contrasto.mjs', ['--modali', '--larghezze=320']],
+  ['contrasto nelle finestre fatte comparire · 390 px', 'contrasto.mjs', ['--forzate', '--larghezze=390']],
+  ['contrasto nelle finestre fatte comparire · 320 px', 'contrasto.mjs', ['--forzate', '--larghezze=320']],
+  /* ⛔ E LA CONTROPROVA A 320, PERCHÉ UNA PASSATA NUOVA CHE NON SA FALLIRE NON
+     DIMOSTRA NIENTE. Il righello è lo stesso a ogni larghezza — ed è proprio
+     per questo che andava provato: a 320 px la pagina si rimpagina, un
+     elemento può nascere alto zero o finire fuori dal riquadro, e il veleno
+     appeso dentro `#modal` potrebbe non arrivare mai alla misura. Sarebbe la
+     terza delle cinque cause di «non distingue» — l'iniezione che non inietta
+     — nella veste in cui a spegnerla è la LARGHEZZA.
+     Provata a mano a tutt'e tre le larghezze prima di registrare: il veleno a
+     1,15:1 è stato bocciato dappertutto e il testimone `color-mix()` non è
+     stato bocciato da nessuna parte. Registrate le due a **320**, non anche
+     quelle a 390: 430 è già registrata qui sopra, 390 sta in mezzo a due
+     larghezze provate, e 320 è la sola dove la pagina cambia impaginazione —
+     cioè la sola dove il righello poteva diventare cieco. Il costo è
+     dichiarato invece che nascosto: due passate invece di quattro. */
+  ['contrasto dentro le finestre · controprova a 320 px', 'contrasto.mjs', ['--modali', '--controprova', '--larghezze=320'], true],
+  ['contrasto nelle finestre fatte comparire · controprova a 320 px', 'contrasto.mjs', ['--forzate', '--controprova', '--larghezze=320'], true],
   /* ⛔ AGGIUNTO IL 07/08, E MISURA L'ALTRA METÀ. `contrasto.mjs` guarda i
      TESTI; tutto ciò che parla senza parole — la barretta a lato di una riga,
      il filo in cima a un KPI, la striscia di un riquadro, il bordo di un campo
@@ -468,6 +517,16 @@ const BANCHI = [
      Costa una mezz'ora sulle quattordici superfici: con `--solo=` sono secondi. */
   ['dentro le modali (unità, tagli, spazio)', 'modali-dentro.mjs', []],
   ['dentro le modali · controprova', 'modali-dentro.mjs', ['--controprova'], true],
+  /* le VOCI DI TENDINA dentro le finestre, col righello del BROWSER
+     (`width:max-content`) invece di `clientWidth - padding`: quest'ultimo è
+     cieco sui ~20 px della freccia — che Chromium disegna DENTRO la scatola del
+     contenuto, non dentro il padding — ed è la banda in cui viveva il taglio di
+     `#vf-esito`. Il banco stampa a ogni giro quanto è larga quella banda.
+     ⏱️ È un righello DOPPIO, e lo sa: la domanda giusta `modali-dentro` la fa
+     già da mesi, sbagliando la misura. Quando quella riga sarà corretta, questo
+     banco va TOLTO, non lasciato a sorvegliare due volte la stessa cosa. */
+  ['le voci di tendina stanno nelle tendine', 'tendine-nelle-finestre.mjs', []],
+  ['voci di tendina · controprova', 'tendine-nelle-finestre.mjs', ['--controprova'], true],
   /* ⛔ I TRE TEMI SONO ENTRATI IL 07/08, E IL BUCO ERA GROSSO. Questo banco
      guardava il tema BUIO soltanto, e nel tema SOLE — quello che serve a
      leggere il telefono in cava, cioè il posto dove il prodotto vive — la

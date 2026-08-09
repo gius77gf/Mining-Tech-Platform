@@ -204,32 +204,86 @@ const MISURA = ([UNITA, larghezza]) => {
 
   /* 2b · LE TENDINE, che non dichiarano di tagliare (misurato: un <select>
      risponde scrollWidth === clientWidth anche con l'opzione al doppio).
-     Si chiede al browser quanto spazio vuole il testo, col font vero. */
-  const righello = document.createElement('span');
-  righello.style.cssText = 'position:fixed; left:-9999px; top:0; visibility:hidden; white-space:pre';
-  document.body.appendChild(righello);
+
+     ⛔ E FINO AL 09/08 QUI C'ERA UN'IPOTESI FALSA, SCRITTA IN CHIARO E MAI
+     MISURATA. La riga diceva: *«lo spazio utile è il riquadro meno i margini
+     interni; la freccia sta DENTRO quel margine perché `select.dw-input` la
+     disegna col padding — dove non fosse così la misura è prudente, cioè
+     assolve»*, e calcolava `clientWidth - paddingLeft - paddingRight`.
+     Chromium la freccia la disegna dentro la **scatola di contenuto**, non
+     dentro il padding: sono circa **20 px** che al testo non arrivano mai.
+     Quindi quel confronto non era prudente — era **cieco su una banda di
+     20 px**, e nella direzione che ASSOLVE.
+     Che cosa ci viveva dentro, misurato: `#vf-esito` di Scudo mostrava
+     «— nessun esito registrato —», che chiede **201,9 px** di testo dove
+     `clientWidth - padding` ne dava **214** a 320 px. Questo banco lo
+     assolveva — 201,9 < 214 — e sullo schermo si leggeva
+     «— nessun esito registrat…». Stessa cosa per «Soggetto pubblico o privato
+     abilitato» a 360 px, sfuggito per **mezzo pixel** (253,5 contro 254).
+     È la regola di CLAUDE.md alla lettera: *un controllo tenuto largo «per non
+     fare falsi allarmi» può essere cieco proprio dove serve, e il costo della
+     stretta si MISURA, non si teme.* Misurato: la stretta porta **{N} allarmi
+     nuovi** su tutte le superfici, dichiarati per nome nel commento in fondo.
+
+     ⛔ LA DOMANDA GIUSTA NON SI CALCOLA, SI CHIEDE. Niente sottrazioni: si
+     clona la tendina con la SOLA opzione da provare, le si toglie la larghezza
+     imposta (`width:max-content`) e si legge quanto il browser dice di volere
+     per mostrarla intera — testo, padding, freccia e bordi insieme, senza che
+     il banco debba sapere quanto misura nessuno dei pezzi. Se chiede più della
+     scatola vera, il testo è tagliato. È la stessa disciplina del resto del
+     file: `scrollWidth > clientWidth` è la risposta del BROWSER a «esce?».
+     Il clone non tocca il documento (nasce fuori schermo e muore subito) e
+     porta `cssText` della tendina vera, quindi eredita font, padding e bordi
+     senza che nessuno li elenchi. */
   for (const s of ov.querySelectorAll('select')) {
     const r = s.getBoundingClientRect();
     if (r.width < 1) continue;
     const cs = getComputedStyle(s);
-    righello.style.font = cs.font;
-    righello.style.letterSpacing = cs.letterSpacing;
-    /* lo spazio utile: il riquadro meno i margini interni. La freccia della
-       tendina sta DENTRO quel margine perché `select.dw-input` la disegna col
-       padding — dove non fosse così la misura è prudente, cioè assolve. */
-    const spazio = s.clientWidth - parseFloat(cs.paddingLeft || 0) - parseFloat(cs.paddingRight || 0);
+    const scatola = r.width;
     for (const o of s.options) {
       opzioni++;
-      righello.textContent = o.textContent;
-      const serve = righello.getBoundingClientRect().width;
-      if (serve > spazio + 1) {
-        tendine.push({ serve: Math.round(serve), spazio: Math.round(spazio),
+      const cl = s.cloneNode(false);
+      cl.removeAttribute('id');
+      const solo = document.createElement('option');
+      solo.textContent = o.textContent;
+      cl.appendChild(solo);
+      cl.style.cssText = cs.cssText;
+      cl.style.position = 'absolute'; cl.style.left = '-9999px'; cl.style.top = '0';
+      cl.style.width = 'max-content'; cl.style.minWidth = '0';
+      cl.style.maxWidth = 'none'; cl.style.flex = '0 0 auto';
+      s.parentNode.appendChild(cl);
+      const serve = cl.getBoundingClientRect().width;
+      cl.remove();
+      /* ── MISURA TEMPORANEA (costo della stretta), da togliere ── */
+      const __sp = document.createElement('span');
+      __sp.style.cssText = 'position:absolute;left:-9999px;top:0;white-space:pre;visibility:hidden';
+      __sp.style.font = cs.font; __sp.style.letterSpacing = cs.letterSpacing;
+      __sp.textContent = o.textContent;
+      document.body.appendChild(__sp);
+      const __testo = __sp.getBoundingClientRect().width;
+      __sp.remove();
+      const __vecchio = s.clientWidth - (parseFloat(cs.paddingLeft) || 0) - (parseFloat(cs.paddingRight) || 0);
+      if (serve > scatola + 0.5) {
+        tendine.push({ serve: Math.round(serve), spazio: Math.round(scatola),
           testo: (o.textContent || '').trim().slice(0, 44), id: s.id || cls(s),
-          scelta: o.selected });
+          scelta: o.selected,
+          /* ⛔ LA VOCE VUOTA È QUELLA CHE SI VEDE FINCHÉ NESSUNO HA COMPILATO
+             IL CAMPO: lo stato di partenza di ogni scheda nuova, cioè il caso
+             più comune del prodotto — e il MENO misurato, perché nella
+             dimostrazione i campi sono quasi tutti pieni. È testualmente la
+             ragione per cui il taglio di «— nessun verbale —» non l'aveva
+             visto nessuno («tutt'e due le verifiche il verbale ce l'hanno
+             già»), e per cui quello di «— nessun esito registrato —» è
+             sopravvissuto. Quindi si giudica sempre, anche quando non è la
+             scelta: `value === ""` è la convenzione con cui ogni tendina di
+             questo ecosistema scrive il proprio segnaposto. */
+          vuota: o.value === '',
+          __vistoDalVecchio: __testo > __vecchio + 1,
+          __testo: Math.round(__testo * 10) / 10,
+          __vecchio: Math.round(__vecchio * 10) / 10 });
       }
     }
   }
-  righello.remove();
 
   /* 4 · UN BERSAGLIO DI TOCCO TROPPO PICCOLO. CLAUDE.md lo pretende dopo ogni
      correzione di disposizione — «"ci sta" non è "si usa"», il bottone «Esci»
@@ -450,6 +504,7 @@ process.on('exit', togliLaCopia);
 let ko = 0, appPulite = 0;
 let apertePerTutti = 0, elementiPerTutti = 0, opzioniPerTutti = 0, clickPerTutti = 0;
 const tendineTagliate = new Set();
+const __costo = new Set(), __gia = new Set();
 let inciampi = 0, restate = 0, forzate = 0, sviate = 0, scese = 0;
 const interrotte = [];
 const raggiunte = [], nonRaggiunte = [];
@@ -601,7 +656,10 @@ for (const [nome, via] of SUPERFICI) {
         await rimettiti();
         if (!m) continue;
         elementiPerTutti += m.guardati; opzioniPerTutti += m.opzioni;
-        for (const x of m.tendine) if (!x.scelta) tendineTagliate.add(`${nome}|${x.id}|${x.testo}`);
+        /* le voci che nessuno vedrà mai a tendina chiusa: né scelte né vuote.
+           Si contano e si dichiarano — un numero tolto in silenzio è un numero
+           che qualcuno rimetterà. */
+        for (const x of m.tendine) if (!x.scelta && !x.vuota) tendineTagliate.add(`${nome}|${x.id}|${x.testo}`);
         const dillo = (testo) => {
           const chiave = `${nome}|${larghezza}|${testo}`;
           if (visto.has(chiave)) return false;
@@ -621,14 +679,28 @@ for (const [nome, via] of SUPERFICI) {
         for (const x of m.tendine) {
           /* ⚠️ NON OGNI OPZIONE TAGLIATA È UN DIFETTO, ed è una decisione già
              presa e MISURATA (shared/dw-app-ui.css, 31/07: 19 tendine su 84
-             tagliano e nessuna diventa ambigua). Qui casca solo quella che
-             l'utente sta LEGGENDO — l'opzione scelta, quella che si vede a
-             tendina chiusa: se è tagliata, il valore mostrato è monco. Le
-             altre si contano e si dichiarano in fondo. */
-          if (!x.scelta) continue;
+             tagliano e nessuna diventa ambigua). Casca quella che l'utente sta
+             LEGGENDO — l'opzione scelta, quella che si vede a tendina chiusa:
+             se è tagliata, il valore mostrato è monco. Le altre si contano e
+             si dichiarano in fondo.
+             ⛔ E CASCA ANCHE LA VOCE VUOTA, ANCHE QUANDO NON È QUELLA SCELTA:
+             la ragione sta accanto alla misura, ed è che quella è la voce che
+             si vede finché il campo non è compilato — lo stato di partenza di
+             ogni scheda. Senza questa riga il banco la prendeva solo se
+             capitava di aprire la scheda giusta: misurato su Scudo, le prime
+             due righe con verifica periodica hanno l'esito già registrato,
+             quindi la voce vuota di `#vf-esito` non era mai la scelta e il
+             difetto si vedeva o no a seconda di quale riga toccava il giro.
+             È la quinta causa del «non distingue»: il caso difeso che non c'è
+             nella prova. */
+          if (!x.scelta && !x.vuota) continue;
+          (x.__vistoDalVecchio ? __gia : __costo).add(
+            `${nome}@${larghezza} #${x.id} «${x.testo}» — chiede ${x.serve} in ${x.spazio}` +
+            ` (testo ${x.__testo}, righello vecchio ${x.__vecchio})`);
           conto.vistoTendina++;
           if (dillo(`TENDINA|${x.id}|${x.testo}`)) {
-            console.log(`  KO  ${nome} @${larghezza} «${r.titolo.slice(0, 30)}»: la tendina #${x.id} mostra «${x.testo}» tagliato — chiede ${x.serve} px in ${x.spazio}`);
+            const come = x.scelta ? 'mostra' : 'mostrerà, finché il campo è vuoto,';
+            console.log(`  KO  ${nome} @${larghezza} «${r.titolo.slice(0, 30)}»: la tendina #${x.id} ${come} «${x.testo}» tagliato — chiede ${x.serve} px in ${x.spazio}`);
           }
         }
         for (const x of m.piccoli) {
@@ -735,6 +807,12 @@ console.log(`soggetti guardati: ${apertePerTutti} aperture di modale, ${elementi
    a tendina chiusa: lì il valore mostrato è monco. Le altre si contano, così
    il numero resta sotto gli occhi invece di sparire. */
 console.log(`voci di tendina tagliate ma non scelte (dichiarate, non bocciate): ${tendineTagliate.size}`);
+console.log(`\n──── COSTO DELLA STRETTA ────`);
+console.log(`  il righello vecchio ne vedeva ${__gia.size}; quello nuovo ne vede ${__gia.size + __costo.size}.`);
+console.log(`  ALLARMI NUOVI: ${__costo.size}`);
+for (const x of __costo) console.log(`    + ${x}`);
+console.log(`  gia' visti prima:`);
+for (const x of __gia) console.log(`    = ${x}`);
 /* ⚠️ E QUESTE DUE RIGHE DICONO SE IL RIGHELLO REGGE. «Restate» sono i tocchi
    che hanno trovato la finestra di prima ancora aperta: fino al 07/08 venivano
    contati come aperture (436 su 11 finestre vere). «Forzate» sono le chiusure

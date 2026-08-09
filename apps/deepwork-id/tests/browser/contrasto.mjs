@@ -105,9 +105,43 @@
    finestre su 35, perché le altre sono conferme che vogliono una riga scelta
    prima. Il banco lo **stampa** invece di tacerlo.
 
+   ⛔ **E DAL 09/08 ANCHE LA LARGHEZZA È UN ARGOMENTO, PERCHÉ FINO A OGGI TUTTO
+   QUESTO BANCO — le sezioni E le due passate sulle finestre — MISURAVA A UNA
+   LARGHEZZA SOLA.** Non era scritto da nessuna parte: il numero sta nel valore
+   predefinito di `apriSuperficie` (`larghezza = 430`) in `giro.mjs`, e questo
+   file non gliene ha mai passata una. Cioè quattordici superfici, tre temi,
+   quattro passate — e un telefono solo.
+   ⚠️ Perché conta, ed è una soglia che cambia da sé: a 320 px il foglio
+   condiviso entra in `@media(max-width:360px)` e **rimpicciolisce i corpi**.
+   La WCAG chiede 4,5:1 al testo piccolo e 3:1 al «grande», e grande comincia a
+   **24 px** (o 18,66 in grassetto): un titolo che a 430 px sta di là dal
+   confine, a 320 può scenderne di qua e **cambiare soglia senza cambiare
+   colore**. Un contrasto promosso a 3,2:1 diventa una bocciatura senza che
+   nessuno abbia toccato una palette.
+   La soglia NON è una costante di questo file: si legge il carattere
+   **effettivo** con `getComputedStyle` (vedi `grande`, dentro `MISURA`), quindi
+   la larghezza nuova non ha bisogno di nessuna logica nuova — ha bisogno di
+   essere **misurata**. Il riepilogo stampa quanti testi sono stati giudicati
+   grandi e quanti piccoli, così il cambio di soglia si vede invece di dedursi.
+   ⛔ IL NOME DELL'ARGOMENTO NON È NUOVO, ED È DI PROPOSITO: `--larghezze=`, una
+   lista separata da virgole, è già la forma di `fuori-schermo.mjs`. Battezzarlo
+   qui in un secondo modo per la stessa identica idea è la divergenza che
+   CLAUDE.md paga più cara — due nomi per una cosa sola divergono al primo che
+   ne allarga uno.
+   ⚠️ UNA LARGHEZZA PER PASSATA IN `tutti.mjs`, e non è pigrizia: `--modali`
+   costa ~13 minuti a tema e il giro uccide una passata oltre la mezz'ora.
+   Ciclarne tre dentro una sola la farebbe uccidere — si perderebbe tutto invece
+   di guadagnare le larghezze, che è la stessa misura per cui `--modali` è una
+   passata a parte. Il ciclo qui dentro c'è lo stesso perché a mano serve
+   (`--larghezze=430,390,320` in un comando), e i conti si tengono **per
+   larghezza**: un totale che somma tre schermi diversi non ha nessun lettore
+   che lo sappia leggere.
+
    Uso:
      node apps/deepwork-id/tests/browser/contrasto.mjs 8823
      node apps/deepwork-id/tests/browser/contrasto.mjs 8823 --modali
+     node apps/deepwork-id/tests/browser/contrasto.mjs 8823 --modali --larghezze=320
+     node apps/deepwork-id/tests/browser/contrasto.mjs 8823 --forzate --larghezze=430,390,320
      node apps/deepwork-id/tests/browser/contrasto.mjs 8823 --modali --tema=sole
      node apps/deepwork-id/tests/browser/contrasto.mjs 8823 --modali --controprova
      node apps/deepwork-id/tests/browser/contrasto.mjs 8823 --solo=terra
@@ -259,6 +293,24 @@ const MODALI = process.argv.includes('--modali');
    tabella — questa passata NON lo copre. Per quello serve il gesto, ed è la
    ragione per cui le due passate stanno INSIEME e non una al posto dell'altra. */
 const FORZATE = process.argv.includes('--forzate');
+/* ⛔ LA LARGHEZZA DELLO SCHERMO, E FINO AL 09/08 NON ERA NEMMENO UN NUMERO
+   SCRITTO QUI: era il valore predefinito di `apriSuperficie` in `giro.mjs`
+   (`larghezza = 430`), che questo banco non ha mai sovrascritto. Un numero che
+   nessuno ha scelto e che nessuna riga dichiarava — cioè la forma peggiore di
+   una costante, perché non si presenta come una decisione.
+   ⛔ E NON SI COPIA IL CORPO PER AVERE UNA SECONDA LARGHEZZA. La domanda che
+   CLAUDE.md impone prima di ricopiare — *all'originale manca un parametro?* —
+   qui ha una risposta sola: sì, e il parametro c'era già un piano più sotto.
+   Le app si usano **in cava, sul telefono**: 430 è un telefono largo, 390 è la
+   misura più comune e 320 è il fondo scala che il foglio condiviso tratta a
+   parte (`@media(max-width:360px)`, dove i corpi si rimpiccioliscono).
+   ⚠️ Il predefinito resta **430** e non l'elenco delle tre: cambiarlo
+   triplicherebbe in silenzio ogni passata già registrata nel giro — comprese
+   le quattro controprove, che sarebbero uccise dal limite di mezz'ora. Le
+   larghezze nuove si chiedono, e chi le chiede sa quanto costano. */
+const LARGHEZZE = ((process.argv.find((a) => a.startsWith('--larghezze=')) || '').slice(12)
+  .split(',').map((x) => parseInt(x, 10)).filter((x) => Number.isFinite(x) && x >= 200));
+if (!LARGHEZZE.length) LARGHEZZE.push(430);
 /* quante volte si prova la stessa FORMA di comando, e il tetto per sezione:
    gli stessi numeri di `modali-dentro.mjs`, che quel gesto lo ha tarato. */
 const PER_FORMA = 2, TETTO = 200;
@@ -1244,8 +1296,39 @@ const scusateComposte = new Set();
 const nonMisurabili = [];
 let sfumatiTot = 0, pulsantiTot = 0, spentiTot = 0, finiteTot = 0, pulsaBocciata = 0, pulsaMisurata = 0;
 let superficiProvate = 0;
+/* ⛔ IL DENOMINATORE STA PER LARGHEZZA, NON IN FONDO SOMMATO. È la lezione del
+   09/08 sui totali: «ogni addendo ha un lettore che lo conosce, il totale no».
+   Un «4.562 testi, 0 sotto soglia» che somma tre schermi diversi nasconde
+   esattamente il caso che le larghezze nuove esistono per trovare — una
+   superficie che a 430 si apre e a 320 no, o un testo che a 320 cambia soglia.
+   Ogni riga qui dentro è una larghezza, e il riepilogo le stampa una per una. */
+const perLargh = [];
+/* ⚠️ NON si chiama `q`, ed è una trappola pestata scrivendo queste righe: in
+   questo file `q` è GIÀ un nome locale — il conto per classe delle composte
+   (`for (const [classe, q] of perClasse)`) e un div dei testimoni. Un omonimo
+   locale non è un errore di sintassi: `q.bocciati++` dentro quel ciclo
+   avrebbe scritto sul conto della CLASSE invece che su quello della
+   larghezza, in silenzio e senza far cadere niente. È la stessa famiglia per
+   cui `nomi-liberi` ha dovuto imparare a guardare lo SCOPE e non il file. */
+let perW = null;                    // i conti della larghezza in corso
+/* ⛔ E QUANTI TESTI HANNO PRESO LA SOGLIA DEL «GRANDE», che a larghezze diverse
+   NON è lo stesso numero: la soglia la decide il carattere EFFETTIVO
+   (`getComputedStyle`), e a 320 px il foglio condiviso rimpicciolisce i corpi.
+   Un testo che scende sotto 24 px (o 18,66 in grassetto) passa da 3:1 a 4,5:1
+   **senza cambiare colore**. Stampare i due conti è il modo di vedere quel
+   passaggio invece di dedurlo — e la controprova che la logica della soglia
+   funzioni anche alle larghezze nuove, senza riscriverla. */
 let forzateAperte = 0;      /* quante finestre ha fatto comparire la passata --forzate */
-const forzateViste = new Set();   /* le superfici su cui almeno una si è aperta */
+const forzateViste = new Set();   /* le coppie larghezza|superficie su cui almeno una si è aperta */
+/* ⛔ E LE SUPERFICI DOVE NESSUNA FINESTRA È COMPARSA SI NOMINANO, SEMPRE — non
+   solo quando c'è una controprova da giustificare. Fin qui `--forzate`
+   stampava «206 aperture su 9 superfici» e le altre cinque sparivano: chi legge
+   conta quattordici superfici nell'elenco del giro e nove qui, e non ha modo di
+   sapere quali cinque mancano né perché. È la riga «non ho guardato» applicata
+   a questa passata, e serve doppio con le larghezze: una superficie che a 430
+   apre e a 320 no è ESATTAMENTE il risultato che le larghezze cercano, e in un
+   totale più basso sparirebbe. */
+const forzateSenzaFinestre = [];
 const forzateSenzaVeleno = [];    /* quelle dove NON si apre nessuna finestra: non cieche, non misurate */
 const superficiCieche = [];
 const temaRifiutato = [];
@@ -1269,12 +1352,52 @@ const modaliNonAperte = [];
 let modaliSuperficiConVeleno = 0;
 let forbiciLarghe = 0;
 let temaMisurate = 0;
+/* ⛔ E LA CHIAVE DEI DOPPIONI PORTA LA LARGHEZZA. Senza, il primo schermo si
+   mangia gli altri due: `nome|classe|testo` è identico a 430 e a 320, quindi
+   la stessa riga misurata a 430 farebbe saltare quella a 320 — cioè le
+   larghezze nuove non misurerebbero NIENTE e il banco stamperebbe lo stesso
+   «0 sotto soglia». È la forma silenziosa del filtro che esclude i casi che
+   contano, e qui l'avrebbe introdotta proprio l'unità che li cerca. */
 const visti = new Set();
 
+for (const LARGH of LARGHEZZE) {
+perW = { largh: LARGH, superfici: [], testi: 0, bocciati: 0, grandi: 0, piccoli: 0,
+         /* ⚠️ `finestre` conta FINESTRE DIVERSE in tutt'e due le passate, e non
+            «superfici che ne hanno aperta almeno una»: una colonna che significa
+            due cose a seconda della passata è il modo di far leggere un numero
+            per un altro. In `--modali` sono i titoli distinti, in `--forzate` le
+            forme della struttura condivisa comparse davvero. */
+         finestre: 0, finestreQuali: new Set(), aperture: 0, testiFinestre: 0,
+         /* ⛔ E NON BASTA CONTARE I «GRANDI»: VANNO NOMINATI. Un «da 20 a 15»
+            dice che cinque testi hanno cambiato soglia e non dice QUALI, e un
+            numero che nessuno può andare a verificare è un numero che si può
+            solo credere. Qui si tiene l'insieme dei testi giudicati grandi, e
+            il riepilogo stampa la DIFFERENZA fra la prima larghezza e
+            l'ultima: quelli sono i punti dove la soglia è passata da 3:1 a
+            4,5:1 senza che nessuno abbia toccato un colore. */
+         grandiQuali: new Map(),
+         senzaFinestre: [], temaMisurate: 0, temaRifiutato: [] };
+perLargh.push(perW);
+if (LARGHEZZE.length > 1) console.log(`\n████████ larghezza ${LARGH} px ████████`);
 for (const [nome, via] of SUPERFICI) {
   if (SOLO && SOLO !== nome) continue;
-  console.log(`\n══════ ${nome} ══════`);
-  const { ctx, p, errori } = await apriSuperficie(b, { nome, via, porta: PORTA, montaFintoFirebase });
+  console.log(`\n══════ ${nome}${LARGHEZZE.length > 1 ? ` a ${LARGH} px` : ''} ══════`);
+  const { ctx, p, errori } = await apriSuperficie(b, { nome, via, porta: PORTA, larghezza: LARGH, montaFintoFirebase });
+  /* ⛔ E SI CHIEDE ALLA PAGINA SE LA LARGHEZZA È ARRIVATA, invece di fidarsi di
+     averla passata. È la regola dell'iniezione che si verifica DOVE IL
+     PROGRAMMA LA LEGGE, non dove l'hai scritta: un banco che stampa «misurato a
+     320 px» perché ha passato un argomento, e non perché la pagina fosse larga
+     320, direbbe una cosa che non ha guardato — e sarebbe il verde più falso di
+     tutti, perché nessun numero ne uscirebbe strano. Costa una riga.
+     ⚠️ Si guarda `innerWidth` del documento, non `outerWidth`: quello che decide
+     quali `@media` mordono è il primo. */
+  const largaDavvero = await p.evaluate(() => document.documentElement.clientWidth).catch(() => null);
+  if (largaDavvero !== LARGH) {
+    console.log(`  ⚠️  la pagina è larga ${largaDavvero ?? '?'} px, non ${LARGH}: quello che segue NON è la misura`
+      + ' che credi di leggere. (Una barra di scorrimento verticale non toglie pixel qui — il contesto è headless'
+      + ' con `--hide-scrollbars`; se questo numero non torna, la larghezza non è arrivata alla pagina.)');
+  }
+  perW.superfici.push(nome);
   if (TEMA) {
     /* si mette la classe E si scrive la chiave che `dw-tema.js` rilegge: la
        classe da sola verrebbe tolta al primo `applica()`, e la chiave da sola
@@ -1304,11 +1427,13 @@ for (const [nome, via] of SUPERFICI) {
     }, { cls: CLASSE_TEMA[TEMA], t: TEMA });
     if (!messa) {
       console.log(`  ⚠️  ${nome} non ha il tema «${TEMA}»: la classe viene tolta dalla pagina stessa. NON misurata.`);
-      temaRifiutato.push(nome);
+      if (!temaRifiutato.includes(nome)) temaRifiutato.push(nome);
+      perW.temaRifiutato.push(nome);
+      perW.superfici.pop();               // aperta ma NON misurata: non entra nel denominatore
       await ctx.close();
       continue;
     }
-    temaMisurate++;
+    temaMisurate++; perW.temaMisurate++;
   }
   if (CONTROPROVA) {
     await p.evaluate(([marca, mix]) => {
@@ -1646,7 +1771,7 @@ for (const [nome, via] of SUPERFICI) {
         const dentro = await p.evaluate(MISURA, LATO).catch(() => []);
         await p.evaluate(() => { window.__dwAmbito = null; }).catch(() => {});
         for (const m of dentro) { m.finestra = 'forzata · ' + q; raccolte.push(m); }
-        forzateAperte++;
+        forzateAperte++; perW.aperture++; perW.finestreQuali.add(q);
         apertaQui = true;
         await p.evaluate(() => {
           try { (window.chiudiModale || window.closeModal || (() => {}))(); } catch (e) {}
@@ -1658,7 +1783,11 @@ for (const [nome, via] of SUPERFICI) {
          contando qui «71 superfici» su quattordici — il denominatore gonfiato
          di cinque volte, che è peggio di non averlo. Si segna la superficie e
          si conta una volta sola, in fondo. */
-      if (apertaQui) forzateViste.add(nome);
+      /* ⛔ LA CHIAVE PORTA LA LARGHEZZA, per la stessa ragione dei doppioni: un
+         insieme di soli nomi si ricorda che «scudo ha aperto» e a 320 px
+         risponderebbe di sì anche se lì non si è aperto niente — cioè
+         cancellerebbe esattamente il caso che le larghezze nuove cercano. */
+      if (apertaQui) forzateViste.add(`${LARGH}|${nome}`);
       return raccolte;
     };
     const misure = FORZATE ? await finestreForzate()
@@ -1669,7 +1798,7 @@ for (const [nome, via] of SUPERFICI) {
       const suoi = m.classe.split(/\s+/).filter(Boolean);
       for (const t of suoi) classiViste.add(t);
       if (suoi.length) combinazioniViste.push(new Set(suoi));
-      const chiave = `${nome}|${m.classe}|${m.testo}`;
+      const chiave = `${LARGH}|${nome}|${m.classe}|${m.testo}`;
       if (visti.has(chiave)) continue;
       visti.add(chiave);
       /* ⛔ NON MISURABILE NON E BOCCIATO, e nemmeno promosso. Se nessuna coppia
@@ -1680,13 +1809,19 @@ for (const [nome, via] of SUPERFICI) {
          trasformava «non so leggere questo colore» in «1,01:1». */
       if (m.rapporto === null) { illeggibili++; illeggibiliQui.push(m.classe || m.testo.slice(0, 24)); continue; }
       misurati++; misuratiQui++;
+      perW.testi++;
+      if (m.grande) {
+        perW.grandi++;
+        perW.grandiQuali.set(`${nome}|${m.classe}|${m.testo}`,
+          `${m.dim}px  «${m.testo}»  .${m.classe}  (${nome}${m.finestra ? `, finestra «${m.finestra}»` : ''})`);
+      } else perW.piccoli++;
       /* ⛔ E IL CONTO DEI TESTI DENTRO LE FINESTRE SI FA QUI, dove si conta
          tutto il resto: contandolo dove le misure si raccolgono darebbe il
          numero PRIMA dei doppioni, e il riepilogo stamperebbe due numeri
          diversi per la stessa cosa (misurato su Terra: «37 testi misurati» e
          «70 dentro»). Due numeri che si contraddicono nella stessa pagina
          fanno dubitare di tutti gli altri. */
-      if (m.finestra) { testiModaliQui++; modaliTestiTot++; }
+      if (m.finestra) { testiModaliQui++; modaliTestiTot++; perW.testiFinestre++; }
       const passa = m.rapporto >= m.soglia;
       if (!passa) {
         if (m.testo.startsWith(MARCA_PULSA)) { pulsaBocciata++; console.log('  ⚠️  il testo in pulsazione è stato BOCCIATO'
@@ -1697,9 +1832,15 @@ for (const [nome, via] of SUPERFICI) {
         if (m.testo.startsWith(MARCA_GRAD_OK)) { gradFalsa++; console.log('  ⚠️  il testimone LEGGIBILE su gradiente è stato'
           + ` BOCCIATO a ${m.rapporto}:1 («${m.testo}») — la geometria sta accusando un colore sano`); continue; }
         if (m.testo.startsWith(MARCA)) { presaQui++; continue; }   // è il veleno: non è un difetto del prodotto
-        bocciati++; bocciatiQui++;
+        bocciati++; bocciatiQui++; perW.bocciati++;
         if (m.forbice >= 1) forbiciLarghe++;
         console.log(`  KO  ${String(m.rapporto).padStart(6)}:1  (serve ${m.soglia})  ${m.dim}px  «${m.testo}»  .${m.classe}`
+          /* ⛔ e a quale LARGHEZZA, quando ce n'è più d'una: senza, due KO dello
+             stesso testo a due schermi diversi si leggono come un doppione, e il
+             lettore ne butta uno — che è il modo di perdere proprio il difetto
+             che compare solo sullo schermo stretto. Quando la larghezza è una
+             sola la riga resta identica a com'è sempre stata. */
+          + (LARGHEZZE.length > 1 ? `  @${LARGH}px` : '')
           /* dove sta: senza il nome della finestra un KO di `--modali` manda a
              cercare in tutta l'app una riga che si vede solo aprendo un dialogo */
           + (m.finestra ? `  ← finestra «${m.finestra}»` : '')
@@ -1756,7 +1897,7 @@ for (const [nome, via] of SUPERFICI) {
       if (m.testo !== 'Ag' || !nomiFatti.has(m.classe)) continue;
       maiMisurate++;
       if (m.rapporto < m.soglia) {
-        maiBocciate++; bocciati++; bocciatiQui++;
+        maiBocciate++; bocciati++; bocciatiQui++; perW.bocciati++;
         console.log(`  KO  ${String(m.rapporto).padStart(6)}:1  (serve ${m.soglia})  ${m.dim}px`
           + `  .${m.classe}  — mai comparsa durante il giro, fatta comparire`);
       } else if (TUTTI) {
@@ -1823,7 +1964,7 @@ for (const [nome, via] of SUPERFICI) {
         scusateComposte.add(`${nome}|${classe}`);
         if (TUTTI) console.log(`  ok  ${String(q.min).padStart(6)}:1  .${classe}  (contenitore d'icona: soglia non-testo 3:1)`);
       } else if (q.min < q.soglia) {
-        maiBocciate++; bocciati++; bocciatiQui++;
+        maiBocciate++; bocciati++; bocciatiQui++; perW.bocciati++;
         console.log(`  KO  ${String(q.min).padStart(6)}:1  (serve ${q.soglia})  ${q.dim}px  .${classe}`
           + `  — fondo NON coprente, caso peggiore su «${q.dove}»`
           + `  · forbice ${Math.round((q.max - q.min) * 100) / 100} fra le ${superfici.length} superfici che l'app dichiara`);
@@ -1859,12 +2000,14 @@ for (const [nome, via] of SUPERFICI) {
      stessa distinzione che `modali-dentro.mjs` ha già pagato. */
   if (MODALI) {
     modaliAperteTot += titoliQui.size;
-    modaliCensimento.push({ app: nome, esistono: modaliEsistonoQui, aperte: titoliQui.size,
+    perW.finestre += titoliQui.size; perW.aperture += apertureQui;
+    if (!titoliQui.size && modaliEsistonoQui !== 0) perW.senzaFinestre.push(nome);
+    modaliCensimento.push({ app: nome, largh: LARGH, esistono: modaliEsistonoQui, aperte: titoliQui.size,
       aperture: apertureQui, testi: testiModaliQui, candidati: candidatiQui, quali: [...titoliQui] });
     if (titoliQui.size === 0) {
       if (modaliEsistonoQui === 0) console.log('  ✓  NIENTE DA APRIRE: questa superficie non ha finestre nel suo programma.');
       else {
-        modaliNonAperte.push(nome);
+        modaliNonAperte.push(LARGHEZZE.length > 1 ? `${nome} a ${LARGH}px` : nome);
         console.log(`  ⚠️  NESSUNA FINESTRA APERTA — ${candidatiQui} comandi cliccabili trovati`
           + ` (nel programma ce ne sono ${modaliEsistonoQui ?? '?'}). Non vuol dire «a posto»:`
           + ' vuol dire che qui dentro non è stato misurato NIENTE.');
@@ -1885,20 +2028,82 @@ for (const [nome, via] of SUPERFICI) {
      ⚠️ Ma non si scusano in silenzio: si contano e si NOMINANO, se no «la
      controprova è stata bocciata su tutte le superfici» direbbe più di quello
      che ha guardato. */
+  /* la ragione di `forzateSenzaFinestre` sta accanto alla sua dichiarazione */
+  const conLargh = (x) => (LARGHEZZE.length > 1 ? `${x} a ${LARGH}px` : x);
+  if (FORZATE) {
+    perW.finestre = perW.finestreQuali.size;
+    if (!forzateViste.has(`${LARGH}|${nome}`)) { forzateSenzaFinestre.push(conLargh(nome)); perW.senzaFinestre.push(nome); }
+  }
   if (CONTROPROVA) {
-    if (FORZATE && !velenoQui) { forzateSenzaVeleno.push(nome); }
-    else { superficiProvate++; if (!presaQui) superficiCieche.push(nome); }
+    if (FORZATE && !velenoQui) { forzateSenzaVeleno.push(conLargh(nome)); }
+    else { superficiProvate++; if (!presaQui) superficiCieche.push(conLargh(nome)); }
   }
   if (errori.length) console.log('  ⚠ errori pagina:', errori.slice(0, 2));
   await ctx.close();
 }
+}   /* ← fine del ciclo delle larghezze */
 
 await b.close();
 if (TEMA) {
   /* ⛔ prima dei KO: quante superfici ha davvero guardato con questo tema.
      «0 sotto soglia» su due superfici su quattordici non è una buona notizia. */
   console.log(`\n   TEMA «${TEMA}»: ${temaMisurate} superfici misurate`
+    + (LARGHEZZE.length > 1 ? ` (contate per larghezza: ${LARGHEZZE.length} schermi × le superfici che il tema ce l'hanno)` : '')
     + (temaRifiutato.length ? `, ${temaRifiutato.length} NON misurate perché non hanno questo tema (${temaRifiutato.join(', ')})` : ''));
+}
+/* ⛔ LA LARGHEZZA VA LETTA PRIMA DI TUTTO IL RESTO, perché è la domanda a cui
+   tutti i numeri qui sotto rispondono. Fino al 09/08 non era scritta da nessuna
+   parte e valeva 430 per tutte le passate: un «0 sotto soglia» che sembrava il
+   verdetto su un'app e riguardava un telefono solo.
+   ⛔ E SI STAMPA SCOMPOSTA, una riga per larghezza, anche quando la larghezza è
+   una sola — «un totale non si controlla da solo, una scomposizione sì». Se una
+   superficie si apre a 430 e non a 320, o se il conto dei testi cambia da uno
+   schermo all'altro, in un totale sommato non lo vede nessuno; in questa
+   tabella lo vede chiunque. */
+console.log(`\n── il denominatore, PER LARGHEZZA ──`);
+console.log(`   ${'px'.padStart(5)}  ${'superfici'.padStart(9)}  ${'finestre'.padStart(8)}  ${'aperture'.padStart(8)}`
+  + `  ${'testi'.padStart(6)}  ${'KO'.padStart(4)}  ${'grandi(3:1)'.padStart(11)}  ${'piccoli(4,5:1)'.padStart(14)}`);
+for (const w of perLargh) {
+  console.log(`   ${String(w.largh).padStart(5)}  ${String(w.superfici.length).padStart(9)}`
+    + `  ${String(w.finestre).padStart(8)}  ${String(w.aperture).padStart(8)}  ${String(w.testi).padStart(6)}`
+    + `  ${String(w.bocciati).padStart(4)}  ${String(w.grandi).padStart(11)}  ${String(w.piccoli).padStart(14)}`
+    + (w.largh <= 360 ? '   ← dentro @media(max-width:360px): i corpi si rimpiccioliscono' : ''));
+  /* ⛔ E QUI SI NOMINA, NON SI CONTA: una superficie che a questa larghezza non
+     ha aperto niente non è una superficie a posto, ed è il caso per cui queste
+     righe esistono. «Non misurato» sparirebbe dentro un numero più basso. */
+  if (w.senzaFinestre.length)
+    console.log(`         ⚠️ a ${w.largh} px NON ha aperto nessuna finestra: ${w.senzaFinestre.join(', ')}`
+      + `  (${w.senzaFinestre.length} superfici su ${w.superfici.length}) — lì dentro il colore non è stato misurato`);
+  if (w.temaRifiutato.length)
+    console.log(`         ⚠️ a ${w.largh} px NON hanno il tema «${TEMA}»: ${w.temaRifiutato.join(', ')} — non misurate, non «a posto»`);
+}
+console.log(`   La soglia di ogni testo è decisa sul carattere EFFETTIVO (getComputedStyle: ≥24px, oppure ≥18,66px`
+  + ` in grassetto), non su una costante di questo file: le colonne «grandi» e «piccoli» sono quella decisione,`
+  + ` e a larghezze diverse NON danno lo stesso numero.`);
+if (perLargh.length > 1) {
+  /* la differenza è il risultato, non un dettaglio: un testo che cambia colonna
+     ha cambiato SOGLIA senza che nessuno abbia toccato un colore */
+  const a = perLargh[0], z = perLargh[perLargh.length - 1];
+  console.log(`   Fra ${a.largh} px e ${z.largh} px i testi con soglia 3:1 vanno da ${a.grandi} a ${z.grandi}`
+    + ` (${z.grandi - a.grandi >= 0 ? '+' : ''}${z.grandi - a.grandi}): tanti quanti ne hanno cambiata una`
+    + ` senza cambiare colore.`);
+  /* ⛔ E SI NOMINANO, nei DUE versi: chi era grande e non lo è più (adesso gli
+     si chiede 4,5:1 invece di 3) e chi lo è diventato. Sono i punti in cui una
+     larghezza nuova può far nascere un KO che a 430 px non c'era — e sono la
+     ragione per cui questa unità esiste. Se l'elenco è vuoto, la soglia non si
+     è mossa e va detto, se no un «-5» senza nomi resta una cosa da credere. */
+  const persi = [...a.grandiQuali].filter(([k]) => !z.grandiQuali.has(k));
+  const vinti = [...z.grandiQuali].filter(([k]) => !a.grandiQuali.has(k));
+  if (persi.length) {
+    console.log(`   ⚠️ NON SONO PIÙ «GRANDI» a ${z.largh} px (soglia da 3:1 a 4,5:1), ${persi.length}:`);
+    for (const [, riga] of persi) console.log(`        ${riga}`);
+  }
+  if (vinti.length) {
+    console.log(`   ⚠️ SONO DIVENTATI «GRANDI» a ${z.largh} px (soglia da 4,5:1 a 3:1), ${vinti.length}:`);
+    for (const [, riga] of vinti) console.log(`        ${riga}`);
+  }
+  if (!persi.length && !vinti.length)
+    console.log(`   Nessun testo ha cambiato soglia fra ${a.largh} px e ${z.largh} px: qui la larghezza non sposta il carattere.`);
 }
 console.log(`\n${misurati} testi misurati in tutto, ${bocciati} sotto soglia`
   + (illeggibili ? ` · ${illeggibili} NON misurabili, dichiarati e non giudicati` : '')
@@ -1934,7 +2139,7 @@ console.log(`   (${finiteTot} animazioni finite portate al loro ultimo fotogramm
 if (MODALI) {
   console.log('\n── il denominatore delle finestre: quante ne esistono, quante ne ho aperte ──');
   for (const c of modaliCensimento) {
-    console.log(`   ${String(c.app).padEnd(22)} ${String(c.esistono ?? '?').padStart(3)} nel programma  →  ${String(c.aperte).padStart(3)} aperte`
+    console.log(`   ${String(LARGHEZZE.length > 1 ? `${c.app} @${c.largh}` : c.app).padEnd(22)} ${String(c.esistono ?? '?').padStart(3)} nel programma  →  ${String(c.aperte).padStart(3)} aperte`
       + ` · ${String(c.aperture).padStart(4)} aperture · ${String(c.testi).padStart(5)} testi misurati dentro`
       /* ⚠️ LE TRE RISPOSTE SONO TRE, e la prima è «niente da aprire»: senza di
          lei la vetrina — che di finestre non ne ha nessuna per costruzione —
@@ -1966,11 +2171,19 @@ if (MODALI) {
      conta una volta sola — se no il numero sarebbe gonfio e direbbe di aver
      guardato più cose di quante ne abbia guardate. */
   console.log(`   (⛔ FINESTRE FATTE COMPARIRE, non raggiunte col gesto: ${forzateAperte} aperture su`
-    + ` ${forzateViste.size} superfici, ${misurati} testi DISTINTI misurati dentro.`
+    + ` ${forzateViste.size} superfici${LARGHEZZE.length > 1 ? '·larghezza' : ''}, ${misurati} testi DISTINTI misurati dentro`
+    + `${LARGHEZZE.length > 1 ? ' (SOMMATI sulle larghezze: la scomposizione è nella tabella qui sopra)' : ''}.`
     + ` Di prova sono le PAROLE della struttura condivisa — titolo, corpo, bottoni del piede —`
     + ` che sono le stesse per TUTTE le conferme; il corpo che una app si costruisce con classi`
     + ` sue questa passata NON lo copre, e per quello serve \`--modali\`. Le due stanno insieme,`
     + ` non una al posto dell'altra.)`);
+  if (forzateSenzaFinestre.length) {
+    console.log(`   ⚠️ NESSUNA FINESTRA COMPARSA su: ${forzateSenzaFinestre.join(', ')}`
+      + ` (${forzateSenzaFinestre.length} superfici·larghezza su ${perLargh.reduce((t, w) => t + w.superfici.length, 0)}).`);
+    console.log('      Non vuol dire «a posto»: vuol dire che lì dentro, a questa larghezza, il colore non è stato'
+      + ' misurato. Queste superfici non hanno la struttura condivisa delle finestre (`chiedi`, `avvisa`,'
+      + ' `chiediValore`, `openModal`): non c\'è niente da far comparire.');
+  }
 } else {
   console.log(`   (⛔ QUESTA PASSATA NON APRE NESSUNA FINESTRA DI DIALOGO: cammina sulle sezioni,`
     + ` e \`#modal\` resta \`display:none\`. Nei programmi delle superfici guardate qui ci sono`
@@ -2046,7 +2259,10 @@ if (CONTROPULSA || CONTROPROVA) {
   /* la prova dell'ATTESA gira insieme alle altre controprove: costa un
      millisecondo e difende la correzione del 03/08 */
   const b2 = await chromium.launch({ executablePath: CHROMIUM });
-  const { ctx, p } = await apriSuperficie(b2, { nome: 'core', via: '/index.html', porta: PORTA, montaFintoFirebase });
+  /* ⚠️ la prova di `finish()` gira alla PRIMA larghezza chiesta: non misura una
+     schermata, misura che `finish()` porti un'animazione al suo ultimo
+     fotogramma — e quello non dipende da quanto è largo lo schermo. */
+  const { ctx, p } = await apriSuperficie(b2, { nome: 'core', via: '/index.html', porta: PORTA, larghezza: LARGHEZZE[0], montaFintoFirebase });
   const r = await provaFinish(p).catch(() => null);
   await ctx.close(); await b2.close();
   if (!r) console.log('⚠️  la prova di `finish()` non è riuscita a girare');
