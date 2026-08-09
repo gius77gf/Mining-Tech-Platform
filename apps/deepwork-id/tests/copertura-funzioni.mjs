@@ -194,10 +194,16 @@ const APP = ["campo", "conti", "flotta", "scudo", "sentinella", "terra"];
    ✅ Controprova fatta, non dedotta: portato `conti` a 131 — uno sopra il conto
    vero — il controllo dice «✗ conti 130/130 100% SOTTO IL FONDO DI 131» ed esce
    diverso da zero; ripristinato da una copia, con `diff -q` pulito.
-   ⚠️ `genesi-data.js` NON è stato alzato di proposito: mentre scrivo un cantiere
-   sta portando fuori dalla pagina la carica massima per finestra, e il suo conto
-   si sta ancora muovendo. Un fondo si alza DOPO aver visto il conto salire e
-   fermarsi. */
+   ⏱️ `genesi-data.js` **36 → 49, alzato a sera** dopo che i due cantieri di
+   Genesi hanno chiuso: la carica massima per finestra e la carica totale con il
+   costo. Il conto è salito **e si è fermato**, che è la condizione scritta qui
+   sotto — prima non c'era.
+   ⛔ E la riga che sta al posto di questa diceva «NON è stato alzato di
+   proposito, un cantiere sta ancora muovendo il conto»: era vera quando l'ho
+   scritta stamattina e nel pomeriggio **proponeva un lavoro già fatto**. È la
+   terza forma d'invecchiamento di `CLAUDE.md`, in un commento vecchio di sette
+   ore e scritto da chi quella regola l'aveva appena citata. Chi chiude un
+   cantiere descritto in un commento chiude anche il commento. */
 const FONDO = { campo: 123, conti: 130, flotta: 87, scudo: 185, sentinella: 133, terra: 66 };
 
 /* Quello che resta fuori per un motivo, non per dimenticanza: i caricatori
@@ -330,7 +336,7 @@ const CONDIVISI = [
      scritto dove non è stato misurato niente.
      Restano nella pagina `jitterGeo`, `worldJitter` e `simulaPerforazione`,
      che scrivono in una geometria THREE o leggono lo stato del progetto. */
-  { file: "apps/genesi/genesi-data.js", fondo: 36,
+  { file: "apps/genesi/genesi-data.js", fondo: 49,
     perche: "la vibrazione al recettore e la riconciliazione previsto-vs-reale: i due numeri di Genesi che decidono qualcosa" },
 ];
 /* Fuori per un motivo, non per dimenticanza. Le prime tre toccano il DOM o

@@ -76,15 +76,31 @@
    capita di cliccare la riga giusta è la quinta causa del «non distingue»: il
    caso difeso non c'è nella prova.
 
-   ⛔ E IL FINE VERO DI QUESTO FILE È SPARIRE. Due righelli per la stessa
-   domanda sono la copia debole che questa casa paga più cara: divergeranno.
-   La forma giusta è **un righello solo**, dentro `modali-dentro.mjs`, e la
-   correzione è di tre righe — al posto di `clientWidth - padding` si mette il
-   clone a `max-content` e si confronta con `getBoundingClientRect().width`.
-   Il costo della stretta è misurato qui sotto e stampato a ogni giro («la
-   banda cieca»), così chi la farà non deve fidarsi di me: ha il numero.
-   Quando quella correzione entra, questo file va TOLTO — non lasciato a
-   sorvegliare una cosa sorvegliata due volte.
+   ⛔ IL RIGHELLO È UNO SOLO, ED È ANCHE IN `modali-dentro.mjs` — DAL 09/08.
+   Quel banco la domanda la faceva già, e sbagliava soltanto il righello:
+   confrontava la larghezza del solo TESTO con `clientWidth - padding`, con
+   scritta accanto l'ipotesi (falsa) che la freccia stesse dentro il padding.
+   La correzione è entrata lì, misurando prima il costo della stretta: **due
+   allarmi nuovi in tutto il repository, zero falsi** — `#sm-cava` del core e
+   `#ppv-scelta` di Sentinella, tutt'e due tagli veri.
+
+   ⛔ ALLORA PERCHÉ QUESTO FILE ESISTE ANCORA? Per una ragione sola, e MISURATA:
+   **le larghezze**. `modali-dentro` ne guarda due (390 e 320) perché misura
+   tutto quello che sta in una finestra e a due larghezze dura già 16m34s,
+   contro la mezz'ora che `tutti.mjs` concede a una passata. Qui si chiede una
+   domanda sola, quindi quattro larghezze costano due minuti a superficie.
+   E servono: il taglio di una tendina vive in una FASCIA di larghezze, non
+   sopra una soglia, perché il corpo del carattere dei campi cambia coi `@media`
+   e la voce si stringe insieme alla scatola. Misurato su `#ppv-scelta`:
+   taglia a **360** (297 px in 282) e a **390** (331 in 312), e NON taglia né a
+   320 né a 430. Con le due larghezze dell'altro banco è stato preso a 390,
+   cioè per fortuna: una voce la cui fascia cadesse tutta dentro 360 non la
+   vedrebbe nessuno.
+   ⚠️ Quindi i due NON sono due righelli per la stessa domanda: sono lo stesso
+   righello a due coperture, e la divisione è dichiarata in tutt'e due i file.
+   Il giorno in cui `modali-dentro` potesse permettersi quattro larghezze, la
+   strada giusta è portargliele e TOGLIERE questo file — non tenerne due che
+   col tempo divergono.
 
    ⚠️ LA PRECONDIZIONE È DICHIARATA. Se su una superficie non si apre nessuna
    finestra, il banco NON dice «a posto»: scrive `NON MISURATO`, la nomina, e

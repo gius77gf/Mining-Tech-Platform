@@ -517,6 +517,13 @@ const BANCHI = [
      Costa una mezz'ora sulle quattordici superfici: con `--solo=` sono secondi. */
   ['dentro le modali (unità, tagli, spazio)', 'modali-dentro.mjs', []],
   ['dentro le modali · controprova', 'modali-dentro.mjs', ['--controprova'], true],
+  /* la controprova a SOGLIE: due difetti veri con due soglie diverse (320 e
+     360). Sta a parte perché gira anche a 360 px, che il giro normale non fa, e
+     perché insieme all'allungamento generico di A/B/C la separazione fra le due
+     soglie sparirebbe — e quella separazione È la prova che il righello misura
+     la LARGHEZZA e non «c'è qualcosa che non va». `--solo=scudo`: le due
+     etichette sono di Scudo, e così dura meno di due minuti. */
+  ['dentro le modali · controprova soglie', 'modali-dentro.mjs', ['--controprova', '--iniezione=D', '--solo=scudo'], true],
   /* le VOCI DI TENDINA dentro le finestre, col righello del BROWSER
      (`width:max-content`) invece di `clientWidth - padding`: quest'ultimo è
      cieco sui ~20 px della freccia — che Chromium disegna DENTRO la scatola del

@@ -124,13 +124,28 @@ const TETTO = +((process.argv.find((a) => a.startsWith('--tetto=')) || '').slice
 const PER_FORMA = 2;
 /* ⛔ ANCHE A 320 px, e non è pignoleria: il difetto vero di Terra si vedeva
    solo stretto. 320 è il telefono più piccolo che si trova in cava.
-   ⚠️ E DUE BASTANO, misurato: per il TAGLIO 320 domina. La scatola di una
-   tendina cresce con la finestra, e la voce ha una larghezza sua che non
-   cambia — quindi ciò che taglia a 360 taglia anche a 320, e larghezze
-   intermedie non possono trovare niente di nuovo. Aggiungerle costa metà giro
-   e non porta un soggetto. L'unica che le vuole è la controprova a soglie
-   (famiglia D), che deve far vedere DOVE una voce smette di tagliare: lì 360
-   serve, e infatti il costo se lo prende quella passata sola. */
+   ⛔ E DUE NON BASTANO PER LE TENDINE — la frase che stava scritta qui era una
+   DEDUZIONE, ed era falsa. Diceva: «la scatola cresce con la finestra e la voce
+   ha una larghezza sua che non cambia, quindi ciò che taglia a 360 taglia anche
+   a 320». Il primo pezzo è vero, il secondo no: il corpo del carattere dei
+   campi **cambia con la larghezza** (i `@media` del foglio condiviso), quindi
+   la voce si stringe insieme alla scatola e il taglio vive in una FASCIA di
+   larghezze, non sopra una soglia.
+   Il controesempio è misurato, ed è uno dei due difetti che questa correzione
+   ha fatto uscire: `#ppv-scelta` di Sentinella taglia a **360** (297 px in 282)
+   e a **390** (331 in 312), e NON taglia né a 320 né a 430. Con le due
+   larghezze di questo elenco è stato preso a 390 — cioè per fortuna: una voce
+   la cui fascia cadesse tutta dentro 360 non la vedrebbe nessuna delle due.
+   ⚠️ Il conto onesto: portare questo banco a quattro larghezze raddoppierebbe
+   una passata che oggi dura 16m34s, e il tetto di `tutti.mjs` è mezz'ora — un
+   banco che sfonda il limite non diventa lento, viene UCCISO. Le quattro
+   larghezze le copre `tendine-nelle-finestre.mjs`, che chiede SOLO questa
+   domanda e per questo se le può permettere (due minuti a superficie). La
+   divisione del lavoro è dichiarata lì e qui, e i due usano lo STESSO righello:
+   se un giorno questo tetto non ci fosse più, la strada giusta è portare qui le
+   larghezze e togliere quel file, non tenerne due che divergono.
+   ⚠️ La controprova a soglie (famiglia D) vuole 360 per far vedere DOVE una
+   voce smette di tagliare: il costo se lo prende quella passata sola. */
 const LARGHEZZE = ((process.argv.find((a) => a.startsWith('--iniezione=')) || '').slice(12) || '').toUpperCase() === 'D'
   ? [390, 360, 320] : [390, 320];
 
