@@ -4026,22 +4026,24 @@ function volSnapshot(nome){
    I record vecchi hanno solo `punti`: si mostrano com'erano, senza inventare. */
 function _puntiNuvola(e){
   if(!e) return '';
-  /* ⛔ IL NUMERO SI RAGGRUPPA, LA PAROLA SI ACCORDA — e servono TUTT'E DUE.
-     `_ricPlur` è `conta` di `shared/`, che scrive `String(n)`: sceglie bene
-     singolare e plurale ma **non raggruppa**. Qui i punti di una nuvola sono
-     decine o centinaia di migliaia, e la riga usciva «41230 punti nel
-     ritaglio» accanto a «3.000.000 caricati» — che passa da `gnum` — cioè due
-     notazioni diverse nella stessa frase.
-     Si compone `gnum` + `plurale` invece di `conta`: il conto lo formatta chi
-     sa formattarlo, la parola la accorda chi sa accordarla. */
-  const nPunti = (n, sing, plur) => gnum(n, 0) + ' ' + plurale(n, sing, plur);
-  if(e.puntiRitaglio>0) return ' · '+nPunti(e.puntiRitaglio,'punto','punti')+' nel ritaglio';
+  /* ⛔ IL NUMERO SI RAGGRUPPA, LA PAROLA SI ACCORDA — e adesso lo fa `conta`.
+     Qui c'era una funzioncina locale, `nPunti = gnum(n,0) + " " + plurale(…)`,
+     scritta il 09/08 perché `conta` di `shared/` formattava il numero con
+     `String(n)` e non raggruppava: la riga usciva «41230 punti nel ritaglio»
+     accanto a «3.000.000 caricati», due notazioni nella stessa frase.
+     ⛔ Quella funzioncina era la **copia** di cui parla CLAUDE.md, e come
+     sempre nasceva da una firma che faceva metà del mestiere: nove punti di
+     Genesi avevano ricominciato a comporre la stessa cosa a mano. La cura non
+     era ricopiarla meglio, era **finire `conta`** — fatto lo stesso giorno,
+     con `perLettura` e `useGrouping` esplicito. Quindi qui si torna a
+     `_ricPlur`, che è `conta`, e la copia sparisce. */
+  if(e.puntiRitaglio>0) return ' · '+_ricPlur(e.puntiRitaglio,'punto','punti')+' nel ritaglio';
   const mostrati = e.puntiMostrati || e.punti || 0;
   if(!mostrati) return '';
   const tot = e.puntiTotali || 0;
   return tot>mostrati
-    ? ' · '+nPunti(mostrati,'punto disegnato','punti disegnati')+' su '+gnum(tot,0)+' caricati'
-    : ' · '+nPunti(mostrati,'punto caricato','punti caricati');
+    ? ' · '+_ricPlur(mostrati,'punto disegnato','punti disegnati')+' su '+gnum(tot,0)+' caricati'
+    : ' · '+_ricPlur(mostrati,'punto caricato','punti caricati');
 }
 function renderHome(){
   const arr=_lsGet('genesiVolate');
@@ -4240,7 +4242,10 @@ if($('fileXmlIn')) $('fileXmlIn').onchange=async e=>{
     /* l'innesco entra nel messaggio perché è il campo che decide lo scatter, e
        finora era anche l'unico che il giro perdeva in silenzio: chi rilegge un
        piano deve vedere che cosa è tornato, non solo quanti fori */
-    if(typeof toast==='function') toast('✓ Piano XML importato: '+gnum(holes.length,0)+' '+plurale(holes.length,'foro','fori')+' · B '+gfix(D2.B,2)+'×S '+gfix(D2.S,2)+' · '+D2.sequenza+' · '+((selInnesco()||{}).short||D2.innesco));
+    /* `_ricPlur` (cioè `conta` di `shared/`) e non più `gnum + plurale`: dal
+       09/08 il raggruppamento lo fa la funzione condivisa, quindi la copia a
+       mano che stava qui non serve più. */
+    if(typeof toast==='function') toast('✓ Piano XML importato: '+_ricPlur(holes.length,'foro','fori')+' · B '+gfix(D2.B,2)+'×S '+gfix(D2.S,2)+' · '+D2.sequenza+' · '+((selInnesco()||{}).short||D2.innesco));
   }catch(err){ if(typeof toast==='function') toast('Import XML fallito: '+err.message); }
   e.target.value='';
 };

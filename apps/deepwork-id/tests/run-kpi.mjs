@@ -23129,6 +23129,33 @@ console.log("\n— Conti · la barra di peso: il numero è giusto e a mentire è
     eq(shell.conta("abc", "rapportino", "rapportini"), "— rapportini", "non un numero → «—»");
     eq(shell.conta(0, "rapportino", "rapportini"), "0 rapportini", "ma uno ZERO VERO resta zero");
   });
+
+  test("conta: il numero è RAGGRUPPATO, non scritto con String()", () => {
+    /* ⛔ LA FIRMA CHE FACEVA METÀ DEL MESTIERE. `conta` accordava la parola e
+       scriveva il numero con `String(n)`: `conta(41230, …)` dava «41230 punti»,
+       e in Genesi quella frase finiva sulla stessa riga di un «3.000.000»
+       formattato bene — due convenzioni a due centimetri di distanza. Il segno
+       di questa famiglia è sempre lo stesso: nove punti di Genesi avevano
+       ricominciato a comporre a mano `gnum(n,0) + " " + plurale(…)`, cioè una
+       copia nata da una funzione che non finiva il lavoro. */
+    eq(shell.conta(41230, "punto", "punti"), "41.230 punti", "le migliaia si raggruppano");
+    eq(shell.conta(3000000, "punto", "punti"), "3.000.000 punti", "e i milioni pure");
+    eq(shell.conta(999, "punto", "punti"), "999 punti", "sotto il migliaio non cambia niente");
+    /* ⛔ IL CASO CHE DISTINGUE NODE DA CHROMIUM, e la ragione per cui questa
+       prova vale: al valore di DEFAULT di `useGrouping` Node scrive «6375» e
+       Chromium «6.375» (docs/MIGLIAIA_NODE_CONTRO_CHROMIUM.md). `conta` la
+       leggono tutt'e due — le pagine nel browser, i moduli dati qui — quindi
+       senza `useGrouping` esplicito questa riga blinderebbe in Node una verità
+       che l'utente non vede mai. `perLettura` lo scrive esplicito, ed è per
+       questo che si passa da lì invece di chiamare `toLocaleString` a mano. */
+    eq(shell.conta(6375, "punto", "punti"), "6.375 punti", "quattro cifre: Node e Chromium d'accordo");
+    /* ⚠️ E i decimali NON si arrotondano in silenzio: `conta` conta cose e il
+       numero è quasi sempre intero, ma con zero decimali un 2,5 sarebbe
+       diventato «3» senza che nessuno l'avesse chiesto. Con due, l'intero resta
+       intero e il decimale esce all'italiana — «2,5», non il «2.5» col punto
+       che scriveva `String`. */
+    eq(shell.conta(2.5, "punto", "punti"), "2,5 punti", "un decimale esce con la virgola, non arrotondato");
+  });
 }
 
 /* ══════════════════════════════════════════════════════════════════════

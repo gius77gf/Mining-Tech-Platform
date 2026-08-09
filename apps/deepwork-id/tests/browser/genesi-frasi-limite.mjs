@@ -83,7 +83,12 @@ const DIFETTI = [
      `conta` accorda la parola ma non raggruppa, e su un piano da mille fori
      scriveva «1234 fori». Il difetto rimesso resta quello di prima: il plurale
      inchiodato, che su un foro solo dice «1 fori». */
-  ["toast('✓ Piano XML importato: '+gnum(holes.length,0)+' '+plurale(holes.length,'foro','fori')+' · B '",
+  /* ⏱️ RI-ANCORATA il 09/08 per la terza volta in due giorni, e stavolta
+     all'INDIETRO: la riga era `_ricPlur`, è diventata `gnum + plurale` quando
+     mancava il raggruppamento, ed è tornata `_ricPlur` appena `conta` di
+     `shared/` ha imparato a raggruppare. Il difetto rimesso non cambia — il
+     plurale scritto a mano, che su un foro solo direbbe «1 fori». */
+  ["toast('✓ Piano XML importato: '+_ricPlur(holes.length,'foro','fori')+' · B '",
    "toast('✓ Piano XML importato: '+gnum(holes.length,0)+' fori · B '"],
   // 5 · i due contatori della home, e la riga del rilievo
   ["$('hgVolN').textContent=arr.length? _ricPlur(arr.length,'salvata','salvate'):'';",
@@ -96,7 +101,11 @@ const DIFETTI = [
      accanto a «3.000.000» nella stessa frase). Il difetto rimesso resta lo
      stesso: il plurale scritto a mano, che su un punto solo direbbe «1 punti
      caricati». */
-  ["    : ' · '+nPunti(mostrati,'punto caricato','punti caricati');",
+  /* ⏱️ Stessa storia, stesso giorno: `nPunti` era la funzioncina locale nata
+     perché `conta` non raggruppava, ed è sparita quando `conta` ha finito il
+     suo mestiere. Il difetto rimesso resta lo stesso: il plurale scritto a
+     mano, che su un punto solo direbbe «1 punti caricati». */
+  ["    : ' · '+_ricPlur(mostrati,'punto caricato','punti caricati');",
    "    : ' · '+gnum(mostrati,0)+' punti caricati';"],
   // 5b · i due chili che restavano tranquilli sopra il loro stesso trattino
   ["    + riga('Carica reale totale', c.misurabile?_ricKg(c.kgReale)+' kg':'—',\n" +

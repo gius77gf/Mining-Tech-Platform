@@ -210,8 +210,29 @@ export function conta(n, singolare, plurale2) {
      scrivevo il commento che diceva che qui non c'entrava**. Vale la pena
      lasciarlo scritto: le trappole già censite non si evitano ricordandole,
      si evitano provando la funzione sui valori che le innescano. */
+  /* ⛔ E LA QUARTA STESURA È SUL NUMERO, NON SUL VUOTO: `String(n)` NON
+     RAGGRUPPA LE MIGLIAIA. `conta(41230, "punto", "punti")` scriveva
+     «41230 punti» — e in Genesi finiva sulla stessa riga di un «3.000.000»
+     formattato bene, cioè due convenzioni a due centimetri di distanza.
+     Non è un difetto di chi chiama: è la **firma della funzione condivisa**
+     che sapeva accordare la parola e non sapeva scrivere il numero, e infatti
+     nove punti di Genesi avevano ricominciato a comporlo a mano
+     (`gnum(n,0) + ' ' + plurale(…)`) — una copia che nasce, come sempre, da
+     una funzione che fa metà del mestiere.
+     ⛔ Il formattatore è quello di casa, `perLettura`, che sta VENTI righe più
+     in giù in questo stesso file: non se ne scrive un altro, e soprattutto non
+     si chiama `toLocaleString` a mano — `useGrouping` va ESPLICITO, se no sui
+     numeri di quattro cifre Node scrive «6375» e Chromium «6.375» e una prova
+     scritta in Node blinda una verità che l'utente non vede mai
+     (`docs/MIGLIAIA_NODE_CONTRO_CHROMIUM.md`, regola 16 di `run-stile`).
+     ⚠️ Due decimali e non zero: `conta` conta cose e il numero è quasi sempre
+     intero — ma con `0` un `conta(2.5, …)` verrebbe **arrotondato in
+     silenzio**, e un arrotondamento che nessuno ha chiesto è la cosa che qui
+     non si fa. Con 2, un intero resta intero (`maximumFractionDigits` non
+     impone un minimo) e un decimale esce all'italiana: «2,5» invece del
+     «2.5» col punto che scriveva `String`. */
   const vuoto = n === null || n === undefined || n === "";
-  return (!vuoto && Number.isFinite(Number(n)) ? String(n) : "—")
+  return (!vuoto && Number.isFinite(Number(n)) ? perLettura(n, 2) : "—")
     + " " + plurale(n, singolare, plurale2);
 }
 

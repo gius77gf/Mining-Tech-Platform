@@ -1054,15 +1054,41 @@ numero scritto dove non era stato misurato niente**.*
   quando è stato portato a `_ricPlur` per correggere il singolare: cioè la
   stessa trappola, **fatta da altri prima che da me**, sulla riga che legge un
   file di un cliente.
-  ⛔ **Prossimo passo**: i nove punti miei + i due da import, tutti con la forma
-  già provata in `_puntiNuvola`. Non l'ho fatto adesso di proposito — nove
-  modifiche a contesto quasi esaurito, dopo che una sola ha già mosso
-  un'iniezione, è il modo di lasciare il branch peggio di come si è trovato.
-  ⚠️ E la strada alternativa — dare il raggruppamento a `conta` in `shared/` —
-  resta **aperta e non mia**: cambierebbe tutte le app in una volta.
-  ⚠️ Da verificare per prima cosa: `docs/MIGLIAIA_NODE_CONTRO_CHROMIUM.md` dice
-  che sui numeri di **quattro cifre** Node e Chromium raggruppano diversamente
-  — quindi la scelta va fatta con `useGrouping` **scritto**, non implicito.
+  ✅ **CHIUSO IL 09/08, E DALLA PARTE GIUSTA: NON I VENTI PUNTI, LA FUNZIONE.**
+  Il passo che avevo scritto qui — «i nove punti miei + i due da import, con la
+  forma già provata in `_puntiNuvola`» — era **la strada sbagliata**, e a dirlo
+  è una regola che sta in `CLAUDE.md` da giorni: *una copia nasce quasi sempre
+  da una firma troppo stretta*, e la cura è **aggiungere alla funzione**, non
+  ricopiare il corpo. Contando i punti prima di toccarli sono venuti fuori
+  **una ventina** di `_ricPlur`, non nove — e ognuno di quei venti sarebbe
+  stato un posto da cui la divergenza può ricominciare.
+  Il difetto era **uno solo, nella firma**: `conta` accordava la parola e
+  scriveva il numero con `String(n)`, cioè faceva **metà** del mestiere. Adesso
+  passa da `perLettura` — il formattatore che sta venti righe più in giù nello
+  stesso file — e `conta(41230, "punto", "punti")` scrive «41.230 punti».
+  ⛔ **Costo misurato, non temuto**: 139 punti di chiamata in sei app e il
+  core, 23 riferimenti nelle suite, **giro `node` 34/0 senza toccare nessuna
+  prova esistente**. Cioè nessuna prova asseriva un `conta` a quattro cifre —
+  il che è anche il motivo per cui il difetto è vissuto tanto: la
+  dimostrazione conta cose piccole.
+  ⚠️ **`useGrouping` ESPLICITO**, come pretendeva la riga qui sotto: non si
+  chiama `toLocaleString` a mano ma `perLettura`, che lo scrive. La prova nuova
+  contiene apposta il caso a **quattro cifre** — `conta(6375, …)` → «6.375» —
+  che è l'unico in cui Node e Chromium si scostano al valore di default.
+  ⚠️ E **due decimali, non zero**: con `0` un `conta(2.5, …)` sarebbe stato
+  arrotondato a «3» in silenzio. Con 2 l'intero resta intero e il decimale esce
+  all'italiana («2,5», non il «2.5» col punto che scriveva `String`).
+  ⛔ **E le due copie scritte ieri sono state TOLTE**, che è la parte che chiude
+  davvero il cerchio: `nPunti` in `_puntiNuvola` e il `gnum + plurale` del
+  piano XML erano nati perché la funzione condivisa non finiva il lavoro — ora
+  che lo finisce, tornano `_ricPlur`. Una copia lasciata «tanto funziona» è la
+  divergenza di domani.
+  ⚠️ Le due iniezioni di `genesi-frasi-limite` si sono mosse per la **terza**
+  volta in due giorni, stavolta all'indietro: ri-ancorate con la ragione,
+  **296/296** e il banco 31/0 sano, 11/11 iniezioni, 16 prove cadute.
+  ⚠️ E i tre documenti che dichiarano il conto delle prove sono stati aggiornati
+  **addendi compresi** (1922 → 1923, 2.370 → 2.371): il controllo guarda il
+  totale e non la somma scritta accanto, ed è la quarta forma d'invecchiamento.
   ⛔ **APERTO IL PIÙ PICCOLO PER PRIMO — e ha risposto alla domanda di disegno,
   ma non come credevo: QUESTA FAMIGLIA NON SI CHIUDE ACCORCIANDO IL TESTO.**
   La tendina di Sentinella sfora di **6 px** a 390 (290 contro 284) e di 76 a
