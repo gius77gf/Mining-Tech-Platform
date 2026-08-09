@@ -97,7 +97,7 @@ totale delle app, non questa scomposizione: rimisurati a mano l'08/08 con*
 
 ⛔ **E il 100% vale per il perimetro misurato, non per tutto il prodotto.**
 Le sei app hanno la loro logica in `apps/<nome>/<nome>-data.js`, che `node`
-importa. **Genesi no**: le sue **192 funzioni** stanno dentro
+importa. **Genesi no**: le sue **169 funzioni** stanno dentro
 `apps/genesi/genesi.html`, e da lì non si importano — di Genesi entra nel conto
 solo `pointcloud.js`. Non è una svista da correggere in una riga — ma dal
 01/08 «è un cantiere intero» ha smesso di essere una frase ed è diventato un
@@ -107,14 +107,24 @@ funzioni si possono portare fuori **senza cambiargli la firma**:
 
 | variabili del modulo che legge | funzioni |
 |---|---|
-| nessuna — si porta fuori com'è | **46** |
-| una o due | **64** |
-| da tre a cinque | 27 |
-| da sei a dieci | 31 |
-| più di dieci — lì è un rifacimento | 24 |
+| nessuna — si porta fuori com'è | **29** |
+| una o due | **58** |
+| da tre a cinque | 23 |
+| da sei a dieci | 28 |
+| più di dieci — lì è un rifacimento | 31 |
 
-Cioè **110 su 192 si estraggono senza rifare il modo in cui Genesi tiene il suo
-stato**, e la parte davvero dura sono 55 funzioni. La domanda giusta non era
+Cioè **65 su 169 si estraggono senza rifare il modo in cui Genesi tiene il suo
+stato**, e le restanti 104 sono una decisione di architettura.
+
+⏱️ **Questi sette numeri erano tutt'e sette diversi fino al 09/08** — 46 · 64 ·
+27 · 31 · 24, cioè «110 su 192» — e non perché qualcuno li avesse sbagliati:
+erano veri il 01/08, e nel frattempo tre fette di Genesi sono uscite dalla
+pagina. Erano scritti qui, e **identici** dentro il commento dello strumento
+che li produce, sotto un avvertimento che diceva testualmente *«se un giorno
+divergono, ha ragione l'uscita e torto il commento»*. Sono diversi da giorni.
+Adesso li sorveglia `numeri-nei-documenti.mjs`, che lancia il censimento e
+pretende che questa tabella sia la sua uscita: **dichiarare un punto cieco non
+lo illumina**, sorvegliarlo sì. La domanda giusta non era
 «quante sono», era «quante dipendono da uno stato condiviso»: una funzione che
 legge una variabile del modulo non è una funzione pura scritta nel posto
 sbagliato, è una funzione che va richiamata da capo in ogni punto che la usa (tirarne fuori

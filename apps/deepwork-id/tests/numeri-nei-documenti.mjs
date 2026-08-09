@@ -770,6 +770,85 @@ console.log(`\nscomposizione della sicurezza: ${SUITE_SICUREZZA.length} suite co
 console.log(`\nmisure su Genesi: ${ID_MODALE.length + ID_EDITOR_3D.length} id verificati, `
   + `${usate.size} variabili del foglio condiviso, ${scoperte.length} scoperte in Genesi`);
 
+/* ── il censimento del cantiere di Genesi ─────────────────────────────
+   ⛔ ENTRATO IL 09/08, DOPO CHE SETTE NUMERI SU SETTE ERANO INVECCHIATI SOTTO
+   UN AVVERTIMENTO CHE DICEVA COME SAREBBE SUCCESSO.
+   `genesi-estraibili.mjs` misura quante funzioni di Genesi si portano fuori
+   dalla pagina senza cambiargli la firma, e la sua tabella sta in
+   `DEVELOPMENT.md`. Il 01/08 diceva «46 · 64 · 27 · 31 · 24, cioè 110 su 192»;
+   l'09/08 lo strumento stampava «29 · 58 · 23 · 28 · 31, cioè 65 su 169» —
+   perché nel frattempo tre fette di Genesi erano davvero uscite dalla pagina,
+   cioè il documento invecchiava **mentre il lavoro andava bene**.
+   Gli stessi numeri erano scritti, identici, dentro il commento dello
+   strumento che li produce, sotto la riga: *«se un giorno divergono, ha
+   ragione l'uscita e torto il commento»*. Divergevano da otto giorni.
+   ⚠️ La lezione non è «rileggere i commenti»: è che **dichiarare un punto
+   cieco non lo illumina** — è la terza volta in due giorni (la roadmap che
+   diceva «qui il controllo non arriva» e poi è invecchiata due volte; il fondo
+   della copertura che prometteva il caso che non vedeva). L'unica cosa che fa
+   scendere questi numeri è un controllo che li **rilanci**. */
+const gen = spawnSync(process.execPath, [join(QUI, "genesi-estraibili.mjs")], { encoding: "utf8" });
+const gOut = String(gen.stdout || "");
+export function censimentoGenesi(uscita) {
+  const tot = /misurato — (\d+) funzioni in genesi\.html/.exec(uscita);
+  const conta = /non è (\d+): è (\d+) —/.exec(uscita);
+  const secchi = [...uscita.matchAll(/^ +(0|1-2|3-5|6-10|11\+) +(\d+) /gm)];
+  if (!tot || !conta || secchi.length !== 5) return null;
+  return {
+    totale: +tot[1], estraibili: +conta[2],
+    scaglioni: Object.fromEntries(secchi.map((m) => [m[1], +m[2]])),
+  };
+}
+const g = censimentoGenesi(gOut);
+test("il censimento di Genesi ha stampato un quadro leggibile", () => {
+  ok(g, "genesi-estraibili.mjs non ha stampato il totale o gli scaglioni: "
+    + "se ne hai cambiato il formato, aggiorna la regola qui — un controllo che non "
+    + "legge la sua uscita risponde «a posto» senza aver guardato niente");
+});
+/* La tabella del documento, scaglione per scaglione: il totale da solo non
+   basta — il 01/08 il documento aveva la somma giusta e gli addendi vecchi. */
+const SCAGLIONI_DOC = [
+  ["nessuna — si porta fuori com'è", "0"], ["una o due", "1-2"],
+  ["da tre a cinque", "3-5"], ["da sei a dieci", "6-10"],
+  ["più di dieci — lì è un rifacimento", "11+"],
+];
+test("docs/DEVELOPMENT.md: la tabella del cantiere di Genesi è quella che lo strumento stampa", () => {
+  ok(g, "il censimento non ha risposto");
+  const testo = readFileSync(join(RADICE, "docs/DEVELOPMENT.md"), "utf8");
+  const storte = [];
+  for (const [etichetta, chiave] of SCAGLIONI_DOC) {
+    const m = new RegExp(`\\| ${etichetta.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")} \\| \\*{0,2}(\\d+)\\*{0,2} \\|`).exec(testo);
+    if (!m) { storte.push(`la riga «${etichetta}» non c'è più nella tabella`); continue; }
+    if (+m[1] !== g.scaglioni[chiave]) storte.push(`«${etichetta}» dice ${m[1]}, lo strumento conta ${g.scaglioni[chiave]}`);
+  }
+  const somma = /\*\*(\d+) su (\d+) si estraggono/.exec(testo);
+  if (!somma) storte.push("non trovo la frase «N su M si estraggono»");
+  else if (+somma[1] !== g.estraibili || +somma[2] !== g.totale)
+    storte.push(`la frase dice ${somma[1]} su ${somma[2]}, lo strumento conta ${g.estraibili} su ${g.totale}`);
+  const quante = /le sue \*\*(\d+) funzioni\*\* stanno dentro/.exec(testo);
+  if (!quante) storte.push("non trovo «le sue **N funzioni** stanno dentro»");
+  else if (+quante[1] !== g.totale) storte.push(`«${quante[1]} funzioni» dove lo strumento ne conta ${g.totale}`);
+  ok(!storte.length, storte.join(" · "));
+});
+/* ⚠️ E la controprova su una stringa, così non tocca nessun file: senza di lei
+   il lettore saprebbe rispondere «a posto» anche non leggendo niente. */
+test("la controprova del censimento di Genesi: uno scaglione cambiato viene visto", () => {
+  const sana = "Il cantiere di Genesi, misurato — 169 funzioni in genesi.html\n"
+    + "      0                                  29  ██\n    1-2                                  58  ██\n"
+    + "    3-5                                  23  ██\n   6-10                                  28  ██\n"
+    + "    11+                                  31  ██\n⛔ E il numero che conta non è 169: è 65 —\n";
+  const r = censimentoGenesi(sana);
+  ok(r && r.totale === 169 && r.estraibili === 65 && r.scaglioni["1-2"] === 58,
+    `l'uscita sana deve leggersi tutta: ${JSON.stringify(r)}`);
+  ok(censimentoGenesi(sana.replace(/^ +11\+.*$/m, "")) === null,
+    "con uno scaglione mancante deve rispondere null, non un quadro a quattro voci");
+  ok(censimentoGenesi("nessun quadro del genere") === null,
+    "e su un testo qualunque deve dirlo, non rispondere che torna");
+});
+
+console.log(`\ncantiere di Genesi: ${g ? `${g.totale} funzioni nella pagina, ${g.estraibili} estraibili, `
+  + `${SCAGLIONI_DOC.length} scaglioni confrontati col documento` : "NON MISURATO — il censimento non ha risposto"}`);
+
 console.log(`\nRisultato numeri nei documenti: ${passed} passati, ${failed} falliti`
   + `  ·  ${guardati} documenti letti, ${banchi} banchi contati, copertura ${coperte}/${guardateFn}`);
 process.exit(failed > 0 ? 1 : 0);

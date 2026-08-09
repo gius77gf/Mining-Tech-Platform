@@ -5,14 +5,14 @@
 
    QUANTO È GRANDE DAVVERO IL CANTIERE DI GENESI
    ══════════════════════════════════════════════════════════════════════
-   `docs/DEVELOPMENT.md` dice da giorni che le **192 funzioni di Genesi**
-   stanno dentro `genesi.html`, che `node` non importa, e che quindi sono
-   l'unica parte del prodotto con **zero prove pure**. Dice anche che
-   tirarne fuori un modulo dati «è un cantiere intero».
+   `docs/DEVELOPMENT.md` dice da giorni che le funzioni di Genesi stanno
+   dentro `genesi.html`, che `node` non importa, e che quindi sono l'unica
+   parte del prodotto con **zero prove pure**. Dice anche che tirarne fuori
+   un modulo dati «è un cantiere intero».
 
    ⛔ Ma «è un cantiere intero» non è una misura: è una frase, e una frase
    non dice da dove si comincia né quanto si è avanzati. Il 01/08 il
-   cantiere è stato **misurato**, e il numero che conta non è 192 — è
+   cantiere è stato **misurato**, e il numero che conta non è il totale — è
    quante funzioni si possono portare fuori **senza cambiargli la firma**.
 
    Perché quella è la domanda vera: una funzione che legge una variabile
@@ -22,23 +22,24 @@
    i punti che la chiamano — e in un file da 5.000 righe di 3D quello non
    è un trasloco, è un rifacimento.
 
-   Misura del 01/08:
+   ⛔ QUI C'ERA LA TABELLA DEI NUMERI, ED È STATA TOLTA IL 09/08 — non per
+   fare pulizia: perché era **falsa in ogni riga**, ed era falsa sotto un
+   avvertimento che diceva esattamente come sarebbe successo.
+   Il commento riportava «46 · 64 · 27 · 31 · 24, cioè 110 su 192», e sotto
+   c'era scritto: *«i numeri qui sopra sono quelli che il file STAMPA quando
+   gira: se un giorno divergono, ha ragione l'uscita e torto il commento»*.
+   Otto giorni dopo l'uscita diceva **29 · 58 · 23 · 28 · 31, cioè 65 su
+   169** — sei numeri su sei diversi — e la riga stampata continuava a
+   contrapporre il «192» di allora, scritto a mano dentro un `console.log`.
 
-       0 globali:  46 funzioni   ← si portano fuori come sono
-       1-2:        64            ← una o due, spesso costanti: fattibile
-       3-5:        27
-       6-10:       31
-       11+:        24            ← qui è rifacimento, non trasloco
-
-   Cioè **110 funzioni su 192 si estraggono senza rifare il modo in cui
-   Genesi tiene il suo stato**, e la parte davvero dura sono 55 funzioni.
-
-   ⚠️ I numeri qui sopra sono quelli che il file STAMPA quando gira: se un
-   giorno divergono, ha ragione l'uscita e torto il commento. Sono stati
-   corretti una volta il 01/08 proprio per questo — la prima stesura
-   riportava 37 e 72, cioè i numeri di una versione precedente dello
-   strumento, e un commento che contraddice la propria uscita è il difetto
-   che `numeri-nei-documenti.mjs` esiste per prendere nei documenti.
+   La lezione non è «aggiornare il commento»: è che **dichiarare un punto
+   cieco non lo illumina**, ed è la terza volta in due giorni che questa
+   casa lo paga (la roadmap che diceva «qui il controllo non arriva» ed è
+   invecchiata due volte; il fondo della copertura che prometteva un caso
+   che non vedeva). Un numero che il programma **ha in mano** non si scrive
+   in prosa accanto: si stampa. Quello che resta qui è il **metodo**, che
+   non si muove; i numeri stanno nell'uscita, e da oggi sono sorvegliati da
+   `numeri-nei-documenti.mjs` dove finiscono in un documento.
 
    ⚠️ E QUESTO STRUMENTO HA GIÀ SBAGLIATO UNA VOLTA, in modo istruttivo. La
    prima versione contava come «variabile globale» anche i **parametri
@@ -215,8 +216,10 @@ console.log(`  ${conAmbiente.length} idem, ma toccano l'AMBIENTE del browser (DO
    `shared/`, quindi portarla fuori non aggiungerebbe niente.
    Detto in chiaro: dopo le due fette del 09/08 (`interpProf`, e poi `_sentNum`
    e `isoColore`) la colonna «si portano fuori come sono» è **praticamente
-   esaurita**, e il cantiere che resta sono le 56 che leggono una o due
-   variabili del modulo — cioè un cambio di firma, non un trasloco.
+   esaurita**, e il cantiere che resta sono quelle che leggono una o due
+   variabili del modulo — cioè un cambio di firma, non un trasloco. (Quante
+   siano lo dice la riga stampata qui sotto: scritto qui diceva **56** e il
+   giorno dopo ne stampava 58, che è il difetto raccontato in cima.)
    ⚠️ Perché non si stringe ancora: le tre cause rimaste (uno stato in un `let`
    che l'euristica salta, un oggetto THREE ricevuto come argomento, una
    funzione di libreria) non si distinguono da una regex senza sapere i TIPI, e
@@ -227,7 +230,13 @@ console.log(`        (e non serve: è un alias di una riga di shared/). La colon
 console.log(`        che resta sono le ${facili.length} che leggono una o due variabili: cambio di firma, non trasloco.`);
 console.log(`  ${facili.length} ne leggono una o due: si portano fuori passandogliela`);
 console.log(`  ${duri.length} ne leggono più di dieci: lì è un rifacimento, non un trasloco`);
-console.log(`\n⛔ E il numero che conta non è 192: è ${subito.length + facili.length} —`);
+/* ⛔ IL TOTALE ERA SCRITTO A MANO — «non è 192» — E IL 09/08 ERA DIVENTATO 169.
+   Cioè la riga che esiste per dire «guardate il numero giusto, non quello
+   grosso» stampava, come numero grosso, un valore che non era più di nessuno.
+   È la stessa famiglia del banco che porta dentro un numero atteso: il file
+   HA il totale in mano (`censite.length`), e un dato che il programma ha in
+   mano non si scrive a memoria. */
+console.log(`\n⛔ E il numero che conta non è ${censite.length}: è ${subito.length + facili.length} —`);
 console.log(`   le funzioni che si possono estrarre senza rifare il modo in cui Genesi tiene il suo stato.`);
 console.log(`   Il resto (${censite.length - subito.length - facili.length}) è una decisione di architettura, non un trasloco.`);
 

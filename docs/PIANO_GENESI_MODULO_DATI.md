@@ -15,32 +15,49 @@ documento leggeva «di Genesi entra nelle suite solo `pointcloud.js`» e poteva
 mettersi a costruire un modulo dati che **esiste da giorni**, con quaranta
 funzioni tutte provate.
 
-| la riga diceva | è, su `b9d4724` | come si rimisura |
-|---|---|---|
-| «1.108 prove» di `run-kpi.mjs` | **1979** | `node apps/deepwork-id/tests/run-kpi.mjs` |
-| «456 funzioni su 456» di copertura | **871 su 871** | `node apps/deepwork-id/tests/copertura-funzioni.mjs` |
-| «191 funzioni» nella pagina di Genesi | **163** | `node apps/deepwork-id/tests/genesi-estraibili.mjs` |
-| «entra solo `pointcloud.js` — 5 funzioni» | `pointcloud.js` **6**, e in più **`genesi-data.js` 40** e **`genesi-formato.js` 8**, tutte coperte | `copertura-funzioni.mjs` |
+| la riga diceva | come si rimisura |
+|---|---|
+| «1.108 prove» di `run-kpi.mjs` | `node apps/deepwork-id/tests/run-kpi.mjs` |
+| «456 funzioni su 456» di copertura | `node apps/deepwork-id/tests/copertura-funzioni.mjs` |
+| «191 funzioni» nella pagina di Genesi | `node apps/deepwork-id/tests/genesi-estraibili.mjs` |
+| «entra solo `pointcloud.js` — 5 funzioni» | `copertura-funzioni.mjs` — oggi entrano anche `genesi-data.js` e `genesi-formato.js`, tutte coperte |
 
-⚠️ **I due «871» non c'entrano niente l'uno con l'altro**: che la deriva delle
-prove (1979 − 1108) faccia lo stesso numero del totale di copertura è una
-coincidenza, e sta scritto qui perché nessuno ci legga un legame che non c'è.
+⛔ **E QUESTA TABELLA AVEVA UNA SECONDA COLONNA COI VALORI «DI OGGI»: È STATA
+TOLTA POCHE ORE DOPO, PERCHÉ ERA GIÀ VECCHIA.** Diceva «run-kpi 1979» e
+`run-kpi` ne eseguiva **2033** la sera stessa; diceva «163 funzioni nella
+pagina» e il censimento ne contava 169. Cioè la tabella scritta per correggere
+dei numeri invecchiati era invecchiata **nella colonna che prometteva la
+freschezza**, e nel verso che qui capita sempre — non perché qualcuno avesse
+sbagliato, ma perché il lavoro andava avanti mentre il documento stava fermo.
+Portava anche un `su b9d4724` che sembrava una verifica e non lo era: quel
+commit **non ha mai toccato questo file** (`git log b9d4724 -- <file>` risponde
+`b964a73`), ed è esattamente l'hash incollato che
+`documenti-invecchiati.mjs` rifiuta nei documenti che sorveglia.
+La cura non è ricopiare i numeri giusti — sarebbero sbagliati domani: è che
+**qui restino solo i comandi**, che non invecchiano, e che i numeri vivano dove
+qualcuno li rilancia. Quelli del cantiere di Genesi stanno in
+`docs/DEVELOPMENT.md` e dal 09/08 li sorveglia `numeri-nei-documenti.mjs`, che
+lancia il censimento e pretende la tabella uguale alla sua uscita, scaglione
+per scaglione.
 
 ⛔ **E LA CAUSA NON È LA DISTRAZIONE DI QUALCUNO: È CHE QUESTO DOCUMENTO NON ERA
 NELL'ELENCO DI NESSUN CONTROLLO.** Lo stesso numero — il totale di `run-kpi` —
 è **sorvegliato** in quattro documenti da `numeri-nei-documenti.mjs`, e lì non
 può marcire di un'unità senza far cadere la CI. Qui, fuori dall'elenco, ha
-potuto scostarsi di **871** senza che niente diventasse rosso. È la **quarta
-forma**, quella che non invecchia ma *nasce* fuori dal controllo:
+potuto scostarsi di **novecentoventicinque prove** — da 1.108 a 2.033, misurati
+il 09/08 — senza che niente diventasse rosso. È la **quarta forma**, quella che non invecchia ma
+*nasce* fuori dal controllo:
 
 > **Un numero è sorvegliato solo dove il controllo ARRIVA, e l'elenco di dove
 > arriva va guardato quanto il numero.**
 
-✅ **Che cosa del piano è stato fatto** (verificare col comando, non crederci):
-`apps/genesi/genesi-data.js` esiste e ha **40 funzioni provate**;
-`apps/genesi/genesi-formato.js` ne ha **8**; `pointcloud.js` **6**. La fetta più
-recente portata fuori è `interpProf` — quella da cui dipendono la posizione dei
-fori sul disegno 2D e la **burden reale** di ognuno.
+✅ **Che cosa del piano è stato fatto** — e qui i numeri non si scrivono, per la
+ragione appena raccontata: `apps/genesi/genesi-data.js` esiste, e insieme a
+`genesi-formato.js` e `pointcloud.js` è **coperto al 100%**, con le funzioni
+contate da `node apps/deepwork-id/tests/copertura-funzioni.mjs`, che le stampa
+riga per riga. La fetta più recente portata fuori è `interpProf` — quella da
+cui dipendono la posizione dei fori sul disegno 2D e la **burden reale** di
+ognuno.
 Il seguito vivo del piano sta in `vault/ROADMAP_SETTIMANA.md`, voce **B3**, che
 il conto lo **deriva da un comando** invece di ricopiarlo — ed è il motivo per
 cui B3 non è invecchiata mentre questa pagina sì.
