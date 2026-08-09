@@ -444,7 +444,13 @@
 
 ## 7. Verifica del Delta (01/08 · riverificata riga per riga il 03/08 · **arretrato richiuso il 06/08**)
 
-> **Verificato contro il codice al commit `a52823c`** *(09/08 sera · i **sette**
+> **Verificato contro il codice al commit `1040c23`** *(09/08 notte · i **sette**
+> comandi rilanciati di nuovo dopo la correzione di `#vf-ente`: **sei tornano
+> `0 e 0`** e il settimo è quello dei permessi di lavoro, già riscritto poche
+> ore prima e che dà **2 e 0** per le due righe NOSTRE (il commento che cita
+> `HSG250` e la voce di checklist «Lavoro in quota»). Verdetti cambiati:
+> **zero**.)*
+> **Verificato in precedenza al commit `a52823c`** *(09/08 sera · i **sette**
 > comandi di prova del documento rilanciati uno per uno dopo la correzione di
 > `#vf-esito`: **sei tornano identici**, e il settimo — quello dei permessi di
 > lavoro — è stato **riscritto**, perché a farlo salire da 0 a 2 è il nostro
