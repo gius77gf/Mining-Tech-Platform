@@ -1478,6 +1478,29 @@ Perché serva davvero e non produca elenchi generici, cinque vincoli:
   La roadmap questo lo dichiara di sé in fondo («qui il controllo non arriva,
   l'aggiornamento è a mano»); i tre documenti no, e per questo il difetto è
   vissuto lì.
+  ⛔ **E UN TOTALE NON SI CONTROLLA DA SOLO; UNA SCOMPOSIZIONE SÌ.** Misurato il
+  09/08 sullo stesso numero **tre volte in un giorno** — le mancanze confermate
+  del delta, dichiarate 42, poi 41, e vere **47**. Ogni volta la causa era la
+  stessa: **il righello guardava una forma di scrittura invece del verdetto**
+  (la parola cercata nel file prendeva un'intestazione di sezione; il grassetto
+  che usano cinque documenti su sei faceva contare **zero** il sesto). E ogni
+  volta il conto era stato rifatto **con attenzione**, guardando il totale.
+  A trovarlo è stato far **stampare al controllo la scomposizione per app**:
+  «scudo **0**» accanto a un documento che nel suo riepilogo scrive «Confermate
+  assenti: **6**» è ovvio a chiunque, mentre un totale sbagliato del 13% non lo
+  è per nessuno. **Ogni addendo ha un lettore che lo conosce; il totale no.**
+  ⚠️ E la beffa che vale più del numero: la riga che quel conto lo commentava
+  diceva **già** in prosa, scritta due giorni prima, *«questo conto misura una
+  forma di scrittura, non la verità»*. L'ho letta, l'ho citata nel commit — e
+  poi ho costruito il controllo sulla forma. **Una regola scritta in un
+  documento non protegge lo strumento che si sta scrivendo**: è la stessa
+  lezione di `tutti.mjs`, cioè che una regola di questo file va cercata per
+  prima cosa nel codice che la deve applicare di più.
+  ⚠️ Le righe che **parlano** di un verdetto si travestono in almeno due modi e
+  nessuno dei due si prende con la parola: l'intestazione di **sezione**
+  («**CONFERMATE ASSENTI** — in ordine di…») e l'intestazione di **colonna**
+  (`| quando | confermate | false | …`). Le separano *dove comincia la cella* e
+  *la maiuscola*, non il vocabolario.
 - ⚠️ **IL CONTROLLO CHE NON GUARDA DOVE CREDE.** Variante della regola qui
   sopra, e più insidiosa: il controllo **sa** fallire, ma il suo filtro esclude
   proprio i casi che contano, e allora risponde «pulito» senza aver guardato
