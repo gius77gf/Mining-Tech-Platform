@@ -782,3 +782,49 @@ export function xmlPianoInnesco(p){
   xml+='</BlastPlan>\n';
   return xml;
 }
+
+/* ══════════════════════════════════════════════════════════════════════════
+   G9 — LA QUOTA DEL FRONTE SAGOMATO, SOTTO UN NOME
+   ══════════════════════════════════════════════════════════════════════════
+   `interpProf` dice di quanto il fronte si scosta dal piano verticale a una
+   certa distanza `mx`, interpolando fra i punti del profilo rilevato. Non è un
+   dettaglio grafico: da lei dipendono la posizione dei fori sul disegno 2D e
+   la burden reale di ognuno — cioè quanta roccia ha davanti — che è il numero
+   con cui si decide una carica.
+   ⛔ Stava dentro `genesi.html` e **nessuna prova poteva chiamarla**: è la
+   famiglia censita da `genesi-estraibili.mjs`, che al 09/08 conta 166 funzioni
+   nella pagina di cui 81 estraibili. Portarla qui costa un `export` e la
+   rende provabile; la pagina la usa **con lo stesso nome**, quindi non cambia
+   nemmeno una chiamata.
+   ⚠️ IL COMPORTAMENTO NON È CAMBIATO DI UNA VIRGOLA, ed è la regola di casa:
+   un trasloco che ne approfitta per «migliorare» non è più un trasloco, e se
+   qualcosa si rompe non si sa più quale delle due cose l'ha rotto. Quello che
+   la funzione fa, e che adesso è scritto invece che dedotto:
+   · profilo vuoto o assente → **0** (nessun rilievo = nessuno scostamento,
+     non un'estrapolazione inventata);
+   · i punti si **ordinano per x** dentro la funzione, su una copia: chi la
+     chiama non deve saperlo, e l'array di partenza non si tocca;
+   · fuori dall'intervallo rilevato **non si estrapola**: si tiene il valore
+     dell'estremo. Estrapolare la quota di un fronte oltre dove qualcuno è
+     andato a misurare vorrebbe dire inventare la roccia;
+   · dentro l'intervallo, interpolazione lineare fra i due punti che lo
+     racchiudono;
+   · `y` mancante vale **0** in tutti i rami (`a.y||0`), che è la convenzione
+     con cui il profilo arriva dal rilievo a mano.
+   ⚠️ La guardia `((b.x-a.x)||1)` esiste per due punti con la **stessa x** —
+   che un rilievo battuto due volte produce — e senza di lei sarebbe `0/0`,
+   cioè `NaN` propagato fino alla burden di un foro. */
+export function interpProf(arr, mx) {
+  if (!arr || !arr.length) return 0;
+  const s = [...arr].sort((a, b) => a.x - b.x);
+  if (mx <= s[0].x) return s[0].y || 0;
+  if (mx >= s[s.length - 1].x) return s[s.length - 1].y || 0;
+  for (let i = 0; i < s.length - 1; i++) {
+    const a = s[i], b = s[i + 1];
+    if (mx >= a.x && mx <= b.x) {
+      const t = (mx - a.x) / ((b.x - a.x) || 1);
+      return (a.y || 0) * (1 - t) + (b.y || 0) * t;
+    }
+  }
+  return 0;
+}

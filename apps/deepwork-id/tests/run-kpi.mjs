@@ -23800,6 +23800,60 @@ console.log("\n— Campo: i file che escono —");
     ok(elenco.includes("xmlPianoInnesco"), "e la pagina la importa da genesi-data.js");
     eq(typeof v.xmlPianoInnesco, "function", "il modulo la esporta");
   });
+
+  /* ⛔ G9 — LA QUOTA DEL FRONTE SAGOMATO. Salita dalla pagina il 09/08: non è
+     un dettaglio grafico, da lei dipendono la posizione dei fori sul disegno
+     2D e la **burden reale** di ognuno — quanta roccia ha davanti — che è il
+     numero con cui si decide una carica. Nella pagina nessuna prova poteva
+     chiamarla. */
+  test("⛔ Genesi · interpProf: la quota del fronte fra due punti rilevati", () => {
+    const P = [{ x: 0, y: 0 }, { x: 10, y: 2 }];
+    eq(v.interpProf(P, 0), 0, "sul primo punto vale il primo punto");
+    eq(v.interpProf(P, 10), 2, "sull'ultimo vale l'ultimo");
+    eq(v.interpProf(P, 5), 1, "a metà, metà: l'interpolazione è lineare");
+    eq(v.interpProf(P, 2.5), 0.5, "e a un quarto, un quarto");
+  });
+
+  test("⛔ Genesi · interpProf: FUORI dal rilievo non si estrapola", () => {
+    /* estrapolare la quota di un fronte oltre dove qualcuno è andato a
+       misurare vorrebbe dire inventare la roccia: si tiene l'estremo. */
+    const P = [{ x: 2, y: 1 }, { x: 8, y: 4 }];
+    eq(v.interpProf(P, -100), 1, "molto prima del primo punto: il primo punto");
+    eq(v.interpProf(P, 999), 4, "molto dopo l'ultimo: l'ultimo");
+  });
+
+  test("⛔ Genesi · interpProf: senza rilievo è ZERO, e l'ordine non lo decide chi chiama", () => {
+    eq(v.interpProf([], 3), 0, "profilo vuoto: nessuno scostamento, non un'invenzione");
+    eq(v.interpProf(null, 3), 0, "profilo assente: idem");
+    eq(v.interpProf(undefined, 3), 0, "e `undefined` non deve sollevare");
+    /* i punti si ordinano DENTRO, su una copia: chi chiama non deve saperlo e
+       l'array di partenza non si tocca. Le due cose si provano insieme. */
+    const disordinato = [{ x: 10, y: 2 }, { x: 0, y: 0 }];
+    eq(v.interpProf(disordinato, 5), 1, "un profilo in ordine sparso dà lo stesso numero");
+    eq(disordinato[0].x, 10, "e l'array di chi chiama non è stato riordinato");
+  });
+
+  test("⛔ Genesi · interpProf: due punti sulla STESSA x non producono NaN", () => {
+    /* un rilievo battuto due volte nello stesso punto: senza la guardia
+       `((b.x-a.x)||1)` sarebbe 0/0, cioè un NaN propagato fino alla burden. */
+    const r = v.interpProf([{ x: 4, y: 1 }, { x: 4, y: 3 }], 4);
+    ok(Number.isFinite(r), `un doppione sulla stessa x resta un numero (${r})`);
+    /* e `y` mancante vale zero, che è come arriva un profilo battuto a mano */
+    eq(v.interpProf([{ x: 0 }, { x: 10, y: 4 }], 5), 2, "una y mancante vale 0, non NaN");
+  });
+
+  test("⛔ Genesi · interpProf è USCITA dalla pagina, non copiata", () => {
+    /* la trappola del trasloco, la stessa di `xmlPianoInnesco`: lasciare la
+       vecchia copia dentro `genesi.html` e importare anche la nuova. La pagina
+       userebbe la sua, e le quattro prove qui sopra blinderebbero una funzione
+       che nessuno chiama. */
+    const pag = senzaCommenti(readFileSync(join(HERE, "../../genesi/genesi.html"), "utf8"));
+    ok(!/function\s+interpProf\s*\(/.test(pag), "nella pagina non c'è più una seconda interpProf");
+    const elenco = (pag.match(/import\s*\{([^}]*)\}\s*from\s*'\.\/genesi-data\.js'/) || [, ""])[1]
+      .split(",").map(s => s.trim());
+    ok(elenco.includes("interpProf"), "e la pagina la importa da genesi-data.js");
+    eq(typeof v.interpProf, "function", "il modulo la esporta");
+  });
 }
 
 /* ⛔ `terra.numeroRegistrato` — la guardia che dal 07/08 vive anche dalla parte

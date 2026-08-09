@@ -695,6 +695,34 @@ numero scritto dove non era stato misurato niente**.*
       e vanno chiamate così invece di finire in una stima ottimistica.
       È l'unico pezzo di prodotto che vive quasi tutto fuori dalla portata
       delle prove.
+      ✅ **PRIMA FETTA PORTATA FUORI il 09/08: `interpProf` (blocco G9).**
+      166 → **165** funzioni nella pagina, e il numero è di nuovo **derivato**
+      dal comando, non ricopiato. Non è la più grossa: è quella che **pesa di
+      più**, perché dice di quanto il fronte si scosta dal piano verticale a una
+      certa distanza, e da lei dipendono la posizione dei fori sul disegno 2D e
+      la **burden reale** di ognuno — quanta roccia ha davanti — che è il numero
+      con cui si decide una carica. Nella pagina **nessuna prova poteva
+      chiamarla**; adesso ne ha **cinque**, e la quinta è quella che conta:
+      *«è USCITA dalla pagina, non copiata»*, cioè la trappola del trasloco che
+      lascia la vecchia copia dentro e importa anche la nuova — la pagina
+      userebbe la sua e le altre quattro blinderebbero una funzione che nessuno
+      chiama.
+      ⚠️ **Trasloco, non miglioria**: il corpo è arrivato parola per parola.
+      Quello che è cambiato è che adesso il suo comportamento è **scritto**
+      invece che dedotto — profilo vuoto → 0, fuori dal rilievo **non si
+      estrapola** (estrapolare la quota di un fronte oltre dove qualcuno è
+      andato a misurare vorrebbe dire inventare la roccia), l'ordinamento si fa
+      **dentro su una copia**, e due punti sulla stessa `x` non producono `NaN`.
+      ⛔ **E IL CENSIMENTO È OTTIMISTA, misurato aprendo la sua lista.** Fra le
+      «25 che si portano fuori come sono» ce ne sono che **non vanno in un
+      modulo dati**: `nomeCampoD2` fa `el.closest('label')` (prende un elemento
+      del DOM come **argomento**, quindi il filtro sul `$(...)` non la vede),
+      e `skyTexture`/`softTexture` creano una `<canvas>`. Il criterio «nessuna
+      variabile del modulo e nessun `$(...)`» è giusto per dire *dove vive lo
+      stato*, non per dire *dove può vivere la funzione*: la seconda domanda —
+      **tocca il DOM in qualunque modo, anche ricevendolo?** — non è ancora
+      nel righello, ed è dichiarata qui invece di far credere che le 25 siano
+      25.
 - [ ] **B4. Le mancanze confermate del delta**, in ordine di quanto le chiede un
       ispettore. ⏱️ **Ricontate il 07/08 leggendo i documenti**, non a memoria —
       il conto qui scritto era del 02/08 e si era mosso parecchio:

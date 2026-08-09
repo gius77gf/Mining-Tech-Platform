@@ -1042,7 +1042,10 @@ import { sitoFit, ppvLimit, ppvSenzaSoglia, airblastDb, normaPpvLab,
    TERZI (detonatori elettronici, perforatrici). Era il corpo di un `onclick`
    anonimo — vedi il blocco G8 di `genesi-data.js`. Qui resta la raccolta dello
    stato del progetto; il testo del file lo compone la funzione. */
-         xmlPianoInnesco } from './genesi-data.js';
+         xmlPianoInnesco,
+/* la quota del fronte sagomato: da lei dipendono la posizione dei fori sul
+   disegno 2D e la burden reale di ognuno — vedi il blocco G9. */
+         interpProf } from './genesi-data.js';
 /* ⛔ «ha una data» si decide con l'ESISTENZA, non con la forma: «2026-02-30» ha
    la forma giusta e non esiste. Il modulo di Genesi questa regola l'ha imparata
    il 03/08 — il commento in cima a `genesi-data.js` lo racconta — e la pagina
@@ -4816,10 +4819,11 @@ function measureGeom2D(){
   if(!isFinite(Sm)) Sm=D2.S;
   return { n:H.length, B:+Bm.toFixed(2), S:+Sm.toFixed(2), Lm:+(maxx-minx).toFixed(1) };
 }
-/* fronte modellabile (porting da Deepwork interpolaFronte): deviazione verticale del fronte in mx */
-function interpProf(arr,mx){ if(!arr||!arr.length) return 0; const s=[...arr].sort((a,b)=>a.x-b.x);
-  if(mx<=s[0].x) return s[0].y||0; if(mx>=s[s.length-1].x) return s[s.length-1].y||0;
-  for(let i=0;i<s.length-1;i++){ const a=s[i],b=s[i+1]; if(mx>=a.x&&mx<=b.x){ const t=(mx-a.x)/((b.x-a.x)||1); return (a.y||0)*(1-t)+(b.y||0)*t; } } return 0; }
+/* fronte modellabile (porting da Deepwork interpolaFronte): deviazione verticale
+   del fronte in mx. ⛔ Il corpo è salito in `genesi-data.js` (blocco G9) il
+   09/08: qui non c'era nessuna prova che potesse chiamarlo, e da quel numero
+   dipendono la posizione dei fori sul disegno e la burden reale di ognuno. Il
+   nome è lo stesso, quindi nessuna chiamata di questa pagina è cambiata. */
 function interpFronte(mx){ return interpProf(D2.profilo,mx); }
 function activeProf(){ return D2.tool==='piede'?D2.piede:D2.profilo; }
 function drawDesign2D(){
