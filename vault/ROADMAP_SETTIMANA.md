@@ -964,7 +964,35 @@ numero scritto dove non era stato misurato niente**.*
     turno · **coi dati veri tace**», e in `tutti.mjs` è `['--live']`. Riverificare
     un KO con la passata sbagliata è il modo più facile di dichiararlo chiuso.
   ✅ **RIVERIFICA COMPLETA: 20 su 20 guardati sul commit di adesso.**
-  **2 chiusi** (il CSV dei costi di Conti) e **18 ancora veri**:
+  All'atto della riverifica: **2 chiusi** (il CSV dei costi di Conti) e **18
+  ancora veri**. Poi le unità della giornata, e il bilancio finale è questo:
+  ⛔ **13 CHIUSI · 7 APERTI, E TUTTI E SETTE GLI APERTI ASPETTANO IL
+  FONDATORE** (le tendine tagliate di Scudo 5 e Sentinella 2).
+  ⚠️ **E il numero che cambia il modo di leggere il prossimo giro è un altro:
+  SEI DEI VENTI NON ERANO DIFETTI DEL PRODOTTO.** Contati per causa, e i conti
+  tornano a venti:
+  · **7 difetti veri del prodotto, chiusi**: il CSV dei costi di Conti (2, già
+    chiusi da altre unità prima della riverifica), le quattro frasi della
+    nuvola di Genesi (raggruppamento perso), la manina di Campo su una testata
+    di pannello;
+  · **6 attese sbagliate o non arrivate del BANCO**: il plurale chiesto su «1
+    rapportino»; la scena della disponibilità che non arrivava; la soglia delle
+    fasce vuote invecchiata con la dimostrazione; e i **tre** del foglio di
+    turno di Campo, dove un'iniezione scaduta faceva servire la dimostrazione
+    alla passata «coi dati veri»;
+  · **7 difetti veri ancora aperti**: le tendine, che non si chiudono
+    accorciando il testo perché quello che sfora è **dato dell'utente**.
+  ⛔ La regola pratica che ne segue, e vale per ogni giro futuro: **un KO non è
+  un difetto finché non lo si è riprodotto con la SUA passata e con
+  l'INIEZIONE VIVA.** Sono due condizioni diverse, e nessuna delle due si vede
+  leggendo il registro.
+  ⚠️ **E questo conto è già stato sbagliato una volta oggi**, nei checkpoint
+  delle 07:18 e 08:15, che dicevano «11 chiusi · 9 aperti» e «undici su venti
+  non erano difetti del prodotto». Contati riga per riga sono **13 e 7**, e i
+  non-difetti sono **6**: avevo tenuto un totale a mente invece di rifare la
+  somma dalla tabella. È lo stesso difetto che i controlli sui documenti
+  esistono per prendere, fatto sul documento che li racconta.
+  Il dettaglio dei venti, con lo stato di ciascuno:
   | fronte | quanti | nota |
   |---|---|---|
   | tendine di Scudo (`#vf-verbale`, `#vf-ente`) | 5 | 561 px in 284 · 499 in 284 · 254 in 214 |
