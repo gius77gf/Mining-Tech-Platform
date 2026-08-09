@@ -49,12 +49,20 @@ riga**. Esito: **2 chiusi, 18 ancora veri**.
    quando il dato intero è leggibile accanto; oppure cambiare il campo) toccano
    uno **standard** e un **pezzo d'interfaccia**: si portano al fondatore con
    la misura, non si prendono di slancio.
-3. ⚠️ **UN NUMERO CHE NON SI PUÒ INSEGUIRE VALE MENO DI QUELLO CHE SEMBRA.**
-   `promesse-tocco` dice «campo: 33 voci · **1** promette e non mantiene» — ma
-   **non dice quale**. Il KO è vero e non è lavorabile senza un passo in più:
-   il banco stampa l'app e il conto, non la riga. È il fratello minore della
-   regola del denominatore — lì mancava «quanti soggetti ho guardato», qui
-   manca «**chi** è il soggetto che cade».
+3. ⛔ **QUESTO PUNTO ERA SBAGLIATO, E LA CORREZIONE VALE PIÙ DELL'OSSERVAZIONE.**
+   Avevo scritto che `promesse-tocco` «dice quante ma non dice quale», e che il
+   KO non era lavorabile senza modificare il banco. **Falso**: il banco stampa
+   la riga colpevole — `⛔ campo — nav-att: [item.pon-voce.st-danger] «Frantoio
+   primario Intasame»` — solo che la stampa **dopo** il ciclo, insieme a tutti
+   i dettagli, e il mio `head -12` l'aveva tagliata via.
+   È la **quinta volta** stanotte che lo strumento aveva ragione e a sbagliare
+   era il modo in cui l'ho letto o misurato (il foglio di Scudo, `quantiMesi`,
+   le ore motore di Flotta, la manina di Conti, e adesso questa). La forma è
+   sempre la stessa: **guardo un pezzo dell'uscita e concludo sul tutto.**
+   ⚠️ E il costo di non correggerlo sarebbe stato concreto: il «prossimo passo
+   atomico» che avevo scritto era *modificare il banco*, cioè mezz'ora di
+   lavoro su un difetto che non esiste, invece dei due minuti che servono per
+   aprire la riga che il banco nomina già.
 
 ## Il tentativo che è stato ripristinato
 La correzione delle tendine di Scudo: scritta, provata in scratchpad su sei
@@ -77,10 +85,10 @@ dopo, su una riga sana.
 - `sintassi-pagine` 34/0 · albero pulito · tutto spinto
 
 ## Prossimo passo atomico
-**Far dire a `promesse-tocco` QUALE riga cade** (oggi stampa solo app e conto):
-è una modifica piccola al banco, e senza di essa quel KO non è lavorabile.
-Poi, in ordine di lavorabilità: le **4 frasi della nuvola di Genesi** e i **2
-stati «non misurato» di Campo**, che sono difetti di *testo* e non di layout,
+**La manina di Campo, che il banco nomina già**: sezione `nav-att`, riga
+`.item.pon-voce.st-danger` «Frantoio primario Intasame» — una voce che mostra
+la manina e non fa niente. Poi, in ordine di lavorabilità: le **4 frasi della
+nuvola di Genesi** e i **2 stati «non misurato» di Campo**, che sono difetti di *testo* e non di layout,
 quindi non dipendono da nessuna decisione di standard.
 ⛔ **Ferme in attesa del fondatore**: le 7 tendine tagliate (Scudo 5 +
 Sentinella 2) — serve scegliere fra accettare il taglio col dato leggibile
