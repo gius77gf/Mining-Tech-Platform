@@ -534,7 +534,16 @@ numero scritto dove non era stato misurato niente**.*
       ⚠️ Al primo giro ha **accusato un innocente** («1 MEZZI» in Flotta: due
       piastrelle di KPI unite dall'a capo di `innerText`).
 
-- [ ] **I ternari del singolare che restano nelle app** — ⏱️ *censito da capo
+- [x] ✅ **I ternari del singolare che restano nelle app** *(chiuso l'09/08:
+  **115 candidati → 17, e i 17 hanno tutti una ragione scritta**, cioè il filo
+  è esaurito e non abbandonato. Verificato oggi anche l'ultimo caso rimasto
+  aperto nel testo qui sotto — «e altri 1 documenti» di Campo: la correzione è
+  **in pagina** (`apps/campo/index.html`, `plurale(r.scadute.length - 1, "un
+  altro documento", …)`), quindi la riga proponeva un lavoro già fatto. Resta
+  scritta per intero perché il suo valore è il metodo: il censimento
+  precedente vedeva il **14%** dei suoi soggetti conoscendo una sintassi sola,
+  e la regola automatica è stata provata e scartata con i numeri.)* — ⏱️
+  *censito da capo
       l'09/08, e adesso c'è un numero invece di un'impressione: **54 punti da
       leggere** in 12 file su 16 guardati, con **69 scartati** perché hanno una
       guardia sulla loro variabile e **9** perché sono costanti.* Poi lavorati
@@ -1634,7 +1643,13 @@ numero scritto dove non era stato misurato niente**.*
   riferito da uno scatto (etichette di Conti tagliate a 430) **non c'era** —
   164 voci, zero tagliate — e io l'avevo riportato in due checkpoint senza
   rimisurarlo. Allargando il banco è però uscito un difetto **vero**.
-- [ ] **Chi misura la larghezza dei fogli stampati, e chi no** — misurato il
+- [x] ✅ **Chi misura la larghezza dei fogli stampati, e chi no** *(chiuso
+  l'09/08: **otto superfici su otto** hanno la misura dentro un banco, e la
+  regola della carta sta in un posto solo — `larghezzaCarta`/`regolaPage` in
+  `giro.mjs`. La riga resta per intero perché il suo valore è il METODO: un
+  righello che misura un foglio da stampa contro la finestra del telefono
+  produce **accuse false**, e la correzione «ovvia» era togliere una colonna al
+  verbale che l'ispettore chiede per primo.)* — misurato il
   07/08 dopo che il prospetto di Terra è uscito dalla larghezza del foglio a
   390 px (435 in 390). Quel difetto l'ha trovato `stampe-fs.mjs`, che visita
   **quattro** superfici: Flotta, Sentinella, Conti, Terra. Più `campo-foglio-turno`
