@@ -71,6 +71,16 @@ const NOME_RIEPILOGO = /^RIEPILOGO$/;
 /* «non ho guardato», in tutte le forme che i banchi usano davvero */
 const NON_GUARDATO = /NON RAGGIUNTE|non ho guardato|\b0 su \d+|mai comparse|solo elencate|non misurat|salt(at|o)\b|dichiarat[oe] fuori/i;
 const KO = /^\s*(✗|KO\b)/;
+/* ⛔ E LA RIPETIZIONE ESISTE ANCHE UN PIANO PIÙ SOTTO. Il lettore già toglie il
+   `RIEPILOGO` del runner, perché ricapitola rosso già stampato. Ma **anche i
+   banchi ricapitolano**: chiudono con `✗ 65 verifiche passate, 4 fallite`, che
+   comincia con una crocetta e quindi finiva fra i difetti — un quindicesimo KO
+   che erano i quattro di due righe più su, ricontati.
+   ⚠️ È la stessa lezione già pagata quattro volte su questo registro, e la
+   parte che vale è la domanda: **quando si scrive uno strumento per non farsi
+   ingannare da un registro, si chiede subito CHI ALTRO scrive in quel
+   registro.** Qui la risposta mancante non era il runner: erano i banchi. */
+const CONTO_DEL_BANCO = /^\s*✗\s*\d+\s+verifiche passate,\s*\d+\s+fallite/;
 /* Il commit che il giro ATTESTA: `tutti.mjs` lo scrive nella prima riga, perché
    serve una copia immobile del committato per misurare. */
 const ATTESTA = /gira(?:ndo)? su una COPIA di ([0-9a-f]{7,40})\b/;
@@ -93,10 +103,25 @@ export function leggiGiro(testo) {
     /* la dichiarazione arriva SUBITO dopo l'intestazione */
     if (DICHIARA_CONTROPROVA.test(r)) { corrente.controprova = true; dentroControprova = true; continue; }
     if (DICHIARA_RIPETIZIONE.test(r)) { corrente.ripetizione = true; continue; }
+    if (CONTO_DEL_BANCO.test(r)) { (corrente.conti = corrente.conti || []).push(r.trim()); continue; }
     if (KO.test(r)) corrente.ko.push(r.trim());
     else if (NON_GUARDATO.test(r)) corrente.ciechi.push(r.trim());
   }
   const uscita = /USCITA (\d+)/.exec(testo);
+  /* ⛔ E QUESTO NASCE DA UN ALLARME CHE SUONAVA SEMPRE. Il lettore diceva «il
+     registro è tronco, il giro non è arrivato in fondo» ogni volta che non
+     trovava una riga `USCITA N` — e `tutti.mjs` quella riga **non l'ha mai
+     stampata**, in nessuna versione. Cioè il controllo cercava una cosa che
+     non esiste, e rispondeva con la frase più allarmante che sa dire, in
+     fondo a un giro finito benissimo.
+     ⚠️ Un allarme che scatta sempre insegna a non guardarlo, e questo scattava
+     nel verso che fa buttare via un giro da cinque ore.
+     La riga di fine che il runner stampa DAVVERO è il suo conto finale
+     (`N banchi a posto, M da guardare`), e da lì si sa anche se qualche
+     passata è stata fermata dal limite. Il vecchio `USCITA` resta letto,
+     perché se un giorno qualcuno lo stampasse è un dato più preciso: si
+     preferisce quando c'è, non si pretende. */
+  const fine = /^(\d+) banchi a posto, (\d+) da guardare(?:, (\d+) NON MISURATE)?/m.exec(testo);
   return {
     sezioni,
     /* «sane» = le passate i cui KO sono difetti VERI e NUOVI: né le controprove
@@ -105,6 +130,7 @@ export function leggiGiro(testo) {
     controprove: sezioni.filter((s) => s.controprova),
     ripetizioni: sezioni.filter((s) => s.ripetizione),
     uscita: uscita ? +uscita[1] : null,
+    fine: fine ? { aPosto: +fine[1], daGuardare: +fine[2], nonMisurate: +(fine[3] || 0) } : null,
     nonValido: /NON VALIDO/.test(testo),
     commit: (ATTESTA.exec(testo) || [])[1] || null,
   };
@@ -196,6 +222,27 @@ if (process.argv.includes("--controprova")) {
   if (vecchio.sane.length !== 0 || vecchio.ripetizioni.length !== 1)
     male.push("un registro SENZA la dichiarazione (scritto prima) non viene riconosciuto dal nome del riepilogo");
   if (r.controprove.length !== 2) male.push(`controprove: ${r.controprove.length} invece di 2 — l'intestazione del BANCO dentro la controprova non ha ereditato il flag`);
+  /* ⛔ È ARRIVATO IN FONDO? — nei tre stati, e nasce da un allarme che suonava
+     SEMPRE: il lettore pretendeva una riga `USCITA N` che `tutti.mjs` non ha
+     mai stampato, quindi dichiarava «tronco» anche un giro perfettamente
+     finito. Un allarme che scatta sempre insegna a non guardarlo, e questo
+     scattava nel verso che fa buttare via un giro da cinque ore. */
+  const finito = leggiGiro("  ok  un banco\n\n143 banchi a posto, 16 da guardare\n");
+  if (!finito.fine || finito.fine.aPosto !== 143 || finito.fine.daGuardare !== 16)
+    male.push(`fine: il conto finale del runner non viene letto — ${JSON.stringify(finito.fine)}`);
+  const fermate = leggiGiro("143 banchi a posto, 16 da guardare, 2 NON MISURATE\n");
+  if (!fermate.fine || fermate.fine.nonMisurate !== 2)
+    male.push("fine: le passate fermate dal limite devono restare visibili, non sparire nel conto");
+  if (leggiGiro("  ok  un banco\n  KO  un altro\n").fine !== null)
+    male.push("fine: un registro TRONCO non deve dichiararsi arrivato in fondo");
+  /* ⛔ e il conto FINALE DEL BANCO non è un difetto in più: è la ricapitolazione
+     dei suoi, che stanno già due righe più su */
+  const conConto = leggiGiro(["════════ un banco ════════",
+    "  KO  primo difetto", "  KO  secondo difetto", "✗ 65 verifiche passate, 2 fallite"].join("\n"));
+  if (conConto.sane[0].ko.length !== 2)
+    male.push(`il conto finale del banco è stato contato fra i difetti: ${conConto.sane[0].ko.length} invece di 2`);
+  if (!conConto.sane[0].conti || conConto.sane[0].conti.length !== 1)
+    male.push("il conto finale del banco va TENUTO per poterlo dichiarare, non buttato via in silenzio");
   const koSani = r.sane.flatMap((s) => s.ko);
   if (koSani.length !== 2) male.push(`KO veri: ${koSani.length} invece di 2 — i voluti sono stati contati, o quello dopo la FINE è stato perso`);
   /* ⛔ e il verso opposto, che è il difetto peggiore: dopo la chiusura il rosso
@@ -309,5 +356,8 @@ const koRipetuti = r.ripetizioni.reduce((t, s) => t + s.ko.length, 0);
 if (koRipetuti) console.log(`  passate cadute, ripetute nel riepilogo finale: ${koRipetuti}`
   + `  (non sono difetti in più: sono quelli di sopra, ricontati)`);
 if (r.uscita !== null) console.log(`  uscita del giro: ${r.uscita}${r.uscita === 2 ? "  ⛔ il giro si è dichiarato NON VALIDO: va rifatto" : ""}`);
-else console.log("  ⚠️  nessuna riga «USCITA»: il registro è tronco, il giro non è arrivato in fondo");
+else if (r.fine) console.log(`  il giro è ARRIVATO IN FONDO: ${r.fine.aPosto} banchi a posto, ${r.fine.daGuardare} da guardare`
+  + (r.fine.nonMisurate ? `  ⛔ e ${r.fine.nonMisurate} NON MISURATE (fermate dal limite): un soggetto non misurato non è un soggetto a posto` : ""));
+else console.log("  ⚠️  il registro non ha né una riga «USCITA» né il conto finale del runner:"
+  + " il giro NON è arrivato in fondo, o il file è tronco");
 if (r.nonValido) console.log("  ⛔ il registro contiene «NON VALIDO»: qualcuno ha cambiato il codice sotto al giro");

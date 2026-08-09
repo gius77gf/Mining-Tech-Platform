@@ -1061,6 +1061,20 @@ numero scritto dove non era stato misurato niente**.*
 - [ ] **I 20 KO del giro del 09/08, riverificati sul commit di adesso** — la
   riverifica è cominciata e i primi due fronti hanno risposto in modo opposto,
   che è esattamente perché la sezione 0 esiste:
+  ⏱️ **AGGIORNAMENTO DEL GIRO SUCCESSIVO (quello delle 06:56Z, letto alle
+  12:0x): 14 KO veri, e sono DUE famiglie sole.** Il giro attesta `494863f` e
+  il branch era già avanti di **60 commit, 18 sulle superfici misurate** —
+  quindi ogni KO è stato riverificato prima di guardarlo:
+  · **7 tendine tagliate** (Scudo 5 + Sentinella 2) → **ancora vere**, ed è la
+    famiglia qui sotto: aspetta il fondatore;
+  · **3 di Sentinella + 4 di Campo** → **già chiusi nel pomeriggio**, e sono i
+    difetti che i cantieri paralleli hanno trovato e io ho corretto: il banco
+    li stava misurando su un commit in cui esistevano ancora. Rimisurati sul
+    committato con un server mio e il contrassegno riletto: `sentinella-disegni`
+    **48/0**, `campo-numeri-tranquilli` **69/0**.
+  ⛔ **Cioè zero cantieri nuovi da questo giro**, e non perché non ci fosse
+  niente: perché quello che c'era era già stato preso da un'altra strada,
+  quattro ore prima che il giro finisse di dirlo.
   · ✅ **Conti, i due KO sul CSV dei costi: GIÀ CHIUSI.** `conti-documenti-che-escono`
     sul commit di adesso dà **81 passati, 0 falliti, 12 punti d'uscita su 12
     aperti**. Erano veri a `7cddb59` e li ha chiusi il lavoro sulle voci senza
