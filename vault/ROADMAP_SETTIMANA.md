@@ -1354,14 +1354,28 @@ numero scritto dove non era stato misurato niente**.*
   STRETTO di 718**, quindi quel banco può produrre **accuse false**, non
   assoluzioni false — che è esattamente quello che è successo a me sul verbale
   di Scudo, dove 626 px «non ci stavano» in 390 e ci stanno benissimo in 688.
-  ⚠️ **Il sospetto da verificare, e NON è ancora verificato**: il difetto del
-  prospetto di Terra del 07/08 — «435 px dentro 390» — è stato trovato con
-  quel righello, e Terra è una delle due superfici **senza `@page`**. Se
-  misurato contro la carta, 435 in 718 ci sta. Non sto dicendo che quel difetto
-  fosse falso: sto dicendo che **non è stato misurato contro il denominatore
-  giusto**, e che finché non lo si rifà non lo sappiamo. Il modo è quello già
-  scritto in `scudo-documenti.mjs`: leggere la carta dalla regola `@page` del
-  documento, e dichiarare il ripiego quando la regola non c'è.
+  ✅ **E IL SOSPETTO SI RISOLVE AL CONTRARIO DI COME L'AVEVO SCRITTO — vale la
+  pena tenerlo, perché la correzione è il metodo.** Avevo scritto che il
+  difetto del prospetto di Terra («435 px dentro 390») poteva essere
+  un'accusa falsa. Ragionato fino in fondo, non lo è, e nemmeno può esserlo:
+  **la domanda di `stampe-fs` è più STRETTA di quella della carta**, non
+  diversa. Un foglio che ci sta in 390 px ci sta per forza anche in 718 —
+  quindi quel banco **non può produrre assoluzioni false**, e le sue accuse
+  chiedono al foglio più di quanto chieda la stampante. Chiedere di più è una
+  scelta difendibile: un prospetto che si legge anche su un telefono è meglio,
+  non peggio, e la correzione del 07/08 ha reso il foglio più robusto invece
+  che inseguire un difetto immaginario.
+  ⚠️ Quello che resta vero del sospetto è solo il **nome**: chiamare «larghezza
+  del foglio» una misura contro la finestra è il modo in cui qualcuno un giorno
+  copierà quella domanda dove il denominatore conta davvero — cioè su un foglio
+  che vive in `@media print`, come i due di Scudo, dove 390 px accusano un
+  documento che ci sta con 62 px di margine. La differenza sta nel **dove vive
+  il foglio**: un popup si misura contro la finestra, un `@media print` contro
+  la carta.
+  ⛔ La cosa da fare non è quindi cambiare `stampe-fs`, ed è la ragione per cui
+  non l'ho toccato: **è che la funzione che decide la carta stia in un posto
+  solo**, così chi scrive il prossimo banco trova la domanda giusta già fatta.
+  Fatto: `larghezzaCarta` e `regolaPage` sono in `giro.mjs`.
   ✅ **E Genesi è entrata l'09/08: adesso la misura sta DENTRO il banco**, non
   più in una prova a mano che alla sessione dopo non esiste.
   `genesi-foglio-in-cava.mjs` leggeva il documento come **testo** e non ne
