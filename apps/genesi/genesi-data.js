@@ -828,3 +828,46 @@ export function interpProf(arr, mx) {
   }
   return 0;
 }
+
+/* ══════════════════════════════════════════════════════════════════════════
+   G10 — DUE FUNZIONCINE PURE CHE STAVANO FUORI DALLA PORTATA DELLE PROVE
+   ══════════════════════════════════════════════════════════════════════════
+   Seconda fetta del cantiere censito da `genesi-estraibili.mjs`. Nessuna delle
+   due è grossa; tutt'e due decidono qualcosa che **esce** o che si **guarda**,
+   e nella pagina nessuna prova poteva chiamarle.
+
+   ⚠️ Come la prima fetta: **trasloco, non miglioria** — il corpo è arrivato
+   parola per parola, e quello che è cambiato è che il comportamento adesso è
+   scritto invece che dedotto. */
+
+/* `_sentNum` — un numero dentro il file che Genesi consegna a **Sentinella**.
+   ⛔ La regola che porta, e che nella pagina non aveva nessuna prova: un
+   valore che non si può leggere esce **vuoto**, non «0». È il principio del
+   fondatore applicato a un file che passa fra due app: uno zero in una colonna
+   di PPV si legge «misurato, ed è zero», cioè la cosa più tranquillizzante che
+   quel file possa dire di una vibrazione che nessuno ha misurato.
+   ⚠️ E l'arrotondamento a **quattro decimali** non è cosmetico: senza,
+   `0.1+0.2` uscirebbe `0.30000000000000004` in un CSV che qualcuno apre con un
+   foglio di calcolo. È la stessa famiglia del «numero con quindici decimali
+   dove lo schermo ne mostra zero» censita in `CLAUDE.md` — qui presa prima che
+   facesse danno. */
+export function _sentNum(n) {
+  if (n === null || n === undefined || n === "") return "";
+  const v = +n;
+  return Number.isFinite(v) ? String(Math.round(v * 1e4) / 1e4) : "";
+}
+
+/* `isoColore` — il colore di un'**isocrona** sul disegno 2D, da `u` ∈ [0,1]
+   (0 = il primo fronte d'onda, 1 = l'ultimo). Tre canali che si muovono
+   insieme: la tinta scorre dal celeste al blu, la saturazione **cala** e la
+   luminosità **cala**, così le isocrone tarde sono più scure e più smorte e
+   l'occhio legge la sequenza senza leggere i numeri.
+   ⚠️ Sta in un modulo dati e non in un foglio di stile perché il disegno è su
+   una **tela**: `canvas.fillStyle` vuole una stringa di colore vera, e una
+   `var(--…)` lì **non fallisce, viene ignorata** — il pennello resta del colore
+   di prima. È la trappola censita in `CLAUDE.md` (la tela che sbaglia in
+   silenzio tenendo la risposta di prima), e la ragione per cui questo colore si
+   compone in JavaScript. */
+export function isoColore(u) {
+  return "hsl(" + (188 + u * 26).toFixed(0) + "," + (62 - u * 10).toFixed(0) + "%," + (72 - u * 14).toFixed(0) + "%)";
+}

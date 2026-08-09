@@ -46,7 +46,7 @@ segnaposto («Funzione nav non ancora pronta»). Per aprirlo davvero si monta
 
 ## Le prove
 
-**2.376 prove girano senza rete e senza browser**, con `node` (contate lanciandole, non a memoria — al 09/08: 1928 + 318 + 71 + 32 + 9 + 8 + 7 + 3):
+**2.380 prove girano senza rete e senza browser**, con `node` (contate lanciandole, non a memoria — al 09/08: 1932 + 318 + 71 + 32 + 9 + 8 + 7 + 3):
 
 > ⚠️ **E quel numero conta SETTE suite, non tutto quello che gira.** Rimisurato
 > l'08/08 **a sera** sommando le righe «Risultato …» di un giro intero: il giro
@@ -64,7 +64,7 @@ segnaposto («Funzione nav non ancora pronta»). Per aprirlo davvero si monta
 > 2.251» mentre il titolo sopra diceva già 2.310: il controllo sorveglia il
 > **totale**, non la prosa che lo spiega. È la quarta forma di invecchiamento
 > raccolta in `CLAUDE.md`.*
-> **Il numero da citare resta 2.376**, e la ragione è che le altre dieci contano
+> **Il numero da citare resta 2.380**, e la ragione è che le altre dieci contano
 > **file, non prove**: `import esistenti` fa un'asserzione per file e `classi
 > orfane` una per pagina, quindi il loro totale si muove ogni volta che nasce un
 > file — un numero che cresce senza che nessuno abbia scritto una prova è un

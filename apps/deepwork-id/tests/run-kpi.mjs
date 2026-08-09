@@ -23854,6 +23854,54 @@ console.log("\n— Campo: i file che escono —");
     ok(elenco.includes("interpProf"), "e la pagina la importa da genesi-data.js");
     eq(typeof v.interpProf, "function", "il modulo la esporta");
   });
+
+  /* ⛔ G10 — seconda fetta. `_sentNum` scrive i numeri dentro il file che
+     Genesi consegna a **Sentinella**: la regola che porta è il principio del
+     fondatore applicato a un file che passa fra due app. */
+  test("⛔ Genesi · _sentNum: un valore che non si legge esce VUOTO, mai «0»", () => {
+    eq(v._sentNum(null), "", "null: la colonna resta vuota");
+    eq(v._sentNum(undefined), "", "undefined: idem");
+    eq(v._sentNum(""), "", "campo mai compilato: idem");
+    eq(v._sentNum("abc"), "", "non un numero: idem");
+    eq(v._sentNum(NaN), "", "NaN: idem");
+    /* ⛔ e il caso che dà senso a tutti gli altri: uno ZERO VERO resta zero.
+       Se anche lui uscisse vuoto la regola non distinguerebbe più «non
+       misurato» da «misurato, ed è zero», che è la coppia che esiste per
+       tenere separata. */
+    eq(v._sentNum(0), "0", "ma uno zero VERO resta zero: è una misura");
+  });
+
+  test("⛔ Genesi · _sentNum: quattro decimali, e non è cosmetica", () => {
+    /* senza l'arrotondamento, `0.1+0.2` finirebbe in un CSV come
+       0.30000000000000004: è la famiglia del «numero con quindici decimali
+       dove lo schermo ne mostra zero», qui presa prima che faccia danno. */
+    eq(v._sentNum(0.1 + 0.2), "0.3", "la coda binaria non entra nel file");
+    eq(v._sentNum(1.23456789), "1.2346", "quattro decimali, arrotondati");
+    eq(v._sentNum(12), "12", "un intero non guadagna decimali");
+    eq(v._sentNum(-3.5), "-3.5", "e il segno resta");
+  });
+
+  test("⛔ Genesi · isoColore: le isocrone tarde sono più scure e più smorte", () => {
+    /* tre canali che si muovono insieme: la tinta scorre dal celeste al blu,
+       saturazione e luminosità CALANO — così la sequenza si legge senza
+       leggere i numeri. Si provano i due estremi e la monotonia in mezzo. */
+    eq(v.isoColore(0), "hsl(188,62%,72%)", "u=0, il primo fronte d'onda");
+    eq(v.isoColore(1), "hsl(214,52%,58%)", "u=1, l'ultimo");
+    const l = (u) => +v.isoColore(u).match(/,(\d+)%\)/)[1];
+    ok(l(0) > l(0.5) && l(0.5) > l(1), `la luminosità cala sempre (${l(0)} > ${l(0.5)} > ${l(1)})`);
+    const s = (u) => +v.isoColore(u).match(/,(\d+)%,/)[1];
+    ok(s(0) > s(0.5) && s(0.5) > s(1), `e la saturazione anche (${s(0)} > ${s(0.5)} > ${s(1)})`);
+  });
+
+  test("⛔ Genesi · _sentNum e isoColore sono USCITE dalla pagina, non copiate", () => {
+    const pag = senzaCommenti(readFileSync(join(HERE, "../../genesi/genesi.html"), "utf8"));
+    ok(!/function\s+_sentNum\s*\(/.test(pag), "nella pagina non c'è più una seconda _sentNum");
+    ok(!/function\s+isoColore\s*\(/.test(pag), "né una seconda isoColore");
+    const elenco = (pag.match(/import\s*\{([^}]*)\}\s*from\s*'\.\/genesi-data\.js'/) || [, ""])[1]
+      .split(",").map(s2 => s2.trim());
+    ok(elenco.includes("_sentNum"), "la pagina importa _sentNum da genesi-data.js");
+    ok(elenco.includes("isoColore"), "e isoColore");
+  });
 }
 
 /* ⛔ `terra.numeroRegistrato` — la guardia che dal 07/08 vive anche dalla parte

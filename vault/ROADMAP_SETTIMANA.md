@@ -723,6 +723,28 @@ numero scritto dove non era stato misurato niente**.*
       **tocca il DOM in qualunque modo, anche ricevendolo?** — non è ancora
       nel righello, ed è dichiarata qui invece di far credere che le 25 siano
       25.
+      ✅ **SECONDA FETTA, blocco G10: `_sentNum` e `isoColore`.** 165 → **163**
+      funzioni nella pagina, `run-kpi` 1928 → **1932**. Tutt'e due decidono
+      qualcosa che **esce** o che si **guarda**, e nessuna prova poteva
+      chiamarle:
+      · `_sentNum` scrive i numeri nel file che Genesi consegna a
+        **Sentinella**, e porta il principio del fondatore dentro un file che
+        passa fra due app: un valore che non si legge esce **vuoto**, non «0»
+        — uno zero in una colonna di PPV si leggerebbe «misurato, ed è zero».
+        La prova che dà senso a tutte le altre è quella sullo **zero vero**,
+        che deve restare «0»: se anche lui uscisse vuoto la regola non
+        distinguerebbe più le due cose. E l'arrotondamento a quattro decimali
+        non è cosmetico — senza, `0,1+0,2` finirebbe nel CSV come
+        `0.30000000000000004`;
+      · `isoColore` dà il colore di un'isocrona, con saturazione e luminosità
+        che **calano** insieme: si prova la monotonia, non i tre numeri.
+      ⚠️ **E la seconda domanda ha già scartato un candidato**, che è la prova
+      che serviva scriverla: `riconStorico` legge `localStorage`, quindi nel
+      modulo non ci va — e il commento della pagina lo diceva già («restano qui
+      `riconStorico`, `riconSave`… che leggono `localStorage`, il DOM o lo
+      stato del progetto»). Il censimento la conta fra le 25: sono **tre** i
+      motivi per cui quel numero è ottimista — il DOM ricevuto come argomento,
+      la `<canvas>` creata, e ora lo **stato del browser**.
 - [ ] **B4. Le mancanze confermate del delta**, in ordine di quanto le chiede un
       ispettore. ⏱️ **Ricontate il 07/08 leggendo i documenti**, non a memoria —
       il conto qui scritto era del 02/08 e si era mosso parecchio:

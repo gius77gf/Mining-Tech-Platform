@@ -1045,7 +1045,11 @@ import { sitoFit, ppvLimit, ppvSenzaSoglia, airblastDb, normaPpvLab,
          xmlPianoInnesco,
 /* la quota del fronte sagomato: da lei dipendono la posizione dei fori sul
    disegno 2D e la burden reale di ognuno — vedi il blocco G9. */
-         interpProf } from './genesi-data.js';
+         interpProf,
+/* seconda fetta del cantiere B3, blocco G10: due funzioncine pure che
+   decidono qualcosa che esce (il numero nel file per Sentinella) o che si
+   guarda (il colore di un'isocrona sulla tela). */
+         _sentNum, isoColore } from './genesi-data.js';
 /* ⛔ «ha una data» si decide con l'ESISTENZA, non con la forma: «2026-02-30» ha
    la forma giusta e non esiste. Il modulo di Genesi questa regola l'ha imparata
    il 03/08 — il commento in cima a `genesi-data.js` lo racconta — e la pagina
@@ -3832,7 +3836,9 @@ function _sentOggi(){ return oggiISO(); }   // stessa regola di shared/, un post
    superata da qualunque volata. La colonna vuota è già la convenzione di
    questa stessa riga — le quattro della PPV misurata sono vuote di proposito,
    con la ragione scritta due righe sopra. */
-function _sentNum(n){ if(n===null||n===undefined||n==='') return ''; const v=+n; return Number.isFinite(v)?String(Math.round(v*1e4)/1e4):''; }
+/* ⛔ `_sentNum` è salita in `genesi-data.js` (blocco G10) il 09/08: porta la
+   regola per cui un valore non leggibile esce VUOTO e non «0» dentro il file
+   che va a Sentinella, e qui nessuna prova poteva chiamarla. */
 /* cella di testo per il file che importa Sentinella.
    ⛔ QUI C'ERA LA TERZA COPIA PIÙ DEBOLE DI `csvCell`: virgolettava `; "` e
    basta, quindi un fronte chiamato `=cmd|'/c calc'!A1` usciva **nudo** —
@@ -4590,7 +4596,7 @@ function isoPasso(){
   for(let i=0;i<ISO_PASSI.length;i++) if(T/ISO_PASSI[i]<=10) return ISO_PASSI[i];   // ~6-10 curve: leggibili senza affollare
   return ISO_PASSI[ISO_PASSI.length-1];
 }
-function isoColore(u){ return 'hsl('+(188+u*26).toFixed(0)+','+(62-u*10).toFixed(0)+'%,'+(72-u*14).toFixed(0)+'%)'; }
+/* ⛔ `isoColore` è salita in `genesi-data.js` (blocco G10) il 09/08. */
 function drawIsocrone2D(ctx,g){
   const H=D2.holes; if(!H||H.length<2) return null;
   const T=D2.lastDet||0; if(T<0.5) return null;              // volata praticamente istantanea: non c'e nulla da separare
