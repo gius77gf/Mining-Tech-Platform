@@ -1053,8 +1053,11 @@ import { sitoFit, ppvLimit, ppvSenzaSoglia, airblastDb, normaPpvLab,
 /* la massima carica che parte dentro una finestra di 8 ms: da lei dipendono
    la distanza scalata, la PPV prevista al recettore e quindi il verdetto
    «sotto soglia» — vedi il blocco G11. Qui resta `computeMIC`, che le passa
-   lo stato del progetto e non fa altro. */
-         micFinestra } from './genesi-data.js';
+   lo stato del progetto e non fa altro.
+   ⚠️ `esitoMic` e `micSenzaConto` sono le DUE METÀ che rendono utile il `null`:
+   la bandiera `calcolabile` (che la pagina deve leggere, se no il numero
+   tranquillo si ridisegna lo stesso) e la ragione da mostrare a chi guarda. */
+         micFinestra, esitoMic, micSenzaConto } from './genesi-data.js';
 /* ⛔ «ha una data» si decide con l'ESISTENZA, non con la forma: «2026-02-30» ha
    la forma giusta e non esiste. Il modulo di Genesi questa regola l'ha imparata
    il 03/08 — il commento in cima a `genesi-data.js` lo racconta — e la pagina
@@ -1257,8 +1260,37 @@ function ppvSite(){
    di norma — cioè se la volata si spara come è disegnata — e qui dentro nessuna
    prova poteva chiamarlo. Qui resta solo la raccolta dello stato del progetto:
    il nome non è cambiato, quindi nessuna delle otto chiamate di questa pagina
-   è cambiata. */
+   è cambiata.
+   ⛔ **E DAL 09/08 PUÒ RISPONDERE `null`**, che vuol dire «non calcolabile» e
+   non «poco». Prima, con zero fori disegnati, rispondeva la carica di UN foro:
+   il valore più basso possibile, cioè la PPV prevista più tranquilla (3,28
+   mm/s contro i 23,95 di una volata vera) sul numero con cui si decide se
+   sparare. Il perché lo dice `micSenzaConto`, il verdetto `esitoMic`.
+   ⚠️ Chi legge questo `null` NON deve trasformarlo in un numero: `Math.max(1,
+   null)` fa 1, e da lì la PPV scende a 0,12 mm/s — cioè **199 volte** più
+   tranquilla, peggio del difetto che si stava chiudendo. In questa pagina i
+   lettori sono sette e passano tutti da `micDaMostrare`. */
 function computeMIC(){ return micFinestra(D2.holes, D2.kg); }
+/* ⛔ IL PUNTO UNICO IN CUI QUESTA PAGINA DECIDE CHE COSA FARE DI UNA MIC.
+   Sette posti la leggono — la scheda validatori, i KPI, il foglio stampabile,
+   il CSV della scheda, il piano di innesco XML, il riquadro per Sentinella e
+   il diagramma della legge di sito — e se ognuno decidesse per conto suo
+   sarebbe la «copia debole» censita in CLAUDE.md: la stessa domanda con sette
+   risposte, e quella che sbaglia è sempre quella che nessuno guarda.
+   Torna il verdetto del modulo (`esitoMic`, con la bandiera `calcolabile`) più
+   la ragione (`micSenzaConto`) e le due cose che tutti i lettori chiedono: la
+   distanza scalata e l'airblast, `null` tutt'e due quando la MIC non c'è. */
+function micDaMostrare(){
+  const mic=computeMIC(), es=esitoMic(mic), perche=micSenzaConto(D2.holes, D2.kg);
+  return { mic:es.calcolabile?mic:null, calcolabile:es.calcolabile, verdetto:es.verdetto,
+    classe:es.classe, che:perche?perche.che:'', come:perche?perche.come:'',
+    /* ⚠️ SEPARATA dalla MIC di proposito: senza fori la carica per foro è
+       leggibilissima, e la carica TOTALE resta un numero vero. I due «non lo
+       so» non sono lo stesso, e sommarli spegnerebbe un dato sano. */
+    caricaLeggibile:!(perche && perche.carica),
+    sd:es.calcolabile?D2.recDist/Math.sqrt(Math.max(1,mic)):null,
+    db:airblastDb(D2.recDist, es.calcolabile?mic:null) };
+}
 
 /* ============ costanti progetto-tipo ============ */
 let SPALLA = 3.0, INTERASSE = 3.5;            // maglia editabile — default NEUTRI da regole generali (B~28·D, S/B~1.15)
@@ -2859,19 +2891,39 @@ function computeKPI(){
   let nU=(2.2-14*B/D2.diam)*Math.sqrt((1+S/B)/2)*(1-0.3/B)*(Lc/H); nU=Math.max(0.7,Math.min(2.2,nU));
   const xc=x50/Math.pow(0.693,1/nU);
   const x80=xc*Math.pow(-Math.log(0.2),1/nU), x20=xc*Math.pow(-Math.log(0.8),1/nU);
-  const mic=computeMIC(), st=ppvSite();
-  const ppv=st.K*Math.pow(Math.max(0.1,D2.recDist/Math.sqrt(Math.max(1,mic))),-st.beta);
+  /* ⛔ SENZA MIC NON C'È UNA PPV, E NON C'È NEMMENO UN NUMERO PICCOLO.
+     `Math.max(1, null)` fa **1**, quindi la distanza scalata diventerebbe la
+     distanza nuda (300 m invece di 11,2) e la PPV prevista **0,12 mm/s** —
+     duecento volte più tranquilla di una volata vera, sul numero che decide se
+     si può sparare. La bandiera `calcolabile` esiste per questo, e qui la si
+     legge: `ppv: null`, che `esitoPpv` sa già chiamare «non si può dire se è
+     sotto soglia». Il limite di norma NON si tocca: quello dipende dalla
+     normativa scelta, non dai fori, e resta il numero che è. */
+  const _m=micDaMostrare(), mic=_m.mic, st=ppvSite();
+  const ppv=_m.calcolabile
+    ? st.K*Math.pow(Math.max(0.1,_m.sd),-st.beta)
+    : null;
   const lim=ppvLimit(D2.recNorma,D2.recFreq);
   /* ⛔ LA PPV SI PORTA DIETRO LA SUA BASE. Senza, uno scatto A/B non sa da
      dove venissero K e β, e accendere la legge di sito fra i due salvataggi
-     faceva dichiarare «B migliore» su un progetto che non era stato toccato. */
-  const ppvBase=provenienzaPpv(st, D2.recDist/Math.sqrt(Math.max(1,mic)), (selRoccia()||{}).nome||D2.roccia);
+     faceva dichiarare «B migliore» su un progetto che non era stato toccato.
+     ⚠️ Con la MIC assente la distanza scalata è `null`, e `provenienzaPpv` la
+     sa già trattare: non dichiara «fuori dall'intervallo calibrato» su un
+     numero che non esiste (`isFinite(x)` è la sua prima domanda). */
+  const ppvBase=provenienzaPpv(st, _m.sd, (selRoccia()||{}).nome||D2.roccia);
   const nf=(D2.perRow||18)*(D2.file||1), qtot=nf*Q;
   const _mPerfK=nf*(D2.prof+(D2.sub||0)), _cTotK=_mPerfK*(D2.cPerf||0)+qtot*(D2.cExpl||0)+nf*(D2.cInnesco||0);
   const fly=flyrockEst();
+  /* ⚠️ `ppv` esce `null` come `lim`: sono la stessa convenzione, e le funzioni
+     che le confrontano (`esitoPpv`, `vincitoreKpi`, `riconDelta`) la conoscono
+     già. `mic` e `micCalcolabile` viaggiano CON i KPI perché i sette lettori
+     non debbano richiamare `computeMIC` ognuno per conto suo — è così che
+     nascono le sette risposte diverse alla stessa domanda. */
   return { nf, qtot:Math.round(qtot), pf:+pf.toFixed(2), cost:Math.round(_cTotK),
     x20:Math.round(x20), x50:Math.round(x50), x80:Math.round(x80),
-    ppv:+ppv.toFixed(1), lim:lim===null?null:+lim.toFixed(1), fly:Math.round(fly.Lpred),
+    mic:_m.calcolabile?+mic.toFixed(1):null, micCalcolabile:_m.calcolabile,
+    micChe:_m.che, micCome:_m.come, db:_m.db===null?null:Math.round(_m.db),
+    ppv:ppv===null?null:+ppv.toFixed(1), lim:lim===null?null:+lim.toFixed(1), fly:Math.round(fly.Lpred),
     ppvBase, norma:normaPpvLab(D2.recNorma), recFreq:D2.recFreq, recDist:D2.recDist,
     presplit:!!D2.presplit,
     setup:(selEsplosivo()||{}).nome_breve||(selEsplosivo()||{}).nome||D2.esplosivo,
@@ -2963,7 +3015,18 @@ if($('btn-scheda-csv')) $('btn-scheda-csv').onclick=()=>{
      qui: in un foglio di calcolo le due celle si potrebbero confrontare a
      mano, ma «non si può dire se è sotto soglia» — il caso in cui il limite
      non è calcolabile — non si ricava da due celle di cui una è vuota. */
-  const _mic=computeMIC(), _db=Math.round(airblastDb(D2.recDist,_mic));
+  /* ⛔ E DAL 09/08 LA STESSA FAMIGLIA UN PIANO PIÙ SOTTO: la MIC. Il file
+     usciva con «MIC carica per ritardo (kg);60» su un progetto **senza
+     nessun foro disegnato** — la carica di un foro solo, cioè il numero più
+     basso possibile — e sotto ci scriveva un airblast di 126,8 dB(L) e un
+     «sotto il limite USBM/OSM» che nessuno aveva misurato. Adesso la MIC può
+     essere `null`, e qui non diventa né uno zero né un trattino: la cella
+     resta vuota (la regola dieci righe più giù) e accanto c'è la riga che
+     **dice perché**, con la stessa frase che legge chi guarda lo schermo.
+     ⚠️ `airblastDb` risponde `null` a sua volta, quindi `esitoAirblast`
+     scrive «non calcolabile» invece del verdetto tranquillo: la catena si
+     regge da sola, senza un `if` scritto qui dentro. */
+  const _mic=k.mic, _db=k.db;
   const _eP=esitoPpv(k.ppv, k.lim), _eA=esitoAirblast(_db);
   const rows=[
     ['Maglia', k.maglia],
@@ -2980,6 +3043,11 @@ if($('btn-scheda-csv')) $('btn-scheda-csv').onclick=()=>{
     ['Esito PPV', _eP.verdetto],
     ['Distanza recettore (m)', D2.recDist],
     ['MIC carica per ritardo (kg)', _mic],
+    /* la ragione esce ACCANTO alla cella vuota, come la norma esce accanto al
+       limite mancante otto righe più su: una cella vuota da sola dice «non
+       c'è» e lascia credere a una dimenticanza, non a una non-misurabilità */
+    ['Esito MIC', k.micCalcolabile?'contata sui fori del disegno':'non calcolabile'],
+    ['Perche la MIC non e calcolabile', k.micCalcolabile?'':k.micChe],
     ['Base della previsione PPV', k.ppvBase&&k.ppvBase.breve],
     ['Referti della legge di sito', k.ppvBase&&k.ppvBase.fonte==='sito' ? k.ppvBase.referti : ''],
     /* gli avvisi escono in una cella loro e per intero: «provvisoria» ed
@@ -3073,17 +3141,35 @@ if($('btn-report')) $('btn-report').onclick=()=>{
      ⚠️ Il verdetto si prende sui numeri STAMPATI (arrotondati al decimo, come
      escono da `computeKPI`) e non su quelli grezzi: su un foglio di carta non
      deve mai capitare di leggere «8,0 mm/s · limite 8,0 · sotto soglia». */
-  const _rMic=computeMIC(), _rSt=ppvSite(), _rSd=D2.recDist/Math.sqrt(Math.max(1,_rMic));
+  /* ⛔ E DAL 09/08 IL FOGLIO DICE ANCHE QUANDO LA MIC NON C'È. Questo è il
+     foglio che si porta in cava e si archivia col rapportino: una MIC che
+     nessuno ha potuto contare non può uscire di qui come un numero piccolo né
+     come un trattino muto. `micDaMostrare` la decide una volta per tutti e
+     sette i lettori, quindi il foglio non può più scostarsi dallo schermo. */
+  const _rM=micDaMostrare(), _rMic=_rM.mic, _rSt=ppvSite(), _rSd=_rM.sd;
   const _rPv=provenienzaPpv(_rSt,_rSd,R.nome||D2.roccia);
   const _rEp=esitoPpv(k.ppv,k.lim);
-  const _rDb=airblastDb(D2.recDist,_rMic), _rEa=esitoAirblast(_rDb);
-  const _rPerche=ppvSenzaSoglia(D2.recNorma,D2.recFreq);
+  const _rDb=_rM.db, _rEa=esitoAirblast(_rDb);
+  /* ⛔ UNA DOMANDA SOLA: «perché non c'è un verdetto?», decisa QUI e non dentro
+     la riga che la stampa. Le ragioni sono due e non si somigliano — o manca la
+     SOGLIA (`ppvSenzaSoglia`: la norma o la frequenza), o manca il NUMERO da
+     confrontarci (`micSenzaConto`: senza MIC non c'è distanza scalata, quindi
+     non c'è PPV). La MIC viene prima: senza di lei non esiste niente da
+     confrontare con nessuna soglia, e mandare a riscegliere la normativa
+     qualcuno che ha solo una carica illeggibile è mandarlo a correggere il
+     campo sano — l'errore che questa stessa riga aveva già fatto una volta. */
+  const _rPerche=!_rM.calcolabile
+    ? { che:_rM.che, come:_rM.come }
+    : ppvSenzaSoglia(D2.recNorma,D2.recFreq);
   const sec=(t,rows)=>'<h2>'+esc(t)+'</h2><table>'+rows.map(r=>'<tr><td>'+esc(r[0])+'</td><td>'+r[1]+'</td></tr>').join('')+'</table>';
   const body=
     sec('Geometria',[['Maglia (spalla × interasse)',gfix(D2.B,1)+' × '+gfix(D2.S,1)+' m'],['Diametro foro',gnum(D2.diam,0)+' mm'],['Fori × file',gnum(nf,0)+' ('+gnum(D2.perRow,0)+' × '+gnum(D2.file,0)+')'],['Profondità / sottoperf.',gnum(D2.prof,1)+' / '+gnum(D2.sub||0,1)+' m'],['Borraggio',gnum(D2.stem,1)+' m'],['Inclinazione',gnum(D2.incl||0,0)+'°'],['Fronte',gnum(g.Lm,1)+' m']])
    +sec('Carica & sequenza',[['Esplosivo',esc(E.nome||D2.esplosivo)],['Carica per foro',gnum(D2.kg,1)+' kg'],['Carica totale',gnum(kgTot,0)+' kg'],['Powder factor',gfix(k.pf,2)+' kg/m³'],['Innesco',esc(I.nome||D2.innesco)],['Sequenza',esc(seqL)],['Ritardo foro / fila',gnum(D2.ritardo,1)+' / '+gnum(D2.ritardoFila||0,1)+' ms']].concat((D2.decks||1)>1?[['Decking',gnum(D2.decks,0)+' cariche/foro (~'+gnum(D2.kg/D2.decks,0)+' kg/deck, borraggio tra deck '+gnum(D2.deckStem,1)+' m)']]:[]))
    +sec('Roccia',[['Litologia',esc(R.nome||D2.roccia)],['UCS',gnum(D2.ucs,0)+' MPa'],['Fratturazione',esc(D2.frat)],['Fori bagnati',D2.bagnato?'sì':'no']])
    +sec('Previsioni (PREVISTO — non misura)',[['Frammentazione x20 / x50 / x80',gnum(k.x20,1)+' / '+gnum(k.x50,1)+' / '+gnum(k.x80,1)+' cm'],
+      ['MIC (carica massima per ritardo)',
+        _rM.calcolabile ? gnum(_rMic,1)+' kg (finestra 8 ms)'
+                        : '<b>Non calcolabile</b> — '+esc(_rM.che)+'. '+esc(_rM.come)],
       ['PPV al recettore ('+gnum(D2.recDist,0)+' m)',
         gfix(k.ppv,1)+' mm/s (limite '+gfix(k.lim,1)+', '+esc(normL)+')<br>'
         + (_rEp.confrontabile
@@ -3096,6 +3182,9 @@ if($('btn-report')) $('btn-report').onclick=()=>{
          390 px sei righe intere in grassetto smettevano di segnalare qualcosa
          — è la stessa scelta della schermata, «<b>Legge provvisoria</b>: …». */
       ['Base della previsione PPV', _ppvBaseHtml(_rPv)],
+      /* `_rDb` è `null` quando lo è la MIC: `gnum` scrive «—» e `esitoAirblast`
+         «non calcolabile». Senza questa catena il foglio stampava 104,5 dB(L)
+         e «sotto il limite USBM/OSM» su una volata che non esiste. */
       ['Airblast (sovrappressione) a '+gnum(D2.recDist,0)+' m',
         gnum(_rDb,0)+' dB(L)<br><b>'+esc(_rEa.verdetto)+'</b>'+(_rEa.consiglio?' — '+esc(_rEa.consiglio):'')],
       ['Gittata flyrock',gnum(k.fly,0)+' m'],['Sgombero mezzi 2× / persone 4×',gnum(F.Dmez,0)+' / '+gnum(F.Dper,0)+' m'],['Presplit',k.presplit?'sì':'no']])
@@ -3276,6 +3365,16 @@ function riconRender(){
        «Previsto»: a 430 px quella colonna sta in 80 px, e una frase lì dentro
        andrebbe a capo in mezzo alle parole — è la ragione per cui
        `provenienzaPpv` ha due lunghezze. Qui c'è spazio per quella lunga. */
+    /* ⚠️ QUANDO IL PREVISTO NON C'È, IL «—» DA SOLO NON BASTA. Questa è la
+       schermata in cui la previsione diventa uno scarto contro il misurato, e
+       da lì entra nello storico e nel CSV che esce dall'azienda: un trattino
+       nella colonna «Previsto» si legge come una dimenticanza, e chi salva non
+       sa che sta archiviando una riga senza previsione. `riconDelta` e
+       `csvCell` fanno già la cosa giusta (nessuno scarto, cella vuota); quello
+       che mancava era dirlo. */
+    +(prev.ppv===null?'<div style="margin-top:8px;color:#ffca28;font-size:12px;line-height:1.4">'
+      +'<b>La PPV prevista non c’è</b>: '+_rEsc(k.micChe||'la MIC non è calcolabile')+'. '+_rEsc(k.micCome||'')
+      +' Il valore misurato si può registrare lo stesso, ma lo scostamento non si calcola e nel CSV la cella del previsto resta vuota.</div>':'')
     +'<div id="ric-ppv-base" style="margin-top:8px;color:var(--mut);font-size:12px;line-height:1.4">Base della PPV prevista: '+_ppvBaseHtml(prev.ppvBase)+'</div>'
     +'<div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:10px;align-items:center;font-size:13px;color:var(--mut)">'
     +'<label>Oversize reale <input id="ric-ovs" type="number" min="0" max="100" style="width:58px"> %</label>'
@@ -3506,11 +3605,18 @@ function sitoGrafico(P,f){
   const fsT=stretto?11:9.5, fsL=stretto?11.5:10;
   const sdv=P.map(p=>p.d/Math.sqrt(p.w)), pv=P.map(p=>p.ppv);
   const lim=ppvLimit(D2.recNorma,D2.recFreq);
-  const sdOra=D2.recDist/Math.sqrt(Math.max(1,computeMIC()));
+  /* ⛔ E LA STESSA TRAPPOLA VALE PER LA DISTANZA SCALATA DELLA VOLATA IN CORSO,
+     dal 09/08: `computeMIC()` può rispondere `null`, e `Math.max(1, null)`
+     faceva **1** — cioè disegnava la volata in corso alla distanza NUDA (300
+     m/kg^½ invece di 11,2), in fondo a destra del diagramma, dove la legge
+     promette la vibrazione più bassa. Non un errore: una riga verticale
+     tranquilla su un progetto senza fori. Una volata che non si può collocare
+     non si colloca — e la didascalia lo dice, invece di lasciare un vuoto. */
+  const _gM=micDaMostrare(), sdOra=_gM.sd;
   /* ⛔ una soglia che non c'è non entra nella scala: `Math.log10(null)` fa
      `-Infinity` e schiaccerebbe tutto il diagramma su una riga, senza che
      nessun errore lo dica. */
-  const allX=sdv.concat([sdOra]), allY=lim===null?pv.slice():pv.concat([lim]);
+  const allX=sdOra===null?sdv.slice():sdv.concat([sdOra]), allY=lim===null?pv.slice():pv.concat([lim]);
   let xlo=Math.log10(Math.min.apply(null,allX)), xhi=Math.log10(Math.max.apply(null,allX));
   let ylo=Math.log10(Math.min.apply(null,allY)), yhi=Math.log10(Math.max.apply(null,allY));
   const px=Math.max(.10,(xhi-xlo)*.14), py=Math.max(.10,(yhi-ylo)*.14);
@@ -3528,7 +3634,7 @@ function sitoGrafico(P,f){
   /* le due etichette stanno su angoli opposti: il limite in alto a sinistra,
      la volata in corso in basso accanto alla sua linea — così non si toccano
      mai, qualunque sia la scala */
-  const xOra=X(Math.log10(sdOra)), oraDx = xOra > W*.72 ? -6 : 5;
+  const xOra=sdOra===null?null:X(Math.log10(sdOra)), oraDx = (xOra!==null && xOra > W*.72) ? -6 : 5;
   /* la riga rossa del limite si disegna solo se il limite esiste; se manca lo
      dice una scritta, invece di lasciare il diagramma senza spiegazione */
   if(lim===null){
@@ -3538,8 +3644,15 @@ function sitoGrafico(P,f){
     g+='<line x1="'+ml+'" y1="'+yLim.toFixed(1)+'" x2="'+(W-mr)+'" y2="'+yLim.toFixed(1)+'" stroke="#ef5350" stroke-width="1.2" stroke-dasharray="6 4"/>'
       +'<text x="'+(ml+4)+'" y="'+(yLim>mt+16?yLim-5:yLim+12).toFixed(1)+'" fill="#ef5350" font-size="'+fsL+'">limite '+_sitoNum(lim)+' mm/s</text>';
   }
-  g+='<line x1="'+xOra.toFixed(1)+'" y1="'+mt+'" x2="'+xOra.toFixed(1)+'" y2="'+(H-mb)+'" stroke="rgba(134,176,216,.7)" stroke-width="1.1" stroke-dasharray="3 4"/>'
-    +'<text x="'+(xOra+oraDx).toFixed(1)+'" y="'+(mt+11)+'" fill="#86b0d8" font-size="'+fsL+'" text-anchor="'+(oraDx<0?'end':'start')+'">questa volata</text>';
+  /* stessa scelta della riga rossa qui sopra: se la volata in corso non si può
+     collocare, al suo posto va una FRASE. Una riga disegnata «da qualche parte»
+     sarebbe l'unica cosa peggiore di nessuna riga. */
+  if(xOra===null){
+    g+='<text x="'+(ml+4)+'" y="'+(H-mb-6)+'" fill="#86b0d8" font-size="'+fsL+'">questa volata non è collocabile: la MIC non è calcolabile</text>';
+  } else {
+    g+='<line x1="'+xOra.toFixed(1)+'" y1="'+mt+'" x2="'+xOra.toFixed(1)+'" y2="'+(H-mb)+'" stroke="rgba(134,176,216,.7)" stroke-width="1.1" stroke-dasharray="3 4"/>'
+      +'<text x="'+(xOra+oraDx).toFixed(1)+'" y="'+(mt+11)+'" fill="#86b0d8" font-size="'+fsL+'" text-anchor="'+(oraDx<0?'end':'start')+'">questa volata</text>';
+  }
   /* le due rette: media (tratteggiata) e progetto al 95° (piena). Ritagliate
      sul riquadro, altrimenti su pendenze forti finiscono sopra le etichette
      degli assi. */
@@ -3870,10 +3983,26 @@ function _sentCell(v){ return csvCell(String(v==null?'':v).replace(/[\r\n\t]+/g,
 function _sentDati(){
   if(!D2.holes.length) genMaglia2D();
   computeSeq2D();
-  const g=measureGeom2D(), k=computeKPI(), st=ppvSite(), mic=computeMIC();
+  const g=measureGeom2D(), k=computeKPI(), st=ppvSite(), _m=micDaMostrare(), mic=_m.mic;
   const nf=g.n||k.nf;                       /* i fori DAVVERO in pianta */
-  return { nFori:nf, kgTotali:Math.round(nf*D2.kg*10)/10, mic:Math.round(mic*10)/10,
-    dist:+D2.recDist, sd:D2.recDist/Math.sqrt(Math.max(1,mic)),
+  /* ⛔ QUI IL `null` DEVE RESTARE `null` FINO ALLA CELLA. `Math.round(null*10)/10`
+     fa **0**, e uno 0 nella colonna della carica massima per ritardo di un
+     registro volate si legge «misurata, ed è zero» — la cosa più
+     tranquillizzante che quel file possa dire, in un'altra app, di una volata
+     che non è ancora stata sparata. È esattamente ciò contro cui esiste
+     `_sentNum`, dieci righe più giù: un valore che non si può leggere esce
+     VUOTO. La bandiera `micCalcolabile` viaggia col resto perché il riquadro,
+     un secondo prima dell'export, lo dica a chi preme il bottone. */
+  /* ⛔ E LA CARICA TOTALE PORTAVA LO STESSO ZERO, UN CAMPO PIÙ IN LÀ — trovato
+     premendo il bottone, non leggendo il codice: col `kg` illeggibile
+     `nf * null` fa 0, e il riquadro diceva «Carica totale 0 kg» accanto a una
+     MIC che ormai dichiarava di non sapersi calcolare. Nel registro volate di
+     Sentinella «0 kg di esplosivo» è un fatto, e un fatto falso. */
+  return { nFori:nf,
+    kgTotali:_m.caricaLeggibile?Math.round(nf*D2.kg*10)/10:null,
+    mic:mic===null?null:Math.round(mic*10)/10,
+    micCalcolabile:_m.calcolabile, micChe:_m.che, micCome:_m.come,
+    dist:+D2.recDist, sd:_m.sd,
     ppv:k.ppv, lim:k.lim, freq:+D2.recFreq,
     norma:normaPpvLab(D2.recNorma)+' @ '+D2.recFreq+' Hz',
     fonte:(st.fonte==='sito'?'genesi-sito':'genesi-litologia'),
@@ -3893,7 +4022,9 @@ function _sentDati(){
        preme il bottone, e si fa. */
     provvisoria: st.fonte==='sito' && !!(st.fit && st.fit.avviso==='pochi'),
     referti: st.fonte==='sito' && st.fit ? st.fit.n : null,
-    calibrata:st.fonte==='sito', db:Math.round(airblastDb(D2.recDist,mic)) };
+    /* `Math.round(null)` fa **0**, e 0 dB(L) è il silenzio: la stessa trappola
+       della MIC, un campo più in là. `_m.db` è già `null` quando lo è la MIC. */
+    calibrata:st.fonte==='sito', db:_m.db===null?null:Math.round(_m.db) };
 }
 /* Il CODICE della volata: deterministico, ricavato dal progetto (data, fronte,
    fori, chili, MIC, distanza). Serve a Sentinella per riconoscere i doppioni
@@ -3918,8 +4049,19 @@ function sentRender(){
     +'<div style="border:1px solid rgba(255,171,0,.18);border-radius:11px;padding:10px 12px;background:rgba(255,255,255,.015);margin-top:12px">'
     +'<div style="color:#ffd54f;font-family:\'Barlow Condensed\',sans-serif;font-weight:800;font-size:12px;letter-spacing:.09em;text-transform:uppercase;margin-bottom:6px">Che cosa parte</div>'
     +riga('Numero di fori',it(d.nFori,0),1)
-    +riga('Carica totale',it(d.kgTotali)+' kg',1)
-    +riga('Carica massima per ritardo (MIC)',it(d.mic)+' kg',1)
+    +riga('Carica totale',d.kgTotali===null
+      ? '<span style="color:#ffca28">non calcolabile</span>' : it(d.kgTotali)+' kg',1)
+    /* ⚠️ un «—» da solo, in un riquadro di numeri, si legge come una
+       dimenticanza: accanto ci va la parola che dice che il dato NON C'È e
+       perché — questo è il riquadro che si guarda un secondo prima di mandare
+       il file a un'altra app. */
+    +riga('Carica massima per ritardo (MIC)',d.micCalcolabile
+      ? it(d.mic)+' kg'
+      : '<span style="color:#ffca28">non calcolabile</span>',1)
+    +(d.micCalcolabile?'':'<div style="color:#ffca28;font-size:12px;margin-top:6px">'
+      +'<b>La MIC non è calcolabile</b>: '+_rEsc(d.micChe)+'. '+_rEsc(d.micCome)
+      +' Nel file le celle di MIC, PPV prevista e airblast escono <b>vuote</b>: '
+      +'Sentinella riceverà la volata senza quei numeri invece che con degli zeri.</div>')
     +riga('Distanza del recettore',it(d.dist,0)+' m',1)
     +riga('Distanza scalata (la ricalcola Sentinella)',it(d.sd)+' m/kg^½')
     +riga('PPV <b>prevista</b>',it(d.ppv)+' mm/s',1)
@@ -4183,7 +4325,11 @@ $('btn-piano-csv').onclick=()=>{
 if($('btn-innesco-xml')) $('btn-innesco-xml').onclick=()=>{
   if(!D2.holes.length) genMaglia2D();
   computeSeq2D();
-  const inn=selInnesco(), mic=computeMIC(), last=D2.lastDet||0;
+  /* ⚠️ la MIC può essere `null`: `xmlPianoInnesco` lo sa e **dichiara** invece
+     di scrivere `0.0` — uno zero in `MaxInstantCharge` lo leggerebbe il
+     software che programma i detonatori come «zero chili per ritardo». Qui non
+     si converte niente: si passa quello che c'è, compreso il nulla. */
+  const inn=selInnesco(), _xM=micDaMostrare(), mic=_xM.mic, last=D2.lastDet||0;
   const rows=D2.holes.slice().sort((a,b)=>(a.tDet||0)-(b.tDet||0));
   const xml=xmlPianoInnesco({ B:D2.B, S:D2.S, diam:D2.diam, esplosivo:D2.esplosivo,
     innesco:{ id:inn.id, nome:inn.nome }, sequenza:D2.sequenza, ritardo:D2.ritardo,
@@ -4200,7 +4346,11 @@ if($('btn-innesco-xml')) $('btn-innesco-xml').onclick=()=>{
      esporta vede subito se il piano che sta consegnando è quello che ha in
      mente. Dire solo «esportato (16 fori)» è confermare la parte che non
      sbaglia mai. */
-  if(typeof toast==='function') toast('Piano di innesco XML esportato ('+_ricPlur(rows.length,'foro','fori')+' · '+inn.nome+')');
+  /* ⚠️ e se la MIC manca lo dice il messaggio, non solo il file: chi esporta
+     sta consegnando un piano a cui manca il numero che decide la vibrazione, e
+     scoprirlo aprendo l'XML è troppo tardi. */
+  if(typeof toast==='function') toast('Piano di innesco XML esportato ('+_ricPlur(rows.length,'foro','fori')+' · '+inn.nome+')'
+    +(_xM.calcolabile?'':' — attenzione: la MIC non è calcolabile, nel file esce dichiarata e senza valore'), _xM.calcolabile?undefined:'err');
 };
 /* Import del piano di innesco XML: round-trip con l'export stile IREDES di Genesi.
    Rilegge geometria/esplosivo/sequenza/ritardi nel Progetto 2D. NON è un import
@@ -5264,8 +5414,13 @@ function renderScheda2D(){
   rows.push({lab:'Scatter innesco',valStr:gfix(_sd,1)+' <span>ms</span>',cls:(_Rs<0.1?'sv-ok':(_Rs<0.35?'sv-warn':'sv-bad')),
     why:(D2.innesco==='elettronico')?'scatter minimo (~0,1 ms): uniformita maggiore (X50 piu fine), PPV ridotto fino a −50%.':'sull ultimo foro ~'+gnum(_Rs*100,0)+'% del ritardo inter-foro: meno uniforme; oltre ~35% rischio inversione d ordine. Per X50 piu fine valuta i detonatori elettronici.'});
   /* === Vibrazioni & Airblast: PPV al recettore (Devine/USBM), MIC, sovrappressione === */
-  const _mic=computeMIC(), _st=ppvSite(), _sd2=D2.recDist/Math.sqrt(Math.max(1,_mic));
-  const _ppv=_st.K*Math.pow(Math.max(0.1,_sd2),-_st.beta);
+  /* ⛔ QUESTA È LA SCHERMATA IN CUI SI DECIDE SE SPARARE, ed è quella su cui
+     una MIC assente faceva più danno: `_mic` finiva concatenato («null kg») e
+     `Math.max(1, null)` mandava la PPV a 0,12 mm/s con il pallino verde. Da qui
+     in giù la MIC può non esserci, e quando non c'è la riga lo DICE — non
+     mostra un numero piccolo, che è il modo in cui questa pagina mentirebbe. */
+  const _m2=micDaMostrare(), _mic=_m2.mic, _st=ppvSite(), _sd2=_m2.sd;
+  const _ppv=_m2.calcolabile?_st.K*Math.pow(Math.max(0.1,_sd2),-_st.beta):null;
   /* ⚠️ `_rat = _ppv/_lim` è sparita di qui: il rapporto lo calcola `esitoPpv`,
      che sul limite assente risponde «non confrontabile» invece di `NaN` — e un
      `NaN` che scivola in un confronto è il modo in cui questa riga nasconde. */
@@ -5323,7 +5478,18 @@ function renderScheda2D(){
      modulo, dove si prova. */
   const _perche = ppvSenzaSoglia(D2.recNorma, D2.recFreq);
   const _ep = esitoPpv(_ppv, _lim);
-  if(_lim===null){
+  /* ⛔ TRE CASI, NON DUE — e il terzo è quello nuovo. Senza SOGLIA manca il
+     metro; senza MIC manca il NUMERO da misurare. Sono mancanze diverse e
+     mandano a correggere due campi diversi: confonderle rimanderebbe a
+     riscegliere la normativa qualcuno che ha solo un disegno senza fori.
+     ⚠️ La MIC viene prima: senza di lei la PPV non esiste, quindi non c'è
+     niente da confrontare con nessuna soglia. */
+  if(!_m2.calcolabile){
+    rows.push({lab:'PPV al recettore',valStr:'<span>non calcolabile</span>',cls:_m2.classe,
+      why:'la legge di Devine parte dalla distanza scalata, e la distanza scalata parte dalla MIC: '+_rEsc(_m2.che)+'. '+_rEsc(_m2.come)+' Finché la MIC non c\'è, questa previsione <b>non esiste</b> — e un numero piccolo al suo posto direbbe che la volata è tranquilla.'+_coda});
+    rows.push({lab:'MIC (carica/ritardo)',valStr:'<span>non calcolabile</span>',cls:_m2.classe,
+      why:'massima carica entro la finestra di 8 ms (fori sullo stesso ritardo). Qui non si può contare: '+_rEsc(_m2.che)+'. '+_rEsc(_m2.come)});
+  } else if(_lim===null){
     rows.push({lab:'PPV al recettore',valStr:gfix(_ppv,1)+' <span>mm/s</span>',cls:'sv-warn',
       why:'a '+gnum(D2.recDist,0)+' m (SD '+gfix(_sd2,1)+' m/kg^½, MIC '+gnum(_mic,1)+' kg), legge di Devine PPV=K·SD^−β con '+_fonte+'. <b>Non si può dire se è sotto soglia</b>: '+_rEsc(_perche.che)+(_perche.norma?' (il codice salvato è «'+_rEsc(_normaLab)+'»)':'')+'. '+_rEsc(_perche.come)+' Poi il confronto torna.'+_coda});
     rows.push({lab:'MIC (carica/ritardo)',valStr:_mic+' <span>kg</span>',cls:'sv-info',
@@ -5338,13 +5504,20 @@ function renderScheda2D(){
   rows.push({lab:'MIC (carica/ritardo)',valStr:_mic+' <span>kg</span>',cls:'sv-info',
     why:'massima carica entro la finestra di 8 ms (fori sullo stesso ritardo). W max ammissibile alla soglia scelta ≈ '+Math.round(_wmax)+' kg a '+D2.recDist+' m: oltre, il PPV supera il limite.'});
   }
-  const _sd3=D2.recDist/Math.cbrt(Math.max(0.1,_mic)), _db=airblastDb(D2.recDist,_mic);
+  /* ⚠️ `Math.max(0.1, null)` fa 0,1 e `Math.round(null)` fa **0**: senza la
+     guardia questa riga scriveva «105 dB(L) · sotto il limite USBM/OSM» su una
+     volata inesistente. `_m2.db` è già `null`, e `esitoAirblast` di un `null`
+     dice «non calcolabile» — basta non ricostruire il numero qui. */
+  const _sd3=_m2.calcolabile?D2.recDist/Math.cbrt(Math.max(0.1,_mic)):null, _db=_m2.db;
   /* stessa storia della PPV, e qui il foglio stampato era peggio: la riga
      dell'airblast non c'era proprio. 143 dB(L) — dieci sopra il limite — non
      comparivano da nessuna parte nel documento che si porta in cava. */
   const _ea = esitoAirblast(_db);
-  rows.push({lab:'Airblast (sovrappr.)',valStr:Math.round(_db)+' <span>dB(L)</span>',cls:_ea.classe,
-    why:'rumore d\'aria stimato a '+gnum(D2.recDist,0)+' m (cube-root SD '+gnum(_sd3,0)+'): '+_ea.verdetto+(_ea.consiglio?': '+_ea.consiglio:'.')+' Stima da calibrare.'});
+  rows.push({lab:'Airblast (sovrappr.)',
+    valStr:_db===null?'<span>non calcolabile</span>':(Math.round(_db)+' <span>dB(L)</span>'),cls:_ea.classe,
+    why:_db===null
+      ? 'rumore d\'aria stimato a '+gnum(D2.recDist,0)+' m: si scala sulla radice cubica della carica per ritardo, e '+_rEsc(_m2.che)+'. '+_rEsc(_m2.come)
+      : 'rumore d\'aria stimato a '+gnum(D2.recDist,0)+' m (cube-root SD '+gnum(_sd3,0)+'): '+_ea.verdetto+(_ea.consiglio?': '+_ea.consiglio:'.')+' Stima da calibrare.'});
   /* descrizioni compatte (richiesta fondatore 25/07): nome+valore sempre visibili,
      spiegazione solo al clic sulla voce (stato ricordato tra i ricalcoli) */
   const rowsHtml=rows.map(r=>'<div class="sv-row'+(SVOPEN.has(r.lab)?' open':'')+'" data-lab="'+r.lab.replace(/"/g,'&quot;')+'"><span class="sv-dot '+r.cls+'"></span><div class="sv-tx"><div class="sv-lab">'+r.lab+'</div><div class="sv-val">'+r.valStr+'</div><div class="sv-why">'+r.why+'</div></div><span class="sv-chev">▼</span></div>').join('');

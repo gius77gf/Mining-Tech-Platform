@@ -24258,21 +24258,202 @@ console.log("\n— Campo: i file che escono —");
     eq(v.micFinestra(_fori(null, null), 60), 120, "e un tDet nullo vale zero, non salta il foro");
   });
 
-  test("⛔ Genesi · micFinestra: SENZA fori risponde la carica di UN foro — il numero più basso", () => {
-    /* ⛔ Il verso opposto della prova qui sopra, e va nominato invece che
-       lasciato dedurre: con l'elenco dei fori vuoto la funzione risponde `kg`,
-       che è il valore più BASSO che possa restituire — quindi la distanza
-       scalata più grande e la PPV prevista più bassa. Misura sul progetto di
-       partenza (60 kg/foro, recettore a 300 m, K=1140, β=1,6): 12 fori insieme
-       danno MIC 720 e PPV 23,95 mm/s; nessun foro disegnato dà MIC 60 e PPV
-       3,28 mm/s — sette volte più bassa.
-       Il comportamento è quello che la pagina aveva da sempre e un TRASLOCO non
-       lo tocca: questa prova lo fissa e lo rende visibile, non lo approva. */
-    eq(v.micFinestra([], 60), 60, "elenco vuoto: la carica di un foro solo");
+  /* ⛔ QUESTA PROVA È STATA CAPOVOLTA IL 09/08, E IL PERCHÉ VALE PIÙ DEL CASO.
+     Fino a ieri diceva «SENZA fori risponde la carica di UN foro — il numero
+     più basso», e blindava il difetto invece di chiuderlo: con l'elenco dei
+     fori vuoto `micFinestra` rispondeva `kg`, cioè il valore più BASSO
+     possibile, quindi la distanza scalata più grande e la PPV prevista più
+     tranquilla — sul numero con cui si decide se una volata si può sparare.
+     Era «l'assenza di un dato non è un dato favorevole» scritto nero su
+     bianco, misurato, e lasciato lì con la nota «non lo approva».
+     Adesso risponde `null`. La misura di allora resta qui perché è quella che
+     dice quanto valeva il difetto, e perché una prova che si limita a
+     pretendere `null` non fa vedere niente a chi la legge fra un mese. */
+  test("⛔ Genesi · micFinestra: SENZA fori NON risponde un numero tranquillo", () => {
     const ppv = (mic) => +(1140 * Math.pow(Math.max(0.1, 300 / Math.sqrt(Math.max(1, mic))), -1.6)).toFixed(2);
+    eq(v.micFinestra([], 60), null, "elenco vuoto: non calcolabile, non «la carica di un foro»");
+    /* la misura del difetto chiuso: 12 fori insieme danno 720 kg → 23,95 mm/s;
+       la vecchia risposta dava 60 kg → 3,28 mm/s, cioè 7,3 volte più bassa. */
     const piena = v.micFinestra(_fori(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0), 60);
-    ok(ppv(v.micFinestra([], 60)) < ppv(piena) / 5,
-      `e la PPV che ne esce è la più tranquilla: ${ppv(v.micFinestra([], 60))} contro ${ppv(piena)} mm/s`);
+    eq(piena, 720, "il caso pieno non è cambiato di una virgola");
+    ok(ppv(60) < ppv(piena) / 5,
+      `quanto valeva il difetto: la vecchia risposta dava ${ppv(60)} mm/s contro ${ppv(piena)} — 7,3 volte più tranquilla`);
+    /* ⛔ E IL VERSO IN CUI IL `null` SAREBBE PEGGIO, se nessuno lo leggesse:
+       `Math.max(1, null)` fa 1, quindi la distanza scalata diventa la distanza
+       nuda e la PPV scende a 0,12 mm/s — non 7,3 volte, DUECENTO. È la ragione
+       per cui questo cantiere non finisce nel modulo: sotto ci sono le prove
+       sui lettori. */
+    ok(ppv(null) < ppv(60) / 10,
+      `e un null NON letto sarebbe peggio del difetto: ${ppv(null)} contro ${ppv(60)} mm/s`);
+  });
+
+  test("⛔ Genesi · micFinestra: i casi con fori danno ESATTAMENTE quello di prima", () => {
+    /* la controprova del cantiere: cambiare il ramo vuoto non deve aver
+       toccato il conto vero. Sono i numeri delle prove qui sopra, ripetuti in
+       un posto solo perché se uno si muovesse si vedrebbe qui. */
+    for (const [caso, atteso] of [
+      [_fori(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0), 720], [_fori(0, 42, 84, 126, 168), 60],
+      [_fori(0, 7, 14, 21, 28), 120], [_fori(0, 0, 0, 25, 50, 75), 180], [_fori(0), 60],
+      [_fori(0, 7.999), 120], [_fori(0, 8), 60], [_fori(0, 8.001), 60],
+      [[{}, {}, {}], 180], [_fori(null, null), 120]])
+      eq(v.micFinestra(caso, 60), atteso, `${caso.length} fori → ${atteso} kg, come prima`);
+  });
+
+  test("⛔ Genesi · micFinestra: `holes` a null SOLLEVA — non è un dato assente, è una chiamata sbagliata", () => {
+    /* il contratto dichiarato nel modulo, e la ragione: nasconderla dietro un
+       `null` renderebbe muta una chiamata sbagliata. Il comportamento è quello
+       che la funzione aveva dentro la pagina, e non è stato toccato. */
+    let solleva = false;
+    try { v.micFinestra(null, 60); } catch (e) { solleva = true; }
+    ok(solleva, "micFinestra(null, 60) solleva, come faceva dentro la pagina");
+  });
+
+  test("⛔ Genesi · micFinestra: il secondo numero tranquillo stava nel ramo dei fori PIENI", () => {
+    /* ⛔ `kg` a `null` faceva `n * null` = **0**, cioè zero chili per ritardo su
+       una volata disegnata: più tranquillo ancora del ramo vuoto, e nascosto
+       dove nessuno lo cercava. Non è teoria — `apri` fa `Object.assign(D2, …)`
+       da localStorage senza controlli, la stessa porta da cui il 03/08 è
+       entrato il codice di normativa che Genesi non riconosce.
+       ⚠️ E `Number.isFinite(+kg)` da solo NON basta: `+null` fa 0, che è
+       finito. L'ha detto la prova in scratchpad prima che la riga entrasse nel
+       modulo, ed è la ragione per cui il `null` è nominato per nome. */
+    for (const kg of [null, undefined, "", "sessanta", NaN, Infinity, -60])
+      eq(v.micFinestra(_fori(0, 0), kg), null, `kg ${String(kg)} → non calcolabile, non 0`);
+    /* ⛔ MA LO ZERO MISURATO RESTA UN FATTO, e resta zero: è la stessa
+       distinzione che `esitoPpv` dichiara nel suo commento. */
+    eq(v.micFinestra(_fori(0, 0), 0), 0, "kg 0: zero misurato, che è un fatto");
+    eq(v.micFinestra(_fori(0, 0), "60"), 120, "e una stringa numerica vale ancora quello che vale");
+  });
+
+  test("⛔ Genesi · MIC_SENZA_CONTO: ogni ragione dice CHE COSA manca e COME si rimedia", () => {
+    /* stessa forma di `PPV_SENZA_SOGLIA`: una ragione senza il «come» manda a
+       cercare da soli, ed è la metà che serve a chi guarda lo schermo. */
+    eq(Object.keys(v.MIC_SENZA_CONTO).sort(), ["carica", "fori"],
+      "due cause sole, e sono i due ingressi della funzione");
+    for (const k of Object.keys(v.MIC_SENZA_CONTO)) {
+      const r = v.MIC_SENZA_CONTO[k];
+      ok(typeof r.che === "string" && r.che.length > 20, `${k}: dice che cosa manca`);
+      ok(typeof r.come === "string" && /\.$/.test(r.come), `${k}: e come si rimedia, in una frase`);
+      ok(!/undefined|null/.test(r.che + r.come), `${k}: senza parole da programmatore`);
+    }
+  });
+
+  test("⛔ Genesi · micSenzaConto dice QUALE dei due manca, e li nomina tutt'e due", () => {
+    /* gemella di `ppvSenzaSoglia`, e per la stessa ragione: se ne nominasse uno
+       solo, chi corregge quello trova l'altro dopo e crede di aver sbagliato di
+       nuovo. La convenzione non è inventata qui — è quella di trenta righe più
+       su nello stesso file. */
+    eq(v.micSenzaConto(_fori(0, 0), 60), null, "con fori e carica non c'è niente da dichiarare");
+    const soloFori = v.micSenzaConto([], 60);
+    ok(soloFori.fori && !soloFori.carica, "elenco vuoto: manca il disegno, non la carica");
+    ok(/foro/.test(soloFori.che) && /maglia|2D/.test(soloFori.come), `e dice che cosa fare: «${soloFori.come}»`);
+    const soloCarica = v.micSenzaConto(_fori(0, 0), null);
+    ok(!soloCarica.fori && soloCarica.carica, "carica illeggibile: manca la carica, non il disegno");
+    const tuttiEDue = v.micSenzaConto([], null);
+    ok(tuttiEDue.fori && tuttiEDue.carica, "e quando mancano tutt'e due lo dice di tutt'e due");
+    ok(tuttiEDue.che.includes(soloFori.che) && tuttiEDue.che.includes(soloCarica.che),
+      `le due ragioni si sommano invece di scegliersi: «${tuttiEDue.che}»`);
+  });
+
+  test("⛔ Genesi · esitoMic: la bandiera che la pagina DEVE leggere", () => {
+    /* regola 20 di `run-stile`: una non-misurabilità dichiarata e non letta non
+       protegge niente — il numero tranquillo si ridisegna lo stesso e il modulo
+       sembra a posto perché la dichiarazione c'è. Qui si prova la dichiarazione;
+       che qualcuno la legga lo prova `run-stile`, ed è il motivo per cui questo
+       cantiere ha toccato anche la pagina. */
+    const no = v.esitoMic(null);
+    ok(no.calcolabile === false, "null → calcolabile false");
+    eq(no.kg, null, "e nessun numero da disegnare");
+    ok(/non calcolabile/.test(no.verdetto), `il verdetto si legge: «${no.verdetto}»`);
+    ok(no.classe === "sv-warn",
+      "sv-warn e non sv-bad: non sappiamo che sia pericolosa, sappiamo di non poterlo dire");
+    const si = v.esitoMic(720);
+    ok(si.calcolabile === true && si.kg === 720, "720 kg passa per quello che è");
+    for (const brutto of [undefined, "", NaN, Infinity, -1])
+      ok(v.esitoMic(brutto).calcolabile === false, `${String(brutto)} non è una MIC`);
+    ok(v.esitoMic(0).calcolabile === true, "e lo zero misurato è calcolabile: è un fatto");
+  });
+
+  test("⛔ Genesi · airblastDb: una MIC assente non dà 104,5 dB(L), dà null", () => {
+    /* ⛔ `+mic||0` trasformava l'assenza in zero chili, e la guardia
+       `Math.max(0.1, …)` la portava a 0,1: su un progetto senza fori la pagina
+       scriveva **104,5 dB(L)** e «sotto il limite USBM/OSM» — il verdetto più
+       tranquillo che si possa dare a una cosa mai misurata. Il limite dei 133
+       dB(L) non è stato toccato: sta in `esitoAirblast` e resta quello. */
+    eq(v.airblastDb(300, null), null, "MIC assente: nessun airblast da dichiarare");
+    for (const brutto of [undefined, "", NaN, -1])
+      eq(v.airblastDb(300, brutto), null, `${String(brutto)} non è una carica`);
+    ok(v.esitoAirblast(v.airblastDb(300, null)).misurabile === false,
+      "e la catena arriva fino al verdetto: «non calcolabile», non «sotto il limite»");
+    /* i numeri veri non si sono mossi di un decimale */
+    eq(+v.airblastDb(300, 720).toFixed(2), 135.41, "720 kg a 300 m: 135,41 dB(L) come prima");
+    eq(+v.airblastDb(300, 0).toFixed(2), 104.55, "e lo zero MISURATO continua a dare il suo numero");
+  });
+
+  test("⛔ Genesi · xmlPianoInnesco: una MIC non calcolabile non esce «0.0» al software dei detonatori", () => {
+    /* ⛔ Questo è il file che programma i detonatori, e `(+null||0).toFixed(1)`
+       ci scriveva dentro **0.0**: zero chili per ritardo è la volata più
+       innocua che esista. «Un null che diventa 0 in un file che esce è peggio
+       del difetto di partenza» — CLAUDE.md, alla lettera. */
+    const P = { B: 3, S: 3.5, diam: 102, esplosivo: "anfo", innesco: { id: "nonel", nome: "Nonel" },
+      sequenza: "vcut", ritardo: 42, ritardoFila: 84, lastDet: 462, prof: 10, kg: 60, stem: 2.2,
+      fori: [{ mx: 0, my: 3, tDet: 0 }] };
+    const buono = v.xmlPianoInnesco({ ...P, mic: 720 });
+    ok(buono.includes('<MaxInstantCharge unit="kg" window_ms="8">720.0</MaxInstantCharge>'),
+      "con la MIC il file è byte per byte quello di prima");
+    for (const senza of [null, undefined, "", NaN, -1]) {
+      const x = v.xmlPianoInnesco({ ...P, mic: senza });
+      ok(!/<MaxInstantCharge[^/>]*>[\s\S]*?<\/MaxInstantCharge>/.test(x),
+        `mic ${String(senza)}: nessun valore da leggere come numero`);
+      ok(/<MaxInstantCharge[^>]*status="non-calcolabile"[^>]*\/>/.test(x),
+        `mic ${String(senza)}: lo dichiara con uno status, non con una cella vuota e basta`);
+      ok(!/>0\.0</.test(x.split("</PlanData>")[0]), `mic ${String(senza)}: e NON esce uno zero`);
+      ok(/ATTENZIONE[\s\S]*MIC[\s\S]*non/.test(x) && /detonatori/.test(x),
+        `mic ${String(senza)}: e il file spiega a parole perché, prima di BlastPlan`);
+      /* ⚠️ il commento va FUORI da PlanData: lì dentro sarebbe un nodo estraneo,
+         e la prova che sorveglia quel blocco lo direbbe. Qui si pretende. */
+      ok(!x.split("<PlanData>")[1].split("</PlanData>")[0].includes("<!--"),
+        `mic ${String(senza)}: e non è entrato un commento dentro PlanData`);
+    }
+    /* lo ZERO misurato continua a uscire come zero: è un fatto, non un'assenza */
+    ok(v.xmlPianoInnesco({ ...P, mic: 0 }).includes('window_ms="8">0.0</MaxInstantCharge>'),
+      "e una MIC misurata a zero esce 0.0, perché quello è un dato");
+  });
+
+  test("⛔ Genesi · i sette lettori della pagina non ridisegnano il numero tranquillo", () => {
+    /* ⛔ IL POSTO DOVE IL DIFETTO SI NASCONDE È DOVE IL DOCUMENTO SI COMPONE:
+       se il CSV, il foglio o l'XML decidessero il loro numero con una regola
+       diversa da quella dello schermo, lì ci sarebbe una copia debole. Questa
+       prova pretende che la pagina abbia UN punto solo (`micDaMostrare`) e che
+       nessun lettore ricostruisca la MIC per conto suo. */
+    const pag = senzaCommenti(readFileSync(join(HERE, "../../genesi/genesi.html"), "utf8"));
+    ok(/function\s+micDaMostrare\s*\(/.test(pag), "la pagina ha il punto unico");
+    /* ⚠️ `computeMIC` resta — è il legame con lo stato — ma la deve chiamare
+       SOLO `micDaMostrare`: ogni altra chiamata sarebbe un lettore che decide
+       per conto suo che cosa fare di un null. */
+    const chiamate = (pag.match(/computeMIC\(\)/g) || []).length;
+    eq(chiamate, 2, `computeMIC() compare 2 volte (la sua definizione e micDaMostrare), non ${chiamate}`);
+    /* ⛔ LA FIRMA DEL DIFETTO: `Math.max(1, mic)` su un `null` fa 1, e da lì la
+       distanza scalata diventa la distanza nuda e la PPV scende a 0,12 mm/s.
+       ⚠️ Una resta, ed è quella DENTRO `micDaMostrare`: lì `mic` è già passato
+       dalla bandiera, quindi non è mai `null`. Si pretende che sia UNA sola e
+       che stia sulla riga che legge `calcolabile` — se no non è una guardia,
+       è un caso fortunato. */
+    const riparazioni = pag.split("\n")
+      .filter((r) => /Math\.max\(1,\s*(computeMIC\(\)|_?r?Mic|_mic|mic)\)/.test(r));
+    eq(riparazioni.length, 1,
+      `Math.max(1, mic) resta in un punto solo, non ${riparazioni.length}: ${riparazioni.join(" | ")}`);
+    ok(/calcolabile/.test(riparazioni[0]),
+      `e quel punto legge prima la bandiera: «${riparazioni[0].trim()}»`);
+    const elenco = (pag.match(/import\s*\{([^}]*)\}\s*from\s*'\.\/genesi-data\.js'/) || [, ""])[1]
+      .split(",").map(s2 => s2.trim());
+    ok(elenco.includes("esitoMic"), "la pagina importa esitoMic");
+    ok(elenco.includes("micSenzaConto"), "e micSenzaConto: la bandiera e la ragione");
+    /* la bandiera va LETTA, non solo importata (regola 20) */
+    ok(/\.calcolabile/.test(pag), "e la bandiera `calcolabile` la legge davvero");
+    /* i quattro documenti che ESCONO devono nominare la non-calcolabilità */
+    for (const dove of ["Esito MIC", "non calcolabile"])
+      ok(pag.includes(dove), `il testo «${dove}» sta nella pagina`);
   });
 
   test("⛔ Genesi · micFinestra è USCITA dalla pagina, non copiata", () => {

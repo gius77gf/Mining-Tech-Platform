@@ -192,8 +192,22 @@ export function ppvLimit(norma,f){
 /* Sovrappressione d'aria (airblast) al recettore, in dB(L): scala cube-root
    della carica per ritardo. La formula sta QUI perché la usano in due — la
    scheda validatori e il file per Sentinella — e due copie di una formula
-   prima o poi dicono due numeri diversi. STIMA, da calibrare. */
-export function airblastDb(dist,mic){ const sd3=Math.max(0.001,+dist||0)/Math.cbrt(Math.max(0.1,+mic||0)); return 172-24*Math.log10(Math.max(1,sd3)); }
+   prima o poi dicono due numeri diversi. STIMA, da calibrare.
+   ⛔ **UNA MIC NON CALCOLABILE NON DÀ UN AIRBLAST, DÀ `null`** (09/08). Il
+   `+mic||0` qui sotto trasformava l'assenza in **zero chili**, e la guardia
+   `Math.max(0.1, …)` la portava a 0,1: con `micFinestra` che risponde `null`
+   per un progetto senza fori, questa riga stampava **104,5 dB(L)** al posto
+   dei 135,4 di una volata vera — sotto il limite USBM/OSM, cioè il verdetto
+   più tranquillo che si possa dare a una cosa mai misurata. `esitoAirblast`
+   sa già dire «non calcolabile» su un `null`: la strada c'era, mancava di
+   arrivarci.
+   ⚠️ Lo ZERO vero non è toccato: `mic` a 0 continua a passare dalla guardia
+   di prima, perché uno zero misurato è un fatto. Nessuna soglia si muove —
+   i 133 dB(L) USBM/OSM stanno in `esitoAirblast` e restano quelli. */
+export function airblastDb(dist,mic){
+  const m=(mic===null||mic===undefined||mic==='')?NaN:+mic;
+  if(!Number.isFinite(m)||m<0) return null;
+  const sd3=Math.max(0.001,+dist||0)/Math.cbrt(Math.max(0.1,m)); return 172-24*Math.log10(Math.max(1,sd3)); }
 
 /* ══════════════════════════════════════════════════════════════════════════
    IL VERDETTO SULLA VIBRAZIONE — UNO SOLO, PER LO SCHERMO E PER IL FOGLIO
@@ -752,8 +766,13 @@ function _xmlEsc(s){ return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&a
 
 export function xmlPianoInnesco(p){
   const e=_xmlEsc, inn=(p&&p.innesco)||{};
+  const micV=(p&&p.mic!==null&&p.mic!==undefined&&p.mic!=='')?+p.mic:NaN;
+  const micOk=Number.isFinite(micV)&&micV>=0;
   let xml='<?xml version="1.0" encoding="UTF-8"?>\n';
   xml+='<!-- Genesi: bozza di interscambio in stile IREDES (non conformità certificata) -->\n';
+  if(!micOk) xml+='<!-- ATTENZIONE: la carica massima per ritardo (MIC) NON e\' calcolabile su questo '
+    +'progetto, e per questo MaxInstantCharge esce senza valore invece che a zero. '
+    +'Non usare questo piano per programmare i detonatori finche\' la MIC non c\'e\'. -->\n';
   xml+='<BlastPlan xmlns="urn:genesi:blastplan:draft" generator="Genesi" schema="IREDES-like/0.1">\n';
   xml+='  <PlanData>\n';
   xml+='    <MeshBurden unit="m">'+e((+p.B||0).toFixed(2))+'</MeshBurden>\n';
@@ -765,7 +784,22 @@ export function xmlPianoInnesco(p){
   xml+='    <HoleDelay unit="ms">'+e(+p.ritardo||0)+'</HoleDelay>\n';
   xml+='    <RowDelay unit="ms">'+e(+p.ritardoFila||0)+'</RowDelay>\n';
   xml+='    <LastDetonation unit="ms">'+e((+p.lastDet||0).toFixed(1))+'</LastDetonation>\n';
-  xml+='    <MaxInstantCharge unit="kg" window_ms="8">'+e((+p.mic||0).toFixed(1))+'</MaxInstantCharge>\n';
+  /* ⛔ QUESTO FILE LO LEGGE IL SOFTWARE CHE PROGRAMMA I DETONATORI, e fino al
+     09/08 una MIC non calcolabile ci finiva dentro come **`0.0`**: `+null||0`
+     fa zero, e zero chili per ritardo è la volata più innocua che esista. È
+     alla lettera «un `null` che diventa `0` in un file che esce è peggio del
+     difetto di partenza».
+     La forma scelta è quella che un lettore automatico non può credere: niente
+     testo da leggere come numero (l'elemento è **vuoto**, `parseFloat('')` fa
+     `NaN`, non 0) e uno `status` che lo dice a parole. Il tag resta lo stesso —
+     toglierlo renderebbe il file indistinguibile da uno vecchio, e «non c'è»
+     e «non si può calcolare» sono due cose diverse.
+     ⚠️ La spiegazione va PRIMA di `<PlanData>`: un commento lì dentro
+     sarebbe un nodo estraneo, e la prova che sorveglia questo blocco lo
+     direbbe (giustamente). */
+  xml+=micOk
+    ? '    <MaxInstantCharge unit="kg" window_ms="8">'+e(micV.toFixed(1))+'</MaxInstantCharge>\n'
+    : '    <MaxInstantCharge unit="kg" window_ms="8" status="non-calcolabile"/>\n';
   xml+='  </PlanData>\n';
   const rows=((p&&p.fori)||[]).slice().sort((a,b)=>(a.tDet||0)-(b.tDet||0));
   xml+='  <Holes count="'+rows.length+'">\n';
@@ -912,26 +946,88 @@ export function isoColore(u) {
    · un foro **senza `tDet`** vale 0 (`h.tDet || 0`): una volata di cui nessuno
      ha ancora calcolato la sequenza risulta tutta simultanea, cioè la MIC più
      ALTA possibile. È il verso prudente, ed è quello giusto: finché la
-     sequenza non c'è, l'app non promette che i fori si separino;
-   · con l'elenco dei fori **vuoto** risponde `kg`, la carica di UN foro.
-     ⛔ Questo è il verso OPPOSTO, ed è dichiarato qui perché si veda: è il
-     valore più basso che la funzione possa restituire, quindi la distanza
-     scalata più grande e la PPV più bassa. Misurato sul progetto di partenza
-     (60 kg/foro, recettore a 300 m, K=1140, β=1,6): una volata da 12 fori
-     sullo stesso ritardo dà MIC 720 kg e PPV 23,95 mm/s, un progetto **senza
-     nessun foro disegnato** dà MIC 60 kg e PPV 3,28 mm/s — sette volte più
-     bassa. Il comportamento è quello di prima e **non è stato toccato in un
-     trasloco**; la prova qui sotto lo fissa e lo nomina, così non è più una
-     riga che nessuno ha letto.
+     sequenza non c'è, l'app non promette che i fori si separino.
+
+   ⛔ **E FINO AL 09/08 IL VERSO OPPOSTO ERA SCRITTO QUI COME UN FATTO DA
+   GUARDARE, NON COME UN DIFETTO DA CHIUDERE: con l'elenco dei fori VUOTO la
+   funzione rispondeva `kg`, la carica di UN foro.** Cioè il valore più basso
+   che potesse restituire, quindi la distanza scalata più grande e la PPV più
+   bassa, **sul numero con cui si decide se una volata si può sparare**.
+   Misurato sul progetto di partenza (60 kg/foro, recettore a 300 m, K=1140,
+   β=1,6): dodici fori sullo stesso ritardo danno MIC 720 kg → PPV 23,95 mm/s;
+   nessun foro disegnato dava MIC 60 kg → PPV **3,28 mm/s**, cioè **7,3 volte
+   più tranquilla**. È «l'assenza di un dato non è un dato favorevole» —
+   principio del fondatore — nella sua forma più cara.
+   ⚠️ E NON ERA IRRAGGIUNGIBILE: cinque punti della pagina generano la maglia
+   prima di chiedere i KPI (`if(!D2.holes.length) genMaglia2D()`), ma **otto
+   chiamate a `computeKPI()` no** — `cmpSave`, il CSV della scheda volata,
+   `_riconCampoHtml`, `riconRender`, `riconSave`, `sigRender`, `volSnapshot`,
+   `simulaPerforazione`. E `apri` di una volata salvata fa `D2.holes=[]` prima
+   di passare al 2D, quindi lo stato «progetto pieno, zero fori» esiste davvero.
+   ⛔ Adesso risponde **`null`**, che in tutto l'ecosistema vuol dire «non
+   calcolabile» — la stessa convenzione di `ppvLimit`, di `_sentNum` e di
+   `esitoPpv`. Il perché lo dice `micSenzaConto` e il verdetto `esitoMic`,
+   com'è già per la coppia `ppvSenzaSoglia`/`ppvLimit` trenta righe più su:
+   una convenzione sola, non una inventata qui.
+   ⚠️ **UN `null` CHE NESSUNO LEGGE È PEGGIO DEL NUMERO TRANQUILLO**, ed è
+   misurato: coi lettori di prima, `Math.max(1, null)` fa 1, quindi la distanza
+   scalata diventa la distanza nuda e la PPV scende a **0,12 mm/s** — non 7,3
+   volte più bassa, **199**. Per questo il cantiere non finisce qui: `airblastDb`
+   risponde `null` invece di 104,5 dB(L), `xmlPianoInnesco` **dichiara** invece
+   di scrivere `0.0`, e nella pagina i sette lettori dicono «non calcolabile».
+
    ⚠️ E il contratto verso chi la chiama, che nella pagina non poteva emergere:
-   `holes` deve essere un array (con `null` solleva, come faceva prima dentro
-   la pagina), e `kg` deve essere un numero — con `kg` a `null` il ramo dei
-   fori vuoti risponde `null` ma quello dei fori pieni risponde **0**, perché
-   `n * null` fa zero. Dalla pagina non è raggiungibile: `D2.kg` nasce a 60 e
-   ogni scrittura passa da un `Math.max(2, …)` o `Math.max(5, …)`. */
+   · `holes` deve essere un array — con `null` **solleva**, esattamente come
+     faceva prima dentro la pagina: quello non è un dato assente, è una
+     chiamata sbagliata, e nasconderla dietro un `null` la renderebbe muta;
+   · `kg` deve essere un numero **finito e non negativo**. Se non lo è la
+     risposta è `null`: prima `kg` a `null` faceva `n * null` = **0**, cioè un
+     secondo numero tranquillo nascosto nel ramo dei fori PIENI. Non è teoria —
+     `apri` fa `Object.assign(D2, …)` da `localStorage` senza controlli, che è
+     la stessa porta da cui il 03/08 è entrato il codice di normativa che
+     Genesi non riconosce;
+   · **`kg` a 0 resta 0**, e non è una svista: lo zero MISURATO è un fatto, e
+     `esitoPpv` lo dice già con queste parole. Quello che non deve passare è
+     l'assenza travestita da zero.
+   ⚠️ `Number.isFinite(+kg)` **da solo non basta**, e l'ha detto la prova in
+   scratchpad prima che la riga entrasse qui: `+null` fa 0, che è finito. Il
+   `null` va nominato per nome, come fanno `esitoPpv` e `_sentNum`. */
+export const MIC_SENZA_CONTO = {
+  fori:   { che:'non c’è nessun foro nel disegno, e la carica per ritardo si conta sui fori',
+            come:'Genera la maglia (o apri il progetto nel 2D) e la MIC torna.' },
+  carica: { che:'la carica per foro non è un numero leggibile, e senza quella non c’è niente da sommare',
+            come:'Reimposta la carica per foro nei parametri della volata.' },
+};
+/* `null` quando la MIC si può contare; altrimenti dice QUALE dei due manca — e
+   se mancano tutt'e due li nomina tutt'e due, gemella di `ppvSenzaSoglia`.
+   ⚠️ `holes` a `null` solleva qui dentro, ed è voluto: vedi il contratto. */
+export function micSenzaConto(holes, kg) {
+  const senzaFori = !holes.length;
+  const q = (kg === null || kg === undefined || kg === '') ? NaN : +kg;
+  const senzaCarica = !Number.isFinite(q) || q < 0;
+  if (!senzaFori && !senzaCarica) return null;
+  const parti = [];
+  if (senzaFori) parti.push(MIC_SENZA_CONTO.fori);
+  if (senzaCarica) parti.push(MIC_SENZA_CONTO.carica);
+  return { fori:senzaFori, carica:senzaCarica,
+    che:  parti.map(p => p.che).join('; e '),
+    come: parti.map(p => p.come).join(' ') };
+}
+/* Il verdetto sulla MIC, per lo schermo e per i documenti — gemello di
+   `esitoAirblast`. La bandiera `calcolabile` è quella che la pagina deve
+   leggere: senza, il `null` si disegnerebbe tranquillo lo stesso (regola 20 di
+   `run-stile`). `sv-warn` e non `sv-bad`: non sappiamo che una volata sia
+   pericolosa, sappiamo di non poterlo dire — è un'altra cosa. */
+export function esitoMic(mic) {
+  const m = (mic === null || mic === undefined || mic === '') ? NaN : +mic;
+  if (!Number.isFinite(m) || m < 0)
+    return { calcolabile:false, kg:null, classe:'sv-warn', stato:'nonCalcolabile',
+             verdetto:'non calcolabile' };
+  return { calcolabile:true, kg:m, classe:'sv-info', stato:'contata', verdetto:'' };
+}
 export function micFinestra(holes, kg) {
   const H = holes;
-  if (!H.length) return kg;
+  if (micSenzaConto(H, kg)) return null;
   const ts = H.map((h) => h.tDet || 0);
   let n = 1;
   for (const t0 of ts) {

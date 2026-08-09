@@ -103,11 +103,17 @@ const TIPI = { ".html": "text/html", ".js": "text/javascript", ".mjs": "text/jav
    quattro spazi dove il file ne ha due. */
 const DIFETTI = [
   // 1 e 2 · la scheda volata senza la base della PPV e senza l'airblast
+  /* ⏱️ CITAZIONE ACCORCIATA il 09/08, da cinque righe a tre, e la ragione è la
+     regola: un'iniezione che cita il codice TESTUALMENTE scade quando il codice
+     si muove — e si muove quasi sempre perché **migliora**. Qui in mezzo a
+     quelle cinque righe è entrata la non-misurabilità del MIC (la cella vuota
+     con la sua ragione accanto), e `iniezioni-fresche` è passata a 306 su 307
+     nello stesso commit che la costruiva. Tre righe bastano a togliere «Esito
+     PPV» e «MIC» dalla scheda, che è il difetto che questa riga deve rimettere,
+     e offrono tre appigli invece di cinque. */
   [`    ['Esito PPV', _eP.verdetto],
     ['Distanza recettore (m)', D2.recDist],
-    ['MIC carica per ritardo (kg)', _mic],
-    ['Base della previsione PPV', k.ppvBase&&k.ppvBase.breve],
-    ['Referti della legge di sito', k.ppvBase&&k.ppvBase.fonte==='sito' ? k.ppvBase.referti : ''],`,
+    ['MIC carica per ritardo (kg)', _mic],`,
    `    ['Distanza recettore (m)', D2.recDist],`],
   [`    ['Avvisi sulla previsione PPV', (k.ppvBase&&k.ppvBase.avvisi||[]).join(' ')],
     ['Airblast previsto (dB(L))', _db],
