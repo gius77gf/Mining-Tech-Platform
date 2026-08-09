@@ -1355,15 +1355,32 @@ numero scritto dove non era stato misurato niente**.*
   a cantieri paralleli, dove chi chiude non è chi aveva scritto la riga. La
   direttiva 7 è la sola cura, e va applicata **nello stesso commit** che chiude
   il lavoro, non «poi».
-- [ ] **Il banco della barra guarda un tema su tre** — è il buco che ha lasciato
-  passare il difetto del sole di Sentinella per giorni. Aggiungergli `--tema=`
-  chiude la classe intera, e lo strumento è già scritto.
-  ⛔ E il conto di che cosa trova: nel tema **sole** tagliano anche **Flotta a
-  320 px (16 px)** e **Terra a 320 px (11 px)**, misurati. ⚠️ E **Conti nel sole
-  risponde «ok» senza provare niente**: il suo `.nav button{overflow:hidden}`
-  azzera la min-width dell'elemento di griglia, quindi la barra non trabocca
-  **mai** e a essere tagliate sono le etichette dentro il bottone — una domanda
-  a cui quel banco, così com'è, non può rispondere.
+- [x] ✅ **Il banco della barra guarda tutti e tre i temi, e i tre difetti che
+  questa riga elencava sono chiusi** — verificato l'09/08 **rilanciando le tre
+  passate a mano**, non guardando il codice: lo strumento c'era già
+  (`--tema=` in `barra-etichette.mjs`, registrato in `tutti.mjs` alle righe
+  434-436), ma la riga elencava **difetti misurati**, e uno strumento che
+  esiste non dice niente su di loro.
+  | tema | etichette | fuori posto | tagliate DENTRO il bottone |
+  |---|---|---|---|
+  | scuro | 164 su 24 barre (14 superfici) | **0** | **0** |
+  | sole | 164 su 24 barre | **0** | **0** |
+  | chiaro | 164 su 24 barre | **0** | **0** |
+  Quindi: **Flotta a 320 px nel sole** (dava 16 px) e **Terra a 320 px** (11 px)
+  passano; e **Conti non risponde più «ok» senza provare niente** — la seconda
+  domanda («la parola sta nel suo bottone?») è quella che una barra con
+  `overflow:hidden` non poteva sentirsi fare, e adesso viene fatta e conta
+  zero. Il denominatore è dichiarato: **8 superfici su 14 NON misurate** nei
+  due temi chiari, perché non caricano `dw-tema.js` — un tema che non si
+  accende non è un tema che passa.
+  ⚠️ **E per misurarlo ho dovuto alzare un server mio.** Il banco legge la
+  porta **per posizione** (`process.argv[2]`), quindi `--tema=sole` come primo
+  argomento diventa la porta e si va su `http://127.0.0.1:NaN/`; e non alza
+  nessun server, mentre la sua porta di casa (8823) era tenuta dal giro in
+  corso, che serve **un commit più vecchio**. È la trappola silenziosa scritta
+  in `CLAUDE.md`: un banco che trova la porta occupata e la riusa misura la
+  copia di qualcun altro. Ho servito la mia cartella su 8990 e **verificato che
+  fosse la mia** prima di credere a un numero.
 - [ ] **«Adempimenti» è la parola che governa il minimo di Sentinella** (11
   lettere, 64,81 px): accorciarla toglierebbe ~18 px, ed è la sola strada per
   portare i bersagli di tocco a 320 px sopra i 44 (oggi tre voci stanno a
