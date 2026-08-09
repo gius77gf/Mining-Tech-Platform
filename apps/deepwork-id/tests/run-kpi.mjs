@@ -4400,6 +4400,20 @@ test("P2: il confronto dice sempre COME va letto il numero", () => {
   eq(stato(1200), "sopra-misura", "dichiarato più del misurato: o le stime sono gonfie o il rilievo non copre tutto");
   eq(terra.riconciliazioneTurni([], dichiara(900), "2026-03-01", "2026-03-31", 2.6).stato, "no-misura",
     "senza rilievo elaborato non c'è niente contro cui confrontare");
+  /* ⛔ UNO ZERO MISURATO NON È UNA MISURA MANCANTE — il principio del fondatore
+     nel verso che nessuno guarda: non un dato assente spacciato per favorevole,
+     ma un dato PRESENTE spacciato per assente. Fino al 09/08 i due casi finivano
+     nello stesso stato, e la pagina di Terra scriveva sullo zero misurato «non
+     risulta nessun rilievo elaborato di scavo»: falso, e falso proprio quando i
+     turni dichiarano una produzione, cioè quando il fronte fermo è l'allarme
+     più forte che quella schermata sappia dare. */
+  const volatoAZero = [{ data: "2026-03-20", stato: "elaborato", volumeM3: 0 }];
+  eq(terra.riconciliazioneTurni(volatoAZero, dichiara(900), "2026-03-01", "2026-03-31", 2.6).stato,
+    "misura-zero", "si è volato e dal fronte non manca niente: NON è «non si sa»");
+  eq(terra.riconciliazioneTurni(volatoAZero, dichiara(900), "2026-03-01", "2026-03-31", 2.6).mis.rilievi, 1,
+    "e il rilievo che lo dice è contato: è il dato che distingue i due casi");
+  eq(terra.riconciliazioneTurni([], dichiara(900), "2026-03-01", "2026-03-31", 2.6).mis.rilievi, 0,
+    "mentre senza nessun volo i rilievi sono zero — se i due numeri coincidessero lo stato non si potrebbe decidere");
   eq(terra.riconciliazioneTurni(mis, [], "2026-03-01", "2026-03-31", 2.6).stato, "no-dichiarato",
     "nessun turno ha dichiarato: si dice");
   eq(terra.riconciliazioneTurni(mis, [{ data: "2026-03-10", prodQta: 30, prodUnita: "viaggi" }],

@@ -3697,6 +3697,8 @@ a.dw-btn{text-decoration:none}
         html += cornice + `<div class="note">In quel periodo <b>nessun turno</b> ha registrato una produzione, quindi non c'è niente da confrontare col rilievo del ${fmtData(per.al)}.</div>`;
       } else if (r.stato === "no-misura") {
         html += cornice + `<div class="note">In quel periodo non risulta nessun <b>rilievo elaborato di scavo</b>: senza la misura il dichiarato resta da solo.</div>`;
+      } else if (r.stato === "misura-zero") {
+        html += cornice + `<div class="note avviso">Il rilievo del ${fmtData(per.al)} è stato <b>elaborato</b> e ha misurato <b>zero metri cubi</b>: dal fronte non manca niente.${r.dich && r.dich.m3 > 0 ? ` I turni però dichiarano <b>${fmtM3(r.dich.m3)} m³</b> nello stesso periodo — o la produzione è venuta da un'altra parte (cumuli, un altro fronte), o c'è un errore in uno dei due.` : ""}</div>`;
       } else {
         const [cls, frase] = TUR_STATO[r.stato] || ["", ""];
         const sopra = r.verso === "sopra";

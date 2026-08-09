@@ -121,6 +121,35 @@ const BANCHI = [
      che nel DOM non compare MAI: il censimento deve trovarla e bocciarla, se
      no la passata nuova è una guardia scollegata. */
   ['contrasto · le classi mai comparse', 'contrasto.mjs', ['--controprova-censimento'], true],
+  /* ⛔ AGGIUNTE IL 09/08, E COPRONO IL BUCO PIÙ GRANDE CHE QUEL BANCO AVESSE:
+     **le finestre di dialogo**. `contrasto.mjs` cammina sulle sezioni, e
+     `#modal` sta a `display:none` finché qualcuno non lo apre — quindi il
+     colore DENTRO le finestre non lo misurava nessuno, in nessuna app e in
+     nessuno dei tre temi. Non si vedeva perché il numero stampato era vero:
+     «613 testi su Scudo, 0 sotto soglia» è la risposta esatta a una domanda
+     più stretta di quella che sembra. Misurato prima di scrivere una riga:
+     rifacendo lo stesso cammino, dei 1050 testi di Scudo **zero** stanno
+     dentro `#modal`; e la stessa domanda, appena una finestra si apre,
+     risponde 4.
+     Il primo giro ha aperto **89 finestre su 186** in quattordici superfici al
+     buio (nei due temi chiari il tema ce l'hanno sei superfici, 50 su 114 per
+     tema) e misurato 4.562 testi in tutto: un difetto vero, nel core — il riquadro
+     «CAVA» di «Nuovo progetto di volata», bianco su un gradiente verde a
+     **3,28:1** dove ne servono 4,5 (corretto in `openSelezionaCavaPerVolata`).
+     ⚠️ SONO PASSATE A PARTE, e il motivo è un numero: aprire le finestre costa
+     ~13 minuti a tema, e `--limite=` uccide una passata oltre la mezz'ora.
+     Sommandole a quella delle sezioni si sarebbe perso tutto il banco invece
+     di guadagnare le finestre. */
+  ['contrasto dentro le finestre', 'contrasto.mjs', ['--modali']],
+  ['contrasto dentro le finestre · tema chiaro', 'contrasto.mjs', ['--modali', '--tema=chiaro']],
+  ['contrasto dentro le finestre · tema sole', 'contrasto.mjs', ['--modali', '--tema=sole']],
+  /* il veleno va messo DENTRO la finestra aperta, non appeso al corpo della
+     pagina: fuori da `#modal *` non entrerebbe mai nella misura e la
+     controprova direbbe «non so fallire» per il motivo sbagliato. Insieme al
+     veleno entra il testimone leggibile scritto con `color-mix()`, che NON
+     deve essere bocciato — se no il righello ha ripreso a leggere
+     `color(srgb …)` come se i canali fossero 0-255. */
+  ['contrasto dentro le finestre · controprova', 'contrasto.mjs', ['--modali', '--controprova'], true],
   /* ⛔ AGGIUNTO IL 07/08, E MISURA L'ALTRA METÀ. `contrasto.mjs` guarda i
      TESTI; tutto ciò che parla senza parole — la barretta a lato di una riga,
      il filo in cima a un KPI, la striscia di un riquadro, il bordo di un campo

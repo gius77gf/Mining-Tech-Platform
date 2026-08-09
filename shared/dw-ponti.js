@@ -157,7 +157,10 @@ export const SOGLIA_TURNI = { coerente: 15, attenzione: 40 };
 // DICHIARATO, nello stesso periodo. Ritorna sempre uno `stato` che dice come va
 // letto il numero:
 //   no-campo       · i rapportini non arrivano: senza dichiarato non c'è confronto
-//   no-misura      · nel periodo non c'è nessun rilievo elaborato con volume
+//   no-misura      · nel periodo non c'è NESSUN rilievo elaborato: non si sa
+//   misura-zero    · un rilievo elaborato C'È, e ha misurato ZERO: il fronte
+//                    non si è mosso. È il contrario di «non si sa», e quando i
+//                    turni dichiarano qualcosa è l'allarme più forte di tutti
 //   no-dichiarato  · nel periodo nessun turno ha dichiarato una produzione
 //   no-densita     · i turni hanno dichiarato solo tonnellate (senza densità)
 //                    e/o viaggi: niente è convertibile in m³, non si confronta
@@ -188,7 +191,20 @@ export function riconciliazioneTurni(rilievi, rapportini, dal, al, densita) {
   const base = { mis, dich, scostamento: null, pct: null,
                  parziale: !!(dich && dich.parziale) };
   if (dich === null) return { ...base, stato: "no-campo" };
-  if (mis === null || !(mis.m3 > 0)) return { ...base, stato: "no-misura" };
+  /* ⛔ UNO ZERO MISURATO NON È UNA MISURA MANCANTE, ed è il principio del
+     fondatore nel verso che nessuno guarda: qui non c'era un dato assente
+     spacciato per favorevole, c'era un dato PRESENTE spacciato per assente.
+     Fino al 09/08 questa riga diceva `!(mis.m3 > 0)` e mandava nello stesso
+     stato due cose opposte: «nel periodo non ha volato nessuno» e «si è volato,
+     e dal fronte non manca niente». Il dato per distinguerle era già lì
+     accanto — `mis.rilievi` — e la pagina di Terra scriveva, sullo zero
+     misurato, «non risulta nessun rilievo elaborato di scavo»: una frase
+     FALSA, e falsa proprio quando i turni dichiarano una produzione, cioè
+     quando lo schermo dovrebbe gridare che il fronte non si è mosso.
+     ⚠️ Lo stato è nuovo, quindi lo devono coprire tutti i suoi lettori
+     (regola 18): Terra lo racconta, Campo lo tratta come prima. */
+  if (mis === null || !(mis.rilievi > 0)) return { ...base, stato: "no-misura" };
+  if (!(mis.m3 > 0)) return { ...base, stato: "misura-zero" };
   if (!dich.turni) return { ...base, stato: "no-dichiarato" };
   if (!(dich.m3 > 0)) return { ...base, stato: "no-densita" };
   const scostamento = r3(mis.m3 - dich.m3);

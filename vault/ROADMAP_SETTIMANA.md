@@ -3269,7 +3269,7 @@ numero scritto dove non era stato misurato niente**.*
   sorvegliati ne contavano sette: due convenzioni per lo stesso numero, che è
   il modo più facile di far sembrare sbagliato un conto giusto. Adesso è una
   sola.*
-  Copertura **724/724** e nessuna funzione scoperta; **161 esecuzioni** che
+  Copertura **724/724** e nessuna funzione scoperta; **165 esecuzioni** che
   aprono le pagine in un browser vero, da **72** file di banco distinti (contati
   dalla tabella `BANCHI` di `tutti.mjs`, non a occhio dalla cartella, che di
   `.mjs` ne ha di più perché contiene anche gli aiuti — `giro.mjs`,

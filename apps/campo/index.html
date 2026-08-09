@@ -1687,7 +1687,13 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
     const vig = (AUTT || []).find(a => a && a.stato === "vigente") || (AUTT || [])[0];
     const dens = densitaDellaCava(vig);
     const r = riconciliazioneTurni(RILT, RAP, per.dal, per.al, dens.densita);
-    if (r.stato === "no-campo" || r.stato === "no-misura" || r.stato === "no-dichiarato") { out.innerHTML = ""; return; }
+    /* ⚠️ `misura-zero` è nato il 09/08 in `dw-ponti` e Campo lo tratta come
+       prima trattava lo zero misurato — cioè non dice niente. Non è una svista:
+       qui non ho la misura di che cosa convenga mostrare al capoturno, e uno
+       stato nuovo che parla senza essere stato guardato è peggio di uno muto.
+       Il posto dove quello zero viene raccontato è Terra. */
+    if (r.stato === "no-campo" || r.stato === "no-misura" || r.stato === "no-dichiarato"
+        || r.stato === "misura-zero") { out.innerHTML = ""; return; }
     if (r.stato === "no-densita") {
       out.innerHTML = `<div class="note">Il rilievo del drone del <b>${dmy(per.al)}</b> ha misurato <b>${numeroIt(r.mis.m3, 0)} m³</b> di scavo dal ${dmy(per.dal)}. Per metterlo accanto alla produzione dei turni serve la <b>densità del materiale</b>, che si imposta in <b>Terra</b>: senza, tonnellate e metri cubi non si parlano.</div>`;
       return;

@@ -80,8 +80,36 @@
    sicurezza e i colori scelti dal fondatore non si toccano: questo banco
    MISURA, non corregge.
 
+   ⛔ **E DAL 09/08 C'È UNA SECONDA PASSATA, PERCHÉ IL BUCO PIÙ GRANDE NON ERA
+   UNA TRAPPOLA DEL RIGHELLO: ERA UN POSTO DOVE IL RIGHELLO NON ANDAVA MAI.**
+   Questo banco cammina sulle SEZIONI, e `#modal` sta a `display:none` finché
+   qualcuno non lo apre: quindi il contrasto **dentro le finestre di dialogo**
+   non era misurato da nessun banco, in nessuna app, in nessuno dei tre temi.
+   Il numero che stampava era vero e per questo non si vedeva — «613 testi su
+   Scudo, 0 sotto soglia» è la risposta esatta a una domanda più stretta di
+   quella che sembra. Misurato prima di scrivere una riga: rifacendo lo STESSO
+   cammino e chiedendo quanti dei testi misurati stessero dentro `#modal`, la
+   risposta è **zero su 1050**; e la stessa domanda, appena una finestra si
+   apre, risponde 4 — cioè lo zero non era cecità, era il cammino.
+   Con `--modali` le finestre si aprono col gesto di `modali-dentro.mjs`
+   (importato da `apri-modali.mjs`, non riscritto) e si misura solo `#modal *`.
+   Primo giro, e i due numeri contano cose diverse: al buio **89 finestre
+   aperte su 186** in quattordici superfici; nei due temi chiari solo sei
+   superfici hanno il tema (50 finestre su 114 ciascuna), e il core non ce l'ha.
+   In tutto **4.562 testi** misurati dentro le finestre e **un** difetto vero —
+   nel core il riquadro «CAVA» di
+   «Nuovo progetto di volata» era bianco su un gradiente verde, 3,28:1 dove ne
+   servono 4,5, mentre la stessa decisione presa al click usava già l'ambra con
+   l'inchiostro scuro (6,87:1). Corretto.
+   ⚠️ E il denominatore resta basso dove l'apritore non arriva: su Scudo apre 5
+   finestre su 35, perché le altre sono conferme che vogliono una riga scelta
+   prima. Il banco lo **stampa** invece di tacerlo.
+
    Uso:
      node apps/deepwork-id/tests/browser/contrasto.mjs 8823
+     node apps/deepwork-id/tests/browser/contrasto.mjs 8823 --modali
+     node apps/deepwork-id/tests/browser/contrasto.mjs 8823 --modali --tema=sole
+     node apps/deepwork-id/tests/browser/contrasto.mjs 8823 --modali --controprova
      node apps/deepwork-id/tests/browser/contrasto.mjs 8823 --solo=terra
      node apps/deepwork-id/tests/browser/contrasto.mjs 8823 --tutti   (elenca anche i promossi)
      node apps/deepwork-id/tests/browser/contrasto.mjs 8823 --controprova
@@ -1786,7 +1814,14 @@ if (MODALI) {
   for (const c of modaliCensimento) {
     console.log(`   ${String(c.app).padEnd(22)} ${String(c.esistono ?? '?').padStart(3)} nel programma  →  ${String(c.aperte).padStart(3)} aperte`
       + ` · ${String(c.aperture).padStart(4)} aperture · ${String(c.testi).padStart(5)} testi misurati dentro`
-      + (c.aperte === 0 ? `   [${c.candidati} comandi trovati: ${c.candidati ? 'senza dati' : 'non raggiunta'}]` : ''));
+      /* ⚠️ LE TRE RISPOSTE SONO TRE, e la prima è «niente da aprire»: senza di
+         lei la vetrina — che di finestre non ne ha nessuna per costruzione —
+         usciva marcata «non raggiunta», cioè con un'accusa al banco dove non
+         c'è niente da accusare. È la stessa correzione che `modali-dentro.mjs`
+         ha già pagato l'08/08, e la ragione è che queste righe sono quelle che
+         qui si leggono PRIMA dei KO: una che grida al lupo insegna a saltarle. */
+      + (c.esistono === 0 ? '   [niente da aprire: il suo programma non ha finestre]'
+         : c.aperte === 0 ? `   [${c.candidati} comandi trovati: ${c.candidati ? 'senza dati' : 'non raggiunta'}]` : ''));
     if (c.quali.length) console.log(`      aperte: ${c.quali.join(' · ')}`);
   }
   console.log(`   ${'TOTALE'.padEnd(22)} ${String(modaliEsistonoTot).padStart(3)}                 →  ${String(modaliAperteTot).padStart(3)}`);
