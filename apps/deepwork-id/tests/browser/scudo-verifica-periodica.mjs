@@ -103,9 +103,15 @@ const INIEZIONI = [
   { file: PAGINA, n: 2, perche: "la riga della data compare con qualunque esito",
     da: '$("vf-entro-riga").style.display = $("vf-esito").value === "prescrizioni" ? "block" : "none"; };',
     a: '$("vf-entro-riga").style.display = "block"; };' },
-  { file: PAGINA, n: 3, perche: "il CSV ri-legge il campo grezzo invece di chiedere alla funzione dello schermo",
-    da: 'const vfCella = (sc) => { const v = statoVerificaPeriodica(sc, DOC); return v ? v.badge : "—"; };',
-    a: 'const vfCella = (sc) => sc.verificaEsito ? String(sc.verificaEsito) : "";' },
+  /* ⏱️ RI-ANCORATA il 09/08, e ha cambiato FILE. Il CSV del personale è salito
+     dalla pagina al modulo (`csvPersonaleScadenze`), accanto alla funzione che
+     decide la stessa cosa a schermo — il miglioramento che sposta il codice,
+     terza volta in un giorno. `vfCella`, chiuso su `DOC`, è diventato `vf` con
+     i documenti passati come argomento: l'ancora non trovava più niente e
+     questa controprova girava su un prodotto SANO. */
+  { file: MODULO, n: 3, perche: "il CSV ri-legge il campo grezzo invece di chiedere alla funzione dello schermo",
+    da: '  const vf = (sc) => { const v = statoVerificaPeriodica(sc, documenti); return v ? v.badge : "—"; };',
+    a: '  const vf = (sc) => sc.verificaEsito ? String(sc.verificaEsito) : "";' },
 ];
 let rimesse = 0;
 const applica = (t, file) => {
@@ -126,7 +132,15 @@ const srv = createServer((q, s) => {
   if (existsSync(p) && statSync(p).isDirectory()) p = join(p, "index.html");
   if (!existsSync(p)) { s.writeHead(404); return s.end("no"); }
   let corpo = readFileSync(p);
-  if (p.endsWith(MODULO)) { corpo = Buffer.from(corpo.toString("utf8") + CASI, "utf8"); iniezioniCasi++; }
+  /* ⛔ Le iniezioni si applicano a TUTT'E DUE i file, non solo alla pagina: dal
+     09/08 una delle tre vive nel modulo, perché il CSV del personale ci è
+     salito. Servire il modulo senza applicargliele voleva dire far girare la
+     controprova su un pezzo sano senza che si vedesse. */
+  if (p.endsWith(MODULO)) {
+    let t = corpo.toString("utf8");
+    if (CONTROPROVA) t = applica(t, MODULO);
+    corpo = Buffer.from(t + CASI, "utf8"); iniezioniCasi++;
+  }
   if (CONTROPROVA && p.endsWith(PAGINA)) corpo = Buffer.from(applica(corpo.toString("utf8"), PAGINA), "utf8");
   s.writeHead(200, { "content-type": TIPI[extname(p)] || "application/octet-stream" });
   s.end(corpo);

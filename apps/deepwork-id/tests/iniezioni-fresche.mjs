@@ -81,45 +81,125 @@ const NON_LEGGIBILI = [];
    qualunque cosa somigli a un'assegnazione. */
 const costantiDi = (src, finoA) => {
   const preambolo = [];
-  for (const m of src.slice(0, finoA).matchAll(/\b([A-Z_][A-Z0-9_]*)\s*=\s*("(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*')/g)) {
+  /* ⚠️ E anche `join("apps", "scudo", "index.html")`: `scudo-verifica-periodica`
+     compone così il percorso della pagina, e senza questo ramo la sua tabella
+     restava illeggibile — cioè un'eccezione da dichiarare al posto di una riga
+     di regex. `join` è quello importato qui sopra: l'`eval` ce l'ha in vista. */
+  for (const m of src.slice(0, finoA).matchAll(/\b([A-Z_][A-Z0-9_]*)\s*=\s*(join\([^)]*\)|"(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*')/g)) {
     preambolo.push(`const ${m[1]} = ${m[2]};`);
   }
   return preambolo.join("\n");
 };
 
-let banchi = 0, totali = 0;
-const scadute = [], illeggibili = [];
+/* ⛔ E IL 09/08 QUESTO CONTROLLO È CADUTO NELLA FAMIGLIA CHE ESISTE PER
+   PRENDERE: CERCAVA **UN NOME SOLO**. La riga qui sotto diceva
+   `src.search(/const DIFETTI\s*=\s*\[/)`, cioè guardava le tabelle che si
+   chiamano esattamente `DIFETTI` e si aprono con una quadra. Fuori restavano
+   `DIFETTO`, `DIFETTI_MODULO`, `DIFETTI_PAGINA`, `DIFETTI_FLOTTA`,
+   `DIFETTI_MOTORE`, `DIFETTO_MODULO`, `INIEZIONI`, `COME_LIVE`, e ogni tabella
+   scritta come oggetto (`DIFETTI = {` per rotta). Il conto: **215 iniezioni in
+   23 banchi** dichiarate, contro le **296 in 35** che ci sono — cioè una su
+   quattro non era guardata da nessuno, e il file stampava «zero scadute» con la
+   faccia della verità.
+   È alla lettera la regola scritta in CLAUDE.md l'08/08 — *«un censimento che
+   cerca UN nome risponde "non c'è" con la stessa faccia con cui direbbe la
+   verità»* — applicata al controllo che quel giorno stesso era nato per
+   togliere un'eccezione. Un'eccezione dichiarata l'avrei riletta; un nome
+   scritto dentro una regex no.
+   ⚠️ Il costo, misurato prima di allargare (mai «stringo e vedo»): sono entrate
+   **81 iniezioni** e **TRE erano scadute**, tutte per la ragione buona di
+   sempre — il codice si è mosso perché è migliorato:
+   · `campo-foglio-turno · COME_LIVE`, l'avviso passato a una funzione
+     condivisa: costava **TRE KO fantasma** nel giro del 08/08, cioè un cantiere
+     su difetti che non esistevano;
+   · `scudo-frasi-da-uno · DIFETTI_PAGINA`, la frase dell'export cresciuta di un
+     ramo in mezzo;
+   · `scudo-verifica-periodica · INIEZIONI`, che ha perfino cambiato **file**:
+     il CSV del personale è salito nel modulo dati.
+   Zero falsi allarmi. Il timore di «allargare fa rumore» era ragionevole e la
+   misura l'ha smentito, come già per `nomi-liberi`.
+
+   IL VOCABOLARIO, e perché è un vocabolario e non una forma. Provata prima la
+   strada senza nomi — «è una tabella d'iniezione se è una lista di coppie di
+   stringhe» — e dà **nove allarmi di cui sette falsi**: `COMBINAZIONI` di
+   `note-stato` sono classi CSS, `PLURALI` e `PAROLE` sono parole, `GIRI` e
+   `LISTE` sono selettori. Sono tutte liste di coppie di stringhe, e nessuna
+   cita il codice. Quindi il nome resta il criterio — ma **il denominatore si
+   dichiara**: le tabelle di coppie che il vocabolario NON prende si contano e
+   si stampano, così una quarta convenzione di nome compare come un numero
+   invece che come silenzio. È la lezione delle righe «non ho guardato». */
+const VOCABOLARIO = /^(DIFETT|INIEZION|COME_LIVE)/;
+
+/* ⛔ QUATTRO FORME DI TABELLA, non due, e la quarta è la più onesta delle
+   altre. Oltre a `[cerca, sostituisci]` e alle due col percorso in testa o in
+   coda, ci sono `[cerca, sostituisci, 1]` (il numero di occorrenze attese) e la
+   forma a OGGETTO — `{ file, perche, da, a }` di `graf-scala` e
+   `scudo-verifica-periodica` — dove la stringa da cercare ha un **nome**, `da`,
+   e non va indovinata affatto. Quando c'è, si legge quella. */
+const stringhe = (a) => a.filter((x) => typeof x === "string");
+const coppieDi = (v) => {
+  if (v && typeof v === "object" && !Array.isArray(v) && typeof v.da === "string") return [[v.da, String(v.a ?? "")]];
+  if (Array.isArray(v)) {
+    if (v.every((x) => typeof x === "string" || typeof x === "number") && stringhe(v).length >= 2) return [stringhe(v)];
+    if (v.length && v.every((x) => x && typeof x === "object")) {
+      const out = [];
+      for (const x of v) { const c = coppieDi(x); if (!c) return null; out.push(...c); }
+      return out;
+    }
+    return null;
+  }
+  if (v && typeof v === "object") {   // `DIFETTI = { "rotta": [ [cerca, sost], … ] }`
+    const out = [];
+    for (const k of Object.keys(v)) { const c = coppieDi(v[k]); if (!c) return null; out.push(...c); }
+    return out;
+  }
+  return null;
+};
+
+let totali = 0;
+const scadute = [], illeggibili = [], tabelle = [], fuoriVocabolario = [];
+const banchiVisti = new Set();
 for (const f of readdirSync(BANCHI).filter((x) => x.endsWith(".mjs")).sort()) {
   const src = readFileSync(join(BANCHI, f), "utf8");
-  const i = src.search(/const DIFETTI\s*=\s*\[/);
-  if (i < 0) continue;
-  const fine = src.indexOf("\n];", i);
-  if (fine < 0) continue;
-  let tabella;
-  try { tabella = eval(costantiDi(src, i) + "\n" + src.slice(i, fine).replace(/const DIFETTI\s*=\s*\[/, "[") + "]"); }
-  catch (e) { illeggibili.push(f); continue; }
-  if (!Array.isArray(tabella) || !tabella.length) continue;
-  banchi++;
-  for (const d of tabella) {
-    /* ⛔ DUE CONVENZIONI, E IL RIGHELLO NE CONOSCEVA UNA SOLA. `scudo-disegni`
-       scrive `[file, cerca, sostituisci]`, `scudo-documenti` scrive
-       `[cerca, sostituisci, file]` — e il suo commento lo dice, «terzo elemento
-       = il file da toccare». Leggendo sempre `d[1]` come la stringa da cercare
-       si finiva a controllare la SOSTITUZIONE: sei falsi allarmi, tutti nello
-       stesso banco, che è il segno con cui in questa casa si riconosce di stare
-       guardando il righello. È la seconda volta per questa identica famiglia:
-       la prima è scritta in CLAUDE.md e riguardava lo stesso file.
-       La cura è non indovinare la posizione ma **chiedere ai dati**: il file è
-       l'elemento che è un percorso di prodotto vero, e la stringa da cercare è
-       la prima delle altre. Così le due convenzioni si leggono uguali e una
-       terza, se nascesse, non romperebbe niente. */
-    const parti = (Array.isArray(d) ? d : [d]).filter((x) => !SORGENTI.includes(x));
-    const cerca = parti[0];
-    if (typeof cerca !== "string" || !cerca.trim()) continue;
-    totali++;
-    if (!testi.some((t) => t.includes(cerca))) scadute.push([f, cerca]);
+  for (const m of src.matchAll(/^const ([A-Z_][A-Z0-9_]*)\s*=\s*([[{])/gm)) {
+    const [, nome, apre] = m;
+    const fine = src.indexOf(apre === "[" ? "\n];" : "\n};", m.index);
+    if (fine < 0) continue;
+    let val;
+    try { val = eval(costantiDi(src, m.index) + "\n(" + src.slice(m.index, fine + 2).replace(/^const [A-Z_][A-Z0-9_]*\s*=\s*/, "") + ")"); }
+    catch { if (VOCABOLARIO.test(nome)) illeggibili.push(`${f} · ${nome}`); continue; }
+    const coppie = coppieDi(val);
+    if (!coppie || !coppie.length) { if (VOCABOLARIO.test(nome)) illeggibili.push(`${f} · ${nome} (forma non riconosciuta)`); continue; }
+    if (!VOCABOLARIO.test(nome)) { fuoriVocabolario.push([f, nome, coppie.length]); continue; }
+    tabelle.push(`${f} · ${nome}`);
+    banchiVisti.add(f);
+    for (const d of coppie) {
+      /* ⛔ DUE CONVENZIONI, E IL RIGHELLO NE CONOSCEVA UNA SOLA. `scudo-disegni`
+         scrive `[file, cerca, sostituisci]`, `scudo-documenti` scrive
+         `[cerca, sostituisci, file]` — e il suo commento lo dice, «terzo elemento
+         = il file da toccare». Leggendo sempre `d[1]` come la stringa da cercare
+         si finiva a controllare la SOSTITUZIONE: sei falsi allarmi, tutti nello
+         stesso banco, che è il segno con cui in questa casa si riconosce di stare
+         guardando il righello. È la seconda volta per questa identica famiglia:
+         la prima è scritta in CLAUDE.md e riguardava lo stesso file.
+         La cura è non indovinare la posizione ma **chiedere ai dati**: il file è
+         l'elemento che è un percorso di prodotto vero.
+         ⚠️ E c'è una terza convenzione, `[nome, cerca, sostituisci]` di
+         `salvataggio-offline`, dove nessun elemento è un percorso e il primo è
+         una **etichetta in italiano**: prendendo sempre il primo si controllava
+         una frase di prosa, che ovviamente «non sta in nessun file» — due falsi
+         allarmi. Quello che tutte e tre hanno in comune è che l'iniezione è una
+         coppia **adiacente**: quindi con tre elementi rimasti si guarda il
+         **penultimo**, non il primo. */
+      const parti = (Array.isArray(d) ? d : [d]).filter((x) => !SORGENTI.includes(x));
+      const cerca = parti.length >= 3 ? parti[parti.length - 2] : parti[0];
+      if (typeof cerca !== "string" || !cerca.trim()) continue;
+      totali++;
+      if (!testi.some((t) => t.includes(cerca))) scadute.push([f, nome, cerca]);
+    }
   }
 }
+const banchi = banchiVisti.size;
 
 let male = 0;
 const dice = (ok, testo, extra) => {
@@ -130,13 +210,26 @@ const dice = (ok, testo, extra) => {
 console.log("\n════════ le iniezioni delle controprove sono ancora sul bersaglio? ════════");
 dice(scadute.length === 0,
   "ogni iniezione trova ancora il suo pezzo nel codice",
-  scadute.length ? scadute.map(([f, c]) => `\n      ${f} cerca ${JSON.stringify(c.slice(0, 90))}`).join("") : "");
+  scadute.length ? scadute.map(([f, n, c]) => `\n      ${f} · ${n} cerca ${JSON.stringify(c.slice(0, 90))}`).join("") : "");
 
 /* ⛔ E IL DENOMINATORE, che è la ragione per cui questo controllo non si legge
-   come un «zero violazioni» qualunque: quanti soggetti ha guardato davvero. */
-dice(totali > 100,
+   come un «zero violazioni» qualunque: quanti soggetti ha guardato davvero.
+   ⚠️ Il fondo è a 250 e non a 100 perché dal 09/08 le iniezioni lette sono 296:
+   lasciarlo a 100 avrebbe significato che questo controllo poteva tornare a
+   guardarne un terzo senza che niente diventasse rosso — la soglia scritta su
+   un valore che sale, cioè cieca proprio nel verso che rassicura. */
+dice(totali > 250,
   "il controllo ha guardato abbastanza soggetti da voler dire qualcosa",
-  `${totali} iniezioni in ${banchi} banchi, su ${SORGENTI.length} file di prodotto`);
+  `${totali} iniezioni in ${tabelle.length} tabelle di ${banchi} banchi, su ${SORGENTI.length} file di prodotto`);
+
+/* ⛔ LE TABELLE CHE IL VOCABOLARIO NON PRENDE, contate e stampate: sono liste di
+   coppie di stringhe che NON citano codice (classi CSS, selettori, parole al
+   plurale). Non è un elenco di eccezioni da scusare — è il denominatore, e
+   serve a far comparire come NUMERO una quarta convenzione di nome, invece che
+   come silenzio. Se un giorno una di queste righe diventasse un'iniezione, il
+   conto cambierebbe e si vedrebbe. */
+console.log(`      ${fuoriVocabolario.length} tabelle di coppie fuori dal vocabolario (non citano codice di prodotto):`);
+for (const [f, n, q] of fuoriVocabolario) console.log(`         ${String(q).padStart(3)} coppie · ${f} · ${n}`);
 
 const attesi = NON_LEGGIBILI.map(([f]) => f).sort().join(",");
 dice(illeggibili.sort().join(",") === attesi,
@@ -152,5 +245,6 @@ dice(!testi.some((t) => t.includes(finta)),
   "controprova: una stringa inventata NON viene trovata (se no il confronto è rotto)");
 
 console.log(`\nRisultato iniezioni fresche: ${totali - scadute.length} sul bersaglio su ${totali}`
-  + `  ·  ${banchi} banchi letti, ${illeggibili.length} non leggibili da fermi (dichiarati)`);
+  + `  ·  ${tabelle.length} tabelle in ${banchi} banchi, ${illeggibili.length} non leggibili da fermi (dichiarati)`
+  + `  ·  ${fuoriVocabolario.length} tabelle di coppie fuori dal vocabolario`);
 process.exit(male ? 1 : 0);

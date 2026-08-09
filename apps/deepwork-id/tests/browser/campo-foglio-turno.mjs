@@ -182,8 +182,15 @@ const COME_LIVE = {
   "apps/campo/index.html": [
     ["  const avvisoEsempio = () => { const m = modoDimostrazione(db.mode);",
      '  const avvisoEsempio = () => { const m = modoDimostrazione("live");'],
-    ["  const avvisoEsempioTesto = () => { const m = modoDimostrazione(db.mode);",
-     '  const avvisoEsempioTesto = () => { const m = modoDimostrazione("live");'],
+    /* ⏱️ RI-ANCORATA il 09/08, ed è la scaduta che è costata TRE KO fantasma
+       nel giro del 08/08: il corpo a due istruzioni è diventato una riga sola
+       che chiama `avvisoTestoDimostrazione` (la stessa decisione presa in un
+       posto solo — il miglioramento che sposta il codice). Non trovando più il
+       suo pezzo, la passata `--live` serviva una pagina in modo DIMOSTRAZIONE e
+       accusava la consegna .txt di «non dichiarare i dati di esempio»: li
+       dichiarava, perché di esempio lo era davvero. */
+    ["  const avvisoEsempioTesto = () => avvisoTestoDimostrazione(modoDimostrazione(db.mode), FRASE_ESEMPIO);",
+     '  const avvisoEsempioTesto = () => avvisoTestoDimostrazione(modoDimostrazione("live"), FRASE_ESEMPIO);'],
     ["  const marchiaCsv = (el) => { el.download = nomeCsvDimostrazione(el.download, db.mode); return el; };",
      '  const marchiaCsv = (el) => { el.download = nomeCsvDimostrazione(el.download, "live"); return el; };'],
   ],

@@ -932,8 +932,24 @@ numero scritto dove non era stato misurato niente**.*
     (la riga sta al carattere 33, prima del primo dato). È il danno peggiore
     che questa famiglia di banchi esiste per impedire — l'opposto del caso di
     Scudo, dove il rischio era marchiare il fascicolo di un lavoratore vero.
-    ⚠️ E non è un'iniezione scaduta: `iniezioni-fresche` dà **215/215 sul
-    bersaglio**, e il banco dichiara «6 iniezioni come live».
+    ⛔ **E QUESTA RIGA ERA FALSA — LA LASCIO CON LA SMENTITA, PERCHÉ L'ERRORE
+    VALE PIÙ DELLA CORREZIONE.** Avevo scritto: *«non è un'iniezione scaduta:
+    `iniezioni-fresche` dà 215/215 sul bersaglio, e il banco dichiara 6
+    iniezioni come live»*. Erano **esattamente** un'iniezione scaduta.
+    · il «215/215» era vero e **non voleva dire niente qui**: quel controllo
+      leggeva solo le tabelle chiamate `const DIFETTI = [`, e questa si chiama
+      `COME_LIVE` — cioè guardava dappertutto tranne dove stavo cercando;
+    · il «6 iniezioni come live» era il numero **giusto per contarne 9**: tre
+      voci per tre rotte servite, e una delle tre non agganciava mai. Il numero
+      basso era il sintomo, e l'ho letto come una conferma.
+    Il banco lo diceva anche in chiaro — «⛔ INIEZIONE MANCATA: 0 soggetti» e in
+    fondo «l'iniezione «come live» non ha trovato il suo soggetto: **il giro non
+    vale**» — dentro un registro da cinquemila righe, e io ho riverificato **due
+    volte** questi tre KO credendoli prodotto.
+    ✅ **Chiusi il 09/08 re-ancorando l'iniezione: `--live` dà 35/0, 9 iniezioni.**
+    Il prodotto era giusto da sempre: sui dati veri la consegna `.txt` **non**
+    si dichiara d'esempio, perché il file si chiama `consegna_turno.txt` senza
+    marchio e l'avviso non c'è.
     ⚠️ **Da riverificare col flag giusto**: la prima passata che ho lanciato era
     quella di serie e diceva 0 falliti — la riga del giro si chiama «foglio di
     turno · **coi dati veri tace**», e in `tutti.mjs` è `['--live']`. Riverificare
@@ -943,7 +959,7 @@ numero scritto dove non era stato misurato niente**.*
   | fronte | quanti | nota |
   |---|---|---|
   | tendine di Scudo (`#vf-verbale`, `#vf-ente`) | 5 | 561 px in 284 · 499 in 284 · 254 in 214 |
-  | foglio di turno di Campo (`--live`) | 3 | la consegna vera si dichiara d'esempio |
+  | foglio di turno di Campo (`--live`) | 3 | ✅ **chiusi il 09/08 — erano FANTASMA**: iniezione `COME_LIVE` scaduta, la passata «coi dati veri» serviva la dimostrazione. Il prodotto era giusto. `--live` 35/0 |
   | frasi della nuvola di Genesi | 4 | ritaglio e sottocampionamento |
   | stati «non misurato» di Campo | 2 | non compaiono in `#rap-cop` e `#disp-stato` |
   | tendina di Sentinella (`#ppv-scelta`) | 2 | **290 px in 284**: sei px |
@@ -2648,6 +2664,56 @@ numero scritto dove non era stato misurato niente**.*
   buttato: quattro dei cinque punti d'uscita erano già aperti. **Un censimento
   che cerca UN nome risponde «non c'è» con la stessa faccia con cui direbbe la
   verità.**
+
+- [x] ✅ **E QUELLA FRASE, SCRITTA IN FONDO ALLA RIGA QUI SOPRA, DESCRIVEVA IL
+  CONTROLLO CHE LA RIGA QUI SOPRA AVEVA APPENA COSTRUITO** *(09/08)*.
+  `iniezioni-fresche` cercava `const DIFETTI = [` — **un nome, dentro una
+  regex**. Fuori restavano `DIFETTO`, `DIFETTI_MODULO`, `DIFETTI_PAGINA`,
+  `DIFETTI_FLOTTA`, `DIFETTI_MOTORE`, `DIFETTO_MODULO`, `INIEZIONI`,
+  `COME_LIVE` e ogni tabella scritta come **oggetto** (`DIFETTI = {` per rotta).
+  Il conto: **215 iniezioni dichiarate, 296 esistenti** — una su quattro non era
+  guardata da nessuno, e il file stampava «zero scadute».
+  ⚠️ E si nascondeva meglio di un'eccezione: un elenco dichiarato l'avrei
+  riletto (è la disciplina di `sonda-vuoto`, ed è scritta due righe più su), un
+  nome dentro una regex **non si presenta come una scelta**.
+  **Le tre scadute che c'erano sotto**, tutte per la ragione buona di sempre —
+  il codice si è mosso perché è migliorato:
+  · `campo-foglio-turno · COME_LIVE`, l'avviso passato a
+    `avvisoTestoDimostrazione`: costava **TRE KO fantasma** nel giro del 08/08.
+    La passata `--live` serviva la pagina in modo *dimostrazione* e accusava la
+    consegna `.txt` di «non dichiarare i dati di esempio» — che li dichiarava,
+    perché di esempio lo era davvero. Li avevo riverificati **due volte**
+    credendoli prodotto. Adesso `--live` dà **35/0** (era 32/3) e 9 iniezioni.
+  · `scudo-frasi-da-uno · DIFETTI_PAGINA`, la frase dell'export cresciuta di un
+    ramo in mezzo («di cui N senza nessuna scadenza registrata»). Adesso la
+    controprova rimette **17 su 17** e fa cadere 19 prove su 44.
+  · `scudo-verifica-periodica · INIEZIONI`, che ha cambiato **file**: il CSV del
+    personale è salito nel modulo dati (`csvPersonaleScadenze`). Quel banco la
+    saltava in **silenzio totale**, senza nemmeno un conto, e la sua controprova
+    diceva «✔ OK» con **2 difetti su 3** rimessi. Adesso 3 su 3, e cadono 7
+    prove invece di 5 (il banco serve le iniezioni anche al modulo).
+  ⚠️ **La strada senza nomi è stata provata e SCARTATA con la misura**, perché
+  nessuno la rifaccia alla cieca: giudicare una tabella dalla **forma** («è una
+  lista di coppie di stringhe») dà **9 allarmi di cui 7 falsi** — `COMBINAZIONI`
+  di `note-stato` sono classi CSS, `PAROLE` e `PLURALI` sono parole, `GIRI` e
+  `LISTE` sono selettori. Quindi il criterio resta il nome, ma **il
+  denominatore si dichiara**: le 6 tabelle di coppie fuori dal vocabolario si
+  contano e si stampano, così una quarta convenzione compare come un numero
+  invece che come silenzio.
+  ⚠️ E c'era una **terza convenzione di posizione**, `[nome, cerca, sostituisci]`
+  di `salvataggio-offline`, dove nessun elemento è un percorso e il primo è una
+  frase in italiano: due falsi allarmi. Quello che tutte e tre hanno in comune è
+  che l'iniezione è una coppia **adiacente** — con tre elementi si guarda il
+  **penultimo**. E due forme in più: `[cerca, sost, 1]` (le occorrenze attese) e
+  la forma a oggetto `{file, da, a}`, che è la più onesta di tutte perché la
+  stringa da cercare ha un **nome** e non va indovinata affatto.
+  Costo dell'allargamento, misurato **prima** di farlo come pretende la regola:
+  **81 iniezioni entrate, 3 scadute vere, ZERO falsi allarmi.**
+  Esito: **296 su 296, 44 tabelle in 35 banchi, 0 illeggibili** (erano 215 in
+  23). Il fondo dell'asserzione sul denominatore è salito da 100 a **250**: su
+  un valore che sale, una soglia bassa è cieca proprio nel verso che rassicura.
+  Controprova rifatta rimettendo l'ancora vecchia di `COME_LIVE`: il controllo
+  **nomina banco e tabella** e cade.
 - [x] ✅ **`scudo_azioni_copia.csv` era l'ultimo punto d'uscita che nessun banco
   apriva — adesso Scudo è 5 su 5.** La copia di sicurezza non è il prospetto: il
   prospetto porta lo stato CALCOLATO e la frase dell'origine (che rientrando

@@ -1004,6 +1004,39 @@ Perché serva davvero e non produca elenchi generici, cinque vincoli:
   **toglie**. Qui si toglieva leggendo le costanti di stringa del banco stesso e
   passandole all'`eval` come preambolo: da **174 iniezioni in 20 banchi con
   un'eccezione** a **212 in 23 con zero**.
+  ⛔ **E IL 09/08 QUEL CONTROLLO È CADUTO NELLA FAMIGLIA CHE ESISTE PER
+  PRENDERE, IN UNA VESTE CHE NESSUNA DELLE DUE RIGHE QUI SOPRA COPRE: NON
+  UN'ECCEZIONE DICHIARATA, MA **UN NOME SCRITTO DENTRO UNA REGEX**.
+  `iniezioni-fresche` cercava `const DIFETTI = [` — e basta. Restavano fuori
+  `DIFETTO`, `DIFETTI_MODULO`, `DIFETTI_PAGINA`, `DIFETTI_FLOTTA`,
+  `DIFETTI_MOTORE`, `DIFETTO_MODULO`, `INIEZIONI`, `COME_LIVE`, più ogni tabella
+  scritta come **oggetto** (`DIFETTI = {` per rotta). Conto: **215 dichiarate,
+  296 esistenti** — una su quattro non guardata da nessuno, e il file stampava
+  «zero scadute» con la faccia della verità. È alla lettera la regola scritta il
+  giorno prima — *«un censimento che cerca UN nome risponde "non c'è" con la
+  stessa faccia con cui direbbe la verità»* — applicata al controllo nato quel
+  giorno stesso per togliere un'eccezione. **Un'eccezione dichiarata l'avrei
+  riletta; un nome dentro una regex no**: è più nascosto di un elenco, perché
+  non si presenta come una scelta.
+  ⚠️ Sotto ci stavano **tre iniezioni scadute**, tutte per la ragione buona
+  (il codice si è mosso perché è migliorato), e una era cara: `COME_LIVE` di
+  `campo-foglio-turno` ha prodotto **tre KO fantasma** nel giro del 08/08 — la
+  passata `--live` serviva la pagina in modo *dimostrazione* e accusava la
+  consegna `.txt` di «non dichiarare i dati di esempio», che li dichiarava
+  perché di esempio lo era davvero. Quella l'ho riverificata a mano per due
+  volte credendola prodotto. La terza aveva perfino cambiato **file** (il CSV
+  del personale salito nel modulo dati), e `scudo-verifica-periodica` la
+  saltava in **silenzio totale**, senza nemmeno un conto: la sua controprova
+  diceva «✔ OK» con 2 difetti su 3 rimessi.
+  ⚠️ **E la strada senza nomi è stata provata e SCARTATA con la misura**,
+  perché nessuno la rifaccia: giudicare una tabella dalla **forma** («è una
+  lista di coppie di stringhe») dà **9 allarmi di cui 7 falsi** — `COMBINAZIONI`
+  sono classi CSS, `PAROLE` e `PLURALI` sono parole, `GIRI` e `LISTE` sono
+  selettori. Quindi il criterio resta il **nome**, ma il denominatore si
+  dichiara: le tabelle di coppie che il vocabolario non prende si contano e si
+  stampano (**6**), così una quarta convenzione compare come un numero invece
+  che come silenzio. Costo dell'allargamento, misurato prima di farlo: **81
+  iniezioni entrate, 3 scadute vere, zero falsi allarmi.**
   ⚠️ E il righello ha rifatto l'errore della riga qui sopra **al contrario**:
   imparata la forma `[file, cerca, sostituisci]`, leggeva così anche
   `scudo-documenti`, che scrive `[cerca, sostituisci, file]` — sei falsi

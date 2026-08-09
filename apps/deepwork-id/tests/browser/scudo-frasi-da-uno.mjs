@@ -228,8 +228,13 @@ const DIFETTI_PAGINA = [
   // 6 · i tre esiti degli export
   ['plurale(INF.length, "Esportato ", "Esportati ") + conta(INF.length, "evento del registro", "eventi del registro") + " (CSV)."',
    '"Esportati " + INF.length + " eventi del registro (CSV)."'],
-  ['plurale(LAV.length, "Esportato ", "Esportati ") + conta(LAV.length, "lavoratore", "lavoratori") + " e " + conta(SCA.length, "scadenza", "scadenze") + " (CSV)."',
-   '"Esportati " + LAV.length + " lavoratori e " + SCA.length + " scadenze (CSV)."'],
+  /* ⏱️ RI-ANCORATA il 09/08: l'ancora arrivava fino a ` + " (CSV)."`, e quel
+     pezzo non è più adiacente — la frase ha guadagnato in mezzo il ramo dei
+     lavoratori «senza nessuna scadenza registrata». Cioè l'iniezione era
+     scaduta per la ragione di sempre, il codice si è mosso perché è
+     migliorato. Adesso l'ancora si ferma dove la frase è stabile. */
+  ['plurale(LAV.length, "Esportato ", "Esportati ") + conta(LAV.length, "lavoratore", "lavoratori") + " e " + conta(SCA.length, "scadenza", "scadenze")',
+   '"Esportati " + LAV.length + " lavoratori e " + SCA.length + " scadenze"'],
   ['plurale(AZI.length, "Esportata ", "Esportate ") + conta(AZI.length, "azione correttiva", "azioni correttive") + " (CSV)."',
    '"Esportate " + AZI.length + " azioni correttive (CSV)."'],
   // 7 · i due import
