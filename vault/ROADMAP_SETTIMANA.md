@@ -848,6 +848,39 @@ numero scritto dove non era stato misurato niente**.*
       di libreria) non si distinguono senza sapere i **tipi**, e un righello «un
       po' meno sbagliato» è peggio di uno che dichiara il suo dubbio — regola
       già pagata su `contrasto.mjs`.
+- [ ] **B0. I CANTIERI DEL BROWSER E IL GIRO SI RUBANO LA MACCHINA — misurato
+      il 09/08, e ridimensiona la direttiva 3 SOLO per i banchi.** Il giro del
+      browser è partito alle **13:03:34Z** e ha fatto **145 passate in 119
+      minuti** — 0,82 minuti l'una. Poi ho aperto tre cantieri che aprono
+      Chromium (contrasto a tre larghezze, il righello delle tendine, e prima
+      ancora Scudo): dalle 15:02 alle 17:12 ha fatto **10 passate in 130
+      minuti**, cioè **13 minuti l'una**. **Circa sedici volte più lento.**
+      Nel momento della misura: **34 processi Chromium** vivi e **5 banchi del
+      browser** in corso fuori dal giro.
+      ⚠️ **Il confondimento va dichiarato, se no il numero vale meno di quello
+      che sembra**: le passate della coda **non sono le stesse** di quelle della
+      testa, e potrebbero essere intrinsecamente più pesanti. Non ho un
+      esperimento controllato — ho un rapporto di 16× e trentaquattro Chromium.
+      Quindi si scrive **come indizio forte, non come causa provata**, ed è
+      esattamente il modo in cui questa casa distingue una misura da una
+      deduzione.
+      ⛔ **La regola operativa che ne segue, e che NON contraddice la direttiva
+      3**: il primo moltiplicatore è misurato sui cantieri che **scrivono file**
+      (241 e 258 modifiche in un giorno contro 92 lavorando in fila), e quella
+      resta. Ma un cantiere che **apre Chromium** non è dello stesso tipo:
+      contende la stessa risorsa del giro, e il giro è la cosa che nessun altro
+      può rifare. **Mentre un giro cammina, i cantieri paralleli si aprono su
+      lavoro che NON apre il browser** — moduli, documenti, suite `node` — e i
+      banchi si mettono in coda.
+      ⚠️ E il costo non si vede: il giro non rallenta con un avviso, si allunga.
+      Chi lo guarda dopo trova un registro da cinque ore e nessuna riga che dica
+      perché.
+      **Come si misura** (per chi vuole rifarla meglio di me): si contano le
+      passate del registro a intervalli noti (`grep -cE '^════════'`) e si
+      confronta il ritmo con `ps -eo comm= | grep -c chromium`. L'esperimento
+      pulito sarebbe rilanciare **le stesse** passate della coda a macchina
+      scarica: costa un giro, e finora non l'ha fatto nessuno.
+
 - [ ] **B3-bis. Il bottone d'uscita di Campo che nessun banco preme — e non è
       un bottone qualunque: è il PONTE con Genesi.** ⏱️ *Misurato il 09/08
       chiedendo a Campo la domanda che `CLAUDE.md` fa alle altre cinque app —
