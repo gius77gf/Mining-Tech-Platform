@@ -707,11 +707,23 @@ numero scritto dove non era stato misurato niente**.*
       (nessuno legge due pastiglie come due domande: vince la tranquilla) e un
       emoji dove l'elenco dice «icone disegnate».
       Prove **1844 → 1853**, copertura **688/688**.
-- [ ] **Le due code della verifica periodica**: la prova della modale vive in
-      scratchpad (21 prove, 21 passate) e va portata in `tests/browser/` **e
-      registrata in `tutti.mjs`**, se no alla sessione dopo non esiste; e il
-      contrasto di Scudo è misurato **solo nel tema buio** (612 testi, 0 sotto
-      soglia) — chiaro e sole vanno rimisurati.
+- [x] ✅ **Le due code della verifica periodica — chiuse tutt'e due, e la riga
+      era rimasta aperta per giorni sopra un lavoro già fatto** (verificato
+      l'09/08 col comando, non a memoria). ① La prova della modale non vive più
+      in scratchpad: è `tests/browser/scudo-verifica-periodica.mjs` (17
+      asserzioni), portata dentro da `f81d127` — il cui messaggio dice proprio
+      «riscritta perché la prima era rimasta nello scratchpad» — ed è
+      **registrata** in `tutti.mjs` alle righe 375-376, con la sua controprova.
+      ② Il contrasto non è più «un tema su tre»: `contrasto.mjs` è registrato
+      con `--tema=chiaro` e `--tema=sole` (righe 90-91) più quattro controprove,
+      e le sei palette chiare sono state chiuse una per una (`73d1ae3` per
+      Scudo).
+      ⏱️ **Quinta riga in due giorni che proponeva un lavoro già chiuso.** Le
+      altre quattro: la geometria dei gradienti in `CLAUDE.md`, la scala
+      `--nav-scala`, il commento di `stampe-fs` su Campo, e la mia riga su Scudo
+      di stanotte. La cura è la direttiva 7 — **chi chiude un'unità aggiorna la
+      riga che gliel'aveva proposta** — e qui non è stata applicata perché il
+      lavoro è arrivato da un cantiere che quella riga non l'aveva letta.
 - [ ] **C2. Ricerca a rotazione**, una app per giro, col vincolo che ha fatto la
       differenza: **incollare il comando e la sua uscita** per ogni «non c'è».
       Misurato su tre tornate: chi va a cercare **il meccanismo** nel modulo
@@ -1262,8 +1274,29 @@ numero scritto dove non era stato misurato niente**.*
   **dentro** in tutt'e due, nessun elemento che sporge. ⚠️ Con due limiti
   dichiarati: l'elenco dei bottoni è stato filtrato sul testo («stampa»,
   «foglio») e ne ha trovato **uno solo**, e la resa è senza `@media print`.
-  Resta da fare: la stessa misura su Scudo, e portarla **dentro i due banchi**
-  invece di lasciarla in una misura a mano che alla sessione dopo non esiste.
+  ✅ **Scudo misurata l'09/08, ed è dentro il banco** (`scudo-documenti.mjs`):
+  i due fogli stampabili — il verbale DPI e la cartella del lavoratore — hanno
+  adesso la loro prova di larghezza, con l'iniezione che la fa cadere
+  (27/27 difetti rimessi, controprova OK). Esito: **tutt'e due ci stanno**.
+  ⛔ **E LA PRIMA STESURA ACCUSAVA UN FOGLIO SANO** — il righello, non il
+  soggetto, per l'ennesima volta. Copiando la domanda di `stampe-fs` chiedevo
+  `scrollWidth <= window.innerWidth` a **430, 390 e 320 px**, e il verbale
+  cadeva a tutt'e tre con 626 px. Ma un foglio che vive dentro `@media print`
+  **non si stampa sul telefono, si stampa sulla carta**, e la carta la pagina
+  la dichiara: `@page{size:A4; margin:16mm 14mm}` → 210 − 28 = 182 mm =
+  **688 px CSS**. I 626 px della tabella a otto colonne ci stanno con 62 px di
+  margine. La correzione «ovvia» sarebbe stata **togliere una colonna al
+  verbale che in ispezione viene chiesto per primo**: un righello che sbaglia
+  manda a rovinare cose sane. Adesso la larghezza si **legge dalla regola
+  `@page`** invece di essere scritta a mano, e se la regola non c'è il banco lo
+  dichiara e ripiega su A4 invece di far finta di saperlo.
+  ⚠️ Resta aperto, e non l'ho toccato da qui: **`stampe-fs.mjs` misura contro
+  la finestra**. Per i suoi soggetti — fogli che vivono in un popup — la
+  finestra fa da foglio e la domanda regge, ma è **un'altra domanda** da
+  questa; chiamarle con lo stesso nome è il modo in cui qualcuno un giorno
+  copierà quella sbagliata. Da guardare quando si riapre quel banco.
+  Restano fuori: **Genesi** (misurata a mano il 07/08 e sana, ma la misura non
+  è ancora dentro `genesi-foglio-in-cava.mjs`).
 - [ ] **`fuori-schermo` chiede la domanda A a 390 e 360, la B anche a 320** —
   l'asimmetria si legge nel file, riga per riga: `LARGHEZZE = [390, 360]` per
   «la pagina esce dallo schermo?» e `LARGHEZZE_RIQUADRO = [390, 360, 320]` per
@@ -1291,7 +1324,7 @@ numero scritto dove non era stato misurato niente**.*
   batte per specificità ogni gradino del foglio condiviso. Scala outdoor
   calcolata sul caso peggiore di ogni intervallo e rimisurata a **undici**
   larghezze: 0 tagliate.
-- [ ] **Un file che esce con un nome FISSO si sovrascrive, e oggi e' costato
+- [x] ✅ **Un file che esce con un nome FISSO si sovrascrive, e oggi e' costato
   quattro volte.** Censiti i nomi degli export sulle nove superfici (07/08):
   **45 fissi contro 14 costruiti**. ⛔ Ma una regola lessicale «ogni export deve
   avere un nome che distingue due salvataggi» sparerebbe **45 allarmi**, e la
@@ -1307,9 +1340,21 @@ numero scritto dove non era stato misurato niente**.*
   periodo aperto, due moduli vuoti di formato diverso, due turni della stessa
   cava nello stesso giorno, e le due uscite 3D (queste ultime **non corrette**,
   perche' irraggiungibili nella dimostrazione).
-  **I candidati rimasti, da aprire e misurare**: `genesi-demo.volata.json` e
-  `genesi_signature_composito.csv` — il primo e' *una* volata, il secondo *una*
-  onda importata, e tutt'e due escono con un nome fisso.
+  ✅ **I due candidati sono CHIUSI, e lo erano già** (verificato il 09/08
+  leggendo le due righe, non a memoria):
+  · `apps/genesi/genesi.html:2709` →
+    `'Volata_' + (out.volata.numero || 1) + '_' + out.volata.data + '.volata.json'`
+    — due volate diverse escono con nomi diversi;
+  · `apps/genesi/genesi.html:3455` → `'genesi_composito_' + _pezzo + '.csv'`,
+    dove `_pezzo` è **nome dell'onda + numero di fori + ritardo**, col commento
+    che lo dice: *«due confronti diversi non si sovrascrivono più»*.
+  ⚠️ **Quinta riga in una notte che proponeva un lavoro già fatto** (le altre:
+  la geometria dei gradienti, la scala `--nav-scala`, «Campo è il lavoro dopo»,
+  e «Scudo resta da aprire» — quest'ultima scritta da me poche ore prima).
+  Cinque in un giorno non è distrazione: è il **costo strutturale** di lavorare
+  a cantieri paralleli, dove chi chiude non è chi aveva scritto la riga. La
+  direttiva 7 è la sola cura, e va applicata **nello stesso commit** che chiude
+  il lavoro, non «poi».
 - [ ] **Il banco della barra guarda un tema su tre** — è il buco che ha lasciato
   passare il difetto del sole di Sentinella per giorni. Aggiungergli `--tema=`
   chiude la classe intera, e lo strumento è già scritto.
@@ -2478,7 +2523,19 @@ cosa più tranquilla di quella che lo schermo mostra.
       cieca) oppure posto vuoto (prodotto muto) — e contarle insieme fa passare
       la prima per la seconda. Separate (`postiDaFrase` in `giro.mjs`, che riusa
       il selettore invece di riscriverlo): **7 muti, 0 senza posto**.
-- [ ] **Scudo (5)** — resta da aprire.
+- [x] ✅ **Scudo: 5 punti d'uscita su 5.** ⚠️ E questa riga è rimasta scritta
+      «resta da aprire» **per ore dopo che il lavoro era chiuso**, in una
+      giornata in cui ho corretto la stessa forma tre volte altrove (la
+      geometria dei gradienti in `CLAUDE.md`, la scala `--nav-scala`, «Campo è
+      il lavoro dopo» in `stampe-fs`). La quarta l'ho scritta **io**, poche ore
+      prima, ed è la dimostrazione che la direttiva 7 — *chi chiude un'unità
+      aggiorna la riga che gliel'aveva proposta* — non è un adempimento: è la
+      sola cosa che impedisce a un cantiere già fatto di rinascere.
+      Nel merito: quattro dei cinque erano **già aperti** da `scudo-documenti`
+      (l'avevo dedotto assente grepando **un solo** nome, `__usciti`, mentre il
+      gancio si chiama `__scaricati`), e il quinto —
+      `scudo_azioni_copia.csv` — è entrato lì dentro con quattro prove e la sua
+      iniezione.
 - [x] ✅ **Domanda chiusa (09/08): una voce di costo senza importo spariva in
       silenzio — adesso lo dichiara.** `riepilogoCosti` la scartava alla
       **prima riga**, e da lì in poi non esisteva per nessuno: né nel totale,

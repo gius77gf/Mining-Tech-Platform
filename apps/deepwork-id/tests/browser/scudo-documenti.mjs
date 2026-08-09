@@ -300,6 +300,22 @@ const DIFETTI = [
         va fuori. */
   ['      for (const l of rp.luoghiCiechi)\n        csv += `potenziale;${csvCell(l.etichetta)} — nessun episodio valutato: non si sa come poteva finire;${l.eventi}\\n`; }',
    "       }"],
+  /* 26. IL FOGLIO PIÙ LARGO DELLA CARTA. Sullo schermo non si vede niente — il
+        foglio a schermo non esiste — e dalla stampante esce una tabella
+        tagliata sul bordo destro. È la famiglia che il 07/08 è uscita dal
+        prospetto di Terra.
+        ⛔ E LA PRIMA STESURA ERA ANCORATA SU `scriviFoglio`, CIOÈ SULLA RIGA
+        CHE L'INIEZIONE 20 RISCRIVE GIÀ. Due iniezioni sullo stesso pezzo non
+        litigano e non avvisano: la prima sostituisce, la seconda non trova più
+        il suo testo e **passa in silenzio** — «0 soggetti». È la terza delle
+        cinque cause (l'iniezione che non inietta) prodotta non dal codice che
+        si muove, ma da un'altra iniezione. L'ha presa il contatore del banco
+        («26/27 difetti rimessi»), che esiste esattamente per questo: un
+        `replace` che non trova niente esce con un'aria tranquilla.
+        Ancorata sulla REGOLA DI STAMPA di `#verbale`: è una riga che nessun
+        altro difetto tocca, e vale per **tutt'e due** i fogli. */
+  ['body.stampa-verbale #verbale{display:block !important; font-family:\'Barlow\',sans-serif; color:#14121c}',
+   'body.stampa-verbale #verbale{display:block !important; min-width:900px; font-family:\'Barlow\',sans-serif; color:#14121c}'],
 ];
 
 /* ⛔ LA SECONDA DOMANDA: E SU UN FOGLIO VERO LA DICHIARAZIONE NON C'È?
@@ -519,6 +535,108 @@ const leggiFoglioStampato = async () => {
   await pg.emulateMedia({ media: "screen" });
   await pg.waitForTimeout(120);
   return r;
+};
+
+/* ⛔ E IL FOGLIO CI DEVE STARE NELLA LARGHEZZA DEL FOGLIO. Questa domanda qui
+   dentro non c'era, ed è la stessa che il 07/08 ha trovato il prospetto di
+   Terra a **435 px dentro 390**: `stampe-fs.mjs` la fa su quattro superfici
+   (Flotta, Sentinella, Conti, Terra), `campo-foglio-turno` su Campo, e i due
+   fogli di Scudo restavano **senza nessuna misura di larghezza** — il difetto
+   sarebbe uscito dalla stampante, non dallo schermo, cioè nel posto dove
+   nessuno lo rivede prima di darlo a un ispettore.
+   ⚠️ TRE COSE IMPARATE ALTROVE E APPLICATE QUI, invece di riscoprirle:
+   1. **il soggetto può non essere un elemento.** Il traboccamento del core a
+      320 px non aveva nessun elemento sporgente: era un nodo di testo — una
+      parola sola inspezzabile dentro una scatola anonima, che
+      `querySelectorAll('*')` non vede. Quindi il colpevole si cerca anche coi
+      **nodi di testo** e un `Range`;
+   2. **si misura in `@media print`**, dove il foglio è l'unica cosa che resta:
+      misurarlo a schermo vorrebbe dire misurare la pagina, non il documento;
+   3. **il denominatore si dichiara**: quante larghezze, e quale foglio. Un
+      «0 sporgenti» senza sapere su che cosa è la riga che rassicura e basta.
+
+   ⛔ E LA PRIMA STESURA DI QUESTA MISURA ACCUSAVA UN FOGLIO SANO, con lo
+   stesso segno di sempre — il righello, non il soggetto. Chiedeva
+   `scrollWidth <= window.innerWidth` a **430, 390 e 320 px**, cioè le
+   larghezze di un TELEFONO, e faceva cadere il verbale DPI a tutt'e tre con
+   626 px. Ma un foglio che vive dentro `@media print` **non si stampa sul
+   telefono: si stampa sulla carta**, e la carta questa pagina la dichiara —
+   `@page{size:A4; margin:16mm 14mm}`, cioè 210 − 28 = **182 mm** di contenuto,
+   che a 96 dpi fanno **687,9 px CSS**. I 626 px della tabella a otto colonne
+   ci stanno dentro con 62 px di margine: l'accusa era del metro, non del
+   documento — e la correzione «ovvia» sarebbe stata togliere una colonna a un
+   verbale che in ispezione viene chiesto per primo.
+   La larghezza NON si scrive a mano qui: si **legge dalla regola `@page`**
+   della pagina, così un domani che il foglio diventasse A5 o cambiasse
+   margine la misura si sposta da sola. Se la regola non si trova, il banco lo
+   **dichiara** e ripiega su A4 invece di far finta di saperlo.
+   ⚠️ Resta scritto anche il limite dell'altro banco, che non tocco da qui:
+   `stampe-fs.mjs` misura i suoi fogli contro la **finestra** (390 px). Per i
+   suoi soggetti — che vivono in un popup — la finestra È il foglio, quindi la
+   domanda regge; ma è un'altra domanda da questa, e chiamarle con lo stesso
+   nome è il modo in cui un giorno qualcuno copierà quella qui. */
+const CARTA_RIPIEGO = 210, MARGINE_RIPIEGO = 14; // A4, in mm
+const misuraLarghezze = async () => {
+  const esiti = [];
+  await pg.emulateMedia({ media: "print" });
+  /* la carta, chiesta alla pagina invece che indovinata */
+  const carta = await pg.evaluate(() => {
+    for (const ss of document.styleSheets) {
+      let regole; try { regole = ss.cssRules; } catch { continue; }
+      for (const r of regole || []) {
+        if (r.constructor.name !== "CSSMediaRule" || r.conditionText !== "print") continue;
+        for (const q of r.cssRules) if (q.constructor.name === "CSSPageRule") return q.style.cssText;
+      }
+    }
+    return null;
+  });
+  const FORMATI = { a4: 210, a5: 148, letter: 215.9 };
+  const mmFormato = (t) => FORMATI[((t || "").match(/\b(a4|a5|letter)\b/i) || [])[1]?.toLowerCase()] ?? null;
+  const mmMargine = (t) => { const m = (t || "").match(/margin:\s*([\d.]+)mm(?:\s+([\d.]+)mm)?/i); return m ? +(m[2] ?? m[1]) : null; };
+  const largaMm = mmFormato(carta) ?? CARTA_RIPIEGO;
+  const bordoMm = mmMargine(carta) ?? MARGINE_RIPIEGO;
+  const LARGHEZZE_FOGLIO = [Math.round((largaMm - 2 * bordoMm) * 96 / 25.4)];
+  console.log(`     carta: ${carta ? `«${carta.trim()}» letta dalla pagina` : "⚠️ regola @page NON trovata, ripiego su A4"}`
+    + ` → ${largaMm} mm − 2×${bordoMm} mm = ${LARGHEZZE_FOGLIO[0]} px CSS di contenuto`);
+  for (const w of LARGHEZZE_FOGLIO) {
+    await pg.setViewportSize({ width: w, height: 950 });
+    await pg.waitForTimeout(200);
+    esiti.push(await pg.evaluate((larg) => {
+      const v = document.getElementById("verbale");
+      const doc = document.documentElement.scrollWidth, win = window.innerWidth;
+      const dentro = (x) => x <= win + 1;
+      /* gli ELEMENTI che sporgono dalla larghezza del foglio */
+      const sporgenti = [...v.querySelectorAll("*")]
+        .map((el) => ({ tag: el.tagName, sw: el.scrollWidth, r: Math.round(el.getBoundingClientRect().right) }))
+        .filter((e) => !dentro(e.r) || !dentro(e.sw))
+        .slice(0, 4);
+      /* i NODI DI TESTO: la scatola anonima che nessun selettore restituisce */
+      const tw = document.createTreeWalker(v, NodeFilter.SHOW_TEXT);
+      let peggio = null, n;
+      const rg = document.createRange();
+      while ((n = tw.nextNode())) {
+        if (!n.nodeValue.trim()) continue;
+        rg.selectNodeContents(n);
+        const b = rg.getBoundingClientRect();
+        if (!peggio || b.right > peggio.destra) peggio = { destra: Math.round(b.right), testo: n.nodeValue.trim().slice(0, 60) };
+      }
+      return { larghezza: larg, doc, win, sporgenti, testoPiuADestra: peggio };
+    }, w));
+  }
+  await pg.setViewportSize({ width: 430, height: 950 });
+  await pg.emulateMedia({ media: "screen" });
+  await pg.waitForTimeout(150);
+  return esiti;
+};
+/* Le tre prove per foglio si scrivono una volta sola, come le quattro
+   dell'avviso: un banco che misura un foglio e chiama coperti tutti e due è il
+   controllo che non guarda dove crede. */
+const proveLarghezza = (esiti, chi) => {
+  for (const e of esiti) {
+    dice(e.doc <= e.win + 1 && e.sporgenti.length === 0
+         && (!e.testoPiuADestra || e.testoPiuADestra.destra <= e.win + 1),
+      `⛔ ${chi}: ci sta nella larghezza della CARTA (${e.larghezza} px CSS di contenuto stampabile)`, e);
+  }
 };
 /* Le quattro domande valgono per TUTT'E DUE i fogli e si scrivono una volta
    sola: un banco che ne legge uno e chiama coperti tutti e due è il controllo
@@ -750,6 +868,7 @@ if (!inf.errore) {
     { bannerVisibile: fv.bannerVisibile, modeNoteVisibile: fv.modeNoteVisibile });
   dice(/Verbale di consegna dei DPI/i.test(fv.stampato), "il foglio letto in stampa è davvero il verbale", fv.stampato.slice(0, 90));
   proveAvviso(fv, "verbale DPI", /non va fatto firmare/i);
+  proveLarghezza(await misuraLarghezze(), "verbale DPI");
 }
 
 // ── 6 · LA CARTELLA DEL LAVORATORE, IL FASCICOLO CHE SI ESIBISCE ──────────
@@ -833,6 +952,7 @@ if (!inf.errore) {
     if (DIMMI) console.log("\n[cartella in stampa]\n" + JSON.stringify(fc, null, 1) + "\n");
     dice(/Cartella del lavoratore/i.test(fc.stampato), "il foglio letto in stampa è davvero la cartella", fc.stampato.slice(0, 90));
     proveAvviso(fc, "cartella del lavoratore", /non va esibita a un ispettore/i);
+    proveLarghezza(await misuraLarghezze(), "cartella del lavoratore");
   }
 
   /* ⛔ IL CASO DI CONTROLLO, senza il quale «l'avviso c'è» non dimostra niente:
