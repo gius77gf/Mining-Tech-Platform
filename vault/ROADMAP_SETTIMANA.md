@@ -993,6 +993,23 @@ numero scritto dove non era stato misurato niente**.*
   ⚠️ Due KO su due, in questa famiglia, erano **attese del banco** e non
   difetti del prodotto. Vale la pena dirlo: il conto «17 veri» di stanotte è
   una stima **per eccesso**, e ogni riverifica lo sta abbassando.
+  ⛔ **MA I 4 DI GENESI SONO PRODOTTO, e si vede solo leggendo il RESO** — la
+  stessa lettura che avrebbe risparmiato le due diagnosi sbagliate qui sopra.
+  Il banco chiede `41.230`, `88.000 punti caricati`, `120.000 punti caricati`;
+  la pagina rende:
+  · `41230 punti nel ritaglio · volume ≈ 1.234 m³`
+  · `250000 punti disegnati su 3.000.000 caricati`
+  · `88000 punti caricati` · `120000 punti caricati`
+  Cioè **i numeri non sono formattati all'italiana**: `41230` invece di
+  `41.230`. E si vede che la formattazione **c'è altrove nella stessa riga**
+  («1.234 m³», «3.000.000 caricati»), quindi non è una scelta: è un punto
+  saltato.
+  ⚠️ Non è la sottigliezza del raggruppamento a quattro cifre fra Node e
+  Chromium (`min2`, `docs/MIGLIAIA_NODE_CONTRO_CHROMIUM.md`): questi sono
+  numeri a cinque, sei e sette cifre resi **nel browser** e non raggruppati
+  affatto.
+  ⛔ **Prossimo passo**: trovare dove si compongono quelle quattro frasi e
+  passarle dal formattatore che la riga usa già due parole più in là.
   ⛔ **APERTO IL PIÙ PICCOLO PER PRIMO — e ha risposto alla domanda di disegno,
   ma non come credevo: QUESTA FAMIGLIA NON SI CHIUDE ACCORCIANDO IL TESTO.**
   La tendina di Sentinella sfora di **6 px** a 390 (290 contro 284) e di 76 a
