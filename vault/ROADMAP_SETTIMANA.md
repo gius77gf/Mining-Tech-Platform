@@ -821,6 +821,39 @@ numero scritto dove non era stato misurato niente**.*
       di libreria) non si distinguono senza sapere i **tipi**, e un righello «un
       po' meno sbagliato» è peggio di uno che dichiara il suo dubbio — regola
       già pagata su `contrasto.mjs`.
+- [ ] **B3-bis. Il bottone d'uscita di Campo che nessun banco preme — e non è
+      un bottone qualunque: è il PONTE con Genesi.** ⏱️ *Misurato il 09/08
+      chiedendo a Campo la domanda che `CLAUDE.md` fa alle altre cinque app —
+      «dove questa app compone qualcosa che ESCE, chi decide i suoi numeri?».*
+      ✅ **La parte statica è pulita, e va detto che è la parte DEBOLE**: tutti e
+      cinque i punti d'uscita di Campo compongono il file **nel modulo**
+      (`csvAttivita`, `csvSquadre`, `csvAppello`, `csvStorico`,
+      `pianoConsuntivoCsv`), ognuno con il commento che racconta la volta in cui
+      non era così. Ma il censimento statico su quelle cinque app dava **zero**,
+      e i ventiquattro difetti li ha trovati **chi ha premuto il bottone**.
+      ⛔ **E il bottone, qui, non lo preme nessuno.** Comando:
+      `grep -rl btn-piano-export apps/deepwork-id/tests/browser/` → **niente**,
+      mentre gli altri quattro (`btn-att-export`, `btn-squ-export`,
+      `btn-pre-export`, `btn-set-export`) escono tutti in
+      `campo-numeri-tranquilli.mjs`. Quattro su cinque premuti, il quinto no.
+      ⚠️ **Perché proprio quello conta più degli altri**: il file che produce —
+      `campo_consuntivo_carico.csv` — è quello che il messaggio invita a
+      rileggere **in Genesi → Riconciliazione**. Cioè Campo lo scrive e
+      **un'altra app lo legge**: è una coppia scrivi/leggi che attraversa il
+      confine fra due app, e su quelle `CLAUDE.md` avverte che *«una prova di
+      andata e ritorno resta verde se le due metà sbagliano insieme»*.
+      ⚠️ La funzione **è provata** al banco `node` (`pianoConsuntivoCsv` compare
+      cinque volte in `run-kpi.mjs`, e Campo è a 123/123): quello che non è
+      provato è il **gestore del bottone**. È esattamente la forma con cui il
+      difetto di Terra è vissuto in produzione per giorni — «Scarica rilievi»
+      chiamava un nome che nella pagina non esisteva, **il file usciva** e il
+      gestore moriva subito dopo, senza un messaggio.
+      **Da fare**: aggiungere la quinta pressione a `campo-numeri-tranquilli.mjs`
+      (dove stanno già le altre quattro), con la fixture di un piano importato,
+      e pretendere che un foro **senza carica reale** non esca come uno zero.
+      ⚠️ Non fatto in questa unità e dichiarato: serve la fixture del piano, ed
+      è un'unità sua — non un'aggiunta di tre righe.
+
 - [ ] **B4. Le mancanze confermate del delta**, in ordine di quanto le chiede un
       ispettore. ⏱️ **Ricontate il 07/08 leggendo i documenti**, non a memoria —
       il conto qui scritto era del 02/08 e si era mosso parecchio:
