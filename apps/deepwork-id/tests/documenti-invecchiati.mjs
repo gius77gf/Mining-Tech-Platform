@@ -269,13 +269,18 @@ if (dietro.length) {
     if (n) per.push(`${app} ${v}/${n}`);
     tot += n; vecchie += v;
   }
-  if (tot) {
-    console.log(`\n⏱️  citazioni «file:riga» che non trovano più il loro nome: ${vecchie} su ${tot}`
-      + `  (${per.join(" · ")})`);
-    console.log("   Non è un guasto e non fa fallire niente: i NOMI sono giusti, è il NUMERO DI RIGA");
-    console.log("   che invecchia a ogni commit. La decisione presa con questo numero è che una prova");
-    console.log("   citi il nome e non la riga; ogni riga che si tocca perde i suoi numeri.");
-  }
+  /* ⛔ SI STAMPA ANCHE A ZERO, e non è pignoleria: un controllo che tace quando
+     non trova soggetti è indistinguibile da un controllo rotto. Il 09/08 il
+     conto è passato da **87 su 91** a **0 su 0** in un'unità — tolti i numeri
+     di riga da tutti e sei i documenti — e senza questa riga la differenza fra
+     «la convenzione è cambiata» e «il righello non guarda più niente» non si
+     vedrebbe. Se domani qualcuno riscrive una prova col numero di riga, il
+     denominatore risale e si vede. */
+  console.log(`\n⏱️  citazioni «file:riga» che non trovano più il loro nome: ${vecchie} su ${tot}`
+    + (per.length ? `  (${per.join(" · ")})` : "  — nessuna citazione con la riga: la convenzione è il NOME"));
+  console.log("   Non è un guasto e non fa fallire niente: i NOMI sono giusti, era il NUMERO DI RIGA");
+  console.log("   che invecchiava a ogni commit — 87 su 91 erano scadute il 09/08, prima di toglierli.");
+  console.log("   Una prova cita il nome, che si verifica con un grep in tre secondi ed è stabile.");
 }
 
 console.log(`\nRisultato documenti invecchiati: ${passed} passati, ${failed} falliti` +
