@@ -871,6 +871,30 @@ numero scritto dove non era stato misurato niente**.*
       misurate**. Ogni KO lì dentro è vero **a quel commit**, non adesso — e
       questo ne è la dimostrazione, non un'ipotesi.
 
+- [ ] **B0-bis. TRE FAMIGLIE DI INIEZIONI CHE NESSUN CONTROLLO SORVEGLIA — e
+      una di loro è già rimasta rotta per giorni.** `iniezioni-fresche.mjs`
+      esiste per prendere l'iniezione **scaduta**: quella che cita il codice
+      testualmente, non lo trova più perché il codice è migliorato, e allora la
+      controprova gira su un prodotto **sano** dichiarando «non distingue». Il
+      09/08 ha 309 iniezioni su 309 a bersaglio.
+      ⛔ **Ma le famiglie A, B e C di `modali-dentro.mjs` non ci sono dentro**:
+      le loro iniezioni si chiamano `inietta(rel, da, a, cosa)`, e non sono né
+      una tabella del vocabolario né una `.replace("…")` — cioè nessuna delle due
+      forme che il censimento sa leggere. La famiglia **D**, nata il 09/08, ci
+      entra perché è stata scritta come **mappa** `rotta → {da, a}`.
+      ⚠️ **Non è teoria**: la storia di quel file racconta che **l'iniezione A è
+      rimasta rotta per giorni**, ed è esattamente il caso per cui il controllo
+      è stato costruito. È dichiarato nel commento del banco, non taciuto — ma
+      «un'eccezione dichiarata onestamente resta un posto in cui nessuno
+      guarda», e questa casa l'ha già pagata due volte (le sei iniezioni scadute
+      di `scudo-documenti`, e il nome dentro la regex che teneva fuori una
+      tabella su quattro).
+      **Come si misura**: `node apps/deepwork-id/tests/iniezioni-fresche.mjs`
+      stampa il denominatore — quante tabelle in quanti banchi. Il giorno in cui
+      A, B e C entrano, quel numero sale e le tre spariscono da questa riga.
+      ⚠️ **Non fatto perché il file è di un cantiere in corso**, non perché sia
+      difficile: portare le tre alla forma a mappa è un'unità sua.
+
 - [ ] **B0. I CANTIERI DEL BROWSER E IL GIRO SI RUBANO LA MACCHINA — misurato
       il 09/08, e ridimensiona la direttiva 3 SOLO per i banchi.** Il giro del
       browser è partito alle **13:03:34Z** e ha fatto **145 passate in 119
