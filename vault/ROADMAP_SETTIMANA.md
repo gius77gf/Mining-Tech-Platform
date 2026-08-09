@@ -639,14 +639,18 @@ numero scritto dove non era stato misurato niente**.*
       **codice di norma sconosciuto** prende in silenzio la soglia residenziale
       (l'etichetta e il numero raccontano due cose diverse), e `sitoFit` scrive
       **`r2: 0`** dove r² non è calcolabile.
-- [ ] **B3. Genesi continua a uscire dalla pagina.** ⏱️ *Numeri rimisurati il
-      06/08, perché erano invecchiati di tre unità mentre nessuno se ne
-      accorgeva — «186 → 174» era il conto di due giorni prima.* Oggi, contati
-      lanciando `copertura-funzioni.mjs` e `genesi-estraibili.mjs` invece che a
-      memoria: **171** funzioni ancora dentro `genesi.html`, e le estraibili
-      **senza rifare il modo in cui Genesi tiene il suo stato** sono **87** —
-      59 leggono una o due variabili del modulo (si portano fuori
-      passandogliele), 6 scrivono nel DOM e restano dov'è giusto che restino.
+- [ ] **B3. Genesi continua a uscire dalla pagina.** ⏱️ *Numeri rimisurati
+      l'**09/08** lanciando `copertura-funzioni.mjs` e `genesi-estraibili.mjs`,
+      non a memoria — ed erano di nuovo invecchiati: la riga diceva **171**
+      funzioni nella pagina e sono **166**, e **87** estraibili quando sono
+      **82** (57 leggono una o due variabili del modulo e si portano fuori
+      passandogliele, 6 scrivono nel DOM con `$(...)` e restano dov'è giusto
+      che restino, 25 ne leggono più di dieci e lì è un rifacimento).*
+      ⚠️ È la **terza** rimisurazione di questa stessa riga in tre giorni
+      («186 → 174» il 04/08, **171** il 06/08, **166** oggi), e ogni volta il
+      numero era sceso senza che nessuno lo aggiornasse: un conto che si muove
+      da solo va **derivato da un comando**, non ricopiato — la riga adesso
+      dice **quale** comando.
       Le altre **84** non sono un trasloco: sono una decisione di architettura,
       e vanno chiamate così invece di finire in una stima ottimistica.
       È l'unico pezzo di prodotto che vive quasi tutto fuori dalla portata
@@ -1313,21 +1317,36 @@ numero scritto dove non era stato misurato niente**.*
   finestra fa da foglio e la domanda regge, ma è **un'altra domanda** da
   questa; chiamarle con lo stesso nome è il modo in cui qualcuno un giorno
   copierà quella sbagliata. Da guardare quando si riapre quel banco.
-  Restano fuori: **Genesi** (misurata a mano il 07/08 e sana, ma la misura non
-  è ancora dentro `genesi-foglio-in-cava.mjs`).
-- [ ] **`fuori-schermo` chiede la domanda A a 390 e 360, la B anche a 320** —
-  l'asimmetria si legge nel file, riga per riga: `LARGHEZZE = [390, 360]` per
-  «la pagina esce dallo schermo?» e `LARGHEZZE_RIQUADRO = [390, 360, 320]` per
-  «l'elemento esce dal suo riquadro?», col commento che dice — giustamente —
-  che 320 px «non è un caso limite ma lo schermo su cui vive» Campo.
-  ⛔ Il costo di quella riga è già stato pagato: il **traboccamento del corpo
-  del core a 320 px** (333 px in 320, l'indirizzo del CDN in una parola sola da
-  60 caratteri) è stato trovato **a mano**, non da questo banco — che a 320 la
-  domanda A non la fa. ⚠️ Prima di aggiungerla va **misurato quanti allarmi
-  nuovi porta** (la regola dell'ampiezza: si stringe su una copia e si contano),
-  e il tentativo di oggi non è riuscito perché il server statico di prova non
-  si è alzato — quindi il numero **non c'è ancora**, ed è dichiarato mancante
-  invece che inventato.
+  ✅ **E Genesi è entrata l'09/08: adesso la misura sta DENTRO il banco**, non
+  più in una prova a mano che alla sessione dopo non esiste.
+  `genesi-foglio-in-cava.mjs` leggeva il documento come **testo** e non ne
+  guardava mai le dimensioni; adesso il foglio viene **reso** in una pagina alla
+  larghezza della carta e misurato, nodi di testo compresi (la scatola anonima
+  che `querySelectorAll` non vede). Esito: **ci sta** — 718 px.
+  ⚠️ **Il denominatore è dichiarato, e qui è più debole che in Scudo**: il
+  documento di Genesi **non porta nessuna regola `@page`** — cercata, non c'è —
+  quindi la carta non si può leggere dal foglio, e si ripiega su A4 coi margini
+  del browser (190 mm = 718 px). Il ripiego lo **stampa il banco** a ogni
+  passata invece di nasconderlo: se un giorno Genesi dichiarasse la sua carta,
+  quella misura andrebbe letta da lì.
+  Con questo, **tutte e otto** le superfici che stampano hanno una misura di
+  larghezza dentro un banco.
+- [x] ✅ **`fuori-schermo` fa la domanda A anche a 320 px — e il numero che
+  mancava adesso c'è: ZERO allarmi nuovi.** Per settimane le due domande hanno
+  guardato larghezze diverse (A a 390 e 360, B anche a 320), e il costo era già
+  stato pagato: il **traboccamento del corpo del core a 320 px** — 333 px in
+  320, l'indirizzo del CDN in una parola sola da 60 caratteri — l'ha trovato
+  una misura **a mano**, non questo banco, che a 320 la domanda A non la
+  faceva. La riga precedente diceva «il numero non c'è ancora, ed è dichiarato
+  mancante invece che inventato» perché il server di prova non si era alzato.
+  Misurato l'09/08 con `--larghezze=320` su tutte e quattordici le superfici,
+  contro un server **mio** e verificato tale: **12 schermate pulite, 0 fuori
+  dallo schermo**, 4.393 elementi guardati; i 10 segnalati sono **tutti** della
+  domanda B e stanno già nell'arretrato dichiarato (2 del core — «Giuseppe F.»
+  nel `.logo-sm` e il «3» della campanella — e 8 di Sentinella).
+  ⛔ È la regola dell'ampiezza applicata nel verso giusto: **il costo della
+  stretta si misura, non si teme.** Il timore era ragionevole e la misura l'ha
+  smentito in una passata.
 - [x] ✅ **Sentinella a 320 px** (`69078fa`): la barra ci sta — 328 in 302 →
   **302 in 302**, con la soglia misurata (ci sta fino a 345, esce da 344).
   ⛔ E **la mia diagnosi era falsa**: «rimpicciolire il carattere fa salire il

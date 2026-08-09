@@ -90,6 +90,15 @@ const DIFETTI = [
    "      A.kpi.ppv<=B.kpi.ppv?'A':'B'],"],
   // 5b · e la riga che dichiara la base nel confronto
   ["    ['↳ base della previsione', _baseTx(A), _baseTx(B), null],\n", ""],
+  /* 6 · IL FOGLIO PIÙ LARGO DELLA CARTA. Sullo schermo non si vede niente — il
+     documento vive in un popup e nasce solo quando lo si stampa — e dalla
+     stampante esce tagliato sul bordo destro.
+     ⚠️ E l'iniezione dice anche quanto è STRETTO il margine vero: il foglio è
+     disegnato per **720 px** e su A4 coi margini del browser ce ne sono
+     **718**. Ci sta perché `max-width` è un tetto e non un pavimento — il
+     corpo si adatta — ma di headroom non ce n'è: basta un `min-width` al posto
+     suo perché esca. */
+  ["max-width:720px;margin:24px auto", "min-width:1000px;margin:24px auto"],
 ];
 
 const colpiti = new Set();
@@ -171,6 +180,53 @@ const foglio = (pg) => pg.evaluate(() => String(window.__doc || ""))
     .replace(/&#39;/g, "'").replace(/&[a-z]+;/g, " ").replace(/[ \t]+/g, " "));
 const rigaFoglio = (t, re) => (t.split("\n").find((r) => re.test(r)) || "").trim();
 
+/* ⛔ E IL FOGLIO CI DEVE STARE NELLA CARTA. Fino all'09/08 questo banco leggeva
+   il documento come TESTO e non ne guardava mai le dimensioni: un difetto di
+   larghezza qui non esce dallo schermo, esce dalla stampante — cioè nel posto
+   dove nessuno lo rivede prima di portarlo in cava. Era l'ultima superficie che
+   stampa senza questa misura (le altre: `stampe-fs` per quattro,
+   `campo-foglio-turno` per Campo, `scudo-documenti` per i due fogli di Scudo).
+   ⚠️ IL DENOMINATORE È DICHIARATO, e qui è più debole che altrove: il
+   documento di Genesi **non porta nessuna regola `@page`** — l'ho cercata e non
+   c'è — quindi la carta non si può leggere dal foglio come si fa in Scudo, e si
+   ripiega su A4 con i margini che il browser mette di suo (210 mm − 2×10 mm =
+   190 mm = 718 px CSS). Il ripiego è scritto invece che nascosto: se un giorno
+   Genesi dichiarasse la sua carta, questa misura andrebbe letta da lì.
+   ⚠️ E il soggetto può non essere un elemento: il traboccamento del core a
+   320 px era un NODO DI TESTO in una scatola anonima, che `querySelectorAll`
+   non vede. Si cammina anche coi nodi di testo, con un `Range`. */
+const CARTA_PX = Math.round((210 - 2 * 10) * 96 / 25.4);
+async function larghezzaFoglio(b, pg, chi) {
+  const html = await pg.evaluate(() => String(window.__doc || ""));
+  if (!html) return dice(false, `⛔ ${chi}: c'è un documento da misurare`, "(vuoto)");
+  const senzaPage = !/@page\b/.test(html);
+  const p2 = await b.newPage({ viewport: { width: CARTA_PX, height: 1200 } });
+  await p2.setContent(html, { waitUntil: "load" });
+  await p2.waitForTimeout(250);
+  const m = await p2.evaluate(() => {
+    const doc = document.documentElement.scrollWidth, win = window.innerWidth;
+    const sporgenti = [...document.body.querySelectorAll("*")]
+      .map((el) => ({ tag: el.tagName, sw: el.scrollWidth, r: Math.round(el.getBoundingClientRect().right) }))
+      .filter((e) => e.r > win + 1 || e.sw > win + 1).slice(0, 4);
+    const tw = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
+    const rg = document.createRange();
+    let peggio = null, n;
+    while ((n = tw.nextNode())) {
+      if (!n.nodeValue.trim()) continue;
+      rg.selectNodeContents(n);
+      const b2 = rg.getBoundingClientRect();
+      if (!peggio || b2.right > peggio.destra) peggio = { destra: Math.round(b2.right), testo: n.nodeValue.trim().slice(0, 50) };
+    }
+    return { doc, win, sporgenti, testoPiuADestra: peggio };
+  });
+  await p2.close();
+  console.log(`     carta: ${senzaPage ? "⚠️ il documento NON dichiara @page, ripiego su A4 coi margini del browser" : "@page dichiarata dal documento"}`
+    + ` → ${CARTA_PX} px CSS di contenuto`);
+  dice(m.doc <= m.win + 1 && m.sporgenti.length === 0
+       && (!m.testoPiuADestra || m.testoPiuADestra.destra <= m.win + 1),
+    `⛔ ${chi}: ci sta nella larghezza della carta (${CARTA_PX} px CSS)`, m);
+}
+
 const BASE = { B: 3, S: 3.5, diam: 102, prof: 10, kg: 58, stem: 2.2, sub: 0.9,
   esplosivo: "anfo-standard", innesco: "nonel", roccia: "calcare", frat: "media",
   bagnato: false, presplit: false, sequenza: "diagonale", perRow: 12, file: 1 };
@@ -226,6 +282,7 @@ console.log("\n· recettore a 60 m, DIN sensibile: sullo schermo è rosso e dice
   dice(/143 dB\(L\)/.test(rAir), "⛔ e l'airblast c'è: prima nel foglio non compariva affatto", rAir || "(riga assente)");
   dice(/oltre il limite USBM\/OSM di 133 dB\(L\)/.test(rAir), "   col suo verdetto, non il solo numero", rAir);
   if (SCATTI) await pg.screenshot({ path: join(CARTELLA_SCATTI, "supera-390.png"), fullPage: true });
+  await larghezzaFoglio(b, pg, "il foglio da portare in cava");
   dice(pg.__errori.length === 0, "la pagina non solleva errori", pg.__errori[0]);
   await pg.close();
 }

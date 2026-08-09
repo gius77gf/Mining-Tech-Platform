@@ -73,7 +73,22 @@ const SOLO = (process.argv.find((a) => a.startsWith('--solo=')) || '').slice(7);
 const CONTROPROVA = process.argv.includes('--controprova');
 const CHIESTE = (process.argv.find((a) => a.startsWith('--larghezze=')) || '').slice(12)
   .split(',').map((x) => +x).filter((x) => x > 0);
-const LARGHEZZE = CHIESTE.length ? CHIESTE : [390, 360];
+/* ⛔ 320 È ENTRATA ANCHE NELLA DOMANDA A L'09/08, E IL COSTO È STATO MISURATO
+   PRIMA — non temuto. Per settimane le due domande hanno guardato larghezze
+   diverse: A («la pagina esce dallo schermo?») a 390 e 360, B («l'elemento
+   esce dal suo riquadro?») anche a 320. L'asimmetria si leggeva nel file e il
+   suo prezzo è già stato pagato: il **traboccamento del corpo del core a
+   320 px** — 333 px in 320, l'indirizzo del CDN in una parola sola da 60
+   caratteri — l'ha trovato una misura **a mano**, non questo banco, che a 320
+   la domanda A non la faceva.
+   La regola di casa dice di stringere solo dopo aver **contato gli allarmi
+   nuovi su una copia**. Contati, con `--larghezze=320` su tutte e quattordici
+   le superfici: **12 schermate pulite, 0 fuori dallo schermo**, 4.393 elementi
+   guardati; i 10 segnalati sono tutti della domanda B e stanno già
+   nell'arretrato dichiarato (2 del core, 8 di Sentinella). Cioè il costo di
+   questa riga è **zero allarmi nuovi**, e in cambio la larghezza su cui vive
+   Campo smette di essere un punto cieco. */
+const LARGHEZZE = CHIESTE.length ? CHIESTE : [390, 360, 320];
 /* la domanda B si fa anche sul telefono più stretto: Campo si usa al fronte,
    coi guanti, e 320 px non è un caso limite ma lo schermo su cui vive */
 const LARGHEZZE_RIQUADRO = CHIESTE.length ? CHIESTE : [390, 360, 320];
