@@ -19,7 +19,7 @@
 // ============================================================
 
 import { spawnSync } from "node:child_process";
-import { readFileSync } from "node:fs";
+import { readFileSync, readdirSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 
@@ -221,6 +221,55 @@ for (const [rel, regola] of BROWSER) {
     ok(m, "non trovo la frase col numero delle esecuzioni nel browser");
     ok(+m[1] === banchi, `il documento dice ${m[1]}, tutti.mjs ne elenca ${banchi}`);
   });
+}
+
+/* ── le mancanze confermate del delta, contate dai documenti stessi ────
+   ⛔ NASCE DA UN NUMERO SBAGLIATO PER DUE GIORNI, e il segno era in bella
+   vista: la roadmap scriveva «campo 11 · sentinella 13 · conti 8 · flotta 5 ·
+   terra 4 · scudo 0 | totale **42**», e quella somma fa **41**. L'errore
+   l'aveva prodotto proprio la correzione che diceva di aver reso il conto più
+   preciso — allargare il vocabolario al plurale («CONFERMATE ASSENTI») ha
+   fatto entrare la **riga d'intestazione** della sezione di Scudo, che PARLA
+   del verdetto invece di darlo.
+   ⛔ La lezione, che è la ragione per cui questo controllo esiste adesso: **un
+   vocabolario più largo prende anche le righe che parlano del verdetto**, e il
+   filtro che le separa non è la parola — è **dove sta**. Una cella di verdetto
+   ha altre celle accanto con dentro qualcosa; un'intestazione di sezione ha le
+   altre due vuote.
+   ⚠️ E il numero resta **derivato dai documenti**: qui non c'è una soglia
+   scritta a mano che invecchia, c'è il confronto fra quello che la roadmap
+   dichiara e quello che i sei documenti contengono. Se una mancanza si chiude
+   e qualcuno aggiorna il documento senza aggiornare la roadmap, questo cade —
+   che è esattamente il mestiere della regola «chi chiude un'unità aggiorna la
+   riga che gliel'aveva proposta». */
+{
+  const VERDETTO = /^\s*\|(.*?)\|(.*?)\|(.*?)\|/;
+  let assenti = 0;
+  const perApp = [];
+  for (const f of readdirSync(join(RADICE, "docs")).filter((n) => /^CONCORRENTI_.*\.md$/.test(n)).sort()) {
+    let n = 0;
+    for (const riga of readFileSync(join(RADICE, "docs", f), "utf8").split("\n")) {
+      const m = VERDETTO.exec(riga);
+      if (!m) continue;
+      if (!/\*\*CONFERMAT[AOEI] ASSENT[EI]\*\*/i.test(m[2])) continue;
+      /* ⛔ la seconda domanda: è una CELLA di verdetto o un'INTESTAZIONE?
+         Un verdetto ha la sua prova nella terza colonna; l'intestazione di
+         sezione ha le altre due vuote. */
+      if (!m[3].trim()) continue;
+      n++;
+    }
+    perApp.push(`${f.replace(/^CONCORRENTI_|\.md$/g, "").toLowerCase()} ${n}`);
+    assenti += n;
+  }
+  const road = readFileSync(join(RADICE, "vault", "ROADMAP_SETTIMANA.md"), "utf8");
+  const m = /\| totale \*\*(\d+)\*\* \(era 54/.exec(road);
+  test("ROADMAP: le mancanze confermate del delta sono quelle che i sei documenti contengono", () => {
+    ok(m, "non trovo la riga col totale delle mancanze confermate nella roadmap");
+    ok(assenti > 0, "non sono riuscito a contare nessun verdetto: il righello è rotto");
+    ok(+m[1] === assenti,
+      `la roadmap dice ${m[1]}, i documenti ne contengono ${assenti} (${perApp.join(" · ")})`);
+  });
+  console.log(`      mancanze confermate contate nei documenti: ${assenti} — ${perApp.join(" · ")}`);
 }
 
 /* ── le misure su cui poggia il piano di migrazione di Genesi ──────────

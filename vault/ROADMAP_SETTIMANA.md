@@ -802,6 +802,16 @@ numero scritto dove non era stato misurato niente**.*
       righe che PARLANO del verdetto invece di darlo.** Il filtro che le separa
       non è la parola, è **dove sta**: una cella di tabella con altre due celle
       accanto, non una riga che apre una sezione.
+      ✅ **E DA OGGI QUEL NUMERO È SORVEGLIATO**, invece di essere ricontato a
+      mano ogni due giorni: `numeri-nei-documenti.mjs` conta i verdetti **dai
+      sei documenti** e li confronta con quello che questa riga dichiara. Niente
+      soglia scritta a mano — un numero **derivato**, che cade se una mancanza
+      si chiude e qualcuno aggiorna il documento senza aggiornare la roadmap.
+      Cioè fa scattare esattamente la regola «chi chiude un'unità aggiorna la
+      riga che gliel'aveva proposta».
+      ⚠️ Controprova fatta (copia + ripristino + `diff -q`): rimettendo «42» il
+      controllo cade e **stampa la scomposizione per app**, così chi legge sa
+      subito dove guardare.
       ⚠️ **E lo zero di Scudo va detto meglio di come l'avevo detto**: non «le
       scrive con altre parole» — la sua tabella è organizzata **per funzione**
       (`Redazione automatica DVR`, `Organigramma dinamico…`) invece che per
