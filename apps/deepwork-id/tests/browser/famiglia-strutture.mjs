@@ -31,6 +31,19 @@
    `.top` e una `.sec`, e quelle che non le hanno vengono **elencate come non
    misurate**, non contate a posto. «Non misurato» non è «a posto» — è la riga
    che in questo repository è stata ignorata per mesi in fondo a un riepilogo.
+
+   ⛔ E L'ETICHETTA DI QUESTO BANCO NON DEVE ESSERE PIÙ LARGA DEL SUO NUMERO.
+   Risponde a **«le sei verticali sono ancora d'accordo FRA LORO?»**, non a «le
+   sei copiano il core»: sono due promesse diverse, e la seconda questo banco
+   non la può fare. Misurato l'09/08 aprendo il core: **non ha nessuna `.top` e
+   nessuna `.sec`** — la sua barra alta si chiama in un altro modo e il titolo
+   di sezione è `.sec-title` (53 volte nella pagina). Cioè le sei condividono un
+   **vocabolario di classi che il core non usa**, e prenderlo come riferimento
+   qui vorrebbe dire misurare `null`.
+   La conseguenza va detta perché è il buco che resta: **se un giorno tutte e
+   sei si allontanassero INSIEME dal core, questo banco resterebbe verde.** Il
+   confronto col core è un'altra unità, e vuole prima una mappa fra i due
+   vocabolari — non un selettore in più qui dentro.
 */
 import { prendiChromium, CHROMIUM, SUPERFICI, apriSuperficie } from './giro.mjs';
 import { montaFintoFirebase } from './finto-firebase.mjs';
@@ -123,6 +136,9 @@ if (saltate.length) {
 console.log(`\nRisultato famiglia delle strutture: ${ok} passati, ${ko} falliti`
   + `  ·  ${misurate.length} superfici misurate su ${VERTICALI.length}, ${saltate.length} dichiarate non misurate`
   + `  ·  ${NOMI_MISURE.length} misure per superficie, a ${LARGHEZZA} px`);
+console.log('  ⚠️  risponde a «le sei sono d\'accordo FRA LORO?», non a «le sei copiano il core»:'
+  + ' il core non ha né `.top` né `.sec` (usa `.sec-title`), quindi se si allontanassero TUTTE INSIEME'
+  + ' dal core questo banco resterebbe verde. Il confronto col core è un\'altra unità.');
 console.log('  ⚠️  le ETICHETTE della barra in basso NON stanno qui di proposito:'
   + ' sono a tre corpi diversi ed è giusto (le parole di Scudo e Sentinella non entrano a 9 px).'
   + ' Quel fronte lo tiene `barra-etichette.mjs`, che chiede «la parola sta nella sua colonna?».');
