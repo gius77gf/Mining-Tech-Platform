@@ -948,7 +948,21 @@ numero scritto dove non era stato misurato niente**.*
   | stati «non misurato» di Campo | 2 | non compaiono in `#rap-cop` e `#disp-stato` |
   | tendina di Sentinella (`#ppv-scelta`) | 2 | **290 px in 284**: sei px |
   | barre di peso di Conti | 1 | fasce a zero da confrontare |
-  | manina di Campo | 1 | 33 voci, 1 promette e non mantiene |
+  | manina di Campo | 1 | ✅ **chiusa il 09/08**: `.pon-voce` è la testata di un pannello già aperto, non una voce che si apre → `cursor:default`. 519 voci su 14 superfici, da 1 a **0** |
+  ⛔ **E i 2 stati di Campo sono BUCHI DI PRODOTTO, non attese invecchiate del
+  banco — provato col comando, non dedotto**: `grep -c "rapportini ancora senza
+  data"` su `apps/campo/index.html` e `campo-data.js` dà **0 e 0**; gli id
+  `#rap-cop` e `#disp-stato` invece **ci sono** (2 su 2). Gli elementi
+  esistono, la frase non è mai stata scritta.
+  Sono due «numeri tranquilli» nel senso del fondatore: la riga della copertura
+  dice «rapportini consegnati da 2/3 squadre» mentre uno **senza data** resta
+  fuori dal conto **senza dirlo**; e la disponibilità stamperebbe una
+  percentuale dove i due numeri **si contraddicono** (fermo oltre la durata
+  dichiarata del turno) invece di dire «non calcolabile». Il secondo è l'unico
+  caso del banco che **non può stare nella dimostrazione** — è un dato
+  *corrotto*, non *assente* — e si raggiunge digitando.
+  ⛔ **È il prossimo da aprire**: è prodotto vero e non dipende da nessuna
+  delle due decisioni in sospeso.
   ⛔ **APERTO IL PIÙ PICCOLO PER PRIMO — e ha risposto alla domanda di disegno,
   ma non come credevo: QUESTA FAMIGLIA NON SI CHIUDE ACCORCIANDO IL TESTO.**
   La tendina di Sentinella sfora di **6 px** a 390 (290 contro 284) e di 76 a
