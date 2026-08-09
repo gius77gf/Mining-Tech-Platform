@@ -444,7 +444,20 @@
 
 ## 7. Verifica del Delta (01/08 · riverificata riga per riga il 03/08 · **arretrato richiuso il 06/08**)
 
-> **Verificato contro il codice al commit `079ebe3`** (08/08 sera; le precedenti
+> **Verificato contro il codice al commit `7ee192c`** *(09/08 · le **sei**
+> «CONFERMATA ASSENTE» rilanciate una per una: **sei ricerche su sei tornano
+> identiche** — `versionamento|storico documenti|cronologia|revisione precedente`,
+> `xlsx|excel|jspdf`, `notific`, `osservazion|buona pratica|safety obs`,
+> `offline|serviceworker|caches.` danno tutte **zero**, e le stampe sono ancora
+> **due**.)*
+> ⛔ **ED È L'UNICO DEI SEI DOCUMENTI CHE RIPRODUCE AL 100%**, contro Terra 1 su 4
+> e Flotta 2 su 5. La ragione è nella FORMA della prova, ed è trasferibile: qui
+> ogni riga porta **il comando con le sue alternative e l'uscita attesa**
+> (`grep -ciE '…' → 0 e 0`), non un conteggio di una parola sola. Un comando si
+> rilancia; un numero si può solo credere — e i termini scelti sono tecnici
+> inglesi, che in un testo italiano non collidono con niente (a differenza di
+> `miglia`, che trova `famiglia`).
+> (verifica precedente `079ebe3`, 08/08 sera; le precedenti
 > erano a `924c442` lo stesso giorno e a `4743c69` il 06/08).
 >
 > ### 08/08, sera — un commit, uno che morde, e la riga del conto tenuta d'occhio
