@@ -36,10 +36,28 @@
    l'08/08 la data di consegna che si leggeva «non serve»: due difetti veri
    sulla superficie meno guardata. Dall'08/08 Scudo è dentro, nei due versi
    (`--controprova` e `--live`).
-   ⛔ Resta fuori **Campo**, e per una ragione vera: il suo rapporto di turno
-   apre una **finestra nuova** come Terra, quindi vuole l'impianto che raccoglie
-   il popup — non è dimenticanza, è il lavoro dopo. Censimento e misure:
-   `docs/I_FOGLI_CHE_NESSUN_BANCO_PREME.md`.
+   ⛔ **CAMPO NON È «IL LAVORO DOPO»: È GIÀ FATTO, ALTROVE — e questa riga ha
+   detto il contrario per giorni.** Diceva: «resta fuori, il suo rapporto apre
+   una finestra nuova come Terra, quindi vuole l'impianto che raccoglie il
+   popup — non è dimenticanza, è il lavoro dopo». Erano false tutt'e due le
+   metà, e la seconda è diventata falsa il giorno in cui **Terra** è entrata qui
+   dentro: l'impianto che raccoglie il popup **è in questo file**, costruito
+   proprio per lei. E il lavoro non è dopo, è prima:
+   `campo-foglio-turno.mjs` apre la finestra nuova, legge il foglio in
+   `@media print`, scarica la consegna `.txt`, e chiede **la domanda di questo
+   banco** su tutt'e due —
+       `⛔ il rapporto dichiara di essere fatto di dati di esempio`
+       `⛔ la consegna dichiara di essere fatta di dati di esempio`
+   più le passate `--controprova` e `--live` in `tutti.mjs`. Campo è fuori da
+   QUESTO file perché ha il suo, non perché non sia guardato.
+   ⚠️ È la terza volta in una notte che una riga **propone un lavoro già
+   chiuso** (le altre: la geometria dei gradienti in `CLAUDE.md`, la scala
+   `--nav-scala`), e il costo non è teorico: due ore prima avevo scritto
+   trecento righe di banco nuovo per Scudo partendo da un «non c'è» che non
+   avevo verificato. Una riga così **fa rinascere il cantiere**.
+   Censimento e misure: `docs/I_FOGLI_CHE_NESSUN_BANCO_PREME.md`, che questa
+   correzione l'aveva già fatta — ed era il documento a essere aggiornato
+   mentre il commento restava indietro.
 
    ⛔ E IL MODO DI STAMPARE NON È LO STESSO, quindi la difesa non poteva essere
    copiata: Flotta, Sentinella e Conti stampano SÉ STESSE con un `@media print`
@@ -677,8 +695,9 @@ if (fai("conti")) {
    che **arriva fino al foglio**. È la guardia scritta e mai chiesta.
    Scudo stampa come Flotta, Sentinella e Conti — `@media print` sulla propria
    pagina, con la classe `stampa-verbale` — non come Terra, che apre una
-   finestra. Campo invece apre una finestra come Terra, e resta fuori per
-   questa ragione, scritta invece che dedotta dall'assenza. */
+   finestra. Campo apre una finestra come Terra ed è guardato dal **suo**
+   banco, `campo-foglio-turno.mjs`, che gli chiede la stessa domanda di qui:
+   vedi la nota in cima al file, dove questa riga diceva il contrario. */
 if (fai("scudo")) {
   console.log("\n── Scudo · verbale DPI e cartella del lavoratore, sul foglio A4 (688 px) ──");
   const { ctx, pg } = await APRI(688);

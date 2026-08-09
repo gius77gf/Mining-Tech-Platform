@@ -2507,3 +2507,25 @@ cosa più tranquilla di quella che lo schermo mostra.
       stringa vuota, «abc», e lo zero scritto); `run-stile` 318/0,
       `sonda-vuoto` 15/0 con **5 tranquilli trovati e 5 dichiarati**,
       sintassi delle pagine 34/0.
+- [x] ✅ **La SECONDA gamba della domanda (il PDF / il foglio stampato) è
+      coperta su tutte e otto le superfici — misurato, non dedotto.** Il
+      censimento è stato fatto cercando **più nomi** (`emulateMedia`,
+      `window.open`, `__stampa`, «stampat»), che è la correzione dell'errore
+      costato trecento righe due ore prima. Esito: `stampe-fs` ne guarda sei,
+      Campo ha `campo-foglio-turno`, il core ha `core-documenti-che-escono`.
+      **Nessun buco.**
+      ⛔ **Ma un'eccezione dichiarata era doppiamente scaduta**, e diceva il
+      contrario del vero: «resta fuori **Campo** … vuole l'impianto che
+      raccoglie il popup — non è dimenticanza, **è il lavoro dopo**».
+      · l'impianto che raccoglie il popup **è in quel file**, costruito per
+        Terra il giorno in cui Terra è entrata;
+      · e il lavoro non è dopo: `campo-foglio-turno` apre la finestra, legge il
+        foglio in `@media print`, scarica la consegna `.txt` e chiede **la
+        domanda di `stampe-fs`** su tutt'e due (`⛔ il rapporto dichiara di
+        essere fatto di dati di esempio`, e la gemella sulla consegna).
+      ⚠️ **Terza volta in una notte che una riga propone un lavoro già chiuso**
+      (le altre: la geometria dei gradienti in `CLAUDE.md`, la scala
+      `--nav-scala`) — e il costo non è teorico, è il banco di Scudo scritto e
+      buttato. Il documento `docs/I_FOGLI_CHE_NESSUN_BANCO_PREME.md` la
+      correzione **l'aveva già fatta**: a restare indietro era il commento nel
+      codice, cioè il posto dove uno la legge mentre lavora.
