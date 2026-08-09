@@ -938,9 +938,22 @@ numero scritto dove non era stato misurato niente**.*
     quella di serie e diceva 0 falliti — la riga del giro si chiama «foglio di
     turno · **coi dati veri tace**», e in `tutti.mjs` è `['--live']`. Riverificare
     un KO con la passata sbagliata è il modo più facile di dichiararlo chiuso.
-  ⚠️ Restano da riverificare gli altri 10: Genesi (4, frasi della nuvola),
-  Campo (2 stati non misurati + 1 manina), Conti (1 barre di peso), Sentinella
-  (2 tendine, non coperte dal `--solo=scudo`).
+  ✅ **RIVERIFICA COMPLETA: 20 su 20 guardati sul commit di adesso.**
+  **2 chiusi** (il CSV dei costi di Conti) e **18 ancora veri**:
+  | fronte | quanti | nota |
+  |---|---|---|
+  | tendine di Scudo (`#vf-verbale`, `#vf-ente`) | 5 | 561 px in 284 · 499 in 284 · 254 in 214 |
+  | foglio di turno di Campo (`--live`) | 3 | la consegna vera si dichiara d'esempio |
+  | frasi della nuvola di Genesi | 4 | ritaglio e sottocampionamento |
+  | stati «non misurato» di Campo | 2 | non compaiono in `#rap-cop` e `#disp-stato` |
+  | tendina di Sentinella (`#ppv-scelta`) | 2 | **290 px in 284**: sei px |
+  | barre di peso di Conti | 1 | fasce a zero da confrontare |
+  | manina di Campo | 1 | 33 voci, 1 promette e non mantiene |
+  ⛔ **E il più piccolo è quello da fare per primo**: la tendina di Sentinella
+  sfora di **6 px** a 390 (290 contro 284) e di 76 a 320. È la stessa famiglia
+  di Scudo ma con un margine minuscolo — quindi è il caso che dice se la
+  strada giusta è accorciare il testo o cambiare il campo, **senza rischiare
+  una schermata di conformità** per scoprirlo. Si prova lì, poi si porta.
 
 ## Vincoli
 
