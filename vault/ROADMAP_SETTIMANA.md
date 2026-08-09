@@ -1343,11 +1343,25 @@ numero scritto dove non era stato misurato niente**.*
   manda a rovinare cose sane. Adesso la larghezza si **legge dalla regola
   `@page`** invece di essere scritta a mano, e se la regola non c'è il banco lo
   dichiara e ripiega su A4 invece di far finta di saperlo.
-  ⚠️ Resta aperto, e non l'ho toccato da qui: **`stampe-fs.mjs` misura contro
-  la finestra**. Per i suoi soggetti — fogli che vivono in un popup — la
-  finestra fa da foglio e la domanda regge, ma è **un'altra domanda** da
-  questa; chiamarle con lo stesso nome è il modo in cui qualcuno un giorno
-  copierà quella sbagliata. Da guardare quando si riapre quel banco.
+  ⛔ **E LA STESSA DOMANDA VA RIFATTA A `stampe-fs.mjs`, CON UN SOSPETTO
+  PRECISO — misurato in parte l'09/08, e la parte che manca è dichiarata.**
+  Quel banco misura i suoi fogli contro la **finestra** (390 px). I suoi
+  soggetti vivono in un popup, quindi a schermo la domanda ha senso; ma quei
+  fogli **si stampano**, e allora il denominatore giusto è la carta.
+  Misurato: dichiarano una regola `@page` **Flotta, Sentinella e Conti**;
+  **Terra e Campo no** (quindi per loro la carta è A4 coi margini del browser,
+  ~718 px). E la direzione dell'errore è quella che fa male: **390 px è più
+  STRETTO di 718**, quindi quel banco può produrre **accuse false**, non
+  assoluzioni false — che è esattamente quello che è successo a me sul verbale
+  di Scudo, dove 626 px «non ci stavano» in 390 e ci stanno benissimo in 688.
+  ⚠️ **Il sospetto da verificare, e NON è ancora verificato**: il difetto del
+  prospetto di Terra del 07/08 — «435 px dentro 390» — è stato trovato con
+  quel righello, e Terra è una delle due superfici **senza `@page`**. Se
+  misurato contro la carta, 435 in 718 ci sta. Non sto dicendo che quel difetto
+  fosse falso: sto dicendo che **non è stato misurato contro il denominatore
+  giusto**, e che finché non lo si rifà non lo sappiamo. Il modo è quello già
+  scritto in `scudo-documenti.mjs`: leggere la carta dalla regola `@page` del
+  documento, e dichiarare il ripiego quando la regola non c'è.
   ✅ **E Genesi è entrata l'09/08: adesso la misura sta DENTRO il banco**, non
   più in una prova a mano che alla sessione dopo non esiste.
   `genesi-foglio-in-cava.mjs` leggeva il documento come **testo** e non ne
