@@ -85,7 +85,13 @@ const DIFETTI = [
    "$('hgVolN').textContent=arr.length? (arr.length+' salvate'):'';"],
   ["$('hgNuvN').textContent=nv.length? _ricPlur(nv.length,'lavorazione','lavorazioni'):'';",
    "$('hgNuvN').textContent=nv.length? (nv.length+' lavorazioni'):'';"],
-  ["    : ' · '+_ricPlur(mostrati,'punto caricato','punti caricati');",
+  /* ⏱️ RI-ANCORATA il 09/08: la riga non passa più da `_ricPlur` ma da
+     `nPunti`, che è `gnum` + `plurale` — perché `conta` sceglie bene la parola
+     ma NON raggruppa, e i punti di una nuvola sono decine di migliaia («41230»
+     accanto a «3.000.000» nella stessa frase). Il difetto rimesso resta lo
+     stesso: il plurale scritto a mano, che su un punto solo direbbe «1 punti
+     caricati». */
+  ["    : ' · '+nPunti(mostrati,'punto caricato','punti caricati');",
    "    : ' · '+gnum(mostrati,0)+' punti caricati';"],
   // 5b · i due chili che restavano tranquilli sopra il loro stesso trattino
   ["    + riga('Carica reale totale', c.misurabile?_ricKg(c.kgReale)+' kg':'—',\n" +

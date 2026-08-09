@@ -4026,13 +4026,22 @@ function volSnapshot(nome){
    I record vecchi hanno solo `punti`: si mostrano com'erano, senza inventare. */
 function _puntiNuvola(e){
   if(!e) return '';
-  if(e.puntiRitaglio>0) return ' · '+_ricPlur(e.puntiRitaglio,'punto','punti')+' nel ritaglio';
+  /* ⛔ IL NUMERO SI RAGGRUPPA, LA PAROLA SI ACCORDA — e servono TUTT'E DUE.
+     `_ricPlur` è `conta` di `shared/`, che scrive `String(n)`: sceglie bene
+     singolare e plurale ma **non raggruppa**. Qui i punti di una nuvola sono
+     decine o centinaia di migliaia, e la riga usciva «41230 punti nel
+     ritaglio» accanto a «3.000.000 caricati» — che passa da `gnum` — cioè due
+     notazioni diverse nella stessa frase.
+     Si compone `gnum` + `plurale` invece di `conta`: il conto lo formatta chi
+     sa formattarlo, la parola la accorda chi sa accordarla. */
+  const nPunti = (n, sing, plur) => gnum(n, 0) + ' ' + plurale(n, sing, plur);
+  if(e.puntiRitaglio>0) return ' · '+nPunti(e.puntiRitaglio,'punto','punti')+' nel ritaglio';
   const mostrati = e.puntiMostrati || e.punti || 0;
   if(!mostrati) return '';
   const tot = e.puntiTotali || 0;
   return tot>mostrati
-    ? ' · '+_ricPlur(mostrati,'punto disegnato','punti disegnati')+' su '+gnum(tot,0)+' caricati'
-    : ' · '+_ricPlur(mostrati,'punto caricato','punti caricati');
+    ? ' · '+nPunti(mostrati,'punto disegnato','punti disegnati')+' su '+gnum(tot,0)+' caricati'
+    : ' · '+nPunti(mostrati,'punto caricato','punti caricati');
 }
 function renderHome(){
   const arr=_lsGet('genesiVolate');
