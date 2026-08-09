@@ -298,7 +298,7 @@ Nella roadmap, il ponte P2 (riconciliazione volume vs tonnellate) è il prossimo
 
 ## Verifica del delta (01/08)
 
-> **Verificato contro il codice al commit `57c78cf`** *(riverificato l'08/08 sera;
+> **Verificato contro il codice al commit `4a5175a`** *(le quattro «CONFERMATA ASSENTE» rimisurate una per una il 09/08 — i verdetti reggono, tre ricerche su quattro no; prima era `57c78cf`, riverificato l'08/08 sera;
 > le precedenti erano a `8583a0b` lo stesso giorno, a `4916275` il 06/08 e a
 > `e9f9b0d` il 01/08).*
 >
@@ -372,12 +372,12 @@ Nella roadmap, il ponte P2 (riconciliazione volume vs tonnellate) è il prossimo
 
 | Funzione | Verdetto | Prova |
 |----------|----------|-------|
-| Cut & fill volumes | **CONFERMATO ASSENTE** | Cercati `cut`, `fill`, `taglio`, `riempimento` in terra-data.js, index.html, dw-ponti.js: zero occorrenze |
+| Cut & fill volumes | **CONFERMATO ASSENTE** | ⏱️ *Rimisurata il 09/08: il verdetto regge, la ricerca no.* `cut` e `stockpile` danno ancora **zero**, ma `fill` ora dà **16** e `taglio`/`riempimento` **8** — e nessuna di quelle occorrenze è un volume: sono **termini di disegno** (`fillStyle` della tela, la classe `dwg-taglio` che è un tratteggio, «la testa del riempimento» della barra di avanzamento). Il conto di cut & fill non c'è: nessuna funzione confronta un terreno di partenza con uno di arrivo per dire quanto si è tolto e quanto si è messo. |
 | Bench-by-bench volume tracking | ⏱️ **SCADUTA — C'È DAL 01/08** (verifica `e9f9b0d` 16:20 → costruito `e5f15a7` 16:55, **35 minuti**) | `banco` esiste (terra-data.js:42-44, 1064) ma solo come campo della fronte, non c'è tracking volumetrico per banco singolo — il tracking è per fronte (volumeFronte), non per banco |
-| Automatic stockpile detection | **CONFERMATO ASSENTE** | Cercati `stockpile`, `automatic`, `detection`, `automático`: zero occorrenze rilevanti (index.html:955 è autocompilamento di form, non detection) |
-| Pit design e scheduling | **CONFERMATO ASSENTE** | Cercati `pit`, `design`, `scheduling`: zero occorrenze rilevanti. Lotti creati manualmente (terra-data.js:56-80) senza design automatico |
+| Automatic stockpile detection | **CONFERMATO ASSENTE** | ⏱️ *Rimisurata il 09/08:* `stockpile` e `detection` **zero**. Il cumulo si dichiara a mano, non lo riconosce nessuno da una nuvola di punti. |
+| Pit design e scheduling | **CONFERMATO ASSENTE** | ⏱️ *Rimisurata il 09/08:* `design` e `scheduling` **zero**; l'unica occorrenza di `pit` è dentro una parola italiana, non un termine minerario. I lotti si creano a mano, senza nessun disegno automatico della cava. |
 | Reserve estimation con optimization | **FALSO, C'È GIÀ** | terra-data.js:384 `riservaResidua()` calcola la riserva residua; usata in index.html:1082-1083 per mostrare il consumo annuale — non è full optimization ma c'è stima della riserva |
-| Floating cone optimization | **CONFERMATO ASSENTE** | Cercati `floating`, `cone`, `conical`, `ottimizzazione`: zero occorrenze |
+| Floating cone optimization | **CONFERMATO ASSENTE** | ⏱️ *Rimisurata il 09/08:* `cone`, `conical` e `ottimizzazione` **zero**; l'unica `floating` è un termine di CSS. Nessun ottimizzatore geometrico dello scavo. |
 | Pit progression monitoring | **C'È A METÀ** | terra-data.js:670 `vitaCava()` e terra-data.js:400 `proiezioneAnnua()` monitorano vita della cava (consumo annuale, residuo, anni stimati) ma non è monitoraggio del pit design — è monitoraggio della concessione |
 | Volume reconciliation (misurato vs dichiarato) | **FALSO, C'È GIÀ** | shared/dw-ponti.js:185 `riconciliazioneTurni()` fa esattamente il confronto fra volumi misurati dai rilievi e dichiarati dai turni di campo; importata e usata in terra-data.js:1152 e index.html:849; confronta `misuratoPeriodo()` (dw-ponti.js:211) con `produzioneDichiarata()` |
 | Conformità design | ⏱️ **SCADUTA — C'È DAL 01/08** (verifica `e9f9b0d` 16:20 → costruito `e19e196` 18:22) | Allora zero occorrenze di `conformit`; oggi `statoConformitaQuota`, `conformitaQuota` e `conformitaProgetto` in `terra-data.js`: «stiamo scavando dove il progetto dice?» è la domanda dell'ente, e l'app sa rispondere |
