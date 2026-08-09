@@ -3,7 +3,55 @@
 *Misurato il 01/08/2026. Nasce dal censimento del principio dell'assenza, che
 ha coperto sei app e si è fermato alla settima per una ragione strutturale.*
 
-## Il fatto
+---
+
+## ⏱️ AGGIORNAMENTO 09/08 — il piano è PARTITO, e questo documento non lo diceva
+
+⛔ **Rileggendolo l'09/08, tutti e quattro i numeri della sezione «Il fatto»
+erano invecchiati, e uno era falso non nel numero ma NELLA SOSTANZA.** Va
+scritto perché è la **terza forma d'invecchiamento** che `CLAUDE.md` descrive:
+*una riga che propone un lavoro già fatto lo fa rinascere.* Chi apriva questo
+documento leggeva «di Genesi entra nelle suite solo `pointcloud.js`» e poteva
+mettersi a costruire un modulo dati che **esiste da giorni**, con quaranta
+funzioni tutte provate.
+
+| la riga diceva | è, su `b9d4724` | come si rimisura |
+|---|---|---|
+| «1.108 prove» di `run-kpi.mjs` | **1979** | `node apps/deepwork-id/tests/run-kpi.mjs` |
+| «456 funzioni su 456» di copertura | **871 su 871** | `node apps/deepwork-id/tests/copertura-funzioni.mjs` |
+| «191 funzioni» nella pagina di Genesi | **163** | `node apps/deepwork-id/tests/genesi-estraibili.mjs` |
+| «entra solo `pointcloud.js` — 5 funzioni» | `pointcloud.js` **6**, e in più **`genesi-data.js` 40** e **`genesi-formato.js` 8**, tutte coperte | `copertura-funzioni.mjs` |
+
+⚠️ **I due «871» non c'entrano niente l'uno con l'altro**: che la deriva delle
+prove (1979 − 1108) faccia lo stesso numero del totale di copertura è una
+coincidenza, e sta scritto qui perché nessuno ci legga un legame che non c'è.
+
+⛔ **E LA CAUSA NON È LA DISTRAZIONE DI QUALCUNO: È CHE QUESTO DOCUMENTO NON ERA
+NELL'ELENCO DI NESSUN CONTROLLO.** Lo stesso numero — il totale di `run-kpi` —
+è **sorvegliato** in quattro documenti da `numeri-nei-documenti.mjs`, e lì non
+può marcire di un'unità senza far cadere la CI. Qui, fuori dall'elenco, ha
+potuto scostarsi di **871** senza che niente diventasse rosso. È la **quarta
+forma**, quella che non invecchia ma *nasce* fuori dal controllo:
+
+> **Un numero è sorvegliato solo dove il controllo ARRIVA, e l'elenco di dove
+> arriva va guardato quanto il numero.**
+
+✅ **Che cosa del piano è stato fatto** (verificare col comando, non crederci):
+`apps/genesi/genesi-data.js` esiste e ha **40 funzioni provate**;
+`apps/genesi/genesi-formato.js` ne ha **8**; `pointcloud.js` **6**. La fetta più
+recente portata fuori è `interpProf` — quella da cui dipendono la posizione dei
+fori sul disegno 2D e la **burden reale** di ognuno.
+Il seguito vivo del piano sta in `vault/ROADMAP_SETTIMANA.md`, voce **B3**, che
+il conto lo **deriva da un comando** invece di ricopiarlo — ed è il motivo per
+cui B3 non è invecchiata mentre questa pagina sì.
+
+⚠️ **Quello che segue resta com'era scritto il 01/08**, con i numeri di
+*allora*: è una misura datata, e vale come tale. Non aggiornarla a mano — si
+rilancia il comando della tabella qui sopra.
+
+---
+
+## Il fatto *(misurato il 01/08, numeri di allora — vedi l'aggiornamento sopra)*
 
 Le sei app verticali tengono la loro logica in `apps/<nome>/<nome>-data.js`.
 `node` lo importa, e da lì vengono le **1.108 prove** di `run-kpi.mjs` e il

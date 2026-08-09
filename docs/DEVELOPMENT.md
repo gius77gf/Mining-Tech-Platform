@@ -167,7 +167,7 @@ del contenitore la nega. Quello che gira — misurato l'08/08 — è la parte ch
 conta di più, la **barriera multi-tenant**:
 
 ```sh
-node apps/deepwork-id/tests/giro-sicurezza.mjs   # 104 prove: 75 regole, 19 SDK, 10 primo avvio
+node apps/deepwork-id/tests/giro-sicurezza.mjs   # 102 prove: 75 regole, 19 SDK, 8 primo avvio
 ```
 
 Un comando solo, che alza l'emulatore da sé e **dichiara in fondo quello che
