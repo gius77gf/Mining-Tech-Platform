@@ -149,6 +149,26 @@
   }
   function num(v) { return typeof v === 'number' && isFinite(v); }
 
+  /* ⛔ LA SOGLIA HA UNA FORMA SOLA, E LA DECIDE QUESTA FUNZIONE. Prima ce
+     n'erano due, scritte a settecento righe di distanza: `disegnaLinea`
+     accettava solo `{ valore, inclusiva }`, `disegnaSpark` anche il numero
+     nudo — e dentro `disegnaSpark` la scala leggeva `s.soglia` **grezza**
+     mentre il verdetto leggeva la versione normalizzata. Da lì una miniatura
+     tutta `NaN` che non disegnava niente, in silenzio.
+     Le due sorelle chiedono la stessa cosa: adesso la chiedono nello stesso
+     modo. Il numero nudo resta ammesso (è la forma dell'esempio d'uso in cima
+     al file, e quella del banco di collaudo), e vuol dire «una lettura pari
+     alla soglia NON è un superamento» — di serie, come la maggior parte dei
+     limiti ambientali. Chi ha una norma che conta anche l'uguale passa
+     l'oggetto con `inclusiva: true`.
+     ⚠️ Risponde `valore: null` — non zero — quando non c'è o non è un numero:
+     un fondo scala inventato è peggio di nessuna soglia disegnata, ed è il
+     principio del fondatore applicato alla geometria. */
+  function normSoglia(s) {
+    var o = (s && typeof s === 'object') ? s : { valore: s, inclusiva: false };
+    return { valore: num(o.valore) ? o.valore : null, inclusiva: !!o.inclusiva };
+  }
+
   /* ⛔ UNO ZERO SI DISEGNA ZERO, E QUESTA FUNZIONE ESISTE PERCHE' LA REGOLA
      STAVA SCRITTA IN TRE POSTI CON LO STESSO DIFETTO. Il 06/08 tre cantieri
      paralleli — Terra, Conti, Sentinella — hanno misurato col righello ogni
@@ -597,7 +617,8 @@
     serie.forEach(function (S) { S.valori.forEach(function (v) { if (num(v)) tutti.push(v); }); });
     if (!tutti.length) { vuoto(g, 'Nessun dato da mostrare'); return; }
     var vmin = Math.min.apply(null, tutti), vmax = Math.max.apply(null, tutti);
-    var soglia = s.soglia && num(s.soglia.valore) ? s.soglia.valore : null;
+    var sogLinea = normSoglia(s.soglia);
+    var soglia = sogLinea.valore;
     var sogliaFuori = false;
     /* Una lettura ESATTAMENTE pari alla soglia: superamento o no? Dipende dalla
        norma, non dal grafico. Di serie no (v > soglia), come nella maggior
@@ -605,7 +626,7 @@
        passa soglia:{ valore:…, inclusiva:true } e il conteggio, i rombi e il
        tooltip si allineano tutti insieme — non si può avere una tabella che
        dice «1 superamento» e una legenda che dice zero. */
-    var sogliaIncl = !!(s.soglia && s.soglia.inclusiva);
+    var sogliaIncl = sogLinea.inclusiva;
     function oltreSoglia(v) { return soglia != null && !sogliaFuori && (sogliaIncl ? v >= soglia : v > soglia); }
     if (soglia != null) {
       if (soglia > vmax * 2.6 && vmax > 0) sogliaFuori = true;
@@ -1341,7 +1362,25 @@
     if (v.length < 2) { vuoto(g, '—'); return; }
     var w = s.larghezza || 120, h = s.altezza || 34;
     var min = Math.min.apply(null, v), max = Math.max.apply(null, v);
-    if (s.soglia != null) { min = Math.min(min, s.soglia); max = Math.max(max, s.soglia); }
+    /* ⛔ QUI LA MINIATURA DI SENTINELLA NON DISEGNAVA **NIENTE**, sulla
+       dimostrazione e sulla prima schermata dell'app. Il 06/08 il contratto di
+       `soglia` è stato allargato per far coincidere miniatura e badge — può
+       essere un numero **oppure** `{ valore, inclusiva }` — ma è stato
+       allargato **dove si legge il verdetto**, quaranta righe più in giù, e non
+       qui dove si costruisce la scala: `Math.min(10, {valore:40})` fa **NaN**,
+       e da lì `py` è NaN, il percorso è `M2.0 NaN…`, la riga della soglia ha
+       `y1="NaN"`. Un attributo SVG non valido non solleva niente: linea e area
+       misurano **0×0 px** e la console è pulita.
+       ⚠️ E si rompeva **solo dove aveva qualcosa da dire**: un punto senza
+       soglia la miniatura lo disegnava benissimo, quindi il difetto stava
+       esattamente sui punti che il prodotto esiste per far vedere.
+       La causa vera non è la riga: sono **due sorelle con due contratti**.
+       `disegnaLinea` accettava solo l'oggetto, `disegnaSpark` tutt'e due, e
+       ognuna se lo normalizzava per conto suo — la firma troppo stretta di
+       CLAUDE.md, nella veste in cui ad allargarsi è **una metà sola**. Adesso
+       la normalizzazione è **una** (`normSoglia`) e la usano tutt'e due. */
+    var sogSpark = normSoglia(s.soglia);
+    if (sogSpark.valore != null) { min = Math.min(min, sogSpark.valore); max = Math.max(max, sogSpark.valore); }
     if (max === min) { max = min + 1; }
     var px = function (i) { return 2 + (w - 4) * i / (v.length - 1); };
     var py = function (y) { return h - 3 - (h - 6) * (y - min) / (max - min); };
@@ -1379,9 +1418,8 @@
        diventare `{ valore, inclusiva }`, che e' la stessa forma che `linea`
        accetta gia'. Due funzioni sorelle che chiedono la stessa cosa in due
        modi diversi sono il modo in cui questa divergenza e' nata. */
-    var sog = (s.soglia && typeof s.soglia === 'object') ? s.soglia : { valore: s.soglia, inclusiva: false };
-    var sVal = num(sog.valore) ? sog.valore : null;
-    var sIncl = !!sog.inclusiva;
+    var sVal = sogSpark.valore;
+    var sIncl = sogSpark.inclusiva;
     if (sVal != null) svg.appendChild(nodo('line', { 'class': 'dwg-soglia', x1: 1, y1: py(sVal).toFixed(1), x2: w - 1, y2: py(sVal).toFixed(1) }));
     svg.appendChild(nodo('path', { 'class': 'dwg-linea', d: d, pathLength: '1' }));
     var ult = v[v.length - 1];
@@ -1484,7 +1522,12 @@
        test che gira sempre. Il browser è servito per SCOPRIRE che il motore la
        violava; per tenerla basta node, visto che qui dentro entrano numeri ed esce
        una stringa. */
-    geometria: { tratti: tratti, percorso: percorso, tenuteX: tenuteX, tagliaA: tagliaA, dimCheCiSta: dimCheCiSta },
+    /* `normSoglia` sta qui per la ragione già scritta in CLAUDE.md: il browser
+       serve a SCOPRIRE un difetto, non a tenerlo chiuso. Prende un valore e ne
+       restituisce un altro, quindi la sua prova vive in `node` e gira sempre —
+       la miniatura tutta NaN si sarebbe vista con un `Math.min` in tre righe,
+       e invece è stata trovata aprendo la pagina. */
+    geometria: { tratti: tratti, percorso: percorso, tenuteX: tenuteX, tagliaA: tagliaA, dimCheCiSta: dimCheCiSta, normSoglia: normSoglia },
     versione: '1.0'
   };
 

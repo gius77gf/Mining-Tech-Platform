@@ -426,5 +426,75 @@ test("avvisaSeNonSalva: un avviso rotto non peggiora il guasto", () => {
   eq(rotto5a, "unavailable", "arriva l'errore vero, non quello dell'avviso");
 });
 
+/* ══════════════════════════════════════════════════════════════════════
+   LA SOGLIA DEI GRAFICI HA UNA FORMA SOLA
+   ⛔ Nasce da un difetto vero: la miniatura del Quadro di Sentinella non
+   disegnava NIENTE — percorso `M2.0 NaN…`, riga della soglia `y1="NaN"`,
+   linea e area 0×0 px — sulla dimostrazione e sulla prima schermata dell'app,
+   con la console pulita e nessuna prova rossa. `disegnaSpark` costruiva la
+   scala con `Math.min(v, s.soglia)` sulla soglia **grezza**, mentre quaranta
+   righe più in giù il verdetto la leggeva **normalizzata**: con la forma
+   `{ valore, inclusiva }` — l'unica che Sentinella usa — quel `Math.min` fa
+   NaN. Un attributo SVG non valido non solleva niente.
+   ⚠️ E si rompeva **solo dove aveva qualcosa da dire**: senza soglia la
+   miniatura disegnava benissimo. Il difetto stava esattamente sui punti che il
+   prodotto esiste per far vedere.
+   Queste prove stanno in `node` e non in un banco del browser di proposito:
+   `normSoglia` prende un valore e ne restituisce un altro, quindi la sua
+   difesa gira sempre. Il browser è servito a SCOPRIRLO, non a tenerlo chiuso.
+   ══════════════════════════════════════════════════════════════════════ */
+const { readFileSync } = await import("node:fs");
+const { createRequire } = await import("node:module");
+const G = createRequire(import.meta.url)(join(HERE, "../../../shared/dw-grafici.js"));
+const normSoglia = (G.dwGrafici || G).geometria.normSoglia;
+const SRC_G = readFileSync(join(HERE, "../../../shared/dw-grafici.js"), "utf8");
+/* ⛔ E QUI LA CONTROPROVA HA BOCCIATO LA MIA PRIMA STESURA, che è il motivo per
+   cui si fa. Avevo scritto un aiuto `scalaRegge = Number.isFinite(Math.min(10,
+   normSoglia(s).valore ?? Infinity))` e ci avevo appeso tre asserzioni: legge
+   benissimo, e **non guardava `disegnaSpark`**. Era una COPIA della riga della
+   scala, scritta nel test — cioè esattamente la copia debole che questa casa
+   vieta, commessa dentro la difesa contro una copia debole. Rimettendo il
+   difetto vero nel motore, quelle tre asserzioni restavano verdi.
+   La riga della scala non si può chiamare da `node` (vuole un DOM), quindi la
+   sua difesa è **sul sorgente**: nessuno dei due disegni ricava un minimo o un
+   massimo dalla soglia GREZZA. È la quarta causa di «non distingue» —
+   l'iniezione era vera e la prova guardava un'altra funzione. */
+const scalaGrezza = (SRC_G.match(/Math\.(?:min|max)\([^)]*\bs\.soglia\b/g) || []);
+
+test("normSoglia: la forma di Sentinella non manda la scala a NaN", () => {
+  const r = normSoglia({ valore: 40, inclusiva: true });
+  eq(r.valore, 40, "il valore esce numerico, non l'oggetto");
+  eq(r.inclusiva, true, "e l'inclusiva resta");
+  eq(scalaGrezza.length, 0,
+    `la scala ricava min/max dalla soglia GREZZA in ${scalaGrezza.length} punti: `
+    + "con la forma di Sentinella quel Math.min fa NaN e la miniatura non disegna niente "
+    + JSON.stringify(scalaGrezza));
+});
+test("normSoglia: il numero nudo resta ammesso, e non è inclusivo di serie", () => {
+  eq(normSoglia(40).valore, 40, "l'esempio d'uso in cima al motore passa un numero");
+  eq(normSoglia(40).inclusiva, false,
+    "di serie una lettura PARI alla soglia non è un superamento: lo dice la norma, non il grafico");
+});
+test("normSoglia: quello che non è un numero risponde null, non zero", () => {
+  /* ⛔ il principio del fondatore applicato alla geometria: un fondo scala
+     inventato è peggio di nessuna soglia disegnata. */
+  eq(normSoglia(null).valore, null, "assente");
+  eq(normSoglia({ inclusiva: true }).valore, null, "oggetto senza valore");
+  eq(normSoglia({ valore: "40" }).valore, null, "una stringa non è un numero");
+  eq(normSoglia({ valore: NaN }).valore, null, "e nemmeno un NaN dichiarato");
+});
+test("normSoglia: è UNA sola, e la usano tutt'e due le sorelle", () => {
+  /* ⚠️ Il difetto è nato da due normalizzazioni scritte a settecento righe di
+     distanza. La prova guarda il sorgente perché è l'unico modo di accorgersi
+     che ne rinasca una terza: il comportamento delle due sarebbe identico
+     fino al giorno in cui una delle due cambia. */
+  const src = readFileSync(join(HERE, "../../../shared/dw-grafici.js"), "utf8");
+  eq((src.match(/function normSoglia\(/g) || []).length, 1, "una definizione sola");
+  eq((src.match(/normSoglia\(s\.soglia\)/g) || []).length, 2,
+    "e due chiamanti: la miniatura e la linea");
+  eq(/typeof s\.soglia === 'object'/.test(src), false,
+    "nessuno normalizza più la soglia per conto suo");
+});
+
 console.log(`\nRisultato Helper: ${passed} passati, ${failed} falliti`);
 process.exit(failed > 0 ? 1 : 0);
