@@ -3237,12 +3237,21 @@ numero scritto dove non era stato misurato niente**.*
 
 ## Riferimenti
 
-- Ultimo checkpoint **per data vera**:
-  `vault/checkpoints/20260808-025303_un-a-capo-che-chiude-solo-se-chiude.md`
-  *(dato da `node apps/deepwork-id/tests/date-checkpoint.mjs`, non letto a occhio:
-  per NOME il più alto sarebbe `20260805-100000_…`, che è stato scritto **tre
-  giorni prima**. Questa riga era ferma al 01/08: il puntatore al file più
-  fresco era lui stesso il più vecchio.)*
+- Ultimo checkpoint **per data vera** — ⛔ **questa riga non lo NOMINA più: lo
+  fa dire al comando.**
+
+      node apps/deepwork-id/tests/date-checkpoint.mjs
+
+  stampa in fondo *«Da quale checkpoint riparte davvero un ciclo»*, col file
+  giusto **e** con quello che si aprirebbe seguendo il nome, e di quanto sono
+  distanti.
+  ⛔ *Perché è cambiata: qui c'era scritto un nome di file, aggiornato a mano.
+  Un puntatore così è sbagliato **quasi sempre**, perché cambia a ogni unità e
+  chi chiude l'unità pensa al lavoro, non al puntatore. Misurato: la riga
+  diceva `20260808-025303_…` mentre il più recente era di **oggi**, e la nota
+  accanto raccontava che la stessa riga era già rimasta indietro **una volta**,
+  ferma al 01/08 — cioè «lo aggiorno a mano» era già stato provato e aveva già
+  fallito. **Un comando si rilancia; un nome si può solo credere.***
   ⚠️ *Non* il più alto in ordine alfabetico: in `vault/checkpoints/` ci sono
   ancora file **datati avanti** rispetto al giorno in cui sono entrati in git
   (640 precedenti alla regola, contati da `date-checkpoint.mjs`). Chi va per
