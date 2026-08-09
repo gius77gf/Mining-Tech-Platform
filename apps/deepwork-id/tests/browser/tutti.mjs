@@ -956,6 +956,17 @@ if (!BANCHI_FINTI) {
 
 let base = impronta(COPIA || RADICE_IMPRONTA);
 console.log(`Impronta di partenza: ${base.size} file che le pagine caricano (test, docs e vault esclusi apposta).`);
+/* ⛔ QUANDO È PARTITO QUESTO GIRO — un dato che il runner ha in mano e che il
+   registro non ha mai detto. Il 09/08 è costato sei checkpoint con dentro un
+   orario **falso di un'ora**: il giro era partito alle 06:56Z, io ho scritto
+   «dalle 07:55Z» perché l'ho **stimato** rileggendo il registro, e l'ho
+   ripetuto sei volte. È la regola già scritta in questo file per le
+   controprove e per il riepilogo — *un dato che il programma ha in mano non si
+   indovina dal testo* — applicata alla cosa più semplice di tutte: l'ora.
+   ⚠️ Si stampa in **UTC esplicito**: il contenitore è in UTC e le cave sono in
+   Italia, e un orario senza fuso è un numero che ognuno legge come vuole. */
+const INIZIO = new Date();
+console.log(`Partito alle ${INIZIO.toISOString().replace(/\.\d+Z$/, "Z")} (UTC).`);
 const cambiamenti = [];
 
 const DA_FARE = BANCHI_FINTI
@@ -1042,6 +1053,14 @@ function togliLaCopia() {
   COPIA = null;
 }
 
+/* ⛔ E QUANTO È DURATO, accanto a quando è partito: chi riapre un registro di
+   seimila righe la prima cosa che vuole sapere è **se è finito e quando**. */
+{
+  const fine = new Date();
+  const min = Math.round((fine - INIZIO) / 60000);
+  console.log(`\nGiro partito alle ${INIZIO.toISOString().replace(/\.\d+Z$/, "Z")}, finito alle `
+    + `${fine.toISOString().replace(/\.\d+Z$/, "Z")} — ${Math.floor(min / 60)}h${String(min % 60).padStart(2, "0")} (UTC).`);
+}
 console.log('\n════════ RIEPILOGO ════════');
 /* ⛔ E QUESTO BLOCCO DICHIARA DI ESSERE UNA RIPETIZIONE. Misurato l'08/08
    leggendo un giro con `leggi-giro.mjs`: dei suoi «47 KO veri», **37 erano le

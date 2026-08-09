@@ -173,6 +173,17 @@ if (process.argv.includes("--controprova")) {
   ].join("\n");
   const r = leggiGiro(finto);
   const male = [];
+  /* ⛔ GLI ORARI, nei TRE stati — e il terzo è quello che conta: senza le righe
+     nuove il lettore deve dire «non lo so», non inventare un'ora. È il difetto
+     del 09/08 (sei checkpoint con «dalle 07:55Z» invece di 06:56Z) messo sotto
+     prova invece che raccontato. */
+  const conFine = "Partito alle 2026-08-09T06:56:09Z (UTC).\nGiro partito alle 2026-08-09T06:56:09Z, finito alle 2026-08-09T12:30:00Z — 5h33 (UTC).";
+  if (!/partito 2026-08-09T06:56:09Z, finito 2026-08-09T12:30:00Z — durato 5h33/.test(oreDelGiro(conFine)))
+    male.push(`orari: il caso completo non viene letto — ${oreDelGiro(conFine)}`);
+  if (!/nessuna riga di fine/.test(oreDelGiro("Partito alle 2026-08-09T06:56:09Z (UTC).")))
+    male.push("orari: un giro senza riga di fine deve dirsi TRONCO, non finito");
+  if (!/non lo si indovina/.test(oreDelGiro("un registro vecchio, senza orari")))
+    male.push("orari: un registro senza orari deve dire «non lo so», mai inventarne uno");
   if (r.sezioni.length !== 5) male.push(`sezioni: ${r.sezioni.length} invece di 5 — la sotto-intestazione a sei uguali ne ha aperta una in più`);
   if (r.sane.length !== 2) male.push(`passate sane: ${r.sane.length} invece di 2 — il riepilogo finale è stato contato fra le sane`);
   if (r.ripetizioni.length !== 1) male.push(`riepiloghi: ${r.ripetizioni.length} invece di 1`);
@@ -237,12 +248,33 @@ if (process.argv.includes("--controprova")) {
 
 const file = process.argv[2];
 if (!file) { console.error("uso: node leggi-giro.mjs <registro.txt>"); process.exit(2); }
-const r = leggiGiro(readFileSync(file, "utf8"));
+const TESTO = readFileSync(file, "utf8");
+const r = leggiGiro(TESTO);
+
+/* ⛔ GLI ORARI DEL GIRO, letti dal registro e MAI indovinati. Presa dal testo e
+   non dal file, così la controprova non ha bisogno di inventare un registro su
+   disco — è la stessa forma di `datateNelFuturo` e di `addendiTornano`. */
+export function oreDelGiro(testo) {
+  const partito = /^Partito alle (\S+) \(UTC\)/m.exec(testo || "");
+  const finito = /^Giro partito alle \S+, finito alle (\S+) — (\S+) \(UTC\)/m.exec(testo || "");
+  if (partito && finito) return `⏱️  partito ${partito[1]}, finito ${finito[1]} — durato ${finito[2]}`;
+  if (partito) return `⏱️  partito ${partito[1]} · ⚠️ nessuna riga di fine: il giro NON è arrivato in fondo, o il registro è tronco`;
+  return "⏱️  ⚠️ il registro non dice quando è partito (è di prima del 09/08): non lo si indovina";
+}
 
 /* ⛔ SEZIONE 0, E VIENE PRIMA DI TUTTO: un KO vecchio si legge esattamente come
    uno nuovo, e costa un cantiere. */
 const eta = etaDelGiro(r.commit);
 console.log(`\n══ 0. QUANTO È VECCHIO QUESTO GIRO ══`);
+/* ⛔ E L'ETÀ IN TEMPO, non solo in commit — dal 09/08. Il giro adesso stampa
+   `Partito alle …` e `Giro partito … finito … Xh` (`tutti.mjs`), perché prima
+   quell'ora non c'era e chi leggeva il registro la **stimava**: il 09/08 sei
+   checkpoint hanno riportato «il giro è vivo dalle 07:55Z» quando era partito
+   alle **06:56Z**. Un'ora di errore su un dato che il programma aveva in mano.
+   ⚠️ Se le due righe non ci sono, il registro è di prima della modifica e lo si
+   dice: **non si inventa un orario**, che è esattamente il difetto da cui
+   nasce questa riga. */
+console.log("  " + oreDelGiro(TESTO));
 if (!eta.noto) {
   console.log(`  ⚠️  non lo so: ${eta.perche}.`);
   console.log("      I KO qui sotto vanno riverificati sul codice di adesso prima di toccare qualcosa.");
