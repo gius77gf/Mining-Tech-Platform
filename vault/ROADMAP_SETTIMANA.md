@@ -3753,6 +3753,40 @@ di scriverlo qui**: niente entra sulla parola dell'agente.
   ✅ Controprova completa: **9 superfici avvelenate, 9 l'hanno bocciata**, e il
   testimone `color-mix` bocciato **0 volte su 9** (deve essere 0, se no il
   righello accuserebbe un colore sano).
+  ⏱️ **E IL 09/08 A SERA, TRE LARGHEZZE INVECE DI UNA — con due scoperte che
+  valgono più della copertura aggiunta.**
+  ⛔ **La larghezza di prima era 430 px, e non stava scritta in nessun punto di
+  `contrasto.mjs`**: è il valore predefinito di `apriSuperficie` in `giro.mjs`
+  (`larghezza = 430`). Quattordici superfici, tre temi, quattro passate — **un
+  telefono solo**, e un numero che **non si presentava come una decisione**.
+  Adesso ne gira **tre** (`--larghezze=`, lo stesso nome che usa già
+  `fuori-schermo.mjs`: battezzare la stessa idea in un secondo modo è la
+  divergenza che si paga più cara).
+  ⛔ **E SOTTO C'ERA UN DIFETTO VERO, PREESISTENTE, IN UNA CONTROPROVA CHE NON
+  POTEVA PASSARE.** `--modali --controprova` contava fra le **cieche** le sei
+  superfici che di finestre non ne hanno **nessuna**: la passata registrata
+  stampava «CONTROPROVA INCOMPLETA» e usciva **1**. Riprodotto in un minuto a
+  430 px senza larghezze (`--solo=vetrina` → «1 avvelenata, 0 l'hanno
+  bocciata», uscita 1). Corretto con l'esenzione già scritta per `--forzate`,
+  tenuta **stretta**: si scusa solo dove non si è aperta **nessuna** finestra —
+  se una finestra si apre e il veleno non arriva, resta cieca e la controprova
+  cade. È la stessa distinzione di tutta la giornata: «non ho potuto guardare»
+  non è «ho guardato e va bene».
+  ⚠️ **A 320 px la soglia si sposta davvero, e nessun banco poteva vederlo**: i
+  testi che dentro le finestre prendono la soglia del «testo grande» (3:1) sono
+  **20 a 430 px, 20 a 390, 15 a 320** — **cinque cambiano soglia a 4,5:1 senza
+  cambiare colore**. Sono cinque numeri `.sv` a 20px nel **core**, e il
+  meccanismo è verificato sul sorgente: `.sv{font-size:20px;font-weight:800}` e
+  un `@media(max-width:360px)` che li porta a **18px** — 20px in grassetto sta
+  **sopra** il confine dei 18,66, 18px sta **sotto**. Oggi reggono anche 4,5:1
+  (**0 KO**), ma il margine si è stretto e va saputo.
+  ✅ Esito delle tre larghezze: `--modali` 90 finestre su 186 a ciascuna,
+  **952 testi**, **0 KO**; `--forzate` 206 aperture, **106 testi**, **0 KO**.
+  Controprove: 27 superfici·larghezza avvelenate su `--forzate`, **27 bocciate**,
+  testimone 0; 16 su 16 su `--modali`, testimone 0.
+  ⚠️ E tre difese di righello aggiunte, di cui una che avrebbe fatto stampare
+  «0 sotto soglia» **senza aver misurato niente**: la chiave dei doppioni non
+  portava la larghezza, quindi 430 si mangiava 320.
 - ⚠️ **`.avatar.warn` non è dipinta da nessuno** (l'unico stato che il foglio
   condiviso conosce è `.sup`), e resta viva in `ric-list` di Conti da prima di
   oggi. `classi-orfane` non la vede perché guarda il **nome** — `warn` è
