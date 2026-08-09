@@ -1049,7 +1049,12 @@ import { sitoFit, ppvLimit, ppvSenzaSoglia, airblastDb, normaPpvLab,
 /* seconda fetta del cantiere B3, blocco G10: due funzioncine pure che
    decidono qualcosa che esce (il numero nel file per Sentinella) o che si
    guarda (il colore di un'isocrona sulla tela). */
-         _sentNum, isoColore } from './genesi-data.js';
+         _sentNum, isoColore,
+/* la massima carica che parte dentro una finestra di 8 ms: da lei dipendono
+   la distanza scalata, la PPV prevista al recettore e quindi il verdetto
+   «sotto soglia» — vedi il blocco G11. Qui resta `computeMIC`, che le passa
+   lo stato del progetto e non fa altro. */
+         micFinestra } from './genesi-data.js';
 /* ⛔ «ha una data» si decide con l'ESISTENZA, non con la forma: «2026-02-30» ha
    la forma giusta e non esiste. Il modulo di Genesi questa regola l'ha imparata
    il 03/08 — il commento in cima a `genesi-data.js` lo racconta — e la pagina
@@ -1245,8 +1250,15 @@ function ppvSite(){
   const vp=(selRoccia()||{}).vp||4500, t=Math.max(0,Math.min(1,(vp-2600)/(6000-2600)));
   return { K:Math.round(2800-1600*t), beta:+(1.75-0.35*t).toFixed(2), fonte:'litologia' };
 }
-/* MIC = massima carica entro finestra 8 ms, raggruppando i fori sui tempi tDet reali (V-cut/box: piu fori sullo stesso ritardo) */
-function computeMIC(){ const H=D2.holes; if(!H.length) return D2.kg; const ts=H.map(h=>h.tDet||0); let n=1; for(const t0 of ts){ let c=0; for(const t of ts) if(t>=t0 && t<t0+8) c++; if(c>n) n=c; } return n*D2.kg; }
+/* MIC = massima carica entro finestra 8 ms, raggruppando i fori sui tempi tDet
+   reali (V-cut/box: piu fori sullo stesso ritardo). ⛔ Il corpo è salito in
+   `genesi-data.js` (blocco G11) il 09/08: da questo numero dipendono la
+   distanza scalata, la PPV prevista al recettore e il confronto con la soglia
+   di norma — cioè se la volata si spara come è disegnata — e qui dentro nessuna
+   prova poteva chiamarlo. Qui resta solo la raccolta dello stato del progetto:
+   il nome non è cambiato, quindi nessuna delle otto chiamate di questa pagina
+   è cambiata. */
+function computeMIC(){ return micFinestra(D2.holes, D2.kg); }
 
 /* ============ costanti progetto-tipo ============ */
 let SPALLA = 3.0, INTERASSE = 3.5;            // maglia editabile — default NEUTRI da regole generali (B~28·D, S/B~1.15)

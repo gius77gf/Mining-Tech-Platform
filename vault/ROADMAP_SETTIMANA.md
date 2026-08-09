@@ -703,6 +703,51 @@ numero scritto dove non era stato misurato niente**.*
       e vanno chiamate così invece di finire in una stima ottimistica.
       È l'unico pezzo di prodotto che vive quasi tutto fuori dalla portata
       delle prove.
+      ✅ **SECONDA FETTA, 09/08: `computeMIC` → `micFinestra(holes, kg)` (blocco
+      G11).** MIC è la **massima carica che parte dentro una finestra di 8 ms**,
+      cioè la testa della catena più delicata dell'app:
+      `MIC → distanza scalata recDist/√MIC → PPV prevista K·SD^(−β) → confronto
+      con il limite di norma`. Sbagliarla non produce un difetto grafico:
+      produce un «sotto soglia» su una volata che sotto soglia **non è**. Ha
+      otto punti di chiamata, fra cui il foglio stampato, il CSV e il piano di
+      innesco XML che leggono software di terzi.
+      Le prove nuove fissano tre comportamenti che leggendo il codice si
+      deducevano male: il bordo della finestra è **aperto a destra** (due fori a
+      7,999 ms contano insieme, a 8,0 esatti no); un foro **senza `tDet` vale
+      0**, quindi una volata di cui nessuno ha calcolato la sequenza risulta
+      tutta simultanea — che è il verso **prudente**, e va bene così; e
+      `holes: null` solleva invece di rispondere un numero.
+      ⚠️ **Il conto delle funzioni NON è sceso (163 → 163), e la ragione è una
+      misura, non una scusa**: nella pagina `computeMIC` resta come **legame**
+      fra lo stato del progetto e la funzione pura
+      (`return micFinestra(D2.holes, D2.kg);`), esattamente come `interpFronte`
+      per `interpProf` — un punto di legame solo invece di ripetere
+      `D2.holes, D2.kg` in otto punti di chiamata, che sarebbe la
+      «copia da firma troppo stretta» al contrario. Quindi **`genesi-estraibili`
+      conta le DICHIARAZIONI, non la logica**, e un trasloco-con-legame gli è
+      invisibile: la misura che vede il lavoro è **189 → 38 caratteri** di
+      logica nella pagina, e `t0+8` che nel file compare adesso **0 volte**.
+      ✅ Trasloco provato **parola per parola**: la vecchia implementazione
+      estratta dal file, non riscritta a mano, messa accanto alla nuova su
+      **20.000 casi generati** più 4 di bordo → **0 divergenze**.
+      ✅ Sette iniezioni, ognuna fa cadere la sua prova — compresa quella
+      anti-trappola, che non si accontenta del **nome** (che nella pagina resta)
+      ma pretende che sia sparito il **corpo**.
+      ⛔ **E UN DIFETTO VERO, TROVATO E NON CORRETTO, CHE VA DECISO** —
+      `computeMIC()` su un progetto **senza fori disegnati** risponde la carica
+      di **un** foro, cioè il valore più basso possibile, cioè la PPV più
+      tranquilla. Misurato sul progetto di partenza (60 kg/foro, recettore
+      300 m, K=1140, β=1,6): 12 fori sullo stesso ritardo → MIC 720 kg → PPV
+      **23,95 mm/s**; nessun foro → MIC 60 kg → PPV **3,28 mm/s**, cioè
+      **7,3 volte più bassa**. È «l'assenza di un dato non è un dato
+      favorevole» nella sua forma classica, sul numero con cui si decide se una
+      volata si può sparare.
+      **Raggiungibilità misurata**: cinque punti di chiamata generano la maglia
+      prima, ma **otto chiamate a `computeKPI()` no** — `cmpSave`, il CSV,
+      `_riconCampoHtml`, `riconRender`, `riconSave`, `sigRender`, `volSnapshot`,
+      `simulaPerforazione`. La cura giusta è `null` («non calcolabile») con i
+      lettori che lo sanno leggere, ed è **un cantiere a sé**: la prova nuova
+      intanto lo **fissa e lo nomina** invece di lasciarlo dedurre.
       ✅ **PRIMA FETTA PORTATA FUORI il 09/08: `interpProf` (blocco G9).**
       166 → **165** funzioni nella pagina, e il numero è di nuovo **derivato**
       dal comando, non ricopiato. Non è la più grossa: è quella che **pesa di
@@ -782,7 +827,28 @@ numero scritto dove non era stato misurato niente**.*
 
           | app | «CONFERMATA ASSENTE» | «SCADUTA» |
           | campo 11 · sentinella 13 · conti 8 · flotta 5 · terra 4 · **scudo 6** |
-          | totale **47** (era 54 · ⛔ NON 42 e NON 41: vedi qui sotto) | totale **13** (⛔ non 18) |
+          | totale **47** (era 54 · ⛔ NON 42 e NON 41: vedi qui sotto) | totale **14** (⛔ non 18) |
+
+      ⏱️ **13 → 14 il 09/08, e il verdetto che si è mosso vale più del numero.**
+      La riga *hazard / near-miss tracking* di Campo era «**C'È A METÀ**
+      (nell'ecosistema)», e la metà mancante era proprio Campo: è stata
+      costruita il **03/08 alle 12:57** (`88bc73f`), **tre ore e quarantotto
+      minuti dopo** la verifica di quella mattina. Prova:
+      `grep -ciE 'near-miss|mancato infortunio' apps/campo/campo-data.js
+      apps/campo/index.html` → **11 e 14**, dove il 03/08 dava 0 e 0.
+      ⛔ **E il documento lo sapeva già**: duecento righe più in là il suo
+      racconto del 06/08 elencava «il near-miss segnalato dal fronte» fra le
+      cose costruite. Il racconto era aggiornato, **la tabella no** — cioè le
+      due metà dello stesso file in disaccordo, ed è la ragione per cui la
+      direttiva 7 chiede di aggiornare *la riga che aveva proposto il lavoro*
+      e non solo di scrivere che il lavoro è fatto.
+      ⚠️ **E la correzione facile è stata rifiutata con la misura**: restava
+      davvero una mancanza vicina — l'`hazard` come *condizione insicura*,
+      distinta dal near-miss (`grep -ciE 'hazard|condizione insicura|
+      osservazione di sicurezza'` su Campo e Scudo → **0 ovunque**) — e sarebbe
+      bastato appoggiarcisi per tenere in piedi il verdetto vecchio. È una
+      mancanza **diversa** da quella dichiarata: sta scritta come nota nuova,
+      non usata per non far scendere il numero.
 
       ⚠️ **Correzione dello stesso pomeriggio: 41 → 42.** Il primo conto cercava
       `CONFERMAT[AO] ASSENTE` e ha perso l'unica riga al plurale, «CONFERMATE
@@ -3258,8 +3324,8 @@ numero scritto dove non era stato misurato niente**.*
   nome apre il file sbagliato credendo che sia il più fresco.
 - Le decisioni: `docs/DECISIONI_WEEKEND.md` — pagina d'ingresso in cima.
 - Stato misurato al **09/08** (lanciando le suite, non a memoria):
-  **2.431 prove girano senza rete**. La frase va letta stretta: è la somma
-  delle **otto** suite che contano asserzioni (`run-kpi` 1979, `run-stile` 318,
+  **2.436 prove girano senza rete**. La frase va letta stretta: è la somma
+  delle **otto** suite che contano asserzioni (`run-kpi` 1984, `run-stile` 318,
   `run-helpers` 75, `run-pointcloud` 32, `run-manifest` 9, `run-demo` 8,
   `bootstrap-rivendicazioni` 7, `fogli-guardati` 3), non tutto ciò che gira nel
   giro `node` — che di comandi ne ha **34** e di asserzioni ne esegue di più:

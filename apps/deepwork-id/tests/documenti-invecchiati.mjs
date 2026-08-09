@@ -248,10 +248,20 @@ if (dietro.length) {
   const percorso = (app, file) => [`apps/${app}/${file}`, `shared/${file}`, `shared/deepwork-id-client/${file}`, file]
     .find((c) => existsSync(join(RADICE, c))) || null;
   let tot = 0, vecchie = 0;
+  /* ⛔ E QUESTI DUE SI CONTANO invece di stare scritti a mano nel `console.log`:
+     fino al 09/08 la riga in fondo diceva «restano **157** citazioni» come
+     STRINGA, e quel giorno un'unità le ha portate da 166 a molte meno senza
+     che il numero stampato si muovesse di un'unità. È lo stesso difetto che
+     questo file esiste per prendere — un numero che invecchia — annidato nel
+     file che lo prende, e sta qui perché una regola scritta in un documento non
+     protegge lo strumento che la applica. */
+  let citTot = 0, citConNome = 0;
   const per = [];
   for (const f of readdirSync(join(RADICE, "docs")).filter((n) => /^CONCORRENTI_.*\.md$/.test(n)).sort()) {
     const app = f.replace(/^CONCORRENTI_|\.md$/g, "").toLowerCase();
     const testo = readFileSync(join(RADICE, "docs", f), "utf8");
+    citTot += (testo.match(/[a-z0-9_-]+\.(?:js|html):\d+/g) || []).length;
+    citConNome += (testo.match(/`[A-Za-z_$][\w$]*`\s*\(`?[a-z0-9-]+\.(?:js|html):\d+`?\)/g) || []).length;
     let ultimo = null, n = 0, v = 0;
     for (const m of testo.matchAll(/`([A-Za-z_$][\w$]*)`\s*\(`?([a-z0-9-]+\.(?:js|html)):(\d+)`?\)|`([A-Za-z_$][\w$]*)`\s*\((\d{3,4})\)/g)) {
       const nome = m[1] || m[4];
@@ -297,9 +307,12 @@ if (dietro.length) {
      **misurata** (87 su 91), qui sarebbe **dedotta** — e in questa casa non si
      tocca un soggetto sano perché lo dice un'inferenza. Chi riscrive una di
      quelle righe le toglie il numero, come le altre. */
-  console.log("   ⚠️ Restano 157 citazioni `file:riga` SENZA un nome accanto: non verificabili in");
-  console.log("      automatico, e non tolte — sulle altre la staleness era misurata, qui sarebbe");
-  console.log("      dedotta. («oltre la fine del file» dà 0 su 157, e non vuol dire niente: i file crescono.)");
+  const citSenza = Math.max(0, citTot - citConNome);
+  console.log(`   ⚠️ Restano ${citSenza} citazioni \`file:riga\` SENZA un nome accanto (su ${citTot} con la riga,`
+    + ` ${citConNome} col nome): non verificabili in automatico, e non tolte — sulle altre la staleness`);
+  console.log("      era misurata, qui sarebbe dedotta. («oltre la fine del file» dà 0, e quello zero non");
+  console.log("      vuol dire niente: i file crescono.)  ⏱️ Il numero è CONTATO, non scritto a mano:");
+  console.log("      fino al 09/08 era il letterale «157» e non si è mosso mentre le citazioni scendevano.");
 }
 
 console.log(`\nRisultato documenti invecchiati: ${passed} passati, ${failed} falliti` +

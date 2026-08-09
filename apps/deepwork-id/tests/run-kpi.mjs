@@ -24218,6 +24218,82 @@ console.log("\n— Campo: i file che escono —");
     ok(elenco.includes("_sentNum"), "la pagina importa _sentNum da genesi-data.js");
     ok(elenco.includes("isoColore"), "e isoColore");
   });
+
+  /* ⛔ G11 — LA MASSIMA CARICA ISTANTANEA. Terza fetta del cantiere B3, salita
+     dalla pagina il 09/08. Non è una funzione qualunque: da lei dipende la
+     catena `MIC → distanza scalata → PPV prevista → sotto/sopra la soglia di
+     norma`, cioè il numero con cui si decide se una volata si spara come è
+     disegnata. Nella pagina nessuna prova poteva chiamarla.
+     ⚠️ Prove SINCRONE e messe PRIMA del riepilogo, come vuole questo file. */
+  const _fori = (...t) => t.map((x) => ({ tDet: x }));
+
+  test("⛔ Genesi · micFinestra: la roccia sente quello che parte INSIEME, non il totale", () => {
+    /* il mestiere: due fori sullo stesso ritardo sono, per il terreno, un foro
+       solo di carica doppia. La finestra convenzionale è di 8 ms. */
+    eq(v.micFinestra(_fori(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0), 60), 720,
+      "12 fori sullo stesso istante a 60 kg: la MIC è tutta la volata");
+    eq(v.micFinestra(_fori(0, 42, 84, 126, 168), 60), 60,
+      "gli stessi fori a 42 ms l'uno dall'altro: parte un foro per volta");
+    eq(v.micFinestra(_fori(0, 7, 14, 21, 28), 60), 120,
+      "a 7 ms si sommano a due a due: dentro la finestra ce ne stanno sempre due");
+    eq(v.micFinestra(_fori(0, 0, 0, 25, 50, 75), 60), 180,
+      "V-cut: i tre fori di taglio sullo stesso ritardo decidono la MIC");
+    eq(v.micFinestra(_fori(0), 60), 60, "un foro solo: la sua carica");
+  });
+
+  test("⛔ Genesi · micFinestra: il bordo della finestra è a 8 ms ESCLUSI", () => {
+    /* è l'unico punto in cui `<` invece di `<=` cambia una MIC, ed è il bordo
+       su cui un conto a mano sbaglia: va scritto, non dedotto. */
+    eq(v.micFinestra(_fori(0, 7.999), 60), 120, "a 7,999 ms i due fori contano insieme");
+    eq(v.micFinestra(_fori(0, 8), 60), 60, "a 8,0 ms esatti NON contano più insieme");
+    eq(v.micFinestra(_fori(0, 8.001), 60), 60, "e oltre nemmeno");
+  });
+
+  test("⛔ Genesi · micFinestra: senza sequenza la volata è tutta simultanea — il verso PRUDENTE", () => {
+    /* `h.tDet || 0`: finché nessuno ha calcolato la sequenza, tutti i fori
+       valgono zero, cioè partono insieme e la MIC è la più ALTA possibile.
+       È il verso giusto — l'app non promette che i fori si separino finché
+       non c'è una sequenza che lo dica. */
+    eq(v.micFinestra([{}, {}, {}], 60), 180, "tre fori senza tDet: contano tutti insieme");
+    eq(v.micFinestra(_fori(null, null), 60), 120, "e un tDet nullo vale zero, non salta il foro");
+  });
+
+  test("⛔ Genesi · micFinestra: SENZA fori risponde la carica di UN foro — il numero più basso", () => {
+    /* ⛔ Il verso opposto della prova qui sopra, e va nominato invece che
+       lasciato dedurre: con l'elenco dei fori vuoto la funzione risponde `kg`,
+       che è il valore più BASSO che possa restituire — quindi la distanza
+       scalata più grande e la PPV prevista più bassa. Misura sul progetto di
+       partenza (60 kg/foro, recettore a 300 m, K=1140, β=1,6): 12 fori insieme
+       danno MIC 720 e PPV 23,95 mm/s; nessun foro disegnato dà MIC 60 e PPV
+       3,28 mm/s — sette volte più bassa.
+       Il comportamento è quello che la pagina aveva da sempre e un TRASLOCO non
+       lo tocca: questa prova lo fissa e lo rende visibile, non lo approva. */
+    eq(v.micFinestra([], 60), 60, "elenco vuoto: la carica di un foro solo");
+    const ppv = (mic) => +(1140 * Math.pow(Math.max(0.1, 300 / Math.sqrt(Math.max(1, mic))), -1.6)).toFixed(2);
+    const piena = v.micFinestra(_fori(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0), 60);
+    ok(ppv(v.micFinestra([], 60)) < ppv(piena) / 5,
+      `e la PPV che ne esce è la più tranquilla: ${ppv(v.micFinestra([], 60))} contro ${ppv(piena)} mm/s`);
+  });
+
+  test("⛔ Genesi · micFinestra è USCITA dalla pagina, non copiata", () => {
+    /* la trappola del trasloco: lasciare la vecchia copia dentro `genesi.html`
+       e importare anche la nuova. La pagina userebbe la sua, e le quattro prove
+       qui sopra blinderebbero una funzione che nessuno chiama.
+       ⚠️ Qui il nome NON basta: nella pagina `computeMIC` resta — è il legame
+       fra lo stato del progetto e la funzione pura, come `interpFronte` per
+       `interpProf`. Quello che deve essere sparito è il CORPO, cioè la finestra
+       di 8 ms; e `computeMIC` deve limitarsi a passare lo stato. */
+    const pag = senzaCommenti(readFileSync(join(HERE, "../../genesi/genesi.html"), "utf8"));
+    ok(!/t\s*<\s*t0\s*\+\s*8/.test(pag), "nella pagina non c'è più la finestra di 8 ms");
+    ok(!/function\s+micFinestra\s*\(/.test(pag), "né una seconda micFinestra");
+    const corpo = (pag.match(/function\s+computeMIC\s*\(\s*\)\s*\{([^}]*)\}/) || [, ""])[1];
+    ok(/micFinestra\s*\(/.test(corpo), `computeMIC chiama il modulo: «${corpo.trim()}»`);
+    ok(!/for\s*\(/.test(corpo), `e non si è tenuta un secondo conto: «${corpo.trim()}»`);
+    const elenco = (pag.match(/import\s*\{([^}]*)\}\s*from\s*'\.\/genesi-data\.js'/) || [, ""])[1]
+      .split(",").map(s2 => s2.trim());
+    ok(elenco.includes("micFinestra"), "e la pagina la importa da genesi-data.js");
+    eq(typeof v.micFinestra, "function", "il modulo la esporta");
+  });
 }
 
 /* ⛔ `terra.numeroRegistrato` — la guardia che dal 07/08 vive anche dalla parte

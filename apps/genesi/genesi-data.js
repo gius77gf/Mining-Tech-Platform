@@ -871,3 +871,73 @@ export function _sentNum(n) {
 export function isoColore(u) {
   return "hsl(" + (188 + u * 26).toFixed(0) + "," + (62 - u * 10).toFixed(0) + "%," + (72 - u * 14).toFixed(0) + "%)";
 }
+
+/* ══════════════════════════════════════════════════════════════════════════
+   G11 — LA MASSIMA CARICA ISTANTANEA, IL NUMERO CON CUI SI DECIDE SE UNA
+   VOLATA STA SOTTO LA SOGLIA DI VIBRAZIONE
+   ══════════════════════════════════════════════════════════════════════════
+   Terza fetta del cantiere censito da `genesi-estraibili.mjs`. `computeMIC`
+   stava dentro `genesi.html` e **nessuna prova poteva chiamarla**, eppure è la
+   funzione da cui dipende la catena più delicata dell'app:
+
+       MIC → distanza scalata `recDist / √MIC` → PPV prevista `K·SD^(−β)`
+           → confronto con il limite di norma (`ppvLimit`)
+
+   cioè il numero che dice se la volata si può sparare come è disegnata o se il
+   piano va rifatto. Sbagliarlo non produce un difetto grafico: produce un
+   «sotto soglia» su una volata che sotto soglia non è.
+
+   ⛔ CHE COSA MISURA, in parole di cava. La roccia non sente la carica totale
+   della volata: sente quanto esplosivo parte **nello stesso istante**. Due
+   fori sullo stesso ritardo sono, per il terreno, un foro solo di carica
+   doppia. La convenzione — la stessa dell'USBM e delle norme che ne
+   discendono — è che due cariche separate da **meno di 8 ms** contino insieme.
+   Quindi il conto è: si prende ogni foro come inizio di una finestra di 8 ms,
+   si contano quanti fori partono dentro quella finestra, e si tiene il gruppo
+   più numeroso. Quello, per la carica di un foro, è la MIC.
+
+   ⚠️ **TRASLOCO, NON MIGLIORIA**: il corpo è arrivato parola per parola dalla
+   pagina, `8` compreso. L'unica cosa cambiata è la **firma** — `D2.holes` e
+   `D2.kg` sono diventati due argomenti, perché quello stato vive nella pagina
+   e un modulo dati non deve conoscerlo. La pagina la chiama con lo stesso nome
+   di prima (`computeMIC`) e nessuna delle sue otto chiamate è cambiata.
+
+   Quello che la funzione fa, e che adesso è SCRITTO invece che dedotto:
+   · la finestra è **aperta a destra**: due fori a 8,0 ms esatti NON contano
+     insieme, due a 7,999 sì. È il bordo su cui un conto a mano sbaglia, ed è
+     l'unico punto in cui la scelta di `<` invece di `<=` cambia una MIC;
+   · l'ancora è **ogni foro**, non una griglia di finestre: una finestra
+     ottima si può sempre far scorrere fino a partire da un foro, quindi
+     provarle tutte basta a trovare il massimo vero;
+   · un foro **senza `tDet`** vale 0 (`h.tDet || 0`): una volata di cui nessuno
+     ha ancora calcolato la sequenza risulta tutta simultanea, cioè la MIC più
+     ALTA possibile. È il verso prudente, ed è quello giusto: finché la
+     sequenza non c'è, l'app non promette che i fori si separino;
+   · con l'elenco dei fori **vuoto** risponde `kg`, la carica di UN foro.
+     ⛔ Questo è il verso OPPOSTO, ed è dichiarato qui perché si veda: è il
+     valore più basso che la funzione possa restituire, quindi la distanza
+     scalata più grande e la PPV più bassa. Misurato sul progetto di partenza
+     (60 kg/foro, recettore a 300 m, K=1140, β=1,6): una volata da 12 fori
+     sullo stesso ritardo dà MIC 720 kg e PPV 23,95 mm/s, un progetto **senza
+     nessun foro disegnato** dà MIC 60 kg e PPV 3,28 mm/s — sette volte più
+     bassa. Il comportamento è quello di prima e **non è stato toccato in un
+     trasloco**; la prova qui sotto lo fissa e lo nomina, così non è più una
+     riga che nessuno ha letto.
+   ⚠️ E il contratto verso chi la chiama, che nella pagina non poteva emergere:
+   `holes` deve essere un array (con `null` solleva, come faceva prima dentro
+   la pagina), e `kg` deve essere un numero — con `kg` a `null` il ramo dei
+   fori vuoti risponde `null` ma quello dei fori pieni risponde **0**, perché
+   `n * null` fa zero. Dalla pagina non è raggiungibile: `D2.kg` nasce a 60 e
+   ogni scrittura passa da un `Math.max(2, …)` o `Math.max(5, …)`. */
+export function micFinestra(holes, kg) {
+  const H = holes;
+  if (!H.length) return kg;
+  const ts = H.map((h) => h.tDet || 0);
+  let n = 1;
+  for (const t0 of ts) {
+    let c = 0;
+    for (const t of ts) if (t >= t0 && t < t0 + 8) c++;
+    if (c > n) n = c;
+  }
+  return n * kg;
+}

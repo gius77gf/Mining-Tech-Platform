@@ -46,25 +46,32 @@ segnaposto («Funzione nav non ancora pronta»). Per aprirlo davvero si monta
 
 ## Le prove
 
-**2.431 prove girano senza rete e senza browser**, con `node` (contate lanciandole, non a memoria — al 09/08: 1979 + 318 + 75 + 32 + 9 + 8 + 7 + 3):
+**2.436 prove girano senza rete e senza browser**, con `node` (contate lanciandole, non a memoria — al 09/08: 1984 + 318 + 75 + 32 + 9 + 8 + 7 + 3):
 
-> ⚠️ **E quel numero conta SETTE suite, non tutto quello che gira.** Rimisurato
-> l'08/08 **a sera** sommando le righe «Risultato …» di un giro intero: il giro
-> `node` completo esegue **2.663** asserzioni, perché ne lancia altre **tredici**
-> (sonda del vuoto 15, limite del giro 9, numeri nei documenti 26, orologio del
-> vault 3, documenti invecchiati 15, sintassi delle pagine 34, import esistenti
-> 153, nomi liberi 24, classi orfane 2 + 6, funzioni mai usate 4, porte dei banchi 3,
-> suite collegate 3 = **297**).
-> ⚠️ *E l'elenco NON conta le due controprove nate l'08/08 —* `iniezioni fresche`
-> *e* `server orfani` *— che stampano un verdetto invece di un totale: girano nel
-> giro (che è passato da 28 a **32** comandi) ma non hanno una riga «Risultato»
-> da sommare. È l'etichetta più larga del suo numero, presa mentre la si
-> scriveva: qui il numero è stretto e la frase lo dichiara.*
+> ⚠️ **E quel numero conta OTTO suite, non tutto quello che gira.** Il giro
+> `node` completo esegue **2.757** asserzioni su **34** comandi.
+> ⏱️ **Dal 09/08 quel numero non si scrive più a mano: lo stampa il giro**
+> (`node apps/deepwork-id/tests/giro-node.mjs`, riga «Asserzioni eseguite dal
+> giro»), col suo denominatore accanto — 22 comandi su 34 hanno una riga da
+> sommare, e gli altri **12 sono nominati** invece che contati.
+> ⛔ *Prima era ricopiato a mano e diceva **2.663**, poi **2.728**: il vero è
+> 2.757. E il difetto stava anche nel modo di misurarlo — il primo righello
+> scritto per automatizzarlo prendeva il **primo** «N passati» dell'uscita di
+> ogni comando, e* `orologio-cliente.mjs` *RILANCIA tre suite in ora italiana
+> stampandone i riepiloghi: il conto si riprendeva il «1984 passati» di*
+> `run-kpi` *una seconda volta e diceva **4741**, gonfiato del 72% da un comando
+> solo. È una RIPETIZIONE contata come roba nuova — la stessa famiglia del
+> riepilogo del giro del browser — e l'ha presa solo il confronto fra due
+> righelli indipendenti. La forma che regge: si legge l'**ultima** riga, cioè il
+> verdetto che il comando dà **di sé**.*
+> ⚠️ *Fra i 12 non contati ci sono le controprove, che stampano un verdetto
+> invece di un totale: girano davvero, e le loro asserzioni sono vere, ma su un
+> difetto messo apposta.*
 > ⚠️ *Questa nota era ferma al 07/08 e diceva 2.474 e «il numero da citare resta
 > 2.251» mentre il titolo sopra diceva già 2.310: il controllo sorveglia il
 > **totale**, non la prosa che lo spiega. È la quarta forma di invecchiamento
 > raccolta in `CLAUDE.md`.*
-> **Il numero da citare resta 2.431**, e la ragione è che le altre dieci contano
+> **Il numero da citare resta 2.436**, e la ragione è che le altre dieci contano
 > **file, non prove**: `import esistenti` fa un'asserzione per file e `classi
 > orfane` una per pagina, quindi il loro totale si muove ogni volta che nasce un
 > file — un numero che cresce senza che nessuno abbia scritto una prova è un

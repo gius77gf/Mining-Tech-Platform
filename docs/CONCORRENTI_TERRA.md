@@ -298,9 +298,56 @@ Nella roadmap, il ponte P2 (riconciliazione volume vs tonnellate) è il prossimo
 
 ## Verifica del delta (01/08)
 
-> **Verificato contro il codice al commit `4a5175a`** *(le quattro «CONFERMATA ASSENTE» rimisurate una per una il 09/08 — i verdetti reggono, tre ricerche su quattro no; prima era `57c78cf`, riverificato l'08/08 sera;
-> le precedenti erano a `8583a0b` lo stesso giorno, a `4916275` il 06/08 e a
-> `e9f9b0d` il 01/08).*
+> **Verificato contro il codice al commit `3a3ca66`** *(tutte e undici le righe
+> rilanciate una per una il 09/08 a sera — **zero verdetti cambiati, sette prove
+> riscritte**; prima era `4a5175a` lo stesso giorno, `57c78cf` l'08/08 sera,
+> `8583a0b` lo stesso giorno, `4916275` il 06/08 e `e9f9b0d` il 01/08).*
+>
+> ### 09/08 (sera) — due commit, **uno che morde**, zero righe mosse
+>
+> Fra `4a5175a` e `3a3ca66` Terra è andata avanti di **2 commit**, **+105 righe**
+> e −8, e **uno morde**: `5b9e4e5` ha portato due `export function` nuove,
+> `serieDichiaratoTurni` e `descriviBuchiTurni`. Sono il **ponte P2** —
+> raccontano *perché* manca un punto nel grafico «misurato contro dichiarato»
+> (i rapportini non arrivano · nessun turno ha registrato · i turni hanno
+> dichiarato viaggi o tonnellate senza densità, che in metri cubi non si
+> portano). Cioè cadono sulla riga **Volume reconciliation**, che era già
+> **FALSO, C'È GIÀ** dal 01/08: la rafforzano, non la muovono.
+>
+> **Nessuna delle quattro mancanze dichiarate è stata colmata**, e la prova è la
+> ricerca sulle righe aggiunte, non la lettura:
+>
+> ```
+> git diff 4a5175a..3a3ca66 -- apps/terra/ | grep -E "^\+" \
+>   | grep -oiE "\b(cut|fill|stockpile|detection|pit|design|scheduling|floating|cone|conical|sterro|riporto|taglio|riempimento)\b" \
+>   | sort | uniq -c
+> →  (nessuna riga)
+> ```
+>
+> **Zero occorrenze su 14 termini in 105 righe aggiunte.**
+>
+> ⏱️ **E QUESTO PASSAGGIO È UNA RILETTURA VERA, RIGA PER RIGA — non il
+> controllo da un minuto dei due blocchi qui sotto.** Esito onesto, ed è lo
+> stesso che il 09/08 è stato misurato su tutte e quarantasette le righe del
+> delta: **nessun verdetto cambia, sette prove non si riproducevano più.**
+> Nessuna di quelle sette era una verifica sbagliata — a marcire è **il modo in
+> cui erano scritte**, perché il repository cresce:
+> · **dodici numeri di riga su dodici erano scaduti** (`riservaResidua` citata a
+>   384 e sta a 555, `vitaCava` a 670 e sta a 857, `misuratoPeriodo` a 211 e sta
+>   a 227): i **nomi** erano giusti tutti e dodici. Adesso la prova cita il nome
+>   e il comando che lo trova, che è stabile;
+> · il conto di un **termine largo** si era mosso da solo (`fill` da 16 a 17,
+>   `taglio`+`riempimento` da 8 a 7) senza che niente di quel mestiere entrasse
+>   nel codice;
+> · e due **caratterizzazioni erano false**: `fillStyle` era citato fra le
+>   occorrenze di `fill` di Terra e in Terra **non c'è mai stato**
+>   (`grep -c fillStyle apps/terra/terra-data.js apps/terra/index.html` → `0` e
+>   `0`; vive in Genesi, che ha una tela); e l'unica `floating` era data per «un
+>   termine di CSS» mentre è un commento sul **`valid floating-point number`**
+>   della specifica di `<input type="number">`.
+> ⚠️ Una prova falsa con un verdetto giusto non rende la riga sbagliata: la
+> rende **non credibile**, e chi la riapre fra un mese la butta via insieme a
+> quelle buone. È per questo che valeva riscriverle anche a verdetti fermi.
 >
 > **08/08, sera — quattro commit, NESSUNO che morde.** Fra `8583a0b` e `57c78cf`
 > Terra è andata avanti di quattro commit e **+18 righe** e −6. Nessuno aggiunge
@@ -347,7 +394,10 @@ Nella roadmap, il ponte P2 (riconciliazione volume vs tonnellate) è il prossimo
 > nelle icone), `taglio`=5 è il nome della classe CSS `dwg-taglio` (una linea
 > tratteggiata), `riempimento`=2 è un commento sulla barra di avanzamento, e
 > l'unico `floating` è la frase «*floating-point number*» in un commento su come
-> il browser sanitizza i decimali (`terra-data.js:275`). `cut`, `stockpile`,
+> il browser sanitizza i decimali — è la specifica di `<input type="number">`, e
+> si ritrova per **frase** invece che per numero di riga:
+> `grep -c 'floating-point number' apps/terra/terra-data.js apps/terra/index.html`
+> → `1` e `0`. `cut`, `stockpile`,
 > `detection`, `pit`, `scheduling`, `cone`, `conical`: **zero**.
 >
 > ⚠️ **E i confini di parola non sono un dettaglio**: è la lezione pagata
@@ -372,17 +422,17 @@ Nella roadmap, il ponte P2 (riconciliazione volume vs tonnellate) è il prossimo
 
 | Funzione | Verdetto | Prova |
 |----------|----------|-------|
-| Cut & fill volumes | **CONFERMATO ASSENTE** | ⏱️ *Rimisurata il 09/08: il verdetto regge, la ricerca no.* `cut` e `stockpile` danno ancora **zero**, ma `fill` ora dà **16** e `taglio`/`riempimento` **8** — e nessuna di quelle occorrenze è un volume: sono **termini di disegno** (`fillStyle` della tela, la classe `dwg-taglio` che è un tratteggio, «la testa del riempimento» della barra di avanzamento). Il conto di cut & fill non c'è: nessuna funzione confronta un terreno di partenza con uno di arrivo per dire quanto si è tolto e quanto si è messo. |
-| Bench-by-bench volume tracking | ⏱️ **SCADUTA — C'È DAL 01/08** (verifica `e9f9b0d` 16:20 → costruito `e5f15a7` 16:55, **35 minuti**) | `banco` esiste (terra-data.js:42-44, 1064) ma solo come campo della fronte, non c'è tracking volumetrico per banco singolo — il tracking è per fronte (volumeFronte), non per banco |
-| Automatic stockpile detection | **CONFERMATO ASSENTE** | ⏱️ *Rimisurata il 09/08:* `stockpile` e `detection` **zero**. Il cumulo si dichiara a mano, non lo riconosce nessuno da una nuvola di punti. |
-| Pit design e scheduling | **CONFERMATO ASSENTE** | ⏱️ *Rimisurata il 09/08:* `design` e `scheduling` **zero**; l'unica occorrenza di `pit` è dentro una parola italiana, non un termine minerario. I lotti si creano a mano, senza nessun disegno automatico della cava. |
-| Reserve estimation con optimization | **FALSO, C'È GIÀ** | terra-data.js:384 `riservaResidua()` calcola la riserva residua; usata in index.html:1082-1083 per mostrare il consumo annuale — non è full optimization ma c'è stima della riserva |
-| Floating cone optimization | **CONFERMATO ASSENTE** | ⏱️ *Rimisurata il 09/08:* `cone`, `conical` e `ottimizzazione` **zero**; l'unica `floating` è un termine di CSS. Nessun ottimizzatore geometrico dello scavo. |
-| Pit progression monitoring | **C'È A METÀ** | terra-data.js:670 `vitaCava()` e terra-data.js:400 `proiezioneAnnua()` monitorano vita della cava (consumo annuale, residuo, anni stimati) ma non è monitoraggio del pit design — è monitoraggio della concessione |
-| Volume reconciliation (misurato vs dichiarato) | **FALSO, C'È GIÀ** | shared/dw-ponti.js:185 `riconciliazioneTurni()` fa esattamente il confronto fra volumi misurati dai rilievi e dichiarati dai turni di campo; importata e usata in terra-data.js:1152 e index.html:849; confronta `misuratoPeriodo()` (dw-ponti.js:211) con `produzioneDichiarata()` |
-| Conformità design | ⏱️ **SCADUTA — C'È DAL 01/08** (verifica `e9f9b0d` 16:20 → costruito `e19e196` 18:22) | Allora zero occorrenze di `conformit`; oggi `statoConformitaQuota`, `conformitaQuota` e `conformitaProgetto` in `terra-data.js`: «stiamo scavando dove il progetto dice?» è la domanda dell'ente, e l'app sa rispondere |
-| Gestione concessione regionale | **C'È A METÀ** | terra-data.js:580, 722, 959, 980 e index.html:541, 819 dichiarano "materia regionale": l'app non applica regole specifiche per regione, ma l'utente le imposta. `vitaCava()` è generico, niente regole per regione |
-| Compliance reporting per ente | **C'È A METÀ** | terra-data.js:751 `riepilogoAnnuale()` e terra-data.js:857 `baseOnereEscavazione()` producono i dati per la denuncia annuale (volumi per mese/fronte, qualità, banda incertezza, onere di escavazione); index.html:819 dichiara esplicitamente "Terra ti dà i tuoi numeri ordinati, non compila la denuncia al posto tuo" — i dati ci sono, il modulo ufficiale lo compila l'utente |
+| Cut & fill volumes | **CONFERMATO ASSENTE** | ⏱️ *Prova riscritta il 09/08 (sera): il verdetto regge, la ricerca no — vedi sotto perché.* `grep -ci 'cut.\?and.\?fill\|cutfill\|end.\?area\|sterro\|riporto\|base.\?plane' apps/terra/terra-data.js apps/terra/index.html` → **`0` e `0`**. Nessuna funzione confronta un terreno di partenza con uno di arrivo per dire quanto si è tolto e quanto si è messo. **Che cosa sono le occorrenze di `fill`** (termine largo, quindi si dice che cosa sono e non quante): tutte **disegno**, mai un volume — la classe della barra della vita cava `.vita-fill`, il `fill:none` delle icone SVG, il `fill=%23…` delle icone codificate nell'URL e un `-webkit-text-fill-color`. |
+| Bench-by-bench volume tracking | ⏱️ **SCADUTA — C'È DAL 01/08** (verifica `e9f9b0d` 16:20 → costruito `e5f15a7` 16:55, **35 minuti**) | ⏱️ *Prova riscritta il 09/08 (sera): la cella portava ancora la prova di PRIMA che fosse costruito — «il tracking è per fronte, non per banco» — cioè smentiva il suo stesso verdetto.* Oggi: `grep -c 'export function ripartizioneBanchi' apps/terra/terra-data.js` → **`1`**, e la pagina la importa e la chiama (`grep -c ripartizioneBanchi apps/terra/index.html` → **`3`**). Ripartisce il volume del riepilogo annuale **per banco**, leggendo il banco dalla scheda del fronte, e dichiara `misurabile: false` col motivo scritto quando non ci sono fronti — l'assenza di dato non diventa uno zero. Il tracking per fronte (`volumeFronte`) resta accanto, non al posto suo. |
+| Automatic stockpile detection | **CONFERMATO ASSENTE** | ⏱️ *Prova riscritta il 09/08 (sera): stesso verdetto, comando al posto del conto.* `grep -ci 'stockpile\|point.\?cloud\|nuvola di punti\|segmentation\|auto.\?detect' apps/terra/terra-data.js apps/terra/index.html` → **`0` e `0`**. Il cumulo si dichiara a mano: non c'è nessun riconoscimento automatico da una nuvola di punti. |
+| Pit design e scheduling | **CONFERMATO ASSENTE** | ⏱️ *Prova riscritta il 09/08 (sera): stesso verdetto, termini lunghi al posto di `pit` nudo.* `grep -ci 'pit.\?design\|waste.\?dump\|haul.\?road\|scheduling\|schedulazione\|bench.\?design' apps/terra/terra-data.js apps/terra/index.html` → **`0` e `0`**. I lotti si creano a mano, senza nessun disegno automatico della cava. ⚠️ `pit` da solo **non è un termine da cercare in un file italiano**: l'unica occorrenza sta dentro «*pittogrammi*», ed è il modo in cui una riverifica si convince di aver trovato qualcosa. |
+| Reserve estimation con optimization | **FALSO, C'È GIÀ** | ⏱️ *Prova riscritta il 09/08 (sera): il nome era giusto, il numero di riga no (diceva 384, sta a 555).* `grep -c 'export function riservaResidua' apps/terra/terra-data.js` → **`1`**; la pagina la importa e la chiama (`grep -c riservaResidua apps/terra/index.html` → **`2`**) per mostrare il consumo annuale. Non è una **full optimization** — la stima della riserva però c'è. |
+| Floating cone optimization | **CONFERMATO ASSENTE** | ⏱️ *Prova riscritta il 09/08 (sera): il verdetto regge, la caratterizzazione era FALSA.* `grep -ci 'floating.\?cone\|lerchs\|grossmann\|ultimate.\?pit\|pit.\?optimi\|conical' apps/terra/terra-data.js apps/terra/index.html` → **`0` e `0`**. Nessun ottimizzatore geometrico dello scavo. ⚠️ La cella diceva «l'unica `floating` è un termine di CSS»: **non lo è** — è il commento sul `valid floating-point number` della specifica di `<input type="number">`, e l'unica `cone` sta dentro «*Icone*», il commento sulle icone SVG. Due parole inglesi corte dentro parole nostre, che è la ragione per cui la prova adesso cerca `floating cone` intero e i nomi degli algoritmi. |
+| Pit progression monitoring | **C'È A METÀ** | ⏱️ *Prova riscritta il 09/08 (sera): nomi giusti, righe scadute (670 → 857 e 400 → 571).* `grep -c 'export function \(vitaCava\|proiezioneAnnua\)' apps/terra/terra-data.js` → **`2`**: monitorano la vita della cava (consumo annuale, residuo, anni stimati). Ma è monitoraggio della **concessione**, non del pit design: nessuna delle due confronta lo scavo con una geometria di progetto. |
+| Volume reconciliation (misurato vs dichiarato) | **FALSO, C'È GIÀ** | ⏱️ *Prova riscritta il 09/08 (sera): tre numeri di riga scaduti su tre, i tre nomi giusti.* `grep -c 'export function \(riconciliazioneTurni\|misuratoPeriodo\|produzioneDichiarata\)' shared/dw-ponti.js` → **`3`**; la pagina di Terra le importa e le chiama (`grep -c riconciliazioneTurni apps/terra/index.html` → **`4`**). Confronta il volume **misurato dai rilievi** col **dichiarato dai turni di campo**. ⏱️ E dal `5b9e4e5` (09/08) la riga è ancora più falsa di prima: `serieDichiaratoTurni` e `descriviBuchiTurni` distinguono i **tre modi** in cui un punto del confronto può mancare, invece di chiamarli tutti «i turni non hanno dichiarato niente». |
+| Conformità design | ⏱️ **SCADUTA — C'È DAL 01/08** (verifica `e9f9b0d` 16:20 → costruito `e19e196` 18:22) | ⏱️ *Rilanciata il 09/08 (sera): regge alla lettera.* Allora zero occorrenze di `conformit`; oggi `grep -c 'export function \(statoConformitaQuota\|conformitaQuota\|conformitaProgetto\)' apps/terra/terra-data.js` → **`3`**. «Stiamo scavando dove il progetto dice?» è la domanda dell'ente, e l'app sa rispondere. |
+| Gestione concessione regionale | **C'È A METÀ** | ⏱️ *Prova riscritta il 09/08 (sera): la cella citava SEI righe e le occorrenze sono QUATTRO — il numero di riga era scaduto e per giunta ne prometteva due che non esistono.* `grep -ciE 'materia regionale' apps/terra/terra-data.js apps/terra/index.html` → **`2` e `2`**: due nel modulo dati (il commento sulla regola di legge cablata e quello sugli oneri a carico dell'utente) e due nella pagina (comunicazione annuale e documentazione di rilievo). L'app **dichiara** che modello, termini e destinatari sono materia regionale e li fa impostare all'utente; `vitaCava` resta generico, senza nessuna regola per regione. |
+| Compliance reporting per ente | **C'È A METÀ** | ⏱️ *Prova riscritta il 09/08 (sera): nomi giusti, righe scadute — e per una beffa il `857` che indicava `baseOnereEscavazione` è oggi la riga di `vitaCava`, cioè un numero che punta a una funzione VERA e SBAGLIATA.* `grep -c 'export function \(riepilogoAnnuale\|baseOnereEscavazione\)' apps/terra/terra-data.js` → **`2`**: producono i dati per la denuncia annuale (volumi per mese e per fronte, qualità, banda d'incertezza, onere di escavazione). E la pagina lo dichiara con parole sue — `grep -c 'non compila la denuncia al posto tuo' apps/terra/index.html` → **`1`**. I dati ci sono; il modulo ufficiale lo compila l'utente. |
 
 ### ⏱️ Riverifica del 06/08 — `e9f9b0d` → `b12c87f`, sedici commit dopo
 
@@ -402,11 +452,11 @@ adesso c'è». Guardando **che cosa** aveva trovato invece del solo numero:
 
 ```
 $ grep -oiE "cut[a-z]*|fill[a-z]*|taglio|riempiment[oi]" apps/terra/terra-data.js | sort | uniq -c
-     24 taglio        ← dentro «detta·glio·»
+     …  taglio        ← sempre dentro «det·taglio·» e «ri·taglio·»
       1 cute
 $ grep -oiE "floating|cone[a-z]*" apps/terra/terra-data.js apps/terra/index.html
       1 floating      ← dentro un commento sui numeri a virgola mobile
-      1 cone          ← dentro un'altra parola
+      1 cone          ← dentro «I·cone·», il commento sulle icone SVG
 ```
 
 Zero occorrenze vere. È la stessa famiglia già scritta in CLAUDE.md — *il
@@ -414,11 +464,76 @@ controllo che non guarda dove crede* — nella sua forma più banale e più faci
 da rifare: **un conto senza il suo campione non è una misura.** La difesa costa
 un comando: `grep -o` e `uniq -c` prima di credere al numero.
 
+⏱️ **E il conto di `taglio` è stato tolto da questo blocco il 09/08, perché
+invecchiava da solo:** era `24`, poi `26` più un `TAGLIO` maiuscolo, senza che
+niente di quel mestiere entrasse nell'app — è la parola *dettaglio* che cresce
+insieme ai commenti. La forma che sopravvive è quella che il campione già
+mostrava: **si scrive CHE COSA sono le occorrenze, non quante.** Il comando che
+resta buono a qualunque conto, perché guarda le **parole intere**:
+`grep -owiE 'taglio' apps/terra/terra-data.js apps/terra/index.html` → nel modulo
+dati **nessuna**, nella pagina soltanto due mestieri e **nessun volume**: la
+classe CSS `dwg-taglio`, che è un tratteggio, e «il taglio a due righe», che è
+il `-webkit-line-clamp` delle liste. La caratterizzazione resta vera quando il
+numero cambia; il numero no.
+
 **Riepilogo verifica:**
 - **Righe verificate:** 11
 - **Confermate assenti:** 4 (cut/fill, automatic detection, pit design, floating cone)
 - **False (c'è già):** 2 (reserve estimation, volume reconciliation)
 - **⏱️ Scadute:** 2 (bench-by-bench → `ripartizioneBanchi`, 35 minuti dopo; conformità → `conformitaProgetto`)
 - **C'è a metà:** 3 (pit progression, concessione regionale, compliance reporting)
+
+⏱️ **Rilancio del 09/08 (sera) — undici righe su undici, ZERO verdetti mossi,
+SETTE prove riscritte.** I quattro numeri qui sopra non cambiano: sono gli
+stessi che `numeri-nei-documenti.mjs` conta leggendo questo file, e sono ancora
+`4 + 2 + 2 + 3 = 11`. Quello che è cambiato è **come sono provati**, e le cause
+sono tre, tutte e tre di invecchiamento e nessuna di merito:
+
+| che cosa non si riproduceva più | dove | perché |
+|---|---|---|
+| **12 numeri di riga su 12** (i nomi erano giusti tutti e dodici) | bench-by-bench, reserve estimation, pit progression, volume reconciliation, concessione regionale, compliance reporting | il file cresce: `riservaResidua` da 384 a 555, `vitaCava` da 670 a 857, `misuratoPeriodo` da 211 a 227. E `857`, che indicava `baseOnereEscavazione`, oggi è la riga di `vitaCava`: un numero scaduto che punta a una funzione **vera e sbagliata** è peggio di uno che punta al vuoto |
+| **il conto di un termine largo** (`fill` 16 → 17, `taglio`+`riempimento` 8 → 7) | cut & fill, e il campione del blocco 06/08 | nessuno di quei caratteri è un volume: sono `.vita-fill`, `fill:none`, «det·taglio·». Un conto su una parola comune si muove **da solo** |
+| **due caratterizzazioni false** | cut & fill (`fillStyle`), floating cone («un termine di CSS») | `fillStyle` in Terra non c'è mai stato — `grep -c fillStyle apps/terra/terra-data.js apps/terra/index.html` → `0` e `0`, vive in Genesi; e l'unica `floating` è il `valid floating-point number` di `<input type="number">`, non CSS |
+| **una prova che smentiva il proprio verdetto** | bench-by-bench | la cella diceva «SCADUTA — c'è dal 01/08» e portava ancora la prova di **prima** che fosse costruito («il tracking è per fronte, non per banco»). Chi aggiornò il verdetto non aggiornò la prova |
+
+⚠️ **Nessuna delle sette era una verifica sbagliata**, ed è il punto: erano
+vere quando sono state scritte. A marcire è il **modo in cui erano scritte** —
+un numero di riga, un conteggio di una parola comune, un esempio citato a
+memoria. La forma che regge, e che qui è stata adottata su tutte e undici, è
+quella misurata il 09/08 su Scudo: **un comando eseguibile con la sua uscita**
+(`grep -ciE 'a|b|c' file` → `0` e `0`), **termini lunghi e tecnici** (`floating
+cone`, `waste dump`, `point cloud`: in un testo italiano non collidono con
+niente), **mai un numero di riga**, e dove il termine è per forza largo si
+scrive **che cosa sono** le occorrenze invece di **quante**.
+
+⚠️ **E i quattro comandi nuovi sono stati provati a fallire prima di essere
+scritti**, perché un `grep` che risponde `0` risponde `0` anche quando è cieco:
+rimessi in una copia del modulo quattro `export function` finte
+(`volumeCutAndFill` con «end-area» e «sterro e riporto», `rilevaStockpile` con
+«point cloud» e «segmentation», `pitDesign` con «waste-dump» e «haul-road»,
+`floatingCone` con «Lerchs-Grossmann» e «ultimate pit»), tutti e quattro passano
+da **0 a 1**. La copia è stata cancellata subito e il file vero non è mai stato
+toccato.
+
+⛔ **E QUELLA CONTROPROVA HA BOCCIATO LA PRIMA STESURA, con un difetto che vale
+più delle sette prove riscritte: UNA PIPE SCAPPATA PER IL MARKDOWN SPEGNE
+L'ALTERNANZA DI UN `grep -E`.** Dentro una cella di tabella il carattere della
+pipe va scritto con la barra davanti, se no chiude la colonna — quindi i quattro
+comandi erano nati come `grep -ciE 'cut.?and.?fill\|cutfill\|…'`. Ma in una
+espressione regolare **estesa** quella barra-pipe non è l'alternanza: è una
+**pipe letterale**. Il comando cercava la stringa `cut.?and.?fill|cutfill|…`
+tutta intera, che non esiste da nessuna parte, e rispondeva **`0` e `0`** —
+cioè esattamente l'uscita che il documento dichiara come prova dell'assenza.
+Misurato sul file iniettato: **`0` anche lì**, dove il termine c'era.
+La correzione è togliere `-E`: in una regolare **di base** la barra-pipe *è*
+l'alternanza e `\?` è l'opzionale, quindi la forma che il markdown pretende è
+anche quella giusta. Le altre otto celle usavano già `grep -c` in quella
+sintassi ed erano sane.
+⚠️ La lezione oltre al caso: **un comando che viaggia dentro un documento
+attraversa la sintassi del documento**, e la tabella markdown è un secondo
+linguaggio che riscrive il primo. Un `grep` copiato da una cella non è il `grep`
+che chi l'ha scritto ha lanciato — a meno che non lo si rilanci **dalla cella**,
+che è quello che ha preso questo. Senza la controprova sarebbero entrate quattro
+prove d'assenza **cieche**, con l'uscita giusta per la ragione sbagliata.
 
 **Mancanza confermata più importante:** Automatic cut/fill volume calculation (riga 1, ricorrenza 6/13 concorrenti) — nessuna progettazione automatica del pit da disegno. Terra accetta lotti manualmente, non li genera da topografia.
