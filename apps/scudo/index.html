@@ -2437,6 +2437,11 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
           : "</b> righe con una data che non si può leggere: non sono disegnate qui perché non cadono in nessun mese, e non vuol dire «più in là» — vuol dire che vanno corrette.")
       : "";
     const mesePieno = muro.mesi.reduce((a, b) => (b.totale > a.totale ? b : a), muro.mesi[0]);
+    /* ⚠️ E QUESTA RIGA È UN FALSO ALLARME DEL CENSIMENTO, lasciata com'era di
+       proposito: `quantiMesi` vale 12, 6 o 4 — mai 1 — perché lo decide la
+       larghezza del grafico due righe più su. Cambiarla in `conta(...)` non
+       avrebbe corretto niente e avrebbe tolto dal codice l'unico posto in cui
+       si legge che quei tre valori sono gli unici possibili. */
     const orizzonte = quantiMesi === 12 ? "12 mesi" : quantiMesi + " mesi";
     if (muro.scadute + muro.nelPeriodo > 0) {
       const primo = muro.mesi[0], ultimo = muro.mesi[muro.mesi.length - 1];
@@ -5245,7 +5250,8 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
         ? " — l'<b>addestramento è obbligatorio</b> (art. 77 D.Lgs 81/08): senza, la consegna non è completa."
         : " — per questo dispositivo l'addestramento non è obbligatorio; resta obbligatoria l'informazione sull'uso.")
       + (t.nota ? "<br>" + esc(t.nota) : "")
-      + (t.mesi ? "<br>Sostituzione proposta dopo <b>" + t.mesi + " mesi</b>: è una durata indicativa, quella vera la dice il libretto del costruttore." : "");
+      + (t.mesi ? "<br>Sostituzione proposta dopo <b>" + t.mesi + " " + plurale(t.mesi, "mese", "mesi")
+           + "</b>: è una durata indicativa, quella vera la dice il libretto del costruttore." : "");
     const base = $("dpi-data").value || oggiISO();
     if (t.mesi && !dpiNonScade && !$("dpi-scad").value) {
       const d = dataDaPeriodicita(t.mesi, new Date(base + "T00:00:00"));
@@ -5331,7 +5337,10 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
       + (sc
         ? "Risulta scaduto il " + fmtData(sc.dataScadenza) + ": la riga è già nello scadenzario, cambia solo la data. Metti quella del rinnovo appena fatto."
         : "Per questa persona non c'è nessuna riga nello scadenzario. Indica <b>fino a quando</b> il corso è valido: nasce una scadenza come tutte le altre, con lo stesso semaforo.")
-      + (req.mesi ? "<br>Periodicità proposta: ogni <b>" + req.mesi + " mesi</b> — è una proposta, la data la decidi tu." : "")
+      /* «ogni 1 mesi» — e in italiano col «1» il numero si toglie: «ogni mese».
+         È la stessa forma già scelta per i giorni, dodici righe più in là. */
+      + (req.mesi ? "<br>Periodicità proposta: " + (req.mesi === 1 ? "<b>ogni mese</b>" : "ogni <b>" + req.mesi + " mesi</b>")
+           + " — è una proposta, la data la decidi tu." : "")
       + (req.riferimento ? '<br><span style="opacity:.9;">Riferimento: ' + esc(req.riferimento) + "</span>" : ""),
       '<label class="fl" for="modal-campo">Valido fino al</label><input class="dw-input" id="modal-campo" type="date" value="' + esc(sc ? (sc.dataScadenza || "") : proposta) + '">',
       sc ? "Rinnova" : "Aggiungi allo scadenzario");
@@ -6525,7 +6534,7 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
     err("isp-modello", false); pulisci("isp-esito");
     if (!m) { nota.style.display = "none"; nota.innerHTML = ""; return; }
     nota.style.display = "block";
-    nota.innerHTML = "<b>" + esc(m.nome) + "</b> — " + m.voci.length + " voci · ambito: " + esc(m.ambito)
+    nota.innerHTML = "<b>" + esc(m.nome) + "</b> — " + conta(m.voci.length, "voce", "voci") + " · ambito: " + esc(m.ambito)
       + (m.giorni ? " · si ripete <b>ogni " + (m.giorni === 1 ? "giorno" : m.giorni + " giorni") + "</b> (proposta, la cambi tu)" : "")
       + (m.riferimento ? '<br><span style="opacity:.9;">Riferimento: ' + esc(m.riferimento) + "</span>" : "")
       + "<br>Le voci vengono copiate dentro l'ispezione: se domani cambi il modello, i controlli già fatti restano com'erano.";
