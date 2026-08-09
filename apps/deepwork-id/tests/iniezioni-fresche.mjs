@@ -31,6 +31,7 @@
 import { readFileSync, readdirSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
+import { senzaCommenti } from "./tokenizza.mjs";
 
 const QUI = dirname(fileURLToPath(import.meta.url));
 const BANCHI = join(QUI, "browser");
@@ -275,6 +276,90 @@ dice(illeggibili.sort().join(",") === attesi,
   `trovati [${illeggibili.join(", ")}], dichiarati [${NON_LEGGIBILI.map(([f]) => f).join(", ")}]`);
 for (const [f, perche] of NON_LEGGIBILI) console.log(`      · ${f} — ${perche}`);
 
+/* ⛔ E LA SECONDA POPOLAZIONE, MUTA FINO AL 09/08: LE INIEZIONI **INLINE**.
+   Questo file conta le iniezioni che stanno in una TABELLA — 296 — e chi legge
+   il suo riepilogo crede che siano tutte. Non lo sono: le suite `node` ne
+   contengono altre **31** scritte a mano, `sorgente.replace("pezzo di codice
+   vero", "versione rotta")`, senza nessuna tabella intorno. Nessun nome da
+   allargare, stavolta: semplicemente **una forma che il censimento non
+   guardava**, e quindi un numero che non compariva né fra i buoni né fra i
+   cattivi. È la stessa lezione dell'elenco `BROWSER` che copriva due documenti
+   su tre — *un numero è sorvegliato solo dove il controllo ARRIVA*.
+   ⚠️ E vanno separate in tre, se no il conto accusa i sani: molte agiscono su
+   una stringa **costruita nel test stesso** (una pagina finta, un CSS finto),
+   e per quelle «non sta in nessun file di prodotto» è la cosa giusta, non un
+   difetto. Le tre famiglie:
+     · **di prodotto** — l'ago compare in un file vivo: l'iniezione morde;
+     · **sintetiche** — l'ago è definito nel test PRIMA della sostituzione:
+       legittime, e sono la forma migliore, perché non possono scadere;
+     · **orfane** — non sta né di qua né di là: quella è scaduta.
+   ⚠️ Il righello ha sbagliato una volta prima di reggere, col segno di sempre:
+   confrontava l'ago **grezzo**, e `"      gia.add(firma(r));\n"` porta un a
+   capo che il letterale scritto nel test non ha — una sintetica accusata di
+   essere orfana. Si confronta l'ago **decodificato e senza margini**. */
+const daJs = (s) => s.replace(/\\n/g, "\n").replace(/\\t/g, "\t")
+  .replace(/\\"/g, '"').replace(/\\'/g, "'").replace(/\\\\/g, "\\");
+/* ⚠️ E il commento qui sopra ha fatto cadere questo controllo alla prima
+   passata, per la ragione già scritta in CLAUDE.md tre volte: l'ESEMPIO d'uso
+   che spiega la forma cercata — `.replace("pezzo di codice vero", …)` — è
+   sintatticamente identico alla forma vera, e il censimento se l'è contato come
+   un'iniezione orfana. Non si riscrive l'esempio per nasconderlo: si toglie il
+   commento con `senzaCommenti`, che è lo strumento di casa e serve proprio a
+   questo. La regola vale per chiunque scriva un censimento sul codice: **il
+   primo falso soggetto è la spiegazione di che cosa si sta cercando.** */
+/* Prende il TESTO e i corpi di prodotto, non i percorsi: così la controprova
+   qui sotto non deve toccare nessun file. */
+export function classificaInline(src, corpi) {
+  const out = { prodotto: 0, sintetiche: 0, orfane: [] };
+  for (const m of src.matchAll(/\.replace\(\s*(["'])((?:\\.|(?!\1)[^\\]){12,})\1/g)) {
+    const ago = daJs(m[2]);
+    if (corpi.some((t) => t.includes(ago))) out.prodotto++;
+    else if (src.split(m[0])[0].includes(ago.trim())) out.sintetiche++;
+    else out.orfane.push(ago);
+  }
+  return out;
+}
+const inline = { prodotto: 0, sintetiche: 0, orfane: [] };
+for (const f of readdirSync(QUI).filter((n) => n.endsWith(".mjs"))) {
+  const r = classificaInline(senzaCommenti(readFileSync(join(QUI, f), "utf8")), testi);
+  inline.prodotto += r.prodotto;
+  inline.sintetiche += r.sintetiche;
+  for (const a of r.orfane) inline.orfane.push([f, a]);
+}
+dice(inline.orfane.length === 0,
+  "nessuna iniezione INLINE cerca un pezzo che non esiste più",
+  `${inline.prodotto} mordono il prodotto, ${inline.sintetiche} agiscono su una stringa del test stesso`
+  + inline.orfane.map(([f, a]) => `\n      ⛔ ${f} → ${JSON.stringify(a.slice(0, 80))}`).join(""));
+dice(inline.prodotto + inline.sintetiche + inline.orfane.length >= 25,
+  "e la popolazione inline è quella che mi aspetto di trovare",
+  `${inline.prodotto + inline.sintetiche + inline.orfane.length} iniezioni inline in tutto`);
+{
+  /* ⛔ LA CONTROPROVA DELLE TRE FAMIGLIE, e serve **tutta e tre**: un
+     classificatore che rispondesse sempre «sintetica» darebbe zero orfane e
+     zero allarmi per sempre, cioè il verde falso perfetto. */
+  /* ⛔ E I CASI DI PROVA SI **COSTRUISCONO**, NON SI SCRIVONO: alla prima
+     stesura li avevo battuti a mano, e il censimento — che gira anche su
+     questo file — se li è contati fra i soggetti veri, arrivando ad accusare
+     come orfano il proprio `function SPARITA`. È lo strumento che misura sé
+     stesso, e la variante di CLAUDE.md sull'esempio dentro un commento: se il
+     caso di prova viene assemblato, il suo `.replace(` non è mai seguito da
+     una virgoletta letterale e la scansione non lo vede. Niente eccezioni da
+     dichiarare, niente da ricordare. */
+  const caso = (ago, prima) => (prima ? `const p = ${JSON.stringify(ago)};\n` : "")
+    + `p.replace(${JSON.stringify(ago)}, "rotta")`;
+  const corpi = ["function vera(){ return 42; }"];
+  const viva = classificaInline(caso("function vera(){ return 42; }", false), corpi);
+  const sint = classificaInline(caso("una pagina finta lunga assai", true), corpi);
+  const morta = classificaInline(caso("function SPARITA(){ return 42; }", false), corpi);
+  dice(viva.prodotto === 1 && viva.orfane.length === 0,
+    "controprova: un'iniezione che morde il prodotto è riconosciuta come tale");
+  dice(sint.sintetiche === 1 && sint.orfane.length === 0,
+    "controprova: una che agisce su una stringa del test NON viene accusata");
+  dice(morta.orfane.length === 1 && morta.prodotto === 0 && morta.sintetiche === 0,
+    "controprova: una scaduta VIENE vista — se no questo controllo direbbe zero per sempre",
+    `orfane trovate: ${JSON.stringify(morta.orfane)}`);
+}
+
 /* ⛔ LA CONTROPROVA: un'iniezione inventata deve essere vista. Senza, questo
    file direbbe «zero» anche se il confronto fosse rotto — ed è esattamente
    quello che il controllo esiste per impedire agli altri. */
@@ -285,5 +370,7 @@ dice(!testi.some((t) => t.includes(finta)),
 console.log(`\nRisultato iniezioni fresche: ${totali - scadute.length} sul bersaglio su ${totali}`
   + `  ·  ${tabelle.length} tabelle in ${banchi} banchi, ${illeggibili.length} non leggibili da fermi (dichiarati)`
   + `  ·  ${conFile} con il file dichiarato e verificato lì, ${senzaFile} senza`
-  + `  ·  ${fuoriVocabolario.length} tabelle di coppie fuori dal vocabolario`);
+  + `  ·  ${fuoriVocabolario.length} tabelle di coppie fuori dal vocabolario`
+  + `  ·  più ${inline.prodotto + inline.sintetiche + inline.orfane.length} iniezioni INLINE `
+  + `(${inline.prodotto} sul prodotto, ${inline.sintetiche} su stringhe del test, ${inline.orfane.length} orfane)`);
 process.exit(male ? 1 : 0);

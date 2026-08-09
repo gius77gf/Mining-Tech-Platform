@@ -2971,9 +2971,12 @@ numero scritto dove non era stato misurato niente**.*
   `.replace` riconoscibile» — cioè misurava i **nomi delle variabili**, non il
   comportamento, e 36 identici sono il segno di sempre che si guarda il
   righello. Ma soprattutto la domanda è **già risolta un piano più su**:
-  `iniezioni-fresche` gira in `npm test` e controlla tutte e 296 le ancore
-  contro il sorgente vero, quindi un'ancora non può più morire in silenzio per
-  più di un commit — che un singolo banco lo dichiari o no.
+  `iniezioni-fresche` gira in `npm test` e controlla **tutte** le ancore contro
+  il sorgente vero, quindi un'ancora non può più morire in silenzio per più di
+  un commit — che un singolo banco lo dichiari o no. *(Quante siano lo dice il
+  comando, non questa riga: `node apps/deepwork-id/tests/iniezioni-fresche.mjs`.
+  Erano 296 quando l'ho scritta stamattina, ed è salito nel pomeriggio con i
+  banchi nuovi: un numero qui dentro sarebbe già vecchio, e un comando no.)*
 
 - [x] ✅ **La stessa famiglia senza iniezioni: un banco che porta dentro un
   conto della DIMOSTRAZIONE** *(09/08)*. `conti-barre-peso` dava 14 ok e 1 KO,
