@@ -774,7 +774,7 @@ numero scritto dove non era stato misurato niente**.*
 
           | app | «CONFERMATA ASSENTE» | «SCADUTA» |
           | campo 11 · sentinella 13 · conti 8 · flotta 5 · terra 4 · scudo 0 |
-          | totale **42** (era 54) | totale **18** (erano 6) |
+          | totale **41** (era 54 · ⛔ NON 42: vedi la correzione qui sotto) | totale **18** (erano 6) |
 
       ⚠️ **Correzione dello stesso pomeriggio: 41 → 42.** Il primo conto cercava
       `CONFERMAT[AO] ASSENTE` e ha perso l'unica riga al plurale, «CONFERMATE
@@ -782,6 +782,26 @@ numero scritto dove non era stato misurato niente**.*
       **C'è 31 · CONFERMATO/A/E ASSENTE/I 42 · C'È A METÀ 19 · FALSA 4**.
       Un conto fatto con un termine invece che col vocabolario sbaglia sempre in
       difetto, ed è la ragione per cui il vocabolario adesso è scritto qui.
+      ⛔ **E QUELLA CORREZIONE ERA SBAGLIATA: IL NUMERO GIUSTO È 41, non 42.**
+      Rimisurato il 09/08 contando **solo le celle di tabella**, non le
+      occorrenze nel file:
+      `grep -cE "^\s*\|.*\*\*CONFERMAT[AOEI] ASSENT[EI]\*\*" docs/CONCORRENTI_*.md`
+      → campo 11 · conti 8 · flotta 5 · **scudo 1** · sentinella 13 · terra 4.
+      Ma quell'uno di Scudo, aperto, è la **riga d'intestazione della sezione**
+      — «**CONFERMATE ASSENTI** — in ordine di quanto le chiederebbe un
+      ispettore» — non il verdetto di una funzione. Quindi i verdetti veri sono
+      **41**, e Scudo resta a **zero**.
+      ⚠️ **Il segno c'era e nessuno l'aveva letto: gli addendi non tornavano.**
+      La riga scriveva «11 · 13 · 8 · 5 · 4 · 0 = **42**», e quella somma fa
+      **41**. È il difetto che `CLAUDE.md` chiama la **quarta forma
+      d'invecchiamento** — un numero fuori dalla portata del controllo, con la
+      somma scritta accanto che lo smentisce — e stavolta l'aveva prodotto
+      proprio la correzione che diceva di aver reso il conto più preciso:
+      allargare il vocabolario al plurale ha fatto entrare **un'intestazione**.
+      ⛔ La lezione, che è nuova: **un vocabolario più largo prende anche le
+      righe che PARLANO del verdetto invece di darlo.** Il filtro che le separa
+      non è la parola, è **dove sta**: una cella di tabella con altre due celle
+      accanto, non una riga che apre una sezione.
       ⚠️ **E lo zero di Scudo va detto meglio di come l'avevo detto**: non «le
       scrive con altre parole» — la sua tabella è organizzata **per funzione**
       (`Redazione automatica DVR`, `Organigramma dinamico…`) invece che per
