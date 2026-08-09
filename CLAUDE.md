@@ -1460,6 +1460,41 @@ Perché serva davvero e non produca elenchi generici, cinque vincoli:
   che esiste già. **Una prova che invecchia non rende la riga sbagliata: la
   rende non credibile**, che è peggio, perché la fa buttare via insieme a
   quelle giuste.
+  ⛔ **E IL 09/08 QUELLA FORMA È STATA MISURATA SU TUTTE E QUARANTASETTE LE
+  RIGHE, con un esito che cambia il modo di scrivere una verifica: ZERO
+  VERDETTI CAMBIATI, DODICI PROVE CHE NON TORNAVANO PIÙ.** Cioè le verifiche
+  del 01-07/08 erano fatte bene, e a marcire è **solo** il modo in cui sono
+  scritte — **perché il repository cresce**, non perché qualcuno abbia
+  sbagliato. Le quattro cause, tutte da riconoscere prima di dichiarare scaduta
+  una riga:
+  1. **un termine corto dentro parole comuni**: `miglia` trova `famiglia`,
+     `migliaia`, `somiglia` — 23 occorrenze, zero pertinenti;
+  2. **una parola polisemica**: `firma` qui è tanto quella di una **persona**
+     quanto quella di una **funzione** («una firma troppo stretta», che è una
+     regola di questo file);
+  3. **il nostro gergo che entra nel conto**: «**questo cantiere**» detto del
+     nostro lavoro nei commenti, in un documento che cerca il *cantiere* della
+     cava. Peggiora **proprio perché si lavora**;
+  4. **un'unità di misura che è un pezzo di un'altra**: `m/s` dà 47 occorrenze
+     nell'app che misura in **`mm/s`**.
+  Nessuna delle quattro è un difetto del prodotto, e tutte e quattro avrebbero
+  fatto **dichiarare scaduta una riga giusta**.
+  ⛔ **E LA FORMA CHE SOPRAVVIVE È MISURATA, non un'opinione: Scudo è l'unico
+  documento a ZERO prove scadute su sei**, contro terra 3 su 4 e conti 4 su 8.
+  La ragione non è il suo codice: è che ogni sua riga porta **il comando con le
+  sue alternative e l'uscita attesa** — `grep -ciE 'a|b|c' → 0 e 0` — invece di
+  un conteggio di una parola sola. **Un comando si rilancia; un numero si può
+  solo credere.** Quindi, scrivendo una verifica:
+  · la prova è un **comando eseguibile con la sua uscita**, non una frase che
+    descrive una ricerca;
+  · i termini si scelgono **lunghi e tecnici** (meglio se inglesi: in un testo
+    italiano non collidono con niente);
+  · dove il termine è per forza largo, si scrive **che cosa sono** le
+    occorrenze, non **quante** — una caratterizzazione resta vera quando il
+    numero cambia;
+  · e **niente numeri di riga**: misurati il 09/08, **87 su 91** non trovavano
+    più il loro nome. Il nome è stabile e si verifica con un `grep`; la riga si
+    sposta a ogni commit.
 - ⏱️ **E LA QUARTA FORMA È LA PEGGIORE, PERCHÉ NON INVECCHIA: NASCE FUORI DAL
   CONTROLLO.** Misurata l'08/08. `numeri-nei-documenti.mjs` sorveglia i numeri
   che i documenti dichiarano, e funziona: quella notte ha fatto cadere il giro
