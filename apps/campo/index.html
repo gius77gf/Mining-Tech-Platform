@@ -2229,7 +2229,14 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
     if (r.stato === "scaduta") {
       const d = r.scadute[0];
       return "<b>" + esc(d.tipo || "Documento") + "</b>: scadeva il " + dmyBreve(d.dataScadenza)
-        + (r.scadute.length > 1 ? " (e altri " + (r.scadute.length - 1) + " documenti)" : "");
+        /* ⛔ LA GUARDIA C'ERA, MA SU UN ALTRO NUMERO. `r.scadute.length > 1` è
+           giusta per decidere SE scrivere la coda; il numero stampato però è
+           `length - 1`, che vale esattamente **1** quando i documenti sono
+           due — il caso più comune. «e altri 1 documenti». */
+        + (r.scadute.length > 1
+            ? " (e " + plurale(r.scadute.length - 1, "un altro documento",
+                "altri " + (r.scadute.length - 1) + " documenti") + ")"
+            : "");
     }
     if (r.stato === "in-scadenza") {
       const d = r.inScadenza[0];
@@ -2929,7 +2936,7 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
            Fallo solo se le hai <b>viste davvero</b>: su questa lista si conta l'appello in caso di emergenza.`,
           "Ci sono tutti")) return;
     for (const r of mancanti) await salvaPresenza(r.operatore.id, "presente");
-    esito("pre-esito", "Segnate presenti " + mancanti.length + " persone.", "success");
+    esito("pre-esito", "Segnate presenti " + conta(mancanti.length, "persona", "persone") + ".", "success");
   };
   $("btn-pre-standard").onclick = async () => {
     const turno = $("chk-turno").value || turnoCorrente();
@@ -4518,7 +4525,7 @@ ${riapOggi.length?`<h2>Riaperture del turno</h2>
     a.href = "data:text/csv;charset=utf-8," + encodeURIComponent(pianoConsuntivoCsv(PIANO));
     a.download = "campo_consuntivo_carico.csv"; marchiaCsv(a); a.click();
     toast(reg
-      ? "Consuntivo esportato: " + reg + " fori su " + PIANO.length + " con la carica reale. Rileggilo in Genesi → Riconciliazione."
+      ? "Consuntivo esportato: " + reg + " " + plurale(reg, "foro", "fori") + " su " + PIANO.length + " con la carica reale. Rileggilo in Genesi → Riconciliazione."
       : "Consuntivo esportato, ma nessuna carica reale è ancora registrata: a Genesi arriverebbe solo il progetto.",
       reg ? "success" : "");
   };
@@ -4586,7 +4593,7 @@ ${riapOggi.length?`<h2>Riaperture del turno</h2>
       await db.aggiungi("pianocarico", { data, turno, foro: p.foro, x: p.x, fila: p.fila,
         prof: p.prof, prog: p.prog, borr: p.borr, rit: p.rit, reale: null });
     await pianoRicarica();
-    toast("Piano importato: " + righe.length + " fori (" + dmy(data) + " · turno " + turno + ").", "success");
+    toast("Piano importato: " + conta(righe.length, "foro", "fori") + " (" + dmy(data) + " · turno " + turno + ").", "success");
   };
   document.addEventListener("click", async (e) => {
     const it = e.target.closest && e.target.closest("[data-foro-id]");

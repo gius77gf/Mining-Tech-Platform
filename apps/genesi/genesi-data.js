@@ -294,7 +294,7 @@ export function provenienzaPpv(st, sd, roccia){
   return { fonte:'sito', K:s.K, beta:s.beta, referti:f.n,
     r2:(f.r2===null||f.r2===undefined)?null:f.r2,
     provvisoria, fuoriIntervallo:fuori, sdMin:f.sdMin, sdMax:f.sdMax, avvisi,
-    breve: 'legge di sito · '+gnum(f.n,0)+' referti'+(provvisoria?' · provvisoria':'')
+    breve: 'legge di sito · '+conta(f.n,'referto','referti')+(provvisoria?' · provvisoria':'')
       +(fuori?' · estrapola':''),
     testo: capo+' ricavati dai tuoi '+gnum(f.n,0)+' referti (riga al 95° percentile, R²='+gnum(f.r2,3)+')' };
 }

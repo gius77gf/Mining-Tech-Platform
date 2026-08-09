@@ -6350,7 +6350,7 @@ function apriRiconciliazione(volataId){
       : range.map(r=>{
           const u=DB.users.find(x=>x.id===r.userId);
           const ms=misureRapportino(r);
-          return `<div class="sitem" onclick="closeModal();apriRapport('${r.id}')"><div class="av av-op">${escHtml((u?.nome||'?')[0])}</div><div class="sinfo"><div class="sname">${fmt(r.data)} · ${ms.misurato?ms.fori+' fori':'nessun foro misurato'}</div><div class="ssub">${u?escHtml(u.nome+' '+u.cognome):'—'}${ms.metri!==null?' · '+ms.metri.toFixed(1)+'m':''}${ms.calcolabile?' · '+ms.mc.toFixed(1)+'mc':''}</div></div><div class="sarr">›</div></div>`;
+          return `<div class="sitem" onclick="closeModal();apriRapport('${r.id}')"><div class="av av-op">${escHtml((u?.nome||'?')[0])}</div><div class="sinfo"><div class="sname">${fmt(r.data)} · ${ms.misurato?conta(ms.fori,'foro','fori'):'nessun foro misurato'}</div><div class="ssub">${u?escHtml(u.nome+' '+u.cognome):'—'}${ms.metri!==null?' · '+ms.metri.toFixed(1)+'m':''}${ms.calcolabile?' · '+ms.mc.toFixed(1)+'mc':''}</div></div><div class="sarr">›</div></div>`;
         }).join('')}
   `;
   openModal(`Riconciliazione · Volata #${v.numero}`, html, [

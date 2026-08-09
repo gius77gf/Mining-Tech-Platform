@@ -1863,7 +1863,10 @@ export function testoRiposo(r, fmtData) {
   if (!r.misurabile) return "Riposo non misurabile" + (r.perche ? " — " + r.perche : "")
     + (r.ultimo ? " (turno " + r.ultimo.turno + " del " + f(r.ultimo.data) + ")" : "");
   if (r.limite === "almeno")
-    return "Nessun turno lavorato nei " + r.giorni + " giorni prima di questo";
+    /* «nei 1 giorni» — e col «1» cambia anche la preposizione: «nel giorno». */
+    return r.giorni === 1
+      ? "Nessun turno lavorato nel giorno prima di questo"
+      : "Nessun turno lavorato nei " + r.giorni + " giorni prima di questo";
   const coda = r.stato === "sotto" ? " · sotto le " + RIPOSO_MINIMO_ORE + " ore" : "";
   /* ⛔ DA DOVE VIENE LA FINE DEL TURNO PRECEDENTE SI DICE SEMPRE, anche quando
      è la risposta scomoda. Prima di questo cantiere ogni riga usciva dalla

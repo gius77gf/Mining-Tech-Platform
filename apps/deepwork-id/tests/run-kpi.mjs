@@ -16153,6 +16153,18 @@ test("⛔ Flotta: le ore ignote arrivano ignote anche a chi le chiede due volte"
              "spuntato assente ovunque: allora non ha lavorato");
     ok(r.ore > 24 * 6, "e il riposo è almeno la finestra guardata, " + r.ore + " h");
     eq(campo.testoRiposo(r), "Nessun turno lavorato nei 7 giorni prima di questo", "e si scrive così");
+    /* ⛔ E CON UNA FINESTRA DI UN GIORNO CAMBIA ANCHE LA PREPOSIZIONE: non «nei
+       1 giorni» e nemmeno «nei 1 giorno», ma «nel giorno». Il numero, col «1»,
+       in italiano si toglie. */
+    const P1 = campo.turniPrecedenti(OGGI_R, "Mattina", 1)
+      .map((t) => pre(t.data, t.turno, "o1", "assente"));
+    /* ⚠️ la finestra è il SESTO argomento, non si deduce dalle presenze passate:
+       senza, `giorni` resta al suo 7 di serie e la prova misurava il caso di
+       sopra credendo di misurarne un altro. */
+    const r1 = campo.riposoPrimaDelTurno("o1", P1, DUR, OGGI_R, "Mattina", 1);
+    eq(r1.giorni, 1, "la finestra è di un giorno solo");
+    eq(campo.testoRiposo(r1), "Nessun turno lavorato nel giorno prima di questo",
+       "e allora la frase è al singolare, preposizione compresa");
   });
 
   test("Campo · riposo: i casi limite non danno numeri tranquilli", () => {
