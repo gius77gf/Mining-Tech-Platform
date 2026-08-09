@@ -848,6 +848,29 @@ numero scritto dove non era stato misurato niente**.*
       di libreria) non si distinguono senza sapere i **tipi**, e un righello «un
       po' meno sbagliato» è peggio di uno che dichiara il suo dubbio — regola
       già pagata su `contrasto.mjs`.
+- [x] ✅ **IL GIRO DEL 09/08 LETTO CON `leggi-giro.mjs` — UN SOLO KO VERO, E ERA
+      GIÀ CHIUSO QUATTRO ORE DOPO.** Lettura **parziale**: il giro era ancora
+      vivo quando l'ho letto, e lo strumento lo dichiara da sé («né una riga
+      *USCITA* né il conto finale: il giro NON è arrivato in fondo»).
+      Il denominatore, che è la parte che rende leggibile tutto il resto:
+      **177 passate lette — 87 controprove (il loro rosso è VOLUTO), 90 sane**,
+      **918 KO voluti tenuti fuori**, **74 righe «non ho guardato»**, e
+      **KO veri: 1**.
+      ⛔ Senza quella separazione il registro dichiara **919** rossi. Con essa,
+      **uno**. È la ragione per cui `leggi-giro.mjs` esiste, ed è la stessa
+      trappola che il 07/08 aveva fatto aprire un cantiere su dieci difetti
+      inesistenti.
+      L'unico KO vero: *scudo @320 «Verifica periodica · Autogru 3»: la tendina
+      `#vf-ente` mostra «Soggetto pubblico o privato abilitato» tagliato — chiede
+      254 px in 214*. **Chiuso da `1040c23`** lo stesso pomeriggio, cioè
+      **prima** che il giro arrivasse a stamparlo: adesso la voce è «Soggetto
+      abilitato» (172 px) e la parola di legge dell'art. 71 c.11 sta per esteso
+      nella nota che va a capo.
+      ⚠️ **E la sezione 0 va letta prima di tutto**: il giro attesta `c6694e7` e
+      il branch è avanti di **37 commit, di cui 18 toccano le superfici
+      misurate**. Ogni KO lì dentro è vero **a quel commit**, non adesso — e
+      questo ne è la dimostrazione, non un'ipotesi.
+
 - [ ] **B0. I CANTIERI DEL BROWSER E IL GIRO SI RUBANO LA MACCHINA — misurato
       il 09/08, e ridimensiona la direttiva 3 SOLO per i banchi.** Il giro del
       browser è partito alle **13:03:34Z** e ha fatto **145 passate in 119
