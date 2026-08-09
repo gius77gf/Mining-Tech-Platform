@@ -288,8 +288,33 @@ for (const [rel, regola] of BROWSER) {
     perApp.push(`${f.replace(/^CONCORRENTI_|\.md$/g, "").toLowerCase()} ${n}`);
     assenti += n;
   }
+  /* ⏱️ E LE «SCADUTE», con lo stesso criterio: sono le mancanze che il prodotto
+     ha già colmato, e il loro numero dice quanto la ricerca sta pagando. Vale
+     la stessa regola del verdetto — comincia con la parola, ed è maiuscola. */
+  let scadute = 0;
+  const scadutePerApp = [];
+  for (const f of readdirSync(join(RADICE, "docs")).filter((n) => /^CONCORRENTI_.*\.md$/.test(n)).sort()) {
+    let n = 0;
+    for (const riga of readFileSync(join(RADICE, "docs", f), "utf8").split("\n")) {
+      const m2 = VERDETTO.exec(riga);
+      if (!m2 || !m2[3].trim()) continue;
+      const v = m2[2].trim().replace(/^\*\*/, "").replace(/^⏱️\s*/, "").replace(/^\*\*/, "");
+      if (/^SCADUT[AOEI]/.test(v)) n++;
+    }
+    scadutePerApp.push(`${f.replace(/^CONCORRENTI_|\.md$/g, "").toLowerCase()} ${n}`);
+    scadute += n;
+  }
+
   const road = readFileSync(join(RADICE, "vault", "ROADMAP_SETTIMANA.md"), "utf8");
   const m = /\| totale \*\*(\d+)\*\* \(era 54/.exec(road);
+  const mS = /\| totale \*\*(\d+)\*\* \(⛔ non 18\) \|/.exec(road);
+  test("ROADMAP: anche le mancanze SCADUTE sono quelle che i documenti contengono", () => {
+    ok(mS, "non trovo la riga col totale delle scadute nella roadmap");
+    ok(scadute > 0, "non sono riuscito a contare nessuna scaduta: il righello è rotto");
+    ok(+mS[1] === scadute,
+      `la roadmap dice ${mS[1]}, i documenti ne contengono ${scadute} (${scadutePerApp.join(" · ")})`);
+  });
+  console.log(`      scadute contate nei documenti: ${scadute} — ${scadutePerApp.join(" · ")}`);
   test("ROADMAP: le mancanze confermate del delta sono quelle che i sei documenti contengono", () => {
     ok(m, "non trovo la riga col totale delle mancanze confermate nella roadmap");
     ok(assenti > 0, "non sono riuscito a contare nessun verdetto: il righello è rotto");

@@ -774,7 +774,7 @@ numero scritto dove non era stato misurato niente**.*
 
           | app | «CONFERMATA ASSENTE» | «SCADUTA» |
           | campo 11 · sentinella 13 · conti 8 · flotta 5 · terra 4 · **scudo 6** |
-          | totale **47** (era 54 · ⛔ NON 42 e NON 41: vedi qui sotto) | totale **18** (erano 6) |
+          | totale **47** (era 54 · ⛔ NON 42 e NON 41: vedi qui sotto) | totale **13** (⛔ non 18) |
 
       ⚠️ **Correzione dello stesso pomeriggio: 41 → 42.** Il primo conto cercava
       `CONFERMAT[AO] ASSENTE` e ha perso l'unica riga al plurale, «CONFERMATE
@@ -832,6 +832,17 @@ numero scritto dove non era stato misurato niente**.*
       strumento. Adesso il criterio è *dove comincia la cella, e con che
       maiuscole*: la cosa più vicina al significato che si possa chiedere a un
       testo.
+      ⏱️ **E LE «SCADUTE» SONO 13, NON 18** — misurate con lo stesso criterio e
+      da oggi sorvegliate anche loro: campo 3 · conti 3 · flotta 0 · scudo 2 ·
+      sentinella 3 · terra 2.
+      ⚠️ **E il 18 non si ricostruisce, va detto invece di aggiustarlo a
+      posteriori.** Provate le combinazioni ovvie: i verdetti `SCADUTA` sono
+      **13**; aggiungendo le righe «⏱️ A METÀ — *era* CONFERMATA, colmata a
+      metà» (3, tutte in Scudo) si arriva a **16**. Nessun criterio che abbia
+      provato dà 18. Il numero veniva da un conto a mano del 07/08 e non è
+      ricostruibile dai documenti: **si sostituisce con quello misurato e si
+      dichiara che non torna**, invece di inventargli una definizione che lo
+      giustifichi.
       ✅ E **lo zero di Scudo non c'era mai stato**: quel documento è
       confrontabile con gli altri cinque, scrive solo il verdetto senza
       grassetto. Cade con lui anche la nota qui sotto sull'«uniformare le sei
