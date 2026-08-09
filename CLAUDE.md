@@ -472,6 +472,38 @@ Perché serva davvero e non produca elenchi generici, cinque vincoli:
   *all'originale manca un parametro?* Costa una riga e toglie una divergenza
   futura — che era già lì: la seconda Box–Muller scriveva `6.2831853` dove il
   modulo scrive `2*Math.PI`.
+  ⛔ **E IL 09/08 IL CONTO È TORNATO INDIETRO A MORDERE, NELLA VESTE PEGGIORE:
+  UN CONTRATTO ALLARGATO A METÀ.** Quel `>` di `disegnaSpark` fu corretto
+  allargando `soglia` da numero a «numero **oppure** `{valore, inclusiva}`». Ma
+  l'allargamento fu fatto **dove si legge il verdetto**, e non quaranta righe
+  più su **dove si costruisce la scala**, rimasta a `Math.min(min, s.soglia)`:
+  con la forma nuova quel `Math.min` fa **NaN**, e da lì è NaN il percorso
+  (`M2.0 NaN…`), la riga della soglia (`y1="NaN"`), tutto. Effetto: **la
+  miniatura del Quadro di Sentinella non disegnava NIENTE** — linea e area
+  **0×0 px** — sulla dimostrazione e sulla prima schermata dell'app, con la
+  console pulita e nessuna prova rossa, perché un attributo SVG non valido non
+  solleva niente.
+  ⚠️ E si rompeva **solo dove aveva qualcosa da dire**: un punto **senza**
+  soglia si disegnava benissimo. Il difetto stava esattamente sui punti che il
+  prodotto esiste per far vedere, ed è per questo che nessuna schermata normale
+  lo mostrava.
+  La regola: **quando si allarga il contratto di un valore, si cercano TUTTI i
+  posti che lo leggono** — non solo quello che si sta correggendo. Il segno da
+  riconoscere sono **due sorelle con due contratti** (`disegnaLinea` accettava
+  solo l'oggetto, `disegnaSpark` tutt'e due, ognuna normalizzando per conto
+  suo): finché la normalizzazione è scritta due volte, allargarne una sola non
+  produce un errore, produce un `NaN` silenzioso. Adesso è una
+  (`normSoglia` in `shared/dw-grafici.js`) e la usano tutt'e due.
+  ⛔ **E LA CONTROPROVA HA BOCCIATO LA DIFESA, che è la parte che vale più del
+  difetto.** La prima stesura della prova aveva un aiuto che **rifaceva in tre
+  righe il calcolo della scala** e ci appendeva tre asserzioni: col difetto vero
+  rimesso restavano **verdi**, perché non guardavano `disegnaSpark` — era una
+  **copia debole scritta dentro la difesa contro una copia debole**. È la quarta
+  causa di «non distingue» (l'iniezione è vera, la prova guarda un'altra
+  funzione), e si riconosce da una domanda sola: *questa asserzione chiama il
+  codice di prodotto, o una mia versione di esso?* Quando il codice non si può
+  chiamare da `node` (qui voleva un DOM), la difesa va messa **sul sorgente** —
+  nessun `min`/`max` ricavato dal valore grezzo — non riscritta in casa.
 - ⛔ **UNA REGOLA CHE SERVE A DUE APP VIVE IN `shared/`.** Non nel modulo di una
   delle due (nessuna app importa il modulo dati di un'altra) e **mai riscritta**:
   è il difetto che è costato una giornata intera con la convenzione sui numeri,
@@ -1794,6 +1826,39 @@ Perché serva davvero e non produca elenchi generici, cinque vincoli:
   ammesso — dietro una variabile, dentro un `color-mix()`, in un secondo blocco
   — il mio controllo lo vedrebbe ancora?* Se la risposta è no, il controllo non
   è severo: è **aggirabile per distrazione**.
+- ⛔ **DICHIARARE UN PUNTO CIECO NON LO ILLUMINA.** Misurato il 09/08, ed è il
+  seguito della riga qui sotto: là il controllo dichiarava la propria cecità e
+  nessuno leggeva; qui la dichiarazione **c'era, era onesta, ed era già la
+  correzione di quello stesso difetto** — e non ha impedito la seconda volta.
+  In fondo alla roadmap stava scritto *«qui il controllo non arriva, e
+  l'aggiornamento è a mano. Chi la legge lo sappia»*, riga nata la prima volta
+  che quel file era invecchiato («120 banchi» quando ne erano 147). Al 09/08 lo
+  **stesso numero** era scritto lì dentro in **tre valori diversi** (2.366 nella
+  riga di stato, 2.370 in fondo, 2.371 in un racconto di mezzo) mentre le suite
+  ne eseguivano **2.380**.
+  ⚠️ La ragione per cui una dichiarazione così **non può** funzionare è
+  geometrica: chi incontra il numero non ha modo di sapere quando è stato
+  scritto, e **l'avvertimento sta duecento righe più in basso di lui**. Un
+  lettore onesto e attento lo legge comunque sbagliato.
+  La regola: quando un numero invecchia due volte nello stesso posto, non si
+  scrive un avviso più grosso — **si porta il file dentro l'elenco del
+  controllo**. Costa una voce; lasciarlo fuori l'ha appena pagato il documento
+  che il fondatore apre per primo.
+- ⛔ **UN ALLARME CHE SCATTA SEMPRE INSEGNA A NON GUARDARLO — e se scatta nel
+  verso allarmante, fa buttare via lavoro buono.** Misurato il 09/08 su
+  `leggi-giro.mjs`, che è lo strumento scritto apposta per leggere bene un
+  registro. Pretendeva una riga `USCITA N` per dire che il giro era arrivato in
+  fondo, e `tutti.mjs` quella riga **non l'ha mai stampata, in nessuna
+  versione**: quindi rispondeva «il registro è tronco, il giro non è arrivato in
+  fondo» in coda a un giro da cinque ore e mezza finito benissimo — col conto
+  finale («143 banchi a posto, 16 da guardare») stampato **tre righe più su**.
+  ⚠️ Le due direzioni sbagliate non costano uguale ma costano tutt'e due: la
+  risposta **tranquilla** dove non si sa nasconde i difetti, la risposta
+  **allarmante** dove non si sa fa cestinare misure valide. La forma giusta era
+  già dieci righe più in là nello stesso file — gli orari sanno dire «vecchio»,
+  «fresco» e **«non lo so»**.
+  ⚠️ E il modo di accorgersene non è rileggere il controllo: è **aprire il
+  soggetto che dovrebbe stampare quella riga**. Trenta secondi di `grep`.
 - ⛔ **UN CONTROLLO CHE DICHIARA DI ESSERE CIECO E CHE NESSUNO LEGGE È COME NON
   AVERLO.** Misurato il 03/08, ed è la forma più beffarda di tutte perché non
   richiede nessuna indagine: il banco delle modali stampava in fondo al suo
