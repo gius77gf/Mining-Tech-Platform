@@ -342,8 +342,9 @@ Telematica **anticipatoria**, non solo tracking: mostrare il guasto prima che ca
 
 ## Verifica del delta (01/08)
 
-> **Verificato contro il codice al commit `57c78cf`** *(riverificato l'08/08;
-> le verifiche precedenti erano a `4743c69` il 06/08 e a `f3432f4` il 01/08).*
+> **Verificato contro il codice al commit `69e6c3f`** *(riverificato l'09/08;
+> le verifiche precedenti erano a `57c78cf` l'08/08, a `4743c69` il 06/08 e a
+> `f3432f4` il 01/08).*
 >
 > ### 08/08 (terzo passaggio) — otto commit, ZERO che mordono
 >
@@ -405,6 +406,26 @@ Telematica **anticipatoria**, non solo tracking: mostrare il guasto prima che ca
 > già come bottoni**: è cambiato **dove** si compone il file, non che cosa
 > l'utente può fare. Un confronto coi concorrenti si muove quando si muove
 > una **capacità**, e qui non se n'è mossa nessuna.
+>
+> ⏱️ **Riverificato a `69e6c3f` (09/08).** Fra `57c78cf` e qui Flotta è andata
+> avanti di **4 commit**, **+218 righe** e −42, con **uno che MORDE**. Aperto,
+> e **nessuna riga di questo documento cambia**. La misura, non la deduzione:
+> · `<button>` aggiunti **0**, tolti **0** (`git diff … | grep -c '^\+.*<button'`);
+> · l'unica `export function` nuova è **`statoGiro(controllo)`**, e non è una
+>   capacità nuova: è il **badge del giro macchina** — che esisteva già ed è
+>   documentato qui sopra fra le cose che l'app sa fare — portato dentro il
+>   modulo dati accanto alla funzione che decide la stessa cosa a schermo. È il
+>   movimento che questo repository fa di continuo (la decisione in un posto
+>   solo), e sposta **dove** si decide, non **che cosa** l'utente può fare.
+>   ⚠️ Quello che la funzione ha guadagnato è invece un *principio*: «nessun
+>   giro non è un giro andato bene» — un controllo mai compilato risponde `da
+>   fare` con `gravita: null` invece di «tutto a posto». Non è una riga di
+>   confronto coi concorrenti, è la regola del fondatore applicata a un badge.
+> · gli altri tre commit sono singolare, zero sommabile e una data del CSV:
+>   cambiano **come** l'app dice le cose.
+> ⚠️ E vale la nota di sempre: questa è la verifica **contro un commit noto**,
+> che serve a tenere a zero l'arretrato di `documenti-invecchiati.mjs`. La
+> prova vera resta quella riga per riga, con la sua data.
 
 *Verificate tutte le righe delle liste «C'è a metà 🟡» e «Non c'è ❌», più le
 righe della tabella DELTA che non vi comparivano. Due coppie erano lo stesso
