@@ -345,7 +345,7 @@
 
 ## Verifica del delta (01/08 · **riverificata riga per riga il 03/08**)
 
-> **Verificato contro il codice al commit `47bb21d`** *(09/08 · le OTTO «CONFERMATA ASSENTE» rilanciate una per una: tutti i termini stretti danno ancora zero, e i quattro larghi — `firma`, `bilancia`, `foto`, `permess` — sono stati riaperti e caratterizzati invece che contati; prima era `57c78cf`, riverificato l'08/08;
+> **Verificato contro il codice al commit `56d09f0`** *(09/08 · le OTTO «CONFERMATA ASSENTE» rilanciate una per una: tutti i termini stretti danno ancora zero, e i quattro larghi — `firma`, `bilancia`, `foto`, `permess` — sono stati riaperti e caratterizzati invece che contati; prima era `57c78cf`, riverificato l'08/08;
 > le precedenti erano a `4916275` il 06/08 e a `ecc65d5` il 01/08).*
 >
 > ### 08/08 (terzo passaggio) — quattordici commit, quattro che mordono, otto righe che reggono
