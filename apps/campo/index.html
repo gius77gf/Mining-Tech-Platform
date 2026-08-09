@@ -428,6 +428,16 @@ button.arr.del:hover{
 .item.pon-voce{
   background:var(--card2);
   border-bottom-left-radius:0; border-bottom-right-radius:0; margin-bottom:0;
+  /* ⛔ LA MANINA È UNA PROMESSA, E QUESTA RIGA NON LA PUÒ MANTENERE. Non è una
+     voce che si apre: è la TESTATA del pannello `.pon-det` qui sotto, che sta
+     già aperto — non ha nessun gestore e non ne deve avere. Campo però
+     ridefinisce `.item{cursor:pointer}` per tutte le sue righe (scavalcando il
+     `default` di `dw-app-shell.css`), e così questa mostrava la manina senza
+     fare niente: chi la tocca non pensa «la riga è ferma», pensa di aver
+     sbagliato mira e riprova.
+     Trovata da `promesse-tocco.mjs` nel giro del 09/08 — l'unica su 519 voci
+     misurate in quattordici superfici. */
+  cursor:default;
 }
 .pon-det{
   position:relative; overflow:hidden;
