@@ -733,7 +733,34 @@ numero scritto dove non era stato misurato niente**.*
       ✅ Sette iniezioni, ognuna fa cadere la sua prova — compresa quella
       anti-trappola, che non si accontenta del **nome** (che nella pagina resta)
       ma pretende che sia sparito il **corpo**.
-      ⛔ **E UN DIFETTO VERO, TROVATO E NON CORRETTO, CHE VA DECISO** —
+      ✅ **CHIUSO LO STESSO GIORNO (`6188cdf`), e il conto è cambiato in
+      corsa.** `micFinestra` risponde **`null`** quando non c'è niente da
+      contare, `micSenzaConto` dice **perché**, `esitoMic` dà il verdetto — e
+      sono gemelle esatte di `ppvSenzaSoglia`/`ppvLimit`/`esitoAirblast`, che
+      stanno trenta righe più su nello stesso file: convenzione **ripresa**, non
+      inventata.
+      ⛔ **E metà del lavoro sta nei LETTORI, per una misura che ha ribaltato la
+      priorità**: il difetto di partenza vale **7,3×**, ma un `null` **non
+      letto** vale **199×** — 0,12 mm/s invece di 23,95 — e l'airblast scende da
+      135,4 a 104,5 dB(L). Una bandiera che non legge nessuno non protegge
+      niente (regola 20), e col flag importato e non letto `run-stile` cade a
+      316. Sette lettori sistemati e **aperti davvero premendo i bottoni**: il
+      CSV della scheda volata, il **piano d'innesco XML** (era
+      `<MaxInstantCharge>0.0</>` — il file che legge un software di terzi,
+      adesso elemento vuoto con `status="non-calcolabile"` e il commento «non
+      usare per programmare i detonatori»), il foglio stampabile, il CSV che
+      attraversa verso **Sentinella**, la scheda validatori, `sitoGrafico` e la
+      riconciliazione.
+      ⚠️ Due stesure **bocciate in scratchpad** prima di scrivere nel modulo, e
+      valgono: `if(!H.length)` lascia in piedi il **secondo** numero tranquillo,
+      quello nel ramo dei fori **pieni**; e `Number.isFinite` **non basta**,
+      perché `+null` fa **0**, che è finito — il `null` va nominato per nome.
+      ⚠️ Uno zero **misurato** resta `0`: è un fatto, non un'assenza.
+      ⛔ Nessuna soglia toccata (133 dB(L), curve USBM/DIN, K e β).
+      ⏱️ **Resta aperto e dichiarato**: `k.qtot` porta lo **stesso zero** — col
+      `kg` illeggibile la scheda scrive «Carica totale (kg);0». Alimenta costi,
+      margine e €/m³, quindi è un cantiere suo.
+      ⛔ **IL TESTO QUI SOTTO È COM'ERA QUANDO IL DIFETTO ERA APERTO** —
       `computeMIC()` su un progetto **senza fori disegnati** risponde la carica
       di **un** foro, cioè il valore più basso possibile, cioè la PPV più
       tranquilla. Misurato sul progetto di partenza (60 kg/foro, recettore
