@@ -853,6 +853,24 @@ numero scritto dove non era stato misurato niente**.*
       e pretendere che un foro **senza carica reale** non esca come uno zero.
       ⚠️ Non fatto in questa unità e dichiarato: serve la fixture del piano, ed
       è un'unità sua — non un'aggiunta di tre righe.
+      ⏱️ **E IL DENOMINATORE DI TUTTO L'ECOSISTEMA, misurato subito dopo: è
+      L'UNICO.** Censiti tutti i `<button>` d'uscita delle sette superfici (id
+      che contiene `export`, `csv`, `pdf`, `stampa`, `scarica`, `download`) e
+      chiesto per ognuno quale banco lo nomina: **39 bottoni, 1 senza nessun
+      banco**, e quell'uno è `btn-piano-export`. Cioè la copertura dei punti
+      d'uscita è al **97%**, e il buco è esattamente sul ponte fra due app —
+      il che lo rende più interessante, non meno.
+      ⛔ **E il primo conto era 44 e 3, con DUE falsi allarmi su tre**: cercando
+      gli `id` senza pretendere che fossero `<button>`, il censimento aveva
+      raccolto `pdfm-cava` e `pdfm-mese` del core, che sono un `<select>` e un
+      `<input type="month">` **dentro** la finestra del PDF — campi di un modulo,
+      non bottoni da premere. Accusavano il core, cioè la superficie che il
+      fondatore mostra per prima, di due buchi che non ha.
+      ⚠️ La lezione è quella di sempre e vale la pena riscriverla perché è
+      successa **mentre misuravo un buco vero**: il sospettato è il righello. Un
+      censimento che seleziona per **nome** invece che per **cosa è** trova
+      soggetti che non esistono — ed è la stessa forma del «un nome dentro una
+      regex» che questa settimana è già costata un elenco intero.
 
 - [ ] **B4. Le mancanze confermate del delta**, in ordine di quanto le chiede un
       ispettore. ⏱️ **Ricontate il 07/08 leggendo i documenti**, non a memoria —
