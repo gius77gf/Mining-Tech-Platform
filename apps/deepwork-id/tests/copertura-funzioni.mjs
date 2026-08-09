@@ -179,7 +179,26 @@ const APP = ["campo", "conti", "flotta", "scudo", "sentinella", "terra"];
    colonna dei giorni vuota. Tutt'e due sbagliavano **perché** vivevano dove
    nessuna prova guarda: la pagina compone i file, e le prove chiamano il
    modulo. Il fondo si alza DOPO aver visto il conto salire (87/87). */
-const FONDO = { campo: 123, conti: 122, flotta: 87, scudo: 165, sentinella: 131, terra: 61 };
+/* ⏱️ ALZATI IL 09/08 — sei fondi su sette, e la ragione è quella che questo file
+   dichiara da sé a ogni giro: `conti` 122 → 130, `scudo` 165 → 185,
+   `sentinella` 131 → 133, `terra` 61 → 66, e fuori da qui `dw-ponti` 39 → 47 e
+   `dw-shell` 43 → 47. Nessuna prova aggiunta da questa unità: sono prove
+   arrivate nei giorni scorsi con le loro funzioni, e il fondo era rimasto
+   indietro — «(il fondo era 165: alzalo)» lo stampava a ogni esecuzione.
+   ⛔ E vale la pena scrivere PERCHÉ non è manutenzione cosmetica: un fondo che
+   sta venti sotto il conto vero **non può più scattare**. Il suo mestiere è
+   accorgersi che una copertura SCENDE, e con vent'unità di margine bisogna
+   perderne venti perché dica qualcosa: è una guardia che c'è e non guarda,
+   cioè la stessa famiglia della soglia scritta su un valore monotòno spiegata
+   in cima a questo file. Alzarlo lo rimette a distanza di uno.
+   ✅ Controprova fatta, non dedotta: portato `conti` a 131 — uno sopra il conto
+   vero — il controllo dice «✗ conti 130/130 100% SOTTO IL FONDO DI 131» ed esce
+   diverso da zero; ripristinato da una copia, con `diff -q` pulito.
+   ⚠️ `genesi-data.js` NON è stato alzato di proposito: mentre scrivo un cantiere
+   sta portando fuori dalla pagina la carica massima per finestra, e il suo conto
+   si sta ancora muovendo. Un fondo si alza DOPO aver visto il conto salire e
+   fermarsi. */
+const FONDO = { campo: 123, conti: 130, flotta: 87, scudo: 185, sentinella: 133, terra: 66 };
 
 /* Quello che resta fuori per un motivo, non per dimenticanza: i caricatori
    dati vogliono la rete e lo SDK, i ponti demo vogliono il localStorage.
@@ -245,7 +264,7 @@ const CONDIVISI = [
      `luogoNearMiss`, `descrizioneNearMiss` — più `CHI_SEGNALA` e
      `bozzaNearMiss`, che sono nuove. Il fondo di `scudo` scende di cinque
      nello stesso momento: i due numeri vanno letti insieme. */
-  { file: "shared/dw-ponti.js", fondo: 39,
+  { file: "shared/dw-ponti.js", fondo: 47,
     perche: "le regole che servono a DUE app: è il posto dove un difetto si moltiplica" },
   /* 40 → 41 il 06/08: `modoDimostrazione`, cioè «questi dati sono veri?».
      Era scritta in quattro varianti dentro quattro pagine (Conti, Scudo,
@@ -254,7 +273,7 @@ const CONDIVISI = [
      conto e si prova chiamandola: è lo stesso movimento di
      `nomeCsvDimostrazione` di ieri, e il segno che erano nel posto sbagliato
      era lo stesso — per provarle bisognava estrarre la riga dal sorgente. */
-  { file: "shared/deepwork-id-client/dw-shell.js", fondo: 43,
+  { file: "shared/deepwork-id-client/dw-shell.js", fondo: 47,
     perche: "gli aiuti che tutte le app importano (numeri, date, CSV)" },
   { file: "apps/genesi/pointcloud.js", fondo: 5,
     perche: "il calcolo del volume dal drone: da lì passano i m³ che consumano la concessione" },
