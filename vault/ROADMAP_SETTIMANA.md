@@ -1008,8 +1008,28 @@ numero scritto dove non era stato misurato niente**.*
   Chromium (`min2`, `docs/MIGLIAIA_NODE_CONTRO_CHROMIUM.md`): questi sono
   numeri a cinque, sei e sette cifre resi **nel browser** e non raggruppati
   affatto.
-  ⛔ **Prossimo passo**: trovare dove si compongono quelle quattro frasi e
-  passarle dal formattatore che la riga usa già due parole più in là.
+  ⛔ **CAUSA TROVATA, ED È LA TRAPPOLA CHE `CLAUDE.md` NOMINA — CON ME DENTRO.**
+  Le frasi si compongono in `_puntiNuvola` con `_ricPlur`, che è `conta` di
+  `shared/`, e **`conta` scrive `String(n)`: non raggruppa**. Misurato:
+  `conta(41230,'punto','punti')` → `"41230 punti"`. Sulla stessa riga `tot`
+  passa da `gnum(tot,0)` e infatti esce `3.000.000`: ecco perché uno è
+  raggruppato e l'altro no.
+  ⚠️ **E NELLA MIA UNITÀ SU GENESI DI STANOTTE HO FATTO LA STESSA
+  SOSTITUZIONE**, in nove punti: `gnum(k.nf,0)+' fori'` →
+  `_ricPlur(k.nf,'foro','fori')`. Ho corretto il singolare e **tolto il
+  raggruppamento** senza accorgermene. È esattamente *«una funzione nuova che
+  prende il posto di una vecchia si porta dietro il mestiere, non le difese»*.
+  In pratica non si vede — fori di una volata e referti stanno sotto il
+  migliaio — ma **il principio è rotto lo stesso**, e va rivisto insieme a
+  questo.
+  ⛔ **La forma della correzione** (non fatta: tocca `shared/` o nove punti, e
+  va decisa con calma): comporre `gnum(n,0) + ' ' + plurale(n, sing, plur)`
+  invece di `conta(n, …)` dove il numero può superare il migliaio — oppure dare
+  a `conta` il raggruppamento, che però è una decisione su `shared/` e
+  cambierebbe **tutte** le app in una volta.
+  ⚠️ Da verificare per prima cosa: `docs/MIGLIAIA_NODE_CONTRO_CHROMIUM.md` dice
+  che sui numeri di **quattro cifre** Node e Chromium raggruppano diversamente
+  — quindi la scelta va fatta con `useGrouping` **scritto**, non implicito.
   ⛔ **APERTO IL PIÙ PICCOLO PER PRIMO — e ha risposto alla domanda di disegno,
   ma non come credevo: QUESTA FAMIGLIA NON SI CHIUDE ACCORCIANDO IL TESTO.**
   La tendina di Sentinella sfora di **6 px** a 390 (290 contro 284) e di 76 a
