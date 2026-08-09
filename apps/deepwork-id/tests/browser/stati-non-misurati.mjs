@@ -184,7 +184,14 @@ const CASI = [
   ['campo', 'disponibilità che non torna: nessuna percentuale, mai', '#nav-rap', null, '#disp-stato',
     /non calcolabile/i,
     [{ scrivi: '#disp-ore', valore: '0,5' }, { tocca: '#btn-disp' }],
-    { vietato: /\d\s*%/, perche: 'con i due numeri che non tornano non si stampa nessuna percentuale' }],
+    /* ⛔ `pronta`: prima di dichiarare 0,5 h ci devono ESSERE dei minuti di
+       fermo nel turno, se no i due numeri non si contraddicono mai e il banco
+       accusa il prodotto di una scena che non è arrivata. Si aspetta la riga
+       «N min di fermo» — che è quello che la contraddizione ha bisogno di
+       superare — invece della percentuale, perché di percentuale il cartellone
+       ne mostra una anche a zero fermi. */
+    { vietato: /\d\s*%/, perche: 'con i due numeri che non tornano non si stampa nessuna percentuale',
+      pronta: /\d+\s*min\s+di\s+fermo/i }],
   /* Flotta e Sentinella un caso ciascuna ce l'avevano gia' in dimostrazione:
      qui non si aggiungono dati, si mette sotto guardia quello che c'e' — se
      un domani sparisce dalla demo, il banco lo dice invece di restare verde. */
@@ -352,6 +359,10 @@ const FINTO = [['scudo', 'stato inventato', '#nav-doc', null, '#doc-list', /pinc
 const chromium = await prendiChromium();
 const browser = await chromium.launch({ executablePath: CHROMIUM });
 let ok = 0, ko = 0, guardati = 0;
+/* i casi che non si sono potuti misurare, con la ragione: si stampano alla
+   fine PRIMA dei KO (è la regola delle righe «non ho guardato») e fanno
+   uscire il banco diverso da zero */
+const nonMisurati = [];
 const dice = (b, t, x) => { if (b) { ok++; console.log(`  ok  ${t}`); }
   else { ko++; console.log(`  KO  ${t}${x !== undefined ? ` -> ${JSON.stringify(x)}` : ''}`); } };
 
@@ -371,6 +382,38 @@ for (const [app, casi] of Object.entries(perApp)) {
     if (sotto) {
       const sel = `#pers-tabs [data-tab="${sotto}"]`;
       if (await p.$(sel)) { await p.click(sel); await p.waitForTimeout(800); }
+    }
+    /* ⛔ LA PRECONDIZIONE, dal 09/08, e non è pignoleria: senza, questo banco
+       non sa distinguere «il prodotto scrive la cosa sbagliata» da «la mia
+       scena non è mai arrivata». Il caso della disponibilità di Campo è caduto
+       UNA volta su cinque con «non compare in #disp-stato», e ho passato
+       mezz'ora a cercare il difetto nel prodotto: il prodotto era giusto, e
+       nell'unico giro storto la pagina non aveva ancora caricato le attività
+       della dimostrazione — quindi lo stato era «non è registrata nessuna
+       attività per questo turno» invece della contraddizione. Misurato: 10 su
+       10 in isolamento e 3 su 3 nel banco intero, cioè un difetto che si
+       presenta di rado ed è **indistinguibile da un difetto vero** quando si
+       presenta. E si è visto solo perché il totale era **82 invece di 83**: un
+       caso che cade dichiara UNA prova invece di due.
+       ⚠️ È la regola di casa applicata a una scena invece che a un'iniezione:
+       *un'iniezione si verifica dove il programma la legge, non dove l'hai
+       scritta.* Qui il programma legge le attività del turno, e la scena si
+       verifica leggendo che ci siano.
+       Un soggetto non misurato NON è un soggetto a posto: se la precondizione
+       non arriva entro il tempo, il caso si dichiara e il banco non esce zero. */
+    if (extra && extra.pronta) {
+      const scaduta = Date.now() + 6000;
+      let testo = '';
+      do {
+        testo = await p.evaluate((d) => (document.querySelector(d)?.innerText || ''), dove);
+        if (extra.pronta.test(testo)) break;
+        await p.waitForTimeout(300);
+      } while (Date.now() < scaduta);
+      if (!extra.pronta.test(testo)) {
+        nonMisurati.push(`${app}: ${etichetta} — la schermata non era pronta (${dove} non contiene ${extra.pronta}); testo: «${testo.replace(/\s+/g, ' ').slice(0, 90)}»`);
+        console.log(`  ⚠️  NON MISURATO  ${app}: ${etichetta} — la scena non è arrivata, e questo NON vuol dire «a posto»`);
+        continue;
+      }
     }
     /* `prima` è UNO passo oppure un ELENCO di passi in ordine. L'elenco serve
        da quando c'è uno stato che non si raggiunge con un gesto solo: la
@@ -654,10 +697,18 @@ if (!CONTROPROVA) {
 await browser.close();
 
 console.log(`\n${guardati} stati cercati nelle pagine vive${CONTROPROVA ? ' (CONTROPROVA: devono cadere)' : ''}`);
-console.log(`${ok + ko} prove · ${ok} passate, ${ko} fallite`);
+/* ⛔ PRIMA DEI KO, come pretende la regola delle righe «non ho guardato»: un
+   caso non misurato sparirebbe dal conto delle prove e si leggerebbe come «una
+   prova in meno», non come «un buco». */
+if (nonMisurati.length) {
+  console.log(`\n⚠️  ${nonMisurati.length} casi NON MISURATI — non vuol dire «a posto»:`);
+  for (const r of nonMisurati) console.log(`   · ${r}`);
+}
+console.log(`${ok + ko} prove · ${ok} passate, ${ko} fallite`
+  + (nonMisurati.length ? ` · ${nonMisurati.length} casi non misurati` : ''));
 if (CONTROPROVA) {
   const atteso = ko > 0;
   console.log(atteso ? '✓ la controprova cade, come deve' : '✗ LA CONTROPROVA NON CADE: la sonda non guarda dove crede');
   process.exit(atteso ? 0 : 1);
 }
-process.exit(ko ? 1 : 0);
+process.exit(ko || nonMisurati.length ? 1 : 0);

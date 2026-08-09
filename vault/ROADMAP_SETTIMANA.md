@@ -961,7 +961,7 @@ numero scritto dove non era stato misurato niente**.*
   | tendine di Scudo (`#vf-verbale`, `#vf-ente`) | 5 | 561 px in 284 · 499 in 284 · 254 in 214 |
   | foglio di turno di Campo (`--live`) | 3 | ✅ **chiusi il 09/08 — erano FANTASMA**: iniezione `COME_LIVE` scaduta, la passata «coi dati veri» serviva la dimostrazione. Il prodotto era giusto. `--live` 35/0 |
   | frasi della nuvola di Genesi | 4 | ritaglio e sottocampionamento |
-  | stati «non misurato» di Campo | 2 | non compaiono in `#rap-cop` e `#disp-stato` |
+  | stati «non misurato» di Campo | 2 | ✅ **chiusi tutt'e due, e nessuno dei due era il prodotto**: il primo era il banco che chiedeva il plurale su «1 rapportino»; il secondo era il banco che **non sapeva distinguere una scena non arrivata da un prodotto che mente**. `stati-non-misurati` **83/0** |
   | tendina di Sentinella (`#ppv-scelta`) | 2 | **290 px in 284**: sei px |
   | barre di peso di Conti | 1 | ✅ **chiuso il 09/08 — era il BANCO, invecchiato perché la dimostrazione è migliorata**: pretendeva **due** fasce vuote accanto ai 12 €, e da `069d70e` («assente non è corrotto») la demo ha una fattura **senza scadenza**, quindi di vuote ne resta una. Il prodotto disegnava giusto: 3 px per 12 €, 0 px per uno zero vero. `conti-barre-peso` **15/0** |
   | manina di Campo | 1 | ✅ **chiusa il 09/08**: `.pon-voce` è la testata di un pannello già aperto, non una voce che si apre → `cursor:default`. 519 voci su 14 superfici, da 1 a **0** |
@@ -2743,6 +2743,39 @@ numero scritto dove non era stato misurato niente**.*
   dimostrazione migliora, e accusa il prodotto per una cosa che ha fatto il
   prodotto.** Vale per le soglie quanto per le ancore. Si derivano, o si
   stampano accanto al verdetto.
+
+- [x] ✅ **E IL TERZO DELLA GIORNATA È IL PIÙ INSIDIOSO: UN BANCO CHE NON SA
+  DISTINGUERE UNA SCENA NON ARRIVATA DA UN PRODOTTO CHE MENTE** *(09/08)*.
+  L'ultimo KO di Campo — «disponibilità che non torna» — è caduto **una volta
+  su cinque**, con «non compare in `#disp-stato`», e nelle altre quattro è
+  passato. Sul commit di adesso, senza toccare niente.
+  Ho misurato invece di dedurre: il caso isolato dà **10 su 10**, il banco
+  intero **3 su 3**, e nel giro storto la pagina non aveva ancora caricato le
+  attività della dimostrazione — quindi lo stato era «non è registrata nessuna
+  attività per questo turno» invece della contraddizione. Il prodotto è giusto
+  in tutt'e due i rami (`"oltre"` scrive «non calcolabile» col motivo,
+  `"non-calcolabile"` scrive «Disponibilità non calcolata» con quello che
+  manca): l'ho letto nel reso, non nel sorgente.
+  ⛔ **Il segno che l'ha tradito è un numero che nessuno guarda: 82 prove
+  invece di 83.** Un caso che cade ne dichiara **una** invece di due — è la
+  regola «un banco che crolla dichiara meno prove», qui in versione mite. Senza
+  quel confronto avrei aperto un cantiere sul prodotto per la terza volta oggi.
+  ⚠️ E questo è il difetto peggiore di tutti e tre, perché è **intermittente**:
+  un'accusa falsa che si presenta di rado è indistinguibile da un difetto vero
+  quando si presenta, e il giro del browser gira una volta ogni molte ore.
+  **La cura**: il caso dichiara una **precondizione** (`pronta`), cioè la cosa
+  che deve essere sullo schermo perché la scena abbia senso — qui «N min di
+  fermo», il numero che la contraddizione deve superare. Il banco l'aspetta
+  fino a 6 s; se non arriva **non accusa**: scrive `⚠️ NON MISURATO`, elenca il
+  caso fra le righe «non ho guardato» **prima** dei KO col testo che ha trovato
+  davvero, e **esce 1** — un soggetto non misurato non è un soggetto a posto.
+  ⚠️ Provata nei due versi (`cp` + ripristino + `diff -q`): con una `pronta`
+  che non arriva mai il banco dichiara il caso e **USCITA=1**, con quella vera
+  fa **83/0**. La controprova generale continua a cadere come deve.
+  ⛔ È la regola di casa applicata a una **scena** invece che a un'iniezione:
+  *un'iniezione si verifica dove il programma la legge, non dove l'hai
+  scritta.* Qui il programma legge i minuti di fermo del turno, e la scena si
+  verifica leggendo che ci siano.
 - [x] ✅ **`scudo_azioni_copia.csv` era l'ultimo punto d'uscita che nessun banco
   apriva — adesso Scudo è 5 su 5.** La copia di sicurezza non è il prospetto: il
   prospetto porta lo stato CALCOLATO e la frase dell'origine (che rientrando
