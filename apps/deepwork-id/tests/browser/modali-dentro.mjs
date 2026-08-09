@@ -246,8 +246,26 @@ const MISURA = ([UNITA, larghezza]) => {
      abilitato» a 360 px, sfuggito per **mezzo pixel** (253,5 contro 254).
      È la regola di CLAUDE.md alla lettera: *un controllo tenuto largo «per non
      fare falsi allarmi» può essere cieco proprio dove serve, e il costo della
-     stretta si MISURA, non si teme.* Misurato: la stretta porta **{N} allarmi
-     nuovi** su tutte le superfici, dichiarati per nome nel commento in fondo.
+     stretta si MISURA, non si teme.*
+
+     ⛔ E IL COSTO È STATO MISURATO PRIMA DI ADOTTARLA, su tutte le superfici, con
+     i due righelli affiancati nello stesso giro: **due allarmi nuovi, zero
+     falsi**. Il vecchio ne vedeva **0** in tutto il repository; il nuovo ne
+     vede 2, e sono questi due, per nome:
+       · `core` @390, `#sm-cava` «— nessuna —»: chiede 149 px in 142. Il solo
+         testo sta in 101,4 contro i 114 che il righello vecchio dichiarava
+         liberi — assolto di larghissimo, e tagliato lo stesso;
+       · `sentinella` @390, `#ppv-scelta` «5,6 mm/s · Vibrazioni V2 — confine
+         N…»: chiede 330 px in 312, e il testo (282,5) stava nei 284 del
+         righello vecchio. **Assolto per un pixel e mezzo**, ed è la voce
+         SCELTA: il valore che l'utente legge a tendina chiusa era monco.
+     Denominatore, perché un numero di violazioni senza il suo denominatore si
+     legge al contrario: 404 aperture di finestra, 244 voci di tendina, 14
+     superfici (8 raggiunte su 9 che hanno modali, più 5 che non ne hanno per
+     costruzione), 16 minuti e 34 secondi.
+     Due allarmi pochi e dichiarabili per nome sono meglio di una regola larga
+     che nasconde: è esattamente il conto che la regola chiede di fare, e per
+     questo la stretta è entrata.
 
      ⛔ LA DOMANDA GIUSTA NON SI CALCOLA, SI CHIEDE — E SI CHIEDE UNA VOLTA PER
      TENDINA, NON UNA PER VOCE. Si clona la tendina con una sola opzione, le si
@@ -314,9 +332,6 @@ const MISURA = ([UNITA, larghezza]) => {
          È la stessa disciplina della sonda doppia qui sopra: si può sostituire
          una misura con un conto, ma non dove il conto decide. */
       if (ingombro !== null && Math.abs(serve - scatola) <= 3) { serve = chiedi(o.textContent); alBordo++; }
-      /* ── MISURA TEMPORANEA (costo della stretta), da togliere ── */
-      const __testo = testo;
-      const __vecchio = s.clientWidth - (parseFloat(cs.paddingLeft) || 0) - (parseFloat(cs.paddingRight) || 0);
       if (serve > scatola + 0.5) {
         tendine.push({ serve: Math.round(serve), spazio: Math.round(scatola),
           testo: (o.textContent || '').trim().slice(0, 44), id: s.id || cls(s),
@@ -332,9 +347,6 @@ const MISURA = ([UNITA, larghezza]) => {
              scelta: `value === ""` è la convenzione con cui ogni tendina di
              questo ecosistema scrive il proprio segnaposto. */
           vuota: o.value === '',
-          __vistoDalVecchio: __testo > __vecchio + 1,
-          __testo: Math.round(__testo * 10) / 10,
-          __vecchio: Math.round(__vecchio * 10) / 10,
           __ingombro: ingombro === null ? null : Math.round(ingombro * 10) / 10 });
       }
     }
@@ -633,7 +645,6 @@ const tendineTagliate = new Set();
    visibile risulta tagliata. È il dato che separa «misura la larghezza» da
    «si accorge che qualcosa non va». */
 const soglieViste = new Map();
-const __costo = new Set(), __gia = new Set();
 let inciampi = 0, restate = 0, forzate = 0, sviate = 0, scese = 0;
 const interrotte = [];
 const raggiunte = [], nonRaggiunte = [];
@@ -823,9 +834,6 @@ for (const [nome, via] of SUPERFICI) {
              È la quinta causa del «non distingue»: il caso difeso che non c'è
              nella prova. */
           if (!x.scelta && !x.vuota) continue;
-          (x.__vistoDalVecchio ? __gia : __costo).add(
-            `${nome}@${larghezza} #${x.id} «${x.testo}» — chiede ${x.serve} in ${x.spazio}` +
-            ` (testo ${x.__testo}, righello vecchio ${x.__vecchio})`);
           conto.vistoTendina++;
           if (!soglieViste.has(x.id)) soglieViste.set(x.id, new Set());
           soglieViste.get(x.id).add(larghezza);
@@ -940,12 +948,6 @@ console.log(`soggetti guardati: ${apertePerTutti} aperture di modale, ${elementi
 console.log(`voci di tendina tagliate ma non scelte (dichiarate, non bocciate): ${tendineTagliate.size}`);
 console.log(`tendine in cui l'ingombro non testuale non era una costante (misurate voce per voce): ${perVoceTot}`
   + ` · voci vicine al bordo rimisurate col clone vero: ${alBordoTot}`);
-console.log(`\n──── COSTO DELLA STRETTA ────`);
-console.log(`  il righello vecchio ne vedeva ${__gia.size}; quello nuovo ne vede ${__gia.size + __costo.size}.`);
-console.log(`  ALLARMI NUOVI: ${__costo.size}`);
-for (const x of __costo) console.log(`    + ${x}`);
-console.log(`  gia' visti prima:`);
-for (const x of __gia) console.log(`    = ${x}`);
 /* ⚠️ E QUESTE DUE RIGHE DICONO SE IL RIGHELLO REGGE. «Restate» sono i tocchi
    che hanno trovato la finestra di prima ancora aperta: fino al 07/08 venivano
    contati come aperture (436 su 11 finestre vere). «Forzate» sono le chiusure

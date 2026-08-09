@@ -1037,3 +1037,125 @@ export function micFinestra(holes, kg) {
   }
   return n * kg;
 }
+
+/* ══════════════════════════════════════════════════════════════════════════
+   G12 · LA CARICA TOTALE E IL COSTO DELLA VOLATA — «non lo so» invece di zero
+   ══════════════════════════════════════════════════════════════════════════
+   ⛔ LO STESSO DIFETTO DEL BLOCCO G11, UN NUMERO PIÙ IN LÀ, E QUI SI TOCCANO I
+   SOLDI. `computeKPI` faceva `const Q = D2.kg` senza ripiego e poi
+   `qtot = nf * Q`: con una carica per foro non leggibile, `nf * null` fa
+   **zero** e `Math.round(0)` fa zero, quindi la volata dichiarava
+   «Carica totale 0 kg» invece di dire che non lo sa.
+   ⚠️ E il caso è RAGGIUNGIBILE per la stessa porta di sempre: `apri` fa
+   `Object.assign(D2, …)` da `localStorage` senza controlli, e `kg` sta nel
+   `design` che si salva — la stessa porta da cui il 03/08 è entrato il codice
+   di normativa che Genesi non riconosce.
+   ⚠️ **NON è il caso di `micFinestra`**, ed è la differenza che ha deciso la
+   forma di queste funzioni: la MIC si conta sui fori DISEGNATI (`D2.holes`) e
+   spariva quando il disegno era vuoto; la carica totale si conta sulla
+   **griglia di progetto** (`perRow × file`, coi ripieghi 18 e 1), che una
+   volata aperta ce l'ha sempre. Misurato: con `holes=[]` e la griglia piena
+   `qtot` resta **720 kg**, identica al caso sano. Qui morde solo il `kg`.
+
+   ⛔ E IL PEZZO CHE CONTA DI PIÙ È IL SECONDO: **UN COSTO CON UN ADDENDO CHE
+   MANCA NON È UN COSTO PIÙ BASSO, È UN COSTO NON CALCOLABILE.** Misurato sul
+   progetto di partenza (12 fori, 60 kg, 10 m + 0,9 di sotto, 8 €/m, 1,5 €/kg,
+   12 €/foro): il costo vero è **2.270 €**, e con `kg` illeggibile usciva
+   **1.190 €** — l'addendo dell'esplosivo, cioè **il 48% del costo**, sparito
+   nella direzione che rassicura. Da lì il €/m³, il €/t e il **margine**.
+
+   ⛔ E LA CORREZIONE INGENUA — `qtot` a `null` e basta — È STATA PROVATA IN
+   SCRATCHPAD E BOCCIATA, perché **peggiorava proprio il numero dei soldi**:
+   · `_vol>0 ? _cTot/_vol : 0` con `_cTot` a `null` fa `null/vol` = **0**, e
+     la scheda scriveva «**0,00 €/m³**» — il costo unitario più tranquillo che
+     esista, al posto di 1,80;
+   · il margine è `ricavo − costo`: con `costo` a `null`, `28.350 − null` fa
+     **28.350**, cioè **tutto il ricavo diventa margine**, dipinto di verde
+     dalla riga che sceglie il colore su `_marg>=0`. Prima della correzione
+     l'errore era di 1.190 €, dopo la correzione ingenua di **2.270**.
+   Per questo i numeri DERIVATI dal costo (€/m³, €/t, margine) li restituisce
+   questa funzione e non li ricava il chiamante: erano scritti in tre punti
+   della pagina, e un `null` che attraversa tre aritmetiche scritte a mano
+   torna a essere uno zero in almeno una delle tre.
+
+   ⚠️ **UNO ZERO MISURATO RESTA ZERO**, come per `micFinestra`: `kg` a 0 dà
+   `qtot` 0 e un costo vero di 1.190 €. Quello che non deve passare è
+   l'assenza travestita da zero — e `Number.isFinite(+kg)` da solo non basta,
+   perché `+null` fa 0 che è finito: il `null` va nominato per nome.
+   ⚠️ E i PREZZI restano col ripiego a zero, di proposito e misurato: non
+   passano da `apri` (né `volSnapshot` né `cmpSave` li mettono nel `design`) e
+   dai campi arrivano già stretti fra `Math.max(0, Math.min(…))`. Un prezzo
+   non inserito è «non lo addebito», che è una scelta, non un dato assente. */
+export const CARICA_SENZA_CONTO = {
+  fori:   { che:'il numero dei fori di progetto non è un numero leggibile, e la carica totale si conta sulla griglia',
+            come:'Reimposta fori per fila e numero di file nei parametri della volata.' },
+  carica: { che:'la carica per foro non è un numero leggibile, e la carica totale è quella moltiplicata per i fori',
+            come:'Reimposta la carica per foro nei parametri della volata.' },
+};
+/* `null` quando la carica totale si può contare; altrimenti dice QUALE dei due
+   manca — e se mancano tutt'e due li nomina tutt'e due, gemella di
+   `micSenzaConto` e di `ppvSenzaSoglia`. */
+export function caricaSenzaConto(nf, kg){
+  const n = (nf === null || nf === undefined || nf === '') ? NaN : +nf;
+  const q = (kg === null || kg === undefined || kg === '') ? NaN : +kg;
+  const senzaFori = !Number.isFinite(n) || n < 0;
+  const senzaCarica = !Number.isFinite(q) || q < 0;
+  if (!senzaFori && !senzaCarica) return null;
+  const parti = [];
+  if (senzaFori) parti.push(CARICA_SENZA_CONTO.fori);
+  if (senzaCarica) parti.push(CARICA_SENZA_CONTO.carica);
+  return { fori:senzaFori, carica:senzaCarica,
+    che:  parti.map(p => p.che).join('; e '),
+    come: parti.map(p => p.come).join(' ') };
+}
+/* I chili di esplosivo dell'intera volata, o `null` se non si contano. */
+export function caricaTotale(nf, kg){
+  if (caricaSenzaConto(nf, kg)) return null;
+  return +nf * +kg;
+}
+
+export const COSTO_SENZA_CONTO = {
+  metri: { che:'i metri perforati non sono un numero leggibile, e la perforazione si paga al metro',
+           come:'Reimposta profondità e sottoperforazione nei parametri della volata.' },
+  fori:  { che:'il numero dei fori non è un numero leggibile, e gli inneschi si pagano a foro',
+           come:'Reimposta fori per fila e numero di file nei parametri della volata.' },
+};
+/* ⛔ IL PUNTO UNICO IN CUI SI DECIDE QUANTO COSTA UNA VOLATA. La formula era
+   scritta **tre volte** — in `computeKPI`, nel foglio stampabile e nella
+   scheda validatori — con l'unica differenza di dove viene `nf` (la griglia di
+   progetto nel primo, i fori DISEGNATI negli altri due). Tre copie della
+   stessa formula prima o poi dicono tre numeri diversi, e questa decide dei
+   soldi: la firma si allarga (`nf` e `mPerf` arrivano da fuori), non si
+   ricopia il corpo.
+   Torna gli addendi separati — così chi disegna può mostrare quello che si
+   conta ancora e dire «non calcolabile» solo sul resto — più i tre numeri
+   derivati che nessun chiamante deve rifarsi in casa.
+   ⚠️ Il RICAVO non dipende dal costo: se le tonnellate e il valore del
+   materiale ci sono, resta un numero vero anche quando il costo non c'è. È il
+   MARGINE che sparisce, perché è una sottrazione fra i due. */
+export function costoVolata(v){
+  const o = v || {};
+  const num = (x) => (x === null || x === undefined || x === '') ? NaN : +x;
+  const prezzo = (x) => { const p = num(x); return (Number.isFinite(p) && p >= 0) ? p : 0; };
+  const nf = num(o.nf), mPerf = num(o.mPerf), vol = num(o.vol), ton = num(o.ton), vm = num(o.valMat);
+  const qtot = caricaTotale(o.nf, o.kg), perche = caricaSenzaConto(o.nf, o.kg);
+  const senzaMetri = !Number.isFinite(mPerf) || mPerf < 0;
+  const senzaFori  = !Number.isFinite(nf) || nf < 0;
+  const perf    = senzaMetri ? null : mPerf * prezzo(o.cPerf);
+  const expl    = qtot === null ? null : qtot * prezzo(o.cExpl);
+  const innesco = senzaFori ? null : nf * prezzo(o.cInnesco);
+  const tot = (perf === null || expl === null || innesco === null) ? null : perf + expl + innesco;
+  const parti = [];
+  if (senzaMetri) parti.push(COSTO_SENZA_CONTO.metri);
+  if (senzaFori && !(perche && perche.fori)) parti.push(COSTO_SENZA_CONTO.fori);
+  if (expl === null && perche) parti.push({ che:perche.che, come:perche.come });
+  const ricavo = (Number.isFinite(ton) && ton >= 0 && Number.isFinite(vm) && vm >= 0) ? ton * vm : null;
+  return { qtot, tot, perf, expl, innesco,
+    calcolabile: tot !== null,
+    perM3: (tot !== null && Number.isFinite(vol) && vol > 0) ? tot / vol : null,
+    perT:  (tot !== null && Number.isFinite(ton) && ton > 0) ? tot / ton : null,
+    ricavo,
+    margine: (tot !== null && ricavo !== null) ? ricavo - tot : null,
+    che:  parti.map(p => p.che).join('; e '),
+    come: parti.map(p => p.come).join(' ') };
+}

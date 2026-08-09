@@ -1057,7 +1057,15 @@ import { sitoFit, ppvLimit, ppvSenzaSoglia, airblastDb, normaPpvLab,
    ⚠️ `esitoMic` e `micSenzaConto` sono le DUE METÀ che rendono utile il `null`:
    la bandiera `calcolabile` (che la pagina deve leggere, se no il numero
    tranquillo si ridisegna lo stesso) e la ragione da mostrare a chi guarda. */
-         micFinestra, esitoMic, micSenzaConto } from './genesi-data.js';
+         micFinestra, esitoMic, micSenzaConto,
+/* la carica totale della volata e il COSTO che la usa — vedi il blocco G12.
+   ⛔ `costoVolata` è il punto UNICO in cui si decide quanto costa una volata:
+   la formula era scritta tre volte (KPI, foglio stampabile, scheda
+   validatori) e decide dei soldi. La bandiera che la pagina deve leggere è
+   `calcolabile`: un costo con un addendo mancante non è un costo più basso,
+   è un costo che non c'è — e i derivati (€/m³, €/t, margine) li restituisce
+   lei, perché ricavarli qui li riportava a zero. */
+         caricaTotale, caricaSenzaConto, costoVolata } from './genesi-data.js';
 /* ⛔ «ha una data» si decide con l'ESISTENZA, non con la forma: «2026-02-30» ha
    la forma giusta e non esiste. Il modulo di Genesi questa regola l'ha imparata
    il 03/08 — il commento in cima a `genesi-data.js` lo racconta — e la pagina
@@ -2911,15 +2919,35 @@ function computeKPI(){
      sa già trattare: non dichiara «fuori dall'intervallo calibrato» su un
      numero che non esiste (`isFinite(x)` è la sua prima domanda). */
   const ppvBase=provenienzaPpv(st, _m.sd, (selRoccia()||{}).nome||D2.roccia);
-  const nf=(D2.perRow||18)*(D2.file||1), qtot=nf*Q;
-  const _mPerfK=nf*(D2.prof+(D2.sub||0)), _cTotK=_mPerfK*(D2.cPerf||0)+qtot*(D2.cExpl||0)+nf*(D2.cInnesco||0);
+  /* ⛔ SENZA LA CARICA PER FORO NON C'È UNA CARICA TOTALE, E NON C'È NEMMENO
+     UNO ZERO. `nf * null` fa **0** e `Math.round(0)` fa 0: la volata
+     dichiarava «Carica totale 0 kg» su un dato che nessuno aveva letto, e da
+     lì spariva l'addendo dell'esplosivo dal COSTO — 1.190 € al posto di
+     2.270, il 48% in meno, nella direzione che rassicura. Il perché lo dice
+     `caricaSenzaConto`, il conto `caricaTotale`, il costo `costoVolata`.
+     ⚠️ Il caso «nessun foro DISEGNATO» qui non morde, ed è la differenza con
+     la MIC: `nf` è la griglia di PROGETTO (`perRow × file`), che una volata
+     aperta ha sempre. Misurato: con `holes=[]` la carica totale resta quella.
+     ⛔ E il costo lo compone il modulo, non questa riga: €/m³, €/t e margine
+     erano ricavati a mano in tre punti della pagina, e un `null` che
+     attraversa tre aritmetiche scritte a mano ridiventa zero in almeno una. */
+  const nf=(D2.perRow||18)*(D2.file||1);
+  const _cK=costoVolata({ nf, kg:D2.kg, mPerf:nf*(D2.prof+(D2.sub||0)),
+    cPerf:D2.cPerf, cExpl:D2.cExpl, cInnesco:D2.cInnesco });
+  const qtot=_cK.qtot;
   const fly=flyrockEst();
   /* ⚠️ `ppv` esce `null` come `lim`: sono la stessa convenzione, e le funzioni
      che le confrontano (`esitoPpv`, `vincitoreKpi`, `riconDelta`) la conoscono
      già. `mic` e `micCalcolabile` viaggiano CON i KPI perché i sette lettori
      non debbano richiamare `computeMIC` ognuno per conto suo — è così che
-     nascono le sette risposte diverse alla stessa domanda. */
-  return { nf, qtot:Math.round(qtot), pf:+pf.toFixed(2), cost:Math.round(_cTotK),
+     nascono le sette risposte diverse alla stessa domanda.
+     ⚠️ Stessa forma per il costo: `cost` è `null` quando non si può contare, e
+     `costCalcolabile` è la bandiera che i suoi tre lettori devono leggere —
+     `gnum(null)` scrive «—», che accanto a un `€` sembra un refuso e non una
+     non-misurabilità. `costChe`/`costCome` dicono quale campo sistemare. */
+  return { nf, qtot:qtot===null?null:Math.round(qtot), pf:+pf.toFixed(2),
+    cost:_cK.calcolabile?Math.round(_cK.tot):null, costCalcolabile:_cK.calcolabile,
+    costChe:_cK.che, costCome:_cK.come,
     x20:Math.round(x20), x50:Math.round(x50), x80:Math.round(x80),
     mic:_m.calcolabile?+mic.toFixed(1):null, micCalcolabile:_m.calcolabile,
     micChe:_m.che, micCome:_m.come, db:_m.db===null?null:Math.round(_m.db),
@@ -2935,6 +2963,15 @@ function cmpSave(slot){
   toast('Progetto salvato come '+slot);
 }
 function _cmpLoad(k){ try{ return JSON.parse(localStorage.getItem(k)||'null'); }catch(e){ return null; } }  // robusto a localStorage corrotto
+/* Le due celle che possono non esserci, scritte come le scrive lo schermo.
+   ⚠️ Il verdetto si prende dal VALORE e non dalla bandiera: uno scatto salvato
+   prima che `costCalcolabile` esistesse non ce l'ha, e leggere una bandiera
+   assente come «falsa» accuserebbe di non-calcolabilità un costo sanissimo —
+   la stessa trappola degli scatti «senza base registrata». La bandiera serve
+   per la RAGIONE, che gli scatti vecchi giustamente non hanno. */
+function _cmpNum(v){ return (v===null||v===undefined||v==='')?null:(isFinite(+v)?+v:null); }
+function _cmpKg(k){ const v=_cmpNum(k&&k.qtot); return v===null?'<i style="color:#ffca28">non calcolabile</i>':gnum(v,0)+' kg'; }
+function _cmpEur(k){ const v=_cmpNum(k&&k.cost); return v===null?'<i style="color:#ffca28">non calcolabile</i>':'€'+gnum(v,0); }
 function cmpRender(){
   const A=_cmpLoad('genesiCmpA');
   const B=_cmpLoad('genesiCmpB');
@@ -2956,7 +2993,12 @@ function cmpRender(){
   const rows=[
     ['Impostazione', A.kpi.maglia, B.kpi.maglia, null],
     ['Esplosivo', A.kpi.setup, B.kpi.setup, null],
-    ['Fori · kg totali', gnum(A.kpi.nf,0)+' · '+gnum(A.kpi.qtot,0)+' kg', gnum(B.kpi.nf,0)+' · '+gnum(B.kpi.qtot,0)+' kg', null],
+    /* ⛔ «— kg» e «€—» NON dicono «non calcolabile»: dicono «manca qualcosa»,
+       e chi legge crede a una dimenticanza. La carica totale e il costo hanno
+       la loro bandiera (`costCalcolabile`) e qui la si legge, come già fa la
+       PPV con `esitoPpv`. Il confronto non si dipinge: `vincitoreKpi` su un
+       `null` risponde già `null`, cioè nessuna colonna in verde. */
+    ['Fori · kg totali', gnum(A.kpi.nf,0)+' · '+_cmpKg(A.kpi), gnum(B.kpi.nf,0)+' · '+_cmpKg(B.kpi), null],
     ['Powder factor', gfix(A.kpi.pf,2)+' kg/m³', gfix(B.kpi.pf,2)+' kg/m³', null],
     ['X50 previsto', gnum(A.kpi.x50,1)+' cm', gnum(B.kpi.x50,1)+' cm', vincitoreKpi(A.kpi.x50,B.kpi.x50)],
     ['X80 (oversize)', gnum(A.kpi.x80,1)+' cm', gnum(B.kpi.x80,1)+' cm', vincitoreKpi(A.kpi.x80,B.kpi.x80)],
@@ -2967,7 +3009,7 @@ function cmpRender(){
       _stessaBase ? vincitoreKpi(A.kpi.ppv,B.kpi.ppv) : null],
     ['↳ base della previsione', _baseTx(A), _baseTx(B), null],
     ['Gittata flyrock', gnum(A.kpi.fly,0)+' m', gnum(B.kpi.fly,0)+' m', vincitoreKpi(A.kpi.fly,B.kpi.fly)],
-    ['Costo totale (stima)', '€'+gnum(A.kpi.cost,0), '€'+gnum(B.kpi.cost,0), vincitoreKpi(A.kpi.cost,B.kpi.cost)],
+    ['Costo totale (stima)', _cmpEur(A.kpi), _cmpEur(B.kpi), vincitoreKpi(A.kpi.cost,B.kpi.cost)],
     ['Presplit', A.kpi.presplit?'sì':'no', B.kpi.presplit?'sì':'no', null],
   ];
   /* ⛔ `minmax(0,…)` E NON `1.2fr 1fr 1fr`, misurato a 320 px. Una colonna `fr`
@@ -2985,6 +3027,11 @@ function cmpRender(){
       +'<div style="'+(r[3]==='A'?'color:#66bb6a;font-weight:600':'')+'">'+r[1]+'</div>'
       +'<div style="'+(r[3]==='B'?'color:#66bb6a;font-weight:600':'')+'">'+r[2]+'</div>').join('')
     +'</div>'
+    /* la ragione esce SOTTO le celle vuote, come la norma esce accanto al
+       limite mancante nel CSV: una cella che dice «non calcolabile» senza
+       dire perché manda a cercare il campo sbagliato. */
+    +[['A',A.kpi],['B',B.kpi]].filter(x=> _cmpNum(x[1].cost)===null && x[1].costChe)
+      .map(x=>'<div style="margin-top:10px;padding:7px 9px;border:1px solid rgba(255,202,40,.3);border-radius:8px;background:rgba(255,202,40,.06);color:#ffca28;font-size:12px;">Il costo di <b>'+x[0]+'</b> non è calcolabile: '+_rEsc(x[1].costChe)+'. '+_rEsc(x[1].costCome)+'</div>').join('')
     +(_stessaBase?'':'<div style="margin-top:10px;padding:7px 9px;border:1px solid rgba(255,202,40,.3);border-radius:8px;background:rgba(255,202,40,.06);color:#ffca28;font-size:12px;">Le due PPV <b>non vengono dalla stessa legge</b>: il confronto direbbe che è cambiato il progetto, e invece è cambiata la calibrazione. Nessuno dei due è dichiarato migliore su questa riga.</div>')
     +'<div style="margin-top:10px;color:var(--mut);font-size:12px;">In verde il progetto migliore per ciascun KPI (più basso = meglio per X50/X80/PPV/flyrock). A parità di valore non c’è un migliore, e nessuna delle due colonne va in verde. Stime indicative: valgono i limiti dichiarati nella scheda validatori.</div>';
 }
@@ -3033,6 +3080,10 @@ if($('btn-scheda-csv')) $('btn-scheda-csv').onclick=()=>{
     ['Esplosivo', k.setup],
     ['Fori', k.nf],
     ['Carica totale (kg)', k.qtot],
+    /* stessa forma della MIC dieci righe più giù: la cella vuota da sola dice
+       «non c'è» e lascia credere a una dimenticanza, la riga accanto dice che
+       è una non-misurabilità e QUALE campo la produce */
+    ['Esito carica totale', k.qtot===null?'non calcolabile':'contata sulla griglia di progetto'],
     ['Powder factor (kg/m3)', k.pf],
     ['X20 (cm)', k.x20], ['X50 (cm)', k.x50], ['X80 (cm)', k.x80],
     ['PPV recettore (mm/s)', k.ppv], ['Limite PPV (mm/s)', k.lim],
@@ -3062,7 +3113,14 @@ if($('btn-scheda-csv')) $('btn-scheda-csv').onclick=()=>{
     ['Sgombero mezzi 2x (m)', Math.round(F.Dmez)],
     ['Sgombero persone 4x (m)', Math.round(F.Dper)],
     ['Presplit', k.presplit?'si':'no'],
+    /* ⛔ E QUI IL FILE ARCHIVIATO COL RAPPORTINO PORTAVA UN COSTO PIÙ BASSO DEL
+       VERO: senza la carica per foro l'addendo dell'esplosivo spariva e la
+       cella diceva 1.190 al posto di 2.270, senza un segno che lo dicesse.
+       Adesso la cella resta vuota e le due righe accanto dicono che cos'è e
+       quale campo sistemare — come per la MIC e per il limite di norma. */
     ['Costo totale stima (EUR)', k.cost],
+    ['Esito costo', k.costCalcolabile?'contato sui prezzi unitari inseriti':'non calcolabile'],
+    ['Perche il costo non e calcolabile', k.costCalcolabile?'':k.costChe],
   ];
   /* ⛔ `null` NON SI SCRIVE IN UN FILE, e qui ci finiva scritto per intero.
      Misurato il 03/08 aprendo una volata salvata con un codice di normativa che
@@ -3121,9 +3179,25 @@ if($('btn-report')) $('btn-report').onclick=()=>{
   if(!D2.holes.length) genMaglia2D();
   computeSeq2D();
   const k=computeKPI(), F=flyrockEst(), g=measureGeom2D(), E=selEsplosivo()||{}, I=selInnesco()||{}, R=selRoccia()||{};
-  const nf=g.n, mPerf=nf*(D2.prof+(D2.sub||0)), kgTot=nf*D2.kg, vol=nf*D2.B*D2.S*D2.prof, rho=R.rho||2.5, ton=vol*rho;
-  const cP=mPerf*(D2.cPerf||0), cE=kgTot*(D2.cExpl||0), cI=nf*(D2.cInnesco||0), cTot=cP+cE+cI;
+  /* ⛔ QUESTA ERA LA SECONDA DELLE TRE COPIE della formula del costo, e il
+     foglio è la cosa che si porta in cava: `kgTot = nf*D2.kg` con una carica
+     per foro illeggibile faceva zero, e la sezione «Stima economica»
+     stampava un costo totale più basso del vero e un MARGINE più alto —
+     dell'intero addendo dell'esplosivo. Adesso il conto lo fa `costoVolata`,
+     lo stesso che lo fa a schermo, e quello che non si può contare esce
+     scritto «non calcolabile» invece che come un numero.
+     ⚠️ `nf` resta quello dei fori DISEGNATI (`g.n`) e non la griglia di
+     progetto: il foglio descrive il disegno che si sta per sparare. È l'unica
+     differenza fra i tre chiamanti, ed è per questo che è un argomento. */
+  const nf=g.n, mPerf=nf*(D2.prof+(D2.sub||0)), vol=nf*D2.B*D2.S*D2.prof, rho=R.rho||2.5, ton=vol*rho;
+  const _cR=costoVolata({ nf, kg:D2.kg, mPerf, vol, ton, valMat:D2.valMat,
+    cPerf:D2.cPerf, cExpl:D2.cExpl, cInnesco:D2.cInnesco });
+  const kgTot=_cR.qtot, cP=_cR.perf, cE=_cR.expl, cI=_cR.innesco, cTot=_cR.tot;
   const eur=(x)=>'€'+gnum(x,0), esc=_rEsc;                      // anche gli euro passano da gnum: una convenzione sola
+  /* ⚠️ `gnum(null)` scrive «—», e accanto a un `€` un trattino si legge come un
+     campo dimenticato, non come «non si può contare». Su un foglio che si
+     porta in cava la differenza è tutta: `nc` lo scrive a parole. */
+  const nc=(x,suf)=>x===null||x===undefined?'non calcolabile':(suf||'');
   const now=new Date().toLocaleString('it-IT');
   const seqL={riga:'Riga per riga',diagonale:'Diagonale (echelon)',vcut:'V-cut',box:'Box cut'}[D2.sequenza]||D2.sequenza;
   const normL=normaPpvLab(D2.recNorma);
@@ -3164,7 +3238,7 @@ if($('btn-report')) $('btn-report').onclick=()=>{
   const sec=(t,rows)=>'<h2>'+esc(t)+'</h2><table>'+rows.map(r=>'<tr><td>'+esc(r[0])+'</td><td>'+r[1]+'</td></tr>').join('')+'</table>';
   const body=
     sec('Geometria',[['Maglia (spalla × interasse)',gfix(D2.B,1)+' × '+gfix(D2.S,1)+' m'],['Diametro foro',gnum(D2.diam,0)+' mm'],['Fori × file',gnum(nf,0)+' ('+gnum(D2.perRow,0)+' × '+gnum(D2.file,0)+')'],['Profondità / sottoperf.',gnum(D2.prof,1)+' / '+gnum(D2.sub||0,1)+' m'],['Borraggio',gnum(D2.stem,1)+' m'],['Inclinazione',gnum(D2.incl||0,0)+'°'],['Fronte',gnum(g.Lm,1)+' m']])
-   +sec('Carica & sequenza',[['Esplosivo',esc(E.nome||D2.esplosivo)],['Carica per foro',gnum(D2.kg,1)+' kg'],['Carica totale',gnum(kgTot,0)+' kg'],['Powder factor',gfix(k.pf,2)+' kg/m³'],['Innesco',esc(I.nome||D2.innesco)],['Sequenza',esc(seqL)],['Ritardo foro / fila',gnum(D2.ritardo,1)+' / '+gnum(D2.ritardoFila||0,1)+' ms']].concat((D2.decks||1)>1?[['Decking',gnum(D2.decks,0)+' cariche/foro (~'+gnum(D2.kg/D2.decks,0)+' kg/deck, borraggio tra deck '+gnum(D2.deckStem,1)+' m)']]:[]))
+   +sec('Carica & sequenza',[['Esplosivo',esc(E.nome||D2.esplosivo)],['Carica per foro',gnum(D2.kg,1)+' kg'],['Carica totale',nc(kgTot,gnum(kgTot,0)+' kg')],['Powder factor',gfix(k.pf,2)+' kg/m³'],['Innesco',esc(I.nome||D2.innesco)],['Sequenza',esc(seqL)],['Ritardo foro / fila',gnum(D2.ritardo,1)+' / '+gnum(D2.ritardoFila||0,1)+' ms']].concat((D2.decks||1)>1?[['Decking',gnum(D2.decks,0)+' cariche/foro (~'+gnum(D2.kg/D2.decks,0)+' kg/deck, borraggio tra deck '+gnum(D2.deckStem,1)+' m)']]:[]))
    +sec('Roccia',[['Litologia',esc(R.nome||D2.roccia)],['UCS',gnum(D2.ucs,0)+' MPa'],['Fratturazione',esc(D2.frat)],['Fori bagnati',D2.bagnato?'sì':'no']])
    +sec('Previsioni (PREVISTO — non misura)',[['Frammentazione x20 / x50 / x80',gnum(k.x20,1)+' / '+gnum(k.x50,1)+' / '+gnum(k.x80,1)+' cm'],
       ['MIC (carica massima per ritardo)',
@@ -3188,7 +3262,11 @@ if($('btn-report')) $('btn-report').onclick=()=>{
       ['Airblast (sovrappressione) a '+gnum(D2.recDist,0)+' m',
         gnum(_rDb,0)+' dB(L)<br><b>'+esc(_rEa.verdetto)+'</b>'+(_rEa.consiglio?' — '+esc(_rEa.consiglio):'')],
       ['Gittata flyrock',gnum(k.fly,0)+' m'],['Sgombero mezzi 2× / persone 4×',gnum(F.Dmez,0)+' / '+gnum(F.Dper,0)+' m'],['Presplit',k.presplit?'sì':'no']])
-   +sec('Stima economica (ordine di grandezza)',[['Metri perforati',gnum(mPerf,0)+' m → '+eur(cP)],['Esplosivo',gnum(kgTot,0)+' kg → '+eur(cE)],['Inneschi',gnum(nf,0)+' → '+eur(cI)],['Costo totale volata','<b>'+eur(cTot)+'</b>'],['Volume / tonnellaggio',gnum(vol,0)+' m³ / '+gnum(ton,0)+' t'],['Costo unitario',cTot/vol?gfix(cTot/vol,2)+' €/m³ · '+gfix(cTot/ton,2)+' €/t':'—']].concat((D2.valMat||0)>0?[['Margine (materiale '+gnum(D2.valMat,2)+' €/t)',eur(ton*D2.valMat-cTot)]]:[]));
+   /* ⛔ IL MARGINE ERA IL PEGGIO DI TUTTI: `ton*valMat − cTot` con `cTot` a
+      zero (o, dopo una correzione ingenua, a `null`) restituiva **tutto il
+      ricavo come margine**. Adesso il margine lo decide `costoVolata`, che su
+      un costo assente risponde `null`, e la riga dice perché. */
+   +sec('Stima economica (ordine di grandezza)',[['Metri perforati',gnum(mPerf,0)+' m → '+nc(cP,eur(cP))],['Esplosivo',nc(kgTot,gnum(kgTot,0)+' kg → '+eur(cE))],['Inneschi',gnum(nf,0)+' → '+nc(cI,eur(cI))],['Costo totale volata',nc(cTot,'<b>'+eur(cTot)+'</b>')],['Volume / tonnellaggio',gnum(vol,0)+' m³ / '+gnum(ton,0)+' t'],['Costo unitario',_cR.perM3===null?(cTot===null?'non calcolabile':'—'):gfix(_cR.perM3,2)+' €/m³ · '+gfix(_cR.perT,2)+' €/t']].concat(cTot===null?[['Perché il costo non è calcolabile',esc(_cR.che)+'. '+esc(_cR.come)]]:[]).concat((D2.valMat||0)>0?[['Margine (materiale '+gnum(D2.valMat,2)+' €/t)',nc(_cR.margine,eur(_cR.margine))]]:[]));
   const doc='<!doctype html><html lang="it"><head><meta charset="utf-8"><title>Report volata Genesi</title><style>'
     +'body{font-family:system-ui,Arial,sans-serif;color:#1a1a1a;max-width:720px;margin:24px auto;padding:0 16px;font-size:13px}'
     +'h1{font-size:20px;margin:0 0 2px;color:#a05a00}.sub{color:#666;font-size:12px;margin-bottom:16px}'
@@ -3238,7 +3316,14 @@ if($('cmpExport')) $('cmpExport').onclick=()=>{
     ['Stessa legge per le due PPV',stessaBasePpv(A.kpi.ppvBase,B.kpi.ppvBase)?'si':'no — le due PPV non sono confrontabili',''],
     ['Gittata flyrock (m)',A.kpi.fly,B.kpi.fly],
     ['Presplit',A.kpi.presplit?'si':'no',B.kpi.presplit?'si':'no'],
-    ['Costo totale stima (EUR)',A.kpi.cost,B.kpi.cost]];
+    ['Costo totale stima (EUR)',A.kpi.cost,B.kpi.cost],
+    /* le due celle sopra possono essere VUOTE (carica per foro illeggibile →
+       l'addendo dell'esplosivo non si conta): questa riga dice che è una
+       non-misurabilità e non una dimenticanza, per ciascuna delle due colonne */
+    ['Esito costo', _cmpNum(A.kpi.cost)===null?'non calcolabile: '+(A.kpi.costChe||''):'contato',
+                    _cmpNum(B.kpi.cost)===null?'non calcolabile: '+(B.kpi.costChe||''):'contato'],
+    ['Carica totale non calcolabile',
+      _cmpNum(A.kpi.qtot)===null?'si':'no', _cmpNum(B.kpi.qtot)===null?'si':'no']];
   /* `null` non si scrive in un file (il limite manca quando la normativa non è
      riconosciuta): cella VUOTA, come già fa la scheda volata */
   const csv=R.map(r=>r.map(v=>csvCell(v===null||v===undefined?'':v)).join(';')).join('\n')+'\n';
@@ -3312,14 +3397,27 @@ function _riconCampoHtml(){
     /* stessa regola una riga più su: senza un previsto da cui dividere la
        percentuale non è zero, è assente — e `_ricColore` la spegne da sola
        invece di dipingere di verde una divisione che non si può fare */
-    const vsGenesi = k.qtot?(c.kgReale-k.qtot)/k.qtot*100:null;
-    h+=riga('Carica prevista da Genesi (progetto aperto)',_ricKg(k.qtot)+' kg su '+_ricPlur(k.nf,'foro','fori'),'previsto qui');
-    h+= confrontabile
+    /* ⛔ E QUI IL `null` DIVENTAVA UN DELTA VERO. `k.qtot?…:null` difendeva la
+       PERCENTUALE, ma la riga sotto faceva `c.kgReale - k.qtot` senza guardia:
+       con la carica di progetto non calcolabile, `720 − null` fa **720**, cioè
+       lo scostamento diventava «+720 kg» — tutti i chili caricati raccontati
+       come chili in più del previsto, su un previsto che non esiste. E la riga
+       sopra scriveva «— kg su 12 fori», che si legge come un campo dimenticato.
+       ⚠️ Lo zero MISURATO resta un previsto vero: il `null` si nomina per nome,
+       non si confonde col falsy (`k.qtot?` avrebbe spento anche lo zero). */
+    const _qProg = k.qtot===null||k.qtot===undefined ? null : k.qtot;
+    const vsGenesi = _qProg ? (c.kgReale-_qProg)/_qProg*100 : null;
+    h+=riga('Carica prevista da Genesi (progetto aperto)',
+            _qProg===null?'<span style="color:#ffca28">non calcolabile</span>'
+                         :_ricKg(_qProg)+' kg su '+_ricPlur(k.nf,'foro','fori'),
+            _qProg===null?'la carica per foro non è leggibile':'previsto qui');
+    h+= (confrontabile && _qProg!==null)
       ? riga('Reale contro il previsto di Genesi',
-             _ricSegno(c.kgReale-k.qtot)+' kg ('+_ricPct(vsGenesi)+')',
+             _ricSegno(c.kgReale-_qProg)+' kg ('+_ricPct(vsGenesi)+')',
              'calcolato qui', _ricColore(vsGenesi))
       : riga('Reale contro il previsto di Genesi','—',
-             c.foriTot!==k.nf?'altra volata?':'volata a metà');
+             _qProg===null?'nessun previsto da confrontare'
+                          :(c.foriTot!==k.nf?'altra volata?':'volata a metà'));
   }
   h+='</div>';
   // Il caso che inganna di più: il totale torna perché un foro caricato in più
@@ -4171,7 +4269,18 @@ function _lsGet(k){ try{ return JSON.parse(localStorage.getItem(k)||'[]'); }catc
 function _lsSet(k,v){ try{ localStorage.setItem(k, JSON.stringify(v)); }catch(e){} }
 function volSnapshot(nome){
   let sintesi=_ricPlur(D2.perRow*D2.file,'foro','fori');
-  try{ const k=computeKPI(); sintesi=_ricPlur(k.nf,'foro','fori')+' · '+k.qtot+' kg · X50 '+k.x50+' cm'; }catch(e){}
+  /* ⛔ Incollare la carica totale grezza a una stringa, quando è `null`, scrive
+     la PAROLA «null» — e questa
+     ⚠️ Il difetto è citato a parole e NON come codice di proposito: scritto
+     per esteso, il censimento che qui sotto pretende la sua assenza troverebbe
+     il proprio commento. È la trappola dell'esempio dentro il commento, in una
+     veste nuova — non rompe la sintassi, fa fallire un controllo.
+     stringa finisce SALVATA nello storico e riletta in Home mesi dopo, cioè è
+     un documento a tutti gli effetti. Con la carica totale non calcolabile la
+     sintesi lo dice, invece di scrivere «null kg» o un rassicurante «0 kg». */
+  try{ const k=computeKPI(); sintesi=_ricPlur(k.nf,'foro','fori')
+        +' · '+(k.qtot===null?'carica totale non calcolabile':gnum(k.qtot,0)+' kg')
+        +' · X50 '+k.x50+' cm'; }catch(e){}
   return { id:'v'+Date.now(), nome:nome,
     data:timbroLocale(),
     design:JSON.parse(JSON.stringify({B:D2.B,S:D2.S,file:D2.file,perRow:D2.perRow,diam:D2.diam,prof:D2.prof,kg:D2.kg,kgAuto:D2.kgAuto,ritardo:D2.ritardo,ritardoFila:D2.ritardoFila,stem:D2.stem,sub:D2.sub,incl:D2.incl,esplosivo:D2.esplosivo,innesco:D2.innesco,roccia:D2.roccia,ucs:D2.ucs,eMod:D2.eMod,frat:D2.frat,bagnato:D2.bagnato,acquaCol:D2.acquaCol,presplit:D2.presplit,psSpacing:D2.psSpacing,psCharge:D2.psCharge,sequenza:D2.sequenza,recDist:D2.recDist,recNorma:D2.recNorma,recFreq:D2.recFreq,decks:D2.decks,deckStem:D2.deckStem,profilo:D2.profilo,piede:D2.piede})),
@@ -5536,16 +5645,32 @@ function renderScheda2D(){
   const markPct=Math.min(100,Math.max(0,hb/sMax*100));
   // Stima economica della volata (prezzi unitari inseriti dall'utente): ordine di
   // grandezza per confrontare progetti, NON un preventivo (no manodopera/ammortamenti/oneri)
-  const _nf=g.n||0, _mPerf=_nf*(H+(D2.sub||0)), _kgTot=_nf*Q, _vol=_nf*B*S*H, _rhoRock=(selRoccia()||{}).rho||2.5, _ton=_vol*_rhoRock;
-  const _cP=_mPerf*(D2.cPerf||0), _cE=_kgTot*(D2.cExpl||0), _cI=_nf*(D2.cInnesco||0), _cTot=_cP+_cE+_cI;
-  const _cM3=_vol>0?_cTot/_vol:0, _cT=_ton>0?_cTot/_ton:0, _eur=(x)=>'€'+gnum(x,0);                                        // idem: euro all'italiana, dalla stessa funzione
+  /* ⛔ TERZA E ULTIMA COPIA DELLA FORMULA DEL COSTO, ed era la più pericolosa
+     perché è quella che si guarda mentre si decide: con `Q` illeggibile
+     `_kgTot = _nf*Q` faceva **0**, «Esplosivo 0 kg · €0», il totale scendeva
+     del 48% e il MARGINE — dipinto di verde da `_marg>=0` — saliva di
+     altrettanto. Adesso il conto e i suoi derivati (€/m³, €/t, margine) li fa
+     `costoVolata`: la pagina non li ricava più, perché ricavarli qui è
+     esattamente il modo in cui un `null` ridiventa uno zero tranquillo.
+     ⚠️ `_vol>0 ? … : 0` era la stessa trappola un piano più giù: senza fori
+     disegnati il costo unitario usciva «0,00 €/m³». Adesso è `null`, cioè
+     «non calcolabile»: uno zero al metro cubo è un'affermazione. */
+  const _nf=g.n||0, _mPerf=_nf*(H+(D2.sub||0)), _vol=_nf*B*S*H, _rhoRock=(selRoccia()||{}).rho||2.5, _ton=_vol*_rhoRock;
+  const _cV=costoVolata({ nf:_nf, kg:Q, mPerf:_mPerf, vol:_vol, ton:_ton, valMat:D2.valMat,
+    cPerf:D2.cPerf, cExpl:D2.cExpl, cInnesco:D2.cInnesco });
+  const _kgTot=_cV.qtot, _cP=_cV.perf, _cE=_cV.expl, _cI=_cV.innesco, _cTot=_cV.tot;
+  const _eur=(x)=>'€'+gnum(x,0);                                        // idem: euro all'italiana, dalla stessa funzione
+  const _nca=(x,pieno)=>x===null||x===undefined?'<span style="color:#ffca28">non calcolabile</span>':pieno;
   const _crow=(l,v,ex)=>'<div style="display:flex;justify-content:space-between;gap:8px;font-size:11px;padding:2px 0;'+(ex||'')+'"><span style="color:var(--mut2)">'+l+'</span><b>'+v+'</b></div>';
-  let _costRows=_crow('Perforazione',gnum(_mPerf,0)+' m · '+_eur(_cP))
-    +_crow('Esplosivo',gnum(_kgTot,0)+' kg · '+_eur(_cE))
-    +_crow('Inneschi',_ricPlur(_nf,'foro','fori')+' · '+_eur(_cI))
-    +_crow('Totale volata',_eur(_cTot),'border-top:1px solid rgba(255,171,0,.2);margin-top:3px;padding-top:4px;color:var(--cu)')
-    +_crow('Costo unitario',gfix(_cM3,2)+' €/m³ · '+gfix(_cT,2)+' €/t');
-  if((D2.valMat||0)>0){ const _ric=_ton*D2.valMat, _marg=_ric-_cTot; _costRows+=_crow('Margine (materiale '+gnum(D2.valMat,2)+' €/t)',_eur(_marg)+' <span style="color:var(--mut2);font-weight:400">('+_eur(_ric)+' ricavo)</span>','color:'+(_marg>=0?'#66bb6a':'#ef5350')); }
+  let _costRows=_crow('Perforazione',_nca(_cP,gnum(_mPerf,0)+' m · '+_eur(_cP)))
+    +_crow('Esplosivo',_nca(_kgTot,gnum(_kgTot,0)+' kg · '+_eur(_cE)))
+    +_crow('Inneschi',_nca(_cI,_ricPlur(_nf,'foro','fori')+' · '+_eur(_cI)))
+    +_crow('Totale volata',_nca(_cTot,_eur(_cTot)),'border-top:1px solid rgba(255,171,0,.2);margin-top:3px;padding-top:4px;color:var(--cu)')
+    +_crow('Costo unitario',_nca(_cV.perM3,gfix(_cV.perM3,2)+' €/m³ · '+gfix(_cV.perT,2)+' €/t'));
+  /* la ragione sotto il totale mancante: una cella che dice «non calcolabile»
+     senza dire quale campo la produce manda a cercare quello sbagliato */
+  if(!_cV.calcolabile) _costRows+='<div style="font-size:10px;color:#ffca28;padding-top:3px;line-height:1.35">'+_rEsc(_cV.che)+'. '+_rEsc(_cV.come)+'</div>';
+  if((D2.valMat||0)>0){ const _marg=_cV.margine; _costRows+=_crow('Margine (materiale '+gnum(D2.valMat,2)+' €/t)',_nca(_marg,_eur(_marg)+' <span style="color:var(--mut2);font-weight:400">('+_eur(_cV.ricavo)+' ricavo)</span>'),'color:'+(_marg===null?'#ffca28':(_marg>=0?'#66bb6a':'#ef5350'))); }
   const _costHtml='<div style="margin-top:8px;padding:8px 10px;border:1px solid rgba(255,171,0,.15);border-radius:8px;background:rgba(255,171,0,.03)"><div style="font-size:11px;font-weight:700;color:#ffd54f;margin-bottom:4px">💶 Stima economica <span style="font-weight:400;color:var(--mut2);font-size:9px">prezzi tuoi · ordine di grandezza</span></div>'+_costRows+'</div>';
   // Decking: colonna di carica divisa in più deck separati da borraggio intermedio.
   // Motivo tipico: ridurre la carica per ritardo (vibrazioni) sparando i deck su tempi diversi.

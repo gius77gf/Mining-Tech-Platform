@@ -25989,5 +25989,167 @@ test("voceDocumentoInElenco: la regola vale per documento, non per la lista", ()
   });
 }
 
+/* ⛔ GENESI · LA CARICA TOTALE E IL COSTO — «non lo so» invece di uno zero, e
+   di uno zero che riguarda i SOLDI (blocco G12 di `genesi-data.js`).
+   `computeKPI` faceva `qtot = nf * D2.kg` senza ripiego: con la carica per
+   foro illeggibile — che arriva davvero, perché `apri` fa `Object.assign` da
+   `localStorage` senza controlli — `nf * null` fa **0**, la volata dichiarava
+   «Carica totale 0 kg», e nel costo spariva l'addendo dell'esplosivo: 1.190 €
+   al posto di 2.270, il 48% in meno nella direzione che rassicura.
+   ⚠️ Prove SINCRONE e messe PRIMA del riepilogo: l'`await Promise.all(inVolo)`
+   sta seimila righe più su, quindi una prova `async` aggiunta qui verrebbe
+   messa in volo e il totale si stamperebbe senza aspettarla. */
+{
+  const gz = await app("genesi", "genesi-data.js");
+  const { readFileSync: _rfG12 } = await import("node:fs");
+  const srcG12 = _rfG12(join(HERE, "../../genesi/genesi.html"), "utf8");
+  /* il progetto di partenza di Genesi: 12 fori, 60 kg, 10 m + 0,9 di
+     sottoperforazione, i prezzi di default (8 €/m, 1,5 €/kg, 12 €/foro) */
+  const BASE = { nf: 12, kg: 60, mPerf: 12 * 10.9, cPerf: 8, cExpl: 1.5, cInnesco: 12,
+                 vol: 12 * 3 * 3.5 * 10, ton: 12 * 3 * 3.5 * 10 * 2.5, valMat: 9 };
+
+  test("⛔ Genesi · caricaTotale: una carica per foro illeggibile dà null, non zero", () => {
+    eq(gz.caricaTotale(12, 60), 720, "il caso sano si conta");
+    for (const kg of [null, undefined, "", "abc", -5, NaN])
+      eq(gz.caricaTotale(12, kg), null, `kg ${String(kg)} non è un numero di chili`);
+    /* ⚠️ la trappola nominata in CLAUDE.md: `+null` fa 0 e `Number.isFinite(0)`
+       risponde true, quindi il null va nominato PER NOME. Se questa riga
+       cadesse, la guardia sta guardando il valore convertito. */
+    eq(gz.caricaTotale(12, null) === 0, false, "il null non è passato per uno zero");
+  });
+
+  test("⛔ Genesi · caricaTotale: uno zero MISURATO resta zero — è un fatto, non un'assenza", () => {
+    eq(gz.caricaTotale(12, 0), 0, "zero chili per foro sono zero chili");
+    eq(gz.caricaSenzaConto(12, 0), null, "e non c'è niente da spiegare");
+    eq(gz.caricaTotale(0, 60), 0, "zero fori sono zero chili");
+  });
+
+  test("⛔ Genesi · caricaSenzaConto: nomina il campo giusto, e due mancanze restano due frasi", () => {
+    eq(gz.caricaSenzaConto(12, 60), null, "sul caso sano non c'è nessuna ragione da dare");
+    const soloKg = gz.caricaSenzaConto(12, null);
+    eq(soloKg.carica, true, "dice che manca la carica");
+    eq(soloKg.fori, false, "e NON manda a sistemare i fori, che sono sani");
+    eq(soloKg.che.includes("carica per foro"), true, soloKg.che);
+    const soloNf = gz.caricaSenzaConto("abc", 60);
+    eq(soloNf.fori && !soloNf.carica, true, "e nel verso opposto idem");
+    const tutt2 = gz.caricaSenzaConto(null, null);
+    eq(tutt2.che.includes("; e "), true, "mancando tutt'e due li nomina tutt'e due: " + tutt2.che);
+    eq(tutt2.come.split(".").length > 2, true, "e dà tutt'e due i rimedi: " + tutt2.come);
+  });
+
+  test("⛔ Genesi · costoVolata: un addendo che manca NON fa un costo più basso", () => {
+    const sano = gz.costoVolata(BASE);
+    eq(Math.round(sano.tot), 2270, "il costo vero del progetto di partenza");
+    eq(sano.calcolabile, true, "e si può contare");
+    const rotto = gz.costoVolata({ ...BASE, kg: null });
+    /* ⛔ IL NUMERO CHE IL DIFETTO PRODUCEVA. Se questa riga cadesse, il costo
+       sarebbe tornato a essere la somma dei soli addendi che si contano. */
+    eq(rotto.tot === 1190.4, false, "il costo NON è la somma dei pezzi rimasti");
+    eq(rotto.tot, null, "è null: un costo con un addendo mancante non è un costo");
+    eq(rotto.calcolabile, false, "e la bandiera lo dice a chi disegna");
+    eq(rotto.che.includes("carica per foro"), true, "con la ragione vera: " + rotto.che);
+  });
+
+  test("⛔ Genesi · costoVolata: gli addendi che si contano ANCORA restano contati", () => {
+    const r = gz.costoVolata({ ...BASE, kg: null });
+    eq(Math.round(r.perf), 1046, "la perforazione si paga al metro e i metri ci sono");
+    eq(r.innesco, 144, "gli inneschi si pagano a foro e i fori ci sono");
+    eq(r.expl, null, "solo l'esplosivo non si conta");
+    eq(r.qtot, null, "perché la carica totale non si conta");
+  });
+
+  test("⛔ Genesi · costoVolata: col costo assente il MARGINE è null, non tutto il ricavo", () => {
+    /* ⛔ È LA PROVA CHE HA BOCCIATO LA PRIMA STESURA IN SCRATCHPAD. Portare
+       `qtot` a `null` e lasciare il margine alla pagina lo PEGGIORAVA:
+       `ricavo − null` fa `ricavo`, cioè 28.350 € di margine su una volata di
+       cui non si sa il costo, dipinti di verde da `_marg>=0`. Prima della
+       correzione l'errore era di 1.190 €, con la correzione ingenua di 2.270. */
+    const r = gz.costoVolata({ ...BASE, kg: null });
+    eq(r.ricavo, 28350, "il ricavo NON dipende dal costo: tonnellate per €/t, resta vero");
+    eq(r.margine === r.ricavo, false, "il ricavo non diventa il margine");
+    eq(r.margine, null, "il margine è una sottrazione fra due numeri, e uno non c'è");
+    const sano = gz.costoVolata(BASE);
+    eq(Math.round(sano.margine), 26080, "e sul caso sano il margine si conta");
+  });
+
+  test("⛔ Genesi · costoVolata: il costo unitario non è mai uno zero di comodo", () => {
+    /* la pagina faceva `_vol>0 ? _cTot/_vol : 0`: con il costo a null quel
+       ramo scriveva «0,00 €/m³», il costo unitario più tranquillo che esista */
+    const r = gz.costoVolata({ ...BASE, kg: null });
+    eq(r.perM3, null, "senza costo non c'è un costo al metro cubo");
+    eq(r.perT, null, "né alla tonnellata");
+    const sano = gz.costoVolata(BASE);
+    eq(+sano.perM3.toFixed(2), 1.8, "sul caso sano invece si conta");
+    /* e senza volume la divisione non si può fare: `null`, non zero */
+    eq(gz.costoVolata({ ...BASE, vol: 0, ton: 0 }).perM3, null, "volume zero: nessun €/m³");
+  });
+
+  test("⛔ Genesi · costoVolata: lo zero MISURATO paga, il null no", () => {
+    const zero = gz.costoVolata({ ...BASE, kg: 0 });
+    eq(zero.calcolabile, true, "una volata caricata a zero chili ha un costo vero");
+    eq(zero.qtot, 0, "e una carica totale di zero");
+    eq(zero.expl, 0, "l'esplosivo costa zero perché non ce n'è, non perché non si sa");
+    eq(Math.round(zero.tot), 1190, "restano perforazione e inneschi");
+  });
+
+  test("⛔ Genesi · costoVolata e caricaTotale non possono scostarsi", () => {
+    /* la stessa domanda con due risposte è la copia debole di CLAUDE.md: qui
+       il `qtot` del costo VIENE da `caricaTotale`, e il test lo pretende */
+    for (const kg of [60, 0, null, "abc", -1, 12.5])
+      eq(gz.costoVolata({ ...BASE, kg }).qtot, gz.caricaTotale(BASE.nf, kg),
+        `stessa risposta su kg=${String(kg)}`);
+  });
+
+
+  test("⛔ Genesi · CARICA_SENZA_CONTO e COSTO_SENZA_CONTO: ogni ragione dice CHE COSA manca e COME si rimedia", () => {
+    /* stessa forma di `MIC_SENZA_CONTO` e `PPV_SENZA_SOGLIA`: una ragione
+       senza il «come» manda a cercare da soli il campo da sistemare, ed è la
+       metà che serve a chi guarda lo schermo. */
+    eq(Object.keys(gz.CARICA_SENZA_CONTO).sort(), ["carica", "fori"],
+      "due cause sole, e sono i due ingressi della funzione");
+    eq(Object.keys(gz.COSTO_SENZA_CONTO).sort(), ["fori", "metri"],
+      "il costo ne aggiunge una sua: i metri perforati");
+    for (const T of [gz.CARICA_SENZA_CONTO, gz.COSTO_SENZA_CONTO])
+      for (const k of Object.keys(T)) {
+        const r = T[k];
+        ok(typeof r.che === "string" && r.che.length > 20, `${k}: dice che cosa manca`);
+        ok(typeof r.come === "string" && /\.$/.test(r.come), `${k}: e come si rimedia, in una frase`);
+        ok(!/undefined|null/.test(r.che + r.come), `${k}: senza parole da programmatore`);
+      }
+    /* la ragione VIENE dalla tabella, non è una seconda scrittura: se un
+       giorno divergessero, lo schermo e la prova direbbero due cose */
+    eq(gz.caricaSenzaConto(12, null).che, gz.CARICA_SENZA_CONTO.carica.che,
+      "la spiegazione della carica viene dalla tabella");
+    eq(gz.costoVolata({ ...BASE, mPerf: "abc" }).che.includes(gz.COSTO_SENZA_CONTO.metri.che), true,
+      "e quella dei metri perforati pure");
+  });
+
+  test("⛔ Genesi · la formula del costo è scritta UNA volta, e la pagina la chiama tre", () => {
+    /* ⛔ ERA SCRITTA TRE VOLTE — in `computeKPI`, nel foglio stampabile e nella
+       scheda validatori — con l'unica differenza di dove viene `nf`. Tre copie
+       di una formula che decide dei soldi prima o poi dicono tre numeri. */
+    const chiamate = (srcG12.match(/costoVolata\s*\(/g) || []).length;
+    eq(chiamate, 3, `i tre punti che costavano una volata la chiedono al modulo (trovate ${chiamate})`);
+    eq(/\bqtot\s*\*\s*\(D2\.cExpl/.test(srcG12), false, "la moltiplicazione dell'esplosivo non è più nella pagina");
+    eq(/_kgTot\s*\*\s*\(D2\.cExpl/.test(srcG12), false, "né nella scheda validatori");
+    eq(/kgTot\s*\*\s*\(D2\.cExpl/.test(srcG12), false, "né nel foglio stampabile");
+    eq(/_ton\s*\*\s*D2\.valMat\s*-\s*_cTot/.test(srcG12), false, "e il margine non si ricava più a mano");
+  });
+
+  test("⛔ Genesi · i lettori di qtot e cost leggono la non-misurabilità", () => {
+    /* regola 20 in versione mirata: una bandiera che nessuno legge non
+       protegge niente. Qui i soggetti sono i tre file che ESCONO e i due
+       riquadri che si guardano. */
+    eq(/costCalcolabile/.test(srcG12), true, "la bandiera del costo esiste");
+    eq((srcG12.match(/costCalcolabile/g) || []).length >= 3, true,
+      "e la leggono la scheda CSV e chi la produce, non solo il modulo");
+    eq(/Esito costo/.test(srcG12), true, "il CSV della scheda volata dichiara l'esito del costo");
+    eq(/Esito carica totale/.test(srcG12), true, "e quello della carica totale");
+    eq(/Perche il costo non e calcolabile/.test(srcG12), true, "con la ragione accanto alla cella vuota");
+    /* la sintesi salvata nello storico è un DOCUMENTO: ci finiva «null kg» */
+    eq(/\+k\.qtot\+' kg/.test(srcG12), false, "la sintesi della volata non incolla più il valore grezzo");
+  });
+}
+
 console.log(`\nRisultato KPI app: ${passed} passati, ${failed} falliti${inVolo.length ? `  ·  ${inVolo.length} prove asincrone aspettate` : ""}`);
 process.exit(failed > 0 ? 1 : 0);
