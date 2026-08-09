@@ -78,7 +78,12 @@ const DIFETTI = [
   ["Il file ha <b>'+_sitoCsv.righe.length+'</b> '+(_sitoCsv.righe.length===1?'riga':'righe')+'.",
    "Il file ha <b>'+_sitoCsv.righe.length+'</b> righe."],
   // 4 · il piano XML in entrata
-  ["toast('✓ Piano XML importato: '+_ricPlur(holes.length,'foro','fori')+' · B '",
+  /* ⏱️ RI-ANCORATA il 09/08: la riga compone `gnum` + `plurale` invece di
+     `_ricPlur`, perché il numero viene da un FILE IMPORTATO e non ha tetto —
+     `conta` accorda la parola ma non raggruppa, e su un piano da mille fori
+     scriveva «1234 fori». Il difetto rimesso resta quello di prima: il plurale
+     inchiodato, che su un foro solo dice «1 fori». */
+  ["toast('✓ Piano XML importato: '+gnum(holes.length,0)+' '+plurale(holes.length,'foro','fori')+' · B '",
    "toast('✓ Piano XML importato: '+gnum(holes.length,0)+' fori · B '"],
   // 5 · i due contatori della home, e la riga del rilievo
   ["$('hgVolN').textContent=arr.length? _ricPlur(arr.length,'salvata','salvate'):'';",

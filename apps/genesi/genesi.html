@@ -3277,7 +3277,7 @@ function riconRender(){
            riga non ce l'hanno e lo dicono, invece di farsela attribuire. */
         +'<br><span style="color:var(--mut2)">base PPV: '
           +_rEsc(r.prev&&r.prev.ppvBase&&r.prev.ppvBase.breve ? r.prev.ppvBase.breve : 'non registrata')+'</span>'
-        +(r.campo?'<br><span style="color:var(--mut2)">da Campo: '+_ricKg(r.campo.kgReale)+' kg caricati su '+r.campo.foriReg+'/'+r.campo.foriTot+' '+plurale(r.campo.foriTot,'foro','fori')+' ('+(r.campo.scostPct==null?'scostamento non misurabile':_ricPct(+r.campo.scostPct)+' sul progetto')+')'+(r.campo.chi&&r.campo.chi.length?' · '+_rEsc(r.campo.chi.join(', ')):'')+'</span>':'')
+        +(r.campo?'<br><span style="color:var(--mut2)">da Campo: '+_ricKg(r.campo.kgReale)+' kg caricati su '+gnum(r.campo.foriReg,0)+'/'+gnum(r.campo.foriTot,0)+' '+plurale(r.campo.foriTot,'foro','fori')+' ('+(r.campo.scostPct==null?'scostamento non misurabile':_ricPct(+r.campo.scostPct)+' sul progetto')+')'+(r.campo.chi&&r.campo.chi.length?' · '+_rEsc(r.campo.chi.join(', ')):'')+'</span>':'')
         +(r.real.note?' · '+_rEsc(r.real.note):'')+'</div>').join('')
       +'</div>'):'<div style="margin-top:12px;color:var(--mut);font-size:12px;">Nessuna riconciliazione salvata: inserisci i valori reali e premi “Salva”.</div>');
   const upd=()=>{ $('ric-d-x50').innerHTML=riconDelta(prev.x50,$('ric-x50').value,'cm'); $('ric-d-ppv').innerHTML=riconDelta(prev.ppv,$('ric-ppv').value,'mm/s'); $('ric-d-fly').innerHTML=riconDelta(prev.fly,$('ric-fly').value,'m'); };
@@ -4240,7 +4240,7 @@ if($('fileXmlIn')) $('fileXmlIn').onchange=async e=>{
     /* l'innesco entra nel messaggio perché è il campo che decide lo scatter, e
        finora era anche l'unico che il giro perdeva in silenzio: chi rilegge un
        piano deve vedere che cosa è tornato, non solo quanti fori */
-    if(typeof toast==='function') toast('✓ Piano XML importato: '+_ricPlur(holes.length,'foro','fori')+' · B '+gfix(D2.B,2)+'×S '+gfix(D2.S,2)+' · '+D2.sequenza+' · '+((selInnesco()||{}).short||D2.innesco));
+    if(typeof toast==='function') toast('✓ Piano XML importato: '+gnum(holes.length,0)+' '+plurale(holes.length,'foro','fori')+' · B '+gfix(D2.B,2)+'×S '+gfix(D2.S,2)+' · '+D2.sequenza+' · '+((selInnesco()||{}).short||D2.innesco));
   }catch(err){ if(typeof toast==='function') toast('Import XML fallito: '+err.message); }
   e.target.value='';
 };
