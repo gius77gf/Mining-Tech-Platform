@@ -871,6 +871,26 @@ numero scritto dove non era stato misurato niente**.*
       misurate**. Ogni KO lì dentro è vero **a quel commit**, non adesso — e
       questo ne è la dimostrazione, non un'ipotesi.
 
+- [x] ✅ **B0-ter. MENTRE UN CANTIERE SCRIVE, UN ROSSO LETTO SULL'ALBERO VIVO NON
+      È UN VERDETTO.** Misurato il 09/08 su me stesso: leggendo l'albero mentre
+      un cantiere ci scriveva, `run-stile` ha detto **316 passati e 2 falliti**;
+      rilanciato **subito dopo**, **318 e 0**. Non era un difetto, era una
+      **lettura a metà scrittura**.
+      ⚠️ E la parte che vale: **lo stesso cantiere me l'aveva già segnalato
+      stamattina** — «una esecuzione di `run-stile` ha detto 316/2 e non si è più
+      riprodotta in sei esecuzioni successive» — e io l'avevo **annotato senza
+      trarne la conseguenza**. Un avvertimento ricevuto e non convertito in
+      regola è un avvertimento che si ripaga.
+      ⛔ La regola: il verdetto si prende sulla **copia immobile** (`git
+      worktree` + `git diff --cached | git apply` + `git -C "$W" add -A`), non
+      sull'albero vivo. Vale in tutt'e due i versi, ed è il verso **rosso**
+      quello che costa di più: un rosso falso fa aprire un cantiere su difetti
+      che non esistono — è già successo il 07/08 con dieci KO immaginari.
+      ⚠️ È il secondo costo dei cantieri paralleli, dopo quello della riga qui
+      sotto: il primo allunga il giro, questo **rende inaffidabile ogni misura
+      presa di corsa**. Nessuno dei due contraddice la direttiva 3; tutt'e due
+      dicono **come** si lavora mentre i cantieri girano.
+
 - [ ] **B0-bis. TRE FAMIGLIE DI INIEZIONI CHE NESSUN CONTROLLO SORVEGLIA — e
       una di loro è già rimasta rotta per giorni.** `iniezioni-fresche.mjs`
       esiste per prendere l'iniezione **scaduta**: quella che cita il codice
