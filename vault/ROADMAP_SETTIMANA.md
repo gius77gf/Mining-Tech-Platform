@@ -971,6 +971,37 @@ numero scritto dove non era stato misurato niente**.*
       **Come si misura**: apri una volata con `design.B:null` e guarda il burden
       dei fori disegnati — se è 0,3 m, il difetto è ancora lì.
 
+- [x] **B0-octies. LA TABELLA DEL CANTIERE DI GENESI ERA FALSA IN SETTE NUMERI
+      SU SETTE, SOTTO UN AVVERTIMENTO CHE DICEVA COME SAREBBE SUCCESSO.**
+      *(chiuso il 09/08, commit `1805f43`)* `genesi-estraibili.mjs` misura
+      quante funzioni si portano fuori dalla pagina senza cambiargli la firma;
+      la sua tabella sta in `docs/DEVELOPMENT.md` e, **identica**, dentro il
+      commento dello strumento che la produce. Diceva 46 · 64 · 27 · 31 · 24,
+      cioè «110 su 192»; lo strumento stampa **29 · 58 · 23 · 28 · 31, cioè 65
+      su 169**. Non una svista: nel frattempo tre fette di Genesi sono davvero
+      uscite dalla pagina — **il documento invecchiava mentre il lavoro andava
+      bene**, che è il verso in cui qui capita sempre.
+      ⛔ Sotto quella tabella c'era scritto *«se un giorno divergono, ha ragione
+      l'uscita e torto il commento»*. Divergevano da otto giorni. Terza volta in
+      due giorni: **dichiarare un punto cieco non lo illumina.**
+      E il totale grosso era scritto **a mano dentro il `console.log`** — la
+      riga che esiste per dire «guardate il numero giusto» contrapponeva un
+      `192` che non era più di nessuno.
+      **Adesso lo sorveglia `numeri-nei-documenti.mjs`** (+3 prove), che lancia
+      il censimento e pretende la tabella uguale alla sua uscita **scaglione per
+      scaglione** — il totale da solo no: il 01/08 la somma era giusta e gli
+      addendi vecchi. Controprovato col difetto vero rimesso, in tutt'e due i
+      rami (uno scaglione: **zero caratteri** di differenza, quindi l'ancora è
+      un `assert` sulla stringa, non una conta).
+      ⚠️ E `docs/PIANO_GENESI_MODULO_DATI.md` ha perso la colonna dei valori «di
+      oggi», scritta la mattina e già vecchia la sera (diceva `run-kpi` 1979, ne
+      esegue 2033): **restano solo i comandi, che non invecchiano**. Portava
+      anche un `su b9d4724` che sembrava una verifica e non lo era — quel commit
+      non ha mai toccato quel file (`git log b9d4724 -- <file>` → `b964a73`).
+      **Come si rimisura**: `node apps/deepwork-id/tests/numeri-nei-documenti.mjs`
+      deve stampare «cantiere di Genesi: N funzioni nella pagina, M estraibili,
+      5 scaglioni confrontati col documento».
+
 - [ ] **B0-sexies. GLI ALTRI QUINDICI CAMPI CHE INVENTANO IL PROPRIO MINIMO —
       contati, non stimati.** Chiuso il clamp della **carica** (B0-quater), il
       cantiere ha censito il resto: in `applyDesign` ci sono **20** ripieghi
