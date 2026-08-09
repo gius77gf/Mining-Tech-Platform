@@ -949,11 +949,31 @@ numero scritto dove non era stato misurato niente**.*
   | tendina di Sentinella (`#ppv-scelta`) | 2 | **290 px in 284**: sei px |
   | barre di peso di Conti | 1 | fasce a zero da confrontare |
   | manina di Campo | 1 | 33 voci, 1 promette e non mantiene |
-  ⛔ **E il più piccolo è quello da fare per primo**: la tendina di Sentinella
-  sfora di **6 px** a 390 (290 contro 284) e di 76 a 320. È la stessa famiglia
-  di Scudo ma con un margine minuscolo — quindi è il caso che dice se la
-  strada giusta è accorciare il testo o cambiare il campo, **senza rischiare
-  una schermata di conformità** per scoprirlo. Si prova lì, poi si porta.
+  ⛔ **APERTO IL PIÙ PICCOLO PER PRIMO — e ha risposto alla domanda di disegno,
+  ma non come credevo: QUESTA FAMIGLIA NON SI CHIUDE ACCORCIANDO IL TESTO.**
+  La tendina di Sentinella sfora di **6 px** a 390 (290 contro 284) e di 76 a
+  320. Aprendo il codice, tre fatti che decidono:
+  1. **l'autore lo sapeva già** — il commento sopra dice «etichette corte:
+     dentro un `<select>` di una modale da 440 px una riga lunga viene
+     tagliata, e un dato tagliato non si legge»: la voce **è già** la versione
+     corta, `«5,6 mm/s · <punto>»`;
+  2. **quello che sfora è DATO DELL'UTENTE** — il nome del punto di misura
+     («Vibrazioni V2 — confine Nord»). Non è nostro e non ha lunghezza massima:
+     un cliente col nome più lungo farà cadere il banco comunque;
+  3. **il «suggerimento sotto» che avevo ipotizzato come strada giusta per
+     Scudo ESISTE GIÀ QUI**: `#ppv-info`, che mostra il dettaglio del punto
+     scelto. E il banco cade lo stesso.
+  ⛔ Quindi la domanda non è di prodotto ma di **standard del banco**: così
+  com'è posta — «la voce scelta si legge tutta a tendina chiusa» — è
+  **inevitabilmente fallibile** da un nome abbastanza lungo, su qualunque app.
+  Le due uscite oneste sono (a) accettare la voce tagliata **quando il dato
+  intero è leggibile lì accanto** (che è il caso di Sentinella, e sarebbe da
+  costruire per Scudo), oppure (b) cambiare il campo — non più un `<select>`
+  nativo, ma un elenco che va a capo. **La (a) cambia uno standard e la (b) è
+  un pezzo di interfaccia nuovo: nessuna delle due la prendo da sola.**
+  ⚠️ È la stessa disciplina del `#vf-ente` di Scudo (termine di legge) e della
+  scala `--nav-scala`: quando la strada tocca una decisione del fondatore, si
+  porta la **misura** e le **due uscite**, non una correzione fatta di slancio.
 
 ## Vincoli
 
