@@ -843,6 +843,23 @@ numero scritto dove non era stato misurato niente**.*
       controllo automatico su questo fronte oggi **non regge**. Servirebbe prima
       un confronto che conosca il **contesto** della regola (`@media`, selettore
       composto) — e quello è un cantiere a sé.
+      ⛔ **E LA PRIMA DELLE TRE È STATA INSEGUITA, MISURATA, E SI È RIVELATA UN
+      FALSO ALLARME MIO — quarta volta stanotte, e vale scriverla.** Sembrava
+      che `.item{cursor:default}` del foglio condiviso fosse un'affordance
+      sbagliata: aprendo Conti e Sentinella — le due che caricano il foglio —
+      contavo **74 e 26 righe cliccabili con la manina spenta**. Sotto c'era il
+      mio righello: contavo cliccabile una riga che **contiene** un bottone,
+      mentre `promesse-tocco.mjs` scrive nella sua intestazione che *«un
+      aggancio DENTRO la riga non conta: lì il bersaglio è il bottone»*.
+      Rimisurato con la sua regola: **Conti 9 righe agganciate davvero, 0 senza
+      manina; Sentinella 0 e 0.** Il `default` è **deliberato** (nasce da quel
+      banco il 01/08, contro le righe di mockup che promettevano un tocco e non
+      facevano niente), e le tre app che lo scavalcano hanno righe costruite da
+      JavaScript che la manina se la mettono in riga.
+      ⚠️ La lezione, che è sempre la stessa: **quando una mia misura contraddice
+      un banco che esiste, il sospettato è il righello, non il banco** — e la
+      risposta stava scritta nell'intestazione del banco, che era da leggere
+      PRIMA di misurare.
 - [ ] **E7.** Genesi — allineamento delle parti 2D/HUD al core (la scena 3D
       resta come sta: è un'altra cosa).
 - [ ] **E8.** Verifica finale: le sette pagine affiancate devono sembrare la
