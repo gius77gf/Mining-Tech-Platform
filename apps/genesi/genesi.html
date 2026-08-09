@@ -3421,7 +3421,12 @@ function sigRender(){
   const senza=ppvSenzaSoglia(D2.recNorma,D2.recFreq);
   const col=rat===null?'#ffca28':(rat<0.6?'#66bb6a':(rat<1?'#ffca28':'#ef5350'));
   body.innerHTML=
-    '<div style="color:var(--mut);font-size:12px;margin-bottom:8px;">Onda importata: '+gnum(_sigData.a.length,0)+' campioni · '+gnum(times.length,0)+' fori · dt '+gfix(_sigData.dt,2)+' ms</div>'
+    /* ⛔ «1 fori»: una volata a foro singolo esiste eccome — è il caso con cui
+       si tara la legge di sito, ed è proprio quello che si importa qui.
+       ⚠️ «campioni» resta al plurale di proposito e non per dimenticanza:
+       `_sigData.a` è la forma d'onda campionata del sismografo, che di
+       campioni ne ha migliaia; un'onda da UN campione non è un'onda. */
+    '<div style="color:var(--mut);font-size:12px;margin-bottom:8px;">Onda importata: '+gnum(_sigData.a.length,0)+' campioni · '+_ricPlur(times.length,'foro','fori')+' · dt '+gfix(_sigData.dt,2)+' ms</div>'
     +_sigSpark(r.comp,r.steps)
     +'<div style="display:grid;grid-template-columns:1.35fr 1fr;gap:6px 10px;margin-top:10px;font-size:13.5px;align-items:center">'
     +'<div style="color:var(--mut)">PPV foro singolo (picco onda)</div><div>'+gfix(r.singolo,2)+' mm/s</div>'

@@ -20,7 +20,7 @@
 // ============================================================
 
 import { parseCsvLine, csvCell, numIt, giorniTra, isIntestazione, numeroScritto, dataISOEsiste,
-         senzaDoppioni, istanteLocale,
+         senzaDoppioni, istanteLocale, plurale,
          AVVISO_DECIMALE as AVVISO_DECIMALE_SHELL,
          dataPiuGiorni as dataPiuGiorniShell } from "../../shared/deepwork-id-client/dw-shell.js";
 // Una scadenza è una scadenza: lo stato della taratura lo dice la stessa
@@ -2330,7 +2330,12 @@ export function etichettaFrequenza(ogniGiorni) {
   const n = Math.round(+ogniGiorni || 0);
   if (!(n > 0)) return "frequenza non impostata";
   const p = PERIODICITA.find(x => x.giorni === n);
-  return p ? p.etichetta.toLowerCase() : "ogni " + n + " giorni";
+  /* ⛔ «ogni 1 giorni» — e non è un caso di scuola: un punto misurato tutti i
+     giorni è la frequenza più stretta che questa app sappia programmare, cioè
+     quella di chi ha un problema aperto. La parola giusta è «ogni giorno»,
+     senza il numero: in italiano il «1» davanti si toglie. */
+  if (p) return p.etichetta.toLowerCase();
+  return n === 1 ? "ogni giorno" : "ogni " + n + " giorni";
 }
 
 // Data ISO spostata di n giorni (calcolo in UTC per non inciampare
@@ -3194,7 +3199,7 @@ export function testoFontePrevisione(p) {
   if (!p) return "";
   if (!p.daGenesi) return "previsione";
   if (!p.calibrata) return "da Genesi · stima dalla litologia";
-  const q = p.referti ? " (" + p.referti + " referti)" : "";
+  const q = p.referti ? " (" + p.referti + " " + plurale(p.referti, "referto", "referti") + ")" : "";
   if (p.provvisoria === true) return "da Genesi · legge di sito PROVVISORIA" + q;
   if (p.provvisoria === false) return "da Genesi · legge di sito calibrata" + q;
   /* file vecchio: la legge è di sito, ma su quanti referti non lo sappiamo —

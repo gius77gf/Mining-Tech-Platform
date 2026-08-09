@@ -4778,10 +4778,23 @@ textarea.dw-input{
         + perPunto.size + (perPunto.size === 1 ? " strumento" : " strumenti") + ". "
         + (coperte ? "Coprono " + coperte + (coperte === 1 ? " lettura già registrata. " : " letture già registrate. ")
                    : "Nessuna lettura già registrata cade in questi intervalli: copriranno quelle che verranno. ")
-        + (riepilogo.scartate ? riepilogo.scartate + " righe su " + riepilogo.letti + " scartate: " + perche + "." : "Tutte le " + riepilogo.letti + " righe del file sono entrate.")
-      : "Nessun certificato registrato: tutte e " + riepilogo.letti + " le righe del file sono state scartate — " + perche + ".";
+        /* ⛔ CON «1» NON CAMBIA SOLO LA PAROLA: cambiano l'ARTICOLO, il VERBO e
+           il PARTICIPIO. «1 righe su 3 scartate» è sbagliato tre volte, e un
+           file di tarature con una riga sola è il caso più comune di tutti —
+           chi importa il certificato di UNO strumento. Per lo stesso motivo
+           «Tutte le 1 righe sono entrate» diventa «L'unica riga è entrata». */
+        + (riepilogo.scartate
+            ? riepilogo.scartate + " " + plurale(riepilogo.scartate, "riga", "righe")
+              + " su " + riepilogo.letti + " " + plurale(riepilogo.scartate, "scartata", "scartate") + ": " + perche + "."
+            : plurale(riepilogo.letti, "L'unica riga del file è entrata.",
+                      "Tutte le " + riepilogo.letti + " righe del file sono entrate."))
+      : "Nessun certificato registrato: "
+        + plurale(riepilogo.letti, "l'unica riga del file è stata scartata",
+                  "tutte e " + riepilogo.letti + " le righe del file sono state scartate")
+        + " — " + perche + ".";
     esito("tar-esito", testo, riepilogo.pronte ? "success" : "err",
-      riepilogo.pronte ? riepilogo.pronte + " tarature importate, " + riepilogo.scartate + " righe scartate."
+      riepilogo.pronte ? riepilogo.pronte + " " + plurale(riepilogo.pronte, "taratura importata", "tarature importate")
+                         + ", " + riepilogo.scartate + " " + plurale(riepilogo.scartate, "riga scartata", "righe scartate") + "."
                        : "Nessuna riga utilizzabile: guarda l'elenco.");
     mostraScartiTarature(voci);
     if (perPunto.size === 1) tarPunto = [...perPunto.keys()][0];
@@ -5213,7 +5226,10 @@ textarea.dw-input{
     } else {
       await db.aggiungi("programma", dati);
       esito("prg-esito", "«" + nome + "» entra nel programma: " + etichettaFrequenza(giorni)
-        + (dati.tolleranzaGiorni ? ", con " + dati.tolleranzaGiorni + " giorni di tolleranza" : "") + ".");
+        /* una tolleranza di UN giorno è la più stretta che si possa scrivere,
+           quindi è anche quella che qualcuno scriverà per prima */
+        + (dati.tolleranzaGiorni ? ", con " + dati.tolleranzaGiorni + " "
+            + plurale(dati.tolleranzaGiorni, "giorno", "giorni") + " di tolleranza" : "") + ".");
     }
     riempiFormPrg(null); $("prg-giorni").value = String(giorni); $("prg-freq").value = PERIODICITA.some(p => p.giorni === giorni) ? String(giorni) : "";
     await refresh();
@@ -5347,7 +5363,10 @@ textarea.dw-input{
         nota: "Ogni punto è una lettura registrata: le distanze sulla riga del tempo sono uguali fra una misura e l'altra, anche quando i giorni non lo sono. Le date esatte stanno nella tabella «Dati»."
           + (p.soglia.valore == null ? " Senza soglia impostata non si può dire se una lettura è un superamento." : ""),
         aria: "Andamento di " + p.nome + ": " + p.n + " letture"
-          + (p.soglia.valore != null ? ", soglia " + numeroIt(p.soglia.valore) + " " + p.unita + ", " + sup + " superamenti" : "") + ".",
+          /* questa frase la legge uno screen reader: «1 superamenti» lì si
+             SENTE, e un superamento solo è il caso che fa aprire un'azione */
+          + (p.soglia.valore != null ? ", soglia " + numeroIt(p.soglia.valore) + " " + p.unita
+              + ", " + sup + " " + plurale(sup, "superamento", "superamenti") : "") + ".",
       }));
     });
   }

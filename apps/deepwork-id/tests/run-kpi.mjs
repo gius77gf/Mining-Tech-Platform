@@ -7820,6 +7820,12 @@ test("statoVuoto: la struttura è quella del core, invariata", () => {
     eq(sentinella.testoFontePrevisione(sentinella.previsioneDiVolata(
          { ...prevista, ppvPrevProvvisoria: "no", ppvPrevReferti: "12" })),
        "da Genesi · legge di sito calibrata (12 referti)", "detto in chiaro");
+    /* una legge di sito calibrata su UN referto solo è debole, ed è proprio il
+       caso in cui la frase va letta: «(1 referti)» la fa sembrare un refuso e
+       toglie autorità al numero che l'utente deve pesare */
+    eq(sentinella.testoFontePrevisione(sentinella.previsioneDiVolata(
+         { ...prevista, ppvPrevProvvisoria: "no", ppvPrevReferti: "1" })),
+       "da Genesi · legge di sito calibrata (1 referto)", "e su un referto solo il singolare");
     eq(sentinella.testoFontePrevisione(sentinella.previsioneDiVolata(prevista)),
        "da Genesi · legge di sito, su quanti referti non è dichiarato",
        "e un file vecchio non si spaccia per calibrato");
@@ -11586,6 +11592,12 @@ test("statoVuoto: la struttura è quella del core, invariata", () => {
     eq(sentinella.etichettaFrequenza(45), "ogni 45 giorni", "non coincide");
     eq(sentinella.etichettaFrequenza(0), "frequenza non impostata", "non impostata: lo dice invece di dire «ogni 0 giorni»");
     eq(sentinella.etichettaFrequenza(null), "frequenza non impostata", "niente");
+    /* ⛔ «OGNI 1 GIORNI» — e non è un caso di scuola: un punto misurato tutti i
+       giorni è la frequenza più stretta che l'app sappia programmare, cioè
+       quella di chi ha un problema aperto e lo sta sorvegliando. In italiano
+       il «1» davanti si toglie del tutto: non «ogni 1 giorno», «ogni giorno». */
+    eq(sentinella.etichettaFrequenza(1), "ogni giorno", "un giorno: senza il numero davanti");
+    eq(sentinella.etichettaFrequenza(2), "ogni 2 giorni", "e da due in su il numero torna");
   });
   test("trovaRicettore e le classi acustiche: nessun limite dedotto dalla classe", () => {
     /* la classe acustica DESCRIVE la zona che il Comune ha assegnato; il

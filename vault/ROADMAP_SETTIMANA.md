@@ -534,9 +534,27 @@ numero scritto dove non era stato misurato niente**.*
       ⚠️ Al primo giro ha **accusato un innocente** («1 MEZZI» in Flotta: due
       piastrelle di KPI unite dall'a capo di `innerText`).
 
-- [ ] **I ternari del singolare che restano nelle app.** Non si traducono in
-      una notte; quando si fa, si fa con `conta`/`plurale`, non a mano. I tre
-      cantieri del filo «il testo che mente» stanno guardando lì.
+- [ ] **I ternari del singolare che restano nelle app** — ⏱️ *censito da capo
+      l'09/08, e adesso c'è un numero invece di un'impressione: **54 punti da
+      leggere** in 12 file su 16 guardati, con **69 scartati** perché hanno una
+      guardia sulla loro variabile e **9** perché sono costanti.* Sette chiusi
+      su Sentinella. Non si traducono in una notte; quando si fa,
+      si fa con `conta`/`plurale`, non a mano.
+      ⛔ **E IL CENSIMENTO PRECEDENTE VEDEVA IL 14% DEI SUOI SOGGETTI**, per la
+      ragione di sempre: conosceva **una sintassi sola**. Cercava solo i
+      template literal (`${n} fori`) e non la **concatenazione** (`+n+' fori'`),
+      che è la forma con cui Genesi e Sentinella scrivono quasi tutto: 16
+      candidati contro **115**. È la stessa famiglia del «censimento che cerca
+      UN nome» costato trecento righe di banco, e dei commenti da togliere in
+      tutt'e tre le sintassi di una pagina.
+      ⚠️ E il righello ha sbagliato due volte prima di reggere, tutt'e due col
+      segno che si riconosce: (1) l'estrattore del nome pretendeva un `+` che il
+      pattern aveva **già mangiato**, e rispondeva «nome vuoto» a **tutti** i
+      109 casi — un difetto identico dappertutto è il modo in cui si vede di
+      stare guardando il righello; (2) la guardia veniva cercata in **una riga**
+      di contesto, mentre un ternario scritto su quattro righe mette
+      `x === 1` in cima e il plurale in fondo (il ritmo dei rilievi di Terra,
+      **sano**, risultava un difetto). Con tre righe di contesto: 109 → 54.
 
 - [x] ✅ **Il banco delle modali su Terra: 0 difetti** (6 modali aperte su 11,
       22 aperture, 188 elementi). Risultato pulito e onesto, che prima della
