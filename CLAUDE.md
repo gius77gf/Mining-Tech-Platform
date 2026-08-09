@@ -1068,6 +1068,21 @@ Perché serva davvero e non produca elenchi generici, cinque vincoli:
   totale **per operatore** di un'altra riga, pescato come **sottostringa** da
   600 caratteri di `innerText`. Una controprova che cerca una sottostringa
   risponde ok qualunque cosa succeda al numero che deve sorvegliare.
+  ⚠️ **E VALE PER LE SOGLIE QUANTO PER I TOTALI, misurato il 09/08 su
+  `conti-barre-peso`.** Il banco pretendeva `zeri.length >= 2` — «accanto ai
+  12 € ci sono due fasce a zero da confrontare» — e ne restava **una**, perché
+  la dimostrazione aveva guadagnato una fattura **senza data di scadenza**
+  (commit `069d70e`, «assente non è corrotto»), cioè proprio il caso per cui la
+  difesa era stata costruita. Il prodotto disegnava giusto (3 px per 12 €, 0 px
+  per uno zero vero) e tutte le altre asserzioni passavano.
+  ⛔ E la correzione che veniva in mente — `>= 2` → `>= 1` — è **la correzione
+  facile che dà il verde falso**: prima si chiede *a che cosa servivano due*.
+  Servivano a distinguere «lo zero si disegna zero» da «quella riga per caso è
+  a zero», e quel conto **non stava lì**: stava nella sezione che guarda tutte
+  le liste, dove le righe a zero sono otto. Quindi il `>= 2` si **sposta** —
+  alzato là da `> 0` — e non si toglie. Netto: nessuna asserzione più
+  permissiva, una più severa, e la controprova lo conferma (col difetto
+  rimesso la coppia cade lo stesso con una vuota sola).
 - ⛔ **E UN BANCO CHE CROLLA DICHIARA MENO PROVE, CHE NON È UN BUCO CHE SI
   VEDE.** Lo stesso giorno, lo stesso banco: un `page.click` scaduto lo ha ucciso
   a metà e il registro ha stampato **19 prove invece di 30**. Undici asserzioni
@@ -1082,6 +1097,29 @@ Perché serva davvero e non produca elenchi generici, cinque vincoli:
   diceva **ok**, perché guardava la sostituzione nel **file** invece dell'arrivo
   nello **stato**. Un'iniezione si verifica dove il programma la legge, non dove
   l'hai scritta.
+- ⛔ **E LA STESSA FRASE VALE PER UNA *SCENA*, NON SOLO PER UN'INIEZIONE — E LÌ
+  IL DANNO È UN'ACCUSA CHE VA E VIENE.** Misurato il 09/08 sull'ultimo KO di
+  Campo. Il banco digita mezz'ora di turno su un turno che ha 55 minuti di
+  fermo, e pretende che l'app dica «non calcolabile». Cadeva **una volta su
+  cinque**, sullo stesso commit, senza che nulla cambiasse: nel giro storto la
+  pagina non aveva ancora caricato le attività della dimostrazione, quindi lo
+  stato era «non è registrata nessuna attività per questo turno» — un'altra
+  risposta giusta a un'altra domanda. Il prodotto non ha mai sbagliato.
+  ⚠️ **Un'accusa intermittente è peggio di una stabile**, perché quando si
+  presenta è indistinguibile da un difetto vero e il giro del browser gira una
+  volta ogni molte ore: la si incontra da sola, senza le quattro volte in cui
+  è passata. Questo KO è costato **due riverifiche** credendolo prodotto.
+  ⚠️ E il segno che l'ha tradita è un numero che nessuno guarda: **82 prove
+  invece di 83**. Un caso che cade ne dichiara **una** invece di due — la regola
+  qui sopra in versione mite, dove non c'è nessun crollo da vedere.
+  La difesa: ogni caso che si costruisce una scena dichiara la sua
+  **precondizione** — la cosa che deve essere sullo schermo perché la domanda
+  abbia senso (qui «N min di fermo», il numero che la contraddizione deve
+  superare) — la si aspetta per un tempo dichiarato, e se non arriva il banco
+  **non accusa**: scrive `NON MISURATO`, la elenca fra le righe «non ho
+  guardato» **prima** dei KO col testo trovato davvero, e **esce diverso da
+  zero**. Un soggetto non misurato non è un soggetto a posto: se uscisse verde,
+  la difesa sarebbe peggiore del difetto.
 - ⚠️ **UNA PROVA CHE NON SA FALLIRE NON DIMOSTRA NIENTE.** Ogni controllo
   nuovo va provato **contro il difetto**: si rimette il difetto e si pretende
   che il controllo fallisca. Costa due minuti e ha già salvato due volte:
