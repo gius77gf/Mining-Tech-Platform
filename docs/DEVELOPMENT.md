@@ -83,17 +83,23 @@ sei le app al 100%. Non è «provate bene» — è «non ce n'è nessuna che nes
 ancora guardato», che è il minimo e finora non c'era.
 
 ⚠️ **Quel 724 conta le sei app, non i moduli condivisi**, e la riga di riepilogo
-lo dice («in 6 app»). I condivisi si contano a parte — **142 su 142** in cinque
-moduli: `dw-shell.js` **46/46**, `dw-ponti.js` **46/46**, `genesi-data.js`
-**37/37**, `genesi-formato.js` **8/8**, `pointcloud.js` **5/5**. Vanno guardati
+lo dice («in 6 app»). I condivisi si contano a parte — **165 su 165** in cinque
+moduli: `dw-shell.js` **47/47**, `dw-ponti.js` **47/47**, `genesi-data.js`
+**58/58**, `genesi-formato.js` **8/8**, `pointcloud.js` **5/5**. Vanno guardati
 con più attenzione delle app, non con meno: una funzione sbagliata lì sbaglia in
 sei posti insieme.
-⚠️ *Questi cinque numeri erano fermi a «593 · 23/23 · 31/31 · 5/5», cioè a un
-perimetro di tre moduli: il verdetto («tutti al 100%») reggeva, la prova no. È
-la terza forma di invecchiamento raccolta in `CLAUDE.md` — una prova che marcisce
-non rende la riga sbagliata, la rende non credibile. Il controllo sorveglia il
-totale delle app, non questa scomposizione: rimisurati a mano l'08/08 con*
-`node apps/deepwork-id/tests/copertura-funzioni.mjs`.
+⏱️ **Questi sei numeri sono invecchiati due volte in due giorni, e la seconda
+volta sotto la riga che spiegava perché sarebbe successo.** Prima erano fermi a
+«593 · 23/23 · 31/31 · 5/5», cioè a un perimetro di **tre** moduli; corretti
+l'08/08 a «142 · 46/46 · 46/46 · 37/37», l'09/08 erano di nuovo falsi in cinque
+valori su sei (165 · 47/47 · 47/47 · **58**/58). E accanto c'era scritto: *«il
+controllo sorveglia il totale delle app, non questa scomposizione: rimisurati a
+mano»*. **Dichiarare un punto cieco non lo illumina** — è la stessa lezione
+della tabella di Genesi qui sopra, nello stesso documento, lo stesso giorno.
+Da adesso li sorveglia `numeri-nei-documenti.mjs`, **modulo per modulo**, con
+l'elenco dei moduli **derivato dall'uscita del censimento**: un modulo condiviso
+nuovo entra da sé, e non c'è nessun elenco a mano che possa non sapere che
+esiste.
 
 ⛔ **E il 100% vale per il perimetro misurato, non per tutto il prodotto.**
 Le sei app hanno la loro logica in `apps/<nome>/<nome>-data.js`, che `node`

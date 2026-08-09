@@ -770,6 +770,48 @@ console.log(`\nscomposizione della sicurezza: ${SUITE_SICUREZZA.length} suite co
 console.log(`\nmisure su Genesi: ${ID_MODALE.length + ID_EDITOR_3D.length} id verificati, `
   + `${usate.size} variabili del foglio condiviso, ${scoperte.length} scoperte in Genesi`);
 
+/* ── la copertura dei moduli CONDIVISI, modulo per modulo ─────────────
+   ⛔ ENTRATA IL 09/08, DOPO CHE GLI STESSI SEI NUMERI ERANO INVECCHIATI DUE
+   VOLTE IN DUE GIORNI. `DEVELOPMENT.md` scompone la copertura del codice
+   condiviso («142 su 142 in cinque moduli: dw-shell 46/46, dw-ponti 46/46,
+   genesi-data 37/37…») e accanto c'era scritto, onestamente: *«il controllo
+   sorveglia il totale delle app, non questa scomposizione: rimisurati a mano»*.
+   Il giorno dopo cinque valori su sei erano falsi — 165, 47/47, 47/47, 58/58 —
+   perché `genesi-data.js` era cresciuto di ventun funzioni, cioè **il documento
+   invecchiava mentre il lavoro andava bene**.
+   ⚠️ E l'elenco dei moduli è **derivato dall'uscita del censimento**, non
+   scritto qui: un elenco a mano non può accorgersi di un modulo che non sa
+   esistere — è il difetto che l'07/08 è costato `chiediDati`, sei chiamate a
+   una funzione mai definita, perché `UI_CONDIVISA` era scritto a mano. */
+let nominatiDoc = 0;
+const mCondivisi = /(\d+) funzioni condivise coperte su (\d+) guardate, in (\d+) moduli/.exec(String(cop.stdout || ""));
+const perModulo = [...String(cop.stdout || "").matchAll(/^\s*✓\s+([\w.-]+\.js)\s+(\d+)\/(\d+)\s*$/gm)]
+  .map((m) => ({ file: m[1], coperte: +m[2], guardate: +m[3] }));
+test("docs/DEVELOPMENT.md: la scomposizione del codice condiviso è quella vera, modulo per modulo", () => {
+  ok(mCondivisi, "il censimento non ha stampato la riga dei moduli condivisi");
+  ok(perModulo.length >= 5, `solo ${perModulo.length} moduli letti dall'uscita: il controllo non sta leggendo la scomposizione`);
+  const testo = readFileSync(join(RADICE, "docs/DEVELOPMENT.md"), "utf8");
+  const storte = [];
+  const tot = /\*\*(\d+) su (\d+)\*\* in cinque\nmoduli/.exec(testo);
+  if (!tot) storte.push("non trovo la frase «**N su M** in cinque moduli»");
+  else if (+tot[1] !== +mCondivisi[1] || +tot[2] !== +mCondivisi[2])
+    storte.push(`il totale dice ${tot[1]}/${tot[2]}, il censimento conta ${mCondivisi[1]}/${mCondivisi[2]}`);
+  /* ⚠️ i moduli dei quali il documento parla: si cerca il NOME nel testo, così
+     un modulo nuovo non fa fallire il controllo per il solo fatto di esistere —
+     ma se il documento lo nomina con un conto, quel conto deve essere vero. */
+  let nominati = 0;
+  for (const m of perModulo) {
+    const r = new RegExp("`" + m.file.replace(/\./g, "\\.") + "`\\s*\\n?\\*{0,2}(\\d+)/(\\d+)\\*{0,2}").exec(testo);
+    if (!r) continue;
+    nominati++; nominatiDoc++;
+    if (+r[1] !== m.coperte || +r[2] !== m.guardate)
+      storte.push(`\`${m.file}\` nel documento dice ${r[1]}/${r[2]}, il censimento conta ${m.coperte}/${m.guardate}`);
+  }
+  ok(nominati >= 4, `solo ${nominati} moduli dei ${perModulo.length} sono nominati col loro conto nel documento: `
+    + "la scomposizione non è più quella, e questo controllo starebbe guardando quasi niente");
+  ok(!storte.length, storte.join(" · "));
+});
+
 /* ── il censimento del cantiere di Genesi ─────────────────────────────
    ⛔ ENTRATO IL 09/08, DOPO CHE SETTE NUMERI SU SETTE ERANO INVECCHIATI SOTTO
    UN AVVERTIMENTO CHE DICEVA COME SAREBBE SUCCESSO.
@@ -845,6 +887,10 @@ test("la controprova del censimento di Genesi: uno scaglione cambiato viene vist
   ok(censimentoGenesi("nessun quadro del genere") === null,
     "e su un testo qualunque deve dirlo, non rispondere che torna");
 });
+
+console.log(`\ncodice condiviso: ${perModulo.length} moduli letti dal censimento`
+  + `${mCondivisi ? `, ${mCondivisi[1]}/${mCondivisi[2]} funzioni` : " — RIGA DEL TOTALE NON TROVATA"}`
+  + `  ·  ${nominatiDoc} nominati col loro conto in DEVELOPMENT.md (gli altri il documento non li conta, e non è un guasto)`);
 
 console.log(`\ncantiere di Genesi: ${g ? `${g.totale} funzioni nella pagina, ${g.estraibili} estraibili, `
   + `${SCAGLIONI_DOC.length} scaglioni confrontati col documento` : "NON MISURATO — il censimento non ha risposto"}`);
