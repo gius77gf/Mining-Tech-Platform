@@ -72,6 +72,7 @@
    ⛔ E LE DATE DEI CASI SI CALCOLANO AL CARICAMENTO, non si scrivono: la
    dimostrazione ha date assolute, quindi un banco che si fidasse di loro
    misurerebbe cose diverse a seconda del giorno in cui gira. */
+import { larghezzaCarta, regolaPage } from "./giro.mjs";
 import { createServer } from "node:http";
 import { readFileSync, existsSync, statSync } from "node:fs";
 import { join, extname } from "node:path";
@@ -575,29 +576,17 @@ const leggiFoglioStampato = async () => {
    suoi soggetti — che vivono in un popup — la finestra È il foglio, quindi la
    domanda regge; ma è un'altra domanda da questa, e chiamarle con lo stesso
    nome è il modo in cui un giorno qualcuno copierà quella qui. */
-const CARTA_RIPIEGO = 210, MARGINE_RIPIEGO = 14; // A4, in mm
+/* ⛔ LA DECISIONE STA IN `giro.mjs`, NON QUI. Il 09/08 è nata in due banchi
+   nello stesso blocco — questo e `genesi-foglio-in-cava` — e la regola di casa
+   dice che a quel punto si scrive una volta sola, prima della terza copia. */
 const misuraLarghezze = async () => {
   const esiti = [];
   await pg.emulateMedia({ media: "print" });
-  /* la carta, chiesta alla pagina invece che indovinata */
-  const carta = await pg.evaluate(() => {
-    for (const ss of document.styleSheets) {
-      let regole; try { regole = ss.cssRules; } catch { continue; }
-      for (const r of regole || []) {
-        if (r.constructor.name !== "CSSMediaRule" || r.conditionText !== "print") continue;
-        for (const q of r.cssRules) if (q.constructor.name === "CSSPageRule") return q.style.cssText;
-      }
-    }
-    return null;
-  });
-  const FORMATI = { a4: 210, a5: 148, letter: 215.9 };
-  const mmFormato = (t) => FORMATI[((t || "").match(/\b(a4|a5|letter)\b/i) || [])[1]?.toLowerCase()] ?? null;
-  const mmMargine = (t) => { const m = (t || "").match(/margin:\s*([\d.]+)mm(?:\s+([\d.]+)mm)?/i); return m ? +(m[2] ?? m[1]) : null; };
-  const largaMm = mmFormato(carta) ?? CARTA_RIPIEGO;
-  const bordoMm = mmMargine(carta) ?? MARGINE_RIPIEGO;
-  const LARGHEZZE_FOGLIO = [Math.round((largaMm - 2 * bordoMm) * 96 / 25.4)];
-  console.log(`     carta: ${carta ? `«${carta.trim()}» letta dalla pagina` : "⚠️ regola @page NON trovata, ripiego su A4"}`
-    + ` → ${largaMm} mm − 2×${bordoMm} mm = ${LARGHEZZE_FOGLIO[0]} px CSS di contenuto`);
+  const carta = await regolaPage(pg);
+  const c = larghezzaCarta(carta);
+  const LARGHEZZE_FOGLIO = [c.px];
+  console.log(`     carta: ${c.dichiarata ? `«${String(carta).trim()}» letta dalla pagina` : "⚠️ regola @page NON trovata, ripiego su A4"}`
+    + ` → ${c.larga} mm − 2×${c.bordo} mm = ${c.px} px CSS di contenuto`);
   for (const w of LARGHEZZE_FOGLIO) {
     await pg.setViewportSize({ width: w, height: 950 });
     await pg.waitForTimeout(200);

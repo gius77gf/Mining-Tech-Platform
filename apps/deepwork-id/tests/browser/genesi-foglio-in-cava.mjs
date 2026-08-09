@@ -44,6 +44,7 @@
    `scr-<nome>` sul `body`. La prova di aver navigato si legge lì.
    ⚠️ E il documento non è un file: esce da `window.open` + `document.write`.
    Si intercetta la finestra, come fa `conti-stampe.mjs` con le sue stampe. */
+import { larghezzaCarta } from "./giro.mjs";
 import { createServer } from "node:http";
 import { readFileSync, existsSync, statSync, writeFileSync, unlinkSync, mkdirSync } from "node:fs";
 import { join, extname } from "node:path";
@@ -195,7 +196,11 @@ const rigaFoglio = (t, re) => (t.split("\n").find((r) => re.test(r)) || "").trim
    ⚠️ E il soggetto può non essere un elemento: il traboccamento del core a
    320 px era un NODO DI TESTO in una scatola anonima, che `querySelectorAll`
    non vede. Si cammina anche coi nodi di testo, con un `Range`. */
-const CARTA_PX = Math.round((210 - 2 * 10) * 96 / 25.4);
+/* ⛔ IL CONTO STA IN `giro.mjs`: il 09/08 questa decisione è nata anche in
+   `scudo-documenti`, e due copie della stessa regola divergono senza che
+   nessuno lo veda. Qui i ripieghi si DICHIARANO — 10 mm è il margine di serie
+   del browser, non una regola di questo documento. */
+const { px: CARTA_PX } = larghezzaCarta(null, { mm: 210, bordoMm: 10 });
 async function larghezzaFoglio(b, pg, chi) {
   const html = await pg.evaluate(() => String(window.__doc || ""));
   if (!html) return dice(false, `⛔ ${chi}: c'è un documento da misurare`, "(vuoto)");

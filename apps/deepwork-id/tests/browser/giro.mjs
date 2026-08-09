@@ -375,3 +375,46 @@ export function contiNellaFrase(frase) {
 export function righeDiDato(righe) {
   return (righe || []).slice(1).filter((r) => String(r).includes(";")).length;
 }
+
+/* ⛔ LA LARGHEZZA DELLA CARTA, CHIESTA AL DOCUMENTO INVECE CHE INDOVINATA.
+   Sta qui perché il 09/08 la stessa decisione è nata in DUE banchi nello
+   stesso blocco — `scudo-documenti` e `genesi-foglio-in-cava` — e la regola di
+   casa dice che a quel punto si scrive una volta sola, prima che nasca la
+   terza copia (che sarebbe `stampe-fs`, dove la domanda è già dichiarata
+   aperta in roadmap).
+
+   La ragione per cui la funzione esiste: un foglio che vive in `@media print`
+   **non si stampa sul telefono, si stampa sulla carta**. Misurarlo contro
+   `window.innerWidth` a 390 px produce **accuse false** — 390 è più stretto di
+   una A4 (688 px col margine di 14 mm, 718 col margine di serie del browser),
+   quindi un foglio sano risulta traboccante. È costato un'accusa a un verbale
+   di Scudo che ci stava con 62 px di margine, e la correzione «ovvia» sarebbe
+   stata togliergli una colonna.
+
+   `mm` e `bordoMm` sono i RIPIEGHI, e vanno **dichiarati da chi chiama**: se
+   il documento non porta una regola `@page` non lo si può sapere, e un numero
+   inventato in silenzio è peggio di un ripiego scritto. */
+export const FORMATI_CARTA = { a4: 210, a5: 148, letter: 215.9 };
+export function larghezzaCarta(cssDellaRegolaPage, { mm = 210, bordoMm = 14 } = {}) {
+  const t = String(cssDellaRegolaPage || "");
+  const f = (t.match(/\b(a4|a5|letter)\b/i) || [])[1];
+  const m = t.match(/margin:\s*([\d.]+)mm(?:\s+([\d.]+)mm)?/i);
+  const larga = f ? FORMATI_CARTA[f.toLowerCase()] : mm;
+  const bordo = m ? +(m[2] ?? m[1]) : bordoMm;
+  return { px: Math.round((larga - 2 * bordo) * 96 / 25.4), larga, bordo, dichiarata: !!(f || m) };
+}
+/* la regola `@page` come la vede il browser: si chiede al foglio di stile, non
+   si cerca a testo nel sorgente (una regola può stare in una stringa, in un
+   file a parte, o essere stata riscritta a runtime) */
+export async function regolaPage(pg) {
+  return pg.evaluate(() => {
+    for (const ss of document.styleSheets) {
+      let regole; try { regole = ss.cssRules; } catch { continue; }
+      for (const r of regole || []) {
+        if (r.constructor.name !== "CSSMediaRule" || r.conditionText !== "print") continue;
+        for (const q of r.cssRules) if (q.constructor.name === "CSSPageRule") return q.style.cssText;
+      }
+    }
+    return null;
+  });
+}
