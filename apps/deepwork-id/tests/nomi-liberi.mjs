@@ -1008,10 +1008,35 @@ for (const p of moduliDelDisco()) {
 console.log(`   [misura] quarta forma nei MODULI: ${visti4m} su ${moduli4} moduli, ${male4m.length} liberi`);
 for (const x of male4m.slice(0, 20)) console.log("      · " + x);
 
-/* la QUINTA domanda: per ora MISURA, come lo sono state tutte prima di essere
-   pretese. Diventa regola quando il conto è a zero — cioè quando le righe
-   inerti sono state tolte dalle pagine, che è lavoro sul prodotto e va fatto
-   con il giro del browser fermo. */
+/* ⛔ LA QUINTA DOMANDA RESTA UNA MISURA, E ADESSO LA DECISIONE È SCRITTA COI
+   NUMERI — se no rinasce da sola, come è già successo in questa casa con la
+   scala `--nav-scala` e con la somma parziale delle frasi.
+   La riga di prima diceva «diventa regola quando il conto è a zero, cioè
+   quando le righe inerti sono state tolte dalle pagine». Provata l'08/08
+   guardando i **60 inerti uno per uno**, e la conclusione è l'opposta:
+   **non vanno tolte, e la regola non si fa.**
+   Perché un import inerte NON è un difetto, e i campioni lo dicono:
+     · `campo: csvCell` — Campo non compone più nessuna cella a mano: i suoi
+       quattro file li costruiscono `csvAppello`, `csvStorico`, `csvAttivita` e
+       `csvSquadre` nel modulo. L'import è il residuo di un refactor **giusto**;
+     · `sentinella: CSV_VOLATE_INTESTAZIONE` e `CSV_RICETTORI_INTESTAZIONE` —
+       le intestazioni le usa il modulo dentro `csvRegistroVolate` e
+       `csvRicettori`, cioè la pagina delega invece di ricopiare;
+     · `flotta: AVVISO_DECIMALE` e `AVVISO_MIGLIAIA` — li mostra già, ma
+       attraverso `messaggioNumero`, che li porta dentro di sé.
+   Cioè: **l'inerzia di un import è quasi sempre il segno che una decisione è
+   salita dove doveva**, non che qualcuno l'ha persa. Toglierli sarebbe toccare
+   dieci pagine per zero difetti misurati.
+   ⚠️ E la versione STRETTA della domanda — quella che avrebbe un senso, «la
+   pagina importa una costante di testo E scrive lo stesso testo a mano?» — è
+   stata provata e scartata anche lei, col suo conto: dà **2 allarmi, tutti e
+   due falsi**, e sono le due righe di Flotta che scrivono l'avviso sulle
+   migliaia **con l'esempio del proprio campo** («6000, non 6.000» invece del
+   generico «1250, non 1.250»). Non è una copia debole: è una
+   specializzazione, ed è migliore della costante. Due falsi allarmi e zero
+   veri non si meritano una regola.
+   Resta la MISURA, che serve: un numero che salta di colpo dice che qualcuno
+   ha spostato del codice, ed è il momento di guardare. */
 let importati5 = 0, file5 = 0;
 const inerti5 = [];
 for (const p of PAGINE.concat(moduliDelDisco())) {
@@ -1021,7 +1046,8 @@ for (const p of PAGINE.concat(moduliDelDisco())) {
   file5++; importati5 += r.guardati;
   for (const n of r.inerti) inerti5.push(`${p}: ${n}`);
 }
-console.log(`   [misura] quinta forma (importati e mai usati): ${importati5} import su ${file5} file, ${inerti5.length} inerti`);
+console.log(`   [misura] quinta forma (importati e mai usati): ${importati5} import su ${file5} file, ${inerti5.length} inerti`
+  + `  ·  MISURA, e non diventerà una regola: guardati uno per uno l'08/08, sono residui di refactor GIUSTI`);
 for (const x of inerti5.slice(0, 12)) console.log("      · " + x);
 if (inerti5.length > 12) console.log(`      … e altri ${inerti5.length - 12}`);
 
@@ -1207,5 +1233,9 @@ console.log(`\nRisultato nomi liberi: ${passed} passati, ${failed} falliti`
         che un nome *riferito* sia stato importato;
      2. «i moduli restano fuori»: vera per un'ora, poi chiusa qui sotto. */
   + `  ·  quarta domanda (i riferimenti nudi): ${visti4} su ${pagine4} pagine e ${visti4m} su ${moduli4} moduli, ${male4.length + male4m.length} liberi`
-  + `  ·  quinta domanda (importati e mai usati): ${importati5} import su ${file5} file, ${inerti5.length} inerti — MISURA, non ancora regola`);
+  /* ⚠️ «non ancora regola» era un INVITO, e questo file ne aveva due — uno qui
+     e uno accanto alla misura. Un invito lasciato in giro viene raccolto: la
+     decisione (guardati uno per uno l'08/08, sono residui di refactor giusti,
+     la regola NON si fa) sta scritta per esteso sopra il calcolo. */
+  + `  ·  quinta domanda (importati e mai usati): ${importati5} import su ${file5} file, ${inerti5.length} inerti — MISURA per scelta, non una regola mancante`);
 process.exit(failed > 0 ? 1 : 0);

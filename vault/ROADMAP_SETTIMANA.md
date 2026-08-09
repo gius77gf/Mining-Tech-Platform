@@ -2253,6 +2253,33 @@ numero scritto dove non era stato misurato niente**.*
   regex che provava a scavalcare le parentesi (`[^)]*` si ferma alla prima `)`
   di `plurale(...)`), quindi non trovava la frase **né nel core né nella sua
   controprova** — cioè la regola accusava sé stessa. Adesso l'ancora è la riga.
+- [x] ✅ **I «60 import inerti» NON diventano una regola, e adesso la decisione è
+  scritta coi numeri.** `nomi-liberi` misurava la quinta forma (importati e mai
+  usati) e in **due punti** diceva «MISURA, **non ancora** regola» — cioè un
+  invito, e in questa casa un invito lasciato in giro viene raccolto. La riga
+  prometteva pure la strada: «diventa regola quando le righe inerti sono state
+  tolte dalle pagine».
+  Guardati **uno per uno** l'08/08, la conclusione è l'opposta: **un import
+  inerte non è un difetto, è quasi sempre il segno che una decisione è salita
+  dove doveva.**
+  · `campo: csvCell` — Campo non compone più nessuna cella a mano: i suoi
+    quattro file li costruiscono `csvAppello`, `csvStorico`, `csvAttivita` e
+    `csvSquadre` **nel modulo**. L'import è il residuo di un refactor giusto;
+  · `sentinella: CSV_VOLATE_INTESTAZIONE` / `CSV_RICETTORI_INTESTAZIONE` — le
+    usa il modulo dentro `csvRegistroVolate` e `csvRicettori`: la pagina
+    **delega invece di ricopiare**;
+  · `flotta: AVVISO_DECIMALE` / `AVVISO_MIGLIAIA` — Flotta li **mostra già**,
+    attraverso `messaggioNumero`, che se li porta dentro.
+  Toglierli vorrebbe dire toccare **dieci pagine per zero difetti misurati**:
+  è la stessa contabilità con cui è stata scartata la scala `--nav-scala`.
+  ⚠️ **E la versione stretta è stata provata e scartata anche lei, col conto**:
+  «la pagina importa una costante di testo E scrive lo stesso testo a mano?» dà
+  **2 allarmi, tutti e due falsi** — le due righe di Flotta che scrivono
+  l'avviso sulle migliaia **con l'esempio del proprio campo** («6000, non
+  6.000» invece del generico «1250, non 1.250»). Non è una copia debole: è una
+  **specializzazione**, ed è migliore della costante.
+  La misura **resta**, perché serve: un numero che salta di colpo dice che
+  qualcuno ha spostato del codice, ed è il momento di guardare.
 - [x] ✅ **E l'ultimo KO di Conti era il banco che pinnava il testo di ieri**
   (`e26ff87`). `conti-frasi` chiedeva «**Esportati** 1 prodotto (CSV)» e la
   pagina scrive «**Esportato** 1 prodotto», che in italiano è la forma giusta:
