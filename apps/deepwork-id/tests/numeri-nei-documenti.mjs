@@ -251,7 +251,34 @@ for (const [rel, regola] of BROWSER) {
     for (const riga of readFileSync(join(RADICE, "docs", f), "utf8").split("\n")) {
       const m = VERDETTO.exec(riga);
       if (!m) continue;
-      if (!/\*\*CONFERMAT[AOEI] ASSENT[EI]\*\*/i.test(m[2])) continue;
+      /* ⛔ IL VERDETTO **COMINCIA** CON «CONFERMATA», non lo contiene — e la
+         prima stesura di questo controllo, scritta un'ora fa, sbagliava
+         **due volte** proprio qui:
+         · cercava la forma in **grassetto** (`**CONFERMATA ASSENTE**`), che
+           usano cinque documenti su sei: Scudo scrive `CONFERMATA` liscio,
+           sotto un'intestazione di sezione che dice «CONFERMATE ASSENTI».
+           Risultato: Scudo contava **zero**, e il totale 41 invece di 47;
+         · e «contiene» prenderebbe anche le tre righe di Scudo che dicono
+           «⏱️ **A METÀ** — *era* CONFERMATA, colmata a metà», cioè mancanze
+           **chiuse**: quel verdetto la nomina per raccontare la storia.
+         Il conto giusto è 6 per Scudo — e lo conferma il documento stesso,
+         che nel suo riepilogo scrive «Confermate assenti: **6**».
+         ⚠️ Tre stesure in un giorno, tre numeri (42, 41, 47), e ogni volta la
+         causa era la stessa: **il righello guardava una forma di scrittura
+         invece del verdetto.** La roadmap lo diceva già in prosa — «questo
+         conto misura una forma di scrittura, non la verità» — ed è la ragione
+         per cui adesso il criterio è *dove comincia la cella*, che è la cosa
+         più vicina al significato che si possa chiedere a un testo. */
+      const verdetto = m[2].trim().replace(/^\*\*/, "").replace(/^⏱️\s*/, "");
+      /* ⛔ E SENZA `i`, che è la terza discriminazione e la più economica: il
+         verdetto nelle tabelle si scrive in MAIUSCOLO. Con `i` entrava anche
+         `| quando | confermate | false | ⏱️ scadute | a metà | totale |` —
+         l'**intestazione** della tabella di riepilogo di Sentinella, che
+         elenca i nomi delle colonne. Cioè, di nuovo, una riga che PARLA dei
+         verdetti invece di darne uno: la stessa famiglia dell'intestazione di
+         sezione di Scudo, in un'altra veste. Qui a separarle basta la
+         maiuscola, che è come i documenti scrivono davvero un verdetto. */
+      if (!/^CONFERMAT[AOEI]/.test(verdetto)) continue;
       /* ⛔ la seconda domanda: è una CELLA di verdetto o un'INTESTAZIONE?
          Un verdetto ha la sua prova nella terza colonna; l'intestazione di
          sezione ha le altre due vuote. */

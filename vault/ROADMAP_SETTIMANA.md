@@ -773,8 +773,8 @@ numero scritto dove non era stato misurato niente**.*
       il conto qui scritto era del 02/08 e si era mosso parecchio:
 
           | app | «CONFERMATA ASSENTE» | «SCADUTA» |
-          | campo 11 · sentinella 13 · conti 8 · flotta 5 · terra 4 · scudo 0 |
-          | totale **41** (era 54 · ⛔ NON 42: vedi la correzione qui sotto) | totale **18** (erano 6) |
+          | campo 11 · sentinella 13 · conti 8 · flotta 5 · terra 4 · **scudo 6** |
+          | totale **47** (era 54 · ⛔ NON 42 e NON 41: vedi qui sotto) | totale **18** (erano 6) |
 
       ⚠️ **Correzione dello stesso pomeriggio: 41 → 42.** Il primo conto cercava
       `CONFERMAT[AO] ASSENTE` e ha perso l'unica riga al plurale, «CONFERMATE
@@ -812,6 +812,31 @@ numero scritto dove non era stato misurato niente**.*
       ⚠️ Controprova fatta (copia + ripristino + `diff -q`): rimettendo «42» il
       controllo cade e **stampa la scomposizione per app**, così chi legge sa
       subito dove guardare.
+      ⛔ **E APPENA IL CONTROLLO HA STAMPATO LA SCOMPOSIZIONE, IL NUMERO È
+      CAMBIATO UN'ALTRA VOLTA: 47.** Vederlo per app — «scudo **0**» accanto a
+      un documento che nel suo riepilogo scrive «Confermate assenti: **6**» —
+      ha reso ovvio quello che due conti a mano non avevano visto. Le tre
+      stesure di oggi, con la causa di ognuna:
+      · **42** — cercava la parola nel FILE: prendeva un'intestazione di sezione;
+      · **41** — cercava la forma in **grassetto**, che usano cinque documenti
+        su sei: Scudo scrive `CONFERMATA` liscio, e contava **zero**;
+      · **47** — il verdetto **comincia** con «CONFERMATA» ed è **maiuscolo**.
+        La maiuscola serve: senza, entrava
+        `| quando | confermate | false | ⏱️ scadute | a metà | totale |`, cioè
+        l'intestazione della tabella di riepilogo di Sentinella. E «comincia»
+        serve: «⏱️ **A METÀ** — *era* CONFERMATA» è una mancanza **chiusa**,
+        che il verdetto nomina solo per raccontarne la storia.
+      ⚠️ **Tre numeri in un giorno, una causa sola**: il righello guardava una
+      **forma di scrittura** invece del verdetto — che è alla lettera quello che
+      questa riga diceva già in prosa, e che nessuno aveva applicato al proprio
+      strumento. Adesso il criterio è *dove comincia la cella, e con che
+      maiuscole*: la cosa più vicina al significato che si possa chiedere a un
+      testo.
+      ✅ E **lo zero di Scudo non c'era mai stato**: quel documento è
+      confrontabile con gli altri cinque, scrive solo il verdetto senza
+      grassetto. Cade con lui anche la nota qui sotto sull'«uniformare le sei
+      tabelle» — resta vero che Scudo le **ordina** per sezione invece che per
+      verdetto, ma i suoi verdetti si contano come gli altri.
       ⚠️ **E lo zero di Scudo va detto meglio di come l'avevo detto**: non «le
       scrive con altre parole» — la sua tabella è organizzata **per funzione**
       (`Redazione automatica DVR`, `Organigramma dinamico…`) invece che per
