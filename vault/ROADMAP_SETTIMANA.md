@@ -904,9 +904,27 @@ numero scritto dove non era stato misurato niente**.*
   già «Il verbale»): quello che distingue è la **coda** — «piattaforma
   elevabile», «autogru 30 t» — ed è proprio la coda che viene tagliata. 561 px
   di testo in 284 a 390 px, in 214 a 320.
-  La strada: **togliere ciò che è identico fra tutte le voci e tenere ciò che
-  distingue**, calcolandolo (prefisso comune) invece di scriverlo a mano — se
-  il prefisso comune è corto non si toglie niente e non si rompe nulla.
+  ⛔ **E LA STRADA CHE AVEVO SCRITTO QUI È STATA PROVATA E NON FUNZIONA — la
+  lascio scritta col perché, perché sembra giusta.** L'idea era «togliere ciò
+  che è identico fra tutte le voci», calcolando il prefisso comune. Scritta,
+  provata in scratchpad su sei casi (tutti corretti), messa nella pagina… e il
+  banco ha ridato **gli stessi 5 KO, identici**. Il motivo sta una riga più su
+  nel codice: `docOrd` non sono i **verbali**, è `DOC` — **tutti** i documenti,
+  soltanto ordinati coi verbali davanti. Il prefisso comune fra «DVR», «POS» e
+  «Verbale verifica periodica — …» è **vuoto**, quindi la funzione faceva
+  correttamente niente. Il prefisso lo condividono i due verbali **fra loro**,
+  non con la lista. **Ripristinato**: un codice che misurabilmente non fa
+  niente, dentro una modale di conformità, è peggio del KO aperto.
+  ⛔ **La strada vera, e la ragione per cui è un'altra**: il banco misura la
+  voce **selezionata a tendina CHIUSA**, e un `<select>` chiuso non manda a
+  capo — con un titolo lungo taglierà **sempre**, qualunque cosa si tolga.
+  Quindi non si combatte la piattaforma: la parte che distingue va messa dove
+  si può leggere — **un suggerimento sotto il campo che mostra il titolo intero
+  del documento scelto**, aggiornato al cambio. Così la tendina resta quello
+  che è e l'informazione arriva lo stesso.
+  ⚠️ E `#vf-ente` («Soggetto pubblico o privato abilitato», 254 px in 214) è un
+  caso diverso e **non si tocca senza il fondatore**: è il termine dell'**art.
+  71 c.11**, non una nostra etichetta.
   ⚠️ Restano da riverificare gli altri 13: Genesi (4, frasi della nuvola),
   Campo (3 foglio di turno + 2 stati non misurati + 1 manina), Conti (1 barre
   di peso), Sentinella (2 tendine, non coperte dal `--solo=scudo`).
