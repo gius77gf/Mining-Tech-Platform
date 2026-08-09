@@ -787,6 +787,39 @@ numero scritto dove non era stato misurato niente**.*
 - [ ] **E0.** Consolidamento in `shared/` — proseguito parecchio stanotte (data
       italiana, lettura CSV, allegati, conto dei giorni, unità di misura), resta
       il censimento di ciò che è ancora scritto due volte.
+      ⏱️ **PRIMO PEZZO DEL CENSIMENTO, MISURATO L'09/08 — e il risultato è più
+      grosso di quanto la riga lasciasse pensare.** `shared/dw-app-shell.css`
+      definisce **18** classi (`top`, `sec`, `page`, `item`, `name`, `meta`,
+      `badge`, `avatar`, `note`, `info`, `sub`, `arr`, `active`, `accent`,
+      `ok`, `warn`, `dw`, `dw-home`) ed è dichiarato in `CLAUDE.md` come «il
+      veicolo tecnico della STRUTTURA». Ma **lo carica solo 2 pagine su 8**:
+
+      | pagina | carica `dw-app-shell.css` | classi condivise usate | ridefinite NELLA pagina |
+      |---|---|---|---|
+      | conti | **sì** | 18/18 | — |
+      | sentinella | **sì** | 18/18 | — |
+      | flotta | no | 18/18 | **16/18** |
+      | scudo | no | 18/18 | **12/18** |
+      | terra | no | 18/18 | 7/18 |
+      | campo | no | 17/18 | 7/18 |
+      | core | no | 11/18 | 6/18 |
+      | genesi | no | 8/18 | — |
+
+      Cioè le sei verticali **parlano la stessa lingua** (17-18 classi su 18) ma
+      sei pagine su otto se la **riscrivono in casa**: l'allineamento non è
+      tenuto dal foglio condiviso, è tenuto dalla **convenzione** — e da adesso
+      da `famiglia-strutture.mjs`, che è l'unica cosa che se ne accorgerebbe.
+      Delle 18, **una sola** (`dw`) è definita anche in `deepwork-style.css`,
+      quindi le altre 17 non arrivano da lì.
+      ⛔ **NON è un cantiere da aprire di slancio, ed è la ragione per cui non
+      l'ho aperto**: far caricare il foglio a sei pagine tocca sei file e può
+      cambiare l'aspetto di tutto, e la direttiva sull'estetica è del fondatore.
+      Quello che serviva era il **numero**, e adesso c'è. Si rifà con
+      `scratchpad/sing/vocab.mjs` (o si riscrive in dieci righe: quali classi
+      definisce il foglio, chi lo carica, chi le ridefinisce).
+      ⚠️ E il core è il caso a parte, già misurato dall'altro verso: non ha né
+      `.top` né `.sec` (usa `.sec-title`), quindi con le sei condivide **11**
+      classi su 18 e il resto lo chiama in un altro modo.
 - [ ] **E7.** Genesi — allineamento delle parti 2D/HUD al core (la scena 3D
       resta come sta: è un'altra cosa).
 - [ ] **E8.** Verifica finale: le sette pagine affiancate devono sembrare la
