@@ -2532,18 +2532,28 @@ textarea.dw-input{
       pre = i >= 0 ? i : -1;
     }
     // ⛔ ETICHETTE CHE CI STANNO, e il testo intero sotto. Un `<select>` chiuso
-    // non manda a capo: «5,6 mm/s · Vibrazioni V2 — confine Nord» chiede 289,6
-    // px e ne ha 284 a 390 di schermo (214 a 320), quindi il browser si mangia
-    // la CODA — cioè il nome del punto, che è la sola cosa che distingue una
-    // lettura dall'altra. Il testo vero resta in `data-intero` e lo accorcia
-    // `adattaVoci()` **misurando**; il nome per esteso del punto scelto si
-    // legge nella riga `#ppv-info` qui sotto, che va a capo e non è tagliata.
+    // non manda a capo: «5,6 mm/s · Vibrazioni V2 — confine Nord» chiede 338 px
+    // (testo, padding e freccia insieme) e la tendina ne è larga 312 a 390 di
+    // schermo e 242 a 320, quindi il browser si mangia la CODA — cioè il nome
+    // del punto, che è la sola cosa che distingue una lettura dall'altra. Il
+    // testo vero resta in `data-intero` e lo accorcia `adattaVoci()`
+    // **misurando**; il nome per esteso del punto scelto si legge nella riga
+    // `#ppv-info` qui sotto, che va a capo e non è tagliata.
+    // ⚠️ I NUMERI DI QUESTE RIGHE ERANO SBAGLIATI FINO AL 09/08, e non per
+    // distrazione: erano presi col budget cieco di `adattaVoci` (289,6 contro
+    // 284 «disponibili» a 390). Lo spazio vero per il testo a 390 è 264, non
+    // 284. Quando si corregge un righello si rileggono anche i numeri che quel
+    // righello aveva scritto in giro — se no restano a raccontare la versione
+    // vecchia con la faccia della misura.
     // ⚠️ La voce «nessuna» è testo NOSTRO, non un dato: si scrive corta invece
-    // di farla accorciare (misurata: 204,5 px, ci sta anche a 320).
+    // di farla accorciare. Era «— nessuna: la trascrivo io —», 204,5 px di
+    // testo contro i 194 veri di budget a 320 — cioè NON ci stava, e il vecchio
+    // conto diceva di sì (214). Accorciata a mano invece di lasciarla ai
+    // puntini, che è la regola per le etichette nostre.
     const voce = (t) => `data-intero="${esc(t)}">${esc(t)}`;
     const opz = usabili.map((c, i) =>
       `<option value="${i}"${i === pre ? " selected" : ""} ${voce(numeroIt(c.valore) + " mm/s · " + c.punto)}</option>`
-    ).join("") + `<option value="mano"${pre === -1 || !usabili.length ? " selected" : ""} ${voce("— nessuna: la trascrivo io —")}</option>`;
+    ).join("") + `<option value="mano"${pre === -1 || !usabili.length ? " selected" : ""} ${voce("— nessuna: la scrivo io —")}</option>`;
 
     const corpo = `<div class="note" style="margin-top:0;">Volata del <b>${fmtD(v.data)}</b>${v.fronte ? " sul fronte <b>" + esc(v.fronte) + "</b>" : ""}${(+v.kgMaxRitardo) ? " · carica massima per ritardo <b>" + esc(numeroIt(+v.kgMaxRitardo)) + " kg</b>" : ""}${dist > 0 ? " · distanza del ricettore <b>" + esc(numeroIt(dist)) + " m</b>" : ""}.</div>`
       + (usabili.length
@@ -2589,7 +2599,52 @@ textarea.dw-input{
         righello.style.letterSpacing = cs.letterSpacing;
         document.body.appendChild(righello);
         const quanto = (t) => { righello.textContent = t; return righello.getBoundingClientRect().width; };
-        const spazio = s.clientWidth - (parseFloat(cs.paddingLeft) || 0) - (parseFloat(cs.paddingRight) || 0);
+        // ⛔ IL BUDGET ERA `clientWidth - padding`, ED ERA CIECO DI 20 px.
+        // Chromium disegna la FRECCIA della tendina dentro la scatola di
+        // CONTENUTO, non dentro il padding: quei pixel al testo non arrivano
+        // mai. Misurato il 09/08 su questa finestra: l'ingombro non testuale è
+        // 48 px (padding 28 + freccia e bordi 20), quindi a 320 px il budget
+        // vero è 194 e non 214, a 360 è 234 e non 254, a 390 è 264 e non 284.
+        // Effetto: `accorciaVoceTendina` faceva il suo lavoro benissimo contro
+        // un budget troppo generoso, e la voce usciva lo stesso — 297 px in 282
+        // a 360, 331 in 312 a 390. Il difetto non era la frase né la funzione:
+        // era il RIGHELLO. Lo stesso identico errore stava in
+        // `tests/browser/modali-dentro.mjs`, ed è per questo che nessun banco
+        // se n'era accorto: sorvegliante e sorvegliato sbagliavano insieme.
+        // ⛔ NON SI CALCOLA, SI CHIEDE: si clona la tendina con una sola voce e
+        // le si toglie la larghezza imposta (`width:max-content`). Quello che
+        // il browser chiede meno la larghezza del solo testo È l'ingombro, e
+        // nessuno deve sapere quanto misurano padding, bordi o freccia.
+        // ⚠️ NON si chiama `chiedi`: quello è il nome della finestra di dialogo
+        // della struttura condivisa (`shared/dw-app-ui.js`), e ridefinirlo qui
+        // dentro lo coprirebbe. L'ha detto la regola 17 di `run-stile` appena
+        // scritta la prima versione — è la guardia che esiste perché il core
+        // non venga riscritto in casa, e ha funzionato su un nome scelto per
+        // distrazione.
+        const larghezzaIntera = (t) => {
+          const cl = s.cloneNode(false);
+          cl.removeAttribute("id");
+          const o = document.createElement("option"); o.textContent = t; cl.appendChild(o);
+          cl.style.cssText = cs.cssText;
+          cl.style.position = "absolute"; cl.style.left = "-9999px"; cl.style.top = "0";
+          cl.style.width = "max-content"; cl.style.minWidth = "0";
+          cl.style.maxWidth = "none"; cl.style.flex = "0 0 auto";
+          s.parentNode.appendChild(cl);
+          const w = cl.getBoundingClientRect().width;
+          cl.remove();
+          return w;
+        };
+        // ⚠️ DUE SONDE, E SI TIENE LA PEGGIORE. Se l'ingombro è davvero una
+        // costante della tendina le due danno lo stesso numero; se non lo
+        // danno (un minimo di larghezza del browser, un `max-content` non
+        // lineare) si tiene il PIÙ GRANDE, cioè il budget più stretto. La
+        // direzione prudente è quella: accorciare di troppo si ripara — il
+        // testo intero sta in `data-intero` e per esteso nella riga
+        // `#ppv-info` qui sotto — mentre un traboccamento lo taglia il browser
+        // in silenzio e non lo legge più nessuno.
+        const A = "Wg", B = "WgWgWgWgWgWgWgWgWgWgWgWgWgWgWgWgWgWgWgWg";
+        const ingombro = Math.max(larghezzaIntera(A) - quanto(A), larghezzaIntera(B) - quanto(B));
+        const spazio = s.getBoundingClientRect().width - ingombro;
         for (const o of s.options) {
           const intero = o.getAttribute("data-intero") || o.textContent;
           o.textContent = accorciaVoceTendina(intero, spazio, quanto);

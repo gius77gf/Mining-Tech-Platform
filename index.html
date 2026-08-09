@@ -2741,9 +2741,27 @@ function renderSismoModal(){
   const s=state._tempSismo;if(!s)return;
   const cavaOpts='<option value="">— nessuna —</option>'+DB.cave.map(c=>`<option value="${c.id}" ${s.cavaId===c.id?'selected':''}>${escHtml(`${c.nome}`)}</option>`).join('');
   const files=(s.files||[]).map((f,i)=>`<div class="sitem"><div class="av av-mz">${/pdf/i.test(f.formato)?'📄':(/(jpg|jpeg|png|tif)/i.test(f.formato)?'🖼️':'📈')}</div><div class="sinfo"><div class="sname">${escHtml(f.nome)}</div><div class="ssub">${f.formato}</div></div><div class="sarr" onclick="event.stopPropagation();rimuoviSismoFile(${i})">✕</div></div>`).join('');
+  /* ⛔ DATA E CAVA NON STANNO IN UNA `.frow`, E NON È UNA SCELTA ESTETICA.
+     `.frow` è una griglia `1fr 1fr` che si ripiega su una colonna solo sotto i
+     360 px: sopra, ogni colonna vale 142 px a 390 e 171,5 a 430. La tendina
+     delle cave contiene NOMI DI CAVA, cioè testo che scrive l'utente e che noi
+     non possiamo accorciare — e una tendina chiusa non manda a capo.
+     Misurato il 09/08 con la larghezza chiesta al browser (clone a
+     `max-content`, cioè testo + padding + freccia): «Cava Monte Serra» chiede
+     **178 px** e «Cava Valle Secca» 174, quindi a 390 tagliavano tutt'e due, e
+     a 430 pure. In una colonna sola ci stanno: 242 px a 320, 282 a 360.
+     ⚠️ E LA CORREZIONE FACILE ERA QUELLA SBAGLIATA. Il banco accusava la voce
+     «— nessuna —» (150 px in 142), che è un'etichetta NOSTRA: accorciarla
+     avrebbe fatto tornare verde il banco lasciando tagliati **i due nomi di
+     cava**, cioè il dato. È il verde falso — si corregge la scatola, non la
+     parola, tutte le volte che dentro la scatola ci va un dato dell'utente.
+     ⚠️ Il limite dei 360 px NON si è toccato: `.frow` la usano 54 righe di
+     questo file, quasi tutte con due campi corti (Diametro, Prof. media) che in
+     due colonne stanno benissimo. Allargare il limite per tutti avrebbe reso
+     più lunghi cinquantatré moduli per sistemarne uno. */
   openModal('〰️ Nuovo sismogramma',`
-    <div class="frow"><div><label class="fl">Data</label><input type="date" class="finput" id="sm-data" value="${s.data||today()}" onchange="window._sismoRecalc()"></div>
-    <div><label class="fl">Cava / cantiere</label><select class="finput" id="sm-cava" onchange="window._sismoRecalc()">${cavaOpts}</select></div></div>
+    <label class="fl">Data</label><input type="date" class="finput" id="sm-data" value="${s.data||today()}" onchange="window._sismoRecalc()">
+    <label class="fl">Cava / cantiere</label><select class="finput" id="sm-cava" onchange="window._sismoRecalc()">${cavaOpts}</select>
     <div id="sm-assoc" style="margin-top:8px;">${_sismoAssocHtml()}</div>
     <label class="fl" style="margin-top:8px;">File sismogrammi (pdf, jpg, png, csv…)</label>
     <div id="sm-files">${files||'<div class="empty-state" style="padding:12px;"><div class="empty-sub">Nessun file</div></div>'}</div>
