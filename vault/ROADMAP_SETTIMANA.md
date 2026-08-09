@@ -916,6 +916,19 @@ numero scritto dove non era stato misurato niente**.*
       aperture · 3.636 elementi · 530 comandi, Sentinella 11 · 50 · 594 · 140 —
       **identici**, KO **1 → 0** su tutt'e due. Il banco è verde perché i difetti
       non ci sono più, non perché guardi meno roba.
+      ✅ **E LA FAMIGLIA È CHIUSA, non solo il caso — censita subito dopo, che è
+      la domanda che una famiglia nuova impone**: *quella formula cieca è usata
+      altrove?* Comando:
+      `git grep -n 'clientWidth *-' -- index.html 'apps/<app>/index.html'
+      'shared/<x>.js' 'apps/deepwork-id/tests/browser/<b>.mjs'` (scritto con i
+      segnaposto perché la stellina seguita da una barra chiude un commento).
+      **Undici occorrenze, e nel prodotto ne resta ZERO che calcoli qualcosa**:
+      le due in `apps/scudo/index.html` e `apps/sentinella/index.html` sono i
+      **commenti** che raccontano il difetto corretto, le altre stanno nei banchi
+      — e l'unica che *calcola* è in `tendine-nelle-finestre.mjs`, tenuta
+      **apposta** come righello «vecchio» per stampare a ogni giro **quanto è
+      larga la banda cieca**. Cioè la formula sbagliata sopravvive solo dove
+      serve a misurare sé stessa.
 
 - [x] ✅ **B0-ter. MENTRE UN CANTIERE SCRIVE, UN ROSSO LETTO SULL'ALBERO VIVO NON
       È UN VERDETTO.** Misurato il 09/08 su me stesso: leggendo l'albero mentre
