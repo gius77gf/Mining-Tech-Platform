@@ -875,11 +875,24 @@ numero scritto dove non era stato misurato niente**.*
       ⚠️ E il costo non si vede: il giro non rallenta con un avviso, si allunga.
       Chi lo guarda dopo trova un registro da cinque ore e nessuna riga che dica
       perché.
-      **Come si misura** (per chi vuole rifarla meglio di me): si contano le
-      passate del registro a intervalli noti (`grep -cE '^════════'`) e si
-      confronta il ritmo con `ps -eo comm= | grep -c chromium`. L'esperimento
-      pulito sarebbe rilanciare **le stesse** passate della coda a macchina
-      scarica: costa un giro, e finora non l'ha fatto nessuno.
+      ⛔ **E IL MIO RIGHELLO ERA ETICHETTATO MALE — correzione scritta un'ora
+      dopo, perché il numero l'avevo già committato.** Ho contato le «passate»
+      con `grep -cE '^════════'`, e quelle otto uguali **non sono solo le
+      intestazioni del runner**: molti banchi ne stampano una **loro**, a otto
+      uguali, ed è scritto in `CLAUDE.md` da ieri — l'avevo letto e ho scritto
+      il setaccio lo stesso. Prova: su un giro che ne aveva registrate **161**
+      il conto diceva **176**, cioè quindici in più di quelle che esistono.
+      ⚠️ Che cosa resta in piedi e che cosa no: il **rapporto** regge, perché
+      lo stesso righello sbagliato ha misurato tutt'e due gli estremi; la
+      **parola** no. Non sono «passate», sono **intestazioni di sezione** — ed è
+      «l'etichetta più larga del suo numero», censita in `CLAUDE.md` e rifatta
+      da me nello stesso pomeriggio in cui la citavo.
+      **Come si misura, adesso che lo so**: non con un `grep` proprio, ma con
+      `node apps/deepwork-id/tests/browser/leggi-giro.mjs <registro>` — che è lo
+      strumento scritto apposta per non farsi ingannare da quel registro, e che
+      apre dicendo di quanti commit il branch è andato avanti. L'esperimento
+      pulito resta da fare: rilanciare **le stesse** passate della coda a
+      macchina scarica, e costa un giro.
 
 - [ ] **B3-bis. Il bottone d'uscita di Campo che nessun banco preme — e non è
       un bottone qualunque: è il PONTE con Genesi.** ⏱️ *Misurato il 09/08
