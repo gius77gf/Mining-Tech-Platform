@@ -949,11 +949,23 @@ numero scritto dove non era stato misurato niente**.*
   | tendina di Sentinella (`#ppv-scelta`) | 2 | **290 px in 284**: sei px |
   | barre di peso di Conti | 1 | fasce a zero da confrontare |
   | manina di Campo | 1 | ✅ **chiusa il 09/08**: `.pon-voce` è la testata di un pannello già aperto, non una voce che si apre → `cursor:default`. 519 voci su 14 superfici, da 1 a **0** |
-  ⛔ **E i 2 stati di Campo sono BUCHI DI PRODOTTO, non attese invecchiate del
-  banco — provato col comando, non dedotto**: `grep -c "rapportini ancora senza
-  data"` su `apps/campo/index.html` e `campo-data.js` dà **0 e 0**; gli id
-  `#rap-cop` e `#disp-stato` invece **ci sono** (2 su 2). Gli elementi
-  esistono, la frase non è mai stata scritta.
+  ⛔ **QUELLO CHE AVEVO SCRITTO QUI ERA FALSO, E LA SMENTITA È LA PARTE UTILE.**
+  Avevo dichiarato i 2 stati di Campo «buchi di prodotto, provato col comando»:
+  `grep -c "rapportini ancora senza data"` dava **0 e 0**, e ne avevo concluso
+  che la frase non fosse mai stata scritta. **Il primo dei due non è un buco:
+  la frase c'è, funziona, e il banco la stava chiedendo al PLURALE.**
+  Il reso dice «(**1 rapportino** ancora senza data)» — uno solo, quindi
+  `conta` scrive giusto al singolare — e la regex del banco pretendeva
+  «rapportini». Difetto del **banco**, corretto lì (`/rapportin[io] …/`).
+  ⚠️ E l'errore del mio `grep` è quello che vale: nel sorgente quelle parole
+  **non sono adiacenti** — in mezzo c'è
+  `${conta(sdRap, "rapportino", "rapportini")}` — e lo diventano solo nel
+  **reso**. **Un `grep` su un testo interpolato risponde «non c'è» con la
+  stessa faccia della verità**, ed è la stessa famiglia del censimento che
+  cerca un nome solo. La misura giusta era aprire la pagina e leggere
+  `#rap-cop`, che costa un minuto.
+  ⚠️ Ed è il filo del singolare che torna dall'altra parte: il prodotto era
+  **già** corretto, e a essere scritta al plurale era l'**attesa**.
   Sono due «numeri tranquilli» nel senso del fondatore: la riga della copertura
   dice «rapportini consegnati da 2/3 squadre» mentre uno **senza data** resta
   fuori dal conto **senza dirlo**; e la disponibilità stamperebbe una

@@ -148,8 +148,21 @@ const CASI = [
      da 2/3 squadre», e un rapportino consegnato senza il giorno non entra in
      quel conto: senza l'avviso, la riga potrebbe dire «tutte a posto» mentre
      uno è rimasto lì, non collocabile in nessuna giornata. */
+  /* ⛔ E L'ATTESA ERA AL PLURALE MENTRE IL PRODOTTO DICE BENE IL SINGOLARE.
+     Misurato il 09/08: la riga rende «(1 rapportino ancora senza data)» —
+     UNO solo, quindi `conta` scrive giusto al singolare — e questa regex, che
+     chiedeva «rapportini», non combaciava. Il difetto era del BANCO, non della
+     pagina: la funzione c'è, funziona, e il caso più comune (uno) è proprio
+     quello che l'attesa non accettava.
+     ⚠️ E il modo in cui l'ho quasi sbagliata vale più della correzione: avevo
+     grepato «rapportini ancora senza data» nel SORGENTE, trovato zero, e
+     concluso «la frase non è mai stata scritta». Nel sorgente quelle parole
+     non sono adiacenti — in mezzo c'è
+     `${conta(sdRap, "rapportino", "rapportini")}` — e lo diventano solo nel
+     RESO. Un `grep` su un testo interpolato risponde «non c'è» con la stessa
+     faccia della verità. */
   ['campo', 'rapportino consegnato senza il giorno: il conto lo dice', '#nav-rap', null, '#rap-cop',
-    /rapportini ancora senza data/i],
+    /rapportin[io] ancora senza data/i],
   /* ⛔ IL PRIMO STATO CHE NON PUÒ STARE NELLA DIMOSTRAZIONE, E VA RAGGIUNTO
      DIGITANDO. I minuti di fermo superano la durata dichiarata del turno: i
      due numeri non tornano, quindi la disponibilità NON si calcola — una
