@@ -472,3 +472,135 @@ Richiede di vedere, **non necessariamente di portare via**:
 ---
 
 *Ricerca del 07/08/2026. Quattro proposte; zero false partenze.*
+
+---
+
+## Verifiche periodiche attrezzature — chi le fa, che cosa contiene il verbale, periodicità per cava (09/08/2026)
+
+**Nota metodologica**: questa ricerca parte dal mondo (normativa D.Lgs 81/2008, D.M. 11/04/2011, pratica italiana) e giunge al delta di Scudo. Le fonti sono ricerche web su art. 71 D.Lgs 81/08, Allegato VII D.M. 11/04/2011, circolari INAIL e prassi di verificatori abilitati.
+
+**Data verifica**: 09/08/2026 · **Commit contro cui è controllata**: a52823c
+
+### Il mondo: come funziona la verifica periodica in Italia
+
+#### 1. Chi può eseguire la verifica (Art. 71 c.11 D.Lgs 81/08)
+
+**Prima verifica** (entro 6 mesi dall'acquisizione):
+- **INAIL** — obbligatorio. Il datore richiede, INAIL provvede entro 45 giorni. Costo coperto da contributi.
+- **Soggetto abilitato** — solo se INAIL ha liste di attesa. Deve essere iscritto all'elenco Ministero del Lavoro (aggiornato con decreto direttoriale).
+
+**Verifiche successive** (periodiche, Allegato VII):
+- Libera scelta: ASL, ARPA (dove previsto dalla legge regionale), Soggetto abilitato
+- Nessun obbligo di ente specifico, ma verbale obbligatorio
+
+#### 2. Il verbale — Contenuto (D.M. 11/04/2011 art. 5 + pratica verificatori)
+
+Non c'è un modulo ministeriale standard. Ogni ente (INAIL, ASL, abilitato) usa il proprio. **Elementi comuni obbligatori**:
+- Anagrafica attrezzatura: tipo, modello, matricola, anno fabbricazione, data acquisizione
+- Proprietario/utilizzatore: nome, indirizzo
+- Data e luogo della verifica
+- Nome, firma, qualifica tecnica del verificatore
+- **Esito**: Conforme / Non conforme / Conforme con prescrizioni
+- Descrizione difetti (se non conforme)
+- **Prescrizioni e termine di adeguamento** (se conforme con prescrizioni)
+- Dati tecnici variabili (pressione, carichi, usura)
+- **Numero verbale e data verbale** — registrazione nel sistema dell'ente
+- Prossima verifica consigliata (data scadenza successiva)
+
+#### 3. Periodicità per attrezzature di cava (Allegato VII D.M. 11/04/2011)
+
+| Attrezzatura | Periodo | Norma |
+|---|---|---|
+| Gru (ponte, portale, teleferica) | 12 mesi | All. VII — cat. 2b |
+| Piattaforma elevabile (mobile) | 6 mesi | All. VII — cat. 2c |
+| Piattaforma elevabile (fissa) | 12 mesi | All. VII — cat. 2c |
+| Carroponte e paranchi | 12 mesi | All. VII — cat. 2a |
+| Escavatori, pale meccaniche | Ogni 2–3 anni | All. VII — cat. 3 |
+| Carrelli semoventi (forche, bracci telescopici) | Ogni 2 anni (semplici); 12 mesi (bracci) | All. VII — cat. 3 |
+| Catene, funi, imbracature | 12 mesi | All. VII — cat. 4 |
+
+#### 4. Conservazione (D.Lgs 81/08 art. 71 c.11)
+
+- **Tempo**: Per tutta la vita lavorativa dell'attrezzatura
+- **Forma**: Originale + copia digitale conforme (D.Lgs 82/2005)
+- **Disponibilità**: Ispettore ASL può chiedere in qualunque momento (art. 13 D.Lgs 81/08)
+- **Traccia interna**: Numero verbale e data deve stare nel documento e in un registro comprensibile all'ispettore
+
+### Il delta: Scudo rispetto alla normativa
+
+| Aspetto | Normativa richiede | Scudo oggi | Completezza |
+|---|---|---|---|
+| **Enti che verificano** | INAIL (prima), ASL/ARPA/Abilitato (successive) | ✅ `ENTI_VERIFICA` con tutte e quattro le opzioni | 100% |
+| **Esiti di verifica** | Conforme, Prescrizioni, Non conforme | ✅ `ESITI_VERIFICA` con i tre esiti | 100% |
+| **Anagrafica attrezzature** | Tipo, modello, matricola, anno fabbricazione, data acquisizione | ❌ Nessuna collezione `attrezzature` | 0% |
+| **Periodicità per tipo** | Allegato VII D.M. 11/04/2011 — 6/12/24 mesi per categoria | ⚠️ Preset generico "Verifiche periodiche" senza discrimine per tipo | ~20% |
+| **Numero verbale nel documento** | Ogni verbale ha numero registrazione | ⚠️ Vive in `scadenza.verbaleId` (ID), non come numero strutturato nel documento | ~40% |
+| **Dettagli tecnici del verbale** | Pressione, carichi, usura, difetti specifici | ❌ Verbale è allegato PDF, nessun campo strutturato | 0% |
+| **Soggetti abilitati ricercabili** | Ministero del Lavoro tiene elenco aggiornato per territorio | ❌ No database — datore deve cercare manualmente | 0% |
+| **Historia verifiche per attrezzatura** | Lista di tutte le verifiche nel tempo con esiti | ❌ Scadenza singola, nessuna storia | 0% |
+
+### Tre proposte solide
+
+| # | Schermata | Che cosa non va | Come si vede | Quanto costa | Come si misura | Fonte |
+|---|---|---|---|---|---|---|
+| 1 | **Nuova sezione Attrezzature** | Scudo traccia "verifiche periodiche" come scadenza generica, ma non sa che attrezzatura è (gru? escavatore? piattaforma?), dove sta, quando è stata comprata | In Dashboard o Quadro di Scudo: c'è una sezione "Attrezzature" con elenco (nome, tipo, modello, matricola, data acquisizione, ubicazione)? Oggi non esiste | Medio — modello dati `attrezzature/{id}` (tipo, modello, matricola, dataAcquisizione, cantiereId, stato, ultimaVerifica); riuso scadenzario esistente; nuovo campo `attrezzaturaId` nella scadenza | Nel codice: `grep -n "export const.*TIPI_ATTREZZATURA\|export.*attrezzature.*{" apps/scudo/scudo-data.js`; se torna zero, modello inesistente | D.Lgs 81/08 art. 71 c.4 — ogni attrezzatura ha dati costruttivi che vanno conservati; Allegato VII D.M. 11/04/2011 elenca i tipi |
+| 2 | **Periodicità per tipo di attrezzatura** | La scadenza "Verifiche periodiche attrezzature" è unica per tutte. Una gru ha 12 mesi, un escavatore 24, una piattaforma elevabile 6. Scudo non sa la differenza | Nel preset di scadenze: quando scegli "Verifiche periodiche", esiste un sottomenu per tipo (Gru, Escavatore, Piattaforma, etc.) con periodicità precompilata? Oppure devi scrivere i mesi a mano? | Piccolissimo — tabella `PERIODICITA_ATTREZZATURE` (tipo → mesi): Gru 12, Piattaforma 6, Escavatore 24, etc. Aggiungere alla scadenza un campo `tipoAttrezzatura` per calcolarne la periodicità | Nel codice: `grep -n "PERIODICITA_ATTREZZATURE\|TIPI_ATTREZZATURA" apps/scudo/scudo-data.js`; controprova: cercare "12 mesi" e "24 mesi" nel contesto di verifiche — se c'è solo un numero, è generico | Allegato VII D.M. 11/04/2011 — tabella delle periodicità per categoria di attrezzatura |
+| 3 | **Numero verbale obbligatorio nel documento** | Il verbale è collegato via `scadenza.verbaleId` (l'ID interno), ma il **numero del verbale** (es. "INAIL-2026-08-0142" o il numero che INAIL assegna) non è un campo strutturato nel documento. Quando ispettore chiede "quale numero di verbale?", la risposta non è immediata | Aprire il verbale di una verifica in Scudo: c'è un campo etichettato "Numero verbale" (es. "INAIL-2026-08-0142"), oppure leggi solo un allegato PDF generico senza numero? | Piccolissimo — aggiungere campo `numeroVerbale` al modello documento di tipo "Verbale verifica". Opzionale in scrittura (l'utente può lasciare blank se nel PDF), obbligatorio in lettura (etichetta visibile) | Nel codice: `grep -n "numeroVerbale" apps/scudo/scudo-data.js` oppure `grep -A3 "Verbale verifica" apps/scudo/scudo-data.js`; se nulla, campo inesistente | Prassi INAIL/ASL — ogni verbale ha numero registrazione nel sistema dell'ente; necessario per tracciabilità ispettoriale (art. 13 D.Lgs 81/08) |
+
+### Note sulla ricerca
+
+1. **Proposte 1 e 2 sono complementari**: la proposta 1 crea il modello dati `attrezzature`, la proposta 2 la differenza di periodicità. Non vanno isole.
+
+2. **Proposta 3 è indipendente** e si può fare prima (due righe di modello).
+
+3. **Fonti tutte verificabili** — nessuna deduzione che non sia segnalata come tale.
+
+4. **Non proposte qui**: integrazione con elenco Ministero Lavoro (soggetti abilitati), perché è cambio di scope e richiederebbe API esterna.
+
+---
+
+*Ricerca del 09/08/2026. Tre proposte; tutte verificabili col comando grep.*
+
+---
+
+## ⛔ RIMISURATO PRIMA DI ENTRARE IN ROADMAP — e delle tre proposte qui sopra UNA regge com'è scritta
+
+*09/08/2026, contro `a52823c`. È la direttiva 5: **niente entra sulla parola
+dell'agente**, e un numero riportato si rimisura prima di scriverlo da
+qualunque altra parte.*
+
+⛔ **Il difetto di metodo era nella PROVA, non nella ricerca**: tutti e tre i
+«non c'è» erano dimostrati grepando **un nome che la ricerca stessa aveva
+inventato** — `TIPI_ATTREZZATURA`, `PERIODICITA_ATTREZZATURE`, `numeroVerbale`.
+Un nome che non esiste dà zero **qualunque cosa ci sia nel codice**: è la forma
+scritta in `CLAUDE.md` — *«un censimento che cerca UN nome risponde "non c'è"
+con la stessa faccia con cui direbbe la verità»*. La domanda va fatta **per
+concetto**, con più termini veri.
+
+| proposta | come era scritta | rimisurata per concetto | verdetto |
+|---|---|---|---|
+| 1 · anagrafe attrezzature | «non c'è» | `grep -ciE 'attrezzatur'` → **34 e 13**; `matricol\|costruttor\|fabbricazion\|targa\|numero di serie` → **3 e 1** | **C'È A METÀ**: la *verifica* dell'attrezzatura è costruita, l'**anagrafe** no |
+| 2 · periodicità per tipo | «non c'è», e «oggi Scudo calcola una scadenza unica per tutte» | `SCADENZE_PRESET` ha **`mesi` per ogni voce**, più `presetScadenza` e `dataDaPeriodicita` | ⛔ **FALSA come scritta** |
+| 3 · numero del verbale | «non c'è» | `grep -ciE 'protocoll\|numeroDoc\|n\. verbale\|numero del verbale\|nProt'` → **0 e 0**, e `verbaleDiScadenza` collega per `verbaleId` interno | ✅ **CONFERMATA ASSENTE** |
+
+⛔ **La 2 è quella che sarebbe costata di più, e va spiegata bene**: la frase
+«Scudo calcola una scadenza unica per tutte» avrebbe mandato a costruire un
+**motore di periodicità** che **esiste già** — `SCADENZE_PRESET` porta `mesi`
+voce per voce con il riferimento normativo accanto, `dataDaPeriodicita` ne
+ricava la data proposta, e `presetScadenza` marca sempre `daVerificare: true`
+perché la periodicità è una proposta da confermare con RSPP e medico competente.
+Il buco vero è molto più stretto e molto più economico: fra le categorie del
+preset — **azienda 4, cava 7, impianto 1, mezzi 2, persona 11** — **non c'è
+`attrezzature`**. Cioè non manca il meccanismo: mancano **le righe**
+dell'Allegato VII.
+⚠️ È la differenza fra un cantiere di giorni e mezza giornata di tabella, e la
+si vede solo rimisurando.
+
+✅ **Quello che la ricerca ha fatto bene, e va detto**: il mondo. Il *chi*
+verifica (INAIL la prima, ASL/ARPA o soggetto abilitato le successive), i tre
+esiti, la conservazione — quella parte è utile e le fonti sono citate. Il valore
+di una ricerca sta nel **mondo**; il delta va sempre rifatto in casa.
+
+**Come si misura** (per chi riapre queste righe fra un mese):
+`grep -oE 'categoria: "[a-z]+"' apps/scudo/scudo-data.js | sort | uniq -c` — il
+giorno in cui compare `attrezzature` la proposta 2 è chiusa.
