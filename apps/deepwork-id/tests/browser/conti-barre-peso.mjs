@@ -223,7 +223,26 @@ console.log("");
   const mini = ag.find((r) => r.importo === 12);
   const zeri = ag.filter((r) => r.importo === 0);
   dice(!!mini, "la fascia con i 12 € veri è nell'elenco (il caso è arrivato)", ag.map((r) => r.testo));
-  dice(zeri.length >= 2, `e accanto ci sono fasce a zero da confrontare (${zeri.length})`);
+  /* ⛔ ERA `>= 2`, ED È INVECCHIATO PERCHÉ LA DIMOSTRAZIONE È MIGLIORATA.
+     Quando questo banco è nato, «Scaduto oltre 90 gg» e «Senza scadenza»
+     erano tutt'e due vuote e la barra dei 12 € si leggeva fra due fasce a
+     zero. Poi il commit `069d70e` — «assente non è corrotto: la dimostrazione
+     può mostrare il caso» — ha messo nella demo una fattura **senza data di
+     scadenza** (4.400 €, `f7`), che è esattamente il caso per cui la difesa
+     era stata costruita. Da allora la fascia vuota è **una sola**, e il banco
+     accusava il prodotto di un difetto che non ha: `stileBarraPeso` disegna
+     3 px per 12 € e 0 px per uno zero vero, e tutte le altre asserzioni
+     passavano.
+     ⚠️ NON è «allargare per far passare»: il conto che serviva davvero — «lo
+     zero è disegnato zero in modo SISTEMATICO, non per caso su una riga sola»
+     — non sta qui, sta nella sezione 2, dove si guardano TUTTE le liste e le
+     righe a zero sono 8. Lì il fondo è stato **alzato** da `> 0` a `>= 2`.
+     Qui resta la domanda diretta, che di vuote ne vuole una: *i 12 € si
+     disegnano più della fascia accanto che è vuota davvero?*
+     Il conto delle fasce dipende dalla demo e quindi **si stampa**, invece di
+     essere una soglia che un dato nuovo fa cadere. */
+  dice(zeri.length >= 1,
+    `e accanto c'è una fascia a zero da confrontare (${zeri.length} vuote su ${ag.length}: ${zeri.map((r) => r.riga).join(", ") || "nessuna"})`);
   if (mini && zeri.length) {
     dice(mini.px > 0, `12 € veri disegnano più di zero pixel (${mini.px} px)`, mini);
     dice(mini.px > zeri[0].px,
@@ -238,7 +257,13 @@ console.log("");
 // ══ 2. LO ZERO VERO NON GUADAGNA UN SEGNO CHE NON GLI SPETTA ═════════════
 {
   const zeri = Object.values(raccolto).flat().filter((r) => r.importo === 0 && r.barra);
-  dice(zeri.length > 0, `ci sono righe a zero da controllare (${zeri.length})`);
+  /* ⛔ FONDO ALZATO da `> 0` a `>= 2` il 09/08, ed è il conto che la sezione 1
+     ha smesso di fare. Con UNA riga a zero non si distingue «lo zero si
+     disegna zero» da «quella riga per caso è a zero»: serve il rapporto fra
+     due, come dice l'intestazione di questo file. Qui le righe a zero sono
+     otto e non dipendono da una singola fascia della dimostrazione, quindi il
+     fondo regge senza invecchiare al primo dato nuovo. */
+  dice(zeri.length >= 2, `ci sono righe a zero da controllare (${zeri.length})`);
   const sporchi = zeri.filter((r) => r.px > 0);
   dice(sporchi.length === 0, "nessuno zero vero lascia un segno: uno zero disegnato è «misurato, ed è zero»", sporchi.slice(0, 3));
 }

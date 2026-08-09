@@ -963,7 +963,7 @@ numero scritto dove non era stato misurato niente**.*
   | frasi della nuvola di Genesi | 4 | ritaglio e sottocampionamento |
   | stati «non misurato» di Campo | 2 | non compaiono in `#rap-cop` e `#disp-stato` |
   | tendina di Sentinella (`#ppv-scelta`) | 2 | **290 px in 284**: sei px |
-  | barre di peso di Conti | 1 | fasce a zero da confrontare |
+  | barre di peso di Conti | 1 | ✅ **chiuso il 09/08 — era il BANCO, invecchiato perché la dimostrazione è migliorata**: pretendeva **due** fasce vuote accanto ai 12 €, e da `069d70e` («assente non è corrotto») la demo ha una fattura **senza scadenza**, quindi di vuote ne resta una. Il prodotto disegnava giusto: 3 px per 12 €, 0 px per uno zero vero. `conti-barre-peso` **15/0** |
   | manina di Campo | 1 | ✅ **chiusa il 09/08**: `.pon-voce` è la testata di un pannello già aperto, non una voce che si apre → `cursor:default`. 519 voci su 14 superfici, da 1 a **0** |
   ⛔ **QUELLO CHE AVEVO SCRITTO QUI ERA FALSO, E LA SMENTITA È LA PARTE UTILE.**
   Avevo dichiarato i 2 stati di Campo «buchi di prodotto, provato col comando»:
@@ -2714,6 +2714,35 @@ numero scritto dove non era stato misurato niente**.*
   un valore che sale, una soglia bassa è cieca proprio nel verso che rassicura.
   Controprova rifatta rimettendo l'ancora vecchia di `COME_LIVE`: il controllo
   **nomina banco e tabella** e cade.
+
+- [x] ✅ **La stessa famiglia senza iniezioni: un banco che porta dentro un
+  conto della DIMOSTRAZIONE** *(09/08)*. `conti-barre-peso` dava 14 ok e 1 KO,
+  e il KO era la **precondizione**: `zeri.length >= 2`, «accanto ci sono fasce
+  a zero da confrontare». Quando il banco è nato, «Scaduto oltre 90 gg» e
+  «Senza scadenza» erano tutt'e due vuote; poi il commit `069d70e` — *«assente
+  non è corrotto: la dimostrazione può mostrare il caso»* — ha messo nella demo
+  una fattura **senza data di scadenza**, che è esattamente il caso per cui la
+  difesa era stata costruita. Da allora le fasce vuote sono **una**.
+  Il prodotto era giusto e lo dicevano già tutte le altre asserzioni: 12 € →
+  **3 px**, zero vero → **0 px**, 17 coppie nei pixel del loro rapporto, 0
+  collisioni.
+  ⛔ **E la correzione NON è «allargare per far passare»** — che qui era a
+  portata di mano ed è la trappola scritta nel checkpoint delle 04:54. Il conto
+  che serviva davvero è *«lo zero è disegnato zero in modo SISTEMATICO, non per
+  caso su una riga sola»*, e non stava lì: sta nella sezione 2, che guarda tutte
+  e quattro le liste. Lì il fondo è stato **alzato** da `> 0` a `>= 2` (le righe
+  a zero sono **8** e non dipendono da una singola fascia). Nella sezione 1
+  resta la domanda diretta, che di vuote ne vuole **una**, e il conto delle
+  fasce adesso **si stampa** («1 vuote su 6: Scaduto oltre 90 gg») invece di
+  essere una soglia che un dato nuovo fa cadere.
+  ⚠️ Verificato che non si perde niente: nella controprova la coppia cade lo
+  stesso con una vuota sola — «12 € → 0 px, € 0 → 0 px». Banco **15/0** sano,
+  **5 KO** con il difetto rimesso.
+  ⛔ La regola che ne esce, ed è gemella di quella delle iniezioni scadute: **un
+  banco che porta dentro un numero della dimostrazione invecchia quando la
+  dimostrazione migliora, e accusa il prodotto per una cosa che ha fatto il
+  prodotto.** Vale per le soglie quanto per le ancore. Si derivano, o si
+  stampano accanto al verdetto.
 - [x] ✅ **`scudo_azioni_copia.csv` era l'ultimo punto d'uscita che nessun banco
   apriva — adesso Scudo è 5 su 5.** La copia di sicurezza non è il prospetto: il
   prospetto porta lo stato CALCOLATO e la frase dell'origine (che rientrando
