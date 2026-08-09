@@ -1405,3 +1405,65 @@ export function volataSenzaValori(design){
       ? 'Riscrivilo nei parametri: finché manca, i numeri che dipendono da lui restano «non calcolabile» invece di essere inventati.'
       : 'Riscrivili nei parametri: finché mancano, i numeri che dipendono da loro restano «non calcolabile» invece di essere inventati.' };
 }
+
+/* ══════════════════════════════════════════════════════════════════════════
+   G15 · IL VOLUME CHE UN FORO SERVE — e la spalla di 3 m che nessuno ha scritto
+   ══════════════════════════════════════════════════════════════════════════
+   ⛔ IL BLOCCO G14 HA TOLTO IL NUMERO INVENTATO DAL CAMPO DELLA CARICA, E LA
+   GEOMETRIA È RIMASTA COM'ERA. Misurato il 09/08 sulla stessa volata salvata,
+   con `design.B:null`:
+   · `pfNominale()` della pagina faceva
+     `consumoSpecifico(D2.kg, (D2.B||3)*(D2.S||3.5)*(D2.prof||10))`, cioè
+     **SUBITO DOPO «Apri»**, senza nemmeno il secondo clic, calcolava il
+     consumo specifico di progetto su un volume di **105 m³** costruito con una
+     spalla di 3 m, un interasse di 3,5 m e un banco di 10 m che nessuno aveva
+     scritto: **0,552 kg/m³**, un numero pieno, con l'aria di una misura;
+   · e al secondo clic `applyDesign` faceva `Math.max(1.5, Math.min(8, …))` su
+     dodici campi di geometria — la stessa forma già corretta per la carica —
+     portando la spalla a **1,5 m**, il diametro a **50 mm**, i fori per fila a
+     **3**, l'altezza a **6 m**. Cioè un progetto intero, diverso da quello di
+     un istante prima, e tutt'e due inventati.
+   Le due metà vanno fatte insieme: correggere solo `applyDesign` lascerebbe la
+   bugia dov'era, perché `pfNominale` la reinventa a valle.
+
+   ⚠️ TRE BOZZE, E LA PROVA IN SCRATCHPAD LE HA DIVISE SU UN CASO SOLO.
+   Sui dodici casi veri (null, `''`, una parola, la chiave assente, i numeri
+   scritti come stringhe da `localStorage`, lo zero, il negativo) passavano
+   **tutt'e tre**, compresa la più corta — togliere i ripieghi e scrivere
+   `consumoSpecifico(D2.kg, D2.B*D2.S*D2.prof)`. Regge perché `null*3.5` fa
+   **0** e un volume zero `consumoSpecifico` lo rifiuta: cioè la risposta
+   giusta arriva **dall'aritmetica di `null`**, non da una domanda. Basta che un
+   giorno quel volume si scriva con un `+` — un epsilon, un ripiego, una somma
+   di deck — perché lo zero non sia più zero e il numero inventato torni senza
+   che niente diventi rosso. Provato: con `(B*S*prof)+0.0001` la bozza corta
+   passa **0,00055 kg/m³** e la funzione qui sotto continua a dire `null`.
+   Quindi la domanda «il dato c'è?» si scrive una volta, per nome, come nel
+   blocco G14 — è la stessa riga di CLAUDE.md, `+null` fa 0 e `Number.isFinite(0)`
+   risponde `true`.
+   ⛔ E LA PRIMA STESURA DELLA PROVA NON SAPEVA FALLIRE, il che è peggio che non
+   averla: rimettendo la bozza corta dentro questa funzione, le 2.033 prove
+   restavano **verdi**. La ragione è che l'argomento sull'epsilon dimostra un
+   principio ma non interroga la funzione: sui casi veri le due rispondono
+   uguale. Il caso che le divide c'è, e si misura — **due segni meno si
+   annullano**: `(-3)×(-3,5)×10` fa **105**, cioè esattamente il volume della
+   maglia sana, e la bozza corta lo accetta. Guardare ogni FATTORE invece del
+   prodotto è quello che lo impedisce, e adesso è una riga rossa se qualcuno
+   torna indietro.
+
+   ⚠️ PERCHÉ STA NEL MODULO E NON NELLA PAGINA. Perché la prova che conta è
+   quella del **percorso** (apro, non tocco niente, guardo il numero) e le
+   prove del percorso girano in `node`: una guardia scritta dentro `pfNominale`
+   sarebbe corretta e **non provabile**. E perché il nome esisteva già in prosa
+   — l'intestazione di `fragKuzRam` dice «`vol` è il volume di roccia che UN
+   foro serve (spalla × interasse × altezza)»: qui diventa una funzione.
+   ⚠️ Uno ZERO non è un volume: una spalla di 0 m non serve niente. I tre
+   fattori devono essere **positivi**, non solo leggibili — ed è la stessa
+   soglia che `consumoSpecifico` usa sul volume che riceve. */
+export function volumeForo(B, S, H){
+  const n = (x) => (x === null || x === undefined || x === '') ? NaN : +x;
+  const b = n(B), s = n(S), h = n(H);
+  if (!(Number.isFinite(b) && b > 0)) return null;
+  if (!(Number.isFinite(s) && s > 0)) return null;
+  if (!(Number.isFinite(h) && h > 0)) return null;
+  return b * s * h;
+}

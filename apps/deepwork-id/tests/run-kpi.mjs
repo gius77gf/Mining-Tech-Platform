@@ -26551,5 +26551,239 @@ test("voceDocumentoInElenco: la regola vale per documento, non per la lista", ()
   });
 }
 
+/* ══════════════════════════════════════════════════════════════════════════
+   G15 · LA GEOMETRIA CHE NON SI INVENTA — la seconda metà della correzione G14
+   ══════════════════════════════════════════════════════════════════════════
+   ⛔ IL BLOCCO G14 HA TOLTO IL NUMERO INVENTATO DAL CAMPO DELLA CARICA E LA
+   GEOMETRIA È RIMASTA COM'ERA — cioè la difesa nuova si poteva aggirare da un
+   campo accanto. Misurato il 09/08 sulla stessa volata salvata:
+   · `pfNominale()` faceva `(D2.B||3)*(D2.S||3.5)*(D2.prof||10)` e, **subito
+     dopo «Apri»** e senza nemmeno il secondo clic, dichiarava **0,552 kg/m³**
+     di consumo specifico di progetto su 105 m³ costruiti con tre numeri che
+     nessuno aveva scritto;
+   · e al secondo clic dodici campi di geometria si stringevano al proprio
+     minimo — spalla 1,5 m, diametro 50 mm, altezza 6 m — con la stessa forma
+     `Math.max(min, Math.min(max, letto||D2.x))` già corretta per la carica.
+   Le due metà stanno qui insieme perché correggerne una sola non serve: coi
+   campi corretti e `pfNominale` com'era, il riferimento si reinventava a valle.
+
+   ⚠️ E TRE CONSEGUENZE che la prova in scratchpad ha trovato PRIMA che il
+   codice entrasse — nessuna delle tre si vede leggendo la riga da correggere:
+   1. `pfCls` di un rapporto non finito risponde `'ok'`. Con la geometria
+      assente il singolo foro ha il suo consumo specifico e il riferimento no,
+      quindi `h.pfLoc/null` fa `Infinity` e il pallino sulla pianta si sarebbe
+      dipinto **VERDE**, «in linea col progetto», su un confronto impossibile;
+   2. la carica AUTO (`deriveCharge`) finiva con `Math.max(2, …)` — lo stesso
+      clamp-usato-come-guardia di G14 — e col diametro assente scriveva
+      **2 kg/foro** dentro il campo, col borraggio assente **73** invece di 58;
+   3. i sei campi INTERI si leggevano con `+$('x').value`, che su un campo
+      vuoto fa **0**: dato a `valoreCampo`, uno zero è un dato scritto e
+      sarebbe stato stretto al minimo — il difetto rifatto dentro la
+      correzione. Si leggono con `gvv`, che di ciò che non capisce fa NaN. */
+{
+  const gz15 = await app("genesi", "genesi-data.js");
+  const { readFileSync: _rfG15 } = await import("node:fs");
+  const { senzaCommenti: _scG15 } = await import("./tokenizza.mjs");
+  /* ⚠️ SENZA COMMENTI, per la ragione già pagata in G14: la correzione CITA
+     nel suo commento la riga che ha tolto, e una prova «non c'è più» letta sul
+     file grezzo cadrebbe sul commento che documenta la decisione. */
+  const srcG15 = _scG15(_rfG15(join(HERE, "../../genesi/genesi.html"), "utf8"));
+
+  test("⛔ Genesi · volumeForo: i tre fattori devono esserci ED essere positivi", () => {
+    eq(gz15.volumeForo(3, 3.5, 10), 105, "la maglia della dimostrazione fa 105 m³ per foro");
+    eq(gz15.volumeForo("3", "3,5".replace(",", "."), "10"), 105,
+      "e i numeri che arrivano da localStorage come stringhe si leggono lo stesso");
+    for (const [B, S, H, quale] of [[null, 3.5, 10, "spalla"], [3, null, 10, "interasse"], [3, 3.5, null, "altezza"],
+      [undefined, 3.5, 10, "spalla assente"], ["", 3.5, 10, "spalla vuota"], ["abc", 3.5, 10, "spalla scritta a parole"],
+      [null, null, null, "tutt'e tre"]])
+      eq(gz15.volumeForo(B, S, H), null, `${quale}: non si inventa un volume`);
+    /* uno ZERO non è un volume: una spalla di 0 m non serve niente, e un
+       burden negativo è un dato corrotto — in tutt'e due i casi il consumo
+       specifico che ne uscirebbe è una divisione senza significato */
+    eq(gz15.volumeForo(0, 3.5, 10), null, "una spalla di zero metri non serve niente");
+    eq(gz15.volumeForo(3, 3.5, 0), null, "e un banco alto zero nemmeno");
+    eq(gz15.volumeForo(-3, 3.5, 10), null, "un fattore negativo è un dato corrotto, non un volume");
+    /* ⛔ E QUESTE TRE RIGHE SONO LE UNICHE CHE DISTINGUONO LA FUNZIONE VERA
+       DALLA «BOZZA CORTA», ed è così che sono nate: la controprova che
+       riscriveva `volumeForo` come `v=B*S*H; return v>0?v:null` NON faceva
+       cadere niente, perché su tutti i casi di sopra le due rispondono uguale.
+       La differenza si misura qui: **due segni meno si annullano**, e la bozza
+       corta risponde un onestissimo **105 m³** — lo stesso numero della maglia
+       sana — a una geometria che è corrotta due volte. Chiedere di ogni
+       fattore, invece che del prodotto, è quello che lo impedisce. */
+    for (const [B, S, H] of [[-3, -3.5, 10], [-3, 3.5, -10], [3, -3.5, -10]]) {
+      eq((B * S * H) > 0, true, `promemoria: ${B}×${S}×${H} fa ${B * S * H}, cioè un volume che sembra buono`);
+      eq(gz15.volumeForo(B, S, H), null, `due fattori negativi non fanno un volume (${B}, ${S}, ${H})`);
+    }
+  });
+
+  test("⛔ Genesi · volumeForo: NON si affida all'aritmetica di `null`, e questa è la differenza", () => {
+    /* ⚠️ LA BOZZA CHE LA PROVA IN SCRATCHPAD HA BOCCIATO, ed era quella che
+       sembrava giusta: togliere i ripieghi e basta —
+       `consumoSpecifico(D2.kg, D2.B*D2.S*D2.prof)`. Passa TUTTI i casi qui
+       sopra, ma per il motivo sbagliato: `null*3.5` fa **0**, e uno zero il
+       volume lo rifiuta. Cioè la risposta giusta arriva dall'aritmetica di
+       `null`, non da una domanda — ed è la riga di CLAUDE.md, `+null` fa 0. */
+    eq(null * 3.5 * 10, 0, "promemoria: è così che la bozza corta se la cavava");
+    const bozzaCorta = (kg, B, S, H) => gz15.consumoSpecifico(kg, (B * S * H) + 0.0001);
+    ok(bozzaCorta(58, null, 3.5, 10) !== null,
+      "basta un epsilon nel volume e la bozza corta torna a dire un numero: " + bozzaCorta(58, null, 3.5, 10));
+    eq(gz15.consumoSpecifico(58, gz15.volumeForo(null, 3.5, 10)), null,
+      "la domanda «il dato c'è?» invece non dipende da come si scrive la moltiplicazione");
+  });
+
+  test("⛔ Genesi · IL PERCORSO: apro una volata con la geometria illeggibile e NON tocco niente", () => {
+    /* ⛔ È LA PROVA CHE CONTA, ed è puntata **subito dopo `apri`**: il difetto
+       vecchio non aspettava il secondo clic come quello della carica — la
+       spalla di 3 m inventata era già nel numero appena la volata si apriva.
+       Il modello è quello che il browser ha misurato: `apri` fa
+       `Object.assign(D2, design)` da localStorage, e basta. */
+    const design = { B: null, S: 3.5, prof: 10, diam: 102, perRow: 12, file: 1, kg: 58, stem: 2.2, sub: 0.9 };
+    const D2 = { ...design };
+    const pfNominale = () => gz15.consumoSpecifico(D2.kg, gz15.volumeForo(D2.B, D2.S, D2.prof));
+    const comeEra = () => gz15.consumoSpecifico(D2.kg, (D2.B || 3) * (D2.S || 3.5) * (D2.prof || 10));
+
+    eq(pfNominale(), null, "appena aperta: il consumo specifico di progetto dice «non lo so»");
+    eq(+comeEra().toFixed(3), 0.552,
+      "e com'era diceva 0,552 kg/m³ — su una spalla di 3 m che nessuno ha scritto");
+    eq((D2.B || 3) * (D2.S || 3.5) * (D2.prof || 10), 105, "cioè su un volume di 105 m³ inventato per un terzo");
+
+    /* i CLIC: ogni tocco su un campo qualunque fa girare `applyDesign`, e i
+       campi della geometria sono VUOTI perché nessuno li ha ricompilati */
+    const tocca = () => {
+      D2.B = gz15.valoreCampo(NaN, D2.B, 1.5, 8);
+      D2.S = gz15.valoreCampo(NaN, D2.S, 1.5, 8);
+      D2.prof = gz15.valoreCampo(NaN, D2.prof, 6, 18);
+      D2.diam = gz15.valoreCampo(NaN, D2.diam, 50, 160, true);
+      D2.perRow = gz15.valoreCampo(NaN, D2.perRow, 3, 30, true);
+      D2.file = gz15.valoreCampo(NaN, D2.file, 1, 6, true);
+    };
+    for (let clic = 1; clic <= 5; clic++) {
+      tocca();
+      eq(pfNominale(), null, `dopo ${clic} tocchi: nessun numero è comparso dal niente`);
+      eq(D2.B, null, `dopo ${clic} tocchi: la spalla non si è stretta al suo minimo`);
+      eq(D2.B === 1.5, false, `dopo ${clic} tocchi: e in particolare non sono comparsi gli 1,5 m del difetto`);
+      eq({ S: D2.S, prof: D2.prof, diam: D2.diam }, { S: 3.5, prof: 10, diam: 102 },
+        `dopo ${clic} tocchi: i campi che un valore ce l'hanno se lo tengono`);
+    }
+    /* i quattro numeri inventati che il difetto produceva, pinnati: se una di
+       queste righe cade, il difetto è tornato per intero */
+    eq(Math.max(1.5, Math.min(8, NaN || null)), 1.5, "promemoria: è così che nasceva la spalla di 1,5 m");
+    eq(Math.max(50, Math.min(160, Math.round(+"" || null))), 50, "e il diametro di 50 mm da un campo vuoto");
+    eq(Math.max(6, Math.min(18, NaN || null)), 6, "e il banco di 6 m");
+    eq(Math.max(3, Math.min(30, Math.round(+"" || null))), 3, "e i tre fori per fila");
+
+    /* ⚠️ il verso opposto: appena qualcuno SCRIVE la spalla, tutto torna */
+    D2.B = gz15.valoreCampo(3, D2.B, 1.5, 8);
+    eq(D2.B, 3, "scritta la spalla, il progetto la prende");
+    eq(+pfNominale().toFixed(4), +(58 / 105).toFixed(4), "e il consumo specifico di progetto torna un numero");
+  });
+
+  test("⛔ Genesi · IL PERCORSO, seconda metà: il foro ha il suo numero e il progetto no", () => {
+    /* ⛔ IL CASO CHE PRIMA NON POTEVA ESISTERE, e che la correzione crea: coi
+       ripieghi `||3` il riferimento c'era SEMPRE, quindi «il foro sa il suo
+       consumo specifico e il progetto no» non capitava mai. Adesso capita —
+       con la spalla assente ma l'altezza scritta, il volume del singolo foro
+       si calcola dalle posizioni e quello di progetto no — e il rapporto fra i
+       due diventa `Infinity`. */
+    const pfLoc = gz15.consumoSpecifico(58, 0.2 * 3.5 * 10);   // il blocco che il foro serve davvero
+    const pfRif = gz15.consumoSpecifico(58, gz15.volumeForo(null, 3.5, 10));
+    ok(pfLoc !== null, "il foro il suo consumo specifico ce l'ha: " + pfLoc);
+    eq(pfRif, null, "e il riferimento di progetto no");
+    eq(Number.isFinite(pfLoc / pfRif), false, "quindi il rapporto fra i due non è un numero: " + (pfLoc / pfRif));
+    /* `pfCls` della pagina, ricopiata qui SOLO per dimostrare che cosa
+       risponderebbe: di ciò che non è finito dice `'ok'`, cioè il VERDE */
+    const pfCls = (r) => (r == null || !isFinite(r)) ? "ok" : (r < 0.75 ? "moltoBassa" : r < 0.90 ? "bassa" : r <= 1.15 ? "ok" : r <= 1.40 ? "alta" : "moltoAlta");
+    eq(pfCls(pfLoc / pfRif), "ok",
+      "promemoria: senza la guardia il pallino sarebbe VERDE, «in linea col progetto», su un confronto impossibile");
+    /* e le due guardie che lo impediscono, pinnate nella pagina */
+    eq(/h\.pfLoc!=null && pfRif!==null/.test(srcG15), true,
+      "il pallino sulla pianta si colora solo se ci sono TUTT'E DUE i pezzi del rapporto");
+    eq(/const pfRif=pfNominale\(\), rap=\(pfRif===null\)\?null:h\.pfLoc\/pfRif/.test(srcG15), true,
+      "e la scheda del foro non calcola un rapporto che non esiste");
+    eq(/non confrontabile/.test(srcG15), true, "e lo dice, invece di tacere in verde");
+  });
+
+  test("⛔ Genesi · la pagina non stringe più al minimo una GEOMETRIA assente", () => {
+    /* le dodici righe misurate una per una, pinnate una per una: forma vecchia
+       assente, forma nuova presente, coi limiti che restano quelli */
+    const DODICI = [
+      ["dB", "B", "1.5", "8", 1.5], ["dS", "S", "1.5", "8", 1.5], ["dD", "diam", "50", "160", 50],
+      ["dN", "perRow", "3", "30", 3], ["dFile", "file", "1", "6", 1], ["dH", "prof", "6", "18", 6],
+      ["dStem", "stem", "0.5", "6", 0.5], ["dSub", "sub", "0", "4", 0], ["dRitFila", "ritardoFila", "8", "300", 8],
+      ["dUcs", "ucs", "5", "400", 5], ["dEmod", "eMod", "2", "150", 2], ["dPsSpacing", "psSpacing", "0.3", "2", 0.3],
+    ];
+    for (const [id, chiave, mn, mx, inventato] of DODICI) {
+      const riga = new RegExp(`valoreCampo\\(gvv\\('${id}'\\), D2\\.${chiave}, ${mn.replace(".", "\\.")}, ${mx}`);
+      eq(riga.test(srcG15), true, `${id}: passa da valoreCampo coi suoi limiti ${mn}–${mx}`);
+      eq(new RegExp(`Math\\.max\\(${mn.replace(".", "\\.")},\\s*Math\\.min\\(${mx},[^)]*'${id}'`).test(srcG15), false,
+        `${id}: la forma che stringeva un valore assente non c'è più`);
+      /* e il numero che quella forma produceva, ricalcolato qui: è il valore
+         che comparirebbe nel progetto se qualcuno la rimettesse */
+      eq(Math.max(+mn, Math.min(+mx, NaN || null)), inventato,
+        `${id}: promemoria, la forma vecchia inventava ${inventato}`);
+      eq(gz15.valoreCampo(NaN, null, +mn, +mx), null, `${id}: la forma nuova dice «non lo so»`);
+    }
+    /* ⚠️ e i sei campi INTERI non si leggono più con `+$('x').value`, che su un
+       campo vuoto fa ZERO — un dato scritto, per `valoreCampo` */
+    eq(+"", 0, "promemoria: `+''` fa 0, non NaN");
+    eq(gz15.valoreCampo(+"", 102, 50, 160, true), 50,
+      "promemoria: col lettore vecchio un campo VUOTO sarebbe diventato 50 mm");
+    for (const id of ["dD", "dN", "dFile", "dRitFila", "dUcs", "dEmod"])
+      eq(new RegExp(`\\+\\$\\('${id}'\\)\\.value`).test(srcG15), false,
+        `${id}: non si legge più col lettore che di un campo vuoto fa zero`);
+    /* la riga del consumo specifico di progetto */
+    eq(/\(D2\.B\|\|3\)\*\(D2\.S\|\|3\.5\)\*\(D2\.prof\|\|10\)/.test(srcG15), false,
+      "e `pfNominale` non costruisce più il suo volume con tre ripieghi");
+    eq(/function pfNominale\(\)\{ return consumoSpecifico\(D2\.kg, volumeForo\(D2\.B, D2\.S, D2\.prof\)\); \}/.test(srcG15), true,
+      "lo chiede a `volumeForo`, che sa rispondere «non lo so»");
+  });
+
+  test("⛔ Genesi · i CLAMP della geometria non sono stati portati via insieme al difetto", () => {
+    /* ⛔ LA METÀ CHE SI PERDE FACILMENTE, gemella della prova di G14: la
+       correzione toglie il ripiego, NON i limiti. Senza, una spalla di 80 m o
+       un banco di 200 m entrerebbero nel progetto. */
+    for (const [letto, mn, mx, intero, atteso] of [[99, 1.5, 8, false, 8], [0.1, 1.5, 8, false, 1.5],
+      [900, 50, 160, true, 160], [1, 50, 160, true, 50], [99, 3, 30, true, 30], [-5, 0, 4, false, 0],
+      [9999, 5, 400, false, 400], [0.01, 0.3, 2, false, 0.3], [12.4, 3, 30, true, 12]])
+      eq(gz15.valoreCampo(letto, 3, mn, mx, intero), atteso,
+        `un valore vero ed estremo (${letto}) si stringe ancora a ${atteso}`);
+    /* ⚠️ LA SOTTOPERFORAZIONE È IL CASO CHE INSEGNA LA DIFFERENZA: il suo
+       minimo è ZERO, quindi il vecchio clamp non tirava su niente — «non
+       perforo sotto il piano» e «non lo so» finivano nello stesso numero. */
+    eq(Math.max(0, Math.min(4, null)), 0, "promemoria: col clamp, sub assente e sub zero erano lo stesso numero");
+    eq(gz15.valoreCampo(0, 0.9, 0, 4), 0, "uno zero SCRITTO nella sottoperforazione resta zero");
+    eq(gz15.valoreCampo(NaN, null, 0, 4), null, "e un valore assente adesso si distingue");
+    /* e il ritardo tra file NON si arrotonda: la forma vecchia non lo faceva */
+    eq(gz15.valoreCampo(84.6, 84, 8, 300), 84.6, "il ritardo tra file resta com'era, senza arrotondamento");
+  });
+
+  test("⛔ Genesi · la carica AUTO non riempie il buco che la geometria ha appena dichiarato", () => {
+    /* ⛔ IL DIFETTO CHE LA CORREZIONE PORTAVA A VALLE, e che nessuno vede
+       leggendo `applyDesign`: `deriveCharge` finiva con `Math.max(2, …)` —
+       clamp usato come guardia, la stessa forma di G14 — e con la geometria
+       assente scriveva un numero dentro il campo della carica, disfacendo la
+       correzione del giorno prima da una porta laterale. */
+    const derivaComeEra = (diam, prof, sub, stem, rhoE = 0.82) => {
+      const De = diam / 1000, Lc = Math.max(0.5, prof + (sub || 0) - stem);
+      return Math.max(2, Math.round(rhoE * 1000 * Math.PI * De * De / 4 * Lc));
+    };
+    eq(derivaComeEra(102, 10, 0.9, 2.2), 58, "sulla maglia della dimostrazione la carica AUTO fa 58 kg/foro");
+    eq(derivaComeEra(null, 10, 0.9, 2.2), 2, "promemoria: col diametro assente scriveva 2 kg/foro");
+    eq(derivaComeEra(102, null, 0.9, 2.2), 3, "con l'altezza assente 3 kg/foro");
+    eq(derivaComeEra(102, 10, 0.9, null), 73,
+      "e col borraggio assente 73 kg/foro — un quarto di esplosivo IN PIÙ del vero, che è il verso che non spaventa nessuno");
+    /* la guardia, pinnata nella pagina: prima i tre fattori, poi il clamp */
+    eq(/if\(!\(\+D2\.diam>0\) \|\| !\(\+D2\.prof>0\) \|\| !\(\+D2\.stem>0\)\)\{ D2\.kg=null; gsv\('dKg',null,0\); return; \}/.test(srcG15), true,
+      "la carica AUTO chiede prima se la geometria c'è");
+    eq(/D2\.kg=Math\.max\(2, Math\.round\(rhoE\*1000\*Math\.PI\*De\*De\/4\*Lc\)\)/.test(srcG15), true,
+      "e il clamp dei dati veri ed estremi è rimasto dov'era");
+    /* ⚠️ `+x > 0` risponde da solo a tutte le forme dell'assenza: è la ragione
+       per cui la guardia non riscrive la tabella delle coercizioni */
+    for (const x of [null, undefined, "", "abc", 0, -1]) eq(+x > 0, false, `${String(x)}: non è un numero positivo`);
+    for (const x of [102, "102", 0.5]) eq(+x > 0, true, `${String(x)}: lo è`);
+  });
+}
+
 console.log(`\nRisultato KPI app: ${passed} passati, ${failed} falliti${inVolo.length ? `  ·  ${inVolo.length} prove asincrone aspettate` : ""}`);
 process.exit(failed > 0 ? 1 : 0);

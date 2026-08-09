@@ -336,7 +336,7 @@ const CONDIVISI = [
      scritto dove non è stato misurato niente.
      Restano nella pagina `jitterGeo`, `worldJitter` e `simulaPerforazione`,
      che scrivono in una geometria THREE o leggono lo stato del progetto. */
-  { file: "apps/genesi/genesi-data.js", fondo: 57,
+  { file: "apps/genesi/genesi-data.js", fondo: 58,
     perche: "la vibrazione al recettore e la riconciliazione previsto-vs-reale: i due numeri di Genesi che decidono qualcosa" },
 ];
 /* Fuori per un motivo, non per dimenticanza. Le prime tre toccano il DOM o

@@ -1084,7 +1084,14 @@ import { sitoFit, ppvLimit, ppvSenzaSoglia, airblastDb, normaPpvLab,
    dire un numero. `valoreCampo` mette la domanda «il dato c'è?» PRIMA del
    clamp e lascia i clamp dov'erano; `volataSenzaValori` è l'altra metà — un
    campo lasciato vuoto è muto, e all'apertura si dice quali valori mancano. */
-         valoreCampo, volataSenzaValori } from './genesi-data.js';
+         valoreCampo, volataSenzaValori,
+/* la GEOMETRIA, la seconda metà della stessa correzione — vedi il blocco G15.
+   ⛔ `valoreCampo` sui campi non basta finché a valle qualcuno reinventa: il
+   consumo specifico di progetto si calcolava su `(D2.B||3)*(D2.S||3.5)*
+   (D2.prof||10)`, cioè su una spalla di 3 m che nessuno ha scritto, **subito
+   dopo «Apri»** e senza nemmeno il secondo clic. `volumeForo` chiede se i tre
+   fattori ci sono e sono positivi, e risponde `null` quando non lo sono. */
+         volumeForo } from './genesi-data.js';
 /* ⛔ «ha una data» si decide con l'ESISTENZA, non con la forma: «2026-02-30» ha
    la forma giusta e non esiste. Il modulo di Genesi questa regola l'ha imparata
    il 03/08 — il commento in cima a `genesi-data.js` lo racconta — e la pagina
@@ -4851,11 +4858,20 @@ function computeEnergia2D(){
   }
 }
 /* Il consumo specifico MEDIO di progetto: il riferimento con cui si giudica
-   quello del singolo foro. `null` quando la carica per foro non è leggibile.
-   ⚠️ I ripieghi `||3`, `||3.5`, `||10` sulla MAGLIA restano come erano: sono
-   una decisione vecchia e diversa da questa, e toccarli sposterebbe la
-   geometria della mappa dell'energia. Qui si chiude solo la carica. */
-function pfNominale(){ return consumoSpecifico(D2.kg, (D2.B||3)*(D2.S||3.5)*(D2.prof||10)); }
+   quello del singolo foro. `null` quando la carica per foro NON è leggibile —
+   e, dal 09/08, anche quando non lo è la GEOMETRIA su cui si dividerebbe.
+   ⛔ QUI STAVA LA SECONDA METÀ DEL DIFETTO DEL BLOCCO G14: la riga era
+   `consumoSpecifico(D2.kg, (D2.B||3)*(D2.S||3.5)*(D2.prof||10))`, cioè con la
+   spalla assente calcolava **0,552 kg/m³** su un volume di 105 m³ costruito
+   con tre numeri che nessuno aveva scritto — e lo faceva **subito dopo
+   «Apri»**, prima ancora che `applyDesign` avesse la sua occasione di
+   inventarne altri. Il riferimento con cui si giudica ogni foro era il primo a
+   mentire, e i suoi cinque lettori non potevano accorgersene.
+   ⚠️ I ripieghi `||3.5` e `||10` che restano sulla MAGLIA (`computeEnergia2D`,
+   `computeSeq2D`, `computeRelief2D`) sono una decisione diversa e più grande —
+   lì servono a disegnare qualcosa invece di niente — e non sono stati toccati:
+   sono dichiarati nel rapporto dell'unità, non nascosti qui. */
+function pfNominale(){ return consumoSpecifico(D2.kg, volumeForo(D2.B, D2.S, D2.prof)); }
 
 /* ═══════════ G4 — LE LINEE DI INNESCO ═══════════
    La sequenza dice a che millisecondo spara ogni foro. Sul campo però nessuno
@@ -5322,8 +5338,15 @@ function drawDesign2D(){
     const rcl=reliefCls(h.relief);
     /* il pallino del foro prende il colore del livello attivo: il relief ha la
        precedenza perché è quello che segnala un rischio, l'energia viene dopo */
+    /* ⛔ SERVONO TUTT'E DUE I PEZZI DEL RAPPORTO, e fino al 09/08 se ne
+       controllava uno solo. Finché `pfNominale` inventava la maglia i due
+       erano legati (mancava la carica → mancavano tutt'e due), ma con la
+       geometria assente il foro ha il suo consumo specifico e il riferimento
+       no: `h.pfLoc/null` fa **Infinity**, e `pfCls` di ciò che non è finito
+       risponde `'ok'` — cioè il pallino si dipingeva **VERDE**, «nella norma»,
+       su un confronto che non si può fare. */
     const col=D2.rel ? RELCOL[rcl]
-            : (D2.ene && h.pfLoc!=null) ? ENECOL[pfCls(h.pfLoc/pfRif)]
+            : (D2.ene && h.pfLoc!=null && pfRif!==null) ? ENECOL[pfCls(h.pfLoc/pfRif)]
             : 'hsl('+(42-u*16)+','+(90-u*26)+'%,'+(60-u*20)+'%)';
     if(D2.rel && rcl!=='ok' && rcl!=='none'){                // fuori finestra: anello di segnalazione (pieno se molto sotto)
       ctx.save(); ctx.strokeStyle=RELCOL[rcl];
@@ -5391,10 +5414,18 @@ function renderInspector(){
   /* G5 — il consumo specifico del singolo foro: quanta roccia gli tocca davvero */
   let eneTx='';
   if(h.pfLoc!=null){
-    const pfRif=pfNominale(), rap=h.pfLoc/pfRif, ecl=pfCls(rap);
+    /* ⛔ IL GIUDIZIO È UN CONFRONTO, E UN CONFRONTO VUOLE DUE NUMERI. Col
+       riferimento di progetto assente `h.pfLoc/null` fa **Infinity**, `pfCls`
+       risponde `'ok'` e questa riga scriveva, in VERDE, «in linea col progetto
+       (— % del progetto)»: la frase più tranquilla che sappia dire, accanto a
+       un progetto che non c'è. Il consumo specifico del foro è un numero vero
+       e si mostra lo stesso; quello che sparisce è il verdetto. */
+    const pfRif=pfNominale(), rap=(pfRif===null)?null:h.pfLoc/pfRif, ecl=(rap===null)?null:pfCls(rap);
     eneTx='<div style="margin-top:3px;display:flex;align-items:baseline;flex-wrap:wrap;gap:2px">'
-      +'<b style="color:'+ENECOL[ecl]+';margin-right:6px">'+fmtKg(h.pfLoc)+' kg/m³</b>'
-      +'<span>'+ENELAB[ecl]+' ('+gnum(rap*100,0)+'% del progetto) · blocco '+fmtMs(h.burdenLoc)+'×'+fmtMs(h.spazLoc)+' m · '+gnum(h.volLoc,0)+' m³</span>'
+      +'<b style="color:'+(ecl===null?'var(--mut2)':ENECOL[ecl])+';margin-right:6px">'+fmtKg(h.pfLoc)+' kg/m³</b>'
+      +'<span>'+(ecl===null
+        ? '<i style="color:#ffca28">non confrontabile</i>: il consumo specifico medio di progetto non si calcola — manca la maglia'
+        : ENELAB[ecl]+' ('+gnum(rap*100,0)+'% del progetto)')+' · blocco '+fmtMs(h.burdenLoc)+'×'+fmtMs(h.spazLoc)+' m · '+gnum(h.volLoc,0)+' m³</span>'
       +(h.burdenVero!=null&&Math.abs(h.burdenVero-h.burdenLoc)>0.15
         ? '<span style="color:'+(h.burdenVero<h.burdenLoc*0.85?'#ef5350':'#9b8a60')+'"> · davanti ha '+fmtMs(h.burdenVero)+' m in perpendicolare</span>' : '')
       +'</div>';
@@ -5613,10 +5644,22 @@ function renderScheda2D(){
        davanti, in perpendicolare. Vale la pena dirlo qui. */
     const bv=HH.map(h=>h.burdenVero).filter(v=>v!=null);
     const bvMin=bv.length?Math.min(...bv):null;
-    const bVero = (bvMin!=null && bvMin<(D2.B||3)*0.85)
-      ? '<b>Attenzione al fronte</b>: il foro più esposto ha solo '+fmtMs(bvMin)+' m di roccia davanti misurati in perpendicolare, contro un burden di progetto di '+fmtMs(D2.B||3)+' m — succede dove la faccia sporge, ed è la situazione classica delle proiezioni. Il volume che gli tocca resta quello, ma la resistenza no. '
+    /* ⛔ E QUESTO AVVISO CITAVA UN BURDEN DI PROGETTO CHE POTEVA NON ESISTERE:
+       `(D2.B||3)` scriveva «contro un burden di progetto di 3,00 m» su una
+       volata in cui la spalla non è mai stata scritta — un numero inventato
+       dentro una frase che il fochino legge prima di andare al fronte, e per
+       giunta la soglia con cui l'avviso decide di comparire. Senza la spalla
+       non c'è niente da confrontare: l'avviso non si dà. */
+    /* ⚠️ `+D2.B > 0` risponde da solo a tutt'e cinque le forme dell'assenza —
+       `null`, `undefined`, `''` e una parola danno 0 o NaN, e nessuno dei due
+       è maggiore di zero — quindi qui non serve una seconda copia della
+       tabella delle coercizioni: serve chiedere il VALORE invece della forma. */
+    const _Bprog = (+D2.B > 0) ? +D2.B : null;             // la spalla di progetto, se qualcuno l'ha scritta
+    const _fronteStretto = (_Bprog!==null && bvMin!=null && bvMin<_Bprog*0.85);
+    const bVero = _fronteStretto
+      ? '<b>Attenzione al fronte</b>: il foro più esposto ha solo '+fmtMs(bvMin)+' m di roccia davanti misurati in perpendicolare, contro un burden di progetto di '+fmtMs(_Bprog)+' m — succede dove la faccia sporge, ed è la situazione classica delle proiezioni. Il volume che gli tocca resta quello, ma la resistenza no. '
       : '';
-    const cls=(estremi>0||(bvMin!=null&&bvMin<(D2.B||3)*0.85))?'sv-bad':((gi+su)>0?'sv-warn':'sv-ok');
+    const cls=(estremi>0||_fronteStretto)?'sv-bad':((gi+su)>0?'sv-warn':'sv-ok');
     rows.push({lab:'Energia per foro',valStr:fmtKg(mn)+'–'+fmtKg(mx)+' <span>kg/m³ · '+gi+' diluiti / '+su+' concentrati</span>',cls:cls,
       why:'consumo specifico calcolato sul blocco che ogni foro serve <b>davvero</b> — burden verso la fila davanti (la prima fila verso la faccia libera) per la porzione di interasse fra i due vicini, per l\'altezza del banco — invece della media di volata ('+fmtKg(pfRif)+' kg/m³). Qui va da '+fmtKg(mn)+' a '+fmtKg(mx)+' kg/m³, un rapporto di '+gfix(disp,1)+'×. '
         +'<b>Diluito</b> (sotto il 90% del progetto): il foro ha troppa roccia per la carica che porta → blocchi, piede sporco, ripasso. '
@@ -5927,14 +5970,59 @@ function renderScheda2D(){
 
 /* ===== Fase 1 — maglia editabile: pannello di progettazione live ===== */
 /* carica AUTO = densità esplosivo × volume colonna (ricerca blast 2026-06-22) */
-function deriveCharge(){ if(!D2.kgAuto) return; const eP=selEsplosivo()||{}, rhoE=eP.densita_gcc||0.82, De=D2.diam/1000, Lc=Math.max(0.5,D2.prof+(D2.sub||0)-D2.stem); D2.kg=Math.max(2, Math.round(rhoE*1000*Math.PI*De*De/4*Lc)); gsv('dKg',D2.kg,0); }
+/* ⛔ E LA CARICA «AUTO» È IL PRIMO POSTO IN CUI LA GEOMETRIA CORRETTA TORNAVA
+   A INVENTARE. Questa riga finiva con `Math.max(2, …)`: un clamp usato come
+   guardia, la stessa forma del `Math.max(5, …)` che il blocco G14 ha appena
+   tolto dai campi. Misurato in scratchpad con la maglia di dimostrazione
+   (Ø102, banco 10 m, sottoperforazione 0,9 m, borraggio 2,2 m → 58 kg/foro):
+   · diametro assente → il diametro entra al QUADRATO, la colonna va a zero e
+     usciva **2 kg/foro**, scritti anche dentro il campo da `gsv`;
+   · altezza assente → **3 kg/foro** (la lunghezza di carica al suo minimo);
+   · borraggio assente → **73 kg/foro**, cioè un quarto di esplosivo IN PIÙ del
+     vero: il verso che spaventa nessuno, perché un numero più alto sembra
+     prudente e invece è la carica che si porta al fronte.
+   Finché la geometria diceva 50 mm al posto di un diametro mai scritto il
+   difetto si vedeva meno; adesso che dice «non lo so», la carica derivata deve
+   saperlo dire anche lei. `null` qui è già trattato da tutto il resto — è la
+   convenzione dei blocchi G11–G14 — e `gsv` di un `null` fa un campo VUOTO,
+   che `volataSenzaValori` nomina all'apertura.
+   ⚠️ La sottoperforazione NON entra nella guardia: `(…||0)` la tratta già come
+   zero, ed è la lettura giusta — «non perforo sotto il piano» è il caso
+   normale, non un dato mancante. */
+function deriveCharge(){ if(!D2.kgAuto) return;
+  const eP=selEsplosivo()||{}, rhoE=eP.densita_gcc||0.82;
+  /* ⚠️ `+x > 0` risponde da solo a tutte le forme dell'assenza — `null`,
+     `undefined` e `''` danno 0, una parola dà NaN, e nessuno dei due è
+     maggiore di zero — quindi qui non serve riscrivere la tabella delle
+     coercizioni che il modulo tiene in un posto solo. Tutt'e tre i limiti
+     dell'app (Ø 50–160, banco 6–18, borraggio 0,5–6) sono già positivi: uno
+     zero in uno di questi tre campi non è un progetto che Genesi sa disegnare. */
+  if(!(+D2.diam>0) || !(+D2.prof>0) || !(+D2.stem>0)){ D2.kg=null; gsv('dKg',null,0); return; }
+  const De=+D2.diam/1000, Lc=Math.max(0.5,+D2.prof+(+D2.sub||0)-+D2.stem);
+  D2.kg=Math.max(2, Math.round(rhoE*1000*Math.PI*De*De/4*Lc)); gsv('dKg',D2.kg,0); }
 function applyDesign(){
-  D2.B = Math.max(1.5, Math.min(8, gvv('dB')||D2.B));
-  D2.S = Math.max(1.5, Math.min(8, gvv('dS')||D2.S));
-  D2.diam = Math.max(50, Math.min(160, Math.round(+$('dD').value||D2.diam)));
-  D2.perRow = Math.max(3, Math.min(30, Math.round(+$('dN').value||D2.perRow)));
-  D2.file = Math.max(1, Math.min(6, Math.round(+($('dFile')?$('dFile').value:D2.file)||D2.file)));
-  D2.prof = Math.max(6, Math.min(18, gvv('dH')||D2.prof));
+  /* ⛔ LA GEOMETRIA, BLOCCO G15 — la stessa forma già corretta per la carica.
+     Ognuna di queste righe era `Math.max(min, Math.min(max, letto||D2.x))`, e
+     con il valore salvato ASSENTE `Math.min(max, null)` fa **0**: il clamp
+     basso lo tirava su al minimo e scriveva nel progetto un numero che nessuno
+     aveva scritto. Misurato riga per riga il 09/08 su `design.<campo>:null` —
+     spalla **1,5 m**, interasse **1,5 m**, diametro **50 mm**, fori per fila
+     **3**, file **1**, altezza **6 m**, borraggio **0,5 m**, sottoperforazione
+     **0**, ritardo tra file **8 ms**, resistenza **5 MPa**, modulo **2 GPa**,
+     interasse del presplit **0,3 m**. I clamp restano dove sono e mordono come
+     prima sui dati veri ed estremi: quello che cambia è che la domanda «il
+     dato c'è?» viene PRIMA.
+     ⚠️ E i sei campi INTERI si leggono con `gvv` come tutti gli altri, non con
+     `+$('x').value`: su un campo VUOTO `+''` fa **0**, che è finito, quindi
+     `valoreCampo` lo prenderebbe per un dato scritto e lo stringerebbe al
+     minimo — cioè il difetto di prima rifatto dentro la correzione. `gvv` di
+     ciò che non capisce fa NaN, mai zero. */
+  D2.B = valoreCampo(gvv('dB'), D2.B, 1.5, 8);
+  D2.S = valoreCampo(gvv('dS'), D2.S, 1.5, 8);
+  D2.diam = valoreCampo(gvv('dD'), D2.diam, 50, 160, true);
+  D2.perRow = valoreCampo(gvv('dN'), D2.perRow, 3, 30, true);
+  D2.file = valoreCampo(gvv('dFile'), D2.file, 1, 6, true);
+  D2.prof = valoreCampo(gvv('dH'), D2.prof, 6, 18);
   if($('dEspl') && $('dEspl').value) D2.esplosivo=$('dEspl').value;
   if($('dInnSel') && $('dInnSel').value) D2.innesco=$('dInnSel').value;
   /* ⛔ QUI STAVA IL DIFETTO CHE SPEGNEVA LE TRE GUARDIE DEL BLOCCO G13 (vedi
@@ -5947,24 +6035,40 @@ function applyDesign(){
   D2.kg = valoreCampo(gvv('dKg'), D2.kg, 5, 200); deriveCharge();
   D2.ritardo = +$('dRit').value||D2.ritardo;
   D2.incl = Math.max(0, Math.min(30, +($('dIncl')?$('dIncl').value:D2.incl)||0));
-  if($('dStem')) D2.stem = Math.max(0.5, Math.min(6, gvv('dStem')||D2.stem));
-  if($('dSub')) D2.sub = Math.max(0, Math.min(4, gvv('dSub')||D2.sub));
+  if($('dStem')) D2.stem = valoreCampo(gvv('dStem'), D2.stem, 0.5, 6);
+  /* ⚠️ LA SOTTOPERFORAZIONE È IL CASO CHE INSEGNA LA DIFFERENZA: il suo minimo
+     è **zero**, quindi il vecchio `Math.max(0, Math.min(4, null))` non tirava
+     su niente — restituiva zero e sembrava giusto. «Non perforo sotto il
+     piano» e «non lo so» finivano nello stesso numero. Uno zero SCRITTO resta
+     zero anche adesso: è `letto`, e i clamp lo lasciano stare. */
+  if($('dSub')) D2.sub = valoreCampo(gvv('dSub'), D2.sub, 0, 4);
   /* G6 — precisione della perforazione: lo zero è ammesso (vuol dire «non
      considerarla»), quindi non si può usare il valore precedente come
      ripiego con ||, che scarterebbe proprio lo zero */
   if($('dErrColl')){ const v=gvv('dErrColl'); D2.errColl = isFinite(v)? Math.max(0,Math.min(1.5,v)) : D2.errColl; }
   if($('dDev')){ const v=gvv('dDev'); D2.dev = isFinite(v)? Math.max(0,Math.min(15,v)) : D2.dev; }
-  if($('dRitFila')) D2.ritardoFila = Math.max(8, Math.min(300, +$('dRitFila').value||D2.ritardoFila));
+  if($('dRitFila')) D2.ritardoFila = valoreCampo(gvv('dRitFila'), D2.ritardoFila, 8, 300);
   if($('dRoccia')){ const nr=$('dRoccia').value||D2.roccia; if(nr!==D2.roccia){ D2.roccia=nr; const pr=selRoccia(); D2.ucs=pr.ucs; D2.eMod=pr.eMod; if($('dUcs'))$('dUcs').value=pr.ucs; if($('dEmod'))$('dEmod').value=pr.eMod; } }
-  if($('dUcs')) D2.ucs=Math.max(5, Math.min(400, +$('dUcs').value||D2.ucs));
-  if($('dEmod')) D2.eMod=Math.max(2, Math.min(150, +$('dEmod').value||D2.eMod));
+  if($('dUcs')) D2.ucs = valoreCampo(gvv('dUcs'), D2.ucs, 5, 400);
+  if($('dEmod')) D2.eMod = valoreCampo(gvv('dEmod'), D2.eMod, 2, 150);
   if($('dFrat')) D2.frat=$('dFrat').value||D2.frat;
   if($('dBagnato')) D2.bagnato = $('dBagnato').value==='1';
   if($('dAcquaCol')) D2.acquaCol = Math.max(0, Math.min(40, gvv('dAcquaCol')||0));
   if($('dPresplit')) D2.presplit = $('dPresplit').value==='1';
-  if($('dPsSpacing')) D2.psSpacing = Math.max(0.3, Math.min(2, gvv('dPsSpacing')||D2.psSpacing));
+  if($('dPsSpacing')) D2.psSpacing = valoreCampo(gvv('dPsSpacing'), D2.psSpacing, 0.3, 2);
+  /* ⚠️ `psCharge` RESTA COM'ERA, DI PROPOSITO, e la ragione va letta prima di
+     «finire il lavoro»: la riga «Presplit» giudica la carica lineare e con un
+     valore basso scrive «carica lineare troppo bassa: taglio incompleto».
+     Metterla a `null` senza toccare quella riga sposterebbe la bugia da un
+     numero inventato a un ALLARME su un valore che nessuno ha scritto — che è
+     peggio. Le due cose vanno fatte insieme, in un'unità sua. */
   if($('dPsCharge')) D2.psCharge = Math.max(0.1, Math.min(2, gvv('dPsCharge')||D2.psCharge));
   if($('dSeq')) D2.sequenza = $('dSeq').value||D2.sequenza;
+  /* ⚠️ E I DUE CAMPI DEL RECETTORE RESTANO ANCH'ESSI COM'ERANO: inventano nella
+     direzione che ALLARMA — 20 m di distanza e 2 Hz danno il limite di PPV più
+     severo che la norma sappia dire, quindi il difetto qui non è un numero
+     tranquillo ma un numero spaventato. Metterli a `null` vuol dire decidere
+     che cosa fa `ppvLimit` senza recettore, e quella è la sua unità. */
   if($('dRecDist')) D2.recDist = Math.max(20, Math.min(3000, gvv('dRecDist')||D2.recDist));
   if($('dRecNorma')) D2.recNorma = $('dRecNorma').value||D2.recNorma;
   if($('dRecFreq')) D2.recFreq = Math.max(2, Math.min(120, +$('dRecFreq').value||D2.recFreq));
