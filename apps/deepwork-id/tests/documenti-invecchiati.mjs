@@ -40,7 +40,7 @@
 // lo sistema **scende e si vede**.
 // ============================================================
 import { execSync } from "node:child_process";
-import { readFileSync } from "node:fs";
+import { readFileSync, readdirSync, existsSync, statSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 
@@ -211,6 +211,71 @@ if (dietro.length) {
   console.log("      due forme con cui qui nasce e muore una funzione — lì si è sicuramente perso");
   console.log("      qualcosa. Il grezzo dice «potrebbe»: una frase riscritta può smentire una riga");
   console.log("      del documento senza toccare nessuna delle due.");
+}
+
+/* ⛔ LA CITAZIONE `file:riga` INVECCHIA A OGNI COMMIT, E QUI È MORTA AL 96%.
+   Misurato il 09/08: **87 citazioni scadute su 91 verificabili** nei sei
+   documenti del delta — cioè, aprendo una prova e andando a quella riga, quasi
+   sempre non c'è quello che dice.
+   ⚠️ E la parte che conta è che **i NOMI sono giusti**: verificati uno per uno
+   i 19 di Conti e i 4 di Terra, esistono tutti. Non è il verdetto a essere
+   marcio, è il **numero di riga** — che nessuno può tenere aggiornato in un
+   file che cresce di centinaia di righe al giorno, e che chi riapre la riga
+   legge come «la prova è falsa». È la terza forma d'invecchiamento
+   (`CLAUDE.md`): il verdetto regge e scade la prova, e una prova non credibile
+   fa buttare via anche le righe giuste.
+   ⛔ La decisione, presa con questo numero: **una prova cita il NOME, non la
+   riga.** Il nome si verifica con un `grep` in tre secondi ed è stabile; la
+   riga costa manutenzione a ogni commit e la ripaga con niente. Non si
+   riscrivono tutte adesso — sarebbero 91 modifiche di prosa in sei documenti,
+   con più rischio che valore — ma **ogni riga che si tocca perde i suoi
+   numeri**, e questo conto sta qui per essere visto scendere.
+   ⚠️ Il controllo NON fallisce: è una misura, come l'arretrato dei commit.
+   Farlo fallire vorrebbe dire fermare il lavoro su 87 righe di prosa. */
+{
+  const sorgenti = new Map();
+  const leggi = (rel) => {
+    if (!sorgenti.has(rel)) {
+      const p2 = join(RADICE, rel);
+      /* ⚠️ `existsSync` risponde vero anche per una CARTELLA, e la prima
+         stesura è morta con `EISDIR` sul primo documento: un nome di file
+         corto può combaciare con una directory. Si chiede se è un FILE. */
+      const buono = existsSync(p2) && statSync(p2).isFile();
+      sorgenti.set(rel, buono ? readFileSync(p2, "utf8").split("\n") : null);
+    }
+    return sorgenti.get(rel);
+  };
+  const percorso = (app, file) => [`apps/${app}/${file}`, `shared/${file}`, `shared/deepwork-id-client/${file}`, file]
+    .find((c) => existsSync(join(RADICE, c))) || null;
+  let tot = 0, vecchie = 0;
+  const per = [];
+  for (const f of readdirSync(join(RADICE, "docs")).filter((n) => /^CONCORRENTI_.*\.md$/.test(n)).sort()) {
+    const app = f.replace(/^CONCORRENTI_|\.md$/g, "").toLowerCase();
+    const testo = readFileSync(join(RADICE, "docs", f), "utf8");
+    let ultimo = null, n = 0, v = 0;
+    for (const m of testo.matchAll(/`([A-Za-z_$][\w$]*)`\s*\(`?([a-z0-9-]+\.(?:js|html)):(\d+)`?\)|`([A-Za-z_$][\w$]*)`\s*\((\d{3,4})\)/g)) {
+      const nome = m[1] || m[4];
+      const file = m[2] || ultimo;
+      const riga = +(m[3] || m[5]);
+      if (m[2]) ultimo = m[2];
+      if (!file) continue;
+      const righe = leggi(percorso(app, file) || "");
+      if (!righe) continue;
+      n++;
+      /* finestra di ±3 righe: una prova non è sbagliata se il codice si è
+         spostato di due righe, lo è se non c'è più niente lì intorno */
+      if (!righe.slice(Math.max(0, riga - 4), riga + 3).join("\n").includes(nome)) v++;
+    }
+    if (n) per.push(`${app} ${v}/${n}`);
+    tot += n; vecchie += v;
+  }
+  if (tot) {
+    console.log(`\n⏱️  citazioni «file:riga» che non trovano più il loro nome: ${vecchie} su ${tot}`
+      + `  (${per.join(" · ")})`);
+    console.log("   Non è un guasto e non fa fallire niente: i NOMI sono giusti, è il NUMERO DI RIGA");
+    console.log("   che invecchia a ogni commit. La decisione presa con questo numero è che una prova");
+    console.log("   citi il nome e non la riga; ogni riga che si tocca perde i suoi numeri.");
+  }
 }
 
 console.log(`\nRisultato documenti invecchiati: ${passed} passati, ${failed} falliti` +
