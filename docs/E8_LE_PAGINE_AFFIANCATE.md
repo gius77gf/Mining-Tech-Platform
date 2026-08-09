@@ -10,8 +10,23 @@ larghezza e mettendole una accanto all'altra.*
 
 ```
 python3 -m http.server 8931
-node …/scratchpad/<tuo>/famiglia.mjs 420     # foglio a contatto + numeri
+node apps/deepwork-id/tests/browser/famiglia-strutture.mjs 8931
+node apps/deepwork-id/tests/browser/famiglia-strutture.mjs 8931 --controprova
 ```
+
+⛔ **E FINO ALL'09/08 QUESTA RIGA MANDAVA NELLO SCRATCHPAD** (`node
+…/scratchpad/<tuo>/famiglia.mjs 420`), cioè a una misura che alla sessione dopo
+**non esiste** — lo stesso difetto della prova della verifica periodica di
+Scudo. Adesso la misura è un banco registrato in `tutti.mjs`, con la sua
+controprova, e gira in ogni giro del browser: **20 asserzioni, 6 superfici
+misurate su 6, 0 dichiarate non misurate**.
+⚠️ Il banco pinza **solo ciò che questo documento ha misurato identico**. Le
+etichette della barra in basso NON ci sono di proposito — la tabella qui sotto
+spiega perché un corpo unico non è raggiungibile — e restano a
+`barra-etichette.mjs`, che chiede «la parola sta nella sua colonna?».
+⚠️ Il **foglio a contatto** (`famiglia.png`) resta una cosa da guardare a mano:
+i numeri dicono se una barra è alta uguale, non se la pagina *sembra* della
+stessa famiglia. Il banco copre i numeri; l'occhio no, e non finge di farlo.
 
 Produce `famiglia.png` — la prima fascia di ogni pagina, sette strisce
 affiancate — **e va guardata**, perché i numeri dicono se una barra è alta
