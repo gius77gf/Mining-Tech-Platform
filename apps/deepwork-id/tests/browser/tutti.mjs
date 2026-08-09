@@ -431,6 +431,14 @@ const BANCHI = [
      trabocca MAI e il banco dice «ok» qualunque cosa succeda alle parole. È il
      caso di Conti da quando ha dieci voci. Adesso il banco chiede anche *la
      parola sta nel suo bottone?*, misurata con un `Range` sul nodo di testo. */
+  /* ⛔ LA MISURA DI E8, PORTATA DENTRO. `docs/E8_LE_PAGINE_AFFIANCATE.md`
+     rimandava a uno script nello SCRATCHPAD, cioè a una difesa che alla
+     sessione dopo non esiste — lo stesso difetto della prova della verifica
+     periodica di Scudo. Pinza solo ciò che E8 ha misurato IDENTICO; le
+     etichette della barra restano a `barra-etichette.mjs`, che chiede la
+     domanda giusta invece di pretendere un corpo unico. */
+  ['le pagine sembrano la stessa famiglia', 'famiglia-strutture.mjs', []],
+  ['famiglia delle strutture · controprova', 'famiglia-strutture.mjs', ['--controprova'], true],
   ['le etichette della barra stanno nella loro colonna', 'barra-etichette.mjs', []],
   ['etichette della barra · tema chiaro', 'barra-etichette.mjs', ['--tema=chiaro']],
   ['etichette della barra · tema sole', 'barra-etichette.mjs', ['--tema=sole']],
