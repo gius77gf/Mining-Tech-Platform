@@ -26,7 +26,10 @@ in italiano, senza dare conoscenze per scontate).
    giorno in cui il file è entrato in git: `20260722-*` entrato il 21/07,
    `20260805-*` entrato il **31/07**. Un solo giorno di lavoro si era dato
    **cinque date diverse**, una per blocco, e in tutto **184 checkpoint su 640
-   sono datati avanti**, fino a cinque giorni. Effetto: chi ordinava per nome
+   sono datati avanti di GIORNI** — ⚠️ e **506 se si contano anche le ore**,
+   misurato il 09/08: vedi il blocco qui sotto, perché il 184 non era
+   l'arretrato, era la parte che un righello a giorni sapeva vedere. Effetto:
+   chi ordinava per nome
    apriva un file **più vecchio** di quello vero credendolo il più fresco, e non
    se ne accorgeva — perché una risposta la regola la dà sempre.
    Il comando che risponde giusto, e che stampa anche i due candidati a
