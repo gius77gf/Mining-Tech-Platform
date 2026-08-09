@@ -222,6 +222,21 @@ famiglie** invece di spargere dubbio su tutto.
 illeggibile risponde `null` invece di zero, **una misura incerta si dichiara
 incerta**. Un righello che non sa quanto sbaglia manda a rovinare cose sane, e
 quel danno non lo vede nessuno.
+✅ **E IL CANTIERE È STATO FATTO IL GIORNO DOPO — questa riga resta per il
+METODO, non come lavoro da fare.** L'08/08 inchiostro e fondo si leggono
+**nello stesso punto fisico** e il peggiore si prende su quei punti. Sei
+cantieri hanno rimisurato a mano tutti e **32** i KO delle sei app leggendo i
+pixel veri: **quattro erano accuse false**, tutte fra i casi a forbice larga
+(Flotta `.n` 3,01 contro 2,93; Campo `.n` 3,15 contro 2,86; due `.avatar.sup`
+di Scudo 4,92 e 4,78 contro 3,77), e sui casi senza forbice i righelli
+indipendenti davano lo stesso numero **alla cifra**.
+⚠️ E la forbice larga da sola **non bastava** a saperlo: il «759k» di Terra
+aveva forbice 3,85 ed era vero lo stesso, di 0,02. A dirlo è solo la geometria
+— che è esattamente perché la correzione non si poteva fare a metà.
+⛔ Il paragrafo qui sopra è rimasto scritto al presente per un giorno dopo che
+il cantiere era chiuso, ed è la **terza forma d'invecchiamento** applicata a
+questo file: una riga che propone un lavoro già fatto lo fa **rinascere**. Chi
+chiude un cantiere descritto qui dentro chiude anche la riga che lo proponeva.
 
 ## La ricerca che gira di fianco *(direttiva fondatore 01/08)*
 
