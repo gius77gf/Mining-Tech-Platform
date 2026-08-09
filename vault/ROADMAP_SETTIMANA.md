@@ -541,7 +541,25 @@ numero scritto dove non era stato misurato niente**.*
       su cinque superfici — Sentinella 7, Scudo 3, Genesi 10 (pagina e modulo),
       Campo 5, core 1 — e il conto è sceso a **24 in 8 file**. Restano Conti,
       Flotta (il gruppo più numeroso: ore motore, giorni di copertura, mesi
-      registrati, finestra dei fermi) e Terra.
+      registrati, finestra dei fermi) e Terra — poi chiusa anche Flotta (7).
+      ⏱️ **Stato all'09/08 dopo sei unità: 115 candidati → 17, e i 17 hanno
+      TUTTI una ragione scritta**, cioè il filo è esaurito, non abbandonato:
+      · **6 sono commenti o testo di questo file** (il ruolo di misura, non un
+        controllo: non toglie i commenti multi-riga, ed è dichiarato);
+      · **4 hanno un dominio che non contiene 1**: `quantiMesi` ∈ {12,6,4} in
+        Scudo, `v.slice(1)` ∈ {6,12,24} in Flotta, `c.termine` ∈ {12,24} per
+        l'art. 26, e `mesi > c.termine` che ne discende;
+      · **4 sono guardati da un'altra variabile che li obbliga a ≥ 2**:
+        `p.n` di Sentinella (`abbastanza` = `letture.length >= minLetture`, e
+        `minLetture` è un `Math.max(2, …)`), `m.n` di Genesi (`nums.length < 2`
+        esce prima), `righe.length` di Conti (≥ `varianti.size` > 1), e la voce
+        senza data di Conti (ternario su `una`);
+      · **3 sono le ORE MOTORE di Flotta** (`orePreviste`, `ogniOre`, `v.ore`):
+        un piano a **un'ora** motore non è un caso del mestiere — dichiarati
+        invece che cambiati, perché toccare un soggetto sano è il difetto che
+        questa notte ha già evitato due volte.
+      Restano al plurale **dichiarati**: «campioni» di un'onda sismografica
+      (migliaia; un'onda da un campione non è un'onda) e «foto», invariabile.
       ⛔ **E IL CASO CHE NESSUN CENSIMENTO PUÒ PRENDERE: la guardia c'era, ma su
       un altro numero.** In Campo `r.scadute.length > 1` decide **se** scrivere
       la coda, ma il numero **stampato** è `length - 1`, che vale esattamente
