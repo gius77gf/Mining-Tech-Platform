@@ -184,7 +184,14 @@ const git = execSync(
    regola dei cicli non guarda nemmeno. */
 const MAPPA = new Map([...dateDiIngresso(git)]
   .filter(([f]) => f.startsWith("vault/checkpoints/") && !f.includes("/archivio/")));
-const daOggi = new Set([...MAPPA].filter(([, g]) => g >= DAL).map(([f]) => f));
+/* ⚠️ `DAL` è un GIORNO e `g` è un timestamp intero: il confronto va fatto sul
+   giorno, non sulla stringa. Scritto `g >= DAL` funzionava — «2026-08-01T09:…»
+   viene dopo «2026-08-01» anche per ordine alfabetico — ma **per l'ordine dei
+   prefissi, non perché qualcuno l'avesse deciso**. È lo stesso mescolare date e
+   timestamp che due righe più su ha prodotto un `NaN`: lì si vedeva, qui no.
+   Un confronto che funziona per caso è un confronto che il primo cambio di
+   formato rompe in silenzio. */
+const daOggi = new Set([...MAPPA].filter(([, g]) => String(g).slice(0, 10) >= DAL).map(([f]) => f));
 const lascito = new Set([...MAPPA.keys()].filter((f) => !daOggi.has(f)));
 
 console.log(`\nL'orologio del vault — ${MAPPA.size} checkpoint letti da git\n`);
@@ -268,6 +275,19 @@ test("la controprova: un nome nel futuro viene visto, uno giusto no", () => {
   // e l'eccezione deve saper scusare
   ok(datateNelFuturo(avanti, new Set(["vault/checkpoints/20260809-120000_x.md"])).length === 0,
     "un caso dichiarato non deve comparire fra le violazioni");
+});
+
+test("il confine fra lascito e regola cade sul GIORNO, non sulla stringa", () => {
+  /* la mezzanotte esatta di DAL è già «nuovo»: se finisse nel lascito, un
+     checkpoint scritto quel giorno sarebbe scusato invece che sorvegliato */
+  const sulConfine = (q) => String(q).slice(0, 10) >= DAL;
+  ok(sulConfine(`${DAL}T00:00:00+00:00`), "la mezzanotte di DAL è dentro la regola");
+  ok(sulConfine(`${DAL}T23:59:59+00:00`), "e anche l'ultimo minuto di quel giorno");
+  ok(!sulConfine("2026-07-31T23:59:59+00:00"), "il giorno prima resta lascito");
+  /* e il numero vero: le due popolazioni devono coprire tutti i checkpoint,
+     se no una delle due sta perdendo file senza dirlo */
+  ok(daOggi.size + lascito.size === MAPPA.size,
+    `${daOggi.size} + ${lascito.size} non fa ${MAPPA.size}: qualche checkpoint non sta in nessuna delle due`);
 });
 
 test("lo scarto fra i due candidati si sa dire, e nell'unità giusta", () => {
