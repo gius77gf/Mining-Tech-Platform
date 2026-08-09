@@ -820,6 +820,29 @@ numero scritto dove non era stato misurato niente**.*
       ⚠️ E il core è il caso a parte, già misurato dall'altro verso: non ha né
       `.top` né `.sec` (usa `.sec-title`), quindi con le sei condivide **11**
       classi su 18 e il resto lo chiama in un altro modo.
+      ⏱️ **SECONDO PEZZO: le pagine che ridefiniscono divergono davvero dal
+      foglio?** Misurato, e il conto va letto con la sua ampiezza: su **16
+      proprietà confrontabili** (poche, perché il confronto vede solo i
+      selettori semplici `.x{…}` e le pagine usano quasi sempre selettori
+      composti) escono **13 divergenze**. Ma **5 stanno dentro `@media print`**
+      e vengono confrontate con la regola di **schermo**: due mondi che non si
+      applicano mai insieme, cioè **falsi allarmi per costruzione**. È la
+      trappola già pagata su `run-stile` — un controllo statico sui valori CSS
+      che non sa in che contesto vive la regola.
+      ⛔ **Le 8 che restano non sono difetti: sono un SEGNALE, e punta al foglio
+      condiviso.** Sono tre sole decisioni, e ognuna è presa **in tre app**:
+      `.arr` a 15px invece di 18 (Flotta, Scudo, Terra), `.arr` in `--muted2`
+      invece di `--muted` (Flotta, Terra), `.item{cursor:pointer}` invece di
+      `default` (Campo, Flotta, Terra). Quando **tre app su sei** scavalcano la
+      stessa dichiarazione **nella stessa direzione**, il valore sbagliato è
+      quello condiviso — è la forma esatta del caso `.nav button` del tema del
+      sole, dove tre app che ridicevano la stessa scala hanno rivelato che il
+      difetto stava in `shared/`.
+      ⚠️ **Misura, non regola** (e scritto qui perché nessuno la rifaccia alla
+      cieca): con un denominatore di 16 proprietà e 5 falsi allarmi su 13, un
+      controllo automatico su questo fronte oggi **non regge**. Servirebbe prima
+      un confronto che conosca il **contesto** della regola (`@media`, selettore
+      composto) — e quello è un cantiere a sé.
 - [ ] **E7.** Genesi — allineamento delle parti 2D/HUD al core (la scena 3D
       resta come sta: è un'altra cosa).
 - [ ] **E8.** Verifica finale: le sette pagine affiancate devono sembrare la
