@@ -46,10 +46,10 @@ segnaposto («Funzione nav non ancora pronta»). Per aprirlo davvero si monta
 
 ## Le prove
 
-**2.494 prove girano senza rete e senza browser**, con `node` (contate lanciandole, non a memoria — al 10/08: 2042 + 318 + 75 + 32 + 9 + 8 + 7 + 3):
+**2.498 prove girano senza rete e senza browser**, con `node` (contate lanciandole, non a memoria — al 10/08: 2046 + 318 + 75 + 32 + 9 + 8 + 7 + 3):
 
 > ⚠️ **E quel numero conta OTTO suite, non tutto quello che gira.** Il giro
-> `node` completo esegue **2.823** asserzioni su **34** comandi.
+> `node` completo esegue **2.828** asserzioni su **34** comandi.
 > ⏱️ **Dal 09/08 quel numero non si scrive più a mano: lo stampa il giro**
 > (`node apps/deepwork-id/tests/giro-node.mjs`, riga «Asserzioni eseguite dal
 > giro»), col suo denominatore accanto — 22 comandi su 34 hanno una riga da
@@ -78,7 +78,7 @@ segnaposto («Funzione nav non ancora pronta»). Per aprirlo davvero si monta
 > 2.251» mentre il titolo sopra diceva già 2.310: il controllo sorveglia il
 > **totale**, non la prosa che lo spiega. È la quarta forma di invecchiamento
 > raccolta in `CLAUDE.md`.*
-> **Il numero da citare resta 2.494**, e la ragione è che le altre dieci contano
+> **Il numero da citare resta 2.498**, e la ragione è che le altre dieci contano
 > **file, non prove**: `import esistenti` fa un'asserzione per file e `classi
 > orfane` una per pagina, quindi il loro totale si muove ogni volta che nasce un
 > file — un numero che cresce senza che nessuno abbia scritto una prova è un
@@ -221,7 +221,7 @@ non ha potuto guardare** — le **21** prove sulle funzioni, verificabili solo i
 CI. Se `firebase` o `java` non rispondono si ferma dicendolo (uscita 2) invece
 di stampare «0 caduti», che sarebbe il verde più falso che ci sia.
 
-**176 esecuzioni che aprono davvero le pagine** in Chromium — banchi distinti,
+**178 esecuzioni che aprono davvero le pagine** in Chromium — banchi distinti,
 ognuno seguito dalla sua **controprova** (Chromium è già installato in
 `/opt/pw-browsers/chromium`, **non** si lancia `playwright install`):
 

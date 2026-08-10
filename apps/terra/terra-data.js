@@ -822,8 +822,31 @@ export function estrattoComplessivo(rilievi, autorizzazione) {
 // finestra: se lo storico è corto il ritmo risulta un po' alto, quindi la
 // durata residua stimata è prudente (meglio sottostimare gli anni che
 // restano). Ritorna null se non c'è abbastanza storico (< 3 mesi) o volume.
+/* ⛔ UN CLAMP NON È UNA GUARDIA, e qui il clamp si mangiava il ripiego che gli
+   stava scritto accanto. La riga era `Math.max(0.5, +anni || 0) || 3`, e il
+   `|| 3` — la finestra predefinita, quella che il campo dell'atto mostra —
+   era CODICE MORTO: `Math.max(0.5, x)` non è mai zero, quindi non è mai falso,
+   quindi il ripiego non poteva scattare in nessun caso. Svuotando il campo
+   «Ritmo medio su (anni)» dell'autorizzazione (`numInt` risponde `null`,
+   `+null` fa 0, `Math.max(0.5, 0)` fa 0,5) la finestra diventava SEI MESI:
+   un numero che non ha scelto nessuno.
+   ⚠️ E la direzione non è quella che rassicura, è quella che ACCUSA — la
+   stessa già vista in Genesi sul recettore. Misurato nel browser il 09/08
+   sulla dimostrazione, riquadro «Vita della cava»:
+   · col campo pieno: «Al ritmo medio di 140.823 m³/anno (dai rilievi degli
+     ultimi 0,7 anni) restano circa 1,6 anni, esaurimento stimato verso il
+     2028»;
+   · col campo svuotato: «Ritmo medio non ancora calcolabile: servono almeno
+     tre mesi di rilievi elaborati per stimare gli anni che restano» — cioè
+     l'app dà la colpa ai rilievi (che coprono 8,6 mesi e ci sono tutti)
+     invece che alla finestra di sei mesi che si è data da sola.
+   Quindi prima si chiede se il dato c'è, POI si stringe: il clamp resta e
+   morde come prima su una finestra vera e piccola (0,2 anni → 0,5).
+   ⚠️ Uno zero SCRITTO resta un dato e passa dal clamp; è l'ASSENZA che
+   ricade sui tre anni dichiarati. */
 export function ritmoMedioAnnuo(rilievi, anni, oggi = new Date()) {
-  const n = Math.max(0.5, +anni || 0) || 3;
+  const letto = (anni === null || anni === undefined || anni === "") ? NaN : +anni;
+  const n = Number.isFinite(letto) ? Math.max(0.5, letto) : 3;
   const o = new Date(oggi); o.setHours(0, 0, 0, 0);
   const ANNO_MS = 365.25 * 86400000;
   const dal = new Date(o.getTime() - n * ANNO_MS);

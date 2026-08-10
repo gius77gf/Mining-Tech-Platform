@@ -6464,6 +6464,58 @@ test("statoVuoto: la struttura è quella del core, invariata", () => {
       { data: "2026-07-01", volumeM3: 10000, stato: "in-calendario" },
     ], 3, oggiR), null, "un rilievo in calendario non è materiale uscito dalla cava");
   });
+
+  /* ⛔ UN CLAMP NON È UNA GUARDIA — la famiglia chiusa in Genesi il 09/08,
+     ritrovata qui. La riga era `Math.max(0.5, +anni || 0) || 3`: il `|| 3`,
+     cioè la finestra predefinita che il campo dell'atto mostra, era CODICE
+     MORTO perché `Math.max(0.5, x)` non è mai falso. Svuotando il campo
+     «Ritmo medio su (anni)» dell'autorizzazione (`numInt` risponde `null`)
+     la finestra diventava sei mesi — un numero che non ha scelto nessuno — e
+     nel Quadro il riquadro «Vita della cava» passava da «restano circa 1,6
+     anni, esaurimento verso il 2028» a «Ritmo medio non ancora calcolabile:
+     servono almeno tre mesi di rilievi elaborati», cioè dava la colpa ai
+     rilievi (che coprivano 8,6 mesi ed erano tutti lì).
+     I dati sono scelti perché la finestra da sei mesi e quella da tre anni
+     diano DUE NUMERI DIVERSI: con un solo campione le due risposte
+     coinciderebbero e la prova passerebbe per il motivo sbagliato. */
+  const rilieviFinestra = [
+    { data: "2024-07-01", volumeM3: 10000, stato: "elaborato" },   // fuori dai 6 mesi
+    { data: "2026-02-01", volumeM3: 10000, stato: "elaborato" },   // dentro
+    { data: "2026-06-01", volumeM3: 10000, stato: "elaborato" },   // dentro
+  ];
+  test("⛔ ritmo medio: il campo «anni» SVUOTATO ricade sui 3 anni dichiarati, non su mezzo anno", () => {
+    const tre = terra.ritmoMedioAnnuo(rilieviFinestra, 3, oggiR);
+    const mezzo = terra.ritmoMedioAnnuo(rilieviFinestra, 0.5, oggiR);
+    eq(tre.volume, 30000, "con tre anni entrano tutti e tre i rilievi");
+    eq(mezzo.volume, 20000, "con mezzo anno ne entrano due: le due finestre danno numeri DIVERSI");
+    for (const assente of [null, undefined, ""])
+      eq(terra.ritmoMedioAnnuo(rilieviFinestra, assente, oggiR).volume, 30000,
+         `anni=${mostra(assente)} è un dato ASSENTE: vale il ripiego dichiarato di 3 anni`);
+  });
+  test("⛔ ritmo medio: il clamp resta e morde su una finestra VERA e piccola", () => {
+    /* il `Math.max(0.5, …)` non è stato tolto: esiste per il valore vero ed
+       estremo — «un ritmo misurato su cinque settimane non è un ritmo» — e
+       continua a stringere. Quello che non fa più è mangiarsi l'assenza. */
+    eq(terra.ritmoMedioAnnuo(rilieviFinestra, 0.1, oggiR).volume, 20000,
+       "0,1 anni è un dato scritto: si stringe a mezzo anno, non si ripiega su 3");
+    eq(terra.ritmoMedioAnnuo(rilieviFinestra, 0, oggiR).volume, 20000,
+       "uno ZERO scritto resta un dato e passa dal clamp: è l'assenza che ricade sul ripiego");
+  });
+  test("ritmo medio: una finestra illeggibile non è una finestra piccola", () => {
+    /* «boh» non è mezzo anno: è un dato che non si legge, e vale quanto un
+       campo vuoto. È la stessa distinzione che `numeroDaCampo` fa un piano
+       più su fra il dato ASSENTE e il dato CORROTTO. */
+    eq(terra.ritmoMedioAnnuo(rilieviFinestra, "boh", oggiR).volume, 30000,
+       "illeggibile → il ripiego dichiarato, non 0,5");
+    eq(terra.ritmoMedioAnnuo(rilieviFinestra, NaN, oggiR).volume, 30000, "come NaN");
+  });
+  test("ritmo medio: una finestra scritta all'italiana si legge", () => {
+    /* `numInt` della pagina restituisce già un numero, ma il modulo lo prende
+       anche da un CSV o da un documento salvato da un'altra versione: una
+       stringa numerica è un dato leggibile, e va letta. */
+    eq(terra.ritmoMedioAnnuo(rilieviFinestra, "3", oggiR).volume, 30000,
+       '"3" è tre anni, non un valore illeggibile');
+  });
 }
 
 /* ══ CHI PUÒ SALIRE SU UN MEZZO ═════════════════════════════════════════

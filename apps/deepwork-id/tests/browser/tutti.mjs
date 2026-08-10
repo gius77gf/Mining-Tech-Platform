@@ -360,6 +360,14 @@ const BANCHI = [
      Sotto c'era il difetto: l'import non leggeva `Initiation`, quindi una
      volata a detonatori elettronici riaperta tornava Nonel e lo «Scatter
      innesco» passava da 0,1 a 8,0 ms — ottanta volte — in silenzio. */
+  /* ⛔ I CAMPI DI GENESI CHE NON DEVONO RIEMPIRSI DA SOLI — entrato il 10/08,
+     e non prima: finché B0-nonies era aperta il banco cadeva su un difetto
+     VERO (il 2D che moriva con l'interasse assente), e un giro che parte rosso
+     per una ragione vera è un giro che qualcuno spegne.
+     Le prove di `run-kpi` guardano il SORGENTE; questo guarda l'AGGANCIO —
+     che il campo, sullo schermo, dopo i due tocchi resti davvero vuoto. */
+  ['i campi di Genesi che restano vuoti', 'genesi-campi-assenti.mjs', []],
+  ['campi vuoti di Genesi · controprova', 'genesi-campi-assenti.mjs', ['--controprova'], true],
   ['il piano di innesco XML di Genesi', 'genesi-piano-innesco.mjs', []],
   ['piano di innesco · controprova', 'genesi-piano-innesco.mjs', ['--controprova'], true],
   /* ⛔ AGGIUNTO IL 07/08, e completa la domanda qui sopra: il foglio stampato

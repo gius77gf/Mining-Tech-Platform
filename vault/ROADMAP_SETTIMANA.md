@@ -1073,6 +1073,51 @@ numero scritto dove non era stato misurato niente**.*
       **Come si misura**: apri una volata con `design.S:null` e guarda se la
       scheda validatori ha righe e se il toast compare.
 
+- [x] **B0-undecies. IL CLAMP USATO COME GUARDIA FUORI DA GENESI — censito su
+      cinque app, e ne sono usciti DUE difetti veri, uno dei quali sui soldi.**
+      ✅ *Chiuso il 10/08.* Censimento col comando (commenti tolti, e sulle
+      pagine solo il contenuto dei `<script>`): **163 clamp, 51 di forma
+      sospetta, 79 ripieghi `||` su un campo utente** — scudo 15/5, flotta
+      37/13, conti 53/17, terra 26/8, sentinella 32/8. Poi il verdetto uno per
+      uno: **48 clamp giusti, 2 difetti, 2 candidati aperti**.
+      ⚠️ **Il denominatore dichiarato ha 52 righe contro 51 clamp sospette, e la
+      riga in più È il difetto di Conti**: non è una `Math.max`, è un ternario
+      che le passa uno zero. **Una ricerca fatta solo su `Math.max(` non
+      l'avrebbe trovato.**
+      · **TERRA** — `ritmoMedioAnnuo`: `Math.max(0.5, +anni || 0) || 3`, dove il
+        `|| 3` era **codice morto** (`Math.max(0.5, x)` non è mai falso).
+        Svuotando «Ritmo medio su (anni)» la finestra diventava **sei mesi** e il
+        riquadro «Vita della cava» passava da «restano circa 1,6 anni,
+        esaurimento verso il 2028» a «**Ritmo medio non ancora calcolabile:
+        servono almeno tre mesi di rilievi elaborati**» — cioè **dava la colpa
+        ai rilievi**, che coprono 8,6 mesi e ci sono tutti.
+      · **CONTI** — `aggiornaNetto`: `rl.ok ? rl.valore : 0`. Il commento sopra
+        prometteva già «un peso che non si legge NON diventa zero silenzioso»,
+        ma **solo per l'illeggibile**; l'**assente** diventava zero. Con la tara
+        vuota, su «Massi da scogliera» a 15,50 €/t: netto **32,50 t** e «Valore
+        della consegna **€ 503,75**» dove il vero è 18,30 t / € 283,65 —
+        **€ 220,10 di troppo, +77%**, su un riquadro che prepara un documento
+        fiscale. Adesso il netto dice «—» e la frase nomina **quale** peso manca.
+      ⛔ **E le quattro prove su `ritmoMedioAnnuo` che c'erano già restano VERDI
+      col difetto rimesso**: è la misura di quanto quel buco fosse scoperto.
+      Le quattro nuove (`run-kpi` 2042 → **2046**) sono metà e metà: due sanno
+      fallire, due dichiarano il contratto che **non** doveva cambiare — sono
+      quelle che impediscono la «correzione facile» `+anni || 3`.
+      ⚠️ **La parte di Conti non ha una prova pura, e va detto**: `nettoPesata`
+      non è cambiata (è giusta), il difetto era **nella pagina** — la famiglia
+      «le prove chiamano il modulo e i file li compone la pagina». Il banco con
+      la sua controprova nei due versi è pronto in scratchpad e **va registrato**
+      in `tutti.mjs` accanto a `conti-numeri-tranquilli.mjs`.
+      ⏱️ **Proposta per `shared/`, non fatta**: `valoreCampo` adesso servirebbe a
+      **due** app, quindi il suo posto è `shared/dw-ponti.js` con Genesi che la
+      **ri-esporta** con lo stesso nome (alias, non seconda implementazione) e il
+      test che pretende l'**identità**. Intanto Terra è stata corretta **senza
+      copiare la funzione**: due righe di guardia in loco.
+      ⏱️ **Candidato aperto, dichiarato e non misurato**:
+      `apps/conti/conti-data.js` — una fattura importata **senza importo** esce
+      in silenzio dall'estratto conto e dal sollecito (`apertoDi(f) > 0` la
+      filtra). Serve costruire l'import CSV con la colonna vuota.
+
 - [ ] **B0-decies. IL RECETTORE ASSENTE FA DIRE A GENESI «SUPERA» CON UN NUMERO
       DI CINQUE CIFRE — e una delle tre esclusioni non regge alla misura.**
       ⏱️ *Misurato il 09/08 sui tre campi che B0-sexies teneva fuori.*
@@ -3990,8 +4035,8 @@ numero scritto dove non era stato misurato niente**.*
   nome apre il file sbagliato credendo che sia il più fresco.
 - Le decisioni: `docs/DECISIONI_WEEKEND.md` — pagina d'ingresso in cima.
 - Stato misurato al **09/08** (lanciando le suite, non a memoria):
-  **2.494 prove girano senza rete**. La frase va letta stretta: è la somma
-  delle **otto** suite che contano asserzioni (`run-kpi` 2042, `run-stile` 318,
+  **2.498 prove girano senza rete**. La frase va letta stretta: è la somma
+  delle **otto** suite che contano asserzioni (`run-kpi` 2046, `run-stile` 318,
   `run-helpers` 75, `run-pointcloud` 32, `run-manifest` 9, `run-demo` 8,
   `bootstrap-rivendicazioni` 7, `fogli-guardati` 3), non tutto ciò che gira nel
   giro `node` — che di comandi ne ha **34** e di asserzioni ne esegue di più:
@@ -4001,8 +4046,8 @@ numero scritto dove non era stato misurato niente**.*
   sorvegliati ne contavano sette: due convenzioni per lo stesso numero, che è
   il modo più facile di far sembrare sbagliato un conto giusto. Adesso è una
   sola.*
-  Copertura **724/724** e nessuna funzione scoperta; **176 esecuzioni** che
-  aprono le pagine in un browser vero, da **73** file di banco distinti (contati
+  Copertura **725/725** e nessuna funzione scoperta; **178 esecuzioni** che
+  aprono le pagine in un browser vero, da **74** file di banco distinti (contati
   dalla tabella `BANCHI` di `tutti.mjs`, non a occhio dalla cartella, che di
   `.mjs` ne ha di più perché contiene anche gli aiuti — `giro.mjs`,
   `impronta.mjs`, il runner stesso).

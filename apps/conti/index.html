@@ -4042,7 +4042,44 @@ label.item:has(.dw-chk:checked){
       $("pes-riep").innerHTML = `<div class="note" style="border-left-color:var(--danger);margin-bottom:0;">${esc(spiegaNum(rottoP[0], rottoP[1], rottoP[2]))}</div>`;
       return;
     }
-    const lordoN = rl.ok ? rl.valore : 0, taraN = rt.ok ? rt.valore : 0;
+    /* ⛔ UN CLAMP NON È UNA GUARDIA — e la riga sopra prometteva già la cosa
+       giusta («un peso che non si legge NON diventa zero silenzioso»)
+       tenendola solo per il peso ILLEGGIBILE. Per il peso ASSENTE il ripiego
+       era `rl.ok ? rl.valore : 0`, e `nettoPesata` (che fa
+       `Math.max(0, lordo - tara)`) non poteva più distinguere niente: il
+       `Math.max(0, …)` esiste per la tara più alta del lordo, non per un campo
+       che nessuno ha compilato. Misurato nel browser il 09/08, su «Massi da
+       scogliera» a 15,50 €/t:
+       · lordo «32,5» e TARA VUOTA → netto «32,50 t» e «Valore della consegna
+         € 503,75», cioè si vendeva anche il camion: il netto vero è 18,30 t
+         per € 283,65, quindi **€ 220,10 di troppo, il 77% in più**, su un
+         riquadro che prepara un documento fiscale;
+       · LORDO VUOTO e tara «14,2» → il campo del netto si riempiva da solo
+         con «0,00», che è la forma peggiore dello zero inventato perché sta
+         DENTRO un campo e sembra un dato che qualcuno ha scritto.
+       Quindi si chiede prima se i due pesi ci sono. Un campo fuori limite non
+       è «assente»: ha già il suo messaggio al salvataggio, e qui basta che non
+       produca un numero. */
+    if (!rl.ok || !rt.ok) {
+      $("pes-netto").value = "—";
+      const manca = !rl.ok ? "il peso lordo" : "la tara";
+      /* la coda della frase dice che cosa succederebbe con lo zero al posto
+         del campo che manca DAVVERO: sono due danni diversi, e una frase sola
+         per tutt'e due ne racconterebbe uno sbagliato una volta su due */
+      const coda = !rl.ok
+        ? "senza il lordo il netto sarebbe zero, cioè un viaggio a vuoto"
+        : "con la tara a zero si fatturerebbe anche il peso del camion";
+      // sul form ancora intonso non si dice niente: non c'è nessun numero da
+      // smentire, e un avviso all'apertura è rumore
+      const iniziato = $("pes-lordo").value.trim() !== "" || $("pes-tara").value.trim() !== "";
+      $("pes-riep").innerHTML = iniziato
+        ? `<div class="note" style="margin-bottom:0;">Manca ancora <b>${esc(manca)}</b>: il netto è
+           <b>lordo − tara</b>, e finché uno dei due non c'è non si può calcolare. Un campo vuoto
+           <b>non vale zero</b>: ${esc(coda)}.</div>`
+        : "";
+      return;
+    }
+    const lordoN = rl.valore, taraN = rt.valore;
     const n = nettoPesata(lordoN, taraN);
     $("pes-netto").value = qt(n);
     const p = PRO.find(x => x.id === $("pes-prod").value);
