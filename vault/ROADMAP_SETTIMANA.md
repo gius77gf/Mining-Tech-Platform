@@ -1105,9 +1105,19 @@ numero scritto dove non era stato misurato niente**.*
       quelle che impediscono la «correzione facile» `+anni || 3`.
       ⚠️ **La parte di Conti non ha una prova pura, e va detto**: `nettoPesata`
       non è cambiata (è giusta), il difetto era **nella pagina** — la famiglia
-      «le prove chiamano il modulo e i file li compone la pagina». Il banco con
-      la sua controprova nei due versi è pronto in scratchpad e **va registrato**
-      in `tutti.mjs` accanto a `conti-numeri-tranquilli.mjs`.
+      «le prove chiamano il modulo e i file li compone la pagina».
+      ✅ **Il banco che lo preme è stato scritto il 10/08** dentro
+      `conti-numeri-tranquilli.mjs` (nessun file nuovo: il banco di Conti c'era
+      già e non guardava lì): **quattro stati del modulo pesata** — senza tara,
+      senza lordo, coi due, intonso — e **otto asserzioni**, da 20 a **28 ok**.
+      La controprova rimette il difetto in due pezzi e riproduce i numeri esatti
+      del racconto: con la tara vuota il netto torna **«32,50»** invece del
+      trattino, col lordo vuoto il campo si riempie da solo di **«0,00»**.
+      ⚠️ E **due** delle otto NON cadono con il difetto dentro, di proposito:
+      sono la metà che dichiara il contratto che **non** doveva cambiare (coi
+      due pesi il netto resta 18,3; sul modulo intonso il riquadro tace). Un
+      banco in cui cadono tutte è un banco che non distingue «non calcola» da
+      «non calcola mai».
       ⏱️ **Proposta per `shared/`, non fatta**: `valoreCampo` adesso servirebbe a
       **due** app, quindi il suo posto è `shared/dw-ponti.js` con Genesi che la
       **ri-esporta** con lo stesso nome (alias, non seconda implementazione) e il
@@ -1117,6 +1127,40 @@ numero scritto dove non era stato misurato niente**.*
       `apps/conti/conti-data.js` — una fattura importata **senza importo** esce
       in silenzio dall'estratto conto e dal sollecito (`apertoDi(f) > 0` la
       filtra). Serve costruire l'import CSV con la colonna vuota.
+
+- [ ] **B0-duodecies. I CLAMP DELLE TRE SUPERFICI CHE IL CENSIMENTO NON AVEVA
+      GUARDATO — core, Campo, Scudo.** ⏱️ *Censite il 10/08 con lo stesso
+      comando delle altre cinque app (commenti tolti con `senzaCommenti`, sulle
+      pagine solo il contenuto dei `<script>`).*
+
+      | superficie | clamp | di forma sospetta |
+      |---|---|---|
+      | core `index.html` | 54 | **8** |
+      | `apps/campo/index.html` | 3 | 2 |
+      | `apps/campo/campo-data.js` | 27 | **19** |
+      | `apps/scudo/index.html` | 3 | 2 |
+      | `apps/scudo/scudo-data.js` | 11 | 5 |
+      | **totale** | **98** | **36** |
+
+      ⛔ **E «sospetta» vuol dire CANDIDATA, non difettosa**: sulle altre cinque
+      app il rapporto vero è stato **48 giuste su 52 giudicate**, cioè meno di
+      una su dieci era un difetto. Chi apre questa riga deve **leggere**, non
+      correggere a tappeto.
+      ✅ **Due già lette e ASSOLTE**, con la ragione, così nessuno le rifà:
+      · `scudo-data.js` `giornateAssenza` — sembra la forma del difetto di Conti
+        (`vuoto ? 0 : …`) ed è invece il contrario: il vuoto si controlla
+        **prima** di convertire e i due significati sono separati per tipo
+        (near-miss → 0, infortunio → `null`). È la **decisione 17** del
+        fondatore, già costruita;
+      · `scudo-data.js` `giorniAssenza:` nel normalizzatore — stessa cosa.
+      ⚠️ **La forma più frequente di Campo è `Math.max(0, +x || 0)`**, cioè il
+      ripiego **prima** del clamp: l'assenza esce **zero**. Non è
+      automaticamente un difetto — Campo ha già `fermiSenzaMinuti` e la guardia
+      `(fermi && senza >= fermi)`, cioè la **bandiera letta a valle** — ma è
+      esattamente il punto in cui va chiesto *«questo zero lo ha scritto
+      qualcuno?»*, una riga per volta.
+      **Come si rimisura**: il comando è nella riga **B0-undecies**; qui cambia
+      solo l'elenco dei file.
 
 - [ ] **B0-decies. IL RECETTORE ASSENTE FA DIRE A GENESI «SUPERA» CON UN NUMERO
       DI CINQUE CIFRE — e una delle tre esclusioni non regge alla misura.**

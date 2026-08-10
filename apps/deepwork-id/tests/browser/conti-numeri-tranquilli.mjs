@@ -107,6 +107,14 @@ const DIFETTI = [
           <div class="amt">${"$"}{vendCifra(v, anno)}</div></div>`,
    `          <div class="meta">${"$"}{qt(v.t)} t${"$"}{v.m3 ? " · " + qt(v.m3) + " m³" : ""} · ${"$"}{plur(v.viaggi, "viaggio", "viaggi")}</div></div>
           <div class="amt"><div class="amt-n pos">${"$"}{eur(v.valore)}</div><div class="amt-s">venduto ${"$"}{anno}</div></div></div>`],
+  // 3 · il peso ASSENTE torna a valere zero: e' il difetto del 10/08, e vale
+  //     220,10 EUR di troppo su un riquadro che prepara un documento fiscale
+  ["apps/conti/index.html",
+   `    if (!rl.ok || !rt.ok) {`,
+   `    if (false) {   /* difetto rimesso dal banco: la guardia sull'assenza sparisce */`],
+  ["apps/conti/index.html",
+   `    const lordoN = rl.valore, taraN = rt.valore;`,
+   `    const lordoN = rl.ok ? rl.valore : 0, taraN = rt.ok ? rt.valore : 0;`],
 ];
 
 let iniezioniCasi = 0;
@@ -555,6 +563,58 @@ else {
       dice(storte === 0, `ogni esposizione sta nei pixel del suo rapporto (${storte} storte su ${coppie})`);
     }
   }
+}
+
+// ══ IL PESO CHE MANCA NON VALE ZERO ═════════════════════════════════════
+/* ⛔ QUESTO E' IL PUNTO DOVE NESSUN BANCO PREMEVA, e sotto ci stava un difetto
+   sui SOLDI. `aggiornaNetto` calcolava il netto con `rl.ok ? rl.valore : 0`:
+   con la TARA VUOTA il netto diventava il lordo intero e il riquadro
+   dichiarava «Valore della consegna EUR 503,75» dove il vero e' EUR 283,65 —
+   il 77% in piu', su un riquadro che prepara un documento fiscale. E col LORDO
+   vuoto il campo del netto si riempiva da solo di «0,00», che e' la forma
+   peggiore dello zero inventato perche' sta DENTRO un campo e sembra scritto
+   da qualcuno.
+   ⚠️ Una prova pura non lo avrebbe visto: `nettoPesata` non e' cambiata, e'
+   giusta com'e'. Il difetto stava nella PAGINA, cioe' nella famiglia che
+   CLAUDE.md chiama «le prove chiamano il modulo e i file li compone la
+   pagina». Si prende solo premendo i tasti. */
+if (!(await vaiA("pes"))) nonMisurato("la sezione Pesate non si e' aperta: il netto della pesata non l'ho guardato");
+else {
+  const scrivi = async (lordo, tara) => {
+    await pg.fill("#pes-lordo", lordo);
+    await pg.fill("#pes-tara", tara);
+    await pg.waitForTimeout(200);
+    return pg.evaluate(() => ({
+      netto: (document.getElementById("pes-netto") || {}).value,
+      riep: ((document.getElementById("pes-riep") || {}).innerText || "").trim(),
+    }));
+  };
+  /* i tre casi, e il terzo serve a dimostrare che i primi due non passano
+     perche' il riquadro tace SEMPRE: un banco che guarda solo il vuoto non
+     distingue «non calcola» da «non calcola mai» */
+  const senzaTara = await scrivi("32,5", "");
+  dice(senzaTara.netto === "—", "tara vuota: il netto e' un trattino, non il lordo intero", senzaTara);
+  dice(/la tara/i.test(senzaTara.riep) && !/il peso lordo/i.test(senzaTara.riep),
+    "tara vuota: il riquadro dice QUALE peso manca, e non l'altro", senzaTara.riep.slice(0, 160));
+  dice(/non vale zero/i.test(senzaTara.riep),
+    "tara vuota: e dice che un campo vuoto non vale zero", senzaTara.riep.slice(0, 160));
+
+  const senzaLordo = await scrivi("", "14,2");
+  dice(senzaLordo.netto === "—", "lordo vuoto: il campo del netto NON si riempie da solo di 0,00", senzaLordo);
+  dice(/il peso lordo/i.test(senzaLordo.riep) && !/la tara/i.test(senzaLordo.riep),
+    "lordo vuoto: il riquadro nomina il lordo, non la tara", senzaLordo.riep.slice(0, 160));
+
+  const pieni = await scrivi("32,5", "14,2");
+  /* 32,5 - 14,2 = 18,3: il numero vero, che e' anche la misura di quanto
+     valeva il difetto (32,50 contro 18,30 = 14,20 t di camion fatturato) */
+  dice(/18[.,]3/.test(String(pieni.netto)),
+    "coi due pesi il netto e' il numero vero (18,3), non un trattino", pieni);
+  dice(!/Manca ancora/i.test(pieni.riep),
+    "e il riquadro smette di chiedere quello che adesso c'e'", pieni.riep.slice(0, 160));
+
+  const intonso = await scrivi("", "");
+  dice(intonso.riep === "", "sul modulo intonso non si dice niente: non c'e' nessun numero da smentire", intonso.riep);
+  console.log("  (4 stati del modulo pesata provati: senza tara, senza lordo, coi due, intonso)");
 }
 
 console.log(`\n${ok} ok, ${ko} KO${nonMisurati.length ? ` · ${nonMisurati.length} NON MISURATI` : ""}${SCATTI ? ` · scatti in ${CARTELLA_SCATTI}` : ""}`);
