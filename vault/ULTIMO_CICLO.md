@@ -232,3 +232,24 @@ niente — che è esattamente la stessa cosa che cerchiamo nel prodotto.
 - **Restano ferme** le decisioni che chiedono il fondatore: **B0-septies** (che
   cosa vede chi apre il 2D di una volata senza maglia), e le soglie di
   sicurezza (`ppvLimit`, curve USBM/DIN), che nessun cantiere può toccare.
+
+## 2026-08-10 04:01 UTC — ciclo automatico
+- **Commit di partenza**: `29dc228`
+- **Che cosa sto per fare**: chiudere l'unità già nell'indice — il banco di
+  Conti che adesso **preme il punto dove nessuno premeva**, cioè il netto della
+  pesata col peso assente (quattro stati del modulo, otto asserzioni, banco
+  20 → 28 ok; la controprova riproduce i numeri esatti: «32,50» invece del
+  trattino con la tara vuota, «0,00» dentro il campo col lordo vuoto). Poi
+  raccogliere i **tre cantieri rilanciati** — le tendine del core (B4-bis), il
+  recettore di Genesi (B0-decies), il numero uno in Flotta e Sentinella.
+- **Da dove riparte**: dal checkpoint `20260810-035546`, dopo il riallineo del
+  contenitore. ⚠️ Alle 03:47 il disco era tornato al **07/08** e il ramo era
+  avanti di **463 commit**: la via per rimettersi in piedi — con `reset --hard`
+  e `stash` negati — è ora scritta in `CLAUDE.md`, e la prova che il riallineo è
+  esatto non è una suite verde ma il fatto che l'albero **combacia col commit**.
+- **Restano ferme** le decisioni che chiedono il fondatore: **B0-septies** (che
+  cosa vede chi apre il 2D di una volata senza maglia) e le **soglie di
+  sicurezza** (`ppvLimit`, curve USBM/DIN), che nessun cantiere può toccare.
+  ⚠️ Le 19 decisioni di prodotto di `DECISIONI_WEEKEND.md` sono **già tutte
+  prese dal ciclo il 07/08** e dichiarate come tali riga per riga: non c'è
+  niente di scaduto da decidere adesso.
