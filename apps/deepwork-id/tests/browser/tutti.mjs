@@ -371,6 +371,13 @@ const BANCHI = [
      frase: `grep -rl "Durata totale" apps/deepwork-id/tests/` non dava niente. */
   ['la durata della sequenza nel core', 'core-sequenza-ritardi.mjs', []],
   ['durata sequenza · controprova', 'core-sequenza-ritardi.mjs', ['--controprova'], true],
+  /* ⛔ IL RECETTORE ASSENTE CHE FACEVA DIRE «SUPERA» — B0-decies, 10/08. Con la
+     distanza del recettore vuota la scheda dichiarava 67.627,4 mm/s e un
+     verdetto di superamento: non un numero tranquillo, un'ACCUSA falsa. E le
+     guardie stanno a valle, in sette lettori (il foglio da portare in cava, il
+     CSV, il file per Sentinella): il banco preme li'. */
+  ['il recettore assente di Genesi', 'genesi-recettore-assente.mjs', []],
+  ['recettore assente · controprova', 'genesi-recettore-assente.mjs', ['--controprova'], true],
   ['i campi di Genesi che restano vuoti', 'genesi-campi-assenti.mjs', []],
   ['campi vuoti di Genesi · controprova', 'genesi-campi-assenti.mjs', ['--controprova'], true],
   ['il piano di innesco XML di Genesi', 'genesi-piano-innesco.mjs', []],

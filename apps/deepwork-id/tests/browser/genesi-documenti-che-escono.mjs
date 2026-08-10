@@ -111,10 +111,14 @@ const DIFETTI = [
      nello stesso commit che la costruiva. Tre righe bastano a togliere «Esito
      PPV» e «MIC» dalla scheda, che è il difetto che questa riga deve rimettere,
      e offrono tre appigli invece di cinque. */
-  [`    ['Esito PPV', _eP.verdetto],
-    ['Distanza recettore (m)', D2.recDist],
-    ['MIC carica per ritardo (kg)', _mic],`,
-   `    ['Distanza recettore (m)', D2.recDist],`],
+  /* ⏱️ RI-ANCORATA IL 10/08: la correzione del recettore assente (B0-decies) ha
+     infilato un commento fra «Esito PPV» e «Distanza recettore», e l'ancora a
+     tre righe consecutive non combaciava più — `iniezioni-fresche` l'ha detto
+     nel giro, prima del push. È la quarta volta che questa famiglia morde nel
+     commit che MIGLIORA il codice, e la cura è sempre la stessa: si ancora al
+     pezzo più corto che sia unico, non a un blocco contiguo. */
+  [`    ['MIC carica per ritardo (kg)', _mic],`, ``],
+  [`    ['Distanza recettore (m)', D2.recDist],`, ``],
   [`    ['Avvisi sulla previsione PPV', (k.ppvBase&&k.ppvBase.avvisi||[]).join(' ')],
     ['Airblast previsto (dB(L))', _db],
     ['Limite airblast (dB(L))', AIRBLAST_LIMITE_DB],

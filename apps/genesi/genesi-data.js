@@ -189,6 +189,64 @@ export function ppvLimit(norma,f){
   case 'din-ind': return n<10?20:(n<50?40:50);
   case 'din-sens': return n<10?3:(n<50?8:10);
   default: return n<10?5:(n<50?15:20); } }  // din-res
+
+/* ══════════════════════════════════════════════════════════════════════════
+   G16 · E LA TERZA ASSENZA: LA DISTANZA DEL RECETTORE
+   ══════════════════════════════════════════════════════════════════════════
+   ⛔ LE SOGLIE NON SI TOCCANO — QUI SI SMETTE DI INVENTARE GLI INGRESSI.
+   `ppvLimit`, le curve USBM/DIN e i 133 dB(L) restano esattamente quelli che
+   sono. Quello che cambia è che la distanza scalata `SD = d/√MIC` non nasce
+   più da un `null` letto come zero.
+   ⛔ MISURATO IL 10/08 NEL BROWSER, a ZERO clic, su una volata salvata con
+   `design.recDist:null`, ed è il principio del fondatore ROVESCIATO — non un
+   numero tranquillo, un'ACCUSA:
+     · `null/√58` fa **0**, `Math.max(0.1, 0)` lo porta a 0,1 e la legge di
+       Devine `K·SD^−β` sputa **67.627,4 mm/s** contro i 6,4 veri: la scheda
+       diceva «Soglia DIN residenziale 15 mm/s @ 25 Hz → SUPERA»;
+     · `Math.max(0.001, +null||0)` in `airblastDb` fa 0,001, `Math.max(1,sd3)`
+       lo porta a 1 e `log10(1)` è zero: **172 dB(L)** esatti, cioè il TETTO
+       della formula, «oltre il limite USBM/OSM» — contro i 127 veri;
+     · e le stesse due cifre uscivano dal FOGLIO che si porta in cava e dal
+       CSV che si archivia col rapportino («Esito PPV;SUPERA»), con la cella
+       «Distanza recettore (m)» **vuota** accanto.
+   Una distanza di ZERO METRI non è una distanza: è il recettore dentro la
+   volata. Quindi la domanda è la stessa dei tre fattori di `volumeForo` —
+   leggibile E positiva — e la risposta ha la forma di `ppvSenzaSoglia`:
+   `null` quando c'è, altrimenti CHE COSA manca e CHE COSA si fa.
+   ⚠️ Vive qui e non nella pagina per la regola di sempre: nella pagina non la
+   prova nessuno, e i suoi lettori sono sette (la scheda, i KPI, il foglio, il
+   CSV, il riquadro per Sentinella, il diagramma della legge di sito, il piano
+   d'innesco). Il nome del campo è quello che si LEGGE sullo schermo, e sta
+   già in `CAMPI_VOLATA`. */
+export const PPV_SENZA_DISTANZA = {
+  che:'la distanza del recettore non è un numero leggibile e positivo, e la distanza scalata parte da lì',
+  come:'Reimposta la distanza del recettore, in metri.',
+};
+export function ppvSenzaDistanza(d){
+  const x = (d === null || d === undefined || String(d).trim() === '') ? NaN : +d;
+  if (Number.isFinite(x) && x > 0) return null;
+  return { che: PPV_SENZA_DISTANZA.che, come: PPV_SENZA_DISTANZA.come };
+}
+
+/* ⛔ E LA SECONDA «PAROLA null STAMPATA», TROVATA CERCANDO LA PRIMA. Rimasta
+   uguale in `HEAD` e scritta DUE VOLTE nella pagina — nel CSV della scheda e
+   nel file che parte verso Sentinella — sempre come
+   `normaPpvLab(norma)+' @ '+f+' Hz'`: con la frequenza assente le due uscite
+   scrivevano «DIN residenziale @ **null** Hz». È la copia debole dove il
+   documento si compone, nella sua forma tipica: la funzione giusta
+   (`normaPpvLab`) esisteva già e faceva metà del lavoro, l'altra metà — la
+   frequenza — se la componeva chi scriveva il file.
+   Una sola funzione, quindi, e i due file non possono più scostarsi: la
+   frequenza che non si legge diventa «frequenza non indicata», che in una
+   cella di Excel si capisce, invece della parola `null`.
+   ⚠️ La SOGLIA non c'entra e non si tocca: `ppvLimit` risponde già `null` a
+   una frequenza assente e ha la sua ragione in `ppvSenzaSoglia`. Qui si
+   scrive solo l'etichetta. */
+export function normaConFrequenza(norma, f){
+  const x = (f === null || f === undefined || String(f).trim() === '') ? NaN : +f;
+  return normaPpvLab(norma) + (Number.isFinite(x) ? ' @ ' + x + ' Hz' : ' @ frequenza non indicata');
+}
+
 /* Sovrappressione d'aria (airblast) al recettore, in dB(L): scala cube-root
    della carica per ritardo. La formula sta QUI perché la usano in due — la
    scheda validatori e il file per Sentinella — e due copie di una formula
@@ -203,11 +261,21 @@ export function ppvLimit(norma,f){
    arrivarci.
    ⚠️ Lo ZERO vero non è toccato: `mic` a 0 continua a passare dalla guardia
    di prima, perché uno zero misurato è un fatto. Nessuna soglia si muove —
-   i 133 dB(L) USBM/OSM stanno in `esitoAirblast` e restano quelli. */
+   i 133 dB(L) USBM/OSM stanno in `esitoAirblast` e restano quelli.
+   ⛔ E IL 10/08 LA STESSA FAMIGLIA SULL'ALTRO ARGOMENTO, che era rimasto
+   scoperto: `Math.max(0.001, +dist||0)` di una distanza assente faceva 0,001,
+   e `Math.max(1, sd3)` la portava a 1 — `log10(1)` è zero, quindi la formula
+   restituiva **172 dB(L) esatti**, il suo TETTO, cioè il verdetto più grave
+   che sappia dare, su una volata di cui nessuno aveva letto la distanza.
+   Il verso è opposto a quello della MIC (lì il numero era tranquillo, qui è
+   un'accusa) ma la causa è la stessa: un'assenza letta come un numero. La
+   domanda la fa `ppvSenzaDistanza`, che è la stessa che fanno la scheda, il
+   foglio e il file — una sola, così le quattro risposte non si scostano. */
 export function airblastDb(dist,mic){
   const m=(mic===null||mic===undefined||mic==='')?NaN:+mic;
   if(!Number.isFinite(m)||m<0) return null;
-  const sd3=Math.max(0.001,+dist||0)/Math.cbrt(Math.max(0.1,m)); return 172-24*Math.log10(Math.max(1,sd3)); }
+  if(ppvSenzaDistanza(dist)) return null;
+  const sd3=Math.max(0.001,+dist)/Math.cbrt(Math.max(0.1,m)); return 172-24*Math.log10(Math.max(1,sd3)); }
 
 /* ══════════════════════════════════════════════════════════════════════════
    IL VERDETTO SULLA VIBRAZIONE — UNO SOLO, PER LO SCHERMO E PER IL FOGLIO

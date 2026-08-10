@@ -1018,7 +1018,7 @@ import { gnum, gseg, gfix, gdata, fmtMs, fmtKg, gEsito, gIn } from './genesi-for
    guardano — e perché `normaPpvLab`, che la pagina **importa**, è l'unico modo
    di leggere quella tabella da fuori: la pagina se n'era scritta una copia, con
    un ripiego diverso, ed è il difetto corretto il 01/08. */
-import { sitoFit, ppvLimit, ppvSenzaSoglia, airblastDb, normaPpvLab,
+import { sitoFit, ppvLimit, ppvSenzaSoglia, ppvSenzaDistanza, airblastDb, normaPpvLab, normaConFrequenza,
 /* il verdetto sulla vibrazione, in un posto solo: fino al 03/08 lo prendeva
    la scheda validatori e il foglio stampato non lo prendeva affatto — vedi
    l'intestazione del blocco in `genesi-data.js`. */
@@ -1085,6 +1085,12 @@ import { sitoFit, ppvLimit, ppvSenzaSoglia, airblastDb, normaPpvLab,
    clamp e lascia i clamp dov'erano; `volataSenzaValori` è l'altra metà — un
    campo lasciato vuoto è muto, e all'apertura si dice quali valori mancano. */
          valoreCampo, volataSenzaValori,
+/* i NOMI dei campi come si leggono sullo schermo: sta lì perché la frase che
+   nomina un valore mancante è una sola, e una seconda copia prima o poi chiama
+   lo stesso campo con due parole diverse. La legge già il toast dell'apertura;
+   dal 10/08 anche la riga «Presplit», che di una carica lineare illeggibile
+   diceva «troppo bassa» invece di dire che non c'è. */
+         CAMPI_VOLATA,
 /* la GEOMETRIA, la seconda metà della stessa correzione — vedi il blocco G15.
    ⛔ `valoreCampo` sui campi non basta finché a valle qualcuno reinventa: il
    consumo specifico di progetto si calcolava su `(D2.B||3)*(D2.S||3.5)*
@@ -1313,16 +1319,28 @@ function computeMIC(){ return micFinestra(D2.holes, D2.kg); }
    risposte, e quella che sbaglia è sempre quella che nessuno guarda.
    Torna il verdetto del modulo (`esitoMic`, con la bandiera `calcolabile`) più
    la ragione (`micSenzaConto`) e le due cose che tutti i lettori chiedono: la
-   distanza scalata e l'airblast, `null` tutt'e due quando la MIC non c'è. */
+   distanza scalata e l'airblast, `null` tutt'e due quando la MIC non c'è.
+   ⛔ E DAL 10/08 LA DISTANZA SCALATA HA DUE PADRI, NON UNO. `SD = d/√MIC`:
+   senza MIC non c'è, e senza DISTANZA nemmeno. Il secondo caso qui non si
+   chiedeva, quindi `null/√58` faceva **0** e la legge di Devine, su uno zero
+   portato a 0,1 dalla guardia, dichiarava 67.627,4 mm/s con «SUPERA». La
+   domanda la fa `ppvSenzaDistanza` del modulo — una sola, per tutti e sette i
+   lettori, che è la ragione per cui questa funzione esiste.
+   ⚠️ `distLeggibile` è una bandiera SEPARATA da `calcolabile`, per la stessa
+   ragione di `caricaLeggibile`: la MIC senza fori e la distanza senza metri
+   sono due «non lo so» diversi e mandano a correggere due campi diversi.
+   Confonderli rimanderebbe a disegnare i fori chi ha solo il recettore vuoto. */
 function micDaMostrare(){
   const mic=computeMIC(), es=esitoMic(mic), perche=micSenzaConto(D2.holes, D2.kg);
+  const senzaDist=ppvSenzaDistanza(D2.recDist);
   return { mic:es.calcolabile?mic:null, calcolabile:es.calcolabile, verdetto:es.verdetto,
     classe:es.classe, che:perche?perche.che:'', come:perche?perche.come:'',
     /* ⚠️ SEPARATA dalla MIC di proposito: senza fori la carica per foro è
        leggibilissima, e la carica TOTALE resta un numero vero. I due «non lo
        so» non sono lo stesso, e sommarli spegnerebbe un dato sano. */
     caricaLeggibile:!(perche && perche.carica),
-    sd:es.calcolabile?D2.recDist/Math.sqrt(Math.max(1,mic)):null,
+    distLeggibile:!senzaDist, distChe:senzaDist?senzaDist.che:'', distCome:senzaDist?senzaDist.come:'',
+    sd:(es.calcolabile && !senzaDist)?D2.recDist/Math.sqrt(Math.max(1,mic)):null,
     db:airblastDb(D2.recDist, es.calcolabile?mic:null) };
 }
 
@@ -3003,8 +3021,15 @@ function computeKPI(){
      legge: `ppv: null`, che `esitoPpv` sa già chiamare «non si può dire se è
      sotto soglia». Il limite di norma NON si tocca: quello dipende dalla
      normativa scelta, non dai fori, e resta il numero che è. */
+  /* ⛔ E LA GUARDIA SI FA SULLA DISTANZA SCALATA, NON SULLA BANDIERA DELLA MIC
+     (10/08): `_m.calcolabile` risponde soltanto «la MIC si conta», e con la
+     DISTANZA assente restava vera mentre `_m.sd` era `null` — `Math.max(0.1,
+     null)` fa 0,1 e la legge di Devine sputava **67.627,4 mm/s**. `sd` è
+     `null` quando manca uno QUALUNQUE dei suoi due padri, quindi è lei la cosa
+     da chiedere: una bandiera che sorveglia metà di un ingresso non sorveglia
+     niente. */
   const _m=micDaMostrare(), mic=_m.mic, st=ppvSite();
-  const ppv=_m.calcolabile
+  const ppv=Number.isFinite(_m.sd)
     ? st.K*Math.pow(Math.max(0.1,_m.sd),-st.beta)
     : null;
   const lim=ppvLimit(D2.recNorma,D2.recFreq);
@@ -3187,6 +3212,7 @@ if($('btn-scheda-csv')) $('btn-scheda-csv').onclick=()=>{
      regge da sola, senza un `if` scritto qui dentro. */
   const _mic=k.mic, _db=k.db;
   const _eP=esitoPpv(k.ppv, k.lim), _eA=esitoAirblast(_db);
+  const _senzaDistCsv=ppvSenzaDistanza(D2.recDist);
   const rows=[
     ['Maglia', k.maglia],
     ['Esplosivo', k.setup],
@@ -3211,9 +3237,22 @@ if($('btn-scheda-csv')) $('btn-scheda-csv').onclick=()=>{
     /* la norma esce ACCANTO alla sua soglia: quando la cella del limite è vuota
        è l'unica cosa che dice perché — e quando è piena dice a che cosa si
        riferisce quel numero, che in un file archiviato col rapportino conta */
-    ['Norma PPV', normaPpvLab(D2.recNorma)+' @ '+D2.recFreq+' Hz'],
+    /* ⛔ QUI USCIVA «DIN residenziale @ null Hz» — la parola `null` scritta in
+       un file che si apre in Excel, e la stessa frase era scritta una seconda
+       volta nel file per Sentinella. Una sola funzione, nel modulo, e le due
+       uscite non possono più scostarsi. */
+    ['Norma PPV', normaConFrequenza(D2.recNorma, D2.recFreq)],
     ['Esito PPV', _eP.verdetto],
+    /* ⛔ QUESTA CELLA USCIVA VUOTA MENTRE LE DUE SOPRA DICEVANO «67627.4» E
+       «SUPERA» (10/08). Il file si apre in Excel a casa del cliente e si
+       archivia col rapportino: una distanza vuota accanto a un superamento si
+       legge come una cella dimenticata, non come la RAGIONE per cui quel
+       superamento non esiste. È la stessa forma già usata per la carica
+       totale, la MIC e il costo — la cella resta vuota e la riga accanto dice
+       che è una non-misurabilità e quale campo la produce. */
     ['Distanza recettore (m)', D2.recDist],
+    ['Esito distanza recettore', _senzaDistCsv?'non leggibile':'inserita nel progetto'],
+    ['Perche la distanza recettore non e leggibile', _senzaDistCsv?_senzaDistCsv.che:''],
     ['MIC carica per ritardo (kg)', _mic],
     /* la ragione esce ACCANTO alla cella vuota, come la norma esce accanto al
        limite mancante otto righe più su: una cella vuota da sola dice «non
@@ -3352,10 +3391,18 @@ if($('btn-report')) $('btn-report').onclick=()=>{
      non c'è PPV). La MIC viene prima: senza di lei non esiste niente da
      confrontare con nessuna soglia, e mandare a riscegliere la normativa
      qualcuno che ha solo una carica illeggibile è mandarlo a correggere il
-     campo sano — l'errore che questa stessa riga aveva già fatto una volta. */
+     campo sano — l'errore che questa stessa riga aveva già fatto una volta.
+     ⛔ E DAL 10/08 LE RAGIONI SONO TRE, perché la distanza scalata ha due padri
+     e questo foglio ne sorvegliava uno solo: con `design.recDist:null` la riga
+     stampata diceva «PPV al recettore (— m) 67.627,4 mm/s (limite 15,0, DIN
+     residenziale) SUPERA» — il foglio che si porta in cava e si archivia col
+     rapportino, con la distanza dichiarata assente due centimetri più a
+     sinistra del numero che ne discende. */
   const _rPerche=!_rM.calcolabile
     ? { che:_rM.che, come:_rM.come }
-    : ppvSenzaSoglia(D2.recNorma,D2.recFreq);
+    : (!_rM.distLeggibile
+        ? { che:_rM.distChe, come:_rM.distCome }
+        : ppvSenzaSoglia(D2.recNorma,D2.recFreq));
   const sec=(t,rows)=>'<h2>'+esc(t)+'</h2><table>'+rows.map(r=>'<tr><td>'+esc(r[0])+'</td><td>'+r[1]+'</td></tr>').join('')+'</table>';
   const body=
     sec('Geometria',[['Maglia (spalla × interasse)',gfix(D2.B,1)+' × '+gfix(D2.S,1)+' m'],['Diametro foro',gnum(D2.diam,0)+' mm'],['Fori × file',gnum(nf,0)+' ('+gnum(D2.perRow,0)+' × '+gnum(D2.file,0)+')'],['Profondità / sottoperf.',gnum(D2.prof,1)+' / '+gnum(D2.sub||0,1)+' m'],['Borraggio',gnum(D2.stem,1)+' m'],['Inclinazione',gnum(D2.incl||0,0)+'°'],['Fronte',gnum(g.Lm,1)+' m']])
@@ -4240,9 +4287,19 @@ function _sentDati(){
     kgTotali:_m.caricaLeggibile?Math.round(nf*D2.kg*10)/10:null,
     mic:mic===null?null:Math.round(mic*10)/10,
     micCalcolabile:_m.calcolabile, micChe:_m.che, micCome:_m.come,
-    dist:+D2.recDist, sd:_m.sd,
-    ppv:k.ppv, lim:k.lim, freq:+D2.recFreq,
-    norma:normaPpvLab(D2.recNorma)+' @ '+D2.recFreq+' Hz',
+    /* ⛔ E `+D2.recDist` FACEVA **0** (10/08): il riquadro che si guarda un
+       secondo prima di mandare il file a un'altra app scriveva «Distanza del
+       recettore 0 m» e «Distanza scalata 0 m/kg^½», e `_sentNum(0)` in un CSV
+       non è una cella vuota — è la parola «zero», cioè un recettore DENTRO la
+       volata, scritto nel registro di Sentinella come un fatto. `+null` fa
+       zero: il `null` deve arrivare `null` fino alla cella, esattamente come
+       la MIC e la carica totale due righe più su. Stessa cosa per la
+       frequenza, che `ppvLimit` sa già trattare assente. */
+    dist:_m.distLeggibile?+D2.recDist:null, distLeggibile:_m.distLeggibile,
+    distChe:_m.distChe, distCome:_m.distCome,
+    sd:_m.sd,
+    ppv:k.ppv, lim:k.lim, freq:(D2.recFreq===null||D2.recFreq===undefined||D2.recFreq==='')?null:+D2.recFreq,
+    norma:normaConFrequenza(D2.recNorma, D2.recFreq),
     fonte:(st.fonte==='sito'?'genesi-sito':'genesi-litologia'),
     /* ⛔ «CALIBRATA» E «PROVVISORIA» NON SI ESCLUDONO, E LA SECONDA VA DETTA.
        `sitoFit` alza la bandiera `avviso:'pochi'` sotto gli 8 referti, e con
@@ -4300,7 +4357,17 @@ function sentRender(){
       +'<b>La MIC non è calcolabile</b>: '+_rEsc(d.micChe)+'. '+_rEsc(d.micCome)
       +' Nel file le celle di MIC, PPV prevista e airblast escono <b>vuote</b>: '
       +'Sentinella riceverà la volata senza quei numeri invece che con degli zeri.</div>')
-    +riga('Distanza del recettore',it(d.dist,0)+' m',1)
+    /* ⚠️ stessa forma della MIC qui sopra: un valore che non si può leggere si
+       DICE, invece di uscire come un numero — e «0 m» era il peggiore che
+       questa riga potesse dare, perché un recettore a zero metri è dentro la
+       volata e nel registro di Sentinella sarebbe un fatto. */
+    +riga('Distanza del recettore',d.distLeggibile
+      ? it(d.dist,0)+' m'
+      : '<span style="color:#ffca28">non leggibile</span>',1)
+    +(d.distLeggibile?'':'<div style="color:#ffca28;font-size:12px;margin-top:6px">'
+      +'<b>La distanza del recettore non è leggibile</b>: '+_rEsc(d.distChe)+'. '+_rEsc(d.distCome)
+      +' Nel file le celle di distanza, distanza scalata, PPV prevista e airblast escono <b>vuote</b>: '
+      +'Sentinella riceverà la volata senza quei numeri invece che con degli zeri.</div>')
     +riga('Distanza scalata (la ricalcola Sentinella)',it(d.sd)+' m/kg^½')
     +riga('PPV <b>prevista</b>',it(d.ppv)+' mm/s',1)
     +riga('Limite citato',it(d.lim)+' mm/s')
@@ -5630,14 +5697,38 @@ function renderScheda2D(){
   /* gittata flyrock: max dei meccanismi Richards&Moore (face burst / cratering / rifling) + McKenzie SDOB, tetto Lundborg (30,1·Ø^⅔). Fonti primarie, unità SI verificate */
   (function(){
     const F=flyrockEst(), Lpred=F.Lpred, Dmez=F.Dmez, Dper=F.Dper;      // stessa stima mostrata in 3D (layer "Zona flyrock")
+    /* ⛔ IL CONFRONTO È FRA DUE NUMERI, E UNO DEI DUE PUÒ NON ESSERCI. Con la
+       distanza assente `null >= 404` e `null >= 202` sono tutt'e due FALSE,
+       quindi la catena cadeva sul ramo finale e dipingeva il pallino ROSSO:
+       «il recettore è dentro la zona di flyrock», detto di un recettore che
+       nessuno ha collocato. È il rapporto fra due numeri della regola di
+       CLAUDE.md, in versione confronto: la domanda si fa sugli OPERANDI. */
+    const _flySd=ppvSenzaDistanza(D2.recDist);
     rows.push({lab:'Gittata flyrock (stima)',valStr:gnum(Lpred,0)+' <span>m → sgombero '+gnum(Dmez,0)+' / '+gnum(Dper,0)+' m</span>',
-      cls:(D2.recDist>=Dper?'sv-ok':(D2.recDist>=Dmez?'sv-warn':'sv-bad')),
-      why:'meccanismo dominante: '+F.mech0[0]+' (k='+gnum(F.kf,0)+'). Sgombero consigliato: mezzi 2× ('+gnum(Dmez,0)+' m), persone 4× ('+gnum(Dper,0)+' m) — recettore a '+gnum(D2.recDist,0)+' m. STIMA INDICATIVA (Richards&Moore/McKenzie/Lundborg): NON sostituisce il calcolo normativo delle aree di sgombero né il giudizio del responsabile del tiro.'});
+      cls:_flySd?'sv-warn':(D2.recDist>=Dper?'sv-ok':(D2.recDist>=Dmez?'sv-warn':'sv-bad')),
+      why:'meccanismo dominante: '+F.mech0[0]+' (k='+gnum(F.kf,0)+'). Sgombero consigliato: mezzi 2× ('+gnum(Dmez,0)+' m), persone 4× ('+gnum(Dper,0)+' m) — '
+        +(_flySd?'<b>non si può dire se il recettore è al sicuro</b>: '+_rEsc(_flySd.che)+'. '+_rEsc(_flySd.come):'recettore a '+gnum(D2.recDist,0)+' m.')
+        +' STIMA INDICATIVA (Richards&Moore/McKenzie/Lundborg): NON sostituisce il calcolo normativo delle aree di sgombero né il giudizio del responsabile del tiro.'});
   })();
   /* flyrock INVERSO: dato il recettore, quali borraggio/burden servono perché
      lo sgombero persone (4x) resti entro quella distanza */
   (function(){
-    const Lmax=(D2.recDist||300)/4;
+    /* ⛔ E QUI IL RIPIEGO ERA SCRITTO A LETTERE: `(D2.recDist||300)/4`. Con la
+       distanza assente la riga si inventava **300 m**, ne ricavava una gittata
+       ammessa di 75 m, e con quei 75 m ACCUSAVA il progetto — «il progetto
+       attuale NON li rispetta: alza il borraggio» — mentre due parole più in
+       là scriveva onestamente «entro il recettore a **— m**». È il calcolo
+       inverso: senza il punto da cui si torna indietro, non c'è niente da
+       invertire, e un requisito nato da un numero inventato manda a rifare un
+       progetto sano. */
+    const _invSd=ppvSenzaDistanza(D2.recDist);
+    if(_invSd){
+      rows.push(nonCalcolabile('Flyrock inverso',
+        'il calcolo inverso parte dal recettore: dice quali borraggio e burden servono perché lo sgombero persone (4×) stia ENTRO la sua distanza. '+_rEsc(_invSd.che)+'. '+_rEsc(_invSd.come)
+        +' Un requisito ricavato da una distanza di comodo manderebbe a rifare un progetto che va bene.'));
+      return;
+    }
+    const Lmax=D2.recDist/4;
     const inv=flyrockInv(Lmax);
     const okS=(D2.stem||2.5)>=inv.minStem-0.01, okB=(D2.B||SPALLA)>=inv.minB-0.01;
     rows.push({lab:'Flyrock inverso',valStr:'borr. ≥ '+gfix(inv.minStem,1)+' <span>m</span> · burden ≥ '+gfix(inv.minB,1)+' <span>m</span>',
@@ -5649,13 +5740,29 @@ function renderScheda2D(){
   /* presplit: controllo di progetto (spaziatura in diametri 8-14, carica lineare disaccoppiata ~0.3-0.9 kg/m per Ø 76-115) */
   if(D2.presplit){
     const _psD = D2.psSpacing/(D2.diam/1000);
-    const _psOkS = _psD>=8 && _psD<=14, _psOkQ = D2.psCharge>=0.25 && D2.psCharge<=0.9;
+    /* ⛔ E L'ALLARME FALSO ERA GIÀ QUI, PRIMA DI QUALUNQUE CORREZIONE — è la
+       ragione per cui l'esclusione di `psCharge` da `valoreCampo` non reggeva.
+       `null >= 0.25` è FALSO e `null < 0.25` è VERO, quindi con la carica
+       lineare assente questa riga scriveva già, a ZERO clic, «Carica lineare
+       troppo bassa: taglio incompleto» accanto a un valore stampato «— kg/m»:
+       accusava il progetto di un difetto ricavato da un campo vuoto. Il clamp
+       nel campo non lo evitava, lo NASCONDEVA al secondo clic riempiendo con
+       0,10 — cioè sostituiva un'accusa con un dato inventato.
+       La domanda si fa sul dato, non sul confronto. */
+    const _psQ = (D2.psCharge===null||D2.psCharge===undefined||D2.psCharge==='')?NaN:+D2.psCharge;
+    const _psQnoto = Number.isFinite(_psQ);
+    const _psOkS = _psD>=8 && _psD<=14, _psOkQ = _psQnoto && _psQ>=0.25 && _psQ<=0.9;
     rows.push({lab:'Presplit',valStr:gfix(D2.psSpacing,1)+' m ('+gnum(_psD,0)+'·Ø) · '+gfix(D2.psCharge,2)+' <span>kg/m</span>',
       cls:(_psOkS&&_psOkQ?'sv-ok':'sv-warn'),
       why:(_psOkS?'spaziatura nella finestra 8–14 diametri: taglio pulito atteso (halfcast visibili sul profilo).':'spaziatura fuori finestra 8–14·Ø: '+(_psD<8?'fori troppo fitti (costo alto senza beneficio).':'fori troppo radi: il taglio può non propagare tra i fori.'))
-        +' '+(_psOkQ?'Carica lineare disaccoppiata corretta: la parete finale resta integra (meno backbreak).':'Carica lineare '+(D2.psCharge<0.25?'troppo bassa: taglio incompleto.':'alta per un presplit: rischio danno alla parete finale.'))
+        +' '+(!_psQnoto
+              ? '<b>Sulla carica lineare non si può dire niente</b>: il campo «'+CAMPI_VOLATA.psCharge+'» non ha un numero leggibile, e un taglio incompleto non si diagnostica da un campo vuoto. Reimposta la carica lineare del presplit (kg/m).'
+              : (_psOkQ?'Carica lineare disaccoppiata corretta: la parete finale resta integra (meno backbreak).':'Carica lineare '+(_psQ<0.25?'troppo bassa: taglio incompleto.':'alta per un presplit: rischio danno alla parete finale.')))
         +' La fila presplit va sparata PRIMA della volata principale (o con anticipo di fila).'});
-  } else if(D2.frat==='compatta' && D2.recDist<200){
+  /* ⚠️ `null < 200` è VERO: senza questa guardia il consiglio del presplit
+     compariva su una volata di cui nessuno aveva scritto dove sta il
+     recettore, dicendo «recettori vicini» di un recettore che non c'è. */
+  } else if(D2.frat==='compatta' && !ppvSenzaDistanza(D2.recDist) && D2.recDist<200){
     rows.push({lab:'Presplit',valStr:'non previsto',cls:'sv-info',
       why:'con roccia compatta e recettori vicini, una fila presplit sul profilo finale riduce backbreak e vibrazioni trasmesse dietro il taglio: valutala nella sezione Presplit del progetto.'});
   }
@@ -5876,12 +5983,21 @@ function renderScheda2D(){
      in giù la MIC può non esserci, e quando non c'è la riga lo DICE — non
      mostra un numero piccolo, che è il modo in cui questa pagina mentirebbe. */
   const _m2=micDaMostrare(), _mic=_m2.mic, _st=ppvSite(), _sd2=_m2.sd;
-  const _ppv=_m2.calcolabile?_st.K*Math.pow(Math.max(0.1,_sd2),-_st.beta):null;
+  /* ⛔ LA DOMANDA SI FA SULLA DISTANZA SCALATA, NON SULLA BANDIERA DELLA MIC —
+     vedi `computeKPI`: con la distanza assente `_m2.calcolabile` restava vera,
+     `_sd2` era `null` e questa riga dichiarava 67.627,4 mm/s. */
+  const _ppv=Number.isFinite(_sd2)?_st.K*Math.pow(Math.max(0.1,_sd2),-_st.beta):null;
   /* ⚠️ `_rat = _ppv/_lim` è sparita di qui: il rapporto lo calcola `esitoPpv`,
      che sul limite assente risponde «non confrontabile» invece di `NaN` — e un
      `NaN` che scivola in un confronto è il modo in cui questa riga nasconde. */
   const _lim=ppvLimit(D2.recNorma,D2.recFreq);
-  const _wmax=Math.pow(D2.recDist,2)*Math.pow(_lim/_st.K,2/_st.beta);
+  /* ⛔ E LA CARICA MASSIMA AMMISSIBILE HA DUE INGRESSI CHE POSSONO MANCARE, la
+     distanza e la soglia: `Math.pow(null,2)` fa **0** e `_lim/_st.K` con
+     `_lim` a `null` fa **0**, quindi la riga scriveva «W max ≈ 0 kg» — cioè
+     «non puoi caricare niente», il consiglio più severo che sappia dare, su
+     due dati che nessuno aveva scritto. `null` quando non si può contare. */
+  const _wmaxOk=Number.isFinite(_lim) && _m2.distLeggibile;
+  const _wmax=_wmaxOk?Math.pow(D2.recDist,2)*Math.pow(_lim/_st.K,2/_st.beta):null;
   /* ⛔ QUI C'ERA LA SECONDA COPIA DELLA TABELLA DELLE NORME, con cinque
      etichette scritte a mano e un ripiego DIVERSO da quello del modulo: se il
      codice non era riconosciuto la pagina scriveva «DIN residenziale» — cioè
@@ -5934,17 +6050,31 @@ function renderScheda2D(){
      modulo, dove si prova. */
   const _perche = ppvSenzaSoglia(D2.recNorma, D2.recFreq);
   const _ep = esitoPpv(_ppv, _lim);
-  /* ⛔ TRE CASI, NON DUE — e il terzo è quello nuovo. Senza SOGLIA manca il
-     metro; senza MIC manca il NUMERO da misurare. Sono mancanze diverse e
-     mandano a correggere due campi diversi: confonderle rimanderebbe a
-     riscegliere la normativa qualcuno che ha solo un disegno senza fori.
+  /* ⛔ QUATTRO CASI, NON TRE — e il quarto è quello del 10/08. Senza SOGLIA
+     manca il metro; senza MIC manca il NUMERO da misurare; senza DISTANZA
+     manca il posto in cui misurarlo. Sono mancanze diverse e mandano a
+     correggere tre campi diversi: confonderle rimanderebbe a riscegliere la
+     normativa qualcuno che ha solo un disegno senza fori, o a disegnare i fori
+     qualcuno che ha solo il recettore vuoto.
      ⚠️ La MIC viene prima: senza di lei la PPV non esiste, quindi non c'è
-     niente da confrontare con nessuna soglia. */
+     niente da confrontare con nessuna soglia. La DISTANZA viene subito dopo,
+     per la stessa ragione: è l'altro padre della distanza scalata, e finché
+     non c'è nessuna soglia ha qualcosa da giudicare. */
   if(!_m2.calcolabile){
     rows.push({lab:'PPV al recettore',valStr:'<span>non calcolabile</span>',cls:_m2.classe,
       why:'la legge di Devine parte dalla distanza scalata, e la distanza scalata parte dalla MIC: '+_rEsc(_m2.che)+'. '+_rEsc(_m2.come)+' Finché la MIC non c\'è, questa previsione <b>non esiste</b> — e un numero piccolo al suo posto direbbe che la volata è tranquilla.'+_coda});
     rows.push({lab:'MIC (carica/ritardo)',valStr:'<span>non calcolabile</span>',cls:_m2.classe,
       why:'massima carica entro la finestra di 8 ms (fori sullo stesso ritardo). Qui non si può contare: '+_rEsc(_m2.che)+'. '+_rEsc(_m2.come)});
+  } else if(!_m2.distLeggibile){
+    /* ⛔ IL CASO NUOVO, e il difetto che chiude non era un numero tranquillo:
+       era un'ACCUSA. Con `design.recDist:null` questa riga dichiarava
+       **67.627,4 mm/s** (i veri sono 6,4) e «Soglia DIN residenziale 15 mm/s
+       @ 25 Hz → SUPERA» — e nel «perché» scriveva «a — m», cioè SAPEVA di non
+       avere la distanza e calcolava lo stesso. */
+    rows.push({lab:'PPV al recettore',valStr:'<span>non calcolabile</span>',cls:'sv-warn',
+      why:'la legge di Devine parte dalla distanza scalata, e la distanza scalata è la distanza del recettore divisa per la radice della MIC: '+_rEsc(_m2.distChe)+'. '+_rEsc(_m2.distCome)+' Finché non c\'è, questa previsione <b>non esiste</b> — e un numero al suo posto direbbe «SUPERA» (o «sotto soglia») di un recettore che nessuno ha collocato.'+_coda});
+    rows.push({lab:'MIC (carica/ritardo)',valStr:gnum(_mic,1)+' <span>kg</span>',cls:'sv-info',
+      why:'massima carica entro la finestra di 8 ms (fori sullo stesso ritardo): questa si conta, ed è quella. La carica massima ammissibile <b>non è calcolabile</b> finché manca la distanza del recettore: cresce col quadrato di quella distanza.'});
   } else if(_lim===null){
     rows.push({lab:'PPV al recettore',valStr:gfix(_ppv,1)+' <span>mm/s</span>',cls:'sv-warn',
       why:'a '+gnum(D2.recDist,0)+' m (SD '+gfix(_sd2,1)+' m/kg^½, MIC '+gnum(_mic,1)+' kg), legge di Devine PPV=K·SD^−β con '+_fonte+'. <b>Non si può dire se è sotto soglia</b>: '+_rEsc(_perche.che)+(_perche.norma?' (il codice salvato è «'+_rEsc(_normaLab)+'»)':'')+'. '+_rEsc(_perche.come)+' Poi il confronto torna.'+_coda});
@@ -5957,22 +6087,47 @@ function renderScheda2D(){
      stesse, spostate e non riscritte. */
   rows.push({lab:'PPV al recettore',valStr:gfix(_ppv,1)+' <span>mm/s</span>',cls:_ep.classe,
     why:'a '+gnum(D2.recDist,0)+' m (SD '+gfix(_sd2,1)+' m/kg^½, MIC '+gnum(_mic,1)+' kg), legge di Devine PPV=K·SD^−β con '+_fonte+'. Soglia '+_normaLab+' '+gnum(_lim,1)+' mm/s @ '+gnum(D2.recFreq,0)+' Hz → '+(_ep.stato==='supera'?'<b>SUPERA</b>':_ep.verdetto)+(_ep.consiglio?': '+_ep.consiglio:'.')+_coda});
-  rows.push({lab:'MIC (carica/ritardo)',valStr:_mic+' <span>kg</span>',cls:'sv-info',
-    why:'massima carica entro la finestra di 8 ms (fori sullo stesso ritardo). W max ammissibile alla soglia scelta ≈ '+Math.round(_wmax)+' kg a '+D2.recDist+' m: oltre, il PPV supera il limite.'});
+  /* ⛔ QUI STAVA IL «null m»: `'… kg a '+D2.recDist+' m'` con la distanza
+     assente stampava, davanti all'utente, «W max ammissibile alla soglia
+     scelta ≈ 0 kg a **null m**» — due bugie in una riga sola (lo zero veniva
+     da `Math.pow(null,2)`). `gnum` di un valore che non c'è scrive «—», ed è
+     la convenzione di ogni altro numero di questa pagina.
+     ⚠️ E LA PRIMA STESURA DI QUESTO COMMENTO DICEVA «l'unico posto di tutta la
+     pagina»: falso, e smentito dieci minuti dopo cercandolo davvero. I posti
+     erano TRE — questo, e due `+D2.recFreq+' Hz'` (il CSV della scheda e il
+     file per Sentinella) che scrivevano «DIN residenziale @ **null** Hz»,
+     uguali in `HEAD`. Un «unico» scritto senza il `grep` che lo prova è la
+     stessa cosa di un «non c'è» dichiarato invece che provato. Il conto che
+     lo dice: `grep -n "+D2\.recFreq+\|+D2\.recDist+" apps/genesi/genesi.html`.
+     ⚠️ E il ramo dove `_wmax` è `null` non ci arriva più (lo prendono i due
+     `else if` qui sopra): la guardia resta perché una riga che stampa un
+     numero deve saperlo dire da sé, non fidarsi di chi la chiama. */
+  rows.push({lab:'MIC (carica/ritardo)',valStr:gnum(_mic,1)+' <span>kg</span>',cls:'sv-info',
+    why:'massima carica entro la finestra di 8 ms (fori sullo stesso ritardo). W max ammissibile alla soglia scelta '+(_wmax===null?'<b>non è calcolabile</b>':'≈ '+gnum(Math.round(_wmax),0)+' kg')+' a '+gnum(D2.recDist,0)+' m: oltre, il PPV supera il limite.'});
   }
   /* ⚠️ `Math.max(0.1, null)` fa 0,1 e `Math.round(null)` fa **0**: senza la
      guardia questa riga scriveva «105 dB(L) · sotto il limite USBM/OSM» su una
      volata inesistente. `_m2.db` è già `null`, e `esitoAirblast` di un `null`
      dice «non calcolabile» — basta non ricostruire il numero qui. */
-  const _sd3=_m2.calcolabile?D2.recDist/Math.cbrt(Math.max(0.1,_mic)):null, _db=_m2.db;
+  /* ⛔ E LA DISTANZA MANCA ANCHE QUI, con la firma opposta: `Math.max(0.001,
+     +null||0)` dentro `airblastDb` faceva 0,001, `Math.max(1,sd3)` lo portava
+     a 1 e `log10(1)` è zero — la formula restituiva **172 dB(L) esatti**, il
+     suo TETTO, «oltre il limite USBM/OSM», contro i 127 veri. Adesso la
+     guardia sta nel modulo (dove si prova), e `_sd3` non si ricostruisce qui
+     su un `null`: sarebbe la copia debole della domanda appena fatta. */
+  const _sd3=(_m2.calcolabile&&_m2.distLeggibile)?D2.recDist/Math.cbrt(Math.max(0.1,_mic)):null, _db=_m2.db;
   /* stessa storia della PPV, e qui il foglio stampato era peggio: la riga
      dell'airblast non c'era proprio. 143 dB(L) — dieci sopra il limite — non
      comparivano da nessuna parte nel documento che si porta in cava. */
   const _ea = esitoAirblast(_db);
+  /* ⚠️ E LA RAGIONE DEV'ESSERE QUELLA GIUSTA, non una a caso: è la regola già
+     pagata su `ppvSenzaSoglia`, che dava sempre la colpa alla frequenza. Con
+     la MIC assente si nomina la MIC; con la distanza assente, la distanza. */
+  const _abChe=!_m2.calcolabile?_m2.che:_m2.distChe, _abCome=!_m2.calcolabile?_m2.come:_m2.distCome;
   rows.push({lab:'Airblast (sovrappr.)',
     valStr:_db===null?'<span>non calcolabile</span>':(Math.round(_db)+' <span>dB(L)</span>'),cls:_ea.classe,
     why:_db===null
-      ? 'rumore d\'aria stimato a '+gnum(D2.recDist,0)+' m: si scala sulla radice cubica della carica per ritardo, e '+_rEsc(_m2.che)+'. '+_rEsc(_m2.come)
+      ? 'rumore d\'aria stimato a '+gnum(D2.recDist,0)+' m: si scala sulla radice cubica della carica per ritardo, e '+_rEsc(_abChe)+'. '+_rEsc(_abCome)
       : 'rumore d\'aria stimato a '+gnum(D2.recDist,0)+' m (cube-root SD '+gnum(_sd3,0)+'): '+_ea.verdetto+(_ea.consiglio?': '+_ea.consiglio:'.')+' Stima da calibrare.'});
   /* descrizioni compatte (richiesta fondatore 25/07): nome+valore sempre visibili,
      spiegazione solo al clic sulla voce (stato ricordato tra i ricalcoli) */
@@ -6137,22 +6292,39 @@ function applyDesign(){
   if($('dAcquaCol')) D2.acquaCol = Math.max(0, Math.min(40, gvv('dAcquaCol')||0));
   if($('dPresplit')) D2.presplit = $('dPresplit').value==='1';
   if($('dPsSpacing')) D2.psSpacing = valoreCampo(gvv('dPsSpacing'), D2.psSpacing, 0.3, 2);
-  /* ⚠️ `psCharge` RESTA COM'ERA, DI PROPOSITO, e la ragione va letta prima di
-     «finire il lavoro»: la riga «Presplit» giudica la carica lineare e con un
-     valore basso scrive «carica lineare troppo bassa: taglio incompleto».
-     Metterla a `null` senza toccare quella riga sposterebbe la bugia da un
-     numero inventato a un ALLARME su un valore che nessuno ha scritto — che è
-     peggio. Le due cose vanno fatte insieme, in un'unità sua. */
-  if($('dPsCharge')) D2.psCharge = Math.max(0.1, Math.min(2, gvv('dPsCharge')||D2.psCharge));
+  /* ⛔ GLI ULTIMI TRE DEL CLAMP, BLOCCO G16 — e tutt'e tre le ragioni per cui
+     erano rimasti fuori sono state RIMISURATE il 10/08 e non reggevano.
+     · `psCharge`: la ragione scritta qui («metterla a `null` farebbe dire
+       *carica lineare troppo bassa: taglio incompleto* su un valore che
+       nessuno ha scritto») descriveva uno stato CHE C'ERA GIÀ. A zero clic,
+       con `design.psCharge:null`, la riga «Presplit» mostrava «0,9 m (9·Ø) ·
+       — kg/m» e sotto scriveva già «Carica lineare troppo bassa: taglio
+       incompleto», perché `null < 0.25` è **vero**. L'allarme falso non lo
+       introduceva la correzione: c'era, e la correzione lo chiude (la riga
+       adesso chiede se il numero c'è PRIMA di giudicarlo). Quello che il
+       clamp aggiungeva era solo di scrivere «0,10» nel campo al secondo clic.
+     · `recDist`: il danno non era al secondo clic, era a ZERO clic — la
+       distanza scalata nasceva da `null/√MIC` = 0 e la scheda dichiarava
+       **67.627,4 mm/s** con «SUPERA», scrivendo nel «perché» «a — m». Sapeva
+       di non avere la distanza e calcolava lo stesso.
+     · `recFreq`: la ragione era «c'è `ppvLimit` in mezzo, e le soglie non si
+       toccano». Misurando, a zero clic la scheda dice già «Non si può dire se
+       è sotto soglia: la frequenza dominante attesa non è un numero
+       leggibile» — cioè `ppvLimit` l'assenza la **gestisce già**, e il
+       `Math.max(2, …)` non proteggeva una soglia: la distruggeva, cambiando
+       quel «non si può dire» in «5 mm/s @ 2 Hz → SUPERA».
+     ⛔ NESSUNA SOGLIA È STATA TOCCATA: `ppvLimit`, le curve USBM/DIN e i
+     133 dB(L) sono gli stessi. Qui si smette solo di inventare gli ingressi
+     che ci vanno dentro, e i clamp mordono come prima sui dati veri. */
+  if($('dPsCharge')) D2.psCharge = valoreCampo(gvv('dPsCharge'), D2.psCharge, 0.1, 2);
   if($('dSeq')) D2.sequenza = $('dSeq').value||D2.sequenza;
-  /* ⚠️ E I DUE CAMPI DEL RECETTORE RESTANO ANCH'ESSI COM'ERANO: inventano nella
-     direzione che ALLARMA — 20 m di distanza e 2 Hz danno il limite di PPV più
-     severo che la norma sappia dire, quindi il difetto qui non è un numero
-     tranquillo ma un numero spaventato. Metterli a `null` vuol dire decidere
-     che cosa fa `ppvLimit` senza recettore, e quella è la sua unità. */
-  if($('dRecDist')) D2.recDist = Math.max(20, Math.min(3000, gvv('dRecDist')||D2.recDist));
+  if($('dRecDist')) D2.recDist = valoreCampo(gvv('dRecDist'), D2.recDist, 20, 3000);
   if($('dRecNorma')) D2.recNorma = $('dRecNorma').value||D2.recNorma;
-  if($('dRecFreq')) D2.recFreq = Math.max(2, Math.min(120, +$('dRecFreq').value||D2.recFreq));
+  /* ⚠️ `gvv` e non `+$('dRecFreq').value`, come per i sei campi interi del
+     blocco G15: su un campo VUOTO `+''` fa **0**, che è finito, e
+     `valoreCampo` lo prenderebbe per un dato scritto stringendolo al minimo —
+     cioè il difetto di prima rifatto dentro la correzione. */
+  if($('dRecFreq')) D2.recFreq = valoreCampo(gvv('dRecFreq'), D2.recFreq, 2, 120);
   if($('dCPerf')) D2.cPerf = Math.max(0, Math.min(500, gvv('dCPerf')||0));
   if($('dCExpl')) D2.cExpl = Math.max(0, Math.min(50, gvv('dCExpl')||0));
   if($('dCInn')) D2.cInnesco = Math.max(0, Math.min(500, gvv('dCInn')||0));

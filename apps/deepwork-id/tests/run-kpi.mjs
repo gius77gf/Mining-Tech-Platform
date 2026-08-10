@@ -26855,70 +26855,6 @@ test("voceDocumentoInElenco: la regola vale per documento, non per la lista", ()
     eq(gz15.valoreCampo(84.6, 84, 8, 300), 84.6, "il ritardo tra file resta com'era, senza arrotondamento");
   });
 
-  test("⛔ Genesi · in `applyDesign` non resta NESSUN ALTRO ripiego col clamp — e i tre rimasti sono dichiarati per nome", () => {
-    /* ⛔ IL DENOMINATORE CHE ALLE PROVE QUI SOPRA MANCA, ed è la famiglia già
-       pagata due volte in questo repository: quelle pinnano DODICI NOMI, uno per
-       uno. Un tredicesimo campo scritto domani con la forma vecchia —
-       `Math.max(min, Math.min(max, gvv('dX')||D2.x))` — non lo vedrebbe nessuna
-       di loro, e la suite direbbe «nessuna violazione» con la stessa faccia con
-       cui direbbe la verità. Un censimento che cerca UN nome non è un censimento.
-       Qui si guarda il corpo INTERO di `applyDesign` e si pretende che l'elenco
-       di chi porta ancora un ripiego sia esattamente quello deciso: una
-       regressione fa cadere la prova, e una correzione futura costringe a
-       togliere il nome da qui invece di lasciarlo a coprire il vuoto.
-       ⚠️ Misurato nel browser il 09/08 sui quindici campi di B0-sexies, aprendo
-       una volata con `design.<campo>: null` e facendo i due tocchi: DODICI
-       restano vuoti, TRE si riempiono da soli. La lettura statica e la misura
-       danno lo stesso numero, ed è per questo che l'elenco ha tre nomi. */
-    const i = srcG15.indexOf("function applyDesign(){"), j = srcG15.indexOf("function syncDesignInputs(");
-    eq(i > 0 && j > i, true, "il corpo di `applyDesign` si trova nella pagina");
-    const righe = srcG15.slice(i, j).split("\n");
-    /* ⚠️ quanti soggetti ha guardato: uno «zero violazioni» su una fetta vuota
-       si scrive uguale a uno «zero violazioni» su un corpo sano */
-    eq(righe.length > 30, true, `il corpo guardato ha ${righe.length} righe, non è una fetta vuota`);
-
-    const conRipiego = righe.filter((r) => /\|\|\s*D2\./.test(r));
-    eq(conRipiego.length, 8, `in \`applyDesign\` restano 8 righe con un ripiego \`||D2.x\` (trovate ${conRipiego.length})`);
-    const chiave = (r) => (r.match(/\|\|\s*D2\.(\w+)/) || [])[1];
-    /* i ripieghi che passano da un CLAMP sono quelli che INVENTANO un minimo:
-       `Math.min(max, null)` fa 0 e `Math.max(min, 0)` lo tira su al minimo */
-    const colClamp = conRipiego.filter((r) => /Math\.max\(/.test(r));
-    eq(colClamp.map(chiave).sort(), ["psCharge", "recDist", "recFreq"],
-      "e quelli che passano ancora da un clamp sono ESATTAMENTE i tre esclusi per decisione presa");
-    /* gli altri cinque non inventano niente: quattro sono TENDINE (un `select`
-       un valore vuoto non ce l'ha) e `dRit` non ha clamp, quindi il `||` tiene
-       il valore di prima invece di stringere al minimo */
-    eq(conRipiego.filter((r) => !/Math\.max\(/.test(r)).map(chiave).sort(),
-      ["frat", "recNorma", "ritardo", "roccia", "sequenza"],
-      "e i cinque senza clamp sono le quattro tendine più il ritardo, che non stringe niente");
-
-    /* ⛔ E IL NUMERO CHE I TRE INVENTANO SI LEGGE DALLA RIGA, NON SI RISCRIVE
-       QUI. La prima stesura di questa prova faceva
-       `eq(Math.max(0.1, Math.min(2, NaN || null)), 0.1)` con i tre limiti
-       scritti a mano nella tabella del test: è aritmetica su costanti sue, cioè
-       una prova che passerebbe anche se il codice cambiasse i limiti — la prima
-       delle cinque letture di «non distingue». Adesso il minimo si estrae dalla
-       riga vera, e il valore atteso è quello MISURATO nel browser: se domani
-       qualcuno tocca un limite, cade qui e non nel documento. */
-    const inventatoDaBrowser = { psCharge: 0.1, recDist: 20, recFreq: 2 };
-    for (const r of colClamp) {
-      const nome = chiave(r), mn = Number((/Math\.max\(\s*([\d.]+)\s*,/.exec(r) || [])[1]);
-      eq(Number.isFinite(mn), true, `il minimo di \`${nome}\` si legge nella sua riga`);
-      eq(Math.max(mn, Math.min(Infinity, null)), inventatoDaBrowser[nome],
-        `${nome}: col valore assente il clamp scrive ancora ${inventatoDaBrowser[nome]}, che è quanto si è letto a schermo`);
-    }
-
-    /* ⛔ E L'ECCEZIONE DICHIARATA NON DEVE POTER SPARIRE IN SILENZIO: la ragione
-       sta scritta accanto alle righe, e si legge sul file GREZZO perché
-       `srcG15` i commenti li ha tolti. È la regola di `sonda-vuoto`: un caso
-       scusato per iscritto smette di essere una svista, ma solo finché la
-       scusa c'è. */
-    const grezzo = _rfG15(join(HERE, "../../genesi/genesi.html"), "utf8");
-    eq(/RESTA COM'ERA, DI PROPOSITO/.test(grezzo), true,
-      "accanto a `psCharge` c'è scritto perché non è stata toccata (l'allarme «carica lineare troppo bassa» c'è già)");
-    eq(/I DUE CAMPI DEL RECETTORE RESTANO ANCH'ESSI COM'ERANO/.test(grezzo), true,
-      "e accanto ai due del recettore c'è la loro: inventano nella direzione che ALLARMA, e sotto c'è `ppvLimit`");
-  });
 
   test("⛔ Genesi · la carica AUTO non riempie il buco che la geometria ha appena dichiarato", () => {
     /* ⛔ IL DIFETTO CHE LA CORREZIONE PORTAVA A VALLE, e che nessuno vede
@@ -27114,6 +27050,200 @@ test("voceDocumentoInElenco: la regola vale per documento, non per la lista", ()
     const usi = (corpo.match(/nonCalcolabile\(/g) || []).length;
     eq((corpo.match(/nonCalcolabile=\(/g) || []).length, 1, "la dichiarazione è una sola, e si scrive `nonCalcolabile=(`");
     eq(usi >= 7, true, `e la chiamano ${usi} righe della scheda (erano 5 copie a mano più le 2 nuove)`);
+  });
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   G16 · IL RECETTORE ASSENTE NON FA DIRE «SUPERA» (B0-decies, 10/08)
+   ══════════════════════════════════════════════════════════════════════════
+   ⛔ NESSUNA SOGLIA È STATA TOCCATA. `ppvLimit`, le curve USBM/DIN e i 133
+   dB(L) sono esattamente gli stessi numeri: quello che è cambiato è che si è
+   smesso di INVENTARE gli ingressi che ci vanno dentro. Le prove qui sotto lo
+   pretendono per iscritto, così la prossima correzione non ci si appoggia.
+   ⛔ MISURATO NEL BROWSER a ZERO clic, su una volata salvata con
+   `design.recDist:null` (i tre campi che B0-sexies teneva fuori):
+     · PPV al recettore **67.627,4 mm/s** (i veri sono 6,4) con verdetto
+       «Soglia DIN residenziale 15 mm/s @ 25 Hz → SUPERA», e nel «perché»
+       scritto «a **— m**»: sapeva di non avere la distanza e calcolava lo
+       stesso. Non un numero tranquillo — un'ACCUSA;
+     · Airblast **172 dB(L)** (i veri sono 127), che è il TETTO della formula:
+       `Math.max(0.001, +null||0)` fa 0,001 e `log10(1)` è zero;
+     · e la riga MIC stampava, davanti all'utente, «W max ammissibile alla
+       soglia scelta ≈ **0 kg a null m**» — l'unico punto della pagina in cui
+       un valore di `D2` finiva in una frase senza passare da `gnum`.
+   Le stesse due cifre uscivano dal FOGLIO che si porta in cava e dal CSV che
+   si archivia col rapportino («Esito PPV;SUPERA»), con la cella «Distanza
+   recettore (m)» **vuota** accanto; e il file per Sentinella portava
+   `distanzaRicettore` a **0** — un recettore dentro la volata, scritto in
+   un'altra app come un fatto. */
+{
+  const gz16 = await app("genesi", "genesi-data.js");
+  const { readFileSync: _rfG16 } = await import("node:fs");
+  const { senzaCommenti: _scG16 } = await import("./tokenizza.mjs");
+  /* ⚠️ SENZA COMMENTI, per la ragione già pagata in G14 e G15: la correzione
+     CITA nel suo commento la riga che ha tolto, e un censimento letto sul file
+     grezzo conta i commenti come codice (dava 5 invece di 3). */
+  const srcG16 = _scG16(_rfG16(join(HERE, "../../genesi/genesi.html"), "utf8"));
+  const grezzoG16 = _rfG16(join(HERE, "../../genesi/genesi.html"), "utf8");
+
+  test("⛔ Genesi · B0-decies: in `applyDesign` non resta NESSUN ripiego col clamp — zero, non tre", () => {
+    /* ⛔ IL CENSIMENTO CHE PRENDE ANCHE IL CAMPO SCRITTO DOMANI. Le prove che
+       pinnano i nomi uno per uno non vedrebbero un campo nuovo con la forma
+       vecchia — `Math.max(min, Math.min(max, gvv('dX')||D2.x))` — e la suite
+       direbbe «nessuna violazione» con la stessa faccia con cui direbbe la
+       verità. Qui si guarda il corpo INTERO di `applyDesign`.
+       ⚠️ Il numero atteso è sceso da 8 ripieghi/3 col clamp a 5 ripieghi/0:
+       i tre erano `psCharge`, `recDist`, `recFreq`, ed erano gli ultimi. */
+    const i = srcG16.indexOf("function applyDesign(){"), j = srcG16.indexOf("function syncDesignInputs(");
+    eq(i > 0 && j > i, true, "il corpo di `applyDesign` si trova nella pagina");
+    const righe = srcG16.slice(i, j).split("\n");
+    /* ⚠️ quanti soggetti ha guardato: uno «zero violazioni» su una fetta vuota
+       si scrive uguale a uno «zero violazioni» su un corpo sano */
+    eq(righe.length > 30, true, `il corpo guardato ha ${righe.length} righe, non è una fetta vuota`);
+    const conRipiego = righe.filter((r) => /\|\|\s*D2\./.test(r));
+    const chiave = (r) => (r.match(/\|\|\s*D2\.(\w+)/) || [])[1];
+    eq(conRipiego.length, 5, `in \`applyDesign\` restano 5 righe con un ripiego \`||D2.x\` (trovate ${conRipiego.length})`);
+    eq(conRipiego.filter((r) => /Math\.max\(/.test(r)).map(chiave), [],
+      "e NESSUNA passa più da un clamp: i tre esclusi di B0-sexies sono stati chiusi");
+    /* gli altri cinque non inventano niente: quattro sono TENDINE (un `select`
+       un valore vuoto non ce l'ha) e `dRit` non ha clamp, quindi il `||` tiene
+       il valore di prima invece di stringere al minimo */
+    eq(conRipiego.map(chiave).sort(), ["frat", "recNorma", "ritardo", "roccia", "sequenza"],
+      "i cinque rimasti sono le quattro tendine più il ritardo, che non stringe niente");
+    /* e i tre campi passano da `valoreCampo` coi limiti di prima, non con altri */
+    for (const [id, k, mn, mx] of [["dPsCharge", "psCharge", "0.1", "2"], ["dRecDist", "recDist", "20", "3000"], ["dRecFreq", "recFreq", "2", "120"]])
+      eq(srcG16.includes(`D2.${k} = valoreCampo(gvv('${id}'), D2.${k}, ${mn}, ${mx});`), true,
+        `${k} passa da valoreCampo, e i suoi limiti ${mn}–${mx} sono quelli di prima`);
+    /* ⚠️ e `recFreq` si legge con `gvv`, non con `+$('x').value`: su un campo
+       VUOTO `+''` fa 0, che è finito, e `valoreCampo` lo stringerebbe al minimo
+       — il difetto rifatto dentro la correzione (punto 3 del blocco G15) */
+    eq(/dRecFreq'\)\.value\|\|D2\.recFreq/.test(srcG16), false,
+      "e la frequenza non si legge più con `+$('dRecFreq').value`, che di un campo vuoto fa zero");
+  });
+
+  test("⛔ Genesi · ppvSenzaDistanza: una distanza che non c'è non è zero metri", () => {
+    /* la forma è quella di `ppvSenzaSoglia`: `null` quando il dato c'è,
+       altrimenti CHE COSA manca e CHE COSA si fa. Una funzione che risponde
+       `true`/`false` manderebbe la pagina a inventarsi la frase. */
+    eq(gz16.ppvSenzaDistanza(300), null, "300 m è una distanza: niente da dire");
+    eq(gz16.ppvSenzaDistanza("300"), null, "e la stringa che arriva da localStorage lo è ancora");
+    eq(gz16.ppvSenzaDistanza(0.5), null, "mezzo metro è assurdo ma è un dato: lo giudica il prodotto, non questa funzione");
+    for (const x of [null, undefined, "", "  ", "abc", NaN])
+      eq(gz16.ppvSenzaDistanza(x) === null, false, `${JSON.stringify(String(x))}: non è una distanza`);
+    /* ⛔ LO ZERO E IL NEGATIVO NON SONO DISTANZE, ed è la differenza con la
+       sottoperforazione (dove lo zero è un dato vero): un recettore a zero
+       metri sta DENTRO la volata, e `d/√MIC` a zero manda la PPV a fondo
+       scala. È la stessa soglia dei tre fattori di `volumeForo`. */
+    eq(gz16.ppvSenzaDistanza(0) === null, false, "zero metri non è una distanza: è il recettore dentro la volata");
+    eq(gz16.ppvSenzaDistanza(-40) === null, false, "e una distanza negativa nemmeno");
+    const r = gz16.ppvSenzaDistanza(null);
+    eq(typeof r.che === "string" && r.che.length > 20, true, "dice CHE COSA manca");
+    eq(typeof r.come === "string" && /[Rr]eimposta/.test(r.come), true, "e CHE COSA si fa per rimediare");
+    /* ⚠️ la frase sta in una TABELLA come `PPV_SENZA_SOGLIA`, non scritta a
+       mano dentro la funzione: la leggono la scheda, il foglio, il CSV e il
+       riquadro per Sentinella, e quattro copie prima o poi dicono quattro cose
+       diverse della stessa assenza. */
+    eq(Object.keys(gz16.PPV_SENZA_DISTANZA).sort(), ["che", "come"], "la ragione è una tabella, non una stringa sparsa");
+    eq(r.che === gz16.PPV_SENZA_DISTANZA.che && r.come === gz16.PPV_SENZA_DISTANZA.come, true,
+      "e la funzione la RESTITUISCE, non la riscrive");
+    /* ⚠️ il nome del campo è quello che si LEGGE sullo schermo, e sta in
+       `CAMPI_VOLATA`: una seconda copia prima o poi lo chiama in un altro modo */
+    eq(gz16.CAMPI_VOLATA.recDist, "distanza del recettore", "e il nome del campo è già nella tabella dei nomi");
+  });
+
+  test("⛔ Genesi · airblastDb: senza distanza non dà 172 dB(L), il suo TETTO — dà null", () => {
+    /* ⛔ IL VERSO OPPOSTO ALLA MIC, LA STESSA CAUSA. Con la MIC assente il
+       difetto del 09/08 era un numero TRANQUILLO (104,5 dB(L), «sotto il
+       limite»); con la distanza assente è un'ACCUSA: `Math.max(0.001,
+       +null||0)` fa 0,001, `Math.max(1, sd3)` lo porta a 1, `log10(1)` è zero
+       e restano **172 dB(L) esatti**, cioè il massimo che la formula sappia
+       produrre, «oltre il limite USBM/OSM». */
+    eq(172 - 24 * Math.log10(Math.max(1, Math.max(0.001, +null || 0) / Math.cbrt(58))), 172,
+      "promemoria di com'era: con la distanza assente la formula dava esattamente 172, il suo tetto");
+    eq(gz16.airblastDb(null, 58), null, "distanza assente: nessun airblast da dichiarare");
+    for (const brutto of [undefined, "", "abc", NaN, 0, -300])
+      eq(gz16.airblastDb(brutto, 58), null, `${String(brutto)} non è una distanza`);
+    eq(gz16.esitoAirblast(gz16.airblastDb(null, 58)).misurabile, false,
+      "e `esitoAirblast` di quel null dice «non calcolabile», non un verdetto");
+    /* ⚠️ NIENTE SI MUOVE SUI DATI VERI: sono gli stessi numeri delle prove del
+       09/08, ricontrollati perché una guardia nuova non spenga un dato sano. */
+    eq(+gz16.airblastDb(300, 720).toFixed(2), 135.41, "720 kg a 300 m: 135,41 dB(L) come prima");
+    eq(+gz16.airblastDb(300, 0).toFixed(2), 104.55, "e lo zero MISURATO della carica continua a dare il suo numero");
+    eq(+gz16.airblastDb(300, 58).toFixed(2), 126.66, "la volata della dimostrazione resta a 126,66 dB(L)");
+    eq(gz16.AIRBLAST_LIMITE_DB, 133, "⛔ e la soglia USBM/OSM non si è mossa di un decibel");
+  });
+
+  test("⛔ Genesi · normaConFrequenza: «@ null Hz» non si scrive in un file", () => {
+    /* ⛔ LA SECONDA «PAROLA null STAMPATA», trovata cercando la prima e uguale
+       in `HEAD`: `normaPpvLab(norma)+' @ '+f+' Hz'` era scritto DUE VOLTE nella
+       pagina — nel CSV della scheda e nel file che parte verso Sentinella — e
+       con la frequenza assente tutt'e due scrivevano «DIN residenziale @ null
+       Hz». La copia debole dove il documento si compone, nella forma tipica:
+       `normaPpvLab` esisteva e faceva metà del lavoro; l'altra metà se la
+       componeva chi scriveva il file. Adesso è una sola funzione. */
+    eq(gz16.normaConFrequenza("din-res", 25), "DIN residenziale @ 25 Hz", "la volata della dimostrazione: etichetta e frequenza come prima");
+    eq(gz16.normaConFrequenza("din-sens", "10"), "DIN sensibile/storico @ 10 Hz", "e la stringa che arriva da localStorage si legge lo stesso");
+    for (const x of [null, undefined, "", "abc", NaN])
+      eq(gz16.normaConFrequenza("din-res", x), "DIN residenziale @ frequenza non indicata",
+        `${JSON.stringify(String(x))}: la parola «null» non finisce in un file che si apre in Excel`);
+    /* ⚠️ e il codice sconosciuto continua a essere RIPETUTO, non battezzato:
+       è la regola già pagata sulla seconda tabella delle norme */
+    eq(gz16.normaConFrequenza("boh", 25), "boh @ 25 Hz", "una norma non riconosciuta si ripete, non prende il nome della DIN residenziale");
+    /* ⛔ e la SOGLIA non c'entra: `ppvLimit` risponde già `null` da sé, e
+       questa funzione non la sfiora */
+    eq(gz16.ppvLimit("din-res", null), null, "la soglia di una frequenza assente resta `null`, come prima");
+    eq(gz16.ppvLimit("din-res", 25), 15, "e quella di 25 Hz resta 15 mm/s, alla cifra");
+  });
+
+  test("⛔ Genesi · B0-decies: le guardie a valle sono nella pagina, non solo nel modulo", () => {
+    /* ⛔ «UN NUMERO CHE DIVENTA NON CALCOLABILE IN UN POSTO E RESTA INVENTATO
+       IN UN ALTRO È IL LAVORO FATTO A METÀ». La distanza scalata la leggono
+       SETTE punti, e `micDaMostrare` è il collo di bottiglia che li serve
+       tutti: se la domanda si fa lì, il foglio non può più scostarsi dallo
+       schermo. Queste asserzioni pinnano i punti dove il difetto gemello si
+       nascondeva, uno per uno. */
+    eq(/const senzaDist=ppvSenzaDistanza\(D2\.recDist\);/.test(srcG16), true,
+      "`micDaMostrare` chiede al modulo se la distanza c'è");
+    eq(/sd:\(es\.calcolabile && !senzaDist\)\?D2\.recDist\/Math\.sqrt/.test(srcG16), true,
+      "e la distanza scalata è `null` quando manca uno QUALUNQUE dei suoi due padri");
+    /* ⛔ la bandiera giusta: `calcolabile` risponde solo «la MIC si conta», e
+       con la distanza assente restava VERA mentre `sd` era già `null` */
+    eq(/const ppv=Number\.isFinite\(_m\.sd\)/.test(srcG16), true,
+      "i KPI decidono sulla distanza scalata, non sulla bandiera della MIC");
+    eq(/const _ppv=Number\.isFinite\(_sd2\)/.test(srcG16), true, "e la scheda validatori pure");
+    /* ⛔ il «null m»: l'unico valore di `D2` che finiva in una frase senza gnum */
+    eq(/\+D2\.recDist\+' m'/.test(srcG16), false,
+      "⛔ nessuna frase concatena più `D2.recDist` grezzo: era il «null m» stampato all'utente");
+    eq(/\+' a '\+gnum\(D2\.recDist,0\)\+' m: oltre/.test(srcG16), true,
+      "quella riga passa da `gnum`, che di un valore assente scrive «—»");
+    /* ⛔ e il ripiego scritto a lettere del flyrock inverso */
+    eq(/\(D2\.recDist\|\|300\)/.test(srcG16), false,
+      "⛔ il flyrock inverso non si inventa più 300 m di recettore per avere un numero da invertire");
+    /* ⛔ i due confronti che di `null` fanno un verdetto */
+    eq(/cls:_flySd\?'sv-warn':/.test(srcG16), true,
+      "il flyrock chiede se la distanza c'è PRIMA di dipingere il pallino: `null>=404` è falso e cadeva sul rosso");
+    eq(/&& !ppvSenzaDistanza\(D2\.recDist\) && D2\.recDist<200/.test(srcG16), true,
+      "e il consiglio del presplit non parte più su `null<200`, che è vero");
+    /* ⛔ la carica lineare: l'allarme falso che c'era GIÀ, prima di ogni correzione */
+    eq(/_psOkQ = _psQnoto && _psQ>=0\.25 && _psQ<=0\.9/.test(srcG16), true,
+      "la riga «Presplit» chiede se la carica lineare c'è prima di chiamarla «troppo bassa»");
+    /* ⛔ e le tre cose che ESCONO: il foglio, il file, il riquadro */
+    eq(/\? \{ che:_rM\.distChe, come:_rM\.distCome \}/.test(srcG16), true,
+      "il foglio stampabile ha la terza ragione: senza distanza non c'è verdetto, e lo dice");
+    eq(/dist:_m\.distLeggibile\?\+D2\.recDist:null/.test(srcG16), true,
+      "⛔ e il file per Sentinella non manda più `+null` = **0**: un recettore a zero metri, in un'altra app, è un fatto");
+    eq(/\['Esito distanza recettore'/.test(srcG16), true,
+      "nel CSV la cella vuota non resta muta: accanto c'è la riga che dice che è una non-misurabilità");
+    /* ⛔ E LE SOGLIE, PER ISCRITTO: la riga di B0-decies che non si discute */
+    eq(/case 'din-sens': return n<10\?3:\(n<50\?8:10\);/.test(_scG16(_rfG16(join(HERE, "../../genesi/genesi-data.js"), "utf8"))), true,
+      "⛔ e le curve di `ppvLimit` sono rimaste alla cifra: qui non si è toccata nessuna soglia");
+    /* ⚠️ l'eccezione dichiarata è SPARITA insieme al suo caso: le due ragioni
+       scritte accanto a `psCharge` e ai due del recettore non devono restare
+       lì a coprire un difetto che non c'è più (è la regola di `sonda-vuoto`). */
+    eq(/RESTA COM'ERA, DI PROPOSITO/.test(grezzoG16), false,
+      "la scusa di `psCharge` è stata tolta insieme al clamp che scusava");
+    eq(/I DUE CAMPI DEL RECETTORE RESTANO ANCH'ESSI COM'ERANO/.test(grezzoG16), false,
+      "e quella dei due del recettore anche");
   });
 }
 
