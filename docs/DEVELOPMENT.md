@@ -49,7 +49,7 @@ segnaposto («Funzione nav non ancora pronta»). Per aprirlo davvero si monta
 **2.498 prove girano senza rete e senza browser**, con `node` (contate lanciandole, non a memoria — al 10/08: 2046 + 318 + 75 + 32 + 9 + 8 + 7 + 3):
 
 > ⚠️ **E quel numero conta OTTO suite, non tutto quello che gira.** Il giro
-> `node` completo esegue **2.828** asserzioni su **34** comandi.
+> `node` completo esegue **2.829** asserzioni su **34** comandi.
 > ⏱️ **Dal 09/08 quel numero non si scrive più a mano: lo stampa il giro**
 > (`node apps/deepwork-id/tests/giro-node.mjs`, riga «Asserzioni eseguite dal
 > giro»), col suo denominatore accanto — 22 comandi su 34 hanno una riga da
@@ -221,7 +221,7 @@ non ha potuto guardare** — le **21** prove sulle funzioni, verificabili solo i
 CI. Se `firebase` o `java` non rispondono si ferma dicendolo (uscita 2) invece
 di stampare «0 caduti», che sarebbe il verde più falso che ci sia.
 
-**178 esecuzioni che aprono davvero le pagine** in Chromium — banchi distinti,
+**180 esecuzioni che aprono davvero le pagine** in Chromium — banchi distinti,
 ognuno seguito dalla sua **controprova** (Chromium è già installato in
 `/opt/pw-browsers/chromium`, **non** si lancia `playwright install`):
 

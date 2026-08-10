@@ -1128,6 +1128,27 @@ numero scritto dove non era stato misurato niente**.*
       in silenzio dall'estratto conto e dal sollecito (`apertoDi(f) > 0` la
       filtra). Serve costruire l'import CSV con la colonna vuota.
 
+- [ ] **C1. «undefined» DISEGNATO SUI FORI, E «UNDEFINED FILE» NELLA STRISCIA
+      DEI KPI — visti in uno SCATTO, non leggendo il codice.** ⏱️ *Trovati il
+      10/08 guardando l'immagine della schermata «Sequenza sparo» del core,
+      mentre si verificava un'altra correzione.*
+      Con una volata i cui fori non hanno il ritardo, il disegno 2D scrive
+      **`undefined`** accanto a ogni foro lungo il fronte, e la striscia dei KPI
+      sopra il pannello dice **«UNDEFINED FILE»**. È la famiglia già raccolta in
+      `CLAUDE.md` — «undefined/undefined/boh» stampato a schermo in 58 punti di
+      una pagina — nella sua veste peggiore, perché **non è un numero
+      sbagliato: è una parola inglese in un prodotto italiano**, e chi la vede
+      pensa che l'app sia rotta.
+      ⚠️ **Non è la scena di prova**: la scena è stata resa realistica (numero
+      della volata, fori numerati di seguito) e le due scritte **restano**. Le
+      due righe della lista dei fori, invece, dicono già «—»: è di nuovo la
+      stessa pagina che si racconta in due modi.
+      **Come si rimisura**: `DW_SCATTI=<cartella> node
+      apps/deepwork-id/tests/browser/core-sequenza-ritardi.mjs` e si **guarda**
+      `nuovo-sonda-senza.png`. Il banco c'è già; quello che manca è l'asserzione
+      su questi due testi, e una che pretenda che **nessuna schermata del core
+      contenga la parola «undefined»**.
+
 - [ ] **B0-duodecies. I CLAMP DELLE TRE SUPERFICI CHE IL CENSIMENTO NON AVEVA
       GUARDATO — core, Campo, Scudo.** ⏱️ *Censite il 10/08 con lo stesso
       comando delle altre cinque app (commenti tolti con `senzaCommenti`, sulle
@@ -4090,8 +4111,8 @@ numero scritto dove non era stato misurato niente**.*
   sorvegliati ne contavano sette: due convenzioni per lo stesso numero, che è
   il modo più facile di far sembrare sbagliato un conto giusto. Adesso è una
   sola.*
-  Copertura **725/725** e nessuna funzione scoperta; **178 esecuzioni** che
-  aprono le pagine in un browser vero, da **74** file di banco distinti (contati
+  Copertura **725/725** e nessuna funzione scoperta; **180 esecuzioni** che
+  aprono le pagine in un browser vero, da **75** file di banco distinti (contati
   dalla tabella `BANCHI` di `tutti.mjs`, non a occhio dalla cartella, che di
   `.mjs` ne ha di più perché contiene anche gli aiuti — `giro.mjs`,
   `impronta.mjs`, il runner stesso).

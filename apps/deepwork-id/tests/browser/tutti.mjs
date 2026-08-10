@@ -366,6 +366,11 @@ const BANCHI = [
      per una ragione vera è un giro che qualcuno spegne.
      Le prove di `run-kpi` guardano il SORGENTE; questo guarda l'AGGANCIO —
      che il campo, sullo schermo, dopo i due tocchi resti davvero vuoto. */
+  /* ⛔ IL PANNELLO CHE DICEVA «0 ms» DOVE NESSUNO AVEVA IMPOSTATO NIENTE — e
+     l'elenco due righe sotto lo smentiva gia'. Nessun banco guardava quella
+     frase: `grep -rl "Durata totale" apps/deepwork-id/tests/` non dava niente. */
+  ['la durata della sequenza nel core', 'core-sequenza-ritardi.mjs', []],
+  ['durata sequenza · controprova', 'core-sequenza-ritardi.mjs', ['--controprova'], true],
   ['i campi di Genesi che restano vuoti', 'genesi-campi-assenti.mjs', []],
   ['campi vuoti di Genesi · controprova', 'genesi-campi-assenti.mjs', ['--controprova'], true],
   ['il piano di innesco XML di Genesi', 'genesi-piano-innesco.mjs', []],

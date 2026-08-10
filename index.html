@@ -5702,13 +5702,34 @@ function renderEditorSide(){
   // ── Modalità SEQUENZA ──
   if(state.voloraTool==='sequenza' && state.foroSel===null){
     const sorted=[...v.fori].sort((a,b)=>(parseNum0(a.ritardo)||0)-(parseNum0(b.ritardo)||0));
-    const totMs=sorted.length>0?Math.max(...sorted.map(f=>parseNum0(f.ritardo)||0)):0;
+    /* ⛔ «DURATA TOTALE: 0 ms» ERA UN NUMERO TRANQUILLO, E LA RIGA SOTTO LO
+       SMENTIVA GIÀ. L'elenco qui accanto scrive `${f.ritardo||'—'}`, cioè dice
+       onestamente «non impostato» per ogni foro senza ritardo; il riepilogo
+       sopra leggeva gli stessi fori con `parseNum0`, che di un valore assente
+       fa **zero**, e concludeva «Durata totale: 0 ms» — una volata che dura un
+       istante. La stessa pagina raccontava due cose diverse degli stessi fori,
+       e quella che si legge per prima era la falsa.
+       Adesso il totale si calcola SOLO sui fori che un ritardo ce l'hanno
+       davvero (`parseNum` risponde NaN sull'assente, `parseNum0` no), e quando
+       non ce n'è nessuno il riepilogo dice «—» invece di zero.
+       ⚠️ `calcolaCaricaMaxRitardo` NON si tocca: raggruppa i fori senza ritardo
+       tutti sullo stesso istante, quindi la carica massima che dichiara è
+       SOVRASTIMATA, cioè sbaglia nella direzione prudente — ed è il numero da
+       cui dipende la previsione di vibrazione, che è ferma al fondatore. Qui
+       non si cambia il numero: si DICE che è calcolato come se i fori non
+       impostati partissero insieme. */
+    const conRit=sorted.filter(f=>Number.isFinite(parseNum(f.ritardo)));
+    const totMs=conRit.length?Math.max(...conRit.map(f=>parseNum(f.ritardo))):null;
+    const senzaRit=sorted.length-conRit.length;
     $('ec-side').innerHTML=`
       <div class="ec-side-title"><span class="dot"></span>Sequenza sparo
         <button class="chg" style="margin-left:auto;background:var(--grad);color:#100d07;border-color:transparent;font-weight:800;" onclick="playSequenza()">▶ Anteprima</button>
       </div>
       <div class="info-box" style="margin-bottom:10px;font-size:11px;">
-        Durata totale: <b>${totMs} ms</b> · Carica max/ritardo: <b>${calcolaCaricaMaxRitardo(v).toFixed(1)} kg</b>
+        Durata totale: <b>${totMs===null?'—':totMs+' ms'}</b> · Carica max/ritardo: <b>${calcolaCaricaMaxRitardo(v).toFixed(1)} kg</b>
+        ${senzaRit>0?`<div style="margin-top:6px;color:var(--muted);">${totMs===null
+            ? `Nessun foro ha un ritardo impostato: la durata non si può calcolare, e la carica massima è quella di <b>tutti i ${sorted.length} fori insieme</b>.`
+            : `${conta(senzaRit,'foro','fori')} senza ritardo: ${senzaRit===1?'resta fuori dalla durata e conta':'restano fuori dalla durata e contano'} nella carica massima come se ${senzaRit===1?'partisse':'partissero'} all'istante zero.`}</div>`:''}
       </div>
       <div style="max-height:260px;overflow-y:auto;background:var(--card);border:1px solid var(--border);">
         <div style="display:grid;grid-template-columns:28px 60px 1fr;gap:4px;padding:6px 10px;background:var(--dark);font-size:9px;color:var(--muted);letter-spacing:1px;text-transform:uppercase;border-bottom:1px solid var(--border);">
