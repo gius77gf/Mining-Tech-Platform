@@ -177,6 +177,29 @@ for (const [id, atteso] of [["sonda-senza", "—"], ["sonda-misti", "50 ms"], ["
   if (id === "sonda-tutti") dice(!/senza ritardo/i.test(t), "coi ritardi tutti: non si dice niente di superfluo", t.slice(0, 300));
   if (FUORI) await pg.screenshot({ path: join(FUORI, `${VECCHIO ? "vecchio-" : "nuovo-"}${id}.png`) });
 }
+/* ⛔ E NESSUNA SCHERMATA DEL CORE DEVE CONTENERE LA PAROLA «undefined».
+   Trovata in uno SCATTO il 10/08: sei `<text>` nel disegno (il numero di
+   sequenza mai assegnato) e un `<b>` nella striscia dei KPI (il numero di file
+   della maglia). Non e' un numero sbagliato: e' una parola inglese in un
+   prodotto italiano, e chi la vede pensa che l'app sia rotta.
+   Si cammina il DOM invece di leggere il codice, perche' i due punti stavano in
+   posti che nessuna regex avrebbe accostato — e uno era scritto DUE volte. */
+{
+  await leggi("sonda-senza");
+  const nodi = await pg.evaluate(() => {
+    const out = [];
+    const w = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
+    let n;
+    while ((n = w.nextNode())) {
+      if (!/undefined/i.test(n.nodeValue || "")) continue;
+      const p = n.parentElement;
+      out.push(`<${p ? p.tagName : "?"}> dentro #${(p && p.closest("[id]") || {}).id || "?"}`);
+    }
+    return out;
+  });
+  dice(nodi.length === 0, `nessun «undefined» a schermo (${nodi.length} nodi)`, nodi.slice(0, 6));
+}
+
 console.log(`\nerrori di pagina: ${errori.length}${errori.length ? " -> " + errori.slice(0, 2).join(" · ") : ""}`);
 console.log(`${ok} ok, ${ko} KO${VECCHIO ? `  ·  iniezioni a segno: ${iniettati > 0 ? "sì" : "NO"}` : ""}`);
 await b.close(); srv.close();

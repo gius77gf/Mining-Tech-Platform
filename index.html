@@ -5285,6 +5285,17 @@ function nuovaVolata(cavaId, tipo, nomeProgetto){
 }
 
 // v3.4.7.1 — helper compatibilità: legge sia vecchi (B/S) che nuovi (borraggio/spaziatura)
+/* ⛔ IL NUMERO DI SEQUENZA CHE NON C'E' NON SI SCRIVE «undefined». In modo
+   «sequenza» il pallino di ogni foro mostrava `f.sequenza`, e su una volata a
+   cui la sequenza non e' ancora stata assegnata — stato legittimo, tant'e' che
+   il pannello accanto ha il bottone «Riassegna automatica» — il disegno
+   stampava **undefined** su ogni foro. Visto in uno SCATTO, non leggendo il
+   codice: `undefined` e' una parola inglese in un prodotto italiano, e chi la
+   vede pensa che l'app sia rotta.
+   ⚠️ Ed era scritto in DUE punti del file (la vista del fronte e quella della
+   galleria): la correzione sta qui, una volta sola, perche' due copie uguali
+   oggi divergono domani. Lo zero e' un valore vero e resta zero. */
+const seqDetta=(f)=>(f.sequenza===undefined||f.sequenza===null||f.sequenza===''?'—':f.sequenza);
 function getBorraggio(v){return v.maglia.borraggio||v.maglia.B||3.5;}
 function getSpaziatura(v){return v.maglia.spaziatura||v.maglia.S||4;}
 
@@ -5421,7 +5432,7 @@ function renderGalleriaCanvas(v){
     return `<g style="cursor:pointer" ${handlers}>
       ${isSel?`<circle cx="${px}" cy="${py}" r="${r+4}" fill="none" stroke="#fff" stroke-width="1" opacity="0.5"/>`:''}
       <circle cx="${px}" cy="${py}" r="${r}" fill="#1c1608" stroke="${isSel?'#fff':col}" stroke-width="${isSel?2.5:1.8}"/>
-      <text x="${px}" y="${py+3}" font-family="'Barlow Condensed',sans-serif" font-size="8" fill="${isSel?'#fff':'#ffd54f'}" text-anchor="middle" font-weight="800" pointer-events="none">${state.voloraTool==='sequenza'?f.sequenza:f.num}</text>
+      <text x="${px}" y="${py+3}" font-family="'Barlow Condensed',sans-serif" font-size="8" fill="${isSel?'#fff':'#ffd54f'}" text-anchor="middle" font-weight="800" pointer-events="none">${state.voloraTool==='sequenza'?seqDetta(f):f.num}</text>
     </g>`;
   }).join('');
   const cur=state.voloraTool==='foro'?'crosshair':'default';
@@ -5535,7 +5546,7 @@ function renderEditorCanvas(){
     return `<g class="ec-foro" data-idx="${idx}" onclick="selezionaForo(${idx})" onmousedown="onForoMouseDown(event,${idx})" ontouchstart="onForoMouseDown(event,${idx})">
       ${isSel?`<circle cx="${px}" cy="${py}" r="${r+5}" fill="none" stroke="#ef5350" stroke-width="1" opacity="0.3"/>`:''}
       <circle cx="${px}" cy="${py}" r="${r}" fill="${fill}" stroke="${stroke}" stroke-width="${strokeW}"/>
-      <text x="${px}" y="${py+3.5}" font-family="'Barlow Condensed',sans-serif" font-size="9" fill="${isSel?'#fff':'#ffd54f'}" text-anchor="middle" font-weight="800" pointer-events="none">${state.voloraTool==='sequenza'?f.sequenza:f.num}</text>
+      <text x="${px}" y="${py+3.5}" font-family="'Barlow Condensed',sans-serif" font-size="9" fill="${isSel?'#fff':'#ffd54f'}" text-anchor="middle" font-weight="800" pointer-events="none">${state.voloraTool==='sequenza'?seqDetta(f):f.num}</text>
       ${tooltipHtml}
     </g>`;
   }).join('');
@@ -7113,7 +7124,7 @@ function _aggiornaEcStats(v,etichetta){
   $('ec-stats').innerHTML=`
     <span class="ec-stat">${tipoLabel}</span>
     <span class="ec-stat"><b>${mv.fori}</b>${plurale(mv.fori,'foro','fori')}</span>
-    <span class="ec-stat"><b>${v.maglia.file}</b>file</span>
+    <span class="ec-stat"><b>${Number.isFinite(+v.maglia.file)&&String(v.maglia.file).trim()!==''?v.maglia.file:'—'}</b>file</span>
     <span class="ec-stat"><b>Sp${Borr}</b>×I<b>${Spaz}</b></span>
     <span class="ec-stat"><b>${mv.metri===null?'—':mv.metri}</b><span class="u">m</span></span>
     ${mv.kgNoto?`<span class="ec-stat"><b>${mv.parziale?'≥':''}${mv.kg}</b><span class="u">kg</span></span>`:''}
