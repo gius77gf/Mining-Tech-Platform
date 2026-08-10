@@ -651,6 +651,13 @@ const BANCHI = [
      perché deve servire un `flotta-data.js` con UN dato solo per riga. La
      porta in coda gli arriva e la ignora — è dichiarato, non dimenticato. */
   ['le frasi di Flotta quando il numero è uno', 'flotta-frasi-da-uno.mjs', []],
+  /* ⛔ IL NUMERO UNO NELLE FRASI DI FLOTTA E SENTINELLA — 10/08. `flotta-frasi-da-uno`
+     esisteva dal 06/08 e NON prendeva queste: gira su `#dash-*`, `#mez-list`,
+     `#fer-riep`, gli export e il libretto, e non tocca la scheda della
+     manutenzione, il magazzino, l'import del parco, né `#dash-sca`. Un banco che
+     copre una famiglia non la copre dappertutto: il denominatore va guardato. */
+  ['«1 foro» e non «1 fori» in Flotta e Sentinella', 'frasi-da-uno-flotta-sentinella.mjs', []],
+  ['frasi da uno · controprova', 'frasi-da-uno-flotta-sentinella.mjs', ['--controprova'], true],
   ['frasi di Flotta · controprova', 'flotta-frasi-da-uno.mjs', ['--controprova'], true],
   ['le frasi di Campo e Sentinella con un dato solo', 'campo-sentinella-frasi.mjs', []],
   ['frasi di Campo e Sentinella · controprova', 'campo-sentinella-frasi.mjs', ['--controprova'], true],

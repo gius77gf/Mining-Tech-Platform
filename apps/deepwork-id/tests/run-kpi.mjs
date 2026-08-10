@@ -19915,7 +19915,7 @@ test("⛔ piuGiorni: una data che non esiste non produce una scadenza", () => {
       { data: "2026-07-04", valore: 24, origine: { da: "boh" } },
     ] };
     const prov = colonne(righeCsv(sentinella.csvAmbiente([m], [], []))[1])[9];
-    eq(prov, "1 da file dello strumento · 1 inserite a mano · 2 senza provenienza dichiarata",
+    eq(prov, "1 da file dello strumento · 1 inserita a mano · 2 senza provenienza dichiarata",
       "⛔ un'origine scritta ma non riconosciuta NON ricade su «a mano»");
     // la correzione si conta a parte: è la cosa che un funzionario cerca per prima
     const corretto = { ...m, letture: [{ data: "2026-07-01", valore: 5.2,
@@ -19939,7 +19939,7 @@ test("⛔ piuGiorni: una data che non esiste non produce una scadenza", () => {
       "⛔ oggi lo strumento è in regola: è il numero tranquillo che il file avrebbe scritto");
     const cella = colonne(righeCsv(sentinella.csvAmbiente([m], [], []))[1])[8];
     eq(cella, "2 coperte da una taratura valida · 1 in un giorno che nessuna taratura registrata copre"
-      + " · 1 precedenti alla prima taratura registrata su 4",
+      + " · 1 precedente alla prima taratura registrata su 4",
       "il file conta le SUE letture, e tiene separato «scoperta» da «prima dello storico»");
     // nessun certificato: il file lo dice invece di tacere
     eq(colonne(righeCsv(sentinella.csvAmbiente(
@@ -27244,6 +27244,89 @@ test("voceDocumentoInElenco: la regola vale per documento, non per la lista", ()
       "la scusa di `psCharge` è stata tolta insieme al clamp che scusava");
     eq(/I DUE CAMPI DEL RECETTORE RESTANO ANCH'ESSI COM'ERANO/.test(grezzoG16), false,
       "e quella dei due del recettore anche");
+  });
+}
+
+/* ══════════════════════════════════════════════════════════════════════
+   IL NUMERO UNO NELLE FRASI — Sentinella e Flotta (11/08)
+   ══════════════════════════════════════════════════════════════════════
+   ⚠️ Prove SINCRONE e messe PRIMA del riepilogo: l'`await Promise.all(inVolo)`
+   sta settemila righe più su, quindi una prova `async` aggiunta qui verrebbe
+   messa in volo e il totale si stamperebbe senza aspettarla. */
+{
+  const { senzaCommenti: senzaCommentiUno } = await import("./tokenizza.mjs");
+  const SRC_FLOTTA_UNO = senzaCommentiUno(readFileSync(join(HERE, "../../flotta/index.html"), "utf8"));
+
+  test("⛔ Sentinella · ariaSerie: la didascalia del grafico accorda TUTT'E DUE le metà", () => {
+    /* ⛔ ERA SCRITTA TRE VOLTE NELLA PAGINA, e ognuna teneva la guardia su una
+       metà DIVERSA: la serie storica di un punto e il grafico del report
+       accordavano «letture» e dicevano «1 superamenti»; l'andamento del
+       ricettore accordava «superamenti» e diceva «1 letture» — e sopra di lui
+       il commento spiegava proprio che «1 superamenti» lì si SENTE, perché
+       quella frase la legge uno screen reader. Tre copie della stessa
+       didascalia, tre difetti complementari.
+       ⚠️ Le due metà si provano SEPARATE: con un caso in cui letture e
+       superamenti valgono tutt'e due 1, una prova passerebbe anche se la
+       funzione accordasse una metà sola. */
+    const uno = sentinella.ariaSerie("Serie storica di P1",
+      { n: 1, dal: "01/08/2026", al: "01/08/2026", max: 41, unita: "µg/m³", soglia: 40, superamenti: 1 });
+    eq(uno, "Serie storica di P1: 1 lettura dal 01/08/2026 al 01/08/2026, massimo 41 µg/m³, soglia 40 µg/m³, 1 superamento.",
+      "con uno: «1 lettura» e «1 superamento», non «1 letture … 1 superamenti»");
+    // una metà alla volta: 1 lettura con 0 superamenti, e 3 letture con 1 superamento
+    ok(/\b1 lettura\b/.test(sentinella.ariaSerie("X", { n: 1, unita: "mm/s", soglia: 5, superamenti: 0 })),
+      "la metà delle LETTURE si accorda anche quando i superamenti sono zero");
+    ok(/\b1 superamento\b/.test(sentinella.ariaSerie("X", { n: 3, unita: "mm/s", soglia: 5, superamenti: 1 })),
+      "la metà dei SUPERAMENTI si accorda anche quando le letture sono tre");
+    eq(sentinella.ariaSerie("Andamento di P1 nel periodo",
+      { n: 3, max: 44, unita: "µg/m³", soglia: 40, superamenti: 2 }),
+      "Andamento di P1 nel periodo: 3 letture, massimo 44 µg/m³, soglia 40 µg/m³, 2 superamenti.",
+      "e il plurale resta ALLA LETTERA come prima");
+  });
+
+  test("⛔ Sentinella · ariaSerie: l'apertura è un ARGOMENTO, non una seconda funzione", () => {
+    /* le tre frasi della pagina cominciano in tre modi e da lì in poi sono
+       identiche: è la lezione di `frasiCaricoParziale(par, marca)` in Campo —
+       due varianti che differiscono per un dettaglio vogliono un argomento,
+       non una funzione gemella. Anche `dal`/`al` e `max` sono facoltativi per
+       la stessa ragione: chi non li ha non li passa. */
+    const coda = { n: 2, unita: "mm/s", soglia: 5, superamenti: 1 };
+    eq(sentinella.ariaSerie("Serie storica di V1", coda), "Serie storica di V1: 2 letture, soglia 5 mm/s, 1 superamento.",
+      "senza `max` il pezzo del massimo non compare");
+    eq(sentinella.ariaSerie("Andamento di V1", { ...coda, dal: "01/07/2026", al: "31/07/2026" }),
+      "Andamento di V1: 2 letture dal 01/07/2026 al 31/07/2026, soglia 5 mm/s, 1 superamento.",
+      "con `dal`/`al` compare l'intervallo, e la coda è la STESSA");
+    eq(sentinella.ariaSerie("Andamento di V1", { n: 2, unita: "mm/s" }), "Andamento di V1: 2 letture.",
+      "⛔ senza soglia non si dicono i superamenti: senza soglia non si può dire se una lettura è un superamento");
+  });
+
+  test("⛔ Sentinella · ariaSerie: un conto che non si sa scrive «—», non «null letture»", () => {
+    /* il principio del fondatore applicato a una didascalia: l'assenza di un
+       dato non è un dato favorevole, e `conta` la dichiara col trattino che
+       tutto l'ecosistema usa già. Uno «0 letture» dove nessuno ha misurato
+       direbbe una cosa falsa a chi ascolta. */
+    ok(sentinella.ariaSerie("X", { n: null, unita: "mm/s" }).startsWith("X: — letture"),
+      "un conto assente si dichiara col trattino");
+    ok(!/null|undefined|NaN/.test(sentinella.ariaSerie("X", null)),
+      "e nemmeno senza argomento compaiono parole che l'utente non deve leggere mai");
+    eq(sentinella.ariaSerie("X", { n: 1200, unita: "mm/s" }), "X: 1.200 letture.",
+      "⚠️ e le migliaia si raggruppano ESPLICITAMENTE: senza, Node scrive «1200» e Chromium «1.200», e la prova blinderebbe una verità che l'utente non vede");
+  });
+
+  test("⛔ Flotta · «N ore motore» nasce in UN posto solo: nessuna copia debole di oreMotoreTx", () => {
+    /* ⛔ IL 06/08 LE QUATTRO COPIE A MANO ERANO STATE TOLTE, E CINQUE ERANO
+       RIMASTE — fra cui il CSV del libretto, cioè il foglio che si consegna a
+       chi compra la macchina, che scriveva anche il numero crudo. Nessuna
+       prova le guardava: `oreMotoreTx` vive nella pagina, e le suite `node`
+       le pagine non le importano. Questa prova le conta nel sorgente.
+       ⚠️ Senza commenti: il commento di `oreMotoreTx` CITA la forma sbagliata
+       per spiegare che cosa toglieva, e letto grezzo il file la contiene. */
+    ok(SRC_FLOTTA_UNO.length > 200000, `il sorgente guardato ha ${SRC_FLOTTA_UNO.length} caratteri, non è una fetta vuota`);
+    eq((SRC_FLOTTA_UNO.match(/(?:\+\s*"\s*ore motore|\}\s*<?\/?b?>?\s*ore motore|<\/b>\s+ore motore)/g) || []).length, 0,
+      "nessun punto della pagina attacca «ore motore» a un numero per conto suo");
+    eq((SRC_FLOTTA_UNO.match(/const oreMotoreTx = /g) || []).length, 1,
+      "e la funzione che sceglie quella parola è dichiarata una volta sola");
+    ok((SRC_FLOTTA_UNO.match(/oreMotoreTx\(/g) || []).length >= 12,
+      `e la chiamano ${(SRC_FLOTTA_UNO.match(/oreMotoreTx\(/g) || []).length} punti della pagina (erano 7 prima delle cinque copie assorbite)`);
   });
 }
 

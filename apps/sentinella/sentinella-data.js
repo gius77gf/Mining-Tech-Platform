@@ -20,7 +20,7 @@
 // ============================================================
 
 import { parseCsvLine, csvCell, numIt, giorniTra, isIntestazione, numeroScritto, dataISOEsiste,
-         senzaDoppioni, istanteLocale, plurale,
+         senzaDoppioni, istanteLocale, plurale, conta,
          AVVISO_DECIMALE as AVVISO_DECIMALE_SHELL,
          dataPiuGiorni as dataPiuGiorniShell } from "../../shared/deepwork-id-client/dw-shell.js";
 // Una scadenza è una scadenza: lo stato della taratura lo dice la stessa
@@ -449,6 +449,32 @@ export function numeroIt(v, dec) {
   if (!Number.isFinite(n)) return "—";
   const d = dec == null ? (Math.abs(n) >= 100 ? 0 : 2) : Math.max(0, Math.min(6, dec | 0));
   return n.toLocaleString("it-IT", { maximumFractionDigits: d, useGrouping: true });
+}
+
+/* LA FRASE CHE UNO SCREEN READER LEGGE SOTTO UN GRAFICO DI SERIE — in un
+   posto solo, e nel modulo perché è qui che una prova può guardarla.
+   ⛔ ERA SCRITTA TRE VOLTE NELLA PAGINA, e ognuna delle tre teneva la guardia
+   su una metà DIVERSA: la serie storica di un punto e il grafico del report
+   accordavano «letture» e dicevano «1 superamenti»; l'andamento del ricettore
+   accordava «superamenti» e diceva «1 letture» — e sopra di lui il commento
+   spiegava proprio che «1 superamenti» lì si SENTE. Tre copie della stessa
+   didascalia, tre difetti complementari: è la copia debole di CLAUDE.md
+   applicata a una frase, nel posto dove il documento si compone.
+   ⚠️ `apertura` È UN ARGOMENTO, NON UNA SECONDA FUNZIONE: le tre frasi
+   cominciano in tre modi («Serie storica di X», «Andamento di X nel periodo»,
+   «Andamento di X») e da lì in poi sono identiche. Anche `dal`/`al` e `max`
+   sono facoltativi per la stessa ragione — chi non li ha non li passa, invece
+   di avere una funzione sua. Pura. */
+export function ariaSerie(apertura, s) {
+  const d = s || {};
+  const u = d.unita ? " " + d.unita : "";
+  return String(apertura) + ": " + conta(d.n, "lettura", "letture")
+    + (d.dal && d.al ? " dal " + d.dal + " al " + d.al : "")
+    + (d.max != null ? ", massimo " + numeroIt(d.max) + u : "")
+    + (d.soglia != null
+        ? ", soglia " + numeroIt(d.soglia) + u + ", " + conta(d.superamenti, "superamento", "superamenti")
+        : "")
+    + ".";
 }
 
 // ══════════════════════════════════════════════════════════════════════
@@ -1571,9 +1597,13 @@ function cellaTaratura(m) {
   const c = contaCoperture((m || {}).tarature, (m || {}).letture);
   if (!c.totale) return "";
   const pezzi = [];
-  if (c.coperta) pezzi.push(c.coperta + " coperte da una taratura valida");
+  /* ⚠️ QUESTA CELLA FINISCE NEL FOGLIO PER L'ENTE, e con UNA lettura sola
+     scriveva «1 coperte da una taratura valida» e «1 precedenti alla prima
+     taratura registrata». La guardia giusta stava sei righe più in giù, nella
+     STESSA funzione sorella, sulle correzioni (`corrette === 1 ? …`). */
+  if (c.coperta) pezzi.push(conta(c.coperta, "coperta da una taratura valida", "coperte da una taratura valida"));
   if (c.scoperta) pezzi.push(c.scoperta + " in un giorno che nessuna taratura registrata copre");
-  if (c["prima-dello-storico"]) pezzi.push(c["prima-dello-storico"] + " precedenti alla prima taratura registrata");
+  if (c["prima-dello-storico"]) pezzi.push(conta(c["prima-dello-storico"], "precedente alla prima taratura registrata", "precedenti alla prima taratura registrata"));
   if (c["non-dichiarata"]) pezzi.push(c["non-dichiarata"] + " senza nessuna taratura da confrontare");
   return pezzi.join(" · ") + " su " + c.totale;
 }
@@ -1592,7 +1622,7 @@ function cellaProvenienza(m) {
   if (!(file + mano + ignota)) return "";
   const pezzi = [];
   if (file) pezzi.push(file + " da file dello strumento");
-  if (mano) pezzi.push(mano + " inserite a mano");
+  if (mano) pezzi.push(conta(mano, "inserita a mano", "inserite a mano"));
   if (ignota) pezzi.push(ignota + " senza provenienza dichiarata");
   if (corrette) pezzi.push(corrette + (corrette === 1 ? " corretta dopo la registrazione" : " corrette dopo la registrazione"));
   return pezzi.join(" · ");

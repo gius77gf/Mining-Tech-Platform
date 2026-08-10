@@ -1670,10 +1670,10 @@ textarea.dw-input{
            composizioneProvenienza, DICHIARAZIONI_PROVENIENZA, FONTI_MISURA,
            DICHIARAZIONI_COPERTURA,
            FONTE_IMPORT, FONTE_MANO, FONTE_IGNOTA,
-           numeroDaCampo, AVVISO_DECIMALE } from "./sentinella-data.js";
+           numeroDaCampo, AVVISO_DECIMALE, ariaSerie } from "./sentinella-data.js";
   import { mountExit, esc, csvCell, statoVuoto, senzaDoppioni, giorniTra, montaGuardiaInteri, avvolgiUnita, oggiISO,
          controllaAllegato, testoAllegatoRifiutato, pezziDataURL, dataIt, dataISOEsiste, nomeCsvDimostrazione,
-         plurale, avvisaSeNonSalva} from "../../shared/deepwork-id-client/dw-shell.js";
+         plurale, conta, avvisaSeNonSalva} from "../../shared/deepwork-id-client/dw-shell.js";
   // Il colore della riga di una taratura è quello di una scadenza qualunque:
   // la regola sta in shared/ e la usano già Scudo e Campo. Non se ne scrive
   // una copia qui dentro solo perché la parola è diversa.
@@ -1965,8 +1965,8 @@ textarea.dw-input{
       <div class="graf-stat ${g.superamenti ? "over" : "sotto"}"><div class="k">Oltre</div><div class="v">${g.superamenti}</div></div>` : ""}
     </div>`;
 
-    const aria = `Serie storica di ${m.nome}: ${g.n} ${plurale(g.n, "lettura", "letture")} dal ${g.dal} al ${g.al}, massimo ${numeroIt(g.max)} ${unita}` +
-      (g.soglia != null ? `, soglia ${numeroIt(g.soglia)} ${unita}, ${g.superamenti} superamenti` : "");
+    const aria = ariaSerie("Serie storica di " + m.nome,
+      { n: g.n, dal: g.dal, al: g.al, max: g.max, unita, soglia: g.soglia, superamenti: g.superamenti });
 
     /* ── legenda con i segni veri, non caratteri di ripiego ── */
     const lg = (svg, testo, cls) => `<span class="lg ${cls || ""}"><svg viewBox="0 0 24 11" aria-hidden="true">${svg}</svg>${testo}</span>`;
@@ -3327,8 +3327,14 @@ textarea.dw-input{
   function denominatoreEsito(R) {
     const f = [];
     if (R.nPuntiSenzaLetture && R.esito !== "senza-dati")
-      f.push(`Dei ${R.nPunti} punti di misura configurati, ${R.nPuntiSenzaLetture === 1
-        ? "uno non ha nessuna lettura" : R.nPuntiSenzaLetture + " non hanno nessuna lettura"} nel periodo (${R.puntiSenzaLetture.join(", ")}): su ${R.nPuntiSenzaLetture === 1 ? "quello" : "quelli"} il documento non può dire se il limite è stato rispettato.`);
+      /* ⛔ CON UN PUNTO SOLO CONFIGURATO: «Dei 1 punti di misura configurati».
+         La testa della frase si accorda con `nPunti`, la coda con
+         `nPuntiSenzaLetture` — e la seconda la guardia ce l'aveva già. Con un
+         punto solo i due numeri sono per forza uguali, quindi la testa
+         assorbe anche il soggetto invece di ripetere la coda. */
+      f.push(`${R.nPunti === 1 ? "L'unico punto di misura configurato"
+        : `Dei ${R.nPunti} punti di misura configurati, ${R.nPuntiSenzaLetture === 1 ? "uno" : R.nPuntiSenzaLetture}`} ${R.nPuntiSenzaLetture === 1
+        ? "non ha" : "non hanno"} nessuna lettura nel periodo (${R.puntiSenzaLetture.join(", ")}): su ${R.nPuntiSenzaLetture === 1 ? "quello" : "quelli"} il documento non può dire se il limite è stato rispettato.`);
     if (R.nRicettoriSenzaPunti)
       f.push(`Il documento è intestato a tutti i ricettori della cava, ma ${R.nRicettoriSenzaPunti === 1
         ? "uno non ha nessun punto di misura collegato" : R.nRicettoriSenzaPunti + " non hanno nessun punto di misura collegato"} (${R.ricettoriSenzaPunti.join(", ")}): di ${R.nRicettoriSenzaPunti === 1 ? "quello" : "quelli"} qui non risulta nessuna misura.`);
@@ -3452,8 +3458,8 @@ textarea.dw-input{
         // pari alla soglia (>=). Senza dirlo al motore, la legenda del grafico
         // conterebbe con > e direbbe un numero diverso dalla tabella accanto.
         soglia: p.soglia.valore != null ? { valore: p.soglia.valore, etichetta: "soglia applicata", inclusiva: true } : null,
-        aria: `Andamento di ${p.nome} nel periodo: ${p.n} ${plurale(p.n, "lettura", "letture")}, massimo ${numeroIt(p.max)} ${p.unita}`
-          + (p.soglia.valore != null ? `, soglia ${numeroIt(p.soglia.valore)} ${p.unita}, ${p.nSuperamenti} superamenti` : "") + ".",
+        aria: ariaSerie("Andamento di " + p.nome + " nel periodo",
+          { n: p.n, max: p.max, unita: p.unita, soglia: p.soglia.valore, superamenti: p.nSuperamenti }),
       }));
     });
   }
@@ -3504,7 +3510,7 @@ textarea.dw-input{
     const T = p.taratura;
     const tar = !T ? ""
       : T.scoperte ? `<br><b>Taratura dello strumento:</b> <b>${T.scoperte}</b> ${T.scoperte === 1 ? "lettura di questo punto cade" : "letture di questo punto cadono"} in un giorno che nessuna taratura registrata copre.`
-      : T.nonNote ? `<br><b>Taratura dello strumento:</b> per <b>${T.nonNote}</b> ${T.nonNote === 1 ? "lettura di questo punto non risulta" : "letture di questo punto non risulta"} nessuna taratura da confrontare${T.coperte ? `; le altre <b>${T.coperte}</b> sono coperte da un certificato registrato` : ""}.`
+      : T.nonNote ? `<br><b>Taratura dello strumento:</b> per <b>${T.nonNote}</b> ${T.nonNote === 1 ? "lettura di questo punto non risulta" : "letture di questo punto non risulta"} nessuna taratura da confrontare${T.coperte ? `; ${T.coperte === 1 ? "l'altra è coperta" : `le altre <b>${T.coperte}</b> sono coperte`} da un certificato registrato` : ""}.`
       : T.coperte ? `<br>Taratura dello strumento: ${T.coperte === 1 ? "l'unica lettura di questo punto ricade" : "tutte e " + T.coperte + " le letture di questo punto ricadono"} in un certificato registrato.`
       : "";
 
@@ -4538,7 +4544,7 @@ textarea.dw-input{
       agg++;
     }
     $("ade-file").value = "";
-    esito("ade-esito", `Import scadenze: ${agg} aggiunte${dup ? `, ${dup} già presenti (saltate)` : ""}${ripetute ? `, ${ripetute} ripetute nel file` : ""}.`, agg ? "success" : "");
+    esito("ade-esito", `Import scadenze: ${conta(agg, "scadenza aggiunta", "scadenze aggiunte")}${dup ? `, ${conta(dup, "già presente (saltata)", "già presenti (saltate)")}` : ""}${ripetute ? `, ${conta(ripetute, "ripetuta nel file", "ripetute nel file")}` : ""}.`, agg ? "success" : "");
     await refresh();
   };
   $("btn-sen").onclick = async () => {
@@ -4611,7 +4617,9 @@ textarea.dw-input{
        report di conformità. Non se ne inventa nessuna: è un numero di
        sicurezza e lo sceglie chi ha l'autorizzazione in mano. */
     esito("ric-esito",
-      "Import ricettori: " + agg + " aggiunti" + (saltati ? ", " + saltati + " già presenti (saltati)" : "") + (ripetute ? ", " + ripetute + " ripetuti nel file" : "") + "."
+      "Import ricettori: " + conta(agg, "ricettore aggiunto", "ricettori aggiunti")
+      + (saltati ? ", " + conta(saltati, "già presente (saltato)", "già presenti (saltati)") : "")
+      + (ripetute ? ", " + conta(ripetute, "ripetuto nel file", "ripetuti nel file") : "") + "."
       + (senzaSoglia ? " " + senzaSoglia + (senzaSoglia === 1 ? " è senza soglia propria" : " sono senza soglia propria") + ": i punti collegati useranno la propria finché non la scrivi tu." : ""),
       agg ? "success" : "err");
     await refresh();
@@ -4656,7 +4664,9 @@ textarea.dw-input{
       agg++;
     }
     $("mon-file").value = "";
-    esito("mis-esito", "Import sensori: " + agg + " aggiunti" + (saltati ? ", " + saltati + " già presenti (saltati)" : "") + (ripetute ? ", " + ripetute + " ripetuti nel file" : "") + ".", agg ? "success" : "");
+    esito("mis-esito", "Import sensori: " + conta(agg, "sensore aggiunto", "sensori aggiunti")
+      + (saltati ? ", " + conta(saltati, "già presente (saltato)", "già presenti (saltati)") : "")
+      + (ripetute ? ", " + conta(ripetute, "ripetuto nel file", "ripetuti nel file") : "") + ".", agg ? "success" : "");
     await refresh();
   };
   $("btn-mis").onclick = async () => {
@@ -5447,7 +5457,7 @@ textarea.dw-input{
       el.innerHTML = "";
       const sup = p.soglia.valore != null ? p.letture.filter(l => l.valore >= p.soglia.valore).length : 0;
       andGrafici.push(dwGrafici.linea(el, {
-        titolo: "Andamento nel tempo", meta: p.n + " letture · " + fmtD(dati.dal) + " → oggi",
+        titolo: "Andamento nel tempo", meta: conta(p.n, "lettura", "letture") + " · " + fmtD(dati.dal) + " → oggi",
         unita: p.unita, altezza: 200, nudo: true,
         x: p.letture.map(l => fmtD(l.data).slice(0, 5)),
         serie: [{ nome: "Misurato", valori: p.letture.map(l => l.valore), area: true }],
@@ -5457,11 +5467,13 @@ textarea.dw-input{
           ? { valore: p.soglia.valore, etichetta: "soglia applicata", inclusiva: true } : null,
         nota: "Ogni punto è una lettura registrata: le distanze sulla riga del tempo sono uguali fra una misura e l'altra, anche quando i giorni non lo sono. Le date esatte stanno nella tabella «Dati»."
           + (p.soglia.valore == null ? " Senza soglia impostata non si può dire se una lettura è un superamento." : ""),
-        aria: "Andamento di " + p.nome + ": " + p.n + " letture"
-          /* questa frase la legge uno screen reader: «1 superamenti» lì si
-             SENTE, e un superamento solo è il caso che fa aprire un'azione */
-          + (p.soglia.valore != null ? ", soglia " + numeroIt(p.soglia.valore) + " " + p.unita
-              + ", " + sup + " " + plurale(sup, "superamento", "superamenti") : "") + ".",
+        /* questa frase la legge uno screen reader: «1 superamenti» lì si
+           SENTE, e un superamento solo è il caso che fa aprire un'azione.
+           ⚠️ Qui la guardia sui superamenti c'era e mancava sulle LETTURE —
+           nelle due sorelle era l'opposto: adesso la frase la compone
+           `ariaSerie`, una volta sola, nel modulo. */
+        aria: ariaSerie("Andamento di " + p.nome,
+          { n: p.n, unita: p.unita, soglia: p.soglia.valore, superamenti: sup }),
       }));
     });
   }

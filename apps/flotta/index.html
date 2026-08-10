@@ -2152,7 +2152,7 @@ body.dw b.bad{color:var(--ink-dg)}
       ].filter(Boolean).join(" · ");
       return `<div class="item ${striscia[u.cls] || "st-accent"}" role="button" tabindex="0" data-odl-man="${n.id}" title="Apri l'ordine di lavoro: stato, ore, ricambi, costo">
       <div class="avatar">${icoOrigine(n.origine) || I.chiave}</div>
-      <div class="info"><div class="name">${esc(n.titolo)} — ${esc(n.mezzo)}</div><div class="meta">${n.orePreviste ? "A " + (+n.orePreviste).toLocaleString("it-IT") + " ore motore" : "Previsto " + dataIt(n.dataPrevista)}${ritmo}${ricN ? " · usa " + esc(ricN.nome) : ""}</div>${quando ? `<div class="meta norma quando">${I.tachi}${quando}</div>` : ""}${n.nota ? `<div class="meta norma">${esc(n.nota)}</div>` : ""}${lav ? `<div class="meta norma">${I.persona}${lav}</div>` : ""}</div>
+      <div class="info"><div class="name">${esc(n.titolo)} — ${esc(n.mezzo)}</div><div class="meta">${n.orePreviste ? "A " + oreMotoreTx(n.orePreviste) : "Previsto " + dataIt(n.dataPrevista)}${ritmo}${ricN ? " · usa " + esc(ricN.nome) : ""}</div>${quando ? `<div class="meta norma quando">${I.tachi}${quando}</div>` : ""}${n.nota ? `<div class="meta norma">${esc(n.nota)}</div>` : ""}${lav ? `<div class="meta norma">${I.persona}${lav}</div>` : ""}</div>
       <div class="acts">${so.chiave !== "da-fare" ? `<span class="badge ${so.cls}">${so.breve}</span>` : ""}<span class="badge ${u.cls}">${ggU(esc(u.label))}</span>
       <span class="arr ok" role="button" tabindex="0" title="Chiudi l'ordine e registra l'intervento" aria-label="Chiudi ${esc(n.titolo)}" data-man-done="${n.id}">${I.spunta}</span></div></div>`; }).join("")
       || (filtroMan !== "tutti"
@@ -2395,7 +2395,13 @@ body.dw b.bad{color:var(--ink-dg)}
       ? 'Nessuna scadenza di legge registrata. <span class="go">Apri e aggiungi la prima →</span>'
       : (contaSca.scadute + contaSca.inScadenza) === 0
         ? (scoperti
-            ? `Le <b>${contaSca.totale}</b> registrate sono a posto, ma ${scoperti}: di quelle macchine non si sa niente. <span class="go">Vedi →</span>`
+            /* ⛔ E IL RAMO ACCANTO AVEVA LA GUARDIA, questo no: con UNA
+               scadenza registrata e un mezzo scoperto usciva «Le 1 registrate
+               sono a posto». Il `plurale(contaSca.totale, …)` che sta sei
+               righe più sotto è del ramo `: `, non di questo — e un censimento
+               che cerca «una guardia lì intorno» assolve proprio la riga del
+               difetto. L'idioma è quello che l'app usa già per i ricambi. */
+            ? `${contaSca.totale === 1 ? "L'<b>unica</b> registrata è a posto" : `Le <b>${contaSca.totale}</b> registrate sono a posto`}, ma ${scoperti}: di quelle macchine non si sa niente. <span class="go">Vedi →</span>`
             /* ⛔ QUATTRO PEZZI DELLA STESSA FRASE, e col numero a uno ne
                sbagliavano tre su quattro: «Tutte a posto: 1 scadenze su 1
                mezzo, nessuna entro 1 giorni». Il pezzo giusto era il mezzo —
@@ -2920,7 +2926,7 @@ body.dw b.bad{color:var(--ink-dg)}
         ? `Nessun fermo registrato ${plurale(aff.finestra, `nell'ultimo giorno`, `negli ultimi ${aff.finestra} giorni`)} (${periodo}): <b>${aff.parco}</b> ${aff.parco === 1 ? "mezzo" : "mezzi"} × ${aff.finestra} ${plurale(aff.finestra,'giorno','giorni')} = <b>${aff.giorniMacchina}</b> giorni-macchina, tutti disponibili. Quando una macchina si ferma registrala qui sotto: è l'unico modo perché questo numero voglia dire qualcosa.${codaFuori}${codaSenzaDate}`
         : `Disponibilità reale <b>${aff.pct.toLocaleString("it-IT", { maximumFractionDigits: 1 })}%</b> ${plurale(aff.finestra, `nell'ultimo giorno`, `negli ultimi ${aff.finestra} giorni`)} (${periodo}). `
           + `Il conto: ${aff.parco} ${aff.parco === 1 ? "mezzo" : "mezzi"} × ${aff.finestra} ${plurale(aff.finestra,'giorno','giorni')} = <b>${aff.giorniMacchina}</b> giorni-macchina, `
-          + `meno <span class="rosso">${aff.persi}</span> ${aff.persi === 1 ? "perso" : "persi"} per fermo = <b>${aff.disponibili}</b> giorni-macchina lavorabili. `
+          + `meno <span class="rosso">${aff.persi}</span> ${aff.persi === 1 ? "perso" : "persi"} per fermo = <b>${aff.disponibili}</b> ${plurale(aff.disponibili, "giorno-macchina lavorabile", "giorni-macchina lavorabili")}. `
           /* ⚠️ IL SOSTANTIVO AVEVA IL SINGOLARE, IL VERBO E GLI AGGETTIVI NO:
              con un fermo solo si leggeva «Ci sono stati 1 fermo, tutti già
              chiusi, lunghi in media 1 giorno». È la forma più frequente di
@@ -3146,7 +3152,7 @@ body.dw b.bad{color:var(--ink-dg)}
         <div class="sch-sotto"><span class="badge ${so.cls}">${so.etichetta}</span>
           <span class="badge ${u.cls}">${ggU(esc(u.label))}</span>
           ${esc(nomeBreve(n.mezzo) || "senza mezzo")}${m ? " · " + oreMotoreTx(m.ore, grassetto) : " · mezzo non più nel parco"}</div>
-        <div class="sch-sotto">${n.orePreviste ? "Tagliando a <b>" + numTx(n.orePreviste) + "</b> ore motore" : "Previsto per il <b>" + dataIt(n.dataPrevista) + "</b>"}${n.ogniOre ? " · si ripete ogni " + numTx(n.ogniOre) + " h" : n.ogniMesi ? " · si ripete " + ogniMesiTx(n.ogniMesi) : ""}${n.nota ? " · " + esc(n.nota) : ""}</div>
+        <div class="sch-sotto">${n.orePreviste ? "Tagliando a " + oreMotoreTx(n.orePreviste, grassetto) : "Previsto per il <b>" + dataIt(n.dataPrevista) + "</b>"}${n.ogniOre ? " · si ripete ogni " + numTx(n.ogniOre) + " h" : n.ogniMesi ? " · si ripete " + ogniMesiTx(n.ogniMesi) : ""}${n.nota ? " · " + esc(n.nota) : ""}</div>
       </div></div>`;
     $("odl-stati").innerHTML = STATI_ORDINE.map(s =>
       `<button class="chg${s.chiave === so.chiave ? " active" : ""}" data-odl-stato="${s.chiave}">${s.etichetta}</button>`).join("");
@@ -3320,7 +3326,7 @@ body.dw b.bad{color:var(--ink-dg)}
             orePreviste: ore, ricambioId: px.ricambioId, ogniOre: px.ogniOre, ogniMesi: null,
             piano: px.piano, origine: "piano", nota: null, stato: "da-fare",
             manodopera: [], ricambiUsati: [], altreSpese: 0, noteLavoro: "" });
-          toast("Prossimo « " + px.titolo + " » pianificato a " + ore.toLocaleString("it-IT") + " ore.", "success");
+          toast("Prossimo « " + px.titolo + " » pianificato a " + conta(ore, "ora", "ore") + ".", "success");
         }
       } else if (nx) toast("Piano chiuso: « " + px.titolo + " » non si ripete più.");
     } else if (px && px.da === "mesi") {
@@ -3431,7 +3437,7 @@ body.dw b.bad{color:var(--ink-dg)}
       return `<div class="item statico ${striscia[u.cls] || "st-accent"}">
         <div class="avatar">${icoOrigine(n.origine) || I.chiave}</div>
         <div class="info"><div class="name">${esc(n.titolo)}</div>
-          <div class="meta">${n.orePreviste ? "a " + numTx(n.orePreviste) + " ore motore" : "previsto " + esc(dataIt(n.dataPrevista))}${n.ogniOre ? " · piano: ogni " + numTx(n.ogniOre) + " h" : n.ogniMesi ? " · piano: " + ogniMesiTx(n.ogniMesi) : ""}</div>${n.nota ? `<div class="meta norma">${esc(n.nota)}</div>` : ""}</div>
+          <div class="meta">${n.orePreviste ? "a " + oreMotoreTx(n.orePreviste) : "previsto " + esc(dataIt(n.dataPrevista))}${n.ogniOre ? " · piano: ogni " + numTx(n.ogniOre) + " h" : n.ogniMesi ? " · piano: " + ogniMesiTx(n.ogniMesi) : ""}</div>${n.nota ? `<div class="meta norma">${esc(n.nota)}</div>` : ""}</div>
         <span class="badge ${u.cls}">${ggU(esc(u.label))}</span></div>`;
     }).join("")
       || vuoto(I.chiave, "Niente in programma", "Nessun tagliando pianificato su questa macchina. Si pianifica dalla schermata <b>Officina</b>, a data oppure a ore motore.");
@@ -3607,7 +3613,7 @@ body.dw b.bad{color:var(--ink-dg)}
       const d = durataFermo(f, new Date());
       const r = await chiediDati("La macchina è ripartita",
         `<b>${esc(nomeBreve(f.mezzo))}</b> è ferma dal <b>${dataIt(f.inizio)}</b> (${esc(etichettaCausale(f.causale))}):
-         sono ${ggTx(d.giorni)} contando oggi.<br>
+         ${plurale(d.giorni, "è", "sono")} ${ggTx(d.giorni)} contando oggi.<br>
          In che giorno è ripartita? Da quel giorno i suoi giorni smettono di contare.`,
         [{ id: "fine", label: "Giorno in cui è ripartita", tipo: "date", valore: oggiISO(),
            aiuto: "Se è ripartita ieri metti ieri: i giorni persi devono essere quelli veri." }],
@@ -4073,7 +4079,7 @@ body.dw b.bad{color:var(--ink-dg)}
        avvisa nessuno, e l'app sembra rotta quando invece non le è mai stato
        detto sotto quale quantità suonare. */
     esito("ric-esito",
-      `Import ricambi: ${agg} aggiunti${dup ? `, ${dup} già presenti (saltati)` : ""}${ripetute ? `, ${ripetute} ripetuti nel file` : ""}.`
+      `Import ricambi: ${conta(agg, "ricambio aggiunto", "ricambi aggiunti")}${dup ? `, ${conta(dup, "già presente (saltato)", "già presenti (saltati)")}` : ""}${ripetute ? `, ${conta(ripetute, "ripetuto nel file", "ripetuti nel file")}` : ""}.`
       + (senzaSoglia ? ` ${senzaSoglia} ${senzaSoglia === 1 ? "è senza soglia minima e non entrerà" : "sono senza soglia minima e non entreranno"} nell'avviso di sotto-scorta finché non gliela scrivi.` : ""),
       agg ? "success" : "err");
     await refresh();
@@ -4104,7 +4110,7 @@ body.dw b.bad{color:var(--ink-dg)}
       agg++;
     }
     $("mez-file").value = "";
-    esito("ore-esito", `Import parco: ${agg} ${agg === 1 ? "mezzo aggiunto" : "mezzi aggiunti"}${dup ? `, ${dup} già presenti (saltati)` : ""}${ripetute ? `, ${ripetute} ripetuti nel file` : ""}.`, agg ? "success" : "err");
+    esito("ore-esito", `Import parco: ${conta(agg, "mezzo aggiunto", "mezzi aggiunti")}${dup ? `, ${conta(dup, "già presente (saltato)", "già presenti (saltati)")}` : ""}${ripetute ? `, ${conta(ripetute, "ripetuto nel file", "ripetuti nel file")}` : ""}.`, agg ? "success" : "err");
     await refresh();
   };
   $("btn-tele").onclick = () => $("tele-file").click();
@@ -4189,8 +4195,8 @@ body.dw b.bad{color:var(--ink-dg)}
       orePreviste, ricambioId: $("man-ricambio").value || null,
       ogniOre, ogniMesi, piano: pianoOre ? pianoOre.chiave : null, origine: "manuale", nota: null });
     esito("man-esito", "Manutenzione pianificata: " + titolo + " su " + $("man-mezzo").value
-      + (dataPrevista ? " per il " + dataIt(dataPrevista) : " a " + numTx(orePreviste) + " ore motore")
-      + (ogniOre ? ", e si ripete ogni " + numTx(ogniOre) + " ore" : ogniMesi ? ", e si ripete " + ogniMesiTx(ogniMesi) : "") + ".", "success");
+      + (dataPrevista ? " per il " + dataIt(dataPrevista) : " a " + oreMotoreTx(orePreviste))
+      + (ogniOre ? ", e si ripete ogni " + plurale(ogniOre, "ora", numTx(ogniOre) + " ore") : ogniMesi ? ", e si ripete " + ogniMesiTx(ogniMesi) : "") + ".", "success");
     $("man-titolo").value = ""; $("man-data").value = ""; $("man-ore").value = ""; $("man-ricambio").value = ""; $("man-piano").value = "";
     fuoco("man-titolo"); await refresh();
   };
@@ -4360,7 +4366,7 @@ body.dw b.bad{color:var(--ink-dg)}
         return [c.data || "", nomeBreve(c.mezzo), (tipoMezzo(c.tipo) || {}).etichetta || "", c.operatore || "",
                 c.ore || "", s.etichetta, s.anomalie,
                 s.nominate ? s.dettaglio.map(v => v.etichetta + (v.nota ? " (" + v.nota + ")" : "")).join(" | ")
-                           : s.anomalie + " segnate, dettaglio delle voci non registrato", c.note || ""].map(csvCell).join(";");
+                           : conta(s.anomalie, "segnata", "segnate") + ", dettaglio delle voci non registrato", c.note || ""].map(csvCell).join(";");
       }));
     const a = document.createElement("a");
     a.href = URL.createObjectURL(new Blob(["﻿" + righe.join("\r\n")], { type: "text/csv;charset=utf-8" }));
@@ -4515,7 +4521,7 @@ body.dw b.bad{color:var(--ink-dg)}
     $("rif-litri").value = ""; $("rif-euro").value = ""; $("rif-ore").value = "";
     $("rif-data").value = oggiISO();
     esito("rif-esito", "Rifornimento registrato: " + nome + ", " + lt(v.litri)
-      + (v.euro ? " per " + eur(v.euro) : "") + (v.ore != null ? " a " + numTx(v.ore) + " ore" : "")
+      + (v.euro ? " per " + eur(v.euro) : "") + (v.ore != null ? " a " + conta(v.ore, "ora", "ore") : "")
       + (v.euro ? " — è entrato anche nei costi come voce «Carburante»." : "."), "success");
     fuoco("rif-litri");
     await refresh();
@@ -4558,7 +4564,7 @@ body.dw b.bad{color:var(--ink-dg)}
     else VUOTA("scadenza di legge",
       "Nessuna scadenza di legge registrata su questa macchina. Non vuol dire che non ne abbia: vuol dire che in Flotta non ce n'è nessuna.");
     if (f.manutenzioni.length) f.manutenzioni.forEach(n => R("manutenzione in programma", n.titolo || "", n.dataPrevista ? dataIt(n.dataPrevista) : "",
-      (n.orePreviste ? "a " + n.orePreviste + " ore motore" : "a data") + (n.ogniOre ? " · ogni " + n.ogniOre + " h" : n.ogniMesi ? " · " + ogniMesiTx(n.ogniMesi) : ""), ""));
+      (n.orePreviste ? "a " + oreMotoreTx(n.orePreviste) : "a data") + (n.ogniOre ? " · ogni " + n.ogniOre + " h" : n.ogniMesi ? " · " + ogniMesiTx(n.ogniMesi) : ""), ""));
     else VUOTA("manutenzione in programma", "Nessun tagliando pianificato su questa macchina.");
     /* ⛔ LA CELLA DELL'IMPORTO RESTA VUOTA QUANDO IL COSTO NON C'È. `(+w.costo)
        || 0` scriveva `0` su un intervento chiuso senza scrivere quanto è
