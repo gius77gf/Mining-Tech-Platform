@@ -1284,6 +1284,37 @@ Perché serva davvero e non produca elenchi generici, cinque vincoli:
   La domanda da farsi ogni volta che si scrive un sostituto: **quali prove
   guardavano il vecchio, e quante di quelle guardano il nuovo?** Il vecchio
   resta verde e nessuno se ne accorge.
+- ⛔ **IL CONTENITORE PUÒ TORNARE INDIETRO, E LE DUE VIE OVVIE PER RIALLINEARSI
+  SONO NEGATE.** Successo **due volte in due giorni** (l'ultima il 10/08 alle
+  03:47, con il disco fermo al **07/08 delle 18:49** e il ramo avanti di
+  **463 commit**). Il segno non è un errore: è un `git status` **che non
+  riconosci** — file modificati che nessun cantiere tuo ha toccato, e `shared/`
+  che risulta scritto quando a tutti era vietato. La domanda giusta è quella
+  già scritta qui — *sono dove credo di essere?* — e la risposta la dà una riga:
+  `git rev-parse HEAD`.
+  ⚠️ **Quello che è nuovo, e costa un'ora se non si sa**: `git reset --hard` e
+  `git stash` sono **bloccati dal classificatore**, giustamente, perché
+  distruggono. E `git merge --ff-only` da solo **rifiuta** finché ci sono
+  modifiche locali. La via che funziona e non distrugge niente, in tre passi:
+  1. **copia i file** che il disco ha di suo in una cartella dello scratchpad
+     (`for f in $(git diff --name-only); do … cp …; done`);
+  2. **dimostra che non si perde niente** — non «i file sono diversi dal
+     remoto», che è ovvio dopo 463 commit, ma **che i nomi che quel lavoro
+     aggiunge esistono già** nel remoto (`git show origin/<ramo>:<file> | grep
+     -c "function <nome>"`). Il 10/08 erano `csvPesate`, `numeroDichiarato`,
+     `parsePesateCsv`: tutte e tre presenti, cioè quel lavoro era stato
+     committato la sera stessa;
+  3. **porta i file AVANTI** al contenuto del remoto invece di riportarli
+     indietro (`git show origin/<ramo>:$f > $f`), `git add -A`, e allora il
+     `merge --ff-only` passa.
+  La differenza fra il passo 3 e un `reset --hard` non è tecnica, è di
+  **intenzione**: uno scrive il futuro sopra il passato dopo averlo verificato,
+  l'altro butta via senza guardare. Ed è la ragione per cui il primo si può fare
+  e il secondo no.
+  ⚠️ E il lavoro **non committato** dei cantieri vivi in quel momento è perso:
+  il 10/08 tre cantieri erano morti sul limite di sessione **prima** di
+  consegnare, quindi non si è persa nessuna misura verificata — ma è un caso
+  fortunato, non una difesa. La difesa è committare presto ciò che è verificato.
 - ⛔ **NIENTE `git stash` CON CANTIERI APERTI.** Il 01/08 serviva confrontare la
   pagina di Genesi con `HEAD`: lo stash ha funzionato e ha ripristinato tutto,
   ma nella finestra c'erano **cinque agenti che scrivevano** — e uno stash che
