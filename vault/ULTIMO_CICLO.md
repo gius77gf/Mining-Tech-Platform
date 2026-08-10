@@ -211,3 +211,24 @@ niente — che è esattamente la stessa cosa che cerchiamo nel prodotto.
 - **Da dove riparte**: il giro «chi decide i numeri di ciò che ESCE?» è chiuso
   (51 punti d'uscita su 51, otto difetti veri corretti, 21 documenti aperti col
   browser). Nessuna domanda di prodotto in sospeso. CI verde su tutta la serie.
+
+## 2026-08-10 00:52 UTC — ciclo automatico
+- **Commit di partenza**: `6cd50d1`
+- **Che cosa sto per fare**: chiudere l'unità già **nell'indice e in
+  verifica** — il censimento «un clamp non è una guardia» su cinque app, con i
+  due difetti veri che ne sono usciti (Terra: il ritmo medio che dava la colpa
+  ai rilievi; **Conti: € 220,10 di troppo, +77%**, sul riquadro che prepara un
+  documento fiscale) — più il banco `genesi-campi-assenti.mjs` registrato nel
+  giro. Il giro `node` sulla copia di ciò che si committa è a 23/34, zero rosse.
+  Poi si raccolgono i **tre cantieri vivi**: le tendine del core (B4-bis), il
+  recettore di Genesi (B0-decies), e il numero uno nelle frasi di Flotta e
+  Sentinella.
+- **Da dove riparte**: la giornata del 09/08 ha chiuso sei voci di roadmap
+  (B0-quinquies, B0-sexies, B0-octies, B0-nonies, B3-bis, B3-ter) e ha messo
+  sotto sorveglianza quattro numeri che i documenti del fondatore dichiaravano
+  e che nessuno rilanciava. Il filo era uno solo, e vale come lezione per il
+  ciclo nuovo: **dichiarare un punto cieco non lo illumina** — quattro volte in
+  un giorno la dichiarazione c'era, scritta bene, accanto al numero sbagliato.
+- **Restano ferme** le decisioni che chiedono il fondatore: **B0-septies** (che
+  cosa vede chi apre il 2D di una volata senza maglia), e le soglie di
+  sicurezza (`ppvLimit`, curve USBM/DIN), che nessun cantiere può toccare.
