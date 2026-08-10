@@ -142,8 +142,10 @@ for (const [rel, regola] of DOCUMENTI) {
    un numero vecchio: fanno dubitare di tutti gli altri.
    La regola prende il TESTO, non il percorso, così la controprova non tocca
    nessun file. */
+const RE_ADDENDI = sorveglia("docs/STATO_PRODOTTO.md",
+  /\*\*([\d.]+)\*\* prove automatiche che girano senza rete — ([\s\S]{0,400}?) — più/);
 export function addendiTornano(testo) {
-  const m = /\*\*([\d.]+)\*\* prove automatiche che girano senza rete — ([\s\S]{0,400}?) — più/.exec(testo);
+  const m = RE_ADDENDI.exec(testo);
   if (!m) return null;
   const somma = [...m[2].matchAll(/(?:\*\*)?(\d[\d.]*)(?:\*\*)?\s+(?:sull[ae]|sul|sugli)/g)]
     .reduce((t, x) => t + numero(x[1]), 0);
@@ -180,8 +182,10 @@ test("la controprova: un addendo sbagliato viene visto, e uno zero non passa per
    ⚠️ È la stessa lezione del `BROWSER` che guardava due documenti su tre: **un
    numero è sorvegliato solo dove il controllo ARRIVA**, e qui non arrivava per
    una differenza di *notazione*, non di contenuto. */
+const RE_SOMMA_SCRITTA = sorveglia("docs/DEVELOPMENT.md",
+  /\*\*([\d.]+) prove girano senza rete[^(]*\(([^)]*)\)/);
 export function sommaScrittaTorna(testo) {
-  const m = /\*\*([\d.]+) prove girano senza rete[^(]*\(([^)]*)\)/.exec(testo);
+  const m = RE_SOMMA_SCRITTA.exec(testo);
   if (!m) return null;
   const pezzi = [...m[2].matchAll(/(\d+)(?:\s*\+\s*|\s*\)|$)/g)];
   /* si sommano solo i numeri legati da `+`: la frase contiene anche la data */
@@ -736,8 +740,10 @@ const SUITE_SICUREZZA = [
   ["primo avvio", "apps/deepwork-id/tests/run-bootstrap.mjs"],
 ];
 
+const RE_SICUREZZA = sorveglia("docs/DEVELOPMENT.md",
+  /giro-sicurezza\.mjs\s+#\s*(\d+) prove:\s*(\d+) regole,\s*(\d+) SDK,\s*(\d+) primo avvio/);
 export function scomposizioneSicurezza(testo) {
-  const m = /giro-sicurezza\.mjs\s+#\s*(\d+) prove:\s*(\d+) regole,\s*(\d+) SDK,\s*(\d+) primo avvio/.exec(testo);
+  const m = RE_SICUREZZA.exec(testo);
   return m ? { totale: +m[1], regole: +m[2], SDK: +m[3], "primo avvio": +m[4] } : null;
 }
 
@@ -796,12 +802,14 @@ console.log(`\nmisure su Genesi: ${ID_MODALE.length + ID_EDITOR_3D.length} id ve
    Confondere le due cose lasciava un quarto del totale a invecchiare da solo.
    ⚠️ E il confronto NON è fra i due documenti: due copie che si somigliano non
    dicono chi ha ragione. Ogni addendo si conta nella **sua suite**. */
+const RE_EMULATORE = ["docs/DEVELOPMENT.md", "docs/STATO_PRODOTTO.md"].reduce((re, d) => sorveglia(d, re),
+  /\*{0,2}(\d[\d.]*)\*{0,2}[^.]{0,40}l'emulatore Firestore\*{0,2}\s*\(([^)]*)\)/);
 export function scomposizioneEmulatore(testo) {
   /* ⚠️ fra il numero e «l'emulatore Firestore» i due documenti scrivono cose
      diverse — «con», «che\ngirano con» — e la frase va **a capo** in mezzo:
      un `[^.\n]` qui dentro guarderebbe un documento su due, che è il difetto
      raccolto tre volte in CLAUDE.md. Si escludono i punti, non gli a capo. */
-  const m = /\*{0,2}(\d[\d.]*)\*{0,2}[^.]{0,40}l'emulatore Firestore\*{0,2}\s*\(([^)]*)\)/.exec(testo);
+  const m = RE_EMULATORE.exec(testo);
   if (!m) return null;
   const n = [...m[2].matchAll(/(?:\*\*)?(\d+)(?:\*\*)?/g)].map((x) => +x[1]);
   return { totale: numero(m[1]), addendi: n };
@@ -872,7 +880,7 @@ test("docs/DEVELOPMENT.md: la scomposizione del codice condiviso è quella vera,
   ok(perModulo.length >= 5, `solo ${perModulo.length} moduli letti dall'uscita: il controllo non sta leggendo la scomposizione`);
   const testo = readFileSync(join(RADICE, "docs/DEVELOPMENT.md"), "utf8");
   const storte = [];
-  const tot = /\*\*(\d+) su (\d+)\*\* in cinque\nmoduli/.exec(testo);
+  const tot = sorveglia("docs/DEVELOPMENT.md", /\*\*(\d+) su (\d+)\*\* in cinque\nmoduli/).exec(testo);
   if (!tot) storte.push("non trovo la frase «**N su M** in cinque moduli»");
   else if (+tot[1] !== +mCondivisi[1] || +tot[2] !== +mCondivisi[2])
     storte.push(`il totale dice ${tot[1]}/${tot[2]}, il censimento conta ${mCondivisi[1]}/${mCondivisi[2]}`);
@@ -943,11 +951,11 @@ test("docs/DEVELOPMENT.md: la tabella del cantiere di Genesi è quella che lo st
     if (!m) { storte.push(`la riga «${etichetta}» non c'è più nella tabella`); continue; }
     if (+m[1] !== g.scaglioni[chiave]) storte.push(`«${etichetta}» dice ${m[1]}, lo strumento conta ${g.scaglioni[chiave]}`);
   }
-  const somma = /\*\*(\d+) su (\d+) si estraggono/.exec(testo);
+  const somma = sorveglia("docs/DEVELOPMENT.md", /\*\*(\d+) su (\d+) si estraggono/).exec(testo);
   if (!somma) storte.push("non trovo la frase «N su M si estraggono»");
   else if (+somma[1] !== g.estraibili || +somma[2] !== g.totale)
     storte.push(`la frase dice ${somma[1]} su ${somma[2]}, lo strumento conta ${g.estraibili} su ${g.totale}`);
-  const quante = /le sue \*\*(\d+) funzioni\*\* stanno dentro/.exec(testo);
+  const quante = sorveglia("docs/DEVELOPMENT.md", /le sue \*\*(\d+) funzioni\*\* stanno dentro/).exec(testo);
   if (!quante) storte.push("non trovo «le sue **N funzioni** stanno dentro»");
   else if (+quante[1] !== g.totale) storte.push(`«${quante[1]} funzioni» dove lo strumento ne conta ${g.totale}`);
   ok(!storte.length, storte.join(" · "));

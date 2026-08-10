@@ -1214,7 +1214,7 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
            coperturaFermi, dataPiuGiorni,
            NEARMISS_CATEGORIE, NEARMISS_LUOGHI, bozzaNearMiss,
            segnalazioniDelTurno, testoSegnalazioniTurno, categorieGiaSegnalate,
-           pianoParziale, pianoConsuntivoCsv,
+           pianoParziale, frasiCaricoParziale, pianoConsuntivoCsv,
            numeroIt, segnoIt, numeroItDa, numeroDaCampo } from "./campo-data.js";
   import { misuratoPeriodo, produzioneDichiarata, riconciliazioneTurni,
            periodoFraUltimiRilievi, densitaDellaCava } from "../../shared/dw-ponti.js";
@@ -1342,8 +1342,10 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
                 ? "Una causale è a zero perché i suoi minuti non sono stati scritti"
                 : pf.voci.filter(v => !v.minuti).length + " causali sono a zero perché i loro minuti non sono stati scritti")
               + ", non perché quei fermi non siano costati tempo." : ""),
+      // anche l'aria si declina: chi legge con lo screen reader sente la frase
+      // per intero, e «1 minuti» lì suona come a schermo
       aria: "Minuti di fermo per causale " + quando + ": "
-        + pf.voci.map(v => v.causale + " " + numeroIt(v.minuti, 0) + " minuti").join(", ") + ".",
+        + pf.voci.map(v => v.causale + " " + conta(v.minuti, "minuto", "minuti")).join(", ") + ".",
     });
   }
 
@@ -1386,12 +1388,19 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
     const totFermi = righe.reduce((t, r) => t + r.fermi, 0);
     if (!totale) {
       el.innerHTML = totFermi
-        ? `<div class="senza-minuti">In queste <b>${righe.length}</b> giornate ci sono
+        // `fermiPerGiorno` parte dal PRIMO giorno con qualcosa registrato, non
+        // sempre da quattordici giorni fa: in una cava che ha cominciato oggi
+        // `righe.length` vale 1, e qui si leggeva «In queste 1 giornate»
+        ? `<div class="senza-minuti">${plurale(righe.length,
+             "In questa giornata ci sono",
+             `In queste <b>${righe.length}</b> giornate ci sono`)}
            <b>${totFermi}</b> ${totFermi === 1 ? "fermo registrato" : "fermi registrati"}
            ma <b>nessun minuto</b>: senza i minuti non si può disegnare quanto sono costati.
            Scrivi i minuti nel campo accanto alla causale, sulla voce in anomalia.${codaFuori}</div>`
         : vuoto(I.orologio, "Nessun fermo in questi giorni",
-            `In <b>${righe.length}</b> giornate registrate non c'è nemmeno un fermo: non c'è niente da mettere in colonna. `
+            `${plurale(righe.length,
+                 "In <b>una sola</b> giornata registrata non c'è nemmeno un fermo",
+                 `In <b>${righe.length}</b> giornate registrate non c'è nemmeno un fermo`)}: non c'è niente da mettere in colonna. `
             + `Se invece qualche fermo c'è stato, registralo come <b>anomalia</b> e scrivi i <b>minuti</b>.` + codaFuori);
       return;
     }
@@ -1415,7 +1424,12 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
       // colonne verrebbe troncata coi puntini
       valori: righe.map(r => ({ etichetta: r.data.slice(8, 10), valore: r.minuti })),
       nota: `Ogni colonna è una giornata di lavoro: i minuti persi per fermi. `
-        + `Nelle <b>${mf.giorniMisurati}</b> giornate con qualcosa registrato la media è `
+        // con UNA giornata sola cambiano preposizione e verbo, non solo il
+        // sostantivo: la scelta la fa `plurale` di shared/, come dodici righe
+        // più sotto per le giornate a zero (che la guardia ce l'avevano già)
+        + plurale(mf.giorniMisurati,
+            `Nell'<b>unica</b> giornata con qualcosa registrato la media è `,
+            `Nelle <b>${mf.giorniMisurati}</b> giornate con qualcosa registrato la media è `)
         + `<b>${numeroIt(mf.media, 0)} min</b> al giorno; la giornata peggiore è il <b>${dmy(peggiore.data)}</b> `
         + `con <b>${numeroIt(peggiore.minuti, 0)} min</b>. Un giorno storto capita a tutti; se le colonne restano alte `
         + `per settimane il problema è la manutenzione, non la sfortuna.`
@@ -1434,8 +1448,8 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
             ? ` In ${senzaMin === 1 ? "una giornata la colonna è a zero" : senzaMin + " giornate le colonne sono a zero"}`
               + ` pur avendo fermi registrati: lì i minuti non sono stati scritti.` : "")
         + codaFuori,
-      aria: "Minuti di fermo per giornata, " + righe.length + " giornate: "
-        + righe.map(r => dmy(r.data) + " " + numeroIt(r.minuti, 0) + " minuti").join(", ") + ".",
+      aria: "Minuti di fermo per giornata, " + conta(righe.length, "giornata", "giornate") + ": "
+        + righe.map(r => dmy(r.data) + " " + conta(r.minuti, "minuto", "minuti")).join(", ") + ".",
     });
   }
 
@@ -2865,7 +2879,11 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
       ? ` <b>${q.daControllare} ${q.daControllare === 1 ? "riga ha orari da controllare" : "righe hanno orari da controllare"}</b>:`
         + ` fra entrata e uscita passano più ore di quante un turno possa durarne.`
       : "";
-    if (!mancano) return `<div class="note recap">Orari dichiarati per <b>tutti</b> i ${q.totale} presenti`
+    // con UNA persona sola «per tutti i 1 presenti» non è italiano, e cambia
+    // anche l'articolo: la scelta la fa `plurale` di shared/
+    if (!mancano) return `<div class="note recap">${plurale(q.totale,
+        `Orari dichiarati per l'<b>unica</b> persona presente`,
+        `Orari dichiarati per <b>tutti</b> i ${q.totale} presenti`)}`
       + ` · <b>${esc(oreMinuti(q.minuti))}</b> lavorate in totale.${dubbio}</div>`;
     /* ⛔ «NON HANNO GLI ORARI» ERA FALSO PER META' DELLE RIGHE, e si è visto
        nello scatto: al turno in corso due persone su due avevano l'entrata e
@@ -2981,7 +2999,9 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
     if (!vuoti.length) { esito("pre-esito", "Tutti i presenti hanno già almeno un orario dichiarato.", "err"); return; }
     if (!await chiedi("Scrivere l'orario standard",
           `Stai per dichiarare l'orario <b>${esc(prop.entrata)}${prop.uscita ? "–" + esc(prop.uscita) : ""}</b>
-           per le <b>${vuoti.length}</b> persone che non hanno ancora nessun orario:<br>
+           ${plurale(vuoti.length,
+             `per la <b>persona</b> che non ha ancora nessun orario:`,
+             `per le <b>${vuoti.length}</b> persone che non hanno ancora nessun orario:`)}<br>
            ${vuoti.map(r => "· " + esc(r.operatore.nome)).join("<br>")}<br><br>
            ${prop.uscita ? "" : `<b>Solo l'entrata</b>: la durata di questo turno non è stata dichiarata, quindi l'ora di uscita non si può proporre senza inventarla.<br><br>`}
            Fallo solo se hanno <b>davvero</b> fatto l'orario del turno: da qui esce il riposo fra due turni, che è una riga del D.Lgs 66/2003 su un documento firmato.`,
@@ -4056,7 +4076,10 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
       agg++;
     }
     $("squ-file").value = "";
-    esito("squ-esito", `Import squadre: ${agg} aggiunte${dup ? `, ${dup} già presenti (saltate)` : ""}${ripetute ? `, ${ripetute} ripetute nel file` : ""}.`, agg ? "success" : "err");
+    // tre conteggi in una frase sola, e importare UNA squadra è il caso più
+    // comune di tutti: «1 aggiunte» era il difetto qui. `conta` scrive numero
+    // e parola insieme, e la parola la sceglie su Number(n) === 1.
+    esito("squ-esito", `Import squadre: ${conta(agg, "aggiunta", "aggiunte")}${dup ? `, ${conta(dup, "già presente (saltata)", "già presenti (saltate)")}` : ""}${ripetute ? `, ${conta(ripetute, "ripetuta nel file", "ripetute nel file")}` : ""}.`, agg ? "success" : "err");
     await refresh();
   };
   $("btn-squ-export").onclick = () => {
@@ -4231,7 +4254,7 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
       ? fermi.map(f => "- " + f.causale + ": " + f.conto + " (" + minutiDi(f.causale) + ")").join("\n")
       : "- nessuna anomalia aperta") + "\n";
     if (pf.senzaMinutiTot) {
-      txt += "  (" + pf.senzaMinutiTot + " fermo/i su " + pf.fermiTot
+      txt += "  (" + conta(pf.senzaMinutiTot, "fermo", "fermi") + " su " + pf.fermiTot
         + " senza i minuti registrati: il tempo perso qui sopra e' un minimo)\n";
     }
     const el = document.createElement("a");
@@ -4368,7 +4391,7 @@ ${/* QUESTA TABELLA DICEVA MENO DI QUELLA DELLO SCHERMO. Si componeva con
      Attenuante vera, scritta per non gonfiare: piu sotto la tabella
      «Disponibilita del turno» il tempo perso lo riporta. Il dato non spariva
      dal foglio; questa tabella pero ne diceva meno del dovuto. */""}
-${fermi.length?`<table><tr><th>Causale</th><th>Anomalie</th><th>Tempo perso</th></tr>${fermi.map(f=>{const v=pfOggi.voci.find(x=>x.causale===f.causale);return `<tr><td>${esc(f.causale)}</td><td>${f.conto}</td><td>${esc(v?minutiFermoTesto(v.minuti,v.conto,v.senzaMinuti):"senza minuti")}</td></tr>`;}).join("")}</table>${pfOggi.senzaMinutiTot?`<div class="muted">${pfOggi.senzaMinutiTot} fermo/i su ${pfOggi.fermiTot} senza i minuti registrati: il tempo perso qui sopra è un minimo.</div>`:""}`:(ATT_OGGI.length?"<div>Nessuna anomalia aperta.</div>":"<div>Nessuna attività registrata oggi: non c'è niente da cui contare i fermi. Questa riga non dice che il turno è andato liscio.</div>")}
+${fermi.length?`<table><tr><th>Causale</th><th>Anomalie</th><th>Tempo perso</th></tr>${fermi.map(f=>{const v=pfOggi.voci.find(x=>x.causale===f.causale);return `<tr><td>${esc(f.causale)}</td><td>${f.conto}</td><td>${esc(v?minutiFermoTesto(v.minuti,v.conto,v.senzaMinuti):"senza minuti")}</td></tr>`;}).join("")}</table>${pfOggi.senzaMinutiTot?`<div class="muted">${conta(pfOggi.senzaMinutiTot, "fermo", "fermi")} su ${pfOggi.fermiTot} senza i minuti registrati: il tempo perso qui sopra è un minimo.</div>`:""}`:(ATT_OGGI.length?"<div>Nessuna anomalia aperta.</div>":"<div>Nessuna attività registrata oggi: non c'è niente da cui contare i fermi. Questa riga non dice che il turno è andato liscio.</div>")}
 <h2>Disponibilità del turno</h2>
 ${dispOggi.length?`<table><tr><th>Turno</th><th>Durata dichiarata</th><th>Fermi</th><th>Tempo perso</th><th>Causale peggiore</th><th>Disponibilità</th></tr>${dispOggi.map(d=>`<tr><td>${esc(d.turno)}</td><td>${d.durataMin===null?"non dichiarata":esc(oreMinuti(d.durataMin))}</td><td>${d.fermi} ${d.fermi===1?"fermo":"fermi"}${d.fermiSenzaMinuti?" (di cui "+d.fermiSenzaMinuti+" senza minuti)":""}</td><td>${d.fermi?esc(minutiFermoTesto(d.fermiMin,d.fermi,d.fermiSenzaMinuti)):"—"}</td><td>${d.peggiore?esc(d.peggiore.causale)+" — "+numeroIt(d.peggiore.minuti,0)+" min su "+d.peggiore.conto+(d.peggiore.conto===1?" fermo":" fermi"):"—"}</td><td>${d.pct===null?"<b>non calcolata</b> — "+esc(d.motivo):(d.parziale?"al più <b>"+d.pct+"%</b>":"<b>"+d.pct+"%</b>")+" ("+esc(oreMinuti(d.lavoratiMin))+" lavorati su "+esc(oreMinuti(d.durataMin))+")"+(d.parziale?"<br>"+esc(d.motivo):"")}</td></tr>`).join("")}</table>
 <div class="muted">Disponibilità = durata dichiarata del turno meno i minuti di fermo registrati sulle attività in anomalia. <b>Non è l'OEE</b>: l'OEE moltiplica disponibilità, prestazione e qualità, e prestazione e qualità qui non sono misurate.</div>`
@@ -4507,7 +4530,7 @@ ${riapOggi.length?`<h2>Riaperture del turno</h2>
         + (mostrati.some(x => scartoLivello(x.p.reale, x.p.prog) === "danger") ? "; quelle «critico» oltre il 25%" : "")
         + (oltre ? `. ${plurale(oltre, "L'altro foro fuori progetto è", `Gli altri ${oltre} fori fuori progetto sono`)} nell'elenco qui sotto.` : "."),
       aria: "Scostamento della carica per foro: "
-        + mostrati.map(x => "foro " + x.p.foro + " " + kg(Math.abs(x.diff)) + " chili "
+        + mostrati.map(x => "foro " + x.p.foro + " " + kg(Math.abs(x.diff)) + " " + plurale(Math.abs(x.diff), "chilo", "chili") + " "
             + (x.diff > 0 ? "in più" : "in meno")).join(", ") + ".",
     });
   }
@@ -4529,8 +4552,14 @@ ${riapOggi.length?`<h2>Riaperture del turno</h2>
     // riga confronta solo i fori davvero caricati con il progetto DI QUEI fori.
     const par = pianoParziale(PIANO);
     const kg1 = (v) => numeroIt(v, 1);
+    // le due frasi declinate le compone il modulo (`frasiCaricoParziale`): con
+    // UN foro registrato qui si leggeva «Sui 1 fori già caricati», e la
+    // guardia era già scritta a mano nel toast qui sotto. Adesso è una sola,
+    // e il grassetto sul numero passa dall'argomento `marca`.
+    const fr = frasiCaricoParziale(par, (v) => "<b>" + v + "</b>");
     const rigaFinora = !par ? ""
-      : "<br>Sui <b>" + par.registrati + "</b> fori già caricati: <b>" + kg1(par.realeKg)
+      : "<br>" + fr.caricati.charAt(0).toUpperCase() + fr.caricati.slice(1)
+        + ": <b>" + kg1(par.realeKg)
         + "</b> kg contro <b>" + kg1(par.progettatoKg) + "</b> kg previsti "
         + "<span class=\"badge " + par.livello + "\">" + segnoIt(par.pct, 0) + "%</span>"
         + (par.registrati < par.totale
@@ -4539,9 +4568,7 @@ ${riapOggi.length?`<h2>Riaperture del turno</h2>
                 // somma torna, e le barre qui sotto lo mostrano. Non si dice
                 // «sei in linea» e basta, o si contraddice il grafico.
                 ? " — finora il <b>totale</b> è in linea col progetto; foro per foro guarda le barre qui sotto."
-                : " — <b>te ne accorgi adesso</b>: "
-                  + (par.totale - par.registrati === 1 ? "manca ancora 1 foro" : "mancano ancora " + (par.totale - par.registrati) + " fori")
-                  + " da caricare.")
+                : " — <b>te ne accorgi adesso</b>: " + fr.mancano + " da caricare.")
             : "");
     // ⛔ FINCHÉ NESSUN FORO È REGISTRATO NON C'È NESSUNO SCOSTAMENTO DA DIRE.
     // Con zero cariche reali lo «stimato» è il progetto ricopiato, quindi la
@@ -4685,12 +4712,13 @@ ${riapOggi.length?`<h2>Riaperture del turno</h2>
     // lo si dice SUBITO: il senso di vederlo durante il carico è poter ancora
     // correggere sui fori che restano, non scoprirlo a volata sparata.
     const dopo = pianoParziale(PIANO);
+    // stesse frasi della riga di riepilogo, dalla stessa funzione — qui SENZA
+    // `marca`, perché il toast è testo nudo e un <b> ci si leggerebbe come tale
+    const frD = frasiCaricoParziale(dopo);
     if (dopo && dopo.livello !== primaLiv && dopo.livello !== "ok" && dopo.registrati < dopo.totale)
-      setTimeout(() => toast("Attenzione: "
-        + (dopo.registrati === 1 ? "sul primo foro caricato" : "sui " + dopo.registrati + " fori caricati")
+      setTimeout(() => toast("Attenzione: " + frD.caricati
         + " sei al " + segnoIt(dopo.pct, 0) + "% rispetto al progetto. "
-        + (dopo.totale - dopo.registrati === 1 ? "Resta 1 foro" : "Restano " + (dopo.totale - dopo.registrati) + " fori")
-        + " per rientrare.", "err"), 2900);
+        + frD.restano + " per rientrare.", "err"), 2900);
   });
   await pianoRicarica();
 </script>

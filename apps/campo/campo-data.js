@@ -2531,6 +2531,52 @@ export function pianoParziale(piano) {
   };
 }
 
+/* LE FRASI DEL CARICO A METÀ, DECLINATE, IN UN POSTO SOLO E DENTRO IL MODULO.
+   ═════════════════════════════════════════════════════════════════════════
+   ⛔ PERCHÉ ESISTE (roadmap B3-ter). Con UN foro registrato la pagina
+   componeva «Sui 1 fori già caricati» — e col «1» cambia anche la
+   preposizione, non solo il sostantivo: si dice «Sul foro già caricato».
+   Undici righe più sotto, nello stesso file, il toast la guardia ce
+   l'aveva già, scritta a mano. Cioè la stessa regola scritta due volte, la
+   seconda più debole: la famiglia che CLAUDE.md censisce, qui in casa.
+   La cura non è ricopiare il ternario buono sulla riga rotta — due copie
+   uguali oggi divergono domani — ma scrivere la decisione UNA volta. Sta
+   qui e non nella pagina perché è qui che nascono i numeri (`pianoParziale`):
+   finché la frase la compone la pagina, nessuna prova la guarda, ed è
+   esattamente il posto in cui questo progetto ha già trovato ventiquattro
+   copie deboli («dove il documento si compone»).
+
+   ⛔ E NON RISCRIVE LA SCELTA FRA SINGOLARE E PLURALE: la fa `plurale` di
+   `shared/`, che vale per tutte le app e confronta `Number(n) === 1` — così
+   un conto arrivato come stringa da un CSV non produce «1 fori».
+
+   ⚠️ `marca` È UN ARGOMENTO, NON UNA SECONDA FUNZIONE. Il riepilogo scrive
+   il numero in grassetto, il toast è testo nudo e un `<b>` ci comparirebbe
+   come tale: senza questo argomento la stessa frase andrebbe scritta due
+   volte, una con il tag e una senza — cioè il modo esatto in cui nasce una
+   copia. La domanda «all'originale manca un parametro?» va fatta PRIMA di
+   ricopiare un corpo, e qui la risposta era sì. Si passa solo dove serve:
+   chiamata senza `marca`, la funzione dà testo nudo.
+
+   ⚠️ Il grassetto sta SOLO sul conto dei fori caricati, e le maiuscole sono
+   quelle dei due punti in cui le frasi cadono oggi: `mancano` segue un due
+   punti («te ne accorgi adesso: mancano ancora 4 fori»), `restano` apre una
+   frase nel toast («… per rientrare»). Sono i testi di prima, alla lettera:
+   quello che cambia è solo il caso con UNO. */
+export function frasiCaricoParziale(par, marca) {
+  if (!par) return null;
+  const m = typeof marca === "function" ? marca : (v) => String(v);
+  const restano = par.totale - par.registrati;
+  return {
+    caricati: plurale(par.registrati, "sul foro già caricato",
+      "sui " + m(par.registrati) + " fori già caricati"),
+    mancano: restano <= 0 ? "" : plurale(restano,
+      "manca ancora 1 foro", "mancano ancora " + restano + " fori"),
+    restano: restano <= 0 ? "" : plurale(restano,
+      "Resta 1 foro", "Restano " + restano + " fori"),
+  };
+}
+
 // ── Il consuntivo che torna a Genesi ──────────────────────────────────────
 // Genesi manda a Campo il piano di carico in CSV; Campo gli rimanda indietro,
 // nella STESSA forma (punto e virgola, una riga di intestazione, una riga per

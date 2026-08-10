@@ -4529,15 +4529,26 @@ if($('hgVolate')) $('hgVolate').addEventListener('click',e=>{
   if(act==='apri'){
     Object.assign(D2, JSON.parse(JSON.stringify(arr[i].design)));
     D2.holes=[]; D2.sel=-1; D2.selPt=-1;
-    fillEsplSelects(); setScreen('design');
+    fillEsplSelects();
     /* ⛔ QUESTA È LA PORTA da cui entrano i dati che nessuno ha controllato —
        `Object.assign` da `localStorage` — ed è quella da cui il 03/08 è
        entrato il codice di normativa che Genesi non riconosce. Un campo che
        arriva illeggibile adesso lascia il suo input VUOTO invece di scriverci
        uno zero inventato: giusto, ma muto. Quindi lo si dice qui, una volta,
-       con i nomi che si leggono sullo schermo. */
+       con i nomi che si leggono sullo schermo.
+       ⛔ E SI DICE **PRIMA DI DISEGNARE**, che è la correzione del 09/08. Queste
+       due righe stavano dopo `setScreen('design')`: con l'interasse assente
+       `setScreen` moriva dentro `measureGeom2D`, e il messaggio scritto apposta
+       per dire «un valore non si legge» **non veniva mai eseguito** — la difesa
+       costruita per l'assenza disinnescata proprio dal caso che deve coprire
+       (misurato: toast `""` e 1 errore di pagina). Il difetto del `.toFixed` è
+       chiuso, ma l'ORDINE resta sbagliato lo stesso: una dichiarazione che
+       dipende dalla riuscita del disegno è una dichiarazione che il primo
+       guasto del disegno cancella. Prima si dice quello che manca, poi si
+       disegna — così il messaggio non ha bisogno che il resto funzioni. */
     const _senza=volataSenzaValori(arr[i].design);
     toast('✓ «'+arr[i].nome+'» aperta nel 2D'+(_senza?' — ⚠️ '+_senza.che+'. '+_senza.come:''));
+    setScreen('design');
   }
 });
 if($('btn-salva-volata')) $('btn-salva-volata').onclick=()=>salvaVolata(': la trovi in Home');
@@ -5271,16 +5282,35 @@ function muckShape(){
   else { spreadLat='moderato'; phiDeg=Math.round(thetaDeg); dirTxt='asimmetrico verso il lato di partenza, baricentro ruotato di ~'+Math.round(thetaDeg)+'°'; }
   return { theta:Math.round(thetaDeg), Be:+Be.toFixed(2), msmRow, v0:+v0.toFixed(1), L:+L.toFixed(1), SF, cls, formaTxt, spreadLat, phiDeg, dirTxt, seq };
 }
+/* ⛔ `S` È L'UNICO VALORE DI QUESTA FUNZIONE CHE RIPIEGA SU UN DATO DI PROGETTO,
+   ed è per questo che era l'unico a UCCIDERE la pagina — non per fortuna degli
+   altri tre. `n`, `B` e `Lm` escono dalle COORDINATE dei fori, e quelle sono
+   sempre numeri: `genMaglia2D` scrive `c*D2.S+off`, e `c*null` fa **0**. Quindi
+   con l'interasse assente la maglia degenera (tutti i fori a mx 0) ma `Bm`,
+   `minx` e `maxx` restano finiti e il loro `.toFixed` regge. `Sm` no: quando
+   nessuna coppia di fori dà un passo misurabile ripiega su `D2.S`, che arriva
+   grezzo da `Object.assign` e può essere `null` — e `null.toFixed` è un
+   **TypeError** che spezzava `measureGeom2D → renderScheda2D → draw2D →
+   setScreen` e lasciava la scheda validatori a ZERO righe (misurato: 0 invece
+   di 28, con l'errore di pagina «Cannot read properties of null»).
+   La risposta quando il dato non c'è è `null`, la convenzione dell'ecosistema:
+   le righe della scheda la sanno già trattare. E la domanda si fa con
+   `Number.isFinite` sul valore GREZZO, non su `+D2.S`: `+null` fa 0, che è
+   finito — è la riga di CLAUDE.md, già pagata una volta in `valoreCampo`.
+   ⚠️ Vale anche per la via senza fori, che prima restituiva `D2.S` così com'era:
+   il contratto di questa funzione è UNO — `S` è un numero, oppure `null` —
+   e due uscite con due contratti diversi sono una copia più debole. */
 function measureGeom2D(){
+  const Sprog = Number.isFinite(D2.S) ? D2.S : null;      // l'interasse di progetto, o niente
   const H=D2.holes;
-  if(!H.length) return { n:0, B:D2.B, S:D2.S, Lm:0 };
+  if(!H.length) return { n:0, B:D2.B, S:Sprog, Lm:0 };
   let Bm=Infinity, minx=Infinity, maxx=-Infinity, Sm=Infinity;
   for(const h of H){ if(h.my<Bm)Bm=h.my; if(h.mx<minx)minx=h.mx; if(h.mx>maxx)maxx=h.mx; }
   for(let i=0;i<H.length;i++) for(let j=i+1;j<H.length;j++){
     if(Math.abs(H[i].my-H[j].my)<0.5){ const d=Math.abs(H[i].mx-H[j].mx); if(d>0.05 && d<Sm) Sm=d; }
   }
-  if(!isFinite(Sm)) Sm=D2.S;
-  return { n:H.length, B:+Bm.toFixed(2), S:+Sm.toFixed(2), Lm:+(maxx-minx).toFixed(1) };
+  if(!isFinite(Sm)) Sm=Sprog;
+  return { n:H.length, B:+Bm.toFixed(2), S:(Sm===null?null:+Sm.toFixed(2)), Lm:+(maxx-minx).toFixed(1) };
 }
 /* fronte modellabile (porting da Deepwork interpolaFronte): deviazione verticale
    del fronte in mx. ⛔ Il corpo è salito in `genesi-data.js` (blocco G9) il
@@ -5485,7 +5515,15 @@ function renderScheda2D(){
      illeggibile la scheda mostrava «Powder factor 0,00 kg/m³» col pallino
      ROSSO (un consiglio a caricare di più, su un dato mai letto) e «X50
      prevista 97 cm» contro i 27 veri. */
-  const _fg=fragKuzRam({ kg:Q, vol:B*S*H, A:rockFactorA().A,
+  /* ⚠️ `vol` PASSA DA `volumeForo`, non da `B*S*H`. Il prodotto scritto a mano
+     era la copia più debole della domanda del blocco G15 e reggeva soltanto per
+     l'aritmetica di `null` (`null*3.5` fa 0, e un volume zero `fragSenzaConto`
+     lo rifiuta): basta che un giorno quel volume si scriva con un `+` — un
+     epsilon, un ripiego, una somma di deck — perché lo zero non sia più zero.
+     `pfNominale` chiama già la funzione giusta due schermate più in là: la
+     stessa domanda non si scrive due volte in due modi. Oggi le due rispondono
+     identiche su questi casi (misurato), e domani no. */
+  const _fg=fragKuzRam({ kg:Q, vol:volumeForo(B,S,H), A:rockFactorA().A,
     RWS:Math.max(8, ((selEsplosivo()||{}).rws_pct||100)*(1-(D2.bagnato?({Nulla:0.70,Bassa:0.40,Media:0.18,Buona:0.05,Eccellente:0}[(selEsplosivo()||{}).acqua]||0):0))) });
   const pf=_fg.pf, sb=S/B, hb=H/B, bd=B/Dm, stem=D2.stem, stemB=stem/B, msmHole=rit/S, msmRow=(D2.ritardoFila||rit)/B, sub=D2.sub, subB=sub/B, subRec=0.3*B;
   function badge(x,lab,valStr,lo,hi,wlo,whi,whyOk,whyLo,whyHi){
@@ -5494,8 +5532,40 @@ function renderScheda2D(){
     else if(x>hi){ cls=(x>whi?'sv-bad':'sv-warn'); why=whyHi; }
     return {lab,valStr,cls,why};
   }
+  /* ⛔ «NON CALCOLABILE» SI SCRIVE IN UN POSTO SOLO. La forma stava già in
+     questa funzione, dentro `if(pf===null)`; le due righe che ne hanno avuto
+     bisogno dopo (il rapporto S/B e la carica consigliata) l'avrebbero
+     ricopiata, e una copia con un colore o una classe diversi racconta la
+     stessa assenza in due modi. Alla riga non mancava un gemello, mancava un
+     PARAMETRO — la coda, per chi accanto al «non calcolabile» ha ancora
+     qualcosa di vero da dire. È la regola di CLAUDE.md sulla firma troppo
+     stretta, applicata prima di ricopiare invece che dopo.
+     `sv-warn` e non `sv-bad`: non sappiamo che il valore sia sbagliato,
+     sappiamo di non poterlo dire. */
+  const nonCalcolabile=(lab,why,coda)=>({lab,cls:'sv-warn',why,
+    valStr:'<i style="color:#ffca28">non calcolabile</i>'+(coda?' <span>'+coda+'</span>':'')});
+  /* ⛔ IL RAPPORTO FRA DUE NUMERI NON È UN NUMERO SE UNO DEI DUE NON C'È, e
+     `badge` non se ne può accorgere: giudica con `<` e `>`, e `null/3` fa
+     **0** — un numero finito, tranquillo, dentro la fascia bassa. Con
+     l'interasse assente la riga scriveva «0,00» e per giunta ACCUSAVA
+     («interasse < spalla … maglia stretta in larghezza»), cioè dava la colpa
+     alla maglia per un campo che nessuno aveva compilato; con la spalla
+     assente `3,5/0` fa `Infinity` e l'accusa si ribaltava («interasse molto >
+     spalla»). Due facce della stessa assenza, e tutt'e due sbagliate.
+     Quindi la domanda si fa sugli OPERANDI, non sul risultato: un rapporto
+     vuole due misure leggibili e POSITIVE (una spalla di 0 m non è una spalla,
+     è la stessa soglia che `volumeForo` usa sui suoi tre fattori).
+     ⚠️ Il motivo lo dice `volataSenzaValori`, che è la funzione che nomina i
+     campi illeggibili con le parole che si leggono sullo schermo — la stessa
+     che scrive il toast all'apertura. Due frasi diverse per la stessa assenza
+     sarebbero due verità: qui non se ne inventa una nuova. */
+  const _geoOk=(x)=>Number.isFinite(x)&&x>0;
+  const _senzaGeo=volataSenzaValori({B:D2.B, S:D2.S, prof:D2.prof});
+  const _geoChe=_senzaGeo ? (_senzaGeo.che+'. '+_senzaGeo.come)
+    : ('la maglia disegnata non dà due misure confrontabili (spalla '+gfix(B,2)+' m, interasse '+gfix(S,2)+' m).');
   const rows=[];
-  rows.push(badge(sb,'Rapporto S/B',gfix(sb,2),1.0,1.4,0.85,1.6,
+  if(!(_geoOk(S)&&_geoOk(B))) rows.push(nonCalcolabile('Rapporto S/B',_geoChe));
+  else rows.push(badge(sb,'Rapporto S/B',gfix(sb,2),1.0,1.4,0.85,1.6,
     'spaziatura/spalla nel range tipico (1,0–1,4).',
     'interasse &lt; spalla; tipico 1,0–1,4 (sfalsata ~1,15). Maglia stretta in larghezza.',
     'interasse molto &gt; spalla: rischio irregolarità tra fori.'));
@@ -5512,8 +5582,7 @@ function renderScheda2D(){
      `null` si intercetta PRIMA, e la riga porta la ragione al posto della
      fascia consigliata: `sv-warn` e non `sv-bad`, perché non sappiamo che il
      consumo specifico sia sbagliato, sappiamo di non poterlo dire. */
-  if(pf===null) rows.push({lab:'Powder factor',valStr:'<i style="color:#ffca28">non calcolabile</i>',cls:'sv-warn',
-    why:_fg.che+'. '+_fg.come});
+  if(pf===null) rows.push(nonCalcolabile('Powder factor',_fg.che+'. '+_fg.come));
   else rows.push(badge(pf,'Powder factor',gfix(pf,2)+' <span>kg/m³</span>',0.30,0.55,0.22,0.7,
     'carica specifica nel range consigliato (0,30–0,55 kg/m³).',
     'PF basso → rischio blocchi/oversize; tipico 0,30–0,50 kg/m³.',
@@ -5628,13 +5697,13 @@ function renderScheda2D(){
        tranquilla su una situazione tutt'altra. I fori disegnati si contano
        PRIMA del filtro. */
     const _disegnati=(D2.holes||[]).length;
-    if(_disegnati>=2 && HH.length<2){ rows.push({lab:'Energia per foro',valStr:'<i style="color:#ffca28">non calcolabile</i>',cls:'sv-warn',
-      why:'ci sono '+_ricPlur(_disegnati,'foro','fori')+' nel disegno, ma il consumo specifico del singolo foro non si conta: '+_fg.che+'. '+_fg.come}); return; }
+    if(_disegnati>=2 && HH.length<2){ rows.push(nonCalcolabile('Energia per foro',
+      'ci sono '+_ricPlur(_disegnati,'foro','fori')+' nel disegno, ma il consumo specifico del singolo foro non si conta: '+_fg.che+'. '+_fg.come)); return; }
     if(HH.length<2){ rows.push({lab:'Energia per foro',valStr:'—',cls:'sv-info',
       why:'con un foro solo non c\'è un confronto: il consumo specifico locale coincide con quello di progetto.'}); return; }
     const pfRif=pfNominale(), rr=HH.map(h=>h.pfLoc), mn=Math.min(...rr), mx=Math.max(...rr);
-    if(pfRif===null){ rows.push({lab:'Energia per foro',valStr:'<i style="color:#ffca28">non calcolabile</i>',cls:'sv-warn',
-      why:'il consumo specifico del singolo foro si confronta con quello medio di progetto, e quello non c\'è: '+_fg.che+'. '+_fg.come}); return; }
+    if(pfRif===null){ rows.push(nonCalcolabile('Energia per foro',
+      'il consumo specifico del singolo foro si confronta con quello medio di progetto, e quello non c\'è: '+_fg.che+'. '+_fg.come)); return; }
     const gi=HH.filter(h=>pfCls(h.pfLoc/pfRif)==='moltoBassa').length + HH.filter(h=>pfCls(h.pfLoc/pfRif)==='bassa').length;
     const su=HH.filter(h=>{const c=pfCls(h.pfLoc/pfRif); return c==='alta'||c==='moltoAlta';}).length;
     const estremi=HH.filter(h=>{const c=pfCls(h.pfLoc/pfRif); return c==='moltoBassa'||c==='moltoAlta';}).length;
@@ -5739,8 +5808,7 @@ function renderScheda2D(){
   rows.push({lab:'Brillabilità (BI/A)',valStr:gfix(_A,1)+' <span>A · BI '+gnum(_rf.BI,0)+'</span>',cls:(_A<=6?'sv-ok':(_A<=10?'sv-warn':'sv-bad')),
     why:'rock factor A=0,06·(RMD+JF+RDI+HF) (Lilly/Cunningham): '+_rk.nome+', UCS '+(D2.ucs||_rk.ucs)+' MPa, E '+(D2.eMod||_rk.eMod)+' GPa, fratturazione '+D2.frat+'. RDI '+_rf.RDI+', HF '+_rf.HF+', JF '+_rf.JF+'. '+(_A<=6?'roccia facile: frammenta bene con PF moderato.':(_A<=10?'brillabilità media: cura PF e timing per evitare oversize.':'roccia dura/massiccia: serve PF alto, Ø piccolo o esplosivo ad alta VOD.'))});
   rows.push(_x50===null
-    ? {lab:'X50 prevista',valStr:'<i style="color:#ffca28">non calcolabile</i>',cls:'sv-warn',
-       why:_fg.che+'. '+_fg.come}
+    ? nonCalcolabile('X50 prevista', _fg.che+'. '+_fg.come)
     : {lab:'X50 prevista',valStr:Math.round(_x50)+' <span>cm</span>'+(_penE>0?' <span>↑bagnato</span>':''),cls:'sv-info',
     why:'frammentazione mediana (Kuz-Ram, '+_rk.nome+' A='+gfix(_A,1)+' calcolato, RWS '+gnum(_RWS,0)+(_penE>0?' effettiva, ridotta da fori bagnati':'')+'): roccia piu dura (A alto) o meno carica/RWS la rende piu grossolana.'});
   /* === secondo modello: curva KCO/Swebrec (Ouchterlony 2005) — code più realistiche
@@ -5751,8 +5819,8 @@ function renderScheda2D(){
        curva KCO. Con `_x50` a `null` `Math.max(null*1.2, …)` dava il massello
        della maglia e la riga usciva «74/109 cm · max 117» — un secondo parere
        che sembrava confermare il primo, e nasceva dallo stesso dato assente. */
-    if(_x50===null){ rows.push({lab:'Curva KCO (Swebrec)',valStr:'<i style="color:#ffca28">non calcolabile</i>',cls:'sv-warn',
-      why:'il secondo modello di frammentazione (KCO/Swebrec, Ouchterlony 2005) parte dallo stesso X50 di Kuz-Ram, e quello non c\'è: '+_fg.che+'. '+_fg.come}); return; }
+    if(_x50===null){ rows.push(nonCalcolabile('Curva KCO (Swebrec)',
+      'il secondo modello di frammentazione (KCO/Swebrec, Ouchterlony 2005) parte dallo stesso X50 di Kuz-Ram, e quello non c\'è: '+_fg.che+'. '+_fg.come)); return; }
     const _xmax=Math.max(_x50*1.2, Math.min(B, S, _blk)*100);                // cm, mai sotto x50
     const _b=Math.max(1.5, 0.5*Math.pow(Math.max(1,_x50),0.25)*Math.log(_xmax/_x50));   // undulation (fit Swebrec)
     const _at=(P)=>_xmax*Math.exp(-Math.log(_xmax/_x50)*Math.pow((1-P)/P,1/_b));
@@ -5763,13 +5831,26 @@ function renderScheda2D(){
   /* === loading rule: PF obiettivo dal rock factor A (Lilly) → carica consigliata per foro === */
   (function(){
     const _t=_A<=6?[0.25,0.40]:(_A<=10?[0.40,0.55]:[0.55,0.80]);
-    const _pfMid=(_t[0]+_t[1])/2, _Qsug=Math.round(_pfMid*B*S*H);
+    /* ⛔ E QUI IL CONSIGLIO SPARIVA A META STRADA: `_pfMid*B*S*H` con
+       l'interasse assente fa **0**, e la riga diceva «~0 kg/foro» — cioè, sulla
+       riga che consiglia quanto caricare, il numero più tranquillo che si possa
+       dare a una maglia che nessuno ha scritto. La fascia di PF obiettivo
+       invece RESTA VERA: dipende solo dal fattore roccia. Quindi non si toglie
+       la riga, si separano le due cose — la fascia in coda al «non
+       calcolabile», e i kg/foro dichiarati non deducibili.
+       Il volume lo chiede `volumeForo`, che è la funzione che sa dire di no:
+       `_pfMid*B*S*H` è la stessa moltiplicazione senza la domanda davanti. */
+    const _pfMid=(_t[0]+_t[1])/2, _volF=volumeForo(B,S,H), _Qsug=(_volF===null?null:Math.round(_pfMid*_volF));
     /* ⚠️ IL CONSIGLIO RESTA VERO (dipende dal fattore roccia e dalla maglia,
        non dalla carica), È IL CONFRONTO CHE SPARISCE: `null>=0.40` è `false` e
        `null<0.40` è `true`, quindi la riga scriveva «Il PF attuale (—) è
        SOTTO: rischio massello grosso — più carica», cioè mandava ad alzare la
        carica per colpa del campo che nessuno aveva compilato. */
     const _ok=pf!==null&&pf>=_t[0]&&pf<=_t[1];
+    if(_Qsug===null){ rows.push(nonCalcolabile('Carica consigliata (regola)',
+      'regola di caricamento dalla brillabilità: con A='+gfix(_A,1)+' ('+(_A<=6?'roccia facile':(_A<=10?'brillabilità media':'roccia dura/massiccia'))+') il PF obiettivo è '+gfix(_t[0],2)+'–'+gfix(_t[1],2)+' kg/m³, e quello resta vero perché dipende dalla roccia. Quanti kg/foro siano su QUESTA maglia non si può dire: '+_geoChe
+        +' Regola indicativa: la carica resta decisa dal responsabile del tiro.',
+      'PF obiettivo '+gfix(_t[0],2)+'–'+gfix(_t[1],2)+' kg/m³')); return; }
     rows.push({lab:'Carica consigliata (regola)',valStr:'~'+gnum(_Qsug,0)+' <span>kg/foro (PF '+gfix(_t[0],2)+'–'+gfix(_t[1],2)+')</span>',
       cls:(_ok?'sv-ok':'sv-warn'),
       why:'regola di caricamento dalla brillabilità: con A='+gfix(_A,1)+' ('+(_A<=6?'roccia facile':(_A<=10?'brillabilità media':'roccia dura/massiccia'))+') il PF obiettivo è '+gfix(_t[0],2)+'–'+gfix(_t[1],2)+' kg/m³ → ~'+gnum(_Qsug,0)+' kg/foro su questa maglia. '

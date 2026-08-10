@@ -1000,7 +1000,54 @@ numero scritto dove non era stato misurato niente**.*
       **Come si misura**: apri una volata con `design.B:null` e guarda il burden
       dei fori disegnati — se è 0,3 m, il difetto è ancora lì.
 
-- [ ] **B0-nonies. CON L'INTERASSE ASSENTE LA PAGINA DI GENESI *MUORE*, E IL
+- [x] **B0-nonies. CON L'INTERASSE ASSENTE LA PAGINA DI GENESI *MUORE*, E IL
+      MESSAGGIO CHE DOVEVA SPIEGARLO NON ARRIVA MAI.** ✅ *Chiuso il 10/08.*
+      **Misurato** (server proprio, contrassegno del pid riletto, caso nei dati
+      e iniezioni nella risposta HTTP — il file di prodotto mai toccato):
+      con `design.S:null` la scheda validatori passa da **0 righe a 28**, gli
+      errori di pagina da **1 a 0**, e il toast da **`""`** a una frase che
+      **nomina l'interasse**. Sulla volata sana le 28 righe sono confrontate a
+      macchina prima/dopo: `diff -u` → **identiche, non è cambiato un carattere**.
+      ⚠️ *La riga diceva «29 righe invece di 0»: sono **28**, misurate tre volte.*
+      ⛔ **Perché moriva `S` e non `B`, `n`, `Lm`, e non è «per caso»**: quelli
+      escono dalle coordinate dei fori, che sono sempre numeri (`c*null` fa 0, la
+      maglia degenera ma i `.toFixed` reggono). `Sm` era **l'unico che ripiegava
+      su un dato di progetto grezzo**. La guardia scritta è più stretta di quella
+      proposta — `Number.isFinite(D2.S)` invece di `Sm===null` — perché la forma
+      proposta reggeva su `null` ma **non** su `''`, `undefined` o una stringa,
+      che scoppiano identiche. E l'uscita «senza fori», che restituiva `D2.S`
+      grezzo, è stata normalizzata: **due uscite con due contratti sono una copia
+      più debole**.
+      ⛔ **Il toast spostato PRIMA del disegno non era dimostrabile sul caso di
+      partenza** (col `.toFixed` chiuso arriverebbe comunque): è difesa in
+      profondità, la seconda lettura di «non distingue». Dimostrata a parte con
+      un **guasto finto** dentro `renderScheda2D` — ordine nuovo: il messaggio
+      arriva lo stesso; ordine vecchio: `"[]"`. *Una dichiarazione che dipende
+      dalla riuscita del disegno è una dichiarazione che il prossimo guasto del
+      disegno cancella.*
+      ⛔ **E il «Rapporto S/B» non era un numero tranquillo: ACCUSAVA** — «maglia
+      stretta in larghezza», cioè dava la colpa alla maglia per un campo che
+      nessuno aveva compilato; il badge non poteva vederlo perché `null/3` fa
+      **0**, finito, dentro la fascia bassa. Ora la domanda è sugli **operandi**.
+      Il motivo «non calcolabile» non è stato ricopiato: alla riga che c'era
+      mancava **un parametro** (la coda), non un gemello — `nonCalcolabile(lab,
+      why, coda)` ha assorbito anche le **quattro copie a mano** già presenti
+      nella stessa funzione: markup scritto **1 volta, 7 chiamanti**.
+      **Prove**: 4 in `run-kpi` (2034 → **2038**). ⚠️ *Il cantiere prevedeva
+      «+43»: `run-kpi` conta i `test(`, non le asserzioni. Il numero giusto
+      è +4, e va scritto qui perché la prossima consegna non lo rifaccia.*
+      Iniezioni: **5, tutte a segno**, 195 caratteri — e una cambia **zero
+      caratteri** (uno scambio di posizione), il caso in cui la conta mente.
+      ⏱️ **Restano misurate e NON toccate, per B0-septies**: con l'interasse
+      assente i fori finiscono tutti a `mx 0`, quindi il MIC passa da 58 a **696
+      kg** (tutti e dodici insieme) e la PPV al recettore da 6,4 a **44,0 mm/s**.
+      Genesi *accusa* una volata con numeri nati da una maglia che nessuno ha
+      scritto. E nel caso `design.B:null` restano «Spalla/Ø **0·Ø**» con la
+      spiegazione falsa, e «Rigidità H/B» con **pallino rosso e spiegazione
+      vuota**.
+
+      ⏱️ *Il testo originale della riga:*
+- [ ] **B0-nonies (com'era). CON L'INTERASSE ASSENTE LA PAGINA DI GENESI MUORE, E IL
       MESSAGGIO CHE DOVEVA SPIEGARLO NON ARRIVA MAI.** ⏱️ *Trovato il 09/08
       misurando i campi di B0-sexies; **pre-esistente**, non nato oggi
       (`git show aec46eb^:apps/genesi/genesi.html | grep -n "isFinite(Sm)"` dà
@@ -1055,7 +1102,59 @@ numero scritto dove non era stato misurato niente**.*
       USBM/DIN, `ppvLimit`) non si toccano senza conferma del fondatore. Qui non
       si toccano — si smette di **inventare gli ingressi** che ci vanno dentro.
 
-- [ ] **B3-ter. «Sui 1 fori già caricati» — e undici righe sotto la guardia
+- [x] **B3-ter. «Sui 1 fori già caricati» — e undici righe sotto la guardia
+      giusta c'è già.** ✅ *Chiuso il 10/08, e la famiglia CENSITA invece che
+      corretta a occhio.*
+      **Il censimento**, con lo strumento che usa `classifica` di
+      `tests/tokenizza.mjs` (non un tokenizzatore nuovo: un buco lì è un buco
+      lì, non uno nuovo) e col denominatore stampato in due gradini dichiarati:
+      `apps/campo/index.html` **499 slot, 59 candidati, 36 scoperti → 24**, e
+      i 24 + 2 rimasti sono stati **letti uno per uno** e sono tutti
+      non-difetti, con la ragione (rapporti `N/M parola`, invariabili come
+      «attività», valori che non sono conteggi, un artefatto del righello).
+      **Corrette 14 frasi** e **assorbite 3 guardie scritte a mano**.
+      ⛔ **Non è stata scritta nessuna funzione nuova per il singolare**:
+      `plurale()`/`conta()` sono in `shared/deepwork-id-client/dw-shell.js` e
+      Campo le importava già (`index.html:1221`, `campo-data.js:53`) — sarebbe
+      stata la **quinta copia**. Quello che mancava è che le frasi del carico
+      parziale le componeva **la pagina**, cioè «la copia debole dove il
+      documento si compone»: ora `frasiCaricoParziale(par, marca)` sta nel
+      modulo, dove una prova può guardarla. E `marca` **è un argomento, non una
+      seconda funzione** — il riepilogo vuole il numero in `<b>`, il toast lo
+      vuole nudo: la prova in scratchpad ha bocciato la prima stesura proprio
+      lì, coi tag stampati come testo dentro il toast.
+      **Prove**: 4 in `run-kpi` (2038 → **2042**), e col difetto rimesso cadono
+      **tutte e quattro** — nessuna passa per un motivo diverso dal suo nome.
+      **Nel browser**: 19 verifiche su 5 scene — 0 registrati → nessuna riga
+      «finora»; 1 → «**Sul foro già caricato**»; 3 → **alla lettera come
+      prima**, così `campo-numeri-tranquilli` non si muove; il piede → «manca
+      ancora **1 foro**»; il toast → senza `<b>`.
+      ⛔ **E il righello ha sbagliato due volte, e vale più del risultato**: il
+      primo «slot» era *qualunque* codice fra due stringhe (493 candidati quasi
+      tutti finti — uno slot è solo un punto in cui il valore **finisce nel
+      testo**); e la ricerca della guardia sull'espressione dava
+      `par.registrati` **protetta** da una guardia di un *altro* conto, cioè
+      **assolveva proprio la riga del difetto**.
+      ⛔ **E la ragione per cui nessun banco l'aveva preso** vale da sola:
+      `DEMO.pianocarico` è `[]`, quindi `tagliaAUno` su una lista vuota non
+      produce niente e **l'intera schermata del piano di carico non è misurata
+      da nessun banco che apra la dimostrazione** — è lo stesso «non si vedeva
+      perché non c'era mai stata una barra alta». Mettere un piano nella
+      dimostrazione è **un'unità a sé** (aprirebbe quella schermata a tutti i
+      banchi esistenti, e tocca dati che `campo-disegni` si inietta da sé).
+      ⏱️ **Elenco per le altre app, PROPOSTO dal censimento e NON verificato**
+      — su Campo il rapporto vero è stato 36 grezzi → 14 difetti, quindi questi
+      numeri non si moltiplicano: core 40, conti 39, flotta 27, sentinella 19,
+      terra 15, scudo 12, genesi 12 candidati grezzi. I letti a mano che
+      sembrano veri: la **stessa frase d'import** in Flotta (2 punti) e
+      Sentinella (3), «Ogni ${m} mesi» in Flotta, «Dei ${nPunti} punti» in
+      Sentinella, «${length} DPI previsti» in Scudo, «${skipped} saltati» nel
+      core. ⚠️ E lo strumento, se lo si vuole stabile, va portato in
+      `apps/deepwork-id/tests/` — gli strumenti di misura non vivono nello
+      scratchpad.
+
+      ⏱️ *Il testo originale della riga:*
+- [ ] **B3-ter (com'era). «Sui 1 fori già caricati» — e undici righe sotto la guardia
       giusta c'è già.** ⏱️ *Trovato il 09/08 dal banco del ponte di Campo.*
       Con **esattamente un** foro registrato, `apps/campo/index.html` compone
       «Sui **1** fori già caricati: 118,5 kg contro 100 kg previsti +19%».
@@ -3891,8 +3990,8 @@ numero scritto dove non era stato misurato niente**.*
   nome apre il file sbagliato credendo che sia il più fresco.
 - Le decisioni: `docs/DECISIONI_WEEKEND.md` — pagina d'ingresso in cima.
 - Stato misurato al **09/08** (lanciando le suite, non a memoria):
-  **2.486 prove girano senza rete**. La frase va letta stretta: è la somma
-  delle **otto** suite che contano asserzioni (`run-kpi` 2034, `run-stile` 318,
+  **2.494 prove girano senza rete**. La frase va letta stretta: è la somma
+  delle **otto** suite che contano asserzioni (`run-kpi` 2042, `run-stile` 318,
   `run-helpers` 75, `run-pointcloud` 32, `run-manifest` 9, `run-demo` 8,
   `bootstrap-rivendicazioni` 7, `fogli-guardati` 3), non tutto ciò che gira nel
   giro `node` — che di comandi ne ha **34** e di asserzioni ne esegue di più:

@@ -128,6 +128,59 @@ console.log("   ⚠️  E non è il numero da citare come «prove»: qui dentro 
 console.log("   ⚠️  Le suite che `orologio-cliente` rilancia in ora italiana NON sono contate due volte:"
   + " di ogni comando si legge solo l'ultima riga, cioè il verdetto che dà di sé.");
 
-console.log(`\nGiro senza emulatori: ${daFare.length * giri.length - caduti.length} comandi a posto, ${caduti.length} caduti`);
+/* ── e il numero che il giro stampa dev'essere quello scritto nei documenti ──
+   ⛔ ENTRATA IL 09/08 SU UN NUMERO CHE ERA STALE DI CINQUANTOTTO. I documenti
+   del fondatore dicevano «il giro completo esegue **2.757** asserzioni su
+   **34** comandi» e il giro ne eseguiva **2.815**. E la cosa che fa male è che
+   `STATO_PRODOTTO.md`, due righe sotto, spiegava già la cura: *«un conto che si
+   muove da solo va derivato da un comando, non ricopiato»* — poi il conto è
+   stato ricopiato lo stesso, perché **il comando che lo produce non guardava il
+   documento**.
+   ⚠️ Perché la sorveglianza sta QUI e non in `numeri-nei-documenti.mjs`: quel
+   numero lo sa solo chi ha appena lanciato tutto. Metterlo là vorrebbe dire far
+   rilanciare il giro dentro il giro — minuti, per un confronto che qui costa
+   una lettura di file. **Un dato si sorveglia dove nasce.**
+   ⚠️ E non fa cadere il giro se il documento non ha la frase: la frase può
+   essere riscritta, e un controllo che pretende una forma esatta di prosa
+   diventa un ostacolo invece che una difesa. Se manca lo **dichiara**, che è la
+   riga da leggere per prima. */
+const NUMERI_DEL_GIRO = [
+  ["docs/DEVELOPMENT.md", /`node` completo esegue \*\*([\d.]+)\*\* asserzioni su \*\*(\d+)\*\* comandi/],
+  ["docs/STATO_PRODOTTO.md", /il giro completo ne esegue \*\*([\d.]+)\*\*/],
+];
+let numeriStorti = false;
+{ /* ⚠️ e NON si salta con `--tz`: il primo abbozzo lo faceva («con due giri si
+     guarda una volta sola»), ma `asserzioni` è GIÀ di un giro solo — lo
+     garantisce `contaAsserzioni`, che ignora le passate dopo la prima. Saltarlo
+     avrebbe reso `giro-node --tz` cieco proprio sul controllo appena scritto,
+     ed è la forma in miniatura del «controllo che non guarda dove crede». */
+  const radice = join(QUI, "..", "..", "..");
+  const storte = [], senzaFrase = [];
+  for (const [rel, regola] of NUMERI_DEL_GIRO) {
+    let testo = "";
+    try { testo = readFileSync(join(radice, rel), "utf8"); } catch { senzaFrase.push(`${rel} (non si legge)`); continue; }
+    const m = regola.exec(testo);
+    if (!m) { senzaFrase.push(rel); continue; }
+    const dichiarato = +m[1].replace(/\./g, "");
+    if (dichiarato !== asserzioni) storte.push(`${rel} dice ${m[1]} asserzioni, il giro ne ha eseguite ${asserzioni}`);
+    if (m[2] && +m[2] !== daFare.length) storte.push(`${rel} dice ${m[2]} comandi, il giro ne ha lanciati ${daFare.length}`);
+  }
+  if (senzaFrase.length)
+    console.log(`   ⚠️  la frase col totale non si trova in: ${senzaFrase.join(", ")} — non è un guasto, `
+      + "ma finché non la trovo quel documento NON è sorvegliato da qui");
+  if (storte.length) {
+    console.error("\n⛔ I DOCUMENTI DICHIARANO UN ALTRO NUMERO — e questo lo sa solo chi ha appena lanciato tutto:");
+    for (const r of storte) console.error("   · " + r);
+    console.error("   Si corregge il documento, non il giro. Il numero da scrivere è quello stampato qui sopra.");
+    numeriStorti = true;   /* NON in `caduti`: non è un comando, e gonfiarlo lì
+                              farebbe dire «33 comandi a posto» su 34 lanciati e
+                              tutti verdi — un numero che mente per dire il vero */
+  } else if (!senzaFrase.length) {
+    console.log(`   ✓ e i ${NUMERI_DEL_GIRO.length} documenti che lo dichiarano dicono lo stesso numero.`);
+  }
+}
+
+console.log(`\nGiro senza emulatori: ${daFare.length * giri.length - caduti.length} comandi a posto, ${caduti.length} caduti`
+  + (numeriStorti ? "  ·  ⛔ ma i numeri scritti nei documenti NON tornano (qui sopra)" : ""));
 if (caduti.length) console.error("  caduti: " + caduti.join(" · "));
-process.exit(caduti.length ? 1 : 0);
+process.exit(caduti.length || numeriStorti ? 1 : 0);

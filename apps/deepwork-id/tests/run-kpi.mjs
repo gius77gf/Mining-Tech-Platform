@@ -3668,6 +3668,51 @@ test("senza fori caricati il parziale è null, non zeri finti", () => {
   ok(campo.pianoParziale([]) === null && campo.pianoParziale(undefined) === null, "vuoto e assente = null");
 });
 
+// ── B3-ter · le frasi del carico a metà, declinate ────────────────────
+test("con UN foro caricato la frase è al singolare, preposizione compresa", () => {
+  const f = campo.frasiCaricoParziale({ registrati: 1, totale: 5 });
+  ok(f.caricati === "sul foro già caricato", `«${f.caricati}»: con uno si dice «sul foro», non «sui 1 fori»`);
+  ok(!/\b1 fori\b/.test(f.caricati), `«${f.caricati}» contiene ancora «1 fori»`);
+  // e i fori che RESTANO sono quattro: il plurale lì è quello giusto
+  ok(f.mancano === "mancano ancora 4 fori", `«${f.mancano}»`);
+  ok(f.restano === "Restano 4 fori", `«${f.restano}»`);
+});
+test("con più di uno la frase è quella di sempre, alla lettera", () => {
+  const f = campo.frasiCaricoParziale({ registrati: 3, totale: 5 });
+  ok(f.caricati === "sui 3 fori già caricati", `«${f.caricati}»`);
+  ok(f.mancano === "mancano ancora 2 fori", `«${f.mancano}»`);
+  ok(f.restano === "Restano 2 fori", `«${f.restano}»`);
+  // quando ne resta UNO SOLO da caricare cambia anche il verbo
+  const g = campo.frasiCaricoParziale({ registrati: 4, totale: 5 });
+  ok(g.caricati === "sui 4 fori già caricati", `«${g.caricati}»`);
+  ok(g.mancano === "manca ancora 1 foro", `«${g.mancano}»: col verbo al singolare`);
+  ok(g.restano === "Resta 1 foro", `«${g.restano}»`);
+  // e le due frasi devono essere DIVERSE: se il singolare fosse il plurale
+  // travestito, questa prova passerebbe per il motivo sbagliato
+  ok(g.caricati !== campo.frasiCaricoParziale({ registrati: 1, totale: 5 }).caricati,
+     "uno e quattro non possono comporre la stessa frase");
+});
+test("il grassetto sul numero è un ARGOMENTO, non una seconda funzione", () => {
+  // la riga di riepilogo lo vuole, il toast è testo nudo e un <b> ci si
+  // leggerebbe come tale: la stessa funzione serve tutt'e due
+  const conB = campo.frasiCaricoParziale({ registrati: 3, totale: 5 }, (v) => "<b>" + v + "</b>");
+  ok(conB.caricati === "sui <b>3</b> fori già caricati", `«${conB.caricati}»`);
+  const nudo = campo.frasiCaricoParziale({ registrati: 3, totale: 5 });
+  ok(!/[<>]/.test(nudo.caricati + nudo.mancano + nudo.restano), "senza `marca` non esce nessun tag");
+  // e con UNO il numero non c'è: non c'è niente da marcare, e va bene così
+  ok(campo.frasiCaricoParziale({ registrati: 1, totale: 5 }, (v) => "<b>" + v + "</b>").caricati
+       === "sul foro già caricato", "con uno la frase non porta il numero");
+});
+test("senza parziale non c'è nessuna frase, e a piano finito niente piede", () => {
+  ok(campo.frasiCaricoParziale(null) === null, "niente parziale = niente frase, non una frase vuota travestita");
+  ok(campo.frasiCaricoParziale(undefined) === null, "e lo stesso per «assente»");
+  const tutti = campo.frasiCaricoParziale({ registrati: 5, totale: 5 });
+  ok(tutti.mancano === "" && tutti.restano === "", "a piano finito non si dice «mancano ancora 0 fori»");
+  // un conto arrivato come STRINGA (una cella di CSV) non deve produrre «1 fori»
+  ok(campo.frasiCaricoParziale({ registrati: "1", totale: 5 }).caricati === "sul foro già caricato",
+     "il conto come stringa sceglie lo stesso il singolare");
+});
+
 // Sentinella → Scudo: l'azione correttiva che nasce dal superamento.
 test("l'azione si ritrova dalla sua origine, e non pesca origini di altro tipo", () => {
   const az = [{ id: "a1", origineTipo: "superamento", origineId: "m1", origineVoce: "2026-07-29", stato: "aperta" },
@@ -26847,6 +26892,176 @@ test("voceDocumentoInElenco: la regola vale per documento, non per la lista", ()
        per cui la guardia non riscrive la tabella delle coercizioni */
     for (const x of [null, undefined, "", "abc", 0, -1]) eq(+x > 0, false, `${String(x)}: non è un numero positivo`);
     for (const x of [102, "102", 0.5]) eq(+x > 0, true, `${String(x)}: lo è`);
+  });
+
+  /* ⛔ B0-nonies — CON L'INTERASSE ASSENTE LA PAGINA MORIVA, E IL MESSAGGIO CHE
+     DOVEVA SPIEGARLO NON ARRIVAVA MAI.
+     Misurato nel browser il 09/08 aprendo una volata con `design.S:null`:
+     scheda validatori a **0 righe** invece di 28, **1 errore di pagina**
+     («Cannot read properties of null (reading 'toFixed')»), toast **""**.
+     Con `design.B:null` — che non passa di lì — la scheda usciva intera e il
+     toast compariva: è la coppia che dice che il difetto è nel ripiego di `S`,
+     non nell'apertura. */
+  test("⛔ Genesi · B0-nonies: `measureGeom2D` non passa più un dato di progetto GREZZO a `.toFixed`", () => {
+    /* i due promemoria che spiegano il difetto, e che nessuno può cambiare */
+    let scoppiato = false;
+    try { (null).toFixed(2); } catch (e) { scoppiato = true; }
+    eq(scoppiato, true, "promemoria: `.toFixed` su un `null` è un TypeError, non un `NaN` da leggere");
+    eq(Number.isFinite(+null), true, "promemoria: `+null` fa 0, che è finito — la domanda NON si fa sul valore convertito");
+    eq(Number.isFinite(null), false, "…si fa sul valore grezzo, che finito non è");
+    for (const x of [null, undefined, "", "3.5", "abc", NaN])
+      eq(Number.isFinite(x), false, `${JSON.stringify(x)}: non è un interasse leggibile`);
+    for (const x of [3.5, 8, 0.05]) eq(Number.isFinite(x), true, `${x}: lo è`);
+
+    /* il corpo della funzione, isolato: un «non c'è più» su tutta la pagina
+       direbbe di sì anche se la forma vecchia vivesse in un'altra funzione */
+    const i = srcG15.indexOf("function measureGeom2D(){");
+    eq(i > 0, true, "il corpo di `measureGeom2D` si trova nella pagina");
+    const corpo = srcG15.slice(i, srcG15.indexOf("\nfunction ", i + 10));
+    eq(corpo.split("\n").length > 8, true, `il corpo guardato ha ${corpo.split("\n").length} righe, non è una fetta vuota`);
+
+    eq(/S:\+Sm\.toFixed\(2\)/.test(corpo), false,
+      "la forma che uccideva la pagina non c'è più");
+    eq(/const Sprog = Number\.isFinite\(D2\.S\) \? D2\.S : null;/.test(corpo), true,
+      "l'interasse di progetto si legge una volta sola, e se non si legge vale `null`");
+    eq(/if\(!isFinite\(Sm\)\) Sm=Sprog;/.test(corpo), true,
+      "il ripiego prende quel valore, non `D2.S` grezzo");
+    eq(/S:\(Sm===null\?null:\+Sm\.toFixed\(2\)\)/.test(corpo), true,
+      "e la risposta quando l'interasse non c'è è `null`, la convenzione dell'ecosistema");
+    eq(/if\(!H\.length\) return \{ n:0, B:D2\.B, S:Sprog, Lm:0 \};/.test(corpo), true,
+      "anche l'uscita senza fori risponde col contratto nuovo: due uscite con due contratti sono una copia più debole");
+
+    /* ⛔ IL DENOMINATORE, che è la parte che spiega PERCHÉ era `S` e non gli
+       altri: `D2.S` dentro questa funzione si legge in UN posto solo, e gli
+       altri tre valori del risultato escono dalle coordinate dei fori — che
+       sono sempre numeri, perché `genMaglia2D` scrive `c*D2.S+off` e `c*null`
+       fa 0. Non era fortuna: era che nessun altro leggeva `D2.*` grezzo. */
+    /* ⚠️ si contano le RIGHE, non le occorrenze: `Number.isFinite(D2.S) ? D2.S`
+       nomina il campo due volte sulla stessa riga, e una prova scritta
+       `.match(/D2\.S/g).length === 1` cadeva su un codice sano — presa
+       facendo girare queste prove prima di consegnarle. */
+    const conD2S = corpo.split("\n").filter((r) => /D2\.S/.test(r));
+    eq(conD2S.length, 1, "`D2.S` si legge su una riga sola");
+    eq(/^\s*const Sprog /.test(conD2S[0]), true, "e quella riga è la dichiarazione di `Sprog`: nessun altro punto legge il grezzo");
+    eq(/B:\+Bm\.toFixed\(2\)/.test(corpo), true, "`B` esce dalle coordinate dei fori (nessun ripiego su `D2.B`)");
+    eq(/Lm:\+\(maxx-minx\)\.toFixed\(1\)/.test(corpo), true, "e `Lm` pure");
+    eq(0 * null, 0, "promemoria: `c*null` fa 0 — è per questo che `Bm` e `maxx` restavano finiti mentre `Sm` no");
+  });
+
+  test("⛔ Genesi · B0-nonies: la dichiarazione dei valori mancanti sta PRIMA del disegno", () => {
+    /* ⛔ IL DANNO PEGGIORE ERA IL SECONDO. Il toast di `volataSenzaValori` —
+       quello scritto apposta per dire «un valore non si legge» — stava nella
+       riga DOPO `setScreen('design')`: con l'interasse assente `setScreen`
+       moriva dentro `measureGeom2D` e quel messaggio non veniva MAI eseguito.
+       La difesa costruita per l'assenza era disinnescata proprio dal caso che
+       deve coprire.
+       ⚠️ La prova guarda l'ORDINE, non il testo: il `.toFixed` è chiuso, quindi
+       oggi il toast arriverebbe comunque — ma una dichiarazione che dipende
+       dalla riuscita del disegno è una dichiarazione che il PROSSIMO guasto del
+       disegno cancella. Misurato nel browser rompendo `renderScheda2D` con un
+       guasto finto: col nuovo ordine il messaggio arriva lo stesso, col vecchio
+       non arriva. */
+    const i = srcG15.indexOf("if(act==='apri'){");
+    eq(i > 0, true, "il gestore di «Apri» si trova nella pagina");
+    const corpo = srcG15.slice(i, srcG15.indexOf("\n  }", i));
+    eq(corpo.split("\n").length > 3, true, `il corpo guardato ha ${corpo.split("\n").length} righe, non è una fetta vuota`);
+
+    const iSenza = corpo.indexOf("volataSenzaValori(");
+    const iToast = corpo.indexOf("toast(");
+    const iSchermo = corpo.indexOf("setScreen('design')");
+    eq(iSenza > 0 && iToast > 0 && iSchermo > 0, true,
+      "il gestore contiene tutt'e tre: la domanda, il messaggio e il disegno");
+    eq(iSenza < iSchermo, true, "i valori mancanti si chiedono PRIMA di disegnare");
+    eq(iToast < iSchermo, true, "e il messaggio si dà PRIMA di disegnare");
+    eq(iSenza < iToast, true, "nell'ordine ovvio: prima la domanda, poi il messaggio");
+    /* e `setScreen('design')` compare una volta sola: due chiamate renderebbero
+       il confronto fra indici una lettura a caso */
+    eq((corpo.match(/setScreen\('design'\)/g) || []).length, 1,
+      "e `setScreen('design')` è chiamato una volta sola, se no il confronto fra le posizioni non vorrebbe dire niente");
+  });
+
+  test("⛔ Genesi · B0-nonies: il rapporto S/B e la carica consigliata non danno più uno ZERO a una maglia che nessuno ha scritto", () => {
+    /* ⛔ I DUE NUMERI TRANQUILLI CHE RESTAVANO DOPO AVER CHIUSO IL CRASH,
+       misurati nel browser con `design.S:null`: «Rapporto S/B **0,00**» e
+       «Carica consigliata **~0 kg/foro**». E il primo non era nemmeno
+       tranquillo — ACCUSAVA: «interasse < spalla; … Maglia stretta in
+       larghezza», cioè dava la colpa alla maglia per un campo che nessuno
+       aveva compilato. */
+    eq(null / 3, 0, "promemoria: con l'interasse assente il rapporto S/B FA ZERO");
+    eq(Number.isFinite(null / 3), true, "…ed è un numero finito: `badge`, che giudica con `<` e `>`, non poteva accorgersene");
+    eq(3.5 / 0, Infinity, "e con la spalla assente si ribalta in Infinity, cioè l'accusa opposta");
+    eq(Math.round(((0.40 + 0.55) / 2) * 3 * null * 10), 0,
+      "promemoria: la carica consigliata su una maglia senza interasse faceva ~0 kg/foro");
+
+    const i = srcG15.indexOf("function renderScheda2D(){");
+    eq(i > 0, true, "il corpo di `renderScheda2D` si trova nella pagina");
+    const corpo = srcG15.slice(i, srcG15.indexOf("\nfunction ", i + 10));
+    eq(corpo.split("\n").length > 200, true, `il corpo guardato ha ${corpo.split("\n").length} righe, non è una fetta vuota`);
+
+    /* la domanda si fa sugli OPERANDI, non sul risultato */
+    eq(/const _geoOk=\(x\)=>Number\.isFinite\(x\)&&x>0;/.test(corpo), true,
+      "un operando di un rapporto vuole essere leggibile ED essere positivo");
+    eq(/if\(!\(_geoOk\(S\)&&_geoOk\(B\)\)\) rows\.push\(nonCalcolabile\('Rapporto S\/B',_geoChe\)\);/.test(corpo), true,
+      "e il rapporto S/B lo chiede prima di far giudicare `badge`");
+    /* il motivo NON si inventa: lo dice la funzione che nomina i campi */
+    eq(/const _senzaGeo=volataSenzaValori\(\{B:D2\.B, S:D2\.S, prof:D2\.prof\}\);/.test(corpo), true,
+      "il perché viene da `volataSenzaValori`, la stessa che scrive il toast all'apertura");
+    eq(gz15.volataSenzaValori({ B: 3, S: null, prof: 10 }).che, "un valore non si legge: interasse",
+      "…e con l'interasse assente quella funzione nomina proprio l'interasse");
+    eq(gz15.volataSenzaValori({ B: null, S: 3.5, prof: 10 }).che, "un valore non si legge: spalla",
+      "…e con la spalla assente la spalla");
+    eq(gz15.volataSenzaValori({ B: 3, S: 3.5, prof: 10 }), null,
+      "…e su una maglia sana non ha niente da dire, quindi la riga non si accende per sbaglio");
+
+    /* la carica consigliata: il volume lo chiede a chi sa rispondere «non lo so» */
+    eq(/_Qsug=Math\.round\(_pfMid\*B\*S\*H\)/.test(corpo), false,
+      "la moltiplicazione senza domanda davanti non c'è più");
+    eq(/_volF=volumeForo\(B,S,H\), _Qsug=\(_volF===null\?null:Math\.round\(_pfMid\*_volF\)\)/.test(corpo), true,
+      "il volume lo chiede a `volumeForo`");
+    eq(/if\(_Qsug===null\)\{ rows\.push\(nonCalcolabile\('Carica consigliata \(regola\)'/.test(corpo), true,
+      "e quando non c'è, la riga lo dichiara");
+    eq(/'PF obiettivo '\+gfix\(_t\[0\],2\)\+'–'\+gfix\(_t\[1\],2\)\+' kg\/m³'/.test(corpo), true,
+      "⚠️ ma la fascia di PF, che dipende solo dalla ROCCIA, resta scritta: è vera anche senza la maglia");
+    /* e la stessa domanda sotto al consumo specifico, che era l'ultima copia
+       più debole rimasta in questa funzione */
+    eq(/vol:B\*S\*H/.test(corpo), false,
+      "nemmeno il consumo specifico costruisce più il suo volume con una moltiplicazione nuda");
+    eq(/vol:volumeForo\(B,S,H\)/.test(corpo), true, "lo chiede anche lui a `volumeForo`");
+
+    /* il modulo risponde davvero «non lo so» nei casi che la pagina gli porta */
+    eq(gz15.volumeForo(3, null, 10), null, "interasse assente: nessun volume");
+    eq(gz15.volumeForo(null, 3.5, 10), null, "spalla assente: nessun volume");
+    eq(gz15.volumeForo(0, 3.5, 10), null, "e una spalla di zero metri non è una maglia degenere da premiare con uno zero");
+    eq(gz15.volumeForo(3, 3.5, 10), 105, "mentre sulla maglia della dimostrazione risponde 105 m³");
+  });
+
+  test("⛔ Genesi · B0-nonies: «non calcolabile» è scritto UNA volta sola in `renderScheda2D`", () => {
+    /* ⛔ LA COPIA CHE STAVA PER NASCERE. Il markup del «non calcolabile» era
+       ricopiato CINQUE volte dentro questa funzione, e le due righe nuove
+       (rapporto S/B e carica consigliata) sarebbero state la sesta e la
+       settima. Alla riga non mancava un gemello, mancava un PARAMETRO — la
+       coda, per chi accanto al «non calcolabile» ha ancora qualcosa di vero da
+       dire (la fascia di PF). È la regola sulla firma troppo stretta,
+       applicata PRIMA di ricopiare invece che dopo.
+       ⚠️ Il conto si fa sul corpo della funzione, non sulla pagina: `non
+       calcolabile` la pagina lo scrive in tredici punti, e nove di quelli sono
+       altre schermate che questa prova non governa. */
+    const i = srcG15.indexOf("function renderScheda2D(){");
+    const corpo = srcG15.slice(i, srcG15.indexOf("\nfunction ", i + 10));
+    eq(corpo.split("\n").length > 200, true, `il corpo guardato ha ${corpo.split("\n").length} righe, non è una fetta vuota`);
+
+    eq(/const nonCalcolabile=\(lab,why,coda\)=>/.test(corpo), true, "la riga «non calcolabile» ha un posto solo dove nasce");
+    eq((corpo.match(/non calcolabile<\/i>/g) || []).length, 1,
+      "e il suo markup è scritto una volta sola in tutta la funzione");
+    eq(/cls:'sv-warn'/.test(corpo.slice(corpo.indexOf("const nonCalcolabile="), corpo.indexOf("const nonCalcolabile=") + 220)), true,
+      "⚠️ `sv-warn` e non `sv-bad`: non sappiamo che il valore sia sbagliato, sappiamo di non poterlo dire");
+    /* ⚠️ la dichiarazione si scrive `nonCalcolabile=(`, quindi NON entra in
+       questo conto: la prima stesura sottraeva 1 «per la dichiarazione» e
+       contava 6 dove le chiamate sono 7. Un aggiustamento a occhio dentro un
+       censimento è lo stesso difetto che il censimento sorveglia. */
+    const usi = (corpo.match(/nonCalcolabile\(/g) || []).length;
+    eq((corpo.match(/nonCalcolabile=\(/g) || []).length, 1, "la dichiarazione è una sola, e si scrive `nonCalcolabile=(`");
+    eq(usi >= 7, true, `e la chiamano ${usi} righe della scheda (erano 5 copie a mano più le 2 nuove)`);
   });
 }
 
