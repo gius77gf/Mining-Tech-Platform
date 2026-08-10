@@ -46,7 +46,7 @@ segnaposto («Funzione nav non ancora pronta»). Per aprirlo davvero si monta
 
 ## Le prove
 
-**2.485 prove girano senza rete e senza browser**, con `node` (contate lanciandole, non a memoria — al 09/08: 2033 + 318 + 75 + 32 + 9 + 8 + 7 + 3):
+**2.486 prove girano senza rete e senza browser**, con `node` (contate lanciandole, non a memoria — al 09/08: 2034 + 318 + 75 + 32 + 9 + 8 + 7 + 3):
 
 > ⚠️ **E quel numero conta OTTO suite, non tutto quello che gira.** Il giro
 > `node` completo esegue **2.757** asserzioni su **34** comandi.
@@ -71,7 +71,7 @@ segnaposto («Funzione nav non ancora pronta»). Per aprirlo davvero si monta
 > 2.251» mentre il titolo sopra diceva già 2.310: il controllo sorveglia il
 > **totale**, non la prosa che lo spiega. È la quarta forma di invecchiamento
 > raccolta in `CLAUDE.md`.*
-> **Il numero da citare resta 2.485**, e la ragione è che le altre dieci contano
+> **Il numero da citare resta 2.486**, e la ragione è che le altre dieci contano
 > **file, non prove**: `import esistenti` fa un'asserzione per file e `classi
 > orfane` una per pagina, quindi il loro totale si muove ogni volta che nasce un
 > file — un numero che cresce senza che nessuno abbia scritto una prova è un
@@ -104,8 +104,14 @@ esiste.
 ⛔ **E il 100% vale per il perimetro misurato, non per tutto il prodotto.**
 Le sei app hanno la loro logica in `apps/<nome>/<nome>-data.js`, che `node`
 importa. **Genesi no**: le sue **169 funzioni** stanno dentro
-`apps/genesi/genesi.html`, e da lì non si importano — di Genesi entra nel conto
-solo `pointcloud.js`. Non è una svista da correggere in una riga — ma dal
+`apps/genesi/genesi.html`, e da lì non si importano — di Genesi entrano nel
+conto solo i moduli già tirati fuori (`pointcloud.js`, `genesi-formato.js`,
+`genesi-data.js`, elencati con i loro conti nella tabella dei condivisi qui
+sopra). ⏱️ *Fino al 09/08 questa riga diceva «entra solo `pointcloud.js`», ed
+era vera il 01/08: gli altri due sono nati dopo. Terza riga dello stesso
+documento invecchiata nella stessa giornata, e la sola difesa che ha funzionato
+è stata un censimento che conta i numeri dichiarati e guarda quanti ne
+sorveglia una regola.* Non è una svista da correggere in una riga — ma dal
 01/08 «è un cantiere intero» ha smesso di essere una frase ed è diventato un
 **numero**, perché una frase non dice da dove si comincia né quanto si è
 avanzati. `node apps/deepwork-id/tests/genesi-estraibili.mjs` misura quante
@@ -174,10 +180,20 @@ node apps/deepwork-id/tests/copertura-funzioni.mjs --elenco   # dice anche QUALI
 node apps/deepwork-id/tests/nomi-doppi.mjs
 ```
 
-**125 con l'emulatore Firestore** (**75** regole di sicurezza, 19 SDK, 21
-funzioni, 8 primo avvio) — servono `firebase-tools` e Java. ⚠️ Tre addendi su
-quattro sono stati **rimisurati l'08/08 lanciandoli**; le 21 sulle funzioni no,
-per la ragione scritta qui sotto. Il vecchio **106** portava un **58** sulle
+**123 con l'emulatore Firestore** (**75** regole di sicurezza, 19 SDK, 21
+funzioni, 8 primo avvio) — servono `firebase-tools` e Java.
+⏱️ **Qui c'era scritto 125, e i quattro addendi accanto ne fanno 123**: due
+numeri che si contraddicono **nella stessa frase**, che è peggio di un numero
+vecchio perché fanno dubitare di tutti gli altri. `STATO_PRODOTTO.md`, con gli
+stessi quattro addendi, diceva **123** — cioè i due documenti del fondatore si
+smentivano a vicenda. Trovato il 09/08 con un censimento dei numeri dichiarati
+che nessuna regola sorveglia; adesso lo sorveglia `numeri-nei-documenti.mjs`,
+in **tutt'e due** i documenti e **addendo per addendo**.
+⚠️ E la distinzione che quel controllo ha reso chiara: le **21** sulle funzioni
+si possono **contare** come le altre tre — sono `test(` scritti in
+`run-fns.mjs`, e contarli non chiede nessun emulatore. Quello che non si può
+verificare è che **passino**. «Non misurabile» riguardava il verde, non il
+numero: tenerle fuori dal conto le lasciava invecchiare da sole. Il vecchio **106** portava un **58** sulle
 regole di sicurezza che era fermo da tempo:
 
 ```sh

@@ -26758,6 +26758,71 @@ test("voceDocumentoInElenco: la regola vale per documento, non per la lista", ()
     eq(gz15.valoreCampo(84.6, 84, 8, 300), 84.6, "il ritardo tra file resta com'era, senza arrotondamento");
   });
 
+  test("⛔ Genesi · in `applyDesign` non resta NESSUN ALTRO ripiego col clamp — e i tre rimasti sono dichiarati per nome", () => {
+    /* ⛔ IL DENOMINATORE CHE ALLE PROVE QUI SOPRA MANCA, ed è la famiglia già
+       pagata due volte in questo repository: quelle pinnano DODICI NOMI, uno per
+       uno. Un tredicesimo campo scritto domani con la forma vecchia —
+       `Math.max(min, Math.min(max, gvv('dX')||D2.x))` — non lo vedrebbe nessuna
+       di loro, e la suite direbbe «nessuna violazione» con la stessa faccia con
+       cui direbbe la verità. Un censimento che cerca UN nome non è un censimento.
+       Qui si guarda il corpo INTERO di `applyDesign` e si pretende che l'elenco
+       di chi porta ancora un ripiego sia esattamente quello deciso: una
+       regressione fa cadere la prova, e una correzione futura costringe a
+       togliere il nome da qui invece di lasciarlo a coprire il vuoto.
+       ⚠️ Misurato nel browser il 09/08 sui quindici campi di B0-sexies, aprendo
+       una volata con `design.<campo>: null` e facendo i due tocchi: DODICI
+       restano vuoti, TRE si riempiono da soli. La lettura statica e la misura
+       danno lo stesso numero, ed è per questo che l'elenco ha tre nomi. */
+    const i = srcG15.indexOf("function applyDesign(){"), j = srcG15.indexOf("function syncDesignInputs(");
+    eq(i > 0 && j > i, true, "il corpo di `applyDesign` si trova nella pagina");
+    const righe = srcG15.slice(i, j).split("\n");
+    /* ⚠️ quanti soggetti ha guardato: uno «zero violazioni» su una fetta vuota
+       si scrive uguale a uno «zero violazioni» su un corpo sano */
+    eq(righe.length > 30, true, `il corpo guardato ha ${righe.length} righe, non è una fetta vuota`);
+
+    const conRipiego = righe.filter((r) => /\|\|\s*D2\./.test(r));
+    eq(conRipiego.length, 8, `in \`applyDesign\` restano 8 righe con un ripiego \`||D2.x\` (trovate ${conRipiego.length})`);
+    const chiave = (r) => (r.match(/\|\|\s*D2\.(\w+)/) || [])[1];
+    /* i ripieghi che passano da un CLAMP sono quelli che INVENTANO un minimo:
+       `Math.min(max, null)` fa 0 e `Math.max(min, 0)` lo tira su al minimo */
+    const colClamp = conRipiego.filter((r) => /Math\.max\(/.test(r));
+    eq(colClamp.map(chiave).sort(), ["psCharge", "recDist", "recFreq"],
+      "e quelli che passano ancora da un clamp sono ESATTAMENTE i tre esclusi per decisione presa");
+    /* gli altri cinque non inventano niente: quattro sono TENDINE (un `select`
+       un valore vuoto non ce l'ha) e `dRit` non ha clamp, quindi il `||` tiene
+       il valore di prima invece di stringere al minimo */
+    eq(conRipiego.filter((r) => !/Math\.max\(/.test(r)).map(chiave).sort(),
+      ["frat", "recNorma", "ritardo", "roccia", "sequenza"],
+      "e i cinque senza clamp sono le quattro tendine più il ritardo, che non stringe niente");
+
+    /* ⛔ E IL NUMERO CHE I TRE INVENTANO SI LEGGE DALLA RIGA, NON SI RISCRIVE
+       QUI. La prima stesura di questa prova faceva
+       `eq(Math.max(0.1, Math.min(2, NaN || null)), 0.1)` con i tre limiti
+       scritti a mano nella tabella del test: è aritmetica su costanti sue, cioè
+       una prova che passerebbe anche se il codice cambiasse i limiti — la prima
+       delle cinque letture di «non distingue». Adesso il minimo si estrae dalla
+       riga vera, e il valore atteso è quello MISURATO nel browser: se domani
+       qualcuno tocca un limite, cade qui e non nel documento. */
+    const inventatoDaBrowser = { psCharge: 0.1, recDist: 20, recFreq: 2 };
+    for (const r of colClamp) {
+      const nome = chiave(r), mn = Number((/Math\.max\(\s*([\d.]+)\s*,/.exec(r) || [])[1]);
+      eq(Number.isFinite(mn), true, `il minimo di \`${nome}\` si legge nella sua riga`);
+      eq(Math.max(mn, Math.min(Infinity, null)), inventatoDaBrowser[nome],
+        `${nome}: col valore assente il clamp scrive ancora ${inventatoDaBrowser[nome]}, che è quanto si è letto a schermo`);
+    }
+
+    /* ⛔ E L'ECCEZIONE DICHIARATA NON DEVE POTER SPARIRE IN SILENZIO: la ragione
+       sta scritta accanto alle righe, e si legge sul file GREZZO perché
+       `srcG15` i commenti li ha tolti. È la regola di `sonda-vuoto`: un caso
+       scusato per iscritto smette di essere una svista, ma solo finché la
+       scusa c'è. */
+    const grezzo = _rfG15(join(HERE, "../../genesi/genesi.html"), "utf8");
+    eq(/RESTA COM'ERA, DI PROPOSITO/.test(grezzo), true,
+      "accanto a `psCharge` c'è scritto perché non è stata toccata (l'allarme «carica lineare troppo bassa» c'è già)");
+    eq(/I DUE CAMPI DEL RECETTORE RESTANO ANCH'ESSI COM'ERANO/.test(grezzo), true,
+      "e accanto ai due del recettore c'è la loro: inventano nella direzione che ALLARMA, e sotto c'è `ppvLimit`");
+  });
+
   test("⛔ Genesi · la carica AUTO non riempie il buco che la geometria ha appena dichiarato", () => {
     /* ⛔ IL DIFETTO CHE LA CORREZIONE PORTAVA A VALLE, e che nessuno vede
        leggendo `applyDesign`: `deriveCharge` finiva con `Math.max(2, …)` —

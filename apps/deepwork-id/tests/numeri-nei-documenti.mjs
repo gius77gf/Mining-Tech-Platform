@@ -100,11 +100,23 @@ const fileBanchi = blocco
    che il fondatore apre per primo.
    ⚠️ Il file resta sorvegliato **solo su questi numeri**, non tutto: la riga in
    fondo alla roadmap adesso lo dice così, invece di dire «qui non si arriva». */
+/* ⛔ DOVE ARRIVA IL CONTROLLO — raccolto mentre le regole girano, non riscritto.
+   Il 09/08 un censimento in scratchpad ha chiesto la domanda che nessuno faceva:
+   *quanti numeri dichiarati nei documenti del fondatore cadono su una riga che
+   una regola guarda davvero?* Ha nominato tre difetti veri in un'ora — la
+   scomposizione dei moduli condivisi ferma da due giorni, il «125» che i suoi
+   stessi addendi smentivano, e «di Genesi entra solo pointcloud.js». Uno
+   strumento che trova roba vive nei test, non nello scratchpad (CLAUDE.md), e
+   l'elenco di dove il controllo arriva va guardato quanto i numeri: qui si
+   costruisce **da solo**, perché ogni regola ci si iscrive quando gira. Un
+   elenco gemello scritto a mano sarebbe la copia più debole. */
+const SORVEGLIATE = [];
+const sorveglia = (rel, regola) => { SORVEGLIATE.push([rel, regola]); return regola; };
 const DOCUMENTI = [
-  ["docs/DEVELOPMENT.md", /\*\*([\d.]+) prove girano senza rete/],
-  ["docs/STATO_PRODOTTO.md", /\*\*([\d.]+)\*\* prove automatiche che girano senza rete/],
-  ["docs/DECISIONI_WEEKEND.md", /prove automatiche sono passate a ([\d.]+)\*\*/],
-  ["vault/ROADMAP_SETTIMANA.md", /\*\*([\d.]+) prove girano senza rete\*\*/],
+  ["docs/DEVELOPMENT.md", sorveglia("docs/DEVELOPMENT.md", /\*\*([\d.]+) prove girano senza rete/)],
+  ["docs/STATO_PRODOTTO.md", sorveglia("docs/STATO_PRODOTTO.md", /\*\*([\d.]+)\*\* prove automatiche che girano senza rete/)],
+  ["docs/DECISIONI_WEEKEND.md", sorveglia("docs/DECISIONI_WEEKEND.md", /prove automatiche sono passate a ([\d.]+)\*\*/)],
+  ["vault/ROADMAP_SETTIMANA.md", sorveglia("vault/ROADMAP_SETTIMANA.md", /\*\*([\d.]+) prove girano senza rete\*\*/)],
 ];
 const numero = (s) => +String(s).replace(/\./g, "");
 
@@ -214,8 +226,8 @@ const cop = spawnSync(process.execPath, [join(QUI, "copertura-funzioni.mjs")], {
 const mCop = /(\d+) funzioni coperte su (\d+) guardate/.exec(String(cop.stdout || ""));
 const coperte = mCop ? +mCop[1] : 0, guardateFn = mCop ? +mCop[2] : 0;
 const COPERTURA = [
-  ["docs/DEVELOPMENT.md", /\*\*(\d+) funzioni pure su (\d+)\*\* sono chiamate per nome/],
-  ["docs/STATO_PRODOTTO.md", /\*\*(\d+) funzioni pure su (\d+)\*\* delle sei app/],
+  ["docs/DEVELOPMENT.md", sorveglia("docs/DEVELOPMENT.md", /\*\*(\d+) funzioni pure su (\d+)\*\* sono chiamate per nome/)],
+  ["docs/STATO_PRODOTTO.md", sorveglia("docs/STATO_PRODOTTO.md", /\*\*(\d+) funzioni pure su (\d+)\*\* delle sei app/)],
 ];
 for (const [rel, regola] of COPERTURA) {
   const testo = readFileSync(join(RADICE, rel), "utf8");
@@ -241,10 +253,10 @@ for (const [rel, regola] of COPERTURA) {
    avevo trovate **143**, dieci in meno, perché la mia riconosceva una forma
    sola delle voci di `BANCHI`. Il righello più debole era di nuovo il mio. */
 const BROWSER = [
-  ["docs/DEVELOPMENT.md", /\*\*(\d+) esecuzioni che aprono davvero le pagine\*\*/],
-  ["docs/STATO_PRODOTTO.md", /\*\*(\d+) esecuzioni\*\* che aprono davvero le\s+pagine/],
-  ["docs/DECISIONI_WEEKEND.md", /\*\*(\d+)\s+esecuzioni\*\* che aprono davvero le pagine in un browser/],
-  ["vault/ROADMAP_SETTIMANA.md", /\*\*(\d+) esecuzioni\*\* che\s+aprono le pagine in un browser vero/],
+  ["docs/DEVELOPMENT.md", sorveglia("docs/DEVELOPMENT.md", /\*\*(\d+) esecuzioni che aprono davvero le pagine\*\*/)],
+  ["docs/STATO_PRODOTTO.md", sorveglia("docs/STATO_PRODOTTO.md", /\*\*(\d+) esecuzioni\*\* che aprono davvero le\s+pagine/)],
+  ["docs/DECISIONI_WEEKEND.md", sorveglia("docs/DECISIONI_WEEKEND.md", /\*\*(\d+)\s+esecuzioni\*\* che aprono davvero le pagine in un browser/)],
+  ["vault/ROADMAP_SETTIMANA.md", sorveglia("vault/ROADMAP_SETTIMANA.md", /\*\*(\d+) esecuzioni\*\* che\s+aprono le pagine in un browser vero/)],
 ];
 for (const [rel, regola] of BROWSER) {
   const testo = readFileSync(join(RADICE, rel), "utf8");
@@ -770,6 +782,74 @@ console.log(`\nscomposizione della sicurezza: ${SUITE_SICUREZZA.length} suite co
 console.log(`\nmisure su Genesi: ${ID_MODALE.length + ID_EDITOR_3D.length} id verificati, `
   + `${usate.size} variabili del foglio condiviso, ${scoperte.length} scoperte in Genesi`);
 
+/* ── le prove che chiedono l'emulatore, addendo per addendo ───────────
+   ⛔ ENTRATA IL 09/08 SU UN DIFETTO VERO: `DEVELOPMENT.md` diceva «**125** con
+   l'emulatore Firestore (75 regole, 19 SDK, 21 funzioni, 8 primo avvio)» — e
+   quei quattro addendi fanno **123**. Due numeri che si contraddicono nella
+   STESSA FRASE, che è peggio di un numero vecchio perché fanno dubitare di
+   tutti gli altri. `STATO_PRODOTTO.md`, con gli stessi quattro addendi, diceva
+   123: i due documenti del fondatore si smentivano a vicenda.
+   ⚠️ E la lezione sull'addendo «non verificabile»: le 21 sulle funzioni erano
+   tenute fuori da ogni controllo perché chiedono l'emulatore delle funzioni,
+   che qui non parte. Ma **contarle** non chiede nessun emulatore — sono `test(`
+   scritti in `run-fns.mjs`. Quello che non si può verificare è che **passino**.
+   Confondere le due cose lasciava un quarto del totale a invecchiare da solo.
+   ⚠️ E il confronto NON è fra i due documenti: due copie che si somigliano non
+   dicono chi ha ragione. Ogni addendo si conta nella **sua suite**. */
+export function scomposizioneEmulatore(testo) {
+  /* ⚠️ fra il numero e «l'emulatore Firestore» i due documenti scrivono cose
+     diverse — «con», «che\ngirano con» — e la frase va **a capo** in mezzo:
+     un `[^.\n]` qui dentro guarderebbe un documento su due, che è il difetto
+     raccolto tre volte in CLAUDE.md. Si escludono i punti, non gli a capo. */
+  const m = /\*{0,2}(\d[\d.]*)\*{0,2}[^.]{0,40}l'emulatore Firestore\*{0,2}\s*\(([^)]*)\)/.exec(testo);
+  if (!m) return null;
+  const n = [...m[2].matchAll(/(?:\*\*)?(\d+)(?:\*\*)?/g)].map((x) => +x[1]);
+  return { totale: numero(m[1]), addendi: n };
+}
+const SUITE_EMULATORE = [
+  ["regole di sicurezza", "apps/deepwork-id/tests/run.mjs"],
+  ["SDK", "apps/deepwork-id/tests/run-sdk.mjs"],
+  ["funzioni", "apps/deepwork-id/tests/run-fns.mjs"],
+  ["primo avvio", "apps/deepwork-id/tests/run-bootstrap.mjs"],
+];
+let docEmulatore = 0;
+for (const rel of ["docs/DEVELOPMENT.md", "docs/STATO_PRODOTTO.md"]) {
+  test(`${rel}: le prove con l'emulatore sono contate nelle loro suite, una per una`, () => {
+    const r = scomposizioneEmulatore(readFileSync(join(RADICE, rel), "utf8"));
+    ok(r, "non trovo la frase con la scomposizione dell'emulatore — se l'hai riscritta, aggiorna la regola qui");
+    ok(r.addendi.length === SUITE_EMULATORE.length,
+      `nella parentesi ci sono ${r.addendi.length} numeri e le suite sono ${SUITE_EMULATORE.length}: il controllo non sta leggendo la scomposizione`);
+    docEmulatore++;
+    const storte = [];
+    let somma = 0;
+    SUITE_EMULATORE.forEach(([nome, suite], i) => {
+      const vero = proveDichiarate(suite);
+      somma += vero;
+      if (r.addendi[i] !== vero) storte.push(`«${nome}» dice ${r.addendi[i]} ma ${suite} ne dichiara ${vero}`);
+    });
+    ok(!storte.length, storte.join(" · ") + " — l'addendo si conta nella suite, non si crede");
+    ok(r.totale === somma, `il totale dice ${r.totale} ma i quattro addendi accanto fanno ${somma}`);
+  });
+}
+test("la controprova dell'emulatore: un totale coerente coi SUOI addendi ma falso viene visto lo stesso", () => {
+  /* il caso vero del 09/08 — il totale scostato dai suoi stessi addendi */
+  const sana = "**123 con l'emulatore Firestore** (**75** regole di sicurezza, 19 SDK, 21\nfunzioni, 8 primo avvio) — servono";
+  const s = scomposizioneEmulatore(sana);
+  ok(s && s.totale === 123 && s.addendi.join() === "75,19,21,8", `la frase sana deve leggersi: ${JSON.stringify(s)}`);
+  const rotta = scomposizioneEmulatore(sana.replace("**123 con", "**125 con"));
+  ok(rotta.totale !== rotta.addendi.reduce((a, b) => a + b, 0),
+    "col difetto vero rimesso (125) la somma DEVE smentire il totale");
+  /* e la forma insidiosa: coerente con sé stessa e falsa lo stesso, perché
+     l'addendo non è quello che la suite dichiara */
+  const coerenteMaFalsa = scomposizioneEmulatore(sana.replace("**123 con", "**125 con").replace("21\nfunzioni", "23\nfunzioni"));
+  ok(coerenteMaFalsa.totale === coerenteMaFalsa.addendi.reduce((a, b) => a + b, 0),
+    "il caso di prova deve essere COERENTE, se no non dimostra niente");
+  ok(coerenteMaFalsa.addendi[2] !== proveDichiarate(SUITE_EMULATORE[2][1]),
+    "e la suite DEVE smentire l'addendo, che è la sola cosa che un controllo di coerenza non saprebbe fare");
+  ok(scomposizioneEmulatore("nessuna frase del genere") === null,
+    "e su un testo qualunque deve rispondere null, non un oggetto a zero");
+});
+
 /* ── la copertura dei moduli CONDIVISI, modulo per modulo ─────────────
    ⛔ ENTRATA IL 09/08, DOPO CHE GLI STESSI SEI NUMERI ERANO INVECCHIATI DUE
    VOLTE IN DUE GIORNI. `DEVELOPMENT.md` scompone la copertura del codice
@@ -894,6 +974,46 @@ console.log(`\ncodice condiviso: ${perModulo.length} moduli letti dal censimento
 
 console.log(`\ncantiere di Genesi: ${g ? `${g.totale} funzioni nella pagina, ${g.estraibili} estraibili, `
   + `${SCAGLIONI_DOC.length} scaglioni confrontati col documento` : "NON MISURATO — il censimento non ha risposto"}`);
+
+/* ── QUANTI NUMERI DICHIARATI NESSUNA REGOLA GUARDA ───────────────────
+   ⚠️ È una MISURA, non una regola: non fa fallire niente, e quello che elenca
+   sono **candidati**, non accuse. La ragione sta scritta in `CLAUDE.md`: un
+   allarme che sbaglia tre volte su quattro insegna a non guardarlo. Qui il
+   dubbio è dichiarato in due punti — le regole **iscritte** sono quelle che
+   la riga in fondo conta, non tutte quelle che il file contiene (le altre
+   vivono dentro le funzioni e non si sono ancora iscritte), quindi una riga
+   elencata qui può essere sorvegliata lo stesso; e i numeri contati sono solo
+   quelli **contabili**, cioè accanto a una parola che una suite sa contare.
+   ⛔ Serve a rispondere alla domanda che il 09/08 ha trovato tre difetti veri
+   in un'ora, e che nessun controllo faceva: *questo numero, se marcisce, lo
+   dice qualcuno?* Il conto da leggere non è quante righe elenca — è il
+   **rapporto**: dove il numeratore si avvicina al denominatore, il documento è
+   tenuto da un controllo; dove no, è tenuto dalla memoria di chi lo rilegge. */
+const CONTABILI = /(prove|asserzioni|funzioni|esecuzioni|banchi|suite|comandi|classi|iniezioni|schermate|superfici|checkpoint|moduli)/i;
+const rigaDi = (testo, i) => testo.slice(0, i).split("\n").length;
+console.log("\nNumeri dichiarati e chi li guarda — misura, non regola:");
+for (const rel of ["docs/DEVELOPMENT.md", "docs/STATO_PRODOTTO.md", "docs/DECISIONI_WEEKEND.md"]) {
+  const testo = readFileSync(join(RADICE, rel), "utf8");
+  const coperte = new Set();
+  for (const [f, regola] of SORVEGLIATE) {
+    if (f !== rel) continue;
+    const m = regola.exec(testo);
+    if (!m) continue;
+    for (let r = rigaDi(testo, m.index); r <= rigaDi(testo, m.index + m[0].length); r++) coperte.add(r);
+  }
+  /* un numero «dichiarato» è un grassetto che COMINCIA con una cifra: è la
+     convenzione di casa per una cifra misurata, e prende anche «**65 su 169**» */
+  const numeri = [...testo.matchAll(/\*\*(\d[^*]{0,60}?)\*\*/g)]
+    .filter((m) => CONTABILI.test(testo.slice(Math.max(0, m.index - 90), m.index + m[0].length + 90)))
+    /* le sigle delle decisioni («**10b**», «**5a**») non sono misure */
+    .filter((m) => !/^\d+[a-z]?\.?$/.test(m[1].trim()));
+  const fuori = numeri.filter((m) => !coperte.has(rigaDi(testo, m.index)));
+  console.log(`  ${rel.padEnd(26)} ${String(numeri.length).padStart(3)} contabili, `
+    + `${String(numeri.length - fuori.length).padStart(3)} su righe che una regola iscritta guarda`
+    + (fuori.length ? `  ·  candidati: ${fuori.slice(0, 6).map((m) => `r.${rigaDi(testo, m.index)} «${m[1].split("\n")[0].slice(0, 28)}»`).join(", ")}${fuori.length > 6 ? ` … e altri ${fuori.length - 6}` : ""}` : "  ·  nessun candidato"));
+}
+console.log(`  (${SORVEGLIATE.length} regole iscritte al censimento; le altre di questo file non lo sono ancora, `
+  + "quindi un candidato può essere sorvegliato lo stesso — il dubbio è dichiarato, non nascosto)");
 
 console.log(`\nRisultato numeri nei documenti: ${passed} passati, ${failed} falliti`
   + `  ·  ${guardati} documenti letti, ${banchi} banchi contati, copertura ${coperte}/${guardateFn}`);
