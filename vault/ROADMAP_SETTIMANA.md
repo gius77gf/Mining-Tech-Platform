@@ -1128,7 +1128,7 @@ numero scritto dove non era stato misurato niente**.*
       in silenzio dall'estratto conto e dal sollecito (`apertoDi(f) > 0` la
       filtra). Serve costruire l'import CSV con la colonna vuota.
 
-- [ ] **C1. «undefined» DISEGNATO SUI FORI, E «UNDEFINED FILE» NELLA STRISCIA
+- [x] **C1. «undefined» DISEGNATO SUI FORI, E «UNDEFINED FILE» NELLA STRISCIA
       DEI KPI — visti in uno SCATTO, non leggendo il codice.** ⏱️ *Trovati il
       10/08 guardando l'immagine della schermata «Sequenza sparo» del core,
       mentre si verificava un'altra correzione.*
@@ -1143,11 +1143,19 @@ numero scritto dove non era stato misurato niente**.*
       della volata, fori numerati di seguito) e le due scritte **restano**. Le
       due righe della lista dei fori, invece, dicono già «—»: è di nuovo la
       stessa pagina che si racconta in due modi.
-      **Come si rimisura**: `DW_SCATTI=<cartella> node
-      apps/deepwork-id/tests/browser/core-sequenza-ritardi.mjs` e si **guarda**
-      `nuovo-sonda-senza.png`. Il banco c'è già; quello che manca è l'asserzione
-      su questi due testi, e una che pretenda che **nessuna schermata del core
-      contenga la parola «undefined»**.
+      ✅ **Chiuso il 10/08, commit `4263c6d`** — e non cercandola nel codice: una
+      sonda ha camminato i **nodi di testo del DOM** e ha detto dove sono, sei
+      `<text>` in `#ec-canvas` e un `<b>` in `#ec-stats`. I due punti stavano
+      dove nessuna regex li avrebbe accostati (il numero di **sequenza** mai
+      assegnato, e il numero di **file** della maglia).
+      ⚠️ E il numero di sequenza era scritto in **due** punti del file — la vista
+      del fronte e quella della galleria: l'`assert` sul numero di occorrenze ha
+      fermato la sostituzione, che ne cercava una. Senza, avrei corretto **metà
+      difetto** senza accorgermene, perché le due viste non si aprono insieme.
+      La correzione sta in **una funzione sola** (`seqDetta`), e lo zero resta
+      zero in tutt'e tre i punti: è un valore vero, non un'assenza.
+      Il banco adesso lo pretende: «nessun «undefined» a schermo (0 nodi)», con
+      l'elenco dei colpevoli stampato quando ce ne sono.
 
 - [ ] **B0-duodecies. I CLAMP DELLE TRE SUPERFICI CHE IL CENSIMENTO NON AVEVA
       GUARDATO — core, Campo, Scudo.** ⏱️ *Censite il 10/08 con lo stesso
