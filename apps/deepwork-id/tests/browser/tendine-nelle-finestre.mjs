@@ -2,8 +2,39 @@
    ────────────────────────────────────────────────────────────────────────
    Uso:
      node tendine-nelle-finestre.mjs [--porta=9301] [--solo=scudo] [--tutte]
+     node tendine-nelle-finestre.mjs --solo=core     (il core, che vuole il finto Firebase)
      node tendine-nelle-finestre.mjs --controprova   (rimette i difetti: DEVE fallire)
      node tendine-nelle-finestre.mjs --dimmi         (stampa ogni voce misurata)
+
+   ⛔ IL CORE VUOLE UN ARGOMENTO, E FINO AL 10/08 QUESTO BANCO NON GLIELO DAVA:
+   MORIVA. `--solo=core` cadeva su `window.__provaUtente is not a function`
+   (uscita 1) — e valeva anche per `--tutte`, che il core ce l'ha in
+   `CANDIDATE`. La causa è quella scritta in CLAUDE.md: tutto il programma del
+   core sta in un `<script type="module">` che importa Firebase da gstatic.com,
+   senza rete l'import fallisce e restano i segnaposto. Il rimedio è un
+   ARGOMENTO in più ad `apriSuperficie` (`montaFintoFirebase`), come già fanno
+   dieci banchi: una seconda implementazione qui dentro sarebbe stata la copia
+   che nasce da una firma troppo stretta.
+   ⛔ E la conseguenza di quel difetto era peggiore del difetto: **a 360 e 430
+   px le tendine del core non le guardava nessuno** — `modali-dentro` gira a
+   390 e 320, e proprio a 430 si era scoperto il taglio di `#sm-cava`. Un banco
+   che MUORE è peggio di uno che dichiara di essere cieco: nel registro di un
+   giro si legge come una riga rossa qualunque.
+
+   ⛔ E ADESSO SI PRETENDE LA PROVA DI ESSERE ENTRATI. Il core non autenticato
+   dà **258 caratteri di testo e UN bottone** contro i 658 e otto dell'app vera:
+   per mesi ogni banco che «guardava il core» guardava quel guscio e diceva
+   «ok». Qui la schermata d'accesso viene riconosciuta (`#screen-login` a
+   schermo), la superficie viene dichiarata NON MISURATA invece di essere
+   assolta, e i due numeri — caratteri di testo e comandi visibili — si
+   STAMPANO a ogni larghezza, così il giorno in cui l'accesso si rompesse di
+   nuovo si vedrebbe dal registro invece che da un'indagine.
+
+   ⛔ E NON SI MUORE PIÙ A METÀ. Qualunque inciampo dentro una larghezza
+   (l'apertura della superficie, la navigazione, un contesto che salta) viene
+   catturato, DICHIARATO in fondo al riepilogo e il giro tira avanti con la
+   larghezza dopo: un banco che crolla dichiara MENO PROVE, e un totale più
+   basso si legge come «ha guardato meno roba», non come «si è rotto».
 
    ⛔ PERCHÉ ESISTE, E PERCHÉ NON È UN DOPPIONE — la parte che conta.
    La domanda «una voce di tendina ci sta nella sua tendina?» la fa GIÀ
@@ -112,6 +143,12 @@ import { join, extname, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { prendiChromium, apriSuperficie, sezioniDi, vaiA, SUPERFICI, CHROMIUM } from "./giro.mjs";
 import { SCEGLI, TOCCA, CHIUDI, DOVE, quanteModaliEsistono } from "./apri-modali.mjs";
+/* ⛔ L'UNICA RIGA CHE SERVIVA PER NON MORIRE SUL CORE, e insieme a quella che
+   la passa ad `apriSuperficie`. Il finto Firebase NON si riscrive qui: è lo
+   stesso file che montano `modali-dentro`, `fuori-schermo`, `contrasto`,
+   `barra-etichette` e gli altri — una regola che serve a due banchi si scrive
+   una volta sola, e `apriSuperficie` lo accetta già come argomento. */
+import { montaFintoFirebase } from "./finto-firebase.mjs";
 
 const QUI = dirname(fileURLToPath(import.meta.url));
 const R = process.env.DW_RADICE || join(QUI, "..", "..", "..", "..");
@@ -130,35 +167,87 @@ const MAX_CLICK = 90;         /* tetto per sezione: un banco che non finisce non
    diventa rosso in casa d'altri viene spento, non riparato — ed è la disciplina
    già scritta in `fuori-schermo.mjs`. Chi pulisce la sua app si aggiunge qui e
    da lì in poi non ci torna. */
-const PRETESE = new Set(["scudo"]);
+/* ⛔ E IL CORE È ENTRATO IL 10/08, IL GIORNO IN CUI SI È RIUSCITI AD APRIRLO —
+   non per fiducia, per misura: 268 finestre aperte (67 per larghezza, 28
+   diverse), 14 tendine, 48 voci per larghezza e **zero** voci visibili
+   tagliate a 320, 360, 390 e 430. È la regola scritta due righe più su
+   applicata a sé stessa: chi è pulito si aggiunge qui, e da lì in poi un
+   taglio è un KO invece di una riga stampata che nessuno legge.
+   ⚠️ Serve anche alla controprova: su una superficie non pretesa la domanda è
+   «ho guardato?», che è vera anche col difetto dentro — il rosso VOLUTO non
+   arriverebbe mai e la controprova accuserebbe sé stessa. */
+const PRETESE = new Set(["scudo", "core"]);
 const CANDIDATE = TUTTE ? SUPERFICI.map(([n]) => n) : ["scudo"];
 const NOMI = (SOLO ? [SOLO] : CANDIDATE);
 
-/* ⛔ I DUE DIFETTI DELLA CONTROPROVA, e sono DUE apposta: due etichette con due
+/* ⛔ I TRE DIFETTI DELLA CONTROPROVA, e sono TRE apposta: tre etichette con tre
    soglie diverse. Un banco che cade a tutte le larghezze non sta misurando la
-   larghezza — sta misurando «c'è qualcosa che non va». Qui invece:
-     · l'esito lungo (250 px) deve cadere SOLO a 320 (scatola 242);
-     · il soggetto lungo (302 px) deve cadere a 320 E a 360 (scatola 282),
-       e passare a 390 (312) e 430 (352).
-   Se il banco misurasse un'altra cosa, i due non potrebbero separarsi.
+   larghezza — sta misurando «c'è qualcosa che non va». Qui invece, e ogni
+   numero è misurato:
+     · l'esito lungo di Scudo (250 px) deve cadere SOLO a 320 (scatola 242);
+     · il soggetto lungo di Scudo (302 px) deve cadere a 320 E a 360 (282),
+       e passare a 390 (312) e 430 (352);
+     · la cava lunga del core (330 px) deve cadere a 320, 360 E 390, e passare
+       a 430 — cioè la fascia più larga delle tre, dall'altra parte.
+   Se il banco misurasse un'altra cosa, i tre non potrebbero separarsi così.
    ⚠️ La tabella si chiama `DIFETTI` ed è nella forma a rotta perché
    `iniezioni-fresche.mjs` la legga: un'iniezione che non trova più il suo
    pezzo spegne la controprova IN SILENZIO, e quel controllo è l'unico che se
    ne accorge in tre secondi invece che in sei ore. */
+/* ⛔ E SONO DICHIARATI PER SUPERFICIE, DAL 10/08. Prima la tabella era piatta e
+   il server sceglieva il file con `p.endsWith(chiave)`: finché le chiavi erano
+   `apps/scudo/…` funzionava, ma la chiave del core è `index.html` — che
+   `endsWith` combacia con l'index di OGNI app. Un'iniezione che entra in una
+   pagina che nessuno sta guardando non fa cadere niente e non lascia niente da
+   leggere. Adesso il confronto è sul percorso INTERO, e si iniettano soltanto
+   le superfici di questo giro: con `--solo=core` i difetti di Scudo non si
+   toccano, e il conto delle iniezioni parla di quello che si sta misurando. */
 const DIFETTI = {
-  "apps/scudo/index.html": [[
-    `"— nessun esito —")}</select>`,
-    `"— nessun esito registrato —")}</select>`,
-  ]],
-  "apps/scudo/scudo-data.js": [[
-    `nome: "Soggetto abilitato", quando:`,
-    `nome: "Soggetto pubblico o privato abilitato", quando:`,
-  ]],
+  scudo: {
+    "apps/scudo/index.html": [[
+      `"— nessun esito —")}</select>`,
+      `"— nessun esito registrato —")}</select>`,
+    ]],
+    "apps/scudo/scudo-data.js": [[
+      `nome: "Soggetto abilitato", quando:`,
+      `nome: "Soggetto pubblico o privato abilitato", quando:`,
+    ]],
+  },
+  /* ⛔ IL DIFETTO DEL CORE STA NELLA VOCE VUOTA DI `#sm-cava`, ed è scelto
+     così per due ragioni misurate, non per comodità:
+     · è la voce che si vede finché nessuno ha scelto la cava, cioè lo stato di
+       partenza della scheda — e la regola di questo banco è che la voce vuota
+       si giudica SEMPRE, anche quando non è quella scelta. Senza, la
+       controprova sarebbe non deterministica: dipenderebbe da quale riga
+       l'apritore capita di cliccare;
+     · alla misura del 10/08 quella voce ci sta a tutte e quattro le larghezze
+       — «— nessuna —» chiede 150 px, e le scatole sono 242 · 282 · 312 · 352 —
+       quindi il difetto iniettato si separa dal fondo invece di sommarcisi.
+   ⚠️ E QUI VA DETTA UNA COSA CHE NON TORNA, invece di lasciarla intendere. La
+   riga di roadmap che ha aperto questo cantiere dice che a 430 px `#sm-cava`
+   taglia i NOMI DI CAVA. Questo banco, oggi, non lo vede: i due nomi della
+   dimostrazione chiedono 178 e 174 px in una scatola da 352, e in tutto il
+   core escono **zero** voci tagliate a tutte e quattro le larghezze (anche
+   fra quelle mai visibili a tendina chiusa, che vengono contate lo stesso).
+   Non è una smentita: l'altro banco cammina sui comandi in modo suo e può
+   aver aperto quella tendina in uno stato diverso. È scritto qui perché la
+   prossima persona non lo cerchi credendo di averlo perso. */
+  core: {
+    "index.html": [[
+      `<option value="">— nessuna —</option>`,
+      `<option value="">— nessuna cava per questo cantiere —</option>`,
+    ]],
+  },
 };
 /* le soglie che la controprova pretende: sotto questa larghezza il difetto
    DEVE farsi vedere, da questa in su NON deve — ed è la prova che il banco
-   misura la larghezza e non l'umore */
-const SOGLIE = [["vf-esito", 360], ["vf-ente", 390]];
+   misura la larghezza e non l'umore. Anche queste per superficie: con
+   `--solo=core` pretendere le soglie di Scudo vorrebbe dire far cadere la
+   controprova su una superficie che non si è nemmeno aperta. */
+const SOGLIE = {
+  scudo: [["vf-esito", 360], ["vf-ente", 390]],
+  core: [["sm-cava", 430]],
+};
 
 const TIPI = { ".html": "text/html", ".js": "text/javascript", ".mjs": "text/javascript",
   ".css": "text/css", ".json": "application/json", ".svg": "image/svg+xml",
@@ -171,6 +260,13 @@ const TIPI = { ".html": "text/html", ".js": "text/javascript", ".mjs": "text/jav
    io. Vale doppio qui: mentre questo banco gira può girare il giro completo,
    che serve una worktree su un commit più vecchio. */
 let iniezioni = 0, mancate = 0;
+/* percorso assoluto → coppie da sostituire, per le sole superfici di questo
+   giro. La mappa si costruisce PRIMA del server: se un nome di superficie non
+   ha difetti dichiarati non compare, e la controprova lo dice in fondo. */
+const DIFETTI_ATTIVI = new Map();
+for (const n of NOMI) {
+  for (const [file, coppie] of Object.entries(DIFETTI[n] || {})) DIFETTI_ATTIVI.set(join(R, file), coppie);
+}
 const srv = createServer((q, s) => {
   const rotta = decodeURIComponent(q.url.split("?")[0]);
   if (rotta === "/__contrassegno") { s.writeHead(200, { "content-type": "text/plain" }); return s.end(String(process.pid)); }
@@ -178,20 +274,17 @@ const srv = createServer((q, s) => {
   if (existsSync(p) && statSync(p).isDirectory()) p = join(p, "index.html");
   if (!existsSync(p)) { s.writeHead(404); return s.end("no"); }
   let corpo = readFileSync(p);
-  if (CONTROPROVA) {
-    for (const [file, coppie] of Object.entries(DIFETTI)) {
-      if (!p.endsWith(file)) continue;
-      let t = corpo.toString("utf8");
-      for (const [cerca, sostituisci] of coppie) {
-        const n = t.split(cerca).length - 1;
-        /* ⚠️ UN `replace` CHE NON TROVA NIENTE NON FALLISCE: restituisce il
-           testo identico, il banco gira su un prodotto SANO e dichiara «non
-           distingue». Si conta e si dice. */
-        if (n !== 1) { console.log(`⛔ INIEZIONE MANCATA in ${file}: ${n} soggetti invece di 1`); mancate++; }
-        else { t = t.replace(cerca, sostituisci); iniezioni++; }
-      }
-      corpo = Buffer.from(t, "utf8");
+  if (CONTROPROVA && DIFETTI_ATTIVI.has(p)) {
+    let t = corpo.toString("utf8");
+    for (const [cerca, sostituisci] of DIFETTI_ATTIVI.get(p)) {
+      const n = t.split(cerca).length - 1;
+      /* ⚠️ UN `replace` CHE NON TROVA NIENTE NON FALLISCE: restituisce il
+         testo identico, il banco gira su un prodotto SANO e dichiara «non
+         distingue». Si conta e si dice. */
+      if (n !== 1) { console.log(`⛔ INIEZIONE MANCATA in ${p.slice(R.length + 1)}: ${n} soggetti invece di 1`); mancate++; }
+      else { t = t.replace(cerca, sostituisci); iniezioni++; }
     }
+    corpo = Buffer.from(t, "utf8");
   }
   s.writeHead(200, { "content-type": TIPI[extname(p)] || "application/octet-stream" });
   s.end(corpo);
@@ -270,6 +363,31 @@ const MISURA = () => {
   return out;
 };
 
+/* ══ LA PROVA DI ESSERE DENTRO L'APP VERA ══════════════════════════════════
+   ⛔ Non è una gentilezza del registro: è la difesa contro il guscio. Il core
+   non autenticato è una pagina viva — non dà errori, si lascia navigare, e
+   `sezioniDi` risponde ventisette sezioni — solo che sotto non c'è niente:
+   **258 caratteri di testo e UN bottone**, contro i 658 e otto dell'app vera.
+   Un banco che ci gira sopra apre zero finestre e stampa il suo verde. Qui i
+   due numeri si misurano e si STAMPANO a ogni larghezza, e la schermata
+   d'accesso si riconosce per nome invece che per soglia: una soglia sui
+   caratteri direbbe «poco testo» anche di una schermata legittimamente scarna,
+   `#screen-login` a schermo dice esattamente «sono rimasto fuori».
+   ⚠️ `innerText` e non `textContent`: quello che conta è il testo che si VEDE
+   (su un elemento nascosto `innerText` ricade su `textContent`, ed è la
+   trappola già scritta in CLAUDE.md — qui il corpo è visibile, quindi
+   risponde giusto). */
+const DENTRO = () => {
+  const t = (document.body.innerText || "").replace(/\s+/g, " ").trim();
+  const visibile = (e) => { const r = e.getBoundingClientRect(); return r.width > 0 && r.height > 0; };
+  const acc = document.getElementById("screen-login");
+  return {
+    caratteri: t.length,
+    bottoni: [...document.querySelectorAll("button, [role=\"button\"]")].filter(visibile).length,
+    accesso: !!acc && getComputedStyle(acc).display !== "none",
+  };
+};
+
 const chromium = await prendiChromium();
 const b = await chromium.launch({ executablePath: CHROMIUM });
 
@@ -295,6 +413,8 @@ const verdetto = (c, t, x) => {
 /* i conti che vanno letti PRIMA dei KO: le righe «non ho guardato» */
 const denom = [];              /* una riga per superficie e larghezza */
 const nonMisurate = [];        /* superfici che non hanno aperto niente: NOMINATE */
+const nonRaggiunte = [];       /* larghezze in cui il banco è INCIAMPATO: NOMINATE */
+const prove_di_essere_dentro = []; /* caratteri e comandi, per superficie e larghezza */
 const nonScelteTagliate = new Set();
 const bandaCieca = new Set();  /* voci che il righello vecchio assolve e questo boccia */
 const cascate = new Map();     /* id → larghezze a cui la voce scelta è tagliata */
@@ -303,7 +423,14 @@ const cascate = new Map();     /* id → larghezze a cui la voce scelta è tagli
    famiglia del controllo che non guarda dove crede. Le due tendine della
    finestra della verifica periodica sono quelle su cui il difetto è vissuto,
    quindi sono la PRECONDIZIONE di questo banco e vanno nominate. */
-const ATTESI = { scudo: ["vf-esito", "vf-ente", "vf-verbale"] };
+/* ⛔ E PER IL CORE IL SOGGETTO È `#sm-cava`, DAL 10/08 — perché è quello su cui
+   poggia la controprova. Un banco che gira sul core, apre sessantasette
+   finestre e non incontra MAI quella tendina sarebbe verde avendo guardato
+   altrove, e la sua controprova sarebbe muta senza dirlo: l'iniezione
+   entrerebbe nella pagina, nessuno la misurerebbe, e il rosso «voluto» non
+   arriverebbe mai. Misurato a tutte e quattro le larghezze: la finestra
+   «Nuovo sismogramma» si apre e la tendina c'è. */
+const ATTESI = { scudo: ["vf-esito", "vf-ente", "vf-verbale"], core: ["sm-cava"] };
 const incontrati = new Set();
 const scelteTagliate = new Set();
 
@@ -316,10 +443,41 @@ for (const nome of NOMI) {
   let aperteInTutto = 0, candidatiInTutto = 0;
 
   for (const larghezza of LARGHEZZE) {
-    const { ctx, p } = await apriSuperficie(b, { nome, via, porta: PORTA, larghezza, altezza: 900 });
-    const atteso = p.url();
+    let ctx = null, p = null, dentro = null;
     let aperteQui = 0, tendineQui = 0, opzioniQui = 0, tagliateQui = 0, candidatiQui = 0;
     const titoli = new Set();
+
+    /* ⛔ TUTTA LA LARGHEZZA STA DENTRO UN `try`, E LA RAGIONE È IL 09/08.
+       `apriSuperficie` sul core moriva su `window.__provaUtente is not a
+       function` e si portava dietro il banco INTERO: nessun riepilogo, nessuna
+       riga «non ho guardato», e in un giro completo quella morte si legge come
+       una riga rossa qualunque. Adesso l'inciampo si cattura, si NOMINA in
+       fondo, e le larghezze dopo si misurano lo stesso: il totale delle prove
+       resta quello di sempre — che è l'unica cosa che fa vedere un banco
+       rotto, perché un totale più basso si legge «ha guardato meno roba».
+       ⚠️ Il corpo NON è rientrato di un altro livello, di proposito: sono
+       settanta righe che non cambiano, e un rientro le farebbe comparire tutte
+       nella differenza, nascondendo le quattro che cambiano davvero. `try {` e
+       `} catch` stanno allo stesso livello del resto del giro. */
+    try {
+    ({ ctx, p } = await apriSuperficie(b, { nome, via, porta: PORTA, larghezza, altezza: 900, montaFintoFirebase }));
+    const atteso = p.url();
+
+    /* ⛔ PRIMA DI MISURARE QUALUNQUE COSA: SONO DENTRO L'APP VERA? Se il core
+       è rimasto sull'accesso, tutto quello che segue misura un guscio e lo
+       dichiara «a posto» — è la cecità che è durata mesi. I due numeri si
+       stampano SEMPRE, anche quando va bene: servono a vedere il giorno in cui
+       smetteranno di andare bene. */
+    dentro = await p.evaluate(DENTRO).catch(() => null);
+    prove_di_essere_dentro.push(`${nome} @${larghezza}px: `
+      + (dentro ? `${dentro.caratteri} caratteri di testo · ${dentro.bottoni} comandi visibili`
+                  + (dentro.accesso ? " · ⛔ SCHERMATA D'ACCESSO: è il GUSCIO, non l'app" : "")
+                : "non misurabile (la pagina non ha risposto)"));
+    if (!dentro) throw new Error("la pagina non ha risposto alla prova di essere dentro");
+    if (dentro.accesso) {
+      throw new Error(`sono rimasto sulla schermata d'accesso (${dentro.caratteri} caratteri, `
+        + `${dentro.bottoni} comandi): misurare di qui in poi vorrebbe dire assolvere un guscio`);
+    }
 
     /* ⛔ OGNI NAVIGAZIONE PASSA DI QUI, E QUI SI PUÒ SOLO INCIAMPARE, NON
        MORIRE. `vaiA` chiama `page.waitForTimeout`: se la pagina è stata chiusa
@@ -391,8 +549,19 @@ for (const nome of NOMI) {
         }
       }
     }
+    } catch (e) {
+      /* ⛔ E QUI NON SI TACE: l'inciampo si scrive per nome, con la larghezza,
+         e finisce nelle righe «non ho guardato» in fondo al riepilogo — quelle
+         che vanno lette PRIMA dei KO. Un banco che inciampa e non lo dice è
+         peggio di uno rosso. */
+      const perche = String((e && e.message) || e).split("\n")[0].slice(0, 200);
+      nonRaggiunte.push(`${nome} @${larghezza}px: NON GUARDATA — ${perche}`);
+      console.log(`  ⚠️  ${nome} @${larghezza}px: inciampo, tiro avanti — ${perche}`);
+    }
+    if (ctx) await ctx.close().catch(() => {});
     aperteInTutto += aperteQui; candidatiInTutto += candidatiQui;
-    denom.push(`${nome} @${larghezza}px: ${aperteQui} finestre aperte (${titoli.size} diverse) · ${tendineQui} tendine · ${opzioniQui} voci misurate · ${tagliateQui} tagliate`);
+    denom.push(`${nome} @${larghezza}px: ${aperteQui} finestre aperte (${titoli.size} diverse) · ${tendineQui} tendine · ${opzioniQui} voci misurate · ${tagliateQui} tagliate`
+      + (dentro ? ` · [${dentro.caratteri} caratteri, ${dentro.bottoni} comandi${dentro.accesso ? ", GUSCIO D'ACCESSO" : ""}]` : " · [mai aperta]"));
     /* ⛔ UNA PROVA PER SUPERFICIE E LARGHEZZA, SEMPRE LO STESSO NUMERO. Prima
        qui c'era un `dice` per ogni voce tagliata: il totale delle prove saliva
        coi difetti e SCENDEVA quando sparivano — cioè un banco che crolla a metà
@@ -412,7 +581,6 @@ for (const nome of NOMI) {
        e il totale resta fisso comunque. */
     if (PRETESE.has(nome)) dice(opzioniQui > 0 && tagliateScelte.length === 0, testo, tagliateScelte.slice(0, 4));
     else dice(opzioniQui > 0, `(non preteso, guardato) ${testo}`);
-    await ctx.close();
   }
 
   /* ⛔ LA PRECONDIZIONE. «Non misurato» non è «a posto»: se la superficie non
@@ -445,6 +613,11 @@ srv.close();
 
 /* ══ IL RIEPILOGO — e si legge dall'alto ═══════════════════════════════════ */
 console.log("\n──── quello che ho guardato (da leggere PRIMA dei KO) ────");
+/* ⛔ LA PROVA DI ESSERE DENTRO, PRIMA DEL DENOMINATORE. Un «0 voci misurate»
+   ha due cause opposte — la superficie non ha tendine, oppure non ci sono
+   entrato — e questi due numeri le separano in una riga. */
+console.log("  la prova di essere nell'app vera (il core senza accesso dà ~258 caratteri e UN comando):");
+for (const r of prove_di_essere_dentro) console.log(`      ${r}`);
 for (const r of denom) console.log(`  · ${r}`);
 console.log(`  · voci tagliate ma mai visibili a tendina chiusa (dichiarate, non bocciate): ${nonScelteTagliate.size}`);
 if (nonScelteTagliate.size && DIMMI) for (const x of nonScelteTagliate) console.log(`      ${x}`);
@@ -455,34 +628,67 @@ console.log(`  ${bandaCieca.size} voci sono tagliate DAVVERO e il confronto «te
   for (const x of l.slice(0, 12)) console.log(`      ${x}`);
   if (l.length > 12) console.log(`      … e altre ${l.length - 12}`); }
 
-if (nonMisurate.length) {
+if (nonMisurate.length || nonRaggiunte.length) {
   console.log("\n──── NON MISURATE ────");
   for (const x of nonMisurate) console.log(`  ⚠️  ${x}`);
+  /* le larghezze in cui il banco è inciampato: NON sono «a posto», e non sono
+     nemmeno un difetto del prodotto — sono lavoro non fatto, e si vede */
+  for (const x of nonRaggiunte) console.log(`  ⚠️  ${x}`);
 }
 
 if (CONTROPROVA) {
   console.log("\n──── la controprova, nei due versi ────");
-  console.log(`  iniezioni riuscite: ${iniezioni} · mancate: ${mancate}`);
+  /* ⛔ E IL DENOMINATORE DELLE INIEZIONI: quante coppie erano DA provare su
+     queste superfici, e quante hanno trovato il loro pezzo. Un conto senza il
+     suo denominatore («3 iniezioni riuscite») non dice se ne mancava una. */
+  const daProvare = [...DIFETTI_ATTIVI.values()].reduce((n, c) => n + c.length, 0);
+  /* ⚠️ E I DUE NUMERI CONTANO DUE COSE DIVERSE, scritto accanto invece che
+     lasciato intendere: `dichiarate` sono le coppie di questa tabella,
+     `sostituzioni servite` è quante volte sono state applicate — una per ogni
+     caricamento della pagina, cioè quattro larghezze per coppia. Un'etichetta
+     più larga del suo numero è il difetto che in questa casa passa più spesso. */
+  console.log(`  iniezioni dichiarate per ${NOMI.join(", ")}: ${daProvare}`
+    + ` · sostituzioni servite: ${iniezioni} · mancate: ${mancate}`);
   verdetto(mancate === 0, "tutte le iniezioni hanno trovato il loro pezzo (se no la controprova gira su un prodotto SANO)");
-  /* ⛔ E QUI STA LA PROVA CHE IL BANCO MISURA LA LARGHEZZA. Due difetti, due
-     soglie: sotto la sua soglia ognuno deve farsi vedere, da lì in su NO. Un
-     banco che cade dappertutto passerebbe la prima metà e fallirebbe questa. */
-  for (const [id, soglia] of SOGLIE) {
+  verdetto(iniezioni >= daProvare && daProvare > 0,
+    `le ${daProvare} iniezioni dichiarate sono state servite almeno una volta ciascuna (${iniezioni} sostituzioni)`,
+    { iniezioni, daProvare });
+  /* ⛔ E QUI STA LA PROVA CHE IL BANCO MISURA LA LARGHEZZA. Un difetto, una
+     soglia: sotto la sua soglia deve farsi vedere, da lì in su NO. Un banco che
+     cade dappertutto passerebbe la prima metà e fallirebbe questa.
+     ⚠️ Le soglie sono quelle delle superfici di QUESTO giro: pretendere
+     `#vf-esito` quando si è lanciato `--solo=core` vorrebbe dire far cadere la
+     controprova su una tendina che non si è nemmeno aperta. */
+  for (const [id, soglia] of NOMI.flatMap((n) => SOGLIE[n] || [])) {
     const dove = cascate.get(id) || new Set();
     const sotto = LARGHEZZE.filter((l) => l < soglia);
     const sopra = LARGHEZZE.filter((l) => l >= soglia);
     verdetto(sotto.every((l) => dove.has(l)), `#${id}: col testo lungo cade a ${sotto.join(", ")} px`, [...dove]);
     verdetto(sopra.every((l) => !dove.has(l)), `#${id}: col testo lungo NON cade a ${sopra.join(", ")} px — è la LARGHEZZA che misura, non l'umore`, [...dove]);
   }
+  /* ⛔ E IL «ROSSO VOLUTO» SI PRETENDE PER NOME, NON SI DEDUCE DAL CONTATORE
+     DEI KO. Fino al 10/08 la riga finale diceva `ko === 0 → fallita`: giusto
+     per Scudo, che è PRETESA, e cieco per qualunque superficie che non lo sia —
+     lì la domanda è «ho guardato?», che resta vera col difetto dentro, quindi
+     il conto dei KO non si muove e la controprova si accuserebbe da sola.
+     Il rosso voluto sono le VOCI VISIBILI TAGLIATE: quelle il banco le conta
+     su ogni superficie, pretesa o no. */
+  verdetto(scelteTagliate.size > 0,
+    `il difetto iniettato si VEDE: ${scelteTagliate.size} voci visibili tagliate (KO del prodotto: ${ko})`,
+    [...scelteTagliate].slice(0, 4));
 }
 
-const nonMisuratoEProblema = nonMisurate.length > 0;
+/* ⛔ E L'INCIAMPO CONTA COME NON MISURATO ANCHE IN CONTROPROVA. Lì il rosso
+   del prodotto è voluto, quindi una larghezza saltata potrebbe nascondersi
+   dietro un `ko` che serviva: si conta a parte e si pretende a parte. */
+const nonMisuratoEProblema = nonMisurate.length > 0 || nonRaggiunte.length > 0;
 console.log(`\nRisultato tendine nelle finestre: ${ok} passati, ${ko} falliti · ${prove} prove`
   + (CONTROPROVA ? ` · verdetti della controprova: ${vOk} passati, ${vKo} falliti` : "")
-  + (nonMisurate.length ? ` · ⚠️ ${nonMisurate.length} superfici NON MISURATE` : ""));
+  + (nonMisurate.length ? ` · ⚠️ ${nonMisurate.length} superfici NON MISURATE` : "")
+  + (nonRaggiunte.length ? ` · ⚠️ ${nonRaggiunte.length} larghezze NON GUARDATE` : ""));
 /* ⛔ NON MISURATO ≠ A POSTO: se una superficie non si è aperta, il banco non
    può uscire zero, se no la difesa è peggiore del difetto.
    In controprova il rosso del prodotto è VOLUTO e non conta; contano i
    verdetti, più la pretesa che un rosso ci sia stato davvero. */
-if (CONTROPROVA) process.exit(vKo > 0 || ko === 0 || nonMisuratoEProblema ? 1 : 0);
+if (CONTROPROVA) process.exit(vKo > 0 || nonMisuratoEProblema ? 1 : 0);
 process.exit(ko > 0 || nonMisuratoEProblema ? 1 : 0);

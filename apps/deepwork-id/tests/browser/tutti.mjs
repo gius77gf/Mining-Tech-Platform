@@ -554,6 +554,16 @@ const BANCHI = [
      banco va TOLTO, non lasciato a sorvegliare due volte la stessa cosa. */
   ['le voci di tendina stanno nelle tendine', 'tendine-nelle-finestre.mjs', []],
   ['voci di tendina · controprova', 'tendine-nelle-finestre.mjs', ['--controprova'], true],
+  /* ⛔ E IL CORE A PARTE, DAL 10/08. Senza argomenti il banco guarda solo Scudo
+     (`CANDIDATE`): finché questa riga non c'è, le tendine del core restano non
+     misurate a 360 e 430 px — che è la METÀ di B4-bis (la morte del banco era la
+     causa, la cecità l'effetto). Passata sua perché il core costa più di Scudo
+     (67 finestre per larghezza contro 6) e perché il suo totale di prove va letto
+     separato: mescolato a quello di Scudo, un core che non si apre più si
+     nasconderebbe dentro un numero che cambia per altri motivi.
+     Costo misurato il 10/08: core 469 s, Scudo 143 s — dentro il tetto. */
+  ['le voci di tendina del core', 'tendine-nelle-finestre.mjs', ['--solo=core']],
+  ['voci di tendina del core · controprova', 'tendine-nelle-finestre.mjs', ['--controprova', '--solo=core'], true],
   /* ⛔ I TRE TEMI SONO ENTRATI IL 07/08, E IL BUCO ERA GROSSO. Questo banco
      guardava il tema BUIO soltanto, e nel tema SOLE — quello che serve a
      leggere il telefono in cava, cioè il posto dove il prodotto vive — la

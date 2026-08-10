@@ -1284,7 +1284,7 @@ numero scritto dove non era stato misurato niente**.*
       **Come si misura**: un piano con un foro solo registrato, e si legge la
       riga di riepilogo.
 
-- [ ] **B4-bis. LE TENDINE DEL CORE NON LE MISURA NESSUN BANCO, E IL BANCO CHE
+- [x] **B4-bis. LE TENDINE DEL CORE NON LE MISURA NESSUN BANCO, E IL BANCO CHE
       DOVREBBE NON DICE «non ho guardato»: MUORE.** ⏱️ *Trovato il 09/08
       chiudendo B0-quinquies.* `tendine-nelle-finestre.mjs --solo=core` **non
       monta il finto Firebase**, quindi non entra nel core e cade su
@@ -1298,6 +1298,28 @@ numero scritto dove non era stato misurato niente**.*
       legge come una riga rossa qualunque. La cura è un argomento
       (`montaFintoFirebase` passato ad `apriSuperficie`), come già fatto per gli
       altri banchi che aprono il core.
+      ✅ **Chiuso il 10/08.** Da **banco morto** a **268 finestre aperte**: 67 per
+      larghezza (28 diverse), 14 tendine, **48 voci misurate, 0 tagliate**, a
+      320/360/390/430. La prova d'ingresso è stampata a ogni larghezza — **699
+      caratteri e 8 comandi** contro i 258 e l'unico bottone del guscio — e il
+      guscio si riconosce **per nome** (`#screen-login` a schermo), non per
+      soglia: in quel caso la larghezza si dichiara NON GUARDATA invece di
+      essere assolta. Scudo, prima e dopo, **identico** (6 finestre, 8 tendine,
+      60 voci, 18/12/12/10 tagliate).
+      ⚠️ **Il taglio di `#sm-cava` a 430 citato qui sopra NON si è riprodotto**:
+      i due nomi di cava chiedono 178 e 174 px in una scatola da **352**. Non è
+      una smentita di `modali-dentro` (cammina sui comandi a modo suo e può aver
+      aperto quella tendina in un altro stato) — sta scritto perché il prossimo
+      non lo cerchi credendo di averlo perso.
+      ⛔ **E il banco ha trovato tre difetti in sé stesso**, di cui uno grosso:
+      usava `ko === 0` come prova del «rosso voluto», ma su una superficie non
+      pretesa quella domanda è «ho guardato?» — vera **anche col difetto
+      dentro**, cioè la controprova avrebbe accusato sé stessa. Ora il rosso
+      voluto sono le **voci visibili tagliate**, e il core è entrato in
+      `PRETESE` (un taglio futuro è un KO, non una riga stampata).
+      ⏱️ Registrate in `tutti.mjs` **due passate a sé** per il core: senza
+      argomenti il banco guarda solo Scudo, quindi la correzione da sola non lo
+      rimetteva nel giro — la morte del banco era la causa, la cecità l'effetto.
 
 - [x] **B0-octies. LA TABELLA DEL CANTIERE DI GENESI ERA FALSA IN SETTE NUMERI
       SU SETTE, SOTTO UN AVVERTIMENTO CHE DICEVA COME SAREBBE SUCCESSO.**
@@ -4119,7 +4141,7 @@ numero scritto dove non era stato misurato niente**.*
   sorvegliati ne contavano sette: due convenzioni per lo stesso numero, che è
   il modo più facile di far sembrare sbagliato un conto giusto. Adesso è una
   sola.*
-  Copertura **725/725** e nessuna funzione scoperta; **182 esecuzioni** che
+  Copertura **725/725** e nessuna funzione scoperta; **184 esecuzioni** che
   aprono le pagine in un browser vero, da **76** file di banco distinti (contati
   dalla tabella `BANCHI` di `tutti.mjs`, non a occhio dalla cartella, che di
   `.mjs` ne ha di più perché contiene anche gli aiuti — `giro.mjs`,
