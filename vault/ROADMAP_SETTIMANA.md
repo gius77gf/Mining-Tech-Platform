@@ -5479,3 +5479,37 @@ di scriverlo qui**: niente entra sulla parola dell'agente.
       quattro volte con tre comportamenti diversi. La convenzione è stata
       **mandata ai due cantieri mentre lavoravano**, col vincolo di dichiarare
       nella consegna ogni forma nuova che dovessero coniare.
+
+- [ ] **B7. `sentinella-periodo-adempimento` È INTERMITTENTE — e va rimisurato a
+      MACCHINA FERMA prima che qualcuno ci apra un cantiere.** ⏱️ *13/08, notte,
+      rilanciandolo sul committato: è nato oggi e non era mai girato fuori dal
+      cantiere che l'ha scritto.*
+      Tre passate di fila **sullo stesso commit**, senza che nulla cambiasse:
+
+      | passata | esito |
+      |---|---|
+      | il cantiere che l'ha scritto | **34 ok, 0 KO** |
+      | prima mia | 22 ok, **2 KO**, 2 non misurati |
+      | seconda mia | 16 ok, **2 KO**, 4 non misurati |
+      | terza mia | **tutto verde** |
+
+      ⛔ **Il totale che scende è il segno**, non i KO: 34 → 26 → 22 asserzioni
+      dichiarate. È «un banco che non raggiunge il suo soggetto dichiara meno
+      prove», già scritto in `CLAUDE.md`, e qui il banco fa la cosa **giusta** —
+      scrive `NON MISURATO`, elenca le righe che non sono arrivate a schermo e
+      **non accusa**. Quella parte funziona.
+      ⚠️ **Quello che resta da capire è il KO «la pagina non solleva errori»**:
+      nelle due passate storte la pagina un errore lo solleva, nella terza no.
+      **Non l'ho inseguito adesso, e la ragione è misurata**: mentre giravano,
+      sulla macchina c'erano **tre cantieri** con i loro Chromium. Un'accusa
+      raccolta sotto contesa è indistinguibile da una vera, ed è esattamente il
+      caso che il 09/08 è costato **due riverifiche** perché incontrato da solo,
+      senza le passate in cui era verde.
+      ⛔ **Quindi non aprire un cantiere su questi due KO senza averli prima
+      rivisti a macchina scarica.** Se a macchina ferma spariscono, il difetto è
+      la **scena** (la precondizione va allargata anche al controllo degli
+      errori di pagina, che oggi non ne ha una); se restano, è prodotto e allora
+      c'è un errore vero da leggere nella console.
+      **Come si misura**: nessun altro processo pesante in giro (`ps -eo
+      pid=,args= | grep chrome`), tre passate di fila, e si guarda **il totale
+      delle asserzioni dichiarate** prima dei KO.
