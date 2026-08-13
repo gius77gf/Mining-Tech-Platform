@@ -317,3 +317,36 @@ niente — che è esattamente la stessa cosa che cerchiamo nel prodotto.
   spinta con la PR #322 aperta.
 - **Restano ferme** le decisioni del fondatore: **B0-septies** (il 2D di una
   volata senza maglia) e le **soglie di sicurezza** (`ppvLimit`, USBM/DIN).
+
+## 13/08/2026, 23:05 UTC — aggiornamento a metà blocco
+
+- **Che cosa sta succedendo**: quattro unità chiuse da `444f3095` in poi, tre
+  cantieri aperti insieme (core `B0-duovicies`, Sentinella, i lettori CSV muti)
+  e due ricerche in corso.
+- **Lo stato, letto sulla copia di quello che si committa** (mai sull'albero
+  vivo, che tre cantieri stanno scrivendo): `run-kpi` **2124**, giro `node`
+  **2.913** asserzioni su 34 comandi — **34 a posto, 0 caduti**, per la prima
+  volta stanotte — copertura app **727/727**, condivisi **171/171**, esecuzioni
+  del browser **194**.
+- ✅ **Il blocco della CI non aspetta più il fondatore per restare leggibile.**
+  La correzione vera — riscrivere la storia del ramo — è ancora ferma a lui,
+  perché `--force-with-lease` è distruttivo. Ma tenere la CI rossa per ore su
+  quella riga sola **insegna a non guardare il rosso**, che è un difetto
+  peggiore: adesso il percorso mal datato è un'**eccezione dichiarata per nome**
+  in `date-checkpoint.mjs`, **sorvegliata da una seconda prova che cade il
+  giorno in cui la storia viene riscritta**. L'eccezione non può sopravvivere
+  alla sua causa, e il blocco resta scritto invece di sparire in un rosso che
+  nessuno legge.
+- ⚠️ **Il giro del browser è stato SPENTO a 3h52, ed è una scelta.** Aveva fatto
+  60 passate su ~230 e attestava un commit da cui il ramo si era mosso di oltre
+  trenta: i suoi primi KO erano **ventisette contrasti chiusi cinque ore prima**.
+  Non produceva informazione, produceva accuse che sembrano fresche — e teneva
+  la macchina a tre cantieri. Va rilanciato su uno stato fermo.
+- ✅ **Tutte e sette le app hanno i banchi «numeri tranquilli» verdi sul
+  committato**: Conti 28 · Terra 49 · Sentinella 26 · Flotta 24 · Campo 92 ·
+  Scudo 42 · Genesi 35, zero KO.
+- ✅ **E la sicurezza si verifica di nuovo in casa: 123 prove, non 102.** Le 21
+  sulle Cloud Functions erano dichiarate «solo CI» dall'08/08 per una causa
+  falsa — `functions/node_modules` era vuota. Comandi in `CLAUDE.md`.
+- **Restano ferme** le decisioni del fondatore: **B0-septies** (il 2D di una
+  volata senza maglia) e le **soglie di sicurezza** (`ppvLimit`, USBM/DIN).
