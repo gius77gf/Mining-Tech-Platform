@@ -591,6 +591,47 @@ export function parseTelemetriaCsv(text) {
     .filter(p => p.mezzo && Number.isFinite(p.ore) && p.ore >= 0);
 }
 
+/* ⛔ «E LE RIGHE CHE NON SONO ENTRATE?» — IL LETTORE LE CANCELLA E LA PAGINA
+   NON POTREBBE DIRLO NEMMENO VOLENDO: il `.filter` sta DENTRO, e chi chiama
+   riceve solo i sopravvissuti. È l'assenza di un dato nella sua forma più
+   tranquilla — il principio del fondatore applicato all'INGRESSO invece che
+   all'uscita — e qui morde più che altrove: il messaggio della telemetria
+   contava già le «righe ignorate», ma su quelle SOPRAVVISSUTE al lettore. Una
+   riga con le ore illeggibili spariva prima di essere contata, quindi il conto
+   più onesto della pagina era quello che nascondeva di più.
+   La forma è quella di `rientroRilievi` in Terra, che fa la stessa domanda
+   nell'altro verso: `persi: [{ nome, ragione }]`; i conti si chiamano `lette`
+   ed `entrano` perché il file è di qualcun altro.
+   ⛔ IL VERDETTO NON SI RISCRIVE: lo si chiede al lettore riga per riga. La
+   scala delle ragioni SPIEGA e basta, e quando non sa spiegare dice «il
+   lettore la scarta».
+   ⛔ E LA RIGA TUTTA VUOTA NON È UNA PERDITA: un foglio di calcolo salva le
+   righe di coda come `;;;`. Si contano a parte (`vuote`) e non si dicono. */
+export function scartiTelemetriaCsv(text) {
+  const righe = String(text || "").split(/\r?\n/).map(r => r.trim()).filter(Boolean)
+    .filter(r => !isIntestazione(r, "mezzo"));
+  const persi = [];
+  let nRiga = 0;
+  let vuote = 0;
+  for (const riga of righe) {
+    nRiga++;
+    if (parseTelemetriaCsv(riga).length) continue;
+    const c = parseCsvLine(riga);
+    if (c.every(x => String(x == null ? "" : x).trim() === "")) { vuote++; continue; }
+    const mezzo = (c[0] || "").trim(), ore = (c[1] || "").trim(), n = numIt(ore);
+    persi.push({
+      nome: mezzo || "riga " + nRiga,
+      ragione: !mezzo ? "manca il nome del mezzo"
+        : !ore ? "le ore motore non sono state scritte"
+        : !Number.isFinite(n) ? "le ore motore non si leggono"
+        : n < 0 ? "le ore motore sono negative"
+        : "il lettore la scarta",
+    });
+  }
+  const lette = righe.length - vuote;
+  return { lette, entrano: lette - persi.length, persi, vuote };
+}
+
 // Import del PARCO MEZZI da CSV (onboarding: caricare la flotta iniziale invece
 // di aggiungere ogni mezzo a mano). Colonne: nome;area;ore;stato (header
 // opzionale). Tiene solo le righe con un nome; ore via numIt (≥0); stato tra
@@ -683,6 +724,31 @@ export function parseMezziCsv(text) {
       };
     })
     .filter(m => m.nome);
+}
+
+/* Le righe di parco mezzi che NON entrano, con la ragione — vedi il blocco
+   lungo sopra `scartiTelemetriaCsv`.
+   ⚠️ Le ORE che mancano non fanno perdere la riga: il mezzo entra con
+   `ore: null` (la regola «niente zero di comodo sulle ore», qui sopra).
+   Quello che fa perdere la riga è il NOME, che è l'identità del mezzo. */
+export function scartiMezziCsv(text) {
+  const righe = String(text || "").split(/\r?\n/).map(r => r.trim()).filter(Boolean)
+    .filter(r => !isIntestazione(r, "nome"));
+  const persi = [];
+  let nRiga = 0;
+  let vuote = 0;
+  for (const riga of righe) {
+    nRiga++;
+    if (parseMezziCsv(riga).length) continue;
+    const c = parseCsvLine(riga);
+    if (c.every(x => String(x == null ? "" : x).trim() === "")) { vuote++; continue; }
+    persi.push({
+      nome: "riga " + nRiga,
+      ragione: !(c[0] || "").trim() ? "manca il nome del mezzo" : "il lettore la scarta",
+    });
+  }
+  const lette = righe.length - vuote;
+  return { lette, entrano: lette - persi.length, persi, vuote };
 }
 
 // Nuova giacenza dopo uno scarico di `qta` pezzi: mai sotto zero. Serve sia

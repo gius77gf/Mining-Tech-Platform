@@ -661,6 +661,58 @@ export function parseFattureCsv(text) {
     .filter(f => f.numero && f.cliente && Number.isFinite(f.importo) && f.importo > 0);
 }
 
+/* ⛔ «E LE RIGHE CHE NON SONO ENTRATE?» — IL LETTORE LE CANCELLA E LA PAGINA
+   NON POTREBBE DIRLO NEMMENO VOLENDO.
+   ══════════════════════════════════════════════════════════════════════════
+   Il `.filter` sta DENTRO il lettore, che restituisce solo i sopravvissuti:
+   chi chiama riceve un elenco più corto e non ha modo di sapere né quante
+   righe mancano né perché. Chi importa 200 fatture e ne vede 180 non sa quali
+   venti — è l'assenza di un dato nella sua forma più tranquilla, cioè il
+   principio del fondatore applicato all'INGRESSO invece che all'uscita.
+   ⚠️ E su una fattura la riga persa è un CREDITO che non esiste più: non
+   compare nell'aging, non compare nei solleciti, non compare nell'esposizione
+   del cliente. Il numero che l'app mostra è più basso del vero e non c'è
+   niente da leggere che lo dica.
+   La forma è quella di `rientroRilievi` di Terra, che fa la stessa domanda
+   nell'altro verso: `persi: [{ nome, ragione }]`. I conti si chiamano `lette`
+   ed `entrano` perché il file è di qualcun altro — non l'abbiamo scritto noi.
+   ⛔ IL VERDETTO NON SI RISCRIVE: lo si chiede al lettore riga per riga
+   (`parseFattureCsv(riga).length`), come fa `rientroRilievi`. La scala delle
+   ragioni SPIEGA e basta, e se non sa spiegare dice «il lettore la scarta»
+   invece di indovinare: una seconda copia della regola sarebbe la copia
+   debole che questa casa ha già pagato quattro volte.
+   ⛔ E LA RIGA TUTTA VUOTA NON È UNA PERDITA: un foglio di calcolo salva le
+   righe di coda come `;;;`, che dopo il `trim` non è vuota e arriva fino ai
+   filtri. Si contano a parte (`vuote`) e non si dicono — accusare l'utente di
+   un difetto del suo Excel è il falso allarme che insegna a non guardare i
+   messaggi. */
+export function scartiFattureCsv(text) {
+  const righe = String(text || "").split(/\r?\n/).map(r => r.trim()).filter(Boolean)
+    .filter(r => !isIntestazione(r, "numero"));
+  const persi = [];
+  let nRiga = 0;
+  let vuote = 0;
+  for (const riga of righe) {
+    nRiga++;
+    if (parseFattureCsv(riga).length) continue;
+    const c = parseCsvLine(riga);
+    if (c.every(x => String(x == null ? "" : x).trim() === "")) { vuote++; continue; }
+    const numero = (c[0] || "").trim(), cliente = (c[1] || "").trim();
+    const imp = (c[2] || "").trim(), i = numIt(imp);
+    persi.push({
+      nome: numero || cliente || "riga " + nRiga,
+      ragione: !numero ? "manca il numero della fattura"
+        : !cliente ? "manca il cliente"
+        : !imp ? "l'importo non è stato scritto"
+        : !Number.isFinite(i) ? "l'importo non si legge"
+        : i <= 0 ? "l'importo non è maggiore di zero"
+        : "il lettore la scarta",
+    });
+  }
+  const lette = righe.length - vuote;
+  return { lette, entrano: lette - persi.length, persi, vuote };
+}
+
 // Import delle GARE d'appalto da CSV (onboarding: caricare le gare in corso e
 // il loro esito). Colonne: titolo;base;scadenza;stato (header opzionale). Tiene
 // solo le righe con un titolo; base via numIt (≥0); stato aperta|vinta|persa
@@ -748,6 +800,45 @@ export function parseListinoCsv(text) {
        Un prodotto senza prezzo non è vendibile: se serve caricarlo lo stesso,
        si scrive 0 apposta — che è una decisione di chi compila, non nostra. */
     .filter(p => p.nome && p.prezzo != null);
+}
+
+/* ⛔ LE RIGHE DI LISTINO CHE NON ENTRANO — e qui il conto c'era GIÀ, sbagliato
+   in due modi che si vedono solo mettendoli accanto.
+   ══════════════════════════════════════════════════════════════════════════
+   La pagina si era scritta il suo, per dire quante righe cadono:
+     · ricontava le righe grezze con una regex sua, `/^nome\s*[;,\t]/i`, cioè
+       una **seconda copia** di `isIntestazione` — che oggi combacia per caso e
+       domani no. È la copia debole nel posto in cui questa casa l'ha già
+       trovata quattro volte: dove il documento (qui il messaggio) si compone;
+     · e attribuiva a TUTTE le righe cadute la stessa ragione, «non avevano un
+       prezzo leggibile». Ma una riga cade anche quando manca il NOME — e
+       allora la frase è **falsa**: manda a cercare un prezzo dov'è il nome a
+       mancare. Un numero giusto con una ragione sbagliata costa più di
+       nessuna ragione, perché chi legge ci crede.
+   Vedi il blocco lungo sopra `scartiFattureCsv` per la forma e per il perché
+   il verdetto si chiede al lettore invece di riscriverlo. */
+export function scartiListinoCsv(text) {
+  const righe = String(text || "").split(/\r?\n/).map(r => r.trim()).filter(Boolean)
+    .filter(r => !isIntestazione(r, "nome"));
+  const persi = [];
+  let nRiga = 0;
+  let vuote = 0;
+  for (const riga of righe) {
+    nRiga++;
+    if (parseListinoCsv(riga).length) continue;
+    const c = parseCsvLine(riga);
+    if (c.every(x => String(x == null ? "" : x).trim() === "")) { vuote++; continue; }
+    const nome = (c[0] || "").trim(), prezzo = (c[2] || "").trim();
+    persi.push({
+      nome: nome || "riga " + nRiga,
+      ragione: !nome ? "manca il nome del prodotto"
+        : !prezzo ? "il prezzo non è stato scritto"
+        : !Number.isFinite(numIt(prezzo)) ? "il prezzo non si legge"
+        : "il lettore la scarta",
+    });
+  }
+  const lette = righe.length - vuote;
+  return { lette, entrano: lette - persi.length, persi, vuote };
 }
 
 /* ⛔ IL FILE DEL LISTINO LO SCRIVE UNA FUNZIONE, NON UN TEMPLATE NELLA PAGINA.
@@ -4230,38 +4321,78 @@ export function csvPesate(pesate) {
   return righe.join("\n") + "\n";
 }
 
+/* ⛔ LE TRE PARTI DEL LETTORE HANNO UN NOME, e non è ordine per l'ordine: le
+   deve poter chiamare anche `scartiPesateCsv` qui sotto, che dice quali righe
+   NON sono entrate. Senza nomi, quella funzione avrebbe dovuto **riscrivere**
+   la mappatura e il verdetto — cioè la copia debole, nel posto esatto in cui
+   questa casa l'ha già trovata quattro volte.
+   ⚠️ E qui il trucco usato dagli altri sette lettori (ridare al lettore la
+   RIGA GREZZA e guardare se sopravvive) NON si può usare: questi due leggono
+   il file INTERO con `leggiCsv`, perché una cella fra virgolette può contenere
+   un a capo — è il bonifico da 12.300 € che spariva. Da `leggiCsv` tornano
+   celle, non il testo della riga; ricomporlo con `csvCell` sarebbe un giro di
+   scrittura in mezzo a una lettura, e su un numero negativo `csvCell` mette
+   l'apostrofo anti-iniezione che rientra `NaN`. Quindi si estrae. */
+const cellePesate = (text) => (leggiCsv(String(text || "")).righe || [])
+  .filter((c) => c.length && !isIntestazione(c.join(";"), "numero"));
+
+function pesataDaCella(c) {
+  const [numero, data, clienteId, cliente, prodottoId, prodotto, lordo, tara, netto,
+    unitaVendita, quantita, densita, prezzoUnitario, scontoPct, aliquotaIva,
+    mezzo, destinatario, fatturaId, ordineId, fontePrezzo] = c;
+  const n = (x) => numeroDichiarato(numIt(x) === null || Number.isNaN(numIt(x)) ? null : numIt(x));
+  const t = (x) => { const v = String(x == null ? "" : x).trim(); return v || null; };
+  const out = {
+    numero: t(numero) || "", data: (data || "").trim(),
+    clienteId: t(clienteId), cliente: t(cliente) || "",
+    prodottoId: t(prodottoId), prodotto: t(prodotto) || "",
+    lordo: n(lordo), tara: n(tara), netto: n(netto),
+    unitaVendita: String(unitaVendita || "").trim() === "m3" ? "m3" : "t",
+    quantita: n(quantita), densita: n(densita),
+    prezzoUnitario: n(prezzoUnitario), scontoPct: n(scontoPct), aliquotaIva: n(aliquotaIva),
+    mezzo: t(mezzo) || "", destinatario: t(destinatario) || "",
+    fatturaId: t(fatturaId), ordineId: t(ordineId),
+  };
+  /* la provenienza del prezzo si scrive SOLO se dichiarata: il campo
+     assente è uno stato, e vale «non lo sappiamo» */
+  const fp = String(fontePrezzo || "").trim();
+  if (fp === "ordine" || fp === "listino") out.fontePrezzo = fp;
+  return out;
+}
+
+/* una pesata con una data impossibile finirebbe nell'anno sbagliato dei
+   riepiloghi, che sono i numeri con cui si fatturano le consegne */
+const pesataUsabile = (p) => dataISOEsiste(p.data);
+
 export function parsePesateCsv(text) {
-  /* `leggiCsv` torna `{ delim, righe }` e non un array: legge il file INTERO
-     (le celle su più righe fra virgolette, che un lettore riga-per-riga
-     spezza — è il bonifico da 12.300 € che spariva in Conti). */
-  return (leggiCsv(String(text || "")).righe || [])
-    .filter((c) => c.length && !isIntestazione(c.join(";"), "numero"))
-    .map((c) => {
-      const [numero, data, clienteId, cliente, prodottoId, prodotto, lordo, tara, netto,
-        unitaVendita, quantita, densita, prezzoUnitario, scontoPct, aliquotaIva,
-        mezzo, destinatario, fatturaId, ordineId, fontePrezzo] = c;
-      const n = (x) => numeroDichiarato(numIt(x) === null || Number.isNaN(numIt(x)) ? null : numIt(x));
-      const t = (x) => { const v = String(x == null ? "" : x).trim(); return v || null; };
-      const out = {
-        numero: t(numero) || "", data: (data || "").trim(),
-        clienteId: t(clienteId), cliente: t(cliente) || "",
-        prodottoId: t(prodottoId), prodotto: t(prodotto) || "",
-        lordo: n(lordo), tara: n(tara), netto: n(netto),
-        unitaVendita: String(unitaVendita || "").trim() === "m3" ? "m3" : "t",
-        quantita: n(quantita), densita: n(densita),
-        prezzoUnitario: n(prezzoUnitario), scontoPct: n(scontoPct), aliquotaIva: n(aliquotaIva),
-        mezzo: t(mezzo) || "", destinatario: t(destinatario) || "",
-        fatturaId: t(fatturaId), ordineId: t(ordineId),
-      };
-      /* la provenienza del prezzo si scrive SOLO se dichiarata: il campo
-         assente è uno stato, e vale «non lo sappiamo» */
-      const fp = String(fontePrezzo || "").trim();
-      if (fp === "ordine" || fp === "listino") out.fontePrezzo = fp;
-      return out;
-    })
-    /* una pesata con una data impossibile finirebbe nell'anno sbagliato dei
-       riepiloghi, che sono i numeri con cui si fatturano le consegne */
-    .filter((p) => dataISOEsiste(p.data));
+  return cellePesate(text).map(pesataDaCella).filter(pesataUsabile);
+}
+
+/* ⛔ LE PESATE CHE NON RIENTRANO — e questo è il bottone «Ri-carica copia», cioè
+   un RIPRISTINO: una riga persa qui è un DDT che sparisce dall'archivio, e chi
+   preme quel bottone sta già rimediando a qualcosa. Il messaggio diceva soltanto
+   «Rimesse dentro N pesate»: un ripristino monco si legge esattamente come uno
+   riuscito. Forma e ragioni: vedi il blocco sopra `scartiFattureCsv`.
+   ⚠️ Qui NON c'è il conto delle righe vuote: `leggiCsv` le toglie da sé (una
+   riga di soli separatori non arriva nemmeno alle celle), e infatti `vuote`
+   esce sempre 0 — resta nel risultato perché la forma sia la stessa degli
+   altri, dichiarata invece che diversa in silenzio. */
+export function scartiPesateCsv(text) {
+  const persi = [];
+  let nRiga = 0;
+  const celle = cellePesate(text);
+  for (const c of celle) {
+    nRiga++;
+    const p = pesataDaCella(c);
+    if (pesataUsabile(p)) continue;
+    persi.push({
+      nome: p.numero || p.cliente || "riga " + nRiga,
+      ragione: !p.data ? "la data non è stata scritta"
+        : !dataISOEsiste(p.data) ? "la data non esiste"
+        : "il lettore la scarta",
+    });
+  }
+  return { lette: celle.length, entrano: celle.length - persi.length, persi, vuote: 0 };
 }
 
 /* ⛔ LA PRIMA NOTA CHE SI RI-CARICA — decisione 12a, terza voce.
@@ -4289,25 +4420,55 @@ export function csvIncassi(incassi) {
   return righe.join("\n") + "\n";
 }
 
+/* le tre parti hanno un nome per la stessa ragione delle pesate: le usa anche
+   `scartiIncassiCsv`, che senza di esse dovrebbe riscrivere il verdetto */
+const celleIncassi = (text) => (leggiCsv(String(text || "")).righe || [])
+  .filter((c) => c.length && !isIntestazione(c.join(";"), "fatturaId"));
+
+function incassoDaCella(c) {
+  const [fatturaId, data, importo, metodo] = c;
+  const t = (x) => { const v = String(x == null ? "" : x).trim(); return v || null; };
+  const n = numIt(importo);
+  return {
+    fatturaId: t(fatturaId),
+    data: (data || "").trim(),
+    importo: numeroDichiarato(n === null || Number.isNaN(n) ? null : n),
+    metodo: t(metodo) || "",
+  };
+}
+
+/* ⛔ un incasso senza data o senza importo NON rientra: sono i due campi
+   che lo rendono un incasso. Una riga a zero, o con una data che non
+   esiste, entrerebbe nei conti dei tempi di pagamento — e quelli dicono
+   chi sono i clienti puntuali. */
+const incassoUsabile = (m) => dataISOEsiste(m.data) && m.importo != null;
+
 export function parseIncassiCsv(text) {
-  return (leggiCsv(String(text || "")).righe || [])
-    .filter((c) => c.length && !isIntestazione(c.join(";"), "fatturaId"))
-    .map((c) => {
-      const [fatturaId, data, importo, metodo] = c;
-      const t = (x) => { const v = String(x == null ? "" : x).trim(); return v || null; };
-      const n = numIt(importo);
-      return {
-        fatturaId: t(fatturaId),
-        data: (data || "").trim(),
-        importo: numeroDichiarato(n === null || Number.isNaN(n) ? null : n),
-        metodo: t(metodo) || "",
-      };
-    })
-    /* ⛔ un incasso senza data o senza importo NON rientra: sono i due campi
-       che lo rendono un incasso. Una riga a zero, o con una data che non
-       esiste, entrerebbe nei conti dei tempi di pagamento — e quelli dicono
-       chi sono i clienti puntuali. */
-    .filter((m) => dataISOEsiste(m.data) && m.importo != null);
+  return celleIncassi(text).map(incassoDaCella).filter(incassoUsabile);
+}
+
+/* ⛔ GLI INCASSI CHE NON RIENTRANO — anche questo è un RIPRISTINO, e sono
+   SOLDI ARRIVATI: una riga persa qui non è un dettaglio d'archivio, è una
+   fattura che resta scoperta, un sollecito che parte a chi ha già pagato.
+   Forma e ragioni: vedi il blocco sopra `scartiFattureCsv`. */
+export function scartiIncassiCsv(text) {
+  const persi = [];
+  let nRiga = 0;
+  const celle = celleIncassi(text);
+  for (const c of celle) {
+    nRiga++;
+    const m = incassoDaCella(c);
+    if (incassoUsabile(m)) continue;
+    const imp = String(c[2] == null ? "" : c[2]).trim();
+    persi.push({
+      nome: m.fatturaId || "riga " + nRiga,
+      ragione: !m.data ? "la data non è stata scritta"
+        : !dataISOEsiste(m.data) ? "la data non esiste"
+        : !imp ? "l'importo non è stato scritto"
+        : "l'importo non si legge",
+    });
+  }
+  return { lette: celle.length, entrano: celle.length - persi.length, persi, vuote: 0 };
 }
 
 /* ⛔ L'ANAGRAFICA CLIENTI CHE SI RI-CARICA — decisione 12a, quarta voce.

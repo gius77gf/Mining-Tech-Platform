@@ -4067,7 +4067,7 @@ numero scritto dove non era stato misurato niente**.*
   scritta**: `DEVELOPMENT.md` diceva ancora «il numero da citare resta 2.251» e
   «il giro completo esegue 2.474» mentre il titolo sopra diceva già 2.310 — il
   controllo sorveglia il **totale**, non la prosa che lo spiega. Rimisurato:
-  sei suite **2.310**, giro completo **2.592**, e **ogni** addendo della nota
+  sei suite **2.310**, giro completo **2.634**, e **ogni** addendo della nota
   era vecchio (sintassi 15 → 34, import 134 → 140, nomi liberi 7 → 24).
 
 - [x] ✅ **`giro-sicurezza`: un comando solo per la barriera fra aziende
@@ -4801,7 +4801,7 @@ numero scritto dove non era stato misurato niente**.*
   nome apre il file sbagliato credendo che sia il più fresco.
 - Le decisioni: `docs/DECISIONI_WEEKEND.md` — pagina d'ingresso in cima.
 - Stato misurato al **09/08** (lanciando le suite, non a memoria):
-  **2.592 prove girano senza rete**. La frase va letta stretta: è la somma
+  **2.634 prove girano senza rete**. La frase va letta stretta: è la somma
   delle **otto** suite che contano asserzioni (`run-kpi` 2110, `run-stile` 318,
   `run-helpers` 75, `run-pointcloud` 32, `run-manifest` 9, `run-demo` 8,
   `bootstrap-rivendicazioni` 7, `fogli-guardati` 3), non tutto ciò che gira nel
@@ -4812,8 +4812,8 @@ numero scritto dove non era stato misurato niente**.*
   sorvegliati ne contavano sette: due convenzioni per lo stesso numero, che è
   il modo più facile di far sembrare sbagliato un conto giusto. Adesso è una
   sola.*
-  Copertura **732/732** e nessuna funzione scoperta; **196 esecuzioni** che
-  aprono le pagine in un browser vero, da **80** file di banco distinti (contati
+  Copertura **741/741** e nessuna funzione scoperta; **198 esecuzioni** che
+  aprono le pagine in un browser vero, da **81** file di banco distinti (contati
   dalla tabella `BANCHI` di `tutti.mjs`, non a occhio dalla cartella, che di
   `.mjs` ne ha di più perché contiene anche gli aiuti — `giro.mjs`,
   `impronta.mjs`, il runner stesso).
@@ -5240,3 +5240,64 @@ di scriverlo qui**: niente entra sulla parola dell'agente.
       nell'elenco con la ragione** invece di essere tolta per avere un conto più
       bello. Fondo di copertura di Sentinella **134 → 139** (conto vero
       139/139): a 134 la guardia stava cinque sotto e non poteva più scattare.
+
+- [x] ✅ **B5. LE RIGHE CHE L'IMPORT CANCELLA ADESSO SI VEDONO, CON LA RAGIONE**
+      *(13/08 — nove lettori di Campo, Conti, Flotta e Terra).* Rovescio esatto
+      della passata sui file che **escono**: il `.filter` che scarta una riga sta
+      **dentro** il lettore, che restituisce solo i sopravvissuti — quindi la
+      pagina **non poteva dirlo nemmeno volendo**.
+      ⛔ **E il denominatore non somiglia a quelli delle altre passate: nove su
+      nove.** Non è un `.filter` scritto male, è **strutturale**, ed è per questo
+      che il rapporto «meno di uno su dieci» qui non vale: la domanda era puntata
+      su un difetto di forma, non su una svista.
+      Misura (righe **scritte → entrate**): `conti.parseFattureCsv` **6→1** ·
+      `terra.parseRilieviCsv` **6→1** · `conti.parseIncassiCsv` **5→1** ·
+      `flotta.parseTelemetriaCsv` **5→1** · `conti.parseListinoCsv` **4→1** ·
+      `conti.parsePesateCsv` 4→2 · `campo.parseSquadreCsv`,
+      `flotta.parseMezziCsv`, `terra.parseFrontiCsv` 4→3.
+      Il caso peggiore è **Conti fatture**: cinque righe su sei sparivano, e una
+      riga persa è un credito che non entra nell'aging, nei solleciti né
+      nell'esposizione del cliente — **il totale a schermo è più basso del vero e
+      non c'è niente da leggere che lo dica**.
+      ✅ **E quello che è SANO non deve dichiarare niente**, misurato e non
+      dedotto: `.filter(Boolean)` sulle righe vuote (9/9) e il filtro
+      sull'intestazione (9/9) sono giusti; e così la **riga di coda `;;;` che un
+      foglio di calcolo salva da sé** — dopo il `trim` non è vuota e arriva fino
+      ai filtri, ma contarla vorrebbe dire **accusare l'utente di un difetto del
+      suo Excel**. Ha un contatore suo (`vuote`) e resta muta.
+      **La forma**: nove funzioni `scarti<X>Csv` **accanto** ai lettori — non un
+      ritorno allargato, che avrebbe rotto tutti i chiamanti (è il caso
+      `disegnaSpark`) — con la forma di `rientroRilievi`:
+      `{lette, entrano, persi:[{nome, ragione}], vuote}`. **Zero chiamanti
+      toccati**, e il verdetto **non è riscritto**: si chiede al lettore riga per
+      riga.
+      ⛔ **Un difetto in più che il censimento non prometteva**: l'import del
+      **listino** un conto ce l'aveva già, e sbagliava in due modi — ricontava le
+      righe grezze con una **seconda copia** di `isIntestazione` e attribuiva a
+      *tutte* le righe cadute la ragione «non avevano un prezzo leggibile»,
+      **falsa** quando a mancare è il nome. *Un numero giusto con una ragione
+      sbagliata costa più di nessuna ragione.*
+      ⚠️ Completata la mappa di `esito` in Campo e Flotta: aveva **due voci su
+      tre** e faceva ricadere l'avviso sul **neutro** — «non è successo niente»
+      proprio dove la frase dice che delle righe non sono entrate (regola 18).
+      ⚠️ **Le iniezioni hanno bocciato due righelli del cantiere stesso**, tutti
+      e due nel verso che rassicura (il taglio del gestore cominciava *dopo* la
+      riga iniettata; un conto per pagina non vedeva un gestore su due):
+      corretti **restringendo**, non allentando.
+      ⚠️ E questa unità ha **fatto scadere due iniezioni** di
+      `terra-frasi-da-uno.mjs`, che citavano il codice fino al `+ ".");` finale:
+      la controprova girava su un prodotto sano **senza che niente diventasse
+      rosso**. Rimesse sul bersaglio, `iniezioni-fresche` torna **376/376**.
+      Prove: `run-kpi` **2140 → 2182** (+42), banco nuovo
+      `browser/import-righe-perse.mjs` (**57 prove**, controprova 8 iniezioni su
+      8 → **48 cadute su 57**, soglia **derivata** `prove − CASI.length` e non
+      scritta a mano).
+      **Debito dichiarato con la misura**: il motore di `frasePersi` è scritto
+      **quattro volte**, una per pagina, e va in `shared/dw-app-ui.js` (non fatto
+      perché in `shared/` stavano scrivendo altri); e restano **quattro** lettori
+      nelle stesse app con la forma mite del difetto — `campo.parsePianoCsv`,
+      `conti.parseGareCsv`, `conti.parseClientiCsv`, `flotta.parseRicambiCsv`,
+      tutti **3→2** sulla riga senza identità — più i **sei** di Scudo e
+      Sentinella, lasciati stare perché ci stavano lavorando altri cantieri.
+      ✅ `conti.parseMovimentiCsv` **3→3**: l'unico che già dichiarava gli
+      scartati.

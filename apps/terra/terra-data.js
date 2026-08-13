@@ -1750,6 +1750,50 @@ export function parseFrontiCsv(text) {
     .filter(f => f.nome);
 }
 
+/* ⛔ «E LE RIGHE CHE NON SONO ENTRATE?» — IL LETTORE LE CANCELLA, E FINORA
+   NESSUNO POTEVA DIRLO.
+   ══════════════════════════════════════════════════════════════════════════
+   Il `.filter` sta DENTRO il lettore, che restituisce solo i sopravvissuti:
+   la pagina riceve un elenco più corto e non ha modo di sapere né quante
+   righe mancano né perché. Chi importa un file di 200 righe e ne vede 180 non
+   ha niente da leggere — è l'assenza nella sua forma più tranquilla, cioè il
+   principio del fondatore applicato all'INGRESSO invece che all'uscita.
+   La forma è quella di `rientroRilievi`, che sta trecento righe più giù e fa
+   la stessa domanda nell'altro verso (quello che NOI scriviamo, rientra?):
+   `persi: [{ nome, ragione }]`, con la ragione in italiano. Qui i due conti si
+   chiamano `lette` ed `entrano` invece di `scritti`/`rientrano` perché il file
+   è di qualcun altro: non l'abbiamo scritto noi, l'abbiamo letto.
+   ⛔ E IL VERDETTO NON SI RISCRIVE: si chiede AL LETTORE, riga per riga
+   (`parseFrontiCsv(riga).length`), esattamente come fa `rientroRilievi`. La
+   scala delle ragioni SPIEGA e basta; se non sa spiegare dice «il lettore la
+   scarta» invece di indovinare. Una seconda copia della regola qui dentro
+   sarebbe la copia debole che questo repository ha già pagato quattro volte.
+   ⛔ E LA RIGA TUTTA VUOTA NON È UNA PERDITA. Un foglio di calcolo, salvando
+   in CSV, scrive le righe di coda come `;;;` — che dopo il `trim` NON è vuota
+   e arriva fino al filtro sul nome. Contarla fra le perse vorrebbe dire
+   accusare l'utente di un difetto del suo Excel: si contano a parte, in
+   `vuote`, e non si dicono. È la differenza fra un `.filter` giusto (la
+   riga d'intestazione, la riga di coda) e uno che cancella un dato. */
+export function scartiFrontiCsv(text) {
+  const righe = String(text || "").split(/\r?\n/).map(r => r.trim()).filter(Boolean)
+    .filter(r => !isIntestazione(r, "nome"));
+  const persi = [];
+  let nRiga = 0;
+  let vuote = 0;
+  for (const riga of righe) {
+    nRiga++;
+    if (parseFrontiCsv(riga).length) continue;
+    const c = parseCsvLine(riga);
+    if (c.every(x => String(x == null ? "" : x).trim() === "")) { vuote++; continue; }
+    persi.push({
+      nome: "riga " + nRiga,
+      ragione: !(c[0] || "").trim() ? "manca il nome del fronte" : "il lettore la scarta",
+    });
+  }
+  const lette = righe.length - vuote;
+  return { lette, entrano: lette - persi.length, persi, vuote };
+}
+
 // Import rilievi elaborati da CSV (onboarding: caricare lo storico dei
 // rilievi drone). Colonne: data;volumeM3[;metodo;gsd;fronte] (header
 // opzionale). Tiene solo le righe con data valida (AAAA-MM-GG) e volume
@@ -1779,6 +1823,41 @@ export function parseRilieviCsv(text) {
     // un rilievo con una data impossibile finirebbe nell'anno sbagliato del
     // riepilogo volumi, che è un documento per l'ente (03/08)
     .filter(p => dataISOEsiste(p.data) && Number.isFinite(p.volumeM3) && p.volumeM3 >= 0);
+}
+
+/* Le righe di rilievo che NON entrano, con la ragione — vedi il blocco lungo
+   sopra `scartiFrontiCsv`. Le parole delle ragioni sono le stesse che
+   `rientroRilievi` dice già («la data non esiste», «il volume non è stato
+   misurato», «il volume è negativo»): la stessa cosa si chiama con lo stesso
+   nome nei due versi, se no chi legge crede che siano due difetti diversi.
+   ⚠️ «non è stato scritto» e «non si legge» sono due ragioni DIVERSE e la
+   differenza serve a chi deve correggere il file: nel primo caso la colonna è
+   vuota, nel secondo c'è scritto qualcosa che non è un numero (una nota, una
+   virgola di troppo, un «n.d.»). Sono due azioni diverse. */
+export function scartiRilieviCsv(text) {
+  const righe = String(text || "").split(/\r?\n/).map(r => r.trim()).filter(Boolean)
+    .filter(r => !isIntestazione(r, "data"));
+  const persi = [];
+  let nRiga = 0;
+  let vuote = 0;
+  for (const riga of righe) {
+    nRiga++;
+    if (parseRilieviCsv(riga).length) continue;
+    const c = parseCsvLine(riga);
+    if (c.every(x => String(x == null ? "" : x).trim() === "")) { vuote++; continue; }
+    const data = (c[0] || "").trim(), vol = (c[1] || "").trim(), v = numIt(vol);
+    persi.push({
+      nome: data || "riga " + nRiga,
+      ragione: !data ? "la data non è stata scritta"
+        : !dataISOEsiste(data) ? "la data non esiste"
+        : !vol ? "il volume non è stato misurato"
+        : !Number.isFinite(v) ? "il volume non si legge"
+        : v < 0 ? "il volume è negativo"
+        : "il lettore la scarta",
+    });
+  }
+  const lette = righe.length - vuote;
+  return { lette, entrano: lette - persi.length, persi, vuote };
 }
 
 /* ⛔ IL FILE DEI RILIEVI CHE SI RI-CARICA — decisione 12a, presa dal ciclo il

@@ -2413,6 +2413,48 @@ export function parseSquadreCsv(text) {
     .filter(q => q.nome);
 }
 
+/* ⛔ «E LE RIGHE CHE NON SONO ENTRATE?» — IL LETTORE LE CANCELLA E LA PAGINA
+   NON POTREBBE DIRLO NEMMENO VOLENDO: il `.filter` sta DENTRO, e chi chiama
+   riceve solo i sopravvissuti. Chi importa 200 righe e ne vede 180 non ha
+   modo di sapere quali venti mancano né perché — è l'assenza di un dato nella
+   sua forma più tranquilla, cioè il principio del fondatore applicato
+   all'INGRESSO invece che all'uscita.
+   La forma è quella di `rientroRilievi` in Terra, che fa la stessa domanda
+   nell'altro verso: `persi: [{ nome, ragione }]`. I conti si chiamano `lette`
+   ed `entrano` perché il file è di qualcun altro — non l'abbiamo scritto noi.
+   ⛔ IL VERDETTO NON SI RISCRIVE: lo si chiede al lettore riga per riga
+   (`parseSquadreCsv(riga).length`). La scala delle ragioni SPIEGA e basta, e
+   quando non sa spiegare dice «il lettore la scarta» invece di indovinare —
+   una seconda copia della regola sarebbe la copia debole già pagata quattro
+   volte in questa casa.
+   ⛔ E LA RIGA TUTTA VUOTA NON È UNA PERDITA: un foglio di calcolo salva le
+   righe di coda come `;;;`, che dopo il `trim` non è vuota e arriva fino al
+   filtro sul nome. Si contano a parte (`vuote`) e non si dicono: accusare
+   l'utente di un difetto del suo Excel è il falso allarme che insegna a non
+   guardare i messaggi.
+   ⚠️ Le PERSONE che mancano non fanno perdere la riga: la squadra entra con
+   `persone: null` («niente zero di comodo», la regola qui sopra). Quello che
+   fa perdere la riga è il NOME, che è l'identità. */
+export function scartiSquadreCsv(text) {
+  const righe = String(text || "").split(/\r?\n/).map(r => r.trim()).filter(Boolean)
+    .filter(r => !isIntestazione(r, "nome"));
+  const persi = [];
+  let nRiga = 0;
+  let vuote = 0;
+  for (const riga of righe) {
+    nRiga++;
+    if (parseSquadreCsv(riga).length) continue;
+    const c = parseCsvLine(riga);
+    if (c.every(x => String(x == null ? "" : x).trim() === "")) { vuote++; continue; }
+    persi.push({
+      nome: "riga " + nRiga,
+      ragione: !(c[0] || "").trim() ? "manca il nome della squadra" : "il lettore la scarta",
+    });
+  }
+  const lette = righe.length - vuote;
+  return { lette, entrano: lette - persi.length, persi, vuote };
+}
+
 /* ⛔ E IL FILE DELLE SQUADRE LO SCRIVE UNA FUNZIONE, non una stringa nella
    pagina: era l'ultimo dei sette che si ri-caricano a essere composto lì, e
    finché ci stava il suo giro export → import lo poteva provare **solo** il

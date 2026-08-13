@@ -1193,7 +1193,7 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
 
 
 <script type="module">
-  import { campoData, kpiFrom, parsePianoCsv, mappaPianoCsv, foriRipetuti, parseSquadreCsv, csvSquadre, percorsiDi, scartoPct, scartoLivello, pianoRiepilogo, CAUSALI_FERMO, riepilogoFermi, paretoFermi, fermiPerGiorno, mediaFermiAlGiorno, fermiSenzaGiorno, riassuntoRapportino, avanzamentoGiornata, coperturaRapportini,
+  import { campoData, kpiFrom, parsePianoCsv, mappaPianoCsv, foriRipetuti, parseSquadreCsv, scartiSquadreCsv, csvSquadre, percorsiDi, scartoPct, scartoLivello, pianoRiepilogo, CAUSALI_FERMO, riepilogoFermi, paretoFermi, fermiPerGiorno, mediaFermiAlGiorno, fermiSenzaGiorno, riassuntoRapportino, avanzamentoGiornata, coperturaRapportini,
            oggiISO, TURNI, turnoCorrente, diGiorno, senzaData, UNITA_PRODUZIONE, totaliProduzione, formattaProduzione, normalizzaPiano,
            squadraBase, RUOLI, operatoriDi, etichettaAssegnazione, eMia, caricoSquadre,
            idoneitaDiTurno, idoneitaOperatore, inTurnoOggi,
@@ -1266,8 +1266,39 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
   const vuoto = (icona, titolo, sotto, azione) => statoVuoto(icona, titolo, sotto, azione);
   // ── Messaggi: toast del core + traccia scritta accanto al form ────────
   const esito = (id, testo, tipo) => {
-    const el = $(id); if (el) { el.textContent = testo; el.className = "note esito" + (tipo === "err" ? " err" : ""); }
+    /* ⛔ «warn» NON è «success» e non è «err» — regola 18 di `run-stile`: una
+       mappa copra tutti gli stati che chi la chiama sa dire. Con due voci su
+       tre un avviso ricadeva sul neutro, cioè si leggeva come «non è successo
+       niente» proprio dove la frase dice che delle righe non sono entrate. La
+       barra gialla c'è già in `shared/` e si chiama `.note.avviso`. */
+    const el = $(id); if (el) { el.textContent = testo; el.className = "note esito" + (tipo === "err" ? " err" : tipo === "warn" ? " avviso" : ""); }
     if (testo) toast(testo, tipo);
+  };
+
+  /* ⛔ LE RIGHE CHE NON SONO ENTRATE SI DICONO, CON IL LORO PERCHÉ (13/08).
+     Il `.filter` che scarta una riga sta DENTRO il lettore, che restituisce
+     solo i sopravvissuti: fino a oggi questa pagina non poteva dirlo nemmeno
+     volendo — riceveva un elenco più corto e basta. Chi importava 200 righe e
+     ne vedeva 180 non aveva modo di sapere quali venti mancassero né perché:
+     è l'assenza di un dato nella sua forma più tranquilla, cioè il principio
+     del fondatore applicato all'INGRESSO invece che all'uscita.
+     Adesso il modulo risponde anche `scarti<X>Csv`, con `{ lette, entrano,
+     persi: [{ nome, ragione }] }` — la stessa forma di `rientroRilievi` di
+     Terra, che fa la stessa domanda nell'altro verso.
+     ⚠️ TRE NOMI E POI IL CONTO: un elenco di venti nomi dentro un toast non
+     lo legge nessuno, e un messaggio che non si legge è come non averlo.
+     ⚠️ NIENTE `esc()`: `esito` e `toast` scrivono con `textContent`, quindi
+     scappare qui farebbe comparire «&amp;» sullo schermo.
+     ⚠️ E le righe di coda che un foglio di calcolo salva come `;;;` NON
+     entrano in questo conto: le toglie il modulo (`vuote`), perché accusare
+     l'utente di un difetto del suo Excel è il falso allarme che insegna a
+     non guardare i messaggi. */
+  const frasePersi = (s) => {
+    const p = (s && s.persi) || [];
+    if (!p.length) return "";
+    return " " + conta(p.length, "riga del file non è entrata", "righe del file non sono entrate")
+      + ": " + p.slice(0, 3).map(x => "«" + x.nome + "» perché " + x.ragione).join("; ")
+      + (p.length > 3 ? "; e altre " + (p.length - 3) : "") + ".";
   };
   // ── Errori di campo: classe dedicata + fuoco automatico sul campo sbagliato
   const err = (id, on) => { const el = $(id); if (el) el.classList.toggle("err", !!on); };
@@ -4100,7 +4131,9 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
   $("btn-squ-import").onclick = () => $("squ-file").click();
   $("squ-file").onchange = async (e) => {
     const file = e.target.files && e.target.files[0]; if (!file) return;
-    const lette = parseSquadreCsv(await file.text());
+    const testoSqu = await file.text();
+    const lette = parseSquadreCsv(testoSqu);
+    const scartate = scartiSquadreCsv(testoSqu);
     /* Il doppione si cerca in DUE posti, e sono due domande diverse: qui
        dentro il file appena letto (regola condivisa, shared/dw-shell.js), e
        sotto contro quello che è GIÀ in archivio — che solo la pagina conosce.
@@ -4109,7 +4142,11 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
        entravano tutte. */
     const righe = senzaDoppioni(lette, x => x.nome);
     const ripetute = lette.length - righe.length;
-    if (!righe.length) { esito("squ-esito", "Nessuna riga valida nel file: le colonne devono essere nome; persone; area; stato.", "err"); e.target.value = ""; return; }
+    /* ⛔ ANCHE QUANDO NON ENTRA NIENTE SI DICE PERCHÉ. È il caso in cui la
+       ragione serve di più — l'utente ha davanti un file che non funziona e
+       nessun indizio — ed era quello in cui la pagina diceva solo «le colonne
+       devono essere…», cioè una supposizione su una causa sola. */
+    if (!righe.length) { esito("squ-esito", "Nessuna squadra è entrata: le colonne devono essere nome; persone; area; stato." + frasePersi(scartate), "err"); e.target.value = ""; return; }
     let agg = 0, dup = 0;
     for (const r of righe) {
       if (SQU.some(q => (q.nome || "").trim().toLowerCase() === r.nome.toLowerCase())) { dup++; continue; }
@@ -4120,7 +4157,13 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
     // tre conteggi in una frase sola, e importare UNA squadra è il caso più
     // comune di tutti: «1 aggiunte» era il difetto qui. `conta` scrive numero
     // e parola insieme, e la parola la sceglie su Number(n) === 1.
-    esito("squ-esito", `Import squadre: ${conta(agg, "aggiunta", "aggiunte")}${dup ? `, ${conta(dup, "già presente (saltata)", "già presenti (saltate)")}` : ""}${ripetute ? `, ${conta(ripetute, "ripetuta nel file", "ripetute nel file")}` : ""}.`, agg ? "success" : "err");
+    esito("squ-esito", `Import squadre: ${conta(agg, "aggiunta", "aggiunte")}${dup ? `, ${conta(dup, "già presente (saltata)", "già presenti (saltate)")}` : ""}${ripetute ? `, ${conta(ripetute, "ripetuta nel file", "ripetute nel file")}` : ""}.`
+      + frasePersi(scartate),
+      /* ⛔ E IL COLORE SEGUE LA COSA PEGGIORE CHE È SUCCESSA: righe aggiunte
+         **e** righe perse è un avviso, non un successo. Un verde tranquillo
+         accanto a una frase che dice «tre righe non sono entrate» è la stessa
+         contraddizione fra il numero e il disegno già censita altrove. */
+      scartate.persi.length ? "warn" : agg ? "success" : "err");
     await refresh();
   };
   $("btn-squ-export").onclick = () => {

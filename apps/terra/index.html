@@ -988,7 +988,7 @@ a.dw-btn{text-decoration:none}
 
 
 <script type="module">
-  import { terraData, kpiFrom, fmtM3, volumeFronte, valoreMateriale, qualitaRilievo, riservaResidua, proiezioneAnnua, parseRilieviCsv, csvRilievi, rientroRilievi, parseFrontiCsv, trendVolumi, volumiPerMese, classeAccuratezza, bandaVolume, DENSITA_PRESET, presetDensita, densitaDelMateriale,
+  import { terraData, kpiFrom, fmtM3, volumeFronte, valoreMateriale, qualitaRilievo, riservaResidua, proiezioneAnnua, parseRilieviCsv, scartiRilieviCsv, csvRilievi, rientroRilievi, parseFrontiCsv, scartiFrontiCsv, trendVolumi, volumiPerMese, classeAccuratezza, bandaVolume, DENSITA_PRESET, presetDensita, densitaDelMateriale,
            autorizzazioneVigente, vitaCava, statoScadenzaTerra, livelloScadenzaTerra, prossimaData, riepilogoScadenze, TIPI_SCADENZA_TERRA, presetScadenzaTerra, etichettaTipoScadenza,
            provenienzaRilievo, soloScavo, soloCumulo, rilievoUsabile, PROVENIENZE, etichettaProvenienza,
            anniConVolumi, riepilogoAnnuale, ripartizioneFronti, ripartizioneBanchi, banchiDaSempre, serieAnnuale,
@@ -1124,6 +1124,32 @@ a.dw-btn{text-decoration:none}
        gialla c'era già in `shared/` e si chiama `.note.avviso`. */
     const el = $(id); if (el) { el.textContent = testo; el.className = "note esito" + (tipo === "err" ? " err" : tipo === "warn" ? " avviso" : ""); }
     if (testo) toast(testo, tipo);
+  };
+
+  /* ⛔ LE RIGHE CHE NON SONO ENTRATE SI DICONO, CON IL LORO PERCHÉ (13/08).
+     Il `.filter` che scarta una riga sta DENTRO il lettore, che restituisce
+     solo i sopravvissuti: fino a oggi questa pagina non poteva dirlo nemmeno
+     volendo — riceveva un elenco più corto e basta. Chi importava 200 righe e
+     ne vedeva 180 non aveva modo di sapere quali venti mancassero né perché:
+     è l'assenza di un dato nella sua forma più tranquilla, cioè il principio
+     del fondatore applicato all'INGRESSO invece che all'uscita.
+     Adesso il modulo risponde anche `scarti<X>Csv`, con `{ lette, entrano,
+     persi: [{ nome, ragione }] }` — la stessa forma di `rientroRilievi` di
+     Terra, che fa la stessa domanda nell'altro verso.
+     ⚠️ TRE NOMI E POI IL CONTO: un elenco di venti nomi dentro un toast non
+     lo legge nessuno, e un messaggio che non si legge è come non averlo.
+     ⚠️ NIENTE `esc()`: `esito` e `toast` scrivono con `textContent`, quindi
+     scappare qui farebbe comparire «&amp;» sullo schermo.
+     ⚠️ E le righe di coda che un foglio di calcolo salva come `;;;` NON
+     entrano in questo conto: le toglie il modulo (`vuote`), perché accusare
+     l'utente di un difetto del suo Excel è il falso allarme che insegna a
+     non guardare i messaggi. */
+  const frasePersi = (s) => {
+    const p = (s && s.persi) || [];
+    if (!p.length) return "";
+    return " " + conta(p.length, "riga del file non è entrata", "righe del file non sono entrate")
+      + ": " + p.slice(0, 3).map(x => "«" + x.nome + "» perché " + x.ragione).join("; ")
+      + (p.length > 3 ? "; e altre " + (p.length - 3) : "") + ".";
   };
   // ── Errori di campo: bordo rosso, fuoco automatico, messaggio utile ───
   const err = (id, on) => { const el = $(id); if (el) el.classList.toggle("err", !!on); };
@@ -4318,7 +4344,9 @@ a.dw-btn{text-decoration:none}
   $("btn-fro-import").onclick = () => $("fro-file").click();
   $("fro-file").onchange = async (e) => {
     const file = e.target.files && e.target.files[0]; if (!file) return;
-    const lette = parseFrontiCsv(await file.text());
+    const testoFro = await file.text();
+    const lette = parseFrontiCsv(testoFro);
+    const scartate = scartiFrontiCsv(testoFro);
     /* Il doppione si cerca in DUE posti, e sono due domande diverse: qui
        dentro il file appena letto (regola condivisa, shared/dw-shell.js), e
        sotto contro quello che è GIÀ in archivio — che solo la pagina conosce.
@@ -4327,7 +4355,10 @@ a.dw-btn{text-decoration:none}
        entravano tutte. */
     const righe = senzaDoppioni(lette, x => x.nome);
     const ripetute = lette.length - righe.length;
-    if (!righe.length) { esito("fro-esito", "Nessuna riga valida nel file: controlla che le colonne siano nome; banco; quota; stato.", "err"); e.target.value = ""; return; }
+    /* ⛔ ANCHE QUANDO NON ENTRA NIENTE SI DICE PERCHÉ: è il caso in cui la
+       ragione serve di più, e la pagina rispondeva con una supposizione su
+       una causa sola («controlla le colonne»). */
+    if (!righe.length) { esito("fro-esito", "Nessun fronte è entrato: controlla che le colonne siano nome; banco; quota; stato." + frasePersi(scartate), "err"); e.target.value = ""; return; }
     let agg = 0, dup = 0;
     for (const r of righe) {
       if (FRO.some(f => f.nome.trim().toLowerCase() === r.nome.toLowerCase())) { dup++; continue; }
@@ -4341,7 +4372,11 @@ a.dw-btn{text-decoration:none}
        l'import — cioè quando importa una riga per vedere se funziona. */
     esito("fro-esito", `Import fronti: ${agg} ${plurale(agg, "aggiunto", "aggiunti")}`
       + (dup ? `, ${dup} ${plurale(dup, "già presente (saltato)", "già presenti (saltati)")}` : "")
-      + (ripetute ? `, ${ripetute} ${plurale(ripetute, "ripetuto", "ripetuti")} nel file` : "") + ".");
+      + (ripetute ? `, ${ripetute} ${plurale(ripetute, "ripetuto", "ripetuti")} nel file` : "") + "."
+      + frasePersi(scartate),
+      /* il colore segue la cosa peggiore successa: righe aggiunte E righe
+         perse è un avviso, non un successo */
+      scartate.persi.length ? "warn" : undefined);
     await refresh();
   };
   $("btn-add-ril").onclick = async () => {
@@ -4531,8 +4566,10 @@ a.dw-btn{text-decoration:none}
   };
   $("ril-file").onchange = async (e) => {
     const file = e.target.files && e.target.files[0]; if (!file) return;
-    const righe = parseRilieviCsv(await file.text());
-    if (!righe.length) { esito("ril-esito", "Nessuna riga valida nel file: controlla che le colonne siano data; volumeM3; metodo; gsd; fronte.", "err"); e.target.value = ""; return; }
+    const testoRil = await file.text();
+    const righe = parseRilieviCsv(testoRil);
+    const scartate = scartiRilieviCsv(testoRil);
+    if (!righe.length) { esito("ril-esito", "Nessun rilievo è entrato: controlla che le colonne siano data; volumeM3; metodo; gsd; fronte." + frasePersi(scartate), "err"); e.target.value = ""; return; }
     // Dedup come gli altri import: un doppio click su "Importa" non deve
     // raddoppiare i rilievi. Firma = data|fronteId|volumeM3 (un rilievo dello
     // stesso giorno, fronte e volume è lo stesso dato re-importato).
@@ -4563,7 +4600,9 @@ a.dw-btn{text-decoration:none}
       + (cum ? `, di cui ${cum} ${plurale(cum, "ripreso da cumulo", "ripresi da cumuli")}` : "")
       + (dup ? `, ${dup} ${plurale(dup, "già presente (saltato)", "già presenti (saltati)")}` : "")
       + (senzaFronte ? " (" + senzaFronte + " con un fronte non riconosciuto: "
-          + plurale(senzaFronte, "resta non assegnato", "restano non assegnati") + ")" : "") + ".");
+          + plurale(senzaFronte, "resta non assegnato", "restano non assegnati") + ")" : "") + "."
+      + frasePersi(scartate),
+      scartate.persi.length ? "warn" : undefined);
     await refresh();
   };
   // Recupero errore: appena l'utente corregge un campo, togli il bordo

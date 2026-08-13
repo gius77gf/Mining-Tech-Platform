@@ -101,13 +101,22 @@ const DIFETTI = [
   ['+ preav + " " + plurale(preav, "giorno", "giorni")', '+ preav + " giorni"'],
   ['(ric === 1 ? ", si ripete ogni mese" : ", si ripete ogni " + ric + " mesi")', '", si ripete ogni " + ric + " mesi"'],
   // 3 · i tre plurali dell'import dei fronti
-  ['`Import fronti: ${agg} ${plurale(agg, "aggiunto", "aggiunti")}`\n      + (dup ? `, ${dup} ${plurale(dup, "già presente (saltato)", "già presenti (saltati)")}` : "")\n      + (ripetute ? `, ${ripetute} ${plurale(ripetute, "ripetuto", "ripetuti")} nel file` : "") + ".");',
-   '`Import fronti: ${agg} aggiunti${dup ? `, ${dup} già presenti (saltati)` : ""}${ripetute ? `, ${ripetute} ripetuti nel file` : ""}.`);'],
+  /* ⚠️ SCADUTA E RIMESSA SUL BERSAGLIO IL 13/08: questa riga citava il codice
+     fino al `+ ".");` finale, e il gestore ha guadagnato in coda
+     `+ frasePersi(scartate)` — la frase che dice quali righe del file NON sono
+     entrate. L'iniezione ha smesso di combaciare e la controprova girava su un
+     prodotto SANO, senza che niente diventasse rosso. È l'origine buona di
+     sempre: il codice si è mosso perché è migliorato. Adesso cita solo la
+     parte che le serve — i tre plurali — e non la coda. */
+  ['`Import fronti: ${agg} ${plurale(agg, "aggiunto", "aggiunti")}`\n      + (dup ? `, ${dup} ${plurale(dup, "già presente (saltato)", "già presenti (saltati)")}` : "")\n      + (ripetute ? `, ${ripetute} ${plurale(ripetute, "ripetuto", "ripetuti")} nel file` : "")',
+   '`Import fronti: ${agg} aggiunti${dup ? `, ${dup} già presenti (saltati)` : ""}${ripetute ? `, ${ripetute} ripetuti nel file` : ""}`'],
   // 4 · l'import dei rilievi
   ['`Import rilievi: ${agg} ${plurale(agg, "rilievo elaborato aggiunto", "rilievi elaborati aggiunti")}`',
    '`Import rilievi: ${agg} rilievi elaborati aggiunti`'],
-  ['+ (senzaFronte ? " (" + senzaFronte + " con un fronte non riconosciuto: "\n          + plurale(senzaFronte, "resta non assegnato", "restano non assegnati") + ")" : "") + ".");',
-   '+ (senzaFronte ? " (" + senzaFronte + " con un fronte non riconosciuto: restano non assegnati)" : "") + ".");'],
+  /* ⚠️ scaduta e rimessa sul bersaglio il 13/08, stessa ragione della riga
+     qui sopra: citava fino al `+ ".");` e il gestore ha guadagnato la coda. */
+  ['+ (senzaFronte ? " (" + senzaFronte + " con un fronte non riconosciuto: "\n          + plurale(senzaFronte, "resta non assegnato", "restano non assegnati") + ")" : "")',
+   '+ (senzaFronte ? " (" + senzaFronte + " con un fronte non riconosciuto: restano non assegnati)" : "")'],
   // 5 · l'export
   ['"Esportato il CSV: " + FRO.length + " " + plurale(FRO.length, "fronte", "fronti")\n      + " e " + RIL.length + " " + plurale(RIL.length, "rilievo", "rilievi") + ".");',
    '"Esportati " + FRO.length + " fronti e " + RIL.length + " rilievi (CSV).");'],

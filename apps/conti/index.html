@@ -1793,9 +1793,9 @@ label.item:has(.dw-chk:checked){
   /* l'estratto conto della banca: il file si legge e si abbina nel modulo dati,
      qui si disegna e si chiede conferma — `round2` è già importato più sotto */
   import { parseMovimentiCsv, abbinaMovimenti, ESTRATTO_ESEMPIO,
-           contiData, giorni, kpiFrom, statoScadenzaFattura, agingIncassi, stileBarraPeso, gareRiepilogo, prioritaIncasso, incassoAtteso, incassoPerMese, esposizioneClienti, estrattoContoCliente, livelloSollecito, interessiMora, testoSollecito, TASSO_MORA_DEFAULT, statoTassoMora, parseFattureCsv, parseGareCsv, parseListinoCsv, csvListino, csvGare, chiaveNome, clienteDiFattura, nomeCliente, clientiDaCollegare,
+           contiData, giorni, kpiFrom, statoScadenzaFattura, agingIncassi, stileBarraPeso, gareRiepilogo, prioritaIncasso, incassoAtteso, incassoPerMese, esposizioneClienti, estrattoContoCliente, livelloSollecito, interessiMora, testoSollecito, TASSO_MORA_DEFAULT, statoTassoMora, parseFattureCsv, scartiFattureCsv, parseGareCsv, parseListinoCsv, scartiListinoCsv, csvListino, csvGare, chiaveNome, clienteDiFattura, nomeCliente, clientiDaCollegare,
     round2, baseGara, densitaValida, prezzoPerTonnellata, prezzoPerMetroCubo, convertiQuantita, imponibileRiga,
-    importiFattura, totaliDaRighe, riepilogoIvaFattura, prossimoNumero, nettoPesata, rigaPesata, valorePesata, valoreDdt, csvPesate, parsePesateCsv, csvIncassi, parseIncassiCsv, csvClienti, parseClientiCsv, numeroDichiarato,
+    importiFattura, totaliDaRighe, riepilogoIvaFattura, prossimoNumero, nettoPesata, rigaPesata, valorePesata, valoreDdt, csvPesate, parsePesateCsv, scartiPesateCsv, csvIncassi, parseIncassiCsv, scartiIncassiCsv, csvClienti, parseClientiCsv, numeroDichiarato,
     quantitaPesata, pesateDaFatturare, fatturaDaPesate, canonePeriodo, BASI_CANONE, venditePerProdotto,
     cavatoPeriodo, vendutoPeriodo, riconciliazione, valoreCavato, SOGLIA_DIVARIO,
     applicaIncassi, apertoDi, statoIncasso, movimentiDiFattura, incassatoPeriodo,
@@ -1996,6 +1996,32 @@ label.item:has(.dw-chk:checked){
   // Esito accanto al form + toast: il messaggio resta, l'annuncio passa
   const esito = (id, testo, tipo) => { const n = $(id); if (n) n.textContent = testo || "";
     if (testo) toast(testo, tipo); };
+
+  /* ⛔ LE RIGHE CHE NON SONO ENTRATE SI DICONO, CON IL LORO PERCHÉ (13/08).
+     Il `.filter` che scarta una riga sta DENTRO il lettore, che restituisce
+     solo i sopravvissuti: fino a oggi questa pagina non poteva dirlo nemmeno
+     volendo — riceveva un elenco più corto e basta. Chi importava 200 righe e
+     ne vedeva 180 non aveva modo di sapere quali venti mancassero né perché:
+     è l'assenza di un dato nella sua forma più tranquilla, cioè il principio
+     del fondatore applicato all'INGRESSO invece che all'uscita.
+     Adesso il modulo risponde anche `scarti<X>Csv`, con `{ lette, entrano,
+     persi: [{ nome, ragione }] }` — la stessa forma di `rientroRilievi` di
+     Terra, che fa la stessa domanda nell'altro verso.
+     ⚠️ TRE NOMI E POI IL CONTO: un elenco di venti nomi dentro un toast non
+     lo legge nessuno, e un messaggio che non si legge è come non averlo.
+     ⚠️ NIENTE `esc()`: `esito` e `toast` scrivono con `textContent`, quindi
+     scappare qui farebbe comparire «&amp;» sullo schermo.
+     ⚠️ E le righe di coda che un foglio di calcolo salva come `;;;` NON
+     entrano in questo conto: le toglie il modulo (`vuote`), perché accusare
+     l'utente di un difetto del suo Excel è il falso allarme che insegna a
+     non guardare i messaggi. */
+  const frasePersi = (s) => {
+    const p = (s && s.persi) || [];
+    if (!p.length) return "";
+    return " " + conta(p.length, "riga del file non è entrata", "righe del file non sono entrate")
+      + ": " + p.slice(0, 3).map(x => "«" + x.nome + "» perché " + x.ragione).join("; ")
+      + (p.length > 3 ? "; e altre " + (p.length - 3) : "") + ".";
+  };
 
   const db = await contiData();
   /* ⛔ DECISIONE 5a (07/08, presa dal ciclo): se un salvataggio non riesce,
@@ -5758,10 +5784,15 @@ label.item:has(.dw-chk:checked){
   $("btn-inc-restore").onclick = () => $("inc-file").click();
   $("inc-file").onchange = async (e) => {
     const file = e.target.files && e.target.files[0]; if (!file) return;
-    const righe = parseIncassiCsv(await file.text());
+    const testoInc = await file.text();
+    const righe = parseIncassiCsv(testoInc);
+    /* ⛔ ANCHE QUESTO È UN RIPRISTINO, e sono SOLDI ARRIVATI: una riga persa
+       qui non è un dettaglio d'archivio, è una fattura che resta scoperta e un
+       sollecito che parte a chi ha già pagato. */
+    const scartate = scartiIncassiCsv(testoInc);
     e.target.value = "";
     if (!righe.length) {
-      esito("rep-esito", "Nel file non c'è nessun incasso leggibile: controlla che sia la copia di sicurezza e non il prospetto (le colonne sono diverse).", "err");
+      esito("rep-esito", "Nel file non c'è nessun incasso leggibile: controlla che sia la copia di sicurezza e non il prospetto (le colonne sono diverse)." + frasePersi(scartate), "err");
       return;
     }
     /* non si sovrascrive: si aggiunge quello che non c'è già, per fattura,
@@ -5773,10 +5804,12 @@ label.item:has(.dw-chk:checked){
     const nuovi = righe.filter(r => !gia.has([r.fatturaId || "", r.data || "", String(r.importo)].join("|")));
     for (const r of nuovi) await db.aggiungi("incassi", r);
     await refresh();
-    esito("rep-esito", nuovi.length
+    esito("rep-esito", (nuovi.length
       ? plurale(nuovi.length, "Rimesso dentro ", "Rimessi dentro ") + plur(nuovi.length, "incasso", "incassi")
         + (righe.length > nuovi.length ? ` · ${conta(righe.length - nuovi.length, "era già in archivio", "erano già in archivio")}, non duplicati.` : ".")
-      : "Erano tutti già in archivio: non è stato aggiunto niente.", nuovi.length ? "success" : "");
+      : "Erano tutti già in archivio: non è stato aggiunto niente.")
+      + frasePersi(scartate),
+      scartate.persi.length ? "warn" : nuovi.length ? "success" : "");
   };
   $("btn-inc-export").onclick = () => {
     const righe = INC.map(m => ({ m, f: FAT.find(x => x.id === m.fatturaId) }))
@@ -6280,10 +6313,16 @@ label.item:has(.dw-chk:checked){
   $("btn-pes-restore").onclick = () => $("pes-file").click();
   $("pes-file").onchange = async (e) => {
     const file = e.target.files && e.target.files[0]; if (!file) return;
-    const righe = parsePesateCsv(await file.text());
+    const testoPes = await file.text();
+    const righe = parsePesateCsv(testoPes);
+    /* ⛔ QUESTO È UN RIPRISTINO: una riga persa qui è un DDT che sparisce
+       dall'archivio, e chi preme questo bottone sta già rimediando a
+       qualcosa. Il messaggio diceva soltanto «Rimesse dentro N pesate»: un
+       ripristino monco si legge esattamente come uno riuscito. */
+    const scartate = scartiPesateCsv(testoPes);
     e.target.value = "";
     if (!righe.length) {
-      esito("pes-esito", "Nel file non c'è nessuna pesata leggibile: controlla che sia la copia di sicurezza e non il prospetto (le colonne sono diverse).", "err");
+      esito("pes-esito", "Nel file non c'è nessuna pesata leggibile: controlla che sia la copia di sicurezza e non il prospetto (le colonne sono diverse)." + frasePersi(scartate), "err");
       return;
     }
     /* ⛔ non si sovrascrive niente: si aggiunge quello che NON c'è già, per
@@ -6293,10 +6332,12 @@ label.item:has(.dw-chk:checked){
     const nuove = righe.filter(r => !gia.has((r.numero || "") + "|" + (r.data || "")));
     for (const r of nuove) await db.aggiungi("pesate", r);
     await refresh();
-    esito("pes-esito", nuove.length
+    esito("pes-esito", (nuove.length
       ? plurale(nuove.length, "Rimessa dentro ", "Rimesse dentro ") + plur(nuove.length, "pesata", "pesate")
         + (righe.length > nuove.length ? ` · ${conta(righe.length - nuove.length, "era già in archivio", "erano già in archivio")}, non duplicate.` : ".")
-      : "Erano tutte già in archivio: non è stato aggiunto niente.", nuove.length ? "success" : "");
+      : "Erano tutte già in archivio: non è stato aggiunto niente.")
+      + frasePersi(scartate),
+      scartate.persi.length ? "warn" : nuove.length ? "success" : "");
   };
   $("btn-pes-export").onclick = () => {
     /* ⛔ la PROVENIENZA del prezzo esce anche nel CSV, e vuota quando non si
@@ -6739,13 +6780,21 @@ label.item:has(.dw-chk:checked){
   $("lis-file").onchange = async (e) => {
     const file = e.target.files && e.target.files[0]; if (!file) return;
     const testoLis = await file.text();
-    /* Quante righe di dati aveva il file, per poter dire quante ne sono
-       CADUTE: dal 31/07 una riga senza prezzo leggibile non entra (è la difesa
-       contro il file sbagliato), e chi carica deve sapere quante ne mancano —
-       altrimenti conta i prodotti in lista e non torna, senza capire perché. */
-    const grezze = testoLis.split(/\r?\n/).map(x => x.trim()).filter(Boolean)
-      .filter(x => !/^nome\s*[;,\t]/i.test(x)).length;
+    /* ⛔ QUI LA PAGINA SI CONTAVA LE RIGHE CADUTE DA SÉ, e sbagliava in due
+       modi che si vedono solo mettendoli accanto:
+         · ricontava le righe grezze con una regex sua, `/^nome\s*[;,\t]/i`,
+           cioè una SECONDA COPIA di `isIntestazione` — che oggi combacia per
+           caso e domani no. È la copia debole nel posto in cui questa casa
+           l'ha già trovata quattro volte: dove il messaggio si compone;
+         · e attribuiva a TUTTE le righe cadute la stessa ragione, «non
+           avevano un prezzo leggibile». Ma una riga cade anche quando manca
+           il NOME, e allora la frase è FALSA: manda a cercare un prezzo dov'è
+           il nome a mancare. Un numero giusto con una ragione sbagliata costa
+           più di nessuna ragione, perché chi legge ci crede.
+       Adesso il conto e le ragioni li dà `scartiListinoCsv`, che il verdetto
+       lo chiede al lettore invece di riscriverlo. */
     const lette = parseListinoCsv(testoLis);
+    const scartate = scartiListinoCsv(testoLis);
     /* Il doppione si cerca in DUE posti, e sono due domande diverse: qui
        dentro il file appena letto (regola condivisa, shared/dw-shell.js), e
        sotto contro quello che è GIÀ in archivio — che solo la pagina conosce.
@@ -6754,8 +6803,7 @@ label.item:has(.dw-chk:checked){
        entravano tutte. */
     const righe = senzaDoppioni(lette, x => x.nome);
     const ripetute = lette.length - righe.length;
-    const senzaPrezzo = Math.max(0, grezze - lette.length);
-    if (!righe.length) { esito("lis-esito", "Nessuna riga valida: controlla che le colonne siano nome;unita;prezzo;densita;iva. Se stai caricando il file «prezzi convertiti», non è quello giusto: per ri-caricare il listino serve quello di Esporta CSV qui accanto.", "err"); e.target.value = ""; return; }
+    if (!righe.length) { esito("lis-esito", "Nessun prodotto è entrato: controlla che le colonne siano nome;unita;prezzo;densita;iva. Se stai caricando il file «prezzi convertiti», non è quello giusto: per ri-caricare il listino serve quello di Esporta CSV qui accanto." + frasePersi(scartate), "err"); e.target.value = ""; return; }
     let agg = 0, dup = 0, senzaDensita = 0;
     for (const r of righe) {
       if (PRO.some(p => (p.nome || "").trim().toLowerCase() === r.nome.toLowerCase())) { dup++; continue; }
@@ -6776,9 +6824,10 @@ label.item:has(.dw-chk:checked){
          Tre plurali fissi in testa e una concordanza rotta in fondo («per
          quelli» dopo «un prodotto»). Misurato caricando un CSV di tre righe. */
       `Import listino: ${plur(agg, "prodotto aggiunto", "prodotti aggiunti")}${dup ? `, ${plur(dup, "già presente (saltato)", "già presenti (saltati)")}` : ""}${ripetute ? `, ${plur(ripetute, "ripetuto nel file", "ripetuti nel file")}` : ""}.`
-      + (senzaPrezzo ? ` ${plur(senzaPrezzo, "riga non \u00e8 entrata perch\u00e9 non aveva", "righe non sono entrate perch\u00e9 non avevano")} un prezzo leggibile nella sua colonna: un prodotto senza prezzo non si pu\u00f2 vendere, e uno zero messo da me lo farebbe sembrare gratis.` : "")
+      + frasePersi(scartate)
+      + (scartate.persi.length ? " Un prodotto senza prezzo non si pu\u00f2 vendere, e uno zero messo da me lo farebbe sembrare gratis." : "")
       + (senzaDensita ? ` ${plur(senzaDensita, "prodotto \u00e8", "prodotti sono")} senza densit\u00e0: per ${senzaDensita === 1 ? "quello" : "quelli"} non posso convertire fra metri cubi e tonnellate finch\u00e9 non la aggiungi.` : ""),
-      agg ? "success" : "err");
+      scartate.persi.length ? "warn" : agg ? "success" : "err");
     await refresh();
   };
   $("btn-lis-export").onclick = () => {
@@ -6913,7 +6962,9 @@ label.item:has(.dw-chk:checked){
   $("btn-imp-fat").onclick = () => $("fat-file").click();
   $("fat-file").onchange = async (e) => {
     const file = e.target.files && e.target.files[0]; if (!file) return;
-    const lette = parseFattureCsv(await file.text());
+    const testoFat = await file.text();
+    const lette = parseFattureCsv(testoFat);
+    const scartate = scartiFattureCsv(testoFat);
     /* Il doppione si cerca in DUE posti, e sono due domande diverse: qui
        dentro il file appena letto (regola condivisa, shared/dw-shell.js), e
        sotto contro quello che è GIÀ in archivio — che solo la pagina conosce.
@@ -6922,7 +6973,10 @@ label.item:has(.dw-chk:checked){
        entravano tutte. */
     const righe = senzaDoppioni(lette, x => x.numero);
     const ripetute = lette.length - righe.length;
-    if (!righe.length) { esito("ft-esito", "Nessuna riga valida: controlla che le colonne siano numero;cliente;importo;emessa;scadenza.", "err"); e.target.value = ""; return; }
+    /* ⛔ ANCHE QUANDO NON ENTRA NIENTE SI DICE PERCHÉ: è il caso in cui la
+       ragione serve di più, e la pagina rispondeva con una supposizione su
+       una causa sola («controlla le colonne»). */
+    if (!righe.length) { esito("ft-esito", "Nessuna fattura è entrata: controlla che le colonne siano numero;cliente;importo;emessa;scadenza." + frasePersi(scartate), "err"); e.target.value = ""; return; }
     let add = 0, dup = 0;
     for (const f of righe) {
       if (FAT.some(x => x.numero === f.numero)) { dup++; continue; }
@@ -6940,7 +6994,13 @@ label.item:has(.dw-chk:checked){
     $("fat-file").value = "";
     esito("ft-esito", "Import fatture: " + plur(add, "fattura aggiunta", "fatture aggiunte")
       + (dup ? ", " + plur(dup, "gi\u00e0 presente (numero duplicato)", "gi\u00e0 presenti (numero duplicato)") : "")
-      + (ripetute ? ", " + plur(ripetute, "fattura con lo stesso numero ripetuto nel file", "fatture con lo stesso numero ripetuto nel file") : "") + ".", add ? "success" : "err");
+      + (ripetute ? ", " + plur(ripetute, "fattura con lo stesso numero ripetuto nel file", "fatture con lo stesso numero ripetuto nel file") : "") + "."
+      + frasePersi(scartate),
+      /* ⛔ IL COLORE SEGUE LA COSA PEGGIORE SUCCESSA: una riga persa è un
+         CREDITO che non entra nell'aging, nei solleciti e nell'esposizione
+         del cliente. Un verde tranquillo accanto a quella frase è la
+         contraddizione fra il numero e il disegno. */
+      scartate.persi.length ? "warn" : add ? "success" : "err");
     await refresh();
   };
   // Recupero errore: appena l'utente corregge un campo, togli il bordo

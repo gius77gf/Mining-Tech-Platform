@@ -1262,7 +1262,7 @@ body.dw b.bad{color:var(--ink-dg)}
 
 
 <script type="module">
-  import { flottaData, urgenza, urgenzaOre, kpiFrom, previsioneGiorni, disponibilitaFlotta, sottoScorta, statoScorta, scaricoGiacenza, parseTelemetriaCsv, parseMezziCsv, parseRicambiCsv, csvRicambi, ripartizioneCosti, costoOfficinaPerMezzo, costoOrarioMezzo, prioritaOperative,
+  import { flottaData, urgenza, urgenzaOre, kpiFrom, previsioneGiorni, disponibilitaFlotta, sottoScorta, statoScorta, scaricoGiacenza, parseTelemetriaCsv, scartiTelemetriaCsv, parseMezziCsv, scartiMezziCsv, parseRicambiCsv, csvRicambi, ripartizioneCosti, costoOfficinaPerMezzo, costoOrarioMezzo, prioritaOperative,
            costiPerMese, disponibilitaStorico, fotografiaDaRegistrare, pagellaMezzi, BANDA_PAGELLA,
            SCADENZE_MEZZO_PRESET, presetScadenzaMezzo, statoScadenzaMezzo, scadenzeOrdinate, contaScadenzeMezzi, validaScadenzaMezzo, aggiungiMesi,
            nomeBreve, TIPI_MEZZO, tipoMezzo, tipoMezzoDi, checklistPreUso, riepilogoControllo,
@@ -1439,8 +1439,39 @@ body.dw b.bad{color:var(--ink-dg)}
 
   // ── Messaggi: toast del core + traccia scritta accanto al form ────────
   const esito = (id, testo, tipo) => {
-    const el = $(id); if (el) { el.textContent = testo; el.className = "note esito" + (tipo === "err" ? " err" : ""); }
+    /* ⛔ «warn» NON è «success» e non è «err» — regola 18 di `run-stile`: una
+       mappa copra tutti gli stati che chi la chiama sa dire. Con due voci su
+       tre un avviso ricadeva sul neutro, cioè si leggeva come «non è successo
+       niente» proprio dove la frase dice che delle righe non sono entrate. La
+       barra gialla c'è già in `shared/` e si chiama `.note.avviso`. */
+    const el = $(id); if (el) { el.textContent = testo; el.className = "note esito" + (tipo === "err" ? " err" : tipo === "warn" ? " avviso" : ""); }
     if (testo) toast(testo, tipo);
+  };
+
+  /* ⛔ LE RIGHE CHE NON SONO ENTRATE SI DICONO, CON IL LORO PERCHÉ (13/08).
+     Il `.filter` che scarta una riga sta DENTRO il lettore, che restituisce
+     solo i sopravvissuti: fino a oggi questa pagina non poteva dirlo nemmeno
+     volendo — riceveva un elenco più corto e basta. Chi importava 200 righe e
+     ne vedeva 180 non aveva modo di sapere quali venti mancassero né perché:
+     è l'assenza di un dato nella sua forma più tranquilla, cioè il principio
+     del fondatore applicato all'INGRESSO invece che all'uscita.
+     Adesso il modulo risponde anche `scarti<X>Csv`, con `{ lette, entrano,
+     persi: [{ nome, ragione }] }` — la stessa forma di `rientroRilievi` di
+     Terra, che fa la stessa domanda nell'altro verso.
+     ⚠️ TRE NOMI E POI IL CONTO: un elenco di venti nomi dentro un toast non
+     lo legge nessuno, e un messaggio che non si legge è come non averlo.
+     ⚠️ NIENTE `esc()`: `esito` e `toast` scrivono con `textContent`, quindi
+     scappare qui farebbe comparire «&amp;» sullo schermo.
+     ⚠️ E le righe di coda che un foglio di calcolo salva come `;;;` NON
+     entrano in questo conto: le toglie il modulo (`vuote`), perché accusare
+     l'utente di un difetto del suo Excel è il falso allarme che insegna a
+     non guardare i messaggi. */
+  const frasePersi = (s) => {
+    const p = (s && s.persi) || [];
+    if (!p.length) return "";
+    return " " + conta(p.length, "riga del file non è entrata", "righe del file non sono entrate")
+      + ": " + p.slice(0, 3).map(x => "«" + x.nome + "» perché " + x.ragione).join("; ")
+      + (p.length > 3 ? "; e altre " + (p.length - 3) : "") + ".";
   };
   // ── Errori di campo: bordo rosso + fuoco sul campo sbagliato ──────────
   const err = (id, on) => { const el = $(id); if (el) el.classList.toggle("err", !!on); };
@@ -4133,7 +4164,9 @@ body.dw b.bad{color:var(--ink-dg)}
   };
   $("mez-file").onchange = async (e) => {
     const file = e.target.files && e.target.files[0]; if (!file) return;
-    const lette = parseMezziCsv(await file.text());
+    const testoMez = await file.text();
+    const lette = parseMezziCsv(testoMez);
+    const scartate = scartiMezziCsv(testoMez);
     /* Il doppione si cerca in DUE posti, e sono due domande diverse: qui
        dentro il file appena letto (regola condivisa, shared/dw-shell.js), e
        sotto contro quello che è GIÀ in archivio — che solo la pagina conosce.
@@ -4142,7 +4175,7 @@ body.dw b.bad{color:var(--ink-dg)}
        entravano tutte. */
     const righe = senzaDoppioni(lette, x => x.nome);
     const ripetute = lette.length - righe.length;
-    if (!righe.length) { esito("ore-esito", "Nessuna riga valida nel file: le colonne devono essere nome;area;ore;stato, una riga per mezzo.", "err"); e.target.value = ""; return; }
+    if (!righe.length) { esito("ore-esito", "Nessun mezzo è entrato: le colonne devono essere nome;area;ore;stato, una riga per mezzo." + frasePersi(scartate), "err"); e.target.value = ""; return; }
     let agg = 0, dup = 0;
     for (const r of righe) {
       if (MEZ.some(m => m.nome.trim().toLowerCase() === r.nome.toLowerCase())) { dup++; continue; }  // già presente
@@ -4150,7 +4183,9 @@ body.dw b.bad{color:var(--ink-dg)}
       agg++;
     }
     $("mez-file").value = "";
-    esito("ore-esito", `Import parco: ${conta(agg, "mezzo aggiunto", "mezzi aggiunti")}${dup ? `, ${conta(dup, "già presente (saltato)", "già presenti (saltati)")}` : ""}${ripetute ? `, ${conta(ripetute, "ripetuto nel file", "ripetuti nel file")}` : ""}.`, agg ? "success" : "err");
+    esito("ore-esito", `Import parco: ${conta(agg, "mezzo aggiunto", "mezzi aggiunti")}${dup ? `, ${conta(dup, "già presente (saltato)", "già presenti (saltati)")}` : ""}${ripetute ? `, ${conta(ripetute, "ripetuto nel file", "ripetuti nel file")}` : ""}.`
+      + frasePersi(scartate),
+      scartate.persi.length ? "warn" : agg ? "success" : "err");
     await refresh();
   };
   $("btn-tele").onclick = () => $("tele-file").click();
@@ -4158,6 +4193,11 @@ body.dw b.bad{color:var(--ink-dg)}
     const file = e.target.files && e.target.files[0]; if (!file) return;
     const testo = await file.text();
     const righe = parseTelemetriaCsv(testo);
+    /* ⛔ IL CONTO DELLE «RIGHE IGNORATE» QUI SOTTO GUARDA SOLO I
+       SOPRAVVISSUTI AL LETTORE: una riga con le ore illeggibili spariva
+       PRIMA di essere contata, quindi il conto più onesto della pagina era
+       quello che nascondeva di più. */
+    const scartate = scartiTelemetriaCsv(testo);
     let agg = 0, ign = 0;
     for (const r of righe) {
       const m = MEZ.find(x => x.nome.split(" — ")[0].toLowerCase() === r.mezzo.toLowerCase() || x.nome.toLowerCase() === r.mezzo.toLowerCase());
@@ -4166,7 +4206,9 @@ body.dw b.bad{color:var(--ink-dg)}
     }
     $("tele-file").value = "";
     esito("ore-esito", "Telemetria importata: " + agg + (agg === 1 ? " mezzo aggiornato" : " mezzi aggiornati")
-      + (ign ? ", " + ign + (ign === 1 ? " riga ignorata" : " righe ignorate") + " (mezzo non trovato, o ore più basse di quelle già registrate)" : "") + ".", agg ? "success" : "err");
+      + (ign ? ", " + ign + (ign === 1 ? " riga ignorata" : " righe ignorate") + " (mezzo non trovato, o ore più basse di quelle già registrate)" : "") + "."
+      + frasePersi(scartate),
+      scartate.persi.length ? "warn" : agg ? "success" : "err");
     await refresh();
   };
   // Esporta la situazione della flotta (mezzi, manutenzioni pianificate,

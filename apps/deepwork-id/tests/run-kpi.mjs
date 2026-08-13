@@ -29154,5 +29154,242 @@ test("⛔ Conti · venditePerProdotto: l'eccedenza si CONTA, perché il contenim
     ok(chiamate >= 3, `⛔ ed è chiamata in ${chiamate} punti: il cambio a mano delle date e i due periodi pronti`);
   });
 }
+
+const { senzaCommenti: senzaCommentiIng } = await import("./tokenizza.mjs");
+const pagIng = (a) => senzaCommentiIng(readFileSync(join(HERE, `../../${a}/index.html`), "utf8"));
+const srcCampoPag = pagIng("campo"), srcContiPag = pagIng("conti");
+const srcFlottaPag = pagIng("flotta"), srcTerraPag = pagIng("terra");
+
+/* ⛔ «QUANDO A UNA RIGA DEL CSV MANCA UN NUMERO, CHE COSA SUCCEDE A QUELLA
+   RIGA?» — IL LETTORE LA CANCELLA, E NESSUNO LO DICEVA.
+   ══════════════════════════════════════════════════════════════════════════
+   Il rovescio della passata sui file che ESCONO: qui si guardano quelli che
+   ENTRANO. Il `.filter` che scarta una riga sta DENTRO il lettore, che
+   restituisce solo i sopravvissuti — quindi la pagina non poteva dirlo nemmeno
+   volendo. Chi importava 200 righe e ne vedeva 180 non aveva modo di sapere
+   quali venti mancassero né perché: è l'assenza di un dato nella sua forma più
+   tranquilla, cioè il principio del fondatore applicato all'INGRESSO.
+   Misura del 13/08, nove lettori, un CSV di prova per ognuno con una riga per
+   ogni modo di sbagliare (righe SCRITTE → righe ENTRATE):
+     · campo.parseSquadreCsv     4 → 3      · conti.parseFattureCsv    6 → 1
+     · conti.parseListinoCsv     4 → 1      · conti.parsePesateCsv     4 → 2
+     · conti.parseIncassiCsv     5 → 1      · flotta.parseTelemetriaCsv 5 → 1
+     · flotta.parseMezziCsv      4 → 3      · terra.parseFrontiCsv     4 → 3
+     · terra.parseRilieviCsv     6 → 1
+   Nove su nove perdevano righe in silenzio; uno solo (il listino) aveva un
+   CONTO, e con una ragione che poteva essere falsa.
+   ⛔ E QUELLO CHE NON È UN DIFETTO VA DETTO CON LA STESSA FORZA: due dei tre
+   `.filter` di ogni lettore sono GIUSTI e non devono dichiarare niente — la
+   riga d'intestazione e la riga vuota. E ce n'è un terzo che sembra un
+   difetto e non lo è: la riga di coda che un foglio di calcolo salva come
+   `;;;`, che dopo il `trim` NON è vuota e arriva fino ai filtri. Contarla fra
+   le perse vorrebbe dire accusare l'utente di un difetto del suo Excel — il
+   falso allarme che insegna a non guardare i messaggi. Sta in `vuote`.
+   ⚠️ Le prove sono SINCRONE e stanno PRIMA del riepilogo: l'`await
+   Promise.all(inVolo)` sta a metà file, e una prova asincrona aggiunta dopo
+   verrebbe messa in volo senza essere aspettata. */
+{
+  /* ⛔ IL DENOMINATORE STA NEI DATI DELLA PROVA, NON A MEMORIA: un caso per
+     ogni ragione che ogni lettore sa dare, più i due casi SANI (la riga buona
+     e la riga di coda `;;;`) che NON devono comparire fra le perse. */
+  const NOVE = [
+    ["campo.parseSquadreCsv", campo.parseSquadreCsv, campo.scartiSquadreCsv, "nome;persone;area;stato",
+     ["Squadra A;4;Fronte Nord;operativa", "Squadra B;;Piazzale;operativa"],
+     [[";6;Fronte Sud;operativa", "manca il nome della squadra", "riga 3"]]],
+    ["flotta.parseMezziCsv", flotta.parseMezziCsv, flotta.scartiMezziCsv, "nome;area;ore;stato",
+     ["Escavatore 1;Fronte Nord;6375;operativo", "Pala 2;Piazzale;;operativo"],
+     [[";Piazzale;100;operativo", "manca il nome del mezzo", "riga 3"]]],
+    ["terra.parseFrontiCsv", terra.parseFrontiCsv, terra.scartiFrontiCsv, "nome;banco;quota;stato",
+     ["Fronte Nord;Banco A;340;attivo", "Fronte Sud;Banco B;;attivo"],
+     [[";Banco D;300;attivo", "manca il nome del fronte", "riga 3"]]],
+    ["conti.parseFattureCsv", conti.parseFattureCsv, conti.scartiFattureCsv,
+     "numero;cliente;importo;emessa;scadenza;incassata",
+     ["2026/001;Edilcave Srl;4400;2026-06-18;2026-07-18;no"],
+     [["2026/002;Cave Riunite;;2026-06-19;;no", "l'importo non è stato scritto", "2026/002"],
+      ["2026/003;Movitec Spa;abc;2026-06-20;;no", "l'importo non si legge", "2026/003"],
+      ["2026/004;;5200;2026-06-21;;no", "manca il cliente", "2026/004"],
+      [";Scavi Alfa;3100;2026-06-22;;no", "manca il numero della fattura", "Scavi Alfa"],
+      ["2026/006;Beta Srl;0;2026-06-23;;no", "l'importo non è maggiore di zero", "2026/006"]]],
+    ["conti.parseListinoCsv", conti.parseListinoCsv, conti.scartiListinoCsv, "nome;unita;prezzo;densita;iva",
+     ["Misto di cava;t;8,50;1,9;22"],
+     [["Stabilizzato 0/30;t;;1,9;22", "il prezzo non è stato scritto", "Stabilizzato 0/30"],
+      ["Pietrisco;t;abc;1,9;22", "il prezzo non si legge", "Pietrisco"],
+      [";t;12,00;1,9;22", "manca il nome del prodotto", "riga 4"]]],
+    ["flotta.parseTelemetriaCsv", flotta.parseTelemetriaCsv, flotta.scartiTelemetriaCsv, "mezzo;ore;carburante",
+     ["Escavatore 1;6375;120"],
+     [["Pala 2;;95", "le ore motore non sono state scritte", "Pala 2"],
+      ["Dumper 3;abc;80", "le ore motore non si leggono", "Dumper 3"],
+      [";4200;60", "manca il nome del mezzo", "riga 4"],
+      ["Rullo 5;-10;40", "le ore motore sono negative", "Rullo 5"]]],
+    ["terra.parseRilieviCsv", terra.parseRilieviCsv, terra.scartiRilieviCsv, "data;volumeM3;metodo;gsd;fronte",
+     ["2026-03-01;1200;RTK;2;Fronte Nord"],
+     [["2026-03-02;;RTK;2;Fronte Nord", "il volume non è stato misurato", "2026-03-02"],
+      ["2026-03-03;abc;RTK;2;Fronte Nord", "il volume non si legge", "2026-03-03"],
+      [";1500;RTK;2;Fronte Nord", "la data non è stata scritta", "riga 4"],
+      ["2026-02-30;1500;RTK;2;Fronte Nord", "la data non esiste", "2026-02-30"],
+      ["2026-03-04;-50;RTK;2;Fronte Nord", "il volume è negativo", "2026-03-04"]]],
+  ];
+  const PIENA = "P001;2026-03-01;c1;Edilcave;p1;Misto;30;10;20;t;20;1,9;8,5;0;22;TARGA1;Cantiere;;;listino";
+  NOVE.push(["conti.parsePesateCsv", conti.parsePesateCsv, conti.scartiPesateCsv, conti.CSV_PESATE_INTESTAZIONE,
+    [PIENA],
+    [[PIENA.replace("2026-03-01", ""), "la data non è stata scritta", "P001"],
+     [PIENA.replace("2026-03-01", "2026-02-30"), "la data non esiste", "P001"]]]);
+  NOVE.push(["conti.parseIncassiCsv", conti.parseIncassiCsv, conti.scartiIncassiCsv, conti.CSV_INCASSI_INTESTAZIONE,
+    ["f1;2026-03-01;1200;bonifico"],
+    [["f2;2026-03-02;;bonifico", "l'importo non è stato scritto", "f2"],
+     ["f3;;900;bonifico", "la data non è stata scritta", "f3"],
+     ["f4;2026-02-30;700;bonifico", "la data non esiste", "f4"],
+     ["f5;2026-03-03;abc;bonifico", "l'importo non si legge", "f5"]]]);
+
+  /* ⛔ QUANTI SOGGETTI HA GUARDATO DAVVERO: se un giorno un lettore uscisse
+     dalla tabella, questo numero scenderebbe e si vedrebbe. Un «0 violazioni»
+     no. */
+  eq(NOVE.length, 9, "⛔ INGRESSO · la tabella copre tutti e nove i lettori CSV di Campo/Conti/Flotta/Terra");
+
+  for (const [nome, leggi, scarti, intest, sane, rotte] of NOVE) {
+    test(`⛔ ${nome}: le righe perse si CONTANO e si dicono, una per una`, () => {
+      const righe = [...sane, ...rotte.map(r => r[0])];
+      const csv = [intest, ...righe].join("\n") + "\n";
+      const s = scarti(csv);
+      /* i tre conti devono chiudere fra loro: è la difesa contro il righello
+         che perde per strada un soggetto senza dirlo */
+      eq(s.lette, righe.length, "legge tutte le righe di dati (l'intestazione no)");
+      eq(s.entrano, leggi(csv).length, "⛔ e «entrano» è esattamente quello che il lettore restituisce");
+      eq(s.entrano + s.persi.length, s.lette, "lette = entrate + perse, senza resti");
+      eq(s.persi.length, rotte.length, `perse ${rotte.length} righe su ${righe.length}`);
+      /* ⛔ E LA RAGIONE VA GUARDATA UNA PER UNA: un conto giusto con una
+         ragione sbagliata costa più di nessuna ragione, perché chi legge ci
+         crede — è il difetto che il messaggio del listino aveva davvero. */
+      for (let i = 0; i < rotte.length; i++) {
+        eq(s.persi[i].ragione, rotte[i][1], `riga ${i + 1} rotta: la ragione è quella vera`);
+        eq(s.persi[i].nome, rotte[i][2], `riga ${i + 1} rotta: l'etichetta dice di CHI si parla`);
+      }
+      /* nessuna ragione di ripiego: se compare, la scala non sa più spiegare
+         quello che il lettore decide */
+      eq(s.persi.filter(p => p.ragione === "il lettore la scarta").length, 0,
+        "⛔ nessuna riga finisce nel ripiego «il lettore la scarta»");
+    });
+    test(`✔ ${nome}: la riga di coda «;;;» di un foglio di calcolo NON è una perdita`, () => {
+      const vuota = ";".repeat(intest.split(";").length - 1);
+      const csv = [intest, ...sane, vuota].join("\n") + "\n";
+      const s = scarti(csv);
+      eq(s.persi.length, 0, "⛔ non si accusa l'utente di un difetto del suo Excel");
+      eq(s.entrano, leggi(csv).length, "e il conto di chi entra resta quello del lettore");
+      /* `leggiCsv` (pesate e incassi) la riga di soli separatori la toglie da
+         sé, quindi lì `vuote` è 0 e `lette` non la conta: le due strade
+         arrivano alla stessa risposta per vie diverse, e la prova pretende la
+         RISPOSTA, non la via. */
+      eq(s.lette, sane.length, "e non finisce nemmeno fra le righe lette");
+    });
+    test(`✔ ${nome}: un file di sola intestazione non produce nessuna accusa`, () => {
+      const s = scarti(intest + "\n");
+      eq(s.lette, 0, "zero righe lette");
+      eq(s.persi.length, 0, "zero perse");
+      eq(s.entrano, 0, "zero entrate");
+    });
+    test(`✔ ${nome}: niente testo, niente errori`, () => {
+      for (const t of ["", null, undefined]) {
+        const s = scarti(t);
+        eq(s.lette, 0, `«${t}»: zero lette`);
+        eq(s.persi.length, 0, `«${t}»: zero perse`);
+      }
+    });
+  }
+
+  /* ⛔ E LA PAGINA DEVE DIRLO, se no è la guardia scollegata della regola 20:
+     una dichiarazione che nessuno legge non protegge niente. Il difetto vero
+     non è la funzione che manca, è la funzione che c'è e che nessuno chiama —
+     e non è un errore di sintassi, quindi non lo vede nessuna prova che non
+     guardi la pagina. */
+  {
+    /* ⛔ IL SOGGETTO DI QUESTE PROVE È IL GESTORE D'IMPORT, non la pagina.
+       La prima stesura guardava tutto il file e la controprova l'ha bocciata
+       due volte, tutt'e due nel verso che RASSICURA:
+         · rimettendo il ricontro fatto a mano nel listino, la prova restava
+           verde perché il suo taglio cominciava DOPO la riga iniettata;
+         · togliendo l'avviso dal colore dell'import parco mezzi, restava verde
+           perché sulla stessa pagina c'è la telemetria, che ce l'ha ancora —
+           un conto per PAGINA non può accorgersi di un gestore su due.
+       L'ancora è l'`onchange` del campo file, che è unica per gestore ed è
+       verificata qui sotto contandola. Il gestore finisce alla sua graffa
+       (`\n  };`), che è l'unica a quel livello di indentazione. */
+    const PAGINE = [
+      ["campo", srcCampoPag, [["scartiSquadreCsv", "squ-file"]]],
+      ["conti", srcContiPag, [["scartiFattureCsv", "fat-file"], ["scartiListinoCsv", "lis-file"],
+                              ["scartiPesateCsv", "pes-file"], ["scartiIncassiCsv", "inc-file"]]],
+      ["flotta", srcFlottaPag, [["scartiTelemetriaCsv", "tele-file"], ["scartiMezziCsv", "mez-file"]]],
+      ["terra", srcTerraPag, [["scartiFrontiCsv", "fro-file"], ["scartiRilieviCsv", "ril-file"]]],
+    ];
+    const gestoreDi = (src, campo) => {
+      const a = src.indexOf(`$("${campo}").onchange`);
+      return a < 0 ? "" : src.slice(a, src.indexOf("\n  };", a));
+    };
+    eq(PAGINE.reduce((s, p) => s + p[2].length, 0), 9,
+      "⛔ INGRESSO · le nove funzioni nuove sono attese in nove gestori d'import di quattro pagine");
+    for (const [app, src, lettori] of PAGINE) {
+      test(`⛔ ${app}: ogni gestore d'import CHIAMA la funzione che dice le righe perse, e ogni sua uscita lo dice`, () => {
+        ok(/const frasePersi = /.test(src), "la frase che elenca le righe perse esiste, una per pagina");
+        for (const [n, campo] of lettori) {
+          eq((src.match(new RegExp("\\$\\(\"" + campo + "\"\\)\\.onchange", "g")) || []).length, 1,
+            `${campo}: l'ancora del gestore è unica`);
+          const g = gestoreDi(src, campo);
+          ok(g.length > 200, `${campo}: il gestore si ritrova nel sorgente (${g.length} caratteri)`);
+          /* non basta importarla: una funzione importata e mai chiamata è il
+             caso «inerte» che `nomi-liberi` conta a parte. Si chiede la
+             CHIAMATA, dentro il gestore, col confine di parola. */
+          ok(new RegExp("\\b" + n + "\\s*\\(").test(g), `⛔ ${n}: chiamata dentro il suo gestore`);
+          ok(new RegExp("\\b" + n + "\\b").test(src), `${n}: e importata dal modulo`);
+          /* ⛔ OGNI USCITA DEL GESTORE LO DICE. Il conto che non ha bisogno di
+             capire la sintassi è il conto: quante volte si esce (`esito(`),
+             quante volte lo si dice (`frasePersi(`). Un taglio agli argomenti
+             sbagliava — il `;` compare dentro le stringhe di quei messaggi
+             («le colonne devono essere nome; persone; area; stato»), e
+             dichiarava muta un'uscita che parla, in quattro app su quattro:
+             un difetto identico dappertutto è il modo in cui si riconosce di
+             stare guardando il righello. */
+          const uscite = g.split("esito(").length - 1;
+          ok(uscite > 0, `⛔ ${n}: il gestore ha ${uscite} uscite (se fosse 0 non starei guardando un gestore)`);
+          const usi = (g.match(/frasePersi\s*\(/g) || []).length;
+          ok(usi >= uscite, `⛔ ${n}: ${uscite} uscite e ${usi} volte che dicono le righe perse`);
+          /* ⛔ E IL COLORE SEGUE LA COSA PEGGIORE SUCCESSA: un verde tranquillo
+             accanto a «tre righe non sono entrate» è la contraddizione fra il
+             numero e il disegno, censita il 06/08. */
+          ok(/scartate\.persi\.length \? "warn"/.test(g),
+            `⛔ ${n}: l'esito esce «warn» quando delle righe non sono entrate`);
+        }
+      });
+    }
+    test("⛔ il gestore del listino NON si riconta le righe grezze per conto suo (copia debole di `isIntestazione`)", () => {
+      /* Il messaggio del listino di Conti se lo contava da sé, con una regex
+         sua: due difetti in una riga — una seconda copia di `isIntestazione`,
+         e la stessa ragione («non aveva un prezzo leggibile») appiccicata
+         anche alle righe cadute per il NOME, cioè una frase FALSA.
+         ⚠️ E la domanda va fatta DENTRO il gestore: cercando `grezze` su tutta
+         la pagina si accusava l'import dei MOVIMENTI DI BANCA, che un `grezze`
+         ce l'ha per una ragione sua e sana. Un controllo più largo del suo
+         soggetto manda a correggere codice buono, ed è il modo più caro di
+         sbagliare perché sembra severità. */
+      const g = gestoreDi(srcContiPag, "lis-file");
+      ok(g.length > 200, "il gestore dell'import listino si ritrova nel sorgente");
+      ok(!/\^nome/.test(g), "⛔ la regex d'intestazione fatta in casa non c'è più");
+      ok(!/grezze/.test(g), "⛔ e nemmeno il conto delle righe grezze");
+      ok(/scartiListinoCsv\s*\(/.test(g), "⛔ al loro posto c'è il conto che il modulo deriva dal lettore");
+      /* e il `grezze` sano dei movimenti di banca resta dov'è: la prova qui
+         sopra non deve averlo fatto sparire */
+      ok(/const grezze = /.test(srcContiPag), "⚠️ e il `grezze` legittimo dei movimenti di banca è ancora lì");
+    });
+    test("⛔ e «warn» ha una voce nella mappa di `esito` delle pagine che la scrivono", () => {
+      /* regola 18: una mappa copra tutti gli stati che chi la chiama sa dire.
+         Campo e Flotta ne avevano due su tre, quindi l'avviso ricadeva sul
+         NEUTRO — «non è successo niente» proprio dove la frase dice che delle
+         righe non sono entrate. Conti passa il tipo al solo toast, che la voce
+         ce l'ha in `shared/dw-app-ui.css` (`.toast.warn`). */
+      for (const [app, src] of [["campo", srcCampoPag], ["flotta", srcFlottaPag], ["terra", srcTerraPag]])
+        ok(/tipo === "warn"/.test(src), `${app}: «warn» è una voce sua, non il ripiego neutro`);
+      ok(/toast\(testo, tipo\)/.test(srcContiPag), "conti: il tipo arriva al toast, che ha la sua classe in shared/");
+    });
+  }
+}
+
 console.log(`\nRisultato KPI app: ${passed} passati, ${failed} falliti${inVolo.length ? `  ·  ${inVolo.length} prove asincrone aspettate` : ""}`);
 process.exit(failed > 0 ? 1 : 0);

@@ -667,6 +667,15 @@ const BANCHI = [
      il numero e la parola accetta solo uno spazio vero. */
   ['«1 fori» su tutte le superfici', 'uno-solo.mjs', []],
   ['«1 fori» · controprova', 'uno-solo.mjs', ['--controprova'], true],
+  /* ⛔ QUANDO SI IMPORTA UN CSV E A UNA RIGA MANCA UN NUMERO, L'APP LO DICE?
+     Il rovescio della passata sui file che ESCONO. Il `.filter` che scarta una
+     riga sta DENTRO il lettore, che restituisce solo i sopravvissuti: fino al
+     13/08 nove lettori su nove perdevano righe in silenzio e la pagina non
+     poteva dirlo nemmeno volendo. Le prove `node` guardano il SORGENTE (che le
+     funzioni contino giusto e che la pagina le chiami); qui si preme il
+     bottone vero e si legge la frase che compare — la guardia COLLEGATA. */
+  ['le righe che l\'import non fa entrare', 'import-righe-perse.mjs', []],
+  ['righe non entrate · controprova', 'import-righe-perse.mjs', ['--controprova'], true],
   ['le frasi di Terra quando il numero è uno', 'terra-frasi-da-uno.mjs', []],
   ['frasi da uno · controprova', 'terra-frasi-da-uno.mjs', ['--controprova'], true],
   /* ⚠️ `flotta-frasi-da-uno` NON usa la porta che gli passiamo: alza un server
