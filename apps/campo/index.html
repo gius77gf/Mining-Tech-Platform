@@ -3520,7 +3520,21 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
     const a = ATT.find(x => x.id === fid); if (!a) return;
     // punto di scrittura 3 — minuti di fermo
     if (bloccato(a.data, a.turno, "i minuti di fermo di «" + a.titolo + "»")) { await refresh(); return; }
-    const v = Math.max(0, Math.round(+e.target.value || 0));
+    // ⛔ IL CAMPO SVUOTATO NON È «ZERO MINUTI DI FERMO». `+"" || 0` fa 0, e
+    // quello zero veniva SCRITTO nel database: da lì in poi non esisteva più
+    // modo di distinguere «si è fermato e non è costato niente» da «nessuno
+    // l'ha misurato». Misurato su un turno con un fermo da 55 min e uno col
+    // campo svuotato: il rapporto stampato scriveva «Guasto meccanico | 1 |
+    // 0 min» nella colonna «Tempo perso» — e SENZA la coda «N su M senza i
+    // minuti registrati», perché per `paretoFermi` uno zero scritto è una
+    // misura — mentre due tabelle più giù, sullo STESSO foglio, la riga della
+    // disponibilità diceva «2 fermi (di cui 1 senza minuti)»; il CSV delle
+    // attività usciva con `;0` e la riga a schermo diceva «senza minuti».
+    // La regola è già scritta in questo file, sul campo «Persone» delle
+    // squadre: vuoto o illeggibile → `null`, che è il valore con cui tutto il
+    // modulo dice «non misurato». Uno zero digitato apposta resta zero.
+    const grezzo = String(e.target.value == null ? "" : e.target.value).trim();
+    const v = grezzo === "" || !Number.isFinite(+grezzo) ? null : Math.max(0, Math.round(+grezzo));
     await db.aggiorna("attivita", fid, { fermoMin: v }); await refresh();
   });
   // salva la causale del fermo quando si sceglie dal menu sull'anomalia

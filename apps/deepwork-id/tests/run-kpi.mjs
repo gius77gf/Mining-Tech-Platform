@@ -27330,5 +27330,152 @@ test("voceDocumentoInElenco: la regola vale per documento, non per la lista", ()
   });
 }
 
+/* ⛔ CAMPO · IL CAMPO DEI MINUTI SVUOTATO NON È «ZERO MINUTI DI FERMO».
+   ═══════════════════════════════════════════════════════════════════════
+   Il punto di scrittura dei minuti di fermo (`data-fermomin`, in
+   `apps/campo/index.html`) faceva `Math.max(0, Math.round(+e.target.value || 0))`
+   e SALVAVA quel numero. `+"" || 0` fa 0: chi cancellava i minuti che aveva
+   scritto per sbaglio — o digitava qualcosa che il campo `type=number` non
+   accetta, e allora `.value` è "" — scriveva nel database un fermo che dichiara
+   di essere costato ZERO minuti. Da lì in poi l'assenza non si poteva più
+   recuperare: il ripiego era arrivato PRIMA di chiunque sapesse distinguere
+   «si è fermato e non è costato niente» da «nessuno l'ha misurato».
+   Che cosa leggeva l'utente, misurato su un turno con un fermo da 55 min e uno
+   col campo svuotato (fermoMin = 0):
+     · rapporto stampato, tabella delle causali → «Guasto meccanico | 1 | 0 min»,
+       e SENZA la coda «N su M senza i minuti registrati», perché per
+       `paretoFermi` uno zero scritto è una misura;
+     · rapporto stampato, tabella della disponibilità, due tabelle più giù sullo
+       STESSO foglio → «2 fermi (di cui 1 senza minuti) · almeno 55 min»;
+     · CSV delle attività → `…;Guasto meccanico;0`, cioè una misura per chi apre
+       il file con un foglio di calcolo e somma la colonna;
+     · riga a schermo → «senza minuti».
+   Lo stesso fermo, quattro uscite, due che affermano una misura mai fatta.
+   La regola giusta era già scritta nello stesso file, sul campo «Persone» delle
+   squadre («vuoto NON è 0 persone»): vuoto o illeggibile → `null`. Era la
+   regola scritta due volte, la seconda più debole.
+   ⚠️ Queste prove guardano il SORGENTE della pagina, perché è lì che vive il
+   punto di scrittura: nessuna suite `node` importa le pagine, ed è il posto in
+   cui questo progetto ha già trovato le copie deboli — «dove il documento si
+   compone». */
+{
+  const { senzaCommenti: senzaCommentiCampo } = await import("./tokenizza.mjs");
+  const SRC_CAMPO_FERMI = senzaCommentiCampo(
+    readFileSync(join(HERE, "../../campo/index.html"), "utf8"));
+  const ANCORA_FERMI = 'getAttribute("data-fermomin")';
+
+  console.log("\n— Campo · i minuti di fermo: il campo svuotato non diventa uno zero —");
+
+  test("⛔ Campo · il punto di scrittura dei minuti di fermo non schiaccia il vuoto a ZERO", () => {
+    /* ⚠️ i commenti sono tolti apposta: la spiegazione scritta accanto alla
+       correzione CITA la forma sbagliata (`+"" || 0`) per dire che cosa
+       toglieva, e letto grezzo il file la contiene. È lo stesso inciampo già
+       pagato con `oreMotoreTx` di Flotta. */
+    ok(SRC_CAMPO_FERMI.length > 200000,
+      `il sorgente guardato ha ${SRC_CAMPO_FERMI.length} caratteri, non è una fetta vuota`);
+    eq(SRC_CAMPO_FERMI.split(ANCORA_FERMI).length - 1, 1,
+      "il punto di scrittura dei minuti è UNO SOLO: se ne nascesse un secondo, questa prova lo direbbe");
+    const da = SRC_CAMPO_FERMI.indexOf(ANCORA_FERMI);
+    const a = SRC_CAMPO_FERMI.indexOf("fermoMin: v", da);
+    ok(a > da, "il gestore arriva fino alla scrittura di `fermoMin`");
+    const gestore = SRC_CAMPO_FERMI.slice(da, a);
+    ok(gestore.length > 100 && gestore.length < 1500,
+      `il pezzo di codice guardato è di ${gestore.length} caratteri: è il gestore, non mezza pagina`);
+    eq((gestore.match(/\|\|\s*0/g) || []).length, 0,
+      "⛔ nessun `|| 0`: era lui a trasformare un campo svuotato in una misura da zero minuti");
+    ok(/grezzo\s*===\s*""/.test(gestore),
+      "il vuoto si riconosce PRIMA della conversione (`+null` fa 0 e `Number.isFinite(0)` risponde true)");
+    ok(/Number\.isFinite\(\+grezzo\)/.test(gestore),
+      "e così l'illeggibile: due assenze diverse, la stessa risposta");
+    ok(/\?\s*null\s*:/.test(gestore),
+      "e quello che si scrive è `null` — il valore con cui tutto il modulo di Campo dice «non misurato»");
+  });
+
+  test("⛔ Campo · quello che la pagina scrive adesso dice «non misurato» in TUTTE le sue uscite", () => {
+    /* La metà che il sorgente non può provare: che `null` arrivi davvero in
+       fondo a ognuna delle uscite senza tornare a essere uno zero per strada.
+       Cinque uscite, e sono cinque perché i fermi si raccontano in cinque posti
+       diversi — schermo, pareto, CSV, storico, disponibilità — che negli anni
+       hanno già divergiuto una volta. */
+    const D = "2026-08-13", T = "Mattina";
+    const fermo = (v) => ({ id: "a2", data: D, turno: T, titolo: "Nastro 3 fermo",
+      stato: "anomalia", causale: "Guasto meccanico", fermoMin: v });
+    const DUR = [{ data: D, turno: T, minuti: 480 }];
+    let guardati = 0;
+    for (const v of [null, undefined, "", "   "]) {
+      const r = fermo(v), q = mostra(v);
+      eq(campo.minutiFermoDi(r), null, `fermoMin=${q}: il modulo non ne fa un numero`);
+      eq(campo.anomalieAperte([r])[0].minutiTesto, "senza minuti",
+        `fermoMin=${q}: la riga a schermo lo scrive a parole`);
+      const pf = campo.paretoFermi([r]);
+      eq([pf.totaleMin, pf.senzaMinutiTot, pf.parziale], [0, 1, true],
+        `fermoMin=${q}: il pareto lo conta e dichiara il totale parziale`);
+      const col = campo.ATTIVITA_COLONNE.indexOf("minuti_fermo");
+      eq(campo.csvAttivita([r]).trim().split("\n")[1].split(";")[col], "",
+        `fermoMin=${q}: nel file la cella resta VUOTA, non «0»`);
+      const st = campo.storicoSettimana([r], [], 7, new Date(D + "T12:00:00"));
+      eq(st[st.length - 1].fermiSenzaMinuti, 1, `fermoMin=${q}: lo storico lo conta fra i non misurati`);
+      const d = campo.disponibilitaTurno([r], DUR, D, T, []);
+      eq(d.pct, null, `fermoMin=${q}: la disponibilità non regala «100%» al turno che non ha misurato`);
+      ok(d.mancano.includes("minuti"), `fermoMin=${q}: e dice che cosa manca`);
+      guardati++;
+    }
+    eq(guardati, 4, "quattro forme dell'assenza guardate: un dominio che si accorcia da solo si vede");
+  });
+
+  test("⛔ Campo · le due tabelle dello STESSO rapporto stampato non si smentiscono più", () => {
+    /* Con `fermoMin: 0` — quello che la pagina scriveva svuotando il campo — la
+       tabella delle causali scriveva «0 min» e quella della disponibilità, sullo
+       stesso foglio, «1 senza minuti»: due affermazioni contrarie sullo stesso
+       fermo, in un documento che si archivia e si consegna. */
+    const D = "2026-08-13", T = "Mattina";
+    const oggi = [
+      { id: "a1", data: D, turno: T, titolo: "Frantoio primario", stato: "anomalia",
+        causale: "Intasamento impianto", fermoMin: 55 },
+      { id: "a2", data: D, turno: T, titolo: "Nastro 3 fermo", stato: "anomalia",
+        causale: "Guasto meccanico", fermoMin: null },
+    ];
+    const pf = campo.paretoFermi(oggi);
+    const perCausale = {};
+    for (const f of campo.riepilogoFermi(oggi)) {
+      const v = pf.voci.find((x) => x.causale === f.causale);
+      perCausale[f.causale] = v ? campo.minutiFermoTesto(v.minuti, v.conto, v.senzaMinuti) : "senza minuti";
+    }
+    eq(perCausale["Guasto meccanico"], "senza minuti",
+      "la tabella delle causali non afferma più una misura che nessuno ha fatto");
+    eq(perCausale["Intasamento impianto"], "55 min", "e quella misurata resta quella");
+    eq(pf.senzaMinutiTot + " su " + pf.fermiTot, "1 su 2",
+      "e la coda «N su M senza i minuti registrati» viene stampata, perché adesso c'è qualcosa da dichiarare");
+    const d = campo.disponibilitaTurno(oggi, [{ data: D, turno: T, minuti: 480 }], D, T, []);
+    eq(d.fermiSenzaMinuti, 1, "la tabella della disponibilità dice lo STESSO numero di quella sopra");
+    eq(campo.minutiFermoTesto(d.fermiMin, d.fermi, d.fermiSenzaMinuti), "almeno 55 min",
+      "e il tempo perso si presenta per quello che è: un pavimento, non una misura");
+    eq(d.stato, "warn", "una misura incompleta non prende il verde");
+  });
+
+  test("⛔ Campo · file e schermo dicono la stessa cosa per ogni valore che la pagina sa scrivere", () => {
+    /* ⚠️ IL DOMINIO È DICHIARATO, NON SOTTINTESO: sono i valori che il gestore
+       corretto può produrre — `null` e un intero ≥ 0 arrotondato. Lo `0` qui non
+       c'è, e la ragione va scritta invece che taciuta: la pagina non lo scrive
+       più da sola, ci arriva solo chi digita «0» apposta, e su quel valore il
+       modulo ha oggi DUE letture diverse (`minutiFermoDi` lo tratta come misura
+       e lo esporta nel CSV, `anomalieAperte` come assenza e a schermo scrive
+       «senza minuti»). È una decisione di prodotto ancora aperta, e una prova
+       che la fissasse in un verso o nell'altro blinderebbe una delle due. */
+    const col = campo.ATTIVITA_COLONNE.indexOf("minuti_fermo");
+    let guardati = 0;
+    for (const v of [null, 1, 5, 55, 480]) {
+      const r = { id: "x", data: "2026-08-13", turno: "Mattina", titolo: "T",
+        stato: "anomalia", causale: "Guasto meccanico", fermoMin: v };
+      const cella = campo.csvAttivita([r]).trim().split("\n")[1].split(";")[col];
+      const schermo = campo.anomalieAperte([r])[0].minutiTesto;
+      eq(cella === "", schermo === "senza minuti",
+        `fermoMin=${mostra(v)}: la cella «${cella}» e la riga «${schermo}» raccontano la stessa cosa`);
+      guardati++;
+    }
+    eq(guardati, 5, "cinque valori guardati, e il conto è scritto: un elenco che si accorcia si vede");
+  });
+}
+
 console.log(`\nRisultato KPI app: ${passed} passati, ${failed} falliti${inVolo.length ? `  ·  ${inVolo.length} prove asincrone aspettate` : ""}`);
 process.exit(failed > 0 ? 1 : 0);

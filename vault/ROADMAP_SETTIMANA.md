@@ -1236,6 +1236,52 @@ numero scritto dove non era stato misurato niente**.*
       **Come si rimisura**: il comando è nella riga **B0-undecies**; qui cambia
       solo l'elenco dei file.
 
+      ✅ **CAMPO LETTO TUTTO, il 13/08** — 29 righe in `campo-data.js` e 3 in
+      `index.html`, una per una. **Un difetto vero su 32**, e conferma il
+      rapporto delle altre app (meno di uno su dieci).
+      · Il difetto è **`apps/campo/index.html:3523`**, il punto in cui si
+        SALVANO i minuti di fermo digitati sull'anomalia:
+        `Math.max(0, Math.round(+e.target.value || 0))`. Chi **svuota** il campo
+        (o digita qualcosa che un `type=number` non accetta, e allora `.value`
+        è «») scriveva nel database `fermoMin: 0`, e da lì in poi l'assenza non
+        era più recuperabile da nessuno. È l'**unico** punto di scrittura
+        numerico della pagina fatto così: gli altri 26 passano da
+        `numeroDaCampo` o dalla guardia del vuoto.
+        ⛔ E il danno si vedeva **sullo stesso foglio stampato**, in due
+        tabelle a poche righe di distanza: la tabella delle causali scriveva
+        «Guasto meccanico | 1 | **0 min**» *senza* la coda «N su M senza i
+        minuti registrati», mentre la tabella della disponibilità, più giù,
+        diceva già «2 fermi (**di cui 1 senza minuti**)». Il CSV delle attività
+        usciva con `;0` — una misura, per chi apre il file e somma la colonna.
+        La regola giusta era **già scritta in questo file**, sul campo «Persone»
+        delle squadre (`3757`): vuoto o illeggibile → `null`. La solita regola
+        scritta due volte, la seconda più debole.
+        Prove: `run-kpi` **2054 → 2058** (sorgente del punto di scrittura,
+        comportamento su quattro forme dell'assenza, le due tabelle dello stesso
+        foglio, l'accordo file↔schermo su cinque valori).
+      ⚠️ **Due cose MISURATE E NON CORRETTE**, perché non spettano a un
+      cantiere:
+      · **`0` ha due letture opposte, e sono tutt'e due blindate da prove
+        verdi.** Sullo stesso record `fermoMin: 0`, `minutiFermoDi` risponde
+        «una misura» (e alimenta il CSV), mentre `anomalieAperte`,
+        `disponibilitaTurno`, `storicoSettimana`, `registrazioniSenzaGiorno` e
+        il `value` del campo dicono «non misurato». Cinque contro uno — e
+        cambiare l'uno fa cadere **4 asserzioni** che difendono esplicitamente
+        il verso opposto. È una **decisione di prodotto da arbitrare**. Con la
+        correzione di oggi quello zero non nasce più da solo: ci arriva solo chi
+        digita «0» apposta.
+      · **`mediaFermiAlGiorno` dà `media: 0` dove non è stato misurato niente.**
+        `fermiPerGiorno` fa entrare nella somma un guasto mai misurato valendo
+        zero, e la riga non porta il conto dei «senza minuti», quindi la media
+        non può dichiararsi un minimo. Misurato: tre giornate con un guasto mai
+        misurato → `media: 0`; e un giorno da 100 min con due giornate di guasti
+        mai misurati → `media: 33`, **identico** allo stesso giorno con nessun
+        fermo negli altri due. La pagina lo dichiara **a parole** nella nota del
+        grafico, quindi è mitigato, non chiuso: il **numero** resta tranquillo.
+        Correggerlo vuol dire aggiungere un campo alle righe di `fermiPerGiorno`,
+        e due prove le confrontano con `eq` sull'oggetto intero: non è una
+        correzione minima.
+
 - [ ] **B0-decies. IL RECETTORE ASSENTE FA DIRE A GENESI «SUPERA» CON UN NUMERO
       DI CINQUE CIFRE — e una delle tre esclusioni non regge alla misura.**
       ⏱️ *Misurato il 09/08 sui tre campi che B0-sexies teneva fuori.*
@@ -4175,8 +4221,8 @@ numero scritto dove non era stato misurato niente**.*
   nome apre il file sbagliato credendo che sia il più fresco.
 - Le decisioni: `docs/DECISIONI_WEEKEND.md` — pagina d'ingresso in cima.
 - Stato misurato al **09/08** (lanciando le suite, non a memoria):
-  **2.506 prove girano senza rete**. La frase va letta stretta: è la somma
-  delle **otto** suite che contano asserzioni (`run-kpi` 2054, `run-stile` 318,
+  **2.510 prove girano senza rete**. La frase va letta stretta: è la somma
+  delle **otto** suite che contano asserzioni (`run-kpi` 2058, `run-stile` 318,
   `run-helpers` 75, `run-pointcloud` 32, `run-manifest` 9, `run-demo` 8,
   `bootstrap-rivendicazioni` 7, `fogli-guardati` 3), non tutto ciò che gira nel
   giro `node` — che di comandi ne ha **34** e di asserzioni ne esegue di più:
