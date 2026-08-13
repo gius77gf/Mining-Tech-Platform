@@ -1439,14 +1439,66 @@ numero scritto dove non era stato misurato niente**.*
       · Tre ambra scritti a mano **dentro** `light-mode` erano la copia debole
         di questo token, e **nessuno dei tre passava** (3,62 · 3,62 · 2,93).
 
-- [ ] **B0-novodecies. IL CONTRASTO NON TESTUALE DEL CORE NON LO MISURA
-      NESSUNO.** ⏱️ *Dichiarato il 13/08 dal cantiere del tema chiaro, con la
-      prova.* `contrasto-non-testo.mjs` ha l'elenco delle superfici **scritto a
-      mano** e contiene **le sei app, non il core**: lanciato con `--solo=core`
-      risponde «0 app misurate». Quindi bordi, pallini e fili colorati del core
-      — che in chiaro restano ambra chiara su bianco — non sono giudicati da
-      nessun banco. È la stessa famiglia dell'elenco a mano che non sapeva
-      nemmeno che `chiediDati` esistesse.
+- [x] ✅ **B0-novodecies. IL CONTRASTO NON TESTUALE DEL CORE ADESSO SI MISURA —
+      e il banco aveva DUE difetti del righello prima ancora del prodotto**
+      (`c7ae9fdf`). *La misura è chiusa; le correzioni al core sono la voce
+      **B0-duovicies** qui sotto.*
+      ⛔ **Le righe «non ho guardato» erano 21 e CINQUE ERANO FALSE**: `usati`
+      viveva dentro il ciclo che gira **una volta per sezione**, quindi un
+      selettore che vive in una schermata sola veniva dichiarato «mai comparso»
+      dalle altre venticinque. Accusava cinque voci che sono **a schermo**.
+      Fatta la sottrazione dopo tutte le sezioni: **21 → 16**, verdetti
+      invariati.
+      ⛔ **E il censimento chiedeva «sta nel DOM?» mentre la misura guarda solo
+      il VISIBILE**: un soggetto reso e mai mostrato sarebbe sparito da tutt'e
+      due i conti — il buco del `.toast.success` di `CLAUDE.md`. Misurato:
+      `.scad-badge.warn`, `.scad-badge.danger` e `.sitem.danger` hanno **22 nodi
+      ciascuno e ZERO visibili** in tutte e 26 le sezioni. Adesso il censimento
+      fa la stessa domanda della misura, e quei tre **restano** dichiarati.
+      Le 16 righe classificate **con la sonda, non dedotte**: 3 sono **CSS
+      morto**, 3 esistono e non si vedono mai, 10 non entrano mai nel DOM.
+
+      | tema | elementi | dipinte | con colore di stato | righe | sotto 3:1 |
+      |---|---|---|---|---|---|
+      | buio | 1915 | 1739 | 135 | 50 | **1** |
+      | chiaro | 1915 | 1739 | 53 | 15 | **6** |
+      | sole | — | — | — | — | il core non ce l'ha, **verificato** |
+
+      ⚠️ **Il 50 del buio è gonfiato e va detto**: 33 di quelle righe sono
+      `--ink-am`/`--ink-am2`, che al buio valgono *letteralmente* `var(--amber)`
+      — l'ambra di marca. Le righe di stato vere al buio sono **17**.
+      ⛔ **E la controprova del banco stava per essere promossa da un prodotto
+      rotto**: il core **non riceve l'iniezione** (non ha i `--bar-…`, `grep -c`
+      → 0 contro 3 in Campo), quindi i suoi sei KO veri avrebbero fatto dire «✓
+      so fallire» a un banco che non aveva iniettato niente — la terza delle
+      cinque cause. Adesso l'iniezione si conta **per superficie**.
+      ⛔ **Due verdi falsi chiusi**: `--solo=` con un nome sconosciuto e «zero
+      superfici misurate» uscivano **0**. Il primo l'ho incontrato di persona
+      lanciando `--solo=core`: rispondeva «0 app misurate» **ed usciva zero** —
+      il banco diceva «tutto a posto» proprio mentre dichiarava di non aver
+      guardato niente.
+      ⚠️ **Da sapere per chi legge il giro**: col core nell'elenco le passate
+      225 e 226 di `tutti.mjs` diventano **rosse** su sette difetti **veri**.
+      Non è una regressione. E nel giro completo del chiaro (7 superfici, 15.213
+      elementi) **le sei app sono tutte a zero**: il core era insieme l'unica
+      superficie **non misurata** e l'unica **con difetti** — il costo esatto di
+      un elenco scritto a mano.
+
+- [ ] **B0-duovicies. I SETTE CONTRASTI NON TESTUALI DEL CORE.** ⏱️ *Aperta il
+      13/08 dalla misura qui sopra.* La causa dei sei del chiaro sta nei dati:
+      `--success/--warn/--danger/--info` sono dichiarati **una volta sola**, nel
+      `:root` del buio, e `body.light-mode` ridichiara solo la famiglia
+      `--ink-…` — gli inchiostri dei **testi**. È la stessa forma della
+      correzione già fatta sui testi, **un piano più in là**.
+      · `div.sitem.warn`, bordo sinistro ×8 → **1,74**, e fallisce contro
+        **tutt'e due** i vicini (1,94 sul bianco): netto;
+      · `span#sync-badge.nonsalva` (4 lati) → **2,63** e `div.info-box` (bordo
+        sinistro) → **2,98**: **borderline**, passano contro il bianco fuori
+        (3,12) e cadono contro il riempimento pallido dentro. Vanno corretti
+        **sapendo** che sono al limite;
+      · buio: un `path` svg-stroke `--ink-am2` a **2,45** (forbice zero) — ma è
+        **ambra di marca**, non un segnale di stato: va letto con la collisione
+        dichiarata qui sopra.
 - [ ] **B0-vicies. LA PASTIGLIA «NON SALVA» SI SOVRAPPONE AL NOME UTENTE, IN
       CHIARO, A 430 px.** ⏱️ *Visto negli scatti il 13/08 e **non** introdotto
       dalla correzione dei colori (il diff tocca solo colori).* È il
