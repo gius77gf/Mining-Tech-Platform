@@ -5301,3 +5301,35 @@ di scriverlo qui**: niente entra sulla parola dell'agente.
       Sentinella, lasciati stare perché ci stavano lavorando altri cantieri.
       ✅ `conti.parseMovimentiCsv` **3→3**: l'unico che già dichiarava gli
       scartati.
+
+- [ ] **B5-bis. I SEI LETTORI DI SCUDO E SENTINELLA, e il caso che li rende più
+      urgenti degli altri.** ⏱️ *Misurato a mano il 13/08 mentre B5 chiudeva i
+      nove di Campo/Conti/Flotta/Terra: quelle due app le stavano scrivendo
+      altri cantieri, quindi sono rimaste fuori.*
+      Misura su `scudo.parseScadenzeCsv` (colonne `lavoratore;tipo;descrizione;
+      scadenza`), quattro righe scritte → **una entra**:
+      · `2026-09-01` → entra;
+      · scadenza **vuota** → scartata;
+      · `2026-13-45`, data che **non esiste** → scartata, e giustamente: quel
+        filtro è stato messo il 03/08 apposta, perché la forma non è
+        l'esistenza;
+      · ⛔ **`01/09/2026` → scartata** — ed è il caso che conta, perché **è il
+        formato che un foglio di calcolo italiano scrive da solo**. Chi esporta
+        le scadenze da Excel e le reimporta qui **non ne vede entrare nessuna**,
+        e non c'è niente da leggere che glielo dica.
+      ⚠️ **E la pagina fa già metà del lavoro**, il che rende il buco più
+      insidioso: l'import conta e dichiara i **doppioni** e i **nomi non
+      trovati** (`dup`, `senzaLav`) e li scrive nell'esito. Ma li conta su
+      `righe`, cioè su **quello che il lettore ha restituito** — le righe cadute
+      dentro il lettore non sono mai esistite per lei. Un messaggio che elenca
+      due categorie su tre **si legge come completo**.
+      ✅ La forma da usare esiste già ed è quella di B5: una funzione
+      `scarti<X>Csv` **accanto** al lettore, `{lette, entrano, persi:[{nome,
+      ragione}], vuote}`, e la pagina che lo dice. **Non inventarne una
+      seconda.**
+      ⚠️ Da decidere con la misura, non per riflesso: se una data in formato
+      italiano vada **accettata** (`parseCsvLine` + una lettura tollerante) o
+      **rifiutata dicendolo**. Sono due prodotti diversi, e la seconda è la
+      scelta prudente — ma un rifiuto silenzioso non è nessuna delle due.
+      **Come si misura**: il CSV di prova qui sopra, e si conta quante righe
+      tornano; poi si preme il bottone vero e si legge la frase.
