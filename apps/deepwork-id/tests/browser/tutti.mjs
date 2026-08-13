@@ -890,6 +890,19 @@ const BANCHI = [
      «provvisoria», lo dice solo il browser. */
   ['i numeri tranquilli di Genesi', 'genesi-numeri-tranquilli.mjs', []],
   ['numeri tranquilli di Genesi · controprova', 'genesi-numeri-tranquilli.mjs', ['--controprova'], true],
+  /* ⛔ AGGIUNTO IL 13/08, E LA RAGIONE È QUESTO ELENCO. Sei app avevano il
+     loro banco «numeri tranquilli» — Conti, Terra, Sentinella, Campo, Scudo,
+     Genesi — e Flotta no: è la regola della settimana applicata a sé stessa,
+     «un numero è sorvegliato solo dove il controllo ARRIVA», e l'elenco di
+     dove arriva va guardato quanto il numero.
+     Ha trovato due difetti, tutti e due nella PAGINA e tutti e due la quarta
+     copia di una regola già scritta nello stesso file: la riga di «quanto
+     costa un'ora» che si spezzava in due «ma» (mentre la pagella, ottocento
+     righe più sotto, la scriveva già giusta), e «€ 0,00» sulla lista dei
+     costi dove l'importo non era mai stato scritto. Il modulo, provato prima
+     con ventotto chiamate all'assenza, non aveva niente. */
+  ['i numeri tranquilli di Flotta', 'flotta-numeri-tranquilli.mjs', []],
+  ['numeri tranquilli di Flotta · controprova', 'flotta-numeri-tranquilli.mjs', ['--controprova'], true],
   /* ⛔ E DAL 06/08 LE FRASI, non i numeri. Il numero era giusto e a mentire era
      la frase intorno: undici punti incollavano un plurale a un conto che può
      valere uno («Consuntivo importato: 1 fori», «Il file ha 1 righe», e —

@@ -2042,6 +2042,25 @@ body.dw b.bad{color:var(--ink-dg)}
     const oraMezzi = costoOrarioMezzo(INT, RIF);
     const conOra = oraMezzi.filter(m => m.euroOra !== null)
       .slice().sort((a, b) => b.euroOra - a.euroOra || a.mezzo.localeCompare(b.mezzo, "it"));
+    /* ⛔ LA RIGA CHE SI SPEZZAVA IN DUE «MA» — e la versione giusta era già
+       scritta ottocento righe più in basso, nella pagella. Qui la riga si
+       componeva incollando il totale davanti al perché con un «, ma » e la
+       prima lettera abbassata: funziona per quattro dei cinque `perche` di
+       `costoOrarioMezzo`, ma il quinto — quello del mezzo che ha le ore e
+       nessuna spesa dentro la finestra — è già fatto di due parti e la sua
+       «ma» ce l'ha dentro. Misurato aprendo la pagina con due pieni sullo
+       stesso mezzo, il secondo senza il prezzo (è un tocco: il campo della
+       spesa si può lasciare vuoto):
+         «€ 300,00 spesi, ma le ore lavorate si sanno, ma nessuna delle spese
+          che cadono in questo periodo porta il suo importo: …»
+       Due «ma» nella stessa frase, e per chi legge una contraddizione: i 300 €
+       ci sono o no? (Ci sono: cadono fuori dal periodo coperto dal contatore.)
+       La pagella, sullo STESSO mezzo e con lo STESSO `perche`, scriveva già la
+       forma giusta — totale sul secondo rigo, perché sul terzo, con l'iniziale
+       maiuscola. Adesso le due liste lo dicono allo stesso modo, e il perché
+       finisce su `.meta norma`, che è il rigo che non si taglia (vedi sopra).
+       Il totale qui non ha bisogno del ripiego «nessuna spesa registrata» che
+       la pagella porta: `m.totale > 0` è nel filtro di questa riga. */
     const senzOra = oraMezzi.filter(m => m.euroOra === null && m.totale > 0);
     // ⛔ IL TOTALE SPESO STA SUL TERZO RIGO, e non è una scelta di gusto: le
     //    righe delle liste tagliano il testo a due righe, e a 320 px lo scatto
@@ -2077,7 +2096,8 @@ body.dw b.bad{color:var(--ink-dg)}
       </div>`).join("")}
       ${senzOra.map(m => `<div class="item statico st-warn">
         <div class="info"><div class="name">${esc(m.mezzo)} · <b>non si sa</b></div>
-          <div class="meta">${eur(m.totale)} spesi, ma ${esc(m.perche.charAt(0).toLowerCase() + m.perche.slice(1))}</div></div>
+          <div class="meta">${eur(m.totale)} spesi</div>
+          <div class="meta norma">${esc(m.perche.charAt(0).toUpperCase() + m.perche.slice(1))}</div></div>
       </div>`).join("")}
       ${conOra.length ? `<div class="note">Si confrontano solo i mezzi di cui si sanno le ore, e
         <b>ogni macchina ha il suo periodo</b>: è quello fra il primo e l'ultimo rifornimento su cui
@@ -2356,13 +2376,32 @@ body.dw b.bad{color:var(--ink-dg)}
         ? dataIt(iso)
         : `<span class="nodata">${I.tempo}senza data</span>`;
     };
+    /* ⛔ «€ 0,00» SU UNA SPESA CHE NESSUNO HA SCRITTO — la quarta copia
+       della stessa regola, nell'unico posto dove non era stata scritta. In
+       questo file la decisione c'è già tre volte: il registro interventi non
+       disegna affatto la pastiglia dell'importo quando il costo non c'è, il
+       libretto scrive «costo non scritto», e il CSV degli interventi lascia la
+       cella vuota — con il perché per esteso: *chi apre il file in un foglio
+       quello zero lo SOMMA credendolo misurato*. La lista dei COSTI, che è la
+       schermata dei soldi, se n'era tenuta la versione debole: `eur(null)` fa
+       «€ 0,00», cioè una spesa misurata a zero.
+       ⚠️ ONESTÀ SU DA DOVE ARRIVA UNA VOCE COSÌ: dai form di Flotta non nasce
+       — «Registra spesa» pretende un importo maggiore di zero, e la voce
+       «Carburante» che nasce da un rifornimento si crea solo `if (v.euro > 0)`.
+       È il record scritto altrove o prima (come `m6` senza `tipo` e `n1` senza
+       `stato` nella dimostrazione), ed è esattamente il caso per cui la stessa
+       regola era già stata scritta nelle altre tre. `numeroDichiarato` di
+       `shared/` tiene lo ZERO DICHIARATO, che è un dato (una riparazione in
+       garanzia costa davvero zero) e non un buco. */
     $("cos-list").innerHTML = COS.slice().sort((a, b) =>
         String(b.data || "").slice(0,10).localeCompare(String(a.data || "").slice(0,10))
         || String(a.voce || "").localeCompare(String(b.voce || ""), "it"))
       .map(c => `<div class="item statico st-accent">
       <div class="avatar">${I.euro}</div>
       <div class="info"><div class="name">${esc(c.voce)}</div><div class="meta">${dataCos(c)} · ${esc(c.nota || "nessuna nota")}</div></div>
-      <div class="acts"><span class="badge accent euro">${eur(c.importo)}</span>
+      <div class="acts">${numeroDichiarato(c.importo) == null
+        ? `<span class="badge">importo non scritto</span>`
+        : `<span class="badge accent euro">${eur(c.importo)}</span>`}
       <span class="arr" role="button" tabindex="0" title="Cambia la data di questa spesa" aria-label="Cambia la data di ${esc(c.voce)}" data-data-cos="${c.id}">${I.matita}</span>
       <span class="arr dan" role="button" tabindex="0" title="Rimuovi questa voce di costo" aria-label="Rimuovi ${esc(c.voce)}" data-del-cos="${c.id}">${I.croce}</span></div></div>`).join("")
       || vuoto(I.euro, "Nessun costo registrato",
@@ -3688,7 +3727,7 @@ body.dw b.bad{color:var(--ink-dg)}
     if (dataCosId) { const c = COS.find(x => x.id === dataCosId); if (!c) return;
       const iso0 = String(c.data || "").slice(0, 10);
       const r = await chiediDati("Data della spesa",
-        `<b>${esc(c.voce)}</b> — ${eur(c.importo)}.`,
+        `<b>${esc(c.voce)}</b> — ${numeroDichiarato(c.importo) == null ? "importo non scritto" : eur(c.importo)}.`,
         [{ id: "data", label: "Giorno a cui si riferisce", tipo: "date",
            valore: dataISOEsiste(iso0) ? iso0 : "",
            aiuto: "Se lo lasci vuoto la voce resta <b>senza data</b>: continuerà a contare nel totale e in «dove va la spesa», ma non nell'andamento mese per mese." }],
@@ -3703,7 +3742,7 @@ body.dw b.bad{color:var(--ink-dg)}
     const delCos = attr(e, "data-del-cos");
     if (delCos) { const c = COS.find(x => x.id === delCos); if (!c) return;
       const ok = await chiedi("Rimuovere la voce di costo",
-        `Stai per togliere <b>${esc(c.voce)}</b> (${eur(c.importo)}) dai costi della flotta.<br>
+        `Stai per togliere <b>${esc(c.voce)}</b>${numeroDichiarato(c.importo) == null ? "" : " (" + eur(c.importo) + ")"} dai costi della flotta.<br>
          Il totale e le percentuali qui sopra si ricalcolano subito. <b>Non si può annullare.</b>`, "Rimuovi", true);
       if (!ok) return;
       await db.rimuovi("costi", delCos);
@@ -3960,7 +3999,8 @@ body.dw b.bad{color:var(--ink-dg)}
     const righe = ["data;voce;importo;nota"].concat(
       COS.slice().sort((a, b) => String(a.data || "").localeCompare(String(b.data || "")))
         .map(c => [dataISOEsiste(String(c.data || "").slice(0,10)) ? String(c.data).slice(0,10) : "",
-                   c.voce || "", (+c.importo) || 0, c.nota || ""].map(csvCell).join(";")));
+                   c.voce || "", numeroDichiarato(c.importo) == null ? "" : numeroDichiarato(c.importo),
+                   c.nota || ""].map(csvCell).join(";")));
     const a = document.createElement("a");
     a.href = URL.createObjectURL(new Blob(["﻿" + righe.join("\r\n")], { type: "text/csv;charset=utf-8" }));
     a.download = "flotta-costi.csv"; marchiaCsv(a); a.click();

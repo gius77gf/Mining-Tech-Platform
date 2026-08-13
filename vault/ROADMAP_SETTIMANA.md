@@ -1157,6 +1157,51 @@ numero scritto dove non era stato misurato niente**.*
       Il banco adesso lo pretende: «nessun «undefined» a schermo (0 nodi)», con
       l'elenco dei colpevoli stampato quando ce ne sono.
 
+- [x] ✅ **B0-terdecies. FLOTTA NON AVEVA IL SUO BANCO «NUMERI TRANQUILLI» — e
+      appena scritto ne ha trovati due.** *Chiuso il 13/08.*
+      Non è nato da un sospetto sul codice, ma **dall'elenco dei controlli**:
+      sei app su otto avevano il loro banco della famiglia, Flotta no. È la
+      regola della settimana applicata a sé stessa — *un numero è sorvegliato
+      solo dove il controllo ARRIVA*, e l'elenco di dove arriva va guardato
+      quanto il numero.
+      ```sh
+      ls apps/deepwork-id/tests/browser/ | grep numeri-tranquilli
+      campo · conti · genesi · scudo · sentinella · terra      (Flotta: niente)
+      ```
+      ⚠️ **La prima cosa misurata è stata che il MODULO non ha difetti**:
+      ventotto chiamate a `flotta-data.js` con l'assenza al posto del dato non
+      hanno prodotto un solo numero inventato — ogni zero tranquillo uscito era
+      una decisione scritta e motivata nel file. I due difetti stavano nella
+      **pagina**, dove il documento si compone, e sono **tutti e due la quarta
+      copia di una regola già scritta nello stesso file**:
+      · **«quanto costa un'ora»: la riga che si spezzava in due «ma».** Il
+        totale si incollava davanti al perché con un `, ma ` e l'iniziale
+        abbassata; funziona per quattro dei cinque `perche` di
+        `costoOrarioMezzo`, e il quinto è già fatto di due parti. A schermo:
+        «€ 300,00 spesi, **ma** le ore lavorate si sanno, **ma** nessuna delle
+        spese che cadono in questo periodo porta il suo importo». Due «ma», e
+        per chi legge una contraddizione (i 300 € ci sono: cadono fuori dal
+        periodo coperto dal contatore). La **pagella**, ottocento righe più
+        sotto, sullo stesso mezzo e con lo stesso `perche`, la scriveva già
+        giusta. Il caso entra da un tocco: due pieni col contatore, il secondo
+        col campo della spesa lasciato vuoto;
+      · **«€ 0,00» sulla lista dei costi** dove l'importo non è mai stato
+        scritto — `eur(null)`. La stessa decisione era già presa **tre volte**
+        in questo file (il registro interventi la pastiglia non la disegna, il
+        libretto scrive «costo non scritto», il CSV degli interventi lascia la
+        cella vuota, col perché per esteso: *chi apre il file in un foglio
+        quello zero lo SOMMA credendolo misurato*). Corretti insieme la riga,
+        il CSV dei costi e le due finestre di conferma.
+        ⚠️ **Onestà su da dove nasce una voce così**: dai form di Flotta non
+        nasce (`grep -n "parseCostiCsv" apps/flotta/flotta-data.js` → niente;
+        «Registra spesa» pretende un importo maggiore di zero; la voce
+        «Carburante» si crea solo `if (v.euro > 0)`). È il record scritto
+        altrove o prima — la specie di `m6` senza `tipo` e `n1` senza `stato`,
+        che la dimostrazione porta apposta.
+      Banco nuovo `flotta-numeri-tranquilli.mjs`: **24 passate, 0 cadute**;
+      controprova **20/5** (i difetti rimessi la fanno cadere). Iscritto in
+      `tutti.mjs`: esecuzioni **186 → 188**, file di banco **77 → 78**.
+
 - [ ] **B0-duodecies. I CLAMP DELLE TRE SUPERFICI CHE IL CENSIMENTO NON AVEVA
       GUARDATO — core, Campo, Scudo.** ⏱️ *Censite il 10/08 con lo stesso
       comando delle altre cinque app (commenti tolti con `senzaCommenti`, sulle
@@ -4141,8 +4186,8 @@ numero scritto dove non era stato misurato niente**.*
   sorvegliati ne contavano sette: due convenzioni per lo stesso numero, che è
   il modo più facile di far sembrare sbagliato un conto giusto. Adesso è una
   sola.*
-  Copertura **725/725** e nessuna funzione scoperta; **186 esecuzioni** che
-  aprono le pagine in un browser vero, da **77** file di banco distinti (contati
+  Copertura **726/726** e nessuna funzione scoperta; **188 esecuzioni** che
+  aprono le pagine in un browser vero, da **78** file di banco distinti (contati
   dalla tabella `BANCHI` di `tutti.mjs`, non a occhio dalla cartella, che di
   `.mjs` ne ha di più perché contiene anche gli aiuti — `giro.mjs`,
   `impronta.mjs`, il runner stesso).
