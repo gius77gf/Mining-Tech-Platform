@@ -1400,7 +1400,38 @@ if (LARGHEZZE.length > 1) console.log(`\n████████ larghezza ${LA
 for (const [nome, via] of SUPERFICI) {
   if (SOLO && SOLO !== nome) continue;
   console.log(`\n══════ ${nome}${LARGHEZZE.length > 1 ? ` a ${LARGH} px` : ''} ══════`);
-  const { ctx, p, errori } = await apriSuperficie(b, { nome, via, porta: PORTA, larghezza: LARGH, montaFintoFirebase });
+  /* ⛔ IL CORE IL TEMA CHIARO CE L'HA — quello che non ha è l'INTERRUTTORE
+     CONDIVISO. Fino al 13/08 questo banco stampava «core non ha il tema
+     "chiaro": NON misurata» e nessuno l'aveva letto: sono le righe «non ho
+     guardato», che in questa casa si leggono PRIMA dei KO. Il numero era
+     giusto (8 superfici su 14 non misurate) e **la ragione no**.
+     I comandi che lo dicono:
+       grep -n "body.light-mode{" index.html      →  7971
+       grep -n "function temaChiaro" index.html   →  1340
+     Il core fa `classList.toggle('light-mode', temaChiaro())` dentro
+     `applyTheme`, e `temaChiaro()` legge `DB.settings.theme`. Non ha
+     `window.dwTema` perché non carica `shared/dw-tema.js` — ha due temi suoi.
+     ⚠️ Il tentativo di appiccicare la classe è già stato fatto e ha prodotto
+     decine di KO falsi (sta scritto sotto, dove il tema si impone): la classe
+     restava attaccata e il banco misurava un tema che quel core non aveva.
+     La via che regge è quella che gli altri banchi del core usano già: si
+     passa dai DATI, non dalla classe. Nel servito, le impostazioni di partenza
+     dichiarano `theme:'dark'`; scambiarlo con `'light'` fa entrare il core nel
+     suo tema chiaro **dalla propria porta**, e `applyTheme` lo conferma invece
+     di toglierlo. Il `sole` resta fuori, e stavolta con la ragione giusta: il
+     core quel tema non ce l'ha davvero (il suo foglio lo dichiara, «il core ha
+     DUE temi, scuro e chiaro»).
+     ⚠️ E la sostituzione si CONTA: un `replace` che non trova niente non
+     fallisce, restituisce il testo identico e il banco misurerebbe il buio
+     credendo di misurare il chiaro. */
+  const temaDaiDati = (nome === 'core' && TEMA === 'chiaro')
+    ? (corpo) => {
+        const dopo = corpo.replace("theme:'dark'", "theme:'light'");
+        if (dopo === corpo) { console.error("✗ core: non ho trovato `theme:'dark'` nelle impostazioni di partenza: mi fermo invece di misurare il buio."); process.exit(2); }
+        return dopo;
+      }
+    : null;
+  const { ctx, p, errori } = await apriSuperficie(b, { nome, via, porta: PORTA, larghezza: LARGH, montaFintoFirebase, trasforma: temaDaiDati });
   /* ⛔ E SI CHIEDE ALLA PAGINA SE LA LARGHEZZA È ARRIVATA, invece di fidarsi di
      averla passata. È la regola dell'iniezione che si verifica DOVE IL
      PROGRAMMA LA LEGGE, non dove l'hai scritta: un banco che stampa «misurato a
@@ -1438,7 +1469,11 @@ for (const [nome, via] of SUPERFICI) {
        non lo carica — ha due temi suoi — e infatti va dichiarato NON misurato,
        che è la verità. */
     const messa = await p.evaluate(({ cls, t }) => {
-      if (!window.dwTema) return false;
+      /* il core non ha `dwTema`: il suo tema chiaro è già arrivato dai dati
+         (vedi `temaDaiDati` più su), quindi qui basta CHIEDERE alla pagina se
+         la classe c'è davvero — che è la stessa domanda, fatta dopo che a
+         deciderla è stato il programma della superficie e non questo banco. */
+      if (!window.dwTema) return document.body.classList.contains(cls);
       try { localStorage.setItem('dw-tema', t); } catch (e) { /* niente */ }
       window.dwTema(t);
       return document.body.classList.contains(cls);

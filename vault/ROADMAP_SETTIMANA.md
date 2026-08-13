@@ -1241,6 +1241,44 @@ numero scritto dove non era stato misurato niente**.*
       nella RAGIONE che porta, non solo nel numero.** Qui il numero era giusto
       (8 superfici non misurate) e la ragione no.
 
+      ✅ **FATTA LA MISURA, il 13/08 — e sotto c'erano SESSANTUNO testi.** Il
+      banco adesso fa entrare il core nel suo tema chiaro **dai dati** (le
+      impostazioni di partenza dichiarano `theme:'dark'`; servite con
+      `'light'`, `applyTheme` conferma la classe invece di toglierla), e la
+      sostituzione si **conta**: se non trova quel testo il banco si ferma
+      invece di misurare il buio credendo di misurare il chiaro.
+      Il confronto che toglie ogni dubbio sul righello — **stessa superficie,
+      stessi 451 testi, stesso banco, stesso minuto**:
+
+      | tema | testi misurati | sotto soglia |
+      |---|---|---|
+      | scuro | 451 | **0** |
+      | chiaro | 451 | **61** |
+
+      Cioè a cambiare non è lo strumento: è il tema. E il meccanismo si legge
+      in una riga sola del foglio — `body.light-mode` ridefinisce le
+      **superfici** (`--bg`, `--card`, `--card2`, `--text`, `--muted`) e **non
+      ridefinisce gli inchiostri di stato**. Un verde `#66bb6a` che sul fondo
+      scuro regge, su una scheda **bianca** fa **1,9:1**: sono i «35%», «69%»,
+      «31%» dell'elenco. È l'immagine speculare della lezione dell'08/08 («il
+      bianco su un pieno di stato non regge»): **un inchiostro di stato pensato
+      per il buio non regge sul chiaro.**
+      ⚠️ **I 61 non entrano in un cantiere sulla parola del banco**: l'08/08, su
+      32 KO di contrasto, **quattro erano accuse false**, tutte fra i casi a
+      forbice larga. Qui la forbice è stampata accanto a ognuno — `.addbtn` ha
+      **5,46**, gli altri stanno sotto 0,4 — quindi si rimisurano a mano i casi
+      a forbice larga e si correggono gli altri.
+
+- [ ] **B0-quindecies. IL TEMA CHIARO DEL CORE: 61 TESTI SOTTO SOGLIA, e la
+      causa è UNA.** *Aperta il 13/08 dalla misura qui sopra.* Non sono
+      sessantuno decisioni: `body.light-mode` ridefinisce le superfici e non gli
+      inchiostri di stato. La correzione sta nel **blocco della palette**, non
+      nei sessantuno punti — ed è la stessa forma della correzione dell'08/08,
+      che diede un nome al valore (`--ink-su-pieno`) con i conti scritti
+      accanto. ⚠️ Prima di toccare un colore: rimisurare a mano i casi a
+      **forbice larga** (`.addbtn`, 5,46) — è lì che l'08/08 stavano tutte e
+      quattro le accuse false.
+
 - [ ] **B0-duodecies. I CLAMP DELLE TRE SUPERFICI CHE IL CENSIMENTO NON AVEVA
       GUARDATO — core, Campo, Scudo.** ⏱️ *Censite il 10/08 con lo stesso
       comando delle altre cinque app (commenti tolti con `senzaCommenti`, sulle
