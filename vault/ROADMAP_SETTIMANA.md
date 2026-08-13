@@ -1484,6 +1484,30 @@ numero scritto dove non era stato misurato niente**.*
       superficie **non misurata** e l'unica **con difetti** — il costo esatto di
       un elenco scritto a mano.
 
+- [x] ✅ **IL LAVORO DI STANOTTE VERIFICATO NEL BROWSER, sulla copia immobile di
+      `904b8385`.** *13/08, 22:09.* I sedici difetti chiusi stanotte erano
+      provati dalle suite `node` e dai banchi lanciati **durante** il lavoro,
+      cioè su un albero in cui altri cantieri scrivevano. Rilanciati i cinque
+      banchi «numeri tranquilli» delle app che nessun cantiere sta toccando, su
+      una `git worktree` staccata su HEAD:
+      Conti **28/0** · Terra **49/0** · Sentinella **26/0** · Flotta **24/0** ·
+      Campo **92/0**. Nessuna regressione.
+      ⚠️ Scudo e Genesi **non** sono stati rimisurati, ed è dichiarato invece
+      che taciuto: due cantieri ci stanno scrivendo dentro adesso, e un verdetto
+      preso a metà scrittura non è un verdetto (regola **B0-ter**). Vanno
+      rilanciati alla chiusura di quei due.
+- [x] ✅ **UN AGENTE HA DICHIARATO UN LIMITE CHE NON C'ERA, e l'ho creduto per
+      trenta secondi.** *13/08.* La ricerca sull'assenza dichiarata nei file di
+      scambio è tornata con **tutta la metà sul mondo `[dedotto]`** e la ragione
+      in fondo: «l'accesso esterno è bloccato dal proxy». Verificata da me:
+      `curl https://ec.europa.eu/eurostat/` → **403 CONNECT tunnel failed**, vero;
+      ma lo strumento `WebSearch` — che è **differito** e va caricato con
+      `ToolSearch` — risponde, e sulla stessa domanda ha dato **otto risultati
+      veri** da `sdmx.org`. La rete c'era: mancava lo strumento.
+      ⛔ La regola scritta in `CLAUDE.md`: **«niente entra sulla parola
+      dell'agente» vale anche quando l'agente dichiara un LIMITE**, e il mandato
+      di ricerca **nomina lo strumento e vieta l'altro**. Un documento tutto
+      dedotto sul mondo sarebbe entrato con la faccia di una ricerca.
 - [ ] **B0-duovicies. I SETTE CONTRASTI NON TESTUALI DEL CORE.** ⏱️ *Aperta il
       13/08 dalla misura qui sopra.* La causa dei sei del chiaro sta nei dati:
       `--success/--warn/--danger/--info` sono dichiarati **una volta sola**, nel

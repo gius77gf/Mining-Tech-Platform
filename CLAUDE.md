@@ -340,6 +340,23 @@ sbaglia tre volte su quattro insegna a non guardarlo.
 chiude un'unità aggiorna la riga del documento che gliel'aveva proposta.** È la
 sola cosa che fa scendere quel numero.
 
+⛔ **E LO STRUMENTO VA NOMINATO NEL MANDATO, PERCHÉ UN «NON SI PUÒ» È UN «NON
+C'È» CHE NESSUNO PENSA DI VERIFICARE.** Misurato il 13/08. Un agente di ricerca
+ha provato la rete con `curl`, ha preso un **403 dal proxy**, e ha consegnato un
+documento in cui **tutta la metà sul mondo era `[dedotto]`**, con la ragione
+scritta in fondo: «l'accesso esterno è bloccato». Onesta, e **falsa**: la rete si
+raggiunge con lo strumento `WebSearch` — che è un tool **differito**, va caricato
+con `ToolSearch({query:"select:WebSearch,WebFetch"})` e un agente che non lo sa
+non lo trova. Verificato in trenta secondi rilanciando la stessa domanda: otto
+risultati veri da `sdmx.org`, `curl` verso lo stesso dominio ancora 403.
+⚠️ Il danno non è il documento buttato: è che un documento **tutto dedotto sul
+mondo** è esattamente ciò contro cui questa sezione mette in guardia — *«un delta
+senza il mondo è una lista della spesa»* — e sarebbe entrato con la faccia di una
+ricerca. La difesa è quella di sempre applicata a un caso nuovo: **niente entra
+sulla parola dell'agente, e questo vale anche quando l'agente dichiara un
+LIMITE.** Un «non si può» va rimisurato con lo strumento giusto, non creduto.
+La regola pratica: **il mandato di ricerca nomina lo strumento e vieta l'altro.**
+
 Perché serva davvero e non produca elenchi generici, cinque vincoli:
 
 1. **Legge prima di proporre.** Ogni agente parte da `docs/RICERCA_*_<app>.md`,
