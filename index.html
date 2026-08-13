@@ -8063,9 +8063,11 @@ body.light-mode{
    la quarta stesura dello stesso rosso da velatura (`--ink-dg-vel` fa
    `#ff8f8b`), cioè una copia debole. Unificarla vorrebbe dire cambiare il
    valore anche nel BUIO, di sei unità di rosso — piccolo, ma è il tema che il
-   fondatore ha già visto e approvato, e il mandato di questa unità dice di non
-   toccarlo. Quindi qui si corregge solo il chiaro, e la copia resta
-   DICHIARATA: chi ha il mandato di toccare il buio la chiuda. */
+   fondatore ha già visto e approvato. Quindi qui si corregge solo il chiaro.
+   ✅ E LA DECISIONE SUL BUIO È PRESA, il 13/08, CON LA MISURA — questa riga non
+   propone più niente: `#ff9a95` fa **7,61:1** sul fondo renderizzato, il token
+   **7,05:1**, quindi unificare peggiora (di poco, e tutt'e due passano). Non si
+   unifica; i tre numeri stanno accanto a `.sync-badge.nonsalva`. */
 body.light-mode .sync-badge.nonsalva{color:var(--ink-dg-vel);}
 /* ⚠️ E IL PALLINO DEL TITOLO DI SEZIONE SEGUE L'INCHIOSTRO, NON IL PIENO.
    Guardando gli scatti del chiaro: i titoli di sezione sono marrone scuro in
@@ -8131,7 +8133,45 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
    e' un problema vero ma riguardava solo il padding).
    Con le dichiarazioni qui, il `@media` sotto i 360 px puo' finalmente
    cambiarle. */
-.topbar-id{display:flex;align-items:center;gap:10px;min-width:0;flex:0 1 auto;}
+/* ⛔ `flex:0 4 auto` — LO SHRINK 4 NON È PIÙ SOLO SOTTO I 360 px, E LA RAGIONE È
+   UNA MISURA. Con shrink 1 su tutt'e due i blocchi, il deficit si spartisce in
+   proporzione alla larghezza: i comandi ne prendono la loro parte, ma dentro
+   non hanno NIENTE che sappia stringersi (tre bottoni a 44, la pastiglia a
+   `nowrap`), quindi il loro contenuto trabocca — e con `justify-content:
+   flex-end` trabocca ALL'INDIETRO, sopra il nome dell'utente. Misurato a 430 px
+   con la pastiglia «NON SALVA» accesa: la pastiglia a 109,58–186, la scatola
+   dei comandi a 174,89–416, cioè **65,31 px fuori dal padre** e **59,31 px
+   sopra il nome** — e `scrollWidth == clientWidth` (430 = 430), quindi nessun
+   controllo sull'overflow lo vede. Senza pastiglia il difetto resta, più
+   piccolo: a 430 px il bottone del tema esce di 23,33 e ne copre 17,33.
+   Con shrink 4 cede prima l'identità, che ha i puntini e sa accorciarsi
+   («Giusep…»), e i comandi restano interi. La banda misurata era 361→560 px:
+   a 320 e 360 non succedeva perché lì la pastiglia è già un punto.
+   ⛔ **E 4 NON È UN NUMERO TONDO SCELTO A OCCHIO: 3 È STATO PROVATO E SCARTATO
+   CON LA MISURA.** Uno shrink più basso lascia più nome, ed è la tentazione
+   ovvia — ma con 3 la barra torna a traboccare di **2,97 px** a 320 px con la
+   pastiglia accesa, e con 2 la casella di ricerca scende a **40 px** di
+   larghezza sul ramo del tocco, cioè sotto i 44 di un bersaglio. Con 4: zero
+   traboccamento a tutte e quattordici le larghezze provate (320→1024), sui due
+   rami, con e senza pastiglia.
+   ⚠️ E il ramo che conta di più non è quello che si misura per primo: Chromium
+   da scrivania NON è `pointer:coarse`, e il blocco del tocco (in fondo al
+   foglio) dà alla ricerca `width:120px` invece dei 74/130. Lì il difetto era
+   più grosso e arrivava fino a 320 px — 120,08 px fuori dal padre e 42,77 sopra
+   il nome — cioè proprio dove la correzione dei 360 px sembrava averlo chiuso.
+   Chi rimisura questa barra deve rimettere quelle righe in coda al foglio, se
+   no misura un telefono che non esiste.
+   ⏱️ ARRETRATO DICHIARATO, per essere visto scendere: chiuso il traboccamento,
+   sul ramo del tocco con la pastiglia accesa il nome resta **18 px a 320 px**,
+   45 a 375 e 33 a 431 — cioè «Gi…». Non è una sovrapposizione e non è un
+   taglio (i puntini ci sono), ma è meno del pavimento che questa barra si era
+   data a 320 px (47). La ragione è che il blocco del tocco FISSA la ricerca a
+   120 px invece di scalarla, quindi lì dentro cede solo il nome: è la stessa
+   forma del difetto del tema del sole già scritta in CLAUDE.md — un tema
+   dovrebbe scalare una misura, non inchiodarla. Non toccato qui perché
+   scalarla vorrebbe dire tagliare il segnaposto «Cerca…» a 16 px, e questa
+   unità misura il traboccamento invece di ridisegnare la ricerca. */
+.topbar-id{display:flex;align-items:center;gap:10px;min-width:0;flex:0 4 auto;}
 .topbar-cmd{display:flex;align-items:center;gap:6px;min-width:0;flex:0 1 auto;justify-content:flex-end;}
 .topbar{background:rgba(20,16,10,.9);backdrop-filter:blur(12px);border-bottom:1px solid var(--border);padding:0 14px;height:56px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;position:sticky;top:0;z-index:100;gap:8px;}
 .logo-sm{font-family:'Barlow Condensed',sans-serif;font-size:16px;font-weight:800;letter-spacing:3px;color:var(--ink-am);
@@ -8155,8 +8195,25 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
 /* Solo memoria: il database non risponde e niente di quello che si scrive
    viene salvato. NON lampeggia — non è un'attesa che passerà da sola, è lo
    stato di tutta la sessione, e una cosa che pulsa si smette di guardare. */
-/* ⛔ 4,22:1 contro i 4,5 che servono: è l'avviso che dice «quello che scrivi
-   non viene salvato», cioè il posto dove leggere male costa di più. */
+/* ⛔ QUESTO `#ff9a95` È LA QUARTA STESURA DEL ROSSO DA VELATURA, E RESTA — CON
+   IL NUMERO CHE DICE PERCHÉ. Il token esiste (`--ink-dg-vel`) e nel chiaro
+   questa regola lo usa già (riga `body.light-mode .sync-badge.nonsalva`); nel
+   buio il token vale `#ff8f8b`, sei unità di rosso più scuro. Unificare sarebbe
+   più pulito, ma cambia un colore del tema che il fondatore ha già visto, e
+   quindi si decide con la misura, non col gusto.
+   Misurato il 13/08 a 430 px leggendo il fondo RENDERIZZATO (il velo
+   `rgba(239,83,80,.15)` composto sulla barra) nello stesso punto in cui sta
+   l'inchiostro, non la dichiarazione:
+     · buio, `#ff9a95` (questa riga)      → **7,61:1**
+     · buio, `--ink-dg-vel` = `#ff8f8b`   → **7,05:1**
+     · chiaro (già il token, `#b3201c`)   → **5,34:1**
+   Il token nel buio PEGGIORA di 0,56 — restano tutt'e due larghi sopra il 4,5
+   che serve a un testo di 10 px in grassetto, ma il mandato era «unifica se e
+   solo se non peggiora nessuno dei due». Non peggiora nessuno dei due è falso,
+   quindi NON si unifica, e la copia resta dichiarata qui con il suo conto.
+   ⚠️ Il commento precedente diceva «4,22:1 contro i 4,5 che servono». Quel
+   numero non si riproduce: rimisurato col fondo vero fa 7,61. Chi lo rimette
+   scriva accanto su che fondo l'ha composto. */
 .sync-badge.nonsalva{background:rgba(239,83,80,.15);border:1px solid var(--danger);color:#ff9a95;}
 .sync-dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:currentColor;}
 /* ⛔ SOTTO I 360 px LA PASTIGLIA DIVENTA UN PUNTO, E LA RAGIONE È UNA MISURA.
@@ -8176,9 +8233,26 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
    nel `title` e — nuovo — in un `aria-label`, perché un `title` da solo su un
    telefono non lo legge nessuno. È lo stesso trattamento che ha già il bottone
    «Esci», che sotto questa soglia è un'icona. */
-@media(max-width:360px){
+/* ⛔ E LA SOGLIA ERA 360 QUANDO DOVEVA ESSERE 430: LA MISURA DI SOPRA ERA STATA
+   FATTA A UNA LARGHEZZA SOLA. Il testo della pastiglia costa 53,42 px (76,42
+   contro i 23 del punto), e finché c'è, alla larghezza NORMALE di un telefono
+   il blocco dei comandi chiede più di quanto ha. Misurato, con la pastiglia
+   accesa: a 361 px chiede 306,42 e ne ha 199,09; a 390 chiede 306,42 e ne ha
+   216,75; a 430 chiede 306,42 e ne ha 241,11 — cioè trabocca all'indietro di
+   107,33 · 89,67 · 65,31 px, e ne finiscono 61 · 76,42 · 59,31 SOPRA IL NOME.
+   Il difetto non era del tema: gli stessi numeri, alla cifra, nel buio e nel
+   chiaro. Nel chiaro si vede di più perché lì il bottone del tema è acceso
+   (fondo ambra pieno) e copre quello che c'è sotto invece di lasciarlo
+   trasparire.
+   ⚠️ Le due `@media` restano separate di proposito: qui sotto sparisce solo il
+   TESTO della pastiglia, e vale fino a 430; il blocco dei 360 px qui accanto
+   tiene le sue misure (margini della barra, spazio fra i comandi) che a 430
+   devono restare quelle di sempre. */
+@media(max-width:430px){
   .sync-badge .sync-testo{display:none;}
   .sync-badge{padding:5px 7px;}
+}
+@media(max-width:360px){
   /* ⛔ E LA PASTIGLIA DA SOLA NON BASTAVA: MISURATO. Ridotta a punto (76 → 23
      px) traboccava ancora, perché nel blocco restavano quattro comandi da 44 e
      una casella di ricerca da 74: servivano 253 px dove ce n'erano 160.
@@ -8186,9 +8260,15 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
      dice che era già disegnata per stare stretta da ferma e allargarsi quando
      la si usa. Sotto i 360 px si stringe fino alla sua lente — che resta
      visibile e toccabile, perché il campo conserva il padding sinistro — e si
-     apre a 150 px appena la si tocca. Il `min-width:0` sull'INVOLUCRO è la
-     riga che rende possibile tutto il resto: senza, l'involucro tiene la
-     larghezza del suo contenuto e a cedere torna a essere qualcun altro. */
+     apre a 150 px appena la si tocca. Il `min-width` sull'INVOLUCRO è la riga
+     che rende possibile tutto il resto: senza, l'involucro tiene la larghezza
+     del suo contenuto e a cedere torna a essere qualcun altro.
+     ⚠️ Quella riga NON sta più qui: dal 13/08 è `min-width:40px` accanto a
+     `.topbar-search-wrap`, senza `@media`, perché serviva a ogni larghezza e
+     non solo sotto i 360 — e a 30 px sotto i 360, in un blocco messo dopo la
+     regola base (l'unico posto in cui vince). Tenerne una copia qui dentro non
+     avrebbe fatto niente: nello stesso foglio, a parità di specificità, vince
+     l'ultimo. */
   /* ⛔ E MANCAVANO ANCORA 19 px, misurati: pastiglia a 133-156 dove il blocco
      dei comandi comincia a 152. Li danno tre cose insieme, e nessuna toglie
      niente a nessuno: i margini della barra (14 → 10), lo spazio fra i comandi
@@ -8199,9 +8279,19 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
      non si possono stringere. Con `flex-shrink:4` sull'identità cede PRIMA lei,
      ed è giusto: un nome che si accorcia resta leggibile («Gius…»), un bottone
      che si accorcia smette di essere un bottone. */
-  .topbar-search-wrap{min-width:0;}
-  .topbar-search-input{width:0;padding-right:0;border-color:transparent;background:transparent;}
-  .topbar-search-input:focus{width:150px;padding-right:10px;border-color:var(--amber);background:var(--card);}
+  /* ⛔ QUI C'ERANO DUE REGOLE SU `.topbar-search-input` (width:0, padding-right:0,
+     bordo e fondo trasparenti, e il :focus a 150px) E NON HANNO MAI FATTO
+     NIENTE. La regola base `.topbar-search-input{…padding:7px 10px 7px 28px…}`
+     è scritta ~350 righe più in BASSO in questo stesso foglio: a parità di
+     specificità vince l'ultimo, e la scorciatoia `padding` ributta dentro il
+     `padding-right`. Misurato a 320 px prima di toccare niente:
+     `getComputedStyle` dava `padding-right: 10px` e una larghezza risolta da
+     74 (non da 0). È la terza volta che «vince l'ultimo» morde questa barra.
+     La riga che serviva davvero — il padding destro a zero, che è quello che
+     fa stare la casella nella sua lente — è stata rimessa DOVE VINCE, subito
+     dopo il blocco dei 560 px. Bordo e fondo trasparenti NON sono stati
+     rianimati: sarebbero un cambio d'aspetto che nessuno ha mai visto, e
+     questa unità misura il traboccamento, non ridisegna la ricerca. */
 }
 .sync-badge.offline .sync-dot{animation:pulseDot 1.5s ease-in-out infinite;}
 .sync-badge.syncing .sync-dot{animation:rotateDot 1s linear infinite;}
@@ -8520,7 +8610,24 @@ body.light-mode .map-wrap iframe{filter:none;}
 .search-wrap .search-icon{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--muted);font-size:14px;pointer-events:none;}
 .search-results{background:var(--card);border:1px solid var(--border);margin-top:4px;max-height:400px;overflow-y:auto;}
 /* ── Ricerca inline topbar ── */
-.topbar-search-wrap{position:relative;display:flex;align-items:center;}
+/* ⛔ `min-width:40px` — LA RICERCA SA STRINGERSI A QUALUNQUE LARGHEZZA, NON SOLO
+   SOTTO I 360 px. Senza questa riga l'involucro tiene la larghezza del suo
+   contenuto (`min-width:auto`), quindi dentro il blocco dei comandi non c'è
+   niente di cedevole e il contenuto trabocca all'indietro sopra il nome (vedi
+   `.topbar-id`).
+   ⚠️ 40 e non 32, e la differenza l'ha trovata una prova: il campo dentro non
+   può scendere sotto 28 px di padding sinistro + 10 di destro + 2 di bordo =
+   **40**, quindi un involucro più stretto lo lascia sporgere. Misurato a 320 px
+   con l'involucro a 32: il campo a 178,19–218,19 dentro un involucro
+   178,19–216, cioè **2,19 px fuori** — piccolo, e nella direzione della
+   campanella. È lo stesso difetto che questa unità sta chiudendo un piano più
+   sotto, e ci ha messo lo stesso a nascondersi.
+   ⚠️ Questa riga sta QUI e non in un `@media` perché il pavimento serve a OGNI
+   larghezza. Sotto i 360 px scende a 30, e quel blocco è scritto DOPO la regola
+   base della casella (subito sotto il blocco dei 560): nello stesso foglio, a
+   parità di specificità, vince l'ultimo — è la trappola già pagata tre volte in
+   questa barra, e la terza l'ha pagata proprio la ricerca. */
+.topbar-search-wrap{position:relative;display:flex;align-items:center;min-width:40px;}
 .topbar-search-icon{position:absolute;left:8px;color:var(--muted);font-size:13px;pointer-events:none;z-index:1;}
 /* ⛔ `min-width:0` QUI È QUELLO CHE FA CEDERE LA RICERCA INVECE DEI BOTTONI.
    Un `<input>` dentro un flex ha `min-width:auto` = la sua larghezza intrinseca,
@@ -8535,9 +8642,40 @@ body.light-mode .map-wrap iframe{filter:none;}
    ricerca si può riaprire toccandola — il proprio nome no: o si legge o non
    c'è. Al fuoco torna larga, perché mentre si scrive serve vedere cosa si è
    scritto. */
-@media(max-width:430px){
+/* ⛔ E LA SOGLIA È SALITA DA 430 A 560, PER UN GRADINO CHE SI VEDEVA SOLO
+   MISURANDO. A 430 px la ricerca vale 74, a 431 torna a 130: nella barra
+   entrano 56 px in più di ricerca proprio dove il testo della pastiglia torna
+   a comparire (l'altro gradino, qui sopra), e i due si sommano. Misurato con la
+   correzione dello shrink già dentro: a 431 px al nome restavano **27,11 px** —
+   meno che a 320 — mentre la ricerca ne prendeva 89,63. Cioè cedeva il nome, e
+   la riga qui sopra dice che a cedere dev'essere la ricerca.
+   Con la soglia a 560 il gradino cade dove c'è spazio davvero: a 431 il nome
+   torna a 59,95 e la ricerca a 54,02, e da 561 in su non cambia niente rispetto
+   a prima. Il costo — la ricerca a riposo larga 74 invece di 130 fra 431 e 560
+   px — è misurato e piccolo: a quelle larghezze si stringeva comunque da sola
+   (73,19 a 431 senza pastiglia), e al fuoco torna larga. */
+@media(max-width:560px){
   .topbar-search-input{width:74px;}
   .topbar-search-input:focus{width:170px;}
+}
+/* ⛔ E QUESTO BLOCCO STA QUI, DOPO LA REGOLA BASE, PERCHÉ È L'UNICO POSTO IN CUI
+   VINCE. Ce n'è già uno a 360 px trecento righe più su: quello NON può servire,
+   perché la regola base con la scorciatoia `padding` viene dopo di lui e gli
+   ributta dentro il padding destro (vedi il commento là). Il numero che conta:
+   il campo non può scendere sotto padding-sinistro 28 + padding-destro 10 +
+   bordo 2 = **40 px**, quindi a 320 px il blocco dei comandi restava corto di
+   **2,19 px** e la pastiglia usciva di tanto dalla scatola del padre. Col
+   padding destro a zero il pavimento del campo scende a 30, l'involucro lo
+   segue, e a 320 px avanzano 7,81 px invece di mancarne 2,19.
+   Il padding sinistro resta: è la scatola della lente, che deve restare
+   visibile e toccabile. Al fuoco la casella torna larga e il padding lo
+   rimette la regola `:focus` qui sopra. */
+@media(max-width:360px){
+  .topbar-search-wrap{min-width:30px;}
+  .topbar-search-input{padding-right:0;}
+  /* al fuoco il padding destro torna: mentre si scrive il testo non deve
+     toccare il bordo. Era già l'intenzione della regola morta di sopra. */
+  .topbar-search-input:focus{padding-right:10px;}
 }
 /* Risultati ricerca: posizionati sotto la topbar */
 #search-results-wrap .search-results{position:fixed;top:56px;right:0;left:0;max-height:60vh;overflow-y:auto;z-index:200;border-top:none;}
@@ -8718,7 +8856,12 @@ select.finput,select.fi{font-size:16px;}
      quando una regola non morde, si guarda **chi vince davvero** invece di
      dedurlo — `getComputedStyle` risponde in tre secondi. */
   .topbar-cmd{gap:4px;}
-  .topbar-id{flex-shrink:4;}
+  /* ⛔ QUI C'ERA `.topbar-id{flex-shrink:4}` E DAL 13/08 NON C'È PIÙ, perché
+     quello shrink adesso vale a OGNI larghezza (`.topbar-id{flex:0 4 auto}`, e
+     il perché sta scritto là). Tenerlo qui sarebbe stata la trappola peggiore
+     di una riga inutile: chi domani cambiasse il numero generale lo vedrebbe
+     rimesso a 4 sotto i 360 px senza capire da dove — e sotto i 360 px è la
+     larghezza in cui questa barra ha già sbagliato tre volte. */
 }
 /* Evita che il contenuto sc dell'editor-cava venga tagliato (ha solo ec-side, non sc) */
 #screen-editor-cava{overflow:hidden;}

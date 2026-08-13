@@ -592,6 +592,29 @@ const BANCHI = [
   ['etichette della barra · tema sole', 'barra-etichette.mjs', ['--tema=sole']],
   ['etichette della barra · controprova', 'barra-etichette.mjs', ['--controprova'], true],
   ['etichette della barra · controprova sole', 'barra-etichette.mjs', ['--controprova', '--tema=sole'], true],
+  /* ⛔ AGGIUNTO IL 13/08. `fuori-schermo` chiede «esce dallo SCHERMO?» e
+     `barra-etichette` chiede «l'etichetta sta nella sua colonna?»: nessuna
+     delle due sa vedere il traboccamento ALL'INDIETRO, perché
+     `scrollWidth > clientWidth` non cambia di un pixel quando il contenuto
+     esce dalla parte opposta. Nel core la pastiglia «NON SALVA» stava sopra il
+     nome dell'utente a ogni larghezza fra 361 e 560 px — 65,31 px fuori dalla
+     scatola del padre a 430 — e le due domande di sopra dicevano «pulito».
+     Il ramo del TOCCO è una passata a sé e non un lusso: Chromium da scrivania
+     non è `pointer:coarse`, e lì il difetto arrivava fino a 320 px.
+     ⚠️ E LE LARGHEZZE SONO DIVISE FRA LE PASSATE PERCHÉ IL COSTO È MISURATO,
+     non temuto: quattordici superfici per dieci larghezze sono 140 aperture e
+     più di mezz'ora — un banco che costa mezz'ora allunga il giro senza dire
+     niente di nuovo, perché il difetto vive dove la barra è PIENA. Quindi:
+     tutte le superfici alle tre larghezze che contano (390 · 430 · 431, cioè i
+     due gradini), e il core a tutte e dieci. Misurato: tutte le superfici a due
+     larghezze = 28 misure, 14 barre, 0 da guardare; il core a dieci = 10 barre,
+     104 figli, 0. */
+  ['la barra in alto non trabocca all\'indietro', 'barra-alto-indietro.mjs', ['--larghezze=390,430,431']],
+  ['barra in alto · il core a tutte le larghezze', 'barra-alto-indietro.mjs', ['--solo=core']],
+  ['barra in alto · ramo tocco', 'barra-alto-indietro.mjs', ['--solo=core', '--tocco']],
+  ['barra in alto · tema chiaro', 'barra-alto-indietro.mjs', ['--solo=core', '--tema=chiaro']],
+  ['barra in alto · controprova', 'barra-alto-indietro.mjs', ['--controprova', '--solo=core'], true],
+  ['barra in alto · controprova tocco', 'barra-alto-indietro.mjs', ['--controprova', '--tocco', '--solo=core'], true],
   ['la quota di base è nel sistema del rilievo', 'quota-base-reale.mjs', []],
   ['quota di base · controprova', 'quota-base-reale.mjs', ['--controprova'], true],
   ['il registro costi', 'registro-costi.mjs', []],

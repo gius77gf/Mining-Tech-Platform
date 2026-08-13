@@ -1499,20 +1499,74 @@ numero scritto dove non era stato misurato niente**.*
       · buio: un `path` svg-stroke `--ink-am2` a **2,45** (forbice zero) — ma è
         **ambra di marca**, non un segnale di stato: va letto con la collisione
         dichiarata qui sopra.
-- [ ] **B0-vicies. LA PASTIGLIA «NON SALVA» SI SOVRAPPONE AL NOME UTENTE, IN
-      CHIARO, A 430 px.** ⏱️ *Visto negli scatti il 13/08 e **non** introdotto
-      dalla correzione dei colori (il diff tocca solo colori).* È il
-      traboccamento **all'indietro** già descritto in `CLAUDE.md` — con
-      `justify-content:flex-end` il contenuto che non ci sta esce dalla parte
-      opposta e `scrollWidth > clientWidth` risponde «a posto» — ma qui in una
-      veste nuova: **non a 320 px, alla larghezza normale.**
-- [ ] **B0-unvicies. `.sync-badge.nonsalva` SCRIVE IL SUO ROSSO A MANO.**
-      ⏱️ *Dichiarato il 13/08.* È la quarta stesura dello stesso rosso da
-      velatura (`--ink-dg-vel`). Unificarla cambierebbe il valore **anche nel
-      buio**, di sei unità di rosso: il cantiere ha corretto **solo il chiaro** e
-      ha dichiarato la copia nel commento, perché il buio è quello che il
-      fondatore ha già visto e approvato.
+- [x] ✅ **B0-vicies. LA PASTIGLIA «NON SALVA» SI SOVRAPPONEVA AL NOME UTENTE —
+      e la segnalazione aveva ragione sul fatto e torto sulla causa.**
+      *Chiuso il 13/08.* La sovrapposizione c'era: a 430 px la pastiglia stava a
+      **109,58–186** dentro un genitore che parte da **174,89** — **65,31 px
+      fuori dalla scatola del padre**, **59,31 × 18 px sopra il nome**, e
+      `scrollWidth == clientWidth` (430 = 430), cioè **nessun controllo
+      sull'overflow poteva vederlo**.
+      ⛔ **Ma non è un difetto del tema chiaro**: nel buio gli stessi numeri
+      **alla cifra**. Nel chiaro si nota di più perché lì il bottone del tema è
+      acceso, fondo ambra pieno, e **copre** invece di lasciar trasparire. È la
+      seconda volta in una sera che un'accusa è **vera sul fatto e sbagliata
+      sulla causa** (la prima è `.addbtn`): uno scatto propone, una misura
+      decide — e decide anche **di che cosa** si tratta.
+      · **La banda è 361→560 px**, non «430», e il peggiore è **431** (esce
+        106,53), dove la ricerca risale da 74 a 130 px;
+      · succede **anche senza la pastiglia**: a 431 il bottone del tema esce di
+        56,81 e ne copre 44 del nome;
+      · ⛔ **il ramo che conta di più non è quello che si misura per primo**:
+        Chromium da scrivania **non è** `pointer:coarse`, e il blocco del tocco
+        — quello che comanda su un telefono vero — **fissa** la ricerca a 120
+        px. Lì il difetto arrivava fino a **320 px** (120,08 fuori, 42,77 sul
+        nome), cioè proprio dove la correzione sembrava averlo chiuso.
+      ⛔ **E due regole CSS non facevano niente da sempre**: le due
+      `.topbar-search-input` dentro il blocco dei 360 px erano scavalcate dalla
+      regola base con la **scorciatoia** `padding`, trecentocinquanta righe più
+      in basso. Misurato: a 320 px `getComputedStyle` dava `padding-right:10px`.
+      CSS valido, nessun errore, e **niente da leggere** — la famiglia della
+      classe che nessuno dipinge.
+      **Dopo**: 14 larghezze × 2 rami × 2 temi, con e senza pastiglia — **esce
+      0 · sovrappone 0 · scorre 0**. Bersagli di tocco sul ramo del tocco: **0
+      KO su 40**. Contrasto del core: **450 testi, 0 sotto soglia** nei due
+      temi — 450 e non 451 perché a 430 px «NON SALVA» è ora un punto, e la cosa
+      è **provata invece che dedotta** (a 600 px, dove il testo c'è, torna
+      451/0).
+      ⚠️ **Un numero provato e scartato, perché nessuno lo rimetta**:
+      `flex-shrink:3` sull'identità torna a traboccare di 2,97 px a 320;
+      `flex-shrink:2` porta la ricerca a 40 px sul ramo del tocco, sotto la
+      soglia di un bersaglio. **4** è l'unico che dà zero a 14 larghezze per due
+      rami.
+      Banco nuovo `browser/barra-alto-indietro.mjs`, iscritto con **sei**
+      passate: `--tocco` **legge dalla pagina** le regole `pointer:coarse` e le
+      rimette in coda (31 trapiantate, **dichiarate**) invece di ricopiarle, così
+      non invecchia. Controprova nei due rami: **39** e **76** casi visti col
+      vecchio stato rimesso.
+      ⏱️ **Arretrato lasciato dichiarato nel file**: sul ramo del tocco con la
+      pastiglia accesa il nome resta 18 px a 320 — «Gi…», coi puntini, senza
+      sovrapposizione né taglio. Causa: il blocco `pointer:coarse` **fissa** la
+      ricerca invece di scalarla, la stessa forma del difetto del tema del sole.
+      Scalarla vuol dire tagliare il segnaposto «Cerca…»: è un cantiere suo.
 
+- [x] ✅ **B0-unvicies. IL ROSSO SCRITTO A MANO: MISURATO E *NON* UNIFICATO.**
+      *Chiuso il 13/08 con un NO.* Il contrasto è stato letto sul fondo
+      **renderizzato** (il velo composto sulla barra), inchiostro e fondo nello
+      stesso punto:
+
+      | | rapporto |
+      |---|---|
+      | buio, `#ff9a95` (il valore a mano) | **7,61:1** |
+      | buio, `--ink-dg-vel` (`#ff8f8b`) | **7,05:1** |
+      | chiaro (già il token) | **5,34:1** |
+
+      Il token nel buio **peggiora di 0,56**. Passano tutt'e due la soglia, ma
+      il vincolo era «se e solo se non peggiora nessuno dei due»: **la copia
+      resta, dichiarata**, coi tre numeri scritti nel commento.
+      ⚠️ E il commento precedente diceva «4,22:1 contro i 4,5 che servono»:
+      quel numero **non si riproduce** sul fondo vero. La riga adesso chiede a
+      chi lo rimette di scrivere **su che fondo** l'ha composto — un rapporto di
+      contrasto senza il fondo su cui è stato composto non è una misura.
 - [ ] **B0-duodecies. I CLAMP DELLE TRE SUPERFICI CHE IL CENSIMENTO NON AVEVA
       GUARDATO — core, Campo, Scudo.** ⏱️ *Censite il 10/08 con lo stesso
       comando delle altre cinque app (commenti tolti con `senzaCommenti`, sulle
@@ -4624,8 +4678,8 @@ numero scritto dove non era stato misurato niente**.*
   sorvegliati ne contavano sette: due convenzioni per lo stesso numero, che è
   il modo più facile di far sembrare sbagliato un conto giusto. Adesso è una
   sola.*
-  Copertura **726/726** e nessuna funzione scoperta; **188 esecuzioni** che
-  aprono le pagine in un browser vero, da **78** file di banco distinti (contati
+  Copertura **726/726** e nessuna funzione scoperta; **194 esecuzioni** che
+  aprono le pagine in un browser vero, da **79** file di banco distinti (contati
   dalla tabella `BANCHI` di `tutti.mjs`, non a occhio dalla cartella, che di
   `.mjs` ne ha di più perché contiene anche gli aiuti — `giro.mjs`,
   `impronta.mjs`, il runner stesso).
