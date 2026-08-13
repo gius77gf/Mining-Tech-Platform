@@ -253,3 +253,20 @@ niente — che è esattamente la stessa cosa che cerchiamo nel prodotto.
   ⚠️ Le 19 decisioni di prodotto di `DECISIONI_WEEKEND.md` sono **già tutte
   prese dal ciclo il 07/08** e dichiarate come tali riga per riga: non c'è
   niente di scaduto da decidere adesso.
+
+## 2026-08-13 15:58 UTC — ciclo automatico
+- **Commit di partenza**: `27fa9c5`
+- **Che cosa sto per fare**: il **giro completo del browser**. È la misura mai
+  presa: le 186 esecuzioni registrate non hanno mai girato insieme, e otto sono
+  nate la notte del 10/08. Il giro era stato lanciato in background alle
+  05:14:38 di quella notte, ma il suo registro viveva nello scratchpad del
+  contenitore — che nel frattempo è sparito. Quindi non è "leggere un esito":
+  è **rifare la misura**.
+- **Da dove riparte**: dal checkpoint `20260810-051317_tre-cantieri-raccolti.md`.
+  ⚠️ Il contenitore era di nuovo indietro: il disco stava a `5a4c5b6` (la PR
+  #321), il ramo remoto a `27fa9c5`. Riallineato in avanti con `fetch` +
+  `merge --ff-only` — nessun lavoro perso, perché tutto era già pushato.
+- **Restano ferme** le decisioni che chiedono il fondatore: **B0-septies** (che
+  cosa vede chi apre il 2D di una volata senza maglia; misurato: con la maglia
+  assente il MIC va 58 → 696 kg e il PPV 6,4 → 44,0 mm/s) e le **soglie di
+  sicurezza** (`ppvLimit`, curve USBM/DIN).
