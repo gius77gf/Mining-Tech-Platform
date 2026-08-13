@@ -595,6 +595,18 @@ Perché serva davvero e non produca elenchi generici, cinque vincoli:
   stessa: se un giorno servirà «chi lavora in cava non tocca i documenti di
   sicurezza», non è un problema di `appId`, è la decisione aperta sui **ruoli**
   dentro l'organizzazione.
+- ⛔ **IL MESSAGGIO DI UN COMMIT SI PASSA CON `git commit -F <file>`, MAI CON
+  `-m` FRA VIRGOLETTE.** Misurato il 13/08, e la beffa è che è successo
+  **scrivendo la regola sui commit incompleti**: il messaggio conteneva un
+  esempio di codice fra apici inversi, la shell l'ha preso per una sostituzione
+  di comando, e nel commit è finito «un  reggeva sull'invariante» — con il buco
+  al posto dell'esempio. Il commit **non fallisce**: passa, mutilato, e la
+  storia di git non si può più correggere senza riscriverla.
+  Un messaggio di commit di questa casa contiene quasi sempre codice, virgolette
+  basse, apostrofi e caratteri che una shell interpreta: `-F` li consegna
+  **testuali**. È la stessa famiglia dello script che non fallisce — solo che
+  qui a essere mutilato è il racconto, cioè la sola cosa che resta quando il
+  codice sarà cambiato.
 - GIT: sviluppo sul branch di sessione designato. Niente push diretto
   su main: gli aggiornamenti passano da Pull Request (prassi:
   merge via PR anche per vault/ e docs/). Commit piccoli con messaggi
