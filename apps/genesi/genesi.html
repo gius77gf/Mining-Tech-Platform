@@ -1031,6 +1031,11 @@ import { sitoFit, ppvLimit, ppvSenzaSoglia, ppvSenzaDistanza, airblastDb, normaP
    qui `riconStorico`, `riconSave`, `riconRender` e `_riconCampoHtml`, che
    leggono `localStorage`, il DOM o lo stato del progetto aperto. */
          _rEsc, _riconParseCampo, _riconRiassuntoCampo, riconDelta, csvRiconciliazione,
+/* `campoMisurato` risponde alla stessa domanda per i DUE posti che rileggono un
+   consuntivo già salvato — la riga di storico qui sotto e il CSV che esce
+   dall'azienda — e sta nel modulo perché scritta due volte diventerebbe la
+   copia più debole di sé stessa. */
+         campoMisurato,
          _ricKg, _ricSegno, _ricPct, _ricPlur, _ricData, _ricColore,
 /* il caso RIPETIBILE: gli stessi numeri a ogni ridisegno, che è la ragione per
    cui la banda d'incertezza è una misura e non un'animazione. Cinque funzioni
@@ -2855,7 +2860,15 @@ $('btnExport').onclick = ()=>{
      progetto. ⚠️ La sequenza resta quella del progetto: `sequenza` è l'ordine,
      e riordinare i fori sui tempi sorteggiati vorrebbe dire consegnare come
      ordine di sparo un'inversione che la simulazione mostra come rischio. */
-  const fori = SIM.fori.map(f=>({ id:'foro_'+(f.i+1), num:f.i+1, x:+f.x.toFixed(2), prof:+(f.prof||P.prof), diam:P.diam,
+  /* ⛔ `+(f.prof||P.prof)` FACEVA **0**: con la profondità illeggibile il file
+     con cui una volata si riapre dichiarava dodici fori profondi ZERO METRI —
+     un fatto, e falso, dove il `null` accanto (`kg:P.kg`) dice onestamente
+     «non lo so». È la stessa famiglia dello scatter salvato al posto del
+     nominale, in un campo diverso: qui non è un campione scappato, è un dato
+     assente travestito da misura. `null` in JSON è la convenzione di tutto
+     l'ecosistema, e chi rilegge la sa già trattare. */
+  const _vj=(x)=>{ const n=(x===null||x===undefined||x==='')?NaN:+x; return Number.isFinite(n)?n:null; };
+  const fori = SIM.fori.map(f=>({ id:'foro_'+(f.i+1), num:f.i+1, x:+f.x.toFixed(2), prof:_vj(f.prof)!==null?_vj(f.prof):_vj(P.prof), diam:P.diam,
     kg:P.kg, esplosivo:(selEsplosivo()||{}).nome||'',
     ritardo:+((f.tNom!=null?f.tNom:f.tDet)||0).toFixed(1),
     innesco:(selInnesco()||{}).short||'', sequenza:f.i+1 }));
@@ -3680,7 +3693,18 @@ function riconRender(){
            riga non ce l'hanno e lo dicono, invece di farsela attribuire. */
         +'<br><span style="color:var(--mut2)">base PPV: '
           +_rEsc(r.prev&&r.prev.ppvBase&&r.prev.ppvBase.breve ? r.prev.ppvBase.breve : 'non registrata')+'</span>'
-        +(r.campo?'<br><span style="color:var(--mut2)">da Campo: '+_ricKg(r.campo.kgReale)+' kg caricati su '+gnum(r.campo.foriReg,0)+'/'+gnum(r.campo.foriTot,0)+' '+plurale(r.campo.foriTot,'foro','fori')+' ('+(r.campo.scostPct==null?'scostamento non misurabile':_ricPct(+r.campo.scostPct)+' sul progetto')+')'+(r.campo.chi&&r.campo.chi.length?' · '+_rEsc(r.campo.chi.join(', ')):'')+'</span>':'')
+        /* ⛔ E I CHILI CARICATI ERANO L'ULTIMO ZERO RIMASTO DI QUELLA FAMIGLIA.
+           Lo scostamento lo dichiarava già; accanto, «0 kg caricati su 0/12
+           fori» diceva il contrario — e una riga di storico resta per sempre,
+           senza nessun avviso che l'accompagni. Adesso la domanda la fa
+           `campoMisurato` del modulo, la stessa che la fa al CSV: dove non
+           c'è nessuna carica reale la riga lo dice a parole, invece di dare
+           un numero da leggere. */
+        +(r.campo?'<br><span style="color:var(--mut2)">da Campo: '
+          +(campoMisurato(r.campo)
+            ? _ricKg(r.campo.kgReale)+' kg caricati su '+gnum(r.campo.foriReg,0)+'/'+gnum(r.campo.foriTot,0)+' '+plurale(r.campo.foriTot,'foro','fori')+' ('+(r.campo.scostPct==null?'scostamento non misurabile':_ricPct(+r.campo.scostPct)+' sul progetto')+')'
+            : 'nessuna carica reale registrata sui '+gnum(r.campo.foriTot,0)+' '+plurale(r.campo.foriTot,'foro','fori')+' del file')
+          +(r.campo.chi&&r.campo.chi.length?' · '+_rEsc(r.campo.chi.join(', ')):'')+'</span>':'')
         +(r.real.note?' · '+_rEsc(r.real.note):'')+'</div>').join('')
       +'</div>'):'<div style="margin-top:12px;color:var(--mut);font-size:12px;">Nessuna riconciliazione salvata: inserisci i valori reali e premi “Salva”.</div>');
   const upd=()=>{ $('ric-d-x50').innerHTML=riconDelta(prev.x50,$('ric-x50').value,'cm'); $('ric-d-ppv').innerHTML=riconDelta(prev.ppv,$('ric-ppv').value,'mm/s'); $('ric-d-fly').innerHTML=riconDelta(prev.fly,$('ric-fly').value,'m'); };
@@ -3717,8 +3741,16 @@ function riconSave(){
     real:{x50:val('ric-x50'), ppv:val('ric-ppv'), fly:val('ric-fly'), ovs:val('ric-ovs'), note:($('ric-note')&&$('ric-note').value.trim())||''} };
   // il consuntivo di Campo, se c'è, viaggia insieme al resto: senza di lui la
   // riga di storico non direbbe quanti chili sono davvero finiti nei fori
+  /* ⛔ E `misurabile` VIAGGIA COL RESTO. Il modulo la alza — è la dichiarazione
+     con cui dice «di chili reali qui non ce n'è nessuno» — il riquadro sopra la
+     legge, e questo elenco la lasciava fuori: da lì in poi la riga di storico e
+     il CSV che esce dall'azienda non avevano più modo di sapere che quei numeri
+     non erano stati misurati. È la guardia scollegata della regola 20, in una
+     veste che nessuna prova poteva vedere, perché il difetto non è in chi
+     dichiara né in chi legge: è nel campo che non viene copiato in mezzo. */
   if(_ricCampo) rec.campo={ file:_ricCampo.file, date:_ricCampo.date, turni:_ricCampo.turni,
     chi:_ricCampo.chi, squadre:_ricCampo.squadre, foriTot:_ricCampo.foriTot, foriReg:_ricCampo.foriReg,
+    misurabile:_ricCampo.misurabile,
     kgReale:_ricCampo.kgReale, kgProgReg:_ricCampo.kgProgReg, scostKg:_ricCampo.scostKg,
     scostPct:_ricCampo.scostPct, medioKg:_ricCampo.medioKg, medioPct:_ricCampo.medioPct };
   if(rec.real.x50==null&&rec.real.ppv==null&&rec.real.fly==null&&!rec.campo){ toast('Inserisci almeno un valore reale, o importa il consuntivo di carico da Campo'); return; }
@@ -4639,16 +4671,34 @@ $('d2-cta').onclick=simulaVolata2D;
 /* piano di carico per foro → CSV per il registro reale in Campo (ponte tra le app) */
 $('btn-piano-csv').onclick=()=>{
   if(!D2.holes.length) genMaglia2D();
+  /* ⛔ QUESTE TRE COLONNE SCRIVEVANO LA PAROLA «null». `';'+D2.kg` con la
+     carica per foro illeggibile non fa una cella vuota: fa la stringa
+     «null», e questo file lo importa il fochino in **Campo** per registrarci
+     sopra i chili davvero caricati. Misurato il 13/08: la riga usciva
+     `1;0.00;3.00;null;null;null;0;;;;;`. Le altre sei colonne la regola la
+     rispettavano già (`h.pfLoc!=null? … : ''`), queste tre no perché
+     incollate grezze — la stessa `null` che il CSV della scheda volata ha
+     tolto il 03/08, e per la stessa ragione: un `null` non si scrive in un
+     file che si apre in Excel.
+     ⚠️ E la cella vuota da sola sarebbe muta, quindi il messaggio lo dice a
+     chi preme il bottone, come per il piano di innesco XML: chi consegna a
+     Campo un piano senza la carica di progetto deve saperlo adesso, non
+     scoprirlo aprendo il file. */
+  const _pc=(v)=>{ const n=(v===null||v===undefined||v==='')?NaN:+v; return Number.isFinite(n)?n:''; };
+  const _pcMancanti=[['la profondità',_pc(D2.prof)],['la carica di progetto',_pc(D2.kg)],
+    ['il borraggio',_pc(D2.stem)]].filter(x=>x[1]==='').map(x=>x[0]);
   let csv='foro;x_m;fila_m;prof_m;carica_prog_kg;borraggio_prog_m;ritardo_ms;relief_ms_per_m;burden_locale_m;interasse_locale_m;volume_servito_m3;pf_locale_kg_m3\n';
   D2.holes.slice().sort((a,b)=>a.tDet-b.tDet).forEach((h,i)=>{
-    csv+=(i+1)+';'+h.mx.toFixed(2)+';'+h.my.toFixed(2)+';'+D2.prof+';'+D2.kg+';'+D2.stem+';'+(h.tDet!=null?h.tDet:'')+';'+(h.relief!=null?h.relief.toFixed(2):'')
+    csv+=(i+1)+';'+h.mx.toFixed(2)+';'+h.my.toFixed(2)+';'+_pc(D2.prof)+';'+_pc(D2.kg)+';'+_pc(D2.stem)+';'+(h.tDet!=null?h.tDet:'')+';'+(h.relief!=null?h.relief.toFixed(2):'')
       +';'+(h.burdenLoc!=null?h.burdenLoc.toFixed(2):'')+';'+(h.spazLoc!=null?h.spazLoc.toFixed(2):'')
       +';'+(h.volLoc!=null?h.volLoc.toFixed(1):'')+';'+(h.pfLoc!=null?h.pfLoc.toFixed(3):'')+'\n';
   });
   const a=document.createElement('a');
   a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(csv);
   a.download='genesi_piano_carico.csv'; a.click();
-  toast('✓ Piano di carico esportato: '+_ricPlur(D2.holes.length,'foro','fori'));
+  toast('✓ Piano di carico esportato: '+_ricPlur(D2.holes.length,'foro','fori')
+    +(_pcMancanti.length?' — attenzione: '+_pcMancanti.join(', ')+(_pcMancanti.length===1?' non è un numero leggibile e nel file la colonna resta vuota':' non sono numeri leggibili e nel file quelle colonne restano vuote'):''),
+    _pcMancanti.length?'err':undefined);
 };
 /* P1.3 — Export piano di innesco in XML stile IREDES (interoperabilità con
    detonatori elettronici e software terzi). NON è conformità IREDES certificata:

@@ -28471,5 +28471,163 @@ test("⛔ Conti · venditePerProdotto: l'eccedenza si CONTA, perché il contenim
   eq(solo.soloSenzaDensita, 0, "una consegna cieca si nomina una volta sola");
 });
 
+/* ══════════════════════════════════════════════════════════════════════════
+   GENESI — DOVE L'APP DICE QUALCOSA CHE ESCE, E CHI DECIDE I SUOI NUMERI
+   ══════════════════════════════════════════════════════════════════════════
+   La caccia del 13/08 su Genesi, l'ultima app rimasta fuori dalla passata:
+   una regola che l'app ha già scritto e provata, ricopiata più DEBOLE nel
+   punto in cui deve DIRE qualcosa. Tre punti d'uscita su undici, e in
+   tutt'e tre la regola c'era già a due file di distanza.
+
+   ⚠️ Prove SINCRONE e messe PRIMA del riepilogo: l'`await Promise.all(inVolo)`
+   sta migliaia di righe più su, quindi una prova asincrona aggiunta qui
+   verrebbe messa in volo e il totale si stamperebbe senza aspettarla. */
+{
+  const gz = await app("genesi", "genesi-data.js");
+
+  /* ── 1. IL PIANO DI INNESCO XML — il solo file di Genesi che leggono
+     software di TERZI (detonatori elettronici, perforatrici). Il 09/08 la MIC
+     ha imparato a dichiararsi invece di uscire «0.0», con la frase giusta
+     scritta nel commento sopra; tre righe più giù `<Charge unit="kg">`
+     scriveva ancora **0**, per la stessa ragione (`+null||0`). */
+  const FORI_X = [{ mx: 0, my: 3, tDet: 0 }, { mx: 3.5, my: 3, tDet: 42 }];
+  const PIANO_X = { B: 3, S: 3.5, diam: 102, esplosivo: "anfo-standard",
+    innesco: { id: "nonel", nome: "Nonel" }, sequenza: "diagonale", ritardo: 42,
+    ritardoFila: 84, lastDet: 42, mic: 60, prof: 10, kg: 60, stem: 2.2, fori: FORI_X };
+
+  test("⛔ Genesi · xmlPianoInnesco: un progetto illeggibile non esce «0» al software dei detonatori", () => {
+    /* misurato il 13/08 con la carica per foro illeggibile: il file dichiarava
+       `MaxInstantCharge status="non-calcolabile"` e sotto, per ogni foro,
+       `Depth 0 · Charge 0 · Stemming 0`, maglia `0.00 × 0.00`, diametro `0`.
+       Un documento che si contraddice da solo: dodici fori profondi zero metri
+       e caricati con zero chili, letti da chi programma i detonatori. */
+    const x = gz.xmlPianoInnesco({ ...PIANO_X, B: null, S: null, diam: null,
+      prof: null, kg: null, stem: null, mic: null });
+    for (const t of ["MeshBurden", "MeshSpacing", "HoleDiameter", "Depth", "Charge", "Stemming"]) {
+      ok(new RegExp(`<${t} [^>]*status="non-calcolabile"/>`).test(x), `${t}: si dichiara invece di scrivere un numero`);
+      ok(!new RegExp(`<${t}[^>]*>0`).test(x), `${t}: e non esce nessuno zero inventato`);
+      ok(new RegExp(`<${t} [^>]*unit="`).test(x), `${t}: l'unità resta scritta accanto`);
+    }
+    ok(/6 valori del progetto NON sono leggibili/.test(x),
+      "e il file lo dice in testa, a parole, come già fa per la MIC");
+  });
+
+  test("⛔ Genesi · xmlPianoInnesco: uno zero SCRITTO resta uno zero", () => {
+    /* la domanda è `Number.isFinite`, non il falsy: `+p.stem||0` non sapeva
+       distinguere «zero borraggio» da «non lo so», ed è la stessa differenza
+       che `valoreCampo` fa un piano più su sulla sottoperforazione */
+    ok(gz.xmlPianoInnesco({ ...PIANO_X, stem: 0 }).includes('<Stemming unit="m">0</Stemming>'),
+      "il borraggio a zero è un dato e si scrive");
+    ok(!/valori del progetto NON sono leggibili/.test(gz.xmlPianoInnesco({ ...PIANO_X, stem: 0 })),
+      "e non fa scattare l'avviso di ciò che manca");
+  });
+
+  test("⛔ Genesi · xmlPianoInnesco: i valori buoni escono BYTE PER BYTE come prima", () => {
+    /* questo è un file di scambio: la correzione tocca solo il caso in cui il
+       numero non c'è, e su un progetto sano non deve muoversi una virgola */
+    const x = gz.xmlPianoInnesco(PIANO_X);
+    for (const riga of ['<MeshBurden unit="m">3.00</MeshBurden>', '<MeshSpacing unit="m">3.50</MeshSpacing>',
+      '<HoleDiameter unit="mm">102</HoleDiameter>', '<Depth unit="m">10</Depth>',
+      '<Charge unit="kg">60</Charge>', '<Stemming unit="m">2.2</Stemming>'])
+      ok(x.includes(riga), riga);
+    ok(!/\d,\d/.test(x), "e i numeri restano col punto, che il giro di andata e ritorno non vedrebbe");
+  });
+
+  test("⛔ Genesi · il giro del piano XML: quello che non si legge NON torna inventato", () => {
+    /* IL DANNO NON ERA SOLO DI LETTURA. Il lettore della pagina fa
+       `if(charge!=null){ D2.kg=Math.max(5,Math.min(200,charge)) }`, e
+       `parseFloat("0")` è **0**, cioè un numero: riaprendo un piano esportato
+       con la carica illeggibile tornavano 5 kg per foro, 6 m di profondità e
+       0,5 m di borraggio — tre valori che nessuno aveva scritto e nessun
+       avviso dichiarava. Con l'elemento VUOTO il ripiego non scatta
+       (`parseFloat('')` è NaN) e chi rilegge si tiene quello che ha: il giro
+       si chiude senza toccare il lettore.
+       ⚠️ Il lettore è ricostruito qui perché vive dentro `genesi.html` e
+       `node` non importa un `.html`; le due righe che contano sono citate
+       sopra e la loro forma è quella. */
+    const x = gz.xmlPianoInnesco({ ...PIANO_X, prof: null, kg: null, stem: null, mic: null });
+    const primo = /<Hole [\s\S]*?<\/Hole>/.exec(x)[0];
+    const numOf = (tag, src) => { const m = new RegExp(`<${tag}[^>]*>([^<]*)</${tag}>`).exec(src);
+      const n = m ? parseFloat((m[1] || "").replace(",", ".")) : NaN; return isFinite(n) ? n : null; };
+    eq([numOf("Depth", primo), numOf("Charge", primo), numOf("Stemming", primo)], [null, null, null],
+      "il lettore non trova nessun numero da leggere");
+    const buono = /<Hole [\s\S]*?<\/Hole>/.exec(gz.xmlPianoInnesco(PIANO_X))[0];
+    eq([numOf("Depth", buono), numOf("Charge", buono), numOf("Stemming", buono)], [10, 60, 2.2],
+      "e su un piano sano il giro riporta gli stessi numeri");
+  });
+
+  /* ── 2. IL CONSUNTIVO CHE TORNA DA CAMPO. Il 03/08 `_riconRiassuntoCampo`
+     ha imparato a rispondere `null` sui quattro scostamenti quando nessun foro
+     ha la carica reale; `kgReale` e `kgProgReg` sono rimasti a **zero**,
+     perché sullo schermo la loro riga è protetta da `misurabile` — che lì è in
+     ambito, e nei due posti che rileggono un consuntivo SALVATO non arriva. */
+  const CONS = "data;turno;foro;carica_prog_kg;carica_reale_kg;operatore\n"
+    + Array.from({ length: 12 }, (_, i) => `2026-08-13;mattina;${i + 1};60;;M. Rossi`).join("\n") + "\n";
+
+  test("⛔ Genesi · _riconRiassuntoCampo: senza nessuna carica reale i chili non sono ZERO, non ci sono", () => {
+    const c = gz._riconRiassuntoCampo(gz._riconParseCampo(CONS), "consuntivo.csv");
+    eq([c.foriTot, c.foriReg, c.misurabile], [12, 0, false], "dodici fori nel file, nessuno caricato");
+    eq([c.kgReale, c.kgProgReg], [null, null],
+      "⛔ i due numeri che restavano zero rispondono come i quattro scostamenti accanto");
+    eq([c.scostKg, c.scostPct, c.medioKg, c.medioPct], [null, null, null, null], "e quei quattro non sono cambiati");
+    eq(c.kgProgTot, 720,
+      "⚠️ ma il progetto di TUTTE le righe è un fatto e resta: 720 kg, il numero che il file dichiarava «0»");
+    /* e appena UN foro ha la carica reale i numeri tornano numeri */
+    const uno = gz._riconRiassuntoCampo(gz._riconParseCampo(
+      "foro;carica_prog_kg;carica_reale_kg\n1;60;58\n2;60;\n"), "x.csv");
+    eq([uno.misurabile, uno.kgReale, uno.kgProgReg], [true, 58, 60], "un foro registrato basta");
+    /* ⚠️ e uno ZERO davvero caricato resta un fatto: `misurabile` guarda
+       quanti fori hanno la carica, non quanto pesano */
+    const zero = gz._riconRiassuntoCampo(gz._riconParseCampo(
+      "foro;carica_prog_kg;carica_reale_kg\n1;60;0\n"), "z.csv");
+    eq([zero.misurabile, zero.kgReale], [true, 0], "un foro caricato con zero chili è misurato, ed è zero");
+  });
+
+  test("⛔ Genesi · campoMisurato: la stessa domanda per i due che rileggono un consuntivo salvato", () => {
+    ok(gz.campoMisurato({ misurabile: true, foriReg: 3 }), "la bandiera comanda quando c'è");
+    ok(!gz.campoMisurato({ misurabile: false, foriReg: 3 }), "anche contro il conto dei fori");
+    /* ⚠️ IL VALORE PRIMA DELLA BANDIERA: un record salvato prima del 13/08
+       non ha `misurabile`, e leggere una bandiera assente come «falsa»
+       accuserebbe di non-misurabilità un consuntivo sanissimo — la trappola
+       già scritta accanto a `_cmpNum` per gli scatti A/B senza base. */
+    ok(gz.campoMisurato({ foriReg: 12, kgReale: 700 }), "un record vecchio con fori registrati resta misurato");
+    ok(!gz.campoMisurato({ foriReg: 0, kgReale: 0 }), "e uno vecchio senza fori registrati no");
+    eq([gz.campoMisurato(null), gz.campoMisurato(undefined), gz.campoMisurato({})], [false, false, false],
+      "e l'assenza di record non è un record a posto");
+  });
+
+  test("⛔ Genesi · csvRiconciliazione: «0 kg caricati» non esce più nel file che si archivia col rapportino", () => {
+    /* il file si apre in Excel a casa del cliente e si archivia col
+       rapportino: `campo_kg_reali;0` accanto a `campo_kg_progetto;0` si legge
+       «hanno caricato zero chili su un progetto da zero chili», mentre lo
+       schermo, per lo stesso consuntivo, scriveva «—» due volte. */
+    const c = gz._riconRiassuntoCampo(gz._riconParseCampo(CONS), "consuntivo.csv");
+    const rec = { ts: "2026-08-13 09:12", nome: "Volata 13/08",
+      prev: { x50: 27, ppv: 6.4, fly: 92, ppvBase: { breve: "stimati da Calcare" } },
+      real: { x50: null, ppv: null, fly: null, ovs: null, note: "" },
+      campo: { ...c } };
+    const righe = gz.csvRiconciliazione([rec]).trim().split("\n");
+    const H = righe[0].split(";"), R = righe[1].split(";");
+    const cella = (nome) => R[H.indexOf(nome)];
+    eq(cella("campo_kg_reali"), "", "la cella dei chili reali resta vuota");
+    eq(cella("campo_kg_progetto"), "", "e quella del progetto degli stessi fori pure");
+    eq(cella("campo_scostamento_pct"), "", "come lo scostamento, che era già a posto dal 03/08");
+    eq([cella("campo_fori_registrati"), cella("campo_fori_totali")], ["0", "12"],
+      "⚠️ e i fori restano scritti: 0 su 12 è un fatto, ed è la ragione della cella vuota");
+    /* la controprova nell'altro verso: con le cariche registrate il file le scrive */
+    const pieno = gz._riconRiassuntoCampo(gz._riconParseCampo(
+      "foro;carica_prog_kg;carica_reale_kg\n1;60;58\n2;60;61\n"), "y.csv");
+    const R2 = gz.csvRiconciliazione([{ ...rec, campo: { ...pieno } }]).trim().split("\n")[1].split(";");
+    eq([R2[H.indexOf("campo_kg_reali")], R2[H.indexOf("campo_kg_progetto")]], ["119", "120"],
+      "un consuntivo vero esce con i suoi chili");
+    /* ⚠️ e un record salvato PRIMA del 13/08 (kgReale:0, nessuna bandiera) non
+       si porta dentro lo zero: la cella si decide su `foriReg`, che quei
+       record hanno sempre avuto */
+    const vecchio = gz.csvRiconciliazione([{ ...rec,
+      campo: { foriTot: 12, foriReg: 0, kgReale: 0, kgProgReg: 0, scostPct: null } }]).trim().split("\n")[1].split(";");
+    eq(vecchio[H.indexOf("campo_kg_reali")], "", "anche uno storico vecchio smette di dichiarare zero chili");
+  });
+}
+
 console.log(`\nRisultato KPI app: ${passed} passati, ${failed} falliti${inVolo.length ? `  ·  ${inVolo.length} prove asincrone aspettate` : ""}`);
 process.exit(failed > 0 ? 1 : 0);

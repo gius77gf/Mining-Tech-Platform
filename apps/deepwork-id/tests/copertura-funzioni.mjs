@@ -336,7 +336,15 @@ const CONDIVISI = [
      scritto dove non è stato misurato niente.
      Restano nella pagina `jitterGeo`, `worldJitter` e `simulaPerforazione`,
      che scrivono in una geometria THREE o leggono lo stato del progetto. */
-  { file: "apps/genesi/genesi-data.js", fondo: 61,
+  /* 61 → 62 il 13/08 con `campoMisurato`: la domanda «questo consuntivo di
+     Campo è stato misurato?» fatta UNA volta per i due che rileggono un
+     consuntivo salvato — la riga di storico e il CSV che esce dall'azienda —
+     dopo che tutt'e due dichiaravano «0 kg caricati» dove lo schermo scriveva
+     «—». ⚠️ E il fondo va alzato subito: finché resta indietro, questa riga
+     esce con la coda «(il fondo era N: alzalo)», che rompe la lettura per
+     modulo di `numeri-nei-documenti` — la sua regex vuole la fine riga — e da
+     lì il controllo dichiara di aver letto 4 moduli su 5. */
+  { file: "apps/genesi/genesi-data.js", fondo: 62,
     perche: "la vibrazione al recettore e la riconciliazione previsto-vs-reale: i due numeri di Genesi che decidono qualcosa" },
 ];
 /* Fuori per un motivo, non per dimenticanza. Le prime tre toccano il DOM o

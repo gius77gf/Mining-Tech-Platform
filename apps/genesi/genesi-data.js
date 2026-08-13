@@ -624,11 +624,46 @@ export function _riconRiassuntoCampo(p, nomeFile){
     date:uniche(r=>r.data), turni:uniche(r=>r.turno),
     chi:uniche(r=>r.operatore), squadre:uniche(r=>r.squadra),
     foriTot:p.righe.length, foriReg:reg.length, misurabile,
-    kgProgTot:+kgProgTot.toFixed(3), kgProgReg:+kgProgReg.toFixed(3), kgReale:+kgReale.toFixed(3),
+    /* ⛔ E DUE DEI SEI NUMERI ERANO RIMASTI ZERO, per tre anni buoni di lettori.
+       Il 03/08 questa funzione ha imparato a rispondere `null` sui quattro
+       scostamenti; `kgReale` e `kgProgReg` no, perché sullo SCHERMO la loro
+       riga è già protetta da `misurabile` (`_riconCampoHtml`, «— · nessuna
+       carica reale»). Ma la bandiera in quel punto è in ambito, e negli altri
+       due posti che leggono questi numeri non ci arriva: misurato il 13/08 su
+       un consuntivo appena esportato da Campo e non ancora caricato (12 fori,
+       720 kg di progetto, colonna della carica reale vuota) la riga di storico
+       scriveva «da Campo: **0 kg caricati** su 0/12 fori» — e resta lì per
+       sempre — e il CSV che esce dall'azienda «campo_kg_reali;**0**;
+       campo_kg_progetto;**0**», dove il progetto di quei fori è 720.
+       È il numero tranquillo del principio del fondatore, nel file archiviato.
+       Adesso i sei numeri rispondono allo stesso modo, e la protezione non
+       dipende più da chi legge.
+       ⚠️ `kgProgTot` NON diventa `null`: è la somma del progetto su TUTTE le
+       righe del file, ed è un fatto anche quando nessuno ha ancora caricato. */
+    kgProgTot:+kgProgTot.toFixed(3),
+    kgProgReg:misurabile?+kgProgReg.toFixed(3):null, kgReale:misurabile?+kgReale.toFixed(3):null,
     scostKg, scostPct,
     medioKg, medioPct,
     peggio: peggio?{ foro:peggio.foro, prog:peggio.prog, reale:peggio.reale,
                      diff:+(peggio.reale-peggio.prog).toFixed(3) }:null };
+}
+
+/* ⛔ LA STESSA DOMANDA PER I DUE POSTI CHE RILEGGONO UN CONSUNTIVO SALVATO —
+   la riga di storico e il CSV che esce dall'azienda — e scritta UNA volta,
+   perché scriverla due è il modo in cui questa famiglia nasce.
+   ⚠️ E si guarda il VALORE prima della bandiera, non il contrario: una
+   riconciliazione salvata prima del 13/08 porta `kgReale:0` e nessun
+   `misurabile`, e leggere una bandiera assente come «falsa» accuserebbe di
+   non-misurabilità un consuntivo sanissimo (è la trappola già scritta accanto
+   a `_cmpNum`, per gli scatti A/B senza base registrata). Il ripiego è
+   `foriReg`, che i record vecchi hanno sempre avuto ed è la definizione
+   stessa di `misurabile` un piano più su (`reg.length>0`) — non una seconda
+   regola, la stessa domanda fatta al dato che c'è. */
+export function campoMisurato(c){
+  if(!c) return false;
+  if(typeof c.misurabile === 'boolean') return c.misurabile;
+  const n = +c.foriReg;
+  return Number.isFinite(n) && n > 0;
 }
 
 // numeri scritti come si scrivono in Italia (virgola decimale) ovunque, anche
@@ -737,9 +772,16 @@ export function csvRiconciliazione(st){
      mette, quindi il giro di andata e ritorno resta chiuso. La regola di casa
      dice che una regola che serve a due app non si riscrive: era riscritta. */
   const csv=H.join(';')+'\n'+st.map(r=>{ const c=r.campo||null;
+    /* ⛔ E LE DUE COLONNE DEI CHILI PASSANO DA `campoMisurato`, non dal `c?`:
+       un consuntivo importato e non ancora caricato dava `campo_kg_reali;0` e
+       `campo_kg_progetto;0` in un file che si archivia col rapportino e si
+       apre in Excel a casa del cliente, mentre lo schermo, per lo stesso
+       consuntivo, scriveva «—». La cella vuota è la stessa che il file usa già
+       per lo scostamento nella riga accanto. */
+    const cm=campoMisurato(c);
     return [r.ts,r.nome,r.prev.x50,r.real.x50,r.prev.ppv,r.real.ppv,r.prev.fly,r.real.fly,r.real.ovs,r.real.note,
       c?(c.date||[]).join(' '):'', c?(c.turni||[]).join(' '):'', c?(c.chi||[]).join(' '):'',
-      c?c.foriReg:'', c?c.foriTot:'', c?c.kgReale:'', c?c.kgProgReg:'', c?c.scostPct:'',
+      c?c.foriReg:'', c?c.foriTot:'', cm?c.kgReale:'', cm?c.kgProgReg:'', c?c.scostPct:'',
       /* una riconciliazione salvata prima che questa colonna esistesse resta
          VALIDA e lascia la cella vuota: non le si attribuisce una base che
          nessuno aveva registrato (è la stessa scelta di `_sitoFonte`). */
@@ -836,16 +878,45 @@ export function xmlPianoInnesco(p){
   const e=_xmlEsc, inn=(p&&p.innesco)||{};
   const micV=(p&&p.mic!==null&&p.mic!==undefined&&p.mic!=='')?+p.mic:NaN;
   const micOk=Number.isFinite(micV)&&micV>=0;
+  /* ⛔ E DAL 13/08 LA STESSA REGOLA VALE PER GLI ALTRI SEI NUMERI DEL FILE.
+     La MIC era stata messa in salvo il 09/08 con la frase giusta scritta sopra
+     — «un `null` che diventa `0` in un file che esce è peggio del difetto di
+     partenza» — e tre righe più giù `<Charge unit="kg">` scriveva **`0`** per
+     la stessa ragione, `+null||0`. Misurato il 13/08 con la carica per foro
+     illeggibile: il file dichiarava `MaxInstantCharge status="non-calcolabile"`
+     e sotto, per ogni foro, `Depth 0 · Charge 0 · Stemming 0`, con la maglia a
+     `0.00 × 0.00` e il diametro a `0`. Cioè un documento che si contraddice da
+     solo, letto dal software che programma i detonatori e dalla perforatrice:
+     dodici fori profondi zero metri, caricati con zero chili.
+     ⚠️ E il giro di andata e ritorno lo faceva PEGGIO che leggerlo: il lettore
+     di questa stessa pagina fa `if(charge!=null){ D2.kg=Math.max(5,…) }`, e
+     `parseFloat("0")` è **0**, cioè un numero — quindi riaprendo il piano
+     tornavano **5 kg per foro, 6 m di profondità e 0,5 m di borraggio**, tre
+     valori inventati che nessuno aveva scritto e nessun avviso dichiarava. Con
+     l'elemento VUOTO il ripiego non scatta (`parseFloat('')` è `NaN`), e chi
+     rilegge si tiene quello che ha: il giro si chiude senza toccare il lettore.
+     ⚠️ Uno zero SCRITTO resta uno zero, come per la MIC: la domanda è
+     `Number.isFinite`, non il falsy — se no un dato vero verrebbe dichiarato
+     mancante. */
+  const _num=(x)=>{ const v=(x===null||x===undefined||x==='')?NaN:+x; return Number.isFinite(v)?v:null; };
+  const _tag=(nome,unit,x,dec)=>{ const v=_num(x);
+    return v===null
+      ? '<'+nome+' unit="'+unit+'" status="non-calcolabile"/>'
+      : '<'+nome+' unit="'+unit+'">'+e(dec==null?v:v.toFixed(dec))+'</'+nome+'>'; };
+  const _mancanti=['B','S','diam','prof','kg','stem'].filter(k=>_num(p&&p[k])===null);
   let xml='<?xml version="1.0" encoding="UTF-8"?>\n';
   xml+='<!-- Genesi: bozza di interscambio in stile IREDES (non conformità certificata) -->\n';
   if(!micOk) xml+='<!-- ATTENZIONE: la carica massima per ritardo (MIC) NON e\' calcolabile su questo '
     +'progetto, e per questo MaxInstantCharge esce senza valore invece che a zero. '
     +'Non usare questo piano per programmare i detonatori finche\' la MIC non c\'e\'. -->\n';
+  if(_mancanti.length) xml+='<!-- ATTENZIONE: '+_mancanti.length+' valori del progetto NON sono leggibili '
+    +'(status="non-calcolabile"): escono senza valore invece che a zero. '
+    +'Non usare questo piano per programmare i detonatori ne\' per perforare. -->\n';
   xml+='<BlastPlan xmlns="urn:genesi:blastplan:draft" generator="Genesi" schema="IREDES-like/0.1">\n';
   xml+='  <PlanData>\n';
-  xml+='    <MeshBurden unit="m">'+e((+p.B||0).toFixed(2))+'</MeshBurden>\n';
-  xml+='    <MeshSpacing unit="m">'+e((+p.S||0).toFixed(2))+'</MeshSpacing>\n';
-  xml+='    <HoleDiameter unit="mm">'+e(+p.diam||0)+'</HoleDiameter>\n';
+  xml+='    '+_tag('MeshBurden','m',p.B,2)+'\n';
+  xml+='    '+_tag('MeshSpacing','m',p.S,2)+'\n';
+  xml+='    '+_tag('HoleDiameter','mm',p.diam)+'\n';
   xml+='    <Explosive>'+e(p.esplosivo)+'</Explosive>\n';
   xml+='    <Initiation id="'+e(inn.id)+'">'+e(inn.nome)+'</Initiation>\n';
   xml+='    <Sequence>'+e(p.sequenza||'diagonale')+'</Sequence>\n';
@@ -874,9 +945,9 @@ export function xmlPianoInnesco(p){
   rows.forEach((h,i)=>{
     xml+='    <Hole id="H'+(i+1)+'" seq="'+((h.seq!=null?h.seq:i)+1)+'">\n';
     xml+='      <Position x="'+e((+h.mx||0).toFixed(2))+'" y="'+e((+h.my||0).toFixed(2))+'" unit="m"/>\n';
-    xml+='      <Depth unit="m">'+e(+p.prof||0)+'</Depth>\n';
-    xml+='      <Charge unit="kg">'+e(+p.kg||0)+'</Charge>\n';
-    xml+='      <Stemming unit="m">'+e(+p.stem||0)+'</Stemming>\n';
+    xml+='      '+_tag('Depth','m',p.prof)+'\n';
+    xml+='      '+_tag('Charge','kg',p.kg)+'\n';
+    xml+='      '+_tag('Stemming','m',p.stem)+'\n';
     xml+='      <Delay unit="ms">'+e((+h.tDet||0).toFixed(1))+'</Delay>\n';
     xml+='    </Hole>\n';
   });
