@@ -1766,10 +1766,25 @@ async function fetchMeteo(){
       });
       if(r.ok){
         const j=await r.json();
+        /* ⛔ UN CAMPO CHE IL PROXY NON MANDA NON È UNA MISURA. La riga faceva
+           `(j.wind||0)*3.6` e scriveva **«Vento 0 km/h»** — in cava il vento è
+           il numero da cui dipendono la polvere e la decisione di far brillare,
+           e «zero» vuol dire «aria ferma», non «non me l'hanno detto».
+           Gli altri tre non avevano nemmeno il ripiego: senza `temp`, `desc` o
+           `humidity` uscivano «undefined°» e «Umidità undefined%», che è la
+           stessa famiglia già chiusa sulla sequenza sparo — una parola inglese
+           in un prodotto italiano, e chi la vede pensa che l'app sia rotta.
+           La forma del «non lo so» esiste già ed è quella di `setMeteoFallback`
+           dieci righe più sotto: si riusa quella invece di inventarne una.
+           ⚠️ Da nessun bottone dell'app si arriva qui: ci si arriva se il proxy
+           meteo risponde `ok` con un pezzo del dato. Non è un tocco, è la
+           risposta di fuori — e proprio per questo nessuno se ne accorgerebbe. */
+        const num=(x)=>Number.isFinite(+x)&&x!==null&&x!==''?+x:null;
+        const t=num(j.temp), u=num(j.humidity), w=num(j.wind);
         $('meteo-loc').textContent=cava.nome;
-        $('meteo-temp').textContent=j.temp+'°';
-        $('meteo-desc').textContent=j.desc;
-        $('meteo-small').textContent=`Umidità ${j.humidity}% · Vento ${Math.round((j.wind||0)*3.6)} km/h`;
+        $('meteo-temp').textContent=(t===null?'—':t)+'°';
+        $('meteo-desc').textContent=j.desc||'Meteo non disponibile';
+        $('meteo-small').textContent=`Umidità ${u===null?'—':u+'%'} · Vento ${w===null?'—':Math.round(w*3.6)+' km/h'}`;
         return;
       }
     }catch(e){
@@ -2376,7 +2391,24 @@ function apriGemello(id){
   const focParziali=focNoti.filter(x=>x.parziale).length;
   // eventi unificati
   const ev=[];
-  vol.forEach(v=>ev.push({d:v.data,ic:'📐',col:'#ff8f00',t:`Progetto ${v.nomeProgetto||'Volata #'+v.numero}`,s:`${conta(v.tot_fori||0,'foro','fori')} · ${v.tot_mc||0} mc`,go:`apriEditorCava('${v.id}')`}));
+  /* ⛔ «0 mc» NELLA CRONOLOGIA MENTRE LA STESSA VOLATA, DUE SCHERMATE PIÙ IN
+     LÀ, DICE «mc non calcolabili». Misurato il 13/08 sui totali veri: dodici
+     fori con la profondità mai scritta danno `tot_mc = 0` (il prodotto di
+     `tot_metri` per la maglia), e questa riga scriveva **«12 fori · 0 mc»** —
+     un cumulo di zero metri cubi progettato a dodici fori. La scheda della
+     cava, sugli stessi fori, con `volRiga` scrive già «12 fori · né chili né
+     volume».
+     La domanda giusta non è «quanto vale il totale» ma «qualcuno l'ha
+     misurato», e a saperlo è `misureVolataProgetto` (`mcNoto` = almeno una
+     profondità scritta). Le due funzioni che la interrogano erano già in
+     questo file: `conta(mv.fori,…)` per i fori — `tot_fori` è un campo
+     salvato, e su una volata mai ricalcolata vale `undefined` — e `volMc`,
+     scritta insieme a `volKg` e **mai chiamata da nessuno**: la risposta era
+     in casa, a sedici righe dalla sua gemella.
+     ⚠️ E c'era un secondo scarto che non è un'assenza ma si legge come tale:
+     `${v.tot_mc}` stampa `2016`, `volMc` stampa `2.016,0` come tutto il resto
+     dell'app. Due formati dello stesso numero nella stessa lista. */
+  vol.forEach(v=>{const mv=misureVolataProgetto(v);ev.push({d:v.data,ic:'📐',col:'#ff8f00',t:`Progetto ${v.nomeProgetto||'Volata #'+v.numero}`,s:`${conta(mv.fori,'foro','fori')} · ${volMc(v)}`,go:`apriEditorCava('${v.id}')`});});
   rp.forEach(r=>{const u=DB.users.find(x=>x.id===r.userId);ev.push({d:r.data,ic:'📋',col:'#42a5f5',t:'Rapportino perforazione',s:`${(u?u.nome+' '+u.cognome:'—')} · ${rappRiga(r)}`,go:`apriRapport('${r.id}')`});});
   rf.forEach(r=>{const u=DB.users.find(x=>x.id===r.userId);ev.push({d:r.data,ic:'💥',col:'#ef5350',t:'Volata (fochino)',s:`${(u?u.nome+' '+u.cognome:'—')} · ${conta(r.fori||0,'foro','fori')} · ${focKg(r)}`,go:`apriRappFocDett('${r.id}')`});});
   ev.sort((a,b)=>(b.d||'').localeCompare(a.d||''));
@@ -2888,6 +2920,18 @@ function renderMacchine(){
   renderMacLavoro();renderMacStrada();
 }
 function macTab(t,el){document.querySelectorAll('#screen-macchine .atab').forEach(x=>x.classList.remove('active'));el.classList.add('active');state.macTabAttivo=t;$('mac-lavoro-panel').style.display=t==='lavoro'?'block':'none';$('mac-strada-panel').style.display=t==='strada'?'block':'none';}
+/* Il contatore di un mezzo — ore motore o chilometri — detto per quello che è.
+   Stessa forma di `volKg`, `focKg` e `rappMc`: il numero se qualcuno l'ha
+   letto, la ragione se no, e il testo del vuoto lo passa chi chiama, perché
+   una riga d'elenco e una riga di scheda hanno spazio diverso. In un posto
+   solo, così le cinque scritture non possono divergere: quattro di loro
+   scrivevano `m.km||0` e `${m.oreAttuali}` a mano, e infatti dicevano due cose
+   diverse dello stesso mezzo (l'elenco «0 km», la scheda «0»). */
+function contatoreMezzo(v,unita,vuoto){
+  const n=parseNum(v);
+  if(!Number.isFinite(n)) return vuoto;
+  return perLettura(n,0,true)+(unita==='ore'?' '+plurale(n,'ora','ore'):' '+unita);
+}
 function renderMacLavoro(){
   if(DB.mezziLav.length===0){$('mac-lavoro-list').innerHTML=`<div class="empty-state"><div class="empty-icon">🚜</div><div class="empty-title">Nessun mezzo da lavoro</div><div class="empty-sub">${can('addMac')?'Aggiungi il primo con il ＋ in alto a destra.':'I mezzi li registra l\'ufficio: appena inseriti compaiono qui.'}</div></div>`;return;}
   $('mac-lavoro-list').innerHTML=DB.mezziLav.map(m=>{
@@ -2899,7 +2943,7 @@ function renderMacLavoro(){
       <div class="photo-avatar-sm">${m.foto?`<img src="${encodeURI(m.foto)}">`:'<span style="font-size:16px;">🚜</span>'}</div>
       <div class="sinfo">
         <div class="sname">${escHtml(m.modello)}</div>
-        <div class="ssub">${escHtml(m.targa)} · ${m.oreAttuali} ${plurale(m.oreAttuali,'ora','ore')} · ${escHtml(c?c.nome:'—')}${assegn?' · 👤 '+escHtml(assegn.nome+' '+assegn.cognome):''}</div>
+        <div class="ssub">${escHtml(m.targa)} · ${contatoreMezzo(m.oreAttuali,'ore','ore non registrate')} · ${escHtml(c?c.nome:'—')}${assegn?' · 👤 '+escHtml(assegn.nome+' '+assegn.cognome):''}</div>
       </div>
       <div class="sarr">›</div>
     </div>`;
@@ -2917,7 +2961,7 @@ function renderMacStrada(){
      `NaN` in mezzo, `sort((a,b)=>a.d-b.d)` non ordina — il confronto è
      sempre falso — quindi «la scadenza più vicina» poteva essere una
      qualsiasi. Adesso si ordinano solo quelle leggibili. */
-    const scad=Object.entries(m.scadenze||{}).filter(([k,v])=>v).map(([k,v])=>({k,v,...statoScadenzaCore(v)}));const illegg=scad.filter(x=>!x.leggibile);const prox=scad.filter(x=>x.leggibile).sort((a,b)=>a.giorni-b.giorni)[0];let badge='',cls='';if(prox&&prox.giorni<0){badge=`<span class="scad-badge danger">${prox.k} scaduta</span>`;cls='danger';}else if(illegg.length){badge=`<span class="scad-badge warn">${illegg[0].k}: data illeggibile</span>`;cls='warn';}else if(prox&&prox.giorni<=30){badge=`<span class="scad-badge warn">${prox.k} in ${prox.giorni}g</span>`;cls='warn';}else if(prox){badge=`<span class="scad-badge ok">OK</span>`;}return`<div class="sitem ${cls}" onclick="apriMezzoStr('${m.id}')"><div class="photo-avatar-sm">${m.foto?`<img src="${encodeURI(m.foto)}">`:'<span style="font-size:16px;">🚛</span>'}</div><div class="sinfo"><div class="sname">${escHtml(m.marca)} ${escHtml(m.modello)} ${badge}</div><div class="ssub">${escHtml(m.targa)} · ${m.km||0} km</div></div><div class="sarr">›</div></div>`;}).join('');
+    const scad=Object.entries(m.scadenze||{}).filter(([k,v])=>v).map(([k,v])=>({k,v,...statoScadenzaCore(v)}));const illegg=scad.filter(x=>!x.leggibile);const prox=scad.filter(x=>x.leggibile).sort((a,b)=>a.giorni-b.giorni)[0];let badge='',cls='';if(prox&&prox.giorni<0){badge=`<span class="scad-badge danger">${prox.k} scaduta</span>`;cls='danger';}else if(illegg.length){badge=`<span class="scad-badge warn">${illegg[0].k}: data illeggibile</span>`;cls='warn';}else if(prox&&prox.giorni<=30){badge=`<span class="scad-badge warn">${prox.k} in ${prox.giorni}g</span>`;cls='warn';}else if(prox){badge=`<span class="scad-badge ok">OK</span>`;}return`<div class="sitem ${cls}" onclick="apriMezzoStr('${m.id}')"><div class="photo-avatar-sm">${m.foto?`<img src="${encodeURI(m.foto)}">`:'<span style="font-size:16px;">🚛</span>'}</div><div class="sinfo"><div class="sname">${escHtml(m.marca)} ${escHtml(m.modello)} ${badge}</div><div class="ssub">${escHtml(m.targa)} · ${contatoreMezzo(m.km,'km','km non registrati')}</div></div><div class="sarr">›</div></div>`;}).join('');
 }
 function apriMacLavoro(id){
   state.macSel=id;state.macDetKind='lav';const m=DB.mezziLav.find(x=>x.id===id);if(!m)return;
@@ -2930,8 +2974,8 @@ function apriMacLavoro(id){
     <div class="preview-sec">
       <div class="preview-row"><span class="preview-lab">Targa</span><span class="preview-val">${escHtml(m.targa)}</span></div>
       <div class="preview-row"><span class="preview-lab">Anno</span><span class="preview-val">${m.anno}</span></div>
-      <div class="preview-row"><span class="preview-lab">Ore iniziali</span><span class="preview-val">${m.oreIniziali}</span></div>
-      <div class="preview-row"><span class="preview-lab">Ore attuali</span><span class="preview-val">${m.oreAttuali}</span></div>
+      <div class="preview-row"><span class="preview-lab">Ore iniziali</span><span class="preview-val">${contatoreMezzo(m.oreIniziali,'ore','non registrate')}</span></div>
+      <div class="preview-row"><span class="preview-lab">Ore attuali</span><span class="preview-val">${contatoreMezzo(m.oreAttuali,'ore','non registrate')}</span></div>
       <div class="preview-row"><span class="preview-lab">Cava</span><span class="preview-val">${escHtml(c?c.nome:'—')}</span></div>
     </div>
     ${m.note?`<div class="preview-sec"><div class="preview-head">Note</div><div style="font-size:13px;">${escHtml(m.note)}</div></div>`:''}
@@ -2958,7 +3002,7 @@ function apriMezzoStr(id){
       <div class="preview-row"><span class="preview-lab">Targa</span><span class="preview-val">${escHtml(m.targa)}</span></div>
       <div class="preview-row"><span class="preview-lab">Marca/Modello</span><span class="preview-val">${escHtml(m.marca)} ${escHtml(m.modello)}</span></div>
       <div class="preview-row"><span class="preview-lab">Anno</span><span class="preview-val">${m.anno}</span></div>
-      <div class="preview-row"><span class="preview-lab">Km</span><span class="preview-val">${m.km||0}</span></div>
+      <div class="preview-row"><span class="preview-lab">Km</span><span class="preview-val">${contatoreMezzo(m.km,'km','non registrati')}</span></div>
     </div>
     <div class="sec-title" style="margin-top:16px;"><span class="dot"></span>Scadenze</div>
     ${scadHtml||'<div class="empty-state" style="padding:16px;"><div class="empty-sub">Nessuna scadenza</div></div>'}
@@ -2999,27 +3043,52 @@ function openMacEdit(){
   openModal('Modifica mezzo da lavoro',`
     <label class="fl">Modello *</label><input type="text" class="finput" id="mf-mod" value="${escHtml(m.modello)}">
     <label class="fl">Targa *</label><input type="text" class="finput" id="mf-tar" value="${escHtml(m.targa)}">
-    <div class="frow"><div><label class="fl">Anno</label><input type="number" inputmode="numeric" class="finput" id="mf-anno" value="${m.anno}"></div><div><label class="fl">Ore attuali</label><input type="number" inputmode="numeric" class="finput" id="mf-ora" value="${m.oreAttuali}"></div></div>
+    <div class="frow"><div><label class="fl">Anno</label><input type="number" inputmode="numeric" class="finput" id="mf-anno" value="${m.anno}"></div><div><label class="fl">Ore attuali</label><input type="number" inputmode="numeric" class="finput" id="mf-ora" value="${m.oreAttuali??''}"></div></div>
     <label class="fl">Cava</label><select class="finput" id="mf-cava">${cavaOpts}</select>
     <label class="fl">Note</label><textarea class="finput" id="mf-note" rows="2">${escHtml(m.note||'')}</textarea>
   `,[{label:'Annulla',cls:'mbtn',action:closeModal},{label:'SALVA',cls:'mbtn primary',action:(e)=>withLock('salvaMacLav',e.target,salvaMacLav)}]);
 }
+/* ⛔ IL CONTATORE MAI LETTO DIVENTAVA UN MEZZO NUOVO DI FABBRICA. «Ore
+   iniziali» e «Contachilometri» sono facoltativi — obbligatori sono modello e
+   targa — e venivano letti con `parseNum0`, che di una scrittura che non
+   capisce, compresa la stringa vuota, fa ZERO. Quello zero finiva NEL
+   DATABASE, e da lì sull'elenco dei mezzi: «SD-780-02 · **0 ore**» accanto a
+   un escavatore che ne ha quattromila, e «Km **0**» su un camion targato.
+   Non è un numero fuori posto: è la frase che in officina vuol dire «questa
+   macchina non ha mai lavorato», scritta da nessuno.
+   Il lettore giusto era in questo file da mesi, sedici righe sotto
+   `leggiCampo`, e il suo commento dice già a chi serve: `numDaCampo` è
+   «per i campi FACOLTATIVI», risponde `null` sul vuoto e non parla, perché a
+   parlare ci pensa la guardia degli interi quando si lascia il campo.
+   ⚠️ `anno` NON è stato toccato, ed è una scelta: sul mezzo nuovo ripiega
+   sull'anno corrente (`||new Date().getFullYear()`), che è un'invenzione
+   dichiarata di suo, e cambiarla è una decisione di prodotto, non una
+   correzione. Misurato però che cosa fa oggi la MODIFICA, perché è un difetto
+   della stessa famiglia e va scritto invece che taciuto: svuotando «Anno» su
+   un mezzo esistente si salva `anno: 0` e la scheda scrive «Anno 0». */
 async function salvaMacLav(){
   if(!$('mf-mod').value.trim()||!$('mf-tar').value.trim()){toast('Modello e targa obbligatori','err');return;}
   if(state.macEditId){
-    await fbUpdate('mezziLav',state.macEditId,{modello:$('mf-mod').value,targa:$('mf-tar').value,anno:parseNum0($('mf-anno').value),oreAttuali:parseNum0($('mf-ora').value),cavaId:$('mf-cava').value,note:$('mf-note').value});
+    await fbUpdate('mezziLav',state.macEditId,{modello:$('mf-mod').value,targa:$('mf-tar').value,anno:parseNum0($('mf-anno').value),oreAttuali:numDaCampo('mf-ora',{min:0}),cavaId:$('mf-cava').value,note:$('mf-note').value});
     closeModal();toast('Mezzo aggiornato','success');apriMacLavoro(state.macEditId);
   }else{
-    const id='mlav_'+genId();await fbSet('mezziLav',id,{id,modello:$('mf-mod').value,targa:$('mf-tar').value,anno:parseNum0($('mf-anno').value)||new Date().getFullYear(),oreIniziali:parseNum0($('mf-ori').value),oreAttuali:parseNum0($('mf-ori').value),cavaId:$('mf-cava').value,note:$('mf-note').value,foto:null});
+    const id='mlav_'+genId();const ore=numDaCampo('mf-ori',{min:0});
+    await fbSet('mezziLav',id,{id,modello:$('mf-mod').value,targa:$('mf-tar').value,anno:parseNum0($('mf-anno').value)||new Date().getFullYear(),oreIniziali:ore,oreAttuali:ore,cavaId:$('mf-cava').value,note:$('mf-note').value,foto:null});
     closeModal();toast('Mezzo aggiunto','success');
   }
 }
+/* ⚠️ Il campo del contachilometri riparte VUOTO quando il contatore non è mai
+   stato letto: uno «0» precompilato lo farebbe riscrivere a ogni salvataggio
+   come se fosse una misura, ed è il modo in cui un ripiego diventa un dato.
+   La spiegazione sta QUI e non accanto alla riga, perché quella riga vive
+   dentro un template literal: là dentro un `<!-- -->` non è un commento, è
+   testo — e i suoi apostrofi chiudono la stringa. */
 function openMezzoEdit(){
   const m=DB.mezziStr.find(x=>x.id===state.mezzoSel);if(!m)return;state.mezzoEditId=m.id;
   openModal('Modifica mezzo da strada',`
     <div class="frow"><div><label class="fl">Targa *</label><input type="text" class="finput" id="mf-tar" value="${escHtml(m.targa)}"></div><div><label class="fl">Anno</label><input type="number" inputmode="numeric" class="finput" id="mf-anno" value="${m.anno||''}"></div></div>
     <div class="frow"><div><label class="fl">Marca</label><input type="text" class="finput" id="mf-mar" value="${escHtml(m.marca||'')}"></div><div><label class="fl">Modello</label><input type="text" class="finput" id="mf-mod" value="${escHtml(m.modello||'')}"></div></div>
-    <label class="fl">Contachilometri (<span class="u">km</span>)</label><input type="number" inputmode="numeric" class="finput" id="mf-km" value="${m.km||0}">
+    <label class="fl">Contachilometri (<span class="u">km</span>)</label><input type="number" inputmode="numeric" class="finput" id="mf-km" value="${m.km??''}">
     <div class="sec-title" style="margin-top:10px;"><span class="dot"></span>Scadenze</div>
     <div class="frow"><div><label class="fl">Revisione</label><input type="date" class="finput" id="mf-rev" value="${m.scadenze?.revisione||''}"></div><div><label class="fl">Assicurazione</label><input type="date" class="finput" id="mf-ass" value="${m.scadenze?.assicurazione||''}"></div></div>
     <div class="frow"><div><label class="fl">Bollo</label><input type="date" class="finput" id="mf-bol" value="${m.scadenze?.bollo||''}"></div><div><label class="fl">Tagliando</label><input type="date" class="finput" id="mf-tag" value="${m.scadenze?.tagliando||''}"></div></div>
@@ -3028,7 +3097,9 @@ function openMezzoEdit(){
 }
 async function salvaMezzoStr(){
   if(!$('mf-tar').value.trim()){toast('Targa obbligatoria','err');return;}
-  const obj={targa:$('mf-tar').value,marca:$('mf-mar')?.value||'',modello:$('mf-mod').value,anno:parseNum0($('mf-anno').value)||new Date().getFullYear(),km:parseNum0($('mf-km').value),scadenze:{revisione:$('mf-rev').value,assicurazione:$('mf-ass').value,bollo:$('mf-bol').value,tagliando:$('mf-tag').value},note:$('mf-note').value};
+  /* stessa correzione delle ore dei mezzi da lavoro: il contachilometri è
+     facoltativo, e un campo lasciato vuoto non è un camion a zero chilometri */
+  const obj={targa:$('mf-tar').value,marca:$('mf-mar')?.value||'',modello:$('mf-mod').value,anno:parseNum0($('mf-anno').value)||new Date().getFullYear(),km:numDaCampo('mf-km',{min:0}),scadenze:{revisione:$('mf-rev').value,assicurazione:$('mf-ass').value,bollo:$('mf-bol').value,tagliando:$('mf-tag').value},note:$('mf-note').value};
   if(state.mezzoEditId){const ex=DB.mezziStr.find(x=>x.id===state.mezzoEditId);await fbUpdate('mezziStr',state.mezzoEditId,{...obj,riparazioni:ex?.riparazioni||[],foto:ex?.foto||null});closeModal();toast('Mezzo aggiornato','success');apriMezzoStr(state.mezzoEditId);}
   else{const id='mstr_'+genId();await fbSet('mezziStr',id,{id,...obj,riparazioni:[],foto:null});closeModal();toast('Mezzo aggiunto','success');}
 }
@@ -3405,11 +3476,19 @@ function calcAction(btn){
   const s=_calcState;
   const disp=$('calc-display');const hist=$('calc-hist');
   if(!disp)return;
+  /* il non-risultato si scrive con lo stesso trattino che tutta l'app usa per
+     «non lo so», e si azzerano operatore e operando: così il tasto dopo
+     ricomincia invece di continuare un conto che non esiste */
+  const nonSiPuo=()=>{s.display='—';s.prev=null;s.op=null;s.newNum=true;toast('Non si può dividere per zero','err');};
   if(btn==='AC'){s.display='0';s.prev=null;s.op=null;s.newNum=true;if(hist)hist.textContent='';}
-  else if(btn==='+/-'){s.display=String(parseFloat(s.display)*-1);}
+  /* il trattino non è un numero: senza questa guardia «+/−» premuto dopo un
+     non-risultato scriveva «NaN» sul display, che è la stessa bugia detta in
+     inglese */
+  else if(btn==='+/-'){const n=parseFloat(s.display);if(Number.isFinite(n))s.display=String(n*-1);}
   else if(['+','-','*','/'].includes(btn)){
     if(s.op&&!s.newNum){
       const r=_calcCompute(parseFloat(s.prev),parseFloat(s.display),s.op);
+      if(r===null){if(hist)hist.textContent=s.prev+' ÷ '+s.display+' = non calcolabile';nonSiPuo();disp.textContent=s.display;return;}
       s.display=String(Math.round(r*1e10)/1e10);
     }
     s.prev=s.display;s.op=btn;s.newNum=true;
@@ -3418,7 +3497,8 @@ function calcAction(btn){
   else if(btn==='='){
     if(s.op&&s.prev!==null){
       const r=_calcCompute(parseFloat(s.prev),parseFloat(s.display),s.op);
-      if(hist)hist.textContent=s.prev+' '+(s.op==='*'?'×':s.op==='/'?'÷':s.op)+' '+s.display+' =';
+      if(hist)hist.textContent=s.prev+' '+(s.op==='*'?'×':s.op==='/'?'÷':s.op)+' '+s.display+(r===null?' = non calcolabile':' =');
+      if(r===null){nonSiPuo();disp.textContent=s.display;return;}
       s.display=String(Math.round(r*1e10)/1e10);
       s.prev=null;s.op=null;s.newNum=true;
     }
@@ -3443,9 +3523,18 @@ function calcMcUfficio(){
   $('umc-m').textContent=(h*n).toFixed(1);
   $('umc-out').style.display='grid';
 }
+/* ⛔ «5 ÷ 0 =» RISPONDEVA **0**, ED È IL PRINCIPIO DEL FONDATORE NELLA SUA
+   FORMA PIÙ NUDA: un conto che non si può fare non è un conto che fa zero.
+   Il ternario `b!==0?a/b:0` è la stessa scorciatoia dei totali che sommano gli
+   zeri, spostata su un'operazione — e qui non c'è nemmeno un dato mancante da
+   incolpare: la divisione per zero non ha risultato, e la calcolatrice ne
+   dichiarava uno. Chi la usa in ufficio per dividere dei metri cubi fra i
+   turni legge «0» e non ha nessun modo di sapere che non è una risposta.
+   Adesso torna `null`, che in questa casa vuol dire «non calcolabile», e chi
+   la chiama lo DICE. Le altre tre operazioni non cambiano di un carattere. */
 function _calcCompute(a,b,op){
   if(op==='+')return a+b;if(op==='-')return a-b;if(op==='*')return a*b;
-  if(op==='/')return b!==0?a/b:0;return b;
+  if(op==='/')return b===0?null:a/b;return b;
 }
 
 // ══════════ ADMIN (v3.4.6) ══════════

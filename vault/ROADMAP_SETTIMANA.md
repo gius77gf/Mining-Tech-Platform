@@ -1300,6 +1300,31 @@ numero scritto dove non era stato misurato niente**.*
         modale «Perché è successo».
         Prove: `run-kpi` **2058 → 2063**, ognuna col suo caso di controllo.
 
+      ✅ **IL CORE LETTO TUTTO, il 13/08** — chiusa così la terza e ultima
+      superficie di questa voce. I difetti non stavano nei clamp della
+      geometria (una mesh che ha bisogno di una dimensione non dichiara niente
+      a nessuno) ma dove il numero **finisce a schermo**:
+      · **il meteo del proxy**: `(j.wind||0)*3.6` scriveva «Vento **0 km/h**»
+        su un campo che il proxy non aveva mandato — e in cava il vento decide
+        la polvere e se far brillare. Gli altri tre campi non avevano nemmeno
+        il ripiego: uscivano «undefined°» e «Umidità undefined%»;
+      · **la cronologia della cava**: «12 fori · **0 mc**» su una volata con le
+        profondità mai scritte, mentre la scheda della stessa volata scrive già
+        «né chili né volume». E la risposta era **in casa**: `volMc`, scritta
+        insieme a `volKg` e **mai chiamata da nessuno**, a sedici righe dalla
+        sua gemella;
+      · **i contatori dei mezzi**: «0 ore» e «0 km» scritti in cinque punti a
+        mano, e due di quei punti dicevano due cose diverse dello stesso mezzo.
+        Adesso è `contatoreMezzo`, uno solo, nella forma di `volKg`/`focKg`;
+      · **il contatore mai letto diventava un mezzo nuovo di fabbrica**: «Ore
+        iniziali» e «Contachilometri» sono facoltativi e venivano letti con
+        `parseNum0`, che del vuoto fa ZERO — e quello zero finiva **nel
+        database**. Il lettore giusto (`numDaCampo`, «per i campi
+        FACOLTATIVI») era in quel file da mesi;
+      · **«5 ÷ 0 =» rispondeva 0**: il principio del fondatore nella sua forma
+        più pura, sulla calcolatrice che l'app offre a chi è in cava.
+      Prove: `run-kpi` **2063 → 2088** con quelle di Campo qui sotto.
+
       ⚠️ **Tre cose MISURATE E NON CORRETTE**, perché non spettano a un
       cantiere:
       · **`0` ha due letture opposte, e sono tutt'e due blindate da prove
@@ -1322,6 +1347,13 @@ numero scritto dove non era stato misurato niente**.*
         Correggerlo vuol dire aggiungere un campo alle righe di `fermiPerGiorno`,
         e due prove le confrontano con `eq` sull'oggetto intero: non è una
         correzione minima.
+      · ✅ **CHIUSA il 13/08 — `mediaFermiAlGiorno`**: `fermiPerGiorno` adesso
+        porta sulle sue righe `fermiConMinuti` e `fermiSenzaMinuti`, e la media
+        ha le stesse **tre** uscite che `minutiFermoTesto` e `csvStorico`
+        usavano già («0 min» misurato · `null` quando nessun fermo porta i
+        minuti · un **minimo** dichiarato quando solo alcuni li portano). Prima
+        le tre situazioni davano `media: 0` e `media: 33` due volte, cioè lo
+        stesso numero per casi diversi.
       · **Scudo, `giornateAssenza` ramo near-miss**: un valore *presente ma
         illeggibile* («n.d.», «1,5») diventa **0**, mentre lo stesso valore su
         un infortunio torna `null`. Nel registro consegnato all'RSPP la cella
@@ -4270,8 +4302,8 @@ numero scritto dove non era stato misurato niente**.*
   nome apre il file sbagliato credendo che sia il più fresco.
 - Le decisioni: `docs/DECISIONI_WEEKEND.md` — pagina d'ingresso in cima.
 - Stato misurato al **09/08** (lanciando le suite, non a memoria):
-  **2.515 prove girano senza rete**. La frase va letta stretta: è la somma
-  delle **otto** suite che contano asserzioni (`run-kpi` 2063, `run-stile` 318,
+  **2.540 prove girano senza rete**. La frase va letta stretta: è la somma
+  delle **otto** suite che contano asserzioni (`run-kpi` 2088, `run-stile` 318,
   `run-helpers` 75, `run-pointcloud` 32, `run-manifest` 9, `run-demo` 8,
   `bootstrap-rivendicazioni` 7, `fogli-guardati` 3), non tutto ciò che gira nel
   giro `node` — che di comandi ne ha **34** e di asserzioni ne esegue di più:

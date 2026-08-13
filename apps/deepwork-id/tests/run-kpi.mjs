@@ -9653,14 +9653,24 @@ test("statoVuoto: la struttura è quella del core, invariata", () => {
        non ci siamo fermati» — ma il 30 luglio in `ATT_FERMI` non ha NESSUNA
        registrazione: non c'eravamo affatto, e la riga non aveva modo di dirlo.
        È `registrate` a distinguere le due specie di zero. */
+    /* ⚠️ E IL CONFRONTO RESTA SULL'OGGETTO INTERO, che è il motivo per cui
+       questa riga è caduta quando la riga ha guadagnato `fermiConMinuti` e
+       `fermiSenzaMinuti`: un `eq` così è CHIUSO, cioè non lascia entrare un
+       campo nuovo senza che qualcuno se ne accorga. Aggiornarlo scrivendo i
+       valori attesi dei due campi nuovi lo lascia chiuso; toglierli, o
+       confrontare solo i campi che interessano, lo aprirebbe — e allora il
+       giorno in cui uno dei due nascesse sbagliato non lo direbbe nessuno. */
     eq(campo.fermiPerGiorno(ATT_FERMI, 14, OGGI)[1],
-      { data: "2026-07-30", minuti: 0, fermi: 0, registrate: 0 },
+      { data: "2026-07-30", minuti: 0, fermi: 0, fermiConMinuti: 0, fermiSenzaMinuti: 0, registrate: 0 },
       "il 30 luglio a zero, e con NIENTE registrato: uno zero che non è una misura");
   });
   test("fermiPerGiorno: somma i minuti del giorno e conta i fermi", () => {
+    /* i due fermi del 31 luglio i minuti ce li hanno tutt'e due: è la riga che
+       dice che il 45 è una misura VERA e non un pavimento — la stessa
+       distinzione che `minutiFermoTesto` scrive a parole */
     eq(campo.fermiPerGiorno(ATT_FERMI, 14, OGGI)[2],
-      { data: "2026-07-31", minuti: 45, fermi: 2, registrate: 3 },
-      "30 + 15 minuti, due fermi; la conclusa non è un fermo — ma è registrata");
+      { data: "2026-07-31", minuti: 45, fermi: 2, fermiConMinuti: 2, fermiSenzaMinuti: 0, registrate: 3 },
+      "30 + 15 minuti, due fermi tutt'e due misurati; la conclusa non è un fermo — ma è registrata");
   });
   test("fermiPerGiorno: `registrate` conta le ATTIVITÀ, non i fermi", () => {
     /* una giornata con dieci attività e nessuna anomalia è misurata eccome: il
@@ -27664,6 +27674,400 @@ test("voceDocumentoInElenco: la regola vale per documento, non per la lista", ()
       "e la pagina non importa nemmeno più la funzione che le permetteva di scegliere le ore da sé");
   });
 }
+
+// ═══ CORE · i numeri che mentono con la faccia tranquilla (13/08) ═══
+/* ⛔ Le funzioni in causa vivono DENTRO `index.html`, quindi non si importano:
+   si ESTRAE il loro sorgente e lo si CHIAMA. Non è un capriccio — la quarta
+   causa di «non distingue» è una copia debole scritta dentro la prova, e qui
+   la tentazione era grossa (riscrivere `_calcCompute` in tre righe e provare
+   quella). Il montaggio con `new Function` è la stessa forma già usata più su
+   per il vestito «dati di esempio» di Scudo: se il codice estratto smettesse
+   di essere una funzione pura dei suoi argomenti, queste righe esploderebbero
+   — ed è un modo di misurarlo.
+   ⚠️ Si estrae dal sorgente SENZA COMMENTI, per due ragioni distinte: il conteggio
+   delle graffe non deve inciampare in una graffa scritta dentro una spiegazione,
+   e le asserzioni sul testo non devono contare i commenti che RACCONTANO il
+   difetto — è la svista che in questa casa è già costata quattro volte. */
+{
+  const { senzaCommenti } = await import("./tokenizza.mjs");
+  const CORE = senzaCommenti(readFileSync(join(HERE, "../../../index.html"), "utf8"));
+
+  const estraiFn = (nome) => {
+    const i = CORE.indexOf(`function ${nome}(`);
+    if (i < 0) return null;
+    let dep = 0, k = CORE.indexOf("{", i);
+    for (; k < CORE.length; k++) {
+      if (CORE[k] === "{") dep++;
+      else if (CORE[k] === "}") { dep--; if (dep === 0) { k++; break; } }
+    }
+    return CORE.slice(i, k);
+  };
+  /* l'ambiente è fatto delle funzioni VERE di `shared/`, non di finte: è la
+     stessa scelta già fatta per `modoDimostrazione` — montando quelle vere si
+     prova anche che i due strati si innestano */
+  const AMB = {
+    numeroScritto: shell.numeroScritto, perLettura: shell.perLettura,
+    plurale: shell.plurale, conta: shell.conta,
+    misureVolataProgetto: shell.misureVolataProgetto,
+  };
+  const monta = (nomi, preambolo) => {
+    const corpi = nomi.map(estraiFn);
+    const mancanti = nomi.filter((n, i) => !corpi[i]);
+    if (mancanti.length) throw new Error(`non trovate nel core: ${mancanti.join(", ")}`);
+    return new Function(...Object.keys(AMB), "$", "toast",
+      (preambolo || "") + corpi.join("\n") + `\nreturn {${nomi.join(",")}};`);
+  };
+  const chiama = (nomi, preambolo, $, toast) =>
+    monta(nomi, preambolo)(...Object.values(AMB), $, toast);
+
+  console.log("\n— Il core: un valore che nessuno ha scritto non è uno zero —");
+
+  // ── 1. LA CRONOLOGIA DEL GEMELLO DIGITALE ──
+  /* Dodici fori con la profondità mai scritta danno `tot_mc = 0`, e la riga
+     degli eventi scriveva «12 fori · 0 mc» mentre la scheda della cava, sugli
+     STESSI fori, diceva già «12 fori · né chili né volume». La risposta era in
+     casa: `volMc`, scritta insieme a `volKg` e mai chiamata da nessuno. */
+  {
+    const V = chiama(["parseNum", "parseNum0", "getBorraggio", "getSpaziatura",
+      "ricalcolaTotaliVolata", "volMc", "volKg"]);
+    const volata = (prof) => {
+      const v = { fronte: { lunghezza_m: 30 }, maglia: { borraggio: 3.5, spaziatura: 4, file: 2 },
+        fori: Array.from({ length: 12 }, (_, i) => ({ num: i + 1, prof, kg: "" })) };
+      V.ricalcolaTotaliVolata(v); return v;
+    };
+
+    test("⛔ core · dodici fori senza profondità non sono un cumulo da zero metri cubi", () => {
+      const v = volata(0);
+      eq(v.tot_mc, 0, "il totale salvato vale davvero 0: è da lì che nasceva la bugia");
+      eq(shell.misureVolataProgetto(v).mcNoto, false, "ma nessuno ha misurato niente, e il modulo lo sa");
+      eq(V.volMc(v), "mc non calcolabili", "⛔ e la riga lo DICE, invece di scrivere «0 mc»");
+      eq(shell.conta(shell.misureVolataProgetto(v).fori, "foro", "fori"), "12 fori",
+        "i fori si contano dai fori, non da `tot_fori` — che su una volata mai ricalcolata non esiste");
+    });
+
+    test("core · e la volata misurata continua a dire il suo numero", () => {
+      const v = volata(12);
+      eq(V.volMc(v), "2.016,0 mc", "⛔ la difesa non spegne i numeri veri, e li scrive come tutto il resto dell'app");
+      eq(String(v.tot_mc), "2016", "mentre il campo grezzo, che la riga stampava prima, non ha né punto né decimale");
+    });
+
+    test("core · su una volata senza fori non c'è nessun volume da dichiarare", () => {
+      const v = { fronte: { lunghezza_m: 30 }, maglia: { borraggio: 3.5, spaziatura: 4, file: 2 }, fori: [] };
+      V.ricalcolaTotaliVolata(v);
+      eq([shell.misureVolataProgetto(v).fori, V.volMc(v)], [0, "mc non calcolabili"], "zero fori, nessun mc");
+    });
+
+    test("⛔ core · la cronologia del Gemello non ha più il suo ripiego a zero", () => {
+      /* la prova pura qui sopra dice che `volMc` risponde giusto; questa dice
+         che la CRONOLOGIA la chiama — le due cose sono indipendenti, ed è la
+         seconda che mancava per anni (la funzione c'era e non la usava nessuno) */
+      const riga = CORE.split("\n").find((l) => l.includes("t:`Progetto ${v.nomeProgetto"));
+      ok(riga, "la riga degli eventi del Gemello digitale esiste ancora");
+      ok(!/tot_mc\s*\|\|\s*0/.test(riga), `la riga ripiega ancora a zero: ${riga.trim().slice(0, 120)}`);
+      ok(/volMc\(v\)/.test(riga), "e passa da `volMc`");
+      eq((CORE.match(/\bvolMc\(/g) || []).length, 2,
+        "⛔ due occorrenze: la dichiarazione e UN chiamante. Prima era una sola — una funzione giusta che nessuno chiamava");
+    });
+  }
+
+  // ── 2. LA CALCOLATRICE DELL'UFFICIO ──
+  /* `b!==0?a/b:0`: «5 ÷ 0 =» rispondeva 0. Qui non c'è nemmeno un dato
+     mancante da incolpare — la divisione per zero non ha risultato, e la
+     calcolatrice ne dichiarava uno. */
+  {
+    const statoIniziale = (CORE.match(/let _calcState=\{[^}]*\};/) || [])[0];
+    const banco = () => {
+      const el = {};
+      const $ = (id) => (el[id] = el[id] || { textContent: "" });
+      const detti = [];
+      const C = chiama(["_calcCompute", "calcAction"], statoIniziale + "\n", $, (m) => detti.push(m));
+      return { premi: (...b) => b.forEach((x) => C.calcAction(x)), el: $, detti, C };
+    };
+
+    test("core · il montaggio della calcolatrice ha davvero preso il suo stato iniziale", () => {
+      ok(statoIniziale, "`let _calcState={…}` non si trova più nel core: il banco qui sotto non proverebbe niente");
+      const b = banco();
+      b.premi("7");
+      eq(b.el("calc-display").textContent, "7", "e il tasto arriva davvero al display");
+    });
+
+    test("⛔ core · «5 ÷ 0 =» non risponde più zero", () => {
+      const b = banco();
+      b.premi("5", "/", "0", "=");
+      eq(b.el("calc-display").textContent, "—", "il display dice «non lo so» con lo stesso trattino di tutta l'app");
+      eq(b.detti, ["Non si può dividere per zero"], "e la ragione si legge, non si indovina");
+      eq(b.el("calc-hist").textContent, "5 ÷ 0 = non calcolabile", "e lo storico non promette un risultato che non c'è");
+    });
+
+    test("core · «0 ÷ 0» è la stessa cosa, e un divisore vero no", () => {
+      const a = banco(); a.premi("0", "/", "0", "="); eq(a.el("calc-display").textContent, "—", "zero diviso zero non fa zero");
+      const b = banco(); b.premi("1", "0", "/", "4", "="); eq(b.el("calc-display").textContent, "2.5", "dieci quarti fanno due e mezzo");
+      const c = banco(); c.premi("6", "/", "3", "="); eq(c.el("calc-display").textContent, "2", "e sei terzi fanno due");
+    });
+
+    test("core · le altre tre operazioni non sono cambiate di un carattere", () => {
+      const C = chiama(["_calcCompute"]);
+      eq([C._calcCompute(2, 3, "+"), C._calcCompute(2, 3, "-"), C._calcCompute(2, 3, "*")], [5, -1, 6],
+        "somma, differenza e prodotto");
+      eq(C._calcCompute(2, 3, "?"), 3, "e un operatore che non esiste restituisce il secondo operando, come sempre");
+      eq(C._calcCompute(5, 0, "/"), null, "⛔ solo la divisione per zero cambia, e risponde `null`");
+    });
+
+    test("⛔ core · dopo il non-risultato la calcolatrice riparte, e non scrive «NaN»", () => {
+      /* il trattino non è un numero: senza guardia il «+/−» premuto dopo un
+         non-risultato scriveva «NaN», che è la stessa bugia detta in inglese */
+      const a = banco(); a.premi("5", "/", "0", "=", "+/-");
+      eq(a.el("calc-display").textContent, "—", "«+/−» su un non-risultato non inventa niente");
+      const b = banco(); b.premi("5", "/", "0", "=", "7");
+      eq(b.el("calc-display").textContent, "7", "e la cifra dopo ricomincia, invece di attaccarsi al trattino");
+      const c = banco(); c.premi("5", "/", "0", "=", "8", "+", "2", "=");
+      eq(c.el("calc-display").textContent, "10", "il conto seguente è pulito: l'operando e l'operatore vecchi sono stati buttati");
+    });
+  }
+
+  // ── 3. I CONTATORI DEI MEZZI ──
+  /* «Ore iniziali» e «Contachilometri» sono facoltativi e venivano letti con
+     `parseNum0`, che del vuoto fa ZERO — e quello zero finiva nel database e
+     poi sull'elenco: «0 ore» su un escavatore che ne ha quattromila. */
+  {
+    const M = chiama(["parseNum", "contatoreMezzo"]);
+    test("⛔ core · un contatore mai letto non è un mezzo nuovo di fabbrica", () => {
+      let guardati = 0;
+      for (const v of [null, undefined, "", "   ", "boh"]) {
+        eq(M.contatoreMezzo(v, "ore", "ore non registrate"), "ore non registrate", `ore, con ${mostra(v)}`);
+        eq(M.contatoreMezzo(v, "km", "km non registrati"), "km non registrati", `km, con ${mostra(v)}`);
+        guardati++;
+      }
+      eq(guardati, 5, "cinque forme dell'assenza guardate, e il conto è scritto: un elenco che si accorcia si vede");
+    });
+
+    test("⛔ core · uno ZERO che qualcuno ha scritto resta zero", () => {
+      /* è il verso che conta di più: una macchina appena arrivata con il
+         contatore a zero è un dato vero, e spegnerlo sarebbe un difetto
+         peggiore di quello che si sta chiudendo */
+      eq(M.contatoreMezzo(0, "ore", "ore non registrate"), "0 ore", "zero ore misurate si dicono");
+      eq(M.contatoreMezzo(0, "km", "km non registrati"), "0 km", "e zero chilometri anche");
+      eq(M.contatoreMezzo("0", "km", "km non registrati"), "0 km", "compreso lo zero che arriva come stringa dal campo");
+    });
+
+    test("core · il numero si legge come ovunque nell'app, e il singolare è singolare", () => {
+      eq(M.contatoreMezzo(1, "ore", "—"), "1 ora", "una sola ora non sono «1 ore»");
+      eq(M.contatoreMezzo(4820, "ore", "—"), "4.820 ore", "e le migliaia hanno il punto");
+      eq(M.contatoreMezzo(180000, "km", "—"), "180.000 km", "anche sui chilometri");
+      /* `perLettura` scrive `useGrouping: true` esplicito: senza, un numero di
+         quattro cifre si raggrupperebbe in Chromium e non in Node, e questa
+         riga passerebbe qui blindando una verità che l'utente non vede mai
+         (docs/MIGLIAIA_NODE_CONTRO_CHROMIUM.md) */
+      eq(M.contatoreMezzo(1200, "ore", "—"), "1.200 ore", "quattro cifre: Node e Chromium devono dire la stessa cosa");
+    });
+
+    test("core · il testo del vuoto lo passa chi chiama, perché elenco e scheda hanno spazio diverso", () => {
+      eq(M.contatoreMezzo(null, "ore", "non registrate"), "non registrate",
+        "nella scheda l'etichetta «Ore attuali» c'è già accanto");
+      eq(M.contatoreMezzo(null, "ore", "ore non registrate"), "ore non registrate",
+        "nell'elenco no, e la parola va detta");
+    });
+
+    test("⛔ core · i tre campi facoltativi dei mezzi passano dal lettore dei campi FACOLTATIVI", () => {
+      /* `numDaCampo` risponde `null` sul vuoto e non parla, perché a parlare ci
+         pensa la guardia degli interi quando si lascia il campo. Questa prova
+         è sul TESTO perché il difetto stava nella pagina, dove il documento si
+         compone: le prove chiamano il modulo, e i salvataggi li scrive la pagina. */
+      const fuori = [];
+      for (const campo of ["mf-km", "mf-ori", "mf-ora"]) {
+        if (!new RegExp(`numDaCampo\\('${campo}'`).test(CORE)) fuori.push(`${campo}: non passa da numDaCampo`);
+        if (new RegExp(`parseNum0\\(\\$\\('${campo}'\\)`).test(CORE)) fuori.push(`${campo}: letto ancora con parseNum0`);
+      }
+      eq(fuori.length, 0, `tre campi guardati: ${fuori.join(" · ")}`);
+      ok(!/\$\{m\.km\|\|0\}/.test(CORE), "e nessuna schermata riscrive `m.km||0` per conto suo");
+      eq((CORE.match(/contatoreMezzo\(/g) || []).length, 6,
+        "⛔ una dichiarazione e CINQUE chiamanti: elenco mezzi da lavoro, elenco da strada, due righe di scheda, riga Km. Erano cinque scritture a mano, e due dicevano cose diverse dello stesso mezzo");
+    });
+  }
+
+  // ── 4. LE DUE COSE MISURATE E NON TOCCATE, PERCHÉ FERME AL FONDATORE ──
+  /* Non sono prove di una correzione: sono prove che il difetto è ANCORA LÌ e
+     che nessuno lo chiuda per distrazione credendolo un residuo. Il giorno in
+     cui il fondatore decide, queste due righe cadono e vanno riscritte. */
+  {
+    const G = chiama(["parseNum", "parseNum0", "getBorraggio", "getSpaziatura", "ricalcolaTotaliVolata", "volMc"]);
+
+    test("⏱️ core · B0-septies: con la maglia svuotata il volume si calcola LO STESSO, su una maglia inventata", () => {
+      const fori = Array.from({ length: 12 }, (_, i) => ({ num: i + 1, prof: 12, kg: "" }));
+      const vuota = { fronte: { lunghezza_m: 30 },
+        maglia: { borraggio: G.parseNum0(""), spaziatura: G.parseNum0(""), file: 2 }, fori };
+      G.ricalcolaTotaliVolata(vuota);
+      eq([G.getBorraggio(vuota), G.getSpaziatura(vuota)], [3.5, 4],
+        "i due ripieghi della maglia: nessuno li ha scritti, e la scheda li mostra come «Sp3.5×I4»");
+      eq(vuota.tot_mc, 2016, "e il volume esce identico a quello di una maglia dichiarata");
+      eq(G.volMc(vuota), "2.016,0 mc",
+        "⛔ NON è un residuo da correggere: è la decisione di prodotto B0-septies, ferma al fondatore");
+    });
+
+    test("⏱️ core · la carica massima per ritardo non conta i fori senza chili, e nessuno lo dice", () => {
+      /* `calcolaCaricaMaxRitardo` NON si tocca: da lì dipende la previsione di
+         vibrazione, che è ferma al fondatore. Il riquadro dichiara già il caso
+         dei fori senza RITARDO (che sovrastimano, cioè sbagliano dalla parte
+         prudente) e tace su quello dei fori senza CHILI, che sottostima. */
+      const riquadro = CORE.split("\n").find((l) => l.includes("Carica max/ritardo:"));
+      ok(riquadro, "il riquadro della sequenza sparo esiste ancora");
+      ok(/senzaRit/.test(riquadro) || /senzaRit/.test(CORE),
+        "il caso dei fori senza ritardo è dichiarato");
+      ok(!/senzaKg|senza chili/.test(riquadro),
+        "⏱️ e quello dei fori senza chili no: misurato e lasciato, perché tocca una soglia di sicurezza");
+    });
+  }
+}
+
+console.log("\n— Campo · il fermo mai misurato non vale ZERO nella media —");
+/* ⛔ IL DENOMINATORE ERA DICHIARATO, IL NUMERATORE NO. `fermiPerGiorno` faceva
+   entrare nella somma un guasto MAI MISURATO valendo zero
+   (`Math.max(0, +a.fermoMin || 0)`), e la riga che produceva non portava
+   nessun conto dei «senza minuti»: quindi `mediaFermiAlGiorno` non poteva
+   nemmeno dichiarare che il suo numero era un minimo. Le tre misure prese
+   prima della correzione, che le prove qui sotto inchiodano:
+     · tre giornate, ognuna con un guasto mai misurato → `media: 0`;
+     · 100 min + due giornate di guasti mai misurati → `media: 33`;
+     · 100 min + due giornate senza NESSUN fermo → `media: 33`, cioè lo stesso
+       numero per due situazioni diverse, e chi legge non poteva distinguerle.
+   La convenzione NON è nuova: è quella che Campo usa già in `storicoSettimana`
+   (`fermiSenzaMinuti`), in `minutiFermoTesto` («0 min» / «senza minuti» /
+   «almeno N min») e in `csvStorico` (cella VUOTA quando `senza >= fermi`). */
+const OGGI_MF = new Date("2026-08-09T12:00:00");
+const mediaDa = (att) => campo.mediaFermiAlGiorno(campo.fermiPerGiorno(att, 14, OGGI_MF));
+
+test("fermiPerGiorno: la riga porta quanti fermi hanno i minuti e quanti no", () => {
+  /* confronto sull'oggetto INTERO, come le altre righe di questa funzione: un
+     `eq` chiuso non lascia entrare un campo nuovo senza che qualcuno lo scriva */
+  eq(campo.fermiPerGiorno([{ data: "2026-08-09", stato: "anomalia" }], 14, OGGI_MF)[0],
+    { data: "2026-08-09", minuti: 0, fermi: 1, fermiConMinuti: 0, fermiSenzaMinuti: 1, registrate: 1 },
+    "un guasto che nessuno ha cronometrato: registrato, contato, e dichiarato senza minuti");
+  eq(campo.fermiPerGiorno([
+    { data: "2026-08-09", stato: "anomalia", fermoMin: 30 },
+    { data: "2026-08-09", stato: "anomalia" },
+  ], 14, OGGI_MF)[0],
+    { data: "2026-08-09", minuti: 30, fermi: 2, fermiConMinuti: 1, fermiSenzaMinuti: 1, registrate: 2 },
+    "uno misurato e uno no: i 30 minuti sono un pavimento, e la riga lo dice");
+});
+test("fermiPerGiorno: `fermoMin: 0` non è un fermo misurato a zero", () => {
+  /* è la stessa lettura di `storicoSettimana` (`if (!m) g.fermiSenzaMinuti++`)
+     e di `disponibilitaTurno` (`+a.fermoMin > 0`): uno zero scritto nel campo
+     dei minuti è un fermo che nessuno ha cronometrato, non un fermo costato
+     nulla — se no la casella lasciata vuota e quella riempita di zero
+     direbbero due cose diverse a chi legge il grafico */
+  const g = campo.fermiPerGiorno([{ data: "2026-08-09", stato: "anomalia", fermoMin: 0 }], 14, OGGI_MF)[0];
+  eq(g.fermiSenzaMinuti, 1, "senza minuti");
+  eq(g.fermiConMinuti, 0, "e nessuno misurato");
+});
+test("fermiPerGiorno: una conclusa non sposta nessuno dei due conti", () => {
+  const g = campo.fermiPerGiorno([
+    { data: "2026-08-09", stato: "conclusa" },
+    { data: "2026-08-09", stato: "anomalia", fermoMin: 12 },
+  ], 14, OGGI_MF)[0];
+  eq([g.registrate, g.fermi, g.fermiConMinuti, g.fermiSenzaMinuti], [2, 1, 1, 0],
+    "due attività registrate, un fermo solo, e quel fermo i minuti ce li ha");
+});
+test("mediaFermiAlGiorno: tre giornate di guasti MAI MISURATI non fanno media ZERO", () => {
+  /* era `{ totale: 0, giorniMisurati: 3, media: 0 }`, cioè «in tre giorni non
+     abbiamo perso un minuto» detto di tre giornate in cui nessuno ha guardato
+     l'orologio. È il numero tranquillo del principio del fondatore, e la
+     risposta è quella che `minutiFermoTesto` dà già a parole: «senza minuti» */
+  const m = mediaDa([
+    { data: "2026-08-07", stato: "anomalia" },
+    { data: "2026-08-08", stato: "anomalia" },
+    { data: "2026-08-09", stato: "anomalia" },
+  ]);
+  eq(m.media, null, "non calcolabile, non zero");
+  eq(m.mancano, ["minuti"], "e dice CHE COSA manca, non solo che non si può");
+  eq(m.giorniMisurati, 3, "le tre giornate sono registrate eccome: il buco non è lì");
+  eq(m.fermi, 3, "tre fermi");
+  eq(m.fermiSenzaMinuti, 3, "tutti e tre senza minuti");
+  eq(m.parziale, false, "«parziale» è un numero che è un minimo: qui il numero non c'è");
+  ok(/senza minuti/.test(m.motivo), "il motivo nomina i minuti che mancano: " + m.motivo);
+});
+test("mediaFermiAlGiorno: le due situazioni che uscivano IDENTICHE adesso si distinguono", () => {
+  /* stesso 100 minuti, stessa media 33, due mondi diversi: nel primo gli altri
+     due giorni hanno avuto guasti che nessuno ha misurato, nel secondo non
+     hanno avuto nessun fermo. Prima si leggeva «33 min» tutt'e due le volte */
+  const misto = mediaDa([
+    { data: "2026-08-07", stato: "anomalia", fermoMin: 100 },
+    { data: "2026-08-08", stato: "anomalia" },
+    { data: "2026-08-09", stato: "anomalia" },
+  ]);
+  const pulito = mediaDa([
+    { data: "2026-08-07", stato: "anomalia", fermoMin: 100 },
+    { data: "2026-08-08", stato: "conclusa" },
+    { data: "2026-08-09", stato: "conclusa" },
+  ]);
+  eq(misto.media, 33, "trecento diviso... cento diviso tre giornate misurate");
+  eq(pulito.media, 33, "e il numero è lo stesso: non è il numero a dover cambiare");
+  eq(misto.parziale, true, "ma qui è un MINIMO: due fermi non sono stati cronometrati");
+  eq(pulito.parziale, false, "e qui è una misura vera: gli altri due giorni un fermo non l'hanno avuto");
+  ok(misto.motivo !== pulito.motivo, "due situazioni diverse non possono avere la stessa frase accanto");
+  ok(/almeno/.test(misto.motivo), "e la parola che avvisa è «almeno»: " + misto.motivo);
+  eq(pulito.motivo, "", "dove non c'è niente da dichiarare non si dichiara niente");
+});
+test("mediaFermiAlGiorno: `parziale` non si prende la giornata registrata SENZA fermi", () => {
+  /* uno zero MISURATO resta un numero: quel giorno c'eravamo e non ci siamo
+     fermati. Rifiutarlo sarebbe l'errore opposto e altrettanto falso —
+     `minutiFermoTesto` su zero fermi scrive «0 min», non «senza minuti» */
+  const m = mediaDa([
+    { data: "2026-08-08", stato: "conclusa" },
+    { data: "2026-08-09", stato: "conclusa" },
+  ]);
+  eq(m.media, 0, "zero misurato: è una misura vera");
+  eq(m.parziale, false, "e non è un minimo");
+  eq(m.mancano, [], "non manca niente");
+  eq(campo.minutiFermoTesto(0, 0, 0), "0 min", "la funzione sorella dice la stessa cosa");
+});
+test("mediaFermiAlGiorno: `giorniSenzaMinuti` conta le COLONNE a zero che un fermo l'avevano", () => {
+  /* è il conto che la pagina si ricavava da sé (`righe.filter(r => r.fermi &&
+     !r.minuti)`): la stessa regola scritta due volte, e la seconda non sapeva
+     niente dei fermi. Adesso lo porta il modulo, con la stessa condizione con
+     cui `csvStorico` svuota la cella dei minuti (`senza >= fermi`) */
+  eq(mediaDa([
+    { data: "2026-08-07", stato: "anomalia", fermoMin: 100 },
+    { data: "2026-08-08", stato: "anomalia" },
+    { data: "2026-08-09", stato: "anomalia" },
+  ]).giorniSenzaMinuti, 2, "due colonne a zero pur avendo un fermo");
+  eq(mediaDa([
+    { data: "2026-08-07", stato: "anomalia", fermoMin: 100 },
+    { data: "2026-08-08", stato: "conclusa" },
+    { data: "2026-08-09", stato: "conclusa" },
+  ]).giorniSenzaMinuti, 0, "e qui nessuna: quelle due giornate un fermo non l'hanno avuto");
+  eq(mediaDa([
+    { data: "2026-08-08", stato: "anomalia", fermoMin: 20 },
+    { data: "2026-08-08", stato: "anomalia" },
+  ]).giorniSenzaMinuti, 0,
+    "una giornata con un fermo misurato e uno no NON è una colonna a zero: la colonna c'è, ed è un pavimento");
+});
+test("mediaFermiAlGiorno: la riga di `fermiPerGiorno` si legge con `minutiFermoTesto` senza tradurla", () => {
+  /* la prova che la convenzione è la STESSA e non una seconda scritta più
+     debole: i tre campi della riga entrano nella funzione sorella nell'ordine
+     in cui li vuole, e le tre uscite sono le tre che quella funzione conosce */
+  const righe = campo.fermiPerGiorno([
+    { data: "2026-08-07", stato: "anomalia", fermoMin: 100 },
+    { data: "2026-08-08", stato: "anomalia" },
+    { data: "2026-08-09", stato: "conclusa" },
+  ], 14, OGGI_MF);
+  eq(righe.map(r => campo.minutiFermoTesto(r.minuti, r.fermi, r.fermiSenzaMinuti)),
+    ["100 min", "senza minuti", "0 min"],
+    "misurato, mai misurato, e nessun fermo: tre risposte diverse a tre situazioni diverse");
+});
+test("mediaFermiAlGiorno: senza righe o senza giornate registrate dichiara CHE COSA manca", () => {
+  /* la vecchia risposta era già `null` e resta `null`: quello che è nuovo è che
+     adesso `mancano` distingue «non c'è nessuna giornata registrata» da «i
+     fermi ci sono ma nessuno li ha misurati», che sono due buchi diversi e
+     chiedono due cose diverse a chi compila */
+  const m = campo.mediaFermiAlGiorno([
+    { data: "2026-08-01", minuti: 0, fermi: 0, fermiConMinuti: 0, fermiSenzaMinuti: 0, registrate: 0 },
+    { data: "2026-08-02", minuti: 0, fermi: 0, fermiConMinuti: 0, fermiSenzaMinuti: 0, registrate: 0 },
+  ]);
+  eq(m.media, null, "non calcolabile");
+  eq(m.mancano, ["giornate"], "manca la registrazione, non i minuti");
+  eq(campo.mediaFermiAlGiorno([]).mancano, ["giornate"], "e senza righe è lo stesso buco");
+  eq(campo.mediaFermiAlGiorno(null).media, null, "né senza argomento");
+});
 
 console.log(`\nRisultato KPI app: ${passed} passati, ${failed} falliti${inVolo.length ? `  ·  ${inVolo.length} prove asincrone aspettate` : ""}`);
 process.exit(failed > 0 ? 1 : 0);

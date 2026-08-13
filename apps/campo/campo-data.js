@@ -2088,19 +2088,40 @@ export function csvAppello(operatori, presenze, durate, data, turno, squadra, fm
    debole — e il campo che serviva a scriverla giusta qui non c'era.
    `registrate` conta le ATTIVITÀ registrate quel giorno, non i fermi: una
    giornata con dieci attività e nessuna anomalia è misurata eccome. */
+/* ⛔ E OGNI RIGA DICE ANCHE QUANTI FERMI DI QUEL GIORNO NESSUNO HA MISURATO
+   (`fermiSenzaMinuti`, e quanti invece hanno i minuti: `fermiConMinuti`).
+   Perché senza quel conto la SOMMA dei minuti è di due specie e chi la divide
+   non può distinguerle: `Math.max(0, +a.fermoMin || 0)` fa entrare nel totale
+   un guasto mai misurato valendo ZERO — cioè lo tratta come «quel fermo non è
+   costato niente», che è il numero tranquillo dove non è stato misurato
+   niente. Misurato oggi su tre giornate con un guasto mai misurato ciascuna:
+   `{ totale: 0, giorniMisurati: 3, media: 0 }`, e quello zero sembra la cava
+   più efficiente d'Italia.
+   ⛔ La convenzione NON è nuova: sono gli stessi due nomi che `storicoSettimana`
+   mette sulle sue righe e che `disponibilitaTurno` mette sul suo turno, letti
+   da `minutiFermoTesto` («0 min» / «senza minuti» / «almeno N min») e da
+   `csvStorico` (cella VUOTA quando `senza >= fermi`). Scriverne una terza qui
+   sarebbe la stessa regola scritta due volte, la seconda più debole — che in
+   questa casa è già costata ventiquattro difetti veri in una notte.
+   ⚠️ «Con i minuti» vuol dire `fermoMin > 0`, esattamente come lo intendono le
+   due sorelle: un fermo dichiarato di zero minuti non è un fermo misurato a
+   zero, è un fermo che nessuno ha cronometrato. */
 export function fermiPerGiorno(attivita, giorni = 14, oggi = new Date()) {
   const fine = oggiISO(oggi);
   const acc = {};
   let primo = null;
+  const vuota = (d) => ({ data: d, minuti: 0, fermi: 0, fermiConMinuti: 0, fermiSenzaMinuti: 0, registrate: 0 });
   for (const a of attivita || []) {
     const d = String((a && a.data) || "").trim();
     if (!dataISOEsiste(d) || d > fine) continue;
     if (!primo || d < primo) primo = d;
-    if (!acc[d]) acc[d] = { data: d, minuti: 0, fermi: 0, registrate: 0 };
+    if (!acc[d]) acc[d] = vuota(d);
     acc[d].registrate++;
     if (a.stato === "anomalia") {
-      acc[d].minuti += Math.max(0, +a.fermoMin || 0);
+      const m = Math.max(0, +a.fermoMin || 0);
+      acc[d].minuti += m;
       acc[d].fermi++;
+      if (m) acc[d].fermiConMinuti++; else acc[d].fermiSenzaMinuti++;
     }
   }
   if (!primo) return [];
@@ -2110,32 +2131,110 @@ export function fermiPerGiorno(attivita, giorni = 14, oggi = new Date()) {
   const da = primo > inizio ? primo : inizio;
   const out = [];
   for (let t = meta(da); oggiISO(t) <= fine; t = new Date(t.getTime() + 86400000))
-    out.push(acc[oggiISO(t)] || { data: oggiISO(t), minuti: 0, fermi: 0, registrate: 0 });
+    out.push(acc[oggiISO(t)] || vuota(oggiISO(t)));
   return out;
 }
 
-/* LA MEDIA DEI MINUTI DI FERMO AL GIORNO, con il suo denominatore dichiarato.
+/* LA MEDIA DEI MINUTI DI FERMO AL GIORNO, con il suo denominatore dichiarato E
+   con dichiarato anche che cosa c'è dentro il NUMERATORE.
    Sta qui e non nella pagina perché è la decisione, non il disegno: chi
    mostrerà questo numero da un'altra parte (un export, un riepilogo, una
    stampa) non deve poterla rifare più debole — è il difetto che in questa casa
    è già costato ventiquattro volte.
-   Ritorna `{ media, giorniMisurati, giorniVuoti, giorni, totale }`, e `media` è
-   `null` — mai zero — quando nessuna giornata del periodo è stata registrata:
-   uno zero lì direbbe «non ci fermiamo mai» dove la verità è «non lo sa
-   nessuno». Pura e testabile. */
+
+   ⛔ IL DENOMINATORE ERA GIÀ DICHIARATO, IL NUMERATORE NO — e da lì usciva un
+   numero tranquillo. Le tre misure prese oggi, prima di questa riga:
+     · tre giornate, ognuna con un guasto MAI MISURATO
+       → `{ totale: 0, giorniMisurati: 3, media: 0 }`: uno zero che afferma
+         «in tre giorni non abbiamo perso un minuto» dove nessuno ha guardato
+         l'orologio;
+     · un giorno da 100 min + due giornate con guasti mai misurati → `media: 33`;
+     · lo STESSO giorno da 100 min + due giornate senza NESSUN fermo
+       → `media: 33`, cioè identico. Due situazioni diverse, lo stesso numero,
+       e chi legge non ha modo di distinguerle.
+
+   ⛔ LA RISPOSTA NON È NUOVA: È QUELLA CHE CAMPO DÀ GIÀ ALLA STESSA DOMANDA in
+   `minutiFermoTesto` (che è il posto dove questa casa ha già deciso come si
+   scrivono i minuti di fermo senza mentire) e in `csvStorico`, e le tre uscite
+   sono le stesse tre:
+     · nessun fermo nelle giornate registrate → `media` è un numero (magari 0)
+       e `parziale` è falso: è una misura vera, c'eravamo e non ci siamo
+       fermati;
+     · fermi registrati e NESSUNO con i minuti (`fermiSenzaMinuti >= fermi`)
+       → `media` è `null`, come `minutiFermoTesto` scrive «senza minuti» e come
+       `csvStorico` lascia la cella VUOTA. Uno zero lì è la bugia più grossa
+       che questo grafico sappia dire;
+     · alcuni fermi con i minuti e altri no → `media` è un numero e `parziale`
+       è vero: quel numero è un MINIMO («almeno»), mai una misura.
+   `media` resta `null` anche quando nessuna giornata del periodo è stata
+   registrata: uno zero lì direbbe «non ci fermiamo mai» dove la verità è «non
+   lo sa nessuno».
+
+   ⚠️ IL VERSO DELL'INCERTEZZA È OPPOSTO A QUELLO DI `disponibilitaTurno`, ed è
+   la ragione per cui `parziale` qui non si può copiare di là senza pensarci:
+   là i minuti mancanti rendono la percentuale un MASSIMO («al più», perché il
+   tempo perso può solo salire e la disponibilità solo scendere); qui rendono
+   la media un MINIMO («almeno», perché a salire è proprio il numero mostrato).
+   Stesso principio, parole diverse — e chi disegna deve scrivere la parola
+   giusta, se no rassicura invece di avvisare.
+
+   Ritorna `{ media, parziale, motivo, mancano, giorni, giorniMisurati,
+   giorniVuoti, giorniSenzaMinuti, fermi, fermiConMinuti, fermiSenzaMinuti,
+   totale }`. `giorniSenzaMinuti` è il conto delle colonne disegnate a ZERO che
+   però un fermo ce l'avevano: sta qui e non nella pagina perché la pagina se
+   lo ricavava da sé (`righe.filter(r => r.fermi && !r.minuti)`), che è la
+   stessa regola scritta due volte.
+   ⚠️ Vuole le righe di `fermiPerGiorno`: è lì che i due conti nascono. Pura e
+   testabile. */
 export function mediaFermiAlGiorno(righe) {
   const r = (righe || []).filter(Boolean);
+  const intero = (v) => Math.max(0, Math.round(+v || 0));
   const misurate = r.filter(g => (+g.registrate || 0) > 0);
   const totale = r.reduce((t, g) => t + Math.max(0, +g.minuti || 0), 0);
-  return {
+  // i fermi si contano su TUTTE le righe e non solo sulle misurate perché un
+  // fermo è esso stesso un'attività registrata: le due somme coincidono, e
+  // filtrare qui vorrebbe dire fidarsi di quella coincidenza
+  const fermi = r.reduce((t, g) => t + intero(g.fermi), 0);
+  const conMinuti = r.reduce((t, g) => t + intero(g.fermiConMinuti), 0);
+  const senzaMinuti = r.reduce((t, g) => t + intero(g.fermiSenzaMinuti), 0);
+  const out = {
     totale,
     giorni: r.length,
     giorniMisurati: misurate.length,
     giorniVuoti: r.length - misurate.length,
-    media: misurate.length
-      ? Math.round(misurate.reduce((t, g) => t + Math.max(0, +g.minuti || 0), 0) / misurate.length)
-      : null,
+    // una colonna a zero che un fermo ce l'aveva: `senza >= fermi` è la stessa
+    // condizione con cui `csvStorico` svuota la cella dei minuti
+    giorniSenzaMinuti: r.filter(g => intero(g.fermi) && intero(g.fermiSenzaMinuti) >= intero(g.fermi)).length,
+    fermi, fermiConMinuti: conMinuti, fermiSenzaMinuti: senzaMinuti,
+    media: null, parziale: false, mancano: [], motivo: "",
   };
+  if (!misurate.length) {
+    out.mancano = ["giornate"];
+    out.motivo = "Nessuna giornata del periodo ha registrazioni: non si sa se ci si sia fermati. "
+      + "Un numero qui direbbe che non ci fermiamo mai, mentre la verità è che non è stato misurato.";
+    return out;
+  }
+  if (fermi && senzaMinuti >= fermi) {
+    out.mancano = ["minuti"];
+    out.motivo = (fermi === 1
+      ? "L'unico fermo registrato è senza minuti"
+      : "I " + fermi + " fermi registrati sono tutti senza minuti")
+      + ": non c'è niente da mediare. Uno zero qui direbbe che non abbiamo perso tempo, "
+      + "mentre la verità è che nessuno l'ha misurato.";
+    return out;
+  }
+  out.media = Math.round(misurate.reduce((t, g) => t + Math.max(0, +g.minuti || 0), 0) / misurate.length);
+  out.parziale = senzaMinuti > 0;
+  if (out.parziale) {
+    // con «1» cambiano il verbo e la preposizione, non solo il sostantivo: la
+    // scelta la fanno `conta` e `plurale` di shared/, come in tutto il resto
+    // di Campo — «1 fermi sono senza minuti» è la frase che tradisce il conto
+    out.motivo = conta(senzaMinuti, "fermo", "fermi") + " su " + fermi
+      + plurale(senzaMinuti, " è senza minuti", " sono senza minuti")
+      + ": la media nasce " + plurale(conMinuti, "dall'unico fermo misurato", "dai " + conMinuti + " fermi misurati")
+      + ", quindi il tempo perso davvero è almeno questo.";
+  }
+  return out;
 }
 
 /* Quanti fermi NON compaiono in nessuna colonna del grafico qui sopra perché il

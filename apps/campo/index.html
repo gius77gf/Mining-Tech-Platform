@@ -1361,7 +1361,7 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
      minuti, che questo grafico non sa dove mettere perché il loro giorno non si
      legge. Se non lo dicessimo, la fila di colonne a zero direbbe «non ci siamo
      fermati» — che è esattamente la cosa che il grafico è stato costruito per
-     non dire (vedi il commento su `senzaMin` qui sotto). Va scritto in TUTTI i
+     non dire (vedi il commento su `giorniSenzaMinuti` qui sotto). Va scritto in TUTTI i
      rami, compresi quelli vuoti, perché sono i più tranquilli. */
   function grafFermiStorico(righe, fuoriColonna = 0) {
     const el = svuotaGraf("fermi-storico"); if (!el) return;
@@ -1380,21 +1380,29 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
         + `Registra le attività con il loro <b>giorno di lavoro</b> e il confronto compare da solo.` + codaFuori);
       return;
     }
-    const totale = righe.reduce((t, r) => t + r.minuti, 0);
+    /* ⛔ IL NUMERO E LA FRASE ACCANTO ESCONO DALLA STESSA DECISIONE, E LA
+       DECISIONE STA NEL MODULO. Qui c'erano due `reduce` scritti a mano — il
+       totale dei minuti e il conto dei fermi — che rispondono alla stessa
+       domanda di `mediaFermiAlGiorno`: la stessa regola scritta due volte, e la
+       seconda non sapeva niente dei fermi mai misurati. Adesso si chiede una
+       volta sola, e il disegno non può più dire una cosa diversa dal numero. */
+    const mf = mediaFermiAlGiorno(righe);
     // ⛔ «NESSUN FERMO» E «FERMI MAI MISURATI» NON SONO LA STESSA COSA. La
     // somma dei minuti fa zero in tutti e due i casi, e il titolo dichiarava
     // il primo anche quando era vero il secondo: «non c'è nemmeno un minuto di
     // fermo» su giornate piene di guasti che nessuno ha cronometrato.
-    const totFermi = righe.reduce((t, r) => t + r.fermi, 0);
-    if (!totale) {
-      el.innerHTML = totFermi
+    // ⛔ E LA MEDIA CHE IL MODULO SI RIFIUTA DI DARE (`media === null`) NON SI
+    // DISEGNA: è il caso dei fermi tutti senza minuti, e un numero lì sarebbe
+    // proprio lo zero tranquillo che il modulo ha appena rifiutato.
+    if (mf.media === null || !mf.totale) {
+      el.innerHTML = mf.fermi
         // `fermiPerGiorno` parte dal PRIMO giorno con qualcosa registrato, non
         // sempre da quattordici giorni fa: in una cava che ha cominciato oggi
         // `righe.length` vale 1, e qui si leggeva «In queste 1 giornate»
         ? `<div class="senza-minuti">${plurale(righe.length,
              "In questa giornata ci sono",
              `In queste <b>${righe.length}</b> giornate ci sono`)}
-           <b>${totFermi}</b> ${totFermi === 1 ? "fermo registrato" : "fermi registrati"}
+           <b>${mf.fermi}</b> ${mf.fermi === 1 ? "fermo registrato" : "fermi registrati"}
            ma <b>nessun minuto</b>: senza i minuti non si può disegnare quanto sono costati.
            Scrivi i minuti nel campo accanto alla causale, sulla voce in anomalia.${codaFuori}</div>`
         : vuoto(I.orologio, "Nessun fermo in questi giorni",
@@ -1410,9 +1418,13 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
        giù nella direzione che rassicura (misurato: 21 min al giorno invece di
        100, con tre giornate registrate su quattordici). Il denominatore lo
        decide `mediaFermiAlGiorno`, non questa riga, ed è lo stesso conto che il
-       grafico della settimana fa già qui sotto. */
-    const mf = mediaFermiAlGiorno(righe);
-    const senzaMin = righe.filter(r => r.fermi && !r.minuti).length;
+       grafico della settimana fa già qui sotto.
+       ⛔ E `mf` SI CHIEDE UNA VOLTA SOLA, PIÙ SU: qui c'era la seconda
+       chiamata, e accanto `const senzaMin = righe.filter(r => r.fermi &&
+       !r.minuti)` — cioè la pagina che si ricavava da sé il conto delle
+       colonne a zero che un fermo ce l'avevano. Adesso quel conto lo porta il
+       modulo (`giorniSenzaMinuti`), con la stessa condizione con cui
+       `csvStorico` svuota la cella dei minuti. */
     const peggiore = righe.reduce((a, b) => b.minuti > a.minuti ? b : a);
     if (!window.dwGrafici) return;
     dwGrafici.barre(el, {
@@ -1430,9 +1442,20 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
         + plurale(mf.giorniMisurati,
             `Nell'<b>unica</b> giornata con qualcosa registrato la media è `,
             `Nelle <b>${mf.giorniMisurati}</b> giornate con qualcosa registrato la media è `)
-        + `<b>${numeroIt(mf.media, 0)} min</b> al giorno; la giornata peggiore è il <b>${dmy(peggiore.data)}</b> `
-        + `con <b>${numeroIt(peggiore.minuti, 0)} min</b>. Un giorno storto capita a tutti; se le colonne restano alte `
+        // ⛔ «ALMENO» NON È UN ABBELLIMENTO: quando qualche fermo è senza
+        // minuti la media è un PAVIMENTO, e scritta nuda afferma un tempo
+        // perso che nessuno ha misurato. A dirlo è `mf.parziale`, deciso dal
+        // modulo; e la giornata peggiore passa da `minutiFermoTesto`, che è la
+        // funzione con cui Campo scrive i minuti di fermo in tutti gli altri
+        // punti — «0 min», «senza minuti» o «almeno N min», mai un numero nudo
+        + `<b>${mf.parziale ? "almeno " : ""}${numeroIt(mf.media, 0)} min</b> al giorno; la giornata peggiore è il <b>${dmy(peggiore.data)}</b> `
+        + `con <b>${esc(minutiFermoTesto(peggiore.minuti, peggiore.fermi, peggiore.fermiSenzaMinuti))}</b>. `
+        + `Un giorno storto capita a tutti; se le colonne restano alte `
         + `per settimane il problema è la manutenzione, non la sfortuna.`
+        // il PERCHÉ del «almeno», con i numeri: quanti fermi sono senza minuti
+        // e su quanti. Lo scrive il modulo, così la frase non può discordare
+        // dal numero che l'ha prodotta
+        + (mf.parziale ? ` ${esc(mf.motivo)}` : "")
         // le colonne senza NIENTE registrato non sono giornate senza fermi: non
         // entrano nella media, e va detto o il numero sembra riguardare tutto
         // il periodo
@@ -1444,12 +1467,16 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
             ? ` Il conto parte dalla prima giornata registrata: prima non c'era ancora niente da contare.` : "")
         // una colonna a zero su una giornata che ha avuto fermi non dice «non
         // ci siamo fermati»: dice che nessuno li ha misurati, ed è un'altra cosa
-        + (senzaMin
-            ? ` In ${senzaMin === 1 ? "una giornata la colonna è a zero" : senzaMin + " giornate le colonne sono a zero"}`
+        + (mf.giorniSenzaMinuti
+            ? ` In ${mf.giorniSenzaMinuti === 1 ? "una giornata la colonna è a zero" : mf.giorniSenzaMinuti + " giornate le colonne sono a zero"}`
               + ` pur avendo fermi registrati: lì i minuti non sono stati scritti.` : "")
         + codaFuori,
+      // ⛔ ANCHE CHI ASCOLTA LA PAGINA SENTE LA STESSA COSA CHE LEGGE CHI LA
+      // VEDE: `conta(r.minuti, …)` diceva «0 minuti» sulle giornate in cui i
+      // fermi c'erano e nessuno li aveva cronometrati — lo stesso numero
+      // tranquillo, senza nemmeno la nota accanto a correggerlo
       aria: "Minuti di fermo per giornata, " + conta(righe.length, "giornata", "giornate") + ": "
-        + righe.map(r => dmy(r.data) + " " + conta(r.minuti, "minuto", "minuti")).join(", ") + ".",
+        + righe.map(r => dmy(r.data) + " " + minutiFermoTesto(r.minuti, r.fermi, r.fermiSenzaMinuti)).join(", ") + ".",
     });
   }
 
