@@ -1070,6 +1070,21 @@ Perché serva davvero e non produca elenchi generici, cinque vincoli:
   uno stato fermo — non lasciato finire per non buttare le ore già spese.
   ⚠️ Spegnendolo si guarda **chi resta vivo**: i Chromium con un padre ancora
   vivo e pochi secondi di età sono **di qualcun altro**, non orfani del giro.
+  ⛔ **E IL SERVER DEL GIRO NON MUORE CON LUI, nemmeno uccidendo il GRUPPO.**
+  Misurato subito dopo, la sera stessa: ucciso `tutti.mjs` con `kill -TERM -PID`,
+  il suo `http.server` sulla **8823** era ancora vivo **quattro ore e
+  quarantadue** dopo, con padre `1` — si era già **riparentato a init**, quindi
+  il gruppo non lo conteneva più. E rispondeva **404 su tutto**, perché la
+  worktree che serviva non esiste più: è alla lettera la trappola già scritta
+  qui sopra, con la differenza che stavolta **l'aveva prodotta chi il giro
+  l'aveva spento**. Il prossimo giro l'avrebbe trovata occupata e — se non
+  avesse il contrassegno col pid — avrebbe misurato il vuoto.
+  Quindi spegnere un giro è **due comandi, non uno**: si uccide l'albero, e poi
+  si guarda **la porta** (`ss -ltn | grep 8823`), non il nome del processo.
+  ⚠️ E `pgrep -f "http.server 8941"` risponde di sì **a sé stesso**: la stringa
+  sta nella riga di comando della shell che lo lancia. È la stessa trappola
+  dell'attesa scritta male, in una veste che inganna perché sembra una verifica.
+  Si chiede alla **porta**, che non ha questo problema.
 - ⛔ **UN GIRO LUNGO NON DICE QUANTO È VECCHIO, E I SUOI KO SI LEGGONO COME SE
   FOSSERO DI ADESSO.** Misurato l'08/08 e a un passo dal costare un cantiere
   intero. Un giro da cinque ore e mezza dichiarava **cinque contrasti sotto
