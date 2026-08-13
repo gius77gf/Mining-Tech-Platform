@@ -1392,8 +1392,8 @@ numero scritto dove non era stato misurato niente**.*
       forme vere del difetto e pretende che il conto delle celle scoperte salga
       da 0 a 2.
 
-- [ ] **B0-quindecies. IL TEMA CHIARO DEL CORE: 61 TESTI SOTTO SOGLIA, e la
-      causa è UNA.** *Aperta il 13/08 dalla misura qui sopra.* Non sono
+- [x] ✅ **B0-quindecies. IL TEMA CHIARO DEL CORE: DA 61 TESTI SOTTO SOGLIA A
+      ZERO, e la causa era UNA.** *Chiuso il 13/08.* *Aperta il 13/08 dalla misura qui sopra.* Non sono
       sessantuno decisioni: `body.light-mode` ridefinisce le superfici e non gli
       inchiostri di stato. La correzione sta nel **blocco della palette**, non
       nei sessantuno punti — ed è la stessa forma della correzione dell'08/08,
@@ -1401,6 +1401,65 @@ numero scritto dove non era stato misurato niente**.*
       accanto. ⚠️ Prima di toccare un colore: rimisurare a mano i casi a
       **forbice larga** (`.addbtn`, 5,46) — è lì che l'08/08 stavano tutte e
       quattro le accuse false.
+
+      ✅ **ESITO, in tre iterazioni col confronto affiancato** (stessa
+      superficie, stesso banco, stessi 451 testi):
+
+      | | chiaro | scuro |
+      |---|---|---|
+      | partenza | **61 sotto soglia** | 0 |
+      | 1 · inchiostri di testo nominati e scuriti | **11** | 0 |
+      | 2 · i colori scritti dentro le stringhe JS, il gradiente-testo | **0** | 0 |
+      | 3 · passata estetica dagli scatti + pallini di sezione | **0** | 0 |
+
+      Gli **11** rimasti dopo la prima iterazione sono la regola «un censimento
+      che cerca UN nome»: il censimento cercava `color:var(--X)` e quei colori
+      stavano **dentro stringhe JS** (venti punti), in due `#ef5350` scritti a
+      mano, e nel **gradiente che dipinge il testo** dei numeroni — che non è un
+      colore.
+      ⛔ **E il caso a forbice larga aveva la causa sbagliata scritta accanto.**
+      `.addbtn` **non compare in nessuna delle 26 sezioni** del core: quel
+      numero esiste solo nel campione che il banco pianta. Rimisurato a mano
+      nello stesso modo: a riposo fa **6,39 / 7,15 / 6,11**, forbice 1,04, tutte
+      sopra soglia. Ma `1,90:1` su bianco è **alla cifra** `#ffab00` su
+      `#ffffff`, e l'unico `#ffab00` che quel bottone può avere è il suo
+      `:hover`. Quindi **l'accusa era vera su uno stato reale** — col dito
+      sopra, in chiaro, quel bottone era illeggibile — e la riga del banco la
+      attribuiva a uno scarto **fra superfici** quando lo scarto è **fra due
+      stati**. Dopo la correzione: **6,16:1**.
+      **La correzione sta nella palette**: undici token nuovi col conto
+      misurato scritto accanto, e nel `:root` valgono `var(--…)` — così **il
+      tema scuro non può cambiare per costruzione**, ed è verificato.
+      ⚠️ **Una strada scartata con la misura**: scurire `--amber` dentro
+      `light-mode` invece di dare un nome nuovo. `--amber` non è solo
+      inchiostro — sette punti scrivono `background:var(--amber);color:#100d07`,
+      dove il nero fa **10,23:1**; scurendola al minimo che serve al testo quei
+      sette scendono a **3,78:1**. Sarebbe stato lo scambio di un difetto con
+      l'altro.
+      · Tre ambra scritti a mano **dentro** `light-mode` erano la copia debole
+        di questo token, e **nessuno dei tre passava** (3,62 · 3,62 · 2,93).
+
+- [ ] **B0-novodecies. IL CONTRASTO NON TESTUALE DEL CORE NON LO MISURA
+      NESSUNO.** ⏱️ *Dichiarato il 13/08 dal cantiere del tema chiaro, con la
+      prova.* `contrasto-non-testo.mjs` ha l'elenco delle superfici **scritto a
+      mano** e contiene **le sei app, non il core**: lanciato con `--solo=core`
+      risponde «0 app misurate». Quindi bordi, pallini e fili colorati del core
+      — che in chiaro restano ambra chiara su bianco — non sono giudicati da
+      nessun banco. È la stessa famiglia dell'elenco a mano che non sapeva
+      nemmeno che `chiediDati` esistesse.
+- [ ] **B0-vicies. LA PASTIGLIA «NON SALVA» SI SOVRAPPONE AL NOME UTENTE, IN
+      CHIARO, A 430 px.** ⏱️ *Visto negli scatti il 13/08 e **non** introdotto
+      dalla correzione dei colori (il diff tocca solo colori).* È il
+      traboccamento **all'indietro** già descritto in `CLAUDE.md` — con
+      `justify-content:flex-end` il contenuto che non ci sta esce dalla parte
+      opposta e `scrollWidth > clientWidth` risponde «a posto» — ma qui in una
+      veste nuova: **non a 320 px, alla larghezza normale.**
+- [ ] **B0-unvicies. `.sync-badge.nonsalva` SCRIVE IL SUO ROSSO A MANO.**
+      ⏱️ *Dichiarato il 13/08.* È la quarta stesura dello stesso rosso da
+      velatura (`--ink-dg-vel`). Unificarla cambierebbe il valore **anche nel
+      buio**, di sei unità di rosso: il cantiere ha corretto **solo il chiaro** e
+      ha dichiarato la copia nel commento, perché il buio è quello che il
+      fondatore ha già visto e approvato.
 
 - [ ] **B0-duodecies. I CLAMP DELLE TRE SUPERFICI CHE IL CENSIMENTO NON AVEVA
       GUARDATO — core, Campo, Scudo.** ⏱️ *Censite il 10/08 con lo stesso
