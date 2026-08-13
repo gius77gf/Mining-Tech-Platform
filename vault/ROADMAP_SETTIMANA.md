@@ -5412,3 +5412,38 @@ di scriverlo qui**: niente entra sulla parola dell'agente.
       scelta prudente — ma un rifiuto silenzioso non è nessuna delle due.
       **Come si misura**: il CSV di prova qui sopra, e si conta quante righe
       tornano; poi si preme il bottone vero e si legge la frase.
+
+- [ ] **B6. «NON ANCORA CARICATO» NON È «NON C'È» — la quarta faccia del tema
+      della settimana, e per ora è un CANDIDATO, non un difetto.** ⏱️ *Aperta il
+      13/08 a notte, dopo che le prime tre facce erano chiuse: i file che
+      **escono** (16 difetti), i file che **entrano** (9 lettori su 9), e il
+      documento vero che risponde a un'altra domanda.*
+      La domanda: **fra l'apertura della pagina e l'arrivo dei dati, che cosa
+      c'è scritto sullo schermo?** Se in quella finestra un KPI disegna «0» o un
+      elenco dice «nessun rilievo», l'app sta dicendo una cosa **falsa e
+      tranquilla** — ed è lo stesso principio del fondatore applicato al
+      **tempo** invece che al dato: *l'assenza di un dato non è un dato
+      favorevole*, e «non lo so ancora» non è «non c'è».
+      ⚠️ **Il segnale, e va letto per quello che è.** Comando:
+      `for a in campo conti flotta scudo sentinella terra; do grep -ciE
+      "caricamento|sto caricando|non ancora caricat" apps/$a/index.html; done`
+      → **campo 1 · terra 2 · conti 0 · flotta 0 · scudo 0 · sentinella 0**.
+      Quattro app su sei non hanno **nessuna** parola per dire «sto caricando».
+      ⛔ **Ma questo NON è il conto dei difetti**, ed è esattamente l'errore che
+      questo file ha già pagato tre volte: un censimento per **parola** misura
+      una forma di scrittura, non la verità. Un'app può non avere quella parola
+      **perché non le serve** — se disegna solo dopo aver ricevuto i dati, la
+      finestra non esiste e non c'è niente da dire.
+      ⚠️ E leggere il codice non basta a chiudere la domanda: in Scudo lo stato
+      nasce come `let LAV = [], SCA = [], …` e `refresh()` è chiamata più giù,
+      ma **se paint e caricamento si incrocino lo dice solo l'orologio**, non
+      l'ordine delle righe. Dedurlo da qui sarebbe la diagnosi pubblicata e
+      falsa già pagata il 07/08.
+      **Come si misura** (ed è l'unica cosa che chiude la voce): si apre la
+      pagina con la sorgente dati **rallentata** — un ritardo iniettato nella
+      risposta HTTP del modulo dati, mai sul file — e si **fotografa lo schermo
+      prima** che i dati arrivino. Il KO è un **numero o una frase tranquilla**
+      in quella finestra: «0 mezzi», «nessuna scadenza», un KPI a zero. Il
+      denominatore da stampare è **quante schermate si sono riuscite a
+      fotografare in quella finestra**: se la finestra è troppo stretta per
+      essere vista, quello è il risultato e va scritto — non un verde.
