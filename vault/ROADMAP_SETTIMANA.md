@@ -1269,6 +1269,44 @@ numero scritto dove non era stato misurato niente**.*
       **5,46**, gli altri stanno sotto 0,4 — quindi si rimisurano a mano i casi
       a forbice larga e si correggono gli altri.
 
+- [x] ✅ **B0-sexdecies. TERRA: IL CUMULATO E IL RESIDUO DEL TITOLO SUL FOGLIO
+      CHE VA ALL'ENTE.** *Chiuso il 13/08.* La regola c'era **nella stessa
+      pagina, con la sua ragione scritta dal 07/08**: senza nessuna misura sotto
+      il titolo la frase diceva *«il cumulato arriva a 0 m³ — lo 0% del concesso
+      — e restano 1.200.000 m³»*, tre numeri rassicuranti costruiti sul niente.
+      Il **foglio stampato** e il **CSV** quella frase la scrivevano ancora,
+      identica, coi suoi numeri: leggevano `residuoFineAnno != null` invece
+      della bandiera `misurabile`.
+      Misurato col titolo compilato e **zero rilievi** — che è lo stato del
+      primo giorno d'uso, e ci si arriva compilando la scheda Titolo e premendo
+      «Stampa il riepilogo»:
+
+      | dove | prima | dopo |
+      |---|---|---|
+      | schermo | `—` | `—` |
+      | stampa · Cumulato a fine 2026 | **0 m³ (0% del concesso)** | non misurato |
+      | stampa · Residuo del concesso | **1.200.000 m³** | non misurato |
+      | CSV · Cumulato / Residuo | **`;0`** e **`;1200000`** | celle vuote, col motivo nell'etichetta |
+
+      ⛔ **E la parte che vale più del difetto: il banco scritto apposta non lo
+      vedeva.** `terra-numeri-tranquilli` costruisce l'anno cieco svuotando i
+      rilievi, ma la dimostrazione dichiara `estrattoPregressoM3: 880000` →
+      `misurabile` resta **vero** e la sezione non veniva nemmeno attraversata.
+      Il banco sorvegliava la bandiera **per ANNO** e non quella **per TITOLO**:
+      *un banco che guarda il posto giusto con la fixture sbagliata risponde
+      «pulito» senza aver guardato.*
+      · Minore, misurato: il **verbale** arrotondava all'unità il volume copiato
+        dall'atto (`n0` → `nD`), mentre il prospetto duecento righe più su
+        dichiara la regola opposta — e i decimali sono raggiungibili
+        (`1.200.000,50` entra come 1200000,5).
+      · Un «non c'è» **dichiarato con la prova**: una quota testuale
+        stamperebbe «Quota NaN m» in tre posti, ma non ci si arriva da nessuna
+        porta (`parseFrontiCsv` e il form filtrano tutt'e due). Non toccato:
+        sarebbe una guardia contro un caso che oggi non esiste.
+      Prove: `run-kpi` **2088 → 2092**, con la controprova che rimette le due
+      forme vere del difetto e pretende che il conto delle celle scoperte salga
+      da 0 a 2.
+
 - [ ] **B0-quindecies. IL TEMA CHIARO DEL CORE: 61 TESTI SOTTO SOGLIA, e la
       causa è UNA.** *Aperta il 13/08 dalla misura qui sopra.* Non sono
       sessantuno decisioni: `body.light-mode` ridefinisce le superfici e non gli
@@ -4379,8 +4417,8 @@ numero scritto dove non era stato misurato niente**.*
   nome apre il file sbagliato credendo che sia il più fresco.
 - Le decisioni: `docs/DECISIONI_WEEKEND.md` — pagina d'ingresso in cima.
 - Stato misurato al **09/08** (lanciando le suite, non a memoria):
-  **2.540 prove girano senza rete**. La frase va letta stretta: è la somma
-  delle **otto** suite che contano asserzioni (`run-kpi` 2088, `run-stile` 318,
+  **2.544 prove girano senza rete**. La frase va letta stretta: è la somma
+  delle **otto** suite che contano asserzioni (`run-kpi` 2092, `run-stile` 318,
   `run-helpers` 75, `run-pointcloud` 32, `run-manifest` 9, `run-demo` 8,
   `bootstrap-rivendicazioni` 7, `fogli-guardati` 3), non tutto ciò che gira nel
   giro `node` — che di comandi ne ha **34** e di asserzioni ne esegue di più:

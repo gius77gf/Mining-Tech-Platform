@@ -28069,5 +28069,113 @@ test("mediaFermiAlGiorno: senza righe o senza giornate registrate dichiara CHE C
   eq(campo.mediaFermiAlGiorno(null).media, null, "né senza argomento");
 });
 
+console.log("\n— Terra: il cumulato e il residuo che NESSUNO ha misurato —");
+/* ⛔ IL DOCUMENTO CHE ESCE ERA PIÙ TRANQUILLO DELLO SCHERMO, e la regola era
+   scritta nella stessa pagina con la sua ragione. Il 07/08 la sezione «dove
+   arriva il titolo» ha smesso di scrivere «il cumulato arriva a 0 m³, lo 0% del
+   concesso, e restano 1.200.000 m³» — «tre numeri rassicuranti costruiti sul
+   niente», dice il commento accanto. Il PROSPETTO STAMPATO e il CSV della
+   denuncia, che sono i due documenti che vanno all'ente, quella stessa frase la
+   scrivevano ancora coi suoi numeri: leggevano `residuoFineAnno != null` invece
+   di `R.misurabile`. Misurato con l'atto compilato e zero rilievi (13/08):
+     schermo →  «Cumulato sul titolo —»          · «Residuo a fine 2026 —»
+     stampa  →  «Cumulato a fine 2026 · 0 m³ (0% del concesso)» · «Residuo del
+                volume concesso · 1.200.000 m³»
+     CSV     →  `titolo;Cumulato a fine 2026...;0` · `titolo;Residuo...;1200000`
+   a otto righe da un «Totale 2026 · non misurato» che la bandiera gemella
+   (`base.calcolabile`) la leggeva già.
+   ⚠️ PERCHÉ IL BANCO CHE ESISTE APPOSTA NON LO VEDEVA, ed è la lezione che vale
+   più del difetto: `browser/terra-numeri-tranquilli.mjs` costruisce l'anno
+   cieco svuotando `DEMO.rilievi`, ma la dimostrazione dichiara
+   `estrattoPregressoM3: 880000` — quindi in quel caso `misurabile` è **vero** e
+   la sezione incriminata non veniva nemmeno attraversata. Il banco misurava la
+   bandiera accanto (`base.calcolabile`, che è per ANNO) e non questa (che è per
+   TITOLO). Un banco che guarda il posto giusto con la fixture sbagliata risponde
+   «pulito» senza aver guardato. */
+test("riepilogoAnnuale: senza rilievi sotto il titolo i numeri ESISTONO ma `misurabile` è falso", () => {
+  const atto = { numeroAtto: "A-1", dataRilascio: "2024-01-01", volumeAutorizzatoM3: 1200000 };
+  const R = terra.riepilogoAnnuale([], "2026", atto, new Date("2026-08-13T10:00:00"));
+  eq(R.misurabile, false, "nessun rilievo di scavo sotto il titolo e nessun pregresso dichiarato");
+  /* i tre numeri restano quello che sono — il conto va comunque fatto — ed è
+     esattamente per questo che serve la bandiera: presi da soli sono
+     indistinguibili da una cava che non ha ancora consumato niente */
+  eq(R.cumulatoFineAnno, 0, "il cumulato calcolato è zero…");
+  eq(R.residuoFineAnno, 1200000, "…e il residuo è tutto il concesso: due numeri rassicuranti sul niente");
+  eq(R.pctFineAnno, 0, "e la percentuale è 0%");
+  ok(R.residuoFineAnno != null, "cioè `residuoFineAnno != null` NON distingue il caso: era la guardia del foglio");
+});
+test("riepilogoAnnuale: un solo rilievo di scavo, o il pregresso dichiarato, rendono misurabile", () => {
+  const atto = { numeroAtto: "A-1", dataRilascio: "2024-01-01", volumeAutorizzatoM3: 1200000 };
+  const uno = [{ id: "r1", data: "2026-03-10", stato: "elaborato", volumeM3: 40000, fronteId: "f1", provenienza: "scavo" }];
+  eq(terra.riepilogoAnnuale(uno, "2026", atto, new Date("2026-08-13T10:00:00")).misurabile, true,
+    "un rilievo di scavo basta");
+  eq(terra.riepilogoAnnuale([], "2026", { ...atto, estrattoPregressoM3: 880000 }, new Date("2026-08-13T10:00:00")).misurabile, true,
+    "e il pregresso dichiarato pure: è il caso della dimostrazione, ed è il motivo per cui il banco del browser non vedeva il difetto");
+  /* la ripresa da CUMULO non rende misurabile il consumo del titolo: è
+     materiale già estratto, non consuma il concesso */
+  eq(terra.riepilogoAnnuale([{ id: "c1", data: "2026-03-10", stato: "elaborato", volumeM3: 4400, fronteId: "f1", provenienza: "cumulo" }],
+    "2026", atto, new Date("2026-08-13T10:00:00")).misurabile, false,
+    "un anno di sole riprese da cumulo resta un titolo non misurato");
+});
+/* ⛔ E LA BANDIERA VA LETTA DOVE IL DOCUMENTO SI COMPONE, se no non protegge
+   niente (regola 20 di `run-stile`, qui applicata a mano perché i tre lettori
+   vivono nella PAGINA e nessuna suite `node` importa le pagine).
+   ⚠️ Questa prova guarda una FORMA DI SCRITTURA, non un verdetto: il verdetto
+   lo può dare solo il browser, premendo i due bottoni. Vale quello che vale —
+   impedisce che una delle sette celle torni a comporsi senza la bandiera — e
+   il suo denominatore è dichiarato: SETTE celle, contate. */
+test("Terra · le sette celle del titolo (schermo, foglio stampato, CSV) leggono tutte `R.misurabile`", () => {
+  const src = readFileSync(join(HERE, "../../terra/index.html"), "utf8");
+  /* l'ancora è il TESTO che l'utente legge, non un numero di riga: le righe si
+     spostano a ogni commit, un'etichetta no (misurato il 09/08: 87 riferimenti
+     di riga su 91 non trovavano più il loro nome) */
+  const CELLE = [
+    ["schermo · tessera «Cumulato sul titolo»", '["Cumulato sul titolo"'],
+    ["schermo · tessera «Residuo a fine»", '["Residuo a fine " + R.anno'],
+    ["foglio stampato · riga del cumulato", "<tr class='tot'><td>Cumulato a fine "],
+    ["foglio stampato · riga del residuo", "<b>Residuo del volume concesso</b>"],
+    ["foglio stampato · scavo sotto il titolo", "<b>Scavo misurato sotto questo titolo fino al 31/12/"],
+    ["CSV · riga del cumulato", 'csvCell("Cumulato a fine "'],
+    ["CSV · riga del residuo", 'csvCell("Residuo del concesso"'],
+  ];
+  // la cella è l'espressione che segue l'ancora: si guarda lì dentro, non nel file
+  const cella = (testo, ancora) => {
+    const i = testo.indexOf(ancora);
+    return i < 0 ? null : testo.slice(i, i + 300);
+  };
+  const senza = [];
+  for (const [nome, ancora] of CELLE) {
+    const c = cella(src, ancora);
+    ok(c != null, `l'ancora di «${nome}» non si trova più nella pagina: o è stata riscritta, o questa prova è invecchiata (${ancora})`);
+    if (!/\bR?\.?misurabile\b/.test(c)) senza.push(nome);
+  }
+  eq(senza, [], `queste celle compongono un numero del titolo senza leggere la bandiera che dice se è stato misurato (${CELLE.length} celle guardate)`);
+  /* ⛔ LA CONTROPROVA, se no questa prova non dimostra di saper fallire: si
+     rimettono nella COPIA in memoria le due forme che il difetto aveva davvero
+     — mai sul file, che è la regola del ripristino da copia — e si pretende che
+     il conto delle celle scoperte salga da 0 a 2. */
+  const rotta = src
+    .replace('+ (R.misurabile\n          ? n0(R.cumulatoFineAnno) + " m³"', '+ (true\n          ? n0(R.cumulatoFineAnno) + " m³"')
+    .replace('(!R.misurabile ? "non misurato" : R.residuoFineAnno != null', '(false ? "non misurato" : R.residuoFineAnno != null');
+  ok(rotta !== src, "l'iniezione non ha trovato il suo pezzo di pagina: la controprova sarebbe girata su un prodotto sano");
+  const scoperte = CELLE.filter(([, a]) => { const c = cella(rotta, a); return c && !/\bR?\.?misurabile\b/.test(c); });
+  eq(scoperte.length, 2, "col difetto rimesso le due celle del foglio stampato risultano scoperte");
+});
+test("Terra · il verbale cita il volume dell'atto senza arrotondarlo, come il prospetto della denuncia", () => {
+  /* la ragione è scritta nel prospetto: «i numeri copiati dall'atto si
+     riportano come stanno sull'atto», perché arrotondare all'unità un numero
+     trascritto dal titolo lo fa divergere dal documento. Il verbale, che
+     quell'atto lo cita in una tabella sua e va allo stesso ente, usava `n0`.
+     Raggiungibile: il campo legge i decimali (`numeroDaCampo` senza
+     `decimali`), quindi «1.200.000,50» entra come 1200000,5. */
+  eq(terra.numeroDaCampo("1.200.000,50", { min: 0 }).valore, 1200000.5,
+    "il campo del volume concesso accetta i decimali: la divergenza è raggiungibile");
+  const src = readFileSync(join(HERE, "../../terra/index.html"), "utf8");
+  const i = src.indexOf('["Volume totale concesso", aut.volumeAutorizzatoM3');
+  ok(i >= 0, "la riga del verbale che cita il volume concesso non si trova più");
+  const riga = src.slice(i, i + 120);
+  ok(/nD\(aut\.volumeAutorizzatoM3\)/.test(riga), "il verbale scrive il volume dell'atto con `nD` (per intero), non con `n0` (arrotondato): " + riga.split("\n")[0]);
+});
+
 console.log(`\nRisultato KPI app: ${passed} passati, ${failed} falliti${inVolo.length ? `  ·  ${inVolo.length} prove asincrone aspettate` : ""}`);
 process.exit(failed > 0 ? 1 : 0);

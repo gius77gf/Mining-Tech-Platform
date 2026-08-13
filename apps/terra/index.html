@@ -2791,12 +2791,36 @@ a.dw-btn{text-decoration:none}
       // giunta quella che abbassa il cumulato
       + riga(["<b>Estratto dichiarato prima dell'uso di Terra</b>",
               "<span class='n'>" + (R.pregressoDichiarato ? nD(R.pregresso) + " m³" : "non dichiarato") + "</span>"])
-      + riga(["<b>Scavo misurato sotto questo titolo fino al 31/12/" + R.anno + "</b>", "<span class='n'>" + n0(Math.max(0, R.cumulatoFineAnno - R.pregresso)) + " m³</span>"])
-      + "<tr class='tot'><td>Cumulato a fine " + R.anno + "</td><td class='n'>" + n0(R.cumulatoFineAnno) + " m³"
-      + (R.pctFineAnno != null ? "<span class='via'> (" + un1(R.pctFineAnno) + "% del concesso)</span>" : "") + "</td></tr>"
-      + riga(["<b>Residuo del volume concesso</b>", "<span class='n'>" + (R.residuoFineAnno != null ? n0(R.residuoFineAnno) + " m³" : "non calcolabile") + "</span>"])
+      /* ⛔ E QUESTE TRE RIGHE LEGGONO `R.misurabile`, che è la stessa bandiera
+         che legge lo schermo. Fino al 13/08 no, e la frase che la sezione «5 ·
+         dove arriva il titolo» di questa stessa pagina non scrive più dal 07/08
+         — «il cumulato arriva a 0 m³, lo 0% del concesso, e restano 1.200.000
+         m³»: tre numeri rassicuranti costruiti sul niente — usciva ancora
+         IDENTICA, coi suoi numeri, sul foglio che va all'ente. Misurato con
+         l'atto compilato e zero rilievi: schermo «—», stampa «Cumulato a fine
+         2026 · 0 m³ (0% del concesso)» e «Residuo · 1.200.000 m³». Due
+         convenzioni opposte sullo stesso dato, e quella tranquilla nel posto
+         dove la legge un ispettore — a otto righe da un «Totale 2026 · non
+         misurato» che la bandiera accanto la leggeva già.
+         Le parole sono quelle che questo foglio usa già per i fronti e per i
+         banchi mai rilevati: «non misurato», non «0» e nemmeno «non
+         calcolabile», che qui vuol dire un'altra cosa (manca il concesso). */
+      + riga(["<b>Scavo misurato sotto questo titolo fino al 31/12/" + R.anno + "</b>",
+              "<span class='n'>" + (R.misurabile ? n0(Math.max(0, R.cumulatoFineAnno - R.pregresso)) + " m³" : "non misurato") + "</span>"])
+      + "<tr class='tot'><td>Cumulato a fine " + R.anno + "</td><td class='n'>"
+      + (R.misurabile
+          ? n0(R.cumulatoFineAnno) + " m³"
+            + (R.pctFineAnno != null ? "<span class='via'> (" + un1(R.pctFineAnno) + "% del concesso)</span>" : "")
+          : "non misurato") + "</td></tr>"
+      + riga(["<b>Residuo del volume concesso</b>", "<span class='n'>"
+              + (!R.misurabile ? "non misurato" : R.residuoFineAnno != null ? n0(R.residuoFineAnno) + " m³" : "non calcolabile") + "</span>"])
       + (soglia != null ? riga(["Soglia di guardia impostata", "<span class='n'>" + un1(soglia) + "%</span>"]) : "")
       + "</table>"
+      /* e il perché sta sotto la tabella, non lasciato dedurre da tre trattini */
+      + (R.misurabile ? ""
+          : "<p class='mini'>Sotto questo titolo non risulta <b>nessun rilievo di scavo</b> e l'estratto precedente all'uso di Terra <b>non è dichiarato</b>: "
+            + "quanta parte del volume concesso sia stata consumata non l'ha misurata nessuno, e non è la stessa cosa di «zero consumato». "
+            + "Le tre righe qui sopra restano da compilare a partire dalle comunicazioni degli anni precedenti.</p>")
       /* ⛔ LA BASE DELL'ONERE SUL FOGLIO CHE VA ALL'ENTE. La frase la scrive
          `descriviBaseOnere` nel modulo, non qui: è una REGOLA, e chi la scrive
          deve essere uno solo. Finisce in METRI CUBI e rimanda a Conti per
@@ -2911,10 +2935,22 @@ a.dw-btn{text-decoration:none}
        tanti»: meno estratto e piu' concessione residua di quanto si sappia,
        su un foglio che si ricopia nel modulo dell'ente. Il numero non e'
        sbagliato — e' scritto come se fosse misurato. */
+    /* ⛔ E LE DUE ULTIME CELLE RESTANO VUOTE QUANDO NON C'E' NIENTE DI
+       MISURATO, come gia' fanno il totale dell'anno e i banchi mai rilevati in
+       questo stesso file. Fino al 13/08 uscivano `Cumulato a fine 2026;0` e
+       `Residuo del concesso;1200000` su una cava di cui non si sa niente — cioe'
+       la terza convenzione dentro un CSV che le altre due ce le ha gia' — e chi
+       lo apre in un foglio somma quello zero credendolo misurato. La bandiera e'
+       `R.misurabile`, la stessa che legge lo schermo e (dal 13/08) il foglio
+       stampato: una domanda, una risposta, tre posti che la leggono.
+       ⚠️ L'avvertenza «valore MINIMO / MASSIMO» resta dov'era: parla di un
+       numero che c'e' ed e' incompleto, che e' un'altra cosa da un numero che
+       non e' stato misurato. */
+    const nonMis = " (NON MISURATO: nessun rilievo di scavo sotto il titolo e estratto precedente non dichiarato)";
     csv += `titolo;${csvCell("Volume concesso")};${R.concesso || ""};;\n`;
     csv += `titolo;${csvCell("Estratto prima di Terra")};${R.pregressoDichiarato ? R.pregresso : ""};;\n`;
-    csv += `titolo;${csvCell("Cumulato a fine " + R.anno + (R.pregressoDichiarato ? "" : " (valore MINIMO: l'estratto prima di Terra non e' dichiarato)"))};${R.cumulatoFineAnno};;\n`;
-    csv += `titolo;${csvCell("Residuo del concesso" + (R.pregressoDichiarato || R.residuoFineAnno == null ? "" : " (valore MASSIMO: l'estratto prima di Terra non e' dichiarato)"))};${R.residuoFineAnno != null ? R.residuoFineAnno : ""};;\n`;
+    csv += `titolo;${csvCell("Cumulato a fine " + R.anno + (R.misurabile ? (R.pregressoDichiarato ? "" : " (valore MINIMO: l'estratto prima di Terra non e' dichiarato)") : nonMis))};${R.misurabile ? R.cumulatoFineAnno : ""};;\n`;
+    csv += `titolo;${csvCell("Residuo del concesso" + (!R.misurabile ? nonMis : R.pregressoDichiarato || R.residuoFineAnno == null ? "" : " (valore MASSIMO: l'estratto prima di Terra non e' dichiarato)"))};${R.misurabile && R.residuoFineAnno != null ? R.residuoFineAnno : ""};;\n`;
     const a = document.createElement("a");
     a.href = "data:text/csv;charset=utf-8," + encodeURIComponent(csv);
     a.download = "terra_riepilogo_" + R.anno + ".csv"; marchiaCsv(a); a.click();
@@ -4018,7 +4054,17 @@ a.dw-btn{text-decoration:none}
       ["Numero dell'atto", aut.numeroAtto ? esc(aut.numeroAtto) : "—"],
       ["Ente che l'ha rilasciato", aut.ente ? esc(aut.ente) : "—"],
       ["Scadenza del titolo", fmtData(aut.dataScadenza)],
-      ["Volume totale concesso", aut.volumeAutorizzatoM3 ? n0(aut.volumeAutorizzatoM3) + " m³" : "—"],
+      /* ⚠️ `nD` e non `n0`: la ragione sta scritta duecento righe piu' su, nel
+         prospetto della denuncia — «i numeri copiati dall'atto si riportano
+         come stanno sull'atto, arrotondare all'unita' un numero che l'utente ha
+         trascritto dal titolo lo farebbe divergere dal documento» — e questo
+         verbale la stessa riga dell'atto la cita in una tabella sua, sullo
+         stesso foglio che va all'ente. Il campo accetta i decimali
+         (`numeroDaCampo` senza `decimali`: «1.200.000,50» entra come
+         1200000,5), quindi la divergenza e' raggiungibile e vale mezzo metro
+         cubo scritto in meno del titolo. Sui numeri interi le due funzioni
+         scrivono la stessa identica cosa. */
+      ["Volume totale concesso", aut.volumeAutorizzatoM3 ? nD(aut.volumeAutorizzatoM3) + " m³" : "—"],
     ] : null;
     const comeNato = ca.classe === "survey-grade"
       ? "Il metodo dichiarato e il GSD collocano il rilievo nella classe di qualità topografica: la tolleranza tipica è ± " + ca.tolleranzaPct
