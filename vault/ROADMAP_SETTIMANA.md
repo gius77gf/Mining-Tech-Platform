@@ -5028,3 +5028,38 @@ di scriverlo qui**: niente entra sulla parola dell'agente.
   condiviso conosce è `.sup`), e resta viva in `ric-list` di Conti da prima di
   oggi. `classi-orfane` non la vede perché guarda il **nome** — `warn` è
   vivissima come `.badge.warn` — non la **combinazione**.
+
+- [ ] **B5. I LETTORI CSV CHE CANCELLANO UNA RIGA IN SILENZIO — il rovescio
+      esatto della passata di stanotte.** ⏱️ *Aperta il 13/08 dalla ricerca
+      sull'assenza dichiarata (`docs/RICERCA_CONTINUA_ASSENZA.md`), con i numeri
+      **rimisurati** prima di scriverli qui.*
+      Stanotte abbiamo guardato i file che **escono** e trovato sedici difetti.
+      Questa riga guarda i file che **entrano**: quando qualcuno importa un CSV e
+      a una riga manca un numero, il lettore la **cancella**, e il `.filter` sta
+      **dentro** il lettore — che restituisce solo i sopravvissuti. Quindi la
+      pagina **non potrebbe dirlo nemmeno volendo**: chi importa 200 righe e ne
+      vede 180 non ha modo di sapere quali venti mancano né perché.
+      È il principio del fondatore all'ingresso: una riga cancellata in silenzio
+      è la forma più tranquilla che l'assenza possa prendere.
+      ⛔ **Il numero è di CANDIDATI, non di difetti**, e i due righelli non vanno
+      d'accordo: la ricerca dice **13 su 23** («può scartare per un dato
+      mancante», giudicato leggendo), il censimento statico rifatto da me dice
+      **15 su 23** («scarta e non lo dichiara»). Due domande diverse, due numeri
+      diversi — e nessuno dei due è il conto dei difetti: un `.filter` che toglie
+      l'intestazione o l'ultima riga vuota è **giusto**. Sulle passate di questa
+      forma il rapporto vero è stato meno di uno su dieci.
+      ✅ **La forma esiste già in casa e non va reinventata**: `rientroRilievi`
+      di Terra torna `{scritti, rientrano, persi:[{nome, ragione}]}`. È l'unica,
+      e guarda il giro di andata e ritorno di ciò che scriviamo NOI, non
+      l'ingresso di un file altrui — se ne prende la **forma**, non il corpo.
+      ⚠️ E il contratto va allargato con la testa: se `parseXCsv` torna un array
+      e domani un oggetto, si rompe ogni chiamante (è la famiglia del `NaN`
+      silenzioso di `disegnaSpark`). La strada quasi sempre giusta è una funzione
+      **accanto**, come `rientroRilievi` sta accanto a `parseRilieviCsv`.
+      **Come si misura**: si costruisce un CSV con una riga a cui manca il
+      numero, lo si passa al lettore e si **contano** le righe che tornano; e la
+      pagina, dopo l'import, deve dire quante sono entrate, quante no e **perché**
+      — se no è la guardia scollegata della regola 20.
+      *In lavorazione dal 13/08 sui nove candidati di Campo, Conti, Flotta e
+      Terra; i sei di Scudo e Sentinella restano da fare (quelle due app le
+      stavano scrivendo altri cantieri).*
