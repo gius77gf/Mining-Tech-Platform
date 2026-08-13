@@ -5447,3 +5447,35 @@ di scriverlo qui**: niente entra sulla parola dell'agente.
       denominatore da stampare è **quante schermate si sono riuscite a
       fotografare in quella finestra**: se la finestra è troppo stretta per
       essere vista, quello è il risultato e va scritto — non un verde.
+
+- [x] ✅ **LA CONVENZIONE DELLE RAGIONI — misurata invece che decisa, ed è un
+      risultato BUONO.** *13/08, a valle di B5.* Censite le ragioni dei `persi[]`
+      delle nove funzioni `scarti<X>Csv`: **17 stringhe distinte**, e — **senza
+      che nessuno le avesse coordinate** — convergono su **quattro forme sole**:
+      · «X **non è stato scritto**» — il campo è vuoto, nessuno l'ha compilato;
+      · «X **non si legge**» — c'è qualcosa, ma non è un numero o una data;
+      · «la data **non esiste**» — forma giusta, giorno inesistente (`2026-13-45`);
+      · «X **è negativo**» — valore fuori dominio;
+      più «manca il cliente» / «manca il nome della squadra» per l'identità.
+      Comando: `grep -rhoE '"(il |la |l.|manca|non )[^"]{6,60}(scritt|legge|
+      misurat|esiste|negativ)[^"]*"' apps/*/[a-z]*-data.js | sort | uniq -c`.
+      ⚠️ **E la prima domanda era quella sbagliata**: cercando `ragione: "…"` il
+      censimento ha risposto **zero**, con la faccia con cui avrebbe detto la
+      verità — le ragioni non sono scritte come letterali di quel campo, si
+      compongono. È la regola già scritta, incontrata di persona.
+      ✅ **La distinzione fra «non è stato scritto» e «non si legge» va tenuta**,
+      e non è pignoleria: è la stessa che gli standard internazionali fanno fra
+      *missing* e *invalid* (vedi `docs/RICERCA_CONTINUA_ASSENZA.md`), e per chi
+      riceve il file cambia **che cosa deve andare a chiedere**.
+      ⚠️ **Niente punto finale**: sedici su diciassette non ce l'hanno, perché la
+      ragione si compone dentro una frase più lunga. La diciassettesima **non è
+      una ragione di lettore** — è un `motivo` di Terra che chiude una frase sua,
+      e lì il punto è giusto: guardata prima di «correggerla», che l'avrebbe
+      rotta.
+      ⛔ **Perché è stata scritta ADESSO e non domani**: nel momento in cui è
+      stata misurata, **due cantieri stavano scrivendo dieci lettori nuovi
+      insieme**. È esattamente il punto in cui una convenzione diverge — il
+      difetto già pagato qui con la convenzione sui numeri, finita scritta
+      quattro volte con tre comportamenti diversi. La convenzione è stata
+      **mandata ai due cantieri mentre lavoravano**, col vincolo di dichiarare
+      nella consegna ogni forma nuova che dovessero coniare.
