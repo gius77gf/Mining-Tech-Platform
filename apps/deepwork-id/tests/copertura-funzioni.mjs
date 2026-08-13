@@ -204,7 +204,12 @@ const APP = ["campo", "conti", "flotta", "scudo", "sentinella", "terra"];
    terza forma d'invecchiamento di `CLAUDE.md`, in un commento vecchio di sette
    ore e scritto da chi quella regola l'aveva appena citata. Chi chiude un
    cantiere descritto in un commento chiude anche il commento. */
-const FONDO = { campo: 123, conti: 130, flotta: 87, scudo: 185, sentinella: 134, terra: 66 };
+/* ⏱️ `sentinella` 134 → 139 il 13/08, per le tre funzioni della riga B4 (dalla
+   scadenza al periodo del report: `periodoAdempimento`, `dataMenoMesi`,
+   `descriviPeriodoAdempimento`) più le due arrivate prima e mai raccolte. Il
+   conto vero è 139/139; lasciato a 134 il fondo starebbe cinque sotto, cioè
+   sarebbe una guardia che per scattare aspetta di perdere cinque prove. */
+const FONDO = { campo: 123, conti: 130, flotta: 87, scudo: 185, sentinella: 139, terra: 66 };
 
 /* Quello che resta fuori per un motivo, non per dimenticanza: i caricatori
    dati vogliono la rete e lo SDK, i ponti demo vogliono il localStorage.

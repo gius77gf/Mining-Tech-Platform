@@ -373,6 +373,18 @@ body.dw.outdoor-mode .peggio-num small{
 /* come nel core le voci restano compatte: al massimo due righe, poi «…» */
 .meta{font-variant-numeric:tabular-nums}
 .meta b{color:var(--muted2); font-weight:600}
+/* ⛔ IL PERIODO COPERTO DA UN ADEMPIMENTO STA IN UNA RIGA SUA, e non è
+   estetica: `.meta` è tagliata a due righe (`-webkit-line-clamp:2`, in
+   `shared/`), e appesa lì la coda «copre 11/08/2025 → 10/08/2026» finiva
+   sotto il taglio — cioè testo morto, e proprio sul dato che dice se il
+   report partirà sul periodo giusto. Lo scatto lo mostrava, il codice no.
+   Qui non c'è nessun `clamp`: le date si leggono sempre, e a 320 px vanno a
+   capo invece di sparire. */
+.ade-per{
+  font-size:11px; line-height:1.35; margin-top:2px; color:var(--muted2);
+  font-variant-numeric:tabular-nums; overflow-wrap:anywhere;
+}
+.ade-per.ignoto{color:var(--muted)}
 .arr{
   color:var(--muted); font-size:15px; line-height:1; background:none; border:none;
   padding:0; min-width:var(--tap); min-height:var(--tap); border-radius:8px;
@@ -1462,6 +1474,29 @@ textarea.dw-input{
       <input class="dw-input" id="ade-data" type="date" title="Entro quando" style="flex:1 1 160px;">
       <button class="dw-btn" id="btn-ade">Aggiungi</button>
     </div>
+    <!-- IL PERIODO CHE L'ADEMPIMENTO COPRE. Serve a una cosa sola, e concreta:
+         dalla riga della scadenza si arriva al Report gia' impostato su quei
+         giorni, senza scrivere due date a mano. Fino a oggi il periodo lo
+         indovinava chi premeva «Report», e un documento coerente sul periodo
+         sbagliato non lo smentisce niente.
+         I due campi vanno INSIEME: la scadenza dice quando si consegna, il
+         termine dice quanti giorni dopo la fine del periodo cade. Senza il
+         secondo l'app NON deduce zero — sposterebbe tutto il periodo in
+         avanti in silenzio — e lo dichiara. -->
+    <div class="frow">
+      <label class="flab" for="ade-periodo" style="flex:2 1 200px;">Periodo coperto
+        <select class="dw-input" id="ade-periodo"></select></label>
+      <!-- ⚠️ L'etichetta NON dice «(gg)»: le etichette sono in maiuscolo
+           (`.flab`), e un'unità in maiuscolo è vietata in tutta la casa
+           (regola 2 di run-stile, e il banco `unita-maiuscole`). La parola
+           intera nel segnaposto dice la stessa cosa senza il problema, e sta
+           su una riga sola invece di andare a capo — lo dice lo scatto. -->
+      <label class="flab" for="ade-consegna" style="flex:1 1 160px;">Consegna dopo
+        <input class="dw-input" id="ade-consegna" type="number" min="0" max="366" placeholder="giorni (es. 0)"
+          title="Quanti giorni passano fra la fine del periodo coperto e la scadenza. Se il periodo chiude il giorno stesso della scadenza, scrivi 0."></label>
+    </div>
+    <div class="form-hint">Con questi due dati la riga della scadenza porta al <b>Report gia' impostato</b>
+      sul periodo giusto. Se restano vuoti l'app non inventa un periodo: lo dice e le date restano da scegliere.</div>
     <!-- L'ALLEGATO. Un adempimento verso un ente e' fatto di due cose: la
          scadenza e il DOCUMENTO che si consegna. Fino a oggi Sentinella
          teneva solo la prima, quindi la ricevuta della raccomandata o la
@@ -1481,7 +1516,8 @@ textarea.dw-input{
     <button class="dw-btn secondary" id="btn-ade-import">Importa scadenze (CSV)</button>
     <input type="file" id="ade-file" accept=".csv,text/csv" style="display:none;">
   </div>
-  <div class="form-hint" style="margin-top:8px;">Colonne del file: <b>titolo; ente; scadenza</b>.</div>
+  <div class="form-hint" style="margin-top:8px;">Colonne del file: <b>titolo; ente; scadenza</b>, e — se ci sono —
+    <b>mesi coperti; giorni di consegna</b>. Le ultime due sono facoltative: un file con le tre colonne di sempre entra identico a prima.</div>
   <div class="note esito" id="ade-esito"></div>
 </div>
 
@@ -1621,6 +1657,15 @@ textarea.dw-input{
         <button class="dw-btn" id="btn-rep-stampa">Stampa / Salva PDF</button>
       </div>
     </div>
+    <!-- DA DOVE VIENE IL PERIODO. Quando il Report si apre da una scadenza
+         ambientale, le due date non le ha scelte l'utente: le ha ricavate
+         l'adempimento. Dirlo qui e' il punto dell'unita' — un documento
+         coerente sul periodo sbagliato non lo smentisce niente, e l'unica
+         difesa e' che a schermo ci sia scritto DI CHE periodo si tratta.
+         ⛔ E la riga sparisce appena le date si toccano a mano: se restasse,
+         direbbe una cosa falsa (che quel periodo e' quello dell'adempimento)
+         proprio nel momento in cui smette di esserlo. -->
+    <div class="note esito" id="rep-origine" style="display:none;"></div>
     <div class="note esito" id="rep-esito"></div>
   </div>
   <div id="rep-doc"></div>
@@ -1669,6 +1714,7 @@ textarea.dw-input{
            provenienzaMisura, descriviProvenienza, campiProvenienza, correggiLettura,
            composizioneProvenienza, DICHIARAZIONI_PROVENIENZA, FONTI_MISURA,
            DICHIARAZIONI_COPERTURA,
+           PERIODI_ADEMPIMENTO, periodoAdempimento, descriviPeriodoAdempimento, DICHIARAZIONI_PERIODO,
            FONTE_IMPORT, FONTE_MANO, FONTE_IGNOTA,
            numeroDaCampo, AVVISO_DECIMALE, ariaSerie } from "./sentinella-data.js";
   import { mountExit, esc, csvCell, statoVuoto, senzaDoppioni, giorniTra, montaGuardiaInteri, avvolgiUnita, oggiISO,
@@ -3974,11 +4020,23 @@ textarea.dw-input{
       // parola che l'app usa già per le azioni correttive senza scadenza.
       const b = !Number.isFinite(g) ? ["warn", "Senza data"]
         : g < 0 ? ["danger","Scaduto"] : (g <= 30 ? ["warn", g + gu] : ["ok", g + gu]);
+      /* ⛔ IL PERIODO COPERTO STA SULLA RIGA, non solo nel bottone. Il dettaglio
+         è tagliato a due righe (-webkit-line-clamp:2), quindi qui ci sta il
+         fatto — «dal … al …» oppure «periodo non dichiarato» — e la
+         spiegazione lunga vive nel titolo del bottone e nel toast. Un periodo
+         nascosto dentro un tooltip è testo morto: l'unica cosa che dice a chi
+         guarda se il report partirà giusto è questa riga. */
+      const per = descriviPeriodoAdempimento(a);
       return `<div class="item ${striscia[b[0]]}">
       <div class="avatar ${b[0] === "danger" ? "danger" : b[0] === "warn" ? "warn" : "ok"}">${I.calendario}</div>
-      <div class="info"><div class="name">${esc(a.titolo)}</div><div class="meta">${a.ente!=="—"?esc(a.ente)+" · ":""}entro ${fmtD(a.scadenza)}</div></div>
+      <div class="info"><div class="name">${esc(a.titolo)}</div><div class="meta">${a.ente!=="—"?esc(a.ente)+" · ":""}entro ${fmtD(a.scadenza)}</div>
+        <div class="ade-per${per.noto ? "" : " ignoto"}">${
+        per.noto ? `copre ${fmtD(per.dal)} → ${fmtD(per.al)}` : "periodo coperto non dichiarato"}</div></div>
       <span class="acts"><span class="badge ${b[0]}">${b[1]}</span>${
         a.allegatoData ? `<button type="button" class="arr" title="Apri il documento allegato${a.allegatoNome ? " (" + esc(a.allegatoNome) + ")" : ""}" aria-label="Apri il documento allegato a ${esc(a.titolo)}" data-ade-alleg="${a.id}">${I.clip}</button>` : ""}
+      <button type="button" class="arr" title="${per.noto
+          ? "Prepara il report di questo adempimento: dal " + fmtD(per.dal) + " al " + fmtD(per.al)
+          : esc(DICHIARAZIONI_PERIODO[per.motivo].testo)}" aria-label="Prepara il report di ${esc(a.titolo)}" data-ade-rep="${a.id}">${I.doc}</button>
       <button type="button" class="arr" title="Segna come eseguito" aria-label="Segna come eseguito ${esc(a.titolo)}" data-ade-done="${a.id}">${I.fatto}</button></span></div>`; }).join("")
       || (ADE.length
           ? vuoto(I.cerca, "Nessun adempimento trovato",
@@ -4117,6 +4175,18 @@ textarea.dw-input{
   const attr = (e, nome) => { const el = e.target.closest && e.target.closest("[" + nome + "]");
     return el ? el.getAttribute(nome) : null; };
   document.addEventListener("click", async (e) => {
+    /* DALLA SCADENZA AL REPORT DI QUEL PERIODO, senza digitare date.
+       ⛔ E se il periodo non si ricava il bottone NON porta da nessuna parte:
+       dice che cosa manca. Portarlo al Report con un trimestre plausibile
+       già scritto sarebbe il difetto che questa unità esiste per togliere —
+       un documento vero che risponde a un'altra domanda. */
+    const rep = attr(e, "data-ade-rep");
+    if (rep) { const a = ADE.find(x => x.id === rep); if (!a) return;
+      const p = periodoAdempimento(a);
+      if (!p.noto) {
+        toast(DICHIARAZIONI_PERIODO[p.motivo].testo, "err");
+        return; }
+      apriReportDaAdempimento(a, p); return; }
     const done = attr(e, "data-ade-done");
     if (done) { const a = ADE.find(x => x.id === done);
       if (a && await chiedi("Adempimento eseguito",
@@ -4535,13 +4605,31 @@ textarea.dw-input{
     }
     err("ade-titolo", false); err("ade-data", false);
     const rec = { titolo, ente, scadenza };
+    /* ⛔ SI SCRIVONO SOLO SE DICHIARATI, E NON SI DEDUCE L'UNO DALL'ALTRO.
+       Un campo vuoto qui NON diventa zero: `periodoAdempimento` distingue
+       «zero giorni di consegna» (dichiarato: il periodo chiude alla scadenza)
+       da «non lo so», e le due cose portano a due periodi diversi. Il numero
+       lo legge `numeroDaCampo` con la guardia sugli interi già montata, non
+       `+campo.value` — che su una casella vuota fa zero. */
+    { const mesi = +$("ade-periodo").value;
+      const gcTesto = $("ade-consegna").value.trim();
+      if (Number.isFinite(mesi) && mesi >= 1) rec.periodoMesi = Math.round(mesi);
+      if (gcTesto !== "") { const gc = Math.round(+gcTesto);
+        if (Number.isFinite(gc) && gc >= 0) rec.giorniConsegna = gc; } }
     if (adeAlleg) { rec.allegatoNome = adeAlleg.nome; rec.allegatoData = adeAlleg.dataURL; }
     await db.aggiungi("adempimenti", rec);
     const conAlleg = !!adeAlleg;
+    const perNuovo = descriviPeriodoAdempimento(rec);
     $("ade-titolo").value = ""; $("ade-ente").value = ""; $("ade-data").value = "";
+    $("ade-periodo").value = ""; $("ade-consegna").value = "";
     $("ade-alleg").value = ""; $("ade-alleg-nome").textContent = ""; adeAlleg = null;
     esito("ade-esito", "Adempimento aggiunto: " + titolo + ", entro il " + fmtD(scadenza) + "."
-      + (conAlleg ? " Il documento allegato si riapre con la graffetta." : ""), "success",
+      + (conAlleg ? " Il documento allegato si riapre con la graffetta." : "")
+      /* ⛔ L'esito DICE se il periodo si ricava, subito: se non si ricava lo si
+         scopre altrimenti solo il giorno in cui serve il report — cioè tardi. */
+      + " " + (perNuovo.noto
+        ? "Copre dal " + fmtD(perNuovo.dal) + " al " + fmtD(perNuovo.al) + ": il report parte già su quei giorni."
+        : DICHIARAZIONI_PERIODO[perNuovo.motivo].testo), "success",
       "Adempimento aggiunto per il " + fmtD(scadenza) + ".");
     $("ade-titolo").focus();   // pronto per il prossimo adempimento
     await refresh();
@@ -5195,13 +5283,60 @@ textarea.dw-input{
     $("rep-dal").value = oggiISO(d);
     $("rep-al").max = oggi;
   }
-  ["rep-dal","rep-al","rep-ricettore"].forEach(id => $(id).addEventListener("change", renderReport));
+
+  /* ── DA UNA SCADENZA AL REPORT DI QUEL PERIODO ─────────────────────────
+     La riga qui sotto è la sola cosa che, a schermo, distingue «questo
+     documento è il trimestre dell'adempimento» da «questo documento sono due
+     date che ho scritto io». Sparisce appena le date si toccano, perché da
+     quel momento direbbe il falso. */
+  const scordaOrigineReport = () => {
+    const el = $("rep-origine"); if (!el) return;
+    el.textContent = ""; el.style.display = "none"; el.className = "note esito";
+  };
+  function apriReportDaAdempimento(a, p) {
+    $("rep-dal").value = p.dal;
+    /* ⚠️ `rep-al` ha `max = oggi`: un periodo che finisce nel futuro non si
+       può scrivere nel campo, e il valore verrebbe rifiutato in silenzio
+       lasciando il report sul periodo di prima — cioè il documento sbagliato,
+       con la riga che dichiara quello giusto. Si alza il tetto al periodo
+       richiesto e lo si dichiara. */
+    if (p.al > $("rep-al").max) $("rep-al").max = p.al;
+    $("rep-al").value = p.al;
+    $("rep-ricettore").value = "";
+    go("rep");
+    renderReport();
+    const el = $("rep-origine");
+    /* Il numero delle letture lo dice `reportConformita` attraverso
+       `coperturaPeriodo`, che è già la funzione che decide la stessa cosa nel
+       documento: qui non se ne conta una seconda versione. */
+    const R = reportConformita({ monitoraggi: MON, ricettori: RIC, reclami: REC, volate: VOL,
+      dal: p.dal, al: p.al, ricettoreId: "" });
+    const senzaLetture = R.copertura.stato === "senza-letture";
+    if (el) {
+      el.textContent = "Periodo dell'adempimento «" + a.titolo + "»: dal " + fmtD(p.dal)
+        + " al " + fmtD(p.al) + " (" + p.giorni + (p.giorni === 1 ? " giorno" : " giorni")
+        + "). Le date non sono state scelte a mano: si ricavano dalla scadenza del "
+        + fmtD(a.scadenza) + "."
+        + (senzaLetture ? " " + DICHIARAZIONI_COPERTURA["senza-letture"].testo : "");
+      el.className = "note esito" + (senzaLetture ? " err" : "");
+      el.style.display = "";
+    }
+    toast(senzaLetture
+      ? "Periodo dell'adempimento: dal " + fmtD(p.dal) + " al " + fmtD(p.al)
+        + ". In quei giorni non risulta registrata nessuna misura."
+      : "Periodo dell'adempimento: dal " + fmtD(p.dal) + " al " + fmtD(p.al) + ".",
+      senzaLetture ? "err" : "success");
+  }
+
+  ["rep-dal","rep-al","rep-ricettore"].forEach(id => $(id).addEventListener("change", () => {
+    scordaOrigineReport(); renderReport(); }));
   $("btn-rep-mese").onclick = () => {
     const d = new Date(oggiIso() + "T00:00:00");
     const primo = new Date(d.getFullYear(), d.getMonth() - 1, 1);
     const ultimo = new Date(d.getFullYear(), d.getMonth(), 0);
     const iso = oggiISO;
     $("rep-dal").value = iso(primo); $("rep-al").value = iso(ultimo);
+    scordaOrigineReport();   // non è più il periodo dell'adempimento
     renderReport();
     toast("Periodo: mese scorso, dal " + fmtD(iso(primo)) + " al " + fmtD(iso(ultimo)) + ".");
   };
@@ -5210,6 +5345,7 @@ textarea.dw-input{
     d.setFullYear(d.getFullYear() - 1); d.setDate(d.getDate() + 1);
     $("rep-dal").value = oggiISO(d);
     $("rep-al").value = oggi;
+    scordaOrigineReport();   // non è più il periodo dell'adempimento
     renderReport();
     toast("Periodo: ultimi 12 mesi.");
   };
@@ -5255,6 +5391,17 @@ textarea.dw-input{
     sel.innerHTML = '<option value="">— scegli il punto di misura —</option>'
       + MON.map(m => `<option value="${esc(m.id)}">${esc(m.nome || "Punto di misura")}</option>`).join("");
     if (scelto && MON.some(m => m.id === scelto)) sel.value = scelto;
+    /* La tendina del PERIODO COPERTO di un adempimento. Le voci sono in MESI di
+       calendario e non in giorni come `PERIODICITA`: quella dice ogni quanto si
+       MISURA un punto, questa quanto tempo COPRE un documento — e per un
+       documento un trimestre comincia il 1° del mese, non 90 giorni prima.
+       La prima voce è il «non lo so», ed è la voce di partenza: un periodo
+       proposto di default sarebbe un periodo indovinato. */
+    if (!$("ade-periodo").options.length) {
+      $("ade-periodo").innerHTML = '<option value="">— non dichiarato —</option>'
+        + PERIODI_ADEMPIMENTO.map(p =>
+          `<option value="${p.mesi}">${esc(p.etichetta)} (${esc(p.chiave)})</option>`).join("");
+    }
     if (!$("prg-freq").options.length) {
       $("prg-freq").innerHTML = PERIODICITA.map(p =>
         `<option value="${p.giorni}">${esc(p.etichetta)} (${p.giorni} ${p.giorni === 1 ? "giorno" : "giorni"})</option>`).join("")

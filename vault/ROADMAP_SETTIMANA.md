@@ -4067,7 +4067,7 @@ numero scritto dove non era stato misurato niente**.*
   scritta**: `DEVELOPMENT.md` diceva ancora «il numero da citare resta 2.251» e
   «il giro completo esegue 2.474» mentre il titolo sopra diceva già 2.310 — il
   controllo sorveglia il **totale**, non la prosa che lo spiega. Rimisurato:
-  sei suite **2.310**, giro completo **2.576**, e **ogni** addendo della nota
+  sei suite **2.310**, giro completo **2.592**, e **ogni** addendo della nota
   era vecchio (sintassi 15 → 34, import 134 → 140, nomi liberi 7 → 24).
 
 - [x] ✅ **`giro-sicurezza`: un comando solo per la barriera fra aziende
@@ -4801,7 +4801,7 @@ numero scritto dove non era stato misurato niente**.*
   nome apre il file sbagliato credendo che sia il più fresco.
 - Le decisioni: `docs/DECISIONI_WEEKEND.md` — pagina d'ingresso in cima.
 - Stato misurato al **09/08** (lanciando le suite, non a memoria):
-  **2.576 prove girano senza rete**. La frase va letta stretta: è la somma
+  **2.592 prove girano senza rete**. La frase va letta stretta: è la somma
   delle **otto** suite che contano asserzioni (`run-kpi` 2110, `run-stile` 318,
   `run-helpers` 75, `run-pointcloud` 32, `run-manifest` 9, `run-demo` 8,
   `bootstrap-rivendicazioni` 7, `fogli-guardati` 3), non tutto ciò che gira nel
@@ -4812,8 +4812,8 @@ numero scritto dove non era stato misurato niente**.*
   sorvegliati ne contavano sette: due convenzioni per lo stesso numero, che è
   il modo più facile di far sembrare sbagliato un conto giusto. Adesso è una
   sola.*
-  Copertura **726/726** e nessuna funzione scoperta; **194 esecuzioni** che
-  aprono le pagine in un browser vero, da **79** file di banco distinti (contati
+  Copertura **732/732** e nessuna funzione scoperta; **196 esecuzioni** che
+  aprono le pagine in un browser vero, da **80** file di banco distinti (contati
   dalla tabella `BANCHI` di `tutti.mjs`, non a occhio dalla cartella, che di
   `.mjs` ne ha di più perché contiene anche gli aiuti — `giro.mjs`,
   `impronta.mjs`, il runner stesso).
@@ -5184,3 +5184,59 @@ di scriverlo qui**: niente entra sulla parola dell'agente.
       volta stanotte: **2.913** asserzioni.
       ⛔ **Il blocco NON è chiuso**: la storia va ancora riscritta, e finché non
       succede la voce `SCUSATI` resta lì a dirlo.
+
+- [x] ✅ **B4-ter. DALL'ADEMPIMENTO IN SCADENZA AL REPORT DI ESATTAMENTE QUEL
+      PERIODO** *(13/08, Sentinella).* **La forma del difetto è nuova e vale più
+      dell'unità**: non un numero falso, ma **un documento vero che risponde a
+      un'altra domanda**. Lo scadenzario sapeva QUANDO va consegnato un
+      adempimento; il Report faceva **digitare** «dal» e «al»; fra le due cose
+      non c'era niente — quindi il periodo lo indovinava chi premeva il bottone,
+      e **due date scritte a mano non sono smentite da niente**: i numeri sono
+      tutti veri, a essere sbagliata è la **domanda** a cui rispondono.
+      Oggi dalla riga della scadenza si arriva al Report con l'intervallo già
+      impostato e **dichiarato a schermo** — «Periodo dell'adempimento «X»: dal
+      01/04/2026 al 30/09/2026 (183 giorni). Le date non sono state scelte a
+      mano.» — e la frase **sparisce** appena si tocca una data, perché da lì in
+      poi direbbe il falso.
+      ⛔ **`PERIODICITA` non si poteva riusare, ed è la misura che lo dice**:
+      quella conta i **giorni** con cui si MISURA un punto («trimestrale» = 90);
+      un documento si conta in **mesi di calendario**, se no il trimestre che
+      chiude il 30/09 comincia il **03/07** e il report per l'ente non guarda il
+      1° e il 2 luglio. Lista nuova `PERIODI_ADEMPIMENTO`, in mesi.
+      ⛔ **E il termine di consegna NON ha un ripiego.** Dedurre zero sposta
+      **tutto** il periodo in avanti: misurato sulla relazione annuale «entro il
+      30/04», il periodo vero è **01/01→31/12/2025** e con lo zero dedotto
+      sarebbe stato **01/05/2025→30/04/2026** — un documento vero su un altro
+      anno. Uno zero **scritto** è una risposta; uno zero **dedotto** è il
+      difetto che questa unità esiste per togliere. Quando non si sa, il bottone
+      **dice cosa manca e non naviga**: portare al Report con un trimestre
+      plausibile già scritto sarebbe indistinguibile da quello giusto per chi
+      legge il documento finito.
+      ⛔ **NIENTE INVIO AUTOMATICO, e non è una mancanza da colmare**: siamo una
+      PWA senza backend, quindi «invio automatico» scritto in un'interfaccia che
+      non invia niente sarebbe un numero tranquillo. La riga di
+      `docs/CONCORRENTI_SENTINELLA.md` resta **CONFERMATA ASSENTE** (sentinella
+      13, totale 47 invariati); a cambiare è la sua **prova**, che diceva «lo
+      scadenzario non produce il report» ed è falsa da oggi — la **terza forma
+      d'invecchiamento**, prodotta dal nostro stesso lavoro nella stessa
+      giornata.
+      ⚠️ **Due difetti li ha trovati lo SCATTO, non il codice**: la coda «copre
+      … → …» appesa a `.meta` finiva sotto il `-webkit-line-clamp:2` del foglio
+      condiviso — testo morto **proprio sul dato che dice se il report partirà
+      giusto** — e l'etichetta a due righe disallineava i campi. Il periodo ha
+      adesso una riga sua (`.ade-per`), e il banco **misura** che non sia
+      tagliata (`scrollHeight > clientHeight`): un banco che legge il DOM non se
+      ne sarebbe accorto, `textContent` c'è anche quando non si vede.
+      ⛔ **E la controprova del banco andava fatta UN'INIEZIONE PER VOLTA**: con
+      tutte e cinque insieme due difetti **si mascherano a vicenda** (una riga
+      già nascosta non può «non sparire») e la controprova dichiara riuscita una
+      prova cieca — la **seconda** delle sei cause travestita da verde. Da qui
+      `--difetto=N`: singolarmente cadono 4 · 1 · 1 · 3 · 7 controlli.
+      Prove: **+16** in `run-kpi` (2124 → 2140, 0 falliti) e il banco
+      `browser/sentinella-periodo-adempimento.mjs` (34 ok, 0 KO; controprova 13
+      caduti su 34, 5 iniezioni su 5 a segno). Controprova `node`: **16
+      iniezioni, 15 distinte, 1 cieca DICHIARATA** — `+periodoMesi` al posto di
+      `numeroDichiarato` è difesa in profondità dal limite `>= 1`, e **resta
+      nell'elenco con la ragione** invece di essere tolta per avere un conto più
+      bello. Fondo di copertura di Sentinella **134 → 139** (conto vero
+      139/139): a 134 la guardia stava cinque sotto e non poteva più scattare.

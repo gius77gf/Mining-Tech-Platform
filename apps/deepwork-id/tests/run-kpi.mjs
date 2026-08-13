@@ -1801,8 +1801,15 @@ test("parseAdempimentiCsv: legge titolo/ente/scadenza; ente vuoto → —; scart
   const csv = "titolo;ente;scadenza\nRelazione annuale AUA;ARPA;2026-08-10\nRinnovo AUA;;2026-09-30\nSenza data;SUAP;boh\n;ARPA;2026-10-01\n";
   const p = sentinella.parseAdempimentiCsv(csv);
   eq(p.length, 2, "2 righe valide (titolo + data ISO)");
-  eq(p[0], { titolo: "Relazione annuale AUA", ente: "ARPA", scadenza: "2026-08-10" }, "riga completa");
+  eq(p[0], { titolo: "Relazione annuale AUA", ente: "ARPA", scadenza: "2026-08-10",
+             periodoMesi: null, giorniConsegna: null }, "riga completa");
   eq(p[1].ente, "—", "ente vuoto diventa —");
+  /* ⛔ E LE DUE CHIAVI NUOVE NASCONO `null`, NON ZERO. Un file con le tre
+     colonne di sempre non dichiara nessun periodo; se qui uscisse `0` la
+     riga direbbe «il periodo chiude il giorno della scadenza», che è una
+     risposta, non un'assenza — ed è la risposta che sposta il periodo. */
+  eq(p[0].periodoMesi, null, "⛔ tre colonne: il periodo coperto NON è dichiarato");
+  eq(p[0].giorniConsegna, null, "⛔ e nemmeno il termine di consegna: null, non 0");
 });
 test("riepilogoVolate: totale, questo mese, kg del mese, contestazioni", () => {
   const vol = [
@@ -19878,7 +19885,8 @@ test("⛔ piuGiorni: una data che non esiste non produce una scadenza", () => {
     eq(colonne(r[2])[5], "scaduto da 14 gg", "e uno scaduto porta il suo numero, non solo «scaduto»");
     eq(colonne(r[3])[5], "senza data", "⛔ senza data si dice «senza data», come nella lista");
     eq(colonne(r[4])[5], "senza data", "⛔ e il 30 febbraio non esiste: `dataISOEsiste`, non la sola forma");
-    eq(colonne(r[3])[6], "entro data non indicata", "e il dettaglio non stampa una data che non c'è");
+    eq(colonne(r[3])[6], "entro data non indicata · periodo coperto non dichiarato",
+      "e il dettaglio non stampa una data che non c'è");
   });
 
   test("Sentinella · csvAmbiente: intestazione, valore mai misurato, storico, niente crash sul vuoto", () => {
@@ -28866,5 +28874,285 @@ test("⛔ Conti · venditePerProdotto: l'eccedenza si CONTA, perché il contenim
   });
 }
 
+/* ══════════════════════════════════════════════════════════════════════
+   B4 · SENTINELLA — DALL'ADEMPIMENTO AL PERIODO DEL REPORT
+   Perché queste prove esistono. Lo scadenzario sapeva QUANDO va consegnato
+   un adempimento; il Report faceva DIGITARE «dal» e «al». Fra le due cose non
+   c'era niente, quindi il periodo lo indovinava chi premeva il bottone — e un
+   documento coerente sul periodo sbagliato non lo smentisce niente: i numeri
+   sono tutti veri, a essere sbagliata è la DOMANDA a cui rispondono.
+   ⚠️ Prove SINCRONE e messe PRIMA del riepilogo: l'`await Promise.all(inVolo)`
+   sta a metà file, quindi una prova asincrona appesa qui verrebbe messa in
+   volo e il totale si stamperebbe senza aspettarla.
+   ══════════════════════════════════════════════════════════════════════ */
+{
+  /* il sorgente della pagina SENZA COMMENTI: i commenti di questa unità citano
+     le forme sbagliate, e letto grezzo il file le contiene ancora. */
+  const { senzaCommenti: senzaCommentiB4 } = await import("./tokenizza.mjs");
+  const srcSen = senzaCommentiB4(readFileSync(join(HERE, "../../sentinella/index.html"), "utf8"));
+  const per = (a) => sentinella.periodoAdempimento(a);
+
+  test("⛔ Sentinella · il periodo di un adempimento si conta in MESI DI CALENDARIO, non in giorni", () => {
+    /* ⛔ È LA RAGIONE PER CUI `PERIODICITA` NON SI RIUSA. Quella vale in giorni
+       («trimestrale» = 90) ed è giusta per dire ogni quanto si MISURA un punto.
+       Su un documento no: un trimestre che chiude il 30/09 comincia il 01/07 —
+       92 giorni — e un report che parte il 03/07 due giorni non li ha guardati.
+       Sono giorni veri, di un periodo vero, che nessuno guarderebbe più. */
+    const t = per({ scadenza: "2026-09-30", periodoMesi: 3, giorniConsegna: 0 });
+    eq(t.noto, true, "il periodo si ricava");
+    eq(t.dal, "2026-07-01", "⛔ il trimestre comincia il 1° luglio");
+    eq(t.al, "2026-09-30", "e chiude il 30 settembre");
+    eq(t.giorni, 92, "92 giorni, non 90");
+    const conGiorni = sentinella.piuGiorni("2026-09-30", -(90 - 1));
+    eq(conGiorni, "2026-07-03", "⛔ contando 90 giorni si sarebbe partiti dal 3 luglio");
+  });
+
+  test("⛔ Sentinella · il «+1 giorno» prima di togliere i mesi: il semestre comincia il 1° aprile", () => {
+    /* Senza quel giorno si toglierebbero sei mesi al 30/09 → 30/03, e il
+       semestre comincerebbe il 31/03: un giorno in meno, e per giunta un
+       giorno che appartiene al semestre precedente. */
+    const s = per({ scadenza: "2026-09-30", periodoMesi: 6, giorniConsegna: 0 });
+    eq(s.dal, "2026-04-01", "⛔ 1° aprile, non 31 marzo");
+    eq(s.al, "2026-09-30", "chiude il 30 settembre");
+    eq(s.giorni, 183, "183 giorni");
+    eq(sentinella.dataMenoMesi("2026-09-30", 6), "2026-03-30",
+      "e togliendo i mesi senza il +1 si sarebbe finiti al 30 marzo");
+  });
+
+  test("⛔ Sentinella · il termine di consegna sposta il periodo, e non si deduce", () => {
+    /* «La relazione annuale entro il 30 aprile dell'anno successivo»: la
+       scadenza è del 2026 e l'anno coperto è il 2025. Dedurre zero avrebbe
+       dato 01/05/2025–30/04/2026 — un documento vero su un anno che non è
+       quello che l'ente ha chiesto. È il difetto per cui l'unità esiste. */
+    const r = per({ scadenza: "2026-04-30", periodoMesi: 12, giorniConsegna: 120 });
+    eq(r.dal, "2025-01-01", "⛔ l'anno coperto comincia il 1° gennaio 2025");
+    eq(r.al, "2025-12-31", "e chiude il 31 dicembre 2025");
+    eq(r.giorni, 365, "un anno solare intero");
+    const dedotto = per({ scadenza: "2026-04-30", periodoMesi: 12, giorniConsegna: 0 });
+    eq(dedotto.dal, "2025-05-01", "⛔ con lo zero DEDOTTO il periodo sarebbe stato un altro anno");
+  });
+
+  test("⛔ Sentinella · zero SCRITTO e zero DEDOTTO non sono la stessa cosa", () => {
+    /* `+null` fa 0 e `Number.isFinite(0)` risponde true: è la trappola che in
+       questa casa ha già prodotto «0%» dove nessuno aveva misurato. Qui uno
+       zero dedotto sarebbe un periodo intero al posto giusto sbagliato. */
+    const scritto = per({ scadenza: "2026-09-30", periodoMesi: 3, giorniConsegna: 0 });
+    eq(scritto.noto, true, "uno zero scritto è una risposta: il periodo chiude alla scadenza");
+    eq(scritto.giorniConsegna, 0, "e lo zero resta zero");
+    for (const [nome, v] of [["assente", undefined], ["null", null], ["stringa vuota", ""]]) {
+      const p = per({ scadenza: "2026-09-30", periodoMesi: 3, giorniConsegna: v });
+      eq(p.noto, false, `⛔ termine ${nome}: NON si sa`);
+      eq(p.motivo, "senza-termine", `e il motivo lo dice (${nome})`);
+      eq(p.dal, "", `e non esce nessuna data di ripiego (${nome})`);
+      eq(p.al, "", `né una di fine (${nome})`);
+    }
+  });
+
+  test("⛔ Sentinella · quando il periodo non si ricava NON si sceglie un intervallo di ripiego", () => {
+    const casi = [
+      ["senza periodicità (un rinnovo non copre un periodo di misure)",
+        { scadenza: "2026-09-30" }, "senza-periodicita"],
+      ["periodicità zero", { scadenza: "2026-09-30", periodoMesi: 0, giorniConsegna: 0 }, "senza-periodicita"],
+      ["periodicità scritta a parole", { scadenza: "2026-09-30", periodoMesi: "trimestrale", giorniConsegna: 0 }, "senza-periodicita"],
+      ["periodicità null", { scadenza: "2026-09-30", periodoMesi: null, giorniConsegna: 0 }, "senza-periodicita"],
+      ["scadenza vuota", { periodoMesi: 3, giorniConsegna: 0 }, "scadenza-illeggibile"],
+      ["scadenza che non esiste (30 febbraio)", { scadenza: "2026-02-30", periodoMesi: 3, giorniConsegna: 0 }, "scadenza-illeggibile"],
+      ["scadenza 2026-13-45", { scadenza: "2026-13-45", periodoMesi: 3, giorniConsegna: 0 }, "scadenza-illeggibile"],
+      ["adempimento nullo", null, "scadenza-illeggibile"],
+      ["termine negativo", { scadenza: "2026-09-30", periodoMesi: 3, giorniConsegna: -5 }, "senza-termine"],
+    ];
+    for (const [nome, a, motivo] of casi) {
+      const p = per(a);
+      eq(p.noto, false, `${nome}: la bandiera dice di no`);
+      eq(p.motivo, motivo, `${nome}: e il motivo è «${motivo}»`);
+      eq(p.dal + "|" + p.al, "|", `⛔ ${nome}: nessuna data inventata`);
+      eq(p.giorni, null, `${nome}: e nessuna durata`);
+    }
+    eq(casi.length, 9, "nove modi di non saperlo, e nessuno finisce in un trimestre plausibile");
+  });
+
+  test("⛔ Sentinella · il 30 febbraio non scivola al 2 marzo (`dataISOEsiste`, non la forma)", () => {
+    /* `Date` un giorno che non esiste non lo rifiuta: lo fa SCORRERE. Una
+       scadenza «2026-02-30» accettata avrebbe prodotto un periodo che finisce
+       il 2 marzo, con l'aria di essere giusto. */
+    eq(sentinella.dataMenoMesi("2026-02-30", 1), "", "una data che non esiste non si sposta: risposta vuota");
+    eq(sentinella.dataMenoMesi("", 1), "", "e nemmeno una vuota");
+    eq(per({ scadenza: "2026-02-30", periodoMesi: 1, giorniConsegna: 0 }).motivo, "scadenza-illeggibile",
+      "⛔ e il periodo non si ricava, invece di ricavarsi sbagliato");
+  });
+
+  test("⛔ Sentinella · `dataMenoMesi` serra il giorno invece di scivolare al mese dopo", () => {
+    eq(sentinella.dataMenoMesi("2026-03-31", 1), "2026-02-28", "31/03 − 1 mese = 28/02, non il 3 marzo");
+    eq(sentinella.dataMenoMesi("2024-03-31", 1), "2024-02-29", "e nel 2024 il febbraio ha 29 giorni");
+    eq(sentinella.dataMenoMesi("2026-01-15", 1), "2025-12-15", "si attraversa l'anno all'indietro");
+    eq(sentinella.dataMenoMesi("2026-01-15", 12), "2025-01-15", "dodici mesi indietro");
+    eq(sentinella.dataMenoMesi("2026-01-15", 13), "2024-12-15", "tredici mesi indietro, oltre l'anno");
+    eq(sentinella.dataMenoMesi("2026-05-10", 0), "2026-05-10", "zero mesi non muove niente");
+  });
+
+  test("⛔ Sentinella · la mappa `DICHIARAZIONI_PERIODO` copre tutti i motivi che la funzione sa dire (regola 18)", () => {
+    /* Se `periodoAdempimento` guadagnasse un quinto motivo e la mappa restasse
+       a quattro, la pagina morirebbe AL DISEGNO — nessun errore di sintassi da
+       leggere, nessuna prova rossa. È la coppia funzione↔mappa della regola 18. */
+    const motivi = new Set();
+    const campioni = [
+      { scadenza: "2026-09-30", periodoMesi: 3, giorniConsegna: 0 },
+      { scadenza: "2026-09-30" },
+      { scadenza: "2026-09-30", periodoMesi: 3 },
+      { scadenza: "boh", periodoMesi: 3, giorniConsegna: 0 },
+    ];
+    for (const c of campioni) motivi.add(per(c).motivo);
+    eq([...motivi].sort().join(","), "ricavato,scadenza-illeggibile,senza-periodicita,senza-termine",
+      "quattro motivi distinti");
+    for (const m of motivi)
+      ok(sentinella.DICHIARAZIONI_PERIODO[m] && sentinella.DICHIARAZIONI_PERIODO[m].testo,
+        `la mappa ha la voce «${m}»`);
+    eq(Object.keys(sentinella.DICHIARAZIONI_PERIODO).sort().join(","),
+      [...motivi].sort().join(","), "⛔ e non ne ha di più: nessuna voce morta");
+    /* ⛔ E NESSUNA DELLE TRE FRASI DI «NON LO SO» PROPONE UN PERIODO. Una frase
+       che dicesse «di solito è l'ultimo trimestre» rimetterebbe in circolo il
+       numero tranquillo passando per le parole invece che per le date. */
+    for (const m of ["senza-periodicita", "senza-termine", "scadenza-illeggibile"]) {
+      const t = sentinella.DICHIARAZIONI_PERIODO[m].testo;
+      eq(sentinella.DICHIARAZIONI_PERIODO[m].cls, "warn", `«${m}» non è una frase tranquilla`);
+      eq(/\d{2}\/\d{2}\/\d{4}/.test(t), false, `⛔ «${m}» non scrive nessuna data`);
+    }
+  });
+
+  test("⛔ Sentinella · la bandiera `noto` la LEGGE qualcuno (regola 20)", () => {
+    /* Una non-misurabilità dichiarata che nessuno legge non protegge niente:
+       il periodo si scriverebbe lo stesso e il modulo sembrerebbe a posto. */
+    const d = sentinella.descriviPeriodoAdempimento({ scadenza: "2026-09-30" });
+    eq(d.noto, false, "la bandiera c'è");
+    eq(d.testo, "periodo dell'adempimento non dichiarato", "⛔ e il testo cambia perché la legge");
+    eq(sentinella.descriviPeriodoAdempimento({ scadenza: "2026-09-30", periodoMesi: 3 }).testo,
+      "periodo dell'adempimento non ricavabile: manca il termine di consegna", "ogni motivo la sua frase");
+    eq(sentinella.descriviPeriodoAdempimento({ scadenza: "boh", periodoMesi: 3, giorniConsegna: 0 }).testo,
+      "periodo dell'adempimento non ricavabile: la scadenza non è un giorno che esiste", "e la terza");
+    eq(sentinella.descriviPeriodoAdempimento({ scadenza: "2026-09-30", periodoMesi: 3, giorniConsegna: 0 }).testo,
+      "periodo dell'adempimento: dal 01/07/2026 al 30/09/2026", "⛔ e sul noto le date sono quelle, scritte all'italiana");
+  });
+
+  test("⛔ Sentinella · «1 mesi» non si scrive: la durata è in parole", () => {
+    const d = (mesi) => sentinella.descriviPeriodoAdempimento(
+      { scadenza: "2026-09-30", periodoMesi: mesi, giorniConsegna: 0 }).durata;
+    eq(d(1), "un mese", "⛔ non «1 mesi»");
+    eq(d(3), "tre mesi", "le voci della tendina si dicono a parole");
+    eq(d(12), "un anno", "e dodici mesi sono un anno");
+    eq(d(7), "7 mesi", "una durata fuori tendina resta un numero, ma al plurale giusto");
+    eq(sentinella.descriviPeriodoAdempimento({ scadenza: "2026-09-30" }).durata, "",
+      "senza periodicità non c'è nessuna durata da scrivere");
+  });
+
+  test("Sentinella · PERIODI_ADEMPIMENTO: mesi crescenti, chiavi uniche, tutte usabili", () => {
+    const L = sentinella.PERIODI_ADEMPIMENTO;
+    ok(L.length >= 5, `${L.length} voci`);
+    eq(new Set(L.map(x => x.chiave)).size, L.length, "chiavi tutte diverse");
+    eq(new Set(L.map(x => x.mesi)).size, L.length, "e mesi tutti diversi");
+    eq(L.map(x => x.mesi).join(","), L.map(x => x.mesi).slice().sort((a, b) => a - b).join(","), "in ordine crescente");
+    for (const v of L) {
+      ok(Number.isInteger(v.mesi) && v.mesi >= 1 && v.mesi <= 120, `${v.chiave}: ${v.mesi} mesi è un intero accettato`);
+      eq(per({ scadenza: "2026-09-30", periodoMesi: v.mesi, giorniConsegna: 0 }).noto, true,
+        `${v.chiave}: il periodo si ricava`);
+    }
+    /* ⛔ E NON SONO LE STESSE DI `PERIODICITA`, che è la ragione per cui questa
+       lista esiste: quella conta in GIORNI e serve a dire ogni quanto si misura. */
+    ok(sentinella.PERIODICITA.every(p => p.giorni != null), "PERIODICITA conta in giorni");
+    ok(L.every(p => p.giorni === undefined && p.mesi != null), "⛔ questa conta in mesi, e non finge di essere l'altra");
+  });
+
+  test("⛔ Sentinella · la dimostrazione contiene ANCHE il caso in cui il periodo non si sa", () => {
+    /* `run-demo` distingue il dato corrotto dal dato assente: un adempimento
+       senza periodo dichiarato non è un refuso, è uno stato che il prodotto sa
+       raccontare — e senza di lui la dimostrazione non potrebbe mostrarlo. */
+    const A = sentinella.DEMO.adempimenti;
+    const noti = A.filter(a => per(a).noto), ignoti = A.filter(a => !per(a).noto);
+    ok(noti.length >= 2, `${noti.length} adempimenti col periodo ricavabile`);
+    eq(ignoti.length, 1, "e uno solo senza");
+    eq(ignoti[0].titolo, "Rinnovo AUA", "⛔ ed è un rinnovo: non copre nessun periodo di misure");
+    eq(per(ignoti[0]).motivo, "senza-periodicita", "il motivo è che non lo dichiara");
+    const sem = A.find(a => a.titolo === "Verifica fonometrica semestrale");
+    eq(per(sem).dal + " → " + per(sem).al, "2026-04-01 → 2026-09-30",
+      "e il semestre della dimostrazione è quello di calendario");
+  });
+
+  test("⛔ Sentinella · `parseAdempimentiCsv`: le due colonne nuove sono facoltative e non si deducono", () => {
+    const vecchio = sentinella.parseAdempimentiCsv("titolo;ente;scadenza\nRelazione;ARPA;2026-08-10\n");
+    eq(vecchio.length, 1, "un file a tre colonne entra come sempre");
+    eq(vecchio[0].periodoMesi, null, "⛔ e non dichiara nessun periodo");
+    eq(vecchio[0].giorniConsegna, null, "⛔ né un termine: null, non 0");
+    eq(per(vecchio[0]).noto, false, "quindi il report non parte su un periodo inventato");
+    const nuovo = sentinella.parseAdempimentiCsv("Trimestrale;ARPA;2026-10-30;3;30\n");
+    eq(nuovo[0].periodoMesi, 3, "tre mesi");
+    eq(nuovo[0].giorniConsegna, 30, "consegna trenta giorni dopo");
+    eq(per(nuovo[0]).dal + " → " + per(nuovo[0]).al, "2026-07-01 → 2026-09-30", "⛔ e il trimestre è quello giusto");
+    const zero = sentinella.parseAdempimentiCsv("Semestrale;ARPA;2026-09-30;6;0\n");
+    eq(zero[0].giorniConsegna, 0, "uno zero SCRITTO nel file resta zero");
+    eq(per(zero[0]).noto, true, "e il periodo si ricava");
+    const sporco = sentinella.parseAdempimentiCsv("Boh;ARPA;2026-09-30;tre;boh\n");
+    eq(sporco[0].periodoMesi, null, "una parola al posto del numero non è un numero");
+    eq(sporco[0].giorniConsegna, null, "e nemmeno la seconda");
+    eq(per(sporco[0]).motivo, "senza-periodicita", "⛔ quindi non si sa, invece di sapersi sbagliato");
+  });
+
+  test("⛔ Sentinella · il file esportato dice del periodo la STESSA cosa dello schermo", () => {
+    /* «Dove questa app compone qualcosa che ESCE, chi decide i suoi numeri?»
+       Se la risposta non è «la stessa funzione che decide a schermo», lì c'è
+       una copia debole — ed è il posto dove nessuna prova guarda. */
+    const ade = [{ titolo: "Semestrale", ente: "ARPA", scadenza: "2026-09-30", periodoMesi: 6, giorniConsegna: 0 },
+                 { titolo: "Rinnovo", ente: "SUAP", scadenza: "2026-09-30" }];
+    const righe = sentinella.csvAmbiente([], ade, [], new Date(2026, 7, 3)).split("\n");
+    ok(righe[1].includes("periodo coperto dal 2026-04-01 al 2026-09-30"),
+      "il file scrive il periodo ricavato: " + righe[1]);
+    ok(righe[2].includes("periodo coperto non dichiarato"),
+      "⛔ e su quello che non si sa lo dice, invece di tacere: " + righe[2]);
+    eq(/periodo coperto dal/.test(righe[2]), false, "nessun periodo inventato nel file");
+  });
+
+  test("⛔ Sentinella · un periodo ricavato senza nessuna misura NON esce tranquillo", () => {
+    /* «Senza dati» non è «conforme»: se il periodo dell'adempimento cade dove
+       nessuno ha misurato, il documento deve dirlo. La domanda la decide
+       `coperturaPeriodo`, la stessa del documento — qui non se ne scrive una
+       seconda versione. */
+    const a = { titolo: "Trimestrale", ente: "ARPA", scadenza: "2026-09-30", periodoMesi: 3, giorniConsegna: 0 };
+    const p = per(a);
+    const punti = [{ id: "p1", nome: "PM10", tipo: "polveri", soglia: 40, letture: [
+      { data: "2024-01-10", valore: 12 }] }];
+    const R = sentinella.reportConformita({ monitoraggi: punti, dal: p.dal, al: p.al, oggi: "2026-10-01" });
+    eq(R.copertura.stato, "senza-letture", "⛔ nel periodo dell'adempimento non c'è nessuna misura");
+    eq(sentinella.DICHIARAZIONI_COPERTURA["senza-letture"].cls, "warn", "e la frase non è tranquilla");
+    eq(R.esito, "senza-dati", "⛔ e l'esito non è «conforme»");
+    /* e con una misura dentro il periodo la stessa domanda risponde diverso:
+       la prova non passerebbe «per caso» su un report che non guarda niente */
+    const punti2 = [{ ...punti[0], letture: [{ data: "2026-08-01", valore: 12 }] }];
+    const R2 = sentinella.reportConformita({ monitoraggi: punti2, dal: p.dal, al: p.al, oggi: "2026-10-01" });
+    eq(R2.copertura.stato, "misurato", "con una lettura dentro il periodo lo stato cambia");
+    eq(R2.esito, "conforme", "e l'esito diventa un giudizio vero");
+  });
+
+  test("⛔ Sentinella · la pagina non si riscrive in casa il calcolo del periodo", () => {
+    /* La copia debole funziona sui dati buoni e nessuna prova la guarda: il
+       modo di prenderla è pretendere che la pagina CHIAMI la funzione. */
+    ok(/periodoAdempimento/.test(srcSen), "la pagina importa e chiama `periodoAdempimento`");
+    ok(/descriviPeriodoAdempimento/.test(srcSen), "e la frase la costruisce `descriviPeriodoAdempimento`");
+    ok(/DICHIARAZIONI_PERIODO\[/.test(srcSen), "e i motivi li legge dalla mappa del modulo");
+    eq(/dataMenoMesi\s*\(/.test(srcSen.replace(/periodoAdempimento/g, "")), false,
+      "⛔ e non fa aritmetica sui mesi per conto suo");
+    /* il bottone della riga esiste, e sul non ricavabile NON porta al Report */
+    ok(/data-ade-rep/.test(srcSen), "la riga dello scadenzario ha il bottone del report");
+    ok(/if\s*\(!p\.noto\)/.test(srcSen), "⛔ e se il periodo non si sa il bottone si ferma prima di navigare");
+    ok(/rep-origine/.test(srcSen), "e a schermo c'è la riga che dichiara di che periodo si tratta");
+    /* ⛔ E QUI LA CONTROPROVA HA BOCCIATO LA PRIMA STESURA, che cercava il solo
+       nome `scordaOrigineReport`: rinominata la funzione in
+       `scordaOrigineReportXX` la prova restava VERDE, perché il nome vecchio è
+       una sottostringa del nuovo. È la prima delle sei cause — i dati della
+       prova facevano coincidere la risposta giusta con quella sbagliata. Si
+       chiede il confine di parola, e si conta anche quante volte viene
+       CHIAMATA: una funzione definita e mai chiamata non scorda niente. */
+    const chiamate = (srcSen.match(/\bscordaOrigineReport\s*\(\s*\)/g) || []).length;
+    ok(/\bconst scordaOrigineReport\b/.test(srcSen), "⛔ la funzione che scorda l'origine esiste con quel nome esatto");
+    ok(chiamate >= 3, `⛔ ed è chiamata in ${chiamate} punti: il cambio a mano delle date e i due periodi pronti`);
+  });
+}
 console.log(`\nRisultato KPI app: ${passed} passati, ${failed} falliti${inVolo.length ? `  ·  ${inVolo.length} prove asincrone aspettate` : ""}`);
 process.exit(failed > 0 ? 1 : 0);

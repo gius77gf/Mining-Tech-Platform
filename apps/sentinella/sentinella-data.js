@@ -157,10 +157,19 @@ export const DEMO = {
       chi: "Direzione scolastica", descrizione: "Polvere sui davanzali lato cava dopo giornata ventosa.",
       azione: "Bagnatura piste raddoppiata, verifica PM10 in corso.", stato: "aperto" },
   ],
+  /* `periodoMesi` e `giorniConsegna` dicono che PERIODO copre l'adempimento —
+     da lì `periodoAdempimento` ricava «dal … al» e il Report parte già su quei
+     giorni. ⛔ E d2 li lascia VUOTI di proposito: un rinnovo di autorizzazione
+     non copre nessun periodo di misure, quindi la dimostrazione contiene anche
+     il caso in cui l'app deve dire che non lo sa. È la stessa scelta di
+     `run-demo.mjs` sulla fattura senza scadenza: un campo assente non è un
+     refuso, è uno stato che il prodotto sa raccontare. */
   adempimenti: [
-    { id: "d1", titolo: "Relazione annuale emissioni", ente: "ARPA", scadenza: "2026-08-10" },
+    { id: "d1", titolo: "Relazione annuale emissioni", ente: "ARPA", scadenza: "2026-08-10",
+      periodoMesi: 12, giorniConsegna: 0 },
     { id: "d2", titolo: "Rinnovo AUA", ente: "SUAP", scadenza: "2026-09-30" },
-    { id: "d3", titolo: "Verifica fonometrica semestrale", ente: "—", scadenza: "2026-09-30" },
+    { id: "d3", titolo: "Verifica fonometrica semestrale", ente: "—", scadenza: "2026-09-30",
+      periodoMesi: 6, giorniConsegna: 0 },
   ],
   registri: [
     { id: "g1", titolo: "Registro rifiuti", nota: "ultimo carico 16/07", stato: "aggiornato" },
@@ -717,11 +726,22 @@ export function parseAdempimentiCsv(text) {
   return String(text || "").split(/\r?\n/).map(r => r.trim()).filter(Boolean)
     .filter(r => !isIntestazione(r, "titolo"))
     .map(r => {
-      const [titolo, ente, scadenza] = parseCsvLine(r);
+      /* Le due colonne in coda sono FACOLTATIVE e dicono che periodo copre
+         l'adempimento (vedi `periodoAdempimento`). Un file scritto con le tre
+         colonne di sempre entra identico a prima: le due chiavi restano
+         `null`, cioè «non dichiarato», che è diverso da zero — uno zero
+         dedotto sposterebbe il periodo in avanti in silenzio. */
+      const [titolo, ente, scadenza, periodoMesi, giorniConsegna] = parseCsvLine(r);
+      const dichiarato = (c) => {
+        const v = numeroDichiarato(String(c == null ? "" : c).trim().replace(",", "."));
+        return v == null ? null : v;
+      };
       return {
         titolo: (titolo || "").trim(),
         ente: (ente || "").trim() || "—",
         scadenza: (scadenza || "").trim(),
+        periodoMesi: dichiarato(periodoMesi),
+        giorniConsegna: dichiarato(giorniConsegna),
       };
     })
     // `dataISOEsiste` e non la sola forma: «2026-13-45» e «2026-02-30» hanno
@@ -1669,10 +1689,18 @@ export function csvAmbiente(monitoraggi, adempimenti, ricettori, oggi = new Date
       : g < 0 ? "scaduto da " + (-g) + " gg"
       : "tra " + g + " gg";
     const ente = (a || {}).ente && a.ente !== "—" ? a.ente + " · " : "";
+    /* ⛔ IL FILE DICE LA STESSA COSA DELLO SCHERMO, e la decide la STESSA
+       funzione. È la regola «dove il documento si compone, chi decide i suoi
+       numeri?»: la riga dello scadenzario mostra il periodo coperto, e un file
+       che tace lascerebbe credere che di quel periodo non si sappia niente. */
+    const per = periodoAdempimento(a);
     righe.push([
       "adempimento", csvCell((a || {}).titolo || ""), "", "", "", stato,
       csvCell(ente + "entro " + (dataISOEsiste(String((a || {}).scadenza || "").slice(0, 10))
-        ? String(a.scadenza).slice(0, 10) : "data non indicata")), "",
+        ? String(a.scadenza).slice(0, 10) : "data non indicata")
+        + " · " + (per.noto
+          ? "periodo coperto dal " + per.dal + " al " + per.al
+          : "periodo coperto non dichiarato")), "",
       /* un adempimento non è una misura: non ha né taratura né provenienza, e
          le due celle restano vuote invece di dire qualcosa di tranquillo */
       "", "",
@@ -2076,6 +2104,134 @@ export const DICHIARAZIONI_COPERTURA = {
   "senza-letture": { cls: "warn", testo: "Nel periodo dichiarato non risulta registrata nessuna misura: il documento non copre nemmeno un giorno di quelli che dichiara." },
   "senza-periodo": { cls: "",     testo: "Non è stato dichiarato nessun periodo: il documento riporta tutto lo storico registrato, quindi non c'è una finestra di tempo promessa da confrontare con le misure." },
 };
+
+// ══════════════════════════════════════════════════════════════════════
+// T2f · DALL'ADEMPIMENTO AL PERIODO DEL REPORT
+// ══════════════════════════════════════════════════════════════════════
+// Perché esiste. Lo scadenzario sa QUANDO va consegnato un adempimento; il
+// Report chiede «dal» e «al» e li fa DIGITARE. Fra le due cose non c'era
+// niente, quindi chi prepara la relazione trimestrale indovina il trimestre —
+// e produce un documento perfettamente coerente SUL PERIODO SBAGLIATO. È la
+// famiglia del numero tranquillo in una veste nuova: qui non mente nessun
+// numero, mente la DOMANDA a cui il documento risponde, e nessuno se ne
+// accorge perché due date scritte a mano non sono smentite da niente.
+//
+// ⛔ E NON È LA `PERIODICITA` DEL PROGRAMMA. Quella dice ogni quanto si MISURA
+// un punto (e vale in giorni, con la sua convenzione dichiarata: «mensile» =
+// 30 giorni). Questa dice quanto tempo COPRE un documento, e lì i giorni non
+// bastano: un trimestre che chiude il 30/09 comincia il 01/07, non il 03/07,
+// e un report per l'ente che parte due giorni dopo il trimestre è un report
+// che due giorni non li ha guardati. Quindi si conta in MESI DI CALENDARIO,
+// che è il modo in cui le prescrizioni autorizzative sono scritte.
+//
+// ⛔ SERVONO DUE COSE DICHIARATE, E LA SECONDA NON HA UN RIPIEGO. La scadenza
+// da sola non basta: fra la fine del periodo coperto e il termine di consegna
+// c'è quasi sempre un intervallo («la relazione annuale entro il 30 aprile
+// dell'anno successivo»). Dedurre zero vorrebbe dire spostare TUTTO il
+// periodo in avanti di quanto vale il termine vero — cioè fabbricare
+// esattamente il difetto che questa unità esiste per togliere, e con l'aria
+// di essere giusto. Quindi `giorniConsegna` non dichiarato ⇒ non si sa; uno
+// zero SCRITTO è invece una risposta legittima («il periodo chiude il giorno
+// della scadenza»). È la stessa differenza fra `null` e 0 che regge tutto il
+// resto del modulo: `+null` fa zero, e uno zero dedotto è un numero tranquillo.
+export const PERIODI_ADEMPIMENTO = [
+  { chiave: "mensile",        etichetta: "Un mese",       mesi: 1 },
+  { chiave: "bimestrale",     etichetta: "Due mesi",      mesi: 2 },
+  { chiave: "trimestrale",    etichetta: "Tre mesi",      mesi: 3 },
+  { chiave: "quadrimestrale", etichetta: "Quattro mesi",  mesi: 4 },
+  { chiave: "semestrale",     etichetta: "Sei mesi",      mesi: 6 },
+  { chiave: "annuale",        etichetta: "Un anno",       mesi: 12 },
+];
+
+// Data ISO spostata INDIETRO di n mesi di calendario, in UTC. Se il giorno non
+// esiste nel mese d'arrivo (31/03 − 1 mese) si serra all'ultimo giorno utile
+// invece di scivolare al mese dopo — è la stessa convenzione che Scudo usa per
+// andare avanti (`dataDaPeriodicita`), scritta qui perché va nel verso opposto
+// e in UTC (le date di questo modulo sono ISO, non `Date` locali).
+// Ritorna "" se la data di partenza non è un giorno che esiste: `dataISOEsiste`
+// e non una regex sulla forma, perché «2026-02-30» la forma ce l'ha.
+export function dataMenoMesi(dataISO, n) {
+  const s = String(dataISO || "").slice(0, 10);
+  if (!dataISOEsiste(s)) return "";
+  const [a, m, g] = s.split("-").map(Number);
+  const mesi = Math.round(+n || 0);
+  const tot = (a * 12 + (m - 1)) - mesi;
+  const aa = Math.floor(tot / 12), mm = ((tot % 12) + 12) % 12;
+  const p2 = (x) => String(x).padStart(2, "0");
+  const ultimo = new Date(Date.UTC(aa, mm + 1, 0)).getUTCDate();
+  return `${aa}-${p2(mm + 1)}-${p2(Math.min(g, ultimo))}`;
+}
+
+// IL PERIODO CHE UN ADEMPIMENTO COPRE, ricavato da quello che l'adempimento
+// DICHIARA: `periodoMesi` (quanti mesi di calendario copre) e `giorniConsegna`
+// (quanti giorni dopo la fine del periodo cade la scadenza).
+//   al  = scadenza − giorniConsegna
+//   dal = (al + 1 giorno) − periodoMesi mesi
+// Il «+1 giorno» prima di togliere i mesi non è un dettaglio: senza di lui un
+// semestre che chiude il 30/09 comincerebbe il 31/03 invece che il 01/04,
+// perché marzo ha 31 giorni e settembre 30.
+// La bandiera è `noto`, lo stesso vocabolario di `provenienzaMisura` e
+// `descriviResponsabile`; a leggerla sono `descriviPeriodoAdempimento` qui
+// sotto e la pagina, che sul falso NON porta a un documento ma dice cosa manca.
+// `motivo` è sempre una delle quattro chiavi di `DICHIARAZIONI_PERIODO`.
+// Pura e testabile.
+export function periodoAdempimento(a) {
+  const vuoto = { noto: false, dal: "", al: "", mesi: null, giorniConsegna: null, giorni: null };
+  const scad = String((a || {}).scadenza || "").slice(0, 10);
+  /* ⛔ `numeroDichiarato` e non `+x`: `periodoMesi: null` e `periodoMesi: ""`
+     valgono zero con la conversione, e `Number.isFinite(0)` risponde true —
+     la trappola che in questa casa ha già prodotto «0%» dove nessuno aveva
+     misurato. Qui produrrebbe un periodo di zero mesi, cioè `dal` = `al` + 1. */
+  const pm = numeroDichiarato((a || {}).periodoMesi);
+  const mesi = (pm != null && pm >= 1 && pm <= 120) ? Math.round(pm) : null;
+  const gcv = numeroDichiarato((a || {}).giorniConsegna);
+  const gc = (gcv != null && gcv >= 0) ? Math.round(gcv) : null;
+  if (!dataISOEsiste(scad)) return { ...vuoto, mesi, giorniConsegna: gc, motivo: "scadenza-illeggibile" };
+  if (mesi == null) return { ...vuoto, giorniConsegna: gc, motivo: "senza-periodicita" };
+  if (gc == null) return { ...vuoto, mesi, motivo: "senza-termine" };
+  const al = piuGiorni(scad, -gc);
+  const dal = al ? dataMenoMesi(piuGiorni(al, 1), mesi) : "";
+  if (!al || !dal || dal > al) return { ...vuoto, mesi, giorniConsegna: gc, motivo: "scadenza-illeggibile" };
+  return { noto: true, dal, al, mesi, giorniConsegna: gc,
+           /* ⚠️ L'ORDINE DEGLI ARGOMENTI: `giorniTra(bersaglio, da)`, come lo
+              chiama `coperturaPeriodo` (`fra(x, y) → giorniTra(y, …x)`). Scritto
+              al contrario dà i giorni col segno rovesciato, cioè un periodo
+              lungo −92 giorni con l'aria di un numero. */
+           giorni: giorniTra(al, new Date(dal + "T00:00:00")) + 1, motivo: "ricavato" };
+}
+
+// La frase che la pagina mostra. Quattro chiavi, quante ne sa dire
+// `periodoAdempimento`: è la coppia funzione↔mappa della regola 18 di
+// `run-stile.mjs`, e il giorno che nascesse un quinto motivo la mappa lo
+// direbbe invece di far morire la pagina al disegno.
+// ⛔ Nessuna delle tre frasi di «non lo so» propone un periodo di ripiego, ed è
+// il punto: un trimestre plausibile scritto al posto di quello vero sarebbe
+// indistinguibile da quello giusto per chi legge il documento finito.
+export const DICHIARAZIONI_PERIODO = {
+  "ricavato":             { cls: "",     testo: "Il periodo coperto da questo adempimento si ricava dalla scadenza e da quanto l'adempimento dichiara di coprire: il report parte già su quei giorni, senza scriverli a mano." },
+  "senza-periodicita":    { cls: "warn", testo: "Questo adempimento non dichiara quanto tempo copre, quindi il periodo del report non si ricava. Scrivilo sulla scadenza (quanti mesi copre) oppure scegli le date a mano nel Report." },
+  "senza-termine":        { cls: "warn", testo: "Manca il termine di consegna: non si sa quanti giorni passano fra la fine del periodo coperto e la scadenza, e senza quel numero il periodo scivolerebbe in avanti. Scrivilo sulla scadenza — se il periodo chiude il giorno stesso della scadenza, il numero è zero." },
+  "scadenza-illeggibile": { cls: "warn", testo: "La data di scadenza non è un giorno che esiste, quindi non c'è nessun punto da cui contare all'indietro: il periodo del report non si ricava." },
+};
+
+// Il periodo detto come lo legge una persona, con la bandiera accanto. La
+// bandiera la consuma anche questa funzione (non solo la pagina): su `false`
+// scrive che cosa manca invece di tacere o di dire un intervallo.
+export function descriviPeriodoAdempimento(a) {
+  const p = periodoAdempimento(a);
+  const voce = PERIODI_ADEMPIMENTO.find(x => x.mesi === p.mesi);
+  return {
+    ...p,
+    // ⚠️ «1 mesi» si sente: il numero davanti a un singolare si toglie.
+    durata: p.mesi == null ? "" : voce ? voce.etichetta.toLowerCase()
+      : p.mesi === 1 ? "un mese" : p.mesi + " mesi",
+    testo: p.noto
+      ? "periodo dell'adempimento: dal " + dataIt(p.dal) + " al " + dataIt(p.al)
+      : p.motivo === "senza-periodicita" ? "periodo dell'adempimento non dichiarato"
+      : p.motivo === "senza-termine" ? "periodo dell'adempimento non ricavabile: manca il termine di consegna"
+      : "periodo dell'adempimento non ricavabile: la scadenza non è un giorno che esiste",
+  };
+}
 
 // ══════════════════════════════════════════════════════════════════════
 // T3 · REPORT DI CONFORMITÀ

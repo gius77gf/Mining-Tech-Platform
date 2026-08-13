@@ -788,6 +788,19 @@ const BANCHI = [
      il cliente consegna. */
   ['le dichiarazioni del report di Sentinella', 'sentinella-report-dichiarazioni.mjs', []],
   ['dichiarazioni del report · controprova', 'sentinella-report-dichiarazioni.mjs', ['--controprova'], true],
+  /* ⛔ AGGIUNTO IL 13/08 (riga B4). Il documento poteva essere vero e rispondere
+     a UN'ALTRA DOMANDA: lo scadenzario sapeva quando va consegnato un
+     adempimento, il Report faceva digitare «dal» e «al», e fra le due cose non
+     c'era niente — quindi il periodo lo indovinava chi premeva il bottone, e
+     due date scritte a mano non sono smentite da niente. Qui si prova quello
+     che `node` non vede: che le date arrivino NEI CAMPI, che a schermo ci sia
+     scritto DI CHE periodo si tratta, che quella frase SPARISCA appena le date
+     si toccano (se restasse direbbe il falso), e soprattutto che quando il
+     periodo NON si ricava il bottone dica cosa manca invece di portare a un
+     trimestre plausibile. `--difetto=N` mette una iniezione sola: con tutte
+     insieme due difetti si mascherano a vicenda. */
+  ['dalla scadenza al report di quel periodo (Sentinella)', 'sentinella-periodo-adempimento.mjs', []],
+  ['periodo dell\'adempimento · controprova', 'sentinella-periodo-adempimento.mjs', ['--controprova'], true],
   /* ⛔ AGGIUNTO IL 06/08. LA FORMA IN CUI A MENTIRE È IL DISEGNO, non il numero.
      Nel core, quel giorno, la barra di luglio dichiarava `2261.7 mc` e veniva
      disegnata 3 px — identica ai cinque mesi a zero — perché `height:100%` si
