@@ -350,3 +350,14 @@ niente — che è esattamente la stessa cosa che cerchiamo nel prodotto.
   falsa — `functions/node_modules` era vuota. Comandi in `CLAUDE.md`.
 - **Restano ferme** le decisioni del fondatore: **B0-septies** (il 2D di una
   volata senza maglia) e le **soglie di sicurezza** (`ppvLimit`, USBM/DIN).
+
+### 23:35 UTC — la CI è VERDE, verificato invece che sperato
+
+`bf5bc6ee` (l'eccezione dichiarata) e i **quattro commit successivi** sono tutti
+`success`; i tre prima — `5b466594`, `724bb02c`, `7f969609` — erano `failure`
+sulla stessa riga sola. È la **prima volta stanotte** che questo ramo è verde.
+⚠️ E va detto per intero, se no il verde diventa quello che il rosso era prima:
+**la storia va ancora riscritta.** Il percorso mal datato è ancora lì; a
+cambiare è che adesso è dichiarato per nome, con la ragione, e una prova gli sta
+addosso — quella prova **cade** il giorno in cui la storia viene riscritta,
+quindi l'eccezione non può sopravvivere alla sua causa.
