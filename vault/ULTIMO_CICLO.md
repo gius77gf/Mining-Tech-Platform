@@ -270,3 +270,25 @@ niente — che è esattamente la stessa cosa che cerchiamo nel prodotto.
   cosa vede chi apre il 2D di una volata senza maglia; misurato: con la maglia
   assente il MIC va 58 → 696 kg e il PPV 6,4 → 44,0 mm/s) e le **soglie di
   sicurezza** (`ppvLimit`, curve USBM/DIN).
+
+## 2026-08-13 19:04 UTC — ciclo automatico
+- **Commit di partenza**: `d4a54c3`
+- **Che cosa sto per fare**: raccogliere i **tre cantieri** aperti alle 18:56
+  su Conti, Terra e Sentinella — tutti e tre sulla stessa domanda, quella che
+  oggi ha reso dodici difetti veri: *dove l'app compone qualcosa che ESCE (un
+  CSV, un foglio stampato, una riga di elenco, una frase), chi decide i suoi
+  numeri?* Se non è la stessa funzione che li decide a schermo, lì c'è una
+  copia più debole di una regola già scritta in casa.
+- **Che cos'altro è vivo**: il **giro completo del browser**, ripartito alle
+  19:02 su `d3653ec` — cioè sullo stato di oggi, con dentro il banco nuovo di
+  Flotta e le correzioni della giornata.
+- ⛔ **Quello che aspetta il fondatore**: la CI è rossa su **una riga sola**.
+  Un checkpoint di oggi si chiamava `20260813-164000` ed è entrato in git alle
+  **16:37:45** — due minuti avanti, perché ho *previsto* l'ora invece di
+  leggerla. Il file è già rinominato all'ora vera; ma quel controllo legge i
+  nomi da tutta la storia di git, e il nome sbagliato ci resta. La correzione è
+  **costruita e provata** in una `git worktree` (albero identico, controllo di
+  nuovo 8/0): per applicarla serve un `push --force-with-lease`, che il
+  classificatore blocca. Serve un sì esplicito.
+- **Restano ferme** le decisioni del fondatore: **B0-septies** (il 2D di una
+  volata senza maglia) e le **soglie di sicurezza** (`ppvLimit`, USBM/DIN).
