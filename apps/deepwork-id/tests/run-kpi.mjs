@@ -27477,5 +27477,193 @@ test("voceDocumentoInElenco: la regola vale per documento, non per la lista", ()
   });
 }
 
+/* ══════════════════════════════════════════════════════════════════════
+   SCUDO · I NUMERI TRANQUILLI DELLA SICUREZZA (13/08)
+   ══════════════════════════════════════════════════════════════════════
+   Quattro difetti misurati in un giro solo, tutti della stessa famiglia: un
+   dato ASSENTE o ILLEGGIBILE che diventa un numero, e quel numero viene
+   mostrato come se fosse stato misurato. In un'app di sicurezza il verso è
+   sempre quello che tranquillizza.
+   ⚠️ Prove SINCRONE e messe PRIMA del riepilogo: l'`await Promise.all(inVolo)`
+   sta migliaia di righe più su, quindi una prova `async` aggiunta qui verrebbe
+   messa in volo e il totale si stamperebbe senza aspettarla. */
+{
+  const { senzaCommenti: senzaCommentiSc } = await import("./tokenizza.mjs");
+  /* senza commenti perché i commenti di quei due file CITANO le forme
+     sbagliate per spiegare che cosa toglievano: letti grezzi, le contengono. */
+  const SRC_SC_PAG = senzaCommentiSc(readFileSync(join(HERE, "../../scudo/index.html"), "utf8"));
+  const SRC_SC_MOD = senzaCommentiSc(readFileSync(join(HERE, "../../scudo/scudo-data.js"), "utf8"));
+  const OGGI_SC = new Date("2026-08-13T12:00:00");
+  const LAV_SC = [{ id: "l1", nome: "Mario Rossi", attivo: true }];
+  const nomineSc = (n) => scudo.organigrammaSicurezza(n, LAV_SC, [], OGGI_SC).find((x) => x.ruolo.chiave === "rls");
+  const cartellaSc = (n) => scudo.cartellaLavoratore(LAV_SC[0], { nomine: n }, OGGI_SC);
+
+  test("⛔ Scudo · riepilogoInfortuni: una data IMPOSSIBILE non diventa «l'ultimo infortunio»", () => {
+    /* ⛔ Il cartellone sceglieva l'ultimo infortunio con `/^\d{4}-\d{2}-\d{2}$/`
+       — una FORMA, non un valore — e siccome `ultimo` si sceglie confrontando
+       le stringhe, «2026-13-45» vinceva SEMPRE su una data vera. Da lì
+       `giorniTra` risponde NaN e il numero grande in cima alla schermata
+       diventava **NaN**, con la cornice gialla per giunta (`NaN >= 30` è
+       falso). La regola giusta era già in casa e nello stesso file:
+       `cicloDss` filtra gli infortuni con `dataISOEsiste`, e `parseInfortuniCsv`
+       scarta così le righe in import. */
+    const r = scudo.riepilogoInfortuni([
+      { id: "a", tipo: "infortunio", data: "2026-06-01", giorniAssenza: 3 },
+      { id: "b", tipo: "infortunio", data: "2026-13-45", giorniAssenza: 2 },
+    ], OGGI_SC);
+    eq(r.ultimo, "2026-06-01", "vince la data che ESISTE, non quella più grande come stringa");
+    eq(r.giorniSenza, 73, "e il cartellone dice 73, non NaN");
+    ok(!Number.isNaN(r.giorniSenza), "nessun NaN può uscire da qui: è il numero che in cava si guarda per primo");
+    eq(r.dataIgnota, 1, "la riga scartata si dichiara invece di sparire");
+    eq(r.infortuni, 2, "⛔ e resta un infortunio: sparisce dal conteggio dei GIORNI, non dal registro");
+    /* il 30 febbraio è il caso che inganna due volte: `Date.parse` non lo
+       rifiuta, lo fa SCORRERE al 2 marzo — la lezione già pagata con `isDate`
+       di `run-demo`. */
+    const feb = scudo.riepilogoInfortuni([{ id: "c", tipo: "infortunio", data: "2026-02-30" }], OGGI_SC);
+    eq(feb.giorniSenza, null, "il 30 febbraio non è una data: non si conta da lì");
+    eq(feb.dataIgnota, 1, "e lo si dice");
+    /* ⛔ IL CASO DI CONTROLLO: su dati sani la bandiera resta a zero, se no un
+       avviso che c'è sempre non lo legge più nessuno. */
+    const sano = scudo.riepilogoInfortuni([{ id: "a", tipo: "infortunio", data: "2026-06-01", giorniAssenza: 3 }], OGGI_SC);
+    eq(sano.dataIgnota, 0, "nessuna data illeggibile: la bandiera resta spenta");
+    eq(sano.giorniSenza, 73, "e il conto è lo stesso di prima: la correzione non ha spostato il numero buono");
+    /* e la domanda si fa a `dataISOEsiste`, non alla forma della stringa */
+    eq((SRC_SC_MOD.match(/\/\^\\d\{4\}-\\d\{2\}-\\d\{2\}\$\/\.test\(d\)/g) || []).length, 0,
+      "in `riepilogoInfortuni` non è rimasto nessun controllo sulla FORMA della data");
+  });
+
+  test("⛔ Scudo · «Nessun infortunio registrato» non si dice quando gli infortuni ci sono", () => {
+    /* Il conteggio parte dall'ultima data LEGGIBILE: se nessun infortunio ce
+       l'ha, `giorniSenza` è `null` — e il ramo del `null` scriveva la frase più
+       tranquilla della schermata mentre la riga sotto contava «Infortuni: 3».
+       L'assenza di una data non è l'assenza di un infortunio. */
+    const tutti = scudo.riepilogoInfortuni([
+      { id: "a", tipo: "infortunio", data: "2026-13-45", giorniAssenza: 12 },
+      { id: "b", tipo: "infortunio", data: "", giorniAssenza: 4 },
+      { id: "c", tipo: "infortunio", data: "boh" },
+    ], OGGI_SC);
+    contiene(tutti, { infortuni: 3, giorniSenza: null, ultimo: null, dataIgnota: 3 },
+      "tre infortuni registrati, nessuna data da cui contare");
+    const vuoto = scudo.riepilogoInfortuni([{ id: "n", tipo: "near-miss", data: "2026-07-01" }], OGGI_SC);
+    contiene(vuoto, { infortuni: 0, giorniSenza: null, dataIgnota: 0 },
+      "⛔ e il caso vero di «nessun infortunio» resta distinto: stesso `giorniSenza`, bandiera diversa");
+    /* ⛔ REGOLA 20: una bandiera che non legge nessuno non protegge niente.
+       Qui si prova che a leggerla è la pagina, ed è il cartellone. */
+    ok(SRC_SC_PAG.length > 200000, `il sorgente guardato ha ${SRC_SC_PAG.length} caratteri, non è una fetta vuota`);
+    ok(/ri\.dataIgnota/.test(SRC_SC_PAG), "la pagina LEGGE `dataIgnota` invece di lasciarla dichiarata e basta");
+    ok(/non si può contare/.test(SRC_SC_PAG),
+      "e con date tutte illeggibili il cartellone dice «non si può contare», non «Nessun infortunio registrato»");
+  });
+
+  test("⛔ Scudo · eventiSenzaAnalisi: la prognosi APERTA non vale «zero giorni di assenza»", () => {
+    /* La riga era `+((e || {}).giorniAssenza) > 0`: `+null` fa `0`, quindi
+       l'infortunio a prognosi ancora aperta — quello di cui le giornate non si
+       sanno ANCORA, cioè il caso per cui esiste la decisione 17 — finiva nello
+       stesso secchio di un infortunio con zero giorni MISURATI. Ed è
+       esattamente l'evento su cui l'ente chiede conto, cioè quello che il
+       commento di quella funzione promette di mettere per primo.
+       `prognosiAperta` e `giornateAssenza` sono nello stesso file e decidono
+       già lo schermo, il CSV del registro e gli indici: lì c'era la quarta
+       lettura, più debole delle altre tre. */
+    const ordine = scudo.eventiSenzaAnalisi([
+      { id: "aperta", tipo: "infortunio", data: "2026-08-10", giorniAssenza: null },
+      { id: "zero", tipo: "infortunio", data: "2026-08-11", giorniAssenza: 0 },
+      { id: "nm", tipo: "near-miss", data: "2026-08-12" },
+      { id: "conAssenza", tipo: "infortunio", data: "2026-01-02", giorniAssenza: 14 },
+    ], []).map((e) => e.id);
+    eq(ordine, ["aperta", "conAssenza", "zero", "nm"],
+      "la prognosi aperta sale accanto a chi ha l'assenza, e non resta sotto a un infortunio da zero giorni misurati");
+    ok(ordine.indexOf("aperta") < ordine.indexOf("zero"),
+      "⛔ «non lo so ancora» non si mette dietro a «misurato zero»");
+    eq(ordine[ordine.length - 1], "nm", "e i near-miss restano in fondo, come prima");
+    /* il caso di controllo: se le giornate ci sono, l'ordine è quello di sempre */
+    eq(scudo.eventiSenzaAnalisi([
+      { id: "vecchio", tipo: "infortunio", data: "2026-01-02", giorniAssenza: 14 },
+      { id: "nuovo", tipo: "infortunio", data: "2026-08-11", giorniAssenza: 3 },
+    ], []).map((e) => e.id), ["nuovo", "vecchio"],
+      "a parità di secchio decide la data, e la più recente viene prima");
+    eq((SRC_SC_MOD.match(/\+\(\(e \|\| \{\}\)\.giorniAssenza\)/g) || []).length, 0,
+      "nessuna lettura del campo grezzo è rimasta in `eventiSenzaAnalisi`");
+    /* ⛔ E LA QUINTA COPIA STAVA NELLA PAGINA: la testata della modale «Perché
+       è successo» faceva `(+ev.giorniAssenza)`, quindi un infortunio a prognosi
+       aperta ci compariva IDENTICO a uno che non è costato nemmeno una
+       giornata — mentre la riga del registro, due tocchi più in là, scrive
+       «prognosi ancora aperta». */
+    eq((SRC_SC_PAG.match(/\+ev\.giorniAssenza/g) || []).length, 0,
+      "nemmeno la pagina legge più il campo grezzo per dire se c'è stata un'assenza");
+    ok((SRC_SC_PAG.match(/prognosiAperta\(/g) || []).length >= 2,
+      "l'elenco del registro E la testata dell'analisi passano tutt'e due da `prognosiAperta`");
+  });
+
+  test("⛔ Scudo · la data di una nomina si legge in UN posto solo: fascicolo e organigramma dicono la stessa cosa", () => {
+    /* Il 07/08 `organigrammaSicurezza` ha imparato a guardare anche la data di
+       FINE (con una `al` illeggibile `nominaAttiva` non scatta — `giorniTra`
+       risponde NaN — e il ruolo usciva verde su una nomina scaduta chissà
+       quando). `cartellaLavoratore` non l'ha saputo: la sua riga guardava solo
+       `dal`, col commento che dichiarava «è la stessa regola di
+       `organigrammaSicurezza`» — cioè la copia debole che si annuncia gemella.
+       Il fascicolo è quello che si stampa per l'ispettore. */
+    const rotta = [{ id: "n1", ruolo: "rls", lavoratoreId: "l1", dal: "2025-01-10", al: "2026-13-45" }];
+    eq(nomineSc(rotta).senzaData, 1, "l'organigramma la conta fra quelle senza una data leggibile");
+    eq(cartellaSc(rotta).daSistemare, ["1 nomina la cui data di fine non si legge"],
+      "⛔ e adesso il fascicolo la scrive: prima taceva, e chiudeva con la riga tranquilla");
+    ok(/data di fine non si legge/.test(scudo.descriviCartella(cartellaSc(rotta))),
+      "la frase in fondo al foglio la riporta: " + scudo.descriviCartella(cartellaSc(rotta)));
+    /* le due metà restano DUE righe, perché sono due lavori diversi */
+    eq(cartellaSc([{ id: "n2", ruolo: "rls", lavoratoreId: "l1", dal: null }]).daSistemare,
+      ["1 nomina senza la data da cui decorre"], "la data d'inizio mancante resta la riga di sempre");
+    /* ⛔ IL CASO DI CONTROLLO, nei due posti: una nomina senza `al` è a tempo
+       indeterminato, non una nomina rotta. */
+    const sana = [{ id: "n3", ruolo: "rls", lavoratoreId: "l1", dal: "2025-01-10" }];
+    eq(nomineSc(sana).senzaData, 0, "senza data di fine l'organigramma non allarma");
+    eq(cartellaSc(sana).daSistemare, [], "e il fascicolo nemmeno: l'avviso non è sempre acceso");
+    /* IDENTITÀ, non somiglianza: una funzione sola, chiamata da tutt'e due */
+    eq((SRC_SC_MOD.match(/function dateNominaIlleggibili\(/g) || []).length, 1,
+      "la domanda «quale data non si legge» è dichiarata una volta sola");
+    ok((SRC_SC_MOD.match(/dateNominaIlleggibili\(/g) || []).length >= 3,
+      "e la chiamano l'organigramma e le due righe del fascicolo");
+  });
+
+  test("⛔ Scudo · le ore dell'anno si leggono in UN posto solo: gli indici non ne scelgono una fra due", () => {
+    /* La pagina faceva `ORE.find(o => +o.anno === annoOra)`, cioè LA PRIMA
+       registrazione che capita — e il modulo, nella scheda subito sotto, si
+       RIFIUTA di sceglierne una quando ce ne sono due diverse per lo stesso
+       anno, con la ragione scritta: «sceglierne una cambierebbe il risultato
+       senza che si veda». Misurato con 20.000 e 45.000 ore registrate per il
+       2026 e un infortunio da 12 giorni: la scheda in alto scriveva «IF 50,00 ·
+       IG 0,60 · LTIFR 50,00 su 20.000 ore lavorate», quella sotto «per il 2026
+       l'indice non si calcola» — sullo stesso schermo. Con l'altro record per
+       primo avrebbe scritto IF 22,22. Tre numeri che si portano in gara e si
+       confrontano con la media di settore, scelti a caso fra due. */
+    const INF_SC = [{ id: "a", tipo: "infortunio", data: "2026-03-04", giorniAssenza: 12 }];
+    const doppio = scudo.andamentoIndici(INF_SC,
+      [{ id: "o1", anno: 2026, ore: 20000 }, { id: "o2", anno: 2026, ore: 45000 }], { annoFine: 2026 });
+    const r26 = doppio.anni.find((x) => x.anno === 2026);
+    contiene(r26, { calcolabile: false, oreLavorate: null, indiceFrequenza: null, indiceGravita: null, ltifr: null },
+      "con due registrazioni diverse l'anno non si calcola, e nessuno dei tre indici esce");
+    ok(/DUE registrazioni di ore diverse/.test(r26.motivo), "e la ragione lo dice: " + r26.motivo);
+    /* IL CASO DI CONTROLLO: con una registrazione sola i numeri sono quelli di
+       sempre — la correzione toglie la scelta arbitraria, non l'indice. */
+    const singolo = scudo.andamentoIndici(INF_SC, [{ id: "o1", anno: 2026, ore: 20000 }], { annoFine: 2026 });
+    contiene(singolo.anni.find((x) => x.anno === 2026),
+      { calcolabile: true, indiceFrequenza: 50, indiceGravita: 0.6, ltifr: 50, oreLavorate: 20000 },
+      "con una registrazione sola gli indici sono identici a prima");
+    /* ⛔ E LA RIGA DELL'ANNO IN CORSO C'È SEMPRE: è la sola cosa su cui la
+       pagina conta adesso, quindi va provata invece che dedotta. */
+    eq(scudo.andamentoIndici([], [], { annoFine: 2026 }).anni.map((x) => x.anno), [2026],
+      "a registro vuoto la serie contiene comunque l'anno di fine");
+    eq(scudo.andamentoIndici(INF_SC, [{ id: "o", anno: 2020, ore: 1000 }], { annoFine: 2026 })
+      .anni.map((x) => x.anno).includes(2026), true,
+      "e anche quando le ore note sono fuori dalla finestra");
+    /* la seconda implementazione non c'è più */
+    eq((SRC_SC_PAG.match(/ORE\.find\(o => \+o\.anno === annoOra\)/g) || []).length, 0,
+      "la pagina non cerca più la prima registrazione che capita");
+    eq((SRC_SC_PAG.match(/andamentoIndici\(/g) || []).length, 1,
+      "una chiamata sola: le due schede leggono lo stesso risultato, non due letture che possono divergere");
+    eq((SRC_SC_PAG.match(/indiciInfortunistici/g) || []).length, 0,
+      "e la pagina non importa nemmeno più la funzione che le permetteva di scegliere le ore da sé");
+  });
+}
+
 console.log(`\nRisultato KPI app: ${passed} passati, ${failed} falliti${inVolo.length ? `  ·  ${inVolo.length} prove asincrone aspettate` : ""}`);
 process.exit(failed > 0 ? 1 : 0);

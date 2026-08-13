@@ -834,17 +834,46 @@ export function riepilogoInfortuni(infortuni, oggi = new Date()) {
   const list = infortuni || [];
   const veri = list.filter(x => x.tipo === "infortunio");
   const nearMiss = list.filter(x => x.tipo === "near-miss");
+  /* ⛔ IL CARTELLONE SCEGLIEVA L'ULTIMO INFORTUNIO GUARDANDO COM'È SCRITTA LA
+     DATA, NON CHE COSA VALE. La riga era `/^\d{4}-\d{2}-\d{2}$/.test(d)`: una
+     forma, non un valore. «2026-13-45» e «2026-02-30» quella forma ce l'hanno,
+     e siccome `ultimo` si sceglie confrontando le STRINGHE, una data
+     impossibile **vince sempre** su una vera. Da lì `giorniTra` risponde `NaN`
+     e il numero grande in cima alla schermata — quello che in cava si guarda
+     per primo — diventa **NaN**, con la cornice gialla per giunta
+     (`NaN >= 30` è falso). Misurato: un infortunio vero del 01/06/2026 più una
+     riga «2026-13-45» davano `giorniSenza: NaN` al posto di 73.
+     La regola giusta era già in casa e in questo stesso file: `cicloDss` filtra
+     gli infortuni con `dataISOEsiste`, `organigrammaSicurezza` conta così le
+     nomine, e `parseInfortuniCsv` scarta così le righe in import. Qui era
+     rimasta la copia più debole, e proprio sulla metrica di testa.
+     ⚠️ Raggiungibilità dichiarata, non gonfiata: il form usa `type="date"` con
+     `max`, e l'import passa da `dataISOEsiste` dal 03/08 — **latente, non
+     impossibile**, come per `statoConsegnaDpi`: ci si arriva con un dato
+     scritto a mano, con una riga più vecchia di quel filtro, o con un'altra app
+     che scrive nella stessa collezione.
+     ⛔ E gli scartati NON spariscono in silenzio: senza `dataIgnota` un
+     registro di tre infortuni tutti con la data illeggibile darebbe
+     `giorniSenza: null`, cioè il cartellone «Nessun infortunio registrato» —
+     la frase più tranquilla di questa schermata — mentre la riga sotto conta
+     «Infortuni: 3». L'assenza di una data non è l'assenza di un infortunio. */
   let ultimo = null;
+  const dataDi = (x) => String((x || {}).data || "").slice(0, 10);
   for (const x of veri) {
-    const d = (x.data || "");
-    if (/^\d{4}-\d{2}-\d{2}$/.test(d) && (!ultimo || d > ultimo)) ultimo = d;
+    const d = dataDi(x);
+    if (dataISOEsiste(d) && (!ultimo || d > ultimo)) ultimo = d;
   }
+  const dataIgnota = veri.filter(x => !dataISOEsiste(dataDi(x))).length;
   const giorniSenza = ultimo ? Math.max(0, -giorniTra(ultimo, oggi)) : null;
   const giorniAssenzaTot = veri.reduce((s, x) => s + (giornateAssenza(x) || 0), 0);
   const prognosiAperte = veri.filter(prognosiAperta).length;
   const gravi = veri.filter(x => x.gravita === "grave").length;
   return { infortuni: veri.length, nearMiss: nearMiss.length, gravi, giorniSenza, ultimo,
     giorniAssenzaTot, prognosiAperte,
+    /* quanti infortuni non hanno una data che si possa leggere: il conteggio
+       dei giorni non li vede, e chi disegna il cartellone deve dirlo invece di
+       lasciar credere che il numero grande li comprenda. */
+    dataIgnota,
     /* bandiera: le giornate perse sono TUTTE scritte. Quando è falsa
        `giorniAssenzaTot` è un MINIMO, e chi lo disegna deve dirlo — se no il
        totale si legge come un consuntivo, che è il verso in cui rassicura. */
@@ -3247,6 +3276,35 @@ export function nominaAttiva(n, oggi = new Date()) {
 }
 // L'organigramma della sicurezza: un blocco per ruolo, con chi c'è e com'è
 // messa la sua formazione. `mancante` = ruolo obbligatorio senza nessuno.
+/* ⛔ «DI QUESTA NOMINA UNA DATA NON SI LEGGE» È UNA REGOLA SOLA, E STAVA
+   SCRITTA DUE VOLTE CON DUE COMPORTAMENTI. Il 07/08 `organigrammaSicurezza`
+   ha imparato a guardare anche la data di FINE (con una `al` illeggibile
+   `nominaAttiva` non scatta — `giorniTra` risponde `NaN` — e il ruolo usciva
+   verde su una nomina scaduta chissà quando). La `cartellaLavoratore` non l'ha
+   saputo: la sua riga guardava solo `dal`, col commento che dichiarava «è la
+   stessa regola di `organigrammaSicurezza`» — cioè la copia debole che si
+   annuncia gemella. Misurato: nomina con `al: "2026-13-45"`, l'Organigramma la
+   conta in `senzaData` e colora il ruolo, il **fascicolo che si stampa per
+   l'ispettore** non scrive niente e chiude con la riga tranquilla.
+   Adesso la domanda è una funzione sola e le due la CHIAMANO: un alias non è
+   una seconda implementazione, e la prova pretende che rispondano uguale. */
+/* QUALE delle due date non si legge, e non solo «una delle due»: le due cose
+   sono due lavori diversi (scrivere da quando decorre, correggere la fine) e
+   il fascicolo le elenca separate. È la firma allargata invece della copia —
+   `nominaSenzaDataLeggibile` è la stessa domanda con la risposta ridotta a
+   sì/no, non una seconda implementazione.
+   `dal` si pretende sempre (una nomina che non dice da quando decorre non si
+   dimostra), `al` solo quando c'è: una nomina senza fine è a tempo
+   indeterminato, non una nomina rotta. */
+function dateNominaIlleggibili(n) {
+  const x = n || {};
+  return { dal: !dataISOEsiste(x.dal), al: !!x.al && !dataISOEsiste(x.al) };
+}
+function nominaSenzaDataLeggibile(n) {
+  const d = dateNominaIlleggibili(n);
+  return d.dal || d.al;
+}
+
 export function organigrammaSicurezza(nomine, lavoratori, scadenze, oggi = new Date()) {
   return NOMINE_RUOLI.map(r => {
     const attive = (nomine || []).filter(n => n.ruolo === r.chiave && nominaAttiva(n, oggi));
@@ -3291,8 +3349,7 @@ export function organigrammaSicurezza(nomine, lavoratori, scadenze, oggi = new D
        capire chi era». Una data illeggibile non è un motivo per nascondere: è
        un motivo per DICHIARARE. Quindi si allarga la bandiera, che è già il
        posto dove questa app dice «questa data non si legge». */
-    const senzaData = valide.filter(p =>
-      !dataISOEsiste(p.nomina.dal) || (p.nomina.al && !dataISOEsiste(p.nomina.al))).length;
+    const senzaData = valide.filter(p => nominaSenzaDataLeggibile(p.nomina)).length;
     const stato = (mancante || senzaFormazione || senzaPersona) ? "danger"
       : (inScadenza || senzaData) ? "warn" : (valide.length ? "ok" : "mute");
     return { ruolo: r, persone, valide, senzaPersona, senzaData, mancante, senzaFormazione, inScadenza, stato, requisito: req };
@@ -3514,9 +3571,17 @@ export function cartellaLavoratore(lavoratore, dati, oggi = new Date()) {
     [stDpi.filter(x => x === "scaduta").length, "DPI da sostituire", "DPI da sostituire"],
     [stDpi.filter(x => x === "senza data").length, "DPI senza data di sostituzione", "DPI senza data di sostituzione"],
     [verbale.addestramentiMancanti, "addestramento ancora da fare", "addestramenti ancora da fare"],
-    /* `dataISOEsiste` e non `!n.dal`: è la stessa regola di
-       `organigrammaSicurezza`, che una data illeggibile la conta in `senzaData`. */
-    [sueNomine.filter(n => !dataISOEsiste(n.dal)).length, "nomina senza la data da cui decorre", "nomine senza la data da cui decorrono"],
+    /* La stessa regola di `organigrammaSicurezza`, e adesso la STESSA funzione:
+       `nominaSenzaDataLeggibile` guarda `dal` **e** `al`. Prima la frase «è la
+       stessa regola» era scritta accanto a una copia che guardava una data
+       sola, ed è così che questo foglio taceva su una nomina che l'Organigramma
+       segnalava. */
+    [sueNomine.filter(n => dateNominaIlleggibili(n).dal).length, "nomina senza la data da cui decorre", "nomine senza la data da cui decorrono"],
+    /* ⛔ LA RIGA CHE MANCAVA. Con una data di FINE illeggibile («2026-13-45»)
+       `nominaAttiva` non scatta — `giorniTra` risponde `NaN` — quindi la
+       nomina resta nell'elenco come attiva, e questo foglio non diceva niente.
+       L'Organigramma la conta in `senzaData` dal 07/08 e colora il ruolo. */
+    [sueNomine.filter(n => dateNominaIlleggibili(n).al).length, "nomina la cui data di fine non si legge", "nomine la cui data di fine non si legge"],
     [suoiDoc.filter(x => !etichettaStatoDocumento(x.stato).valido).length,
       "documento non valido o dallo stato non registrato", "documenti non validi o dallo stato non registrato"],
   ];
@@ -4103,7 +4168,19 @@ export function analisiDiEvento(analisi, eventoId) {
    chiede conto — poi i near-miss, e dentro ogni gruppo i più recenti prima. */
 export function eventiSenzaAnalisi(infortuni, analisi) {
   const fatti = new Set((analisi || []).map((a) => String((a || {}).eventoId || "")).filter(Boolean));
-  const gravita = (e) => (+((e || {}).giorniAssenza) > 0 ? 2 : (e || {}).tipo === "near-miss" ? 0 : 1);
+  /* ⛔ E «CON ASSENZA» SI CHIEDE A `giornateAssenza`, NON AL CAMPO GREZZO. La
+     riga era `+((e || {}).giorniAssenza) > 0`: `+null` fa `0`, quindi
+     l'infortunio a **prognosi ancora aperta** — quello di cui le giornate non
+     si sanno *ancora*, cioè il caso per cui esiste la decisione 17 — finiva
+     nello stesso secchio di un infortunio con zero giorni MISURATI, sotto a
+     uno di gennaio da 14 giorni. Ed è esattamente l'evento su cui l'ente
+     chiede conto, cioè quello che questa riga di commento promette di mettere
+     per primo.
+     `prognosiAperta` e `giornateAssenza` sono nello stesso file e decidono già
+     lo schermo, il CSV del registro e gli indici: qui c'era la quarta lettura,
+     più debole delle altre tre. */
+  const gravita = (e) => ((prognosiAperta(e) || giornateAssenza(e) > 0) ? 2
+    : (e || {}).tipo === "near-miss" ? 0 : 1);
   return (infortuni || [])
     .filter((e) => e && e.id && !fatti.has(String(e.id)))
     .sort((a, b) => gravita(b) - gravita(a)

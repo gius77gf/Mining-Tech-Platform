@@ -1259,7 +1259,48 @@ numero scritto dove non era stato misurato niente**.*
         Prove: `run-kpi` **2054 → 2058** (sorgente del punto di scrittura,
         comportamento su quattro forme dell'assenza, le due tabelle dello stesso
         foglio, l'accordo file↔schermo su cinque valori).
-      ⚠️ **Due cose MISURATE E NON CORRETTE**, perché non spettano a un
+      ✅ **SCUDO LETTO TUTTO, il 13/08** — 48 righe in `scudo-data.js` e la
+      lettura delle ore nella pagina. **Quattro difetti**, e tutti e quattro
+      della stessa famiglia: *una regola già scritta in casa, ricopiata più
+      debole dove qualcuno doveva DIRE qualcosa*.
+      · **Il cartellone «Giorni senza infortuni» scriveva `NaN`** — o taceva su
+        infortuni che ci sono. `riepilogoInfortuni` sceglieva l'ultimo
+        infortunio con `/^\d{4}-\d{2}-\d{2}$/`: una **forma**, non un valore.
+        «2026-13-45» quella forma ce l'ha, e siccome `ultimo` si sceglie
+        confrontando stringhe una data impossibile **vince sempre**. Misurato:
+        infortunio vero del 01/06/2026 + una riga «2026-13-45» → `giorniSenza:
+        NaN`, cioè il numero grande in cima alla schermata diventa **NaN** (e
+        con la cornice gialla, perché `NaN >= 30` è falso) al posto di **73**.
+        Nell'altro verso: tre infortuni con tutte le date illeggibili →
+        cartellone «**Nessun infortunio registrato**» mentre la riga sotto
+        contava «Infortuni: 3». Corretto con `dataISOEsiste` — che questo
+        stesso file usa già in `cicloDss` e `parseInfortuniCsv` — più la
+        bandiera `dataIgnota`, **letta dalla pagina**: una bandiera che nessuno
+        legge non protegge niente.
+      · **Gli indici IF/IG/LTIFR sceglievano le ore fra due registrazioni
+        contraddittorie.** La pagina faceva `ORE.find(o => +o.anno === annoOra)`
+        — la **prima** che capita — mentre il modulo si RIFIUTA di sceglierne
+        una, con la ragione scritta: *sceglierne una cambierebbe il risultato
+        senza che si veda*. Misurato con 20.000 e 45.000 ore registrate per il
+        2026: la scheda in alto scriveva «IF 50,00 · IG 0,60 · LTIFR 50,00 su
+        20.000 ore lavorate» e la scheda **subito sotto, sullo stesso schermo**,
+        «per il 2026 ci sono DUE registrazioni di ore diverse: l'indice non si
+        calcola». Con l'altro record per primo: **IF 22,22**. Sono i tre numeri
+        che si portano in gara.
+      · **La prognosi ancora aperta valeva «zero giorni»** nell'elenco degli
+        eventi da analizzare (`+null` fa 0): l'infortunio di cui le giornate non
+        si sanno *ancora* finiva sotto a uno da zero giorni misurati — proprio
+        quello su cui l'ente chiede conto, che il commento della funzione
+        promette di mettere per primo.
+      · **Il fascicolo del lavoratore taceva su una nomina con la data di fine
+        illeggibile**, col commento che dichiarava «è la stessa regola di
+        `organigrammaSicurezza`»: la copia debole che si annuncia gemella.
+        L'Organigramma la contava in `senzaData` dal 07/08; il foglio che si
+        stampa per l'ispettore no. E la **quinta** copia era la testata della
+        modale «Perché è successo».
+        Prove: `run-kpi` **2058 → 2063**, ognuna col suo caso di controllo.
+
+      ⚠️ **Tre cose MISURATE E NON CORRETTE**, perché non spettano a un
       cantiere:
       · **`0` ha due letture opposte, e sono tutt'e due blindate da prove
         verdi.** Sullo stesso record `fermoMin: 0`, `minutiFermoDi` risponde
@@ -1281,6 +1322,14 @@ numero scritto dove non era stato misurato niente**.*
         Correggerlo vuol dire aggiungere un campo alle righe di `fermiPerGiorno`,
         e due prove le confrontano con `eq` sull'oggetto intero: non è una
         correzione minima.
+      · **Scudo, `giornateAssenza` ramo near-miss**: un valore *presente ma
+        illeggibile* («n.d.», «1,5») diventa **0**, mentre lo stesso valore su
+        un infortunio torna `null`. Nel registro consegnato all'RSPP la cella
+        esce `…;near-miss;lieve;0;…`. Non corretto perché per un near-miss
+        «nessuna assenza» è vero per definizione, e far tornare `null`
+        scriverebbe la **parola** `null` in quella cella (`csvRegistroInfortuni`
+        fa `aperta ? "" : giornateAssenza(x)`) — cioè il difetto già pagato in
+        Conti. Va deciso **insieme a come quella cella deve uscire**.
 
 - [ ] **B0-decies. IL RECETTORE ASSENTE FA DIRE A GENESI «SUPERA» CON UN NUMERO
       DI CINQUE CIFRE — e una delle tre esclusioni non regge alla misura.**
@@ -4221,8 +4270,8 @@ numero scritto dove non era stato misurato niente**.*
   nome apre il file sbagliato credendo che sia il più fresco.
 - Le decisioni: `docs/DECISIONI_WEEKEND.md` — pagina d'ingresso in cima.
 - Stato misurato al **09/08** (lanciando le suite, non a memoria):
-  **2.510 prove girano senza rete**. La frase va letta stretta: è la somma
-  delle **otto** suite che contano asserzioni (`run-kpi` 2058, `run-stile` 318,
+  **2.515 prove girano senza rete**. La frase va letta stretta: è la somma
+  delle **otto** suite che contano asserzioni (`run-kpi` 2063, `run-stile` 318,
   `run-helpers` 75, `run-pointcloud` 32, `run-manifest` 9, `run-demo` 8,
   `bootstrap-rivendicazioni` 7, `fogli-guardati` 3), non tutto ciò che gira nel
   giro `node` — che di comandi ne ha **34** e di asserzioni ne esegue di più:

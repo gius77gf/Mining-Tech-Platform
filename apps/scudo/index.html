@@ -1717,7 +1717,10 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
     cartellaLavoratore, descriviCartella, etichettaStatoDocumento, statoPeggioreScadenze,
     TIPI_DPI, tipoDpi, tipoDpiSicuro, ultimaConsegnaDpi, statoConsegnaDpi, allarmiDpi, riepilogoDpi, verbaleDpi,
     MOTIVO_SENZA_SOSTITUZIONE,
-    indiciInfortunistici, andamentoIndici, avvisoGravitaMinima, avvisoAndamentoMinimo,
+    /* `indiciInfortunistici` non si importa più: gli indici dell'anno in corso
+       si prendono da `andamentoIndici`, che è l'unico posto in cui le ore
+       registrate per un anno si leggono con la regola degli anni doppi. */
+    andamentoIndici, avvisoGravitaMinima, avvisoAndamentoMinimo,
     giornateAssenza, prognosiAperta, descriviGiornatePerse,
     CAUSE_ANALISI, validaAnalisi, analisiDiEvento, eventiSenzaAnalisi, causeRicorrenti,
     MAX_FOTO, pesoFoto, fotoDiEvento, fotoDiVoce, fotoDiIspezione, bilancioFoto, bilancioFotoVoce,
@@ -3022,10 +3025,30 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
 
     // Sicurezza: giorni senza infortuni (cartellone) + riepilogo + registro
     const annoOra = new Date().getFullYear();
-    const oreRec = ORE.find(o => +o.anno === annoOra) || null;
-    { const ii = indiciInfortunistici(INF, oreRec ? oreRec.ore : null, annoOra);
+    /* ⛔ LE ORE DELL'ANNO NON SI CERCANO QUI. La riga era
+       `ORE.find(o => +o.anno === annoOra)`, cioè **la prima** registrazione che
+       capita — e il modulo, quaranta righe più sotto, si RIFIUTA di sceglierne
+       una quando ce ne sono due diverse per lo stesso anno, con la ragione
+       scritta: «sceglierne una cambierebbe il risultato senza che si veda».
+       Effetto misurato con 20.000 e 45.000 ore registrate per il 2026 e un
+       infortunio da 12 giorni: questa scheda scriveva «IF 50,00 · IG 0,60 ·
+       LTIFR 50,00 su 20.000 ore lavorate», e la scheda subito sotto, sullo
+       STESSO schermo, «per il 2026 ci sono DUE registrazioni di ore diverse:
+       l'indice non si calcola». Con l'altro record per primo avrebbe scritto
+       IF 22,22. Tre numeri portati in gara e confrontati con la media di
+       settore, scelti a caso fra due.
+       `andamentoIndici` fa già la lettura giusta (`orePerAnno` toglie di mezzo
+       gli anni doppi invece di risolverli) e arriva **sempre** fino ad
+       `annoFine`, quindi la riga dell'anno in corso c'è: si prende da lì
+       invece di rifare il conto. Una sola chiamata anche per la scheda
+       dell'andamento, qui sotto. */
+    const anIndici = andamentoIndici(INF, ORE, { annoFine: annoOra });
+    { const ii = anIndici.anni.find(r => r.anno === annoOra);
       const campo = $("ore-anno");
-      if (campo && !campo.value && oreRec) campo.value = String(oreRec.ore);
+      /* le ore proposte nel campo sono quelle che il modulo ha DAVVERO usato:
+         su un anno con due registrazioni diverse resta vuoto, perché scriverci
+         una delle due sarebbe la stessa scelta che il modulo rifiuta di fare. */
+      if (campo && !campo.value && ii.oreLavorate) campo.value = String(ii.oreLavorate);
       /* ⚠️ NELLO STILE DI SCUDO, non in quello di Conti. La prima stesura usava
          `.mrec` (riga chiave/valore): in Scudo quella classe NON ESISTE — zero
          occorrenze — e le righe uscivano attaccate, «Indice di frequenza
@@ -3064,7 +3087,7 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
        ⛔ IL VERSO LO DICE LA FUNZIONE, non il segno: su questi indici scendere
        è migliorare, e un «−86,7%» colorato di rosso perché comincia col meno
        racconterebbe una buona notizia come se fosse brutta. */
-    { const an = andamentoIndici(INF, ORE, { annoFine: annoOra });
+    { const an = anIndici;   // la stessa lettura della scheda qui sopra
       const c = an.confronto;
       const nInd = (n) => n.toLocaleString("it-IT", { minimumFractionDigits: 2, maximumFractionDigits: 2, useGrouping: true });
       // L'allarme che vale più di tutto il resto: un anno CON infortuni e
@@ -3162,14 +3185,31 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
         puliscoGrafico("graf-ig");
       } }
     const ri = riepilogoInfortuni(INF);
+    /* ⛔ «NESSUN INFORTUNIO REGISTRATO» ERA LA RISPOSTA DEL CARTELLONE ANCHE
+       QUANDO GLI INFORTUNI C'ERANO. Il conteggio parte dall'ultima data
+       LEGGIBILE: se nessun infortunio ce l'ha, `giorniSenza` è `null` — e il
+       ramo del `null` scriveva la frase più tranquilla della schermata mentre
+       la riga sotto contava «Infortuni: 3». L'assenza di una data non è
+       l'assenza di un infortunio, e il numero grande è la prima cosa che si
+       guarda. La bandiera che lo dice la porta il modulo (`dataIgnota`): qui la
+       si LEGGE, se no sarebbe una dichiarazione che non protegge niente. */
+    const notaDateIgnote = ri.dataIgnota
+      ? `<div class="safety-sub">⚠️ ${conta(ri.dataIgnota, "infortunio registrato non ha", "infortuni registrati non hanno")} una data che si possa leggere: il conteggio ${plurale(ri.dataIgnota, "non lo comprende", "non li comprende")}.</div>`
+      : "";
     $("safety-banner").innerHTML = ri.giorniSenza == null
-      ? `<div class="safety none"><div class="safety-ico">${I.scudo}</div>
-          <div><div class="safety-txt"><b>Nessun infortunio registrato.</b></div>
-          <div class="safety-sub">Registra gli eventi (anche i near-miss) per far partire il conteggio dei giorni.</div></div></div>`
-      : `<div class="safety ${ri.giorniSenza >= 30 ? "" : "warn"}"><div class="safety-ico">${I.scudo}</div>
+      ? (ri.dataIgnota
+          ? `<div class="safety warn"><div class="safety-ico">${I.scudo}</div>
+              <div><div class="safety-txt"><b>Giorni senza infortuni: non si può contare.</b></div>
+              <div class="safety-sub">Ci sono ${conta(ri.infortuni, "infortunio registrato", "infortuni registrati")}, ma nessuno ha una data leggibile: senza una data da cui contare il cartellone resta muto — non a zero e non «nessun infortunio».</div>
+              ${notaDateIgnote}</div></div>`
+          : `<div class="safety none"><div class="safety-ico">${I.scudo}</div>
+              <div><div class="safety-txt"><b>Nessun infortunio registrato.</b></div>
+              <div class="safety-sub">Registra gli eventi (anche i near-miss) per far partire il conteggio dei giorni.</div></div></div>`)
+      : `<div class="safety ${ri.giorniSenza >= 30 && !ri.dataIgnota ? "" : "warn"}"><div class="safety-ico">${I.scudo}</div>
           <div><div class="safety-num">${ri.giorniSenza}</div>
           <div class="safety-lab">Giorni senza infortuni</div>
-          ${ri.nearMiss ? `<div class="safety-sub">${conta(ri.nearMiss, "near-miss registrato", "near-miss registrati")} — ${plurale(ri.nearMiss, "non azzera", "non azzerano")} il conteggio, ma ${plurale(ri.nearMiss, "va guardato", "vanno guardati")}.</div>` : ""}</div></div>`;
+          ${ri.nearMiss ? `<div class="safety-sub">${conta(ri.nearMiss, "near-miss registrato", "near-miss registrati")} — ${plurale(ri.nearMiss, "non azzera", "non azzerano")} il conteggio, ma ${plurale(ri.nearMiss, "va guardato", "vanno guardati")}.</div>` : ""}
+          ${notaDateIgnote}</div></div>`;
     $("inf-riep").innerHTML =
       /* ⛔ decisione 17: «giorni di assenza totali: 0» su un infortunio a
          prognosi aperta era la frase più tranquilla che questa riga sapesse
@@ -6455,7 +6495,14 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
     apriModale(pre ? "L'analisi della causa" : "Perché è successo",
       '<div class="note">' + esc(ev.descrizione || (ev.tipo === "infortunio" ? "Infortunio" : "Near-miss"))
         + "<br>" + fmtData(ev.data) + (ev.luogo ? " · " + esc(ev.luogo) : "")
-        + ((+ev.giorniAssenza) ? " · " + (+ev.giorniAssenza) + " gg di assenza" : "") + "</div>"
+        /* ⛔ QUI SI CHIEDE AL MODULO, NON AL CAMPO GREZZO. Era
+           `(+ev.giorniAssenza)`: `+null` fa `0`, quindi l'infortunio a
+           prognosi ancora aperta compariva in questa testata **identico** a uno
+           che non è costato nemmeno una giornata — mentre la riga del registro,
+           due tocchi più in là, scrive «prognosi ancora aperta». È la stessa
+           frase dell'elenco, decisa dalle stesse due funzioni. */
+        + (prognosiAperta(ev) ? " · prognosi ancora aperta"
+            : (giornateAssenza(ev) ? " · " + giornateAssenza(ev) + " gg di assenza" : "")) + "</div>"
       + '<div class="nm-lab">1 · La catena dei perché</div>'
       + '<div id="an-perche">' + righe.join("") + "</div>"
       + '<div class="frow" style="margin-top:10px;">'
