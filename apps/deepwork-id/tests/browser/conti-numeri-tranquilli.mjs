@@ -97,9 +97,17 @@ DEMO.pesate.push({ id: "znv2", numero: "${ANNO}/901", data: "${ANNO}-06-11",
    controprova direbbe «non distingue» per la seconda delle cinque cause
    (difesa in profondità), non perché la prova non provi niente. */
 const DIFETTI = [
-  // 1 · il modulo smette di contare quello che la somma salta
+  /* 1 · il modulo smette di contare quello che la somma salta.
+     ⚠️ AGGIORNATA IL 13/08 perché il pezzo si è mosso: `valoreDdt` ha imparato
+     una seconda ragione (il prezzo mai scritto, oltre alla densità), e la
+     bandiera è finita in un `const vale` perché la legge anche il conto delle
+     consegne «solo senza densità». È la terza delle cinque cause di «non
+     distingue» — l'iniezione che non trova più il suo pezzo e spegne la
+     controprova IN SILENZIO — e a prenderla è stata `iniezioni-fresche.mjs`,
+     che gira in tre secondi invece che nel giro del browser. Il difetto
+     rimesso è lo stesso di prima: il conto non si alza. */
   ["apps/conti/conti-data.js",
-   `    if (!valoreDdt(p).calcolabile) { r.nonValorizzabili++; r.tNonValorizzabile = round2(r.tNonValorizzabile + q.t); }`,
+   `    if (!vale) { r.nonValorizzabili++; r.tNonValorizzabile = round2(r.tNonValorizzabile + q.t); }`,
    `    /* difetto rimesso dal banco: la somma salta e non lo conta */`],
   // 2 · la pagina torna a scrivere l'importo tranquillo, senza dire niente
   ["apps/conti/index.html",

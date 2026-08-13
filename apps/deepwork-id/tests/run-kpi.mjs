@@ -28330,5 +28330,146 @@ test("Terra · il verbale cita il volume dell'atto senza arrotondarlo, come il p
   });
 }
 
+/* ══ IL VALORE DI UNA CONSEGNA HA DUE FATTORI, E LA DIFESA NE CONOSCEVA UNO ══
+   Trovate il 13/08 con la domanda di casa applicata a Conti: «dove l'app
+   compone qualcosa che ESCE — un CSV, un foglio stampato, una riga di elenco —
+   chi decide i suoi numeri?». `valoreDdt` è nata il 03/08 proprio per non
+   scrivere «€ 0,00» dove non è stato misurato niente, e sapeva fermarsi sulla
+   QUANTITÀ; sul PREZZO no — `imponibileRiga` fa `+null || 0`, quindi
+   rispondeva `{ valore: 0, calcolabile: true }`, cioè la bandiera ALZATA sul
+   caso che quella funzione esiste per prendere.
+   La regola giusta era già scritta due volte nello stesso file — `prezzoDaOrdine`
+   («il prezzo concordato non si può applicare») e il form del DDT («IL PREZZO
+   NON DETERMINABILE FERMA IL DDT») — e mancava dove il documento è GIÀ SALVATO,
+   cioè dove il form non c'è più. */
+test("⛔ Conti · valoreDdt: un prezzo mai scritto non è un prezzo ZERO", () => {
+  const muto = { numero: "2026/015", prodotto: "Pietrisco 8/12",
+                 netto: 25.6, quantita: 25.6, unitaVendita: "t", aliquotaIva: 22 };
+  const v = conti.valoreDdt(muto);
+  // prima: { valore: 0, calcolabile: true } — «€ 0,00» con la bandiera alzata
+  eq(v.calcolabile, false, "non si può valorizzare, e lo dichiara (prima: true)");
+  eq(v.valore, null, "il valore è null, non lo zero tranquillo (prima: 0)");
+  eq(v.motivo, "prezzo-mancante", "e dice QUALE dei due fattori manca");
+  eq(v.quantita, 25.6, "la quantità c'è e resta: il difetto non sta lì");
+  ok(/prezzo/i.test(v.perche), "la ragione nomina il prezzo: `" + v.perche + "`");
+  /* ⛔ E LO ZERO SCRITTO RESTA UN PREZZO. Una fornitura in omaggio è una
+     decisione di chi compila, non nostra: a distinguerla dalla cella mai
+     riempita è `numeroDichiarato` di `shared/`, la stessa che decide se quella
+     cella esce vuota nella copia di sicurezza. */
+  const omaggio = conti.valoreDdt({ ...muto, prezzoUnitario: 0 });
+  eq(omaggio.calcolabile, true, "uno zero SCRITTO è un prezzo, e si valorizza");
+  eq(omaggio.valore, 0, "vale zero perché qualcuno ha deciso che vale zero");
+  // il caso sano non ha perso niente
+  eq(conti.valoreDdt({ ...muto, prezzoUnitario: 12 }),
+     { valore: 307.2, quantita: 25.6, calcolabile: true, motivo: "", perche: "" },
+     "25,6 t × 12 € = 307,20 €, con la bandiera alzata");
+  eq(conti.valorePesata({ ...muto }), 0, "la forma NUMERICA per le somme resta zero, come per la quantità cieca");
+});
+
+test("⛔ Conti · la porta è la COPIA DI SICUREZZA, e il giro si prova tutto intero", () => {
+  /* Il form del DDT il prezzo nullo lo blocca; ci si arriva dal bottone
+     «Ri-carica copia (CSV)» delle Pesate. Non è un caso di laboratorio: è la
+     nostra stessa convenzione — `csvPesate` scrive la cella VUOTA quando il
+     prezzo non c'è (regola di `numeroDichiarato`) e `parsePesateCsv` la
+     rilegge `null` di proposito. Un file scritto a mano, o uscito da un altro
+     gestionale, arriva così senza fare niente di strano. */
+  const salvata = { numero: "2026/015", data: "2026-07-31", cliente: "Edilcave Srl",
+    prodotto: "Pietrisco 8/12", lordo: 39.4, tara: 13.8, netto: 25.6,
+    unitaVendita: "t", quantita: 25.6, densita: 1.5, prezzoUnitario: null, aliquotaIva: null };
+  const celle = conti.csvPesate([salvata]).split("\n")[1].split(";");
+  eq(celle[12], "", "nel file la cella del prezzo esce VUOTA, non «0»");
+  eq(celle[14], "", "e nemmeno l'aliquota si inventa");
+  const riletta = conti.parsePesateCsv(conti.csvPesate([salvata]))[0];
+  eq(riletta.prezzoUnitario, null, "e rientra `null`, che è la stessa cosa che è uscita");
+  eq(conti.valoreDdt(riletta).calcolabile, false,
+     "e da lì in poi tutta l'app sa che quella consegna non ha un valore");
+});
+
+test("⛔ Conti · righeDaPesate: il DDT senza prezzo NON si fonde con la fornitura in omaggio", () => {
+  const ddt = (n, o) => ({ id: n, numero: "DDT/" + n, prodotto: "Pietrisco", prodottoId: "p2",
+    unitaVendita: "t", quantita: 10, netto: 10, aliquotaIva: 22, ...o });
+  /* prima `+p.prezzoUnitario || 0` faceva collassare le due righe nella stessa
+     chiave: un prezzo mai scritto e un prezzo scritto zero finivano insieme,
+     cioè il documento raccontava come «regalato» qualcosa che nessuno aveva
+     deciso di regalare. */
+  const r = conti.righeDaPesate([ddt("1"), ddt("2", { prezzoUnitario: 0 })]);
+  eq(r.length, 2, "due righe: «non lo so» e «zero» non sono lo stesso prezzo (prima: 1)");
+  const senza = r.find((x) => x.prezzoUnitario == null);
+  eq(senza.imponibile, null, "l'imponibile è null, non lo zero che si somma (prima: 0)");
+  eq(senza.calcolabile, false, "la riga dichiara di non essere fatturabile");
+  eq(senza.ddtSenzaPrezzo, ["DDT/1"], "dicendo QUALE documento va sistemato");
+  const zero = r.find((x) => x.prezzoUnitario === 0);
+  eq(zero.calcolabile, true, "e la fornitura in omaggio resta fatturabile");
+  eq(zero.imponibile, 0, "per zero euro, che è quello che qualcuno ha deciso");
+  // il raggruppamento normale non è cambiato di un carattere
+  eq(conti.righeDaPesate([ddt("3", { prezzoUnitario: 12 }), ddt("4", { prezzoUnitario: 12 })]).length, 1,
+     "due DDT allo stesso prezzo restano una riga sola");
+});
+
+test("⛔ Conti · fatturaDaPesate: un DDT senza prezzo ferma la fattura, e si vede di quanto", () => {
+  const ddt = (n, o) => ({ id: n, numero: "2026/01" + n, data: "2026-07-3" + n,
+    prodotto: "Pietrisco", prodottoId: "p2", unitaVendita: "t", quantita: 25.6, netto: 25.6,
+    aliquotaIva: 22, ...o });
+  const sola = conti.fatturaDaPesate([ddt("5")]);
+  eq(sola.calcolabile, false, "una consegna sola senza prezzo: la fattura non si emette (prima: true)");
+  eq(sola.ddtSenzaPrezzo, ["2026/015"], "e si sa quale");
+  eq(sola.ddtSenzaQuantita, [], "e NON è un problema di quantità: le due liste restano distinte");
+  /* ⛔ IL CASO CHE COSTA. Due consegne identiche, su una il prezzo non c'è:
+     prima usciva una fattura da 374,78 € con la bandiera alzata — cioè si
+     chiedeva al cliente la metà di quello che gli era stato consegnato, e
+     niente lo diceva. Con il prezzo scritto la stessa fattura fa 749,57 €. */
+  const mista = conti.fatturaDaPesate([ddt("6", { prezzoUnitario: 12 }), ddt("5")]);
+  eq(mista.calcolabile, false, "con un DDT senza prezzo la fattura non si emette");
+  eq(mista.imponibile, 307.2, "il totale che uscirebbe è quello di UNA consegna sola");
+  eq(mista.conto, 2, "mentre i DDT spuntati sono due: è la differenza che nessuno diceva");
+  const intera = conti.fatturaDaPesate([ddt("6", { prezzoUnitario: 12 }), ddt("5", { prezzoUnitario: 12 })]);
+  eq(intera.calcolabile, true, "col prezzo scritto su tutt'e due si emette");
+  eq(intera.imponibile, 614.4, "e l'imponibile è il doppio: 307,20 € erano per difetto");
+  eq(intera.totale, 749.57, "749,57 € contro i 374,78 che sarebbero usciti prima");
+});
+
+test("Conti · venditePerProdotto legge la bandiera, non se ne scrive una sua", () => {
+  /* la difesa contro il totale per difetto era già scritta qui e nel registro
+     Pesate, e chiede a `valoreDdt` — quindi la ragione nuova la eredita senza
+     che nessuno tocchi niente. È il contrario della copia debole: una regola
+     sola, e chi la legge migliora quando lei migliora. */
+  const ddt = (n, o) => ({ numero: "DDT/" + n, data: "2026-07-1" + n, prodotto: "Pietrisco",
+    unitaVendita: "t", quantita: 10, netto: 10, densita: 1.5, aliquotaIva: 22, ...o });
+  const [r] = conti.venditePerProdotto([ddt("1", { prezzoUnitario: 12 }), ddt("2")]);
+  eq(r.nonValorizzabili, 1, "una consegna su due non si valorizza (prima: zero, e nessuno lo diceva)");
+  eq(r.valoreNoto, true, "la cifra si scrive: una consegna è misurata");
+  eq(r.valoreParziale, true, "ma accanto c'è scritto che è per difetto");
+  eq(r.valore, 120, "120 € su due consegne identiche: l'altra non entra");
+  const [tutto] = conti.venditePerProdotto([ddt("1"), ddt("2")]);
+  eq(tutto.valoreNoto, false, "e con NESSUNA consegna valorizzabile non si scrive «€ 0,00»");
+});
+
+test("⛔ Conti · venditePerProdotto: l'eccedenza si CONTA, perché il contenimento non vale più", () => {
+  /* La riga del Report scrive «N consegne non valorizzabili» e, per non dirlo
+     due volte, solo l'ECCEDENZA delle «senza densità». Fino al 13/08
+     l'eccedenza era una sottrazione nella pagina (`senzaDensita −
+     nonValorizzabili`), e reggeva su un contenimento — «non valorizzabile è
+     sempre anche senza densità» — vero finché `valoreDdt` aveva UNA ragione.
+     Con la seconda (il prezzo mai scritto) il contenimento cade, e la
+     sottrazione non dava un numero negativo: `Math.max(0, …)` lo teneva a
+     zero, cioè faceva SPARIRE dalla riga le consegne senza densità che un
+     valore ce l'hanno. Sbagliava nella direzione tranquilla, in silenzio. */
+  const p = (n, o) => ({ numero: "DDT/" + n, data: "2026-07-1" + n, prodotto: "Misto",
+    unitaVendita: "t", quantita: 10, netto: 10, prezzoUnitario: 5, aliquotaIva: 22, ...o });
+  const [r] = conti.venditePerProdotto([
+    p("1", { unitaVendita: "m3", quantita: null, densita: null }),  // né m³ né valore
+    p("2", { densita: null }),                                      // senza densità, ma valorizzata
+    p("3", { densita: 1.5, prezzoUnitario: null }),                 // valore ignoto, densità c'è
+  ]);
+  eq(r.senzaDensita, 2, "due consegne non hanno i metri cubi");
+  eq(r.nonValorizzabili, 2, "e due non hanno un valore — ma non sono le stesse due");
+  eq(r.soloSenzaDensita, 1, "l'eccedenza da scrivere è UNA (prima la sottrazione dava 0)");
+  eq(Math.max(0, r.senzaDensita - r.nonValorizzabili), 0,
+     "la vecchia sottrazione rispondeva 0, cioè faceva sparire quella consegna dalla riga");
+  // il caso di sempre non è cambiato: la cieca è già nominata, niente eccedenza
+  const [solo] = conti.venditePerProdotto([p("4", { unitaVendita: "m3", quantita: null, densita: null })]);
+  eq(solo.soloSenzaDensita, 0, "una consegna cieca si nomina una volta sola");
+});
+
 console.log(`\nRisultato KPI app: ${passed} passati, ${failed} falliti${inVolo.length ? `  ·  ${inVolo.length} prove asincrone aspettate` : ""}`);
 process.exit(failed > 0 ? 1 : 0);

@@ -1269,6 +1269,54 @@ numero scritto dove non era stato misurato niente**.*
       **5,46**, gli altri stanno sotto 0,4 — quindi si rimisurano a mano i casi
       a forbice larga e si correggono gli altri.
 
+- [x] ✅ **B0-octodecies. CONTI: LA FATTURA CHIEDEVA AL CLIENTE LA METÀ DI
+      QUELLO CHE GLI ERA STATO CONSEGNATO.** *Chiuso il 13/08, ed è il difetto
+      più caro della giornata.* `valoreDdt` — nata il 03/08 **proprio** per non
+      scrivere «€ 0,00» dove non è stato misurato niente — conosceva **un solo
+      fattore su due**: sapeva fermarsi sulla **quantità**, e sul **prezzo**
+      lasciava lavorare `imponibileRiga`, dove `+null || 0` fa zero. Rispondeva
+      `{valore: 0, calcolabile: true}`: **la bandiera alzata sul caso che quella
+      funzione esiste per prendere.**
+      La regola giusta era già scritta **due volte nello stesso file**
+      (`prezzoDaOrdine` risponde `calcolabile:false`, e il form del DDT si ferma
+      con «IL PREZZO NON DETERMINABILE FERMA IL DDT»): mancava dove il documento
+      è **già salvato**.
+      **La porta, misurata e non dedotta**: *Pesate → «Ri-carica copia (CSV)»*.
+      `csvPesate` scrive la cella del prezzo **vuota** quando il prezzo non c'è,
+      e `parsePesateCsv` la rilegge `null` **di proposito** — un file ritoccato
+      a mano o uscito da un altro gestionale arriva così.
+      Su un DDT da 25,6 t di pietrisco rientrato senza prezzo:
+
+      | dove | prima | adesso |
+      |---|---|---|
+      | DDT stampato, colonna Prezzo | `€ 0,00/t` | non indicato |
+      | DDT stampato, valore consegna | `€ 0,00` | non calcolabile, col perché |
+      | Registro Pesate | `€ 0,00` | `—` · «prezzo non scritto sul DDT» |
+      | CSV prospetto DDT | `0` | cella vuota |
+      | **fattura differita** (1 DDT sano + 1 muto) | **374,78 €**, bandiera alzata | si ferma, e dice **quale** DDT |
+      | la stessa, col prezzo scritto | — | **749,57 €** |
+
+      Cioè si chiedeva al cliente **la metà**, e niente lo diceva. E
+      `righeDaPesate` **fondeva** la riga senza prezzo con le forniture a prezzo
+      zero vere: il documento raccontava come «regalato» qualcosa che nessuno
+      aveva deciso di regalare.
+      ⛔ **E la correzione ne ha scoperto un secondo, di quelli che nascono
+      dalle correzioni**: `venditePerProdotto` ricavava un conto con
+      `Math.max(0, senzaDensita − nonValorizzabili)`, che reggeva
+      sull'invariante «non valorizzabile è sempre anche senza densità» — vero
+      finché le ragioni erano **una**. Rotto l'invariante la sottrazione non
+      diventava negativa: **faceva sparire dalla riga** le consegne che un
+      valore ce l'hanno. Sbagliava nella direzione tranquilla. Adesso si
+      **conta**, non si deduce.
+      ⚠️ Due «€ 0,00» **misurati e non corretti, con la prova che non c'è
+      porta**: la finestra «Elimina costo» (quella voce non ha nessuna riga da
+      cui premere la ✕) e `csvSituazioneFatture` con `importo: null` (il form
+      pretende `> 0` e l'import filtra `> 0`).
+      Prove: `run-kpi` **2097 → 2103**, e la controprova rimette **cinque**
+      difetti e ne fa cadere **sei su sei**. Il banco `conti-numeri-tranquilli`
+      aveva un'iniezione **scaduta** per via della correzione:
+      `iniezioni-fresche` l'ha presa in tre secondi (356/357 → **357/357**).
+
 - [x] ✅ **B0-septdecies. SENTINELLA: TRE COPIE PIÙ DEBOLI, TUTTE NEL PUNTO IN
       CUI L'APP *DICE* QUALCOSA.** *Chiuso il 13/08.* I file che escono erano
       **puliti** — il CSV per l'ARPA, i ricettori, le tarature, le volate, i
@@ -4454,8 +4502,8 @@ numero scritto dove non era stato misurato niente**.*
   nome apre il file sbagliato credendo che sia il più fresco.
 - Le decisioni: `docs/DECISIONI_WEEKEND.md` — pagina d'ingresso in cima.
 - Stato misurato al **09/08** (lanciando le suite, non a memoria):
-  **2.549 prove girano senza rete**. La frase va letta stretta: è la somma
-  delle **otto** suite che contano asserzioni (`run-kpi` 2097, `run-stile` 318,
+  **2.555 prove girano senza rete**. La frase va letta stretta: è la somma
+  delle **otto** suite che contano asserzioni (`run-kpi` 2103, `run-stile` 318,
   `run-helpers` 75, `run-pointcloud` 32, `run-manifest` 9, `run-demo` 8,
   `bootstrap-rivendicazioni` 7, `fogli-guardati` 3), non tutto ciò che gira nel
   giro `node` — che di comandi ne ha **34** e di asserzioni ne esegue di più:

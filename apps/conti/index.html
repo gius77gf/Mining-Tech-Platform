@@ -3692,7 +3692,7 @@ label.item:has(.dw-chk:checked){
         <div class="amt-n${p.fatturaId || !v.calcolabile ? " mute" : ""}">${v.calcolabile ? eur(v.valore) : "—"}</div>
         <div class="amt-s">${v.calcolabile
           ? qtu(v.quantita, p.unitaVendita) + " × " + eur(p.prezzoUnitario) + (+p.scontoPct > 0 ? " − " + perc(p.scontoPct) : "")
-          : "quantità non calcolabile"}</div>`; })()}</div>
+          : valoreMancante(v)}</div>`; })()}</div>
       <span class="badge ${p.fatturaId ? "ok" : "warn"}">${p.fatturaId ? "Fatturato" : "Da fatturare"}</span>${
         manca.length ? `<span class="badge warn" title="${esc(manca.join("; "))}">DDT incompleto</span>` : ""}${badgePrezzo(p)}
       <div class="acts"><button class="arr" type="button" title="Stampa il DDT da dare al camionista (o salvalo in PDF)" aria-label="Stampa il DDT ${esc(p.numero || "")}" data-stampa-ddt="${p.id}">${IC.stampa}</button>${p.fatturaId ? "" : `<button class="arr del" type="button" title="Elimina pesata" aria-label="Elimina il DDT ${esc(p.numero || "")}" data-del-pes="${p.id}">${IC.croce}</button>`}</div>
@@ -3823,13 +3823,19 @@ label.item:has(.dw-chk:checked){
          invece che «non lo sappiamo». `ric-list` lo dichiara già con queste
          parole; qui mancava.
          ⚠️ Si scrive solo l'ECCEDENZA, se no la riga dice due volte la stessa
-         cosa: una consegna non valorizzabile è SEMPRE anche senza densità —
-         `valoreDdt` non calcola solo quando è venduta a metro cubo e la
-         conversione non si può fare, che è la stessa condizione di
-         `senzaDensita`. Il contenimento non è dedotto a parole: è una prova in
-         `run-kpi.mjs`, così il giorno che una delle due regole cambia si vede. */
+         cosa. ⛔ E l'eccedenza NON si sottrae più qui: fino al 13/08 questa
+         riga faceva `senzaDensita − nonValorizzabili`, che regge solo se «non
+         valorizzabile» è sempre anche «senza densità» — vero finché `valoreDdt`
+         aveva una ragione sola. Da quando ne ha due (la densità, oppure il
+         PREZZO che nessuno ha scritto) quel contenimento non vale più, e la
+         sottrazione non sbagliava di poco: `Math.max(0, …)` la teneva a zero e
+         quindi FACEVA SPARIRE le consegne senza densità che un valore ce
+         l'hanno — cioè sbagliava nella direzione tranquilla, in silenzio.
+         Adesso il conto lo fa il modulo (`soloSenzaDensita`), che sa quali
+         consegne sono l'una cosa e quali l'altra: una regola sola, dove i dati
+         stanno. */
       const vendMeta = (v) => {
-        const soloM3 = Math.max(0, v.senzaDensita - v.nonValorizzabili);
+        const soloM3 = v.soloSenzaDensita;
         return (v.nonValorizzabili
           ? ` · <b>${plur(v.nonValorizzabili, "consegna non valorizzabile", "consegne non valorizzabili")}</b> (${qt(v.tNonValorizzabile)} t)`
           : "")
@@ -3987,6 +3993,23 @@ label.item:has(.dw-chk:checked){
     if (p.fontePrezzo === "listino") return "prezzo di listino, non quello dell'ordine";
     return "non dichiara da dove venga il suo prezzo: è stato registrato prima che Conti tenesse questo dato";
   }
+  /* ⛔ PERCHÉ QUELLA CONSEGNA NON HA UN VALORE — E LA RAGIONE LA DICE IL
+     MODULO, NON QUESTA PAGINA. Fino al 13/08 due elenchi scrivevano
+     «quantità non calcolabile» FISSA sotto il trattino: era vera finché la
+     ragione era una sola. `valoreDdt` adesso ne dichiara due (la densità che
+     manca, e il prezzo che nessuno ha scritto) col suo `motivo`, e una riga
+     che scrivesse «quantità» su un DDT il cui netto è perfettamente pesato
+     manderebbe a cercare nel Listino un difetto che sta sul DDT.
+     Qui c'è solo la forma CORTA — sotto una cifra, in un elenco, c'è spazio
+     per tre parole; la frase intera è `v.perche` e la stampa del DDT usa già
+     quella. Un `motivo` nuovo che arrivasse dal modulo senza passare di qui
+     si vedrebbe subito: si legge «valore non calcolabile», che è vero e non
+     accusa nessuno. */
+  function valoreMancante(v) {
+    if (v.motivo === "densita-mancante") return "quantità non calcolabile";
+    if (v.motivo === "prezzo-mancante") return "prezzo non scritto sul DDT";
+    return "valore non calcolabile";
+  }
 
   /* ── L'ORDINE A CUI AGGANCIARE LA CONSEGNA ──────────────────────────
      Si offrono gli ordini ACCETTATI di quel cliente che contengono quel
@@ -4141,11 +4164,22 @@ label.item:has(.dw-chk:checked){
         <div class="info"><div class="name"><span class="num-doc">DDT ${esc(p.numero || "—")}</span> · ${esc(p.prodotto || "—")}</div>
         <div class="meta">${fmtD(p.data)} · ${qt(p.netto)} t netti${p.mezzo ? " · " + esc(p.mezzo) : ""}${p.destinatario ? " · " + esc(p.destinatario) : ""}</div></div>
         <div class="amt"><div class="amt-n${v.calcolabile ? "" : " mute"}">${v.calcolabile ? eur(v.valore) : "—"}</div>
-          <div class="amt-s">${v.calcolabile ? qtu(v.quantita, p.unitaVendita) : "quantità non calcolabile"}</div></div>${badgePrezzo(p)}</label>`; }).join("")
+          <div class="amt-s">${v.calcolabile ? qtu(v.quantita, p.unitaVendita) : valoreMancante(v)}</div></div>${badgePrezzo(p)}</label>`; }).join("")
       : ($("dif-cli").value
           ? vuoto("spunta", "Nessun DDT da fatturare", "Per questo cliente non ci sono consegne in attesa nel periodo scelto. Prova ad allargare le date o svuotale per vederle tutte.")
           : vuoto("camion", "Scegli il cliente", "La fattura differita mette insieme i DDT di <b>un solo cliente</b>: scegli chi fatturare qui sopra e compariranno le sue consegne ancora da fatturare."));
     aggiornaDifTot();
+  }
+  /* Il riquadro «questi DDT vanno sistemati prima»: la forma è una sola —
+     quali documenti, che cosa manca, come si esce — e i due motivi ci passano
+     tutt'e due. Scritta qui e non due volte, perché due riquadri gemelli
+     divergono al primo ritocco (è la copia debole che questa unità toglie di
+     mezzo, applicata alla frase invece che al numero). */
+  function avvisoDiff(elenco, spiega, capoUno, capoTanti) {
+    if (!elenco || !elenco.length) return "";
+    const uno = elenco.length === 1;
+    return `<div class="note avviso">${uno ? "Il DDT" : "I DDT"} <b>${esc(elenco.join(", "))}</b> `
+      + (uno ? capoUno : capoTanti) + ": " + spiega(uno) + "</div>";
   }
   // Totali della fattura differita in anteprima: imponibile, IVA e totale dei
   // soli DDT spuntati. Aggiorna anche i due bottoni, così non mentono mai.
@@ -4168,14 +4202,27 @@ label.item:has(.dw-chk:checked){
          <div class="mrec"><span class="k">IVA</span><span class="v">${ant.calcolabile ? eur(ant.ivaImporto) : "—"}</span></div>
          <div class="mrec"><span class="k">Totale fattura</span><span class="v">${ant.calcolabile ? eur(ant.totale) : "—"}</span></div>
          </div>`
-        + (ant.calcolabile ? "" : `<div class="note avviso">${
-             ant.ddtSenzaQuantita.length === 1
-               ? "Il DDT <b>" + esc(ant.ddtSenzaQuantita[0]) + "</b> non ha una quantità misurabile"
-               : "I DDT <b>" + esc(ant.ddtSenzaQuantita.join(", ")) + "</b> non hanno una quantità misurabile"
-           }: ${ant.ddtSenzaQuantita.length === 1 ? "è venduto" : "sono venduti"} a metro cubo e il prodotto
-           non ha la <b>densità</b>. Finché manca, il totale della fattura non si può calcolare: sarebbe
-           più basso del dovuto. Aggiungi la densità nella scheda <b>Listino</b>, oppure togli
-           ${ant.ddtSenzaQuantita.length === 1 ? "quella spunta" : "quelle spunte"} e fattura il resto.</div>`);
+        /* ⛔ DUE RAGIONI, DUE AVVISI — e non si fondono. Fino al 13/08 questo
+           riquadro nominava sempre la densità, perché la densità era l'unica
+           cosa che potesse mancare; da quando `fatturaDaPesate` dichiara anche
+           i DDT SENZA PREZZO, un avviso solo direbbe «I DDT <b></b> non hanno
+           una quantità misurabile» — con l'elenco vuoto — a chi ha un problema
+           di prezzo, e lo manderebbe a cercare nel Listino una densità che c'è.
+           I due casi si sistemano in due posti diversi, quindi si scrivono in
+           due riquadri diversi. */
+        + avvisoDiff(ant.ddtSenzaQuantita,
+            (uno) => `${uno ? "è venduto" : "sono venduti"} a metro cubo e il prodotto
+              non ha la <b>densità</b>. Finché manca, il totale della fattura non si può calcolare:
+              sarebbe più basso del dovuto. Aggiungi la densità nella scheda <b>Listino</b>, oppure togli
+              ${uno ? "quella spunta" : "quelle spunte"} e fattura il resto.`,
+            "non ha una quantità misurabile", "non hanno una quantità misurabile")
+        + avvisoDiff(ant.ddtSenzaPrezzo,
+            (uno) => `sul documento non c'è nessun <b>prezzo unitario</b>: la quantità c'è,
+              ma quanto vale quel materiale non l'ha deciso nessuno.
+              ${uno ? "Entrerebbe" : "Entrerebbero"} in fattura contat${uno ? "o" : "i"} a zero euro.
+              Scrivi il prezzo sul DDT, oppure togli ${uno ? "quella spunta" : "quelle spunte"}
+              e fattura il resto.`,
+            "non ha un prezzo", "non hanno un prezzo");
     const btn = $("btn-dif-tutti");
     if (btn) { btn.textContent = (lista.length && scelti.length === lista.length) ? "Togli tutti" : "Spunta tutti";
       btn.disabled = !lista.length; }
@@ -4474,7 +4521,19 @@ label.item:has(.dw-chk:checked){
         <td class="num">${qt(p.lordo)}</td><td class="num">${qt(p.tara)}</td>
         <td class="num"><b>${qt(p.netto)}</b></td>
         <td class="num">${p.quantita == null ? "—" : qtu(p.quantita, p.unitaVendita)}</td>
-        <td class="num">${eur(p.prezzoUnitario)}/${uni(p.unitaVendita)}</td>
+        ${/* ⛔ «€ 0,00/t» SU UN DOCUMENTO CHE VIAGGIA SUL CAMION. `eur(null)` fa
+              «€ 0,00», e su un DDT quello è un prezzo DICHIARATO: chi lo legge
+              — il cliente, la Guardia di Finanza — non ha nessun modo di
+              sapere che nessuno l'aveva scritto. La cella accanto, la
+              quantità, la decisione giusta ce l'aveva già dodici caratteri
+              prima («— » invece di uno zero): questa no. La regola è
+              `numeroDichiarato` di `shared/`, la stessa che decide se la cella
+              del prezzo esce vuota nella copia di sicurezza — uno zero
+              SCRITTO resta un prezzo (la fornitura in omaggio), una cella mai
+              compilata no. Il perché sta nel riquadro rosso più sotto, che
+              stampa `valoreDdt().perche`. */""}
+        <td class="num">${numeroDichiarato(p.prezzoUnitario) == null
+          ? "non indicato" : eur(p.prezzoUnitario) + "/" + uni(p.unitaVendita)}</td>
         <td class="num">${+p.scontoPct > 0 ? "− " + perc(p.scontoPct) : "—"}</td>
         <td class="num">${(() => { const v = valoreDdt(p); return v.calcolabile ? eur(v.valore) : "—"; })()}</td>
       </tr></tbody>
@@ -6108,9 +6167,23 @@ label.item:has(.dw-chk:checked){
        solo, e chi lo apre col foglio di calcolo legge un numero misurato dove
        nessuno ha misurato niente. La regola è `densitaValida`, la stessa che
        usano le conversioni. */
+    /* ⛔ E LA SETTIMA CELLA ERA L'ULTIMA RIMASTA CRUDA. `${+p.iva || 0}` scrive
+       **0** su un prodotto la cui aliquota non è scritta, e su un listino «IVA
+       0%» non è un vuoto: è la dichiarazione di un'operazione NON IMPONIBILE,
+       cioè una cosa che qualcuno deve aver deciso. La stessa domanda l'ha già
+       risolta `csvListino` nel modulo, e la sua risposta è **22** — il default
+       italiano che `parseListinoCsv` applica quando la colonna manca. Due file
+       che escono dalla stessa scheda non possono rispondere due cose diverse
+       alla stessa domanda: qui si legge quella decisione, non se ne scrive
+       un'altra.
+       ⚠️ Detto onestamente e misurato: oggi il caso NON è raggiungibile — il
+       form salva `+$("pr-iva").value || 0` da una tendina, l'import mette 22
+       quando la cella manca, e tutti i prodotti della dimostrazione hanno
+       `iva: 22`. Quello che cambia è che i due file smettono di divergere: una
+       regola scritta due volte, la seconda più debole, è il difetto stesso. */
     let csv = "prodotto;prezzo;unita_prezzo;densita_t_m3;prezzo_t;prezzo_m3;iva\n";
     for (const p of PRO.slice().sort((a, b) => String(a.nome || "").localeCompare(String(b.nome || ""), "it")))
-      csv += `${csvCell(p.nome)};${numeroDichiarato(p.prezzo) ?? ""};${p.unitaPrezzo === "m3" ? "m3" : "t"};${densitaValida(p) ?? ""};${prezzoPerTonnellata(p) ?? ""};${prezzoPerMetroCubo(p) ?? ""};${+p.iva || 0}\n`;
+      csv += `${csvCell(p.nome)};${numeroDichiarato(p.prezzo) ?? ""};${p.unitaPrezzo === "m3" ? "m3" : "t"};${densitaValida(p) ?? ""};${prezzoPerTonnellata(p) ?? ""};${prezzoPerMetroCubo(p) ?? ""};${numeroDichiarato(p.iva) ?? 22}\n`;
     const a = document.createElement("a");
     a.href = "data:text/csv;charset=utf-8," + encodeURIComponent(csv);
     a.download = "conti_listino_prezzi.csv"; marchiaCsv(a); a.click();
@@ -6241,7 +6314,24 @@ label.item:has(.dw-chk:checked){
          valore accanto a una quantità sconosciuta è una consegna dichiarata di
          niente, nel file che va al commercialista. */
       const v = valoreDdt(p);
-      csv += `${csvCell(p.numero)};${p.data || ""};${csvCell(p.cliente)};${csvCell(p.prodotto)};${+p.lordo || 0};${+p.tara || 0};${+p.netto || 0};${p.quantita == null ? "" : p.quantita};${p.unitaVendita === "m3" ? "m3" : "t"};${+p.prezzoUnitario || 0};${+p.scontoPct || 0};${v.calcolabile ? v.valore : ""};${+p.aliquotaIva || 0};${csvCell(p.mezzo)};${csvCell(p.destinatario)};${csvCell(f ? f.numero : "")};${csvCell(o ? (o.numeroOrdine || o.numero) : "")};${csvCell(p.fontePrezzo === "ordine" ? "ordine" : p.fontePrezzo === "listino" ? "listino" : "")}\n`;
+      /* ⛔ E LE ALTRE CINQUE CELLE NUMERICHE PASSANO DA `cellaNum`, che è la
+         stessa correzione già fatta al prospetto del LISTINO centosessanta
+         righe più giù («un prodotto senza prezzo usciva a zero, cioè GRATIS»)
+         e al CSV dei clienti («fido 0 vuol dire non gli si fa credito; fido
+         non impostato vuol dire nessuno ci ha pensato»). Qui era rimasto
+         `${+p.lordo || 0}` per cinque colonne su sei: la firma della copia
+         debole è proprio questa — la stessa regola corretta in due file su tre.
+         Dove morde: `prezzo_unitario` a **0** è un materiale regalato, e `iva`
+         a **0** è un'operazione dichiarata NON IMPONIBILE, in un foglio che va
+         al commercialista. Ci si arriva dal bottone «Ri-carica copia (CSV)»
+         qui accanto: `csvPesate` scrive quelle celle vuote quando il dato non
+         c'è e `parsePesateCsv` le rilegge `null` di proposito.
+         ⚠️ `sconto_pct` resta com'è, e non è una dimenticanza: uno sconto mai
+         scritto vuol dire davvero «nessuno sconto» — è la risposta di
+         `scontoValido` nel modulo, e lo zero lì è una misura, non un vuoto.
+         ⚠️ E `quantita` resta com'è perché ha TRE decimali (i m³ passano da
+         `round3`): `cellaNum` ne tiene due e taglierebbe il dato. */
+      csv += `${csvCell(p.numero)};${p.data || ""};${csvCell(p.cliente)};${csvCell(p.prodotto)};${cellaNum(p.lordo)};${cellaNum(p.tara)};${cellaNum(p.netto)};${p.quantita == null ? "" : p.quantita};${p.unitaVendita === "m3" ? "m3" : "t"};${cellaNum(p.prezzoUnitario)};${+p.scontoPct || 0};${v.calcolabile ? v.valore : ""};${cellaNum(p.aliquotaIva)};${csvCell(p.mezzo)};${csvCell(p.destinatario)};${csvCell(f ? f.numero : "")};${csvCell(o ? (o.numeroOrdine || o.numero) : "")};${csvCell(p.fontePrezzo === "ordine" ? "ordine" : p.fontePrezzo === "listino" ? "listino" : "")}\n`;
     }
     const a = document.createElement("a");
     a.href = "data:text/csv;charset=utf-8," + encodeURIComponent(csv);
@@ -6271,25 +6361,47 @@ label.item:has(.dw-chk:checked){
        lo stesso stop che il form del DDT fa già quando manca la densità.
        `ant.calcolabile` è la bandiera che il modulo alza; qui la si legge. */
     if (!ant.calcolabile) {
-      const uno = ant.ddtSenzaQuantita.length === 1;
+      /* ⛔ E LA FINESTRA DEVE NOMINARE LA RAGIONE GIUSTA. Fino al 13/08 questo
+         blocco leggeva SOLO `ddtSenzaQuantita` e raccontava sempre la densità:
+         con un DDT senza prezzo — che da oggi ferma la fattura per la stessa
+         ragione, un totale più basso del vero — la finestra avrebbe elencato
+         zero documenti e mandato l'utente nel Listino a cercare una densità
+         che c'è. Il testo si compone dalle DUE liste del modulo, e il primo
+         paragrafo nomina solo i casi che ci sono davvero. */
+      const senzaQ = ant.ddtSenzaQuantita, senzaP = ant.ddtSenzaPrezzo;
+      const unoQ = senzaQ.length === 1, unoP = senzaP.length === 1;
       apriModale("Fattura differita — non si può emettere",
-        `<p>${uno ? "Un DDT fra quelli spuntati non ha" : "Alcuni DDT fra quelli spuntati non hanno"}
-           <b>una quantità misurabile</b>: ${uno ? "è venduto" : "sono venduti"} a metro cubo e il prodotto
-           non ha la densità, quindi non si sa quanti m³ ${uno ? "sia quel netto" : "siano quei netti"} in tonnellate.</p>
-         <div class="mrec"><span class="k">${uno ? "DDT da sistemare" : "DDT da sistemare"}</span><span class="v">${esc(ant.ddtSenzaQuantita.join(", "))}</span></div>
-         <p style="margin-top:10px;">${uno ? "Se lo fatturassi" : "Se li fatturassi"} così ${uno ? "entrerebbe" : "entrerebbero"}
-           con <b>quantità zero</b>, e il totale della fattura sarebbe più basso del dovuto.
-           Aggiungi la <b>densità</b> del prodotto nella scheda <b>Listino</b>, poi torna qui:
-           la quantità si calcola da sola. In alternativa togli la spunta a
-           ${uno ? "quel DDT" : "quei DDT"} e fattura il resto.</p>`,
+        (senzaQ.length
+          ? `<p>${unoQ ? "Un DDT fra quelli spuntati non ha" : "Alcuni DDT fra quelli spuntati non hanno"}
+               <b>una quantità misurabile</b>: ${unoQ ? "è venduto" : "sono venduti"} a metro cubo e il prodotto
+               non ha la densità, quindi non si sa quanti m³ ${unoQ ? "sia quel netto" : "siano quei netti"} in tonnellate.</p>
+             <div class="mrec"><span class="k">DDT da sistemare</span><span class="v">${esc(senzaQ.join(", "))}</span></div>
+             <p style="margin-top:10px;">${unoQ ? "Se lo fatturassi" : "Se li fatturassi"} così ${unoQ ? "entrerebbe" : "entrerebbero"}
+               con <b>quantità zero</b>, e il totale della fattura sarebbe più basso del dovuto.
+               Aggiungi la <b>densità</b> del prodotto nella scheda <b>Listino</b>, poi torna qui:
+               la quantità si calcola da sola. In alternativa togli la spunta a
+               ${unoQ ? "quel DDT" : "quei DDT"} e fattura il resto.</p>` : "")
+        + (senzaP.length
+          ? `<p>${unoP ? "Un DDT fra quelli spuntati non porta" : "Alcuni DDT fra quelli spuntati non portano"}
+               <b>nessun prezzo unitario</b>: la quantità c'è, ma quanto vale quel materiale
+               non l'ha deciso nessuno.</p>
+             <div class="mrec"><span class="k">DDT senza prezzo</span><span class="v">${esc(senzaP.join(", "))}</span></div>
+             <p style="margin-top:10px;">${unoP ? "Se lo fatturassi" : "Se li fatturassi"} così ${unoP ? "entrerebbe" : "entrerebbero"}
+               in fattura a <b>zero euro</b>, e il totale sarebbe più basso del dovuto.
+               Scrivi il prezzo su ${unoP ? "quel DDT" : "quei DDT"}, oppure togli
+               ${unoP ? "quella spunta" : "quelle spunte"} e fattura il resto.</p>` : ""),
         [{ label: "Ho capito", cls: "primary", azione: chiudiModale }]);
       /* ⚠️ la nota resta SOTTO il bottone, ma senza toast: `esito()` ne alza
          uno, e a 320 px il toast finisce sopra il bottone della finestra che
          si è appena aperta — visto nello scatto, non leggendo il codice. La
          finestra è già il messaggio; questa riga è solo la traccia che resta
          quando la si chiude. */
-      $("dif-esito").textContent = (uno ? "Un DDT non ha" : "Alcuni DDT non hanno")
-        + " la quantità misurabile: " + ant.ddtSenzaQuantita.join(", ") + ". Manca la densità nel listino.";
+      $("dif-esito").textContent = [
+        senzaQ.length ? (unoQ ? "Un DDT non ha" : "Alcuni DDT non hanno")
+          + " la quantità misurabile: " + senzaQ.join(", ") + ". Manca la densità nel listino." : "",
+        senzaP.length ? (unoP ? "Un DDT non ha" : "Alcuni DDT non hanno")
+          + " il prezzo: " + senzaP.join(", ") + ". Va scritto sul documento." : "",
+      ].filter(Boolean).join(" ");
       return;
     }
     apriModale("Fattura differita — anteprima",

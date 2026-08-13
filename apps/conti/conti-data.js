@@ -2073,6 +2073,29 @@ export function quantitaVenduta(pesata) {
    esiste per impedire, e una decisione che poggia su «tanto qualcuno lo dice»
    vale finché quel qualcuno lo dice davvero — cioè finché nessuno scrive una
    seconda schermata. */
+/* ⛔ E LE RAGIONI SONO DUE, NON UNA — trovata il 13/08 con la domanda di casa
+   («dove Conti compone qualcosa che ESCE, chi decide i suoi numeri?»).
+   Un valore è quantità × prezzo, e questa funzione conosceva solo la prima
+   metà: senza la quantità dichiarava `calcolabile: false`, senza il PREZZO
+   lasciava lavorare `imponibileRiga`, dove `+null || 0` fa **zero**. Cioè
+   rispondeva `{ valore: 0, calcolabile: true }` — la bandiera alzata su un
+   numero che nessuno ha misurato, che è esattamente il caso che questa
+   funzione è nata per impedire.
+   La regola era già scritta, e due volte: `prezzoDaOrdine` risponde
+   `calcolabile: false` col suo perché quando il prezzo non si determina, e il
+   form del DDT si ferma («IL PREZZO NON DETERMINABILE FERMA IL DDT, e non
+   ripiega sul listino»). Quello che mancava è che la stessa decisione valesse
+   per un documento GIÀ SALVATO, cioè dove il form non c'è più.
+   ⚠️ Ci si arriva dal bottone «Ri-carica copia (CSV)» delle Pesate: `csvPesate`
+   scrive la cella del prezzo VUOTA quando il prezzo non c'è (è la regola di
+   `numeroDichiarato`) e `parsePesateCsv` la rilegge `null` di proposito — un
+   file scritto a mano, o uscito da un altro gestionale, ci arriva senza fare
+   niente di strano. Misurato su un DDT così: il foglio stampato scriveva
+   «€ 0,00/t» e «Valore della consegna € 0,00» su un documento che viaggia sul
+   camion, e la fattura differita lo sommava contato zero.
+   ⚠️ Uno zero SCRITTO resta un prezzo (una fornitura in omaggio è una decisione
+   di chi compila, non nostra): a distinguerlo è `numeroDichiarato`, la stessa
+   che usa `csvPesate` per decidere se quella cella va riempita. */
 export function valoreDdt(pesata) {
   const d = pesata || {};
   const q = quantitaVenduta(d);
@@ -2081,7 +2104,13 @@ export function valoreDdt(pesata) {
       motivo: "densita-mancante",
       perche: "è venduto a metro cubo e il prodotto non ha la densità: dal netto pesato "
         + "non si sa quanti metri cubi siano" };
-  return { valore: imponibileRiga(q, d.prezzoUnitario, d.scontoPct), quantita: q,
+  const prezzo = numeroDichiarato(d.prezzoUnitario);
+  if (prezzo == null)
+    return { valore: null, quantita: q, calcolabile: false,
+      motivo: "prezzo-mancante",
+      perche: "sul documento non è scritto nessun prezzo unitario: la quantità c'è, "
+        + "ma quanto vale quel materiale non l'ha deciso nessuno" };
+  return { valore: imponibileRiga(q, prezzo, d.scontoPct), quantita: q,
            calcolabile: true, motivo: "", perche: "" };
 }
 
@@ -2162,15 +2191,27 @@ export function righeDaPesate(pesate) {
   const per = {};
   for (const p of pesate || []) {
     const unita = p.unitaVendita === "m3" ? "m3" : "t";
-    const prezzo = round2(+p.prezzoUnitario || 0);
+    /* ⛔ `+p.prezzoUnitario || 0` ERA LA STESSA COPIA DEBOLE CHE LA RIGA SOPRA
+       racconta per la quantità, un campo più in là: un prezzo mai scritto
+       diventava **0**, la riga si fondeva con le forniture a prezzo zero vere,
+       e l'imponibile usciva zero con `calcolabile: true`. Su una fattura
+       differita è denaro che nessuno chiede — la stessa frase che questo file
+       usa per la quantità cieca. Adesso la domanda è una sola e la fa
+       `numeroDichiarato`: uno zero SCRITTO è un prezzo (la fornitura in
+       omaggio), una cella mai compilata no. */
+    const prezzoDich = numeroDichiarato(p.prezzoUnitario);
+    const prezzo = prezzoDich == null ? null : round2(prezzoDich);
     const aliquota = Math.max(0, +p.aliquotaIva || 0);
     const sconto = Math.min(100, Math.max(0, round2(+p.scontoPct || 0)));
     const fonte = p.fontePrezzo === "ordine" || p.fontePrezzo === "listino" ? p.fontePrezzo : null;
-    const k = [p.prodottoId || p.prodotto || "—", unita, prezzo, sconto, aliquota, fonte].join("|");
+    const k = [p.prodottoId || p.prodotto || "—", unita,
+      prezzo == null ? "senza-prezzo" : prezzo, sconto, aliquota, fonte].join("|");
     const r = per[k] || (per[k] = { prodottoId: p.prodottoId || null,
       descrizione: String(p.prodotto || "Prodotto"), unita, prezzoUnitario: prezzo,
       scontoPct: sconto, aliquota, quantita: 0, imponibile: 0, ddt: [], ddtIds: [],
-      fontePrezzo: fonte, ordineIds: [], ddtSenzaQuantita: [], calcolabile: true });
+      fontePrezzo: fonte, ordineIds: [], ddtSenzaQuantita: [], ddtSenzaPrezzo: [],
+      calcolabile: true });
+    if (prezzo == null) { r.ddtSenzaPrezzo.push(p.numero || "—"); r.calcolabile = false; }
     /* ⛔ `Number.isFinite(+p.quantita)` DA SOLO NON BASTA, e il ripiego scritto
        qui accanto (`: (+p.netto || 0)`) era irraggiungibile: `+null` fa **0** e
        `Number.isFinite(0)` risponde **true**, quindi una quantità non scritta
@@ -2224,9 +2265,16 @@ export function fatturaDaPesate(pesate) {
      import o da un archivio vecchio, ed è lo stesso caso che `quantitaPesata`
      dichiara già nel registro. */
   const ddtSenzaQuantita = righe.flatMap(r => r.ddtSenzaQuantita);
+  /* ⛔ E LA SECONDA RAGIONE STA IN UN ELENCO SUO, non dentro il primo: i due
+     casi si sistemano in due posti diversi — la densità nel Listino, il prezzo
+     sul DDT — e una finestra che dicesse «manca la densità» a chi ha un prezzo
+     vuoto manderebbe a cercare nel posto sbagliato. `calcolabile` è falsa per
+     tutt'e due, perché tutt'e due fanno uscire un totale più BASSO del vero. */
+  const ddtSenzaPrezzo = righe.flatMap(r => r.ddtSenzaPrezzo);
   return { righe, ...t, ddtIds: lista.map(p => p.id),
            ddtNumeri: lista.map(p => p.numero || "—"),
-           calcolabile: ddtSenzaQuantita.length === 0, ddtSenzaQuantita,
+           calcolabile: ddtSenzaQuantita.length === 0 && ddtSenzaPrezzo.length === 0,
+           ddtSenzaQuantita, ddtSenzaPrezzo,
            dal: date[0] || null, al: date[date.length - 1] || null, conto: lista.length };
 }
 
@@ -2374,10 +2422,25 @@ export function venditePerProdotto(pesate, dal, al) {
     const q = quantitaPesata(p);
     const r = per[nome] || (per[nome] = { prodotto: nome, t: 0, m3: 0, valore: 0, viaggi: 0,
       senzaDensita: 0, tSenzaDensita: 0, valoreConvertibile: 0,
-      nonValorizzabili: 0, tNonValorizzabile: 0 });
+      nonValorizzabili: 0, tNonValorizzabile: 0, soloSenzaDensita: 0 });
     r.viaggi++; r.t = round2(r.t + q.t);
     const v = valorePesata(p);
-    if (!valoreDdt(p).calcolabile) { r.nonValorizzabili++; r.tNonValorizzabile = round2(r.tNonValorizzabile + q.t); }
+    const vale = valoreDdt(p).calcolabile;
+    if (!vale) { r.nonValorizzabili++; r.tNonValorizzabile = round2(r.tNonValorizzabile + q.t); }
+    /* ⛔ E L'ECCEDENZA SI CONTA QUI, NON SI DEDUCE NELLA PAGINA. La riga del
+       Report scrive solo le consegne senza densità che NON sono già nominate
+       fra le non valorizzabili, per non dire due volte la stessa cosa; fino al
+       13/08 lo ricavava con una sottrazione (`senzaDensita − nonValorizzabili`)
+       che reggeva su un contenimento — «non valorizzabile è sempre anche senza
+       densità» — vero finché `valoreDdt` aveva una ragione sola. Da quando ne
+       ha due (manca la densità, oppure manca il PREZZO) quel contenimento non
+       vale più: un DDT a tonnellata, con la sua densità e senza prezzo, è non
+       valorizzabile e non è senza densità. La sottrazione non diventava
+       negativa — `Math.max(0, …)` la teneva a zero — ma NASCONDEVA le consegne
+       senza densità perfettamente valorizzabili, cioè sbagliava nella
+       direzione tranquilla. Contarle è più semplice che dedurle, e non c'è
+       nessun invariante da tenere in piedi. */
+    if (q.m3 == null && vale) r.soloSenzaDensita++;
     if (q.m3 == null) { r.senzaDensita++; r.tSenzaDensita = round2(r.tSenzaDensita + q.t); }
     else { r.m3 = round3(r.m3 + q.m3); r.valoreConvertibile = round2(r.valoreConvertibile + v); }
     r.valore = round2(r.valore + v);
