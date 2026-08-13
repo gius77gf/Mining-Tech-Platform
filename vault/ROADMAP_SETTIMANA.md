@@ -1269,6 +1269,43 @@ numero scritto dove non era stato misurato niente**.*
       **5,46**, gli altri stanno sotto 0,4 — quindi si rimisurano a mano i casi
       a forbice larga e si correggono gli altri.
 
+- [x] ✅ **B0-septdecies. SENTINELLA: TRE COPIE PIÙ DEBOLI, TUTTE NEL PUNTO IN
+      CUI L'APP *DICE* QUALCOSA.** *Chiuso il 13/08.* I file che escono erano
+      **puliti** — il CSV per l'ARPA, i ricettori, le tarature, le volate, i
+      referti e il report di conformità passano tutti dal modulo, verificati uno
+      per uno. I difetti stavano nelle **finestre di conferma** e nell'**unità
+      di misura**:
+      · **«Rimuovere il punto di misura»** mostrava la soglia scritta sulla
+        scheda invece di quella che vale. È il **settimo** posto della famiglia
+        di `conSoglia`. Misurato sulla dimostrazione: la riga sotto il dito
+        dell'utente dice «soglia **20** · dal ricettore Confine Nord — mappale
+        214», la finestra diceva «(soglia **5** mm/s)». E su un punto senza
+        soglia scriveva «(soglia **—** µg/m³)», il trattino con l'unità
+        accanto, dove tutta l'app dice «nessuna soglia impostata»;
+      · **«Rimuovere la taratura»** accusava dove il modulo assolve: il conto
+        era `stato !== "coperta"`, la **quarta** copia del ciclo che
+        `contaCoperture` scrive una volta sola. Misurato: la finestra diceva
+        «**4 letture** non risulteranno coperte da nessuna taratura», e il
+        report dopo la rimozione dichiara **zero** scoperte e 4 «senza taratura
+        da confrontare» — l'avviso rosso di un difetto che non c'è, e proprio
+        sul caso che il modulo documenta come «accusare l'utente di una cosa non
+        misurata». ⚠️ Nel verso opposto le due risposte coincidono: il difetto
+        si vede **solo dove divergono**;
+      · **l'unità letta dal campo grezzo** `m.unita` invece che da
+        `unitaMisura` — in cinque punti, fra cui la prima schermata. Un punto
+        senza unità entra davvero (`parseMonitoraggiCsv` chiede nome, valore e
+        soglia, **non** l'unità): su quello l'allerta scriveva «**41  / soglia
+        40**», cifra nuda e doppio spazio, mentre il file per l'ARPA sulla
+        stessa misura scrive `36.8;µg/m³;40;Attenzione`.
+      ⚠️ Un «non c'è» **dichiarato con la prova**: un punto senza soglia
+      collegato a un ricettore non è costruibile dall'interfaccia (il form
+      pretende la soglia e l'import filtra `soglia > 0`), quindi la frase della
+      finestra «Rimuovere il ricettore» oggi non può mentire. **Non toccata.**
+      Nessuna soglia di sicurezza sfiorata. Prove: `run-kpi` **2092 → 2097**,
+      e la controprova ne fa cadere **4 su 5** — la quinta resta verde ed è
+      dichiarato perché: è una prova di **identità** fra cinque punti, sorveglia
+      che la regola resti una sola, non questo difetto.
+
 - [x] ✅ **B0-sexdecies. TERRA: IL CUMULATO E IL RESIDUO DEL TITOLO SUL FOGLIO
       CHE VA ALL'ENTE.** *Chiuso il 13/08.* La regola c'era **nella stessa
       pagina, con la sua ragione scritta dal 07/08**: senza nessuna misura sotto
@@ -4417,8 +4454,8 @@ numero scritto dove non era stato misurato niente**.*
   nome apre il file sbagliato credendo che sia il più fresco.
 - Le decisioni: `docs/DECISIONI_WEEKEND.md` — pagina d'ingresso in cima.
 - Stato misurato al **09/08** (lanciando le suite, non a memoria):
-  **2.544 prove girano senza rete**. La frase va letta stretta: è la somma
-  delle **otto** suite che contano asserzioni (`run-kpi` 2092, `run-stile` 318,
+  **2.549 prove girano senza rete**. La frase va letta stretta: è la somma
+  delle **otto** suite che contano asserzioni (`run-kpi` 2097, `run-stile` 318,
   `run-helpers` 75, `run-pointcloud` 32, `run-manifest` 9, `run-demo` 8,
   `bootstrap-rivendicazioni` 7, `fogli-guardati` 3), non tutto ciò che gira nel
   giro `node` — che di comandi ne ha **34** e di asserzioni ne esegue di più:

@@ -361,6 +361,7 @@ export function prioritaConformita(monitoraggi, adempimenti, oggi = new Date()) 
   for (const m of monitoraggi || []) {
     const st = statoMisura(m);
     if (st.cls === "ok") continue;
+    const u = unitaMisura(m);
     items.push({ gravita: st.cls, categoria: "misura",
       titolo: m.nome || "Misura",
       // il numero era incollato grezzo: 36.8 col punto inglese, sulla prima
@@ -381,13 +382,22 @@ export function prioritaConformita(monitoraggi, adempimenti, oggi = new Date()) 
       // (`-webkit-line-clamp:2`), e a 430 px quella coda finiva sotto il taglio
       // insieme alla nota del punto — cioè testo morto. La spiegazione vive
       // dove si può leggere: il riepilogo dei Monitoraggi e il report.
+      // ⛔ E L'UNITÀ È QUELLA CHE L'APP MOSTRA, non il campo grezzo: `m.unita`
+      // è quello che l'utente ha scritto, `unitaMisura` è quello che il
+      // grafico, il report e il file per l'ARPA scrivono — con il ripiego per
+      // tipo di grandezza. Un punto senza unità entra davvero
+      // (`parseMonitoraggiCsv` accetta la colonna vuota), e su di lui questa
+      // riga — la prima schermata dell'app — diceva «41  / soglia 40»: la
+      // cifra nuda, con due spazi, mentre il file per l'ARPA sulla stessa
+      // misura scrive «µg/m³». Il terzo ramo per giunta scriveva lo spazio
+      // anche senza unità, dove gli altri due la guardia ce l'avevano.
       dettaglio: (st.stato === "mai"
         ? "nessuna misura registrata" + (sogliaValida(m.soglia)
-            ? " · soglia " + numeroIt(m.soglia) + (m.unita ? " " + m.unita : "")
+            ? " · soglia " + numeroIt(m.soglia) + (u ? " " + u : "")
             : " · e nessuna soglia impostata")
         : !st.calcolabile
-        ? "nessuna soglia impostata · ultimo valore " + numeroIt(m.valore) + (m.unita ? " " + m.unita : "")
-        : numeroIt(m.valore) + " " + (m.unita || "") + " / soglia " + numeroIt(m.soglia))
+        ? "nessuna soglia impostata · ultimo valore " + numeroIt(m.valore) + (u ? " " + u : "")
+        : numeroIt(m.valore) + (u ? " " + u : "") + " / soglia " + numeroIt(m.soglia))
         + (m.nota ? " · " + m.nota : ""),
       badge: st.label });
   }

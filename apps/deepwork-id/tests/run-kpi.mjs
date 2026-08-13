@@ -28177,5 +28177,158 @@ test("Terra · il verbale cita il volume dell'atto senza arrotondarlo, come il p
   ok(/nD\(aut\.volumeAutorizzatoM3\)/.test(riga), "il verbale scrive il volume dell'atto con `nD` (per intero), non con `n0` (arrotondato): " + riga.split("\n")[0]);
 });
 
+/* ══════════════════════════════════════════════════════════════════════
+   SENTINELLA · LA REGOLA GIÀ SCRITTA, RICOPIATA PIÙ DEBOLE DOVE L'APP DICE
+   QUALCOSA (13/08)
+   ══════════════════════════════════════════════════════════════════════
+   Tre punti d'uscita di Sentinella dicevano un numero diverso da quello che
+   dicono il file per l'ARPA, il report e la riga che l'utente sta guardando.
+   Nessuno dei tre è un calcolo sbagliato: sono tre copie deboli di una regola
+   che il modulo scrive già una volta sola.
+     1. la finestra «Rimuovere il punto di misura» leggeva `m.soglia` GREZZA,
+        cioè la soglia della scheda invece di quella del ricettore;
+     2. la finestra «Rimuovere la taratura» contava le letture non coperte con
+        `stato !== "coperta"`, che è la quarta copia del ciclo di
+        `contaCoperture` e non sa distinguere «scoperta» da «precedente alla
+        prima taratura registrata» — cioè accusa dove il modulo assolve;
+     3. l'unità di misura si leggeva dal campo grezzo `m.unita` invece che da
+        `unitaMisura`, che è la funzione da cui passano grafico, report e file
+        per l'ARPA. Un punto senza unità entra davvero: `parseMonitoraggiCsv`
+        accetta la colonna vuota.
+   ⚠️ Prove SINCRONE e messe PRIMA del riepilogo: l'`await Promise.all(inVolo)`
+   sta migliaia di righe più su, quindi una prova `async` aggiunta qui verrebbe
+   messa in volo e il totale si stamperebbe senza aspettarla. */
+{
+  const { senzaCommenti: senzaCommentiSe } = await import("./tokenizza.mjs");
+  /* senza commenti perché il racconto della correzione CITA le forme
+     sbagliate: letto grezzo, il file le contiene ancora e il controllo
+     prenderebbe il racconto per il fatto (è l'errore che CLAUDE.md nomina). */
+  const SRC_SE_PAG = senzaCommentiSe(readFileSync(join(HERE, "../../sentinella/index.html"), "utf8"));
+  const DEMO_SE = sentinella.DEMO;
+  const RIC_SE = DEMO_SE.ricettori;
+  const punto_SE = (id) => DEMO_SE.monitoraggi.find((m) => m.id === id);
+
+  test("⛔ Sentinella · la finestra «Rimuovere il punto» mostrava la soglia della SCHEDA, non quella che vale", () => {
+    /* La riga dell'elenco passa da `MONE = MON.map(conSoglia)` e mostra la
+       soglia del RICETTORE (il limite scritto nell'autorizzazione per quella
+       casa); il cestino sulla stessa riga apriva una finestra che leggeva
+       `m.soglia` grezza, perché `m` viene da `MON.find`. È il SETTIMO posto
+       della famiglia elencata dal commento di `conSoglia` («semaforo, KPI,
+       grafico, allerte, report»), dopo la conferma di scrittura.
+       Il caso è nella dimostrazione, quindi si misura invece di immaginarlo. */
+    const v2 = punto_SE("v2");
+    const eff = sentinella.sogliaEfficace(v2, RIC_SE);
+    eq(+v2.soglia, 5, "sulla scheda di «Vibrazioni V2 — confine Nord» c'è 5");
+    eq(eff.valore, 20, "ma la soglia che VALE è quella del ricettore: 20");
+    eq(eff.fonte, "ricettore", "e la riga dell'elenco lo scrive accanto al numero");
+    ok(+v2.soglia !== eff.valore,
+      "il divario esiste nella dimostrazione: è quello che la finestra scriveva al posto del numero vero");
+    /* e la pagina adesso compone quella finestra dalle stesse due funzioni
+       della riga (`sogliaEfficace` per il numero, `sogliaDaRicettore` per la
+       provenienza), invece di incollare il campo grezzo */
+    const capo = /const capoSoglia = [\s\S]{0,240}?;/.exec(SRC_SE_PAG);
+    ok(capo, "la finestra compone la sua testata in un posto solo (`capoSoglia`)");
+    ok(/sogliaEfficace\(m, RIC\)/.test(SRC_SE_PAG.slice(Math.max(0, capo.index - 200), capo.index)),
+      "e il numero lo decide `sogliaEfficace`, non `m.soglia`");
+    ok(/nessuna soglia impostata/.test(capo[0]),
+      "⛔ e su un punto senza soglia dice che cosa manca, invece di «soglia — µg/m³»: quel trattino con l'unità accanto è l'assenza travestita da dato");
+    ok(!/Stai per rimuovere <b>\$\{esc\(m\.nome\)\}<\/b> \(soglia \$\{esc\(numeroIt\(m\.soglia\)\)\}/.test(SRC_SE_PAG),
+      "la forma vecchia — la soglia della scheda incollata nella testata — non è tornata");
+  });
+
+  test("⛔ Sentinella · «non coperta» si divide in DUE, e la finestra della taratura le confondeva", () => {
+    /* `coperturaTaratura` ha quattro risposte e il commento accanto dice
+       perché: una lettura PRECEDENTE alla prima taratura registrata non è
+       «scoperta» — lo strumento poteva essere tarato, e chiamarla scoperta
+       accusa l'utente di una cosa non misurata. La finestra contava
+       `stato !== "coperta"`, cioè la quarta copia del ciclo che
+       `contaCoperture` scrive una volta sola, con la firma troppo stretta che
+       quella differenza non sa dirla.
+       Misurato sulla dimostrazione: «Vibrazioni V2 — confine Nord» ha due
+       certificati con un buco in mezzo, e cinque letture. */
+    const v2 = punto_SE("v2");
+    const resta = v2.tarature.filter((t) => t.certificato !== "LAT 118-2025/302");
+    eq(resta.length, 1, "si toglie il certificato VECCHIO e resta quello nuovo");
+    const dopo = sentinella.contaCoperture(resta, v2.letture);
+    eq(dopo.scoperta, 0, "⛔ dopo la rimozione NESSUNA lettura cade in un giorno non coperto");
+    eq(dopo["prima-dello-storico"], 4, "le quattro sono precedenti alla prima taratura rimasta");
+    eq(dopo.nonNote, 4, "cioè «non c'è niente da confrontare», che è un altro discorso");
+    eq(dopo.coperta, 1, "e una resta coperta");
+    /* il conto scritto a mano — quello che la finestra faceva — dava 4 e le
+       chiamava tutte scoperte: la stessa cifra, il verdetto opposto */
+    const aMano = v2.letture.filter((l) => sentinella.coperturaTaratura(resta, l.data).stato !== "coperta").length;
+    eq(aMano, 4, "la copia debole rispondeva 4");
+    ok(aMano !== dopo.scoperta,
+      "⛔ e 4 contro 0 è esattamente la distanza fra un avviso rosso e un fatto: il report, dopo, dichiara ZERO letture scoperte");
+    /* e nel verso in cui l'accusa è vera il modulo la conferma: togliendo il
+       certificato NUOVO le due letture del buco sono scoperte davvero */
+    const senzaNuovo = sentinella.contaCoperture(
+      v2.tarature.filter((t) => t.certificato !== "LAT 118-2026/512"), v2.letture);
+    eq(senzaNuovo.scoperta, 2, "togliendo l'altro certificato le scoperte ci sono, e sono due");
+    ok(!/stato\s*!==\s*"coperta"/.test(SRC_SE_PAG),
+      "la pagina non conta più le letture non coperte per conto suo");
+    ok(/const dopo = contaCoperture\(resta,/.test(SRC_SE_PAG),
+      "la decisione la prende `contaCoperture`, la stessa della scheda e del file per l'ARPA");
+  });
+
+  test("⛔ Sentinella · l'unità è quella che l'app MOSTRA, non il campo che l'utente ha lasciato vuoto", () => {
+    /* `unitaMisura` ripiega sul tipo di grandezza quando l'unità non è
+       scritta, e da lì passano il grafico, il report e il file per l'ARPA.
+       La riga dell'elenco, l'allerta del Quadro e la conferma di scrittura
+       leggevano `m.unita` grezzo: sullo stesso punto, la cifra nuda.
+       Il caso si raggiunge da una porta vera — Monitoraggi → «Importa sensori
+       (CSV)»: `parseMonitoraggiCsv` chiede nome, valore e soglia, non
+       l'unità. */
+    const letti = sentinella.parseMonitoraggiCsv(
+      "nome;tipo;valore;soglia;unita;nota\nPolveri Nord;polveri;36,8;40;;centralina nuova\n");
+    eq(letti.length, 1, "la riga senza unità ENTRA: nessun filtro la ferma");
+    eq(letti[0].unita, "", "e arriva in archivio con l'unità vuota");
+    const m = { id: "x1", ...letti[0], valore: 41, letture: [{ data: "2026-07-19", valore: 41 }] };
+    eq(sentinella.unitaMisura(m), "µg/m³", "l'app sa che unità è: gliela dice il tipo");
+    const p = sentinella.prioritaConformita([m], [], new Date(2026, 6, 21));
+    eq(p.length, 1, "il punto è in superamento e compare fra le allerte del Quadro");
+    ok(p[0].dettaglio.startsWith("41 µg/m³ / soglia 40"),
+      "⛔ la prima schermata scrive l'unità — era «" + p[0].dettaglio + "»");
+    ok(!/ {2}/.test(p[0].dettaglio),
+      "e nessuno spazio doppio: il terzo ramo lo scriveva anche quando l'unità non c'era");
+  });
+
+  test("⛔ Sentinella · la stessa misura, la stessa unità: schermo, report e file per l'ARPA", () => {
+    /* la prova che è UNA regola e non tre che oggi vanno d'accordo: se un
+       giorno qualcuno se ne riscrive una in casa, questi tre non combaciano
+       più. Il file per l'ARPA è quello che esce dall'azienda. */
+    const m = { id: "x1", nome: "Polveri Nord", tipo: "polveri", unita: "", valore: 41, soglia: 40,
+      letture: [{ data: "2026-07-19", valore: 41 }] };
+    const u = sentinella.unitaMisura(m);
+    eq(u, "µg/m³", "il ripiego per tipo di grandezza");
+    eq(sentinella.serieStorica(m).unita, u, "il grafico dice la stessa cosa");
+    eq(sentinella.reportConformita({ monitoraggi: [m] }).punti[0].unita, u, "il report anche");
+    eq(sentinella.andamentoRicettore([{ ...m, ricettoreId: "r" }], [{ id: "r", nome: "Casa" }], "r").punti[0].unita, u,
+      "e l'andamento per ricettore");
+    const riga = sentinella.csvAmbiente([m], [], []).split("\n")[1].split(";");
+    eq(riga[3], u, "⛔ e la colonna dell'unità del file per l'ARPA porta la stessa: è quella che l'ente legge");
+    /* un punto senza tipo riconosciuto NON si inventa un'unità: resta vuota,
+       e le frasi che la mostrano non scrivono uno spazio per niente */
+    const muto = { nome: "Sonda", tipo: "", unita: "", valore: 9, soglia: 5, letture: [] };
+    eq(sentinella.unitaMisura(muto), "", "nessuna unità da indovinare");
+    const q = sentinella.prioritaConformita([muto], [], new Date(2026, 6, 21));
+    ok(!/ {2}/.test(q[0].dettaglio), "e la riga resta pulita — era «" + q[0].dettaglio + "»");
+  });
+
+  test("Sentinella · nella pagina l'unità non si legge più dal campo grezzo, e il denominatore è dichiarato", () => {
+    /* Non «zero occorrenze»: `m.unita` resta in due posti, e sono i due in cui
+       si parla del CAMPO e non della misura — il form che si riempie per
+       modificarlo, e l'import che lo salva com'è. Quello che non deve tornare
+       è leggerlo per SCRIVERE un numero all'utente. */
+    const grezzi = (SRC_SE_PAG.match(/\bm\.unita\b/g) || []).length;
+    eq(grezzi, 2, "due letture del campo grezzo, ed è il denominatore: il form e l'import");
+    ok(/\$\("sen-unita"\)\.value = m\.unita/.test(SRC_SE_PAG), "la prima è il form che si riempie");
+    ok(/unita: m\.unita,/.test(SRC_SE_PAG), "la seconda è l'import che salva quello che c'è nel file");
+    ok(!/esc\(m\.unita\)/.test(SRC_SE_PAG), "nessuna frase mostra più il campo grezzo");
+    ok((SRC_SE_PAG.match(/unitaMisura\(/g) || []).length >= 9,
+      "e le frasi che mostrano una misura passano da `unitaMisura`");
+  });
+}
+
 console.log(`\nRisultato KPI app: ${passed} passati, ${failed} falliti${inVolo.length ? `  ·  ${inVolo.length} prove asincrone aspettate` : ""}`);
 process.exit(failed > 0 ? 1 : 0);

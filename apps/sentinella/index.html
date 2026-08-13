@@ -3889,7 +3889,17 @@ textarea.dw-input{
        0% — la percentuale più tranquilla della scala, dove non c'è niente da
        mettere in percentuale. Restano la soglia impostata (quella è un dato
        vero) e «nessuna lettura». */
+    /* ⛔ L'UNITÀ LA DECIDE `unitaMisura`, NON IL CAMPO GREZZO. `m.unita` è
+       quello che l'utente ha scritto; `unitaMisura` è quello che l'app
+       MOSTRA — con il ripiego per tipo di grandezza — ed è la funzione da cui
+       passano il grafico, il file per l'ARPA, il report e l'anteprima
+       dell'import. Un punto senza unità entra davvero: `parseMonitoraggiCsv`
+       accetta la colonna vuota (chiede nome, valore e soglia, non l'unità).
+       Misurato su una riga «Polveri Nord;polveri;36,8;40;;»: qui si leggeva
+       «36,8  / soglia 40» — la cifra nuda — e nel file per l'ARPA, sulla
+       stessa misura, «36.8;µg/m³;40;Attenzione». */
     $("mon-list").innerHTML = monVis.map(({m, st}) => { const nl = (m.letture || []).length, aperto = grafMon === m.id;
+      const um = unitaMisura(m);
       /* ⛔ LA TARATURA SI VEDE QUANDO NON È A POSTO, E «NON DICHIARATA» È UNO
          DEI CASI IN CUI NON LO È. Un secondo badge verde su ogni riga sarebbe
          rumore; una riga muta su uno strumento di cui non si sa niente
@@ -3908,7 +3918,7 @@ textarea.dw-input{
       <div class="riga"><span class="badge ${st.cls}">${st.label}</span>${
         tar.stato === "regolare" ? "" : `<span class="badge ${bt.cls}" title="${esc(bt.label)}: la riferibilità delle misure di questo strumento non è dimostrata">${esc(bt.label)}</span>`}
       <span class="meta">${st.stato === "mai"
-        ? `<b>nessuna misura</b> / soglia ${esc(numeroIt(m.soglia))} ${esc(m.unita)}${sogliaDaRicettore(m)}`
+        ? `<b>nessuna misura</b> / soglia ${esc(numeroIt(m.soglia))}${um ? " " + esc(um) : ""}${sogliaDaRicettore(m)}`
         /* ⛔ E NEMMENO LA PERCENTUALE, se non c'è nessuna soglia (decisione 16).
            È lo stesso `Math.round(null*100)` del caso qui sopra, e faceva
            «1,2 dB(A) / soglia — · 0%»: un trattino al posto del limite e uno
@@ -3928,8 +3938,8 @@ textarea.dw-input{
            parte affatto, e nessuna suite `node` se ne accorge perché nessuna
            importa le pagine. Lo prende `tests/sintassi-pagine.mjs`. */
         : !st.calcolabile
-        ? `<b>${esc(numeroIt(m.valore))} ${esc(m.unita)}</b> · <b>nessuna soglia impostata</b>`
-        : `<b>${esc(numeroIt(m.valore))} ${esc(m.unita)}</b> / soglia ${esc(numeroIt(m.soglia))}${sogliaDaRicettore(m)} · ${Math.round(st.ratio*100)}%`
+        ? `<b>${esc(numeroIt(m.valore))}${um ? " " + esc(um) : ""}</b> · <b>nessuna soglia impostata</b>`
+        : `<b>${esc(numeroIt(m.valore))}${um ? " " + esc(um) : ""}</b> / soglia ${esc(numeroIt(m.soglia))}${sogliaDaRicettore(m)} · ${Math.round(st.ratio*100)}%`
       }${nl ? " · " + nl + (nl === 1 ? " lettura" : " letture") : " · nessuna lettura"}${m.nota ? " · " + esc(m.nota) : ""}</span></div></div>
       <span class="acts">
       <button type="button" class="arr${aperto ? " on" : ""}" title="${aperto ? "Chiudi la serie storica" : "Apri la serie storica nel tempo"}" aria-label="${aperto ? "Chiudi la serie storica" : "Apri la serie storica"} di ${esc(m.nome)}" aria-expanded="${aperto}" data-graf-mon="${m.id}">${aperto ? I.chiudi : I.serie}</button>
@@ -4118,8 +4128,24 @@ textarea.dw-input{
     const delMon = attr(e, "data-del-mon");
     if (delMon) { const m = MON.find(x => x.id === delMon);
       const nl = m ? (m.letture || []).length : 0;
+      /* ⛔ LA SOGLIA CHE VALE, ANCHE QUI: è il SETTIMO posto della famiglia di
+         `conSoglia`, dopo la conferma di scrittura. `m` viene da `MON.find`,
+         cioè GREZZO: porta la soglia scritta sulla scheda, non quella del
+         ricettore collegato — che è quella che la riga sotto il dito
+         dell'utente sta mostrando, perché passa da `MONE`. Misurato sulla
+         dimostrazione, «Vibrazioni V2 — confine Nord»: la riga dice «soglia
+         20 · dal ricettore Confine Nord — mappale 214» e questa finestra
+         diceva «(soglia 5 mm/s)». Su un punto senza soglia scriveva «(soglia
+         — µg/m³)», cioè il trattino con l'unità accanto, dove tutta l'app
+         dice «nessuna soglia impostata». La decisione la prendono le stesse
+         due funzioni della riga: `sogliaEfficace` e `sogliaDaRicettore`. */
+      const eff = m ? sogliaEfficace(m, RIC) : { valore: null };
+      const uMon = m ? unitaMisura(m) : "";
+      const capoSoglia = eff.valore != null
+        ? `soglia ${esc(numeroIt(eff.valore))}${uMon ? " " + esc(uMon) : ""}${sogliaDaRicettore(m)}`
+        : "nessuna soglia impostata";
       if (m && await chiedi("Rimuovere il punto di misura",
-        `Stai per rimuovere <b>${esc(m.nome)}</b> (soglia ${esc(numeroIt(m.soglia))} ${esc(m.unita)}).<br><br>
+        `Stai per rimuovere <b>${esc(m.nome)}</b> (${capoSoglia}).<br><br>
          ${nl ? `Insieme al punto si perdono anche le <b>${nl} ${nl === 1 ? "lettura registrata" : "letture registrate"}</b>: la serie storica non è più recuperabile.` : "Il punto non ha ancora letture registrate."}
          <br><br>Se ti serve solo cambiare nome, unità o soglia, usa la <b>matita</b> invece di rimuovere: lo storico resta.`,
         "Rimuovi", true)) {
@@ -4149,13 +4175,33 @@ textarea.dw-input{
       const m = MON.find(x => x.id === tarPunto);
       const resta = ((m && m.tarature) || []).filter(t =>
         !(String(t.data || "") === dTar && String(t.scadenza || "") === sTar && String(t.certificato || "") === cTar));
-      const scoperte = ((m && m.letture) || []).filter(l =>
-        coperturaTaratura(resta, l.data).stato !== "coperta").length;
+      /* ⛔ «NON COPERTA» SI DIVIDE IN DUE, E A DIRLO È IL MODULO. Qui il conto
+         era scritto a mano (`stato !== "coperta"`): la QUARTA copia del ciclo
+         che `contaCoperture` scrive una volta sola, e con la firma stretta —
+         coperte contro tutto il resto — che non sa dire la differenza che il
+         resto dell'app dichiara. Una lettura PRECEDENTE alla prima taratura
+         non è scoperta: lo strumento poteva benissimo essere tarato, e
+         chiamarla scoperta accusa l'utente di una cosa non misurata (sta
+         scritto accanto a `coperturaTaratura`, ed è l'errore opposto a quello
+         che questa sezione corregge). Misurato sulla dimostrazione, togliendo
+         da «Vibrazioni V2 — confine Nord» il certificato LAT 118-2025/302:
+         questa finestra diceva «4 letture non risulteranno coperte da nessuna
+         taratura, e il report lo dichiarerà», mentre il report dopo la
+         rimozione dichiara ZERO letture scoperte e 4 senza taratura da
+         confrontare — l'avviso rosso di un difetto che non c'è.
+         Le parole sono quelle della scheda qui sotto e del file per l'ARPA,
+         che passano tutt'e due da `contaCoperture`. */
+      const dopo = contaCoperture(resta, (m && m.letture) || []);
+      const perde = [
+        dopo.scoperta ? `<b>${dopo.scoperta} ${dopo.scoperta === 1 ? "lettura cadrà" : "letture cadranno"}</b> in un giorno che nessuna taratura registrata copre` : "",
+        dopo.nonNote ? `per <b>${dopo.nonNote} ${dopo.nonNote === 1 ? "lettura" : "letture"}</b> non resterà nessuna taratura da confrontare` : "",
+      ].filter(Boolean).join(", e ");
       if (m && await chiedi("Rimuovere la taratura",
         `Stai per togliere da <b>${esc(m.nome)}</b> il certificato <b>${esc(cTar || "senza numero")}</b>${
           dTar && sTar ? ` (dal ${fmtD(dTar)} al ${fmtD(sTar)})` : ""}.<br><br>
-         ${scoperte ? `Dopo, <b>${scoperte} ${scoperte === 1 ? "lettura" : "letture"}</b> di questo strumento non ${scoperte === 1 ? "risulterà coperta" : "risulteranno coperte"} da nessuna taratura, e il report lo dichiarerà.`
-                    : "Nessuna lettura di questo strumento perde la copertura."}
+         ${!dopo.totale ? "Su questo strumento non è registrata nessuna lettura: non c'è niente che perda la copertura."
+           : perde ? `Dopo, ${perde} — ed è quello che il report dichiarerà all'ente.`
+           : "Dopo, tutte le letture di questo strumento restano coperte da un certificato registrato."}
          <br><br>Toglilo solo se l'hai inserito per sbaglio: la taratura è un documento, non una nota.`,
         "Rimuovi", true)) {
         /* si toglie DALLE tarature vere del momento: `resta` è calcolato su
@@ -4736,9 +4782,14 @@ textarea.dw-input{
        «semaforo, KPI, grafico, allerte, report»: la conferma di scrittura
        mancava, ed è l'unica che parla mentre si registra. */
     const st = statoMisura(conSoglia({ ...m, valore, letture }));
-    esito("mis-esito", "Misura su " + (m ? m.nome.split(" — ")[0] : id) + ": " + numeroIt(valore) + (m ? " " + m.unita : "") + " → " + st.label + ". La serie storica del punto è aggiornata.",
+    /* ⚠️ E l'unità è quella che l'app MOSTRA (`unitaMisura`), non il campo
+       grezzo: su un punto entrato da CSV senza la colonna dell'unità questa
+       riga scriveva «36,8  → Attenzione», con la cifra nuda e due spazi. */
+    const um = m ? unitaMisura(m) : "";
+    const misuraTxt = numeroIt(valore) + (um ? " " + um : "");
+    esito("mis-esito", "Misura su " + (m ? m.nome.split(" — ")[0] : id) + ": " + misuraTxt + " → " + st.label + ". La serie storica del punto è aggiornata.",
       st.cls === "danger" ? "err" : "success",
-      numeroIt(valore) + (m ? " " + m.unita : "") + " → " + st.label);
+      misuraTxt + " → " + st.label);
     $("mis-valore").value = "";
     grafMon = id;   // dopo una misura si vede subito l'andamento del punto
     await refresh();
