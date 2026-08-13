@@ -1508,21 +1508,100 @@ numero scritto dove non era stato misurato niente**.*
       dell'agente» vale anche quando l'agente dichiara un LIMITE**, e il mandato
       di ricerca **nomina lo strumento e vieta l'altro**. Un documento tutto
       dedotto sul mondo sarebbe entrato con la faccia di una ricerca.
-- [ ] **B0-duovicies. I SETTE CONTRASTI NON TESTUALI DEL CORE.** ⏱️ *Aperta il
-      13/08 dalla misura qui sopra.* La causa dei sei del chiaro sta nei dati:
-      `--success/--warn/--danger/--info` sono dichiarati **una volta sola**, nel
-      `:root` del buio, e `body.light-mode` ridichiara solo la famiglia
-      `--ink-…` — gli inchiostri dei **testi**. È la stessa forma della
-      correzione già fatta sui testi, **un piano più in là**.
-      · `div.sitem.warn`, bordo sinistro ×8 → **1,74**, e fallisce contro
-        **tutt'e due** i vicini (1,94 sul bianco): netto;
-      · `span#sync-badge.nonsalva` (4 lati) → **2,63** e `div.info-box` (bordo
-        sinistro) → **2,98**: **borderline**, passano contro il bianco fuori
-        (3,12) e cadono contro il riempimento pallido dentro. Vanno corretti
-        **sapendo** che sono al limite;
-      · buio: un `path` svg-stroke `--ink-am2` a **2,45** (forbice zero) — ma è
-        **ambra di marca**, non un segnale di stato: va letto con la collisione
-        dichiarata qui sopra.
+- [x] ✅ **B0-duovicies. I SETTE CONTRASTI NON TESTUALI DEL CORE — e la causa
+      era UNA RIGA CHE NON C'ERA.** *Chiuso il 13/08.* `--success/--warn/
+      --danger` erano dichiarati **una volta sola**, nel `:root` del buio, e
+      `body.light-mode` ridichiarava solo gli inchiostri dei **testi**: nel
+      chiaro una striscia `var(--warn)` restava l'ambra del buio su carta
+      bianca. Adesso ci sono i tre `--bar-ok/--bar-wr/--bar-dg` — i nomi che
+      `shared/dw-app-ui.css` usa già — in **tutt'e due** i blocchi di palette,
+      col conto misurato accanto, e 21 sostituzioni meccaniche nei punti non
+      testuali. Stessa superficie, stesso banco:
+
+      | | chiaro | buio |
+      |---|---|---|
+      | prima | 9 sopra / **6 sotto** | 49 / **1** |
+      | dopo | **15 / 0** | **49 / 0** |
+
+      1.914 elementi guardati e 1.739 superfici non testuali, **invariati**; le
+      regole mai comparse (il denominatore) restano **16 e 18**. I testi restano
+      **450/0** nei due temi.
+      ⚠️ **Il `var(--…)` va ripetuto nel blocco chiaro, e la ragione è
+      MISURATA**: una custom property è sostituita **dove è dichiarata**, non
+      dove è usata — scritta solo nel `:root` dà il verde del buio anche sotto
+      `light-mode` (provato in Chromium, non dedotto). La controprova toglie
+      **quella sola riga** e i sei KO tornano **alla cifra**: 1,74 · 2,63 ×4 ·
+      2,98.
+      ⚠️ **Il KO del buio non era della famiglia, e il tratto accusato non era
+      il peggiore.** Era l'icona di `.tile-volata`: il banco vedeva il solo
+      lampo `#ffd54f` (2,45) perché **combacia per valore** con `--ink-am2`,
+      mentre il corpo bianco del trivello — **sette tratti su otto** — stava a
+      **2,23** e non lo guardava nessuno. La piastrella aveva già deciso il suo
+      inchiostro con la misura («sull'arancione vince l'inchiostro scuro»);
+      l'SVG non l'aveva seguita. Otto tratti a `currentColor`: **5,52** sul
+      punto che il banco leggeva.
+      ⛔ **E qui il denominatore SCENDE di uno** (135 → 134 superfici di stato),
+      e va detto: quel soggetto non è a posto perché è migliorato **e**
+      invisibile al banco — adesso è legato al colore del **testo** della stessa
+      piastrella, che `contrasto.mjs` misura. Un soggetto sorvegliato male
+      scambiato con uno sorvegliato bene, **non un KO fatto sparire**.
+      · **NON corretto `--info`** (la striscia di serie di `.info-box`, 2,26 nel
+        chiaro): il banco la dichiara decorativa, e `shared/dw-app-ui.css`
+        spiega con la misura di sei app perché un livello per `--info` non è mai
+        stato deciso. Il core aggiunge i **tre** che esistono e non il quarto:
+        inventarlo qui sarebbe **divergere proprio nel nome che serve a non
+        divergere**.
+      · **NON corretti i PIENI**: sotto ci va `--ink-su-pieno` a 8,20 / 9,98 /
+        5,56; un `--warn` scurito li porterebbe a **3,78**.
+      · in più, due pastiglie in linea scrivevano ancora `color:#fff` su
+        `--danger` (**3,49**): portate a `--ink-su-pieno`, **5,56**.
+
+- [x] ✅ **B0-duovicies (seconda parte). LA BARRA IN ALTO SUL RAMO DEL TOCCO: il
+      nome dell'utente cedeva al posto della ricerca, e le tre domande del banco
+      non potevano vederlo.** *Chiuso il 13/08.* `barra-alto-indietro` dava «0 da
+      guardare» sui due rami e i due temi — **e aveva ragione**: il danno stava
+      tutto **dentro** i bordi. Col ramo `pointer:coarse` acceso e la pastiglia
+      «NON SALVA», nome/ricerca in px:
+
+      | | scrivania | tocco |
+      |---|---|---|
+      | 320 px | 47,19 / 37,81 | **23,42** / 61,58 |
+      | 430 px | 117,88 / 57,13 | 85,91 / 89,09 |
+      | 560 px | 153,39 / 69,95 | 122,31 / 106,27 |
+
+      I **23,77 px** che a 320 px il nome perde sono **esattamente** quelli che
+      la ricerca guadagna: non spazio sparito, spazio **riassegnato al
+      contrario** della decisione scritta nel foglio. Causa:
+      `.topbar-search-input{width:120px}` dentro `pointer:coarse` — un ramo che
+      **fissa** invece di **scalare**, e che vince per posizione sui gradini per
+      larghezza. **Stessa forma del tema del sole.** Tolto (resta
+      `min-height:44px`, che è del **dito**), e il bordo della barra sotto i 360
+      px portato da 8 a 4: **i due rami adesso danno gli stessi numeri alla
+      cifra**, e a 320 px il nome passa da 23,42 a **53,44**.
+      Misurato su **14 larghezze × 2 rami × 2 temi**: esce 0 · sovrappone 0 ·
+      scorre 0, con **144 figli confrontati** per combinazione. E su 14
+      superfici a una larghezza: 0, con «7 superfici senza nessuna barra in alto
+      — **zero soggetti, NON a posto**» dichiarato.
+      ⚠️ Il giro 7 superfici × 10 larghezze **non è arrivato in fondo**: ucciso
+      dal suo `timeout` dopo 30 minuti. **Detto invece che lasciato credere.**
+      · **QUARTA DOMANDA AL BANCO**, perché le tre che aveva erano cieche per
+        costruzione: *dove una barra ha insieme l'identità e una ricerca,
+        l'identità non può restare più stretta della ricerca.* Un **confronto
+        fra due elementi**, non una soglia in pixel che invecchia col carattere
+        e con la lingua. Controprova: rimessa la larghezza fissa, cade **8 volte
+        su 10** larghezze.
+      · **UN'ECCEZIONE DICHIARATA E SORVEGLIATA**: a 320 px sul ramo del tocco
+        la casella è **39,56×44** invece di 44×44. Quel `width` fisso faceva
+        **due mestieri** — la scala, che sbagliava, e il pavimento per il dito,
+        che era giusto. Le due strade per riavere il pavimento sono state
+        **provate e misurate**: `min-width:44px` rimette **4,44 px di
+        traboccamento all'indietro sopra il nome** (cioè alla lettera il difetto
+        che questo banco esiste per prendere), e `min-width:min-content` porta
+        il nome a **11 px**, peggio dei 23,42 di partenza. Fra «nome 53,44 con
+        casella 39,56» e «nome 23,42 con casella 61,58», la scala del foglio
+        aveva già deciso. Sta in `TOCCHI_SCUSATI` **con la forbice 38-41 px** —
+        se domani scendesse a 20 non sarebbe più lo stesso caso — e il banco
+        **pretende che l'eccezione si presenti ancora**.
 - [x] ✅ **B0-vicies. LA PASTIGLIA «NON SALVA» SI SOVRAPPONEVA AL NOME UTENTE —
       e la segnalazione aveva ragione sul fatto e torto sulla causa.**
       *Chiuso il 13/08.* La sovrapposizione c'era: a 430 px la pastiglia stava a

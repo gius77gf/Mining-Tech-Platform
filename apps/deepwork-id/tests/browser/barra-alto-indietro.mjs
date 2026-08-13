@@ -34,7 +34,12 @@
      2. nessun elemento di una metà della barra si sovrappone a un elemento
         dell'altra metà;
      3. il documento non scorre di lato — se no si scambierebbe un
-        traboccamento con l'altro e sembrerebbe una correzione.
+        traboccamento con l'altro e sembrerebbe una correzione;
+     4. e — dal 13/08 — CHI CEDE PER PRIMO: dove una barra ha insieme
+        l'identità di chi è collegato e una casella di ricerca, l'identità non
+        può restare più stretta della ricerca. Le prime tre domande erano
+        cieche su questo (il difetto sta tutto dentro i bordi), e il perché sta
+        accanto a `COPPIE_CEDEVOLI`.
    I bersagli di tocco della barra si MISURANO sempre e si pretendono solo dove
    oggi sono puliti (vedi `TOCCHI_PRETESI`): sul ramo da scrivania la casella di
    ricerca del core è alta 36 px — arretrato dichiarato, non introdotto qui, e
@@ -45,9 +50,10 @@
          node …/barra-alto-indietro.mjs [porta] --tocco
          node …/barra-alto-indietro.mjs [porta] --tema=chiaro
          node …/barra-alto-indietro.mjs [porta] --controprova
-   La controprova rimette lo stato di PRIMA della correzione (identità che non
+   La controprova rimette lo stato di PRIMA delle correzioni (identità che non
    cede, involucro della ricerca che non si stringe, testo della pastiglia
-   acceso sopra i 360 px) e pretende che il banco lo veda.
+   acceso sopra i 360 px, e la larghezza FISSA della ricerca che il ramo del
+   tocco imponeva) e pretende che il banco lo veda.
 */
 import { prendiChromium, CHROMIUM, SUPERFICI, apriSuperficie } from './giro.mjs';
 import { montaFintoFirebase } from './finto-firebase.mjs';
@@ -74,11 +80,72 @@ const BARRE = ['.topbar', '.ph', 'header.top'];
    questo banco rosso dalla nascita, cioè da ignorare. */
 const TOCCHI_PRETESI = TOCCO;
 
+/* ⛔ UN'ECCEZIONE DICHIARATA, COL SUO CONTO ACCANTO — E SORVEGLIATA NEI DUE
+   VERSI. Entrata il 13/08 con l'unità B0-duovicies, insieme alla correzione
+   che ha tolto `width:120px` dal ramo del tocco.
+   Quel `width` fisso faceva due mestieri: dava alla ricerca una larghezza che
+   non scalava (e a 320 px lasciava al NOME DELL'UTENTE 23,42 px — due lettere
+   e i puntini) e le faceva anche da pavimento per il dito. Tolto, la casella
+   segue di nuovo la scala del foglio e il nome torna a 53,44; il prezzo è che
+   a 320 px, e SOLO lì, la casella è larga 39,56 invece di 44. Le due strade
+   per riavere il pavimento sono state provate e misurate — un `min-width:44px`
+   rimette 4,44 px di traboccamento ALL'INDIETRO sopra il nome (cioè il difetto
+   che questo banco esiste per prendere), e `min-width:min-content` su
+   `.topbar-cmd` porta il nome a 11 px — quindi qui si sceglie, non si nasconde.
+   ⚠️ E SI SORVEGLIA CHE SI PRESENTI ANCORA, che è la lezione di
+   `sonda-vuoto.mjs`: un'eccezione che non si presenta più è una riga che
+   copre un difetto che non c'è più (o una misura cambiata sotto). Se il caso
+   scritto qui non si vede, il banco lo dice invece di stare zitto.
+   ⚠️ La larghezza è la SOLA cosa scusata: l'altezza resta pretesa a 44 (la dà
+   `min-height:44px` nel blocco del tocco), e ogni altro bersaglio della barra
+   resta preteso a 44×44 come prima. */
+const TOCCHI_SCUSATI = [{
+  superficie: 'core', chi: 'global-search', larghezza: 320, soloTocco: true,
+  wMin: 38, wMax: 41, perche: 'la scala della ricerca vale più del pavimento: 39,56×44 contro un nome da 23,42 px',
+}];
+const scusatiVisti = new Set();
+const scusabile = (nome, larghezza, t) => TOCCHI_SCUSATI.some((e, i) => {
+  if (e.superficie !== nome || e.larghezza !== larghezza || e.chi !== t.chi) return false;
+  if (e.soloTocco && !TOCCO) return false;
+  /* la larghezza è scusata solo NELLA FORBICE misurata: se domani scendesse a
+     20 px non sarebbe più lo stesso caso, e questa riga non deve coprirlo */
+  if (!(t.w >= e.wMin && t.w <= e.wMax) || t.h < 44 || !t.mio) return false;
+  scusatiVisti.add(i); return true;
+});
+
+/* ⛔ DOMANDA 4 — CHI CEDE PER PRIMO. Le prime tre domande guardano se qualcosa
+   ESCE, si accavalla o fa scorrere la pagina: sono tutt'e tre cieche sul danno
+   che una barra fa restando perfettamente dentro i suoi bordi. Misurato il
+   13/08 sul ramo del tocco del core: «0 da guardare» nei due rami e nei due
+   temi — e aveva ragione, niente usciva — mentre a 320 px al nome dell'utente
+   restavano **23,42 px** («Gi…») e alla casella di ricerca 61,58. Non era
+   spazio sparito: era spazio riassegnato al contrario della decisione scritta
+   nel foglio, che dice a lettere «a cedere dev'essere la ricerca».
+   La domanda è quella, e non un numero: **l'identità non può essere più
+   stretta della ricerca.** Un minimo in pixel invecchierebbe col carattere e
+   con la lingua; un confronto fra due elementi della stessa barra no.
+   ⚠️ L'elenco è corto e DICHIARATO: una superficie che non ha tutt'e due gli
+   elementi è zero soggetti, non «a posto», e il banco lo stampa. Oggi la
+   coppia ce l'ha il solo core; le sei app hanno una barra senza ricerca. */
+const COPPIE_CEDEVOLI = [{ superficie: 'core', identita: '#h-user', ricerca: '.topbar-search-input' }];
+
+const MISURA_COPPIA = (c) => {
+  const a = document.querySelector(c.identita), b = document.querySelector(c.ricerca);
+  if (!a || !b) return null;
+  const ra = a.getBoundingClientRect(), rb = b.getBoundingClientRect();
+  if (ra.width + ra.height === 0 || rb.width + rb.height === 0) return null;
+  return { id: +ra.width.toFixed(2), ric: +rb.width.toFixed(2) };
+};
+
 /* lo stato di PRIMA della correzione del 13/08. Sono VALORI di proprietà, non
-   righe di sorgente citate a memoria: non scadono quando il codice si sposta. */
+   righe di sorgente citate a memoria: non scadono quando il codice si sposta.
+   ⚠️ La riga della ricerca è quella tolta con B0-duovicies: era dentro il
+   blocco `pointer:coarse`, quindi da scrivania non si vedeva — ma rimessa qui
+   vale su tutt'e due i rami, ed è la sola che fa cadere la domanda 4. */
 const CSS_PRIMA = `
   .topbar-id{flex:0 1 auto;}
   .topbar-search-wrap{min-width:auto;}
+  .topbar-search-input{width:120px;}
   @media(min-width:361px){.sync-badge .sync-testo{display:inline;}.sync-badge{padding:5px 10px;}}`;
 
 /* il tema si mette DAI DATI: le impostazioni di partenza del core dichiarano
@@ -192,7 +259,8 @@ const b = await chromium.launch({ executablePath: CHROMIUM });
 const superfici = SUPERFICI.filter(([n]) => !SOLO || n === SOLO);
 if (SOLO && !superfici.length) { console.error(`✗ --solo=${SOLO}: superficie sconosciuta`); process.exit(2); }
 
-let guai = 0, barreTot = 0, figliTot = 0, misureTot = 0, senzaBarra = [], tocchiKo = 0, tocchiTot = 0;
+let guai = 0, barreTot = 0, figliTot = 0, misureTot = 0, senzaBarra = [], tocchiKo = 0, tocchiTot = 0, tocchiScusati = 0;
+const coppieViste = new Set(), coppieMute = new Set();
 let regoleTocco = 0;
 const perSuperficie = {};
 
@@ -211,9 +279,18 @@ for (const [nome, via] of superfici) {
     barreQui = Math.max(barreQui, m.barre);
     barreTot += m.barre; figliTot += m.figliGuardati;
     tocchiTot += m.tocchi.length;
-    const kt = m.tocchi.filter((t) => t.w < 44 || t.h < 44 || !t.mio);
+    const ktTutti = m.tocchi.filter((t) => t.w < 44 || t.h < 44 || !t.mio);
+    const kt = ktTutti.filter((t) => !scusabile(nome, larghezza, t));
+    tocchiScusati += ktTutti.length - kt.length;
     tocchiKo += kt.length;
-    const quanti = m.fuori.length + m.accavalli.length + (m.scorre > 0 ? 1 : 0);
+    /* domanda 4 — chi cede per primo */
+    const coppia = COPPIE_CEDEVOLI.find((c) => c.superficie === nome);
+    let cedeIdentita = null;
+    if (coppia) {
+      const mc = await p.evaluate(MISURA_COPPIA, coppia);
+      if (!mc) coppieMute.add(nome); else { coppieViste.add(nome); if (mc.id < mc.ric) cedeIdentita = mc; }
+    }
+    const quanti = m.fuori.length + m.accavalli.length + (m.scorre > 0 ? 1 : 0) + (cedeIdentita ? 1 : 0);
     if (quanti) {
       guai += quanti; perSuperficie[nome] += quanti;
       console.log(`\n✗ ${nome} · ${larghezza} px${TEMA ? ' · tema ' + TEMA : ''}${TOCCO ? ' · ramo TOCCO' : ''}`);
@@ -223,6 +300,8 @@ for (const [nome, via] of superfici) {
       for (const a of m.accavalli)
         console.log(`   accavallamento : <${a.a}> sopra <${a.b}> per ${a.x}×${a.y} px`);
       if (m.scorre > 0) console.log(`   e il documento scorre di lato di ${m.scorre} px`);
+      if (cedeIdentita) console.log(`   cede l'identità invece della ricerca: <${coppia.identita}> ${cedeIdentita.id} px`
+        + ` contro <${coppia.ricerca}> ${cedeIdentita.ric} px — il foglio dice che a cedere dev'essere la ricerca`);
     }
     if (TOCCHI_PRETESI && kt.length) {
       guai += kt.length; perSuperficie[nome] += kt.length;
@@ -247,6 +326,33 @@ if (TEMA)
 if (TOCCO)
   console.log(`   ramo TOCCO: ${regoleTocco} regole di \`pointer:coarse\`/\`hover:none\` lette dalla pagina e rimesse in coda`
     + (regoleTocco ? '' : ' — ZERO: il ramo del tocco NON è stato simulato, questa passata misura la scrivania'));
+console.log(`   domanda 4 (chi cede per primo): ${coppieViste.size} superfici su ${superfici.length} hanno`
+  + ` la coppia identità/ricerca e sono state misurate`
+  + (coppieMute.size ? `; ${coppieMute.size} la dichiarano e non l'hanno resa visibile (${[...coppieMute].join(', ')})` : '')
+  + `; ${superfici.length - COPPIE_CEDEVOLI.filter((c) => !SOLO || c.superficie === SOLO).length} non ce l'hanno`
+  + ' — zero soggetti, NON «a posto»');
+
+/* ⛔ L'ECCEZIONE SI DICHIARA, E SI DICHIARA ANCHE QUANDO NON SI PRESENTA. Un
+   elenco più vecchio del codice copre un difetto che non c'è più: qui la forma
+   da leggere è «N scusati, N dichiarati», la stessa di `sonda-vuoto.mjs`. */
+{
+  const attesi = TOCCHI_SCUSATI.filter((e) => !e.soloTocco || TOCCO)
+    .filter((e) => !SOLO || e.superficie === SOLO)
+    .filter((e) => LARGHEZZE.includes(e.larghezza));
+  /* ⚠️ non sotto controprova: lì il soggetto è cambiato APPOSTA, quindi
+     «l'eccezione non si presenta» sarebbe vero e non vorrebbe dire niente */
+  const mancanti = CONTROPROVA ? []
+    : attesi.filter((e) => !scusatiVisti.has(TOCCHI_SCUSATI.indexOf(e)));
+  if (attesi.length)
+    console.log(`   ⚠️ ${tocchiScusati} bersagli di tocco SCUSATI per dichiarazione su ${attesi.length} casi dichiarati:`
+      + attesi.map((e) => `\n      · ${e.superficie} · ${e.chi} · ${e.larghezza} px — ${e.perche}`).join(''));
+  if (mancanti.length) {
+    guai += mancanti.length;
+    console.log(`\n✗ ${mancanti.length} eccezioni dichiarate NON si presentano più — l'elenco è più vecchio del codice,`
+      + ' e una riga che scusa un caso che non c\'è copre il prossimo che ci somiglia:'
+      + mancanti.map((e) => `\n   ${e.superficie} · ${e.chi} · ${e.larghezza} px`).join(''));
+  }
+}
 if (!TOCCHI_PRETESI)
   console.log(`   ${tocchiKo} bersagli di tocco sotto i 44 px o coperti su ${tocchiTot} misurati:`
     + ' CONTATI E NON PRETESI su questo ramo (la casella di ricerca del core è alta 36 px da foglio;'
