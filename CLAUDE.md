@@ -1315,6 +1315,23 @@ Perché serva davvero e non produca elenchi generici, cinque vincoli:
   il 10/08 tre cantieri erano morti sul limite di sessione **prima** di
   consegnare, quindi non si è persa nessuna misura verificata — ma è un caso
   fortunato, non una difesa. La difesa è committare presto ciò che è verificato.
+- ⛔ **IL CONTENITORE NUOVO ARRIVA CON UNA COPIA SUPERFICIALE, E DUE CONTROLLI
+  DICHIARANO DI NON AVER GUARDATO.** Misurato il 13/08: contenitore fresco,
+  `git rev-parse --is-shallow-repository` → **true**, `git log --oneline | wc
+  -l` → **1643** commit invece di tutta la storia. Non è un guasto del
+  prodotto: `date-checkpoint` e `documenti-invecchiati` chiedono la storia per
+  sapere **quando** un file è stato scritto davvero, e senza di quella si
+  fermano dicendolo — «la storia di git è leggibile (se no il conto direbbe
+  zero senza aver guardato): copia superficiale». È la forma buona del difetto:
+  un controllo che **si dichiara cieco** invece di rispondere «tutto a posto».
+  La cura è una riga, e va fatta **prima** di lanciare il giro `node`, se no si
+  legge un rosso che non parla del codice:
+  `git fetch --unshallow origin`.
+  ⚠️ E vale la stessa domanda del riallineo: *sono dove credo di essere?* Il
+  13/08 il contenitore era **insieme** superficiale e indietro (disco a
+  `5a4c5b6`, la PR #321; ramo remoto a `27fa9c5`) — due condizioni diverse che
+  si presentano insieme e si curano in due modi diversi, `fetch --unshallow`
+  per la prima e `fetch` + `merge --ff-only` per la seconda.
 - ⛔ **NIENTE `git stash` CON CANTIERI APERTI.** Il 01/08 serviva confrontare la
   pagina di Genesi con `HEAD`: lo stash ha funzionato e ha ripristinato tutto,
   ma nella finestra c'erano **cinque agenti che scrivevano** — e uno stash che
