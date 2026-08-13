@@ -1211,6 +1211,19 @@ Perché serva davvero e non produca elenchi generici, cinque vincoli:
   mente quando il difetto è uno scambio di due argomenti, che cambia zero
   caratteri. E il corollario: **il messaggio del commit si scrive DOPO aver
   letto l'esito.**
+  ⛔ **E IL 13/08 LA STESSA REGOLA HA MORSO NELLA VESTE PIÙ SEMPLICE: LA
+  SCRITTURA NON È AVVENUTA E IL `git commit` È PARTITO LO STESSO.** Uno script
+  che aggiungeva una voce di roadmap è saltato su un'asserzione — quindi non ha
+  scritto niente — e il `git commit` che stava sulla **riga successiva** ha
+  committato il resto senza di lei: il banco è entrato **senza la riga che lo
+  spiegava**. Non è un `sed` che non trova: è la sequenza. Un comando che
+  fallisce non ferma quello dopo se i due non sono legati, e in un ciclo
+  automatico nessuno guarda l'errore in mezzo.
+  La difesa è quella già scritta e saltata: **si legge l'esito prima del passo
+  successivo**, e non si mette sulla stessa riga la scrittura e il commit. Se
+  devono stare insieme, si legano con `&&` — ma allora vale l'altra regola, che
+  **una catena `&&` non è una lettura**: il commit parte e il suo messaggio
+  racconta una cosa che nessuno ha verificato.
 - ⚠️ **«NON DISTINGUE» HA DUE LETTURE OPPOSTE, E VANNO SEPARATE.** Quando la
   controprova dice che il difetto non fa cadere la prova, la causa è una di due,
   e portano a interventi contrari:
@@ -1639,6 +1652,35 @@ Perché serva davvero e non produca elenchi generici, cinque vincoli:
   («**CONFERMATE ASSENTI** — in ordine di…») e l'intestazione di **colonna**
   (`| quando | confermate | false | …`). Le separano *dove comincia la cella* e
   *la maiuscola*, non il vocabolario.
+- ⛔ **UN BANCO CHE GUARDA IL POSTO GIUSTO CON LA *FIXTURE* SBAGLIATA RISPONDE
+  «PULITO» SENZA AVER GUARDATO.** Famiglia nuova, misurata il 13/08 su Terra, e
+  diversa dalle altre: non il filtro, non la domanda — **i dati con cui la
+  domanda viene fatta**. `terra-numeri-tranquilli` costruisce l'anno cieco
+  svuotando i rilievi, ma la dimostrazione dichiara `estrattoPregressoM3:
+  880000`, quindi la bandiera `misurabile` restava **vera** e la sezione
+  incriminata **non veniva nemmeno attraversata**: il banco sorvegliava la
+  bandiera **per anno** e non quella **per titolo**. Sotto ci stava il foglio
+  che va all'ente, che su una cava senza nessun rilievo scriveva «Cumulato a
+  fine 2026 · **0 m³ (0% del concesso)**» e «Residuo · **1.200.000 m³**» — con
+  lo schermo che diceva `—` e, otto righe più giù **sullo stesso foglio**, un
+  «Totale 2026 · non misurato».
+  La domanda da farsi scrivendo una fixture: **il caso che voglio provare
+  ARRIVA al ramo che voglio provare?** Si verifica facendo dire al banco quale
+  strada ha preso, non deducendolo dai dati che gli si sono passati.
+- ⛔ **QUANDO SI AGGIUNGE UNA RAGIONE A UNA FUNZIONE, SI CERCANO I CONTI CHE
+  *DEDUCEVANO* L'ALTRA.** Misurata il 13/08 su Conti, ed è la famiglia dei
+  difetti che **nascono dalle correzioni**. `valoreDdt` sapeva rispondere «non
+  calcolabile» per la quantità; aggiungendogli la ragione «prezzo mancante»,
+  una riga lontana — `Math.max(0, senzaDensita − nonValorizzabili)` — ha
+  smesso di dire la verità: reggeva sull'invariante *«non valorizzabile è
+  sempre anche senza densità»*, vero finché le ragioni erano **una**. Rotto
+  l'invariante la sottrazione non diventava negativa: **faceva sparire** dalla
+  riga le consegne che un valore ce l'hanno, cioè sbagliava nella direzione
+  tranquilla.
+  Il segno da cercare è una **sottrazione fra due insiemi**, o un `Math.max(0,
+  a − b)`: quello zero di comodo è lì perché qualcuno sapeva che `b ⊆ a`, e
+  quell'invariante **non è scritto da nessuna parte**. La cura è la stessa di
+  sempre: il numero si **conta**, non si deduce.
 - ⚠️ **IL CONTROLLO CHE NON GUARDA DOVE CREDE.** Variante della regola qui
   sopra, e più insidiosa: il controllo **sa** fallire, ma il suo filtro esclude
   proprio i casi che contano, e allora risponde «pulito» senza aver guardato
