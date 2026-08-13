@@ -46,16 +46,39 @@ const TIPI = { ".html": "text/html", ".js": "text/javascript", ".mjs": "text/jav
   ".glb": "model/gltf-binary", ".obj": "text/plain", ".wasm": "application/wasm",
   ".webmanifest": "application/manifest+json" };
 
-/* I DODICI CAMPI SORVEGLIATI: id nel DOM, chiave in `D2`, e il numero che la
-   forma vecchia inventava — misurato uno per uno nel browser il 09/08. */
+/* I SEDICI CAMPI SORVEGLIATI: id nel DOM, chiave in `D2`, il numero che la
+   forma vecchia inventava — misurato uno per uno nel browser il 09/08 — e
+   quello che va aggiunto al progetto salvato perché il caso sia quello giusto.
+   ⛔ ERANO DODICI, E I TRE «ESCLUSI PER DECISIONE PRESA» NON ESISTEVANO PIÙ.
+   Il 13/08, rilanciando questo banco: `dPsCharge`, `dRecDist` e `dRecFreq`
+   dicevano tutt'e tre «VUOTO», e il banco stampava accanto «atteso 0,1 · 20 ·
+   2, per decisione presa» — cioè un'affermazione FALSA sul prodotto di oggi,
+   scritta in bella copia sotto la riga «e va detto». Il blocco G16 li aveva
+   corretti il 10/08 e nessuno era tornato a togliere l'eccezione che li
+   scusava. È «un'eccezione che non serve più è un'eccezione che nasconde»,
+   nella veste in cui l'eccezione non nasconde un difetto ma un LAVORO FATTO:
+   il banco raccontava il prodotto peggiore di com'è, e le sue tre righe non
+   sorvegliavano niente. Adesso sono sorvegliati come gli altri.
+   ⛔ E IL TREDICESIMO È QUELLO CHE DÀ IL NOME ALL'INTERO CANTIERE, e questo
+   banco non l'ha mai guardato: `dKg`, la carica per foro — il campo su cui il
+   blocco G14 era nato («due clic e compaiono 5 kg/foro»). Sorvegliava le
+   dodici correzioni della GEOMETRIA e non quella della CARICA, cioè il caso
+   scritto nel suo stesso commento d'intestazione. */
 const SORVEGLIATI = [
   ["dB", "B", "1,5"], ["dS", "S", "1,5"], ["dD", "diam", "50"], ["dN", "perRow", "3"],
   ["dFile", "file", "1"], ["dH", "prof", "6"], ["dStem", "stem", "0,5"], ["dSub", "sub", "0"],
   ["dRitFila", "ritardoFila", "8"], ["dUcs", "ucs", "5"], ["dEmod", "eMod", "2"],
   ["dPsSpacing", "psSpacing", "0,3"],
+  /* ⚠️ LA CARICA VUOLE `kgAuto:false` NEL PROGETTO SALVATO, e non è un
+     trucco per far passare la prova: con la carica AUTO accesa `deriveCharge`
+     la RICALCOLA dalla geometria (58 kg su questa maglia) e riempire il campo
+     è la cosa GIUSTA — è un valore derivato, non inventato. Il caso che
+     interessa è la carica scritta a mano e diventata illeggibile. Misurato
+     tutt'e due il 13/08: con `kgAuto:true` il campo dice «58» dopo il tocco,
+     con `kgAuto:false` resta vuoto. */
+  ["dKg", "kg", "5", { kgAuto: false }],
+  ["dPsCharge", "psCharge", "0,1"], ["dRecDist", "recDist", "20"], ["dRecFreq", "recFreq", "2"],
 ];
-/* I TRE ESCLUSI PER DECISIONE PRESA: si guardano lo stesso e si stampano. */
-const ESCLUSI = [["dPsCharge", "psCharge", "0,1"], ["dRecDist", "recDist", "20"], ["dRecFreq", "recFreq", "2"]];
 
 /* LA CONTROPROVA: ogni riga torna alla forma che stringeva al minimo un valore
    assente. Il nome della tabella è quello che `iniezioni-fresche.mjs` sa
@@ -86,6 +109,34 @@ const DIFETTI = [
    "  if($('dEmod')) D2.eMod = Math.max(2, Math.min(150, +$('dEmod').value||D2.eMod));"],
   ["  if($('dPsSpacing')) D2.psSpacing = valoreCampo(gvv('dPsSpacing'), D2.psSpacing, 0.3, 2);",
    "  if($('dPsSpacing')) D2.psSpacing = Math.max(0.3, Math.min(2, gvv('dPsSpacing')||D2.psSpacing));"],
+  /* la CARICA: le sue due metà, perché i due clic sono due difetti distinti —
+     `applyDesign` che fissa 5 kg nel progetto, e `syncDesignInputs` che scrive
+     lo zero DENTRO l'input prima ancora che qualcuno tocchi qualcosa */
+  ["  D2.kg = valoreCampo(gvv('dKg'), D2.kg, 5, 200); deriveCharge();",
+   "  D2.kg = Math.max(5, Math.min(200, gvv('dKg')||D2.kg)); deriveCharge();"],
+  ["gsv('dH',D2.prof,1); gsv('dKg',D2.kg,0);",
+   "gsv('dH',D2.prof,1); gsv('dKg',Math.round(D2.kg),0);"],
+  /* i tre del blocco G16, che fino al 13/08 questo banco dichiarava esclusi */
+  ["  if($('dPsCharge')) D2.psCharge = valoreCampo(gvv('dPsCharge'), D2.psCharge, 0.1, 2);",
+   "  if($('dPsCharge')) D2.psCharge = Math.max(0.1, Math.min(2, gvv('dPsCharge')||D2.psCharge));"],
+  ["  if($('dRecDist')) D2.recDist = valoreCampo(gvv('dRecDist'), D2.recDist, 20, 3000);",
+   "  if($('dRecDist')) D2.recDist = Math.max(20, Math.min(3000, gvv('dRecDist')||D2.recDist));"],
+  ["  if($('dRecFreq')) D2.recFreq = valoreCampo(gvv('dRecFreq'), D2.recFreq, 2, 120);",
+   "  if($('dRecFreq')) D2.recFreq = Math.max(2, Math.min(120, +$('dRecFreq').value||D2.recFreq));"],
+];
+/* ⛔ E LA SECONDA DOMANDA VUOLE UN'INIEZIONE NEL MODULO, non nella pagina: il
+   difetto dell'SDOB (blocco G17) non stava in un campo, stava nel numero che
+   una riga della scheda ricavava dal campo assente. Si rimette la forma
+   vecchia dove viveva — `Math.min(Q, cap)` con `Q` grezzo, che di un `null` fa
+   **0** — e da lì il clamp `max(0.1, W_top)` risputa i **5,84 m/kg⌐** con il
+   pallino VERDE, e la gittata flyrock scende a 49 m.
+   ⚠️ Terna `[file, cerca, sostituisci]`: `iniezioni-fresche.mjs` la legge, e
+   così il giorno in cui questa riga si muove il repository lo dice in tre
+   secondi invece di far girare la controprova su un prodotto sano. */
+const DIFETTI_MODULO = [
+  ["apps/genesi/genesi-data.js",
+   "  const q = n(o.kg), s = n(o.stem), d = n(o.diam), r = n(o.densita);",
+   "  const q = (o.kg === null || o.kg === undefined) ? 0 : n(o.kg), s = n(o.stem), d = n(o.diam), r = n(o.densita);"],
 ];
 
 const colpiti = new Set();
@@ -97,6 +148,11 @@ const srv = createServer((q, s) => {
   if (CONTROPROVA && p.endsWith("apps/genesi/genesi.html")) {
     let t = corpo.toString("utf8");
     for (const [a, b] of DIFETTI) if (t.includes(a)) { colpiti.add(a); t = t.split(a).join(b); }
+    corpo = Buffer.from(t, "utf8");
+  }
+  if (CONTROPROVA && p.endsWith("apps/genesi/genesi-data.js")) {
+    let t = corpo.toString("utf8");
+    for (const [, a, b] of DIFETTI_MODULO) if (t.includes(a)) { colpiti.add(a); t = t.split(a).join(b); }
     corpo = Buffer.from(t, "utf8");
   }
   s.writeHead(200, { "content-type": TIPI[extname(p)] || "application/octet-stream" });
@@ -140,10 +196,10 @@ const DESIGN = { B: 3, S: 3.5, diam: 102, prof: 10, kg: 58, stem: 2.2, sub: 0.9,
 
 /* apre una volata salvata a cui manca UN valore, e ci arriva dalla via vera:
    `localStorage` → Home → bottone «Apri» */
-async function apriSenza(chiave) {
+async function apriSenza(chiave, extra) {
   const pg = await b.newPage({ viewport: { width: 430, height: 950 } });
   const errori = []; pg.on("pageerror", (e) => errori.push(e.message));
-  const d = { ...DESIGN }; d[chiave] = null;
+  const d = { ...DESIGN, ...(extra || {}) }; if (chiave) d[chiave] = null;
   await pg.addInitScript((dd) => {
     localStorage.setItem("genesiDisclaimerV1", "1");
     localStorage.setItem("genesiVolate", JSON.stringify([{ id: "v1", nome: "Fronte Nord",
@@ -177,10 +233,10 @@ async function dueTocchi(pg, id) {
 }
 
 console.log(`\n════════ i campi di Genesi che non devono riempirsi da soli${CONTROPROVA ? " · controprova" : ""} ════════`);
-console.log(`(${SORVEGLIATI.length} campi sorvegliati + ${ESCLUSI.length} dichiarati esclusi)`);
+console.log(`(${SORVEGLIATI.length} campi sorvegliati, zero esclusi)`);
 
-for (const [id, chiave, inventato] of SORVEGLIATI) {
-  const pg = await apriSenza(chiave);
+for (const [id, chiave, inventato, extra] of SORVEGLIATI) {
+  const pg = await apriSenza(chiave, extra);
   /* ⚠️ LA PRECONDIZIONE: se la volata non si è aperta nel 2D la domanda non ha
      senso, e un soggetto non misurato non è un soggetto a posto. */
   const navigato = await pg.evaluate(() => document.body.className.includes("scr-design"));
@@ -208,22 +264,79 @@ for (const [id, chiave, inventato] of SORVEGLIATI) {
   await pg.close();
 }
 
-console.log("\n· i tre esclusi per decisione presa — si riempiono ancora, e va detto");
-for (const [id, chiave, inventato] of ESCLUSI) {
-  const pg = await apriSenza(chiave);
-  const navigato = await pg.evaluate(() => document.body.className.includes("scr-design"));
-  if (!navigato) { nonMisurati.push(`${id} (la volata non si è aperta nel 2D)`); await pg.close(); continue; }
-  await dueTocchi(pg, id);
-  const v2 = String(await leggi(pg, id) || "").trim();
-  console.log(`  ⚠️ ${id} (${chiave}): dopo i due tocchi il campo dice «${v2 || "VUOTO"}» (atteso ${inventato}, per decisione presa)`);
-  await pg.close();
+/* ⛔ LA SECONDA DOMANDA, e non è «il campo resta vuoto»: è «QUALCHE NUMERO A
+   SCHERMO si è inventato al posto suo?». Un campo che resta vuoto e una riga
+   che intanto stampa un numero ricavato da quel vuoto sono lo stesso difetto un
+   piano più sotto — e la prima domanda, da sola, dà verde.
+   Il metodo è quello dei disegni: **il rapporto fra due valori diversi**. Si
+   apre la STESSA volata due volte, una con la carica e una senza, e si mettono
+   le ventinove righe della scheda validatori una accanto all'altra. Ogni riga
+   che CAMBIA deve essere diventata «non calcolabile»; se cambia e resta un
+   numero, quel numero l'ha fatto l'assenza.
+   Misurato così il 13/08: ventotto righe identiche e UNA sola diversa —
+   «Confin. colletto (SDOB) 5,84 m/kg⌐» contro «1,43» — e 5,84 sta SOPRA la
+   soglia 1,4, cioè il pallino si dipingeva verde con «colletto ben confinato».
+   Un campione solo non l'avrebbe distinta da un numero giusto.
+   ⚠️ Si guarda la CARICA e basta, e il costo è dichiarato: due aperture in
+   più. Rifarlo per tutti e sedici i campi vuol dire trentadue aperture, cioè
+   dieci minuti in più su un banco che ne dura otto. */
+console.log("\n· la seconda domanda: con la carica assente, nessuna riga della scheda inventa un numero");
+{
+  const pgSana = await apriSenza(null, { kgAuto: false });
+  const pgSenza = await apriSenza("kg", { kgAuto: false });
+  const righeDi = (pg) => pg.evaluate(() =>
+    [...document.querySelectorAll("#d2-scheda .sv-row")].map((x) => ({
+      t: x.innerText.replace(/\s+/g, " ").trim(),
+      pallino: (x.querySelector("[class*='sv-ok'],[class*='sv-warn'],[class*='sv-bad']") || x).className,
+    })));
+  const A = await righeDi(pgSana), B = await righeDi(pgSenza);
+  const navigati = await pgSana.evaluate(() => document.body.className.includes("scr-design"))
+    && await pgSenza.evaluate(() => document.body.className.includes("scr-design"));
+  /* ⛔ LA PRECONDIZIONE: se le due schede non hanno lo stesso numero di righe
+     non sono confrontabili, e un soggetto non misurato non è un soggetto a
+     posto — si dichiara e si esce diverso da zero, non si accusa. */
+  if (!navigati || !A.length || A.length !== B.length) {
+    nonMisurati.push(`confronto scheda (righe: ${A.length} con la carica, ${B.length} senza)`);
+  } else {
+    const cambiate = A.map((a, i) => [a.t, B[i].t]).filter(([a, c]) => a !== c);
+    dice(cambiate.length > 0,
+      `il confronto DISTINGUE: ${cambiate.length} righe su ${A.length} cambiano togliendo la carica`,
+      cambiate.length);
+    const bugiarde = cambiate.filter(([, c]) => !/non calcolabile/i.test(c));
+    dice(bugiarde.length === 0,
+      `⛔ e ogni riga che cambia dice «non calcolabile», nessuna dice un altro NUMERO`,
+      bugiarde.map(([a, c]) => `${a}  →  ${c}`).join(" | "));
+    /* la riga per nome, perché una prova che guarda solo l'insieme non dice
+       QUALE difetto sorveglia — e questa è quella che il 13/08 mentiva */
+    const sdobSenza = B.find((r) => /SDOB/i.test(r.t));
+    dice(sdobSenza && /non calcolabile/i.test(sdobSenza.t),
+      "⛔ SDOB: senza la carica non dice più 5,84 (che era SOPRA la soglia 1,4, cioè verde)", sdobSenza && sdobSenza.t);
+    const flySenza = B.find((r) => /GITTATA FLYROCK/i.test(r.t));
+    dice(flySenza && /non calcolabile/i.test(flySenza.t),
+      "⛔ gittata flyrock: niente raggio di sgombero ricavato da una carica inventata", flySenza && flySenza.t);
+    const invSenza = B.find((r) => /FLYROCK INVERSO/i.test(r.t));
+    dice(invSenza && /non calcolabile/i.test(invSenza.t),
+      "⛔ flyrock inverso: niente REQUISITO prescritto su una carica che non c'è", invSenza && invSenza.t);
+    /* e il verso opposto: sul progetto sano i tre numeri ci sono ancora, se no
+       la difesa avrebbe spento tre righe invece di renderle oneste */
+    const sdobSano = A.find((r) => /SDOB/i.test(r.t));
+    dice(sdobSano && /1,43/.test(sdobSano.t),
+      "e con la carica vera l'SDOB è ancora 1,43: la correzione non ha spento la riga", sdobSano && sdobSano.t);
+    const flySano = A.find((r) => /GITTATA FLYROCK/i.test(r.t));
+    dice(flySano && /101 m/.test(flySano.t) && /404 m/.test(flySano.t),
+      "e la gittata è ancora 101 m con sgombero 202 / 404 m", flySano && flySano.t);
+  }
+  await pgSana.close(); await pgSenza.close();
 }
 
 if (nonMisurati.length) {
   console.log(`\n⚠️ NON MISURATI (${nonMisurati.length}): ${nonMisurati.join(", ")}`);
   console.log("   Un soggetto non misurato non è un soggetto a posto: il banco non esce zero.");
 }
-if (CONTROPROVA) console.log(`\n(iniezioni: ${colpiti.size}/${DIFETTI.length} hanno trovato il loro pezzo)`);
-console.log(`\nRisultato campi assenti di Genesi: ${ok} passati, ${ko} falliti  ·  ${SORVEGLIATI.length * 3} asserzioni attese (3 per campo)`);
+if (CONTROPROVA) console.log(`\n(iniezioni: ${colpiti.size}/${DIFETTI.length + DIFETTI_MODULO.length} hanno trovato il loro pezzo)`);
+/* ⚠️ IL TOTALE ATTESO SI STAMPA, e non è pignoleria: un banco che crolla a
+   metà dichiara MENO prove, e un totale più basso si legge come «ha guardato
+   meno roba», non come «si è rotto». */
+console.log(`\nRisultato campi assenti di Genesi: ${ok} passati, ${ko} falliti  ·  ${SORVEGLIATI.length * 3 + 7} asserzioni attese (3 per campo × ${SORVEGLIATI.length}, più 7 sul confronto della scheda)`);
 await b.close(); srv.close();
 process.exit(ko > 0 || nonMisurati.length ? 1 : 0);

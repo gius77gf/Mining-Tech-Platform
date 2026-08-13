@@ -1102,7 +1102,17 @@ import { sitoFit, ppvLimit, ppvSenzaSoglia, ppvSenzaDistanza, airblastDb, normaP
    (D2.prof||10)`, cioè su una spalla di 3 m che nessuno ha scritto, **subito
    dopo «Apri»** e senza nemmeno il secondo clic. `volumeForo` chiede se i tre
    fattori ci sono e sono positivi, e risponde `null` quando non lo sono. */
-         volumeForo } from './genesi-data.js';
+         volumeForo,
+/* il CONFINAMENTO DEL COLLETTO — vedi il blocco G17.
+   ⛔ Era l'ultimo posto in cui la carica per foro assente diventava un numero,
+   ed era anche l'unico in cui quel numero RASSICURAVA: `min(null, cap)` fa 0,
+   il clamp lo porta a 0,1 kg e l'SDOB esce 5,84 invece di 1,43 — sopra la
+   soglia 1,4, quindi pallino VERDE e «colletto ben confinato».
+   ⛔ E la stessa formula era scritta due volte con due ripieghi opposti: qui
+   `flyrockEst` si inventava una carica intera (`D2.kg||P.kg||50`). Le due
+   invenzioni si compensavano, quindi togliere la prima da sola avrebbe
+   dimezzato la distanza di sgombero senza un rosso da leggere. */
+         CONFIN_SENZA_CONTO, confinamentoColletto } from './genesi-data.js';
 /* ⛔ «ha una data» si decide con l'ESISTENZA, non con la forma: «2026-02-30» ha
    la forma giusta e non esiste. Il modulo di Genesi questa regola l'ha imparata
    il 03/08 — il commento in cima a `genesi-data.js` lo racconta — e la pagina
@@ -1520,12 +1530,26 @@ function matWorldUV(m, wu, wv, ou, ov){
 /* stima gittata flyrock — stessa fisica della scheda (Richards&Moore face burst /
    cratering / rifling + McKenzie SDOB, tetto Lundborg), riusabile da scheda e scena 3D */
 function flyrockEst(){
-  const Dmm=(D2.diam||89), Dm=Dmm/1000, stem=D2.stem||2.5, B=D2.B||SPALLA, Q=D2.kg||P.kg||50;
   const _e=(typeof selEsplosivo==='function'&&selEsplosivo())||{};
-  const ql=(_e.densita_gcc||0.82)*1000*Math.PI*Dm*Dm/4;                 // carica lineare kg/m
-  const Wtop=Math.min(Q, ql*10*Dm);
-  const sdob=(stem+5*Dm)/Math.pow(Math.max(0.1,Wtop),1/3);
+  /* ⛔ QUI STAVA `Q = D2.kg || P.kg || 50`: con la carica per foro illeggibile
+     la stima si prendeva quella della simulazione 3D — o cinquanta chili
+     scritti a mano — e ne ricavava un raggio di sgombero. Un numero inventato
+     su cui si allontanano le persone.
+     ⚠️ E NON si può semplicemente togliere il ripiego lasciando la formula:
+     misurato il 13/08, con `Q` a `null` il termine McKenzie (che qui è il
+     DOMINANTE: 101 m contro 49,3 del secondo) crolla, e la gittata prevista si
+     dimezza — cioè lo sgombero persone passerebbe da 404 a 197 m senza che
+     nulla diventi rosso. Un dato che manca non rende una volata più corta:
+     rende la stima non calcolabile, e si dice.
+     ⚠️ `B = D2.B || SPALLA` resta com'era ed è FUORI da questa unità: la spalla
+     assente è la voce B0-quinquies, e va misurata con la sua controprova prima
+     di toccare le tre formule di Richards&Moore che la usano. */
+  const _cc=confinamentoColletto({ kg:D2.kg, stem:D2.stem, diam:D2.diam, densita:_e.densita_gcc });
   const kf=13.5+13.5*Math.max(0,Math.min(1,((D2.ucs||100)-30)/220));    // 13,5 tenere → 27 dure
+  if(!_cc.calcolabile) return { Lpred:null, Dmez:null, Dper:null, mech0:null, kf, sdob:null,
+    calcolabile:false, che:_cc.che, come:_cc.come };
+  const Dmm=+D2.diam, Dm=Dmm/1000, stem=+D2.stem, B=D2.B||SPALLA;
+  const ql=_cc.qLin, sdob=_cc.sdob;                                     // carica lineare kg/m, SDOB: una formula sola
   const g9=9.81, sqm=Math.sqrt(Math.max(0.1,ql));
   const Lff=(kf*kf/g9)*Math.pow(sqm/B,2.6);
   const Lcr=(kf*kf/g9)*Math.pow(sqm/Math.max(0.3,stem),2.6);
@@ -1534,23 +1558,28 @@ function flyrockEst(){
   const Llund=30.1*Math.pow(Dmm,2/3);
   const mech=[['face burst',Lff],['cratering',Lcr],['rifling',Lrif],['McKenzie',Rmck]].sort((a,b)=>b[1]-a[1]);
   const Lpred=Math.min(mech[0][1],Llund);
-  return { Lpred, Dmez:2*Lpred, Dper:4*Lpred, mech0:mech[0], kf, sdob };
+  return { Lpred, Dmez:2*Lpred, Dper:4*Lpred, mech0:mech[0], kf, sdob,
+    calcolabile:true, che:'', come:'' };
 }
 
 /* flyrock INVERSO: dal limite di gittata ammesso → borraggio e burden minimi.
    Stesse formule di flyrockEst risolte per stem/B: la carica lineare è fissata
    da diametro e densità dell'esplosivo, quindi le leve reali sono queste. */
 function flyrockInv(Lmax){
-  const Dmm=(D2.diam||89), Dm=Dmm/1000, Q=D2.kg||P.kg||50;
   const _e=(typeof selEsplosivo==='function'&&selEsplosivo())||{};
-  const ql=(_e.densita_gcc||0.82)*1000*Math.PI*Dm*Dm/4;
+  /* ⛔ STESSO RIPIEGO DELLA SORELLA, e qui fa un danno di forma diversa: il
+     calcolo inverso PRESCRIVE («servono borraggio ≥ 2,6 m e burden ≥ 1,9 m»).
+     Un requisito ricavato da una carica inventata manda a rifare un progetto
+     sano, che è lo stesso danno già misurato sulla distanza del recettore. */
+  const _cc=confinamentoColletto({ kg:D2.kg, stem:D2.stem, diam:D2.diam, densita:_e.densita_gcc });
+  if(!_cc.calcolabile) return { minStem:null, minB:null, calcolabile:false, che:_cc.che, come:_cc.come };
+  const Dmm=+D2.diam, Dm=Dmm/1000, ql=_cc.qLin;
   const kf=13.5+13.5*Math.max(0,Math.min(1,((D2.ucs||100)-30)/220));
   const g9=9.81, sqm=Math.sqrt(Math.max(0.1,ql)), L=Math.max(1,Lmax);
   const s1=sqm*Math.pow(kf*kf/(g9*L),1/2.6);                 // face burst (→B) e cratering (→stem)
-  const Wtop=Math.min(Q, ql*10*Dm);
   const sdobMin=Math.pow(10*Math.pow(Dmm,0.667)/L,1/2.167);  // McKenzie: SDOB minimo
-  const s2=sdobMin*Math.pow(Math.max(0.1,Wtop),1/3)-5*Dm;
-  return { minStem:Math.max(s1,s2), minB:s1 };
+  const s2=sdobMin*Math.pow(Math.max(0.1,_cc.wTop),1/3)-5*Dm;
+  return { minStem:Math.max(s1,s2), minB:s1, calcolabile:true, che:'', come:'' };
 }
 
 /* ============ stato simulazione ============ */
@@ -1867,10 +1896,16 @@ function xrayLegSync(){
   const wet=(D2.bagnato && (D2.acquaCol||0)>0);
   el.innerHTML='<div class="lg-t">Colonna di carica</div>'
     +'<div><i style="background:#a8a49a"></i>borraggio '+gfix(D2.stem,1)+' m</div>'
-    +'<div><i style="background:linear-gradient(90deg,#ff6d00,#ffab00)"></i>esplosivo '+Math.round(D2.kg||P.kg)+' kg'+(n>1?' · '+n+' deck':'')+'</div>'
+    /* ⛔ `D2.kg || P.kg` È UN'INVENZIONE SCRITTA A LETTERE, e questa legenda la
+       stampava accanto al colore dell'esplosivo: senza la carica per foro
+       diceva «esplosivo 60 kg», prendendosi il valore che la simulazione 3D si
+       porta dietro. La convenzione dell'app è già scritta: `gnum(null)` fa
+       «—», che accanto a «kg» in una legenda si legge «questo dato non c'è».
+       Stessa cosa per la carica per deck, dove la divisione faceva zero. */
+    +'<div><i style="background:linear-gradient(90deg,#ff6d00,#ffab00)"></i>esplosivo '+gnum(D2.kg,0)+' kg'+(n>1?' · '+n+' deck':'')+'</div>'
     +'<div><i style="background:#e53935"></i>innesco'+(n>1?' (uno per deck)':'')+'</div>'
     +(wet?'<div><i style="background:#42a5f5"></i>acqua '+gfix(D2.acquaCol,1)+' m</div>':'')
-    +(n>1?'<div class="lg-n">Deck su ritardi separati: la carica per ritardo scende a ≈'+Math.round((D2.kg||P.kg)/n)+' kg.</div>':'');
+    +(n>1?'<div class="lg-n">Deck su ritardi separati: la carica per ritardo scende a ≈'+gnum(D2.kg==null?null:D2.kg/n,0)+' kg.</div>':'');
   el.style.display='block';
 }
 let backWall=null;
@@ -1966,6 +2001,14 @@ function buildScene(){
   {
     const F = flyrockEst(); const cx = Lm/2, czf = 0;
     flyGroup = new THREE.Group();
+    /* ⛔ E UN ANELLO DISEGNATO È UN'AFFERMAZIONE: `CircleGeometry(null)` non
+       solleva niente — fa un raggio `NaN` e una geometria che non si vede —
+       ma un cerchio da 0 m attorno alla volata si legge «nessuno sgombero
+       serve», che è il contrario di «non lo so». Senza la carica per foro il
+       gruppo resta VUOTO e la spunta del layer non trova niente da accendere;
+       il perché lo dice la scheda validatori, che è dove si leggono i numeri. */
+    if(!F.calcolabile){ flyGroup.visible=false; staticGroup.add(flyGroup); }
+    else {
     /* terreno virtuale sotto gli anelli: il diorama finisce prima della
        gittata 4x — un disco tenue evita anelli "sospesi nel vuoto" senza
        falsificare le distanze di sgombero (che restano in scala reale) */
@@ -1982,6 +2025,7 @@ function buildScene(){
     flyGroup.add(disc, mkRing(F.Lpred, 0xffab00, 0.85), mkRing(F.Dmez, 0xff7043, 0.6), mkRing(F.Dper, 0xef5350, 0.6));
     flyGroup.visible = !!layers.lFly;
     staticGroup.add(flyGroup);
+    }
   }
   /* pannelli per-foro (il fronte da sparare; le file dietro stanno più in profondità).
      Rumore continuo nel mondo (bordi combacianti) + texture sfalsata per pannello + shear di inclinazione → parete unica e naturale, non "riquadri". */
@@ -3092,7 +3136,16 @@ function computeKPI(){
     x20:x20===null?null:Math.round(x20), x50:x50===null?null:Math.round(x50), x80:x80===null?null:Math.round(x80),
     mic:_m.calcolabile?+mic.toFixed(1):null, micCalcolabile:_m.calcolabile,
     micChe:_m.che, micCome:_m.come, db:_m.db===null?null:Math.round(_m.db),
-    ppv:ppv===null?null:+ppv.toFixed(1), lim:lim===null?null:+lim.toFixed(1), fly:Math.round(fly.Lpred),
+    /* ⛔ E LA QUARTA DELLA FAMIGLIA: LA GITTATA. `Math.round(null)` fa **0**, e
+       uno zero qui significa «non serve sgombero» — il tranquillo peggiore di
+       tutti, perché questo numero lo leggono in sei (confronto A/B, CSV della
+       scheda, foglio stampabile, storico, riconciliazione, il disco a terra
+       nel 3D). Stessa forma delle altre tre: il numero è `null` e la bandiera
+       `flyCalcolabile` è quella che i lettori devono leggere. */
+    ppv:ppv===null?null:+ppv.toFixed(1), lim:lim===null?null:+lim.toFixed(1),
+    fly:fly.calcolabile?Math.round(fly.Lpred):null, flyCalcolabile:fly.calcolabile,
+    flyChe:fly.che, flyCome:fly.come,
+    flyMezzi:fly.calcolabile?Math.round(fly.Dmez):null, flyPersone:fly.calcolabile?Math.round(fly.Dper):null,
     ppvBase, norma:normaPpvLab(D2.recNorma), recFreq:D2.recFreq, recDist:D2.recDist,
     presplit:!!D2.presplit,
     setup:(selEsplosivo()||{}).nome_breve||(selEsplosivo()||{}).nome||D2.esplosivo,
@@ -3119,6 +3172,11 @@ function _cmpEur(k){ const v=_cmpNum(k&&k.cost); return v===null?'<i style="colo
    vale in più — così un salvataggio vecchio non fa sparire una riga sana. */
 function _cmpPf(k){ const v=_cmpNum(k&&k.pf); return (v===null||(k&&k.fragCalcolabile===false))?'<i style="color:#ffca28">non calcolabile</i>':gfix(v,2)+' kg/m³'; }
 function _cmpCm(k,campo){ const v=_cmpNum(k&&k[campo]); return (v===null||(k&&k.fragCalcolabile===false))?'<i style="color:#ffca28">non calcolabile</i>':gnum(v,1)+' cm'; }
+/* ⚠️ «— m» accanto a una GITTATA si legge «zero metri», cioè «nessuno sgombero
+   serve»: la stessa ragione per cui la carica totale e il costo hanno le loro
+   due righe qui sopra. E come loro si giudica dal NUMERO, con la bandiera in
+   più quando c'è, così uno scatto A/B salvato prima del 13/08 non sparisce. */
+function _cmpFly(k){ const v=_cmpNum(k&&k.fly); return (v===null||(k&&k.flyCalcolabile===false))?'<i style="color:#ffca28">non calcolabile</i>':gnum(v,0)+' m'; }
 function cmpRender(){
   const A=_cmpLoad('genesiCmpA');
   const B=_cmpLoad('genesiCmpB');
@@ -3158,7 +3216,7 @@ function cmpRender(){
     ['PPV al recettore', gfix(A.kpi.ppv,1)+' / lim '+gfix(A.kpi.lim,1)+' mm/s', gfix(B.kpi.ppv,1)+' / lim '+gfix(B.kpi.lim,1)+' mm/s',
       _stessaBase ? vincitoreKpi(A.kpi.ppv,B.kpi.ppv) : null],
     ['↳ base della previsione', _baseTx(A), _baseTx(B), null],
-    ['Gittata flyrock', gnum(A.kpi.fly,0)+' m', gnum(B.kpi.fly,0)+' m', vincitoreKpi(A.kpi.fly,B.kpi.fly)],
+    ['Gittata flyrock', _cmpFly(A.kpi), _cmpFly(B.kpi), vincitoreKpi(A.kpi.fly,B.kpi.fly)],
     ['Costo totale (stima)', _cmpEur(A.kpi), _cmpEur(B.kpi), vincitoreKpi(A.kpi.cost,B.kpi.cost)],
     ['Presplit', A.kpi.presplit?'sì':'no', B.kpi.presplit?'sì':'no', null],
   ];
@@ -3282,9 +3340,16 @@ if($('btn-scheda-csv')) $('btn-scheda-csv').onclick=()=>{
     ['Airblast previsto (dB(L))', _db],
     ['Limite airblast (dB(L))', AIRBLAST_LIMITE_DB],
     ['Esito airblast', _eA.verdetto],
+    /* ⛔ E QUI USCIVANO TRE ZERI: `Math.round(null)` fa 0, e in un file
+       archiviato col rapportino «Sgombero persone 4x (m);0» è la riga più
+       pericolosa che questo CSV possa contenere. Le tre celle restano vuote e
+       le due righe accanto dicono che cos'è e quale campo sistemare — la
+       stessa forma già usata per la MIC e per il costo. */
     ['Gittata flyrock (m)', k.fly],
-    ['Sgombero mezzi 2x (m)', Math.round(F.Dmez)],
-    ['Sgombero persone 4x (m)', Math.round(F.Dper)],
+    ['Sgombero mezzi 2x (m)', k.flyMezzi],
+    ['Sgombero persone 4x (m)', k.flyPersone],
+    ['Esito gittata flyrock', k.flyCalcolabile?'stimata su Richards&Moore/McKenzie/Lundborg':'non calcolabile'],
+    ['Perche la gittata non e calcolabile', k.flyCalcolabile?'':k.flyChe],
     ['Presplit', k.presplit?'si':'no'],
     /* ⛔ E QUI IL FILE ARCHIVIATO COL RAPPORTINO PORTAVA UN COSTO PIÙ BASSO DEL
        VERO: senza la carica per foro l'addendo dell'esplosivo spariva e la
@@ -3448,7 +3513,13 @@ if($('btn-report')) $('btn-report').onclick=()=>{
          e «sotto il limite USBM/OSM» su una volata che non esiste. */
       ['Airblast (sovrappressione) a '+gnum(D2.recDist,0)+' m',
         gnum(_rDb,0)+' dB(L)<br><b>'+esc(_rEa.verdetto)+'</b>'+(_rEa.consiglio?' — '+esc(_rEa.consiglio):'')],
-      ['Gittata flyrock',gnum(k.fly,0)+' m'],['Sgombero mezzi 2× / persone 4×',gnum(F.Dmez,0)+' / '+gnum(F.Dper,0)+' m'],['Presplit',k.presplit?'sì':'no']])
+      /* ⚠️ «— m» su un foglio che si porta in cava si legge come una cella
+         dimenticata; sulle distanze di sgombero non è una sfumatura. `nc` lo
+         scrive a parole, come già fa per il costo e per la carica totale. */
+      ['Gittata flyrock',nc(k.fly,gnum(k.fly,0)+' m')],
+      ['Sgombero mezzi 2× / persone 4×',nc(k.flyMezzi,gnum(k.flyMezzi,0)+' / '+gnum(k.flyPersone,0)+' m')],
+      ['Presplit',k.presplit?'sì':'no']]
+      .concat(k.flyCalcolabile?[]:[['Perché la gittata non è calcolabile',esc(k.flyChe)+'. '+esc(k.flyCome)]]))
    /* ⛔ IL MARGINE ERA IL PEGGIO DI TUTTI: `ton*valMat − cTot` con `cTot` a
       zero (o, dopo una correzione ingenua, a `null`) restituiva **tutto il
       ricavo come margine**. Adesso il margine lo decide `costoVolata`, che su
@@ -5739,11 +5810,24 @@ function renderScheda2D(){
     'borraggio corto → rischio proiezioni dal colletto; ~0,7·B ≈ '+gfix(0.7*B,1)+' m.',
     'borraggio lungo → rischio blocchi in testa.'));
   /* SDOB definizione Chiappetta/McKenzie: conta solo la carica nei 10 diametri superiori (W_top), non tutta la colonna */
-  const _ql=(_e.densita_gcc||0.82)*1000*Math.PI*Dm*Dm/4;                 // carica lineare kg/m
-  const _Wtop=Math.min(Q, _ql*10*Dm);
-  const _sdob=(stem+5*Dm)/Math.pow(Math.max(0.1,_Wtop),1/3);
+  /* ⛔ QUESTA RIGA ERA L'ULTIMA A INVENTARE UN NUMERO DALLA CARICA ASSENTE, ED
+     ERA L'UNICA A INVENTARLO NELLA DIREZIONE CHE RASSICURA. `Math.min(null,
+     cap)` fa **0**, il clamp `Math.max(0.1, …)` lo porta a un decimo di chilo,
+     e l'SDOB usciva **5,84** contro **1,43** veri: sopra la soglia 1,4, quindi
+     pallino VERDE e «colletto ben confinato: disturbo superficiale minimo».
+     Meno carica dichiarata = colletto che sembra più sicuro, e qui la carica
+     non era «poca», non c'era. Misurato il 13/08 sulla dimostrazione, dove
+     tutte le altre otto righe che dipendono dalla carica dicevano già
+     «non calcolabile»: questa era la sola stonata, e la sola tranquilla.
+     ⛔ E la formula viveva in DUE posti (qui e in `flyrockEst`) con due
+     ripieghi opposti — vedi il blocco G17. Adesso è una: `confinamentoColletto`.
+     I clamp restano dentro il modulo, per il dato vero ed estremo. */
+  const _cc=confinamentoColletto({ kg:Q, stem, diam:Dmm, densita:_e.densita_gcc });
+  if(!_cc.calcolabile) rows.push(nonCalcolabile('Confin. colletto (SDOB)',
+    'l’SDOB (Chiappetta/McKenzie) misura quanto il colletto è tenuto giù dal borraggio rispetto alla carica che gli sta sotto. '+_rEsc(_cc.che)+'. '+_rEsc(_cc.come)));
+  else { const _sdob=_cc.sdob;
   rows.push({lab:'Confin. colletto (SDOB)',valStr:gfix(_sdob,2)+' <span>m/kg⅓</span>',cls:(_sdob>=1.4?'sv-ok':(_sdob>=0.9?'sv-warn':'sv-bad')),
-    why:_sdob>=1.4?'colletto ben confinato (SDOB≥1,4, def. Chiappetta su carica dei 10Ø superiori): disturbo superficiale minimo.':(_sdob>=0.9?'confinamento intermedio (0,9–1,4): mounding/cratere parziale possibile; valuta più borraggio.':'sotto-confinamento (SDOB<0,9): eiezione da cratere probabile dal colletto. Aumenta il borraggio o riduci la carica.')});
+    why:_sdob>=1.4?'colletto ben confinato (SDOB≥1,4, def. Chiappetta su carica dei 10Ø superiori): disturbo superficiale minimo.':(_sdob>=0.9?'confinamento intermedio (0,9–1,4): mounding/cratere parziale possibile; valuta più borraggio.':'sotto-confinamento (SDOB<0,9): eiezione da cratere probabile dal colletto. Aumenta il borraggio o riduci la carica.')}); }
   /* gittata flyrock: max dei meccanismi Richards&Moore (face burst / cratering / rifling) + McKenzie SDOB, tetto Lundborg (30,1·Ø^⅔). Fonti primarie, unità SI verificate */
   (function(){
     const F=flyrockEst(), Lpred=F.Lpred, Dmez=F.Dmez, Dper=F.Dper;      // stessa stima mostrata in 3D (layer "Zona flyrock")
@@ -5753,6 +5837,21 @@ function renderScheda2D(){
        «il recettore è dentro la zona di flyrock», detto di un recettore che
        nessuno ha collocato. È il rapporto fra due numeri della regola di
        CLAUDE.md, in versione confronto: la domanda si fa sugli OPERANDI. */
+    /* ⛔ E PRIMA DEL RECETTORE VIENE LA GITTATA: senza la carica per foro non
+       c'è nessun raggio da confrontare con nessuna distanza. Qui `flyrockEst`
+       si inventava la carica (`D2.kg||P.kg||50`) e stampava 101 m come se
+       niente fosse; e il ripiego non si poteva togliere e basta, perché il
+       termine McKenzie — quello che dipende dalla carica — è il DOMINANTE:
+       misurato il 13/08, la stessa volata dà 101 m con la carica inventata e
+       **49,3 m** con lo zero, cioè lo sgombero persone passerebbe da 404 a
+       197 m. Un dato che manca non accorcia una volata: rende la stima non
+       calcolabile, e su una distanza di sgombero lo si dice. */
+    if(!F.calcolabile){
+      rows.push(nonCalcolabile('Gittata flyrock (stima)',
+        'la gittata si stima dai meccanismi di Richards&Moore e da quello di McKenzie, che parte dal confinamento del colletto. '+_rEsc(F.che)+'. '+_rEsc(F.come)
+        +' Le distanze di sgombero restano quelle che decide il responsabile del tiro: qui non se ne inventa una più corta.'));
+      return;
+    }
     const _flySd=ppvSenzaDistanza(D2.recDist);
     rows.push({lab:'Gittata flyrock (stima)',valStr:gnum(Lpred,0)+' <span>m → sgombero '+gnum(Dmez,0)+' / '+gnum(Dper,0)+' m</span>',
       cls:_flySd?'sv-warn':(D2.recDist>=Dper?'sv-ok':(D2.recDist>=Dmez?'sv-warn':'sv-bad')),
@@ -5780,6 +5879,15 @@ function renderScheda2D(){
     }
     const Lmax=D2.recDist/4;
     const inv=flyrockInv(Lmax);
+    /* ⚠️ E l'altra metà: il calcolo inverso PRESCRIVE, quindi un requisito
+       ricavato da una carica inventata manda a rifare un progetto sano — lo
+       stesso danno già misurato tre righe più su con la distanza di comodo. */
+    if(!inv.calcolabile){
+      rows.push(nonCalcolabile('Flyrock inverso',
+        'il calcolo inverso ricava il borraggio e il burden minimi dalla gittata ammessa, e passa dal confinamento del colletto. '+_rEsc(inv.che)+'. '+_rEsc(inv.come)
+        +' Un requisito ricavato da una carica di comodo manderebbe a rifare un progetto che va bene.'));
+      return;
+    }
     const okS=(D2.stem||2.5)>=inv.minStem-0.01, okB=(D2.B||SPALLA)>=inv.minB-0.01;
     rows.push({lab:'Flyrock inverso',valStr:'borr. ≥ '+gfix(inv.minStem,1)+' <span>m</span> · burden ≥ '+gfix(inv.minB,1)+' <span>m</span>',
       cls:(okS&&okB?'sv-ok':'sv-warn'),

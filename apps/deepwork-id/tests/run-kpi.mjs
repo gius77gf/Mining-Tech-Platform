@@ -28731,5 +28731,140 @@ test("⛔ Conti · venditePerProdotto: l'eccedenza si CONTA, perché il contenim
   });
 }
 
+/* ===== BLOCCO G17 — IL CONFINAMENTO DEL COLLETTO (SDOB) =====================
+   L'ULTIMO posto in cui la carica per foro assente diventava un numero, e
+   l'UNICO in cui quel numero rassicurava.
+   Misurato il 13/08 aprendo la volata di dimostrazione con `design.kg:null` e
+   affiancando le ventinove righe della scheda validatori a quelle della stessa
+   volata con la carica: **ventotto righe uguali, una sola diversa** — «Confin.
+   colletto (SDOB) 5,84 m/kg⅓» contro «1,43». Cinque-otto-quattro non è un
+   numero qualunque: la soglia è 1,4, quindi il pallino si dipingeva VERDE con
+   scritto «colletto ben confinato: disturbo superficiale minimo». Meno carica
+   dichiarata = colletto che sembra più sicuro; e lì la carica non era poca,
+   non c'era.
+   ⛔ E LA FORMULA VIVEVA IN DUE POSTI CON DUE RIPIEGHI OPPOSTI: la scheda
+   faceva `Math.min(null, cap)` = 0, e `flyrockEst` faceva `Q = D2.kg || P.kg
+   || 50`, cioè si inventava una carica intera. Le due bugie si compensavano
+   per caso — la scheda mostrava 5,84 in una riga e la riga sotto usava 1,43
+   per la gittata — quindi togliere il ripiego a UNA sola delle due avrebbe
+   DIMEZZATO la distanza di sgombero senza che niente diventasse rosso:
+   misurato in scratchpad, gittata 101 m con la carica inventata e 49,3 m con
+   lo zero, cioè sgombero persone 404 → 197 m. È il contratto allargato a metà
+   di CLAUDE.md, visto prima che facesse danno.
+   ⚠️ Prove SINCRONE e messe PRIMA del riepilogo: l'`await Promise.all(inVolo)`
+   sta a metà file, e una prova asincrona appesa dopo non verrebbe aspettata. */
+{
+  const gz17 = await app("genesi", "genesi-data.js");
+  const { readFileSync: _rfG17 } = await import("node:fs");
+  const { senzaCommenti: _scG17 } = await import("./tokenizza.mjs");
+  /* SENZA COMMENTI: la correzione CITA nel suo commento la riga che ha tolto
+     (`D2.kg||P.kg||50`), e una prova «non c'è più» letta sul file grezzo
+     cadrebbe sul commento che documenta la decisione. */
+  const srcG17 = _scG17(_rfG17(join(HERE, "../../genesi/genesi.html"), "utf8"));
+  const cc = gz17.confinamentoColletto;
+
+  test("⛔ Genesi · SDOB: la carica assente non è una carica piccola", () => {
+    const r = cc({ kg: null, stem: 2.2, diam: 102 });
+    eq(r.sdob, null, "niente numero");
+    eq(r.calcolabile, false, "e la bandiera lo dice, se no un `null` si ridisegna tranquillo");
+    eq(r.carica, true, "la ragione è la carica…");
+    eq(r.borraggio, false, "…e non il borraggio, che c'è");
+    ok(/carica per foro/.test(r.che), "e la nomina con la parola che si legge sullo schermo");
+    ok(/Reimposta la carica per foro/.test(r.come), "e dice che cosa fare");
+    /* le quattro forme dell'assenza rispondono tutte allo stesso modo */
+    for (const q of [null, undefined, "", "abc", NaN, -1])
+      eq(cc({ kg: q, stem: 2.2, diam: 102 }).calcolabile, false, `carica ${JSON.stringify(q)}: non calcolabile`);
+  });
+
+  test("⛔ Genesi · SDOB: il numero che il difetto produceva, e perché era il peggiore", () => {
+    /* la formula vecchia, rimessa qui per far vedere il numero: era
+       `Math.min(Q, cap)` con `Q` a `null`, quindi 0, poi il clamp a 0,1 kg */
+    const vecchio = (2.2 + 5 * 0.102) / Math.pow(0.1, 1 / 3);
+    ok(Math.abs(vecchio - 5.8385) < 0.001, `la carica assente dava ${vecchio.toFixed(2)} m/kg⅓`);
+    ok(vecchio >= 1.4, "…che è SOPRA la soglia 1,4, cioè pallino verde e «colletto ben confinato»");
+    const vero = cc({ kg: 58, stem: 2.2, diam: 102 }).sdob;
+    ok(Math.abs(vero - 1.428) < 0.001, `mentre la stessa volata con la carica vera dà ${vero.toFixed(2)}`);
+    ok(vecchio > vero, "il dato che manca rendeva il progetto più TRANQUILLO di quello vero");
+  });
+
+  test("⛔ Genesi · SDOB: i clamp restano, e sono per il dato vero ed estremo", () => {
+    /* zero chili è un dato VERO: nessun esplosivo sotto il colletto, quindi il
+       confinamento è davvero totale e 5,84 lì è la risposta giusta. È la
+       differenza fra un clamp e una guardia, la stessa della sottoperforazione. */
+    const z = cc({ kg: 0, stem: 2.2, diam: 102 });
+    eq(z.calcolabile, true, "una carica di zero chili è un dato scritto, non un dato assente");
+    ok(Math.abs(z.sdob - 5.8385) < 0.001, "e il clamp `max(0.1, W_top)` la regge invece di dividere per zero");
+    /* e il borraggio ammette lo zero: un colletto non borrato è un progetto
+       pessimo (SDOB 0,27, pallino rosso), non un dato mancante */
+    const b0 = cc({ kg: 58, stem: 0, diam: 102 });
+    eq(b0.calcolabile, true, "borraggio zero: è un progetto, e pessimo");
+    ok(b0.sdob < 0.9, `SDOB ${b0.sdob.toFixed(2)}: sotto-confinamento, come dev'essere`);
+    eq(cc({ kg: 58, stem: null, diam: 102 }).borraggio, true, "mentre un borraggio ILLEGGIBILE è un'assenza");
+    eq(cc({ kg: 58, stem: 2.2, diam: 0 }).diametro, true, "e un diametro di zero non è un foro: entra al quadrato");
+  });
+
+  test("⛔ Genesi · CONFIN_SENZA_CONTO: ogni ragione dice CHE COSA manca e COME si rimedia", () => {
+    eq(Object.keys(gz17.CONFIN_SENZA_CONTO).sort(), ["borraggio", "carica", "diametro"],
+      "le tre ragioni, e nessuna in più: sono gli ingressi dell'SDOB");
+    for (const k of Object.keys(gz17.CONFIN_SENZA_CONTO)) {
+      const r = gz17.CONFIN_SENZA_CONTO[k];
+      ok(r.che && r.che.length > 30, `${k}: dice che cosa manca, con la parola che si legge sullo schermo`);
+      ok(/^Reimposta /.test(r.come), `${k}: e dice che cosa fare, non solo che c'è un problema`);
+    }
+  });
+
+  test("⛔ Genesi · SDOB: se manca più di un dato li nomina tutti", () => {
+    const t = cc({ kg: null, stem: null, diam: null });
+    eq([t.carica, t.borraggio, t.diametro], [true, true, true], "tutt'e tre");
+    eq((t.che.match(/; e /g) || []).length, 2, "e la frase li unisce come fanno le sorelle `fragSenzaConto` e `micSenzaConto`");
+    eq((t.come.match(/Reimposta/g) || []).length, 3, "tre cose da fare, non una");
+  });
+
+  test("⛔ Genesi · SDOB: sul dato sano risponde alla cifra come la formula che sostituisce", () => {
+    /* la formula com'era scritta nella pagina, per provare che il trasloco non
+       ha cambiato un numero: è la domanda «quali prove guardavano il vecchio?» */
+    const vecchia = (Q, stem, Dmm, rho) => {
+      const Dm = Dmm / 1000, ql = (rho || 0.82) * 1000 * Math.PI * Dm * Dm / 4;
+      return (stem + 5 * Dm) / Math.pow(Math.max(0.1, Math.min(Q, ql * 10 * Dm)), 1 / 3);
+    };
+    let peggio = 0, casi = 0;
+    for (let kg = 5; kg <= 200; kg += 5)
+      for (const st of [0.5, 1, 2.2, 4, 6])
+        for (const dd of [50, 76, 102, 140, 160])
+          for (const rho of [0.82, 1.15]) {
+            peggio = Math.max(peggio, Math.abs(cc({ kg, stem: st, diam: dd, densita: rho }).sdob - vecchia(kg, st, dd, rho)));
+            casi++;
+          }
+    eq(casi, 2000, "duemila combinazioni sane");
+    eq(peggio, 0, "e su nessuna il numero si muove di un bit");
+    /* la carica lineare e W_top escono con lui, perché `flyrockInv` li rivuole
+       e ricalcolarli fuori sarebbe la copia debole di ritorno */
+    const r = cc({ kg: 58, stem: 2.2, diam: 102 });
+    ok(Math.abs(r.qLin - 6.7005) < 0.001, "la carica lineare esce dalla stessa funzione");
+    ok(Math.abs(r.wTop - 6.8345) < 0.001, "e W_top è tagliata dai dieci diametri superiori, non dalla colonna intera");
+    eq(cc({ kg: 3, stem: 2.2, diam: 102 }).wTop, 3, "sotto quel tetto W_top è la carica vera");
+  });
+
+  test("⛔ Genesi · la pagina non si tiene una seconda copia della formula", () => {
+    ok(/confinamentoColletto/.test(srcG17), "la pagina importa la funzione dal modulo");
+    eq((srcG17.match(/confinamentoColletto\(\{/g) || []).length, 3,
+      "e la chiama nei TRE posti che avevano la formula: la scheda, la stima flyrock e il calcolo inverso");
+    eq(/D2\.kg\s*\|\|\s*P\.kg/.test(srcG17), false,
+      "⛔ e non c'è più nessun `D2.kg || P.kg`: era l'invenzione scritta a lettere");
+    eq(/Math\.min\(Q,\s*_ql/.test(srcG17), false, "né il `Math.min(Q, …)` che faceva zero di un `null`");
+    eq(/Math\.round\(fly\.Lpred\)[^:]/.test(srcG17), false,
+      "né il `Math.round(null)` che faceva zero metri di sgombero");
+  });
+
+  test("⛔ Genesi · la bandiera `flyCalcolabile` la LEGGE qualcuno (regola 20)", () => {
+    /* una non-misurabilità dichiarata che nessuno legge non protegge niente:
+       il numero tranquillo si ridisegna lo stesso e il modulo sembra a posto */
+    ok(/flyCalcolabile:\s*fly\.calcolabile/.test(srcG17), "i KPI la dichiarano");
+    const letture = (srcG17.match(/k\.flyCalcolabile|kpi\.flyCalcolabile|k&&k\.flyCalcolabile/g) || []).length;
+    ok(letture >= 4, `e la leggono in ${letture} punti: confronto A/B, CSV della scheda, foglio stampabile`);
+    ok(/F\.calcolabile/.test(srcG17), "e la scheda validatori e il disco a terra nel 3D leggono quella di `flyrockEst`");
+  });
+}
+
 console.log(`\nRisultato KPI app: ${passed} passati, ${failed} falliti${inVolo.length ? `  ·  ${inVolo.length} prove asincrone aspettate` : ""}`);
 process.exit(failed > 0 ? 1 : 0);

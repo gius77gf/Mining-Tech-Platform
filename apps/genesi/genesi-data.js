@@ -1606,3 +1606,73 @@ export function volumeForo(B, S, H){
   if (!(Number.isFinite(h) && h > 0)) return null;
   return b * s * h;
 }
+
+/* ⛔ IL CONFINAMENTO DEL COLLETTO (SDOB), BLOCCO G17 — l'ULTIMO posto in cui
+   la carica per foro assente si trasformava in un numero, e per giunta in
+   quello che RASSICURA.
+   La formula (Chiappetta/McKenzie) è `(borraggio + 5·Ø) / W_top^(1/3)`, dove
+   `W_top` è la carica contenuta nei dieci diametri superiori della colonna:
+   `min(carica, carica_lineare · 10 · Ø)`. Con la carica illeggibile
+   `Math.min(null, cap)` fa **0**, il clamp `Math.max(0.1, …)` lo tira su a un
+   decimo di chilo, e l'SDOB esce **5,84 m/kg⅓** — misurato l'13/08 sulla
+   maglia di dimostrazione (Ø102, borraggio 2,2 m) contro **1,43** veri. Non è
+   solo un numero inventato: 5,84 supera la soglia 1,4 e la riga si dipinge
+   VERDE con scritto «colletto ben confinato: disturbo superficiale minimo».
+   Cioè un dato che nessuno ha scritto rendeva il progetto più tranquillo di
+   quello vero — il principio del fondatore alla lettera, e nel verso peggiore.
+   ⛔ E LA STESSA FORMULA ERA SCRITTA DUE VOLTE, con DUE ripieghi diversi: la
+   scheda validatori faceva `min(null, cap)` = 0 → SDOB 5,84, e `flyrockEst`
+   faceva `Q = D2.kg || P.kg || 50`, cioè si INVENTAVA una carica intera. Le
+   due bugie si compensavano per caso — la scheda mostrava 5,84 in una riga e
+   la riga sotto usava 1,43 per la gittata — quindi togliere l'invenzione a una
+   sola delle due avrebbe **dimezzato** la distanza di sgombero senza che nulla
+   diventasse rosso (misurato: gittata 101 m con la carica inventata, 49,3 m
+   con lo zero, cioè sgombero persone 404 m → 197 m). È la regola di CLAUDE.md
+   sul contratto allargato a metà, vista prima che facesse danno.
+   ⚠️ I DUE CLAMP RESTANO, e sono clamp per dati VERI ma estremi: `max(0.1,
+   W_top)` regge una carica vera di zero chili (nessun esplosivo nel colletto:
+   il confinamento è davvero totale, e 5,84 lì è la risposta giusta), e la
+   densità ha il suo valore d'appoggio perché arriva da un elenco chiuso.
+   Quello che non si accetta più è l'ASSENZA travestita da numero.
+   ⚠️ Il borraggio ammette lo ZERO (un colletto non borrato è un progetto
+   pessimo, non un dato mancante: SDOB 0,27, pallino rosso); il diametro no,
+   perché entra al quadrato nella carica lineare e uno zero non è un foro. */
+export const CONFIN_SENZA_CONTO = {
+  carica:    { che:'la carica per foro non è un numero leggibile, e il confinamento del colletto è il borraggio diviso per la radice cubica della carica che gli sta sotto',
+               come:'Reimposta la carica per foro nei parametri della volata.' },
+  borraggio: { che:'il borraggio non è un numero leggibile, ed è proprio la parte del foro che tiene giù il colletto',
+               come:'Reimposta il borraggio nei parametri della volata.' },
+  diametro:  { che:'il diametro del foro non è un numero leggibile, e decide quanta carica sta nei dieci diametri superiori della colonna',
+               come:'Reimposta il diametro nei parametri della volata.' },
+};
+/* L'SDOB, la carica dei dieci diametri superiori e la carica lineare — o
+   `null` su tutt'e tre quando uno dei dati non c'è, con la ragione accanto.
+   La bandiera da leggere è `calcolabile`: senza, un `null` si stampa
+   tranquillo lo stesso (regola 20 di `run-stile`).
+   Gemella di `fragSenzaConto`, `caricaSenzaConto`, `micSenzaConto` e
+   `ppvSenzaSoglia`: se manca più di un dato li nomina tutti. */
+export function confinamentoColletto(v){
+  const o = v || {};
+  const n = (x) => (x === null || x === undefined || x === '') ? NaN : +x;
+  const q = n(o.kg), s = n(o.stem), d = n(o.diam), r = n(o.densita);
+  const senzaCarica    = !Number.isFinite(q) || q < 0;
+  const senzaBorraggio = !Number.isFinite(s) || s < 0;
+  const senzaDiametro  = !Number.isFinite(d) || d <= 0;
+  if (senzaCarica || senzaBorraggio || senzaDiametro) {
+    const parti = [];
+    if (senzaCarica)    parti.push(CONFIN_SENZA_CONTO.carica);
+    if (senzaBorraggio) parti.push(CONFIN_SENZA_CONTO.borraggio);
+    if (senzaDiametro)  parti.push(CONFIN_SENZA_CONTO.diametro);
+    return { sdob:null, wTop:null, qLin:null, calcolabile:false,
+      carica:senzaCarica, borraggio:senzaBorraggio, diametro:senzaDiametro,
+      che:  parti.map(p => p.che).join('; e '),
+      come: parti.map(p => p.come).join(' ') };
+  }
+  const Dm = d / 1000;
+  const rho = (Number.isFinite(r) && r > 0) ? r : 0.82;
+  const qLin = rho * 1000 * Math.PI * Dm * Dm / 4;
+  const wTop = Math.min(q, qLin * 10 * Dm);
+  const sdob = (s + 5 * Dm) / Math.pow(Math.max(0.1, wTop), 1 / 3);
+  return { sdob, wTop, qLin, calcolabile:true,
+    carica:false, borraggio:false, diametro:false, che:'', come:'' };
+}

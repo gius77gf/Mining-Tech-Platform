@@ -2020,36 +2020,74 @@ numero scritto dove non era stato misurato niente**.*
       incompleto»* su un valore che nessuno ha scritto: **farla a metà è
       peggio**.
 
-- [ ] **B0-quater. UN CLAMP CHE FABBRICA 5 kg/FORO IN DUE CLIC, E RENDE
-      RAGGIUNGIBILE UNO STATO PEGGIORE DI QUELLO APPENA CHIUSO.** Trovato il
-      09/08 dal cantiere della frammentazione, **misurato e non corretto** perché
-      fuori dai file del suo mandato.
-      `apps/genesi/genesi.html`, in `applyDesign`:
-      `D2.kg = Math.max(5, Math.min(200, gvv('dKg')||D2.kg));`
-      Con la carica illeggibile: `Math.min(200, null)` fa **0**, e il clamp
-      inferiore lo porta a **5**. Cioè un valore **inventato**, non un ripiego
-      dichiarato.
-      ⛔ **La via è di due clic e non passa dalla carica**: aperta la volata,
-      `syncDesignInputs` scrive **«0»** dentro il campo «Carica per foro» (uno
-      zero inventato **dentro un input**); poi basta toccare **un campo
-      qualunque** — provato con la sequenza, che con la carica non c'entra —
-      perché `applyDesign` giri e fissi 5. Da lì consumo specifico **0,05
-      kg/m³** e X50 **127 cm**, **senza un toast e senza un errore**.
-      ⚠️ E il danno è peggiore di quello di partenza: il «non calcolabile»
-      appena costruito **sparisce, sostituito da numeri inventati**. Una difesa
-      che si può spegnere con due clic su un campo che non c'entra è una difesa
-      che non c'è.
-      È «un clamp non è una guardia» applicato ai **campi** invece che al
-      calcolo: `Math.max(5, …)` esiste per un valore **vero e piccolo**, non per
-      un valore **assente**.
-      **Non toccato** perché è una decisione — che cosa deve fare `applyDesign`
-      con un valore salvato illeggibile — e tocca `gsv`/`syncDesignInputs`/
-      `applyDesign` più una quindicina di campi.
-      **Come si misura**: apri una volata con `design.kg:null`, guarda il campo
-      «Carica per foro» (deve dire «—», non «0»), tocca la sequenza, e chiedi a
-      schermo il consumo specifico: se dice 0,05 invece di «non calcolabile», il
-      difetto è ancora lì.
+- [x] ✅ **B0-quater. IL CLAMP CHE FABBRICAVA 5 kg/FORO ERA GIÀ CHIUSO — E SOTTO
+      C'ERA L'ULTIMO NUMERO CHE L'ASSENZA INVENTAVA, NELL'UNICA DIREZIONE CHE
+      RASSICURA.** *Rimisurata il 13/08 col browser **prima** di toccare
+      qualunque cosa, ed è servito: la prima metà della voce era **scaduta**.*
+      I blocchi G14–G16 (commit `a3757c81`, 09-10/08) l'avevano già chiusa.
+      Aprendo una volata con `design.kg:null` e toccando la sequenza, il campo
+      «Carica per foro» resta **vuoto**, il consumo specifico dice **«non
+      calcolabile»** e l'X50 pure — e il toast all'apertura **nomina** il valore
+      che manca. Cioè: se il cantiere si fosse fidato della riga invece di
+      misurare, avrebbe «corretto» una cosa già corretta.
+      ⛔ **Ma affiancando le 29 righe della scheda validatori con la carica e
+      senza — il metodo del «rapporto fra due valori diversi» — ventotto erano
+      identiche e UNA sola diversa**: «Confin. colletto (SDOB) **5,84 m/kg⅓**»
+      contro **1,43**. E 5,84 sta **sopra** la soglia 1,4: il pallino si
+      dipingeva **verde**, con «colletto ben confinato: disturbo superficiale
+      minimo». Meno carica dichiarata = colletto che *sembra* più sicuro — e lì
+      la carica non era poca: **non c'era**.
+      ⛔ **E la stessa formula viveva in DUE posti con due ripieghi OPPOSTI**:
+      la scheda faceva `Math.min(null, cap)` = 0 → 5,84, e `flyrockEst` faceva
+      `Q = D2.kg || P.kg || 50`, cioè si **inventava una carica intera** → 1,43.
+      Le due bugie **si compensavano per caso**, quindi la correzione che veniva
+      in mente — togliere il ripiego a una sola delle due — avrebbe **dimezzato
+      la distanza di sgombero**: misurato, gittata **101 m** con la carica
+      inventata e **49,3 m** con lo zero, cioè sgombero persone **404 → 197 m**,
+      senza un rosso da leggere. È «il contratto allargato a metà» di
+      `CLAUDE.md`, visto **prima** che facesse danno.
+      **Fatto** (blocco G17): `confinamentoColletto` in `genesi-data.js` è
+      l'**unica** implementazione dell'SDOB e risponde `null` con la sua ragione;
+      la scheda, la stima flyrock e il calcolo inverso dicono «non calcolabile»;
+      e i **dodici** lettori a valle sanno leggerla — `computeKPI` (dove
+      `Math.round(null)` faceva **0 m di sgombero**), il confronto A/B, il CSV
+      della scheda volata (tre celle a zero, in un file che si archivia col
+      rapportino), il foglio che si porta in cava, il disco a terra nel 3D e la
+      legenda dei raggi-X, che scriveva «esplosivo 60 kg».
+      ⛔ **NESSUNA SOGLIA TOCCATA**: `ppvLimit`, le curve USBM/DIN, i 133 dB(L),
+      la soglia SDOB 1,4/0,9 e le formule Richards&Moore/McKenzie/Lundborg sono
+      le stesse. Qui si smette solo di **inventare gli ingressi**. Sul progetto
+      sano i numeri sono identici alla cifra: SDOB **1,43** · gittata **101 m** ·
+      sgombero **202 / 404 m**.
+      **Prove**: 8 in `run-kpi` (G17), e `genesi-campi-assenti.mjs` da 36 a **55**
+      asserzioni — con `dKg`, che è il campo che dà il nome a questa voce e che
+      quel banco **non aveva mai guardato**.
+      ⛔ E i suoi «tre esclusi per decisione presa» erano un'**eccezione che non
+      serviva più**: `psCharge`, `recDist` e `recFreq` sono corretti dal 10/08 e
+      il banco continuava a stampare «atteso 0,1 · 20 · 2», cioè
+      un'affermazione **falsa sul prodotto**, scritta sotto la riga «e va detto».
+      **Controprova**: **18 iniezioni su 18** a segno, **21 prove cadute su 55**
+      (sana 55/0), coi tre KO che stampano i numeri storici — 5,84 · 49 m →
+      99/197 m · borr. ≥ 1,9 m. E le due asserzioni nel **verso opposto** («col
+      dato vero l'SDOB è ancora 1,43») restano verdi sotto iniezione: se
+      cadessero, vorrebbe dire che la difesa ha **spento** la riga invece di
+      renderla onesta.
 
+- [ ] **B0-tervicies. IN `flyrockEst` RESTA UN RIPIEGO, DICHIARATO E NON
+      TOCCATO: `B = D2.B || SPALLA`.** ⏱️ *Aperta il 13/08 dal cantiere di G17,
+      che l'aveva proposta come «B0-quinquies» — nome **già usato due volte** in
+      questo file, come del resto «B0-quater». ⚠️ Gli identificativi di questa
+      roadmap **collidono**, e un nome che indica due cose diverse manda a
+      leggere la voce sbagliata: prima di aprirne una nuova si cerca il nome.
+      Il cantiere l'ha misurata e lasciata lì invece di allargare un'unità che
+      stava già chiudendo una decisione sulla sicurezza.* Con la spalla assente la stima
+      usa un **burden che nessuno ha scritto**. È la stessa famiglia di G17 ma
+      su un altro campo, e tocca le **tre** formule di Richards&Moore (face
+      burst → B, cratering → stem, rifling): va misurato **quanto** si muove
+      `Lpred` al variare di B e **con quale verso** prima di decidere se la
+      gittata diventa «non calcolabile» anche lì.
+      **Come si misura**: `design.B:null`, si legge la riga «Gittata flyrock
+      (stima)» della scheda validatori e la si confronta col progetto sano.
 - [x] ✅ **B0-ter. MENTRE UN CANTIERE SCRIVE, UN ROSSO LETTO SULL'ALBERO VIVO NON
       È UN VERDETTO.** Misurato il 09/08 su me stesso: leggendo l'albero mentre
       un cantiere ci scriveva, `run-stile` ha detto **316 passati e 2 falliti**;
@@ -4763,7 +4801,7 @@ numero scritto dove non era stato misurato niente**.*
   nome apre il file sbagliato credendo che sia il più fresco.
 - Le decisioni: `docs/DECISIONI_WEEKEND.md` — pagina d'ingresso in cima.
 - Stato misurato al **09/08** (lanciando le suite, non a memoria):
-  **2.568 prove girano senza rete**. La frase va letta stretta: è la somma
+  **2.576 prove girano senza rete**. La frase va letta stretta: è la somma
   delle **otto** suite che contano asserzioni (`run-kpi` 2110, `run-stile` 318,
   `run-helpers` 75, `run-pointcloud` 32, `run-manifest` 9, `run-demo` 8,
   `bootstrap-rivendicazioni` 7, `fogli-guardati` 3), non tutto ciò che gira nel

@@ -344,7 +344,11 @@ const CONDIVISI = [
      esce con la coda «(il fondo era N: alzalo)», che rompe la lettura per
      modulo di `numeri-nei-documenti` — la sua regex vuole la fine riga — e da
      lì il controllo dichiara di aver letto 4 moduli su 5. */
-  { file: "apps/genesi/genesi-data.js", fondo: 62,
+  /* ⏱️ 62 → 64 il 13/08: il blocco G17 ha portato dentro `CONFIN_SENZA_CONTO` e
+     `confinamentoColletto`, cioè l'SDOB tolto dalle due copie che se lo
+     scrivevano in casa. Il fondo si alza SUBITO, se no la riga esce con la coda
+     «(il fondo era N: alzalo)» e `numeri-nei-documenti` smette di leggerla. */
+  { file: "apps/genesi/genesi-data.js", fondo: 64,
     perche: "la vibrazione al recettore e la riconciliazione previsto-vs-reale: i due numeri di Genesi che decidono qualcosa" },
 ];
 /* Fuori per un motivo, non per dimenticanza. Le prime tre toccano il DOM o
