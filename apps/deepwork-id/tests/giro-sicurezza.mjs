@@ -15,17 +15,33 @@
    scritto nei documenti era fermo a 58 proprio perché nessuno le lanciava più
    in casa — sul numero che riguarda la sicurezza.
 
-   ⛔ E QUELLO CHE NON PUÒ GIRARE LO DICHIARA, invece di tacerlo.
-   L'emulatore delle FUNZIONI non parte qui: chiede la rete e la politica del
-   contenitore la nega («Unable to parse JSON … "denied by …"»). Quindi
-   `run-fns.mjs` (21 prove) resta verificabile **solo in CI**. Un giro che
-   salta qualcosa in silenzio è peggio di un giro che non c'è: chi legge
-   «tutto verde» crede di aver guardato tutto. Le righe «non ho guardato» si
-   leggono per prime, ed è la regola di casa.
+   ⛔ E QUELLO CHE NON PUÒ GIRARE LO DICHIARA, invece di tacerlo. Un giro che
+   salta qualcosa in silenzio è peggio di un giro che non c'è: chi legge «tutto
+   verde» crede di aver guardato tutto. Le righe «non ho guardato» si leggono
+   per prime, ed è la regola di casa.
+
+   ⛔ MA LA RINUNCIA CHE STAVA SCRITTA QUI ERA FALSA, E L'HA DETTO IL 13/08 UN
+   CONTENITORE NUOVO. Diceva: «l'emulatore delle FUNZIONI non parte qui: chiede
+   la rete e la politica del contenitore la nega. Quindi `run-fns.mjs` (21
+   prove) resta verificabile solo in CI». **Non è la rete.** L'emulatore delle
+   funzioni parte; le 21 prove cadevano con `functions/not-found`, cioè le
+   funzioni non c'erano — `apps/deepwork-id/functions/node_modules` era VUOTA.
+   Un `npm ci` lì dentro e fanno **21 passati, 0 falliti**. Per cinque giorni
+   le difese che contano di più (un'email non verificata non riscatta inviti,
+   un anonimo non crea un'organizzazione) sono state considerate «solo CI» per
+   una cartella vuota.
+   ⛔ La lezione, e vale oltre questo file: **un errore che nomina una causa
+   plausibile la fa smettere di essere verificata.** Il segno da riconoscere non
+   è il messaggio, è il **verdetto scritto accanto** — «resta verificabile solo
+   in CI» è una rinuncia, e una rinuncia va rimisurata la prima volta che si
+   lavora in un contenitore nuovo. Per questo adesso il giro **si ferma
+   dicendolo** se le dipendenze non ci sono, invece di lasciare che 21 prove
+   rosse sembrino difetti del prodotto.
 
    Si lancia con: node apps/deepwork-id/tests/giro-sicurezza.mjs            */
 
 import { spawnSync } from "node:child_process";
+import { existsSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 
@@ -37,12 +53,14 @@ const GIRI = [
   ["le regole di sicurezza — la barriera fra ORGANIZZAZIONI", "firestore", "node run.mjs"],
   ["l'SDK dell'identità", "firestore,auth", "node run-sdk.mjs"],
   ["il primo avvio di un'organizzazione", "firestore,auth", "node run-bootstrap.mjs"],
+  ["le Cloud Functions — inviti, ruoli, creazione dell'organizzazione", "firestore,auth,functions", "node run-fns.mjs"],
 ];
 
-/* Dichiarato per nome e con la ragione, non lasciato fuori in silenzio. */
-const FUORI = [
-  ["run-fns.mjs", "vuole l'emulatore delle FUNZIONI, che qui non parte: chiede la rete e la politica del contenitore la nega. Resta coperto dalla CI."],
-];
+/* Dichiarato per nome e con la ragione, non lasciato fuori in silenzio.
+   ⚠️ Vuoto dal 13/08, e la riga resta perché il conto si veda: l'unica voce che
+   c'era — `run-fns.mjs` «solo in CI» — era una rinuncia FALSA (vedi in cima).
+   Un elenco svuotato che sparisce è un elenco di cui nessuno sa più il conto. */
+const FUORI = [];
 
 /* ⚠️ Se firebase-tools o Java non ci sono, ci si FERMA dicendo perché. Un giro
    che non trova i suoi attrezzi e stampa «0 caduti» è il verde più falso che
@@ -51,20 +69,47 @@ function ceLAttrezzo(cmd, args) {
   const r = spawnSync(cmd, args, { encoding: "utf8" });
   return !r.error && r.status === 0;
 }
-if (!ceLAttrezzo("firebase", ["--version"])) {
-  console.error("⛔ `firebase` non risponde: serve firebase-tools. Non ho provato NIENTE.");
+/* ⚠️ In un contenitore fresco `firebase` NON è sul PATH, e il messaggio che dà
+   («No such file or directory») si legge come «qui l'emulatore non c'è». È
+   falso: si prende con npx. Si prova il comando diretto perché è più veloce, e
+   si ripiega su npx invece di fermarsi. */
+const FIREBASE = ceLAttrezzo("firebase", ["--version"])
+  ? ["firebase", []]
+  : ceLAttrezzo("npx", ["--yes", "firebase-tools@13", "--version"])
+    ? ["npx", ["--yes", "firebase-tools@13"]]
+    : null;
+if (!FIREBASE) {
+  console.error("⛔ né `firebase` né `npx firebase-tools@13` rispondono. Non ho provato NIENTE.");
   process.exit(2);
 }
+if (FIREBASE[0] === "npx") console.log("ℹ️  `firebase` non è sul PATH: uso `npx --yes firebase-tools@13`.");
 if (!ceLAttrezzo("java", ["-version"])) {
   console.error("⛔ `java` non risponde: l'emulatore Firestore ne ha bisogno. Non ho provato NIENTE.");
   process.exit(2);
 }
 
+/* ⛔ E LE DIPENDENZE, che è il difetto vero costato cinque giorni: senza
+   `functions/node_modules` l'emulatore parte lo stesso e le 21 prove cadono con
+   `functions/not-found` — cioè sembrano difetti del PRODOTTO. Ci si ferma
+   dicendo che cosa manca, invece di stampare ventuno rossi che non parlano del
+   codice. */
+for (const [dove, ragione] of [
+  [join(APP, "tests", "node_modules"), "le suite importano @firebase/rules-unit-testing"],
+  [join(APP, "functions", "node_modules"), "senza queste le funzioni non si caricano e run-fns.mjs dà 21 × functions/not-found, che NON sono difetti del prodotto"],
+]) {
+  if (!existsSync(dove)) {
+    console.error(`⛔ manca ${dove} — ${ragione}.`);
+    console.error(`   Si risolve con:  cd ${dirname(dove)} && npm ci`);
+    console.error("   Non ho provato NIENTE.");
+    process.exit(2);
+  }
+}
+
 let caduti = 0, proveTot = 0;
 for (const [cosa, soloQuesti, comando] of GIRI) {
   console.log(`\n════════ ${cosa} ════════`);
-  const r = spawnSync("firebase",
-    ["emulators:exec", "--only", soloQuesti, "--project", "demo-deepwork", `cd tests && ${comando}`],
+  const r = spawnSync(FIREBASE[0],
+    [...FIREBASE[1], "emulators:exec", "--only", soloQuesti, "--project", "demo-deepwork", `cd tests && ${comando}`],
     { cwd: APP, encoding: "utf8" });
   const uscita = String(r.stdout || "") + String(r.stderr || "");
   /* si legge il conto dalla riga di riepilogo della suite, non dall'uscita del
@@ -82,6 +127,7 @@ for (const [cosa, soloQuesti, comando] of GIRI) {
 }
 
 console.log("\n⚠️  NON HO GUARDATO — da leggere PRIMA del riepilogo:");
+if (!FUORI.length) console.log("   · niente: tutte e quattro le suite girano qui (dal 13/08, vedi l'intestazione).");
 for (const [file, ragione] of FUORI) console.log(`   · ${file}: ${ragione}`);
 
 console.log(`\nGiro con l'emulatore: ${GIRI.length - caduti} su ${GIRI.length} a posto, ${proveTot} prove`);

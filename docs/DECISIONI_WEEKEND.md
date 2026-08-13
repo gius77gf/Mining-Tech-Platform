@@ -258,7 +258,11 @@ quindici restano scelte vere, una per una.
    salvo appena torna la linea» sarebbe una promessa **falsa**, ed è la peggior
    categoria di messaggio: quello che rassicura a vuoto.
 
-La superficie interessata sono **203 chiamate `await db.`** nelle sei app.
+La superficie interessata sono **261 chiamate `await db.`** nelle sei app
+*(campo 41 · scudo 70 · flotta 43 · conti 51 · sentinella 32 · terra 24;
+rimisurate il 13/08 — qui c'era scritto **203**, ed è cresciuta di **58** mentre
+la decisione aspettava. Non è un errore di allora: è il costo che una decisione
+rimandata accumula da sola, e vale la pena vederlo scritto).*
 *(Quante siano già protette non lo dico: il conto dei `try/catch` non lo
 distingue, perché nelle stesse pagine ci sono catch per la clipboard e per la
 lettura dei file. Serve una scansione vera, e la farò quando la decisione sarà
@@ -410,6 +414,10 @@ scrivere i dati di tutte le altre.
       che si mostrano all'organo di vigilanza, art. 71 c.9).
       Prove sulle regole: **58 → 68**, con la controprova che rimette il difetto
       e fa cadere le quattro prove negative.
+      ⏱️ *Quel 68 è il numero **di allora**, non quello di adesso: rimisurato il
+      13/08 sotto l'emulatore, la suite delle regole è a **75 passati, 0
+      falliti**. Chi legge questa riga non prenda il 68 per lo stato corrente —
+      è la storia di questa decisione, non il conto di oggi.*
       ⛔ E il difetto della prima stesura va letto da chi tocca quel file: le
       regole di Firestore sono **additive**, e un carattere jolly ricorsivo
       combacia con **zero** segmenti — quindi il `match` delle sottocollezioni

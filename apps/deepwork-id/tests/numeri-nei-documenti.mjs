@@ -734,17 +734,28 @@ const DA_RIVERIFICARE = {};
    quelli che CLAUDE.md porta scritti. Tre accordi su tre. Se un domani una
    suite generasse prove dentro un ciclo, questo conto le perderebbe: allora
    NON si allarga la regex, si legge il numero che il runner stampa. */
+/* ⛔ E IL 13/08 QUESTO ELENCO PORTAVA LA STESSA RINUNCIA FALSA DEL DOCUMENTO CHE
+   SORVEGLIA: teneva fuori `run-fns.mjs` con la ragione «l'emulatore delle
+   funzioni qui non parte, chiede la rete». Non era la rete: era
+   `apps/deepwork-id/functions/node_modules` **vuota**, e con un `npm ci` quelle
+   21 prove passano tutte. Cioè il controllo scritto per non far invecchiare un
+   numero **conteneva l'errore che quel numero aveva**, e lo stampava pure in
+   fondo con l'aria di una dichiarazione onesta. È la lezione già scritta in
+   CLAUDE.md — *una regola scritta in un documento non protegge lo strumento che
+   si sta scrivendo* — e vale doppio per le **eccezioni dichiarate**: sono il
+   posto in cui nessuno guarda proprio perché sono scritte. */
 const SUITE_SICUREZZA = [
   ["regole", "apps/deepwork-id/tests/run.mjs"],
   ["SDK", "apps/deepwork-id/tests/run-sdk.mjs"],
   ["primo avvio", "apps/deepwork-id/tests/run-bootstrap.mjs"],
+  ["funzioni", "apps/deepwork-id/tests/run-fns.mjs"],
 ];
 
 const RE_SICUREZZA = sorveglia("docs/DEVELOPMENT.md",
-  /giro-sicurezza\.mjs\s+#\s*(\d+) prove:\s*(\d+) regole,\s*(\d+) SDK,\s*(\d+) primo avvio/);
+  /giro-sicurezza\.mjs\s+#\s*(\d+) prove:\s*(\d+) regole,\s*(\d+) SDK,\s*(\d+) primo avvio,\s*(\d+) funzioni/);
 export function scomposizioneSicurezza(testo) {
   const m = RE_SICUREZZA.exec(testo);
-  return m ? { totale: +m[1], regole: +m[2], SDK: +m[3], "primo avvio": +m[4] } : null;
+  return m ? { totale: +m[1], regole: +m[2], SDK: +m[3], "primo avvio": +m[4], funzioni: +m[5] } : null;
 }
 
 const proveDichiarate = (rel) =>
@@ -761,17 +772,17 @@ test("docs/DEVELOPMENT.md: la scomposizione della sicurezza è VERA, non solo co
     if (d[nome] !== vero) storte.push(`«${nome}» dice ${d[nome]} ma ${rel} ne dichiara ${vero}`);
   }
   ok(!storte.length, storte.join(" · ") + " — l'addendo si conta nella suite, non si crede");
-  ok(d.totale === somma, `il totale dice ${d.totale} ma le tre suite fanno ${somma}`);
+  ok(d.totale === somma, `il totale dice ${d.totale} ma le ${SUITE_SICUREZZA.length} suite fanno ${somma}`);
 });
 
 test("la controprova: un addendo falso che NON rompe la somma viene visto lo stesso", () => {
   /* È il caso vero del 09/08: si sposta di 2 un addendo E il totale, così la
      somma continua a tornare. Un controllo di coerenza direbbe ✓. */
-  const sano = "node apps/deepwork-id/tests/giro-sicurezza.mjs   # 102 prove: 75 regole, 19 SDK, 8 primo avvio";
+  const sano = "node apps/deepwork-id/tests/giro-sicurezza.mjs   # 123 prove: 75 regole, 19 SDK, 8 primo avvio, 21 funzioni";
   const s = scomposizioneSicurezza(sano);
-  ok(s && s.totale === 102 && s["primo avvio"] === 8, `la riga sana deve leggersi: ${JSON.stringify(s)}`);
-  const coerenteMaFalsa = scomposizioneSicurezza(sano.replace("102 prove", "104 prove").replace("8 primo avvio", "10 primo avvio"));
-  ok(coerenteMaFalsa.totale === coerenteMaFalsa.regole + coerenteMaFalsa.SDK + coerenteMaFalsa["primo avvio"],
+  ok(s && s.totale === 123 && s["primo avvio"] === 8 && s.funzioni === 21, `la riga sana deve leggersi: ${JSON.stringify(s)}`);
+  const coerenteMaFalsa = scomposizioneSicurezza(sano.replace("123 prove", "125 prove").replace("8 primo avvio", "10 primo avvio"));
+  ok(coerenteMaFalsa.totale === coerenteMaFalsa.regole + coerenteMaFalsa.SDK + coerenteMaFalsa["primo avvio"] + coerenteMaFalsa.funzioni,
     "il caso di prova deve essere COERENTE, se no non dimostra niente");
   ok(coerenteMaFalsa["primo avvio"] !== proveDichiarate(SUITE_SICUREZZA[2][1]),
     "col difetto rimesso il conto della suite DEVE smentire l'addendo");
@@ -781,7 +792,7 @@ test("la controprova: un addendo falso che NON rompe la somma viene visto lo ste
 
 console.log(`\nscomposizione della sicurezza: ${SUITE_SICUREZZA.length} suite contate `
   + `(${SUITE_SICUREZZA.map(([n, r]) => `${n} ${proveDichiarate(r)}`).join(", ")})`
-  + `  ·  ⚠️ le 21 prove sulle funzioni restano FUORI: chiedono l'emulatore delle funzioni, che qui non parte`);
+  + `  ·  nessuna suite tenuta fuori (fino al 13/08 le funzioni erano escluse con una ragione FALSA: vedi il commento sopra)`);
 
 /* Quanti soggetti ha guardato davvero questa parte: un «tutto a posto»
    ottenuto non leggendo niente è il difetto raccolto tre volte in CLAUDE.md. */
@@ -796,10 +807,16 @@ console.log(`\nmisure su Genesi: ${ID_MODALE.length + ID_EDITOR_3D.length} id ve
    tutti gli altri. `STATO_PRODOTTO.md`, con gli stessi quattro addendi, diceva
    123: i due documenti del fondatore si smentivano a vicenda.
    ⚠️ E la lezione sull'addendo «non verificabile»: le 21 sulle funzioni erano
-   tenute fuori da ogni controllo perché chiedono l'emulatore delle funzioni,
-   che qui non parte. Ma **contarle** non chiede nessun emulatore — sono `test(`
-   scritti in `run-fns.mjs`. Quello che non si può verificare è che **passino**.
-   Confondere le due cose lasciava un quarto del totale a invecchiare da solo.
+   tenute fuori da ogni controllo perché — si diceva — l'emulatore delle
+   funzioni qui non parte. Ma **contarle** non chiede nessun emulatore: sono
+   `test(` scritti in `run-fns.mjs`, e confondere «non verificabile» con «non
+   contabile» lasciava un quarto del totale a invecchiare da solo.
+   ⛔ **E il 13/08 si è scoperto che nemmeno la prima metà era vera**:
+   l'emulatore delle funzioni parte benissimo: mancava
+   `apps/deepwork-id/functions/node_modules`, e con un `npm ci` quelle 21
+   passano tutte. Cioè la rinuncia che questo commento raccontava come un
+   limite dell'ambiente era una **cartella vuota**, e nessuno l'ha riletta per
+   cinque giorni perché la spiegazione suonava tecnica e definitiva.
    ⚠️ E il confronto NON è fra i due documenti: due copie che si somigliano non
    dicono chi ha ragione. Ogni addendo si conta nella **sua suite**. */
 const RE_EMULATORE = ["docs/DEVELOPMENT.md", "docs/STATO_PRODOTTO.md"].reduce((re, d) => sorveglia(d, re),

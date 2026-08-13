@@ -3987,6 +3987,20 @@ numero scritto dove non era stato misurato niente**.*
   conto vero, tutt'e due 0 su 1 e uscita 1. ⚠️ Il conto si legge dalla **riga
   di riepilogo della suite**, non dall'uscita del processo: un processo può
   uscire 0 anche senza aver provato niente.
+  ⏱️ **AGGIORNATA IL 13/08 — e la riga «non ho guardato» che dichiarava era
+  FALSA.** «`run-fns.mjs` (21) vuole l'emulatore delle funzioni, che qui non
+  parte» non era vero: l'emulatore parte, e le 21 cadevano con
+  `functions/not-found` perché `apps/deepwork-id/functions/node_modules` era
+  **vuota**. Un `npm ci` e sono **21 passati, 0 falliti**. Il giro adesso ne
+  prova **quattro su quattro, 123 prove** (75 · 19 · 8 · 21) e l'elenco `FUORI`
+  è **vuoto** — tenuto come riga, non cancellato, così il conto si vede.
+  ⛔ Due cose imparate scrivendolo, tutt'e due della famiglia «lo strumento, non
+  il mondo»: in un contenitore fresco `firebase` **non è sul PATH** (adesso si
+  ripiega su `npx --yes firebase-tools@13`, e lo **dichiara** quando lo fa); e
+  senza le dipendenze il giro **si ferma dicendo quale `npm ci` lanciare**
+  invece di stampare ventuno rossi che sembrano difetti del prodotto —
+  controprovato togliendo la cartella: **uscita 2, niente provato**, e col
+  ripristino 123 di nuovo.
 
 - [x] ✅ **Sentinella è il primo documento ad arrivare a ZERO di arretrato**
   (`ca99a55`). **Riverificato, non ridatato**: zero occorrenze su 34 termini nel

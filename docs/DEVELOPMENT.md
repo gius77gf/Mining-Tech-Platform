@@ -207,19 +207,31 @@ regole di sicurezza che era fermo da tempo:
 cd apps/deepwork-id && firebase emulators:exec --project demo-deepwork "cd tests && npm test"
 ```
 
-⚠️ **Nel contenitore di sviluppo quel comando non parte**, e la ragione non è
-un difetto nostro: l'emulatore delle **funzioni** chiede la rete e la politica
-del contenitore la nega. Quello che gira — misurato l'08/08 — è la parte che
-conta di più, la **barriera multi-tenant**:
+⚠️ **Nel contenitore di sviluppo quel comando non parte**, e la ragione non è un
+difetto nostro: `firebase` non è sul PATH e le `node_modules` non ci sono. Il
+giro che gira davvero è uno solo:
 
 ```sh
-node apps/deepwork-id/tests/giro-sicurezza.mjs   # 102 prove: 75 regole, 19 SDK, 8 primo avvio
+node apps/deepwork-id/tests/giro-sicurezza.mjs   # 123 prove: 75 regole, 19 SDK, 8 primo avvio, 21 funzioni
 ```
 
-Un comando solo, che alza l'emulatore da sé e **dichiara in fondo quello che
-non ha potuto guardare** — le **21** prove sulle funzioni, verificabili solo in
-CI. Se `firebase` o `java` non rispondono si ferma dicendolo (uscita 2) invece
-di stampare «0 caduti», che sarebbe il verde più falso che ci sia.
+Un comando solo, che alza l'emulatore da sé, ripiega su `npx firebase-tools@13`
+quando `firebase` non c'è, e **dichiara in fondo quello che non ha potuto
+guardare** — oggi **niente**. Se gli attrezzi o le dipendenze mancano si ferma
+dicendo quale `npm ci` lanciare (uscita 2) invece di stampare «0 caduti», che
+sarebbe il verde più falso che ci sia.
+
+⛔ **Fino al 13/08 questa riga diceva 102, e le 21 prove sulle funzioni erano
+dichiarate «verificabili solo in CI» perché «l'emulatore delle funzioni chiede
+la rete e la politica del contenitore la nega».** Era falso. L'emulatore parte;
+le 21 cadevano con `functions/not-found` perché
+`apps/deepwork-id/functions/node_modules` era **vuota**. Un `npm ci` lì dentro e
+fanno **21 passati, 0 falliti**. Per cinque giorni le difese che contano di più
+— un'email non verificata non riscatta inviti, un utente anonimo non crea
+un'organizzazione — sono state fuori dalla verifica di casa **per una cartella
+vuota**, e nessuno ha riletto quel messaggio d'errore perché **la spiegazione
+c'era già**. Il segno da riconoscere non è l'errore: è la **rinuncia scritta
+accanto**.
 
 **194 esecuzioni che aprono davvero le pagine** in Chromium — banchi distinti,
 ognuno seguito dalla sua **controprova** (Chromium è già installato in

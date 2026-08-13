@@ -2067,17 +2067,58 @@ Perché serva davvero e non produca elenchi generici, cinque vincoli:
   Il comando che gira davvero, e che verifica la **barriera multi-tenant** — il
   requisito fondante, quello fra aziende concorrenti — è:
 
-      cd apps/deepwork-id && firebase emulators:exec --only firestore \
-        --project demo-deepwork "cd tests && node run.mjs"
+      cd apps/deepwork-id/tests && npm ci          # una volta per contenitore
+      cd apps/deepwork-id && npx --yes firebase-tools@13 emulators:exec \
+        --only firestore --project demo-deepwork "cd tests && node run.mjs"
 
   **75 prove, tutte verdi**, in pochi minuti. E con `--only firestore,auth`
   girano anche `run-sdk.mjs` (**19**) e `run-bootstrap.mjs` (**8**).
-  ⚠️ **Quello che NON gira qui è l'emulatore delle FUNZIONI**, e con lui
-  `run-fns.mjs` (21): chiede la rete e la politica del contenitore la nega
-  («Unable to parse JSON … "denied by …"»). È per questo che `npm test` intero
-  sotto l'emulatore fallisce — non per un difetto nostro. Quei 21 restano
-  verificabili **solo in CI**, e va detto invece che lasciato credere che
-  l'emulatore «non si possa usare».
+  ⛔ **E IL 13/08 QUESTA STESSA RIGA HA SBAGLIATO PER LA TERZA VOLTA, SEMPRE
+  NELLA DIREZIONE CHE FA RINUNCIARE.** Diceva `firebase emulators:exec …`, e in
+  un contenitore fresco `firebase` **non è installato**: la risposta è `timeout:
+  failed to run command 'firebase': No such file or directory`, e chi la legge
+  conclude «qui l'emulatore non c'è». È **falso**, e costa due comandi: la CLI
+  si prende con `npx --yes firebase-tools@13` (13.35.1, scaricata attraverso il
+  proxy senza nessun permesso in più) e `tests/node_modules` va popolata con
+  `npm ci`, perché un contenitore nuovo arriva **senza dipendenze installate**
+  esattamente come arriva con la **copia superficiale** di git.
+  ⚠️ È la stessa famiglia della copia superficiale e — misurata lo stesso
+  giorno, a venti minuti di distanza — dell'agente di ricerca che ha dichiarato
+  la rete bloccata perché aveva provato con `curl`: **un «non si può» che parla
+  dello STRUMENTO e non del mondo**. Tre volte in un giorno, e ogni volta la
+  forma è quella di un limite tecnico credibile. La domanda da farsi davanti a
+  un comando che non parte è *«manca la cosa, o manca il modo di chiamarla?»* —
+  e costa un `which`.
+  ⚠️ E il **denominatore** di questa riga, perché non se ne prenda una parte per
+  il tutto: rimisurato il 13/08 in un contenitore fresco, regole **75/0**, SDK
+  **19/0**, primo avvio **8/0**.
+  ⛔ **E LA RIGA CHE STAVA QUI ERA FALSA DA CINQUE GIORNI, NELLA STESSA
+  DIREZIONE.** Diceva: *«quello che NON gira qui è l'emulatore delle FUNZIONI, e
+  con lui `run-fns.mjs` (21): chiede la rete e la politica del contenitore la
+  nega. Quei 21 restano verificabili solo in CI»*. **Non è la rete.** L'emulatore
+  delle funzioni parte benissimo; le 21 prove cadevano tutte con
+  `functions/not-found` — cioè le funzioni non c'erano, perché
+  `apps/deepwork-id/functions/node_modules` era **vuota**. Un `npm ci` lì dentro
+  e sono **21 passati, 0 falliti**:
+
+      cd apps/deepwork-id/functions && npm ci     # una volta per contenitore
+      cd apps/deepwork-id && npx --yes firebase-tools@13 emulators:exec \
+        --only firestore,auth,functions --project demo-deepwork \
+        "cd tests && node run-fns.mjs"
+
+  ⚠️ **Quindi il conto vero di ciò che si verifica in casa è 123**, non 102:
+  regole **75**, SDK **19**, primo avvio **8**, funzioni **21** — e fra quelle 21
+  ci sono le difese che contano di più (un'email non verificata non riscatta
+  inviti, un utente anonimo non crea un'organizzazione). Per cinque giorni
+  quelle prove sono state considerate «solo CI» **per una cartella vuota**.
+  ⛔ La lezione è la quarta della stessa giornata e chiude la famiglia: **un
+  errore che nomina una causa plausibile la fa smettere di essere verificata.**
+  «La politica del contenitore nega la rete» è credibile, è perfino vero per
+  `curl`, ed è **la ragione sbagliata**: nessuno ha riletto quel messaggio
+  perché la spiegazione c'era già. Il segno da riconoscere non è il messaggio
+  d'errore, è il **verdetto scritto accanto** — «resta verificabile solo in CI»,
+  cioè una rinuncia. **Ogni rinuncia scritta in questo file va rimisurata la
+  prima volta che si lavora in un contenitore nuovo.**
   ⛔ **E QUELLA RIGA NON È UN DETTAGLIO DI CONTABILITÀ: È IL MOTIVO PER CUI UNA
   PROVA PUÒ ESSERE VERDE IN CASA E ROSSA IN CI.** Misurato l'08/08 e costato un
   commit rosso in cima al branch. Avevo aggiunto a `run-bootstrap.mjs` due prove
