@@ -52,7 +52,10 @@
        token — quasi sempre veli decorativi dietro un'icona, dove il segnale
        vero è l'icona;
      · il tema `scuro` non ha mai avuto questo difetto: si misura lo stesso,
-       perché una correzione fatta sul chiaro non deve rovinarlo.
+       perché una correzione fatta sul chiaro non deve rovinarlo;
+     · il tema `sole` del CORE, che il core non ha davvero (due temi, non tre:
+       la ragione col suo comando sta dove il tema viene rifiutato). Le sei app
+       ce l'hanno e lì si misura.
 
    ⚠️ LA GEOMETRIA DEI GRADIENTI È STATA PROVATA E RIMANDATA, COL NUMERO. Il
    07/08 `contrasto.mjs` ha smesso di accoppiare a tappeto le fermate di un
@@ -69,14 +72,20 @@
    elenca le regole che dipingono una superficie di stato e che nel DOM non
    hanno agganciato niente — è il denominatore, e va letto PRIMA dei KO.
 
+   LE SUPERFICI: il core e le sei app verticali. Il core è entrato il 13/08 —
+   fino a lì l'elenco era scritto a mano e non lo conteneva; la storia, coi
+   comandi, sta accanto all'elenco.
+
    Uso:
      node apps/deepwork-id/tests/browser/contrasto-non-testo.mjs 8823
+     node apps/deepwork-id/tests/browser/contrasto-non-testo.mjs 8823 --solo=core --tema=chiaro
      node apps/deepwork-id/tests/browser/contrasto-non-testo.mjs 8823 --tema=chiaro
      node apps/deepwork-id/tests/browser/contrasto-non-testo.mjs 8823 --tema=sole
      node apps/deepwork-id/tests/browser/contrasto-non-testo.mjs 8823 --solo=campo --tutti
      node apps/deepwork-id/tests/browser/contrasto-non-testo.mjs 8823 --tema=chiaro --controprova
 */
 import { prendiChromium, CHROMIUM, SUPERFICI, sezioniDi, vaiA, apriSuperficie } from './giro.mjs';
+import { montaFintoFirebase } from './finto-firebase.mjs';
 
 const chromium = await prendiChromium();
 const PORTA = process.argv[2] || '8823';
@@ -104,10 +113,58 @@ if (CONTROPROVA && !TEMA) {
 }
 const SOGLIA = 3;
 
-/* le sei app verticali: sono quelle che caricano `dw-app-ui.css` e hanno i tre
-   temi. Il core ha due temi suoi e classi sue, e va misurato da un banco che
-   conosce la sua forma (è la lezione di `modali-dentro.mjs`). */
-const APP = SUPERFICI.filter(([n]) => ['campo', 'conti', 'flotta', 'scudo', 'sentinella', 'terra'].includes(n));
+/* ⛔ IL CORE È ENTRATO IL 13/08, E LA RIGA CHE LO TENEVA FUORI DICEVA UNA COSA
+   FALSA. Fino a quel giorno qui c'era scritto — e si leggeva bene —
+
+     «le sei app verticali […]. Il core ha due temi suoi e classi sue, e va
+      misurato da un banco che conosce la sua forma (è la lezione di
+      `modali-dentro.mjs`)»
+
+   cioè un elenco a mano con accanto la sua giustificazione. Le due metà erano
+   tutt'e due sbagliate, e in modi diversi:
+   1. **«va misurato da un banco che conosce la sua forma»** dà per scontato che
+      quel banco ESISTA. Non esisteva. Il comando che lo dice:
+        grep -ln "1\.4\.11\|non testual\|non-testo" apps/deepwork-id/tests/browser/*.mjs
+        → contrasto-non-testo.mjs, contrasto.mjs, modali-dentro.mjs, tutti.mjs
+      e degli altri tre nessuno misura questo: in `contrasto.mjs` le uniche
+      occorrenze sono l'ECCEZIONE dei contenitori d'icona (righe «soglia
+      non-testo 3:1» dentro il banco dei TESTI), in `modali-dentro.mjs` è
+      l'ingombro di una tendina. Cioè bordi, pallini e fili colorati del core
+      non li giudicava NESSUNO — ed è la superficie che il fondatore mostra per
+      prima. È l'elenco a mano che «non sapeva nemmeno che `chiediDati`
+      esistesse», applicato a una superficie intera.
+   2. **«il core ha classi sue»** è vero e non c'entra: questo banco non
+      conosce nemmeno le classi delle app. Riconosce i soggetti PER EFFETTO —
+      legge i nomi dei token di stato dai fogli della pagina stessa e cammina
+      il DOM. Il core quei token li ha, e col vocabolario di qui:
+        grep -o -- "--\(success\|warn\|danger\|info\|ink-[a-z0-9]*\)\s*:" index.html | sort | uniq -c
+        → 1 --success: · 1 --warn: · 1 --danger: · 1 --info: · 2 --ink-ok: …
+      Quindi non serviva un banco nuovo: serviva togliere il filtro.
+
+   ⚠️ E QUEL «1» ACCANTO A `--warn` NON È UN DETTAGLIO DI CONTABILITÀ: è il
+   difetto. Nelle app ogni token di stato è dichiarato DUE volte (una per il
+   buio, una per il chiaro); nel core `--success/--danger/--info/--warn` sono
+   dichiarati **una volta sola**, alla riga 7904 dentro il `:root` del buio, e
+   `body.light-mode` ridichiara solo la famiglia `--ink-…` (gli inchiostri
+   scuri, cioè i TESTI). Effetto: nel tema chiaro una superficie dipinta
+   `var(--warn)` resta l'ambra del buio — #ffa726 — sopra una scheda bianca.
+   Il comando:
+     grep -n -- "--warn:\|--success:\|--danger:\|--info:" index.html   →  solo 7904
+
+   Il core resta l'unico caso speciale del ciclo, e per una ragione sola: il
+   TEMA. Sta scritto dove si impone, qui sotto. */
+const APP = SUPERFICI.filter(([n]) => ['core', 'campo', 'conti', 'flotta', 'scudo', 'sentinella', 'terra'].includes(n));
+/* ⛔ UN `--solo=` CHE NON COMBACIA CON NIENTE STAMPAVA UN VERDE E USCIVA ZERO.
+   Trovato il 13/08 col comando dell'unità, prima ancora di correggere l'elenco:
+   `--solo=core` dava «0 app misurate · 0 sopra 3:1, 0 sotto» e **uscita 0** —
+   cioè la risposta tranquilla dove non si è guardato niente, che è il principio
+   del fondatore violato dentro il banco che lo difende. Un nome sbagliato a
+   riga di comando ha lo stesso effetto, e in un giro nessuno se ne accorge. */
+if (SOLO && !APP.some(([n]) => n === SOLO)) {
+  console.error(`✗ --solo=${SOLO}: non è una superficie di questo banco. Sono ${APP.map(([n]) => n).join(', ')}.`
+    + '\n  Mi fermo invece di stampare «0 misurate, 0 sotto soglia», che si legge come un verde.');
+  process.exit(2);
+}
 
 const MISURA = (soglia) => {
   /* ── lettura dei colori. `color(srgb …)` ha i canali da 0 a 1: è la settima
@@ -328,46 +385,158 @@ const MISURA = (soglia) => {
       for (const s of r.selectorText.split(',')) {
         const sel = s.trim().replace(/::?(before|after|hover|focus|active|focus-visible|disabled|first-child|placeholder)\b[^ ]*/g, '');
         if (!sel || /^(0%|50%|100%|from|to)$/.test(sel)) continue;
-        let c = 0; try { c = document.querySelectorAll(sel).length; } catch (e) { continue; }
+        /* ⛔ «HA AGGANCIATO» DEVE VOLER DIRE «È STATO MISURATO», NON «STA NEL
+           DOM» — se no un soggetto che c'è ma non si vede sparisce da TUTT'E
+           DUE i conti: non misurato (il giro salta gli invisibili, riga
+           `nascosto`) e non dichiarato (perché `querySelectorAll` l'ha
+           trovato). È il buco del `.toast.success` di CLAUDE.md, dove una cosa
+           usciva dal censimento perché «vista» e non veniva misurata perché
+           non era mai stata a schermo.
+           Misurato il 13/08 sul core: `.scad-badge.warn`, `.scad-badge.danger`
+           e `.sitem.danger` hanno **22 nodi ciascuno nel DOM e ZERO visibili**
+           in tutte e 26 le sezioni — stanno in schermate rese e non mostrate.
+           Col conto sul DOM sarebbero scomparsi in silenzio; col conto sul
+           VISIBILE restano dove devono stare, fra le righe «non ho guardato».
+           Si usa la stessa domanda della misura, non una sua copia più debole. */
+        let c = 0;
+        try { c = [...document.querySelectorAll(sel)].filter((el) => {
+          if (nascosto(el)) return false;
+          const q = el.getBoundingClientRect();
+          return q.width >= 1 && q.height >= 1;
+        }).length; } catch (e) { continue; }
         if (c === 0) maiComparse.push(sel); else usati.add(sel);
       }
     });
   }
-  return { soggetti, decorativi, conteggio, maiComparse: [...new Set(maiComparse)].filter((s) => !usati.has(s)), soglia };
+  /* ⛔ `usati` VA RESTITUITO, NON SOLO SOTTRATTO QUI. Questa funzione gira UNA
+     VOLTA PER SEZIONE, quindi `usati` sa solo che cosa ha agganciato nella
+     sezione corrente: un selettore che vive in una schermata sola risulta
+     «mai comparso» dalle altre venticinque, e la sottrazione fatta qui dentro
+     non può accorgersene. Chi somma le sezioni deve poter sottrarre alla fine.
+     Misurato il 13/08 sul core: **5 righe su 21 erano false** — i quattro
+     `#global-nav .bn[data-scr="…"].active` (la voce accesa esiste, ed è accesa
+     nella SUA sezione: `.active` è una classe, non la pseudo-classe `:active`
+     che il ripulitore toglie) e `body.light-mode .bn.active`. Cioè la riga
+     «non ho guardato», che in questa casa si legge PRIMA dei KO, accusava di
+     non essere mai comparso un elemento che sta a schermo — e nella direzione
+     che fa aprire un cantiere su niente. */
+  return { soggetti, decorativi, conteggio, usati: [...usati],
+    maiComparse: [...new Set(maiComparse)].filter((s) => !usati.has(s)), soglia };
 };
 
 const b = await chromium.launch({ executablePath: CHROMIUM });
 let ko = 0, ok = 0, dipinte = 0, diStato = 0, visti = 0, misurate = 0;
 const rifiutate = [], mai = new Map(), peggiori = [], pulsanti = [], deco = new Map();
+/* quanti difetti la controprova ha rimesso in ogni superficie, e quanti KO ha
+   prodotto ognuna: servono a non far promuovere la controprova dai KO veri di
+   una superficie in cui non ha iniettato niente */
+const iniettati = new Map(), koPerApp = new Map();
 /* la forbice di TUTTI i soggetti, non solo di quelli stampati: serve a vedere
    il numero salire il giorno che un gradiente comincerà a contare */
 const forbici = [];
 for (const [nome, via] of APP) {
   if (SOLO && SOLO !== nome) continue;
-  const { ctx, p } = await apriSuperficie(b, { nome, via, porta: PORTA });
+  /* ⛔ IL CORE IL TEMA CHIARO CE L'HA — QUELLO CHE NON HA È L'INTERRUTTORE
+     CONDIVISO, e le due cose si somigliano abbastanza da far scrivere la
+     ragione sbagliata accanto al numero giusto. `contrasto.mjs` ci è già
+     cascato e l'ha corretto il 13/08: stampava «core non ha il tema "chiaro":
+     NON misurata», che è una riga «non ho guardato» col conto esatto e la
+     causa inventata. Qui si nasce con la versione giusta invece di ripagarla.
+     I comandi che la dicono:
+       grep -n "body.light-mode{" index.html   →  8021
+       grep -c "dwTema" index.html             →  0
+     Il core fa `classList.toggle('light-mode', temaChiaro())` dentro
+     `applyTheme`, e `temaChiaro()` legge `DB.settings.theme`. Non ha
+     `window.dwTema` perché non carica `shared/dw-tema.js` — ha due temi suoi.
+     Quindi il tema si passa DAI DATI: nelle impostazioni di partenza del
+     servito c'è `theme:'dark'`, e scambiarlo con `'light'` fa entrare il core
+     nel suo tema chiaro **dalla propria porta**. Non si appiccica la classe:
+     `applyTheme` la rimetterebbe a posto al primo giro e si misurerebbe un
+     tema che quel core non ha (già pagato in `contrasto.mjs`, «decine di KO
+     falsi»).
+     ⚠️ E LA SOSTITUZIONE SI CONTA. Un `replace` che non trova niente non
+     fallisce: restituisce il testo identico, e il banco misurerebbe IL BUIO
+     stampando «core · chiaro» in cima. Sarebbe il verde più falso di tutti,
+     perché al buio questo difetto non c'è per costruzione. */
+  const temaDaiDati = (nome === 'core' && TEMA === 'chiaro')
+    ? (corpo) => {
+        const dopo = corpo.replace("theme:'dark'", "theme:'light'");
+        if (dopo === corpo) {
+          console.error("✗ core: non ho trovato `theme:'dark'` nelle impostazioni di partenza:"
+            + ' mi fermo invece di misurare il buio chiamandolo chiaro.');
+          process.exit(2);
+        }
+        return dopo;
+      }
+    : null;
+  const { ctx, p } = await apriSuperficie(b, { nome, via, porta: PORTA, montaFintoFirebase, trasforma: temaDaiDati });
   if (TEMA) {
     const messa = await p.evaluate(({ cls, t }) => {
-      if (!window.dwTema) return false;
+      /* chi non ha `dwTema` non è per forza senza tema: il core il suo se l'è
+         già messo dai dati (vedi `temaDaiDati` qui sopra), quindi la domanda
+         giusta non è «so mettere questo tema?» ma «la superficie CE L'HA?» —
+         che è la stessa domanda, fatta dopo che a deciderla è stato il
+         programma della pagina e non questo banco. */
+      if (!window.dwTema) return document.body.classList.contains(cls);
       try { localStorage.setItem('dw-tema', t); } catch (e) { /* niente */ }
       window.dwTema(t);
       return document.body.classList.contains(cls);
     }, { cls: CLASSE_TEMA[TEMA], t: TEMA });
     if (!messa) {
-      console.log(`  ⚠️  ${nome} non ha il tema «${TEMA}»: NON misurata.`);
+      /* ⛔ IL CORE NON HA IL TEMA `sole`, E QUESTA VOLTA LA RAGIONE È VERA —
+         verificata, non dedotta dal fatto che manchi `dwTema` (che è
+         esattamente l'errore corretto qui sopra). Il core la classe
+         `outdoor-mode` la TOGLIE a ogni giro:
+           grep -n "outdoor-mode" index.html | grep -v ":not(.outdoor-mode)"
+           → 1341: function applyTheme(){ … document.body.classList
+                     .remove('outdoor-mode'); … }
+           → 8889: «Il core ha DUE temi, scuro e chiaro. La classe
+                     `outdoor-mode` era il terzo, e il foglio che lo dipingeva
+                     è stato tolto il 07/08 — 137 selettori»
+         Delle 20 occorrenze nel file, **17 sono `body:not(.outdoor-mode)`** —
+         una negazione tenuta apposta per la specificità, non un tema vivo.
+         Quindi «core · sole: non misurata» è la verità, e il tema `sole`
+         resta un concetto delle sole app. */
+      const perche = nome === 'core' && TEMA === 'sole'
+        ? 'il core ha DUE temi (scuro e chiaro): `applyTheme` fa `classList.remove("outdoor-mode")` a ogni giro'
+        : 'la classe viene tolta dalla pagina stessa';
+      console.log(`  ⚠️  ${nome} non ha il tema «${TEMA}» — ${perche}. NON misurata.`);
       rifiutate.push(nome); await ctx.close(); continue;
     }
   }
   if (CONTROPROVA) {
     /* il difetto di prima: la striscia torna al colore di stato crudo */
-    await p.evaluate(() => {
+    /* ⛔ E SI CONTA QUANTI TOKEN HA DAVVERO CAMBIATO, perché col core
+       nell'elenco questa iniezione ha smesso di essere universale:
+         grep -c -- "--bar-ok\|--bar-wr\|--bar-dg" index.html   →  0
+         grep -c -- "--bar-ok" apps/campo/index.html            →  3
+       Il core i due livelli non ce li ha: dipinge con i token di stato crudi e
+       basta. Un `setProperty` su un token che nessuno legge non fallisce e non
+       cambia niente — è «l'iniezione che non inietta», la terza delle cinque
+       cause. Senza questo conto la controprova avrebbe promosso sé stessa coi
+       KO VERI del core, che nel tema chiaro ci sono comunque: verdetto giusto,
+       prova inesistente. Chi non riceve l'iniezione esce dal VERDETTO della
+       controprova e finisce in una riga «non ho guardato», non fra i muti. */
+    const messi = await p.evaluate(() => {
       const s = getComputedStyle(document.body);
+      let n = 0;
       for (const [bar, crudo] of [['--bar-ok', '--success'], ['--bar-wr', '--warn'], ['--bar-dg', '--danger']]) {
-        document.body.style.setProperty(bar, s.getPropertyValue(crudo).trim());
+        const prima = s.getPropertyValue(bar).trim();
+        const dopo = s.getPropertyValue(crudo).trim();
+        if (!prima || !dopo || prima === dopo) continue;   // token assente, o già uguale: non è un difetto rimesso
+        document.body.style.setProperty(bar, dopo);
+        n++;
       }
+      return n;
     });
+    iniettati.set(nome, messi);
+    if (!messi) console.log(`  ⚠️  ${nome}: la controprova non ha rimesso NESSUN difetto (non ha i --bar-…):`
+      + ' quello che segue è il prodotto vero, e non prova che il banco sappia fallire.');
   }
   misurate++;
   const perApp = [];
+  /* i due insiemi che vanno confrontati DOPO tutte le sezioni, non dentro una */
+  const maiApp = new Set(), usatiApp = new Set();
   for (const s of await sezioniDi(p, nome)) {
     await vaiA(p, nome, s);
     const res = await p.evaluate(MISURA, SOGLIA);
@@ -379,8 +548,12 @@ for (const [nome, via] of APP) {
     for (const x of res.decorativi) {
       if (x.peggio < SOGLIA) deco.set(`${nome}: ${x.sel} · ${x.token} · ${x.peggio}`, 1);
     }
-    for (const m of res.maiComparse) mai.set(nome + ' ' + m, (mai.get(nome + ' ' + m) || 0) + 1);
+    for (const m of res.maiComparse) maiApp.add(m);
+    for (const u of res.usati) usatiApp.add(u);
   }
+  /* la sottrazione vera si fa QUI, quando tutte le sezioni hanno parlato: un
+     selettore che ha agganciato in una sezione qualunque NON è mai comparso. */
+  for (const m of maiApp) if (!usatiApp.has(m)) mai.set(nome + ' ' + m, 1);
   /* una riga per (tipo, selettore, token): la stessa striscia su venti righe
      è un difetto solo, e venti righe uguali non si leggono */
   const agg = new Map();
@@ -397,6 +570,7 @@ for (const [nome, via] of APP) {
   }
   const male = righe.filter((x) => x.peggio < SOGLIA);
   ko += male.length; ok += righe.length - male.length;
+  koPerApp.set(nome, male.length);
   console.log(`\n══════ ${nome}${TEMA ? ' · ' + TEMA : ''} ══════  ${righe.length} superfici di stato distinte, ${male.length} sotto ${SOGLIA}:1`);
   for (const x of (TUTTI ? righe : male)) {
     const seg = x.peggio < SOGLIA ? 'KO' : 'ok';
@@ -450,8 +624,32 @@ if (mai.size) {
   for (const k of [...mai.keys()].sort()) console.log(`   · ${k}`);
 }
 if (CONTROPROVA) {
-  console.log(ko ? '\n✓ CONTROPROVA: col difetto rimesso il banco lo vede.'
-    : '\n✗ CONTROPROVA: col difetto rimesso il banco NON lo vede. Non sta guardando le strisce.');
-  process.exit(ko ? 0 : 1);
+  /* ⛔ IL VERDETTO SI FA SOLO SU CHI IL DIFETTO L'HA RICEVUTO. Sommare i KO di
+     tutte le superfici farebbe passare la controprova grazie ai KO VERI del
+     core — che nel tema chiaro esistono a prescindere — cioè un «✓ so
+     fallire» dimostrato da un prodotto rotto invece che da un'iniezione. E il
+     denominatore si stampa sempre: «N su M», non solo il segno. */
+  const conIniezione = [...iniettati.entries()].filter(([, n]) => n > 0).map(([a]) => a);
+  const senza = [...iniettati.entries()].filter(([, n]) => n === 0).map(([a]) => a);
+  const koVeri = conIniezione.reduce((s, a) => s + (koPerApp.get(a) || 0), 0);
+  if (senza.length) {
+    console.log(`\n⚠️  ${senza.length} superfici NON hanno ricevuto nessun difetto (non hanno i --bar-…):`
+      + ` ${senza.join(', ')}. Fuori dal verdetto: i loro KO sono prodotto, non iniezione.`);
+  }
+  console.log(koVeri
+    ? `\n✓ CONTROPROVA: col difetto rimesso il banco lo vede (${koVeri} KO su ${conIniezione.length} superfici iniettate).`
+    : `\n✗ CONTROPROVA: col difetto rimesso il banco NON lo vede su nessuna delle ${conIniezione.length} superfici iniettate. Non sta guardando le strisce.`);
+  process.exit(koVeri ? 0 : 1);
+}
+/* ⛔ ZERO SUPERFICI MISURATE NON È ZERO DIFETTI. Se ogni superficie è stata
+   rifiutata (per esempio `--solo=core --tema=sole`, che è un caso legittimo e
+   dichiarato), il conto dei KO vale zero e l'uscita sarebbe **0**: un verde
+   che riguarda il nulla. È la stessa trappola del `--solo` sconosciuto, e la
+   stessa regola del banco che «non accusa ma esce diverso da zero» quando non
+   ha potuto misurare. Nel giro non scatta mai — `tutti.mjs` lancia questo
+   banco senza `--solo`, e le sei app i tre temi ce li hanno tutti. */
+if (!misurate) {
+  console.log('\n✗ NESSUNA superficie misurata: quello che sta qui sopra non è un verde, è un giro a vuoto.');
+  process.exit(2);
 }
 process.exit(ko ? 1 : 0);
