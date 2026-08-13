@@ -1728,6 +1728,31 @@ Perché serva davvero e non produca elenchi generici, cinque vincoli:
   ⚠️ **E la regola generale per chi legge un registro lungo: la prima domanda
   non è «che cosa dice», è «sta ancora scrivendo?».** Due `stat` a venticinque
   secondi di distanza costano niente.
+  ⛔ **E IL 13/08 LA RISPOSTA È STATA «NO», PER UNA RAGIONE CHE NON È NEL
+  REGISTRO: IL GIRO MUORE CON LA SESSIONE.** Lanciato alle 15:59 con `nohup`,
+  aveva scritto l'ultima riga alle **17:01**; alle 19:00 il file era fermo da
+  due ore e il processo **non esisteva più** — ucciso dall'interruzione della
+  sessione, non da un banco piantato. Il registro però si legge benissimo:
+  quindici passate, nessun KO vero, e chi lo apre senza guardare l'orologio
+  crede di avere davanti un giro finito. `leggi-giro.mjs` lo dice
+  («nessuna riga di fine: il giro NON è arrivato in fondo»), ed è la ragione
+  per cui quella riga esiste.
+  ⚠️ Due conseguenze pratiche, tutt'e due misurate lo stesso giorno:
+  1. il **server statico orfano resta vivo e tiene la porta**, quindi il giro
+     dopo si ferma da sé («il server sulla porta 8823 non è il mio»). È la
+     guardia che funziona: prima di rilanciare si **uccide chi tiene la
+     porta**, non si cambia porta;
+  2. un giro **più lungo della sessione non finisce mai**. Misurato: 15 passate
+     in 61 minuti — e sono le più lente del giro, tutto il blocco `contrasto`
+     (14 superfici × 3 temi), quindi il conto NON si estrapola alle 188. Quello
+     che si può dire con la misura in mano è che il giro completo non sta in
+     un'ora, e che va lanciato **presto nel ciclo**, non alla fine.
+  ⚠️ E la banalità che è costata un giro intero: se la **redirezione fallisce**
+  (una variabile non espansa, una cartella che non c'è), il giro parte lo
+  stesso e macina per un'ora **senza un registro che qualcuno possa aprire**.
+  Un giro che gira e non si può leggere è un giro che non è stato fatto: dopo
+  averlo lanciato si guarda che il file **esista e cresca**, prima di andare
+  avanti.
   ⚠️ **Ma venticinque secondi sono il MINIMO, non la risposta — tarato l'08/08.**
   Con un giro vivo da 2h33 il registro è rimasto fermo per **oltre venti
   secondi** fra due scritture, e un controllo a 20s avrebbe detto «FERMO» su un
