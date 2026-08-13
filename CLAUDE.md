@@ -1077,10 +1077,20 @@ Perché serva davvero e non produca elenchi generici, cinque vincoli:
   il gruppo non lo conteneva più. E rispondeva **404 su tutto**, perché la
   worktree che serviva non esiste più: è alla lettera la trappola già scritta
   qui sopra, con la differenza che stavolta **l'aveva prodotta chi il giro
-  l'aveva spento**. Il prossimo giro l'avrebbe trovata occupata e — se non
-  avesse il contrassegno col pid — avrebbe misurato il vuoto.
-  Quindi spegnere un giro è **due comandi, non uno**: si uccide l'albero, e poi
-  si guarda **la porta** (`ss -ltn | grep 8823`), non il nome del processo.
+  l'aveva spento**.
+  ✅ **E qui va corretta una riga che avevo scritto io un'ora prima**, perché
+  diceva che il giro dopo «avrebbe misurato il vuoto»: **non è vero, e la difesa
+  c'è già.** `tutti.mjs` monta all'avvio una guardia contro i server orfani col
+  criterio esatto — *solo la nostra porta, e solo se la cartella servita non
+  esiste più* — e la sua controprova è in `npm test`
+  (`browser/server-orfani.mjs`). L'orfano di stanotte cadeva **dentro** quel
+  criterio: sarebbe stato tolto da solo. Scrivere il contrario avrebbe mandato
+  qualcuno a costruire una difesa che esiste, ed è il difetto che questo file
+  chiama «annunciare come nuovo ciò che c'era».
+  Resta vero e utile il **come**: spegnere un giro è **due comandi, non uno** —
+  si uccide l'albero, e poi si guarda **la porta** (`ss -ltn | grep 8823`), non
+  il nome del processo. Non perché il giro dopo sia in pericolo, ma perché una
+  porta occupata da un morto è un minuto perso a capire perché.
   ⚠️ E `pgrep -f "http.server 8941"` risponde di sì **a sé stesso**: la stringa
   sta nella riga di comando della shell che lo lancia. È la stessa trappola
   dell'attesa scritta male, in una veste che inganna perché sembra una verifica.
