@@ -1,4 +1,4 @@
-# Checkpoint — 2026-08-13 16:40 UTC
+# Checkpoint — 2026-08-13 16:37 UTC
 
 ## Tipo
 unit-complete (due unità raccolte)
@@ -118,6 +118,18 @@ dalla sua sorveglianza che adesso combaciano, e committare. Nel frattempo
 raccogliere i due cantieri quando consegnano, con la solita disciplina: diff
 letto riga per riga, blocco di prove estratto **senza la prosa intorno**,
 `run-kpi` **letto** prima di scrivere il messaggio del commit.
+
+## ⛔ E QUESTO CHECKPOINT È NATO CON L'ORA SBAGLIATA
+Si chiamava `20260813-164000`, ed è entrato in git alle **16:37:45**: due
+minuti **avanti**. L'ho scoperto dalla CI, non da me — `date-checkpoint.mjs`
+lo dice esattamente così: *«nessun checkpoint NUOVO è datato dopo l'ORA in cui
+è entrato in git»*. La causa è banale e già nota in un'altra veste: **avevo
+previsto l'ora invece di leggerla**, come si prevedeva il totale del giro
+invece di leggerlo dal giro. `date -u` costa una riga e va lanciato **nel
+momento in cui si scrive il nome**, non prima.
+⚠️ E il rimedio non è arrotondare all'indietro «per stare larghi»: è la stessa
+scorciatoia che ha prodotto il lascito di **506 checkpoint datati avanti** che
+quel controllo conta e dichiara.
 
 ## Blocchi
 - **B0-septies** (che cosa vede chi apre il 2D di una volata senza maglia) e le
