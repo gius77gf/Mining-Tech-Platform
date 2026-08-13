@@ -1202,6 +1202,45 @@ numero scritto dove non era stato misurato niente**.*
       controprova **20/5** (i difetti rimessi la fanno cadere). Iscritto in
       `tutti.mjs`: esecuzioni **186 → 188**, file di banco **77 → 78**.
 
+- [ ] **B0-quaterdecies. IL TEMA CHIARO DEL CORE NON È MAI STATO MISURATO PER
+      IL CONTRASTO — e la riga che lo dice porta la ragione SBAGLIATA.**
+      ⏱️ *Trovato il 13/08 leggendo le righe «non ho guardato» del giro del
+      browser, che in questa casa si leggono PRIMA dei KO.* Il banco del
+      contrasto stampa, per il tema `chiaro` e per il tema `sole`:
+      > ⚠️ core non ha il tema «chiaro»: la classe viene tolta dalla pagina
+      > stessa. NON misurata.
+      e conta **8 superfici su 14 non misurate** in ognuno dei due temi.
+      ⛔ **Per il `sole` la frase è vera; per il `chiaro` è falsa.** Il comando e
+      la sua uscita:
+      ```sh
+      grep -n "body.light-mode{" index.html        →  7971
+      grep -n "function temaChiaro" index.html     →  1340
+      ```
+      Il core il tema chiaro **ce l'ha** (`applyTheme` fa
+      `classList.toggle('light-mode', temaChiaro())`); quello che non ha è
+      `window.dwTema`, cioè l'interruttore **condiviso** che il banco usa per le
+      app. Il banco chiede «questa superficie sa che cos'è questo tema?» e
+      risponde giusto alla sua domanda — ma la frase che stampa dice un'altra
+      cosa, e chi la legge conclude che non ci sia niente da misurare.
+      ⚠️ Il tentativo precedente è **documentato nel banco** e va letto prima di
+      rifarlo: appiccicare la classe non funziona, perché il programma del core
+      sta in un `<script type="module">` e `applyTheme` non è su `window` — così
+      il banco misurò il core in un tema che non poteva avere e sputò decine di
+      KO falsi.
+      **La via che regge**, ed è quella che gli altri banchi del core usano già:
+      si passa dai **dati**, non dalla classe. Nel servito, `index.html:262`
+      dichiara `theme:'dark'` dentro le impostazioni di partenza: sostituendolo
+      con `theme:'light'` il core entra nel suo tema chiaro **dalla propria
+      porta**, e `applyTheme` lo conferma invece di toglierlo. Poi si misura, e
+      la riga «non misurata» resta solo per il `sole`, che il core davvero non
+      ha (il suo foglio lo dichiara: «Il core ha DUE temi, scuro e chiaro»).
+      **Perché conta**: è la superficie che il fondatore mostra per prima, ed è
+      la stessa famiglia che l'08/08 fece passare 41 → 182 classi misurate e
+      **sei difetti di contrasto veri nel core** che nessun banco aveva visto.
+      ⚠️ E la lezione oltre al caso: **una riga «non ho guardato» va letta anche
+      nella RAGIONE che porta, non solo nel numero.** Qui il numero era giusto
+      (8 superfici non misurate) e la ragione no.
+
 - [ ] **B0-duodecies. I CLAMP DELLE TRE SUPERFICI CHE IL CENSIMENTO NON AVEVA
       GUARDATO — core, Campo, Scudo.** ⏱️ *Censite il 10/08 con lo stesso
       comando delle altre cinque app (commenti tolti con `senzaCommenti`, sulle
