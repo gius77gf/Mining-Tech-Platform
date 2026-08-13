@@ -292,3 +292,28 @@ niente — che è esattamente la stessa cosa che cerchiamo nel prodotto.
   classificatore blocca. Serve un sì esplicito.
 - **Restano ferme** le decisioni del fondatore: **B0-septies** (il 2D di una
   volata senza maglia) e le **soglie di sicurezza** (`ppvLimit`, USBM/DIN).
+
+## 2026-08-13 21:44 UTC — ciclo automatico
+- **Commit di partenza**: `42a8a1b9`
+- **Che cosa sto per fare**: raccogliere il cantiere sul **core** (B0-vicies, la
+  pastiglia «NON SALVA» che in chiaro si sovrappone al nome utente a 430 px, e
+  B0-unvicies, il rosso scritto a mano): ha già lasciato un banco nuovo
+  (`browser/barra-alto-indietro.mjs`) e l'iscrizione in `tutti.mjs`, segno che
+  il difetto **si riproduce**. Poi aprire **B0-duovicies** — i sette contrasti
+  non testuali del core — con la causa già in mano: `--success/--warn/--danger/
+  --info` sono dichiarati **una volta sola** nel `:root` del buio, e
+  `body.light-mode` ridichiara solo gli inchiostri dei **testi**.
+- **Da dove riparte**: dal checkpoint `20260813-204924_genesi-e-il-giro-che-
+  faceva-peggio-che-leggere.md`, che è il più recente **per data di git**
+  (`c732ec6e`, 20:50:10Z).
+- **Lo stato**: dodici unità chiuse nel blocco precedente. `run-kpi` **2110**,
+  giro `node` **2.888** asserzioni su 34 comandi (33 a posto), copertura dei
+  moduli condivisi **169/169**, esecuzioni del browser **188**.
+- ⛔ **Quello che aspetta il fondatore, e non si sblocca da solo**: la CI resta
+  rossa su **una riga sola** — un checkpoint entrato in git due minuti prima
+  dell'ora scritta nel suo nome. Il file è già rinominato, la correzione è
+  **costruita e provata** (controllo di nuovo 8/0), ma applicarla richiede un
+  `push --force-with-lease` che il classificatore blocca: riscrive storia già
+  spinta con la PR #322 aperta.
+- **Restano ferme** le decisioni del fondatore: **B0-septies** (il 2D di una
+  volata senza maglia) e le **soglie di sicurezza** (`ppvLimit`, USBM/DIN).
