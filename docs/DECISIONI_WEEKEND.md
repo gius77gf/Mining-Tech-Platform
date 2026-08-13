@@ -10,6 +10,51 @@ può procedere con l'attuazione.
 
 ---
 
+## ⚠️ 13/08 a notte — tre numeri di SICUREZZA sono stati trovati sbagliati, e nessuna soglia è stata toccata
+
+*Questa sezione sta in cima perché riguarda i numeri che porti in gara e quelli
+che decidono a che distanza si mandano via le persone. Non ti chiede nulla di
+nuovo: ti dice che cosa è cambiato e — soprattutto — **che cosa NON abbiamo
+toccato**, perché è roba tua.*
+
+**Che cosa era sbagliato.** Tutti e tre della stessa famiglia: un dato che
+mancava veniva **sostituito da un numero**, e il numero rassicurava.
+
+1. **Scudo — gli indici infortunistici.** Un infortunio di cui non si legge
+   l'anno spariva da IF, IG e LTIFR. Su un registro di due infortuni, uno con la
+   data e uno senza: il cartellone in cima diceva «Infortuni: 2», e la scheda
+   degli indici due righe più giù — **sugli stessi dati** — diceva
+   **IF 50,00** dove il vero è **100,00**. La metà, sui tre numeri che si
+   confrontano con la media di settore.
+2. **Genesi — il confinamento del colletto (SDOB).** Senza la carica per foro,
+   la scheda scriveva **5,84** invece di **1,43**: sopra la soglia, quindi
+   **pallino verde**, «colletto ben confinato, disturbo superficiale minimo».
+   Meno carica dichiarata = colletto che *sembra* più sicuro. E lì la carica non
+   era poca: **non c'era**.
+3. **Genesi — la gittata del flyrock.** La stessa formula viveva in due posti
+   con **ripieghi opposti che si compensavano per caso**. La correzione che
+   veniva in mente — toglierne uno solo — avrebbe portato la distanza di
+   sgombero delle persone da **404 a 197 metri** senza che niente diventasse
+   rosso.
+
+**Che cosa NON abbiamo toccato, e resta tuo.** Nessuna soglia e nessuna formula:
+`ppvLimit`, le curve **USBM/DIN**, i **133 dB(L)**, la soglia SDOB **1,4/0,9**,
+Richards&Moore, McKenzie, Lundborg. Sui progetti con tutti i dati i numeri sono
+**identici alla cifra** a prima della correzione (SDOB 1,43 · gittata 101 m ·
+sgombero 202/404 m). **È cambiato solo che cosa succede quando un ingresso
+manca**: prima si inventava, adesso si dichiara «non calcolabile» con la ragione.
+
+**Perché te lo scriviamo qui.** Perché la regola che hai dato — le soglie non si
+toccano senza una tua conferma — ha funzionato, e vogliamo che si veda che ha
+funzionato **anche quando toccarle sarebbe stato comodo**. Se un giorno vorrai
+cambiare una soglia, quella resta una decisione tua: qui abbiamo solo smesso di
+riempire i buchi con numeri inventati.
+
+**Non serve che tu risponda a questa sezione.** Le decisioni aperte restano le
+cinque elencate qui sotto.
+
+---
+
 # 📖 Da dove cominciare — le decisioni aperte sono **5**
 
 *Erano 19 fino al 07/08. **Nove** sono state chiuse dal **ciclo**, non da te, con
