@@ -3853,9 +3853,36 @@ export async function scudoData() {
 // favorevole, e qui il travestimento sarebbe un indice **basso**, cioè la
 // notizia migliore che un'azienda possa leggere sulla propria sicurezza.
 export function indiciInfortunistici(infortuni, oreLavorate, anno = new Date().getFullYear()) {
-  const y = String(anno);
+  /* ⛔ L'ANNO LO LEGGE `annoRegistrato`, NON UNA SECONDA REGOLA SCRITTA QUI.
+     Erano due: qui `String(i.data).slice(0,4) === String(anno)`, e più giù
+     `annoRegistrato` col commento che PROMETTEVA l'identità («si legge
+     ESATTAMENTE come lo legge indiciInfortunistici»). Una promessa scritta in
+     un commento non è un'identità: è la copia debole che si annuncia gemella,
+     la stessa forma già pagata dal fascicolo del lavoratore. Provate a tappeto
+     su 21 forme della data × 4 anni, le due letture divergevano in **una**
+     combinazione sola — `"0000-01-01"` con `anno` 0 — cioè erano gemelle per
+     ogni anno vero: la divergenza qui sparisce per costruzione. */
   const nell_anno = (infortuni || []).filter(i =>
-    i && i.tipo === "infortunio" && String(i.data || "").slice(0, 4) === y);
+    i && i.tipo === "infortunio" && annoRegistrato(i) === +anno);
+  /* ⛔ E GLI INFORTUNI DI CUI NON SI LEGGE L'ANNO NON CADONO IN NESSUN ANNO:
+     spariscono da IF, IG e LTIFR **senza lasciare una riga**, cioè dai tre
+     numeri che si portano in gara e si confrontano con la media di settore, e
+     spariscono nel verso che rassicura — l'indice esce PIÙ BASSO del vero.
+     Misurato su un registro di due infortuni, uno con la data e uno senza: il
+     cartellone in cima alla stessa schermata scrive «Infortuni: 2» e la sua
+     riga «⚠️ 1 infortunio registrato non ha una data che si possa leggere»
+     (`riepilogoInfortuni.dataIgnota`), e la scheda degli indici — due righe
+     più giù, sugli stessi dati — scriveva «Anno 2026 · 1 infortunio ·
+     IF 50,00 · IG 0,50 · LTIFR 50,00» dove il vero è **IF 100,00 · IG 0,70 ·
+     LTIFR 100,00**: la metà, con `noto: true`, cioè con la bandiera che esiste
+     per dire «questi sono minimi» che dichiarava tutto conosciuto.
+     È il principio del fondatore sul dato che ESCE: l'assenza non è un dato
+     favorevole. Non cambia chi entra nel conto — quello resta com'era, e una
+     soglia di sicurezza non si tocca di testa propria — ma adesso chi manca si
+     **conta e si dice**, e a dirlo è `avvisoInfortuniSenzaAnno` qui sotto
+     (regola 20: una bandiera che non legge nessuno non protegge niente). */
+  const senzaAnno = (infortuni || []).filter(i =>
+    i && i.tipo === "infortunio" && annoRegistrato(i) === null).length;
   const conAssenza = nell_anno.filter(i => (giornateAssenza(i) || 0) > 0);
   /* ⛔ decisione 17: l'infortunio a prognosi aperta NON entra fra quelli «con
      assenza» (non si sa se ce ne sarà) e NON entra fra quelli senza (che è la
@@ -3867,6 +3894,11 @@ export function indiciInfortunistici(infortuni, oreLavorate, anno = new Date().g
   const ore = +oreLavorate;
   const base = { anno: +anno, infortuni: nell_anno.length, conAssenza: conAssenza.length,
                  daQuantificare,
+                 /* quanti infortuni del REGISTRO non si possono attribuire a
+                    nessun anno: non sono in questo conteggio e non sono in
+                    quello di nessun altro anno. Vale per ogni riga della serie
+                    proprio perché quegli eventi non appartengono a nessuna. */
+                 senzaAnno,
                  /* bandiera: tutte le giornate perse dell'anno sono scritte.
                     Falsa ⇒ `giornatePerse`, `indiceGravita` e `ltifr` sono
                     MINIMI. La legge `descriviIndici`, qui sotto. */
@@ -3897,6 +3929,26 @@ export function avvisoGravitaMinima(r) {
                : "di " + n + " infortuni dell'anno la prognosi è ancora aperta")
     + ", quindi le giornate perse contate finora sono " + x.giornatePerse
     + " ma non sono tutte. Scritte le giornate, l'indice sale — non è un valore da confrontare con la media di settore finché resta così.";
+}
+
+/* La lettura della bandiera `senzaAnno`, scritta dal modulo per la stessa
+   ragione di `avvisoGravitaMinima` e `descriviGiornatePerse`: quello che un
+   numero dichiara è una REGOLA, e a scriverla dev'essere uno solo.
+   Torna `null` quando non c'è niente da avvertire — chi la disegna scrive la
+   riga solo se c'è, invece di riservare spazio a un avviso che non arriva.
+   ⚠️ Dice «più bassi del vero» e non «sbagliati»: gli eventi mancanti stanno
+   al numeratore di tutti e tre gli indici, quindi la direzione si sa anche
+   senza sapere in che anno sarebbero caduti. */
+export function avvisoInfortuniSenzaAnno(r) {
+  const x = r || {};
+  const n = +x.senzaAnno || 0;
+  if (!(n > 0)) return null;
+  return (n === 1
+      ? "Nel registro c'è 1 infortunio di cui non si legge l'anno"
+      : "Nel registro ci sono " + n + " infortuni di cui non si legge l'anno")
+    + ": non è in nessuno di questi conteggi, perché non si sa a quale anno attribuirlo. "
+    + "IF, IG e LTIFR sono quindi più BASSI del vero — scritta la data " + (n === 1 ? "dell'evento" : "degli eventi")
+    + ", risalgono. Non sono numeri da portare in gara finché resta così.";
 }
 
 // ============================================================
@@ -3940,10 +3992,16 @@ export const INDICI_TREND = [
   { chiave: "ltifr", sigla: "LTIFR", nome: "LTIFR" },
 ];
 
-/* L'anno si legge ESATTAMENTE come lo legge indiciInfortunistici (`slice(0,4)`).
+/* L'UNICA lettura dell'anno di un infortunio: la usano `indiciInfortunistici`
+   (chi entra nel conto di quell'anno) e la serie qui sotto (quali anni
+   esistono). Prima erano DUE, e questo commento diceva «si legge ESATTAMENTE
+   come lo legge indiciInfortunistici» — cioè prometteva l'identità invece di
+   averla. Adesso è una funzione sola, e la promessa non può più scadere.
    La prima stesura pretendeva la data ISO intera, ed era una seconda regola:
    un infortunio registrato con `data: "2026"` entrava nel conteggio dell'anno
-   ma il suo anno non compariva nella serie — l'indice c'era e la riga no. */
+   ma il suo anno non compariva nella serie — l'indice c'era e la riga no.
+   ⚠️ Torna `null` quando l'anno non si legge, e quel `null` non è un anno da
+   ripiegare: è la ragione per cui `senzaAnno` esiste e viene dichiarato. */
 function annoRegistrato(x) {
   const y = String((x && x.data) || "").slice(0, 4);
   return /^\d{4}$/.test(y) ? +y : null;

@@ -17,6 +17,7 @@ import { dirname, join } from "node:path";
    locali: sono ombre dentro blocchi async, e restano valide. */
 import { readFileSync } from "node:fs";
 import { mostra } from "./mostra.mjs";
+import * as _tok from "./tokenizza.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const app = (name, file) => import(join(HERE, `../../${name}/${file}`));
@@ -28626,6 +28627,107 @@ test("⛔ Conti · venditePerProdotto: l'eccedenza si CONTA, perché il contenim
     const vecchio = gz.csvRiconciliazione([{ ...rec,
       campo: { foriTot: 12, foriReg: 0, kgReale: 0, kgProgReg: 0, scostPct: null } }]).trim().split("\n")[1].split(";");
     eq(vecchio[H.indexOf("campo_kg_reali")], "", "anche uno storico vecchio smette di dichiarare zero chili");
+  });
+}
+
+/* ⛔ SCUDO · L'INFORTUNIO DI CUI NON SI LEGGE L'ANNO SPARIVA DAGLI INDICI CHE
+   SI PORTANO IN GARA — e spariva nel verso che rassicura.
+   `indiciInfortunistici` sceglieva chi entra nell'anno con
+   `String(i.data).slice(0,4) === String(anno)`: una FORMA. Un infortunio senza
+   data (o con una data da cui l'anno non si legge) non cade in nessun anno,
+   quindi non è al numeratore di IF, IG e LTIFR di NESSUNA riga della serie —
+   e nessuna riga lo diceva, con `noto: true` per giunta, cioè con la bandiera
+   che esiste per dichiarare i minimi che dichiarava tutto conosciuto.
+   Misurato: due infortuni, uno con la data e uno senza. Il cartellone in cima
+   alla schermata scrive «Infortuni: 2» e «⚠️ 1 … non ha una data che si possa
+   leggere» (`riepilogoInfortuni.dataIgnota`); la scheda degli indici, due
+   righe più giù e sugli stessi dati, scriveva IF 50,00 dove il vero è 100,00.
+   Il conto NON è cambiato (una soglia di sicurezza non si tocca di testa
+   propria): è cambiato che adesso chi manca si conta e si DICE. */
+{
+  const conData = { id: "a", tipo: "infortunio", data: "2026-06-01", giorniAssenza: 10 };
+  const senza   = { id: "b", tipo: "infortunio", data: "", giorniAssenza: 4 };
+  const ore = [{ anno: 2026, ore: 20000 }];
+  const rigaDel = (lista, anno) => scudo.andamentoIndici(lista, ore, { annoFine: anno }).anni.find(r => r.anno === anno);
+
+  test("⛔ Scudo · indiciInfortunistici: l'infortunio senza anno leggibile viene CONTATO e dichiarato", () => {
+    const r = scudo.indiciInfortunistici([conData, senza], 20000, 2026);
+    eq(r.infortuni, 1, "nel conto dell'anno resta solo quello con la data (il conto non cambia)");
+    eq(r.senzaAnno, 1, "ma quello che non si può attribuire a nessun anno adesso si conta");
+    eq(r.indiceFrequenza, 50, "l'indice è quello di sempre: la correzione dichiara, non ricalcola");
+  });
+
+  test("⛔ Scudo · avvisoInfortuniSenzaAnno: la frase dice il VERSO dell'errore, non solo che c'è", () => {
+    const f = scudo.avvisoInfortuniSenzaAnno(scudo.indiciInfortunistici([conData, senza], 20000, 2026));
+    ok(f && /non si legge l'anno/.test(f), "nomina la ragione: l'anno non si legge");
+    ok(f && /BASSI del vero/.test(f), "e dice che gli indici sono più bassi del vero, che è la direzione che rassicura");
+    ok(f && /gara/.test(f), "e che così non si portano in gara");
+  });
+
+  test("⛔ Scudo · avvisoInfortuniSenzaAnno tace quando non c'è niente da dire", () => {
+    eq(scudo.avvisoInfortuniSenzaAnno(scudo.indiciInfortunistici([conData], 20000, 2026)), null,
+      "con tutte le date leggibili non si riserva spazio a un avviso che non arriva");
+    eq(scudo.avvisoInfortuniSenzaAnno(null), null, "e senza riepilogo non inventa una frase");
+    eq(scudo.avvisoInfortuniSenzaAnno({ senzaAnno: 0 }), null, "zero non è un avviso");
+  });
+
+  test("⛔ Scudo · il conto vale per OGNI riga della serie: quegli eventi non sono di nessun anno", () => {
+    const an = scudo.andamentoIndici([conData, senza], [{ anno: 2025, ore: 10000 }, { anno: 2026, ore: 20000 }],
+      { annoFine: 2026 });
+    eq(an.anni.map(r => r.senzaAnno), [1, 1],
+      "il 2025 e il 2026 lo dichiarano tutt'e due: non è un evento del 2026 che manca, è un evento di NESSUN anno");
+    eq(an.anni.map(r => r.infortuni), [0, 1], "e nessuno dei due se lo attribuisce");
+  });
+
+  test("⛔ Scudo · la bandiera `senzaAnno` la LEGGE la pagina, in tutt'e due i rami della scheda", () => {
+    /* regola 20 in versione «prova»: una dichiarazione che nessuno legge non
+       protegge niente, e la scheda degli indici ha DUE rami — calcolabile e
+       non calcolabile. Il ramo non calcolabile è quello che scrive «Intanto i
+       conteggi ci sono», cioè proprio quello in cui un conteggio più basso del
+       vero passerebbe per un conto onesto. */
+    const { senzaCommenti } = _tok;
+    const src = senzaCommenti(readFileSync(join(HERE, "../../scudo/index.html"), "utf8"));
+    ok(/avvisoInfortuniSenzaAnno\s*,/.test(src) || /avvisoInfortuniSenzaAnno\s*}/.test(src),
+      "la pagina importa la funzione dal modulo invece di riscrivere la frase");
+    ok(/const\s+senzaAnno\s*=\s*avvisoInfortuniSenzaAnno\(/.test(src), "e la chiama");
+    eq((src.match(/\$\{avvisoSenzaAnno\}/g) || []).length, 2,
+      "e la disegna nei due rami: quello con gli indici e quello in cui non si calcolano");
+  });
+
+  test("⛔ Scudo · l'anno lo legge UNA funzione sola: indici e serie non possono divergere", () => {
+    /* la promessa era in un commento («si legge ESATTAMENTE come…»): adesso è
+       un'identità. Si prova su tutte le forme della data che un registro può
+       contenere — la serie dice quali anni esistono, l'indice chi ci entra. */
+    const forme = ["2026-06-01", "2026-13-45", "2026-02-30", "2026", "", null, undefined,
+      "  2026-01-01", "26-06-01", "202X-06-01", "20260601", "2026/06/01", " 2026",
+      "2026-06-01T00:00:00Z", 20260601, "abcd-06-01", "1999-01-01", String(new Date("2026-06-01"))];
+    const soloNel2026 = forme.filter(d =>
+      scudo.indiciInfortunistici([{ id: "x", tipo: "infortunio", data: d }], 1000, 2026).infortuni === 1);
+    const serieDel2026 = forme.filter(d =>
+      scudo.andamentoIndici([{ id: "x", tipo: "infortunio", data: d }], [{ anno: 2026, ore: 1000 }],
+        { annoFine: 2026, finestra: 2 }).anni.some(r => r.anno === 2026 && r.infortuni === 1));
+    eq(soloNel2026, serieDel2026, "le due letture concordano su tutte e diciotto le forme");
+    eq(soloNel2026.length, 8, "e sono otto: quelle in cui le prime quattro cifre sono un anno");
+    const nessunAnno = forme.filter(d =>
+      scudo.indiciInfortunistici([{ id: "x", tipo: "infortunio", data: d }], 1000, 2026).senzaAnno === 1);
+    eq(nessunAnno.length, 9, "delle altre dieci, nove non hanno nessun anno leggibile…");
+    eq(scudo.indiciInfortunistici([{ id: "x", tipo: "infortunio", data: "1999-01-01" }], 1000, 2026).senzaAnno, 0,
+      "…e la decima ha un anno leggibile, solo un altro: quella NON è un'assenza");
+    /* ⛔ E QUI SI PRETENDE L'IDENTITÀ, NON L'ACCORDO — è la regola di `shared/`
+       applicata dentro un file solo. Le diciotto forme qui sopra passano ANCHE
+       con le due letture separate rimesse: le copie erano gemelle, e una prova
+       sul comportamento non le distingue. È il caso (1) di «non distingue»: i
+       dati fanno coincidere la risposta giusta con quella sbagliata. Due copie
+       uguali oggi divergono domani senza che nessuno lo veda, quindi la prova
+       che regge è sul SORGENTE: nel corpo di `indiciInfortunistici` l'anno non
+       si rilegge, si chiede. */
+    const { senzaCommenti } = _tok;
+    const mod = senzaCommenti(readFileSync(join(HERE, "../../scudo/scudo-data.js"), "utf8"));
+    const corpo = mod.slice(mod.indexOf("export function indiciInfortunistici"));
+    const solaFunzione = corpo.slice(0, corpo.indexOf("\nexport function", 1));
+    ok(/annoRegistrato\(/.test(solaFunzione), "l'anno lo chiede alla funzione che lo legge per tutti");
+    eq(solaFunzione.includes("slice(0, 4)"), false,
+      "e non se ne tiene una seconda lettura in casa: era il commento a promettere l'identità, adesso c'è");
   });
 }
 

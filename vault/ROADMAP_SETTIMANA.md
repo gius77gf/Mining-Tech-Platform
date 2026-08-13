@@ -1689,6 +1689,64 @@ numero scritto dove non era stato misurato niente**.*
         modale «Perché è successo».
         Prove: `run-kpi` **2058 → 2063**, ognuna col suo caso di controllo.
 
+      ✅ **SCUDO — I CLAMP RICENSITI, il 13/08** *(passata diversa da quella qui
+      sopra: là si guardava dove il documento si compone, qui i clamp)*, **e il
+      censimento del 10/08 era vecchio di 33 clamp.** Rifatto sul commit di adesso: **44 clamp veri** (5 in
+      `index.html` su 4 blocchi `<script>`, 39 in `scudo-data.js`), **38 di forma
+      sospetta**, **zero difetti nei clamp** — in linea con le altre app. Tutti e
+      44 letti uno per uno: i `|| 0` di Scudo stanno quasi sempre nei *lettori*
+      delle bandiere (`descriviGiornatePerse`, `descriviLetturaNearMiss`,
+      `avvisoGravitaMinima`), cioè sul valore **già dichiarato**, e il punto di
+      scrittura della pagina (`giorniAssenza` dell'infortunio) controlla il vuoto
+      **prima** di convertire — non è il difetto di Campo.
+      ⚠️ **Allargare il censimento all'else-zero (`x ? y : 0`, che è il mirror
+      del difetto di Conti) e a `?? 0` è stato provato e SCARTATO con la
+      misura**, perché nessuno lo rifaccia alla cieca: da 44 a **81
+      occorrenze**, e le 37 nuove sono **tutte** inizializzatori di
+      accumulatore, comparatori di `sort` e mappe d'ordine — tranne
+      `riepilogoIspezione.percento`, giudicata sana **con riserva e dichiarata**
+      (con zero voci `completa` è già falsa e la pagina scrive «0 voci su 0»,
+      cioè si dichiara da sé). L'allargamento non paga.
+      · ⛔ **E IL DIFETTO NON ERA UN CLAMP: ERA IL SUO VICINO DI CASA** — trovato
+        giudicando i due clamp di `indiciInfortunistici`, perché per dire se
+        `giornateAssenza(i) || 0` fosse sano bisognava prima stabilire **chi
+        entra** nell'anno. È la stessa forma che B0-undecies dichiara di sé.
+        **Un infortunio di cui non si legge l'anno spariva da IF, IG e LTIFR
+        senza lasciare una riga.** La scelta di chi entra si faceva con
+        `String(i.data).slice(0,4) === String(anno)`: una **forma**. Un evento
+        senza data non cade in nessun anno, quindi non è al numeratore di
+        nessuna riga della serie — e `noto` restava `true`, cioè la bandiera che
+        esiste per dichiarare i minimi dichiarava tutto conosciuto.
+        Misurato **aprendo la pagina**, non leggendo il codice: su un registro di
+        due infortuni, uno con la data e uno senza, il cartellone scrive
+        «Infortuni: 2 · 14 giornate perse» e la scheda degli indici, **due righe
+        più giù e sugli stessi dati**, scriveva «Anno 2026 · 1 infortunio · 10
+        giornate perse · **IF 50,00 · IG 0,50 · LTIFR 50,00**» dove il vero è
+        **IF 100,00 · IG 0,70 · LTIFR 100,00**: la metà, sui tre numeri che si
+        portano in gara e si confrontano con la media di settore, e nel verso
+        che **rassicura**.
+        ⛔ **Il conto NON è cambiato** — una soglia di sicurezza non si tocca di
+        testa propria: è cambiato che chi manca si **conta** (`senzaAnno`) e si
+        **dice** (`avvisoInfortuniSenzaAnno`, scritta nel modulo accanto alle
+        sorelle e disegnata dalla pagina in **tutt'e due** i rami della scheda,
+        compreso quello «non calcolabili» — che è dove un conteggio più basso del
+        vero passerebbe per un conto onesto).
+      · ⛔ **E L'ANNO LO LEGGEVANO IN DUE, CON UN COMMENTO CHE PROMETTEVA
+        L'IDENTITÀ** («si legge ESATTAMENTE come lo legge `indiciInfortunistici`»):
+        la copia debole **che si annuncia gemella**, la stessa forma pagata lo
+        stesso giorno dal fascicolo del lavoratore. Provate a tappeto **21 forme
+        della data × 4 anni**, le due letture divergevano in **una** combinazione
+        sola (`"0000-01-01"` con anno 0), cioè erano gemelle per ogni anno vero.
+        ⛔ **E per questo la controprova NON distingueva**: le forme passano anche
+        con le due letture separate rimesse — caso **(1)** di «non distingue», i
+        dati fanno coincidere la risposta giusta con quella sbagliata. La prova
+        che regge pretende l'**identità sul SORGENTE** (nel corpo di
+        `indiciInfortunistici` non c'è più nessun `slice(0, 4)`): è la regola di
+        `shared/` applicata dentro un file solo.
+      Prove: `run-kpi` **2110 → 2116**, con **5 iniezioni** di controprova che
+      fanno cadere rispettivamente **4, 1, 1, 1 e 1** prova; ripristino **da
+      copia**, mai `git checkout`, e ogni iniezione dichiara il soggetto toccato.
+
       ✅ **IL CORE LETTO TUTTO, il 13/08** — chiusa così la terza e ultima
       superficie di questa voce. I difetti non stavano nei clamp della
       geometria (una mesh che ha bisogno di una dimensione non dichiara niente
@@ -4705,7 +4763,7 @@ numero scritto dove non era stato misurato niente**.*
   nome apre il file sbagliato credendo che sia il più fresco.
 - Le decisioni: `docs/DECISIONI_WEEKEND.md` — pagina d'ingresso in cima.
 - Stato misurato al **09/08** (lanciando le suite, non a memoria):
-  **2.562 prove girano senza rete**. La frase va letta stretta: è la somma
+  **2.568 prove girano senza rete**. La frase va letta stretta: è la somma
   delle **otto** suite che contano asserzioni (`run-kpi` 2110, `run-stile` 318,
   `run-helpers` 75, `run-pointcloud` 32, `run-manifest` 9, `run-demo` 8,
   `bootstrap-rivendicazioni` 7, `fogli-guardati` 3), non tutto ciò che gira nel

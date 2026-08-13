@@ -1720,7 +1720,7 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
     /* `indiciInfortunistici` non si importa più: gli indici dell'anno in corso
        si prendono da `andamentoIndici`, che è l'unico posto in cui le ore
        registrate per un anno si leggono con la regola degli anni doppi. */
-    andamentoIndici, avvisoGravitaMinima, avvisoAndamentoMinimo,
+    andamentoIndici, avvisoGravitaMinima, avvisoInfortuniSenzaAnno, avvisoAndamentoMinimo,
     giornateAssenza, prognosiAperta, descriviGiornatePerse,
     CAUSE_ANALISI, validaAnalisi, analisiDiEvento, eventiSenzaAnalisi, causeRicorrenti,
     MAX_FOTO, pesoFoto, fotoDiEvento, fotoDiVoce, fotoDiIspezione, bilancioFoto, bilancioFotoVoce,
@@ -3065,6 +3065,15 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
          non arriva. */
       const gravMin = avvisoGravitaMinima(ii);
       const avvisoGrav = gravMin ? `<div class="mini" style="margin-top:6px;">⚠️ ${esc(gravMin)}</div>` : "";
+      /* ⛔ E L'INFORTUNIO DI CUI NON SI LEGGE L'ANNO: la frase la scrive il
+         MODULO (`avvisoInfortuniSenzaAnno`, lettura della bandiera `senzaAnno`),
+         come le due qui sopra. Senza questa riga la scheda scriveva «Anno 2026
+         · 1 infortunio · IF 50,00» su un registro che ne contiene 2, mentre il
+         cartellone due righe più su ne dichiarava 2 e diceva pure che di uno la
+         data non si legge: due numeri diversi dello stesso registro sullo
+         stesso schermo, e quello più tranquillo senza una parola. */
+      const senzaAnno = avvisoInfortuniSenzaAnno(ii);
+      const avvisoSenzaAnno = senzaAnno ? `<div class="mini" style="margin-top:6px;">⚠️ ${esc(senzaAnno)}</div>` : "";
       /* ⚠️ «4 giornate perse ALMENO» non è italiano, e in italiano il minimo va
          DAVANTI al numero — come lo scrive già `descriviGiornatePerse` nel
          riepilogo qui sopra. Visto solo nello scatto: leggendo il codice la
@@ -3076,10 +3085,10 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
         : "";
       $("inf-indici").innerHTML = ii.calcolabile
         ? `Indice di frequenza (IF): <b>${nDec(ii.indiceFrequenza)}</b> · indice di gravità (IG): <b>${nDec(ii.indiceGravita)}</b>${ii.noto === false ? " <b>(minimo)</b>" : ""} · LTIFR: <b>${nDec(ii.ltifr)}</b>${ii.noto === false ? " <b>(minimo)</b>" : ""}
-           <div class="mini" style="margin-top:6px;">Anno ${annoOra} · ${ii.infortuni} ${ii.infortuni === 1 ? "infortunio" : "infortuni"}, di cui ${ii.conAssenza} con assenza${daQuant}, ${perse}, su <b>${(+ii.oreLavorate).toLocaleString("it-IT")}</b> ore lavorate. IF e LTIFR sono per milione di ore, IG per mille.</div>${avvisoGrav}`
+           <div class="mini" style="margin-top:6px;">Anno ${annoOra} · ${ii.infortuni} ${ii.infortuni === 1 ? "infortunio" : "infortuni"}, di cui ${ii.conAssenza} con assenza${daQuant}, ${perse}, su <b>${(+ii.oreLavorate).toLocaleString("it-IT")}</b> ore lavorate. IF e LTIFR sono per milione di ore, IG per mille.</div>${avvisoGrav}${avvisoSenzaAnno}`
         : `Indici infortunistici ${annoOra}: <b>non calcolabili</b>
            <div class="mini" style="margin-top:6px;">${esc(ii.motivo)}</div>
-           <div class="mini" style="margin-top:4px;">Intanto i conteggi ci sono: <b>${ii.infortuni}</b> ${ii.infortuni === 1 ? "infortunio" : "infortuni"}, di cui <b>${ii.conAssenza}</b> con assenza${daQuant}, ${perse}.</div>`; }
+           <div class="mini" style="margin-top:4px;">Intanto i conteggi ci sono: <b>${ii.infortuni}</b> ${ii.infortuni === 1 ? "infortunio" : "infortuni"}, di cui <b>${ii.conAssenza}</b> con assenza${daQuant}, ${perse}.</div>${avvisoSenzaAnno}`; }
 
     /* ── ANDAMENTO DEGLI INDICI ANNO PER ANNO ───────────────────────────────
        Legge le bandiere che il modulo dichiara — `calcolabile` per ogni anno,
