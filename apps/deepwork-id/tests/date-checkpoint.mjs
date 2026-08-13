@@ -224,10 +224,69 @@ const DALL_ORA = "2026-08-09T10:30:00Z";
 const daAdesso = new Set([...MAPPA].filter(([, q]) => Date.parse(q) >= Date.parse(DALL_ORA)).map(([f]) => f));
 const primaDiAdesso = new Set([...MAPPA.keys()].filter((f) => !daAdesso.has(f)));
 
+/* ⛔ UNA SOLA ECCEZIONE, CON IL NOME PER ESTESO E LA RAGIONE — e sorvegliata,
+   perché un'eccezione che non serve più è un'eccezione che nasconde.
+   Il 13/08 un checkpoint è stato scritto **predicendo** l'ora invece di
+   leggerla da `date -u`: si chiama `20260813-164000` ed è entrato in git alle
+   **16:37:45**, due minuti avanti. Il file è già stato riscritto col nome
+   giusto (`20260813-163745_…`, stesso contenuto), ma questo controllo legge
+   **ogni percorso mai aggiunto** alla storia — di proposito, se no basterebbe
+   un `git mv` per farlo tacere — quindi il percorso vecchio resta lì.
+   ⚠️ **Toglierlo davvero vuol dire riscrivere la storia del ramo**
+   (`--force-with-lease`), che è un'operazione distruttiva e **ferma al
+   fondatore**. Finché quella non si fa, la scelta è fra una CI rossa su questa
+   riga sola — che insegna a non guardare il rosso, ed è il difetto peggiore di
+   tutti — e un'eccezione **dichiarata per nome**. Si sceglie la seconda, e la
+   si rende impossibile da dimenticare: la prova qui sotto **cade** il giorno in
+   cui quel percorso smette di essere mal datato, cioè il giorno in cui la
+   storia viene riscritta. L'eccezione non può sopravvivere alla sua causa. */
+const SCUSATI = new Map([
+  ["vault/checkpoints/20260813-164000_due-cantieri-e-la-copia-che-si-annuncia-gemella.md",
+    "13/08: ora PREDETTA invece che letta da `date -u`, 2 minuti avanti. Il file è già stato rinominato "
+    + "col nome giusto; resta il PERCORSO nella storia, e toglierlo chiede un force-with-lease fermo al fondatore."],
+]);
+
 test("nessun checkpoint NUOVO è datato dopo l'ORA in cui è entrato in git", () => {
-  const v = oreNelFuturo(MAPPA, primaDiAdesso);
+  const scusati = new Set([...primaDiAdesso, ...SCUSATI.keys()]);
+  const v = oreNelFuturo(MAPPA, scusati);
   ok(v.length === 0,
     v.map((x) => `${x.file.replace(/^.*\//, "")} è entrato alle ${x.quandoGit} (${x.minuti} minuti avanti)`).join("\n      "));
+  console.log(`      ${SCUSATI.size} percorso scusato per nome (vedi il commento): la CI non è verde per caso`);
+});
+
+/* ⚠️ La seconda metà della regola: l'elenco non può invecchiare in silenzio. */
+test("ogni percorso SCUSATO è ancora mal datato: se no l'eccezione va tolta", () => {
+  const malDatati = new Set(oreNelFuturo(MAPPA, primaDiAdesso).map((x) => x.file));
+  const inutili = [...SCUSATI.keys()].filter((f) => !malDatati.has(f));
+  ok(inutili.length === 0,
+    `${inutili.join(" · ")} non è più mal datato: la storia è stata riscritta, quindi TOGLI la voce da SCUSATI`);
+});
+
+/* ⛔ LA CONTROPROVA DELL'ECCEZIONE, e serve nei DUE versi: un'eccezione che
+   scusa troppo spegne il controllo, e una che non si accorge di essere
+   diventata inutile lo lascia acceso su un difetto che non c'è più. Nessun file
+   toccato: le funzioni prendono la mappa, quindi la si costruisce a mano. */
+test("la controprova dell'eccezione: scusa QUEL percorso e nient'altro", () => {
+  const scusato = [...SCUSATI.keys()][0];
+  const altro = "vault/checkpoints/29991231-235959_finto-checkpoint-di-prova.md";
+  /* nome 23:59:59 del 31/12/2999, entrato in git un minuto prima: mal datato */
+  const finta = new Map([[scusato, "2026-08-13T16:37:45Z"], [altro, "2999-12-31T23:58:59Z"]]);
+
+  const senzaScuse = oreNelFuturo(finta, new Set()).map((x) => x.file);
+  ok(senzaScuse.includes(scusato) && senzaScuse.includes(altro),
+    `senza scuse devono risultare mal datati tutt'e due: ${senzaScuse.join(" · ")}`);
+
+  const conScuse = oreNelFuturo(finta, new Set(SCUSATI.keys())).map((x) => x.file);
+  ok(!conScuse.includes(scusato), "il percorso scusato non deve più comparire");
+  ok(conScuse.includes(altro),
+    "⛔ ma un ALTRO checkpoint mal datato deve cadere lo stesso: l'eccezione non è un interruttore");
+
+  /* e nel verso opposto: se il percorso scusato smettesse di essere mal datato
+     (storia riscritta), la prova qui sopra deve accorgersene. */
+  const risanata = new Map([[scusato, "2999-01-01T00:00:00Z"]]);
+  const malDatati = new Set(oreNelFuturo(risanata, new Set()).map((x) => x.file));
+  ok(!malDatati.has(scusato),
+    "col percorso risanato l'elenco dei mal datati non lo contiene: è la condizione che fa cadere la prova sopra");
 });
 
 test("il lascito delle ORE è misurato, non dimenticato", () => {

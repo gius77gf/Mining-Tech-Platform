@@ -5159,3 +5159,28 @@ di scriverlo qui**: niente entra sulla parola dell'agente.
       *In lavorazione dal 13/08 sui nove candidati di Campo, Conti, Flotta e
       Terra; i sei di Scudo e Sentinella restano da fare (quelle due app le
       stavano scrivendo altri cantieri).*
+
+- [x] ✅ **LA CI ERA ROSSA SU UNA RIGA SOLA DA ORE, E ADESSO IL DIFETTO È
+      DICHIARATO INVECE CHE ROSSO.** *13/08.* Il checkpoint `20260813-164000_…`
+      fu scritto **predicendo** l'ora invece di leggerla da `date -u`: è entrato
+      in git alle **16:37:45**, due minuti avanti. Il file è già stato riscritto
+      col nome giusto, ma `date-checkpoint.mjs` legge **ogni percorso mai
+      aggiunto** alla storia — di proposito, se no basterebbe un `git mv` per
+      farlo tacere.
+      ⛔ **Toglierlo davvero chiede un `--force-with-lease`, che è distruttivo e
+      resta fermo al fondatore.** Quindi la scelta vera era fra due mali: una CI
+      rossa su quella riga sola — che **insegna a non guardare il rosso**, ed è
+      il difetto peggiore di tutti, già raccolto in `CLAUDE.md` — e
+      un'**eccezione dichiarata per nome**. Scelta la seconda, con la difesa che
+      questo repository usa già per le eccezioni: una seconda prova **cade il
+      giorno in cui quel percorso smette di essere mal datato**, cioè il giorno
+      in cui la storia viene riscritta. **L'eccezione non può sopravvivere alla
+      sua causa.**
+      ⚠️ E la controprova sta nei **due versi**, senza toccare nessun file (le
+      funzioni prendono la mappa): con l'eccezione attiva un **altro**
+      checkpoint mal datato cade lo stesso — l'eccezione non è un interruttore —
+      e col percorso risanato l'elenco dei mal datati non lo contiene più.
+      **Il giro `node` è adesso 34 comandi a posto, 0 caduti**, per la prima
+      volta stanotte: **2.913** asserzioni.
+      ⛔ **Il blocco NON è chiuso**: la storia va ancora riscritta, e finché non
+      succede la voce `SCUSATI` resta lì a dirlo.
