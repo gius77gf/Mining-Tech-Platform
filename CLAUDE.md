@@ -1035,6 +1035,41 @@ Perché serva davvero e non produca elenchi generici, cinque vincoli:
   propria intestazione; questa è il runner stesso, che ricapitola. Il posto in
   cui il difetto si nasconde è sempre quello che non si guarda perché «quello
   lo scriviamo noi».
+- ⛔ **UNA CI ROSSA CRONICA INSEGNA A NON GUARDARE IL ROSSO — ed è un difetto
+  peggiore di quello che la tiene rossa.** Misurato il 13/08. Un checkpoint
+  scritto **predicendo** l'ora invece di leggerla da `date -u` è entrato in git
+  due minuti prima del nome che porta; il file è stato subito riscritto col nome
+  giusto, ma `date-checkpoint.mjs` legge **ogni percorso mai aggiunto** alla
+  storia — di proposito, se no basterebbe un `git mv` per farlo tacere. Toglierlo
+  davvero vuol dire riscrivere la storia del ramo, che è distruttivo e resta
+  fermo al fondatore. Nel frattempo la CI è rimasta rossa **per ore, su quella
+  riga sola**, mentre sopra ci passavano sei commit sani.
+  ⚠️ Il danno non è la riga: è che ogni notifica di CI diventava «sì, lo so» — e
+  il giorno in cui cade qualcos'altro nessuno se ne accorge. È la stessa famiglia
+  dell'allarme che scatta sempre.
+  La via che regge non è spegnere il controllo né aspettare il permesso: è
+  **un'eccezione dichiarata per nome, con la ragione, e SORVEGLIATA** — una
+  seconda prova che **cade il giorno in cui l'eccezione smette di servire**, cioè
+  quando la storia viene riscritta. Così l'eccezione **non può sopravvivere alla
+  sua causa**, e il blocco resta scritto invece di essere dimenticato in un
+  rosso che nessuno legge.
+  ⚠️ E la controprova va nei **due versi**, se no si è costruito un interruttore:
+  con l'eccezione attiva un **altro** soggetto mal datato deve cadere lo stesso.
+- ⛔ **E UN GIRO LUNGO SU UN COMMIT VECCHIO HA UN VALORE CHE DIVENTA NEGATIVO —
+  a un certo punto si spegne, e non è una sconfitta.** Misurato il 13/08: un
+  giro del browser vivo da **3h52** aveva fatto **60 passate** su circa 230, e
+  attestava un commit da cui il ramo si era mosso di **oltre trenta commit**.
+  Aprendo il suo registro, i primi KO erano **ventisette contrasti del tema
+  chiaro del core** — tutti **chiusi cinque ore prima**. Cioè non stava
+  producendo informazione: stava producendo **accuse che sembrano fresche**, e
+  intanto teneva occupata la macchina che serviva a tre cantieri.
+  La regola pratica: prima di lasciar correre un giro lungo si guarda **quanto
+  è avanti il ramo** (`leggi-giro.mjs` lo stampa nella sezione 0) e **a che
+  punto è arrivato**. Se le passate fatte sono una frazione e i commit sulle
+  superfici misurate sono decine, il giro va **letto, spento e rilanciato** su
+  uno stato fermo — non lasciato finire per non buttare le ore già spese.
+  ⚠️ Spegnendolo si guarda **chi resta vivo**: i Chromium con un padre ancora
+  vivo e pochi secondi di età sono **di qualcun altro**, non orfani del giro.
 - ⛔ **UN GIRO LUNGO NON DICE QUANTO È VECCHIO, E I SUOI KO SI LEGGONO COME SE
   FOSSERO DI ADESSO.** Misurato l'08/08 e a un passo dal costare un cantiere
   intero. Un giro da cinque ore e mezza dichiarava **cinque contrasti sotto
