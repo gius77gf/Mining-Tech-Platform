@@ -46,10 +46,10 @@ segnaposto («Funzione nav non ancora pronta»). Per aprirlo davvero si monta
 
 ## Le prove
 
-**2.733 prove girano senza rete e senza browser**, con `node` (contate lanciandole, non a memoria — al 14/08: 2277 + 322 + 75 + 32 + 9 + 8 + 7 + 3):
+**2.739 prove girano senza rete e senza browser**, con `node` (contate lanciandole, non a memoria — al 14/08: 2283 + 322 + 75 + 32 + 9 + 8 + 7 + 3):
 
 > ⚠️ **E quel numero conta OTTO suite, non tutto quello che gira.** Il giro
-> `node` completo esegue **3.104** asserzioni su **35** comandi.
+> `node` completo esegue **3.110** asserzioni su **35** comandi.
 > ⏱️ **Dal 09/08 quel numero non si scrive più a mano: lo stampa il giro**
 > (`node apps/deepwork-id/tests/giro-node.mjs`, riga «Asserzioni eseguite dal
 > giro»), col suo denominatore accanto — 22 comandi su 34 hanno una riga da
@@ -78,7 +78,7 @@ segnaposto («Funzione nav non ancora pronta»). Per aprirlo davvero si monta
 > 2.251» mentre il titolo sopra diceva già 2.310: il controllo sorveglia il
 > **totale**, non la prosa che lo spiega. È la quarta forma di invecchiamento
 > raccolta in `CLAUDE.md`.*
-> **Il numero da citare resta 2.733**, e la ragione è che le altre dieci contano
+> **Il numero da citare resta 2.739**, e la ragione è che le altre dieci contano
 > **file, non prove**: `import esistenti` fa un'asserzione per file e `classi
 > orfane` una per pagina, quindi il loro totale si muove ogni volta che nasce un
 > file — un numero che cresce senza che nessuno abbia scritto una prova è un
@@ -127,12 +127,12 @@ funzioni si possono portare fuori **senza cambiargli la firma**:
 | variabili del modulo che legge | funzioni |
 |---|---|
 | nessuna — si porta fuori com'è | **29** |
-| una o due | **58** |
+| una o due | **59** |
 | da tre a cinque | 24 |
-| da sei a dieci | 26 |
+| da sei a dieci | 25 |
 | più di dieci — lì è un rifacimento | 33 |
 
-Cioè **65 su 170 si estraggono senza rifare il modo in cui Genesi tiene il suo
+Cioè **66 su 170 si estraggono senza rifare il modo in cui Genesi tiene il suo
 stato**, e le restanti 105 sono una decisione di architettura.
 
 ⏱️ **Questi sette numeri erano tutt'e sette diversi fino al 09/08** — 46 · 64 ·

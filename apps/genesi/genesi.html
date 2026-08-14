@@ -1530,6 +1530,26 @@ function matWorldUV(m, wu, wv, ou, ov){
 
 /* stima gittata flyrock — stessa fisica della scheda (Richards&Moore face burst /
    cratering / rifling + McKenzie SDOB, tetto Lundborg), riusabile da scheda e scena 3D */
+/* ⛔ G19 · IL TERZO INGRESSO DI QUESTA FUNZIONE, e l'unico rimasto inventato:
+   dentro `kf` stava `D2.ucs||100`. Cento non è un numero neutro — è l'UCS del
+   CALCARE, cioè la litologia di partenza: sul calcare il ripiego non si vede, e
+   su un'altra roccia mente in silenzio. Le altre DUE letture dell'UCS nella
+   stessa pagina ripiegano già sul catalogo della roccia SCELTA (`rockFactorA`
+   e il «perché» della scheda): era questa la copia più debole delle tre, e la
+   cura è quella già in casa — si smette di inventare l'ingresso, e nessuna
+   soglia viene toccata.
+   ⚠️ IL VERSO, misurato: `kf` entra al QUADRATO in face-burst e cratering. Con
+   l'UCS assente il ripiego dava kf 17,80; col catalogo della roccia scelta dà
+   22,70 sul granito e 27,00 sul basalto — cioè la gittata prevista dal ripiego
+   era **1/1,63** e **1/2,30** di quella vera, e lo sgombero persone è il doppio
+   della gittata. È lo stesso verso del capostipite (129 m di sgombero in meno):
+   quello che ACCORCIA.
+   ⚠️ Non è un «non calcolabile»: la roccia l'utente l'ha scelta, e la sua
+   resistenza è un dato del catalogo (misurato: c'è in tutte e 6 le litologie).
+   Il campo `dUcs` serve a scostarsene, non a fondarla.
+   ⚠️ E QUESTO BLOCCO STA FUORI DAL CORPO DI PROPOSITO: `genesi-estraibili.mjs`
+   conta le dipendenze leggendo il TESTO del corpo, commenti compresi — la
+   prosa italiana ci finisce dentro come se fossero variabili del modulo. */
 function flyrockEst(){
   const _e=(typeof selEsplosivo==='function'&&selEsplosivo())||{};
   /* ⛔ QUI STAVA `Q = D2.kg || P.kg || 50`: con la carica per foro illeggibile
@@ -1545,7 +1565,7 @@ function flyrockEst(){
      ⛔ E `B = D2.B || SPALLA` ERA IL SECONDO, chiuso il 13/08 col blocco
      B0-tervicies: vedi `gittataSenzaSpalla` nel modulo, che porta la misura. */
   const _cc=confinamentoColletto({ kg:D2.kg, stem:D2.stem, diam:D2.diam, densita:_e.densita_gcc });
-  const kf=13.5+13.5*Math.max(0,Math.min(1,((D2.ucs||100)-30)/220));    // 13,5 tenere → 27 dure
+  const kf=13.5+13.5*Math.max(0,Math.min(1,((D2.ucs||selRoccia().ucs)-30)/220));    // 13,5 tenere → 27 dure
   if(!_cc.calcolabile) return { Lpred:null, Dmez:null, Dper:null, mech0:null, kf, sdob:null,
     calcolabile:false, che:_cc.che, come:_cc.come };
   const Dmm=+D2.diam, Dm=Dmm/1000, stem=+D2.stem;
@@ -1590,6 +1610,10 @@ function flyrockEst(){
 /* flyrock INVERSO: dal limite di gittata ammesso → borraggio e burden minimi.
    Stesse formule di flyrockEst risolte per stem/B: la carica lineare è fissata
    da diametro e densità dell'esplosivo, quindi le leve reali sono queste. */
+/* G19, la sorella di `flyrockEst`: stesso ripiego sull'UCS, stessa cura. Qui il
+   danno ha una forma diversa — l'inverso PRESCRIVE («servono borraggio ≥ X»), e
+   un requisito ricavato da una roccia inventata è più MITE del vero su ogni
+   litologia più dura del calcare. */
 function flyrockInv(Lmax){
   const _e=(typeof selEsplosivo==='function'&&selEsplosivo())||{};
   /* ⛔ STESSO RIPIEGO DELLA SORELLA, e qui fa un danno di forma diversa: il
@@ -1599,7 +1623,7 @@ function flyrockInv(Lmax){
   const _cc=confinamentoColletto({ kg:D2.kg, stem:D2.stem, diam:D2.diam, densita:_e.densita_gcc });
   if(!_cc.calcolabile) return { minStem:null, minB:null, calcolabile:false, che:_cc.che, come:_cc.come };
   const Dmm=+D2.diam, Dm=Dmm/1000, ql=_cc.qLin;
-  const kf=13.5+13.5*Math.max(0,Math.min(1,((D2.ucs||100)-30)/220));
+  const kf=13.5+13.5*Math.max(0,Math.min(1,((D2.ucs||selRoccia().ucs)-30)/220));
   const g9=9.81, sqm=Math.sqrt(Math.max(0.1,ql)), L=Math.max(1,Lmax);
   const s1=sqm*Math.pow(kf*kf/(g9*L),1/2.6);                 // face burst (→B) e cratering (→stem)
   const sdobMin=Math.pow(10*Math.pow(Dmm,0.667)/L,1/2.167);  // McKenzie: SDOB minimo
@@ -2451,7 +2475,8 @@ function updateInfochip(){
     const mx = Math.max(fr.x80,1);
     const seg = (lab,val)=>`<div style="display:flex;align-items:center;gap:6px;margin-top:3px"><span style="width:26px;color:var(--mut2)">${lab}</span><div style="flex:1;height:6px;background:rgba(255,255,255,.07);border-radius:3px;overflow:hidden"><div style="height:100%;width:${Math.min(100,val/mx*100)}%;background:var(--cu)"></div></div><b style="width:46px;text-align:right">${val} cm</b></div>`;
     // parametri KCO/Swebrec con la STESSA formula della scheda (onesto, non stimato):
-    const _blk={compatta:2.0, media:1.0, fratturata:0.4}[D2.frat]||1.0;
+    /* `fessurata` come la tendina `dFrat` — vedi G18 in run-kpi.mjs */
+    const _blk={compatta:2.0, media:1.0, fessurata:0.4}[D2.frat]||1.0;
     const _swXmax=Math.max(fr.x50*1.2, Math.min(SPALLA, INTERASSE, _blk)*100);
     const _swB=Math.max(1.5, 0.5*Math.pow(Math.max(1,fr.x50),0.25)*Math.log(_swXmax/fr.x50));
     // frazione FINE (% passante sotto soglia): Kuz-Ram sottostima i fini, Swebrec ne mostra di più (JKMRC)
@@ -6119,7 +6144,7 @@ function renderScheda2D(){
   /* === secondo modello: curva KCO/Swebrec (Ouchterlony 2005) — code più realistiche
      del Rosin-Rammler perché il massello è limitato dal blocco in situ e dalla maglia === */
   (function(){
-    const _blk={compatta:2.0, media:1.0, fratturata:0.4}[D2.frat]||1.0;      // blocco in situ tipico (m)
+    const _blk={compatta:2.0, media:1.0, fessurata:0.4}[D2.frat]||1.0;      // blocco in situ tipico (m) — `fessurata` come la tendina `dFrat`, vedi G18
     /* ⛔ IL SECONDO MODELLO PARTE DAL PRIMO: senza x50 Kuz-Ram non c'è una
        curva KCO. Con `_x50` a `null` `Math.max(null*1.2, …)` dava il massello
        della maglia e la riga usciva «74/109 cm · max 117» — un secondo parere
@@ -6439,15 +6464,45 @@ function renderScheda2D(){
    ⚠️ La sottoperforazione NON entra nella guardia: `(…||0)` la tratta già come
    zero, ed è la lettura giusta — «non perforo sotto il piano» è il caso
    normale, non un dato mancante. */
-function deriveCharge(){ if(!D2.kgAuto) return;
-  const eP=selEsplosivo()||{}, rhoE=eP.densita_gcc||0.82;
-  /* ⚠️ `+x > 0` risponde da solo a tutte le forme dell'assenza — `null`,
+/* ⛔ G17 · E IL QUARTO INGRESSO NON È UN CAMPO: È LA DENSITÀ CHE IL CATALOGO
+     DICHIARA DI NON AVERE. Qui stava `rhoE = eP.densita_gcc || 0.82`, cioè la
+     forma del capostipite applicata a un dato che l'utente non scrive ma
+     SCEGLIE. Misurato il 14/08 leggendo `esplosivi.json`: delle 14 voci
+     dell'elenco «Esplosivo» — che la tendina mostra TUTTE — una dichiara
+     `densita_gcc: null` di proposito (`innesco-nonel`, un sistema di innesco:
+     non è una carica di colonna e una densità non ce l'ha). Sceglierla faceva
+     `null || 0.82`, e la carica derivata usciva **58 kg/foro** sulla geometria
+     di progetto (Ø102, banco 10, sub 0,9, borraggio 2,2 → Lc 8,7 m): un numero
+     pieno, con l'aria di una misura, dove il vero è **non calcolabile**.
+     ⚠️ E il verso è quello che non spaventa nessuno: 58 non è assurdo, quindi
+     non lo si guarda. Da lì la MIC (58 kg, e **696** con tutti i fori allo
+     stesso ritardo), la carica totale, il consumo specifico 0,55 kg/m³ — tutti
+     misurati chiamando i moduli con la carica inventata e con `null`. Il
+     modulo l'assenza la sapeva già raccontare (`micSenzaConto` risponde «la
+     carica per foro non è un numero leggibile»): non ci arrivava mai, perché
+     la pagina la riempiva un piano più su.
+     ⛔ NESSUNA SOGLIA TOCCATA: `ppvLimit`, le curve USBM/DIN e i 133 dB(L)
+     sono gli stessi. Qui si smette solo di inventare un ingresso.
+     ⚠️ `come` resta vero: `dKg` a mano spegne `kgAuto` (riga «input» in fondo
+     al file), quindi «Reimposta la carica per foro» è un'azione che funziona.
+     ⚠️ `+x > 0` risponde da solo a tutte le forme dell'assenza — `null`,
      `undefined` e `''` danno 0, una parola dà NaN, e nessuno dei due è
      maggiore di zero — quindi qui non serve riscrivere la tabella delle
      coercizioni che il modulo tiene in un posto solo. Tutt'e tre i limiti
      dell'app (Ø 50–160, banco 6–18, borraggio 0,5–6) sono già positivi: uno
-     zero in uno di questi tre campi non è un progetto che Genesi sa disegnare. */
-  if(!(+D2.diam>0) || !(+D2.prof>0) || !(+D2.stem>0)){ D2.kg=null; gsv('dKg',null,0); return; }
+     zero in uno di questi tre campi non è un progetto che Genesi sa disegnare;
+     e una densità nulla o negativa non è un esplosivo.
+   ⚠️ E QUESTO BLOCCO STA FUORI DAL CORPO DELLA FUNZIONE DI PROPOSITO:
+   `genesi-estraibili.mjs` conta le dipendenze leggendo il TESTO del corpo,
+   commenti compresi. Scritto dentro, spostava `deriveCharge` da «6-10» a
+   «11+» — cioè faceva salire di uno un numero che finisce in
+   `docs/DEVELOPMENT.md`, senza che la funzione avesse guadagnato una sola
+   dipendenza vera. È il difetto che `ripieghi-silenziosi` dichiara di sé
+   («il censimento si conta addosso la propria documentazione»), applicato a
+   un altro strumento: la prosa va sopra la funzione, non dentro. */
+function deriveCharge(){ if(!D2.kgAuto) return;
+  const eP=selEsplosivo()||{}, rhoE=eP.densita_gcc;
+  if(!(+D2.diam>0) || !(+D2.prof>0) || !(+D2.stem>0) || !(+rhoE>0)){ D2.kg=null; gsv('dKg',null,0); return; }
   const De=+D2.diam/1000, Lc=Math.max(0.5,+D2.prof+(+D2.sub||0)-+D2.stem);
   D2.kg=Math.max(2, Math.round(rhoE*1000*Math.PI*De*De/4*Lc)); gsv('dKg',D2.kg,0); }
 function applyDesign(){

@@ -26922,9 +26922,15 @@ test("voceDocumentoInElenco: la regola vale per documento, non per la lista", ()
     eq(derivaComeEra(102, null, 0.9, 2.2), 3, "con l'altezza assente 3 kg/foro");
     eq(derivaComeEra(102, 10, 0.9, null), 73,
       "e col borraggio assente 73 kg/foro — un quarto di esplosivo IN PIÙ del vero, che è il verso che non spaventa nessuno");
-    /* la guardia, pinnata nella pagina: prima i tre fattori, poi il clamp */
-    eq(/if\(!\(\+D2\.diam>0\) \|\| !\(\+D2\.prof>0\) \|\| !\(\+D2\.stem>0\)\)\{ D2\.kg=null; gsv\('dKg',null,0\); return; \}/.test(srcG15), true,
-      "la carica AUTO chiede prima se la geometria c'è");
+    /* la guardia, pinnata nella pagina: prima i fattori, poi il clamp.
+       ⚠️ Il 14/08 questa asserzione è INVECCHIATA PERCHÉ IL PRODOTTO È
+       MIGLIORATO: al blocco G17 la guardia ha guadagnato un quarto fattore, la
+       densità dell'esplosivo (`!(+rhoE>0)`). Si corregge rendendola PIÙ
+       GIUSTA, non più permissiva — i tre di prima restano pretesi uno per uno,
+       e il quarto si aggiunge; una regex più larga (`\|\|.*`) avrebbe smesso
+       di sorvegliare i tre. */
+    eq(/if\(!\(\+D2\.diam>0\) \|\| !\(\+D2\.prof>0\) \|\| !\(\+D2\.stem>0\) \|\| !\(\+rhoE>0\)\)\{ D2\.kg=null; gsv\('dKg',null,0\); return; \}/.test(srcG15), true,
+      "la carica AUTO chiede prima se la geometria c'è — e, da G17, anche se l'esplosivo una densità ce l'ha");
     eq(/D2\.kg=Math\.max\(2, Math\.round\(rhoE\*1000\*Math\.PI\*De\*De\/4\*Lc\)\)/.test(srcG15), true,
       "e il clamp dei dati veri ed estremi è rimasto dov'era");
     /* ⚠️ `+x > 0` risponde da solo a tutte le forme dell'assenza: è la ragione
@@ -30976,6 +30982,228 @@ test("frasePersi · ⚠️ NIENTE `esc()`: la frase esce come l'utente l'ha scri
   });
 }
 /* ===== fine Campo/Terra · il ripiego silenzioso ============================ */
+
+/* ===== Genesi · il ripiego silenzioso =====================================
+   ⛔ L'INGRESSO CHE L'UTENTE NON SCRIVE MA *SCEGLIE*. Il censimento
+   (`ripieghi-silenziosi.mjs --solo=genesi`) dà 119 ripieghi di mestiere nella
+   pagina, e leggendoli uno per uno quasi tutti sono disegno, etichette o
+   riletture di un campo che ripiegano sul valore che il progetto aveva già.
+   Quelli che mordono davvero sono di una famiglia che il capostipite
+   (`B = D2.B || SPALLA`) non aveva: **il dato non viene da un campo, viene da
+   un CATALOGO — e il catalogo dichiara di non averlo.**
+   Misurato il 14/08 su `apps/genesi/esplosivi.json`: 14 voci, tutte mostrate
+   dalla tendina «Esplosivo», e due dichiarano `rws_pct: null`
+   (`booster-pentolite`, `innesco-nonel`), una anche `densita_gcc: null` —
+   perché sono sistemi d'innesco, non cariche di colonna, e quei numeri non ce
+   l'hanno. La pagina li trasformava in **100 %** e **0,82 g/cc**, cioè in un
+   ANFO standard.
+   ⚠️ Le prove qui sono SINCRONE e PRIMA del riepilogo: `await
+   Promise.all(inVolo)` sta a metà file, e una prova asincrona appesa dopo
+   verrebbe messa in volo senza che il totale l'aspetti. */
+{
+  const ESPLOSIVI = JSON.parse(readFileSync(join(HERE, "../../genesi/esplosivi.json"), "utf8"));
+  const PAGINA_G = readFileSync(join(HERE, "../../genesi/genesi.html"), "utf8");
+  /* la stessa vista del censimento: solo i `<script>`, e senza commenti — se
+     no il conto si mangia la documentazione che cita i ripieghi per esteso */
+  const CODICE_G = [...PAGINA_G.matchAll(/<script\b[^>]*>([\s\S]*?)<\/script>/g)]
+    .map((m) => _tok.senzaCommenti(m[1])).join("\n");
+  const quante = (re) => (CODICE_G.match(re) || []).length;
+
+  test("⛔ Genesi · il catalogo degli esplosivi dichiara i suoi buchi, e non li scrive come zeri", () => {
+    /* ⚠️ Il contratto che rende leggibile tutto il resto: un numero che non
+       c'è si scrive `null`, MAI `0` o `''`. Uno zero sarebbe indistinguibile
+       da una densità misurata, ed è la differenza fra il dato ASSENTE e il
+       dato CORROTTO che `run-demo` pretende altrove. */
+    for (const e of ESPLOSIVI)
+      for (const k of ["densita_gcc", "vod_ms", "rws_pct"]) {
+        const v = e[k];
+        eq(v === null || (typeof v === "number" && v > 0), true,
+          `${e.id}.${k}: o un numero positivo, o \`null\` dichiarato (trovato ${JSON.stringify(v)})`);
+      }
+    /* IL DENOMINATORE, che è la ragione per cui le guardie qui sotto non sono
+       teoriche: il caso c'è, nel catalogo che si consegna. */
+    const senzaDensita = ESPLOSIVI.filter((e) => e.densita_gcc === null).map((e) => e.id);
+    const senzaRws = ESPLOSIVI.filter((e) => e.rws_pct === null).map((e) => e.id);
+    eq(senzaDensita, ["innesco-nonel"], "una voce su 14 non ha una densità, e la dichiara");
+    eq(senzaRws, ["booster-pentolite", "innesco-nonel"], "due su 14 non hanno un'energia relativa");
+    eq(ESPLOSIVI.filter((e) => e.vod_ms === null).length, 0,
+      "e la VOD ce l'hanno tutte: i `vod_ms||3800` della pagina oggi NON scattano (sono ripieghi morti, non innocui)");
+  });
+
+  test("⛔ Genesi · l'energia relativa inventata cambia la pezzatura prevista, e la fa sembrare più fine", () => {
+    /* La misura: `fragKuzRam` chiamato con quello che la pagina mette
+       (`rws_pct||100`) e con quello che il catalogo dichiara (`null`).
+       Volata di progetto: 60 kg/foro, 3,0 × 3,5 × 10 m = 105 m³, calcare. */
+    const base = { kg: 60, vol: 105, A: 8.1 };
+    const inventato = genesi.fragKuzRam({ ...base, RWS: 100 });
+    const vero = genesi.fragKuzRam({ ...base, RWS: null });
+    eq(Math.round(inventato.x50 * 10) / 10, 27.4, "col 100 % inventato: X50 27,4 cm, un numero pieno");
+    eq(inventato.calcolabile, true, "e la bandiera dice «calcolabile»");
+    eq(vero.x50, null, "col `null` dichiarato dal catalogo: non calcolabile");
+    eq(vero.calcolabile, false, "e la bandiera lo dice");
+    eq(vero.modello, true, "col motivo giusto: il modello di Kuznetsov vuole A e RWS tutt'e due");
+    /* ⚠️ E il verso è quello che non allarma: 100 % è il MASSIMO dell'elenco,
+       quindi la pezzatura inventata è la più FINE che si possa dichiarare.
+       Con un'energia vera più bassa (watergel, 90 %) i blocchi sono più
+       grossi — cioè il ripiego rassicura. */
+    eq(Math.round(genesi.fragKuzRam({ ...base, RWS: 90 }).x50 * 10) / 10, 29.3,
+      "con un'energia relativa vera e più bassa la pezzatura sale a 29,3 cm");
+    /* il consumo specifico NON dipende da RWS: il ripiego sposta solo X50 */
+    eq(inventato.pf, vero.pf, "il consumo specifico è lo stesso: a mentire è la sola pezzatura");
+  });
+
+  test("⛔ Genesi · G17: la carica AUTO non si inventa la densità dell'esplosivo", () => {
+    /* ⛔ IL DIFETTO, MISURATO. `deriveCharge` faceva
+       `rhoE = eP.densita_gcc || 0.82`: scegliendo `innesco-nonel` — che una
+       densità dichiara di non averla — la carica derivata usciva **58
+       kg/foro** sulla geometria di progetto (Ø102, banco 10, sub 0,9,
+       borraggio 2,2 → Lc 8,7 m). Non un numero assurdo: un numero PLAUSIBILE,
+       che è il motivo per cui nessuno lo guarda.
+       ⚠️ La difesa sta sul SORGENTE e non è riscritta in casa: `deriveCharge`
+       vive nella pagina e vuole il DOM (`gsv`), quindi non si può chiamare da
+       `node`. Riscriverne una copia qui sarebbe una copia debole dentro la
+       difesa contro una copia debole. */
+    eq(/densita_gcc\s*\|\|\s*0\.82/.test(_tok.senzaCommenti(
+      (/function deriveCharge\(\)\{[\s\S]*?gsv\('dKg',D2\.kg,0\); \}/.exec(CODICE_G) || [""])[0])), false,
+      "in `deriveCharge` il ripiego sulla densità non c'è più");
+    eq(/const eP=selEsplosivo\(\)\|\|\{\}, rhoE=eP\.densita_gcc;/.test(CODICE_G), true,
+      "la densità si legge come la dichiara il catalogo");
+    /* DOVE FINIVA quel 58: tutta la catena, chiamata coi due valori. Il campo
+       `tDet` è quello che `micFinestra` legge davvero (letto nel suo sorgente,
+       non indovinato: una fixture con le colonne sbagliate accusa il prodotto). */
+    const foriSimultanei = Array.from({ length: 12 }, () => ({ tDet: 0 }));
+    const foriSequenza = Array.from({ length: 12 }, (_, i) => ({ tDet: i * 42 }));
+    eq(genesi.micFinestra(foriSimultanei, 58), 696, "col 58 inventato la MIC dichiarava 696 kg");
+    eq(genesi.micFinestra(foriSequenza, 58), 58, "e 58 kg con i ritardi di progetto");
+    eq(genesi.micFinestra(foriSimultanei, null), null, "con la carica non calcolabile la MIC non si conta");
+    eq(genesi.esitoMic(genesi.micFinestra(foriSimultanei, 58)).stato, "contata",
+      "e l'esito diceva «contata» su un numero nato da una densità che nessuno ha dichiarato");
+    eq(genesi.esitoMic(genesi.micFinestra(foriSimultanei, null)).stato, "nonCalcolabile",
+      "adesso dice «non calcolabile»");
+    eq(genesi.caricaTotale(12, 58), 696, "la carica totale seguiva lo stesso numero");
+    eq(genesi.caricaTotale(12, null), null, "e adesso non lo segue");
+    eq(Math.round(genesi.consumoSpecifico(58, 105) * 1e4) / 1e4, 0.5524,
+      "il consumo specifico usciva 0,5524 kg/m³");
+    eq(genesi.consumoSpecifico(null, 105), null, "e adesso è `null`");
+    /* ⚠️ Il messaggio che l'utente riceve resta ESEGUIBILE: `micSenzaConto`
+       dice «reimposta la carica per foro», e scrivere a mano in `dKg` spegne
+       `kgAuto` — cioè l'azione suggerita funziona davvero. */
+    eq(genesi.micSenzaConto(foriSequenza, null).carica, true,
+      "e il modulo sa già raccontare l'assenza: non ci arrivava mai perché la pagina la riempiva un piano più su");
+    eq(/\$\('dKg'\)\.addEventListener\('input', \(\)=>\{ D2\.kgAuto=false; \}\)/.test(CODICE_G), true,
+      "il «come» è un'azione vera: scrivere nella carica spegne il calcolo automatico");
+  });
+
+  test("⏱️ Genesi · le copie ancora aperte sono CONTATE, non dimenticate", () => {
+    /* ⛔ NON È UN CONTROLLO DI STILE: È UN'ECCEZIONE DICHIARATA E SORVEGLIATA.
+       Lo stesso ripiego sul catalogo è scritto in più punti — quattro copie
+       dell'energia relativa e tre della densità — e curarne uno solo
+       lascerebbe le pagine a raccontare due volate diverse. Finché non si
+       chiudono con una funzione sola (la cura è «aggiungere un parametro»,
+       non ricopiare un corpo), il conto sta qui: **cade sia se qualcuno ne
+       aggiunge una, sia il giorno in cui qualcuno le chiude** — e allora
+       questa prova va aggiornata insieme alla correzione, che è il solo modo
+       in cui un numero dichiarato scende.
+       Le righe, al 14/08: `rws_pct||100` → 1707, 2433, 3082, 5740, 6104;
+       `densita_gcc||0.82` → 5788, 5808, 6167; `vod_ms||3800` → 1710, 5472,
+       5808, 6167, 6350 (questi ultimi oggi MORTI: la VOD c'è in tutte e 14 le
+       voci del catalogo, e la prova qui sopra lo pretende). */
+    eq(quante(/rws_pct\s*\)?\s*\|\|\s*100/g), 5, "energia relativa: 5 copie aperte");
+    eq(quante(/densita_gcc\s*\|\|\s*0\.82/g), 3, "densità: 3 copie aperte (la quarta, in `deriveCharge`, è chiusa)");
+    eq(quante(/vod_ms\s*\)?\s*\|\|\s*3800/g), 5, "VOD: 5 copie, oggi mai raggiunte");
+    /* ⚠️ E IL CENSIMENTO NON LE VEDE TUTTE, che è un fatto sullo STRUMENTO e
+       va scritto dove qualcuno lo rilegge: `ripieghi-silenziosi.mjs` cerca un
+       IDENTIFICATORE a sinistra del `||`, quindi un ripiego su
+       un'espressione fra parentesi — `(f() && f().x) || 100` — gli sfugge.
+       Due delle cinque copie qui sopra (1707 e 2433) sono di quella forma e
+       NON stanno fra i 119. */
+    eq(/\(\(selEsplosivo\(\)&&selEsplosivo\(\)\.rws_pct\)\|\|100\)/.test(CODICE_G), true,
+      "la forma che il censimento non vede esiste, ed è una di quelle vere");
+  });
+
+  test("⛔ Genesi · G18: ogni mappa su D2.frat copre tutte le voci della tendina", () => {
+    /* ⛔ IL DIFETTO. Due mappe su tre scrivevano `fratturata`, e la tendina
+       «Fratturazione» scrive `fessurata`: quella voce non combaciava MAI, e il
+       `||1.0` la faceva atterrare in silenzio sul valore di «Media».
+       Misurato sulla volata di progetto (X50 27,4 cm, maglia 3,0×3,5): con
+       «Fessurata» scelta l'app dava massello massimo **100 cm** e x20/x80
+       **4/60** — gli stessi identici numeri di «Media». Due scelte diverse,
+       una risposta sola: la firma di un ripiego che riempie il buco.
+       ⚠️ La difesa è DERIVATA, non un elenco a mano: le voci si leggono dalla
+       tendina e le chiavi dalle mappe, così una quarta voce (o una quarta
+       mappa) entra da sé invece di restare fuori in silenzio. È la regola 18
+       di `run-stile` applicata a una tendina invece che a una funzione — e la
+       ragione per cui lì non scattava è proprio questa: gli stati non li
+       dichiara una funzione, li dichiara il markup. */
+    const sel = /<select id="dFrat">([\s\S]*?)<\/select>/.exec(PAGINA_G);
+    ok(sel, "la tendina `dFrat` c'è ancora: se cambia forma, questa regola va riscritta invece di rispondere «a posto»");
+    const voci = [...sel[1].matchAll(/<option value="([^"]+)"/g)].map((m) => m[1]);
+    eq(voci, ["fessurata", "media", "compatta"], "le voci della tendina, lette dal markup");
+    const mappe = [...CODICE_G.matchAll(/\{([^{}]*)\}\s*\[\s*D2\.frat\s*\]/g)];
+    eq(mappe.length, 3, "le mappe indicizzate su `D2.frat` sono tre (il denominatore: se ne nasce una quarta, cade qui)");
+    mappe.forEach((m, i) => {
+      const chiavi = [...m[1].matchAll(/([A-Za-z_$][\w$]*)\s*:/g)].map((x) => x[1]);
+      eq(voci.filter((v) => !chiavi.includes(v)), [],
+        `mappa ${i + 1}: nessuna voce della tendina resta senza chiave (finirebbe sul ripiego, in silenzio)`);
+      eq(chiavi.filter((c) => !voci.includes(c)), [],
+        `mappa ${i + 1}: e nessuna chiave morta, che è il segno del refuso (\`fratturata\` non esisteva in nessuna tendina)`);
+    });
+    /* la curva KCO, coi due valori: quello che l'app dava e quello vero.
+       ⚠️ È la formula della pagina ricopiata? No: è la sua ARITMETICA, e serve
+       a fissare il numero del racconto. La difesa contro il ritorno del
+       refuso è la lettura delle chiavi qui sopra, non questo conto. */
+    const kco = (blk, x50, B = 3.0, S = 3.5) => {
+      const xmax = Math.max(x50 * 1.2, Math.min(B, S, blk) * 100);
+      const b = Math.max(1.5, 0.5 * Math.pow(Math.max(1, x50), 0.25) * Math.log(xmax / x50));
+      const at = (P) => xmax * Math.exp(-Math.log(xmax / x50) * Math.pow((1 - P) / P, 1 / b));
+      return { xmax, x20: Math.round(at(0.2)), x80: Math.round(at(0.8)) };
+    };
+    const x50 = genesi.fragKuzRam({ kg: 60, vol: 105, A: 8.1, RWS: 100 }).x50;
+    eq(kco(1.0, x50).xmax, 100, "col ripiego: massello massimo 100 cm…");
+    eq(kco(1.0, x50).x80, 60, "…e x80 60 cm, cioè i numeri di «Media»");
+    eq(kco(0.4, x50).xmax, 40, "col valore che la mappa intendeva: 40 cm…");
+    eq(kco(0.4, x50).x80, 34, "…e x80 34 cm");
+  });
+
+  test("⛔ Genesi · G19: la resistenza della roccia non si inventa dove decide lo SGOMBERO", () => {
+    /* ⛔ IL SOGGETTO È LA DISTANZA A CUI SI MANDANO VIA LE PERSONE.
+       `flyrockEst` e `flyrockInv` leggevano `D2.ucs || 100`, e **100 è l'UCS
+       del calcare**: la litologia di partenza. Sul calcare il ripiego è
+       invisibile; su una roccia più dura mente, e nel verso che ACCORCIA lo
+       sgombero — lo stesso del capostipite (`B = D2.B || SPALLA`, 129 m in
+       meno). Le altre due letture dell'UCS nella stessa pagina ripiegavano già
+       sul catalogo della roccia SCELTA: era questa la copia più debole.
+       ⛔ NESSUNA SOGLIA TOCCATA: le formule Richards&Moore / McKenzie / Lundborg
+       e i due moltiplicatori dello sgombero sono gli stessi. Cambia solo CHI
+       fornisce l'UCS quando il campo è vuoto: il catalogo invece di un 100. */
+    eq(/D2\.ucs\|\|100/.test(CODICE_G), false, "il letterale 100 non fonda più nessun kf");
+    eq(quante(/D2\.ucs\|\|selRoccia\(\)\.ucs/g), 2,
+      "le due funzioni del flyrock leggono l'UCS della roccia scelta (diretta e inversa)");
+    eq(/ucs=D2\.ucs\|\|r\.ucs/.test(CODICE_G), true,
+      "e `rockFactorA`, che già lo faceva, non è stata toccata: adesso le tre letture dicono la stessa cosa");
+    /* IL VERSO, con l'aritmetica della formula (kf entra al QUADRATO in
+       face-burst e cratering). Le UCS sono quelle del catalogo inline. */
+    const kf = (ucs) => 13.5 + 13.5 * Math.max(0, Math.min(1, (ucs - 30) / 220));
+    eq(+kf(100).toFixed(2), 17.80, "col ripiego: kf 17,80 — cioè il calcare, sempre");
+    eq(+kf(180).toFixed(2), 22.70, "granito: kf 22,70");
+    eq(+kf(250).toFixed(2), 27.00, "basalto: kf 27,00 (il massimo della scala)");
+    eq(+Math.pow(kf(180) / kf(100), 2).toFixed(2), 1.63,
+      "su granito la gittata vera è 1,63 volte quella che il ripiego dichiarava");
+    eq(+Math.pow(kf(250) / kf(100), 2).toFixed(2), 2.30,
+      "su basalto 2,30 volte — e lo sgombero persone è il doppio della gittata");
+    eq(+Math.pow(kf(30) / kf(100), 2).toFixed(2), 0.58,
+      "e sulla marna il ripiego sbagliava nell'altro verso: dichiarava una gittata più lunga del vero");
+    /* ⚠️ il ripiego nuovo non può essere vuoto a sua volta: le sei litologie
+       del catalogo inline hanno tutte un `ucs` (misurato, non dedotto) */
+    const rocce = /const ROCCE=\[([\s\S]*?)\n\];/.exec(CODICE_G);
+    ok(rocce, "il catalogo ROCCE è ancora un letterale leggibile");
+    const voci = rocce[1].split("\n").filter((r) => /\{id:/.test(r));
+    eq(voci.length, 6, "sei litologie");
+    eq(voci.filter((r) => !/\bucs:\s*\d/.test(r)).length, 0,
+      "e tutte dichiarano un `ucs`: il ripiego nuovo non può ripiegare a sua volta");
+  });
+}
+/* ===== fine Genesi · il ripiego silenzioso ================================ */
 
 /* ===== shared · misuratoPeriodo, il rilievo che non ha misurato niente =====
    ⛔ `+null` fa 0 e `Number.isFinite(0)` risponde true: un rilievo ELABORATO
