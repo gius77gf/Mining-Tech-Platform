@@ -31243,5 +31243,39 @@ test("frasePersi · ⚠️ NIENTE `esc()`: la frase esce come l'utente l'ha scri
 }
 /* ===== fine shared · misuratoPeriodo ====================================== */
 
+/* ===== shared · le due sorelle dei rilievi, con lo stesso contratto ========
+   ⛔ `intervalliFraRilievi` e `misuratoPeriodo` decidono sullo STESSO dato e
+   avevano due guardie diverse: la prima con `volumeM3 != null &&
+   Number.isFinite(+volumeM3)`, che lascia passare la **stringa vuota** (`+""`
+   fa 0). Un rilievo che non ha misurato niente apriva un intervallo — in una
+   funzione che esiste per impedire di chiedere «un periodo che non corrisponde
+   a nessuna misura». È la regola delle due sorelle con due contratti. */
+{
+  const rilievi = (v) => {
+    const t = { stato: "elaborato", data: "2026-07-01", origine: "scavo" };
+    if (v !== "ASSENTE") t.volumeM3 = v;
+    return [
+      { stato: "elaborato", data: "2026-01-15", volumeM3: 1000, origine: "scavo" },
+      { stato: "elaborato", data: "2026-03-20", volumeM3: 2000, origine: "scavo" },
+      t,
+    ];
+  };
+  test("⛔ shared · le due sorelle dei rilievi decidono allo stesso modo su TUTTE le assenze", () => {
+    for (const v of ["ASSENTE", null, undefined, "", "   ", "abc"]) {
+      const r = rilievi(v);
+      eq(ponti.intervalliFraRilievi(r).length, 1,
+        `volumeM3 ${JSON.stringify(v)} non deve aprire un intervallo`);
+      eq(ponti.misuratoPeriodo(r, "2026-01-01", "2026-12-31").rilievi, 2,
+        `volumeM3 ${JSON.stringify(v)} non deve contare come rilievo`);
+    }
+  });
+  test("⛔ shared · e uno ZERO SCRITTO apre l'intervallo in tutt'e due", () => {
+    const r = rilievi(0);
+    eq(ponti.intervalliFraRilievi(r).length, 2, "lo zero dichiarato è una misura");
+    eq(ponti.misuratoPeriodo(r, "2026-01-01", "2026-12-31").rilievi, 3, "e conta come rilievo");
+  });
+}
+/* ===== fine shared · le due sorelle ======================================= */
+
 console.log(`\nRisultato KPI app: ${passed} passati, ${failed} falliti${inVolo.length ? `  ·  ${inVolo.length} prove asincrone aspettate` : ""}`);
 process.exit(failed > 0 ? 1 : 0);

@@ -280,8 +280,23 @@ export function misuratoPeriodo(rilievi, dal, al) {
 export function intervalliFraRilievi(rilievi) {
   if (!Array.isArray(rilievi)) return [];
   const date = [...new Set(rilievi
-    .filter(r => r && r.stato === "elaborato" && r.volumeM3 != null
-      && Number.isFinite(+r.volumeM3) && dataISOBuona(r.data) && provenienzaDi(r) === "scavo")
+    /* ⛔ LA SORELLA DI `misuratoPeriodo`, E AVEVA UN ALTRO CONTRATTO. Qui la
+       guardia era `volumeM3 != null && Number.isFinite(+volumeM3)`: il `!= null`
+       prende `null` e `undefined`, ma **non la stringa vuota** — e `+""` fa
+       **0**, che `Number.isFinite` accetta. Misurato il 14/08, sullo stesso
+       vettore di rilievi:
+         volumeM3 ""  → intervalliFraRilievi **2**, misuratoPeriodo **2**
+         volumeM3 null → intervalliFraRilievi 1,  misuratoPeriodo 2
+       cioè un rilievo che non ha misurato niente **apriva un intervallo**, e
+       proprio in una funzione il cui commento qui sopra dice che esiste per
+       togliere la possibilità di chiedere «un periodo che non corrisponde a
+       nessuna misura». Si smentiva da sola sulle due forme più comuni
+       dell'assenza.
+       ⚠️ È la regola di CLAUDE.md: **due sorelle con due contratti**. Corretta
+       una, la seconda non produce un errore — produce una divergenza
+       silenziosa. Adesso decidono con la stessa funzione. */
+    .filter(r => r && r.stato === "elaborato" && numeroDichiarato(r.volumeM3) != null
+      && dataISOBuona(r.data) && provenienzaDi(r) === "scavo")
     .map(r => String(r.data)))].sort();
   const out = [];
   for (let i = 1; i < date.length; i++) {
