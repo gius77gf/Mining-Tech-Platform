@@ -290,6 +290,85 @@ chiuse. Le aperte sono **24**; la pagina d'ingresso di
       `shared/dw-ponti.js` (il suo commento dice che serve anche a Scudo), ma
       `shared/` era fuori perimetro. È la regola del `shared/`, e va fatta.
 
+- [ ] **B12. IL RIPIEGO SILENZIOSO NEL CORE — censito, e sono CANDIDATI, non
+      difetti.** ⏱️ *14/08, censimento statico fatto da me; il core è l'unica
+      superficie che i tre cantieri di questa notte non hanno guardato, ed è
+      quella che il fondatore mostra per prima.*
+      **I tre gradini, coi numeri** (commenti tolti con `senzaCommenti` di
+      `tests/tokenizza.mjs`, sui blocchi `<script>` del core — il programma sta
+      lì dentro):
+      · **407 candidati** per forma nel codice vivo (**418** col grezzo: **11
+        erano commenti**);
+      · di quei 407: **271** sono segnaposto di stampa (`|| '—'`, `|| ''`) che
+        non entrano in nessun calcolo, **95** sono ripieghi a **zero** su
+        contatori, e **41** sono ripieghi di **mestiere** — una costante che non
+        è né zero né una stringa;
+      · dei 41, **una buona metà non è di questa famiglia**: `clientWidth||360`,
+        `devicePixelRatio||1`, `M.userData.op||0.5`, `power||1`, `quality||0.8`,
+        `d.channels||1` sono misure del **disegno**, non dati che scrive
+        l'utente.
+      ⛔ **Quello che resta, e va MISURATO prima di chiamarlo difetto:**
+      `getBorraggio(v)` e `getSpaziatura(v)` finiscono su **`|| 3.5`** e
+      **`|| 4`**, cioè la stessa forma del capostipite di Genesi (`B = D2.B ||
+      SPALLA`, che è costato **129 metri di sgombero persone in meno**). E non
+      servono solo al disegno: **`generaMagliaFori` calcola il numero di fori
+      per fila con `Math.floor(L / S)`** — cioè un **conteggio che l'utente
+      legge** poggia su una spaziatura che, se nessuno l'ha scritta, viene
+      inventata. Stessa domanda per `v.fronte.lunghezza_m || 5|20`,
+      `altezza_m || 4`, `calotta_m || 1`, `pref.fori || 5`,
+      `pref.diametro || 89`.
+      ⚠️ **Perché è un candidato e non un difetto**: `borraggio: B||3.5` alla
+      creazione di una volata **nuova** è un default legittimo — l'utente poi lo
+      cambia. La domanda vera è l'altra: *che cosa succede a una volata che quel
+      campo non ce l'ha* (importata, o vecchia)? A rispondere non è la lettura
+      del codice: è aprire la pagina con quel campo assente e guardare il numero
+      dei fori. **Il core non si importa da `node`** (tutto il suo programma sta
+      in un `<script type="module">` che carica Firebase da `gstatic`), quindi
+      la misura vuole il **browser** con `tests/browser/finto-firebase.mjs`
+      montato prima di `goto` — e va fatta **quando nessun giro sta girando**.
+      ⛔ **E il vincolo del fondatore vale doppio qui**: nulla di quei valori
+      deve **comparire** come se fosse un dato misurato, e le soglie di
+      sicurezza non si toccano.
+      **Altre due famiglie contate nello stesso passaggio**, da guardare con la
+      stessa domanda: **3** punti `Number.isFinite(+x)` — dove `+null` fa **0** e
+      `Number.isFinite(0)` risponde **true**, il tranello per cui esiste
+      `numeroDichiarato` in `shared/` — e **10** punti `Math.max(0, …)`, dove
+      quello zero di comodo nasconde un invariante che nessuno ha scritto.
+      ⛔ **E IL CENSIMENTO ADESSO È UNO STRUMENTO, non un `grep` a memoria**:
+      `apps/deepwork-id/tests/ripieghi-silenziosi.mjs` (misura dichiarata, non
+      va in `npm test`), con `--solo=<superficie>`. Era stato **riscritto da
+      zero quattro volte in due notti**, una per cantiere, ognuna con un
+      righello un po' diverso — che è alla lettera la regola «gli strumenti di
+      misura vivono nei test, non nello scratchpad».
+      **Il quadro completo, misurato in un colpo su 15 superfici:**
+
+      | superficie | candidati | commenti | stampa | zero | **MESTIERE** | `+finite` | `max(0,` |
+      |---|---|---|---|---|---|---|---|
+      | core | 407 | 11 | 271 | 95 | **41** | 3 | 10 |
+      | genesi · pagina | 248 | 23 | 52 | 77 | **119** | 0 | 38 |
+      | campo · pagina | 122 | 0 | 100 | 1 | **21** | 2 | 2 |
+      | sentinella · pagina | 120 | 3 | 101 | 5 | **14** | 6 | 4 |
+      | campo · modulo | 153 | 2 | 111 | 31 | **11** | 7 | 23 |
+      | flotta · modulo | 132 | 7 | 88 | 34 | **10** | 2 | 25 |
+      | terra · pagina | 78 | 2 | 54 | 14 | **10** | 1 | 4 |
+      | conti · modulo | 226 | 11 | 165 | 52 | **9** | 7 | 21 |
+      | flotta · pagina | 167 | 2 | 115 | 44 | **8** | 3 | 5 |
+      | sentinella · modulo | 193 | 5 | 179 | 6 | **8** | 3 | 7 |
+      | conti · pagina | 223 | 8 | 164 | 52 | **7** | 1 | 6 |
+      | terra · modulo | 106 | 5 | 52 | 48 | **6** | 8 | 11 |
+      | genesi · modulo | 24 | 14 | 5 | 14 | **5** | 1 | 1 |
+      | scudo · modulo | 154 | 3 | 131 | 21 | **2** | 1 | 7 |
+      | scudo · pagina | 157 | 1 | 155 | 1 | **1** | 0 | 1 |
+      | **totale** | **2.510** | **97** | **1.743** | **495** | **272** | **45** | **165** |
+
+      ⛔ **La riga che salta agli occhi è Genesi · pagina: 119 ripieghi di
+      mestiere, tre volte il core e cinque volte chiunque altro** — ed è
+      esattamente l'app dove il capostipite viveva. Non vuol dire 119 difetti:
+      vuol dire che è **lì** che questa domanda va fatta per prima.
+      ⚠️ E i **97 commenti** contati a parte sono la misura del pericolo
+      opposto: senza toglierli, il censimento si conta addosso la propria
+      documentazione.
+
 ## 🧭 Le voci APERTE, per nome — indice
 
 *Questo file è lungo **migliaia di righe** e cresce appendendo sezioni datate in
@@ -306,6 +385,7 @@ grep -n "^- \[ \] \*\*" vault/ROADMAP_SETTIMANA.md
 ```
 
 - `D-ter. Le otto verdi che vogliono un cantiere`
+- `B12. IL RIPIEGO SILENZIOSO NEL CORE — censito, e sono CANDIDATI, non`
 - `D. Le 24 decisioni ancora aperte`
 - `B3. Genesi continua a uscire dalla pagina`
 - `B0-septies. CHE COSA DISEGNA UNA PIANTA SENZA MAGLIA — i ripieghi`
