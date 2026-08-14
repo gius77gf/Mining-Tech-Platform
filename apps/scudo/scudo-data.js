@@ -2859,15 +2859,24 @@ export function scartiLavoratoriCsv(text) {
    esattamente il difetto per cui `dataISOEsiste` è nata il 03/08: «una
    scadenza spostata di due giorni in silenzio è peggio di una scartata a voce
    alta». Qui lo scarto smette di essere silenzioso, e questo era il difetto.
-   ⚠️ E una seconda ragione, strutturale: in casa NON c'è nessun lettore di
-   date all'italiana. Provato cercando in `shared` e in tutti i moduli dati
-   una qualunque espressione regolare che legga giorno, mese e anno separati
-   da barre o punti (`grep -rnE` sui file `.js`, con la forma «una o due
-   cifre, separatore, una o due cifre, separatore, due o quattro cifre»):
-   **zero righe**. Il comando per esteso sta nella consegna del cantiere —
-   qui no, perché contiene i caratteri che chiuderebbero questo commento. Scriverne uno sarebbe una regola
-   che serve a due app (Scudo e Sentinella hanno tutt'e due il caso), e una
-   regola che serve a due app vive in `shared/`, non in due moduli.
+   ⛔ E LA «SECONDA RAGIONE» CHE STAVA QUI ERA UN «NON C'È» FALSO — corretto il
+   14/08 rifacendo il suo stesso comando. Diceva: «in casa NON c'è nessun
+   lettore di date all'italiana, provato con un `grep -rnE` sui moduli dati:
+   **zero righe**». Sono **due**, e c'erano già quando quella riga è stata
+   scritta: `dataIso` in `sentinella-data.js` (legge `12/07/2026`, `12.07.26` e
+   la forma ISO, e la usa l'import delle tarature) e `isoDaDataItaliana` in
+   `conti-data.js` (legge `GG/MM/AAAA` e lascia fuori gli anni a due cifre,
+   dichiarandolo). Il comando li trova tutt'e due in un secondo.
+   ⚠️ IL VERDETTO NON CAMBIA — qui la data all'italiana si rifiuta, e la
+   ragione è quella sopra, il 36,2%: è l'unica che regge. Ma una riga che porta
+   una prova falsa accanto a un giudizio giusto è **peggio** di una riga senza
+   prova, perché chi la riverifica fra un mese trova la prova sbagliata e butta
+   via anche il giudizio. E la ragione strutturale, con i due lettori in mano,
+   si capovolge: non «bisognerebbe scriverne uno», ma **«ce ne sono già due, e
+   fanno scelte diverse sugli anni a due cifre»** — cioè, se un giorno servisse
+   qui, la strada è portarne UNO in `shared/` dopo aver deciso quel punto, non
+   scriverne un terzo. È la regola di questa casa: la risposta è quasi sempre
+   già in casa, e «non c'è» va provato, non dichiarato.
    ⚠️ IL MESSAGGIO NON PROPONE LA CONVERSIONE — non scrive «volevi dire
    2026-09-01?» — proprio perché quale sia il giorno non lo sa: dice il
    formato che serve e mostra quello che ha trovato. Proporre sarebbe
@@ -2882,16 +2891,25 @@ export function scartiLavoratoriCsv(text) {
    rimediare. La distinzione fra «non è stato scritto» e «non si legge» si
    tiene perché cambia che cosa si va a chiedere a chi ha mandato il file.
    Niente punto finale: la ragione viene composta dentro una frase più lunga.
-   ⚠️ Questa spiegazione serve a DUE app e finché sta scritta due volte può
-   divergere: la difesa è in `run-kpi.mjs`, che pretende da Scudo e Sentinella
-   la STESSA frase sullo stesso valore. La sua casa vera è `shared/`, e ci sta
-   scrivendo un altro cantiere. */
-function ragioneData(grezza) {
-  const s = String(grezza == null ? "" : grezza).trim();
-  if (!s) return "la data non è stata scritta";
-  if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return "la data non esiste";
-  return "la data non si legge: va scritta AAAA-MM-GG, non «" + s + "»";
-}
+   ✅ TRASLOCATA IN `shared/deepwork-id-client/dw-shell.js` IL 14/08, ed è la
+   riga qui sotto che era rimasta indietro: per giorni questo commento ha
+   dichiarato che la casa era `shared/` mentre il corpo stava qui — e la stessa
+   dichiarazione, con lo stesso corpo, stava anche in `sentinella-data.js`. Chi
+   la chiama non cambia niente: si ri-esporta col nome di sempre, e `run-kpi`
+   pretende l'IDENTITÀ (`scudo.ragioneData === shell.ragioneData`), non il
+   comportamento — due copie uguali oggi divergono domani senza che nessuno lo
+   veda, ed è esattamente quello che era già cominciato a succedere.
+   ⚠️ E LA FORMA DELL'ALIAS NON È INDIFFERENTE, misurato il 14/08: scritto
+   `export { ragioneData } from "…"` l'alias è invisibile a `nomi-doppi.mjs`,
+   che censisce i nomi con `^export function` e `^export const` — il nome non
+   entra nel confronto app-contro-`shared/` e il suo denominatore non sale.
+   La forma usata qui è quella che questa casa usa già per `dataPiuGiorni`, ed
+   è VISTA da quel controllo. (Il verso pericoloso lo prendeva comunque: chi
+   riscrivesse il corpo con `export function ragioneData(` verrebbe accusato
+   di «RISCRITTA IN CASA». Ma un alias che non si conta è un soggetto in
+   meno guardato, e qui i soggetti si contano.) */
+import { ragioneData as ragioneDataShell } from "../../shared/deepwork-id-client/dw-shell.js";
+export const ragioneData = ragioneDataShell;
 
 // Import scadenze da CSV (onboarding: caricare lo scadenzario esistente —
 // visite mediche, corsi, patentini con le date — invece di riscriverlo a

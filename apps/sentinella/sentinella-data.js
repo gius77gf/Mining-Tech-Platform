@@ -788,16 +788,20 @@ export function scartiRicettoriCsv(text) {
    e non si legge — quindi porta la forma già usata da sei ragioni, con appesa
    la sola cosa che serve per rimediare. Niente punto finale: la ragione viene
    composta dentro una frase più lunga.
-   ⚠️ Questa spiegazione serve a DUE app e finché sta scritta due volte può
-   divergere: la difesa è in `run-kpi.mjs`, che pretende da Sentinella e Scudo
-   la STESSA frase sullo stesso valore. La sua casa vera è `shared/`, e ci sta
-   scrivendo un altro cantiere. */
-function ragioneData(grezza) {
-  const s = String(grezza == null ? "" : grezza).trim();
-  if (!s) return "la data non è stata scritta";
-  if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return "la data non esiste";
-  return "la data non si legge: va scritta AAAA-MM-GG, non «" + s + "»";
-}
+   ✅ TRASLOCATA IN `shared/deepwork-id-client/dw-shell.js` IL 14/08. Questo
+   commento dichiarava da giorni che la casa era `shared/` mentre il corpo
+   stava qui, e lo dichiarava — parola per parola — anche `scudo-data.js`: due
+   corpi identici, e la divergenza già cominciata dodici funzioni più in giù,
+   in `parseTaratureCsv`. Si ri-esporta col nome di sempre, così le pagine non
+   cambiano, e `run-kpi` pretende l'IDENTITÀ (`sentinella.ragioneData ===
+   shell.ragioneData`), non il comportamento: un alias non è una seconda
+   implementazione, due copie sì.
+   ⚠️ La forma dell'alias è quella che il modulo usa già per `dataPiuGiorni` e
+   `AVVISO_DECIMALE`, e non è indifferente: `export { X } from "…"` sarebbe
+   invisibile a `nomi-doppi.mjs`, che censisce i nomi con `^export function` e
+   `^export const`. Un alias che non si conta è un soggetto in meno guardato. */
+import { ragioneData as ragioneDataShell } from "../../shared/deepwork-id-client/dw-shell.js";
+export const ragioneData = ragioneDataShell;
 
 export function kpiFrom(monitoraggi, adempimenti) {
   return {
@@ -1091,6 +1095,34 @@ export function paresIntestazione(righe) {
   return !piene.some(c => Number.isFinite(numIt(c)));
 }
 
+/* LE DUE FORME CHE `dataIso` RICONOSCE, IN UN POSTO SOLO — e la domanda che
+   ci si fa sopra: «questa cella HA la forma di una data?».
+   ⛔ SERVE A SEPARARE DUE RIMEDI, e prima del 14/08 non era separata: il
+   lettore delle tarature diceva «non è una data» tanto a «2026-02-30» quanto a
+   «non lo so». La prima è una forma giusta con un giorno che non esiste (si va
+   a chiedere QUALE giorno era), la seconda non è nemmeno una data (si riscrive
+   la cella). Fondendole si toglieva a chi ha caricato il file la sola cosa che
+   gli serviva per rimediare.
+   ⚠️ E NON SI RICOPIANO LE DUE ESPRESSIONI: sono le stesse che `dataIso` usa
+   qui sotto, perché una regola riscritta è una regola che diverge — se domani
+   `dataIso` imparasse una terza forma, un gemello scritto a mano direbbe «non
+   si legge» su una cella che il lettore ACCETTA. `haForma` è proprio il
+   parametro che `ragioneData` espone per non farsi ricopiare: la domanda la sa
+   il lettore, non la frase.
+   ⚠️ Stanno PRIMA di `dataIso` e non dopo: un `const` letto prima della sua
+   riga è un errore duro, e basterebbe una costante di modulo che chiami
+   `dataIso` per farlo scattare al caricamento della pagina.
+   ⚠️ Restano locali al modulo: fuori di qui a questa domanda si risponde con
+   `dataISOEsiste`, che è un'ALTRA domanda (esiste? non: ha la forma?). */
+const FORME_DATA = {
+  iso: /^(\d{4})[-/.](\d{1,2})[-/.](\d{1,2})/,
+  italiana: /^(\d{1,2})[-/.](\d{1,2})[-/.](\d{2,4})/,
+};
+function formaDiData(v) {
+  const s = String(v == null ? "" : v).trim();
+  return FORME_DATA.iso.test(s) || FORME_DATA.italiana.test(s);
+}
+
 // Data in ISO (AAAA-MM-GG) da quasi tutti i formati che si trovano negli
 // export: 2026-07-12 · 2026/07/12 · 12/07/2026 · 12-07-2026 · 12.07.2026 ·
 // 12/07/26, anche seguiti dall'ora nella stessa cella. Regola dichiarata e
@@ -1107,9 +1139,9 @@ export function dataIso(v) {
     if (d.getUTCFullYear() !== A || d.getUTCMonth() !== M - 1 || d.getUTCDate() !== G) return "";
     return `${A}-${String(M).padStart(2, "0")}-${String(G).padStart(2, "0")}`;
   };
-  let m = /^(\d{4})[-/.](\d{1,2})[-/.](\d{1,2})/.exec(s);
+  let m = FORME_DATA.iso.exec(s);
   if (m) return comp(m[1], m[2], m[3]);
-  m = /^(\d{1,2})[-/.](\d{1,2})[-/.](\d{2,4})/.exec(s);
+  m = FORME_DATA.italiana.exec(s);
   if (m) { let a = m[3]; if (a.length === 2) a = (+a > 70 ? "19" : "20") + a; return comp(a, m[2], m[1]); }
   return "";
 }
@@ -1534,6 +1566,21 @@ export const DICHIARAZIONI_TARATURA = {
 // vorrebbe dire inventare quale delle due l'utente ha sbagliato a scrivere,
 // e coprire delle letture con una decisione presa dal programma. È la stessa
 // regola che `certificatiTaratura` applica già ai dati in archivio.
+//
+/* ⛔ E LE DUE DATE PARLANO LA LINGUA DI TUTTO L'ECOSISTEMA, dal 14/08: prima
+   avevano un dialetto loro, e non era un vezzo — perdeva un'informazione.
+   Diceva «manca la data della taratura» dove le altre diciassette ragioni
+   dicono «non è stata scritta», e soprattutto diceva «non è una data» a DUE
+   casi diversi: «2026-02-30» (forma giusta, giorno che non esiste → si va a
+   chiedere qual era il giorno vero) e «non lo so» (non è nemmeno una data →
+   si riscrive la cella). Due rimedi diversi, una frase sola.
+   ⚠️ E IL FORMATO CHE SI CHIEDE NON È QUELLO DI SCUDO, perché il lettore non è
+   quello: `dataIso` la forma italiana la LEGGE (misurato: «01/03/2026» qui
+   entra e diventa `2026-03-01`, mentre nello scadenzario di Scudo cade). Dire
+   «va scritta AAAA-MM-GG» accuserebbe di un difetto una cella sana: il formato
+   lo dichiara chi legge, ed è per questo che `ragioneData` se lo fa passare
+   invece di saperlo. */
+const RAGIONE_TARATURA = { formato: "AAAA-MM-GG oppure GG/MM/AAAA", haForma: formaDiData };
 export function parseTaratureCsv(text) {
   return String(text == null ? "" : text).split(/\r?\n/)
     .map((r, i) => ({ testo: r.trim(), n: i + 1 }))
@@ -1545,8 +1592,8 @@ export function parseTaratureCsv(text) {
       const data = dataIso(dR), scadenza = dataIso(sR);
       let motivo = "";
       if (!s) motivo = "manca il nome dello strumento";
-      else if (!data) motivo = dR ? "la data della taratura non è una data" : "manca la data della taratura";
-      else if (!scadenza) motivo = sR ? "la scadenza non è una data" : "manca la scadenza";
+      else if (!data) motivo = ragioneData(dR, { ...RAGIONE_TARATURA, soggetto: "la data della taratura" });
+      else if (!scadenza) motivo = ragioneData(sR, { ...RAGIONE_TARATURA, soggetto: "la scadenza" });
       else if (scadenza < data) motivo = "la scadenza viene prima della taratura";
       return {
         riga: x.n, strumento: s, dataRaw: dR, scadenzaRaw: sR, data, scadenza,

@@ -689,6 +689,58 @@ export function dataISOEsiste(s) {
   return d.getUTCFullYear() === a && d.getUTCMonth() === me - 1 && d.getUTCDate() === g;
 }
 
+/* PERCHÉ UNA DATA NON È ENTRATA — la frase che l'utente legge quando una riga
+   del suo file cade per colpa di una data. È la `ragione` che finisce dentro
+   `frasePersi`, e per questo non porta il punto finale: viene composta dentro
+   una frase più lunga.
+   ══════════════════════════════════════════════════════════════════════════
+   ⛔ STA QUI PERCHÉ SERVE A DUE APP, ED ERA SCRITTA DUE VOLTE. Al 14/08
+   `grep -rn "function ragioneData" apps shared` dava **due** corpi identici,
+   in `scudo-data.js` e in `sentinella-data.js`, e tutt'e due i commenti
+   dichiaravano che la loro casa era `shared/`. La casa dichiarata non era mai
+   arrivata, e nel frattempo la divergenza era già cominciata: il lettore delle
+   tarature di Sentinella si era scritto un dialetto suo — «manca la data
+   della taratura» invece di «non è stata scritta», e soprattutto un «non è una
+   data» che FONDEVA i due casi che questa scala esiste per separare.
+   ⛔ LE TRE RISPOSTE SONO TRE RIMEDI DIVERSI, ed è la sola ragione per cui la
+   distinzione va tenuta — chi ha mandato il file deve sapere che cosa fare:
+     · «non è stata scritta» → il campo è vuoto: nessuno l'ha compilato, si va
+       a chiedere il dato;
+     · «non esiste» → la forma è giusta e il giorno no («2026-02-30», il 31
+       aprile): il file dice un giorno che non c'è, e si va a chiedere QUALE
+       giorno era davvero;
+     · «non si legge» → c'è qualcosa che non ha nemmeno la forma di una data:
+       si riscrive la cella nel formato che serve, e il formato glielo diciamo.
+   ⚠️ IL MESSAGGIO NON PROPONE LA CONVERSIONE — non scrive «volevi dire
+   2026-09-01?» — proprio perché quale sia il giorno non lo sa: dice il formato
+   che serve e mostra quello che ha trovato. Proporre sarebbe ri-decidere di
+   straforo la cosa che si è deciso di non decidere.
+   ⛔ E I TRE PARAMETRI NON SONO DECORAZIONE: SONO LA FIRMA CHE MANCAVA. La
+   copia in Sentinella è nata perché la firma originale era troppo stretta per
+   il lettore delle tarature, che (a) parla di DUE date sulla stessa riga e
+   deve dire di quale, e (b) accetta anche la forma italiana, quindi non può
+   pretendere «AAAA-MM-GG». Senza argomenti il comportamento è identico —
+   carattere per carattere — a quello che le due copie avevano il 14/08.
+     · `soggetto`  come si chiama la data di cui si parla. FEMMINILE, perché
+                   tutt'e tre le frasi concordano («la scadenza … va scritta»).
+     · `formato`   che cosa il MIO lettore accetta: chi legge solo l'ISO dice
+                   «AAAA-MM-GG», chi legge anche l'italiano lo dichiara.
+     · `haForma`   come il MIO lettore riconosce che una stringa HA la forma di
+                   una data. È la domanda che separa «non esiste» da «non si
+                   legge», e la risposta cambia da lettore a lettore: va
+                   chiesta a chi la sa, non ricopiata qui. */
+const FORMA_ISO = (s) => /^\d{4}-\d{2}-\d{2}$/.test(s);
+export function ragioneData(grezza, opzioni) {
+  const o = opzioni || {};
+  const soggetto = o.soggetto || "la data";
+  const formato = o.formato || "AAAA-MM-GG";
+  const haForma = o.haForma || FORMA_ISO;
+  const s = String(grezza == null ? "" : grezza).trim();
+  if (!s) return soggetto + " non è stata scritta";
+  if (haForma(s)) return soggetto + " non esiste";
+  return soggetto + " non si legge: va scritta " + formato + ", non «" + s + "»";
+}
+
 // Giorni di calendario tra `oggi` e una data ISO (yyyy-mm-dd). Normalizza
 // ENTRAMBE le date alla mezzanotte LOCALE prima di sottrarre, così il conteggio
 // non slitta di un giorno per colpa dell'ora corrente: con new Date() come

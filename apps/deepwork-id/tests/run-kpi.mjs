@@ -13862,8 +13862,17 @@ test("⛔ Flotta: le ore ignote arrivano ignote anche a chi le chiede due volte"
     eq(r.riepilogo.letti, 5, "cinque righe con dei dati dentro");
     eq(r.riepilogo.pronte + r.riepilogo.scartate, r.riepilogo.letti,
        "⛔ pronte + scartate torna sempre uguale a lette: è così che si vede se il file è entrato tutto");
-    eq(r.voci.map(v => v.motivo), ["", "manca il nome dello strumento", "manca la data della taratura",
-       "la data della taratura non è una data", "manca la scadenza"],
+    /* ⚠️ LE PAROLE SONO CAMBIATE IL 14/08 e la prova con loro: non perché il
+       prodotto si sia rotto, ma perché queste tre frasi erano un DIALETTO —
+       «manca la data della taratura» dove le altre diciassette ragioni
+       dell'ecosistema dicono «non è stata scritta». Adesso le compone la
+       `ragioneData` condivisa, e l'asserzione è più GIUSTA, non più
+       permissiva: la quarta riga («non lo so») diceva la stessa frase del 30
+       febbraio e adesso ne dice una sua. */
+    eq(r.voci.map(v => v.motivo), ["", "manca il nome dello strumento",
+       "la data della taratura non è stata scritta",
+       "la data della taratura non si legge: va scritta AAAA-MM-GG oppure GG/MM/AAAA, non «non lo so»",
+       "la scadenza non è stata scritta"],
        "e ogni scarto porta il suo motivo scritto in italiano");
     eq(r.voci.map(v => v.riga), [2, 3, 4, 5, 6],
        "⛔ col numero di riga VERO del file: chi deve correggerlo apre il foglio a quella riga");
@@ -13876,9 +13885,9 @@ test("⛔ Flotta: le ore ignote arrivano ignote anche a chi le chiede due volte"
        marzo. Una copertura allungata di due giorni farebbe risultare
        «coperte» letture che non lo sono — l'esatto contrario di T2b. */
     eq(una("Vibrazioni V1 — abitato Sud;2026-02-30;2027-01-01").motivo,
-       "la data della taratura non è una data", "il 30 febbraio è scartato");
+       "la data della taratura non esiste", "il 30 febbraio è scartato");
     eq(una("Vibrazioni V1 — abitato Sud;2026-01-01;2026-13-45").motivo,
-       "la scadenza non è una data", "e il 45 del tredicesimo mese pure");
+       "la scadenza non esiste", "e il 45 del tredicesimo mese pure");
     eq(una("Vibrazioni V1 — abitato Sud;2026-02-30;2027-01-01").data, "",
        "⛔ e non resta nessuna data scivolata: il campo è vuoto, non «2026-03-02»");
     for (const v of leggi("Vibrazioni V1 — abitato Sud;2026-01-15;2027-01-14").voci)
@@ -29161,6 +29170,14 @@ const pagIng = (a) => senzaCommentiIng(readFileSync(join(HERE, `../../${a}/index
 const srcCampoPag = pagIng("campo"), srcContiPag = pagIng("conti");
 const srcFlottaPag = pagIng("flotta"), srcTerraPag = pagIng("terra");
 
+/* ⛔ B9 · IL DENOMINATORE DEI LETTORI CSV, RACCOLTO INVECE CHE RICORDATO.
+   Ogni tabella di casi qui sotto ci mette dentro i suoi `scarti*Csv`, e in
+   fondo al file il censimento confronta questo insieme con quello DERIVATO DAL
+   DISCO. Sta qui e non lì perché il numeratore va **raccolto da chi prova**:
+   un elenco riscritto a mano in fondo al file direbbe «coperti» dei nomi senza
+   che nessuno li abbia chiamati. */
+const SCARTI_PROVATI = new Set();
+
 /* ⛔ «QUANDO A UNA RIGA DEL CSV MANCA UN NUMERO, CHE COSA SUCCEDE A QUELLA
    RIGA?» — IL LETTORE LA CANCELLA, E NESSUNO LO DICEVA.
    ══════════════════════════════════════════════════════════════════════════
@@ -29245,7 +29262,14 @@ const srcFlottaPag = pagIng("flotta"), srcTerraPag = pagIng("terra");
   /* ⛔ QUANTI SOGGETTI HA GUARDATO DAVVERO: se un giorno un lettore uscisse
      dalla tabella, questo numero scenderebbe e si vedrebbe. Un «0 violazioni»
      no. */
-  eq(NOVE.length, 9, "⛔ INGRESSO · la tabella copre tutti e nove i lettori CSV di Campo/Conti/Flotta/Terra");
+  /* ⚠️ L'ETICHETTA ERA PIÙ LARGA DEL SUO NUMERO, e il 14/08 è stata stretta:
+     diceva «tutti e nove i lettori CSV di Campo/Conti/Flotta/Terra» mentre
+     quelle quattro app ne hanno **tredici** — gli altri quattro li prova la
+     tabella `QUATTRO`, e i sei di Scudo e Sentinella il blocco B5-bis. Il conto
+     dei diciannove lo fa adesso il censimento B9, in fondo al file. */
+  eq(NOVE.length, 9,
+    "⛔ INGRESSO · la tabella copre i NOVE lettori censiti la mattina del 13/08 (non tutti quelli delle quattro app: sono 13)");
+  for (const t of NOVE) SCARTI_PROVATI.add(t[2]);
 
   for (const [nome, leggi, scarti, intest, sane, rotte] of NOVE) {
     test(`⛔ ${nome}: le righe perse si CONTANO e si dicono, una per una`, () => {
@@ -29719,6 +29743,7 @@ test("frasePersi · ⚠️ NIENTE `esc()`: la frase esce come l'utente l'ha scri
   ];
   eq(QUATTRO.length, 4,
     "⛔ INGRESSO · la tabella copre tutti e quattro i lettori lasciati muti dalla passata del mattino");
+  for (const t of QUATTRO) SCARTI_PROVATI.add(t[2]);
 
   for (const [nome, leggi, scarti, intest, sane, rotte] of QUATTRO) {
     test(`⛔ ${nome}: la riga senza identità si CONTA e si dice, con la sua ragione`, () => {
@@ -29872,18 +29897,24 @@ test("frasePersi · ⚠️ NIENTE `esc()`: la frase esce come l'utente l'ha scri
   const CSV_VOL = "data;ora;cava;carica;fori\n2026-09-01;10:00;Cava A;120;20\n;10:00;Cava A;120;20\n"
     + "2026-13-45;10:00;Cava A;120;20\n";
 
+  /* ⚠️ LA TABELLA STA FUORI DALLA PROVA dal 14/08, e non è un vezzo: il
+     censimento B9 in fondo al file raccoglie da qui quali lettori hanno dei
+     casi propri. Dentro il `test` sarebbe invisibile, e il censimento
+     direbbe «sei scoperti» con la faccia della verità. */
+  const coppie = [
+    [scudo.scartiLavoratoriCsv, scudo.parseLavoratoriCsv, CSV_LAV],
+    [scudo.scartiScadenzeCsv, scudo.parseScadenzeCsv, CSV_SCA],
+    [scudo.scartiAzioniCsv, scudo.parseAzioniCsv, "id;titolo;scadenza;stato\n1;Parapetto;2026-09-01;aperta\n"],
+    [sentinella.scartiRicettoriCsv, sentinella.parseRicettoriCsv, CSV_RIC],
+    [sentinella.scartiAdempimentiCsv, sentinella.parseAdempimentiCsv, CSV_ADE],
+    [sentinella.scartiVolateCsv, sentinella.parseVolateCsv, CSV_VOL],
+  ];
+  for (const c of coppie) SCARTI_PROVATI.add(c[0]);
+
   test("⛔ B5-bis · i sei scarti*Csv contano quello che il LETTORE fa davvero", () => {
     /* il verdetto non si riscrive: `entrano` deve combaciare con la lunghezza
        di quello che il lettore restituisce, se no la funzione «accanto» sta
        raccontando una storia diversa dal prodotto. */
-    const coppie = [
-      [scudo.scartiLavoratoriCsv, scudo.parseLavoratoriCsv, CSV_LAV],
-      [scudo.scartiScadenzeCsv, scudo.parseScadenzeCsv, CSV_SCA],
-      [scudo.scartiAzioniCsv, scudo.parseAzioniCsv, "id;titolo;scadenza;stato\n1;Parapetto;2026-09-01;aperta\n"],
-      [sentinella.scartiRicettoriCsv, sentinella.parseRicettoriCsv, CSV_RIC],
-      [sentinella.scartiAdempimentiCsv, sentinella.parseAdempimentiCsv, CSV_ADE],
-      [sentinella.scartiVolateCsv, sentinella.parseVolateCsv, CSV_VOL],
-    ];
     for (const [scarti, lettore, csv] of coppie) {
       const s = scarti(csv);
       eq(s.entrano, lettore(csv).length, "«entrano» si chiede al lettore, non si ricalcola");
@@ -30182,6 +30213,240 @@ test("frasePersi · ⚠️ NIENTE `esc()`: la frase esce come l'utente l'ha scri
     eq(tot, 22, "22 gestori d'importazione in sei app");
   });
 }
+
+/* ══════════════════════════════════════════════════════════════════════
+   B9 · UNA REGOLA CHE SERVE A DUE APP VIVEVA IN DUE MODULI, E IL GUARDIANO
+   DEI LETTORI COPRIVA NOVE SU DICIANNOVE
+   ──────────────────────────────────────────────────────────────────────
+   Tre cose misurate il 14/08, e sono la stessa cosa vista da tre lati.
+   1. `grep -rn "function ragioneData" apps shared` dava **due** corpi
+      identici (`scudo-data.js`, `sentinella-data.js`) e `grep -rn
+      "ragioneData" shared/` **niente**: la casa condivisa che i due commenti
+      dichiaravano non era mai arrivata.
+   2. La divergenza era già cominciata, ed è la ragione per cui valeva la pena
+      farlo adesso: `parseTaratureCsv` diceva «manca la data della taratura»
+      dove il canone dice «non è stata scritta», e diceva «non è una data» a
+      due casi che chiedono **due rimedi diversi**.
+   3. Il guardiano dei lettori CSV ne provava nove, con un'etichetta che ne
+      prometteva di più.
+   ⛔ LA DIFESA È L'IDENTITÀ, NON IL COMPORTAMENTO. Una prova che confronta le
+   due frasi passa finché le due copie sono uguali, cioè fino al giorno in cui
+   servono a divergere — che è esattamente il giorno in cui dovrebbe cadere.
+   Qui si pretende che sia LA STESSA FUNZIONE (`===`).
+   ⚠️ Prove SINCRONE e PRIMA del riepilogo: l'`await Promise.all(inVolo)` sta a
+   metà file, e una prova asincrona appesa qui verrebbe messa in volo senza
+   essere aspettata.                                                        */
+{
+  test("⛔ B9 · `ragioneData` è UNA funzione sola: Scudo e Sentinella ri-esportano quella di `shared/`", () => {
+    ok(typeof shell.ragioneData === "function", "shared/deepwork-id-client/dw-shell.js la esporta");
+    /* ⛔ `===` E NON `eq` SULLE STRINGHE: due copie uguali oggi divergono
+       domani senza che nessuno lo veda, ed è successo davvero. */
+    ok(scudo.ragioneData === shell.ragioneData, "scudo.ragioneData è LA STESSA funzione di shell");
+    ok(sentinella.ragioneData === shell.ragioneData, "sentinella.ragioneData è LA STESSA funzione di shell");
+    ok(scudo.ragioneData === sentinella.ragioneData, "e quindi le due app ne condividono una sola");
+  });
+
+  test("⛔ B9 · nessun modulo si tiene un corpo suo: il sorgente non contiene più una seconda `function ragioneData`", () => {
+    /* ⚠️ l'identità qui sopra non basta da sola: un modulo può ri-esportare
+       quella di `shared/` E tenersi accanto una copia privata che usa nei
+       suoi lettori. Il segno di quel difetto è testuale, quindi lo si cerca
+       nel testo — commenti tolti, se no la spiegazione conta come codice.
+       ⛔ E L'AMPIEZZA DI QUESTA DOMANDA È MISURATA, non promessa. Con la copia
+       privata chiamata `ragioneData` questa prova cade (controprova 1: 5 prove
+       cadute) — e quel caso è anche l'unico che ESM permetta di scrivere
+       tenendo la ri-esportazione, perché due dichiarazioni dello stesso nome
+       nello stesso modulo sono un errore duro.
+       ⚠️ Con la copia privata chiamata in un altro modo — `ragioneDataPrivata`
+       — questa prova NON cade, ed è la regola già scritta in `CLAUDE.md`: «le
+       copie deboli hanno sempre un nome diverso». A prenderla sono state le
+       prove sul COMPORTAMENTO (controprova 2: 2 cadute, `B5-bis · Scudo
+       scadenze` e la prova sui due formati qui sotto). Cioè la difesa regge su
+       due strati indipendenti, e questa riga guarda solo il primo: sta scritto
+       qui perché nessuno legga «zero corpi doppi» come «nessuna copia». */
+    const RAD = join(HERE, "..", "..", "..");
+    const { senzaCommenti } = _tok;
+    let corpi = 0;
+    for (const f of ["apps/scudo/scudo-data.js", "apps/sentinella/sentinella-data.js"]) {
+      const src = senzaCommenti(readFileSync(join(RAD, f), "utf8"));
+      const n = (src.match(/function\s+ragioneData\s*\(/g) || []).length;
+      eq(n, 0, `⛔ ${f}: zero corpi propri, ne aveva uno`);
+      corpi += n;
+      /* ⚠️ la forma dell'alias è pretesa, non lasciata libera: è quella che
+         `nomi-doppi.mjs` sa contare (`^export const`), la stessa già usata da
+         `dataPiuGiorni`. Scritta `export { X } from "…"` funzionerebbe e
+         sparirebbe dal censimento app-contro-`shared/`. */
+      ok(/^export const ragioneData = ragioneDataShell;$/m.test(src),
+        `${f}: e la ri-esporta col nome di sempre, nella forma che nomi-doppi conta`);
+    }
+    const cond = senzaCommenti(readFileSync(join(RAD, "shared/deepwork-id-client/dw-shell.js"), "utf8"));
+    eq((cond.match(/export function\s+ragioneData\s*\(/g) || []).length, 1,
+      "⛔ e in `shared/` ce n'è esattamente UNO: due sarebbero il difetto rifatto in casa");
+    eq(corpi, 0, "due moduli guardati, zero corpi doppi");
+  });
+
+  test("⛔ B9 · senza argomenti la frase è quella di sempre, carattere per carattere", () => {
+    /* il trasloco non è il posto dove cambiare le parole: le tre frasi che le
+       due copie davano il 14/08 sono ricopiate qui a mano, dal `git show` dei
+       corpi tolti, e devono tornare identiche. */
+    eq(shell.ragioneData(""), "la data non è stata scritta", "campo vuoto");
+    eq(shell.ragioneData(null), "la data non è stata scritta", "null è come vuoto");
+    eq(shell.ragioneData(undefined), "la data non è stata scritta", "e undefined pure");
+    eq(shell.ragioneData("   "), "la data non è stata scritta", "e i soli spazi pure");
+    eq(shell.ragioneData("2026-02-30"), "la data non esiste", "forma ISO, giorno che non c'è");
+    eq(shell.ragioneData("2026-13-45"), "la data non esiste", "e il 45 del tredicesimo mese");
+    eq(shell.ragioneData("01/09/2026"), "la data non si legge: va scritta AAAA-MM-GG, non «01/09/2026»",
+      "⛔ la forma che un foglio di calcolo italiano scrive DA SOLO: il rifiuto dice quale formato serve");
+    eq(shell.ragioneData(" 2026-02-30 "), "la data non esiste", "gli spazi di contorno non contano");
+  });
+
+  test("⛔ B9 · LE TRE RISPOSTE SONO TRE, e restano distinguibili l'una dall'altra", () => {
+    /* ⛔ la prova che conta non è «dice la frase giusta» — è che le tre frasi
+       siano DIVERSE: sono tre rimedi diversi per chi ha mandato il file, e
+       fonderne due gli toglie proprio l'informazione che gli serve. */
+    const vuota = shell.ragioneData("");
+    const inesistente = shell.ragioneData("2026-02-30");
+    const illeggibile = shell.ragioneData("01/03/2026");
+    ok(vuota !== inesistente, `«non è stata scritta» non è «non esiste»: ${vuota} / ${inesistente}`);
+    ok(inesistente !== illeggibile,
+      `⛔ «2026-02-30» (si va a chiedere il giorno vero) non è «01/03/2026» (si riscrive la cella): `
+      + `${inesistente} / ${illeggibile}`);
+    ok(vuota !== illeggibile, `e nemmeno le altre due si somigliano: ${vuota} / ${illeggibile}`);
+    for (const r of [vuota, inesistente, illeggibile])
+      ok(!/\.$/.test(r), `⚠️ niente punto finale, la ragione è composta dentro `
+        + `«${shell.frasePersi({ persi: [{ nome: "x", ragione: r }] }).trim()}»`);
+  });
+
+  test("⛔ B9 · sullo stesso valore Scudo e Sentinella dicono la STESSA identica stringa", () => {
+    /* è la prova del comportamento, e vale poco da sola (l'identità qui sopra
+       la implica): sta qui perché è la misura scritta nella roadmap, e perché
+       il giorno in cui qualcuno rimettesse una copia sarebbe la seconda a
+       cadere. */
+    for (const v of ["", null, "2026-02-30", "01/09/2026", "2026-03-01", "boh", "2026-13-45"]) {
+      const a = scudo.ragioneData(v), b = sentinella.ragioneData(v);
+      ok(a === b, `«${v}» → Scudo «${a}» / Sentinella «${b}»`);
+    }
+  });
+
+  test("⛔ B9 · Sentinella tarature: il dialetto è finito, e le due frasi fuse sono due", () => {
+    const una = (r) => sentinella.parseTaratureCsv("Vibrazioni V1;" + r)[0].motivo;
+    /* ⛔ LA COPPIA CHE OGGI SI FONDEVA, MISURATA E NON DEDOTTA. Il valore
+       «01/03/2026» della roadmap qui NON serve: `parseTaratureCsv` legge con
+       `dataIso`, che la forma italiana la ACCETTA (misurato: entra e diventa
+       `2026-03-01`). La coppia vera che dava una frase sola è
+       «2026-02-30» contro «non lo so». */
+    const inesistente = una("2026-02-30;2027-01-01");
+    const illeggibile = una("non lo so;2027-01-01");
+    ok(inesistente !== illeggibile,
+      `⛔ due rimedi diversi, due frasi: «${inesistente}» / «${illeggibile}»`);
+    ok(/non esiste/.test(inesistente), `il 30 febbraio è un giorno che non c'è: ${inesistente}`);
+    ok(/non si legge/.test(illeggibile), `«non lo so» non è nemmeno una data: ${illeggibile}`);
+    eq(una(";2027-01-01"), "la data della taratura non è stata scritta",
+      "⛔ e il campo vuoto porta la parola del canone, non più «manca la data della taratura»");
+    eq(una("2026-01-01;"), "la scadenza non è stata scritta", "vale per tutt'e due le date della riga");
+    ok(/la scadenza non si legge/.test(una("2026-01-01;non lo so")),
+      "e il soggetto dice di QUALE delle due date si parla");
+  });
+
+  test("⛔ B9 · e il formato che si chiede è quello che QUESTO lettore accetta", () => {
+    /* ⛔ il caso sano che non deve cambiare: dire «va scritta AAAA-MM-GG»
+       accuserebbe una cella che il lettore legge benissimo. È la ragione per
+       cui `ragioneData` si fa passare il formato invece di saperlo. */
+    const v = sentinella.parseTaratureCsv("Vibrazioni V1;01/03/2026;2027-01-01")[0];
+    eq(v.motivo, "", "«01/03/2026» qui ENTRA: il lettore delle tarature legge la forma italiana");
+    eq(v.data, "2026-03-01", "e diventa la data ISO che esiste");
+    ok(/GG\/MM\/AAAA/.test(sentinella.parseTaratureCsv("Vibrazioni V1;non lo so;2027-01-01")[0].motivo),
+      "⛔ quindi il rifiuto nomina TUTT'E DUE le forme che accetta, non solo l'ISO");
+    /* e nello scadenzario di Scudo, che legge solo l'ISO, la stessa cella cade
+       — con la frase che nomina il solo formato buono lì. La distinzione non
+       è un dettaglio: è due lettori diversi, e le due frasi lo dicono. */
+    const s = scudo.scartiScadenzeCsv("lavoratore;tipo;descrizione;scadenza\nMario;visita;p;01/03/2026\n");
+    eq(s.persi.length, 1, "in Scudo la stessa cella non entra");
+    ok(/AAAA-MM-GG/.test(s.persi[0].ragione) && !/GG\/MM\/AAAA/.test(s.persi[0].ragione),
+      `e lì il formato chiesto è il solo ISO: ${s.persi[0].ragione}`);
+  });
+
+  /* ──────────────────────────────────────────────────────────────────────
+     IL CENSIMENTO DEI LETTORI, DERIVATO DAL DISCO
+     ⛔ L'elenco NON si scrive a mano: si legge dai moduli, come `UI_CONDIVISA`
+     di `run-stile` si deriva dai `window.X =` del file condiviso. Un elenco
+     scritto a mano non può accorgersi di un nome che non sa che esiste — è
+     esattamente com'è nato questo difetto.
+     ⚠️ E l'etichetta è stretta quanto il numero: qui si dice che cosa vuol
+     dire «coperto», perché un'etichetta più larga del suo numero è un difetto
+     che questa casa ha già censito quattro volte.                          */
+  const RAD = join(HERE, "..", "..", "..");
+  const MODULI = { campo, conti, flotta, genesi, scudo, sentinella, terra };
+  const SORGENTI = [
+    ...Object.keys(MODULI).map(a => [a, `apps/${a}/${a}-data.js`]),
+    ["shell", "shared/deepwork-id-client/dw-shell.js"],
+    ["ponti", "shared/dw-ponti.js"],
+  ];
+  const TUTTI = [];
+  for (const [chi, f] of SORGENTI) {
+    const src = readFileSync(join(RAD, f), "utf8");
+    for (const m of src.matchAll(/^export function (scarti[A-Za-z]*Csv)\b/gm)) TUTTI.push([chi, m[1], f]);
+  }
+
+  test("⛔ B9 · il censimento dei lettori CSV è DERIVATO dal disco, e sono 19", () => {
+    /* ⛔ il denominatore dichiarato: se domani ne nascesse uno ventesimo
+       questa riga cadrebbe, e chi lo ha scritto deciderebbe se provarlo o
+       dichiararlo. Un `>=` non lo farebbe — è la soglia su un valore
+       monotòno, già pagata da `copertura-funzioni`. */
+    eq(TUTTI.length, 19,
+      "⛔ 19 `export function scarti*Csv` su disco: 13 in Campo/Conti/Flotta/Terra, 3 in Scudo, 3 in Sentinella");
+    for (const [chi, n] of TUTTI)
+      ok(typeof (chi === "shell" ? shell : chi === "ponti" ? ponti : MODULI[chi])[n] === "function",
+        `${chi}.${n} è esportata davvero, non solo scritta`);
+  });
+
+  test("⛔ B9 · tutti e 19 rispondono al contratto comune: niente testo, niente accuse", () => {
+    /* ⛔ la prova che copre i diciannove SENZA una tabella di casi per ognuno:
+       il contratto che ogni `scarti*Csv` deve rispettare comunque. Non
+       sostituisce le tabelle — è la rete sotto quelle che non ce l'hanno. */
+    let chiamate = 0;
+    for (const [chi, n] of TUTTI) {
+      const f = (chi === "shell" ? shell : chi === "ponti" ? ponti : MODULI[chi])[n];
+      for (const t of ["", null, undefined]) {
+        const s = f(t);
+        chiamate++;
+        for (const k of ["lette", "entrano", "persi", "vuote"])
+          ok(k in s, `${chi}.${n}(${mostra(t)}): manca «${k}» nella risposta`);
+        eq(s.lette, 0, `${chi}.${n}(${mostra(t)}): zero righe lette`);
+        eq(s.entrano, 0, `${chi}.${n}(${mostra(t)}): zero entrate`);
+        eq(s.persi.length, 0, `${chi}.${n}(${mostra(t)}): e nessuno accusato`);
+        eq(s.entrano + s.persi.length, s.lette, `${chi}.${n}(${mostra(t)}): lette = entrate + perse`);
+      }
+      /* la riga di coda che un foglio di calcolo salva come `;;;` non è una
+         perdita in nessuno dei 19: contarla vorrebbe dire accusare l'utente
+         di un difetto del suo Excel. */
+      const coda = f(";;;;;;;;\n");
+      chiamate++;
+      eq(coda.persi.length, 0, `${chi}.${n}: la riga «;;;» non accusa nessuno`);
+      eq(coda.lette, 0, `${chi}.${n}: e non finisce nemmeno fra le righe lette`);
+    }
+    eq(chiamate, 19 * 4, "⛔ quanti soggetti ha guardato davvero: 19 lettori × 4 file");
+  });
+
+  test("⛔ B9 · e 19 su 19 hanno una tabella di casi PROPRIA, raccolta da chi li prova", () => {
+    /* ⛔ IL NUMERATORE È RACCOLTO, NON RISCRITTO: `SCARTI_PROVATI` lo riempiono
+       le tre tabelle di casi (NOVE, QUATTRO, le sei coppie di B5-bis) mentre
+       girano. Un elenco riscritto qui direbbe «coperto» un nome che nessuno ha
+       chiamato — è lo stesso difetto dell'etichetta più larga del numero, un
+       piano più sotto.
+       ⚠️ «Tabella propria» vuol dire un CSV scritto apposta per quel lettore,
+       con i suoi casi rotti. Non vuol dire che ogni sua ragione sia provata:
+       i sei di Scudo e Sentinella hanno una tabella più magra dei tredici
+       delle altre quattro app, e questo resta vero. */
+    const scoperti = TUTTI
+      .map(([chi, n, f]) => [chi, n, f, (chi === "shell" ? shell : chi === "ponti" ? ponti : MODULI[chi])[n]])
+      .filter(([, , , fn]) => !SCARTI_PROVATI.has(fn));
+    eq(scoperti.map(([chi, n]) => chi + "." + n), [],
+      "⛔ nessun lettore CSV senza una tabella di casi propria");
+    eq(SCARTI_PROVATI.size, 19,
+      "⛔ e le tabelle ne hanno provati 19, non uno di meno: 9 (NOVE) + 4 (QUATTRO) + 6 (B5-bis)");
+  });
+}
+
 
 console.log(`\nRisultato KPI app: ${passed} passati, ${failed} falliti${inVolo.length ? `  ·  ${inVolo.length} prove asincrone aspettate` : ""}`);
 process.exit(failed > 0 ? 1 : 0);

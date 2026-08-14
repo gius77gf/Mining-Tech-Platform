@@ -181,7 +181,6 @@ grep -n "^- \[ \] \*\*" vault/ROADMAP_SETTIMANA.md
 - `B6. «NON ANCORA CARICATO» NON È «NON C'È» — la quarta faccia del tema`
 - `B7. `sentinella-periodo-adempimento` È INTERMITTENTE — e va rimisurato a`
 - `B8. IL FILE SBAGLIATO ENTRA IN SILENZIO — e la difesa ovvia è già stata`
-- `B9. `ragioneData` È SCRITTA DUE VOLTE, E IL GUARDIANO COPRE NOVE LETTORI`
 
 ## 🎯 L'obiettivo della settimana
 
@@ -4955,8 +4954,8 @@ numero scritto dove non era stato misurato niente**.*
   (640 precedenti alla regola, contati da `date-checkpoint.mjs`). Chi va per
   nome apre il file sbagliato credendo che sia il più fresco.
 - Le decisioni: `docs/DECISIONI_WEEKEND.md` — pagina d'ingresso in cima.
-- Stato misurato al **09/08** (lanciando le suite, non a memoria):
-  **2.694 prove girano senza rete**. La frase va letta stretta: è la somma
+- Stato misurato al **14/08** (lanciando le suite, non a memoria):
+  **2.704 prove girano senza rete**. La frase va letta stretta: è la somma
   delle **otto** suite che contano asserzioni (`run-kpi` 2110, `run-stile` 318,
   `run-helpers` 75, `run-pointcloud` 32, `run-manifest` 9, `run-demo` 8,
   `bootstrap-rivendicazioni` 7, `fogli-guardati` 3), non tutto ciò che gira nel
@@ -5726,7 +5725,69 @@ di scriverlo qui**: niente entra sulla parola dell'agente.
       **Misure**: `run-kpi` 2229 → **2238**, `run-stile` **322/0**, condivisi
       174 → **179/179** (`dw-shell.js` 48 → 53), giro `node` **3.033**
       asserzioni, **34 comandi a posto, 0 caduti**.
-- [ ] **B9. `ragioneData` È SCRITTA DUE VOLTE, E IL GUARDIANO COPRE NOVE LETTORI
+- [x] ✅ **B9 — CHIUSA il 14/08: `ragioneData` vive in un posto solo, e il
+      guardiano è passato da NOVE lettori a DICIANNOVE.**
+      · La funzione sta in `shared/deepwork-id-client/dw-shell.js`; Scudo e
+        Sentinella la ri-esportano, e la prova pretende l'**IDENTITÀ**
+        (`scudo.X === sentinella.X === shell.X`), non il comportamento — due
+        copie uguali oggi divergono domani senza che nessuno lo veda.
+        Riverificato da me sulla copia: `true` per tutt'e due.
+      ⛔ **LA FORMA DELL'ALIAS NON È INDIFFERENTE, ed è una misura.** Scritto
+        `export { X } from "…"` l'alias è **invisibile** a `nomi-doppi.mjs`,
+        che censisce i nomi con `^export function` e `^export const`. Con la
+        forma giusta (`export const ragioneData = ragioneDataShell`) quel
+        controllo passa da **38 nomi / 24 alias / 11 coppie** a **40 / 26 /
+        13** — rimisurato da me: `40 nomi guardati · 26 alias, 5 divergenze
+        dichiarate, 0 da sistemare`. Un alias che non si conta è un soggetto
+        in meno guardato, e nessuno se ne accorge.
+      ⛔ **E IL VALORE D'ESEMPIO CHE AVEVO SCRITTO IO IN QUESTA VOCE ERA
+        SBAGLIATO — l'ha detto il soggetto, aperto prima di scrivere il caso.**
+        Dicevo che `01/03/2026` e `2026-02-30` davano la stessa frase: vale per
+        i lettori **solo-ISO**, non per `parseTaratureCsv`, che legge con
+        `dataIso` e la forma italiana la **accetta** (misurato: entra e diventa
+        `2026-03-01`). La coppia che davvero si fondeva è `2026-02-30` contro
+        `non lo so`, e adesso dice «la data della taratura **non esiste**»
+        contro «**non si legge**: va scritta AAAA-MM-GG oppure GG/MM/AAAA». Il
+        vuoto è passato dal dialetto «manca la data della taratura» al canone
+        «non è stata scritta».
+      ⛔ **La firma ha guadagnato tre parametri** (`soggetto`, `formato`,
+        `haForma`) invece di una seconda copia — la copia nasceva proprio da
+        una firma troppo stretta, che è la regola già scritta in `CLAUDE.md`.
+        Senza argomenti il comportamento è identico a quello delle due copie
+        (verificato: «la data non è stata scritta» · «la data non esiste» · «la
+        data non si legge: va scritta AAAA-MM-GG, non «boh»»). E `haForma` non
+        ricopia le regex di `dataIso`: adesso sono una costante sola.
+      · **Guardiano: 19 su 19**, con l'elenco **derivato dal disco** e il
+        numeratore **raccolto** dalle tre tabelle di casi (9+4+6) mentre
+        girano, non riscritto a mano. L'etichetta vecchia è stata corretta: «i
+        NOVE censiti la mattina del 13/08» — **non** «tutti quelli delle
+        quattro app», che sono 13.
+      ⚠️ **Dichiarato dentro la prova**: «tabella propria» vuol dire un CSV con
+        i suoi casi rotti, NON che ogni ragione sia provata. I sei di Scudo e
+        Sentinella restano più magri dei tredici.
+      ⛔ **E LA CONTROPROVA HA BOCCIATO UNO STRATO DELLA DIFESA**, che vale più
+        del difetto: la prova «zero corpi propri» cade su una copia chiamata
+        `ragioneData`, ma **non** su una chiamata `ragioneDataPrivata` — è la
+        regola già scritta, «le copie deboli hanno sempre un nome diverso».
+        L'hanno presa le prove sul **comportamento**, e il limite sta scritto
+        accanto alla prova: nessuno legga «zero corpi doppi» come «nessuna
+        copia».
+      ⏱️ **E un «non c'è» FALSO trovato per strada**, in `apps/scudo/`: il
+        commento sopra `ragioneData` dichiarava «in casa NON c'è nessun lettore
+        di date all'italiana — provato col `grep`: zero righe». **Sono due**, e
+        c'erano già: `dataIso` (Sentinella — la usa proprio l'import delle
+        tarature) e `isoDaDataItaliana` (Conti). Il **verdetto regge**, ma è la
+        «prova scaduta con verdetto giusto»: rende la riga non credibile, e chi
+        la riverifica butta via anche il giudizio.
+      **Controprova**: 5 iniezioni → **5 · 2 · 4 · 4 · 3** prove cadute, ognuna
+      con l'`assert` sul testo cercato e il ripristino da copia + `diff -q`.
+      **Misure, rifatte da me sulla copia di quello che si committa**: `run-kpi`
+      2238 → **2248**, 0 falliti; copertura app 751 → **753/753**; condivisi 179
+      → **180/180** (`dw-shell.js` 53 → **54/54**, e il fondo alzato con lui);
+      `nomi-doppi` 40/0; giro `node` **34 comandi a posto**.
+
+- [x] **B9 (com'era, e resta per la MISURA che l'ha aperta — non è lavoro da
+      fare). `ragioneData` È SCRITTA DUE VOLTE, E IL GUARDIANO COPRE NOVE LETTORI
       SU DICIANNOVE.** ⏱️ *Aperta il 14/08 dalla ricerca sulle parole, coi due
       numeri **rimisurati da me** prima di scriverli qui.*
       · `grep -rn "^export function scarti[A-Za-z]*Csv" apps shared | wc -l` →
