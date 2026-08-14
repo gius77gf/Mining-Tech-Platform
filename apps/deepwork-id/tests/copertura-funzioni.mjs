@@ -209,7 +209,7 @@ const APP = ["campo", "conti", "flotta", "scudo", "sentinella", "terra"];
    `descriviPeriodoAdempimento`) più le due arrivate prima e mai raccolte. Il
    conto vero è 139/139; lasciato a 134 il fondo starebbe cinque sotto, cioè
    sarebbe una guardia che per scattare aspetta di perdere cinque prove. */
-const FONDO = { campo: 123, conti: 130, flotta: 87, scudo: 185, sentinella: 139, terra: 66 };
+const FONDO = { campo: 126, conti: 139, flotta: 92, scudo: 191, sentinella: 143, terra: 68 };
 
 /* Quello che resta fuori per un motivo, non per dimenticanza: i caricatori
    dati vogliono la rete e lo SDK, i ponti demo vogliono il localStorage.
@@ -230,7 +230,25 @@ for (const app of APP) {
   const esporta = [...src.matchAll(/^export (?:async )?function (\w+)|^export const (\w+)/gm)]
     .map((m) => m[1] || m[2])
     .filter((n) => !FUORI.has(n));
-  const usate = esporta.filter((n) => new RegExp(`\\b${app}\\.${n}\\b`).test(kpi));
+  /* ⛔ E IL RIGHELLO MISURAVA UNA FORMA DI SCRITTURA, NON IL FATTO. Cercava la
+     sola forma qualificata `app.nome`, e una prova che destruttura —
+     `const { registriMuti } = scudo;` e poi la chiama nuda — risultava
+     SCOPERTA pur avendo otto punti di chiamata e cinque casi. Misurato il
+     14/08 su `scudo.registriMuti`: 190/191, «1 SENZA PROVA», mentre la
+     funzione era la più provata del blocco.
+     ⚠️ Allargare un censimento di COPERTURA va nella direzione che nasconde
+     (una funzione scoperta può diventare «coperta»), quindi non si accetta un
+     nome nudo qualunque: si raccolgono **solo** i nomi destrutturati da quel
+     modulo — `const { … } = scudo;` — e valgono come se fossero qualificati.
+     Costo misurato prima di adottarlo: entrano **1** nome su 759 (proprio
+     quello), zero negli altri cinque moduli. */
+  const destrutturati = new Set(
+    [...kpi.matchAll(new RegExp(`\\{([^{}]*)\\}\\s*=\\s*${app}\\s*;`, "g"))]
+      .flatMap((m) => m[1].split(",").map((s) => s.trim().split(":").pop().trim()))
+      .filter(Boolean));
+  const usate = esporta.filter((n) =>
+    new RegExp(`\\b${app}\\.${n}\\b`).test(kpi)
+    || (destrutturati.has(n) && new RegExp(`\\b${n}\\s*\\(`).test(kpi)));
   const mancanti = esporta.filter((n) => !usate.includes(n));
   guardate += esporta.length;
   coperte += usate.length;

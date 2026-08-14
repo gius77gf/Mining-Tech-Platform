@@ -338,15 +338,38 @@ chiuse. Le aperte sono **24**; la pagina d'ingresso di
         `devicePixelRatio||1`, `M.userData.op||0.5`, `power||1`, `quality||0.8`,
         `d.channels||1` sono misure del **disegno**, non dati che scrive
         l'utente.
-      ⛔ **Quello che resta, e va MISURATO prima di chiamarlo difetto:**
-      `getBorraggio(v)` e `getSpaziatura(v)` finiscono su **`|| 3.5`** e
-      **`|| 4`**, cioè la stessa forma del capostipite di Genesi (`B = D2.B ||
-      SPALLA`, che è costato **129 metri di sgombero persone in meno**). E non
-      servono solo al disegno: **`generaMagliaFori` calcola il numero di fori
-      per fila con `Math.floor(L / S)`** — cioè un **conteggio che l'utente
-      legge** poggia su una spaziatura che, se nessuno l'ha scritta, viene
-      inventata. Stessa domanda per `v.fronte.lunghezza_m || 5|20`,
-      `altezza_m || 4`, `calotta_m || 1`, `pref.fori || 5`,
+      ✅ **IL CAPOFILA È CHIUSO dal commit `5bcaf0b3` del 14/08 — rimisurato il
+      14/08 alle 15:14Z prima di scriverlo, e la ragione è più stretta di quella
+      che stavo per scrivere a memoria.** Diceva: «`getBorraggio` e
+      `getSpaziatura` finiscono su `|| 3.5` e `|| 4`, e non servono solo al
+      disegno: `generaMagliaFori` calcola i fori per fila con `Math.floor(L/S)`,
+      cioè un **conteggio che l'utente legge** poggia su una spaziatura
+      inventata». La prima metà è ancora vera **per il disegno, dichiarato**; la
+      seconda no, e a dirlo è il conto dei **chiamanti**, non la lettura della
+      funzione:
+
+          grep -n "generaMagliaFori" index.html
+          5378:  v.fori=tipo==='galleria'?generaGalleria(v):generaMagliaFori(v);
+          5438:function generaMagliaFori(v){
+          7368:      v.fori=v.tipo==='galleria'?generaGalleria(v):generaMagliaFori(v);
+
+      · **7368** è «Rigenera maglia», e da `5bcaf0b3` è **dietro
+        `magliaGenerabile(v)`**: se le misure non ci sono il bottone non genera
+        niente e lo **dice** («Schema non generabile: manca …»);
+      · **5378** è la creazione di una volata **nuova**, e lì la maglia viene
+        **scritta** un attimo prima (`borraggio: B||3.5`, `spaziatura: S||4`
+        dentro l'oggetto): è il default legittimo che questa riga stessa
+        dichiarava, non un numero inventato a valle.
+      Cioè non c'è nessuna terza strada per cui un conteggio di fori nasca da
+      una spaziatura mai scritta. ⚠️ **Stavo per scrivere «già chiuso» sulla
+      fiducia nel mio commit di stamattina, ed era la conclusione giusta con la
+      prova sbagliata** — che è il difetto che questo file chiama «una prova che
+      invecchia non rende la riga sbagliata: la rende non credibile».
+      ⛔ **QUELLO CHE RESTA APERTO, e va misurato prima di chiamarlo difetto**,
+      è il **fronte**, non la maglia: `v.fronte.lunghezza_m || 20` alla riga
+      4814 contro `|| 5` alle righe 4897, 5480, 5482 e 5564 — **lo stesso campo
+      con due costanti diverse**, venti metri in un punto e cinque nell'altro —
+      più `altezza_m || 4`, `calotta_m || 1`, `pref.fori || 5`,
       `pref.diametro || 89`.
       ⚠️ **Perché è un candidato e non un difetto**: `borraggio: B||3.5` alla
       creazione di una volata **nuova** è un default legittimo — l'utente poi lo
@@ -4506,7 +4529,7 @@ numero scritto dove non era stato misurato niente**.*
   Elencando per nome le scritture del globale entravano `_larg` e `_t`, che
   sono `var self = this`; prendendo ogni `function(x){` per uno IIFE entravano
   `className` e `textContent`. Derivando invece lo IIFE **più esterno**:
-  **2 nomi in più in tutto** su 325 già legati.
+  **2 nomi in più in tutto** su 327 già legati.
   ⚠️ **E una riga che avevo scritto era falsa, corretta prima di lasciarla**:
   «nei moduli ci pensa `import-esistenti`». No — quello verifica il verso
   **opposto** (che un nome importato esista dall'altra parte). ⏱️ **I moduli
@@ -5369,8 +5392,8 @@ numero scritto dove non era stato misurato niente**.*
   nome apre il file sbagliato credendo che sia il più fresco.
 - Le decisioni: `docs/DECISIONI_WEEKEND.md` — pagina d'ingresso in cima.
 - Stato misurato al **14/08** (lanciando le suite, non a memoria):
-  **2.817 prove girano senza rete**. La frase va letta stretta: è la somma
-  delle **nove** suite che contano asserzioni (`run-kpi` 2339, `run-stile` 325,
+  **2.829 prove girano senza rete**. La frase va letta stretta: è la somma
+  delle **nove** suite che contano asserzioni (`run-kpi` 2349, `run-stile` 327,
   `run-helpers` 75, `run-pointcloud` 32, `claims-convergenza` 19, `run-manifest` 9,
   `run-demo` 8, `bootstrap-rivendicazioni` 7, `fogli-guardati` 3), non tutto ciò che gira nel
   giro `node` — che di comandi ne ha **34** e di asserzioni ne esegue di più:

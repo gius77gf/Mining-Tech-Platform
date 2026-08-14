@@ -1753,7 +1753,7 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
     conformiSenzaProva, voceChiedePermesso, permessiDelGiorno,
     MOTIVI_REVISIONE_DSS, motivoRevisioneDss, dssDiCantiere, dssScollegati, cicloDss,
     descriviCicloDss, descriviTrasmissioneDss, etichettaCicloDss, sintesiCicloDss,
-    dssDaSeguire,
+    dssDaSeguire, registriMuti,
     TIPO_VERIFICA_PERIODICA, ENTI_VERIFICA, enteVerificaSicuro, ESITI_VERIFICA, esitoVerifica,
     scadenzaDiVerifica, verbaleDiScadenza, statoVerificaPeriodica, descriviVerificaPeriodica,
     verificheDaSistemare, voceDocumentoInElenco } from "./scudo-data.js";
@@ -1863,6 +1863,19 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
      uguali): qui resta solo l'ALIAS col nome che le pagine hanno sempre usato.
      Il quarto argomento, facoltativo, è il modo di cominciare. */
   const vuoto = (icona, titolo, sotto, azione) => statoVuoto(icona, titolo, sotto, azione);
+
+  /* ⚠️ L'ELENCO DI CIÒ CHE È STATO GUARDATO VA TENUTO ALLINEATO A CIÒ CHE SI
+     GUARDA DAVVERO: una frase che dichiara sei controlli mentre ne fa otto
+     promette meno del vero, ma il giorno in cui ne dichiarasse otto facendone
+     sei prometterebbe di più — ed è quella la direzione che rassicura.
+     ⛔ E DAL 14/08 QUESTA FRASE SI DICE SOLO SE C'È QUALCOSA DA GUARDARE: con
+     un registro vuoto dietro, «in regola» è la faccia tranquilla dell'assenza.
+     Chi lo decide è `registriMuti` nel modulo; qui c'è solo il testo. */
+  const FRASE_QUADRO_PULITO = "Idoneità, mansioni, nomine, scadenze, azioni correttive, ciclo del DSS, "
+    + "<b>permessi di lavoro</b> e <b>verifiche periodiche delle attrezzature</b> sono tutti in regola, "
+    + "ogni evento del registro ha la sua analisi della causa, e nessuna voce di checklist è segnata "
+    + "conforme senza il permesso che dovrebbe starci dietro. Il quadro resta pulito finché una data "
+    + "non si avvicina.";
 
   // ── GRAFICI (motore condiviso: shared/dw-grafici.js) ───────────────────
   // Regole che il motore da solo non può sapere, e che qui non si discutono:
@@ -2281,18 +2294,32 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
         <span class="acts"><span class="badge ${r.cls}">${esc(r.badge)}</span><span class="arr">›</span></span></div>`);
     const urg = SCA.filter(s => statoScadenza(s.dataScadenza) !== "regolare")
                    .sort((a, b) => a.dataScadenza < b.dataScadenza ? -1 : 1).slice(0, 5);
+    /* ⛔ IL PANNELLO VERDE NON DICE «TUTTO IN REGOLA» SU UN REGISTRO VUOTO.
+       Misurato il 14/08 APRENDO LA PAGINA: con il personale a posto e tutti gli
+       altri registri vuoti il Quadro scriveva «…sono tutti in regola» mentre la
+       schermata Personale, sugli stessi dati e nello stesso istante, scriveva
+       «di 1 non c'è nessuna scadenza registrata: non è «a posto», è una persona
+       di cui non si sa niente». Due schermate che si smentiscono, e quella che
+       rassicura è la prima che si apre. Chi elenca i registri muti è il modulo
+       (`registriMuti`), che li ricava dalle decisioni già scritte lì dentro. */
+    const quadroSenzaUrgenze = () => {
+      const muti = registriMuti({ lavoratori: LAV, scadenze: SCA, mansioni: MANS,
+        cantieri: CANT, ispezioni: ISP, permessi: PERM, documenti: DOC });
+      if (!muti.length) return vuoto(I.ok, "Nessuna urgenza", FRASE_QUADRO_PULITO);
+      const elenco = muti.map(m => `<li>${esc(m.frase)}</li>`).join("");
+      return vuoto(I.allerta, "Nessuna urgenza in quello che è scritto",
+        "Su ciò che risulta registrato non c'è niente da correggere. Ma questo verde <b>non copre tutto</b>: "
+        + (muti.length === 1 ? "un registro non ha ancora niente dentro" : muti.length + " registri non hanno ancora niente dentro")
+        + ", e lì «nessuna urgenza» vuol dire <b>«non lo sappiamo»</b>, non «in regola»."
+        + `<ul style="margin:8px 0 0 18px;padding:0;">${elenco}</ul>`);
+    };
     $("urg-list").innerHTML = (idonUrg.join("") + manUrg.join("") + mansIgnUrg.join("") + nomUrg.join("") + aziUrg.join("") + anUrg.join("") + appUrg.join("") + dssUrg.join("") + permUrg.join("") + verUrg.join("") + provaUrg.join("") + urg.map(sc => {
       const st = statoScadenza(sc.dataScadenza), l = byId[sc.lavoratoreId];
       return `<div class="item tocca ${striscia[B[st][0]]}" onclick="go('scad')" title="Vai allo scadenzario">
         <div class="avatar">${esc(initials(l && l.nome))}</div>
         <div class="info"><div class="name">${esc(l ? l.nome : "Scadenza aziendale")}</div><div class="meta">${esc(sc.descrizione)} · ${fmtData(sc.dataScadenza)}</div></div>
         <span class="acts"><span class="badge ${B[st][0]}">${B[st][1]}</span><span class="arr">›</span></span></div>`;
-    /* ⚠️ L'ELENCO DI CIÒ CHE È STATO GUARDATO VA TENUTO ALLINEATO A CIÒ CHE SI
-       GUARDA DAVVERO: una frase che dichiara sei controlli mentre ne fa otto
-       promette meno del vero, ma il giorno in cui ne dichiarasse otto facendone
-       sei prometterebbe di più — ed è quella la direzione che rassicura. */
-    }).join("")) || vuoto(I.ok, "Nessuna urgenza",
-        "Idoneità, mansioni, nomine, scadenze, azioni correttive, ciclo del DSS, <b>permessi di lavoro</b> e <b>verifiche periodiche delle attrezzature</b> sono tutti in regola, ogni evento del registro ha la sua analisi della causa, e nessuna voce di checklist è segnata conforme senza il permesso che dovrebbe starci dietro. Il quadro resta pulito finché una data non si avvicina.");
+    }).join("")) || quadroSenzaUrgenze();
 
     const q = ($("pers-cerca").value || "").trim().toLowerCase();
     const lavVis = LAV.filter(l => !q || (l.nome + " " + (l.ruolo || "")).toLowerCase().includes(q))

@@ -2727,16 +2727,88 @@ export function etichettaCicloDss(stato) {
   }
 }
 
+/* Le cave su cui si lavora: una cava CHIUSA non chiede niente a nessuno.
+   Sta in una funzione perché la chiedono in DUE — chi cerca i DSS da seguire e
+   chi cerca i registri muti — e una regola che serve a due posti scritta due
+   volte è una regola che si stacca (è la stessa ragione di `MESI_CERTIF_DSS`). */
+function caveAperte(cantieri) {
+  return (cantieri || []).filter((c) => c && c.tipo === "cava" && c.stato !== "chiuso");
+}
+
 /* Le cave il cui DSS chiede qualcosa, per le urgenze del Quadro: prima i rossi.
    Una cava CHIUSA resta fuori — non ci si lavora — ma una cava attiva senza
    nessun DSS collegato ci entra, ed è la riga più silenziosa di tutte. */
 export function dssDaSeguire(documenti, cantieri, infortuni, oggi = new Date()) {
   const peso = (s) => (etichettaCicloDss(s).cls === "danger" ? 0 : 1);
-  return (cantieri || [])
-    .filter((c) => c && c.tipo === "cava" && c.stato !== "chiuso")
+  return caveAperte(cantieri)
     .map((c) => ({ cantiere: c, ...cicloDss(dssDiCantiere(documenti, c.id)[0] || null, infortuni, oggi) }))
     .filter((r) => r.stato !== "regolare")
     .sort((a, b) => peso(a.stato) - peso(b.stato));
+}
+
+/* ⛔ I REGISTRI MUTI — CHE COSA IL QUADRO NON HA POTUTO GUARDARE.
+   ══════════════════════════════════════════════════════════════════════
+   PERCHÉ ESISTE, e va detto col caso misurato perché nessuno la tolga. Quando
+   nessuna delle undici famiglie di urgenze produce una riga, il Quadro mostra
+   il pannello VERDE «Nessuna urgenza», e la sua frase dichiara in regola otto
+   cose: idoneità, mansioni, nomine, scadenze, azioni correttive, ciclo del DSS,
+   permessi di lavoro e verifiche periodiche delle attrezzature.
+   Misurato il 14/08 aprendo la pagina (non leggendo il codice), su una cava con
+   il personale a posto e tutti gli altri registri vuoti: il Quadro scriveva
+   «…**sono tutti in regola**» e la schermata Personale, **sugli stessi dati e
+   nello stesso istante**, scriveva «di 1 non c'è nessuna scadenza registrata:
+   **non è «a posto», è una persona di cui non si sa niente**». Due schermate
+   della stessa app che si smentiscono, e quella che rassicura è la prima che si
+   apre — in un'app di sicurezza «rassicura» vuol dire che nessuno va a
+   controllare.
+   ⚠️ Non è un allarme e non deve diventarlo: un registro vuoto non è un
+   difetto. È la differenza fra «guardato e a posto» e «non c'era niente da
+   guardare», ed è il principio del fondatore — *l'assenza di un dato non è un
+   dato favorevole*. Il precedente in casa è `CIECO_DSS`, che dice esattamente
+   questo per un registro solo: qui è la stessa cosa per gli altri sette.
+   ⛔ E NESSUNA VOCE INVENTA UN CRITERIO NUOVO: ognuna passa dal meccanismo che
+   già decide quella cosa altrove — `idoneitaLabel` (che per l'idoneità mai
+   dichiarata risponde con la classe VUOTA), `lavoratoriIds` (l'assegnazione che
+   legge `riepilogoMansioni`), `kpiFrom.senzaScadenze` (che i «regolari» li
+   tiene fuori apposta), `verificheDaSistemare.quante` e `caveAperte`. Se un
+   giorno una di quelle decisioni cambia, cambia anche qui.
+   Torna un elenco (vuoto = non c'è niente da dichiarare), ordinato dalle
+   persone alle cose: `{ chiave, quanti, frase }`. */
+export function registriMuti(dati, oggi = new Date()) {
+  const d = dati || {};
+  const lav = d.lavoratori || [], sca = d.scadenze || [], mans = d.mansioni || [];
+  const attivi = lav.filter((l) => l && l.attivo);
+  const out = [];
+  const dire = (chiave, quanti, frase) => { if (quanti > 0) out.push({ chiave, quanti, frase }); };
+
+  const idnIgnota = attivi.filter((l) => idoneitaLabel(l && l.idoneita).cls === "").length;
+  dire("idoneita", idnIgnota,
+    "di " + conta(idnIgnota, "persona in forza", "persone in forza")
+    + " l'idoneità sanitaria non è mai stata dichiarata");
+
+  const senzaMansione = attivi.filter((l) =>
+    !mans.some((m) => (((m && m.lavoratoriIds) || [])).includes(l && l.id))).length;
+  dire("mansioni", senzaMansione,
+    conta(senzaMansione, "persona in forza", "persone in forza")
+    + (senzaMansione === 1 ? " non ha" : " non hanno") + " nessuna mansione assegnata");
+
+  const senzaSca = kpiFrom(lav, sca).senzaScadenze;
+  dire("scadenze", senzaSca,
+    "di " + conta(senzaSca, "persona in forza", "persone in forza") + " non c'è nessuna scadenza registrata");
+
+  dire("verifiche", verificheDaSistemare(sca, d.documenti || [], oggi).quante === 0 ? 1 : 0,
+    "nello scadenzario non risulta nessuna attrezzatura con verifica periodica (all. VII)");
+
+  dire("dss", caveAperte(d.cantieri).length === 0 ? 1 : 0,
+    "non c'è nessuna cava aperta in anagrafica: del ciclo del DSS non si può dire niente");
+
+  dire("ispezioni", (d.ispezioni || []).length === 0 ? 1 : 0,
+    "non è registrata nessuna ispezione: non c'è nessuna checklist da confrontare coi permessi");
+
+  dire("permessi", (d.permessi || []).length === 0 ? 1 : 0,
+    "non è registrato nessun permesso di lavoro");
+
+  return out;
 }
 
 // IMPORT DELL'ANAGRAFICA LAVORATORI DA CSV.

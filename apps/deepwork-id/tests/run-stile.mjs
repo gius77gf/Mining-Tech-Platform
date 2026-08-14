@@ -2857,18 +2857,47 @@ function bandiereScollegate() {
    ⚠️ Si guarda solo il markup FUORI dai `<script>`: dentro, un `class="cnt"`
    sta in un template che la pagina RENDE quando i dati ci sono già
    (`class="cnt">${daConf.length}<`), e quello è un valore, non uno stato di
-   nascita. */
+   nascita.
+   ⛔ E FINO AL 14/08 QUESTA REGOLA GUARDAVA UN NOME SOLO, SCRITTO DENTRO UNA
+   REGEX: `class="cnt"`. Il titolo dice «un CONTATORE», ma la famiglia di cui
+   parla è «contatori e KPI», e il valore di un KPI in questa casa si chiama
+   `class="n"` — la cifra grossa della striscia in cima al Quadro, cioè la
+   prima cosa che si vede aprendo un'app. Cinquantuno soggetti guardati,
+   trentadue no, e nessuno se ne accorgeva perché il controllo rispondeva
+   «nessuna violazione». È la stessa forma già pagata da `iniezioni-fresche`
+   (`const DIFETTI = [` e basta): un elenco lo si rilegge, un nome dentro una
+   regex no, perché non si presenta come una scelta.
+   ⚠️ IL COSTO DELLA STRETTA, MISURATO PRIMA DI FARLA, come pretende CLAUDE.md.
+   Allargando a OGNI `class="n"`: +34 soggetti e **2 allarmi**, tutt'e due
+   falsi e della stessa famiglia — i numeri di passo di un elenco
+   (`<span class="n">1</span>Chiedi al titolare…`) in `non-autorizzato.html`.
+   Allargando invece al `class="n"` che sta DENTRO un `class="kpi…"` — cioè
+   chiedendo il MECCANISMO (il valore di un KPI) e non il nome: **+32 soggetti,
+   ZERO allarmi, ZERO eccezioni da dichiarare**. Si prende quello: un'eccezione
+   dichiarata onestamente resta un posto in cui nessuno guarda. */
 function contatoriNati(html) {
   // via i blocchi <script>: lì dentro i `.cnt` sono contenuto reso, non nascita
   const statico = html.replace(/<script[\s\S]*?<\/script>/g, " ");
   return [...statico.matchAll(/class="cnt"([^>]*)>([^<]*)</g)]
     .map((m) => ({ id: (m[1].match(/id="([^"]+)"/) || [])[1] || "(senza id)", testo: m[2].trim() }));
 }
+/* L'altra metà del titolo: il VALORE di un KPI. Si riconosce dal posto in cui
+   vive — dentro la scheda `.kpi` — e non dal nome della sua classe, che da solo
+   collide con i numeri di passo di un elenco. */
+function kpiNati(html) {
+  const statico = html.replace(/<script[\s\S]*?<\/script>/g, " ");
+  return [...statico.matchAll(/class="kpi[^"]*"[\s\S]{0,400}?class="n"([^>]*)>([^<]*)</g)]
+    .map((m) => ({ id: (m[1].match(/id="([^"]+)"/) || [])[1] || "(senza id)", testo: m[2].trim() }));
+}
 function contatoriTranquilli() {
   const out = [];
   for (const [nome, file] of SUPERFICI) {
-    for (const c of contatoriNati(leggi(file))) {
+    const html = leggi(file);
+    for (const c of contatoriNati(html)) {
       if (c.testo !== "—") out.push(`${nome} · ${c.id} nasce «${c.testo}» invece di «—»`);
+    }
+    for (const c of kpiNati(html)) {
+      if (c.testo !== "—") out.push(`${nome} · il KPI ${c.id} nasce «${c.testo}» invece di «—»`);
     }
   }
   return out;
@@ -2887,6 +2916,21 @@ test("regola 21: ha davvero trovato i contatori, e su quante superfici", () => {
     + ` — ${per.map(([n, k]) => `${n}:${k}`).join(" · ")}`);
   ok(per.length >= 5, `superfici con almeno un contatore: ${per.length} — ${per.map(([n]) => n).join(", ")}`);
 });
+/* Il denominatore dell'altra metà, dichiarato a parte: un «zero violazioni» su
+   zero KPI letti sarebbe il difetto che questo file raccoglie da mesi — ed è
+   esattamente quello che è successo per settimane, con i KPI fuori dal conto. */
+test("regola 21: e ha trovato anche i VALORI DEI KPI, che prima non guardava", () => {
+  const per = SUPERFICI.map(([n, f]) => [n, kpiNati(leggi(f)).length]).filter(([, k]) => k);
+  const totale = per.reduce((t, [, k]) => t + k, 0);
+  ok(totale >= 30,
+    `valori di KPI letti in tutto: ${totale}, troppi pochi perché il controllo stia guardando davvero`
+    + ` — ${per.map(([n, k]) => `${n}:${k}`).join(" · ")}`);
+  ok(per.length >= 4, `superfici con almeno un KPI: ${per.length} — ${per.map(([n]) => n).join(", ")}`);
+  /* e il righello NON prende i numeri di passo di un elenco, che è il rumore
+     che l'allargamento al nome secco avrebbe portato (2 falsi allarmi) */
+  const passi = kpiNati('<ol class="passi"><li><span class="n">1</span>Chiedi</li></ol>');
+  ok(passi.length === 0, "un <span class=\"n\">1</span> fuori da una scheda .kpi non è un KPI");
+});
 test("regola 21: la controprova — un contatore rimesso a «0» viene visto", () => {
   const vero = leggi("apps/scudo/index.html");
   const nati = contatoriNati(vero);
@@ -2903,6 +2947,20 @@ test("regola 21: la controprova — un contatore rimesso a «0» viene visto", (
   ok(rotto2 !== vero, "la seconda iniezione non ha trovato il suo pezzo: SCADUTA");
   ok(contatoriNati(rotto2).some((c) => c.testo === "0/0"),
     "un contatore nato «0/0» — la forma vera trovata il 14/08 — deve essere visto");
+});
+test("regola 21: la controprova sui KPI — il numero grosso rimesso a «0» viene visto", () => {
+  const vero = leggi("apps/scudo/index.html");
+  ok(kpiNati(vero).length >= 8, `servono KPI veri per provarci: ${kpiNati(vero).length}`);
+  const rotto = vero.replace('<div class="l">Scadenze superate</div><div class="n" id="k-scadute">—</div>',
+    '<div class="l">Scadenze superate</div><div class="n" id="k-scadute">0</div>');
+  ok(rotto !== vero, "l'iniezione non ha trovato il suo pezzo: SCADUTA");
+  const visti = kpiNati(rotto).filter((c) => c.testo !== "—");
+  ok(visti.length === 1 && visti[0].id === "k-scadute",
+    `col difetto rimesso il controllo doveva vedere k-scadute: ${JSON.stringify(visti)}`);
+  /* ⚠️ e il verso opposto: senza questa metà il difetto NON si vedeva. È la
+     misura di quanto quel buco fosse scoperto, non un dettaglio. */
+  ok(contatoriNati(rotto).filter((c) => c.testo !== "—").length === 0,
+    "la metà vecchia della regola, da sola, sul KPI a zero risponde «nessuna violazione»");
 });
 
 test("regola 20: ogni non-misurabilità dichiarata è letta da qualcuno", () => {

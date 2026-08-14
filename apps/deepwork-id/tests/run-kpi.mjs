@@ -32423,5 +32423,284 @@ test("frasePersi · ⚠️ NIENTE `esc()`: la frase esce come l'utente l'ha scri
 }
 /* ===== fine Conti · il ripiego silenzioso ===== */
 
+/* ══════════════════════════════════════════════════════════════════════
+   CAMPO · LO ZERO DIGITATO NEI MINUTI DI FERMO — decisione APERTA,
+   dichiarata e SORVEGLIATA (14/08, dal censimento dei clamp B0-duodecies)
+   ══════════════════════════════════════════════════════════════════════
+   ⛔ QUESTO BLOCCO NON CHIUDE LA DECISIONE, E NON DEVE. Il 13/08, chiudendo il
+   punto di scrittura dei minuti di fermo, un cantiere l'aveva già trovata e
+   lasciata aperta con la ragione scritta accanto alla prova «file e schermo
+   dicono la stessa cosa»: «su quel valore il modulo ha oggi DUE letture
+   diverse … è una decisione di prodotto ancora aperta, e una prova che la
+   fissasse in un verso o nell'altro blinderebbe una delle due». Quel giudizio
+   regge, e queste prove non lo toccano.
+   Quello che NON era stato misurato è l'AMPIEZZA, e cambia chi deve decidere:
+
+   · la nota diceva «DUE letture» (`minutiFermoDi` contro `anomalieAperte`). I
+     punti che decidono «questo fermo ha i minuti?» sono **SEI**: uno risponde
+     MISURA, cinque rispondono ASSENZA. Non è una divergenza fra pari: è un
+     posto solo fuori passo rispetto a cinque;
+   · e collocava il danno fra il CSV e lo schermo. Misurato oggi chiamando le
+     funzioni, la divergenza arriva sul RAPPORTO STAMPATO — quello che si
+     consegna al capocantiere e che un ispettore chiede — in due tabelle a
+     poche righe di distanza:
+         «Fermi per causale»       -> | Guasto meccanico | 1 | 0 min |, e NESSUNA coda
+         «Disponibilità del turno» -> | 1 fermo (di cui 1 senza minuti) | senza minuti |
+     che è, parola per parola, la geometria per cui il difetto del 13/08
+     contava. Il 13/08 è stata tolta la strada che produceva quello zero per
+     SBAGLIO (il campo svuotato); chi digita «0» apposta ci arriva ancora.
+   ⚠️ E la prova del 13/08 che si chiama «le due tabelle dello STESSO rapporto
+     stampato non si smentiscono più» prova `fermoMin: null` — non lo `0` che
+     la sua prima riga di commento nomina. È la quinta causa di «non
+     distingue»: il caso difeso non c'è nella prova.
+
+   ⛔ PERCHÉ UNA SORVEGLIANZA E NON UNA CORREZIONE. Chi chiuderà la decisione
+   deve toccare SEI posti; chiuderne uno solo non produce un errore, produce lo
+   stesso foglio che si contraddice da un'altra parte — cioè il difetto
+   spostato, non tolto. Queste prove cadono il giorno in cui qualcuno ne muove
+   uno e gli mettono davanti l'elenco intero. È l'eccezione dichiarata per nome,
+   con la ragione, e sorvegliata: non può sopravvivere alla sua causa.
+   ⚠️ Prove SINCRONE e PRIMA del riepilogo: l'`await Promise.all(inVolo)` sta
+   migliaia di righe più su, quindi una prova `async` messa qui verrebbe
+   messa in volo e il totale si stamperebbe senza aspettarla. */
+{
+  const ZD = "2026-08-14", ZT = "Mattina";
+  const ZDUR = [{ data: ZD, turno: ZT, minuti: 480 }];
+  const zAnom = (fermoMin) => ({ id: "z1", data: ZD, turno: ZT, stato: "anomalia",
+    titolo: "Nastro 3 fermo", causale: "Guasto meccanico", fermoMin });
+  /* la stessa anomalia SENZA giorno di lavoro: è l'ingresso di
+     `registrazioniSenzaGiorno`, che ha il suo conto dei fermi muti */
+  const zSenzaData = (fermoMin) => ({ ...zAnom(fermoMin), data: "" });
+  const zOggi = new Date(ZD + "T12:00:00");
+
+  /* i SEI punti che decidono, ognuno interrogato su «questo fermo risulta
+     SENZA minuti?». Sono i posti veri del prodotto, non una mia lettura del
+     sorgente: la risposta la dà la funzione. */
+  const ZPUNTI = [
+    ["minutiFermoDi (e con lei paretoFermi e csvAttivita)",
+      (m) => campo.minutiFermoDi(zAnom(m)) === null],
+    ["anomalieAperte — la riga a schermo",
+      (m) => campo.anomalieAperte([zAnom(m)])[0].minuti === null],
+    ["storicoSettimana — la riga di giornata",
+      (m) => campo.storicoSettimana([zAnom(m)], [], 7, zOggi).find((g) => g.data === ZD).fermiSenzaMinuti === 1],
+    ["registrazioniSenzaGiorno — le righe senza giorno",
+      (m) => campo.registrazioniSenzaGiorno([zSenzaData(m)], []).fermiSenzaMinuti === 1],
+    ["disponibilitaTurno — il turno",
+      (m) => campo.disponibilitaTurno([zAnom(m)], ZDUR, ZD, ZT, []).fermiSenzaMinuti === 1],
+    ["fermiPerGiorno — il grafico dei fermi",
+      (m) => campo.fermiPerGiorno([zAnom(m)], 14, zOggi)[0].fermiSenzaMinuti === 1],
+  ];
+
+  test("⛔ Campo · lo ZERO nei minuti di fermo: sei punti decidono, e NON dicono la stessa cosa", () => {
+    /* il denominatore è dichiarato: se domani nascesse un settimo punto e
+       nessuno lo aggiungesse qui, questa riga se ne accorgerebbe da sola */
+    eq(ZPUNTI.length, 6, "sei punti di decisione guardati");
+    const assenza = ZPUNTI.filter(([, f]) => f(0)).map(([n]) => n);
+    const misura = ZPUNTI.filter(([, f]) => !f(0)).map(([n]) => n);
+    eq(assenza.length + " contro " + misura.length, "5 contro 1",
+      "lo zero digitato: cinque punti lo leggono ASSENZA, uno MISURA — " + misura.join(", "));
+    eq(misura, ["minutiFermoDi (e con lei paretoFermi e csvAttivita)"],
+      "e il punto fuori passo è quello, per nome: chi chiude la decisione sa dove guardare");
+  });
+
+  test("⛔ Campo · sull'assenza vera e sulla misura vera i sei punti sono d'accordo", () => {
+    /* la metà che dichiara il contratto che NON deve cambiare: la divergenza
+       vive SOLO sullo zero. Senza questa prova, chi «aggiusta» un punto non
+       saprebbe di aver rotto i due casi su cui l'accordo c'era già. */
+    for (const [nome, f] of ZPUNTI) {
+      ok(f(null), nome + ": il campo mai compilato è un'assenza per tutti");
+      ok(!f(55), nome + ": 55 minuti sono una misura per tutti");
+    }
+    eq(ZPUNTI.length, 6, "sei punti guardati due volte ciascuno: dodici risposte");
+  });
+
+  test("⛔ Campo · con lo ZERO digitato il RAPPORTO STAMPATO si smentisce da sé, due tabelle sotto", () => {
+    /* le due tabelle si compongono qui come le compone la pagina: la prima da
+       `riepilogoFermi` + `paretoFermi`, la seconda da `disponibilitaTurno`,
+       tutt'e due passando da `minutiFermoTesto`. Chiamare il codice di
+       prodotto e non una mia versione di esso è la differenza fra una prova e
+       una copia debole scritta dentro la difesa. */
+    const tabellaCausali = (att) => {
+      const pf = campo.paretoFermi(att);
+      const righe = campo.riepilogoFermi(att).map((f) => {
+        const v = pf.voci.find((x) => x.causale === f.causale);
+        return v ? campo.minutiFermoTesto(v.minuti, v.conto, v.senzaMinuti) : "senza minuti";
+      });
+      return { righe, coda: pf.senzaMinutiTot > 0 };
+    };
+    const tabellaDisponibilita = (att) => {
+      const d = campo.disponibilitaTurno(att, ZDUR, ZD, ZT, []);
+      return { senzaMinuti: d.fermiSenzaMinuti,
+               tempoPerso: d.fermi ? campo.minutiFermoTesto(d.fermiMin, d.fermi, d.fermiSenzaMinuti) : "—" };
+    };
+    const zero = [zAnom(0)];
+    const c0 = tabellaCausali(zero), d0 = tabellaDisponibilita(zero);
+    eq(c0.righe, ["0 min"], "in alto il foglio AFFERMA una misura: «0 min»");
+    eq(c0.coda, false, "e non stampa la coda «N su M senza i minuti registrati»: per lei non manca nessuno");
+    eq(d0.tempoPerso, "senza minuti", "poche righe più giù, lo STESSO foglio dice «senza minuti»");
+    eq(d0.senzaMinuti, 1, "e conta quel fermo fra quelli che nessuno ha misurato");
+    /* ⛔ il verso in cui la contraddizione è cara: chi legge la tabella di
+       sopra conclude che il turno non ha perso tempo. La riga qui sotto è la
+       differenza fra «si sono contraddette» e «si contraddicono su QUESTO». */
+    ok(c0.righe[0] !== d0.tempoPerso,
+      "le due tabelle dello stesso foglio dicono due cose diverse dello stesso fermo");
+
+    /* e sui due valori su cui la decisione NON è aperta il foglio è coerente:
+       se cadessero anche queste, la prova non starebbe misurando lo zero */
+    for (const [m, atteso] of [[null, "senza minuti"], [55, "55 min"]]) {
+      const att = [zAnom(m)];
+      eq(tabellaCausali(att).righe[0], tabellaDisponibilita(att).tempoPerso,
+        "fermoMin=" + mostra(m) + ": qui le due tabelle si accordano, ed è giusto così");
+      eq(tabellaCausali(att).righe[0], atteso, "fermoMin=" + mostra(m) + ": e dicono " + atteso);
+    }
+  });
+
+  test("⛔ Campo · e i DUE file che escono dalla stessa app raccontano lo stesso fermo in due modi", () => {
+    /* `csvAttivita` passa da `minutiFermoDi` (per lei lo zero è una misura),
+       `csvStorico` dalle righe di `storicoSettimana` (per lei è un'assenza).
+       Chi apre i due file e somma la colonna trova due totali. */
+    const colAtt = campo.ATTIVITA_COLONNE.indexOf("minuti_fermo");
+    ok(colAtt >= 0, "la colonna dei minuti esiste nel CSV delle attività");
+    const cellaAttivita = (m) => campo.csvAttivita([zAnom(m)]).trim().split("\n")[1].split(";")[colAtt];
+    const cellaStorico = (m) => {
+      const g = campo.storicoSettimana([zAnom(m)], [], 7, zOggi).find((x) => x.data === ZD);
+      return campo.csvStorico([g], null).trim().split("\n")[1].split(";")[1];
+    };
+    eq(cellaAttivita(0), "0", "campo_attivita.csv scrive uno ZERO, cioè una misura");
+    eq(cellaStorico(0), "", "campo_storico.csv lascia la cella VUOTA, cioè «non misurato»");
+    ok(cellaAttivita(0) !== cellaStorico(0), "sullo stesso fermo i due file non dicono la stessa cosa");
+    for (const m of [null, 55]) {
+      eq(cellaAttivita(m), cellaStorico(m),
+        "fermoMin=" + mostra(m) + ": qui i due file coincidono, ed è il contratto che non deve cambiare");
+    }
+  });
+}
+/* ===== fine Campo · lo zero digitato nei minuti di fermo ===== */
+
+/* ═══════════════════════════════════════════════════════════════════════
+   SCUDO · IL PANNELLO VERDE CHE DICHIARAVA IN REGOLA UN REGISTRO VUOTO
+   -----------------------------------------------------------------------
+   Il difetto, misurato il 14/08 APRENDO LA PAGINA (non leggendo il codice):
+   quando nessuna delle undici famiglie di urgenze produce una riga, il Quadro
+   mostra il pannello verde «Nessuna urgenza» e la sua frase dichiara in regola
+   otto cose — idoneità, mansioni, nomine, scadenze, azioni correttive, ciclo
+   del DSS, permessi di lavoro, verifiche periodiche. Su una cava col personale
+   a posto e tutti gli altri registri vuoti quel pannello scriveva «…sono tutti
+   in regola», e la schermata Personale, SUGLI STESSI DATI E NELLO STESSO
+   ISTANTE, scriveva «di 1 non c'è nessuna scadenza registrata: non è «a posto»,
+   è una persona di cui non si sa niente».
+   ⚠️ Prove SINCRONE e messe PRIMA del riepilogo: l'`await Promise.all(inVolo)`
+   sta a metà file, quindi una prova asincrona appesa qui non verrebbe aspettata
+   e il totale si stamperebbe senza di lei. */
+{
+  const { registriMuti, kpiFrom, NOMINE_RUOLI, requisitoFormazione, dssDaSeguire,
+          TIPO_VERIFICA_PERIODICA, idoneitaLabel } = scudo;
+  const OGGI = new Date("2026-08-14T09:00:00Z");
+  const fra = (g) => { const d = new Date(OGGI); d.setDate(d.getDate() + g); return d.toISOString().slice(0, 10); };
+  const chiavi = (x) => registriMuti(x, OGGI).map((m) => m.chiave);
+
+  /* la scena vera, quella che il browser ha misurato: due persone in forza con
+     l'idoneità dichiarata, la formazione dei ruoli obbligatori su UNA sola, e
+     nessun altro registro scritto */
+  const LAV = [{ id: "L1", nome: "Mario", attivo: true, idoneita: "idoneo" },
+               { id: "L2", nome: "Anna", attivo: true, idoneita: "idoneo" }];
+  const SCA = NOMINE_RUOLI.filter((r) => r.obbligatoria && r.requisito).map((r, i) => {
+    const q = requisitoFormazione(r.requisito);
+    return { id: "s" + i, lavoratoreId: "L1", tipo: q.tipo, descrizione: q.etichetta, dataScadenza: fra(700) };
+  });
+
+  test("⛔ Scudo · il pannello verde: sulla scena misurata nel browser i registri muti si NOMINANO", () => {
+    const muti = registriMuti({ lavoratori: LAV, scadenze: SCA }, OGGI);
+    eq(muti.map((m) => m.chiave), ["mansioni", "scadenze", "verifiche", "dss", "ispezioni", "permessi"],
+      "sei registri muti, dalle persone alle cose");
+    eq(muti.find((m) => m.chiave === "scadenze").quanti, 1,
+      "è la persona che la schermata Personale chiama già «di cui non si sa niente»");
+    eq(muti.find((m) => m.chiave === "mansioni").quanti, 2, "nessuna delle due ha una mansione assegnata");
+    ok(muti.every((m) => m.quanti > 0 && typeof m.frase === "string" && m.frase.length > 10),
+      "ogni voce porta un conto vero e una frase da leggere");
+  });
+
+  test("⛔ Scudo · e la scadenza muta è LO STESSO numero che il Quadro tiene fuori dai regolari", () => {
+    /* non un secondo criterio: `senzaScadenze` è già la decisione di `kpiFrom`,
+       che i «regolari» li tiene fuori apposta. Se un giorno cambia là, cambia
+       qui — ed è per questo che la prova pretende l'IDENTITÀ, non il valore. */
+    for (const q of [[], SCA, SCA.slice(0, 2)]) {
+      const atteso = kpiFrom(LAV, q).senzaScadenze;
+      const v = registriMuti({ lavoratori: LAV, scadenze: q }, OGGI).find((m) => m.chiave === "scadenze");
+      eq(v ? v.quanti : 0, atteso, "senzaScadenze=" + atteso + ": la voce dice lo stesso numero");
+    }
+  });
+
+  test("⛔ Scudo · con NIENTE scritto restano i quattro registri di cose, e nessuna persona viene inventata", () => {
+    eq(chiavi({}), ["verifiche", "dss", "ispezioni", "permessi"], "zero lavoratori, zero voci sulle persone");
+    eq(chiavi(), ["verifiche", "dss", "ispezioni", "permessi"], "e l'argomento assente non fa cadere niente");
+    eq(chiavi({ lavoratori: null, scadenze: null, mansioni: null, cantieri: null,
+      ispezioni: null, permessi: null, documenti: null }),
+      ["verifiche", "dss", "ispezioni", "permessi"], "né i campi a null");
+  });
+
+  test("⛔ Scudo · IL VERSO CHE NON DEVE CAMBIARE: con ogni registro scritto l'elenco è VUOTO", () => {
+    /* Una difesa che dichiara sempre qualcosa di muto sarebbe peggiore del
+       difetto: il pannello verde non comparirebbe MAI, e chi legge imparerebbe
+       a non guardarlo. È la lezione dell'allarme che scatta sempre. */
+    const pieno = {
+      lavoratori: [{ id: "L1", nome: "Mario", attivo: true, idoneita: "idoneo" }],
+      mansioni: [{ id: "m1", nome: "Escavatorista", lavoratoriIds: ["L1"] }],
+      scadenze: [{ id: "s1", lavoratoreId: "L1", tipo: "Formazione", descrizione: "art. 37", dataScadenza: fra(400) },
+                 { id: "s2", lavoratoreId: null, tipo: TIPO_VERIFICA_PERIODICA, descrizione: "Autogru",
+                   dataScadenza: fra(300), verificaEnte: "abilitato", verificaChi: "Organismo abilitato",
+                   verificaEsito: "idonea", verbaleId: "v1" }],
+      documenti: [{ id: "v1", titolo: "Verbale autogru", tipo: "Altro", stato: "valido" }],
+      cantieri: [{ id: "c1", nome: "Cava Monte Alto", tipo: "cava", stato: "attivo" }],
+      ispezioni: [{ id: "i1", nome: "Giro settimanale", data: fra(-3) }],
+      permessi: [{ id: "p1", lavoro: "Taglio in quota", tipo: "lavori-quota" }],
+    };
+    eq(registriMuti(pieno, OGGI), [], "niente da dichiarare: il Quadro può dire «tutti in regola»");
+    /* e togliendo UNA cosa per volta ricompare esattamente quella voce */
+    for (const [campo, chiave] of [["mansioni", "mansioni"], ["cantieri", "dss"],
+                                   ["ispezioni", "ispezioni"], ["permessi", "permessi"]]) {
+      eq(chiavi({ ...pieno, [campo]: [] }), [chiave], "senza " + campo + ": una voce sola, «" + chiave + "»");
+    }
+    eq(chiavi({ ...pieno, lavoratori: [{ id: "L1", nome: "Mario", attivo: true }] }), ["idoneita"],
+      "idoneità mai dichiarata: la voce c'è, e la decide `idoneitaLabel` con la classe vuota");
+    ok(idoneitaLabel(undefined).cls === "" && idoneitaLabel("idoneo").cls === "ok",
+      "ed è quella funzione a dire che cosa vuol dire «mai dichiarata»");
+  });
+
+  test("⛔ Scudo · una cava CHIUSA non zittisce il DSS due volte: la regola sta in un posto solo", () => {
+    /* `dssDaSeguire` e `registriMuti` chiedono la stessa cosa — quali cave sono
+       aperte — e prima quel filtro era scritto a mano in `dssDaSeguire`. La
+       prova è sul SORGENTE, come per le regole di `shared/`: due copie uguali
+       oggi divergono domani senza che nessuno lo veda. */
+    const src = readFileSync(join(HERE, "../../scudo/scudo-data.js"), "utf8");
+    const corpo = src.slice(src.indexOf("export function dssDaSeguire"),
+                            src.indexOf("export function registriMuti"));
+    ok(!/tipo === "cava"/.test(corpo),
+      "nel corpo di dssDaSeguire non c'è più il filtro delle cave scritto a mano");
+    ok(/caveAperte\(cantieri\)/.test(corpo), "lo chiede a `caveAperte`");
+    const chiuse = [{ id: "c1", nome: "Cava", tipo: "cava", stato: "chiuso" }];
+    eq(dssDaSeguire([], chiuse, []), [], "una cava chiusa non chiede niente");
+    eq(chiavi({ cantieri: chiuse }).includes("dss"), true,
+      "e per il pannello verde resta muta: non c'è nessuna cava aperta di cui dire qualcosa");
+    eq(chiavi({ cantieri: [{ id: "c2", nome: "Cava", tipo: "cava", stato: "attivo" }] }).includes("dss"), false,
+      "con una cava aperta il DSS non è più muto: lo guarda `dssDaSeguire`");
+  });
+
+  test("⛔ Scudo · la PAGINA la legge davvero: la frase «tutti in regola» sta dietro il ramo", () => {
+    /* La bandiera che nessuno legge non protegge niente (regola 20). Qui la
+       prova è che la frase verde non è più appesa a un `vuoto(I.ok, …)`
+       incondizionato, ma alla funzione che chiede al modulo. */
+    const pag = readFileSync(join(HERE, "../../scudo/index.html"), "utf8");
+    ok(/registriMuti,/.test(pag), "la pagina importa `registriMuti`");
+    ok(/if \(!muti\.length\) return vuoto\(I\.ok, "Nessuna urgenza", FRASE_QUADRO_PULITO\);/.test(pag),
+      "la frase verde si dice SOLO con l'elenco dei muti vuoto");
+    ok((pag.match(/FRASE_QUADRO_PULITO/g) || []).length === 2,
+      "e la frase è scritta una volta sola, con un nome: due copie divergono");
+    ok(/sono tutti in regola/.test(pag) && !/\|\| vuoto\(I\.ok, "Nessuna urgenza"/.test(pag),
+      "il vecchio ramo incondizionato non c'è più");
+  });
+}
+/* ===== fine Scudo · il pannello verde e i registri muti ===== */
+
 console.log(`\nRisultato KPI app: ${passed} passati, ${failed} falliti${inVolo.length ? `  ·  ${inVolo.length} prove asincrone aspettate` : ""}`);
 process.exit(failed > 0 ? 1 : 0);
