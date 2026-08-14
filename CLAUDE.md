@@ -322,6 +322,30 @@ ricerca** e va marcata così. Un numero di legge riportato di seconda mano e
 scritto in una schermata è **peggio di un numero assente** — il fondatore lo
 mostrerebbe a un cliente.
 
+⛔ **E ALLA QUARTA VOLTA SU QUATTRO IL MANDATO NON BASTA PIÙ: LA METÀ DEL DELTA
+VA TOLTA ALLA RICERCA.** Il 14/08 quattro ricerche di fila hanno consegnato una
+mancanza **falsa**, e la quarta l'ha fatto **dopo** che il mandato le elencava
+per nome le tre precedenti, con gli esempi. Cioè: il vincolo scritto — «per ogni
+"non c'è" incolla il comando e la sua uscita» — **non protegge**, perché un
+comando incollato che cerca la parola sbagliata è una prova a favore.
+Il conto, misurato: le quattro mancanze principali erano `near-miss` (esiste, è
+un `tipo` dentro `infortuni`), `safety stock` (esiste, si chiama
+`propostaScorte`, e la formula era **citata nella metà 1 della ricerca stessa**),
+`modello A` (la pagina scrive «dichiarazione annuale»), `periodicità standard`
+(il campo si chiama `periodicitaGiorni`, con valori veri nella dimostrazione).
+**Zero su quattro sono entrate in roadmap**, e riverificarle è costato **un
+minuto per riga** contro le centinaia di migliaia di token spesi a produrle.
+⚠️ **La causa non è la pigrizia dell'agente: è che il delta chiede una cosa che
+un agente di ricerca non può avere** — la conoscenza di come **questa** casa
+chiama le cose. Il prodotto è scritto in italiano col nome del mestiere; la
+ricerca arriva col vocabolario del mondo, e i due non si toccano.
+**Quindi la forma nuova, dal 14/08**: la ricerca consegna **solo la metà sul
+mondo**, con le fonti e la marcatura di seconda mano; **il delta lo fa chi ha il
+codice in mano** — il ciclo o un cantiere di prodotto — e lo fa **partendo dal
+meccanismo**: *chi calcola quanti pezzi ordinare? chi decide quando una verifica
+è scaduta?*, aprendo le funzioni, non cercando un nome. Quello che la ricerca
+può dare al delta è **la domanda**, non la risposta.
+
 ⛔ **E «NON C'È» VA PROVATO, NON DICHIARATO — misurato il 01/08 e costoso.**
 Le sei ricerche sui concorrenti hanno censito 470 funzioni con le fonti: quella
 metà è buona. Il **confronto con la nostra app** no. Delle tre mancanze più
