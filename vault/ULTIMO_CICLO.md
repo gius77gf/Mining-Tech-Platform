@@ -361,3 +361,26 @@ sulla stessa riga sola. È la **prima volta stanotte** che questo ramo è verde.
 cambiare è che adesso è dichiarato per nome, con la ragione, e una prova gli sta
 addosso — quella prova **cade** il giorno in cui la storia viene riscritta,
 quindi l'eccezione non può sopravvivere alla sua causa.
+
+## 14/08/2026, 03:46 UTC — ciclo nuovo, e quattro cantieri morti sul limite
+
+- **Commit di partenza**: `c8377f21`.
+- **Che cosa è successo**: il blocco precedente si è fermato sul **limite di
+  sessione** (l'unico stop legittimo), e con lui sono morti **quattro cantieri
+  prima di consegnare**: B0-tervicies (la spalla assente in Genesi), il debito
+  di B5 (`frasePersi` in `shared/` + i quattro lettori miti), B5-bis (i sei
+  lettori di Scudo e Sentinella) e la ricerca sulle parole del mestiere.
+- **Il loro lavoro è sul disco, NON committato**: 18 file modificati. ⛔ Non lo
+  committo alla cieca: nessuno dei quattro ha consegnato le sue misure, e in
+  questa casa niente entra sulla parola di un agente — men che meno sulla
+  parola di un agente che non ha finito di parlare. **Lo verifico io, pezzo per
+  pezzo, sulla copia di quello che si committa**, e quello che non regge resta
+  fuori con la ragione scritta.
+- **Che cosa sto per fare**: (1) canarino; (2) misurare che cosa di quei 18 file
+  è completo e verde, e committare solo quello; (3) dichiarare per nome ciò che
+  resta a metà, così il ciclo dopo non lo scopre per caso; (4) rilanciare il
+  giro del browser su uno stato fermo — è la verifica che manca a tutto il
+  lavoro di stanotte.
+- **Lo stato all'ultimo commit verificato**: `run-kpi` **2182**, giro `node`
+  **2.973** asserzioni su 34 comandi (34 a posto, 0 caduti), copertura app
+  **741/741**, condivisi 171/171, 198 esecuzioni di banco, CI **verde**.
