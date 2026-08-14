@@ -74,6 +74,7 @@
 import { createServer } from "node:http";
 import { readFileSync, existsSync, statSync, writeFileSync, unlinkSync } from "node:fs";
 import { join, extname } from "node:path";
+import { pathToFileURL } from "node:url";
 
 const R = process.env.DW_RADICE || "/home/user/Mining-Tech-Platform";
 const CONTROPROVA = process.argv.includes("--controprova");
@@ -168,6 +169,39 @@ const FIX = `
   DEMO.mansioni.push({ id: "gG1", nome: "BANCO G1", requisiti: ["gG-mai-fatto"], dpi: [], lavoratoriIds: ["d1"] });
 })();
 `;
+
+/* ── L'ATTESA DEL MURO SI DERIVA, NON SI SCRIVE ───────────────────────────
+   ⛔ QUI SOTTO C'ERA UN NUMERO A MANO, E IL 14/08 HA ACCUSATO IL PRODOTTO PER
+   IL SOLO FATTO CHE ERANO PASSATI SETTE GIORNI. Il banco pretendeva
+   `33 · 2 · 21 · 5 · 2 · 0 · 1` e leggeva `34 · 1 · …`: la somma era la
+   stessa (35), a muoversi era UNA scadenza della dimostrazione — «Formazione
+   preposto», 2026-08-09 — che nel frattempo era passata da «in scadenza» a
+   «scaduta», cioè dalla colonna del mese a quella rossa dell'arretrato. Il
+   prodotto non ha mai sbagliato; il messaggio del banco («è il CASO a non
+   essersi presentato») era un'accusa FALSA, la seconda su questo stesso muro.
+   ⚠️ E NON ERA UN CASO ISOLATO: rifacendo il conto giorno per giorno, questa
+   riga scritta a mano cambia SEI volte in 68 giorni — l'ultima volta due
+   giorni dopo il giro. Un'attesa così non invecchia, nasce già vecchia.
+   Adesso la si chiede alla stessa funzione che la pagina chiama
+   (`muroScadenze`), sulla STESSA iniezione: `FIX` è la sola fonte del caso,
+   applicata a una copia in memoria della dimostrazione. Il controllo che resta
+   è quello che serviva: **quello che il modulo dice arriva davvero a
+   schermo**, cioè la precondizione di tutte le misure in pixel che seguono. Il
+   conto dentro `muroScadenze` non lo prova questo banco — lo prova `run-kpi`.
+   ⚠️ Verificato nei due estremi prima di scriverlo: con l'orologio al 07/08 la
+   derivazione dà esattamente il vecchio `33 · 2 · 21 · 5 · 2 · 0 · 1` (che
+   quel giorno era verde nel browser), col 14/08 esattamente il
+   `34 · 1 · 21 · 5 · 2 · 0 · 1` che il giro ha LETTO SULLO SCHERMO. Cioè la
+   derivazione combacia con due osservazioni del browser indipendenti. */
+const MESI_MURO = 6;   // viewport 430 → `largoMuro` fra 360 e 600: sei colonne
+const { DEMO: DEMO_SCUDO, muroScadenze } =
+  await import(pathToFileURL(join(R, "apps/scudo/scudo-data.js")).href);
+const attesiMuro = (() => {
+  const copia = JSON.parse(JSON.stringify(DEMO_SCUDO));
+  new Function("DEMO", FIX)(copia);      // la stessa iniezione servita al browser
+  const m = muroScadenze(copia.scadenze, new Date(), MESI_MURO);
+  return (m.scadute ? [m.scadute] : []).concat(m.mesi.map((x) => x.totale));
+})();
 
 /* I DIFETTI DA RIMETTERE. Si CONTANO: un `replace` che non trova niente esce
    in silenzio, e una controprova che non sostituisce niente non prova niente.
@@ -416,14 +450,21 @@ await vaiA("nav-scad", "page-scad");
    famiglia già censita in CLAUDE.md — «un banco che porta dentro un numero
    atteso invecchia col crescere della dimostrazione» — ed è la seconda volta
    in due giorni.
-   ⚠️ NON È RISOLTA, è solo ri-misurata: la cura vera è DERIVARE l'attesa
-   invece di scriverla (dal modulo, con la stessa iniezione), ed è un cantiere
-   a sé. Finché non c'è, i numeri stanno qui con la loro data, così chi li
+   ✅ 14/08 — LA CURA È STATA FATTA, MA SU UN ELENCO SOLO: il **muro** adesso
+   deriva la sua attesa da `muroScadenze` (vedi il blocco `attesiMuro` in cima),
+   perché era l'unico che cambiava da sé col passare dei giorni — sei volte in
+   68 giorni, misurato. Gli altri cinque restano scritti a mano, e restano
+   esposti alla stessa famiglia: si muovono quando si muove la dimostrazione,
+   non quando passa il tempo, quindi cadono più di rado e in un modo che si
+   riconosce (la somma cambia). Chi li deriverà chiuda anche questa riga.
+   ⚠️ Finché non c'è, i numeri stanno qui con la loro data, così chi li
    ritocca sa che sta ritoccando un'attesa invecchiata e non un difetto. */
 console.log("\n· A — copertura della formazione per tipo (barre orizzontali)");
 giudicaBarre("copertura", await barreDi("graf-copertura", true), [24, 6, 1, 1, 1, 1, 1, 1, 0, 0, 0]); // rimisurato 07/08
 console.log("\n· B — il muro delle scadenze (barre verticali, un mese a zero)");
-giudicaBarre("muro", await barreDi("graf-muro", false), [33, 2, 21, 5, 2, 0, 1]); // rimisurato 07/08
+console.log(`      attesa DERIVATA da muroScadenze(${MESI_MURO} mesi) sulla stessa iniezione:`
+  + ` ${attesiMuro.join(" · ")}  (non scritta a mano: cambierebbe da sola sei volte in 68 giorni)`);
+giudicaBarre("muro", await barreDi("graf-muro", false), attesiMuro);
 
 /* ══ PERSONALE · chi posso mandare ════════════════════════════════════════ */
 await vaiA("nav-pers", "page-pers", "mans");

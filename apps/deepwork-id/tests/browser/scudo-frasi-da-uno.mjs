@@ -185,7 +185,10 @@ const CASI = {
 
 /* ── LA CONTROPROVA: i difetti VERI rimessi nella copia SERVITA ───────────
    Sono le diciassette frasi trovate il 07/08, nella forma esatta che avevano
-   prima della correzione. Non sono difetti inventati: se una di queste non
+   prima della correzione, più le DUE aggiunte il 14/08 con le asserzioni che
+   le esercitano (diciannove in tutto: il conto vero lo stampa `ATTESI` in
+   fondo, che è derivato — qui la cifra è solo il racconto).
+   Non sono difetti inventati: se una di queste non
    facesse più cadere il banco, vorrebbe dire che il banco ha smesso di
    guardare lì. Si contano quelle **rimesse davvero**: un `replace` che non
    trova niente non fallisce, e una controprova che non inietta è una prova che
@@ -250,6 +253,16 @@ const DIFETTI_PAGINA = [
      in cui non si tocca né la prova né il codice. */
   ['`Import completato: ${conta(aggiunti, "lavoratore aggiunto", "lavoratori aggiunti")}`',
    '`Import completato: ${aggiunti} lavoratori aggiunti`'],
+  /* le altre due metà della stessa frase, aggiunte il 14/08 col file che le
+     esercita: senza queste, due delle quattro asserzioni nuove non sarebbero
+     mai state messe alla prova — e una prova che non sa fallire non dimostra
+     niente. La quarta metà («1 riga del file non è entrata») vive in
+     `shared/frasePersi`, che questo banco non riscrive: se perdesse il
+     singolare la prenderebbe D1, che cerca «1 righe». */
+  ['conta(gia, "era già in anagrafica", "erano già in anagrafica")',
+   'gia + " erano già in anagrafica"'],
+  ['conta(scartate.ripetute, "ripetuto nel file", "ripetuti nel file")',
+   'scartate.ripetute + " ripetuti nel file"'],
   // 8 · la mansione appena aggiunta: tre numeri in una frase sola
   ['" (" + conta(rec.requisiti.length, "corso", "corsi") + ", " + conta(rec.dpi.length, "DPI", "DPI") + ", " + conta(rec.lavoratoriIds.length, "persona", "persone") + ")."',
    '" (" + rec.requisiti.length + " corsi, " + rec.dpi.length + " DPI, " + rec.lavoratoriIds.length + " persone)."'],
@@ -429,9 +442,37 @@ console.log('\n· il caso «uno»: un lavoratore, una scadenza, un near-miss, un
 
   await vaiSez(p, 'nav-pers');
   await p.click('#pers-tabs [data-tab="lav"]').catch(() => {}); await p.waitForTimeout(400);
-  await carica('#csv-file', 'nome;ruolo;telefono\n');   // solo l'intestazione: UNA riga saltata
+  /* ⏱️ RIPUNTATO IL 14/08, e la ragione è la solita: il codice si è mosso
+     perché è MIGLIORATO. Qui c'era un file con la sola intestazione e l'attesa
+     «1 riga saltata (intestazioni o duplicati)». Quel conto unico metteva
+     insieme quattro cose diverse e l'unità B5-bis l'ha spezzato in tre
+     famiglie — l'intestazione non è più una perdita, e non si dice: con quel
+     file il prodotto risponde, giustamente, «Import completato: 0 lavoratori
+     aggiunti.» e il banco accusava una frase che non esiste più.
+     ⛔ E NON SI È ALLARGATA L'ASSERZIONE PER FARLA PASSARE: il file nuovo
+     esercita QUATTRO singolari invece di uno — l'aggiunto, il già in
+     anagrafica, il ripetuto nel file e la riga persa — caricato DUE volte
+     perché il ramo «era già in anagrafica» lo si raggiunge solo alla seconda.
+     ⚠️ Il nome «Mario Verdi» è del banco, non della dimostrazione: così il ramo
+     «già in anagrafica» non dipende da chi c'è nell'archivio d'esempio. */
+  const csvLav = 'nome;ruolo;telefono\nMario Verdi;operaio;333 1234567\n'
+    + 'Mario Verdi;operaio;333 1234567\n;operaio;333 7654321\n';
+  await carica('#csv-file', csvLav);
   const i3 = await testo(p, '#import-esito');
-  dice(/1 riga saltata \(intestazioni o duplicati\)/.test(i3), '⛔ «1 riga saltata», non «1 righe saltate»', i3);
+  setaccio('uno/import-lavoratori', i3);
+  dice(/Import completato: 1 lavoratore aggiunto\b/.test(i3) && !/1 lavoratori aggiunti/.test(i3),
+    '⛔ «1 lavoratore aggiunto», non «1 lavoratori aggiunti»', i3);
+  dice(/1 ripetuto nel file\b/.test(i3) && !/1 ripetuti nel file/.test(i3),
+    '⛔ il doppione dentro il file: «1 ripetuto nel file», non «1 ripetuti»', i3);
+  /* la riga persa è una PERSONA che non entra: la frase sta in `shared/`
+     (`frasePersi`) e la dicono venti gestori d'importazione */
+  dice(/1 riga del file non è entrata\b/.test(i3) && !/1 righe del file non sono entrate/.test(i3),
+    '⛔ «1 riga del file non è entrata», non «1 righe del file non sono entrate»', i3);
+  await carica('#csv-file', csvLav);   // la seconda volta: la persona c'è già
+  const i3b = await testo(p, '#import-esito');
+  setaccio('uno/import-lavoratori-2', i3b);
+  dice(/1 era già in anagrafica\b/.test(i3b) && !/1 erano già in anagrafica/.test(i3b),
+    '⛔ al secondo caricamento: «1 era già in anagrafica», non «1 erano già in anagrafica»', i3b);
 
   // 5 · la mansione appena aggiunta: tre numeri in una frase sola
   await p.click('#pers-tabs [data-tab="mans"]').catch(() => {}); await p.waitForTimeout(600);
