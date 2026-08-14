@@ -291,14 +291,38 @@ const sogliaValida = (v) => Number.isFinite(+v) && +v > 0;
 // costruzione: con una soglia subnormale (1e-320) la divisione darebbe
 // `Infinity`, e `Math.round(Infinity*100)` finisce sulla pagina come
 // «Infinity%».
+/* ⛔ E IL SECONDO RIPIEGO STAVA NELLA RIGA DEL RAPPORTO: `(+mm.valore || 0)`.
+   Il numeratore veniva letto una SECONDA volta, e con una guardia più debole
+   di quella tre righe sopra — che scarta i valori non leggibili, ma solo per
+   decidere «Mai misurato». Se il punto ha letture in archivio la guardia non
+   scatta, e un `mm.valore` illeggibile (`null`, `""`, `"abc"`) cadeva sul
+   ripiego: rapporto **0**, cioè il verdetto più tranquillo che questa app
+   sappia dire — **«Conforme», verde, `calcolabile: true`** — su un punto la
+   cui ultima lettura in archivio è un **superamento**. Misurato con soglia 5 e
+   una lettura a 9: «Conforme» invece di «Superamento». Direzione: RASSICURA, e
+   su un numero che finisce nel foglio per l'ARPA.
+   ⚠️ Raggiungibilità dichiarata e non gonfiata: **latente**. Tutti gli
+   scrittori di `monitoraggi` tengono `valore` in sincrono con l'ultima lettura
+   (`valore: ult ? ult.valore : …`), e l'import CSV scrive un valore con
+   `letture: []`, dove la guardia di sopra risponde giusto. Ci si arriva con un
+   dato scritto a mano o con una riga più vecchia di quel filtro — la stessa
+   famiglia di `statoConsegnaDpi` e della data impossibile in Scudo.
+   La cura non aggiunge STATI (la regola 18 di `run-stile` pretende che la
+   mappa dei badge copra tutti gli stati che questa funzione sa dire) e non
+   tocca nessuna soglia: il valore corrente si legge da dove ogni scrittore lo
+   tiene in sincrono — l'ultima lettura — invece di inventare uno zero.
+   Erano due letture dello stesso numero con due contratti: adesso è una. */
 export function statoMisura(m) {
   const mm = m || {};
-  const v = +mm.valore;
-  if (!ultimaLettura(mm) && !(Number.isFinite(v) && v > 0))
+  const dichiarato = numeroDichiarato(mm.valore);
+  const v = dichiarato != null && Number.isFinite(dichiarato) ? dichiarato : null;
+  const ul = ultimaLettura(mm);
+  if (!ul && !(v != null && v > 0))
     return { cls: "warn", label: "Mai misurato", stato: "mai", ratio: null, calcolabile: false };
   if (!sogliaValida(mm.soglia))
     return { cls: "warn", label: "Senza soglia", stato: "senza-soglia", ratio: null, calcolabile: false };
-  const r = (+mm.valore || 0) / Math.max(0.001, +mm.soglia);
+  // `ul.valore` è finito per costruzione (`ultimaLettura` scarta i non numeri)
+  const r = (v != null ? v : ul.valore) / Math.max(0.001, +mm.soglia);
   if (r >= 1) return { cls: "danger", label: "Superamento", stato: "superamento", ratio: r, calcolabile: true };
   if (r >= 0.9) return { cls: "warn", label: "Attenzione", stato: "attenzione", ratio: r, calcolabile: true };
   return { cls: "ok", label: "Conforme", stato: "conforme", ratio: r, calcolabile: true };
@@ -3693,15 +3717,38 @@ export function confermaVolataEseguita(volata, corr = {}, oggi = new Date()) {
   if (!v.id) errori.push({ campo: "", testo: "Volata non trovata nel registro." });
   else if (!volataPrevista(v)) errori.push({ campo: "", testo: "Questa volata è già registrata come eseguita: non c'è niente da confermare." });
   // Campo NON toccato (chiave assente) → resta il valore del progetto.
-  // Campo SVUOTATO dall'utente ("") → zero: è una correzione, non una
-  // dimenticanza, e va rispettata come nel form del registro a mano.
   // I numeri arrivano dai campi decimali della modale, scritti a mano: la
-  // virgola italiana vale quanto il punto, e «1.250,5» vale 1250,5. Se non
-  // si legge un numero il campo torna a zero, come prima.
+  // virgola italiana vale quanto il punto, e «1.250,5» vale 1250,5.
+  /* ⛔ IL RIPIEGO SILENZIOSO CHE STAVA QUI: QUESTA ERA LA TERZA PENNA, E
+     L'UNICA CHE SCRIVEVA ZERO. Le righe dicevano «campo svuotato → zero: è una
+     correzione, non una dimenticanza», e per il campo svuotato era una scelta;
+     ma la stessa riga trattava così anche il campo MAI TOCCATO, perché il
+     ripiego era `+fall` — e `+null` fa **0**, con `Number.isFinite(0)` che
+     risponde **true**. È alla lettera il tranello che `numeroDichiarato`
+     esiste per togliere, e che sta scritto nel suo commento in `shared/`.
+     Chi scrive questi quattro campi è in tre, e gli altri due rispondevano
+     GIÀ `null` su un dato che nessuno ha dichiarato:
+       · `parseVolateCsv` — «una casella vuota nel file non è una
+         dichiarazione di zero», con la sua ragione scritta;
+       · il form del registro a mano — `vn`/`interoVuoto` nella pagina.
+     Quindi questa non è una regola nuova né un contratto allargato: è la
+     copia debole che decideva al contrario delle sue due sorelle. Il
+     contratto `numero | null` era già quello in archivio (la dimostrazione
+     porta `distanzaRicettore: null` sulla volata b4) e tutti i lettori lo
+     reggevano già — censiti uno per uno.
+     Misurato: una volata prevista arrivata da Genesi con le tre caselle
+     vuote, confermata senza toccare niente, usciva con
+     `kgTotali/kgMaxRitardo/distanzaRicettore = 0`. Da lì `riepilogoVolate`
+     diceva «kgMeseSenza: 0» — cioè *tutto dichiarato* — e il registro
+     esportato scriveva `;0;0;0;` dove nessuno aveva misurato niente: il file
+     che va all'ente, con la direzione che RASSICURA.
+     Uno zero SCRITTO resta zero: quello è una dichiarazione, e si distingue
+     perché l'utente lo digita. */
   const num = (x, fall) => {
-    if (x === undefined || x === null) { const f = +fall; return Number.isFinite(f) && f >= 0 ? f : 0; }
+    if (x === undefined || x === null) return numeroDichiarato(fall);
+    if (String(x).trim() === "") return null;
     const n = numIt(x);
-    return Number.isFinite(n) && n >= 0 ? n : 0;
+    return Number.isFinite(n) && n >= 0 ? n : null;
   };
   const data = String(corr.data == null ? (v.data || "") : corr.data).slice(0, 10);
   if (!/^\d{4}-\d{2}-\d{2}$/.test(data))
@@ -3725,9 +3772,15 @@ export function confermaVolataEseguita(volata, corr = {}, oggi = new Date()) {
   const conf = [["data", "data"], ["fronte", "fronte"], ["nFori", "n° fori"],
     ["kgTotali", "kg totali"], ["kgMaxRitardo", "kg max per ritardo"],
     ["distanzaRicettore", "distanza del ricettore"], ["esito", "esito"], ["note", "note"]];
+  /* ⚠️ E QUI IL CONTRATTO ALLARGATO VA LETTO ANCHE DA CHI STA NELLA STESSA
+     FUNZIONE: `prima` era già normalizzato a "" per un dato assente, `campi[k]`
+     no. Con `null` fra i valori possibili, `String(null)` fa **"null"**, che
+     non è "": un campo che nessuno ha toccato avrebbe dichiarato un CAMBIO
+     INVENTATO («— → null») nel messaggio che l'utente legge prima di salvare. */
+  const comeScritto = (x) => (x == null ? "" : x);
   for (const [k, et] of conf) {
-    const prima = k === "esito" ? (v.esito || "regolare") : (v[k] == null ? "" : v[k]);
-    if (String(prima) !== String(campi[k])) cambi.push({ campo: k, etichetta: et, da: prima, a: campi[k] });
+    const prima = k === "esito" ? (v.esito || "regolare") : comeScritto(v[k]);
+    if (String(prima) !== String(comeScritto(campi[k]))) cambi.push({ campo: k, etichetta: et, da: prima, a: campi[k] });
   }
   return { ok: errori.length === 0, errori, campi, cambi };
 }

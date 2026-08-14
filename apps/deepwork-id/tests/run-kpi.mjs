@@ -3935,10 +3935,20 @@ test("conferma volata: i chili scritti con la virgola non decuplicano", () => {
     { kgTotali: "187,5", kgMaxRitardo: "12,5", distanzaRicettore: "312,5", data: "2026-07-25" },
     new Date("2026-07-30T12:00:00Z"));
   contiene(r.campi, { kgTotali: 187.5, kgMaxRitardo: 12.5, distanzaRicettore: 312.5 }, "le tre virgole");
-  // svuotare un campo è una correzione, non una dimenticanza: era già così
+  /* ⛔ B11 · QUESTA RIGA DICEVA «campo svuotato → zero, COME NEL FORM A MANO»,
+     e la sua ragione era falsa: il form a mano fa l'opposto, e lo scrive
+     («⛔ CAMPO VUOTO → `null`, NON `0`»), con la stessa ragione di mestiere —
+     «distanza 0 m si legge come il ricettore dentro il fronte». Chi vuole
+     dichiarare uno zero lo DIGITA, e lo si prova due righe più giù: la
+     correzione «quei chili non ci sono stati» resta esprimibile, e in più
+     torna esprimibile «non lo ha dichiarato nessuno», che dalla modale non si
+     poteva dire affatto. */
   const z = sentinella.confermaVolataEseguita(prev, { kgTotali: "", data: "2026-07-25" },
     new Date("2026-07-30T12:00:00Z"));
-  ok(z.campi.kgTotali === 0, "campo svuotato → zero, come nel form a mano");
+  ok(z.campi.kgTotali === null, "campo svuotato → NON dichiarato, come nel form a mano");
+  const zz = sentinella.confermaVolataEseguita(prev, { kgTotali: "0", data: "2026-07-25" },
+    new Date("2026-07-30T12:00:00Z"));
+  ok(zz.campi.kgTotali === 0, "uno zero DIGITATO resta uno zero dichiarato");
   // chiave assente ≠ campo svuotato: resta il valore del progetto
   const t = sentinella.confermaVolataEseguita(prev, { data: "2026-07-25" },
     new Date("2026-07-30T12:00:00Z"));
@@ -7988,11 +7998,16 @@ test("statoVuoto: la struttura è quella del core, invariata", () => {
     eq(r.ok, false, "niente da confermare");
     eq(r.errori[0].testo.includes("già registrata come eseguita"), true, "e lo dice in italiano");
   });
-  test("⛔ conferma: un campo non toccato resta quello del progetto, uno svuotato vale zero", () => {
-    /* svuotare è una CORREZIONE («quei fori non li abbiamo fatti»), non una
-       dimenticanza: trattarla come «lascia com'era» ribalterebbe la volontà */
+  test("⛔ conferma: un campo non toccato resta quello del progetto, uno svuotato non è dichiarato", () => {
+    /* ⛔ B11 · «svuotare è una CORREZIONE ("quei fori non li abbiamo fatti")»
+       resta vera, e resta esprimibile: si DIGITA lo zero, ed è provato qui
+       sotto. Quello che non si poteva dire affatto era l'altra metà — «quel
+       numero non lo ha scritto nessuno» — che è invece uno stato legittimo del
+       registro, prodotto sia da `parseVolateCsv` sia dal form a mano. Una
+       casella vuota non è una dichiarazione di zero. */
     eq(cv(prevista, {}, OGGI).campi.nFori, 20, "non toccato: resta il progetto");
-    eq(cv(prevista, { nFori: "" }, OGGI).campi.nFori, 0, "svuotato: vale zero");
+    eq(cv(prevista, { nFori: "" }, OGGI).campi.nFori, null, "svuotato: non dichiarato");
+    eq(cv(prevista, { nFori: "0" }, OGGI).campi.nFori, 0, "digitato: zero dichiarato");
   });
   test("⛔ conferma: si dice che cosa è cambiato rispetto al progetto", () => {
     /* una correzione silenziosa su un documento è un problema: prima di
@@ -30572,6 +30587,171 @@ test("frasePersi · ⚠️ NIENTE `esc()`: la frase esce come l'utente l'ha scri
     }
   });
 }
+/* ===== Scudo/Sentinella · il ripiego silenzioso ============================
+   La seconda metà del censimento B11. Il difetto vivo trovato qui: la modale
+   che trasforma una volata PREVISTA in ESEGUITA era la TERZA penna sui quattro
+   campi numerici del registro volate, e l'unica che scriveva **0** dove le
+   altre due scrivevano `null`. Due metà, tutt'e due necessarie:
+     · il modulo — `+fall` con `fall === null` fa 0 (`Number.isFinite(0)` è
+       true: il tranello che `numeroDichiarato` esiste per togliere);
+     · la pagina — i quattro campi erano PRESTAMPATI con `num(+v.X || 0)`,
+       cioè uno «0» già scritto dentro la casella, che l'utente firma.
+   Dove arrivava: `riepilogoVolate.kgMeseSenza` (il denominatore che dice su
+   quante volate i chili NON sono dichiarati) e il registro CSV — il file che
+   va all'ente — che scriveva `;0;0;0;` su tre numeri mai misurati. */
+{
+  const S = sentinella;
+  const OGGI = new Date("2026-08-12T10:00:00Z");
+  // ⚠️ la fixture NON si indovina: queste colonne sono quelle che
+  // `parseVolateCsv` destruttura, e la riga sotto lo verifica prima di usarle.
+  const CSV = [
+    "2026-08-10;Fronte Nord;24;;;;regolare;;;;;;prevista;;;;;;V-001",
+    "2026-08-05;Fronte Nord;20;120;;;regolare;;;;;;eseguita;;;;;;V-000",
+  ].join("\n");
+  const IMP = S.parseVolateCsv(CSV).map((v, i) => ({ ...v, id: "v" + i }));
+
+  test("⛔ B11 · Sentinella: la fixture arriva davvero dove deve — celle vuote = non dichiarate", () => {
+    eq(IMP.length, 2, "due righe lette: se fossero zero avrei dato al lettore un'altra tabella");
+    eq(IMP[0].kgTotali, null, "cella vuota → null, non 0 (è `parseVolateCsv`, con la sua ragione scritta)");
+    eq(S.volataPrevista(IMP[0]), true, "e la prima è PREVISTA: è lei che passa dalla conferma");
+  });
+
+  test("⛔ B11 · Sentinella: confermare una volata non INVENTA i numeri che nessuno ha scritto", () => {
+    const c = S.confermaVolataEseguita(IMP[0], { data: IMP[0].data, fronte: IMP[0].fronte }, OGGI);
+    eq(c.ok, true, "la conferma va a buon fine");
+    eq(c.campi.kgTotali, null, "kg totali: non dichiarati");
+    eq(c.campi.kgMaxRitardo, null, "carica massima per ritardo: non dichiarata");
+    eq(c.campi.distanzaRicettore, null, "distanza del ricettore: non dichiarata");
+    /* ⚠️ e il PRESTAMPATO della pagina è l'altra metà: con «0» nella casella
+       il modulo riceve uno zero DIGITATO e lo rispetta, giustamente. È il
+       motivo per cui la correzione senza quella della pagina non basterebbe. */
+    const conZeroPrestampato = S.confermaVolataEseguita(IMP[0],
+      { data: IMP[0].data, kgTotali: "0", kgMaxRitardo: "0", distanzaRicettore: "0" }, OGGI);
+    eq(conZeroPrestampato.campi.distanzaRicettore, 0,
+      "uno zero che l'utente vede scritto nella casella è uno zero che l'utente dichiara");
+  });
+
+  test("⛔ B11 · Sentinella: il ripiego SPEGNEVA il denominatore dei chili non dichiarati", () => {
+    const conf = S.confermaVolataEseguita(IMP[0], { data: IMP[0].data }, OGGI).campi;
+    const dopo = S.riepilogoVolate(IMP.map(v => v.id === "v0" ? { ...v, ...conf } : v), OGGI);
+    eq(dopo.kgMeseSenza, 1, "una volata del mese non dichiara i chili, e il riepilogo lo dice");
+    eq(dopo.kgMeseNoti, 1, "l'altra sì: il totale viaggia col suo denominatore");
+    eq(dopo.kgMese, 120, "e il totale resta quello dichiarato, non gonfiato con uno zero");
+    // com'era: col ripiego lo stesso record dichiarava TUTTO noto
+    const conRipiego = S.riepilogoVolate(
+      IMP.map(v => v.id === "v0" ? { ...v, kgTotali: 0, kgMaxRitardo: 0, distanzaRicettore: 0 } : v), OGGI);
+    eq(conRipiego.kgMeseSenza, 0,
+      "⛔ la direzione dell'errore: col ripiego il riepilogo diceva «tutto dichiarato» — RASSICURA");
+  });
+
+  test("⛔ B11 · Sentinella: il punto d'USCITA — il registro CSV non scrive zeri mai misurati", () => {
+    const conf = S.confermaVolataEseguita(IMP[0], { data: IMP[0].data, fronte: IMP[0].fronte }, OGGI).campi;
+    const riga = S.csvRegistroVolate(IMP.map(v => v.id === "v0" ? { ...v, ...conf } : v))
+      .split("\n").find(r => r.includes("V-001"));
+    ok(riga.includes(";24;;;;regolare;"),
+      "kg, carica e distanza escono come celle VUOTE — era `;24;0;0;0;regolare;`, e quel file va all'ente");
+    // e il giro export → import non reinventa lo zero
+    const rientro = S.parseVolateCsv(riga);
+    eq(rientro[0].distanzaRicettore, null, "riletto dal file, resta non dichiarato");
+  });
+
+  test("⛔ B11 · Sentinella: nessun CAMBIO INVENTATO nel messaggio che l'utente legge", () => {
+    /* `cambi` confronta con `String(...)`: con `null` fra i valori possibili
+       `String(null)` fa «null», che non è «» — un campo che nessuno ha toccato
+       avrebbe dichiarato «kg totali (— → null)». È il contratto allargato che
+       va letto anche da chi sta nella STESSA funzione. */
+    const c = S.confermaVolataEseguita(IMP[0], { data: IMP[0].data, fronte: IMP[0].fronte }, OGGI);
+    eq(c.cambi.filter(x => ["kgTotali", "kgMaxRitardo", "distanzaRicettore"].includes(x.campo)).length, 0,
+      "tre campi non toccati e mai dichiarati: nessuna riga di cambio");
+    eq(S.confermaVolataEseguita(IMP[0], { data: IMP[0].data, kgTotali: "430" }, OGGI)
+      .cambi.filter(x => x.campo === "kgTotali").length, 1,
+      "e un cambio VERO si dichiara ancora: la guardia non è diventata cieca");
+  });
+
+  test("⛔ B11 · Sentinella: le tre penne che scrivono quei campi decidono allo STESSO modo", () => {
+    /* la copia debole si riconosce così: due sorelle con due contratti. Il
+       form a mano e il lettore CSV rispondevano già `null`; la modale no. */
+    eq(S.parseVolateCsv("2026-08-10;F;;;;;regolare")[0].kgTotali, null, "lettore CSV: vuoto → null");
+    eq(S.confermaVolataEseguita(IMP[0], { data: IMP[0].data, kgTotali: "" }, OGGI).campi.kgTotali, null,
+      "modale di conferma: vuoto → null");
+    // il form a mano vive nella pagina (`vn`/`interoVuoto`): si prova sul SORGENTE
+    const PAG = readFileSync(join(HERE, "../../sentinella/index.html"), "utf8");
+    ok(/return t === "" \|\| !Number\.isFinite\(\+t\) \? null :/.test(PAG),
+      "form a mano: il campo intero vuoto vale null");
+    ok(/const vn = \(id\) => \{ const c = campiNum\.find\(x => x\.id === id\); return c\.r\.ok \? c\.r\.valore : null; \};/.test(PAG),
+      "form a mano: il campo decimale non leggibile vale null");
+  });
+
+  test("⛔ B11 · Sentinella: la modale non PRESTAMPA più uno zero che nessuno ha scritto", () => {
+    /* la pagina non si può chiamare da `node`, quindi la difesa va messa sul
+       SORGENTE invece di riscriverne una versione in casa (CLAUDE.md). */
+    const PAG = readFileSync(join(HERE, "../../sentinella/index.html"), "utf8");
+    for (const campo of ["nFori", "kgTotali", "kgMaxRitardo", "distanzaRicettore"]) {
+      ok(!PAG.includes("${num(+v." + campo + " || 0)}"),
+        `${campo}: niente ripiego a zero nel valore prestampato`);
+      ok(PAG.includes("${num(v." + campo + ")}"),
+        `${campo}: la casella mostra il valore com'è — vuota se non è dichiarato`);
+    }
+  });
+}
+{
+  const S = sentinella;
+  const P = (extra) => ({ id: "m1", nome: "Polveri P1", tipo: "polveri", unita: "mg/mc", ...extra });
+  const L9 = [{ data: "2026-08-01", ora: "09:00", valore: 9 }];   // ultima lettura = superamento su soglia 5
+
+  test("⛔ B11 · Sentinella: `statoMisura` non inventa un rapporto ZERO da un valore illeggibile", () => {
+    /* il ripiego era `(+mm.valore || 0)`: una seconda lettura dello stesso
+       numero, con una guardia più debole di quella che sta tre righe sopra.
+       Con letture in archivio la guardia non scatta, e un valore illeggibile
+       cadeva sullo zero → «Conforme», verde, su un punto il cui archivio dice
+       superamento. Direzione: RASSICURA, e su un numero che va all'ARPA. */
+    for (const rotto of [null, "", "abc", undefined]) {
+      const s = S.statoMisura(P({ soglia: 5, valore: rotto, letture: L9 }));
+      eq(s.stato, "superamento", `valore ${JSON.stringify(rotto)}: vale l'ultima lettura, non uno zero`);
+      eq(s.ratio, 9 / 5, "e il rapporto è quello vero");
+    }
+  });
+
+  test("⛔ B11 · Sentinella: `statoMisura` non cambia dove il valore c'è davvero", () => {
+    /* la cura non deve spostare niente altrove: si nomina il costo. */
+    eq(S.statoMisura(P({ soglia: 5, valore: 9, letture: L9 })).stato, "superamento", "sano: superamento");
+    eq(S.statoMisura(P({ soglia: 5, valore: 2, letture: L9 })).stato, "conforme",
+      "il valore corrente vince sull'ultima lettura quando è leggibile: comportamento invariato");
+    eq(S.statoMisura(P({ soglia: 5, valore: 4.6, letture: L9 })).stato, "attenzione", "la fascia di mezzo resta");
+    eq(S.statoMisura(P({ soglia: 5, valore: 9, letture: [] })).stato, "superamento",
+      "import CSV (valore scritto, nessuna lettura): giudicato come prima");
+    eq(S.statoMisura(P({ soglia: 5, valore: "", letture: [] })).stato, "mai",
+      "né valore né letture: «mai misurato», non uno zero conforme");
+    eq(S.statoMisura(P({ soglia: 5, valore: 0, letture: [] })).stato, "mai",
+      "il punto nasce con valore 0: quello zero non è una misura");
+    eq(S.statoMisura(P({ soglia: null, valore: 9, letture: L9 })).stato, "senza-soglia",
+      "e «senza soglia» viene prima di qualunque rapporto");
+  });
+
+  test("⛔ B11 · Sentinella: nessuno STATO NUOVO — la mappa dei badge resta coperta", () => {
+    /* regola 18 di `run-stile`: una mappa di stati deve coprire tutti gli
+       stati che la sua funzione sa dire. Uno stato nuovo sarebbe un cantiere,
+       non una riga — la cura è stata scelta per non aggiungerne. */
+    const stati = new Set();
+    for (const soglia of [null, 5])
+      for (const valore of [null, "", "abc", 0, 2, 4.6, 9])
+        for (const letture of [[], L9])
+          stati.add(S.statoMisura(P({ soglia, valore, letture })).stato);
+    eq([...stati].sort().join(","), "conforme,attenzione,superamento,mai,senza-soglia".split(",").sort().join(","),
+      "i cinque stati di sempre, né uno di più né uno di meno");
+  });
+
+  test("⛔ B11 · Sentinella: il foglio per l'ARPA segue `statoMisura`, non una copia debole", () => {
+    /* il 03/08 il file per l'ARPA scriveva «Conforme» dove lo schermo diceva
+       «Superamento»: la domanda va rifatta a ogni correzione del semaforo. */
+    const punto = P({ soglia: 5, valore: null, letture: L9 });
+    eq(S.statoMisura(punto).label, "Superamento", "schermo");
+    const csv = S.csvAmbiente([punto], [], [], new Date("2026-08-12T10:00:00Z"));
+    ok(csv.includes("Superamento"), "file: la stessa parola dello schermo");
+    ok(!csv.includes("Conforme"), "e non quella tranquilla");
+  });
+}
+/* ===== fine Scudo/Sentinella · il ripiego silenzioso ======================= */
 
 /* ===== fine B11 ============================================================ */
 

@@ -2836,6 +2836,14 @@ textarea.dw-input{
     // i valori del progetto entrano nei campi già scritti all'italiana: un
     // campo che mostra «187.5» a chi ha scritto «187,5» è un campo che
     // rimprovera l'utente per come scrive
+    /* ⛔ SI PASSA IL VALORE, NON `+x || 0`: un campo PRESTAMPATO è un ripiego
+       che l'utente firma. Le quattro caselle numeriche mostravano
+       `num(+v.kgTotali || 0)`, quindi una volata arrivata da Genesi senza i
+       chili, senza la carica per ritardo o senza la distanza del ricettore si
+       presentava con uno **0 già scritto dentro**: chi conferma senza toccare
+       niente dichiara «zero kg» e «ricettore a zero metri» su tre numeri che
+       nessuno ha mai misurato. Passando il valore com'è, la casella resta
+       VUOTA — che è quello che è — e il modulo la tiene non dichiarata. */
     const num = (x) => x == null || x === "" ? "" : esc(itDec(x));
     const corpo = `<div class="note" style="margin-top:0;">Stai registrando come <b>eseguita</b> la volata prevista del <b>${fmtD(v.data)}</b>${v.fronte ? " sul fronte <b>" + esc(v.fronte) + "</b>" : ""}: da questo momento entra nel brogliaccio e conta nelle volate del mese, nei kg del mese e nel report di conformità. Correggi quello che in cava è andato diversamente dal progetto: <b>i numeri veri sono questi</b>, non quelli disegnati.</div>
       <label class="fl" for="conf-data">Giorno in cui è stata sparata</label>
@@ -2843,13 +2851,13 @@ textarea.dw-input{
       <label class="fl" for="conf-fronte">Fronte</label>
       <input class="dw-input" id="conf-fronte" value="${esc(v.fronte || "")}" placeholder="Fronte">
       <label class="fl" for="conf-nfori">N° fori</label>
-      <input class="dw-input" id="conf-nfori" type="number" min="0" value="${num(+v.nFori || 0)}">
+      <input class="dw-input" id="conf-nfori" type="number" min="0" value="${num(v.nFori)}">
       <label class="fl" for="conf-kg">Carica totale (<span class="u">kg</span>)</label>
-      <input class="dw-input dec" id="conf-kg" type="text" inputmode="decimal" autocomplete="off" spellcheck="false" title="Carica totale in kg. La virgola va benissimo (187,5)." value="${num(+v.kgTotali || 0)}">
+      <input class="dw-input dec" id="conf-kg" type="text" inputmode="decimal" autocomplete="off" spellcheck="false" title="Carica totale in kg. La virgola va benissimo (187,5)." value="${num(v.kgTotali)}">
       <label class="fl" for="conf-kgmax">Carica massima per ritardo (<span class="u">kg</span>)</label>
-      <input class="dw-input dec" id="conf-kgmax" type="text" inputmode="decimal" autocomplete="off" spellcheck="false" title="Carica massima per ritardo in kg. La virgola va benissimo (12,5)." value="${num(+v.kgMaxRitardo || 0)}">
+      <input class="dw-input dec" id="conf-kgmax" type="text" inputmode="decimal" autocomplete="off" spellcheck="false" title="Carica massima per ritardo in kg. La virgola va benissimo (12,5)." value="${num(v.kgMaxRitardo)}">
       <label class="fl" for="conf-dist">Distanza del ricettore (m)</label>
-      <input class="dw-input dec" id="conf-dist" type="text" inputmode="decimal" autocomplete="off" spellcheck="false" title="Distanza del ricettore in metri. La virgola va benissimo (312,5)." value="${num(+v.distanzaRicettore || 0)}">
+      <input class="dw-input dec" id="conf-dist" type="text" inputmode="decimal" autocomplete="off" spellcheck="false" title="Distanza del ricettore in metri. La virgola va benissimo (312,5)." value="${num(v.distanzaRicettore)}">
       <label class="fl" for="conf-esito">Esito</label>
       <select class="dw-input" id="conf-esito"><option value="regolare">Regolare</option><option value="contestazione"${v.esito === "contestazione" ? " selected" : ""}>Con contestazione</option></select>
       <label class="fl" for="conf-note">Note</label>

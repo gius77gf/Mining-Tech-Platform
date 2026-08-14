@@ -233,6 +233,63 @@ chiuse. Le aperte sono **24**; la pagina d'ingresso di
       **Misure**: `run-kpi` 2252 → **2259** (delta isolato per sottrazione),
       0 falliti.
 
+- [x] ✅ **SENTINELLA · LA CONFERMA DI UNA VOLATA INVENTAVA TRE NUMERI, E
+      «CONFORME» SU UN SUPERAMENTO.** ⏱️ *14/08, seconda metà del censimento
+      B11 — le due app che parlano con gli enti.*
+      **Censimento a tre gradini, coi comandi**: `grep` nudo **884** → nel
+      codice vivo **872** (12 erano commenti) → tolta la coda dei segnaposto di
+      stampa (`|| ''`, `|| '—'`: 498) **374** → di cui **ripiego di mestiere
+      72** → **pertinenti 56** (Scudo 28, Sentinella 28) → **difetti veri 2,
+      tutti e due in Sentinella. Scudo: zero.**
+      ⚠️ Il conto grosso è vero e inutile: quattro quinti sono `|| ''` di
+      stampa, che non entrano in nessun calcolo. Il confine è **dichiarato**,
+      non indovinato. E un classificatore automatico è stato **provato e
+      scartato**: lasciava 306 righe da leggere a mano, cioè non separava
+      niente.
+      **1. La conferma della volata — VIVO.** Tre penne scrivono i quattro campi
+      numerici del registro; due rispondevano già `null` su un dato non
+      dichiarato, la terza scriveva **0**, in due metà indipendenti: nel modulo
+      `+null` fa **0** e `Number.isFinite(0)` risponde `true`; nella pagina i
+      quattro campi erano **prestampati** con `num(+v.X || 0)`, cioè uno zero
+      già scritto nella casella che l'utente firma.
+      ✅ **Rimisurato da me, prima e dopo, sullo stesso caso** (volata prevista,
+      confermata senza toccare niente): `kgTotali/kgMaxRitardo/distanzaRicettore`
+      **`0 / 0 / 0` → `null / null / null`**. Nel CSV del registro la riga
+      passava da `;24;0;0;0;regolare;` a `;24;;;;regolare;`.
+      ⛔ **Direzione: RASSICURA, su un file che va all'ente** — «il ricettore è
+      a **zero metri**» dove nessuno ha misurato. E il denominatore che doveva
+      dirlo **esisteva già** ed è letto in due punti: il ripiego lo teneva a
+      zero.
+      ⚠️ `refertoDaVolata` **non è toccato** (guardia `> 0`): le distanze di
+      sicurezza e il ponte con Genesi erano e restano al sicuro.
+      **2. `statoMisura` diceva «Conforme» su un superamento — latente.**
+      `(+mm.valore || 0) / Math.max(0.001, +mm.soglia)`: una **seconda lettura**
+      dello stesso numero, con una guardia più debole di quella tre righe sopra.
+      ✅ Rimisurato da me con soglia 5 e ultima lettura **9**, `valore`
+      illeggibile: **prima** `{cls:"ok", label:"Conforme", ratio:0,
+      calcolabile:true}` — **dopo** `{cls:"danger", label:"Superamento",
+      ratio:1.8}`. La stessa parola finisce in `csvAmbiente`, il file per
+      l'ARPA.
+      ⚠️ **Raggiungibilità dichiarata, non gonfiata**: tutti gli scrittori di
+      `monitoraggi` tengono `valore` in sincrono con l'ultima lettura, quindi ci
+      si arriva con un dato scritto a mano o con una riga più vecchia del filtro.
+      ⛔ **E UN'ECCEZIONE ERA IL POSTO DOVE IL DIFETTO VIVEVA**: `sonda-vuoto`
+      aveva **trovato** questo punto e l'aveva perso — lo scusava come «è il
+      valore PRECOMPILATO di un campo di modulo», citando il commento che
+      giustificava il ripiego. Quella ragione non è il motivo per cui il caso è
+      innocuo: **è il meccanismo del difetto**. Due righe che si davano ragione
+      a vicenda.
+      **Punti d'uscita**: chiamati, non letti — otto compositori, tutti
+      dichiarano il «non si può dire» (cella vuota più la colonna `nota`,
+      «senza data», indici `null` col `motivo`, esito «senza-soglia»). Nessuna
+      copia debole: il lavoro del 03/08 regge.
+      **Controprova**: 3 iniezioni indipendenti → **7 · 1 · 2** prove cadute.
+      Ogni metà è sorvegliata **da sola**: nessuna delle due poteva bastare.
+      **Misure**: `run-kpi` 2259 → **2270**, 0 falliti.
+      ⏱️ **Lasciato fermo con la ragione**: `accorciaVoceTendina` vivrebbe in
+      `shared/dw-ponti.js` (il suo commento dice che serve anche a Scudo), ma
+      `shared/` era fuori perimetro. È la regola del `shared/`, e va fatta.
+
 ## 🧭 Le voci APERTE, per nome — indice
 
 *Questo file è lungo **migliaia di righe** e cresce appendendo sezioni datate in
@@ -5087,7 +5144,7 @@ numero scritto dove non era stato misurato niente**.*
   nome apre il file sbagliato credendo che sia il più fresco.
 - Le decisioni: `docs/DECISIONI_WEEKEND.md` — pagina d'ingresso in cima.
 - Stato misurato al **14/08** (lanciando le suite, non a memoria):
-  **2.715 prove girano senza rete**. La frase va letta stretta: è la somma
+  **2.726 prove girano senza rete**. La frase va letta stretta: è la somma
   delle **otto** suite che contano asserzioni (`run-kpi` 2110, `run-stile` 318,
   `run-helpers` 75, `run-pointcloud` 32, `run-manifest` 9, `run-demo` 8,
   `bootstrap-rivendicazioni` 7, `fogli-guardati` 3), non tutto ciò che gira nel

@@ -830,11 +830,25 @@ const CENSITI = {
     + " quando il numero non c'è. Non è una funzione esportata e i chiamanti oggi le passano campi"
     + " del referto; il giorno in cui uno di quei campi mancasse, il CSV per Genesi direbbe «zero»"
     + " dove la verità è «non scritto»",
-  "sentinella.confermaVolataEseguita":
-    "FALSO ALLARME, e dichiarato nel codice: `const f = +fall;` sta dentro la funzioncina `num`, che"
-    + " ha il commento «se non si legge un numero il campo torna a zero, come prima» — è il valore"
-    + " PRECOMPILATO di un campo di modulo, non un verdetto dell'app. Stessa ragione per cui"
-    + " `sentinella.confermaVolataEseguita` sta anche fra gli ACCETTATI qui sopra",
+  /* ⛔ TOLTO IL 14/08 — e questa riga vale più del difetto che copriva.
+     Diceva: «FALSO ALLARME, e dichiarato nel codice: `const f = +fall;` sta
+     dentro la funzioncina `num`, che ha il commento "se non si legge un numero
+     il campo torna a zero, come prima" — è il valore PRECOMPILATO di un campo
+     di modulo, non un verdetto dell'app».
+     Era **falsa**, e nel modo più insidioso: la ragione addotta — «è un valore
+     precompilato di un modulo» — non è il motivo per cui il caso è innocuo, è
+     esattamente il MECCANISMO del difetto (un prestampato che l'utente firma).
+     La sonda aveva trovato il punto giusto e la dichiarazione l'ha zittita
+     citando il commento che giustificava il ripiego: due righe che si davano
+     ragione a vicenda. Sotto ci stava un difetto vero — `+fall` con
+     `fall === null` fa **0** — che scriveva `;0;0;0;` nel registro volate che
+     va all'ente. Corretto: `num` risponde `null` su un dato non dichiarato.
+     È la regola di casa: «un'eccezione dichiarata onestamente resta un posto in
+     cui nessuno guarda, quindi non basta sorvegliarla — si guarda dentro almeno
+     una volta, e se si può si TOGLIE».
+     ⚠️ Resta invece fra gli ACCETTATI, e a ragione, l'altro punto della stessa
+     funzione: `esito: "regolare"` è davvero il valore precompilato di una
+     tendina con due voci, non un verdetto calcolato. */
 
   "sentinella.csvRegistroVolate":
     "FALSO ALLARME, ed è il contrario del difetto che il cercatore cerca (dichiarato il 06/08)."
