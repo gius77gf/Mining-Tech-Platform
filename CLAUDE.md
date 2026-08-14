@@ -911,6 +911,38 @@ Perché serva davvero e non produca elenchi generici, cinque vincoli:
   a ogni fallimento della coda. La suite non finiva più, e non c'era niente da
   leggere. Con `[ \t]` gli a capo non entrano nell'ambiguità e il conto torna
   lineare. È la copia-da-firma-troppo-stretta applicata a una **regex**.
+  ⛔ **E FRA I NOMI CHE ESCONO CI POSSONO ESSERE CASI VERI: ALLORA NON SI
+  STRINGE, SI ALLARGA L'ALTRA METÀ.** Misurato il 14/08 su
+  `ripieghi-silenziosi`, e cambia il conto che questa riga prescrive. Stringendo
+  la guardia sulle costanti uscivano **80** match: 69 erano chiamate e globali
+  (`String` 57, `Number` 5, `Math` 3, `NaN` 3, `Array` 1), 6 variabili in
+  maiuscoletto — **e 5 erano ripieghi VERI**, i `|| 1e9` che mandano in fondo a
+  un ordinamento un recettore la cui distanza non si legge e l'`|| 1e-9` che
+  salva una divisione. Uscivano perché la regex del **numero** si fermava sulla
+  `1` lasciando fuori la `e9`: cioè il difetto non era nella guardia che stavo
+  stringendo, era **nell'alternativa accanto**. La domanda da farsi guardando
+  l'elenco dei nomi che escono non è «sono rumore?», è **«questo lo volevo
+  perdere?»** — e se anche uno solo è vero, la stretta va accompagnata da un
+  allargamento, se no si paga un caso buono ogni quindici cattivi senza saperlo.
+  ⛔ **E LA GUARDIA PUÒ GUARDARE UN PUNTO CHE STA IN MEZZO A UN NOME, MENTRE IL
+  SUO COMMENTO DICHIARA IL DIFETTO GIÀ CORRETTO.** Stessa giornata, stesso file,
+  ed è la parte che è costata tre giorni. La guardia diceva — e il commento
+  accanto lo spiegava bene — *«se il carattere dopo il match è `(` o `.`, non è
+  una costante»*: diagnosi giusta. Ma la destra della forma è `[A-Z_][A-Z_0-9]*`
+  e `String` non è tutto maiuscolo: il match combacia con la sola `S`, e il
+  carattere dopo è la **`t`**. La cura non toccava il malato, e nessuno l'ha
+  riletta perché **c'era già scritto che era stata fatta**.
+  ⚠️ Il segno che l'ha tradita non è una prova rossa: sono **due cantieri
+  indipendenti che, nello stesso giorno, misurano lo stesso difetto nello stesso
+  strumento** (11 su 18 in Conti, 7 su 22 in Flotta). Due misure indipendenti
+  che accusano un righello valgono più di qualunque «niente entra sulla parola
+  dell'agente»: quella regola serve a non credere a **una** voce, non a
+  ignorarne due che concordano.
+  ⛔ E la domanda che mancava è sempre la **terza**: *il match è finito, o si è
+  fermato dentro un nome più lungo?* Adesso il righello si interroga sui suoi
+  **16 punti di decisione** all'avvio e si ferma se ne sbaglia uno — comprese le
+  forme che nel codice vero non ci sono ancora, perché **le prove sul codice
+  vero contengono solo ciò che qualcuno ha già scritto**.
   ⛔ **E IL 14/08 LA TERZA VOLTA, NEL POSTO CHE UN CONTROLLO NON PENSA MAI DI
   GUARDARE: SÉ STESSO. Un controllo che esclude i propri test è cieco proprio
   dove il codice cambia più spesso.** `nomi-liberi` esiste per prendere un nome
@@ -2153,6 +2185,27 @@ Perché serva davvero e non produca elenchi generici, cinque vincoli:
   quello che non è ancora comparso). Costo misurato prima di adottarla: 10
   allarmi, 7 veri e 3 simboli che si scrivono come un'unità (`H` altezza, `DB`
   database, `H/B` rigidità), dichiarati per nome.
+  ⛔ **E IL 14/08 IL FILTRO PER VISIBILITÀ HA FATTO UN DANNO NUOVO: HA PORTATO
+  IL DENOMINATORE A ZERO, E ZERO SOGGETTI STAMPANO LO STESSO UNA RIGA DI
+  VERDETTO.** `finestra-caricamento` chiedeva «dopo l'arrivo dei dati nessun
+  contatore resta «—»» e accusava `isp-c-cnt` di Scudo, che vive dentro un
+  pannello `display:none` e si riempie quando lo si apre: accusa falsa, e il
+  filtro per visibilità era la cura giusta. Ma la lettura si faceva su **una
+  schermata sola** — quella su cui il giro dei comandi era finito per caso — e
+  filtrando restavano `campo 1/12 · scudo 3/23 · sentinella 0/19 · flotta 2/18
+  · conti 0/13 · terra 4/17`: due app giudicavano **zero contatori** e
+  stampavano lo stesso la loro riga. **Peggiore del difetto di partenza**,
+  perché un'accusa la si verifica e un verdetto su zero soggetti no.
+  ⚠️ La cura non è il filtro: è **ripercorrere le schermate**, cioè fare la
+  domanda con lo **stesso denominatore** della sua gemella — «dentro la
+  finestra» le ripercorreva già, «dopo» no. Da 94 su 102 giudicati, con gli 8
+  fuori **dichiarati per nome**. E quando i visibili sono zero la risposta non è
+  «a posto» e non è **KO**: è **NON MISURATO**, un terzo esito con una riga sua
+  — un KO si legge come un difetto del prodotto e manda ad aprire un cantiere.
+  ⚠️ La regola generale, che vale per ogni filtro: **un filtro si giudica dal
+  denominatore che lascia in piedi, non dai falsi allarmi che toglie.** Se dopo
+  averlo messo il controllo guarda un decimo dei soggetti, non è più severo: è
+  quasi spento, e stampa lo stesso il verde di prima.
   ⚠️ **E il righello ha sbagliato tre volte prima di reggere**, tutte e tre
   nella stessa famiglia già scritta qui: chiudeva l'elemento sul **primo** tag
   omonimo (e `<span class="vita-pct">…<span class="u">m³</span></span>` perdeva
