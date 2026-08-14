@@ -179,11 +179,14 @@ rilettura, che l'aveva lasciato passare. È la ragione per cui in questa casa un
 prova è **un comando con la sua uscita** e non una frase che descrive una
 ricerca.
 
-### Che cosa sta cambiando mentre la ricerca gira
-⏱️ Un cantiere aperto **in questo momento** sta togliendo il
-`+cfg.canoneAliquota || 0` da `canonePeriodo`, perché con l'aliquota mai
-impostata rispondeva `dovuto: 0` — uno zero tranquillo su soldi dovuti all'ente.
-**Non è ancora committato** e non va raccontato come fatto: quando lo sarà, la
-riga di questa ricerca che descrive il calcolo sarà **scaduta di poche ore**. È
-il «non c'è» scaduto, la seconda forma, e non è colpa di nessuno — il cantiere
-girava di fianco alla ricerca.
+### Che cosa è cambiato mentre la ricerca girava — ⏱️ SCADUTA IN DUE ORE
+⏱️ La riga qui sopra diceva «un cantiere **sta** togliendo il
+`+cfg.canoneAliquota || 0`». Adesso è **committato**: con l'aliquota mai
+impostata `canonePeriodo` risponde `dovuto: null` con le bandiere `noto` e
+`calcolabile` e un `motivo` che dice quale dei due manca — non più `0`. Quindi
+la descrizione del calcolo scritta più su in questo documento è **scaduta**, ed
+è scaduta in **due ore**: è il «non c'è» scaduto, la seconda forma, e non è
+colpa di nessuno — il cantiere girava di fianco alla ricerca.
+⚠️ Aggiornato qui invece che riscritto sopra, perché **la riga vecchia serve**:
+una ricerca che si autocorregge in silenzio non insegna niente a chi la rilegge
+fra un mese.

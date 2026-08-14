@@ -6290,11 +6290,18 @@ test("statoVuoto: la struttura è quella del core, invariata", () => {
     const misto = r.perProdotto.find((x) => x.prodotto === "Misto");
     eq(misto.dovuto, 30, "60 t × 0,50 €/t");
   });
+  /* ⛔ QUESTA PROVA BENEDICEVA LO ZERO, fino al 14/08: pretendeva
+     `aliquota === 0` e `dovuto === 0` con la tariffa mai impostata, cioè
+     blindava il ripiego silenzioso invece di prenderlo. È il caso descritto in
+     CLAUDE.md — una prova che passa per un motivo diverso da quello nel suo
+     nome: «non inventa un dovuto» era il titolo, e lo zero un dovuto lo
+     inventa. L'asserzione è diventata più GIUSTA, non più permissiva. */
   test("canonePeriodo senza aliquota non inventa un dovuto", () => {
     const r = conti.canonePeriodo(pesate, {}, "2026-07-01", "2026-07-31");
-    eq(r.aliquota, 0, "aliquota assente vale zero");
+    eq(r.aliquota, null, "aliquota assente è «non lo so», non zero");
+    eq(r.noto, false, "e la bandiera lo dichiara");
     const misto = r.perProdotto.find((x) => x.prodotto === "Misto");
-    eq(misto.dovuto, 0, "e il dovuto è zero, non NaN");
+    eq(misto.dovuto, null, "e il dovuto nemmeno: né zero né NaN");
   });
 }
 
@@ -30565,7 +30572,156 @@ test("frasePersi · ⚠️ NIENTE `esc()`: la frase esce come l'utente l'ha scri
     }
   });
 }
+
 /* ===== fine B11 ============================================================ */
+
+/* ===== Conti · il canone senza aliquota ===================================
+   Il caso lasciato fermo da B11, ripreso e chiuso il 14/08.
+   `canonePeriodo` faceva `+cfg.canoneAliquota || 0`: con la tariffa mai
+   impostata rispondeva `dovuto: 0, motivo: ""` — uno zero tranquillo su soldi
+   dovuti all'ente, presentato come misurato. NON era un difetto vivo perché
+   l'unico lettore (`renderCanone`) rifaceva la guardia per conto suo
+   (`senzaAli`) e mostrava «—»: cioè la guardia stava nella PAGINA e non nella
+   funzione, che è alla lettera la copia debole di CLAUDE.md.
+   Qui si prova il contratto NUOVO, e si prova anche il fratello trovato
+   misurando: il TOTALE del venduto usciva € 0,00 quando nessuna consegna del
+   periodo ha la densità — con tutte le righe sotto che dicevano «—». La
+   correzione per riga era del 03/08 e al totale non era mai arrivata.
+   ⚠️ Le prove qui sono SINCRONE di proposito: `await Promise.all(inVolo)` sta
+   a metà file, e una prova asincrona aggiunta in coda non verrebbe aspettata. */
+{
+  const P_CANONE = [
+    { data: "2026-07-05", prodotto: "Stabilizzato", netto: 30, densita: 1.5 },  // 20 m³
+    { data: "2026-07-06", prodotto: "Sabbia", netto: 16, densita: 1.6 },        // 10 m³
+  ];
+  const ALI = { canoneUnita: "m3", canoneAliquota: 0.55 };
+
+  test("⛔ Conti · canone: l'aliquota mai scritta è «non lo so», non zero", () => {
+    const con = conti.canonePeriodo(P_CANONE, ALI, "2026-07-01", "2026-07-31");
+    const senza = conti.canonePeriodo(P_CANONE, { canoneUnita: "m3" }, "2026-07-01", "2026-07-31");
+    eq(con.dovuto, 16.5, "con la tariffa vera: 30 m³ × 0,55");
+    eq(senza.dovuto, null, "⛔ senza tariffa NON è zero: uno zero direbbe «non devi niente all'ente»");
+    eq(senza.aliquota, null, "e l'aliquota nemmeno");
+    eq(senza.noto, false, "la bandiera `noto` dichiara che la tariffa manca");
+    eq(con.noto, true, "e con la tariffa è vera");
+    eq(senza.base, 30, "⚠️ ma la BASE resta misurata: quella la sanno le pesate, e va detta");
+    eq(senza.calcolabile, true, "non è la base a mancare: è il prezzo per unità");
+    ok(/aliquota della concessione non è stata scritta/.test(senza.motivo),
+      "e il motivo dice QUALE dei due manca: " + senza.motivo.slice(0, 50));
+  });
+
+  test("⛔ Conti · canone: lo zero della tariffa non entra da nessuna delle sue vesti", () => {
+    /* Il difetto era `+cfg.canoneAliquota || 0`, che appiattisce quattro
+       ingressi diversi sullo stesso zero. Un solo campione non lo distingue da
+       «funziona»: si guardano tutte e quattro le forme in cui la tariffa può
+       non esserci, più lo zero scritto davvero. */
+    for (const [eti, cfg] of [["assente", { canoneUnita: "m3" }],
+                              ["nulla", { canoneUnita: "m3", canoneAliquota: null }],
+                              ["stringa vuota", { canoneUnita: "m3", canoneAliquota: "" }],
+                              ["non numerica", { canoneUnita: "m3", canoneAliquota: "abc" }],
+                              ["zero scritto", { canoneUnita: "m3", canoneAliquota: 0 }]]) {
+      const r = conti.canonePeriodo(P_CANONE, cfg, "2026-07-01", "2026-07-31");
+      eq(r.dovuto, null, `aliquota ${eti}: il dovuto non si inventa`);
+      eq(r.noto, false, `aliquota ${eti}: e la bandiera lo dichiara`);
+    }
+  });
+
+  test("⛔ Conti · canone: senza tariffa anche le RIGHE per prodotto tacciono", () => {
+    /* La riga aveva già la sua guardia sul volume (`calcolabile`, 03/08), e
+       moltiplicava lo stesso per l'aliquota: due prodotti pesati e convertiti
+       uscivano a € 0,00 l'uno. */
+    const senza = conti.canonePeriodo(P_CANONE, { canoneUnita: "m3" }, "2026-07-01", "2026-07-31");
+    eq(senza.perProdotto.length, 2, "i due prodotti ci sono");
+    for (const r of senza.perProdotto) {
+      eq(r.dovuto, null, `${r.prodotto}: nessun «€ 0,00» sulla riga`);
+      eq(r.calcolabile, true, `${r.prodotto}: ⚠️ e il VOLUME resta convertibile — le due mancanze sono diverse`);
+      ok(r.m3 > 0, `${r.prodotto}: infatti i metri cubi si dicono lo stesso (${r.m3})`);
+    }
+  });
+
+  test("⛔ Conti · canone: la tariffa manca anche sullo SCAVATO, e il conto è lo stesso", () => {
+    /* La base scavata è misurata dai rilievi: la guardia nuova non deve
+       spegnere quella vecchia né viceversa. */
+    const RIL = [{ data: "2026-07-15", stato: "elaborato", volumeM3: 900, provenienza: "scavo" }];
+    const cfg = { canoneUnita: "m3", canoneBase: "scavato" };
+    const senza = conti.canonePeriodo(P_CANONE, cfg, "2026-07-01", "2026-07-31", RIL);
+    eq(senza.dovuto, null, "senza tariffa non si risponde nemmeno sullo scavato");
+    eq(senza.base, 900, "ma i metri cubi misurati restano scritti");
+    eq(senza.noto, false, "e la ragione è la tariffa");
+    const con = conti.canonePeriodo(P_CANONE, { ...cfg, canoneAliquota: 0.55 }, "2026-07-01", "2026-07-31", RIL);
+    eq(con.dovuto, 495, "con la tariffa: 900 × 0,55");
+    /* e la ragione VECCHIA vince su quella nuova quando mancano tutte e due:
+       senza rilievi non si sa nemmeno su che cosa si applicherebbe la tariffa */
+    const niente = conti.canonePeriodo(P_CANONE, cfg, "2026-07-01", "2026-07-31", []);
+    eq(niente.dovuto, null, "senza rilievi e senza tariffa: non si risponde");
+    eq(niente.calcolabile, false, "e la mancanza dichiarata è la BASE, che viene prima");
+    ok(/nessuno ha misurato/.test(niente.motivo), "il motivo è quello dei rilievi: " + niente.motivo.slice(0, 40));
+  });
+
+  test("⛔ Conti · canone: il TOTALE non deve «zero» dove tutte le sue righe dicono «—»", () => {
+    /* Il fratello del difetto, trovato misurando invece che deducendo: con
+       l'aliquota a metro cubo e NESSUNA consegna con la densità, `tot.m3`
+       restava 0 e il totale usciva € 0,00 — mentre ogni riga sotto diceva «—».
+       La correzione per riga era del 03/08 e al totale non era mai arrivata:
+       la stessa correzione fatta a due elenchi su tre, la firma della copia
+       debole. Qui l'aliquota C'È: il difetto è vivo, non latente. */
+    const CIECO = [{ data: "2026-07-10", prodotto: "Misto", netto: 26.4 },
+                   { data: "2026-07-11", prodotto: "Sabbia", netto: 12 }];
+    const r = conti.canonePeriodo(CIECO, ALI, "2026-07-01", "2026-07-31");
+    eq(r.noto, true, "la tariffa c'è: non è quella a mancare");
+    eq(r.calcolabile, false, "è la base a non essere misurabile");
+    eq(r.dovuto, null, "⛔ e allora il totale tace, invece di dire € 0,00");
+    eq(r.base, null, "la base nemmeno si scrive: quei metri cubi non li sa nessuno");
+    eq(r.viaggi, 2, "⚠️ ma il materiale c'è stato: due viaggi, e vanno detti");
+    eq(r.senzaDensita, 2, "e il perché è contato");
+    ok(/densità del prodotto/.test(r.motivo), "il motivo manda dove si rimedia: " + r.motivo.slice(0, 45));
+    eq(r.perProdotto.every((x) => x.dovuto === null), true,
+      "il totale adesso dice la stessa cosa delle sue righe");
+  });
+
+  test("⛔ Conti · canone: PARZIALE non è «non lo so», e nessuna pesata resta zero", () => {
+    /* Le due direzioni in cui la guardia nuova poteva essere troppo larga.
+       Senza questa prova la correzione sopra sarebbe indistinguibile da un
+       «tace sempre», che è il difetto opposto e costa uguale. */
+    const MISTO = [{ data: "2026-07-10", prodotto: "Misto", netto: 26.4 },          // non converte
+                   { data: "2026-07-11", prodotto: "Sabbia", netto: 16, densita: 1.6 }]; // converte
+    const p = conti.canonePeriodo(MISTO, ALI, "2026-07-01", "2026-07-31");
+    eq(p.calcolabile, true, "un viaggio su due si converte: il numero c'è, ed è parziale");
+    eq(p.dovuto, 5.5, "10 m³ × 0,55 — e l'incompletezza la dice `senzaDensita`");
+    eq(p.senzaDensita, 1, "che infatti è dichiarata");
+    const vuoto = conti.canonePeriodo([], ALI, "2026-07-01", "2026-07-31");
+    eq(vuoto.dovuto, 0, "⚠️ nessuna pesata resta ZERO: non è stato venduto niente, ed è un fatto");
+    eq(vuoto.calcolabile, true, "l'asimmetria dichiarata in cima alla funzione non si tocca");
+    const aT = conti.canonePeriodo([{ data: "2026-07-10", prodotto: "Misto", netto: 26.4 }],
+      { canoneUnita: "t", canoneAliquota: 0.4 }, "2026-07-01", "2026-07-31");
+    eq(aT.dovuto, 10.56, "a tonnellata il caso non esiste: le tonnellate le pesa la bilancia");
+  });
+
+  test("⛔ Conti · canone: le bandiere non divergono dal numero da cui nascono", () => {
+    /* La guardia che tiene insieme le due: `dovuto == null` deve valere
+       ESATTAMENTE quando una delle due mancanze c'è. Una bandiera che si
+       scosta dal suo numero è peggio di nessuna bandiera. */
+    const RIL = [{ data: "2026-07-15", stato: "elaborato", volumeM3: 900, provenienza: "scavo" }];
+    const casi = [
+      ["venduto con tariffa", P_CANONE, ALI, null],
+      ["venduto senza tariffa", P_CANONE, { canoneUnita: "m3" }, null],
+      ["venduto cieco", [{ data: "2026-07-10", prodotto: "M", netto: 9 }], ALI, null],
+      ["scavato con tariffa", P_CANONE, { ...ALI, canoneBase: "scavato" }, RIL],
+      ["scavato senza rilievi", P_CANONE, { ...ALI, canoneBase: "scavato" }, []],
+      ["scavato a tonnellata", P_CANONE, { canoneUnita: "t", canoneAliquota: 1, canoneBase: "scavato" }, RIL],
+      ["nessuna pesata", [], ALI, null],
+    ];
+    for (const [eti, P, cfg, ril] of casi) {
+      const r = conti.canonePeriodo(P, cfg, "2026-07-01", "2026-07-31", ril);
+      eq(r.dovuto == null, !(r.calcolabile && r.noto),
+        `${eti}: il dovuto tace esattamente quando manca base o tariffa`);
+      eq(r.base == null, !r.calcolabile, `${eti}: e la base tace solo quando non è misurabile`);
+      eq(r.motivo === "", r.dovuto != null, `${eti}: un dovuto che manca porta SEMPRE la sua ragione`);
+      eq(r.aliquota == null, !r.noto, `${eti}: e l'aliquota è nulla esattamente quando non è nota`);
+    }
+  });
+}
+/* ===== fine Conti · il canone senza aliquota =============================== */
 
 console.log(`\nRisultato KPI app: ${passed} passati, ${failed} falliti${inVolo.length ? `  ·  ${inVolo.length} prove asincrone aspettate` : ""}`);
 process.exit(failed > 0 ? 1 : 0);

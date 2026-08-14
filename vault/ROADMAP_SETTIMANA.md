@@ -193,6 +193,46 @@ chiuse. Le aperte sono **24**; la pagina d'ingresso di
       la bandiera è sorvegliata, non può tornare scollegata in silenzio).
       **Misure**: `run-kpi` 2249 → **2252**, 0 falliti.
 
+- [x] ✅ **CONTI · LO ZERO SUI SOLDI DOVUTI ALL'ENTE — e il fratello VIVO che
+      nessuno aveva censito.** ⏱️ *14/08, nata dal censimento B11 che l'aveva
+      lasciata ferma con la misura.*
+      `canonePeriodo` faceva `+cfg.canoneAliquota || 0`: con la tariffa **mai
+      impostata** rispondeva `dovuto: 0` e `motivo: ""` — uno zero tranquillo su
+      soldi dovuti a un ente. Non era vivo perché l'unico lettore rifaceva la
+      guardia per conto suo: cioè la guardia stava nella **pagina**, non nella
+      funzione, che è la definizione di copia debole. Misurato sulla
+      dimostrazione: aliquota vera **98,62 €**, aliquota assente/`null`/`""`/
+      `"abc"`/`0` → **0** con `perProdotto[].calcolabile: true`.
+      ⛔ **E misurando è saltato fuori il fratello, che era VIVO** (aliquota
+      presente): senza nessuna consegna dotata di densità il totale usciva
+      **`€ 0,00`** mentre **tutte** le righe sotto dicevano «—». Adesso dicono
+      la stessa cosa.
+      · La cura è nel modulo, col vocabolario chiuso: `noto` (la tariffa c'è) e
+        `calcolabile` (la base si misura), `dovuto: null` e un `motivo` che dice
+        **quale dei due** manca. I **quattro** punti che componevano il dovuto
+        sono diventati **uno**: due dei quattro moltiplicavano per l'aliquota
+        senza chiedersi se ci fosse.
+      · La pagina **legge le bandiere** invece di rifare la guardia; `senzaAli`
+        resta solo per scegliere la frase, non il numero. Tutti e cinque i punti
+        che leggevano `c.aliquota`/`c.base`/`c.dovuto` sono guardati.
+      ✅ **Nessuna regressione, misurata riga per riga**: dove l'utente vedeva
+      «—» vede «—», e l'unico caso che cambia è quello in cui prima leggeva
+      `€ 0,00` su un conto non calcolabile.
+      ⚠️ **Il canone non ha nessun punto d'uscita** (né CSV né stampa): è la
+      ragione per cui era latente, e la ragione per cui andava corretto lo
+      stesso. Chiamati comunque tutti e sei i compositori CSV e le tre stampe:
+      nessuna copia debole, i «non si può dire» escono **vuoti**.
+      ⛔ **Una prova esistente BENEDICEVA lo zero**: si chiamava «`canonePeriodo`
+      senza aliquota non inventa un dovuto» e pretendeva `dovuto === 0` — cioè
+      passava per un motivo diverso da quello nel suo nome. Riscritta più
+      **giusta**, non più permissiva.
+      **Controprova**: 3 iniezioni → 5 e 1 prove cadute; la terza («tolgo la
+      lettura dalla pagina») **non distingue**, ed è la causa 2 di `CLAUDE.md`
+      (difesa in profondità): `noto` lo consuma anche il modulo, che è il
+      disegno giusto — e adesso la correttezza non dipende più dalla pagina.
+      **Misure**: `run-kpi` 2252 → **2259** (delta isolato per sottrazione),
+      0 falliti.
+
 ## 🧭 Le voci APERTE, per nome — indice
 
 *Questo file è lungo **migliaia di righe** e cresce appendendo sezioni datate in
@@ -5047,7 +5087,7 @@ numero scritto dove non era stato misurato niente**.*
   nome apre il file sbagliato credendo che sia il più fresco.
 - Le decisioni: `docs/DECISIONI_WEEKEND.md` — pagina d'ingresso in cima.
 - Stato misurato al **14/08** (lanciando le suite, non a memoria):
-  **2.708 prove girano senza rete**. La frase va letta stretta: è la somma
+  **2.715 prove girano senza rete**. La frase va letta stretta: è la somma
   delle **otto** suite che contano asserzioni (`run-kpi` 2110, `run-stile` 318,
   `run-helpers` 75, `run-pointcloud` 32, `run-manifest` 9, `run-demo` 8,
   `bootstrap-rivendicazioni` 7, `fogli-guardati` 3), non tutto ciò che gira nel

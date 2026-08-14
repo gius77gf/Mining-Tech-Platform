@@ -2431,11 +2431,29 @@ export const BASI_CANONE = [
   { chiave: "scavato", etichetta: "Materiale scavato (dai rilievi di Terra)",
     spiega: "Metri cubi misurati dai rilievi, al netto delle riprese dai cumuli — quelle erano già state scavate." },
 ];
+/* La ragione che la funzione dà quando la tariffa non c'è. Sta qui e non
+   dentro `canonePeriodo` perché la frase la scrive il modulo — la pagina la
+   mostra, non la compone: due frasi diverse per lo stesso fatto sarebbero due
+   verità diverse per la stessa cava. */
+const MOTIVO_SENZA_ALIQUOTA =
+  "L'aliquota della concessione non è stata scritta: senza la tariffa il dovuto non si calcola. "
+  + "Uno zero direbbe che non c'è niente da versare all'ente, mentre la verità è che manca il prezzo per unità.";
 export function canonePeriodo(pesate, impostazioni, dal, al, rilievi) {
   const cfg = impostazioni || {};
   const unita = cfg.canoneUnita === "t" ? "t" : "m3";
   const baseScelta = cfg.canoneBase === "scavato" ? "scavato" : "venduto";
-  const aliquota = +cfg.canoneAliquota || 0;
+  /* ⛔ E L'ALIQUOTA CHE NESSUNO HA SCRITTO NON VALE ZERO — è la stessa cosa che
+     l'asimmetria qui sopra dice della base, applicata all'altro fattore.
+     Fino al 14/08 qui c'era `+cfg.canoneAliquota || 0`, e con l'aliquota mai
+     impostata la funzione rispondeva `dovuto: 0, motivo: ""`: uno zero
+     tranquillo su soldi dovuti all'ente, che si presentava come misurato.
+     Non era un difetto vivo perché l'unico lettore (`renderCanone`) rifaceva
+     la guardia per conto suo — cioè la guardia stava nella PAGINA e non nella
+     funzione, che è la copia debole: il giorno che un export o un foglio
+     stampato chiamasse `canonePeriodo` si porterebbe via lo zero.
+     Adesso l'aliquota assente è `null` e la bandiera `noto` lo dichiara. */
+  const noto = +cfg.canoneAliquota > 0;
+  const aliquota = noto ? +cfg.canoneAliquota : null;
   const d1 = String(dal || ""), d2 = String(al || "");
   const per = {};
   let tot = { t: 0, m3: 0, senzaDensita: 0 };
@@ -2466,12 +2484,26 @@ export function canonePeriodo(pesate, impostazioni, dal, al, rilievi) {
      niente, e `calcolabile` è la bandiera che la pagina legge per scriverlo. */
   for (const r of perProdotto) {
     r.calcolabile = unita === "t" || r.senzaDensita < r.viaggi;
-    r.dovuto = r.calcolabile ? round2((unita === "t" ? r.t : r.m3) * aliquota) : null;
+    r.dovuto = r.calcolabile && noto ? round2((unita === "t" ? r.t : r.m3) * aliquota) : null;
   }
-  const comune = { unita, aliquota, baseScelta,
+  const comune = { unita, aliquota, noto, baseScelta,
     tonnellate: round2(tot.t), metriCubi: round3(tot.m3),
     senzaDensita: tot.senzaDensita, perProdotto,
     viaggi: perProdotto.reduce((s, r) => s + r.viaggi, 0) };
+
+  /* ⛔ E IL DOVUTO SI COMPONE IN UN POSTO SOLO. Era scritto in quattro punti,
+     e infatti due dei quattro moltiplicavano per l'aliquota senza chiedersi
+     se ci fosse: la copia debole nasce quasi sempre così, non da un'invenzione.
+     Le due ragioni per cui non si risponde sono diverse e vanno dette diverse:
+     · `calcolabile: false` → la BASE non si misura (nessun rilievo, rilievi in
+       metri cubi con l'aliquota a tonnellata, nessun viaggio convertibile);
+     · `noto: false` → la base c'è ma manca la TARIFFA.
+     In tutt'e due i casi `dovuto` è `null` e `motivo` dice quale delle due. */
+  const importo = (b, calcolabile, motivoBase) => {
+    if (!calcolabile) return { calcolabile: false, base: null, dovuto: null, motivo: motivoBase };
+    if (!noto) return { calcolabile: true, base: round3(b), dovuto: null, motivo: MOTIVO_SENZA_ALIQUOTA };
+    return { calcolabile: true, base: round3(b), dovuto: round2(b * aliquota), motivo: "" };
+  };
 
   if (baseScelta === "scavato") {
     /* Lo scavato lo misura `misuratoPeriodo` di `shared/dw-ponti.js`, la stessa
@@ -2482,26 +2514,41 @@ export function canonePeriodo(pesate, impostazioni, dal, al, rilievi) {
     if (!mis || !mis.rilievi) {
       return { ...comune, scavatoM3: mis ? mis.m3 : null, rilieviUsati: mis ? mis.rilievi : 0,
         m3DaCumuli: mis ? mis.m3Cumulo : 0,
-        base: null, dovuto: null,
-        motivo: rilievi == null
+        ...importo(null, false, rilievi == null
           ? "I rilievi di Terra non sono raggiungibili: senza quelli lo scavato non si può misurare."
           : "Nessun rilievo elaborato in questo periodo: lo scavato non è stato misurato. "
-            + "Uno zero qui direbbe che non c'è niente da pagare, mentre la verità è che nessuno ha misurato." };
+            + "Uno zero qui direbbe che non c'è niente da pagare, mentre la verità è che nessuno ha misurato.") };
     }
     if (unita === "t") {
       return { ...comune, scavatoM3, rilieviUsati: mis.rilievi, m3DaCumuli: mis.m3Cumulo,
-        base: null, dovuto: null,
-        motivo: "L'aliquota è a tonnellata ma i rilievi misurano metri cubi: per convertirli servirebbe la "
+        ...importo(null, false,
+          "L'aliquota è a tonnellata ma i rilievi misurano metri cubi: per convertirli servirebbe la "
           + "densità del banco in posto, che non è quella del materiale sciolto e qui non c'è. "
-          + "Metti l'aliquota a metro cubo, oppure usa il materiale venduto, dove le tonnellate sono pesate." };
+          + "Metti l'aliquota a metro cubo, oppure usa il materiale venduto, dove le tonnellate sono pesate.") };
     }
     return { ...comune, scavatoM3, rilieviUsati: mis.rilievi, m3DaCumuli: mis.m3Cumulo,
-      base: round3(scavatoM3), dovuto: round2(scavatoM3 * aliquota), motivo: "" };
+      ...importo(scavatoM3, true, "") };
   }
 
+  /* ⛔ E LA BASE DEL VENDUTO PUÒ NON ESSERE MISURABILE ANCHE QUANDO C'È STATA
+     VENDITA. La riga per prodotto lo sapeva già dal 03/08 — un prodotto di cui
+     non si converte nemmeno un viaggio non deve «zero» — e il TOTALE no: con
+     l'aliquota a metro cubo e nessuna consegna del periodo con la densità,
+     `tot.m3` restava 0 e il dovuto usciva € 0,00 mentre TUTTE le righe sotto
+     dicevano «—». Cioè la stessa correzione fatta alle righe e non al totale,
+     che è la firma della copia debole. Uno zero qui dice «non devi niente
+     all'ente»; la verità è che quel volume non lo sa nessuno.
+     ⚠️ PARZIALE ≠ non calcolabile, come per le righe: se qualche viaggio si
+     converte il numero è vero e incompleto, e a dirlo è `senzaDensita`.
+     ⚠️ E nessuna pesata NON entra qui: lì lo zero è un fatto (non è stato
+     venduto niente), ed è l'asimmetria dichiarata in cima a questa funzione. */
+  const baseCalcolabile = unita === "t" || !comune.viaggi || tot.senzaDensita < comune.viaggi;
   const base = unita === "t" ? tot.t : tot.m3;
-  return { ...comune, base: round3(base), dovuto: round2(base * aliquota),
-           scavatoM3: null, rilieviUsati: 0, m3DaCumuli: 0, motivo: "" };
+  return { ...comune, scavatoM3: null, rilieviUsati: 0, m3DaCumuli: 0,
+    ...importo(base, baseCalcolabile,
+      "Il canone è a metro cubo, e nessuna delle consegne del periodo ha la densità del prodotto: "
+      + "il volume venduto non lo sa nessuno. Uno zero direbbe che non c'è niente da versare. "
+      + "Aggiungi la densità nel Listino e il calcolo si completa.") };
 }
 
 // Venduto per prodotto in un periodo (tonnellate, metri cubi e valore): è la

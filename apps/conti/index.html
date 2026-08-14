@@ -4689,14 +4689,23 @@ label.item:has(.dw-chk:checked){
         "Il canone si calcola sul materiale delle <b>pesate</b>: registra i DDT del periodo, oppure allarga le date qui sopra.");
       $("can-list").innerHTML = ""; return;
     }
-    const senzaAli = !(c.aliquota > 0);
-    $("can-riep").innerHTML = `<div class="cassa${senzaAli ? " vuota" : ""}">
+    /* ⛔ LE DUE BANDIERE LE DECIDE IL MODULO, QUI NON SI RIFÀ LA GUARDIA.
+       Fino al 14/08 questa riga era `!(c.aliquota > 0)`: la guardia sull'aliquota
+       viveva nella PAGINA mentre `canonePeriodo` rispondeva `dovuto: 0` — cioè
+       chiunque altro chiamasse quella funzione (un export, un foglio stampato)
+       si sarebbe portato via lo zero. Adesso `noto` dice se la tariffa c'è e
+       `calcolabile` se la base si misura; `dovuto` è `null` in tutt'e due i
+       casi, e `motivo` dice quale dei due. */
+    const senzaAli = !c.noto;
+    const senzaDovuto = c.dovuto == null;
+    $("can-riep").innerHTML = `<div class="cassa${senzaDovuto ? " vuota" : ""}">
       <span class="cassa-ico">${IC.bilancia}</span>
-      <div><div class="cassa-num">${senzaAli ? "—" : eur(c.dovuto)}</div>
+      <div><div class="cassa-num">${senzaDovuto ? "—" : eur(c.dovuto)}</div>
       <div class="cassa-lab">Canone dovuto sul periodo</div></div>
       <div class="cassa-txt" style="margin-left:auto;text-align:right;">
-      ${senzaAli ? "Scrivi l'aliquota della tua concessione qui sopra.<br>"
-                 : "Aliquota <b>" + eur(c.aliquota) + "/" + u + "</b> × <b>" + qt(c.base) + " " + u + "</b><br>"}
+      ${!c.calcolabile ? esc(c.motivo) + "<br>"
+        : senzaAli ? "Scrivi l'aliquota della tua concessione qui sopra.<br>"
+                   : "Aliquota <b>" + eur(c.aliquota) + "/" + u + "</b> × <b>" + qt(c.base) + " " + u + "</b><br>"}
       ${c.baseScelta === "scavato"
         ? "Base: <b>" + qt(c.scavatoM3) + " m³ scavati</b> da " + plur(c.rilieviUsati, "rilievo", "rilievi")
           + (c.m3DaCumuli ? " (fuori <b>" + qt(c.m3DaCumuli) + " m³</b> ripresi dai cumuli)" : "")
@@ -4718,10 +4727,16 @@ label.item:has(.dw-chk:checked){
             «€ 0,00 · 0,00 m³» su un prodotto venduto e pesato di cui non si
             converte nemmeno un viaggio — cioè «per questo non devi niente»
             all'ente, dove la verità è «questo volume non lo sa nessuno». */""}
-      <div class="amt"><div class="amt-n${senzaAli || !r.calcolabile ? " mute" : ""}">${senzaAli || !r.calcolabile ? "—" : eur(r.dovuto)}</div>
+      ${/* ⚠️ E il «—» lo decide `r.dovuto == null`, non un `senzaAli` rifatto
+            qui: il modulo mette a `null` sia quando il volume non si converte
+            sia quando manca la tariffa, e riscrivere quella somma di condizioni
+            nella pagina era la copia debole in miniatura. La riga di SOTTO
+            invece resta su `r.calcolabile`, ed è giusto: dice perché manca il
+            VOLUME, e senza aliquota il volume c'è ed è quello. */""}
+      <div class="amt"><div class="amt-n${r.dovuto == null ? " mute" : ""}">${r.dovuto == null ? "—" : eur(r.dovuto)}</div>
         <div class="amt-s">${r.calcolabile ? qt(c.unita === "t" ? r.t : r.m3) + " " + u
           : "volume non convertibile"}</div></div></div>`).join("")
-      + (senzaAli ? "" : `<div class="tot"><span class="tot-l">Canone stimato del periodo</span>
+      + (senzaDovuto ? "" : `<div class="tot"><span class="tot-l">Canone stimato del periodo</span>
          <span class="tot-n">${eur(c.dovuto)}</span></div>`);
   }
 
