@@ -11,6 +11,7 @@ const { onDocumentWritten } = require("firebase-functions/v2/firestore");
 const { onCall, HttpsError } = require("firebase-functions/v2/https");
 const admin = require("firebase-admin");
 const { FieldValue, Timestamp } = require("firebase-admin/firestore");
+const { convergiClaims } = require("./claims");
 
 admin.initializeApp();
 const db = admin.firestore();
@@ -22,7 +23,7 @@ const REGION = "europe-west1";
 // Claims: ricostruisce la mappa {orgId: role} di un utente
 // leggendo TUTTE le sue membership attive, e la scrive nel token.
 // ------------------------------------------------------------
-async function rebuildClaims(uid) {
+async function leggiOrgsAttive(uid) {
   // Ogni documento membership porta il campo `uid` (scritto sotto):
   // la collectionGroup può così filtrare in modo esatto ed efficiente.
   const snap = await db
@@ -36,6 +37,10 @@ async function rebuildClaims(uid) {
     const orgId = doc.ref.parent.parent.id;
     orgs[orgId] = doc.data().role || "member";
   }
+  return orgs;
+}
+
+async function scriviClaims(uid, orgs) {
   try {
     await admin.auth().setCustomUserClaims(uid, { orgs });
   } catch (e) {
@@ -52,11 +57,31 @@ async function rebuildClaims(uid) {
     // sicurezza vero e va visto.
     if (e && e.code === "auth/user-not-found") {
       console.warn(`rebuildClaims: nessun utente Auth per ${uid}, membership orfana — niente da aggiornare`);
-      return orgs;
+      return false;   // «non c'è più niente da scrivere»: ferma la convergenza
     }
     throw e;
   }
-  return orgs;
+  return true;
+}
+
+/* Legge, scrive, RILEGGE: la ragione sta per esteso in `claims.js`. In due
+   parole: due scritture di membership ravvicinate sullo stesso utente fanno
+   partire due trigger, e quello rimasto indietro può atterrare per ultimo
+   cancellando un'organizzazione dal token — con la membership che su
+   Firestore dice ancora `active`. Rileggere dopo aver scritto lo rimette a
+   posto da sé. */
+async function rebuildClaims(uid) {
+  const esito = await convergiClaims({
+    leggi: () => leggiOrgsAttive(uid),
+    scrivi: (orgs) => scriviClaims(uid, orgs),
+  });
+  if (esito.fermato === "giri-esauriti") {
+    // Non è un guasto ed è raro: le membership stanno cambiando più in fretta
+    // di quanto si riesca a rileggerle. Si dichiara invece di tacere, perché
+    // un claim che resta indietro non ha nessun altro modo di farsi vedere.
+    console.warn(`rebuildClaims: claims di ${uid} non convergiuti in ${esito.letture} letture`);
+  }
+  return esito.orgs;
 }
 
 // Trigger: ogni scrittura su una membership riallinea i claims.

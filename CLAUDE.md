@@ -2412,6 +2412,29 @@ Perché serva davvero e non produca elenchi generici, cinque vincoli:
   una promessa, e le promesse invecchiano.** Quel `58` sulle regole di
   sicurezza stava in tre documenti e valeva **68** perché nessuno lo lanciava
   più in casa — sul numero che riguarda la sicurezza, per giunta.
+  ⛔ **E IL 14/08 LA STESSA FAMIGLIA NELLA VESTE CHE SI BUTTA VIA PIÙ
+  VOLENTIERI: UN ROSSO CHE NON SI RIPRODUCE.** La CI è caduta **una volta su
+  trenta** su `run-sdk.mjs` — «membro di DUE org cambia org attiva» → *Non sei
+  membro di questa organizzazione* — su un commit che conteneva **solo un file
+  di checkpoint**. In casa, con gli stessi tre emulatori, **19/0 per tre giri
+  di fila**. Tutti i segni di quello che si chiama «flaky» e si rilancia.
+  Sotto c'era un **aggiornamento perduto** vero: `rebuildClaims` legge le
+  membership e scrive i claims, due scritture ravvicinate sullo stesso utente
+  svegliano **due** trigger, e quello partito prima — che ha letto una
+  fotografia in cui la seconda membership non c'era — se atterra per **ultimo**
+  lascia nel token **una org sola**. Su Firestore la membership dice `active`,
+  il token dice di no, e non lo segnala niente finché qualcuno non riscrive una
+  membership.
+  ⚠️ **Il rosso raro non è un rosso più debole: è lo stesso difetto visto da un
+  interleaving che capita di rado.** Rilanciare la CI è, alla lettera, chiedere
+  al caso di nascondere il difetto — e riesce quasi sempre.
+  ⛔ E la difesa non può essere una prova che *aspetta* la gara: sarebbe verde
+  quasi sempre **anche col difetto rimesso**, cioè non saprebbe fallire. Si
+  scrive l'**ordine delle mosse** con dei finti — «il rimasto indietro scrive
+  per ultimo», sempre — e la si prova nei due versi
+  (`tests/claims-convergenza.mjs`: 19 prove, con la forma vecchia rimessa ne
+  cadono 8). La cura, poi, è la stessa forma di sempre: **dopo aver scritto si
+  rilegge**, e chi era rimasto indietro rimette a posto ciò che aveva guastato.
 - Verifica visiva pagine: server statico locale + screenshot
   (Playwright/Chromium preinstallato). Gli screenshot vanno **guardati**, non
   solo prodotti: nella giornata del 29/07 un campo scomparso, una miniatura

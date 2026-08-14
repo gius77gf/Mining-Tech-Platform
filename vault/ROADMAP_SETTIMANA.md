@@ -5346,10 +5346,10 @@ numero scritto dove non era stato misurato niente**.*
   nome apre il file sbagliato credendo che sia il più fresco.
 - Le decisioni: `docs/DECISIONI_WEEKEND.md` — pagina d'ingresso in cima.
 - Stato misurato al **14/08** (lanciando le suite, non a memoria):
-  **2.761 prove girano senza rete**. La frase va letta stretta: è la somma
-  delle **otto** suite che contano asserzioni (`run-kpi` 2110, `run-stile` 318,
-  `run-helpers` 75, `run-pointcloud` 32, `run-manifest` 9, `run-demo` 8,
-  `bootstrap-rivendicazioni` 7, `fogli-guardati` 3), non tutto ciò che gira nel
+  **2.780 prove girano senza rete**. La frase va letta stretta: è la somma
+  delle **nove** suite che contano asserzioni (`run-kpi` 2305, `run-stile` 322,
+  `run-helpers` 75, `run-pointcloud` 32, `claims-convergenza` 19, `run-manifest` 9,
+  `run-demo` 8, `bootstrap-rivendicazioni` 7, `fogli-guardati` 3), non tutto ciò che gira nel
   giro `node` — che di comandi ne ha **34** e di asserzioni ne esegue di più:
   `node apps/deepwork-id/tests/giro-node.mjs | grep -oE '[0-9]+ passati' | awk '{s+=$1} END {print s}'`
   → **2691** al 09/08.
@@ -6338,3 +6338,42 @@ di scriverlo qui**: niente entra sulla parola dell'agente.
       **Arretrato**: 25 commit / 14 che mordono → **18 / 5** (rimisurato da me
       dopo aver committato B8: il cantiere aveva letto 12, ed è cresciuto perché
       nel frattempo il ramo si è mosso; i «che mordono» combaciano).
+
+## 14/08 mattina — il rosso che si presenta una volta su trenta
+
+- [x] ✅ **B13 — CHIUSA il 14/08: due trigger sullo stesso utente, e quello
+      rimasto indietro CANCELLAVA un'organizzazione dal token.** L'ha aperta la
+      CI, cadendo su `run-sdk.mjs` («membro di DUE org cambia org attiva» →
+      *Non sei membro di questa organizzazione*) su un commit che conteneva
+      **solo un file di checkpoint**. In casa, con gli stessi tre emulatori
+      (firestore+auth+functions), **19/0 per tre giri di fila**: tutti i segni
+      di quello che si chiama «flaky» e si rilancia.
+      **Il meccanismo**: `rebuildClaims` legge le membership e scrive i claims.
+      Due scritture di membership ravvicinate sullo stesso utente svegliano
+      **due** trigger; quello partito prima ha letto una fotografia in cui la
+      seconda membership non c'era ancora, e se la sua scrittura atterra per
+      **ultima** nel token resta **una org sola**. Su Firestore la membership
+      dice `active`, il token dice di no, e non lo segnala niente — nessun
+      errore, nessuna riga di registro — finché qualcuno non riscrive una
+      membership.
+      **La cura**: dopo aver scritto si **rilegge** (`convergiClaims` in
+      `apps/deepwork-id/functions/claims.js`). Il trigger rimasto indietro, alla
+      seconda occhiata, vede il mondo completo e rimette a posto ciò che aveva
+      appena guastato. Regge perché l'ultimo trigger a partire legge **sempre**
+      dopo l'ultima scrittura di membership: il solo modo di finire storti era
+      che una lettura vecchia atterrasse dopo la sua, e adesso quella rilegge.
+      **Il costo, misurato e dichiarato**: quando non è cambiato niente — il
+      caso normale — le scritture sul token restano **una** e le letture
+      diventano **due**; solo il trigger in ritardo paga due scritture e tre
+      letture. Il tetto è dichiarato: dopo `giriMax` giri si esce con
+      `convergiuto: false` e lo si scrive nel registro, invece di girare in
+      eterno.
+      ⛔ **E la difesa NON poteva essere una prova che aspetta la gara**:
+      sarebbe stata verde quasi sempre **anche col difetto rimesso** — 1 su 30
+      in CI, 0 su 3 in casa — cioè non avrebbe saputo fallire. L'ordine delle
+      mosse è **scritto** con dei finti: «il rimasto indietro scrive per
+      ultimo», sempre.
+      Prove: `apps/deepwork-id/tests/claims-convergenza.mjs`, **19**, senza
+      emulatore; con la forma vecchia rimessa ne cadono **8**. E sotto
+      l'emulatore, con la correzione: funzioni **21/0**, SDK **19/0**, primo
+      avvio **8/0**.

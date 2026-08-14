@@ -120,6 +120,18 @@ function esportati(path) {
     for (const n of nomiFraGraffe(m[1])) nomi.add(n.come);
   }
   if (cerca(path, /\bexport\s+default\b/g).length) nomi.add("default");
+  /* ⛔ E UN MODULO **CommonJS** NON HA NESSUNA DI QUESTE FORME, quindi fino al
+     14/08 questo censimento rispondeva «non esporta niente» — cioè un falso
+     allarme su OGNI import da un file `require`-style, che è il verso
+     sbagliato: non rumore su una forma nuova, ma rumore su una forma vecchia
+     come il progetto. L'ha fatto vedere `functions/claims.js`, il primo file
+     delle Cloud Functions che una suite `node` importa: due nomi veri accusati
+     di non esistere. Le due forme che questa casa usa sono
+     `module.exports = { a, b }` e `exports.a = …`. */
+  for (const m of cerca(path, /\bmodule\.exports\s*=\s*\{([^}]*)\}/g)) {
+    for (const n of nomiFraGraffe(m[1])) nomi.add(n.come);
+  }
+  for (const m of cerca(path, /\bexports\.([A-Za-z_$][\w$]*)\s*=/g)) nomi.add(m[1]);
   // `export * from "./x.js"` porta dentro i nomi di un altro file
   for (const m of cerca(path, /\bexport\s*\*\s*from\s*["']([^"']+)["']/g)) {
     const via = risolvi(path, m[1]);

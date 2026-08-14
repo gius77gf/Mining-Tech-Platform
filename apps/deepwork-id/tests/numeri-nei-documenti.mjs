@@ -46,9 +46,15 @@ const ok = (cond, perche) => { if (!cond) throw new Error(perche); };
    girano senza rete e senza browser» un numero piu' STRETTO di quello che
    dice, che e' la quarta forma dell'invecchiamento e sta scritta due righe piu'
    su. Una suite nuova che risponde al criterio entra qui il giorno che nasce. */
+/* ⏱️ E dal 14/08 c'e' dentro anche `claims-convergenza.mjs`, per la stessa
+   ragione delle due entrate qui sopra — prove di comportamento, senza rete e
+   senza browser — e per una che vale la pena scrivere: e' nata da un rosso
+   della CI che si presentava **una volta su trenta**, cioe' proprio dal genere
+   di difetto che un totale fermo non fa vedere. */
 const SUITE = ["run-kpi.mjs", "run-stile.mjs", "run-helpers.mjs",
   "run-pointcloud.mjs", "run-manifest.mjs", "run-demo.mjs",
-  "bootstrap-rivendicazioni.mjs", "fogli-guardati.mjs"];
+  "bootstrap-rivendicazioni.mjs", "fogli-guardati.mjs",
+  "claims-convergenza.mjs"];
 let totale = 0;
 const dettaglio = [];
 for (const s of SUITE) {
