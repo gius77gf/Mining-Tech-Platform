@@ -230,10 +230,27 @@ export function misuratoPeriodo(rilievi, dal, al) {
   let m3 = 0, n = 0, m3Cumulo = 0, nCumulo = 0, pianificati = 0;
   let primo = null, ultimo = null;
   for (const r of rilievi) {
-    const v = +((r || {}).volumeM3);
+    /* ⛔ QUI C'ERA `+((r||{}).volumeM3)` CON `Number.isFinite(v)`, ED È LA
+       TRAPPOLA PER CUI ESISTE `numeroDichiarato` — scritta nel ponte che quella
+       funzione la ospita, novecento righe più in giù. `+null` fa **0** e `+""`
+       fa **0**, e `Number.isFinite(0)` risponde **true**: quindi un rilievo
+       *elaborato* senza volume **contava come rilievo**.
+       Misurato il 14/08 su tre rilievi (due sani più uno al 01/07):
+         volumeM3 assente  → {m3:3000, rilievi:2, ultimo:"2026-03-20"}   ✓
+         volumeM3 null     → {m3:3000, rilievi:3, ultimo:"2026-07-01"}   ⛔
+         volumeM3 ""       → identico al null                            ⛔
+         volumeM3 "abc"    → {m3:3000, rilievi:2, ultimo:"2026-03-20"}   ✓
+       Cioè **due assenze, due comportamenti**: `abc` veniva scartato e `null`
+       no. E il danno non è il conto: è `ultimo`, **la data dell'ultima misura**,
+       spostata avanti da un rilievo che non ha misurato niente. Da qui passano
+       il grafico turni-contro-misurato di Terra e la base del canone di Conti,
+       cioè un numero che finisce in un conto verso un ente.
+       ⚠️ Uno zero **scritto** resta un dato e continua a contare: la differenza
+       fra «non ho tolto niente» e «nessuno ha misurato» è tutto il punto. */
+    const v = numeroDichiarato((r || {}).volumeM3);
     const d = String((r || {}).data || "");
     if ((r || {}).stato === "pianificato") pianificati++;
-    if ((r || {}).stato !== "elaborato" || !Number.isFinite(v) || !dataISOBuona(d)) continue;
+    if ((r || {}).stato !== "elaborato" || v == null || !dataISOBuona(d)) continue;
     if (d1 && d < d1) continue;
     if (d2 && d > d2) continue;
     if (provenienzaDi(r) === "cumulo") { m3Cumulo = r3(m3Cumulo + v); nCumulo++; continue; }

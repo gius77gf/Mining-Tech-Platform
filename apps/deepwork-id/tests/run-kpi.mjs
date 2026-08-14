@@ -30977,5 +30977,43 @@ test("frasePersi · ⚠️ NIENTE `esc()`: la frase esce come l'utente l'ha scri
 }
 /* ===== fine Campo/Terra · il ripiego silenzioso ============================ */
 
+/* ===== shared · misuratoPeriodo, il rilievo che non ha misurato niente =====
+   ⛔ `+null` fa 0 e `Number.isFinite(0)` risponde true: un rilievo ELABORATO
+   senza volume contava come rilievo e spostava avanti `ultimo`, la data
+   dell'ultima misura. Da lì passano il grafico turni-contro-misurato di Terra e
+   la base del canone di Conti. Trovato il 14/08 dal censimento dei ripieghi
+   silenziosi, misurato prima di correggerlo. */
+{
+  const base = [
+    { stato: "elaborato", data: "2026-01-15", volumeM3: 1000 },
+    { stato: "elaborato", data: "2026-03-20", volumeM3: 2000 },
+  ];
+  const conTerzo = (v) => {
+    const t = { stato: "elaborato", data: "2026-07-01" };
+    if (v !== "ASSENTE") t.volumeM3 = v;
+    return ponti.misuratoPeriodo([...base, t], "2026-01-01", "2026-12-31");
+  };
+  test("⛔ shared · misuratoPeriodo: le QUATTRO forme dell'assenza si comportano allo stesso modo", () => {
+    /* la prova che conta non è «null viene scartato»: è che le quattro assenze
+       diano LO STESSO risultato. Prima `abc` veniva scartato e `null` no —
+       due assenze, due comportamenti, e nessuno se ne accorgeva. */
+    const atteso = JSON.stringify({ m3: 3000, rilievi: 2, ultimo: "2026-03-20" });
+    for (const v of ["ASSENTE", null, "", "abc", "   ", undefined]) {
+      const r = conTerzo(v);
+      eq(JSON.stringify({ m3: r.m3, rilievi: r.rilievi, ultimo: r.ultimo }), atteso,
+        `volumeM3 ${JSON.stringify(v)} non deve contare come rilievo`);
+    }
+  });
+  test("⛔ shared · misuratoPeriodo: uno ZERO SCRITTO resta un dato e conta", () => {
+    /* «non ho tolto niente» non è «nessuno ha misurato»: se lo zero sparisse,
+       la correzione avrebbe scambiato un difetto con l'altro. */
+    const r = conTerzo(0);
+    eq(r.rilievi, 3, "lo zero dichiarato è un rilievo");
+    eq(r.ultimo, "2026-07-01", "e sposta la data dell'ultima misura, perché una misura c'è stata");
+    eq(r.m3, 3000, "e non aggiunge volume");
+  });
+}
+/* ===== fine shared · misuratoPeriodo ====================================== */
+
 console.log(`\nRisultato KPI app: ${passed} passati, ${failed} falliti${inVolo.length ? `  ·  ${inVolo.length} prove asincrone aspettate` : ""}`);
 process.exit(failed > 0 ? 1 : 0);
