@@ -67,7 +67,18 @@ function codiceVivo(file) {
   return { vivo: blocchi.map(senzaCommenti).join("\n"), grezzo: blocchi.join("\n") };
 }
 
-const FORMA = /([A-Za-z_$][\w$.\[\]'"]*)\s*(\|\||\?\?)\s*([A-Z_][A-Z_0-9]*|\d+(?:\.\d+)?|'[^']*'|"[^"]*")/g;
+/* ⛔ LA SINISTRA PUÒ ESSERE UN'ESPRESSIONE FRA PARENTESI, e per un giorno questo
+   censimento non l'ha vista. La prima stesura voleva un **identificatore** a
+   sinistra del `||`, quindi `(f() && f().x) || 100` e `parseNum(x) || 30` gli
+   sfuggivano. L'ha dichiarato un cantiere che lavorava su Genesi (30 ripieghi in
+   più nella sua sola pagina); misurato su tutte le superfici il salto è
+   **269 → 370, cioè 101 entrati**: il censimento vedeva il **73%** della
+   famiglia e lo dichiarava come se fosse il totale.
+   ⚠️ Non è rumore: `(…) || 89`, `(…) || 100`, `(…) || 30` sono ripieghi come
+   gli altri — il valore a destra è una costante di mestiere, e che a sinistra
+   ci sia un nome o una chiamata non cambia che cosa succede quando il dato non
+   c'è. */
+const FORMA = /(\)|[A-Za-z_$][\w$.\[\]'"]*)\s*(\|\||\?\?)\s*([A-Z_][A-Z_0-9]*|\d+(?:\.\d+)?|'[^']*'|"[^"]*")/g;
 const stringa = (m) => /^['"]/.test(m[3]);
 const zero = (m) => m[3] === "0";
 

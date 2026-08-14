@@ -420,6 +420,24 @@ chiuse. Le aperte sono **24**; la pagina d'ingresso di
       *(La tabella qui sopra è misurata sul commit `f1ae57ee`; i numeri di
       Genesi si muovono perché un cantiere ci sta lavorando. Il numero vero lo
       dà lo strumento, non questa tabella.)*
+      ⛔ **E IL 14/08 LO STRUMENTO HA DICHIARATO UN PROPRIO PUNTO CIECO, MISURATO:
+      la sinistra del `||` poteva essere un'ESPRESSIONE FRA PARENTESI**, e la
+      prima stesura voleva un identificatore — quindi `(f() && f().x) || 100` e
+      `parseNum(x) || 30` gli sfuggivano. L'ha visto un cantiere su Genesi (30
+      in più nella sua sola pagina); misurato su **tutte** le superfici il salto
+      è **269 → 370 ripieghi di mestiere, cioè 101 entrati**: il censimento
+      vedeva il **73% della famiglia** e lo stampava come se fosse il totale.
+      ⚠️ Non è rumore — il valore a destra è comunque una costante di mestiere, e
+      che a sinistra ci sia un nome o una chiamata non cambia che cosa succede
+      quando il dato non c'è. **I numeri buoni sono quelli nuovi**: core **59**
+      (era 41), `genesi · pagina` **146** (era 119), `scudo · pagina` **7** (era
+      1), totale **370** su **2.844** candidati.
+      ⚠️ **È la seconda volta in un'ora che questo strumento sottostima** — prima
+      le sottrazioni (6 contro 38), adesso la forma. Tutt'e due le volte il
+      numero sbagliato era **già stato stampato e citato**, e tutt'e due le volte
+      a prenderlo è stata una **misura del costo fatta prima di allargare**, non
+      la rilettura. Un righello nuovo si prova contro il difetto **anche quando
+      il difetto è nel righello**.
 
 - [x] ✅ **TERRA · «RISERVA RESIDUA STIMATA: 0 m³ · DURATA ~0 ANNI» DOVE NESSUNO
       AVEVA SCRITTO QUANTO RESTA.** ⏱️ *14/08, terza metà del censimento dei
