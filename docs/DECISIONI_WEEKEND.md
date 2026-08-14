@@ -24,8 +24,16 @@ mancava veniva **sostituito da un numero**, e il numero rassicurava.
    l'anno spariva da IF, IG e LTIFR. Su un registro di due infortuni, uno con la
    data e uno senza: il cartellone in cima diceva «Infortuni: 2», e la scheda
    degli indici due righe più giù — **sugli stessi dati** — diceva
-   **IF 50,00** dove il vero è **100,00**. La metà, sui tre numeri che si
-   confrontano con la media di settore.
+   **IF 50,00** — e quel 50 **non si può sapere se è giusto**: se
+   quell'infortunio è del 2026 l'indice vero è **100,00**, il doppio, sui tre
+   numeri che si confrontano con la media di settore. Prima non lo diceva
+   nessuno; adesso la scheda scrive che c'è un infortunio di cui non si legge
+   l'anno e che **non è in nessuno di questi conteggi**.
+   ⚠️ *Corretto il 14/08 rileggendo questa riga: la prima stesura diceva «dove
+   il vero è 100,00», e non è esatto — **il conto non l'abbiamo cambiato**, e
+   non dovevamo (è una soglia di sicurezza, e quelle restano tue). Il 100 è
+   quanto verrebbe **se** quell'infortunio fosse dell'anno; il punto non è che
+   il numero era sbagliato, è che era **presentato come certo**.*
 2. **Genesi — il confinamento del colletto (SDOB).** Senza la carica per foro,
    la scheda scriveva **5,84** invece di **1,43**: sopra la soglia, quindi
    **pallino verde**, «colletto ben confinato, disturbo superficiale minimo».

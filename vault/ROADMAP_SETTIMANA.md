@@ -1800,10 +1800,17 @@ numero scritto dove non era stato misurato niente**.*
         due infortuni, uno con la data e uno senza, il cartellone scrive
         «Infortuni: 2 · 14 giornate perse» e la scheda degli indici, **due righe
         più giù e sugli stessi dati**, scriveva «Anno 2026 · 1 infortunio · 10
-        giornate perse · **IF 50,00 · IG 0,50 · LTIFR 50,00**» dove il vero è
-        **IF 100,00 · IG 0,70 · LTIFR 100,00**: la metà, sui tre numeri che si
-        portano in gara e si confrontano con la media di settore, e nel verso
-        che **rassicura**.
+        giornate perse · **IF 50,00 · IG 0,50 · LTIFR 50,00**» **senza dire che
+        quel 50 potrebbe essere la metà del vero**: se quell'infortunio è del
+        2026 gli indici sono **100,00 · 0,70 · 100,00**. Sui tre numeri che si
+        portano in gara, e nel verso che **rassicura**.
+        ⚠️ *Riletta il 14/08 rimisurando il modulo da me: la prima stesura
+        scriveva «dove il vero è 100,00», e sarebbe una promessa che il prodotto
+        non mantiene — `indiciInfortunistici` risponde **ancora 50** e deve
+        farlo, perché il conto non si tocca. Verificato:*
+        `IF 50 · senzaAnno 1` *con l'infortunio senza data,* `IF 50 · senzaAnno
+        0` *senza. Il 100 è il valore **condizionale**, non il valore vero: a
+        cambiare non è il numero, è che adesso accanto c'è scritto che non si sa.*
         ⛔ **Il conto NON è cambiato** — una soglia di sicurezza non si tocca di
         testa propria: è cambiato che chi manca si **conta** (`senzaAnno`) e si
         **dice** (`avvisoInfortuniSenzaAnno`, scritta nel modulo accanto alle
