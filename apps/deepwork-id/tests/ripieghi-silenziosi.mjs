@@ -79,6 +79,58 @@ const zero = (m) => m[3] === "0";
 const PIU_FINITE = /Number\.isFinite\(\s*\+/g;
 const MAX_ZERO = /Math\.max\(\s*0\s*,/g;
 
+/* ⛔ E `Math.max(0, …)` VA SPACCATO IN DUE, se no il numero non dice niente.
+   Un `Math.max(0, x)` è un **clamp**: tiene un valore dentro il suo dominio, e
+   va benissimo. Quello pericoloso è `Math.max(0, a − b)`, cioè una
+   **sottrazione fra due insiemi**: quello zero di comodo è lì perché qualcuno
+   sapeva che `b ⊆ a`, e quell'invariante **non è scritto da nessuna parte**. Il
+   13/08 in Conti, rotto l'invariante, la sottrazione non diventava negativa —
+   **faceva sparire** delle consegne, cioè sbagliava nella direzione tranquilla.
+   Il meno si conta solo se è **binario e al livello zero** delle parentesi: un
+   `-x` unario o un meno dentro una chiamata annidata non sono questa forma. */
+function sottrazioni(codice) {
+  let n = 0;
+  for (const m of codice.matchAll(/Math\.max\(\s*0\s*,/g)) {
+    /* ⚠️ NON si prende il corpo con una regex: `[^;]{0,90}?` è non-greedy e si
+       ferma al PRIMO `)`, quindi `Math.max(0, f(x) - g(y))` diventa «f(x» e il
+       meno non lo vede nessuno. Si cammina in avanti contando le parentesi —
+       l'ha detto la controprova, dopo che la prima stesura aveva già stampato
+       un numero. */
+    let liv = 1, k = m.index + m[0].length, corpo = "";
+    while (k < codice.length && liv > 0) {
+      const ch = codice[k];
+      if (ch === "(") liv++;
+      else if (ch === ")") { liv--; if (!liv) break; }
+      else if (ch === ";" || ch === "\n") { if (liv === 1 && corpo.length > 200) break; }
+      corpo += ch; k++;
+      if (corpo.length > 400) break;
+    }
+    /* il meno conta se è BINARIO (prima di lui, saltati gli spazi, c'è un
+       valore) e al livello ZERO delle parentesi annidate */
+    let d = 0;
+    for (let i = 1; i < corpo.length; i++) {
+      const ch = corpo[i];
+      if (ch === "(") d++;
+      else if (ch === ")") d--;
+      else if (ch === "-" && d === 0) {
+        const prima = corpo.slice(0, i).replace(/\s+$/, "");
+        if (/[\w$)\]'"]$/.test(prima)) { n++; break; }
+      }
+    }
+  }
+  return n;
+}
+/* la controprova del righello, sul posto: se non distinguesse le due forme, il
+   numero che stampa sotto sarebbe una somma senza senso */
+{
+  const clamp = sottrazioni("Math.max(0, x); Math.max(0, -y); Math.max(0, f(a-b));");
+  const vere = sottrazioni("Math.max(0, a-b); Math.max(0, tot - persi); Math.max(0, f(x) - g(y));");
+  if (clamp !== 0 || vere !== 3) {
+    console.error(`⛔ il righello delle sottrazioni non distingue (clamp=${clamp}, vere=${vere}): il numero qui sotto non vale`);
+    process.exit(2);
+  }
+}
+
 function censisci(file) {
   const { vivo, grezzo } = codiceVivo(file);
   const tutti = [...vivo.matchAll(FORMA)];
@@ -92,6 +144,7 @@ function censisci(file) {
     mestiere: mestiere.map((m) => m[0].replace(/\s+/g, "").slice(0, 46)),
     piuFinite: (vivo.match(PIU_FINITE) || []).length,
     maxZero: (vivo.match(MAX_ZERO) || []).length,
+    sottrazioni: sottrazioni(vivo),
   };
 }
 
@@ -108,22 +161,26 @@ if (!scelti.length) {
 }
 
 console.log("\n⛔ IL RIPIEGO SILENZIOSO — censimento a tre gradini (MISURA, non una prova)\n");
-console.log("  superficie              candidati  commenti   stampa    zero  MESTIERE  +finite  max(0,");
-let tot = { candidati: 0, commenti: 0, stampa: 0, zero: 0, mestiere: 0, piuFinite: 0, maxZero: 0 };
+console.log("  superficie              candidati  commenti   stampa    zero  MESTIERE  +finite  max(0,  di cui a-b");
+let tot = { candidati: 0, commenti: 0, stampa: 0, zero: 0, mestiere: 0, piuFinite: 0, maxZero: 0, sottrazioni: 0 };
 const dettaglio = [];
 for (const [nome, file] of scelti) {
   const r = censisci(file);
   dettaglio.push([nome, r.mestiere]);
   tot.candidati += r.candidati; tot.commenti += r.commenti; tot.stampa += r.stampa;
   tot.zero += r.zero; tot.mestiere += r.mestiere.length; tot.piuFinite += r.piuFinite; tot.maxZero += r.maxZero;
+  tot.sottrazioni += r.sottrazioni;
   console.log(`  ${nome.padEnd(22)} ${String(r.candidati).padStart(8)}  ${String(r.commenti).padStart(8)}`
     + `  ${String(r.stampa).padStart(7)} ${String(r.zero).padStart(7)}  ${String(r.mestiere.length).padStart(8)}`
-    + `  ${String(r.piuFinite).padStart(7)}  ${String(r.maxZero).padStart(6)}`);
+    + `  ${String(r.piuFinite).padStart(7)}  ${String(r.maxZero).padStart(6)}  ${String(r.sottrazioni).padStart(10)}`);
 }
 console.log(`  ${"TOTALE".padEnd(22)} ${String(tot.candidati).padStart(8)}  ${String(tot.commenti).padStart(8)}`
   + `  ${String(tot.stampa).padStart(7)} ${String(tot.zero).padStart(7)}  ${String(tot.mestiere).padStart(8)}`
-  + `  ${String(tot.piuFinite).padStart(7)}  ${String(tot.maxZero).padStart(6)}`);
+  + `  ${String(tot.piuFinite).padStart(7)}  ${String(tot.maxZero).padStart(6)}  ${String(tot.sottrazioni).padStart(10)}`);
 
+console.log("\n  ⚠️ E `max(0,` da solo non dice niente: quasi tutti sono CLAMP, che vanno benissimo.");
+console.log("     Quello pericoloso è la colonna «di cui a-b» — una sottrazione fra due insiemi,");
+console.log("     dove lo zero di comodo nasconde un invariante che nessuno ha scritto.");
 console.log("\n  ⚠️ Il numero da guardare è MESTIERE, non «candidati»: una costante che non è");
 console.log("     né zero né una stringa. Gli altri due sono contatori e segnaposto di stampa,");
 console.log("     e un `|| 0` su un contatore è giustissimo.");

@@ -399,6 +399,27 @@ chiuse. Le aperte sono **24**; la pagina d'ingresso di
       ⚠️ E i **97 commenti** contati a parte sono la misura del pericolo
       opposto: senza toglierli, il censimento si conta addosso la propria
       documentazione.
+      ⛔ **E `Math.max(0, …)` VA SPACCATO IN DUE, se no quel 165 non dice
+      niente.** Quasi tutti sono **clamp** — tengono un valore dentro il suo
+      dominio, e vanno benissimo. Quella pericolosa è la **sottrazione fra due
+      insiemi**, dove lo zero di comodo nasconde un invariante che nessuno ha
+      scritto: il 13/08 in Conti, rotto l'invariante, non diventava negativa —
+      **faceva sparire delle consegne**. Misurate: **38 su 165**, e non sono
+      sparse — `conti · modulo` **9**, `flotta · modulo` **8**, `terra · modulo`
+      **5**, `core` **3**, `conti · pagina` **3**, `genesi · pagina` **3**.
+      ⚠️ **E il righello ha sbagliato DUE VOLTE prima di reggere, con lo stesso
+      segno**: la prima stesura chiedeva che il carattere prima del meno non
+      fosse uno spazio (per escludere il meno unario) e quindi perdeva
+      `Math.max(0, tot - persi)`, **la forma più comune di tutte**; la seconda
+      prendeva il corpo con una regex non-greedy, che si ferma al primo `)` e
+      quindi non vedeva `Math.max(0, f(x) - g(y))`. Il numero è passato da **6**
+      a **38**, cioè la prima misura era una sottostima di sei volte — e a
+      dirlo è stata la **controprova scritta dentro lo strumento**, che gira a
+      ogni lancio e lo **ferma** se non distingue le due forme. La rilettura
+      non l'aveva vista né la prima né la seconda volta.
+      *(La tabella qui sopra è misurata sul commit `f1ae57ee`; i numeri di
+      Genesi si muovono perché un cantiere ci sta lavorando. Il numero vero lo
+      dà lo strumento, non questa tabella.)*
 
 - [x] ✅ **TERRA · «RISERVA RESIDUA STIMATA: 0 m³ · DURATA ~0 ANNI» DOVE NESSUNO
       AVEVA SCRITTO QUANTO RESTA.** ⏱️ *14/08, terza metà del censimento dei
