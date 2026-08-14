@@ -78,7 +78,7 @@ function codiceVivo(file) {
    gli altri — il valore a destra è una costante di mestiere, e che a sinistra
    ci sia un nome o una chiamata non cambia che cosa succede quando il dato non
    c'è. */
-const FORMA = /(\)|[A-Za-z_$][\w$.\[\]'"]*)\s*(\|\||\?\?)\s*([A-Z_][A-Z_0-9]*|\d+(?:\.\d+)?|'[^']*'|"[^"]*")/g;
+const FORMA = /(\)|[A-Za-z_$][\w$.\[\]'"]*)\s*(\|\||\?\?)\s*([A-Z_][A-Z_0-9]*|\d+(?:\.\d+)?(?:[eE][+-]?\d+)?|'[^']*'|"[^"]*")/g;
 const stringa = (m) => /^['"]/.test(m[3]);
 const zero = (m) => m[3] === "0";
 /* ⛔ E LA DESTRA COMBACIA CON LA SOLA INIZIALE MAIUSCOLA DI UNA CHIAMATA O DI UN
@@ -89,10 +89,34 @@ const zero = (m) => m[3] === "0";
    quattro app); misurato su tutte le superfici sono **58 su 362, il 16%**.
    La colonna si chiama «una costante che non è né zero né una stringa»: se
    quello che segue è `(` o `.`, non è una costante. Si guarda **il carattere
-   dopo il match**, che è l'unica cosa che distingue le due forme. */
+   dopo il match**, che è l'unica cosa che distingue le due forme.
+   ⛔ E QUELLA GUARDIA NON POTEVA SCATTARE, PER TRE GIORNI, PROPRIO SUL CASO CHE
+   IL SUO COMMENTO NOMINA. `String` non è scritto tutto in maiuscolo: la destra
+   è `[A-Z_][A-Z_0-9]*`, quindi combacia con la sola `S` e **il carattere dopo
+   il match è la `t`** — non `(`, non `.`. La guardia guardava un punto che sta
+   in mezzo a un nome. L'hanno misurato DUE cantieri indipendenti lo stesso
+   giorno (11 su 18 in Conti, 7 su 22 in Flotta) e il commento qui sopra
+   dichiarava il difetto **corretto** mentre il codice sotto non lo prendeva:
+   una diagnosi giusta scritta accanto a una cura che non tocca il malato.
+   La domanda che manca è la terza: **il match è finito, o si è fermato dentro
+   un nome più lungo?** Se il carattere dopo è ancora un carattere da
+   identificatore, quella non è una costante — è l'iniziale di `String`,
+   `Number`, `Math`, `Array`, `NaN`, o di una variabile in maiuscoletto.
+   ⚠️ COSTO MISURATO PRIMA DI STRINGERE, e stringere non produce rumore:
+   produce **cecità**, che non si vede. Quindi non si contano gli allarmi nuovi
+   — si contano **i nomi che escono**, e si nominano: la colonna va da **250 a
+   170** su 19 superfici, e gli 80 che escono sono `String` 57, `Number` 5,
+   `Math` 3, `NaN` 3, `Array` 1 (cioè 69 chiamate e globali), più 6 variabili
+   in maiuscoletto (`_rk.ucs`, `_mk.seq`, `LmImp`, `Th`, `_sq`) e 5 numeri in
+   notazione scientifica. Gli **ultimi cinque erano ripieghi VERI** — i `|| 1e9`
+   che mandano in fondo a un ordinamento un recettore la cui distanza non si
+   legge, e l'`|| 1e-9` che salva una divisione — e uscivano perché la regex
+   si fermava sulla `1` lasciando fuori la `e9`. Per quelli non si stringe: si
+   **allarga il numero**, se no la stretta si porterebbe via cinque casi buoni
+   insieme a settantacinque cattivi. */
 const chiamataOMembro = (m, testo) => {
   const dopo = testo.slice(m.index + m[0].length, m.index + m[0].length + 1);
-  return dopo === "(" || dopo === ".";
+  return dopo === "(" || dopo === "." || /[A-Za-z0-9_$]/.test(dopo);
 };
 
 /* le due famiglie vicine, che la forma `||` non prende e che hanno già morso:
@@ -153,6 +177,49 @@ function sottrazioni(codice) {
     console.error(`⛔ il righello delle sottrazioni non distingue (clamp=${clamp}, vere=${vere}): il numero qui sotto non vale`);
     process.exit(2);
   }
+}
+
+/* ⛔ E LA STESSA DOMANDA VA FATTA ALL'ALTRO RIGHELLO — quello che decide se la
+   destra è una costante — perché il suo punto cieco è vissuto tre giorni
+   dichiarandosi corretto in un commento. Un buco trovato per caso vuol dire
+   che gli altri aspettano il prossimo caso: qui i punti di decisione si
+   interrogano **uno per uno, con la risposta giusta scritta accanto**, e le
+   forme che non ci sono ancora nel codice vero valgono quanto quelle che ci
+   sono — le prove sul codice vero contengono solo ciò che qualcuno ha già
+   scritto. */
+{
+  const casi = [
+    /* [ frammento,                             è una costante di mestiere? ] */
+    ["const a = x || SPALLA_MIN;",              true],   // il caso che la colonna esiste per contare
+    ["const a = x || 3.5;",                     true],
+    ["const a = (f() && f().x) || 100;",        true],   // sinistra fra parentesi: entrata il 14/08
+    ["const a = x ?? 12;",                      true],
+    ["const a = (+d.dist || 1e9) - b;",         true],   // notazione scientifica: un tetto è una costante
+    ["const a = (vb - va) || 1e-9;",            true],
+    ["const a = x || String(y);",               false],  // chiamata: il match si ferma sulla S
+    ["const a = x || Number(y);",               false],
+    ["const a = x || Math.abs(y);",             false],
+    ["const a = x || Array.from(y);",           false],
+    ["const a = x || NaN;",                     false],  // una parola chiave non è una costante di mestiere
+    ["const a = IC[k] || IC.altro;",            false],  // membro
+    ["const a = x || _rk.ucs;",                 false],  // membro dietro un nome in maiuscoletto
+    ["const a = x || LmImp;",                   false],  // variabile in maiuscoletto
+    ["const a = x || 0;",                       false],  // lo zero ha una colonna sua
+    ["const a = x || '—';",                     false],  // la stampa ha una colonna sua
+  ];
+  const storte = [];
+  for (const [frammento, atteso] of casi) {
+    const m = [...frammento.matchAll(FORMA)]
+      .filter((x) => !stringa(x) && !zero(x) && !chiamataOMembro(x, frammento));
+    if ((m.length > 0) !== atteso) storte.push(`${frammento} → ${m.length > 0 ? "contato" : "non contato"}`);
+  }
+  if (storte.length) {
+    console.error(`⛔ il righello delle costanti non distingue ${storte.length} casi su ${casi.length}, `
+      + "quindi la colonna MESTIERE qui sotto non vale:");
+    for (const s of storte) console.error("   · " + s);
+    process.exit(2);
+  }
+  console.log(`  (il righello delle costanti risponde giusto su ${casi.length} punti di decisione)`);
 }
 
 function censisci(file) {

@@ -449,6 +449,29 @@ chiuse. Le aperte sono **24**; la pagina d'ingresso di
       ore — 269 → 370 → 304 — sono la ragione per cui un censimento che dichiara
       un totale deve dire **su quale forma l'ha contato**: senza, il suo numero è
       una misura della propria regex.
+      ⛔ **E QUELLA CORREZIONE NON AVEVA CORRETTO NIENTE — per tre giorni, con la
+      diagnosi giusta scritta accanto.** `String` non è tutto maiuscolo: la
+      destra è `[A-Z_][A-Z_0-9]*`, quindi combacia con la sola `S` e il
+      carattere dopo il match è la `t`, non `(`. La guardia guardava un punto
+      **in mezzo a un nome**, e il commento sopra di lei dichiarava il difetto
+      chiuso. L'hanno rimisurato **due cantieri indipendenti lo stesso giorno**
+      (11 su 18 in Conti, 7 su 22 in Flotta), il che è anche il segno da
+      riconoscere: due misure indipendenti che accusano lo stesso strumento.
+      La domanda che mancava è la terza — *il match è finito, o si è fermato
+      dentro un nome più lungo?* Sullo stesso albero: **300 → 225**, il core
+      **invariato a 50** (i suoi erano tutti veri).
+      ⚠️ E stringere non produce rumore, produce **cecità**: quindi non si sono
+      contati gli allarmi nuovi ma **i nomi che escono**, e gli 80 sono `String`
+      57, `Number` 5, `Math` 3, `NaN` 3, `Array` 1, sei variabili in
+      maiuscoletto — e **cinque numeri in notazione scientifica che erano
+      ripieghi VERI**: i `|| 1e9` che mandano in fondo a un ordinamento un
+      recettore la cui distanza non si legge, e l'`|| 1e-9` che salva una
+      divisione. Per quelli si è **allargato il numero** invece di stringere, se
+      no la stretta si portava via cinque casi buoni insieme a settantacinque
+      cattivi. Adesso il righello **si interroga sui suoi 16 punti di
+      decisione** all'avvio e si ferma se ne sbaglia uno (col difetto rimesso ne
+      sbaglia 7): un buco trovato per caso vuol dire che gli altri aspettano il
+      prossimo caso.
 
 - [x] ✅ **TERRA · «RISERVA RESIDUA STIMATA: 0 m³ · DURATA ~0 ANNI» DOVE NESSUNO
       AVEVA SCRITTO QUANTO RESTA.** ⏱️ *14/08, terza metà del censimento dei
