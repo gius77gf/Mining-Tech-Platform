@@ -5563,6 +5563,21 @@ di scriverlo qui**: niente entra sulla parola dell'agente.
       **Come si misura**: nessun altro processo pesante in giro (`ps -eo
       pid=,args= | grep chrome`), tre passate di fila, e si guarda **il totale
       delle asserzioni dichiarate** prima dei KO.
+      ⏱️ **E il 14/08 la stessa famiglia ha morso una SUITE `node`, non un
+      banco** — che è la prova che non riguarda il browser ma la **macchina**.
+      Il giro `node --tz` ha dichiarato caduto `funzioni-mai-usate.mjs` **solo
+      in ora italiana**, e per un attimo sembrava un difetto che dipende
+      dall'orologio (che sarebbe stato serio: l'ora italiana è quella del
+      cliente). Rilanciata **da sola**, con lo stesso `TZ=Europe/Rome`:
+      **4 passati, 0 falliti**, 699 funzioni guardate. Non era l'orologio: sulla
+      macchina c'erano **un giro del browser e un cantiere**.
+      ⛔ E il segno che lo distingue da un difetto vero è nel registro: il
+      comando è caduto **senza stampare nessuna riga `✗`** — cioè non ha
+      fallito un'asserzione, è **morto**. Un test che fallisce dice quale; uno
+      che soccombe alla macchina non dice niente.
+      **Quindi la regola pratica, per chi legge un rosso mentre gira altro**:
+      prima di aprire un cantiere si rilancia **quel solo comando, da solo**. Se
+      passa, il rosso parlava della macchina.
 
 - [x] ✅ **IL DEBITO DI B5, CHIUSO TUTTO E DUE** *(14/08, raccogliendo un cantiere
       morto sul limite di sessione prima di consegnare: le sue misure non sono
