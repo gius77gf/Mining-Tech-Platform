@@ -27839,7 +27839,7 @@ test("voceDocumentoInElenco: la regola vale per documento, non per la lista", ()
      STESSI fori, diceva già «12 fori · né chili né volume». La risposta era in
      casa: `volMc`, scritta insieme a `volKg` e mai chiamata da nessuno. */
   {
-    const V = chiama(["parseNum", "parseNum0", "getBorraggio", "getSpaziatura",
+    const V = chiama(["parseNum", "parseNum0", "magliaDetta", "getBorraggio", "getSpaziatura",
       "ricalcolaTotaliVolata", "volMc", "volKg"]);
     const volata = (prof) => {
       const v = { fronte: { lunghezza_m: 30 }, maglia: { borraggio: 3.5, spaziatura: 4, file: 2 },
@@ -28001,18 +28001,52 @@ test("voceDocumentoInElenco: la regola vale per documento, non per la lista", ()
      che nessuno lo chiuda per distrazione credendolo un residuo. Il giorno in
      cui il fondatore decide, queste due righe cadono e vanno riscritte. */
   {
-    const G = chiama(["parseNum", "parseNum0", "getBorraggio", "getSpaziatura", "ricalcolaTotaliVolata", "volMc"]);
+    const G = chiama(["parseNum", "parseNum0", "magliaDetta", "getBorraggio", "getSpaziatura", "ricalcolaTotaliVolata", "volMc"]);
 
+    /* ⛔ IL 14/08 QUESTA RIGA È STATA SPACCATA IN DUE, e la parte ferma al
+       fondatore è rimasta ferma. B0-septies chiede *«che cosa vede chi apre il
+       2D di una volata senza maglia»* — una PIANTA, che non può dichiararsi: o
+       disegna qualcosa o non disegna niente. Quella domanda è ancora aperta e
+       `getBorraggio`/`getSpaziatura` tengono il loro 3,5 e 4 **per il disegno**.
+       Quello che NON era una domanda aperta è il resto: la barra dell'editor
+       scriveva «Sp3.5×I4», il PDF che esce dall'azienda scriveva «Spalla 3.5 m»
+       e i due campi si ripresentavano compilati — cioè numeri SCRITTI dove
+       nessuno aveva misurato, che è la regola del fondatore e non una scelta.
+       Adesso quei posti passano da `magliaDetta`, che risponde `null`.
+       ⏱️ Ferma resta la sola cosa che questo blocco pinnava davvero: `tot_mc`,
+       e quindi `volMc`. Il giorno in cui il fondatore decide, cade quella. */
     test("⏱️ core · B0-septies: con la maglia svuotata il volume si calcola LO STESSO, su una maglia inventata", () => {
       const fori = Array.from({ length: 12 }, (_, i) => ({ num: i + 1, prof: 12, kg: "" }));
       const vuota = { fronte: { lunghezza_m: 30 },
         maglia: { borraggio: G.parseNum0(""), spaziatura: G.parseNum0(""), file: 2 }, fori };
       G.ricalcolaTotaliVolata(vuota);
       eq([G.getBorraggio(vuota), G.getSpaziatura(vuota)], [3.5, 4],
-        "i due ripieghi della maglia: nessuno li ha scritti, e la scheda li mostra come «Sp3.5×I4»");
+        "i due ripieghi restano, e servono al DISEGNO: una pianta senza numeri non si traccia");
+      eq([G.magliaDetta(vuota).borraggio, G.magliaDetta(vuota).spaziatura, G.magliaDetta(vuota).noto],
+        [null, null, false],
+        "⛔ ma chi SCRIVE un numero a chi legge passa di qui, e di qui non esce nessun numero");
       eq(vuota.tot_mc, 2016, "e il volume esce identico a quello di una maglia dichiarata");
       eq(G.volMc(vuota), "2.016,0 mc",
         "⛔ NON è un residuo da correggere: è la decisione di prodotto B0-septies, ferma al fondatore");
+    });
+
+    /* ⚠️ E LA MAGLIA SCRITTA NON DEVE CAMBIARE DI UN CARATTERE: è il verso che
+       conta di più, perché una difesa che spegne anche i numeri veri è un
+       difetto peggiore di quello che chiude. Compresi i nomi `B`/`S` di prima
+       della v3.4.7.1, che una volata vecchia porta ancora. */
+    test("⛔ core · una maglia SCRITTA resta identica, coi nomi nuovi e con quelli vecchi", () => {
+      const fori = Array.from({ length: 12 }, (_, i) => ({ num: i + 1, prof: 12, kg: "" }));
+      const nuovi = { fronte: { lunghezza_m: 30 }, maglia: { borraggio: 3, spaziatura: 3.5, file: 2 }, fori };
+      const vecchi = { fronte: { lunghezza_m: 30 }, maglia: { B: 3, S: 3.5, file: 2 }, fori };
+      eq([G.magliaDetta(nuovi).borraggio, G.magliaDetta(nuovi).spaziatura, G.magliaDetta(nuovi).noto],
+        [3, 3.5, true], "i nomi nuovi");
+      eq([G.magliaDetta(vecchi).borraggio, G.magliaDetta(vecchi).spaziatura, G.magliaDetta(vecchi).noto],
+        [3, 3.5, true], "e i nomi vecchi, che il ripiego leggeva già");
+      eq([G.getBorraggio(vecchi), G.getSpaziatura(vecchi)], [3, 3.5], "il disegno vede gli stessi numeri");
+      /* e uno scritto come stringa dal campo di testo vale come uno numerico */
+      const testo = { fronte: { lunghezza_m: 30 }, maglia: { borraggio: "3", spaziatura: "3,5", file: 2 }, fori };
+      eq([G.magliaDetta(testo).borraggio, G.magliaDetta(testo).spaziatura], [3, 3.5],
+        "«3,5» battuto col separatore italiano è un numero scritto");
     });
 
     test("⏱️ core · la carica massima per ritardo non conta i fori senza chili, e nessuno lo dice", () => {

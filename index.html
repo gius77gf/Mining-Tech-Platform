@@ -3515,8 +3515,15 @@ function calcAction(btn){
 }
 // Calcolo mc abbattuti (Ufficio/Admin)
 function calcMcUfficio(){
-  const h=parseNum($('umc-h')?.value),b=parseNum($('umc-b')?.value),s=parseNum($('umc-s')?.value),n=parseNum($('umc-n')?.value),k=parseNum($('umc-k')?.value)||0.9;
-  if(!h||!b||!s||!n){if($('umc-out'))$('umc-out').style.display='none';return;}
+  /* ⛔ IL FATTORE DI FRANGIMENTO ERA L'UNICO INGRESSO CHE NON SI POTEVA
+     TOGLIERE: `|| 0.9` faceva sì che, cancellato il campo, il riquadro
+     continuasse a mostrare i metri cubi come se qualcuno l'avesse scelto —
+     ed è il coefficiente che moltiplica TUTTO il risultato. Il campo nasce
+     compilato («0,9»), quindi la strada normale non cambia di un carattere:
+     cambia solo che, svuotandolo, il conto smette di darsi una risposta,
+     esattamente come già fa quando manca una delle altre quattro misure. */
+  const h=parseNum($('umc-h')?.value),b=parseNum($('umc-b')?.value),s=parseNum($('umc-s')?.value),n=parseNum($('umc-n')?.value),k=parseNum($('umc-k')?.value);
+  if(!h||!b||!s||!n||!Number.isFinite(k)||k<=0){if($('umc-out'))$('umc-out').style.display='none';return;}
   const mc=h*b*s*n*k;
   $('umc-tot').textContent=perLettura(mc,1,true);
   $('umc-foro').textContent=(mc/n).toFixed(1);
@@ -5050,7 +5057,7 @@ async function reconToVolata(){
        foriDalModello(_recon.markers,_recon.W,_recon.H).forEach(f=>{
          const num=v.fori.length+1;
          v.fori.push({id:'foro_'+genId(),num,x:Math.round(f.x*100)/100,y:1,
-           prof:parseNum0(v.default.profondita_m)||0,diam:parseNum0(v.default.diametro_mm)||45,
+           prof:parseNum0(v.default.profondita_m)||0,diam:parseNum0(v.default.diametro_mm)||'',
            kg:v.default.kg_per_foro||'',esplosivo:v.default.esplosivo||'',ritardo:'',innesco:v.default.innesco||'',
            sequenza:num,note:'da ricostruzione 3D '+today()});
        });
@@ -5268,8 +5275,14 @@ function setInclTutti(val){
 }
 // Kuz-Ram: X50 = A·(V0/Q)^0.8·Q^(1/6)·(115/E)^(19/20)  [cm]
 function calcKuzRam(){
-  const A=parseNum($('kr-a')?.value),V0=parseNum($('kr-v')?.value),Q=parseNum($('kr-q')?.value),E=parseNum($('kr-e')?.value)||100;
-  if(!A||!V0||!Q){if($('kr-out'))$('kr-out').style.display='none';return;}
+  /* ⛔ Stessa famiglia del fattore di frangimento qui sopra: la potenza
+     relativa dell'esplosivo entra in `(115/E)^(19/20)`, cioè decide la
+     pezzatura, e `|| 100` la rimetteva in piedi da sola a campo cancellato.
+     Anche questo campo nasce compilato («100»), quindi la strada normale non
+     cambia: cambia che, svuotandolo, «X50» smette di dare un numero invece di
+     darne uno che nessuno ha scelto. */
+  const A=parseNum($('kr-a')?.value),V0=parseNum($('kr-v')?.value),Q=parseNum($('kr-q')?.value),E=parseNum($('kr-e')?.value);
+  if(!A||!V0||!Q||!Number.isFinite(E)||E<=0){if($('kr-out'))$('kr-out').style.display='none';return;}
   const X50=A*Math.pow(V0/Q,0.8)*Math.pow(Q,1/6)*Math.pow(115/E,19/20);
   $('kr-x').textContent=X50.toFixed(1)+' cm';
   $('kr-pf').textContent=(Q/V0).toFixed(3)+' kg/m³';
@@ -5385,8 +5398,41 @@ function nuovaVolata(cavaId, tipo, nomeProgetto){
    galleria): la correzione sta qui, una volta sola, perche' due copie uguali
    oggi divergono domani. Lo zero e' un valore vero e resta zero. */
 const seqDetta=(f)=>(f.sequenza===undefined||f.sequenza===null||f.sequenza===''?'—':f.sequenza);
-function getBorraggio(v){return v.maglia.borraggio||v.maglia.B||3.5;}
-function getSpaziatura(v){return v.maglia.spaziatura||v.maglia.S||4;}
+/* ⛔ LA MAGLIA CHE NESSUNO HA SCRITTO, E I DUE NUMERI CHE LA SOSTITUIVANO
+   USCIVANO DALL'AZIENDA. `getBorraggio` e `getSpaziatura` cadevano su 3,5 e 4:
+   per DISEGNARE va bene — un disegno senza numeri non si fa — ma quegli stessi
+   due valori finivano scritti come se qualcuno li avesse misurati: nel PDF
+   «SCHEMA DI VOLATA» («Spalla 3.5 m», «Interasse 4 m»), nel riquadro del
+   progetto condiviso in sola lettura («B 3.5 x S 4»), nella barra
+   dell'editor e nei due campi, che si ripresentavano compilati.
+   ⚠️ Ed e' uno stato che si raggiunge dall'interfaccia, non solo importando:
+   svuotare il campo Interasse passa da `aggiornaVolata` -> `parseNum0`, che di
+   una stringa vuota fa **zero**, e uno zero cade nel `||`.
+   Misurato sulle funzioni estratte (fronte 30 m, maglia scritta 3 x 3,5):
+   · interasse svuotato -> 14 fori invece di 16, e i metri cubi restano
+     **1512, identici** (126x3x4 fa quanto 144x3x3,5). Il ripiego riempie il
+     buco cosi' bene che il numero non si muove: un numero identico non e' un
+     numero verificato;
+   · spalla svuotata -> **1764 mc invece di 1512**, +16,7%, e la scheda scrive
+     «Sp3.5 x I3.5» come se fosse il progetto.
+   La decisione sta in un posto solo e dichiara quando non sa: `null` (mai
+   zero) piu' la bandiera `noto`, la stessa forma di `misureVolataProgetto` in
+   `shared/`. A leggerla sono la barra dell'editor, il riquadro condiviso, i
+   due campi, lo schema SVG, il PDF e la guardia di «Rigenera maglia».
+   ⚠️ Restano col ripiego, dichiarati: il disegno 2D, il 3D e la planimetria del
+   PDF, dove serve una scala per tracciare qualcosa. Quello che NON deve piu'
+   succedere e' che quel numero venga SCRITTO a chi legge. */
+function magliaDetta(v){
+  const m=(v&&v.maglia)||{};
+  const n=(x)=>{const q=parseNum(x);return Number.isFinite(q)&&q>0?q:null;};
+  const b=n(m.borraggio), s=n(m.spaziatura);
+  const borraggio=b!==null?b:n(m.B);          // 'B'/'S': i nomi di prima della v3.4.7.1
+  const spaziatura=s!==null?s:n(m.S);
+  return {borraggio,spaziatura,noto:borraggio!==null&&spaziatura!==null};
+}
+/* solo per il DISEGNO: chi SCRIVE un numero a chi legge passa da `magliaDetta`. */
+function getBorraggio(v){const b=magliaDetta(v).borraggio;return b===null?3.5:b;}
+function getSpaziatura(v){const s=magliaDetta(v).spaziatura;return s===null?4:s;}
 
 // Genera fori in griglia regolare (scala 1mm=1m, fori distanziati dal fronte di 1 borraggio)
 function generaMagliaFori(v){
@@ -5407,7 +5453,16 @@ function generaMagliaFori(v){
         // y: primo foro a 1 borraggio dal fronte (y=0), poi a multipli di borraggio
         y:Math.round(((f+1)*Borr)*100)/100,
         prof:parseNum0(v.default.profondita_m)||0,
-        diam:parseNum0(v.default.diametro_mm)||89,
+        /* ⛔ il DIAMETRO era l'unico campo di questo oggetto a inventarsi un
+           numero: la profondita' qui sopra resta 0 e i chili qui sotto restano
+           vuoti — cosi' il PDF ci scrive «-» — mentre `|| 89` stampava
+           **«89 mm»** su un foro di cui nessuno aveva scelto il diametro, col
+           campo «Diametro» dell'editor visibilmente VUOTO due riquadri piu' in
+           la'. E i quattro punti che creano un foro non erano nemmeno
+           d'accordo fra loro: 89 qui, 45 negli altri tre.
+           ⚠️ `diam` non entra in nessun conto: si legge e basta (il campo
+           dell'editor, l'anteprima di condivisione, la colonna del PDF). */
+        diam:parseNum0(v.default.diametro_mm)||'',
         kg:v.default.kg_per_foro||'',
         esplosivo:v.default.esplosivo||'',
         ritardo:v.default.ritardo_ms||'',
@@ -5427,7 +5482,7 @@ function generaGalleria(v){
   const W=v.fronte.lunghezza_m||5,H=v.fronte.altezza_m||4,S=Math.max(0.5,getSpaziatura(v));
   const cx=W/2, cy=H*0.48, fori=[]; let num=1;
   const def=v.default;
-  const add=(x,y,t)=>{if(x<0.3||x>W-0.3||y<0.25)return;fori.push({id:'foro_'+genId(),num,x:Math.round(x*100)/100,y:Math.round(y*100)/100,prof:parseNum0(def.profondita_m)||0,diam:parseNum0(def.diametro_mm)||45,kg:'',esplosivo:def.esplosivo||'',ritardo:'',innesco:def.innesco||'',sequenza:num,note:'',gtipo:t});num++;};
+  const add=(x,y,t)=>{if(x<0.3||x>W-0.3||y<0.25)return;fori.push({id:'foro_'+genId(),num,x:Math.round(x*100)/100,y:Math.round(y*100)/100,prof:parseNum0(def.profondita_m)||0,diam:parseNum0(def.diametro_mm)||'',kg:'',esplosivo:def.esplosivo||'',ritardo:'',innesco:def.innesco||'',sequenza:num,note:'',gtipo:t});num++;};
   // 1) cut/rinora centrale: 4 fori ravvicinati
   const c=0.3;add(cx-c,cy-c,'cut');add(cx+c,cy-c,'cut');add(cx-c,cy+c,'cut');add(cx+c,cy+c,'cut');
   // 2) abbattimento: anelli crescenti dal centro
@@ -5748,6 +5803,10 @@ function renderEditorSide(){
   if(!v){$('ec-side').innerHTML='';return;}
   const Borr=getBorraggio(v);
   const Spaz=getSpaziatura(v);
+  /* la maglia SCRITTA, separata da quella che serve solo a disegnare: i campi,
+     lo schema e il riquadro del progetto condiviso dicono quello che c'e' */
+  const mg=magliaDetta(v);
+  const mgB=mg.borraggio===null?'':mg.borraggio, mgS=mg.spaziatura===null?'':mg.spaziatura;
 
   // ── Sola lettura: riepilogo non modificabile ──
   if(state.volataReadonly){
@@ -5759,7 +5818,7 @@ function renderEditorSide(){
         <div class="preview-row"><span class="preview-lab">Nome</span><span class="preview-val">${escHtml(v.nomeProgetto||'Volata #'+v.numero)}</span></div>
         <div class="preview-row"><span class="preview-lab">Cava/Tipo</span><span class="preview-val">${escHtml(cava?cava.nome:(v.tipo||'—'))}</span></div>
         <div class="preview-row"><span class="preview-lab">Fori</span><span class="preview-val">${mvRo.fori}</span></div>
-        <div class="preview-row"><span class="preview-lab">Maglia</span><span class="preview-val">B ${Borr} × S ${Spaz}</span></div>
+        <div class="preview-row"><span class="preview-lab">Maglia</span><span class="preview-val">B ${mgB||'—'} × S ${mgS||'—'}</span></div>
         <!-- ⛔ e qui il riquadro sta ATTACCATO al bottone che genera il PDF:
              un «0» di metri sopra un foglio che scrive «-» sono due risposte
              diverse alla stessa domanda, date dallo stesso schermo. -->
@@ -5969,7 +6028,7 @@ function renderEditorSide(){
       </div>
       <div class="frow">
         <div><label class="fl">Freccia calotta (<span class="u">m</span>)</label><input type="text" inputmode="decimal" class="finput" value="${v.fronte.calotta_m}" oninput="aggiornaVolata('fronte.calotta_m',this.value)"></div>
-        <div><label class="fl">Interasse (<span class="u">m</span>)</label><input type="text" inputmode="decimal" class="finput" value="${getSpaziatura(v)}" oninput="aggiornaVolata('maglia.spaziatura',this.value)"></div>
+        <div><label class="fl">Interasse (<span class="u">m</span>)</label><input type="text" inputmode="decimal" class="finput" value="${mgS}" placeholder="es. 0.7" oninput="aggiornaVolata('maglia.spaziatura',this.value)"></div>
       </div>
       <label class="fl">Sfondo / avanzamento (<span class="u">m</span>)</label>
       <input type="text" inputmode="decimal" class="finput" value="${v.default.profondita_m||''}" oninput="aggiornaVolata('default.profondita_m',this.value)">
@@ -5998,11 +6057,11 @@ function renderEditorSide(){
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;align-items:end;margin-bottom:8px;">
       <div>
         <label class="fl">Spalla (m) <span style="opacity:.6;">fronte–foro</span></label>
-        <input type="text" inputmode="decimal" class="finput" value="${Borr}" oninput="aggiornaVolata('maglia.borraggio',this.value)">
+        <input type="text" inputmode="decimal" class="finput" value="${mgB}" placeholder="es. 3" oninput="aggiornaVolata('maglia.borraggio',this.value)">
       </div>
       <div>
         <label class="fl">Interasse (m) <span style="opacity:.6;">foro–foro</span></label>
-        <input type="text" inputmode="decimal" class="finput" value="${Spaz}" oninput="aggiornaVolata('maglia.spaziatura',this.value)">
+        <input type="text" inputmode="decimal" class="finput" value="${mgS}" placeholder="es. 3.5" oninput="aggiornaVolata('maglia.spaziatura',this.value)">
       </div>
     </div>
     <label class="fl">Borraggio (m) <span style="opacity:.6;">ultima carica → imbocco (solo dato)</span></label>
@@ -6015,8 +6074,8 @@ function renderEditorSide(){
         <circle cx="60" cy="40" r="5" fill="var(--card)" stroke="var(--amber)" stroke-width="1.5"/>
         <circle cx="60" cy="${40 - Math.min(Borr*12,28)}" r="4" fill="none" stroke="var(--amber2)" stroke-width="1" stroke-dasharray="2 1"/>
         <circle cx="${60 + Math.min(Spaz*8,40)}" cy="40" r="4" fill="none" stroke="var(--amber2)" stroke-width="1" stroke-dasharray="2 1"/>
-        <text x="64" y="${40-Math.min(Borr*12,28)/2}" fill="var(--amber)" font-size="8" font-family="'Barlow Condensed',sans-serif">Sp${Borr}m</text>
-        <text x="${60+Math.min(Spaz*8,40)/2}" y="38" fill="var(--amber)" font-size="8" font-family="'Barlow Condensed',sans-serif">I${Spaz}m</text>
+        <text x="64" y="${40-Math.min(Borr*12,28)/2}" fill="var(--amber)" font-size="8" font-family="'Barlow Condensed',sans-serif">Sp${mgB||'—'}${mgB?'m':''}</text>
+        <text x="${60+Math.min(Spaz*8,40)/2}" y="38" fill="var(--amber)" font-size="8" font-family="'Barlow Condensed',sans-serif">I${mgS||'—'}${mgS?'m':''}</text>
       </svg>
     </div>
 
@@ -7207,14 +7266,16 @@ function onCanvasDragEnd(ev){
    meta' e' un totale VERO ma piu' basso del vero, e il foglio scrive «almeno
    56 kg». Qui lo spazio e' quello che e'. */
 function _aggiornaEcStats(v,etichetta){
-  const Borr=getBorraggio(v);const Spaz=getSpaziatura(v);
+  /* la maglia si dichiara come il numero di file che le sta accanto: una
+     spalla che nessuno ha scritto e' un «—», non un 3,5 preso da `getBorraggio` */
+  const mg=magliaDetta(v);
   const tipoLabel=etichetta||({'cava':'⛰️','galleria':'🚇','altro':'🏗️'}[v.tipo||'cava']||'⛰️');
   const mv=misureVolataProgetto(v);
   $('ec-stats').innerHTML=`
     <span class="ec-stat">${tipoLabel}</span>
     <span class="ec-stat"><b>${mv.fori}</b>${plurale(mv.fori,'foro','fori')}</span>
     <span class="ec-stat"><b>${Number.isFinite(+v.maglia.file)&&String(v.maglia.file).trim()!==''?v.maglia.file:'—'}</b>file</span>
-    <span class="ec-stat"><b>Sp${Borr}</b>×I<b>${Spaz}</b></span>
+    <span class="ec-stat"><b>Sp${mg.borraggio===null?'—':mg.borraggio}</b>×I<b>${mg.spaziatura===null?'—':mg.spaziatura}</b></span>
     <span class="ec-stat"><b>${mv.metri===null?'—':mv.metri}</b><span class="u">m</span></span>
     ${mv.kgNoto?`<span class="ec-stat"><b>${mv.parziale?'≥':''}${mv.kg}</b><span class="u">kg</span></span>`:''}
     <span class="ec-stat"><b>${mv.mcNoto?mv.mc:'—'}</b><span class="u">mc</span></span>
@@ -7266,9 +7327,41 @@ function aggiornaVolata(path, valore){
   _aggiornaEcStats(v);
 }
 
+/* ⛔ QUELLO CHE MANCA AL GENERATORE VA CHIESTO, NON INVENTATO. `generaMagliaFori`
+   conta i fori per fila con `Math.floor(L / S)` e `generaGalleria` dispone gli
+   anelli sull'interasse: sono numeri che l'utente LEGGE (il conteggio dei fori,
+   i metri, i mc, le coordinate stampate nel PDF), e finche' `getSpaziatura`
+   ripiegava su 4 uno schema si generava lo stesso, da misure che nessuno aveva
+   scritto. Misurato sulle funzioni estratte, fronte 30 m: con l'interasse
+   svuotato escono 14 fori invece di 16 e i mc restano identici a 1512; con la
+   LUNGHEZZA del fronte svuotata `Math.max(1, Math.floor(0/S))` da' **un foro
+   per fila**, cioe' 2 fori invece di 16, senza dire niente.
+   Qui non c'e' un valore prudente da scegliere: si dice che cosa manca. */
+function magliaGenerabile(v){
+  const mg=magliaDetta(v), fr=(v&&v.fronte)||{}, manca=[];
+  const scritto=(x)=>{const q=parseNum(x);return Number.isFinite(q)&&q>0;};
+  if(mg.spaziatura===null) manca.push('l\'interasse fra i fori');
+  if(v&&v.tipo==='galleria'){
+    if(!scritto(fr.lunghezza_m)) manca.push('la larghezza della sezione');
+    if(!scritto(fr.altezza_m)) manca.push('l\'altezza della sezione');
+  }else{
+    if(mg.borraggio===null) manca.push('la spalla (fronte-foro)');
+    if(!scritto(fr.lunghezza_m)) manca.push('la lunghezza del fronte');
+    /* il numero di file moltiplica i fori generati, e `v.maglia.file||2` ne
+       inventava DUE su un campo lasciato vuoto — mentre la barra dell'editor,
+       due riquadri piu' su, lo dichiara gia' «—» */
+    if(!scritto((v&&v.maglia||{}).file)) manca.push('il numero di file');
+  }
+  return manca;
+}
 function rigeneraMaglia(){
   const v=DB.volate.find(x=>x.id===state.volataSel);
   if(!v)return;
+  const manca=magliaGenerabile(v);
+  if(manca.length){
+    toast('Schema non generabile: manca '+manca.join(', ')+'. Scrivi le misure e riprova.','err');
+    return;
+  }
   openModal('Rigenera maglia','<p>Tutti i fori esistenti verranno sostituiti con una maglia regolare automatica. Le modifiche manuali andranno perse.</p><p style="margin-top:8px;">Confermi?</p>',[
     {label:'Annulla',cls:'mbtn',action:closeModal},
     {label:'RIGENERA',cls:'mbtn primary',action:()=>{
@@ -7308,7 +7401,7 @@ function onCanvasClick(ev){
     const xm=Math.round((sx-g.pad)/g.sx*100)/100, ym=Math.round((g.H-g.pad-sy)/g.sy*100)/100;
     if(xm<0||xm>g.Wm||ym<0||ym>g.Hm)return;
     const num=v.fori.length+1;
-    v.fori.push({id:'foro_'+genId(),num,x:xm,y:ym,prof:parseNum0(v.default.profondita_m)||0,diam:parseNum0(v.default.diametro_mm)||45,kg:'',esplosivo:v.default.esplosivo||'',ritardo:'',innesco:v.default.innesco||'',sequenza:num,note:'',gtipo:'stope'});
+    v.fori.push({id:'foro_'+genId(),num,x:xm,y:ym,prof:parseNum0(v.default.profondita_m)||0,diam:parseNum0(v.default.diametro_mm)||'',kg:'',esplosivo:v.default.esplosivo||'',ritardo:'',innesco:v.default.innesco||'',sequenza:num,note:'',gtipo:'stope'});
     state.foroSel=v.fori.length-1;state.editorUnsaved=true;
     ricalcolaTotaliVolata(v);renderEditorCava();toast('Foro aggiunto','success');
     return;
@@ -7514,6 +7607,7 @@ function exportVolataPDF(volataId){
   const cava=DB.cave.find(c=>c.id===v.cavaId);
   const operatore=DB.users.find(u=>u.id===v.createdBy);
   const cli=cava?.clienteId?DB.clienti.find(x=>x.id===cava.clienteId):null;
+  const mgPdf=magliaDetta(v);   // la maglia SCRITTA: quella che si stampa
   const {jsPDF}=window.jspdf;
   const Borr=getBorraggio(v);
   const Spaz=getSpaziatura(v);
@@ -7551,8 +7645,13 @@ function exportVolataPDF(volataId){
     ['Data', fmt(v.data)],
     ['Progettista', operatore?(operatore.nome+' '+operatore.cognome):(state.user?(state.user.nome+' '+state.user.cognome):'-')],
     ['Lunghezza fronte', v.fronte.lunghezza_m+' m'],
-    ['Spalla (fronte-foro)', Borr+' m'],
-    ['Interasse (foro-foro)', Spaz+' m'],
+    /* ⛔ e qui il ripiego USCIVA DALL'AZIENDA: su una volata senza maglia
+       questo foglio scriveva «Spalla 3.5 m» e «Interasse 4 m» come se
+       qualcuno li avesse misurati, mentre la riga sotto — il borraggio —
+       diceva gia' «-» quando non c'era. La regola e' `magliaDetta`, la stessa
+       che decide la barra dell'editor e il riquadro condiviso. */
+    ['Spalla (fronte-foro)', mgPdf.borraggio===null?'non scritta':mgPdf.borraggio+' m'],
+    ['Interasse (foro-foro)', mgPdf.spaziatura===null?'non scritto':mgPdf.spaziatura+' m'],
     ['Borraggio (carica-imbocco)', (v.maglia.borraggio_reale||'-')+(v.maglia.borraggio_reale?' m':'')],
     ['N. file', String(v.maglia.file)],
     ['Esplosivo default', v.default.esplosivo||'-'],
@@ -7647,6 +7746,15 @@ function exportVolataPDF(volataId){
     });
     d.setTextColor(120,100,50);d.setFont('helvetica','normal');d.setFontSize(7);
     d.text('Numero nel cerchio = n. foro - [n] rosso = sequenza di sparo',dx,dy+dh+7);
+    /* ⛔ QUI IL RIPIEGO RESTA, E QUINDI VA DETTO. La planimetria una scala deve
+       averla: senza maglia scritta la disegna su 3,5 x 4 e viene fuori un
+       foglio che SEMBRA in scala. Il numero non si mostra (le due righe di
+       sopra dicono «non scritta»), ma il disegno c'e' lo stesso — e un disegno
+       muto e' esattamente il modo tranquillo di dire una cosa non misurata. */
+    if(!mgPdf.noto){
+      d.setTextColor(200,80,0);
+      d.text('Maglia non scritta: le distanze del disegno non sono in scala.',dx,dy+dh+12);
+    }
   } else {
     d.setTextColor(150,150,150);d.setFontSize(11);d.text('Nessun foro inserito',105,110,{align:'center'});
   }
@@ -7655,7 +7763,9 @@ function exportVolataPDF(volataId){
   if(v.fori.length>0){
     d.autoTable({startY:26,
       head:[['#','Fila','X(m)','Y(m)','Prof','Diam','Carica','Esplosivo','Innesco','Ritardo','Seq']],
-      body:v.fori.map(function(f){const fila=Math.round((f.y||0)/Borr)||1;return[f.num,fila,(f.x||0).toFixed(2),(f.y||0).toFixed(2),f.prof||'-',f.diam||'-',f.kg||'-',f.esplosivo||'-',f.innesco||'-',f.ritardo||'-',f.sequenza||'-'];}),
+      /* la fila si RICAVA dividendo la distanza dal fronte per la spalla:
+         senza spalla scritta non e' un 1, e' un «-» come le altre colonne */
+      body:v.fori.map(function(f){const fila=mgPdf.borraggio===null?'-':(Math.round((f.y||0)/Borr)||1);return[f.num,fila,(f.x||0).toFixed(2),(f.y||0).toFixed(2),f.prof||'-',f.diam||'-',f.kg||'-',f.esplosivo||'-',f.innesco||'-',f.ritardo||'-',f.sequenza||'-'];}),
       theme:'grid',
       headStyles:{fillColor:[255,171,0],textColor:[20,16,8],fontStyle:'bold',fontSize:7},
       bodyStyles:{textColor:[40,40,40],fontSize:7},
