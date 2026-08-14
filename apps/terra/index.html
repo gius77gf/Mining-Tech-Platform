@@ -4077,8 +4077,17 @@ a.dw-btn{text-decoration:none}
          scrivono la stessa identica cosa. */
       ["Volume totale concesso", aut.volumeAutorizzatoM3 ? nD(aut.volumeAutorizzatoM3) + " m³" : "—"],
     ] : null;
+    /* ⛔ «IL METODO DICHIARATO E IL GSD» SU UN FOGLIO CHE, DODICI RIGHE PIÙ SU,
+       SCRIVE «GSD: non dichiarato». La frase citava un dato che nella tabella
+       accanto risulta assente: la classe alta, senza GSD, si regge sul solo
+       metodo, e chi legge il verbale ne ricavava che la dimensione del pixel a
+       terra fosse stata valutata. La bandiera che distingue i due casi è
+       `ca.gsdNoto` e la decide il modulo — qui si legge, non si rifà. */
     const comeNato = ca.classe === "survey-grade"
-      ? "Il metodo dichiarato e il GSD collocano il rilievo nella classe di qualità topografica: la tolleranza tipica è ± " + ca.tolleranzaPct
+      ? (ca.gsdNoto
+          ? "Il metodo dichiarato e il GSD collocano il rilievo nella classe di qualità topografica: la tolleranza tipica è ± "
+          : "Il metodo dichiarato colloca il rilievo nella classe di qualità topografica; il GSD non è dichiarato, quindi la dimensione del pixel a terra non è entrata in questa valutazione. La tolleranza tipica del metodo è ± ")
+        + ca.tolleranzaPct
         + "%, cioè circa ± " + (bv ? n0(bv.banda) : "—") + " m³ su questo volume."
       : ca.classe === "indicativo"
         ? "Il metodo dichiarato o il GSD non permettono la classe topografica: il volume vale come misura indicativa, con tolleranza tipica ± "

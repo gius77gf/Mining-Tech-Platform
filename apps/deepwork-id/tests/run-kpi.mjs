@@ -31843,5 +31843,88 @@ test("frasePersi · ⚠️ NIENTE `esc()`: la frase esce come l'utente l'ha scri
 }
 /* ===== fine Campo/Scudo/Sentinella · il ripiego silenzioso ================ */
 
+/* ===== Terra · il ripiego silenzioso ===================================== */
+/* ⛔ «SENZA GCP» CONTIENE «GCP». `classeAccuratezza` decideva la classe con
+   `/rtk|ppk|gcp/.test(metodo)`, cioè guardando **com'è scritto** il dato invece
+   di **che cosa vale**: un rilievo il cui metodo dichiara che i punti di
+   appoggio NON ci sono prendeva la classe migliore, **survey-grade ±2%**.
+   E «senza GCP» non è un caso di laboratorio: è una voce del menù del form, ed
+   è quella che il ponte col visore drone scrive da sé.
+   Direzione del danno: l'incertezza dichiarata **all'ente** era quattro volte
+   più stretta del vero — banda d'anno 1.600 m³ invece di 6.400 su 80.000 m³
+   scavati — e a produrla era la dichiarazione di onestà di chi compila.
+   ⚠️ Le due percentuali (2 e 8) NON si toccano: cambia solo chi finisce in
+   quale classe.
+   ⚠️ Prove SINCRONE e messe PRIMA del riepilogo: l'`await Promise.all(inVolo)`
+   sta a metà file, e una prova asincrona appesa qui non verrebbe aspettata. */
+{
+  const CA = (metodo, gsd) => terra.classeAccuratezza(gsd === undefined ? { metodo } : { metodo, gsd });
+
+  test("⛔ Terra · una tecnica NEGATA non è una tecnica usata", () => {
+    eq(CA("senza GCP").classe, "indicativo", "«senza GCP» è la voce del menù: non è survey-grade");
+    eq(CA("senza GCP").tolleranzaPct, 8, "e la tolleranza è quella della classe bassa");
+    eq(CA("senza gcp").classe, "indicativo", "minuscolo o maiuscolo non cambia il senso");
+    eq(CA("no GCP").classe, "indicativo", "«no GCP»");
+    eq(CA("senza RTK").classe, "indicativo", "«senza RTK»");
+    eq(CA("non RTK").classe, "indicativo", "«non RTK»");
+    eq(CA("fotogrammetria senza GCP").classe, "indicativo", "la negazione vale anche in mezzo a una frase");
+    eq(CA("GCP senza correzione RTK").classe, "indicativo",
+      "un segmento che porta insieme tecnica e negazione cade nella classe BASSA: è la direzione prudente");
+  });
+
+  test("⛔ Terra · e la stretta non tocca chi la tecnica ce l'ha davvero", () => {
+    eq(CA("RTK").classe, "survey-grade", "RTK");
+    eq(CA("PPK").classe, "survey-grade", "PPK");
+    eq(CA("GCP").classe, "survey-grade", "GCP");
+    eq(CA("RTK+GCP").classe, "survey-grade", "RTK+GCP: due segmenti, nessuna negazione");
+    eq(CA("RTK+GCP", "2").tolleranzaPct, 2, "e la tolleranza resta ±2%");
+    eq(CA("RTK, senza GCP").classe, "survey-grade", "segmenti separati: l'RTK non negato regge");
+    eq(CA("RTK", "5").classe, "indicativo", "il GSD grosso continua a far scendere la classe");
+    eq(CA("drone consumer").classe, "indicativo", "un metodo senza tecnica resta indicativo");
+    eq(CA("").classe, "n.d.", "niente metodo e niente GSD: non si sa");
+  });
+
+  /* ⛔ IL NUMERO CHE ESCE, non solo la classe: è dove il difetto faceva danno.
+     La banda si somma in `riepilogoAnnuale` e finisce su `descriviBaseOnere`,
+     cioè sul foglio della denuncia annuale. */
+  test("⛔ Terra · la banda che va all'ente segue la classe vera", () => {
+    const AUT = { volumeAutorizzatoM3: 1200000, dataRilascio: "2024-01-01", estrattoPregressoM3: 100000 };
+    const RIL = [
+      { id: "r1", data: "2026-03-10", fronteId: "f1", stato: "elaborato", volumeM3: 50000, metodo: "senza GCP" },
+      { id: "r2", data: "2026-06-10", fronteId: "f1", stato: "elaborato", volumeM3: 30000, metodo: "senza GCP" },
+    ];
+    const R = terra.riepilogoAnnuale(RIL, 2026, AUT, new Date("2026-08-14T10:00:00Z"));
+    eq(R.scavo, 80000, "lo scavo dell'anno non cambia: il volume è quello");
+    eq(R.banda, 6400, "l'incertezza dichiarata è l'8% (prima era 1.600, cioè il 2%)");
+    eq(R.qualita.surveyGrade, 0, "nessuno dei due rilievi è survey-grade");
+    eq(R.qualita.indicativo, 2, "sono tutt'e due indicativi");
+    ok(terra.descriviBaseOnere(terra.baseOnereEscavazione(R, {})).includes("± 6.400 m³"),
+      "e il foglio dell'ente scrive la banda vera");
+    const bv = terra.bandaVolume(50000, terra.classeAccuratezza(RIL[0]).tolleranzaPct);
+    eq(bv.banda, 4000, "il verbale del singolo rilievo dichiara ± 4.000, non ± 1.000");
+    eq(bv.min, 46000, "estremo basso");
+    eq(bv.max, 54000, "estremo alto");
+    const c = terra.confrontoRilievi(RIL, "r1", "r2");
+    eq(c.banda, 2400, "e il confronto fra due rilievi porta la stessa correzione");
+  });
+
+  /* ⛔ E LA BANDIERA CHE DICHIARA SU CHE COSA SI REGGE LA CLASSE. Quando il GSD
+     non è scritto, la classe alta sta in piedi sul solo metodo: il verbale
+     diceva lo stesso «il metodo dichiarato **e il GSD**…» sullo stesso foglio
+     in cui la riga sopra scrive «GSD: non dichiarato». Il numero NON cambia —
+     se l'assenza del GSD debba far scendere la classe è una decisione da
+     fondatore, e la prova qui sotto la blinda com'è. */
+  test("⛔ Terra · `gsdNoto` dice su che cosa si regge la classe, e non la cambia", () => {
+    eq(CA("PPK").classe, "survey-grade", "PPK senza GSD resta survey-grade: il numero non si tocca");
+    eq(CA("PPK").gsdNoto, false, "ma la funzione dichiara che il GSD non c'è");
+    eq(CA("PPK", "1,8").gsdNoto, true, "col GSD scritto la bandiera è vera");
+    eq(CA("PPK", "1,8").classe, "survey-grade", "e la classe è la stessa");
+    eq(CA("senza GCP").gsdNoto, false, "la bandiera esce anche dalla classe bassa");
+    eq(CA("").gsdNoto, false, "e dalla n.d., se no chi legge deve indovinare");
+    eq(CA("RTK", "0").gsdNoto, false, "un GSD zero non è un GSD: la guardia è `> 0`, come prima");
+  });
+}
+/* ===== fine Terra · il ripiego silenzioso ================================= */
+
 console.log(`\nRisultato KPI app: ${passed} passati, ${failed} falliti${inVolo.length ? `  ·  ${inVolo.length} prove asincrone aspettate` : ""}`);
 process.exit(failed > 0 ? 1 : 0);

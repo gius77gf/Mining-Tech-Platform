@@ -623,15 +623,66 @@ export function proiezioneAnnua(rilievi, pianificatoAnnuoM3, oggi = new Date()) 
 // metodo affidabile o GSD grosso) → ±8%; "n.d." se non si sa nulla. Serve a
 // dire quanto è affidabile il volume, senza spacciarlo per esatto. Pura e
 // testabile. Le %tolleranza sono TIPICHE (da confermare coi checkpoint).
+/* ⛔ «SENZA GCP» CONTIENE «GCP», E `/rtk|ppk|gcp/` LO LEGGEVA COME UNA TECNICA
+   USATA. Misurato il 14/08 chiamando la funzione: `classeAccuratezza({metodo:
+   "senza GCP"})` rispondeva **survey-grade, ±2%** — cioè la classe migliore che
+   questa funzione sappia dare, a un rilievo in cui chi ha volato ha dichiarato
+   che i punti di appoggio NON ci sono. Stessa risposta per «no GCP», «senza
+   RTK», «non RTK», «fotogrammetria senza GCP».
+   ⛔ E NON È UN CASO DI LABORATORIO: «senza GCP» è una **voce del menù** che
+   Terra offre nel form del rilievo, ed è quella che il **ponte col visore
+   drone** scrive da sé (`new-ril-metodo = "senza GCP"`, col commento «drone
+   consumer: scala approssimata, onesto»). L'intenzione era la classe bassa;
+   l'effetto era la più alta.
+   Direzione del danno, misurata su due rilievi da 50.000 e 30.000 m³ tutt'e due
+   «senza GCP», sul foglio che va all'ente:
+     · verbale del rilievo →  «± 1.000 m³ · fra 49.000 e 51.000» invece di
+       «± 4.000 · fra 46.000 e 54.000»;
+     · riepilogo dell'anno →  «Incertezza del volume dichiarata: ± 1.600 m³»
+       invece di ± 6.400, e «2 survey-grade» invece di «2 indicativi»;
+     · verbale, sezione «Come è stato ottenuto il numero» → «Il metodo
+       dichiarato e il GSD collocano il rilievo nella classe di qualità
+       topografica».
+   Cioè l'incertezza dichiarata a un ente era **quattro volte più stretta** del
+   vero, e a produrla era la dichiarazione di ONESTÀ di chi compila. È la
+   famiglia che questo repository conosce: un controllo che guarda **com'è
+   scritto** un dato invece di **che cosa vale**.
+   ⚠️ Le due percentuali NON si toccano (2 e 8 restano quelle di sempre, e
+   nessuna soglia nuova entra): cambia solo chi finisce in quale classe.
+   ⚠️ E la negazione si giudica per SEGMENTO — la stringa si spezza su
+   `, ; / + &` e le parentesi, e un segmento che porta una tecnica insieme a una
+   negazione non conta. Così «RTK+GCP» resta buono (due segmenti, nessuna
+   negazione) e «fotogrammetria senza GCP» no. Il caso misto scritto in un
+   segmento solo — «RTK senza GCP» — cade nella classe BASSA: è la direzione
+   prudente (una banda più larga è onesta, una più stretta no) e non arriva dal
+   menù, che quelle due voci le tiene separate; può arrivare solo da un CSV
+   importato a testo libero. */
+const _TECNICA = /^(?:rtk|ppk|gcp|gcps)$/;
+const _NEGAZIONE = /^(?:senza|sanza|non|no|né|ne|privo|priva|privi|prive|assenza|assente|assenti|manca|mancano|mancante|mancanti|nessun|nessuna|nessuno|escluso|esclusi|without|wo)$/;
+function _metodoAffidabile(minuscolo) {
+  return String(minuscolo).split(/[,;/+&()]+/).some((seg) => {
+    const parole = seg.split(/[^a-z0-9àèéìòù]+/).filter(Boolean);
+    return parole.some((p) => _TECNICA.test(p)) && !parole.some((p) => _NEGAZIONE.test(p));
+  });
+}
 export function classeAccuratezza(rilievo) {
   const m = String((rilievo && rilievo.metodo) || "").toLowerCase();
   const gsdN = parseFloat(String((rilievo && rilievo.gsd) || "").replace(",", "."));
   const gsdNoto = Number.isFinite(gsdN) && gsdN > 0;
-  if (!m && !gsdNoto) return { classe: "n.d.", label: "Accuratezza n.d.", tolleranzaPct: null, cls: "" };
-  const buonMetodo = /rtk|ppk|gcp/.test(m);
+  if (!m && !gsdNoto) return { classe: "n.d.", label: "Accuratezza n.d.", tolleranzaPct: null, cls: "", gsdNoto: false };
+  const buonMetodo = _metodoAffidabile(m);
   const gsdOk = gsdNoto ? gsdN <= 2 : true;   // se il GSD è noto dev'essere ≤ 2 cm
-  if (buonMetodo && gsdOk) return { classe: "survey-grade", label: "Survey-grade", tolleranzaPct: 2, cls: "ok" };
-  return { classe: "indicativo", label: "Indicativo", tolleranzaPct: 8, cls: "warn" };
+  /* ⚠️ `gsdNoto` ESCE, e non è decorazione: quando il GSD non è scritto la
+     classe alta si regge sul solo metodo, e la frase del verbale diceva lo
+     stesso «il metodo dichiarato **e il GSD** collocano il rilievo nella classe
+     di qualità topografica» — sullo stesso foglio in cui la riga sopra scrive
+     «GSD: non dichiarato». La bandiera la legge la pagina (`comeNato`), se no
+     sarebbe una guardia scollegata.
+     ⛔ Il numero NON cambia: se l'assenza del GSD debba far scendere la classe
+     è una decisione da fondatore (oggi `PPK` senza GSD è survey-grade, e una
+     prova in `run-kpi` lo blinda). Qui si dichiara che manca, non si decide. */
+  if (buonMetodo && gsdOk) return { classe: "survey-grade", label: "Survey-grade", tolleranzaPct: 2, cls: "ok", gsdNoto };
+  return { classe: "indicativo", label: "Indicativo", tolleranzaPct: 8, cls: "warn", gsdNoto };
 }
 
 // Banda di incertezza sul volume (m³) data una %tolleranza: rende onesto il
