@@ -18,6 +18,7 @@ import { spawn } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 import { impronta, differenze } from './impronta.mjs';
+import { scegliBanchi, dichiaraFiltro } from './scegli-banchi.mjs';
 import { execFileSync } from 'node:child_process';
 import { rmSync, existsSync, writeFileSync, readlinkSync } from 'node:fs';
 
@@ -54,6 +55,15 @@ const FINTO_APPESO = process.argv.includes('--banchi-finti-appeso');
    quella passata non è stata misurata e **tira avanti**: un soggetto non
    misurato non è un soggetto a posto, e il riepilogo lo conta a parte. */
 const LIMITE_MS = (Number((process.argv.find((a) => a.startsWith('--limite=')) || '').split('=')[1]) || 1800) * 1000;
+
+/* ⛔ IL GIRO ERA TUTTO-O-NIENTE, e per questo non finiva mai. 198 passate a
+   4,1 min l'una sono 13,5 ore: più di una sessione. Con `--solo=` un ciclo
+   verifica in minuti le superfici che ha toccato, e il giro intero resta per
+   quando c'è una notte da dedicargli. La scelta e — soprattutto — la
+   DICHIARAZIONE di quante passate restano fuori stanno in `scegli-banchi.mjs`,
+   che è puro e quindi provabile: importare questo file alza un server. */
+const SOLO = (process.argv.find((a) => a.startsWith('--solo=')) || '').split('=').slice(1).join('=');
+const DA = Number((process.argv.find((a) => a.startsWith('--da=')) || '').split('=')[1]) || 0;
 
 const BANCHI = [
   /* PRIMO DI TUTTI, e di proposito: se una pagina non si apre, ogni misura
@@ -962,6 +972,32 @@ const BANCHI = [
   ['frasi limite di Genesi · controprova', 'genesi-frasi-limite.mjs', ['--controprova'], true],
 ];
 
+/* «finto 2» è dichiarata CONTROPROVA di proposito: così `impronta-giro.mjs`,
+   che lancia questo giro finto, può pretendere che l'intestazione lo dica — e
+   che NON lo dica per le altre due. Una riga che avvisa e che nessuna prova
+   guarda è una guardia scollegata.
+   ⚠️ Sta QUI, e non più in fondo accanto a `DA_FARE`, perché la scelta delle
+   passate va fatta **prima di alzare il server**: un nome sconosciuto deve
+   fermare il giro subito, non dopo aver creato una worktree e aperto una
+   porta. */
+const FINTI = [['finto 1', null, []], ['finto 2', null, [], true], ['finto 3', null, []],
+  ...(FINTO_APPESO ? [['finto appeso', null, [], false, true]] : [])];
+
+const SCELTA = scegliBanchi(BANCHI_FINTI ? FINTI : BANCHI, { solo: SOLO, da: DA });
+/* ⛔ UN NOME SCONOSCIUTO NON PUÒ USCIRE ZERO — è il difetto già chiuso su
+   `contrasto-non-testo.mjs`, dove `--solo=` con un nome sbagliato usciva zero
+   dichiarando di non aver guardato niente: il verde della dimenticanza. */
+if (SCELTA.ignoti.length) {
+  console.error(`⛔ --solo=: ${SCELTA.ignoti.length} nome/i non combaciano con nessuna passata: ${SCELTA.ignoti.join(', ')}`);
+  console.error('   Il giro NON è partito: non ha misurato niente. I nomi si scrivono come il file');
+  console.error('   del banco (contrasto, scudo-disegni) o come una parola del nome mostrato.');
+  process.exit(2);
+}
+if (!SCELTA.scelti.length) {
+  console.error('⛔ --da=: nessuna passata resta da fare. Il giro NON è partito.');
+  process.exit(2);
+}
+
 async function rispondePorta(porta) {
   try {
     const r = await fetch(`http://127.0.0.1:${porta}/apps/index.html`, { signal: AbortSignal.timeout(1500) });
@@ -1020,6 +1056,12 @@ export function distanzaDaCopia(commitCopia, dove = RADICE) {
   } catch (e) { return null; }
 }
 function dichiaraSuCosaGira(inFondo = false) {
+  /* ⛔ PRIMA DI OGNI ALTRA COSA, IN CIMA E IN FONDO: un giro filtrato stampa
+     le stesse identiche frasi di un giro intero, quindi il suo verde si legge
+     come se riguardasse tutto il prodotto. La riga che dice quante passate
+     sono rimaste fuori è la sola differenza leggibile fra i due. */
+  const parziale = dichiaraFiltro(SCELTA, { solo: SOLO, da: DA });
+  if (parziale) console.log(parziale);
   if (!COPIA) { console.log('▶ Il giro sta girando sulla CARTELLA VIVA: non toccare i file finché non finisce.'); return; }
   console.log(`▶ Il giro sta girando su una COPIA di ${COMMIT_COPIA} (il committato), non sulla cartella viva.`);
   if (inFondo) {
@@ -1182,14 +1224,7 @@ const INIZIO = new Date();
 console.log(`Partito alle ${INIZIO.toISOString().replace(/\.\d+Z$/, "Z")} (UTC).`);
 const cambiamenti = [];
 
-const DA_FARE = BANCHI_FINTI
-  /* «finto 2» è dichiarata CONTROPROVA di proposito: così `impronta-giro.mjs`,
-     che lancia questo giro finto, può pretendere che l'intestazione lo dica —
-     e che NON lo dica per le altre due. Una riga che avvisa e che nessuna prova
-     guarda è una guardia scollegata. */
-  ? [['finto 1', null, []], ['finto 2', null, [], true], ['finto 3', null, []],
-     ...(FINTO_APPESO ? [['finto appeso', null, [], false, true]] : [])]
-  : BANCHI;
+const DA_FARE = SCELTA.scelti;
 
 const esiti = [];
 for (const [nome, file, argomenti, eControprova, appeso] of DA_FARE) {

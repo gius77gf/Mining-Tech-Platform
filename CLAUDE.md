@@ -1925,6 +1925,37 @@ Perché serva davvero e non produca elenchi generici, cinque vincoli:
   c'è un avviso, c'è solo un giro che dura ore e che qualcuno finirà per
   spegnere senza leggerlo. Il `.catch(() => {})` va guardato con lo stesso
   sospetto del `catch` vuoto: se sta dentro un `for`, va misurato.
+- ⛔ **UNA VERIFICA TUTTO-O-NIENTE NON VIENE FATTA — e la cura costa meno della
+  DICHIARAZIONE che va scritta insieme a lei.** Misurato il 14/08: 198 passate
+  a 4,1 minuti l'una sono **13,5 ore**, cioè più di una sessione. Due notti di
+  fila il giro è stato spento a metà, e i suoi primi KO erano difetti **chiusi
+  cinque ore prima**: non produceva informazione, produceva **accuse che
+  sembrano fresche**. Il difetto non era la lentezza: era che il runner
+  accettava `--limite=`, `--radice-impronta=`, `--banchi-finti` e **nessun
+  filtro** — i singoli banchi il `--solo=` ce l'avevano, mancava a chi li
+  lancia. *Se l'unica verifica completa che un repository ha non arriva mai in
+  fondo, quella verifica non esiste.*
+  ⛔ **Ma la metà che conta è l'altra: un giro filtrato stampa le stesse
+  identiche frasi di un giro intero** — stesse intestazioni, stesso «N banchi a
+  posto», stesso zero KO — e chi lo apre legge un verde che sembra riguardare
+  tutto il prodotto. È la quinta volta che questa famiglia si presenta (il
+  registro troncato, il rosso voluto, il riepilogo ricontato, la passata
+  fermata dal limite), e la cura è sempre la stessa: **un dato che il programma
+  ha in mano non si indovina dal testo**. Chi filtra ottiene anche la riga che
+  dice quante passate ha lasciato fuori, e quelle **non sono «a posto»: sono
+  non misurate**. Un nome sconosciuto ferma il giro **prima di alzare il
+  server** invece di uscire zero — è il difetto già chiuso su
+  `contrasto-non-testo.mjs`, dove un `--solo=` sbagliato usciva zero
+  dichiarando di non aver guardato niente.
+  ⚠️ **E il quarto apostrofo di questa casa ha ingannato la prova, non il
+  prodotto.** Il lettore che si rilegge i banchi dal sorgente usava
+  `'([^']+)'`, e **sei nomi su 198** contengono un apostrofo sfuggito («la
+  manina promette un tocco che c\'è»): leggeva **192 su 198** e sarebbe restato
+  verde per sempre, perché un `25 passati` non dice quanti soggetti ha
+  guardato. L'ha preso **il denominatore** — *quante righe aprono una passata,
+  e quante ne ho lette?* — scritto come asserzione invece che come commento. È
+  la difesa da mettere in ogni righello che si legge un elenco: non «trovo
+  qualcosa», ma **«trovo tutto quello che c'è»**.
 - ⛔ **UN CENSIMENTO CHE DICHIARA IL SUO DENOMINATORE VA POI LETTO — E QUANDO
   LO SI LEGGE, IL BUCO È QUASI SEMPRE NEL RIGHELLO.** L'08/08, la riga più
   grossa di tutto il giro del browser diceva: «**234 classi con un fondo

@@ -182,7 +182,6 @@ grep -n "^- \[ \] \*\*" vault/ROADMAP_SETTIMANA.md
 - `B7. `sentinella-periodo-adempimento` È INTERMITTENTE — e va rimisurato a`
 - `B8. IL FILE SBAGLIATO ENTRA IN SILENZIO — e la difesa ovvia è già stata`
 - `B9. `ragioneData` È SCRITTA DUE VOLTE, E IL GUARDIANO COPRE NOVE LETTORI`
-- `B10. IL GIRO COMPLETO NON PUÒ FINIRE, E ADESSO C'È IL NUMERO`
 
 ## 🎯 L'obiettivo della settimana
 
@@ -5759,7 +5758,31 @@ di scriverlo qui**: niente entra sulla parola dell'agente.
       «uniformi»: Campo dice «non è maggiore di zero» e Terra «è negativo», e
       **è giusto così** — un foro a zero è sbagliato, un volume a zero è lo
       **zero misurato**. Uniformarle romperebbe una distinzione vera.
-- [ ] **B10. IL GIRO COMPLETO NON PUÒ FINIRE, E ADESSO C'È IL NUMERO.** ⏱️
+- [x] ✅ **B10 — CHIUSA il 14/08: il giro si può lanciare A PEZZI, e un pezzo lo
+      DICHIARA.** `--solo=<pezzo>[,<pezzo>]` e `--da=<n>` sul runner, derivati
+      dall'elenco `BANCHI` che già esisteva. Misure: `--solo=scudo` sceglie
+      **12 passate su 198**, e si porta dietro **5 controprove** dello stesso
+      file — un banco scelto senza la sua controprova girerebbe senza la prova
+      di saper fallire. Senza filtro restano **198 su 198**.
+      ⛔ **La metà che è costata di più non è il filtro, è la DICHIARAZIONE.**
+      Un giro parziale stampa le stesse identiche frasi di uno intero: stesse
+      intestazioni, stesso «N banchi a posto». Adesso in cima **e** in fondo
+      c'è `⚠️ GIRO PARZIALE: N passate su 198 (--solo=…). Le altre M NON sono
+      state misurate — e un soggetto non misurato NON è un soggetto a posto.`
+      E un nome sconosciuto **ferma il giro prima di alzare il server**
+      (uscita 2), invece di uscire zero come faceva `contrasto-non-testo.mjs`.
+      ⚠️ **E il righello della prova leggeva 192 passate su 198**: sei nomi
+      contengono un apostrofo sfuggito (`che c\'è`, `all\'indietro`) e
+      `'([^']+)'` si ferma lì. A prenderlo è stato il **denominatore** scritto
+      come asserzione — *quante righe aprono una passata, quante ne ho lette?*
+      — non la rilettura. Quarto apostrofo che inganna uno strumento in questa
+      casa.
+      Prove: `apps/deepwork-id/tests/browser/filtro-banchi.mjs`, **25**, con la
+      metà pura sui banchi VERI e tre giri **finti** (niente browser) per il
+      collegamento al runner, nei due versi.
+
+- [x] **B10 (com'era, e resta per la MISURA che l'ha aperta — non è lavoro da
+      fare). IL GIRO COMPLETO NON PUÒ FINIRE, E ADESSO C'È IL NUMERO.** ⏱️
       *Misurato il 14/08 sul giro lanciato alle 04:29.*
       Dieci passate in **41 minuti** = **4,1 min/passata**; in `tutti.mjs` ce ne
       sono **198**. Sono **13,5 ore**. Cioè il giro **non finisce dentro una
