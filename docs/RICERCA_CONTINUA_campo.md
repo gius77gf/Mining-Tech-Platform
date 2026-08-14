@@ -353,3 +353,618 @@ periodicità) col limite del punto 2. Delle mancanze proposte, **quella
 principale è caduta**; le altre due — l'**esportazione regionale** aggregata e
 l'**aggregazione delle anomalie del turno** — sono ancora candidati, e sul primo
 il righello dice qualcosa: `grep -ciE "produzioneAnno|totaleAnno|aggregaProduzione|produzionePeriodo" apps/campo/campo-data.js` → **0**.
+
+
+---
+
+## 14/08 — il rapporto di fine turno (solo mondo)
+
+**Mandato**: consegnare **solo la metà sul mondo**. In questa sezione non c'è
+nessun confronto col nostro codice, nessuna mancanza dichiarata, nessun «non
+c'è». Il delta lo fa chi ha il codice in mano; qui in fondo ci sono le
+**domande**, non le risposte.
+
+**Strumento e affidabilità delle fonti — misurato, non creduto.** `WebSearch`
+funziona ed è la fonte di tutto ciò che segue. `WebFetch` ha risposto
+**`EGRESS_BLOCKED`** su **cinque** domini provati uno per uno:
+`gmggroup.org` (il PDF della linea guida GMG), `connectedmine.com.au`,
+`www.ausimm.com` (il PDF AusIMM), `webhelp.micromine.com`, `www.parlamento.it`
+(testo del D.Lgs 624/96) e `en.wikipedia.org`. Quindi:
+⚠️ **tutto ciò che segue è di SECONDA MANO** — descrizioni e citazioni prese
+dai risultati di ricerca, non dal documento primario aperto e letto. Dove ho
+dedotto qualcosa io, sta scritto `[dedotto]`. Nessun numero di legge, nessuna
+soglia e nessuna formula di questa sezione va copiata in una schermata senza
+che qualcuno abbia letto il testo primario.
+
+---
+
+### 1. I CAMPI di un rapporto di fine turno (shift report / shift log / handover)
+
+#### 1a. Che cosa contengono i moduli veri, sezione per sezione
+
+La raccolta più ricca e **enumerabile** di moduli di turno del settore
+minerario è la libreria pubblica di modelli di **SafetyCulture** (fornitore
+australiano di software per ispezioni; i modelli sono caricati da imprese vere
+— fra i nomi che compaiono nei titoli: Golding, SWC, DNM, SRM, PDM):
+
+- *SWC HSE Shift Report — Compliance to Plan for Mining* — https://safetyculture.com/library/mining/swc-hse-shift-report-compliance-to-plan-golding-swc-pe4ffg1vvnfxtizg
+- *DNM Supervisor Shift Log* — https://safetyculture.com/library/mining/dnm-supervisor-shift-log-270820
+- *Production Supervisor Shift Handover Checklist* — https://safetyculture.com/library/mining/production-supervisor-shift-handover-golding-swc-z6tossysuirq2e86
+- *Production Senior Supervisor Shift Handover* — https://safetyculture.com/library/mining/production-senior-supervisor-shift-handover-golding-swc-wwjagzvoyex19ow1
+- *Load and Haul Supervisor Shift Log* — https://safetyculture.com/library/mining/draft-srm-chl-load-and-haul-supervisor-shift-log-bczjr3si9amceceb
+- *Drill & Blast Supervisor Night Shift Log* — https://safetyculture.com/library/mining/dnm-drill-and-blast-supervisor-night-shift-log-5tft9mhjpcvi1jmr
+- *PDM Drill Supervisor Shift Log* — https://safetyculture.com/library/mining/pdm-drill-supervisor-shift-log
+- *Supervisor Shift Report* — https://safetyculture.com/library/mining/supervisor-shift-report-oliqN
+
+Le **famiglie di campi** che ricorrono in quei moduli, secondo la descrizione
+dei risultati di ricerca su quelle pagine:
+
+| famiglia | campi citati dalle fonti |
+|---|---|
+| **Intestazione / consegna** | nome del sorvegliante **uscente** e di quello **entrante**, firme di tutt'e due, ora di fine, note di consegna al turno successivo, spunta di presa in carico |
+| **Personale** | organico del turno (*crew manning*), assenze/ferie (*leave*), argomenti trattati al briefing di inizio turno (*prestart topics*), obblighi di sicurezza assegnati |
+| **Mezzi e postazioni** | identificativo dell'escavatore/pala, **posizione**, priorità, tipo di materiale movimentato (carbone / sterile / tutt'e due), discarica primaria e secondaria, punto di partenza dopo lo spostamento del mezzo, stato del mezzo |
+| **Produzione contro piano** | ora del primo carico (*first load time*), ritmo di scavo (*dig rate*), assegnazione dei camion, tempi ciclo, code ai carichi e alle discariche, obiettivi di volume, **conformità al progetto** (*design compliance*), «siamo o non siamo sul piano» |
+| **Fermi e ritardi** | attività classificate come *production / downtime / delay*, ritardi **programmati** e **non programmati**, ritardi «scusabili» (*excusable delays*), *hang time*, impatti su ritmo o volume, motivazione dello scostamento, ritardi alla discarica |
+| **Carico utile** | prestazione del *payload* contro l'obiettivo del mezzo |
+| **Sicurezza** | infortuni/incidenti e relative indagini, osservazioni di sicurezza, analisi di sicurezza del lavoro (JSA), controlli pre-avviamento (*pre-start*), verifiche su veicoli leggeri e impianti, verifica dei **controlli critici** (separazione operativa, gestione del traffico, comunicazione positiva) |
+| **Ambiente / condizioni** | meteo, problemi di teli/coperture (*tarp*), condizioni che limitano l'operatività (*restrictions*) |
+
+Altre fonti che descrivono la stessa struttura da un altro angolo:
+- **Groundhog Apps** (fornitore, *Short Interval Control* per il minerario) —
+  https://groundhogapps.com/groundhog-short-interval-control/ — descrive il
+  rapporto di fine turno come prodotto **automatico** del sistema, con KPI e
+  osservazioni operative a supporto della pianificazione del turno dopo.
+- **LiveMine**, modulo *Timeline Reporting* (sotterraneo e superficie) —
+  https://www.livemine.com/en-us/modules/timeline-reporting
+- **iFactory**, modello di *shift report* per la manifattura —
+  https://ifactoryapp.com/analytics-reporting/shift-report-template-manufacturing
+
+#### 1b. La TASSONOMIA DELLE CAUSALI DI FERMO — il pezzo più prezioso
+
+Qui esiste **un riferimento di settore vero e citabile**: il **Time Usage
+Model (TUM)** del **Global Mining Guidelines Group (GMG)**, pubblicato nel 2020
+come *«A Standardized Time Classification Framework for Mobile Equipment in
+Surface Mining: Operational Definitions, Time Usage Model, and Key Performance
+Indicators»*.
+
+- Pagina della pubblicazione (GMG, ente di normazione volontaria del settore
+  minerario) — https://gmggroup.org/publication-guideline-for-a-standardized-time-classification-framework-for-mobile-equipment-in-surface-mining-operational-definitions-time-usage-model-and-key-performance-indicators/
+- PDF della linea guida (⚠️ **non aperto**: `EGRESS_BLOCKED`) —
+  https://gmggroup.org/wp-content/uploads/2024/07/20200713_Time_Classification_Framework-GMG-DAU-v01-r01-1.pdf
+- Annuncio su *Mining Engineering* (rivista ufficiale della SME, Society for
+  Mining, Metallurgy & Exploration) — https://me.smenet.org/global-mining-guidelines-group-publishes-time-classification-framework-for-surface-mining-equipment/
+- Annuncio su *International Mining* — https://im-mining.com/2020/09/01/gmg-publishes-standardised-time-classification-framework-mobile-equipment-surface-mining/
+- Lavoro successivo del GMG sul sotterraneo — https://gmggroup.org/time-usage-model-for-underground-mining-2/
+  e un workshop di aggiornamento previsto per il 18/11/2025 —
+  https://gmggroup.org/updating-mining-tum-kpi-definitions-workshop-20251118/
+
+**Le categorie di tempo del TUM**, come le descrivono le fonti secondarie
+(*Connected Mine* — https://connectedmine.com.au/content-hub/the-time-usage-model-a-pillar-in-mining-analytics — e la scheda Micromine
+— https://www.micromine.com/time-usage-model-in-underground-mining-leveraging-micromine-pitram/):
+
+- **Operating Time** — il mezzo è in uso, sotto il controllo di un operatore o
+  di un sistema automatico, e sta svolgendo la sua funzione propria.
+- **Operating Delay** — il mezzo è operativo ma **temporaneamente fermo o
+  impedito**, per ritardi inerenti all'operazione o per condizioni fisiche e
+  ambientali immediate. Esempi citati: **rifornimento carburante**, **ritardi
+  meteo**, **attesa di istruzioni**.
+- **Standby** — il mezzo è **disponibile ma non in funzione**. Si divide in:
+  - *Operating Standby*: disponibile, e non c'è l'intenzione di farlo lavorare,
+    per **decisione della direzione** o per ragioni sotto il suo controllo;
+  - *External Standby*: disponibile, richiesto e assegnato al cantiere, ma non
+    utilizzabile per ragioni **fuori dal controllo** della direzione operativa.
+- **Downtime** — il mezzo **serve** ma non è utilizzabile: guasti, rotture,
+  oppure **manutenzione programmata**. Si distingue in *unscheduled
+  maintenance* e *scheduled preventative maintenance*.
+
+Una gerarchia di livello superiore riportata da *Connected Mine* per un caso
+reale: **Calendar Time** → **Required Time** / **Standby Time**; dentro
+Required Time → **Production Time**, **Scheduled Downtime**, **Unscheduled
+Downtime**.
+
+⚠️ **Il GMG dichiara esplicitamente che le sue categorie NON sono uno standard
+di settore**: sono *raccomandazioni* per registrare e capire la prestazione
+operativa (fonte: pagina GMG citata sopra). È un dettaglio che cambia il modo
+di citarlo.
+
+**Una critica interna al modello, che vale come progettazione di vocabolario.**
+Micromine (fornitore del sistema **Pitram**), riprendendo un lavoro AusIMM
+*«Challenging the Norms — Time Usage Model for Mobile Underground Mining
+Equipment»* (PDF ⚠️ **non aperto**: `EGRESS_BLOCKED` —
+https://www.ausimm.com/globalassets/bulletin/challenging-the-norms---time-usage-model-for-mobile-underground-mining-equipment.pdf ;
+sintesi su https://www.micromine.com/time-usage-model-in-underground-mining-leveraging-micromine-pitram/ ):
+propone di **non chiamare «Delay»** quella categoria, ma **IDOH — Indirect
+Operating Hours** («ore di funzionamento indiretto»), perché nel sotterraneo le
+attività lì classificate — spostamenti, servizi, preparazione — sono
+**essenziali al ciclo**, e la parola «ritardo» porta con sé un giudizio
+negativo che falsa le analisi. Il modello distingue quindi **operatività
+diretta** e **operatività indiretta**.
+
+⚠️ La stessa fonte pone il requisito che qui conta di più: **ogni evento —
+perdite e ritardi compresi — deve essere registrato con orario di inizio e di
+fine precisi**, e descrizioni e classificazioni devono essere standardizzate
+fra le categorie perché i confronti abbiano senso.
+
+**Regole di progettazione di una tassonomia di causali** (fonti dal mondo
+manifatturiero, che su questo è più maturo e più esplicito — vanno lette come
+principi, non come lista mineraria):
+- *«Da 15 a 30 causali per area di impianto, non 150; le prime 10 devono
+  coprire il 70-80% dei minuti di fermo»* — https://www.machinetracking.com/post/downtime-reason-codes
+- struttura a **tre strati**: stato macchina/linea (*Running, Starved, Blocked,
+  Faulted, Changeover, Planned Stop*) → categoria → causale di dettaglio; scelta
+  rapida al primo livello, approfondimento solo quando serve —
+  https://www.machinecdn.com/blog/how-to-set-up-downtime-reason-codes/
+- codici brevi e mnemonici (es. `BRK` guasto, `SET` cambio produzione) —
+  https://sgsystemsglobal.com/glossary/downtime-reason-codes/ e
+  https://teeptrak.com/en/downtime-reason-codes/
+- il fermo diventa **causalizzabile** solo quando entra in uno stato apposito;
+  a fine turno si può presentare all'operatore la **tabella dei fermi rilevati**
+  e chiedergli di giustificare quelli di cui ha notizia — e quasi sempre i fermi
+  sono **più numerosi di quanti l'operatore ne ricordi** (fonte italiana, Bravo
+  Manufacturing) — https://support.bravomanufacturing.it/hc/it/articles/360000609248-La-rilevazione-dei-Fermi-Macchina
+  e https://www.bravomanufacturing.it/fermi-macchina/
+- «senza una rilevazione di stato standardizzata, disponibilità e utilizzo sono
+  **inaffidabili**» — https://www.machinetracking.com/post/downtime-by-shift-1
+
+**Esempi di causali minerarie citate per nome** dalle fonti:
+rifornimento (*refuelling*), **volata / brillamento** (*blasting*), lavaggio
+mezzi (*washing units*), **nebbia** (*fog*), **mancanza di operatore**
+(*operator shortage*), **cambio turno** (*shift change*), pausa pasto (*meal
+break*), meteo, attesa camion / coda, attesa istruzioni.
+Fonti: https://fast2mine.com/en/operational-indicator-hours-concept/ ,
+https://www.miningweekly.com/print-version/dispatch-technology-reduces-time-of-scheduled-delays-2016-10-21
+(su Wenco *Activity Dispatch*, che carica i ritardi programmati — cambio turno,
+pasti — **dentro il piano di turno**).
+
+**Letteratura accademica sui ritardi**: *Review of Operational Delays in
+Shovel-Truck System of Surface Mining Operations*, presentato alla 4ª UMaT
+Biennial International Mining and Mineral Conference (2016), che discute **12
+ritardi operativi** del ciclo carico-trasporto e il loro effetto su
+disponibilità e utilizzo —
+https://www.researchgate.net/publication/306060370_Review_of_Operational_Delays_in_Shovel-Truck_System_of_Surface_Mining_Operations
+(⚠️ **la lista dei 12 non l'ho letta**: solo l'abstract descritto dai risultati
+di ricerca).
+
+#### 1c. Il cambio turno come voce di perdita, misurata
+
+- Il rendimento nell'**ultima ora del turno uscente** e nella **prima ora del
+  turno entrante** è del **20-40% più basso** che nel resto del turno —
+  https://unisonmining.com/shift-change-optimization-and-handover-process/
+- In alcune miniere il cambio turno arriva a **un'ora** —
+  https://www.worldcoal.com/mining/06102017/a-shift-in-mine-productivity/
+- Nel sotterraneo, su turni da 10 ore, **~7 ore al fronte**, con **30-40 minuti**
+  medi di trasferimento (fino a **2 ore**) —
+  https://scielo.org.za/scielo.php?script=sci_arttext&pid=S2225-62532021000800010
+  (Journal of the SAIMM)
+- Casi di studio sul miglioramento del cambio turno a cielo aperto —
+  https://outliersminingsolutions.com/case-study/improving-shift-change-at-open-pit-mines/
+
+---
+
+### 2. LE CONVENZIONI DI MISURA — e perché due definizioni dello stesso indice ingannano
+
+#### 2a. Le definizioni che circolano
+
+- **Physical Availability**: quota del **tempo programmato** in cui il mezzo era
+  pronto a operare. Formula riportata:
+  `PA% = (Ore programmate − Ore di fermo) / Ore programmate × 100` —
+  https://opsima.com/blog/kpis/mining-industry-kpis/
+- **Mechanical Availability**: quota del **tempo controllabile** in cui il mezzo
+  era meccanicamente ed elettricamente pronto. Formula riportata:
+  `MA = Ore di lavoro / (Ore di lavoro + Fermo)` —
+  https://minemajor2020.wordpress.com/2020/12/12/machine-availability-and-utilization/
+- **Utilization**: uso delle ore **disponibili** per lavorare davvero. Formula
+  riportata: `U% = Ore operative / (Ore operative + Ore di fermo + Ore di
+  attesa/standby) × 100` — stessa fonte.
+- **Asset Utilization** (Caterpillar): ore operative **diviso il tempo di
+  calendario** del periodo.
+- **Availability Index** (Caterpillar): `MTBS / (MTBS + MTTR)`, dove **MTBS** è
+  il tempo medio fra due fermate e **MTTR** la durata media della riparazione.
+- Elenco delle metriche di **primo livello** del documento Caterpillar *Mining
+  Equipment Management (MEM) Performance Metrics* (v4, 12/06/2019): Physical
+  Availability, MTBS, MTTR, Availability Index, Contractual Availability,
+  Percentage Scheduled Downtime, Percentage Scheduled Events, Maintenance Ratio,
+  Top Problems Summary, Asset Utilization, Utilization of Availability, PIP/PSP
+  Completion Rate —
+  https://www.slideshare.net/slideshow/2019-caterpillar-mining-equipment-management-metrics-document-v4pdf/251857185
+  (⚠️ documento marchiato riservato dal produttore; qui citato solo come
+  **elenco di nomi di indice**, non come fonte da riprodurre)
+
+#### 2b. L'inganno: stesso indice, denominatore diverso
+
+È il punto che il mandato chiedeva, e le fonti lo dicono in chiaro.
+
+> *«Espressioni come ore programmate, ore annue, ore totali, ore di lavoro, ore
+> di turno, ore operative ed ore di efficienza possono comparire in questi
+> calcoli. Ma c'è pochissima coerenza nel modo in cui la maggior parte di questi
+> termini viene usata e nel modo in cui i loro valori vengono calcolati
+> nell'industria mineraria di oggi. La "disponibilità" per una società mineraria
+> può non significare la stessa cosa per un'altra società mineraria o per un
+> fornitore di macchine.»*
+> — capitolo *Machine Availability and Utilization*, in *Open Pit Mine Planning
+> and Design*, Taylor & Francis —
+> https://www.taylorfrancis.com/chapters/mono/10.1201/b15068-16/machine-availability-utilization
+
+L'esempio numerico che rende la trappola visibile in una riga:
+una macchina che lavora **7 ore su un turno di 8** ha **87,5%** di
+*availability* (denominatore: tempo **programmato**) e **29%** di *uptime*
+(denominatore: **calendario 24/7**) — https://oxmaint.com/industries/steel-plant/availability-kpi-explained-for-oee
+
+Corollari citati dalle stesse fonti:
+- **OEE** misura il **tempo di produzione pianificato**; **TEEP** (*Total
+  Effective Equipment Performance*) misura **tutto il tempo di calendario**:
+  `TEEP = OEE × (tempo pianificato / tempo di calendario)`.
+- *«Confrontare stabilimenti che usano definizioni diverse produce benchmark
+  privi di significato»* — https://mdcplus.fi/blog/oee-production-kpi-complete-guide/
+- Nel minerario, un approccio basato sul *loading time* porta a **sovrastimare
+  l'OEE**, ed è un problema quando si vuole fissare un valore di riferimento per
+  le pale — https://www.researchgate.net/publication/47517712_Performance_Measurement_of_Mining_Equipments_by_Utilizing_OEE
+  (la stessa fonte riporta come riferimento per le pale: disponibilità > 90%,
+  performance > 90%, qualità > 95% → **OEE > 77%** — ⚠️ numero di seconda mano)
+
+#### 2c. Lo standard generale che le formalizza
+
+**ISO 22400-2** (*Automation systems and integration — KPIs for manufacturing
+operations management*) definisce `OEE = Availability × Performance × Quality`
+e un **modello di stati temporali** con, fra gli altri, **PBT** (*planned busy
+time*, il tempo in cui l'unità è **pianificata** per produrre), **AUBT**
+(*actual unit busy time*) e **AUDT** (*actual unit downtime*); la disponibilità
+è definita come rapporto fra tempo operativo e tempo di produzione pianificato.
+Fonti: https://www.fabrico.io/blog/oee-iso-22400/ ,
+https://teeptrak.com/en/how-to-calculate-oee-industrial-production-2026/ ,
+https://connect981.com/blog-posts/iso-22400-oee-equipment-kpis-availability-utilization
+⚠️ Il testo della norma **non è stato letto** (a pagamento e comunque
+irraggiungibile con gli strumenti disponibili).
+
+`[dedotto]` Il TUM del GMG e ISO 22400 rispondono alla stessa domanda in due
+mondi diversi (flotta mobile mineraria / linea di produzione), e i loro nomi
+**non combaciano**: chi cita «disponibilità» senza dire **quale modello** e
+**quale denominatore** sta usando, sta dicendo una cosa non verificabile.
+
+---
+
+### 3. FONTI NORMATIVE E DI CATEGORIA ITALIANE / EUROPEE — e i NOMI del mestiere
+
+⚠️ Nessun testo di legge è stato aperto: `parlamento.it` e `gazzettaufficiale.it`
+sono bloccati dal proxy. Tutto ciò che segue è **di seconda mano** e va
+riverificato sul testo prima di finire in una schermata.
+
+#### 3a. DPR 9 aprile 1959, n. 128 — «Norme di polizia delle miniere e delle cave»
+
+È la norma che regge la vigilanza in cava. Dai risultati di ricerca:
+- **per ogni turno di lavoro** i luoghi di lavoro con personale devono essere
+  **visitati almeno una volta dal sorvegliante**, e **alla fine di ogni turno**
+  il sorvegliante deve **accertare che nessun dipendente sia rimasto** nella
+  miniera o nella cava senza autorizzazione;
+- il **direttore** conserva in originale le prescrizioni del prefetto e
+  dell'ingegnere capo, **trascrivendole in un registro tenuto sul luogo di
+  lavoro**;
+- art. 20: *Direttore responsabile e sorvegliante — Denunce di esercizio*.
+Fonti: https://www.puntosicuro.it/attivita-estrattive-minerali-C-17/il-lavoro-in-cava-in-miniera-i-soggetti-del-sistema-sicurezza-salute-AR-23128/ ,
+https://legislazionetecnica.it/node/1365369 ,
+testo su https://www.edizionieuropee.it/law/html/35/zn64_01_020.html ,
+PDF su https://pugliacon.regione.puglia.it/documents/72607/118877/AE_LEX_IT_04_DPR128_59.pdf/9c8638e0-d0d8-2916-9ec4-1d88d806bc0d
+e https://www.tuttoprevenzioneincendi.it/images/Norme/DPR_09_04_1959_n_128.pdf
+
+⚠️ **Non ho trovato conferma** che il DPR 128/59 imponga un «rapporto di fine
+turno» come documento. Quello che le fonti attestano è un **obbligo di verifica
+di fine turno in capo al sorvegliante** e **registri di prescrizioni**: due cose
+diverse. Chi vuole affermare l'una o l'altra deve leggere l'articolato.
+
+#### 3b. D.Lgs 25 novembre 1996, n. 624 — sicurezza nelle industrie estrattive
+
+Recepisce le direttive europee 92/91/CEE e 92/104/CEE. Il documento cardine è
+il **DSS — Documento di Sicurezza e Salute**: redatto dal **datore di lavoro**,
+**firmato** dal **direttore responsabile**, dai **sorveglianti** (art. 20), dal
+**medico competente** e, per presa visione, dal **rappresentante dei lavoratori
+per la sicurezza (RLS)**; va **aggiornato** quando i luoghi di lavoro subiscono
+modifiche rilevanti e, ove necessario, **dopo incidenti gravi**; il datore di
+lavoro **attesta annualmente** che luoghi, attrezzature e impianti sono
+progettati, usati e mantenuti in modo efficiente e sicuro.
+Fonti: https://it.wikipedia.org/wiki/Documento_di_sicurezza_e_salute ,
+https://www.puntosicuro.it/valutazione-dei-rischi-C-59/come-elaborare-il-documento-di-sicurezza-salute-nel-settore-estrattivo-AR-23129/ ,
+linee guida regionali Toscana https://www.regione.toscana.it/documents/10180/70872/Linee+guida+regionali+DLgs+624+del+96/e59e9f59-9962-4571-bcf9-1711f52e9acb ,
+linee guida Regione Puglia dgr 570/2015 https://olympus.uniurb.it/index.php?option=com_content&view=article&id=15828:pug570_15&catid=27&Itemid=137 ,
+esempio di DSS reale di una cava (Nervesa, Provincia di Treviso) https://ecologia.provincia.treviso.it/Engine/RAServeFile.php/f/News/5530/All.04b-DSSC_CAVA_NERVESA_febbraio_2015.pdf
+
+#### 3c. Il passaggio di consegne è **orario di lavoro** (Cassazione, 2024)
+
+Nei reparti a turni avvicendati il lavoratore entrante riceve dall'uscente
+*«le informazioni essenziali, lo stato della macchina o della linea, le anomalie
+in corso, i lavori in sospeso, i parametri di processo»*: è il **passaggio di
+consegne**. La **Corte di Cassazione, ordinanza n. 20787 del 25 luglio 2024**,
+lo ha riconosciuto come **voce autonoma di orario di lavoro**, distinta e
+cumulabile col «tempo tuta».
+Fonti: https://www.avvocatolavoroasti.it/blog/tempo-tuta-orario-di-lavoro/ ,
+https://www.adlabor.it/interpretazioni/retribuzione/cambio-a-fine-turno-e-passaggio-di-consegne-tra-lavoratori-il-datore-di-lavoro-ha-lobbligo-di-remunerare-il-tempo-impiegato-le-decisioni-della-giurisprudenza-adlabor-isper-hr-r/
+
+`[dedotto]` Se il passaggio di consegne è tempo retribuito, l'**ora di apertura
+e l'ora di chiusura** della consegna sono un dato con conseguenze contrattuali,
+non solo operative. Non ho trovato una fonte che lo dica esplicitamente.
+
+#### 3d. Eventi di sicurezza: che cosa si registra oggi in Italia
+
+- Il **registro infortuni** è **abolito** dal **23 dicembre 2015** (D.Lgs
+  151/2015): al suo posto la **denuncia/comunicazione di infortunio** sul
+  portale INAIL, e strumenti informatici INAIL sostitutivi del registro
+  cartaceo, accessibili al datore di lavoro e agli organi di vigilanza —
+  https://www.puntosicuro.it/documentazione-C-63/il-d.lgs.-151/2015-l-abrogazione-del-registro-infortuni-AR-15311/ ,
+  https://gruppocmb.com/il-d-lgs-151-2015-e-labolizione-del-registro-infortuni/
+- **Mancati infortuni**: l'**art. 15 del D.L. 31 ottobre 2025, n. 159** prevede
+  che le imprese con **più di quindici dipendenti** comunichino i **dati
+  aggregati** degli eventi segnalati come mancati infortuni **e** le azioni
+  correttive o preventive intraprese —
+  https://www.certifico.com/sicurezza-lavoro/documenti-sicurezza/documenti-riservati-sicurezza/d-l-159-2025-obbligo-comunicazione-mancati-infortuni-near-miss-note
+  ⚠️ **decreto legge**: il testo può essere cambiato in conversione. Da
+  riverificare sul primario prima di qualunque uso.
+- **Nomi italiani** del *near miss*: **mancato infortunio**, **quasi
+  infortunio**, **quasi evento**, **evento senza esito**, «mancato incidente» —
+  https://www.corsisicurezza.it/blog/near-miss-mancato-infortunio-definizione.htm
+- La **UNI 7249** è la norma italiana citata per gli **indicatori di prestazione
+  della sicurezza** (infortuni, mancati infortuni) —
+  https://www.certifico.com/sicurezza-lavoro/documenti-sicurezza/documenti-riservati-sicurezza/rischi-infortuni-mancati-infortuni-e-indicatori-di-prestazione-ssl-uni-7249
+  ⚠️ non letta.
+
+#### 3e. Le figure e le associazioni di categoria
+
+- **ANIM — Associazione Nazionale Ingegneri Minerari** ha pubblicato un
+  **disciplinare di certificazione della professione di responsabile di cava —
+  Capo cava** — https://www.anim-ingegneriamineraria.it/wp-content/uploads/2019/12/Disciplinare-Capo-cava.pdf
+  e https://www.certifico.com/sicurezza-lavoro/documenti-sicurezza/documenti-enti/disciplinare-certificazione-professione-di-responsabile-cava-capo-cava
+- Il **capo cava** guida i **cavatori** nell'interpretazione quotidiana delle
+  direttive operative e **può assumere anche la funzione di sorvegliante** (D.Lgs
+  624/96) e di **preposto** (D.Lgs 81/08); deve saper interpretare la
+  **strategia di coltivazione** e il **piano di coltivazione approvato** —
+  https://quarryandconstructionweb.it/rubriche/collaborazioni/corso-di-formazione-indirizzato-alla-figura-professionale-di-capo-cava/
+- Differenza fra **sorvegliante** (estrattivo) e **preposto** (81/08) —
+  https://quarryandconstructionweb.it/rubriche/collaborazioni/le-figure-del-sorvegliante-e-del-preposto-per-il-settore-estrattivo-analogie-e-differenze/
+  e https://quarryandconstructionweb.it/rubriche/collaborazioni/attivita-e-formazione-delle-figure-professionali-operanti-nel-settore-estrattivo/
+- **UNMIG / MASE** (Ministero dell'ambiente e della sicurezza energetica) e
+  **ISTAT** pubblicano i dati sulle attività estrattive da cave e miniere —
+  https://unmig.mase.gov.it/le-attivita-estrattive-da-cave-e-miniere/ e
+  https://www.istat.it/wp-content/uploads/2020/07/Attivit%C3%A0-estrattive-da-cave-e-miniere.pdf
+- Adempimenti **regionali** ricorrenti (esempio Lombardia): comunicazioni a
+  Provincia / Città metropolitana / Regione / Comune, **dati annuali a ISTAT**
+  (impresa, **volumi estratti**), quantità di inerti da riciclo, monitoraggio
+  ambientale, stato del recupero; **canone al Comune entro il 28 febbraio**
+  calcolato su tipo e quantità di materiale estratto e industrialmente
+  utilizzato nell'anno precedente —
+  https://www.regione.lombardia.it/wps/portal/istituzionale/HP/DettaglioRedazionale/servizi-e-informazioni/Enti-e-Operatori/ambiente-ed-energia/Cave/normativa-cave/normativa-cave
+  e L.R. Lombardia 14/1998 https://www.bosettiegatti.eu/info/norme/lombardia/1998_014.html ;
+  Catasto Cave e Miniere di Regione Lombardia, manuale utente v2.2.1 (gennaio 2026)
+  https://www.caveminiere.servizirl.it/catmc/assets/doc/ManualeUtenteCATCM.pdf ;
+  Piemonte https://www.regione.piemonte.it/web/temi/sviluppo/attivita-estrattive/cave ;
+  FVG https://www.regione.fvg.it/rafvg/cms/RAFVG/ambiente-territorio/geologia/FOGLIA15/
+
+#### 3f. Fuori Italia, ma normativo sul **passaggio di consegne**
+
+**HSE** (Health and Safety Executive, ente regolatore britannico), *Effective
+Shift Handover — A Literature Review*, Offshore Technology Report **OTO 96 003**,
+redatto dal **Keil Centre**. Quantifica il peso degli errori di consegna come
+causa o concausa di incidenti, e raccomanda: riconoscere la comunicazione di
+consegna come **priorità alta**, inserire le capacità comunicative nei criteri
+di selezione dei turnisti, addestrare il personale in servizio, fornire
+**procedure che dicano come si conduce una consegna**, e **dare più peso alla
+comunicazione scritta** durante il passaggio. Su 16 società offshore esaminate,
+alcune non definivano responsabilità e fabbisogni informativi, non davano
+formazione né guida scritta, e **non facevano alcun monitoraggio o audit delle
+consegne**. La *Cullen Inquiry* ha reso la consegna **documentata e verificata**
+un requisito regolamentare per l'offshore britannico.
+Fonti: https://www.osti.gov/etdeweb/biblio/376338 ,
+https://keilcentre.co.uk/services/human-factors-ergonomics/safe-communications-procedures/shift-handover/ ,
+https://studylib.net/doc/8206240/effective-shift-handover ,
+https://www.hpog.org/assets/documents/BN-10-Communications-web.pdf
+
+---
+
+### 4. COME I SOFTWARE COMMERCIALI PRESENTANO IL RAPPORTO DI FINE TURNO
+
+Elenco di fonti, non impressioni. Nessuno di questi prodotti è stato provato.
+
+**Sistemi di gestione flotta / dispatch (minerario a cielo aperto)**
+- **Modular Mining DISPATCH** (gruppo Komatsu) — assegnazione dinamica camion e
+  pale, *comprehensive production reporting*.
+- **Wenco DSX** (Wenco International Mining Systems) — dispatch in tempo reale,
+  monitoraggio macchine, ottimizzazione della produzione; *Activity Dispatch*
+  carica i **ritardi programmati** (cambio turno, pause) **dentro il piano di
+  turno** — https://www.miningweekly.com/print-version/dispatch-technology-reduces-time-of-scheduled-delays-2016-10-21
+- **Hexagon HxGN MineOperate** — suite cloud, dispatch e analitica multi-sito da
+  browser.
+- **Caterpillar MineStar**, **Trimble MineSight**, **RPMGlobal TIMS**.
+Panoramiche: https://www.miningsoftwarereviews.com/category/fleet-management-dispatch ,
+https://five.co/blog/mining-fleet-management-system/ ,
+https://zipdo.co/best/mining-fleet-management-software/
+
+**Sistemi di controllo a intervalli brevi e registro di turno**
+- **Groundhog** *Short Interval Control* — il rapporto di fine turno è prodotto
+  **automaticamente** con KPI e osservazioni —
+  https://groundhogapps.com/groundhog-short-interval-control/ ; manuale
+  operatore https://groundhogapps.com/dispatch-operator-handbook/ ;
+  OEE https://groundhogapps.com/understanding-overall-equipment-effectiveness/
+- **Micromine Pitram** — *Time Usage Model* nel prodotto, con la distinzione
+  operatività diretta / indiretta —
+  https://www.micromine.com/time-usage-model-in-underground-mining-leveraging-micromine-pitram/ ,
+  https://www.mining-technology.com/contractors/fleet-management-software/micromine-pitram/
+- **LiveMine** — modulo *Timeline Reporting* per sotterraneo e superficie —
+  https://www.livemine.com/en-us/modules/timeline-reporting
+- **Epiroc** *Shift Support* (pianificazione e scheduling) —
+  https://www.epiroc.com/en-uk/products/digital-solutions/planning-and-scheduling/shift-support
+
+**Cave e inerti (più vicino al nostro mestiere)**
+- **Trimble LOADRITE InsightHQ** — consolida i dati dei sistemi di pesatura di
+  cantiere (pale, escavatori) in cruscotti; *target contro effettivo*, **ritardi
+  e fermi**, riproduzione del turno (*shift playback*), avvisi —
+  https://goloadrite.com/product/insighthq ,
+  https://www.prnewswire.com/news-releases/trimble-provides-centralized-reporting-for-quarries-with-loadrite-insighthq-to-improve-productivity-300034335.html ,
+  https://www.aggbusiness.com/products/operations-productivity-made-visible-new-trimble-insight
+- **Command Alkon** — sistema *Scale Watcher* installato in 523 siti fra cave e
+  altri cantieri dal 2006 —
+  https://www.aggregateresearch.com/news/save-money-using-up-to-date-payload-management-and-weigh-in-motion-technology/
+- **Clue** — gestione attrezzature per cave e inerti —
+  https://www.getclue.com/industries/aggregate-and-quarry
+
+**Italia**
+- **iBlocky** — gestionale per cave di marmo: catalogazione dei blocchi
+  estratti con foto/video/mapscan, resa e collocazione; a partire da 299 €/mese
+  (piano Basic), 399 €/mese (Elite) — https://iblocky.it/gestionale-per-cave
+- **Project S.r.l.** — *Project Building*, software per impianti e cave —
+  https://project-srl.it/software-edilizia/project-building-software-impianti-e-cave.html
+- **InfoMinds** — gestionale per produttori di inerti, integrazione pese,
+  impianti e vendita — https://infominds.eu/settori/edilizia/produttori-inerti-calcestruzzo-cave/
+- **Bravo Manufacturing** — rilevazione e **causalizzazione dei fermi macchina**
+  (vocabolario italiano) — https://www.bravomanufacturing.it/fermi-macchina/
+- **DATALOG** — riduzione fermi macchina con software di produzione —
+  https://www.datalog.it/ridurre-fermi-macchina-software-produzione/
+- **Fabbrica Digitale 4.0** — **microfermi** —
+  https://www.fabbricadigitale40.it/it/insight/blog/287-efficienza-degli-impianti-produttivi-come-tracciare-gestire-e-risolvere-i-microfermi
+
+---
+
+### GLOSSARIO ITALIANO DEL MESTIERE (termini incontrati nelle fonti)
+
+**Persone e ruoli**
+- **direttore responsabile** — figura del DPR 128/59 e del D.Lgs 624/96, firma
+  il DSS
+- **sorvegliante** — visita i luoghi di lavoro almeno una volta per turno e a
+  fine turno accerta che nessuno sia rimasto dentro
+- **preposto** — figura del D.Lgs 81/08; nel settore estrattivo si sovrappone in
+  parte al sorvegliante ma non coincide
+- **capo cava** — guida i cavatori, interpreta il piano di coltivazione; può
+  cumulare sorvegliante e preposto
+- **cavatore** — chi lavora al fronte
+- **RLS** — rappresentante dei lavoratori per la sicurezza
+- **medico competente**
+
+**Luoghi e forme della cava**
+- **fronte di cava** — la parete su cui si lavora
+- **gradone** — il ripiano; composto da **alzata** (l'altezza) e **pedata** (la
+  larghezza del ripiano)
+- **piazzale** — l'area di lavoro alla base, dove si raccoglie il materiale
+- **coltivazione** — l'attività di estrazione; **piano di coltivazione** è il
+  progetto approvato
+- **recupero ambientale / ripristino** — la rimessa in pristino del sito
+
+**Documenti e adempimenti**
+- **DSS — documento di sicurezza e salute** (D.Lgs 624/96)
+- **denuncia di esercizio** (DPR 128/59, art. 20)
+- **dichiarazione annuale dei quantitativi estratti** / dati annuali a **ISTAT**
+- **canone** al Comune, calcolato su tipo e quantità estratta e industrialmente
+  utilizzata
+- **denuncia/comunicazione di infortunio** a INAIL (il **registro infortuni** è
+  abolito dal 2015)
+- **catasto cave** (esempio: Catasto Cave e Miniere di Regione Lombardia)
+
+**Turno e consegne**
+- **turno** — **turni avvicendati** quando si susseguono senza interruzione
+- **passaggio di consegne** / **consegne di turno** — riconosciuto come orario
+  di lavoro (Cass. ord. 20787/2024)
+- **rapportino** / **rapportino giornaliero** / **rapporto di fine turno** —
+  la parola che l'edilizia e l'impiantistica italiane usano per il documento
+  compilato dall'operatore a fine giornata o fine turno
+- **appello** / **presenze** — chi c'era
+- **briefing di inizio turno** (*prestart*) — i temi trattati prima di iniziare
+
+**Fermi e misure**
+- **fermo macchina** / **fermi macchina** — l'interruzione durante il tempo di
+  lavoro assegnato
+- **causale di fermo** — la ragione attribuita a un fermo; **causalizzare** un
+  fermo è l'atto di attribuirgliela; un fermo è **causalizzabile** quando è in
+  uno stato che lo consente
+- **microfermo** — fermata breve e ripetuta, tipicamente sotto la soglia di
+  registrazione automatica
+- **fermo programmato** / **fermo non programmato**
+- **disponibilità** (*availability*), **utilizzo** (*utilization*),
+  **rendimento**, **OEE**
+- **ore di calendario**, **ore programmate**, **ore operative**, **ore di
+  attesa** — i denominatori che cambiano il significato degli indici sopra
+
+**Sicurezza**
+- **infortunio**
+- **mancato infortunio**, **quasi infortunio**, **quasi evento**, **evento
+  senza esito** — i nomi italiani del *near miss*
+- **osservazione di sicurezza**
+- **controllo critico** — la verifica che una difesa fondamentale sia in piedi
+- **controllo pre-avviamento** (*pre-start*) — la verifica sul mezzo prima
+  dell'uso
+
+---
+
+### DOMANDE PER CHI HA IL CODICE
+
+Sono domande, non affermazioni: chi le legge ha il codice in mano e può
+rispondere aprendo le funzioni. Nessuna di queste presuppone che qualcosa
+manchi.
+
+1. **Chi decide, nel nostro prodotto, la causale di un fermo?** È scelta da un
+   elenco chiuso, o è testo libero? Se è un elenco: quante voci ha, e chi
+   l'ha deciso? Se una causale nuova serve a una cava sola, oggi dove va a
+   finire?
+2. Un fermo, da noi, ha **inizio e fine** (due istanti) o **una durata
+   dichiarata** (un numero di minuti)? Le due forme non rispondono alle stesse
+   domande: la prima permette la sovrapposizione con altri eventi e il calcolo
+   del profilo del turno, la seconda no.
+3. **La somma dei tempi di un turno torna?** Cioè: c'è un posto in cui il
+   prodotto verifica che *operativo + fermo + attesa* non superi (né lasci
+   scoperta) la durata dichiarata del turno — e se non torna, che cosa dice?
+4. Quando il prodotto scrive «disponibilità» o una percentuale simile in una
+   schermata o in un file che esce, **quale denominatore usa** — durata
+   dichiarata del turno, ore di calendario, ore programmate — e quel
+   denominatore è **scritto accanto al numero** dove l'utente lo legge?
+5. Le nostre categorie di fermo distinguono **«il mezzo è guasto»** da **«il
+   mezzo funziona ma non lo stiamo usando»** da **«il mezzo funziona, è in
+   servizio, ma sta facendo qualcosa che non è il suo lavoro principale»**?
+   E se sì, con quali parole? (È la distinzione TUM fra *downtime*, *standby* e
+   *operating delay* / *indirect operating* — e la fonte del sotterraneo
+   sostiene che chiamarla «ritardo» falsa le analisi.)
+6. **Chi consegna e chi riceve** un turno: il prodotto registra i due nomi e
+   l'ora della consegna, e da qualche parte quel dato viene **letto** oltre che
+   scritto? (Cass. 20787/2024 rende quel tempo retribuito, quindi ha effetti
+   fuori dall'operatività.)
+7. Il turno entrante, aprendo il prodotto, **vede le cose in sospeso lasciate
+   dal turno uscente** — lavori non finiti, anomalie aperte, macchine in stato
+   anomalo — o le vede solo chi legge le note a mano? Come si distingue una
+   nota di consegna «già chiusa» da una «ancora aperta»?
+8. Fra i dati che raccogliamo del turno, quali arrivano da una **misura** (una
+   pesa, un contaore, un GPS) e quali da una **dichiarazione** di una persona?
+   Il prodotto distingue le due provenienze quando compone un riepilogo, o le
+   somma senza dirlo?
+9. Un fermo che attraversa il **cambio turno** — comincia in un turno e finisce
+   nel successivo — a quale turno viene attribuito, e chi lo decide?
+10. Il **cambio turno stesso** (le fonti lo misurano fino a un'ora, con il
+    rendimento più basso del 20-40% nell'ora a cavallo) è una **causale
+    dichiarabile** nei nostri fermi, o sparisce dentro il tempo non
+    rendicontato?
+
+---
+
+### CHE COSA NON SONO RIUSCITO A VERIFICARE
+
+Onestamente, e per nome:
+
+- **Nessun testo primario è stato letto.** `WebFetch` risponde
+  `EGRESS_BLOCKED` su tutti i sei domini provati (elencati in cima). Quindi il
+  PDF della linea guida GMG, il PDF AusIMM, la documentazione Micromine, il
+  D.Lgs 624/96 su parlamento.it: **descritti, non letti**.
+- **La tassonomia completa delle causali di fermo del GMG non ce l'ho.** Ho i
+  nomi delle **categorie di primo livello** (Operating, Operating Delay,
+  Standby con le sue due forme, Downtime con le sue due forme) e alcune
+  gerarchie riportate; **non ho l'elenco delle foglie**, che è esattamente la
+  parte che il mandato chiamava «la più preziosa». Sta nel PDF bloccato.
+- **I «12 ritardi operativi»** del lavoro UMaT 2016 sul sistema pala-camion:
+  so che sono dodici, **non so quali**.
+- **ISO 22400-2** e **UNI 7249**: norme a pagamento, non lette. Le definizioni
+  riportate vengono da divulgatori commerciali.
+- **DPR 128/59**: non ho trovato conferma dell'esistenza di un obbligo di
+  «rapporto di fine turno» come documento; ho solo l'obbligo di **verifica** di
+  fine turno del sorvegliante e i registri di prescrizioni. Chi vuole
+  affermarlo deve leggere l'articolato.
+- **D.L. 159/2025 art. 15** (mancati infortuni): è un **decreto legge**, e il
+  testo in conversione può cambiare. Riportato da una sola fonte secondaria.
+- **Nessuna fonte italiana specificamente sul rapporto di fine turno in cava.**
+  Il vocabolario italiano dei fermi («causale di fermo», «causalizzare»,
+  «microfermo») viene dalla **manifattura**, non dall'estrattivo: è verosimile
+  che in cava si dicano le stesse parole, ma non l'ho verificato — `[dedotto]`.
+- **Nessun software è stato provato.** Le descrizioni dei prodotti vengono dai
+  materiali dei fornitori o da riviste di settore, cioè da materiale
+  promozionale: dicono che cosa il prodotto **dichiara** di fare.
