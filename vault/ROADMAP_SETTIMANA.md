@@ -6413,3 +6413,29 @@ di scriverlo qui**: niente entra sulla parola dell'agente.
       le domande sono diventate due. Adesso tiene, per ogni famiglia, l'insieme
       delle app cadute — una domanda nuova si dichiara lì invece di spostare un
       totale.
+
+- [x] ✅ **B15 — CHIUSA il 14/08: la finestra di caricamento era misurata su
+      TRE app su sei, e nelle altre tre il difetto c'era ancora.** Il banco era
+      stato scritto sulle app che il difetto ce l'avevano; le altre non erano
+      «a posto», erano **non misurate**. Aprendole: **Flotta 10 contatori nati
+      «0», Conti 9** — cioè esattamente ciò che B6 aveva curato in Campo,
+      Scudo e Sentinella. Corretti (nascono «—»), col commento che spiega la
+      ragione dentro le due pagine.
+      ⛔ **E la prima misura sulle tre app nuove era FALSA, per la fixture.**
+      Il server del banco ritardava `(campo|scudo|sentinella)-data.js` — un
+      elenco dentro una regex: aggiungendo tre app all'elenco `APPS` il
+      ritardo **non le ha seguite**, i loro dati sono arrivati subito, e il
+      banco ha accusato Flotta di **16 «numeri tranquilli»** che erano i
+      valori VERI della dimostrazione e di comandi «muti» che invece
+      navigavano. Adesso si ritarda il modulo dell'**app che si sta
+      misurando**, e il nome lo dice il ciclo.
+      **Due eccezioni dichiarate e sorvegliate**, trovate dalla domanda del
+      verso opposto («dopo i dati nessun contatore resta —»): i due contatori
+      della scheda di un **ordine di lavoro** in Flotta (esiste solo quando
+      qualcuno ne apre uno) e il KPI «m³ estratti mese» di Terra, che resta
+      «—» perché nella dimostrazione nessun rilievo cade nel mese in corso —
+      `fmtM3(null)` risponde «—», ed è la risposta giusta. Per poterlo
+      dichiarare quel KPI ha adesso un **id**: un elemento che un controllo
+      deve nominare deve avere un nome.
+      Misure: **22 schermate su 22** nelle tre app nuove, **21 passati, 0
+      falliti**; 61 comandi premuti dentro la finestra, 0 muti.

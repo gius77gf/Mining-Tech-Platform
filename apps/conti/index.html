@@ -901,7 +901,20 @@ label.item:has(.dw-chk:checked){
 </div>
 
 <div class="page" id="page-fat">
-  <div class="sec">Fatture attive<span class="cnt" id="fat-cnt">0</span></div>
+  <!-- ⛔ I CONTATORI NASCONO «—», NON «0», e non è una scelta di stile.
+       Fra l'apertura della pagina e l'arrivo di `conti-data.js` c'è una finestra
+       in cui l'app ha già disegnato tutto e non sa ancora niente: uno «0» lì
+       dentro dice una cosa **falsa e tranquilla** — «non lo so ancora» non è
+       «non c'è». È il principio del fondatore applicato al TEMPO invece che al
+       dato, e questa pagina lo faceva già coi KPI (nascono «—») e non coi
+       contatori: 9 su 9.
+       Non è uno stato del DATO: è lo stato della PAGINA prima che il dato
+       esista. `refresh()` li riscrive tutti a ogni giro, quindi il «—» non
+       sopravvive all'arrivo dei dati; e uno zero VERO continua a scriversi «0»,
+       che è la differenza fra «ho guardato e non ce n'è» e «non ho ancora
+       guardato». Difesa: tests/browser/finestra-caricamento.mjs, che chiede
+       tutt'e due le cose. -->
+    <div class="sec">Fatture attive<span class="cnt" id="fat-cnt">—</span></div>
   <div id="fat-filtri" class="chgs">
     <button class="chg active" data-filtro="tutte">Tutte<span class="qt" data-qt="tutte"></span></button>
     <button class="chg" data-filtro="aperte">Da incassare<span class="qt" data-qt="aperte"></span></button>
@@ -1019,7 +1032,7 @@ label.item:has(.dw-chk:checked){
 </div>
 
 <div class="page" id="page-ban">
-  <div class="sec">Estratto conto della banca<span class="cnt" id="ban-cnt">0</span></div>
+  <div class="sec">Estratto conto della banca<span class="cnt" id="ban-cnt">—</span></div>
   <div class="note">Carichi qui il file dell'<b>estratto conto</b> che scarichi dalla tua banca, e
     Conti <b>propone</b> a quale fattura corrisponde ogni bonifico in entrata. È l'unico punto in
     cui questa app ti chiedeva di ribattere a mano un dato che esiste già: i soldi arrivano in
@@ -1063,10 +1076,10 @@ label.item:has(.dw-chk:checked){
     perché è materiale che non uscirà dal piazzale. Ai DDT che parti si può agganciare l'ordine,
     e da lì Conti sa dirti quanto ne resta.</div>
 
-  <div class="sec">Offerte da richiamare<span class="cnt" id="ord-seg-cnt">0</span></div>
+  <div class="sec">Offerte da richiamare<span class="cnt" id="ord-seg-cnt">—</span></div>
   <div id="ord-seguire"></div>
 
-  <div class="sec">Preventivi e ordini<span class="cnt" id="ord-cnt">0</span></div>
+  <div class="sec">Preventivi e ordini<span class="cnt" id="ord-cnt">—</span></div>
   <div id="ord-filtri" class="chgs">
     <button class="chg active" data-ofiltro="tutti">Tutti<span class="qt" data-oqt="tutti"></span></button>
     <button class="chg" data-ofiltro="aperti">In attesa<span class="qt" data-oqt="aperti"></span></button>
@@ -1160,7 +1173,7 @@ label.item:has(.dw-chk:checked){
 </div>
 
 <div class="page" id="page-pes">
-  <div class="sec">Registro pesate / DDT<span class="cnt" id="pes-cnt">0</span></div>
+  <div class="sec">Registro pesate / DDT<span class="cnt" id="pes-cnt">—</span></div>
   <div id="pes-filtri" class="chgs">
     <button class="chg active" data-pfiltro="tutte">Tutti<span class="qt" data-pqt="tutte"></span></button>
     <button class="chg" data-pfiltro="aperti">Da fatturare<span class="qt" data-pqt="aperti"></span></button>
@@ -1283,7 +1296,7 @@ label.item:has(.dw-chk:checked){
      La classificazione delle voci sta in shared/dw-ponti.js perché la usa
      anche Flotta: qui non si riscrive, si legge. -->
 <div class="page" id="page-cos">
-  <div class="sec">Costi della cava<span class="cnt" id="cos-cnt">0</span></div>
+  <div class="sec">Costi della cava<span class="cnt" id="cos-cnt">—</span></div>
   <div class="note">Qui si scrive <b>quanto costa produrre</b>, voce per voce: è l'altra metà del
     conto, quella che le fatture non dicono. Serve a rispondere alla domanda con cui si decide un
     prezzo — <b>quanto costa un metro cubo</b> — e a vedere <b>dove</b> se ne va il denaro.
@@ -1393,7 +1406,7 @@ label.item:has(.dw-chk:checked){
 </div>
 
 <div class="page" id="page-lis">
-  <div class="sec">Listino prodotti<span class="cnt" id="lis-cnt">0</span></div>
+  <div class="sec">Listino prodotti<span class="cnt" id="lis-cnt">—</span></div>
   <div class="note">Un prodotto si vende <b>a tonnellata</b> oppure <b>a metro cubo</b>:
     scegli in quale unità è scritto il prezzo. <b>€/t e €/m³ non sono la stessa cosa</b> e
     non si convertono a occhio: serve la <b>densità</b> del materiale (quante tonnellate pesa
@@ -1588,7 +1601,7 @@ label.item:has(.dw-chk:checked){
 <div class="page" id="page-cli">
   <div class="sec">Chi chiamare per primo</div>
   <div id="graf-espo"></div>
-  <div class="sec">Anagrafica clienti<span class="cnt" id="cli-cnt">0</span></div>
+  <div class="sec">Anagrafica clienti<span class="cnt" id="cli-cnt">—</span></div>
   <input class="dw-input" id="cli-cerca" type="search" placeholder="Cerca per ragione sociale, P.IVA o indirizzo…" style="margin-bottom:10px;">
   <div id="cli-count" class="count"></div>
   <div id="cli-list"></div>
@@ -1647,7 +1660,7 @@ label.item:has(.dw-chk:checked){
 </div>
 
 <div class="page" id="page-gar">
-  <div class="sec">Gare e appalti<span class="cnt" id="gar-cnt">0</span></div>
+  <div class="sec">Gare e appalti<span class="cnt" id="gar-cnt">—</span></div>
   <div id="gar-riep" class="note recap"></div>
   <div id="gar-filtri" class="chgs">
     <button class="chg active" data-gfiltro="tutte">Tutte<span class="qt" data-gqt="tutte"></span></button>

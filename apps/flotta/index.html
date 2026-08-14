@@ -801,7 +801,20 @@ body.dw b.bad{color:var(--ink-dg)}
 </div>
 
 <div class="page" id="page-mez">
-  <div class="sec">Parco mezzi<span class="cnt" id="mez-tot">0</span></div>
+  <!-- ⛔ I CONTATORI NASCONO «—», NON «0», e non è una scelta di stile.
+       Fra l'apertura della pagina e l'arrivo di `flotta-data.js` c'è una finestra
+       in cui l'app ha già disegnato tutto e non sa ancora niente: uno «0» lì
+       dentro dice una cosa **falsa e tranquilla** — «non lo so ancora» non è
+       «non c'è». È il principio del fondatore applicato al TEMPO invece che al
+       dato, e questa pagina lo faceva già coi KPI (nascono «—») e non coi
+       contatori: 10 su 10.
+       Non è uno stato del DATO: è lo stato della PAGINA prima che il dato
+       esista. `refresh()` li riscrive tutti a ogni giro, quindi il «—» non
+       sopravvive all'arrivo dei dati; e uno zero VERO continua a scriversi «0»,
+       che è la differenza fra «ho guardato e non ce n'è» e «non ho ancora
+       guardato». Difesa: tests/browser/finestra-caricamento.mjs, che chiede
+       tutt'e due le cose. -->
+    <div class="sec">Parco mezzi<span class="cnt" id="mez-tot">—</span></div>
   <div id="mez-disp" class="note recap"></div>
   <div id="mez-filtri" class="chgs" style="margin-top:12px;">
     <button class="chg active" data-filtro="tutti">Tutti</button>
@@ -835,7 +848,7 @@ body.dw b.bad{color:var(--ink-dg)}
        fotografia di com'è messo il parco; questa è la MISURA di quanto ha
        lavorato davvero, giorni-macchina persi su giorni-macchina disponibili.
        Il conto si scrive per esteso: dev'essere rifacibile a mano. -->
-  <div class="sec">Fermi macchina<span class="cnt" id="fer-tot">0</span></div>
+  <div class="sec">Fermi macchina<span class="cnt" id="fer-tot">—</span></div>
   <div id="fer-finestra" class="chgs">
     <button class="chg" data-fer-giorni="7">7 giorni</button>
     <button class="chg active" data-fer-giorni="30">30 giorni</button>
@@ -908,7 +921,7 @@ body.dw b.bad{color:var(--ink-dg)}
 </div>
 
 <div class="page" id="page-man">
-  <div class="sec">Manutenzioni programmate<span class="cnt" id="man-count">0</span></div>
+  <div class="sec">Manutenzioni programmate<span class="cnt" id="man-count">—</span></div>
   <div class="form col">
     <div class="frow">
       <span class="form-hint" style="flex-basis:auto;">Ritmo d'uso medio</span>
@@ -950,12 +963,12 @@ body.dw b.bad{color:var(--ink-dg)}
   </div>
   <div class="note esito" id="man-esito"></div>
 
-  <div class="sec">Registro interventi<span class="cnt" id="int-count">0</span></div>
+  <div class="sec">Registro interventi<span class="cnt" id="int-count">—</span></div>
   <div id="int-list"></div>
   <div class="tools"><button class="dw-btn secondary" id="btn-int-csv">Esporta registro (CSV)</button></div>
   <div class="note">Ogni manutenzione chiusa diventa un intervento nello storico del mezzo: cosa è stato fatto, quando, con quale ricambio e a che costo. È il <b>libretto-macchina</b> che vale in garanzia e alla rivendita.</div>
 
-  <div class="sec">Magazzino ricambi<span class="cnt" id="ric-tot">0</span></div>
+  <div class="sec">Magazzino ricambi<span class="cnt" id="ric-tot">—</span></div>
   <div id="ric-alert" class="note recap"></div>
   <div class="search" style="margin:12px 0 8px;">
     <input class="dw-input" id="ric-cerca" type="search" placeholder="Cerca ricambio…">
@@ -1064,7 +1077,7 @@ body.dw b.bad{color:var(--ink-dg)}
 </div>
 
 <div class="page" id="page-cos">
-  <div class="sec">Costi della flotta<span class="cnt" id="cos-count">0</span></div>
+  <div class="sec">Costi della flotta<span class="cnt" id="cos-count">—</span></div>
   <div id="cos-riep" class="note recap"></div>
   <!-- F1 — «Dove va la spesa»: barre orizzontali ordinate dalla voce più
        costosa alla meno costosa. Prima era solo una riga di percentuali. -->
@@ -1089,7 +1102,7 @@ body.dw b.bad{color:var(--ink-dg)}
   <!-- L4 — CARBURANTE PER MEZZO. Il gasolio è la voce più grossa della
        flotta: qui smette di essere un totale anonimo e diventa il consumo
        della singola macchina, in litri/ora e euro/ora. -->
-  <div class="sec">Carburante per mezzo<span class="cnt" id="rif-tot">0</span></div>
+  <div class="sec">Carburante per mezzo<span class="cnt" id="rif-tot">—</span></div>
   <div id="rif-riep" class="note recap"></div>
   <div id="graf-consumo" class="graf" style="margin-top:12px;"></div>
   <div id="rif-list" style="margin-top:12px;"></div>
@@ -1150,7 +1163,7 @@ body.dw b.bad{color:var(--ink-dg)}
     <div class="note esito" id="giro-esito"></div>
   </div>
 
-  <div class="sec">Ultimi giri<span class="cnt" id="giro-tot">0</span></div>
+  <div class="sec">Ultimi giri<span class="cnt" id="giro-tot">—</span></div>
   <div id="giro-storico"></div>
   <div class="tools"><button class="dw-btn secondary" id="btn-giro-csv">Esporta i giri (CSV)</button></div>
   <div class="note">Il giro macchina è un <b>promemoria di sicurezza</b> e un archivio ordinato, non un documento ufficiale. Quello che segni «non va» non resta una crocetta: diventa subito una <b>manutenzione sul mezzo</b>, che l'officina trova nel Quadro insieme a tutto il resto.</div>
@@ -1170,7 +1183,7 @@ body.dw b.bad{color:var(--ink-dg)}
   <div id="odl-stati" class="chgs"></div>
   <div id="odl-stato-nota" class="note norma"></div>
 
-  <div class="sec">Chi ci ha lavorato<span class="cnt" id="odl-mano-cnt">0</span></div>
+  <div class="sec">Chi ci ha lavorato<span class="cnt" id="odl-mano-cnt">—</span></div>
   <div id="odl-mano"></div>
   <div class="form">
     <input class="dw-input" id="odl-chi" placeholder="Chi (es. Marco, officina esterna)" style="flex:2 1 180px;">
@@ -1180,7 +1193,7 @@ body.dw b.bad{color:var(--ink-dg)}
     <div class="form-hint">Una riga per persona: le ore di ognuno sono diverse, e un meccanico interno non costa come un'officina chiamata da fuori. Il <b>costo orario</b> si può lasciare vuoto: le ore restano registrate e l'app scrive che non entrano nel costo, invece di farle passare per gratis.</div>
   </div>
 
-  <div class="sec">Ricambi usati<span class="cnt" id="odl-ric-cnt">0</span></div>
+  <div class="sec">Ricambi usati<span class="cnt" id="odl-ric-cnt">—</span></div>
   <div id="odl-ric"></div>
   <div class="form">
     <select class="dw-input" id="odl-ric-sel" title="Ricambio preso dal magazzino" style="flex:2 1 200px;"></select>

@@ -78,7 +78,14 @@ const PORTA = Number((process.argv.find((a) => a.startsWith("--porta=")) || "").
    aprire tutte le sezioni di tutte e tre le app (misurato: ~1,5 s per app) */
 const RITARDO = Number((process.argv.find((a) => a.startsWith("--ritardo=")) || "").split("=")[1]) || 30000;
 const SOLO = (process.argv.find((a) => a.startsWith("--solo=")) || "").split("=")[1] || "";
-const APPS = ["campo", "scudo", "sentinella"].filter((a) => !SOLO || SOLO.split(",").includes(a));
+/* ⛔ SEI APP, NON TRE — e le tre nuove sono entrate il 14/08 portando un
+   difetto vero: Flotta aveva **10** contatori nati «0» e Conti **9**, cioè
+   esattamente quello che B6 aveva curato nelle prime tre. Il banco era stato
+   scritto sulle app che il difetto ce l'avevano, e le altre non erano «a
+   posto»: erano **non misurate**. Terra ci sta dentro col suo denominatore —
+   di `span.cnt` non ne ha nessuno, e il banco lo stampa invece di tacere. */
+const APPS = ["campo", "scudo", "sentinella", "flotta", "conti", "terra"]
+  .filter((a) => !SOLO || SOLO.split(",").includes(a));
 /* ⛔ GLI SCATTI NON VANNO DENTRO IL REPOSITORY. Un banco che semina file non
    tracciati nell'albero vivo li fa comparire in `git status` di ogni cantiere
    parallelo, e il giro del browser li elenca fra i «file non committati che
@@ -126,6 +133,36 @@ const DIFETTI = {
   "shared/dw-app-ui.js": [
     ["if (datiPronti) return;", "if (true) return;"],
   ],
+  "apps/flotta/index.html": [
+    ['<span class="cnt" id="mez-tot">—</span>', '<span class="cnt" id="mez-tot">0</span>'],
+    ['<span class="cnt" id="fer-tot">—</span>', '<span class="cnt" id="fer-tot">0</span>'],
+    ['<span class="cnt" id="man-count">—</span>', '<span class="cnt" id="man-count">0</span>'],
+    ['<span class="cnt" id="int-count">—</span>', '<span class="cnt" id="int-count">0</span>'],
+    ['<span class="cnt" id="ric-tot">—</span>', '<span class="cnt" id="ric-tot">0</span>'],
+    ['<span class="cnt" id="cos-count">—</span>', '<span class="cnt" id="cos-count">0</span>'],
+    ['<span class="cnt" id="rif-tot">—</span>', '<span class="cnt" id="rif-tot">0</span>'],
+    ['<span class="cnt" id="giro-tot">—</span>', '<span class="cnt" id="giro-tot">0</span>'],
+    ['<span class="cnt" id="odl-mano-cnt">—</span>', '<span class="cnt" id="odl-mano-cnt">0</span>'],
+    ['<span class="cnt" id="odl-ric-cnt">—</span>', '<span class="cnt" id="odl-ric-cnt">0</span>'],
+  ],
+  "apps/conti/index.html": [
+    ['<span class="cnt" id="fat-cnt">—</span>', '<span class="cnt" id="fat-cnt">0</span>'],
+    ['<span class="cnt" id="ban-cnt">—</span>', '<span class="cnt" id="ban-cnt">0</span>'],
+    ['<span class="cnt" id="ord-seg-cnt">—</span>', '<span class="cnt" id="ord-seg-cnt">0</span>'],
+    ['<span class="cnt" id="ord-cnt">—</span>', '<span class="cnt" id="ord-cnt">0</span>'],
+    ['<span class="cnt" id="pes-cnt">—</span>', '<span class="cnt" id="pes-cnt">0</span>'],
+    ['<span class="cnt" id="cos-cnt">—</span>', '<span class="cnt" id="cos-cnt">0</span>'],
+    ['<span class="cnt" id="lis-cnt">—</span>', '<span class="cnt" id="lis-cnt">0</span>'],
+    ['<span class="cnt" id="cli-cnt">—</span>', '<span class="cnt" id="cli-cnt">0</span>'],
+    ['<span class="cnt" id="gar-cnt">—</span>', '<span class="cnt" id="gar-cnt">0</span>'],
+  ],
+  /* ⚠️ Terra non ha nessuno `span.cnt`: senza questa riga la sua prima domanda
+     resterebbe SENZA controprova — cioè il banco direbbe «a posto» su una
+     difesa che non ha mai provato a far cadere. Il soggetto è un KPI, che LEGGI
+     guarda esattamente come un contatore. */
+  "apps/terra/index.html": [
+    ['<div class="n" id="kpi-vol-mese">—</div>', '<div class="n" id="kpi-vol-mese">0</div>'],
+  ],
   "apps/sentinella/index.html": [
     ['<span class="cnt" id="pon-tot">—</span>', '<span class="cnt" id="pon-tot">0</span>'],
     ['<span class="cnt" id="mon-tot">—</span>', '<span class="cnt" id="mon-tot">0</span>'],
@@ -145,15 +182,37 @@ const DIFETTI = {
    di questo banco. Se un giorno non fosse più così, la riga che lo dichiara
    cade e qualcuno la rilegge — invece di restare a coprire un difetto che non
    c'è più. */
-const SEMPRE_TRATTINO = { scudo: ["perm-s-badge"] };
+/* Le eccezioni dichiarate, e SORVEGLIATE: se una smette di essere «—» il banco
+   cade e la riga va riletta. `perm-s-badge` è il badge della scheda di un
+   permesso APERTO, non un contatore. I due di Flotta contano la manodopera e i
+   ricambi di UN ordine di lavoro aperto: la scheda esiste solo quando qualcuno
+   ne apre uno, e in questo giro nessuno lo fa — «—» lì dentro è la risposta
+   giusta, e lo «0» che c'era prima diceva «nessuna manodopera» su un ordine
+   che non è nemmeno stato scelto. */
+const SEMPRE_TRATTINO = { scudo: ["perm-s-badge"], flotta: ["odl-mano-cnt", "odl-ric-cnt"],
+  /* Terra: «m³ estratti mese» resta «—» perche' nella dimostrazione NESSUN
+     rilievo cade nel mese in corso — `fmtM3(null)` risponde «—», ed e' la
+     risposta giusta: non e' uno zero, e' «non misurato». Per poterlo dichiarare
+     gli e' stato dato un id: un elemento che un controllo deve nominare deve
+     avere un nome. */
+  terra: ["kpi-vol-mese"] };
 
 const colpiti = new Set();
+let appCorrente = "";   // la sola app di cui si ritardano i dati: la vede il server
 const srv = createServer(async (q, s) => {
   const rotta = decodeURIComponent(q.url.split("?")[0]).replace(/^\//, "");
   let p = join(R, rotta);
   if (existsSync(p) && statSync(p).isDirectory()) p = join(p, "index.html");
   if (!existsSync(p)) { s.writeHead(404); return s.end("no"); }
-  if (/(campo|scudo|sentinella)-data\.js$/.test(p)) await new Promise((r) => setTimeout(r, RITARDO));
+  /* ⛔ CHI RITARDARE NON SI SCRIVE A MANO. Questa riga elencava tre app dentro
+     una regex: aggiungendone tre all'elenco `APPS` il ritardo NON le ha
+     seguite, i loro dati sono arrivati subito e il banco ha misurato una
+     finestra che non esisteva — accusando Flotta di sedici «numeri tranquilli»
+     che erano i valori VERI della dimostrazione, e di comandi «muti» che
+     invece navigavano. È la fixture indovinata: il caso non arrivava al ramo
+     che doveva provare. Adesso si ritarda il modulo dell'app che si sta
+     misurando, e il nome lo dice il ciclo. */
+  if (appCorrente && p.endsWith(`${appCorrente}-data.js`)) await new Promise((r) => setTimeout(r, RITARDO));
   let corpo = readFileSync(p);
   if (CONTROPROVA && DIFETTI[rotta]) {
     let t = corpo.toString("utf8");
@@ -272,6 +331,7 @@ const cadute = { numeri: new Set(), comandi: new Set() };
 let schermateTot = 0, previsteTot = 0;
 for (const app of APPS) {
   console.log(`\n════════ ${app} ════════`);
+  appCorrente = app;
   const ctx = await b.newContext({ viewport: { width: 430, height: 950 }, locale: "it-IT" });
   const pg = await ctx.newPage();
   const errori = [];
