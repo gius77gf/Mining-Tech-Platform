@@ -968,3 +968,113 @@ Onestamente, e per nome:
 - **Nessun software è stato provato.** Le descrizioni dei prodotti vengono dai
   materiali dei fornitori o da riviste di settore, cioè da materiale
   promozionale: dicono che cosa il prodotto **dichiara** di fare.
+
+---
+
+## 14/08 — LE RISPOSTE, date da chi ha il codice in mano
+
+*La ricerca qui sopra consegna la metà sul MONDO e dieci **domande**. Questa
+sezione le risponde aprendo le funzioni — cercando il **meccanismo**, non la
+parola — come pretende la regola del 14/08. Ogni risposta porta il comando e la
+sua uscita: un comando si rilancia, un numero si può solo credere.*
+
+### ⛔ E LA PRIMA IPOTESI ERA FALSA, presa in tre minuti guardando i dati invece del codice
+Leggendo la riga della dimostrazione — `causale: "Intasamento impianto"`, una
+stringa italiana dentro un'attività — avevo concluso «in Campo la causale è
+**testo libero**». È **falso**, e stavo per scriverlo in un documento.
+
+```
+$ grep -n "CAUSALI_FERMO" -A 12 apps/campo/campo-data.js | head -12
+1196:export const CAUSALI_FERMO = [
+1197-  "Guasto meccanico",  1198-  "Mancanza materiale",  1199-  "Attesa mezzo",
+1200-  "Intasamento impianto",  1201-  "Meteo",  1202-  "Manutenzione programmata",
+1203-  "Cambio turno",  1204-  "Sicurezza",  1205-  "Altro",
+```
+È un **elenco chiuso di nove voci**, e «Intasamento impianto» è la quarta. La
+dimostrazione non mostrava testo libero: mostrava una voce dell'elenco scritta
+per esteso, perché in Campo **l'etichetta È la chiave**.
+
+### 1. Chi decide la causale di un fermo
+**Due elenchi chiusi, uno per app, e sono due cose diverse.**
+· **Campo** — `CAUSALI_FERMO`, **9 voci**, cause di un fermo *del turno*:
+  materiale, meteo, cambio turno, sicurezza, attesa mezzo…
+· **Flotta** — `CAUSALI_FERMO` (`grep -c "chiave:" apps/flotta/flotta-data.js`
+  sul blocco → **9**), cause di una *macchina fuori servizio*: guasto meccanico
+  / idraulico / elettrico, gomme-cingoli, attesa ricambi, manutenzione
+  programmata, verifica, **manca l'operatore**, altro.
+Chi scrive una causale fuori elenco finisce in **«Altro»**, non si perde:
+`const c = CAUSALI_FERMO.includes(a.causale) ? a.causale : "Altro";`
+
+⚠️ **Il candidato vero, e uno solo**: in Campo l'elenco è un array di
+**stringhe** — l'etichetta italiana fa da chiave — mentre in Flotta è un array
+di **oggetti** `{chiave, etichetta, nota}`. Cioè in Campo **rinominare una voce
+orfana lo storico**: le attività vecchie continuano a portare la vecchia
+etichetta e `includes()` le manda tutte in «Altro», facendo **scendere** la
+causale principale del Pareto senza che niente lo dica. Non è un difetto oggi
+(nessuno ha rinominato niente): è una **fragilità misurabile**, e la cura è la
+forma che Flotta ha già.
+
+### 2. Due istanti o una durata dichiarata
+**Tutt'e due, e in due app diverse — che è esattamente la distinzione della
+fonte.** Flotta tiene `inizio`/`fine` (due istanti): `fermoCollocabile`,
+`intervalloFermo(fermo, da, a)` e la disponibilità come **giorni-macchina persi
+su giorni-macchina disponibili**, con la nota che «sommare le durate non è
+contare i giorni» (due fermi sovrapposti sommano 60 giorni su una finestra di
+30). Campo tiene `fermoMin`, una **durata dichiarata**, e conta a parte
+`fermiSenzaMinuti` — i fermi registrati **senza** i minuti.
+
+### 3. La somma dei tempi del turno torna? **Sì, ed è un controllo scritto.**
+`disponibilitaTurno` confronta i minuti di fermo con la durata **dichiarata**:
+```
+if (fermiMin > durataMin) { out.stato = "oltre"; … }
+```
+e il messaggio nomina le due cause possibili — «probabilmente due fermi si
+sovrappongono e sono stati contati due volte, oppure la durata dichiarata è
+sbagliata» — e **si rifiuta di calcolare**: «finché i due numeri non tornano la
+disponibilità non si calcola: una percentuale negativa non esiste».
+
+### 4. Quale denominatore, e si legge accanto al numero?
+**La durata del turno DICHIARATA**, presa da `durataTurnoDi(durate, data,
+turno)`; e quando non c'è, la funzione **non stima**: `stato:
+"non-calcolabile"`, con `mancano` (i codici, per chi decide cosa mostrare) e
+`motivo` (la frase, per chi legge) — «la durata del turno non è stata
+dichiarata… Un numero qui direbbe che il turno è andato bene, mentre la verità
+è che non è stato misurato».
+⛔ E c'è di più di quanto la domanda chiedesse: **`provvisorio`** distingue un
+turno **finito** da uno **ancora in corso**, con tre valori — e il terzo è
+`null`, «non lo so», quando chi chiama non ha passato le chiusure. Su un turno
+aperto «100%» non vuol dire «è andato tutto bene», vuol dire «finora nessuno ha
+scritto niente».
+
+### 5. Guasto / standby / *indirect operating*
+**La distinzione c'è, in italiano, e sta nelle note dell'elenco di Flotta**:
+· *downtime* → i quattro guasti e `attesa-ricambi` («la macchina è pronta a
+  essere riparata, manca il pezzo»);
+· *standby* → **`operatore`**, con la nota che lo dice alla lettera: «la
+  macchina è a posto: non c'è chi la usa»;
+· il fermo **scelto** → `manutenzione`, «è un fermo, ma è un fermo scelto».
+Cioè la tripartizione del TUM esiste già come **significato**; quello che non
+esiste è il nome inglese, e la fonte del sotterraneo dice che «ritardo» falsa le
+analisi — noi quella parola non la usiamo.
+
+### 9. Il fermo che attraversa il cambio turno
+In Campo il fermo è **dentro** un'attività di un turno (minuti dichiarati),
+quindi non attraversa niente; e «**Cambio turno**» è una **causale** dell'elenco,
+cioè il tempo perso *nel* passaggio è già un fatto registrabile. In Flotta il
+fermo è a **giornate intere e inclusive** («una macchina ferma il 3 e ripartita
+il 3 è stata ferma un giorno, non zero — in cava una giornata persa è persa
+tutta»), quindi il turno non c'entra: il soggetto è la macchina, non il turno.
+
+### Che cosa NON ho risposto
+Le domande **6, 7, 8 e 10** (chi consegna e chi riceve il turno; che cosa vede
+il turno entrante; misura contro dichiarazione; e la decima) restano aperte:
+vanno guardate nel foglio di fine turno e nell'appello, e non le ho aperte in
+questa unità. Sono **non guardate**, non «a posto».
+
+⛔ **E il verdetto d'insieme, che vale più delle singole risposte**: delle sei
+domande guardate, **cinque hanno già una risposta nel prodotto**, e in due casi
+(il rifiuto di calcolare, il `provvisorio` a tre valori) la risposta è **più
+severa** di quanto la fonte del mondo pretendesse. La ricerca ha reso quello che
+poteva rendere — la **domanda** — e il delta l'ha fatto chi aveva il codice: se
+avesse consegnato lei un elenco di «non c'è», oggi avremmo cinque mancanze false
+su sei.
