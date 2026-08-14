@@ -441,6 +441,21 @@ Perché serva davvero e non produca elenchi generici, cinque vincoli:
   vera con cifre allineate, movimento con curve morbide, spaziature su una
   scala coerente. Riferimenti: `docs/SPECIFICA_ESTETICA_CORE.md`,
   `docs/PALETTE_APP.md`.
+- ⛔ **E QUANDO SI RACCONTA UN DIFETTO, ANCHE «IL VALORE VERO» PUÒ ESSERE UN
+  NUMERO CHE NON SI SA.** Misurato il 14/08 su me stesso, e in un posto che
+  conta: il documento che il fondatore apre per decidere. Avevo scritto che la
+  scheda degli indici «diceva **IF 50,00** dove il vero è **100,00**». Ma il
+  100 è quanto verrebbe **se** l'infortunio senza data fosse di quell'anno —
+  ed è esattamente ciò che non si sa. Il prodotto risponde **ancora 50**, e
+  deve: il conto non si tocca, si **dichiara** che manca qualcuno.
+  ⚠️ Quindi la frase, scritta così, faceva **lo stesso difetto che descriveva**:
+  presentava come certo un numero condizionale. E si smentiva da sola due righe
+  dopo, dove c'era scritto che il conto non era cambiato.
+  La forma che regge: **«quel 50 non si può sapere se è giusto: se
+  quell'infortunio è dell'anno, sono 100»** — il condizionale resta
+  condizionale. Vale per ogni racconto di un difetto di questa famiglia: il
+  numero sbagliato ha quasi sempre accanto un numero **che nessuno può
+  calcolare**, e chiamarlo «il vero» è comodo e falso.
 - ⛔ **L'ASSENZA DI UN DATO NON È UN DATO FAVOREVOLE.** Trovata il 31/07 in
   **tre app indipendenti**, scritta ogni volta da un punto di vista diverso:
   in Sentinella «senza dati» non è «conforme» (il report per l'ente lo dichiara
