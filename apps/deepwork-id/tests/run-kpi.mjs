@@ -29836,5 +29836,104 @@ test("frasePersi · ⚠️ NIENTE `esc()`: la frase esce come l'utente l'ha scri
   }
 }
 
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   B5-bis · LE SEI FUNZIONI CHE UN CANTIERE MORTO HA LASCIATO SENZA PROVA
+   ═══════════════════════════════════════════════════════════════════════════
+   Il cantiere che ha scritto `scarti*Csv` per Scudo e Sentinella è morto sul
+   limite di sessione DOPO aver scritto le funzioni e PRIMA di provarle: il
+   censimento della copertura le ha trovate come «6 SENZA PROVA», che è
+   esattamente il caso per cui quel censimento esiste.
+   Queste prove sono scritte da chi ha raccolto il lavoro, misurando che cosa
+   le funzioni fanno davvero — non che cosa il cantiere diceva che facessero,
+   perché non ha fatto in tempo a dirlo.
+   ⚠️ Prove SINCRONE e PRIMA del riepilogo: l'`await Promise.all(inVolo)` sta a
+   metà file, e una prova asincrona appesa qui verrebbe messa in volo e il
+   totale si stamperebbe senza aspettarla.                                   */
+{
+  const CSV_LAV = "nome;azienda;mansione\nMario Rossi;Cave SpA;operatore\n;Cave SpA;operatore\n";
+  const CSV_SCA = "lavoratore;tipo;descrizione;scadenza\nMario Rossi;visita;periodica;2026-09-01\n"
+    + "Anna B;visita;periodica;\nLuca V;corso;agg;2026-13-45\nSara N;DPI;consegna;01/09/2026\n";
+  const CSV_RIC = "nome;tipo;distanza;classe;soglia;unita;nota\nCasa Rossi;abitazione;120;III;3;mm/s;\n"
+    + ";abitazione;80;III;3;mm/s;\n";
+  const CSV_ADE = "titolo;ente;scadenza;periodoMesi;giorniConsegna\nRelazione;ARPA;2026-09-30;6;30\n"
+    + ";ARPA;2026-09-30;6;30\nSenza data;ARPA;;6;30\n";
+  const CSV_VOL = "data;ora;cava;carica;fori\n2026-09-01;10:00;Cava A;120;20\n;10:00;Cava A;120;20\n"
+    + "2026-13-45;10:00;Cava A;120;20\n";
+
+  test("⛔ B5-bis · i sei scarti*Csv contano quello che il LETTORE fa davvero", () => {
+    /* il verdetto non si riscrive: `entrano` deve combaciare con la lunghezza
+       di quello che il lettore restituisce, se no la funzione «accanto» sta
+       raccontando una storia diversa dal prodotto. */
+    const coppie = [
+      [scudo.scartiLavoratoriCsv, scudo.parseLavoratoriCsv, CSV_LAV],
+      [scudo.scartiScadenzeCsv, scudo.parseScadenzeCsv, CSV_SCA],
+      [scudo.scartiAzioniCsv, scudo.parseAzioniCsv, "id;titolo;scadenza;stato\n1;Parapetto;2026-09-01;aperta\n"],
+      [sentinella.scartiRicettoriCsv, sentinella.parseRicettoriCsv, CSV_RIC],
+      [sentinella.scartiAdempimentiCsv, sentinella.parseAdempimentiCsv, CSV_ADE],
+      [sentinella.scartiVolateCsv, sentinella.parseVolateCsv, CSV_VOL],
+    ];
+    for (const [scarti, lettore, csv] of coppie) {
+      const s = scarti(csv);
+      eq(s.entrano, lettore(csv).length, "«entrano» si chiede al lettore, non si ricalcola");
+      eq(s.lette, s.entrano + s.persi.length, "lette = entrate + perse: il conto deve chiudere");
+    }
+  });
+
+  test("⛔ B5-bis · Scudo: la riga senza NOME non entra, e viene nominata", () => {
+    const s = scudo.scartiLavoratoriCsv(CSV_LAV);
+    eq(s.entrano, 1, "il lavoratore con il nome entra");
+    eq(s.persi.length, 1, "quello senza nome no");
+    ok(/manca il nome/.test(s.persi[0].ragione), `la ragione dice che cosa manca: ${s.persi[0].ragione}`);
+  });
+
+  test("⛔ B5-bis · Scudo scadenze: TRE modi di sbagliare una data, TRE ragioni diverse", () => {
+    /* è la distinzione che gli standard fanno fra «missing» e «invalid», e per
+       chi ha esportato il file cambia che cosa deve andare a correggere. */
+    const s = scudo.scartiScadenzeCsv(CSV_SCA);
+    eq(s.entrano, 1, "entra solo la scadenza con la data in forma ISO ed esistente");
+    eq(s.persi.length, 3, "le altre tre sono nominate una per una");
+    const r = s.persi.map(p => p.ragione);
+    ok(/non è stata scritta/.test(r[0]), `vuota → «non è stata scritta»: ${r[0]}`);
+    ok(/non esiste/.test(r[1]), `2026-13-45 → «non esiste»: ${r[1]}`);
+    ok(/AAAA-MM-GG/.test(r[2]),
+      `⛔ 01/09/2026 è il formato che un foglio di calcolo italiano scrive DA SOLO: `
+      + `il rifiuto deve dire quale formato serve, se no è un rifiuto muto — ${r[2]}`);
+  });
+
+  test("⛔ B5-bis · Sentinella: l'identità mancante e la data mancante hanno ragioni diverse", () => {
+    const a = sentinella.scartiAdempimentiCsv(CSV_ADE);
+    eq(a.entrano, 1, "entra solo l'adempimento completo");
+    eq(a.persi.length, 2, "gli altri due sono nominati");
+    ok(a.persi.some(p => /manca il titolo/.test(p.ragione)), "chi non ha titolo lo dice");
+    ok(a.persi.some(p => /non è stata scritta/.test(p.ragione)), "chi non ha data lo dice");
+    const v = sentinella.scartiVolateCsv(CSV_VOL);
+    eq(v.entrano, 1, "delle volate entra solo quella con la data buona");
+    eq(v.persi.length, 2, "la data vuota e quella inesistente sono due perdite distinte");
+    ok(v.persi[0].ragione !== v.persi[1].ragione,
+      "e con RAGIONI diverse: «non è stata scritta» non è «non esiste»");
+  });
+
+  test("⛔ B5-bis · un file sano non accusa nessuno", () => {
+    /* la difesa non deve fabbricare perdite: è il verso opposto, e senza di
+       questo una funzione che dichiara sempre «una riga persa» passerebbe. */
+    const sano = "nome;azienda;mansione\nMario Rossi;Cave SpA;operatore\nAnna Bianchi;Cave SpA;autista\n";
+    const s = scudo.scartiLavoratoriCsv(sano);
+    eq(s.persi.length, 0, "nessuna riga persa su un file sano");
+    eq(s.entrano, 2, "e tutt'e due entrano");
+    eq(s.vuote, 0, "e non ci sono righe vuote da contare");
+  });
+
+  test("⛔ B5-bis · la riga di coda «;;;» del foglio di calcolo NON è un'accusa", () => {
+    /* dopo il `trim` non è vuota e arriva fino ai filtri: contarla vorrebbe
+       dire accusare l'utente di un difetto del suo Excel. Ha un contatore suo
+       (`vuote`) e resta MUTA. */
+    const conCoda = "nome;azienda;mansione\nMario Rossi;Cave SpA;operatore\n;;\n";
+    const s = scudo.scartiLavoratoriCsv(conCoda);
+    eq(s.entrano, 1, "il lavoratore vero entra");
+    eq(s.persi.length, 0, "e la riga di coda NON viene nominata fra le perse");
+    ok(s.vuote >= 1, `ma viene contata a parte: vuote=${s.vuote}`);
+  });
+}
 console.log(`\nRisultato KPI app: ${passed} passati, ${failed} falliti${inVolo.length ? `  ·  ${inVolo.length} prove asincrone aspettate` : ""}`);
 process.exit(failed > 0 ? 1 : 0);

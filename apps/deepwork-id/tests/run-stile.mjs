@@ -1844,6 +1844,28 @@ function corpiImportazione(src) {
   }
   return fuori;
 }
+/* ⛔ IL CONTATORE DEL DOPPIONE NON SI RICONOSCE DAL NOME — misurato il 14/08.
+   Questa regola cercava `(dup|saltat\w*)++`: un **elenco di nomi**, cioè la
+   forma che `CLAUDE.md` raccoglie da mesi come «un censimento che cerca UN nome
+   risponde "non c'è" con la stessa faccia con cui direbbe la verità».
+   È successo: il gestore dell'anagrafica di Scudo ha rinominato `saltate` in
+   `gia` — **a ragione**, perché il vecchio messaggio metteva quattro cose
+   diverse in un numero solo — e da quel momento la regola non lo vedeva più.
+   Il segno non è stato un allarme: è stata la **controprova** che, tolta la
+   difesa dal file vero, non produceva **nessuna violazione nuova**. Una regola
+   che smette di guardare un soggetto non lo dice: lo dice solo la sua
+   controprova, ed è la ragione per cui esiste.
+   La domanda che non dipende dai nomi: *dentro un ramo guardato da `.some(` o
+   `.has(`, c'è un contatore che si alza E un `continue`?* Cioè: questo gestore
+   **salta** la riga, comunque si chiami il numero che tiene il conto.
+   ⚠️ Costo misurato PRIMA di cambiarla, come pretende la regola sull'ampiezza:
+   riconosciuti **10 → 11** gestori, l'unico che entra è proprio `scudo/csv-file`,
+   e **nessuno esce**. Zero falsi allarmi. L'elenco dei nomi resta in `oppure`
+   per non perdere le forme che la struttura non prende (rami su più righe). */
+const CONTA_SALTI = /(dup|saltat\w*)\+\+/;
+const SALTA_STRUTT = /(?:\.some\(|\.has\()[^\n]*\)\)\s*\{[^\n]*\b\w+\+\+[^\n]*continue/;
+const contaIlSalto = (t) => CONTA_SALTI.test(t) || SALTA_STRUTT.test(t);
+
 function dedupSoloInArchivio(src, modulo) {
   const fuori = [];
   for (const h of corpiImportazione(src)) {
@@ -1866,14 +1888,14 @@ function dedupSoloInArchivio(src, modulo) {
        Si chiude lo stesso: è il filtro-che-non-guarda-dove-crede, e a questa
        regola quel difetto è già costato una svista. */
     const setUsati = [...new Set([...h.testo.matchAll(/(\w+)\.has\(/g)].map((m) => m[1]))];
-    const conSet = setUsati.length > 0 && /(dup|saltat\w*)\+\+/.test(h.testo);
+    const conSet = setUsati.length > 0 && contaIlSalto(h.testo);
     if (conSet) {
       const aggiunge = setUsati.some((v) => new RegExp("\\b" + v + "\\.add\\(").test(h.testo));
       if (!aggiunge)
         fuori.push(`riga ${h.riga}: «${h.id}» tiene la firma in un Set ma non la aggiunge dentro il ciclo — i doppioni dentro il file passano`);
       continue;
     }
-    const salta = /\.some\(/.test(h.testo) && /(dup|saltat\w*)\+\+/.test(h.testo);
+    const salta = /\.some\(/.test(h.testo) && contaIlSalto(h.testo);
     if (!salta) continue;                              // qui i doppioni sono leciti
     if (/senzaDoppioni\(/.test(h.testo)) continue;     // difesa nel gestore
     /* difesa nella funzione di lettura: si guarda IL CORPO di quella funzione,
@@ -1988,7 +2010,7 @@ test("la regola 12 vede anche la forma col Set, non solo quella con .some()", ()
        una violazione che non poteva esistere e li accusava. Il riconoscimento
        è quello della regola stessa, non un'approssimazione. */
     const conSet = corpiImportazione(src).some((h) =>
-      /(\w+)\.has\(/.test(h.testo) && /(dup|saltat\w*)\+\+/.test(h.testo));
+      /(\w+)\.has\(/.test(h.testo) && contaIlSalto(h.testo));
     if (conSet) {
       conSetVere++;
       const spentaB = dedupSoloInArchivio(src.replace(/(\w+)\.add\(/g, "$1.nonAggiunge("), modulo);

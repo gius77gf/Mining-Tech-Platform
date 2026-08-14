@@ -1692,7 +1692,8 @@ textarea.dw-input{
 
 
 <script type="module">
-  import { sentinellaData, descriviResponsabile, statoMisura, giorni, kpiFrom, SOGLIE_PRESET, presetSoglia, scaledDistance, caricaMax, riepilogoConformita, prioritaConformita, riepilogoVolate, parseVolateCsv, parseAdempimentiCsv, parseMonitoraggiCsv, parseRicettoriCsv, serieStorica, numeroIt, unitaMisura,
+  import { sentinellaData, descriviResponsabile, statoMisura, giorni, kpiFrom, SOGLIE_PRESET, presetSoglia, scaledDistance, caricaMax, riepilogoConformita, prioritaConformita, riepilogoVolate, parseVolateCsv, parseAdempimentiCsv, parseMonitoraggiCsv, parseRicettoriCsv,
+           scartiVolateCsv, scartiAdempimentiCsv, scartiRicettoriCsv, serieStorica, numeroIt, unitaMisura,
            leggiCsv, paresIntestazione, proponiMappa, preparaLetture, unisciLetture, MAX_LETTURE,
            TIPI_RICETTORE, CLASSI_ACUSTICHE, etichettaTipo, trovaRicettore, sogliaEfficace,
            reportConformita, ESITI, TIPI_RECLAMO, etichettaReclamo, riepilogoReclami, firmaLettura,
@@ -1719,7 +1720,10 @@ textarea.dw-input{
            numeroDaCampo, AVVISO_DECIMALE, ariaSerie } from "./sentinella-data.js";
   import { mountExit, esc, csvCell, statoVuoto, senzaDoppioni, giorniTra, montaGuardiaInteri, avvolgiUnita, oggiISO,
          controllaAllegato, testoAllegatoRifiutato, pezziDataURL, dataIt, dataISOEsiste, nomeCsvDimostrazione,
-         plurale, conta, avvisaSeNonSalva} from "../../shared/deepwork-id-client/dw-shell.js";
+         plurale, conta,
+         /* la frase «N righe del file non sono entrate» sta in un posto solo
+            (regola 32 di run-stile): riscriverla qui sarebbe la quinta copia */
+         frasePersi, avvisaSeNonSalva} from "../../shared/deepwork-id-client/dw-shell.js";
   // Il colore della riga di una taratura è quello di una scadenza qualunque:
   // la regola sta in shared/ e la usano già Scudo e Campo. Non se ne scrive
   // una copia qui dentro solo perché la parola è diversa.
@@ -4570,8 +4574,17 @@ textarea.dw-input{
   $("btn-vol-import").onclick = () => $("vol-file").click();
   $("vol-file").onchange = async (e) => {
     const file = e.target.files && e.target.files[0]; if (!file) return;
-    const righe = parseVolateCsv(await file.text());
-    if (!righe.length) { esito("vol-esito-msg", "Nessuna riga valida nel file: le colonne devono essere data; fronte; nFori; kgTotali; kgMaxRitardo; distanzaRicettore; esito; note.", "err", "Nessuna riga valida: controlla le colonne."); e.target.value = ""; return; }
+    const testoVol = await file.text();
+    const righe = parseVolateCsv(testoVol);
+    /* ⛔ LE RIGHE CHE IL LETTORE HA BUTTATO VIA. Il registro delle volate è un
+       ADEMPIMENTO: una riga persa non compare nel totale, nei chili del mese,
+       nell'ultima volata né fra le contestazioni — e quei numeri finiscono in un
+       foglio che qualcuno firma. Un registro piu' corto del vero non ha nessun
+       segno che lo dica. */
+    const scartate = scartiVolateCsv(testoVol);
+    /* ⛔ ANCHE QUANDO NON ENTRA NIENTE SI DICE PERCHE': era il caso in cui la
+       ragione serve di piu', e qui c'era una supposizione su una causa sola. */
+    if (!righe.length) { esito("vol-esito-msg", "Nessuna riga valida nel file: le colonne devono essere data; fronte; nFori; kgTotali; kgMaxRitardo; distanzaRicettore; esito; note." + frasePersi(scartate), "err", "Nessuna riga valida: controlla le colonne." + frasePersi(scartate)); e.target.value = ""; return; }
     // Dedup come gli altri import: un doppio click su "Importa" non deve
     // raddoppiare il registro volate (documento regolatorio). La firma la
     // decide firmaVolata: il codice volata se c'è (lo scrive Genesi, e
@@ -4588,9 +4601,12 @@ textarea.dw-input{
     }
     $("vol-file").value = "";
     esito("vol-esito-msg", `Import registro: ${agg === 1 ? "1 volata aggiunta" : agg + " volate aggiunte"}${dup ? `, ${dup === 1 ? "1 era già presente" : dup + " erano già presenti"} (saltat${dup === 1 ? "a" : "e"})` : ""}.`
-      + (prev ? ` ${prev === 1 ? "Una è entrata" : prev + " sono entrate"} come PREVISTA: ${prev === 1 ? "è un progetto, non una volata sparata" : "sono progetti, non volate sparate"}. Dopo lo sparo confermal${prev === 1 ? "a" : "e"} con la spunta sulla riga, correggendo i dati se in cava è andata diversamente.` : ""),
-      agg ? "success" : "",
-      `Import registro: ${agg === 1 ? "1 volata" : agg + " volate"}${prev ? `, di cui ${prev} prevista${prev === 1 ? "" : "e"}` : ""}.`);
+      + (prev ? ` ${prev === 1 ? "Una è entrata" : prev + " sono entrate"} come PREVISTA: ${prev === 1 ? "è un progetto, non una volata sparata" : "sono progetti, non volate sparate"}. Dopo lo sparo confermal${prev === 1 ? "a" : "e"} con la spunta sulla riga, correggendo i dati se in cava è andata diversamente.` : "")
+      + frasePersi(scartate),
+      /* il colore segue la cosa peggiore successa: un verde tranquillo accanto a
+         «due righe non sono entrate» e' la contraddizione fra numero e disegno */
+      scartate.persi.length ? "warn" : agg ? "success" : "",
+      `Import registro: ${agg === 1 ? "1 volata" : agg + " volate"}${prev ? `, di cui ${prev} prevista${prev === 1 ? "" : "e"}` : ""}.` + frasePersi(scartate));
     await refresh();
   };
   $("btn-ade").onclick = async () => {
@@ -4661,7 +4677,14 @@ textarea.dw-input{
   $("btn-ade-import").onclick = () => $("ade-file").click();
   $("ade-file").onchange = async (e) => {
     const file = e.target.files && e.target.files[0]; if (!file) return;
-    const lette = parseAdempimentiCsv(await file.text());
+    const testoAde = await file.text();
+    const lette = parseAdempimentiCsv(testoAde);
+    /* ⛔ LE RIGHE CHE IL LETTORE HA BUTTATO VIA. Questo gestore contava già le
+       RIPETUTE e le GIA' PRESENTI, ma le contava su `lette`, cioe' su quello che
+       il lettore aveva restituito: le righe cadute dentro di lui non erano mai
+       esistite per lui, e un messaggio che elenca due categorie su tre si legge
+       come completo. E l'adempimento perso e' quello che non scade mai. */
+    const scartate = scartiAdempimentiCsv(testoAde);
     /* Il doppione si cerca in DUE posti, e sono due domande diverse: qui
        dentro il file appena letto (regola condivisa, shared/dw-shell.js), e
        sotto contro quello che è GIÀ in archivio — che solo la pagina conosce.
@@ -4670,7 +4693,7 @@ textarea.dw-input{
        entravano tutte. */
     const righe = senzaDoppioni(lette, x => x.titolo + "|" + x.scadenza);
     const ripetute = lette.length - righe.length;
-    if (!righe.length) { esito("ade-esito", "Nessuna riga valida nel file: le colonne devono essere titolo; ente; scadenza.", "err", "Nessuna riga valida: controlla le colonne."); e.target.value = ""; return; }
+    if (!righe.length) { esito("ade-esito", "Nessuna riga valida nel file: le colonne devono essere titolo; ente; scadenza." + frasePersi(scartate), "err", "Nessuna riga valida: controlla le colonne." + frasePersi(scartate)); e.target.value = ""; return; }
     let agg = 0, dup = 0;
     for (const r of righe) {
       if (ADE.some(a => (a.titolo || "").toLowerCase() === r.titolo.toLowerCase() && a.scadenza === r.scadenza)) { dup++; continue; }
@@ -4678,7 +4701,9 @@ textarea.dw-input{
       agg++;
     }
     $("ade-file").value = "";
-    esito("ade-esito", `Import scadenze: ${conta(agg, "scadenza aggiunta", "scadenze aggiunte")}${dup ? `, ${conta(dup, "già presente (saltata)", "già presenti (saltate)")}` : ""}${ripetute ? `, ${conta(ripetute, "ripetuta nel file", "ripetute nel file")}` : ""}.`, agg ? "success" : "");
+    esito("ade-esito", `Import scadenze: ${conta(agg, "scadenza aggiunta", "scadenze aggiunte")}${dup ? `, ${conta(dup, "già presente (saltata)", "già presenti (saltate)")}` : ""}${ripetute ? `, ${conta(ripetute, "ripetuta nel file", "ripetute nel file")}` : ""}.`
+      + frasePersi(scartate),
+      scartate.persi.length ? "warn" : agg ? "success" : "");
     await refresh();
   };
   $("btn-sen").onclick = async () => {
@@ -4726,7 +4751,13 @@ textarea.dw-input{
   $("btn-ric-import").onclick = () => $("ric-file").click();
   $("ric-file").onchange = async (e) => {
     const file = e.target.files && e.target.files[0]; if (!file) return;
-    const lette = parseRicettoriCsv(await file.text());
+    const testoRic = await file.text();
+    const lette = parseRicettoriCsv(testoRic);
+    /* ⛔ LE RIGHE CHE IL LETTORE HA BUTTATO VIA: un ricettore che non entra e' un
+       punto sensibile che per l'app non esiste — nessuna misura gli si collega e
+       il conto che si porta all'ente e' piu' basso del vero. Non fa suonare
+       niente: fa TACERE. */
+    const scartate = scartiRicettoriCsv(testoRic);
     /* Il doppione si cerca in DUE posti, e sono due domande diverse: qui
        dentro il file appena letto (regola condivisa, shared/dw-shell.js), e
        sotto contro quello che è GIÀ in archivio — che solo la pagina conosce.
@@ -4735,7 +4766,7 @@ textarea.dw-input{
        entravano tutte. */
     const righe = senzaDoppioni(lette, x => x.nome);
     const ripetute = lette.length - righe.length;
-    if (!righe.length) { esito("ric-esito", "Nessuna riga valida: le colonne devono essere nome; tipo; distanza; classe; soglia; unita; nota.", "err"); e.target.value = ""; return; }
+    if (!righe.length) { esito("ric-esito", "Nessuna riga valida: le colonne devono essere nome; tipo; distanza; classe; soglia; unita; nota." + frasePersi(scartate), "err"); e.target.value = ""; return; }
     let agg = 0, saltati = 0, senzaSoglia = 0;
     for (const r of righe) {
       if (RIC.some(x => (x.nome || "").trim().toLowerCase() === r.nome.toLowerCase())) { saltati++; continue; }
@@ -4754,8 +4785,9 @@ textarea.dw-input{
       "Import ricettori: " + conta(agg, "ricettore aggiunto", "ricettori aggiunti")
       + (saltati ? ", " + conta(saltati, "già presente (saltato)", "già presenti (saltati)") : "")
       + (ripetute ? ", " + conta(ripetute, "ripetuto nel file", "ripetuti nel file") : "") + "."
-      + (senzaSoglia ? " " + senzaSoglia + (senzaSoglia === 1 ? " è senza soglia propria" : " sono senza soglia propria") + ": i punti collegati useranno la propria finché non la scrivi tu." : ""),
-      agg ? "success" : "err");
+      + (senzaSoglia ? " " + senzaSoglia + (senzaSoglia === 1 ? " è senza soglia propria" : " sono senza soglia propria") + ": i punti collegati useranno la propria finché non la scrivi tu." : "")
+      + frasePersi(scartate),
+      scartate.persi.length ? "warn" : agg ? "success" : "err");
     await refresh();
   };
   $("btn-ric-export").onclick = () => {

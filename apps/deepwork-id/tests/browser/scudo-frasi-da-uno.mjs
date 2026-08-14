@@ -240,8 +240,16 @@ const DIFETTI_PAGINA = [
   // 7 · i due import
   ['`Import registro: ${conta(agg, "evento aggiunto", "eventi aggiunti")}${dup ? `, ${conta(dup, "già presente (saltato)", "già presenti (saltati)")}` : ""}.`',
    '`Import registro: ${agg} eventi aggiunti${dup ? `, ${dup} già presenti (saltati)` : ""}.`'],
-  ['`Import completato: ${aggiunti} ${plurale(aggiunti, "aggiunto", "aggiunti")}, ${conta(saltate, "riga saltata", "righe saltate")} (intestazioni o duplicati).`',
-   '`Import completato: ${aggiunti} aggiunti, ${saltate} righe saltate (intestazioni o duplicati).`'],
+  /* ⏱️ RIMESSA SUL BERSAGLIO IL 14/08. Citava la frase vecchia — «${aggiunti}
+     ${plurale(...)}, ${conta(saltate, ...)} (intestazioni o duplicati)» — che
+     l'unità B5-bis ha riscritto **a ragione**: quel numero solo metteva insieme
+     quattro cose diverse (intestazione, riga vuota, doppione, riga scartata).
+     Finché citava il testo vecchio, l'iniezione non trovava più il suo pezzo:
+     la controprova girava su un prodotto SANO e diceva di saper fallire senza
+     aver rotto niente. È la terza delle cinque cause di «non distingue», quella
+     in cui non si tocca né la prova né il codice. */
+  ['`Import completato: ${conta(aggiunti, "lavoratore aggiunto", "lavoratori aggiunti")}`',
+   '`Import completato: ${aggiunti} lavoratori aggiunti`'],
   // 8 · la mansione appena aggiunta: tre numeri in una frase sola
   ['" (" + conta(rec.requisiti.length, "corso", "corsi") + ", " + conta(rec.dpi.length, "DPI", "DPI") + ", " + conta(rec.lavoratoriIds.length, "persona", "persone") + ")."',
    '" (" + rec.requisiti.length + " corsi, " + rec.dpi.length + " DPI, " + rec.lavoratoriIds.length + " persone)."'],

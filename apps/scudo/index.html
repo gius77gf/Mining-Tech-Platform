@@ -1706,7 +1706,7 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
 
 
 <script type="module">
-  import { scudoData, statoScadenza, inTurnoOggi, kpiFrom, idoneitaLabel, idoneitaSuccessivo, idoneitaCriticita, livelloScadenza, coperturaFormazione, muroScadenze, MESI_NOMI, testoPromemoria, riepilogoInfortuni, parseInfortuniCsv, csvRegistroInfortuni, csvPersonaleScadenze, percorsiDi, DW_CANCELLA, parseScadenzeCsv, parseLavoratoriCsv, SCADENZE_PRESET, presetScadenza, dataDaPeriodicita, TIPI_DOCUMENTO, azioneLabel, azioneStatoSuccessivo, statoAzione, etichettaResponsabile, azioniUrgenti, riepilogoAzioni, azioniDiEvento,
+  import { scudoData, statoScadenza, inTurnoOggi, kpiFrom, idoneitaLabel, idoneitaSuccessivo, idoneitaCriticita, livelloScadenza, coperturaFormazione, muroScadenze, MESI_NOMI, testoPromemoria, riepilogoInfortuni, parseInfortuniCsv, csvRegistroInfortuni, csvPersonaleScadenze, percorsiDi, DW_CANCELLA, parseScadenzeCsv, parseLavoratoriCsv, scartiScadenzeCsv, scartiLavoratoriCsv, scartiAzioniCsv, SCADENZE_PRESET, presetScadenza, dataDaPeriodicita, TIPI_DOCUMENTO, azioneLabel, azioneStatoSuccessivo, statoAzione, etichettaResponsabile, azioniUrgenti, riepilogoAzioni, azioniDiEvento,
     daAmbiente, etichettaAmbiente, riepilogoAmbiente, origineAzione, csvAzioni, parseAzioniCsv, etichettaScadenza,
     NEARMISS_CATEGORIE, NEARMISS_LUOGHI, categoriaNearMiss, luogoNearMiss, descrizioneNearMiss, riepilogoNearMiss, descriviLetturaNearMiss, bozzaNearMiss,
     GRAVITA_POTENZIALE, potenzialeDi, descriviPotenziale, riepilogoPotenziale, descriviRischioPotenziale,
@@ -1751,7 +1751,10 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
            nomeCsvDimostrazione,
            /* il singolare non si scrive più a mano: `conta(1,"voce","voci")` → «1 voce»,
               `plurale(1,"è","sono")` → «è» quando a mancare è il VERBO e non il nome */
-           conta, plurale, avvisaSeNonSalva} from "../../shared/deepwork-id-client/dw-shell.js";
+           conta, plurale,
+           /* la frase «N righe del file non sono entrate» sta in un posto solo
+              (regola 32 di run-stile): riscriverla qui sarebbe la quinta copia */
+           frasePersi, avvisaSeNonSalva} from "../../shared/deepwork-id-client/dw-shell.js";
   // I campi INTERI restano `type=number` per lo spinner: la guardia rifiuta la
   // virgola, che lì non serve e che il browser scarterebbe in silenzio.
   montaGuardiaInteri((m) => toast(m, "err"));
@@ -4957,15 +4960,31 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
        scadenze compare tre volte nel proprio file, e ri-caricarlo faceva
        comparire tre volte la stessa persona in anagrafica. Qui resta solo il
        confronto con chi è GIÀ in archivio, che la pagina è l'unica a sapere. */
-    const righe = testo.split(/\r?\n/).map(r => r.trim()).filter(Boolean);
     const letti = parseLavoratoriCsv(testo);
-    let aggiunti = 0, saltate = righe.length - letti.length;
+    /* ⛔ QUI C'ERA UN CONTO CHE SEMBRAVA COMPLETO E ATTRIBUIVA MALE. Era
+       `saltate = righe.length - letti.length` con la frase «(intestazioni o
+       duplicati)»: un solo numero per quattro cose diverse — l'intestazione, la
+       riga «AZIENDA», i doppioni dentro il file e le righe SENZA NOME. Le prime
+       tre sono normali (il nostro export scrive una riga per scadenza, quindi i
+       doppioni sono la regola quando si ri-carica); la quarta è una PERSONA che
+       sparisce, e veniva raccontata come se fosse un'intestazione.
+       Adesso le tre famiglie hanno tre conti separati, e solo quella che è una
+       perdita passa da `frasePersi`. */
+    const scartate = scartiLavoratoriCsv(testo);
+    let aggiunti = 0, gia = 0;
     for (const l of letti) {
-      if (LAV.some(x => x.nome.toLowerCase() === l.nome.toLowerCase())) { saltate++; continue; }  // già in archivio
+      if (LAV.some(x => x.nome.toLowerCase() === l.nome.toLowerCase())) { gia++; continue; }  // già in archivio
       await db.aggiungi("lavoratori", l);
       aggiunti++;
     }
-    esito("import-esito", `Import completato: ${aggiunti} ${plurale(aggiunti, "aggiunto", "aggiunti")}, ${conta(saltate, "riga saltata", "righe saltate")} (intestazioni o duplicati).`, aggiunti ? "success" : "");
+    esito("import-esito", `Import completato: ${conta(aggiunti, "lavoratore aggiunto", "lavoratori aggiunti")}`
+      + (gia ? `, ${conta(gia, "era già in anagrafica", "erano già in anagrafica")}` : "")
+      + (scartate.ripetute ? `, ${conta(scartate.ripetute, "ripetuto nel file", "ripetuti nel file")}` : "") + "."
+      + frasePersi(scartate),
+      /* il colore segue la cosa peggiore successa: un lavoratore che non entra
+         non ha scadenze, non risulta scoperto di niente e non compare nella
+         copertura della formazione — sparisce nella direzione tranquilla. */
+      scartate.persi.length ? "warn" : aggiunti ? "success" : "");
     e.target.value = "";
     await refresh();
   };
@@ -5067,20 +5086,26 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
   $("btn-azi-restore").onclick = () => $("azi-file").click();
   $("azi-file").onchange = async (e) => {
     const file = e.target.files && e.target.files[0]; if (!file) return;
-    const righe = parseAzioniCsv(await file.text());
+    const testoAzi = await file.text();
+    const righe = parseAzioniCsv(testoAzi);
+    const scartate = scartiAzioniCsv(testoAzi);
     e.target.value = "";
     if (!righe.length) {
-      esito("azi-esito-msg", "Nel file non c'è nessuna azione leggibile: controlla che sia la copia di sicurezza e non il prospetto (le colonne sono diverse).", "err");
+      esito("azi-esito-msg", "Nel file non c'è nessuna azione leggibile: controlla che sia la copia di sicurezza e non il prospetto (le colonne sono diverse)." + frasePersi(scartate), "err");
       return;
     }
     const gia = new Set(AZI.map(a => String(a.descrizione || "").trim().toLowerCase() + "|" + (a.scadenza || "")));
     const nuove = righe.filter(r => !gia.has(String(r.descrizione || "").trim().toLowerCase() + "|" + (r.scadenza || "")));
     for (const r of nuove) await db.aggiungi("azioni", r);
     await refresh();
-    esito("azi-esito-msg", nuove.length
+    esito("azi-esito-msg", (nuove.length
       ? plurale(nuove.length, "Rimessa dentro ", "Rimesse dentro ") + conta(nuove.length, "azione", "azioni")
         + (righe.length > nuove.length ? ` · ${conta(righe.length - nuove.length, "era già in registro", "erano già in registro")}, non duplicate.` : ".")
-      : "Erano tutte già in registro: non è stato aggiunto niente.", nuove.length ? "success" : "");
+      : "Erano tutte già in registro: non è stato aggiunto niente.")
+      + frasePersi(scartate),
+      /* il colore segue la cosa peggiore successa: un'azione correttiva che non
+         rientra sparisce da un registro che un organo di vigilanza legge. */
+      scartate.persi.length ? "warn" : nuove.length ? "success" : "");
   };
   $("btn-azi-export").onclick = () => {
     // registro delle azioni correttive per l'RSPP, la direzione e (con la
@@ -6788,8 +6813,20 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
   $("btn-import-scad").onclick = () => $("scad-file").click();
   $("scad-file").onchange = async (e) => {
     const file = e.target.files && e.target.files[0]; if (!file) return;
-    const righe = parseScadenzeCsv(await file.text());
-    if (!righe.length) { esito("scad-esito", "Nessuna riga valida nel file: le colonne devono essere lavoratore; tipo; descrizione; scadenza.", "err"); e.target.value = ""; return; }
+    const testo = await file.text();
+    const righe = parseScadenzeCsv(testo);
+    /* ⛔ LE RIGHE CHE IL LETTORE HA BUTTATO VIA — e questa pagina faceva già
+       METÀ del lavoro, che è ciò che rendeva il buco peggiore di un silenzio
+       pieno. `dup` e `senzaLav` qui sotto si contano su `righe`, cioè su quello
+       che il lettore ha RESTITUITO: le righe cadute dentro di lui non erano mai
+       esistite per questo gestore, e un messaggio che elenca due categorie su
+       tre si legge come completo. Adesso le categorie sono tre. */
+    const scartate = scartiScadenzeCsv(testo);
+    /* ⛔ ANCHE QUANDO NON ENTRA NIENTE SI DICE PERCHÉ: è il caso in cui la
+       ragione serve di più, e la pagina rispondeva con una supposizione su una
+       causa sola («controlla le colonne») — mentre la causa vera, misurata, è
+       quasi sempre la data scritta come la scrive un foglio di calcolo. */
+    if (!righe.length) { esito("scad-esito", "Nessuna riga valida nel file: le colonne devono essere lavoratore; tipo; descrizione; scadenza." + frasePersi(scartate), "err"); e.target.value = ""; return; }
     // Dedup come gli altri import: un doppio click su "Importa" non deve
     // raddoppiare le scadenze. Firma = lavoratoreId|tipo|dataScadenza (stesso
     // lavoratore, tipo di idoneità/certificato e data = stessa scadenza).
@@ -6811,7 +6848,13 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
     $("scad-file").value = "";
     esito("scad-esito", "Import scadenze: " + agg + " aggiunte"
       + (dup ? ", " + dup + " già presenti (saltate)" : "")
-      + (senzaLav ? ", " + senzaLav + " senza lavoratore associato (nome non trovato)" : "") + ".", agg ? "success" : "");
+      + (senzaLav ? ", " + senzaLav + " senza lavoratore associato (nome non trovato)" : "") + "."
+      + frasePersi(scartate),
+      /* ⛔ IL COLORE SEGUE LA COSA PEGGIORE SUCCESSA: una riga persa qui è una
+         scadenza di sicurezza che non entra nello scadenzario — non scade mai,
+         non compare nel muro, non colora niente. Un verde tranquillo accanto a
+         quella frase è la contraddizione fra il numero e il disegno. */
+      scartate.persi.length ? "warn" : agg ? "success" : "");
     await refresh();
   };
 

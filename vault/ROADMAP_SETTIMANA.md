@@ -4168,7 +4168,7 @@ numero scritto dove non era stato misurato niente**.*
   scritta**: `DEVELOPMENT.md` diceva ancora «il numero da citare resta 2.251» e
   «il giro completo esegue 2.474» mentre il titolo sopra diceva già 2.310 — il
   controllo sorveglia il **totale**, non la prosa che lo spiega. Rimisurato:
-  sei suite **2.310**, giro completo **2.678**, e **ogni** addendo della nota
+  sei suite **2.310**, giro completo **2.684**, e **ogni** addendo della nota
   era vecchio (sintassi 15 → 34, import 134 → 140, nomi liberi 7 → 24).
 
 - [x] ✅ **`giro-sicurezza`: un comando solo per la barriera fra aziende
@@ -4902,7 +4902,7 @@ numero scritto dove non era stato misurato niente**.*
   nome apre il file sbagliato credendo che sia il più fresco.
 - Le decisioni: `docs/DECISIONI_WEEKEND.md` — pagina d'ingresso in cima.
 - Stato misurato al **09/08** (lanciando le suite, non a memoria):
-  **2.678 prove girano senza rete**. La frase va letta stretta: è la somma
+  **2.684 prove girano senza rete**. La frase va letta stretta: è la somma
   delle **otto** suite che contano asserzioni (`run-kpi` 2110, `run-stile` 318,
   `run-helpers` 75, `run-pointcloud` 32, `run-manifest` 9, `run-demo` 8,
   `bootstrap-rivendicazioni` 7, `fogli-guardati` 3), non tutto ciò che gira nel
@@ -4913,7 +4913,7 @@ numero scritto dove non era stato misurato niente**.*
   sorvegliati ne contavano sette: due convenzioni per lo stesso numero, che è
   il modo più facile di far sembrare sbagliato un conto giusto. Adesso è una
   sola.*
-  Copertura **745/745** e nessuna funzione scoperta; **198 esecuzioni** che
+  Copertura **751/751** e nessuna funzione scoperta; **198 esecuzioni** che
   aprono le pagine in un browser vero, da **81** file di banco distinti (contati
   dalla tabella `BANCHI` di `tutti.mjs`, non a occhio dalla cartella, che di
   `.mjs` ne ha di più perché contiene anche gli aiuti — `giro.mjs`,
@@ -5403,38 +5403,49 @@ di scriverlo qui**: niente entra sulla parola dell'agente.
       ✅ `conti.parseMovimentiCsv` **3→3**: l'unico che già dichiarava gli
       scartati.
 
-- [ ] **B5-bis. I SEI LETTORI DI SCUDO E SENTINELLA, e il caso che li rende più
-      urgenti degli altri.** ⏱️ *Misurato a mano il 13/08 mentre B5 chiudeva i
-      nove di Campo/Conti/Flotta/Terra: quelle due app le stavano scrivendo
-      altri cantieri, quindi sono rimaste fuori.*
-      Misura su `scudo.parseScadenzeCsv` (colonne `lavoratore;tipo;descrizione;
-      scadenza`), quattro righe scritte → **una entra**:
-      · `2026-09-01` → entra;
-      · scadenza **vuota** → scartata;
-      · `2026-13-45`, data che **non esiste** → scartata, e giustamente: quel
-        filtro è stato messo il 03/08 apposta, perché la forma non è
-        l'esistenza;
-      · ⛔ **`01/09/2026` → scartata** — ed è il caso che conta, perché **è il
-        formato che un foglio di calcolo italiano scrive da solo**. Chi esporta
-        le scadenze da Excel e le reimporta qui **non ne vede entrare nessuna**,
-        e non c'è niente da leggere che glielo dica.
-      ⚠️ **E la pagina fa già metà del lavoro**, il che rende il buco più
-      insidioso: l'import conta e dichiara i **doppioni** e i **nomi non
-      trovati** (`dup`, `senzaLav`) e li scrive nell'esito. Ma li conta su
-      `righe`, cioè su **quello che il lettore ha restituito** — le righe cadute
-      dentro il lettore non sono mai esistite per lei. Un messaggio che elenca
-      due categorie su tre **si legge come completo**.
-      ✅ La forma da usare esiste già ed è quella di B5: una funzione
-      `scarti<X>Csv` **accanto** al lettore, `{lette, entrano, persi:[{nome,
-      ragione}], vuote}`, e la pagina che lo dice. **Non inventarne una
-      seconda.**
-      ⚠️ Da decidere con la misura, non per riflesso: se una data in formato
-      italiano vada **accettata** (`parseCsvLine` + una lettura tollerante) o
-      **rifiutata dicendolo**. Sono due prodotti diversi, e la seconda è la
-      scelta prudente — ma un rifiuto silenzioso non è nessuna delle due.
-      **Come si misura**: il CSV di prova qui sopra, e si conta quante righe
-      tornano; poi si preme il bottone vero e si legge la frase.
-
+- [x] ✅ **B5-bis. I SEI LETTORI DI SCUDO E SENTINELLA — e le sei funzioni che un
+      cantiere morto ha lasciato SENZA PROVA.** *Chiuso il 14/08.* Il cantiere è
+      morto sul limite di sessione **dopo** aver scritto le funzioni e **prima**
+      di provarle: `copertura-funzioni` le ha trovate come «**6 SENZA PROVA**»,
+      che è esattamente il caso per cui quel censimento esiste. Le prove le ha
+      scritte chi ha raccolto il lavoro, **misurando che cosa le funzioni fanno
+      davvero** — non che cosa il cantiere diceva che facessero, perché non ha
+      fatto in tempo a dirlo.
+      Misura (righe **scritte → entrate**): `scudo.parseScadenzeCsv` **4 → 1**,
+      `sentinella.parseAdempimentiCsv` **3 → 1**, `sentinella.parseVolateCsv`
+      **3 → 1**, `scudo.parseLavoratoriCsv` e `sentinella.parseRicettoriCsv`
+      2 → 1 sulla riga senza identità.
+      ✅ **E la decisione sulla data italiana è stata presa bene**: `01/09/2026`
+      — il formato che un foglio di calcolo italiano scrive **da solo** — viene
+      **rifiutato dicendolo**, con la ragione che nomina il formato che serve
+      («va scritta AAAA-MM-GG, non «01/09/2026»»). Un rifiuto **muto** non
+      sarebbe stato nessuna delle due scelte possibili.
+      ✅ **E le ragioni rispettano la convenzione delle quattro forme** senza che
+      il cantiere l'avesse ancora ricevuta quando ha scritto: «non è stata
+      scritta» ≠ «non esiste» ≠ «non si legge».
+      ⛔ **UN DIFETTO DEL CONTROLLO, trovato dal suo stesso rosso**: il gestore
+      dell'anagrafica di Scudo ha rinominato `saltate` in `gia` — **a ragione**,
+      perché il vecchio messaggio metteva quattro cose diverse in un numero solo
+      — e la **regola 12** di `run-stile` ha smesso di vederlo, perché
+      riconosceva i gestori dal **nome del contatore** (`dup|saltat\w*`). Il
+      segno non è stato un allarme: è stata la **controprova**, che togliendo la
+      difesa dal file vero non produceva **nessuna violazione nuova**. *Una
+      regola che smette di guardare un soggetto non lo dice: lo dice solo la sua
+      controprova.* Adesso la domanda è **strutturale** — dentro un ramo guardato
+      da `.some(`/`.has(`, c'è un contatore che si alza **e** un `continue`? —
+      e il costo è stato misurato **prima**: riconosciuti **10 → 11** gestori,
+      l'unico che entra è proprio quello rinominato, **nessuno esce**, zero falsi
+      allarmi.
+      ⚠️ E l'unità ha fatto **scadere un'iniezione** di `scudo-frasi-da-uno`, che
+      citava la frase vecchia: rimessa sul bersaglio, `iniezioni-fresche` torna
+      **378/378**.
+      **Misure**: `run-kpi` 2223 → **2229** (+6, le sei prove mancanti);
+      `run-stile` **321/0**; copertura app **751/751**; giro `node` **3.023**
+      asserzioni, **34 comandi a posto, 0 caduti**.
+      ⏱️ **Da fare, misurato e non corretto**: `scartiVolateCsv` nomina la riga
+      persa con l'**ora** quando a mancare è la data, quindi due righe diverse
+      si chiamano tutt'e due «10:00» nello stesso messaggio. Serve una regola di
+      nome per le volate, ed è una scelta di prodotto.
 - [ ] **B6. «NON ANCORA CARICATO» NON È «NON C'È» — la quarta faccia del tema
       della settimana, e per ora è un CANDIDATO, non un difetto.** ⏱️ *Aperta il
       13/08 a notte, dopo che le prime tre facce erano chiuse: i file che
@@ -5559,7 +5570,7 @@ di scriverlo qui**: niente entra sulla parola dell'agente.
       nessuno lo diceva. Adesso hanno la loro `scarti<X>Csv` **accanto**, con la
       forma di `rientroRilievi`, e la pagina lo dice.
       **Misure mie, sulla copia**: `run-kpi` 2193 → **2226**, 0 falliti;
-      copertura app 741 → **745/745**; condivisi 173 → **174/174** (`dw-shell.js`
+      copertura app 741 → **751/751**; condivisi 173 → **174/174** (`dw-shell.js`
       47 → 48); giro `node` **3.017** asserzioni, **34 comandi a posto, 0
       caduti**; `run-stile` **verde** con la regola 32 dentro.
       ⚠️ **Quello che NON posso attestare**: la controprova del cantiere, che non

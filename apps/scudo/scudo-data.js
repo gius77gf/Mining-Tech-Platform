@@ -2779,6 +2779,120 @@ export function parseLavoratoriCsv(text) {
   return senzaDoppioni(letti, l => l.nome);
 }
 
+/* ⛔ «E LE RIGHE CHE NON SONO ENTRATE?» — IL LETTORE LE CANCELLA E LA PAGINA
+   NON POTREBBE DIRLO NEMMENO VOLENDO.
+   ══════════════════════════════════════════════════════════════════════════
+   Il `.filter` sta DENTRO il lettore, che restituisce solo i sopravvissuti:
+   chi chiama riceve un elenco più corto e non ha modo di sapere né quante
+   righe mancano né perché. Chi importa 200 lavoratori e ne vede 180 non sa
+   quali venti — è l'assenza di un dato nella sua forma più tranquilla, cioè il
+   principio del fondatore applicato all'INGRESSO invece che all'uscita. E qui
+   la riga persa è una PERSONA che non esiste più per l'app: non ha scadenze,
+   non compare nella copertura della formazione, non risulta scoperta di
+   niente — cioè sparisce nella direzione tranquilla.
+   La forma è quella di `scartiFattureCsv` in Conti (13/08), che a sua volta
+   viene da `rientroRilievi` di Terra: `persi: [{ nome, ragione }]`. I conti si
+   chiamano `lette` ed `entrano` perché il file è di qualcun altro — non
+   l'abbiamo scritto noi.
+   ⛔ IL VERDETTO NON SI RISCRIVE: lo si chiede al lettore riga per riga
+   (`parseLavoratoriCsv(riga).length`). La scala delle ragioni SPIEGA e basta,
+   e quando non sa spiegare dice «il lettore la scarta» invece di indovinare.
+   ⛔ E TRE FAMIGLIE DI RIGHE NON SONO PERDITE, per tre ragioni diverse:
+     · l'INTESTAZIONE e la riga «AZIENDA» sono la convenzione del NOSTRO
+       export (una scadenza non intestata a nessuno), quindi non sono righe
+       dell'utente: si tolgono in cima, come `isIntestazione` nel riferimento;
+     · la riga tutta vuota — un foglio di calcolo salva le righe di coda come
+       `;;`, che dopo il `trim` non è vuota e arriva fino ai filtri — si conta
+       a parte (`vuote`) e non si dice: accusare l'utente di un difetto del suo
+       Excel è il falso allarme che insegna a non guardare i messaggi;
+     · ⛔ e il DOPPIONE dentro il file NON va in `persi`, che è la decisione
+       che conta di questa funzione. `csvPersonaleScadenze` scrive **una riga
+       per ogni scadenza**, quindi un lavoratore con tre scadenze compare tre
+       volte nel proprio file: ri-caricare il nostro export — che è il modo
+       normale di spostare i dati da una postazione a un'altra — produrrebbe
+       una frase tipo «40 righe del file non sono entrate» su un'operazione
+       perfettamente riuscita. È lo stesso falso allarme della riga di coda,
+       con un costo più alto perché è quello che succede *sempre*. Ha un
+       contatore suo (`ripetute`), che la pagina dice con le sue parole.
+   ⚠️ QUINDI QUI `entrano` NON È `lette − persi.length`: sarebbe più alto del
+   vero, cioè un numero tranquillo. È `lette − persi.length − ripetute`, e
+   `run-kpi` pretende che sia ESATTAMENTE `parseLavoratoriCsv(text).length` —
+   un'invariante che si può controllare, non un conto da credere. */
+export function scartiLavoratoriCsv(text) {
+  const intestazione = (c) => /^(nome|azienda)$/i.test(String(c == null ? "" : c).trim());
+  const righe = String(text || "").split(/\r?\n/).map(r => r.trim()).filter(Boolean)
+    .filter(r => !intestazione(parseCsvLine(r)[0]));
+  const persi = [];
+  const visti = new Set();
+  let nRiga = 0, vuote = 0, ripetute = 0;
+  for (const riga of righe) {
+    nRiga++;
+    const c = parseCsvLine(riga);
+    if (parseLavoratoriCsv(riga).length) {
+      /* il doppione lo decide `senzaDoppioni`, che il lettore chiama sul file
+         intero: qui si rifà la stessa CHIAVE (il nome), non la stessa regola —
+         la regola resta una sola, in `shared/`. */
+      const k = (c[0] || "").trim();
+      if (visti.has(k)) { ripetute++; continue; }
+      visti.add(k);
+      continue;
+    }
+    if (c.every(x => String(x == null ? "" : x).trim() === "")) { vuote++; continue; }
+    persi.push({ nome: "riga " + nRiga, ragione: "manca il nome del lavoratore" });
+  }
+  const lette = righe.length - vuote;
+  return { lette, entrano: lette - persi.length - ripetute, persi, vuote, ripetute };
+}
+
+/* PERCHÉ UNA DATA SCRITTA «01/09/2026» NON ENTRA, E PERCHÉ SI È DECISO COSÌ.
+   ══════════════════════════════════════════════════════════════════════════
+   ⛔ LA DECISIONE, presa con la misura e non per riflesso (13/08). Un foglio
+   di calcolo italiano una data la scrive `01/09/2026` da sé, quindi il caso
+   NON è di scuola: chi esporta le scadenze da Excel e le reimporta qui non ne
+   vede entrare nessuna. Le uscite erano due — accettarla, oppure rifiutarla
+   DICENDOLO — e un rifiuto silenzioso non è nessuna delle due.
+   Si rifiuta, dicendolo, per un numero: nel 2026 **132 date su 365 (36,2%)**
+   si leggono in due modi diversi e tutti e due esistono (`01/09` è il 1°
+   settembre in Italia e il 9 gennaio altrove), e nel file non c'è NIENTE che
+   dica quale delle due sia. Accettarle vorrebbe dire spostare in silenzio più
+   di un terzo delle scadenze di uno scadenzario di sicurezza — che è
+   esattamente il difetto per cui `dataISOEsiste` è nata il 03/08: «una
+   scadenza spostata di due giorni in silenzio è peggio di una scartata a voce
+   alta». Qui lo scarto smette di essere silenzioso, e questo era il difetto.
+   ⚠️ E una seconda ragione, strutturale: in casa NON c'è nessun lettore di
+   date all'italiana. Provato cercando in `shared` e in tutti i moduli dati
+   una qualunque espressione regolare che legga giorno, mese e anno separati
+   da barre o punti (`grep -rnE` sui file `.js`, con la forma «una o due
+   cifre, separatore, una o due cifre, separatore, due o quattro cifre»):
+   **zero righe**. Il comando per esteso sta nella consegna del cantiere —
+   qui no, perché contiene i caratteri che chiuderebbero questo commento. Scriverne uno sarebbe una regola
+   che serve a due app (Scudo e Sentinella hanno tutt'e due il caso), e una
+   regola che serve a due app vive in `shared/`, non in due moduli.
+   ⚠️ IL MESSAGGIO NON PROPONE LA CONVERSIONE — non scrive «volevi dire
+   2026-09-01?» — proprio perché quale sia il giorno non lo sa: dice il
+   formato che serve e mostra quello che ha trovato. Proporre sarebbe
+   ri-decidere di straforo la cosa che si è deciso di non decidere.
+   ⛔ E LE PAROLE SONO QUELLE CHE LE NOVE FUNZIONI DI B5 HANNO GIÀ, non nuove:
+   censite, le loro diciassette ragioni sono convergute su quattro forme, e le
+   due che servono qui sono «la data non è stata scritta» (il campo è vuoto:
+   nessuno l'ha compilato) e «la data non esiste» (forma giusta, giorno
+   inesistente). La data all'italiana è il terzo caso di quella scala — «c'è
+   qualcosa e non si legge» — quindi porta la forma già usata da sei ragioni,
+   «non si legge», con appesa la sola cosa che chi legge deve sapere per
+   rimediare. La distinzione fra «non è stato scritto» e «non si legge» si
+   tiene perché cambia che cosa si va a chiedere a chi ha mandato il file.
+   Niente punto finale: la ragione viene composta dentro una frase più lunga.
+   ⚠️ Questa spiegazione serve a DUE app e finché sta scritta due volte può
+   divergere: la difesa è in `run-kpi.mjs`, che pretende da Scudo e Sentinella
+   la STESSA frase sullo stesso valore. La sua casa vera è `shared/`, e ci sta
+   scrivendo un altro cantiere. */
+function ragioneData(grezza) {
+  const s = String(grezza == null ? "" : grezza).trim();
+  if (!s) return "la data non è stata scritta";
+  if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return "la data non esiste";
+  return "la data non si legge: va scritta AAAA-MM-GG, non «" + s + "»";
+}
+
 // Import scadenze da CSV (onboarding: caricare lo scadenzario esistente —
 // visite mediche, corsi, patentini con le date — invece di riscriverlo a
 // mano). Colonne: lavoratore;tipo;descrizione;scadenza (header opzionale).
@@ -2804,6 +2918,39 @@ export function parseScadenzeCsv(text) {
        Adesso si pretende che la data ESISTA davvero: `Date.parse` la rifiuta, e
        la riga non entra. */
     .filter(p => dataISOEsiste(p.dataScadenza));
+}
+
+/* Le righe dello scadenzario che NON entrano, con la ragione — vedi il blocco
+   lungo sopra `scartiLavoratoriCsv` per la forma e per il perché.
+   ⚠️ QUI SI PERDE SOLO PER LA DATA, e va detto perché è il contrario di quello
+   che si immagina: lavoratore, tipo e descrizione sono tutti facoltativi (una
+   scadenza senza lavoratore è AZIENDALE, il tipo assente diventa «Altro»), e
+   l'unica cosa che fa cadere la riga è la data. Misurato il 13/08 con quattro
+   righe scritte: **una entrava**, e delle tre cadute due erano una data vuota
+   e una data che non esiste — giuste — mentre la terza era `01/09/2026`, cioè
+   quello che un foglio di calcolo italiano scrive da sé.
+   ⛔ E LA PAGINA FACEVA GIÀ METÀ DEL LAVORO, che è ciò che rendeva il buco più
+   insidioso di uno silenzio pieno: contava e dichiarava i DOPPIONI e i nomi
+   NON TROVATI in anagrafica, ma li contava su quello che il lettore aveva
+   restituito. Le righe cadute qui dentro non erano mai esistite per lei, e un
+   messaggio che elenca due categorie su tre si legge come completo. */
+export function scartiScadenzeCsv(text) {
+  const righe = String(text || "").split(/\r?\n/).map(r => r.trim()).filter(Boolean)
+    .filter(r => !isIntestazione(r, "lavoratore"));
+  const persi = [];
+  let nRiga = 0, vuote = 0;
+  for (const riga of righe) {
+    nRiga++;
+    if (parseScadenzeCsv(riga).length) continue;
+    const c = parseCsvLine(riga);
+    if (c.every(x => String(x == null ? "" : x).trim() === "")) { vuote++; continue; }
+    /* il NOME che comparirà nel messaggio: chi legge il file cerca la persona,
+       e solo se non c'è nemmeno quella ripiega sul numero di riga. */
+    const lav = (c[0] || "").trim(), desc = (c[2] || "").trim(), tipo = (c[1] || "").trim();
+    persi.push({ nome: lav || desc || tipo || "riga " + nRiga, ragione: ragioneData(c[3]) });
+  }
+  const lette = righe.length - vuote;
+  return { lette, entrano: lette - persi.length, persi, vuote };
 }
 
 // ============================================================
@@ -5268,4 +5415,37 @@ export function parseAzioniCsv(text) {
     /* un'azione senza descrizione non è un'azione: nel registro sarebbe una
        riga che non dice che cosa bisogna fare */
     .filter((a) => a.descrizione);
+}
+
+/* Le righe del registro delle azioni correttive che NON entrano, con la
+   ragione — vedi il blocco lungo sopra `scartiLavoratoriCsv`.
+   ⚠️ QUESTO LETTORE PERDE LA RIGA IN UN CASO SOLO — la descrizione — ed è la
+   forma MITE del difetto, non la sua assenza: 4 righe scritte → 3 entrate,
+   misurato il 13/08. Ma quella riga è un'azione correttiva che sparisce da un
+   registro che un organo di vigilanza legge, e non c'è niente che lo dica.
+   ⛔ QUI IL FILE SI LEGGE CON `leggiCsv` E NON SPEZZANDO SULLE RIGHE, perché è
+   così che lo legge `parseAzioniCsv`: la descrizione di un'azione può contenere
+   un a capo dentro un campo fra virgolette, e un conto fatto sulle righe
+   FISICHE direbbe un numero più alto del vero — cioè accuserebbe l'utente di
+   righe perse che non ha mai scritto. È la stessa ragione per cui `leggiCsv`
+   esiste (la causale di un bonifico su più righe in Conti).
+   ⚠️ E `vuote` RESTA ZERO PER COSTRUZIONE, dichiarato invece che nascosto:
+   `leggiCsv` butta già via le righe con tutte le celle vuote (`chiudiRiga`
+   spinge solo se `riga.some(…)`), quindi la riga di coda `;;;` di un foglio di
+   calcolo non arriva nemmeno qui. Il campo c'è lo stesso per non avere due
+   forme di `scarti…Csv` da ricordare. */
+export function scartiAzioniCsv(text) {
+  const righe = (leggiCsv(String(text || "")).righe || [])
+    .filter((c) => c.length && !isIntestazione(c.join(";"), "id"));
+  const persi = [];
+  let nRiga = 0;
+  for (const c of righe) {
+    nRiga++;
+    if (parseAzioniCsv(c.map((x) => csvCell(x == null ? "" : x)).join(";")).length) continue;
+    persi.push({
+      nome: (c[0] || "").trim() || "riga " + nRiga,
+      ragione: "manca la descrizione dell'azione",
+    });
+  }
+  return { lette: righe.length, entrano: righe.length - persi.length, persi, vuote: 0 };
 }
