@@ -146,9 +146,13 @@ const DIFETTI_MODULO = [
   ["apps/genesi/genesi.html",
    "  const _B=(+D2.B>0)?+D2.B:null;",
    "  const _B=(+D2.B>0)?+D2.B:SPALLA;"],
+  /* ⚠️ INIEZIONE AGGIORNATA IL 14/08, e la ragione è quella buona: la riga si è
+     mossa perché è MIGLIORATA. Accanto a `_Binv` è nato `_Sinv`, la sorella
+     sul borraggio, che fino a quel giorno faceva ancora `(D2.stem||2.5)`.
+     Il pezzo cercato resta il più corto che identifica la riga. */
   ["apps/genesi/genesi.html",
-   "    const _Binv=(+D2.B>0)?+D2.B:null;",
-   "    const _Binv=(+D2.B>0)?+D2.B:SPALLA;"],
+   "const _Binv=(+D2.B>0)?+D2.B:null, _Sinv=(+D2.stem>0)?+D2.stem:null;",
+   "const _Binv=(+D2.B>0)?+D2.B:SPALLA, _Sinv=(+D2.stem>0)?+D2.stem:null;"],
 ];
 
 const colpiti = new Set();

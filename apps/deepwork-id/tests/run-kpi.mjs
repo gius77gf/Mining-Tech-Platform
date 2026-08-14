@@ -31236,6 +31236,166 @@ test("frasePersi · ⚠️ NIENTE `esc()`: la frase esce come l'utente l'ha scri
     eq(voci.filter((r) => !/\bucs:\s*\d/.test(r)).length, 0,
       "e tutte dichiarano un `ucs`: il ripiego nuovo non può ripiegare a sua volta");
   });
+
+  /* ⛔ LA SECONDA FAMIGLIA DELLO STESSO CENSIMENTO, e non è il catalogo: è la
+     GRIGLIA DI PROGETTO. `costoVolata` (G12) sa già dire «non calcolabile»
+     quando i fori o i metri non si contano — la sua guardia è
+     `Number.isFinite` — e non serviva a niente, perché tutt'e tre i suoi
+     chiamanti gli consegnavano un numero INVENTATO al posto di un `null`.
+     La porta è sempre quella: `Object.assign(D2, …)` da `localStorage`, cioè
+     una volata salvata con `perRow:null` o `prof:null` — le stesse chiavi che
+     `CAMPI_VOLATA` dichiara e che il toast dell'apertura nomina.
+     ⚠️ Il toast prometteva alla lettera: «finché manca, i numeri che
+     dipendono da lui restano "non calcolabile" invece di essere inventati».
+     Queste prove sono quella promessa, verificata. */
+  test("⛔ Genesi · i fori della griglia di progetto: 18 inventati, o `null`", () => {
+    eq(genesi.foriDiProgetto(12, 1), 12, "la griglia scritta si conta");
+    eq(genesi.foriDiProgetto("12", "1"), 12, "e anche riletta da `localStorage`, dove i numeri tornano stringhe");
+    eq(genesi.foriDiProgetto(6, 3), 18, "sei per fila su tre file fa diciotto: il numero c'è, ed è vero");
+    eq(genesi.foriDiProgetto(null, 1), null, "con i fori per fila illeggibili non c'è nessuna griglia");
+    eq(genesi.foriDiProgetto(12, null), null, "né con le file illeggibili");
+    eq(genesi.foriDiProgetto("", 1), null, "il campo svuotato è illeggibile come il `null`");
+    eq(genesi.foriDiProgetto("boh", 1), null, "e una parola pure");
+    /* ⚠️ zero fori per fila NON è una griglia più piccola: è l'assenza di una
+       griglia. Il campo della pagina parte da 3, e uno zero qui verrebbe da un
+       file, non da una mano. */
+    eq(genesi.foriDiProgetto(0, 1), null, "zero fori per fila non è una griglia");
+    eq(genesi.foriDiProgetto(-12, 1), null, "e nemmeno un numero negativo");
+  });
+
+  test("⛔ Genesi · i metri perforati: `null + 0,9` faceva 0,9, che è finito e positivo", () => {
+    /* ⛔ QUESTO È IL VERSO CHE RASSICURA, ed è il motivo per cui la guardia di
+       `costoVolata` non scattava: non c'era nessun `||` sull'altezza del
+       banco, c'era un `+`. `null + 0.9` fa **0,9** — un numero plausibile. */
+    eq(genesi.metriPerforati(12, 10, 0.9), 130.8, "dodici fori da 10,9 m fanno 130,8 metri");
+    eq(genesi.metriPerforati(12, null, 0.9), null, "senza l'altezza del banco i metri non si contano");
+    eq(12 * (null + 0.9), 10.8, "e la forma vecchia rispondeva 10,8 invece di 130,8: finita, positiva, plausibile");
+    eq(Number.isFinite(12 * (null + 0.9)), true,
+      "cioè `Number.isFinite` diceva di sì — la guardia di `costoVolata` non poteva scattare");
+    eq(genesi.metriPerforati(null, 10, 0.9), null, "e senza i fori nemmeno");
+    /* ⚠️ LA SOTTOPERFORAZIONE HA DUE RISPOSTE GIUSTE, e vanno separate come
+       pretende `run-demo`: ASSENTE (una volata salvata prima che il campo
+       esistesse) vale zero; PRESENTE e illeggibile ferma il conto. */
+    eq(genesi.metriPerforati(12, 10, undefined), 120, "la sottoperforazione ASSENTE vale zero: non le è mai stato chiesto niente");
+    eq(genesi.metriPerforati(12, 10, 0), 120, "e uno ZERO SCRITTO resta un dato: una volata senza sottoperforazione è normalissima");
+    eq(genesi.metriPerforati(12, 10, null), null, "ma una sottoperforazione PRESENTE e illeggibile è un dato corrotto");
+    eq(genesi.metriPerforati(12, 10, "boh"), null, "come una parola");
+    eq(genesi.metriPerforati(12, 0, 0.9), null, "un banco alto zero non è un banco basso: è l'assenza di un banco");
+    eq(genesi.metriPerforati(0, 10, 0.9), 0, "zero fori disegnati sono zero metri, e questo si conta");
+  });
+
+  test("⛔ Genesi · la DIREZIONE, chiamando `costoVolata` con i due ingressi", () => {
+    /* i prezzi e la volata della dimostrazione: 12 fori, 60 kg/foro,
+       8 €/m di perforazione, 1,5 €/kg di esplosivo, 12 € a innesco */
+    const prezzi = { kg: 60, cPerf: 8, cExpl: 1.5, cInnesco: 12 };
+    const conto = (perRow, file, prof, sub) => {
+      const nf = genesi.foriDiProgetto(perRow, file);
+      return genesi.costoVolata({ ...prezzi, nf, mPerf: genesi.metriPerforati(nf, prof, sub) });
+    };
+    const vero = conto(12, 1, 10, 0.9);
+    eq(vero.qtot, 720, "la volata scritta: 720 kg di esplosivo");
+    eq(Math.round(vero.tot), 2270, "e 2.270 € di costo");
+    /* ⛔ IL PRIMO VERSO: la griglia assente GONFIA. Diciotto non è nemmeno il
+       default della pagina (che è dodici): è un numero che non compare da
+       nessun'altra parte del progetto. */
+    const gonfio = genesi.costoVolata({ ...prezzi, nf: (null || 18) * (null || 1), mPerf: 18 * (10 + 0.9) });
+    eq(gonfio.qtot, 1080, "con la forma vecchia e la griglia assente: 1.080 kg, il 50% in più");
+    eq(Math.round(gonfio.tot), 3406, "e 3.406 €");
+    eq(gonfio.calcolabile, true, "e dichiarava di saper contare");
+    /* ⛔ IL SECONDO VERSO, quello pericoloso: l'altezza del banco assente
+       SGONFIA, e il progetto sembra costare quasi la metà. */
+    const sgonfio = genesi.costoVolata({ ...prezzi, nf: 12, mPerf: 12 * (null + 0.9) });
+    eq(Math.round(sgonfio.tot), 1310, "con l'altezza del banco assente la forma vecchia diceva 1.310 € invece di 2.270");
+    eq(sgonfio.calcolabile, true, "e anche qui dichiarava di saper contare: −42% con l'aria di un conto fatto");
+    /* e adesso i due casi si dichiarano */
+    eq(conto(null, 1, 10, 0.9).calcolabile, false, "adesso la griglia assente ferma il conto");
+    eq(conto(12, 1, null, 0.9).calcolabile, false, "e l'altezza del banco assente pure");
+    ok(/metri perforati/.test(conto(12, 1, null, 0.9).che),
+      "col messaggio che dice quale campo la produce, non una cella vuota");
+    /* ⚠️ e il conto NON si ferma dove non deve: un dato che c'è resta contato */
+    eq(Math.round(conto(12, 1, 10, undefined).tot), 2184,
+      "una volata salvata prima che la sottoperforazione esistesse si conta ancora, su 120 m");
+  });
+
+  /* ⛔ E QUESTE TRE FUNZIONI VIVONO NELLA PAGINA, non nel modulo: `computeKPI`,
+     il foglio stampabile, la scheda e la modale della firma non si importano
+     da `node`. La difesa va messa SUL SORGENTE e si dichiara — non si
+     riscrive una copia debole qui dentro per avere qualcosa da chiamare.
+     Quello che queste prove sorvegliano è che i punti di chiamata siano
+     quelli giusti: la funzione la provano le tre prove qui sopra. */
+  test("⛔ Genesi · i cinque punti di chiamata della pagina non inventano più la griglia", () => {
+    eq(quante(/\|\|\s*18\)/g), 0, "nessun `|| 18` è rimasto in tutta la pagina");
+    eq(/const nf=foriDiProgetto\(D2\.perRow, D2\.file\);/.test(CODICE_G), true,
+      "`computeKPI` chiede la griglia alla funzione che sa dire di no");
+    eq(quante(/metriPerforati\(/g), 3,
+      "e i metri perforati sono TRE chiamate, non tre copie: KPI, foglio stampabile, scheda");
+    eq(quante(/\(D2\.prof\+\(D2\.sub\|\|0\)\)/g), 0, "la forma vecchia dei metri non c'è più nei KPI né nel foglio");
+    eq(quante(/\(H\+\(D2\.sub\|\|0\)\)/g), 0, "né nella scheda");
+    /* la modale della firma: la griglia inventata decideva i tempi di
+       detonazione su cui si somma l'onda registrata, cioè il PPV composito */
+    eq(/const n=foriDiProgetto\(D2\.perRow, D2\.file\);/.test(CODICE_G), true,
+      "`_sigDetTimes` non si inventa più 18 fori a 25 ms");
+    eq(quante(/\+D2\.ritardo\|\|25/g), 0, "e nemmeno il ritardo");
+    /* il campo «carica totale»: senza sapere quanti fori sono, dividere per 1
+       vuol dire assegnare a un foro solo la carica di tutta la volata */
+    eq(/measureGeom2D\(\)\.n \|\| foriDiProgetto\(D2\.perRow, D2\.file\)/.test(CODICE_G), true,
+      "e il campo della carica totale non divide più per un foro immaginario");
+    eq(quante(/D2\.perRow\*D2\.file \|\| 1/g), 0, "il `|| 1` che riscriveva il progetto non c'è più");
+    /* ⚠️ E DUE ALTRI CAMPI DELLA STESSA FAMIGLIA, chiusi nello stesso giro:
+       il numero fori del pannello rapido ripiegava su 12 invece che sul valore
+       che il progetto stava usando — e le altre QUATTRO righe della stessa
+       funzione usavano già `valoreCampo`; il borraggio entrava nell'indice di
+       uniformità con `D2.stem||2.5`, e `rosinRammler` sa già rispondere «non
+       calcolabile» a un indice che non c'è. */
+    eq(/P\.fori = valoreCampo\(gvv\('pFori'\), P\.fori, 6, 24, true\);/.test(CODICE_G), true,
+      "`readParams` legge i fori con la stessa funzione delle sue quattro righe vicine");
+    eq(quante(/D2\.stem\|\|2\.5/g), 0, "il borraggio non entra più nell'indice di uniformità con un 2,5 di comodo");
+    eq(/const _stemKpi=\(\+D2\.stem>0\)\?\+D2\.stem:null;/.test(CODICE_G), true,
+      "e quando non si legge, l'indice è `null`: la pezzatura lo dichiara invece di stimarla");
+    /* ⚠️ E questo è il ripiego MORTO dichiarato: `pRit` è un `<select>` con una
+       `selected`, quindi il suo `|| 42` non può scattare. Resta scritto, e
+       questa riga è la prova che è ancora un `<select>` — se domani diventasse
+       un campo libero, il ripiego si risveglierebbe e nessuno lo saprebbe. */
+    ok(/<select id="pRit">[\s\S]{0,200}selected/.test(PAGINA_G),
+      "`pRit` è un `<select>` sempre valorizzato: il suo `|| 42` è un ripiego morto, non innocuo");
+  });
+
+  test("⛔ Genesi · il verdetto sul borraggio era la SORELLA di uno già corretto", () => {
+    /* ⛔ Il commento della riga accanto raccontava per esteso la correzione
+       sulla SPALLA (`_Binv`), e tre parole più in là il BORRAGGIO faceva
+       ancora `(D2.stem||2.5) >= inv.minStem`. Con un requisito di 1,9 m il
+       2,5 di comodo PASSA: la riga scriveva «Il borraggio di progetto
+       rispetta il suo» su un numero che nessuno ha scritto, e nel verso che
+       rassicura. La misura, con la forma vecchia: */
+    const minStem = 1.9;
+    eq((2.2 || 2.5) >= minStem - 0.01, true, "col borraggio scritto a 2,2 m il requisito è rispettato — e questo era vero");
+    eq((null || 2.5) >= minStem - 0.01, true, "col borraggio ASSENTE la forma vecchia rispondeva ancora «rispetta»");
+    eq((1.0 || 2.5) >= minStem - 0.01, false, "e solo un borraggio scritto e basso lo faceva cadere");
+    /* la forma nuova, la stessa già usata per la spalla tre parole più in là */
+    const inv = (stem) => { const s = (+stem > 0) ? +stem : null; return { detto: s !== null, ok: (s !== null) && s >= minStem - 0.01 }; };
+    eq(inv(2.2), { detto: true, ok: true }, "adesso: borraggio scritto e sufficiente");
+    eq(inv(1.0), { detto: true, ok: false }, "scritto e insufficiente");
+    eq(inv(null), { detto: false, ok: false }, "assente: non si dice né sì né no");
+    eq(inv(""), { detto: false, ok: false }, "campo svuotato: idem");
+    /* ⚠️ `+null` fa ZERO, e `0 >= 0` è vero: la guardia deve essere `> 0`, se
+       no il borraggio assente diventa «zero metri di borraggio», che è una
+       misura — e per giunta la peggiore che si possa dichiarare. */
+    eq((+null > 0), false, "`+null` fa zero, quindi la guardia si scrive `> 0` e non `>= 0`");
+    eq(/const _Binv=\(\+D2\.B>0\)\?\+D2\.B:null, _Sinv=\(\+D2\.stem>0\)\?\+D2\.stem:null;/.test(CODICE_G), true,
+      "e nella pagina le due metà hanno finalmente la stessa forma");
+    eq(/okS=\(_Sinv!==null\)&&_Sinv>=inv\.minStem-0\.01/.test(CODICE_G), true,
+      "il confronto sul borraggio non parte più da un numero di comodo");
+    ok(genesi.FLY_SENZA_BORRAGGIO && /borraggio/.test(genesi.FLY_SENZA_BORRAGGIO.che),
+      "e il «perché» ha un nome, come la sorella `FLY_SENZA_SPALLA`");
+    ok(/Reimposta il borraggio/.test(genesi.FLY_SENZA_BORRAGGIO.come),
+      "col «come», che è un'azione eseguibile");
+    /* ⛔ E IL REQUISITO RESTA SCRITTO: quello che si toglie è il CONFRONTO, non
+       la riga. Un requisito ricavato dal calcolo inverso non dipende dal
+       borraggio di progetto, e cancellarlo manderebbe a rifare un progetto che
+       va bene. Nessuna soglia è stata toccata. */
+    eq(/valStr:'borr\. ≥ '\+gfix\(inv\.minStem,1\)/.test(CODICE_G), true,
+      "la riga continua a scrivere il requisito: si toglie il verdetto, non il numero");
+  });
 }
 /* ===== fine Genesi · il ripiego silenzioso ================================ */
 

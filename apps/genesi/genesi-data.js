@@ -1738,6 +1738,19 @@ export const FLY_SENZA_SPALLA = {
   che: 'la spalla (burden) non è un numero leggibile, ed è lei a decidere il meccanismo "face burst" di Richards&Moore — quello che governa la gittata quando la roccia davanti al foro è poca',
   come: 'Reimposta la spalla nei parametri della volata.',
 };
+/* ⛔ LA SORELLA, e il 14/08 mancava a metà. Nella riga «Flyrock inverso» il
+   confronto sulla SPALLA era già stato reso onesto (`_Binv`, con questo
+   messaggio accanto); quello sul BORRAGGIO no, ed era rimasto
+   `okS = (D2.stem || 2.5) >= inv.minStem`. Misurato: con il borraggio
+   illeggibile e un requisito di 1,9 m, il 2,5 di comodo passa — la riga
+   scriveva «Il borraggio di progetto **rispetta** il suo», cioè una promessa
+   fatta su un numero che nessuno aveva scritto, e nel verso che rassicura.
+   È la stessa forma della spalla: il REQUISITO si scrive (non dipende dal
+   progetto), il CONFRONTO no. */
+export const FLY_SENZA_BORRAGGIO = {
+  che: 'il borraggio non è un numero leggibile, ed è lui a decidere se il progetto rispetta il minimo ricavato dal calcolo inverso',
+  come: 'Reimposta il borraggio nei parametri della volata.',
+};
 /* La gittata quando la spalla NON c'è: il numero se la spalla non lo decide,
    `null` con la ragione se lo decide. `lff(B)` è il face burst del chiamante
    (la formula resta sua), `altri` il massimo degli altri meccanismi, `tetto`
@@ -1767,4 +1780,86 @@ export function gittataSenzaSpalla(lff, altri, tetto) {
   /* la spalla non decide il numero. Decide ancora il NOME del meccanismo? */
   return { Lpred:corta, calcolabile:true, meccanismoNoto:(a >= num(lff(SPALLA_MIN))),
     forbice:0, che:'', come:'' };
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   G21 · LA GRIGLIA DI PROGETTO E I METRI PERFORATI — il ripiego che sopravvive
+         al blocco G12, perché non sta nel COSTO: sta in quello che gli si passa
+   ══════════════════════════════════════════════════════════════════════════
+   ⛔ `costoVolata` (G12) sa già dire «non calcolabile» quando i metri o i fori
+   non si contano: la sua guardia è `Number.isFinite`. Non serve a niente se
+   chi la chiama gli consegna un numero INVENTATO al posto di un `null`, ed è
+   esattamente quello che facevano tutt'e tre i suoi chiamanti.
+
+   ⛔ IL PRIMO — la griglia di progetto, in `computeKPI`:
+
+       const nf = (D2.perRow || 18) * (D2.file || 1);
+
+   Diciotto. Il progetto ne ha dodici di suo, e diciotto non è nemmeno il
+   default della pagina: è un numero che non compare da nessun'altra parte.
+   Misurato chiamando `costoVolata` con gli stessi prezzi della dimostrazione
+   (60 kg/foro, 8 €/m, 1,5 €/kg, 12 €/foro) su una volata aperta con
+   `perRow:null` — la porta è `Object.assign(D2, …)` da `localStorage`, la
+   stessa del blocco G14:
+     · fori          12 → **18**
+     · carica totale 720 kg → **1.080 kg**  (+50%)
+     · costo         2.270 € → **3.406 €**
+   e `calcolabile` restava **true**, cioè i KPI dichiaravano di saper contare.
+
+   ⛔ IL SECONDO, ED È QUELLO CHE RASSICURA — i metri perforati, scritti
+   **tre volte** (in `computeKPI`, nel foglio stampabile e nella scheda):
+
+       mPerf = nf * (D2.prof + (D2.sub || 0))
+
+   Qui non c'è nessun `||` sull'altezza del banco: c'è di peggio, un `+`.
+   `null + 0.9` fa **0,9**, che è finito, positivo e plausibile — quindi la
+   guardia di `costoVolata` non scatta. Misurato sulla stessa volata con
+   `prof:null`:
+     · metri perforati 130,8 m → **10,8 m**
+     · costo           2.270 € → **1.310 €**  (−42%)
+   cioè un progetto che costa quasi la metà del vero, con l'aria di un conto
+   fatto. È il verso pericoloso, ed è la stessa famiglia già raccolta in
+   CLAUDE.md: `+null` fa 0 e `Number.isFinite(0)` risponde `true`.
+
+   ⚠️ LA SOTTOPERFORAZIONE È L'UNICO CAMPO CON DUE RISPOSTE GIUSTE, e vanno
+   separate come pretende `run-demo`: **assente** (una volata salvata prima che
+   il campo esistesse) vale **zero**, perché non le è mai stato chiesto niente;
+   **presente e illeggibile** (`null`, `''`, una parola) ferma il conto, perché
+   qualcosa c'era e non si legge. `volataSenzaValori` fa già questa distinzione
+   sulle stesse chiavi, e non se ne inventa una seconda.
+   ⚠️ E uno ZERO SCRITTO resta un dato: una volata senza sottoperforazione è
+   normalissima e i suoi metri si contano. È la stessa differenza fra «ho
+   scritto zero» e «non ho scritto niente» del blocco G14.
+
+   ⛔ NESSUNA SOGLIA E NESSUNA FORMULA CAMBIA: il costo lo decide ancora
+   `costoVolata`, il volume `volumeForo`, la carica `caricaTotale`. Qui si
+   smette soltanto di consegnare loro numeri che nessuno ha scritto. */
+
+/* Quanti fori ha la griglia di PROGETTO — fori per fila × numero di file — e
+   `null` se uno dei due non è un numero leggibile e positivo.
+   ⚠️ Zero fori per fila non è una griglia più piccola, è l'assenza di una
+   griglia: il campo della pagina parte da 3. */
+export function foriDiProgetto(perRow, file){
+  const n = (x) => (x === null || x === undefined || x === '') ? NaN : +x;
+  const c = n(perRow), r = n(file);
+  if (!(Number.isFinite(c) && c > 0)) return null;
+  if (!(Number.isFinite(r) && r > 0)) return null;
+  return c * r;
+}
+
+/* I metri perforati dell'intera volata — fori × (altezza del banco +
+   sottoperforazione) — e `null` se non si contano.
+   `nf` sono i fori (di progetto o disegnati, lo decide il chiamante: è
+   l'unica differenza fra i tre, come per `costoVolata`). */
+export function metriPerforati(nf, prof, sub){
+  const n = (x) => (x === null || x === undefined || x === '') ? NaN : +x;
+  const f = n(nf), h = n(prof);
+  if (!(Number.isFinite(f) && f >= 0)) return null;
+  if (!(Number.isFinite(h) && h > 0)) return null;
+  let s = 0;
+  if (sub !== undefined) {                    // assente = zero; presente e illeggibile = ferma il conto
+    s = n(sub);
+    if (!(Number.isFinite(s) && s >= 0)) return null;
+  }
+  return f * (h + s);
 }

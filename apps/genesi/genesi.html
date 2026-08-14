@@ -1113,7 +1113,12 @@ import { sitoFit, ppvLimit, ppvSenzaSoglia, ppvSenzaDistanza, airblastDb, normaP
    invenzioni si compensavano, quindi togliere la prima da sola avrebbe
    dimezzato la distanza di sgombero senza un rosso da leggere. */
          CONFIN_SENZA_CONTO, confinamentoColletto,
-         FLY_SENZA_SPALLA, gittataSenzaSpalla } from './genesi-data.js';
+         FLY_SENZA_SPALLA, FLY_SENZA_BORRAGGIO, gittataSenzaSpalla,
+/* la GRIGLIA e i METRI — vedi il blocco G21.
+   ⛔ `costoVolata` sapeva già dire «non calcolabile»; a disinnescarlo erano i
+   suoi tre chiamanti, che gli passavano 18 fori al posto di una griglia
+   illeggibile e 0,9 m di perforazione al posto di un banco illeggibile. */
+         foriDiProgetto, metriPerforati } from './genesi-data.js';
 /* ⛔ «ha una data» si decide con l'ESISTENZA, non con la forma: «2026-02-30» ha
    la forma giusta e non esiste. Il modulo di Genesi questa regola l'ha imparata
    il 03/08 — il commento in cima a `genesi-data.js` lo racconta — e la pagina
@@ -1728,21 +1733,26 @@ function buildSim(){
   const bulgeAmp = Math.min(CAL.bulge.ampiezzaRangeM[1], Math.max(CAL.bulge.ampiezzaRangeM[0], CAL.bulge.ampiezzaBaseM*pfN));
   /* ---- frammentazione Kuz-Ram: granulometria prevista ---- */
   const _wetE = (D2.bagnato ? ({Nulla:0.70,Bassa:0.40,Media:0.18,Buona:0.05,Eccellente:0}[(selEsplosivo()||{}).acqua]||0) : 0); // perdita energia da fori bagnati con esplosivo non idoneo
-  const diamMM = P.diam, stemming = D2.stem||2.5, A_rock = rockFactorA().A, RWS = Math.max(8, ((selEsplosivo()&&selEsplosivo().rws_pct)||100)*(1-_wetE)); // diametro foro (mm, editabile), borraggio (m, editabile), rock factor (Lilly/Cunningham da geologia), ANFO=100, RWS ridotto se foro bagnato
+  /* ⛔ SECONDA COPIA DELL'INDICE DI UNIFORMITÀ, e col suo ripiego: `stemming`
+     entrava con `D2.stem||2.5`, cioè un borraggio che nessuno ha scritto, e da
+     lì usciva `SIM.frag.x20/x80` — i numeri che il riquadro del 3D e la curva
+     granulometrica MOSTRANO. Stessa cura di `computeKPI`: `null`, e
+     `rosinRammler` lo sa già trattare. */
+  const diamMM = P.diam, stemming = (+D2.stem>0)?+D2.stem:null, A_rock = rockFactorA().A, RWS = Math.max(8, ((selEsplosivo()&&selEsplosivo().rws_pct)||100)*(1-_wetE)); // diametro foro (mm, editabile), borraggio (m, editabile), rock factor (Lilly/Cunningham da geologia), ANFO=100, RWS ridotto se foro bagnato
   /* ---- DUE ENERGIE: la quota di GAS (heave) governa lo spostamento/lancio del burden ----
      shock (VOD alta) frantuma; heave (VOD bassa, ANFO) spinge. heaveFac scala il lancio in avanti. */
   const _eVOD = (selEsplosivo()&&selEsplosivo().vod_ms)||3800;
   const _shk = Math.max(0.04, Math.min(0.96, (_eVOD*_eVOD-9e6)/(36e6-9e6)));
   const heaveFac = (0.82 + 0.48*(1-_shk)) * (1-0.5*_wetE);   // ANFO ~1.18 (lancia di piu), emulsione ~1.0, alto-shock ~0.84; ridotto se foro bagnato (lancia meno → muckpile basso/oversize)
-  const Lc = Math.max(0.5, prof + (D2.sub||0) - stemming);      // lunghezza carica (m), sottoperforazione inclusa
+  const Lc = (stemming===null) ? null : Math.max(0.5, prof + (D2.sub||0) - stemming);   // lunghezza carica (m), sottoperforazione inclusa; `null` se il borraggio non si legge
   const _fr = fragKuzRam({ kg:P.kg, vol, A:A_rock, RWS });      // blocco G13: guardia PRIMA dei clamp
   const x50 = _fr.x50;                            // cm — Kuznetsov, dal modulo (`null` se non si conta)
-  let nU = (2.2 - 14*SPALLA/diamMM) * Math.sqrt((1+INTERASSE/SPALLA)/2) * (1 - 0.3/SPALLA) * (Lc/prof);  // indice uniformità — Cunningham
+  let nU = (Lc===null) ? null : (2.2 - 14*SPALLA/diamMM) * Math.sqrt((1+INTERASSE/SPALLA)/2) * (1 - 0.3/SPALLA) * (Lc/prof);  // indice uniformità — Cunningham; `null` senza borraggio
   /* precisione dell'innesco → uniformità (Cunningham 2005: ns=0.206+(1−Rs/4)^0.8, Rs=scatter/ritardo): elettronico = curva più ripida, Nonel = più dispersa */
-  { const _sdT=(_innId==='elettronico')?0.1:((_innId==='elettrico')?0.5:((_innId==='cordtex')?0.03*Math.max(rit,lastDet):0.02*Math.max(rit,lastDet)));
+  if(nU!==null){ const _sdT=(_innId==='elettronico')?0.1:((_innId==='elettrico')?0.5:((_innId==='cordtex')?0.03*Math.max(rit,lastDet):0.02*Math.max(rit,lastDet)));
     const _RsT=_sdT/Math.max(1,rit), _ns=0.206+Math.pow(Math.max(0,1-_RsT/4),0.8);
-    nU *= Math.max(0.8, Math.min(1.25, _ns)); }
-  nU = Math.max(0.7, Math.min(2.2, nU));
+    nU *= Math.max(0.8, Math.min(1.25, _ns));
+    nU = Math.max(0.7, Math.min(2.2, nU)); }
   const _rr = rosinRammler(x50, nU);                            // curva intorno a x50 — blocco G13
   const xc = _rr.xc;                                            // size caratteristica Rosin-Rammler
   const x80 = _rr.x80;                                          // 80% passante
@@ -1752,7 +1762,7 @@ function buildSim(){
      mentre `+null.toFixed(2)` solleva. */
   const frag = { calcolabile:_fr.calcolabile && _rr.calcolabile, che:_fr.che, come:_fr.come,
     x50:x50===null?null:Math.round(x50), x80:x80===null?null:Math.round(x80), x20:x20===null?null:Math.round(x20),
-    n:+nU.toFixed(2), xc, pf:pf===null?null:+pf.toFixed(2),
+    n:nU===null?null:+nU.toFixed(2), xc, pf:pf===null?null:+pf.toFixed(2),
     A:+A_rock.toFixed(3), RWS:+RWS.toFixed(1), kg:P.kg, prof:prof, sbRatio:+(INTERASSE/Math.max(0.1,SPALLA)).toFixed(3) };  // input per il calcolo inverso della maglia
   /* ---- chunk per foro (forma chiusa, atterraggio precalcolato) ---- */
   const chunks = [];
@@ -2715,7 +2725,18 @@ if($('meas-in')) $('meas-in').oninput = _measUpdate;  // riconciliazione previst
    dicono. Uno zero SCRITTO resta un dato: `valoreCampo(0, 60, 10, 120)` dà 10,
    il clamp su un valore vero. */
 function readParams(){
-  P.fori = Math.max(6, Math.min(24, +$('pFori').value||12));
+  /* ⛔ E DUE RIGHE PIÙ SU DELLE ALTRE QUATTRO ERA RIMASTA LA FORMA VECCHIA:
+     `+$('pFori').value||12`, cioè un clamp senza la domanda «il dato c'è?».
+     Svuotando il campo (`+'' ` fa **0**) la volata tornava a **12 fori**
+     qualunque cosa avesse, senza dire niente. `valoreCampo` è la funzione che
+     le altre quattro righe di questa stessa funzione usano già: il campo se si
+     legge, il valore che il progetto sta usando se no.
+     ⚠️ `pRit` invece è un `<select>` con quattro opzioni e una `selected`:
+     un `<select>` è SEMPRE valorizzato, quindi quel `|| 42` non può scattare.
+     Resta scritto perché toglierlo non cambia niente e riscriverlo con
+     `valoreCampo` fingerebbe di aver curato qualcosa. È un ripiego MORTO,
+     dichiarato, non un ripiego innocuo. */
+  P.fori = valoreCampo(gvv('pFori'), P.fori, 6, 24, true);
   P.ritardo = +$('pRit').value||42;
   P.dir = $('pDir').value;
   P.prof = valoreCampo(gvv('pProf'), P.prof, 6, 18);
@@ -3177,8 +3198,21 @@ function computeKPI(){
      `fragKuzRam` per i dati veri ma estremi. Vedi il blocco G13. */
   const _fk=fragKuzRam({ kg:Q, vol:B*S*H, A, RWS });
   const pf=_fk.pf, x50=_fk.x50;
-  const Lc=Math.max(0.4,H+(D2.sub||0)-(D2.stem||2.5));
-  let nU=(2.2-14*B/D2.diam)*Math.sqrt((1+S/B)/2)*(1-0.3/B)*(Lc/H); nU=Math.max(0.7,Math.min(2.2,nU));
+  /* ⛔ E IL BORRAGGIO ENTRAVA QUI COL SUO RIPIEGO — `D2.stem||2.5` — cioè
+     dentro l'indice di uniformità, che è quello che decide x20 e x80. Il
+     borraggio è un campo che l'utente scrive (`CAMPI_VOLATA.stem`), quindi
+     può arrivare illeggibile dalla stessa porta di tutti gli altri.
+     ⚠️ Misurato sul progetto della dimostrazione (3,0 × 3,5 × 10 m, Ø102,
+     sub 0,9): col borraggio scritto a 2,2 m viene `n` 1,4574 e x80 **36,2 cm**;
+     col 2,5 di comodo `n` 1,4071 e x80 **36,9** — il 2% in più, cioè una coda
+     più grossolana. Piccolo su QUESTO progetto, e non è il punto: il ripiego
+     vale 2,5 qualunque cosa il progetto avesse scritto, e `fragCalcolabile`
+     restava `true`. `rosinRammler` sa già rispondere «non calcolabile» a un
+     indice che non c'è: gli si passa `null` invece di un numero inventato. */
+  const _stemKpi=(+D2.stem>0)?+D2.stem:null;
+  const Lc=(_stemKpi===null)?null:Math.max(0.4,H+(D2.sub||0)-_stemKpi);
+  let nU=null;
+  if(Lc!==null){ nU=(2.2-14*B/D2.diam)*Math.sqrt((1+S/B)/2)*(1-0.3/B)*(Lc/H); nU=Math.max(0.7,Math.min(2.2,nU)); }
   const _rr=rosinRammler(x50, nU);
   const xc=_rr.xc, x80=_rr.x80, x20=_rr.x20;
   /* ⛔ SENZA MIC NON C'È UNA PPV, E NON C'È NEMMENO UN NUMERO PICCOLO.
@@ -3220,8 +3254,17 @@ function computeKPI(){
      ⛔ E il costo lo compone il modulo, non questa riga: €/m³, €/t e margine
      erano ricavati a mano in tre punti della pagina, e un `null` che
      attraversa tre aritmetiche scritte a mano ridiventa zero in almeno una. */
-  const nf=(D2.perRow||18)*(D2.file||1);
-  const _cK=costoVolata({ nf, kg:D2.kg, mPerf:nf*(D2.prof+(D2.sub||0)),
+  /* ⛔ E LA RIGA QUI SOTTO DISINNESCAVA IL BLOCCO QUI SOPRA — vedi G21.
+     `(D2.perRow||18)*(D2.file||1)` con la griglia illeggibile faceva **18**
+     fori (il progetto ne ha dodici, e diciotto non è nemmeno un default della
+     pagina): carica totale 720 → 1.080 kg, costo 2.270 → 3.406 €, e
+     `calcolabile` restava true. E `nf*(D2.prof+(D2.sub||0))` era peggio,
+     perché sbaglia nel verso che rassicura: `null+0.9` fa **0,9**, cioè
+     130,8 m di perforazione diventavano **10,8** e il costo scendeva a
+     1.310 € — il 42% in meno — senza che la guardia di `costoVolata`
+     scattasse, perché 0,9 è un numero finito e positivo. */
+  const nf=foriDiProgetto(D2.perRow, D2.file);
+  const _cK=costoVolata({ nf, kg:D2.kg, mPerf:metriPerforati(nf, D2.prof, D2.sub),
     cPerf:D2.cPerf, cExpl:D2.cExpl, cInnesco:D2.cInnesco });
   const qtot=_cK.qtot;
   const fly=flyrockEst();
@@ -3538,7 +3581,21 @@ if($('btn-report')) $('btn-report').onclick=()=>{
      ⚠️ `nf` resta quello dei fori DISEGNATI (`g.n`) e non la griglia di
      progetto: il foglio descrive il disegno che si sta per sparare. È l'unica
      differenza fra i tre chiamanti, ed è per questo che è un argomento. */
-  const nf=g.n, mPerf=nf*(D2.prof+(D2.sub||0)), vol=nf*D2.B*D2.S*D2.prof, rho=R.rho||2.5, ton=vol*rho;
+  /* ⛔ SECONDA DELLE TRE COPIE DEI METRI PERFORATI (G21), e questa sta sul
+     foglio che si porta in cava: `nf*(D2.prof+(D2.sub||0))` con l'altezza del
+     banco illeggibile faceva **0,9 m per foro** invece di 10,9 — 130,8 m →
+     10,8 — e la sezione «Stima economica» stampava 1.310 € al posto di 2.270.
+     ⚠️ E il volume era la QUARTA copia scritta a mano di `volumeForo`: reggeva
+     solo per l'aritmetica di `null` (`null*3.5` fa 0), cioè per la ragione che
+     il blocco G15 dichiara insufficiente. Il `null` deve arrivare `null` fino
+     a `costoVolata`, che i suoi «non calcolabile» li sa già scrivere.
+     ⚠️ `R.rho` non ha ripiego: `selRoccia()` risponde sempre con una voce del
+     catalogo e tutte e sei hanno `rho` (misurato). Un `|| 2.5` lì era un
+     ripiego che non poteva scattare, cioè un numero che nessuno avrebbe mai
+     visto e che faceva sembrare sorvegliata una cosa che non lo era. */
+  const nf=g.n, mPerf=metriPerforati(nf, D2.prof, D2.sub);
+  const _volForo=volumeForo(D2.B, D2.S, D2.prof), vol=(_volForo===null?null:nf*_volForo);
+  const rho=R.rho, ton=(vol===null||!Number.isFinite(+rho))?null:vol*rho;
   const _cR=costoVolata({ nf, kg:D2.kg, mPerf, vol, ton, valMat:D2.valMat,
     cPerf:D2.cPerf, cExpl:D2.cExpl, cInnesco:D2.cInnesco });
   const kgTot=_cR.qtot, cP=_cR.perf, cE=_cR.expl, cI=_cR.innesco, cTot=_cR.tot;
@@ -3991,10 +4048,28 @@ if($('riconCampoFile')) $('riconCampoFile').onchange=async(e)=>{
    (fori e ritardo), l'onda no — la si prendeva e si buttava via il nome. Una
    riga per tenerlo, ed è la sola cosa che rende i due file distinguibili. */
 let _sigData=null, _sigComp=null, _sigNome="";
+/* I tempi di detonazione su cui si somma l'onda registrata: quelli dei fori
+   DISEGNATI se ci sono, altrimenti la griglia di progetto.
+   ⛔ E LA GRIGLIA SE LA INVENTAVA — quattro ripieghi in una riga sola (G21):
+   `+D2.perRow||18`, `+D2.file||1`, `+D2.ritardo||25`, `+D2.ritardoFila||42`.
+   `+null` fa 0, quindi bastava una volata aperta con la griglia illeggibile
+   perché il composito si costruisse su **18 fori a 25 ms** — un piano di tiro
+   che nessuno ha scritto. Misurato su una volata da 12 fori a 42 ms:
+     · con `perRow` assente  → 18 tempi, ultima detonazione 714 ms (invece di 462)
+     · con `ritardo` assente → 12 tempi a 25 ms, ultima 275 ms (invece di 462)
+   e quei tempi decidono il **PPV composito** mostrato accanto al limite di
+   norma, il nome del file esportato e le sue righe. Adesso, quando la griglia
+   non si legge, la risposta è `null` e chi disegna lo dice.
+   ⚠️ Il ripiego a `[0]` in fondo resta e non è la stessa cosa: serve a non
+   passare un vettore vuoto alla superposizione (`Math.max([])` fa -Infinity),
+   e ci si arriva solo con una griglia leggibile che non produce nessun tempo. */
 function _sigDetTimes(){
   const H=D2.holes;
   if(H&&H.length) return H.map(h=>+h.tDet||0);
-  const nc=Math.max(1,+D2.perRow||18), nr=Math.max(1,+D2.file||1), ri=+D2.ritardo||25, rf=+D2.ritardoFila||42, out=[];
+  const n=foriDiProgetto(D2.perRow, D2.file);
+  const ri=+D2.ritardo, rf=+D2.ritardoFila;
+  if(n===null || !Number.isFinite(ri) || ri<0 || !Number.isFinite(rf) || rf<0) return null;
+  const nc=Math.max(1,+D2.perRow), nr=Math.max(1,+D2.file), out=[];
   for(let r=0;r<nr;r++) for(let c=0;c<nc;c++) out.push(c*ri+r*rf);
   return out.length?out:[0];   // mai vuoto: evita Math.max([]) = -Infinity nella superposizione
 }
@@ -4027,7 +4102,19 @@ function _sigSpark(comp,steps){
 function sigRender(){
   const body=$('sigBody');
   if(!_sigData){ body.innerHTML='<div style="color:var(--mut);font-size:12px;">Importa la <b>registrazione di un foro singolo</b> (CSV: <code>tempo_ms;ampiezza</code>, es. mm/s). Genesi la <b>somma ritardata</b> secondo i tempi di detonazione della volata corrente e stima il <b>PPV composito</b> — il metodo dei big (Orica AVM), più preciso della sola legge di Devine perché usa l&rsquo;onda reale del tuo sito.</div>'; _sigComp=null; return; }
-  const times=_sigDetTimes(), r=_sigSuperpose(_sigData,times); _sigComp=r;
+  /* ⛔ SENZA UN PIANO DI TIRO NON C'È UN COMPOSITO. Prima la griglia se la
+     inventava (18 fori a 25 ms) e la modale mostrava un PPV composito con la
+     faccia di una previsione: adesso `_sigDetTimes` risponde `null` e qui si
+     dice, invece di sommare l'onda su tempi che nessuno ha scritto. */
+  const times=_sigDetTimes();
+  if(times===null){
+    const _sv=volataSenzaValori({perRow:D2.perRow, file:D2.file, ritardo:D2.ritardo, ritardoFila:D2.ritardoFila});
+    body.innerHTML='<div style="color:#ffca28;font-size:12px;line-height:1.45"><b>PPV composito non calcolabile.</b> La somma ritardata ha bisogno dei tempi di detonazione, e questa volata non ha fori disegnati né una griglia di progetto leggibile'
+      +(_sv?': '+_rEsc(_sv.che)+'. '+_rEsc(_sv.come):'.')
+      +'</div>';
+    _sigComp=null; return;
+  }
+  const r=_sigSuperpose(_sigData,times); _sigComp=r;
   /* ⛔ SENZA SOGLIA NON C'È UN VERDETTO, e qui ne uscivano due falsi insieme:
      `Math.max(0.1, null)` fa **0,1**, quindi il rapporto diventava enorme e la
      modale dichiarava «SUPERATO» contro un limite che non esiste; e la riga
@@ -4073,7 +4160,11 @@ if($('sigExport')) $('sigExport').onclick=()=>{
   const a=document.createElement('a'); a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(csv);
   /* la volata la conosciamo (fori e ritardo), l'onda la nominiamo con il file
      da cui viene: due confronti diversi non si sovrascrivono più */
-  const _pezzo=[(_sigNome||'onda'), _sigDetTimes().length+'fori', (D2.ritardo||0)+'ms'].join('_');
+  /* ⚠️ `_sigDetTimes()` può rispondere `null`, ma qui non ci si arriva: il
+     bottone esce sopra se `_sigComp` non c'è, e `_sigComp` esiste solo se i
+     tempi si erano letti. Il `|| []` è la guardia che lo rende vero anche
+     domani, invece di lasciare un `.length` su un `null`. */
+  const _pezzo=[(_sigNome||'onda'), (_sigDetTimes()||[]).length+'fori', (D2.ritardo||0)+'ms'].join('_');
   a.download='genesi_composito_'+_pezzo+'.csv'; a.click();
   toast('✓ Onda composita esportata: '+_ricPlur(c.steps,'campione','campioni'));
 };
@@ -4497,8 +4588,16 @@ function _sentDati(){
      `nf * null` fa 0, e il riquadro diceva «Carica totale 0 kg» accanto a una
      MIC che ormai dichiarava di non sapersi calcolare. Nel registro volate di
      Sentinella «0 kg di esplosivo» è un fatto, e un fatto falso. */
+  /* ⛔ E LA STESSA TRAPPOLA UN PIANO PIÙ SU, scoperta togliendo il ripiego dei
+     fori (G21): finché `k.nf` era **18** questa riga scriveva 1.080 kg
+     inventati; con `k.nf` che adesso sa dire `null`, `Math.round(null*60*10)/10`
+     avrebbe scritto **0** — cioè avrei spostato la bugia dal numero gonfiato
+     allo zero, che nel registro volate di Sentinella è la cosa più
+     tranquillizzante che quel file possa dire. Il conto lo fa `caricaTotale`,
+     che è la stessa funzione che lo fa a schermo e risponde `null`. */
+  const _kgTotSent=caricaTotale(nf, _m.caricaLeggibile?D2.kg:null);
   return { nFori:nf,
-    kgTotali:_m.caricaLeggibile?Math.round(nf*D2.kg*10)/10:null,
+    kgTotali:_kgTotSent===null?null:Math.round(_kgTotSent*10)/10,
     mic:mic===null?null:Math.round(mic*10)/10,
     micCalcolabile:_m.calcolabile, micChe:_m.che, micCome:_m.come,
     /* ⛔ E `+D2.recDist` FACEVA **0** (10/08): il riquadro che si guarda un
@@ -4689,7 +4788,11 @@ document.querySelectorAll('#scr-home .card').forEach(c=> c.onclick=()=>setScreen
 function _lsGet(k){ try{ return JSON.parse(localStorage.getItem(k)||'[]'); }catch(e){ return []; } }
 function _lsSet(k,v){ try{ localStorage.setItem(k, JSON.stringify(v)); }catch(e){} }
 function volSnapshot(nome){
-  let sintesi=_ricPlur(D2.perRow*D2.file,'foro','fori');
+  /* `D2.perRow*D2.file` scritto a mano faceva **0 fori** con la griglia
+     illeggibile (`null*1` è zero), e questa sintesi finisce SALVATA nello
+     storico: «0 fori» si rilegge come una volata vuota. `foriDiProgetto`
+     risponde `null` e `conta` scrive «—». */
+  let sintesi=_ricPlur(foriDiProgetto(D2.perRow, D2.file),'foro','fori');
   /* ⛔ Incollare la carica totale grezza a una stringa, quando è `null`, scrive
      la PAROLA «null» — e questa
      ⚠️ Il difetto è citato a parole e NON come codice di proposito: scritto
@@ -6010,15 +6113,26 @@ function renderScheda2D(){
        il ripiego di 3,0 m — cioè una promessa fatta su un numero che nessuno
        aveva scritto, e per giunta nel verso tranquillo (3,0 ≥ 1,9 passa).
        Qui non si spegne la riga: il requisito si scrive, il confronto no. */
-    const _Binv=(+D2.B>0)?+D2.B:null;
-    const okS=(D2.stem||2.5)>=inv.minStem-0.01, okB=(_Binv!==null)&&_Binv>=inv.minB-0.01;
-    const _bDetto=(_Binv!==null);
+    /* ⛔ E LA SORELLA ERA RIMASTA FUORI: il commento qui sopra racconta la
+       correzione della SPALLA, e tre parole più in là il BORRAGGIO faceva
+       ancora `(D2.stem||2.5) >= inv.minStem`. Misurato con un requisito di
+       1,9 m: con il borraggio illeggibile il 2,5 di comodo **passa**, e la
+       riga scriveva «Il borraggio di progetto rispetta il suo» — la stessa
+       promessa su un numero che nessuno ha scritto, nello stesso verso
+       tranquillo. Il requisito resta scritto, il confronto no. */
+    const _Binv=(+D2.B>0)?+D2.B:null, _Sinv=(+D2.stem>0)?+D2.stem:null;
+    const okS=(_Sinv!==null)&&_Sinv>=inv.minStem-0.01, okB=(_Binv!==null)&&_Binv>=inv.minB-0.01;
+    const _bDetto=(_Binv!==null), _sDetto=(_Sinv!==null);
     rows.push({lab:'Flyrock inverso',valStr:'borr. ≥ '+gfix(inv.minStem,1)+' <span>m</span> · burden ≥ '+gfix(inv.minB,1)+' <span>m</span>',
       cls:(okS&&okB?'sv-ok':'sv-warn'),
       why:'calcolo inverso: perché lo sgombero persone (4×) stia entro il recettore a '+gnum(D2.recDist,0)+' m (gittata ammessa ~'+gnum(Lmax,0)+' m) servono, a parità di diametro ed esplosivo, borraggio ≥ '+gfix(inv.minStem,1)+' m e burden ≥ '+gfix(inv.minB,1)+' m. '
-        +(!_bDetto
-          ? 'Il borraggio di progetto '+(okS?'rispetta il suo':'NON rispetta il suo')+'; sul burden <b>non si può dire</b>: '+_rEsc(FLY_SENZA_SPALLA.che)+'. '+_rEsc(FLY_SENZA_SPALLA.come)
-          : (okS&&okB?'Il progetto attuale rispetta entrambi.':'Il progetto attuale NON li rispetta: alza '+(okS?'':'il borraggio')+(!okS&&!okB?' e ':'')+(okB?'':'il burden')+' oppure riduci il diametro.'))
+        /* le due metà si scrivono separate perché ognuna può mancare per conto
+           suo: un «non si può dire» sul burden non dice niente sul borraggio,
+           e viceversa. Con tutt'e due assenti la riga non promette niente. */
+        +(_bDetto&&_sDetto
+          ? (okS&&okB?'Il progetto attuale rispetta entrambi.':'Il progetto attuale NON li rispetta: alza '+(okS?'':'il borraggio')+(!okS&&!okB?' e ':'')+(okB?'':'il burden')+' oppure riduci il diametro.')
+          : ((_sDetto?'Il borraggio di progetto '+(okS?'rispetta il suo':'NON rispetta il suo')+'; ':'Sul borraggio <b>non si può dire</b>: '+_rEsc(FLY_SENZA_BORRAGGIO.che)+'. '+_rEsc(FLY_SENZA_BORRAGGIO.come)+' ')
+             +(_bDetto?'il burden di progetto '+(okB?'rispetta il suo.':'NON rispetta il suo.'):'Sul burden <b>non si può dire</b>: '+_rEsc(FLY_SENZA_SPALLA.che)+'. '+_rEsc(FLY_SENZA_SPALLA.come))))
         +' STIMA INDICATIVA: non sostituisce il calcolo normativo.'});
   })();
   /* presplit: controllo di progetto (spaziatura in diametri 8-14, carica lineare disaccoppiata ~0.3-0.9 kg/m per Ø 76-115) */
@@ -6457,7 +6571,16 @@ function renderScheda2D(){
      ⚠️ `_vol>0 ? … : 0` era la stessa trappola un piano più giù: senza fori
      disegnati il costo unitario usciva «0,00 €/m³». Adesso è `null`, cioè
      «non calcolabile»: uno zero al metro cubo è un'affermazione. */
-  const _nf=g.n||0, _mPerf=_nf*(H+(D2.sub||0)), _vol=_nf*B*S*H, _rhoRock=(selRoccia()||{}).rho||2.5, _ton=_vol*_rhoRock;
+  /* ⛔ TERZA E ULTIMA COPIA DEI METRI PERFORATI (G21). Stessa forma, stesso
+     verso: `H+(D2.sub||0)` con l'altezza del banco illeggibile fa **0,9 m** e
+     il costo della perforazione scende del 42% dentro il riquadro che si
+     guarda mentre si decide. `metriPerforati` risponde `null` e `_nca` lo
+     scrive già. Il volume passa da `volumeForo` come in cima a questa stessa
+     funzione: due domande uguali a venti righe di distanza non si scrivono in
+     due modi. */
+  const _nf=g.n||0, _mPerf=metriPerforati(_nf, H, D2.sub);
+  const _volF=volumeForo(B,S,H), _vol=(_volF===null?null:_nf*_volF);
+  const _rhoRock=(selRoccia()||{}).rho, _ton=(_vol===null||!Number.isFinite(+_rhoRock))?null:_vol*_rhoRock;
   const _cV=costoVolata({ nf:_nf, kg:Q, mPerf:_mPerf, vol:_vol, ton:_ton, valMat:D2.valMat,
     cPerf:D2.cPerf, cExpl:D2.cExpl, cInnesco:D2.cInnesco });
   const _kgTot=_cV.qtot, _cP=_cV.perf, _cE=_cV.expl, _cI=_cV.innesco, _cTot=_cV.tot;
@@ -6829,7 +6952,18 @@ if($('dKgTot')) $('dKgTot').addEventListener('change', ()=>{
      di aver messo l'esplosivo di tutta la volata. */
   if(!guardiaDecimale($('dKgTot'))) return;
   const tot=Math.max(0, gvv('dKgTot')||0);
-  const n=(measureGeom2D().n || D2.perRow*D2.file || 1);
+  /* ⛔ E QUEL `|| 1` RISCRIVEVA IL PROGETTO — vedi G21. Senza fori disegnati e
+     con la griglia illeggibile (`null*1` fa 0), `n` diventava **1**: chi
+     scriveva qui la carica di TUTTA la volata se la vedeva assegnare a un foro
+     solo. Misurato con 720 kg e la griglia assente: 60 kg/foro → **200**, cioè
+     il tetto del clamp, su un progetto che nessuno aveva toccato.
+     Senza sapere quanti fori sono non si può dividere: si dice e non si
+     riscrive niente. */
+  const n=(measureGeom2D().n || foriDiProgetto(D2.perRow, D2.file));
+  if(n===null || !(n>0)){
+    toast('Non so su quanti fori dividere questa carica: la griglia di progetto (fori per fila × numero di file) non si legge. Riscrivila nei parametri.');
+    syncKgTot(); return;
+  }
   if(tot>0 && n>0){
     D2.kgAuto=false;
     D2.kg=Math.max(5, Math.min(200, +(tot/n).toFixed(1)));
