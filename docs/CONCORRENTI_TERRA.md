@@ -298,10 +298,43 @@ Nella roadmap, il ponte P2 (riconciliazione volume vs tonnellate) è il prossimo
 
 ## Verifica del delta (01/08)
 
-> **Verificato contro il codice al commit `3a3ca66`** *(tutte e undici le righe
-> rilanciate una per una il 09/08 a sera — **zero verdetti cambiati, sette prove
-> riscritte**; prima era `4a5175a` lo stesso giorno, `57c78cf` l'08/08 sera,
-> `8583a0b` lo stesso giorno, `4916275` il 06/08 e `e9f9b0d` il 01/08).*
+> **Verificato contro il codice al commit `eab041d`** *(14/08 · **tutte e undici
+> le righe rilanciate una per una**, dopo i sei commit di arretrato — uno dei
+> quali MORDE (`c93c607`). Esito: **verdetti cambiati zero**, **dieci comandi su
+> undici tornano identici**, **una prova aggiornata**.*
+>
+> ⚠️ **E questo documento è la prova che la forma «comando + uscita attesa»
+> funziona, misurata contro sé stessa.** Il 09/08 le undici celle sono state
+> riscritte togliendo ogni numero di riga e mettendoci il comando che ritrova il
+> nome. Cinque giorni e sei commit dopo — fra cui uno che ha aggiunto due
+> `export function` — **dieci degli undici comandi rispondono alla cifra quello
+> che c'è scritto**. Nello stesso giro Conti e Flotta, che i numeri di riga li
+> avevano ancora, hanno dato **cinque prove marcite ciascuna** e **35 citazioni
+> `file:riga` scadute su 39 campionate**. Non è il codice di Terra a essere più
+> fermo: è che *un comando si rilancia, e un numero si può solo credere*.
+>
+> **L'unica prova aggiornata** — «Reserve estimation con optimization», che è
+> **FALSO, C'È GIÀ**: `grep -c riservaResidua apps/terra/index.html` dava `2` e
+> oggi dà **`3`**. Non è marcita, è **cresciuta**: `eab041d` ha aggiunto il
+> terzo lettore chiudendo «Riserva residua stimata: **0 m³ · durata ~0 anni**»
+> dove nessuno aveva scritto quanto resta — uno zero tranquillo dove non era
+> stato misurato niente. La riga si rafforza, il verdetto no.
+>
+> ⚠️ **E il commit che MORDE non ha mosso nessuna capacità**, misurato: `<button>`
+> aggiunti **0** e tolti **0** (40 prima, 40 dopo), e le due `export function`
+> nuove sono `scartiFrontiCsv` e `scartiRilieviCsv` — le righe che l'import
+> **non fa entrare** smettono di sparire in silenzio. È cambiato **come** l'app
+> dice una cosa che già faceva.
+>
+> ⚠️ **Una terza cosa chiusa il 14/08 NON tocca nessuna riga di questa tabella**,
+> e va detto perché non la si cerchi: in `shared/dw-ponti.js` `misuratoPeriodo` e
+> `intervalliFraRilievi` non contano più un rilievo **senza volume**. Cade sulla
+> riga «Volume reconciliation», già **FALSO, C'È GIÀ**: la rende più giusta, non
+> la muove.
+>
+> *(riverificato in precedenza a `3a3ca66` il 09/08 sera, a `4a5175a` lo stesso
+> giorno, a `57c78cf` l'08/08 sera, a `8583a0b` lo stesso giorno, a `4916275` il
+> 06/08 e a `e9f9b0d` il 01/08).*
 >
 > ### 09/08 (sera) — due commit, **uno che morde**, zero righe mosse
 >
@@ -426,7 +459,7 @@ Nella roadmap, il ponte P2 (riconciliazione volume vs tonnellate) è il prossimo
 | Bench-by-bench volume tracking | ⏱️ **SCADUTA — C'È DAL 01/08** (verifica `e9f9b0d` 16:20 → costruito `e5f15a7` 16:55, **35 minuti**) | ⏱️ *Prova riscritta il 09/08 (sera): la cella portava ancora la prova di PRIMA che fosse costruito — «il tracking è per fronte, non per banco» — cioè smentiva il suo stesso verdetto.* Oggi: `grep -c 'export function ripartizioneBanchi' apps/terra/terra-data.js` → **`1`**, e la pagina la importa e la chiama (`grep -c ripartizioneBanchi apps/terra/index.html` → **`3`**). Ripartisce il volume del riepilogo annuale **per banco**, leggendo il banco dalla scheda del fronte, e dichiara `misurabile: false` col motivo scritto quando non ci sono fronti — l'assenza di dato non diventa uno zero. Il tracking per fronte (`volumeFronte`) resta accanto, non al posto suo. |
 | Automatic stockpile detection | **CONFERMATO ASSENTE** | ⏱️ *Prova riscritta il 09/08 (sera): stesso verdetto, comando al posto del conto.* `grep -ci 'stockpile\|point.\?cloud\|nuvola di punti\|segmentation\|auto.\?detect' apps/terra/terra-data.js apps/terra/index.html` → **`0` e `0`**. Il cumulo si dichiara a mano: non c'è nessun riconoscimento automatico da una nuvola di punti. |
 | Pit design e scheduling | **CONFERMATO ASSENTE** | ⏱️ *Prova riscritta il 09/08 (sera): stesso verdetto, termini lunghi al posto di `pit` nudo.* `grep -ci 'pit.\?design\|waste.\?dump\|haul.\?road\|scheduling\|schedulazione\|bench.\?design' apps/terra/terra-data.js apps/terra/index.html` → **`0` e `0`**. I lotti si creano a mano, senza nessun disegno automatico della cava. ⚠️ `pit` da solo **non è un termine da cercare in un file italiano**: l'unica occorrenza sta dentro «*pittogrammi*», ed è il modo in cui una riverifica si convince di aver trovato qualcosa. |
-| Reserve estimation con optimization | **FALSO, C'È GIÀ** | ⏱️ *Prova riscritta il 09/08 (sera): il nome era giusto, il numero di riga no (diceva 384, sta a 555).* `grep -c 'export function riservaResidua' apps/terra/terra-data.js` → **`1`**; la pagina la importa e la chiama (`grep -c riservaResidua apps/terra/index.html` → **`2`**) per mostrare il consumo annuale. Non è una **full optimization** — la stima della riserva però c'è. |
+| Reserve estimation con optimization | **FALSO, C'È GIÀ** | ⏱️ *Prova riscritta il 09/08 (sera): il nome era giusto, il numero di riga no (diceva 384, sta a 555).* `grep -c 'export function riservaResidua' apps/terra/terra-data.js` → **`1`**; la pagina la importa e la chiama (`grep -c riservaResidua apps/terra/index.html` → ⏱️ **`3`** *dal 14/08, era `2`: `eab041d` ha aggiunto il terzo lettore, quello che smette di scrivere «Riserva residua stimata: 0 m³ · durata ~0 anni» dove nessuno aveva scritto quanto resta*) per mostrare il consumo annuale. Non è una **full optimization** — la stima della riserva però c'è. |
 | Floating cone optimization | **CONFERMATO ASSENTE** | ⏱️ *Prova riscritta il 09/08 (sera): il verdetto regge, la caratterizzazione era FALSA.* `grep -ci 'floating.\?cone\|lerchs\|grossmann\|ultimate.\?pit\|pit.\?optimi\|conical' apps/terra/terra-data.js apps/terra/index.html` → **`0` e `0`**. Nessun ottimizzatore geometrico dello scavo. ⚠️ La cella diceva «l'unica `floating` è un termine di CSS»: **non lo è** — è il commento sul `valid floating-point number` della specifica di `<input type="number">`, e l'unica `cone` sta dentro «*Icone*», il commento sulle icone SVG. Due parole inglesi corte dentro parole nostre, che è la ragione per cui la prova adesso cerca `floating cone` intero e i nomi degli algoritmi. |
 | Pit progression monitoring | **C'È A METÀ** | ⏱️ *Prova riscritta il 09/08 (sera): nomi giusti, righe scadute (670 → 857 e 400 → 571).* `grep -c 'export function \(vitaCava\|proiezioneAnnua\)' apps/terra/terra-data.js` → **`2`**: monitorano la vita della cava (consumo annuale, residuo, anni stimati). Ma è monitoraggio della **concessione**, non del pit design: nessuna delle due confronta lo scavo con una geometria di progetto. |
 | Volume reconciliation (misurato vs dichiarato) | **FALSO, C'È GIÀ** | ⏱️ *Prova riscritta il 09/08 (sera): tre numeri di riga scaduti su tre, i tre nomi giusti.* `grep -c 'export function \(riconciliazioneTurni\|misuratoPeriodo\|produzioneDichiarata\)' shared/dw-ponti.js` → **`3`**; la pagina di Terra le importa e le chiama (`grep -c riconciliazioneTurni apps/terra/index.html` → **`4`**). Confronta il volume **misurato dai rilievi** col **dichiarato dai turni di campo**. ⏱️ E dal `5b9e4e5` (09/08) la riga è ancora più falsa di prima: `serieDichiaratoTurni` e `descriviBuchiTurni` distinguono i **tre modi** in cui un punto del confronto può mancare, invece di chiamarli tutti «i turni non hanno dichiarato niente». |

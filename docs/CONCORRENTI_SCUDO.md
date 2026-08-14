@@ -444,7 +444,26 @@
 
 ## 7. Verifica del Delta (01/08 · riverificata riga per riga il 03/08 · **arretrato richiuso il 06/08**)
 
-> **Verificato contro il codice al commit `7a03bc4`** *(14/08 · **17 righe di
+> **Verificato contro il codice al commit `400ab48`** *(14/08 · riallineato nel
+> giro della direttiva 7. I due commit di arretrato **non MORDONO**: `<button>`
+> 109 prima e 109 dopo, e l'unica `export` nuova è `ragioneData`, che non è una
+> funzione nuova ma un **alias** della sorella già in
+> `shared/deepwork-id-client/dw-shell.js` — la decisione in un posto solo, e un
+> alias non è una seconda implementazione. **Nessuna riga si muove.**
+>
+> ✅ **E i comandi di prova delle righe assenti sono stati rilanciati uno per
+> uno: tornano TUTTI identici** — `offline|serviceworker|caches\.` → `0 e 0`,
+> `osservazion|buona pratica|safety observation` → `0 e 0`, `psc` → `0 e 0`,
+> `video` → `0 e 0`, `accept="image/*"` → `2`, e i due che già rispondevano
+> per opera nostra (`ptw|permit|…` e `xlsx|excel|jspdf`) danno ancora **`2` e
+> `0`**, con le stesse due occorrenze caratterizzate nella cella.
+> ⏱️ **Zero prove scadute, per la quarta riverifica di fila** — ed è la ragione
+> per cui questo documento è il riferimento: ogni sua riga porta **il comando con
+> le sue alternative e l'uscita attesa** invece del conteggio di una parola sola.
+> Nello stesso giro Conti e Flotta, che i numeri di riga li avevano ancora, hanno
+> dato **cinque prove marcite ciascuna**.
+>
+> *(riverificato in precedenza a `7a03bc4` lo stesso 14/08 · **17 righe di
 > verdetto su 17 riguardate**, dopo i tre commit che MORDONO segnalati
 > dall'arretrato — `438c0c1`, `5b46659`, `7a03bc4`. Esito: **verdetti cambiati
 > zero**; **una prova caduta davvero** (`xlsx|excel|jspdf`, che dal 06/08 dava
@@ -655,7 +674,7 @@ Il riferimento a `§2` è la riga corrispondente della tabella «Cosa Abbiamo».
 | Report PDF automatico — ispezioni (§2 «Report PDF automatico») | CONFERMATA | ⏱️ *Prova rimisurata il 06/08: le stampe sono **due**, non una.* Il **verbale DPI** (`stampaVerbale`) e la **cartella del personale** (`costruisciCartella`, da `1857d83`), tutt'e due con le regole `@media print` della classe `stampa-verbale`. ⏱️ *Prova riscritta il 14/08 — i quattro `file:riga` erano scaduti tutti e quattro, il verdetto no*: `grep -cE 'function (stampaVerbale\|costruisciCartella)' apps/scudo/index.html` → **2** e `grep -c 'window.print()' apps/scudo/index.html` → **2**, cioè le stampe sono ancora **due**. Il verdetto regge lo stesso, perché la domanda è un'altra: **nessuna delle due parte da un'ispezione**. |
 | Esportazione report PDF/Excel (§2 «Esportazione report PDF/Excel») | CONFERMATA | ⏱️ **Prova riscritta il 14/08, ed è l'UNICA dei sette comandi che è caduta davvero.** `grep -ciE 'xlsx\|excel\|jspdf'` dava **0 e 0** dal 06/08 e oggi dà **2 e 0**: a farlo salire è **il nostro stesso lavoro**, cioè i due commenti dei lettori CSV nati con `7a03bc4` — «accusare l'utente di un difetto del suo **Excel** è il falso allarme che insegna a non guardare i messaggi» e «chi esporta le scadenze da **Excel** e le reimporta qui». È «il gergo di casa che entra nel conto», la terza delle quattro cause censite il 09/08, e peggiora proprio perché si lavora. Il comando che regge, perché cerca la **libreria** e non la parola: `grep -ciE 'xlsx\|jspdf\|sheetjs\|exceljs\|new Blob\(\[.*application/vnd'` → **0 e 0**. Verdetto invariato, e semmai rafforzato: le uscite restano **CSV puntuali** (`grep -ohE 'scudo_[a-z_]+\.csv' apps/scudo/index.html apps/scudo/scudo-data.js \| sort -u \| wc -l` → **5**; ⚠️ *il `-h` non è un dettaglio: senza, `grep` su due file mette davanti il nome del file e `sort -u` conta **6**, perché `scudo_personale_scadenze.csv` compare in tutt'e due — un righello che sbaglia in su, misurato il 14/08 rilanciando i comandi di questo documento uno per uno*), nessun documento unico da consegnare a un ispettore. ⚠️ E il conto dei CSV resta **il numero sbagliato da scrivere** — è già scaduto tre volte (tre, quattro, cinque): la riga vive del `grep` sulla libreria, non di quel numero. |
 | Notifiche automatiche (§2 «Notifiche automatiche») | CONFERMATA | `grep -ci 'notific'` → **0 e 0**. Le righe con «email/SMS» sono il **testo da copiare a mano**: `grep -cE 'export function testoPromemoria' apps/scudo/scudo-data.js` → **1** e `grep -c 'incollalo' apps/scudo/index.html` → **2** («incollalo nell'email o nell'SMS»). ⏱️ *Prova riscritta il 14/08: i tre `file:riga` erano scaduti, il verdetto no.* L'app scrive il messaggio, non lo manda: la scadenza la deve vedere un umano che apre l'app. |
-| Segnalazioni osservazioni (§2, quattro righe «Segnalazioni Osservazioni») | CONFERMATA | `grep -ciE 'osservazion\|buona pratica\|buone pratiche\|safety observation'` → **0 e 0**. Il registro eventi ha due soli tipi, `infortunio` e `near-miss` (`grep -c 'infortunio|near-miss' apps/scudo/scudo-data.js` → **1**, lo schema in cima al modulo): manca il terzo, quello che si segnala **prima** che accada qualcosa. |
+| Segnalazioni osservazioni (§2, quattro righe «Segnalazioni Osservazioni») | CONFERMATA | `grep -ciE 'osservazion\|buona pratica\|buone pratiche\|safety observation'` → **0 e 0**. Il registro eventi ha due soli tipi, `infortunio` e `near-miss` (`grep -c 'infortunio\|near-miss' apps/scudo/scudo-data.js` → **1**, lo schema in cima al modulo): manca il terzo, quello che si segnala **prima** che accada qualcosa. |
 | Mobile app offline (§2 «Mobile app offline») | CONFERMATA | `grep -ciE 'offline\|serviceworker\|caches\.'` → **0 e 0**. C'è il `manifest` PWA (`index.html:12`, `display:standalone`), che rende l'app installabile ma **non** utilizzabile senza rete: in cava, dove il campo non c'è, la checklist non si compila. |
 | **⏱️ SCADUTE — vere il 01/08, colmate dopo** |  |  |
 | Permessi di lavoro (PTW) (§2, cinque righe «Permessi di Lavoro») | ⏱️ SCADUTA | Era CONFERMATA e la prova reggeva: `grep -ciE 'ptw\|permit\|autorizzatore\|lavoro in quota\|lavori a caldo'` → **0 e 0**, e «permesso di lavoro» compariva **2 volte**, la stessa frase della voce di checklist. ⏱️ *Prova riscritta il 09/08: quel comando oggi dà **2 e 0** — non perché il verdetto sia cambiato (era già SCADUTA), ma perché a rispondere adesso sono **il nostro stesso lavoro**: il commento che cita `HSG250` «permit-to-work systems» e la voce di checklist «Lavoro in quota — nastri, sili, coperture». È «il gergo di casa che entra nel conto», e peggiora proprio perché si lavora. E le due citazioni `file:riga` che questa riga portava erano **tutt'e due scadute** — puntavano a un commento sugli zeri e a `riepilogoAzioni`: la voce vera è `v8`, «Accesso a tramogge e spazi confinati regolato da permesso di lavoro», che si ritrova con un `grep` del testo e non si sposta.* Colmata da `22999aa` (03/08) **perché questa riga la proponeva**: 27 funzioni nella sezione S8, collezione `permessi`, pagina `page-perm`, e il ponte che toglie la spunta «conforme» quando il permesso che la voce pretende non esiste. Coperte tre righe su cinque della §2 — «permessi per spazi confinati/lavori caldi/altura», «workflow di approvazione», «monitoraggio permessi in tempo reale»; **restano fuori** «integrazione con rischi e JSA» (ci sono le misure e l'atmosfera, non la valutazione dei rischi collegata) e «coordinamento lavori simultanei». |

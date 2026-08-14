@@ -340,7 +340,25 @@ Fonti: Newtrax MDP product page, Micromine Pitram short-interval control docs.
 
 ## Verifica del delta (01/08 · riverificato il 03/08 · **arretrato richiuso il 06/08**)
 
-> **Verificato contro il codice al commit `37c4393`** *(14/08 · **22 righe di
+> **Verificato contro il codice al commit `97cbf67`** *(14/08 · riallineato nel
+> giro della direttiva 7. L'unico commit di arretrato è `97cbf67` e **non
+> MORDE**: `<button>` 48 prima e 48 dopo, `export function` nuove **zero**, e le
+> 17 righe aggiunte sono la guardia che ferma il **file di un'altra tabella**
+> prima che la sua intestazione entri come riga di dati. Nessuna capacità nuova,
+> quindi **nessuna riga di questa tabella si muove**.
+>
+> ✅ **E le sedici ricerche «CONFERMATO ASSENTE» sono state rilanciate una per
+> una lo stesso**, perché un «non c'è» invecchia anche quando il commit non
+> morde: **tornano tutte e sedici identiche** — geofencing/GPS, IoT/sensori,
+> tablet in-cab, dispatch, RFID/magazzino, firma digitale, offline/IndexedDB,
+> chiamate di rete, hazard → `0 e 0` ciascuna. E i due comandi che il 14/08
+> erano stati **derivati** invece che scritti a mano reggono: i lettori/scrittori
+> CSV sono ancora **10**, e `a.download = "campo_` ancora **5**.
+> ⏱️ **Zero prove scadute**, che è l'esito di Scudo e di Terra e non è un caso:
+> questo documento porta **quattro** citazioni `file:riga` in tutto, e le prove
+> sono comandi.
+>
+> *(riverificato in precedenza a `37c4393` lo stesso 14/08 · **22 righe di
 > verdetto su 22 riguardate**, dopo i tre commit che MORDONO segnalati
 > dall'arretrato — `7072988`, `c93c607`, `37c4393`. Esito: **verdetti cambiati
 > zero**; **due prove cadute davvero**, tutte e due per la stessa causa e tutte
