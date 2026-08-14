@@ -848,6 +848,58 @@ Perché serva davvero e non produca elenchi generici, cinque vincoli:
   a ogni fallimento della coda. La suite non finiva più, e non c'era niente da
   leggere. Con `[ \t]` gli a capo non entrano nell'ambiguità e il conto torna
   lineare. È la copia-da-firma-troppo-stretta applicata a una **regex**.
+  ⛔ **E IL 14/08 LA TERZA VOLTA, NEL POSTO CHE UN CONTROLLO NON PENSA MAI DI
+  GUARDARE: SÉ STESSO. Un controllo che esclude i propri test è cieco proprio
+  dove il codice cambia più spesso.** `nomi-liberi` esiste per prendere un nome
+  chiamato che non esiste, e il suo elenco di soggetti escludeva la cartella
+  `tests` **per costruzione** (`v.name !== "tests"`) prendendo solo i `.js`,
+  mentre le suite sono `.mjs`. Quel giorno un cantiere ha scritto
+  `MODULI.flotta` in `run-kpi.mjs` dove `MODULI` viveva nello scope del blocco
+  di **un altro** cantiere: la suite è crollata al primo lancio. Nessun
+  controllo l'ha vista — e il «**0 fuori scope**» stampato in fondo era vero
+  **sul suo denominatore**, che non conteneva il posto dove il difetto è
+  successo. *«Si scopre presto» non è «è guardato»: è la differenza fra un
+  controllo e la fortuna.*
+  ⚠️ **Il costo della stretta, misurato prima di farla**, come pretende la riga
+  qui sopra: allargando **tutte e cinque** le domande, moduli 18 → **60**,
+  chiamate 7.330 → **25.040**, e allarmi nuovi **0** sulle due che contano (i
+  nomi chiamati e lo scope) e **45** sulle altre tre. I 45 sono di due famiglie
+  sole e tutt'e due legittime: i **globali di Node** (`process`) e il **codice
+  scritto come stringa** che una suite si costruisce per iniettarlo (`${xQ}`,
+  `${CSS_ESEMPIO}` — pezzi di pagina finta, non riferimenti veri). Entrano le
+  due che costano zero; le altre tre **dichiarano** di non guardare le suite.
+  ⛔ **E c'è un TERZO AMBIENTE che nessuna di queste domande può giudicare**, e
+  riconoscerlo vale più del caso: i banchi del browser hanno metà del codice
+  dentro `page.evaluate()`, dove i nomi sono quelli del **browser**
+  (`KeyboardEvent`, `PointerEvent`, `Uint8ClampedArray`) e perfino i **globali
+  della pagina che stanno provando** (`nav`). Otto allarmi, otto di quella
+  famiglia, zero difetti. Un elenco di nomi noti per coprirli sarebbe **senza
+  fondo**: i globali di una pagina sono quanti ne scrive la pagina. Quindi
+  restano fuori — ma il riepilogo stampa **quante suite entrano e quanti banchi
+  restano fuori**, perché un'eccezione che non si conta è un'eccezione che
+  nessuno riapre.
+- ⛔ **UN `grep` SU UNA CARTELLA SENZA `-r` RISPONDE «0» DA SOLO**, ed è la
+  quinta forma del righello che produce il «non c'è». Misurata il 14/08 su un
+  documento di ricerca: `grep -ciE 'termine' apps/conti/` stampa
+  `grep: apps/conti/: Is a directory` **e poi `0`** — e chi copia solo il
+  numero ha in mano uno zero che parla del comando, non del codice. Nello
+  stesso documento c'erano le altre quattro, tutte già scritte in questo file:
+  la **pipe sfuggita** dentro `-E` (`\|` è letterale, quindi lo zero è
+  garantito — senza la sfuggita lo stesso comando rispondeva **3**), i
+  **refusi** nei termini cercati (`dichiarazu`, `versatu`: due parole su tre
+  che non esistono in nessuna lingua), e il **conto che si contraddice** («
+  nessuna delle **tre** mancanze» scritto sotto una tabella che ne elencava
+  **quattro**).
+  ⚠️ **E la quinta l'ho scritta io nella sezione che correggeva le altre
+  quattro**: «`aliquot` dà **8** occorrenze» dove sono **90** — avevo riportato
+  il numero di un comando più stretto lanciato un minuto prima. A prenderlo è
+  stato il **rilancio** del comando prima di committare, non la rilettura, che
+  l'aveva lasciato passare due volte. È la ragione per cui in questa casa una
+  prova è **un comando con la sua uscita** e non una frase che descrive una
+  ricerca: *un comando si rilancia; un numero si può solo credere.*
+  ⚠️ E il verdetto di quelle quattro righe **reggeva tutto**: 4 mancanze su 4
+  confermate. Cioè le prove false non rendono la riga sbagliata — la rendono
+  **non credibile**, e chi la riverifica butta via anche il giudizio giusto.
   ⚠️ E il corollario sugli elenchi: `UI_CONDIVISA` di `run-stile` aveva **sei**
   nomi scritti a mano mentre la struttura condivisa ne espone **dieci**. Un
   elenco a mano non poteva accorgersi di `chiediDati` — **non sapeva nemmeno
