@@ -2142,7 +2142,13 @@ numero scritto dove non era stato misurato niente**.*
       legenda dei raggi-X, che scriveva «esplosivo 60 kg».
       ⛔ **NESSUNA SOGLIA TOCCATA**: `ppvLimit`, le curve USBM/DIN, i 133 dB(L),
       la soglia SDOB 1,4/0,9 e le formule Richards&Moore/McKenzie/Lundborg sono
-      le stesse. Qui si smette solo di **inventare gli ingressi**. Sul progetto
+      le stesse.
+      ✅ **RIMISURATO DA ME il 14/08**, perché questi numeri sono finiti nel
+      documento che il fondatore apre e non potevano restare sulla parola di un
+      cantiere: `confinamentoColletto({kg:58, stem:2.2, diam:102})` →
+      **sdob 1,4280…**, cioè l'1,43 pubblicato **alla cifra**; con `kg:null` →
+      **`sdob:null`, `calcolabile:false`**, con la bandiera `carica:true` e la
+      frase che nomina il dato che manca. Regge. Qui si smette solo di **inventare gli ingressi**. Sul progetto
       sano i numeri sono identici alla cifra: SDOB **1,43** · gittata **101 m** ·
       sgombero **202 / 404 m**.
       **Prove**: 8 in `run-kpi` (G17), e `genesi-campi-assenti.mjs` da 36 a **55**
