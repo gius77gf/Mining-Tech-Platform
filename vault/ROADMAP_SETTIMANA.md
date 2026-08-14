@@ -212,10 +212,8 @@ grep -n "^- \[ \] \*\*" vault/ROADMAP_SETTIMANA.md
 - `D. Le 24 decisioni ancora aperte`
 - `B3. Genesi continua a uscire dalla pagina`
 - `B0-septies. CHE COSA DISEGNA UNA PIANTA SENZA MAGLIA — i ripieghi`
-- `B0-nonies (com'era). CON L'INTERASSE ASSENTE LA PAGINA DI GENESI MUORE, E IL`
 - `B0-quaterdecies. IL TEMA CHIARO DEL CORE NON È MAI STATO MISURATO PER`
 - `B0-duodecies. I CLAMP DELLE TRE SUPERFICI CHE IL CENSIMENTO NON AVEVA`
-- `B3-ter (com'era). «Sui 1 fori già caricati» — e undici righe sotto la guardia`
 - `B0-bis. TRE FAMIGLIE DI INIEZIONI CHE NESSUN CONTROLLO SORVEGLIA — e`
 - `B0. I CANTIERI DEL BROWSER E IL GIRO SI RUBANO LA MACCHINA — misurato`
 - `B4. Le mancanze confermate del delta`
@@ -227,10 +225,8 @@ grep -n "^- \[ \] \*\*" vault/ROADMAP_SETTIMANA.md
 - `Q1`
 - `I 20 KO del giro del 09/08, riverificati sul commit di adesso`
 - `«Adempimenti» è la parola che governa il minimo di Sentinella`
-- `B5. I LETTORI CSV CHE CANCELLANO UNA RIGA IN SILENZIO — il rovescio`
 - `B6. «NON ANCORA CARICATO» NON È «NON C'È» — la quarta faccia del tema`
 - `B7. `sentinella-periodo-adempimento` È INTERMITTENTE — e va rimisurato a`
-- `B8. IL FILE SBAGLIATO ENTRA IN SILENZIO — e la difesa ovvia è già stata`
 
 ## 🎯 L'obiettivo della settimana
 
@@ -1137,7 +1133,8 @@ numero scritto dove non era stato misurato niente**.*
       vuota**.
 
       ⏱️ *Il testo originale della riga:*
-- [ ] **B0-nonies (com'era). CON L'INTERASSE ASSENTE LA PAGINA DI GENESI MUORE, E IL
+- [x] **B0-nonies (com'era, e resta per la MISURA — non è lavoro da fare: la
+      chiusura sta più su in questo file). CON L'INTERASSE ASSENTE LA PAGINA DI GENESI MUORE, E IL
       MESSAGGIO CHE DOVEVA SPIEGARLO NON ARRIVA MAI.** ⏱️ *Trovato il 09/08
       misurando i campi di B0-sexies; **pre-esistente**, non nato oggi
       (`git show aec46eb^:apps/genesi/genesi.html | grep -n "isFinite(Sm)"` dà
@@ -2111,7 +2108,8 @@ numero scritto dove non era stato misurato niente**.*
       scratchpad.
 
       ⏱️ *Il testo originale della riga:*
-- [ ] **B3-ter (com'era). «Sui 1 fori già caricati» — e undici righe sotto la guardia
+- [x] **B3-ter (com'era, e resta per la MISURA — non è lavoro da fare: la
+      chiusura del 10/08 sta più su in questo file). «Sui 1 fori già caricati» — e undici righe sotto la guardia
       giusta c'è già.** ⏱️ *Trovato il 09/08 dal banco del ponte di Campo.*
       Con **esattamente un** foro registrato, `apps/campo/index.html` compone
       «Sui **1** fori già caricati: 118,5 kg contro 100 kg previsti +19%».
@@ -5373,8 +5371,10 @@ di scriverlo qui**: niente entra sulla parola dell'agente.
   oggi. `classi-orfane` non la vede perché guarda il **nome** — `warn` è
   vivissima come `.badge.warn` — non la **combinazione**.
 
-- [ ] **B5. I LETTORI CSV CHE CANCELLANO UNA RIGA IN SILENZIO — il rovescio
-      esatto della passata di stanotte.** ⏱️ *Aperta il 13/08 dalla ricerca
+- [x] **B5 (com'era, e resta per la MISURA che l'ha aperta — non è lavoro da
+      fare: la chiusura è la voce «LE RIGHE CHE L'IMPORT CANCELLA ADESSO SI
+      VEDONO», più giù in questo file). I LETTORI CSV CHE CANCELLANO UNA RIGA IN
+      SILENZIO — il rovescio esatto della passata di stanotte.** ⏱️ *Aperta il 13/08 dalla ricerca
       sull'assenza dichiarata (`docs/RICERCA_CONTINUA_ASSENZA.md`), con i numeri
       **rimisurati** prima di scriverli qui.*
       Stanotte abbiamo guardato i file che **escono** e trovato sedici difetti.

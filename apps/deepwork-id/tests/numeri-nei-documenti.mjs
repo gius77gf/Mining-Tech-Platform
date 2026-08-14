@@ -1017,6 +1017,49 @@ console.log(`\ncantiere di Genesi: ${g ? `${g.totale} funzioni nella pagina, ${g
 const CONTABILI = /(prove|asserzioni|funzioni|esecuzioni|banchi|suite|comandi|classi|iniezioni|schermate|superfici|checkpoint|moduli)/i;
 const rigaDi = (testo, i) => testo.slice(0, i).split("\n").length;
 console.log("\nNumeri dichiarati e chi li guarda — misura, non regola:");
+/* ⛔ L'INDICE DELLE VOCI APERTE DELLA ROADMAP, E PERCHÉ È UN CONTROLLO E NON UNA
+   BUONA ABITUDINE. Il 14/08 un cantiere è stato mandato a rifare un lavoro
+   **chiuso il 10/08**: la voce `B0-decies` era ancora `- [ ]` perché nessuno
+   l'aveva spuntata, e l'indice in cima la elencava fra le aperte. Sono due ore
+   di riverifica, e la roadmap è il posto da cui il ciclo decide che cosa fare.
+   È la terza forma d'invecchiamento di CLAUDE.md — *una riga che propone un
+   lavoro già fatto lo fa RINASCERE* — applicata al file che la ospita.
+   Lo stesso giorno il conto era sbagliato **nei due versi**: tre voci
+   superate erano rimaste `- [ ]` (e l'indice le proponeva), e una chiusa
+   (`B8`) era rimasta **nell'indice** pur essendo `- [x]`.
+   Il controllo è una sottrazione, non una lettura: quante voci `- [ ]` ci
+   sono, e quante righe ha l'indice. Se i due numeri si scostano, uno dei due
+   è più vecchio dell'altro. */
+{
+  const rel = "vault/ROADMAP_SETTIMANA.md";
+  const testo = readFileSync(join(RADICE, rel), "utf8");
+  const aperte = (testo.match(/^- \[ \] \*\*/gm) || []).length;
+  /* l'indice è il blocco di righe «- `nome`» che segue il suo titolo: si legge
+     da lì e non da tutto il file, se no un elenco puntato qualunque entrerebbe
+     nel conto */
+  const daTitolo = testo.slice(testo.indexOf("## 🧭 Le voci APERTE, per nome"));
+  const indice = (daTitolo.match(/^- `/gm) || []).length;
+
+  test("la roadmap: l'indice delle voci aperte ha una riga per ogni voce aperta", () => {
+    ok(aperte > 0, "nessuna voce aperta trovata: il righello non sta guardando dove crede");
+    ok(indice === aperte,
+      `l'indice elenca ${indice} voci e le voci \`- [ ]\` sono ${aperte}: uno dei due è più vecchio dell'altro.\n`
+      + "      Si rigenera con: grep -n \"^- \\[ \\] \\*\\*\" vault/ROADMAP_SETTIMANA.md");
+  });
+
+  test("la controprova: una voce chiusa lasciata nell'indice viene vista", () => {
+    /* sul TESTO, senza toccare il disco: si aggiunge una riga d'indice che non
+       ha nessuna voce aperta dietro */
+    const guasto = daTitolo.replace("## 🧭 Le voci APERTE, per nome",
+      "## 🧭 Le voci APERTE, per nome\n- `voce che non esiste piu`");
+    ok(guasto !== daTitolo, "l'iniezione non ha sostituito niente: la prova non prova niente");
+    const indice2 = (guasto.match(/^- `/gm) || []).length;
+    ok(indice2 === indice + 1 && indice2 !== aperte,
+      "con una riga d'indice in più il conto deve scostarsi — e non si scosta");
+  });
+  console.log(`  [roadmap] ${aperte} voci aperte, ${indice} righe d'indice`);
+}
+
 for (const rel of ["docs/DEVELOPMENT.md", "docs/STATO_PRODOTTO.md", "docs/DECISIONI_WEEKEND.md"]) {
   const testo = readFileSync(join(RADICE, rel), "utf8");
   const coperte = new Set();
