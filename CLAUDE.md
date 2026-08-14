@@ -1685,7 +1685,29 @@ Perché serva davvero e non produca elenchi generici, cinque vincoli:
   altro corpo è stato ridetto da nessuno. Quindi «uno solo morde» non è
   invecchiato, ed è ancora **una regola** e non un difetto del disegno.
   ⚠️ La lezione non è sul tema: è che **una decisione presa con la misura va
-  tolta anche dalle liste che la propongono**, se no rinasce da sola. Qui a
+  tolta anche dalle liste che la propongono**, se no rinasce da sola.
+  ⛔ **E IL 14/08 QUELLA STESSA COSA È SUCCESSA IN UNA VESTE CHE LA RIGA QUI
+  SOPRA NON COPRE: A PROPORRE NON ERA UNA LISTA, ERA UN COMMENTO SCRITTO AL
+  FUTURO.** `accorciaVoceTendina` di Sentinella porta accanto, dal 09/08,
+  «⚠️ **VIVREBBE** in `shared/`: la stessa domanda ce l'ha Scudo… sta qui perché
+  il cantiere che l'ha scritta non poteva toccare `shared/`». Onesto, e una
+  **previsione**. Dodici minuti dopo, un checkpoint decideva il contrario **con
+  la misura**: *«oggi il secondo consumatore NON esiste, e la regola scatta su
+  "serve a due app", non su "potrebbe servire"»*. Cinque giorni dopo un cantiere
+  ha letto la previsione come un **fatto** e me l'ha consegnata come lavoro da
+  fare; io l'ho scritta in roadmap senza rileggere i checkpoint, e un secondo
+  cantiere è partito per farla. Si è fermato **prima di spostare qualcosa**,
+  perché il mandato gli chiedeva di provare il «serve a due app»: chi la chiama
+  sono **3 punti, tutti in Sentinella**, e l'unica occorrenza in Scudo è un
+  commento che dice **l'opposto**.
+  ⚠️ **Perché questa veste è peggiore di una lista**: un checkpoint lo si
+  rilegge quando si cerca una decisione, un commento lo si legge **mentre si
+  lavora sul codice** — quindi la previsione **sopravvive** alla decisione che
+  la respinge, e la vince per posizione. La regola pratica: **un commento che
+  propone un lavoro futuro va scritto con la sua data e va chiuso da chi decide
+  di non farlo** — se no, ogni cantiere che passa di lì lo riscopre. E chi
+  riceve da un agente un «vivrebbe / andrebbe / bisognerebbe» cerca **prima nei
+  checkpoint** se qualcuno l'ha già deciso. Qui a
   proporla erano i checkpoint — cioè il posto in cui il ciclo si dice che cosa
   fare dopo — e nessuno l'aveva confrontata con questa riga.
   ⚠️ E la correzione va dove vince la cascata, non dove il codice è più

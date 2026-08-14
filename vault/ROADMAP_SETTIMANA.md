@@ -286,9 +286,40 @@ chiuse. Le aperte sono **24**; la pagina d'ingresso di
       **Controprova**: 3 iniezioni indipendenti → **7 · 1 · 2** prove cadute.
       Ogni metà è sorvegliata **da sola**: nessuna delle due poteva bastare.
       **Misure**: `run-kpi` 2259 → **2270**, 0 falliti.
-      ⏱️ **Lasciato fermo con la ragione**: `accorciaVoceTendina` vivrebbe in
-      `shared/dw-ponti.js` (il suo commento dice che serve anche a Scudo), ma
-      `shared/` era fuori perimetro. È la regola del `shared/`, e va fatta.
+      ⛔ **E QUESTA RIGA, CHE AVEVO SCRITTO IO, ERA UNA DECISIONE GIÀ PRESA CHE
+      RINASCEVA.** Diceva: «`accorciaVoceTendina` vivrebbe in `shared/dw-ponti.js`
+      (il suo commento dice che serve anche a Scudo), è la regola del `shared/` e
+      va fatta». **Falsa**, e il cantiere mandato a farla si è fermato **prima di
+      spostare qualunque cosa**, con le prove:
+      · chi la chiama, sul codice **senza commenti**, in 51 file di prodotto:
+        **3 occorrenze, tutte in Sentinella**. Prima Sentinella, dopo Sentinella;
+      · l'unica occorrenza in Scudo è **un commento, e dice l'opposto**: «`#vf-esito`
+        è un'etichetta NOSTRA, non il titolo di un documento scritto dall'utente…
+        qui il testo lo scriviamo noi, e allora lo si scrive corto»;
+      · e la decisione era **già stata presa con la misura il 09/08**, dodici
+        minuti dopo che quel commento era nato: *«oggi il secondo consumatore NON
+        esiste, e la regola scatta su "serve a due app", non su "potrebbe
+        servire"»* (`048af9f5`).
+      ⚠️ **La forma da riconoscere**: il commento diceva «**VIVREBBE** in
+      `shared/`» — una **previsione**, scritta onestamente da chi non poteva
+      toccare `shared/`. Cinque giorni dopo un cantiere l'ha letta come un
+      **fatto**, e io l'ho riportata in roadmap senza rileggere i checkpoint. Una
+      previsione scritta in un commento **sopravvive alla decisione che la
+      respinge**, perché la decisione sta in un checkpoint e il commento sta
+      accanto al codice.
+      ⏱️ **Quello che invece è vero e resta aperto, misurato dallo stesso
+      cantiere**: il taglio di un testo è scritto **tre volte**, e non fra
+      Sentinella e Scudo — fra Sentinella e **`shared/dw-grafici.js`**. `tagliaA`
+      (in `shared/`) e `accorcia` (in Scudo) **spezzano le coppie surrogate**
+      (UTF-16), `componi` dentro `accorciaVoceTendina` no (`[...t]`); e i tre
+      tolgono separatori diversi. Misurato: **6 casi su 8 divergono** fra
+      `tagliaA` e `componi`, e su 6 casi mirati `accorcia` lascia un separatore
+      appeso in **4** e mezzo carattere in **1**.
+      ⚠️ **Ma sui dati veri non morde**: passando i **56 testi della
+      dimostrazione** dai punti d'uso reali, **27 vengono tagliati, 0 con
+      separatore appeso, 0 con mezzo carattere**. È **latente**, e va scritto
+      così — la prima fixture del cantiere usava `D.eventi` e
+      `D.modelliIspezione`, che **non esistono**: la solita tabella indovinata.
 
 - [ ] **B12. IL RIPIEGO SILENZIOSO NEL CORE — censito, e sono CANDIDATI, non
       difetti.** ⏱️ *14/08, censimento statico fatto da me; il core è l'unica
@@ -5478,12 +5509,14 @@ di scriverlo qui**: niente entra sulla parola dell'agente.
 
 ### Quello che questi tre cantieri lasciano aperto (dichiarato, non taciuto)
 
-- ⛔ **`accorciaVoceTendina` di Sentinella dovrebbe vivere in `shared/dw-ponti.js`.**
-  Scudo ha la stessa domanda e ha imboccato un'altra strada
-  (`voceDocumentoInElenco`, per singolo documento), quindi **oggi non c'è
-  collisione di nomi** — ma è esattamente la «regola che serve a due app scritta
-  due volte», e va chiusa quando i due lavori si incontrano. Nessuno dei due
-  cantieri poteva toccare `shared/`.
+- ✅ **`accorciaVoceTendina` NON si sposta in `shared/` — deciso con la misura il
+  09/08, riverificato il 14/08, e questa riga resta solo per non farlo rinascere
+  una terza volta.** Scudo ha la stessa domanda e ha imboccato un'altra strada
+  (`voceDocumentoInElenco`, per singolo documento): non è un duplicato, e il
+  commento di Scudo dice **per iscritto** che lì il troncamento non si vuole.
+  Chi la chiama, misurato sul codice senza commenti in 51 file di prodotto: **3
+  occorrenze, tutte in Sentinella**. La regola del `shared/` scatta su «serve a
+  due app», **non** su «potrebbe servire».
 - ⚠️ **`#vf-esito` di Scudo**: «— nessun esito registrato —» chiede 201,9 px in
   196 a 320. Stesso difetto latente appena chiuso su `#vf-verbale`, su un campo
   diverso, mai finito in un KO. **Non toccato**, segnalato.
