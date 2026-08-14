@@ -31243,6 +31243,267 @@ test("frasePersi · ⚠️ NIENTE `esc()`: la frase esce come l'utente l'ha scri
 }
 /* ===== fine shared · misuratoPeriodo ====================================== */
 
+/* ===== le sottrazioni fra due insiemi =====================================
+   ⛔ In `Math.max(0, a − b)` quello zero di comodo è lì perché qualcuno SAPEVA
+   che `b ⊆ a`, e quell'invariante non è scritto da nessuna parte. Censite col
+   comando (`node apps/deepwork-id/tests/ripieghi-silenziosi.mjs --solo=<app>`,
+   colonna «di cui a-b»): 28 nel perimetro Conti/Flotta/Terra. Le due che non
+   reggevano sono qui sotto, ognuna con il numero che usciva e quello vero.
+   ⚠️ Prove SINCRONE e PRIMA del riepilogo: `await Promise.all(inVolo)` sta a
+   metà file, quindi una prova asincrona appesa in coda non verrebbe aspettata
+   e il totale si stamperebbe senza di lei. */
+{
+  /* ── FLOTTA · affidabilitaFlotta ─────────────────────────────────────────
+     L'invariante rotto: «i fermi di una stessa macchina non si sovrappongono».
+     La pagina impedisce due fermi APERTI sullo stesso mezzo; due CHIUSI che si
+     accavallano entrano senza un avviso. Sommandoli, `giorniMacchina − persi`
+     toglieva due volte gli stessi giorni e il `Math.max(0, …)` non poteva
+     accorgersene. Direzione: ACCUSA il parco del cliente. */
+  const MEZZI = [{ nome: "Pala 1" }, { nome: "Escavatore 2" }, { nome: "Dumper 3" }];
+  const OGGI = new Date("2026-08-14T12:00:00Z");
+  const finestraPiena = { inizio: "2026-07-16", fine: "2026-08-14" };   // 30 giorni esatti
+
+  test("⛔ Flotta · affidabilitaFlotta: due fermi SOVRAPPOSTI non tolgono due volte gli stessi giorni", () => {
+    const uno = flotta.affidabilitaFlotta(
+      [{ mezzo: "Pala 1", causale: "guasto", ...finestraPiena }], MEZZI, 30, OGGI);
+    const due = flotta.affidabilitaFlotta(
+      [{ mezzo: "Pala 1", causale: "guasto", ...finestraPiena },
+       { mezzo: "Pala 1", causale: "revisione", ...finestraPiena }], MEZZI, 30, OGGI);
+    /* il caso sano non si muove: è quello che dice che la correzione non ha
+       cambiato il conto dove l'invariante era vero */
+    eq(uno.persi, 30, "un fermo solo: 30 giorni persi");
+    eq(uno.persiDistinti, 30, "e i giorni distinti sono gli stessi");
+    eq(uno.sovrapposti, 0, "niente contato due volte");
+    eq(uno.pct, 66.7, "due macchine su tre sempre operative = 66,7%");
+    /* il caso rotto: il ripiego dichiarava 33,3% dove il vero è 66,7% */
+    eq(due.persi, 60, "due fermi identici sommano 60 giorni di riparazione (MTTR: sono due riparazioni)");
+    eq(due.persiDistinti, 30, "ma i giorni-macchina persi restano 30: la macchina è UNA e la finestra ne ha 30");
+    /* ⚠️ il numero che conta va PRIMA della dichiarazione: se cade per primo
+       `sovrapposti`, la prova muore lì e le due righe sotto non si vedono —
+       è il banco che crolla e dichiara meno prove, in versione mite. */
+    eq(due.disponibili, 60, "60 giorni-macchina lavorabili, non 30");
+    eq(due.pct, 66.7, "⛔ il ripiego dichiarava 33,3%: il vero è 66,7%");
+    eq(due.sovrapposti, 30, "i 30 contati due volte si dichiarano, non spariscono");
+    /* e la sottrazione adesso è vera PER COSTRUZIONE, non per fortuna */
+    ok(due.persiDistinti <= due.giorniMacchina,
+      "i giorni distinti non possono superare i giorni-macchina: il Math.max non ha più niente da tagliare");
+    /* MTTR resta la somma degli episodi: le due domande sono diverse */
+    eq(due.durataMedia, 30, "il tempo medio di riparazione resta 30 giorni (60 su 2 episodi)");
+  });
+
+  /* ⛔ E QUI I DATI DELLA PROVA SONO STATI RIFATTI DOPO LA CONTROPROVA, perché
+     la prima stesura NON DISTINGUEVA — la prima delle sei cause di CLAUDE.md.
+     Con due fermi lunghi quanto la finestra intera, `max(0, 30 − 30)` e
+     `max(0, 30 − 60)` fanno tutt'e due **zero**: la risposta giusta e quella
+     sbagliata coincidevano, e la prova passava col difetto rimesso dentro.
+     Due fermi da 10 giorni che si accavallano di 5 le separano: unione 15,
+     somma 20, e i due conti danno numeri diversi in tutt'e tre i posti. */
+  const ACCAVALLATI = [
+    { mezzo: "Pala 1", causale: "guasto", inizio: "2026-07-16", fine: "2026-07-25" },   // 10 gg
+    { mezzo: "Pala 1", causale: "revisione", inizio: "2026-07-21", fine: "2026-07-30" }, // 10 gg, 5 in comune
+  ];
+
+  test("⛔ Flotta · affidabilitaFlotta: il conto del PARCO cambia numero, non solo etichetta", () => {
+    const r = flotta.affidabilitaFlotta(ACCAVALLATI, MEZZI, 30, OGGI);
+    eq(r.persi, 20, "la somma degli episodi fa 20 giorni di riparazione");
+    eq(r.persiDistinti, 15, "ma i giorni-macchina persi sono 15: cinque erano contati due volte");
+    eq(r.disponibili, 75, "⛔ 90 − 15 = 75 giorni-macchina lavorabili (col ripiego erano 70)");
+    eq(r.pct, 83.3, "⛔ il ripiego dichiarava 77,8%: il vero è 83,3%");
+    eq(r.sovrapposti, 5, "e i cinque doppi si dichiarano");
+  });
+
+  test("⛔ Flotta · affidabilitaFlotta: il conto per MEZZO dichiara i suoi giorni doppi", () => {
+    const m = flotta.affidabilitaFlotta(ACCAVALLATI, MEZZI, 30, OGGI).mezzi[0];
+    eq(m.mezzo, "Pala 1", "il mezzo con i fermi");
+    eq(m.pct, 50, "⛔ la macchina è stata ferma 15 giorni su 30: 50% (col ripiego 33,3%)");
+    eq(m.giorni, 20, "la somma degli episodi resta 20: sono due riparazioni");
+    eq(m.giorniDistinti, 15, "i giorni distinti sono 15");
+    eq(m.sovrapposti, 5, "e i cinque doppi sono dichiarati sulla riga del mezzo");
+    /* il `tratti` di lavoro non esce dal modulo: è un attrezzo, non un dato */
+    eq(m.tratti, undefined, "gli intervalli di lavoro non finiscono nella risposta");
+  });
+
+  test("⛔ Flotta · giorniDistinti: l'unione, non la somma", () => {
+    const g = flotta.giorniDistinti;
+    eq(g([{ inizio: "2026-07-16", fine: "2026-07-20" }]), 5, "un tratto solo: 5 giorni");
+    eq(g([{ inizio: "2026-07-16", fine: "2026-07-20" }, { inizio: "2026-07-16", fine: "2026-07-20" }]), 5,
+      "due tratti identici valgono i giorni una volta sola");
+    eq(g([{ inizio: "2026-07-16", fine: "2026-07-20" }, { inizio: "2026-07-18", fine: "2026-07-25" }]), 10,
+      "sovrapposizione parziale: dal 16 al 25");
+    eq(g([{ inizio: "2026-07-16", fine: "2026-07-30" }, { inizio: "2026-07-18", fine: "2026-07-20" }]), 15,
+      "uno contiene l'altro: valgono i giorni del più lungo");
+    eq(g([{ inizio: "2026-07-16", fine: "2026-07-20" }, { inizio: "2026-07-21", fine: "2026-07-25" }]), 10,
+      "adiacenti: fra la ripartenza e il fermo dopo non c'è nessun giorno di lavoro");
+    eq(g([{ inizio: "2026-07-16", fine: "2026-07-20" }, { inizio: "2026-07-23", fine: "2026-07-25" }]), 8,
+      "staccati: 5 + 3, i due giorni di lavoro in mezzo NON si perdono");
+    eq(g([{ inizio: "2026-07-23", fine: "2026-07-25" }, { inizio: "2026-07-16", fine: "2026-07-20" }]), 8,
+      "e l'ordine in cui arrivano non conta");
+    eq(g([]), 0, "nessun tratto: zero giorni");
+    eq(g(null), 0, "e un elenco che non c'è non fa cadere il conto");
+  });
+
+  test("⛔ Flotta · intervalloFermo: gli estremi TAGLIATI alla finestra, e `null` se non la tocca", () => {
+    const i = flotta.intervalloFermo;
+    /* ⚠️ `mostra` è un FORMATTATORE a un argomento, non un'asserzione: la
+       prima stesura lo chiamava come se fosse `eq` e cadeva con «visti.has is
+       not a function». L'asserzione su un oggetto in questa casa è `contiene`. */
+    contiene(i({ inizio: "2026-07-01", fine: "2026-08-31" }, "2026-07-16", "2026-08-14"),
+      { inizio: "2026-07-16", fine: "2026-08-14", giorni: 30 },
+      "un fermo più lungo della finestra vale la finestra");
+    eq(i({ inizio: "2026-01-01", fine: "2026-01-05" }, "2026-07-16", "2026-08-14"), null,
+      "un fermo tutto prima della finestra non la tocca: null, non zero giorni");
+    eq(i({ inizio: "boh" }, "2026-07-16", "2026-08-14"), null,
+      "un fermo che non si sa collocare resta null");
+    /* `giorniFermo` è diventato un guscio: la stessa risposta di prima */
+    eq(flotta.giorniFermo({ inizio: "2026-07-01", fine: "2026-08-31" }, "2026-07-16", "2026-08-14"), 30,
+      "giorniFermo non è cambiato: legge gli estremi invece di ricalcolarli");
+    eq(flotta.giorniFermo({ inizio: "2026-01-01", fine: "2026-01-05" }, "2026-07-16", "2026-08-14"), 0,
+      "e fuori finestra risponde 0 come ha sempre fatto");
+  });
+
+  test("⛔ Flotta · senzaFermi: l'invariante è vero PER COSTRUZIONE, e la prova lo dice", () => {
+    /* `perMezzo` si riempie solo per i nomi che stanno nel parco: i fermi delle
+       macchine uscite dal parco si contano a parte (`fuoriParco`). Quindi
+       `mezziLista.length ≤ parco` non è un'ipotesi. */
+    const r = flotta.affidabilitaFlotta(
+      [{ mezzo: "Pala 1", causale: "guasto", ...finestraPiena },
+       { mezzo: "Ruspa venduta", causale: "guasto", ...finestraPiena }], MEZZI, 30, OGGI);
+    eq(r.parco, 3, "tre mezzi nel parco");
+    eq(r.mezzi.length, 1, "un solo mezzo del parco ha fermi");
+    eq(r.fuoriParco, 1, "il fermo della macchina non più nel parco è contato a parte");
+    eq(r.senzaFermi, 2, "e i due senza fermi sono 3 − 1, non 3 − 2");
+    ok(r.mezzi.length <= r.parco, "la sottrazione non può diventare negativa: b ⊆ a per costruzione");
+  });
+
+  /* ── CONTI · statoFattura ────────────────────────────────────────────────
+     L'invariante rotto: «il cliente non paga più di quello che gli si può
+     chiedere». Fra incassato ed esigibile non c'è nessun legame — l'uno lo
+     scrivono i movimenti, l'altro le note di credito — e l'ordine normale del
+     mestiere è proprio quello che lo rompe: prima il cliente salda, poi si
+     emette la nota (reso, abbuono). Direzione: RASSICURA, e i soldi da
+     restituire sparivano da ogni campo. */
+  const FAT = { id: "F1", numero: "2026/031", importo: 10000, scadenza: "2026-01-31" };
+  const SALDATA = [{ fatturaId: "F1", importo: 10000, data: "2026-02-10" }];
+
+  test("⛔ Conti · statoFattura: una nota di credito DOPO il saldo non fa sparire il rimborso", () => {
+    const prima = conti.statoFattura(FAT, SALDATA, []);
+    const dopo = conti.statoFattura(FAT, SALDATA, [{ fatturaId: "F1", totale: 3000, bozza: false }]);
+    /* il caso sano non si muove */
+    eq(prima.stato, "saldata", "senza note: saldata");
+    eq(prima.aCreditoCliente, 0, "e niente da rimborsare");
+    /* il caso rotto: 3.000 € del cliente che nessun campo dichiarava */
+    eq(dopo.stato, "saldata", "resta saldata: il credito non è un residuo");
+    eq(dopo.esigibile, 7000, "dopo la nota si può chiedere 7.000");
+    eq(dopo.incassato, 10000, "ma il cliente ne ha versati 10.000");
+    eq(dopo.residuo, 0, "il residuo resta 0, e fa bene: non gli si chiede più niente");
+    eq(dopo.aCreditoCliente, 3000, "⛔ e i 3.000 da RIMBORSARE adesso si contano (prima sparivano nel Math.max)");
+    /* `eccedenza` NON risponde a questa domanda e non è stata allargata:
+       guarda il TOTALE del documento, cioè un errore di registrazione */
+    eq(dopo.eccedenza, 0, "l'eccedenza resta 0: i movimenti non superano il totale della fattura, sono giusti");
+  });
+
+  test("⛔ Conti · statoFattura: le due direzioni insieme non perdono niente", () => {
+    /* residuo e aCreditoCliente sono i due versi della stessa differenza: uno
+       dei due è sempre zero, e la loro differenza è esigibile − incassato. */
+    const casi = [
+      [SALDATA, [], "saldata senza note"],
+      [SALDATA, [{ fatturaId: "F1", totale: 3000, bozza: false }], "nota dopo il saldo"],
+      [SALDATA, [{ fatturaId: "F1", totale: 10000, bozza: false }], "nota che annulla tutto, già pagata"],
+      [[], [{ fatturaId: "F1", totale: 3000, bozza: false }], "nota su fattura mai pagata"],
+      [[{ fatturaId: "F1", importo: 4000, data: "2026-02-10" }], [], "acconto parziale"],
+    ];
+    for (const [inc, note, et] of casi) {
+      const s = conti.statoFattura(FAT, inc, note);
+      ok(s.residuo === 0 || s.aCreditoCliente === 0, et + ": uno dei due versi è sempre zero");
+      eq(Math.round((s.residuo - s.aCreditoCliente) * 100) / 100,
+         Math.round((s.esigibile - s.incassato) * 100) / 100,
+         et + ": residuo − credito = esigibile − incassato, cioè insieme non si perde niente");
+    }
+  });
+
+  test("⛔ Conti · statoFattura: una nota che annulla una fattura già pagata è tutta da rimborsare", () => {
+    const s = conti.statoFattura(FAT, SALDATA, [{ fatturaId: "F1", totale: 10000, bozza: false }]);
+    eq(s.stato, "stornata", "annullata per intero");
+    eq(s.esigibile, 0, "non si può più chiedere niente");
+    eq(s.aCreditoCliente, 10000, "e i 10.000 già versati vanno restituiti tutti");
+    eq(s.contaNeiTempi, false, "e resta fuori dai tempi medi di pagamento, come prima");
+  });
+
+  /* ── le sottrazioni che REGGONO, e reggono per costruzione ───────────────
+     Non sono ornamento: sono la differenza fra «l'invariante è vero» e
+     «finora è andata bene». Se qualcuno le rompe, queste cadono. */
+  const t0 = (f) => conti.testoSollecito(f, new Date("2026-08-14T12:00:00Z"), 8, []);
+  test("⛔ Conti · l'acconto dedotto per sottrazione regge perché `importo` È il totale del documento", () => {
+    /* `testoSollecito` ricava gli acconti come totDoc − stornato − aperto.
+       Regge su due cose: che `+f.importo` sia il totale lordo (lo scrivono
+       così tutti e tre i punti che emettono una fattura) e che l'aperto sia
+       già al netto dello storno. Con l'IVA scritta in modo incoerente col
+       campo `importo` la deduzione salterebbe: la prova lo blocca. */
+    const f = { ...FAT, id: "F2", importo: 10000, residuo: 4000 };
+    /* ⚠️ `testoSollecito` ritorna una STRINGA, non un oggetto con `.testo`, e
+       `euroIt` NON scrive i centesimi su un importo tondo: la prima stesura
+       cercava «6.000,00» e cadeva su un prodotto sano. Letto il valore vero
+       prima di riscriverla, che è la regola pagata sei volte in due notti. */
+    ok(typeof t0(f) === "string", "il sollecito è un testo da copiare, non un oggetto");
+    ok(/a fronte di acconti per € 6\.000 /.test(t0(f)),
+      "10.000 di documento meno 4.000 di residuo = 6.000 di acconti, detti nella lettera");
+    ok(/- Acconti già ricevuti: € 6\.000/.test(t0(f)),
+      "e ridetti nel riepilogo, con lo stesso numero");
+    /* e con l'IVA il totale del documento resta `importo`, non l'imponibile */
+    eq(conti.importiFattura({ importo: 10000, imponibile: 10000, ivaImporto: 2200, totale: 12200 }).totale, 12200,
+      "importiFattura sa il lordo");
+    eq(conti.importiFattura({ importo: 12200 }).totale, 12200,
+      "e senza campi IVA il lordo È `importo`: è questo che rende esatta la deduzione degli acconti");
+  });
+
+  test("⛔ Flotta · scaricoGiacenza: lo zero è giusto, e lo SCOPERTO va contato a parte", () => {
+    /* L'invariante «non si monta più di quello che c'è a magazzino» non lo
+       impone nessuno: la riga del ricambio si compila a mano. Il ripiego a
+       zero è la risposta giusta (una giacenza negativa non esiste), ma da solo
+       fa sparire lo scoperto — e un magazzino che risulta «a zero e a posto»
+       spegne l'allarme sotto-scorta sul pezzo che è appena finito.
+       Questa prova blinda che il modulo NON scenda sotto zero, e che il numero
+       che manca sia ricavabile: chi chiude l'ordine di lavoro lo conta pezzo
+       per pezzo PRIMA di scrivere, e lo dice. */
+    eq(flotta.scaricoGiacenza(5, 2), 3, "cinque meno due");
+    eq(flotta.scaricoGiacenza(2, 2), 0, "esatto: zero");
+    eq(flotta.scaricoGiacenza(2, 5), 0, "⛔ montandone più di quelli che ci sono la giacenza resta 0, mai negativa");
+    /* lo scoperto è `qta − giacenza`, e si conta sull'insieme vero — non si
+       deduce dal risultato, che è zero in tutt'e due i casi */
+    eq(5 - 2, 3, "e i 3 pezzi che mancano NON si leggono nel risultato: vanno contati prima");
+    eq(flotta.scaricoGiacenza(2, 2), flotta.scaricoGiacenza(2, 5),
+      "prova che il risultato da solo non distingue «esatto» da «scoperto»: sono tutt'e due 0");
+  });
+
+  test("⛔ Flotta · statoScorta: `mancano` non deduce, sta dentro il ramo che lo garantisce", () => {
+    /* `Math.max(0, soglia − giacenza)` sta in due rami: quello di `giacenza <= 0`
+       e quello di `giacenza <= soglia`. In tutt'e due la differenza non può
+       essere negativa PER COSTRUZIONE — è la condizione del ramo a dirlo. */
+    eq(flotta.statoScorta({ giacenza: 0, sogliaMin: 5 }).mancano, 5, "esaurito con soglia: ne mancano 5");
+    eq(flotta.statoScorta({ giacenza: 2, sogliaMin: 5 }).mancano, 3, "sotto scorta: ne mancano 3");
+    eq(flotta.statoScorta({ giacenza: 9, sogliaMin: 5 }).mancano, 0, "sopra soglia: zero, e non è un taglio");
+    eq(flotta.statoScorta({ giacenza: 0 }).mancano, null,
+      "e senza soglia `mancano` è null, non zero: quanti ne manchino per arrivare a un numero che nessuno ha scritto non lo sa nessuno");
+  });
+
+  test("⛔ Terra · l'onere: quando la detrazione supera lo scavo, l'app lo DICE invece di tacere", () => {
+    /* `Math.max(0, lordo − detratto)` è l'unica sottrazione del perimetro che
+       aveva già accanto la riga che dichiara la rottura dell'invariante: è il
+       modello, e la prova esiste perché resti tale. */
+    const anno = { anno: 2026, scavo: 1000, rilieviScavo: 2, banda: 0 };
+    const ok1 = terra.baseOnere ? terra.baseOnere(anno, { volumeDetrattoM3: 300 }) : null;
+    if (ok1) {
+      eq(ok1.imponibile, 700, "detrazione minore dello scavo: 1000 − 300");
+      eq(ok1.avvisi.length, 0, "niente da segnalare");
+      const rotto = terra.baseOnere(anno, { volumeDetrattoM3: 1500 });
+      eq(rotto.imponibile, 0, "l'imponibile è fermo a zero");
+      eq(rotto.avvisi.filter((a) => /supera lo scavo misurato/.test(a)).length, 1,
+        "⛔ e lo zero NON è silenzioso: c'è l'avviso che uno dei due numeri va rivisto");
+    }
+  });
+}
+/* ===== fine le sottrazioni fra due insiemi ================================ */
+
 /* ===== shared · le due sorelle dei rilievi, con lo stesso contratto ========
    ⛔ `intervalliFraRilievi` e `misuratoPeriodo` decidono sullo STESSO dato e
    avevano due guardie diverse: la prima con `volumeM3 != null &&

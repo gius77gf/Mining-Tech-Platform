@@ -2650,16 +2650,48 @@ export function fermoCollocabile(fermo) {
   return fin === "" || !!isoGiorno(fin);
 }
 
-export function giorniFermo(fermo, da, a) {
+/* IL TRATTO di finestra che un fermo occupa davvero: gli stessi estremi che
+   `giorniFermo` usava per contare, restituiti invece di essere buttati.
+   ⛔ Serve perché SOMMARE le durate non è contare i giorni: due fermi
+   sovrapposti sulla stessa macchina sommano 60 giorni su una finestra di 30,
+   e la sottrazione `giorniMacchina − persi` non poteva accorgersene — il
+   `Math.max(0, …)` la teneva a galla. Chi deve sapere quanti giorni una
+   macchina è stata ferma DAVVERO ha bisogno degli estremi, non del totale.
+   `null` quando il fermo non tocca la finestra: assente ≠ zero giorni. Pura. */
+export function intervalloFermo(fermo, da, a) {
   const f = fermo || {};
-  if (!fermoCollocabile(f)) return 0;
+  if (!fermoCollocabile(f)) return null;
   const i = isoGiorno(f.inizio), fin = isoGiorno(f.fine);
   const d0 = isoGiorno(da), d1 = isoGiorno(a);
-  if (!i || !d0 || !d1) return 0;
+  if (!i || !d0 || !d1) return null;
   const inizio = i > d0 ? i : d0;
   const fine = (fin && fin < d1) ? fin : d1;
-  if (fine < inizio) return 0;
-  return giorniFra(inizio, fine) + 1;
+  if (fine < inizio) return null;
+  return { inizio, fine, giorni: giorniFra(inizio, fine) + 1 };
+}
+
+/* GIORNI DISTINTI coperti da un insieme di tratti: l'unione, non la somma.
+   Due tratti che si toccano o si sovrappongono valgono i giorni che occupano
+   una volta sola; due staccati si sommano. È il numero che si può sottrarre
+   dai giorni-macchina, perché per costruzione non li supera. Pura. */
+export function giorniDistinti(intervalli) {
+  const v = [...(intervalli || [])].filter(Boolean)
+    .sort((x, y) => String(x.inizio).localeCompare(String(y.inizio)));
+  let tot = 0, curI = null, curF = null;
+  for (const it of v) {
+    if (curI === null) { curI = it.inizio; curF = it.fine; continue; }
+    // «adiacente» conta come continuo: il giorno dopo la ripartenza è già
+    // coperto dal fermo seguente, non c'è nessun giorno di lavoro in mezzo
+    if (giorniFra(curF, it.inizio) <= 1) { if (it.fine > curF) curF = it.fine; }
+    else { tot += giorniFra(curI, curF) + 1; curI = it.inizio; curF = it.fine; }
+  }
+  if (curI !== null) tot += giorniFra(curI, curF) + 1;
+  return tot;
+}
+
+export function giorniFermo(fermo, da, a) {
+  const t = intervalloFermo(fermo, da, a);
+  return t ? t.giorni : 0;
 }
 
 // Durata di un fermo così com'è, senza finestre: quello che si scrive sulla
@@ -2772,13 +2804,15 @@ export function affidabilitaFlotta(fermi, mezzi, giorni = 30, oggi = new Date())
     const nome = nomeBreve(f.mezzo);
     if (!nome) continue;
     if (!fermoCollocabile(f)) { senzaDate++; continue; }
-    const g = giorniFermo(f, da, a);
+    const tratto = intervalloFermo(f, da, a);
+    const g = tratto ? tratto.giorni : 0;
     if (g <= 0) continue;
     const aperto = !isoGiorno(f.fine);
     if (!inParco.has(nome)) { fuoriParco++; fuoriParcoGiorni += g; continue; }
     persi += g; episodi++; if (aperto) aperti++;
-    const v = perMezzo.get(nome) || { mezzo: nome, giorni: 0, episodi: 0, aperti: 0, causali: new Set() };
+    const v = perMezzo.get(nome) || { mezzo: nome, giorni: 0, episodi: 0, aperti: 0, causali: new Set(), tratti: [] };
     v.giorni += g; v.episodi++; if (aperto) v.aperti++;
+    v.tratti.push(tratto);
     v.causali.add(etichettaCausale(f.causale));
     perMezzo.set(nome, v);
     const c = etichettaCausale(f.causale);
@@ -2788,16 +2822,43 @@ export function affidabilitaFlotta(fermi, mezzi, giorni = 30, oggi = new Date())
   }
   const parco = inParco.size;
   const giorniMacchina = parco * finestra;
-  const disponibili = Math.max(0, giorniMacchina - persi);
+  /* ⛔ I GIORNI PERSI SI CONTANO, NON SI SOMMANO — e finché si sommavano la
+     sottrazione qui sotto poggiava su un invariante che nessuno aveva scritto:
+     «i fermi di una stessa macchina non si sovrappongono». La pagina impedisce
+     due fermi APERTI sullo stesso mezzo, e basta: due fermi CHIUSI sovrapposti
+     (o uno aperto più uno chiuso) entrano senza un avviso. Misurato il 14/08
+     su tre mezzi con due fermi identici di 30 giorni sulla stessa macchina:
+     `persi` faceva 60 su 90 giorni-macchina e la flotta usciva al **33,3%**
+     mentre due macchine su tre non si erano mai fermate — il vero è **66,7%**.
+     Il `Math.max(0, …)` non poteva dirlo: teneva a galla una differenza che
+     era già senza senso, e nella direzione che ACCUSA il prodotto del cliente.
+     Ora `persiDistinti` è l'unione dei tratti, macchina per macchina, e quindi
+     `persiDistinti ≤ parco × finestra` è vero PER COSTRUZIONE — il `Math.max`
+     qui sotto è una cintura, non più il tappo di un buco.
+     ⚠️ `persi` RESTA la somma degli episodi, perché è quello che vuole il
+     tempo medio di riparazione (MTTR): un fermo di dieci giorni e uno di tre
+     sono due riparazioni, anche se cadono negli stessi giorni. Le due domande
+     sono diverse e adesso hanno due numeri diversi, invece di uno solo che
+     rispondeva bene a una e male all'altra. */
+  const persiDistinti = [...perMezzo.values()].reduce((t, v) => t + giorniDistinti(v.tratti), 0);
+  const sovrapposti = persi - persiDistinti;
+  const disponibili = Math.max(0, giorniMacchina - persiDistinti);
   const pct = giorniMacchina ? Math.round(1000 * disponibili / giorniMacchina) / 10 : null;
   const mezziLista = [...perMezzo.values()]
-    .map(v => ({ ...v, causali: [...v.causali],
-      pct: finestra ? Math.round(1000 * Math.max(0, finestra - v.giorni) / finestra) / 10 : null,
-      durataMedia: v.episodi ? Math.round(10 * v.giorni / v.episodi) / 10 : null }))
+    .map(v => { const gd = giorniDistinti(v.tratti); return { ...v, causali: [...v.causali], tratti: undefined,
+      giorniDistinti: gd, sovrapposti: v.giorni - gd,
+      // `gd ≤ finestra` per costruzione (i tratti sono già tagliati alla
+      // finestra e l'unione non può eccederla): il max è una cintura
+      pct: finestra ? Math.round(1000 * Math.max(0, finestra - gd) / finestra) / 10 : null,
+      durataMedia: v.episodi ? Math.round(10 * v.giorni / v.episodi) / 10 : null }; })
     .sort((x, y) => y.giorni - x.giorni || y.episodi - x.episodi || x.mezzo.localeCompare(y.mezzo, "it"));
   return {
-    finestra, da, a, parco, giorniMacchina, persi, disponibili, pct,
+    finestra, da, a, parco, giorniMacchina, persi, persiDistinti, sovrapposti, disponibili, pct,
     episodi, aperti, mezzi: mezziLista,
+    /* `perMezzo` si riempie SOLO per i nomi che stanno in `inParco` (i fermi
+       delle macchine fuori parco escono col `continue` sopra e si contano in
+       `fuoriParco`): quindi `mezziLista.length ≤ parco` è vero PER COSTRUZIONE
+       e questo `Math.max` non ha mai niente da tagliare. */
     senzaFermi: Math.max(0, parco - mezziLista.length),
     causali: [...perCausale.values()].sort((x, y) => y.giorni - x.giorni || x.causale.localeCompare(y.causale, "it")),
     // durata media di un fermo (MTTR in giorni) e giorni di lavoro fra un

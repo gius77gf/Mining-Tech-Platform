@@ -2976,17 +2976,38 @@ export function stornatoDi(fatturaId, note) {
 export function statoFattura(fattura, incassi, note) {
   const f = fattura || {};
   const s = statoIncasso(f, incassi);
+  // `stornato` è già tagliato al totale, quindi `totale − stornato` non può
+  // essere negativo: qui il `Math.max` è una cintura, non un tappo. È vero
+  // PER COSTRUZIONE, e sta scritto perché la riga sotto NON lo è.
   const stornato = Math.min(stornatoDi(f.id, note), s.totale);
   const esigibile = round2(Math.max(0, s.totale - stornato));
   const residuo = round2(Math.max(0, esigibile - s.incassato));
+  /* ⛔ E QUELLO ZERO REGGEVA SU UN INVARIANTE CHE NON È VERO: «il cliente non
+     paga più di quello che gli si può chiedere». Fra i due numeri non c'è
+     nessun legame — l'incassato lo scrivono i movimenti, l'esigibile le note
+     di credito — e l'ordine in cui arrivano è quello normale del mestiere:
+     prima il cliente salda, poi si emette la nota (reso, abbuono, rettifica).
+     Da quel momento i soldi in più sono SUOI, e questa funzione li perdeva:
+     misurato il 14/08 su una fattura da 10.000 € saldata per intero con una
+     nota da 3.000 € — `residuo 0`, `eccedenza 0`, stato «saldata», e i
+     **3.000 € da restituire** non comparivano in nessun campo. Il foglio che
+     va in mano al cliente scriveva «Saldata» e la nota accanto, senza mai
+     dire che c'era un rimborso.
+     ⚠️ `eccedenza` NON risponde a questa domanda e non va allargata: guarda il
+     TOTALE della fattura («hai registrato incassi più grandi del documento,
+     correggi il movimento»), che è un errore di registrazione. Questo è il
+     contrario — i movimenti sono giusti tutti, è il dovuto che è sceso dopo.
+     Due domande, due numeri: si CONTA il verso che mancava invece di lasciarlo
+     cadere nel `Math.max`, e insieme i due non perdono più niente. */
+  const aCreditoCliente = round2(Math.max(0, s.incassato - esigibile));
   /* stornata per intero: esce dal credito, ma NON entra nei tempi di pagamento */
   if (stornato > 0 && esigibile === 0)
-    return { ...s, stato: "stornata", stornato, esigibile, residuo: 0, saldata: false,
+    return { ...s, stato: "stornata", stornato, esigibile, residuo: 0, aCreditoCliente, saldata: false,
              contaNeiTempi: false, parziale: false };
   if (residuo === 0 && s.incassato > 0)
-    return { ...s, stato: "saldata", stornato, esigibile, residuo: 0, saldata: true,
+    return { ...s, stato: "saldata", stornato, esigibile, residuo: 0, aCreditoCliente, saldata: true,
              contaNeiTempi: true };
-  return { ...s, stato: "aperta", stornato, esigibile, residuo, saldata: false,
+  return { ...s, stato: "aperta", stornato, esigibile, residuo, aCreditoCliente, saldata: false,
            parziale: s.incassato > 0, contaNeiTempi: false };
 }
 

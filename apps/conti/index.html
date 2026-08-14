@@ -3066,8 +3066,11 @@ label.item:has(.dw-chk:checked){
              Il residuo lo decide `statoFattura`, come per il foglio stampato e
              — da oggi — per il CSV degli incassi. */
           const st = statoFattura(f, INC, NOT);
-          if (st.stato === "stornata") return "annullata da nota di credito";
-          if (st.saldata) return "saldata";
+          if (st.stato === "stornata")
+            return "annullata da nota di credito"
+              + (st.aCreditoCliente > 0 ? " · " + eur(st.aCreditoCliente) + " da rimborsare" : "");
+          if (st.saldata)
+            return "saldata" + (st.aCreditoCliente > 0 ? " · " + eur(st.aCreditoCliente) + " da rimborsare" : "");
           if (st.parziale) return "residuo " + eur(st.residuo);
           if (st.stornato > 0) return "residuo " + eur(st.residuo) + " (dopo la nota)";
           return ritardo > 0 ? "in ritardo di " + ritardo + " gg" : "da incassare";
@@ -4645,6 +4648,14 @@ label.item:has(.dw-chk:checked){
         <div class="box"><span class="et">Stato</span>${st.stato === "stornata"
           ? "Annullata da nota di credito"
           : st.saldata ? "Saldata" + (st.dataSaldo ? " il " + fmtD(st.dataSaldo) : "")
+              /* ⛔ SU UN FOGLIO CHE VA AL CLIENTE, «Saldata» E BASTA È UNA MEZZA
+                 VERITÀ QUANDO GLI DOBBIAMO DEI SOLDI. Succede appena una nota
+                 di credito arriva DOPO il pagamento (reso, abbuono): quello che
+                 aveva già versato supera quello che gli si può chiedere, e
+                 finché il conto si fermava a `residuo` quella differenza
+                 spariva dentro un `Math.max(0, …)`. Adesso `statoFattura` la
+                 conta, e il posto dove dirla è questo. */
+              + (st.aCreditoCliente > 0 ? " · a credito " + eur(st.aCreditoCliente) + " da rimborsare" : "")
           : st.parziale ? "Acconti " + eur(st.incassato) + " — residuo " + eur(st.residuo)
           : st.stornato > 0 ? "Da incassare " + eur(st.residuo) + " (dopo la nota di credito)"
           : "Da incassare"}</div>

@@ -2968,13 +2968,27 @@ body.dw b.bad{color:var(--ink-dg)}
         + `${aff.senzaDate === 1 ? "il giorno in cui è cominciato — o quello in cui la macchina è ripartita — non si legge" : "il giorno in cui sono cominciati — o quello in cui le macchine sono ripartite — non si legge"}, `
         + `quindi la disponibilità qui sopra è più alta di quella vera. ${aff.senzaDate === 1 ? "Lo trovi" : "Li trovi"} qui sotto con scritto «data non valida».`
       : "";
+    /* ⛔ E DUE FERMI SOVRAPPOSTI SULLA STESSA MACCHINA NON SONO DUE VOLTE I
+       GIORNI. La pagina impedisce due fermi APERTI sullo stesso mezzo, ma due
+       CHIUSI che si accavallano entrano senza un avviso: sommandoli, il conto
+       «giorni-macchina meno giorni persi» toglieva due volte gli stessi giorni
+       e ACCUSAVA il parco del cliente. Misurato il 14/08 su tre mezzi con due
+       fermi identici di trenta giorni sulla stessa macchina: 33,3% invece di
+       66,7%. Adesso il conto usa i giorni DISTINTI, e i giorni contati due
+       volte non spariscono in silenzio — si dicono, perché sono il segno che
+       due registrazioni raccontano lo stesso fermo. */
+    const codaSovr = aff.sovrapposti > 0
+      ? ` <span class="rosso">${ggTx(aff.sovrapposti)} di fermo ${aff.sovrapposti === 1 ? "risulta registrato" : "risultano registrati"} due volte</span>: `
+        + `ci sono fermi che si accavallano sulla stessa macchina, e gli stessi giorni si contano una volta sola. `
+        + `Controlla qui sotto se ${aff.sovrapposti === 1 ? "quel giorno appartiene" : "quei giorni appartengono"} davvero a due fermi diversi.`
+      : "";
     $("fer-riep").innerHTML = !aff.parco
       ? "Il conto dell'affidabilità parte dal parco mezzi: aggiungi il primo mezzo e ogni fermo che registri comincerà a pesare sulla disponibilità."
       : !aff.episodi
         ? `Nessun fermo registrato ${plurale(aff.finestra, `nell'ultimo giorno`, `negli ultimi ${aff.finestra} giorni`)} (${periodo}): <b>${aff.parco}</b> ${aff.parco === 1 ? "mezzo" : "mezzi"} × ${aff.finestra} ${plurale(aff.finestra,'giorno','giorni')} = <b>${aff.giorniMacchina}</b> giorni-macchina, tutti disponibili. Quando una macchina si ferma registrala qui sotto: è l'unico modo perché questo numero voglia dire qualcosa.${codaFuori}${codaSenzaDate}`
         : `Disponibilità reale <b>${aff.pct.toLocaleString("it-IT", { maximumFractionDigits: 1 })}%</b> ${plurale(aff.finestra, `nell'ultimo giorno`, `negli ultimi ${aff.finestra} giorni`)} (${periodo}). `
           + `Il conto: ${aff.parco} ${aff.parco === 1 ? "mezzo" : "mezzi"} × ${aff.finestra} ${plurale(aff.finestra,'giorno','giorni')} = <b>${aff.giorniMacchina}</b> giorni-macchina, `
-          + `meno <span class="rosso">${aff.persi}</span> ${aff.persi === 1 ? "perso" : "persi"} per fermo = <b>${aff.disponibili}</b> ${plurale(aff.disponibili, "giorno-macchina lavorabile", "giorni-macchina lavorabili")}. `
+          + `meno <span class="rosso">${aff.persiDistinti}</span> ${aff.persiDistinti === 1 ? "perso" : "persi"} per fermo = <b>${aff.disponibili}</b> ${plurale(aff.disponibili, "giorno-macchina lavorabile", "giorni-macchina lavorabili")}. `
           /* ⚠️ IL SOSTANTIVO AVEVA IL SINGOLARE, IL VERBO E GLI AGGETTIVI NO:
              con un fermo solo si leggeva «Ci sono stati 1 fermo, tutti già
              chiusi, lunghi in media 1 giorno». È la forma più frequente di
@@ -2983,7 +2997,7 @@ body.dw b.bad{color:var(--ink-dg)}
           + `${plurale(aff.episodi, "C'è stato", "Ci sono stati")} <b>${aff.episodi}</b> ${plurale(aff.episodi, "fermo", "fermi")}${aff.aperti ? `, di cui <span class="rosso">${aff.aperti} ${plurale(aff.aperti, "ancora aperto", "ancora aperti")}</span>` : plurale(aff.episodi, ", già chiuso", ", tutti già chiusi")}`
           + `, ${plurale(aff.episodi, "lungo", "lunghi")} in media <b>${ggTx(aff.durataMedia)}</b>.`
           + (aff.fraUnFermoELaltro != null ? ` Fra un fermo e l'altro il parco ha lavorato <b>${ggTx(aff.fraUnFermoELaltro)}</b>-macchina.` : "")
-          + codaFuori + codaSenzaDate;
+          + codaFuori + codaSenzaDate + codaSovr;
 
     // Giorni di fermo per mezzo: la classifica di chi ferma di più. Non è un
     // andamento — di quello non abbiamo la storia giorno per giorno — ma un
@@ -3326,11 +3340,24 @@ body.dw b.bad{color:var(--ink-dg)}
     const note = (dati.note || "").trim();
     const finale = costoOrdine({ ...o, altreSpese: altre });
     const costo = finale.totale;
-    // 1) i ricambi presi dal magazzino escono davvero dal magazzino
+    /* 1) i ricambi presi dal magazzino escono davvero dal magazzino
+       ⛔ E LO SCOPERTO NON SPARISCE DENTRO IL `Math.max(0, …)`. `scaricoGiacenza`
+       non scende sotto zero — giusto, una giacenza negativa non esiste — ma
+       quello zero regge sull'invariante «non si monta più di quello che c'è in
+       magazzino», che nessuno impone: la riga del ricambio si compila a mano.
+       Misurato il 14/08: con 2 pezzi a magazzino e 5 montati la giacenza va a
+       0 e i **3 pezzi mancanti** non comparivano da nessuna parte — cioè
+       l'inventario risultava a posto proprio dopo essere stato smentito. Lo
+       scoperto si CONTA sull'insieme vero (pezzo per pezzo, prima di scrivere)
+       e si dice: è il segno che quella giacenza era già sbagliata prima. */
+    const scoperti = [];
     for (const r of finale.ricambi.righe) {
       if (!r.id) continue;
       const mag = RIC.find(x => x.id === r.id);
-      if (mag) await db.aggiorna("ricambi", mag.id, { giacenza: scaricoGiacenza(mag.giacenza, r.qta) });
+      if (!mag) continue;
+      const prima = +mag.giacenza || 0, presi = +r.qta || 0;
+      if (presi > prima) scoperti.push({ nome: r.nome || mag.nome, manca: presi - prima });
+      await db.aggiorna("ricambi", mag.id, { giacenza: scaricoGiacenza(mag.giacenza, r.qta) });
     }
     // 2) l'intervento nello storico del mezzo: con la lavorazione dentro, ma
     //    con `ricambio` e `costo` ancora al loro posto — registro, export e
@@ -3348,6 +3375,15 @@ body.dw b.bad{color:var(--ink-dg)}
     await db.rimuovi("manutenzioni", n.id);
     if (odlId === n.id) odlId = null;
     toast("Ordine chiuso: " + n.titolo + " su " + n.mezzo + " — " + eur(costo) + ".", "success");
+    /* lo scoperto si dice DOPO la conferma di chiusura e con la sua tinta: non
+       è un errore che ferma il lavoro (il pezzo è stato montato davvero), è un
+       inventario da rifare. Un magazzino a zero che nessuno rimette a posto
+       spegne l'allarme «sotto scorta» sul pezzo che è appena finito. */
+    if (scoperti.length) toast(
+      scoperti.map(s => s.nome + ": " + s.manca.toLocaleString("it-IT")
+        + (s.manca === 1 ? " pezzo montato" : " pezzi montati") + " in più di quelli a magazzino").join(" · ")
+      + ". La giacenza è a zero, ma il conto non torna: ricontrolla l'inventario di "
+      + (scoperti.length === 1 ? "questo pezzo" : "questi pezzi") + ".", "warn");
     await ripianificaTagliando(n);
     return true;
   }

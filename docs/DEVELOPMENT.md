@@ -46,10 +46,10 @@ segnaposto («Funzione nav non ancora pronta»). Per aprirlo davvero si monta
 
 ## Le prove
 
-**2.741 prove girano senza rete e senza browser**, con `node` (contate lanciandole, non a memoria — al 14/08: 2285 + 322 + 75 + 32 + 9 + 8 + 7 + 3):
+**2.754 prove girano senza rete e senza browser**, con `node` (contate lanciandole, non a memoria — al 14/08: 2298 + 322 + 75 + 32 + 9 + 8 + 7 + 3):
 
 > ⚠️ **E quel numero conta OTTO suite, non tutto quello che gira.** Il giro
-> `node` completo esegue **3.112** asserzioni su **35** comandi.
+> `node` completo esegue **3.125** asserzioni su **35** comandi.
 > ⏱️ **Dal 09/08 quel numero non si scrive più a mano: lo stampa il giro**
 > (`node apps/deepwork-id/tests/giro-node.mjs`, riga «Asserzioni eseguite dal
 > giro»), col suo denominatore accanto — 22 comandi su 34 hanno una riga da
@@ -78,18 +78,18 @@ segnaposto («Funzione nav non ancora pronta»). Per aprirlo davvero si monta
 > 2.251» mentre il titolo sopra diceva già 2.310: il controllo sorveglia il
 > **totale**, non la prosa che lo spiega. È la quarta forma di invecchiamento
 > raccolta in `CLAUDE.md`.*
-> **Il numero da citare resta 2.741**, e la ragione è che le altre dieci contano
+> **Il numero da citare resta 2.754**, e la ragione è che le altre dieci contano
 > **file, non prove**: `import esistenti` fa un'asserzione per file e `classi
 > orfane` una per pagina, quindi il loro totale si muove ogni volta che nasce un
 > file — un numero che cresce senza che nessuno abbia scritto una prova è un
 > numero che non vuol dire niente. Le sei suite contano **casi**, e per questo
 > sono quelle sorvegliate da `numeri-nei-documenti.mjs`.
 
-E **753 funzioni pure su 753** sono chiamate per nome da quelle prove: tutte e
+E **755 funzioni pure su 755** sono chiamate per nome da quelle prove: tutte e
 sei le app al 100%. Non è «provate bene» — è «non ce n'è nessuna che nessuno ha
 ancora guardato», che è il minimo e finora non c'era.
 
-⚠️ **Quel 753 conta le sei app, non i moduli condivisi**, e la riga di riepilogo
+⚠️ **Quel 755 conta le sei app, non i moduli condivisi**, e la riga di riepilogo
 lo dice («in 6 app»). I condivisi si contano a parte — **180 su 180** in cinque
 moduli: `dw-shell.js` **54/54**, `dw-ponti.js` **47/47**, `genesi-data.js`
 **66/66**, `genesi-formato.js` **8/8**, `pointcloud.js` **5/5**. Vanno guardati
