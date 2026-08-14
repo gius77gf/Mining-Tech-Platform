@@ -1735,7 +1735,7 @@ textarea.dw-input{
            DICHIARAZIONI_COPERTURA,
            PERIODI_ADEMPIMENTO, periodoAdempimento, descriviPeriodoAdempimento, DICHIARAZIONI_PERIODO,
            FONTE_IMPORT, FONTE_MANO, FONTE_IGNOTA,
-           numeroDaCampo, AVVISO_DECIMALE, ariaSerie } from "./sentinella-data.js";
+           numeroDaCampo, AVVISO_DECIMALE, ariaSerie, numeroDichiarato } from "./sentinella-data.js";
   import { mountExit, esc, csvCell, statoVuoto, senzaDoppioni, giorniTra, montaGuardiaInteri, avvolgiUnita, oggiISO,
          controllaAllegato, testoAllegatoRifiutato, pezziDataURL, dataIt, dataISOEsiste, nomeCsvDimostrazione,
          plurale, conta,
@@ -2076,7 +2076,11 @@ textarea.dw-input{
      ══════════════════════════════════════════════════════════════════════ */
   const LETTURE_IN_PANNELLO = 12;
   function lettureDelPunto(m) {
-    const tutte = ((m && m.letture) || []).filter(l => l && Number.isFinite(+l.valore));
+    // ⛔ `numeroDichiarato` e non `Number.isFinite(+l.valore)`: `+null` e `+""`
+    // fanno 0, e questo pannello È la catena di custodia — una riga senza
+    // valore ci compariva con una cifra accanto. Lo zero SCRITTO resta e si
+    // vede: `numeroDichiarato(0)` risponde 0.
+    const tutte = ((m && m.letture) || []).filter(l => l && numeroDichiarato(l.valore) != null);
     if (!tutte.length) return "";
     /* dalla più recente: si corregge quello che si è appena scritto.
        L'indice ORIGINALE viaggia con la riga, perché è quello che serve a
@@ -4146,8 +4150,18 @@ textarea.dw-input{
         /* ⛔ «1 FORI» sulla riga del brogliaccio, che la nota sotto questa
            stessa lista chiama «un documento verso gli enti». Una volata da un
            foro solo è normale in cava (uno sfiancamento, un ripristino). */
-        v.nFori == null || !Number.isFinite(+v.nFori) ? "fori non dichiarati" : `${+v.nFori} ${plurale(+v.nFori, "foro", "fori")}`,
-        v.kgTotali == null || !Number.isFinite(+v.kgTotali) ? "kg non dichiarati" : `${esc(numeroIt(+v.kgTotali))} kg`,
+        /* ⛔ E LA DOMANDA È QUELLA DI `nonDichiarato`, non una sua copia più
+           debole scritta qui. Qui c'era `x == null || !Number.isFinite(+x)`,
+           che sulla cella VUOTA (`""`, o due spazi) risponde «dichiarato»
+           perché `+""` fa 0 ed è finito: la riga scriveva «0 fori» e «0 kg» su
+           una volata che quei numeri non li ha mai avuti — cioè lo stesso
+           difetto che il commento della tabella del report, quattrocento righe
+           più su in questo stesso file, dice di aver chiuso. Nessuno scrittore
+           dell'app produce oggi `""` (la conferma e il lettore CSV lo portano
+           a `null`), ma la copia debole non aspetta che questo: aspetta il
+           primo archivio importato a mano. Lo zero SCRITTO resta «0 fori». */
+        nonDichiarato(v.nFori) ? "fori non dichiarati" : `${+v.nFori} ${plurale(+v.nFori, "foro", "fori")}`,
+        nonDichiarato(v.kgTotali) ? "kg non dichiarati" : `${esc(numeroIt(+v.kgTotali))} kg`,
       ];
       if (+v.kgMaxRitardo) pezzi.push("max/ritardo " + esc(numeroIt(+v.kgMaxRitardo)) + " kg");
       if (+v.distanzaRicettore) pezzi.push("ricettore a " + esc(numeroIt(+v.distanzaRicettore)) + " m");

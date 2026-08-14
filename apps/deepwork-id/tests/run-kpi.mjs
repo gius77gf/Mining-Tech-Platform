@@ -31696,5 +31696,118 @@ test("frasePersi · ⚠️ NIENTE `esc()`: la frase esce come l'utente l'ha scri
 }
 /* ===== fine shared · tagliaA ============================================== */
 
+/* ===== Campo/Scudo/Sentinella · il ripiego silenzioso =====================
+   ⛔ LA LETTURA SENZA VALORE CONTAVA COME UNA MISURA DI ZERO, e su un
+   sismografo lo zero è il numero più tranquillo della scala.
+   `ultimaLettura`, `lettureNelPeriodo` e `ultimaLetturaOltre` avevano la
+   STESSA map+filter scritta tre volte, tutte e tre con
+   `Number.isFinite(+x.valore)` — la copia debole per cui esiste
+   `numeroDichiarato`: `+null` e `+""` fanno 0, e `Number.isFinite(0)` risponde
+   true. Misurato il 14/08 su un punto con soglia 5 e una sola lettura
+   `valore: null`:
+
+     PRIMA                               DOPO
+     ultimaLettura → {valore: 0}         null
+     statPeriodo   → n 1, media 0,       n 0, media null,
+                     max 0, superam. 0   max null, superam. null
+     statoMisura   → «Conforme»          «Mai misurato»
+     csvAmbiente   → «…;Conforme;…»      «…;Mai misurato;…»
+
+   La direzione è quella che RASSICURA, e l'ultima riga è il file che va
+   all'ente. La stessa scheda SENZA quella lettura diceva già le cose giuste:
+   cioè l'assenza scritta dentro una riga era più tranquilla dell'assenza vera.
+   ⚠️ Uno zero SCRITTO resta una misura e continua a contare: è la differenza
+   fra «lo strumento ha letto zero» e «nessuno ha scritto niente», la stessa
+   che il 03/08 ha fatto riscrivere `correggiLettura` e il 14/08
+   `misuratoPeriodo` in `shared/dw-ponti.js`. Le prove la difendono nei DUE
+   versi, se no la cura passerebbe anche togliendo gli zeri veri.
+   ⚠️ Prove SINCRONE e messe PRIMA del riepilogo: l'`await Promise.all(inVolo)`
+   sta a metà file, e una prova appesa dopo verrebbe messa in volo e il totale
+   si stamperebbe senza aspettarla. */
+{
+  const conNull = (v) => ({ id: "mN", nome: "P", soglia: 5, unita: "mm/s",
+    letture: [{ data: "2026-08-01", valore: v }] });
+
+  test("⛔ Sentinella · una lettura SENZA valore non è una lettura di zero", () => {
+    for (const vuoto of [null, undefined, "", "   "]) {
+      eq(sentinella.ultimaLettura(conNull(vuoto)), null,
+        `ultimaLettura non inventa uno zero (valore ${JSON.stringify(vuoto)})`);
+      eq(sentinella.lettureNelPeriodo(conNull(vuoto), "2026-08-01", "2026-08-31").length, 0,
+        `lettureNelPeriodo non la conta (valore ${JSON.stringify(vuoto)})`);
+      eq(sentinella.ultimaLetturaOltre(conNull(vuoto), 5), null,
+        `ultimaLetturaOltre non la giudica (valore ${JSON.stringify(vuoto)})`);
+    }
+  });
+
+  test("⛔ Sentinella · uno ZERO scritto davvero resta una misura", () => {
+    // la guardia sta sull'assenza, non sul valore: uno strumento che legge
+    // zero ha misurato, e toglierlo sarebbe il difetto opposto
+    eq(sentinella.ultimaLettura(conNull(0)).valore, 0, "lo zero scritto è l'ultima lettura");
+    eq(sentinella.lettureNelPeriodo(conNull(0), "2026-08-01", "2026-08-31").length, 1, "e sta nel periodo");
+    eq(sentinella.statPeriodo(conNull(0), "2026-08-01", "2026-08-31", 5).n, 1, "e nel conto del periodo");
+    eq(sentinella.statoMisura(conNull(0)).stato, "conforme", "zero contro soglia 5 = conforme, ed è vero");
+    // e i numeri veri continuano a passare, virgola italiana esclusa come prima
+    eq(sentinella.ultimaLettura(conNull(3.2)).valore, 3.2, "un numero resta un numero");
+    eq(sentinella.ultimaLettura(conNull("3.2")).valore, 3.2, "anche scritto come stringa");
+    eq(sentinella.ultimaLettura(conNull("abc")), null, "e «abc» resta fuori, come prima");
+  });
+
+  test("⛔ Sentinella · lo stato di un punto con la sola lettura senza valore è «Mai misurato»", () => {
+    const st = sentinella.statoMisura(conNull(null));
+    eq(st.stato, "mai", "non «conforme»");
+    eq(st.ratio, null, "e nessun rapporto da mostrare");
+    eq(st.calcolabile, false, "dichiarato non calcolabile");
+    // la controprova del CASO: lo stesso punto senza NESSUNA lettura dice la
+    // stessa cosa. Se le due risposte divergessero, una delle due mentirebbe.
+    eq(sentinella.statoMisura({ id: "mV", nome: "P", soglia: 5, unita: "mm/s", letture: [] }).stato, "mai",
+      "e l'assenza vera dice la stessa cosa");
+  });
+
+  test("⛔ Sentinella · i superamenti di un periodo senza misure sono `null`, non zero", () => {
+    const s = sentinella.statPeriodo(conNull(null), "2026-08-01", "2026-08-31", 5);
+    eq(s.n, 0, "nessuna lettura leggibile");
+    eq(s.media, null, "nessuna media");
+    eq(s.max, null, "nessun massimo");
+    eq(s.superamenti, null, "e nessun «zero superamenti» su zero misure");
+  });
+
+  test("⛔ Sentinella · il file per l'ente non scrive «Conforme» su una lettura senza valore", () => {
+    const righe = sentinella.csvAmbiente([conNull(null)], [], [], new Date("2026-08-14")).split("\n");
+    const riga = righe.find((r) => r.startsWith("monitoraggio;"));
+    ok(riga, "la riga del monitoraggio c'è");
+    ok(riga.includes(";Mai misurato;"), "e dichiara «Mai misurato» invece di «Conforme»");
+    ok(!riga.includes(";Conforme;"), "e non dice «Conforme»");
+    // lo zero scritto continua a essere giudicato, ed è la controprova
+    const conZero = sentinella.csvAmbiente([conNull(0)], [], [], new Date("2026-08-14"))
+      .split("\n").find((r) => r.startsWith("monitoraggio;"));
+    ok(conZero.includes(";Conforme;"), "su uno zero SCRITTO il file dice ancora «Conforme»");
+  });
+
+  /* ⛔ E LA DOMANDA «QUESTO DATO È DICHIARATO?» SCRITTA DUE VOLTE NELLA STESSA
+     PAGINA. Il report di Sentinella la fa con `nonDichiarato` (che guarda anche
+     la stringa vuota); la riga del brogliaccio, quattrocento righe più in giù,
+     se n'era tenuta una versione senza quel pezzo — e `+""` fa 0, quindi
+     scriveva «0 fori» e «0 kg» su una volata che quei dati non li ha mai
+     avuti. Qui si prova che nessuno SCRITTORE dell'app produce quel `""` (è la
+     ragione per cui il difetto non si vedeva) e che la regola giusta lo copre
+     comunque: la copia debole non aspetta l'app, aspetta il primo archivio
+     importato a mano. */
+  test("⛔ Sentinella · nessuno scrittore produce la cella VUOTA: `\"\"` diventa `null`", () => {
+    const c = sentinella.confermaVolataEseguita(
+      { id: "v1", data: "2026-08-01", stato: "prevista", fronte: "F1" },
+      { data: "2026-08-01", fronte: "F1", nFori: "", kgTotali: "", kgMaxRitardo: "",
+        distanzaRicettore: "", esito: "regolare", note: "" }, new Date("2026-08-14"));
+    eq(c.ok, true, "la conferma passa");
+    eq(c.campi.nFori, null, "i fori non scritti diventano null, non 0");
+    eq(c.campi.kgTotali, null, "e i kg nemmeno");
+    const v = sentinella.parseVolateCsv(
+      "data;fronte;nFori;kgTotali;kgMaxRitardo;distanzaRicettore;esito;note\n2026-08-01;F1;;120;;;regolare;");
+    eq(v.length, 1, "la riga del CSV entra");
+    eq(v[0].nFori, null, "e la cella vuota del file è null, non 0");
+    eq(v[0].kgTotali, 120, "mentre il numero scritto resta");
+  });
+}
+/* ===== fine Campo/Scudo/Sentinella · il ripiego silenzioso ================ */
+
 console.log(`\nRisultato KPI app: ${passed} passati, ${failed} falliti${inVolo.length ? `  ·  ${inVolo.length} prove asincrone aspettate` : ""}`);
 process.exit(failed > 0 ? 1 : 0);

@@ -2780,13 +2780,46 @@ export function piuGiorni(dataISO, n) {
   return d.toISOString().slice(0, 10);
 }
 
+/* ⛔ «QUESTA LETTURA SI LEGGE?» ERA SCRITTA TRE VOLTE, TUTTE E TRE PIÙ DEBOLI
+   DELLA REGOLA DI CASA. `ultimaLettura`, `lettureNelPeriodo` e
+   `ultimaLetturaOltre` avevano la stessa identica map+filter, con
+   `valore: +((x||{}).valore)` e `Number.isFinite(x.valore)` — cioè la copia
+   debole per cui esiste `numeroDichiarato`: `+null` fa **0** e `+""` fa **0**,
+   e `Number.isFinite(0)` risponde **true**. Una lettura senza valore contava
+   quindi come una misura DI ZERO, che su un sismografo è il numero più
+   tranquillo della scala.
+   Misurato il 14/08 su un punto con soglia 5 e una sola lettura `valore: null`:
+
+     ultimaLettura   → { data: "2026-08-01", valore: 0 }         ⛔
+     statPeriodo     → n 1 · media 0 · max 0 · superamenti 0     ⛔
+     statoMisura     → «Conforme», ratio 0, calcolabile: true    ⛔
+     csvAmbiente     → «…;Conforme;…»  ← il file che va all'ente ⛔
+
+   contro la stessa scheda SENZA quella lettura, dove l'app dice già le cose
+   giuste: «Mai misurato», media `null`, superamenti `null`. Cioè l'assenza
+   scritta dentro una riga era più tranquilla dell'assenza vera.
+   ⚠️ Uno zero SCRITTO resta un dato e continua a contare: uno strumento che
+   legge zero ha misurato: `numeroDichiarato(0)` risponde `0`, non `null`. La
+   differenza fra «ha misurato zero» e «nessuno ha scritto niente» è tutto il
+   punto — la stessa che il 03/08 ha fatto riscrivere `correggiLettura` e il
+   14/08 `misuratoPeriodo` in `shared/dw-ponti.js`.
+   ⚠️ E `numeroDichiarato` non è `numIt`: continua a NON leggere la virgola
+   italiana, quindi qui non entra nessun valore che prima restava fuori. Cambia
+   solo che cosa succede a `null`, `""` e agli spazi.
+   Adesso la domanda è UNA, e le tre sorelle la fanno passando di qui: due
+   copie uguali oggi divergono domani senza che nessuno lo veda. */
+function lettureLeggibili(m) {
+  return (((m || {}).letture) || [])
+    .map(x => ({ data: String((x || {}).data || "").slice(0, 10), ora: String((x || {}).ora || ""),
+                 valore: numeroDichiarato((x || {}).valore) }))
+    .filter(x => dataISOEsiste(x.data) && x.valore != null)
+    .sort((a, b) => { const ka = chiaveOrdine(a), kb = chiaveOrdine(b); return ka < kb ? -1 : ka > kb ? 1 : 0; });
+}
+
 // L'ultima lettura registrata su un punto di misura (per data e ora),
 // oppure null. Pura.
 export function ultimaLettura(m) {
-  const l = (((m || {}).letture) || [])
-    .map(x => ({ data: String((x || {}).data || "").slice(0, 10), ora: String((x || {}).ora || ""), valore: +((x || {}).valore) }))
-    .filter(x => dataISOEsiste(x.data) && Number.isFinite(x.valore))
-    .sort((a, b) => { const ka = chiaveOrdine(a), kb = chiaveOrdine(b); return ka < kb ? -1 : ka > kb ? 1 : 0; });
+  const l = lettureLeggibili(m);
   return l.length ? l[l.length - 1] : null;
 }
 
@@ -2891,11 +2924,10 @@ export function limitiMese(anno, mese) {
 // Letture di un punto dentro un intervallo (estremi compresi), ordinate.
 export function lettureNelPeriodo(m, dal, al) {
   const d = String(dal || "").slice(0, 10), a = String(al || "").slice(0, 10);
-  return (((m || {}).letture) || [])
-    .map(l => ({ data: String((l || {}).data || "").slice(0, 10), ora: String((l || {}).ora || ""), valore: +((l || {}).valore) }))
-    .filter(l => dataISOEsiste(l.data) && Number.isFinite(l.valore))
-    .filter(l => (!d || l.data >= d) && (!a || l.data <= a))
-    .sort((x, z) => { const kx = chiaveOrdine(x), kz = chiaveOrdine(z); return kx < kz ? -1 : kx > kz ? 1 : 0; });
+  // la domanda «questa lettura si legge?» la fa `lettureLeggibili`, una volta
+  // sola per tutte e tre le sorelle (vedi il blocco sopra `ultimaLettura`)
+  return lettureLeggibili(m)
+    .filter(l => (!d || l.data >= d) && (!a || l.data <= a));
 }
 
 // Statistiche di un punto in un periodo: quante letture, media, massimo,
@@ -3019,10 +3051,8 @@ export const dataPiuGiorni = dataPiuGiorniShell;
 export function ultimaLetturaOltre(m, soglia) {
   const s = +soglia;
   if (!Number.isFinite(s) || s <= 0) return null;
-  const l = (((m || {}).letture) || [])
-    .map(x => ({ data: String((x || {}).data || "").slice(0, 10), ora: String((x || {}).ora || ""), valore: +((x || {}).valore) }))
-    .filter(x => dataISOEsiste(x.data) && Number.isFinite(x.valore) && x.valore >= s)
-    .sort((a, b) => { const ka = chiaveOrdine(a), kb = chiaveOrdine(b); return ka < kb ? -1 : ka > kb ? 1 : 0; });
+  // stessa domanda delle due sorelle, fatta nello stesso posto
+  const l = lettureLeggibili(m).filter(x => x.valore >= s);
   return l.length ? l[l.length - 1] : null;
 }
 
