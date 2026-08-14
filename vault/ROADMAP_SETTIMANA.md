@@ -164,7 +164,6 @@ grep -n "^- \[ \] \*\*" vault/ROADMAP_SETTIMANA.md
 - `B0-nonies (com'era). CON L'INTERASSE ASSENTE LA PAGINA DI GENESI MUORE, E IL`
 - `B0-quaterdecies. IL TEMA CHIARO DEL CORE NON È MAI STATO MISURATO PER`
 - `B0-duodecies. I CLAMP DELLE TRE SUPERFICI CHE IL CENSIMENTO NON AVEVA`
-- `B0-decies. IL RECETTORE ASSENTE FA DIRE A GENESI «SUPERA» CON UN NUMERO`
 - `B3-ter (com'era). «Sui 1 fori già caricati» — e undici righe sotto la guardia`
 - `B0-bis. TRE FAMIGLIE DI INIEZIONI CHE NESSUN CONTROLLO SORVEGLIA — e`
 - `B0. I CANTIERI DEL BROWSER E IL GIRO SI RUBANO LA MACCHINA — misurato`
@@ -1936,7 +1935,51 @@ numero scritto dove non era stato misurato niente**.*
         fa `aperta ? "" : giornateAssenza(x)`) — cioè il difetto già pagato in
         Conti. Va deciso **insieme a come quella cella deve uscire**.
 
-- [ ] **B0-decies. IL RECETTORE ASSENTE FA DIRE A GENESI «SUPERA» CON UN NUMERO
+- [x] ✅ **B0-decies — CHIUSA il 14/08, e la parte che vale è che i tre difetti
+      ERANO GIÀ CHIUSI: questa riga stava mandando qualcuno a rifare un lavoro
+      fatto il 10/08.** `recDist`, `recFreq` e `psCharge` sono stati sistemati
+      dal commit `3cec34f2`, e il 13/08 `browser/genesi-campi-assenti.mjs` ha
+      tolto anche le tre eccezioni che li scusavano. La riga era rimasta `[ ]`
+      perché nessuno l'aveva spuntata — la **terza forma d'invecchiamento** di
+      `CLAUDE.md`, quella per cui una riga che propone un lavoro già fatto lo fa
+      **rinascere**. Riverificato prima di crederci, con i comandi:
+      `(D2.recDist||300)` → **0**, `+D2.recFreq+' Hz'` → **0**,
+      `Math.max(2,Math.min(120,…))` → **0** sul codice **senza commenti**
+      (il primo `grep`, coi commenti dentro, rispondeva **1**: erano le righe
+      che citano il difetto per raccontarlo).
+      ⛔ **E riverificando è saltato fuori il RESIDUO, che è un difetto nuovo di
+      famiglia diversa: l'ingresso è quello vero, a mentire è la FRASE che lo
+      racconta.** Sulla DIN residenziale la scheda scriveva la frequenza
+      arrotondata all'intero: **9,6 Hz** → soglia **5 mm/s** (giusta, 9,6 < 10)
+      raccontata come **«5 mm/s @ 10 Hz»** — e a 10 Hz la tabella dice **15**.
+      La coppia mostrata **non esiste nella norma**, quindi chi verifica il
+      verdetto sulla tabella conclude che l'app sbagli, nel verso permissivo.
+      Idem a 49,6 → «15 @ 50» dove a 50 sono 20. E `normaConFrequenza`
+      concatenava la frequenza **grezza**: nel CSV archiviato col rapportino e
+      nel file per Sentinella usciva «@ **9.6** Hz», l'unica cifra col punto in
+      due file italiani.
+      Rimisurato da me sulla copia di quello che si committa:
+      `9,6 → 5 mm/s · «DIN residenziale @ 9,6 Hz»`, `49,6 → 15 · @ 49,6`,
+      `10 → 15`, `50 → 20`, `25 → 15`.
+      ⛔ **Nessuna soglia toccata**: `ppvLimit` decide sul numero vero come
+      prima: cambia solo quante cifre si scrivono. E `gnum` era **già
+      importato** — nessuna funzione nuova, nessuna copia debole.
+      ⛔ **E una decisione FERMATA al fondatore, invece che presa**: rendere
+      `dRecFreq` un intero all'ingresso porterebbe 9,6 → 10 e la soglia da 5 a
+      **15 mm/s**, cioè renderebbe l'app **più permissiva** su un numero che
+      decide se si può sparare. È una soglia di sicurezza: sta scritto qui
+      invece di essere fatto.
+      ⚠️ **Limiti dichiarati**: due decimali (oltre, `9.996` torna «10 Hz», e
+      c'è l'asserzione che lo scrive); e una frequenza non intera arriva da una
+      volata **salvata**, non dalla tastiera, perché il campo è `type="number"
+      step="1"` con la guardia degli interi montata.
+      **Controprova**: 2 iniezioni, 2 cadute su asserzioni **diverse** — e la
+      seconda cambia **zero caratteri** (`,2` → `,0`), cioè il conto dei
+      caratteri da solo avrebbe mentito: a dirlo è stata la prova caduta.
+      **Misure**: `run-kpi` 2248 → **2249**, 0 falliti.
+
+- [x] **B0-decies (com'era, e resta per la MISURA — non è lavoro da fare). IL
+      RECETTORE ASSENTE FA DIRE A GENESI «SUPERA» CON UN NUMERO
       DI CINQUE CIFRE — e una delle tre esclusioni non regge alla misura.**
       ⏱️ *Misurato il 09/08 sui tre campi che B0-sexies teneva fuori.*
       · **`recDist`**: il danno non è al secondo clic, è a **ZERO clic**.
@@ -4955,7 +4998,7 @@ numero scritto dove non era stato misurato niente**.*
   nome apre il file sbagliato credendo che sia il più fresco.
 - Le decisioni: `docs/DECISIONI_WEEKEND.md` — pagina d'ingresso in cima.
 - Stato misurato al **14/08** (lanciando le suite, non a memoria):
-  **2.704 prove girano senza rete**. La frase va letta stretta: è la somma
+  **2.705 prove girano senza rete**. La frase va letta stretta: è la somma
   delle **otto** suite che contano asserzioni (`run-kpi` 2110, `run-stile` 318,
   `run-helpers` 75, `run-pointcloud` 32, `run-manifest` 9, `run-demo` 8,
   `bootstrap-rivendicazioni` 7, `fogli-guardati` 3), non tutto ciò che gira nel

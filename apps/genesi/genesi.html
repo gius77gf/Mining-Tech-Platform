@@ -6283,8 +6283,24 @@ function renderScheda2D(){
      cui veniva preso, e il foglio stampabile stampava «77,7 mm/s (limite 8,0)»
      senza dire che SUPERA di quasi dieci volte. Le soglie 0,6 e 1,0 sono le
      stesse, spostate e non riscritte. */
+  /* ⛔ E LA FREQUENZA SI SCRIVE COM'È, NON ARROTONDATA AL NUMERO INTERO
+     (14/08, riverificando B0-decies). `gnum(D2.recFreq,0)` di 9,6 Hz scriveva
+     «10», e la riga usciva «Soglia DIN residenziale **5 mm/s @ 10 Hz**»: una
+     coppia che nella tabella della norma NON ESISTE — a 10 Hz la DIN
+     residenziale dice 15. Il numero usato era giusto (la soglia la sceglie
+     `ppvLimit` sul valore vero, 9,6 < 10 → 5); a mentire era la frase, che
+     mostrava una frequenza diversa da quella con cui la soglia era stata
+     scelta. Stessa cosa al bordo alto: 49,6 Hz → «15 mm/s @ 50 Hz», e a 50 Hz
+     sono 20. Chi verifica il verdetto sulla tabella conclude che l'app sbaglia.
+     ⛔ Nessuna soglia toccata: qui cambia solo quante cifre si scrivono.
+     ⚠️ E la raggiungibilità è MISURATA e stretta, perché non sembri più grave
+     di quel che è: `dRecFreq` è `type="number" step="1"` senza
+     `inputmode="decimal"`, quindi `eCampoIntero` lo riconosce e
+     `montaGuardiaInteri` blocca il separatore mentre si digita. Una frequenza
+     non intera arriva da una volata salvata (`apri` fa `Object.assign`), non
+     dalla tastiera. */
   rows.push({lab:'PPV al recettore',valStr:gfix(_ppv,1)+' <span>mm/s</span>',cls:_ep.classe,
-    why:'a '+gnum(D2.recDist,0)+' m (SD '+gfix(_sd2,1)+' m/kg^½, MIC '+gnum(_mic,1)+' kg), legge di Devine PPV=K·SD^−β con '+_fonte+'. Soglia '+_normaLab+' '+gnum(_lim,1)+' mm/s @ '+gnum(D2.recFreq,0)+' Hz → '+(_ep.stato==='supera'?'<b>SUPERA</b>':_ep.verdetto)+(_ep.consiglio?': '+_ep.consiglio:'.')+_coda});
+    why:'a '+gnum(D2.recDist,0)+' m (SD '+gfix(_sd2,1)+' m/kg^½, MIC '+gnum(_mic,1)+' kg), legge di Devine PPV=K·SD^−β con '+_fonte+'. Soglia '+_normaLab+' '+gnum(_lim,1)+' mm/s @ '+gnum(D2.recFreq,2)+' Hz → '+(_ep.stato==='supera'?'<b>SUPERA</b>':_ep.verdetto)+(_ep.consiglio?': '+_ep.consiglio:'.')+_coda});
   /* ⛔ QUI STAVA IL «null m»: `'… kg a '+D2.recDist+' m'` con la distanza
      assente stampava, davanti all'utente, «W max ammissibile alla soglia
      scelta ≈ 0 kg a **null m**» — due bugie in una riga sola (lo zero veniva

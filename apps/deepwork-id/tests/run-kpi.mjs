@@ -27224,6 +27224,70 @@ test("voceDocumentoInElenco: la regola vale per documento, non per la lista", ()
     eq(gz16.ppvLimit("din-res", 25), 15, "e quella di 25 Hz resta 15 mm/s, alla cifra");
   });
 
+  /* ═════════════════════════════════════════════════════════════════════
+     B0-decies · IL RESIDUO: LA FREQUENZA MOSTRATA NON ERA QUELLA USATA
+     ═════════════════════════════════════════════════════════════════════
+     ⏱️ Trovato il 14/08 RIVERIFICANDO B0-decies, che era già chiuso dal 10/08.
+     Non un ingresso inventato — l'ingresso è quello vero — ma la frase che lo
+     racconta: `gnum(D2.recFreq,0)` arrotondava la frequenza al numero intero e
+     `normaConFrequenza` la concatenava grezza, cioè all'inglese.
+     Misurato, sulla DIN residenziale (fasce a 10 e 50 Hz):
+       · 9,6 Hz  → soglia 5 mm/s (giusta: 9,6 < 10), scritta «5 mm/s @ 10 Hz»
+         — e a 10 Hz la DIN residenziale dice **15**;
+       · 49,6 Hz → soglia 15 mm/s, scritta «15 mm/s @ 50 Hz» — a 50 sono **20**.
+       · e nel CSV archiviato col rapportino: «DIN residenziale @ **9.6** Hz».
+     Cioè la coppia mostrata non esiste nella tabella della norma, e chi
+     verifica il verdetto sulla tabella conclude che l'app sbaglia. È «il
+     numero è giusto mentre a mentire è il disegno» applicato a una FRASE.
+     ⛔ NESSUNA SOGLIA TOCCATA, e c'è l'asserzione che lo pretende: `ppvLimit`
+     decide sul numero vero, non sulla stringa.
+     ⚠️ RAGGIUNGIBILITÀ, misurata e dichiarata perché non sembri più grave di
+     quel che è: `dRecFreq` è `type="number" step="1"` senza
+     `inputmode="decimal"`, quindi `eCampoIntero` lo riconosce e
+     `montaGuardiaInteri` blocca il separatore battuto a mano. Una frequenza
+     non intera arriva da una volata salvata (`apri` fa `Object.assign`), non
+     dalla tastiera — l'importatore `.volata.json` non tocca `recFreq`. */
+  test("⛔ Genesi · B0-decies (residuo): la frequenza scritta è quella con cui la soglia è stata scelta", () => {
+    const banda = (f) => gz16.ppvLimit("din-res", f);
+    /* la frequenza riletta dalla stringa: è quello che fa chi verifica il
+       verdetto sulla tabella della norma, ed è l'unico modo di provare che la
+       coppia mostrata esista davvero */
+    const riletta = (s) => +String(s).replace(/^.*@ /, "").replace(" Hz", "").replace(",", ".");
+    for (const [f, lim] of [[9.6, 5], [49.6, 15], [10.4, 15], [50.4, 20], [12.5, 15], [25, 15]]) {
+      eq(banda(f), lim, `${f} Hz: la soglia resta ${lim} mm/s — decisa sul numero vero`);
+      eq(banda(riletta(gz16.normaConFrequenza("din-res", f))), lim,
+        `${f} Hz: la frequenza SCRITTA cade nella stessa fascia della soglia scritta accanto`);
+    }
+    /* ⛔ la controprova del difetto vero, alla cifra: con l'arrotondamento
+       all'intero le due coppie che cadevano erano queste, e cadevano dalla
+       parte PERMISSIVA (5 raccontata come la fascia dei 15) */
+    eq(banda(Math.round(9.6)), 15, "arrotondando a 10 la tabella dice 15: la coppia «5 @ 10» non esiste");
+    eq(banda(Math.round(49.6)), 20, "e arrotondando a 50 dice 20: la coppia «15 @ 50» non esiste");
+    /* la virgola italiana, che è l'altra metà: il file si apre in Excel */
+    eq(gz16.normaConFrequenza("din-res", 9.6), "DIN residenziale @ 9,6 Hz",
+      "nel CSV e nel file per Sentinella la frequenza si scrive all'italiana, non «9.6»");
+    /* ⚠️ e i casi di sempre non si muovono di un carattere */
+    eq(gz16.normaConFrequenza("din-res", 25), "DIN residenziale @ 25 Hz", "un intero resta senza decimali");
+    eq(gz16.normaConFrequenza("din-res", null), "DIN residenziale @ frequenza non indicata",
+      "e la frequenza assente continua a non scrivere la parola «null»");
+    /* ⚠️ IL LIMITE, DICHIARATO: due decimali. Una frequenza dominante si legge
+       col decimale, non col millesimo; oltre i due l'arrotondamento torna, e
+       questa riga esiste perché nessuno lo scopra credendolo un difetto nuovo. */
+    eq(gz16.normaConFrequenza("din-res", 9.996), "DIN residenziale @ 10 Hz",
+      "oltre i due decimali l'arrotondamento torna: è un limite dichiarato, non una svista");
+    /* ⚠️ e l'altro punto è NELLA PAGINA, dove nessuna prova pura arriva:
+       `srcG16` è `genesi.html` senza commenti, quindi la forma vecchia citata
+       nel commento accanto alla correzione non fa passare questa riga */
+    eq(/mm\/s @ '\+gnum\(D2\.recFreq,2\)\+' Hz/.test(srcG16), true,
+      "la riga «Soglia … @ … Hz» della scheda scrive la frequenza com'è");
+    eq(/gnum\(D2\.recFreq,0\)/.test(srcG16), false,
+      "⛔ e l'arrotondamento all'intero non è rimasto da nessuna parte nella pagina");
+    /* ⛔ E LE SOGLIE, PER ISCRITTO ANCHE QUI: questa unità non le ha sfiorate */
+    eq(/default: return n<10\?5:\(n<50\?15:20\); \}/.test(
+      _scG16(_rfG16(join(HERE, "../../genesi/genesi-data.js"), "utf8"))), true,
+      "⛔ la curva DIN residenziale è rimasta alla cifra");
+  });
+
   test("⛔ Genesi · B0-decies: le guardie a valle sono nella pagina, non solo nel modulo", () => {
     /* ⛔ «UN NUMERO CHE DIVENTA NON CALCOLABILE IN UN POSTO E RESTA INVENTATO
        IN UN ALTRO È IL LAVORO FATTO A METÀ». La distanza scalata la leggono

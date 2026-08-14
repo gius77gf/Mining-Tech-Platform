@@ -241,10 +241,23 @@ export function ppvSenzaDistanza(d){
    cella di Excel si capisce, invece della parola `null`.
    ⚠️ La SOGLIA non c'entra e non si tocca: `ppvLimit` risponde già `null` a
    una frequenza assente e ha la sua ragione in `ppvSenzaSoglia`. Qui si
-   scrive solo l'etichetta. */
+   scrive solo l'etichetta.
+   ⛔ E IL 14/08 IL RESIDUO DI B0-decies, TROVATO RIVERIFICANDOLA: la frequenza
+   usciva da qui **concatenata grezza**, cioè all'inglese — «DIN residenziale @
+   **9.6** Hz» nel CSV che si archivia col rapportino e nel file che parte verso
+   Sentinella, l'unica cifra col punto in due file tutti italiani. È la stessa
+   famiglia del `+dev+` della modale della legge di sito, pagata il 07/08.
+   `gnum` è il formattatore che scrive gli altri numeri di Genesi, ed era già
+   importato in cima a questo file: qui non nasce niente di nuovo.
+   ⚠️ DUE decimali, e il numero è dichiarato: una frequenza dominante si legge
+   dal sismografo con un decimale, e con due c'è margine. Oltre i due
+   l'arrotondamento torna — è un limite, non una svista, e la prova lo dice.
+   ⛔ NESSUNA SOGLIA È TOCCATA: `ppvLimit` continua a decidere sul numero VERO,
+   non su questa stringa. Quello che cambia è che la stringa smette di dire un
+   numero diverso da quello con cui la soglia è stata scelta. */
 export function normaConFrequenza(norma, f){
   const x = (f === null || f === undefined || String(f).trim() === '') ? NaN : +f;
-  return normaPpvLab(norma) + (Number.isFinite(x) ? ' @ ' + x + ' Hz' : ' @ frequenza non indicata');
+  return normaPpvLab(norma) + (Number.isFinite(x) ? ' @ ' + gnum(x, 2) + ' Hz' : ' @ frequenza non indicata');
 }
 
 /* Sovrappressione d'aria (airblast) al recettore, in dB(L): scala cube-root
