@@ -59,6 +59,7 @@
    che non ha guardato niente.
 */
 import { readFileSync, readdirSync } from "node:fs";
+import { execSync } from "node:child_process";
 import { join, dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { mascheraCodice } from "./tokenizza.mjs";
@@ -371,6 +372,53 @@ function moduliDelDisco() {
   dai("shared", 2);
   dai("apps", 2);
   return fuori.filter((p) => !/\/tests\//.test(p));
+}
+
+/* ⛔ LE SUITE NON ERANO GUARDATE DA NESSUNO, e il «0 fuori scope» stampato qui
+   sotto non poteva vederle: `moduliDelDisco` esclude la cartella `tests` per
+   costruzione e prende solo i `.js`, mentre le suite sono `.mjs`. Il suo zero
+   era vero **sul suo denominatore**, e il suo denominatore non conteneva il
+   posto dove il difetto è successo il 14/08 — un `MODULI is not defined` in
+   `run-kpi.mjs`, scritto da un cantiere e corretto trenta secondi dopo da un
+   altro. Un nome libero in una suite non «apre la pagina e muore al primo
+   tocco»: fa **crollare la suite al primo lancio**, quindi si scopre in
+   minuti. Ma «si scopre presto» non è «è guardato», ed è la differenza fra un
+   controllo e la fortuna.
+   ⚠️ IL COSTO DELLA STRETTA È STATO MISURATO PRIMA DI FARLA, come pretende la
+   regola: allargando **tutte e cinque** le domande alle suite i moduli passano
+   da 18 a **60** e le chiamate da 7.330 a **25.040**, e gli allarmi nuovi sono
+   **0 sulle prime due** (nomi chiamati, e nomi fuori dallo scope) e **45 sulle
+   altre tre** — 9 riferimenti dentro `${…}` e 36 nudi. Guardati uno per uno,
+   quei 45 sono di due famiglie sole, tutt'e due legittime: i **globali di
+   Node** che questo controllo non conosce (`process`), e il **codice scritto
+   come stringa** che le suite si costruiscono per iniettarlo (`${xQ}`,
+   `${CSS_ESEMPIO}`, `${dup}` — pezzi di pagina finta, non riferimenti veri).
+   Quindi entrano le due domande che costano zero, e le altre tre **dichiarano
+   di non guardare le suite** invece di tacere. */
+const FUORI_BROWSER = "apps/deepwork-id/tests/browser/";
+function tutteLeSuite() {
+  try {
+    return execSync("git ls-files -- 'apps/deepwork-id/tests/*.mjs'",
+      { cwd: RADICE, encoding: "utf8" }).trim().split("\n").map((s) => s.trim()).filter(Boolean);
+  } catch (e) { return []; }
+}
+/* ⛔ I BANCHI DEL BROWSER RESTANO FUORI, ED È UN'ECCEZIONE DICHIARATA, NON UNA
+   DIMENTICANZA. Il loro codice vive per metà dentro `page.evaluate()`, cioè in
+   un TERZO ambiente: né Node né i nostri moduli, ma il browser, con i suoi
+   globali (`KeyboardEvent`, `PointerEvent`, `Uint8ClampedArray`, `focus`) e
+   perfino i globali della PAGINA che stanno provando (`nav`). Misurato
+   allargandoci sopra: **8 allarmi, tutti e otto di quella famiglia, zero
+   difetti veri**. Aggiungerli a mano a un elenco di nomi noti sarebbe un
+   elenco senza fondo — i globali di una pagina sono quanti ne scrive la pagina.
+   ⚠️ E vale l'avvertimento che questo repository si è già dato: un'eccezione
+   dichiarata onestamente **resta un posto in cui nessuno guarda**. Perciò non
+   è solo scritta: il riepilogo stampa **quanti file** restano fuori, così il
+   giorno che qualcuno voglia coprirli il numero è lì e non va ricontato. */
+function suiteDelDisco() {
+  return tutteLeSuite().filter((p) => !p.startsWith(FUORI_BROWSER));
+}
+function banchiFuori() {
+  return tutteLeSuite().filter((p) => p.startsWith(FUORI_BROWSER));
 }
 
 export function nomiSospettiModulo(rel) {
@@ -736,7 +784,9 @@ test("ha davvero guardato: il numero delle chiamate è quello di un'app viva", (
 
 let chiamateMod = 0, moduliVisti = 0;
 const maleMod = [];
-for (const p of moduliDelDisco()) {
+/* le SUITE entrano qui: costo misurato 0 allarmi nuovi, +42 file, +17.710
+   chiamate. Vedi la ragione sopra `suiteDelDisco`. */
+for (const p of moduliDelDisco().concat(suiteDelDisco())) {
   let r;
   try { r = nomiSospettiModulo(p); } catch { continue; }
   if (!r.chiamate) continue;
@@ -769,6 +819,45 @@ test("la controprova dei MODULI — il refuso che è successo davvero viene vist
   for (const m of codice.matchAll(/(^|[^\w$.?])([A-Za-z_$][\w$]*)\s*\(/g))
     if (m[2] === "_numMis" && !PAROLE.has(m[2]) && !GLOBALI.has(m[2]) && !legati.has(m[2])) visto = true;
   ok(visto, "col refuso rimesso, `_numMis` deve risultare sospetto — e non risulta");
+});
+
+test("la controprova delle SUITE — il nome libero del 14/08 viene visto", () => {
+  /* ⛔ Il difetto vero, rimesso: il 14/08 un cantiere ha scritto `MODULI.flotta`
+     dentro `run-kpi.mjs` mentre `MODULI` viveva nello scope del blocco di un
+     ALTRO cantiere. La suite è crollata al primo lancio — quindi si è scoperto
+     in minuti, ed è la ragione per cui questa famiglia costa meno in una suite
+     che in una pagina. Ma «si scopre presto» non è «è guardato»: fino a oggi
+     nessun controllo lo vedeva, perché l'elenco dei soggetti escludeva
+     `tests/` per costruzione e prendeva solo i `.js`.
+     Si lavora sul TESTO, senza toccare il disco. */
+  const suite = suiteDelDisco();
+  ok(suite.length >= 20, `solo ${suite.length} suite guardate: l'elenco non sta guardando dove crede`);
+  const rel = "apps/deepwork-id/tests/run-kpi.mjs";
+  ok(suite.includes(rel), `${rel} deve stare fra i soggetti, e non c'è`);
+  const sano = leggi(rel);
+  ok(!/nomeCheNonEsisteMai/.test(sano), "run-kpi dev'essere sana prima di guastarla");
+  const guasto = sano + "\nnomeCheNonEsisteMai(1);\n";
+  const codice = soloCodice(guasto);
+  const legati = nomiLegati(codice);
+  let visto = false;
+  for (const m of codice.matchAll(/(^|[^\w$.?])([A-Za-z_$][\w$]*)\s*\(/g))
+    if (m[2] === "nomeCheNonEsisteMai" && !PAROLE.has(m[2]) && !GLOBALI.has(m[2]) && !legati.has(m[2])) visto = true;
+  ok(visto, "con il nome libero rimesso in una SUITE, il controllo deve vederlo — e non lo vede");
+  /* e il verso opposto: un nome dichiarato lì dentro NON deve risultare libero,
+     se no la guardia scatterebbe sempre e verrebbe spenta al secondo giro */
+  const conDichiarazione = sano + "\nconst nomeCheNonEsisteMai = () => 1;\nnomeCheNonEsisteMai(1);\n";
+  const legati2 = nomiLegati(soloCodice(conDichiarazione));
+  ok(legati2.has("nomeCheNonEsisteMai"), "e un nome dichiarato nella suite non dev'essere sospetto");
+});
+
+test("i banchi del browser restano fuori CON il numero, non in silenzio", () => {
+  /* l'eccezione è dichiarata sopra `suiteDelDisco`; qui si pretende che sia
+     anche CONTATA — un'eccezione che non si conta è un posto in cui nessuno
+     guarda, e questo repository l'ha già pagato. */
+  const fuori = banchiFuori();
+  ok(fuori.length > 0, "nessun banco del browser trovato: l'elenco non sta guardando dove crede");
+  ok(fuori.every((p) => p.startsWith(FUORI_BROWSER)), "fuori dev'esserci SOLO la cartella dei banchi");
+  ok(suiteDelDisco().every((p) => !p.startsWith(FUORI_BROWSER)), "e dentro non dev'esserci nessun banco");
 });
 
 test("la controprova — il nome che è successo davvero viene visto", () => {
@@ -851,7 +940,9 @@ for (const p of PAGINE) {
    quindi il conto è più stretto e più affidabile. */
 let chiamateScopeMod = 0, moduliScope = 0;
 const maleScopeMod = [];
-for (const p of moduliDelDisco()) {
+/* e anche qui: sono le due domande che avrebbero visto il `MODULI is not
+   defined` del 14/08 in `run-kpi.mjs`. */
+for (const p of moduliDelDisco().concat(suiteDelDisco())) {
   let codice;
   try { codice = soloCodice(leggi(p)); } catch { continue; }
   const r = fuoriScope(codice);
@@ -1221,6 +1312,14 @@ test("la controprova della TERZA domanda — un nome usato SOLO dentro un `${…
   ok(riferimentiLiberi(rel).liberi.size === 0, "e sulla pagina sana non accusa nessuno");
 });
 
+/* ⛔ IL PERIMETRO DELLE SUITE, STAMPATO: le prime due domande adesso guardano
+   anche le suite `node` (dove il 14/08 è vissuto un `MODULI is not defined`
+   per mezz'ora), e i banchi del browser restano fuori con la ragione scritta
+   sopra `suiteDelDisco`. Il numero sta qui perché un'eccezione che non si
+   conta è un'eccezione che nessuno riapre. */
+console.log(`   [perimetro] le prime due domande guardano anche ${suiteDelDisco().length} suite node`
+  + `  ·  ${banchiFuori().length} banchi del browser restano FUORI, e non è «a posto»:`
+  + ` il loro codice gira dentro page.evaluate(), cioè in un terzo ambiente (8 allarmi misurati, 8 globali del browser, 0 difetti)`);
 console.log(`\nRisultato nomi liberi: ${passed} passati, ${failed} falliti`
   + `  ·  ${chiamateTot} chiamate su ${pagineViste} pagine, ${chiamateMod} su ${moduliVisti} moduli`
   + `  ·  seconda domanda (lo scope): ${chiamateScope} chiamate su ${pagineScope} pagine e ${chiamateScopeMod} su ${moduliScope} moduli, ${maleScope.length + maleScopeMod.length} fuori scope`
