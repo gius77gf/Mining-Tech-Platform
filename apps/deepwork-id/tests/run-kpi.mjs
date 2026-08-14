@@ -32067,5 +32067,201 @@ test("frasePersi · ⚠️ NIENTE `esc()`: la frase esce come l'utente l'ha scri
 }
 /* ===== fine Flotta · il ripiego silenzioso =============================== */
 
+/* ===== Conti · il ripiego silenzioso ===== */
+/* ⛔ LE DUE CELLE DEL LISTINO CHE SI RIEMPIONO DA SOLE, E CHE NESSUNO DICHIARAVA.
+   ══════════════════════════════════════════════════════════════════════════
+   Trovate il 14/08 col censimento a tre gradini. Il gradino 1 dà 18 «MESTIERE»
+   in Conti, il gradino 2 ne lascia in piedi 5 (undici erano falsi allarmi del
+   righello: la sua regex prende la sola INIZIALE maiuscola di `String` e di
+   `Number`, quindi legge `|| String(x)` come «una costante di mestiere»), e il
+   gradino 3 — chiamare la funzione col dato scritto e senza — dice che il
+   difetto vero non stava in nessuno dei 18: stava dove il documento si LEGGE.
+   `parseListinoCsv` tratta bene il prezzo (una cella illeggibile fa cadere la
+   riga, con la sua ragione) e la densità (se manca resta `null`, e l'import lo
+   dice). L'aliquota e l'unità no: prendono una costante di mestiere e la riga
+   entra in silenzio, perché `scartiListinoCsv` contava soltanto le righe che
+   NON entrano. Misurato chiamando la funzione: «10%», «10 %», «IVA 10»,
+   «esente», «n.i.», «art.17», «escluso», «-», «—» danno tutte 22 con
+   `persi: 0` — e la prima è la peggiore, perché chi ha scritto l'aliquota
+   GIUSTA col segno di percento si vede applicare l'ordinaria.
+   ⛔ LA COSTANTE NON SI TOCCA (è una decisione da fondatore): queste prove
+   blindano che il NUMERO resti quello di prima, e che accanto ci sia la
+   dichiarazione. Chi mostra il numero dice che manca — non lo cambia.
+   ⚠️ Prove SINCRONE e messe PRIMA del riepilogo: l'`await Promise.all(inVolo)`
+   sta a metà file, quindi una prova asincrona appesa qui verrebbe messa in
+   volo e il totale si stamperebbe senza aspettarla. */
+{
+  const rigaLis = (u, i) => `Pietrisco;${u};12;1,5;${i}`;
+  const lettaLis = (u, i) => conti.parseListinoCsv(rigaLis(u, i))[0];
+  const scartiLis = (u, i) => conti.scartiListinoCsv(rigaLis(u, i));
+  const avvisoLis = (u, i, campo) => (scartiLis(u, i).avvisi || []).find((a) => a.campo === campo) || null;
+
+  test("⛔ Conti · l'aliquota che non si legge diventa 22, e adesso lo dice", () => {
+    /* le scritture vere di una cava, misurate una per una: tutte entrano, tutte
+       col 22 messo da noi. Il numero è quello di prima; quello che cambia è che
+       accanto c'è la riga che lo dichiara. */
+    for (const cella of ["10%", "10 %", "IVA 10", "esente", "n.i.", "art.17", "escluso", "-", "—", "ventidue"]) {
+      eq(lettaLis("t", cella).iva, 22, `«${cella}»: il numero non si tocca, resta il 22 ordinario`);
+      eq(scartiLis("t", cella).persi.length, 0, `«${cella}»: la riga entra, non è uno scarto`);
+      const a = avvisoLis("t", cella, "iva");
+      ok(a, `«${cella}»: e adesso l'import lo DICHIARA invece di tacere`);
+      ok(a.ragione.includes("«" + cella + "»"),
+        `«${cella}»: la ragione riporta quello che era scritto, se no chi legge non sa dove guardare`);
+      ok(a.ragione.includes("22%"), `«${cella}»: e dice che numero ho messo io`);
+    }
+  });
+
+  test("⛔ Conti · «10%» era il caso caro: l'aliquota GIUSTA col segno di percento", () => {
+    /* è il solo dei dieci in cui chi compilava aveva scritto la verità: 10
+       invece di 22 su 10.000 € di imponibile sono 1.200 € di IVA su una
+       fattura vera */
+    eq(lettaLis("t", "10").iva, 10, "senza il segno di percento si legge, ed è 10");
+    eq(lettaLis("t", "10%").iva, 22, "col segno di percento no: diventa l'ordinaria (numero invariato)");
+    ok(avvisoLis("t", "10%", "iva"), "e la differenza fra le due righe adesso si vede");
+    eq(avvisoLis("t", "10", "iva"), null, "mentre la riga letta bene non produce nessun avviso");
+  });
+
+  test("⛔ Conti · uno ZERO SCRITTO è una decisione di chi compila, non un ripiego", () => {
+    /* stessa regola già scritta per il prezzo: «una fornitura in omaggio è una
+       decisione di chi compila, non nostra». Un'operazione non imponibile
+       dichiarata con uno 0 non deve produrre un avviso, se no l'avviso che
+       scatta sempre insegna a non guardarlo. */
+    eq(lettaLis("t", "0").iva, 0, "lo zero scritto resta zero");
+    eq(conti.leggiAliquotaListino("0").letta, true, "ed è LETTA, non un ripiego");
+    eq(avvisoLis("t", "0", "iva"), null, "quindi nessun avviso");
+    eq(conti.leggiAliquotaListino("-5").letta, false, "un'aliquota negativa invece non si legge");
+    eq(conti.leggiAliquotaListino("-5").iva, 22, "e prende il ripiego, come prima");
+  });
+
+  test("⛔ Conti · la cella VUOTA e la cella SCRITTA-e-non-letta sono due cose diverse", () => {
+    const vuota = conti.leggiAliquotaListino("");
+    eq(vuota.letta, false, "una colonna che non c'è non è letta");
+    eq(vuota.vuota, true, "ma è VUOTA");
+    eq(conti.leggiAliquotaListino("esente").vuota, false, "«esente» è scritta, e non si legge: è l'altro caso");
+    ok(avvisoLis("t", "", "iva").ragione.includes("non è scritta"),
+      "e le due ragioni sono diverse, se no si manda a cercare un refuso dove la colonna manca");
+    ok(avvisoLis("t", "esente", "iva").ragione.includes("non si legge"), "e viceversa");
+  });
+
+  test("⛔ Conti · l'unità che non si riconosce diventa la tonnellata, e vale un decimo", () => {
+    /* il ripiego dell'unità costa più di quello dell'IVA: un listino al
+       QUINTALE si legge a tonnellata, cioè 0,85 €/q diventa 0,85 €/t. */
+    for (const cella of ["q", "ql", "quintali", "kg", "mq", "pezzi"]) {
+      eq(lettaLis(cella, "22").unitaPrezzo, "t", `«${cella}»: il ripiego è la tonnellata, come prima`);
+      ok(avvisoLis(cella, "22", "unita"), `«${cella}»: e adesso si dichiara`);
+    }
+    for (const cella of ["t", "ton", "tonnellate", "mc", "m3", "m³", "metri cubi"]) {
+      eq(avvisoLis(cella, "22", "unita"), null, `«${cella}»: una scrittura che conosciamo non produce rumore`);
+    }
+    ok(avvisoLis("", "22", "unita").ragione.includes("non è scritta"),
+      "e la cella vuota ha la sua ragione, diversa da quella della cella incomprensibile");
+  });
+
+  test("⛔ Conti · la domanda è scritta UNA volta: lettore e avviso non possono divergere", () => {
+    /* l'identità, non il comportamento: due copie uguali oggi divergono domani
+       senza che nessuno lo veda. Se l'avviso si ricalcolasse la sua idea di
+       «questa cella si legge?», la prima volta che il lettore cambia il
+       messaggio direbbe una cosa e il listino un'altra. */
+    let n = 0;
+    for (const u of ["", "t", "q", "mc", "M3", "pezzi", "metri cubi"])
+      for (const i of ["", "22", "10", "10%", "esente", "0", "-5", "3,5"]) {
+        const p = lettaLis(u, i);
+        eq(p.unitaPrezzo, conti.leggiUnitaListino(u).unita, `unità «${u}»: il lettore usa la stessa funzione dell'avviso`);
+        eq(p.iva, conti.leggiAliquotaListino(i).iva, `iva «${i}»: idem`);
+        const a = scartiLis(u, i).avvisi;
+        eq(a.some((x) => x.campo === "unita"), !conti.leggiUnitaListino(u).riconosciuta,
+          `unità «${u}»: l'avviso c'è esattamente quando il ripiego è scattato`);
+        eq(a.some((x) => x.campo === "iva"), !conti.leggiAliquotaListino(i).letta, `iva «${i}»: idem`);
+        n++;
+      }
+    eq(n, 56, "56 combinazioni di celle confrontate, non una a campione");
+  });
+
+  test("⛔ Conti · il nostro export si ri-carica in SILENZIO: l'avviso non fa rumore su sé stesso", () => {
+    /* un avviso che scatta sul giro scrivi → rileggi di casa nostra sarebbe
+       l'allarme che scatta sempre, e insegnerebbe a non guardarlo. `csvListino`
+       scrive sempre l'unità e l'aliquota, quindi non c'è niente da riempire. */
+    const csv = conti.csvListino([
+      { nome: "Pietrisco", unitaPrezzo: "t", prezzo: 12, densita: 1.5, iva: 22 },
+      { nome: "Sabbia", unitaPrezzo: "m3", prezzo: 22, densita: null, iva: 10 },
+      { nome: "Misto", unitaPrezzo: "t", prezzo: 6.5, densita: null },
+    ]);
+    const s = conti.scartiListinoCsv(csv);
+    eq(s.avvisi.length, 0, "zero avvisi sul nostro stesso file");
+    eq(s.persi.length, 0, "e zero righe cadute");
+    eq(conti.parseListinoCsv(csv).length, 3, "tutte e tre rientrano");
+  });
+
+  test("⛔ Conti · `ALIQUOTA_ORDINARIA` è UNA costante, non due numeri gemelli", () => {
+    /* il 22 stava scritto a mano in tre posti (il lettore, `csvListino`, e il
+       CSV dei prezzi convertiti nella pagina): cambiarne uno solo avrebbe fatto
+       divergere il giro scrivi → rileggi senza niente di rosso da leggere. */
+    eq(conti.ALIQUOTA_ORDINARIA, 22, "la costante è il 22 ordinario italiano");
+    eq(conti.leggiAliquotaListino("boh").iva, conti.ALIQUOTA_ORDINARIA, "il lettore usa quella");
+    const csv = conti.csvListino([{ nome: "X", unitaPrezzo: "t", prezzo: 1 }]);
+    ok(csv.includes(";" + conti.ALIQUOTA_ORDINARIA + "\n"), "e lo scrittore scrive quella");
+    eq(conti.parseListinoCsv(csv)[0].iva, conti.ALIQUOTA_ORDINARIA, "quindi il giro torna identico");
+  });
+
+  test("⛔ Conti · l'avviso conta le righe del FILE, e ne nomina al massimo tre", () => {
+    const csv = ["nome;unita;prezzo;densita;iva",
+      "A;q;1;1,5;esente", "B;t;2;1,5;10%", "C;kg;3;1,5;22", "D;t;4;1,5;n.i."].join("\n");
+    const s = conti.scartiListinoCsv(csv);
+    eq(s.entrano, 4, "tutte e quattro entrano: nessuna di queste celle ferma una riga");
+    eq(s.persi.length, 0, "e nessuna è persa");
+    eq(s.avvisi.length, 5, "cinque celle riempite da noi…");
+    eq(s.avvisi.filter((a) => a.campo === "unita").length, 2, "…due unità (q e kg)");
+    eq(s.avvisi.filter((a) => a.campo === "iva").length, 3, "…e tre aliquote (esente, 10%, n.i.)");
+    eq(s.avvisi.map((a) => a.nome).join(","), "A,A,B,C,D", "ogni avviso porta il nome del prodotto");
+  });
+
+  /* ⛔ E QUESTE DUE BLINDANO UN RIPIEGO CHE OGGI NON SI RAGGIUNGE, dichiarandolo
+     invece di «correggerlo». La stessa domanda — «che aliquota vale per un
+     prodotto che non ne ha una scritta?» — in Conti ha DUE risposte: 22 nel
+     listino (lettore e scrittore CSV) e ZERO in `rigaPreventivo` e `rigaPesata`
+     (`+p.iva || 0`). Misurato chiamando le funzioni: su 1.200 € di imponibile
+     sono 264 € di IVA che ci sono o non ci sono.
+     ⚠️ Oggi il ramo dello zero NON è raggiungibile dai punti di scrittura
+     dell'app: la tendina `pr-iva` è sempre valorizzata (cinque opzioni, nessuna
+     vuota), `parseListinoCsv` mette sempre un numero, e tutti i prodotti della
+     dimostrazione hanno `iva: 22`. Quindi non si tocca — quale delle due
+     risposte sia quella giusta è una decisione da fondatore, e cambiarla qui
+     vorrebbe dire sceglierla di nascosto. Quello che si può fare è scriverla,
+     perché il giorno in cui il ramo diventasse raggiungibile queste due prove
+     dicono da subito quale delle due strade il prodotto ha preso. */
+  test("⛔ Conti · un prodotto SENZA aliquota vale 0 nelle righe e 22 nel listino (divergenza dichiarata)", () => {
+    const senzaIva = { id: "x1", nome: "Pietrisco", unitaPrezzo: "t", prezzo: 12, densita: 1.5 };
+    const cliDiv = { id: "c1", ragioneSociale: "Cliente", sconto: 0 };
+    eq(conti.rigaPreventivo(senzaIva, 100, "t", cliDiv).aliquota, 0,
+      "la riga di preventivo dice 0 — cioè «esente», che è una cosa che qualcuno deve aver deciso");
+    eq(conti.rigaPesata(senzaIva, 30, 10, cliDiv, null, new Date("2026-08-14")).aliquotaIva, 0,
+      "e il DDT fotografa lo stesso 0");
+    eq(conti.leggiAliquotaListino(undefined).iva, 22,
+      "mentre il listino, sulla stessa mancanza, risponde 22");
+    /* e il conto in euro della divergenza, perché non resti un'astrazione */
+    const r = conti.rigaPreventivo(senzaIva, 100, "t", cliDiv);
+    eq(conti.totaliDaRighe([r]).ivaImporto, 0, "1.200 € di imponibile portano 0 € di IVA…");
+    eq(conti.totaliDaRighe([{ ...r, aliquota: 22 }]).ivaImporto, 264, "…dove col 22 ne porterebbero 264");
+  });
+
+  test("⛔ Conti · `aliquotaIgnota` esiste, sa scattare, e i due scrittori non gliene danno mai l'occasione", () => {
+    /* la bandiera che dichiara «l'aliquota non la so» è scritta e funziona — ma
+       solo su un `null`, e `rigaPreventivo`/`rigaPesata` un `null` non lo
+       producono mai (`+p.iva || 0`). È una guardia sana a valle di un ripiego a
+       monte: il lettore è a posto, è lo scrittore a togliergli il caso. */
+    const cliIgn = { id: "c1", ragioneSociale: "Cliente", sconto: 0 };
+    const conIva = { id: "x1", nome: "P", unitaPrezzo: "t", prezzo: 12, densita: 1.5, iva: 22 };
+    const r = conti.rigaPreventivo(conIva, 100, "t", cliIgn);
+    eq(conti.riepilogoIvaFattura({ righe: [{ ...r, aliquota: null }] }).aliquotaIgnota, true,
+      "con un'aliquota `null` la bandiera si alza: la guardia c'è ed è collegata");
+    eq(conti.riepilogoIvaFattura({ righe: [{ ...r, aliquota: 0 }] }).aliquotaIgnota, false,
+      "con uno 0 no, e ha ragione: zero è l'esente, non l'ignoto");
+    const senzaIva = { id: "x1", nome: "P", unitaPrezzo: "t", prezzo: 12, densita: 1.5 };
+    eq(conti.riepilogoIvaFattura({ righe: [conti.rigaPreventivo(senzaIva, 100, "t", cliIgn)] }).aliquotaIgnota, false,
+      "ma da un prodotto senza aliquota non si arriva mai al `null`: il ripiego a monte se lo mangia");
+  });
+}
+/* ===== fine Conti · il ripiego silenzioso ===== */
+
 console.log(`\nRisultato KPI app: ${passed} passati, ${failed} falliti${inVolo.length ? `  ·  ${inVolo.length} prove asincrone aspettate` : ""}`);
 process.exit(failed > 0 ? 1 : 0);

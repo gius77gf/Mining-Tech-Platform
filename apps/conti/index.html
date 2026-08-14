@@ -1806,7 +1806,7 @@ label.item:has(.dw-chk:checked){
   /* l'estratto conto della banca: il file si legge e si abbina nel modulo dati,
      qui si disegna e si chiede conferma — `round2` è già importato più sotto */
   import { parseMovimentiCsv, abbinaMovimenti, ESTRATTO_ESEMPIO,
-           contiData, giorni, kpiFrom, statoScadenzaFattura, agingIncassi, stileBarraPeso, gareRiepilogo, prioritaIncasso, incassoAtteso, incassoPerMese, esposizioneClienti, estrattoContoCliente, livelloSollecito, interessiMora, testoSollecito, TASSO_MORA_DEFAULT, statoTassoMora, parseFattureCsv, scartiFattureCsv, parseGareCsv, scartiGareCsv, parseListinoCsv, scartiListinoCsv, csvListino, csvGare, chiaveNome, clienteDiFattura, nomeCliente, clientiDaCollegare,
+           contiData, giorni, kpiFrom, statoScadenzaFattura, agingIncassi, stileBarraPeso, gareRiepilogo, prioritaIncasso, incassoAtteso, incassoPerMese, esposizioneClienti, estrattoContoCliente, livelloSollecito, interessiMora, testoSollecito, TASSO_MORA_DEFAULT, statoTassoMora, parseFattureCsv, scartiFattureCsv, parseGareCsv, scartiGareCsv, parseListinoCsv, scartiListinoCsv, ALIQUOTA_ORDINARIA, csvListino, csvGare, chiaveNome, clienteDiFattura, nomeCliente, clientiDaCollegare,
     round2, baseGara, densitaValida, prezzoPerTonnellata, prezzoPerMetroCubo, convertiQuantita, imponibileRiga,
     importiFattura, totaliDaRighe, riepilogoIvaFattura, prossimoNumero, nettoPesata, rigaPesata, valorePesata, valoreDdt, csvPesate, parsePesateCsv, scartiPesateCsv, csvIncassi, parseIncassiCsv, scartiIncassiCsv, csvClienti, parseClientiCsv, scartiClientiCsv, numeroDichiarato,
     quantitaPesata, pesateDaFatturare, fatturaDaPesate, canonePeriodo, BASI_CANONE, venditePerProdotto,
@@ -6249,7 +6249,7 @@ label.item:has(.dw-chk:checked){
        regola scritta due volte, la seconda più debole, è il difetto stesso. */
     let csv = "prodotto;prezzo;unita_prezzo;densita_t_m3;prezzo_t;prezzo_m3;iva\n";
     for (const p of PRO.slice().sort((a, b) => String(a.nome || "").localeCompare(String(b.nome || ""), "it")))
-      csv += `${csvCell(p.nome)};${numeroDichiarato(p.prezzo) ?? ""};${p.unitaPrezzo === "m3" ? "m3" : "t"};${densitaValida(p) ?? ""};${prezzoPerTonnellata(p) ?? ""};${prezzoPerMetroCubo(p) ?? ""};${numeroDichiarato(p.iva) ?? 22}\n`;
+      csv += `${csvCell(p.nome)};${numeroDichiarato(p.prezzo) ?? ""};${p.unitaPrezzo === "m3" ? "m3" : "t"};${densitaValida(p) ?? ""};${prezzoPerTonnellata(p) ?? ""};${prezzoPerMetroCubo(p) ?? ""};${numeroDichiarato(p.iva) ?? ALIQUOTA_ORDINARIA}\n`;
     const a = document.createElement("a");
     a.href = "data:text/csv;charset=utf-8," + encodeURIComponent(csv);
     a.download = "conti_listino_prezzi.csv"; marchiaCsv(a); a.click();
@@ -6813,6 +6813,44 @@ label.item:has(.dw-chk:checked){
     renderBanca();
   };
 
+  /* ⛔ LA FRASE DELLE CELLE CHE HO RIEMPITO IO. Gemella di `frasePersi`, e
+     scritta con la sua stessa forma (prime tre e «e altre N»), ma dice una cosa
+     diversa: quelle righe sono ENTRATE, e dentro c'è un numero che chi ha
+     compilato il file non ha scritto. Fino al 14/08 non lo diceva nessuno —
+     l'import raccontava le righe cadute e i prodotti senza densità, e taceva
+     sull'aliquota e sull'unità, che sono le due celle che si riempiono da sole.
+     ⚠️ Dice «del file», non «dei prodotti aggiunti», perché `scartiListinoCsv`
+     guarda il file intero mentre la pagina salta i doppioni: una frase che
+     promettesse i prodotti aggiunti sarebbe più larga del suo numero.
+     ⚠️ E conta CELLE, non righe — la prima stesura diceva «5 righe del file» su
+     un file di quattro righe di cui tre malandate, perché una riga sola può
+     avere tutt'e due le celle da riempire (misurato premendo il bottone:
+     «Sabbia di fiume» ne produce due). È l'etichetta più larga del suo numero,
+     scritta dentro la correzione di un difetto della stessa famiglia.
+     ⚠️ Sta QUI e non in `shared/` di proposito, e la ragione è MISURATA, non
+     un'impressione: delle **19** funzioni `scarti*Csv` dell'ecosistema una
+     sola — questa — restituisce un elenco `avvisi`, cioè le celle che abbiamo
+     riempito noi. Il secondo consumatore oggi non esiste, e la regola scatta su
+     «serve a due app», non su «potrebbe servire». Il giorno in cui un secondo
+     lettore avrà i suoi avvisi, questa frase e `frasePersi` si trasferiscono
+     insieme.
+     ⚠️ La domanda giusta era questa e non «chi altro ha una variabile
+     `avvisi`»: a quella rispondono Genesi, Scudo e Terra, che però chiamano
+     così tutt'altra cosa (le note di una legge provvisoria, la validazione di
+     un campo, gli scarti del canone). Cercare il NOME invece del meccanismo
+     avrebbe dato tre falsi consumatori. */
+  const fraseAvvisiLis = (s) => {
+    const a = (s && s.avvisi) || [];
+    if (!a.length) return "";
+    return " " + conta(a.length, "cella del file non l'ho saputa leggere e l'ho riempita io",
+                       "celle del file non le ho sapute leggere e le ho riempite io")
+      /* ⚠️ NIENTE `esc` QUI: `esito` scrive con `textContent`, quindi un `&`
+         diventerebbe «&amp;» sullo schermo. È la ragione per cui `frasePersi`,
+         che finisce nello stesso posto, non escapa nemmeno lei. */
+      + ": " + a.slice(0, 3).map(x => "«" + x.nome + "» " + x.ragione).join("; ")
+      + (a.length > 3 ? "; e altre " + (a.length - 3) : "") + ". Controllale prima di fatturare.";
+  };
+
   $("btn-lis-import").onclick = () => $("lis-file").click();
   $("lis-file").onchange = async (e) => {
     const file = e.target.files && e.target.files[0]; if (!file) return;
@@ -6867,6 +6905,7 @@ label.item:has(.dw-chk:checked){
       `Import listino: ${plur(agg, "prodotto aggiunto", "prodotti aggiunti")}${dup ? `, ${plur(dup, "già presente (saltato)", "già presenti (saltati)")}` : ""}${ripetute ? `, ${plur(ripetute, "ripetuto nel file", "ripetuti nel file")}` : ""}.`
       + frasePersi(scartate)
       + (scartate.persi.length ? " Un prodotto senza prezzo non si pu\u00f2 vendere, e uno zero messo da me lo farebbe sembrare gratis." : "")
+      + fraseAvvisiLis(scartate)
       + (senzaDensita ? ` ${plur(senzaDensita, "prodotto \u00e8", "prodotti sono")} senza densit\u00e0: per ${senzaDensita === 1 ? "quello" : "quelli"} non posso convertire fra metri cubi e tonnellate finch\u00e9 non la aggiungi.` : ""),
       scartate.persi.length ? "warn" : agg ? "success" : "err");
     await refresh();

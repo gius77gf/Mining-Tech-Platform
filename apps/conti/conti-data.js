@@ -797,18 +797,69 @@ export function scartiGareCsv(text) {
 // «ton», «tonnellate», «mc», «m3», «m³» — perché un foglio di calcolo altrui
 // non conosce le nostre convenzioni. Quello che non si riconosce diventa «t»,
 // che è il caso di gran lunga più comune in cava, e resta correggibile a mano.
+/* ⛔ IL RIPIEGO SILENZIOSO DEL LISTINO: DUE CELLE CHE SI RIEMPIONO DA SOLE.
+   ══════════════════════════════════════════════════════════════════════════
+   Il prezzo e la densità questa funzione li tratta bene da luglio: un prezzo
+   illeggibile fa CADERE la riga con la sua ragione, una densità che manca
+   resta `null` e l'import lo dice. L'aliquota e l'unità no: quando la cella
+   non si legge prendono una **costante di mestiere** (il 22% ordinario, la
+   tonnellata) e nessuno lo dice a nessuno — `scartiListinoCsv` conta solo le
+   righe che NON entrano, e queste entrano.
+   Misurato il 14/08 chiamando `parseListinoCsv` su come una cava scrive
+   davvero quella colonna: «10%», «10 %», «IVA 10», «esente», «n.i.», «art.17»,
+   «escluso», «-», «—» diventano tutte **22**, con `persi: 0`. La prima è la
+   peggiore — chi ha scritto l'aliquota GIUSTA col segno di percento si vede
+   applicare l'ordinaria, e su 10.000 € di imponibile sono 1.200 € di IVA in
+   più su una fattura vera.
+   ⚠️ E il ripiego dell'unità vale ancora di più: una cella «q» (i listini
+   vecchi delle cave sono spesso al quintale) diventa «t», quindi 0,85 €/q si
+   legge 0,85 €/t — un decimo. Misurato: 1.000 unità fanno 850 € invece di
+   8.500 €.
+   ⛔ LA COSTANTE NON SI TOCCA: quale aliquota valga quando non c'è scritta è
+   una decisione del fondatore, non nostra. Quello che si può fare senza
+   decidere niente è **dichiararla**, che è la regola di casa — chi mostra il
+   numero dice che manca. Perché l'avviso e il lettore non divergano (è la
+   copia debole nel posto in cui questa casa l'ha già trovata cinque volte:
+   dove il messaggio si compone), la domanda è scritta **una volta sola** qui
+   sotto e la chiamano tutt'e due. */
+export const ALIQUOTA_ORDINARIA = 22;
+const UNITA_LISTINO_M3 = ["mc", "m3", "m³", "metrocubo", "metricubi"];
+const UNITA_LISTINO_T = ["t", "ton", "tonn", "tonnellata", "tonnellate"];
+
+/* Che unità di prezzo dichiara una cella di listino, E SE l'abbiamo capita.
+   `riconosciuta: false` con `vuota: false` è il caso che costa: qualcuno ha
+   scritto qualcosa e noi ci abbiamo messo la tonnellata sopra. */
+export function leggiUnitaListino(cella) {
+  const scritta = String(cella == null ? "" : cella).trim();
+  const u = scritta.toLowerCase().replace(/[.\s]/g, "");
+  if (UNITA_LISTINO_M3.includes(u)) return { unita: "m3", riconosciuta: true, vuota: false, scritta };
+  if (UNITA_LISTINO_T.includes(u)) return { unita: "t", riconosciuta: true, vuota: false, scritta };
+  /* il ripiego dichiarato: «t» è di gran lunga il caso più comune in cava e
+     resta correggibile a mano — ma adesso si sa che è un ripiego */
+  return { unita: "t", riconosciuta: false, vuota: scritta === "", scritta };
+}
+
+/* L'aliquota di una cella di listino, E SE l'abbiamo letta. `letta: false`
+   vuol dire che il 22 lo abbiamo messo noi, non chi ha compilato il file.
+   ⚠️ Un'aliquota **scritta** 0 è `letta: true`: «non imponibile» è una
+   decisione di chi compila, esattamente come uno zero scritto sul prezzo. */
+export function leggiAliquotaListino(cella) {
+  const scritta = String(cella == null ? "" : cella).trim();
+  const n = numIt(cella);
+  if (Number.isFinite(n) && n >= 0) return { iva: n, letta: true, vuota: false, scritta };
+  return { iva: ALIQUOTA_ORDINARIA, letta: false, vuota: scritta === "", scritta };
+}
+
 export function parseListinoCsv(text) {
   return String(text || "").split(/\r?\n/).map(r => r.trim()).filter(Boolean)
     .filter(r => !isIntestazione(r, "nome"))
     .map(r => {
       const [nome, unita, prezzo, densita, iva] = parseCsvLine(r);
-      const u = (unita || "").trim().toLowerCase().replace(/[.\s]/g, "");
       const pr = numIt(prezzo);
       const de = numIt(densita);
-      const iv = numIt(iva);
       return {
         nome: (nome || "").trim(),
-        unitaPrezzo: ["mc", "m3", "m³", "metrocubo", "metricubi"].includes(u) ? "m3" : "t",
+        unitaPrezzo: leggiUnitaListino(unita).unita,
         /* ⚠️ NIENTE ZERO DI COMODO SUL PREZZO (corretto il 31/07). Prima una
            riga col prezzo illeggibile entrava a ZERO: un prodotto che sembra
            gratis, e lo zero finisce in un DDT e poi in una fattura. È la stessa
@@ -817,7 +868,7 @@ export function parseListinoCsv(text) {
         prezzo: Number.isFinite(pr) ? Math.max(0, pr) : null,
         // niente valore di comodo: se non c'è, non c'è
         densita: Number.isFinite(de) && de > 0 ? de : null,
-        iva: Number.isFinite(iv) && iv >= 0 ? iv : 22,
+        iva: leggiAliquotaListino(iva).iva,
       };
     })
     /* ⛔ SENZA UN PREZZO LEGGIBILE LA RIGA NON ENTRA, e non è pignoleria: è
@@ -853,12 +904,34 @@ export function scartiListinoCsv(text) {
   const righe = String(text || "").split(/\r?\n/).map(r => r.trim()).filter(Boolean)
     .filter(r => !isIntestazione(r, "nome"));
   const persi = [];
+  const avvisi = [];
   let nRiga = 0;
   let vuote = 0;
   for (const riga of righe) {
     nRiga++;
-    if (parseListinoCsv(riga).length) continue;
     const c = parseCsvLine(riga);
+    if (parseListinoCsv(riga).length) {
+      /* ⛔ LE RIGHE CHE ENTRANO CON UN VALORE MESSO DA NOI. Questa funzione
+         contava solo quelle che NON entrano, e finché è stato così le due
+         celle che si riempiono da sole non le vedeva nessuno: la riga entrava,
+         il prodotto compariva nel listino con «22%» accanto, e il 22 lo
+         avevamo scritto noi. Non è un errore da fermare — la riga è buona e il
+         prodotto è vendibile — è una cosa che chi ha appena caricato il file
+         deve sapere ADESSO, come già succede per la densità che manca.
+         Il verdetto lo danno `leggiAliquotaListino` e `leggiUnitaListino`, cioè
+         le stesse funzioni che il lettore usa per decidere: se lo riscrivessi
+         qui sarebbe una copia debole, e divergerebbe al primo cambiamento. */
+      const nome = (c[0] || "").trim() || "riga " + nRiga;
+      const u = leggiUnitaListino(c[1]);
+      const a = leggiAliquotaListino(c[4]);
+      if (!u.riconosciuta) avvisi.push({ nome, campo: "unita", scritta: u.scritta,
+        ragione: u.vuota ? "l'unità di prezzo non è scritta: ho messo la tonnellata"
+          : "l'unità «" + u.scritta + "» non la conosco: ho messo la tonnellata" });
+      if (!a.letta) avvisi.push({ nome, campo: "iva", scritta: a.scritta,
+        ragione: a.vuota ? "l'aliquota IVA non è scritta: ho messo il " + ALIQUOTA_ORDINARIA + "%"
+          : "l'aliquota IVA «" + a.scritta + "» non si legge: ho messo il " + ALIQUOTA_ORDINARIA + "%" });
+      continue;
+    }
     if (c.every(x => String(x == null ? "" : x).trim() === "")) { vuote++; continue; }
     const nome = (c[0] || "").trim(), prezzo = (c[2] || "").trim();
     persi.push({
@@ -870,7 +943,7 @@ export function scartiListinoCsv(text) {
     });
   }
   const lette = righe.length - vuote;
-  return { lette, entrano: lette - persi.length, persi, vuote };
+  return { lette, entrano: lette - persi.length, persi, vuote, avvisi };
 }
 
 /* ⛔ IL FILE DEL LISTINO LO SCRIVE UNA FUNZIONE, NON UN TEMPLATE NELLA PAGINA.
@@ -901,7 +974,11 @@ export function csvListino(prodotti) {
       p.unitaPrezzo === "m3" ? "mc" : "t",
       pr == null ? "" : String(pr),
       de == null ? "" : String(de),
-      iv == null ? "22" : String(iv),
+      /* il 22 è la stessa costante che applica il LETTORE, non una seconda
+         decisione scritta a mano: quando aveva il suo numero scritto qui,
+         cambiarne uno solo dei due avrebbe fatto divergere il giro
+         scrivi → rileggi senza che niente diventasse rosso */
+      iv == null ? String(ALIQUOTA_ORDINARIA) : String(iv),
     ].join(";"));
   }
   return righe.join("\n") + "\n";
