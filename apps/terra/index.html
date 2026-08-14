@@ -1319,7 +1319,14 @@ a.dw-btn{text-decoration:none}
                              .filter(r => (r.data||"").slice(0,4) === annoP)
                              .reduce((s, r) => s + r.volumeM3, 0);
     const rr = refP ? riservaResidua(refP.riserveM3, estrattoAnnoP, refP.pianificatoAnnuoM3) : null;
-    $("pia-riserva").innerHTML = (rr && refP.riserveM3 != null)
+    /* ⛔ QUI C'ERA LA SECONDA LETTURA DELLA STESSA REGOLA, PIÙ DEBOLE:
+       `rr && refP.riserveM3 != null`. Il `!= null` accetta `""` e `"abc"`, e
+       il modulo (fino al 14/08) li leggeva come zero: il riquadro scriveva
+       «Riserva residua stimata: 0 m³ · durata ~0 anni», cioè «la cava è
+       finita», su una riserva che nessuno ha dichiarato. Chi decide se la
+       riserva è un numero è `riservaResidua`, che risponde `null`: qui si
+       legge la sua risposta e basta — una regola, un posto. */
+    $("pia-riserva").innerHTML = rr
       ? `Riserva residua stimata: <b>${rr.residuo.toLocaleString("it-IT")} m³</b>`
         + (rr.anni != null ? ` · durata ~<b>${(Math.round(rr.anni * 10) / 10).toLocaleString("it-IT")} ${plurale((Math.round(rr.anni * 10) / 10).toLocaleString("it-IT"), "anno", "anni")}</b> al piano annuo di ${fmtM3(refP.pianificatoAnnuoM3)} m³` : "")
         + ` (estratti ${estrattoAnnoP.toLocaleString("it-IT")} m³ nel ${annoP}).`

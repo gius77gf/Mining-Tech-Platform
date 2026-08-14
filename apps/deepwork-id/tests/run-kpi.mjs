@@ -30903,5 +30903,79 @@ test("frasePersi · ⚠️ NIENTE `esc()`: la frase esce come l'utente l'ha scri
 }
 /* ===== fine Conti · il canone senza aliquota =============================== */
 
+/* ===== Campo/Terra · il ripiego silenzioso ================================
+   Il censimento a tre gradini del 14/08 su Campo e Terra. Il difetto vivo era
+   uno solo — `riservaResidua` — e le prove qui sotto lo bloccano; le altre
+   fissano i casi che si sono RIVELATI SANI misurandoli, perché un caso sano
+   verificato senza prova torna a essere un'impressione alla sessione dopo.
+   ⚠️ Prove SINCRONE e PRIMA del riepilogo: `await Promise.all(inVolo)` sta a
+   metà file, quindi una prova asincrona qui in fondo verrebbe messa in volo e
+   il totale si stamperebbe senza aspettarla. */
+{
+  test("⛔ B11 · Terra `riservaResidua`: «c'è una riserva» vuol dire un NUMERO", () => {
+    /* La guardia era `riserveM3 == null`, cioè sulla FORMA: `""`, `"  "` e
+       `"abc"` passavano, e `+riserveM3 || 0` li leggeva ZERO. Misurato prima
+       della correzione: `{residuo: 0, anni: 0}` per tutt'e tre, cioè «la cava
+       è finita» su una riserva che nessuno ha dichiarato. Direzione: ACCUSA. */
+    for (const rs of [null, undefined, "", "  ", "abc", {}, NaN])
+      eq(terra.riservaResidua(rs, 50000, 125000), null,
+        `riserve ${JSON.stringify(rs)}: non si può dire, quindi null (non {residuo: 0})`);
+  });
+  test("⛔ B11 · Terra `riservaResidua`: uno zero SCRITTO resta un dato", () => {
+    // la correzione non deve spegnere il caso vero: chi dichiara zero riserve
+    // sta dicendo qualcosa, e il numero che ne esce è suo
+    eq(terra.riservaResidua(0, 50000, 125000), { residuo: 0, anni: 0 }, "0 dichiarato → residuo 0");
+    eq(terra.riservaResidua("1200000", 50000, 125000), { residuo: 1150000, anni: 9.2 },
+      "e una cifra scritta come stringa resta leggibile");
+    eq(terra.riservaResidua(1000000, 100000, 125000), { residuo: 900000, anni: 7.2 }, "il caso sano non si muove");
+  });
+  test("⛔ B11 · Campo: la durata mai dichiarata non diventa «100% disponibile»", () => {
+    /* Il caso che il censimento cercava: un ingresso assente sostituito da una
+       costante di mestiere («otto ore»). Campo si rifiuta, e queste prove lo
+       tengono: cinque vesti dell'assenza, tutte `pct: null` con la ragione. */
+    const att = [{ data: "2026-08-14", turno: "Mattina", titolo: "Nastro", stato: "anomalia", fermoMin: 55 }];
+    for (const min of [null, undefined, "", "abc", 0]) {
+      const d = campo.disponibilitaTurno(att, [{ data: "2026-08-14", turno: "Mattina", minuti: min }],
+        "2026-08-14", "Mattina", []);
+      eq(d.pct, null, `durata ${JSON.stringify(min)}: nessuna percentuale`);
+      eq(d.durataMin, null, `durata ${JSON.stringify(min)}: e il denominatore resta assente`);
+      eq(d.mancano.includes("durata"), true, `durata ${JSON.stringify(min)}: e lo DICE, non lo tace`);
+    }
+    // controprova del caso sano: con la durata vera il numero esce
+    eq(campo.disponibilitaTurno(att, [{ data: "2026-08-14", turno: "Mattina", minuti: 480 }],
+      "2026-08-14", "Mattina", []).pct, 89, "con la durata dichiarata la percentuale c'è");
+  });
+  test("⛔ B11 · Campo: i minuti di un fermo mai misurato non valgono zero", () => {
+    /* `+a.fermoMin || 0` compare in quattro punti del modulo, e sarebbe il
+       ripiego classico: la difesa è che accanto viaggia SEMPRE il conto dei
+       fermi senza minuti. Qui si pretende che i due numeri non divergano. */
+    for (const m of [null, undefined, "", "abc"]) {
+      const a = [{ data: "2026-08-14", turno: "Mattina", titolo: "x", stato: "anomalia",
+                   causale: "Guasto meccanico", fermoMin: m }];
+      eq(campo.minutiFermoDi(a[0]), null, `fermoMin ${JSON.stringify(m)}: non è zero minuti`);
+      eq(campo.paretoFermi(a).senzaMinutiTot, 1, `fermoMin ${JSON.stringify(m)}: e il conto lo dichiara`);
+    }
+    // uno zero SCRITTO è una misura vera: fermarsi zero minuti si può dire
+    const zero = [{ data: "2026-08-14", turno: "Mattina", titolo: "x", stato: "anomalia",
+                    causale: "Guasto meccanico", fermoMin: 0 }];
+    eq(campo.minutiFermoDi(zero[0]), 0, "0 dichiarato resta 0");
+    eq(campo.paretoFermi(zero).senzaMinutiTot, 0, "e non finisce fra quelli senza minuti");
+  });
+  test("⛔ B11 · Terra: il CSV dei rilievi non fa uscire un volume mai scritto", () => {
+    /* Il punto d'USCITA, che è dove questa famiglia si nasconde: un volume
+       assente non esce «0» ma cella vuota, e il lettore lo scarta invece di
+       farlo rientrare travestito da misura. */
+    const r = (v) => [{ data: "2026-07-01", volumeM3: v, stato: "elaborato", provenienza: "scavo" }];
+    for (const v of [null, undefined, "", "  ", "abc"]) {
+      const riga = terra.csvRilievi(r(v)).split("\n")[1];
+      eq(riga.split(";")[1], "", `volume ${JSON.stringify(v)}: cella vuota, non uno zero`);
+      eq(terra.parseRilieviCsv(terra.csvRilievi(r(v))).length, 0,
+        `volume ${JSON.stringify(v)}: e ri-leggendolo la riga non rientra`);
+    }
+    eq(terra.csvRilievi(r(900)).split("\n")[1].split(";")[1], "900", "il volume vero esce com'è");
+  });
+}
+/* ===== fine Campo/Terra · il ripiego silenzioso ============================ */
+
 console.log(`\nRisultato KPI app: ${passed} passati, ${failed} falliti${inVolo.length ? `  ·  ${inVolo.length} prove asincrone aspettate` : ""}`);
 process.exit(failed > 0 ? 1 : 0);

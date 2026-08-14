@@ -400,6 +400,48 @@ chiuse. Le aperte sono **24**; la pagina d'ingresso di
       opposto: senza toglierli, il censimento si conta addosso la propria
       documentazione.
 
+- [x] ✅ **TERRA · «RISERVA RESIDUA STIMATA: 0 m³ · DURATA ~0 ANNI» DOVE NESSUNO
+      AVEVA SCRITTO QUANTO RESTA.** ⏱️ *14/08, terza metà del censimento dei
+      ripieghi silenziosi — Campo e Terra.*
+      **I tre gradini**: **659 candidati** per forma (Campo 393, Terra 266) →
+      fuori **482 per dichiarazione** (segnaposto di stampa `|| ''` e contenitori
+      `|| []`: non sono numeri che si presentano come misurati) → **85
+      pertinenti** guardati uno per uno → **2 difetti veri**, più uno lasciato
+      fermo con la misura. ⚠️ E **3 commenti in Campo, 9 in Terra** venivano
+      contati come codice da un `grep` nudo.
+      **Il difetto corretto — `riservaResidua`, direzione ACCUSA.** La guardia
+      era sulla **forma** (`riserveM3 == null`), quindi accettava `""`, `"  "`,
+      `"abc"`, e due righe sotto `(+riserveM3 || 0)` li leggeva **zero**.
+      ✅ Rimisurato da me, prima e dopo, con la firma vera:
+      `"" | "  " | "abc"` → **`{residuo: 0, anni: 0}`** prima, **`null`** adesso;
+      e uno **zero scritto** resta `{0, 0}` in tutt'e due — un dato dichiarato
+      non si perde. Sullo schermo quel `{0,0}` diventava «**Riserva residua
+      stimata: 0 m³ · durata ~0 anni**»: dice che la cava è finita dove la verità
+      è che nessuno ha scritto quanto resta.
+      ⛔ E c'era la **seconda lettura più debole**, il segno di questa famiglia:
+      la pagina si era riscritta la stessa guardia (`!= null`, che accetta `""`).
+      Adesso legge solo la risposta del modulo — una regola, un posto. La cura usa
+      `numeroDichiarato` di `shared/dw-ponti.js`, **già importato**: nessuna
+      guardia nuova.
+      ⚠️ **Raggiungibilità dichiarata**: `riserveM3` non ha un campo nel form
+      (l'unico id che gli somiglia è il riquadro che *mostra*), quindi il caso
+      arriva da dati scritti fuori dall'interfaccia o da un archivio vecchio —
+      **latente, non impossibile**.
+      **I punti d'uscita, chiamati e non letti**: cinque uscite di Campo e due di
+      pagina scrivono **celle vuote**, mai zeri; e su una cava senza nessun
+      rilievo schermo, foglio stampato e CSV dicono ormai la stessa cosa
+      (`—` / «non misurato» / cella vuota) — **il difetto del 13/08 è chiuso**.
+      **Il setaccio a tappeto, come denominatore**: chiamate **tutte** le funzioni
+      esportate dai due moduli senza dati (Campo 112 funzioni/1069 chiamate,
+      Terra 78/778); i numeri che ne escono sono contatori, tranne il `residuo: 0`
+      di cui sopra.
+      ⚠️ **Due candidati che sembravano difetti e non lo erano**, con la prova:
+      `produzioneDi` e `statoObiettivo` ripiegano su `UNITA_PRODUZIONE[0]`, ma i
+      due writer sono `<select>` popolati con l'elenco intero e non c'è nessun
+      import CSV di rapportini. **Non raggiungibili dall'interfaccia.**
+      **Controprova**: 3 iniezioni → **1 · 10 · 4** prove cadute.
+      **Misure**: `run-kpi` 2270 → **2275**, 0 falliti.
+
 ## 🧭 Le voci APERTE, per nome — indice
 
 *Questo file è lungo **migliaia di righe** e cresce appendendo sezioni datate in
@@ -5255,7 +5297,7 @@ numero scritto dove non era stato misurato niente**.*
   nome apre il file sbagliato credendo che sia il più fresco.
 - Le decisioni: `docs/DECISIONI_WEEKEND.md` — pagina d'ingresso in cima.
 - Stato misurato al **14/08** (lanciando le suite, non a memoria):
-  **2.726 prove girano senza rete**. La frase va letta stretta: è la somma
+  **2.731 prove girano senza rete**. La frase va letta stretta: è la somma
   delle **otto** suite che contano asserzioni (`run-kpi` 2110, `run-stile` 318,
   `run-helpers` 75, `run-pointcloud` 32, `run-manifest` 9, `run-demo` 8,
   `bootstrap-rivendicazioni` 7, `fogli-guardati` 3), non tutto ciò che gira nel

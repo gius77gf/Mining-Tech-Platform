@@ -552,9 +552,29 @@ export function qualitaRilievo(r) {
 // durata stimata in anni. È la "personalità" di Terra (nessun competitor la
 // racconta in modo semplice). Ritorna null se non c'è una riserva stimata;
 // anni null se il ritmo annuo non è noto. Pura e testabile.
+/* ⛔ «SE C'È UNA RISERVA STIMATA» VUOL DIRE UN NUMERO, e fino al 14/08 qui
+   c'era `riserveM3 == null`, cioè un controllo sulla FORMA: accetta `""`,
+   `"  "` e `"abc"`, e due righe sotto `+riserveM3 || 0` li legge tutti come
+   ZERO. Misurato chiamando la funzione con i tre valori: `{residuo: 0,
+   anni: 0}` — e la pagina, che la stessa guardia debole se l'era riscritta
+   (`refP.riserveM3 != null`), scriveva «Riserva residua stimata: 0 m³ ·
+   durata ~0 anni». Direzione: ACCUSA — dice che la cava è finita dove la
+   verità è che nessuno ha scritto quanto resta.
+   È la stessa forma già chiusa il 01/08 in `rilievoUsabile` («con un volume
+   vuol dire con un numero»), e la funzione che sa la differenza sta in
+   `shared/` ed è già importata qui: `numeroDichiarato` (`+null` fa 0 e
+   `Number.isFinite(0)` risponde true, quindi la guardia va PRIMA della
+   conversione).
+   ⚠️ Raggiungibilità dichiarata: `riserveM3` non ha un campo nel form di
+   Terra, quindi il caso arriva da dati scritti fuori dall'interfaccia o da un
+   archivio vecchio — latente, non impossibile, esattamente come lo era quello
+   di `rilievoUsabile`.
+   ⚠️ Uno zero SCRITTO resta un dato: `riserveM3: 0` continua a rispondere
+   `{residuo: 0}`, che è «le riserve sono esaurite» detto da qualcuno. */
 export function riservaResidua(riserveM3, estrattoAnno, rateAnnuoM3) {
-  if (riserveM3 == null) return null;
-  const residuo = Math.max(0, (+riserveM3 || 0) - (+estrattoAnno || 0));
+  const riserve = numeroDichiarato(riserveM3);
+  if (riserve == null) return null;
+  const residuo = Math.max(0, riserve - (+estrattoAnno || 0));
   const rate = +rateAnnuoM3 || 0;
   return { residuo, anni: rate > 0 ? residuo / rate : null };
 }
