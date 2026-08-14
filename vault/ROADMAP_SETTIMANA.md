@@ -142,6 +142,48 @@ chiuse. Le aperte sono **24**; la pagina d'ingresso di
 
 ---
 
+## 🧭 Le voci APERTE, per nome — indice
+
+*Questo file è lungo **migliaia di righe** e cresce appendendo sezioni datate in
+fondo: le voci aperte più recenti finiscono **in coda**, dopo i «Riferimenti»,
+dove chi legge la sezione «Task» non le trova. Questo indice esiste per quello.*
+
+⛔ **Per NOME, non per riga.** I numeri di riga di questo file scadono a ogni
+commit — misurato il 09/08: **87 riferimenti su 91** non trovavano più il loro
+nome. Un nome si cerca con `grep`; una riga si sposta.
+⏱️ **Si rigenera così** (e chi lo rigenera non deve fidarsi di questo elenco):
+
+```sh
+grep -n "^- \[ \] \*\*" vault/ROADMAP_SETTIMANA.md
+```
+
+- `D-ter. Le otto verdi che vogliono un cantiere`
+- `D. Le 24 decisioni ancora aperte`
+- `B3. Genesi continua a uscire dalla pagina`
+- `B0-septies. CHE COSA DISEGNA UNA PIANTA SENZA MAGLIA — i ripieghi`
+- `B0-nonies (com'era). CON L'INTERASSE ASSENTE LA PAGINA DI GENESI MUORE, E IL`
+- `B0-quaterdecies. IL TEMA CHIARO DEL CORE NON È MAI STATO MISURATO PER`
+- `B0-duodecies. I CLAMP DELLE TRE SUPERFICI CHE IL CENSIMENTO NON AVEVA`
+- `B0-decies. IL RECETTORE ASSENTE FA DIRE A GENESI «SUPERA» CON UN NUMERO`
+- `B3-ter (com'era). «Sui 1 fori già caricati» — e undici righe sotto la guardia`
+- `B0-bis. TRE FAMIGLIE DI INIEZIONI CHE NESSUN CONTROLLO SORVEGLIA — e`
+- `B0. I CANTIERI DEL BROWSER E IL GIRO SI RUBANO LA MACCHINA — misurato`
+- `B4. Le mancanze confermate del delta`
+- `C2. Ricerca a rotazione`
+- `E0`
+- `E7`
+- `E8`
+- `G7–G9`
+- `Q1`
+- `I 20 KO del giro del 09/08, riverificati sul commit di adesso`
+- `«Adempimenti» è la parola che governa il minimo di Sentinella`
+- `B5. I LETTORI CSV CHE CANCELLANO UNA RIGA IN SILENZIO — il rovescio`
+- `B6. «NON ANCORA CARICATO» NON È «NON C'È» — la quarta faccia del tema`
+- `B7. `sentinella-periodo-adempimento` È INTERMITTENTE — e va rimisurato a`
+- `B8. IL FILE SBAGLIATO ENTRA IN SILENZIO — e la difesa ovvia è già stata`
+- `B9. `ragioneData` È SCRITTA DUE VOLTE, E IL GUARDIANO COPRE NOVE LETTORI`
+- `B10. IL GIRO COMPLETO NON PUÒ FINIRE, E ADESSO C'È IL NUMERO`
+
 ## 🎯 L'obiettivo della settimana
 
 La sequenza l'hai dichiarata tu il 27/07: **prima l'estetica, nei giorni
