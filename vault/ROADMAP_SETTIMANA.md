@@ -5670,3 +5670,35 @@ di scriverlo qui**: niente entra sulla parola dell'agente.
       del lettore — o l'intestazione che il suo export scrive — PRIMA di
       inventarsi il CSV.* Questa voce esiste anche per far vedere che la regola
       appena scritta ha evitato la quarta accusa falsa.
+- [ ] **B9. `ragioneData` È SCRITTA DUE VOLTE, E IL GUARDIANO COPRE NOVE LETTORI
+      SU DICIANNOVE.** ⏱️ *Aperta il 14/08 dalla ricerca sulle parole, coi due
+      numeri **rimisurati da me** prima di scriverli qui.*
+      · `grep -rn "^export function scarti[A-Za-z]*Csv" apps shared | wc -l` →
+        **19**. Il guardiano in `run-kpi` ne copre **9**, e la sua etichetta dice
+        «tutti e nove i lettori di Campo/Conti/Flotta/Terra» mentre quelle
+        quattro app ne hanno **13**: è l'**etichetta più larga del suo numero**,
+        e Scudo e Sentinella sono fuori del tutto.
+      · `grep -rn "function ragioneData" apps shared` → **due**, identiche
+        (`scudo-data.js` e `sentinella-data.js`); `grep -rn "ragioneData"
+        shared/` → **niente**. La casa condivisa che il codice stesso dichiara
+        **non è mai arrivata**, ed è la regola che questa casa paga più spesso.
+      ⛔ **E la divergenza è già cominciata, che è la ragione per cui vale la
+      pena farlo adesso**: `parseTaratureCsv` di Sentinella parla un dialetto
+      suo — «manca la data della taratura» dove il canone è «non è stata
+      scritta», e soprattutto «**non è una data**», che **fonde** «non si legge»
+      e «la data non esiste». Sono **due rimedi diversi**: uno si corregge
+      riscrivendo il formato, l'altro andando a chiedere il giorno vero. La
+      forma giusta sta **nello stesso file, 750 righe più su**.
+      **Come si misura**: (1) l'elenco dei lettori si **deriva dal disco**, non
+      si scrive a mano, e togliendone uno la prova deve **cadere**; (2) sul
+      medesimo valore Scudo e Sentinella devono dare la **stessa identica**
+      stringa (`ok(a === b)`); (3) `01/03/2026` e `2026-02-30` devono dare **due
+      frasi diverse** (`ok(a !== b)`), dove oggi ne danno una; (4) la funzione
+      condivisa si prova per **identità** (`scudo.X === ponti.X`), non per
+      comportamento — due copie uguali oggi divergono domani.
+      ⚠️ **Non aperto subito perché tocca `shared/`**, dove sta scrivendo il
+      cantiere di **B8**: si serializza, come vuole la direttiva.
+      ✅ E la parte che **non** va toccata, misurata e scritta perché nessuno la
+      «uniformi»: Campo dice «non è maggiore di zero» e Terra «è negativo», e
+      **è giusto così** — un foro a zero è sbagliato, un volume a zero è lo
+      **zero misurato**. Uniformarle romperebbe una distinzione vera.
