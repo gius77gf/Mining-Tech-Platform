@@ -106,5 +106,21 @@ await test("le 8 app risultano attive nel profilo (listEntitlements)", async () 
   expect(attive.length === APP_IDS.length, `attive ${attive.length}/${APP_IDS.length}`);
 });
 
+/* ⛔ E LA PROVA CHE IL PRIMO AVVIO NON BUTTI VIA LE RIVENDICAZIONI CHE TROVA
+   **NON STA QUI**, e la ragione è misurata invece che stilistica.
+   L'avevo scritta qui l'08/08 (il difetto era vero: `setCustomUserClaims`
+   sostituisce l'intero oggetto, e chi apparteneva già a un'altra org ne
+   usciva in silenzio). In casa passava, in CI cadeva. Causa: chiedeva **lo
+   stato finale** delle rivendicazioni, e in quello stato ci scrive anche il
+   trigger `onMemberWrite` → `rebuildClaims`, che rifà `orgs` **dalle
+   membership vere** e scrive `{ orgs }` e basta. Qui l'emulatore delle
+   FUNZIONI non parte (la politica di rete del contenitore lo nega), quindi
+   la misura di casa vedeva un mondo con **un solo scrittore**; la CI ne ha
+   due. Stessa suite, stesso nome, due prove diverse.
+   Dove le funzioni girano quello stato è **di `rebuildClaims`**, che è
+   l'autorità sugli `orgs`. Il contratto di `bootstrapOwner` — che è una
+   funzione pura di ciò che riceve — si prova senza emulatori, con due finti:
+   `tests/bootstrap-rivendicazioni.mjs`, 7 asserzioni, controprova compresa. */
+
 console.log(`\nRisultato Bootstrap: ${passed} passati, ${failed} falliti`);
 process.exit(failed > 0 ? 1 : 0);

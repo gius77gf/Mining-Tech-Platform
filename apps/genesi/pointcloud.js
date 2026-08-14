@@ -153,15 +153,89 @@ export function volumeCumulo(pos, cellM = 0.5) {
   zs.sort((a, b) => a - b);
   const zBase = zs[Math.min(zs.length - 1, Math.floor(zs.length * 0.02))];
   const top = new Float64Array(W * H).fill(-Infinity);
+  const cella = new Int32Array(n);
+  const punti = new Int32Array(W * H);
   for (let i = 0; i < n; i++) {
     const cx = Math.min(W - 1, Math.floor((pos[3*i] - minX) / cellM));
     const cy = Math.min(H - 1, Math.floor((pos[3*i+1] - minY) / cellM));
     const k = cy * W + cx, z = pos[3*i+2];
+    cella[i] = k; punti[k]++;
     if (z > top[k]) top[k] = z;
   }
+
+  /* ⛔ LA CIMA ROBUSTA — e nasce da un difetto misurato, non da un'idea.
+     La base qui sopra è difesa (2° percentile, non il minimo) perché «un
+     singolo punto spurio sotto il piano gonfierebbe il volume». La cima no —
+     e sopra il danno è molto più grosso, perché un punto volante non alza il
+     piano di poco: si prende una cella INTERA per tutta la sua altezza.
+     Ogni volo con drone ne produce: uccelli, polvere, riflessi, punti di
+     ricostruzione sbagliata. Misurato il 02/08 su un fronte di cava
+     sintetico di cui il volume vero si CALCOLA (14.880 m³):
+
+       punti volanti   cella 0,5 m   cella 1 m   cella 2 m
+       nessuno            +1,0%        +1,9%       +3,7%
+       40 su 120.000      +2,7%        +8,5%      +29,9%
+       200 su 120.000     +9,3%       +34,7%     +118,7%
+
+     Quaranta punti su centoventimila — lo 0,03% — valevano il 30% del volume
+     che consuma la concessione di una cava.
+
+     La regola, in una riga: **una cima deve essere sostenuta**. Un punto solo
+     lassù non è una superficie; una superficie ha altri punti vicini alla
+     stessa quota. E il secondo controllo guarda i VICINI, perché una cresta
+     vera supera i vicini a valle ma non la mediana degli otto (metà stanno
+     sul ripiano), mentre un uccello supera tutti.
+     Servono tutt'e due: da soli fanno falsi allarmi sulle nuvole rade.
+
+     Misurato che NON taglia il vero: su un file LiDAR pubblico vero
+     (110.000 punti) cambia il volume dello **0,00%** a 1 m e dello 0,01% a
+     2 m; su una guglia di roccia alta 10 m e larga 3, −0,003%. E con zero
+     punti volanti il risultato è identico a prima, cifra per cifra. */
+  const TOLL = Math.max(0.30, 0.5 * cellM);   // «alla stessa quota», con la pendenza dentro la cella
+  const SALTO = Math.max(1.5, 2 * cellM);     // di quanto deve superare i vicini per essere sospetta
+  const SOSTEGNO_MIN = 3;                     // punti che devono confermare la cima
+  const PUNTI_MIN = 8;                        // sotto, la cella è troppo povera per giudicare
+  let scartate = 0;
+  for (let giro = 0; giro < 3; giro++) {
+    const sostegno = new Int32Array(W * H);
+    for (let i = 0; i < n; i++) { const k = cella[i]; if (pos[3*i+2] >= top[k] - TOLL) sostegno[k]++; }
+    const abbassa = new Uint8Array(W * H); let quante = 0;
+    for (let cy = 0; cy < H; cy++) for (let cx = 0; cx < W; cx++) {
+      const k = cy * W + cx;
+      if (top[k] === -Infinity || punti[k] < PUNTI_MIN || sostegno[k] >= SOSTEGNO_MIN) continue;
+      const vic = [];
+      for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) {
+        if (!dx && !dy) continue;
+        const x = cx + dx, y = cy + dy;
+        if (x < 0 || y < 0 || x >= W || y >= H) continue;
+        const t = top[y * W + x]; if (t > -Infinity) vic.push(t);
+      }
+      if (vic.length < 3) continue;           // senza vicini non si giudica
+      vic.sort((a, b) => a - b);
+      if (top[k] > vic[Math.floor(vic.length / 2)] + SALTO) { abbassa[k] = 1; quante++; }
+    }
+    if (!quante) break;
+    scartate += quante;
+    const nuovo = new Float64Array(W * H).fill(-Infinity);
+    for (let i = 0; i < n; i++) {
+      const k = cella[i], z = pos[3*i+2];
+      if (abbassa[k] && z > top[k] - TOLL) continue;
+      if (z > nuovo[k]) nuovo[k] = z;
+    }
+    for (let k = 0; k < W * H; k++) if (abbassa[k]) top[k] = nuovo[k];
+  }
+
   let vol = 0, filled = 0;
   for (let k = 0; k < W * H; k++) if (top[k] > -Infinity) { filled++; vol += Math.max(0, top[k] - zBase) * cellM * cellM; }
-  return { volume: vol, areaCelle: filled * cellM * cellM, celle: filled, zBase, cella: cellM };
+  /* ⛔ L'AREA CHE NESSUNO HA VISTO SI DICHIARA. Le celle senza punti non
+     entrano nel volume — giusto, non si inventa terreno che il drone non ha
+     ripreso — ma il numero esce più basso e nessuno lo dice. Misurato: una
+     sola occlusione di 50 m² su un ripiano alto 12 m vale 600 m³, il 4%.
+     `celleVuote` sono le celle dentro l'impronta del ritaglio che sono
+     rimaste senza nessun punto: è il principio del fondatore applicato al
+     volume — l'assenza di un dato non è un dato favorevole. */
+  return { volume: vol, areaCelle: filled * cellM * cellM, celle: filled, zBase, cella: cellM,
+           celleVuote: W * H - filled, celleTotali: W * H, cimeScartate: scartate };
 }
 
 // ---- Pre-shift OBJ: trasla i vertici in DOPPIA precisione (primo vertice come

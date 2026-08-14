@@ -1,0 +1,714 @@
+/* GLI STATI «NON MISURATO» SI VEDONO DAVVERO NELLE PAGINE.
+   ────────────────────────────────────────────────────────
+   Uso:
+     node stati-non-misurati.mjs [porta]
+     node stati-non-misurati.mjs --controprova   (cerca uno stato che NON c'è:
+                                                  DEVE cadere)
+
+   ⚠️ PERCHÉ ESISTE. Il 01/08, in due app a un'ora di distanza, è saltato fuori
+   lo stesso difetto — e nessuna prova `node` poteva vederlo, perché il codice
+   era **giusto**: erano i dati della dimostrazione a non contenere il caso.
+
+   · in **Scudo** i ripieghi «Stato non indicato», «Chiusa a metà» e «Senza data
+     di nomina» esistevano, erano provati e commentati, e **non li vedeva
+     nessuno**: tutti i documenti avevano uno stato, le ispezioni chiuse erano
+     complete, e sei nomine su sei avevano la data;
+   · in **Terra** il «non dichiarabile» della base dell'onere era invisibile per
+     la stessa ragione: nessun anno senza rilievi di scavo.
+
+   È il principio del fondatore preso dall'altro capo. `sonda-vuoto.mjs` guarda
+   i **moduli** e chiede che non nascano numeri tranquilli; qui si guarda la
+   **pagina viva** e si chiede il contrario: che gli stati che dicono «non è
+   stato misurato» compaiano davvero sullo schermo. Una difesa che il cliente
+   non può vedere è una difesa che nessuno può controllare — e alla prima
+   modifica della dimostrazione sparisce senza far rumore.
+
+   ⛔ DUE FAMIGLIE DI STATI, E SI RAGGIUNGONO IN MODO DIVERSO. Quasi tutti i
+   casi qui sotto sono ASSENZE — un lotto senza fronte, un anno senza rilievi,
+   una fattura senza scadenza — e un'assenza sta benissimo nei dati
+   d'esempio: è uno stato che il prodotto sa raccontare, e vederlo in
+   dimostrazione è un modo di mostrarlo (è la stessa distinzione che
+   `run-demo.mjs` fa fra il dato ASSENTE, ammesso, e quello CORROTTO,
+   vietato). Ma ce n'è una seconda famiglia: le CONTRADDIZIONI, dove i dati
+   ci sono tutti e non tornano fra loro. Quelle **non vanno messe in
+   dimostrazione**, perché sono lo sbaglio di chi compila, e una demo che le
+   contiene mette in vetrina una cava che tiene male i conti. Si raggiungono
+   invece **digitando**, cioè facendo lo stesso gesto che le crea: `prima`
+   accetta un ELENCO di passi apposta per questo. La prima è la disponibilità
+   di Campo, in fondo ai suoi casi.
+   E c'è una terza risposta, che è l'eccezione alla prima: un'ASSENZA che, messa
+   in dimostrazione, ne smonta il resto (togliere il volume concesso a Terra
+   porta via anche percentuale, cumulato in proporzione, residuo e soglia) si
+   digita anche lei. La regola per intero, **con i casi già decisi e i rifiuti
+   già motivati**, sta in `docs/QUANDO_UN_CASO_VA_IN_DIMOSTRAZIONE.md`: si legge
+   quello prima di aggiungere un caso, per non ridecidere al contrario.
+
+   ⛔ E si pretende la RIGA, non il testo: la prima versione di questa sonda
+   (in scratchpad) trovava «Senza data di nomina» dentro il riepilogo in cima e
+   diceva «c'è», mentre la riga della persona stava in una scheda chiusa, alta
+   ZERO pixel. Quindi: contenitore dichiarato, altezza diversa da zero, e
+   nessuna riga che va a capo rispetto alle sorelle. */
+import { prendiChromium, CHROMIUM } from './giro.mjs';
+
+const args = process.argv.slice(2);
+const CONTROPROVA = args.includes('--controprova');
+const PORTA = Number(args.find((a) => /^\d+$/.test(a))) || 8899;
+
+/* [app, etichetta, tab in basso, sotto-scheda o null, contenitore, testo, prima?]
+   `prima` = {dentro, testo}: un elemento da cliccare prima di misurare.
+   ⚠️ Serve, e la prima versione non ce l'aveva: la denuncia di Terra si apre
+   sull'anno CORRENTE, che è misurato — quindi lo stato «non dichiarabile»
+   c'era e la sonda non lo trovava, perché non aveva scelto l'anno cieco. */
+const CASI = [
+  ['scudo', 'documento senza stato', '#nav-doc', null, '#doc-list', /stato non indicato/i],
+  ['scudo', 'ispezione chiusa a metà', '#nav-isp', null, '#isp-list', /chiusa a metà/i],
+  ['scudo', 'nomina senza data', '#nav-pers', 'nom', '#nom-list', /senza data di nomina/i],
+  ['scudo', 'lavoratore senza scadenze', '#nav-pers', 'lav', '#pers-list', /nessuna scadenza/i],
+  /* ⛔ Primo dei tre stati veri rimasti dal censimento delle 50 occorrenze, ed
+     è il più pesante: una persona **nominata** a un ruolo obbligatorio per
+     legge (sorvegliante, D.Lgs 624/96) di cui la formazione richiesta **non
+     risulta registrata**. Il ripiego rosso c'è, e sta PRIMA di «Nomina attiva»
+     e di «In regola» proprio perché una nomina senza la formazione sotto non è
+     una cosa a posto. La dimostrazione lo produce già (1 persona su 7): qui
+     non si aggiungono dati, si sorveglia.
+     ⚠️ La riga nomina LA PERSONA: nella stessa lista ci sono «Formazione
+     scaduta» e «Senza data di nomina», che sono stati diversi, e una regex
+     sulla sola frase avrebbe potuto prendere la riga sbagliata. */
+  ['scudo', 'nominata a un ruolo obbligatorio, formazione mai registrata',
+    '#nav-pers', 'nom', '#nom-list', /Giulia Verdi[\s\S]{0,200}Formazione non registrata/i, null,
+    { vietato: /Giulia Verdi[\s\S]{0,200}\bIn regola\b/i,
+      perche: 'una nomina senza la formazione registrata non si legge «in regola»' }],
+  /* ⛔ Prima voce della classifica «non registrato», che quattro app dicono.
+     Un DPI di III categoria consegnato e valido, con l'addestramento (art. 77)
+     mai registrato: l'app lo tiene fra le cose da sistemare invece di leggere
+     la consegna come «a posto».
+     ⚠️ La riga nomina LA PERSONA, e `vietato` esclude l'altro motivo: in
+     dimostrazione c'è anche una riga che dice «da sostituire · addestramento
+     non registrato», e con una regex sulla sola frase il banco avrebbe trovato
+     QUELLA — cioè avrebbe portato il nome di un caso e provato l'altro (caso 1
+     della tassonomia). La riga che conta è quella in cui l'addestramento è
+     l'unica cosa che manca: è la sola che accende la pastiglia
+     «Addestramento» e il bottone «Addestrato». */
+  ['scudo', 'DPI valido con l\'addestramento mai registrato', '#nav-pers', 'dpi', '#dpi-allarmi',
+    /Paolo Gallo[\s\S]*addestramento non registrato/i, null,
+    { vietato: /da sostituire/i,
+      perche: 'questa riga ha un motivo solo: l\'addestramento che manca' }],
+  /* stessa forma di Sentinella: la riga dell'anno diceva «Scavati 0 m³» dove
+     il fronte non l'aveva rilevato nessuno, e quello zero l'ente lo legge come
+     una dichiarazione. Non basta che compaia «Scavo non misurato»: accanto non
+     ci deve essere una cifra di scavo. */
+  ['terra', 'anno con lo scavo mai rilevato', '#nav-den', null, '#den-storico', /scavo non misurato/i,
+    null, { vietato: /scavati\s*[\d.,]+\s*m³/i,
+            perche: 'accanto a «scavo non misurato» non si scrive nessun volume scavato' }],
+  ['terra', 'base dell\'onere non dichiarabile', '#nav-den', null, '#den-oneri', /non è stato misurato/i,
+    { dentro: '#den-anni', testo: '2024' }],
+  /* ⛔ «senza data» in Terra, ed è la forma più pura del principio: la riga del
+     riepilogo del scadenzario è fatta di CONTEGGI uno accanto all'altro
+     («5 scadenze · 1 scaduta · 2 in scadenza · 1 senza data · 1 a posto»), e
+     una scadenza di cui non si sa quando scade contata fra le «a posto» è il
+     numero tranquillo per eccellenza. Il modulo il contatore ce l'aveva già,
+     col commento che spiega perché — «contarle fra le a posto era il modo in
+     cui sparivano» — ma tutte e quattro le scadenze d'esempio avevano la data,
+     quindi restava a zero e la riga non lo scriveva mai. */
+  ['terra', 'scadenza di cui non si sa quando scade: contata a parte', '#nav-tit', null, '#scad-count',
+    /senza data/i, null,
+    { vietato: /senza data[\s\S]{0,30}\b0\b/i,
+      perche: 'se il contatore delle senza-data è zero la riga non deve comparire affatto' }],
+  /* ⛔ Un lotto che non dichiara nessun fronte NON ha volume zero: non ha un
+     modo di essere misurato. «misurati —», non «misurati 0 m³», perche' su un
+     lotto lo zero vorrebbe dire «non ci abbiamo ancora lavorato» e la verita'
+     e' che manca il collegamento. Quarto dei cinque stati veri; in
+     dimostrazione sono tre lotti su sei. */
+  /* ⚠️ La riga nomina il LOTTO, non solo la frase: «misurati —» compare anche
+     su un lotto che il fronte ce l'ha ma non ha ancora rilievi, e con quella
+     regex la controprova NON distingueva (caso 1 della tassonomia: i dati
+     facevano coincidere la risposta giusta con quella sbagliata). «Lotto 1» è
+     senza fronte in dimostrazione. */
+  ['terra', 'lotto senza fronte: misurato «—», non zero', '#nav-pia', null, '#lot-list',
+    /Lotto 1[\s\S]*misurati\s*—/i, null, { vietato: /Lotto 1[\s\S]*misurati\s*0\s*m³/i,
+                                            perche: 'un lotto senza fronte non ha «misurati 0 m³»' }],
+  /* ⛔ Campo e' il caso che ha dato il nome al principio: «non lo so» non e'
+     «non c'e'», perche' se suona l'allarme contare assente chi nessuno ha
+     spuntato vuol dire NON ANDARLO A CERCARE. La dimostrazione non aveva
+     nessuna presenza, quindi l'appello mostrava tutti da spuntare — che si
+     legge «mai usato», non «di queste persone non si sa niente». Adesso i tre
+     turni di oggi mostrano i tre stati, e il banco guarda quello PARZIALE. */
+  /* ⚠️ NON basta cercare «ancora da spuntare»: lo dice anche l'appello VUOTO
+     («appello non ancora cominciato · 4 ancora da spuntare»). Con quella regex
+     la prova passava anche svuotando le presenze — cioe' portava il nome del
+     caso parziale e ne provava un altro, che e' peggio di nessuna prova. Il
+     parziale si riconosce perche' qualcuno E' stato spuntato: c'e' un assente
+     E c'e' ancora qualcuno da spuntare, nella stessa riga. */
+  ['campo', 'appello a meta\': qualcuno non l\'ha spuntato nessuno', '#nav-rap', null, '#pre-board',
+    /\bassente\b[\s\S]*ancora da spuntare/i, { seleziona: '#chk-turno', valore: 'Mattina' }],
+  ['campo', 'appello completo: il contrasto', '#nav-rap', null, '#pre-board',
+    /appello completo/i, { seleziona: '#chk-turno', valore: 'Pomeriggio' }],
+  /* ⛔ «senza data» in Campo, e sta ACCANTO A UN NUMERO — il criterio scritto
+     nell'unità precedente. La riga della copertura dice «Rapportini consegnati
+     da 2/3 squadre», e un rapportino consegnato senza il giorno non entra in
+     quel conto: senza l'avviso, la riga potrebbe dire «tutte a posto» mentre
+     uno è rimasto lì, non collocabile in nessuna giornata. */
+  /* ⛔ E L'ATTESA ERA AL PLURALE MENTRE IL PRODOTTO DICE BENE IL SINGOLARE.
+     Misurato il 09/08: la riga rende «(1 rapportino ancora senza data)» —
+     UNO solo, quindi `conta` scrive giusto al singolare — e questa regex, che
+     chiedeva «rapportini», non combaciava. Il difetto era del BANCO, non della
+     pagina: la funzione c'è, funziona, e il caso più comune (uno) è proprio
+     quello che l'attesa non accettava.
+     ⚠️ E il modo in cui l'ho quasi sbagliata vale più della correzione: avevo
+     grepato «rapportini ancora senza data» nel SORGENTE, trovato zero, e
+     concluso «la frase non è mai stata scritta». Nel sorgente quelle parole
+     non sono adiacenti — in mezzo c'è
+     `${conta(sdRap, "rapportino", "rapportini")}` — e lo diventano solo nel
+     RESO. Un `grep` su un testo interpolato risponde «non c'è» con la stessa
+     faccia della verità. */
+  ['campo', 'rapportino consegnato senza il giorno: il conto lo dice', '#nav-rap', null, '#rap-cop',
+    /rapportin[io] ancora senza data/i],
+  /* ⛔ IL PRIMO STATO CHE NON PUÒ STARE NELLA DIMOSTRAZIONE, E VA RAGGIUNTO
+     DIGITANDO. I minuti di fermo superano la durata dichiarata del turno: i
+     due numeri non tornano, quindi la disponibilità NON si calcola — una
+     percentuale negativa sarebbe «una bugia con l'aria di un dato».
+     Perché non sta in dimostrazione: gli altri stati di questo banco sono
+     ASSENZE (un lotto senza fronte, un anno senza rilievi, una fattura senza
+     scadenza), e un'assenza nella demo mostra una cosa che il prodotto sa
+     dire. Questo invece è una CONTRADDIZIONE fra due dati presenti, cioè uno
+     sbaglio di chi compila: metterlo nei dati d'esempio vorrebbe dire mettere
+     in vetrina una cava che tiene male i conti. È lo stesso confine che
+     `run-demo.mjs` traccia fra il dato ASSENTE (ammesso, anzi utile) e il dato
+     CORROTTO (vietato) — e una contraddizione sta dalla parte del secondo.
+     Quindi si fa quello che farebbe l'utente: si dichiarano mezz'ora di turno
+     su un turno che ha già 55 minuti di fermo registrati, e si guarda cosa
+     scrive l'app. `vietato` la percentuale: è tutto il punto dello stato.
+     ⚠️ Va TENUTO PER ULTIMO fra i casi di Campo: è l'unico che SCRIVE nella
+     dimostrazione (la durata dichiarata resta), quindi un caso messo dopo
+     misurerebbe una pagina che questo banco ha già cambiato. */
+  ['campo', 'disponibilità che non torna: nessuna percentuale, mai', '#nav-rap', null, '#disp-stato',
+    /non calcolabile/i,
+    [{ scrivi: '#disp-ore', valore: '0,5' }, { tocca: '#btn-disp' }],
+    /* ⛔ `pronta`: prima di dichiarare 0,5 h ci devono ESSERE dei minuti di
+       fermo nel turno, se no i due numeri non si contraddicono mai e il banco
+       accusa il prodotto di una scena che non è arrivata. Si aspetta la riga
+       «N min di fermo» — che è quello che la contraddizione ha bisogno di
+       superare — invece della percentuale, perché di percentuale il cartellone
+       ne mostra una anche a zero fermi. */
+    { vietato: /\d\s*%/, perche: 'con i due numeri che non tornano non si stampa nessuna percentuale',
+      pronta: /\d+\s*min\s+di\s+fermo/i }],
+  /* Flotta e Sentinella un caso ciascuna ce l'avevano gia' in dimostrazione:
+     qui non si aggiungono dati, si mette sotto guardia quello che c'e' — se
+     un domani sparisce dalla demo, il banco lo dice invece di restare verde. */
+  ['flotta', 'costo senza data: non sparisce dal periodo in silenzio', '#nav-cos', null, '#cos-list',
+    /senza data/i],
+  /* ⛔ Un tagliando A ORE su un mezzo di cui non si conosce il ritmo: non si
+     sa QUANDO cadrà, e il cartellone lo scrive invece di stimare a caso. Era
+     nel gruppo dei cinque stati veri usciti dalla lettura a mano della misura
+     `stati-sorvegliati` — e la dimostrazione lo produce gia' da se'
+     (`daStimare: 1`), quindi qui non si aggiungono dati: si sorveglia. */
+  ['flotta', 'tagliando a ore senza ritmo: non si sa quando cadrà', '#nav-dash', null, '#kpi-tag',
+    /non si sa quando/i],
+  /* ⛔ L'ULTIMO DEI CINQUE. Nel dettaglio della manutenzione: senza ritmo
+     misurato e con l'ipotesi svuotata, la riga dice «Quando cadrà non si sa» e
+     **la ragione** — «le letture del contatore coprono 12 giorni: per stimare
+     30 giorni servono almeno 15». Il commento del codice lo dice meglio di
+     me: una data intera su una macchina di cui nessuno ha letto le ore e'
+     «una previsione precisa, verificabile, e falsa dal primo addendo». */
+  ['flotta', 'manutenzione a ore senza ritmo né ipotesi: dice quando non si sa, e perché',
+    '#nav-man', null, '#man-list', /Quando cadrà non si sa/i,
+    { scrivi: '#man-oregiorno', valore: '' },
+    { vietato: /Fra \d+ (giorni|gg)/i, perche: 'senza ritmo né ipotesi non si stampa nessuna data' }],
+  /* ⛔ Qui non basta che lo STATO sia dichiarato: il commento del modulo dice
+     che il difetto vero e' il numero tranquillo scritto ACCANTO al badge —
+     «0 µg/m³ / soglia 40» accanto a «Mai misurato», due frasi opposte sulla
+     stessa riga, e quella con la cifra e' la sola che si guarda. Misurato: una
+     controprova che toglieva la frase e rimetteva la cifra NON faceva cadere il
+     banco, perche' il badge restava e la regex lo accettava. Da qui `vietato`. */
+  /* ⛔ Una fattura aperta SENZA data di scadenza: non è in ritardo e non è nei
+     termini — «non si sa», e finché è così resta fuori dallo scadenzario, che
+     lo **dichiara** invece di metterla in una fascia a caso. Secondo dei
+     cinque stati veri; la dimostrazione lo produce già (`f7`). */
+  ['conti', 'fattura senza scadenza: resta fuori e lo dice', '#nav-rep', null, '#aging-list',
+    /non si sa, e finché/i],
+  /* ⏱️ DA AGGANGIARE QUI, e la ragione per cui oggi non c'è.
+     Il totale «Valore delle consegne» adesso dichiara le righe che non ha
+     potuto contare, e il testo a schermo è stato **misurato** con una sonda:
+       «⚠ una consegna non è valorizzabile e non entra in questo totale: il
+        valore è per difetto.»
+     Ma messo in questo banco cadeva con «non compare in #pes-tot»: quel
+     riquadro lo riempie `refresh()` **dopo** il cambio di schermata, e questo
+     banco legge subito. Non l'ho allentato e non l'ho lasciato rosso: lo
+     lascio fuori con la ragione scritta, perché un banco rosso per un difetto
+     del banco insegna a non guardarlo. La prova che il conto salta davvero una
+     riga sta in `run-kpi.mjs` (livello dati); qui manca la metà che guarda lo
+     schermo, e va aggiunta quando questo banco saprà aspettare. */
+  /* ⛔ E nel pannello «cosa fare adesso»: la fattura senza scadenza c'e' e dice
+     perche'. Prima non compariva — non per un difetto della pagina, che la
+     frase ce l'aveva pronta, ma perche' `prioritaIncasso` le dava «ritardo 0»
+     e il pannello ne mostra tre. Terzo dei cinque stati veri. */
+  ['conti', 'da fare adesso: la fattura senza scadenza compare', '#nav-dash', null, '#prio-list',
+    /non si sa entro quando/i],
+  /* ⛔ Seconda voce della classifica «non registrato». Una fattura segnata
+     come incassata di cui NON si sa quando i soldi sono arrivati: la riga lo
+     scrive, invece di limitarsi a dire «incassata» e lasciar credere che
+     l'incasso sia tracciato. È lo stesso principio della fattura senza
+     scadenza, dall'altra parte del ciclo — e ha un effetto concreto: senza la
+     data la fattura non entra nei giorni medi di pagamento.
+     La dimostrazione lo produce già (`f5`), quindi qui non si aggiungono dati:
+     si sorveglia. Il filtro dell'elenco parte da «tutte», nessun gesto serve. */
+  ['conti', 'fattura incassata di cui non si sa quando', '#nav-fat', null, '#fat-list',
+    /incassata, data non registrata/i],
+  /* ⛔ «senza data» è la voce in testa alla classifica — quattro app la dicono,
+     ed è la convenzione condivisa. Qui è nella forma più forte: un TOTALE che
+     dichiara quanto non ha saputo collocare nel tempo. I 25.320 € incassati
+     comprendono i 12.000 di una fattura di cui non si sa QUANDO è arrivata, e
+     la riga lo scrive accanto al numero invece di lasciar credere che
+     l'incasso sia tracciato. Un totale che tace su questo è il numero
+     tranquillo del principio, applicato a una cifra in euro. */
+  ['conti', 'il totale incassato dichiara quello che non sa collocare', '#nav-rep', null, '#rep-list',
+    /fattura incassata senza data/i],
+  /* ⛔ Stessa forma, sulla piastrella del Quadro: la somma delle basi d'asta
+     delle gare aperte. Il commento accanto a quella riga la regola ce l'aveva
+     già scritta — «un totale parziale che non dice di esserlo è un totale che
+     inganna» — e la riga sa dichiararlo, «(1 senza base)». Ma tutte e quattro
+     le gare d'esempio la base ce l'avevano, quindi non lo diceva mai.
+     ⚠️ Si guarda la PIASTRELLA (`#k-gare-s` sta dentro `.kpi`), non lo span:
+     è l'unità che l'utente vede, come per il tagliando di Flotta. */
+  ['conti', 'la somma delle basi d\'asta dichiara quante gare non sa sommare',
+    '#nav-dash', null, '[data-goto="gar"]', /senza base/i],
+  /* ⛔ IL CASO PIÙ NETTO PER IL `vietato`. Una pesata venduta a metro cubo
+     senza densità né quantità: la riga scrive «quantità non calcolabile», e
+     accanto NON ci deve essere «0 m³». Qui lo zero non è un colore tranquillo:
+     è una **quantità consegnata** su un documento che viaggia col camion.
+     Aggiungendo questo caso alla dimostrazione è saltato fuori che il modulo
+     lo zero lo scriveva davvero (`+null` fa 0, `Number.isFinite(0)` è true). */
+  ['conti', 'pesata a m³ senza densità: quantità non calcolabile, non «0 m³»',
+    '#nav-pes', null, '#pes-list', /quantità non calcolabile/i, null,
+    { vietato: /2026\/013[\s\S]{0,220}0[,.]00?\s*m³/i,
+      perche: 'su quel DDT non si scrive «0 m³»: sarebbe una consegna dichiarata di niente' }],
+  /* «non calcolabile» nel report per l'ente: un indice che non si può
+     calcolare lo dichiara invece di stampare uno zero. Delle quattro app che
+     sanno dire questa frase, in dimostrazione la mostra **solo** Sentinella —
+     le altre tre sono difese invisibili, annotate nel checkpoint. */
+  /* ⛔ Terzo e ultimo stato vero del censimento delle 50 occorrenze. Nella
+     tabella «previsto, misurato e scarto» l'ultima colonna riporta il limite
+     dichiarato sul progetto **con la norma da cui è preso**: è il riferimento
+     di contesto che l'ente legge per capire da dove viene quel numero. Un
+     limite senza la sua norma è un numero senza provenienza, e il report lo
+     dichiara invece di lasciar credere che la citazione ci sia. */
+  ['sentinella', 'limite di progetto senza la norma: il report lo dichiara', '#nav-rep', null, '#rep-doc',
+    /norma non indicata sul progetto/i],
+  ['sentinella', 'indice non calcolabile nel report: lo dichiara', '#nav-rep', null, '#rep-doc',
+    /non calcolabile/i, null, { vietato: /non calcolabile[\s\S]{0,40}\b0[.,]?0*\b/i,
+                                perche: 'accanto a «non calcolabile» non si scrive uno zero' }],
+  /* ⛔ Secondo dei tre stati veri del censimento. La distanza del ricettore è
+     il denominatore della distanza scalata e il primo numero che un ente
+     guarda: senza, su quel ricettore non si può dire quasi niente. La riga lo
+     scrive invece di lasciare il posto vuoto — e non lo vedeva nessuno perché
+     tutti e tre i ricettori d'esempio la distanza ce l'avevano.
+     ⚠️ La riga nomina il ricettore: le altre tre dicono «N m dalla cava», e una
+     regex sulla sola frase non avrebbe distinto quale riga stava guardando. */
+  ['sentinella', 'ricettore di cui non si sa quanto è lontano', '#nav-mon', null, '#ric-list',
+    /Cascina Ferrero[\s\S]{0,120}distanza non indicata/i, null,
+    { vietato: /Cascina Ferrero[\s\S]{0,120}\b0\s*m dalla cava/i,
+      perche: 'un ricettore senza distanza non è a zero metri dalla cava' }],
+  ['sentinella', 'punto in programma e mai misurato', '#nav-dash', null, '#all-list',
+    /nessuna misura registrata/i, null, { vietato: /\d+[\s\u00a0]*[^\s]*\s*\/\s*soglia/i,
+                                          perche: 'accanto a «mai misurato» non si scrive nessuna cifra' }],
+  /* ⛔ LA TABELLA DELLE VOLATE DEL REPORT SCRIVEVA «0» DOVE NON C'ERA NIENTE, e
+     sulla colonna della distanza «0 m» si legge come il ricettore DENTRO il
+     fronte. Il difetto stava su tutt'e tre i passaggi — il form salvava 0 su un
+     campo vuoto, il CSV lo esportava e lo rileggeva come 0, la tabella lo
+     stampava — e il giro di andata e ritorno restava verde perché le due metà
+     sbagliavano insieme.
+     ⚠️ Il banco NON cerca «non dichiarato» da solo: quella pastiglia il report
+     la scrive già per il limite di progetto senza norma, quindi la sonda
+     avrebbe trovato QUELLA e portato il nome di un altro caso (caso 1 della
+     tassonomia). Cerca invece la dichiarazione che sta SOPRA la tabella e che
+     conta le righe incomplete: col difetto rimesso quel conto va a zero e la
+     frase sparisce.
+     ⚠️ E qui NON c'è un `vietato`: il primo che avevo scritto cercava «sono
+     zeri» per vietarlo, e la frase giusta dice «**non** sono zeri» — cioè lo
+     conteneva, e il banco sarebbe caduto sul testo corretto. Un `vietato`
+     inventato per riempire la colonna è peggio di nessun `vietato`. */
+  ['sentinella', 'report: la tabella incompleta lo dichiara sopra di sé', '#nav-rep', null, '#rep-doc',
+    /non dichiara(?:no)? tutti i dati/i],
+];
+
+/* ⛔ CONTI STA A PARTE, e non per pigrizia: il suo caso non è una riga di un
+   elenco, è un FOGLIO che si costruisce solo quando qualcuno lo chiede. Il DDT
+   stampava «Causale del trasporto: Vendita» e «Trasporto a cura di: mittente»
+   fissi nel codice — una dichiarazione su un documento fiscale, che è il posto
+   dove questo difetto costa di più. Qui si chiede il foglio come lo chiede
+   l'utente (click su [data-stampa-ddt]) e si legge che cosa c'è scritto.
+   ⚠️ Le etichette NON si cercano a testo: il CSS le mette in maiuscolo e
+   `innerText` riflette la trasformazione. Si leggono le caselle per struttura. */
+const FOGLI_CONTI = [
+  ['s1', 'DDT completo a cura del mittente', { manca: false, cura: /mittente/i, causale: /Vendita/ }],
+  ['s4', 'DDT a cura di un vettore, col suo nome', { manca: false, cura: /Autotrasporti/i }],
+  ['s2', 'DDT senza causale: lo dichiara invece di scrivere «Vendita»', { manca: true, causale: /da indicare/i }],
+  /* ⛔ `quantitaPesata` la consuma IL FOGLIO, non l'elenco: la riga della lista
+     legge il campo grezzo `quantita`, quindi guardarla lì non distingueva
+     niente (caso 3 della tassonomia — l'iniezione non stava su un percorso che
+     la prova esercita). Sul foglio invece la casella «Volume corrispondente»
+     compare **solo se** i m³ ci sono: col difetto (`+null` → 0) comparirebbe
+     con «0,00 m³», cioè un volume consegnato che nessuno ha misurato. */
+  ['d7', 'DDT a m³ senza densità: niente casella del volume, non «0 m³»',
+   { manca: false, senzaVolume: true }],
+];
+/* la controprova cerca uno stato che nessuna pagina scrive: se la sonda dice
+   «trovato» anche questo, non sta guardando dove crede */
+const FINTO = [['scudo', 'stato inventato', '#nav-doc', null, '#doc-list', /pinco pallino non misurato/i]];
+
+const chromium = await prendiChromium();
+const browser = await chromium.launch({ executablePath: CHROMIUM });
+let ok = 0, ko = 0, guardati = 0;
+/* i casi che non si sono potuti misurare, con la ragione: si stampano alla
+   fine PRIMA dei KO (è la regola delle righe «non ho guardato») e fanno
+   uscire il banco diverso da zero */
+const nonMisurati = [];
+const dice = (b, t, x) => { if (b) { ok++; console.log(`  ok  ${t}`); }
+  else { ko++; console.log(`  KO  ${t}${x !== undefined ? ` -> ${JSON.stringify(x)}` : ''}`); } };
+
+const perApp = {};
+for (const c of (CONTROPROVA ? FINTO : CASI)) (perApp[c[0]] = perApp[c[0]] || []).push(c);
+
+for (const [app, casi] of Object.entries(perApp)) {
+  const ctx = await browser.newContext({ viewport: { width: 430, height: 950 }, locale: 'it-IT' });
+  const p = await ctx.newPage();
+  const errori = [];
+  p.on('pageerror', (e) => errori.push(e.message));
+  await p.goto(`http://localhost:${PORTA}/apps/${app}/index.html?demo=1`, { waitUntil: 'networkidle' });
+  await p.waitForTimeout(2200);
+
+  for (const [, etichetta, tab, sotto, dove, re, prima, extra] of casi) {
+    if (await p.$(tab)) { await p.click(tab); await p.waitForTimeout(800); }
+    if (sotto) {
+      const sel = `#pers-tabs [data-tab="${sotto}"]`;
+      if (await p.$(sel)) { await p.click(sel); await p.waitForTimeout(800); }
+    }
+    /* ⛔ LA PRECONDIZIONE, dal 09/08, e non è pignoleria: senza, questo banco
+       non sa distinguere «il prodotto scrive la cosa sbagliata» da «la mia
+       scena non è mai arrivata». Il caso della disponibilità di Campo è caduto
+       UNA volta su cinque con «non compare in #disp-stato», e ho passato
+       mezz'ora a cercare il difetto nel prodotto: il prodotto era giusto, e
+       nell'unico giro storto la pagina non aveva ancora caricato le attività
+       della dimostrazione — quindi lo stato era «non è registrata nessuna
+       attività per questo turno» invece della contraddizione. Misurato: 10 su
+       10 in isolamento e 3 su 3 nel banco intero, cioè un difetto che si
+       presenta di rado ed è **indistinguibile da un difetto vero** quando si
+       presenta. E si è visto solo perché il totale era **82 invece di 83**: un
+       caso che cade dichiara UNA prova invece di due.
+       ⚠️ È la regola di casa applicata a una scena invece che a un'iniezione:
+       *un'iniezione si verifica dove il programma la legge, non dove l'hai
+       scritta.* Qui il programma legge le attività del turno, e la scena si
+       verifica leggendo che ci siano.
+       Un soggetto non misurato NON è un soggetto a posto: se la precondizione
+       non arriva entro il tempo, il caso si dichiara e il banco non esce zero. */
+    if (extra && extra.pronta) {
+      const scaduta = Date.now() + 6000;
+      let testo = '';
+      do {
+        testo = await p.evaluate((d) => (document.querySelector(d)?.innerText || ''), dove);
+        if (extra.pronta.test(testo)) break;
+        await p.waitForTimeout(300);
+      } while (Date.now() < scaduta);
+      if (!extra.pronta.test(testo)) {
+        nonMisurati.push(`${app}: ${etichetta} — la schermata non era pronta (${dove} non contiene ${extra.pronta}); testo: «${testo.replace(/\s+/g, ' ').slice(0, 90)}»`);
+        console.log(`  ⚠️  NON MISURATO  ${app}: ${etichetta} — la scena non è arrivata, e questo NON vuol dire «a posto»`);
+        continue;
+      }
+    }
+    /* `prima` è UNO passo oppure un ELENCO di passi in ordine. L'elenco serve
+       da quando c'è uno stato che non si raggiunge con un gesto solo: la
+       disponibilità che non torna, in Campo, vuole che si scrivano le ore e
+       POI si tocchi «Dichiara la durata». Un elenco invece di un secondo
+       campo `poi`: il terzo passo si aggiunge senza inventargli un nome. */
+    let saltato = false;
+    for (const passo of prima == null ? [] : Array.isArray(prima) ? prima : [prima]) {
+      if (passo.scrivi) {
+        /* ⛔ Terzo modo di preparare la pagina, dopo il click e la tendina:
+           SCRIVERE in un campo. Serve per l'ultimo dei cinque stati veri, che si
+           accende quando l'utente **svuota** l'ipotesi di ore al giorno: senza
+           un ritmo misurato e senza ipotesi, l'app dice «non si sa quando»
+           invece di inventare una data. Un campo svuotato e' uno stato
+           dell'utente come un altro, e va raggiunto per digitazione. */
+        const ok = await p.fill(passo.scrivi, passo.valore).then(() => true).catch(() => false);
+        guardati++;
+        if (!ok) { dice(false, `${app}: ${etichetta} — non riesco a scrivere in ${passo.scrivi}`); saltato = true; break; }
+        await p.dispatchEvent(passo.scrivi, 'input').catch(() => {});
+        await p.waitForTimeout(800);
+      } else if (passo.seleziona) {
+        /* una tendina, non un bottone: `selectOption` non basta da solo perche'
+           la pagina ridisegna su «change», che va lasciato arrivare */
+        const ok = await p.selectOption(passo.seleziona, passo.valore).then(() => true).catch(() => false);
+        guardati++;
+        if (!ok) { dice(false, `${app}: ${etichetta} — non riesco a scegliere «${passo.valore}» in ${passo.seleziona}`); saltato = true; break; }
+        await p.waitForTimeout(800);
+      } else if (passo.tocca) {
+        /* ⛔ Quarto modo: TOCCARE un bottone preciso. Diverso da {dentro,testo},
+           che cerca a testo dentro un contenitore: qui il bottone si sa qual è,
+           e quello che conta è che la pagina abbia il tempo di SALVARE prima
+           che si misuri — un'attesa corta misurerebbe lo schermo di prima. */
+        const ok = await p.click(passo.tocca).then(() => true).catch(() => false);
+        guardati++;
+        if (!ok) { dice(false, `${app}: ${etichetta} — non riesco a toccare ${passo.tocca}`); saltato = true; break; }
+        await p.waitForTimeout(1200);
+      } else {
+        const fatto = await p.evaluate(([dentro, testo]) => {
+          const c = document.querySelector(dentro);
+          if (!c) return false;
+          const b = [...c.querySelectorAll('button, .chg, [data-anno]')]
+            .find((x) => x.textContent.trim() === testo);
+          if (!b) return false;
+          b.click(); return true;
+        }, [passo.dentro, passo.testo]);
+        guardati++;
+        if (!fatto) { dice(false, `${app}: ${etichetta} — non trovo «${passo.testo}» in ${passo.dentro}`); saltato = true; break; }
+        await p.waitForTimeout(800);
+      }
+    }
+    if (saltato) continue;
+    const r = await p.evaluate(([fonte, dove]) => {
+      const rx = new RegExp(fonte, 'i');
+      /* ⚠️ `.board` c'e' perche' l'appello di Campo non e' una riga ne' una
+         nota: e' il cartellone in cima, che e' proprio il posto dove il numero
+         tranquillo si vedrebbe. Un elenco di selettori e' anche una
+         dichiarazione di dove si e' guardato. */
+      /* `.rep-punto-meta` è il paragrafo del report di Sentinella: senza di
+         lui il banco, dentro `#rep-doc`, poteva vedere solo le pastiglie —
+         e quello che il report DICE su una tabella incompleta è scritto in
+         un paragrafo, non in una pastiglia. */
+      /* `.count` è la riga di riepilogo del core (`shared/dw-app-ui.css`): è
+         fatta di conteggi uno accanto all'altro, cioè esattamente il posto in
+         cui un numero tranquillo si nasconde meglio. */
+      /* `.fonte` è la riga di PROVENIENZA che il report di Sentinella scrive
+         sotto ogni numero — «da dove viene questo dato» — ed è per mestiere il
+         posto dove il prodotto dice che una provenienza non ce l'ha. Senza,
+         il banco dentro `#rep-doc` vedeva la pastiglia e non la spiegazione. */
+      const SEL = '.item, .note, .badge, .board, .recap, .kpi, .tag, .count, .fonte, .rep-punto-meta';
+      const radice = document.querySelector(dove);
+      if (!radice) return { assente: `contenitore ${dove} non trovato` };
+      const semi = radice.matches(SEL) ? [radice] : [];
+      const el = [...semi, ...radice.querySelectorAll(SEL)]
+        .filter((e) => e.getBoundingClientRect().height > 0)
+        .find((e) => rx.test(e.innerText || e.textContent || ''));
+      if (!el) return null;
+      const riga = el.closest('.item') || el;
+      riga.scrollIntoView({ block: 'center' });
+      const sorelle = [...(riga.parentElement ? riga.parentElement.children : [])]
+        .filter((x) => x !== riga && x.classList.contains('item'))
+        .map((x) => Math.round(x.getBoundingClientRect().height));
+      return { altezza: Math.round(riga.getBoundingClientRect().height), sorelle,
+               testo: (riga.innerText || '').replace(/\n/g, ' ') };
+    }, [re.source, dove]);
+    guardati++;
+    const nome = `${app}: ${etichetta}`;
+    if (!r) { dice(false, `${nome} — non compare in ${dove}`); continue; }
+    if (r.assente) { dice(false, `${nome} — ${r.assente}`); continue; }
+    dice(r.altezza > 0, `${nome} — si vede sullo schermo`, r.altezza);
+    const max = r.sorelle.length ? Math.max(...r.sorelle) : null;
+    if (max) dice(r.altezza <= max * 1.6, `${nome} — non manda la riga a capo`, { riga: r.altezza, sorelle: max });
+    /* ⛔ la seconda meta' del principio: non basta DIRE che non si sa, non si
+       deve scrivere accanto un numero che sembra una misura */
+    if (extra && extra.vietato) {
+      /* si mostra QUELLO CHE HA FATTO CADERE, non i primi 90 caratteri della
+         riga: un messaggio che non contiene il colpevole fa ricominciare la
+         caccia da capo */
+      const colpa = r.testo.match(extra.vietato);
+      dice(!colpa, `${nome} — ${extra.perche}`, colpa && colpa[0]);
+    }
+  }
+  dice(errori.length === 0, `${app}: nessun errore di pagina`, errori[0]);
+  await ctx.close();
+}
+
+/* ── Conti: il foglio del DDT ─────────────────────────────────────────── */
+if (!CONTROPROVA) {
+  const ctx = await browser.newContext({ viewport: { width: 430, height: 950 }, locale: 'it-IT' });
+  const p = await ctx.newPage();
+  const errori = [];
+  p.on('pageerror', (e) => errori.push(e.message));
+  await p.goto(`http://localhost:${PORTA}/apps/conti/index.html?demo=1`, { waitUntil: 'networkidle' });
+  await p.waitForTimeout(2400);
+  await p.emulateMedia({ media: 'print' });
+  for (const [id, etichetta, atteso] of FOGLI_CONTI) {
+    const chiesto = await p.evaluate((x) => {
+      const b = document.querySelector(`[data-stampa-ddt="${x}"]`);
+      if (!b) return false;
+      b.click(); return true;
+    }, id);
+    guardati++;
+    if (!chiesto) { dice(false, `conti: ${etichetta} — nessun bottone di stampa per ${id}`); continue; }
+    await p.waitForTimeout(450);
+    const d = await p.evaluate(() => {
+      const el = document.querySelector('#stampa .doc');
+      if (!el) return null;
+      const box = {};
+      for (const b of el.querySelectorAll('.box')) {
+        const et = b.querySelector('.et');
+        if (!et) continue;
+        box[(et.textContent || '').trim().toLowerCase()] = (b.innerText || '').replace(et.innerText || '', '').trim();
+      }
+      return { causale: box['causale del trasporto'] || '', cura: box['trasporto a cura di'] || '',
+               manca: !!el.querySelector('.manca'),
+               volume: box['volume corrispondente'] || '' };
+    });
+    if (!d) { dice(false, `conti: ${etichetta} — il foglio non si è costruito`); continue; }
+    dice(d.manca === atteso.manca, `conti: ${etichetta} — il riquadro «non completo» ${atteso.manca ? 'c\'è' : 'non c\'è'}`, d);
+    if (atteso.causale) dice(atteso.causale.test(d.causale), `conti: ${etichetta} — causale`, d.causale);
+    if (atteso.cura) dice(atteso.cura.test(d.cura), `conti: ${etichetta} — chi trasporta`, d.cura);
+    if (atteso.senzaVolume)
+      dice(!d.volume, `conti: ${etichetta} — la casella del volume non c'è (e non dice «0 m³»)`, d.volume);
+  }
+  /* ⛔ la regola che riassume tutto: nessun foglio incompleto scrive «Vendita» */
+  dice(errori.length === 0, 'conti: nessun errore di pagina', errori[0]);
+  await ctx.close();
+}
+
+/* ── Scudo: la CARTELLA del lavoratore ──────────────────────────────────
+   ⛔ Come il DDT, e per la stessa ragione: e' un FOGLIO, e un foglio mente
+   per OMISSIONE. Una sezione vuota su un fascicolo che esce dalla stampante
+   si legge «a questa persona non serve» invece di «non e' stato registrato
+   niente» — e chi lo legge e' un ispettore.
+   Si chiede come lo chiede l'utente: si sceglie la persona, si conferma la
+   modale del core, e si guarda il foglio. */
+if (!CONTROPROVA) {
+  const ctx = await browser.newContext({ viewport: { width: 900, height: 1300 }, locale: 'it-IT' });
+  const p = await ctx.newPage();
+  const errori = [];
+  p.on('pageerror', (e) => errori.push(e.message));
+  await p.goto(`http://localhost:${PORTA}/apps/scudo/index.html?demo=1`, { waitUntil: 'networkidle' });
+  await p.waitForTimeout(2400);
+  /* la stampa vera aprirebbe il dialogo del browser e bloccherebbe il banco */
+  await p.evaluate(() => { window.print = () => {}; });
+  await p.click('#nav-pers').catch(() => {});
+  await p.waitForTimeout(600);
+  await p.click('#pers-tabs [data-tab="dpi"]').catch(() => {});
+  await p.waitForTimeout(600);
+
+  const CARTELLE = [
+    ['d1', 'cartella piena', { manca: false, contiene: /Mansioni assegnate/i,
+                               vietato: /non è completa/i }],
+    ['d4', 'cartella incompleta: dichiara le sezioni vuote', { manca: true,
+      contiene: /non è stato registrato niente/i,
+      /* ⛔ e non deve MAI limitarsi a lasciare la sezione bianca: la frase in
+         fondo deve dire come vanno lette */
+      pretende: /non vanno lette come «non dovuto»/i }],
+  ];
+  for (const [id, etichetta, atteso] of CARTELLE) {
+    guardati++;
+    const scelto = await p.selectOption('#dpi-verb-lav', id).then(() => true).catch(() => false);
+    if (!scelto) { dice(false, `scudo: ${etichetta} — non riesco a scegliere ${id}`); continue; }
+    await p.waitForTimeout(300);
+    await p.click('#btn-cartella').catch(() => {});
+    await p.waitForTimeout(500);
+    const conferma = await p.$('#modal-foot .mbtn.primary');
+    if (!conferma) { dice(false, `scudo: ${etichetta} — la modale non ha il bottone di conferma`); continue; }
+    await conferma.click();
+    await p.waitForTimeout(600);
+    const t = await p.evaluate(() => (document.querySelector('#verbale') || {}).innerText || '');
+    if (!t.trim()) { dice(false, `scudo: ${etichetta} — il foglio non si è costruito`); continue; }
+    dice(atteso.contiene.test(t), `scudo: ${etichetta} — il foglio dice quello che deve`, t.slice(0, 90));
+    if (atteso.vietato) dice(!atteso.vietato.test(t), `scudo: ${etichetta} — e non dice quello che non deve`,
+      (t.match(atteso.vietato) || [])[0]);
+    if (atteso.pretende) dice(atteso.pretende.test(t),
+      `scudo: ${etichetta} — spiega come vanno lette le sezioni vuote`, t.slice(-120));
+  }
+  dice(errori.length === 0, 'scudo: nessun errore di pagina', errori[0]);
+  await ctx.close();
+}
+
+/* ── Terra: il RIEPILOGO ANNUALE che va all'ente ─────────────────────────
+   ⛔ Terzo foglio, e porta TRE assenze dichiarate una sotto l'altra: il volume
+   dell'atto «non indicato», il pregresso «non dichiarato», il residuo «non
+   calcolabile». Erano già scritte bene da prima, e non le guardava nessuno —
+   nessuna prova `node` può vederle, perché vivono nel foglio.
+
+   ⛔ E QUI L'ASSENZA SI RAGGIUNGE DIGITANDO, come una contraddizione. Fin qui
+   la regola era: assenza → sta nei dati d'esempio; contraddizione → no, si
+   digita. Questo caso mostra l'eccezione alla prima riga: togliere il volume
+   concesso all'unico atto della dimostrazione **si porta via quattro numeri**
+   (la percentuale del concesso, il cumulato letto in proporzione, il residuo,
+   la soglia di guardia) — è strutturale, non additivo, e il criterio dice di
+   no. Ma il gesto è realistico e non artificioso: è il cliente nuovo che ha
+   aperto Terra e **non ha ancora trascritto l'atto**, cioè lo stato del primo
+   giorno.
+   Misurato prima di scriverlo: il form di Terra il campo vuoto lo salva
+   `null`, non `0`, e lo dice in un commento — la stessa regola che a
+   Sentinella mancava e che è costata l'unità precedente.
+   ⚠️ Terra stampa in una FINESTRA NUOVA (`window.open`): si aspetta la pagina
+   che nasce e si legge quella, e `window.print` va zittito o il banco resta
+   appeso al riquadro di stampa. */
+if (!CONTROPROVA) {
+  const ctx = await browser.newContext({ viewport: { width: 900, height: 1300 }, locale: 'it-IT' });
+  const p = await ctx.newPage();
+  const errori = [];
+  p.on('pageerror', (e) => errori.push(e.message));
+  await p.goto(`http://localhost:${PORTA}/apps/terra/index.html?demo=1`, { waitUntil: 'networkidle' });
+  await p.waitForTimeout(2400);
+  /* il titolo autorizzativo si compila nella scheda «Titolo», non nella
+     denuncia: si svuotano i due numeri dell'atto e si salva */
+  await p.click('#nav-tit').catch(() => {});
+  await p.waitForTimeout(900);
+  let pronto = true;
+  for (const campo of ['#aut-volume', '#aut-pregresso']) {
+    guardati++;
+    const ok = await p.fill(campo, '').then(() => true).catch(() => false);
+    if (!ok) { dice(false, `terra: riepilogo all'ente — non riesco a svuotare ${campo}`); pronto = false; }
+  }
+  if (pronto) {
+    await p.click('#btn-aut-salva').catch(() => {});
+    await p.waitForTimeout(1200);
+    await p.click('#nav-den').catch(() => {});
+    await p.waitForTimeout(1200);
+    const attesa = ctx.waitForEvent('page', { timeout: 9000 }).catch(() => null);
+    await p.click('#btn-den-stampa').catch(() => {});
+    const foglio = await attesa;
+    guardati++;
+    if (!foglio) {
+      dice(false, "terra: il riepilogo non ha aperto nessuna finestra di stampa");
+    } else {
+      await foglio.evaluate(() => { window.print = () => {}; }).catch(() => {});
+      await foglio.waitForTimeout(700);
+      const t = await foglio.evaluate(() => document.body.innerText || '').catch(() => '');
+      if (!t.trim()) {
+        dice(false, 'terra: il foglio del riepilogo non si è costruito');
+      } else {
+        for (const [etichetta, re] of [
+          ["volume dell'atto non indicato", /volume concesso dall'atto[\s\S]{0,60}non indicato/i],
+          ['pregresso non dichiarato', /prima dell'uso di terra[\s\S]{0,60}non dichiarato/i],
+          ['residuo non calcolabile', /residuo del volume concesso[\s\S]{0,60}non calcolabile/i],
+        ]) { guardati++; dice(re.test(t), `terra: riepilogo all'ente — ${etichetta}`, t.slice(0, 90)); }
+        /* ⛔ e la seconda metà del principio, che qui ha una forma tutta sua:
+           senza il volume dell'atto la riga del cumulato NON deve portarsi
+           dietro «(36,8% del concesso)». Una percentuale del concesso, quando
+           il concesso non c'è, sarebbe una frazione di un numero che nessuno
+           ha scritto — su un foglio che va all'ente. */
+        guardati++;
+        const pct = t.match(/%\s*del concesso/i);
+        dice(!pct, "terra: riepilogo all'ente — nessuna percentuale di un concesso che non c'è", pct && pct[0]);
+        guardati++;
+        const zero = t.match(/(?:volume concesso dall'atto|prima dell'uso di terra)[\s\S]{0,40}\b0(?:[.,]0+)?\s*m³/i);
+        dice(!zero, "terra: riepilogo all'ente — nessuno zero al posto di un dato mai scritto", zero && zero[0]);
+      }
+      await foglio.close().catch(() => {});
+    }
+  }
+  dice(errori.length === 0, 'terra: nessun errore di pagina', errori[0]);
+  await ctx.close();
+}
+await browser.close();
+
+console.log(`\n${guardati} stati cercati nelle pagine vive${CONTROPROVA ? ' (CONTROPROVA: devono cadere)' : ''}`);
+/* ⛔ PRIMA DEI KO, come pretende la regola delle righe «non ho guardato»: un
+   caso non misurato sparirebbe dal conto delle prove e si leggerebbe come «una
+   prova in meno», non come «un buco». */
+if (nonMisurati.length) {
+  console.log(`\n⚠️  ${nonMisurati.length} casi NON MISURATI — non vuol dire «a posto»:`);
+  for (const r of nonMisurati) console.log(`   · ${r}`);
+}
+console.log(`${ok + ko} prove · ${ok} passate, ${ko} fallite`
+  + (nonMisurati.length ? ` · ${nonMisurati.length} casi non misurati` : ''));
+if (CONTROPROVA) {
+  const atteso = ko > 0;
+  console.log(atteso ? '✓ la controprova cade, come deve' : '✗ LA CONTROPROVA NON CADE: la sonda non guarda dove crede');
+  process.exit(atteso ? 0 : 1);
+}
+process.exit(ko || nonMisurati.length ? 1 : 0);

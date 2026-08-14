@@ -1,0 +1,262 @@
+/* DOVE IL PRODOTTO DICE «NON LO SO» E NESSUN BANCO GUARDA.
+   ─────────────────────────────────────────────────────────
+   ⚠️ NON VA IN npm test: è una MISURA, non una suite. Stampa un elenco e non
+   fallisce mai — come `copertura-funzioni.mjs`, e per la stessa ragione: una
+   soglia su questo numero diventerebbe una soglia su un valore che cresce da
+   sé (basta aggiungere una frase al codice), e `CLAUDE.md` racconta già che
+   cosa costa un fondo scritto su un valore monotòno.
+
+   Uso: node apps/deepwork-id/tests/stati-sorvegliati.mjs
+
+   ⛔ QUELLO CHE QUESTA MISURA NON PUÒ DIRE, scritto qui perché la prima
+   versione ci ha provato e avrebbe mentito. Volevo stampare «quanta parte del
+   principio è sorvegliata», e usciva **23%**. Ma il banco guarda gli stati
+   attraverso le **parole che il prodotto usa davvero** — «nessuna misura
+   registrata», «non è stato registrato niente», «scavo non misurato» — che di
+   solito NON sono le forme generiche di questo vocabolario. Sentinella
+   risultava scoperta su «mai misurato» mentre il banco quello stato lo guarda,
+   con altre parole. Cioè quel 23% misurava la **sovrapposizione di lessico**,
+   non la copertura, e messo in un documento sarebbe stato un numero gonfiato.
+   Due testi non possono dire se due frasi diverse parlano dello stesso stato.
+   Quindi qui non c'è nessuna percentuale: c'è un **elenco di candidati** —
+   dove il prodotto dice «non lo so» e nessun banco nomina quel punto — da
+   guardare a mano, uno per uno. Vale come lista di lavoro, non come voto.
+
+   LA DOMANDA A CUI RISPONDE. Il principio del fondatore — «l'assenza di un
+   dato non è un dato favorevole» — è difeso su due lati:
+   · nei MODULI, da `sonda-vuoto.mjs` (nessun «tranquillo» non dichiarato) e
+     dalla regola 20 di `run-stile.mjs` (le bandiere di non-misurabilità);
+   · sullo SCHERMO, da `browser/stati-non-misurati.mjs`, che pretende che gli
+     stati «non misurato» si vedano davvero.
+   Il banco ne guarda una parte — quanti, lo conta lui stesso quando gira, e
+   qui non si riscrive a mano: un numero contato a mente in un'intestazione è
+   il difetto che `copertura-funzioni.mjs` esiste per non ripetere. Questa
+   misura elenca **gli altri posti dove
+   il prodotto dice «non lo so»**, così che la prossima unità sappia da dove
+   cominciare invece di sceglierli a intuito.
+
+   ⛔ E il conto va fatto così, non con una sonda che apre le sei app e visita
+   tutte le sezioni: quella strada l'ho provata due volte il 01/08 e non ha mai
+   prodotto un numero — una volta l'ho invalidata modificando una pagina mentre
+   girava, una volta l'ho fermata perché era troppo lenta. Qui non serve il
+   browser: le frasi che un'app SA dire stanno nel suo sorgente, e quelle che
+   il banco guarda stanno nel suo elenco. È un confronto fra due testi. */
+import { readFileSync } from "node:fs";
+import { senzaCommenti } from "./tokenizza.mjs";
+import { fileURLToPath } from "node:url";
+import { dirname, join } from "node:path";
+
+const QUI = dirname(fileURLToPath(import.meta.url));
+const RADICE = join(QUI, "..", "..", "..");
+const APP = ["scudo", "campo", "flotta", "sentinella", "conti", "terra"];
+
+/* Il vocabolario. È lo stesso della regola 20 più le forme che le pagine
+   scrivono per esteso: sono le parole con cui il prodotto dice «non lo so».
+   ⚠️ Corto DI PROPOSITO, come quello della regola 20: `misurato` è un valore,
+   `assente` e `mai` da soli sono stati. Qui si cercano FRASI, non parole. */
+export const FRASI = [
+  "mai misurato", "mai misurata", "mai rilevato", "mai rilevata",
+  "non misurato", "non misurata", "non misurabile",
+  "non calcolabile", "non dichiarabile", "non dichiarato", "non dichiarata",
+  "non indicato", "non indicata", "non registrato", "non registrata",
+  "non lo so", "senza data", "non lo sappiamo", "non si sa",
+];
+
+/* Le frasi che un file SA DIRE ALL'UTENTE. Si cerca dentro le stringhe (una
+   frase per l'utente vive lì) ma NON nei commenti.
+   ⛔ La prima versione cercava nel testo intero, e la classifica che ne usciva
+   era fatta quasi tutta di COMMENTI — i punti in cui uno sviluppatore SPIEGA il
+   principio, non quelli in cui il prodotto lo DICE. In Conti tutte e cinque le
+   occorrenze di «non lo so» erano commenti: una lista di lavoro che avrebbe
+   mandato la prossima unità a caccia di spiegazioni.
+   `senzaCommenti` è il tokenizzatore giusto per le regole sui TESTI, e lo dice
+   `CLAUDE.md`: toglie solo i commenti e tiene il resto. Non è stato riscritto —
+   è stato TIRATO FUORI da `run-stile.mjs`, che chiama `process.exit` e quindi
+   lo teneva prigioniero. */
+export function frasiDette(testo) {
+  const t = senzaCommenti(String(testo || "")).toLowerCase();
+  const fuori = new Set();
+  for (const f of FRASI) if (dice(t, f)) fuori.add(f);
+  return fuori;
+}
+
+/* ⛔ LA FRASE DEVE FINIRE DOVE FINISCE LA PAROLA. Cercandola come semplice
+   sottostringa, «non si sa» trovava **«non si salta»** — in Conti, dentro la
+   spiegazione della numerazione progressiva dei DDT, che col principio non
+   c'entra niente. Stesso inganno per «non si salva», che nei moduli è di casa.
+   Si accetta invece quello che continua la STESSA parola in modo legittimo
+   («non si sanno», «non si saprà»): la differenza è che lì la frase non è
+   seguita da una consonante che ne fa un'altra parola. Regola: dopo la frase
+   ci può stare fine-parola, oppure una lettera che la coniuga — e le forme
+   ammesse si dichiarano, invece di tirare a indovinare con una regex furba. */
+const CODE = { "non si sa": ["nno", "prà", "pranno", "peva"] };
+export function dice(testo, frase) {
+  let i = testo.indexOf(frase);
+  while (i >= 0) {
+    const dopo = testo.slice(i + frase.length);
+    if (!/^[a-zàèéìòù]/.test(dopo)) return true;                    // finisce la parola
+    const code = CODE[frase] || [];
+    if (code.some((c) => dopo.startsWith(c))) return true;          // coniugazione ammessa
+    i = testo.indexOf(frase, i + 1);
+  }
+  return false;
+}
+
+/* Le frasi che il banco guarda, **APP PER APP**. I suoi motivi sono espressioni
+   regolari scritte a mano: si prende il loro TESTO e ci si cerca dentro il
+   vocabolario, che è il modo onesto di dire «questo banco parla di questa cosa».
+
+   ⛔ E L'«APP PER APP» È UNA CORREZIONE, non un vezzo. Fino al 01/08 questa
+   funzione restituiva **un insieme solo**, globale: una frase sorvegliata in
+   UNA app risultava sorvegliata in **tutte e sei**. Il difetto si è visto
+   usandola — aggiunte due righe al banco (una in Scudo, una in Conti) sulla
+   voce «non registrato», dall'elenco sono sparite anche quelle di **Campo,
+   Flotta e Terra**, che nessuno aveva guardato: 20 frasi «nominate» diventate
+   27 con due righe. È la forma peggiore, quella che **rassicura**: la lista di
+   lavoro si accorcia da sé, e i posti tolti sembrano a posto.
+
+   Come si attribuisce: il banco dichiara l'app in testa a ogni riga
+   (`['scudo', …]`), quindi il file si taglia in **segmenti** — ogni marcatore
+   possiede il testo fino al successivo — e i motivi di un segmento contano per
+   l'app di quel marcatore. Due elenchi non portano l'app in ogni riga e sono
+   dichiarati qui: `FOGLI_CONTI` (i DDT di Conti) e `CARTELLE` (le cartelle dei
+   lavoratori di Scudo). Un elenco nuovo senza app va aggiunto a `SEZIONI`,
+   altrimenti i suoi motivi finiscono all'app del marcatore precedente. */
+const SEZIONI = { FOGLI_CONTI: "conti", CARTELLE: "scudo" };
+export function frasiSorvegliate(testoBanco) {
+  const testo = String(testoBanco || "");
+  const marcatori = [];
+  const rigaApp = new RegExp(`\\[\\s*'(${APP.join("|")})'`, "g");
+  for (let m; (m = rigaApp.exec(testo)); ) marcatori.push({ i: m.index, app: m[1] });
+  for (const [nome, app] of Object.entries(SEZIONI)) {
+    const i = testo.indexOf(`const ${nome} = [`);
+    if (i >= 0) marcatori.push({ i, app });
+  }
+  marcatori.sort((a, b) => a.i - b.i);
+  const perApp = new Map(APP.map((a) => [a, new Set()]));
+  let quantiMotivi = 0, senzaPadrone = 0;
+  const dentro = /\/[^/\n]{3,}\/i/g;
+  for (let m; (m = dentro.exec(testo)); ) {
+    quantiMotivi++;
+    /* l'ultimo marcatore che comincia PRIMA di questo motivo: è il proprietario */
+    let padrone = null;
+    for (const k of marcatori) { if (k.i > m.index) break; padrone = k; }
+    if (!padrone) { senzaPadrone++; continue; }
+    const nudo = m[0].slice(1, -2).replace(/\\[sbd]|\[[^\]]*\]|[*+?(){}|^$]/g, " ").toLowerCase();
+    for (const f of FRASI) if (nudo.includes(f)) perApp.get(padrone.app).add(f);
+  }
+  return { perApp, quantiMotivi, segmenti: marcatori.length, senzaPadrone };
+}
+
+/* ⛔ IL CONFINE DI PAROLA SI PROVA QUI, non altrove: e' una regola, e una
+   regola senza prova e' una promessa. Cinque casi, e i primi due sono i
+   difetti veri trovati leggendo l'elenco a mano. */
+const PROVE_DICE = [
+  ["così non si salta e non si duplica", "non si sa", false],
+  ["il costo non si salva mai", "non si sa", false],
+  ["senza scadenza: non si sa entro quando", "non si sa", true],
+  ["di questi non si sanno le date", "non si sa", true],
+  ["non si saprà mai", "non si sa", true],
+];
+const sbagliate = PROVE_DICE.filter(([t, f, atteso]) => dice(t, f) !== atteso);
+if (sbagliate.length) {
+  console.log(`⛔ IL CONFINE DI PAROLA È ROTTO: ${sbagliate.length} casi su ${PROVE_DICE.length}`);
+  for (const [t] of sbagliate) console.log(`   ${JSON.stringify(t)}`);
+  process.exit(1);
+}
+
+/* ⛔ E L'ATTRIBUZIONE SI PROVA QUI, con la sua controprova incorporata: è la
+   regola nuova, e una regola senza prova è una promessa. Il banco finto dice
+   «non registrato» in una riga di **scudo** e niente in quella di **flotta**.
+   La risposta giusta è che flotta resti VUOTA; la versione globale di prima
+   gliela avrebbe attribuita. */
+const BANCO_FINTO = `
+const CASI = [
+  ['scudo', 'un caso', '#nav-x', null, '#x', /addestramento non registrato/i],
+  ['flotta', 'un altro', '#nav-y', null, '#y', /costo aperto/i],
+];
+const FOGLI_CONTI = [
+  ['s1', 'un foglio', { causale: /causale non indicata/i }],
+];`;
+{
+  const p = frasiSorvegliate(BANCO_FINTO);
+  const male = [];
+  if (!p.perApp.get("scudo").has("non registrato")) male.push("scudo non vede la frase che dice");
+  if (p.perApp.get("flotta").size) male.push("flotta si prende una frase che non dice");
+  if (!p.perApp.get("conti").has("non indicata")) male.push("FOGLI_CONTI non va a Conti");
+  if (p.senzaPadrone) male.push(`${p.senzaPadrone} motivi senza app`);
+  if (male.length) {
+    console.log(`⛔ L'ATTRIBUZIONE APP PER APP È ROTTA: ${male.length} casi su 4`);
+    for (const x of male) console.log(`   ${x}`);
+    process.exit(1);
+  }
+}
+
+const banco = readFileSync(join(QUI, "browser", "stati-non-misurati.mjs"), "utf8");
+const sorv = frasiSorvegliate(banco);
+
+console.log("═══ DOVE IL PRODOTTO DICE «NON LO SO» E NESSUN BANCO GUARDA ═══\n");
+console.log(`Vocabolario: ${FRASI.length} frasi · il banco dichiara ${sorv.quantiMotivi} motivi\n   in ${sorv.segmenti} segmenti, attribuiti app per app (${sorv.senzaPadrone} senza app)`);
+console.log("⚠️ Un motivo del banco può guardare uno stato CON ALTRE PAROLE: qui");
+console.log("   sotto ci sono candidati da guardare a mano, non una copertura.\n");
+
+let totDette = 0, totCoperte = 0;
+const residui = [];
+const scoperteTutte = new Map();
+for (const app of APP) {
+  /* ⛔ UN FILE PER VOLTA, MAI CONCATENATI. Prima incollavo `index.html` e il
+     modulo e passavo il blocco unico a `senzaCommenti`: la scansione legge
+     JavaScript, e la parte HTML la mandava FUORI FASE — nell'elenco che ne
+     usciva ricomparivano righe `//` che il tokenizzatore da solo toglie
+     benissimo. È il difetto raccontato in `CLAUDE.md` («leggeva la pagina
+     intera come JavaScript»), riprodotto pari pari il giorno dopo averlo
+     riletto. Misura: separando i file, i residui passano da alcuni a ZERO. */
+  const dette = new Set();
+  for (const f of ["index.html", `${app}-data.js`]) {
+    let t = "";
+    try { t = readFileSync(join(RADICE, "apps", app, f), "utf8"); } catch (e) { continue; }
+    for (const x of frasiDette(t)) dette.add(x);
+    /* ⛔ E LA MISURA CONTROLLA LA PROPRIA SCANSIONE. Se dopo `senzaCommenti`
+       restano righe che cominciano per `//` o `*` e contengono una delle
+       frasi, la scansione è andata fuori fase e questo elenco NON vale: è
+       successo due volte in mezz'ora (56 → 53 → 42 occorrenze), e le prime due
+       volte non se n'è accorto nessuno perché il numero c'era comunque. Un
+       controllo che non dice quanti soggetti ha guardato mente in silenzio. */
+    for (const r of senzaCommenti(t).split("\n")) {
+      const nudo = r.trim();
+      if (!/^(\/\/|\*)/.test(nudo)) continue;
+      if (FRASI.some((f) => nudo.toLowerCase().includes(f))) residui.push(`${app}/${f}: ${nudo.slice(0, 70)}`);
+    }
+  }
+  /* ⛔ `sorv.perApp.get(app)`, non l'insieme globale: vedi la ragione sopra
+     `frasiSorvegliate`. Con il globale questa riga diceva «coperta» per una
+     frase che il banco guarda in un'ALTRA app. */
+  const guarda = sorv.perApp.get(app) || new Set();
+  const coperte = [...dette].filter((f) => guarda.has(f));
+  const scoperte = [...dette].filter((f) => !guarda.has(f));
+  totDette += dette.size; totCoperte += coperte.length;
+  for (const f of scoperte) scoperteTutte.set(f, (scoperteTutte.get(f) || 0) + 1);
+  console.log(`${app.padEnd(11)} dice ${String(dette.size).padStart(2)} frasi · da guardare: ${scoperte.join(", ") || "(nessuna)"}`);
+}
+
+console.log(`\nIn tutto: ${totDette} occorrenze di frase nelle sei app, ${totCoperte} nominate anche dal banco.`);
+console.log("(NON è una percentuale di copertura: vedi l'avvertenza sopra.)");
+if (residui.length) {
+  console.log(`\n⛔ SCANSIONE FUORI FASE: ${residui.length} righe di commento sono sopravvissute a`);
+  console.log("   `senzaCommenti`. L'elenco qui sotto NON vale finché non è risolto.");
+  for (const r of residui.slice(0, 5)) console.log(`   ${r}`);
+} else {
+  console.log("Scansione in fase: nessun commento è sopravvissuto al tokenizzatore.");
+}
+
+/* ⛔ La riga che serve davvero non è la percentuale: è QUALI frasi nessun banco
+   guarda, ordinate per quante app le dicono. Una frase che dicono in quattro e
+   non guarda nessuno è il posto dove il prossimo difetto passerà inosservato. */
+const classifica = [...scoperteTutte.entries()].sort((a, b) => b[1] - a[1]);
+if (classifica.length) {
+  console.log("\nFrasi che NESSUN banco guarda, per quante app le dicono:");
+  for (const [f, n] of classifica) console.log(`  ${String(n)} app · «${f}»`);
+} else {
+  console.log("\nNessuna frase scoperta.");
+}
+console.log("\n(misura, non prova: non fallisce mai — vedi l'intestazione)");

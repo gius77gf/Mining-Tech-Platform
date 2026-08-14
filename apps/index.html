@@ -3,101 +3,760 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<title>Deepwork — Ecosistema</title>
+<title>Deepwork — l'ecosistema della cava</title>
+<meta name="description" content="Otto strumenti per la cava. Un accesso solo, e si parlano tra loro.">
+<meta name="theme-color" content="#100d07">
 <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;800&family=Barlow:wght@300;400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="../shared/deepwork-style.css">
 <style>
-  .wrap { max-width: 860px; margin: 0 auto; padding: 28px 18px calc(28px + env(safe-area-inset-bottom)); }
-  .head { text-align: center; margin-bottom: 26px; }
-  .head h1 { margin: 0; font-size: 34px; letter-spacing: 4px; }
-  .head h1 .eco { color: var(--amber); }
-  .head .sub { color: var(--muted); font-size: 13px; letter-spacing: 2px; text-transform: uppercase; margin-top: 6px; }
-  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 12px; }
-  .tile {
-    display: block; text-decoration: none; color: var(--text);
+/* ══════════════════════════════════════════════════════════════════════
+   LA VETRINA DELL'ECOSISTEMA.
+   Regole che questa pagina rispetta, e che non vanno rimesse in discussione:
+   · STRUTTURA identica al core (stessi caratteri, raggi, bordi, aloni,
+     alone che segue il mouse, curve di movimento);
+   · COLORE: ogni app porta il PROPRIO accento, quello vero preso dalla sua
+     palette — non un colore inventato qui. L'accento vive su bordo, alone e
+     nome; il fondo resta sempre della famiglia Deepwork, altrimenti nove
+     tinte diverse diventano un'accozzaglia;
+   · funziona anche SENZA le immagini di anteprima: se non caricano resta il
+     riquadro con la sua tinta, e non si sfascia niente;
+   · nessuna libreria esterna: solo CSS scritto a mano.
+   ══════════════════════════════════════════════════════════════════════ */
+
+  :root {
+    --misura: 1180px;
+    --ombra-scheda: 0 1px 0 rgba(255,255,255,.045) inset, 0 10px 26px rgba(0,0,0,.5);
+    --ombra-alta: 0 1px 0 rgba(255,255,255,.07) inset, 0 18px 44px rgba(0,0,0,.62);
+  }
+
+  /* l'alone d'apertura è più largo dello schermo di proposito: va CLIPPATO,
+     altrimenti allarga la pagina e sul telefono compare lo scorrimento
+     laterale — misurato, non supposto */
+  html { overflow-x: hidden; }
+  body.dw { overflow-x: hidden; position: relative; }
+  .wrap { max-width: var(--misura); margin: 0 auto;
+          padding: 0 18px calc(40px + env(safe-area-inset-bottom)); }
+
+  /* ── APERTURA ───────────────────────────────────────────────────────
+     L'alone d'ambiente è quello del core: una luce calda alta al centro,
+     che nasce fuori dallo schermo e scende. Sta in un pseudo-elemento
+     fisso per non spostare niente e non intercettare i tocchi. */
+  .hero { position: relative; padding: 54px 0 34px; text-align: center; }
+  .hero::before {
+    content: ''; position: absolute; left: 50%; top: -260px; width: min(1100px, 150vw); height: 620px;
+    transform: translateX(-50%); pointer-events: none; z-index: -1;
+    background:
+      radial-gradient(520px 300px at 50% 42%, rgba(255,171,0,.13), transparent 70%),
+      radial-gradient(760px 420px at 50% 30%, rgba(255,109,0,.07), transparent 72%);
+  }
+  .marchio { display: block; margin: 0 auto 14px; }
+  .hero h1 {
+    margin: 0; font-family: 'Barlow Condensed', sans-serif; font-weight: 800;
+    font-size: clamp(38px, 8vw, 62px); line-height: .98; letter-spacing: 5px;
+    text-transform: uppercase; color: var(--text);
+  }
+  .hero h1 .eco {
+    background: var(--grad); -webkit-background-clip: text; background-clip: text;
+    -webkit-text-fill-color: transparent; color: transparent;
+  }
+  .hero .claim {
+    margin: 14px auto 0; max-width: 46ch; font-size: clamp(15px, 2.6vw, 19px);
+    line-height: 1.5; color: var(--text);
+  }
+  .hero .apri {
+    margin: 12px auto 0; max-width: 56ch; font-size: 14px; line-height: 1.6; color: var(--muted2);
+  }
+  .hero .azioni { margin-top: 22px; display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
+  .cta {
+    display: inline-flex; align-items: center; gap: 8px; min-height: var(--tap);
+    padding: 0 20px; border-radius: var(--r); text-decoration: none;
+    font-family: 'Barlow Condensed', sans-serif; font-weight: 800; font-size: 14px;
+    letter-spacing: 2px; text-transform: uppercase; transition: transform .18s var(--ease), box-shadow .18s var(--ease);
+  }
+  .cta.primaria { background: var(--grad); color: #191203; box-shadow: var(--shadow-amber); }
+  .cta.secondaria { background: var(--card); color: var(--text); border: 1px solid var(--border2); }
+  .cta:hover { transform: translateY(-2px); }
+  .cta.primaria:hover { box-shadow: 0 14px 38px rgba(80,40,0,.6); }
+  .cta.secondaria:hover { border-color: var(--amber); }
+
+  /* ── IL VENTAGLIO DI TELEFONI ────────────────────────────────────────
+     L'apertura di solo testo dice cos'è l'ecosistema; questa lo fa VEDERE
+     nei primi due secondi, che è il tempo che uno concede. Tre schermate
+     vere, non un disegno: chi guarda riconosce subito che è un prodotto che
+     esiste. Il telefono di mezzo sta davanti e dritto, i due laterali
+     scendono e ruotano — la stessa curva morbida del core.
+     Se le immagini non arrivano restano le cornici, e l'apertura regge. */
+  .ventaglio {
+    position: relative; margin: 26px auto 0; width: min(560px, 96%); height: 292px;
+    perspective: 1100px;
+  }
+  /* L'ALTEZZA VA DICHIARATA, non lasciata all'immagine. Le schermate da
+     telefono sono lunghe: lasciate libere crescevano fino a 350 px dentro un
+     contenitore da 300, sbordavano IN SU e coprivano i due bottoni
+     dell'apertura. Ora la cornice ha la sua altezza e l'immagine ci si
+     affaccia dalla cima, che è la parte che racconta. */
+  .tel {
+    position: absolute; bottom: 0; left: 50%; width: 148px; height: 252px;
+    border-radius: 18px; overflow: hidden;
+    background: var(--dark);
+    border: 1px solid var(--border2);
+    box-shadow: 0 1px 0 rgba(255,255,255,.08) inset, 0 22px 46px rgba(0,0,0,.66);
+    transition: transform .5s var(--ease);
+  }
+  .tel img { display: block; width: 100%; height: auto; }
+  .tel.sx  { transform: translateX(-138%) translateY(16px) rotate(-8deg) scale(.94); z-index: 1; }
+  .tel.mid { transform: translateX(-50%)  translateY(-6px); z-index: 3; width: 166px; height: 272px; }
+  .tel.dx  { transform: translateX(38%)   translateY(16px) rotate(8deg)  scale(.94); z-index: 2; }
+  /* un velo caldo in basso lega il ventaglio allo sfondo invece di lasciarlo
+     appoggiato sul nero come un adesivo */
+  .ventaglio::after {
+    content: ''; position: absolute; left: -10%; right: -10%; bottom: -6px; height: 90px;
+    pointer-events: none;
+    background: linear-gradient(180deg, transparent, var(--bg) 78%);
+  }
+  @media (min-width: 700px) {
+    .ventaglio { height: 360px; }
+    .tel { width: 172px; height: 300px; } .tel.mid { width: 196px; height: 322px; }
+  }
+  @media (prefers-reduced-motion: no-preference) {
+    .ventaglio:hover .tel.sx  { transform: translateX(-152%) translateY(10px) rotate(-10deg) scale(.95); }
+    .ventaglio:hover .tel.mid { transform: translateX(-50%)  translateY(-14px); }
+    .ventaglio:hover .tel.dx  { transform: translateX(52%)   translateY(10px) rotate(10deg)  scale(.95); }
+  }
+
+  /* la riga dei numeri: dice la misura dell'ecosistema in tre colpi d'occhio */
+  .cifre { display: flex; gap: 26px; justify-content: center; flex-wrap: wrap; margin-top: 30px; }
+  .cifra { text-align: center; }
+  .cifra b {
+    display: block; font-family: 'Barlow Condensed', sans-serif; font-weight: 800;
+    font-size: 30px; line-height: 1; color: var(--amber2); font-variant-numeric: tabular-nums;
+  }
+  .cifra span {
+    display: block; margin-top: 5px; font-size: 11px; letter-spacing: 1.6px;
+    text-transform: uppercase; color: var(--muted2);
+  }
+
+  /* ── INTESTAZIONI DI SEZIONE ────────────────────────────────────── */
+  .sez { margin-top: 46px; }
+  /* sul telefono lo spazio morto si sente il doppio: fra i numeri
+     dell'apertura e la prima sezione ne restavano quasi duecento pixel di
+     niente, misurati a schermo */
+  @media (max-width: 620px) {
+    .hero { padding: 40px 0 18px; }
+    .sez { margin-top: 30px; }
+  }
+  .sez-tit {
+    display: flex; align-items: baseline; gap: 12px; margin-bottom: 6px;
+    font-family: 'Barlow Condensed', sans-serif; font-weight: 800; font-size: 13px;
+    letter-spacing: 2.6px; text-transform: uppercase; color: var(--amber);
+  }
+  .sez-tit::before {
+    content: ''; width: 7px; height: 7px; border-radius: 50%;
+    background: var(--amber); box-shadow: 0 0 10px var(--glow-warm); flex: none;
+  }
+  .sez-sot { font-size: 14px; color: var(--muted2); margin: 0 0 18px; line-height: 1.55; max-width: 62ch; }
+
+  /* ── «DA DOVE COMINCIO» ─────────────────────────────────────────────
+     Quattro problemi, non quattro prodotti: chi arriva riconosce il proprio e
+     ci va. Volutamente sobria — è una scorciatoia, non una sezione: se pesasse
+     quanto le schede toglierebbe attenzione a quello che deve introdurre. */
+  .daDove { margin: 4px 0 26px; }
+  .dd-eti {
+    display: inline-block; margin-bottom: 9px;
+    font-family: 'Barlow Condensed', sans-serif; font-weight: 800; font-size: 11px;
+    letter-spacing: 2.2px; text-transform: uppercase; color: var(--muted);
+  }
+  .dd-lista { list-style: none; margin: 0; padding: 0; display: grid; gap: 7px; }
+  @media (min-width: 760px) { .dd-lista { grid-template-columns: 1fr 1fr; gap: 8px 14px; } }
+  .dd-lista a {
+    display: flex; align-items: center; gap: 10px; min-height: var(--tap);
+    padding: 9px 13px; border-radius: var(--r-sm); text-decoration: none;
     background: var(--card); border: 1px solid var(--border);
-    border-left: 3px solid var(--tile-accent, var(--amber));
-    border-radius: var(--r); padding: 16px 16px 14px;
-    transition: transform .15s, border-color .15s;
+    color: var(--muted2); font-size: 13.5px; line-height: 1.45;
+    box-shadow: var(--edge); transition: border-color .18s var(--ease), transform .18s var(--ease);
   }
-  .tile:hover { transform: translateY(-2px); border-color: var(--tile-accent, var(--amber)); }
-  .tile .nm { font-family: 'Barlow Condensed', sans-serif; font-size: 19px; font-weight: 800;
-    letter-spacing: 2px; text-transform: uppercase; color: var(--tile-accent, var(--amber)); }
-  .tile .ds { font-size: 13px; color: var(--muted2); margin: 6px 0 10px; line-height: 1.45; min-height: 36px; }
-  .tile .st { font-family: 'Barlow Condensed', sans-serif; font-size: 11px; font-weight: 700;
-    letter-spacing: 1.5px; text-transform: uppercase; padding: 3px 9px; border-radius: 20px; display: inline-block; }
-  .st.live { background: rgba(102,187,106,.14); color: var(--success); }
-  .st.dev { background: rgba(255,171,0,.13); color: var(--amber2); }
-  .st.mock { background: rgba(155,138,96,.16); color: var(--muted2); }
-  .tour {
-    margin: 26px auto 0; max-width: 430px; text-align: center;
-    background: var(--card); border: 1px solid var(--border2); border-radius: var(--r); padding: 18px;
+  /* ⚠️ LA FRASE È UN ELEMENTO SOLO. Dentro un contenitore flex ogni pezzo di
+     testo sciolto diventa un elemento a sé: la prima versione aveva il testo
+     nudo dentro l'<a>, e «Devo sapere | quanto materiale mi resta | e per
+     quanti anni» usciva spezzato in tre colonne con i vuoti in mezzo. Visto
+     solo guardando lo screenshot: leggendo il codice sembrava una riga. */
+  .dd-fr { flex: 1; min-width: 0; }
+  .dd-lista b { color: var(--text); font-weight: 600; }
+  .dd-app {
+    margin-left: auto; flex: none; color: var(--acc-tx);
+    font-family: 'Barlow Condensed', sans-serif; font-weight: 800; font-size: 12px;
+    letter-spacing: 1.6px; text-transform: uppercase;
   }
-  .tour p { font-size: 13px; color: var(--muted); line-height: 1.5; margin: 0 0 12px; }
-  .foot { margin-top: 26px; text-align: center; font-size: 11px; color: var(--muted); letter-spacing: 1.5px; }
+  .dd-lista a:hover { border-color: var(--acc-tx); transform: translateY(-1px); }
+
+  /* ── LE TRE FAMIGLIE + LA BASE ──────────────────────────────────────
+     Sette app in fila non raccontano niente: raggruppate per momento del
+     lavoro — prima di scavare, mentre si scava, dopo — diventano un percorso,
+     e chi guarda capisce dove si colloca il proprio problema. */
+  .famiglia { margin: 30px 0 12px; }
+  .famiglia:first-of-type { margin-top: 6px; }
+  .fam-tit {
+    margin: 0; display: flex; align-items: center; gap: 10px;
+    font-family: 'Barlow Condensed', sans-serif; font-weight: 800; font-size: 19px;
+    letter-spacing: 3px; text-transform: uppercase; color: var(--text);
+  }
+  .fam-tit::after {
+    content: ''; flex: 1; height: 1px;
+    background: linear-gradient(90deg, var(--border2), transparent);
+  }
+  .fam-sot { margin: 5px 0 0; font-size: 13px; color: var(--muted2); line-height: 1.5; }
+
+  /* ── LA GRIGLIA DELLE APP ───────────────────────────────────────── */
+  /* `auto-fit` e non `repeat(3, …)`: le famiglie hanno due o tre app, e con un
+     numero fisso di colonne quelle da due restavano schiacciate a sinistra con
+     un buco accanto. Così ogni famiglia riempie la riga, qualunque sia la sua
+     misura. */
+  .griglia { display: grid; gap: 14px; grid-template-columns: 1fr; }
+  @media (min-width: 640px)  { .griglia { grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); } }
+  @media (min-width: 1020px) { .griglia { grid-template-columns: repeat(auto-fit, minmax(330px, 1fr)); } }
+
+  .scheda {
+    position: relative; display: flex; flex-direction: column; overflow: hidden;
+    text-decoration: none; color: var(--text);
+    background: linear-gradient(180deg, var(--card) 0%, var(--dark) 100%);
+    border: 1px solid var(--border);
+    border-radius: var(--r);
+    box-shadow: var(--ombra-scheda);
+    transition: transform .22s var(--ease), border-color .22s var(--ease), box-shadow .22s var(--ease);
+  }
+  /* il riflesso sul bordo alto: è quello che nel core fa sembrare la scheda
+     un oggetto e non un rettangolo colorato */
+  .scheda::after {
+    content: ''; position: absolute; inset: 0; border-radius: inherit; pointer-events: none;
+    background: linear-gradient(180deg, rgba(255,255,255,.05), transparent 42%);
+  }
+  /* l'alone che segue il mouse, nella tinta dell'app */
+  .scheda::before {
+    content: ''; position: absolute; inset: -1px; border-radius: inherit; pointer-events: none;
+    opacity: 0; transition: opacity .25s var(--ease);
+    background: radial-gradient(320px 200px at var(--mx, 50%) var(--my, 0%),
+                color-mix(in srgb, var(--acc) 16%, transparent), transparent 72%);
+  }
+  .scheda:hover, .scheda:focus-visible {
+    transform: translateY(-3px); border-color: var(--acc); box-shadow: var(--ombra-alta);
+  }
+  .scheda:hover::before, .scheda:focus-visible::before { opacity: 1; }
+  .scheda:focus-visible { outline: 2px solid var(--acc); outline-offset: 3px; }
+
+  /* l'anteprima. Il rapporto è fisso, così la griglia non balla mentre le
+     immagini arrivano; il fondo tinto regge da solo se non arrivano affatto. */
+  .anteprima {
+    /* il tetto d'altezza serve alle famiglie da due app: lì la scheda è larga
+       il doppio e il solo rapporto d'aspetto faceva un'anteprima altissima,
+       che spingeva il testo sotto la piega */
+    position: relative; aspect-ratio: 16 / 10; max-height: 235px; overflow: hidden;
+    background:
+      radial-gradient(120% 90% at 50% 0%, color-mix(in srgb, var(--acc) 18%, transparent), transparent 70%),
+      var(--panel);
+    border-bottom: 1px solid var(--border);
+  }
+  /* ⛔ LE NOVE ANTEPRIME SI CARICANO SUBITO (`loading="eager"` nel markup), e non
+     è una svista. Misurato il 30/07 su un telefono da 390 px: con
+     `loading="lazy"` all'arrivo era caricata UNA anteprima su nove, e scendendo
+     di corsa fino a metà pagina se ne vedevano sette su nove — le altre restavano
+     la miniatura disegnata, che è la STESSA per tutte le schede. Su una pagina
+     il cui unico mestiere è far vedere nove prodotti diversi, quello che si vede
+     sono nove segnaposto uguali: il contrario di quello che la pagina deve dire.
+     Il risparmio rinunciato è 213 kB in tutto — meno di una fotografia. */
+  .anteprima img {
+    width: 100%; height: 100%; object-fit: cover; object-position: top center;
+    display: block; transition: transform .5s var(--ease);
+  }
+  .scheda:hover .anteprima img { transform: scale(1.035); }
+  /* la sfumatura in basso lega l'immagine al corpo della scheda */
+  .anteprima::after {
+    content: ''; position: absolute; inset: 0; pointer-events: none;
+    background: linear-gradient(180deg, transparent 52%, rgba(16,13,7,.82) 100%);
+  }
+  /* LA MINIATURA DISEGNATA. Sta SOTTO l'anteprima vera e non si vede quasi
+     mai; esiste perché una scheda non deve MAI diventare un buco se
+     l'immagine non arriva. Una lettera gigante al suo posto è la firma delle
+     pagine povere: qui c'è invece la sagoma dell'app, fatta di blocchi in
+     percentuale, che scala da sola a qualunque larghezza.
+     Quattro sagome bastano per nove app: cruscotto, scadenzario, andamento,
+     geometria. */
+  .mini { position: absolute; inset: 11% 9%; }
+  .mini i {
+    position: absolute; display: block; border-radius: 3px;
+    background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.05);
+  }
+  .mini .barra { left: 0; right: 0; top: 0; height: 11%; border-radius: 4px;
+                 background: color-mix(in srgb, var(--acc) 26%, transparent); border: 0; }
+  .mini .kpi { top: 18%; height: 26%; width: 47%;
+               background: rgba(255,255,255,.055); border-top: 2px solid var(--acc); }
+  .mini .kpi.a { left: 0; } .mini .kpi.b { right: 0; }
+  .mini .riga { left: 0; right: 0; height: 9%; }
+  .mini .riga.uno   { top: 50%; } .mini .riga.due  { top: 63%; }
+  .mini .riga.tre   { top: 76%; } .mini .riga.qua  { top: 89%; }
+  .mini .riga.mar { border-left: 2px solid var(--acc); }
+  .mini .pal { width: 5%; height: 9%; left: 0; border-radius: 50%;
+               background: color-mix(in srgb, var(--acc) 70%, transparent); border: 0; }
+  .mini .eti { right: 0; width: 22%; height: 9%; border-radius: 20px;
+               background: color-mix(in srgb, var(--acc) 22%, transparent); border: 0; }
+  .mini .col { bottom: 0; width: 9%; background: color-mix(in srgb, var(--acc) 44%, transparent); border: 0; }
+  .mini .base { left: 0; right: 0; bottom: -3%; height: 2px; border-radius: 0;
+                background: rgba(255,255,255,.10); border: 0; }
+  .mini .punto { width: 4px; height: 4px; border-radius: 50%; border: 0;
+                 background: color-mix(in srgb, var(--acc) 62%, transparent); }
+  .mini .tratto { height: 1px; border-radius: 0; border: 0;
+                  background: color-mix(in srgb, var(--acc) 34%, transparent); transform-origin: left center; }
+  .anteprima img { position: relative; z-index: 1; }
+
+  .corpo { padding: 15px 16px 16px; display: flex; flex-direction: column; flex: 1; }
+  .riga-nome { display: flex; align-items: center; gap: 9px; }
+  .nome {
+    font-family: 'Barlow Condensed', sans-serif; font-weight: 800; font-size: 22px;
+    letter-spacing: 2.4px; text-transform: uppercase; color: var(--acc-tx);
+  }
+  .stato {
+    margin-left: auto; font-family: 'Barlow Condensed', sans-serif; font-weight: 700;
+    font-size: 10.5px; letter-spacing: 1.4px; text-transform: uppercase;
+    padding: 3px 9px; border-radius: 20px; white-space: nowrap;
+  }
+  .stato.viva  { background: rgba(102,187,106,.16); color: #8fd992; }
+  .stato.corso { background: rgba(255,171,0,.15);   color: var(--amber2); }
+  .stato.prova { background: rgba(184,165,116,.16); color: var(--muted2); }
+
+  .cose { margin: 3px 0 8px; font-size: 13px; font-weight: 500; color: var(--text); }
+  .desc { margin: 0 0 11px; font-size: 13px; line-height: 1.55; color: var(--muted2); }
+  .punti { list-style: none; margin: 0 0 12px; padding: 0; display: grid; gap: 5px; }
+  .punti li { position: relative; padding-left: 15px; font-size: 12.5px; color: var(--text); }
+  .punti li::before {
+    content: ''; position: absolute; left: 0; top: 7px; width: 5px; height: 5px;
+    border-radius: 50%; background: var(--acc);
+  }
+  .aChi {
+    margin-top: auto; padding-top: 11px; border-top: 1px solid var(--border);
+    display: flex; align-items: center; gap: 8px;
+    font-size: 11.5px; letter-spacing: 1.1px; text-transform: uppercase; color: var(--muted2);
+  }
+  .aChi .freccia { margin-left: auto; color: var(--acc-tx); font-size: 17px; line-height: 1;
+                   transition: transform .22s var(--ease); }
+  .scheda:hover .aChi .freccia { transform: translateX(4px); }
+
+  /* ── I PONTI FRA LE APP ─────────────────────────────────────────── */
+  .ponti { display: grid; gap: 12px; grid-template-columns: 1fr; }
+  @media (min-width: 760px) { .ponti { grid-template-columns: repeat(2, 1fr); } }
+  .ponte {
+    position: relative; padding: 16px 16px 16px 18px;
+    background: var(--card); border: 1px solid var(--border);
+    border-left: 3px solid var(--amber); border-radius: var(--r);
+    box-shadow: var(--ombra-scheda);
+  }
+  .ponte .fra {
+    display: flex; align-items: center; gap: 7px; flex-wrap: wrap; margin-bottom: 7px;
+    font-family: 'Barlow Condensed', sans-serif; font-weight: 800; font-size: 11px;
+    letter-spacing: 1.6px; text-transform: uppercase;
+  }
+  .ponte .fra i { font-style: normal; color: var(--muted); }
+  .ponte h3 { margin: 0 0 5px; font-size: 14.5px; font-weight: 600; line-height: 1.4; color: var(--text); }
+  .ponte p { margin: 0; font-size: 12.5px; line-height: 1.55; color: var(--muted2); }
+
+  /* ── PIEDE ──────────────────────────────────────────────────────── */
+  .piede { margin-top: 46px; padding-top: 22px; border-top: 1px solid var(--border); text-align: center; }
+  .piede .frase { font-size: 15px; color: var(--text); max-width: 46ch; margin: 0 auto 16px; line-height: 1.6; }
+  .piede .firma { margin-top: 18px; font-family: 'Barlow Condensed', sans-serif;
+                  font-size: 11px; letter-spacing: 2.4px; text-transform: uppercase; color: var(--muted); }
+
+  /* ── ENTRATA IN SCENA ───────────────────────────────────────────── */
+  .sale { opacity: 0; transform: translateY(14px); }
+  .sale.dentro { opacity: 1; transform: none; transition: opacity .5s var(--ease), transform .5s var(--ease); }
+  @media (prefers-reduced-motion: reduce) {
+    .sale, .sale.dentro { opacity: 1; transform: none; transition: none; }
+    .scheda, .anteprima img, .cta, .aChi .freccia { transition: none; }
+    .scheda:hover { transform: none; }
+    .scheda:hover .anteprima img { transform: none; }
+  }
 </style>
 </head>
 <body class="dw">
 <div class="wrap">
-  <div class="head">
+
+  <header class="hero">
+    <svg class="marchio" width="74" height="76" viewBox="0 0 120 122" aria-hidden="true">
+      <polygon points="60,72 16,17 104,17" fill="#14100a"/>
+      <polygon points="60,68 22,21 98,21" fill="#1c1608" stroke="#ffab00" stroke-width="2"/>
+      <rect x="56.5" y="2" width="7" height="66" fill="#28200c" rx="2"/>
+      <rect x="58" y="2" width="4" height="66" fill="#ffab00" rx="1.5"/>
+      <polygon points="60,68 55,61 65,61" fill="#ffab00"/>
+      <line x1="60" y1="68" x2="42" y2="77" stroke="#ffab00" stroke-width="2.2" stroke-linecap="round"/>
+      <line x1="60" y1="68" x2="78" y2="77" stroke="#ffab00" stroke-width="2.2" stroke-linecap="round"/>
+      <line x1="60" y1="68" x2="60" y2="85" stroke="#ffd54f" stroke-width="2.5" stroke-linecap="round"/>
+      <circle cx="42" cy="78" r="2.5" fill="#ffab00"/>
+      <circle cx="78" cy="78" r="2.5" fill="#ffab00"/>
+      <circle cx="60" cy="86" r="3" fill="#ffd54f"/>
+    </svg>
     <h1>DEEPWORK <span class="eco">ECOSISTEMA</span></h1>
-    <div class="sub">Le app per la tua cava · un solo accesso</div>
-  </div>
+    <p class="claim">Otto strumenti per la cava. Un accesso solo, e si parlano tra loro.</p>
+    <p class="apri">Uno per ogni pezzo del lavoro: il fronte, la sicurezza, il turno, i mezzi,
+      i conti, l'ambiente, i volumi. Si entra una volta sola, e quello che scrive uno
+      arriva dove serve, senza ricopiarlo.</p>
+    <div class="azioni">
+      <a class="cta primaria" href="./deepwork-id/index.html#tour">Prova il tour</a>
+      <a class="cta secondaria" href="#app">Guarda le app</a>
+    </div>
+    <div class="ventaglio" aria-hidden="true">
+      <div class="tel sx"><img src="./anteprime/tel-scudo.jpg" alt="" loading="eager" decoding="async" width="460" height="971"></div>
+      <div class="tel dx"><img src="./anteprime/tel-conti.jpg" alt="" loading="eager" decoding="async" width="460" height="971"></div>
+      <div class="tel mid"><img src="./anteprime/tel-terra.jpg" alt="" loading="eager" decoding="async" width="460" height="971"></div>
+    </div>
 
-  <div class="grid">
-    <a class="tile" href="../index.html" style="--tile-accent:#ffab00;">
-      <div class="nm">Deepwork</div>
-      <div class="ds">Il core: editor volate, rapportini, dashboard di cava.</div>
-      <span class="st live">In produzione</span>
-    </a>
-    <a class="tile" href="./genesi/genesi.html" style="--tile-accent:#ff6a70;">
-      <div class="nm">Genesi</div>
-      <div class="ds">Simulatore di volate 3D calibrato su volate reali filmate.</div>
-      <span class="st dev">Sviluppo attivo</span>
-    </a>
-    <a class="tile" href="./scudo/index.html" style="--tile-accent:#bd96ff;">
-      <div class="nm">Scudo</div>
-      <div class="ds">Sicurezza & personale: scadenze, formazione, documenti.</div>
-      <span class="st mock">Demo interattiva</span>
-    </a>
-    <a class="tile" href="./campo/index.html" style="--tile-accent:#ffb733;">
-      <div class="nm">Campo</div>
-      <div class="ds">L'operativo di giornata: attività, squadre, rapportini.</div>
-      <span class="st mock">Demo interattiva</span>
-    </a>
-    <a class="tile" href="./flotta/index.html" style="--tile-accent:#7fbcff;">
-      <div class="nm">Flotta</div>
-      <div class="ds">Mezzi, manutenzioni, ore e costi sotto controllo.</div>
-      <span class="st mock">Demo interattiva</span>
-    </a>
-    <a class="tile" href="./conti/index.html" style="--tile-accent:#23dcc6;">
-      <div class="nm">Conti</div>
-      <div class="ds">Amministrazione & gare: fatture, incassi, margini.</div>
-      <span class="st mock">Demo interattiva</span>
-    </a>
-    <a class="tile" href="./sentinella/index.html" style="--tile-accent:#c7b794;">
-      <div class="nm">Sentinella</div>
-      <div class="ds">Ambiente / HSE: monitoraggi, adempimenti, registri.</div>
-      <span class="st mock">Demo interattiva</span>
-    </a>
-    <a class="tile" href="./terra/index.html" style="--tile-accent:#5fe05a;">
-      <div class="nm">Terra</div>
-      <div class="ds">Estrattivo & rilievo: fronti, volumi, piano di coltivazione.</div>
-      <span class="st mock">Demo interattiva</span>
-    </a>
-    <a class="tile" href="./deepwork-id/index.html" style="--tile-accent:#e8dcc0;">
-      <div class="nm">Deepwork ID</div>
-      <div class="ds">Un solo profilo per tutte le app: accesso, organizzazioni, abbonamenti.</div>
-      <span class="st dev">Pronto al collaudo</span>
-    </a>
-  </div>
+    <div class="cifre">
+      <div class="cifra"><b>8</b><span>strumenti</span></div>
+      <div class="cifra"><b>1</b><span>accesso</span></div>
+      <div class="cifra"><b>6</b><span>ponti fra le app</span></div>
+    </div>
+  </header>
 
-  <div class="tour">
-    <p>Vuoi vedere come funziona senza registrarti? La modalità tour mostra le app con dati di esempio, in sola lettura.</p>
-    <a class="dw-btn secondary" style="display:inline-block;text-decoration:none;" href="./deepwork-id/index.html">Prova il tour</a>
-  </div>
+  <section class="sez">
+    <h2 class="sez-tit">Le app si parlano</h2>
+    <p class="sez-sot">La differenza non è avere otto strumenti: è che si passano il lavoro.
+      Sei cose che nessuno di loro, da solo, saprebbe fare.</p>
+    <div class="ponti">
 
-  <div class="foot">DEEPWORK · ECOSISTEMA PER CAVE E ATTIVITÀ ESTRATTIVE</div>
+      <div class="ponte sale" style="border-left-color:#d3633a;">
+        <div class="fra"><span style="color:#f49c7d">Campo</span><i>→</i><span style="color:#b7a8f9">Scudo</span></div>
+        <h3>Prima che la squadra vada al fronte, si sa chi ha un documento scaduto.</h3>
+        <p>Campo sa chi è in turno oggi, Scudo sa chi ha la visita in regola: messi insieme,
+          il capoturno lo vede prima di mandare la gente al fronte.</p>
+      </div>
+
+      <div class="ponte sale" style="border-left-color:#659b2c;">
+        <div class="fra"><span style="color:#9ac577">Terra</span><i>→</i><span style="color:#4dcebd">Conti</span></div>
+        <h3>Il materiale misurato dal rilievo si mette accanto a quello uscito dal cancello.</h3>
+        <p>Se fra i metri cubi cavati e le tonnellate vendute c'è un divario che non si spiega
+          con lo sfrido, l'app lo dice invece di lasciarlo scoprire a fine anno.</p>
+      </div>
+
+      <div class="ponte sale" style="border-left-color:#288ee0;">
+        <div class="fra"><span style="color:#78bcfc">Sentinella</span><i>→</i><span style="color:#ffab5c">Genesi</span></div>
+        <h3>Le vibrazioni misurate correggono la previsione della volata dopo.</h3>
+        <p>I referti del sismografo tornano indietro nella progettazione: la previsione smette
+          di essere quella del manuale e diventa quella della propria cava.</p>
+      </div>
+
+      <div class="ponte sale" style="border-left-color:#d3633a;">
+        <div class="fra"><span style="color:#f49c7d">Campo</span><i>→</i><span style="color:#9ac577">Terra</span></div>
+        <h3>Fra un rilievo e l'altro il buco lo riempiono i turni.</h3>
+        <p>Il drone vola una volta ogni tanto; nel frattempo quello che dichiarano i turni dà
+          la stima del momento, tenuta ben separata dalla misura vera.</p>
+      </div>
+
+      <div class="ponte sale" style="border-left-color:#d3633a;">
+        <div class="fra"><span style="color:#f49c7d">Campo</span><i>→</i><span style="color:#ffab5c">Genesi</span></div>
+        <h3>Quello che è entrato davvero nei fori torna dentro al progetto.</h3>
+        <p>Il consuntivo di carico segnato al fronte si mette accanto al previsto. La volata
+          dopo parte da come si comporta questa cava, non da come dovrebbe comportarsi.</p>
+      </div>
+
+      <div class="ponte sale" style="border-left-color:#288ee0;">
+        <div class="fra"><span style="color:#78bcfc">Sentinella</span><i>→</i><span style="color:#b7a8f9">Scudo</span></div>
+        <h3>Un superamento smette di essere un numero e diventa un'azione con una data.</h3>
+        <p>Soglia passata o reclamo di un residente: in Scudo nasce la non conformità da
+          chiudere, con chi se ne occupa ed entro quando. Un grafico rosso non chiude niente.</p>
+      </div>
+
+    </div>
+  </section>
+
+  <section class="sez" id="app">
+    <h2 class="sez-tit">Le app</h2>
+    <!-- ⚠️ IL CONTO VA DETTO QUI, dove uno lo fa. L'apertura annuncia «8
+         strumenti» e «1 accesso», poi qui sotto compaiono NOVE riquadri: chi
+         guarda conta nove e pensa a un errore. I numeri erano giusti — il nono
+         riquadro è l'accesso, già contato a parte — ma un conto che torna solo
+         se lo spieghi non torna. Costa una riga dirlo nel punto in cui si
+         guarda la griglia, e toglie l'unica obiezione facile della pagina. -->
+    <p class="sez-sot">Raggruppate per momento del lavoro. Ognuna funziona anche da sola:
+      tocca un riquadro per aprirla con dati di esempio. Sono nove: gli otto strumenti
+      e l'accesso unico che li tiene insieme.</p>
+
+    <!-- ⛔ «E IO DA DOVE COMINCIO?» — la domanda che uno si fa davvero davanti a
+         nove prodotti, e a cui la pagina non rispondeva. Viene dalla ricerca in
+         `docs/RICERCA_VETRINA_202607.md`: nove schede tutte della stessa misura
+         non hanno nessuna gerarchia, e nove prodotti ugualmente importanti
+         diventano nove prodotti di cui nessuno è importante.
+         La gerarchia però va GUADAGNATA, non inventata: ingrandire una scheda
+         perché è la più bella sarebbe un capriccio, e direbbe il contrario della
+         nostra tesi (gli strumenti sono pari, il valore è che si parlano).
+         Perciò si smista per PROBLEMA, non per prodotto: quattro frasi che una
+         persona di cava riconosce come sue, ognuna che porta dove serve. -->
+    <div class="daDove">
+      <span class="dd-eti">Da dove comincio</span>
+      <ul class="dd-lista">
+        <li><a href="./terra/index.html"><span class="dd-fr">Devo sapere <b>quanto materiale mi resta</b> e per quanti anni</span><span class="dd-app" style="--acc-tx:#9ac577">Terra</span></a></li>
+        <li><a href="./scudo/index.html"><span class="dd-fr">Domani ho <b>un'ispezione</b> e devo trovare i documenti</span><span class="dd-app" style="--acc-tx:#b7a8f9">Scudo</span></a></li>
+        <li><a href="./campo/index.html"><span class="dd-fr">I <b>rapportini di turno</b> arrivano tardi e scritti a mano</span><span class="dd-app" style="--acc-tx:#f49c7d">Campo</span></a></li>
+        <li><a href="./sentinella/index.html"><span class="dd-fr">I vicini <b>si lamentano</b> di rumore o vibrazioni</span><span class="dd-app" style="--acc-tx:#78bcfc">Sentinella</span></a></li>
+      </ul>
+    </div>
+
+    <div class="famiglia sale">
+      <h3 class="fam-tit">La roccia</h3>
+      <p class="fam-sot">Prima che si scavi: dove si progetta e dove si misura.</p>
+    </div>
+
+    <div class="griglia">
+      <a class="scheda sale" href="./genesi/genesi.html" style="--acc:#ff8f2e; --acc-tx:#ffab5c;">
+        <div class="anteprima">
+          <img src="./anteprime/genesi.jpg" alt="La home di Genesi: progetto in pianta e simulazione 3D" loading="eager" decoding="async" width="760" height="475" onerror="this.remove()"><span class="mini" aria-hidden="true"><i class="barra"></i><i class="punto" style="left:2.0%;top:24%"></i><i class="punto" style="left:17.5%;top:24%"></i><i class="punto" style="left:33.0%;top:24%"></i><i class="punto" style="left:48.5%;top:24%"></i><i class="punto" style="left:64.0%;top:24%"></i><i class="punto" style="left:79.5%;top:24%"></i><i class="punto" style="left:95.0%;top:24%"></i><i class="punto" style="left:2.0%;top:41%"></i><i class="punto" style="left:17.5%;top:41%"></i><i class="punto" style="left:33.0%;top:41%"></i><i class="punto" style="left:48.5%;top:41%"></i><i class="punto" style="left:64.0%;top:41%"></i><i class="punto" style="left:79.5%;top:41%"></i><i class="punto" style="left:95.0%;top:41%"></i><i class="punto" style="left:2.0%;top:58%"></i><i class="punto" style="left:17.5%;top:58%"></i><i class="punto" style="left:33.0%;top:58%"></i><i class="punto" style="left:48.5%;top:58%"></i><i class="punto" style="left:64.0%;top:58%"></i><i class="punto" style="left:79.5%;top:58%"></i><i class="punto" style="left:95.0%;top:58%"></i><i class="punto" style="left:2.0%;top:75%"></i><i class="punto" style="left:17.5%;top:75%"></i><i class="punto" style="left:33.0%;top:75%"></i><i class="punto" style="left:48.5%;top:75%"></i><i class="punto" style="left:64.0%;top:75%"></i><i class="punto" style="left:79.5%;top:75%"></i><i class="punto" style="left:95.0%;top:75%"></i><i class="tratto" style="left:2%;top:30%;width:96%;transform:rotate(3.6deg)"></i><i class="tratto" style="left:2%;top:74%;width:96%;transform:rotate(-2.4deg)"></i></span></div>
+        <div class="corpo">
+          <div class="riga-nome"><span class="nome">Genesi</span><span class="stato corso">Sviluppo attivo</span></div>
+          <div class="cose">Si vede la volata prima di spararla.</div>
+          <p class="desc">Lo schema di volata si prova sullo schermo invece che sulla roccia.
+            Il piano di carico esce per il fochino, e quello che è successo davvero torna dentro.</p>
+          <ul class="punti">
+            <li>Progetto in pianta e simulazione 3D</li>
+            <li>Piano di carico per il fochino</li>
+            <li>Confronto fra due varianti di volata</li>
+          </ul>
+          <div class="aChi">Chi progetta le volate <span class="freccia" aria-hidden="true">›</span></div>
+        </div>
+      </a>
+      <a class="scheda sale" href="./terra/index.html" style="--acc:#659b2c; --acc-tx:#9ac577;">
+        <div class="anteprima">
+          <img src="./anteprime/terra.jpg" alt="La vita della cava in Terra: volume residuo e ritmo" loading="eager" decoding="async" width="760" height="475" onerror="this.remove()"><span class="mini" aria-hidden="true"><i class="barra"></i><i class="punto" style="left:2.0%;top:24%"></i><i class="punto" style="left:17.5%;top:24%"></i><i class="punto" style="left:33.0%;top:24%"></i><i class="punto" style="left:48.5%;top:24%"></i><i class="punto" style="left:64.0%;top:24%"></i><i class="punto" style="left:79.5%;top:24%"></i><i class="punto" style="left:95.0%;top:24%"></i><i class="punto" style="left:2.0%;top:41%"></i><i class="punto" style="left:17.5%;top:41%"></i><i class="punto" style="left:33.0%;top:41%"></i><i class="punto" style="left:48.5%;top:41%"></i><i class="punto" style="left:64.0%;top:41%"></i><i class="punto" style="left:79.5%;top:41%"></i><i class="punto" style="left:95.0%;top:41%"></i><i class="punto" style="left:2.0%;top:58%"></i><i class="punto" style="left:17.5%;top:58%"></i><i class="punto" style="left:33.0%;top:58%"></i><i class="punto" style="left:48.5%;top:58%"></i><i class="punto" style="left:64.0%;top:58%"></i><i class="punto" style="left:79.5%;top:58%"></i><i class="punto" style="left:95.0%;top:58%"></i><i class="punto" style="left:2.0%;top:75%"></i><i class="punto" style="left:17.5%;top:75%"></i><i class="punto" style="left:33.0%;top:75%"></i><i class="punto" style="left:48.5%;top:75%"></i><i class="punto" style="left:64.0%;top:75%"></i><i class="punto" style="left:79.5%;top:75%"></i><i class="punto" style="left:95.0%;top:75%"></i><i class="tratto" style="left:2%;top:30%;width:96%;transform:rotate(3.6deg)"></i><i class="tratto" style="left:2%;top:74%;width:96%;transform:rotate(-2.4deg)"></i></span></div>
+        <div class="corpo">
+          <div class="riga-nome"><span class="nome">Terra</span><span class="stato prova">Demo interattiva</span></div>
+          <div class="cose">Quanto resta da cavare, e per quanto.</div>
+          <p class="desc">Il volume concesso non è un numero da controllare a fine anno.
+            I rilievi dicono a che punto si è, e quanti anni restano al ritmo di adesso.</p>
+          <ul class="punti">
+            <li>Contatore della vita della cava</li>
+            <li>Avvisa prima di sforare l'anno</li>
+            <li>Riepilogo dei volumi da consegnare</li>
+          </ul>
+          <div class="aChi">La direzione <span class="freccia" aria-hidden="true">›</span></div>
+        </div>
+      </a>
+    </div>
+
+    <div class="famiglia sale">
+      <h3 class="fam-tit">Il cantiere</h3>
+      <p class="fam-sot">Mentre si scava: il turno, i mezzi, le persone.</p>
+    </div>
+
+    <div class="griglia">
+      <a class="scheda sale" href="./campo/index.html" style="--acc:#d3633a; --acc-tx:#f49c7d;">
+        <div class="anteprima">
+          <img src="./anteprime/campo.jpg" alt="Il quadro di giornata di Campo" loading="eager" decoding="async" width="760" height="475" onerror="this.remove()"><span class="mini" aria-hidden="true"><i class="barra"></i><i class="kpi a"></i><i class="kpi b"></i><i class="riga uno mar"></i><i class="riga due"></i><i class="riga tre"></i></span></div>
+        <div class="corpo">
+          <div class="riga-nome"><span class="nome">Campo</span><span class="stato prova">Demo interattiva</span></div>
+          <div class="cose">Il turno chiuso in due minuti.</div>
+          <p class="desc">Il turno si chiude dove è successo, non a memoria la sera.
+            Chi c'era, quanto è uscito, e dove si è perso tempo.</p>
+          <ul class="punti">
+            <li>Appello e checklist di inizio turno</li>
+            <li>Dove si perde tempo, per causale</li>
+            <li>Chiusura con due nomi e un'ora</li>
+          </ul>
+          <div class="aChi">Il capocantiere <span class="freccia" aria-hidden="true">›</span></div>
+        </div>
+      </a>
+      <a class="scheda sale" href="./flotta/index.html" style="--acc:#c360a6; --acc-tx:#e798cd;">
+        <div class="anteprima">
+          <img src="./anteprime/flotta.jpg" alt="Il quadro dei mezzi di Flotta" loading="eager" decoding="async" width="760" height="475" onerror="this.remove()"><span class="mini" aria-hidden="true"><i class="barra"></i><i class="kpi a"></i><i class="kpi b"></i><i class="riga uno mar"></i><i class="riga due"></i><i class="riga tre"></i></span></div>
+        <div class="corpo">
+          <div class="riga-nome"><span class="nome">Flotta</span><span class="stato prova">Demo interattiva</span></div>
+          <div class="cose">I fermi macchina si vedono prima.</div>
+          <p class="desc">Tagliandi, revisioni e ricambi non si scoprono il giorno che il mezzo resta fermo.
+            Il controllo di inizio turno diventa la lista di lavoro dell'officina.</p>
+          <ul class="punti">
+            <li>Giro macchina prima di partire</li>
+            <li>Scadenze di legge col semaforo</li>
+            <li>Quanti ricambi tenere a scorta</li>
+          </ul>
+          <div class="aChi">L'officina <span class="freccia" aria-hidden="true">›</span></div>
+        </div>
+      </a>
+      <a class="scheda sale" href="./scudo/index.html" style="--acc:#8c75dc; --acc-tx:#b7a8f9;">
+        <div class="anteprima">
+          <img src="./anteprime/scudo.jpg" alt="Il quadro della sicurezza di Scudo, con scadenze e urgenze" loading="eager" decoding="async" width="760" height="475" onerror="this.remove()"><span class="mini" aria-hidden="true"><i class="barra"></i><i class="pal" style="top:22%"></i><i class="riga" style="top:22%;left:9%"></i><i class="eti" style="top:22%"></i><i class="pal" style="top:39%"></i><i class="riga" style="top:39%;left:9%"></i><i class="eti" style="top:39%"></i><i class="pal" style="top:56%"></i><i class="riga" style="top:56%;left:9%"></i><i class="eti" style="top:56%"></i><i class="pal" style="top:73%"></i><i class="riga" style="top:73%;left:9%"></i><i class="eti" style="top:73%"></i></span></div>
+        <div class="corpo">
+          <div class="riga-nome"><span class="nome">Scudo</span><span class="stato prova">Demo interattiva</span></div>
+          <div class="cose">La sicurezza in ordine, senza rincorrerla.</div>
+          <p class="desc">Visite mediche, formazione, DPI e nomine smettono di vivere su fogli sparsi.
+            Si sa in anticipo cosa scade, e chi non può più fare quel lavoro.</p>
+          <ul class="punti">
+            <li>Chi posso mandare, mansione per mansione</li>
+            <li>Le scadenze dei prossimi dodici mesi</li>
+            <li>Verbale di consegna dei DPI</li>
+          </ul>
+          <div class="aChi">Chi tiene la sicurezza <span class="freccia" aria-hidden="true">›</span></div>
+        </div>
+      </a>
+    </div>
+
+    <div class="famiglia sale">
+      <h3 class="fam-tit">L'azienda</h3>
+      <p class="fam-sot">Dopo che si è scavato: i conti e quello che si deve all'ente.</p>
+    </div>
+
+    <div class="griglia">
+      <a class="scheda sale" href="./conti/index.html" style="--acc:#009f8f; --acc-tx:#4dcebd;">
+        <div class="anteprima">
+          <img src="./anteprime/conti.jpg" alt="Il quadro di Conti: emesso, incassato e scaduto" loading="eager" decoding="async" width="760" height="475" onerror="this.remove()"><span class="mini" aria-hidden="true"><i class="barra"></i><i class="col" style="left:4%;height:26%"></i><i class="col" style="left:19%;height:38%"></i><i class="col" style="left:34%;height:32%"></i><i class="col" style="left:49%;height:52%"></i><i class="col" style="left:64%;height:44%"></i><i class="col" style="left:79%;height:64%"></i><i class="base"></i></span></div>
+        <div class="corpo">
+          <div class="riga-nome"><span class="nome">Conti</span><span class="stato prova">Demo interattiva</span></div>
+          <div class="cose">Dalla pesa alla fattura, senza ricopiare.</div>
+          <p class="desc">I documenti di trasporto della pesa diventano fatture senza ricopiare una riga.
+            E si sa chi chiamare per primo, e da quanto aspetta quel credito.</p>
+          <ul class="punti">
+            <li>Fattura differita dai documenti di trasporto</li>
+            <li>Chi sollecitare per primo</li>
+            <li>Canone di escavazione del periodo</li>
+          </ul>
+          <div class="aChi">L'ufficio <span class="freccia" aria-hidden="true">›</span></div>
+        </div>
+      </a>
+      <a class="scheda sale" href="./sentinella/index.html" style="--acc:#288ee0; --acc-tx:#78bcfc;">
+        <div class="anteprima">
+          <img src="./anteprime/sentinella.jpg" alt="Il quadro ambientale di Sentinella" loading="eager" decoding="async" width="760" height="475" onerror="this.remove()"><span class="mini" aria-hidden="true"><i class="barra"></i><i class="pal" style="top:22%"></i><i class="riga" style="top:22%;left:9%"></i><i class="eti" style="top:22%"></i><i class="pal" style="top:39%"></i><i class="riga" style="top:39%;left:9%"></i><i class="eti" style="top:39%"></i><i class="pal" style="top:56%"></i><i class="riga" style="top:56%;left:9%"></i><i class="eti" style="top:56%"></i><i class="pal" style="top:73%"></i><i class="riga" style="top:73%;left:9%"></i><i class="eti" style="top:73%"></i></span></div>
+        <div class="corpo">
+          <div class="riga-nome"><span class="nome">Sentinella</span><span class="stato prova">Demo interattiva</span></div>
+          <div class="cose">Polveri, rumore e vibrazioni sotto controllo.</div>
+          <!-- ⚠️ QUESTA RIGA RIMAVA CON QUELLA DI SCUDO. Scudo: «smettono di vivere
+               su fogli sparsi»; qui c'era «smettono di essere file sparsi in un
+               computer». Due schede a distanza di uno, con la stessa identica
+               costruzione: non è una sovrapposizione di prodotto — i due
+               strumenti fanno cose diverse — ma è una formula ripetuta, e una
+               formula ripetuta fa sembrare la pagina compilata da uno stampo
+               invece che scritta. Trovato leggendo le nove schede di fila. -->
+          <p class="desc">Ogni misura ha la sua data e il suo ricettore, invece di stare nella
+            cartella del computer di qualcuno. C'è il calendario di cosa va misurato e quando,
+            e il report per l'ente esce già scritto.</p>
+          <ul class="punti">
+            <li>Le letture dello strumento si importano</li>
+            <li>La soglia della casa più vicina</li>
+            <li>Report di conformità per l'ente</li>
+          </ul>
+          <div class="aChi">Chi risponde all'ente <span class="freccia" aria-hidden="true">›</span></div>
+        </div>
+      </a>
+    </div>
+
+    <div class="famiglia sale">
+      <h3 class="fam-tit">La base</h3>
+      <p class="fam-sot">Sotto tutte: il quaderno di cantiere e l'accesso unico.</p>
+    </div>
+
+    <div class="griglia">
+      <a class="scheda sale" href="../index.html" style="--acc:#ffab00; --acc-tx:#ffd54f;">
+        <div class="anteprima">
+          <img src="./anteprime/core.jpg" alt="La home di Deepwork: azioni rapide e attività recenti" loading="eager" decoding="async" width="760" height="475" onerror="this.remove()"><span class="mini" aria-hidden="true"><i class="barra"></i><i class="kpi a"></i><i class="kpi b"></i><i class="riga uno mar"></i><i class="riga due"></i><i class="riga tre"></i></span></div>
+        <div class="corpo">
+          <div class="riga-nome"><span class="nome">Deepwork</span><span class="stato viva">In uso</span></div>
+          <!-- ⚠️ QUESTA SCHEDA DICEVA LA STESSA COSA DI CAMPO. «Il rapportino non
+               passa più dalla carta né dal messaggio la sera tardi» accanto a «il
+               turno si chiude dove è successo, non a memoria la sera»: due schede
+               su nove con la stessa promessa, e chi guarda si chiede quale delle
+               due comprare. Ora questa dice quello che il core CONTIENE davvero —
+               volate, cave, mezzi, deposito, personale, clienti, ufficio: si
+               controlla aprendo le sue schermate — invece di raccontare il
+               mestiere di un'altra app.
+               ⛔ Di proposito NON si scrive qui la divisione «diario / tavolo da
+               disegno» proposta in `docs/PERCHE_DEEPWORK_E_GENESI.md`: quella è
+               una decisione di prodotto che aspetta il fondatore, e una pagina di
+               vendita non è il posto dove darla per presa. -->
+          <div class="cose">Tutta la cava in un posto solo.</div>
+          <p class="desc">Volate, mezzi, deposito, personale, clienti, documenti dell'ufficio.
+            Quello che serve ritrovare fra sei mesi sta qui, e si cerca dal telefono
+            invece che in un raccoglitore.</p>
+          <ul class="punti">
+            <li>Storico delle volate e dei rapportini</li>
+            <li>Mezzi, deposito, personale, clienti</li>
+            <li>Documenti dell'ufficio, pronti da mostrare</li>
+          </ul>
+          <div class="aChi">Chi tiene l'archivio <span class="freccia" aria-hidden="true">›</span></div>
+        </div>
+      </a>
+      <a class="scheda sale" href="./deepwork-id/index.html" style="--acc:#c7b794; --acc-tx:#e8dcc0;">
+        <div class="anteprima">
+          <img src="./anteprime/deepwork-id.jpg" alt="La schermata d'accesso di Deepwork ID" loading="eager" decoding="async" width="760" height="475" onerror="this.remove()"><span class="mini" aria-hidden="true"><i class="barra"></i><i class="pal" style="top:22%"></i><i class="riga" style="top:22%;left:9%"></i><i class="eti" style="top:22%"></i><i class="pal" style="top:39%"></i><i class="riga" style="top:39%;left:9%"></i><i class="eti" style="top:39%"></i><i class="pal" style="top:56%"></i><i class="riga" style="top:56%;left:9%"></i><i class="eti" style="top:56%"></i><i class="pal" style="top:73%"></i><i class="riga" style="top:73%;left:9%"></i><i class="eti" style="top:73%"></i></span></div>
+        <div class="corpo">
+          <div class="riga-nome"><span class="nome">Deepwork ID</span><span class="stato corso">Pronto al collaudo</span></div>
+          <div class="cose">Un accesso solo, per tutto.</div>
+          <p class="desc">Una password sola per tutte le app, e i dati di ogni azienda chiusi in casa propria.
+            Ognuno entra e vede soltanto quello che gli compete.</p>
+          <ul class="punti">
+            <li>Un profilo per tutte le app</li>
+            <li>I dati di un'azienda restano suoi</li>
+            <li>Ruoli diversi app per app</li>
+          </ul>
+          <div class="aChi">Chi decide chi entra <span class="freccia" aria-hidden="true">›</span></div>
+        </div>
+      </a>
+    </div>
+  </section>
+
+
+  <footer class="piede">
+    <p class="frase">Ogni strumento funziona anche da solo.<br>
+      Messi insieme, smettono di farti scrivere due volte la stessa cosa.</p>
+    <a class="cta primaria" href="./deepwork-id/index.html#tour">Prova il tour</a>
+    <div class="firma">Deepwork · ecosistema per cave e attività estrattive</div>
+  </footer>
+
 </div>
+
+<script>
+/* ALONE CHE SEGUE IL MOUSE — lo stesso gesto del core. Si aggiorna sul
+   fotogramma, non a ogni movimento, altrimenti su una griglia di nove schede
+   si ricalcola lo stile decine di volte al secondo per niente. */
+(function () {
+  var atteso = false, ultimo = null;
+  document.addEventListener('pointermove', function (e) {
+    var scheda = e.target.closest ? e.target.closest('.scheda') : null;
+    if (!scheda) return;
+    ultimo = { scheda: scheda, x: e.clientX, y: e.clientY };
+    if (atteso) return;
+    atteso = true;
+    requestAnimationFrame(function () {
+      atteso = false;
+      if (!ultimo) return;
+      var r = ultimo.scheda.getBoundingClientRect();
+      ultimo.scheda.style.setProperty('--mx', ((ultimo.x - r.left) / r.width * 100) + '%');
+      ultimo.scheda.style.setProperty('--my', ((ultimo.y - r.top) / r.height * 100) + '%');
+    });
+  }, { passive: true });
+})();
+
+/* ENTRATA IN SCENA — le schede salgono quando entrano nello schermo.
+   Se il browser non ha l'osservatore, o se chi guarda ha chiesto meno
+   movimento, si mostrano e basta: la pagina non deve MAI restare vuota
+   perché un pezzo di programma non è partito. */
+(function () {
+  var pezzi = document.querySelectorAll('.sale');
+  var fermi = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if (fermi || !('IntersectionObserver' in window)) {
+    for (var i = 0; i < pezzi.length; i++) pezzi[i].classList.add('dentro');
+    return;
+  }
+  var occhio = new IntersectionObserver(function (voci) {
+    voci.forEach(function (v) {
+      if (!v.isIntersecting) return;
+      var k = [].indexOf.call(pezzi, v.target);
+      v.target.style.transitionDelay = Math.min(k % 3, 2) * 70 + 'ms';
+      v.target.classList.add('dentro');
+      occhio.unobserve(v.target);
+    });
+  }, { rootMargin: '0px 0px -8% 0px', threshold: .08 });
+  for (var j = 0; j < pezzi.length; j++) occhio.observe(pezzi[j]);
+  /* RETE DI SICUREZZA. Un'animazione d'ingresso che parte da «invisibile» è
+     una scommessa: se l'osservatore non scatta — schermo ridimensionato,
+     scorrimento troppo veloce, pagina catturata da un programma — restano
+     buchi neri al posto delle schede. È successo alla prima prova: tre schede
+     su nove non sono mai comparse. Dopo un secondo e mezzo si mostra tutto,
+     comunque. Meglio un'animazione persa che un pezzo di pagina mancante. */
+  setTimeout(function () {
+    for (var k = 0; k < pezzi.length; k++) pezzi[k].classList.add('dentro');
+  }, 1500);
+})();
+</script>
 </body>
 </html>

@@ -105,6 +105,20 @@ await test("un ADMIN NON può toccare il ruolo di un owner", async () => {
   await expectCode(id.updateMemberRole("boss", "member"), "permission-denied", "admin ha declassato un owner");
 });
 await test("l'ULTIMO owner non può auto-declassarsi", async () => {
+  // PERCHÉ QUI SI ASPETTA IL CLAIM, anche se il setup l'ha già scritto a mano.
+  // Il file comincia cancellando TUTTI gli utenti Auth e TUTTI i documenti. La
+  // cancellazione dei documenti fa scattare `onMemberWrite` sulle membership che
+  // sta rimuovendo, e quel trigger — che arriva in RITARDO, dopo che `mk()` ha
+  // già ricreato utente, claim e membership — ricalcola i ruoli e riscrive i
+  // claims con quello che vede in quel momento. Se atterra nell'istante
+  // sbagliato, azzera l'`owner` di boss: il login successivo prende un token
+  // senza ruoli e la function risponde `permission-denied` invece del
+  // `failed-precondition` che questa prova sta misurando.
+  // Osservato in CI il 31/07 (due prove rosse, «no user record» nei log delle
+  // functions); lo stesso commit è tornato verde al rilancio, che è la firma di
+  // una corsa e non di una rottura. L'attesa qui la toglie di mezzo, ed è lo
+  // stesso rimedio già usato due volte più sotto in questo file.
+  await waitClaim("boss", "orgA", "owner");
   await id.loginWithEmail("boss@cava-alfa.it", "password-123");
   await expectCode(id.updateMemberRole("boss", "admin"), "failed-precondition", "ultimo owner declassato");
 });
@@ -231,6 +245,35 @@ await test("un invito 'member' NON declassa un membro già esistente (no zero-ow
   expect(mem && mem.role === "owner", `owner declassato da un invito member: ${mem && mem.role}`);
   const inv = (await adb.doc("invites/downgInv").get()).data();
   expect(inv.status === "accepted", `invito non consumato: ${inv.status}`);
+});
+
+console.log("\n— Membership orfana: il trigger non deve morire —");
+await test("una membership SENZA utente Auth non uccide onMemberWrite", async () => {
+  // IL RAMO CHE NESSUNO ESERCITAVA. `rebuildClaims` chiama `setCustomUserClaims`
+  // su un uid che in Auth può non esistere — succede quando qualcuno cancella il
+  // proprio profilo e la membership resta. Prima l'eccezione non gestita uccideva
+  // il trigger, portandosi dietro le invocazioni legittime in volo; ora
+  // `auth/user-not-found` si assorbe e si registra.
+  // Come si misura che «non è morto»: si scrive la membership orfana e SUBITO
+  // DOPO si cambia il ruolo di una persona vera. Se il trigger fosse ancora
+  // fragile, quella seconda scrittura troverebbe il runtime a terra e il claim
+  // non arriverebbe. È una prova indiretta perché non c'è modo diretto di
+  // chiedere a Firebase «sei ancora vivo?», ed è dichiarata tale.
+  // la persona VIVA su cui si misura si crea qui: `tizio` a questo punto della
+  // suite è già stato rimosso da «un ADMIN rimuove un member», e la prima
+  // versione di questa prova lo dava per presente — «Membro non trovato», cioè
+  // una prova rossa per un motivo che non c'entrava niente col difetto.
+  await mk("vivo", "member");
+  await waitClaim("vivo", "orgA", "member");
+  await adb.doc("organizations/orgA/members/fantasma").set({
+    uid: "fantasma", role: "member", status: "active" });
+  await id.loginWithEmail("amm@cava-alfa.it", "password-123");
+  await id.updateMemberRole("vivo", "admin");
+  await waitClaim("vivo", "orgA", "admin");
+  expect(await roleOf("vivo") === "admin", "il ruolo non è arrivato: il trigger si è fermato");
+  // pulizia: la membership orfana e la persona di prova escono di scena
+  await adb.doc("organizations/orgA/members/fantasma").delete();
+  await adb.doc("organizations/orgA/members/vivo").delete();
 });
 
 console.log("\n— Validazioni input (invito / nome org) —");

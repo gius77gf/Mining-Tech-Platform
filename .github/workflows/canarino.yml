@@ -1,0 +1,145 @@
+# Sentinella del lavoro automatico.
+#
+# Gira sui computer di GitHub, quindi funziona anche se tutte le sessioni di
+# Claude sono morte: è l'unica difesa indipendente dall'infrastruttura che
+# esegue i cicli. Non ripara — avvisa.
+#
+# Come funziona: i cicli automatici, come prima azione, scrivono un commit che
+# inizia con "canarino:". Se l'ultimo di questi commit è troppo vecchio in un
+# giorno lavorativo, la routine si è fermata e va riarmata.
+#
+# ATTENZIONE (errore già commesso una volta): NON cercare il canarino solo sul
+# branch di default. Il lavoro vive sui branch di sessione e main resta indietro
+# per giorni: cercare su main farebbe scattare un allarme falso ogni giorno.
+# Qui si cerca su TUTTI i branch.
+
+name: Canarino — la routine sta lavorando?
+
+on:
+  schedule:
+    - cron: "35 5,17 * * *"   # due volte al giorno (UTC)
+  workflow_dispatch:           # avviabile a mano per collaudo
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  controlla:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Cerca l'ultimo canarino su tutti i branch
+        id: canarino
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          # Scorre tutti i branch e prende la data del commit "canarino:" più recente.
+          ULTIMO=""
+          for BR in $(gh api "repos/$REPO/branches?per_page=100" --jq '.[].name'); do
+            D=$(gh api "repos/$REPO/commits?sha=$BR&per_page=30" \
+                  --jq '[.[] | select(.commit.message | startswith("canarino:"))][0].commit.committer.date' \
+                  2>/dev/null || echo "null")
+            if [ "$D" != "null" ] && [ -n "$D" ]; then
+              if [ -z "$ULTIMO" ] || [[ "$D" > "$ULTIMO" ]]; then ULTIMO="$D"; fi
+            fi
+          done
+          if [ -z "$ULTIMO" ]; then
+            echo "trovato=no" >> "$GITHUB_OUTPUT"
+            echo "ore=999" >> "$GITHUB_OUTPUT"
+            echo "Nessun commit canarino trovato su nessun branch."
+          else
+            ORE=$(( ( $(date -u +%s) - $(date -u -d "$ULTIMO" +%s) ) / 3600 ))
+            echo "trovato=si" >> "$GITHUB_OUTPUT"
+            echo "ore=$ORE" >> "$GITHUB_OUTPUT"
+            echo "data=$ULTIMO" >> "$GITHUB_OUTPUT"
+            echo "Ultimo canarino: $ULTIMO ($ORE ore fa)."
+          fi
+
+      - name: Avvisa se la routine è ferma
+        if: steps.canarino.outputs.ore >= 6
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          ORE: ${{ steps.canarino.outputs.ore }}
+          DATA: ${{ steps.canarino.outputs.data }}
+        run: |
+          set -euo pipefail
+          # La domenica i cicli non girano per scelta: niente allarme.
+          GIORNO=$(date -u +%u)
+          if [ "$GIORNO" = "7" ]; then
+            echo "Domenica: i cicli non sono previsti, nessun allarme."
+            exit 0
+          fi
+
+          # Deduplica: se c'è già una segnalazione aperta, aggiunge un commento
+          # invece di aprirne una nuova ogni volta.
+          APERTA=$(gh issue list --repo "$REPO" --label "routine-ferma" --state open \
+                     --json number --jq '.[0].number' 2>/dev/null || echo "")
+
+          CORPO=$(cat <<TESTO
+          Il lavoro automatico non dà segni di vita da **circa ${ORE} ore**.
+          ${DATA:+(ultimo canarino: ${DATA})}
+
+          ### Come rimetterla in piedi
+
+          Apri una sessione su claude.ai/code **con il repository
+          Mining-Tech-Platform collegato** — è il punto essenziale — e scrivi:
+
+          > /weekly-kickoff
+
+          (oppure, a parole: *«riarma la routine di sviluppo automatico»* — la
+          procedura completa è in \`docs/ROUTINE_AUTOMATICA.md\`.)
+
+          La riparazione è confermata solo quando compare un nuovo commit che
+          inizia con \`canarino:\`. Non fidarti di altre conferme.
+
+          ---
+          *Segnalazione automatica. Si chiude da sola quando il canarino torna
+          a cantare — puoi chiuderla a mano appena vedi il commit.*
+          TESTO
+          )
+
+          if [ -n "$APERTA" ]; then
+            echo "Segnalazione #$APERTA già aperta: aggiungo un commento."
+            gh issue comment "$APERTA" --repo "$REPO" --body "$CORPO"
+          else
+            gh issue create --repo "$REPO" \
+              --title "⚠️ La routine automatica è ferma da ~${ORE} ore" \
+              --label "routine-ferma" \
+              --body "$CORPO" || \
+            gh issue create --repo "$REPO" \
+              --title "⚠️ La routine automatica è ferma da ~${ORE} ore" \
+              --body "$CORPO"
+          fi
+
+      # ⛔ E QUANDO IL CANARINO TORNA A CANTARE, LA SEGNALAZIONE SI CHIUDE.
+      # Il testo dell'allarme lo prometteva gia' — «si chiude da sola quando il
+      # canarino torna a cantare» — e NESSUN PASSO LO FACEVA: questo job sapeva
+      # solo `list`, `comment` e `create`. Misurato il 01/08 leggendo i passi.
+      # Non era solo una promessa non mantenuta: per via della deduplica qui
+      # sopra, una segnalazione che resta aperta per sempre trasforma OGNI
+      # allarme futuro in un commento su quella vecchia, il cui titolo continua
+      # a dire le ore del primo guasto. Cioe' la sentinella peggiora dopo il
+      # primo incidente, proprio mentre sembra funzionare.
+      - name: Tutto a posto — e chiude la segnalazione se ce n'e' una aperta
+        if: steps.canarino.outputs.ore < 6
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          ORE: ${{ steps.canarino.outputs.ore }}
+          DATA: ${{ steps.canarino.outputs.data }}
+        run: |
+          set -euo pipefail
+          echo "La routine ha lavorato ${ORE} ore fa. Nessun allarme."
+          APERTA=$(gh issue list --repo "$REPO" --label "routine-ferma" --state open \
+                     --json number --jq '.[0].number' 2>/dev/null || echo "")
+          if [ -z "$APERTA" ]; then
+            echo "Nessuna segnalazione aperta da chiudere."
+            exit 0
+          fi
+          echo "Chiudo la segnalazione #$APERTA: il canarino ha cantato."
+          gh issue comment "$APERTA" --repo "$REPO" --body \
+            "Il canarino ha cantato di nuovo${DATA:+ (ultimo: ${DATA})}: la routine ha lavorato circa ${ORE} ore fa. Chiudo." || true
+          gh issue close "$APERTA" --repo "$REPO" --reason completed

@@ -189,6 +189,18 @@ await test("membro di DUE org cambia org attiva e l'entitlement segue", async ()
   const attesa = altra === "orgA";                       // scudo attivo solo in orgA
   expect(id.hasEntitlement() === attesa, "entitlement non ricaricato dopo switch");
   await expectFail(id.switchOrg("orgZ"), "switch verso org estranea riuscito");
+  /* ⛔ E DOPO UN RIFIUTO LO STATO DEVE ESSERE QUELLO DI PRIMA — a proteggerlo è
+     solo l'ORDINE delle righe in `switchOrg`: il `throw` viene prima di
+     `this.orgId = orgId`. Nessuna prova lo pinnava, quindi chi un giorno
+     riordinasse quelle due righe lascerebbe l'SDK «mezzo spostato»: `orgId`
+     sull'org estranea, `entitlement` azzerato, e `orgCollection` che costruisce
+     percorsi dentro il concorrente. Le regole li respingerebbero — la barriera
+     vera regge — ma l'app mostrerebbe uno stato falso senza dire niente, che è
+     esattamente il difetto che questa settimana insegue. */
+  expect(id.orgId === altra, `dopo un cambio RIFIUTATO l'org attiva è cambiata lo stesso: ${id.orgId}`);
+  expect(id.orgCollection("prova").path.startsWith(`organizations/${altra}/`),
+    `orgCollection punta fuori dall'org attiva: ${id.orgCollection("prova").path}`);
+  expect(id.hasEntitlement() === attesa, "un cambio rifiutato ha azzerato l'entitlement dell'org attiva");
 });
 
 console.log("\n— Modalità tour e uscita —");

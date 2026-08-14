@@ -74,17 +74,49 @@ mitigazione password (già preparata, non attiva) e ruotate le password.
 - Dipendenze: solo se si usa il core storico.
 
 ### Passo 6 — 🟢🔴 Onboarding della cava pilota
-- Tu: scegli **quale cava** e **quali 1–2 app** (consiglio: Scudo — scadenze
-  personale — e Flotta — mezzi/ricambi: valore immediato, dati facili da
-  caricare, ora entrambe con import **e** export CSV).
+- Tu: scegli **quale cava** e **quali 1–2 app**.
 - Tecnico: creo l'organizzazione del cliente, il primo utente owner, carico i
-  suoi dati storici via **import CSV** (già pronto per Campo/Flotta/Conti/Terra).
+  suoi dati storici via **import CSV**.
 - Dipendenze: Passi 2, 3, e 4 fatti.
+- ⚠️ **Da sapere prima, non dopo** *(misurato il 31/07)*: i punti d'importazione
+  sono **diciotto** e coprono anagrafiche e storici principali, ma **non tutto**.
+  Le cose che restano da inserire a mano — e quelle per cui **non esiste ancora
+  un file che si ri-carica** — stanno elencate in `docs/ONBOARDING_DATI.md`
+  (sezioni «Cosa NON si carica» e «Backup»). Le più pesanti per una cava sono
+  **pesate e DDT**, **incassi** e **clienti** di Conti. Se il pilota è Conti,
+  questa è la prima cosa da dire al cliente, prima che se ne accorga lui.
+  La scelta se costruirli adesso è la **decisione 12** in
+  `docs/DECISIONI_WEEKEND.md`.
+
+> **⚠️ Correzione del 30/07 al consiglio su quali app scegliere.** Qui c'era
+> scritto «Scudo e Flotta: dati facili da caricare, entrambe con import CSV».
+> Contati i punti d'importazione veri dentro le app (`docs/ONBOARDING_DATI.md`,
+> tabella nuova):
+> - **Scudo regge il consiglio**: lavoratori, scadenzario e infortuni si
+>   caricano tutti da CSV. È la scelta migliore per un pilota.
+> - **Flotta solo a metà**: si caricano i **mezzi** e le **ore motore**, ma
+>   **non i ricambi** — che sono proprio il pezzo per cui la si consiglia, e
+>   che in un magazzino vero sono centinaia di righe da battere a mano.
+>
+> Quindi: **Scudo come prima app**, e come seconda o si accetta che il
+> magazzino di Flotta si popoli a mano nelle prime settimane, oppure si sceglie
+> **Terra** (fronti e rilievi si caricano tutti e due) — che ha anche il
+> vantaggio di far vedere subito un numero che al titolare interessa: quanto
+> resta da cavare.
 
 ### Passo 7 — 🟢 Settimana di prova con dati veri
 Il cliente usa l'app per una settimana. Io tengo d'occhio errori e rifinisco.
 Verifica che l'**isolamento** regge (lui vede solo i suoi dati — è la promessa
 n.1). Se regge, **go-live raggiunto**.
+
+> **Nota del 30/07.** L'isolamento fra organizzazioni non è più solo da
+> verificare sul campo: è **provato da 58 test automatici** che provano a
+> leggere, scrivere, cancellare ed elencare i dati del concorrente e falliscono
+> tutti come devono (`docs/REVISIONE_SICUREZZA_202607.md`).
+> Attenzione però a un punto che riguarda proprio il pilota: **dentro la stessa
+> organizzazione, oggi, tutti possono tutto.** Se la cava pilota ha **un utente
+> solo** non cambia niente; se ne ha più d'uno, va detto prima — o va chiusa la
+> decisione 10b di `docs/DECISIONI_WEEKEND.md` prima del pilota, non dopo.
 
 ---
 

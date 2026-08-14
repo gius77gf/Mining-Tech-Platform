@@ -1,8 +1,17 @@
 # Onboarding dati — come preparare i CSV per caricare una cava
 
-Data: 2026-07-21 · Per Giuseppe e per il cliente pilota. Questo foglio dice,
-app per app, **quale file preparare** per caricare i dati storici senza
-riscriverli a mano. È il manuale pratico del **Passo 6 del PIANO_GO_LIVE**.
+Data: 2026-07-21, **rivisto a fondo il 31/07** · Per Giuseppe e per il cliente
+pilota. Questo foglio dice, app per app, **quale file preparare** per caricare i
+dati storici senza riscriverli a mano. È il manuale pratico del **Passo 6 del
+PIANO_GO_LIVE**.
+
+*Cosa è cambiato il 31/07, e perché conviene rileggere le «Regole valide per
+tutti i file» prima delle schede: la regola sulle **righe ripetute** (uniformata
+in tutte le app, con due eccezioni volute), la verità misurata sul **backup**
+(al 07/08 **dodici** file si ri-caricano — erano sette — e tutti gli altri
+sono prospetti), e quali colonne
+sono diventate **obbligatorie** — il prezzo di un prodotto, e non per pignoleria:
+è quello che impedisce di caricare per sbaglio il file sbagliato.*
 
 ## Regole valide per tutti i file
 - **Formato**: un file **CSV** (da Excel: *File → Salva con nome → CSV*). In
@@ -23,12 +32,93 @@ riscriverli a mano. È il manuale pratico del **Passo 6 del PIANO_GO_LIVE**.
   sistema la riconosce e la salta.
 - **Righe sbagliate**: una riga senza i dati obbligatori viene semplicemente
   saltata, senza bloccare le altre. Alla fine l'app dice quante ne ha caricate.
+- **Righe ripetute** *(uniformato il 31/07 in tutte le app)*: se la stessa cosa
+  compare **due volte nello stesso file**, entra **una volta sola** — vale la
+  prima riga, e maiuscole o spazi in più non la fanno sembrare una cosa diversa
+  («Rossi Mario» e « ROSSI MARIO » sono la stessa persona). Il messaggio finale
+  distingue **due ragioni diverse**, e vale la pena leggerle:
+  - «**già presenti (saltate)**» → quella riga c'era già in archivio, e non
+    andava ricaricata: non c'è niente da correggere;
+  - «**ripetute nel file**» → è il **tuo file** a nominarla più volte. Se non te
+    l'aspettavi, conviene guardare il foglio di calcolo prima del prossimo
+    caricamento.
+
+  Non vale ovunque, e non è una svista. Due eccezioni, per due ragioni diverse:
+  - la **telemetria** di Flotta **aggiorna** le ore dei mezzi invece di
+    aggiungerli: ripetere una riga riscrive lo stesso valore, non crea niente;
+  - il **piano di carico** di Campo *(dal 31/07)*: se lo stesso **numero di
+    foro** compare due volte, **non ne viene tolta nessuna** — e l'app te lo
+    dice, con l'elenco dei fori ripetuti, **prima** di salvare. Il motivo è che
+    lì il doppione non è un fastidio da ripulire ma un **errore nel progetto
+    della volata**: togliere una riga farebbe sparire una carica e abbassare il
+    totale dell'esplosivo senza che nessuno sappia perché. Se è un errore del
+    file, si corregge nel foglio di calcolo e si ricarica.
+- ⚠️ **Il file giusto nel posto giusto** *(misurato il 31/07)*. Ogni schermata
+  d'importazione si aspetta **il suo** formato, e riconosce come intestazione
+  solo **la propria**. Provando tutte le combinazioni — 32 file che le app
+  scaricano × 17 lettori — in **109** casi la riga d'intestazione di un file
+  estraneo verrebbe letta come **un dato**, e comparirebbe in lista una voce che
+  si chiama «sezione» o «tipo».
+  Non è un difetto che scatta da solo: succede **solo se si carica un file nel
+  posto sbagliato**. Le due difese che ci sono:
+  1. ogni file scaricato ha un **nome diverso** dagli altri (controllato in
+     automatico), così nella cartella dei download non si confondono;
+  2. quando un file non ha le colonne giuste, l'app **dice quali servono**
+     invece di caricare a metà.
+  Il caso più facile da sbagliare era il **listino di Conti**, che ha due
+  esportazioni: quella ri-caricabile e il prospetto dei prezzi convertiti. Lì la
+  difesa è più forte — senza un prezzo leggibile nella sua colonna la riga non
+  entra — e caricando il file sbagliato **non entra niente**, con il messaggio
+  che dice quale dei due usare.
+  **La regola pratica**: si ri-carica solo ciò che si è scaricato **dallo stesso
+  bottone**. Se un import mostra righe che non riconosci, non correggerle a
+  mano: svuota e ricarica il file giusto.
 - **Isolamento**: i dati caricati entrano SOLO nell'organizzazione del cliente.
   Nessun'altra azienda li vede mai.
-- **Backup**: ogni schermata di import ha accanto un bottone **Esporta (CSV)**
-  che scarica gli stessi dati nel formato ri-caricabile. Serve per fare una
-  copia di sicurezza o per spostare i dati: il file esportato si re-importa
-  senza duplicare (le righe già presenti vengono saltate).
+- **Backup**: accanto a ogni import c'è un **Esporta (CSV)** che scarica gli
+  stessi dati **nello stesso formato**: serve per la copia di sicurezza e per
+  spostare i dati da una postazione all'altra. Sono sette, verificati uno per
+  uno il 31/07 con una prova che rimanda il file dentro l'app:
+  **squadre** (Campo), **gare** e **listino** (Conti), **magazzino ricambi**
+  (Flotta), **anagrafica lavoratori** e **registro infortuni** (Scudo),
+  **ricettori** (Sentinella).
+  ⛔ **Gli altri file che le app scaricano NON sono backup, sono prospetti**, e
+  non vanno confusi: la *situazione fatture* di Conti, la *prima nota incassi*,
+  le *pesate/DDT*, i *prezzi convertiti* del listino, la *situazione* di Flotta,
+  i *riepiloghi* di Terra e Sentinella, le *azioni correttive* e il *riepilogo
+  near-miss* di Scudo. Servono al commercialista o all'ente, hanno colonne
+  calcolate (stato, residuo, giorni di pagamento) e **non si ri-caricano**: se
+  provi, l'app dice che il file non è valido. Non è un difetto — è che quei
+  file rispondono a un'altra domanda.
+  ✅ **AGGIORNATO IL 07/08 — I FILE CHE RIENTRANO NON SONO PIÙ SETTE, SONO
+  DODICI.** La riga qui sotto diceva che di pesate, DDT, incassi e azioni
+  correttive «non esiste un file che si ri-carica»: era vero quando è stata
+  scritta il 31/07, e la decisione **12a** l'ha chiusa. Ai sette si aggiungono
+  ora:
+  **rilievi** (Terra — il primo, perché un volo di drone di sei mesi fa non si
+  rifà: il terreno nel frattempo è cambiato), **pesate/DDT**, **prima nota
+  incassi** e **anagrafica clienti** (Conti), **azioni correttive** (Scudo).
+  ⚠️ E una sesta voce dell'elenco era una **riga scaduta**: il **registro
+  volate** di Sentinella ce l'aveva già dal giorno in cui è stato costruito
+  (`csvRegistroVolate` e `parseVolateCsv` stanno nello stesso file, col giro di
+  andata e ritorno provato). Stava per aprirsi un cantiere su lavoro fatto.
+  ⛔ **E la distinzione fra i due file resta, anzi adesso è scritta accanto ai
+  bottoni**: dove c'è un prospetto E una copia (pesate, incassi, clienti,
+  azioni), i bottoni sono due e la pagina dice in cosa differiscono. Il
+  prospetto risolve i collegamenti in numeri leggibili e calcola; la copia
+  porta i campi crudi **con gli id**, senza i quali una fattura ri-caricata non
+  ritroverebbe il suo cliente.
+  ⚠️ **Quello che ancora NON ha un file che rientra**, e va saputo prima di
+  contarci: tutto il resto — i rapportini di Campo, gli interventi di Flotta, i
+  monitoraggi di Sentinella, i documenti di Scudo con i loro allegati. Per
+  quelli la copia di sicurezza **non c'è**.
+  ⚠️ **Fino al 30/07 questa frase era vera solo a metà**, e vale la pena
+  saperlo perché spiega cosa poteva succedere prima: le righe già in archivio
+  venivano saltate, sì, ma un file che nominava la **stessa cosa più volte** le
+  caricava tutte. Non è un caso raro: l'esportazione di Scudo scrive una riga
+  per ogni **scadenza**, quindi un lavoratore con tre scadenze compare tre volte
+  nel proprio file, e ri-caricarlo faceva comparire tre volte la stessa persona.
+  Dal 31/07 non succede più in nessuna app.
 
 ---
 
@@ -41,8 +131,16 @@ Pagina **Personale → Importa da CSV**.
   Mario Rossi;Fochino;333 1112222
   Luca Bianchi;Escavatorista;
   ```
-- **Note**: un nome già presente viene saltato (niente doppioni). Solo il nome
-  è obbligatorio.
+- **Note**: solo il nome è obbligatorio; ruolo e telefono possono restare vuoti
+  e restano vuoti (nessun numero inventato).
+- **Niente doppioni, in due sensi** *(corretto il 31/07)*: viene saltato sia un
+  nome **già in archivio**, sia lo stesso nome ripetuto **dentro il file** —
+  maiuscole e spazi non fanno due persone diverse, e vale la prima riga.
+  Serve davvero: l'**Esporta CSV** di Scudo scrive una riga per ogni
+  **scadenza**, quindi un lavoratore con tre scadenze compare tre volte nel
+  proprio file. Fino al 30/07 ri-caricare quel file — il modo più naturale di
+  spostare i dati da una postazione all'altra — faceva comparire tre volte la
+  stessa persona in anagrafica.
 
 ## Scudo — 2) scadenzario (visite, corsi, patentini)
 Pagina **Scadenze → Importa scadenze (CSV)**.
@@ -85,6 +183,15 @@ Pagina **Mezzi → Importa parco (CSV)**.
   (niente doppioni). `stato` è `operativo`, `fermo` o `verifica` (default
   operativo). È il modo rapido per caricare una flotta intera all'avvio, invece
   di aggiungere i mezzi uno a uno.
+- ⛔ **`ore` vuota resta vuota** *(dal 31/07)*, e vale la pena capire perché.
+  Il contatore **comanda la manutenzione**: l'app calcola quanto manca a un
+  tagliando come *«ore previste meno ore del mezzo»*. Se le ore mancassero e
+  l'app ci mettesse **zero**, il tagliando sembrerebbe lontanissimo proprio su
+  una macchina che magari è già oltre — e non comparirebbe nessun errore, solo
+  una scadenza sbagliata. Il mezzo entra lo stesso, ma finisce fra quelli **«da
+  stimare»**, con scritto che il contatore non si può leggere. Appena scrivi le
+  ore (a mano o con l'import della telemetria) rientra nel conto.
+  Uno **0 scritto apposta** resta zero: un mezzo nuovo ha davvero zero ore.
 
 ## Flotta — 2) ore motore / telemetria
 Pagina **Mezzi → Importa telemetria (CSV)**.
@@ -124,9 +231,85 @@ Pagina **Gare → Importa gare (CSV)**.
   ```
 - **Note**: serve solo il **titolo**; una gara con lo stesso titolo viene
   saltata. `stato` è `aperta`, `vinta` o `persa` (default aperta).
+- **`base` si può lasciare vuota, e resta vuota** *(dal 31/07)*: capita davvero
+  — a volte la base d'asta non è ancora pubblicata, e intanto la **scadenza**
+  serve comunque. La gara entra, ma **non entra nel totale «valore in gara»**, e
+  l'app te lo dice in tre posti: quando importi, nella pastiglia del quadro e
+  nel riepilogo delle gare. Prima una base illeggibile diventava **zero** e
+  abbassava quel totale in silenzio.
 - **Backup**: il bottone **Esporta gare (CSV)** scarica le gare nello stesso
   formato dell'import, così il file si può ri-caricare (o conservare come
   copia).
+
+## Conti — 3) listino prodotti *(dal 30/07)*
+Pagina **Listino → Importa listino CSV**.
+- **Colonne**: `nome;unita;prezzo;densita;iva`
+- **Esempio**:
+  ```
+  nome;unita;prezzo;densita;iva
+  Stabilizzato 0/30;t;8,50;1,9;22
+  Sabbia lavata 0/4;mc;22,00;1,6;22
+  Misto di cava;t;6,50;;22
+  ```
+- **`unita`**: `t` (a tonnellata) oppure `mc` / `m3` / `m³` (a metro cubo). Si
+  accettano anche `ton` e `tonnellate`; quello che non si riconosce diventa `t`,
+  che in cava è il caso normale, e si corregge dalla scheda.
+- ⛔ **`prezzo` è obbligatorio** *(dal 31/07)*: una riga senza un prezzo
+  leggibile **non entra**, e l'app ti dice quante ne sono cadute. Non è
+  pignoleria — è quello che impedisce di caricare per sbaglio il **file
+  sbagliato**: il bottone *Esporta prezzi convertiti* scarica un altro file,
+  con le colonne in un altro ordine, e prima del 31/07 ri-caricarlo riempiva il
+  listino di prodotti a **prezzo zero** con l'**IVA sbagliata**. Se un prodotto
+  davvero non ha prezzo, scrivi **0** apposta: è una tua decisione, e l'app la
+  rispetta.
+- ⛔ **`densita` si può lasciare vuota, e resta vuota.** Serve a passare da metri
+  cubi a tonnellate: se il tuo listino non ce l'ha, il prodotto entra lo stesso
+  (è vendibile) ma per quello Conti **non converte** — e te lo dice subito, col
+  numero di quanti sono. Non ne viene inventata nessuna: una densità sbagliata
+  finisce in una fattura e poi nella denuncia annuale.
+- **`iva`**: se manca vale 22.
+- **Backup**: **Esporta CSV** scarica il listino nello stesso formato.
+
+## Sentinella — 4) ricettori (case, scuole, confini) *(dal 30/07)*
+Pagina **Monitoraggi → Importa ricettori CSV**.
+- **Colonne**: `nome;tipo;distanza;classe;soglia;unita;nota`
+- **Esempio**:
+  ```
+  nome;tipo;distanza;classe;soglia;unita;nota
+  Casa Bianchi — via Cava 12;abitazione;320;III;5;mm/s;la più vicina al fronte
+  Confine Nord — mappale 214;confine;90;;;;
+  Scuola primaria — via Roma 4;scuola;640;I;40;µg/m³;orario 08–16
+  ```
+- **`tipo`**: `abitazione`, `scuola`, `ospedale`, `confine`, `storico`, `altro`.
+  Quello che non si riconosce diventa `altro`.
+- ⛔ **`soglia` e `classe` si possono lasciare vuote, e restano vuote.** Sono
+  numeri di **sicurezza** — la classe acustica ne decide una — e non se ne
+  inventa nessuna: dichiarerebbero conforme o non conforme una misura sulla base
+  di un valore che nessuno ha scelto. Senza soglia propria, i punti collegati
+  usano la loro; l'app dice per quanti ricettori manca.
+- **Backup**: **Esporta CSV** scarica i ricettori nello stesso formato.
+
+## Flotta — 3) magazzino ricambi *(dal 30/07)*
+Pagina **Officina → Importa ricambi CSV**.
+- **Colonne**: `nome;giacenza;sogliaMin;prezzo`
+- **Esempio**:
+  ```
+  nome;giacenza;sogliaMin;prezzo
+  Filtro olio motore CAT;6;4;48,00
+  Denti benna escavatore;0;3;
+  Olio idraulico (fusto 200L);1;;420,00
+  ```
+- ⚠️ **Le tre colonne si comportano in modo diverso quando sono vuote**, ed è
+  voluto:
+  - **`giacenza` vuota vale ZERO.** Un pezzo in magazzino senza quantità è un
+    pezzo **finito**, e zero è ciò che fa scattare l'avviso di sotto-scorta:
+    lasciarla indefinita nasconderebbe proprio i pezzi da ordinare.
+  - **`sogliaMin` vuota resta vuota**: quel ricambio si conta ma **non entra nel
+    sotto-scorta** finché non gliela scrivi. L'app te lo dice appena finito il
+    caricamento, col numero.
+  - **`prezzo` vuoto resta vuoto**: uno zero farebbe sembrare gratis un pezzo
+    che non lo è, e il prezzo entra nel conto dei costi.
+- **Backup**: **Esporta CSV** scarica il magazzino nello stesso formato.
 
 ## Terra — 1) fronti di scavo
 Pagina **Fronti → Importa fronti (CSV)**.
@@ -169,6 +352,11 @@ Pagina **Squadre → Importa squadre (CSV)** (oppure aggiungile a mano dal form)
   ```
 - **Note**: serve solo il **nome**; una squadra con lo stesso nome viene
   saltata. `stato` è `operativa` o `ferma` (default operativa).
+- **`persone` vuota resta vuota** *(dal 31/07)*: la squadra entra lo stesso — ha
+  un nome e va assegnata — e la scheda scrive «persone non indicate». Prima
+  scriveva «0 persone», che non è un dato mancante: è una frase che dice una
+  cosa non vera. Uno **0 scritto apposta** resta zero, perché una squadra si può
+  svuotare davvero.
 - **Backup**: il bottone **Esporta squadre (CSV)** scarica le squadre nello
   stesso formato dell'import, così il file si può ri-caricare o conservare.
 
@@ -229,6 +417,58 @@ Pagina **Registri → Registro volate → Importa da CSV**.
   numerici accettano formato italiano o inglese. La **distanza scalata** (SD) di
   ogni volata viene calcolata da `distanzaRicettore` e `kgMaxRitardo`. Serve
   solo una **data valida**.
+
+---
+
+## ⚠️ Cosa NON si carica da CSV, oggi *(verificato il 30/07)*
+
+*Questo elenco non c'era, e la sua assenza si paga al momento peggiore. Chi legge
+il documento conclude — giustamente — «ecco cosa posso caricare»; nessuno gli
+dice che **il resto va scritto a mano**, e lo scopre il primo giorno con
+l'azienda davanti.*
+
+Contati i punti d'importazione veri dentro le sei app: sono **diciotto**
+*(ricontati il 31/07: erano quindici il 30/07, prima che nascessero il listino
+di Conti, i ricettori di Sentinella e il magazzino di Flotta)*, e sono
+esattamente quelli descritti qui sopra. Tutto il resto oggi si inserisce dalle
+schermate, una voce alla volta:
+
+| App | Si carica da CSV | Va inserito a mano |
+|---|---|---|
+| **Scudo** | lavoratori, scadenzario, infortuni | documenti aziendali, DPI, ispezioni, cantieri, azioni correttive |
+| **Flotta** | parco mezzi, ore motore, **ricambi** *(dal 30/07)* | costi, rifornimenti, manutenzioni programmate |
+| **Conti** | fatture, gare, **listino prodotti** *(dal 30/07)* | anagrafica clienti, registro pesate/DDT, canoni |
+| **Terra** | fronti, rilievi | autorizzazioni, piano estrattivo |
+| **Campo** | squadre, piano di carico | operatori, attività, rapportini |
+| **Sentinella** | letture strumento, monitoraggi, scadenze, registro volate, **ricettori** *(dal 30/07)* | programma di monitoraggio, reclami |
+
+**I tre che farebbero più male al primo cliente**, perché sono proprio quelli che
+una cava ha già in un foglio di calcolo:
+
+1. ~~Il listino prodotti di Conti~~ — ✅ **fatto il 30/07**: si carica da CSV
+   (`nome;unita;prezzo;densita;iva`) e si riesporta. La densità che manca
+   **resta mancante** e l'app lo dice appena finito il caricamento: da m³ a
+   tonnellate si passa proprio con quel numero, e inventarlo trasformerebbe un
+   dato assente in un dato sbagliato che finisce in una fattura.
+2. ~~I ricettori di Sentinella~~ — ✅ **fatto il 30/07**: si caricano da CSV
+   (`nome;tipo;distanza;classe;soglia;unita;nota`) e si riesportano. ⛔ **La
+   soglia e la classe acustica non si inventano mai**: sono numeri di sicurezza
+   e la classe ne decide una. Se il file non le ha restano vuote — un campo
+   vuoto si vede e si corregge, una soglia inventata dichiara conforme o non
+   conforme una misura sulla base di un valore che nessuno ha scelto.
+3. ~~I ricambi di Flotta~~ — ✅ **fatto il 30/07**: si caricano da CSV
+   (`nome;giacenza;sogliaMin;prezzo`) e si riesportano. Qui le regole sono
+   **tre diverse**, perché dipendono da cosa fa il dato: la **giacenza** che
+   manca vale **zero** (un pezzo senza quantità è un pezzo finito, e zero è ciò
+   che fa scattare il sotto-scorta); la **soglia minima** resta vuota (una
+   soglia inventata fa suonare un allarme che nessuno ha chiesto); il
+   **prezzo** resta vuoto (uno zero farebbe sembrare gratis un pezzo che non lo
+   è).
+
+**Tutti e tre chiusi il 30/07**, nell'ordine in cui erano stati messi. Restano
+fuori le cose della colonna di destra: non è un difetto del prodotto, è il
+confine di quello che sa fare oggi, e scriverlo serve a **non prometterlo in
+vendita** e a sapere da dove ripartire.
 
 ---
 

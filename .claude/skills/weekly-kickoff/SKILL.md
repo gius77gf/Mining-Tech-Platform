@@ -169,9 +169,18 @@ Chiama `create_trigger` con:
 
 - `name`: `Weekly Dev Session` (stesso nome fisso, per permettere la pulizia
   la settimana successiva)
-- `cron_expression`: `0 */5 * * 1-5` (lunedì-venerdì, ogni ~5 ore)
-- `create_new_session_on_fire`: `true`
-- `notifications`: `{"push": true}`
+- `cron_expression`: `0 */3 * * 1-6` (lunedì-sabato, ogni ~3 ore —
+  cadenza decisa dal fondatore il 26/07 per raddoppiare il lavoro prodotto)
+- `persistent_session_id`: **l'ID della sessione corrente** (quella in cui
+  stai eseguendo il kickoff).
+
+  ⚠️ **NON usare `create_new_session_on_fire: true`.** È stato provato il
+  27/07 e NON funziona in questo ambiente: le sessioni create da zero
+  partono **senza il repository collegato** e il ciclo muore subito
+  dicendo che non è collegato alla repo. Tutte le routine che hanno
+  funzionato usano `persistent_session_id` agganciato alla sessione che
+  ha il repo clonato. Se la sessione persistente non è più disponibile,
+  il kickoff va rifatto da una sessione viva con il repo.
 - `prompt`: **esattamente** il testo seguente (non parafrasare, non
   abbreviare — è il contratto che tiene allineate le sessioni automatiche):
 

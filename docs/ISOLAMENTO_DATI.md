@@ -86,12 +86,32 @@ a un commerciale senza toccare dati veri di nessuno.
   per come è costruito il sistema, ed è coperto dai test dei ruoli.
 - Nessun sistema è "magico": la garanzia è forte **perché** il controllo è sul
   server e **perché** è verificato in continuo — non perché lo diciamo noi.
+- ⚠️ **DENTRO la stessa azienda, oggi, non c'è ancora separazione** (misurato
+  il 30/07 con l'emulatore, `docs/REVISIONE_SICUREZZA_202607.md`). Tutto quello
+  che sta scritto qui sopra riguarda il muro fra **aziende diverse**, che è la
+  domanda numero uno e regge. La domanda numero **due** arriva subito dopo, e la
+  fa l'informatico del cliente: *«e il mio capocava può cancellare le nostre
+  fatture?»*. La risposta onesta, oggi, è **sì**: chi è stato invitato
+  nell'organizzazione può leggere e scrivere i dati di tutte le app, comprese
+  quelle non comprate.
+  Non è un buco nascosto: è un lavoro dichiarato e non ancora fatto (le regole
+  stesse lo scrivono nei commenti). Va detto **prima** che lo chiedano — chi
+  vende dicendo «tutto sotto controllo» e poi viene smentito da una domanda
+  perde più di chi dice «questo c'è, questo arriva».
+  In vendita si dice così: *«fra aziende il muro c'è ed è provato con 58 test.
+  Dentro la vostra azienda, oggi chi entra vede tutto: i permessi per ruolo
+  sono il prossimo passo, e li tariamo su come lavorate voi.»*
 
 ## In una frase per un cliente
 «I vostri dati stanno in uno spazio separato, l'app può accedere solo al
 vostro, e comunque è il server a bloccare qualunque richiesta che non provenga
 da un vostro utente autorizzato — e lo verifichiamo con decine di test
 automatici a ogni rilascio.»
+
+E, se chiedono dei permessi interni — che è la domanda dopo:
+«Fra aziende diverse il muro c'è ed è provato. Dentro la vostra, oggi chi entra
+vede tutto: i permessi per ruolo sono il prossimo passo e li tariamo su come
+lavorate voi.»
 
 ---
 Riferimenti tecnici (per chi sviluppa): `apps/deepwork-id/firestore.rules`

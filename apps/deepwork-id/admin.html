@@ -6,7 +6,8 @@
 <title>Deepwork ID — Amministrazione</title>
 <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;800&family=Barlow:wght@300;400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="../../shared/deepwork-style.css">
-<link rel="stylesheet" href="../../shared/dw-app-shell.css">
+<link rel="stylesheet" href="../../shared/dw-app-ui.css">
+<script src="../../shared/dw-app-ui.js" defer></script>
 <style>
   :root { --app-accent:#c7b794; --app-accent2:#e8dcc0; }
   .role-sel { width: auto; min-width: 96px; padding: 6px 8px; font-size: 12px; }
@@ -18,14 +19,49 @@
   .form-row { display: flex; gap: 8px; flex-wrap: wrap; }
   .form-row .dw-input { flex: 1; min-width: 120px; }
   .form-row .dw-btn { width: auto; white-space: nowrap; }
+
+  /* ── Modale del core, al posto del confirm() del browser ─────────────────
+     Regole copiate da `shared/dw-app-ui.css` invece di caricare quel foglio:
+     misurato, importarlo intero cambiava l'impianto di QUESTA pagina — la riga
+     di un membro passava da 74 a 115 px, la pagina da 802 a 992, e a 390 px
+     compariva lo scroll orizzontale. Togliere un dialogo del browser non deve
+     ridisegnare la pagina. Le variabili (--panel, --ov-bg, --grad, --danger,
+     --tap…) arrivano già da deepwork-style.css, quindi il colore resta quello
+     di Deepwork ID: la sabbia, non l'ambra del core. */
+  /* ⛔ Toast, modale e bottoni della modale NON stanno più qui: erano una
+     COPIA di `shared/dw-app-ui.css` — 15 regole su 18 identiche carattere per
+     carattere, contate normalizzando gli spazi. Le tre che differivano erano
+     la copia a essersi staccata, non il condiviso:
+       · `animation: mdUp .25s var(--ease)` al posto di `fadeUp .25s ease` —
+         e il riferimento non sono i gusti, è il CORE, che scrive
+         `animation:fadeUp .25s ease` (index.html, .modal-box);
+       · il rosso del testo sul bottone che DISTRUGGE cablato a `#2a0906`
+         invece di `var(--on-dg)`, che vale `#2b0705` ed è definito in
+         `deepwork-style.css` — la pagina lo carica già.
+     docs/LA_STRUTTURA_DEL_CORE_SCRITTA_SEI_VOLTE.md */
+  .modal-body p + p { margin-top: 9px; }
 </style>
 </head>
 <body class="dw">
 
+<!-- ⛔ LA BARRA ALTA È QUELLA DEL CORE, non una sua variante. Fino al 01/08 qui
+     c'erano un `<h1>` e un `<div class="sub">` messi uno accanto all'altro, ed
+     era il difetto: `dw-app-shell.css` disegna `.top` come BLOCCO (titolo
+     sopra, sottotitolo sotto), `dw-app-ui.css` — caricato dopo — la ridefinisce
+     `display:flex`. I due testi diventavano voci affiancate di una riga senza
+     regole di restringimento, e col titolo lungo di questa pagina il secondo
+     usciva dallo schermo: **441 px di contenuto in 390**, misurati dal banco
+     `fuori-schermo` la prima volta che ha aperto questa pagina.
+     `.top-brand` è la stessa struttura delle sei app e del core — un blocco
+     solo, `flex:1; min-width:0`, col nome sopra e il ruolo sotto — e `.role-sm`
+     porta già `text-overflow: ellipsis`: se il testo non ci sta si accorcia,
+     non spinge fuori la pagina. -->
 <div class="top">
   <a class="dw-home" href="./profilo.html">← profilo</a>
-  <h1>DEEPWORK <span style="color:var(--amber);">ID</span> <span class="accent">·</span> <span style="font-size:14px;color:var(--muted2);">AMMINISTRAZIONE</span></h1>
-  <div class="sub">Organizzazione attiva</div>
+  <div class="top-brand">
+    <div class="logo-sm">Deepwork <span style="color:var(--amber);">ID</span></div>
+    <div class="role-sm">Amministrazione &middot; organizzazione attiva</div>
+  </div>
 </div>
 
 <div class="page active">
@@ -50,15 +86,43 @@
 
 <div id="msg" class="msg" style="margin:0 16px;"></div>
 
+<!-- modale del core: sostituisce il confirm() del browser sulla rimozione di
+     un membro, che è l'azione più delicata di questa pagina -->
+<div class="modal-ov" id="modal" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+  <div class="modal-box">
+    <div class="modal-head" id="modal-title">Conferma</div>
+    <div class="modal-body" id="modal-body"></div>
+    <div class="modal-foot" id="modal-foot"></div>
+  </div>
+</div>
+
 <script type="module">
   import { esc } from '../../shared/deepwork-id-client/dw-shell.js';
   const $ = (id) => document.getElementById(id);
   const msg = (text, kind = 'info') => { const el = $('msg'); el.className = 'msg ' + kind; el.textContent = text; };
   const RB = { owner: 'ok', admin: 'warn', member: 'ok' };
   const sig = (s) => (s || '?').slice(0, 2).toUpperCase();
+  const quando = (ts) => {
+    try { return ts && ts.toDate ? ts.toDate() : new Date(ts); } catch (e) { return null; }
+  };
   const giorniA = (ts) => {
-    try { const d = ts && ts.toDate ? ts.toDate() : new Date(ts); return Math.max(0, Math.ceil((d - new Date()) / 86400000)); }
-    catch (e) { return '—'; }
+    const d = quando(ts);
+    if (!d || Number.isNaN(d.getTime())) return '—';
+    return Math.max(0, Math.ceil((d - new Date()) / 86400000));
+  };
+  /* ⛔ UN TEMPO RELATIVO PORTA CON SÉ LA DATA. «Scade tra 11 giorni» si legge
+     al volo mentre si scorre l'elenco, ma quando si ha qualcuno al telefono
+     serve il giorno — e «fra 11 giorni», letto domani, vuol dire un altro
+     giorno. Trovato dal banco `doppia-data.mjs` il 01/08, alla PRIMA volta che
+     un banco ha aperto questa pagina.
+     ⚠️ La data si compone dall'orologio LOCALE, non da `toISOString()`: a
+     cavallo della mezzanotte quello scrive il giorno prima (regola di
+     `shared/`, misurata in `docs/RICERCA_GIORNO_LOCALE_202607.md`). */
+  const dataIt = (ts) => {
+    const d = quando(ts);
+    if (!d || Number.isNaN(d.getTime())) return '';
+    const p = (n) => String(n).padStart(2, '0');
+    return `${p(d.getDate())}/${p(d.getMonth() + 1)}/${d.getFullYear()}`;
   };
 
   // dati demo per l'anteprima senza backend
@@ -103,7 +167,7 @@
 
     $('inv-list').innerHTML = inv.map(i => `<div class="item" style="cursor:default;">
       <div class="avatar">✉</div>
-      <div class="info"><div class="name">${esc(i.email)}</div><div class="meta">Ruolo ${i.role} · scade tra ${giorniA(i.expiresAt)} giorni</div></div>
+      <div class="info"><div class="name">${esc(i.email)}</div><div class="meta">Ruolo ${i.role} · scade tra ${giorniA(i.expiresAt)} giorni${dataIt(i.expiresAt) ? ` (${dataIt(i.expiresAt)})` : ''}</div></div>
       ${canManage ? `<button class="dw-btn secondary btn-mini btn-danger" data-revoke="${i.id}">Revoca</button>` : ''}
     </div>`).join('') || '<div class="note" style="text-align:left;">Nessun invito in attesa.</div>';
   }
@@ -117,13 +181,48 @@
     const uid = e.target.getAttribute && e.target.getAttribute('data-role');
     if (uid) { await id.updateMemberRole(uid, e.target.value); msg('Ruolo aggiornato.'); }
   }));
+  /* ── Modale del core: al posto del confirm() del browser ──────────────
+     Non è un dettaglio di stile: rimuovere un membro è l'azione più delicata
+     di questa pagina — la persona perde l'accesso a tutte e sei le app — e nel
+     `confirm()` il bottone che agisce è indistinguibile da quello che annulla,
+     il testo non può dire CHI si sta rimuovendo, e i bottoni sono quelli del
+     sistema operativo in mezzo a un'app costruita nei dettagli.
+
+     ⛔ Le funzioni NON stanno più qui: `apriModale`, `chiudiModale`, `chiedi`
+     e gli agganci (Escape, tocco fuori) arrivano da `shared/dw-app-ui.js`,
+     dove ormai vivono per tutte e sei le app. Questa era la settima copia.
+     `dwUiAggancia` monta anche l'alone che segue il mouse sulle righe, che è
+     la firma dinamica del core e qui mancava.
+     docs/LA_STRUTTURA_DEL_CORE_SCRITTA_SEI_VOLTE.md */
+  dwUiAggancia({ alone: '.item' });
+
   document.addEventListener('click', guard(async (e) => {
     const rm = e.target.getAttribute && e.target.getAttribute('data-remove');
-    if (rm && confirm('Rimuovere questo membro dall\'organizzazione?')) {
+    if (rm) {
+      // il nome si legge dalla riga: la conferma deve dire CHI, non «questo membro»
+      const riga = e.target.closest('.item');
+      const chi = riga ? (riga.querySelector('.name') || {}).textContent : '';
+      const si = await chiedi('Rimuovere dall\'organizzazione?',
+        '<p>Stai per rimuovere <b>' + esc(chi || 'questo membro') + '</b>.</p>'
+        + '<p>Perde subito l\'accesso a <b>tutte le app</b> dell\'ecosistema. '
+        + 'Quello che ha già registrato <b>resta</b> nell\'organizzazione, con il '
+        + 'suo nome. Per farlo rientrare servirà un nuovo invito.</p>',
+        'Rimuovi', true);
+      if (!si) return;
       await id.removeMember(rm); msg('Membro rimosso.'); return;
     }
     const rv = e.target.getAttribute && e.target.getAttribute('data-revoke');
-    if (rv) { await id.revokeInvite(rv); msg('Invito revocato.'); }
+    if (rv) {
+      const riga = e.target.closest('.item');
+      const chi = riga ? (riga.querySelector('.name') || {}).textContent : '';
+      // revocare un invito si può disfare (basta reinvitare), quindi la
+      // conferma è normale e non rossa: il rosso si tiene per ciò che brucia
+      const si = await chiedi('Revocare l\'invito?',
+        '<p>L\'invito a <b>' + esc(chi || 'questo indirizzo') + '</b> non sarà più valido. '
+        + 'Se serve, puoi invitare di nuovo la stessa persona.</p>', 'Revoca');
+      if (!si) return;
+      await id.revokeInvite(rv); msg('Invito revocato.');
+    }
   }));
   $('btn-invite').onclick = guard(async () => {
     const email = $('inv-email').value.trim();

@@ -51,7 +51,21 @@ export async function bootstrapOwner(auth, db, email, orgName, FieldValue) {
   const orgRef = db.collection("organizations").doc();
   await orgRef.set({ name: orgName, status: "active", ownerUid: user.uid, createdAt: FieldValue.serverTimestamp() });
   await orgRef.collection("members").doc(user.uid).set({ uid: user.uid, role: "owner", status: "active", joinedAt: FieldValue.serverTimestamp() });
-  await auth.setCustomUserClaims(user.uid, { orgs: { [orgRef.id]: "owner" } });
+  /* ⛔ SI FONDE, NON SI SOSTITUISCE — e non è prudenza: era un difetto vero,
+     riprodotto l'08/08 con la prova che ora sta in `tests/run-bootstrap.mjs`.
+     `setCustomUserClaims` rimpiazza l'INTERO oggetto delle rivendicazioni:
+     scrivendo `{ orgs: { [nuova]: "owner" } }` un utente che apparteneva già a
+     un'altra organizzazione ne usciva — in silenzio, senza errore, e la
+     persona si ritrovava fuori da un'org in cui lavorava.
+     Succede sul serio perché questo è il percorso «vai in live» che si lancia
+     A MANO, quindi si rilancia: due volte per due cave, o una seconda volta
+     dopo un errore di battitura sul nome. Le otto prove che c'erano guardavano
+     tutte quello che lo script FA; nessuna quello che non deve rompere. */
+  const attuali = user.customClaims || {};
+  await auth.setCustomUserClaims(user.uid, {
+    ...attuali,
+    orgs: { ...(attuali.orgs || {}), [orgRef.id]: "owner" },
+  });
 
   const batch = db.batch();
   for (const appId of APP_IDS) {

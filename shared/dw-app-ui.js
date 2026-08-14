@@ -1,0 +1,422 @@
+/* ============================================================
+   LA STRUTTURA DEL CORE, IN UN POSTO SOLO
+   ------------------------------------------------------------
+   Toast, modale, conferma, richiesta di un valore, chiusura con Escape o
+   toccando fuori, riquadri raggiungibili da tastiera, alone che segue il
+   mouse. Sono le cose che la direttiva del fondatore vuole IDENTICHE al
+   core «pelo per pelo, senza cambiare una virgola».
+
+   ⛔ PERCHÉ ESISTE QUESTO FILE. Fino al 02/08 quel codice era scritto
+   SEI VOLTE — una per app, 27 copie di cinque funzioni, ~12.100 caratteri,
+   con il 76% delle righe identico carattere per carattere. E una si era
+   già staccata: `apriModale` di Scudo aveva un quarto parametro che le
+   altre cinque non avevano, per una ragione buona (la segnalazione del
+   near-miss si compila a tocchi, e far salire la tastiera davanti ai
+   pulsanti è un dispetto). Non era sciatteria: era che serviva. Ed è
+   esattamente così che sei copie si allontanano di un pezzo alla volta
+   senza che nessuno decida niente.
+   Misura e ragionamento: docs/LA_STRUTTURA_DEL_CORE_SCRITTA_SEI_VOLTE.md
+
+   COME SI USA. Script classico, come `dw-tema.js` e `dw-grafici.js`:
+       <script src="../../shared/dw-app-ui.js" defer></script>
+   Definisce funzioni globali (`go`, `toast`, `apriModale`, …) che il blocco
+   `type="module"` dell'app usa senza importarle, esattamente come faceva
+   con le sue copie locali. L'unica cosa da chiamare è l'aggancio:
+       dwUiAggancia({ alone: ".item,.kpi,.segnala" });
+   e, per le app che hanno pagine senza una voce nella pillola:
+       dwUiAggancia({ alone: ".item,.kpi", navDi: (id) => id === "sch" ? "mez" : id });
+
+   IL CSS NON STA QUI: sta in `shared/dw-app-ui.css`, e lì era già in un
+   posto solo.
+   ============================================================ */
+(function () {
+  "use strict";
+
+  // ── NAVIGAZIONE FRA LE PAGINE ───────────────────────────────────────
+  // Era scritta SEI VOLTE anche lei, in DUE versioni: cinque app senza
+  // guardie, Flotta con le guardie E una mappa. Qui c'è il SOPRAINSIEME —
+  // le guardie per tutte, la mappa come parametro — perché la mappa è una
+  // FUNZIONE di Flotta mentre le guardie sono una PROTEZIONE, e solo la
+  // seconda va data a tutti.
+  //
+  // ⚠️ Onestà sulla gravità, misurata il 03/08 prima di irrigidire: NESSUNA
+  // app chiama oggi `go()` verso una pagina che non esiste. Le guardie
+  // servono contro l'id di DOMANI — senza, la riga solleva un errore e la
+  // navigazione si ferma lì: schermo fermo, nessun messaggio.
+  var navDi = null;   // (id) -> id della voce di navigazione da accendere
+  function go(id) {
+    document.querySelectorAll(".page").forEach(function (p) { p.classList.remove("active"); });
+    document.querySelectorAll(".nav button").forEach(function (b) { b.classList.remove("active"); });
+    var pag = document.getElementById("page-" + id);
+    if (pag) pag.classList.add("active");
+    // Alcune pagine non hanno una voce loro nella pillola (in Flotta la scheda
+    // del mezzo e l'ordine di lavoro): ci si arriva da dentro, e allora resta
+    // acceso il segnalibro del PADRE. Chi non passa `navDi` accende `nav-<id>`.
+    var voce = navDi ? navDi(id) : id;
+    var nav = voce ? document.getElementById("nav-" + voce) : null;
+    if (nav) nav.classList.add("active");
+    window.scrollTo(0, 0);
+  }
+
+  // ── TOAST ───────────────────────────────────────────────────────────
+  // La durata cresce coi messaggi lunghi: 2,8 s per una riga, 4,2 s per un
+  // testo che va letto. Un toast che sparisce prima che uno finisca di
+  // leggerlo è un messaggio che non è stato dato.
+  var toastT = null;
+  function toast(msg, tipo) {
+    var t = document.getElementById("toast");
+    if (!t) return;
+    t.className = "toast " + (tipo || "");
+    t.textContent = msg;
+    void t.offsetWidth;                     // forza il riavvio dell'animazione
+    t.classList.add("show");
+    clearTimeout(toastT);
+    toastT = setTimeout(function () { t.classList.remove("show"); }, String(msg).length > 70 ? 4200 : 2800);
+  }
+
+  // ── MODALE ──────────────────────────────────────────────────────────
+  // Sostituisce `confirm()` e `prompt()` del browser, che sono vietati: le
+  // finestre di sistema sono bianche, fuori stile, e `prompt()` non accetta
+  // nemmeno la virgola decimale.
+  var modalPrec = null;
+  // `opzioni.autofocus === false`: la modale NON porta il fuoco nel primo
+  // campo. Serve a chi compila a TOCCHI (la segnalazione rapida del
+  // near-miss): far salire la tastiera del telefono davanti ai pulsanti
+  // sarebbe un dispetto. Chi non passa `opzioni` ha il comportamento di
+  // sempre — il parametro è un soprainsieme, non un cambio.
+  function apriModale(titolo, corpo, bottoni, opzioni) {
+    modalPrec = document.activeElement;
+    document.getElementById("modal-title").textContent = titolo;
+    document.getElementById("modal-body").innerHTML = corpo;
+    var foot = document.getElementById("modal-foot");
+    foot.innerHTML = "";
+    (bottoni || []).forEach(function (b) {
+      var el = document.createElement("button");
+      el.className = "mbtn " + (b.cls || "");
+      el.textContent = b.label;
+      el.onclick = b.azione;
+      foot.appendChild(el);
+    });
+    document.getElementById("modal").classList.add("show");
+    document.body.classList.add("modal-open");
+    var primo = (opzioni && opzioni.autofocus === false)
+      ? null
+      : (document.getElementById("modal-body").querySelector("input,select,textarea")
+         || foot.querySelector(".mbtn.primary,.mbtn.danger") || foot.querySelector(".mbtn"));
+    if (primo) setTimeout(function () {
+      try { primo.focus({ preventScroll: true }); if (primo.select) primo.select(); } catch (e) {}
+    }, 80);
+  }
+  // Chiudendo, il fuoco torna da dove era partito: chi naviga da tastiera
+  // altrimenti si ritrova all'inizio della pagina.
+  function chiudiModale() {
+    document.getElementById("modal").classList.remove("show");
+    document.body.classList.remove("modal-open");
+    if (modalPrec && modalPrec.focus) { try { modalPrec.focus({ preventScroll: true }); } catch (e) {} }
+    modalPrec = null;
+  }
+
+  // Conferma in stile core: `Promise<boolean>`.
+  // `etichettaExtra` (facoltativa) aggiunge una TERZA strada, e allora la
+  // promessa può valere `"extra"`. Serve dove la scelta non è sì/no ma
+  // «questa, quella, o niente»: in Conti la finestra che elimina una fattura
+  // spiegava che una fattura emessa va stornata con una nota di credito — e
+  // poi offriva un solo bottone, che è quello che la regola viola.
+  // Chi non la passa ha esattamente i due bottoni di sempre, e `true`/`false`.
+  function chiedi(titolo, corpo, etichettaOk, pericolo, etichettaExtra) {
+    return new Promise(function (res) {
+      var bottoni = [
+        { label: "Annulla", azione: function () { chiudiModale(); res(false); } },
+      ];
+      if (etichettaExtra) bottoni.push({ label: etichettaExtra, cls: "primary",
+        azione: function () { chiudiModale(); res("extra"); } });
+      bottoni.push({ label: etichettaOk || "Conferma", cls: pericolo ? "danger" : "primary",
+        azione: function () { chiudiModale(); res(true); } });
+      apriModale(titolo, corpo, bottoni);
+    });
+  }
+
+  /* ⛔ AVVISO A UN BOTTONE SOLO — E NON È UNA COMODITÀ: MANCAVA E QUALCUNO LA
+     CHIAMAVA GIÀ. Il 03/08 un controllo nuovo (`tests/nomi-liberi.mjs`) ha
+     trovato **cinque** chiamate a nomi che non esistono in nessun file, e due
+     erano queste: `avvisa()` in Conti (una volta) e in Flotta (quattro), più
+     `mostraTesto()` in Conti. Non erano codice morto: stavano tutte su un
+     percorso d'ERRORE — «Cliente non eliminabile», «Data non valida», «Manca
+     la data», «C'è già un fermo aperto». Cioè **proprio i messaggi che
+     spiegano cosa non va lanciavano un ReferenceError invece di comparire**, e
+     l'utente vedeva il nulla.
+     Stanno qui e non nelle due pagine perché servono a DUE app, ed è la regola
+     del `shared/`: una regola che serve a due app non si riscrive in casa. Così
+     le chiamate esistenti diventano giuste senza toccare una riga delle pagine
+     — erano corrette nell'intenzione, mancava la funzione.
+     `avvisa` è `chiedi` senza la scelta: chi la usa non sta chiedendo un
+     permesso, sta dicendo perché non si può fare. Torna una Promise perché i
+     chiamanti la aspettano con `await`. */
+  function avvisa(titolo, corpo, etichettaOk) {
+    return new Promise(function (res) {
+      apriModale(titolo, corpo, [
+        { label: etichettaOk || "Ho capito", cls: "primary",
+          azione: function () { chiudiModale(); res(true); } },
+      ]);
+    });
+  }
+
+  /* Il ripiego quando il testo non si può copiare negli appunti: si mostra, e
+     l'utente lo copia a mano. Il `corpo` spiega perché, il testo va in un'area
+     selezionabile — non in un paragrafo, che su telefono non si seleziona
+     bene. Anche questa era chiamata e non esisteva: il ripiego della copia
+     falliva a sua volta, cioè l'utente restava senza niente proprio nel caso
+     in cui la strada normale non aveva funzionato. */
+  function mostraTesto(titolo, spiega, testo) {
+    var area = '<textarea class="dw-input" id="modal-campo" rows="10" readonly '
+      /* ⛔ `pre` NO: manda il testo a scorrere di lato, e a 320 px si legge
+         «Oggetto: sollecito di pagamento» tagliato a metà. Visto nello scatto,
+         non nel codice. Qui il testo esiste PER ESSERE LETTO E COPIATO A MANO —
+         è il ripiego di quando la copia automatica non è riuscita — quindi
+         mandarlo a capo è l'unica scelta: gli a capo veri restano nel valore,
+         quindi chi seleziona e copia riprende il testo originale. */
+      + 'style="width:100%;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12px;'
+      + 'white-space:pre-wrap;overflow-wrap:anywhere;overflow-x:hidden;overflow-y:auto">' + String(testo == null ? "" : testo)
+        .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;") + "</textarea>";
+    return new Promise(function (res) {
+      apriModale(titolo, (spiega || "") + area, [
+        { label: "Chiudi", cls: "primary", azione: function () { chiudiModale(); res(true); } },
+      ]);
+      var c = document.getElementById("modal-campo");
+      if (c) { c.focus(); c.select(); }
+    });
+  }
+
+  // Richiesta di un valore in stile core: `Promise<string|null>`.
+  // L'Invio dentro il campo vale come il pulsante primario: chi scrive un
+  // numero e batte Invio si aspetta che salvi, non che non succeda niente.
+  function chiediValore(titolo, corpo, campoHtml, etichettaOk) {
+    return new Promise(function (res) {
+      apriModale(titolo, corpo + campoHtml, [
+        { label: "Annulla", azione: function () { chiudiModale(); res(null); } },
+        { label: etichettaOk || "Salva", cls: "primary", azione: function () {
+            var c = document.getElementById("modal-campo");
+            var v = c ? c.value : "";
+            chiudiModale(); res(v);
+          } },
+      ]);
+      var c = document.getElementById("modal-campo");
+      if (c) c.addEventListener("keydown", function (e) {
+        if (e.key === "Enter") { e.preventDefault(); document.querySelector("#modal-foot .mbtn.primary").click(); }
+      });
+    });
+  }
+
+  // Richiesta di PIÙ valori in una volta: `Promise<{id: valore}|null>`.
+  // `campi` è un elenco di `{ id, label, tipo, valore, placeholder, modo,
+  // min, step, aiuto }`; `null` vuol dire che l'utente ha annullato.
+  //
+  // ⛔ ED È L'OTTAVA DI OTTO, RIMASTA INDIETRO PER UNA SETTIMANA. Il 31/07 il
+  // commit `486011d` ha portato qui la struttura del core, cancellando dalle
+  // sei pagine `toast`, `apriModale`, `chiudiModale`, `chiedi`,
+  // `chiediValore`, `avvisa`, `mostraTesto` e `chiediDati`. Le prime SETTE
+  // sono arrivate. Questa no — e la usava solo Flotta, quindi nessuno se n'è
+  // accorto: sei chiamate rimaste orfane, con l'effetto che l'utente toccava
+  // «è ripartito» su una macchina ferma e NON SUCCEDEVA NIENTE. Provato
+  // premendo il bottone: `chiediDati is not defined`, zero modali aperte.
+  // Nessuna suite `node` poteva vederlo (non aprono le pagine) e
+  // `sintassi-pagine` nemmeno: un identificatore libero è sintatticamente
+  // valido. È la quinta volta che questa famiglia passa, ed è la stessa che
+  // CLAUDE.md descrive — «togliere le funzioni dimenticando lo script non è un
+  // errore di sintassi: la pagina si apre e muore al primo tocco».
+  //
+  // Il corpo è quello di allora, carattere per carattere: una riscrittura
+  // sarebbe stata una copia più debole di una funzione che funzionava.
+  function chiediDati(titolo, corpo, campi, etichettaOk) {
+    return new Promise(function (res) {
+      var html = (corpo || "") + campi.map(function (c) {
+        return '<label class="fl" for="mc-' + c.id + '">' + c.label + '</label>'
+          + '<input class="dw-input" id="mc-' + c.id + '" type="' + (c.tipo || "text") + '"'
+          + ' value="' + (c.valore == null ? "" : String(c.valore)).replace(/"/g, "&quot;") + '"'
+          + ' placeholder="' + (c.placeholder || "").replace(/"/g, "&quot;") + '"'
+          + (c.modo ? ' inputmode="' + c.modo + '" autocomplete="off" spellcheck="false"' : "")
+          + (c.min != null ? ' min="' + c.min + '"' : "") + (c.step ? ' step="' + c.step + '"' : "") + '>'
+          + (c.aiuto ? '<div class="form-hint" style="margin-top:5px;">' + c.aiuto + '</div>' : "");
+      }).join("");
+      apriModale(titolo, html, [
+        { label: "Annulla", azione: function () { chiudiModale(); res(null); } },
+        { label: etichettaOk || "Salva", cls: "primary", azione: function () {
+            var out = {};
+            campi.forEach(function (c) {
+              var el = document.getElementById("mc-" + c.id);
+              out[c.id] = el ? el.value : "";
+            });
+            chiudiModale(); res(out);
+          } },
+      ]);
+      // Invio = premi il bottone principale. Il listener si aggiunge UNA volta
+      // sola: `#modal-body` è sempre lo stesso elemento, e ogni `chiediDati` ne
+      // appendeva un altro identico — dopo dieci finestre l'Invio scattava
+      // dieci volte. Non si vedeva perché la Promise, già risolta, ignora i
+      // colpi in più; ma è un accumulo, e adesso non c'è.
+      var box = document.getElementById("modal-body");
+      if (box && !box.dataset.invio) {
+        box.dataset.invio = "1";
+        box.addEventListener("keydown", function (e) {
+          if (e.key === "Enter") { e.preventDefault(); document.querySelector("#modal-foot .mbtn.primary").click(); }
+        });
+      }
+    });
+  }
+
+  // ── AGGANCI ─────────────────────────────────────────────────────────
+  // Si chiama una volta, quando la pagina è pronta. `alone` è il selettore
+  // dei componenti che prendono l'alone dinamico: cambia da app a app
+  // perché cambiano i componenti (`.segnala` esiste solo in Scudo), ed è
+  // giusto che resti un parametro.
+  function dwUiAggancia(opz) {
+    var o = opz || {};
+    /* i dati ci sono: da qui in poi i comandi fanno la loro cosa, non il toast
+       della finestra (la ragione per esteso sta sopra `guardiaFinestra`) */
+    datiPronti = true;
+    document.removeEventListener("click", guardiaFinestra, true);
+    /* la fascia «senza rete» si monta qui, nel punto che TUTTE le app chiamano
+       già: aggiungerla a sei pagine sarebbe stato sei volte lo stesso codice, e
+       la settima app nascerebbe senza */
+    if (o.senzaRete !== false) montaSenzaRete();
+    // la mappa della navigazione, per le app che hanno pagine senza una voce
+    // loro nella pillola. Chi non la passa accende `nav-<id>`, come sempre.
+    if (typeof o.navDi === "function") navDi = o.navDi;
+
+    // toccando fuori dalla modale, o con Escape, si preme il PRIMO pulsante
+    // del piede — che per convenzione è quello che annulla
+    var modal = document.getElementById("modal");
+    if (modal) modal.addEventListener("click", function (e) {
+      if (e.target.id === "modal") { var b = document.querySelector("#modal-foot .mbtn"); if (b) b.click(); }
+    });
+    document.addEventListener("keydown", function (e) {
+      if (e.key !== "Escape") return;
+      var m = document.getElementById("modal");
+      if (m && m.classList.contains("show")) { var b = m.querySelector("#modal-foot .mbtn"); if (b) b.click(); }
+    });
+
+    // i riquadri che si possono toccare si possono anche premere da tastiera
+    document.addEventListener("keydown", function (e) {
+      if (e.key !== "Enter" && e.key !== " ") return;
+      var k = e.target.closest && e.target.closest(".kpi[data-goto]");
+      if (k) { e.preventDefault(); k.click(); }
+    });
+
+    // l'alone che segue il mouse: la firma dinamica del core (--mx/--my).
+    // Non si monta se l'utente ha chiesto meno movimento, e nemmeno dove il
+    // puntatore non è fine (sul telefono non esiste il passaggio del mouse).
+    var sel = o.alone || ".item,.kpi";
+    if (matchMedia("(prefers-reduced-motion:reduce)").matches) return;
+    if (!matchMedia("(hover:hover) and (pointer:fine)").matches) return;
+    var cur = null, px = 50, py = 50, pend = false;
+    var apply = function () {
+      pend = false;
+      if (cur) { cur.style.setProperty("--mx", px + "%"); cur.style.setProperty("--my", py + "%"); }
+    };
+    window.addEventListener("pointermove", function (e) {
+      var t = e.target.closest ? e.target.closest(sel) : null;
+      cur = t; if (!t) return;
+      var r = t.getBoundingClientRect();
+      px = (e.clientX - r.left) / r.width * 100;
+      py = (e.clientY - r.top) / r.height * 100;
+      if (!pend) { pend = true; requestAnimationFrame(apply); }
+    }, { passive: true });
+  }
+
+  /* ⛔ SEI APP SU SEI NON SI ACCORGEVANO DI ESSERE SENZA RETE. Misurato il
+     07/08: nessuna guarda `navigator.onLine`, nessuna ascolta `online`/
+     `offline` — il core sì, in due punti. Ed è il modo in cui una scrittura
+     fallisce PIÙ SPESSO di tutti, perché il rapportino si compila al fronte e
+     il giro macchina in piazzale. Oggi si scopre premendo Salva, cioè dopo
+     aver compilato tutto.
+     Sta qui e non in sei pagine perché è la struttura condivisa: chi carica
+     questo file non la riscrive in casa (regola 17 di `run-stile`).
+     ⚠️ E la frase NON promette niente: la persistenza offline di Firestore non
+     è configurata — è la decisione 5b, che resta al fondatore perché mette una
+     copia dei dati nel browser di un telefono di cantiere condiviso. Dire «lo
+     salvo appena torna la linea» sarebbe falso, ed è la peggior categoria di
+     messaggio: quello che rassicura a vuoto.
+     ⚠️ `navigator.onLine === false` è affidabile in un verso solo: quando dice
+     «false» la rete non c'è davvero; quando dice «true» può esserci una rete
+     senza Internet. Per questo la fascia compare solo sul `false`, e il caso
+     opposto lo prende `avvisaSeNonSalva` al momento del guasto. */
+  function montaSenzaRete() {
+    if (typeof navigator === "undefined" || typeof navigator.onLine !== "boolean") return null;
+    var el = document.getElementById("dw-senza-rete");
+    if (!el) {
+      el = document.createElement("div");
+      el.id = "dw-senza-rete";
+      el.className = "dw-senza-rete";
+      el.setAttribute("role", "status");
+      el.innerHTML = "📶 <b>Sei senza rete.</b> Quello che scrivi adesso <b>non viene salvato</b>: "
+        + "torna in un punto con segnale e riprova, o segnalo su carta.";
+      var top = document.querySelector(".top");
+      if (top && top.parentNode) top.parentNode.insertBefore(el, top.nextSibling);
+      else document.body.insertBefore(el, document.body.firstChild);
+    }
+    var aggiorna = function () { el.style.display = navigator.onLine === false ? "block" : "none"; };
+    aggiorna();
+    window.addEventListener("online", aggiorna);
+    window.addEventListener("offline", aggiorna);
+    return el;
+  }
+
+  /* ── LA FINESTRA DI CARICAMENTO: UN COMANDO PREMUTO DEVE RISPONDERE ──────
+     Fra l'apertura della pagina e l'arrivo del modulo dati c'è una finestra in
+     cui l'app ha già disegnato tutto e non sa ancora niente. La barra in basso
+     funziona (questo file arriva subito, `defer`), quindi si gira per tutte le
+     sezioni; ma le AZIONI sono agganciate con `addEventListener` dentro il
+     modulo, che non è ancora partito. Effetto misurato il 14/08 sulla PRIMA
+     schermata di tre app: **18 comandi su 21 premuti non facevano NIENTE** —
+     nessun toast, nessuna modale, nessun errore in console, il DOM identico.
+     «Segnala un near-miss» in Campo e in Scudo, e tutti i riquadri KPI che di
+     solito portano alla sezione. L'unico che rispondeva era il tasto del tema,
+     che vive qui dentro.
+     ⚠️ Non è la stessa cosa del «—» sui contatori: là l'app diceva una cosa
+     falsa e tranquilla, qui non dice NIENTE — e il silenzio, su un telefono in
+     cava, si legge «l'app è rotta» oppure «l'ho premuto e ha funzionato».
+
+     ⛔ IL PUNTO IN CUI SI DISARMA ESISTE GIÀ, E NON SERVE TOCCARE SEI PAGINE.
+     Il corpo di un modulo parte solo quando TUTTI i suoi import sono risolti,
+     e `<app>-data.js` è uno di quelli: quindi la finestra finisce esattamente
+     quando il modulo comincia — e la prima cosa che tutte e sei le app fanno lì
+     è chiamare `dwUiAggancia`. Disarmare lì è disarmare al millisecondo giusto,
+     in un posto solo: la regola che serve a tutte vive in `shared/`.
+     ⚠️ E il rischio va scritto, perché è il rovescio della stessa medaglia: se
+     un'app non chiamasse `dwUiAggancia`, i suoi comandi resterebbero guardati
+     per sempre. Per questo la difesa si prova nei DUE versi — dentro la
+     finestra deve rispondere il toast, e DOPO l'arrivo dei dati lo stesso
+     comando deve fare la sua cosa e il toast non deve comparire. */
+  var datiPronti = false;
+  /* `.item`, `.kpi` e `.sitem` non sono `<button>` ma si premono: la loro
+     azione è delegata dentro il modulo esattamente come quella dei bottoni. */
+  var COMANDI = "button, .dw-btn, [role=button], .item, .kpi, .sitem";
+  function guardiaFinestra(e) {
+    if (datiPronti) return;
+    var t = e.target;
+    if (!t || typeof t.closest !== "function") return;
+    var el = t.closest(COMANDI);
+    if (!el) return;
+    /* Restano vivi i comandi che NON dipendono dai dati: la barra in basso (la
+       navigazione è di questo file), il tasto del tema e la modale. */
+    if (el.closest(".nav") || el.id === "dw-tema-btn" || el.closest("#modal")) return;
+    e.preventDefault();
+    e.stopPropagation();
+    toast("I dati stanno ancora arrivando: un istante e riprova.");
+  }
+  /* in cattura: gli ascoltatori del modulo non ci sono ancora, ma se un giorno
+     ce ne fosse uno agganciato prima dei dati, questo lo precede comunque */
+  document.addEventListener("click", guardiaFinestra, true);
+
+  window.go = go;
+  window.toast = toast;
+  window.dwSenzaRete = montaSenzaRete;
+  window.apriModale = apriModale;
+  window.chiudiModale = chiudiModale;
+  window.chiedi = chiedi;
+  window.avvisa = avvisa;
+  window.mostraTesto = mostraTesto;
+  window.chiediValore = chiediValore;
+  window.chiediDati = chiediDati;
+  window.dwUiAggancia = dwUiAggancia;
+})();

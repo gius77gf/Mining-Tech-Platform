@@ -1,0 +1,221 @@
+# Due persone che scrivono la stessa riga — la misura
+
+*08/08/2026. È la misura che la **decisione 5b** chiede prima della funzione:
+il fondatore ha scritto «sì al lavoro senza rete, **ma prima misuro cosa succede
+a due persone che scrivono la stessa riga**». Qui non c'è nessuna conclusione
+dedotta: ogni riga è quello che il database ha risposto.*
+
+Come rifarla:
+
+```sh
+cd apps/deepwork-id && firebase emulators:exec --only firestore \
+  --project demo-deepwork "cd tests && node due-persone-stessa-riga.mjs"
+```
+
+Due contesti **autenticati diversi** — Anna e Bruno, due membri della stessa
+organizzazione, cioè due telefoni in cava — con le **regole di sicurezza vere**
+caricate. Si esercita esattamente quello che fa il livello dati delle app:
+
+```js
+aggiorna: (name, docId, data) => updateDoc(doc(id.orgCollection(name), docId), data)
+```
+
+## Che cosa risponde il database
+
+| # | Caso | Esito misurato |
+|---|---|---|
+| 1 | Anna cambia l'**ora**, Bruno lo **stato** — campi diversi | **convivono**: `{ora:"08:30", stato:"assente"}` |
+| 2 | tutt'e due lo **stesso campo** | vince **l'ultimo**, e il primo non lo sa |
+| 3 | **leggi‑modifica‑riscrivi** di un campo **composito** | la spunta di Anna **è persa in silenzio** |
+| 4 | lo stesso, col **percorso puntato** (`"esiti.dpi"`) | **convivono** |
+| 5 | la riga è stata **cancellata** nel frattempo | scrittura **rifiutata**, `not-found` |
+| 6 | `set` senza `merge` su una riga esistente | gli **altri campi spariscono** |
+
+### Il caso che conta è il 3, e non è teorico
+Il caso 1 rassicura e il caso 2 è ovvio (chi scrive per ultimo vince: è quello
+che ci si aspetta). **Il pericolo è il 3**, perché è la forma che le app usano
+davvero: la lista `esiti` viene letta dallo stato locale, cambiata in **un**
+punto, e riscritta **intera**. Due persone che spuntano **voci diverse della
+stessa lista** si cancellano a vicenda — e nessuna delle due vede un errore.
+
+Il caso 4 dice che **la cura esiste ed è una riga**: scrivendo il percorso
+puntato le due spunte convivono, perché il database applica la modifica al
+singolo campo invece di sostituire l'oggetto.
+
+Il caso 5 è una buona notizia già in casa: `updateDoc` su una riga cancellata
+**non la resuscita**, viene rifiutata. Chi lo raccoglie è il messaggio del
+salvataggio fallito della **decisione 5a**, già montato nelle sei app.
+
+Il caso 6 è un avvertimento per il codice che verrà: `set` senza `merge`
+**cancella** i campi che non nomina.
+
+## Quanto siamo esposti — il censimento
+
+I campi compositi si **derivano** dai dati di dimostrazione (non si elencano a
+mano), e si incrociano con le chiamate che li scrivono **interi**:
+
+| App | Campo | Dove |
+|---|---|---|
+| Campo | `esiti` | checklist del giro macchina — 1 punto |
+| Scudo | `esiti` | ispezioni — 2 punti |
+| Scudo | `azioniId` | analisi delle cause — 1 punto |
+| Scudo | `misure` | permessi di lavoro — 1 punto |
+| Scudo | `atmosfera` | permessi di lavoro — 1 punto |
+| Sentinella | `tarature` | monitoraggi — 3 punti |
+| Sentinella | `letture` | monitoraggi — 3 punti |
+
+**Dodici punti, in quattro app su sei.** Conti, Flotta e Terra hanno campi
+compositi nei dati (`scaglioni`, `righe`, `manodopera`, `voci`, `frontiId`) ma
+**nessuno di quei campi viene scritto da un aggiornamento parziale**: là si
+riscrive tutta la riga da un modulo, che è un caso diverso.
+
+⚠️ **E il censimento dei campi compositi sottostima l'esposizione**, va detto:
+per **Campo** la dimostrazione non contiene **nessun** campo composito, eppure
+il codice scrive `esiti` intero. Cioè i dati d'esempio non mostrano lo stato in
+cui il difetto vive — è la stessa lezione del denominatore che questo repository
+ha già pagato: *un elenco derivato dai dati vede solo ciò che i dati contengono*.
+
+⚠️ Un falso positivo dichiarato, perché nessuno lo riconti: cercando `dpi`
+compare anche `db.aggiorna("dpi", …)`, che è il **nome della collezione** e
+scrive campi scalari. Non è uno dei dodici.
+
+### Il più affilato è `letture` di Sentinella
+Due persone che caricano le letture di due strumenti sullo **stesso punto di
+monitoraggio** perdono un import — e quelle letture finiscono nel report per
+l'ARPA. È lo stesso principio che l'ecosistema applica ovunque: *un dato che
+sparisce senza dirlo è peggio di un errore*.
+
+## Che cosa NON dice questa misura
+- Non dice niente sul **lavoro offline vero** (rete assente, coda locale,
+  risincronizzazione): quello vuole `enableIndexedDbPersistence` nel browser, e
+  va misurato **nel browser**, non in Node. È il passo dopo della 5b.
+- Non dice **quanto spesso** succede: dice che **può** succedere e in quali
+  dodici punti. La frequenza dipende da come lavora una cava vera, e non la
+  sappiamo — non va inventata.
+
+## Che cosa segue — e il piano CORRETTO dopo aver aperto i dodici punti
+
+⚠️ **La prima stesura di questo piano diceva «una riga per punto» e
+«`arrayUnion` dove si aggiunge in coda». Aprendo i dodici punti si è visto che
+è falso per otto di essi**, ed è scritto qui perché nessuno ci riprovi alla
+cieca — è la stessa regola del *misurare prima di irrigidire*.
+
+### Fatto (08/08) — il passo che rende possibile tutto il resto
+`applicaPercorsi` in `shared/dw-ponti.js`, e le **sei** dimostrazioni che la
+usano al posto di `Object.assign`.
+⛔ **Senza questo, la cura avrebbe funzionato solo col database vero e rotto la
+dimostrazione**: il livello in memoria fa `Object.assign`, e `Object.assign` di
+una chiave `"esiti.dpi"` crea una proprietà **letterale col punto dentro** —
+misurato: `{"esiti":{"dpi":false},"esiti.dpi":true}`. Nessun errore da leggere,
+la spunta non si vede, e a rompersi sarebbe stato proprio ciò che il fondatore
+mostra.
+
+### I dodici punti, divisi per quello che vogliono davvero
+| Forma | Punti | Che cosa serve |
+|---|---|---|
+| **oggetto, cambia UNA voce** | Scudo `esiti` ×2, Campo `esiti` | percorso puntato — **ma** le due di Scudo sanno anche **togliere** una voce, e per cancellare col percorso puntato serve `deleteField()`: cioè un **contrassegno** che il livello dati traduca (`deleteField` con Firestore, `delete` in memoria). Non è una riga: è una riga **più** il contrassegno |
+| **elenco** | Sentinella `letture` ×3, `tarature` ×3, Scudo `azioniId`, `misure` | ⛔ `arrayUnion` **non basta**, misurato punto per punto: 4121 **corregge** una lettura già dentro (l'indice di un array non si scrive col percorso puntato), 4573 aggiunge **e taglia** a `MAX_LETTURE`, 4930 è un **import in blocco**. La forma giusta è una **transazione** (`runTransaction`), che rilegge e riscrive in modo atomico |
+| **modulo intero** | Scudo `atmosfera` | non è il caso della spunta persa: l'utente invia **tutte** le misure di gas insieme. Due persone che compilano lo stesso permesso sono un conflitto sullo **stesso campo** (caso 2), e la risposta lì non è tecnica |
+
+### Fatto (08/08) — i tre punti a OGGETTO e DUE dei sette a elenco
+- **oggetti**: Campo `esiti`, Scudo `esiti` ×2 → percorso puntato, con
+  `DW_CANCELLA` per togliere una voce e `percorsiDi` che risponde `null` (e fa
+  ripiegare sull'oggetto intero) se una voce ha un punto nel nome;
+- **elenchi**: Sentinella `letture` ×2 — la misura a mano e l'import in blocco —
+  passano da `trasformaAtomico`, cioè una **transazione**: si rilegge dentro, e
+  se qualcuno ha scritto nel frattempo Firestore rifà il giro.
+  ⛔ **Provato contro l'emulatore, nei due versi** (caso 7 della misura): con la
+  transazione le tre letture ci sono **tutte**; con le stesse due scritture
+  lette prima, come faceva la pagina, resta `[1,3]` — **una si perde**.
+
+E poi (08/08, stessa giornata) i **due di Scudo**: `azioniId` — due persone che
+collegano azioni diverse alla stessa analisi — e `misure` del permesso di
+lavoro, dove si rilegge **anche il verso della spunta** (mettere o togliere),
+perché deciderlo su una lettura vecchia è lo stesso errore un passo più in là.
+⚠️ E il `collegaAzioneAllAnalisi` aveva una guardia `if (!db.aggiorna) return`
+rimasta a guardare **la funzione che non usa più**: allineata.
+
+E infine le **tarature** di Sentinella (08/08): l'aggiunta a mano — dove **il
+controllo del doppione si rifà dentro** la transazione, perché farlo solo fuori
+vuol dire deciderlo su una lettura vecchia, ed è proprio il caso di due persone
+che registrano la stessa taratura insieme —, l'**import in blocco**, e la
+**rimozione**, che ora toglie dalle tarature vere del momento invece che da un
+elenco calcolato prima.
+⚠️ Lì ho sbagliato e l'ha preso il rileggere, non una prova: avevo scritto il
+filtro su **due** chiavi (`data`, `scadenza`) mentre l'originale ne usa **tre**
+(anche il `certificato`), e il codice **compilava** — `nomi-liberi` taceva
+perché nel file c'è un altro `tar` in scope, cioè l'**omonimo** che questo
+repository ha già censito. Corretto sulle tre chiavi vere.
+
+E infine la **correzione di una lettura già dentro** — l'unico dei dodici in cui
+si tocca un elemento **in mezzo** all'elenco.
+⛔ Lì un controllo «la serie è cambiata mentre correggevi» **c'era già ed era
+cieco**: confrontava lo scatto locale con la firma presa **dallo stesso
+scatto**, quindi passava sempre, e poi riscriveva l'elenco vecchio buttando via
+la lettura che qualcun altro aveva aggiunto. Adesso il confronto si fa **dentro**
+la transazione, sulle letture vere, e la lettura si ritrova per la sua **firma**
+e non per l'**indice** — che si sposta appena qualcuno aggiunge o toglie
+qualcosa. Quando non c'è più, non si scrive niente e la frase lo dice.
+
+## Dove siamo arrivati (08/08)
+**Undici punti su dodici** non riscrivono più l'elenco intero. Il dodicesimo è
+`atmosfera` di Scudo, e **resta così di proposito**: lì l'utente invia tutte le
+misure di gas insieme, quindi non è la spunta persa — è un conflitto sullo
+stesso campo (caso 2), e la risposta a quello non è tecnica.
+E il censimento è diventato una **regola**: una prova rifà il conto e pretende
+che nessuno di quei campi torni a essere scritto intero — col **ripiego
+dichiarato** (chiave col punto nel nome) riconosciuto come tale, e `atmosfera`
+fuori **con la ragione scritta accanto**, non per dimenticanza.
+`trasforma` ce l'hanno **Sentinella e Scudo**: quando servirà a una terza app va
+aggiunto al suo livello dati — la funzione condivisa c'è già e **non va
+ricopiata**. Una prova lo pretende per nome su tutt'e due.
+
+### E solo dopo, la coda offline
+Mettere in coda scritture che si cancellano a vicenda vorrebbe dire
+**moltiplicare** il problema, non risolverlo.
+
+---
+
+# La seconda metà della 5b: il lavoro SENZA RETE — la misura
+
+*08/08/2026. Rifatta con* `firebase emulators:exec --only firestore,auth --project
+demo-deepwork "cd .. && node tests/browser/coda-offline.mjs"` *(dentro
+`apps/deepwork-id`). Due schede autenticate come due telefoni della stessa cava,
+regole vere, e la cache locale accesa (`persistentLocalCache`, la forma nuova di
+`enableIndexedDbPersistence`). Anche qui: ogni riga è quello che è successo.*
+
+| # | Caso | Esito misurato |
+|---|---|---|
+| 1 | rete staccata, si scrive | la scrittura **si fa** (la promessa resta in sospeso), ma la **rilettura non riesce**: `unavailable` |
+| 2 | rete riattaccata | la scrittura **arriva da sola**: `chi = anna-offline` |
+| 3 | Anna staccata scrive, **Bruno online scrive la stessa riga** | al ritorno **vince Anna**, e la scrittura di Bruno **sparisce senza che nessuno lo dica** |
+| 4 | scheda **chiusa** con la scrittura in coda | il database resta a `prima-della-chiusura`: quella scrittura **non è arrivata** |
+
+## Che cosa dicono, in ordine di quanto pesano
+
+⛔ **Il caso 3 è il motivo per cui questa misura veniva prima della funzione.**
+La coda offline di Firestore, al ritorno, riscrive e basta: chi era staccato
+**sovrascrive in silenzio** il lavoro fatto nel frattempo da chi era in linea.
+È lo stesso difetto che abbiamo appena tolto dai dodici punti — *la spunta persa
+senza un errore* — ma un piano più in su, e le transazioni **non lo coprono**:
+una transazione offline non può rileggere niente.
+
+⚠️ **Il caso 1 ridimensiona l'idea di «lavorare come se ci fosse la rete»**: la
+cache locale serve solo quello che è **già stato letto** una volta. Chi apre
+l'app già senza campo non vede i dati, vede `unavailable`.
+
+⚠️ **Il caso 4 va letto per quello che è, e il limite è del banco, non del
+prodotto**: qui la scheda si chiude con `context.close()`, che butta via **anche
+il profilo del browser** (e con lui l'IndexedDB che tiene la coda). Quindi
+questa riga dimostra che *una coda non sopravvive a un profilo nuovo* — **non**
+che un utente che riapre lo stesso browser la perda. Per rispondere a quella
+domanda serve riaprire lo **stesso** profilo (`userDataDir`), e non è stato
+fatto: scriverlo come «la coda si perde chiudendo la scheda» sarebbe stato più
+comodo e falso.
+
+## Che cosa NON si può concludere da qui
+Che la coda offline «non si può fare». Si può — arriva da sola (caso 2), ed è la
+metà buona. Quello che questa misura dice è che **accenderla così com'è
+introdurrebbe una perdita silenziosa** (caso 3), cioè esattamente la famiglia di
+difetti che questa settimana sta togliendo. Prima della funzione serve una
+risposta a *«chi ha scritto per ultimo, e come lo diciamo a chi ha perso»*.

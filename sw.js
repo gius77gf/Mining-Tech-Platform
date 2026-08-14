@@ -3,10 +3,15 @@
 // Strategia: cache-first per app shell, network-first per Firestore
 // ════════════════════════════════════════════════════════════════
 
-const CACHE_VERSION = 'deepwork-v4';
+const CACHE_VERSION = 'deepwork-v5';
 const APP_SHELL = [
   './',
   './index.html',
+  // La convenzione condivisa sui numeri scritti a mano. Va precachata come il
+  // resto dello scheletro, non lasciata alla cache di passaggio: il core la
+  // importa come modulo, quindi senza questo file NON PARTE — esattamente come
+  // per l'SDK di Firebase, che sta qui sotto per la stessa ragione.
+  './shared/deepwork-id-client/dw-shell.js',
   // Google Fonts CSS (il font file viene cachato dinamicamente al primo uso)
   'https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;800&family=Barlow:wght@300;400;500;600&display=swap',
   // Librerie CDN

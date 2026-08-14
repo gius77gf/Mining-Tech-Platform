@@ -4,6 +4,30 @@ Censimento dei problemi di sicurezza del monolite `index.html` e dei
 file di servizio, con priorità e piano di mitigazione. Aggiornare ad
 ogni intervento (questo file è il registro vivo del task 4).
 
+## Come si legge questo file, e quale sia l'altro *(nota del 30/07)*
+
+Da oggi i documenti di sicurezza sono **due**, e non dicono la stessa cosa:
+
+- **questo** (`AUDIT_SICUREZZA.md`, dal 19/07) è il **registro vivo del core**:
+  credenziali nei default, service worker, escape HTML, iniezione CSV. Guarda
+  dentro `index.html` e i suoi file di servizio, e le voci si chiudono una a una
+  man mano che si sistemano;
+- **`REVISIONE_SICUREZZA_202607.md`** (dal 30/07) guarda un'altra cosa: le
+  **regole del server**, cioè chi può leggere e scrivere cosa. Non è una lettura
+  del codice — è una **misura fatta con l'emulatore**, con le risposte riportate
+  come sono arrivate.
+
+Se cerchi «i dati di un cliente li vede un altro cliente?», la risposta sta nel
+secondo. Se cerchi «cosa c'è ancora da sistemare dentro il core», sta qui.
+
+Le voci qui sotto marcate CHIUSO o CORRETTO lo sono davvero: hanno la data
+accanto. Quelle senza marcatura vanno **riverificate prima di citarle** — questo
+file è del 19 luglio, e il 30/07 è già successo, con `CENSIMENTO_FEATURE.md`, di
+trovare tre problemi su quattro chiusi da un pezzo. Un registro che dichiara
+aperto quello che è chiuso costa quanto il contrario.
+
+---
+
 ## 🔴 Critici
 
 ### 1. Credenziali in chiaro nel codice client (index.html ~r.277-285)
@@ -117,6 +141,24 @@ solo davanti a `= + - @`): round-trip senza perdite. Core
 (reconExportHoles) e Genesi esportano solo numeri/etichette fisse →
 nessun campo libero, non toccati. 22 test di regressione
 (run-helpers.mjs) blindano esc/csvCell/parseCsvLine; suite a 77 (PR #95).
+
+⚠️ **RIAPERTO E RICHIUSO IL 31/07 — e la ragione vale per tutto questo
+documento.** L'helper c'era e funzionava; quello che mancava era **applicarlo
+al codice scritto dopo**. L'esportazione dei **ricettori** di Sentinella è nata
+il 30/07, cioè nove giorni dopo la chiusura di questa voce, e non passava da
+`csvCell` sul campo **unità** — che è testo libero. Due conseguenze, misurate:
+- un'unità scritta «mm/s; dB(A)» spezzava la riga, e il pezzo dopo il punto e
+  virgola finiva **dentro la nota** del ricettore, in silenzio;
+- un valore che inizia con `=` sarebbe uscito **senza apostrofo di guardia**,
+  cioè eseguibile come formula: esattamente ciò che questa voce doveva chiudere.
+Corretto (unità, tipo e classe passano da `csvCell`) e blindato con quattro
+prove nel giro di andata e ritorno.
+
+**La lezione, che è più importante della correzione**: una voce «CHIUSA» dice
+che il difetto di allora è stato tolto, **non** che non possa rinascere altrove.
+Ogni volta che nasce un'esportazione nuova, questa voce va riletta — e il modo
+di riverificarla in un minuto è cercare i campi di testo libero che **non**
+passano da `csvCell`.
 
 ### 11. Indici Firestore per le query delle Functions (21/07) — PREPARATO
 Le Cloud Functions usano query `collectionGroup`/composte

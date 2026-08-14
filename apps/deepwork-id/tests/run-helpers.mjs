@@ -11,9 +11,10 @@ import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
-const { esc, csvCell, parseCsvLine, numIt, isIntestazione } = await import(
+const H = await import(
   join(HERE, "../../../shared/deepwork-id-client/dw-shell.js")
 );
+const { esc, csvCell, parseCsvLine, numIt, isIntestazione, dataISOEsiste, leggiCsv, giorniTra, avvolgiUnita, motivoDatiNonSalvati } = H;
 
 let passed = 0, failed = 0;
 const test = (name, fn) => {
@@ -130,6 +131,369 @@ test("keyword PREFISSO di un nome più lungo → NON è intestazione (serve il d
   eq(isIntestazione("dataInizio;x", "data"), false, "dataInizio non è header 'data'");
   eq(isIntestazione("nominativo;x", "nome"), false, "nominativo non è header 'nome'");
   eq(isIntestazione("data;x", "data"), true, "data esatto sì");
+});
+
+/* ── UNA DATA ESISTE DAVVERO? ─────────────────────────────────────────
+   Nata il 03/08 da un difetto vero in Scudo: l'import delle scadenze filtrava
+   con `/^\d{4}-\d{2}-\d{2}$/`, che guarda la FORMA. «2026-13-45» ce l'ha, e
+   una visita medica con quella data restava verde per sempre.
+   E `Date.parse` da solo non basta — è la prova che conta più di tutte qui
+   sotto: «2026-02-30» NON è NaN, JavaScript lo fa scivolare al 2 marzo.
+   docs/IL_CONFORME_CHE_NESSUNO_HA_MISURATO.md */
+test("dataISOEsiste: le date vere passano", () => {
+  eq(dataISOEsiste("2026-07-31"), true, "una data qualsiasi");
+  eq(dataISOEsiste("2028-02-29"), true, "29 febbraio di un bisestile");
+  eq(dataISOEsiste("2026-12-31"), true, "ultimo dell'anno");
+  eq(dataISOEsiste("2026-01-01"), true, "primo dell'anno");
+});
+test("dataISOEsiste: la FORMA giusta col contenuto impossibile non passa", () => {
+  eq(dataISOEsiste("2026-13-45"), false, "mese 13, giorno 45");
+  eq(dataISOEsiste("2026-00-10"), false, "mese zero");
+  eq(dataISOEsiste("2026-04-31"), false, "31 aprile");
+});
+test("dataISOEsiste: il caso che `Date.parse` da solo NON vede", () => {
+  // è la ragione per cui questa funzione esiste invece di un Date.parse
+  eq(Number.isNaN(Date.parse("2026-02-30T00:00:00")), false, "Date.parse ACCETTA il 30 febbraio");
+  eq(dataISOEsiste("2026-02-30"), false, "30 febbraio non esiste");
+  eq(dataISOEsiste("2027-02-29"), false, "29 febbraio in un anno non bisestile");
+});
+test("dataISOEsiste: quello che non ha nemmeno la forma non passa", () => {
+  eq(dataISOEsiste("15/10/2026"), false, "formato italiano");
+  eq(dataISOEsiste(""), false, "vuota");
+  eq(dataISOEsiste(null), false, "null");
+  eq(dataISOEsiste(undefined), false, "undefined");
+  eq(dataISOEsiste("2026-7-31"), false, "senza lo zero davanti");
+});
+test("dataISOEsiste: una data ISO con l'ora dentro vale per la sua parte di data", () => {
+  eq(dataISOEsiste("2026-07-31T10:00:00"), true, "con l'ora");
+});
+
+test("⛔ istanteLocale mette in ordine due gesti dello STESSO giorno", () => {
+  /* Serve dove la sola data non basta: «chiudo il mese» e «registro una
+     bolletta che mi ero dimenticato» capitano lo stesso giorno, e col solo
+     giorno il confronto «dopo» è sempre falso — la funzione che deve
+     accorgersene non scatta mai. */
+  const mattina = H.istanteLocale(new Date(2026, 7, 1, 9, 30, 0));
+  const sera = H.istanteLocale(new Date(2026, 7, 1, 18, 5, 0));
+  eq(mattina < sera, true, "ordinabile come stringa: " + mattina + " < " + sera);
+  eq(mattina.slice(0, 10), "2026-08-01", "e i primi dieci caratteri restano il giorno");
+  /* ⛔ i SECONDI non sono precisione, sono necessità: al minuto due gesti fatti
+     di seguito cadono nello stesso istante e l'ordine si perde. */
+  eq(H.istanteLocale(new Date(2026, 7, 1, 9, 30, 10))
+     > H.istanteLocale(new Date(2026, 7, 1, 9, 30, 9)), true, "e i secondi distinguono");
+  /* ⛔ E COSTRUITO DAI GETTER LOCALI, MAI DA `toISOString()`.
+     ⚠️ Il caso che lo dimostra è il MATTINO PRESTO, non la sera: la prima
+     stesura provava le 23:30 italiane, e la controprova non distingueva —
+     alle 23:30 d'estate Greenwich segna le 21:30 dello STESSO giorno. È a
+     mezzanotte e mezza che l'Italia è già il 2 agosto e Greenwich è ancora
+     l'1, cioè dove `toISOString()` scriverebbe il giorno SBAGLIATO. */
+  const notte = new Date(2026, 7, 2, 0, 30, 0);
+  eq(H.istanteLocale(notte).slice(0, 10), H.isoLocale(notte),
+    "il giorno è quello locale, non quello di Greenwich");
+  eq(H.istanteLocale(notte).slice(0, 10), "2026-08-02",
+    "il 2 agosto alle 00:30 in Italia è il 2 agosto, non l'1");
+  eq(H.istanteLocale("non una data"), "", "e una data illeggibile non diventa un istante");
+});
+
+/* ⛔ IL GIRO DI ANDATA E RITORNO ESISTEVA — MA SUL LETTORE VECCHIO.
+   Sopra c'è già «round-trip: csvCell poi parseCsvLine», scritta quando
+   `parseCsvLine` era l'unico lettore. Il 01/08 è arrivato `leggiCsv`, che legge
+   il file INTERO (serviva: le banche scrivono la causale su più righe dentro le
+   virgolette, e leggendo riga per riga un bonifico da 12.300 € spariva) — e ha
+   ereditato il mestiere ma **non la prova**. Risultato misurato: su sette valori
+   scritti da noi e riletti da noi, **quattro non tornavano identici**, e il caso
+   che morde è il più banale — un numero **negativo** usciva «-12,5» e rientrava
+   «'-12,5», cioè `NaN`. Un dato che c'era, perso nel giro di casa nostra.
+   Questa prova sta sul lettore NUOVO, e sugli stessi valori. */
+console.log("\n— il giro completo: quello che scriviamo, riletto da chi lo rilegge davvero —");
+const GIRO = ["=SUM(A1:A9)", "+1234", "-cmd", "@SUM", "Rossi;Mario", 'dice "ciao"',
+              "riga1\nriga2", "Fochino", "\t=cmd", " =cmd", "\r=cmd", "-12,5",
+              "'ndrangheta", "'90", "12,5", "prima riga\nseconda riga"];
+test(`round-trip: csvCell poi leggiCsv, ${GIRO.length} valori, tutti identici`, () => {
+  const rotti = [];
+  for (const v of GIRO) {
+    // un file vero ha l'intestazione: senza, il separatore lo si indovina su
+    // una riga sola ed è un'altra cosa (è la ragione per cui `leggiCsv` esiste)
+    const letto = leggiCsv("valore;altra\n" + csvCell(v) + ";x").righe[1]?.[0];
+    if (letto !== v) rotti.push(`${JSON.stringify(v)} → ${JSON.stringify(letto)}`);
+  }
+  eq(rotti.length, 0, "non tornano identici: " + rotti.join(" · "));
+});
+test("anche il lettore di UNA riga toglie la guardia quando l'innesco è preceduto da uno spazio bianco", () => {
+  /* `csvCell` neutralizza «\t=cmd» e «\r=cmd» perché per OWASP pure TAB e CR
+     fanno da innesco. Il lettore di una riga sola guardava **un carattere**
+     dopo l'apostrofo e quindi non li ripuliva. Qui il campo si scrive fra
+     virgolette apposta: senza, la riga singola indovinerebbe il TAB come
+     separatore e si misurerebbe un'altra cosa — è la ragione per cui i file
+     veri si leggono con `leggiCsv`. */
+  eq(parseCsvLine('"\'\t=cmd"')[0], "\t=cmd", "tab prima dell'innesco");
+  eq(parseCsvLine('"\' =cmd"')[0], " =cmd", "spazio prima dell'innesco");
+  eq(parseCsvLine('"\'ndrangheta"')[0], "'ndrangheta", "e una parola che comincia per apostrofo resta intera");
+});
+test("l'apostrofo che NON è una guardia resta dov'è", () => {
+  // «'ndrangheta» e «'90» cominciano davvero per apostrofo: toglierlo
+  // sarebbe cambiare il dato di chi scrive
+  eq(leggiCsv("a;b\n'ndrangheta;x").righe[1][0], "'ndrangheta", "parola");
+  eq(leggiCsv("a;b\n'90;x").righe[1][0], "'90", "anno abbreviato");
+});
+test("⛔ avvolgiUnita: la tonnellata è un'unità — da sola e in coda a un prezzo", () => {
+  /* Trovata guardando uno scatto degli ordini di Conti: «300,00 T», «€ 11,50/T»,
+     «€ 4,20/M³». La pastiglia è `text-transform:uppercase` e un'unità fuori
+     dallo `<span class="u">` ci finisce dentro — un'unità in maiuscolo è un
+     difetto già pestato tre volte. Serve a Conti, Terra e Flotta. */
+  const q = (s) => avvolgiUnita(s).replace(/<span class="u">/g, "[").replace(/<\/span>/g, "]");
+  eq(q("300,00 t"), "300,00[ t]", "tonnellata da sola");
+  eq(q("€ 11,50/t"), "€ 11,50[/t]", "prezzo alla tonnellata");
+  eq(q("€ 4,20/m³"), "€ 4,20[/m³]", "prezzo al metro cubo");
+  eq(q("2,5 t/m³"), "2,5[ t/m³]", "e la densità resta una cosa sola");
+});
+test("⛔ avvolgiUnita: «t» è UNA LETTERA, e non deve mordere le parole", () => {
+  /* la difesa è la stessa di «h»: una cifra prima, e nessun carattere di parola
+     dopo. Senza, «12 tonnellate» diventerebbe «12 [t]onnellate». */
+  for (const s of ["12 tonnellate", "il 3 turno", "2026-08-01T00:00", "5 tir in coda"])
+    eq(avvolgiUnita(s), s, `«${s}» non contiene un'unità`);
+  eq(avvolgiUnita("5 t di ghiaia").includes('<span class="u"> t</span>'), true,
+     "ma «5 t di ghiaia» sì");
+});
+test("⛔ giorniTra: una data che NON ESISTE non produce un conto di giorni", () => {
+  /* `new Date("2026-02-30T00:00:00")` non è invalida: `Date` fa **scorrere** il
+     giorno al 2 marzo. Effetto misurato in Conti, dove `giorniTra` regge le
+     scadenze: una fattura con scadenza 30 febbraio usciva «insoluta da 152
+     giorni» invece di «senza scadenza» — un ritardo inventato, e un cliente
+     sollecitato per una data che non c'è. Vale per cinque app. */
+  const oggi = new Date("2026-08-01T12:00:00");
+  for (const s of ["2026-02-30", "2026-02-29", "2026-04-31", "2026-13-45", "2026-00-10"])
+    eq(Number.isNaN(giorniTra(s, oggi)), true, `«${s}» non esiste: non può dare un numero`);
+  // e il 29 febbraio di un anno BISESTILE invece esiste
+  eq(giorniTra("2024-02-29", new Date("2024-03-01T12:00:00")), -1, "il 29 febbraio del 2024 c'è");
+});
+test("⛔ giorniTra: e un ISTANTE è una data buona, non va persa", () => {
+  /* il difetto opposto, e nello stesso punto: «2026-06-30T10:00» diventava
+     `…T10:00T00:00:00`, cioè NaN — la scadenza c'era e l'app rispondeva
+     «senza scadenza». È lo stesso caso già corretto in `dataIt`. */
+  const oggi = new Date("2026-08-01T12:00:00");
+  eq(giorniTra("2026-06-30T10:00", oggi), -32, "istante con l'ora");
+  eq(giorniTra("2026-06-30T23:59:59Z", oggi), -32, "istante con i secondi e la zona");
+  eq(giorniTra("2026-06-30", oggi), -32, "e la data secca dà lo stesso numero");
+});
+test("numIt: un non-numero non diventa un numero enorme", () => {
+  // `+"Infinity"` fa Infinity, e da lì ogni confronto con una soglia è vero
+  eq(Number.isNaN(numIt("Infinity")), true, "Infinity");
+  eq(Number.isNaN(numIt("-Infinity")), true, "-Infinity");
+  eq(Number.isNaN(numIt("1e999")), true, "un esponente fuori scala");
+  // e i numeri veri restano numeri, notazione scientifica compresa: le
+  // perforatrici scrivono le celle così, ed è già costato una correzione
+  eq(numIt("3.2e2"), 320, "notazione scientifica");
+  eq(numIt("1e-3"), 0.001, "esponente negativo");
+  eq(numIt("1.234,5"), 1234.5, "migliaia all'italiana");
+});
+
+// ── QUANDO IL DATABASE NON RISPONDE: CHE COSA SI PUÒ DIRE ──
+// Nato il 02/08, il giorno in cui le regole del Firebase pubblico sono state
+// chiuse: da lì in poi TUTTI i visitatori cadono nel ripiego del core, che
+// diceva «connessione database non disponibile» — falso, la connessione c'era.
+test("motivoDatiNonSalvati: le regole che dicono di no NON sono un guasto di rete", () => {
+  const r = motivoDatiNonSalvati({ code: "permission-denied", message: "Missing or insufficient permissions." });
+  eq(r.causa, "accesso", "permission-denied");
+  eq(r.tono, "info", "non è un errore dell'utente né un guasto");
+  eq(/collegamento/.test(r.messaggio), false, "non deve parlare di collegamento");
+  eq(motivoDatiNonSalvati({ code: "unauthenticated" }).causa, "accesso", "unauthenticated");
+});
+test("motivoDatiNonSalvati: il codice maiuscolo con l'underscore è lo stesso caso", () => {
+  // l'SDK JS scrive `permission-denied`, l'API REST `PERMISSION_DENIED`.
+  // Il prototipo sbagliava proprio questo, ed è l'unica forma che si vede
+  // guardando il difetto da fuori (curl), cioè quella che si copia-incolla.
+  eq(motivoDatiNonSalvati({ code: "PERMISSION_DENIED" }).causa, "accesso", "REST");
+});
+test("motivoDatiNonSalvati: la rete morta resta rete morta", () => {
+  eq(motivoDatiNonSalvati({ code: "unavailable" }).causa, "rete", "unavailable");
+  eq(motivoDatiNonSalvati({ code: "deadline-exceeded" }).causa, "rete", "il timeout dei 6 secondi");
+  eq(motivoDatiNonSalvati(new TypeError("Failed to fetch")).causa, "rete", "l'errore del browser, senza codice");
+});
+test("⛔ motivoDatiNonSalvati: se l'app SA di essere offline, quello vince", () => {
+  /* il core chiama il ripiego anche dal ramo `!_isOnline`. Lì l'errore può
+     essere qualunque cosa — anche un permission-denied arrivato prima che la
+     rete cadesse — ma la cosa vera da dire all'utente è che non c'è rete. */
+  eq(motivoDatiNonSalvati({ code: "permission-denied" }, false).causa, "rete", "offline dichiarato");
+});
+test("⛔ motivoDatiNonSalvati: quello che non si sa si dichiara, non si indovina", () => {
+  /* il principio del fondatore applicato al messaggio che lo racconta: un
+     codice che non conosciamo NON diventa «va tutto bene, è la dimostrazione».
+     `certo` è la bandiera, e la legge la funzione stessa scegliendo la frase. */
+  for (const e of [{ code: "not-found" }, { code: "invalid-argument" }, undefined, null, {}]) {
+    const r = motivoDatiNonSalvati(e);
+    eq(r.causa, "ignota", `causa per ${JSON.stringify(e)}`);
+    eq(r.certo, false, `certo per ${JSON.stringify(e)}`);
+    eq(/non raggiungibile/.test(r.messaggio), true, `frase per ${JSON.stringify(e)}`);
+  }
+});
+test("⛔ motivoDatiNonSalvati: tutti e tre i messaggi dicono la cosa che riguarda chi legge", () => {
+  /* la testa della frase cambia con la causa; la CODA no, perché è la sola
+     parte che cambia qualcosa per il cavatore: un rapportino si compila in
+     dieci minuti e nessuno deve scoprire al ricaricamento che era per niente.
+     Il messaggio vecchio parlava solo del database e questa parte non c'era. */
+  const tutti = [
+    motivoDatiNonSalvati({ code: "permission-denied" }),
+    motivoDatiNonSalvati({ code: "unavailable" }),
+    motivoDatiNonSalvati({ code: "boh" }),
+  ];
+  for (const r of tutti) {
+    eq(r.messaggio.endsWith("quello che scrivi non viene salvato"), true, `coda di «${r.messaggio}»`);
+    eq(/degradata/.test(r.messaggio), false, "niente parole da tecnico");
+    eq(/permission|denied|firestore|firebase/i.test(r.messaggio), false, "nessun codice d'errore all'utente");
+  }
+  eq(new Set(tutti.map((r) => r.messaggio)).size, 3, "e le tre teste restano diverse");
+});
+
+/* ── DECISIONE 5a: «non è stato salvato», mai un codice d'errore ──
+   Il tempo verbale è un parametro della stessa funzione, non una seconda
+   funzione: la testa (la causa, e il fatto che a volte non si sappia) resta
+   scritta in un posto solo. */
+test("motivoDatiNonSalvati: «adesso» parla al passato di QUESTA modifica", () => {
+  const r = motivoDatiNonSalvati({ code: "unavailable" }, true, "adesso");
+  eq(r.messaggio.endsWith("questa modifica non è stata salvata"), true, r.messaggio);
+  eq(r.causa, "rete", "la causa non cambia col tempo verbale");
+  eq(/permission|denied|firestore|firebase|unavailable/i.test(r.messaggio), false,
+    "nessun codice d'errore all'utente, come nell'altro tempo");
+});
+test("motivoDatiNonSalvati: senza il terzo argomento resta com'era", () => {
+  const a = motivoDatiNonSalvati({ code: "unavailable" });
+  const b = motivoDatiNonSalvati({ code: "unavailable" }, true, "continuo");
+  eq(a.messaggio, b.messaggio, "il difetto è «continuo»");
+  eq(a.messaggio.endsWith("quello che scrivi non viene salvato"), true, a.messaggio);
+});
+test("motivoDatiNonSalvati: le tre teste restano tre anche al passato", () => {
+  const teste = [
+    motivoDatiNonSalvati({ code: "permission-denied" }, true, "adesso"),
+    motivoDatiNonSalvati({ code: "unavailable" }, true, "adesso"),
+    motivoDatiNonSalvati({ code: "boh" }, true, "adesso"),
+  ];
+  eq(new Set(teste.map((r) => r.messaggio)).size, 3, "tre cause, tre messaggi");
+  for (const r of teste) eq(r.messaggio.endsWith("questa modifica non è stata salvata"), true, r.messaggio);
+});
+
+/* ── avvisaSeNonSalva: l'avviso sta sul FABBRICANTE delle scritture ──
+   ⛔ E LE PROVE QUI SOTTO SONO SINCRONE, con gli `await` fatti PRIMA, al
+   livello del modulo. La prima stesura le aveva messe dentro un
+   `inVolo.push(...)` — che è il meccanismo di `run-kpi.mjs` e in questo file
+   **non esiste**: sarebbero girate dopo il `process.exit`, cioè mai, e il
+   totale sarebbe salito di tre senza che nessuna asserzione fosse guardata.
+   È la trappola scritta in CLAUDE.md, ripescata dal punto 2 (si controlla
+   che il totale sia salito) e non dal punto 1. */
+const fatti5a = [];
+const finto5a = {
+  aggiungi: async () => { throw Object.assign(new Error("nope"), { code: "permission-denied" }); },
+  aggiorna: async (x) => "ok:" + x,
+  letture: () => "non è una scrittura",
+};
+const avvolto5a = H.avvisaSeNonSalva(finto5a, (m, t) => fatti5a.push([m, t]));
+let esito5a = null, buono5a = null;
+try { await avvolto5a.oggetto.aggiungi("x"); esito5a = "risolta"; }
+catch (e) { esito5a = "rifiutata:" + (e && e.code); }
+buono5a = await avvolto5a.oggetto.aggiorna("y");
+
+test("avvisaSeNonSalva: avvolge le scritture e NON le letture", () => {
+  eq(avvolto5a.avvolte.includes("aggiungi"), true, "aggiungi");
+  eq(avvolto5a.avvolte.includes("aggiorna"), true, "aggiorna");
+  eq(avvolto5a.avvolte.includes("letture"), false, "una lettura non è una scrittura");
+  eq(avvolto5a.oggetto.letture(), "non è una scrittura", "e continua a funzionare");
+});
+test("avvisaSeNonSalva: una scrittura che fallisce avvisa con le parole giuste", () => {
+  eq(fatti5a.length, 1, "un avviso solo, non uno per tentativo");
+  eq(String(fatti5a[0][0]).endsWith("questa modifica non è stata salvata"), true, fatti5a[0][0]);
+  eq(/permission|denied|nope/i.test(String(fatti5a[0][0])), false, "nessun codice d'errore all'utente");
+  eq(fatti5a[0][1], "info", "un accesso negato non è un guasto: tono informativo");
+});
+test("avvisaSeNonSalva: l'errore si RILANCIA a chi lo sa gestire", () => {
+  eq(esito5a, "rifiutata:permission-denied", "chi ha un catch continua a vederlo");
+});
+test("avvisaSeNonSalva: una scrittura riuscita passa il suo valore senza rumore", () => {
+  eq(buono5a, "ok:y", "il valore torna intatto");
+  eq(fatti5a.length, 1, "e nessun avviso in più");
+});
+/* ⚠️ E LA STESSA TRAPPOLA È STATA RIFATTA UNA RIGA DOPO AVERLA SCRITTA: questa
+   prova restituiva una promessa dal corpo del `test()`, che è sincrono e non
+   la aspetta. L'`await` va SEMPRE qui fuori, e nel test resta solo il
+   confronto. */
+let rotto5a = null;
+{
+  const b = H.avvisaSeNonSalva(
+    { aggiorna: async () => { throw Object.assign(new Error("x"), { code: "unavailable" }); } },
+    () => { throw new Error("il toast è rotto"); });
+  try { await b.oggetto.aggiorna(); } catch (e) { rotto5a = e && e.code; }
+}
+test("avvisaSeNonSalva: un avviso rotto non peggiora il guasto", () => {
+  eq(rotto5a, "unavailable", "arriva l'errore vero, non quello dell'avviso");
+});
+
+/* ══════════════════════════════════════════════════════════════════════
+   LA SOGLIA DEI GRAFICI HA UNA FORMA SOLA
+   ⛔ Nasce da un difetto vero: la miniatura del Quadro di Sentinella non
+   disegnava NIENTE — percorso `M2.0 NaN…`, riga della soglia `y1="NaN"`,
+   linea e area 0×0 px — sulla dimostrazione e sulla prima schermata dell'app,
+   con la console pulita e nessuna prova rossa. `disegnaSpark` costruiva la
+   scala con `Math.min(v, s.soglia)` sulla soglia **grezza**, mentre quaranta
+   righe più in giù il verdetto la leggeva **normalizzata**: con la forma
+   `{ valore, inclusiva }` — l'unica che Sentinella usa — quel `Math.min` fa
+   NaN. Un attributo SVG non valido non solleva niente.
+   ⚠️ E si rompeva **solo dove aveva qualcosa da dire**: senza soglia la
+   miniatura disegnava benissimo. Il difetto stava esattamente sui punti che il
+   prodotto esiste per far vedere.
+   Queste prove stanno in `node` e non in un banco del browser di proposito:
+   `normSoglia` prende un valore e ne restituisce un altro, quindi la sua
+   difesa gira sempre. Il browser è servito a SCOPRIRLO, non a tenerlo chiuso.
+   ══════════════════════════════════════════════════════════════════════ */
+const { readFileSync } = await import("node:fs");
+const { createRequire } = await import("node:module");
+const G = createRequire(import.meta.url)(join(HERE, "../../../shared/dw-grafici.js"));
+const normSoglia = (G.dwGrafici || G).geometria.normSoglia;
+const SRC_G = readFileSync(join(HERE, "../../../shared/dw-grafici.js"), "utf8");
+/* ⛔ E QUI LA CONTROPROVA HA BOCCIATO LA MIA PRIMA STESURA, che è il motivo per
+   cui si fa. Avevo scritto un aiuto `scalaRegge = Number.isFinite(Math.min(10,
+   normSoglia(s).valore ?? Infinity))` e ci avevo appeso tre asserzioni: legge
+   benissimo, e **non guardava `disegnaSpark`**. Era una COPIA della riga della
+   scala, scritta nel test — cioè esattamente la copia debole che questa casa
+   vieta, commessa dentro la difesa contro una copia debole. Rimettendo il
+   difetto vero nel motore, quelle tre asserzioni restavano verdi.
+   La riga della scala non si può chiamare da `node` (vuole un DOM), quindi la
+   sua difesa è **sul sorgente**: nessuno dei due disegni ricava un minimo o un
+   massimo dalla soglia GREZZA. È la quarta causa di «non distingue» —
+   l'iniezione era vera e la prova guardava un'altra funzione. */
+const scalaGrezza = (SRC_G.match(/Math\.(?:min|max)\([^)]*\bs\.soglia\b/g) || []);
+
+test("normSoglia: la forma di Sentinella non manda la scala a NaN", () => {
+  const r = normSoglia({ valore: 40, inclusiva: true });
+  eq(r.valore, 40, "il valore esce numerico, non l'oggetto");
+  eq(r.inclusiva, true, "e l'inclusiva resta");
+  eq(scalaGrezza.length, 0,
+    `la scala ricava min/max dalla soglia GREZZA in ${scalaGrezza.length} punti: `
+    + "con la forma di Sentinella quel Math.min fa NaN e la miniatura non disegna niente "
+    + JSON.stringify(scalaGrezza));
+});
+test("normSoglia: il numero nudo resta ammesso, e non è inclusivo di serie", () => {
+  eq(normSoglia(40).valore, 40, "l'esempio d'uso in cima al motore passa un numero");
+  eq(normSoglia(40).inclusiva, false,
+    "di serie una lettura PARI alla soglia non è un superamento: lo dice la norma, non il grafico");
+});
+test("normSoglia: quello che non è un numero risponde null, non zero", () => {
+  /* ⛔ il principio del fondatore applicato alla geometria: un fondo scala
+     inventato è peggio di nessuna soglia disegnata. */
+  eq(normSoglia(null).valore, null, "assente");
+  eq(normSoglia({ inclusiva: true }).valore, null, "oggetto senza valore");
+  eq(normSoglia({ valore: "40" }).valore, null, "una stringa non è un numero");
+  eq(normSoglia({ valore: NaN }).valore, null, "e nemmeno un NaN dichiarato");
+});
+test("normSoglia: è UNA sola, e la usano tutt'e due le sorelle", () => {
+  /* ⚠️ Il difetto è nato da due normalizzazioni scritte a settecento righe di
+     distanza. La prova guarda il sorgente perché è l'unico modo di accorgersi
+     che ne rinasca una terza: il comportamento delle due sarebbe identico
+     fino al giorno in cui una delle due cambia. */
+  const src = readFileSync(join(HERE, "../../../shared/dw-grafici.js"), "utf8");
+  eq((src.match(/function normSoglia\(/g) || []).length, 1, "una definizione sola");
+  eq((src.match(/normSoglia\(s\.soglia\)/g) || []).length, 2,
+    "e due chiamanti: la miniatura e la linea");
+  eq(/typeof s\.soglia === 'object'/.test(src), false,
+    "nessuno normalizza più la soglia per conto suo");
 });
 
 console.log(`\nRisultato Helper: ${passed} passati, ${failed} falliti`);

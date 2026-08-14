@@ -1,3 +1,229 @@
 # Campo
 
 App operativo campo. Buyer: capocantiere.
+Si usa in cava, spesso dal telefono e con i guanti: bersagli grandi, poche
+digitazioni, tutto a pochi tocchi.
+
+Schermate (barra in basso): **Quadro** · **Attività** · **Squadre** ·
+**Turno** · **Storico**.
+
+## Cosa fa
+
+**Quadro** — i quattro numeri della giornata, l'avanzamento delle attività,
+l'obiettivo del turno con quanto manca, e **Cosa tocca a me**: si dice una
+volta qual è la propria squadra (e, se si vuole, il proprio nome) e restano
+solo le attività che tocca a chi guarda. La scelta resta sul telefono di chi
+la fa (localStorage), non è un dato dell'organizzazione.
+
+**Attività** — le attività della giornata con giorno di lavoro e turno, stato
+che avanza toccando la riga (pianificata → in corso → conclusa), causale e
+minuti di fermo sull'anomalia, Pareto dei fermi e fermi giorno per giorno.
+Ogni attività si **assegna a una squadra** e, se serve, a una **persona**; il
+filtro *Senza squadra* mostra ciò che non sta facendo nessuno.
+Su un'anomalia si può allegare una **foto**: si sceglie dal telefono, il
+browser la **rimpicciolisce da solo** con il canvas (lato lungo max 1280 px,
+sotto i 280 kB) e salva solo la versione piccola — così entra anche con la
+rete della cava. Si guarda in grande con un tocco e si può togliere. Nessun
+servizio esterno: tutto in locale.
+
+**Squadre** — le squadre (con il carico di lavoro di oggi: aperte e concluse)
+e l'anagrafica minima delle persone: nome, ruolo, squadra, disponibilità.
+Chi è segnato non disponibile non compare fra le persone assegnabili.
+Import/export CSV delle squadre.
+
+**Turno** — nell'ordine in cui si lavora davvero. Squadra e turno si scelgono
+una volta in cima alla pagina e valgono per checklist, appello e chiusura.
+1. **Checklist di inizio turno**: nove controlli (persone, mezzi, area,
+   emergenza), tre risposte grandi per voce (a posto / non a posto / N.A.),
+   salvataggio immediato a ogni tocco, chiusura con l'ora. Cambiare una
+   risposta dopo la chiusura la riapre.
+2. **Chi c'è oggi** — l'appello: due risposte per persona (c'è / non c'è) con
+   l'ora. Chi non è ancora spuntato resta *da spuntare*: «non lo so» non è
+   «non c'è», e su un appello di emergenza la differenza è tutto. Elenco
+   esportabile in CSV per il punto di raccolta.
+3. **Meteo e condizioni del sito**: cielo, piste, visibilità a scelte rapide
+   (un tocco per voce, si salva da sé) più le note sul sito. Spiega i fermi e
+   la produzione di una giornata storta, e in caso di contestazione dice
+   com'era la cava quel giorno. Registrato a mano: nessun servizio meteo,
+   nessun abbonamento.
+4. **Obiettivo del turno**: si punta solo a ciò che l'app misura davvero —
+   produzione dei rapportini (t, m³, viaggi) o attività concluse. Un obiettivo
+   per turno; barra di avanzamento e scostamento a colpo d'occhio.
+5. **Rapportini di turno**, copertura per squadra, totali di produzione,
+   consegna di turno in testo e **rapporto di fine turno stampabile**.
+6. **Chiusura del turno**: la firma della consegna — chi consegna, chi riceve,
+   l'ora, le note. Senza firma il rapporto stampato porta le righe vuote da
+   compilare a penna.
+7. **Piano di carico** importato da Genesi, con la carica reale per foro e lo
+   scostamento dal progetto — visibile **già durante il carico**, non solo a
+   volata finita — e il **consuntivo che torna a Genesi**.
+
+### Il ponte con Genesi, nei due sensi
+
+Il giro è chiuso: Genesi progetta, Campo registra, Genesi impara.
+
+1. **Genesi → Campo.** Da Genesi, *Esporta piano di carico (CSV per il
+   fochino)*. Colonne lette da Campo: `foro; x; fila; prof; prog; borr; rit`.
+2. **In Campo.** Si tocca un foro e si scrive la **carica reale** in chili.
+   L'app calcola lo scostamento dal progetto e lo colora (≤10% verde, ≤25%
+   giallo, oltre rosso). In cima al registro ci sono **due** numeri diversi e
+   servono a due cose diverse: la *proiezione a fine volata* (i fori non ancora
+   caricati contati a progetto) e lo scostamento **sui soli fori già caricati**,
+   che è quello che permette di accorgersi dell'errore **mentre** c'è ancora
+   tempo per correggerlo. Se con un foro il carico esce di tolleranza, l'app
+   lo dice subito e ricorda quanti fori restano per rientrare.
+3. **Campo → Genesi.** *Esporta consuntivo (CSV)*. Stessa forma del file
+   arrivato — punto e virgola, una riga di intestazione, una riga per foro:
+
+   ```
+   data;turno;foro;carica_prog_kg;carica_reale_kg;scarto_pct;scarto_kg;squadra;operatore
+   ```
+
+   Le prime sei colonne sono quelle che Campo esportava già e non sono
+   cambiate: un file vecchio resta leggibile. Le tre in fondo sono quelle che
+   mancavano perché il giro servisse a qualcosa — lo scarto in **chili e col
+   segno** (`scarto_pct` è arrotondato all'unità e senza verso: nato per il
+   badge in lista, non basta a calibrare) e **chi** ha registrato la carica,
+   foro per foro. `carica_reale_kg` è scritta grezza, senza arrotondamenti.
+4. **In Genesi.** *Riconciliazione → Importa consuntivo da Campo (CSV)*: chili
+   reali, fori effettivi e scostamento medio si riempiono da soli. Pezzatura,
+   PPV e gittata **no**: in Campo nessuno li misura, e restano da compilare a
+   mano.
+
+Chi registra la carica reale finisce nel documento del foro (`da`, `squadra`,
+presi da *Cosa tocca a me*): se lì non c'è nessun nome il campo resta **vuoto**,
+non si inventa un nome.
+
+### «E poi?» — dal fermo all'azione correttiva (ponte P4, Campo → Scudo)
+
+Al fronte si registra che una cosa si è fermata, con la **causale** e i
+**minuti persi**. Fino a ieri la riga moriva lì: nessun responsabile, nessuna
+data, nessuna chiusura. È anche la prima domanda che fa un ispettore —
+*«avete registrato il problema, e poi?»* — e la risposta non esisteva.
+
+Campo **non costruisce un secondo meccanismo**: la macchina che dà seguito a un
+fatto (aperta → in corso → chiusa, con responsabile e scadenza) è già in
+**Scudo**, nello scadenzario delle azioni correttive, ed è la stessa che usano
+gli infortuni, le ispezioni e i superamenti ambientali di Sentinella. Qui si
+aggiunge solo una provenienza nuova: `origineTipo: "fermo"`,
+`origineApp: "campo"`.
+
+In *Attività → E poi? Le azioni correttive* stanno **tutti i fermi ancora
+aperti**, di ogni giornata e non solo di quella scelta nel selettore: un fermo
+aperto tre giorni fa è proprio quello che va rincorso. Un tocco su *Apri azione
+correttiva* propone il testo, la scadenza e il responsabile — e l'azione nasce
+**in Scudo**, già collegata al fermo, portandosi dietro la fotografia del fatto
+scritta in italiano (Scudo non può leggere le collezioni di Campo).
+
+Tre cose che qui non si dicono, e sono la parte importante:
+
+- un fermo **senza nessuna azione collegata non è «a posto»**: è **scoperto**,
+  e la riga di riepilogo usa quella parola;
+- se **Scudo non si riesce a leggere** non si scrive «zero azioni»: si scrive
+  che non lo sappiamo. `coperturaFermi` lo dichiara con la bandiera
+  `leggibile`, e la schermata la legge;
+- **rimettere in marcia il frantoio non chiude l'azione correttiva**: quando
+  l'attività torna «in corso» il fermo esce dalle anomalie, ma se l'azione è
+  ancora da chiudere la riga **resta**, marcata come ripartita — altrimenti
+  sparirebbe dalla vista senza che nessuno l'abbia risolta.
+
+E il tempo perso non misurato **non vale zero**: un fermo senza minuti si
+scrive «senza minuti», anche dentro la nota che arriva a Scudo.
+
+### Il turno chiuso non si tocca più
+
+Una firma vale qualcosa solo se, dopo la firma, il turno non cambia più.
+Quando un turno (giorno + turno) è chiuso, **tutti** i punti di salvataggio
+che lo riguardano rifiutano la scrittura e dicono perché: stato, causale,
+minuti e foto delle attività, modifica e creazione di attività, rapportini
+(creazione, invio, richiamo in bozza, eliminazione) e con essi la produzione,
+checklist, appello, meteo, obiettivo del turno, import del piano di carico e
+carica reale dei fori. I comandi si vedono spenti, le righe portano la
+pillola **turno chiuso**.
+
+Non è il divieto di correggere: è il divieto di correggere **di nascosto**.
+Il turno si **riapre**, ma la riapertura chiede **chi** e **perché**, e resta
+scritta per sempre — sotto la chiusura e dentro il rapporto di fine turno,
+anche dopo che il turno è stato rifirmato.
+
+**Compatibilità**: le registrazioni salvate prima che esistessero giorno e
+turno (senza `data` o senza `turno`) non appartengono a nessun turno chiuso e
+restano modificabili come sempre. Anagrafica di squadre e persone: sempre
+modificabile, non è un dato di turno.
+
+Il **rapporto di fine turno stampabile** raccoglie tutto: quadro, checklist,
+meteo e condizioni del sito, personale presente, obiettivo e scostamento,
+attività con chi era assegnato a cosa, fermi per causale, **foto delle
+anomalie**, produzione, rapportini, firme di chiusura ed eventuali
+**riaperture** (chi, quando, perché).
+
+**Storico** — la settimana in cava: 7, 14 o 30 giorni, giornata per giornata
+(prodotto, minuti di fermo, attività concluse, rapportini), grafico della
+produzione per giornata ed export CSV. Toccando una giornata la si **apre**:
+attività e rapportini si spostano su quel giorno.
+
+## Come è fatto
+
+- `index.html` — pagina autoconsistente: nessuna libreria, nessun CDN.
+  Struttura estetica identica al core Deepwork (`index.html` alla radice);
+  palette propria di Campo (cotto/terracotta, `docs/PALETTE_APP.md` §3.2).
+  Niente `alert()`/`confirm()`/`prompt()`: si usano il toast e la modale del
+  core. Grafici dal motore condiviso `shared/dw-grafici.js`.
+- `campo-data.js` — accesso ai dati e **funzioni pure** (calcoli testabili
+  senza browser). Ogni accesso passa da `orgCollection` dell'SDK Deepwork ID:
+  isolamento totale fra organizzazioni, mai percorsi Firestore a mano.
+  Senza backend l'app parte in modalità demo/tour con dati d'esempio.
+
+Collezioni (sotto `organizations/{org}/apps/campo/`): `attivita`, `squadre`,
+`operatori`, `rapportini`, `obiettivi`, `checklist`, `presenze`, `chiusure`,
+`meteo`, `pianocarico`.
+Il blocco delle scritture passa da **una sola** funzione pura
+(`turnoChiuso(chiusure, data, turno)`): se un punto di salvataggio non passa
+di lì, il blocco non serve a niente.
+Il **giorno di lavoro** (`data`, formato aaaa-mm-gg) è la chiave di tutto:
+senza di esso non esistono storico né conteggi veri.
+
+## Numeri: mostrati ≠ scambiati
+
+Due convenzioni, e non vanno mescolate.
+
+- **Mostrati** (schermo, toast, note dei grafici, `aria`, rapporto stampabile,
+  consegna `.txt`): all'italiana — **virgola** decimale, **punto** per le
+  migliaia. Passano tutti da `numeroIt(v, dec)` / `segnoIt(v, dec)` /
+  `numeroItDa(v, dec)` di `campo-data.js`. Sono **funzioni pure**: una sola
+  riga da correggere se la convenzione cambia. `numeroItDa` è per i valori che
+  arrivano come **testo grezzo** da un file (le colonne `x`, `prof`, `borr`,
+  `rit` del piano di carico): li interpreta con `numIt` e li riscrive
+  all'italiana senza toccare il file.
+- **Scambiati** (`campo_consuntivo_carico.csv` verso Genesi,
+  `campo_storico.csv`, `campo_squadre.csv`, e il `value` degli
+  `input[type=number]`): **punto** decimale, nessun separatore di migliaia.
+  Qui `numeroIt` **non si usa**: quei numeri sono dati, non testo, e chi li
+  rilegge conta su quel formato. `pianoConsuntivoCsv` scrive
+  `carica_reale_kg` **grezza**, senza arrotondamenti.
+
+Le **unità di misura non si scrivono mai in maiuscolo**: `m³` non è `M³` e
+`µg/m³` non è `MG/M³` (milligrammi, mille volte tanto). Dove un'unità sta
+dentro un testo messo in maiuscolo per stile si avvolge in
+`<u class="uni">…</u>`. Nei grafici **non serve ricordarsene**: il motore
+condiviso avvolge da sé l'unità in `.dwg-u` e le toglie il maiuscolo
+(`shared/dw-grafici.js`), quindi l'override locale che stava qui è stato
+rimosso — spegneva il maiuscolo anche a «Voce» e «Quota», allontanando la
+tabella dal core invece di avvicinarla.
+
+## Verifiche
+
+- Sintassi: estrarre gli script inline e passarli a
+  `node --input-type=module --check`.
+- **Giro dei ponti**: esportare il consuntivo da Campo, rileggerlo in Genesi
+  (Riconciliazione → *Importa consuntivo da Campo*) e controllare che i chili,
+  lo scostamento, chi ha registrato e la data arrivino **identici**. È la
+  prova che dice se una formattazione da schermo è finita in un file.
+- Vista: server statico locale + Chromium headless, schermate a **1280px e
+  390px** (in cava si guarda dal telefono), tema scuro, chiaro e sole.
+- Blocco del turno chiuso: chiudere un turno e poi provare **uno per uno**
+  tutti i punti di salvataggio, forzando anche i comandi disabilitati (il
+  blocco deve stare nel salvataggio, non solo nell'interfaccia); poi riaprire
+  e verificare che tornino modificabili e che la riapertura resti scritta.
+- Compatibilità: servire alla pagina dati vecchi **senza data e senza turno**
+  e verificare che restino modificabili anche a turno di oggi chiuso.
