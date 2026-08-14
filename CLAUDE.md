@@ -2143,6 +2143,21 @@ Perché serva davvero e non produca elenchi generici, cinque vincoli:
   correzione, non cancellando la riga**: una riga di roadmap che propone un
   lavoro **manda qualcuno a farlo**, e un difetto immaginario lasciato scritto
   costa un cantiere intero.
+  ⛔ **E IL RIGHELLO PIÙ USATO DI TUTTI HA UN MODO DI RISPONDERE «ZERO» SENZA
+  AVER CERCATO: LA PIPE SCAPPATA DENTRO `grep -E`.** Trovato il 14/08 da una
+  ricerca che riverificava il proprio predecessore. `grep -cE 'a\|b'` **non è**
+  «a oppure b»: la barra scappata è un carattere **letterale**, quindi cerca la
+  stringa `a|b` e non la trova mai. Provato nei due versi su due righe
+  `alfa`/`beta`: pipe vera → **2**, pipe scappata → **0**.
+  ⚠️ E il modo in cui inganna è quello che questo file raccoglie da mesi: **non
+  fallisce**. Stampa `0` con la stessa faccia con cui direbbe la verità, e in un
+  documento di ricerca quello zero diventa un «confermata assente». Era successo:
+  la riga diceva «`abbancament|ripristino ambientale` → 0» mentre quel termine
+  era **già** nel codice quel giorno.
+  La difesa è la stessa di ogni censimento: **si prova il righello su un caso
+  che DEVE trovare** prima di credere a uno zero. Un `grep` che non trova niente
+  su un termine che sai esserci ti sta dicendo che il comando è rotto, non che
+  il codice è pulito.
 - ⛔ **REGOLE DI SICUREZZA FIRESTORE — E IL COMANDO SCRITTO QUI NON FUNZIONAVA
   IN QUESTO CONTENITORE.** Misurato l'08/08, e la riga precedente sbagliava due
   volte: dava `emulators:exec … "cd tests && npm test"` (che qui **non parte**)
