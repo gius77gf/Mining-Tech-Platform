@@ -2120,6 +2120,29 @@ Perché serva davvero e non produca elenchi generici, cinque vincoli:
   accusa il codice fa perdere più tempo di nessuna prova. Se invece il test è
   invecchiato perché il prodotto è migliorato, si corregge rendendo
   l'asserzione **più giusta, non più permissiva** (vedi `contiene`).
+  ⛔ **E IL 14/08 QUELLA RIGA È STATA PAGATA TRE VOLTE IN UNA NOTTE, SEMPRE
+  NELLA STESSA VESTE: UN CSV DI PROVA CON LE COLONNE INDOVINATE.** Non un test
+  di suite — una misura fatta a mano per giudicare un lettore, che è il momento
+  in cui nessuno si sente in dovere di verificare la propria fixture.
+  · `scudo.parseScadenzeCsv`: passate tre colonne dove ne vuole quattro →
+    **0 righe su 3**, e stavo per scrivere che il prodotto scartava tutto;
+  · `conti.parseFattureCsv`: colonne in ordine diverso → **0 su 4**, con la riga
+    valida accusata di non avere l'importo;
+  · `sentinella.scartiVolateCsv`: `data;ora;cava` invece di `data;fronte;nFori`
+    → il messaggio nominava le righe perse con l'**ora**, e ne ho scritto una
+    voce di roadmap **falsa**, poi corretta.
+  ⚠️ Il segno è sempre lo stesso e va imparato: **un lettore che scarta TUTTO,
+  compresa la riga che hai scritto sana, non è un lettore severo — è un lettore
+  a cui hai dato un'altra tabella.** Un difetto vero ne scarta *alcune*.
+  La difesa costa dieci secondi ed è una riga sola: **prima di scrivere il CSV
+  si apre il lettore e si legge la sua destrutturazione** (`const [a, b, c] =
+  parseCsvLine(r)`), che è la sola dichiarazione di quali colonne vuole e in
+  quale ordine. Farlo dopo, quando il numero non torna, vuol dire aver già
+  scritto un'accusa.
+  ⛔ E se l'accusa è già finita in un documento, **si corregge scrivendo la
+  correzione, non cancellando la riga**: una riga di roadmap che propone un
+  lavoro **manda qualcuno a farlo**, e un difetto immaginario lasciato scritto
+  costa un cantiere intero.
 - ⛔ **REGOLE DI SICUREZZA FIRESTORE — E IL COMANDO SCRITTO QUI NON FUNZIONAVA
   IN QUESTO CONTENITORE.** Misurato l'08/08, e la riga precedente sbagliava due
   volte: dava `emulators:exec … "cd tests && npm test"` (che qui **non parte**)
