@@ -31538,5 +31538,138 @@ test("frasePersi · ⚠️ NIENTE `esc()`: la frase esce come l'utente l'ha scri
 }
 /* ===== fine shared · le due sorelle ======================================= */
 
+/* ===== i ripieghi con la sinistra fra parentesi ===========================
+   ⛔ LA FAMIGLIA CHE IL CENSIMENTO NON VEDEVA. `ripieghi-silenziosi.mjs`
+   voleva un IDENTIFICATORE a sinistra del `||`, quindi `(f() && f().x) || 100`
+   e `parseNum(x) || 30` gli sfuggivano: allargata la forma, il conto è passato
+   da 269 a 370 su quindici superfici. Sulle quattro app di questo cantiere i
+   ripieghi con la sinistra fra parentesi sono **56** — conti 7, flotta 13,
+   terra 4, genesi 32 — e letti uno per uno danno: 18 che NON sono ripieghi
+   (tie-break di `sort` e OR booleani che la regex prende per tali, perché
+   `String(` e `Math.` cominciano con una maiuscola), 12 di disegno o
+   matematica, 5 riletture del valore che il progetto aveva, 4 lookup di
+   catalogo su tendine costruite dal catalogo stesso (irraggiungibili), 3 già
+   dichiarati e sorvegliati altrove, e **9 al momento del CALCOLO in Genesi**,
+   di cui 2 costanti di calibrazione e 7 difetti veri, corretti qui sotto.
+   ⚠️ Prove SINCRONE e PRIMA del riepilogo: `await Promise.all(inVolo)` sta a
+   metà file, e una prova asincrona appesa dopo verrebbe messa in volo senza
+   che il totale l'aspetti. */
+{
+  const PAGINA_G20 = readFileSync(join(HERE, "../../genesi/genesi.html"), "utf8");
+  const CODICE_G20 = [...PAGINA_G20.matchAll(/<script\b[^>]*>([\s\S]*?)<\/script>/g)]
+    .map((m) => _tok.senzaCommenti(m[1])).join("\n");
+  /* la volata di progetto, la stessa delle prove qui sopra: 3,0 × 3,5 × 10 m */
+  const VOL = 3.0 * 3.5 * 10, A_CALCARE = 8.1;
+
+  test("⛔ Genesi · G20: il giro di andata e ritorno perdeva l'onestà del file", () => {
+    /* ⛔ IL DIFETTO, MISURATO. L'esportatore scrive `prof: null` e `kg: P.kg`
+       (che può essere `null`) quando il dato non c'è — è una correzione già
+       fatta, e il suo commento dice «chi rilegge la sa già trattare». Chi
+       rilegge era l'importatore, che faceva `parseFloat(x.prof)||13` e
+       `parseFloat(x.kg)||50`: `parseFloat(null)` è NaN, il buco si riempiva, e
+       `gsv` scriveva i due numeri DENTRO I CAMPI, dove si leggono come un dato
+       che qualcuno ha scritto. */
+    const inventato = 50, dichiarato = null;
+    eq(Math.round(genesi.consumoSpecifico(inventato, VOL) * 1e4) / 1e4, 0.4762,
+      "col 50 kg inventato il consumo specifico usciva 0,4762 kg/m³");
+    eq(genesi.consumoSpecifico(dichiarato, VOL), null, "col `null` che il file dichiara: non si conta");
+    const fInv = genesi.fragKuzRam({ kg: inventato, vol: VOL, A: A_CALCARE, RWS: 100 });
+    const fVer = genesi.fragKuzRam({ kg: dichiarato, vol: VOL, A: A_CALCARE, RWS: 100 });
+    eq(Math.round(fInv.x50 * 10) / 10, 30.8, "e la pezzatura prevista usciva 30,8 cm");
+    eq(fInv.calcolabile, true, "con la bandiera che diceva «calcolabile»");
+    eq(fVer.x50, null, "adesso la pezzatura non si calcola");
+    eq(fVer.calcolabile, false, "e la bandiera lo dice");
+    eq(fVer.carica, true, "col motivo giusto: è la carica per foro a mancare");
+    /* ⛔ E DOVE FINIVA: la MIC è il numero da cui dipende il PPV. */
+    const simultanei = Array.from({ length: 12 }, () => ({ tDet: 0 }));
+    eq(genesi.micFinestra(simultanei, inventato), 600, "la MIC a fori simultanei dichiarava 600 kg");
+    eq(genesi.micFinestra(simultanei, dichiarato), null, "e adesso non si conta");
+    eq(genesi.caricaTotale(12, inventato), 600, "la carica totale seguiva lo stesso numero");
+    eq(genesi.caricaTotale(12, dichiarato), null, "e adesso non lo segue");
+  });
+
+  test("⛔ Genesi · G20: la media MISTA era la forma peggiore — un numero che non appartiene a nessun foro", () => {
+    /* 6 fori a 30 kg dichiarati e 6 senza: oggi la media li mescolava col
+       ripiego. Il verso è quello che gonfia, e il numero non è di nessuno. */
+    const misto = (6 * 30 + 6 * 50) / 12;
+    eq(misto, 40, "la media mista dava 40 kg");
+    eq(Math.round(genesi.consumoSpecifico(misto, VOL) * 1e4) / 1e4, 0.381, "consumo specifico 0,381 kg/m³");
+    eq(genesi.caricaTotale(12, misto), 480, "e carica totale 480 kg");
+    eq(Math.round(genesi.consumoSpecifico(30, VOL) * 1e4) / 1e4, 0.2857,
+      "la media dei soli fori che il dato ce l'hanno dà 0,2857 kg/m³");
+    eq(genesi.caricaTotale(12, 30), 360, "e 360 kg: un terzo in meno di carica dichiarata");
+    /* la media dei soli dichiarati sta nella pagina, e chi non l'aveva si conta */
+    eq(/const _mediaDichiarata = \(chiave\)=>\{/.test(CODICE_G20), true,
+      "l'importatore fa la media sui fori che il dato ce l'hanno");
+    eq(/senza: fori\.length - letti\.length/.test(CODICE_G20), true,
+      "e conta quanti non ce l'avevano");
+    eq(/_senza\?' — '\+_senza\+': la media è sui fori che il dato ce l\\'hanno':''/.test(CODICE_G20), true,
+      "⛔ e la bandiera è LETTA da qualcuno: il messaggio dell'import la dice (regola 20 di run-stile)");
+  });
+
+  test("⛔ Genesi · G20: i sette ripieghi corretti passano da `valoreCampo`, e le costanti inventate non ci sono più", () => {
+    /* ⛔ DUE SORELLE, DUE CONTRATTI. `gvv` dichiara nel proprio commento che su
+       un valore illeggibile risponde NaN «MAI zero: chi chiama tiene il valore
+       di prima invece di progettare su un numero inventato», e `liveApply` lo
+       faceva (`gvv('pKg')||P.kg`) mentre `readParams` inventava `||60`.
+       La cura non è un `if`: è la funzione di casa che quel contratto ce l'ha
+       già, usata 18 volte nella stessa pagina. */
+    for (const [re, che] of [
+      [/gvv\('pProf'\)\s*\|\|\s*10/, "readParams · profondità"],
+      [/gvv\('pKg'\)\s*\|\|\s*60/, "readParams · carica per foro"],
+      [/parseFloat\(x\.prof\)\s*\|\|\s*13/, "import · profondità del foro"],
+      [/parseFloat\(x\.kg\)\s*\|\|\s*50/, "import · carica del foro"],
+      [/gvv\('dDeckStem'\)\s*\|\|\s*1/, "applyDesign · borraggio fra deck"],
+      [/gvv\('dlRelLo'\)\s*\|\|\s*5/, "relief · estremo basso della finestra"],
+      [/gvv\('dlRelHi'\)\s*\|\|\s*15/, "relief · estremo alto della finestra"],
+    ]) eq(re.test(CODICE_G20), false, `il ripiego di ${che} non c'è più`);
+    for (const re of [
+      /P\.prof = valoreCampo\(gvv\('pProf'\), P\.prof, 6, 18\)/,
+      /P\.kg = valoreCampo\(gvv\('pKg'\), P\.kg, 10, 120\)/,
+      /P\.prof = valoreCampo\(_dProf\.media, P\.prof, 6, 18\)/,
+      /P\.kg = valoreCampo\(_dKg\.media, P\.kg, 10, 120\)/,
+      /D2\.deckStem = valoreCampo\(gvv\('dDeckStem'\), D2\.deckStem, 0\.3, 4\)/,
+      /D2\.relLo=valoreCampo\(gvv\('dlRelLo'\), D2\.relLo, 0\.5, 60\)/,
+      /D2\.relHi=valoreCampo\(gvv\('dlRelHi'\), D2\.relHi, D2\.relLo\+0\.5, 99\)/,
+    ]) eq(re.test(CODICE_G20), true, `${re.source.slice(0, 34)}… passa da valoreCampo`);
+    /* ⛔ E IL CLAMP NON SI POTEVA TENERE INTORNO: `Math.max(10, Math.min(120,
+       null))` fa **10**, cioè il `null` diventerebbe un numero un carattere
+       dopo essere nato. È la ragione per cui `valoreCampo` stringe dentro. */
+    eq(Math.max(10, Math.min(120, null)), 10, "il clamp su `null` dà 10, non `null`");
+    eq(genesi.valoreCampo(NaN, 35, 10, 120), 35, "campo illeggibile: tiene il valore del progetto");
+    eq(genesi.valoreCampo(NaN, null, 10, 120), null, "e `null` solo se non c'è nessuno dei due");
+    eq(genesi.valoreCampo(0, 35, 10, 120), 10, "uno zero SCRITTO resta un dato, e prende il clamp");
+  });
+
+  test("⛔ Genesi · G20: `Math.round` su una carica assente scriveva uno ZERO dentro il campo", () => {
+    /* stessa famiglia già chiusa in `syncDesignInputs` per `dKg`, rimasta
+       aperta nell'import: `gsv` sa già arrotondare e sa già che un valore che
+       non c'è si scrive con un campo VUOTO. */
+    eq(Math.round(null), 0, "`Math.round(null)` fa zero — un dato assente travestito da misura");
+    eq(/gsv\('pKg',Math\.round\(P\.kg\),0\)/.test(CODICE_G20), false, "l'arrotondamento a mano non c'è più");
+    eq(/gsv\('pProf',P\.prof,1\); gsv\('pKg',P\.kg,0\);/.test(CODICE_G20), true, "e `gsv` riceve il valore com'è");
+  });
+
+  test("⏱️ Genesi · G20: le due costanti di CALIBRAZIONE non sono ripieghi, e il loro gancio è morto", () => {
+    /* ⚠️ `(CAL.muckpile&&CAL.muckpile.vFace0)||8` e `…throwAlphaDeg)||42` hanno
+       la forma del ripiego e non lo sono: nessun dato dell'utente sta dietro a
+       quel `||`, sono due costanti di fisica del cumulo con un gancio per
+       sovrascriverle da `calibrazione.json`. Il fatto misurabile è che il
+       gancio NON È MAI STATO COLLEGATO — il file di calibrazione dichiara solo
+       `cellaM`, `angoloRiposoDeg`, `rigonfiamento` e `blocchiGrandiAffondo`,
+       quindi il ripiego è il valore. Lasciate ferme: toccarle vorrebbe dire
+       muovere due costanti di modello senza una fonte, che è il contrario di
+       quello che questo cantiere fa. Il conto sta qui perché il giorno in cui
+       qualcuno le calibrasse questa prova cade e va aggiornata insieme. */
+    const CAL_J = JSON.parse(readFileSync(join(HERE, "../../genesi/calibrazione.json"), "utf8"));
+    eq(Object.keys(CAL_J.muckpile).sort(),
+      ["_provenienza", "angoloRiposoDeg", "blocchiGrandiAffondo", "cellaM", "rigonfiamento"],
+      "il file di calibrazione non dichiara né `vFace0` né `throwAlphaDeg`");
+    eq(/vFace0\)\|\|8/.test(CODICE_G20) && /throwAlphaDeg\)\|\|42/.test(CODICE_G20), true,
+      "le due costanti sono ancora scritte nella pagina, e sono il valore vero");
+  });
+}
+/* ===== fine i ripieghi con la sinistra fra parentesi ====================== */
+
 console.log(`\nRisultato KPI app: ${passed} passati, ${failed} falliti${inVolo.length ? `  ·  ${inVolo.length} prove asincrone aspettate` : ""}`);
 process.exit(failed > 0 ? 1 : 0);

@@ -2696,12 +2696,30 @@ function liveApply(){ if(playing) return;
 $('btnApply').onclick = ()=>{ if(playing) return; simSource='nuova'; if($('pTitle')) $('pTitle').textContent='Nuova volata'; readParams(); rebuild(); toast('\u2713 Volata generata'); };
 if($('inv-x50')) $('inv-x50').oninput = _invUpdate;   // calcolo inverso maglia da pezzatura-obiettivo
 if($('meas-in')) $('meas-in').oninput = _measUpdate;  // riconciliazione previsto-vs-reale da misure reali
+/* ⛔ G20 · DUE SORELLE, DUE CONTRATTI: `liveApply` (venti righe più su) su un
+   campo illeggibile tiene il valore del progetto — `gvv('pKg')||P.kg` — e
+   `readParams` inventava una costante, `||60` e `||10`. È la regola che `gvv`
+   dichiara di sé nel proprio commento («chi chiama tiene il valore di prima
+   invece di progettare su un numero inventato») scritta due volte, la seconda
+   più debole. La cura non è un `if`: è la funzione di casa che quel contratto
+   ce l'ha già (`valoreCampo`, usata 18 volte in `applyDesign`).
+   ⚠️ IL VERSO, misurato sul modulo: su una volata importata a 35 kg/foro e 15 m
+   di banco, svuotare i due campi e premere «Genera volata» dava 60 kg e 10 m —
+   consumo specifico 0,5714 kg/m³ invece di 0,2222 e X50 **27,4 cm invece di
+   53,3**, cioè una pezzatura dichiarata quasi il doppio più fine di quella del
+   progetto. È il verso che rassicura.
+   ⚠️ E `valoreCampo` risponde `null` solo se non c'è NESSUNO dei due: qui il
+   `null` arriva quando anche il progetto è senza carica (`P.kg=D2.kg` di
+   `simulaVolata2D`), ed è uno stato che la pagina sa già raccontare —
+   `consumoSpecifico` e `fragKuzRam` rispondono `null` e le loro bandiere lo
+   dicono. Uno zero SCRITTO resta un dato: `valoreCampo(0, 60, 10, 120)` dà 10,
+   il clamp su un valore vero. */
 function readParams(){
   P.fori = Math.max(6, Math.min(24, +$('pFori').value||12));
   P.ritardo = +$('pRit').value||42;
   P.dir = $('pDir').value;
-  P.prof = Math.max(6, Math.min(18, gvv('pProf')||10));
-  P.kg = Math.max(10, Math.min(120, gvv('pKg')||60));
+  P.prof = valoreCampo(gvv('pProf'), P.prof, 6, 18);
+  P.kg = valoreCampo(gvv('pKg'), P.kg, 10, 120);
   P.vento = Math.max(-4, Math.min(4, gvv('pVento')||0));
   P.profilo = []; P.foriH = null; P.holes = null; // demo manuale = fronte dritto, una fila, griglia regolare
   clearFrontMesh();                               // rimuove l'eventuale fronte 3D reale caricato
@@ -3000,23 +3018,66 @@ $('fileIn').onchange = async e=>{
     P.fori = Math.max(6, Math.min(24, fori.length));
     P.ritardo = [17,25,42,65].includes(step) ? step : 25;
     P.dir = dir;
-    P.prof = Math.max(6, Math.min(18, fori.reduce((s,x)=>s+(parseFloat(x.prof)||13),0)/fori.length));
-    P.kg = Math.max(10, Math.min(120, fori.reduce((s,x)=>s+(parseFloat(x.kg)||50),0)/fori.length));
+    /* ⛔ G20 · IL GIRO DI ANDATA E RITORNO PERDEVA PROPRIO L'ONESTÀ DEL FILE.
+       L'esportatore, quattrocento righe più su, scrive `prof: null` e
+       `kg: P.kg` (che può essere `null`) quando il dato non c'è, e il suo
+       commento dice «chi rilegge la sa già trattare». Chi rilegge è QUESTA
+       riga, e la trattava così: `parseFloat(null)` fa NaN, `||13` e `||50`
+       riempiono il buco, e `gsv` scrive i due numeri **dentro i campi**, dove
+       si leggono come un dato che qualcuno ha scritto.
+       ⚠️ IL VERSO, misurato chiamando il modulo coi due ingressi (12 fori,
+       3,0 × 3,5 × 10 m = 105 m³): con `kg: null` in tutti i fori l'import dava
+       50 kg/foro → consumo specifico **0,4762 kg/m³**, X50 **30,8 cm**
+       «calcolabile», carica totale **600 kg** e MIC a fori simultanei **600
+       kg** — che è un numero da cui dipende il PPV. Col `null` dichiarato dal
+       file sono tutti `null`, e le bandiere del modulo lo dicono. Rassicura.
+       ⚠️ E LA MEDIA MISTA ERA LA FORMA PEGGIORE: 6 fori a 30 kg dichiarati e 6
+       senza davano **40 kg**, un numero che non appartiene a nessun foro —
+       consumo 0,381 invece di 0,2857 e carica totale 480 invece di 360. La
+       media si fa sui fori che il dato ce l'hanno, e quanti non ce l'avevano
+       lo dice il messaggio: l'assenza di un dato non è un dato favorevole.
+       ⛔ Nessuna soglia toccata: qui si smette di inventare l'ingresso. */
+    const _mediaDichiarata = (chiave)=>{
+      const letti = fori.map(x=>{ const n = parseFloat(x[chiave]); return Number.isFinite(n) ? n : null; }).filter(n=>n!==null);
+      return { media: letti.length ? letti.reduce((s,n)=>s+n,0)/letti.length : null, senza: fori.length - letti.length };
+    };
+    const _dProf = _mediaDichiarata('prof'), _dKg = _mediaDichiarata('kg');
+    /* `valoreCampo` è il contratto di casa: il dato se c'è, il valore che il
+       progetto sta usando se non c'è, `null` se non c'è nessuno dei due. */
+    P.prof = valoreCampo(_dProf.media, P.prof, 6, 18);
+    P.kg = valoreCampo(_dKg.media, P.kg, 10, 120);
     /* FRONTE SAGOMATO da Deepwork: altezza per-foro (skyline) + profilo cresta (forma in pianta) */
     const fr = v.fronte || {};
     const LmImp = P.fori * INTERASSE;
-    const foriSorted = fori.map((x,i)=>({ x:+x.x||i, prof:Math.max(5,Math.min(20,parseFloat(x.prof)||P.prof)) })).sort((a,b)=>a.x-b.x);
-    P.foriH = foriSorted.slice(0, P.fori).map(o=>o.prof);
+    const foriSorted = fori.map((x,i)=>({ x:+x.x||i, prof:valoreCampo(parseFloat(x.prof), P.prof, 5, 20) })).sort((a,b)=>a.x-b.x);
+    /* ⛔ E LA SKYLINE NON SI DISEGNA SU PROFONDITÀ CHE NESSUNO HA DICHIARATO:
+       se nessun foro porta la sua, `P.foriH = null` — che non è un ripiego ma
+       lo stato che `readParams` usa già per dire «fronte dritto». Prima qui
+       stava `parseFloat(x.prof)||P.prof` dentro un `Math.max(5, …)`: col
+       progetto anch'esso senza profondità il clamp su `null` dà **5 m**, cioè
+       un banco inventato al posto di un fronte piatto. */
+    P.foriH = _dProf.senza === fori.length ? null : foriSorted.slice(0, P.fori).map(o=>o.prof);
     const srcLen = (+fr.lunghezza_m) || (foriSorted.length?foriSorted[foriSorted.length-1].x:LmImp) || LmImp;
     const xs = LmImp / (srcLen||1);
     P.profilo = Array.isArray(fr.profilo)
       ? fr.profilo.filter(p=>p&&p.x!=null).map(p=>({ x:(+p.x)*xs, z:Math.max(-8,Math.min(12,+(p.y||0))) })).sort((a,b)=>a.x-b.x)
       : [];
     $('pFori').value=P.fori; $('pRit').value=P.ritardo; $('pDir').value=P.dir;
-    gsv('pProf',P.prof,1); gsv('pKg',Math.round(P.kg),0);
+    /* ⛔ `Math.round(P.kg)` CON LA CARICA ASSENTE FA **0**, e `gsv` quello zero
+       lo scriveva nel campo — uno zero inventato dentro un input, che si legge
+       come un dato scritto da qualcuno. È lo stesso difetto già chiuso in
+       `syncDesignInputs` per `dKg`: `gsv` sa già arrotondare (`dec` = 0) e sa
+       già che un valore che non c'è si scrive con un campo VUOTO. */
+    gsv('pProf',P.prof,1); gsv('pKg',P.kg,0);
     clearFrontMesh();                               // una volata parametrica sostituisce l'eventuale fronte 3D
     rebuild();
-    toast('✓ Volata importata: '+_ricPlur(fori.length,'foro','fori')+(P.profilo.length?' · fronte sagomato':'')+(j.schemaV?' (schema v'+j.schemaV+')':''));
+    /* ⛔ E LA BANDIERA VA LETTA DA QUALCUNO, se no non protegge niente: quanti
+       fori il dato non ce l'avevano lo dice il messaggio dell'import, perché è
+       l'unico momento in cui qualcuno sta guardando quel file. Senza questa
+       riga la media «sui soli dichiarati» sarebbe un secondo numero muto. */
+    const _senza = [ _dKg.senza ? _ricPlur(_dKg.senza,'foro','fori')+' senza carica dichiarata' : '',
+                     _dProf.senza ? _ricPlur(_dProf.senza,'foro','fori')+' senza profondità' : '' ].filter(Boolean).join(' · ');
+    toast('✓ Volata importata: '+_ricPlur(fori.length,'foro','fori')+(P.profilo.length?' · fronte sagomato':'')+(j.schemaV?' (schema v'+j.schemaV+')':'')+(_senza?' — '+_senza+': la media è sui fori che il dato ce l\'hanno':''));
   }catch(err){ toast('Import fallito: '+err.message); }
   e.target.value='';
 };
@@ -6599,7 +6660,13 @@ function applyDesign(){
   if($('dCInn')) D2.cInnesco = Math.max(0, Math.min(500, gvv('dCInn')||0));
   if($('dValMat')) D2.valMat = Math.max(0, Math.min(500, gvv('dValMat')||0));
   if($('dDecks')) D2.decks = Math.max(1, Math.min(3, Math.round(+$('dDecks').value||1)));
-  if($('dDeckStem')) D2.deckStem = Math.max(0.3, Math.min(4, gvv('dDeckStem')||1));
+  /* ⛔ G20 · L'ULTIMO CAMPO DI QUESTA FUNZIONE CHE NON PASSAVA DA
+     `valoreCampo`: gli altri diciotto chiedono prima se il dato c'è, questo
+     inventava **1,0 m** — che è per giunta il valore di partenza di `D2`, cioè
+     il ripiego riportava di nascosto un borraggio fra deck che l'utente aveva
+     scelto (2,5 m) al valore di fabbrica, e `syncDesignInputs` lo riscriveva
+     nel campo come se l'avesse deciso lui. */
+  if($('dDeckStem')) D2.deckStem = valoreCampo(gvv('dDeckStem'), D2.deckStem, 0.3, 4);
   genMaglia2D(); drawDesign2D(); renderScheda2D(); renderInspector();   // editing 2D snello, il 3D si aggiorna su "Simula"
 }
 function syncDesignInputs(){
@@ -6728,8 +6795,13 @@ if($('dlInn')) $('dlInn').addEventListener('click', ()=>{ D2.inn=!D2.inn; syncLa
   if(typeof toast==='function') toast(D2.inn?'Rete di innesco attiva — sulle linee il ritardo che deve avere il raccordo':'Rete di innesco disattivata'); });
 if($('dlIsoStep')) $('dlIsoStep').addEventListener('change', ()=>{ D2.isoStep=Math.max(0,+$('dlIsoStep').value||0); drawDesign2D(); });
 ['dlRelLo','dlRelHi'].forEach(id=>{ const el=$(id); if(!el) return; el.addEventListener('change', ()=>{
-  D2.relLo=Math.max(0.5, Math.min(60, gvv('dlRelLo')||5));
-  D2.relHi=Math.max(D2.relLo+0.5, Math.min(99, gvv('dlRelHi')||15));
+  /* ⛔ G20 · LA FINESTRA DEL RELIEF È UN INGRESSO, NON UNA SOGLIA DI
+     SICUREZZA: è l'intervallo ms/m contro cui la mappa giudica ogni foro, e lo
+     sceglie chi progetta. Svuotando un campo si ripiegava su 5 e 15 — cioè i
+     fori venivano giudicati contro una finestra che l'utente non aveva scritto
+     e diversa da quella che aveva scelto. `valoreCampo` tiene la sua. */
+  D2.relLo=valoreCampo(gvv('dlRelLo'), D2.relLo, 0.5, 60);
+  D2.relHi=valoreCampo(gvv('dlRelHi'), D2.relHi, D2.relLo+0.5, 99);
   gsv('dlRelLo',D2.relLo,1); gsv('dlRelHi',D2.relHi,1);
   drawDesign2D(); renderScheda2D(); renderInspector(); }); });
 syncLayerUI();
