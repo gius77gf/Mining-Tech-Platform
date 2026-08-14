@@ -142,6 +142,57 @@ chiuse. Le aperte sono **24**; la pagina d'ingresso di
 
 ---
 
+- [x] ✅ **B11. IL RIPIEGO SILENZIOSO — censito a tre gradini in quattro app, e
+      il conto onesto è 343 → 144 → 1 vivo.** ⏱️ *14/08.* Nasce dal caso
+      capostipite chiuso stanotte in Genesi (`B = D2.B || SPALLA`: la distanza a
+      cui si mandano via le persone usciva da una spalla che nessuno aveva
+      scritto) e dal `Math.max(0, a − b)` di Conti, che reggeva su un invariante
+      non scritto da nessuna parte. La domanda: **un ingresso che l'utente non
+      ha scritto, sostituito da una costante di mestiere, e il numero che ne
+      esce si presenta come misurato.**
+      **I tre gradini, dichiarati perché il primo NON è il conto dei difetti:**
+      · **343 candidati** per forma (campo 55 · conti 122 · flotta 96 · terra
+        70). ⚠️ Un `grep` nudo ne dà **407**: i 64 di scarto sono **commenti** —
+        questo repository cita per esteso i difetti di questa famiglia, quindi
+        un censimento che non toglie i commenti **si conta addosso la propria
+        documentazione**;
+      · **144 pertinenti** (l'ingresso lo scrive l'utente e la costante è di
+        mestiere). I 199 scartati con la ragione: 186 ripieghi a zero su
+        contatori, 11 finestre di visualizzazione, 2 fra ordinamenti e conteggi;
+      · **1 difetto vivo, 1 latente, 2 non raggiungibili.**
+      **Il vivo — Flotta, `consumoRicambi`.** Un intervento *vecchio* nomina il
+      ricambio senza dire quante unità, e il conto ne mette **1**. Da lì passano
+      soglia proposta, pezzi da ordinare e spesa. Rimisurato da me sulla copia
+      di quello che si committa, con sei interventi identici salvo la quantità:
+      **6 pezzi col ripiego contro 18 col dato vero**, `attendibile` **false**
+      contro **true**. Direzione: **rassicura** — «non devi ordinare niente»
+      dove il magazzino va sotto. ⚠️ Ma il verso **non è garantito**: con un
+      pezzo che si consuma a frazioni l'errore va dall'altra parte. L'unica cosa
+      certa è che quel numero poggia su quantità mai scritte, ed è quello che
+      adesso l'app dichiara.
+      ⛔ **E il conto ESISTEVA GIÀ e non lo leggeva nessuno**: `grep -c
+      'daInterventiVecchi' apps/flotta/index.html` sul committato → **0**,
+      contro `senzaData` → 10 nello stesso file. Una dichiarazione che nessuno
+      legge non protegge niente — è la regola 20 di `run-stile`, e la cura è la
+      forma già in casa: la bandiera `attendibile` (vocabolario chiuso) letta in
+      **due** punti della pagina.
+      **Lasciato fermo, con la misura:** `canonePeriodo` di Conti risponde
+      `dovuto: 0` con l'aliquota mai impostata — uno zero tranquillo su soldi
+      dovuti all'ente — ma l'unico lettore rifà la guardia per conto suo e
+      mostra «—». Spostarla nel modulo è un cambio di contratto: **il rischio
+      resta la copia debole**, il giorno che un export chiami quella funzione.
+      E `rigaPesata`: forma pertinente, ingresso **non assentabile** (il form
+      pretende `prezzo > 0`, il lettore CSV filtra i nulli).
+      **Sano, verificato**: i 17 `volumeM3 || 0` di Terra sono protetti a monte
+      da `rilievoUsabile`; `fineTurno` di Campo si rifiuta di dare per scontate
+      «otto ore»; il `Math.max(0, parco − mezziLista.length)` di Flotta regge
+      per costruzione. I punti d'uscita (CSV/PDF) scrivono celle vuote, non zeri.
+      **Controprova**: 3 iniezioni indipendenti — bandiera sempre vera (cadono 2
+      prove su 3), costante da 1 a 3 (cade la terza, e le altre due no), e la
+      lettura tolta dalla pagina (**la regola 20 di `run-stile` diventa rossa**:
+      la bandiera è sorvegliata, non può tornare scollegata in silenzio).
+      **Misure**: `run-kpi` 2249 → **2252**, 0 falliti.
+
 ## 🧭 Le voci APERTE, per nome — indice
 
 *Questo file è lungo **migliaia di righe** e cresce appendendo sezioni datate in
@@ -4998,7 +5049,7 @@ numero scritto dove non era stato misurato niente**.*
   nome apre il file sbagliato credendo che sia il più fresco.
 - Le decisioni: `docs/DECISIONI_WEEKEND.md` — pagina d'ingresso in cima.
 - Stato misurato al **14/08** (lanciando le suite, non a memoria):
-  **2.705 prove girano senza rete**. La frase va letta stretta: è la somma
+  **2.708 prove girano senza rete**. La frase va letta stretta: è la somma
   delle **otto** suite che contano asserzioni (`run-kpi` 2110, `run-stile` 318,
   `run-helpers` 75, `run-pointcloud` 32, `run-manifest` 9, `run-demo` 8,
   `bootstrap-rivendicazioni` 7, `fogli-guardati` 3), non tutto ciò che gira nel

@@ -3104,6 +3104,19 @@ body.dw b.bad{color:var(--ink-dg)}
         + `il giorno in cui ${consumati.senzaData === 1 ? "è stato fatto non si legge" : "sono stati fatti non si legge"}, `
         + "quindi il consumo è calcolato su meno di tutto. Correggi la data dell'intervento e la soglia si alza da sola."
       : "";
+    /* ⛔ E LA SECONDA DICHIARAZIONE D'INCERTEZZA DELLO STESSO CONTO, che fino
+       a oggi non leggeva nessuno. Un intervento VECCHIO nomina il pezzo ma non
+       la quantità: il modulo ne conta 1 — una costante al posto di un ingresso
+       che nessuno ha scritto — e da lì escono la soglia e i pezzi da ordinare.
+       Non si dice il VERSO dell'errore perché non si sa: con un pezzo usato a
+       3 per volta il ripiego propone di meno (misurato: soglia 1 invece di 2,
+       0 € invece di 48), con l'olio a mezzo litro proporrebbe di più. Quello
+       che si sa è che quel numero poggia su quantità mai scritte, e chi legge
+       deve saperlo. Stessa coda di `codaSenzaData`, stessi due rami. */
+    const codaStimati = p.attendibile ? "" :
+      ` <span class="rosso">${conta(p.daInterventiVecchi, "intervento vecchio non dice", "interventi vecchi non dicono")} quanti pezzi</span>: `
+      + `${p.daInterventiVecchi === 1 ? "ne è stato contato 1" : "ne è stato contato 1 per ciascuno"}, `
+      + "perché la quantità non è stata registrata. Scrivila nell'ordine di lavoro e il conto smette di essere una stima.";
     if (!RIC.length) {
       $("sco-riep").innerHTML = "";
       $("sco-list").innerHTML = vuoto(I.bullone, "Magazzino vuoto",
@@ -3116,7 +3129,7 @@ body.dw b.bad{color:var(--ink-dg)}
         + (consumati.righe.length
             ? ` Intanto i consumi ci sono già: <b>${consumati.righe.length}</b> ${consumati.righe.length === 1 ? "ricambio è stato usato" : "ricambi sono stati usati"} ${plurale(consumati.finestra, `nell'ultimo giorno`, `negli ultimi ${consumati.finestra} giorni`)}.`
             : " Per ora nessun ricambio risulta consumato negli interventi chiusi: la prima proposta arriverà dopo i primi lavori.")
-        + codaSenzaData;
+        + codaSenzaData + codaStimati;
       $("sco-list").innerHTML = "";
       return;
     }
@@ -3131,7 +3144,7 @@ body.dw b.bad{color:var(--ink-dg)}
             : "Nessun ricambio è sotto la soglia che verrebbe fuori dai consumi.")
       : `Nessun ricambio del magazzino risulta consumato ${plurale(p.finestra, `nell'ultimo giorno`, `negli ultimi ${p.finestra} giorni`)}: senza consumi non si può dire quanti pezzi tenere, e l'app non se lo inventa. `
         + "Le soglie restano quelle che hai scritto tu.";
-    $("sco-riep").innerHTML += codaSenzaData;
+    $("sco-riep").innerHTML += codaSenzaData + codaStimati;
 
     $("sco-list").innerHTML = p.righe.map(r => {
       const cls = r.daOrdinare > 0 ? "danger" : r.differenza > 0 ? "warn" : "ok";
@@ -4881,6 +4894,23 @@ body.dw b.bad{color:var(--ink-dg)}
       righe.push(csvCell("ATTENZIONE: " + conta(p.senzaData, "intervento con ricambi resta", "interventi con ricambi restano")
         + " fuori dal conto perché il giorno non si legge. Il consumo qui sopra è calcolato su meno di tutto,"
         + " quindi le quantità da ordinare sono un MINIMO."));
+    }
+    /* ⛔ E LA TERZA DICHIARAZIONE D'INCERTEZZA DELLA STESSA FUNZIONE, che il
+       file perdeva come perdeva le altre due. `p.attendibile` è false quando
+       il consumo poggia su interventi VECCHI, dove il pezzo è nominato e la
+       quantità no: il modulo ne conta 1 — una costante al posto di un
+       ingresso mai scritto. Qui non si dichiara un verso (dipende da quanto
+       si consuma davvero), si dichiara che quel numero è una STIMA: chi apre
+       il foglio e ordina, altrimenti, ordina su una quantità che nessuno ha
+       misurato credendola contata. Stessa forma di `senzaData`: una riga in
+       fondo con una cella sola, non una colonna ripetuta uguale su ogni riga. */
+    if (!p.attendibile) {
+      righe.push("");
+      righe.push(csvCell("ATTENZIONE: " + conta(p.daInterventiVecchi, "intervento vecchio non dice", "interventi vecchi non dicono")
+        + " quante unità di ricambio sono state usate, e ne è stato contato 1"
+        + (p.daInterventiVecchi === 1 ? "." : " per ciascuno.")
+        + " Il consumo qui sopra è in parte una STIMA, non una misura:"
+        + " scrivi le quantità negli ordini di lavoro e il conto diventa vero."));
     }
     const a = document.createElement("a");
     a.href = URL.createObjectURL(new Blob(["﻿" + righe.join("\r\n")], { type: "text/csv;charset=utf-8" }));

@@ -2568,6 +2568,26 @@ export function propostaScorte(ricambi, interventi, opzioni) {
   return {
     righe, senzaConsumo, finestra: cons.finestra, da: cons.da, a: cons.a,
     interventi: cons.interventi, daInterventiVecchi: cons.daInterventiVecchi,
+    /* ⛔ IL RIPIEGO SILENZIOSO DI QUESTO CONTO, DICHIARATO. Un intervento
+       VECCHIO nomina il pezzo (`w.ricambio`) e la QUANTITÀ non la scrive
+       nessuno: `consumoRicambi` ne conta **1**, che è la sola cosa
+       ragionevole da fare, ma è una costante messa al posto di un ingresso —
+       non una misura. Da lì passa tutto: pezzi → consumo al giorno → soglia
+       proposta → pezzi da ordinare → spesa, cioè i numeri che si leggono
+       sullo schermo e nella lista della spesa.
+       Misurato: sei interventi vecchi su un filtro consumato davvero a 3 per
+       volta danno «soglia 1 · da ordinare 0 · 0 €» dove il vero è «soglia 2 ·
+       da ordinare 1 · 48 €» — cioè nella direzione che RASSICURA, un
+       magazzino proposto più magro del vero. E con un pezzo che si consuma a
+       frazioni (olio, grasso) l'errore può andare anche dall'altra parte:
+       quello che si sa con certezza non è il verso, è che quel numero poggia
+       su quantità che nessuno ha scritto.
+       `daInterventiVecchi` il conto lo dava già — ed era il PROBLEMA: un
+       numero che non legge nessuno non protegge niente. `attendibile` è la
+       bandiera del vocabolario chiuso (regola 20 di run-stile), e la legge la
+       pagina in tutt'e due i posti in cui legge già `senzaData`: il riepilogo
+       delle scorte e la lista della spesa. */
+    attendibile: cons.daInterventiVecchi === 0,
     // gli interventi con pezzi che non hanno un giorno leggibile: non entrano
     // nel consumo, quindi la soglia proposta è calcolata su meno di tutto
     senzaData: cons.senzaData,

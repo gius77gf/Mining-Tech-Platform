@@ -30511,6 +30511,61 @@ test("frasePersi · ⚠️ NIENTE `esc()`: la frase esce come l'utente l'ha scri
   });
 }
 
+/* ===== B11 · il ripiego silenzioso ==========================================
+   `consumoRicambi` conta **1 pezzo** per ogni intervento VECCHIO — quelli che
+   nominano il ricambio (`w.ricambio`) senza dire quante unità. È una costante
+   messa al posto di un ingresso che nessuno ha scritto, e da lì passano la
+   soglia proposta, i pezzi da ordinare e la spesa: i numeri che si leggono
+   sullo schermo delle Scorte e nella lista della spesa.
+   Il conto c'era già (`daInterventiVecchi`) e non lo leggeva nessuno — che è
+   esattamente il modo in cui una dichiarazione non protegge niente. Adesso
+   `propostaScorte` porta `attendibile`, bandiera del vocabolario chiuso, e la
+   pagina la legge nei due posti in cui legge già `senzaData`.
+   ⚠️ Prove SINCRONE e PRIMA del riepilogo: l'`await Promise.all(inVolo)` sta a
+   metà file, quindi una prova asincrona appesa qui non verrebbe aspettata. */
+{
+  const fl = flotta;
+  const OGGI = new Date("2026-08-14T12:00:00Z");
+  const RIC = [{ id: "p1", nome: "Filtro olio motore CAT", giacenza: 1, sogliaMin: 2, prezzo: 48 }];
+  const OPZ = { consegnaGiorni: 15, sicurezzaGiorni: 5, finestraGiorni: 180, oggi: OGGI };
+  // sei interventi VECCHI: il pezzo è nominato, la quantità non l'ha scritta nessuno
+  const VECCHI = [0, 1, 2, 3, 4, 5].map((i) => ({
+    id: "w" + i, data: `2026-0${3 + Math.floor(i / 2)}-1${i % 2 ? 5 : 0}`,
+    titolo: "Tagliando", mezzo: "E1", ricambio: "Filtro olio motore CAT" }));
+  // gli STESSI interventi con la quantità VERA scritta
+  const VERI = VECCHI.map((w) => ({ ...w,
+    ricambiUsati: [{ id: "p1", nome: w.ricambio, qta: 3, prezzo: 48 }] }));
+
+  test("⛔ B11 · Flotta: il «1 pezzo» inventato SPOSTA la proposta, e nel verso che rassicura", () => {
+    const conRipiego = fl.propostaScorte(RIC, VECCHI, OPZ).righe[0];
+    const conIlVero = fl.propostaScorte(RIC, VERI, OPZ).righe[0];
+    // il numero che l'utente legge: quanti pezzi tenere e quanti ordinarne
+    eq([conRipiego.sogliaProposta, conRipiego.daOrdinare, conRipiego.spesa], [1, 0, 0],
+      "col ripiego: soglia 1, niente da ordinare, zero euro");
+    eq([conIlVero.sogliaProposta, conIlVero.daOrdinare, conIlVero.spesa], [2, 1, 48],
+      "col dato vero: soglia 2, un pezzo da ordinare, 48 €");
+    ok(conRipiego.daOrdinare < conIlVero.daOrdinare,
+      "⛔ il ripiego propone di ordinare MENO del vero: è la direzione che tranquillizza");
+  });
+
+  test("⛔ B11 · Flotta: `attendibile` separa le due famiglie invece di spargere dubbio", () => {
+    eq(fl.propostaScorte(RIC, VECCHI, OPZ).attendibile, false, "solo interventi vecchi: non attendibile");
+    eq(fl.propostaScorte(RIC, VERI, OPZ).attendibile, true, "quantità scritte: attendibile");
+    eq(fl.propostaScorte(RIC, VECCHI.slice(0, 1).concat(VERI.slice(1)), OPZ).attendibile, false,
+      "basta UN intervento vecchio perché il conto sia in parte una stima");
+    eq(fl.propostaScorte(RIC, [], OPZ).attendibile, true,
+      "nessun intervento: non c'è nessuna stima dentro, il dubbio non si sparge dove non serve");
+  });
+
+  test("⛔ B11 · Flotta: `attendibile` è d'accordo con il conto che la produce", () => {
+    for (const [eti, INT] of [["vecchi", VECCHI], ["veri", VERI], ["vuoto", []]]) {
+      const p = fl.propostaScorte(RIC, INT, OPZ);
+      eq(p.attendibile, p.daInterventiVecchi === 0,
+        `${eti}: la bandiera non può divergere dal numero da cui nasce`);
+    }
+  });
+}
+/* ===== fine B11 ============================================================ */
 
 console.log(`\nRisultato KPI app: ${passed} passati, ${failed} falliti${inVolo.length ? `  ·  ${inVolo.length} prove asincrone aspettate` : ""}`);
 process.exit(failed > 0 ? 1 : 0);
