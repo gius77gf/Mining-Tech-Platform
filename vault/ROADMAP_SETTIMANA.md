@@ -5442,10 +5442,27 @@ di scriverlo qui**: niente entra sulla parola dell'agente.
       **Misure**: `run-kpi` 2223 → **2229** (+6, le sei prove mancanti);
       `run-stile` **321/0**; copertura app **751/751**; giro `node` **3.023**
       asserzioni, **34 comandi a posto, 0 caduti**.
-      ⏱️ **Da fare, misurato e non corretto**: `scartiVolateCsv` nomina la riga
-      persa con l'**ora** quando a mancare è la data, quindi due righe diverse
-      si chiamano tutt'e due «10:00» nello stesso messaggio. Serve una regola di
-      nome per le volate, ed è una scelta di prodotto.
+      ⛔ **E QUI VA CORRETTA UNA COSA CHE AVEVO SCRITTO IO POCHE ORE PRIMA, ED
+      ERA FALSA.** Avevo lasciato scritto: *«`scartiVolateCsv` nomina la riga
+      persa con l'ORA quando a mancare è la data, quindi due righe diverse si
+      chiamano tutt'e due «10:00»»*. **Non è vero, e il difetto era nella mia
+      prova**: il CSV che le avevo passato aveva le colonne
+      `data;ora;cava;…` mentre il lettore vuole `data;fronte;nFori;…`, quindi
+      il campo che il messaggio usa per il nome pescava l'**ora**. Con un file
+      vero il prodotto risponde bene: «**Fronte Sud** → la data non è stata
+      scritta» e «**Fronte Est** → la data non esiste», e il ripiego
+      `cod || fronte || "riga N"` c'era già.
+      ⚠️ **È la terza volta in una notte che una fixture sbagliata accusa un
+      prodotto sano** (le altre due su `parseScadenzeCsv` e `parseFattureCsv`, e
+      tutt'e due erano colonne indovinate invece che lette). La regola di casa
+      esiste già — *«prima di dire che c'è un difetto va letto COME il codice si
+      aspetta i dati: una prova sbagliata che accusa il codice fa perdere più
+      tempo di nessuna prova»* — e stanotte l'ho pagata tre volte. La difesa che
+      costa dieci secondi: **si legge la riga di destrutturazione del lettore
+      prima di scrivere il CSV**, non dopo che il numero non torna.
+      ⛔ E la ragione per cui questa correzione è scritta invece che cancellata:
+      una riga di roadmap che propone un lavoro **manda qualcuno a farlo**. Un
+      difetto immaginario lasciato scritto costa un cantiere.
 - [ ] **B6. «NON ANCORA CARICATO» NON È «NON C'È» — la quarta faccia del tema
       della settimana, e per ora è un CANDIDATO, non un difetto.** ⏱️ *Aperta il
       13/08 a notte, dopo che le prime tre facce erano chiuse: i file che
