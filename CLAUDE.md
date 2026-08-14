@@ -803,6 +803,15 @@ Perché serva davvero e non produca elenchi generici, cinque vincoli:
   pagina né il modulo stesso — **non protegge niente**: il numero tranquillo si
   disegna lo stesso e il modulo sembra a posto perché la dichiarazione c'è. È la
   guardia scollegata della regola 17, applicata al principio del fondatore.
+  E — dal 14/08, **regola 21** — che **un contatore nasca «—», non «0»**: è lo
+  stesso principio applicato al TEMPO, e la regola sta qui perché il banco del
+  browser **non ci arriva**. Quello preme e guarda ciò che è visibile, e i
+  contatori dentro una linguetta chiusa restano irraggiungibili nella finestra
+  di caricamento: il banco li **dichiara** (6 in Scudo, 2 in Flotta) ma non li
+  può giudicare. Sotto quel filtro stava `isp-c-cnt` di Scudo, nato **«0/0»** —
+  trovato solo guardando il sorgente. È la lezione delle unità in maiuscolo in
+  una veste nuova: **quando un banco filtra per visibilità, la stessa domanda
+  va rifatta staticamente**, e le due non si sostituiscono.
   Due cose imparate scrivendola, tutt'e due già in questo file e fatte lo
   stesso: cercava `bandiera:` **a testo** e prendeva i commenti per
   dichiarazioni (si usa `mascheraCodice`, non se ne scrive un altro); e

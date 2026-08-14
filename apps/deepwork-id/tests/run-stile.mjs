@@ -2837,6 +2837,74 @@ function bandiereScollegate() {
   return MODULI_APP.flatMap(([app, rel]) =>
     scollegateIn(rel, leggi(rel), ...pagineDi(app).map(leggi)));
 }
+/* ══════════════════════════════════════════════════════════════════════
+   REGOLA 21 — UN CONTATORE NASCE «—», NON «0»
+   ----------------------------------------------------------------------
+   È il principio del fondatore applicato al TEMPO: fra l'apertura della pagina
+   e l'arrivo del modulo dati c'è una finestra in cui l'app ha già disegnato
+   tutto e non sa ancora niente. Uno «0» scritto nel markup dice lì dentro una
+   cosa **falsa e tranquilla** — «zero mezzi», «zero fatture» su una cava che
+   ne ha — mentre «—» dice la verità, e uno zero VERO continua a scriversi «0»
+   quando i dati arrivano.
+   ⛔ E QUESTA REGOLA ESISTE PERCHÉ IL BANCO DEL BROWSER NON CI ARRIVA. Quello
+   preme e guarda ciò che è VISIBILE, e i contatori che vivono dentro una
+   linguetta chiusa restano irraggiungibili nella finestra: il banco li
+   dichiara — «6 contatori NON raggiungibili» in Scudo, 2 in Flotta — ma non li
+   può giudicare. Sotto quel filtro stava `isp-c-cnt` di Scudo, nato **«0/0»**,
+   trovato solo guardando il SORGENTE. È la lezione già scritta in CLAUDE.md
+   per le unità in maiuscolo: quando un banco filtra per visibilità, la stessa
+   domanda va rifatta staticamente, e le due non si sostituiscono.
+   ⚠️ Si guarda solo il markup FUORI dai `<script>`: dentro, un `class="cnt"`
+   sta in un template che la pagina RENDE quando i dati ci sono già
+   (`class="cnt">${daConf.length}<`), e quello è un valore, non uno stato di
+   nascita. */
+function contatoriNati(html) {
+  // via i blocchi <script>: lì dentro i `.cnt` sono contenuto reso, non nascita
+  const statico = html.replace(/<script[\s\S]*?<\/script>/g, " ");
+  return [...statico.matchAll(/class="cnt"([^>]*)>([^<]*)</g)]
+    .map((m) => ({ id: (m[1].match(/id="([^"]+)"/) || [])[1] || "(senza id)", testo: m[2].trim() }));
+}
+function contatoriTranquilli() {
+  const out = [];
+  for (const [nome, file] of SUPERFICI) {
+    for (const c of contatoriNati(leggi(file))) {
+      if (c.testo !== "—") out.push(`${nome} · ${c.id} nasce «${c.testo}» invece di «—»`);
+    }
+  }
+  return out;
+}
+test("regola 21: un contatore nasce «—», non un numero", () => {
+  const v = contatoriTranquilli();
+  ok(v.length === 0, v.join("\n      "));
+});
+/* Quanti soggetti ha guardato davvero: uno «zero violazioni» su zero contatori
+   sarebbe il difetto che questo file raccoglie da mesi. */
+test("regola 21: ha davvero trovato i contatori, e su quante superfici", () => {
+  const per = SUPERFICI.map(([n, f]) => [n, contatoriNati(leggi(f)).length]).filter(([, k]) => k);
+  const totale = per.reduce((t, [, k]) => t + k, 0);
+  ok(totale >= 45,
+    `contatori letti in tutto: ${totale}, troppi pochi perché il controllo stia guardando davvero`
+    + ` — ${per.map(([n, k]) => `${n}:${k}`).join(" · ")}`);
+  ok(per.length >= 5, `superfici con almeno un contatore: ${per.length} — ${per.map(([n]) => n).join(", ")}`);
+});
+test("regola 21: la controprova — un contatore rimesso a «0» viene visto", () => {
+  const vero = leggi("apps/scudo/index.html");
+  const nati = contatoriNati(vero);
+  ok(nati.length >= 10, `servono contatori veri per provarci: ${nati.length}`);
+  const rotto = vero.replace('<span class="cnt" id="pers-count">—</span>',
+    '<span class="cnt" id="pers-count">0</span>');
+  ok(rotto !== vero, "l'iniezione non ha trovato il suo pezzo: SCADUTA");
+  const visti = contatoriNati(rotto).filter((c) => c.testo !== "—");
+  ok(visti.length === 1 && visti[0].id === "pers-count",
+    `col difetto rimesso il controllo doveva vedere pers-count: ${JSON.stringify(visti)}`);
+  /* e il verso opposto: il «0/0» che c'era davvero, non solo uno «0» secco */
+  const rotto2 = vero.replace('<span class="cnt" id="isp-c-cnt">—</span>',
+    '<span class="cnt" id="isp-c-cnt">0/0</span>');
+  ok(rotto2 !== vero, "la seconda iniezione non ha trovato il suo pezzo: SCADUTA");
+  ok(contatoriNati(rotto2).some((c) => c.testo === "0/0"),
+    "un contatore nato «0/0» — la forma vera trovata il 14/08 — deve essere visto");
+});
+
 test("regola 20: ogni non-misurabilità dichiarata è letta da qualcuno", () => {
   const v = bandiereScollegate();
   ok(v.length === 0, v.join("\n      "));
