@@ -292,6 +292,36 @@ lista della spesa.
 un'invenzione di un agente è il modo peggiore di sbagliare, perché sembra
 fondato. Un argomento diverso per blocco, a rotazione.
 
+⛔ **E IL 14/08 TRE RICERCHE SU TRE HANNO DICHIARATO UNA MANCANZA FALSA, SEMPRE
+PER LA STESSA RAGIONE: HANNO CERCATO LA PAROLA DEL MONDO DENTRO IL NOSTRO
+CODICE.** «near-miss» dove il campo si chiama `tipo: infortunio|near-miss` ed
+esiste un ponte apposta; «safety stock» dove la funzione si chiama
+`propostaScorte` e il punto di riordino è `puntoDiRiordino(consumo, giorni di
+consegna, giorni di sicurezza)` — **la formula citata nella metà 1 della ricerca
+stessa**; «modello A» dove la pagina scrive già «dichiarazione annuale dei
+quantitativi estratti». Il prodotto è scritto **in italiano, col nome del
+mestiere**: un censimento fatto col vocabolario inglese della ricerca risponde
+«non c'è» con la stessa faccia con cui direbbe la verità.
+⚠️ **La difesa non è cercare meglio: è cercare il MECCANISMO invece del nome.**
+La domanda «chi calcola quanti pezzi ordinare?» si risponde aprendo le funzioni
+che parlano di ricambi; la domanda «c'è `safetyStock`?» non si risponde, si
+sbaglia. È la direttiva 5 letta al contrario — là il pericolo era cercare *la
+nostra* parola nel mondo, qui è cercare *la sua* in casa nostra, e costa uguale.
+⛔ **E c'è una forma peggiore, perché la conclusione non si smonta col `grep`:
+una frase LETTERALMENTE VERA con un verdetto falso.** «Non c'è una collezione
+distinta dei near-miss» è **esatto** — e il «quindi va aggiunta» manderebbe a
+**spaccare in due** una funzione progettata unita. Un `grep` di controllo che
+cerchi la parola dell'agente **conferma**. Prima di scrivere «va aggiunto» si
+cerca **come si chiamerebbe la cosa se esistesse fatta in un altro modo**.
+⚠️ **E il limite dello strumento, misurato il 14/08 invece che creduto**:
+`WebSearch` **funziona**; `WebFetch` su un dominio qualunque risponde
+**`EGRESS_BLOCKED`** (provato su due domini diversi). Quindi una ricerca sa
+**che cosa esiste**, e **non può leggere il testo primario**: ogni articolo,
+scadenza, tariffa o formula attribuita a una norma viene da **risultati di
+ricerca** e va marcata così. Un numero di legge riportato di seconda mano e
+scritto in una schermata è **peggio di un numero assente** — il fondatore lo
+mostrerebbe a un cliente.
+
 ⛔ **E «NON C'È» VA PROVATO, NON DICHIARATO — misurato il 01/08 e costoso.**
 Le sei ricerche sui concorrenti hanno censito 470 funzioni con le fonti: quella
 metà è buona. Il **confronto con la nostra app** no. Delle tre mancanze più
