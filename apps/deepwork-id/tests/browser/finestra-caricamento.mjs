@@ -412,13 +412,67 @@ for (const app of APPS) {
   /* ── DOPO: la cura non deve mentire nell'altro verso ────────────────── */
   const resta = RITARDO - (Date.now() - t0) + 3000;
   if (resta > 0) await pg.waitForTimeout(resta);
-  const dopo = await pg.evaluate(LEGGI);
+  /* ⛔ E QUESTA LETTURA SI FACEVA SU UNA SCHERMATA SOLA — quella su cui il giro
+     dei comandi era finito per caso. Misurato il 14/08 stringendo la domanda ai
+     soli VISIBILI: Conti e Sentinella giudicavano **0 contatori su 13 e su 19**,
+     perché l'ultima schermata visitata i suoi non li mostra. Un banco che
+     giudica zero soggetti e stampa una riga di verdetto è peggio di uno che
+     accusa: il numero non si vede, e la riga sembra una risposta.
+     Le schermate si ripercorrono, esattamente come si fa DENTRO la finestra —
+     è la stessa domanda, dall'altra parte della finestra, e va fatta con lo
+     stesso denominatore. */
+  const dopoMap = new Map();
+  for (const id of nav) {
+    await pg.evaluate((i) => { const b = document.getElementById(i); if (b) b.click(); }, id);
+    await pg.waitForTimeout(90);
+    for (const r of await pg.evaluate(LEGGI)) {
+      const k = r.id || r.eti;
+      /* un contatore visibile su QUALCHE schermata vince su quello nascosto:
+         è visibile a casa sua, ed è lì che qualcuno lo legge */
+      if (r.v || !dopoMap.has(k)) dopoMap.set(k, r);
+    }
+  }
+  const dopo = [...dopoMap.values()];
   const ecc = SEMPRE_TRATTINO[app] || [];
   const eccPresenti = ecc.filter((i) => dopo.some((d) => d.id === i && d.t === "—"));
-  const rimasti = dopo.filter((d) => d.t === "—" && !ecc.includes(d.id));
-  dice(dopo.length > 0 && rimasti.length === 0,
-    `${app}: dopo l'arrivo dei dati nessun contatore resta «—» (${dopo.length} guardati, ${ecc.length} dichiarati)`,
-    rimasti.map((d) => `${d.id || d.cls}: «${d.eti}»`).join(" | "));
+  /* ⛔ E QUESTA DOMANDA ACCUSAVA UN CASO SANO, PERCHÉ NON GUARDAVA LA
+     VISIBILITÀ MENTRE LA PRIMA LA GUARDAVA. `LEGGI` la misura già (`v`) e la
+     domanda «nessun numero tranquillo» la usa; qui no — così `isp-c-cnt` di
+     Scudo è stato dichiarato KO nel giro del 14/08. Quel contatore vive dentro
+     `#isp-compila`, che è `display:none` finché non si apre un'ispezione, e
+     viene riempito nel momento in cui si apre: il suo «—» è **la risposta
+     giusta**, e nessuno lo sta leggendo. Un elemento invisibile non mostra
+     niente a nessuno, quindi non può mentire.
+     ⚠️ E NON SI FILTRA IN SILENZIO: un soggetto non misurato non è un soggetto
+     a posto. Quelli saltati si **contano e si dichiarano**, come già si fa per
+     le linguette irraggiungibili qui sopra — se no il banco direbbe «23
+     guardati» avendone giudicati venti, che è il modo in cui un controllo
+     sembra completo senza esserlo.
+     ⚠️ E la domanda **non è finita qui**: un contatore che nasce «0» dentro un
+     pannello chiuso resta invisibile a questo banco per costruzione. Quella
+     metà la fa la **regola 21 di `run-stile`**, staticamente, sul sorgente —
+     ed è esattamente così che `isp-c-cnt` è stato trovato nato «0/0». Le due
+     non si sostituiscono. */
+  const visibili = dopo.filter((d) => d.v);
+  const nascosti = dopo.filter((d) => !d.v && d.t === "—");
+  if (nascosti.length) {
+    console.log(`  ·   ${app}: ${nascosti.length} contatori restano «—» ma NON sono visibili `
+      + `(il loro pannello è chiuso: il «—» non lo legge nessuno, e si riempie quando si apre): `
+      + nascosti.map((d) => d.id || d.cls).join(", "));
+  }
+  const rimasti = visibili.filter((d) => d.t === "—" && !ecc.includes(d.id));
+  /* ⚠️ E se non se n'è visto NESSUNO la risposta non è «a posto» e non è
+     nemmeno KO: è NON MISURATO, che è un terzo esito e ha una riga sua. Un KO
+     si legge come un difetto del prodotto e manda ad aprire un cantiere. */
+  if (!visibili.length) {
+    nonMisurato(`${app}/contatori-dopo`,
+      `nessuno dei ${dopo.length} contatori era visibile su nessuna delle ${nav.length} schermate dopo l'arrivo dei dati`);
+  } else {
+    dice(rimasti.length === 0,
+      `${app}: dopo l'arrivo dei dati nessun contatore VISIBILE resta «—» `
+      + `(${visibili.length} visibili su ${dopo.length}, ${ecc.length} dichiarati, ${nascosti.length} nascosti non giudicati)`,
+      rimasti.map((d) => `${d.id || d.cls}: «${d.eti}»`).join(" | "));
+  }
   dice(eccPresenti.length === ecc.length,
     `${app}: le ${ecc.length} eccezioni dichiarate si presentano ancora (${eccPresenti.length})`,
     `dichiarate ${JSON.stringify(ecc)}, trovate a «—» ${JSON.stringify(eccPresenti)}`);
