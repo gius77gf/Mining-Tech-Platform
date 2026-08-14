@@ -4168,7 +4168,7 @@ numero scritto dove non era stato misurato niente**.*
   scritta**: `DEVELOPMENT.md` diceva ancora «il numero da citare resta 2.251» e
   «il giro completo esegue 2.474» mentre il titolo sopra diceva già 2.310 — il
   controllo sorveglia il **totale**, non la prosa che lo spiega. Rimisurato:
-  sei suite **2.310**, giro completo **2.645**, e **ogni** addendo della nota
+  sei suite **2.310**, giro completo **2.678**, e **ogni** addendo della nota
   era vecchio (sintassi 15 → 34, import 134 → 140, nomi liberi 7 → 24).
 
 - [x] ✅ **`giro-sicurezza`: un comando solo per la barriera fra aziende
@@ -4902,7 +4902,7 @@ numero scritto dove non era stato misurato niente**.*
   nome apre il file sbagliato credendo che sia il più fresco.
 - Le decisioni: `docs/DECISIONI_WEEKEND.md` — pagina d'ingresso in cima.
 - Stato misurato al **09/08** (lanciando le suite, non a memoria):
-  **2.645 prove girano senza rete**. La frase va letta stretta: è la somma
+  **2.678 prove girano senza rete**. La frase va letta stretta: è la somma
   delle **otto** suite che contano asserzioni (`run-kpi` 2110, `run-stile` 318,
   `run-helpers` 75, `run-pointcloud` 32, `run-manifest` 9, `run-demo` 8,
   `bootstrap-rivendicazioni` 7, `fogli-guardati` 3), non tutto ciò che gira nel
@@ -4913,7 +4913,7 @@ numero scritto dove non era stato misurato niente**.*
   sorvegliati ne contavano sette: due convenzioni per lo stesso numero, che è
   il modo più facile di far sembrare sbagliato un conto giusto. Adesso è una
   sola.*
-  Copertura **741/741** e nessuna funzione scoperta; **198 esecuzioni** che
+  Copertura **745/745** e nessuna funzione scoperta; **198 esecuzioni** che
   aprono le pagine in un browser vero, da **81** file di banco distinti (contati
   dalla tabella `BANCHI` di `tutti.mjs`, non a occhio dalla cartella, che di
   `.mjs` ne ha di più perché contiene anche gli aiuti — `giro.mjs`,
@@ -5535,3 +5535,33 @@ di scriverlo qui**: niente entra sulla parola dell'agente.
       **Come si misura**: nessun altro processo pesante in giro (`ps -eo
       pid=,args= | grep chrome`), tre passate di fila, e si guarda **il totale
       delle asserzioni dichiarate** prima dei KO.
+
+- [x] ✅ **IL DEBITO DI B5, CHIUSO TUTTO E DUE** *(14/08, raccogliendo un cantiere
+      morto sul limite di sessione prima di consegnare: le sue misure non sono
+      arrivate, quindi qui c'è solo ciò che ho **verificato io** sulla copia).*
+      **A · `frasePersi` in un posto solo.** Era scritta **quattro volte**, una
+      per pagina, in Campo, Conti, Flotta e Terra. Adesso sta in
+      `shared/deepwork-id-client/dw-shell.js`, accanto a `conta` che già usa.
+      ✅ **E la misura dice una cosa che vale la pena scrivere: le quattro copie
+      erano ancora IDENTICHE carattere per carattere** (stesso md5, `diff` a
+      coppie vuoto). Cioè **si è fatto in tempo**: non c'è nessuna divergenza da
+      raccontare come era costata la convenzione sui numeri, finita scritta
+      quattro volte con tre comportamenti diversi. Questa volta la regola di
+      `shared/` è stata applicata **prima** che il costo maturasse.
+      ⚠️ E la guardia non è scollegata: `run-stile` ha una **regola 32** che
+      pretende che le quattro pagine **la usino davvero** invece di tenersene una
+      copia. Non poteva essere gratis — `UI_CONDIVISA` è derivato dai `window.X =`
+      di `dw-app-ui.js`, e questa funzione sta in `dw-shell.js`, che è un modulo
+      ESM: il controllo è scritto a mano lì, con la ragione.
+      **B · I quattro lettori ancora muti**, la forma mite dello stesso difetto:
+      `campo.parsePianoCsv`, `conti.parseGareCsv`, `conti.parseClientiCsv`,
+      `flotta.parseRicambiCsv` — tutti perdevano **la riga senza identità** e
+      nessuno lo diceva. Adesso hanno la loro `scarti<X>Csv` **accanto**, con la
+      forma di `rientroRilievi`, e la pagina lo dice.
+      **Misure mie, sulla copia**: `run-kpi` 2193 → **2226**, 0 falliti;
+      copertura app 741 → **745/745**; condivisi 173 → **174/174** (`dw-shell.js`
+      47 → 48); giro `node` **3.017** asserzioni, **34 comandi a posto, 0
+      caduti**; `run-stile` **verde** con la regola 32 dentro.
+      ⚠️ **Quello che NON posso attestare**: la controprova del cantiere, che non
+      ha fatto in tempo a mandarla. Le prove ci sono e passano; che **sappiano
+      fallire** lo dirà chi rimette i difetti.

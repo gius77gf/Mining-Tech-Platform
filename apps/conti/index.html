@@ -1793,9 +1793,9 @@ label.item:has(.dw-chk:checked){
   /* l'estratto conto della banca: il file si legge e si abbina nel modulo dati,
      qui si disegna e si chiede conferma — `round2` è già importato più sotto */
   import { parseMovimentiCsv, abbinaMovimenti, ESTRATTO_ESEMPIO,
-           contiData, giorni, kpiFrom, statoScadenzaFattura, agingIncassi, stileBarraPeso, gareRiepilogo, prioritaIncasso, incassoAtteso, incassoPerMese, esposizioneClienti, estrattoContoCliente, livelloSollecito, interessiMora, testoSollecito, TASSO_MORA_DEFAULT, statoTassoMora, parseFattureCsv, scartiFattureCsv, parseGareCsv, parseListinoCsv, scartiListinoCsv, csvListino, csvGare, chiaveNome, clienteDiFattura, nomeCliente, clientiDaCollegare,
+           contiData, giorni, kpiFrom, statoScadenzaFattura, agingIncassi, stileBarraPeso, gareRiepilogo, prioritaIncasso, incassoAtteso, incassoPerMese, esposizioneClienti, estrattoContoCliente, livelloSollecito, interessiMora, testoSollecito, TASSO_MORA_DEFAULT, statoTassoMora, parseFattureCsv, scartiFattureCsv, parseGareCsv, scartiGareCsv, parseListinoCsv, scartiListinoCsv, csvListino, csvGare, chiaveNome, clienteDiFattura, nomeCliente, clientiDaCollegare,
     round2, baseGara, densitaValida, prezzoPerTonnellata, prezzoPerMetroCubo, convertiQuantita, imponibileRiga,
-    importiFattura, totaliDaRighe, riepilogoIvaFattura, prossimoNumero, nettoPesata, rigaPesata, valorePesata, valoreDdt, csvPesate, parsePesateCsv, scartiPesateCsv, csvIncassi, parseIncassiCsv, scartiIncassiCsv, csvClienti, parseClientiCsv, numeroDichiarato,
+    importiFattura, totaliDaRighe, riepilogoIvaFattura, prossimoNumero, nettoPesata, rigaPesata, valorePesata, valoreDdt, csvPesate, parsePesateCsv, scartiPesateCsv, csvIncassi, parseIncassiCsv, scartiIncassiCsv, csvClienti, parseClientiCsv, scartiClientiCsv, numeroDichiarato,
     quantitaPesata, pesateDaFatturare, fatturaDaPesate, canonePeriodo, BASI_CANONE, venditePerProdotto,
     cavatoPeriodo, vendutoPeriodo, riconciliazione, valoreCavato, SOGLIA_DIVARIO,
     applicaIncassi, apertoDi, statoIncasso, movimentiDiFattura, incassatoPeriodo,
@@ -1813,7 +1813,7 @@ label.item:has(.dw-chk:checked){
     preventiviDaSeguire, prezzoDaOrdine, descriviPrezzoOrdine,
     validaScaglioni, scaglionePer, applicaScaglione, etichettaScaglione,
     descriviScaglione } from "./conti-data.js";
-  import { mountExit, esc, csvCell, statoVuoto, senzaDoppioni, avvolgiUnita, conta, plurale, euro, euro0, conEuro, isoLocale, istanteLocale, oggiISO as oggiISOShell, meseLocale, dataIt, dataPiuGiorni, nomeCsvDimostrazione, modoDimostrazione, avvisoTestoDimostrazione, avvisaSeNonSalva} from "../../shared/deepwork-id-client/dw-shell.js";
+  import { mountExit, esc, csvCell, statoVuoto, senzaDoppioni, avvolgiUnita, conta, frasePersi, plurale, euro, euro0, conEuro, isoLocale, istanteLocale, oggiISO as oggiISOShell, meseLocale, dataIt, dataPiuGiorni, nomeCsvDimostrazione, modoDimostrazione, avvisoTestoDimostrazione, avvisaSeNonSalva} from "../../shared/deepwork-id-client/dw-shell.js";
   // gli agganci della struttura condivisa (modale con Escape, riquadri da
   // tastiera, alone che segue il mouse). Va chiamato QUI e non nel blocco
   // classico in linea: i moduli girano dopo gli script `defer`.
@@ -1997,31 +1997,6 @@ label.item:has(.dw-chk:checked){
   const esito = (id, testo, tipo) => { const n = $(id); if (n) n.textContent = testo || "";
     if (testo) toast(testo, tipo); };
 
-  /* ⛔ LE RIGHE CHE NON SONO ENTRATE SI DICONO, CON IL LORO PERCHÉ (13/08).
-     Il `.filter` che scarta una riga sta DENTRO il lettore, che restituisce
-     solo i sopravvissuti: fino a oggi questa pagina non poteva dirlo nemmeno
-     volendo — riceveva un elenco più corto e basta. Chi importava 200 righe e
-     ne vedeva 180 non aveva modo di sapere quali venti mancassero né perché:
-     è l'assenza di un dato nella sua forma più tranquilla, cioè il principio
-     del fondatore applicato all'INGRESSO invece che all'uscita.
-     Adesso il modulo risponde anche `scarti<X>Csv`, con `{ lette, entrano,
-     persi: [{ nome, ragione }] }` — la stessa forma di `rientroRilievi` di
-     Terra, che fa la stessa domanda nell'altro verso.
-     ⚠️ TRE NOMI E POI IL CONTO: un elenco di venti nomi dentro un toast non
-     lo legge nessuno, e un messaggio che non si legge è come non averlo.
-     ⚠️ NIENTE `esc()`: `esito` e `toast` scrivono con `textContent`, quindi
-     scappare qui farebbe comparire «&amp;» sullo schermo.
-     ⚠️ E le righe di coda che un foglio di calcolo salva come `;;;` NON
-     entrano in questo conto: le toglie il modulo (`vuote`), perché accusare
-     l'utente di un difetto del suo Excel è il falso allarme che insegna a
-     non guardare i messaggi. */
-  const frasePersi = (s) => {
-    const p = (s && s.persi) || [];
-    if (!p.length) return "";
-    return " " + conta(p.length, "riga del file non è entrata", "righe del file non sono entrate")
-      + ": " + p.slice(0, 3).map(x => "«" + x.nome + "» perché " + x.ragione).join("; ")
-      + (p.length > 3 ? "; e altre " + (p.length - 3) : "") + ".";
-  };
 
   const db = await contiData();
   /* ⛔ DECISIONE 5a (07/08, presa dal ciclo): se un salvataggio non riesce,
@@ -5905,20 +5880,28 @@ label.item:has(.dw-chk:checked){
   $("btn-cli-restore").onclick = () => $("cli-file").click();
   $("cli-file").onchange = async (e) => {
     const file = e.target.files && e.target.files[0]; if (!file) return;
-    const righe = parseClientiCsv(await file.text());
+    const testo = await file.text();
+    const righe = parseClientiCsv(testo);
+    /* ⛔ E I CLIENTI CHE IL LETTORE HA BUTTATO VIA (13/08). Qui la riga persa
+       si porta dietro le sue FATTURE, che restano agganciate a un `clienteId`
+       che non esiste più: l'esposizione di quell'azienda sparisce dall'elenco
+       senza che nessun totale cambi di un euro. */
+    const scartate = scartiClientiCsv(testo);
     e.target.value = "";
     if (!righe.length) {
-      esito("cl-esito", "Nel file non c'è nessun cliente leggibile: controlla che sia la copia di sicurezza e non il prospetto (a quello manca la colonna degli id).", "err");
+      esito("cl-esito", "Nel file non c'è nessun cliente leggibile: controlla che sia la copia di sicurezza e non il prospetto (a quello manca la colonna degli id)." + frasePersi(scartate), "err");
       return;
     }
     const gia = new Set(CLI.map(c => String(c.ragioneSociale || "").trim().toLowerCase()));
     const nuovi = righe.filter(r => !gia.has(String(r.ragioneSociale || "").trim().toLowerCase()));
     for (const r of nuovi) await db.aggiungi("clienti", r);
     await refresh();
-    esito("cl-esito", nuovi.length
+    esito("cl-esito", (nuovi.length
       ? plurale(nuovi.length, "Rimesso dentro ", "Rimessi dentro ") + plur(nuovi.length, "cliente", "clienti")
         + (righe.length > nuovi.length ? ` · ${conta(righe.length - nuovi.length, "era già in anagrafica", "erano già in anagrafica")}, non duplicati.` : ".")
-      : "Erano tutti già in anagrafica: non è stato aggiunto niente.", nuovi.length ? "success" : "");
+      : "Erano tutti già in anagrafica: non è stato aggiunto niente.")
+      + frasePersi(scartate),
+      scartate.persi.length ? "warn" : nuovi.length ? "success" : "");
   };
   $("btn-cli-export").onclick = () => {
     // anagrafica completa per il commercialista o per un altro gestionale
@@ -6844,7 +6827,13 @@ label.item:has(.dw-chk:checked){
   $("btn-gar-import").onclick = () => $("gar-file").click();
   $("gar-file").onchange = async (e) => {
     const file = e.target.files && e.target.files[0]; if (!file) return;
-    const lette = parseGareCsv(await file.text());
+    const testo = await file.text();
+    const lette = parseGareCsv(testo);
+    /* ⛔ E LE RIGHE CHE IL LETTORE HA BUTTATO VIA (13/08). Una gara senza
+       titolo spariva PRIMA di essere contata: il conto delle «ripetute nel
+       file» qui sotto guarda solo i sopravvissuti, e una gara che sparisce è
+       una scadenza che nessuno guarderà più. */
+    const scartate = scartiGareCsv(testo);
     /* Il doppione si cerca in DUE posti, e sono due domande diverse: qui
        dentro il file appena letto (regola condivisa, shared/dw-shell.js), e
        sotto contro quello che è GIÀ in archivio — che solo la pagina conosce.
@@ -6853,7 +6842,7 @@ label.item:has(.dw-chk:checked){
        entravano tutte. */
     const righe = senzaDoppioni(lette, x => x.titolo);
     const ripetute = lette.length - righe.length;
-    if (!righe.length) { esito("gar-esito", "Nessuna riga valida: controlla che le colonne siano titolo;base;scadenza;stato.", "err"); e.target.value = ""; return; }
+    if (!righe.length) { esito("gar-esito", "Nessuna riga valida: controlla che le colonne siano titolo;base;scadenza;stato." + frasePersi(scartate), "err"); e.target.value = ""; return; }
     let agg = 0, dup = 0, senzaBase = 0;
     for (const r of righe) {
       if (GAR.some(g => (g.titolo || "").trim().toLowerCase() === r.titolo.toLowerCase())) { dup++; continue; }
@@ -6867,8 +6856,9 @@ label.item:has(.dw-chk:checked){
        quanto stiamo correndo» le salta, e un totale che esclude qualcosa senza
        dirlo inganna chi lo legge. Meglio saperlo adesso che davanti al numero. */
     esito("gar-esito", `Import gare: ${plur(agg, "gara aggiunta", "gare aggiunte")}${dup ? `, ${plur(dup, "gi\u00e0 presente (saltata)", "gi\u00e0 presenti (saltate)")}` : ""}${ripetute ? `, ${plur(ripetute, "ripetuta nel file", "ripetute nel file")}` : ""}.`
-      + (senzaBase ? ` ${plur(senzaBase, "gara \u00e8 senza base d'asta e non entra", "gare sono senza base d'asta e non entrano")} nel totale del valore in gara.` : ""),
-      agg ? "success" : "err");
+      + (senzaBase ? ` ${plur(senzaBase, "gara \u00e8 senza base d'asta e non entra", "gare sono senza base d'asta e non entrano")} nel totale del valore in gara.` : "")
+      + frasePersi(scartate),
+      scartate.persi.length ? "warn" : agg ? "success" : "err");
     await refresh();
   };
   $("btn-gar-export").onclick = () => {

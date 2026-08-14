@@ -236,6 +236,61 @@ export function conta(n, singolare, plurale2) {
     + " " + plurale(n, singolare, plurale2);
 }
 
+/* ⛔ LE RIGHE CHE UN IMPORT NON HA PRESO SI DICONO, CON IL LORO PERCHÉ — E LA
+   FRASE CHE LO DICE STA QUI, NON QUATTRO VOLTE.
+   ------------------------------------------------------------------------
+   A che serve: comporre l'aggiunta che va in coda al messaggio di un import —
+   «3 righe del file non sono entrate: «riga 2» perché manca il nome; …» —
+   partendo dalla risposta di un `scarti<X>Csv`
+   (`{ lette, entrano, persi: [{ nome, ragione }], vuote }`).
+
+   ⛔ PERCHÉ È SALITA IN `shared/` IL 13/08. Nasce il 13/08 nelle quattro
+   pagine di Campo, Conti, Flotta e Terra: **quattro copie**, una per pagina,
+   scritte lo stesso giorno dallo stesso cantiere. È alla lettera la regola di
+   CLAUDE.md — *una regola che serve a due app vive in `shared/`, e MAI
+   riscritta* — e il cantiere l'aveva lasciata fuori credendo `shared/`
+   occupata. Misurato prima di spostarla, perché il dato vale più della
+   decisione: le quattro copie erano ancora **identiche carattere per
+   carattere** (stesso md5, `diff` a coppie vuoto). Cioè si è fatto in tempo:
+   il costo dell'attesa è stato **zero divergenze**, non tre comportamenti
+   diversi come era costata la convenzione sui numeri.
+
+   ⛔ PERCHÉ QUI E NON IN `shared/dw-app-ui.js`, che è l'altro posto della
+   struttura condivisa. Misurato, non dedotto: `dw-app-ui.js` è uno **script
+   classico** (`(function(){…})()` caricato con `<script src … defer>`, senza
+   `type="module"`), quindi non può importare niente — e questa frase è fatta
+   con `conta`, che sta **venti righe più su in questo file** ed è un
+   `export`. Metterla là avrebbe voluto dire riscrivere lì dentro la scelta
+   fra singolare e plurale: cioè produrre, dentro l'unità che esiste per
+   togliere quattro copie, la **quinta copia** — e per giunta di `conta`, che
+   in questa casa ha già quattro stesure di commento sui casi che sbagliava.
+   Il guadagno che `dw-app-ui.js` avrebbe dato gratis (`UI_CONDIVISA` di
+   `run-stile` è derivato dai suoi `window.X =`, quindi una pagina che
+   ridefinisce in casa viene accusata da sola) è stato ricomprato a mano: è la
+   **regola 32** di `run-stile`, che pretende le tre cose insieme — nessuna
+   ridefinizione locale, l'import da `dw-shell.js` in tutt'e quattro le
+   pagine, e almeno una chiamata per pagina. Senza il terzo pezzo, cancellare
+   la funzione dappertutto farebbe passare la regola.
+
+   ⚠️ TRE NOMI E POI IL CONTO: un elenco di venti nomi dentro un toast non lo
+   legge nessuno, e un messaggio che non si legge è come non averlo.
+   ⚠️ NIENTE `esc()`: `esito` e `toast` scrivono con `textContent`, quindi
+   scappare qui farebbe comparire «&amp;» sullo schermo.
+   ⚠️ E le righe di coda che un foglio di calcolo salva come `;;;` non entrano
+   in questo conto: le toglie il modulo dell'app (`vuote`), perché accusare
+   l'utente di un difetto del suo Excel è il falso allarme che insegna a non
+   guardare i messaggi.
+   ⚠️ Su `null`, su `undefined` e su un elenco vuoto risponde **stringa
+   vuota**: chi la concatena non deve chiedersi niente, ed è la ragione per cui
+   la chiamata nelle pagine è sempre `"…" + frasePersi(scartate)`. */
+export function frasePersi(s) {
+  const p = (s && s.persi) || [];
+  if (!p.length) return "";
+  return " " + conta(p.length, "riga del file non è entrata", "righe del file non sono entrate")
+    + ": " + p.slice(0, 3).map(x => "«" + x.nome + "» perché " + x.ragione).join("; ")
+    + (p.length > 3 ? "; e altre " + (p.length - 3) : "") + ".";
+}
+
 // Legge UNA riga CSV rispettando le virgolette: così un campo come
 // "Rossi;Mario" (col separatore dentro) resta un valore solo e non
 // spacca le colonne. Toglie anche l'apostrofo di guardia che csvCell

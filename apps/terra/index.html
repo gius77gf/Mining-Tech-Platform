@@ -1007,7 +1007,7 @@ a.dw-btn{text-decoration:none}
   /* `plurale` viene da shared/ e non da qui: la regola del singolare c'era
      già, ed è la stessa che usano le altre app. Riscriverla in casa è la
      copia debole che CLAUDE.md censisce — provata riga per riga e buttata. */
-  import { mountExit, esc, csvCell, statoVuoto, senzaDoppioni, montaGuardiaInteri, euro0, isoLocale, oggiISO, dataISOEsiste, dataIt, nomeCsvDimostrazione, modoDimostrazione, plurale, conta, avvisaSeNonSalva} from "../../shared/deepwork-id-client/dw-shell.js";
+  import { mountExit, esc, csvCell, statoVuoto, senzaDoppioni, montaGuardiaInteri, euro0, isoLocale, oggiISO, dataISOEsiste, dataIt, nomeCsvDimostrazione, modoDimostrazione, plurale, conta, frasePersi, avvisaSeNonSalva} from "../../shared/deepwork-id-client/dw-shell.js";
   // gli agganci della struttura condivisa (modale con Escape, riquadri da
   // tastiera, alone che segue il mouse). Va chiamato QUI e non nel blocco
   // classico in linea: i moduli girano dopo gli script `defer`.
@@ -1126,31 +1126,6 @@ a.dw-btn{text-decoration:none}
     if (testo) toast(testo, tipo);
   };
 
-  /* ⛔ LE RIGHE CHE NON SONO ENTRATE SI DICONO, CON IL LORO PERCHÉ (13/08).
-     Il `.filter` che scarta una riga sta DENTRO il lettore, che restituisce
-     solo i sopravvissuti: fino a oggi questa pagina non poteva dirlo nemmeno
-     volendo — riceveva un elenco più corto e basta. Chi importava 200 righe e
-     ne vedeva 180 non aveva modo di sapere quali venti mancassero né perché:
-     è l'assenza di un dato nella sua forma più tranquilla, cioè il principio
-     del fondatore applicato all'INGRESSO invece che all'uscita.
-     Adesso il modulo risponde anche `scarti<X>Csv`, con `{ lette, entrano,
-     persi: [{ nome, ragione }] }` — la stessa forma di `rientroRilievi` di
-     Terra, che fa la stessa domanda nell'altro verso.
-     ⚠️ TRE NOMI E POI IL CONTO: un elenco di venti nomi dentro un toast non
-     lo legge nessuno, e un messaggio che non si legge è come non averlo.
-     ⚠️ NIENTE `esc()`: `esito` e `toast` scrivono con `textContent`, quindi
-     scappare qui farebbe comparire «&amp;» sullo schermo.
-     ⚠️ E le righe di coda che un foglio di calcolo salva come `;;;` NON
-     entrano in questo conto: le toglie il modulo (`vuote`), perché accusare
-     l'utente di un difetto del suo Excel è il falso allarme che insegna a
-     non guardare i messaggi. */
-  const frasePersi = (s) => {
-    const p = (s && s.persi) || [];
-    if (!p.length) return "";
-    return " " + conta(p.length, "riga del file non è entrata", "righe del file non sono entrate")
-      + ": " + p.slice(0, 3).map(x => "«" + x.nome + "» perché " + x.ragione).join("; ")
-      + (p.length > 3 ? "; e altre " + (p.length - 3) : "") + ".";
-  };
   // ── Errori di campo: bordo rosso, fuoco automatico, messaggio utile ───
   const err = (id, on) => { const el = $(id); if (el) el.classList.toggle("err", !!on); };
   const fuoco = (id) => { const el = $(id); if (el) { try { el.focus({ preventScroll: false }); } catch (e) { el.focus(); } } };

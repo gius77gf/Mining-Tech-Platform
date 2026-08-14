@@ -29328,7 +29328,18 @@ const srcFlottaPag = pagIng("flotta"), srcTerraPag = pagIng("terra");
       "⛔ INGRESSO · le nove funzioni nuove sono attese in nove gestori d'import di quattro pagine");
     for (const [app, src, lettori] of PAGINE) {
       test(`⛔ ${app}: ogni gestore d'import CHIAMA la funzione che dice le righe perse, e ogni sua uscita lo dice`, () => {
-        ok(/const frasePersi = /.test(src), "la frase che elenca le righe perse esiste, una per pagina");
+        /* ⛔ 13/08, LO STESSO GIORNO: QUESTA RIGA PRETENDEVA `const frasePersi
+           = ` — cioè pretendeva la COPIA. `frasePersi` nasceva scritta quattro
+           volte, una per pagina, ed è salita in `dw-shell.js` accanto a
+           `conta`, che è la funzione con cui compone la frase. L'asserzione è
+           stata resa PIÙ GIUSTA, non più permissiva: adesso pretende che la
+           pagina la importi dal posto solo E che non ne tenga una copia. Che
+           nessuna delle quindici superfici la riscriva lo chiede la regola 32
+           di `run-stile`, che vede anche le pagine che qui non compaiono. */
+        ok(/import\s*\{[^}]*\bfrasePersi\b[^}]*\}\s*from\s*["'][^"']*dw-shell\.js["']/.test(src),
+          "la frase che elenca le righe perse arriva da dw-shell.js, un posto solo per quattro pagine");
+        ok(!/(?:const|let|var|function)\s+frasePersi\b/.test(src),
+          "la pagina si è rifatta la sua copia di `frasePersi` invece di usare quella condivisa");
         for (const [n, campo] of lettori) {
           eq((src.match(new RegExp("\\$\\(\"" + campo + "\"\\)\\.onchange", "g")) || []).length, 1,
             `${campo}: l'ancora del gestore è unica`);
@@ -29390,7 +29401,6 @@ const srcFlottaPag = pagIng("flotta"), srcTerraPag = pagIng("terra");
     });
   }
 }
-
 
 /* ===== BLOCCO B0-tervicies — LA SPALLA ASSENTE E LA GITTATA FLYROCK ========
    Il secondo ripiego di `flyrockEst`, quello che G17 aveva misurato e lasciato
@@ -29580,5 +29590,251 @@ const srcFlottaPag = pagIng("flotta"), srcTerraPag = pagIng("terra");
     ok(f.includes("1.5") && f.includes("8"), "conosce solo il dominio del CAMPO spalla (1,5–8 m)");
   });
 }
+
+/* ══════════════════════════════════════════════════════════════════════════
+   `frasePersi` — LA FRASE DELLE RIGHE PERSE, IN UN POSTO SOLO (13/08)
+   ══════════════════════════════════════════════════════════════════════════
+   Era scritta QUATTRO VOLTE, una per pagina, in Campo, Conti, Flotta e Terra.
+   Le quattro copie erano ancora identiche carattere per carattere quando è
+   stata consolidata (stesso md5, `diff` a coppie vuoto) — cioè si è fatto in
+   tempo, e non c'è nessuna divergenza da raccontare come era costata la
+   convenzione sui numeri.
+   ⚠️ Queste prove guardano il CONTRATTO della funzione condivisa. Che le
+   quattro pagine la usino davvero invece di tenersene una copia non si può
+   chiedere a `node` — le pagine non si importano — e infatti quella domanda
+   sta dove si legge il testo della pagina: regola 32 di `run-stile.mjs`.
+   ══════════════════════════════════════════════════════════════════════════ */
+test("frasePersi · niente da dire non dice niente", () => {
+  eq(shell.frasePersi(null), "", "null");
+  eq(shell.frasePersi(undefined), "", "undefined");
+  eq(shell.frasePersi({}), "", "un oggetto senza `persi`");
+  eq(shell.frasePersi({ lette: 4, entrano: 4, persi: [], vuote: 1 }), "",
+     "quattro righe lette e quattro entrate: la frase è vuota, e la riga di coda `;;;` non si nomina");
+});
+
+test("frasePersi · una riga sola parla al singolare", () => {
+  /* la ragione per cui esiste `conta` invece di un `+ \" righe\"`: con n=1 la
+     frase dice «1 riga … non è entrata», non «1 righe … non sono entrate» */
+  eq(shell.frasePersi({ lette: 3, entrano: 2, persi: [{ nome: "riga 2", ragione: "manca il nome" }], vuote: 0 }),
+     " 1 riga del file non è entrata: «riga 2» perché manca il nome.",
+     "singolare, nome fra virgolette basse e la ragione dopo «perché»");
+});
+
+test("frasePersi · da due in su parla al plurale e le elenca in fila", () => {
+  eq(shell.frasePersi({ persi: [{ nome: "riga 2", ragione: "manca il nome" },
+                                { nome: "riga 4", ragione: "il lettore la scarta" }] }),
+     " 2 righe del file non sono entrate: «riga 2» perché manca il nome; «riga 4» perché il lettore la scarta.",
+     "plurale, separate da punto e virgola");
+});
+
+test("frasePersi · ⚠️ TRE NOMI E POI IL CONTO: un elenco di venti nomi non lo legge nessuno", () => {
+  const cinque = [1, 2, 3, 4, 5].map((i) => ({ nome: "riga " + i, ragione: "manca il nome" }));
+  const f = shell.frasePersi({ persi: cinque });
+  eq(f, " 5 righe del file non sono entrate: «riga 1» perché manca il nome; «riga 2» perché manca il nome; "
+      + "«riga 3» perché manca il nome; e altre 2.",
+     "tre nomi, poi «e altre N»");
+  /* ⛔ e il CONTO davanti resta quello vero: il taglio è nell'elenco, non nel
+     numero. Se il numero seguisse il taglio, la frase direbbe «3 righe» dove
+     ne sono cadute cinque — cioè un numero tranquillo dove non lo è. */
+  ok(f.startsWith(" 5 righe"), "il numero davanti conta TUTTE le perse, non le tre nominate");
+  ok(!f.includes("riga 4") && !f.includes("riga 5"), "la quarta e la quinta non sono nominate");
+});
+
+test("frasePersi · esattamente tre non aggiunge «e altre 0»", () => {
+  const f = shell.frasePersi({ persi: [1, 2, 3].map((i) => ({ nome: "riga " + i, ragione: "x" })) });
+  ok(!/e altre/.test(f), `«e altre 0» è una coda che non dice niente: «${f}»`);
+  eq(f, " 3 righe del file non sono entrate: «riga 1» perché x; «riga 2» perché x; «riga 3» perché x.",
+     "il confine fra elenco intero e elenco tagliato");
+});
+
+test("frasePersi · ⚠️ NIENTE `esc()`: la frase esce come l'utente l'ha scritta", () => {
+  /* `esito` e `toast` scrivono con `textContent`: scappare qui farebbe
+     comparire «&amp;» sullo schermo. La prova sta qui perché è una decisione,
+     non una svista, e senza di lei qualcuno la "correggerebbe". */
+  const f = shell.frasePersi({ persi: [{ nome: "Rossi & Figli", ragione: "manca il <nome>" }] });
+  ok(f.includes("Rossi & Figli"), `la e commerciale è stata scappata: «${f}»`);
+  ok(!/&amp;|&lt;/.test(f), `la frase contiene entità HTML, che finirebbero a schermo così come sono: «${f}»`);
+});
+
+/* ⛔ «E GLI ALTRI QUATTRO?» — LA FORMA MITE DELLO STESSO DIFETTO (13/08).
+   ══════════════════════════════════════════════════════════════════════════
+   La passata del mattino aveva censito nove lettori di Campo, Conti, Flotta e
+   Terra e li aveva fatti parlare tutti e nove; ne aveva lasciati quattro
+   dichiarati per iscritto, con la misura, perché perdevano UNA riga sola —
+   quella senza identità. Rimisurati prima di toccarli, perché quei numeri
+   erano di un'altra ora e il codice si muove: **quattro su quattro ancora
+   muti**, tutti e quattro `3 → 2` (scritte → entrate), zero già a posto.
+   ⚠️ «Mite» è il numero, non il danno. Un cliente che non rientra si porta
+   dietro le sue fatture, che restano agganciate a un `clienteId` che non
+   esiste più: l'esposizione di quell'azienda sparisce dall'elenco **senza che
+   nessun totale cambi di un euro**. E una riga persa dal piano di carico è un
+   FORO che nessuno caricherà, in un totale di esplosivo che conta tutti gli
+   altri.
+   ⛔ LE RAGIONI NON SONO CONIATE NUOVE: sono le quattro forme su cui i nove
+   lettori del mattino erano già convergiti da soli — «X non è stato scritto»
+   (nessuno ha compilato), «X non si legge» (c'è qualcosa e non è un numero),
+   «X non è maggiore di zero» (leggibile ma fuori dominio), «manca X» per
+   l'identità. La distinzione fra le prime due si tiene: per chi ha mandato il
+   file cambia che cosa deve andare a chiedere.
+   ══════════════════════════════════════════════════════════════════════════ */
+{
+  const QUATTRO = [
+    ["campo.parsePianoCsv", campo.parsePianoCsv, campo.scartiPianoCsv, "foro;x;fila;prof;prog;borr;rit",
+     ["1;0;A;12;5,5;3;0"],
+     [[";1,5;A;12;5,5;3;25", "manca il numero del foro", "riga 2"],
+      ["abc;3;A;12;5,5;3;50", "il numero del foro non si legge", "foro abc"],
+      ["0;4;A;12;5,5;3;75", "il numero del foro non è maggiore di zero", "foro 0"],
+      ["5;5;A;12;;3;100", "la carica progettata non è stata scritta", "foro 5"],
+      ["6;6;A;12;xyz;3;125", "la carica progettata non si legge", "foro 6"],
+      ["7;7;A;12;0;3;150", "la carica progettata non è maggiore di zero", "foro 7"]]],
+    ["conti.parseGareCsv", conti.parseGareCsv, conti.scartiGareCsv, "titolo;base;scadenza;stato",
+     /* ⚠️ la seconda riga sana è la gara SENZA BASE: entra, e deve entrare —
+        a volte la base non è ancora pubblicata. Sta qui perché una prova che
+        non contiene il caso legittimo non distingue «perde le righe rotte» da
+        «perde tutto quello che non è pieno». */
+     ["Gara comunale;12000;2026-09-01;aperta", "Gara senza base;;2026-09-05;aperta"],
+     [[";8000;2026-09-02;aperta", "manca il titolo della gara", "riga 3"]]],
+    ["conti.parseClientiCsv", conti.parseClientiCsv, conti.scartiClientiCsv, conti.CSV_CLIENTI_INTESTAZIONE,
+     ["C1;Alfa Srl;123;AAA;via Roma;5;1000;"],
+     [["C2;;456;BBB;via Po;;;", "manca la ragione sociale", "C2"],
+      [";;789;CCC;via Adda;;;", "manca la ragione sociale", "riga 3"]]],
+    ["flotta.parseRicambiCsv", flotta.parseRicambiCsv, flotta.scartiRicambiCsv, "nome;giacenza;sogliaMin;prezzo",
+     /* ⚠️ le tre righe sane sono i tre casi che NON fanno perdere la riga, e
+        sono decisioni scritte nel modulo: giacenza mancante = zero (un pezzo
+        senza quantità è un pezzo che non c'è), soglia mancante = vuota,
+        prezzo mancante = vuoto. */
+     ["Filtro olio;10;2;15", "Cinghia;;1;40", "Guarnizione;3;;"],
+     [[";5;1;9", "manca il nome del ricambio", "riga 4"]]],
+  ];
+  eq(QUATTRO.length, 4,
+    "⛔ INGRESSO · la tabella copre tutti e quattro i lettori lasciati muti dalla passata del mattino");
+
+  for (const [nome, leggi, scarti, intest, sane, rotte] of QUATTRO) {
+    test(`⛔ ${nome}: la riga senza identità si CONTA e si dice, con la sua ragione`, () => {
+      const righe = [...sane, ...rotte.map((r) => r[0])];
+      const csv = [intest, ...righe].join("\n") + "\n";
+      const s = scarti(csv);
+      eq(s.lette, righe.length, "legge tutte le righe di dati (l'intestazione no)");
+      eq(s.entrano, leggi(csv).length, "⛔ e «entrano» è esattamente quello che il lettore restituisce");
+      eq(s.entrano + s.persi.length, s.lette, "lette = entrate + perse, senza resti");
+      eq(s.persi.length, rotte.length, `perse ${rotte.length} righe su ${righe.length}`);
+      for (let i = 0; i < rotte.length; i++) {
+        eq(s.persi[i].ragione, rotte[i][1], `riga ${i + 1} rotta: la ragione è quella vera`);
+        eq(s.persi[i].nome, rotte[i][2], `riga ${i + 1} rotta: l'etichetta dice di CHI si parla`);
+      }
+      eq(s.persi.filter((p) => p.ragione === "il lettore la scarta").length, 0,
+        "⛔ nessuna riga finisce nel ripiego «il lettore la scarta»");
+      /* ⚠️ nessuna ragione finisce col punto: viene composta dentro una frase
+         più lunga, e sedici delle diciassette già scritte non ce l'hanno */
+      for (const p of s.persi)
+        ok(!/\.$/.test(p.ragione), `la ragione «${p.ragione}» finisce col punto: la frase la incastona`);
+    });
+    test(`✔ ${nome}: la riga di coda «;;;» di un foglio di calcolo NON è una perdita`, () => {
+      const vuota = ";".repeat(intest.split(";").length - 1);
+      const csv = [intest, ...sane, vuota].join("\n") + "\n";
+      const s = scarti(csv);
+      eq(s.persi.length, 0, "⛔ non si accusa l'utente di un difetto del suo Excel");
+      eq(s.entrano, leggi(csv).length, "e il conto di chi entra resta quello del lettore");
+      eq(s.lette, sane.length, "e non finisce nemmeno fra le righe lette");
+    });
+    test(`✔ ${nome}: un file di sola intestazione non produce nessuna accusa`, () => {
+      const s = scarti(intest + "\n");
+      eq(s.lette, 0, "zero righe lette");
+      eq(s.persi.length, 0, "zero perse");
+      eq(s.entrano, 0, "zero entrate");
+    });
+    test(`✔ ${nome}: niente testo, niente errori`, () => {
+      for (const t of ["", null, undefined]) {
+        const s = scarti(t);
+        eq(s.lette, 0, `«${t}»: zero lette`);
+        eq(s.persi.length, 0, `«${t}»: zero perse`);
+      }
+    });
+  }
+
+  /* ⛔ IL PIANO DI CARICO HA UNA COSA CHE GLI ALTRI OTTO NON HANNO: LE COLONNE
+     SI LEGGONO PER NOME. Quindi una riga chiesta al lettore DA SOLA verrebbe
+     riletta per POSIZIONE, e potrebbe salvarsi (o cadere) per una ragione
+     diversa da quella vera. La difesa è riattaccare la testa; questa prova è
+     la sua controprova, e senza di lei quella riga di codice sarebbe una
+     decisione che nessuno verifica. */
+  test("⛔ campo.scartiPianoCsv: la riga si richiede al lettore CON la sua intestazione", () => {
+    /* colonne in ordine non standard: `prog` è la seconda, non la quinta. Chi
+       leggesse per posizione prenderebbe `prof` (12) come carica progettata e
+       direbbe che la riga è buona. */
+    const csv = "foro;prog;x;fila;prof;borr;rit\n1;5,5;0;A;12;3;0\n2;;1,5;A;12;3;25\n";
+    const s = campo.scartiPianoCsv(csv);
+    eq(campo.parsePianoCsv(csv).length, 1, "il lettore, sul file intero, ne fa entrare una sola");
+    eq(s.entrano, 1, "e lo scarto dice lo stesso numero");
+    eq(s.persi.length, 1, "la riga senza carica progettata è persa");
+    eq(s.persi[0].ragione, "la carica progettata non è stata scritta",
+      "⛔ e la ragione è quella VERA, letta nella colonna giusta: senza riattaccare la testa "
+      + "la riga sarebbe stata letta per posizione e sarebbe sembrata buona");
+  });
+
+  /* ⛔ E LA PAGINA DEVE DIRLO, se no è la guardia scollegata della regola 20.
+     ⚠️ IL SOGGETTO È IL GESTORE D'IMPORT, non la pagina: un conto per PAGINA
+     non può accorgersi di un gestore su due, ed è un errore che questa casa ha
+     già fatto stamattina, su questi stessi file.
+     ⚠️ E L'USCITA NON È SEMPRE `esito(`: il gestore del piano di carico non ne
+     ha nessuna — scrive in `$("piano-riep")`, alza un `toast` e compone la
+     finestra «Come ho letto il file». Un elenco che desse `esito(` per
+     scontato avrebbe preteso `uscite > 0` su un gestore che ne ha zero e
+     sarebbe caduto su sé stesso: l'ancora dell'uscita si dichiara per
+     gestore. */
+  {
+    /* ⚠️ E IL PRIMO RIGHELLO SCRITTO QUI SOTTO ERA SBAGLIATO, col segno di
+       sempre: per il piano di carico avevo dato per «uscita» anche
+       `avvisi.push(`, e ne contava SETTE contro tre frasi — accusando un
+       gestore sano. Ma `avvisi.push` non è un'uscita: è UN AVVISO dentro
+       l'unica finestra che poi si apre una volta sola. Il piano di carico non
+       si conta a uscite, e ha una prova sua qui sotto che nomina le sue due
+       strade invece di contarle. */
+    const GESTORI = [
+      ["conti", srcContiPag, "scartiGareCsv", "gar-file"],
+      ["conti", srcContiPag, "scartiClientiCsv", "cli-file"],
+      ["flotta", srcFlottaPag, "scartiRicambiCsv", "ric-file"],
+    ];
+    eq(GESTORI.length + 1, 4, "⛔ INGRESSO · quattro funzioni nuove, quattro gestori d'import (il piano di carico ha la prova sua)");
+    const gestoreDiB = (src, campoFile) => {
+      const a = src.indexOf(`$("${campoFile}").onchange`);
+      return a < 0 ? "" : src.slice(a, src.indexOf("\n  };", a));
+    };
+    for (const [app, src, fn, campoFile, ancoraUscita] of GESTORI) {
+      test(`⛔ ${app}/${campoFile}: il gestore CHIAMA ${fn} e ogni sua uscita dice le righe perse`, () => {
+        eq((src.match(new RegExp("\\$\\(\"" + campoFile + "\"\\)\\.onchange", "g")) || []).length, 1,
+          `${campoFile}: l'ancora del gestore è unica`);
+        const g = gestoreDiB(src, campoFile);
+        ok(g.length > 200, `${campoFile}: il gestore si ritrova nel sorgente (${g.length} caratteri)`);
+        ok(new RegExp("\\b" + fn + "\\s*\\(").test(g), `⛔ ${fn}: chiamata dentro il suo gestore`);
+        ok(new RegExp("\\b" + fn + "\\b").test(src), `${fn}: e importata dal modulo`);
+        const uscite = (g.match(ancoraUscita) || []).length;
+        ok(uscite > 0, `⛔ ${fn}: il gestore ha ${uscite} uscite (se fosse 0 non starei guardando un gestore)`);
+        const usi = (g.match(/frasePersi\s*\(/g) || []).length;
+        ok(usi >= uscite, `⛔ ${fn}: ${uscite} uscite e ${usi} volte che dicono le righe perse`);
+      });
+    }
+    /* ⛔ E IL COLORE SEGUE LA COSA PEGGIORE SUCCESSA: un verde tranquillo
+       accanto a «una riga non è entrata» è la contraddizione fra il numero e
+       il disegno. Vale per i tre gestori che hanno un `esito`; il piano di
+       carico non ne ha uno — la sua frase entra nella finestra «Come ho letto
+       il file», che è già di per sé un avviso, e nel messaggio d'errore. */
+    for (const [app, src, fn, campoFile] of GESTORI.filter((x) => x[3] !== "piano-file")) {
+      test(`⛔ ${app}/${campoFile}: l'esito esce «warn» quando delle righe non sono entrate`, () => {
+        const g = gestoreDiB(src, campoFile);
+        ok(/scartate\.persi\.length \? "warn"/.test(g),
+          `⛔ ${fn}: il colore dell'esito non guarda le righe perse`);
+      });
+    }
+    test("⛔ campo/piano-file: la frase entra nella finestra «Come ho letto il file», ed è ESCAPATA", () => {
+      const g = gestoreDiB(srcCampoPag, "piano-file");
+      ok(/avvisi\.push\(esc\(frasePersi\(scartate\)\.trim\(\)\)\)/.test(g),
+        "⛔ questa è l'unica delle tredici uscite che compone HTML (`chiedi` prende markup) "
+        + "invece di scrivere con `textContent`: senza `esc` un nome di colonna scritto "
+        + "dall'utente entrerebbe nella pagina così com'è");
+    });
+  }
+}
+
 console.log(`\nRisultato KPI app: ${passed} passati, ${failed} falliti${inVolo.length ? `  ·  ${inVolo.length} prove asincrone aspettate` : ""}`);
 process.exit(failed > 0 ? 1 : 0);

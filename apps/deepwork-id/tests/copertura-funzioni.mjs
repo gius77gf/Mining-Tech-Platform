@@ -284,7 +284,11 @@ const CONDIVISI = [
      conto e si prova chiamandola: è lo stesso movimento di
      `nomeCsvDimostrazione` di ieri, e il segno che erano nel posto sbagliato
      era lo stesso — per provarle bisognava estrarre la riga dal sorgente. */
-  { file: "shared/deepwork-id-client/dw-shell.js", fondo: 47,
+  /* 47 → 48 il 13/08 con `frasePersi`, la frase «queste righe del file non
+     sono entrate» che era scritta quattro volte, una per pagina, in Campo,
+     Conti, Flotta e Terra. Sta qui perché è fatta con `conta`, che sta venti
+     righe più su in questo stesso file. */
+  { file: "shared/deepwork-id-client/dw-shell.js", fondo: 48,
     perche: "gli aiuti che tutte le app importano (numeri, date, CSV)" },
   { file: "apps/genesi/pointcloud.js", fondo: 5,
     perche: "il calcolo del volume dal drone: da lì passano i m³ che consumano la concessione" },

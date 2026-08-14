@@ -1193,7 +1193,7 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
 
 
 <script type="module">
-  import { campoData, kpiFrom, parsePianoCsv, mappaPianoCsv, foriRipetuti, parseSquadreCsv, scartiSquadreCsv, csvSquadre, percorsiDi, scartoPct, scartoLivello, pianoRiepilogo, CAUSALI_FERMO, riepilogoFermi, paretoFermi, fermiPerGiorno, mediaFermiAlGiorno, fermiSenzaGiorno, riassuntoRapportino, avanzamentoGiornata, coperturaRapportini,
+  import { campoData, kpiFrom, parsePianoCsv, scartiPianoCsv, mappaPianoCsv, foriRipetuti, parseSquadreCsv, scartiSquadreCsv, csvSquadre, percorsiDi, scartoPct, scartoLivello, pianoRiepilogo, CAUSALI_FERMO, riepilogoFermi, paretoFermi, fermiPerGiorno, mediaFermiAlGiorno, fermiSenzaGiorno, riassuntoRapportino, avanzamentoGiornata, coperturaRapportini,
            oggiISO, TURNI, turnoCorrente, diGiorno, senzaData, UNITA_PRODUZIONE, totaliProduzione, formattaProduzione, normalizzaPiano,
            squadraBase, RUOLI, operatoriDi, etichettaAssegnazione, eMia, caricoSquadre,
            idoneitaDiTurno, idoneitaOperatore, inTurnoOggi,
@@ -1218,7 +1218,7 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
            numeroIt, segnoIt, numeroItDa, numeroDaCampo } from "./campo-data.js";
   import { misuratoPeriodo, produzioneDichiarata, riconciliazioneTurni,
            periodoFraUltimiRilievi, densitaDellaCava } from "../../shared/dw-ponti.js";
-  import { mountExit, esc, csvCell, statoVuoto, senzaDoppioni, messaggioNumero, montaGuardiaInteri, dataIt, dataISOEsiste, modoDimostrazione, avvisoTestoDimostrazione, nomeCsvDimostrazione, conta, plurale, avvisaSeNonSalva} from "../../shared/deepwork-id-client/dw-shell.js";
+  import { mountExit, esc, csvCell, statoVuoto, senzaDoppioni, messaggioNumero, montaGuardiaInteri, dataIt, dataISOEsiste, modoDimostrazione, avvisoTestoDimostrazione, nomeCsvDimostrazione, conta, frasePersi, plurale, avvisaSeNonSalva} from "../../shared/deepwork-id-client/dw-shell.js";
   // gli agganci della struttura condivisa (modale con Escape, riquadri da
   // tastiera, alone che segue il mouse). Va chiamato QUI e non nel blocco
   // classico in linea: i moduli girano dopo gli script `defer`.
@@ -1275,31 +1275,6 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
     if (testo) toast(testo, tipo);
   };
 
-  /* ⛔ LE RIGHE CHE NON SONO ENTRATE SI DICONO, CON IL LORO PERCHÉ (13/08).
-     Il `.filter` che scarta una riga sta DENTRO il lettore, che restituisce
-     solo i sopravvissuti: fino a oggi questa pagina non poteva dirlo nemmeno
-     volendo — riceveva un elenco più corto e basta. Chi importava 200 righe e
-     ne vedeva 180 non aveva modo di sapere quali venti mancassero né perché:
-     è l'assenza di un dato nella sua forma più tranquilla, cioè il principio
-     del fondatore applicato all'INGRESSO invece che all'uscita.
-     Adesso il modulo risponde anche `scarti<X>Csv`, con `{ lette, entrano,
-     persi: [{ nome, ragione }] }` — la stessa forma di `rientroRilievi` di
-     Terra, che fa la stessa domanda nell'altro verso.
-     ⚠️ TRE NOMI E POI IL CONTO: un elenco di venti nomi dentro un toast non
-     lo legge nessuno, e un messaggio che non si legge è come non averlo.
-     ⚠️ NIENTE `esc()`: `esito` e `toast` scrivono con `textContent`, quindi
-     scappare qui farebbe comparire «&amp;» sullo schermo.
-     ⚠️ E le righe di coda che un foglio di calcolo salva come `;;;` NON
-     entrano in questo conto: le toglie il modulo (`vuote`), perché accusare
-     l'utente di un difetto del suo Excel è il falso allarme che insegna a
-     non guardare i messaggi. */
-  const frasePersi = (s) => {
-    const p = (s && s.persi) || [];
-    if (!p.length) return "";
-    return " " + conta(p.length, "riga del file non è entrata", "righe del file non sono entrate")
-      + ": " + p.slice(0, 3).map(x => "«" + x.nome + "» perché " + x.ragione).join("; ")
-      + (p.length > 3 ? "; e altre " + (p.length - 3) : "") + ".";
-  };
   // ── Errori di campo: classe dedicata + fuoco automatico sul campo sbagliato
   const err = (id, on) => { const el = $(id); if (el) el.classList.toggle("err", !!on); };
   const sbaglia = (campoId, esitoId, messaggio) => {
@@ -4697,9 +4672,16 @@ ${riapOggi.length?`<h2>Riaperture del turno</h2>
     const testo = await file.text();
     const mappa = mappaPianoCsv(testo);
     const righe = parsePianoCsv(testo);
+    /* ⛔ E I FORI CHE IL LETTORE HA BUTTATO VIA (13/08). Qui pesa più che in
+       ogni altro import di questa casa: le righe che spariscono sono FORI, e
+       il totale dell'esplosivo del piano le conta tutte tranne quelle. È la
+       stessa ragione per cui il foro RIPETUTO si dice invece di toglierlo
+       (poco più giù): in un piano di carico una riga in meno non è un
+       fastidio da ripulire, è una carica che nessuno metterà. */
+    const scartate = scartiPianoCsv(testo);
     e.target.value = "";
-    if (!righe.length) { $("piano-riep").textContent = "Nessuna riga valida nel file: le colonne devono essere foro; x; fila; prof; prog; borr; rit.";
-      toast("File non riconosciuto: controlla le colonne.", "err"); return; }
+    if (!righe.length) { $("piano-riep").textContent = "Nessuna riga valida nel file: le colonne devono essere foro; x; fila; prof; prog; borr; rit." + frasePersi(scartate);
+      toast("File non riconosciuto: controlla le colonne." + frasePersi(scartate), "err"); return; }
     // Come è stato letto il file, detto prima di scrivere. Le colonne si leggono
     // per NOME quando l'intestazione c'è: prima si leggevano per posizione e un
     // file con le colonne in ordine diverso si caricava comunque, con la
@@ -4725,6 +4707,12 @@ ${riapOggi.length?`<h2>Riaperture del turno</h2>
        sparire una carica dal piano e scendere il totale dell'esplosivo senza
        che nessuno sappia perché — cioè la cosa peggiore che possa fare un'app
        che serve a un fochino. Entrano tutte e due, e glielo diciamo prima. */
+    /* ⚠️ QUI `esc()`, AL CONTRARIO DI TUTTI GLI ALTRI IMPORT. Gli altri
+       consegnano la frase a `esito`/`toast`, che scrivono con `textContent`;
+       questa finestra la compone in HTML (`chiedi` prende markup), e dentro
+       la frase ci sono i nomi delle colonne e i numeri di foro scritti
+       dall'utente nel suo file. */
+    if (scartate.persi.length) avvisi.push(esc(frasePersi(scartate).trim()));
     const ripetuti = foriRipetuti(righe);
     if (ripetuti.length)
       avvisi.push("Questi numeri di foro compaiono <b>più di una volta</b> nel file: <b>"

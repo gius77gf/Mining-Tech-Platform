@@ -744,6 +744,38 @@ export function parseGareCsv(text) {
     .filter(g => g.titolo);
 }
 
+/* ⛔ E LE GARE CHE NON SONO ENTRATE? (13/08) Il `.filter` sta DENTRO il
+   lettore: chi carica un file di gare e ne vede una in meno non sa quale.
+   ⚠️ QUI IL DIFETTO È MITE E RESTA CARO LO STESSO: cade solo la riga senza
+   TITOLO, cioè senza identità — la base d'asta che manca NON fa perdere la
+   riga (una gara non ancora pubblicata è legittima, la gara entra e il
+   riepilogo dice a parte quante sono senza base). Ma una gara che sparisce è
+   una scadenza che nessuno guarderà più.
+   ⛔ IL VERDETTO NON SI RISCRIVE: `parseGareCsv(riga).length`. La scala delle
+   ragioni SPIEGA e basta, e quando non sa spiegare dice «il lettore la
+   scarta» invece di indovinare.
+   ⛔ E LA RIGA DI CODA `;;;` che un foglio di calcolo salva da sé non è una
+   perdita: si conta a parte (`vuote`) e resta muta. */
+export function scartiGareCsv(text) {
+  const righe = String(text || "").split(/\r?\n/).map(r => r.trim()).filter(Boolean)
+    .filter(r => !isIntestazione(r, "titolo"));
+  const persi = [];
+  let nRiga = 0;
+  let vuote = 0;
+  for (const riga of righe) {
+    nRiga++;
+    if (parseGareCsv(riga).length) continue;
+    const c = parseCsvLine(riga);
+    if (c.every(x => String(x == null ? "" : x).trim() === "")) { vuote++; continue; }
+    persi.push({
+      nome: "riga " + nRiga,
+      ragione: !(c[0] || "").trim() ? "manca il titolo della gara" : "il lettore la scarta",
+    });
+  }
+  const lette = righe.length - vuote;
+  return { lette, entrano: lette - persi.length, persi, vuote };
+}
+
 // IMPORT DEL LISTINO DA CSV.
 // Perché esiste: fino al 30/07 il listino era l'unica cosa di Conti che si
 // poteva solo battere a mano, ed è quella che una cava ha GIÀ in un foglio di
@@ -4522,4 +4554,43 @@ export function parseClientiCsv(text) {
        che nell'elenco comparirebbe come voce senza nome, e in una fattura
        come intestatario mancante. */
     .filter((c) => c.ragioneSociale);
+}
+
+/* ⛔ E I CLIENTI CHE NON SONO ENTRATI? (13/08) Come per gli altri lettori, il
+   `.filter` sta DENTRO: chi rimette in casa la propria anagrafica e ne vede
+   una in meno non sa quale.
+   ⚠️ E qui la riga persa è la più cara di tutte quelle di questa passata: un
+   cliente che non rientra si porta dietro le sue fatture, che restano
+   agganciate a un `clienteId` che non esiste più — cioè l'esposizione di
+   quell'azienda sparisce dall'elenco senza che il totale cambi di un euro.
+   ⛔ LE RIGHE SI CHIEDONO A `leggiCsv` E NON A `split("\n")`, e non è un
+   dettaglio: le note di un cliente possono contenere un a capo dentro le
+   virgolette (`csvClienti` le scrive con `csvCell`), e un file spezzato per
+   righe conterebbe UNA riga vera come due mezze righe illeggibili — cioè un
+   allarme falso su un file sano. È la stessa ragione per cui `parseIncassiCsv`
+   passa da lì: le banche scrivono la causale su più righe.
+   ⛔ IL VERDETTO NON SI RISCRIVE: la riga si ricompone con `csvCell` — la
+   stessa funzione con cui `csvClienti` la scriverebbe — e si richiede al
+   lettore. Il giro di andata e ritorno è stato misurato in scratchpad prima
+   di scrivere questa funzione, su un file cattivo apposta (punto e virgola
+   dentro le virgolette, nota su due righe, numero negativo, una cella che
+   comincia con `=`): **4 righe su 4 concordi col verdetto del file intero**. */
+export function scartiClientiCsv(text) {
+  const celle = (leggiCsv(String(text || "")).righe || [])
+    .filter((c) => c.length && !isIntestazione(c.join(";"), "id"));
+  const persi = [];
+  let nRiga = 0;
+  let vuote = 0;
+  for (const c of celle) {
+    nRiga++;
+    if (c.every((x) => String(x == null ? "" : x).trim() === "")) { vuote++; continue; }
+    if (parseClientiCsv(c.map(csvCell).join(";")).length) continue;
+    persi.push({
+      nome: String(c[0] == null ? "" : c[0]).trim() || "riga " + nRiga,
+      ragione: !String(c[1] == null ? "" : c[1]).trim()
+        ? "manca la ragione sociale" : "il lettore la scarta",
+    });
+  }
+  const lette = celle.length - vuote;
+  return { lette, entrano: lette - persi.length, persi, vuote };
 }

@@ -677,6 +677,37 @@ export function parseRicambiCsv(text) {
     .filter(r => r.nome);
 }
 
+/* ⛔ E I RICAMBI CHE NON SONO ENTRATI? (13/08) Il `.filter` sta DENTRO il
+   lettore, come negli altri otto: chi carica un magazzino di trecento righe e
+   ne vede duecentonovantotto non sa quali due mancano né perché.
+   ⚠️ E le tre decisioni scritte qui sopra dicono da sole quale sia l'UNICA
+   cosa che fa perdere la riga: la giacenza che manca vale zero, la soglia e il
+   prezzo che mancano restano vuoti — il ricambio entra lo stesso in tutt'e
+   tre i casi. Quello che fa perdere la riga è il NOME, che è l'identità.
+   ⛔ IL VERDETTO NON SI RISCRIVE: `parseRicambiCsv(riga).length`. E la riga di
+   coda `;;;` che un foglio di calcolo salva da sé si conta a parte (`vuote`)
+   e resta muta: accusare l'utente di un difetto del suo Excel è il falso
+   allarme che insegna a non guardare i messaggi. */
+export function scartiRicambiCsv(text) {
+  const righe = String(text || "").split(/\r?\n/).map(r => r.trim()).filter(Boolean)
+    .filter(r => !isIntestazione(r, "nome"));
+  const persi = [];
+  let nRiga = 0;
+  let vuote = 0;
+  for (const riga of righe) {
+    nRiga++;
+    if (parseRicambiCsv(riga).length) continue;
+    const c = parseCsvLine(riga);
+    if (c.every(x => String(x == null ? "" : x).trim() === "")) { vuote++; continue; }
+    persi.push({
+      nome: "riga " + nRiga,
+      ragione: !(c[0] || "").trim() ? "manca il nome del ricambio" : "il lettore la scarta",
+    });
+  }
+  const lette = righe.length - vuote;
+  return { lette, entrano: lette - persi.length, persi, vuote };
+}
+
 /* ⛔ E IL FILE DEI RICAMBI LO SCRIVE UNA FUNZIONE, per la stessa ragione del
    listino di Conti: era una stringa composta nella pagina, cioè fuori dalla
    portata di qualunque prova che non apra un browser.

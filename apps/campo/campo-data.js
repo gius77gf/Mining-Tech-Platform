@@ -2551,6 +2551,68 @@ export function parsePianoCsv(text) {
     .filter(p => p.foro > 0 && p.prog > 0);
 }
 
+/* ⛔ E LE RIGHE DEL PIANO CHE NON SONO ENTRATE? (13/08) Stessa domanda dei
+   nove lettori del 13/08 mattina, e stessa risposta: il `.filter` sta DENTRO
+   il lettore, che restituisce solo i sopravvissuti — chi carica un piano di
+   settanta fori e ne vede sessantotto non ha modo di sapere quali due
+   mancano né perché.
+   ⚠️ QUI PESA PIÙ CHE ALTROVE, ed è la ragione per cui questo lettore non
+   poteva restare muto: le righe che spariscono sono **fori**, e il totale
+   dell'esplosivo del piano le conta tutte tranne quelle. È la stessa ragione
+   per cui `foriRipetuti` DICE il doppione invece di toglierlo (venti righe
+   più su): in un piano di carico una riga in meno non è un fastidio, è una
+   carica che nessuno metterà.
+   ⛔ IL VERDETTO NON SI RISCRIVE: lo si chiede al lettore riga per riga. Ma
+   qui la riga da sola NON BASTA — misurato in scratchpad prima di scrivere
+   questa funzione: quando il file ha l'intestazione, comandano i NOMI delle
+   colonne, quindi una riga staccata dalla sua testa verrebbe riletta **per
+   posizione** e potrebbe salvarsi (o cadere) per una ragione diversa da
+   quella vera. Perciò la testa si riattacca. La scala delle ragioni SPIEGA e
+   basta, e legge le celle attraverso `mappaPianoCsv` — la stessa mappa che usa
+   il lettore — invece di rifarsi la sua idea di dove stia una colonna.
+   ⛔ E LA RIGA TUTTA VUOTA NON È UNA PERDITA: un foglio di calcolo salva le
+   righe di coda come `;;;`, che dopo il `trim` non è vuota e arriva fino al
+   filtro. Si contano a parte (`vuote`) e non si dicono. */
+export function scartiPianoCsv(text) {
+  const tutte = String(text || "").split(/\r?\n/).map(r => r.trim()).filter(Boolean);
+  const testa = tutte.find(r => isIntestazione(r, "foro"));
+  const righe = tutte.filter(r => !isIntestazione(r, "foro"));
+  const m = mappaPianoCsv(text);
+  const cella = (c, campo, pos) => {
+    const i = m.conIntestazione ? m.indici[campo] : pos;
+    return i === undefined ? "" : String(c[i] == null ? "" : c[i]).trim();
+  };
+  const persi = [];
+  let nRiga = 0;
+  let vuote = 0;
+  for (const riga of righe) {
+    nRiga++;
+    if (parsePianoCsv(testa ? testa + "\n" + riga : riga).length) continue;
+    const c = parseCsvLine(riga);
+    if (c.every(x => String(x == null ? "" : x).trim() === "")) { vuote++; continue; }
+    const foro = cella(c, "foro", 0), prog = cella(c, "prog", 4);
+    const nf = numIt(foro), np = numIt(prog);
+    /* ⚠️ LE TRE RAGIONI SONO QUELLE CHE L'ECOSISTEMA USA GIÀ, e non ne conia
+       di nuove: «non è stato scritto» (nessuno ha compilato il campo), «non si
+       legge» (c'è qualcosa e non è un numero), «non è maggiore di zero»
+       (leggibile ma fuori dominio). La distinzione fra le prime due si tiene
+       perché per chi ha mandato il file cambia che cosa deve andare a
+       chiedere: un campo dimenticato o un campo battuto male. */
+    persi.push({
+      nome: foro ? "foro " + foro : "riga " + nRiga,
+      ragione: !foro ? "manca il numero del foro"
+        : !Number.isFinite(nf) ? "il numero del foro non si legge"
+        : nf <= 0 ? "il numero del foro non è maggiore di zero"
+        : !prog ? "la carica progettata non è stata scritta"
+        : !Number.isFinite(np) ? "la carica progettata non si legge"
+        : np <= 0 ? "la carica progettata non è maggiore di zero"
+        : "il lettore la scarta",
+    });
+  }
+  const lette = righe.length - vuote;
+  return { lette, entrano: lette - persi.length, persi, vuote };
+}
+
 // I NUMERI DI FORO CHE COMPAIONO PIÙ DI UNA VOLTA nel piano appena letto.
 //
 // ⛔ QUI LA DECISIONE È L'OPPOSTA DI QUELLA PRESA NEGLI ALTRI IMPORT. Ovunque

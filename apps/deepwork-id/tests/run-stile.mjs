@@ -3690,5 +3690,123 @@ test("regola 31: la controprova — nei due versi", () => {
     "la regola 31 accusa la frase sana");
 });
 
+/* ⛔ REGOLA 32 — LA FRASE CHE DICE «QUESTE RIGHE NON SONO ENTRATE» SI SCRIVE
+   IN UN POSTO SOLO.
+   Il difetto: `frasePersi` è nata il 13/08 in QUATTRO pagine — Campo, Conti,
+   Flotta e Terra — scritta lo stesso giorno dallo stesso cantiere. Misurate
+   prima di consolidarle, le quattro copie erano ancora identiche carattere
+   per carattere (stesso md5, `diff` a coppie vuoto): si è fatto in tempo, ed
+   è l'unica ragione per cui questa regola nasce con zero divergenze da
+   raccontare invece che con tre comportamenti diversi, come era costata la
+   convenzione sui numeri.
+   ⚠️ PERCHÉ LA REGOLA STA QUI E NON GRATIS. Se la funzione fosse salita in
+   `shared/dw-app-ui.js`, `UI_CONDIVISA` — che è derivato dai suoi `window.X =`
+   — l'avrebbe presa da sé. Non ci poteva salire: `dw-app-ui.js` è uno script
+   classico e questa frase è fatta con `conta`, che è un `export` di
+   `dw-shell.js`; scriverla là voleva dire riscrivere lì dentro la scelta fra
+   singolare e plurale, cioè produrre la quinta copia dentro l'unità che
+   esiste per togliere le prime quattro. Quindi il guadagno si ricompra a
+   mano, qui.
+   LE TRE DOMANDE, e servono tutte e tre:
+   1. nessuna pagina la ridefinisce in casa (il ritorno indietro);
+   2. chi la chiama la importa da `dw-shell.js` — un nome chiamato e non
+      importato è un errore DURO: la pagina si apre e muore al primo tocco,
+      ed è già successo in questa casa con `chiediDati` e con `conta`;
+   3. e i consumatori ci sono davvero. Senza la terza, cancellare la frase da
+      tutte e quattro le pagine farebbe passare la regola con un verde pieno.
+      Il numero dei consumatori NON è scritto a mano: è **derivato** — le app
+      il cui modulo dati espone almeno un `scarti…Csv` sono esattamente quelle
+      che hanno qualcosa da dire, e la loro pagina lo deve dire. Così un
+      `scarti…Csv` aggiunto domani a Scudo senza collegarlo alla pagina cade
+      qui, invece di restare una guardia scollegata (la regola 20 applicata
+      all'ingresso). */
+const APP_CON_SCARTI = MODULI
+  .filter(([, rel]) => /^apps\/[a-z-]+\/[a-z-]+-data\.js$/.test(rel))
+  .map(([, rel]) => ({ app: rel.split("/")[1], rel }))
+  .filter(({ rel }) => {
+    const src = leggi(rel);
+    if (!src) return false;
+    const vivo = mascheraCodice(src);
+    for (const m of src.matchAll(/export\s+function\s+scarti\w*Csv\s*\(/g)) if (vivo[m.index]) return true;
+    return false;
+  })
+  .map(({ app }) => app);
+
+const RE_FRASE_DEF = /(?:function\s+frasePersi\s*\(|(?:const|let|var)\s+frasePersi\s*=)/g;
+const RE_FRASE_USO = /\bfrasePersi\s*\(/g;
+const RE_FRASE_IMPORT = /import\s*\{[^}]*\bfrasePersi\b[^}]*\}\s*from\s*["'][^"']*dw-shell\.js["']/;
+
+test("regola 32: `frasePersi` non è riscritta in nessuna pagina", () => {
+  const male = [];
+  let guardate = 0;
+  for (const [nome, rel] of SUPERFICI) {
+    const testo = leggi(rel);
+    if (testo == null) continue;
+    guardate++;
+    const vivo = mascheraCodice(testo);
+    RE_FRASE_DEF.lastIndex = 0;
+    let m;
+    while ((m = RE_FRASE_DEF.exec(testo)) !== null) {
+      if (!vivo[m.index]) continue;   // dentro un commento o una stringa
+      male.push(`${nome} riga ${testo.slice(0, m.index).split("\n").length}: «${m[0].trim()}»`);
+    }
+  }
+  ok(guardate === SUPERFICI.length,
+    `la regola 32 ha guardato ${guardate} superfici su ${SUPERFICI.length}: non sta guardando dove crede`);
+  ok(male.length === 0,
+    "`frasePersi` è ridefinita in casa invece di venire da dw-shell.js:\n  " + male.join("\n  "));
+});
+
+test("regola 32: chi chiama `frasePersi` la importa, e i consumatori ci sono", () => {
+  const senzaImport = [], chiamanti = [];
+  for (const [nome, rel] of SUPERFICI) {
+    const testo = leggi(rel);
+    if (testo == null) continue;
+    const vivo = mascheraCodice(testo);
+    RE_FRASE_USO.lastIndex = 0;
+    let usi = 0, m;
+    while ((m = RE_FRASE_USO.exec(testo)) !== null) if (vivo[m.index]) usi++;
+    if (!usi) continue;
+    chiamanti.push(rel.split("/")[1]);
+    if (!RE_FRASE_IMPORT.test(testo)) senzaImport.push(`${nome}: ${usi} chiamate, nessun import`);
+  }
+  ok(senzaImport.length === 0,
+    "`frasePersi` è chiamata ma non importata da dw-shell.js — la pagina si apre e muore al primo tocco:\n  "
+    + senzaImport.join("\n  "));
+  /* ⛔ IL DENOMINATORE È DERIVATO, non scritto: le app che hanno un
+     `scarti…Csv` nel modulo dati sono quelle che hanno righe perse da
+     raccontare, e la loro pagina lo deve raccontare. */
+  ok(APP_CON_SCARTI.length >= 4,
+    `solo ${APP_CON_SCARTI.length} moduli dati espongono uno \`scarti…Csv\`: l'elenco si è accorciato `
+    + `(oggi ${APP_CON_SCARTI.join(", ")})`);
+  const mute = APP_CON_SCARTI.filter((a) => !chiamanti.includes(a));
+  ok(mute.length === 0,
+    `queste app contano le righe perse nel modulo e non lo dicono nella pagina: ${mute.join(", ")} — `
+    + "un `scarti…Csv` che nessuno legge non protegge niente (regola 20, applicata all'ingresso)");
+});
+
+test("regola 32: la controprova — nei due versi", () => {
+  /* il ritorno indietro: la copia locale rimessa in una pagina */
+  const rotta = '  const frasePersi = (s) => { const p = (s && s.persi) || []; return p.length ? "x" : ""; };';
+  const vivoR = mascheraCodice(rotta);
+  RE_FRASE_DEF.lastIndex = 0;
+  let visti = 0, m;
+  while ((m = RE_FRASE_DEF.exec(rotta)) !== null) if (vivoR[m.index]) visti++;
+  ok(visti === 1, `la regola 32 non vede la copia locale rimessa: ${visti} invece di 1`);
+  /* e dentro un commento non deve vederla: è il difetto che in questa casa è
+     già passato quattro volte, l'ultima scrivendo questa stessa famiglia */
+  const commentata = "/* prima c'era const frasePersi = (s) => …, adesso viene da shared/ */";
+  const vivoC = mascheraCodice(commentata);
+  RE_FRASE_DEF.lastIndex = 0;
+  let vistiC = 0;
+  while ((m = RE_FRASE_DEF.exec(commentata)) !== null) if (vivoC[m.index]) vistiC++;
+  ok(vistiC === 0, `la regola 32 accusa un commento: ${vistiC} invece di 0`);
+  /* la chiamata senza import */
+  const senza = 'import { conta } from "../../shared/deepwork-id-client/dw-shell.js";\ntoast("x" + frasePersi(s));';
+  ok(!RE_FRASE_IMPORT.test(senza), "la regola 32 crede importata una frase che l'import non nomina");
+  const con = 'import { conta, frasePersi } from "../../shared/deepwork-id-client/dw-shell.js";';
+  ok(RE_FRASE_IMPORT.test(con), "la regola 32 non riconosce l'import buono");
+});
+
 console.log(`\nRisultato Stile: ${passed} passati, ${failed} falliti${inVolo.length ? `  ·  ${inVolo.length} prove asincrone aspettate` : ""}`);
 process.exit(failed > 0 ? 1 : 0);
