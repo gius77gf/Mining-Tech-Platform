@@ -1174,14 +1174,32 @@ textarea.dw-input{
        aperta, a che punto è, e se è stata chiusa. L'azione NON vive qui:
        vive in Scudo, dentro lo scadenzario della sicurezza, perché è lì che
        si assegna un responsabile e si controllano le scadenze. -->
-  <div class="sec">Cosa abbiamo fatto<span class="cnt" id="pon-tot">0</span></div>
+  <!-- ⛔ I CONTATORI DELLE SEZIONI NASCONO «—», NON «0» (14/08).
+       Fra l'apertura della pagina e l'arrivo dei dati c'è una finestra vera:
+       la barra in basso è già viva (`window.go` arriva da dw-app-ui.js, che è
+       `defer` e non aspetta il modulo dati), quindi in quella finestra si
+       possono aprire TUTTE le sezioni. Misurata con la risposta HTTP del
+       modulo dati rallentata: 6 schermate su 6, e 9 contatori visibili che
+       dicevano «0» — «Centraline e sensori 0», «Registro volate 0», «Reclami
+       ed esposti 0» su una cava che le ha. È il principio del fondatore
+       applicato al TEMPO invece che al dato: «non lo so ancora» non è «non
+       c'è», ed è la stessa idea per cui in questa app «senza dati» non è
+       «conforme». La forma per dirlo era già in questa pagina: i quattro KPI
+       del Quadro nascono «—».
+       Non è uno stato del DATO (nessuna mappa di stati guadagna un valore):
+       è lo stato della PAGINA prima che il dato esista. `refresh()` scrive
+       tutti e nove i contatori a ogni giro, quindi il «—» non sopravvive
+       all'arrivo dei dati; e uno zero VERO continua a scriversi «0», che è la
+       differenza fra «ho guardato e non ce n'è» e «non ho ancora guardato».
+       Difesa: tests/browser/finestra-caricamento.mjs -->
+  <div class="sec">Cosa abbiamo fatto<span class="cnt" id="pon-tot">—</span></div>
   <div id="pon-riep" class="note recap" style="margin-top:0;"></div>
   <div id="pon-list" style="margin-top:10px;"></div>
   <div class="note esito" id="pon-esito"></div>
 </div>
 
 <div class="page" id="page-mon">
-  <div class="sec">Centraline e sensori<span class="cnt" id="mon-tot">0</span></div>
+  <div class="sec">Centraline e sensori<span class="cnt" id="mon-tot">—</span></div>
   <div id="mon-conf" class="note recap" style="margin-top:0;"></div>
   <div id="mon-filtri" class="chgs" style="margin-top:10px;">
     <button class="chg active" data-filtro="tutti">Tutti</button>
@@ -1266,7 +1284,7 @@ textarea.dw-input{
   <!-- T2 · ANAGRAFICA RICETTORI ─────────────────────────────────────────
        Le norme ragionano sul punto sensibile che subisce l'effetto, non
        "sulla cava in generale": la casa, la scuola, il confine. -->
-  <div class="sec">Ricettori: case, scuole, confini<span class="cnt" id="ric-tot">0</span></div>
+  <div class="sec">Ricettori: case, scuole, confini<span class="cnt" id="ric-tot">—</span></div>
   <div class="note">Il <b>ricettore</b> è il punto sensibile da proteggere. Se gli scrivi una
     <b>soglia propria</b> (quella dell'autorizzazione per quella casa) e ha la stessa unità di
     misura, i punti collegati usano quella invece della loro.</div>
@@ -1341,7 +1359,7 @@ textarea.dw-input{
        MISURA, il numero non è riferibile. Qui si tiene lo STORICO dei
        certificati, non l'ultima scadenza, perché la domanda che conta è
        «era tarato quel giorno?» e non «è tarato oggi?». -->
-  <div class="sec">Taratura degli strumenti<span class="cnt" id="tar-tot">0</span></div>
+  <div class="sec">Taratura degli strumenti<span class="cnt" id="tar-tot">—</span></div>
   <div class="note">Il report di conformità dice se le letture hanno superato la soglia. Non
     può dire se lo strumento che le ha scritte era <b>tarato</b>: quello lo dice il certificato
     del centro di taratura. Registralo qui e il report dichiarerà, lettura per lettura, se al
@@ -1402,7 +1420,7 @@ textarea.dw-input{
      Che cosa si misura, dove, ogni quanto — e che cosa è in ritardo. Lo
      stato non si salva: si calcola dall'ultima lettura del punto. -->
 <div class="page" id="page-prog">
-  <div class="sec">Programma di monitoraggio<span class="cnt" id="prg-tot">0</span></div>
+  <div class="sec">Programma di monitoraggio<span class="cnt" id="prg-tot">—</span></div>
   <div class="note">Il programma dice <b>che cosa si misura, dove e ogni quanto</b>. Lo stato
     non lo scrivi tu: Sentinella lo calcola dall'<b>ultima lettura</b> del punto, così una riga
     non può restare «in regola» mentre nessuno misura più.</div>
@@ -1460,7 +1478,7 @@ textarea.dw-input{
 </div>
 
 <div class="page" id="page-ade">
-  <div class="sec">Scadenze ambientali<span class="cnt" id="ade-tot">0</span></div>
+  <div class="sec">Scadenze ambientali<span class="cnt" id="ade-tot">—</span></div>
   <input class="dw-input" id="ade-cerca" type="search" placeholder="Cerca per titolo o ente…" style="margin-bottom:8px;">
   <div id="ade-count" class="count"></div>
   <div id="ade-list"></div>
@@ -1531,7 +1549,7 @@ textarea.dw-input{
        Prima finiva sulla nota del modo, in fondo alla pagina. -->
   <div class="note esito" id="reg-esito"></div>
 
-  <div class="sec">Registro volate<span class="cnt" id="vol-tot">0</span></div>
+  <div class="sec">Registro volate<span class="cnt" id="vol-tot">—</span></div>
   <div id="vol-riep" class="note recap" style="margin-top:0;"></div>
   <div id="vol-list" style="margin-top:10px;"></div>
   <!-- T9 · le volate PREVISTE arrivate da Genesi: la spiegazione dei due stati
@@ -1579,7 +1597,7 @@ textarea.dw-input{
        quante volate lo sono già e quante no — con il motivo — e da qui esce
        il file che Genesi importa. La PPV non si inventa mai: senza misura la
        volata resta fuori. -->
-  <div class="sec">Referti per la legge di sito<span class="cnt" id="ref-tot">0</span></div>
+  <div class="sec">Referti per la legge di sito<span class="cnt" id="ref-tot">—</span></div>
   <div class="note">Una volata con <b>distanza del ricettore</b>, <b>kg massimi per ritardo</b> e
     <b>PPV misurata</b> è già un referto: sono i tre numeri con cui Genesi ricava <b>K</b> e <b>β</b>
     della tua roccia, al posto dei valori da manuale. La PPV la collega il pulsante
@@ -1606,7 +1624,7 @@ textarea.dw-input{
        Il reclamo è il momento in cui l'azienda rischia: averlo scritto,
        con la data, l'ora, il ricettore e cosa si è fatto, è la risposta
        pronta quando arriva l'ente. -->
-  <div class="sec">Reclami ed esposti<span class="cnt" id="rec-tot">0</span></div>
+  <div class="sec">Reclami ed esposti<span class="cnt" id="rec-tot">—</span></div>
   <div id="rec-riep" class="note recap" style="margin-top:0;"></div>
   <div id="rec-list" style="margin-top:10px;"></div>
   <div class="sec">Registra un reclamo</div>

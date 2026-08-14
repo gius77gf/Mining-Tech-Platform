@@ -970,6 +970,24 @@ const BANCHI = [
      frasi escano davvero così lo dice solo il browser. */
   ['le frasi limite di Genesi', 'genesi-frasi-limite.mjs', []],
   ['frasi limite di Genesi · controprova', 'genesi-frasi-limite.mjs', ['--controprova'], true],
+  /* ⛔ AGGIUNTO IL 14/08 — lo stesso principio del fondatore applicato al
+     TEMPO invece che al dato. Fra l'apertura della pagina e l'arrivo dei dati
+     c'è una finestra in cui l'app ha già disegnato tutto e non sa ancora
+     niente, e la barra in basso ci vive dentro: `window.go` arriva da
+     `dw-app-ui.js`, che è `defer` e non aspetta il modulo dati (misurato:
+     45–97 ms), quindi in quella finestra si aprono TUTTE le sezioni.
+     19 schermate su 19 fotografate col modulo dati rallentato nella risposta
+     HTTP, e 26 contatori che dicevano «0»: «Squadre in turno 0», «Chi c'è
+     oggi 0», «Lavoratori 0», «Centraline e sensori 0», «Registro volate 0».
+     I KPI del Quadro erano già onesti — nascono «—» — cioè la forma giusta
+     era nella stessa pagina due righe più su. Nessuna suite `node` lo vede:
+     non importano le pagine, e il difetto vive in una finestra di tempo.
+     La controprova rimette i 30 «0» statici e deve far cadere tutt'e tre le
+     app; il banco chiede anche il verso opposto (dopo i dati nessun contatore
+     resta «—»), perché scrivere «non lo so» dove la verità è un numero
+     sarebbe peggio del difetto. */
+  ['«non ancora caricato» non è «non c\'è»', 'finestra-caricamento.mjs', []],
+  ['finestra di caricamento · controprova', 'finestra-caricamento.mjs', ['--controprova'], true],
 ];
 
 /* «finto 2» è dichiarata CONTROPROVA di proposito: così `impronta-giro.mjs`,

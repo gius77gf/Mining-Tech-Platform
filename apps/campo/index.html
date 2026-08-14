@@ -849,7 +849,25 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
        in cima: vedi `sistemaOrdineQuadro()`. Qui sotto è la posizione di quando
        ancora nessuno ha detto chi è. -->
   <div id="mio-blocco">
-    <div class="sec">Cosa tocca a me<span class="cnt" id="mie-count">0</span></div>
+    <!-- ⛔ I CONTATORI DELLE SEZIONI NASCONO «—», NON «0» (14/08).
+         Fra l'apertura della pagina e l'arrivo dei dati c'è una finestra vera:
+         la barra in basso è già viva (`window.go` arriva da dw-app-ui.js, che
+         è `defer` e non aspetta il modulo dati), quindi in quella finestra si
+         possono aprire TUTTE le sezioni. Misurata con la risposta HTTP del
+         modulo dati rallentata: 5 schermate su 5, e 8 contatori visibili che
+         dicevano «0» — cioè «zero squadre in turno», «zero rapportini»,
+         «nessuno all'appello» su una cava che ne ha. È il principio del
+         fondatore applicato al TEMPO invece che al dato: «non lo so ancora»
+         non è «non c'è», e uno zero è un numero tranquillo dove non è stato
+         misurato niente. La forma per dirlo era già in questa pagina, due
+         righe più sotto: i KPI del Quadro nascono «—».
+         Non è uno stato del DATO (nessuna mappa di stati guadagna un valore):
+         è lo stato della PAGINA prima che il dato esista. `refresh()` scrive
+         tutti e otto i contatori a ogni giro, quindi il «—» non sopravvive
+         all'arrivo dei dati; e uno zero VERO continua a scriversi «0», che è
+         la differenza fra «ho guardato e non ce n'è» e «non ho ancora
+         guardato». Difesa: tests/browser/finestra-caricamento.mjs -->
+    <div class="sec">Cosa tocca a me<span class="cnt" id="mie-count">—</span></div>
     <div class="ord">
       <span class="of"><label for="io-squadra">Squadra</label>
         <select id="io-squadra" class="dw-input" aria-label="La mia squadra"></select></span>
@@ -879,7 +897,7 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
 </div>
 
 <div class="page" id="page-att">
-  <div class="sec">Attività della giornata<span class="cnt" id="att-count-tot">0</span></div>
+  <div class="sec">Attività della giornata<span class="cnt" id="att-count-tot">—</span></div>
   <div id="att-filtri" class="chgs">
     <button class="chg active" data-filtro="tutte">Tutte</button>
     <button class="chg" data-filtro="in-corso">In corso</button>
@@ -914,7 +932,7 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
        di un ispettore, e finché il fermo moriva qui la risposta non c'era.
        L'azione correttiva nasce in Scudo — responsabile, scadenza, chiusura —
        e qui resta scritto a che punto è. -->
-  <div class="sec">E poi? Le azioni correttive<span class="cnt" id="pon-tot">0</span></div>
+  <div class="sec">E poi? Le azioni correttive<span class="cnt" id="pon-tot">—</span></div>
   <div id="pon-riep" class="note recap" style="margin-top:0;"></div>
   <div id="pon-list" style="margin-top:10px;"></div>
   <div class="note esito" id="pon-esito"></div>
@@ -942,7 +960,7 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
   <div class="note">Tocca un'attività per farla avanzare: <b>pianificata → in corso → conclusa</b>. La matita apre la modifica qui sopra; quando un'attività è in anomalia, indica <b>causale e minuti di fermo</b> e compare qui sopra dove si perde tempo.</div></div>
 
 <div class="page" id="page-squ">
-  <div class="sec">Squadre in turno<span class="cnt" id="squ-count">0</span></div>
+  <div class="sec">Squadre in turno<span class="cnt" id="squ-count">—</span></div>
   <div id="squ-list"></div>
   <div class="sec">Nuova squadra</div>
   <div class="form col">
@@ -964,7 +982,7 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
   <div class="note esito" id="squ-esito"></div>
   <div class="note">Tocca una squadra per <b>fermarla o rimetterla in turno</b>: le squadre ferme escono subito dal conteggio del Quadro.</div>
 
-  <div class="sec">Chi c'è in squadra<span class="cnt" id="ope-count">0</span></div>
+  <div class="sec">Chi c'è in squadra<span class="cnt" id="ope-count">—</span></div>
   <div class="ord">
     <span class="of"><label for="ope-filtro">Squadra</label>
       <select id="ope-filtro" class="dw-input" aria-label="Filtra gli operatori per squadra"></select></span>
@@ -1009,7 +1027,7 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
   </div>
   <div class="note esito" id="chk-esito"></div>
 
-  <div class="sec">Chi c'è oggi<span class="cnt" id="pre-count">0</span></div>
+  <div class="sec">Chi c'è oggi<span class="cnt" id="pre-count">—</span></div>
   <div id="pre-board"></div>
   <div id="pre-riposo"></div>
   <div id="pre-orari"></div>
@@ -1067,7 +1085,7 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
   </div>
   <div class="note esito" id="disp-esito"></div>
 
-  <div class="sec">Rapportini di turno<span class="cnt" id="rap-count">0</span></div>
+  <div class="sec">Rapportini di turno<span class="cnt" id="rap-count">—</span></div>
   <div class="ord">
     <span class="of"><label for="rap-giorno">Giorno</label>
       <select id="rap-giorno" class="dw-input">
@@ -1161,7 +1179,7 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
   <div id="set-board"></div>
   <div id="set-fuori"></div>
   <div id="set-graf"></div>
-  <div class="sec">Giorno per giorno<span class="cnt" id="set-count">0</span></div>
+  <div class="sec">Giorno per giorno<span class="cnt" id="set-count">—</span></div>
   <div id="set-list"></div>
   <div class="tools">
     <button class="dw-btn secondary" id="btn-set-export"><svg viewBox="0 0 24 24"><path d="M12 3.6v11.2"/><path d="M7.8 10.6L12 14.8l4.2-4.2"/><path d="M4.5 18.4v1.1A1.4 1.4 0 0 0 5.9 21h12.2a1.4 1.4 0 0 0 1.4-1.5v-1.1"/></svg>Esporta lo storico (CSV)</button>

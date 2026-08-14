@@ -514,7 +514,6 @@ grep -n "^- \[ \] \*\*" vault/ROADMAP_SETTIMANA.md
 - `Q1`
 - `I 20 KO del giro del 09/08, riverificati sul commit di adesso`
 - `«Adempimenti» è la parola che governa il minimo di Sentinella`
-- `B6. «NON ANCORA CARICATO» NON È «NON C'È» — la quarta faccia del tema`
 - `B7. `sentinella-periodo-adempimento` È INTERMITTENTE — e va rimisurato a`
 
 ## 🎯 L'obiettivo della settimana
@@ -5347,8 +5346,8 @@ numero scritto dove non era stato misurato niente**.*
   sorvegliati ne contavano sette: due convenzioni per lo stesso numero, che è
   il modo più facile di far sembrare sbagliato un conto giusto. Adesso è una
   sola.*
-  Copertura **751/751** e nessuna funzione scoperta; **198 esecuzioni** che
-  aprono le pagine in un browser vero, da **81** file di banco distinti (contati
+  Copertura **751/751** e nessuna funzione scoperta; **200 esecuzioni** che
+  aprono le pagine in un browser vero, da **82** file di banco distinti (contati
   dalla tabella `BANCHI` di `tutti.mjs`, non a occhio dalla cartella, che di
   `.mjs` ne ha di più perché contiene anche gli aiuti — `giro.mjs`,
   `impronta.mjs`, il runner stesso).
@@ -5901,7 +5900,43 @@ di scriverlo qui**: niente entra sulla parola dell'agente.
       ⛔ E la ragione per cui questa correzione è scritta invece che cancellata:
       una riga di roadmap che propone un lavoro **manda qualcuno a farlo**. Un
       difetto immaginario lasciato scritto costa un cantiere.
-- [ ] **B6. «NON ANCORA CARICATO» NON È «NON C'È» — la quarta faccia del tema
+- [x] ✅ **B6 — CHIUSA il 14/08, e il candidato era un difetto: 26 contatori
+      dicevano «0» dove non era stato misurato niente.** La finestra è **larga e
+      osservabile**, e il perché è misurato: `window.go` arriva da
+      `shared/dw-app-ui.js` in **45–176 ms** mentre il programma dell'app aspetta
+      il proprio modulo dati — quindi in quella finestra la barra in basso
+      **funziona** e si aprono tutte le sezioni.
+      **Denominatore: 19 schermate su 19 fotografate dentro la finestra** (Campo
+      5, Scudo 8, Sentinella 6), **42 numeri visibili** misurati (26 contatori +
+      16 KPI).
+      · **26 contatori a «0»** — `Squadre in turno 0`, `Chi c'è oggi 0`,
+        `Lavoratori 0`, `Permessi di lavoro 0`, `Centraline e sensori 0`,
+        `Registro volate 0`… — corretti a **«—»**, 30 in tutto.
+      · **16 KPI non erano un difetto**: nascevano già «—». La forma giusta era
+        **nella stessa pagina, due righe più su**.
+      ⛔ **E il censimento per parola della voce era un falso positivo per
+      intero**: l'`1` di Campo è un commento sulla foto, i `2` di Terra sono la
+      data di caricamento *nel visore*. Le app hanno **zero** parole per «sto
+      caricando» — la forma da riusare non era quella, era il «—» dei KPI.
+      ✅ **Misura del dopo, stesso ritardo e stesse 19 schermate: 0 numeri
+      tranquilli su 42.** E il **verso opposto** misurato apposta: dopo l'arrivo
+      dei dati **nessun contatore resta «—»** (54 guardati) — scrivere «non lo
+      so» dove la verità è un numero sarebbe peggio del difetto.
+      **Il banco**: `browser/finestra-caricamento.mjs`, soggetti presi dal **DOM**
+      e non da un elenco (un contatore nuovo scritto con «0» cade da solo), col
+      contrassegno del pid riletto dal server. Sano **15/0**; controprova **30
+      iniezioni su 30 sul bersaglio**, 3 KO voluti; registrato in `tutti.mjs`.
+      ⚠️ Un difetto del righello, trovato e corretto: `pon-tot` esiste identico
+      in Campo **e** Sentinella, e un insieme di sole stringhe contava 29 su 30 —
+      il banco si accusava da solo di un'iniezione scaduta inesistente.
+      ⏱️ **Candidato misurato e NON corretto** (è un'altra famiglia): dentro la
+      finestra **i comandi delle sezioni sono morti ma sembrano vivi** — premuto
+      «Aggiungi» in tutt'e tre le app non succede niente, nessun toast, nessun
+      errore. È la famiglia di `chiediDati`, e vuole una decisione su *che cosa*
+      deve dire la pagina.
+
+- [x] **B6 (com'era, e resta per la MISURA che l'ha aperta — non è lavoro da
+      fare). «NON ANCORA CARICATO» NON È «NON C'È» — la quarta faccia del tema
       della settimana, e per ora è un CANDIDATO, non un difetto.** ⏱️ *Aperta il
       13/08 a notte, dopo che le prime tre facce erano chiuse: i file che
       **escono** (16 difetti), i file che **entrano** (9 lettori su 9), e il

@@ -997,7 +997,24 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
   </div>
 
   <div id="tab-lav">
-    <div class="sec">Lavoratori<span class="cnt" id="pers-count">0</span></div>
+    <!-- ⛔ I CONTATORI DELLE SEZIONI NASCONO «—», NON «0» (14/08).
+         Fra l'apertura della pagina e l'arrivo dei dati c'è una finestra vera:
+         la barra in basso è già viva (`window.go` arriva da dw-app-ui.js, che
+         è `defer` e non aspetta il modulo dati), quindi in quella finestra si
+         possono aprire TUTTE le sezioni. Misurata con la risposta HTTP del
+         modulo dati rallentata: 8 schermate su 8, e 9 contatori visibili che
+         dicevano «0» — «Lavoratori 0», «Ispezioni e checklist 0», «Permessi
+         di lavoro 0», «Imprese esterne 0» su un'azienda che ne ha. È il
+         principio del fondatore applicato al TEMPO invece che al dato: «non
+         lo so ancora» non è «non c'è». La forma per dirlo era già in questa
+         pagina: gli otto KPI del Quadro nascono «—».
+         Non è uno stato del DATO (nessuna mappa di stati guadagna un valore):
+         è lo stato della PAGINA prima che il dato esista. `refresh()` scrive
+         tutti questi contatori a ogni giro, quindi il «—» non sopravvive
+         all'arrivo dei dati; e uno zero VERO continua a scriversi «0», che è
+         la differenza fra «ho guardato e non ce n'è» e «non ho ancora
+         guardato». Difesa: tests/browser/finestra-caricamento.mjs -->
+    <div class="sec">Lavoratori<span class="cnt" id="pers-count">—</span></div>
     <div id="pers-riep" class="note recap" style="margin-top:0;"></div>
     <input class="dw-input" id="pers-cerca" type="search" placeholder="Cerca per nome o ruolo…" style="margin:10px 0;">
     <div id="pers-list"></div>
@@ -1018,7 +1035,7 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
 
   <!-- S4 · LA MATRICE: chi posso mandare a fare quel lavoro domani mattina -->
   <div id="tab-mans" style="display:none;">
-    <div class="sec">Chi posso mandare<span class="cnt" id="mat-count">0</span></div>
+    <div class="sec">Chi posso mandare<span class="cnt" id="mat-count">—</span></div>
     <div id="mat-riep" class="note recap" style="margin-top:0;"></div>
     <div id="mat-mansioni" class="chgs" style="margin-top:10px;"></div>
     <div id="graf-mansioni"></div>
@@ -1030,7 +1047,7 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
          nello SCATTO: nel codice non si vede, perché la legenda è testo. -->
     <div class="note">Verde: <b>può andare</b>. Giallo: può andare, ma c'è qualcosa da sistemare — oppure <b>non lo sappiamo</b>, perché per quella mansione nessuno ha ancora scritto quali corsi servono. Rosso: <b>non può</b>, e sotto c'è scritto perché. Bloccano la persona non in forza, l'idoneità sanitaria negativa e un <b>corso mancante o scaduto</b>; i DPI non bloccano ma restano in evidenza, perché Scudo sa se la <b>consegna è registrata</b>, non se l'elmetto è davvero in testa. Tocca la pillola rossa di un corso mancante per metterlo nello <b>scadenzario</b>: da lì in poi vive con tutte le altre scadenze.</div>
 
-    <div class="sec">Mansioni e requisiti<span class="cnt" id="mans-count">0</span></div>
+    <div class="sec">Mansioni e requisiti<span class="cnt" id="mans-count">—</span></div>
     <div id="mans-list"></div>
     <div class="sec" id="mans-form-tit">Aggiungi mansione</div>
     <div class="form col">
@@ -1088,11 +1105,11 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
 
   <!-- S5 · REGISTRO DPI PER LAVORATORE -->
   <div id="tab-dpi" style="display:none;">
-    <div class="sec">DPI da sistemare<span class="cnt" id="dpi-al-count">0</span></div>
+    <div class="sec">DPI da sistemare<span class="cnt" id="dpi-al-count">—</span></div>
     <div id="dpi-riep" class="note recap" style="margin-top:0;"></div>
     <div id="dpi-allarmi" style="margin-top:10px;"></div>
 
-    <div class="sec">Consegne registrate<span class="cnt" id="dpi-count">0</span></div>
+    <div class="sec">Consegne registrate<span class="cnt" id="dpi-count">—</span></div>
     <select class="dw-input" id="dpi-filtro-lav" style="margin-bottom:8px;"></select>
     <div id="dpi-list"></div>
 
@@ -1223,7 +1240,7 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
 
 <!-- AZIONI CORRETTIVE (CAPA) -->
 <div class="page" id="page-azio">
-  <div class="sec">Azioni correttive<span class="cnt" id="azi-count-tot">0</span></div>
+  <div class="sec">Azioni correttive<span class="cnt" id="azi-count-tot">—</span></div>
   <div id="azi-riep" class="note recap" style="margin-top:0;"></div>
   <div id="azi-filtri" class="chgs" style="margin-top:10px;">
     <button class="chg active" data-filtro-azi="tutte">Tutte</button>
@@ -1276,7 +1293,7 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
        questo blocco si nasconde e compare la compilazione, così sul telefono
        si ha una cosa sola davanti agli occhi. -->
   <div id="isp-elenco">
-    <div class="sec">Ispezioni e checklist<span class="cnt" id="isp-count">0</span></div>
+    <div class="sec">Ispezioni e checklist<span class="cnt" id="isp-count">—</span></div>
     <div id="isp-riep" class="note recap" style="margin-top:0;"></div>
     <div id="isp-filtri" class="chgs" style="margin-top:10px;">
       <button class="chg active" data-filtro-isp="tutte">Tutte</button>
@@ -1321,7 +1338,7 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
 
 <!-- DOCUMENTI -->
 <div class="page" id="page-doc">
-  <div class="sec">Cantieri e siti<span class="cnt" id="cant-count">0</span></div>
+  <div class="sec">Cantieri e siti<span class="cnt" id="cant-count">—</span></div>
   <div id="cant-list"></div>
   <div class="form">
     <input class="dw-input" id="cant-nome" placeholder="Nome cantiere/cava" style="flex:2 1 180px;">
@@ -1448,7 +1465,7 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
        Sotto la soglia l'app non nomina nessuna concentrazione di rischio —
        la classifica costruita su due episodi è una bugia con la faccia di un
        calcolo. -->
-  <div class="sec">E se fosse andata male?<span class="cnt" id="pot-count">0</span></div>
+  <div class="sec">E se fosse andata male?<span class="cnt" id="pot-count">—</span></div>
   <div id="pot-riep" class="note recap" style="margin-top:0;"></div>
   <div id="pot-livelli" class="reqs" style="margin-top:10px;"></div>
   <div id="pot-luoghi" style="margin-top:10px;"></div>
@@ -1464,7 +1481,7 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
        scrive quante ne sono state fatte su quanti eventi. Le righe restano —
        il poco che c'è non si nasconde — ma un numero tranquillo dove non è
        stato analizzato niente è il difetto che questa funzione deve evitare. -->
-  <div class="sec">Perché succedono<span class="cnt" id="cause-count">0</span></div>
+  <div class="sec">Perché succedono<span class="cnt" id="cause-count">—</span></div>
   <div id="cause-riep" class="note recap" style="margin-top:0;"></div>
   <div id="cause-list" style="margin-top:10px;"></div>
   <div id="graf-cause" style="margin-top:12px;"></div>
@@ -1516,7 +1533,7 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
        verde su un'anagrafica vuota cancellerebbe. -->
   <div id="appa-riep" class="note recap"></div>
 
-  <div class="sec">Appalti<span class="cnt" id="appa-count">0</span></div>
+  <div class="sec">Appalti<span class="cnt" id="appa-count">—</span></div>
   <div id="appa-list"></div>
   <div class="note">Tocca un appalto per registrare il <b>documento di coordinamento</b>: chi l'ha redatto, quando, e — in cava — se l'impresa l'ha <b>sottoscritto</b>. Non e' un allegato, e' una decisione: un documento senza data non copre nessun periodo.</div>
 
@@ -1552,7 +1569,7 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
   <div class="note esito" id="appa-esito"></div>
   <div class="note">In <b>cava</b> il documento di coordinamento non e' il DUVRI: e' il <b>DSS coordinato</b> (art. 9 D.Lgs 624/96), che il titolare redige valutando anche la valutazione dei rischi che l'impresa gli trasmette, e che l'impresa <b>sottoscrive</b> &mdash; ed e' con quella firma che diventa responsabile della parte di sua competenza. Fuori dalla cava vale la regola generale dell'art. 26 c.3. <b>Nota informativa, non un parere legale</b>: modalita' e obblighi vanno confermati con l'RSPP e il consulente dell'azienda.</div>
 
-  <div class="sec">Imprese esterne<span class="cnt" id="appt-count">0</span></div>
+  <div class="sec">Imprese esterne<span class="cnt" id="appt-count">—</span></div>
   <div id="appt-list"></div>
   <div class="sec">Nuova impresa</div>
   <div class="form">
@@ -1592,7 +1609,7 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
   <!-- ELENCO. Quando se ne apre uno, la scheda prende il posto dell'elenco —
        stessa dinamica della compilazione di un'ispezione. -->
   <div id="perm-elenco">
-    <div class="sec">Permessi di lavoro<span class="cnt" id="perm-count">0</span></div>
+    <div class="sec">Permessi di lavoro<span class="cnt" id="perm-count">—</span></div>
     <!-- ⛔ `ords` con la esse non esiste: era un refuso, e il refuso di una
          classe non fa rumore — nessun errore, nessuna prova rossa, solo una
          fila di filtri disegnata `display:block` invece che `flex`. Misurato

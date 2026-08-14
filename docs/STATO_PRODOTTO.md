@@ -74,7 +74,7 @@ sulla nuvola di punti, 9 sul manifesto, 8 sulla demo, 7 sulle rivendicazioni del
 primo avvio, 3 sulle superfici che stampano e su chi le preme — più **123** che
 girano con l'emulatore Firestore (**75** sulle
 **regole di sicurezza**, 19 sull'SDK, 21 sulle funzioni, 8 sul primo avvio) e
-**198 esecuzioni** che aprono davvero le pagine in un browser.
+**200 esecuzioni** che aprono davvero le pagine in un browser.
 ⚠️ *Il primo avvio è tornato da 10 a **8** l'08/08, e non è un passo indietro:
 le due prove aggiunte quel giorno chiedevano lo* stato finale *delle
 rivendicazioni, che dove le Cloud Functions girano è di* `rebuildClaims` *e non
@@ -87,7 +87,7 @@ contenitore non parte perché chiede la rete e la politica la nega. Il numero
 era 58 e non 68 perché nessuno l'aveva più lanciato in casa: la suite delle
 regole si lancia con* `firebase emulators:exec --only firestore --project
 demo-deepwork "cd tests && node run.mjs"`.
-*(⚠️ Il **2.759** conta otto suite: il giro completo ne esegue **3.130**, e da
+*(⚠️ Il **2.759** conta otto suite: il giro completo ne esegue **3.131**, e da
 oggi quel numero **lo stampa il giro** — `node apps/deepwork-id/tests/giro-node.mjs`,
 riga «Asserzioni eseguite dal giro». Le altre suite contano **file** invece che
 casi — crescono da sole quando nasce un file — e fra i comandi ci sono le
