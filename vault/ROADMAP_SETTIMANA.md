@@ -5709,3 +5709,32 @@ di scriverlo qui**: niente entra sulla parola dell'agente.
       «uniformi»: Campo dice «non è maggiore di zero» e Terra «è negativo», e
       **è giusto così** — un foro a zero è sbagliato, un volume a zero è lo
       **zero misurato**. Uniformarle romperebbe una distinzione vera.
+- [ ] **B10. IL GIRO COMPLETO NON PUÒ FINIRE, E ADESSO C'È IL NUMERO.** ⏱️
+      *Misurato il 14/08 sul giro lanciato alle 04:29.*
+      Dieci passate in **41 minuti** = **4,1 min/passata**; in `tutti.mjs` ce ne
+      sono **198**. Sono **13,5 ore**. Cioè il giro **non finisce dentro una
+      sessione** — e non è un caso isolato: quello di ieri è stato spento a
+      **3h52 con 60 passate**, e i suoi primi KO erano contrasti **chiusi cinque
+      ore prima**.
+      ⛔ **Il difetto non è che sia lento: è che è ALL-OR-NOTHING.** `tutti.mjs`
+      accetta `--limite=`, `--radice-impronta=`, `--banchi-finti` — ma **nessun
+      filtro** per lanciare solo le passate che coprono le superfici toccate.
+      Prova: `grep -nE "argv|--solo" apps/deepwork-id/tests/browser/tutti.mjs`
+      → quattro flag, **nessuno seleziona i banchi**. (I singoli banchi il
+      `--solo=` ce l'hanno: manca al **runner**.)
+      ⚠️ Conseguenza vera, e si è vista due notti di fila: **l'unica verifica
+      completa che questo repository ha non arriva mai in fondo**, quindi o si
+      legge un parziale, o si legge un registro che attesta un commit di ore
+      prima. Le due letture sbagliate che ne nascono sono già scritte qui:
+      **accuse che sembrano fresche** e **KO già chiusi**.
+      **Che cosa serve**: un `--solo=<banco|app>` (e/o `--da=<n>`) sul runner,
+      derivato dall'elenco `BANCHI` che già esiste — così un ciclo verifica in
+      **minuti** le superfici che ha toccato, e il giro intero resta per quando
+      c'è una notte da dedicargli.
+      **Come si misura**: il conto delle passate lanciate deve **scendere** col
+      filtro e restare **198** senza; e un nome sconosciuto deve **uscire
+      diverso da zero** invece di lanciare tutto o niente — è lo stesso difetto
+      già trovato e chiuso su `contrasto-non-testo.mjs`, dove `--solo=` con un
+      nome sbagliato usciva **zero** dichiarando di non aver guardato niente.
+      ⚠️ **Non fatto adesso**: `tutti.mjs` è in uso dal giro che sta girando, e
+      un cantiere sta scrivendo nella stessa cartella.
