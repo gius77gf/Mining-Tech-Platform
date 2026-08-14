@@ -384,3 +384,27 @@ quindi l'eccezione non può sopravvivere alla sua causa.
 - **Lo stato all'ultimo commit verificato**: `run-kpi` **2182**, giro `node`
   **2.973** asserzioni su 34 comandi (34 a posto, 0 caduti), copertura app
   **741/741**, condivisi 171/171, 198 esecuzioni di banco, CI **verde**.
+
+### 04:50 UTC — che cosa sta girando, e dove leggerlo
+
+- ⚠️ **UN GIRO DEL BROWSER È VIVO** (lanciato alle 04:29, attesta `93a569c3`), e
+  il suo registro è in
+  `…/scratchpad/giro-notte/registro.txt`. **Chi riprende NON ne lanci un
+  secondo**: due giri insieme si rubano la macchina e il secondo troverebbe la
+  porta occupata. Si legge con
+  `node apps/deepwork-id/tests/browser/leggi-giro.mjs <registro>` — che apre con
+  **quanto è vecchio** il giro e con le righe «non ho guardato», da leggere
+  **prima** dei KO.
+  Alle 04:48: 7 passate, **0 KO veri**, 3 controprove col loro rosso voluto.
+  ⛔ E se il registro smette di crescere, la prima domanda non è «che cosa
+  dice»: è **«sta ancora scrivendo?»** — e la risposta si chiede al **processo**
+  (un figlio Chromium vivo con la CPU che sale), non al file.
+- **Una ricerca è in corso** sulle parole del mestiere: scrive in coda a
+  `docs/RICERCA_CONTINUA_PAROLE.md`.
+- **Lo stato**: `run-kpi` **2229**, giro `node` **3.023** asserzioni su 34
+  comandi (34 a posto, 0 caduti), copertura app **751/751**, condivisi 174/174,
+  CI **verde**, albero di lavoro **pulito**.
+- **Il prossimo passo**, quando il giro finisce: leggerlo con `leggi-giro`,
+  riverificare ogni KO **prima** di aprirci un cantiere (il branch si muove), e
+  rimisurare **B7** — il banco `sentinella-periodo-adempimento`, intermittente —
+  **a macchina scarica**, che adesso non lo è.
