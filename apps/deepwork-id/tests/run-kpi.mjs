@@ -31926,5 +31926,146 @@ test("frasePersi · ⚠️ NIENTE `esc()`: la frase esce come l'utente l'ha scri
 }
 /* ===== fine Terra · il ripiego silenzioso ================================= */
 
+/* ===== Flotta · il ripiego silenzioso ====================================
+   Censimento a tre gradini del 14/08 su Flotta
+   (`node apps/deepwork-id/tests/ripieghi-silenziosi.mjs --solo=flotta`):
+   22 «MESTIERE» al gradino 1 → al gradino 2 ne restano DUE, e nessuno dei due
+   è un ripiego che l'interfaccia sappia raggiungere. Il conto onesto sta nel
+   rapporto del cantiere; qui stanno le prove delle due cose corrette e della
+   terza dichiarata irraggiungibile.
+
+   ⚠️ Prove SINCRONE e messe PRIMA del riepilogo: l'`await Promise.all(inVolo)`
+   sta a metà file, e una prova asincrona appesa qui non verrebbe aspettata. */
+{
+  const OGGI_F = new Date("2026-08-14T10:00:00Z");
+  /* due letture a tre giorni di distanza: coprono meno di `minGiorni`, quindi
+     si arriva alla frase «per stimare N giorni servono almeno M» — che è il
+     punto in cui l'orizzonte veniva letto crudo */
+  const LETT = [
+    { mezzo: "E1", data: "2026-08-11", ore: 5000 },
+    { mezzo: "E1", data: "2026-08-14", ore: 5030 },
+  ];
+  const perche = (oriz) => flotta.ritmoOreMezzi(LETT, OGGI_F, oriz)[0].perche;
+
+  /* ⛔ IL CONTRATTO NORMALIZZATO A METÀ. `ritmoOreMezzi` scriveva il ripiego
+     `+orizzonte || ORIZZONTE_TAGLIANDI` SOLO dove costruisce la soglia; la
+     frase mostrata all'utente e il confronto `eta > orizzonte` — che è il
+     verdetto — leggevano l'argomento crudo. Non produce un NaN: produce una
+     frase che si smentisce da sola («per stimare null giorni servono almeno
+     15»), cioè il numero che si legge e quello su cui il conto è fatto sono
+     due numeri diversi. */
+  test("⛔ Flotta · l'orizzonte si normalizza una volta e si legge sempre quello", () => {
+    eq(perche(30), "le letture del contatore coprono 3 giorni: per stimare 30 giorni servono almeno 15",
+      "col valore vero la frase è quella di sempre");
+    eq(perche(null), perche(30), "`null` non finisce nella frase: vale il ripiego, come per la soglia");
+    eq(perche(0), perche(30), "e nemmeno lo zero");
+    eq(perche(""), perche(30), "né la stringa vuota, che stampava uno spazio al posto del numero");
+    eq(perche(undefined), perche(30), "il valore non passato resta quello del parametro predefinito");
+    eq(perche("30"), perche(30), "«30» scritto come stringa dice la stessa cosa di 30");
+  });
+
+  /* ⛔ E LA PROVA CHE CONTA È L'IDENTITÀ CON LA SORELLA: `tagliandiInScadenza`
+     la normalizzazione la fa in cima (`const oriz = …`) e poi usa solo quella.
+     Finché la stessa domanda è scritta due volte, allargarne una sola non
+     produce un errore — produce una divergenza silenziosa. */
+  test("⛔ Flotta · le due sorelle rispondono la stessa cosa allo stesso orizzonte", () => {
+    for (const oriz of [30, 0, null, ""]) {
+      const t = flotta.tagliandiInScadenza([], [], LETT, OGGI_F, oriz);
+      eq(t.ritmi[0].perche, perche(oriz), "orizzonte " + JSON.stringify(oriz) + ": stessa frase dalle due vie");
+      eq(t.orizzonte, 30, "orizzonte " + JSON.stringify(oriz) + ": e la sorella dichiara 30");
+    }
+  });
+
+  /* ⛔ UN GIORNO CHE NON ESISTE NON È UN GIORNO REGISTRATO. `disponibilitaStorico`
+     giudicava il giorno dalla FORMA (`/^\d{4}-\d{2}-\d{2}$/`) mentre tutto il
+     resto del modulo passa da `dataISOEsiste`: «2026-02-30» la forma ce l'ha
+     buona e quel giorno non c'è. Il danno andava nella direzione che
+     rassicura — `giorniSenza`, cioè quanti giorni NESSUNO ha registrato,
+     scendeva di uno per un giorno mai esistito. */
+  const MARZO = new Date("2026-03-05T10:00:00Z");
+  const VERA = { data: "2026-03-02", operativi: 3, totale: 4 };
+  const FINTA = { data: "2026-02-30", operativi: 4, totale: 4 };
+  test("⛔ Flotta · il 30 febbraio non abbassa i giorni non registrati", () => {
+    const solo = flotta.disponibilitaStorico([VERA], 14, MARZO);
+    eq(solo.punti.length, 1, "una riga vera, un punto");
+    eq(solo.giorniSenza, 13, "su quattordici giorni, tredici non registrati");
+    const con = flotta.disponibilitaStorico([VERA, FINTA], 14, MARZO);
+    eq(con.punti.length, 1, "il giorno che non esiste non diventa un punto del grafico");
+    eq(con.giorniSenza, solo.giorniSenza,
+      "⛔ e soprattutto NON abbassa il conto dei giorni non registrati: 13, non 12");
+    eq(con.punti.map(p => p.data).join(","), "2026-03-02", "resta solo il giorno vero");
+  });
+
+  /* ⚠️ E la stretta non tocca i giorni veri — misurato, non creduto: il 29
+     febbraio del 2028 (bisestile) è un giorno che esiste e deve entrare, il 29
+     febbraio del 2026 no. È la sola differenza fra le due date. */
+  test("⛔ Flotta · e la stretta non butta via nessun giorno vero", () => {
+    const bis = new Date("2028-03-05T10:00:00Z");
+    const d = flotta.disponibilitaStorico([{ data: "2028-02-29", operativi: 4, totale: 4 }], 14, bis);
+    eq(d.punti.length, 1, "il 29 febbraio di un anno bisestile è un giorno, e resta");
+    const no = flotta.disponibilitaStorico([{ data: "2026-02-28", operativi: 4, totale: 4 }], 14, MARZO);
+    eq(no.punti.length, 1, "e il 28 febbraio di un anno normale pure");
+  });
+
+  /* ⛔ LA PORTA DAVANTI LARGA QUANTO QUELLA DIETRO: `fotografiaDaRegistrare` è
+     chi SCRIVE le righe che `disponibilitaStorico` legge, e giudicava il
+     giorno con la stessa regex. Una fotografia datata a un giorno che non
+     esiste non si scrive. */
+  test("⛔ Flotta · la fotografia del parco non si scrive su un giorno che non esiste", () => {
+    const MEZZI_F = [{ nome: "Escavatore E1", stato: "operativo" }, { nome: "Pala P1", stato: "fermo" }];
+    eq(flotta.fotografiaDaRegistrare([], MEZZI_F, "2026-02-30"), null,
+      "il 30 febbraio non è un giorno: non si registra niente");
+    eq(flotta.fotografiaDaRegistrare([], MEZZI_F, "2026-13-01"), null, "né il mese tredici");
+    const ok = flotta.fotografiaDaRegistrare([], MEZZI_F, "2026-08-14");
+    eq(ok && ok.azione, "aggiungi", "un giorno vero si registra come sempre");
+    eq(ok && ok.dati.data, "2026-08-14", "con la sua data");
+    eq(ok && ok.dati.operativi, 1, "e i numeri di prima");
+  });
+
+  /* ⏱️ IL TERZO CANDIDATO SI DICHIARA IRRAGGIUNGIBILE, NON SI CORREGGE.
+     `ordineDaManutenzione` scrive `qta: Math.max(0, due(r && r.qta)) || 1`:
+     una riga di ricambio senza quantità diventa **un pezzo**, e con un prezzo
+     di 48 € l'ordine si legge 48 € che nessuno ha scritto. Misurato
+     chiamandola: `null`, `undefined`, `""`, `0` e `"boh"` danno tutti
+     `qta = 1`.
+     Ma la riga entra da UNA SOLA porta — il bottone «aggiungi ricambio», che
+     passa da `validaRigaRicambio` — e quella porta rifiuta ogni scrittura la
+     cui quantità arrotondata a due decimali valga zero. Quindi il ripiego non
+     si può raggiungere, e la prova non blinda il `|| 1` (che sarebbe blindare
+     un difetto): blinda **la porta**. Il giorno in cui la porta si allargasse,
+     questa prova cade e il `|| 1` torna in discussione. */
+  test("⛔ Flotta · la porta della quantità non lascia passare uno zero", () => {
+    for (const scritto of ["", "0", "0,0", "0,00", "0,004", "-1", "abc"]) {
+      const v = flotta.validaRigaRicambio({ nome: "Filtro olio", qta: scritto, prezzo: "48" });
+      eq(v.ok, false, "«" + scritto + "» non entra");
+    }
+    for (const [scritto, atteso] of [["3", 3], ["0,5", 0.5], ["0,01", 0.01], ["12,5", 12.5]]) {
+      const v = flotta.validaRigaRicambio({ nome: "Filtro olio", qta: scritto, prezzo: "48" });
+      eq(v.ok, true, "«" + scritto + "» entra");
+      eq(v.qta, atteso, "«" + scritto + "» vale " + atteso);
+      eq(v.qta > 0, true, "⛔ l'invariante: una riga accettata ha SEMPRE una quantità maggiore di zero");
+    }
+  });
+
+  /* ⚠️ E il ripiego, finché resta scritto, va fotografato: se un giorno
+     qualcuno lo togliesse, questa prova lo dice invece di lasciar cambiare in
+     silenzio i costi di un ordine. NON è un'approvazione — è il conto di che
+     cosa succede oggi, con accanto la ragione per cui nessuno lo vede. */
+  test("⚠️ Flotta · il ripiego `|| 1` esiste ancora, e questo è quanto costa", () => {
+    const CAT = [{ id: "p1", nome: "Filtro olio", prezzo: 48 }];
+    const conQta = flotta.costoOrdine(flotta.ordineDaManutenzione(
+      { ricambiUsati: [{ id: "p1", nome: "Filtro olio", qta: 3, prezzo: 48 }] }, CAT));
+    eq(conQta.ricambi.pezzi, 3, "tre pezzi scritti, tre pezzi");
+    eq(conQta.ricambi.costo, 144, "e 144 €");
+    for (const q of [null, undefined, "", 0, "boh"]) {
+      const o = flotta.ordineDaManutenzione(
+        { ricambiUsati: [{ id: "p1", nome: "Filtro olio", qta: q, prezzo: 48 }] }, CAT);
+      eq(o.ricambi[0].qta, 1, "quantità " + JSON.stringify(q) + " → un pezzo inventato");
+      eq(flotta.costoOrdine(o).ricambi.costo, 48, "quantità " + JSON.stringify(q) + " → 48 € che nessuno ha scritto");
+    }
+  });
+}
+/* ===== fine Flotta · il ripiego silenzioso =============================== */
+
 console.log(`\nRisultato KPI app: ${passed} passati, ${failed} falliti${inVolo.length ? `  ·  ${inVolo.length} prove asincrone aspettate` : ""}`);
 process.exit(failed > 0 ? 1 : 0);

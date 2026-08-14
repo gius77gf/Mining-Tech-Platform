@@ -1170,7 +1170,13 @@ export function costiPerMese(costi) {
 // Ritorna null oppure { azione:"aggiungi"|"aggiorna", id?, dati }. Pura.
 export function fotografiaDaRegistrare(registrazioni, mezzi, iso) {
   const giorno = String(iso || "").slice(0, 10);
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(giorno)) return null;
+  /* ⛔ `dataISOEsiste`, NON UNA REGEX DI CASA: era l'ultimo posto di questo
+     modulo in cui il giorno si giudicava dalla FORMA. La ragione sta scritta
+     per esteso sopra `isoGiorno` — «2026-02-30» la forma ce l'ha buona e quel
+     giorno non esiste, e `Date.parse` non lo rifiuta: lo fa SCORRERE al 2
+     marzo. Qui la porta davanti dev'essere larga quanto quella dietro, cioè
+     quanto `disponibilitaStorico`, che legge le righe che questa scrive. */
+  if (!dataISOEsiste(giorno)) return null;
   const d = disponibilitaFlotta(mezzi);
   if (!d.totale) return null;
   const dati = { data: giorno, operativi: d.operativi, totale: d.totale };
@@ -1194,7 +1200,18 @@ export function disponibilitaStorico(registrazioni, giorni = 30, oggi = new Date
   const per = new Map();
   for (const r of registrazioni || []) {
     const g = String(r.data || "").slice(0, 10);
-    if (!/^\d{4}-\d{2}-\d{2}$/.test(g) || g < inizio || g > fine) continue;
+    /* ⛔ UN GIORNO CHE NON ESISTE NON È UN GIORNO REGISTRATO, E QUI IL DANNO VA
+       NELLA DIREZIONE CHE RASSICURA. Questo controllo guardava la FORMA
+       (`/^\d{4}-\d{2}-\d{2}$/`) mentre tutto il resto del modulo passa da
+       `dataISOEsiste` — è la copia più debole, non l'invenzione. Misurato il
+       14/08 con una riga «2026-02-30» dentro la finestra:
+         punti 1 → **2**, e giorniSenza **13 → 12**
+       cioè il conto dei giorni che nessuno ha registrato SCENDE per un giorno
+       che non c'è mai stato, e il grafico si prende una colonna in più con la
+       sua etichetta «30/02/2026». `Date.parse` non aiuta a vederlo: su quella
+       stringa non risponde NaN, la fa scorrere al 2 marzo, quindi l'arco del
+       grafico si misura da un giorno e l'etichetta ne stampa un altro. */
+    if (!dataISOEsiste(g) || g < inizio || g > fine) continue;
     const totale = Math.round(+r.totale || 0);
     const operativi = Math.round(+r.operativi || 0);
     if (totale <= 0 || operativi < 0 || operativi > totale) continue;   // riga incoerente: si scarta, non si aggiusta
@@ -3108,7 +3125,30 @@ export const ORIZZONTE_TAGLIANDI = 30;
 // forma). Ritorna una riga per mezzo con `oreGiorno` — oppure `oreGiorno:
 // null` e il `perche` scritto in italiano, da mostrare all'utente.
 export function ritmoOreMezzi(letture, oggi = new Date(), orizzonte = ORIZZONTE_TAGLIANDI) {
-  const minGiorni = Math.max(2, Math.ceil((+orizzonte || ORIZZONTE_TAGLIANDI) / 2));
+  /* ⛔ L'ORIZZONTE SI NORMALIZZA UNA VOLTA SOLA, E POI SI LEGGE SEMPRE QUELLO.
+     Fino al 14/08 il ripiego `|| ORIZZONTE_TAGLIANDI` stava SOLO qui, dove si
+     costruisce la soglia; gli altri tre punti — la frase «per stimare N
+     giorni», il suo plurale e il confronto `eta > orizzonte`, che è il
+     VERDETTO — leggevano l'argomento crudo. È il contratto normalizzato a
+     metà già pagato il 09/08 su `disegnaSpark`, e qui non produce un NaN:
+     produce una frase che si smentisce da sola. Misurato chiamando la
+     funzione con due letture a tre giorni di distanza:
+       orizzonte = null → «le letture coprono 3 giorni: per stimare **null**
+                           giorni servono almeno 15»
+       orizzonte = ""   → «per stimare **·nulla·** giorni servono almeno 15»
+       orizzonte = 0    → «per stimare **0** giorni servono almeno 15»
+     — cioè il numero che l'utente legge e quello su cui il conto è fatto sono
+     due numeri diversi, e uno dei due non esiste.
+     La sorella `tagliandiInScadenza` la stessa normalizzazione la fa in cima
+     (`const oriz = …`) e poi usa solo quella: sugli stessi ingressi risponde
+     «per stimare 30 giorni» in tutt'e tre i casi. Due sorelle con due
+     contratti sono il segno che la normalizzazione è scritta due volte.
+     ⚠️ Sui valori veri non cambia NIENTE: oggi l'unico chiamante è
+     `tagliandiInScadenza`, che passa già `oriz` normalizzato — quindi questa
+     riga non corregge un difetto raggiungibile dall'interfaccia, toglie la
+     divergenza fra le due sorelle prima che qualcuno chiami questa. */
+  const oriz = +orizzonte || ORIZZONTE_TAGLIANDI;
+  const minGiorni = Math.max(2, Math.ceil(oriz / 2));
   const per = new Map();
   for (const l of letture || []) {
     const mezzo = nomeBreve(l && l.mezzo);
@@ -3136,7 +3176,7 @@ export function ritmoOreMezzi(letture, oggi = new Date(), orizzonte = ORIZZONTE_
     r.giorniCoperti = giorni;
     if (giorni < minGiorni) {
       r.perche = "le letture del contatore coprono " + giorni + (giorni === 1 ? " giorno" : " giorni")
-        + ": per stimare " + orizzonte + " " + plurale(orizzonte, "giorno", "giorni")
+        + ": per stimare " + oriz + " " + plurale(oriz, "giorno", "giorni")
         + " servono almeno " + minGiorni;
       out.push(r); continue;
     }
@@ -3144,7 +3184,7 @@ export function ritmoOreMezzi(letture, oggi = new Date(), orizzonte = ORIZZONTE_
       r.perche = "fra la prima e l'ultima lettura il contatore non è salito";
       out.push(r); continue;
     }
-    if (r.eta > orizzonte) {
+    if (r.eta > oriz) {
       r.perche = "l'ultima lettura del contatore è di " + r.eta + " " + plurale(r.eta, "giorno", "giorni")
         + " fa: quel ritmo racconta un periodo passato, non questo";
       out.push(r); continue;
