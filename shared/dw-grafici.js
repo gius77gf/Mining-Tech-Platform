@@ -325,9 +325,22 @@
      una lettera i puntini non dicono più niente. Pura, quindi provabile. */
   function tagliaA(testo, n) {
     var t = String(testo == null ? '' : testo);
-    if (n >= t.length) return t;
-    var pezzo = t.slice(0, Math.max(1, n)).replace(/[\s —–\-,;:.·]+$/, '');
-    return (pezzo || t.slice(0, 1)) + '…';
+    /* ⛔ SI TAGLIA A PUNTI DI CODICE, NON A UNITÀ UTF-16. `slice` conta le unità
+       da 16 bit, quindi su un carattere fuori dal piano base — un'emoji, e in
+       una cava se ne scrivono — taglia la coppia surrogata **a metà** e lascia
+       mezzo carattere, che il browser disegna come il rombo col punto
+       interrogativo. Misurato il 14/08: `'Fronte 🚧 Nord'.slice(0,8)` dà
+       `"Fronte \ud83d"`, mentre `[...t].slice(0,8)` dà `"Fronte 🚧"`.
+       ⚠️ Trovato censendo le TRE copie del taglio: `componi` dentro
+       `accorciaVoceTendina` di Sentinella lo faceva già giusto con `[...t]`,
+       questa e `accorcia` di Scudo no — due sorelle con due contratti. Sui testi
+       della dimostrazione non morde (56 passati dai punti d'uso reali, 27
+       tagliati, **zero** con mezzo carattere): era **latente**, e si chiude
+       adesso che costa una riga. */
+    var punti = Array.from(t);
+    if (n >= punti.length) return t;
+    var pezzo = punti.slice(0, Math.max(1, n)).join('').replace(/[\s —–\-,;:.·]+$/, '');
+    return (pezzo || punti.slice(0, 1).join('')) + '…';
   }
 
   /* QUANTO GRANDE PUÒ ESSERE un testo perché stia in `buco`. La misura arriva da

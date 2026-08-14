@@ -31671,5 +31671,30 @@ test("frasePersi · ⚠️ NIENTE `esc()`: la frase esce come l'utente l'ha scri
 }
 /* ===== fine i ripieghi con la sinistra fra parentesi ====================== */
 
+/* ===== shared · tagliaA non spezza piu` un carattere a meta` ===============
+   ⛔ `slice` conta le unità UTF-16: su un carattere fuori dal piano base taglia
+   la coppia surrogata a metà e lascia mezzo carattere, che il browser disegna
+   come il rombo col punto interrogativo. Era la terza copia del taglio: quella
+   di Sentinella lo faceva già giusto. Latente sui dati veri (56 testi, 27
+   tagliati, 0 con mezzo carattere) — chiusa perché costa una riga. */
+{
+  const { tagliaA } = grafici.geometria;
+  test("⛔ shared · tagliaA taglia a PUNTI DI CODICE, non a unità UTF-16", () => {
+    const t = "Fronte \u{1F6A7} Nord";
+    eq(tagliaA(t, 8), "Fronte \u{1F6A7}…", "l'emoji resta intera");
+    ok(!/[\uD800-\uDBFF]$/.test(tagliaA(t, 8).slice(0, -1)),
+      "e non resta un mezzo carattere in coda");
+    /* la controprova del CASO, non della funzione: con `slice` il taglio a 8
+       darebbe mezzo carattere — è la forma che c'era prima */
+    ok(/[\uD800-\uDBFF]$/.test(t.slice(0, 8)), "il caso è quello giusto: `slice` a 8 spezza davvero");
+  });
+  test("⛔ shared · tagliaA: quello che faceva prima continua a farlo", () => {
+    eq(tagliaA("Escavatore", 20), "Escavatore", "se ci sta tutto non si tocca");
+    eq(tagliaA("Escavatore cingolato", 8), "Escavato…", "e se non ci sta, taglia e mette i puntini");
+    eq(tagliaA("Fronte Nord —", 12), "Fronte Nord…", "il separatore appeso si toglie");
+  });
+}
+/* ===== fine shared · tagliaA ============================================== */
+
 console.log(`\nRisultato KPI app: ${passed} passati, ${failed} falliti${inVolo.length ? `  ·  ${inVolo.length} prove asincrone aspettate` : ""}`);
 process.exit(failed > 0 ? 1 : 0);
