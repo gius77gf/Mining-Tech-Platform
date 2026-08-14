@@ -10,6 +10,48 @@ può procedere con l'attuazione.
 
 ---
 
+## ⚠️ 14/08 — due numeri che uscivano dall'azienda dicevano una cosa tranquilla, e non era vera
+
+*Anche questa sezione non ti chiede niente di nuovo: ti dice che cosa è cambiato
+in due fogli che **escono** — uno va all'ente, l'altro esce col tuo nome — e che
+cosa **non abbiamo toccato**, perché è roba tua.*
+
+1. **Sentinella — il file per l'ARPA diceva «Conforme» su un punto che non ha
+   mai misurato niente.** Una lettura registrata **senza il valore** (il tecnico
+   apre la riga, la salva, ma il numero non c'è) veniva contata come una misura
+   **di zero**. Su un sismografo lo zero è il numero più tranquillo della scala:
+   la scheda diceva «Conforme», il rapporto diceva zero superamenti, e il file
+   che parte per l'ente scriveva **«Conforme»**. Lo stesso punto **senza quella
+   riga** diceva già la cosa giusta — «Mai misurato» — cioè l'assenza *scritta
+   dentro una riga* era più tranquilla dell'assenza vera.
+   Adesso quella lettura non conta come misura, e sullo schermo e nel file c'è
+   scritto **«Mai misurato»**. ⚠️ Uno zero **scritto davvero** resta una misura:
+   uno strumento che legge zero **ha** misurato, ed è tutta la differenza.
+2. **Il core — la maglia che nessuno ha scritto usciva come «3,5 × 4» sul PDF.**
+   Se in una volata mancano spalla e interasse, il programma li riempiva con due
+   numeri di mestiere: la barra dell'editor scriveva `Sp3.5×I4`, il riquadro che
+   vedi quando **condividi** un progetto scriveva `B 3.5 × S 4`, e il foglio
+   «SCHEMA DI VOLATA» li stampava come se li avessi decisi tu. Adesso, dove il
+   dato manca, c'è scritto **«Spalla non scritta»** e **«Interasse non
+   scritto»**, e sotto la planimetria una riga dice che **le distanze del
+   disegno non sono in scala**.
+   ⛔ **E quello che NON abbiamo toccato è la tua decisione B0-septies**: che
+   cosa deve vedere chi apre il **2D** di una volata senza maglia. Il disegno
+   continua a usare 3,5 e 4 per non lasciare una pianta vuota — un disegno non
+   può dichiararsi — e i **metri cubi** non sono stati cambiati. Qui è entrato
+   solo ciò che è **scritto a chi legge**.
+   ⚠️ Il numero che spaventa di più in questa famiglia è quello che **non si
+   muove**: svuotando l'interasse i fori passano da 16 a 14 e i metri cubi
+   restano **1512, identici** (126×3×4 fa quanto 144×3×3,5). Cioè guardare due
+   schermate affiancate non basta a vedere il difetto.
+
+*Nella stessa giornata è stato corretto anche un difetto tecnico degli accessi
+(due aggiornamenti ravvicinati potevano far sparire un'organizzazione dal
+permesso di un utente, che si sentiva rispondere «non sei membro» pur essendolo).
+Non ti chiede nessuna decisione: è dentro, provato, e la prova sa fallire.*
+
+---
+
 ## ⚠️ 13/08 a notte — tre numeri di SICUREZZA sono stati trovati sbagliati, e nessuna soglia è stata toccata
 
 *Questa sezione sta in cima perché riguarda i numeri che porti in gara e quelli
