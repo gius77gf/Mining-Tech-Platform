@@ -2501,6 +2501,20 @@ Perché serva davvero e non produca elenchi generici, cinque vincoli:
 - ⚠️ La cartella scratchpad è **condivisa** fra i cantieri paralleli: ogni
   agente deve creare una propria sottocartella, altrimenti si sovrascrivono i
   file di prova a vicenda (è già successo più volte).
+- ⛔ **E `pkill -f` DENTRO UN CANTIERE UCCIDE ANCHE LE MISURE DI CHI LO HA
+  APERTO.** Misurato il 14/08: un cantiere ha fermato il **proprio** giro con
+  `pkill -f "giro-node.mjs"` e ha portato via, insieme al suo, il giro di un
+  altro cantiere **e quello del coordinatore** — che stava verificando la copia
+  di ciò che stava per committare. Il segno non è un errore: è un registro che
+  **si ferma a metà** e sembra un giro che non è ancora arrivato in fondo, cioè
+  la stessa faccia del banco piantato. L'ho scoperto solo perché il processo non
+  esisteva più.
+  La regola è quella già scritta per l'attesa, applicata all'uccisione: **si
+  uccide un PID, non un nome** (`kill -TERM <pid>` del proprio processo, o del
+  proprio gruppo con `kill -TERM -<pid>`). `-f` combacia con sé stesso e con i
+  vicini, e in una casa dove **girano sempre più giri insieme** i vicini ci sono
+  per costruzione. Vale doppio per un agente: un cantiere non sa che cosa sta
+  misurando chi lo ha aperto.
 
 ## Contesto di progetto
 
