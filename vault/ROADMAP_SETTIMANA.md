@@ -5788,3 +5788,38 @@ di scriverlo qui**: niente entra sulla parola dell'agente.
       nome sbagliato usciva **zero** dichiarando di non aver guardato niente.
       ⚠️ **Non fatto adesso**: `tutti.mjs` è in uso dal giro che sta girando, e
       un cantiere sta scrivendo nella stessa cartella.
+- [x] ✅ **DIRETTIVA 7 — i tre delta più morsi riverificati: 61 righe, ZERO
+      verdetti sbagliati.** *14/08.* L'arretrato di `documenti-invecchiati` era
+      salito a **25 commit, 14 che mordono**: il prezzo di una notte produttiva.
+      Riguardate **tutte** le righe di verdetto di Scudo (17), Campo (22) e
+      Sentinella (22).
+      ✅ **Verdetti cambiati: zero.** Le verifiche erano fatte bene. A marcire è
+      la **forma della prova**, ed è la stessa misura del 09/08 (0 verdetti, 12
+      prove) — con la causa dominante che **non è un errore di nessuno**: il
+      repository cresce, e i due conti caduti davvero sono saliti **perché è
+      stato fatto del lavoro buono** (i lettori che dichiarano le righe
+      scartate).
+      ⛔ **La forma che marcisce di più è il NUMERO DI RIGA**: 41 su 42 delle
+      citazioni col nome accanto erano scadute (`indiciInfortunistici`
+      dichiarato a 2508, sta a 4002). Nei sei documenti le citazioni `file:riga`
+      scendono da **145 a 63** — misurato da me:
+      `grep -ohE "[a-z-]+\.(js|html):[0-9]+" docs/CONCORRENTI_*.md | wc -l` → **63**.
+      ⛔ **Tre righelli sbagliati trovati, e due li aveva scritti il cantiere
+      stesso**: un `grep -c 'a|b'` **senza `-E`** già in casa (cercava la stringa
+      letterale e rispondeva **0** — un «non c'è» prodotto dal righello, proprio
+      sulla riga che serviva a dimostrare che una cosa **c'è**); un `grep -o`
+      senza `-h` su due file, che conta **+1** per il nome del file; e le barre
+      di `grep -E` **nude** dentro una cella di tabella, che spezzavano la riga
+      in dieci colonne.
+      ✅ **E li ha presi il RILANCIO, non la rilettura**: tutti gli **85 comandi**
+      scritti nei tre documenti sono stati riesguiti da uno script — **85 su 85
+      riproducono l'uscita dichiarata**. È la conferma pratica della regola già
+      scritta: *un comando si rilancia, un numero si può solo credere.*
+      ⚠️ **Due numeri ricaratterizzati invece che ricontati**, perché un conteggio
+      scade e una caratterizzazione no: le occorrenze di `logo` in Campo (che
+      crescono da sole con `riepilogoFermi`, `dialogo`, `meteorologo`) e il
+      `m/s` di Sentinella, dove adesso la prova è l'**uguaglianza fra due
+      conti** — ogni `m/s` è dentro un `mm/s` — che non invecchia.
+      **Arretrato**: 25 commit / 14 che mordono → **18 / 5** (rimisurato da me
+      dopo aver committato B8: il cantiere aveva letto 12, ed è cresciuto perché
+      nel frattempo il ramo si è mosso; i «che mordono» combaciano).
