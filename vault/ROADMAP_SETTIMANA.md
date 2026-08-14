@@ -438,6 +438,17 @@ chiuse. Le aperte sono **24**; la pagina d'ingresso di
       a prenderlo è stata una **misura del costo fatta prima di allargare**, non
       la rilettura. Un righello nuovo si prova contro il difetto **anche quando
       il difetto è nel righello**.
+      ⛔ **E la terza volta è nel verso opposto: SOVRASTIMAVA.** La destra della
+      forma combacia con la sola **iniziale maiuscola** di una chiamata o di un
+      membro — `) || String(x)`, `) || Math.abs(y)`, `IC[k] || IC.altro` — e li
+      contava come costanti di mestiere. L'ha dichiarato il cantiere che ne aveva
+      **14 su 56** (il 25% della colonna su quattro app); misurato su tutte le
+      superfici sono **58 su 362, il 16%**. La colonna adesso guarda **il
+      carattere dopo il match**: se è `(` o `.`, non è una costante.
+      **Il numero onesto è 304**, e i tre movimenti di questo strumento in due
+      ore — 269 → 370 → 304 — sono la ragione per cui un censimento che dichiara
+      un totale deve dire **su quale forma l'ha contato**: senza, il suo numero è
+      una misura della propria regex.
 
 - [x] ✅ **TERRA · «RISERVA RESIDUA STIMATA: 0 m³ · DURATA ~0 ANNI» DOVE NESSUNO
       AVEVA SCRITTO QUANTO RESTA.** ⏱️ *14/08, terza metà del censimento dei

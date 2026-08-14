@@ -81,6 +81,19 @@ function codiceVivo(file) {
 const FORMA = /(\)|[A-Za-z_$][\w$.\[\]'"]*)\s*(\|\||\?\?)\s*([A-Z_][A-Z_0-9]*|\d+(?:\.\d+)?|'[^']*'|"[^"]*")/g;
 const stringa = (m) => /^['"]/.test(m[3]);
 const zero = (m) => m[3] === "0";
+/* ⛔ E LA DESTRA COMBACIA CON LA SOLA INIZIALE MAIUSCOLA DI UNA CHIAMATA O DI UN
+   MEMBRO: `) || String(x)`, `) || Math.abs(y)`, `IC[k] || IC.altro`. La regex
+   prende `String`, `Math`, `IC` e li conta come **costanti di mestiere**, che
+   non sono — `String(x)` è una chiamata e `IC.altro` è un membro. L'ha
+   dichiarato un cantiere che ne aveva 14 su 56 (il **25%** della colonna su
+   quattro app); misurato su tutte le superfici sono **58 su 362, il 16%**.
+   La colonna si chiama «una costante che non è né zero né una stringa»: se
+   quello che segue è `(` o `.`, non è una costante. Si guarda **il carattere
+   dopo il match**, che è l'unica cosa che distingue le due forme. */
+const chiamataOMembro = (m, testo) => {
+  const dopo = testo.slice(m.index + m[0].length, m.index + m[0].length + 1);
+  return dopo === "(" || dopo === ".";
+};
 
 /* le due famiglie vicine, che la forma `||` non prende e che hanno già morso:
    `+null` fa 0 e `Number.isFinite(0)` risponde true (è la ragione per cui in
@@ -146,7 +159,7 @@ function censisci(file) {
   const { vivo, grezzo } = codiceVivo(file);
   const tutti = [...vivo.matchAll(FORMA)];
   const conCommenti = [...grezzo.matchAll(FORMA)];
-  const mestiere = tutti.filter((m) => !stringa(m) && !zero(m));
+  const mestiere = tutti.filter((m) => !stringa(m) && !zero(m) && !chiamataOMembro(m, vivo));
   return {
     candidati: tutti.length,
     commenti: conCommenti.length - tutti.length,
