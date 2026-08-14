@@ -29391,5 +29391,194 @@ const srcFlottaPag = pagIng("flotta"), srcTerraPag = pagIng("terra");
   }
 }
 
+
+/* ===== BLOCCO B0-tervicies — LA SPALLA ASSENTE E LA GITTATA FLYROCK ========
+   Il secondo ripiego di `flyrockEst`, quello che G17 aveva misurato e lasciato
+   lì per non allargare un'unità sulla sicurezza: `B = D2.B || SPALLA`. Con la
+   spalla mai scritta, la distanza a cui si mandano via le PERSONE usciva dal
+   ripiego globale `let SPALLA = 3.0`.
+   ⛔ E LA CORREZIONE PER SIMMETRIA SAREBBE STATA SBAGLIATA, che è la ragione
+   per cui questo blocco esiste in questa forma. Misurato prima di toccare
+   niente, su 40.500 combinazioni realistiche (Ø 51–165 × borraggio ×
+   inclinazione × UCS × densità × spalla 1,5–8 m): nell'**83,1%** dei progetti
+   la spalla non sposta la gittata di un millimetro — entra in UNA sola delle
+   quattro formule (il face burst di Richards&Moore) e la gittata è il massimo
+   delle quattro, quindi dove domina McKenzie o il cratering la spalla non
+   decide niente. Un «non calcolabile» secco avrebbe SPENTO una riga giusta in
+   cinque casi su sei.
+   Dove invece decide, decide nel verso che rassicura (14,1% contro 2,8%), e
+   misurato sul prodotto vero col browser, non sulla carta:
+   · Ø102, borr. 2,2 m, carica 58 kg — spalla vera 1,5 m: «133 m → sgombero
+     267 / 533 m»; spalla ASSENTE: «101 m → 202 / 404 m». **129 m di sgombero
+     persone in meno**;
+   · Ø51, borr. 4 m, UCS 250, carica 12 kg — spalla vera 1,5 m: «51 m → 101 /
+     203 m»; spalla ASSENTE: «8 m → **17 / 33 m**». Sei volte più corta.
+   ⚠️ E il difetto NON si vedeva col metodo di G17 — affiancare le righe della
+   scheda con il dato e senza — perché la riga della gittata **non cambia**:
+   101 m con la spalla e 101 m senza. Delle 29 righe ne cambiano 14, e questa è
+   fra le quindici identiche. Il ripiego riempiva il buco così bene da farsi
+   assolvere dal confronto. **Un numero identico non è un numero verificato.**
+   ⚠️ Provata e SMENTITA l'ipotesi che `SPALLA` si portasse dietro la spalla del
+   progetto aperto prima: aprendo una volata con B=8 e poi quella senza spalla,
+   la scheda dice gli stessi 101 m. `applyDesign` non gira all'apertura.
+   ⛔ Le soglie e le formule non si toccano: `gittataSenzaSpalla` non ne conosce
+   nessuna — riceve `lff` come funzione e gli altri due numeri già fatti. Qui si
+   decide soltanto che cosa si fa quando un ingresso manca.
+   ⚠️ Prove SINCRONE e messe PRIMA del riepilogo: l'`await Promise.all(inVolo)`
+   sta a metà file, e una prova asincrona appesa dopo non verrebbe aspettata. */
+{
+  const gzT = await app("genesi", "genesi-data.js");
+  const { readFileSync: _rfT } = await import("node:fs");
+  const { senzaCommenti: _scT } = await import("./tokenizza.mjs");
+  /* SENZA COMMENTI: la correzione CITA nel suo commento la riga che ha tolto
+     (`D2.B||SPALLA`), e una prova «non c'è più» letta sul file grezzo cadrebbe
+     sul commento che documenta la decisione — la stessa trappola di G17. */
+  const srcT = _scT(_rfT(new URL("../../genesi/genesi.html", import.meta.url), "utf8"));
+
+  test("⛔ Genesi · FLY_SENZA_SPALLA dice CHE COSA manca e COME si rimedia", () => {
+    ok(typeof gzT.FLY_SENZA_SPALLA === "object" && gzT.FLY_SENZA_SPALLA !== null,
+      "la ragione della spalla assente è una costante del modulo, non una frase nella pagina");
+    for (const k of ["che", "come"]) {
+      ok(typeof gzT.FLY_SENZA_SPALLA[k] === "string" && gzT.FLY_SENZA_SPALLA[k].length > 20,
+        `FLY_SENZA_SPALLA.${k} è una frase, non un'etichetta`);
+    }
+    ok(/spalla/i.test(gzT.FLY_SENZA_SPALLA.che), "`che` nomina la spalla con la parola che si legge sullo schermo");
+    ok(/face burst/i.test(gzT.FLY_SENZA_SPALLA.che), "e dice DA DOVE passa: il face burst di Richards&Moore");
+    ok(/reimposta/i.test(gzT.FLY_SENZA_SPALLA.come), "`come` dice il gesto da fare, non la teoria");
+  });
+
+  /* la firma vera: `lff` è una FUNZIONE del burden, decrescente. Qui si
+     costruiscono i tre ingressi a mano per governare quale meccanismo domina —
+     è il modo di provare i due rami senza rifare le formule in casa. */
+  const lffDa = (k) => (B) => k / Math.pow(B, 2.6);          // stessa forma della vera: cala col burden
+
+  test("⛔ Genesi · gittataSenzaSpalla: dove la spalla NON decide, il numero si dà lo stesso", () => {
+    /* McKenzie a 101 m e un face burst che a 1,5 m arriva solo a 20: la spalla
+       non sposta niente su tutto il dominio, e spegnere la riga sarebbe il
+       difetto opposto — la difesa che toglie invece di rendere onesto. */
+    const g = gzT.gittataSenzaSpalla(lffDa(20 * Math.pow(1.5, 2.6)), 101, 657);
+    eq(g.calcolabile, true, "la gittata si può dare: la spalla non entra nel massimo");
+    eq(Math.round(g.Lpred), 101, "ed è quella degli altri meccanismi, alla cifra");
+    eq(g.forbice, 0, "forbice zero: i due capi del burden ammesso danno lo stesso numero");
+    eq(g.che, "", "nessuna ragione da dare quando non c'è niente da dichiarare");
+    eq(g.meccanismoNoto, true, "e il nome del meccanismo dominante è certo quanto il numero");
+  });
+
+  test("⛔ Genesi · gittataSenzaSpalla: dove la spalla DECIDE, il numero non si dà", () => {
+    /* face burst a 133 m con la spalla minima e a 1,7 con quella massima,
+       contro 101 di McKenzie: la risposta dipende da un dato che non c'è. */
+    const g = gzT.gittataSenzaSpalla(lffDa(133 * Math.pow(1.5, 2.6)), 101, 657);
+    eq(g.calcolabile, false, "la spalla decide: la gittata è `null`, non un numero di comodo");
+    eq(g.Lpred, null, "⛔ e `null`, non zero — uno zero qui vuol dire «non serve sgombero»");
+    ok(g.forbice > 30, `la forbice si dichiara e vale ${Math.round(g.forbice)} m`);
+    ok(/fra 101 e 133 m/.test(g.che), "⛔ la ragione porta l'AMPIEZZA del dubbio, non solo il dubbio");
+    ok(/sgombero persone fra 404 e 532 m/.test(g.che),
+      "e la dice nell'unità che il fochino usa: i metri di sgombero persone");
+    eq(g.come, gzT.FLY_SENZA_SPALLA.come, "il rimedio è quello della costante, non una seconda frase");
+  });
+
+  test("⛔ Genesi · gittataSenzaSpalla: il dominio della spalla è 1,5–8 m, quello che l'app impone al campo", () => {
+    /* il confine si prova col COMPORTAMENTO, non leggendo una costante: un
+       face burst che pareggia McKenzie appena SOTTO 1,5 non deve far scattare
+       niente (là fuori la spalla non può stare), appena SOPRA sì. */
+    const pari = 101 * Math.pow(1.5, 2.6);
+    eq(gzT.gittataSenzaSpalla(lffDa(pari * 0.98), 101, 657).calcolabile, true,
+      "una spalla che dominerebbe solo sotto 1,5 m non rende incerta la gittata: sotto 1,5 l'app non ci arriva");
+    eq(gzT.gittataSenzaSpalla(lffDa(pari * 1.05), 101, 657).calcolabile, false,
+      "⛔ appena dentro il dominio, invece, la spalla decide e la gittata non si dà");
+    /* ⚠️ E IL CAPO ALTO SI PROVA IN UN ALTRO MODO, perché `lff` CALA col
+       burden: nessun face burst può «dominare solo sopra gli 8 m». Quello che
+       il capo alto fissa è l'estremo CORTO della forbice dichiarata — cioè il
+       numero più basso che la gittata potrebbe avere. Con un face burst che
+       domina su tutto il dominio, la forbice va da `lff(8)` a `lff(1,5)`:
+       se il capo fosse 6 o 10 metri quei due numeri sarebbero altri. */
+    const tutto = gzT.gittataSenzaSpalla(lffDa(200 * Math.pow(1.5, 2.6)), 1, 657);
+    ok(/fra 3 e 200 m/.test(tutto.che),
+      "il capo alto del dominio è 8 m: è lui a dare l'estremo corto della forbice (200 → 3 m)");
+  });
+
+  test("⛔ Genesi · gittataSenzaSpalla: il tetto di Lundborg rende certo il numero e incerto il NOME", () => {
+    /* gli altri meccanismi hanno già superato il tetto: la gittata è il tetto
+       da tutt'e due i capi, ma a spalla minima l'argomento massimo sarebbe il
+       face burst. Il numero si dà, il meccanismo no — se no si scriverebbe un
+       «meccanismo dominante» inventato quanto il burden. */
+    const g = gzT.gittataSenzaSpalla(lffDa(900 * Math.pow(1.5, 2.6)), 700, 657);
+    eq(g.calcolabile, true, "il numero è certo: il tetto lo fissa da tutt'e due i capi");
+    eq(Math.round(g.Lpred), 657, "ed è il tetto");
+    eq(g.meccanismoNoto, false, "⛔ ma il NOME del meccanismo dipende dalla spalla: si dichiara ignoto");
+  });
+
+  test("⛔ Genesi · gittataSenzaSpalla: un ingresso non numerico non diventa un numero tranquillo", () => {
+    for (const [a, t, come] of [[null, 657, "altri a null"], [101, null, "tetto a null"],
+                                [NaN, 657, "altri NaN"], ["101", 657, "altri come stringa"]]) {
+      const g = gzT.gittataSenzaSpalla(lffDa(20), a, t);
+      eq(g.calcolabile, false, `${come}: non calcolabile`);
+      eq(g.Lpred, null, `${come}: e il valore è null, non zero`);
+    }
+    /* e un `lff` che restituisce Infinity — il caso vero del vecchio ripiego,
+       dove `sqm/null` faceva Infinity e la gittata saltava al tetto */
+    const g = gzT.gittataSenzaSpalla(() => Infinity, 101, 657);
+    eq(g.calcolabile, false, "⛔ un face burst infinito non si lascia tagliare dal tetto e spacciare per misura");
+  });
+
+  test("⛔ Genesi · il ripiego `D2.B||SPALLA` non è più nel codice vivo di flyrockEst", () => {
+    ok(!/D2\.B\s*\|\|\s*SPALLA/.test(srcT),
+      "⛔ nessun `D2.B||SPALLA` fuori dai commenti: né in `flyrockEst` né nel verdetto del flyrock inverso");
+    ok(/gittataSenzaSpalla/.test(srcT), "la pagina importa e usa la funzione del modulo");
+    eq((srcT.match(/gittataSenzaSpalla\(/g) || []).length, 1,
+      "e la chiama in UN posto solo: la decisione sulla spalla assente non si riscrive due volte");
+    ok(/FLY_SENZA_SPALLA/.test(srcT),
+      "e la ragione la prende dalla costante del modulo, invece di riscriverne una seconda");
+  });
+
+  test("⛔ Genesi · il face burst è rimasto UNA formula, passata come funzione", () => {
+    /* la regola della copia debole: se `lff` fosse riscritta anche dentro il
+       ramo con la spalla, i due rami divergerebbero senza che nessuno lo veda.
+       Nel sorgente ci deve essere UNA sola `Math.pow(sqm/…,2.6)` per il face
+       burst, e il ramo con la spalla deve CHIAMARLA. */
+    eq((srcT.match(/kf\*kf\/g9\)\*Math\.pow\(sqm\//g) || []).length, 2,
+      "due potenze in tutto: il face burst (una) e il cratering (una)");
+    ok(/const lff=\(B\)=>/.test(srcT), "il face burst è una funzione del burden");
+    ok(/lff\(_B\)/.test(srcT), "e il ramo con la spalla scritta chiama quella, non una copia");
+  });
+
+  test("⛔ Genesi · chi stampa il meccanismo dominante si chiede prima se c'è", () => {
+    /* `F.mech0[0]` su un `mech0` nullo ucciderebbe la scheda al disegno —
+       nessun errore di sintassi da leggere, la pagina si apre e muore. È la
+       regola 18 (una mappa copra tutti gli stati che la sua funzione sa dire)
+       applicata a un campo che ha guadagnato una risposta in più. */
+    /* ⚠️ La prima stesura di questa prova cancellava l'espressione guardata con
+       `F\.mech0\?[^:]*` per poi cercare quel che restava — e `[^:]*` si ferma
+       ai due punti che stanno DENTRO la stringa «meccanismo dominante: », cioè
+       prima del pezzo da cancellare. Un righello che non arriva al suo
+       soggetto: si conta invece di ritagliare. */
+    eq((srcT.match(/F\.mech0\[0\]/g) || []).length, 1,
+      "`F.mech0[0]` compare in un posto solo in tutta la pagina");
+    ok(/F\.mech0\?'meccanismo dominante: '\+F\.mech0\[0\]/.test(srcT),
+      "⛔ e quel posto è dentro la guardia `F.mech0?`, sullo stesso ternario");
+  });
+
+  test("⛔ Genesi · il flyrock inverso scrive il REQUISITO e non il verdetto sul burden", () => {
+    /* il requisito («serve burden ≥ 1,9 m») non dipende dalla spalla e resta:
+       spegnerlo sarebbe la difesa che toglie invece di rendere onesto. Quello
+       che dipende dalla spalla è se il progetto lo rispetti, e con la spalla
+       assente lo diceva il ripiego di 3,0 m — nel verso tranquillo, perché
+       3,0 ≥ 1,9 passa. */
+    ok(/_Binv\s*!==\s*null/.test(srcT), "il confronto sul burden si fa solo se la spalla c'è");
+    ok(/\+D2\.B>0/.test(srcT), "e l'assenza si chiede al VALORE, non alla forma");
+    ok(/non si può dire/.test(srcT), "⛔ e quando non c'è, la riga lo dice invece di promettere che il progetto rispetta");
+  });
+
+  test("⛔ Genesi · `gittataSenzaSpalla` non conosce nessuna soglia né formula di sicurezza", () => {
+    /* il vincolo del fondatore reso verificabile: questa unità riguarda che
+       cosa si fa quando un INGRESSO manca, non quanto vale una soglia. La
+       funzione non deve contenere nessuno dei numeri di Richards&Moore,
+       McKenzie o Lundborg. */
+    const f = String(gzT.gittataSenzaSpalla);
+    for (const n of ["2.167", "0.667", "30.1", "2.6", "9.81", "13.5", "1.4", "0.9"])
+      ok(!f.includes(n), `nessun ${n} dentro la funzione: le formule restano dove sono`);
+    ok(f.includes("1.5") && f.includes("8"), "conosce solo il dominio del CAMPO spalla (1,5–8 m)");
+  });
+}
 console.log(`\nRisultato KPI app: ${passed} passati, ${failed} falliti${inVolo.length ? `  ·  ${inVolo.length} prove asincrone aspettate` : ""}`);
 process.exit(failed > 0 ? 1 : 0);

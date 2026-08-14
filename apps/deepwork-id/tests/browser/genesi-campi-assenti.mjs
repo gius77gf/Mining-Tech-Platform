@@ -137,6 +137,18 @@ const DIFETTI_MODULO = [
   ["apps/genesi/genesi-data.js",
    "  const q = n(o.kg), s = n(o.stem), d = n(o.diam), r = n(o.densita);",
    "  const q = (o.kg === null || o.kg === undefined) ? 0 : n(o.kg), s = n(o.stem), d = n(o.diam), r = n(o.densita);"],
+  /* ⛔ E LA TERZA DOMANDA VUOLE IL RIPIEGO DELLA SPALLA (blocco B0-tervicies).
+     Si rimette `B = D2.B || SPALLA` dov'era: da lì la gittata torna a uscire
+     dal ripiego globale `let SPALLA = 3.0`, cioè da un burden che nessuno ha
+     scritto. Due iniezioni, perché il ripiego viveva in DUE posti — la stima e
+     il verdetto del flyrock inverso — e toglierlo da uno solo lascia in piedi
+     l'altro (è il contratto allargato a metà di CLAUDE.md). */
+  ["apps/genesi/genesi.html",
+   "  const _B=(+D2.B>0)?+D2.B:null;",
+   "  const _B=(+D2.B>0)?+D2.B:SPALLA;"],
+  ["apps/genesi/genesi.html",
+   "    const _Binv=(+D2.B>0)?+D2.B:null;",
+   "    const _Binv=(+D2.B>0)?+D2.B:SPALLA;"],
 ];
 
 const colpiti = new Set();
@@ -150,10 +162,20 @@ const srv = createServer((q, s) => {
     for (const [a, b] of DIFETTI) if (t.includes(a)) { colpiti.add(a); t = t.split(a).join(b); }
     corpo = Buffer.from(t, "utf8");
   }
-  if (CONTROPROVA && p.endsWith("apps/genesi/genesi-data.js")) {
-    let t = corpo.toString("utf8");
-    for (const [, a, b] of DIFETTI_MODULO) if (t.includes(a)) { colpiti.add(a); t = t.split(a).join(b); }
-    corpo = Buffer.from(t, "utf8");
+  /* ⛔ LA COLONNA `file` DI `DIFETTI_MODULO` VENIVA IGNORATA, e non si vedeva
+     perché la tabella aveva una riga sola: le iniezioni si applicavano tutte a
+     `genesi-data.js` qualunque file dichiarassero. Il blocco B0-tervicies ne ha
+     aggiunte due che vivono nella PAGINA, e senza questo `endsWith` sarebbero
+     rimaste a bersaglio zero — una controprova che gira su un prodotto sano
+     dichiarando «non distingue», cioè la terza delle cinque cause di CLAUDE.md
+     con l'aggravante di essere nata dal righello e non dal codice. */
+  if (CONTROPROVA) {
+    const perQui = DIFETTI_MODULO.filter(([f]) => p.endsWith(f));
+    if (perQui.length) {
+      let t = corpo.toString("utf8");
+      for (const [, a, b] of perQui) if (t.includes(a)) { colpiti.add(a); t = t.split(a).join(b); }
+      corpo = Buffer.from(t, "utf8");
+    }
   }
   s.writeHead(200, { "content-type": TIPI[extname(p)] || "application/octet-stream" });
   s.end(corpo);
@@ -329,6 +351,100 @@ console.log("\n· la seconda domanda: con la carica assente, nessuna riga della 
   await pgSana.close(); await pgSenza.close();
 }
 
+/* ⛔ LA TERZA DOMANDA — LA SPALLA (blocco B0-tervicies), e il metodo di G17 qui
+   NON BASTA: affiancando le righe con la spalla e senza, la riga della gittata
+   era fra quelle che NON cambiavano. Diceva 101 m in tutt'e due le colonne,
+   perché il ripiego `B = D2.B || SPALLA` riempiva il buco col 3,0 globale.
+   Delle 29 righe ne cambiavano 14, e proprio quella da guardare stava fra le
+   quindici identiche: **un numero identico non è un numero verificato.**
+   Quindi qui la domanda si fa in tre pezzi, e i tre insieme distinguono le due
+   direzioni in cui si può sbagliare:
+   1. con la spalla assente e una volata in cui la spalla DECIDE, la gittata
+      dev'essere «non calcolabile» — e la ragione deve portare l'AMPIEZZA del
+      dubbio, se no si è tolto un numero senza mettere niente al suo posto;
+   2. con la spalla assente e una volata in cui la spalla NON decide (borraggio
+      corto: domina il cratering), il numero dev'esserci ANCORA. È la prova che
+      la difesa non ha spento la riga: misurato su 12.150 progetti realistici,
+      la gittata resta determinata nel **44,2%** dei casi, e lì il numero è
+      identico a quello che dava il vecchio ripiego (scarto massimo 0,00 m);
+   3. e col dato vero i numeri storici non si muovono di una cifra.
+   ⚠️ Il verso che costa: nel 55,8% in cui la spalla decide, la forbice ha una
+   mediana di **107 m** di gittata, cioè 428 m di sgombero persone. Misurato sul
+   prodotto: stessa cava Ø102, spalla vera 1,5 m → «133 m, sgombero 267/533 m»;
+   spalla assente col vecchio ripiego → «101 m, 202/404 m». */
+console.log("\n· la terza domanda: con la spalla assente, la gittata non esce da un burden inventato");
+{
+  const testoDi = (pg, re) => pg.evaluate((r) => {
+    const x = [...document.querySelectorAll("#d2-scheda .sv-row")]
+      .find((e) => new RegExp(r, "i").test(e.innerText));
+    return x ? x.textContent.replace(/\s+/g, " ").trim() : null;
+  }, re.source);
+  const vivaEsana = async (pg) =>
+    await pg.evaluate(() => document.body.className.includes("scr-design"))
+    && await pg.evaluate(() => document.querySelectorAll("#d2-scheda .sv-row").length > 20)
+    && pg.__errori.length === 0;
+
+  /* 1+3 — la maglia di dimostrazione, dove la spalla DECIDE (a 1,5 m il face
+     burst arriva a 133 m e scavalca i 101 di McKenzie) */
+  const pgB = await apriSenza(null);
+  const pgSenzaB = await apriSenza("B");
+  if (!(await vivaEsana(pgB)) || !(await vivaEsana(pgSenzaB))) {
+    nonMisurati.push("la spalla (una delle due schede non si è aperta, o la pagina ha errori)");
+  } else {
+    const flySenza = await testoDi(pgSenzaB, /GITTATA FLYROCK/);
+    dice(flySenza !== null && /non calcolabile/i.test(flySenza),
+      "⛔ spalla: senza di lei la gittata NON esce più dal ripiego globale di 3,0 m", flySenza);
+    /* ⛔ e la ragione deve dire QUANTO è largo il dubbio: un «non calcolabile»
+       nudo toglie il numero e non mette niente al suo posto, mentre il fochino
+       una distanza di sgombero la deve pur scegliere. */
+    dice(flySenza !== null && /fra 101 e 133 m/.test(flySenza),
+      "⛔ e la ragione porta la FORBICE della gittata, non solo il dubbio", flySenza);
+    /* ⚠️ 533 e non 532: la gittata vera al capo basso del burden è 133,37 m, e
+       4 × 133,37 = 533,5. La prova gemella in `run-kpi` dice 532 perché lì il
+       face burst è costruito a mano su un 133 tondo — due ingressi diversi, non
+       una discordanza da «correggere» allineando i due numeri. */
+    dice(flySenza !== null && /sgombero persone fra 404 e 533 m/.test(flySenza),
+      "⛔ e la dichiara anche in metri di sgombero persone, che è l'unità con cui si decide", flySenza);
+    /* il flyrock inverso: il REQUISITO non dipende dalla spalla e resta scritto;
+       quello che dipende dalla spalla è se il progetto lo rispetti */
+    const invSenza = await testoDi(pgSenzaB, /FLYROCK INVERSO/);
+    dice(invSenza !== null && /burden ≥ 1,9/.test(invSenza),
+      "spalla: il REQUISITO del flyrock inverso resta scritto — non si spegne una riga che non dipende dalla spalla", invSenza);
+    dice(invSenza !== null && /non si può dire/.test(invSenza) && !/rispetta entrambi/.test(invSenza),
+      "⛔ ma il verdetto sul burden non si dà più: «rispetta entrambi» lo diceva il ripiego di 3,0 m", invSenza);
+    /* il verso opposto, sul progetto sano: i numeri storici non si muovono */
+    const flySano = await testoDi(pgB, /GITTATA FLYROCK/);
+    dice(flySano !== null && /101 m/.test(flySano) && /202 \/ 404 m/.test(flySano),
+      "e con la spalla vera la gittata è ancora 101 m con sgombero 202 / 404 m", flySano);
+    /* ⚠️ E QUI L'ASSERZIONE GIUSTA NON È «rispetta entrambi»: sulla maglia di
+       dimostrazione il borraggio è 2,2 m contro i 2,6 richiesti, quindi il
+       verdetto vero è che il progetto NON li rispetta. Quello che questa riga
+       deve provare non è QUALE verdetto esce, è che un verdetto esca — cioè
+       che con la spalla scritta la riga smetta di dire «non si può dire». */
+    const invSano = await testoDi(pgB, /FLYROCK INVERSO/);
+    dice(invSano !== null && /Il progetto attuale/.test(invSano) && !/non si può dire/.test(invSano),
+      "e con la spalla vera il flyrock inverso torna a dare il suo verdetto sul burden", invSano);
+  }
+  await pgB.close(); await pgSenzaB.close();
+
+  /* 2 — LA PROVA CHE LA DIFESA NON HA SPENTO LA RIGA. Borraggio 1,6 m invece
+     di 2,2: il cratering domina su tutto il dominio della spalla, quindi la
+     gittata è determinata anche senza di lei e il numero dev'esserci. */
+  const pgCorto = await apriSenza(null, { stem: 1.6 });
+  const pgCortoSenza = await apriSenza("B", { stem: 1.6 });
+  if (!(await vivaEsana(pgCorto)) || !(await vivaEsana(pgCortoSenza))) {
+    nonMisurati.push("la spalla che non decide (borraggio 1,6 m: una delle due schede non si è aperta)");
+  } else {
+    const con = await testoDi(pgCorto, /GITTATA FLYROCK/);
+    const senza = await testoDi(pgCortoSenza, /GITTATA FLYROCK/);
+    dice(senza !== null && /174 m/.test(senza) && !/non calcolabile/i.test(senza),
+      "⛔ spalla: dove la spalla NON decide la gittata (borr. 1,6 m, domina il cratering) il numero resta — la difesa non ha spento la riga", senza);
+    dice(con !== null && senza !== null && con === senza,
+      "⛔ e con la spalla o senza è lo STESSO identico testo: dove non decide, non cambia nulla", `${con} || ${senza}`);
+  }
+  await pgCorto.close(); await pgCortoSenza.close();
+}
+
 if (nonMisurati.length) {
   console.log(`\n⚠️ NON MISURATI (${nonMisurati.length}): ${nonMisurati.join(", ")}`);
   console.log("   Un soggetto non misurato non è un soggetto a posto: il banco non esce zero.");
@@ -337,6 +453,6 @@ if (CONTROPROVA) console.log(`\n(iniezioni: ${colpiti.size}/${DIFETTI.length + D
 /* ⚠️ IL TOTALE ATTESO SI STAMPA, e non è pignoleria: un banco che crolla a
    metà dichiara MENO prove, e un totale più basso si legge come «ha guardato
    meno roba», non come «si è rotto». */
-console.log(`\nRisultato campi assenti di Genesi: ${ok} passati, ${ko} falliti  ·  ${SORVEGLIATI.length * 3 + 7} asserzioni attese (3 per campo × ${SORVEGLIATI.length}, più 7 sul confronto della scheda)`);
+console.log(`\nRisultato campi assenti di Genesi: ${ok} passati, ${ko} falliti  ·  ${SORVEGLIATI.length * 3 + 7 + 9} asserzioni attese (3 per campo × ${SORVEGLIATI.length}, più 7 sulla CARICA e 9 sulla SPALLA)`);
 await b.close(); srv.close();
 process.exit(ko > 0 || nonMisurati.length ? 1 : 0);

@@ -2152,21 +2152,43 @@ numero scritto dove non era stato misurato niente**.*
       cadessero, vorrebbe dire che la difesa ha **spento** la riga invece di
       renderla onesta.
 
-- [ ] **B0-tervicies. IN `flyrockEst` RESTA UN RIPIEGO, DICHIARATO E NON
-      TOCCATO: `B = D2.B || SPALLA`.** ⏱️ *Aperta il 13/08 dal cantiere di G17,
-      che l'aveva proposta come «B0-quinquies» — nome **già usato due volte** in
-      questo file, come del resto «B0-quater». ⚠️ Gli identificativi di questa
-      roadmap **collidono**, e un nome che indica due cose diverse manda a
-      leggere la voce sbagliata: prima di aprirne una nuova si cerca il nome.
-      Il cantiere l'ha misurata e lasciata lì invece di allargare un'unità che
-      stava già chiudendo una decisione sulla sicurezza.* Con la spalla assente la stima
-      usa un **burden che nessuno ha scritto**. È la stessa famiglia di G17 ma
-      su un altro campo, e tocca le **tre** formule di Richards&Moore (face
-      burst → B, cratering → stem, rifling): va misurato **quanto** si muove
-      `Lpred` al variare di B e **con quale verso** prima di decidere se la
-      gittata diventa «non calcolabile» anche lì.
-      **Come si misura**: `design.B:null`, si legge la riga «Gittata flyrock
-      (stima)» della scheda validatori e la si confronta col progetto sano.
+- [x] ✅ **B0-tervicies. LA SPALLA ASSENTE: la gittata del flyrock usava un
+      BURDEN CHE NESSUNO AVEVA SCRITTO.** *Chiuso il 14/08, raccogliendo il
+      lavoro di un cantiere morto sul limite di sessione **prima di consegnare**:
+      le sue misure non sono arrivate, quindi qui c'è solo ciò che ho potuto
+      **verificare io** sulla copia di quello che si committa.*
+      `flyrockEst` faceva `B = D2.B || SPALLA`: con la spalla mai scritta, la
+      distanza a cui si mandano via le **persone** usciva da un ripiego globale
+      `let SPALLA = 3.0`. È il fratello del difetto chiuso poche ore prima
+      (`Q = D2.kg || P.kg || 50`), sull'altro ingresso della stessa formula.
+      ⛔ **E il metodo di G17 — affiancare le righe della scheda col dato e senza
+      — QUI NON LO VEDEVA**, ed è la lezione che vale più dell'unità: la riga
+      della gittata **non cambiava**, 101 m con la spalla e 101 m senza. Il
+      ripiego riempiva il buco così bene da farsi assolvere dal confronto.
+      **Un numero identico non è un numero verificato.**
+      Adesso `gittataSenzaSpalla` e `FLY_SENZA_SPALLA` vivono in
+      `genesi-data.js`, e la gittata si dichiara non calcolabile **solo dove la
+      spalla decide davvero**: nell'83,1% delle 40.500 combinazioni provate la
+      spalla non sposta la gittata di un millimetro — entra in **una sola** delle
+      quattro formule (il face burst di Richards&Moore) e la gittata è il
+      **massimo** delle quattro. Un «non calcolabile» secco avrebbe **spento una
+      riga utile in cinque casi su sei**.
+      Dove invece decide, decide **nel verso che rassicura**: con Ø102, borraggio
+      2,2 m e 58 kg, la spalla vera dà «133 m → sgombero 267/533 m» e la spalla
+      assente «101 m → 202/404 m» — **129 metri di sgombero persone in meno**.
+      ⛔ **Nessuna soglia e nessuna formula toccate**: `gittataSenzaSpalla` non ne
+      conosce nessuna, riceve il face burst **come funzione** e gli altri due
+      numeri già fatti. Decide soltanto che cosa si fa quando un ingresso manca.
+      **Misure mie, sulla copia**: `run-kpi` 2182 → **2193**, 0 falliti;
+      copertura `genesi-data.js` 64 → **66/66**, condivisi **173/173**;
+      `iniezioni-fresche` **378/378**; `sintassi-pagine` 34/0; giro `node`
+      **2.984** asserzioni, **34 comandi a posto, 0 caduti**.
+      ⚠️ **Quello che NON posso attestare**, perché il cantiere è morto prima di
+      dirmelo: la sua controprova `node`. L'ultima riga che ha fatto in tempo a
+      mandare parla del **banco** — «20/20 iniezioni a bersaglio, 25 prove cadute
+      su 64», coi quattro KO della sezione spalla che riproducono i numeri
+      storici — e quella è una misura sua, non mia. Il giro del browser la
+      rimisurerà.
 - [x] ✅ **B0-ter. MENTRE UN CANTIERE SCRIVE, UN ROSSO LETTO SULL'ALBERO VIVO NON
       È UN VERDETTO.** Misurato il 09/08 su me stesso: leggendo l'albero mentre
       un cantiere ci scriveva, `run-stile` ha detto **316 passati e 2 falliti**;
@@ -4146,7 +4168,7 @@ numero scritto dove non era stato misurato niente**.*
   scritta**: `DEVELOPMENT.md` diceva ancora «il numero da citare resta 2.251» e
   «il giro completo esegue 2.474» mentre il titolo sopra diceva già 2.310 — il
   controllo sorveglia il **totale**, non la prosa che lo spiega. Rimisurato:
-  sei suite **2.310**, giro completo **2.634**, e **ogni** addendo della nota
+  sei suite **2.310**, giro completo **2.645**, e **ogni** addendo della nota
   era vecchio (sintassi 15 → 34, import 134 → 140, nomi liberi 7 → 24).
 
 - [x] ✅ **`giro-sicurezza`: un comando solo per la barriera fra aziende
@@ -4880,7 +4902,7 @@ numero scritto dove non era stato misurato niente**.*
   nome apre il file sbagliato credendo che sia il più fresco.
 - Le decisioni: `docs/DECISIONI_WEEKEND.md` — pagina d'ingresso in cima.
 - Stato misurato al **09/08** (lanciando le suite, non a memoria):
-  **2.634 prove girano senza rete**. La frase va letta stretta: è la somma
+  **2.645 prove girano senza rete**. La frase va letta stretta: è la somma
   delle **otto** suite che contano asserzioni (`run-kpi` 2110, `run-stile` 318,
   `run-helpers` 75, `run-pointcloud` 32, `run-manifest` 9, `run-demo` 8,
   `bootstrap-rivendicazioni` 7, `fogli-guardati` 3), non tutto ciò che gira nel

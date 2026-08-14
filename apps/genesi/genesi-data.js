@@ -1676,3 +1676,82 @@ export function confinamentoColletto(v){
   return { sdob, wTop, qLin, calcolabile:true,
     carica:false, borraggio:false, diametro:false, che:'', come:'' };
 }
+
+/* ⛔ LA SPALLA ASSENTE E LA GITTATA — blocco B0-tervicies, il ripiego che G17
+   aveva misurato e lasciato lì per non allargare un'unità sulla sicurezza.
+   In `flyrockEst` stava scritto `B = D2.B || SPALLA`: con la spalla mai
+   scritta, la distanza di sgombero delle PERSONE veniva da un burden che
+   nessuno aveva messo — il ripiego globale `let SPALLA = 3.0`.
+   ⛔ E QUI IL RIPIEGO NON SI POTEVA TOGLIERE E BASTA, ma nemmeno sostituire con
+   un «non calcolabile» secco: la misura dice due cose opposte, e tutt'e due
+   contano. `B` entra in UNA sola delle quattro formule — il face burst di
+   Richards&Moore — e la gittata è il MASSIMO delle quattro, con il tetto di
+   Lundborg sopra. Quindi:
+   · su 40.500 combinazioni realistiche (Ø 51–165 × borraggio × inclinazione ×
+     UCS × densità × B 1,5–8) il burden non sposta la gittata di un millimetro
+     nell'**83,1%** dei casi — lì domina McKenzie o il cratering, e spegnere la
+     riga toglierebbe dallo schermo una distanza di sgombero GIUSTA;
+   · nel **14,1%** il ripiego RASSICURA — dice una gittata più corta del vero —
+     e nel 2,8% allarma. Misurato sul prodotto vero, non sulla carta: stessa
+     cava Ø102, borraggio 2,2 m, carica 58 kg, con la spalla vera di 1,5 m la
+     scheda scrive «133 m → sgombero 267 / 533 m», con la spalla ASSENTE
+     «101 m → 202 / 404 m». **129 metri di sgombero persone in meno**, e niente
+     sullo schermo che lo dica.
+     Su una cava a piccolo diametro (Ø51, borraggio 4 m, UCS 250, carica 12 kg),
+     dove il face burst domina davvero: spalla vera 1,5 m → «51 m → 101 / 203
+     m»; spalla assente → «8 m → **17 / 33 m**». Sei volte più corta.
+   ⚠️ E il difetto non si vedeva affiancando le righe come nel blocco G17,
+   perché la riga della gittata **non cambia**: sulla maglia di dimostrazione
+   dice 101 m con la spalla e 101 m senza. Delle 29 righe della scheda ne
+   cambiano 14 togliendo la spalla, e questa è fra le quindici che restano
+   IDENTICHE — cioè il ripiego aveva riempito il buco così bene che il metodo
+   del confronto la assolveva. Un numero identico non è un numero verificato.
+   ⚠️ Provata e SMENTITA l'ipotesi che `SPALLA` si portasse dietro la spalla
+   del progetto aperto prima: aprendo una volata con B=8 e poi quella senza
+   spalla, la scheda dice gli stessi 101 m di quando la si apre da sola.
+   `applyDesign` non gira all'apertura, quindi `SPALLA` resta al suo 3,0
+   iniziale. Il ripiego è un numero fisso, non un residuo — e va detto, se no
+   qualcuno rifà la misura.
+   ⛔ LE SOGLIE E LE FORMULE NON SI TOCCANO: Richards&Moore, McKenzie e
+   Lundborg restano dove sono e come sono, e questa funzione non ne conosce
+   nessuna — riceve `lff` come funzione e gli altri due numeri già calcolati.
+   Qui si decide soltanto CHE COSA SI FA QUANDO UN INGRESSO MANCA.
+   ⚠️ L'intervallo 1,5–8 m non è una soglia inventata per l'occasione: è il
+   dominio che l'app stessa impone alla spalla, scritto già in due posti
+   (`valoreCampo(gvv('dB'), D2.B, 1.5, 8)` in `applyDesign` e il clamp
+   dell'import XML). Con la spalla ignota la gittata sta fra i suoi due capi;
+   `lff` decresce con `B`, quindi il capo basso dà la gittata più lunga. */
+export const FLY_SENZA_SPALLA = {
+  che: 'la spalla (burden) non è un numero leggibile, ed è lei a decidere il meccanismo "face burst" di Richards&Moore — quello che governa la gittata quando la roccia davanti al foro è poca',
+  come: 'Reimposta la spalla nei parametri della volata.',
+};
+/* La gittata quando la spalla NON c'è: il numero se la spalla non lo decide,
+   `null` con la ragione se lo decide. `lff(B)` è il face burst del chiamante
+   (la formula resta sua), `altri` il massimo degli altri meccanismi, `tetto`
+   il limite di Lundborg.
+   La bandiera da leggere è `calcolabile`; `meccanismoNoto` è la seconda, e
+   serve al caso in cui il NUMERO è certo ma il NOME del meccanismo dominante
+   no — succede quando gli altri meccanismi hanno già superato il tetto: la
+   gittata è il tetto da tutt'e due i capi, ma l'argomento massimo cambia. Un
+   nome di meccanismo scritto lì sarebbe inventato come il burden.
+   Gemella di `confinamentoColletto`: stessa forma, stesso `che`/`come`. */
+export function gittataSenzaSpalla(lff, altri, tetto) {
+  const SPALLA_MIN = 1.5, SPALLA_MAX = 8;         // il dominio che l'app impone al campo
+  const num = (x) => (typeof x === 'number' && Number.isFinite(x)) ? x : NaN;
+  const a = num(altri), t = num(tetto);
+  const gitt = (B) => Math.min(Math.max(num(lff(B)), a), t);
+  const lunga = gitt(SPALLA_MIN);                 // spalla minima → face burst massimo
+  const corta = gitt(SPALLA_MAX);                 // spalla massima → face burst minimo
+  if (!Number.isFinite(lunga) || !Number.isFinite(corta))
+    return { Lpred:null, calcolabile:false, meccanismoNoto:false, forbice:null,
+      che:FLY_SENZA_SPALLA.che, come:FLY_SENZA_SPALLA.come };
+  if (lunga - corta > 1e-9)
+    return { Lpred:null, calcolabile:false, meccanismoNoto:false, forbice:lunga - corta,
+      che: FLY_SENZA_SPALLA.che + ', e su questa volata è lei a deciderla: senza, la gittata sta fra '
+        + Math.round(corta) + ' e ' + Math.round(lunga) + ' m, cioè uno sgombero persone fra '
+        + Math.round(4 * corta) + ' e ' + Math.round(4 * lunga) + ' m',
+      come: FLY_SENZA_SPALLA.come };
+  /* la spalla non decide il numero. Decide ancora il NOME del meccanismo? */
+  return { Lpred:corta, calcolabile:true, meccanismoNoto:(a >= num(lff(SPALLA_MIN))),
+    forbice:0, che:'', come:'' };
+}

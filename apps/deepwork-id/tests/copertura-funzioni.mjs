@@ -353,7 +353,11 @@ const CONDIVISI = [
      `confinamentoColletto`, cioè l'SDOB tolto dalle due copie che se lo
      scrivevano in casa. Il fondo si alza SUBITO, se no la riga esce con la coda
      «(il fondo era N: alzalo)» e `numeri-nei-documenti` smette di leggerla. */
-  { file: "apps/genesi/genesi-data.js", fondo: 64,
+  /* ⏱️ 64 → 66 il 13/08: il blocco B0-tervicies ha portato dentro
+     `FLY_SENZA_SPALLA` e `gittataSenzaSpalla` — la gittata flyrock quando la
+     spalla non c'è, tolta dal ripiego `D2.B||SPALLA` che la ricavava da un
+     burden che nessuno aveva scritto. */
+  { file: "apps/genesi/genesi-data.js", fondo: 66,
     perche: "la vibrazione al recettore e la riconciliazione previsto-vs-reale: i due numeri di Genesi che decidono qualcosa" },
 ];
 /* Fuori per un motivo, non per dimenticanza. Le prime tre toccano il DOM o

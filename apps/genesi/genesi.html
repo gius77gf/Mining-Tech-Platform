@@ -1112,7 +1112,8 @@ import { sitoFit, ppvLimit, ppvSenzaSoglia, ppvSenzaDistanza, airblastDb, normaP
    `flyrockEst` si inventava una carica intera (`D2.kg||P.kg||50`). Le due
    invenzioni si compensavano, quindi togliere la prima da sola avrebbe
    dimezzato la distanza di sgombero senza un rosso da leggere. */
-         CONFIN_SENZA_CONTO, confinamentoColletto } from './genesi-data.js';
+         CONFIN_SENZA_CONTO, confinamentoColletto,
+         FLY_SENZA_SPALLA, gittataSenzaSpalla } from './genesi-data.js';
 /* ⛔ «ha una data» si decide con l'ESISTENZA, non con la forma: «2026-02-30» ha
    la forma giusta e non esiste. Il modulo di Genesi questa regola l'ha imparata
    il 03/08 — il commento in cima a `genesi-data.js` lo racconta — e la pagina
@@ -1541,22 +1542,46 @@ function flyrockEst(){
      dimezza — cioè lo sgombero persone passerebbe da 404 a 197 m senza che
      nulla diventi rosso. Un dato che manca non rende una volata più corta:
      rende la stima non calcolabile, e si dice.
-     ⚠️ `B = D2.B || SPALLA` resta com'era ed è FUORI da questa unità: la spalla
-     assente è la voce B0-quinquies, e va misurata con la sua controprova prima
-     di toccare le tre formule di Richards&Moore che la usano. */
+     ⛔ E `B = D2.B || SPALLA` ERA IL SECONDO, chiuso il 13/08 col blocco
+     B0-tervicies: vedi `gittataSenzaSpalla` nel modulo, che porta la misura. */
   const _cc=confinamentoColletto({ kg:D2.kg, stem:D2.stem, diam:D2.diam, densita:_e.densita_gcc });
   const kf=13.5+13.5*Math.max(0,Math.min(1,((D2.ucs||100)-30)/220));    // 13,5 tenere → 27 dure
   if(!_cc.calcolabile) return { Lpred:null, Dmez:null, Dper:null, mech0:null, kf, sdob:null,
     calcolabile:false, che:_cc.che, come:_cc.come };
-  const Dmm=+D2.diam, Dm=Dmm/1000, stem=+D2.stem, B=D2.B||SPALLA;
+  const Dmm=+D2.diam, Dm=Dmm/1000, stem=+D2.stem;
   const ql=_cc.qLin, sdob=_cc.sdob;                                     // carica lineare kg/m, SDOB: una formula sola
   const g9=9.81, sqm=Math.sqrt(Math.max(0.1,ql));
-  const Lff=(kf*kf/g9)*Math.pow(sqm/B,2.6);
+  const lff=(B)=>(kf*kf/g9)*Math.pow(sqm/B,2.6);                        // Richards&Moore face burst: la formula NON cambia, cambia solo chi le passa B
   const Lcr=(kf*kf/g9)*Math.pow(sqm/Math.max(0.3,stem),2.6);
   const thF=Math.max(5,D2.incl||0)*Math.PI/180, Lrif=Lcr*Math.sin(2*thF);
   const Rmck=10*Math.pow(sdob,-2.167)*Math.pow(Dmm,0.667);
   const Llund=30.1*Math.pow(Dmm,2/3);
-  const mech=[['face burst',Lff],['cratering',Lcr],['rifling',Lrif],['McKenzie',Rmck]].sort((a,b)=>b[1]-a[1]);
+  const _altri=[['cratering',Lcr],['rifling',Lrif],['McKenzie',Rmck]].sort((a,b)=>b[1]-a[1]);
+  /* ⛔ QUI STAVA `B = D2.B || SPALLA`: con la spalla mai scritta la gittata —
+     e quindi la distanza a cui si mandano via le PERSONE — usciva da un burden
+     che nessuno aveva messo, il ripiego globale `let SPALLA = 3.0`.
+     E non si toglie e basta: nell'83,1% dei progetti la spalla non sposta la
+     gittata di un millimetro (domina McKenzie o il cratering), quindi un «non
+     calcolabile» secco spegnerebbe una riga GIUSTA. Dove invece la sposta, la
+     sposta nel verso che rassicura: stessa cava Ø102, spalla vera 1,5 m →
+     «133 m, sgombero 267/533 m»; spalla assente → «101 m, 202/404 m», cioè
+     **129 m di sgombero persone in meno**. Su Ø51 il rapporto è di sei volte
+     (203 m contro 33 m). Il conto sta in `gittataSenzaSpalla`, che risponde
+     col numero dove la spalla non lo decide e `null` dove lo decide.
+     ⚠️ `+D2.B > 0` risponde da solo a tutt'e cinque le forme dell'assenza —
+     è la stessa domanda già usata per il burden di progetto nei raggi-X. */
+  const _B=(+D2.B>0)?+D2.B:null;
+  if(_B===null){
+    const _g=gittataSenzaSpalla(lff, _altri[0][1], Llund);
+    if(!_g.calcolabile) return { Lpred:null, Dmez:null, Dper:null, mech0:null, kf, sdob,
+      calcolabile:false, che:_g.che, come:_g.come };
+    /* ⚠️ `mech0` resta `null` quando il numero è certo ma il NOME del
+       meccanismo no: chi lo stampa deve chiederselo, se no scriverebbe un
+       meccanismo dominante inventato quanto il burden. */
+    return { Lpred:_g.Lpred, Dmez:2*_g.Lpred, Dper:4*_g.Lpred,
+      mech0:_g.meccanismoNoto?_altri[0]:null, kf, sdob, calcolabile:true, che:'', come:'' };
+  }
+  const mech=[['face burst',lff(_B)]].concat(_altri).sort((a,b)=>b[1]-a[1]);
   const Lpred=Math.min(mech[0][1],Llund);
   return { Lpred, Dmez:2*Lpred, Dper:4*Lpred, mech0:mech[0], kf, sdob,
     calcolabile:true, che:'', come:'' };
@@ -5855,7 +5880,11 @@ function renderScheda2D(){
     const _flySd=ppvSenzaDistanza(D2.recDist);
     rows.push({lab:'Gittata flyrock (stima)',valStr:gnum(Lpred,0)+' <span>m → sgombero '+gnum(Dmez,0)+' / '+gnum(Dper,0)+' m</span>',
       cls:_flySd?'sv-warn':(D2.recDist>=Dper?'sv-ok':(D2.recDist>=Dmez?'sv-warn':'sv-bad')),
-      why:'meccanismo dominante: '+F.mech0[0]+' (k='+gnum(F.kf,0)+'). Sgombero consigliato: mezzi 2× ('+gnum(Dmez,0)+' m), persone 4× ('+gnum(Dper,0)+' m) — '
+      /* ⚠️ `F.mech0[0]` su un `mech0` nullo ucciderebbe la scheda al disegno, e
+         succede nel caso vero in cui il numero è certo ma il nome del
+         meccanismo dipende dalla spalla che non c'è (vedi `gittataSenzaSpalla`):
+         allora il meccanismo non si nomina invece di nominarne uno a caso. */
+      why:(F.mech0?'meccanismo dominante: '+F.mech0[0]+' (k='+gnum(F.kf,0)+'). ':'quale dei meccanismi domini dipende dalla spalla, che qui non c\'è: la gittata invece non ne dipende, ed è quella scritta qui sopra. ')+'Sgombero consigliato: mezzi 2× ('+gnum(Dmez,0)+' m), persone 4× ('+gnum(Dper,0)+' m) — '
         +(_flySd?'<b>non si può dire se il recettore è al sicuro</b>: '+_rEsc(_flySd.che)+'. '+_rEsc(_flySd.come):'recettore a '+gnum(D2.recDist,0)+' m.')
         +' STIMA INDICATIVA (Richards&Moore/McKenzie/Lundborg): NON sostituisce il calcolo normativo delle aree di sgombero né il giudizio del responsabile del tiro.'});
   })();
@@ -5888,11 +5917,22 @@ function renderScheda2D(){
         +' Un requisito ricavato da una carica di comodo manderebbe a rifare un progetto che va bene.'));
       return;
     }
-    const okS=(D2.stem||2.5)>=inv.minStem-0.01, okB=(D2.B||SPALLA)>=inv.minB-0.01;
+    /* ⛔ E IL VERDETTO PORTAVA LO STESSO RIPIEGO DELLA SORELLA: `okB =
+       (D2.B||SPALLA) >= inv.minB`. Il REQUISITO («serve burden ≥ 1,9 m») non
+       dipende dalla spalla e resta; quello che dipende dalla spalla è se il
+       progetto lo rispetti, e con la spalla assente quel «rispetta» lo diceva
+       il ripiego di 3,0 m — cioè una promessa fatta su un numero che nessuno
+       aveva scritto, e per giunta nel verso tranquillo (3,0 ≥ 1,9 passa).
+       Qui non si spegne la riga: il requisito si scrive, il confronto no. */
+    const _Binv=(+D2.B>0)?+D2.B:null;
+    const okS=(D2.stem||2.5)>=inv.minStem-0.01, okB=(_Binv!==null)&&_Binv>=inv.minB-0.01;
+    const _bDetto=(_Binv!==null);
     rows.push({lab:'Flyrock inverso',valStr:'borr. ≥ '+gfix(inv.minStem,1)+' <span>m</span> · burden ≥ '+gfix(inv.minB,1)+' <span>m</span>',
       cls:(okS&&okB?'sv-ok':'sv-warn'),
       why:'calcolo inverso: perché lo sgombero persone (4×) stia entro il recettore a '+gnum(D2.recDist,0)+' m (gittata ammessa ~'+gnum(Lmax,0)+' m) servono, a parità di diametro ed esplosivo, borraggio ≥ '+gfix(inv.minStem,1)+' m e burden ≥ '+gfix(inv.minB,1)+' m. '
-        +(okS&&okB?'Il progetto attuale rispetta entrambi.':'Il progetto attuale NON li rispetta: alza '+(okS?'':'il borraggio')+(!okS&&!okB?' e ':'')+(okB?'':'il burden')+' oppure riduci il diametro.')
+        +(!_bDetto
+          ? 'Il borraggio di progetto '+(okS?'rispetta il suo':'NON rispetta il suo')+'; sul burden <b>non si può dire</b>: '+_rEsc(FLY_SENZA_SPALLA.che)+'. '+_rEsc(FLY_SENZA_SPALLA.come)
+          : (okS&&okB?'Il progetto attuale rispetta entrambi.':'Il progetto attuale NON li rispetta: alza '+(okS?'':'il borraggio')+(!okS&&!okB?' e ':'')+(okB?'':'il burden')+' oppure riduci il diametro.'))
         +' STIMA INDICATIVA: non sostituisce il calcolo normativo.'});
   })();
   /* presplit: controllo di progetto (spaziatura in diametri 8-14, carica lineare disaccoppiata ~0.3-0.9 kg/m per Ø 76-115) */
