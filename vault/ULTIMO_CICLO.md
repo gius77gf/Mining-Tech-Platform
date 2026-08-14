@@ -408,3 +408,25 @@ quindi l'eccezione non può sopravvivere alla sua causa.
   riverificare ogni KO **prima** di aprirci un cantiere (il branch si muove), e
   rimisurare **B7** — il banco `sentinella-periodo-adempimento`, intermittente —
   **a macchina scarica**, che adesso non lo è.
+
+## 14/08/2026, 05:05 UTC — ciclo nuovo, e due cose vive che NON vanno rilanciate
+
+- **Commit di partenza**: `681d3b1f`.
+- ⚠️ **UN GIRO DEL BROWSER È VIVO** dalle 04:29 (attesta `93a569c3`), registro in
+  `…/scratchpad/giro-notte/registro.txt`. **Non lanciarne un secondo**: si
+  ruberebbero la macchina e il secondo troverebbe la porta occupata. Alle 05:04
+  era a 9 passate, **0 KO veri**.
+- ⚠️ **UN CANTIERE STA SCRIVENDO** su **B8** (il file sbagliato che entra in
+  silenzio): i **7 file non committati** sono il suo perimetro — le sei pagine e
+  `shared/dw-shell.js`, +203 righe. ⛔ **Non committarli alla cieca**: la
+  copertura dice già **1 soggetto con funzioni senza prova**, cioè la difesa è a
+  metà. Stanotte la stessa firma ha rivelato che il disco lasciato da quattro
+  cantieri morti non era committabile.
+- **Che cosa sto per fare**: raccogliere B8 quando consegna (indice costruito da
+  HEAD + il solo suo blocco, verifica sulla copia); se muore prima, misurarlo e
+  tenere solo ciò che regge, dichiarando per nome il resto. Poi **B9** —
+  `ragioneData` scritta due volte e il guardiano che copre 9 lettori su 19 —
+  che aspetta perché tocca `shared/`, dove sta scrivendo B8.
+- **Lo stato all'ultimo commit**: `run-kpi` **2229**, giro `node` **3.023**
+  asserzioni su 34 comandi (34 a posto, 0 caduti), copertura app **751/751**,
+  condivisi 174/174, CI **verde**.
