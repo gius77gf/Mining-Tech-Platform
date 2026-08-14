@@ -1,37 +1,44 @@
 # Ultimo ciclo di lavoro automatico
 
-- **Quando**: 2026-08-14, 08:58 UTC
-- **Commit di partenza**: `869b9b69`
+- **Quando**: 2026-08-14, 12:13 UTC
+- **Commit di partenza**: `87f8e568`
 - **Branch**: `claude/scheduled-tasks-remote-control-bk4ap6`
 
 ## Che cosa sta per succedere
 
-Il ciclo riprende dal checkpoint `20260814-080815_il-ripiego-silenzioso-chiuso-in-sei-app.md`.
-Sul disco c'è il lavoro **non committato** di due cantieri: quello di **Genesi**
-(consegnato e completo — tre correzioni misurate sulla pagina, cinque prove
-nuove) e quello sulle **sottrazioni fra due insiemi**, morto sul limite di
-sessione mentre stava correggendo le proprie fixture.
+Il ciclo riprende dal checkpoint
+`20260814-120500_la-regola-che-guarda-dove-il-browser-non-arriva.md` — trovato
+per **data vera** (`git log --name-only -- vault/checkpoints/`), non per nome.
 
-⚠️ Alle 08:24 la piattaforma ha dato **«You've hit your session limit · resets
-8:40am (UTC)»** e ha ucciso due cantieri: è l'unico stop legittimo previsto
-dalla regola del fondatore, e infatti il ciclo riprende invece di chiudersi.
+⚠️ **Non si riparte da fermo: quattro cantieri stanno già lavorando** sul tema
+della settimana — *i numeri che mentono con la faccia tranquilla* — uno per app
+sui perimetri liberi, e un **giro mirato del browser** gira su una copia
+immobile di `ffcb8b16`:
 
-Il primo passo è **misurare il disco prima di committarlo** — mai alla cieca —
-e raccogliere le unità una per volta, con l'indice costruito da HEAD più il solo
-blocco di ciascuna: dentro `run-kpi.mjs` hanno scritto fino a tre cantieri
-insieme.
+| cantiere | perimetro | che cosa cerca |
+|---|---|---|
+| Flotta | `apps/flotta/` | 22 ripieghi «di mestiere» censiti, da portare al gradino 2 |
+| Conti | `apps/conti/` | 18, e i punti dove il **documento si compone** |
+| Terra | `apps/terra/` | 19, e il foglio che va **all'ente** |
+| Genesi | `apps/genesi/` | 111 — l'app dove il difetto è nato (`B \|\| SPALLA`) |
 
-## Dove eravamo arrivati (blocco precedente, 03:46 → 08:24 UTC)
+Nessun cantiere committa: raccolgo io, uno per volta, con l'indice costruito da
+`HEAD` più il solo blocco di ciascuno (in `run-kpi.mjs` scrivono in quattro), e
+la verifica sulla **copia di ciò che si committa**.
 
-Quindici unità committate e spinte. Il filo della settimana — **i numeri che
-mentono con la faccia tranquilla** — chiuso su sei app più `shared/`:
-Flotta (1 pezzo per intervento invece di 3), Conti (`dovuto: 0` su soldi dovuti
-a un ente), Sentinella (`0/0/0` nel registro che va all'ARPA, e «Conforme» su un
-superamento), Terra («Riserva residua 0 m³ · ~0 anni» dove nessuno aveva
-scritto), `shared/dw-ponti.js` (un rilievo che non ha misurato niente contava
-come rilievo e spostava la data dell'ultima misura).
+## Da dove viene questo tratto
 
-E **il giro del browser adesso arriva in fondo**: era 198 passate = 13,5 ore,
-cioè più di una sessione, e due notti di fila era stato spento a metà. Con
-`--solo=` un ciclo verifica le superfici che ha toccato in mezz'ora — due giri
-finiti, 0 e 2 KO veri, e i due KO erano tutt'e due del banco.
+Il blocco precedente ha chiuso otto unità con la CI verde su tutte: la **gara
+sui claims** che la CI trovava una volta su trenta (un aggiornamento perduto
+vero, non un flaky), la lettura **senza valore** che in Sentinella contava come
+misura di **zero** — col file per l'ARPA che diceva «Conforme» —, la **maglia
+non scritta** che nel core usciva `3,5 × 4` fin sul PDF, i **comandi muti**
+nella finestra di caricamento (18 su 21), i contatori nati «0» in Flotta e
+Conti, e la **regola 21** che guarda dove il browser non arriva.
+
+## Il primo passo
+
+Raccogliere i cantieri appena consegnano e leggere il giro mirato con
+`browser/leggi-giro.mjs`, riverificando ogni KO **prima** di aprirci sopra un
+cantiere: un KO su una domanda che in quel registro non era mai comparsa prima
+è quasi sempre un banco migliorato a metà giro, non un difetto del prodotto.
