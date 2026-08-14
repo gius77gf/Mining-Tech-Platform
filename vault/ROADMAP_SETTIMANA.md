@@ -5622,3 +5622,36 @@ di scriverlo qui**: niente entra sulla parola dell'agente.
       compensano** (2226 + 324), la somma torna e il totale è giusto — il giro
       cade lo stesso e li nomina tutti e due, con la suite accanto. Ripristino
       da copia con `diff -q`, mai `git checkout`.
+
+- [ ] **B8. IL FILE SBAGLIATO ENTRA IN SILENZIO — e la difesa ovvia è già stata
+      esclusa da una scelta di prodotto.** ⏱️ *Misurato il 14/08, e va letto
+      insieme a quello che NON è un difetto.*
+      Importando in Scudo, nell'anagrafica dei lavoratori, un CSV **di fatture**
+      (`numero;cliente;importo`), il risultato è: **2 lavoratori aggiunti,
+      chiamati «numero» e «2026/001»**, e niente lo dice. La riga
+      d'intestazione entra come persona, perché non è l'intestazione **che quel
+      lettore si aspetta**.
+      ⛔ **E la difesa ovvia — pretendere l'intestazione giusta — è già esclusa
+      da una scelta**, misurata prima di proporre: i lettori **tollerano di
+      proposito un file senza intestazione**
+      (`parseLavoratoriCsv("Mario Rossi;Cave SpA;operatore")` → **1 riga**).
+      Chi esporta da un gestionale e incolla solo i dati deve poterlo importare.
+      Quindi non si può *pretendere* l'intestazione: si può al massimo
+      **riconoscerne una di un'ALTRA app** e fermarsi dicendolo — che è una
+      domanda diversa e più stretta.
+      **Come si misura**: si importa il CSV di un'altra app e si pretende che
+      l'esito **nomini il file sbagliato** invece di dire «2 aggiunti»; e che un
+      file **senza intestazione** continui a entrare come oggi (se smette, la
+      difesa ha rotto un caso che funzionava).
+      ✅ **E quello che invece NON è un difetto, misurato e scritto perché
+      nessuno lo rifaccia**: il caso «solo intestazione» è **giusto in tutt'e
+      tre** le app guardate — Conti, Scudo e Campo rispondono **0 righe lette,
+      0 entrate**. Campo sembrava sbagliare (1 letta, 1 entrata) e **sbagliava
+      la mia prova**: le avevo passato `squadra;persone;turno;stato` mentre
+      l'export di Campo scrive `nome;persone;area;stato`, e il lettore filtra
+      esattamente su quello. Il giro di andata e ritorno regge.
+      ⚠️ **Quarta fixture sbagliata in una notte**, e le prime tre sono già
+      scritte in `CLAUDE.md` con la loro difesa: *si legge la destrutturazione
+      del lettore — o l'intestazione che il suo export scrive — PRIMA di
+      inventarsi il CSV.* Questa voce esiste anche per far vedere che la regola
+      appena scritta ha evitato la quarta accusa falsa.
