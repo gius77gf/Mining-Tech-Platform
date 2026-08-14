@@ -1007,7 +1007,10 @@ a.dw-btn{text-decoration:none}
   /* `plurale` viene da shared/ e non da qui: la regola del singolare c'era
      già, ed è la stessa che usano le altre app. Riscriverla in casa è la
      copia debole che CLAUDE.md censisce — provata riga per riga e buttata. */
-  import { mountExit, esc, csvCell, statoVuoto, senzaDoppioni, montaGuardiaInteri, euro0, isoLocale, oggiISO, dataISOEsiste, dataIt, nomeCsvDimostrazione, modoDimostrazione, plurale, conta, frasePersi, avvisaSeNonSalva} from "../../shared/deepwork-id-client/dw-shell.js";
+  /* B8 (14/08): `fileDiAltraTabella` risponde «questa prima riga e'
+     l'intestazione di un'ALTRA nostra tabella?». E' l'unica domanda possibile,
+     perche' il file SENZA intestazione deve continuare a entrare. */
+  import { mountExit, esc, csvCell, statoVuoto, senzaDoppioni, montaGuardiaInteri, euro0, isoLocale, oggiISO, dataISOEsiste, dataIt, nomeCsvDimostrazione, modoDimostrazione, plurale, conta, frasePersi, fileDiAltraTabella, fraseFileAltrui, avvisaSeNonSalva} from "../../shared/deepwork-id-client/dw-shell.js";
   // gli agganci della struttura condivisa (modale con Escape, riquadri da
   // tastiera, alone che segue il mouse). Va chiamato QUI e non nel blocco
   // classico in linea: i moduli girano dopo gli script `defer`.
@@ -4321,6 +4324,10 @@ a.dw-btn{text-decoration:none}
     const file = e.target.files && e.target.files[0]; if (!file) return;
     const testoFro = await file.text();
     const lette = parseFrontiCsv(testoFro);
+    /* B8 · il file di un'altra tabella si NOMINA invece di essere letto per
+       posizione: l'intestazione entrerebbe come riga di dati. */
+    const froAltrove = fileDiAltraTabella(testoFro, ["terra.fronti"]);
+    if (froAltrove) { esito("fro-esito", fraseFileAltrui(froAltrove, "nell'elenco dei fronti"), "err"); e.target.value = ""; return; }
     const scartate = scartiFrontiCsv(testoFro);
     /* Il doppione si cerca in DUE posti, e sono due domande diverse: qui
        dentro il file appena letto (regola condivisa, shared/dw-shell.js), e
@@ -4543,6 +4550,10 @@ a.dw-btn{text-decoration:none}
     const file = e.target.files && e.target.files[0]; if (!file) return;
     const testoRil = await file.text();
     const righe = parseRilieviCsv(testoRil);
+    /* B8 · il file di un'altra tabella si NOMINA invece di essere letto per
+       posizione: l'intestazione entrerebbe come riga di dati. */
+    const rilAltrove = fileDiAltraTabella(testoRil, ["terra.rilievi"]);
+    if (rilAltrove) { esito("ril-esito", fraseFileAltrui(rilAltrove, "nell'archivio dei rilievi"), "err"); e.target.value = ""; return; }
     const scartate = scartiRilieviCsv(testoRil);
     if (!righe.length) { esito("ril-esito", "Nessun rilievo è entrato: controlla che le colonne siano data; volumeM3; metodo; gsd; fronte." + frasePersi(scartate), "err"); e.target.value = ""; return; }
     // Dedup come gli altri import: un doppio click su "Importa" non deve

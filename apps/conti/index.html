@@ -1813,7 +1813,10 @@ label.item:has(.dw-chk:checked){
     preventiviDaSeguire, prezzoDaOrdine, descriviPrezzoOrdine,
     validaScaglioni, scaglionePer, applicaScaglione, etichettaScaglione,
     descriviScaglione } from "./conti-data.js";
-  import { mountExit, esc, csvCell, statoVuoto, senzaDoppioni, avvolgiUnita, conta, frasePersi, plurale, euro, euro0, conEuro, isoLocale, istanteLocale, oggiISO as oggiISOShell, meseLocale, dataIt, dataPiuGiorni, nomeCsvDimostrazione, modoDimostrazione, avvisoTestoDimostrazione, avvisaSeNonSalva} from "../../shared/deepwork-id-client/dw-shell.js";
+  /* B8 (14/08): `fileDiAltraTabella` risponde «questa prima riga è
+     l'intestazione di un'ALTRA nostra tabella?». È l'unica domanda possibile,
+     perché il file SENZA intestazione deve continuare a entrare. */
+  import { mountExit, esc, csvCell, statoVuoto, senzaDoppioni, avvolgiUnita, conta, frasePersi, fileDiAltraTabella, fraseFileAltrui, plurale, euro, euro0, conEuro, isoLocale, istanteLocale, oggiISO as oggiISOShell, meseLocale, dataIt, dataPiuGiorni, nomeCsvDimostrazione, modoDimostrazione, avvisoTestoDimostrazione, avvisaSeNonSalva} from "../../shared/deepwork-id-client/dw-shell.js";
   // gli agganci della struttura condivisa (modale con Escape, riquadri da
   // tastiera, alone che segue il mouse). Va chiamato QUI e non nel blocco
   // classico in linea: i moduli girano dopo gli script `defer`.
@@ -5764,6 +5767,10 @@ label.item:has(.dw-chk:checked){
     /* ⛔ ANCHE QUESTO È UN RIPRISTINO, e sono SOLDI ARRIVATI: una riga persa
        qui non è un dettaglio d'archivio, è una fattura che resta scoperta e un
        sollecito che parte a chi ha già pagato. */
+    /* B8 · il file di un'altra tabella si NOMINA invece di essere letto per
+       posizione: l'intestazione entrerebbe come riga di dati. */
+    const incAltrove = fileDiAltraTabella(testoInc, ["conti.incassi"]);
+    if (incAltrove) { esito("rep-esito", fraseFileAltrui(incAltrove, "negli incassi"), "err"); e.target.value = ""; return; }
     const scartate = scartiIncassiCsv(testoInc);
     e.target.value = "";
     if (!righe.length) {
@@ -5886,6 +5893,10 @@ label.item:has(.dw-chk:checked){
        si porta dietro le sue FATTURE, che restano agganciate a un `clienteId`
        che non esiste più: l'esposizione di quell'azienda sparisce dall'elenco
        senza che nessun totale cambi di un euro. */
+    /* B8 · il file di un'altra tabella si NOMINA invece di essere letto per
+       posizione: l'intestazione entrerebbe come riga di dati. */
+    const cliAltrove = fileDiAltraTabella(testo, ["conti.clienti"]);
+    if (cliAltrove) { esito("cl-esito", fraseFileAltrui(cliAltrove, "nell'anagrafica dei clienti"), "err"); e.target.value = ""; return; }
     const scartate = scartiClientiCsv(testo);
     e.target.value = "";
     if (!righe.length) {
@@ -6302,6 +6313,10 @@ label.item:has(.dw-chk:checked){
        dall'archivio, e chi preme questo bottone sta già rimediando a
        qualcosa. Il messaggio diceva soltanto «Rimesse dentro N pesate»: un
        ripristino monco si legge esattamente come uno riuscito. */
+    /* B8 · il file di un'altra tabella si NOMINA invece di essere letto per
+       posizione: l'intestazione entrerebbe come riga di dati. */
+    const pesAltrove = fileDiAltraTabella(testoPes, ["conti.pesate"]);
+    if (pesAltrove) { esito("pes-esito", fraseFileAltrui(pesAltrove, "nell'archivio delle pesate"), "err"); e.target.value = ""; return; }
     const scartate = scartiPesateCsv(testoPes);
     e.target.value = "";
     if (!righe.length) {
@@ -6776,6 +6791,10 @@ label.item:has(.dw-chk:checked){
            più di nessuna ragione, perché chi legge ci crede.
        Adesso il conto e le ragioni li dà `scartiListinoCsv`, che il verdetto
        lo chiede al lettore invece di riscriverlo. */
+    /* B8 · il file di un'altra tabella si NOMINA invece di essere letto per
+       posizione: l'intestazione entrerebbe come riga di dati. */
+    const lisAltrove = fileDiAltraTabella(testoLis, ["conti.listino"]);
+    if (lisAltrove) { esito("lis-esito", fraseFileAltrui(lisAltrove, "nel listino"), "err"); e.target.value = ""; return; }
     const lette = parseListinoCsv(testoLis);
     const scartate = scartiListinoCsv(testoLis);
     /* Il doppione si cerca in DUE posti, e sono due domande diverse: qui
@@ -6828,6 +6847,10 @@ label.item:has(.dw-chk:checked){
   $("gar-file").onchange = async (e) => {
     const file = e.target.files && e.target.files[0]; if (!file) return;
     const testo = await file.text();
+    /* B8 · il file di un'altra tabella si NOMINA invece di essere letto per
+       posizione: l'intestazione entrerebbe come riga di dati. */
+    const garAltrove = fileDiAltraTabella(testo, ["conti.gare"]);
+    if (garAltrove) { esito("gar-esito", fraseFileAltrui(garAltrove, "nell'elenco delle gare"), "err"); e.target.value = ""; return; }
     const lette = parseGareCsv(testo);
     /* ⛔ E LE RIGHE CHE IL LETTORE HA BUTTATO VIA (13/08). Una gara senza
        titolo spariva PRIMA di essere contata: il conto delle «ripetute nel
@@ -6953,6 +6976,10 @@ label.item:has(.dw-chk:checked){
   $("fat-file").onchange = async (e) => {
     const file = e.target.files && e.target.files[0]; if (!file) return;
     const testoFat = await file.text();
+    /* B8 · il file di un'altra tabella si NOMINA invece di essere letto per
+       posizione: l'intestazione entrerebbe come riga di dati. */
+    const fatAltrove = fileDiAltraTabella(testoFat, ["conti.fatture"]);
+    if (fatAltrove) { esito("ft-esito", fraseFileAltrui(fatAltrove, "nell'elenco delle fatture"), "err"); e.target.value = ""; return; }
     const lette = parseFattureCsv(testoFat);
     const scartate = scartiFattureCsv(testoFat);
     /* Il doppione si cerca in DUE posti, e sono due domande diverse: qui

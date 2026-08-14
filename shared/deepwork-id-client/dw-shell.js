@@ -421,6 +421,215 @@ export function isIntestazione(row, primaColonna) {
   return new RegExp("^" + escKw + "\\s*[;,\\t]", "i").test(String(row || "").trim());
 }
 
+/* ⛔ IL FILE SBAGLIATO ENTRAVA IN SILENZIO — e la difesa ovvia era già stata
+   esclusa da una scelta di prodotto.
+   ══════════════════════════════════════════════════════════════════════════
+   Misurato il 14/08: caricando nell'anagrafica dei lavoratori di Scudo un CSV
+   di FATTURE (`numero;cliente;importo`) entravano **due lavoratori chiamati
+   «numero» e «2026/001»**, e niente lo diceva. La riga d'intestazione entra
+   come persona perché non è l'intestazione che QUEL lettore si aspetta, e i
+   lettori tolgono solo la propria.
+   ⛔ E LA DIFESA OVVIA È VIETATA: i lettori tollerano **di proposito** un file
+   senza intestazione (`parseLavoratoriCsv("Mario Rossi;Cave SpA;operatore")`
+   → 1 riga), perché chi esporta da un gestionale e incolla solo i dati deve
+   poter importare. Quindi non si può *pretendere* l'intestazione giusta: la
+   domanda che si può fare è più stretta e diversa — **questa prima riga è
+   l'intestazione di un'ALTRA delle nostre tabelle?** Se sì ci si ferma
+   dicendolo; se non si riconosce niente si tira dritto come prima.
+
+   ⚠️ PERCHÉ LA FIRMA NON PUÒ ESSERE LA PRIMA PAROLA. Misurato sulle **42**
+   intestazioni censite in sette app: `nome` apre **9** tabelle, `data` **11**,
+   `numero` e `tipo` **3**, `id`, `titolo` e `sezione` **2** — cioè **32 su
+   42** condividono la prima parola con qualcun altro. Un riconoscitore che
+   guarda la prima colonna direbbe «è di un'altra app» su un file legittimo,
+   cioè bloccherebbe un import buono: un falso allarme qui è **peggio del
+   difetto**, perché il difetto lascia lavorare e il falso allarme no.
+   La firma che regge, misurata: le celle della riga devono essere **tutte**
+   nomi di colonna di quella tabella, **nell'ordine**, **a partire dalla
+   prima** e in numero di almeno tre. Con questa firma le intestazioni vere che
+   combaciano con più di una tabella sono **tre su 42**, e nessuna si fa
+   chiamare col nome sbagliato: `nome;ruolo;telefono` (l'import dei lavoratori)
+   è il prefisso di `nome;ruolo;telefono;idoneita;…` (il loro export), stessa
+   app e stessa cosa; le altre due le risolve la regola del prefisso qui sotto.
+   ⛔ E QUANDO COMBACIANO PIÙ TABELLE E UNA È AMMESSA, NON SI BLOCCA. La
+   direzione prudente è quella: un file che potrebbe essere il nostro entra.
+   ⚠️ IL COSTO, misurato prima di irrigidire come pretende `CLAUDE.md`: **37
+   file legittimi** — i file che ognuno dei 22 import deve accettare, più 14
+   intestazioni di gestionali esterni — e **zero rifiutati per sbaglio**. Con
+   la firma della prima parola ne cadono 3, con «bastano due colonne in comune»
+   2: il conto sta in `run-kpi`, non in questo commento.
+
+   ⚠️ Le colonne stanno qui **con la loro fonte**, e `run-kpi` pretende che
+   ogni voce `fonte` combaci ALLA LETTERA con la prima riga che quella funzione
+   scrive davvero: se domani un export guadagna una colonna, la prova cade. È
+   un elenco **sorvegliato**, non un gemello scritto a mano — la copia debole
+   che questa casa ha già pagato quattro volte. */
+export const CSV_TABELLE = [
+  // ── Campo ───────────────────────────────────────────────────────────
+  { id: "campo.squadre", app: "Campo", etichetta: "l'export delle squadre di Campo",
+    fonte: "campo.csvSquadre", col: "nome;persone;area;stato" },
+  { id: "campo.appello", app: "Campo", etichetta: "l'appello del turno di Campo",
+    fonte: "campo.csvAppello", col: "data;turno;nome;ruolo;squadra;stato;ora;entrata;uscita;ore_lavorate;orari_da_controllare;riposo_stato;riposo_ore;riposo_fonte;riposo_nota" },
+  { id: "campo.attivita", app: "Campo", etichetta: "le attività dei turni di Campo",
+    fonte: "campo.csvAttivita", col: "data;turno;titolo;dettaglio;stato;causale;minuti_fermo" },
+  { id: "campo.storico", app: "Campo", etichetta: "lo storico dei turni di Campo",
+    fonte: "campo.csvStorico", col: "data;minuti_fermo;fermi;fermi_senza_minuti;attivita_totali;attivita_concluse;rapportini_inviati" },
+  { id: "campo.pianoConsuntivo", app: "Campo", etichetta: "il consuntivo del piano di carica di Campo",
+    fonte: "campo.pianoConsuntivoCsv", col: "data;turno;foro;carica_prog_kg;carica_reale_kg;scarto_pct;scarto_kg;squadra;operatore" },
+  { id: "campo.piano", app: "Campo", etichetta: "il piano di carica di Campo",
+    col: "foro;x;fila;prof;prog;borr;rit" },
+  // ── Conti ───────────────────────────────────────────────────────────
+  { id: "conti.listino", app: "Conti", etichetta: "l'export del listino di Conti",
+    fonte: "conti.csvListino", col: "nome;unita;prezzo;densita;iva" },
+  { id: "conti.gare", app: "Conti", etichetta: "l'export delle gare di Conti",
+    fonte: "conti.csvGare", col: "titolo;base;scadenza;stato" },
+  { id: "conti.clienti", app: "Conti", etichetta: "l'export dei clienti di Conti",
+    fonte: "conti.csvClienti", col: "id;ragioneSociale;piva;sdi;indirizzo;sconto;fido;note" },
+  { id: "conti.incassi", app: "Conti", etichetta: "l'export degli incassi di Conti",
+    fonte: "conti.csvIncassi", col: "fatturaId;data;importo;metodo" },
+  { id: "conti.pesate", app: "Conti", etichetta: "l'export delle pesate di Conti",
+    fonte: "conti.csvPesate", col: "numero;data;clienteId;cliente;prodottoId;prodotto;lordo;tara;netto;unitaVendita;quantita;densita;prezzoUnitario;scontoPct;aliquotaIva;mezzo;destinatario;fatturaId;ordineId;fontePrezzo" },
+  { id: "conti.situazioneFatture", app: "Conti", etichetta: "il prospetto della situazione fatture di Conti",
+    fonte: "conti.csvSituazioneFatture", col: "numero;cliente;emessa;imponibile;aliquota;iva;totale;stornato;scadenza;stato;incassato;residuo;data_incasso;giorni_pagamento;ddt;righe_non_tornano" },
+  { id: "conti.fatture", app: "Conti", etichetta: "l'elenco delle fatture di Conti",
+    col: "numero;cliente;importo;emessa;scadenza;incassata" },
+  /* I PROSPETTI: file che escono per essere letti, non per rientrare. Sono
+     esattamente quelli che i messaggi di questa casa chiamavano «il prospetto
+     e non la copia di sicurezza» tirando a indovinare — adesso si nominano. */
+  { id: "conti.prospettoIncassi", app: "Conti", etichetta: "il prospetto degli incassi di Conti",
+    pagina: "apps/conti/index.html", col: "data;fattura;cliente;importo;metodo;totale_fattura;note_di_credito;residuo_dopo" },
+  { id: "conti.prospettoClienti", app: "Conti", etichetta: "il prospetto dei clienti di Conti",
+    pagina: "apps/conti/index.html", col: "ragione_sociale;piva_cf;sdi_pec;indirizzo;sconto;fido;note" },
+  { id: "conti.prospettoCosti", app: "Conti", etichetta: "il prospetto dei costi di Conti",
+    pagina: "apps/conti/index.html", col: "data;voce;gruppo;importo;nota;nel_periodo" },
+  { id: "conti.prezziConvertiti", app: "Conti", etichetta: "il prospetto dei prezzi convertiti di Conti",
+    pagina: "apps/conti/index.html", col: "prodotto;prezzo;unita_prezzo;densita_t_m3;prezzo_t;prezzo_m3;iva" },
+  { id: "conti.prospettoDdt", app: "Conti", etichetta: "il prospetto dei DDT di Conti",
+    pagina: "apps/conti/index.html", col: "ddt;data;cliente;prodotto;lordo_t;tara_t;netto_t;quantita;unita;prezzo_unitario;sconto_pct;valore;iva;mezzo;destinatario;fattura;ordine;prezzo_da" },
+  // ── Flotta ──────────────────────────────────────────────────────────
+  { id: "flotta.ricambi", app: "Flotta", etichetta: "l'export del magazzino ricambi di Flotta",
+    fonte: "flotta.csvRicambi", col: "nome;giacenza;sogliaMin;prezzo" },
+  { id: "flotta.costi", app: "Flotta", etichetta: "l'export del registro costi di Flotta",
+    pagina: "apps/flotta/index.html", col: "data;voce;importo;nota" },
+  { id: "flotta.prospetto", app: "Flotta", etichetta: "il prospetto della flotta di Flotta",
+    pagina: "apps/flotta/index.html", col: "tipo;nome;stato;dettaglio" },
+  { id: "flotta.mezzi", app: "Flotta", etichetta: "l'elenco dei mezzi di Flotta",
+    col: "nome;area;ore;stato" },
+  { id: "flotta.telemetria", app: "Flotta", etichetta: "la telemetria dei mezzi di Flotta",
+    col: "mezzo;ore;carburante" },
+  // ── Genesi ──────────────────────────────────────────────────────────
+  { id: "genesi.riconciliazione", app: "Genesi", etichetta: "la riconciliazione previsto/reale di Genesi",
+    fonte: "genesi.csvRiconciliazione", col: "data;nome;x50_prev_cm;x50_reale_cm;ppv_prev_mms;ppv_reale_mms;flyrock_prev_m;flyrock_reale_m;oversize_reale_pct;note;campo_data;campo_turno;campo_chi;campo_fori_registrati;campo_fori_totali;campo_kg_reali;campo_kg_progetto;campo_scostamento_pct;ppv_prev_base" },
+  // ── Scudo ───────────────────────────────────────────────────────────
+  { id: "scudo.personaleScadenze", app: "Scudo", etichetta: "l'export del personale con le scadenze di Scudo",
+    fonte: "scudo.csvPersonaleScadenze", col: "nome;ruolo;telefono;idoneita;scadenza;data;stato;verifica periodica" },
+  { id: "scudo.infortuni", app: "Scudo", etichetta: "il registro infortuni di Scudo",
+    fonte: "scudo.csvRegistroInfortuni", col: "data;tipo;gravita;giorniAssenza;descrizione;luogo;nota" },
+  { id: "scudo.azioni", app: "Scudo", etichetta: "la copia di sicurezza delle azioni correttive di Scudo",
+    fonte: "scudo.csvAzioni", col: "id;descrizione;responsabileId;scadenza;stato;esito;dataChiusura;origineTipo;origineId;origineVoce;origineNota;origineApp;origineData;origineEtichetta" },
+  { id: "scudo.lavoratori", app: "Scudo", etichetta: "l'anagrafica dei lavoratori di Scudo",
+    col: "nome;ruolo;telefono" },
+  { id: "scudo.scadenze", app: "Scudo", etichetta: "lo scadenzario di Scudo",
+    col: "lavoratore;tipo;descrizione;scadenza" },
+  { id: "scudo.prospettoAzioni", app: "Scudo", etichetta: "il prospetto delle azioni correttive di Scudo",
+    pagina: "apps/scudo/index.html", col: "descrizione;responsabile;scadenza;semaforo;stato;esito;dataChiusura;origine" },
+  { id: "scudo.prospettoIndici", app: "Scudo", etichetta: "il prospetto degli indici infortunistici di Scudo",
+    pagina: "apps/scudo/index.html", col: "sezione;voce;numero" },
+  // ── Sentinella ──────────────────────────────────────────────────────
+  { id: "sentinella.ricettori", app: "Sentinella", etichetta: "l'export dei ricettori di Sentinella",
+    fonte: "sentinella.csvRicettori", col: "nome;tipo;distanza;classe;soglia;unita;nota" },
+  { id: "sentinella.tarature", app: "Sentinella", etichetta: "l'archivio dei certificati di taratura di Sentinella",
+    fonte: "sentinella.csvTarature", col: "strumento;data;scadenza;centro;certificato;nota" },
+  { id: "sentinella.ambiente", app: "Sentinella", etichetta: "il file per l'ente ambientale di Sentinella",
+    fonte: "sentinella.csvAmbiente", col: "tipo;nome;valore;unita;soglia;stato;dettaglio;origine_soglia;taratura;provenienza" },
+  { id: "sentinella.volate", app: "Sentinella", etichetta: "il registro delle volate di Sentinella",
+    fonte: "sentinella.csvRegistroVolate", col: "data;fronte;nFori;kgTotali;kgMaxRitardo;distanzaRicettore;esito;note;ppvMisurata;ppvFonte;ppvPunto;ppvOra;stato;ppvPrevista;ppvPrevLimite;ppvPrevNorma;ppvPrevFonte;airblastPrevisto;codiceVolata" },
+  { id: "sentinella.referti", app: "Sentinella", etichetta: "i referti di vibrazione per Genesi di Sentinella",
+    fonte: "sentinella.csvRefertiGenesi", col: "distanza_m;carica_per_ritardo_kg;ppv_mms;riferimento;data;origine" },
+  { id: "sentinella.monitoraggi", app: "Sentinella", etichetta: "i punti di monitoraggio di Sentinella",
+    col: "nome;tipo;valore;soglia;unita;nota" },
+  { id: "sentinella.adempimenti", app: "Sentinella", etichetta: "gli adempimenti ambientali di Sentinella",
+    col: "titolo;ente;scadenza;periodoMesi;giorniConsegna" },
+  // ── Terra ───────────────────────────────────────────────────────────
+  { id: "terra.rilievi", app: "Terra", etichetta: "l'export dei rilievi di Terra",
+    fonte: "terra.csvRilievi", col: "data;volumeM3;metodo;gsd;fronte;provenienza" },
+  { id: "terra.fronti", app: "Terra", etichetta: "l'elenco dei fronti di Terra",
+    col: "nome;banco;quota;stato" },
+  { id: "terra.prospettoAvanzamento", app: "Terra", etichetta: "il prospetto dell'avanzamento di Terra",
+    pagina: "apps/terra/index.html", col: "sezione;voce;scavoM3;cumuloM3;rilieviScavo" },
+  { id: "terra.prospettoFronti", app: "Terra", etichetta: "il prospetto dei fronti e dei rilievi di Terra",
+    pagina: "apps/terra/index.html", col: "tipo;nome;stato;provenienza;dettaglio" },
+];
+
+// Almeno tre celle: sotto, una riga di dati qualunque comincerebbe a
+// somigliare a un'intestazione, e il costo di un falso allarme è più alto.
+export const CSV_MIN_CELLE = 3;
+
+/* Confronto dei nomi di colonna: si toglie tutto ciò che non è lettera o
+   cifra, così `sogliaMin`, `soglia_min`, `Soglia Min` e `SOGLIA-MIN` sono lo
+   stesso nome — un utente che riapre il file in Excel e lo risalva non deve
+   diventare un caso a parte. */
+function _normCol(s) {
+  return String(s == null ? "" : s).toLowerCase()
+    .normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]/g, "");
+}
+
+// `celle` combacia con `col` se comincia dalla PRIMA colonna e prosegue in
+// ordine: `numero;cliente;importo` è l'inizio delle fatture, non delle pesate
+// (che hanno `data` in seconda posizione e non hanno `importo`).
+function _combacia(celle, col) {
+  if (celle[0] !== col[0]) return false;
+  let i = 0;
+  for (const c of celle) {
+    while (i < col.length && col[i] !== c) i++;
+    if (i >= col.length) return false;
+    i++;
+  }
+  return true;
+}
+
+/* Tutte le tabelle di cui questa riga può essere l'intestazione. Elenco vuoto
+   = non l'abbiamo riconosciuta, e allora NON si dice niente: un file di un
+   gestionale esterno è legittimo e deve entrare come prima. */
+export function tabelleCsvDi(riga) {
+  const celle = parseCsvLine(String(riga == null ? "" : riga).trim()).map(_normCol);
+  while (celle.length && celle[celle.length - 1] === "") celle.pop();
+  if (celle.length < CSV_MIN_CELLE || celle.some(c => !c)) return [];
+  const m = CSV_TABELLE.filter(t => _combacia(celle, t.col.split(";").map(_normCol)));
+  /* ⛔ L'INTESTAZIONE INTERA BATTE IL SUO PREFISSO, e serve davvero: il
+     prospetto della flotta è `tipo;nome;stato;dettaglio` e quello dei fronti
+     di Terra è `tipo;nome;stato;provenienza;dettaglio`, cioè il primo è un
+     prefisso ordinato del secondo. Senza questa regola il file di Flotta si
+     sarebbe fatto chiamare «di Terra»: non un blocco sbagliato, ma un
+     messaggio che dice il falso — che in questa casa costa uguale. */
+  return m.slice().sort((a, b) =>
+    (b.col.split(";").length === celle.length) - (a.col.split(";").length === celle.length));
+}
+
+/* IL FILE È DI UN'ALTRA TABELLA? Risponde la tabella riconosciuta, oppure
+   `null` — e `null` vuol dire «tira dritto», mai «va bene».
+   `ammesse` sono gli id che QUESTO import accetta di suo: se la riga combacia
+   anche con uno di quelli non si blocca niente. */
+export function fileDiAltraTabella(testo, ammesse) {
+  const prima = String(testo == null ? "" : testo).split(/\r?\n/).map(r => r.trim()).find(Boolean);
+  if (!prima) return null;
+  const m = tabelleCsvDi(prima);
+  if (!m.length) return null;
+  const ok = new Set(ammesse || []);
+  if (m.some(t => ok.has(t.id))) return null;
+  return m[0];
+}
+
+/* La frase, in un posto solo perché la dicono venti gestori d'importazione.
+   `dove` è il complemento di luogo di quell'import («nell'anagrafica dei
+   lavoratori»), così il messaggio dice tutt'e due le cose: che file sembra e
+   dove non entra. */
+export function fraseFileAltrui(tab, dove) {
+  if (!tab) return "";
+  return "Questo sembra " + tab.etichetta + ": " + dove
+    + " non entra. Controlla di aver scelto il file giusto.";
+}
+
 // Converte un numero scritto "all'italiana" o "all'inglese" in Number, così
 // l'import CSV non perde righe per colpa del formato. Regola: l'ULTIMO
 // separatore presente è quello DECIMALE.

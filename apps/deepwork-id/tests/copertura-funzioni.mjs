@@ -288,7 +288,14 @@ const CONDIVISI = [
      sono entrate» che era scritta quattro volte, una per pagina, in Campo,
      Conti, Flotta e Terra. Sta qui perché è fatta con `conta`, che sta venti
      righe più su in questo stesso file. */
-  { file: "shared/deepwork-id-client/dw-shell.js", fondo: 48,
+  /* ⏱️ ALZATO IL 14/08, 48 → 53, con le cinque funzioni di B8: `CSV_TABELLE`,
+     `CSV_MIN_CELLE`, `tabelleCsvDi`, `fileDiAltraTabella`, `fraseFileAltrui`.
+     Riconoscono che un CSV è l'intestazione di un'ALTRA nostra tabella — la
+     sola domanda possibile, visto che i lettori tollerano di proposito un file
+     senza intestazione. Il fondo si alza DOPO aver visto il conto salire
+     (53/53), e si alza perché un fondo che sta cinque sotto il conto vero non
+     può più scattare. */
+  { file: "shared/deepwork-id-client/dw-shell.js", fondo: 53,
     perche: "gli aiuti che tutte le app importano (numeri, date, CSV)" },
   { file: "apps/genesi/pointcloud.js", fondo: 5,
     perche: "il calcolo del volume dal drone: da lì passano i m³ che consumano la concessione" },

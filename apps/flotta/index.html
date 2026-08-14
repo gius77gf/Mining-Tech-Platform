@@ -1280,7 +1280,10 @@ body.dw b.bad{color:var(--ink-dg)}
            numeroDaCampo, interoDaCampo, perCampo, messaggioNumero,
            AVVISO_DECIMALE, AVVISO_MIGLIAIA,
            scriviConEsito } from "./flotta-data.js";
-  import { mountExit, esc, csvCell, statoVuoto, senzaDoppioni, numIt, montaGuardiaInteri, avvolgiUnita, euro, conEuro, oggiISO, dataIt, dataISOEsiste, nomeCsvDimostrazione, plurale, conta, frasePersi, avvisaSeNonSalva} from "../../shared/deepwork-id-client/dw-shell.js";
+  /* B8 (14/08): `fileDiAltraTabella` risponde «questa prima riga e'
+     l'intestazione di un'ALTRA nostra tabella?». E' l'unica domanda possibile,
+     perche' il file SENZA intestazione deve continuare a entrare. */
+  import { mountExit, esc, csvCell, statoVuoto, senzaDoppioni, numIt, montaGuardiaInteri, avvolgiUnita, euro, conEuro, oggiISO, dataIt, dataISOEsiste, nomeCsvDimostrazione, plurale, conta, frasePersi, fileDiAltraTabella, fraseFileAltrui, avvisaSeNonSalva} from "../../shared/deepwork-id-client/dw-shell.js";
   // gli agganci della struttura condivisa (modale con Escape, riquadri da
   // tastiera, alone che segue il mouse). Va chiamato QUI e non nel blocco
   // classico in linea: i moduli girano dopo gli script `defer`.
@@ -4108,6 +4111,10 @@ body.dw b.bad{color:var(--ink-dg)}
        «ripetuti nel file» qui sotto guarda solo i SOPRAVVISSUTI al lettore:
        un ricambio senza nome spariva PRIMA di essere contato, quindi il conto
        più onesto della pagina era quello che nascondeva di più. */
+    /* B8 · il file di un'altra tabella si NOMINA invece di essere letto per
+       posizione: l'intestazione entrerebbe come riga di dati. */
+    const ricAltrove = fileDiAltraTabella(testo, ["flotta.ricambi"]);
+    if (ricAltrove) { esito("ric-esito", fraseFileAltrui(ricAltrove, "nel magazzino ricambi"), "err"); e.target.value = ""; return; }
     const scartate = scartiRicambiCsv(testo);
     /* Il doppione si cerca in DUE posti, e sono due domande diverse: qui
        dentro il file appena letto (regola condivisa, shared/dw-shell.js), e
@@ -4148,6 +4155,10 @@ body.dw b.bad{color:var(--ink-dg)}
     const file = e.target.files && e.target.files[0]; if (!file) return;
     const testoMez = await file.text();
     const lette = parseMezziCsv(testoMez);
+    /* B8 · il file di un'altra tabella si NOMINA invece di essere letto per
+       posizione: l'intestazione entrerebbe come riga di dati. */
+    const mezAltrove = fileDiAltraTabella(testoMez, ["flotta.mezzi"]);
+    if (mezAltrove) { esito("ore-esito", fraseFileAltrui(mezAltrove, "nell'elenco dei mezzi"), "err"); e.target.value = ""; return; }
     const scartate = scartiMezziCsv(testoMez);
     /* Il doppione si cerca in DUE posti, e sono due domande diverse: qui
        dentro il file appena letto (regola condivisa, shared/dw-shell.js), e
@@ -4179,6 +4190,10 @@ body.dw b.bad{color:var(--ink-dg)}
        SOPRAVVISSUTI AL LETTORE: una riga con le ore illeggibili spariva
        PRIMA di essere contata, quindi il conto più onesto della pagina era
        quello che nascondeva di più. */
+    /* B8 · il file di un'altra tabella si NOMINA invece di essere letto per
+       posizione: l'intestazione entrerebbe come riga di dati. */
+    const teleAltrove = fileDiAltraTabella(testo, ["flotta.telemetria"]);
+    if (teleAltrove) { esito("ore-esito", fraseFileAltrui(teleAltrove, "nella telemetria"), "err"); e.target.value = ""; return; }
     const scartate = scartiTelemetriaCsv(testo);
     let agg = 0, ign = 0;
     for (const r of righe) {

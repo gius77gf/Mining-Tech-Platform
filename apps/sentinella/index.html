@@ -1723,7 +1723,7 @@ textarea.dw-input{
          plurale, conta,
          /* la frase «N righe del file non sono entrate» sta in un posto solo
             (regola 32 di run-stile): riscriverla qui sarebbe la quinta copia */
-         frasePersi, avvisaSeNonSalva} from "../../shared/deepwork-id-client/dw-shell.js";
+         frasePersi, fileDiAltraTabella, fraseFileAltrui, avvisaSeNonSalva} from "../../shared/deepwork-id-client/dw-shell.js";
   // Il colore della riga di una taratura è quello di una scadenza qualunque:
   // la regola sta in shared/ e la usano già Scudo e Campo. Non se ne scrive
   // una copia qui dentro solo perché la parola è diversa.
@@ -4575,6 +4575,10 @@ textarea.dw-input{
   $("vol-file").onchange = async (e) => {
     const file = e.target.files && e.target.files[0]; if (!file) return;
     const testoVol = await file.text();
+    /* B8 · il file di un'altra tabella si NOMINA invece di essere letto per
+       posizione: l'intestazione entrerebbe come riga di dati. */
+    const volAltrove = fileDiAltraTabella(testoVol, ["sentinella.volate"]);
+    if (volAltrove) { esito("vol-esito-msg", fraseFileAltrui(volAltrove, "nel registro delle volate"), "err", "File di un'altra tabella."); e.target.value = ""; return; }
     const righe = parseVolateCsv(testoVol);
     /* ⛔ LE RIGHE CHE IL LETTORE HA BUTTATO VIA. Il registro delle volate è un
        ADEMPIMENTO: una riga persa non compare nel totale, nei chili del mese,
@@ -4678,6 +4682,10 @@ textarea.dw-input{
   $("ade-file").onchange = async (e) => {
     const file = e.target.files && e.target.files[0]; if (!file) return;
     const testoAde = await file.text();
+    /* B8 · il file di un'altra tabella si NOMINA invece di essere letto per
+       posizione: l'intestazione entrerebbe come riga di dati. */
+    const adeAltrove = fileDiAltraTabella(testoAde, ["sentinella.adempimenti"]);
+    if (adeAltrove) { esito("ade-esito", fraseFileAltrui(adeAltrove, "negli adempimenti"), "err", "File di un'altra tabella."); e.target.value = ""; return; }
     const lette = parseAdempimentiCsv(testoAde);
     /* ⛔ LE RIGHE CHE IL LETTORE HA BUTTATO VIA. Questo gestore contava già le
        RIPETUTE e le GIA' PRESENTI, ma le contava su `lette`, cioe' su quello che
@@ -4752,6 +4760,10 @@ textarea.dw-input{
   $("ric-file").onchange = async (e) => {
     const file = e.target.files && e.target.files[0]; if (!file) return;
     const testoRic = await file.text();
+    /* B8 · il file di un'altra tabella si NOMINA invece di essere letto per
+       posizione: l'intestazione entrerebbe come riga di dati. */
+    const ricAltrove = fileDiAltraTabella(testoRic, ["sentinella.ricettori"]);
+    if (ricAltrove) { esito("ric-esito", fraseFileAltrui(ricAltrove, "nell'elenco dei ricettori"), "err"); e.target.value = ""; return; }
     const lette = parseRicettoriCsv(testoRic);
     /* ⛔ LE RIGHE CHE IL LETTORE HA BUTTATO VIA: un ricettore che non entra e' un
        punto sensibile che per l'app non esiste — nessuna misura gli si collega e
@@ -4813,7 +4825,12 @@ textarea.dw-input{
   };
   $("mon-file").onchange = async (e) => {
     const file = e.target.files && e.target.files[0]; if (!file) return;
-    const lette = parseMonitoraggiCsv(await file.text());
+    const testoMon = await file.text();
+    /* B8 · il file di un'altra tabella si NOMINA invece di essere letto per
+       posizione: l'intestazione entrerebbe come sensore. */
+    const monAltrove = fileDiAltraTabella(testoMon, ["sentinella.monitoraggi"]);
+    if (monAltrove) { esito("mis-esito", fraseFileAltrui(monAltrove, "fra i punti di monitoraggio"), "err", "File di un'altra tabella."); e.target.value = ""; return; }
+    const lette = parseMonitoraggiCsv(testoMon);
     /* Il doppione si cerca in DUE posti, e sono due domande diverse: qui
        dentro il file appena letto (regola condivisa, shared/dw-shell.js), e
        sotto contro quello che è GIÀ in archivio — che solo la pagina conosce.
@@ -5017,7 +5034,11 @@ textarea.dw-input{
   $("btn-tar-import").onclick = () => $("tar-file").click();
   $("tar-file").onchange = async (e) => {
     const file = e.target.files && e.target.files[0]; if (!file) return;
-    const { voci, riepilogo } = abbinaTarature(parseTaratureCsv(await file.text()), MON);
+    const testoTar = await file.text();
+    // B8 · il file di un'altra tabella si NOMINA invece di essere letto per posizione.
+    const tarAltrove = fileDiAltraTabella(testoTar, ["sentinella.tarature"]);
+    if (tarAltrove) { $("tar-file").value = ""; esito("tar-esito", fraseFileAltrui(tarAltrove, "nell'archivio dei certificati"), "err", "File di un'altra tabella."); return; }
+    const { voci, riepilogo } = abbinaTarature(parseTaratureCsv(testoTar), MON);
     $("tar-file").value = "";
     if (!riepilogo.letti) {
       $("tar-scarti").innerHTML = "";

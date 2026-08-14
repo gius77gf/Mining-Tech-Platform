@@ -1218,7 +1218,10 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
            numeroIt, segnoIt, numeroItDa, numeroDaCampo } from "./campo-data.js";
   import { misuratoPeriodo, produzioneDichiarata, riconciliazioneTurni,
            periodoFraUltimiRilievi, densitaDellaCava } from "../../shared/dw-ponti.js";
-  import { mountExit, esc, csvCell, statoVuoto, senzaDoppioni, messaggioNumero, montaGuardiaInteri, dataIt, dataISOEsiste, modoDimostrazione, avvisoTestoDimostrazione, nomeCsvDimostrazione, conta, frasePersi, plurale, avvisaSeNonSalva} from "../../shared/deepwork-id-client/dw-shell.js";
+  /* B8 (14/08): `fileDiAltraTabella` risponde «questa prima riga e'
+     l'intestazione di un'ALTRA nostra tabella?». E' l'unica domanda possibile,
+     perche' il file SENZA intestazione deve continuare a entrare. */
+  import { mountExit, esc, csvCell, statoVuoto, senzaDoppioni, messaggioNumero, montaGuardiaInteri, dataIt, dataISOEsiste, modoDimostrazione, avvisoTestoDimostrazione, nomeCsvDimostrazione, conta, frasePersi, fileDiAltraTabella, fraseFileAltrui, plurale, avvisaSeNonSalva} from "../../shared/deepwork-id-client/dw-shell.js";
   // gli agganci della struttura condivisa (modale con Escape, riquadri da
   // tastiera, alone che segue il mouse). Va chiamato QUI e non nel blocco
   // classico in linea: i moduli girano dopo gli script `defer`.
@@ -4108,6 +4111,10 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
     const file = e.target.files && e.target.files[0]; if (!file) return;
     const testoSqu = await file.text();
     const lette = parseSquadreCsv(testoSqu);
+    /* B8 · il file di un'altra tabella si NOMINA invece di essere letto per
+       posizione: l'intestazione entrerebbe come riga di dati. */
+    const squAltrove = fileDiAltraTabella(testoSqu, ["campo.squadre"]);
+    if (squAltrove) { esito("squ-esito", fraseFileAltrui(squAltrove, "nell'elenco delle squadre"), "err"); e.target.value = ""; return; }
     const scartate = scartiSquadreCsv(testoSqu);
     /* Il doppione si cerca in DUE posti, e sono due domande diverse: qui
        dentro il file appena letto (regola condivisa, shared/dw-shell.js), e
@@ -4670,6 +4677,15 @@ ${riapOggi.length?`<h2>Riaperture del turno</h2>
   $("piano-file").onchange = async (e) => {
     const file = e.target.files && e.target.files[0]; if (!file) return;
     const testo = await file.text();
+    /* B8 · il file di un'altra tabella si NOMINA invece di essere letto per
+       posizione: l'intestazione entrerebbe come riga di dati. */
+    const pianoAltrove = fileDiAltraTabella(testo, ["campo.piano"]);
+    if (pianoAltrove) {
+      const fraseAltrove = fraseFileAltrui(pianoAltrove, "nel piano di carica");
+      $("piano-riep").textContent = fraseAltrove;
+      toast(fraseAltrove, "err");
+      e.target.value = ""; return;
+    }
     const mappa = mappaPianoCsv(testo);
     const righe = parsePianoCsv(testo);
     /* ⛔ E I FORI CHE IL LETTORE HA BUTTATO VIA (13/08). Qui pesa più che in

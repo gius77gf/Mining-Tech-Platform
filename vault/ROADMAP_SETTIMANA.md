@@ -4223,7 +4223,7 @@ numero scritto dove non era stato misurato niente**.*
   scritta**: `DEVELOPMENT.md` diceva ancora «il numero da citare resta 2.251» e
   «il giro completo esegue 2.474» mentre il titolo sopra diceva già 2.310 — il
   controllo sorveglia il **totale**, non la prosa che lo spiega. Rimisurato:
-  sei suite **2.310**, giro completo **2.684**, e **ogni** addendo della nota
+  sei suite **2.310**, giro completo **2.694**, e **ogni** addendo della nota
   era vecchio (sintassi 15 → 34, import 134 → 140, nomi liberi 7 → 24).
 
 - [x] ✅ **`giro-sicurezza`: un comando solo per la barriera fra aziende
@@ -4957,7 +4957,7 @@ numero scritto dove non era stato misurato niente**.*
   nome apre il file sbagliato credendo che sia il più fresco.
 - Le decisioni: `docs/DECISIONI_WEEKEND.md` — pagina d'ingresso in cima.
 - Stato misurato al **09/08** (lanciando le suite, non a memoria):
-  **2.684 prove girano senza rete**. La frase va letta stretta: è la somma
+  **2.694 prove girano senza rete**. La frase va letta stretta: è la somma
   delle **otto** suite che contano asserzioni (`run-kpi` 2110, `run-stile` 318,
   `run-helpers` 75, `run-pointcloud` 32, `run-manifest` 9, `run-demo` 8,
   `bootstrap-rivendicazioni` 7, `fogli-guardati` 3), non tutto ciò che gira nel
@@ -5693,38 +5693,40 @@ di scriverlo qui**: niente entra sulla parola dell'agente.
       cade lo stesso e li nomina tutti e due, con la suite accanto. Ripristino
       da copia con `diff -q`, mai `git checkout`.
 
-- [ ] **B8. IL FILE SBAGLIATO ENTRA IN SILENZIO — e la difesa ovvia è già stata
-      esclusa da una scelta di prodotto.** ⏱️ *Misurato il 14/08, e va letto
-      insieme a quello che NON è un difetto.*
-      Importando in Scudo, nell'anagrafica dei lavoratori, un CSV **di fatture**
-      (`numero;cliente;importo`), il risultato è: **2 lavoratori aggiunti,
-      chiamati «numero» e «2026/001»**, e niente lo dice. La riga
-      d'intestazione entra come persona, perché non è l'intestazione **che quel
-      lettore si aspetta**.
-      ⛔ **E la difesa ovvia — pretendere l'intestazione giusta — è già esclusa
-      da una scelta**, misurata prima di proporre: i lettori **tollerano di
-      proposito un file senza intestazione**
-      (`parseLavoratoriCsv("Mario Rossi;Cave SpA;operatore")` → **1 riga**).
-      Chi esporta da un gestionale e incolla solo i dati deve poterlo importare.
-      Quindi non si può *pretendere* l'intestazione: si può al massimo
-      **riconoscerne una di un'ALTRA app** e fermarsi dicendolo — che è una
-      domanda diversa e più stretta.
-      **Come si misura**: si importa il CSV di un'altra app e si pretende che
-      l'esito **nomini il file sbagliato** invece di dire «2 aggiunti»; e che un
-      file **senza intestazione** continui a entrare come oggi (se smette, la
-      difesa ha rotto un caso che funzionava).
-      ✅ **E quello che invece NON è un difetto, misurato e scritto perché
-      nessuno lo rifaccia**: il caso «solo intestazione» è **giusto in tutt'e
-      tre** le app guardate — Conti, Scudo e Campo rispondono **0 righe lette,
-      0 entrate**. Campo sembrava sbagliare (1 letta, 1 entrata) e **sbagliava
-      la mia prova**: le avevo passato `squadra;persone;turno;stato` mentre
-      l'export di Campo scrive `nome;persone;area;stato`, e il lettore filtra
-      esattamente su quello. Il giro di andata e ritorno regge.
-      ⚠️ **Quarta fixture sbagliata in una notte**, e le prime tre sono già
-      scritte in `CLAUDE.md` con la loro difesa: *si legge la destrutturazione
-      del lettore — o l'intestazione che il suo export scrive — PRIMA di
-      inventarsi il CSV.* Questa voce esiste anche per far vedere che la regola
-      appena scritta ha evitato la quarta accusa falsa.
+- [x] ✅ **B8. IL FILE SBAGLIATO NON ENTRA PIÙ IN SILENZIO — e la difesa non
+      rompe il caso che doveva restare.** *Chiuso il 14/08.*
+      Importando in Scudo, nell'anagrafica dei lavoratori, un CSV **di fatture**,
+      entravano **due lavoratori chiamati «numero» e «2026/001»** e niente lo
+      diceva. Adesso il file viene **riconosciuto** e l'app dice **di che file si
+      tratta**: «l'elenco delle fatture di Conti».
+      ⛔ **La difesa ovvia era già esclusa**, ed è la ragione per cui questa voce
+      era stata scritta col limite dentro: i lettori tollerano **di proposito**
+      un file **senza** intestazione, perché chi esporta da un gestionale e
+      incolla solo i dati deve poter importare. Quindi non si pretende
+      l'intestazione: si riconosce quella di un'**altra** tabella e ci si ferma.
+      `CSV_TABELLE` in `shared/deepwork-id-client/dw-shell.js` ne censisce **42**.
+      ✅ **I tre numeri, misurati da me e non presi sulla parola del cantiere**
+      (`fileDiAltraTabella(testo, ammesse)`):
+      · **42 intestazioni legittime provate → 0 rifiutate per sbaglio**. È il
+        numero da cui dipendeva tutto: un falso allarme qui **blocca un import
+        buono**, che è peggio del difetto;
+      · un CSV di un'altra app → **riconosciuto**, con l'etichetta leggibile;
+      · un file **senza intestazione** → **passa**, come prima.
+      ⛔ **E il controllo per addendo, scritto un'ora prima, ha preso ME**: dopo
+      questa unità `run-stile` è passata da 321 a **322**, io avevo aggiornato
+      solo l'addendo di `run-kpi`, e la somma scritta faceva **2693 contro
+      2694**. Il giro l'ha nominato — «l'addendo 2 (run-stile.mjs) dice 321, la
+      suite ne ha eseguite 322» — invece di lasciarlo passare come ha fatto
+      stanotte con la coppia che si compensava.
+      ⚠️ **E una misura buttata, che vale come lezione**: la prima volta ho letto
+      «42 su 42 rifiutate per sbaglio» e stavo per aprire un difetto. Era la mia
+      prova: `CSV_TABELLE` è un **array**, e passavo l'indice dove la funzione
+      vuole l'elenco degli id ammessi. **Quinta fixture sbagliata in una notte**,
+      e la regola scritta in `CLAUDE.md` poche ore prima l'ha fermata prima che
+      diventasse un'accusa.
+      **Misure**: `run-kpi` 2229 → **2238**, `run-stile` **322/0**, condivisi
+      174 → **179/179** (`dw-shell.js` 48 → 53), giro `node` **3.033**
+      asserzioni, **34 comandi a posto, 0 caduti**.
 - [ ] **B9. `ragioneData` È SCRITTA DUE VOLTE, E IL GUARDIANO COPRE NOVE LETTORI
       SU DICIANNOVE.** ⏱️ *Aperta il 14/08 dalla ricerca sulle parole, coi due
       numeri **rimisurati da me** prima di scriverli qui.*

@@ -28,6 +28,7 @@ const sentinella = await app("sentinella", "sentinella-data.js");
 const terra = await app("terra", "terra-data.js");
 const flotta = await app("flotta", "flotta-data.js");
 const campo = await app("campo", "campo-data.js");
+const genesi = await app("genesi", "genesi-data.js");
 const shell = await import(join(HERE, "../../../shared/deepwork-id-client/dw-shell.js"));
 const ponti = await import(join(HERE, "../../../shared/dw-ponti.js"));
 /* Il motore dei grafici è uno script classico (IIFE), non un modulo ESM: si carica
@@ -29360,8 +29361,18 @@ const srcFlottaPag = pagIng("flotta"), srcTerraPag = pagIng("terra");
              stare guardando il righello. */
           const uscite = g.split("esito(").length - 1;
           ok(uscite > 0, `⛔ ${n}: il gestore ha ${uscite} uscite (se fosse 0 non starei guardando un gestore)`);
-          const usi = (g.match(/frasePersi\s*\(/g) || []).length;
-          ok(usi >= uscite, `⛔ ${n}: ${uscite} uscite e ${usi} volte che dicono le righe perse`);
+          /* ⛔ 14/08 · B8 HA AGGIUNTO UN'USCITA CHE NON PUÒ PARLARE DI RIGHE
+             PERSE, e la regola è stata resa PIÙ GIUSTA invece che più
+             permissiva. Quando la prima riga è l'intestazione di un'ALTRA
+             nostra tabella il file non viene nemmeno letto: dire «N righe non
+             sono entrate» lì sarebbe FALSO, perché non ne è entrata nessuna e
+             la ragione non è una riga rotta. Quell'uscita dice l'altra cosa —
+             quale file sembra e dove non entra — con `fraseFileAltrui`, che
+             sta anch'essa in `dw-shell.js`. La domanda resta la stessa: ogni
+             uscita di questo gestore SPIEGA? */
+          const usi = (g.match(/frasePersi\s*\(/g) || []).length
+            + (g.match(/fraseFileAltrui\s*\(/g) || []).length;
+          ok(usi >= uscite, `⛔ ${n}: ${uscite} uscite e ${usi} volte che dicono perché`);
           /* ⛔ E IL COLORE SEGUE LA COSA PEGGIORE SUCCESSA: un verde tranquillo
              accanto a «tre righe non sono entrate» è la contraddizione fra il
              numero e il disegno, censita il 06/08. */
@@ -29935,5 +29946,242 @@ test("frasePersi · ⚠️ NIENTE `esc()`: la frase esce come l'utente l'ha scri
     ok(s.vuote >= 1, `ma viene contata a parte: vuote=${s.vuote}`);
   });
 }
+
+/* ══════════════════════════════════════════════════════════════════════
+   B8 · IL FILE SBAGLIATO ENTRAVA IN SILENZIO
+   ──────────────────────────────────────────────────────────────────────
+   Misurato il 14/08: un CSV di FATTURE (`numero;cliente;importo`) caricato
+   nell'anagrafica dei lavoratori di Scudo aggiungeva **due lavoratori chiamati
+   «numero» e «2026/001»**, e niente lo diceva.
+   ⛔ E LA DIFESA OVVIA È VIETATA da una scelta di prodotto: i lettori
+   tollerano di proposito un file SENZA intestazione, perché chi esporta da un
+   gestionale e incolla solo i dati deve poter importare. Quindi non si può
+   pretendere l'intestazione giusta: la sola domanda possibile è quella più
+   stretta — *questa prima riga è l'intestazione di un'ALTRA nostra tabella?*
+   Le prove qui sotto misurano tre cose, e la terza è quella che conta:
+     1. il censimento è DERIVATO (ogni riga dichiara la funzione o la pagina
+        che scrive quell'intestazione, e si va a leggerla);
+     2. la firma non è la prima parola (32 intestazioni su 42 la condividono);
+     3. il COSTO: nessun file legittimo viene rifiutato, e i due casi che
+        oggi funzionano — senza intestazione, e con la propria — non cambiano.
+   ══════════════════════════════════════════════════════════════════════ */
+{
+  const MOD = { campo, conti, flotta, genesi, scudo, sentinella, terra };
+  /* gli argomenti a vuoto: quello che serve perché l'export scriva la sua
+     prima riga e basta. Un elenco vuoto dappertutto tranne dove la firma
+     chiede di più. */
+  const ARG = {
+    "campo.csvAppello": [[], {}, {}, "", "", "", (x) => x],
+    "campo.csvStorico": [[], []],
+    "conti.csvSituazioneFatture": [[], [], [], []],
+    "scudo.csvPersonaleScadenze": [[], [], []],
+    "sentinella.csvAmbiente": [[], [], []],
+  };
+  const RADICE = join(HERE, "..", "..", "..");
+
+  test("⛔ B8 · il censimento delle intestazioni è DERIVATO: ogni `fonte` è la prima riga che quell'export scrive DAVVERO", () => {
+    let conFonte = 0;
+    for (const t of shell.CSV_TABELLE) {
+      if (!t.fonte) continue;
+      conFonte++;
+      const [a, fn] = t.fonte.split(".");
+      ok(MOD[a] && typeof MOD[a][fn] === "function", `${t.fonte} deve esistere`);
+      const vera = String(MOD[a][fn](...(ARG[t.fonte] || [[]]))).split(/\r?\n/)[0];
+      eq(vera, t.col,
+        `⛔ ${t.id}: l'intestazione dichiarata non è quella che ${t.fonte} scrive. `
+        + `Un elenco scritto a mano è la copia debole che questa casa ha già pagato quattro volte`);
+    }
+    ok(conFonte >= 22, `almeno 22 intestazioni sono verificate chiamando l'export vero — sono ${conFonte}`);
+  });
+
+  test("⛔ B8 · e le intestazioni scritte nelle PAGINE si vanno a leggere nella pagina", () => {
+    let conPagina = 0;
+    for (const t of shell.CSV_TABELLE) {
+      if (!t.pagina) continue;
+      conPagina++;
+      const src = readFileSync(join(RADICE, t.pagina), "utf8");
+      ok(src.includes('"' + t.col), `⛔ ${t.id}: «${t.col}» non si trova più in ${t.pagina}`);
+    }
+    ok(conPagina >= 10, `almeno 10 intestazioni vengono dalle pagine — sono ${conPagina}`);
+  });
+
+  test("⛔ B8 · LA PRIMA PAROLA NON BASTA, e il denominatore lo dice: 32 intestazioni su 42 la condividono", () => {
+    const per1 = {};
+    for (const t of shell.CSV_TABELLE) {
+      const k = t.col.split(";")[0].toLowerCase();
+      (per1[k] = per1[k] || []).push(t.id);
+    }
+    const condivise = Object.values(per1).filter(v => v.length > 1);
+    const coinvolte = condivise.reduce((n, v) => n + v.length, 0);
+    ok(coinvolte >= 30,
+      `⛔ un riconoscitore che guarda la PRIMA COLONNA direbbe «è di un'altra app» su ${coinvolte} `
+      + `intestazioni su ${shell.CSV_TABELLE.length}: un falso allarme che blocca un import buono, `
+      + `cioè peggio del difetto. È la ragione per cui la firma è tutta la riga`);
+    ok(per1["nome"].length >= 9 && per1["data"].length >= 9,
+      `«nome» apre ${per1["nome"].length} tabelle e «data» ${per1["data"].length}`);
+  });
+
+  test("⛔ B8 · con la firma completa nessuna intestazione vera si fa chiamare col nome di un'altra", () => {
+    let male = 0, senza = 0;
+    for (const t of shell.CSV_TABELLE) {
+      const m = shell.tabelleCsvDi(t.col);
+      if (!m.length) { senza++; continue; }
+      if (m[0].id !== t.id) { male++; console.error(`    ${t.id} → ${m[0].id}`); }
+    }
+    eq(senza, 0, "ogni intestazione censita viene riconosciuta");
+    eq(male, 0,
+      "⛔ l'intestazione INTERA batte il suo prefisso: senza quella regola il prospetto della "
+      + "flotta (tipo;nome;stato;dettaglio) si sarebbe fatto chiamare «di Terra», che non è un "
+      + "blocco sbagliato ma un messaggio che dice il falso");
+  });
+
+  test("⛔ B8 · il CSV delle fatture NON entra più nell'anagrafica dei lavoratori, e la frase dice quale file sembra", () => {
+    const FATTURE = "numero;cliente;importo\n2026/001;Cave SpA;1200\n";
+    // il difetto, com'era: il lettore da solo continua a leggerlo (e deve)
+    eq(scudo.parseLavoratoriCsv(FATTURE).length, 2,
+      "il lettore da solo non può accorgersene: legge tre colonne qualunque");
+    const t = shell.fileDiAltraTabella(FATTURE, ["scudo.lavoratori", "scudo.personaleScadenze"]);
+    ok(t, "⛔ il file di fatture deve essere riconosciuto come di un'altra tabella");
+    eq(t.id, "conti.fatture", "e riconosciuto per quello che è");
+    const frase = shell.fraseFileAltrui(t, "nell'anagrafica dei lavoratori");
+    eq(frase,
+      "Questo sembra l'elenco delle fatture di Conti: nell'anagrafica dei lavoratori non entra. "
+      + "Controlla di aver scelto il file giusto.",
+      "la frase nomina il file E il posto in cui non entra");
+  });
+
+  test("⛔ B8 · I DUE CASI CHE NON DEVONO CAMBIARE: senza intestazione entra come prima, e con la propria pure", () => {
+    /* ⛔ se la difesa rompe uno di questi due è PEGGIORE del difetto: il primo
+       è la scelta di prodotto che vieta la difesa ovvia, il secondo è il giro
+       export → import, cioè il modo normale di spostare i dati. */
+    const SENZA = "Mario Rossi;Cave SpA;operatore";
+    eq(shell.fileDiAltraTabella(SENZA, ["scudo.lavoratori", "scudo.personaleScadenze"]), null,
+      "un file senza intestazione non viene riconosciuto, quindi non si blocca niente");
+    eq(scudo.parseLavoratoriCsv(SENZA).length, 1, "e continua a entrare, com'era prima");
+    const NOSTRO = scudo.csvPersonaleScadenze(
+      [{ id: "l1", nome: "Mario Rossi", ruolo: "operatore" }], [], []);
+    eq(shell.fileDiAltraTabella(NOSTRO, ["scudo.lavoratori", "scudo.personaleScadenze"]), null,
+      "e il NOSTRO export si ri-carica: è fra le tabelle ammesse di quell'import");
+    ok(scudo.parseLavoratoriCsv(NOSTRO).length >= 1, "e le sue righe entrano davvero");
+    // e un file di un gestionale esterno, che non sappiamo riconoscere, tira dritto
+    eq(shell.fileDiAltraTabella("matricola;cognome;reparto\n1;Rossi;cava", ["scudo.lavoratori"]), null,
+      "⛔ «non riconosciuto» vuol dire «tira dritto», mai «va bene»");
+  });
+
+  test("⛔ B8 · IL COSTO, misurato prima di irrigidire: nessuno dei file legittimi dei 22 import viene rifiutato", () => {
+    /* CLAUDE.md: «prima di lasciare largo un controllo, stringilo su una copia
+       e conta gli allarmi nuovi». Qui il verso è l'opposto e il conto pure: si
+       passa a ogni import il file che DEVE accettare, e se ne viene rifiutato
+       anche uno solo la firma è troppo larga. */
+    const IMPORT = [
+      ["scudo · anagrafica lavoratori", ["scudo.lavoratori", "scudo.personaleScadenze"]],
+      ["scudo · scadenzario", ["scudo.scadenze"]],
+      ["scudo · azioni correttive", ["scudo.azioni"]],
+      ["scudo · registro infortuni", ["scudo.infortuni"]],
+      ["conti · fatture", ["conti.fatture"]],
+      ["conti · listino", ["conti.listino"]],
+      ["conti · gare", ["conti.gare"]],
+      ["conti · clienti", ["conti.clienti"]],
+      ["conti · incassi", ["conti.incassi"]],
+      ["conti · pesate", ["conti.pesate"]],
+      ["campo · squadre", ["campo.squadre"]],
+      ["campo · piano di carica", ["campo.piano"]],
+      ["flotta · ricambi", ["flotta.ricambi"]],
+      ["flotta · ore mezzi", ["flotta.mezzi"]],
+      ["flotta · telemetria", ["flotta.telemetria"]],
+      ["terra · rilievi", ["terra.rilievi"]],
+      ["terra · fronti", ["terra.fronti"]],
+      ["sentinella · ricettori", ["sentinella.ricettori"]],
+      ["sentinella · monitoraggi", ["sentinella.monitoraggi"]],
+      ["sentinella · adempimenti", ["sentinella.adempimenti"]],
+      ["sentinella · volate", ["sentinella.volate"]],
+      ["sentinella · tarature", ["sentinella.tarature"]],
+    ];
+    let provati = 0, rifiutati = 0;
+    for (const [nome, ammesse] of IMPORT)
+      for (const id of ammesse) {
+        const t = shell.CSV_TABELLE.find(x => x.id === id);
+        ok(t, `la tabella ${id} deve esistere nel censimento`);
+        provati++;
+        const r = shell.fileDiAltraTabella(t.col + "\nriga;di;dati\n", ammesse);
+        if (r) { rifiutati++; console.error(`    RIFIUTATO PER SBAGLIO: ${nome} ← ${id} → ${r.id}`); }
+      }
+    /* ⛔ E LA METÀ CHE CONTA DI PIÙ: I FILE CHE NON SONO NOSTRI. Passare a ogni
+       import il proprio file non prova niente contro una firma troppo larga —
+       il file combacia con la tabella ammessa e passa comunque. Il falso
+       allarme vero è l'export di un GESTIONALE ESTERNO, che è il caso per cui
+       i lettori tollerano un file senza intestazione. Se la firma fosse la
+       prima parola, «nome;cognome;matricola» verrebbe scambiato per le squadre
+       di Campo o per il listino di Conti e l'import buono si bloccherebbe.
+       Misurato: con la firma della prima parola queste righe fanno cadere
+       questa prova; con la firma intera passano tutte. */
+    const ESTERNI = [
+      ["nome;cognome;matricola;mansione", ["scudo.lavoratori", "scudo.personaleScadenze"]],
+      ["dipendente;corso;valido_fino_al", ["scudo.scadenze"]],
+      ["data;descrizione;dare;avere", ["conti.incassi"]],
+      ["numero;data_documento;totale_documento", ["conti.fatture"]],
+      ["nome;u_m;prezzo_listino", ["conti.listino"]],
+      ["targa;ore_motore;litri_gasolio", ["flotta.telemetria"]],
+      ["codice;descrizione_articolo;giacenza_attuale", ["flotta.ricambi"]],
+      ["data;volume_scavato;metodo_rilievo", ["terra.rilievi"]],
+      ["titolo;autorita;termine_ultimo", ["sentinella.adempimenti"]],
+      ["postazione;grandezza;limite_normativo", ["sentinella.monitoraggi"]],
+      /* ⚠️ e questi quattro sono i più cattivi di tutti: ogni loro cella È una
+         parola del nostro vocabolario, ma la combinazione non è di nessuna
+         nostra tabella. Sono la prova che la firma guarda l'INSIEME ORDINATO e
+         non le singole parole — con una firma «bastano due colonne in comune»
+         verrebbero bloccati tutti e quattro. */
+      ["nome;stato;note", ["flotta.ricambi"]],
+      ["data;importo;causale", ["conti.incassi"]],
+      ["tipo;nome;note", ["sentinella.ricettori"]],
+      ["data;fronte;operatore", ["terra.rilievi"]],
+    ];
+    let bloccatiPerSbaglio = 0;
+    for (const [riga, ammesse] of ESTERNI) {
+      provati++;
+      const r = shell.fileDiAltraTabella(riga + "\nprimo;secondo;terzo\n", ammesse);
+      if (r) { bloccatiPerSbaglio++; console.error(`    ESTERNO BLOCCATO: «${riga}» → ${r.id}`); }
+    }
+    ok(provati >= 37, `file legittimi provati: ${provati} (${IMPORT.length} import + ${ESTERNI.length} da gestionali esterni)`);
+    eq(rifiutati + bloccatiPerSbaglio, 0,
+      "⛔ un falso allarme qui blocca un import buono: se non è zero la firma è troppo larga, "
+      + "e si stringe — non si accetta il rumore");
+  });
+
+  test("⛔ B8 · una riga di DATI non viene scambiata per un'intestazione", () => {
+    /* la difesa non deve fabbricare allarmi: è il verso opposto della prova
+       qui sopra, e senza di questo una funzione che dice sempre «è di un'altra
+       app» passerebbe. */
+    const RIGHE = [
+      "2026-07-14;Fronte Nord;120;450;25;300;regolare;", // una volata vera
+      "Mario Rossi;operatore;333 1234567",
+      "1;Cave SpA;01234567890;ABC1234;Via Roma 1;5;10000;",
+      "Sabbia 0-4;t;12,50;1,6;22",
+      ";;",
+      "",
+    ];
+    for (const r of RIGHE)
+      eq(shell.tabelleCsvDi(r).length, 0, `⛔ «${r}» è una riga di dati, non un'intestazione`);
+    // e sotto le tre celle non si giudica: il costo di un falso allarme è più alto
+    eq(shell.CSV_MIN_CELLE, 3, "la soglia è dichiarata, non nascosta in una regex");
+    eq(shell.tabelleCsvDi("nome;ruolo").length, 0, "due celle sole non bastano a decidere");
+  });
+
+  test("⛔ B8 · LA GUARDIA È COLLEGATA: 22 gestori d'importazione la chiamano davvero", () => {
+    /* ⛔ una guardia scollegata non è un errore di sintassi: la pagina si apre
+       e non protegge niente. Il conto per pagina è quello misurato il 14/08. */
+    const ATTESE = { campo: 2, conti: 6, flotta: 3, scudo: 4, sentinella: 5, terra: 2 };
+    let tot = 0;
+    for (const a of Object.keys(ATTESE)) {
+      const src = readFileSync(join(RADICE, "apps", a, "index.html"), "utf8");
+      const n = (src.match(/fileDiAltraTabella\(/g) || []).length;
+      eq(n, ATTESE[a], `⛔ ${a}: i gestori che chiamano la guardia devono essere ${ATTESE[a]}, sono ${n}`);
+      ok(/fraseFileAltrui\(/.test(src), `${a}: e la frase la dice la funzione condivisa, non una copia`);
+      tot += n;
+    }
+    eq(tot, 22, "22 gestori d'importazione in sei app");
+  });
+}
+
 console.log(`\nRisultato KPI app: ${passed} passati, ${failed} falliti${inVolo.length ? `  ·  ${inVolo.length} prove asincrone aspettate` : ""}`);
 process.exit(failed > 0 ? 1 : 0);

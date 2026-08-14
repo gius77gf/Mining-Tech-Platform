@@ -1754,7 +1754,10 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
            conta, plurale,
            /* la frase «N righe del file non sono entrate» sta in un posto solo
               (regola 32 di run-stile): riscriverla qui sarebbe la quinta copia */
-           frasePersi, avvisaSeNonSalva} from "../../shared/deepwork-id-client/dw-shell.js";
+           /* B8 (14/08): «questa prima riga è l'intestazione di un'ALTRA delle
+              nostre tabelle?» — la sola domanda che si può fare, visto che il
+              file SENZA intestazione deve continuare a entrare */
+           frasePersi, fileDiAltraTabella, fraseFileAltrui, avvisaSeNonSalva} from "../../shared/deepwork-id-client/dw-shell.js";
   // I campi INTERI restano `type=number` per lo spinner: la guardia rifiuta la
   // virgola, che lì non serve e che il browser scarterebbe in silenzio.
   montaGuardiaInteri((m) => toast(m, "err"));
@@ -4885,7 +4888,12 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
   $("btn-inf-import").onclick = () => $("inf-file").click();
   $("inf-file").onchange = async (e) => {
     const file = e.target.files && e.target.files[0]; if (!file) return;
-    const righe = parseInfortuniCsv(await file.text());
+    const testoInf = await file.text();
+    // B8 · il file di un'altra tabella si nomina invece di essere letto per
+    // posizione (l'intestazione entrerebbe come evento).
+    const infAltrove = fileDiAltraTabella(testoInf, ["scudo.infortuni"]);
+    if (infAltrove) { esito("inf-esito", fraseFileAltrui(infAltrove, "nel registro infortuni"), "err"); e.target.value = ""; return; }
+    const righe = parseInfortuniCsv(testoInf);
     if (!righe.length) { esito("inf-esito", "Nessuna riga valida nel file: le colonne devono essere data; tipo; gravita; giorniAssenza; descrizione; luogo.", "err"); e.target.value = ""; return; }
     // Dedup come gli altri import: evita che un doppio click su "Importa"
     // raddoppi silenziosamente un registro HSE. Firma = data|tipo|descrizione.
@@ -4960,6 +4968,20 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
        scadenze compare tre volte nel proprio file, e ri-caricarlo faceva
        comparire tre volte la stessa persona in anagrafica. Qui resta solo il
        confronto con chi è GIÀ in archivio, che la pagina è l'unica a sapere. */
+    /* ⛔ B8 · IL FILE SBAGLIATO ENTRAVA IN SILENZIO (14/08). Un CSV di FATTURE
+       (`numero;cliente;importo`) caricato qui aggiungeva **due lavoratori
+       chiamati «numero» e «2026/001»**: l'intestazione entra come persona
+       perché non è quella che QUESTO lettore toglie. Pretendere l'intestazione
+       giusta è vietato — il file senza intestazione deve entrare — quindi la
+       domanda è l'altra: è l'intestazione di un'altra nostra tabella?
+       ⚠️ E `scudo.personaleScadenze` è fra quelle AMMESSE perché il nostro
+       export si ri-carica qui di proposito: bloccarlo sarebbe il falso allarme
+       che costa più del difetto. */
+    const daAltrove = fileDiAltraTabella(testo, ["scudo.lavoratori", "scudo.personaleScadenze"]);
+    if (daAltrove) {
+      esito("import-esito", fraseFileAltrui(daAltrove, "nell'anagrafica dei lavoratori"), "err");
+      e.target.value = ""; return;
+    }
     const letti = parseLavoratoriCsv(testo);
     /* ⛔ QUI C'ERA UN CONTO CHE SEMBRAVA COMPLETO E ATTRIBUIVA MALE. Era
        `saltate = righe.length - letti.length` con la frase «(intestazioni o
@@ -5090,6 +5112,11 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
     const righe = parseAzioniCsv(testoAzi);
     const scartate = scartiAzioniCsv(testoAzi);
     e.target.value = "";
+    // B8 · «la copia di sicurezza e non il prospetto» la pagina lo diceva già
+    // come SUPPOSIZIONE: quando la prima riga è riconoscibile, si dice quale
+    // file è davvero invece di indovinare.
+    const aziAltrove = fileDiAltraTabella(testoAzi, ["scudo.azioni"]);
+    if (aziAltrove) { esito("azi-esito-msg", fraseFileAltrui(aziAltrove, "nelle azioni correttive"), "err"); return; }
     if (!righe.length) {
       esito("azi-esito-msg", "Nel file non c'è nessuna azione leggibile: controlla che sia la copia di sicurezza e non il prospetto (le colonne sono diverse)." + frasePersi(scartate), "err");
       return;
@@ -6822,6 +6849,13 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
        esistite per questo gestore, e un messaggio che elenca due categorie su
        tre si legge come completo. Adesso le categorie sono tre. */
     const scartate = scartiScadenzeCsv(testo);
+    // B8 · se la prima riga è l'intestazione di un'altra nostra tabella, il
+    // file è sbagliato e lo si dice invece di leggerlo per posizione.
+    const scadAltrove = fileDiAltraTabella(testo, ["scudo.scadenze"]);
+    if (scadAltrove) {
+      esito("scad-esito", fraseFileAltrui(scadAltrove, "nello scadenzario"), "err");
+      e.target.value = ""; return;
+    }
     /* ⛔ ANCHE QUANDO NON ENTRA NIENTE SI DICE PERCHÉ: è il caso in cui la
        ragione serve di più, e la pagina rispondeva con una supposizione su una
        causa sola («controlla le colonne») — mentre la causa vera, misurata, è
