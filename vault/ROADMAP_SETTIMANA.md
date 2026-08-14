@@ -5576,3 +5576,32 @@ di scriverlo qui**: niente entra sulla parola dell'agente.
       ⚠️ **Quello che NON posso attestare**: la controprova del cantiere, che non
       ha fatto in tempo a mandarla. Le prove ci sono e passano; che **sappiano
       fallire** lo dirà chi rimette i difetti.
+
+- [x] ✅ **IL CONTROLLO PER ADDENDO, messo DOVE I NUMERI NASCONO** *(14/08, e
+      nato da un errore mio di un'ora prima).* Nei documenti avevo scritto
+      «**2226 + 318** + 75 + …» dove il vero era «**2223 + 321** + …»: due
+      addendi sbagliati **che si cancellavano**. Quindi la somma tornava, il
+      totale era giusto, e **ogni controllo diceva ✓** — è alla lettera il caso
+      «coerente ma falsa» che `numeri-nei-documenti.mjs` descrive nel proprio
+      commento, e che **lì non si può prendere**: quel file non lancia le suite,
+      e il conto statico delle prove non funziona perché si generano dentro i
+      cicli (**2.122 statiche contro 2.229 vere**). Allargare la regex sarebbe
+      la strada sbagliata, come è già scritto nel suo commento.
+      Quindi il controllo sta in `giro-node.mjs`, che è **l'unico posto che le
+      ha lanciate tutte** e ha il totale di ognuna: confronta **ogni addendo
+      scritto nel documento con la suite che l'ha prodotto**, e lo nomina.
+      ⚠️ **L'elenco delle otto suite NON è riscritto**: si legge da
+      `numeri-nei-documenti.mjs`, che già ce l'ha e nello stesso ordine in cui i
+      documenti scrivono la somma — **derivato, non gemello**. Se domani le
+      suite diventano nove, il controllo lo sa da sé; e se l'elenco non si legge
+      **lo dichiara** invece di tacere.
+      ⛔ **E alla prima passata ha trovato un difetto in sé stesso**, che vale
+      più della sua nascita: `fogli-guardati.mjs` compare **due volte** nel giro
+      (due passate con flag diversi) e la prima stesura le **sommava** — 3 + 7 =
+      **10** contro i 3 veri. È la «ripetizione contata come roba nuova» che
+      questo stesso file racconta per il **4741** di `orologio-cliente`, rifatta
+      da chi la stava citando. Adesso si tiene la **prima** passata.
+      **Controprova**, ed è quella che conta: rimessi **due addendi che si
+      compensano** (2226 + 324), la somma torna e il totale è giusto — il giro
+      cade lo stesso e li nomina tutti e due, con la suite accanto. Ripristino
+      da copia con `diff -q`, mai `git checkout`.
