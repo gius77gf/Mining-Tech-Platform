@@ -6377,3 +6377,39 @@ di scriverlo qui**: niente entra sulla parola dell'agente.
       emulatore; con la forma vecchia rimessa ne cadono **8**. E sotto
       l'emulatore, con la correzione: funzioni **21/0**, SDK **19/0**, primo
       avvio **8/0**.
+
+- [x] ✅ **B14 — CHIUSA il 14/08: nella finestra di caricamento un comando
+      premuto non faceva NIENTE, e il silenzio è peggio di un numero falso.**
+      B6 aveva curato i **contatori** («—» invece di «0»); restavano i
+      **comandi**. La barra in basso funziona (arriva con `dw-app-ui.js`,
+      `defer`), quindi si gira per tutte le sezioni — ma le azioni sono
+      agganciate con `addEventListener` **dentro il modulo**, che parte solo
+      quando `<app>-data.js` è arrivato.
+      **Misura (prima schermata, tre app): 18 comandi su 21 premuti senza
+      niente** — nessun toast, nessuna modale, nessun errore in console, il DOM
+      identico byte per byte. «Segnala un near-miss» in Campo e in Scudo, e
+      tutti i riquadri KPI. L'unico che rispondeva era il tasto del tema, che
+      vive dentro `dw-app-ui.js`.
+      ⚠️ **Non è la stessa famiglia del «0»**: là l'app diceva una cosa falsa e
+      tranquilla, qui non dice niente — e su un telefono in cava il silenzio si
+      legge «è rotta» oppure «ha funzionato».
+      **La cura, in un posto solo**: una guardia in cattura in
+      `shared/dw-app-ui.js` che, finché i dati non ci sono, ferma il comando e
+      risponde col toast «I dati stanno ancora arrivando: un istante e riprova».
+      ⛔ E **il punto in cui si disarma esisteva già**: il corpo di un modulo
+      parte solo quando tutti i suoi import sono risolti, quindi la finestra
+      finisce esattamente quando il modulo comincia — e la prima cosa che tutte
+      e sei le app fanno lì è chiamare `dwUiAggancia`. **Zero righe nelle sei
+      pagine.**
+      **Provata nei due versi**, che qui è obbligatorio: se la guardia non si
+      disarmasse, l'app resterebbe muta per sempre — un difetto peggiore di
+      quello curato. `finestra-caricamento.mjs` ha una terza domanda (dentro la
+      finestra ogni comando risponde: **55 premuti, 0 muti**) e una quarta
+      (dopo i dati nessuno dice più «sto caricando»). **21 passati, 0 falliti.**
+      Controprova: neutralizzata la guardia in `shared/`, cadono **le due
+      domande su tutte e tre le app** (31 iniezioni su 31 a bersaglio).
+      ⚠️ E il verdetto della controprova **non conta più i KO**: contava «uno per
+      app», cioè un numero scritto a mano, invecchiato il giorno stesso in cui
+      le domande sono diventate due. Adesso tiene, per ogni famiglia, l'insieme
+      delle app cadute — una domanda nuova si dichiara lì invece di spostare un
+      totale.

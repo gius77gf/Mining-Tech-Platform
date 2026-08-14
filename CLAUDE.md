@@ -2486,6 +2486,23 @@ Perché serva davvero e non produca elenchi generici, cinque vincoli:
   che sembra riguardare quello che hai su disco. Provato da
   `tests/browser/giro-su-copia.mjs` su tutt'e due i versi. Piano:
   `docs/PIANO_GIRO_SU_COPIA.md`.
+  ⛔ **E LA COPIA CONGELA IL PRODOTTO, NON I BANCHI — quindi un banco MIGLIORATO
+  a metà giro accusa il prodotto di un difetto che è già curato.** Misurato il
+  14/08, e i tre KO sembravano veri. Il runner serve una worktree (il prodotto è
+  immobile) ma lancia i banchi da `join(QUI, file)`, cioè dalla **cartella
+  viva**: aggiungendo a `finestra-caricamento.mjs` una domanda nuova mentre il
+  giro camminava, quella domanda è stata fatta al prodotto di **un'ora prima**,
+  che la cura non ce l'aveva. Esito: `campo · scudo · sentinella: ogni comando
+  premuto nella finestra RISPONDE — KO`, tre accuse su una difesa che sul disco
+  era verde (55 comandi premuti, 0 muti).
+  ⚠️ Non è un difetto del disegno: la guardia dell'impronta **esclude apposta**
+  test e documenti, se no il giro si dichiarerebbe non valido ogni volta che
+  qualcuno tocca una suite. Quello che mancava era la conseguenza scritta: **la
+  regola «non si inietta mentre gira un giro» vale anche per le MIGLIORIE ai
+  banchi**, e il segno da riconoscere è un KO su una domanda che *in quel
+  registro non era mai comparsa prima*. Prima di aprire un cantiere su un KO
+  nuovo si guarda se la domanda esisteva già quando il giro è partito.
+
   ✅ **E dal 04/08 non è più solo scritta qui: è un controllo.** Perché questa
   regola, scritta e col suo racconto, è stata **violata due volte in due
   giorni** — la seconda dal cantiere che il giorno prima aveva scritto il

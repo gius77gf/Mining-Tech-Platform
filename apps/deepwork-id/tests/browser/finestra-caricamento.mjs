@@ -120,6 +120,12 @@ const DIFETTI = {
     ['<span class="cnt" id="appt-count">—</span>', '<span class="cnt" id="appt-count">0</span>'],
     ['<span class="cnt" id="perm-count">—</span>', '<span class="cnt" id="perm-count">0</span>'],
   ],
+  /* ⛔ E il difetto della TERZA domanda non sta in una pagina: sta nella
+     struttura condivisa. Neutralizzare la guardia la fa tornare muta in tutte
+     e tre le app insieme — cioè un'iniezione sola misura la difesa di sei. */
+  "shared/dw-app-ui.js": [
+    ["if (datiPronti) return;", "if (true) return;"],
+  ],
   "apps/sentinella/index.html": [
     ['<span class="cnt" id="pon-tot">—</span>', '<span class="cnt" id="pon-tot">0</span>'],
     ['<span class="cnt" id="mon-tot">—</span>', '<span class="cnt" id="mon-tot">0</span>'],
@@ -211,6 +217,58 @@ const LEGGI = () => {
   return [...raccogli("span.cnt", "contatore"), ...raccogli(".kpi .n", "kpi")];
 };
 
+/* ── LA TERZA DOMANDA: un comando premuto nella finestra RISPONDE? ────────
+   I contatori dicevano una cosa falsa e tranquilla; i comandi non dicevano
+   NIENTE. Misurato il 14/08 sulla prima schermata di tre app: 18 su 21
+   premuti senza toast, senza modale, senza errore in console e col DOM
+   identico — «Segnala un near-miss» e tutti i riquadri KPI. La cura sta in
+   `shared/dw-app-ui.js` e si prova nei DUE versi: qui dentro deve rispondere
+   il toast della finestra, dopo l'arrivo dei dati NON deve comparire.
+   ⚠️ Si preme con `el.click()` dentro la pagina e non con `page.click`:
+   Playwright aspetta che l'elemento sia *azionabile*, e su un elemento che non
+   lo diventa mai brucia il timeout pieno — è la causa, già scritta in
+   CLAUDE.md, di un banco rimasto appeso quattro ore e mezza. */
+const PROVA_COMANDI = async ({ sel, quanti }) => {
+  const vis = (el) => {
+    const s = getComputedStyle(el);
+    if (s.display === "none" || s.visibility === "hidden") return false;
+    const r = el.getBoundingClientRect();
+    return r.width > 2 && r.height > 2;
+  };
+  const t = document.getElementById("toast");
+  const bersagli = [...document.querySelectorAll(sel)]
+    .filter((e) => vis(e) && !e.closest(".nav") && e.id !== "dw-tema-btn" && !e.closest("#modal"))
+    .slice(0, quanti);
+  const out = [];
+  for (const el of bersagli) {
+    if (t) { t.classList.remove("show"); t.textContent = ""; }
+    el.click();
+    await new Promise((r) => setTimeout(r, 120));
+    out.push({
+      chi: el.id || [...el.classList].join(".") || el.tagName,
+      risposta: t && t.classList.contains("show") ? (t.textContent || "").trim() : "",
+    });
+    const m = document.getElementById("modal");
+    if (m && m.classList.contains("show")) {
+      const b = m.querySelector("#modal-foot .mbtn");
+      if (b) b.click();
+      await new Promise((r) => setTimeout(r, 80));
+    }
+  }
+  return out;
+};
+const SEL_COMANDI = "button, .dw-btn, [role=button], .item, .kpi, .sitem";
+const DICE_FINESTRA = /stanno ancora arrivando/;
+let comandiProvati = 0, comandiMuti = 0;
+
+/* ⛔ QUALE domanda è caduta, non QUANTE volte. La riga di verdetto contava i
+   KO e pretendeva che fossero «uno per app»: un numero scritto a mano, che è
+   invecchiato il giorno stesso in cui le domande sono diventate due. Si tiene
+   invece, per ognuna delle due famiglie, l'insieme delle app che sono cadute:
+   così la controprova riesce solo se OGNI app cade su OGNI domanda, e una
+   domanda nuova si dichiara qui invece di spostare un totale. */
+const cadute = { numeri: new Set(), comandi: new Set() };
+
 let schermateTot = 0, previsteTot = 0;
 for (const app of APPS) {
   console.log(`\n════════ ${app} ════════`);
@@ -242,6 +300,7 @@ for (const app of APPS) {
   dice(barraViva < RITARDO / 2,
     `${app}: la barra in basso è viva a ${barraViva} ms, ben prima dei dati (${RITARDO} ms)`, barraViva);
 
+  const muti = [];
   const nav = await pg.$$eval(".nav button", (bs) => bs.map((x) => x.id));
   previsteTot += nav.length;
   const visti = new Map();          // id → testo, per i soli VISIBILI
@@ -260,6 +319,10 @@ for (const app of APPS) {
     const righe = await pg.evaluate(LEGGI);
     for (const r of righe) { if (r.id) tuttiPresenti.add(r.id); if (r.v) visti.set(r.id || r.eti, r); }
     schermate++;
+    for (const c of await pg.evaluate(PROVA_COMANDI, { sel: SEL_COMANDI, quanti: 3 })) {
+      comandiProvati++;
+      if (!DICE_FINESTRA.test(c.risposta)) { comandiMuti++; muti.push(`${app}/${id} · ${c.chi}`); }
+    }
     const s = await cdp.send("Page.captureScreenshot", { format: "png" });
     writeFileSync(join(SCATTI, `${app}-${id}.png`), Buffer.from(s.data, "base64"));
   }
@@ -276,9 +339,15 @@ for (const app of APPS) {
   }
 
   const tranquilli = [...visti.values()].filter((v) => /^[0-9]/.test(v.t));
+  if (tranquilli.length) cadute.numeri.add(app);
   dice(tranquilli.length === 0,
     `${app}: nessun numero tranquillo nella finestra (${visti.size} misurati)`,
     tranquilli.map((v) => `${v.tipo} ${v.id || v.cls}: «${v.eti}» = ${v.t}`).join(" | "));
+
+  if (muti.length) cadute.comandi.add(app);
+  dice(muti.length === 0,
+    `${app}: ogni comando premuto nella finestra RISPONDE (${comandiProvati} premuti in tutto finora)`,
+    muti.slice(0, 8).join(" | "));
 
   /* ── DOPO: la cura non deve mentire nell'altro verso ────────────────── */
   const resta = RITARDO - (Date.now() - t0) + 3000;
@@ -293,6 +362,11 @@ for (const app of APPS) {
   dice(eccPresenti.length === ecc.length,
     `${app}: le ${ecc.length} eccezioni dichiarate si presentano ancora (${eccPresenti.length})`,
     `dichiarate ${JSON.stringify(ecc)}, trovate a «—» ${JSON.stringify(eccPresenti)}`);
+  const dopoComandi = await pg.evaluate(PROVA_COMANDI, { sel: SEL_COMANDI, quanti: 3 });
+  const ancoraGuardati = dopoComandi.filter((c) => DICE_FINESTRA.test(c.risposta));
+  dice(dopoComandi.length > 0 && ancoraGuardati.length === 0,
+    `${app}: dopo l'arrivo dei dati i comandi NON dicono più «sto caricando» (${dopoComandi.length} premuti)`,
+    ancoraGuardati.map((c) => c.chi).join(" | "));
   dice(errori.length === 0, `${app}: la pagina non solleva errori`, errori[0]);
   await ctx.close();
 }
@@ -301,17 +375,25 @@ console.log(`\n──── riepilogo ────`);
 console.log(`schermate fotografate DENTRO la finestra: ${schermateTot} su ${previsteTot} previste, ${APPS.length} superfici`);
 let scadute = 0;
 if (CONTROPROVA) {
-  const attese = APPS.reduce((n, a) => n + (DIFETTI[`apps/${a}/index.html`] || []).length, 0);
+  /* ⚠️ E il denominatore conta TUTTE le rotte iniettate, non solo le pagine
+     delle app: l'iniezione della terza domanda sta in `shared/dw-app-ui.js`, e
+     contarla fra i colpiti senza contarla fra le attese dava «31 su 30» — cioè
+     un'iniezione scaduta si sarebbe nascosta dentro quel meno uno. */
+  const attese = APPS.reduce((n, a) => n + (DIFETTI[`apps/${a}/index.html`] || []).length, 0)
+    + (DIFETTI["shared/dw-app-ui.js"] || []).length;
   scadute = attese - colpiti.size;
   console.log(`difetti rimessi: ${colpiti.size} su ${attese} dichiarati`);
   if (scadute > 0) {
     console.error(`✗ ${scadute} iniezioni non hanno trovato il loro pezzo: SCADUTE, e una controprova`
       + ` che non inietta niente non dimostra niente. Lancia iniezioni-fresche.mjs.`);
   }
-  /* la controprova è riuscita solo se il banco è CADUTO su tutte e tre le app:
-     un rosso su una sola direbbe che le altre due non sono difese */
-  console.log(`la controprova ha fatto cadere ${ko} controlli su ${APPS.length} app`
-    + ` (deve essere ${APPS.length}, uno per app: ${ko === APPS.length ? "sì" : "NO"})`);
+  /* la controprova è riuscita solo se OGNI app è caduta su OGNI domanda: un
+     rosso su una sola direbbe che le altre non sono difese, e un rosso su una
+     sola domanda direbbe che l'altra difesa non è provata */
+  const complete = ["numeri", "comandi"].filter((f) => APPS.every((a) => cadute[f].has(a)));
+  console.log(`la controprova ha fatto cadere ${ko} controlli · le due domande cadono su tutte le app:`
+    + ` numeri ${[...cadute.numeri].length}/${APPS.length}, comandi ${[...cadute.comandi].length}/${APPS.length}`
+    + ` (devono essere due su due: ${complete.length === 2 ? "sì" : "NO"})`);
 }
 if (nonMisurati.length) {
   console.log(`\n⚠️  NON HO GUARDATO (${nonMisurati.length}) — da leggere PRIMA dei KO:`);

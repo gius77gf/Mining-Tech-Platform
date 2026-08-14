@@ -271,6 +271,10 @@
   // giusto che resti un parametro.
   function dwUiAggancia(opz) {
     var o = opz || {};
+    /* i dati ci sono: da qui in poi i comandi fanno la loro cosa, non il toast
+       della finestra (la ragione per esteso sta sopra `guardiaFinestra`) */
+    datiPronti = true;
+    document.removeEventListener("click", guardiaFinestra, true);
     /* la fascia «senza rete» si monta qui, nel punto che TUTTE le app chiamano
        già: aggiungerla a sei pagine sarebbe stato sei volte lo stesso codice, e
        la settima app nascerebbe senza */
@@ -356,6 +360,53 @@
     window.addEventListener("offline", aggiorna);
     return el;
   }
+
+  /* ── LA FINESTRA DI CARICAMENTO: UN COMANDO PREMUTO DEVE RISPONDERE ──────
+     Fra l'apertura della pagina e l'arrivo del modulo dati c'è una finestra in
+     cui l'app ha già disegnato tutto e non sa ancora niente. La barra in basso
+     funziona (questo file arriva subito, `defer`), quindi si gira per tutte le
+     sezioni; ma le AZIONI sono agganciate con `addEventListener` dentro il
+     modulo, che non è ancora partito. Effetto misurato il 14/08 sulla PRIMA
+     schermata di tre app: **18 comandi su 21 premuti non facevano NIENTE** —
+     nessun toast, nessuna modale, nessun errore in console, il DOM identico.
+     «Segnala un near-miss» in Campo e in Scudo, e tutti i riquadri KPI che di
+     solito portano alla sezione. L'unico che rispondeva era il tasto del tema,
+     che vive qui dentro.
+     ⚠️ Non è la stessa cosa del «—» sui contatori: là l'app diceva una cosa
+     falsa e tranquilla, qui non dice NIENTE — e il silenzio, su un telefono in
+     cava, si legge «l'app è rotta» oppure «l'ho premuto e ha funzionato».
+
+     ⛔ IL PUNTO IN CUI SI DISARMA ESISTE GIÀ, E NON SERVE TOCCARE SEI PAGINE.
+     Il corpo di un modulo parte solo quando TUTTI i suoi import sono risolti,
+     e `<app>-data.js` è uno di quelli: quindi la finestra finisce esattamente
+     quando il modulo comincia — e la prima cosa che tutte e sei le app fanno lì
+     è chiamare `dwUiAggancia`. Disarmare lì è disarmare al millisecondo giusto,
+     in un posto solo: la regola che serve a tutte vive in `shared/`.
+     ⚠️ E il rischio va scritto, perché è il rovescio della stessa medaglia: se
+     un'app non chiamasse `dwUiAggancia`, i suoi comandi resterebbero guardati
+     per sempre. Per questo la difesa si prova nei DUE versi — dentro la
+     finestra deve rispondere il toast, e DOPO l'arrivo dei dati lo stesso
+     comando deve fare la sua cosa e il toast non deve comparire. */
+  var datiPronti = false;
+  /* `.item`, `.kpi` e `.sitem` non sono `<button>` ma si premono: la loro
+     azione è delegata dentro il modulo esattamente come quella dei bottoni. */
+  var COMANDI = "button, .dw-btn, [role=button], .item, .kpi, .sitem";
+  function guardiaFinestra(e) {
+    if (datiPronti) return;
+    var t = e.target;
+    if (!t || typeof t.closest !== "function") return;
+    var el = t.closest(COMANDI);
+    if (!el) return;
+    /* Restano vivi i comandi che NON dipendono dai dati: la barra in basso (la
+       navigazione è di questo file), il tasto del tema e la modale. */
+    if (el.closest(".nav") || el.id === "dw-tema-btn" || el.closest("#modal")) return;
+    e.preventDefault();
+    e.stopPropagation();
+    toast("I dati stanno ancora arrivando: un istante e riprova.");
+  }
+  /* in cattura: gli ascoltatori del modulo non ci sono ancora, ma se un giorno
+     ce ne fosse uno agganciato prima dei dati, questo lo precede comunque */
+  document.addEventListener("click", guardiaFinestra, true);
 
   window.go = go;
   window.toast = toast;
