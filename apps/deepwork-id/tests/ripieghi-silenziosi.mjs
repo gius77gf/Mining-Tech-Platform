@@ -172,11 +172,41 @@ function censisci(file) {
   };
 }
 
+/* ⛔ E IL CODICE CONDIVISO NON C'ERA. Il censimento elencava il core e le sei
+   app, cioè quindici superfici — e `shared/` restava fuori senza che nessuno
+   l'avesse deciso: non un'eccezione dichiarata, un'assenza. È il posto che
+   CLAUDE.md indica come il PIÙ pericoloso, perché una regola scritta lì la
+   leggono tutte le app insieme. Entra il 14/08, e il conto lo dice la riga:
+   una superficie che non compare nella tabella non è «pulita», è **non
+   guardata**. */
+/* ⏱️ E IL PRIMO CENSIMENTO DI `shared/`, FATTO IL 14/08, VA SCRITTO QUI PERCHÉ
+   NESSUNO LO RIFACCIA A MANO: **16 MESTIERE, e ZERO ripieghi veri al gradino
+   2.** Le tre famiglie, con la ragione:
+     · `shared · grafici` (8) — sono tutte misure del **disegno**
+       (`global.innerWidth||360`, `s.altezza||230`, `s.spessore||16`): la
+       famiglia legittima che la nota qui sotto dichiara già;
+     · `shared · ponti` (6) — **non sono ripieghi**: cinque sono OR booleani
+       (`vuoto || Number.isFinite(n)`, `x === null || typeof x !== "object"`)
+       e uno è `(r && r.prodQta) ?? NaN`, cioè il contrario di un ripiego —
+       un NaN che si dichiara invece di una costante che tace;
+     · `shared · guscio` (2) — `o.haForma || FORMA_ISO` è il default di una
+       **strategia** che chi chiama può sostituire, non un dato dell'utente.
+   Cioè: il posto che CLAUDE.md indica come il più pericoloso, su questa
+   famiglia, è pulito — ma prima del 14/08 nessuno l'aveva guardato, e
+   «non guardato» si legge uguale a «pulito» in una tabella che non lo
+   contiene. */
+const CONDIVISI = [
+  ["shared · ponti", join(RADICE, "shared", "dw-ponti.js")],
+  ["shared · guscio", join(RADICE, "shared", "deepwork-id-client", "dw-shell.js")],
+  ["shared · grafici", join(RADICE, "shared", "dw-grafici.js")],
+  ["shared · struttura", join(RADICE, "shared", "dw-app-ui.js")],
+];
 const SOGGETTI = [["core", join(RADICE, "index.html")]];
 for (const app of APP) {
   const p = pagina(app); if (p) SOGGETTI.push([`${app} · pagina`, p]);
   const m = modulo(app); if (m) SOGGETTI.push([`${app} · modulo`, m]);
 }
+for (const [nome, f] of CONDIVISI) if (existsSync(f)) SOGGETTI.push([nome, f]);
 const scelti = SOLO ? SOGGETTI.filter(([n]) => n.toLowerCase().includes(SOLO.toLowerCase())) : SOGGETTI;
 if (!scelti.length) {
   console.error(`⛔ --solo=${SOLO} non combacia con nessuna superficie. Ce ne sono ${SOGGETTI.length}:`);
