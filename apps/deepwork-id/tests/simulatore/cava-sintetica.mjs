@@ -67,32 +67,98 @@ function seminatore(seme) {
   };
 }
 
+/* ⛔ LA MEDIA NAZIONALE NON DESCRIVE NESSUNA CAVA ESISTENTE.
+   È l'avviso più importante che la ricerca ha consegnato, e cambia la forma di
+   questo file: le tre fonti convergono su ~66.000 t/anno per sito, ma una sola
+   cava italiana ne dichiara **sedici volte tanto**. Generare «la cava media»
+   vuol dire simulare una cosa che non esiste. Quindi la taglia è una SCELTA di
+   chi genera, non un valore centrale con del rumore addosso.
+   Fonte: `docs/RICERCA_SIMULATORE_produzione.md`. */
+export const TAGLIE = {
+  piccola: { produzioneAnnuaT: 25000,   persone: 4,  mezzi: 3 },
+  media:   { produzioneAnnuaT: 66000,   persone: 7,  mezzi: 6 },
+  grande:  { produzioneAnnuaT: 1200000, persone: 35, mezzi: 22 },
+};
+
 export const PARAMETRI = {
-  /* Il ritmo della cava. ⚠️ Tutti `[dedotto]` finché la ricerca non consegna:
-     vanno sostituiti con i valori di `docs/RICERCA_SIMULATORE_produzione.md`. */
   giorniLavorativiSettimana: { v: 5, u: "giorni", da: "[dedotto]" },
   turniAlGiorno:             { v: 2, u: "turni",  da: "[demo] la dimostrazione ha Mattina e Pomeriggio" },
   oreTurno:                  { v: 8, u: "ore",    da: "[demo] durate.minuti = 480" },
-  personeInForza:            { v: 7, u: "persone", da: "[demo] scudo.lavoratori" },
   squadre:                   { v: 3, u: "squadre", da: "[demo] campo.squadre" },
   fronti:                    { v: 3, u: "fronti",  da: "[demo] terra.fronti" },
-  mezzi:                     { v: 6, u: "mezzi",   da: "[demo] flotta.mezzi" },
 
-  /* La produzione. ⚠️ `[dedotto]`: è il parametro che più di tutti decide se la
-     cava «sembra vera», e nessuno di questi numeri è ancora verificato. */
-  produzioneTurnoT:          { v: 260, u: "t/turno", da: "[demo] campo.obiettivi.valore = 260" },
-  variazioneProduzione:      { v: 0.30, u: "quota",  da: "[dedotto] ±30% attorno all'obiettivo" },
-  stagionalita:              { v: [0.7, 0.7, 0.9, 1.0, 1.1, 1.15, 1.15, 0.8, 1.1, 1.1, 0.95, 0.75],
-                               u: "moltiplicatore per mese", da: "[dedotto] l'edilizia rallenta d'inverno e ad agosto" },
+  /* ⛔ LA PRODUZIONE PER TURNO NON SI SCRIVE: SI DIVIDE. Prima era 260 t/turno,
+     presa dall'obiettivo della dimostrazione, e con 524 turni all'anno avrebbe
+     dato **136.000 t/anno** — il doppio di una cava media, senza che niente lo
+     dicesse. Adesso l'ingresso è la produzione ANNUA (che è il numero che le
+     fonti pubblicano) e il turno è quello che ne discende. */
+  variazioneProduzione:      { v: 0.30, u: "quota", da: "[dedotto] ±30% attorno all'atteso" },
 
-  /* Gli eventi radi. Sono i più importanti per il software, perché è dove
-     nascono i casi limite. */
-  giorniFraVolate:           { v: 21, u: "giorni", da: "[dedotto]" },
+  /* ⛔ E LA STAGIONALITÀ CHE AVEVO SCRITTO ERA SBAGLIATA NEL VERSO PEGGIORE.
+     Avevo messo agosto a 0,8 tirando a indovinare. L'unico dato che la ricerca
+     ha trovato è **americano** (Fed di Chicago: minimo a febbraio, picco ad
+     **agosto +7%**) e la ricerca stessa lo ha dichiarato NON trasferibile —
+     copiarlo avrebbe messo il massimo dove l'Italia ha il fermo più profondo.
+     ⚠️ Resta `[dedotto]`: la serie ISTAT che servirebbe (`DCSC_INDXPRODCOSTR_1`)
+     esiste e non si è potuta leggere. La forma qui sotto è quella qualitativa
+     descritta dalla ricerca — anno a DOPPIA GOBBA, minimi a gennaio-febbraio e
+     ad agosto — e va verificata prima di ricavarne qualunque conclusione. */
+  stagionalita:              { v: [0.65, 0.70, 0.95, 1.10, 1.20, 1.20, 1.05, 0.45, 1.15, 1.20, 1.00, 0.75],
+                               u: "moltiplicatore per mese",
+                               da: "[dedotto] forma qualitativa dalla ricerca; la serie ISTAT non è leggibile" },
+
+  /* ⛔ LA FREQUENZA DELLE VOLATE NON È UN PARAMETRO, È UNA DIVISIONE:
+     produzione ÷ (volume della volata × densità). Avevo scritto «una ogni 21
+     giorni»: per una cava media sono **9-10 all'anno, circa una al mese**, e il
+     mio numero era fuori di diciassette volte — avrebbe prodotto una cava che
+     brilla come una grande e produce come una media, incoerente per
+     costruzione. Ora le volate si contano dalla produzione. */
+  /* ⚠️ CONTRADDIZIONE FRA DUE NUMERI DELLA STESSA RICERCA, dichiarata invece
+     che appianata — è la regola che la ricerca stessa ha applicato a sé.
+     Da una parte «una cava media fa 9-10 volate all'anno»; dall'altra un volume
+     di volata tipo di 9.000 m³, che a 1,55 t/m³ fa 13.950 t e quindi, su 66.000
+     t/anno, **4,7 volate**. I due non possono stare insieme.
+     Tengo il CONTO DELLE VOLATE, perché è il dato riportato direttamente, e da
+     lui ricavo il volume: 66.000 / 9,5 / 1,55 = **4.480 m³ a volata**. Il 9.000
+     resta scritto qui accanto perché chi rifarà la ricerca lo incontrerà e deve
+     sapere che è stato scartato, e perché. */
+  volatePerAnnoCavaMedia:    { v: 9.5, u: "volate/anno", da: "[da risultati di ricerca] «9-10 all'anno, circa una al mese» per una cava media" },
+  volumeVolataM3Scartato:    { v: 9000, u: "m³/volata", da: "[SCARTATO] darebbe 4,7 volate/anno contro le 9-10 riportate" },
+  densitaBancoTM3:           { v: 1.55, u: "t/m³", da: "[da risultati di ricerca] densità implicita 1,45-1,60 dai listini; ⚠️ un produttore dichiara 1,75 per lo stesso materiale, discrepanza lasciata visibile" },
+
   giorniFraRilieviDrone:     { v: 30, u: "giorni", da: "[demo] «Terra misura col drone una volta al mese»" },
   giorniFraLettureAmbientali:{ v: 30, u: "giorni", da: "[dedotto]" },
-  infortuniAnno:             { v: 0.5, u: "eventi/anno", da: "[dedotto] da sostituire con INAIL" },
-  nearMissAnno:              { v: 6,   u: "eventi/anno", da: "[dedotto] da sostituire con la piramide di Bird" },
+
+  /* ⛔ INFORTUNI: 14,6 denunce ‰ addetti-anno (INAIL B 081 2015-19, 2.008
+     denunce su 25-30.000 addetti). Avevo scritto 0,5 eventi/anno a prescindere
+     dalle persone: per sette persone il vero è **0,10/anno**, cioè uno ogni
+     dieci anni. Ero fuori di cinque volte, e nel verso che rende la cava più
+     pericolosa di quella vera.
+     ⚠️ Controprova indipendente riportata dalla ricerca: il tasso per 200.000 h
+     (1,77) coincide quasi alla cifra con l'all-injury rate MSHA USA (1,74). Non
+     prova che sia giusto, dice che non è assurdo. */
+  infortuniPerMillePersoneAnno: { v: 14.6, u: "‰ addetti-anno", da: "[da risultati di ricerca] INAIL B 081 2015-19" },
+
+  /* ⚠️ 5-9 segnalazioni/anno per VENTI addetti con un programma maturo: qui
+     scalato sulle persone. Sotto 2 vuol dire un sistema che non raccoglie, non
+     una cava sicura — ed è un'informazione sul PRODOTTO, non sul simulatore.
+     ⛔ E la piramide di Heinrich NON si usa per far discendere i gravi dai
+     near-miss: la critica moderna dice che solo ~20% degli eventi ha potenziale
+     grave, e con cause DIVERSE dall'altro 80%. Sono due processi separati, e
+     qui infatti si generano separatamente. */
+  nearMissPerVentiPersoneAnno:  { v: 7, u: "eventi/anno", da: "[da risultati di ricerca] due strade convergenti" },
+
+  /* ⛔ IL SERVIZIO IN CAVA DIMEZZA GLI INTERVALLI: il libretto dice 250 h, la
+     cava li fa a 125 (moltiplicatore 0,5×, 80-100% di carico motore). Chi usa
+     i nominali sottostima gli eventi del doppio. */
+  oreFraTagliandi:           { v: 125, u: "ore", da: "[da risultati di ricerca] 250 h nominali × 0,5 per servizio in cava" },
   fermiMacchinaMese:         { v: 2,   u: "eventi/mese", da: "[dedotto]" },
+
+  /* Il lato commerciale. ⚠️ Il divario fra legge e realtà è il dato che conta:
+     30 giorni per il D.Lgs 231/2002, ~80 giorni reali nell'edilizia (Cribis). */
+  prezzoTonnellataEuro:      { v: 15, u: "€/t", da: "[da risultati di ricerca] inerte da costruzione" },
+  giorniIncassoReali:        { v: 80, u: "giorni", da: "[da risultati di ricerca] Cribis, edilizia" },
+  giorniIncassoLegge:        { v: 30, u: "giorni", da: "[da risultati di ricerca] D.Lgs 231/2002, di seconda mano" },
 
   /* ⛔ I BUCHI VOLUTI — la ragione principale per cui questo generatore esiste.
      La dimostrazione è quasi tutta «sana», quindi le difese non vengono mai
@@ -142,8 +208,8 @@ const RUOLI = ["Fochino", "Escavatorista", "Palista", "Autista", "Capocantiere",
    Si genera UNA volta e la consumano tutte e sei le app: è questo che rende
    la cava un ecosistema invece di sei insiemi di numeri scollegati.
    ══════════════════════════════════════════════════════════════════════ */
-function anagrafica(rnd) {
-  const persone = Array.from({ length: P("personeInForza") }, (_, i) => ({
+function anagrafica(rnd, taglia) {
+  const persone = Array.from({ length: taglia.persone }, (_, i) => ({
     id: `d${i + 1}`,
     nome: NOMI[i % NOMI.length],
     ruolo: RUOLI[i % RUOLI.length],
@@ -180,10 +246,35 @@ function anagrafica(rnd) {
    app. È qui che la cava «vive»: un evento nasce una volta e compare in più
    posti, come nella realtà.
    ══════════════════════════════════════════════════════════════════════ */
-function diario(giorni, ana, rnd) {
+function diario(giorni, ana, rnd, taglia) {
   const ev = { turni: [], volate: [], rilievi: [], letture: [], infortuni: [], fermi: [] };
-  let ultimaVolata = -999, ultimoRilievo = -999, ultimaLettura = -999;
+  let ultimoRilievo = -999, ultimaLettura = -999;
   const mesiSaltati = new Set();
+
+  /* ── i tre numeri DERIVATI, non scritti ────────────────────────────
+     La produzione per turno discende da quella annua; le volate dalla
+     produzione; gli infortuni dalle persone. Scriverli a mano è il modo di
+     produrre una cava che si contraddice da sola. */
+  const anni = giorni.length / (52 * P("giorniLavorativiSettimana"));
+  const turniTotali = giorni.length * P("turniAlGiorno");
+  /* ⛔ LA STAGIONALITÀ SI NORMALIZZA, SE NO SPOSTA IL TOTALE. Il vettore ha
+     media 0,95: usato così faceva produrre alla cava il **9% in meno** di
+     quanto dichiarava, su tutte e tre le taglie — uno scarto SISTEMATICO, non
+     rumore, e quindi il segno di un difetto del modello. Il danno vero non è il
+     9%: è che uno scarto permanente fra il dichiarato di Campo e il misurato di
+     Terra si sarebbe letto come un **difetto del prodotto**, e qualcuno avrebbe
+     passato una giornata a cercarlo nel posto sbagliato.
+     La stagionalità deve spostare i mesi FRA LORO, non il totale dell'anno. */
+  const stagMedia = P("stagionalita").reduce((s, x) => s + x, 0) / P("stagionalita").length;
+  const perTurno = taglia.produzioneAnnuaT * anni / Math.max(1, turniTotali) / stagMedia;
+  /* il volume della volata si RICAVA dal conto delle volate riportato dalla
+     ricerca (vedi la contraddizione dichiarata in PARAMETRI), non si scrive */
+  const tVolata = TAGLIE.media.produzioneAnnuaT / P("volatePerAnnoCavaMedia");
+  const volateAttese = (taglia.produzioneAnnuaT * anni) / tVolata;
+  const giorniFraVolate = Math.max(1, Math.round(giorni.length / Math.max(1, volateAttese)));
+  const infAnno = taglia.persone * P("infortuniPerMillePersoneAnno") / 1000;
+  const nmAnno = taglia.persone * P("nearMissPerVentiPersoneAnno") / 20;
+  let ultimaVolata = -giorniFraVolate;
 
   giorni.forEach((g, i) => {
     const stag = P("stagionalita")[g.mese] ?? 1;
@@ -191,7 +282,7 @@ function diario(giorni, ana, rnd) {
       const turno = ["Mattina", "Pomeriggio", "Notte"][t];
       const squadra = ana.squadre[(i + t) % ana.squadre.length];
       const fronte = ana.fronti.filter((f) => f.stato === "attivo")[(i + t) % 2];
-      const base = P("produzioneTurnoT") * stag;
+      const base = perTurno * stag;
       const q = Math.round(base * (1 + (rnd() - 0.5) * 2 * P("variazioneProduzione")));
       /* ⚠️ i buchi voluti: una quantità che manca NON è uno zero — è il caso
          che il prodotto deve saper raccontare, e senza di lui `prodQta: null`
@@ -205,7 +296,7 @@ function diario(giorni, ana, rnd) {
         dataScritta: senzaData ? "" : g.iso,
       });
     }
-    if (i - ultimaVolata >= P("giorniFraVolate")) {
+    if (i - ultimaVolata >= giorniFraVolate) {
       ultimaVolata = i;
       const fori = 12 + Math.floor(rnd() * 12);
       ev.volate.push({ giorno: g.iso, fori, kgForo: 55 + Math.round(rnd() * 15),
@@ -224,8 +315,13 @@ function diario(giorni, ana, rnd) {
       ultimaLettura = i;
       ev.letture.push({ giorno: g.iso, valore: +(0.8 + rnd() * 4.5).toFixed(2) });
     }
-    if (rnd() < P("nearMissAnno") / 250) {
-      ev.infortuni.push({ giorno: g.iso, tipo: rnd() < 0.12 ? "infortunio" : "near-miss",
+    if (rnd() < (infAnno + nmAnno) / 250) {
+      /* ⚠️ i due processi sono SEPARATI, non uno derivato dall'altro: la critica
+         moderna alla piramide di Heinrich dice che solo ~20% degli eventi ha
+         potenziale grave, e con cause diverse dall'altro 80%. Qui la moneta
+         decide solo a quale dei due appartiene l'evento appena estratto. */
+      ev.infortuni.push({ giorno: g.iso,
+        tipo: rnd() < infAnno / Math.max(infAnno + nmAnno, 1e-9) ? "infortunio" : "near-miss",
         personaId: ana.persone[Math.floor(rnd() * ana.persone.length)].id });
     }
     if (rnd() < P("fermiMacchinaMese") / 21) {
@@ -241,11 +337,18 @@ function diario(giorni, ana, rnd) {
    ⛔ Le copie fra app sono DERIVATE qui sotto, mai riscritte: è l'invariante
    che questo file esiste per garantire.
    ══════════════════════════════════════════════════════════════════════ */
-export function generaCava({ mesi = 12, seme = 1, fine = "2026-08-14" } = {}) {
+export function generaCava({ mesi = 12, seme = 1, fine = "2026-08-14", taglia = "media" } = {}) {
+  const T = TAGLIE[taglia];
+  if (!T) {
+    /* ⚠️ un nome sconosciuto FERMA la generazione invece di ripiegare sulla
+       media: un simulatore che ripiega in silenzio genererebbe una cava
+       diversa da quella chiesta, e chi legge i risultati non lo saprebbe. */
+    throw new Error(`taglia sconosciuta: "${taglia}". Ce ne sono tre: ` + Object.keys(TAGLIE).join(", "));
+  }
   const rnd = seminatore(seme);
   const giorni = calendario(mesi, fine);
-  const ana = anagrafica(rnd);
-  const d = diario(giorni, ana, rnd);
+  const ana = anagrafica(rnd, T);
+  const d = diario(giorni, ana, rnd, T);
 
   /* ⛔ UN CASO CHE DEVE ESSERE PROVATO NON PUÒ DIPENDERE DAL SEME. Prima queste
      erano una quota probabilistica (10%), e sulla prima prova — 7 persone,
@@ -268,6 +371,19 @@ export function generaCava({ mesi = 12, seme = 1, fine = "2026-08-14" } = {}) {
     });
   });
 
+  /* ⛔ TERZA VOLTA LO STESSO DIFETTO, e l'ha trovato ancora il censimento: su
+     dieci semi `rilieviDaCumulo` scendeva a ZERO. È il caso che protegge la
+     distinzione fra SCAVO e CUMULO — il materiale ripreso da un cumulo già
+     estratto non è nuovo scavo e non deve consumare il volume concesso, che è
+     una regola sorvegliata da `run-stile` perché se divergesse manderebbe metri
+     cubi sbagliati in un documento che va all'ente. Senza un rilievo da cumulo
+     nella cava sintetica, quella regola non viene mai attraversata.
+     Tre volte lo stesso errore in un file solo: la lezione non è «garantisci
+     questo caso», è che **in un generatore ogni caso raro va garantito per
+     costruzione**, perché la probabilità non è una promessa. */
+  if (d.rilievi.length && !d.rilievi.some((r) => r.provenienza === "cumulo")) {
+    d.rilievi[Math.floor(d.rilievi.length / 2)].provenienza = "cumulo";
+  }
   const rilievi = d.rilievi.map((r, i) => ({
     id: `r${i + 1}`, data: r.giorno, stato: "elaborato",
     volumeM3: r.volumeM3, provenienza: r.provenienza, fronteId: r.fronteId,
@@ -307,7 +423,7 @@ export function generaCava({ mesi = 12, seme = 1, fine = "2026-08-14" } = {}) {
     lavoratori: ana.persone, operatoriCampo: ana.operatori, squadreCampo: ana.squadre,
     scadenze, documenti: [], cantieri: [{ id: "c1", nome: "Cava simulata", tipo: "cava", stato: "attivo" }],
     appaltatori: [], appalti: [], infortuni,
-    oreAnno: [{ id: "oa1", anno: 2026, ore: P("personeInForza") * 1700 }],
+    oreAnno: [{ id: "oa1", anno: 2026, ore: T.persone * 1700 }],
     azioni: [], analisi: [], ispezioni: [], permessi: [], mansioni: [], nomine: [], dpi: [],
   };
 
@@ -354,7 +470,7 @@ export function generaCava({ mesi = 12, seme = 1, fine = "2026-08-14" } = {}) {
   };
 
   const flotta = {
-    mezzi: Array.from({ length: P("mezzi") }, (_, i) => ({
+    mezzi: Array.from({ length: T.mezzi }, (_, i) => ({
       id: `m${i + 1}`, nome: `Mezzo ${i + 1}`, tipo: ["escavatore", "pala", "dumper"][i % 3],
       stato: "operativo",
     })),
@@ -383,7 +499,7 @@ export function generaCava({ mesi = 12, seme = 1, fine = "2026-08-14" } = {}) {
     meta: {
       simulazione: true,
       nome: "Cava sintetica (dati generati, NON reali)",
-      seme, mesi, fine,
+      seme, mesi, fine, taglia, produzioneAnnuaT: T.produzioneAnnuaT,
       giorniLavorativi: giorni.length,
       mesiSenzaRilievo: d.mesiSaltati,
       casiVoluti,
