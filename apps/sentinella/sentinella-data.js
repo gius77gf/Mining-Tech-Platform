@@ -603,9 +603,18 @@ export function serieStorica(m, opts = {}) {
   // Ordinamento per data E ORA: con l'import dallo strumento (T1) nello stesso
   // giorno arrivano molte letture, e una serie storica fuori ordine
   // racconterebbe un andamento che non è mai esistito.
+  /* ⛔ LA TERZA SORELLA, e disegnava uno ZERO MAI MISURATO. `+null` fa `0`, che
+     `Number.isFinite` accetta: una lettura registrata senza valore diventava un
+     punto del grafico a **«0 mm/s»** — un tuffo verso il basso, cioè lontano
+     dalla soglia, in un giorno in cui nessuno ha scritto niente. Misurato il
+     14/08 con la cava sintetica e riprodotto su un caso minimo: archivio
+     `4,2 · (vuoto) · 4,4`, lo schermo dice `n=2`, il grafico disegnava `n=3`.
+     La domanda «questa lettura si legge?» la fa `lettureLeggibili` e la
+     facevano già le altre sorelle: qui era rimasta la copia più debole. */
   const letture = (((m || {}).letture) || [])
-    .map(l => ({ data: String((l && l.data) || "").slice(0, 10), ora: String((l && l.ora) || ""), valore: +((l || {}).valore) }))
-    .filter(l => Number.isFinite(l.valore))
+    .map(l => ({ data: String((l && l.data) || "").slice(0, 10), ora: String((l && l.ora) || ""),
+                 valore: numeroDichiarato((l || {}).valore) }))
+    .filter(l => l.valore != null && Number.isFinite(l.valore))
     .sort((a, b) => { const ka = chiaveOrdine(a), kb = chiaveOrdine(b); return ka < kb ? -1 : ka > kb ? 1 : 0; });
 
   const base = {
@@ -2542,8 +2551,25 @@ export function reportConformita(o = {}) {
          `composizioneProvenienza` la conta. Ricopiando solo data/ora/valore
          — che è come stava scritto prima — il documento avrebbe potuto
          dichiarare la composizione soltanto dicendo «non lo so» su tutto. */
+      /* ⛔ E QUI LA COPIA DEBOLE STAVA NEL DOCUMENTO CHE ESCE DALL'AZIENDA.
+         `+null` fa `0` e `Number.isFinite(0)` risponde `true`: una lettura
+         registrata **senza valore** entrava nel report per l'ARPA come una
+         misura di ZERO. Misurato il 14/08 su un caso minimo — punto con soglia
+         5 e archivio `4,2 · (vuoto) · 4,4`:
+           · lo schermo (`statPeriodo`) diceva  n=2 · media 4,300 · minimo 4,2
+           · il documento diceva                n=3 · media **2,867** · minimo **0** · esito «conforme»
+         Stesso archivio, stesso istante, due verità — ed è la stampata a
+         uscire. La direzione è quella che RASSICURA: la media scende del 33%
+         *allontanandosi* dalla soglia. È la stessa famiglia del 03/08, quando
+         il file per l'ARPA scriveva «Conforme» dove lo schermo diceva
+         «Superamento».
+         ⚠️ E `scartate` — la difesa che il report ha apposta per dichiarare le
+         righe che non ha potuto usare — restava **0**: vedeva `"boh"` (valore
+         corrotto) e non vedeva `null` (valore ASSENTE). Passando da
+         `numeroDichiarato` si corregge da sé, perché un `null` non è finito. */
       const grezze = ((m.letture) || [])
-        .map(l => ({ data: String((l || {}).data || "").slice(0, 10), ora: String((l || {}).ora || ""), valore: +((l || {}).valore),
+        .map(l => ({ data: String((l || {}).data || "").slice(0, 10), ora: String((l || {}).ora || ""),
+                     valore: numeroDichiarato((l || {}).valore),
                      ...((l || {}).origine && typeof l.origine === "object" ? { origine: l.origine } : {}) }));
       // le letture registrate su questo punto che il documento non può usare:
       // il giorno non esiste, oppure il valore non è un numero

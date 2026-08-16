@@ -2084,10 +2084,13 @@ test("coperturaRapportini: quali squadre hanno consegnato il rapportino, chi man
     { nome: "Squadra B — Carico", stato: "operativa" },
     { nome: "Squadra C — Impianto", stato: "ferma" },
   ];
+  /* ⚠️ il `data` non c'era, e la fixture era incompleta: un rapportino vero ce
+     l'ha sempre (al più vuoto). Dal 14/08 la funzione lo LEGGE, perché un
+     arretrato senza giorno non prova una consegna di oggi. */
   const rapportini = [
-    { squadra: "Squadra A", stato: "inviato" },
-    { squadra: "Squadra C", stato: "bozza" },      // bozza → non conta
-    { squadra: "Squadra B", stato: "inviato" },
+    { squadra: "Squadra A", stato: "inviato", data: "2026-08-14" },
+    { squadra: "Squadra C", stato: "bozza", data: "2026-08-14" },   // bozza → non conta
+    { squadra: "Squadra B", stato: "inviato", data: "2026-08-14" },
   ];
   const c = campo.coperturaRapportini(squadre, rapportini);
   eq(c.coperte, 2, "A e B hanno consegnato");
@@ -2096,7 +2099,27 @@ test("coperturaRapportini: quali squadre hanno consegnato il rapportino, chi man
   eq(c.mancanti, ["Squadra C — Impianto"], "manca la C (solo bozza)");
 });
 test("coperturaRapportini: nessuna squadra = pct null (niente crash)", () =>
-  eq(campo.coperturaRapportini([], []), { coperte: 0, totale: 0, pct: null, mancanti: [] }, "vuoto"));
+  eq(campo.coperturaRapportini([], []), { coperte: 0, totale: 0, pct: null, mancanti: [], senzaGiorno: 0 }, "vuoto"));
+/* ⛔ IL DIFETTO CHE LA CAVA SINTETICA HA TROVATO, e che la dimostrazione non
+   poteva mostrare: `eDelGiorno` tiene dentro «oggi» i rapportini SENZA DATA —
+   di proposito, perché non spariscano — e questa funzione li contava come
+   consegne. Bastava che l'arretrato fosse della squadra che oggi non ha
+   consegnato perché il badge diventasse verde e il nome di chi manca sparisse
+   dalla riga che esiste per dirlo. Un solo rapportino basta.
+   ⚠️ Le due asserzioni sono OPPOSTE di proposito: se un giorno qualcuno
+   «semplificasse» tornando a contarli, la prima cade; se qualcuno li facesse
+   sparire del tutto invece di dichiararli, cade la seconda. */
+test("⛔ coperturaRapportini: un arretrato SENZA GIORNO non copre la squadra che non ha consegnato", () => {
+  const squadre = [{ nome: "Squadra A" }, { nome: "Squadra B" }];
+  const conArretrato = [
+    { squadra: "Squadra B", stato: "inviato", data: "2026-08-14" },
+    { squadra: "Squadra A", stato: "inviato", data: "" },   // l'arretrato di A, senza giorno
+  ];
+  const c = campo.coperturaRapportini(squadre, conArretrato);
+  eq(c.coperte, 1, "ha consegnato solo B");
+  eq(c.mancanti, ["Squadra A"], "e A resta nominata fra i mancanti");
+  eq(c.senzaGiorno, 1, "ma il rapportino senza giorno si DICHIARA, non sparisce");
+});
 test("parseSquadreCsv: legge nome/persone/area/stato; persone intere; stato ignoto → operativa", () => {
   const csv = "nome;persone;area;stato\nSquadra A — Perforazione;4;fronte Est;operativa\nSquadra C — Impianto;2;frantoio;ferma\nSquadra X;3;;boh\n;piazzale;2;operativa\n";
   const p = campo.parseSquadreCsv(csv);
@@ -3476,7 +3499,8 @@ test("prioritaOperative: manutenzione a ore su un mezzo assente viene ignorata (
 test("coperturaRapportini: un rapportino di una squadra sconosciuta non falsa il conteggio", () => {
   const c = campo.coperturaRapportini(
     [{ nome: "Squadra A — Perforazione" }],
-    [{ squadra: "Squadra Z", stato: "inviato" }, { squadra: "Squadra A", stato: "inviato" }]);
+    [{ squadra: "Squadra Z", stato: "inviato", data: "2026-08-14" },
+     { squadra: "Squadra A", stato: "inviato", data: "2026-08-14" }]);
   eq(c.coperte, 1, "solo A conta");
   eq(c.totale, 1, "una squadra");
   eq(c.mancanti, [], "A ha consegnato");
@@ -32701,6 +32725,276 @@ test("frasePersi · ⚠️ NIENTE `esc()`: la frase esce come l'utente l'ha scri
   });
 }
 /* ===== fine Scudo · il pannello verde e i registri muti ===== */
+
+/* ═══════════════════════════════════════════════════════════════════════
+   SCUDO E SENTINELLA SU VOLUME — quello che la cava sintetica ha esercitato
+   ───────────────────────────────────────────────────────────────────────
+   Da dove vengono queste prove: una cava sintetica di 24 mesi, tre taglie
+   (4, 7 e 35 persone) e dodici semi — 108 cave, 1.008 letture ambientali, 69
+   superamenti, 74 infortuni veri. Su quel volume le tre difese qui sotto
+   hanno retto senza una divergenza; queste righe le inchiodano, perché una
+   misura fatta una volta in uno scratchpad alla sessione dopo non esiste.
+   ⚠️ Le fixture sono SCRITTE QUI e non generate: il generatore è un file di
+   un altro cantiere e si muove: una suite che lo importa diventa rossa
+   quando quel file è a metà di una modifica. Quello che il generatore ha
+   dato è la CONFIDENZA sui numeri; quello che resta in git è il caso minimo.
+   ⚠️ Prove SINCRONE e messe PRIMA del riepilogo: l'`await Promise.all(inVolo)`
+   sta a metà file, quindi una prova asincrona aggiunta qui verrebbe messa in
+   volo e il totale si stamperebbe senza aspettarla.
+   ⚠️ Ogni prova porta la sua COPPIA DISCRIMINANTE: accanto al caso che deve
+   passare c'è quello che deve dare la risposta opposta. Un'asserzione che
+   dice solo «questo è un superamento» passerebbe anche con un controllo che
+   risponde sempre di sì — è la controprova scritta dentro la prova, e senza
+   di lei non si saprebbe se sta misurando qualcosa. */
+{
+  const OGGI_VOL = new Date("2026-08-14T12:00:00Z");
+  /* un punto di misura con soglia 5, nella forma che l'app legge davvero */
+  const punto = (letture, extra = {}) => ({
+    id: "mv1", nome: "Ricettore abitazione", tipo: "vibrazioni", soglia: 5,
+    unita: "mm/s", ricettoreId: "rcv1", tarature: [], nota: "",
+    valore: letture.length ? letture[letture.length - 1].valore : null,
+    letture, ...extra,
+  });
+  const RIC = [{ id: "rcv1", nome: "Abitazione via Cava", distanzaM: 320 }];
+  const report = (m) => sentinella.reportConformita({
+    monitoraggi: [m], ricettori: RIC, reclami: [], volate: [], dal: "", al: "", oggi: OGGI_VOL });
+
+  test("⛔ Sentinella · la lettura PARI alla soglia è un superamento per tutti e cinque i lettori", () => {
+    /* `conSoglia` dice `>=`, e su quel confine si decide se un documento che
+       va all'ente scrive «Conforme» o «Non conforme». Sui 108 casi generati i
+       cinque lettori non hanno mai divergiuto; qui si fissa il confine esatto,
+       che il caso a caso non tocca quasi mai (su 1.008 letture generate,
+       nessuna cadeva ESATTAMENTE su 5,00). */
+    const pari = punto([{ id: "l1", data: "2026-07-01", valore: 5 }]);
+    eq(sentinella.statPeriodo(pari, "", "", 5).superamenti, 1, "schermo: 5,00 su soglia 5 è un superamento");
+    eq(report(pari).nSuperamenti, 1, "documento per l'ente: idem");
+    eq(report(pari).esito, "non-conforme", "e l'esito del documento lo dice");
+    eq(sentinella.statoMisura(pari).stato, "superamento", "il badge dello schermo: idem");
+    ok(!!sentinella.ultimaLetturaOltre(pari, 5), "il ponte verso Scudo: idem");
+    eq(sentinella.esitoPunto(1, 1, 5), "non-conforme", "e la regola del singolo punto");
+    ok(/;Superamento;/.test(sentinella.csvAmbiente([pari], [], RIC, OGGI_VOL)),
+      "il CSV per l'ARPA scrive «Superamento», non «Attenzione»");
+
+    /* LA COPPIA DISCRIMINANTE: un capello sotto la soglia NON è un
+       superamento. Senza questa metà la prova passerebbe con un `>=` scritto
+       come `>= 0`, cioè con un controllo che accusa sempre. */
+    const sotto = punto([{ id: "l1", data: "2026-07-01", valore: 4.99 }]);
+    eq(sentinella.statPeriodo(sotto, "", "", 5).superamenti, 0, "4,99 su 5 NON è un superamento (schermo)");
+    eq(report(sotto).nSuperamenti, 0, "4,99 su 5 NON è un superamento (documento)");
+    eq(report(sotto).esito, "conforme", "e lì l'esito è «conforme»");
+    eq(sentinella.statoMisura(sotto).stato, "attenzione", "il badge dice «attenzione», che è il gradino sotto");
+  });
+
+  test("⛔ Sentinella · su un archivio di 24 letture schermo e documento contano LO STESSO", () => {
+    /* Il difetto che questa prova esiste per prendere è quello del 03/08: il
+       file che esce dall'azienda che dice una cosa diversa dallo schermo.
+       Ventiquattro letture — due anni di misure mensili, il volume che la
+       dimostrazione non ha — di cui tre oltre soglia e una ESATTAMENTE pari. */
+    const letture = Array.from({ length: 24 }, (_, i) => ({
+      id: "l" + (i + 1),
+      data: `${2025 + Math.floor(i / 12)}-${String((i % 12) + 1).padStart(2, "0")}-10`,
+      valore: i === 5 ? 6.2 : i === 11 ? 5 : i === 17 ? 5.4 : 1 + (i % 7) * 0.5,
+    }));
+    const m = punto(letture);
+    const aMano = letture.filter(l => l.valore >= 5).length;
+    eq(aMano, 3, "la fixture contiene davvero tre superamenti (se no la prova non prova niente)");
+    const sp = sentinella.statPeriodo(m, "", "", 5), rep = report(m);
+    eq(sp.n, 24, "lo schermo vede tutte e 24 le letture");
+    eq(rep.punti[0].n, 24, "e il documento pure");
+    eq(sp.superamenti, aMano, "lo schermo conta i tre superamenti");
+    eq(rep.nSuperamenti, aMano, "e il documento conta gli stessi tre");
+    eq(rep.esito, "non-conforme", "quindi il documento NON assolve la cava");
+    eq(rep.punti[0].max, 6.2, "e il massimo è quello vero");
+
+    /* LA COPPIA DISCRIMINANTE: lo stesso archivio senza le tre righe alte
+       deve ribaltare l'esito. Senza, «non-conforme» potrebbe essere una
+       risposta che quella funzione dà sempre. */
+    const sane = punto(letture.map(l => (l.valore >= 5 ? { ...l, valore: 2 } : l)));
+    eq(sentinella.statPeriodo(sane, "", "", 5).superamenti, 0, "tolte le tre alte, lo schermo non vede superamenti");
+    eq(report(sane).nSuperamenti, 0, "né il documento");
+    eq(report(sane).esito, "conforme", "e lì l'esito si ribalta");
+  });
+
+  test("⛔ Scudo · l'infortunio senza anno leggibile non sparisce dagli indici in silenzio", () => {
+    /* La difesa chiusa il 14/08, rimessa alla prova su volume: 288 casi
+       iniettati su 72 cave, nessuna difesa muta. Qui restano le quattro forme
+       di data che un registro può portare, perché sono quattro strade diverse
+       per arrivare allo stesso `null`. */
+    const conAnno = { id: "i1", tipo: "infortunio", data: "2026-03-11", gravita: "media", giorniAssenza: 12 };
+    const ORE = 11900;   // sette persone × 1.700 h, la taglia media della cava sintetica
+    for (const forma of ["", null, "boh", "13"]) {
+      const reg = [conAnno, { id: "i2", tipo: "infortunio", data: forma, gravita: "media", giorniAssenza: 4 }];
+      const ii = scudo.indiciInfortunistici(reg, ORE, 2026);
+      eq(ii.infortuni, 1, `data ${mostra(forma)}: nel conto dell'anno entra solo quello con la data`);
+      eq(ii.senzaAnno, 1, `data ${mostra(forma)}: e l'altro si CONTA a parte, non sparisce`);
+      ok(/più BASSI del vero/.test(scudo.avvisoInfortuniSenzaAnno(ii) || ""),
+        `data ${mostra(forma)}: e la frase dice in che verso l'indice sbaglia`);
+      eq(scudo.riepilogoInfortuni(reg, OGGI_VOL).dataIgnota, 1,
+        `data ${mostra(forma)}: anche il cartellone in cima alla stessa schermata lo dichiara`);
+      eq(scudo.riepilogoInfortuni(reg, OGGI_VOL).infortuni, 2,
+        `data ${mostra(forma)}: e il cartellone conta DUE infortuni, non uno`);
+    }
+
+    /* LA COPPIA DISCRIMINANTE, e non è una formalità: `annoRegistrato` legge
+       i primi quattro caratteri, quindi «2026» — senza mese né giorno — un
+       anno CE L'HA. Se la prova pretendesse `senzaAnno: 1` anche qui starebbe
+       chiedendo al prodotto di sbagliare. */
+    const soloAnno = [conAnno, { id: "i2", tipo: "infortunio", data: "2026", gravita: "media", giorniAssenza: 4 }];
+    const jj = scudo.indiciInfortunistici(soloAnno, ORE, 2026);
+    eq(jj.senzaAnno, 0, "«2026» un anno ce l'ha: non si conta fra quelli senza");
+    eq(jj.infortuni, 2, "e quell'infortunio entra nel conto dell'anno");
+    eq(scudo.avvisoInfortuniSenzaAnno(jj), null, "quindi non c'è niente da avvertire");
+
+    /* e un registro tutto leggibile non deve far scattare niente */
+    const pulito = scudo.indiciInfortunistici([conAnno], ORE, 2026);
+    eq(pulito.senzaAnno, 0, "registro pulito: nessun senzaAnno");
+    eq(scudo.avvisoInfortuniSenzaAnno(pulito), null, "e nessun avviso");
+    eq(pulito.indiceFrequenza, 84.03, "IF di un infortunio su 11.900 ore");
+    eq(pulito.ltifr, 84.03, "e il LTIFR, perché quell'infortunio ha giornate di assenza");
+  });
+}
+/* ===== fine Scudo e Sentinella · su volume ===== */
+
+/* ══════════════════════════════════════════════════════════════════════════
+   CONTI E FLOTTA SU UNA CAVA CHE CAMMINA — le difese che la dimostrazione
+   non esercita mai, provate su archivi lunghi e sui casi storti.
+   ══════════════════════════════════════════════════════════════════════════
+   ⚠️ Prove SINCRONE e messe PRIMA del riepilogo: l'`await Promise.all(inVolo)`
+   sta a metà file, quindi una prova asincrona aggiunta qui non verrebbe
+   aspettata e il totale si stamperebbe senza di lei.
+   ⛔ Queste prove blindano ciò che è stato MISURATO CORRETTO il 16/08 con la
+   cava sintetica a 24 mesi. I difetti trovati nella stessa sessione NON sono
+   qui: una prova rossa in cima al branch non è una segnalazione, è un blocco
+   per tutti gli altri cantieri. Stanno nella relazione, con il loro caso
+   minimo riproducibile. */
+{
+  const OGGI = new Date("2026-08-14T12:00:00Z");
+
+  test("⛔ Conti · su due anni lo `scadutoTot` non si mangia la fattura senza scadenza", () => {
+    /* La promessa scritta il 01/08 accanto ad `agingIncassi`: la fascia
+       `senzaScadenza` nasce PER non gonfiare né sgonfiare lo scaduto. Su un
+       archivio corto non si vede; qui il credito senza data vale un terzo. */
+    const F = [
+      { id: "a", numero: "A", cliente: "Alfa", importo: 10000, emessa: "2024-09-01", scadenza: "2024-10-01", incassata: false },
+      { id: "b", numero: "B", cliente: "Beta", importo: 10000, emessa: "2026-05-01", scadenza: null, incassata: false },
+      { id: "c", numero: "C", cliente: "Gamma", importo: 10000, emessa: "2026-08-01", scadenza: "2026-10-31", incassata: false },
+    ];
+    const g = conti.agingIncassi(F, OGGI);
+    eq(g.senzaScadenza.conto, 1, "la fattura senza scadenza ha un secchio suo");
+    eq(g.senzaScadenza.importo, 10000, "e ci porta dentro il suo importo intero");
+    eq(g.nonScaduto.conto, 1, "«non scaduto» resta la sola fascia tranquilla, e contiene solo chi è nei termini");
+    eq(g.oltre90.conto, 1, "il credito di due anni fa cade oltre i 90 giorni");
+    eq(g.scadutoTot, 10000, "lo scaduto è SOLO quello davvero scaduto: la senza-scadenza non lo gonfia");
+    /* controprova: togliendo la senza-scadenza lo scaduto non si muove */
+    eq(conti.agingIncassi([F[0], F[2]], OGGI).scadutoTot, 10000,
+      "controprova: senza quella fattura lo scaduto è identico — quindi non ci era mai entrata");
+    /* e il conto delle righe torna: nessuna fattura aperta sparisce dall'aging */
+    const somma = ["nonScaduto", "g1_30", "g31_60", "g61_90", "oltre90", "senzaScadenza"]
+      .reduce((t, k) => t + g[k].conto, 0);
+    eq(somma, 3, "tutte e tre le aperte sono da qualche parte: l'aging non ne perde nessuna");
+  });
+
+  test("⛔ Conti · la difesa del listino del 14/08 regge: «10%» e il quintale si DICHIARANO", () => {
+    /* Il difetto chiuso il 14/08: «10%» letto come 22 e il quintale come
+       tonnellata, in silenzio. Il valore di ripiego resta (è la scelta
+       dichiarata), quello che non deve tornare è il silenzio. */
+    const a = conti.leggiAliquotaListino("10%");
+    eq(a.iva, 22, "«10%» non si legge: il ripiego resta l'aliquota ordinaria");
+    eq(a.letta, false, "⛔ ma è DICHIARATO che il 22 lo abbiamo messo noi");
+    eq(a.vuota, false, "e non è una cella vuota: qualcuno ci aveva scritto qualcosa");
+    eq(conti.leggiAliquotaListino("10").letta, true, "«10» invece si legge, ed è 10");
+    eq(conti.leggiAliquotaListino("10").iva, 10, "dieci per cento, non ventidue");
+    eq(conti.leggiAliquotaListino("0").letta, true, "uno zero SCRITTO è una decisione di chi compila");
+    const u = conti.leggiUnitaListino("q");
+    eq(u.unita, "t", "il quintale non lo conosciamo: ripiego sulla tonnellata");
+    eq(u.riconosciuta, false, "⛔ e lo si dichiara, invece di far passare 100 kg per 1.000");
+    eq(conti.leggiUnitaListino("mc").riconosciuta, true, "controprova: «mc» è riconosciuta davvero");
+    /* e la dichiarazione ARRIVA a chi importa, che è la metà che conta */
+    const sc = conti.scartiListinoCsv("Pietrisco 8/12;q;12,00;1,5;10%");
+    eq(sc.entrano, 1, "la riga entra: è buona, il prodotto è vendibile");
+    eq(sc.avvisi.length, 2, "⛔ ma porta con sé DUE avvisi, uno per cella messa da noi");
+    eq(sc.avvisi.filter(x => x.campo === "unita").length, 1, "uno sull'unità");
+    eq(sc.avvisi.filter(x => x.campo === "iva").length, 1, "e uno sull'aliquota");
+    /* controprova: una riga scritta per bene non deve far scattare niente */
+    eq(conti.scartiListinoCsv("Pietrisco 8/12;t;12,00;1,5;22").avvisi.length, 0,
+      "controprova: con unità e aliquota scritte bene, zero avvisi");
+  });
+
+  test("⛔ Conti · csvListino → parseListinoCsv: il giro non perde né inventa", () => {
+    /* La coppia scrivi/leggi provata sul TESTO, non solo sull'identità: due
+       metà che sbagliano insieme resterebbero verdi (regola di casa). */
+    const P = [
+      { id: "p1", nome: "Stabilizzato 0/30", unitaPrezzo: "t", prezzo: 8.5, densita: 1.9, iva: 22 },
+      { id: "p3", nome: "Sabbia lavata 0/4", unitaPrezzo: "m3", prezzo: 22, densita: 1.6, iva: 22 },
+      { id: "p5", nome: "Misto di cava", unitaPrezzo: "t", prezzo: 6.5, densita: null, iva: 22 },
+    ];
+    const testo = conti.csvListino(P);
+    eq(/\n[^\n]*Misto di cava;t;6\.5;;22/.test(testo), true,
+      "la densità che manca esce come cella VUOTA, mai come zero: uno zero direbbe «senza peso»");
+    const r = conti.parseListinoCsv(testo);
+    eq(r.length, 3, "rientrano tutti e tre");
+    eq(r[1].unitaPrezzo, "m3", "il metro cubo torna metro cubo (esce «mc», rientra «m3»)");
+    eq(r[2].densita, null, "e la densità assente rientra assente, non zero");
+    eq(conti.scartiListinoCsv(testo).avvisi.length, 0,
+      "⛔ e il file che scriviamo noi non fa scattare nessun avviso: le due funzioni usano la stessa costante");
+  });
+
+  test("⛔ Flotta · il contatore che scende: le due letture dello stesso fatto si RIFIUTANO insieme", () => {
+    /* Il caso del 03/08 (0,68 l/h invece di 2,22), rimesso alla prova: allora
+       `consumoPerMezzo` rispondeva e `ritmoOreMezzi` no. Adesso devono tacere
+       tutt'e due, se no una schermata smentisce l'altra. */
+    const R = [
+      { id: "a1", data: "2026-06-01", mezzo: "Pala P1", litri: 400, euro: 600, ore: 5600 },
+      { id: "a2", data: "2026-06-15", mezzo: "Pala P1", litri: 400, euro: 600, ore: 5750 },
+      { id: "a3", data: "2026-07-01", mezzo: "Pala P1", litri: 400, euro: 600, ore: 4870 },
+    ];
+    const c = flotta.consumoPerMezzo(R).mezzi[0];
+    eq(c.litriOra, null, "⛔ il consumo NON si calcola: una delle due letture è sbagliata");
+    eq(c.oreCoperte, null, "e nemmeno le ore coperte, che sarebbero il denominatore falso");
+    eq(/contatore è sceso/.test(c.perche), true, "e la ragione è scritta in italiano a chi guarda");
+    const r = flotta.ritmoOreMezzi(R, OGGI)[0];
+    eq(r.oreGiorno, null, "⛔ e il ritmo d'uso si rifiuta sullo stesso dato");
+    eq(c.litriOra == null, r.oreGiorno == null, "le due schermate dicono la STESSA cosa");
+    /* controprova: col contatore che sale, tutt'e due rispondono */
+    const S = R.map((x, i) => i === 2 ? { ...x, ore: 5900 } : x);
+    const c2 = flotta.consumoPerMezzo(S).mezzi[0];
+    eq(c2.oreCoperte, 300, "controprova: 5900 − 5600 = 300 ore coperte");
+    eq(c2.litriOra, 2.67, "e 800 litri dopo il primo pieno fanno 2,67 l/h");
+    /* ⚠️ il ritmo si chiede a un «oggi» VICINO all'ultima lettura: con OGGI
+       (14/08) l'ultima è di 44 giorni prima e `ritmoOreMezzi` si rifiuta a
+       ragione — «quel ritmo racconta un periodo passato, non questo». La prima
+       stesura di questa riga accusava il prodotto di un difetto che era mio. */
+    const vicino = new Date("2026-07-05T12:00:00Z");
+    eq(flotta.ritmoOreMezzi(S, vicino)[0].oreGiorno, 10, "e il ritmo torna misurabile: 300 h in 30 giorni");
+    eq(flotta.ritmoOreMezzi(S, OGGI)[0].oreGiorno, null,
+      "mentre a 44 giorni di distanza si rifiuta, e lo dice: un ritmo vecchio non è il ritmo di adesso");
+  });
+
+  test("⛔ Flotta · un pezzo esaurito senza soglia non è «a posto», e `mancano` resta «non lo so»", () => {
+    /* `parseRicambiCsv` lascia `sogliaMin: null` quando la colonna è vuota —
+       una soglia inventata farebbe tacere un allarme. Qui si prova che i
+       quattro stati reggono su un magazzino arrivato da un import. */
+    const M = flotta.parseRicambiCsv([
+      "nome;giacenza;sogliaMin;prezzo",
+      "Filtro A;1;5;10",
+      "Pompa B;0;;",
+      "Cinghia C;40;;",
+    ].join("\n"));
+    eq(M.length, 3, "entrano tutti e tre: quello che fa perdere la riga è il NOME");
+    eq(M[1].sogliaMin, null, "la soglia mai scritta resta null, non zero");
+    eq(flotta.statoScorta(M[0]).stato, "sotto-scorta", "1 su 5: sotto scorta");
+    eq(flotta.statoScorta(M[1]).stato, "esaurito", "zero pezzi è misurato, e vale anche senza soglia");
+    eq(flotta.statoScorta(M[1]).mancano, null, "⛔ ma quanti ne manchino per una soglia che nessuno ha scritto NON si sa");
+    eq(flotta.statoScorta(M[2]).stato, "senza-soglia", "40 pezzi e nessuna soglia: non giudicabile, non «ok»");
+    eq(flotta.statoScorta(M[2]).cls, "warn", "e il colore non è quello tranquillo");
+    const ss = flotta.sottoScorta(M);
+    eq(ss.length, 2, "nell'avviso ci finiscono l'esaurito e il sotto-scorta, non il non-giudicabile");
+    /* controprova: con la soglia scritta, lo stesso pezzo cambia risposta */
+    eq(flotta.statoScorta({ ...M[2], sogliaMin: 3 }).stato, "a-posto",
+      "controprova: scritta la soglia, 40 su 3 è davvero a posto");
+  });
+}
+/* ===== fine Conti e Flotta · su cava sintetica a 24 mesi ===== */
 
 console.log(`\nRisultato KPI app: ${passed} passati, ${failed} falliti${inVolo.length ? `  ·  ${inVolo.length} prove asincrone aspettate` : ""}`);
 process.exit(failed > 0 ? 1 : 0);

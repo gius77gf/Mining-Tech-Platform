@@ -1,5 +1,10 @@
 /* ⛔ LA CAVA SINTETICA — un ecosistema che vive, per trovare i difetti che la
    dimostrazione non può mostrare.
+   ⚠️ NON VA IN npm test: è una LIBRERIA, non una suite — non asserisce
+   niente, genera dati. A provarla è `prova-cava.mjs`, che sta nel giro e
+   pretende le sue quattro promesse: il 14/08 questo file è rimasto rotto
+   sul disco per venti minuti (un `ReferenceError` a ogni chiamata) e non
+   se n'è accorto nessun controllo.
    ══════════════════════════════════════════════════════════════════════════
    PERCHÉ ESISTE. Oggi la dimostrazione delle sei app pesa **408 righe in
    tutto** (campo 68, conti 77, flotta 58, scudo 125, sentinella 28, terra 52),
