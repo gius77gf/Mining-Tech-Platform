@@ -52,6 +52,14 @@
          const c = generaCava({ mesi: 24, seme: 7 });
          c.terra.rilievi.length                                              */
 
+/* ⛔ La densità NON si riscrive qui: si importa da dove il prodotto la
+   decide. È la regola di CLAUDE.md sulla copia più debole — una densità
+   scritta due volte diverge, e il ponte comincerebbe a confrontare due
+   conversioni diverse senza che niente lo dica. */
+import { densitaDelMateriale } from "../../../../shared/dw-ponti.js";
+
+export const MATERIALE = "Calcare";
+
 /* ── il caso, ma ripetibile ────────────────────────────────────────────
    Un generatore con `Math.random()` dà una cava diversa a ogni giro, e un
    difetto trovato non si riprodurrebbe: il seme è la differenza fra una misura
@@ -169,6 +177,10 @@ export const PARAMETRI = {
   quotaSenzaMisura:          { v: 0.05, u: "quota", da: "[dedotto] rapportini senza quantità" },
   quotaMesiSenzaRilievo:     { v: 0.15, u: "quota", da: "[dedotto] mesi in cui il drone non ha volato" },
   quotaPersoneSenzaScadenze: { v: 0.10, u: "quota", da: "[dedotto] persone di cui non si sa niente" },
+  /* l'errore di misura del volo, e i voli che non coprono tutto lo scavo: sono
+     le due spiegazioni che il ponte Campo↔Terra deve saper nominare entrambe */
+  erroreRilievo:             { v: 0.06, u: "quota", da: "[dedotto] ±6% fra due voli fotogrammetrici" },
+  quotaVoliParziali:         { v: 0.12, u: "quota", da: "[dedotto] il volo non ha coperto tutto lo scavo" },
 };
 
 const P = (k) => PARAMETRI[k].v;
@@ -275,6 +287,9 @@ function diario(giorni, ana, rnd, taglia) {
   const infAnno = taglia.persone * P("infortuniPerMillePersoneAnno") / 1000;
   const nmAnno = taglia.persone * P("nearMissPerVentiPersoneAnno") / 20;
   let ultimaVolata = -giorniFraVolate;
+  /* la densità IN BANCO, presa dal prodotto e non riscritta qui */
+  const densitaBanco = densitaDelMateriale(MATERIALE).densita;
+  let tDaUltimoVolo = 0;
 
   giorni.forEach((g, i) => {
     const stag = P("stagionalita")[g.mese] ?? 1;
@@ -295,6 +310,11 @@ function diario(giorni, ana, rnd, taglia) {
         qta: senzaMisura ? null : q,
         dataScritta: senzaData ? "" : g.iso,
       });
+      /* ⚠️ si accumula quello che è stato DICHIARATO, non quello che è stato
+         prodotto: un turno senza quantità registrata è roccia che è uscita dal
+         fronte e che nessuno ha scritto — ed è proprio la ragione per cui il
+         volo può misurare più di quanto i turni dichiarano. */
+      if (!senzaMisura) tDaUltimoVolo += q;
     }
     if (i - ultimaVolata >= giorniFraVolate) {
       ultimaVolata = i;
@@ -307,8 +327,46 @@ function diario(giorni, ana, rnd, taglia) {
       /* alcuni mesi il drone non vola: è il caso «non misurato» che Terra
          esiste per dichiarare, e che nella dimostrazione non c'è mai */
       if (rnd() >= P("quotaMesiSenzaRilievo")) {
-        ev.rilievi.push({ giorno: g.iso, fronteId: ana.fronti[i % 2].id,
-          volumeM3: 4000 + Math.round(rnd() * 8000), provenienza: rnd() < 0.15 ? "cumulo" : "scavo" });
+        /* ⛔ IL VOLO MISURA QUELLO CHE I TURNI HANNO PORTATO VIA, NON UN NUMERO
+           A CASO. Prima era `4000 + rnd()*8000`, indipendente dalla produzione:
+           il ponte Campo↔Terra confrontava due grandezze scorrelate e diceva
+           **«implausibile» nove mesi su nove**. Non era un difetto del prodotto
+           — il prodotto aveva ragione, i dati ERANO incoerenti — ma era un
+           simulatore che non può provare il ponte che esiste per provare.
+           ⚠️ E LE DUE DENSITÀ NON SONO LA STESSA COSA, ed è l'errore che stava
+           sotto: il drone misura il **vuoto lasciato nel fronte**, cioè roccia
+           IN BANCO (2,6 t/m³ per il calcare); i listini quotano il materiale
+           SCIOLTO (1,45-1,60). Convertendo col numero sbagliato il confronto
+           usciva sballato di **1,62 volte**, che è esattamente 2,6/1,55.
+           Si usa la densità che usa il PRODOTTO (`densitaDelMateriale`), non
+           una scritta qui: se un giorno cambia là, cambia anche qui. */
+        /* ⛔ UN RILIEVO DA CUMULO NON CONSUMA LA PRODUZIONE DEL FRONTE, e per
+           un giro l'ha fatto: l'accumulatore si azzerava a ogni volo, cumulo
+           compreso, ma il prodotto — giustamente — conta come «misurato» solo
+           lo SCAVO. Risultato: quella produzione spariva dal lato misurato e il
+           confronto sui due anni usciva **-24%** senza che nessuna delle due
+           parti avesse torto. Un cumulo misura un mucchio sul piazzale, non il
+           vuoto lasciato nel fronte: ha un volume suo e lascia intatto il
+           conto del fronte. */
+        const daCumulo = rnd() < 0.15;
+        if (daCumulo) {
+          ev.rilievi.push({ giorno: g.iso, fronteId: ana.fronti[i % 2].id,
+            volumeM3: 200 + Math.round(rnd() * 800), provenienza: "cumulo" });
+        } else {
+          const tonnellate = tDaUltimoVolo;
+          tDaUltimoVolo = 0;
+          const erroreVolo = 1 + (rnd() - 0.5) * 2 * P("erroreRilievo");
+          const m3Banco = Math.round(tonnellate / densitaBanco * erroreVolo);
+          /* il volo che NON copre tutto lo scavo: è una delle due spiegazioni
+             che il ponte deve nominare, e senza di lui non è mai esercitata.
+             ⚠️ quello che non ha coperto NON sparisce: resta nell'accumulatore
+             e lo misurerà il volo dopo, che è ciò che succede davvero. */
+          const parziale = rnd() < P("quotaVoliParziali");
+          const visto = parziale ? Math.round(m3Banco * 0.6) : m3Banco;
+          if (parziale) tDaUltimoVolo = (m3Banco - visto) * densitaBanco;
+          ev.rilievi.push({ giorno: g.iso, fronteId: ana.fronti[i % 2].id,
+            volumeM3: Math.max(1, visto), provenienza: "scavo" });
+        }
       } else mesiSaltati.add(g.iso.slice(0, 7));
     }
     if (i - ultimaLettura >= P("giorniFraLettureAmbientali")) {
