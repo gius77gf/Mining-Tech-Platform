@@ -3109,6 +3109,42 @@ body.dw b.bad{color:var(--ink-dg)}
   const pz = (n) => (+n || 0).toLocaleString("it-IT", { maximumFractionDigits: 2 })
     + (Math.abs(+n || 0) === 1 ? " pezzo" : " pezzi");
 
+  /* ⛔ QUANTO COSTA RIMETTERLI A POSTO — E QUANDO NON SI PUÒ DIRE. La frase
+     stava scritta in linea come `p.spesaTotale ? ": costa circa X." : "."`, e
+     quel ternario aveva due difetti che si sommavano.
+     · Il PRIMO ramo: `spesaTotale` è la somma dei prezzi che si CONOSCONO, e
+       il modulo dichiara con `senzaPrezzo` quanti pezzi da ordinare il prezzo
+       non ce l'hanno. Scrivere «costa circa 144 €» sopra due pezzi muti fa
+       passare per completo un conto che è un minimo — e nella direzione che
+       rassicura, perché una spesa più bassa non fa alzare il telefono.
+     · Il SECONDO: se NESSUN pezzo ha il prezzo la somma è `0`, che è falso in
+       JavaScript, quindi il ternario cadeva sul punto e la riga taceva. Su sei
+       pezzi da comprare la pagina non scriveva nulla di quanto costano.
+     Tre rami perché tre sono le cose che si possono dire, ed è la stessa forma
+     dei quattro stati di `statoScorta`: so tutto, so una parte, non so niente.
+     ⚠️ Sta qui e non dentro `disegnaScorte` perché la leggono in due — il
+     riepilogo e il toast della lista della spesa — e una frase scritta due
+     volte diverge alla prima correzione. */
+  const codaSpesa = (p) => {
+    /* ⚠️ «rimetterlo» al singolare era sbagliato anche PRIMA di questo lavoro:
+       con un ricambio solo la riga diceva «1 ricambio è sotto quello che
+       servirebbe: rimetterli a posto costa circa 48 €». Una parola, nella
+       stessa frase che stavo riscrivendo. */
+    if (!p.senzaPrezzo) return p.spesaTotale
+      ? `: ${plurale(p.daOrdinare, "rimetterlo", "rimetterli")} a posto costa circa <b>${eur(p.spesaTotale)}</b>.` : ".";
+    /* ⚠️ IL SINGOLARE, che in italiano non si aggiusta con una «i» finale:
+       con un ricambio solo cambiano il pronome («rimetterlo»), il soggetto
+       («non ha» invece di «nessuno di loro ha») e il verbo dell'invito. */
+    if (p.senzaPrezzo >= p.daOrdinare)
+      return `. <span class="giallo">Quanto costa ${plurale(p.daOrdinare, "rimetterlo", "rimetterli")} a posto non si può dire</span>: `
+        + plurale(p.daOrdinare, "non ha un prezzo scritto a magazzino.", "nessuno di loro ha un prezzo scritto a magazzino.");
+    /* ⚠️ qui il plurale è al sicuro per costruzione: si arriva a questo ramo
+       solo con `0 < senzaPrezzo < daOrdinare`, cioè con almeno due ricambi. */
+    return `: rimetterli a posto costa <b>almeno ${eur(p.spesaTotale)}</b>, `
+      + `<span class="giallo">e il conto non è tutto</span> — ${conta(p.senzaPrezzo, "ricambio non ha", "ricambi non hanno")} `
+      + `il prezzo scritto a magazzino. ${plurale(p.senzaPrezzo, "Scrivilo", "Scrivili")} e la cifra diventa vera.`;
+  };
+
   function disegnaScorte() {
     const consegna = Math.round(+$("sco-consegna").value || 0);
     const sicurezza = Math.max(0, Math.round(+$("sco-sicurezza").value || 0));
@@ -3167,7 +3203,7 @@ body.dw b.bad{color:var(--ink-dg)}
         + ". "
         + (p.daOrdinare
             ? `<span class="rosso">${p.daOrdinare} ${p.daOrdinare === 1 ? "ricambio è sotto quello che servirebbe" : "ricambi sono sotto quello che servirebbe"}</span>`
-              + (p.spesaTotale ? `: rimetterli a posto costa circa <b>${eur(p.spesaTotale)}</b>.` : ".")
+              + codaSpesa(p)
             : "Nessun ricambio è sotto la soglia che verrebbe fuori dai consumi.")
       : `Nessun ricambio del magazzino risulta consumato ${plurale(p.finestra, `nell'ultimo giorno`, `negli ultimi ${p.finestra} giorni`)}: senza consumi non si può dire quanti pezzi tenere, e l'app non se lo inventa. `
         + "Le soglie restano quelle che hai scritto tu.";
@@ -4961,11 +4997,28 @@ body.dw b.bad{color:var(--ink-dg)}
         + " Il consumo qui sopra è in parte una STIMA, non una misura:"
         + " scrivi le quantità negli ordini di lavoro e il conto diventa vero."));
     }
+    /* ⛔ E LA QUARTA, che è quella che il fornitore legge per fare il preventivo.
+       `spesa` di riga è già `null` quando il pezzo non ha un prezzo — la
+       colonna esce vuota, ed è giusto — ma chi somma la colonna in un foglio
+       di calcolo ottiene la stessa cifra che il modulo chiama `spesaTotale`, e
+       nessuno gli dice che è un MINIMO. Stessa forma delle altre due
+       avvertenze: una riga in fondo con una cella sola, non una colonna
+       ripetuta uguale. */
+    if (p.senzaPrezzo) {
+      righe.push("");
+      righe.push(csvCell("ATTENZIONE: " + conta(p.senzaPrezzo, "ricambio di questa lista non ha", "ricambi di questa lista non hanno")
+        + " un prezzo scritto a magazzino, quindi la colonna «spesa» resta vuota."
+        + (p.senzaPrezzo >= da.length
+            ? " Nessuna riga porta un prezzo: quanto costa questa lista non si può dire."
+            : " Il totale della colonna è quindi un MINIMO, non la spesa vera.")));
+    }
     const a = document.createElement("a");
     a.href = URL.createObjectURL(new Blob(["﻿" + righe.join("\r\n")], { type: "text/csv;charset=utf-8" }));
     a.download = "flotta-lista-della-spesa.csv"; marchiaCsv(a); a.click();
     esito("ric-esito", "Lista della spesa esportata: " + da.length + (da.length === 1 ? " ricambio" : " ricambi")
-      + (p.spesaTotale ? " per circa " + eur(p.spesaTotale) : "") + " (CSV).", "success");
+      + (p.senzaPrezzo
+          ? (p.senzaPrezzo >= da.length ? "" : " per almeno " + eur(p.spesaTotale))
+          : (p.spesaTotale ? " per circa " + eur(p.spesaTotale) : "")) + " (CSV).", "success");
   };
 
   // ══════════════════════════════════════════════════════════════════════
