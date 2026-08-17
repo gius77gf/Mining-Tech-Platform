@@ -522,24 +522,194 @@ export function generaCava({ mesi = 12, seme = 1, fine = "2026-08-14", taglia = 
     volate: d.volate.map((v, i) => ({ id: `v${i + 1}`, data: v.giorno, fori: v.fori, ppv: v.ppv })),
   };
 
+  /* ══════════════════════════════════════════════════════════════════
+     CONTI — la roccia che esce dal fronte diventa DDT, poi fattura, poi
+     incasso. Le tre cose sono la stessa roccia vista da tre momenti, e per
+     questo si generano in catena invece che a caso.
+     ⚠️ Fino al 14/08 questa app era **vuota** nel generatore, quindi tutto ciò
+     che Conti calcola non era mai stato messo alla prova su volume.
+     ⛔ I casi difficili si GARANTISCONO, non si sorteggiano — è la lezione
+     pagata tre volte più su: una fattura aperta senza scadenza, una incassata
+     senza data d'incasso, un DDT a m³ senza densità, uno senza prezzo, un
+     costo senza data. Sono esattamente i casi che Conti esiste per raccontare
+     e che la dimostrazione non ha mai. */
+  const clienti = [
+    { id: "c1", ragioneSociale: "Edilsimulata Srl", piva: "00000000001", sdi: "SIM0001",
+      indirizzo: "—", sconto: 0, fido: 50000, note: "" },
+    { id: "c2", ragioneSociale: "Costruzioni Finte SpA", piva: "00000000002", sdi: "SIM0002",
+      indirizzo: "—", sconto: 5, fido: 120000, note: "" },
+  ];
+  const prodotti = [
+    { id: "p1", nome: "Stabilizzato 0/30", unitaPrezzo: "t", prezzo: P("prezzoTonnellataEuro"),
+      densita: 1.9, iva: 22 },
+    /* ⛔ il prodotto venduto a METRO CUBO e SENZA densità: è il caso per cui
+       `valoreDdt` sa dire «non calcolabile» invece di inventare una
+       conversione, e senza di lui quella difesa non viene mai attraversata */
+    { id: "p2", nome: "Misto di cava (sfuso)", unitaPrezzo: "m3", prezzo: 12, densita: null, iva: 22 },
+  ];
+  const pesate = [], fatture = [], incassi = [], costi = [];
+  let nDdt = 0, nFat = 0;
+  const perMeseCliente = new Map();
+  for (const t of d.turni) {
+    if (!t.dataScritta || t.qta === null) continue;
+    if (rnd() > 0.35) continue;                     // non ogni turno produce un DDT
+    nDdt++;
+    const cli = clienti[nDdt % clienti.length];
+    const pro = prodotti[nDdt % prodotti.length];
+    const netto = Math.round(t.qta * (0.25 + rnd() * 0.35) * 10) / 10;
+    const tara = 14 + Math.round(rnd() * 6);
+    const senzaPrezzo = nDdt % 23 === 0;            // garantito: un DDT senza prezzo
+    pesate.push({
+      id: `s${nDdt}`, numero: `${t.dataScritta.slice(0, 4)}/${String(nDdt).padStart(4, "0")}`,
+      data: t.dataScritta, clienteId: cli.id, cliente: cli.ragioneSociale,
+      prodottoId: pro.id, prodotto: pro.nome,
+      lordo: Math.round((netto + tara) * 10) / 10, tara, netto,
+      unitaVendita: pro.unitaPrezzo,
+      quantita: pro.unitaPrezzo === "m3" && pro.densita == null ? null : netto,
+      densita: pro.densita, prezzoUnitario: senzaPrezzo ? null : pro.prezzo,
+      aliquotaIva: pro.iva, mezzo: `Mezzo ${1 + (nDdt % T.mezzi)}`,
+      destinatario: cli.ragioneSociale, fatturaId: null,
+    });
+    const k = t.dataScritta.slice(0, 7) + "|" + cli.id;
+    if (!perMeseCliente.has(k)) perMeseCliente.set(k, []);
+    perMeseCliente.get(k).push(pesate[pesate.length - 1]);
+  }
+  /* la fattura DIFFERITA: tanti DDT dello stesso cliente nello stesso mese
+     diventano una fattura sola, che è il flusso reale della cava */
+  for (const [k, righe] of perMeseCliente) {
+    const [mese, cliId] = k.split("|");
+    const cli = clienti.find((c) => c.id === cliId);
+    const imponibile = Math.round(righe.reduce((s, r) =>
+      s + (r.prezzoUnitario == null || r.quantita == null ? 0 : r.quantita * r.prezzoUnitario), 0) * 100) / 100;
+    if (!(imponibile > 0)) continue;
+    nFat++;
+    const emessa = piu(mese + "-01", 40);           // differita: entro il 15 del mese dopo
+    /* ⛔ garantiti per costruzione: una su 11 resta SENZA SCADENZA (il caso che
+       il 01/08 ha fatto nascere la fascia dichiarata di `agingIncassi`), e una
+       incassata su 13 non ha la data d'incasso */
+    /* ⛔ E QUESTA «GARANZIA» NON GARANTIVA NIENTE — quarta e quinta volta lo
+       stesso errore nello stesso file, e a prenderlo è stato il censimento.
+       Avevo scritto `senzaScadenza = nFat % 11 === 0` e poi, indipendentemente,
+       `pagata = rnd() < 0.7`: ma il caso che serve è una fattura **aperta**
+       senza scadenza, quindi se quella dell'undicesimo posto capitava pagata il
+       caso non usciva — su dieci semi, con il seme 1, era **zero**.
+       Una condizione appoggiata a un sorteggio non è una garanzia: lo stato si
+       DECIDE prima e il caso ne discende. */
+    const senzaScadenza = nFat % 11 === 0;
+    const incassataSenzaData = nFat % 13 === 0;
+    const iva = Math.round(imponibile * 0.22 * 100) / 100;
+    const pagata = senzaScadenza ? false : incassataSenzaData ? true : rnd() < 0.7;
+    const f = {
+      id: `f${nFat}`, numero: `${emessa.slice(0, 4)}/${String(nFat).padStart(3, "0")}`,
+      cliente: cli.ragioneSociale, clienteId: cli.id,
+      importo: Math.round((imponibile + iva) * 100) / 100,
+      imponibile, ivaImporto: iva, totale: Math.round((imponibile + iva) * 100) / 100, aliquotaIva: 22,
+      emessa, scadenza: senzaScadenza ? null : piu(emessa, P("giorniIncassoLegge")),
+      incassata: pagata,
+      ...(pagata && !incassataSenzaData ? { dataIncasso: piu(emessa, P("giorniIncassoReali")) } : {}),
+      ddtIds: righe.map((r) => r.id),
+    };
+    fatture.push(f);
+    for (const r of righe) r.fatturaId = f.id;
+    if (pagata) {
+      incassi.push({ id: `i${nFat}`, fatturaId: f.id, data: piu(emessa, P("giorniIncassoReali")),
+        importo: f.importo, metodo: "bonifico" });
+    }
+  }
+  /* i costi: le voci sono chiavi di `VOCI_COSTO` in shared/, più — garantita —
+     una voce FUORI elenco e uno senza data, che sono i due casi che il
+     riepilogo deve saper raccontare */
+  const VOCI = ["carburante", "manutenzione", "personale", "esplosivo", "energia", "canone"];
+  d.turni.forEach((t, i) => {
+    if (i % 9) return;
+    costi.push({ id: `k${i}`, data: i % 97 === 0 ? "" : (t.dataScritta || ""),
+      voce: i % 89 === 0 ? "voce-che-non-esiste" : VOCI[i % VOCI.length],
+      importo: 200 + Math.round(rnd() * 3000), nota: "" });
+  });
+
   const conti = {
-    fatture: [], incassi: [],
-    clienti: [{ id: "c1", ragioneSociale: "Edilsimulata Srl", piva: "00000000000",
-      sdi: "SIM0000", indirizzo: "—", sconto: 0, fido: 50000, note: "" }],
-    gare: [], prodotti: [{ id: "p1", nome: "Stabilizzato 0/30", unitaPrezzo: "t",
-      prezzo: 8.5, densita: 1.9, iva: 22 }],
-    pesate: [], rilieviTerra: rilievi,             // ← derivato da terra.rilievi
-    costi: [], impostazioni: [], ordini: [],
+    fatture, incassi, clienti, prodotti, pesate, costi,
+    gare: [{ id: "g1", titolo: "Comune simulato — inerti", base: null,
+      scadenza: piu(fine, 40), stato: "aperta" }],   // base null: garantito
+    rilieviTerra: rilievi,                           // ← derivato da terra.rilievi
+    impostazioni: [{ canoneUnita: "m3", canoneAliquota: 0.45, canoneBase: "estratto",
+      canoneNota: "valore simulato", aziendaNome: "Cava sintetica" }],
+    ordini: [], chiusure: [],
   };
 
+  /* ══════════════════════════════════════════════════════════════════
+     FLOTTA — le macchine che hanno mosso quella roccia.
+     ⛔ E QUI IL GENERATORE AVEVA UN DIFETTO SUO, misurato il 14/08: i fermi
+     erano `{id, data, minuti}`, una forma che Flotta **non legge**. Su 24 mesi
+     ne generava 48 e `affidabilitaFlotta` rispondeva `persi: 0, episodi: 0,
+     senzaDate: 0, pct: 100` — sparivano **senza entrare in nessun contatore**,
+     nemmeno in quello che il prodotto tiene apposta per le righe che non sa
+     collocare. La disponibilità del parco usciva piena. È «l'assenza di un dato
+     non è un dato favorevole» prodotta dal generatore invece che dal prodotto.
+     La forma vera è `{mezzo, causale, inizio, fine|null, note}`, con `causale`
+     presa da `CAUSALI_FERMO`. */
+  const mezzi = Array.from({ length: T.mezzi }, (_, i) => ({
+    id: `m${i + 1}`, nome: `Mezzo ${i + 1}`,
+    tipo: ["escavatore", "pala", "dumper"][i % 3],
+    ore: 4000 + i * 900, area: "fronte", stato: "operativo",
+  }));
+  const CAUSALI = ["guasto-meccanico", "guasto-idraulico", "gomme-cingoli",
+    "attesa-ricambi", "manutenzione", "operatore"];
+  const fermi = d.fermi.map((f, i) => {
+    const giorniFermo = Math.max(1, Math.round(f.minuti / 240));
+    const aperto = i === d.fermi.length - 1;        // garantito: un fermo ancora aperto
+    return {
+      id: `fm${i + 1}`, mezzo: `Mezzo ${1 + (i % T.mezzi)}`,
+      causale: CAUSALI[i % CAUSALI.length],
+      inizio: f.giorno, fine: aperto ? null : piu(f.giorno, giorniFermo), note: "",
+    };
+  });
+  /* i rifornimenti: ⛔ il contatore ORE non può scendere per uno stesso mezzo in
+     ordine di data, se no `consumoPerMezzo` e `ritmoOreMezzi` si rifiutano — e
+     avrebbero ragione. Qui cresce per costruzione. */
+  const rifornimenti = [], manutenzioni = [], interventi = [];
+  const oreDi = new Map(mezzi.map((m) => [m.nome, m.ore]));
+  const ultimoTagliando = new Map(mezzi.map((m) => [m.nome, m.ore]));
+  let nR = 0;
+  for (const g of giorni) {
+    for (const m of mezzi) {
+      if (rnd() > 0.10) continue;
+      nR++;
+      const oreFatte = 4 + Math.round(rnd() * 6);
+      oreDi.set(m.nome, oreDi.get(m.nome) + oreFatte);
+      const litri = Math.round(oreFatte * (12 + rnd() * 10));
+      rifornimenti.push({
+        id: `rf${nR}`, data: g.iso, mezzo: m.nome, litri,
+        euro: nR % 17 === 0 ? 0 : Math.round(litri * 1.45 * 100) / 100,  // garantito: spesa non nota
+        ore: oreDi.get(m.nome), nota: "", costoId: null,
+      });
+      if (oreDi.get(m.nome) - ultimoTagliando.get(m.nome) >= P("oreFraTagliandi")) {
+        ultimoTagliando.set(m.nome, oreDi.get(m.nome));
+        manutenzioni.push({ id: `mn${manutenzioni.length + 1}`, titolo: "Tagliando ordinario",
+          mezzo: m.nome, orePreviste: oreDi.get(m.nome) + P("oreFraTagliandi"),
+          ogniOre: P("oreFraTagliandi"), stato: "fatto" });
+        interventi.push({ id: `in${interventi.length + 1}`, data: g.iso, titolo: "Tagliando",
+          mezzo: m.nome, costo: 300 + Math.round(rnd() * 500), note: "",
+          ricambiUsati: [{ id: "rc2", nome: "Filtro olio", qta: 1, prezzo: 48 }] });
+      }
+    }
+  }
   const flotta = {
-    mezzi: Array.from({ length: T.mezzi }, (_, i) => ({
-      id: `m${i + 1}`, nome: `Mezzo ${i + 1}`, tipo: ["escavatore", "pala", "dumper"][i % 3],
-      stato: "operativo",
+    mezzi, manutenzioni, fermi, rifornimenti, interventi,
+    /* ⛔ soglia e prezzo `null` GARANTITI: una soglia mai scritta non è una
+       soglia zero, e un pezzo senza prezzo non è un pezzo gratis. Sono i due
+       casi su cui `statoScorta` e `propostaScorte` si giocano l'onestà. */
+    ricambi: [
+      { id: "rc1", nome: "Denti benna", giacenza: 0, sogliaMin: 4, prezzo: null },
+      { id: "rc2", nome: "Filtro olio", giacenza: 2, sogliaMin: 6, prezzo: 48 },
+      { id: "rc3", nome: "Pompa idraulica", giacenza: 0, sogliaMin: null, prezzo: null },
+      { id: "rc4", nome: "Cinghia", giacenza: 5, sogliaMin: 2, prezzo: 30 },
+    ],
+    scadenze: mezzi.slice(0, 3).map((m, i) => ({
+      id: `sc${i + 1}`, mezzo: m.nome, tipo: "Revisione", chiave: null,
+      dataScadenza: piu(fine, i * 90 - 60), mesi: 12, documento: "", note: "",
     })),
-    manutenzioni: [], fermi: d.fermi.map((f, i) => ({ id: `fm${i + 1}`, data: f.giorno, minuti: f.minuti })),
-    controlli: [], rifornimenti: [], costi: [], interventi: [], ricambi: [],
-    scadenze: [], disponibilita: [],
+    controlli: [], costi: [], disponibilita: [],
   };
 
   /* ⛔ IL CENSIMENTO DEI CASI VOLUTI — si legge PRIMA dei risultati.
@@ -554,6 +724,18 @@ export function generaCava({ mesi = 12, seme = 1, fine = "2026-08-14", taglia = 
     rilieviDaCumulo:        rilievi.filter((r) => r.provenienza === "cumulo").length,
     infortuniVeri:          infortuni.filter((x) => x.tipo === "infortunio").length,
     nearMiss:               infortuni.filter((x) => x.tipo === "near-miss").length,
+    /* i casi di Conti e Flotta, entrati il 14/08 insieme alle due app: sono
+       quelli su cui il prodotto si gioca l'onestà, e prima non esistevano */
+    fattureSenzaScadenza:   fatture.filter((f) => f.scadenza == null && !f.incassata).length,
+    incassateSenzaData:     fatture.filter((f) => f.incassata && !f.dataIncasso).length,
+    ddtSenzaPrezzo:         pesate.filter((p) => p.prezzoUnitario == null).length,
+    ddtSenzaDensita:        pesate.filter((p) => p.unitaVendita === "m3" && p.densita == null).length,
+    costiSenzaData:         costi.filter((k) => !k.data).length,
+    vociCostoFuoriElenco:   costi.filter((k) => k.voce === "voce-che-non-esiste").length,
+    rifornimentiSenzaSpesa: rifornimenti.filter((r) => !r.euro).length,
+    ricambiSenzaSoglia:     flotta.ricambi.filter((r) => r.sogliaMin == null).length,
+    ricambiSenzaPrezzo:     flotta.ricambi.filter((r) => r.prezzo == null).length,
+    fermiAperti:            fermi.filter((f) => f.fine == null).length,
   };
   const maiProdotti = Object.entries(casiVoluti).filter(([, n]) => n === 0).map(([k]) => k);
 
