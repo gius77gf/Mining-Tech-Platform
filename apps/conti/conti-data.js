@@ -1397,6 +1397,38 @@ export function estrattoContoCliente(cliente, fatture, oggi = new Date(), tassoA
 // numero sbagliato: la pagina che non risponde più, senza un errore da
 // mostrare. docs/IL_CONFORME_CHE_NESSUNO_HA_MISURATO.md
 const MESI_ORIZZONTE_MAX = 60;
+/* ⛔ QUELLO CHE NON SI PUÒ PIANIFICARE SI DICHIARA, NON SI SALTA (17/08).
+   Fino a oggi questa funzione aveva due `continue` silenziosi — la fattura
+   SENZA SCADENZA e quella OLTRE L'ORIZZONTE — e restituiva `{mesi, scadute}`,
+   cioè nessun posto in cui quel credito potesse comparire. Misurato su tre
+   fatture aperte da 10.000 € l'una (una a settembre, una senza scadenza, una a
+   giugno dell'anno dopo, con l'orizzonte a 6 mesi che la pagina passa fisso su
+   tutto l'archivio): 30.000 € di credito aperto, 10.000 € dentro la previsione,
+   0 € dichiarati come scadute ⇒ **20.000 € né contati né dichiarati**. E
+   togliendo la sola fattura pianificabile, `prev.mesi.some(m => m.conto)`
+   diventa `false` e la pagina entrava nel ramo vuoto: «Niente in arrivo —
+   Nessuna fattura in scadenza nei prossimi 6 mesi» con 20.000 € di credito
+   aperto in casa. Direzione: RASSICURA, su soldi dovuti.
+   La forma giusta era già in casa, nella schermata ACCANTO: `agingIncassi`
+   dal 01/08 dà alla fattura senza scadenza una fascia dichiarata invece di
+   farla sparire. La stessa fattura, due schede più in là, spariva — «una regola
+   corretta in un posto solo».
+   Adesso ci sono due secchi con lo stesso contratto di `scadute`
+   (`{conto, importo}`) e il loro totale derivato, come `scadutoTot`:
+   · `senzaScadenza`   → nessuno sa entro quando rientra: non è pianificabile
+     per MANCANZA DI DATO;
+   · `oltreOrizzonte`  → la data c'è ed è oltre l'ultimo mese chiesto: non è
+     pianificabile per SCELTA DELLA FINESTRA (allargando `mesi` rientra);
+   · `nonPianificabili` → la somma dei due, perché la domanda che la pagina fa
+     è una sola: «c'è credito aperto che questa previsione non racconta?».
+   ⚠️ Le due ragioni restano separate perché portano a due azioni diverse:
+   sulla prima si scrive la data mancante, sulla seconda si allarga la finestra.
+   ⚠️ Le già SCADUTE non entrano qui: sono pianificate — in un secchio loro, che
+   la pagina dichiara da sempre — e vanno sollecitate, non attese.
+   ⛔ E una guardia che non legge nessuno non protegge niente (regola 20 di
+   `run-stile`): la pagina LEGGE questi tre valori, sia nella nota della lista
+   sia nello stato vuoto, che con del credito non pianificabile non può più
+   dire «niente in arrivo». */
 export function incassoPerMese(fatture, mesi = 6, oggi = new Date(), note = null) {
   const n = Math.floor(+mesi);
   mesi = Number.isFinite(n) && n > 0 ? Math.min(n, MESI_ORIZZONTE_MAX) : 6;
@@ -1405,16 +1437,24 @@ export function incassoPerMese(fatture, mesi = 6, oggi = new Date(), note = null
   const ordine = [], perMese = {};
   for (let i = 0; i < mesi; i++) { const k = km(new Date(o.getFullYear(), o.getMonth() + i, 1)); ordine.push(k); perMese[k] = { mese: k, conto: 0, importo: 0 }; }
   const scadute = { conto: 0, importo: 0 };
+  const senzaScadenza = { conto: 0, importo: 0 };
+  const oltreOrizzonte = { conto: 0, importo: 0 };
   for (const f of fatture || []) {
     if (f.incassata) continue;
     const g = giorni(f.scadenza, oggi);
-    if (!Number.isFinite(g)) continue;                 // senza data valida: non pianificabile
     const imp = apertoDi(f, note);                     // solo ciò che resta da incassare
+    // senza data valida: non pianificabile, e lo si DICE (era un `continue`)
+    if (!Number.isFinite(g)) { senzaScadenza.conto++; senzaScadenza.importo += imp; continue; }
     if (g < 0) { scadute.conto++; scadute.importo += imp; continue; }
     const k = (f.scadenza || "").slice(0, 7);          // yyyy-mm della scadenza
-    if (perMese[k]) { perMese[k].conto++; perMese[k].importo += imp; }  // oltre l'orizzonte: ignorata
+    if (perMese[k]) { perMese[k].conto++; perMese[k].importo += imp; }
+    else { oltreOrizzonte.conto++; oltreOrizzonte.importo += imp; }   // era un salto muto
   }
-  return { mesi: ordine.map(k => perMese[k]), scadute };
+  const nonPianificabili = {
+    conto: senzaScadenza.conto + oltreOrizzonte.conto,
+    importo: round2(senzaScadenza.importo + oltreOrizzonte.importo),
+  };
+  return { mesi: ordine.map(k => perMese[k]), scadute, senzaScadenza, oltreOrizzonte, nonPianificabili, orizzonte: mesi };
 }
 
 // Priorità di incasso: ordina le fatture APERTE per urgenza — prima le più

@@ -3472,6 +3472,48 @@ label.item:has(.dw-chk:checked){
     const nomeMese = (k) => { const [y, m] = k.split("-"); return MESI[(+m) - 1] + " " + y; };
     const prev = incassoPerMese(FAT, 6, new Date(), NOT);
     const prevMax = Math.max(1, ...prev.mesi.map(m => m.importo || 0));
+    /* ⛔ QUELLO CHE LA PREVISIONE NON HA POTUTO PIANIFICARE SI DICHIARA, E LA
+       FRASE SI SCRIVE UNA VOLTA SOLA (17/08). Fino a oggi `incassoPerMese`
+       scartava in silenzio due categorie di fattura aperta — quella SENZA
+       SCADENZA e quella OLTRE L'ORIZZONTE (la pagina passa 6 mesi fissi su
+       tutto l'archivio) — e restituiva solo `{mesi, scadute}`: nessun posto in
+       cui quel credito potesse comparire. Misurato: tre fatture aperte da
+       10.000 € l'una, 10.000 € dentro la previsione, 0 € dichiarati scaduti,
+       **20.000 € né contati né dichiarati**. La forma giusta era già nella
+       schermata accanto — `agingIncassi` dà alla fattura senza scadenza una
+       fascia dichiarata — e questa era «una regola corretta in un posto solo».
+       Le due ragioni restano separate perché portano ad AZIONI diverse: sulla
+       prima si scrive la data che manca, sulla seconda si guarda più in là.
+       ⚠️ La stessa frase serve a tre punti (la nota della lista, lo stato vuoto
+       del grafico e la nota del grafico): scritta tre volte diventerebbe tre
+       versioni che divergono: qui è una, col formato dell'euro come argomento
+       perché la lista scrive i centesimi e i grafici no.
+       ⚠️ niente `plur` dove la frase ha già il numero davanti: `plur` lo scrive
+       lui — è l'inciampo raccolto nella nota dell'aging qui sopra. */
+    const ragioniPrev = (fmt) => [
+      prev.senzaScadenza.conto
+        ? plur(prev.senzaScadenza.conto, "fattura senza data di scadenza", "fatture senza data di scadenza")
+          + " (<b>" + fmt(prev.senzaScadenza.importo) + "</b>) — <b>non si sa</b> quando "
+          + plurale(prev.senzaScadenza.conto, "rientra", "rientrano") + ": nell'elenco <b>Fatture</b> "
+          + plurale(prev.senzaScadenza.conto, "porta il segno «senza scadenza» e va aperta", "portano il segno «senza scadenza» e vanno aperte")
+          + " per scrivere entro quando il cliente deve pagare"
+        : "",
+      prev.oltreOrizzonte.conto
+        ? plur(prev.oltreOrizzonte.conto, "fattura che scade", "fatture che scadono")
+          + " oltre i " + prev.orizzonte + " mesi mostrati (<b>" + fmt(prev.oltreOrizzonte.importo) + "</b>)"
+        : "",
+    ].filter(Boolean);
+    /* Con una ragione sola il totale sarebbe la ripetizione di quell'unica
+       riga: si scrive solo quando le ragioni sono due e il totale aggiunge
+       qualcosa. Stringa vuota quando non c'è niente da dichiarare — così chi
+       chiama la concatena senza chiedersi nulla. */
+    const notaPrevFuori = (fmt, apertura) => {
+      const r = ragioniPrev(fmt);
+      if (!r.length) return "";
+      return apertura + " " + (r.length > 1
+        ? plur(prev.nonPianificabili.conto, "fattura aperta", "fatture aperte") + " per <b>" + fmt(prev.nonPianificabili.importo) + "</b>: " + r.join("; ")
+        : r[0]) + ".";
+    };
     $("prev-list").innerHTML = (prev.mesi.some(m => m.conto)
       ? prev.mesi.map(m =>
       `<div class="item st-${m.importo > 0 ? "accent" : "mute"}">
@@ -3480,16 +3522,35 @@ label.item:has(.dw-chk:checked){
       <div class="amt"><div class="amt-n${m.importo > 0 ? " pos" : " mute"}">${eur(m.importo)}</div></div>
       ${barraPeso(m.importo, prevMax)}</div>`).join("")
       : "")   // lo stato vuoto lo dà il grafico qui sopra: non si ripete due volte
-      + (prev.scadute.conto ? `<div class="note">${plurale(prev.scadute.conto, "Esclusa", "Escluse")} <b>${prev.scadute.conto}</b> ${plurale(prev.scadute.conto, "già scaduta", "già scadute")} (<b>${eur(prev.scadute.importo)}</b>): ${plurale(prev.scadute.conto, "quella va sollecitata", "quelle vanno sollecitate")}, la trovi nell'aging qui sopra.</div>` : "");
+      + (prev.scadute.conto ? `<div class="note">${plurale(prev.scadute.conto, "Esclusa", "Escluse")} <b>${prev.scadute.conto}</b> ${plurale(prev.scadute.conto, "già scaduta", "già scadute")} (<b>${eur(prev.scadute.importo)}</b>): ${plurale(prev.scadute.conto, "quella va sollecitata", "quelle vanno sollecitate")}, la trovi nell'aging qui sopra.</div>` : "")
+      // e quello che la previsione non ha potuto collocare nel tempo si
+      // dichiara sotto le colonne, invece di sparire (vedi `notaPrevFuori`)
+      + (prev.nonPianificabili.conto
+        ? `<div class="note avviso">${notaPrevFuori(eur, "Fuori da questa previsione")}</div>` : "");
 
     // ── Grafico della previsione incassi (N2): il tempo si legge in
     //    orizzontale, un mese per colonna. È la domanda «il mese prossimo
     //    ci sono i soldi per gli stipendi?». Le fatture GIÀ SCADUTE restano
     //    fuori (le calcola a parte incassoPerMese): sono un sollecito, non
     //    un'entrata prevista — e metterle dentro gonfierebbe la previsione.
-    if (!prev.mesi.some(m => m.conto)) {
+    /* ⛔ «NIENTE IN ARRIVO» NON SI PUÒ DIRE SE C'È CREDITO APERTO CHE NON SI È
+       POTUTO PIANIFICARE (17/08). Il ramo vuoto qui sotto scattava su
+       `prev.mesi.some(m => m.conto) === false`, e quel `false` lo produceva
+       anche un archivio fatto di sole fatture senza scadenza o in scadenza più
+       in là dei mesi mostrati: misurato, 20.000 € di credito aperto e uno stato
+       vuoto che diceva «Niente in arrivo — Nessuna fattura in scadenza nei
+       prossimi 6 mesi». La frase onesta, lì, non è «niente in arrivo»: è **non
+       si sa quando arriveranno**, con il conto e l'importo scritti accanto e la
+       ragione (la data che manca, oppure la finestra troppo corta). */
+    const prevVuoto = !prev.mesi.some(m => m.conto);
+    if (prevVuoto && prev.nonPianificabili.conto) {
+      grafVuoto("graf-prev", "allarme", "Non si sa quando arriveranno",
+        "Nessuna fattura in scadenza nei prossimi " + prev.orizzonte + " mesi, ma del credito aperto c'è. "
+        + notaPrevFuori(eur0, "Fuori da questa previsione")
+        + (prev.scadute.conto ? " " + plurale(prev.scadute.conto, "Un'altra è <b>già scaduta</b>", "Altre <b>" + prev.scadute.conto + "</b> sono <b>già scadute</b>") + " (" + eur0(prev.scadute.importo) + "): " + plurale(prev.scadute.conto, "va sollecitata", "vanno sollecitate") + "." : ""));
+    } else if (prevVuoto) {
       grafVuoto("graf-prev", "grafico", "Niente in arrivo",
-        "Nessuna fattura in scadenza nei prossimi 6 mesi: la previsione si riempie da sola man mano che emetti fatture con la loro scadenza."
+        "Nessuna fattura in scadenza nei prossimi " + prev.orizzonte + " mesi: la previsione si riempie da sola man mano che emetti fatture con la loro scadenza."
         + (prev.scadute.conto ? " " + plurale(prev.scadute.conto, "L'<b>unica</b> già scaduta", "Le <b>" + prev.scadute.conto + "</b> già scadute") + " (" + eur0(prev.scadute.importo) + ") non " + plurale(prev.scadute.conto, "entra", "entrano") + " nella previsione: " + plurale(prev.scadute.conto, "va sollecitata", "vanno sollecitate") + "." : ""));
     } else if (G()) {
       {
@@ -3502,10 +3563,19 @@ label.item:has(.dw-chk:checked){
           valori: prev.mesi.map(m => ({ etichetta: nomeMese(m.mese), valore: Math.round(+m.importo || 0) })),
           aria: "Liquidità attesa mese per mese: " + prev.mesi
             .map(m => nomeMese(m.mese) + " " + eur0(m.importo)).join(", ") + ".",
+          /* ⛔ «Le colonne a zero sono mesi senza scadenze» è vero solo se
+             tutto il credito aperto è stato collocato: una colonna a zero può
+             anche essere il posto dove sarebbe finita una fattura di cui non si
+             sa la data. Quello che la previsione non ha potuto pianificare si
+             dichiara qui accanto, con la sua ragione. */
           nota: (prev.scadute.conto
             ? "Fuori dalla previsione <b>" + plur(prev.scadute.conto, "fattura già scaduta", "fatture già scadute") +
               "</b> per " + eur0(prev.scadute.importo) + ": quelle si sollecitano, non si mettono in cassa. "
-            : "") + "Le colonne a zero sono mesi senza scadenze: è lì che va guardato il fabbisogno.",
+            : "")
+            + (prev.nonPianificabili.conto
+              ? notaPrevFuori(eur0, prev.scadute.conto ? "Fuori anche" : "Fuori dalla previsione")
+                + " Le colonne a zero sono mesi senza scadenze <b>note</b>: una di esse può essere il posto di quel credito, quindi il fabbisogno si guarda insieme a queste fatture."
+              : "Le colonne a zero sono mesi senza scadenze: è lì che va guardato il fabbisogno."),
         });
       }
     }
