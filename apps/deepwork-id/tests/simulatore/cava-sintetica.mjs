@@ -68,6 +68,7 @@ import { densitaDelMateriale } from "../../../../shared/dw-ponti.js";
    cui in questa casa le app stanno in cartelle separate. Ogni modulo riceve
    lo stesso `ctx` e restituisce le SUE collezioni. */
 import { generaScudo } from "./scudo.mjs";
+import { generaSentinella, casiSentinella } from "./sentinella.mjs";
 
 export const MATERIALE = "Calcare";
 
@@ -513,19 +514,6 @@ export function generaCava({ mesi = 12, seme = 1, fine = "2026-08-14", taglia = 
     scadenze: [],
   };
 
-  const sentinella = {
-    monitoraggi: [{
-      id: "m1", nome: "Ricettore abitazione via Cava", tipo: "vibrazioni",
-      valore: d.letture.length ? d.letture[d.letture.length - 1].valore : null,
-      soglia: 5, unita: "mm/s", nota: "", ricettoreId: "rc1", tarature: [],
-      letture: d.letture.map((l, i) => ({ id: `l${i + 1}`, data: l.giorno, valore: l.valore })),
-    }],
-    ricettori: [{ id: "rc1", nome: "Abitazione via Cava", distanzaM: 320 }],
-    reclami: [], adempimenti: [], registri: [],
-    programma: [],
-    volate: d.volate.map((v, i) => ({ id: `v${i + 1}`, data: v.giorno, fori: v.fori, ppv: v.ppv })),
-  };
-
   /* ══════════════════════════════════════════════════════════════════
      CONTI — la roccia che esce dal fronte diventa DDT, poi fattura, poi
      incasso. Le tre cose sono la stessa roccia vista da tre momenti, e per
@@ -732,6 +720,18 @@ export function generaCava({ mesi = 12, seme = 1, fine = "2026-08-14", taglia = 
     controlli: [], costi: [], disponibilita: [],
   };
 
+  /* ⛔ SENTINELLA SI GENERA PER ULTIMA, E NON È UN DETTAGLIO DI STILE.
+     `generaSentinella` consuma `rnd`, che è la stessa sorgente ripetibile di
+     tutte le altre app: chiamata in mezzo, sposta il flusso del seme e cambia
+     i dati di **tutte** le app generate dopo di lei. Una cava con lo stesso
+     seme deve restare la stessa cava, se no un difetto trovato ieri non si
+     riproduce oggi — che è la ragione per cui il seme esiste.
+     ⚠️ Prima Sentinella era un solo punto di misura con una lettura ogni trenta
+     giorni e quattro collezioni vuote su sette: 22 righe. Adesso il modulo
+     costruisce i punti, i ricettori, i reclami, gli adempimenti, i registri e
+     il programma, coi casi difficili garantiti (vedi `casiSentinella`). */
+  const sentinella = generaSentinella({ rnd, giorni, ana, d, fine, piu, T });
+
   /* ⛔ IL CENSIMENTO DEI CASI VOLUTI — si legge PRIMA dei risultati.
      Un generatore che non ha prodotto un caso non ha provato niente su quel
      caso, e senza questo conto la cosa passerebbe in silenzio: è la regola
@@ -763,6 +763,10 @@ export function generaCava({ mesi = 12, seme = 1, fine = "2026-08-14", taglia = 
     /* i casi garantiti dal modulo di Scudo, dichiarati insieme agli altri:
        un caso che vive in un altro file non per questo si conta da solo */
     ...scudo._casi,
+    /* i casi di Sentinella arrivano dal suo modulo. `maiProdotti` si toglie e
+       si ricalcola sul totale: un elenco parziale di «mai prodotti» sarebbe
+       peggio di nessuno, perché sembrerebbe completo. */
+    ...(() => { const { maiProdotti: _via, ...resto } = casiSentinella(sentinella, fine); return resto; })(),
   };
   const maiProdotti = Object.entries(casiVoluti).filter(([, n]) => n === 0).map(([k]) => k);
 

@@ -611,11 +611,34 @@ export function serieStorica(m, opts = {}) {
      `4,2 · (vuoto) · 4,4`, lo schermo dice `n=2`, il grafico disegnava `n=3`.
      La domanda «questa lettura si legge?» la fa `lettureLeggibili` e la
      facevano già le altre sorelle: qui era rimasta la copia più debole. */
-  const letture = (((m || {}).letture) || [])
-    .map(l => ({ data: String((l && l.data) || "").slice(0, 10), ora: String((l && l.ora) || ""),
-                 valore: numeroDichiarato((l || {}).valore) }))
-    .filter(l => l.valore != null && Number.isFinite(l.valore))
-    .sort((a, b) => { const ka = chiaveOrdine(a), kb = chiaveOrdine(b); return ka < kb ? -1 : ka > kb ? 1 : 0; });
+  /* ⛔ E LA META' DELLA DOMANDA MANCAVA ANCORA: IL VALORE SI CHIEDEVA, LA DATA
+     NO. Il 14/08 la correzione qui sopra ha portato `numeroDichiarato`, cioè
+     ha chiuso «questo valore si legge?», e ha lasciato la copia scritta a mano
+     — che una data non la guarda affatto. Effetto: il grafico contraddiceva il
+     documento sullo STESSO archivio e nello STESSO istante. Riverificato il
+     18/08 su un caso minimo, punto polveri con soglia 40 e archivio
+     `20 (01/06)` · `99` datata **2026-02-30** (il 30 febbraio non esiste) ·
+     `31 (08/06)`:
+       · schermo   (`statPeriodo`)      n=2 · media 25,5 · max 31 · superamenti 0
+       · grafico   (questa funzione)    n=3 · max **99** · **1 superamento**
+                                        etichette «30/02 | 01/06 | 08/06»
+       · documento (`reportConformita`) n=2 · max 31 · scartate 1 · «conforme»
+     Il grafico disegnava un superamento a 99 sotto un documento che dice
+     «Conforme», e quel 99 fantasma decideva pure la scala dell'asse (yMax 150)
+     schiacciando la linea vera.
+     ⚠️ LA DIREZIONE NON È FISSA, e per questo è peggio e non meglio: con un
+     valore alto il fantasma gonfia, con uno basso ABBASSA la linea — cioè
+     rassicura. Un difetto che sbaglia da tutt'e due le parti non lo si
+     riconosce dalla forma del disegno.
+     ⚠️ LATENTE, e va detto: `dataIso` sull'import una data impossibile la
+     rifiuta già, quindi in archivio ci si arriva da una riga scritta a mano o
+     più vecchia di quel filtro. Chi legge questa riga non ha trovato un
+     difetto vivo — ha trovato la difesa che impedisce che lo torni.
+     Adesso la domanda è UNA e la fa `lettureLeggibili`: data con
+     `dataISOEsiste` (che il 30 febbraio lo rifiuta invece di farlo scorrere al
+     2 marzo) e valore con `numeroDichiarato`. Le tre schermate dicono la
+     stessa cosa perché a deciderla è la stessa funzione. */
+  const letture = lettureLeggibili(m);
 
   const base = {
     vuoto: letture.length === 0, n: letture.length, unita, soglia, box,
@@ -1270,8 +1293,32 @@ export const MAX_LETTURE = 500;
 // e stesso valore = stessa lettura. Reimportare lo stesso file (o il file
 // della settimana che si sovrappone al precedente) non deve raddoppiare la
 // serie storica: su un documento che va all'ente sarebbe un falso.
+/* ⛔ E LA FIRMA CANCELLAVA LA DIFFERENZA CHE QUESTO MODULO DICHIARA DUE VOLTE
+   DI DIFENDERE: uno ZERO MISURATO e un valore ASSENTE avevano la stessa firma.
+   `+((l||{}).valore) || 0` è la copia debole al quadrato — `+null` fa 0, e poi
+   `|| 0` ci ricasca sopra prendendo anche il `NaN` di un valore corrotto.
+   Riverificato il 18/08 su un caso minimo. In archivio
+   `{data:"2026-07-01", ora:"10:00", valore:null}`; nel file dello strumento la
+   stessa data e la stessa ora con `valore: 0`:
+
+     firma della riga in archivio (valore null) : 2026-07-01 10:00|0
+     firma della riga nel file    (valore 0)    : 2026-07-01 10:00|0
+     unisciLetture → { aggiunte: 0, duplicati: 1, letture: [{…, valore: null}] }
+
+   Cioè la misura VERA veniva scartata come doppione di una riga che un valore
+   non ce l'ha, l'archivio restava senza il numero, e la pagina annunciava
+   «1 già presente (saltata)» — una frase sicura e falsa, sullo stesso schermo.
+   La direzione è quella che PERDE il dato: si perde sempre la riga nuova, cioè
+   quella che lo strumento ha misurato davvero.
+   ⚠️ E la firma serve a riconoscere i DOPPIONI, quindi la cura non poteva
+   essere «cambiamo il numero»: un reimport dello stesso file deve continuare a
+   non aggiungere niente. `numeroDichiarato` fa esattamente questo — un numero
+   resta sé stesso alla sesta cifra (0 resta `0`), e le forme dell'assenza
+   (`null`, `""`, spazi, `"abc"`) danno una coda VUOTA, che con nessun numero
+   può combaciare. Provata nei due versi. */
 export function firmaLettura(l) {
-  return chiaveOrdine(l) + "|" + (Math.round((+((l || {}).valore) || 0) * 1e6) / 1e6);
+  const v = numeroDichiarato((l || {}).valore);
+  return chiaveOrdine(l) + "|" + (v == null ? "" : Math.round(v * 1e6) / 1e6);
 }
 
 // Unisce le letture importate a quelle già presenti: scarta i doppioni
@@ -1293,7 +1340,20 @@ export function unisciLetture(esistenti, nuove, max = MAX_LETTURE) {
     const f = firmaLettura(l);
     if (gia.has(f)) { duplicati++; continue; }
     gia.add(f);
-    tenute.push({ data: l.data, valore: +l.valore, ...(l.ora ? { ora: l.ora } : {}),
+    /* ⛔ `+l.valore` ERA LA STESSA COPIA DEBOLE DELLA FIRMA, UNA RIGA PIÙ IN
+       GIÙ — e correggere solo la firma l'avrebbe SVEGLIATA. Finché una riga
+       senza valore combaciava con uno zero, il ramo qui sotto non la vedeva
+       mai; adesso che le due firme si distinguono, quella riga arriva fin qui
+       — e `+null` fa **0**, cioè l'assenza sarebbe entrata in archivio come
+       una misura DI ZERO, che su un sismografo è il numero più tranquillo
+       della scala. È la regola «quando allarghi un contratto, cerca TUTTI i
+       posti che lo leggono»: il posto era a quattro righe di distanza.
+       ⚠️ Sul percorso vivo non cambia niente — `preparaLetture` fa passare
+       solo righe con un numero finito — ma `unisciLetture` è un export, e una
+       difesa che regge solo perché nessuno la mette alla prova non è una
+       difesa. `numeroDichiarato` tiene lo zero SCRITTO (che è un dato) e
+       lascia `null` all'assenza. */
+    tenute.push({ data: l.data, valore: numeroDichiarato(l.valore), ...(l.ora ? { ora: l.ora } : {}),
                   ...(l.origine && typeof l.origine === "object" ? { origine: l.origine } : {}) });
   }
   const tutte = [...(esistenti || []), ...tenute]
@@ -1897,6 +1957,42 @@ function cellaProvenienza(m) {
   return pezzi.join(" · ");
 }
 
+/* LO STORICO DI UN PUNTO, IN UNA CELLA — e con la stessa regola dello schermo.
+   ⛔ IL FILE CHE ESCE DALL'AZIENDA SCRIVEVA UNA DATA CHE NON ESISTE. La cella
+   era una `map` scritta a mano su TUTTE le letture, quindi non faceva né metà
+   della domanda «questa lettura si può usare?»: passava la data così com'era.
+   Riverificato il 18/08 sullo stesso punto del grafico (polveri, soglia 40):
+
+     …;Conforme;2026-06-01:20 2026-02-30:99 2026-06-08:31;…
+
+   Il documento quella riga la conta fra le `scartate` («non ho potuto
+   usarla»); il file la scriveva senza un segno, col suo 99, accanto a un
+   «Conforme» — e un ispettore che apre il CSV legge un superamento che nessuna
+   schermata dell'app conosce. Sulla cava sintetica compariva anche
+   `2025-08-28:` — una data con la casella del valore VUOTA, che è la stessa
+   riga illeggibile vista dall'altra metà della domanda.
+   ⛔ E TOGLIERLE E BASTA SAREBBE STATO SPOSTARE LA BUGIA, non chiuderla: una
+   riga registrata che sparisce dal file senza una parola è di nuovo l'assenza
+   scambiata per un dato favorevole. Quindi le leggibili si scrivono (per
+   data+ora, come le disegna il grafico) e le altre si DICHIARANO in coda con
+   le stesse parole che il report scrive a schermo — è la regola «il file dice
+   la stessa cosa dello schermo, e la decide la STESSA funzione».
+   ⚠️ La forma della cella non cambia per chi la legge oggi: i `data:valore`
+   separati da spazio restano, la dichiarazione arriva dopo un « · » come nelle
+   celle `taratura` e `provenienza` qui sopra. */
+function cellaStorico(m) {
+  const tutte = (((m || {}).letture) || []);
+  const buone = lettureLeggibili(m);
+  const fuori = tutte.length - buone.length;
+  const pezzi = [];
+  if (buone.length) pezzi.push(buone.map(l => l.data + ":" + (Math.round(l.valore * 1e4) / 1e4)).join(" "));
+  if (fuori > 0)
+    pezzi.push(fuori + (fuori === 1 ? " lettura non utilizzabile" : " letture non utilizzabili")
+      + ": il giorno che " + (fuori === 1 ? "porta" : "portano") + " scritto non è un giorno che esiste,"
+      + " oppure il valore non è un numero");
+  return pezzi.join(" · ");
+}
+
 export function csvAmbiente(monitoraggi, adempimenti, ricettori, oggi = new Date()) {
   /* ⛔ `numeroDichiarato` e non `Number.isFinite(+x)`: `+null` fa 0. Scritta a
      mano, questa cella riscriveva `2026-07-02:0` su una lettura senza valore —
@@ -1907,8 +2003,7 @@ export function csvAmbiente(monitoraggi, adempimenti, ricettori, oggi = new Date
     const eff = sogliaEfficace(m, ricettori);
     // la stessa copia con cui ragionano tutte le schermate: la soglia che vale
     const st = statoMisura(eff.valore != null ? { ...m, soglia: eff.valore } : m);
-    const storico = (((m || {}).letture) || [])
-      .map(l => String((l || {}).data || "") + ":" + n((l || {}).valore)).join(" ");
+    const storico = cellaStorico(m);
     const origine = eff.valore == null ? ""
       : eff.conflitto
       ? "punto di misura · il ricettore " + (eff.ricettore || "collegato") + " ha una soglia in "
