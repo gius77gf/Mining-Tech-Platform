@@ -1,4 +1,7 @@
 /* ⛔ SCUDO NELLA CAVA SINTETICA — la sicurezza sul lavoro che vive due anni.
+   ⚠️ NON VA IN npm test: è una LIBRERIA che genera dati, non una suite. A
+   provarla è `prova-cava.mjs`, che gira nel giro e pretende che ogni caso
+   garantito esca con ogni seme.
    ══════════════════════════════════════════════════════════════════════════
    PERCHÉ ESISTE. Fino al 14/08 la cava sintetica generava per Scudo **30 righe
    in tutto, con dieci collezioni vuote su diciassette**: ispezioni, permessi di

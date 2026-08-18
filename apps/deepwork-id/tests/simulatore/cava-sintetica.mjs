@@ -623,11 +623,27 @@ export function generaCava({ mesi = 12, seme = 1, fine = "2026-08-14", taglia = 
   /* i costi: le voci sono chiavi di `VOCI_COSTO` in shared/, più — garantita —
      una voce FUORI elenco e uno senza data, che sono i due casi che il
      riepilogo deve saper raccontare */
+  /* ⛔ QUATTRO VOCI SU SEI NON USCIVANO MAI, CON QUALUNQUE SEME — e non per il
+     caso: per l'ARITMETICA. Le righe nascevano da `if (i % 9) return` e la voce
+     era `VOCI[i % 6]`: il massimo comun divisore di 9 e 6 è 3, quindi `i % 6`
+     raggiungeva solo gli indici 0 e 3. Uscivano `carburante` ed `esplosivo`,
+     mai `manutenzione`, `personale`, `energia`, `canone` — identico sui semi 1,
+     7 e 42, il che è anche il segno che non era il caso.
+     ⚠️ È una veste NUOVA della lezione già pagata cinque volte, e il censimento
+     dei casi voluti non poteva vederla: quello guarda i BUCHI (un caso che non
+     esce), non la COPERTURA di un elenco. Perciò adesso la copertura si conta.
+     Conseguenza misurata sul prodotto: `vociMancantiNelMese` vedeva sempre 8
+     voci mancanti su 10 — cioè la sua quadratica al massimo — e ogni misura di
+     tempo su Conti era distorta verso il peggio.
+     La cura: la voce si sceglie da un contatore SUO, che non condivide divisori
+     con la cadenza delle righe. */
   const VOCI = ["carburante", "manutenzione", "personale", "esplosivo", "energia", "canone"];
+  let nCosto = 0;
   d.turni.forEach((t, i) => {
     if (i % 9) return;
-    costi.push({ id: `k${i}`, data: i % 97 === 0 ? "" : (t.dataScritta || ""),
-      voce: i % 89 === 0 ? "voce-che-non-esiste" : VOCI[i % VOCI.length],
+    nCosto++;
+    costi.push({ id: `k${i}`, data: nCosto % 31 === 0 ? "" : (t.dataScritta || ""),
+      voce: nCosto % 29 === 0 ? "voce-che-non-esiste" : VOCI[nCosto % VOCI.length],
       importo: 200 + Math.round(rnd() * 3000), nota: "" });
   });
 
@@ -736,6 +752,10 @@ export function generaCava({ mesi = 12, seme = 1, fine = "2026-08-14", taglia = 
     ddtSenzaDensita:        pesate.filter((p) => p.unitaVendita === "m3" && p.densita == null).length,
     costiSenzaData:         costi.filter((k) => !k.data).length,
     vociCostoFuoriElenco:   costi.filter((k) => k.voce === "voce-che-non-esiste").length,
+    /* ⛔ LA COPERTURA DI UN ELENCO NON È UN BUCO, e per questo il censimento
+       non la vedeva: qui si conta quante voci di costo DIVERSE sono uscite,
+       così il giorno in cui un divisore comune ne spegne metà si vede. */
+    vociCostoDiverse:       new Set(costi.map((k) => k.voce)).size,
     rifornimentiSenzaSpesa: rifornimenti.filter((r) => !r.euro).length,
     ricambiSenzaSoglia:     flotta.ricambi.filter((r) => r.sogliaMin == null).length,
     ricambiSenzaPrezzo:     flotta.ricambi.filter((r) => r.prezzo == null).length,
