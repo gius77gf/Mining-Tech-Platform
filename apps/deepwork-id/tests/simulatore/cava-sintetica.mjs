@@ -63,6 +63,12 @@
    conversioni diverse senza che niente lo dica. */
 import { densitaDelMateriale } from "../../../../shared/dw-ponti.js";
 
+/* ⛔ UN GENERATORE CHE CRESCE VA SPEZZATO PER APP, se no due cantieri che
+   riempiono due app diverse litigano sullo stesso file — ed è la ragione per
+   cui in questa casa le app stanno in cartelle separate. Ogni modulo riceve
+   lo stesso `ctx` e restituisce le SUE collezioni. */
+import { generaScudo } from "./scudo.mjs";
+
 export const MATERIALE = "Calcare";
 
 /* ── il caso, ma ripetibile ────────────────────────────────────────────
@@ -482,13 +488,11 @@ export function generaCava({ mesi = 12, seme = 1, fine = "2026-08-14", taglia = 
      ⚠️ Ogni `*Scudo`, `*Campo`, `*Terra` qui sotto è una DERIVAZIONE
      dell'originale, non una seconda scrittura: è la sola cosa che impedisce
      alle copie di divergere come sono divergute nella dimostrazione. */
-  const scudo = {
-    lavoratori: ana.persone, operatoriCampo: ana.operatori, squadreCampo: ana.squadre,
-    scadenze, documenti: [], cantieri: [{ id: "c1", nome: "Cava simulata", tipo: "cava", stato: "attivo" }],
-    appaltatori: [], appalti: [], infortuni,
-    oreAnno: [{ id: "oa1", anno: 2026, ore: T.persone * 1700 }],
-    azioni: [], analisi: [], ispezioni: [], permessi: [], mansioni: [], nomine: [], dpi: [],
-  };
+  /* ⛔ SCUDO ERA LA PIÙ VUOTA: 30 righe e DIECI collezioni vuote su diciassette,
+     cioè l'app dove un numero sbagliato costa di più era anche la meno provata.
+     Adesso la costruisce `scudo.mjs`, che riceve il contesto e restituisce le
+     sue collezioni con i casi difficili GARANTITI (vedi il suo `_casi`). */
+  const scudo = generaScudo({ rnd, giorni, ana, d, fine, piu, T, infortuni });
 
   const campo = {
     attivita: [], squadre: ana.squadre, operatori: ana.operatori,
@@ -736,6 +740,9 @@ export function generaCava({ mesi = 12, seme = 1, fine = "2026-08-14", taglia = 
     ricambiSenzaSoglia:     flotta.ricambi.filter((r) => r.sogliaMin == null).length,
     ricambiSenzaPrezzo:     flotta.ricambi.filter((r) => r.prezzo == null).length,
     fermiAperti:            fermi.filter((f) => f.fine == null).length,
+    /* i casi garantiti dal modulo di Scudo, dichiarati insieme agli altri:
+       un caso che vive in un altro file non per questo si conta da solo */
+    ...scudo._casi,
   };
   const maiProdotti = Object.entries(casiVoluti).filter(([, n]) => n === 0).map(([k]) => k);
 
