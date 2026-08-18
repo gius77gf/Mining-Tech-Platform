@@ -3366,6 +3366,38 @@ export function riepilogoCosti(costi, dal = "", al = "") {
            righeImportoNonPositivo: importoNonPositivo };
 }
 
+/* ⛔ PERCHÉ IL PERIODO NON HA NIENTE DA SOMMARE — E LE RAGIONI SONO DUE, NON
+   UNA. La schermata dei costi decideva da sé quando mostrare lo stato vuoto, e
+   lo faceva con `!r.conto && !r.senzaData`: due dei quattro motivi per cui una
+   riga resta fuori dal totale. Con tre costi datati e nessuno con l'importo —
+   che è quello che succede a un import CSV con la colonna dell'importo
+   sbagliata — `riepilogoCosti` risponde `{conto: 0, senzaData: 0,
+   senzaImporto: 3}` e la pagina scriveva «Nessun costo registrato nel periodo,
+   comincia dalle voci grosse», cancellando quel 3 che era l'unica cosa da dire.
+   Rassicurante e falso: il lavoro da fare spariva.
+   ⚠️ La decisione sta QUI e non nella pagina perché è un verdetto, non un pezzo
+   di HTML: nella pagina nessuna prova `node` la può raggiungere, ed era
+   esattamente il posto in cui il difetto è vissuto. Le bandiere il modulo le
+   dichiarava già; a non leggerle era chi componeva la frase.
+   ⚠️ E i due conti guardano TUTTO l'archivio, non il periodo: una voce senza
+   importo è fuori da qualunque totale. Chi scrive la frase non deve dire «nel
+   periodo», o sarebbe un numero preso da un altro insieme.
+   ⚠️ IL NOME NON È «nienteDaSommare»: quello nella pagina di Conti c'è già, ed è
+   una funzione locale che parla dei PREVENTIVI a chiamata (righe senza importo
+   in un preventivo). Chiamare così anche questa faceva due `const` con lo stesso
+   nome nello stesso blocco — errore DURO, la pagina non parte — e l'ha detto
+   `sintassi-pagine.mjs` in tre secondi. Un nome si cerca prima di sceglierlo. */
+export function perchePeriodoSenzaCosti(riep) {
+  const r = riep || {};
+  if (r.conto || r.senzaData) return null;              // c'è qualcosa da mostrare
+  const senzaImporto = +r.senzaImporto || 0;
+  const importoNonPositivo = +r.importoNonPositivo || 0;
+  const quante = senzaImporto + importoNonPositivo;
+  return quante
+    ? { motivo: "importo-illeggibile", senzaImporto, importoNonPositivo, quante }
+    : { motivo: "nessun-costo", senzaImporto: 0, importoNonPositivo: 0, quante: 0 };
+}
+
 // ⛔ E IL COSTO AL METRO CUBO NON SI CALCOLA SENZA I METRI CUBI. È la stessa
 // forma degli indici infortunistici: il denominatore è il dato che manca più
 // spesso, e inventarlo (o peggio, trattarlo come 1) darebbe un costo unitario
@@ -3477,26 +3509,58 @@ export function statoMese(costi, chiusure, mese) {
     arrivi: dopo.length, importoArrivi: round2(dopo.reduce((t, x) => t + (+x.importo || 0), 0)) };
 }
 
+const EMPTY_SET = new Set();   // una voce mai vista non ha mesi: si legge, non si crea
 /* ⛔ QUALI VOCI MANCANO RISPETTO A COME LAVORA QUESTA CAVA. Non esiste un
    elenco di voci obbligatorie: cambia da cava a cava, e inventarlo vorrebbe
    dire accusare di incompletezza chi paga la squadra da un'altra società.
    L'elenco si impara dallo STORICO dell'azienda stessa: una voce è «abituale»
    se compare in almeno metà degli altri mesi. Sotto quella soglia non si
    chiede niente — una spesa capitata due volte l'anno non è una dimenticanza. */
+/* ⛔ E QUESTA FUNZIONE ERA QUADRATICA PROPRIO SUL CASO CHE ESISTE PER TROVARE.
+   Il conto per voce si scriveva così:
+       mesi.filter((m) => righe.some((c) => meseDi(c.data) === m && c.voce === v))
+   cioè, per OGNI voce e per OGNI mese, una scorsa delle righe. E `.some()` esce
+   al primo colpo quando la voce **c'è**: quando NON c'è — l'unico caso che
+   produce una risposta — le scorre tutte. Costo = voci mai usate × mesi ×
+   righe, e le voci mai usate sono la normalità (una cava senza noleggi, senza
+   frantoio, senza ripristino in corso).
+   ⚠️ Misurato contando le letture di campo con un `Proxy`: 12 mesi con tutte le
+   voci presenti danno **4,1 letture per riga**; le stesse righe con 4 voci mai
+   usate ne danno **51,8**, cioè dodici volte tanto. Il rapporto non dipende dal
+   numero di righe e cresce coi mesi: è la firma della quadratica, non una
+   costante da poco.
+   Su dieci anni di storia con 30 costi al mese (3.600 righe) e 3 voci mai
+   usate erano **45 ms** per chiamata, e la schermata di chiusura ne faceva due
+   (`margineMese` la chiama già dentro): 87 ms a ogni cambio di mese nella
+   tendina, contro gli 1,8 ms della stessa storia senza voci mai usate.
+   La cura non è un `Set` in più: è **una passata sola** che costruisce, per
+   ogni voce, l'insieme dei mesi in cui compare — poi una lettura per voce.
+   O(righe), non O(voci × mesi × righe). Il verdetto non cambia di una virgola:
+   è una correzione di velocità, e il confronto vecchio/nuovo su 1.000 casi
+   sorteggiati sta in `run-kpi.mjs`. */
 export function vociMancantiNelMese(costi, mese, soglia = 0.5) {
   if (!eMese(mese)) return { mancanti: [], mesiVisti: 0, misurabile: false };
-  const righe = (costi || []).filter((c) => c && +c.importo > 0 && /^\d{4}-\d{2}/.test(String(c.data || "")));
-  const mesi = [...new Set(righe.map((c) => meseDi(c.data)))].filter((m) => m !== mese);
-  if (!mesi.length) return { mancanti: [], mesiVisti: 0, misurabile: false };
-  const quiCi = new Set(righe.filter((c) => meseDi(c.data) === mese).map((c) => c.voce));
+  const mesiPerVoce = new Map();     // voce → i mesi (diversi da `mese`) in cui compare
+  const altriMesi = new Set();       // i mesi con almeno una riga buona, tranne `mese`
+  const quiCi = new Set();           // le voci che in `mese` ci sono già
+  for (const c of (costi || [])) {
+    if (!c || !(+c.importo > 0) || !/^\d{4}-\d{2}/.test(String(c.data || ""))) continue;
+    const m = meseDi(c.data);
+    if (m === mese) { quiCi.add(c.voce); continue; }
+    altriMesi.add(m);
+    let visti = mesiPerVoce.get(c.voce);
+    if (!visti) mesiPerVoce.set(c.voce, visti = new Set());
+    visti.add(m);
+  }
+  if (!altriMesi.size) return { mancanti: [], mesiVisti: 0, misurabile: false };
   const mancanti = [];
   for (const v of VOCI_COSTO) {
     if (quiCi.has(v.chiave)) continue;
-    const quanti = mesi.filter((m) => righe.some((c) => meseDi(c.data) === m && c.voce === v.chiave)).length;
-    if (quanti / mesi.length >= soglia)
-      mancanti.push({ chiave: v.chiave, etichetta: v.etichetta, suQuanti: quanti, mesi: mesi.length });
+    const quanti = (mesiPerVoce.get(v.chiave) || EMPTY_SET).size;
+    if (quanti / altriMesi.size >= soglia)
+      mancanti.push({ chiave: v.chiave, etichetta: v.etichetta, suQuanti: quanti, mesi: altriMesi.size });
   }
-  return { mancanti, mesiVisti: mesi.length, misurabile: true };
+  return { mancanti, mesiVisti: altriMesi.size, misurabile: true };
 }
 
 export function margineMese(fatture, note, costi, chiusure, mese) {
@@ -3504,7 +3568,15 @@ export function margineMese(fatture, note, costi, chiusure, mese) {
   const man = vociMancantiNelMese(costi, mese);
   const spesa = round2((costi || []).filter((c) => c && meseDi(c.data) === mese && +c.importo > 0)
     .reduce((t, c) => t + (+c.importo || 0), 0));
+  /* ⚠️ `vociMancanti` è il risultato INTERO di `vociMancantiNelMese`, e torna
+     indietro perché la schermata di chiusura lo rifaceva da capo: chiamava
+     `margineMese` — che lo calcola già qui dentro — e subito dopo
+     `vociMancantiNelMese` una seconda volta, cioè due passate complete a ogni
+     cambio di mese nella tendina. `mancanti` qui sopra NON basta a sostituirlo:
+     a mese chiuso è già filtrato (sono le voci non ancora dichiarate assenti) e
+     non porta né `misurabile` né `mesiVisti`, che la pagina legge. */
   const fuori = { stato: st.stato, mese, costi: spesa, mancanti: man.mancanti,
+    vociMancanti: man,
     dichiarateAssenti: [], ricavi: null, ricaviLordi: null, storni: null,
     margine: null, marginePct: null, calcolabile: false };
   if (st.stato === "aperto")
