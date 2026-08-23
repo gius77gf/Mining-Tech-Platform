@@ -52,7 +52,7 @@
   .marchio { display: block; margin: 0 auto 14px; }
   .hero h1 {
     margin: 0; font-family: 'Barlow Condensed', sans-serif; font-weight: 800;
-    font-size: clamp(38px, 8vw, 62px); line-height: .98; letter-spacing: 5px;
+    font-size: clamp(40px, 8.6vw, 112px); line-height: .94; letter-spacing: 7px;
     text-transform: uppercase; color: var(--text);
   }
   .hero h1 .eco {
@@ -60,11 +60,11 @@
     -webkit-text-fill-color: transparent; color: transparent;
   }
   .hero .claim {
-    margin: 14px auto 0; max-width: 46ch; font-size: clamp(15px, 2.6vw, 19px);
+    margin: 26px auto 0; max-width: 31ch; font-size: clamp(16px, 2.1vw, 23px);
     line-height: 1.5; color: var(--text);
   }
   .hero .apri {
-    margin: 12px auto 0; max-width: 56ch; font-size: 14px; line-height: 1.6; color: var(--muted2);
+    margin: 14px auto 0; max-width: 58ch; font-size: 15px; line-height: 1.65; color: var(--muted2);
   }
   .hero .azioni { margin-top: 22px; display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
   .cta {
@@ -661,6 +661,70 @@
     0% { left: 0; opacity: 0; } 12% { opacity: 1; } 88% { opacity: 1; } 100% { left: 100%; opacity: 0; }
   }
   @media (prefers-reduced-motion: reduce) { .ponte .scint { animation: none; left: 58%; } }
+
+  /* ── LA BARRA IN ALTO ────────────────────────────────────────────────
+     Il marchio a sinistra, la navigazione al centro, l'azione a destra.
+     Resta appiccicata in cima e si scurisce appena la pagina si muove:
+     sopra la fotografia dev'essere trasparente, sul contenuto no. */
+  .barraAlta {
+    position: sticky; top: 0; z-index: 20;
+    display: flex; align-items: center; gap: 18px;
+    padding: 14px 0; margin: 0 auto; max-width: var(--misura);
+    transition: background .3s var(--ease), border-color .3s var(--ease), backdrop-filter .3s var(--ease);
+    border-bottom: 1px solid transparent;
+  }
+  body.mossa .barraAlta {
+    background: rgba(16,13,7,.86); backdrop-filter: blur(14px) saturate(1.2);
+    border-bottom-color: var(--border);
+    box-shadow: 0 10px 30px rgba(0,0,0,.4);
+  }
+  .barraAlta .segno { display: flex; align-items: center; gap: 9px; text-decoration: none; flex: none; }
+  .barraAlta .segno b {
+    font-family: 'Barlow Condensed', sans-serif; font-weight: 800; font-size: 17px;
+    letter-spacing: 3.4px; text-transform: uppercase; color: var(--text);
+  }
+  .barraAlta nav { display: none; margin-left: auto; margin-right: auto; gap: 26px; }
+  @media (min-width: 900px) { .barraAlta nav { display: flex; } }
+  .barraAlta nav a {
+    text-decoration: none; color: var(--muted2); font-size: 12px; letter-spacing: 1.8px;
+    text-transform: uppercase; position: relative; padding: 6px 0;
+    transition: color .2s var(--ease);
+  }
+  .barraAlta nav a::after {
+    content: ''; position: absolute; left: 0; right: 0; bottom: 0; height: 1px;
+    background: var(--amber); transform: scaleX(0); transform-origin: right;
+    transition: transform .3s var(--ease);
+  }
+  .barraAlta nav a:hover { color: var(--text); }
+  .barraAlta nav a:hover::after { transform: scaleX(1); transform-origin: left; }
+  .barraAlta .cta { margin-left: auto; min-height: 40px; padding: 0 16px; font-size: 12.5px; }
+  @media (min-width: 900px) { .barraAlta .cta { margin-left: 0; } }
+
+  /* ── LA FOTOGRAFIA DELL'APERTURA ─────────────────────────────────────
+     A tutto schermo dietro il titolo, scurita da due veli: uno che spegne
+     la fotografia perché il testo si legga, e uno caldo che la porta nella
+     famiglia dell'ambra invece di lasciarla di un altro colore.
+     Attribuzione nel piede: la licenza lo richiede. */
+  .hero { margin-left: calc(50% - 50vw); margin-right: calc(50% - 50vw);
+          padding-left: calc(50vw - 50%); padding-right: calc(50vw - 50%); }
+  .hero::after {
+    content: ''; position: absolute; inset: 0; z-index: -2; pointer-events: none;
+    background-image:
+      linear-gradient(180deg, rgba(16,13,7,.78), rgba(16,13,7,.66) 22%, rgba(16,13,7,.80) 52%, var(--bg) 94%),
+      radial-gradient(120% 70% at 50% 0%, rgba(255,109,0,.16), transparent 62%),
+      url('./anteprime/cava-fronte.jpg');
+    background-size: cover, cover, cover;
+    background-position: center, center, 46% 62%;
+  }
+  @media (max-width: 620px) {
+    .hero::after { background-size: cover, cover, auto 112%; background-position: center, center, 48% 58%; }
+  }
+  /* sopra la fotografia il testo attenuato non basta più: si alza */
+  .hero .apri { color: #d8c9a4; }
+  .credito {
+    margin-top: 14px; font-size: 10.5px; letter-spacing: .4px; color: var(--muted);
+  }
+  .credito a { color: var(--muted2); }
 </style>
 </head>
 <body class="dw">
@@ -672,6 +736,24 @@
 <div class="grana" aria-hidden="true"></div>
 <div class="avanzamento" aria-hidden="true"></div>
 <div class="wrap">
+  <header class="barraAlta">
+    <a class="segno" href="#" aria-label="Deepwork">
+      <svg width="26" height="27" viewBox="0 0 120 122" aria-hidden="true">
+        <polygon points="60,72 16,17 104,17" fill="#14100a"/>
+        <polygon points="60,68 22,21 98,21" fill="#1c1608" stroke="#ffab00" stroke-width="3"/>
+        <rect x="58" y="2" width="4" height="66" fill="#ffab00" rx="1.5"/>
+        <line x1="60" y1="68" x2="42" y2="77" stroke="#ffab00" stroke-width="3" stroke-linecap="round"/>
+        <line x1="60" y1="68" x2="78" y2="77" stroke="#ffab00" stroke-width="3" stroke-linecap="round"/>
+        <line x1="60" y1="68" x2="60" y2="85" stroke="#ffd54f" stroke-width="3.5" stroke-linecap="round"/>
+      </svg>
+      <b>Deepwork</b>
+    </a>
+    <nav>
+      <a href="#app">Le app</a>
+      <a href="#ponti">Come si parlano</a>
+    </nav>
+    <a class="cta primaria" href="./deepwork-id/index.html#tour">Prova il tour</a>
+  </header>
 
   <header class="hero" data-fam="#ffab00">
     <svg class="marchio" width="74" height="76" viewBox="0 0 120 122" aria-hidden="true">
@@ -710,7 +792,7 @@
     <div class="giu" aria-hidden="true">Scorri</div>
   </header>
 
-  <section class="sez chiara" data-fam="#ffab00">
+  <section class="sez chiara" id="ponti" data-fam="#ffab00">
     <div class="capoSez">
       <div>
         <h2 class="sez-tit">Le app si parlano</h2>
@@ -1003,6 +1085,7 @@
       Messi insieme, smettono di farti scrivere due volte la stessa cosa.</p>
     <a class="cta primaria" href="./deepwork-id/index.html#tour">Prova il tour</a>
     <div class="firma">Deepwork · ecosistema per cave e attività estrattive</div>
+    <p class="credito">Fotografia dell'apertura: «Sunset at old Rixö quarry» di W.carter, <a href="https://creativecommons.org/licenses/by-sa/4.0/" rel="license noopener" target="_blank">CC BY-SA 4.0</a>, via Wikimedia Commons.</p>
   </footer>
 
 </div>
