@@ -572,6 +572,8 @@ grep -n "^- \[ \] \*\*" vault/ROADMAP_SETTIMANA.md
 - `I 20 KO del giro del 09/08, riverificati sul commit di adesso`
 - `«Adempimenti» è la parola che governa il minimo di Sentinella`
 - `B7. `sentinella-periodo-adempimento` È INTERMITTENTE — e va rimisurato a`
+- `LA TELA DELLA VETRINA È IN ATTESA DEL FONDATORE` *(la fotografia di cava,
+  e il sì o il no alla sezione chiara)*
 
 ## 🎯 L'obiettivo della settimana
 
@@ -6485,3 +6487,36 @@ di scriverlo qui**: niente entra sulla parola dell'agente.
       deve nominare deve avere un nome.
       Misure: **22 schermate su 22** nelle tre app nuove, **21 passati, 0
       falliti**; 61 comandi premuti dentro la finestra, 0 muti.
+
+- [x] **LA VETRINA NON RESTITUIVA NIENTE A CHI LA MUOVEVA** *(direttiva del
+      fondatore 23/08, col sito di un ristorante di fascia alta come
+      riferimento)*. La schermata di presentazione rispondeva in due punti
+      soli — l'alone sulle schede e la salita all'entrata — e per il resto
+      era immobile. Adesso quattro strati d'ambiente fissi (grana, barra di
+      lettura, alone del puntatore, tinta della famiglia), l'apertura a
+      tutto schermo, il titolo che sale parola per parola, il ventaglio che
+      deriva sullo scorrimento e la risposta al tocco su tutto ciò che si
+      preme. Misurato a 1280/430/390/320 px: **nessuno scorrimento
+      laterale, nessun errore di pagina, 4 strati su 4, 7 zone di tinta**.
+      ⛔ E la riga che è costata di più da capire: `overflow-x: hidden` su
+      html/body rende il corpo un **contenitore di scorrimento**, e da lì
+      `position: sticky` smette di funzionare in TUTTA la pagina **senza
+      dare nessun errore**. `clip` taglia allo stesso modo — che era la
+      ragione misurata per cui quella riga esiste — e non crea il
+      contenitore.
+- [ ] **LA TELA DELLA VETRINA È IN ATTESA DEL FONDATORE.** Cinque tavole
+      pubblicate il 23/08 (apertura, telefono 390, ponti, nove schede,
+      vocabolario dei pezzi). Due decisioni sono **sue** e il lavoro non va
+      avanti senza:
+      · **una fotografia di cava** per l'apertura — il riferimento ha una
+        foto a tutto schermo scurita col titolo sopra, ed è la mossa che
+        alza di più il risultato. Senza, l'apertura resta su fondo nero;
+      · **il sì o il no a una sezione chiara** — il riferimento alterna
+        scuro e crema, ed è metà del suo ritmo. Da noi sarebbe UNA sezione
+        su fondo pietra chiara. È una deviazione dal «tutto scuro» del
+        core, quindi non si fa senza conferma esplicita.
+      ⚠️ Misurato sul riferimento, perché non si creda che il movimento sia
+      il suo punto di forza: è WordPress + Elementor Pro, e nel sorgente
+      c'è **una sola classe di animazione** (`elementor-animation-grow`,
+      11 occorrenze). Quello che lo fa sembrare vivo è la **composizione**,
+      non il movimento — ed è esattamente la parte che possiamo battere.

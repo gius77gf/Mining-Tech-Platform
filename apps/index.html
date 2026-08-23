@@ -372,12 +372,237 @@
     .scheda:hover { transform: none; }
     .scheda:hover .anteprima img { transform: none; }
   }
+
+  /* ╔══════════════════════════════════════════════════════════════════╗
+     ║  L'IMPIANTO CINEMATOGRAFICO                                      ║
+     ╚══════════════════════════════════════════════════════════════════╝
+     Direttiva del fondatore (23/08): la vetrina deve restituire un output
+     a OGNI movimento — scorrimento, puntatore, tocco, tastiera — e ogni
+     dettaglio deve essere curato. Quattro strati fissi dietro il contenuto,
+     nessuno dei quali intercetta i tocchi e nessuno dei quali sposta un
+     pixel del testo: se un pezzo di programma non parte, la pagina resta
+     esattamente quella di prima.
+
+     La materia è quella della cava: pietra scura e una lampada calda.
+     Quindi movimento LENTO e pesante (una curva a uscita esponenziale),
+     mai elastico — un rimbalzo qui suonerebbe come un giocattolo. */
+
+  :root {
+    /* la curva delle entrate in scena: parte veloce e si posa piano,
+       come un braccio idraulico che arriva a fine corsa */
+    --posa: cubic-bezier(.16, 1, .3, 1);
+    --lento: cubic-bezier(.33, 1, .68, 1);
+    /* la tinta d'ambiente: parte in ambra Deepwork e diventa quella della
+       famiglia di app che si sta guardando */
+    --fam: #ffab00;
+  }
+
+  /* ⛔ `clip` E NON `hidden`, e la differenza non è di gusto: `overflow-x:
+     hidden` su html/body rende il corpo un CONTENITORE DI SCORRIMENTO, e da
+     lì `position: sticky` smette di funzionare in tutta la pagina senza dare
+     nessun errore. `clip` taglia allo stesso modo — che era la ragione
+     misurata per cui la riga esiste, niente scorrimento laterale sul
+     telefono — e non crea il contenitore. Verificato a 320, 390, 430 e
+     1280 px prima di lasciarlo qui. */
+  html { overflow-x: clip; }
+  body.dw { overflow-x: clip; }
+
+  /* il contenuto sta SOPRA i quattro strati d'ambiente */
+  .wrap { position: relative; z-index: 1; }
+
+  /* ── 1. LA GRANA ────────────────────────────────────────────────────
+     Un velo di rumore finissimo su tutta la pagina. È il dettaglio che
+     separa una superficie da uno sfondo: senza, i neri sono piatti come
+     una diapositiva; con, hanno la grana di una fotografia. Sta a
+     un'opacità che non si nota guardandolo — si nota solo togliendolo. */
+  .grana {
+    position: fixed; inset: 0; z-index: 2; pointer-events: none;
+    opacity: .035; mix-blend-mode: overlay;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23g)'/%3E%3C/svg%3E");
+    background-size: 140px 140px;
+  }
+
+  /* ── 2. LA BARRA DI LETTURA ─────────────────────────────────────────
+     Dice a colpo d'occhio quanto manca. Dove il browser sa animare sullo
+     scorrimento da solo (`scroll()`) non entra nemmeno una riga di
+     programma: è il browser a disegnarla, quindi non perde un fotogramma
+     nemmeno scorrendo di corsa. Dove non lo sa, la riempie il programma. */
+  .avanzamento {
+    position: fixed; top: 0; left: 0; right: 0; height: 2px; z-index: 30;
+    pointer-events: none; transform-origin: 0 50%;
+    transform: scaleX(var(--letto, 0));
+    background: var(--grad);
+    box-shadow: 0 0 14px var(--glow-warm);
+  }
+  @supports (animation-timeline: scroll()) {
+    @keyframes letturaPagina { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+    .avanzamento { animation: letturaPagina linear both; animation-timeline: scroll(root block); }
+  }
+
+  /* ── 3. L'ALONE DEL PUNTATORE ───────────────────────────────────────
+     La lampada che segue la mano. È lo stesso gesto che il core fa sulle
+     schede, portato su tutta la pagina: muovendo il mouse la luce si
+     sposta, quindi anche il movimento che non tocca niente restituisce
+     qualcosa. Compare solo dove c'è un puntatore FINE: su un telefono un
+     alone appiccicato all'ultimo tocco è un difetto, non un effetto. */
+  .alone-mouse {
+    position: fixed; inset: 0; z-index: 0; pointer-events: none;
+    opacity: 0; transition: opacity .8s var(--lento);
+    background: radial-gradient(420px 420px at var(--px, 50%) var(--py, 40%),
+                color-mix(in srgb, var(--fam) 7%, transparent), transparent 66%);
+  }
+  body.ha-puntatore .alone-mouse { opacity: 1; }
+
+  /* ── 4. LA TINTA DELLA FAMIGLIA ─────────────────────────────────────
+     Scorrendo, l'ambiente della pagina prende il colore della famiglia di
+     app che si sta guardando: ambra nell'apertura, verde-pietra sulla
+     roccia, arancio-ruggine sul cantiere, verde-acqua sull'azienda, ambra
+     di nuovo sulla base. È il movimento che si sente di più e quello che
+     si nota di meno: nessuno lo vede accadere, tutti si accorgono che la
+     pagina «cambia aria». Il fondo resta sempre della famiglia Deepwork —
+     è una VELATURA, non una riverniciatura, se no nove tinte diventano
+     l'accozzaglia che questa pagina esiste per non essere. */
+  .ambiente {
+    position: fixed; inset: 0; z-index: 0; pointer-events: none;
+    background:
+      radial-gradient(120% 60% at 50% 0%, color-mix(in srgb, var(--fam) 9%, transparent), transparent 62%),
+      radial-gradient(90% 50% at 50% 100%, color-mix(in srgb, var(--fam) 5%, transparent), transparent 60%);
+    transition: background 1.1s var(--lento);
+  }
+
+  /* ── L'APERTURA A TUTTO SCHERMO ─────────────────────────────────────
+     Prima era alta quanto il suo contenuto e la sezione dopo si intravedeva
+     già: un'apertura che si intravede non è un'apertura. Adesso prende lo
+     schermo intero (`svh`, non `vh`: sul telefono `vh` conta anche la barra
+     degli indirizzi che poi sparisce, e l'apertura risulta più alta dello
+     schermo vero). */
+  .hero {
+    min-height: 100svh; display: flex; flex-direction: column; justify-content: center;
+    padding: 26px 0 74px;
+  }
+  .hero::before { animation: respiroLuce 11s ease-in-out infinite; }
+  @keyframes respiroLuce {
+    0%, 100% { opacity: .82; transform: translateX(-50%) scale(1); }
+    50%      { opacity: 1;   transform: translateX(-50%) scale(1.07); }
+  }
+
+  /* IL TITOLO CHE SALE. Ogni parola sta in una finestra che la ritaglia e
+     ne esce dal basso, una dopo l'altra. È la prima cosa che si vede, e
+     dice in mezzo secondo che questa pagina è costruita e non montata.
+     ⚠️ La sfumatura di «Ecosistema» vive sulla parola INTERNA, non sulla
+     finestra: messa sulla finestra, il ritaglio del testo si applica a un
+     elemento che si muove e la sfumatura scorre insieme alla parola. */
+  .titolo { display: block; }
+  .titolo .par { display: inline-block; overflow: hidden; vertical-align: bottom; padding-bottom: .06em; }
+  .titolo .par > i {
+    display: inline-block; font-style: normal;
+    transform: translateY(110%);
+    animation: paroleSu 1.05s var(--posa) forwards;
+  }
+  .titolo .par:nth-child(2) > i { animation-delay: .14s; }
+  @keyframes paroleSu { to { transform: translateY(0); } }
+  .titolo .eco > i {
+    background: var(--grad); -webkit-background-clip: text; background-clip: text;
+    -webkit-text-fill-color: transparent; color: transparent;
+  }
+
+  /* le righe sotto il titolo entrano dopo, sfalsate: l'occhio le legge
+     nell'ordine in cui compaiono invece di trovarsele tutte insieme */
+  .hero .claim, .hero .apri, .hero .azioni, .hero .ventaglio, .hero .cifre {
+    opacity: 0; transform: translateY(16px);
+    animation: entraDaSotto .9s var(--posa) forwards;
+  }
+  .hero .claim     { animation-delay: .30s; }
+  .hero .apri      { animation-delay: .40s; }
+  .hero .azioni    { animation-delay: .50s; }
+  .hero .ventaglio { animation-delay: .58s; }
+  .hero .cifre     { animation-delay: .70s; }
+  @keyframes entraDaSotto { to { opacity: 1; transform: none; } }
+
+  /* IL VENTAGLIO CHE DERIVA. Scorrendo, i tre telefoni si allontanano a
+     velocità diverse e quello di mezzo resta un po' indietro: è la
+     profondità, e si legge solo quando ci si muove. Il valore lo scrive il
+     programma sul fotogramma (`--sc`, da 0 a 1), qui c'è solo il disegno. */
+  .ventaglio .tel {
+    will-change: transform;
+    transition: transform .5s var(--ease);
+  }
+  .tel.sx  { transform: translateX(calc(-138% - var(--sc, 0) * 26px)) translateY(calc(16px + var(--sc, 0) * 34px)) rotate(calc(-8deg - var(--sc, 0) * 3deg)) scale(.94); }
+  .tel.dx  { transform: translateX(calc(38%   + var(--sc, 0) * 26px)) translateY(calc(16px + var(--sc, 0) * 34px)) rotate(calc(8deg  + var(--sc, 0) * 3deg)) scale(.94); }
+  .tel.mid { transform: translateX(-50%) translateY(calc(-6px - var(--sc, 0) * 16px)); }
+
+  /* IL SUGGERIMENTO DI SCORRERE. Un'apertura a tutto schermo ha un difetto
+     noto: chi arriva non sa che sotto c'è dell'altro. Una riga sola, che
+     scende piano e si spegne appena la pagina si muove. */
+  .giu {
+    position: absolute; left: 50%; bottom: 22px; transform: translateX(-50%);
+    display: flex; flex-direction: column; align-items: center; gap: 7px;
+    font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 10px;
+    letter-spacing: 2.4px; text-transform: uppercase; color: var(--muted);
+    opacity: 0; animation: entraDaSotto .9s var(--posa) 1.15s forwards;
+    transition: opacity .4s var(--ease);
+    pointer-events: none;
+  }
+  body.mossa .giu { opacity: 0; }
+  .giu::after {
+    content: ''; width: 1px; height: 26px;
+    background: linear-gradient(180deg, var(--amber), transparent);
+    animation: filoGiu 2.4s var(--lento) infinite;
+  }
+  @keyframes filoGiu {
+    0%   { transform: scaleY(0); transform-origin: top; opacity: 0; }
+    35%  { transform: scaleY(1); transform-origin: top; opacity: 1; }
+    65%  { transform: scaleY(1); transform-origin: bottom; opacity: 1; }
+    100% { transform: scaleY(0); transform-origin: bottom; opacity: 0; }
+  }
+
+  /* ── LA RISPOSTA AL TOCCO ───────────────────────────────────────────
+     Ogni cosa premibile si abbassa quando la si preme. Costa quattro righe
+     ed è la differenza fra un bottone e un rettangolo scritto: senza, chi
+     tocca sul telefono non sa se ha preso o no. */
+  .cta:active { transform: translateY(1px) scale(.985); }
+  .scheda:active { transform: translateY(-1px) scale(.996); }
+  .dd-lista a:active { transform: scale(.99); }
+  .cta, .scheda, .dd-lista a { -webkit-tap-highlight-color: transparent; }
+
+  /* la stessa cura per chi arriva con la tastiera: il contorno non è un
+     ripiego del browser, è disegnato come il resto */
+  .cta:focus-visible, .dd-lista a:focus-visible {
+    outline: 2px solid var(--amber); outline-offset: 3px;
+  }
+
+  /* ── CHI HA CHIESTO MENO MOVIMENTO ──────────────────────────────────
+     Tutto quello che sta qui sopra si spegne. Non si attenua: si spegne, e
+     la pagina resta completa e immobile. Un'animazione che parte da
+     «invisibile» senza il suo interruttore è un pezzo di pagina che per
+     qualcuno non compare mai. */
+  @media (prefers-reduced-motion: reduce) {
+    .hero::before { animation: none; }
+    .titolo .par > i { transform: none; animation: none; }
+    .hero .claim, .hero .apri, .hero .azioni, .hero .ventaglio, .hero .cifre,
+    .giu { opacity: 1; transform: none; animation: none; }
+    .giu::after { animation: none; }
+    .ventaglio .tel { transition: none; }
+    .tel.sx  { transform: translateX(-138%) translateY(16px) rotate(-8deg) scale(.94); }
+    .tel.dx  { transform: translateX(38%)   translateY(16px) rotate(8deg)  scale(.94); }
+    .tel.mid { transform: translateX(-50%)  translateY(-6px); }
+    .ambiente { transition: none; }
+    .avanzamento { animation: none; }
+    .cta:active, .scheda:active, .dd-lista a:active { transform: none; }
+  }
 </style>
 </head>
 <body class="dw">
+<!-- I QUATTRO STRATI D'AMBIENTE. Stanno FUORI da .wrap e prima di lui:
+     sono fissi, non intercettano i tocchi e non entrano nel flusso, quindi
+     non possono spostare un pixel di quello che si legge. -->
+<div class="ambiente" aria-hidden="true"></div>
+<div class="alone-mouse" aria-hidden="true"></div>
+<div class="grana" aria-hidden="true"></div>
+<div class="avanzamento" aria-hidden="true"></div>
 <div class="wrap">
 
-  <header class="hero">
+  <header class="hero" data-fam="#ffab00">
     <svg class="marchio" width="74" height="76" viewBox="0 0 120 122" aria-hidden="true">
       <polygon points="60,72 16,17 104,17" fill="#14100a"/>
       <polygon points="60,68 22,21 98,21" fill="#1c1608" stroke="#ffab00" stroke-width="2"/>
@@ -391,7 +616,7 @@
       <circle cx="78" cy="78" r="2.5" fill="#ffab00"/>
       <circle cx="60" cy="86" r="3" fill="#ffd54f"/>
     </svg>
-    <h1>DEEPWORK <span class="eco">ECOSISTEMA</span></h1>
+    <h1 class="titolo"><span class="par"><i>Deepwork</i></span> <span class="par eco"><i>Ecosistema</i></span></h1>
     <p class="claim">Otto strumenti per la cava. Un accesso solo, e si parlano tra loro.</p>
     <p class="apri">Uno per ogni pezzo del lavoro: il fronte, la sicurezza, il turno, i mezzi,
       i conti, l'ambiente, i volumi. Si entra una volta sola, e quello che scrive uno
@@ -411,9 +636,10 @@
       <div class="cifra"><b>1</b><span>accesso</span></div>
       <div class="cifra"><b>6</b><span>ponti fra le app</span></div>
     </div>
+    <div class="giu" aria-hidden="true">Scorri</div>
   </header>
 
-  <section class="sez">
+  <section class="sez" data-fam="#ffab00">
     <h2 class="sez-tit">Le app si parlano</h2>
     <p class="sez-sot">La differenza non è avere otto strumenti: è che si passano il lavoro.
       Sei cose che nessuno di loro, da solo, saprebbe fare.</p>
@@ -496,7 +722,7 @@
       </ul>
     </div>
 
-    <div class="famiglia sale">
+    <div class="famiglia sale" data-fam="#659b2c">
       <h3 class="fam-tit">La roccia</h3>
       <p class="fam-sot">Prima che si scavi: dove si progetta e dove si misura.</p>
     </div>
@@ -536,7 +762,7 @@
       </a>
     </div>
 
-    <div class="famiglia sale">
+    <div class="famiglia sale" data-fam="#d3633a">
       <h3 class="fam-tit">Il cantiere</h3>
       <p class="fam-sot">Mentre si scava: il turno, i mezzi, le persone.</p>
     </div>
@@ -592,7 +818,7 @@
       </a>
     </div>
 
-    <div class="famiglia sale">
+    <div class="famiglia sale" data-fam="#009f8f">
       <h3 class="fam-tit">L'azienda</h3>
       <p class="fam-sot">Dopo che si è scavato: i conti e quello che si deve all'ente.</p>
     </div>
@@ -640,7 +866,7 @@
       </a>
     </div>
 
-    <div class="famiglia sale">
+    <div class="famiglia sale" data-fam="#ffab00">
       <h3 class="fam-tit">La base</h3>
       <p class="fam-sot">Sotto tutte: il quaderno di cantiere e l'accesso unico.</p>
     </div>
@@ -695,7 +921,7 @@
   </section>
 
 
-  <footer class="piede">
+  <footer class="piede" data-fam="#ffab00">
     <p class="frase">Ogni strumento funziona anche da solo.<br>
       Messi insieme, smettono di farti scrivere due volte la stessa cosa.</p>
     <a class="cta primaria" href="./deepwork-id/index.html#tour">Prova il tour</a>
@@ -756,6 +982,103 @@
   setTimeout(function () {
     for (var k = 0; k < pezzi.length; k++) pezzi[k].classList.add('dentro');
   }, 1500);
+})();
+
+/* ══════════════════════════════════════════════════════════════════════
+   L'IMPIANTO CINEMATOGRAFICO — la parte che ha bisogno di programma.
+   Tre regole che valgono per tutto quello che c'è qui sotto:
+   · UN SOLO ascoltatore dello scorrimento, e il lavoro si fa sul
+     fotogramma. Tre ascoltatori separati ricalcolano lo stile tre volte
+     per lo stesso movimento;
+   · si scrive SOLO su variabili di stile e su classi del corpo: nessuno
+     di questi pezzi legge o sposta un elemento del contenuto, quindi se
+     uno non parte la pagina resta esattamente com'era;
+   · chi ha chiesto meno movimento non entra proprio: si esce subito,
+     invece di far girare tutto e nascondere l'effetto col foglio di stile.
+   ══════════════════════════════════════════════════════════════════════ */
+(function () {
+  var fermi = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  var corpo = document.body;
+  var radice = document.documentElement;
+
+  /* ── L'ALONE DEL PUNTATORE ────────────────────────────────────────
+     Solo dove il puntatore è FINE (mouse, trackpad, penna). Su un dito la
+     luce resterebbe accesa dove si è toccato l'ultima volta, che è un
+     difetto travestito da effetto. */
+  var fine = window.matchMedia && window.matchMedia('(pointer: fine)').matches;
+  if (fine && !fermi) {
+    var attesoAlone = false, ax = 0, ay = 0;
+    window.addEventListener('pointermove', function (e) {
+      ax = e.clientX; ay = e.clientY;
+      if (!corpo.classList.contains('ha-puntatore')) corpo.classList.add('ha-puntatore');
+      if (attesoAlone) return;
+      attesoAlone = true;
+      requestAnimationFrame(function () {
+        attesoAlone = false;
+        corpo.style.setProperty('--px', (ax / window.innerWidth * 100) + '%');
+        corpo.style.setProperty('--py', (ay / window.innerHeight * 100) + '%');
+      });
+    }, { passive: true });
+  }
+
+  /* ── LO SCORRIMENTO ───────────────────────────────────────────────
+     Un ascoltatore solo, che fa tre cose: la barra di lettura (dove il
+     browser non sa animarla da sé), la deriva del ventaglio, e lo
+     spegnimento del suggerimento «scorri».
+     ⚠️ La barra si calcola solo se il browser NON conosce le linee del
+     tempo di scorrimento: dove le conosce la disegna lui, e sovrascriverla
+     da qui vorrebbe dire fare due volte lo stesso lavoro con il risultato
+     peggiore. */
+  var nativa = window.CSS && CSS.supports && CSS.supports('animation-timeline: scroll()');
+  var apertura = document.querySelector('.hero');
+  var attesoScorri = false;
+
+  function suFotogramma() {
+    attesoScorri = false;
+    var y = window.pageYOffset || radice.scrollTop || 0;
+
+    if (!nativa) {
+      var corsa = (radice.scrollHeight - window.innerHeight) || 1;
+      corpo.style.setProperty('--letto', Math.min(1, Math.max(0, y / corsa)));
+    }
+
+    if (apertura) {
+      var alta = apertura.offsetHeight || 1;
+      apertura.style.setProperty('--sc', Math.min(1, Math.max(0, y / alta)));
+    }
+
+    if (y > 40) corpo.classList.add('mossa');
+    else corpo.classList.remove('mossa');
+  }
+
+  if (!fermi) {
+    window.addEventListener('scroll', function () {
+      if (attesoScorri) return;
+      attesoScorri = true;
+      requestAnimationFrame(suFotogramma);
+    }, { passive: true });
+    suFotogramma();
+  }
+
+  /* ── LA TINTA DELLA FAMIGLIA ──────────────────────────────────────
+     Ogni sezione dichiara la propria tinta con `data-fam`; quando entra
+     nella fascia centrale dello schermo l'ambiente della pagina ci si
+     accorda. La fascia è stretta di proposito (dal 45% al 55%): con una
+     fascia larga due sezioni sono dentro insieme e la tinta sfarfalla
+     avanti e indietro mentre si scorre piano.
+     Se l'osservatore non c'è, la tinta resta l'ambra Deepwork: la pagina
+     non perde niente, perde un effetto. */
+  var zone = document.querySelectorAll('[data-fam]');
+  if (zone.length && !fermi && ('IntersectionObserver' in window)) {
+    var occhioFam = new IntersectionObserver(function (voci) {
+      for (var i = 0; i < voci.length; i++) {
+        if (!voci[i].isIntersecting) continue;
+        var tinta = voci[i].target.getAttribute('data-fam');
+        if (tinta) radice.style.setProperty('--fam', tinta);
+      }
+    }, { rootMargin: '-45% 0px -55% 0px', threshold: 0 });
+    for (var z = 0; z < zone.length; z++) occhioFam.observe(zone[z]);
+  }
 })();
 </script>
 </body>
