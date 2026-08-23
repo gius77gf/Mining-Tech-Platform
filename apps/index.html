@@ -725,6 +725,43 @@
     margin-top: 14px; font-size: 10.5px; letter-spacing: .4px; color: var(--muted);
   }
   .credito a { color: var(--muted2); }
+
+  /* ── LA FASCIA DI IMMAGINI ───────────────────────────────────────────
+     Tre fotografie a tutta larghezza, senza spazio in mezzo, fra le schede
+     e il piede: e' il respiro che il riferimento mette fra una sezione
+     densa e l'altra, e dice «questo e' il mondo di cui parliamo» senza
+     scrivere una riga. Sul telefono restano tre, ma piu' strette e alte:
+     tagliarne una vorrebbe dire raccontare meno. */
+  .fascia {
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 0;
+    margin: 0 calc(50% - 50vw); position: relative;
+    border-top: 1px solid var(--border); border-bottom: 1px solid var(--border);
+  }
+  .fascia figure { margin: 0; position: relative; overflow: hidden; aspect-ratio: 3 / 2; }
+  @media (max-width: 700px) { .fascia figure { aspect-ratio: 1 / 1.25; } }
+  .fascia img {
+    width: 100%; height: 100%; object-fit: cover; display: block;
+    filter: saturate(.86) brightness(.82);
+    transform: scale(1.02);
+    transition: transform .9s var(--lento), filter .6s var(--ease);
+  }
+  .fascia figure:hover img { transform: scale(1.07); filter: saturate(1) brightness(.95); }
+  /* il velo caldo tiene le tre fotografie nella famiglia dell'ambra invece
+     di lasciarle di tre colori diversi */
+  .fascia figure::after {
+    content: ''; position: absolute; inset: 0; pointer-events: none;
+    background: linear-gradient(180deg, rgba(16,13,7,.34), rgba(16,13,7,.12) 42%, rgba(16,13,7,.62)),
+                linear-gradient(0deg, rgba(255,109,0,.13), rgba(255,171,0,.05) 55%, transparent 78%);
+  }
+  .fascia figcaption {
+    position: absolute; left: 14px; right: 14px; bottom: 12px; z-index: 1;
+    font-family: 'Barlow Condensed', sans-serif; font-weight: 800; font-size: 11px;
+    letter-spacing: 2.2px; text-transform: uppercase; color: #efe3c8;
+    text-shadow: 0 1px 8px rgba(0,0,0,.9);
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .fascia img, .fascia figure:hover img { transform: none; transition: none; }
+  }
 </style>
 </head>
 <body class="dw">
@@ -1080,12 +1117,18 @@
   </section>
 
 
+  <div class="fascia" aria-label="La cava">
+    <figure><img src="./anteprime/cava-parete.jpg" alt="Il fronte di una cava alla luce della sera" loading="lazy" decoding="async" width="900" height="600"><figcaption>Il fronte</figcaption></figure>
+    <figure><img src="./anteprime/cava-piazzale.jpg" alt="Il piazzale di una cava con le tracce dei mezzi" loading="lazy" decoding="async" width="900" height="600"><figcaption>Il piazzale</figcaption></figure>
+    <figure><img src="./anteprime/cava-materia.jpg" alt="La roccia tagliata, a strati" loading="lazy" decoding="async" width="900" height="600"><figcaption>La materia</figcaption></figure>
+  </div>
+
   <footer class="piede" data-fam="#ffab00">
     <p class="frase">Ogni strumento funziona anche da solo.<br>
       Messi insieme, smettono di farti scrivere due volte la stessa cosa.</p>
     <a class="cta primaria" href="./deepwork-id/index.html#tour">Prova il tour</a>
     <div class="firma">Deepwork · ecosistema per cave e attività estrattive</div>
-    <p class="credito">Fotografia dell'apertura: «Sunset at old Rixö quarry» di W.carter, <a href="https://creativecommons.org/licenses/by-sa/4.0/" rel="license noopener" target="_blank">CC BY-SA 4.0</a>, via Wikimedia Commons.</p>
+    <p class="credito">Fotografie: «Sunset at old Rixö quarry» e «Sunset at old Rixö quarry 2» di W.carter, «Buch-Bischwind Steinbruch» di Ermell, «Roemischer Steinbruch» di Friedrich Haag — <a href="https://creativecommons.org/licenses/by-sa/4.0/" rel="license noopener" target="_blank">CC BY-SA 4.0</a>, via Wikimedia Commons.</p>
   </footer>
 
 </div>
