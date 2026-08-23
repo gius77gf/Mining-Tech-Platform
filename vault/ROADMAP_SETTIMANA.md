@@ -6511,12 +6511,46 @@ di scriverlo qui**: niente entra sulla parola dell'agente.
       · **una fotografia di cava** per l'apertura — il riferimento ha una
         foto a tutto schermo scurita col titolo sopra, ed è la mossa che
         alza di più il risultato. Senza, l'apertura resta su fondo nero;
-      · **il sì o il no a una sezione chiara** — il riferimento alterna
-        scuro e crema, ed è metà del suo ritmo. Da noi sarebbe UNA sezione
-        su fondo pietra chiara. È una deviazione dal «tutto scuro» del
-        core, quindi non si fa senza conferma esplicita.
+      · ~~il sì o il no a una sezione chiara~~ — **APPROVATA dal fondatore
+        il 23/08 e fatta**: «Le app si parlano» è una fascia chiara a tutta
+        larghezza fra due sezioni scure. I colori non sono inventati, sono la
+        ricetta del tema chiaro di `shared/dw-app-ui.css` calcolata con
+        l'ambra; per il testo si usa il gradino PROFONDO dell'accento, che sei
+        app su nove dichiarano già da sé. Misurato: **0 testi sotto soglia su
+        40**, a 1280/430/390/320 px.
       ⚠️ Misurato sul riferimento, perché non si creda che il movimento sia
       il suo punto di forza: è WordPress + Elementor Pro, e nel sorgente
       c'è **una sola classe di animazione** (`elementor-animation-grow`,
       11 occorrenze). Quello che lo fa sembrare vivo è la **composizione**,
       non il movimento — ed è esattamente la parte che possiamo battere.
+
+- [x] **LA SEZIONE CHIARA, E IL RIGHELLO CHE L'HA ACCUSATA DUE VOLTE A TORTO**
+      *(23/08)*. Fatta. Ma le due lezioni valgono più della sezione:
+      ⛔ **una fascia dipinta da uno PSEUDO-ELEMENTO è invisibile a chi cerca
+      il fondo risalendo gli antenati.** `getComputedStyle(a).backgroundColor`
+      non la trova mai e finisce sul nero del corpo: **tre accuse di contrasto
+      false**, fino a 1,08:1 su un titolo che dal vero fa 14:1 — e lo stesso
+      errore lo avrebbe fatto `tests/browser/contrasto.mjs`. Una fascia a tutta
+      larghezza si fa **coi margini negativi**, sull'elemento vero.
+      ⚠️ E la seconda: Chromium restituisce i `color-mix()` come
+      `color(srgb 0.96 0.93 0.88)`, **coi canali da 0 a 1 e non da 0 a 255**.
+      Un lettore che li divide per 255 li rende quasi neri e accusa un
+      contrasto di 1,00. La risposta era **già in casa**: il commento di
+      `contrasto.mjs` la chiama «SETTIMA TRAPPOLA, E LA PIÙ COSTOSA DI TUTTE».
+      Il banco del progetto lo sapeva; il righello scritto in cinque minuti no.
+- [x] **LE IMMAGINI DI CAVA: CERCATE, GUARDATE, SCARTATE** *(23/08)*. Otto
+      ricerche su Wikimedia Commons — l'unica fonte raggiungibile con licenza
+      verificabile una per una (Pexels, Pixabay e Openverse rispondono 403):
+      **147 file distinti, zero termini non guardati**, 53 dopo aver tolto
+      mappe e disegni, **24 scaricate e guardate**. Nessuna regge come
+      apertura: foto d'archivio, cartelli, incisioni, scatti a mezzogiorno con
+      cielo bianco, e sette di Carrara (montagna bianca e cielo azzurro, che
+      litigano con l'ambra). Due sono manifesti **contro** le cave.
+      ⚠️ La ragione di fondo, da ricordare prima di rifare la stessa ricerca:
+      **Commons è un archivio enciclopedico, non una banca di immagini
+      commerciali.** Le sue foto di cava sono documentarie.
+      ⚠️ E il righello ha mentito due volte prima di funzionare: la prima
+      ricerca ha risposto **«0 candidati»** perché l'API rispondeva `429 — too
+      many requests`, e il servizio delle miniature di Wikimedia dà **400** a
+      questo indirizzo mentre gli originali scaricano benissimo. Uno zero che
+      parla del comando, non del mondo.

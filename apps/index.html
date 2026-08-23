@@ -590,6 +590,77 @@
     .avanzamento { animation: none; }
     .cta:active, .scheda:active, .dd-lista a:active { transform: none; }
   }
+
+  /* ── LA SEZIONE CHIARA ──────────────────────────────────────────────
+     Approvata dal fondatore il 23/08. Il sito di riferimento alterna scuro e
+     crema, ed è metà del suo ritmo: una pagina tutta di un colore non ha
+     respiro, e chi scorre non sente di essere arrivato da qualche parte.
+     ⛔ I COLORI NON SONO INVENTATI QUI: è la ricetta del tema chiaro che sta
+     in `shared/dw-app-ui.css` — accento al 6% su #f5f3ef per il fondo, carta
+     bianca, ombre GRIGIE e non nere, aloni appena accennati — calcolata con
+     l'ambra di Deepwork. E per il testo si usa il gradino PROFONDO
+     dell'accento, che è la regola già scritta là dentro: sul chiaro il
+     gradino chiaro sparisce.
+     Misurato sul renderizzato, non dedotto: testo 14,11:1 · attenuato
+     8,87:1 · ambra profonda 5,29:1 · bianco sull'ambra 6,06:1. */
+  .sez.chiara {
+    --ch-fondo: color-mix(in srgb, var(--amber) 6%, #f5f3ef);
+    --ch-carta: #ffffff;
+    --ch-bordo: color-mix(in srgb, var(--amber) 24%, #d6d2ca);
+    --ch-testo: color-mix(in srgb, #8f5500 16%, #17150f);
+    --ch-muto:  color-mix(in srgb, #8f5500 28%, #3a352d);
+    --ch-ambra: #8f5500;
+    position: relative; margin-top: 0; color: var(--ch-testo);
+    /* a tutta larghezza SENZA pseudo-elementi: i margini escono dal
+       contenitore e il riempimento rimette il testo in colonna */
+    margin-left: calc(50% - 50vw); margin-right: calc(50% - 50vw);
+    padding: 62px calc(50vw - 50%) 66px;
+    background-color: var(--ch-fondo);
+    background-image: radial-gradient(130% 55% at 50% 0%,
+                      color-mix(in srgb, var(--amber) 10%, transparent), transparent 64%);
+    border-top: 1px solid var(--ch-bordo); border-bottom: 1px solid var(--ch-bordo);
+  }
+  /* la fascia esce dal contenitore e prende tutta la larghezza: è il
+     `100vw` centrato, che non fa comparire lo scorrimento laterale solo
+     perché html/body hanno `overflow-x: clip` invece di `hidden` */
+  .sez.chiara .sez-tit { color: var(--ch-ambra); }
+  .sez.chiara .sez-tit::before { background: var(--ch-ambra); box-shadow: none; }
+  .sez.chiara .sez-sot { color: var(--ch-muto); }
+  /* l'intestazione asimmetrica: titolone a sinistra, testo a destra, come fa
+     il riferimento. Su schermo stretto tornano una sotto l'altra. */
+  .capoSez { display: grid; gap: 12px; margin-bottom: 26px; }
+  @media (min-width: 860px) {
+    .capoSez { grid-template-columns: 1.15fr .85fr; gap: 40px; align-items: end; }
+    .capoSez .sez-sot { margin-bottom: 6px; }
+  }
+  .sez-titolone {
+    margin: 16px 0 0; font-family: 'Barlow Condensed', sans-serif; font-weight: 800;
+    font-size: clamp(30px, 5vw, 58px); line-height: 1.02; letter-spacing: 2px;
+    text-transform: uppercase; color: var(--ch-testo); text-wrap: balance;
+  }
+  .sez.chiara .ponte {
+    background: var(--ch-carta); border: 1px solid var(--ch-bordo); border-left: 1px solid var(--ch-bordo);
+    box-shadow: 0 1px 0 rgba(255,255,255,.9) inset, 0 6px 16px rgba(30,26,18,.10);
+    padding: 20px 20px 22px;
+  }
+  .sez.chiara .ponte h3 { color: var(--ch-testo); font-size: 15.5px; }
+  .sez.chiara .ponte p  { color: var(--ch-muto); font-size: 13px; }
+  /* IL FILO FRA DUE APP. Prima c'era una freccia di testo; adesso è un tratto
+     disegnato che va dal colore della prima al colore della seconda, con una
+     scintilla che lo percorre — la scintilla È il dato che passa. */
+  .ponte .filo {
+    position: relative; flex: 1; height: 1.5px; border-radius: 1px; min-width: 22px;
+    background: linear-gradient(90deg, var(--da), var(--a));
+  }
+  .ponte .scint {
+    position: absolute; top: -2px; width: 5px; height: 5px; border-radius: 50%;
+    background: var(--ch-ambra, var(--amber2)); box-shadow: 0 0 7px var(--ch-ambra, var(--glow-warm));
+    animation: scintillaPonte 3.2s var(--lento) infinite;
+  }
+  @keyframes scintillaPonte {
+    0% { left: 0; opacity: 0; } 12% { opacity: 1; } 88% { opacity: 1; } 100% { left: 100%; opacity: 0; }
+  }
+  @media (prefers-reduced-motion: reduce) { .ponte .scint { animation: none; left: 58%; } }
 </style>
 </head>
 <body class="dw">
@@ -639,49 +710,55 @@
     <div class="giu" aria-hidden="true">Scorri</div>
   </header>
 
-  <section class="sez" data-fam="#ffab00">
-    <h2 class="sez-tit">Le app si parlano</h2>
-    <p class="sez-sot">La differenza non è avere otto strumenti: è che si passano il lavoro.
-      Sei cose che nessuno di loro, da solo, saprebbe fare.</p>
+  <section class="sez chiara" data-fam="#ffab00">
+    <div class="capoSez">
+      <div>
+        <h2 class="sez-tit">Le app si parlano</h2>
+        <h3 class="sez-titolone">La differenza non è avere otto strumenti</h3>
+      </div>
+      <p class="sez-sot">È che si passano il lavoro. <b>Sei cose che nessuno di loro, da solo,
+        saprebbe fare</b> — e non sono un'integrazione da configurare: funzionano perché i dati
+        stanno nella stessa casa.</p>
+    </div>
     <div class="ponti">
 
-      <div class="ponte sale" style="border-left-color:#d3633a;">
-        <div class="fra"><span style="color:#f49c7d">Campo</span><i>→</i><span style="color:#b7a8f9">Scudo</span></div>
+      <div class="ponte sale">
+        <div class="fra"><span style="color:#953b17">Campo</span><span class="filo" style="--da:#953b17;--a:#5e499d"><span class="scint"></span></span><span style="color:#5e499d">Scudo</span></div>
         <h3>Prima che la squadra vada al fronte, si sa chi ha un documento scaduto.</h3>
         <p>Campo sa chi è in turno oggi, Scudo sa chi ha la visita in regola: messi insieme,
           il capoturno lo vede prima di mandare la gente al fronte.</p>
       </div>
 
-      <div class="ponte sale" style="border-left-color:#659b2c;">
-        <div class="fra"><span style="color:#9ac577">Terra</span><i>→</i><span style="color:#4dcebd">Conti</span></div>
+      <div class="ponte sale">
+        <div class="fra"><span style="color:#3e6901">Terra</span><span class="filo" style="--da:#3e6901;--a:#006a5f"><span class="scint"></span></span><span style="color:#006a5f">Conti</span></div>
         <h3>Il materiale misurato dal rilievo si mette accanto a quello uscito dal cancello.</h3>
         <p>Se fra i metri cubi cavati e le tonnellate vendute c'è un divario che non si spiega
           con lo sfrido, l'app lo dice invece di lasciarlo scoprire a fine anno.</p>
       </div>
 
-      <div class="ponte sale" style="border-left-color:#288ee0;">
-        <div class="fra"><span style="color:#78bcfc">Sentinella</span><i>→</i><span style="color:#ffab5c">Genesi</span></div>
+      <div class="ponte sale">
+        <div class="fra"><span style="color:#005e9d">Sentinella</span><span class="filo" style="--da:#005e9d;--a:#9e591d"><span class="scint"></span></span><span style="color:#9e591d">Genesi</span></div>
         <h3>Le vibrazioni misurate correggono la previsione della volata dopo.</h3>
         <p>I referti del sismografo tornano indietro nella progettazione: la previsione smette
           di essere quella del manuale e diventa quella della propria cava.</p>
       </div>
 
-      <div class="ponte sale" style="border-left-color:#d3633a;">
-        <div class="fra"><span style="color:#f49c7d">Campo</span><i>→</i><span style="color:#9ac577">Terra</span></div>
+      <div class="ponte sale">
+        <div class="fra"><span style="color:#953b17">Campo</span><span class="filo" style="--da:#953b17;--a:#3e6901"><span class="scint"></span></span><span style="color:#3e6901">Terra</span></div>
         <h3>Fra un rilievo e l'altro il buco lo riempiono i turni.</h3>
         <p>Il drone vola una volta ogni tanto; nel frattempo quello che dichiarano i turni dà
           la stima del momento, tenuta ben separata dalla misura vera.</p>
       </div>
 
-      <div class="ponte sale" style="border-left-color:#d3633a;">
-        <div class="fra"><span style="color:#f49c7d">Campo</span><i>→</i><span style="color:#ffab5c">Genesi</span></div>
+      <div class="ponte sale">
+        <div class="fra"><span style="color:#953b17">Campo</span><span class="filo" style="--da:#953b17;--a:#9e591d"><span class="scint"></span></span><span style="color:#9e591d">Genesi</span></div>
         <h3>Quello che è entrato davvero nei fori torna dentro al progetto.</h3>
         <p>Il consuntivo di carico segnato al fronte si mette accanto al previsto. La volata
           dopo parte da come si comporta questa cava, non da come dovrebbe comportarsi.</p>
       </div>
 
-      <div class="ponte sale" style="border-left-color:#288ee0;">
-        <div class="fra"><span style="color:#78bcfc">Sentinella</span><i>→</i><span style="color:#b7a8f9">Scudo</span></div>
+      <div class="ponte sale">
+        <div class="fra"><span style="color:#005e9d">Sentinella</span><span class="filo" style="--da:#005e9d;--a:#5e499d"><span class="scint"></span></span><span style="color:#5e499d">Scudo</span></div>
         <h3>Un superamento smette di essere un numero e diventa un'azione con una data.</h3>
         <p>Soglia passata o reclamo di un residente: in Scudo nasce la non conformità da
           chiudere, con chi se ne occupa ed entro quando. Un grafico rosso non chiude niente.</p>
