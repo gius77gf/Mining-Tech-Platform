@@ -469,6 +469,26 @@ Perché serva davvero e non produca elenchi generici, cinque vincoli:
   cromatica vera e verificata per contrasto/leggibilità.
   shared/deepwork-style.css resta il veicolo tecnico della STRUTTURA;
   la palette per app passa dalle variabili di tema dell'app.
+- ⛔ **IL MARCHIO NON SI TOCCA. MAI, IN NESSUNA MISURA, PER NESSUNA RAGIONE.**
+  Regola fondamentale del fondatore (23/08, dopo averla dovuta ripetere più
+  volte): il logo Deepwork è **uno solo** e si usa **identico** ovunque — stessi
+  dodici elementi, stesse coordinate, stessi colori, stesse larghezze di tratto.
+  Non si semplifica, non si «adatta alla direzione grafica», non si ridisegna
+  «più pulito», non si toglie un pezzo perché a 22 px non si vede.
+  ⚠️ **E il modo in cui si viola non è la malafede: è la semplificazione.** Il
+  23/08 ho scritto tre direzioni grafiche per la vetrina e in tutte e tre ho
+  ridisegnato il marchio «perché a quella misura i dettagli si perdono» —
+  togliendo i due poligoni del fondo, il gambo scuro, la punta e i tre pallini,
+  e cambiando i tratti da 2/2,2/2,5 a 4/5. Tre varianti in un pomeriggio, ognuna
+  ragionevole da sola, e insieme un marchio che non esiste. Un logo che cambia
+  ogni volta che qualcuno lo trova scomodo **non è un logo**: è un disegno.
+  ⚠️ Se a una certa misura non si legge, si cambia **la misura**, non il
+  marchio.
+  La forma canonica sta in `apps/index.html` (`<svg class="marchio" width="74"
+  height="76" viewBox="0 0 120 122">`) e va **copiata di là**, non riscritta a
+  memoria. Chi costruisce una pagina nuova lo prende da un posto solo.
+  ⏱️ In seguito nasceranno i marchi delle singole app e andranno anche quelli
+  nella vetrina; fino ad allora si usa **solo** questo.
 - 🎯 **L'ECCELLENZA È LO STANDARD — DETERMINANTE PER OGNI SCELTA FUTURA**
   (fondatore 27/07, da applicare a qualsiasi decisione, per sempre):
   1. **Nulla è lasciato al caso.** Ogni singola virgola e ogni singolo
