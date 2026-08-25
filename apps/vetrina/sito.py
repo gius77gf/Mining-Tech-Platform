@@ -528,12 +528,85 @@ body.mossa .barra{background:rgba(8,9,12,.82);backdrop-filter:blur(18px) saturat
 .fascia p{max-width:50ch;margin:var(--s3) auto 0;color:var(--inch2)}
 .fascia .cifre{display:flex;gap:var(--s5);justify-content:center;flex-wrap:wrap;margin-top:var(--s5)}
 .fascia{padding:var(--s6) 0}
-.fascia .cifre{gap:clamp(var(--s5),9vw,var(--s7))}
-.fascia .cifre div{min-width:140px;position:relative}
+
+/* ⛔ LA CORONA — bozza 5, scelta dal fondatore (25/08): «il marchio al centro,
+   le app come corona, e i nomi che ruotano».
+   ⚠️ AL CENTRO C'E' SCRITTO «L'ECOSISTEMA» E BASTA, non «l'ecosistema
+   Deepwork»: la parola DEEPWORK sta GIA' DENTRO il marchio, disegnata li'
+   dall'autore. Scriverla di nuovo la farebbe comparire due volte a due
+   centimetri di distanza, e sembrerebbe un errore. Cosi' l'occhio legge
+   «L'ECOSISTEMA» e subito sotto il «DEEPWORK» del marchio: la frase intera,
+   con il marchio che ne fa la seconda meta'. E il marchio resta INTATTO —
+   quello e' il dogma, e non si tocca nemmeno per una buona ragione.
+   ⚠️ Le posizioni sono FRAZIONI (--fx/--fy) moltiplicate per un raggio in
+   `clamp`: scritte in pixel fissi, come nella bozza, sul telefono la corona
+   usciva dallo schermo. */
+.corona{position:relative;display:grid;place-items:center;
+  --rx:clamp(150px,34vw,420px);--ry:clamp(112px,21vw,228px);
+  /* imbottitura SIMMETRICA: 56 sopra e 30 sotto lasciavano 13px di scarto
+     (misurati), cioe' meta' della differenza. L'etichetta adesso sta fuori dal
+     flusso, quindi lo spazio in piu' in cima non serve. */
+  padding:calc(var(--ry) + 46px) 0}
+.corona .anello{position:absolute;inset:0;display:grid;place-items:center;pointer-events:none;
+  animation:gira 54s linear infinite}
+.corona .anello i{position:absolute;font-style:normal;
+  translate:calc(var(--rx) * var(--fx)) calc(var(--ry) * var(--fy));
+  font-family:'Barlow Condensed',sans-serif;font-weight:800;
+  font-size:clamp(13px,1.5vw,19px);letter-spacing:2.2px;text-transform:uppercase;
+  color:var(--t);white-space:nowrap;
+  text-shadow:0 0 22px color-mix(in srgb,var(--t) 60%,transparent);
+  animation:controgira 54s linear infinite}
+/* i nomi girano con l'anello ma restano DRITTI: la contro-rotazione si applica
+   dopo la traslazione, perche' `translate` e' una proprieta' a se' e viene
+   prima di `transform` */
+@keyframes gira{to{transform:rotate(360deg)}}
+@keyframes controgira{to{transform:rotate(-360deg)}}
+.corona:hover .anello,.corona:hover .anello i{animation-duration:26s}
+@media(prefers-reduced-motion:reduce){
+  .corona .anello,.corona .anello i{animation:none}}
+
+/* ⛔ SOTTO I 720px L'ANELLO NON C'E'. Misurato con `corona-urti.mjs`: a 390px
+   erano 63 sovrapposizioni su 96 controlli — otto nomi orizzontali attorno a un
+   marchio, in 350px di larghezza, non ci stanno e nessun raggio li fa stare.
+   Invece di stringere il carattere finche' non si legge piu', sul telefono i
+   nomi diventano una griglia sotto il marchio: la stessa informazione, in una
+   forma che quella larghezza sa reggere. */
+@media(max-width:720px){
+  /* ⚠️ E VA INVERTITO L'ORDINE: nel documento l'anello viene PRIMA del centro
+     (deve stargli dietro), quindi diventando griglia i nomi finivano sopra il
+     marchio e ci si sovrapponevano — 24 collisioni su 96. In flusso l'ordine
+     giusto e' marchio, poi nomi. */
+  .corona{padding:34px 0 0;--rx:0px;--ry:0px;display:flex;flex-direction:column;align-items:center}
+  .corona .centro{order:1}
+  .corona .anello{order:2}
+  .corona .anello{position:static;display:grid;grid-template-columns:repeat(2,1fr);
+    gap:12px 18px;animation:none;margin-top:26px;width:100%}
+  .corona .anello i{position:static;translate:none;animation:none;text-align:center;
+    font-size:14px;letter-spacing:1.8px}
+  .corona .centro .eti{position:static;margin:0 0 6px}
+  .corona .centro{gap:0}
+}
+
+/* ⛔ L'ETICHETTA ESCE DAL FLUSSO. Messa sopra al marchio come riga normale lo
+   spingeva in basso di 28px (misurati con `centro.mjs`), ed e' esattamente il
+   «mi pare un po' decentrata» del fondatore: il marchio non stava al centro
+   dell'anello, stava 28px sotto. Fuori dal flusso, il marchio e' il centro. */
+.corona .centro{position:relative;z-index:2;display:grid;justify-items:center}
+.corona .centro .eti{position:absolute;bottom:100%;margin-bottom:10px;white-space:nowrap;
+  font-family:'Barlow Condensed',sans-serif;font-weight:800;
+  font-size:clamp(12px,1.4vw,17px);letter-spacing:6px;text-transform:uppercase;color:var(--inch2)}
+.corona .centro svg{width:clamp(104px,15vw,186px);height:auto;display:block;
+  filter:drop-shadow(0 0 54px rgba(255,150,0,.5)) drop-shadow(0 10px 30px rgba(0,0,0,.6))}
+.corona .centro::before{content:'';position:absolute;left:50%;top:52%;translate:-50% -50%;
+  width:230%;aspect-ratio:1;border-radius:50%;z-index:-1;pointer-events:none;
+  background:radial-gradient(circle,rgba(255,150,0,.22),rgba(255,110,0,.08) 46%,transparent 70%);
+  filter:blur(14px);animation:respira 8s ease-in-out infinite}
+.fascia .cifre{gap:clamp(var(--s5),9vw,var(--s7));margin-top:var(--s5)}
+.fascia .cifre div{min-width:118px;position:relative}
 .fascia .cifre div+div::before{content:'';position:absolute;left:calc(-1 * clamp(26px,4.5vw,68px));
   top:12%;bottom:12%;width:1px;background:linear-gradient(180deg,transparent,var(--bordo2),transparent)}
 .fascia .cifre b{display:block;font-family:'Barlow Condensed',sans-serif;font-weight:800;
-  font-size:clamp(76px,12vw,150px);line-height:.86;letter-spacing:-1px;
+  font-size:clamp(52px,7.5vw,92px);line-height:.86;letter-spacing:-1px;
   background:var(--grad);-webkit-background-clip:text;background-clip:text;
   -webkit-text-fill-color:transparent;color:transparent;
   filter:drop-shadow(0 12px 40px rgba(255,140,0,.34))}
@@ -699,6 +772,15 @@ scene = "".join(app_scena(a, k) for k, a in enumerate(C.APP))
 storia = "".join('<div class="passo sale"><b>%s</b><h3>%s</h3><p>%s</p></div>' % t for t in C.STORIA)
 striscia = "".join('<a href="#app-%s" style="--ac:%s">%s</a>'
                    % (a[0].lower().replace(" ", ""), a[3], a[0]) for a in C.APP)
+import math as _m
+# ⛔ Le otto APP, non le nove voci: Deepwork ID e' l'accesso, cioe' l'«1» —
+#    metterlo nella corona farebbe otto+uno = nove e il numero non tornerebbe.
+_corona = [a for a in C.APP if a[0] != "Deepwork ID"]
+assert len(_corona) == 8, "la corona dice OTTO: sono %d" % len(_corona)
+corona_html = "".join(
+  '<i style="--t:%s;--fx:%.4f;--fy:%.4f">%s</i>'
+  % (a[2], _m.cos(k / 8 * 2 * _m.pi - _m.pi / 2), _m.sin(k / 8 * 2 * _m.pi - _m.pi / 2), a[0])
+  for k, a in enumerate(_corona))
 cifre = "".join("<div><b>%s</b><s>%s</s></div>" % c for c in C.CIFRE)
 elenco = "".join('<li><a href="#app-%s">%s</a></li>'
                  % (a[0].lower().replace(" ", ""), a[0]) for a in C.APP)
@@ -785,6 +867,10 @@ PAG = """<title>Deepwork — L'ecosistema del cantiere</title>
   </div></section>
 
   <section class="fascia">@FOND_FAS@<div class="d">
+    <div class="corona">
+      <div class="anello">@CORONA@</div>
+      <div class="centro"><span class="eti">L'ecosistema</span>@MARCHIO_C@</div>
+    </div>
     <div class="cifre">@CIFRE@</div>
   </div></section>
 
@@ -973,7 +1059,8 @@ io.open(sys.argv[1], "w", encoding="utf-8").write(
      .replace("@FOND_ING@", fondale("ingresso", "Un cantiere al lavoro", colonna_=True))
      .replace("@FOND_FAS@", fondale("fascia", "Macchine in cantiere"))
      .replace("@FOND_INV@", fondale("invito", "Cantiere all'opera"))
-     .replace("@CIFRE@", cifre)
+     .replace("@CIFRE@", cifre).replace("@CORONA@", corona_html)
+     .replace("@MARCHIO_C@", C.marchio(190))
      .replace("@ELENCO@", elenco).replace("@CHIUSURA@", C.CHIUSURA).replace("@FOND_STO@", fondale("storia", "Cantiere al lavoro"))
      .replace("@NASCE@", C.NASCE_TITOLO).replace("@NASCE_SOTTO@", C.NASCE_SOTTO)
      .replace("@STORIA_TESTO@", C.STORIA_TESTO).replace("@APERTURA@", C.APP_APERTURA)
