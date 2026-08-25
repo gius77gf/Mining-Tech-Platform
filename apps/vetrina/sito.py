@@ -15,11 +15,40 @@ import contenuto as C
 #    grande), `SIM_P` quella a 440 (le due piccole e la scheda).
 SIM, SIM_P = {}, {}
 _s = os.path.join(os.path.dirname(os.path.abspath(__file__)), "schermate")
-for _d, _dest in ((_s, SIM), (os.path.join(_s, "piccole"), SIM_P)):
-    for f in sorted(glob.glob(os.path.join(_d, "*.jpg"))):
+
+# ⛔ SCURO E CHIARO SI ALTERNANO (punto 10 del fondatore, 24/08). Le schermate
+#    chiare si chiamano `<app>c-N.jpg`: senza questa riga finivano sotto la
+#    chiave «campoc», che nessuna app cerca, e sarebbero state 36 immagini
+#    scaricate, convertite, committate e MAI MOSTRATE — senza che niente lo
+#    dicesse. Il conto in fondo esiste per questo.
+# ⚠️ Si alternano invece di accodarsi: in coda, chi guarda una scena per otto
+#    secondi vede solo il tema scuro e la modalita' chiara non esiste.
+def _carica(cartella, dest):
+    grezzo = {}
+    for f in sorted(glob.glob(os.path.join(cartella, "*.jpg"))):
+        chiave = os.path.basename(f).rsplit("-", 1)[0]
         with open(f, "rb") as h:
-            _dest.setdefault(os.path.basename(f).rsplit("-", 1)[0], []).append(
+            grezzo.setdefault(chiave, []).append(
                 "data:image/jpeg;base64," + base64.b64encode(h.read()).decode("ascii"))
+    for chiave, scuri in grezzo.items():
+        if chiave.endswith("c") and chiave[:-1] in grezzo:
+            continue                                  # e' la serie chiara di un'altra
+        chiari = grezzo.get(chiave + "c", [])
+        fuse = []
+        for i in range(max(len(scuri), len(chiari))):
+            if i < len(scuri):  fuse.append(scuri[i])
+            if i < len(chiari): fuse.append(chiari[i])
+        # ⛔ UN TETTO, E LA RAGIONE E' DOPPIA. Con dodici schermate il giro
+        #    completo dura 32 secondi — nessuno sta fermo tanto, quindi meta'
+        #    di quelle immagini non le vedrebbe nessuno — e la pagina passava
+        #    da 7,8 a 9,4 MB su un tetto di 16. Otto alternate scuro/chiaro
+        #    fanno 18 secondi e mostrano tutt'e due i temi due volte.
+        dest[chiave] = fuse[:8]
+
+_carica(_s, SIM)
+_carica(os.path.join(_s, "piccole"), SIM_P)
+_conto = {k: len(v) for k, v in sorted(SIM.items())}
+print("schermate per app:", " · ".join("%s %d" % kv for kv in _conto.items()))
 
 CSS = """
 :root{
@@ -36,6 +65,17 @@ CSS = """
      sbordava di 250 px e buttava fuori schermo la finestrella e il pop-up. */
   --sbordo:calc((100vw - min(1200px,100vw)) / 2 + 20px);
   --posa:cubic-bezier(.16,1,.3,1);--r:14px}
+/* ⛔ L'OMBRA CHE GIRA — direttiva del fondatore (24/08), opzione «cicla sempre,
+   ovunque», con la correzione che ha dettato: «piu' estesa ma meno luminosa,
+   deve vedersi ma non deve impedire la lettura».
+   Il colore e' una VARIABILE REGISTRATA: senza `@property` il browser non sa
+   che `--ombra-tinta` e' un colore, quindi non lo interpola e il ciclo
+   scatterebbe da una tinta all'altra invece di sfumare. Dove `@property` non
+   c'e', il ciclo salta ma la pagina resta buona: e' un di piu', non un pilastro.
+   ⚠️ I fotogrammi sono GENERATI dai colori delle app: scritti a mano, il giorno
+   che nasce un'app o cambia una palette il ciclo mostrerebbe un colore che nel
+   prodotto non esiste piu'. */
+@property --ombra-tinta{syntax:'<color>';inherits:true;initial-value:#ffab00}
 *{box-sizing:border-box}
 html{overflow-x:clip;scroll-behavior:smooth}
 @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
@@ -44,6 +84,23 @@ body{margin:0;background:var(--nero);color:var(--inch);overflow-x:clip;
   -webkit-font-smoothing:antialiased;
   background-image:radial-gradient(1200px 600px at 50% -8%,rgba(255,140,0,.10),transparent 60%)}
 a{color:inherit;text-decoration:none}
+/* la pagina sta SOPRA l'ombra: cosi' l'alone non passa mai davanti a una
+   parola, e la richiesta «non deve impedire la lettura» e' garantita dalla
+   struttura invece che da un valore di opacita' scelto a occhio */
+.barra,main,.piede{position:relative;z-index:1}
+.ombra{position:fixed;inset:-30vh -30vw;z-index:0;pointer-events:none;
+  animation:giraTinta @DURATA@s linear infinite;
+  background:radial-gradient(closest-side circle at var(--ox,50%) var(--oy,42%),
+    color-mix(in srgb,var(--ombra-tinta) 34%,transparent) 0%,
+    color-mix(in srgb,var(--ombra-tinta) 13%,transparent) 42%,transparent 74%);
+  opacity:.62;filter:blur(28px);transition:opacity .5s var(--posa)}
+/* la stessa tinta bagna anche le fotografie, se no l'ombra sparisce ogni volta
+   che passa sopra un fondale e sembra rotta */
+.fondale .tinta{position:absolute;inset:0;pointer-events:none;
+  background:color-mix(in srgb,var(--ombra-tinta) 15%,transparent);
+  mix-blend-mode:soft-light}
+@keyframes giraTinta{@FOTOGRAMMI@}
+@media(prefers-reduced-motion:reduce){.ombra{animation:none}}
 img{max-width:100%}
 .g{max-width:var(--misura);margin:0 auto;padding:0 var(--s3)}
 .disp{font-family:'Barlow Condensed',Impact,sans-serif;font-weight:800;text-transform:uppercase;
@@ -52,6 +109,18 @@ img{max-width:100%}
   font-weight:800;font-size:11.5px;letter-spacing:3.2px;text-transform:uppercase;color:var(--ambra)}
 .occhio::before{content:'';width:6px;height:6px;border-radius:50%;background:var(--ambra);
   box-shadow:0 0 12px rgba(255,171,0,.7)}
+
+/* ⛔ LA PAROLA «DEEPWORK» — UNA VESTE SOLA, DEFINITA QUI E SOLO QUI.
+   Regola ferrea del fondatore (24/08): «deve comparire sempre nella stessa
+   colorazione ambrata». Prima la barra e il piede la scrivevano color panna e
+   solo il titolo era ambra — tre posti, due colori, e nessuno se ne accorgeva
+   perche' i tre posti non si vedono mai insieme.
+   Chi aggiunge un punto in cui compare il nome usa QUESTA classe. Il controllo
+   `strumenti/marchio-intatto.mjs` conta le occorrenze e le pretende tutte qui. */
+.parola,.disp em{background:var(--grad);-webkit-background-clip:text;background-clip:text;
+  -webkit-text-fill-color:transparent;color:transparent}
+@supports not (-webkit-background-clip:text){.parola,.disp em{color:var(--ambra2);
+  -webkit-text-fill-color:var(--ambra2)}}
 
 /* ── BOTTONI ──────────────────────────────────────────────────────────*/
 .bot{font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:14px;letter-spacing:2.2px;
@@ -95,8 +164,7 @@ body.mossa .barra{background:rgba(8,9,12,.82);backdrop-filter:blur(18px) saturat
 .ingresso h1 .r{display:block;overflow:hidden;padding-bottom:.05em}
 .ingresso h1 .r>span{display:block;transform:translateY(106%);animation:sali 1.05s var(--posa) .3s forwards}
 .ingresso h1 .r:nth-child(2)>span{animation-delay:.42s}
-.ingresso h1 em{font-style:normal;background:var(--grad);-webkit-background-clip:text;
-  background-clip:text;-webkit-text-fill-color:transparent;color:transparent}
+.ingresso h1 em{font-style:normal}
 @keyframes sali{to{transform:translateY(0)}}
 .ingresso .sott{max-width:52ch;margin:var(--s3) auto 0;font-size:clamp(17px,1.9vw,21px);color:var(--inch2);
   opacity:0;animation:app 1s var(--posa) .74s forwards}
@@ -111,7 +179,25 @@ body.mossa .barra{background:rgba(8,9,12,.82);backdrop-filter:blur(18px) saturat
   opacity:0;animation:app 1.2s var(--posa) 1.05s forwards}
 .mostra .f{position:absolute;overflow:hidden;border-radius:11px;background:#0b0c10;
   border:1px solid var(--bordo2);box-shadow:0 40px 90px rgba(0,0,0,.66)}
-.mostra .f img{display:block;width:100%;height:auto}
+.mostra .f img{display:block;width:100%;height:auto;opacity:0;transition:opacity .8s var(--posa)}
+.mostra .f img.viva{opacity:1}
+.mostra .f img:not(:first-child){position:absolute;inset:0;height:100%;object-fit:cover;
+  object-position:top center}
+/* ⛔ `display:block` NON E' PLEONASTICO. `.f` e' uno <span>: finche' era
+   `position:absolute` il browser lo rendeva blocco per effetto collaterale, e
+   `width:74%` funzionava di rimbalzo. Tolta l'assoluta, e' tornato `inline` —
+   e un inline IGNORA width e margin:auto in silenzio: la finestra centrale
+   diventava larga quanto tutta la vetrina e ci si copriva le altre due.
+   Nessun errore, nessuna regola rossa: solo una larghezza che non c'e' mai
+   stata davvero, perche' dipendeva da un'altra proprieta'. */
+.mostra .f.c{position:relative;display:block}
+/* la firma sotto la vetrina: dice CHE COSA si sta guardando, che e' esattamente
+   quello che mancava quando li' sotto c'era una schermata di Terra senza nome */
+.mostra .etichetta{position:absolute;left:50%;transform:translateX(-50%);bottom:-46px;
+  white-space:nowrap;font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:13px;
+  letter-spacing:3px;text-transform:uppercase;color:var(--inch2);z-index:5}
+.mostra .etichetta em{font-style:normal}
+@media(max-width:800px){.mostra .etichetta{bottom:-38px;font-size:11px;letter-spacing:2px}}
 .mostra .f.c{position:relative;width:74%;margin:0 auto;z-index:3;
   box-shadow:0 46px 110px rgba(0,0,0,.76),0 0 0 1px rgba(255,171,0,.10)}
 .mostra .f.sx{width:44%;left:0;bottom:8%;z-index:2;transform:rotate(-3deg) translateX(-4%)}
@@ -136,8 +222,12 @@ body.mossa .barra{background:rgba(8,9,12,.82);backdrop-filter:blur(18px) saturat
 .sez{padding:var(--s7) 0 0}
 .capo{max-width:34ch;margin-bottom:var(--s6)}
 .capo.mezzo{margin-inline:auto;text-align:center;max-width:40ch}
+.capo.mezzo.sale h2{max-width:26ch;margin-inline:auto}
 .capo h2{margin:var(--s2) 0 0;font-size:clamp(32px,4.6vw,60px);text-wrap:balance}
 .capo p{margin:var(--s3) 0 0;color:var(--inch2)}
+.capo p.forte{font-size:clamp(17px,2vw,21px);color:var(--inch)}
+.racconto{max-width:62ch;margin:0 auto var(--s6);text-align:center;color:var(--inch2);
+  font-size:clamp(16px,1.8vw,18.5px)}
 
 /* ── LA STORIA ────────────────────────────────────────────────────────*/
 .storia{display:grid;gap:var(--s3)}
@@ -155,6 +245,9 @@ body.mossa .barra{background:rgba(8,9,12,.82);backdrop-filter:blur(18px) saturat
 
 /* ── LE APP ───────────────────────────────────────────────────────────*/
 .app{position:relative;display:grid;gap:var(--s4);margin-bottom:var(--s7);align-items:center}
+/* la prima scena sale di -26% col suo faro e di -12% con la finestrella in
+   alto: senza questo respiro entra nell'intestazione della sezione */
+.app:first-of-type{margin-top:var(--s6)}
 @media(min-width:1000px){
   .app{grid-template-columns:minmax(300px,.82fr) 1.18fr;gap:var(--s5)}
   .app.dx{grid-template-columns:1.18fr minmax(300px,.82fr)}
@@ -212,20 +305,15 @@ body.mossa .barra{background:rgba(8,9,12,.82);backdrop-filter:blur(18px) saturat
 .app.dx .orb.g{left:-7%;right:7%}
 .app.dx .orb.p{left:auto;right:-3%}
 .app.dx .orb.t{right:auto;left:4%}
-/* il quarto piano: una FOTOGRAFIA di cantiere, non una schermata. Entra
-   insieme alle altre e da' alla scena una cosa che nessuna schermata puo'
-   dare — il posto in cui quel programma viene usato. */
-.orb.f{left:-6%;width:25%;aspect-ratio:4/3;top:-16%;z-index:4;--par:58px;--pax:-26px}
-.app.dx .orb.f{left:auto;right:-6%}
-.orb.f .fin{border-radius:13px;box-shadow:0 26px 60px rgba(0,0,0,.86);
-  transform:translateX(-84px) translateY(-30px) rotate(-3.4deg);transition-delay:.44s}
-.app.dx .orb.f .fin{transform:translateX(84px) translateY(-30px) rotate(3.4deg)}
-.app.viva .orb.f .fin{opacity:1;transform:rotate(-3.4deg)}
-.app.dx.viva .orb.f .fin{transform:rotate(3.4deg)}
-.orb.f .fin img{opacity:1;object-position:center;filter:saturate(.78) contrast(1.04)}
-.orb.f .fin::after{content:'';position:absolute;inset:0;pointer-events:none;
-  background:linear-gradient(160deg,transparent 40%,color-mix(in srgb,var(--ac) 30%,transparent));
-  box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--ac) 34%,transparent)}
+/* ⛔ QUI C'ERA `.orb.f`, una scheda con la fotografia di cantiere. Tolta dal
+   fondatore (24/08) e aveva ragione: ripeteva la STESSA immagine che sta sul
+   fondo della scena, a mezzo metro di distanza. Due volte la stessa fotografia
+   non e' «piu' immagini», e' un doppione che si nota. */
+/* ⚠️ E TOGLIENDOLA MI SONO PORTATO VIA ANCHE QUESTE, che non c'entravano:
+   il taglio arrivava fino a `.pop` e ha inghiottito tutte le regole d'ingresso.
+   Effetto: le finestre restavano a `opacity:0` per sempre — nessun errore,
+   nessuna regola rossa, solo tre scene vuote. L'ha preso una sonda che chiede
+   al browser QUALI REGOLE COMBACIANO, non la rilettura del codice. */
 .orb.g .fin{transform:translateX(122px) rotate(-1.6deg)}
 .orb.p .fin{transform:translateX(-96px) translateY(30px) rotate(2.6deg);transition-delay:.16s;
   box-shadow:0 28px 66px rgba(0,0,0,.82)}
@@ -240,9 +328,8 @@ body.mossa .barra{background:rgba(8,9,12,.82);backdrop-filter:blur(18px) saturat
 .app.dx.viva .orb.g .fin{transform:rotate(1.6deg)}
 .app.dx.viva .orb.p .fin{transform:rotate(-2.6deg)}
 .app.dx.viva .orb.t .fin{transform:rotate(3deg)}
-.scena:hover .orb.g .fin{box-shadow:0 44px 110px rgba(0,0,0,.8),0 0 0 1px color-mix(in srgb,var(--ac) 40%,transparent)}
-
-/* le finestrelle: dicono una cosa che quell'app sa dire, e poi galleggiano */
+.scena:hover .orb.g .fin{box-shadow:0 44px 110px rgba(0,0,0,.8),
+  0 0 0 1px color-mix(in srgb,var(--ac) 40%,transparent)}
 .pop{position:absolute;z-index:6;display:flex;align-items:center;gap:10px;max-width:250px;
   padding:11px 16px 11px 12px;border-radius:12px;font-size:13.5px;font-weight:500;line-height:1.3;
   background:rgba(11,13,18,.9);backdrop-filter:blur(16px) saturate(1.2);
@@ -288,12 +375,7 @@ body.mossa .barra{background:rgba(8,9,12,.82);backdrop-filter:blur(18px) saturat
 }
 @media(max-width:560px){.orb.t,.pop.b{display:none}}
 
-.gruppo{display:flex;align-items:center;gap:var(--s3);margin:0 0 var(--s5)}
-.gruppo b{font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:20px;letter-spacing:3px;
-  text-transform:uppercase}
-.gruppo i{flex:1;height:1px;background:linear-gradient(90deg,var(--bordo2),transparent)}
-.gruppo s{font-size:13.5px;color:var(--fumo);text-decoration:none}
-@media(max-width:760px){.gruppo s{display:none}}
+
 
 /* ── INVITO FINALE ────────────────────────────────────────────────────*/
 .invito{margin-top:var(--s7);padding:var(--s7) var(--s4);border-radius:24px;text-align:center;position:relative;
@@ -338,7 +420,13 @@ body.mossa .barra{background:rgba(8,9,12,.82);backdrop-filter:blur(18px) saturat
   object-fit:cover;display:block;filter:saturate(.62) contrast(1.04) brightness(.86);
   transform:translate3d(0,calc(var(--y,0) * 46px),0)}
 .fondale .velo{position:absolute;inset:0;background:rgba(8,9,12,.8)}
-.ingresso>.fondale .velo{background:rgba(8,9,12,.82)}
+.ingresso>.fondale .velo{background:rgba(8,9,12,.5)}
+.ingresso>.fondale img{filter:saturate(.78) contrast(1.12) brightness(.96)}
+/* il buio dove serve, non dappertutto: una colonna scura al centro tiene il
+   testo leggibile e lascia respirare i bordi della fotografia */
+.ingresso>.fondale .colonna{position:absolute;inset:0;
+  background:radial-gradient(86% 76% at 50% 52%,rgba(8,9,12,.93),rgba(8,9,12,.6) 64%,transparent)}
+.ingresso>.fondale .sfuma.giu{height:44%;background:linear-gradient(0deg,var(--nero) 24%,transparent)}
 .fondale .sfuma{position:absolute;left:0;right:0;height:34%;pointer-events:none}
 .fondale .sfuma.su{top:0;background:linear-gradient(180deg,var(--nero),transparent)}
 .fondale .sfuma.giu{bottom:0;background:linear-gradient(0deg,var(--nero),transparent)}
@@ -355,12 +443,19 @@ body.mossa .barra{background:rgba(8,9,12,.82);backdrop-filter:blur(18px) saturat
   text-wrap:balance}
 .fascia p{max-width:50ch;margin:var(--s3) auto 0;color:var(--inch2)}
 .fascia .cifre{display:flex;gap:var(--s5);justify-content:center;flex-wrap:wrap;margin-top:var(--s5)}
-.fascia .cifre div{min-width:96px}
+.fascia{padding:var(--s6) 0}
+.fascia .cifre{gap:clamp(var(--s5),9vw,var(--s7))}
+.fascia .cifre div{min-width:140px;position:relative}
+.fascia .cifre div+div::before{content:'';position:absolute;left:calc(-1 * clamp(26px,4.5vw,68px));
+  top:12%;bottom:12%;width:1px;background:linear-gradient(180deg,transparent,var(--bordo2),transparent)}
 .fascia .cifre b{display:block;font-family:'Barlow Condensed',sans-serif;font-weight:800;
-  font-size:clamp(38px,5vw,64px);line-height:1;background:var(--grad);-webkit-background-clip:text;
-  background-clip:text;-webkit-text-fill-color:transparent;color:transparent}
-.fascia .cifre s{display:block;text-decoration:none;font-size:12px;letter-spacing:2.4px;
-  text-transform:uppercase;color:var(--fumo);margin-top:8px}
+  font-size:clamp(76px,12vw,150px);line-height:.86;letter-spacing:-1px;
+  background:var(--grad);-webkit-background-clip:text;background-clip:text;
+  -webkit-text-fill-color:transparent;color:transparent;
+  filter:drop-shadow(0 12px 40px rgba(255,140,0,.34))}
+.fascia .cifre s{display:block;text-decoration:none;font-family:'Barlow Condensed',sans-serif;
+  font-weight:800;font-size:clamp(13px,1.5vw,17px);letter-spacing:5px;text-transform:uppercase;
+  color:var(--inch);margin-top:var(--s2)}
 
 /* la fotografia di lavoro dietro le finestre di ogni app, nella sua tinta */
 .scena .lavoro{position:absolute;inset:-16% -12%;overflow:hidden;border-radius:30px;z-index:0;
@@ -369,6 +464,24 @@ body.mossa .barra{background:rgba(8,9,12,.82);backdrop-filter:blur(18px) saturat
 .scena .lavoro img{position:absolute;inset:0;width:100%;height:118%;object-fit:cover;display:block;
   filter:saturate(.5) contrast(1.05) brightness(.9);
   transform:translate3d(0,calc(var(--y,0) * 34px),0)}
+/* ⛔ IL MARCHIO COME SORGENTE DI LUCE — solo dietro DEEPWORK (fondatore 24/08,
+   opzione 2, e «il marchio come sfondo va utilizzato SOLO dietro
+   l'illustrazione di deepwork; per le altre app devi trovare altri sfondi»).
+   Il disegno non cambia di un pixel: cambiano la MISURA (che `marchio(px)` ha
+   il permesso di toccare) e un filtro CSS, che sta fuori dall'SVG. Lo prova
+   `strumenti/marchio-intatto.mjs`, che conta anche questa copia. */
+.scena .faro{position:absolute;inset:-26% -18%;display:grid;place-items:center;z-index:5;
+  pointer-events:none;mix-blend-mode:screen;opacity:.62;
+  -webkit-mask-image:radial-gradient(64% 64% at 50% 50%,#000 30%,transparent 80%);
+  mask-image:radial-gradient(64% 64% at 50% 50%,#000 30%,transparent 80%)}
+.scena .faro svg{width:clamp(360px,46vw,660px);height:auto;
+  filter:blur(34px) saturate(1.6) brightness(1.6);opacity:1;
+  transform:translate3d(0,calc(var(--y,0) * 26px),0)}
+/* una seconda copia nitida e tenue: senza, l'alone e' una macchia arancione e
+   non si riconosce piu' che e' il marchio */
+.scena .faro svg+svg{position:absolute;filter:blur(1px);opacity:.16}
+@media(prefers-reduced-motion:reduce){.scena .faro svg{transform:none}}
+
 .scena .lavoro::after{content:'';position:absolute;inset:0;
   background:linear-gradient(120deg,color-mix(in srgb,var(--ac) 30%,rgba(8,9,12,.6)),rgba(8,9,12,.52))}
 
@@ -389,7 +502,7 @@ SPUNTA = ('<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-wid
           '<path d="M4 12.5 9.5 18 20 6.5"/></svg>')
 
 
-def fondale(nome, alt, velo=True, sfuma=True):
+def fondale(nome, alt, velo=True, sfuma=True, colonna=False):
     """Il fondale di una sezione — oppure la stringa VUOTA se la fotografia non
     c'e'. ⛔ Nessun ripiego su un'altra immagine: nove schede con le stesse tre
     foto a rotazione si leggono come una scelta sciatta, non come una mancanza
@@ -397,7 +510,8 @@ def fondale(nome, alt, velo=True, sfuma=True):
     u = C.sfondo(nome)
     if not u: return ""
     return ('<span class="fondale" aria-hidden="true"><img src="%s" alt="%s" loading="lazy">'
-            '%s%s</span>') % (u, alt, '<span class="velo"></span>' if velo else "",
+            '<span class="tinta"></span>%s%s%s</span>') % (u, alt, '<span class="velo"></span>' if velo else "",
+                              '<span class="colonna"></span>' if colonna else "",
                               '<span class="sfuma su"></span><span class="sfuma giu"></span>' if sfuma else "")
 
 
@@ -418,11 +532,12 @@ def app_scena(a, k):
             '<img src="%s" alt="Schermata di %s" loading="%s"%s>'
             % (fonte[(i + off) % n], nome, "eager" if i == 0 else "lazy",
                ' class="viva"' if i == 0 else "") for i in range(n))))
-    foto = C.sfondo("app-" + ch)
+    # Deepwork non porta una fotografia: porta il proprio marchio, acceso.
+    faro = ('<span class="faro" aria-hidden="true">%s%s</span>' % (C.marchio(420), C.marchio(420))
+            ) if ch == "deepwork" else ""
+    foto = None if ch == "deepwork" else C.sfondo("app-" + ch)
     lav = ('<span class="lavoro" aria-hidden="true"><img src="%s" alt="" loading="lazy"></span>' % foto) if foto else ""
-    scheda = ('<span class="orb f"><span class="fin"><img src="%s" alt="%s al lavoro in cantiere" loading="lazy"></span></span>'
-              % (foto, nome)) if foto else ""
-    piani = orb("g", 0) + scheda
+    piani = orb("g", 0)
     if n > 1:
         piani += orb("p", max(1, n // 3)) + orb("t", max(2, (2 * n) // 3))
     pop = "".join('<b class="pop %s">%s<span>%s</span></b>' % (lat, SPUNTA, testo)
@@ -434,31 +549,40 @@ def app_scena(a, k):
             '<div class="riga"><span class="nome">%s</span><span class="tag %s">%s</span></div>'
             '<p class="claim">%s</p><p>%s</p><ul>%s</ul>'
             '<a class="chi" href="#">%s<em>&rsaquo;</em></a></div>'
-            '<div class="scena">%s%s<span class="alone"></span>%s<span class="punti">%s</span></div>'
+            '<div class="scena">%s%s%s<span class="alone"></span>%s<span class="punti">%s</span></div>'
             '</article>') % (" dx" if k % 2 else "", ch, n, acc, acctx, nome, cls, stato,
-                             somm, desc, li, achi, lav, piani, pop, pun)
+                             somm, desc, li, achi, lav, faro, piani, pop, pun)
 
-blocchi, k = [], 0
-for tit, sot in C.FAMIGLIE:
-    dentro = [a for a in C.APP if a[11] == tit]
-    s = "".join(app_scena(a, k + i) for i, a in enumerate(dentro)); k += len(dentro)
-    blocchi.append('<div class="gruppo sale"><b>%s</b><i></i><s>%s</s></div>%s' % (tit, sot, s))
-
+# ⛔ Niente piu' raggruppamenti: le app si susseguono e basta (fondatore 24/08).
+scene = "".join(app_scena(a, k) for k, a in enumerate(C.APP))
 storia = "".join('<div class="passo sale"><b>%s</b><h3>%s</h3><p>%s</p></div>' % t for t in C.STORIA)
 striscia = "".join('<a href="#app-%s" style="--ac:%s">%s</a>'
                    % (a[0].lower().replace(" ", ""), a[3], a[0]) for a in C.APP)
 cifre = "".join("<div><b>%s</b><s>%s</s></div>" % c for c in C.CIFRE)
 elenco = "".join('<li><a href="#app-%s">%s</a></li>'
                  % (a[0].lower().replace(" ", ""), a[0]) for a in C.APP)
-_c = SIM.get("terra", [C.dati("terra.jpg")])
-_l = SIM.get("scudo", [C.dati("scudo.jpg")])
-_r = SIM.get("conti", [C.dati("conti.jpg")])
+# ⛔ QUI C'ERANO TERRA, SCUDO E CONTI. Il fondatore (24/08): «appena si scende
+#    un po' ci si ritrova di fronte a uno screen di Terra completamente fuori
+#    contesto». Aveva ragione due volte: fuori contesto perche' la prima cosa
+#    che si vede dopo il titolo deve essere il PRODOTTO DI PUNTA, e ferma
+#    perche' era una fotografia. Adesso sono tre finestre di DEEPWORK che
+#    scorrono le sue schermate vere.
+_dw = SIM.get("deepwork") or [C.dati("core.jpg")]
+_dwp = SIM_P.get("deepwork") or _dw
+
+def _vetrina(cl, off):
+    n = len(_dw)
+    fonte = _dw if cl == "c" else _dwp
+    return '<span class="f %s">%s</span>' % (cl, "".join(
+        '<img src="%s" alt="Schermata di Deepwork" loading="eager"%s>'
+        % (fonte[(i + off) % n], ' class="viva"' if i == 0 else "") for i in range(n)))
 
 PAG = """<title>Deepwork — L'ecosistema del cantiere</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;800&family=Barlow:wght@300;400;500;600&display=swap">
 <style>@CSS@</style>
+<div class="ombra" aria-hidden="true"></div>
 <header class="barra"><div class="d">
-  <a class="segno" href="#"><span>@MARCHIO_P@</span><b>Deepwork</b></a>
+  <a class="segno" href="#"><span>@MARCHIO_P@</span><b class="parola">Deepwork</b></a>
   <nav><a href="#storia">La storia</a><a href="#app">Le app</a></nav>
   <a class="bot pri" href="#prova">Prova il tour</a>
 </div></header>
@@ -471,35 +595,32 @@ PAG = """<title>Deepwork — L'ecosistema del cantiere</title>
       <p class="sott">@CLAIM@</p>
       <div class="az"><a class="bot pri" href="#prova">Prova il tour</a><a class="bot sec" href="#app">Guarda le app</a></div>
       <p class="sotto-az">Dati di esempio, nessuna registrazione: entri e provi.</p>
-      <div class="mostra">
-        <span class="f sx"><img src="@MSX@" alt="Scudo" loading="eager"></span>
-        <span class="f dx"><img src="@MDX@" alt="Conti" loading="eager"></span>
-        <span class="f c"><img src="@MC@" alt="Terra" loading="eager"></span>
+      <div class="mostra" data-scatti="@NDW@">
+        @MSX@@MDX@@MC@
+        <span class="etichetta"><em>Deepwork</em> · il cantiere in tasca</span>
       </div>
     </div>
   </section>
 
   <section class="striscia"><div class="g d"><span class="e">Otto app e un accesso unico</span>@STRISCIA@</div></section>
 
-  <section class="sez" id="storia"><div class="g">
-    <div class="capo sale"><span class="occhio">La storia</span>
-      <h2 class="disp">Perché esiste</h2>
-      <p>Non è nato come una suite. È nato da un problema che si ripeteva ogni giorno.</p></div>
+  <section class="sez" id="storia">@FOND_STO@<div class="g">
+    <div class="capo mezzo sale"><span class="occhio">La storia</span>
+      <h2 class="disp">@NASCE@</h2>
+      <p class="forte">@NASCE_SOTTO@</p></div>
+    <p class="racconto sale">@STORIA_TESTO@</p>
     <div class="storia">@STORIA@</div>
   </div></section>
 
   <section class="fascia">@FOND_FAS@<div class="d">
-    <span class="occhio">Dove nasce</span>
-    <h2 class="disp">@TESI@</h2>
-    <p>@TESI_SOTTO@</p>
     <div class="cifre">@CIFRE@</div>
   </div></section>
 
   <section class="sez" id="app"><div class="g">
     <div class="capo sale"><span class="occhio">Le app</span>
       <h2 class="disp">Ti presentiamo le app del nostro ecosistema</h2>
-      <p>Ognuna fa il suo mestiere e funziona anche da sola. Insieme si passano il lavoro.</p></div>
-    @BLOCCHI@
+      <p>@APERTURA@</p></div>
+    @SCENE@
   </div></section>
 
   <section class="g" id="prova"><div class="invito">@FOND_INV@
@@ -512,7 +633,7 @@ PAG = """<title>Deepwork — L'ecosistema del cantiere</title>
 
 <footer class="piede"><div class="g">
   <div class="cols">
-    <div><div class="segno">@MARCHIO_P@<b>Deepwork</b></div>
+    <div><div class="segno">@MARCHIO_P@<b class="parola">Deepwork</b></div>
       <p>Otto app per il cantiere e un accesso unico. I dati di ogni impresa restano suoi.</p></div>
     <div><h4>Le app</h4><ul>@ELENCO@</ul></div>
     <div><h4>Il sito</h4><ul><li><a href="#storia">La storia</a></li><li><a href="#app">Le app</a></li><li><a href="#prova">Prova il tour</a></li></ul></div>
@@ -543,11 +664,21 @@ PAG = """<title>Deepwork — L'ecosistema del cantiere</title>
     for(var j=0;j<pa.length;j++)pa[j].classList.toggle('viva',j===n);
     s.dataset.ora=n;
   }
+  /* la vetrina dell'ingresso scorre come una scena d'app: e' la prima cosa
+     che si vede dopo il titolo, e ferma non dice niente */
+  var vet=document.querySelector('.mostra[data-scatti]');
+  if(vet&&!fermi){
+    var nv=+vet.dataset.scatti;
+    if(nv>1){var iv=0;setInterval(function(){iv=(iv+1)%nv;
+      [].forEach.call(vet.querySelectorAll('.f'),function(f){
+        var im=f.querySelectorAll('img');
+        for(var i=0;i<im.length;i++)im[i].classList.toggle('viva',i===iv);});},2400);}
+  }
   var app=document.querySelectorAll('.app[data-scatti]');
   if(!fermi&&('IntersectionObserver' in window)){
     var os=new IntersectionObserver(function(v){v.forEach(function(x){
       var s=x.target,n=+s.dataset.scatti;
-      if(x.isIntersecting){ if(n>1&&!s._t)s._t=setInterval(function(){mostra(s,((+s.dataset.ora||0)+1)%n);},2700); }
+      if(x.isIntersecting){ if(n>1&&!s._t)s._t=setInterval(function(){mostra(s,((+s.dataset.ora||0)+1)%n);},2200); }
       else if(s._t){clearInterval(s._t);s._t=null;}
     });},{rootMargin:'-10% 0px -10% 0px',threshold:.2});
     for(var r=0;r<app.length;r++){app[r].dataset.ora=0;os.observe(app[r]);}
@@ -557,7 +688,7 @@ PAG = """<title>Deepwork — L'ecosistema del cantiere</title>
         s._t=setInterval(function(){mostra(s,((+s.dataset.ora||0)+1)%n);},1500);});
       s.addEventListener('pointerleave',function(){var n=+s.dataset.scatti;if(n<2)return;
         if(s._t)clearInterval(s._t);
-        s._t=setInterval(function(){mostra(s,((+s.dataset.ora||0)+1)%n);},2700);});
+        s._t=setInterval(function(){mostra(s,((+s.dataset.ora||0)+1)%n);},2200);});
     });
   }
   /* PARALLASSE — ogni piano si muove di `--par`, la scena passa `--y` in
@@ -580,6 +711,17 @@ PAG = """<title>Deepwork — L'ecosistema del cantiere</title>
     addEventListener('scroll',chiedi,{passive:true});
     addEventListener('resize',chiedi);
     muovi();
+    /* l'ombra di tutta la pagina segue il cursore. Il colore lo fa il CSS
+       (un'animazione sulla variabile registrata): qui si muove solo il centro,
+       se no ogni movimento del dito costringerebbe a ricalcolare una sfumatura
+       in JavaScript sessanta volte al secondo. */
+    var omb=document.querySelector('.ombra');
+    if(omb){
+      addEventListener('pointermove',function(ev){
+        omb.style.setProperty('--ox',(ev.clientX/innerWidth*100).toFixed(1)+'%');
+        omb.style.setProperty('--oy',(ev.clientY/innerHeight*100).toFixed(1)+'%');
+      },{passive:true});
+    }
     /* l'alone segue il mouse, e i piani si inclinano verso di lui */
     [].forEach.call(document.querySelectorAll('.scena'),function(sc){
       sc.addEventListener('pointermove',function(ev){
@@ -598,15 +740,24 @@ PAG = """<title>Deepwork — L'ecosistema del cantiere</title>
 })();
 </script>
 """
+# ⛔ DERIVATO, non scritto a mano: il ciclo mostra i colori che le app hanno
+#    davvero, e il giorno che una palette cambia il ciclo la segue da solo.
+_tinte = [a[2] for a in C.APP]
+_fot = " ".join("%.4g%%{--ombra-tinta:%s}" % (i * 100.0 / len(_tinte), t)
+                for i, t in enumerate(_tinte)) + " 100%%{--ombra-tinta:%s}" % _tinte[0]
+CSS = CSS.replace("@FOTOGRAMMI@", _fot).replace("@DURATA@", str(len(_tinte) * 5))
+
 io.open(sys.argv[1], "w", encoding="utf-8").write(
   PAG.replace("@CSS@", CSS).replace("@MARCHIO_P@", C.marchio(24)).replace("@MARCHIO_G@", C.marchio(110))
      .replace("@BENV_A@", C.BENVENUTO_A).replace("@BENV_B@", C.BENVENUTO_B).replace("@CLAIM@", C.CLAIM)
-     .replace("@MSX@", _l[0]).replace("@MDX@", _r[0]).replace("@MC@", _c[0])
-     .replace("@STRISCIA@", striscia).replace("@STORIA@", storia).replace("@BLOCCHI@", "".join(blocchi))
-     .replace("@FOND_ING@", fondale("ingresso", "Un cantiere al lavoro"))
+     .replace("@MSX@", _vetrina("sx", 2)).replace("@MDX@", _vetrina("dx", 4))
+     .replace("@MC@", _vetrina("c", 0)).replace("@NDW@", str(len(_dw)))
+     .replace("@STRISCIA@", striscia).replace("@STORIA@", storia).replace("@SCENE@", scene)
+     .replace("@FOND_ING@", fondale("ingresso", "Un cantiere al lavoro", colonna=True))
      .replace("@FOND_FAS@", fondale("fascia", "Macchine in cantiere"))
      .replace("@FOND_INV@", fondale("invito", "Cantiere all'opera"))
-     .replace("@TESI@", C.ORIGINE_TITOLO).replace("@TESI_SOTTO@", C.ORIGINE_SOTTO)
      .replace("@CIFRE@", cifre)
-     .replace("@ELENCO@", elenco).replace("@CHIUSURA@", C.CHIUSURA).replace("@CREDITO@", C.CREDITO))
+     .replace("@ELENCO@", elenco).replace("@CHIUSURA@", C.CHIUSURA).replace("@FOND_STO@", fondale("storia", "Cantiere al lavoro"))
+     .replace("@NASCE@", C.NASCE_TITOLO).replace("@NASCE_SOTTO@", C.NASCE_SOTTO)
+     .replace("@STORIA_TESTO@", C.STORIA_TESTO).replace("@APERTURA@", C.APP_APERTURA).replace("@CREDITO@", C.CREDITO))
 print("sito di presentazione scritto")

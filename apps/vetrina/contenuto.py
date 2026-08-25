@@ -24,41 +24,54 @@ APRI = ("Uno per ogni pezzo del lavoro: le lavorazioni, la sicurezza, il turno, 
         "serve, senza ricopiarlo.")
 ORIGINE = ("Nato dove le regole sono le più strette. "
            "Quello che regge un\'attività estrattiva autorizzata regge qualunque cantiere.")
-CIFRE = [("8", "app"), ("1", "accesso"), ("9", "in tutto")]
+# ⛔ Erano tre: «9 in tutto» e' stato tolto dal fondatore (24/08) perche' superfluo.
+CIFRE = [("8", "app"), ("1", "accesso")]
 
 # ⚠️ LA STORIA. Scritta da quello che il prodotto FA, non da fatti aziendali
 #    che non posso verificare: il fondatore corregga nomi, date e numeri prima
 #    di mostrarla a un cliente. Tre battute, non una pagina — una storia lunga
 #    su una vetrina non la legge nessuno.
+# ⛔ TESTI DEL FONDATORE (24/08), non riscritti: il perche' nasce e come lavora.
+#    Il titolo e la riga sotto sono la sua frase spezzata in due; il capoverso
+#    che segue e' la storia, alla lettera. I tre riquadri NON aggiungono fatti:
+#    smontano quella stessa frase nei suoi tre pezzi — il settore, il campo, la
+#    comunicazione — perche' e' quello che ha chiesto («lo sviluppo dei riquadri
+#    successivi dovrebbe basarsi su questo principio»).
+NASCE_TITOLO = "Deepwork nasce per innovare un sistema e favorire la digitalizzazione dello stesso"
+NASCE_SOTTO = ("In un mondo in costante evoluzione, Deepwork offre l'opportunità di non rimanere "
+               "indietro.")
+STORIA_TESTO = ("Lo sviluppo dell'ecosistema trova spunto nell'idea di digitalizzare un settore "
+                "fondamentale dell'economia che, però, fa fatica a digitalizzarsi. L'idea nasce "
+                "dall'esperienza diretta sul campo, dove ogni singola figura svolge una funzione "
+                "differente, rendendo la comunicazione fondamentale per svolgere il lavoro al meglio.")
 STORIA = [
- ("Il problema",
-  "In cantiere la stessa cosa si scrive tre volte.",
-  "Sul quaderno di chi c'era, sul foglio che arriva in ufficio, e poi dentro al gestionale. "
-  "Ogni passaggio è un'occasione per perdere un dato o copiarlo storto — e quando serve "
-  "ritrovarlo, sei mesi dopo, sta in un raccoglitore."),
- ("La prima app",
-  "La prima app faceva una cosa sola.",
-  "Chiudere la giornata dove è successa, con chi c'era e quanto è stato fatto, invece che a "
-  "memoria la sera. Ha funzionato, e subito è arrivata la domanda che ha cambiato tutto: "
-  "«e i mezzi? e le scadenze? e le fatture?»."),
- ("L'ecosistema",
-  "Oggi sono otto app che parlano la stessa lingua.",
-  "Ognuna fa il suo mestiere e funziona anche da sola. Ma i dati stanno nella stessa casa, "
-  "quindi quello che scrive una arriva dove serve senza che nessuno lo ricopi. È questo che "
-  "un insieme di programmi comprati a pezzi non sa fare."),
+ ("Il settore",
+  "Un settore che regge l'economia e fatica a digitalizzarsi.",
+  "Non per arretratezza: perché il lavoro succede fuori, in movimento, con le mani sporche e il "
+  "telefono in tasca. Gli strumenti pensati per una scrivania lì non entrano, e quello che non "
+  "entra non viene usato."),
+ ("Il campo",
+  "L'idea non nasce a tavolino. Nasce dove si lavora.",
+  "Da chi il turno lo ha chiuso davvero, con la carta e la penna, e poi lo ha riscritto in ufficio. "
+  "È l'esperienza diretta a dire quali sono i tre dati che servono e quali sono i dodici che "
+  "nessuno compilerà mai."),
+ ("La comunicazione",
+  "Ogni figura fa una cosa diversa. Il lavoro riesce se si parlano.",
+  "Chi guida, chi tiene la sicurezza, chi fattura, chi risponde agli enti: ognuno ha bisogno di un "
+  "pezzo di quello che sa un altro. Deepwork esiste per far passare quel pezzo da solo, invece di "
+  "farlo ricopiare."),
 ]
 
+# ⛔ L'ORDINE NON E' CASUALE (direttiva del fondatore, 24/08): DEEPWORK PER
+#    PRIMO. E' il prodotto di punta; le altre otto, per quanto valide, oggi
+#    servono a rinforzarlo e a completare il servizio. Chi riordina questa
+#    lista sta prendendo una decisione di prodotto, non estetica.
 APP = [
- ("Genesi", "genesi.jpg", "#ff8f2e", "#ffab5c", "#9e591d", "Specializzazione", "corso",
-  "Vedi lo scavo prima di farlo.",
-  "Per chi lavora in roccia con l\'esplosivo: lo schema si prova sullo schermo invece che sul terreno, il piano di carico esce già scritto, e quello che è successo davvero torna dentro al progetto.",
-  ["Progetto in pianta e simulazione 3D", "Piano di carico già compilato", "Confronto fra due varianti"],
-  "Chi scava in roccia", "Lo scavo"),
- ("Terra", "terra.jpg", "#659b2c", "#9ac577", "#3e6901", "Demo interattiva", "prova",
-  "Il terreno mosso, al metro cubo.",
-  "Sterro, riporto e avanzamento smettono di essere una stima a fine mese. I rilievi — drone, GPS o stazione totale — dicono a che punto si è, lotto per lotto.",
-  ["Avanzamento misurato, non stimato", "Sterro e riporto per lotto", "Volume autorizzato, dove serve"],
-  "La direzione lavori", "Lo scavo"),
+ ("Deepwork", "core.jpg", "#ffab00", "#ffd54f", "#8f5500", "In uso", "viva",
+  "Tutto il cantiere in tasca.",
+  "Lavorazioni, mezzi, deposito, personale, clienti, documenti dell\'ufficio. Quello che serve ritrovare fra sei mesi sta qui, e si cerca dal telefono invece che in un raccoglitore.",
+  ["Storico delle lavorazioni e dei rapportini", "Mezzi, deposito, personale, clienti", "Documenti dell\'ufficio, pronti da mostrare"],
+  "Chi tiene l\'archivio", "La base"),
  ("Campo", "campo.jpg", "#d3633a", "#f49c7d", "#953b17", "Demo interattiva", "prova",
   "La giornata si chiude in due minuti.",
   "La giornata si chiude in cantiere, non a memoria la sera. Chi c\'era, quali lavorazioni, quali mezzi, e dove si è perso tempo.",
@@ -74,6 +87,11 @@ APP = [
   "Sorveglianza sanitaria, formazione, DPI e nomine smettono di vivere su fogli sparsi. Si sa in anticipo cosa scade, e chi non può più fare quella mansione.",
   ["Chi posso mandare, mansione per mansione", "Le scadenze dei prossimi dodici mesi", "Verbale di consegna dei DPI"],
   "Chi tiene la sicurezza", "Il cantiere"),
+ ("Terra", "terra.jpg", "#659b2c", "#9ac577", "#3e6901", "Demo interattiva", "prova",
+  "Il terreno mosso, al metro cubo.",
+  "Sterro, riporto e avanzamento smettono di essere una stima a fine mese. I rilievi — drone, GPS o stazione totale — dicono a che punto si è, lotto per lotto.",
+  ["Avanzamento misurato, non stimato", "Sterro e riporto per lotto", "Volume autorizzato, dove serve"],
+  "La direzione lavori", "Lo scavo"),
  ("Conti", "conti.jpg", "#009f8f", "#4dcebd", "#006a5f", "Demo interattiva", "prova",
   "Dalla pesa alla fattura senza toccare niente.",
   "Documenti di trasporto e quantità misurate diventano fatture senza ricopiare una riga. E si sa chi chiamare per primo, e da quanto aspetta quel credito.",
@@ -84,21 +102,24 @@ APP = [
   "Ogni misura ha la sua data e il suo recettore, invece di stare nella cartella del computer di qualcuno. C\'è il calendario di cosa va misurato e quando, e il report per l\'ente esce già scritto.",
   ["Le letture dello strumento si importano", "La soglia dell\'edificio più vicino", "Report di conformità per l\'ente"],
   "Chi risponde agli enti", "L\'azienda"),
- ("Deepwork", "core.jpg", "#ffab00", "#ffd54f", "#8f5500", "In uso", "viva",
-  "Tutto il cantiere in tasca.",
-  "Lavorazioni, mezzi, deposito, personale, clienti, documenti dell\'ufficio. Quello che serve ritrovare fra sei mesi sta qui, e si cerca dal telefono invece che in un raccoglitore.",
-  ["Storico delle lavorazioni e dei rapportini", "Mezzi, deposito, personale, clienti", "Documenti dell\'ufficio, pronti da mostrare"],
-  "Chi tiene l\'archivio", "La base"),
+ ("Genesi", "genesi.jpg", "#ff8f2e", "#ffab5c", "#9e591d", "Specializzazione", "corso",
+  "Vedi lo scavo prima di farlo.",
+  "Per chi lavora in roccia con l\'esplosivo: lo schema si prova sullo schermo invece che sul terreno, il piano di carico esce già scritto, e quello che è successo davvero torna dentro al progetto.",
+  ["Progetto in pianta e simulazione 3D", "Piano di carico già compilato", "Confronto fra due varianti"],
+  "Chi scava in roccia", "Lo scavo"),
  ("Deepwork ID", "deepwork-id.jpg", "#c7b794", "#e8dcc0", "#736a56", "Pronto al collaudo", "corso",
   "Una password. Otto app.",
   "Una password sola per tutte le app, e i dati di ogni impresa chiusi in casa propria. Ognuno entra e vede soltanto quello che gli compete.",
   ["Un profilo per tutte le app", "I dati di un\'impresa restano suoi", "Ruoli diversi app per app"],
   "Chi decide chi entra", "La base"),
 ]
-FAMIGLIE = [("Lo scavo", "Prima di muovere il terreno: dove si progetta e dove si misura."),
-            ("Il cantiere", "Mentre si lavora: la giornata, i mezzi, le persone."),
-            ("L\'azienda", "Dopo: i conti e quello che si deve agli enti."),
-            ("La base", "Sotto tutte: il quaderno di cantiere e l\'accesso unico.")]
+# ⛔ Le FAMIGLIE («Lo scavo», «Il cantiere», «L'azienda», «La base») sono state
+#    TOLTE su richiesta del fondatore (24/08): dividevano senza aggiungere, e
+#    allontanavano le app da chi legge. Restano qui come riga di storia perche'
+#    non vengano reintrodotte da chi le trova nei checkpoint vecchi.
+APP_APERTURA = ("Deepwork è il cantiere in tasca. Le altre otto lo allargano dove il lavoro si fa "
+                "più specifico — e nessuna ti chiede di riscrivere quello che hai già scritto.")
+
 CHIUSURA = ("Ogni app funziona da sola. Insieme, smettono di farti scrivere due volte la "
             "stessa cosa.")
 CREDITO = 'Fotografie di cantiere, via Wikimedia Commons: «Hitachi ZX240LCH Hydraulic Excavator» di Alexander Novikov — <a href="https://creativecommons.org/licenses/by-sa/4.0" rel="license noopener" target="_blank">CC BY-SA 4.0</a>; «Hamburg, Quartier Strandkai -- 2023 -- 6632» di Dietmar Rabich — <a href="https://creativecommons.org/licenses/by-sa/4.0" rel="license noopener" target="_blank">CC BY-SA 4.0</a>; «20200417 Quartier Eurobahnhof 01» di Flocci Nivis — <a href="https://creativecommons.org/licenses/by/4.0" rel="license noopener" target="_blank">CC BY 4.0</a>; «2015 09 08 022 Abriss Tortenschachtel» di Friedrich Haag — <a href="https://creativecommons.org/licenses/by-sa/4.0" rel="license noopener" target="_blank">CC BY-SA 4.0</a>; «Caterpillar 302.7D excavator on Barrow Stree…» di Grendelkhan — <a href="https://creativecommons.org/licenses/by-sa/4.0" rel="license noopener" target="_blank">CC BY-SA 4.0</a>; «Chargeur Caterpillar - côté» di Gzen92 — <a href="https://creativecommons.org/licenses/by-sa/4.0" rel="license noopener" target="_blank">CC BY-SA 4.0</a>; «Liebherr 904 excavator» di High Contrast — <a href="https://creativecommons.org/licenses/by/3.0/de/deed.en" rel="license noopener" target="_blank">CC BY 3.0 de</a>; «Blanzac 16 Tombereau Caterpillar 730 2013» di JLPC — <a href="https://creativecommons.org/licenses/by-sa/3.0" rel="license noopener" target="_blank">CC BY-SA 3.0</a>; «Caterpillar 330 excavator on a pile of dirt» di Matthew T Rader — <a href="https://creativecommons.org/licenses/by-sa/4.0" rel="license noopener" target="_blank">CC BY-SA 4.0</a>; «Geothermie Bohrturm» di Richard Bartz — <a href="https://creativecommons.org/licenses/by-sa/2.5" rel="license noopener" target="_blank">CC BY-SA 2.5</a>; «ICE Baustelle 226893 Unteroberndorf » di ermell — <a href="https://creativecommons.org/licenses/by-sa/3.0" rel="license noopener" target="_blank">CC BY-SA 3.0</a>; «MAN TGS 35.400-ICE-Baustelle-Breitengüßbach-…» di ermell — <a href="https://creativecommons.org/licenses/by-sa/4.0" rel="license noopener" target="_blank">CC BY-SA 4.0</a>.'
