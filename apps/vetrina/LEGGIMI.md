@@ -79,7 +79,7 @@ il repository **dalla radice**, quindi ogni cartella è già un percorso del sit
 esistente: è così che le nove app sono online oggi (`/apps/terra/`,
 `/apps/genesi/genesi.html`, …). Non hanno domini separati — hanno percorsi.
 La vetrina è nella stessa condizione: appena `apps/index.html` arriva su `main`,
-è raggiungibile a `<sito-esistente>/apps/` e **il tour funziona**, perché tutto
+è raggiungibile a `https://deepworksic.netlify.app/apps/` e **il tour funziona**, perché tutto
 sta sulla stessa origine.
 
 ⚠️ **Che le nove app si aprano davvero da lì è misurato**, non supposto:
@@ -89,10 +89,37 @@ perché il finto Firebase lo fa partire anche senza rete: un'eccezione che si
 può togliere si toglie, e quella riguardava proprio la superficie che il
 fondatore mostra per prima.
 
-⚠️ **Quello che manca è l'INDIRIZZO del sito, non il sito.** In questo
-repository è scritto ovunque come `<sito-esistente>`: il dominio vero non
-compare in nessun file (`netlify.toml` non ha il nome del sito, non c'è un
-`CNAME`, i workflow non lo nominano). Sta nel pannello Netlify del fondatore.
+✅ **E L'INDIRIZZO ADESSO SI SA: `deepworksic.netlify.app`.** Per settimane
+qui c'è stato scritto «il dominio vero non compare in nessun file — sta nel
+pannello Netlify del fondatore», e il fondatore stesso ha risposto «non ho
+l'indirizzo del sito, dove lo prendo?». Era vero che non è in nessun file, ed
+era **la domanda sbagliata**: lo dichiara Netlify stesso su ogni pull request,
+nello **stato del commit**, insieme all'indirizzo dell'anteprima di quella PR.
+Si legge in un comando, e nessuno l'aveva chiesto:
+
+    gh api repos/<owner>/<repo>/commits/<sha>/status     # oppure lo stato della PR
+
+Esito sulla PR #341: `netlify/deepworksic/deploy-preview` → *Deploy Preview
+ready!* → `https://deploy-preview-341--deepworksic.netlify.app`.
+⚠️ La lezione oltre al caso è quella di sempre: **un «non si sa» va rimisurato
+con lo strumento giusto, non creduto** — e qui il dato non stava nel
+repository, stava nel servizio che il repository usa.
+
+Quindi:
+· la vetrina in produzione → `https://deepworksic.netlify.app/apps/`
+· l'anteprima di una PR    → `https://deploy-preview-<n>--deepworksic.netlify.app/apps/`
+
+⛔ **E NETLIFY RISCRIVE I COLLEGAMENTI CON L'ESTENSIONE, COSA CHE NESSUN
+RIGHELLO DI CASA PUÒ VEDERE.** Misurato il 25/08 sull'anteprima della PR:
+`href="/apps/genesi/genesi.html"` viene servito come `href="/apps/genesi/genesi"`
+— Netlify toglie l'estensione da sé. `tour-vivo` risolve gli href **sul disco**
+e `tour-aperto` li apre su un server **di casa**: nessuno dei due vede la
+riscrittura, quindi tutti e due direbbero «a posto» anche se quell'indirizzo
+non funzionasse. Provato sull'host vero: `/apps/genesi/genesi` e
+`/apps/genesi/genesi.html` rispondono **tutt'e due 200 con gli stessi 562.785
+byte**, quindi Genesi si apre in ogni caso. Ma la domanda va rifatta **online**
+ogni volta che si aggiunge una destinazione con un'estensione: è l'unico posto
+dove la si può fare.
 
 ### Un comando solo, e la pagina è pronta per il sito
 
