@@ -1,4 +1,27 @@
-/* ⛔ «IL COLLEGAMENTO ESISTE» NON E' «L'APP SI APRE», ED E' LA SECONDA DOMANDA.
+/* ⛔ DUE DI QUESTE DOMANDE LE FA GIA' UN BANCO DEL GIRO, E VA DETTO.
+   `browser/vetrina-collegamenti.mjs` esiste dal 30/07 e pretende, per ogni
+   riquadro: (1) il collegamento punta a un file che esiste, (2) la pagina che
+   si apre monta DAVVERO qualcosa, (3) da li' si torna alla vetrina. Le prime
+   due sono le stesse che si fanno qui, e la terza qui non c'e'.
+   L'ho scoperto DOPO aver scritto questo file, e per due volte avevo perfino
+   messo in un checkpoint che «il giro del browser non ha mai guardato
+   apps/index.html»: falso — quella superficie sta in `giro.mjs` dal 30/07.
+   E' la regola «la risposta e' quasi sempre gia' in casa» pagata un'altra
+   volta: non avevo cercato.
+   ⚠️ Allora perche' questo file resta? Per due cose che li' non ci possono
+   stare, e sono dichiarate invece di essere spacciate per nuove:
+     · gira in SECONDI dentro `costruisci.sh`, quindi a ogni build, mentre il
+       giro del browser dura ore e si lancia una volta per blocco;
+     · sa puntare al SITO VERO (`--base`), che e' l'unico posto dove si vedono
+       le riscritture di Netlify — e il giro non ci arriva, perche' da qui il
+       browser non esce di rete.
+   Quello che e' davvero nuovo e' la QUARTA domanda (si puo' premere?), che
+   nessuno dei due faceva.
+   ⛔ E la conseguenza pratica: quando queste due domande divergeranno, a
+   comandare e' `vetrina-collegamenti.mjs`, che e' l'originale. Chi cambia
+   l'una guardi l'altra.
+
+   ⛔ «IL COLLEGAMENTO ESISTE» NON E' «L'APP SI APRE», ED E' LA SECONDA DOMANDA.
    `tour-vivo.mjs` risolve ogni href in un percorso e chiede al disco se quel
    file c'e'. E' la domanda giusta, e non basta: un file puo' esserci e la
    pagina aprirsi bianca — un import che non risolve, un `<script>` che muore
