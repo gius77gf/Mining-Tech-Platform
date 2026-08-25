@@ -210,7 +210,7 @@ body.mossa .barra{background:rgba(8,9,12,.82);backdrop-filter:blur(18px) saturat
 /* ── LA STRISCIA DELLE APP ────────────────────────────────────────────*/
 .striscia{border-top:1px solid var(--bordo);border-bottom:1px solid var(--bordo);
   padding:var(--s4) 0;margin-top:var(--s7);background:rgba(13,15,20,.6)}
-.striscia .d{display:flex;flex-wrap:wrap;gap:var(--s2) var(--s5);align-items:center;justify-content:center}
+.striscia .e{margin-bottom:var(--s3)}
 .striscia .e{font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:11px;
   letter-spacing:3px;text-transform:uppercase;color:var(--fumo);width:100%;text-align:center;
   margin-bottom:var(--s2)}
@@ -222,7 +222,9 @@ body.mossa .barra{background:rgba(8,9,12,.82);backdrop-filter:blur(18px) saturat
 .sez{padding:var(--s7) 0 0}
 .capo{max-width:34ch;margin-bottom:var(--s6)}
 .capo.mezzo{margin-inline:auto;text-align:center;max-width:40ch}
-.capo.mezzo.sale h2{max-width:26ch;margin-inline:auto}
+.capo.mezzo.sale h2{max-width:30ch;margin-inline:auto}
+/* la frase del fondatore e' lunga: a 60px andava a sei righe */
+#storia .capo h2{font-size:clamp(27px,3.5vw,44px);max-width:34ch}
 .capo h2{margin:var(--s2) 0 0;font-size:clamp(32px,4.6vw,60px);text-wrap:balance}
 .capo p{margin:var(--s3) 0 0;color:var(--inch2)}
 .capo p.forte{font-size:clamp(17px,2vw,21px);color:var(--inch)}
@@ -343,6 +345,9 @@ body.mossa .barra{background:rgba(8,9,12,.82);backdrop-filter:blur(18px) saturat
    di 52 px, e una pastiglia larga 230 lo attraversa tutto. */
 .pop.a{left:15%;top:30%;--par:44px;--pax:26px;transition-delay:.62s}
 .pop.b{right:9%;bottom:5%;--par:-34px;--pax:-22px;transition-delay:.82s}
+.pop.c{left:2%;bottom:26%;--par:56px;--pax:30px;transition-delay:1.02s}
+.app.dx .pop.c{left:auto;right:2%}
+.app.viva .pop.c{animation:galleggia 7.1s ease-in-out 3s infinite}
 .app.dx .pop.a{left:auto;right:11%}
 .app.dx .pop.b{right:auto;left:9%}
 .app.viva .pop{opacity:1;transform:translateY(0) scale(1)}
@@ -370,10 +375,11 @@ body.mossa .barra{background:rgba(8,9,12,.82);backdrop-filter:blur(18px) saturat
   .pop{font-size:12px;max-width:200px;padding:9px 13px 9px 10px}
   .pop.a{left:-2%;top:2%}.app.dx .pop.a{right:-2%;left:auto}
   .pop.b{right:2%;bottom:-3%}.app.dx .pop.b{left:2%;right:auto}
+  .pop.c{left:-1%;bottom:34%}.app.dx .pop.c{right:-1%;left:auto}
 }
   .orb.f{width:31%;left:-2%;top:-9%}.app.dx .orb.f{right:-2%;left:auto}
 }
-@media(max-width:560px){.orb.t,.pop.b{display:none}}
+@media(max-width:560px){.orb.t,.pop.b,.pop.c{display:none}}
 
 
 
@@ -420,6 +426,7 @@ body.mossa .barra{background:rgba(8,9,12,.82);backdrop-filter:blur(18px) saturat
   object-fit:cover;display:block;filter:saturate(.62) contrast(1.04) brightness(.86);
   transform:translate3d(0,calc(var(--y,0) * 46px),0)}
 .fondale .velo{position:absolute;inset:0;background:rgba(8,9,12,.8)}
+#storia>.fondale .velo{background:rgba(8,9,12,.88)}
 .ingresso>.fondale .velo{background:rgba(8,9,12,.5)}
 .ingresso>.fondale img{filter:saturate(.78) contrast(1.12) brightness(.96)}
 /* il buio dove serve, non dappertutto: una colonna scura al centro tiene il
@@ -430,8 +437,16 @@ body.mossa .barra{background:rgba(8,9,12,.82);backdrop-filter:blur(18px) saturat
 .fondale .sfuma{position:absolute;left:0;right:0;height:34%;pointer-events:none}
 .fondale .sfuma.su{top:0;background:linear-gradient(180deg,var(--nero),transparent)}
 .fondale .sfuma.giu{bottom:0;background:linear-gradient(0deg,var(--nero),transparent)}
-.ingresso,.invito,.fascia{position:relative;isolation:isolate}
-.ingresso>.g,.invito>*:not(.fondale){position:relative;z-index:1}
+/* ⛔ CHI PORTA UN FONDALE DEVE ALZARE IL PROPRIO CONTENUTO, SEMPRE.
+   `.fondale` e' `position:absolute`, quindi dipinge SOPRA il contenuto in
+   flusso che non e' posizionato. La regola c'era per ingresso e invito e non
+   per le sezioni: la storia mostrava la fotografia e basta, con il titolo, il
+   racconto e i tre riquadri sotto — invisibili, senza un errore da leggere.
+   Scritta cosi' vale per qualunque sezione a cui domani qualcuno aggiunga un
+   fondale, che e' il punto: la regola non deve essere ricordata. */
+.ingresso,.invito,.fascia,.sez{position:relative;isolation:isolate}
+.ingresso>.g,.invito>*:not(.fondale),.fascia>.d,.sez>.g,.sez>*:not(.fondale){
+  position:relative;z-index:1}
 
 /* la fascia a tutta larghezza fra la storia e le app: la fotografia grande,
    una riga sola sopra, e il resto lo fa il silenzio */
@@ -484,6 +499,52 @@ body.mossa .barra{background:rgba(8,9,12,.82);backdrop-filter:blur(18px) saturat
 
 .scena .lavoro::after{content:'';position:absolute;inset:0;
   background:linear-gradient(120deg,color-mix(in srgb,var(--ac) 30%,rgba(8,9,12,.6)),rgba(8,9,12,.52))}
+
+/* ── IL MOVIMENTO (punto 12 del fondatore, 24/08) ──────────────────────
+   Cinque cose, e nessuna e' decorazione fine a se stessa: ognuna guida
+   l'occhio dove deve andare. Tutte si spengono con `prefers-reduced-motion`. */
+
+/* 1. la barra di avanzamento: dice quanto manca, e da' un filo ambra che
+      cresce lungo tutta la lettura */
+.avanzo{position:fixed;top:0;left:0;height:2px;z-index:60;pointer-events:none;
+  width:var(--avanzo,0%);background:var(--grad);
+  box-shadow:0 0 14px rgba(255,171,0,.6)}
+
+/* 2. i titoli di sezione salgono ed entrano.
+   ⛔ NIENTE MASCHERA `overflow:hidden` qui: taglia anche in ORIZZONTALE, e
+      «DIGITALIZZAZIONE» diventava «DIGITALIZZAZI». E' la stessa trappola gia'
+      pagata sul titolo dell'ingresso, dove la cura fu allargare la maschera —
+      ma su un titolo che va a capo piu' volte non c'e' larghezza che basti.
+      Un titolo che si taglia da solo e' peggio di un titolo che non si muove. */
+.capo h2 span{display:block;opacity:0;transform:translateY(24px);
+  transition:opacity .85s var(--posa),transform .95s var(--posa)}
+.capo.dentro h2 span{opacity:1;transform:none}
+
+/* 3. le voci dell'elenco di ogni app entrano a scalare invece che tutte
+      insieme: l'occhio le legge una per una */
+.testo li{opacity:0;transform:translateX(-14px);
+  transition:opacity .55s var(--posa),transform .6s var(--posa)}
+.app.dx .testo li{transform:translateX(14px)}
+.app.dentro .testo li{opacity:1;transform:none}
+.app.dentro .testo li:nth-child(2){transition-delay:.1s}
+.app.dentro .testo li:nth-child(3){transition-delay:.2s}
+.app.dentro .testo li:nth-child(4){transition-delay:.3s}
+/* e il nome dell'app arriva dal suo lato */
+.testo .nome{display:inline-block;opacity:0;transform:translateX(-26px);
+  transition:opacity .7s var(--posa),transform .8s var(--posa)}
+.app.dx .testo .nome{transform:translateX(26px)}
+.app.dentro .testo .nome{opacity:1;transform:none}
+
+/* 4. la striscia dei nomi scorre piano, e si ferma quando ci passi sopra */
+.striscia{overflow:hidden}
+.striscia .scorre{display:flex;gap:var(--s5);align-items:center;width:max-content;
+  animation:sfila 44s linear infinite}
+.striscia:hover .scorre{animation-play-state:paused}
+@keyframes sfila{to{transform:translateX(-50%)}}
+@media(prefers-reduced-motion:reduce){.striscia .scorre{animation:none}}
+
+/* 5. i due numeri contano da zero quando entrano in vista */
+.fascia .cifre b{font-variant-numeric:tabular-nums}
 
 .sale{opacity:0;transform:translateY(20px)}
 .sale.dentro{opacity:1;transform:none;transition:opacity .8s var(--posa),transform .8s var(--posa)}
@@ -541,7 +602,7 @@ def app_scena(a, k):
     if n > 1:
         piani += orb("p", max(1, n // 3)) + orb("t", max(2, (2 * n) // 3))
     pop = "".join('<b class="pop %s">%s<span>%s</span></b>' % (lat, SPUNTA, testo)
-                  for lat, (_, testo) in zip(("a", "b"), C.POPUP.get(nome, [])))
+                  for lat, (_, testo) in zip(("a", "b", "c"), C.POPUP.get(nome, [])))
     pun = "".join('<i%s></i>' % (' class="viva"' if i == 0 else "") for i in range(n)) if n > 1 else ""
     li = "".join("<li>%s</li>" % x for x in punti)
     return ('<article class="app sale%s" id="app-%s" data-scatti="%d" style="--ac:%s;--ac2:%s">'
@@ -581,6 +642,7 @@ PAG = """<title>Deepwork — L'ecosistema del cantiere</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;800&family=Barlow:wght@300;400;500;600&display=swap">
 <style>@CSS@</style>
 <div class="ombra" aria-hidden="true"></div>
+<div class="avanzo" aria-hidden="true"></div>
 <header class="barra"><div class="d">
   <a class="segno" href="#"><span>@MARCHIO_P@</span><b class="parola">Deepwork</b></a>
   <nav><a href="#storia">La storia</a><a href="#app">Le app</a></nav>
@@ -602,11 +664,11 @@ PAG = """<title>Deepwork — L'ecosistema del cantiere</title>
     </div>
   </section>
 
-  <section class="striscia"><div class="g d"><span class="e">Otto app e un accesso unico</span>@STRISCIA@</div></section>
+  <section class="striscia"><div class="g"><span class="e">Otto app e un accesso unico</span><div class="scorre">@STRISCIA@@STRISCIA@</div></div></section>
 
   <section class="sez" id="storia">@FOND_STO@<div class="g">
     <div class="capo mezzo sale"><span class="occhio">La storia</span>
-      <h2 class="disp">@NASCE@</h2>
+      <h2 class="disp"><span>@NASCE@</span></h2>
       <p class="forte">@NASCE_SOTTO@</p></div>
     <p class="racconto sale">@STORIA_TESTO@</p>
     <div class="storia">@STORIA@</div>
@@ -618,14 +680,14 @@ PAG = """<title>Deepwork — L'ecosistema del cantiere</title>
 
   <section class="sez" id="app"><div class="g">
     <div class="capo sale"><span class="occhio">Le app</span>
-      <h2 class="disp">Ti presentiamo le app del nostro ecosistema</h2>
+      <h2 class="disp"><span>Ti presentiamo le app del nostro ecosistema</span></h2>
       <p>@APERTURA@</p></div>
     @SCENE@
   </div></section>
 
   <section class="g" id="prova"><div class="invito">@FOND_INV@
     <span class="occhio">Provalo adesso</span>
-    <h2 class="disp">@CHIUSURA@</h2>
+    <h2 class="disp"><span>@CHIUSURA@</span></h2>
     <p>Il tour apre le app con dati di esempio: puoi premere tutto, non si salva niente e non serve registrarsi.</p>
     <div class="az"><a class="bot pri" href="#">Prova il tour</a><a class="bot sec" href="#app">Rivedi le app</a></div>
   </div></section>
@@ -734,9 +796,34 @@ PAG = """<title>Deepwork — L'ecosistema del cantiere</title>
       sc.addEventListener('pointerleave',function(){sc.style.setProperty('--tx','0');});
     });
   }
+  /* la barra di avanzamento, sullo stesso giro di rAF del resto: un secondo
+     ascoltatore di scorrimento costerebbe quanto il primo e non serve */
+  var avz=document.querySelector('.avanzo');
   var att=false;
   addEventListener('scroll',function(){if(att)return;att=true;requestAnimationFrame(function(){att=false;
-    document.body.classList.toggle('mossa',(window.pageYOffset||0)>30);});},{passive:true});
+    var y=window.pageYOffset||0;
+    document.body.classList.toggle('mossa',y>30);
+    if(avz){var h=document.documentElement.scrollHeight-innerHeight;
+      avz.style.setProperty('--avanzo',(h>0?Math.min(100,y/h*100):0).toFixed(2)+'%');}
+  });},{passive:true});
+
+  /* i due numeri contano da zero: fermi non dicono che sono un dato, dicono
+     che sono un ornamento */
+  if(!fermi&&('IntersectionObserver' in window)){
+    var oc=new IntersectionObserver(function(v){v.forEach(function(x){
+      if(!x.isIntersecting)return; oc.unobserve(x.target);
+      var el=x.target, fine=parseInt(el.textContent,10);
+      if(!(fine>0)) return;
+      var t0=null, dur=900;
+      requestAnimationFrame(function passo(t){
+        if(t0===null)t0=t;
+        var k=Math.min(1,(t-t0)/dur), e=1-Math.pow(1-k,3);
+        el.textContent=String(Math.round(fine*e));
+        if(k<1)requestAnimationFrame(passo); else el.textContent=String(fine);
+      });
+    });},{threshold:.6});
+    [].forEach.call(document.querySelectorAll('.fascia .cifre b'),function(b){oc.observe(b);});
+  }
 })();
 </script>
 """

@@ -164,15 +164,24 @@ LAVORO = {
 # ⛔ Sono ILLUSTRATIVE — la lingua del prodotto, non misure vere. Non contengono
 #    e non devono contenere nessuno dei dati di riferimento del fondatore.
 POPUP = {
- "Genesi":     [("schema", "Schema provato a schermo"), ("carico", "Piano di carico pronto")],
- "Terra":      [("rilievo", "Rilievo di ieri acquisito"), ("lotto", "Lotto B · avanzamento misurato")],
- "Campo":      [("chiusa", "Giornata chiusa in cantiere"), ("fermo", "Fermo registrato · causale")],
- "Flotta":     [("scadenza", "Revisione in avvicinamento"), ("giro", "Giro macchina completato")],
- "Scudo":      [("idoneo", "Idoneita' verificata"), ("dpi", "Verbale DPI firmato")],
- "Conti":      [("ddt", "Documento di trasporto → fattura"), ("credito", "Da sollecitare per primo")],
- "Sentinella": [("lettura", "Lettura sotto soglia"), ("report", "Report per l'ente pronto")],
- "Deepwork":   [("archivio", "Ritrovato dall'archivio"), ("tasca", "Aperto dal telefono")],
- "Deepwork ID":[("accesso", "Un accesso, otto app"), ("casa", "Dati chiusi in casa propria")],
+ "Genesi":     [("schema", "Schema provato a schermo"), ("carico", "Piano di carico pronto"),
+               ("variante", "Due varianti a confronto")],
+ "Terra":      [("rilievo", "Rilievo di ieri acquisito"), ("lotto", "Lotto B · avanzamento misurato"),
+               ("sterro", "Sterro e riporto separati")],
+ "Campo":      [("chiusa", "Giornata chiusa in cantiere"), ("fermo", "Fermo registrato · causale"),
+               ("appello", "Appello di inizio giornata")],
+ "Flotta":     [("scadenza", "Revisione in avvicinamento"), ("giro", "Giro macchina completato"),
+               ("scorta", "Ricambio sotto scorta")],
+ "Scudo":      [("idoneo", "Idoneita' verificata"), ("dpi", "Verbale DPI firmato"),
+               ("scad", "Scadenze dei prossimi mesi")],
+ "Conti":      [("ddt", "Documento di trasporto → fattura"), ("credito", "Da sollecitare per primo"),
+               ("pesa", "Pesata acquisita")],
+ "Sentinella": [("lettura", "Lettura sotto soglia"), ("report", "Report per l'ente pronto"),
+               ("cal", "Taratura in corso di validita'")],
+ "Deepwork":   [("archivio", "Ritrovato dall'archivio"), ("tasca", "Aperto dal telefono"),
+               ("storico", "Sei mesi di storico, in due tocchi")],
+ "Deepwork ID":[("accesso", "Un accesso, otto app"), ("casa", "Dati chiusi in casa propria"),
+               ("ruoli", "Ruoli diversi app per app")],
 }
 
 
@@ -195,6 +204,7 @@ SFONDI = {
   "app-sentinella":      "app-sentinella.jpg",
   "app-deepwork":        "app-deepwork.jpg",
   "app-deepworkid":      "app-deepworkid.jpg",
+  "storia":             "storia.jpg",
 }   # dentro scratchpad/foto/pronte/
 
 def sfondo(nome, cartella=None):
