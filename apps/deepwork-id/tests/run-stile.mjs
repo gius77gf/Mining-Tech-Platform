@@ -254,6 +254,11 @@ const ok = (cond, why) => { if (!cond) throw new Error(why); };
 const SUPERFICI = [
   ["core (radice)", "index.html"],
   ["vetrina dell'ecosistema", "apps/index.html"],
+  /* Entrata il 25/08: la vetrina NUOVA, quella con le nove app e il tour.
+     Ci entra invece di essere esclusa perche' e' una pagina che il cliente
+     apre per prima, ed e' esattamente il posto dove un dialogo del browser o
+     un'unita' in maiuscolo si vedrebbe di piu'. */
+  ["vetrina nuova · le nove app", "apps/vetrina/index.html"],
   ["Genesi", "apps/genesi/genesi.html"],
   ["Conti", "apps/conti/index.html"],
   ["Flotta", "apps/flotta/index.html"],
@@ -423,6 +428,14 @@ const leggi = (rel) => { try { return readFileSync(join(root, rel), "utf8"); } c
    dentro Playwright, e una suite `node` che gira senza rete non deve dipendere
    dal browser per sapere che cosa il browser dovrebbe guardare. */
 const FUORI_GIRO = {
+  "apps/vetrina/index.html":
+    "vetrina di presentazione: non ha schermate da navigare ne' comandi da premere, "
+    + "quindi i banchi del giro (che navigano e premono) non avrebbero cosa fare. "
+    + "Ha i suoi righelli propri in `apps/vetrina/strumenti/`, e sono cinque: "
+    + "`prova.mjs` (altezza, sbordo, contrasto), `contrasto-foto.mjs` (il contrasto "
+    + "sopra le fotografie, che nessun altro misura), `misura-scena.mjs` (quanto "
+    + "sborda ogni pezzo), `marchio-intatto.mjs` (il marchio identico al core) e "
+    + "`tour-vivo.mjs` (ogni collegamento porta a un file che esiste)",
   "apps/genesi/nuvola-poc.html":
     "banco di prova della lettura nuvola/mesh (il titolo dice «prova»): le regole "
     + "di stile la guardano perché è pur sempre HTML, ma non è una superficie che "
@@ -2343,6 +2356,11 @@ function usaLaStruttura(src) {
    04/08 quando Genesi — l'ultima rimasta — è passata al condiviso.
    Resta **uno solo**, ed è l'originale. */
 const COPIA_PROPRIA = {
+  "apps/vetrina/index.html":
+    "vetrina di presentazione, non un'app: non ha toast, modali, barra in basso "
+    + "ne' schermate da navigare, quindi non carica `dw-app-ui.js` e non ne "
+    + "riscrive niente. Quello che sembra una copia sono le sue animazioni "
+    + "d'ingresso, che nella struttura condivisa non esistono",
   "index.html":
     "il core È l'originale — il file condiviso è stato estratto da qui — e il suo "
     + "toast dura di più quando è acceso il modo «all'aperto» (DB.settings.outdoor)",
@@ -3566,6 +3584,10 @@ const SENZA_TEMI = {
     + "⚠️ Conseguenza di prodotto, dichiarata: chi progetta una volata non ha la modalita' sole.",
   "apps/index.html":
     "la vetrina e' una pagina di presentazione, non uno strumento da cava: non ha schermate ne' dati.",
+  "apps/vetrina/index.html":
+    "vetrina di presentazione: e' scura di suo per scelta, e MOSTRA i due temi delle app "
+    + "nelle schermate che scorre (scuro e chiaro si alternano). Darle un interruttore "
+    + "del tema vorrebbe dire far cambiare veste alla vetrina, non alle app.",
   "apps/deepwork-id/index.html": "schermata d'accesso del servizio comune, non una verticale.",
   "apps/deepwork-id/admin.html": "amministrazione del servizio comune, si usa da scrivania.",
   "apps/deepwork-id/profilo.html": "profilo del servizio comune, si usa da scrivania.",

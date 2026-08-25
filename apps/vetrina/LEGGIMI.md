@@ -71,3 +71,47 @@ Firebase da `gstatic.com` e senza rete il modulo non parte. Si monta
 dimostrazione **patchando l'HTML servito** — le costanti `DEFAULT_*` vivono
 dentro il `<script type="module">` e da fuori non si raggiungono, quindi il
 login risponde «Credenziali errate» su credenziali giuste.
+
+## Come va online
+
+⛔ **NON serve un dominio nuovo, e non ne serviva uno.** `netlify.toml` pubblica
+il repository **dalla radice**, quindi ogni cartella è già un percorso del sito
+esistente: è così che le nove app sono online oggi (`/apps/terra/`,
+`/apps/genesi/genesi.html`, …). Non hanno domini separati — hanno percorsi.
+La vetrina è nella stessa condizione: appena `apps/vetrina/index.html` arriva su
+`main`, è raggiungibile a `<sito-esistente>/apps/vetrina/` e **il tour funziona**,
+perché tutto sta sulla stessa origine.
+
+⚠️ **Quello che manca è l'INDIRIZZO del sito, non il sito.** In questo
+repository è scritto ovunque come `<sito-esistente>`: il dominio vero non
+compare in nessun file (`netlify.toml` non ha il nome del sito, non c'è un
+`CNAME`, i workflow non lo nominano). Sta nel pannello Netlify del fondatore.
+
+### Due comandi, e la pagina è pronta per il sito
+
+    python3 apps/vetrina/sito.py /tmp/tutto-dentro.html
+    python3 apps/vetrina/strumenti/scorpora.py \
+        /tmp/tutto-dentro.html apps/vetrina/index.html apps/vetrina/img
+
+Il primo genera la pagina con **tutte le immagini incollate dentro** — l'unica
+forma che un artefatto su claude.ai accetta, perché lì la politica di sicurezza
+blocca ogni richiesta esterna. Il secondo le tira fuori in file veri.
+⛔ **Non sono due modi di generare la pagina: è uno solo, poi scorporato.**
+Fossero due percorsi di codice, il giorno che uno cambia l'altro resterebbe
+indietro in silenzio.
+
+Misura del secondo passaggio: **10,63 MB → 0,11 MB** di HTML, più 6,87 MB di
+immagini che il browser mette in cache; e 75 doppioni spariti, perché i file
+prendono il nome dall'**impronta del contenuto** e la stessa schermata usata in
+tre finestre diventa un file solo.
+
+### Prima di committare
+
+    node apps/vetrina/strumenti/marchio-intatto.mjs apps/vetrina/index.html
+    node apps/vetrina/strumenti/tour-vivo.mjs      apps/vetrina/index.html
+    node apps/deepwork-id/tests/giro-node.mjs
+
+⚠️ La vetrina è una **superficie** di `run-stile.mjs` dal 25/08, e le sue tre
+eccezioni sono dichiarate lì con la ragione (non carica `dw-app-ui.js`, non
+carica `dw-tema.js`, nessun banco del giro la apre). Se un giorno una di quelle
+ragioni non vale più, la suite lo dice.

@@ -46,10 +46,10 @@ segnaposto («Funzione nav non ancora pronta»). Per aprirlo davvero si monta
 
 ## Le prove
 
-**2.876 prove girano senza rete e senza browser**, con `node` (contate lanciandole, non a memoria — al 18/08: 2396 + 327 + 75 + 32 + 9 + 8 + 7 + 3 + 19):
+**2.887 prove girano senza rete e senza browser**, con `node` (contate lanciandole, non a memoria — al 25/08: 2396 + 338 + 75 + 32 + 9 + 8 + 7 + 3 + 19):
 
 > ⚠️ **E quel numero conta NOVE suite, non tutto quello che gira.** Il giro
-> `node` completo esegue **3.275** asserzioni su **37** comandi.
+> `node` completo esegue **3.289** asserzioni su **37** comandi.
 > ⏱️ **Dal 09/08 quel numero non si scrive più a mano: lo stampa il giro**
 > (`node apps/deepwork-id/tests/giro-node.mjs`, riga «Asserzioni eseguite dal
 > giro»), col suo denominatore accanto — 22 comandi su 34 hanno una riga da
@@ -78,7 +78,7 @@ segnaposto («Funzione nav non ancora pronta»). Per aprirlo davvero si monta
 > 2.251» mentre il titolo sopra diceva già 2.310: il controllo sorveglia il
 > **totale**, non la prosa che lo spiega. È la quarta forma di invecchiamento
 > raccolta in `CLAUDE.md`.*
-> **Il numero da citare resta 2.876**, e la ragione è che le altre dieci contano
+> **Il numero da citare resta 2.887**, e la ragione è che le altre dieci contano
 > **file, non prove**: `import esistenti` fa un'asserzione per file e `classi
 > orfane` una per pagina, quindi il loro totale si muove ogni volta che nasce un
 > file — un numero che cresce senza che nessuno abbia scritto una prova è un
