@@ -82,18 +82,33 @@ html{overflow-x:clip;scroll-behavior:smooth}
 body{margin:0;background:var(--nero);color:var(--inch);overflow-x:clip;
   font-family:'Barlow',system-ui,-apple-system,sans-serif;font-size:17px;line-height:1.62;
   -webkit-font-smoothing:antialiased;
-  background-image:radial-gradient(1200px 600px at 50% -8%,rgba(255,140,0,.10),transparent 60%)}
+  /* ⛔ MAI NERO PIATTO (fondatore 25/08: «preferirei che non ci fossero spazi
+     vuoti»). Dove nessuna fotografia arriva, resta comunque una trama: due
+     aloni caldi molto larghi e una texture finissima che toglie la sensazione
+     di buco. Costa zero byte — e' tutto CSS. */
+  background-image:
+    radial-gradient(1200px 700px at 50% -6%,rgba(255,140,0,.11),transparent 62%),
+    radial-gradient(900px 900px at 12% 38%,rgba(255,120,0,.045),transparent 60%),
+    radial-gradient(1000px 800px at 88% 72%,rgba(120,150,255,.035),transparent 62%),
+    repeating-linear-gradient(52deg,rgba(244,241,234,.014) 0 1px,transparent 1px 4px);
+  background-attachment:fixed,fixed,fixed,scroll}
 a{color:inherit;text-decoration:none}
 /* la pagina sta SOPRA l'ombra: cosi' l'alone non passa mai davanti a una
    parola, e la richiesta «non deve impedire la lettura» e' garantita dalla
    struttura invece che da un valore di opacita' scelto a occhio */
 .barra,main,.piede{position:relative;z-index:1}
 .ombra{position:fixed;inset:-30vh -30vw;z-index:0;pointer-events:none;
-  animation:giraTinta @DURATA@s linear infinite;
+  animation:giraTinta 150s linear infinite;   /* la durata la riscrive il movimento del cursore */
   background:radial-gradient(closest-side circle at var(--ox,50%) var(--oy,42%),
     color-mix(in srgb,var(--ombra-tinta) 34%,transparent) 0%,
     color-mix(in srgb,var(--ombra-tinta) 13%,transparent) 42%,transparent 74%);
-  opacity:.62;filter:blur(28px);transition:opacity .5s var(--posa)}
+  opacity:.34;filter:blur(34px)}
+/* ⛔ SEMPRE PRESENTE. Prima l'ombra spariva dove un fondale copriva la pagina:
+   `.ombra` sta dietro a `main`, e sopra una fotografia col suo velo non
+   arrivava piu' niente. Adesso una seconda copia sta SOPRA tutto in `screen`,
+   tenuta bassissima: si vede ovunque e non tocca la leggibilita' — la prova e'
+   `contrasto-foto.mjs`, che legge i pixel veri con l'ombra accesa. */
+.ombra.sopra{z-index:50;opacity:.13;mix-blend-mode:screen;filter:blur(46px)}
 /* la stessa tinta bagna anche le fotografie, se no l'ombra sparisce ogni volta
    che passa sopra un fondale e sembra rotta */
 .fondale .tinta{position:absolute;inset:0;pointer-events:none;
@@ -156,10 +171,23 @@ body.mossa .barra{background:rgba(8,9,12,.82);backdrop-filter:blur(18px) saturat
 .ingresso{padding:calc(var(--s7) + 40px) 0 var(--s6);text-align:center;position:relative}
 .ingresso .marca{position:relative;display:inline-block;
   opacity:0;transform:translateY(14px) scale(.96);animation:su .95s var(--posa) .06s forwards}
-.ingresso .marca svg{display:block;width:clamp(96px,11vw,146px);height:auto;
-  filter:drop-shadow(0 10px 34px rgba(255,150,0,.36))}
+.ingresso .marca svg{display:block;width:clamp(180px,22vw,300px);height:auto;position:relative;z-index:2;
+  filter:drop-shadow(0 14px 44px rgba(255,150,0,.5)) drop-shadow(0 0 90px rgba(255,120,0,.34))}
+/* ⛔ «sembra spoglio»: sotto il marchio non c'era niente. Adesso ci sono tre
+   strati che nascono dietro di lui e lo staccano dalla fotografia — un alone
+   caldo che pulsa piano, un cerchio di luce netto, e un'aureola sottile. */
+.ingresso .marca::before,.ingresso .marca::after{content:'';position:absolute;
+  left:50%;top:48%;translate:-50% -50%;border-radius:50%;pointer-events:none;z-index:0}
+.ingresso .marca::before{width:200%;aspect-ratio:1;
+  background:radial-gradient(circle,rgba(255,150,0,.30),rgba(255,110,0,.12) 42%,transparent 68%);
+  filter:blur(16px);animation:respira 7s ease-in-out infinite}
+.ingresso .marca::after{width:118%;aspect-ratio:1;
+  background:radial-gradient(circle,rgba(255,190,60,.20),transparent 62%);
+  box-shadow:inset 0 0 0 1px rgba(255,171,0,.16),0 0 70px rgba(255,140,0,.24)}
+@keyframes respira{0%,100%{opacity:.82;transform:scale(1)}50%{opacity:1;transform:scale(1.07)}}
+@media(prefers-reduced-motion:reduce){.ingresso .marca::before{animation:none}}
 @keyframes su{to{opacity:1;transform:none}}
-.ingresso h1{margin:var(--s4) 0 0;font-size:clamp(34px,5.6vw,76px);max-width:22ch;
+.ingresso h1{margin:var(--s5) 0 0;font-size:clamp(34px,5.6vw,76px);max-width:22ch;
   margin-inline:auto;text-wrap:balance}
 .ingresso h1 .r{display:block;overflow:hidden;padding-bottom:.05em}
 .ingresso h1 .r>span{display:block;transform:translateY(106%);animation:sali 1.05s var(--posa) .3s forwards}
@@ -434,9 +462,47 @@ body.mossa .barra{background:rgba(8,9,12,.82);backdrop-filter:blur(18px) saturat
 .ingresso>.fondale .colonna{position:absolute;inset:0;
   background:radial-gradient(86% 76% at 50% 52%,rgba(8,9,12,.93),rgba(8,9,12,.6) 64%,transparent)}
 .ingresso>.fondale .sfuma.giu{height:44%;background:linear-gradient(0deg,var(--nero) 24%,transparent)}
-.fondale .sfuma{position:absolute;left:0;right:0;height:34%;pointer-events:none}
-.fondale .sfuma.su{top:0;background:linear-gradient(180deg,var(--nero),transparent)}
-.fondale .sfuma.giu{bottom:0;background:linear-gradient(0deg,var(--nero),transparent)}
+.fondale{inset:-12% 0}
+.fondale .sfuma{position:absolute;left:0;right:0;height:26%;pointer-events:none}
+.fondale .sfuma.su{top:0;background:linear-gradient(180deg,var(--nero) 6%,rgba(8,9,12,.55) 44%,transparent)}
+.fondale .sfuma.giu{bottom:0;background:linear-gradient(0deg,var(--nero) 6%,rgba(8,9,12,.55) 44%,transparent)}
+
+/* ⛔ LA COLONNA — la sezione delle app e' lunga 6.000px e non aveva NIENTE
+   dietro. Misurato con `zone-nere.mjs`: 145 fasce su 210 erano nere E piatte,
+   cioe' il 69% della pagina. La trama in CSS che avevo messo era troppo tenue
+   per contare — «l'ho aggiunta» non e' «si vede».
+   Qui quattro fotografie si susseguono lungo tutta la sezione, ognuna sfumata
+   in cima e in fondo su un terzo della propria altezza: si SOVRAPPONGONO nella
+   zona di sfumatura, quindi fra una e l'altra non c'e' una riga di giunzione
+   ma un passaggio lungo centinaia di pixel. E' il punto 7 alla lettera. */
+.colonna{position:absolute;inset:0;overflow:hidden;pointer-events:none;z-index:0}
+.colonna .strato{position:absolute;left:0;right:0;height:34%;overflow:hidden;
+  -webkit-mask-image:linear-gradient(180deg,transparent,#000 26%,#000 74%,transparent);
+  mask-image:linear-gradient(180deg,transparent,#000 26%,#000 74%,transparent)}
+.colonna .strato:nth-child(1){top:-2%}
+.colonna .strato:nth-child(2){top:22%}
+.colonna .strato:nth-child(3){top:46%}
+.colonna .strato:nth-child(4){top:70%}
+/* ⛔ LA COLONNA DI BASE, dietro TUTTA la pagina. Le colonne locali coprivano le
+   sezioni lunghe, ma restavano cinque tratti neri nei PASSAGGI fra una sezione
+   e l'altra (misurati: 34 fasce in cinque gruppi, fino a 541px di seguito).
+   Questa sta sotto a tutto e non lascia mai il fondo scoperto: e' l'ultima
+   rete, non la prima. Piu' scura delle altre, perche' sopra ci passa tutto. */
+.colonna.base{z-index:0}
+.colonna.base .strato{height:24%}
+.colonna.base .strato:nth-child(1){top:-1%}
+.colonna.base .strato:nth-child(2){top:16%}
+.colonna.base .strato:nth-child(3){top:33%}
+.colonna.base .strato:nth-child(4){top:50%}
+.colonna.base .strato:nth-child(5){top:67%}
+.colonna.base .strato:nth-child(6){top:82%}
+.colonna.base .strato img{filter:saturate(.44) contrast(1.04) brightness(.86)}
+.colonna.base .strato::after{background:rgba(8,9,12,.58)}
+.colonna .strato img{position:absolute;inset:0;width:100%;height:118%;object-fit:cover;display:block;
+  filter:saturate(.5) contrast(1.05) brightness(.78);
+  transform:translate3d(0,calc(var(--y,0) * 30px),0)}
+.colonna .strato::after{content:'';position:absolute;inset:0;background:rgba(8,9,12,.55)}
+@media(prefers-reduced-motion:reduce){.colonna .strato img{transform:none}}
 /* ⛔ CHI PORTA UN FONDALE DEVE ALZARE IL PROPRIO CONTENUTO, SEMPRE.
    `.fondale` e' `position:absolute`, quindi dipinge SOPRA il contenuto in
    flusso che non e' posizionato. La regola c'era per ingresso e invito e non
@@ -445,8 +511,11 @@ body.mossa .barra{background:rgba(8,9,12,.82);backdrop-filter:blur(18px) saturat
    Scritta cosi' vale per qualunque sezione a cui domani qualcuno aggiunga un
    fondale, che e' il punto: la regola non deve essere ricordata. */
 .ingresso,.invito,.fascia,.sez{position:relative;isolation:isolate}
-.ingresso>.g,.invito>*:not(.fondale),.fascia>.d,.sez>.g,.sez>*:not(.fondale){
-  position:relative;z-index:1}
+/* ⚠️ `.colonna` va ESCLUSA come `.fondale`: e' un fondale anche lei, e questa
+   regola le toglieva `position:absolute` rendendola invisibile — il conto delle
+   fasce nere restava identico e sembrava che le fotografie non bastassero. */
+.ingresso>.g,.invito>*:not(.fondale):not(.colonna),.fascia>.d,.sez>.g,
+.sez>*:not(.fondale):not(.colonna){position:relative;z-index:1}
 
 /* la fascia a tutta larghezza fra la storia e le app: la fotografia grande,
    una riga sola sopra, e il resto lo fa il silenzio */
@@ -539,7 +608,8 @@ body.mossa .barra{background:rgba(8,9,12,.82);backdrop-filter:blur(18px) saturat
 .striscia{overflow:hidden}
 .striscia .scorre{display:flex;gap:var(--s5);align-items:center;width:max-content;
   animation:sfila 44s linear infinite}
-.striscia:hover .scorre{animation-play-state:paused}
+/* ⛔ NON si ferma al passaggio del cursore (fondatore, 25/08): la pausa
+   spezzava il movimento proprio mentre uno la guardava. */
 @keyframes sfila{to{transform:translateX(-50%)}}
 @media(prefers-reduced-motion:reduce){.striscia .scorre{animation:none}}
 
@@ -563,7 +633,17 @@ SPUNTA = ('<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-wid
           '<path d="M4 12.5 9.5 18 20 6.5"/></svg>')
 
 
-def fondale(nome, alt, velo=True, sfuma=True, colonna=False):
+def colonna(nomi, alt, cl=""):
+    """Fotografie in fila lungo una sezione lunga, sfumate l'una nell'altra.
+    Chi manca non lascia un buco: si salta e le altre si ridistribuiscono."""
+    ci = [(n, C.sfondo(n)) for n in nomi]
+    ci = [(n, u) for n, u in ci if u]
+    if not ci: return ""
+    return '<span class="colonna %s" aria-hidden="true">%s</span>' % (cl, "".join(
+        '<span class="strato"><img src="%s" alt="%s" loading="eager"></span>' % (u, alt) for _n, u in ci))
+
+
+def fondale(nome, alt, velo=True, sfuma=True, colonna_=False):
     """Il fondale di una sezione — oppure la stringa VUOTA se la fotografia non
     c'e'. ⛔ Nessun ripiego su un'altra immagine: nove schede con le stesse tre
     foto a rotazione si leggono come una scelta sciatta, non come una mancanza
@@ -572,7 +652,7 @@ def fondale(nome, alt, velo=True, sfuma=True, colonna=False):
     if not u: return ""
     return ('<span class="fondale" aria-hidden="true"><img src="%s" alt="%s" loading="lazy">'
             '<span class="tinta"></span>%s%s%s</span>') % (u, alt, '<span class="velo"></span>' if velo else "",
-                              '<span class="colonna"></span>' if colonna else "",
+                              '<span class="colonna"></span>' if colonna_ else "",
                               '<span class="sfuma su"></span><span class="sfuma giu"></span>' if sfuma else "")
 
 
@@ -622,26 +702,56 @@ striscia = "".join('<a href="#app-%s" style="--ac:%s">%s</a>'
 cifre = "".join("<div><b>%s</b><s>%s</s></div>" % c for c in C.CIFRE)
 elenco = "".join('<li><a href="#app-%s">%s</a></li>'
                  % (a[0].lower().replace(" ", ""), a[0]) for a in C.APP)
-# ⛔ QUI C'ERANO TERRA, SCUDO E CONTI. Il fondatore (24/08): «appena si scende
-#    un po' ci si ritrova di fronte a uno screen di Terra completamente fuori
-#    contesto». Aveva ragione due volte: fuori contesto perche' la prima cosa
-#    che si vede dopo il titolo deve essere il PRODOTTO DI PUNTA, e ferma
-#    perche' era una fotografia. Adesso sono tre finestre di DEEPWORK che
-#    scorrono le sue schermate vere.
-_dw = SIM.get("deepwork") or [C.dati("core.jpg")]
-_dwp = SIM_P.get("deepwork") or _dw
+# ⛔ LA VETRINA DELL'INGRESSO MOSTRA APP MISTE, NON SOLO DEEPWORK.
+#    Prima erano tre schermate di Terra, ferme e senza nome (fondatore, 24/08:
+#    «completamente fuori contesto»); poi tre di Deepwork, giuste ma tutte
+#    uguali fra loro. Il fondatore (25/08): «non solo le immagini di deepwork,
+#    ma immagini miste di tutte le app, scegli le piu' spettacolari».
+#    ⚠️ L'elenco e' SCELTO A MANO e ogni voce dice PERCHE': una rotazione
+#    automatica avrebbe pescato anche le schermate di servizio — un modulo
+#    vuoto, una calcolatrice — che su una vetrina non dicono niente.
+SPETTACOLI = {
+    "c": [("deepwork", 0, "la schermata iniziale del prodotto di punta"),
+          ("terra",    0, "il contatore del volume, il numero piu' grande che abbiamo"),
+          ("genesi",   2, "lo scavo in 3D: l'unica schermata che non sembra un gestionale"),
+          ("scudo",    2, "il grafico della formazione, a barre piene"),
+          ("conti",    0, "i quattro indicatori di cassa")],
+    "sx": [("campo",      0, "le squadre in turno, con i semafori"),
+           ("flotta",     0, "la percentuale di disponibilita' del parco"),
+           ("sentinella", 0, "la lettura ambientale con la sua miniatura"),
+           ("terra",      3, "l'istogramma dei volumi per mese")],
+    "dx": [("sentinella", 1, "il monitoraggio, con il grafico grande"),
+           ("conti",      2, "l'elenco delle pesate"),
+           ("scudo",      0, "il cruscotto della sicurezza"),
+           ("deepwork",   1, "lo storico dei rapportini")],
+}
 
-def _vetrina(cl, off):
-    n = len(_dw)
-    fonte = _dw if cl == "c" else _dwp
+def _vetrina(cl):
+    """Le finestre della vetrina d'ingresso. Ogni fotogramma e' una app DIVERSA:
+    a colpo d'occhio si vede che sono tante, che e' esattamente la tesi."""
+    voci = SPETTACOLI[cl]
+    fonte = SIM if cl == "c" else SIM_P
+    fuori, saltate = [], []
+    for app, i, _perche in voci:
+        serie = fonte.get(app) or []
+        if i < len(serie):
+            fuori.append((serie[i], app))
+        else:
+            saltate.append("%s[%d] su %d" % (app, i, len(serie)))
+    if saltate:                     # ⛔ una scelta che non trova il suo scatto
+        print("   ⚠️ vetrina %s: %d fotogrammi SALTATI (%s)" % (cl, len(saltate), ", ".join(saltate)))
     return '<span class="f %s">%s</span>' % (cl, "".join(
-        '<img src="%s" alt="Schermata di Deepwork" loading="eager"%s>'
-        % (fonte[(i + off) % n], ' class="viva"' if i == 0 else "") for i in range(n)))
+        '<img src="%s" alt="Schermata di %s" loading="eager"%s>'
+        % (u, app.capitalize(), ' class="viva"' if k == 0 else "")
+        for k, (u, app) in enumerate(fuori)))
+
+_nvet = min(len(v) for v in SPETTACOLI.values())
 
 PAG = """<title>Deepwork — L'ecosistema del cantiere</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;800&family=Barlow:wght@300;400;500;600&display=swap">
 <style>@CSS@</style>
 <div class="ombra" aria-hidden="true"></div>
+<div class="ombra sopra" aria-hidden="true"></div>
 <div class="avanzo" aria-hidden="true"></div>
 <header class="barra"><div class="d">
   <a class="segno" href="#"><span>@MARCHIO_P@</span><b class="parola">Deepwork</b></a>
@@ -649,7 +759,7 @@ PAG = """<title>Deepwork — L'ecosistema del cantiere</title>
   <a class="bot pri" href="#prova">Prova il tour</a>
 </div></header>
 
-<main>
+<main>@BASE@
   <section class="ingresso">@FOND_ING@
     <div class="g">
       <span class="marca">@MARCHIO_G@</span>
@@ -659,7 +769,7 @@ PAG = """<title>Deepwork — L'ecosistema del cantiere</title>
       <p class="sotto-az">Dati di esempio, nessuna registrazione: entri e provi.</p>
       <div class="mostra" data-scatti="@NDW@">
         @MSX@@MDX@@MC@
-        <span class="etichetta"><em>Deepwork</em> · il cantiere in tasca</span>
+        <span class="etichetta">Nove app, una casa sola</span>
       </div>
     </div>
   </section>
@@ -678,7 +788,7 @@ PAG = """<title>Deepwork — L'ecosistema del cantiere</title>
     <div class="cifre">@CIFRE@</div>
   </div></section>
 
-  <section class="sez" id="app"><div class="g">
+  <section class="sez" id="app">@COLONNA@<div class="g">
     <div class="capo sale"><span class="occhio">Le app</span>
       <h2 class="disp"><span>Ti presentiamo le app del nostro ecosistema</span></h2>
       <p>@APERTURA@</p></div>
@@ -777,12 +887,32 @@ PAG = """<title>Deepwork — L'ecosistema del cantiere</title>
        (un'animazione sulla variabile registrata): qui si muove solo il centro,
        se no ogni movimento del dito costringerebbe a ricalcolare una sfumatura
        in JavaScript sessanta volte al secondo. */
-    var omb=document.querySelector('.ombra');
-    if(omb){
+    /* ⛔ IL COLORE CAMBIA CON IL MOVIMENTO, NON COL TEMPO (fondatore 25/08:
+       «piu' muovi il cursore piu' velocemente i colori cambiano»).
+       L'animazione CSS resta — e' lei a interpolare le tinte, che in JavaScript
+       vorrebbe dire ricalcolare una sfumatura sessanta volte al secondo — ma
+       il suo `animationPlayState` e la sua `animationDuration` li decide la
+       distanza percorsa dal dito. Fermo il cursore, il ciclo rallenta fino a un
+       passo lentissimo invece di fermarsi: un'ombra che si blocca sembra rotta. */
+    var ombre=[].slice.call(document.querySelectorAll('.ombra'));
+    if(ombre.length){
+      var px=null,py=null,corsa=0,LENTA=150,VELOCE=9;   // secondi per giro
       addEventListener('pointermove',function(ev){
-        omb.style.setProperty('--ox',(ev.clientX/innerWidth*100).toFixed(1)+'%');
-        omb.style.setProperty('--oy',(ev.clientY/innerHeight*100).toFixed(1)+'%');
+        var x=ev.clientX,y=ev.clientY;
+        for(var i=0;i<ombre.length;i++){
+          ombre[i].style.setProperty('--ox',(x/innerWidth*100).toFixed(1)+'%');
+          ombre[i].style.setProperty('--oy',(y/innerHeight*100).toFixed(1)+'%');
+        }
+        if(px!==null){var d=Math.hypot(x-px,y-py); corsa=Math.min(1,corsa+d/900);}
+        px=x;py=y;
       },{passive:true});
+      /* la corsa si scarica da sola: se il dito si ferma, in pochi secondi il
+         ciclo torna al passo lento */
+      setInterval(function(){
+        corsa=Math.max(0,corsa-0.06);
+        var dur=LENTA+(VELOCE-LENTA)*corsa;
+        for(var i=0;i<ombre.length;i++) ombre[i].style.animationDuration=dur.toFixed(1)+'s';
+      },220);
     }
     /* l'alone segue il mouse, e i piani si inclinano verso di lui */
     [].forEach.call(document.querySelectorAll('.scena'),function(sc){
@@ -832,19 +962,23 @@ PAG = """<title>Deepwork — L'ecosistema del cantiere</title>
 _tinte = [a[2] for a in C.APP]
 _fot = " ".join("%.4g%%{--ombra-tinta:%s}" % (i * 100.0 / len(_tinte), t)
                 for i, t in enumerate(_tinte)) + " 100%%{--ombra-tinta:%s}" % _tinte[0]
-CSS = CSS.replace("@FOTOGRAMMI@", _fot).replace("@DURATA@", str(len(_tinte) * 5))
+CSS = CSS.replace("@FOTOGRAMMI@", _fot)
 
 io.open(sys.argv[1], "w", encoding="utf-8").write(
-  PAG.replace("@CSS@", CSS).replace("@MARCHIO_P@", C.marchio(24)).replace("@MARCHIO_G@", C.marchio(110))
+  PAG.replace("@CSS@", CSS).replace("@MARCHIO_P@", C.marchio(30)).replace("@MARCHIO_G@", C.marchio(300))
      .replace("@BENV_A@", C.BENVENUTO_A).replace("@BENV_B@", C.BENVENUTO_B).replace("@CLAIM@", C.CLAIM)
-     .replace("@MSX@", _vetrina("sx", 2)).replace("@MDX@", _vetrina("dx", 4))
-     .replace("@MC@", _vetrina("c", 0)).replace("@NDW@", str(len(_dw)))
+     .replace("@MSX@", _vetrina("sx")).replace("@MDX@", _vetrina("dx"))
+     .replace("@MC@", _vetrina("c")).replace("@NDW@", str(_nvet))
      .replace("@STRISCIA@", striscia).replace("@STORIA@", storia).replace("@SCENE@", scene)
-     .replace("@FOND_ING@", fondale("ingresso", "Un cantiere al lavoro", colonna=True))
+     .replace("@FOND_ING@", fondale("ingresso", "Un cantiere al lavoro", colonna_=True))
      .replace("@FOND_FAS@", fondale("fascia", "Macchine in cantiere"))
      .replace("@FOND_INV@", fondale("invito", "Cantiere all'opera"))
      .replace("@CIFRE@", cifre)
      .replace("@ELENCO@", elenco).replace("@CHIUSURA@", C.CHIUSURA).replace("@FOND_STO@", fondale("storia", "Cantiere al lavoro"))
      .replace("@NASCE@", C.NASCE_TITOLO).replace("@NASCE_SOTTO@", C.NASCE_SOTTO)
-     .replace("@STORIA_TESTO@", C.STORIA_TESTO).replace("@APERTURA@", C.APP_APERTURA).replace("@CREDITO@", C.CREDITO))
+     .replace("@STORIA_TESTO@", C.STORIA_TESTO).replace("@APERTURA@", C.APP_APERTURA)
+     .replace("@COLONNA@", colonna(["colonna-1","colonna-2","colonna-3","colonna-4"],
+                                   "Cantieri al lavoro"))
+     .replace("@BASE@", colonna(["base-%d" % i for i in range(1, 7)],
+                                "Cantiere", cl="base")).replace("@CREDITO@", C.CREDITO))
 print("sito di presentazione scritto")

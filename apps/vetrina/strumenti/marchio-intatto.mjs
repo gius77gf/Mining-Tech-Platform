@@ -12,7 +12,7 @@
 
    Quattro domande, e ognuna sa fallire (`--controprova` le rimette tutte):
    1. il disegno del marchio nella pagina e' IDENTICO a quello canonico di
-      `apps/index.html`, elemento per elemento, attributo per attributo —
+      `index.html` (il CORE), elemento per elemento, attributo per attributo —
       confrontato dopo aver tolto SOLO `width` e `height`, che sono la misura
       e non il disegno;
    2. tutte le copie nella pagina sono identiche FRA LORO (due misure diverse
@@ -29,7 +29,7 @@ import { readFileSync } from 'fs';
 
 const PAGINA = process.argv[2];
 const CONTROPROVA = process.argv.includes('--controprova');
-const CANONE = '/home/user/Mining-Tech-Platform/apps/index.html';
+const CANONE = '/home/user/Mining-Tech-Platform/index.html';
 
 let ok = 0, ko = 0;
 const dice = (c, t, extra) => {
@@ -42,11 +42,18 @@ const dice = (c, t, extra) => {
 function marchi(testo) {
   return [...testo.matchAll(/<svg class="marchio"[\s\S]*?<\/svg>/g)].map(m => m[0]);
 }
+/* ⛔ IL CANONE NON PORTA `class="marchio"`: nel core il marchio e' un <svg>
+   nudo, riconoscibile dal suo viewBox. Cercare la classe anche li' dava ZERO
+   copie canoniche — e il file usciva 2 dicendo «non posso giudicare», che e'
+   la forma onesta ma non protegge nulla. */
+function marchiCanone(testo) {
+  return [...testo.matchAll(/<svg[^>]*viewBox="0 0 120 122"[\s\S]*?<\/svg>/g)].map(m => m[0]);
+}
 /* Il disegno, senza la misura: `width` e `height` sono l'unica cosa che
    `marchio(px)` ha il permesso di cambiare. Gli spazi si normalizzano perche'
    un a capo in piu' non e' una variazione del marchio. */
 const disegno = (svg) => svg
-  .replace(/\s(width|height)="[^"]*"/g, '')
+  .replace(/\s(width|height|class|aria-hidden|xmlns)="[^"]*"/g, '')
   .replace(/\s+/g, ' ')
   .trim();
 
@@ -59,7 +66,7 @@ const misure = (svg) => {
 };
 
 let sorgente = readFileSync(PAGINA, 'utf8');
-const canone = marchi(readFileSync(CANONE, 'utf8'));
+const canone = marchiCanone(readFileSync(CANONE, 'utf8'));
 
 if (CONTROPROVA) {
   /* I difetti VERI di questa famiglia, non caricature: sono esattamente quelli
@@ -88,7 +95,7 @@ const trovati = marchi(sorgente);
 
 /* prima di giudicare: ho guardato qualcosa? Un controllo su zero soggetti
    stampa lo stesso il suo verde. */
-dice(canone.length > 0, `il marchio canonico si legge da apps/index.html (${canone.length} copie)`);
+dice(canone.length > 0, `il marchio canonico si legge da index.html — il CORE (${canone.length} copie)`);
 dice(trovati.length > 0, `la pagina contiene almeno un marchio (${trovati.length})`);
 if (!canone.length || !trovati.length) { console.log('\nnon posso giudicare: mi fermo.'); process.exit(2); }
 
@@ -96,7 +103,7 @@ if (!canone.length || !trovati.length) { console.log('\nnon posso giudicare: mi 
 const rif = disegno(canone[0]);
 const diversi = trovati.filter(s => disegno(s) !== rif);
 dice(diversi.length === 0,
-  `tutti e ${trovati.length} i marchi della pagina sono IDENTICI a quello di apps/index.html`,
+  `tutti e ${trovati.length} i marchi della pagina sono IDENTICI a quello del core`,
   diversi.length ? `${diversi.length} diverso/i. Primo scarto:\n           canone: ${rif.slice(0, 150)}\n           pagina: ${disegno(diversi[0]).slice(0, 150)}` : undefined);
 
 // 2. identici fra loro

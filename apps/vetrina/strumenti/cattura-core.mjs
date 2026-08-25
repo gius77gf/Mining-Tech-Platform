@@ -6,6 +6,11 @@ import { chromium } from '/opt/node22/lib/node_modules/playwright/index.mjs';
 import { readFileSync } from 'fs';
 import { montaFintoFirebase } from '/home/user/Mining-Tech-Platform/apps/deepwork-id/tests/browser/finto-firebase.mjs';
 const OUT = process.argv[2], PORTA = process.argv[3] || '8951';
+/* ⛔ Il tema si accende dall'INDIRIZZO (`shared/dw-tema.js` legge `?tema=`,
+   lo salva e lo toglie): non serve cercare un bottone. */
+const CHIARO = process.argv.includes('--chiaro');
+const TEMA = CHIARO ? '?tema=chiaro' : '';
+const SUF = CHIARO ? 'c' : '';
 const b = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium' });
 const esito = [];
 
@@ -25,18 +30,26 @@ const SEMINA = `window.__semina=function(){var n=0;
   for(var k in M){if(Array.isArray(M[k])){DB[k]=M[k].slice();n+=M[k].length;}}
   try{DB.deposito=DEFAULT_DEPOSITO;}catch(e){}
   state.dbReady=true;return n;};
+window.__chiaro=function(){try{DB.settings={...DB.settings,theme:'light',outdoor:false};
+  applyTheme();return document.body.classList.contains('light-mode');}catch(e){return 'errore: '+e.message;}};
 ` + ANCORA;
-let toccato = 0;
+/* ⛔ Tre stati, non due: «non e' partita», «e' partita e non ha trovato il
+   pezzo», «ha sostituito». Con due soli, un glob che non combacia piu'
+   (e' successo aggiungendo `?tema=chiaro`) si legge come «il codice e'
+   cambiato», e si va a cercare il difetto nel posto sbagliato. */
+let toccato = 0, rottaPartita = 0;
 const SORG = readFileSync('/home/user/Mining-Tech-Platform/index.html', 'utf8');
-await p.route('**/index.html', async (r) => {
+await p.route('**/index.html*', async (r) => {
   if (!/127\.0\.0\.1/.test(r.request().url())) return r.continue();
+  rottaPartita = 1;
   const t = SORG.split(ANCORA).join(SEMINA);
   toccato = SORG === t ? 0 : 1;
   await r.fulfill({ status: 200, contentType: 'text/html; charset=utf-8', body: t });
 });
-await p.goto(`http://127.0.0.1:${PORTA}/index.html`, { waitUntil: 'load' });
+await p.goto(`http://127.0.0.1:${PORTA}/index.html${TEMA}`, { waitUntil: 'load' });
 await p.waitForFunction(() => typeof window.doLogin === 'function', { timeout: 25000 });
-esito.push('core: la seminatura ha agganciato il sorgente = ' + (toccato ? 'si' : 'NO, ancora non trovata'));
+esito.push('core: rotta di seminatura ' + (rottaPartita ? 'partita' : 'MAI PARTITA (il glob non combacia con l\'indirizzo)')
+  + ' · ancora ' + (toccato ? 'trovata' : 'NON trovata'));
 const seminato = await p.evaluate(() => (window.__semina ? window.__semina() : -1));
 esito.push('core: dimostrazione seminata, ' + seminato + ' righe');
 let dentro = false;
@@ -47,6 +60,15 @@ for (let g = 0; g < 8 && !dentro; g++) {
                                     return !!h && getComputedStyle(h).display !== 'none'; });
 }
 esito.push('core: si entra = ' + dentro);
+if (CHIARO) {
+  /* ⛔ IL CORE NON USA `dw-tema.js` PER SE': ha il suo interruttore in
+     `DB.settings.theme` e lo applica con `applyTheme()`. `?tema=chiaro`
+     sull'indirizzo non lo tocca — misurato, non dedotto: il tema restava scuro
+     e il banco stava per fotografare il buio chiamandolo «chiaro». */
+  const acceso = await p.evaluate(() => (window.__chiaro ? window.__chiaro() : 'manca __chiaro'));
+  esito.push('core: tema chiaro acceso = ' + acceso);
+  if (!acceso) { console.log(esito.join('\n')); await b.close(); process.exit(1); }
+}
 if (dentro) {
   const SEZ = ['home', 'volate', 'rapp', 'macchine', 'deposito', 'ufficio'];
   for (let i = 0; i < SEZ.length; i++) {
@@ -56,8 +78,8 @@ if (dentro) {
       e.filter((x) => getComputedStyle(x).display !== 'none').map((x) => x.id));
     if (!viste.includes('screen-' + SEZ[i])) { esito.push(`core/${SEZ[i]}: NON navigato (${viste})`); continue; }
     const car = await p.evaluate(() => document.body.innerText.replace(/\s+/g, ' ').length);
-    await p.screenshot({ path: `${OUT}/deepwork-${i}.png` });
-    esito.push(`deepwork-${i} ok (${SEZ[i]}, ${car} caratteri)`);
+    await p.screenshot({ path: `${OUT}/deepwork${SUF}-${i}.png` });
+    esito.push(`deepwork${SUF}-${i} ok (${SEZ[i]}, ${car} caratteri)`);
   }
 }
 await p.close();
@@ -68,11 +90,11 @@ for (const [i, via] of [[0, '/apps/deepwork-id/index.html'], [1, '/apps/deepwork
   const q = await b.newPage({ viewport: { width: 1180, height: 738 } });
   await montaFintoFirebase(q);
   try {
-    await q.goto(`http://127.0.0.1:${PORTA}${via}`, { waitUntil: 'load', timeout: 25000 });
+    await q.goto(`http://127.0.0.1:${PORTA}${via}${TEMA}`, { waitUntil: 'load', timeout: 25000 });
     await q.waitForTimeout(2800);
     const car = await q.evaluate(() => document.body.innerText.replace(/\s+/g, ' ').length);
-    if (car < 120) { esito.push(`deepworkid-${i}: solo ${car} caratteri, NON fotografata`); }
-    else { await q.screenshot({ path: `${OUT}/deepworkid-${i}.png` }); esito.push(`deepworkid-${i} ok (${car} car)`); }
+    if (car < 120) { esito.push(`deepworkid${SUF}-${i}: solo ${car} caratteri, NON fotografata`); }
+    else { await q.screenshot({ path: `${OUT}/deepworkid${SUF}-${i}.png` }); esito.push(`deepworkid${SUF}-${i} ok (${car} car)`); }
   } catch (e) { esito.push(`deepworkid-${i}: ${e.message.split('\n')[0]}`); }
   await q.close();
 }

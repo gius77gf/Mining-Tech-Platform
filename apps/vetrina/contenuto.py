@@ -129,11 +129,24 @@ CREDITO = 'Fotografie di cantiere, via Wikimedia Commons: «Hitachi ZX240LCH Hyd
 #    una certa misura non si legge, si cambia la MISURA, non il marchio.
 #    `marchio(px)` cambia solo l'attributo `width`/`height`: il disegno dentro
 #    resta quello, elemento per elemento.
-_MARCHIO = """<svg class="marchio" width="74" height="76" viewBox="0 0 120 122" aria-hidden="true"> <polygon points="60,72 16,17 104,17" fill="#14100a"/> <polygon points="60,68 22,21 98,21" fill="#1c1608" stroke="#ffab00" stroke-width="2"/> <rect x="56.5" y="2" width="7" height="66" fill="#28200c" rx="2"/> <rect x="58" y="2" width="4" height="66" fill="#ffab00" rx="1.5"/> <polygon points="60,68 55,61 65,61" fill="#ffab00"/> <line x1="60" y1="68" x2="42" y2="77" stroke="#ffab00" stroke-width="2.2" stroke-linecap="round"/> <line x1="60" y1="68" x2="78" y2="77" stroke="#ffab00" stroke-width="2.2" stroke-linecap="round"/> <line x1="60" y1="68" x2="60" y2="85" stroke="#ffd54f" stroke-width="2.5" stroke-linecap="round"/> <circle cx="42" cy="78" r="2.5" fill="#ffab00"/> <circle cx="78" cy="78" r="2.5" fill="#ffab00"/> <circle cx="60" cy="86" r="3" fill="#ffd54f"/> </svg>"""
+# ⛔ COPIATO DAL CORE (`index.html` alla radice) IL 25/08, E NON DA
+#    `apps/index.html`. Il fondatore: «il logo non e' quello originale, ti
+#    consiglio di visualizzarlo direttamente dall'app e prendere quello».
+#    Aveva ragione, e il difetto era piu' grosso di quanto sembrasse:
+#    `apps/index.html` porta DUE marchi DIVERSI FRA LORO (uno col tratto a 2 e
+#    uno a 3) e NESSUNO dei due e' quello del core. Quello che usavo aveva 11
+#    elementi contro i 25 veri: mancavano le quattro stratificazioni dentro il
+#    triangolo, il poligono di contorno, i due raggi arancioni con le loro
+#    punte, il filo chiaro dell'asta, la riga di base e le due scritte.
+#    Cioe' il controllo «il marchio non si tocca» stava blindando una
+#    SEMPLIFICAZIONE — la violazione esatta che CLAUDE.md descrive.
+#    ⚠️ La lezione: un canone si prende dalla SORGENTE, non da una copia che
+#    sembra la sorgente. `apps/index.html` e' una vetrina, non l'app.
+_MARCHIO = """<svg class="marchio" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 122" width="140" height="142" aria-hidden="true"> <polygon points="60,72 16,17 104,17" fill="#14100a"/> <polygon points="60,70 18,19 102,19" fill="none" stroke="#2a2010" stroke-width="1"/> <polygon points="60,68 22,21 98,21" fill="#1c1608" stroke="#ffab00" stroke-width="2"/> <line x1="38" y1="31" x2="82" y2="31" stroke="#2e2412" stroke-width="1"/> <line x1="43" y1="43" x2="77" y2="43" stroke="#2e2412" stroke-width="0.9"/> <line x1="49" y1="55" x2="71" y2="55" stroke="#2e2412" stroke-width="0.7"/> <line x1="54" y1="63" x2="66" y2="63" stroke="#2e2412" stroke-width="0.5"/> <rect x="56.5" y="2" width="7" height="66" fill="#28200c" rx="2"/> <rect x="58" y="2" width="4" height="66" fill="#ffab00" rx="1.5"/> <rect x="59" y="2" width="2" height="66" fill="#ffd54f" rx="0.5" opacity="0.6"/> <polygon points="60,68 55,61 65,61" fill="#ffab00"/> <polygon points="60,68 57,63 63,63" fill="#ffd54f" opacity="0.6"/> <line x1="60" y1="68" x2="42" y2="77" stroke="#ffab00" stroke-width="2.2" stroke-linecap="round"/> <line x1="60" y1="68" x2="78" y2="77" stroke="#ffab00" stroke-width="2.2" stroke-linecap="round"/> <line x1="60" y1="68" x2="50" y2="82" stroke="#ff6d00" stroke-width="1.8" stroke-linecap="round"/> <line x1="60" y1="68" x2="70" y2="82" stroke="#ff6d00" stroke-width="1.8" stroke-linecap="round"/> <line x1="60" y1="68" x2="60" y2="85" stroke="#ffd54f" stroke-width="2.5" stroke-linecap="round"/> <circle cx="42" cy="78" r="2.5" fill="#ffab00"/> <circle cx="78" cy="78" r="2.5" fill="#ffab00"/> <circle cx="50" cy="83" r="1.8" fill="#ff6d00"/> <circle cx="70" cy="83" r="1.8" fill="#ff6d00"/> <circle cx="60" cy="86" r="3" fill="#ffd54f"/> <line x1="10" y1="96" x2="110" y2="96" stroke="#2a2010" stroke-width="0.8"/> <text x="60" y="110" font-size="15" fill="#ffab00" font-family="'Barlow Condensed', Arial Narrow, sans-serif" font-weight="800" letter-spacing="4" text-anchor="middle">DEEPWORK</text> <text x="60" y="121" font-size="6" fill="#3a2a10" font-family="'Barlow Condensed', Arial Narrow, sans-serif" font-weight="700" letter-spacing="3" text-anchor="middle">FIELD OPERATIONS</text> </svg>"""
 
 def marchio(px=74):
     alt = round(px * 122 / 120)
-    return _MARCHIO.replace('width="74" height="76"', 'width="%d" height="%d"' % (px, alt))
+    return _MARCHIO.replace('width="140" height="142"', 'width="%d" height="%d"' % (px, alt))
 
 
 # ⏱️ UNA FOTOGRAFIA DI LAVORO PER OGNI APP — direttiva del fondatore (23/08):
@@ -205,6 +218,16 @@ SFONDI = {
   "app-deepwork":        "app-deepwork.jpg",
   "app-deepworkid":      "app-deepworkid.jpg",
   "storia":             "storia.jpg",
+  "base-1":              "base-1.jpg",
+  "base-2":              "base-2.jpg",
+  "base-3":              "base-3.jpg",
+  "base-4":              "base-4.jpg",
+  "base-5":              "base-5.jpg",
+  "base-6":              "base-6.jpg",
+  "colonna-1":          "colonna-1.jpg",
+  "colonna-2":          "colonna-2.jpg",
+  "colonna-3":          "colonna-3.jpg",
+  "colonna-4":          "colonna-4.jpg",
 }   # dentro scratchpad/foto/pronte/
 
 def sfondo(nome, cartella=None):
