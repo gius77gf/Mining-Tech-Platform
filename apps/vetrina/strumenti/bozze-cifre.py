@@ -23,7 +23,7 @@ body{margin:0;background:var(--nero);color:var(--inch);font-family:'Barlow',syst
 .bozza .foto{position:absolute;inset:0;overflow:hidden}
 .bozza .foto img{width:100%;height:100%;object-fit:cover;filter:saturate(.55) brightness(.8)}
 .bozza .foto::after{content:'';position:absolute;inset:0;background:rgba(8,9,12,.84)}
-.bozza .d{position:relative;z-index:1;max-width:1200px;margin:0 auto;padding:78px 24px}
+.bozza .d{position:relative;z-index:1;max-width:1200px;margin:0 auto;padding:96px 24px}
 .eti{position:absolute;left:18px;top:14px;z-index:3;font-family:'Barlow Condensed',sans-serif;
   font-weight:800;font-size:12px;letter-spacing:3px;text-transform:uppercase;color:#08090c;
   background:var(--ambra);padding:4px 12px;border-radius:4px}
@@ -113,10 +113,10 @@ B5 = bozza(5, "il marchio al centro",
   '<div class="c5"><div class="raggi">%s</div><div class="mrk">%s</div>'
   '<div class="sotto"><b>8</b><s>app</s><em>·</em><b>1</b><s>accesso</s></div></div>'
   % ("".join('<i style="--t:%s;--x:%.1fpx;--y:%.1fpx">%s</i>'
-             % (c, 250 * math.cos(k / 8 * 2 * math.pi - math.pi / 2),
-                150 * math.sin(k / 8 * 2 * math.pi - math.pi / 2), n)
+             % (c, 300 * math.cos(k / 8 * 2 * math.pi - math.pi / 2),
+                168 * math.sin(k / 8 * 2 * math.pi - math.pi / 2), n)
              for k, (n, c, _) in enumerate(TINTE)), C.marchio(150)), """
-.c5{position:relative;height:430px;display:grid;place-items:center}
+.c5{position:relative;height:520px;display:grid;place-items:center}
 .raggi{position:absolute;inset:0;display:grid;place-items:center}
 .raggi i{position:absolute;translate:var(--x) var(--y);font-style:normal;
   font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:17px;letter-spacing:2.2px;
@@ -124,7 +124,7 @@ B5 = bozza(5, "il marchio al centro",
   text-shadow:0 0 20px color-mix(in srgb,var(--t) 55%,transparent)}
 .mrk{position:relative;display:grid;place-items:center}
 .mrk svg{filter:drop-shadow(0 0 60px rgba(255,150,0,.55))}
-.sotto{position:absolute;bottom:16px;display:flex;align-items:baseline;gap:12px}
+.sotto{position:absolute;bottom:-4px;display:flex;align-items:baseline;gap:12px}
 .sotto b{font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:56px;line-height:.9;
   background:var(--grad);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
 .sotto s{font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:13px;letter-spacing:4px;
