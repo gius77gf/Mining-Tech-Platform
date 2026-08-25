@@ -1,4 +1,27 @@
-/* ⛔ «IL COLLEGAMENTO ESISTE» NON E' «L'APP SI APRE», ED E' LA SECONDA DOMANDA.
+/* ⛔ DUE DI QUESTE DOMANDE LE FA GIA' UN BANCO DEL GIRO, E VA DETTO.
+   `browser/vetrina-collegamenti.mjs` esiste dal 30/07 e pretende, per ogni
+   riquadro: (1) il collegamento punta a un file che esiste, (2) la pagina che
+   si apre monta DAVVERO qualcosa, (3) da li' si torna alla vetrina. Le prime
+   due sono le stesse che si fanno qui, e la terza qui non c'e'.
+   L'ho scoperto DOPO aver scritto questo file, e per due volte avevo perfino
+   messo in un checkpoint che «il giro del browser non ha mai guardato
+   apps/index.html»: falso — quella superficie sta in `giro.mjs` dal 30/07.
+   E' la regola «la risposta e' quasi sempre gia' in casa» pagata un'altra
+   volta: non avevo cercato.
+   ⚠️ Allora perche' questo file resta? Per due cose che li' non ci possono
+   stare, e sono dichiarate invece di essere spacciate per nuove:
+     · gira in SECONDI dentro `costruisci.sh`, quindi a ogni build, mentre il
+       giro del browser dura ore e si lancia una volta per blocco;
+     · sa puntare al SITO VERO (`--base`), che e' l'unico posto dove si vedono
+       le riscritture di Netlify — e il giro non ci arriva, perche' da qui il
+       browser non esce di rete.
+   Quello che e' davvero nuovo e' la QUARTA domanda (si puo' premere?), che
+   nessuno dei due faceva.
+   ⛔ E la conseguenza pratica: quando queste due domande divergeranno, a
+   comandare e' `vetrina-collegamenti.mjs`, che e' l'originale. Chi cambia
+   l'una guardi l'altra.
+
+   ⛔ «IL COLLEGAMENTO ESISTE» NON E' «L'APP SI APRE», ED E' LA SECONDA DOMANDA.
    `tour-vivo.mjs` risolve ogni href in un percorso e chiede al disco se quel
    file c'e'. E' la domanda giusta, e non basta: un file puo' esserci e la
    pagina aprirsi bianca — un import che non risolve, un `<script>` che muore
@@ -35,7 +58,7 @@
    fuori dal repository glielo fa dichiarare inesistente. */
 const { chromium } = await import('/opt/node22/lib/node_modules/playwright/index.mjs');
 import { readFileSync, existsSync } from 'fs';
-import { resolve } from 'path';
+import { resolve, relative, sep } from 'path';
 import { execFileSync } from 'child_process';
 import { servi } from './servi.mjs';
 /* ⛔ IL CORE SI APRE ANCHE IN LOCALE, E L'ECCEZIONE E' STATA TOLTA INVECE CHE
@@ -110,20 +133,121 @@ const SENZA_RETE = {};
    sbaglia manda a rovinare cose sane. */
 const b = BASE ? null : await chromium.launch();
 let ok = 0, ko = 0, dichiarati = 0;
+const ripetuti = [];
 console.log(`${mete.length} destinazioni lette dalla pagina · ${BASE ? 'SITO VERO: ' + ORIGINE : 'radice servita: ' + RADICE}\n`);
 if (BASE) console.log(`⚠️  ONLINE si misura con curl: qui il browser non raggiunge la rete (ERR_CONNECTION_RESET,\n    e il proxy non vede nemmeno il tentativo). Copre lo stato e il contenuto consegnato — e le\n    RISCRITTURE del sito, che in casa non si vedono. NON copre che la pagina si monti: quello lo\n    dice la passata di casa, sugli stessi byte.\n`);
+
+/* ⛔ E PRIMA DI SEGUIRLI: SI POSSONO PREMERE? Un collegamento puo' essere nella
+   pagina, puntare a un file che esiste, aprire un'app perfetta — e non essere
+   raggiungibile col dito: coperto da un altro elemento, alto zero, o fuori
+   dallo schermo. In quel caso tutte e tre le domande precedenti rispondono
+   «a posto» e l'utente non ci arriva lo stesso.
+   La regola e' quella del repository: il punto centrale deve appartenere
+   all'elemento **o a un suo discendente** (accettando un antenato si misura la
+   riga intera e vengono fuori bersagli che non esistono).
+   ⚠️ Tre trappole pestate scrivendola, tutte e tre gia' scritte in CLAUDE.md e
+   tutte e tre rifatte lo stesso:
+     1. `elementFromPoint` vive nel VIEWPORT: un elemento sotto la piega
+        risponde `null`. Accusava 26 collegamenti su 30, «coperti da niente» —
+        cioe' null. Il segno era li': un difetto quasi universale e nessun
+        colpevole nominato;
+     2. `scrollIntoViewIfNeeded` di Playwright aspetta che l'elemento sia
+        AZIONABILE, e i nomi della corona ruotano di continuo: non lo diventano
+        mai, quindi ogni chiamata bruciava il suo tempo pieno e la misura non
+        finiva. Si ferma la rotazione e si scorre a mano;
+     3. la pagina dichiara `scroll-behavior:smooth`, quindi due rAF dopo un
+        `scrollTo` sta ANCORA scorrendo e il rettangolo letto e' a mezz'aria.
+        Accusava 28 su 30 di stare «fuori dalla finestra» mentre erano in
+        viaggio. Lo scorrimento va reso istantaneo.
+   Con le tre corrette: 30 su 30 premibili a 1440px e a 390px, 0 bersagli
+   stretti. */
+if (!BASE) {
+  const pt = await b.newPage({ viewport: { width: 1280, height: 900 } });
+  /* ⛔ la pagina si chiede al server col percorso RELATIVO ALLA RADICE, non
+     col solo nome del file: servendo la radice del repository, `/index.html`
+     e' il CORE, non la vetrina. La prima stesura caricava quello e il
+     controllo rispondeva «nessun collegamento trovato» — che e' la guardia
+     sullo zero che fa il suo mestiere, e mi ha risparmiato un verde falso. */
+  const VIA_REL = '/' + relative(RADICE, resolve(PAGINA)).split(sep).join('/');
+  /* ⛔ e se la pagina sta FUORI dalla radice servita, il server non puo'
+     consegnarla e il controllo direbbe «nessun collegamento trovato» — vero,
+     ma per una ragione che non riguarda il prodotto. Si dice quale. */
+  if (VIA_REL.startsWith('/..')) {
+    console.log(`  ⛔ la pagina «${PAGINA}» sta FUORI dalla radice servita (${RADICE}): non posso chiederla al server.`);
+    console.log(`     Usa --radice con una cartella che la contenga, se no i due controlli qui sotto non hanno soggetto.\n`);
+  } else {
+  await pt.goto(`${ORIGINE}${VIA_REL}`, { waitUntil: 'domcontentloaded' });
+  await pt.evaluate(async () => { for (let y = 0; y < document.documentElement.scrollHeight; y += 500) { scrollTo(0, y); await new Promise(r => setTimeout(r, 45)); } scrollTo(0, 0); });
+  await pt.waitForTimeout(700);
+  for (const [w, h] of [[1440, 900], [390, 844]]) {
+    await pt.setViewportSize({ width: w, height: h });
+    await pt.waitForTimeout(400);
+    const r = await pt.evaluate(async () => {
+      document.querySelectorAll('.corona .anello, .corona .anello a').forEach(e => e.style.animationPlayState = 'paused');
+      document.documentElement.style.scrollBehavior = 'auto';
+      document.body.style.scrollBehavior = 'auto';
+      await new Promise(r => setTimeout(r, 120));
+      const out = [];
+      for (const a of document.querySelectorAll('a[href^="/"]')) {
+        const doc = a.getBoundingClientRect().top + scrollY;
+        scrollTo({ top: Math.max(0, doc - innerHeight / 2), behavior: 'instant' });
+        await new Promise(r => setTimeout(r, 55));
+        const q = a.getBoundingClientRect(), cs = getComputedStyle(a);
+        const vis = cs.visibility !== 'hidden' && cs.display !== 'none' && +cs.opacity > .05 && q.width > 1 && q.height > 1;
+        const cx = q.left + q.width / 2, cy = q.top + q.height / 2;
+        const dentro = cx >= 0 && cy >= 0 && cx <= innerWidth && cy <= innerHeight;
+        const so = dentro ? document.elementFromPoint(cx, cy) : null;
+        out.push({ via: a.getAttribute('href'), testo: (a.textContent || '').trim().slice(0, 16),
+          male: !(vis && dentro && so && (so === a || a.contains(so))),
+          stretto: q.width < 40 || q.height < 22, larg: Math.round(q.width), alt: Math.round(q.height),
+          copre: so ? so.tagName + '.' + String(so.className || '').split(' ')[0] : (dentro ? 'niente' : 'FUORI FINESTRA') });
+      }
+      return out;
+    });
+    const mali = r.filter(x => x.male), stretti = r.filter(x => !x.male && x.stretto);
+    if (!r.length) { console.log(`  ⛔ ${w}px · NESSUN COLLEGAMENTO TROVATO: il selettore non aggancia piu' niente`); ko++; }
+    else console.log(`  ${mali.length || stretti.length ? 'KO  ' : 'ok  '} ${String(w).padStart(4)}px · ${r.length} collegamenti premibili: ${r.length - mali.length} · bersaglio stretto: ${stretti.length}`);
+    mali.slice(0, 5).forEach(x => console.log(`         ⛔ ${x.via} «${x.testo}» ${x.larg}x${x.alt} · ${x.copre}`));
+    stretti.slice(0, 5).forEach(x => console.log(`         ⚠️  ${x.via} «${x.testo}» bersaglio ${x.larg}x${x.alt}px`));
+    ko += mali.length;
+  }
+  await pt.close();
+  }
+  console.log('');
+}
 
 for (const m of mete) {
   let stato = 0, v = { testo: 0, comandi: 0, titolo: '' }, errori = [];
   if (BASE) {
-    let corpo = '';
-    try {
-      const fuori = execFileSync('curl', ['-sSL', '--max-time', '45', '-w', '\n@@STATO:%{http_code}',
-        `${ORIGINE}${m}`], { encoding: 'utf8', maxBuffer: 128 << 20 });
-      const t = fuori.lastIndexOf('\n@@STATO:');
-      stato = +fuori.slice(t + 9).trim() || 0;
-      corpo = fuori.slice(0, t);
-    } catch (e) { stato = -1; errori.push(String(e.message).split('\n')[0].slice(0, 90)); }
+    /* ⛔ UN ERRORE DI TRASPORTO NON E' UNA RISPOSTA DEL SITO, E RIPROVARE NON
+       E' INDULGENZA. Misurato due volte il 25/08: una destinazione su nove
+       cadeva con «Recv failure: Connection reset by peer» e le tre prove
+       successive rispondevano 200 con gli stessi byte al carattere — prima
+       Genesi, poi Terra, cioe' non era il soggetto, era il tragitto.
+       Un solo KO fra otto destinazioni sane e' esattamente la forma che manda
+       ad aprire un cantiere su un difetto che non esiste.
+       ⚠️ Si riprova SOLO su un errore di trasporto — la connessione caduta, il
+       tempo scaduto, il DNS. Un 404 o un 500 sono RISPOSTE, e una risposta non
+       si richiede sperando che cambi. E quante volte ha dovuto riprovare si
+       DICHIARA: un ripiego silenzioso nasconde una rete che peggiora. */
+    let corpo = '', tentativi = 0;
+    for (let k = 0; k < 3; k++) {
+      tentativi++;
+      try {
+        const fuori = execFileSync('curl', ['-sSL', '--max-time', '45', '-w', '\n@@STATO:%{http_code}',
+          `${ORIGINE}${m}`], { encoding: 'utf8', maxBuffer: 128 << 20 });
+        const t = fuori.lastIndexOf('\n@@STATO:');
+        stato = +fuori.slice(t + 9).trim() || 0;
+        corpo = fuori.slice(0, t);
+        errori.length = 0;
+        break;
+      } catch (e) {
+        stato = -1;
+        errori.push(String(e.message).split('\n')[0].slice(0, 90));
+        if (k < 2) execFileSync('sleep', ['3']);
+      }
+    }
+    if (tentativi > 1 && stato === 200) ripetuti.push(`${m} (al tentativo ${tentativi})`);
     /* «quanto testo» si chiede al sorgente: si tolgono script, stile e tag.
        Non e' il renderizzato, ed e' scritto sopra che non lo e'. */
     const nudo = corpo.replace(/<(script|style)[\s\S]*?<\/\1>/gi, ' ').replace(/<[^>]*>/g, ' ');
@@ -160,6 +284,7 @@ for (const m of mete) {
 if (b) await b.close();
 srv?.chiudi();
 
+if (ripetuti.length) console.log(`\n⚠️  ${ripetuti.length} destinazioni hanno risposto solo dopo un ritentativo (errore di TRASPORTO, non del sito): ${ripetuti.join(', ')}`);
 console.log(`\nRisultato tour aperto: ${ok} app aperte davvero, ${ko} che non si aprono, ${dichiarati} non misurabili in locale (dichiarate)`);
 /* ⛔ una destinazione non misurata NON e' una destinazione a posto: se uscisse
    verde, la difesa sarebbe peggiore del difetto. Ma non e' nemmeno un KO —

@@ -11,7 +11,17 @@
       di niente;
    3. si tiene il pixel PEGGIORE e si stampa la FORBICE: sopra una fotografia
       il fondo e' mosso, e un numero solo senza la sua forbice non si sa quanto
-      vale. */
+      vale.
+   ⛔ E L'ECCEZIONE CITAVA IL RIGHELLO SBAGLIATO. Diceva che i testi con un
+      fondo proprio «li misura gia' prova.mjs»: il verdetto era giusto — sono
+      misurati — ma la prova no. `prova.mjs` e' lo strumento nato nello
+      scratchpad; a guardarli davvero e' `browser/contrasto.mjs`, che importa
+      `SUPERFICI` da `giro.mjs` (dove la vetrina sta dal 30/07) e gira nel giro
+      in TRE passate, una per tema. Verificato, non dedotto.
+      ⚠️ E' la forma di invecchiamento che questo repository chiama la piu'
+      insidiosa: **il verdetto regge e scade la prova.** Chi riapre la riga fra
+      un mese verifica la citazione, la trova falsa, e butta via anche il
+      giudizio giusto. */
 /* ⚠️ Playwright si importa in forma DINAMICA, come i 53 banchi del
    repository: `import-esistenti.mjs` risolve gli import statici e un
    percorso assoluto fuori dal repository glielo fa dichiarare inesistente.
@@ -109,7 +119,7 @@ if (!sezioni.length || !giudicati) {
   await b.close(); srv.chiudi(); process.exit(2);
 }
 console.log(`sopra una fotografia — ${trovati} testi in ${sezioni.length} sezioni`);
-console.log(`  giudicati ${giudicati} · con fondo proprio ${saltatiFondo} (li misura gia' prova.mjs) · inchiostro sfumato ${sfumati} (non giudicabili, DICHIARATI) · fuori dalla finestra ${nonInVista}`);
+console.log(`  giudicati ${giudicati} · con fondo proprio ${saltatiFondo} (li misura browser/contrasto.mjs) · inchiostro sfumato ${sfumati} (non giudicabili, DICHIARATI) · fuori dalla finestra ${nonInVista}`);
 console.log(`  sotto 4.5:1 -> ${bassi.length}`);
 bassi.sort((a,b)=>a.peggio-b.peggio).slice(0,18).forEach(e=>
   console.log(`   ${String(e.peggio).padStart(5)} (forbice ${(e.meglio-e.peggio).toFixed(2)})  [${e.sez}] ${e.col}  «${e.t}»`));
