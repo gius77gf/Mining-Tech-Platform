@@ -17,9 +17,27 @@
    percorso assoluto fuori dal repository glielo fa dichiarare inesistente.
    Non e' uno stile: e' la convenzione che tiene verde quel controllo. */
 const { chromium } = await import('/opt/node22/lib/node_modules/playwright/index.mjs');
+import { existsSync } from 'fs';
+import { dirname, basename } from 'path';
+import { servi } from './servi.mjs';
+
+/* ⛔ L'INDIRIZZO NON SI INCHIODA DENTRO. Fino al 25/08 qui c'era scritto
+   `http://127.0.0.1:8941/_p-S-sito.html`, cioe' il nome che l'anteprima aveva
+   nello scratchpad il giorno in cui il file e' nato. Spostata la pagina, il
+   righello ha caricato un 404, ha trovato ZERO sezioni e ha stampato «0 sotto
+   soglia» — un verde con tutti i denominatori a zero e nessuna riga a dirlo.
+   Il server se lo alza `servi.mjs`, che lo fa per tutti e cinque i righelli:
+   la stessa regola scritta cinque volte diverge, e questa era gia' divergente. */
+const PAGINA = process.argv[2];
+if (!PAGINA || !existsSync(PAGINA)) {
+  console.error('uso: node contrasto-foto.mjs <pagina.html>   (es. apps/index.html)');
+  process.exit(2);
+}
+const srv = await servi(dirname(PAGINA));
+
 const b = await chromium.launch();
 const p = await b.newPage({ viewport:{width:1440,height:900} });
-await p.goto('http://127.0.0.1:8941/_p-S-sito.html', {waitUntil:'networkidle'});
+await p.goto(`http://127.0.0.1:${srv.porta}/${basename(PAGINA)}`, {waitUntil:'networkidle'});
 await p.evaluate(async()=>{for(let y=0;y<document.documentElement.scrollHeight;y+=600){scrollTo(0,y);await new Promise(r=>setTimeout(r,60));}scrollTo(0,0);});
 await p.waitForTimeout(1200);
 
@@ -81,6 +99,15 @@ for (const sez of sezioni) {
   }, [png, info.out, L]);
   for(const e of r){ giudicati++; tutti.push({...e,sez:info.sez}); if(e.peggio<4.5) bassi.push({...e,sez:info.sez}); }
 }
+/* ⛔ ZERO SOGGETTI NON E' «A POSTO»: E' «NON MISURATO».
+   E' il difetto che questo file ha appena pagato — un verde stampato su un 404.
+   Un denominatore vuoto si dichiara e fa uscire diverso da zero, se no la
+   prossima volta che la pagina si sposta nessuno se ne accorge. */
+if (!sezioni.length || !giudicati) {
+  console.log(`⛔ NON MISURATO: ${sezioni.length} sezioni con un fondale, ${giudicati} testi giudicati.`);
+  console.log(`   La pagina caricata e' «${PAGINA}»: o non e' la vetrina, o le sue sezioni hanno cambiato nome.`);
+  await b.close(); srv.chiudi(); process.exit(2);
+}
 console.log(`sopra una fotografia — ${trovati} testi in ${sezioni.length} sezioni`);
 console.log(`  giudicati ${giudicati} · con fondo proprio ${saltatiFondo} (li misura gia' prova.mjs) · inchiostro sfumato ${sfumati} (non giudicabili, DICHIARATI) · fuori dalla finestra ${nonInVista}`);
 console.log(`  sotto 4.5:1 -> ${bassi.length}`);
@@ -88,4 +115,4 @@ bassi.sort((a,b)=>a.peggio-b.peggio).slice(0,18).forEach(e=>
   console.log(`   ${String(e.peggio).padStart(5)} (forbice ${(e.meglio-e.peggio).toFixed(2)})  [${e.sez}] ${e.col}  «${e.t}»`));
 if(!bassi.length&&tutti.length){const m=tutti.sort((a,b)=>a.peggio-b.peggio)[0];
   console.log(`   il piu' magro: ${m.peggio}:1 (forbice ${(m.meglio-m.peggio).toFixed(2)}) «${m.t}» [${m.sez}]`);}
-await b.close();
+await b.close(); srv.chiudi();

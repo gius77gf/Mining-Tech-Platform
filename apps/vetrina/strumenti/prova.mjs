@@ -4,7 +4,13 @@
    Non e' uno stile: e' la convenzione che tiene verde quel controllo. */
 const { chromium } = await import('/opt/node22/lib/node_modules/playwright/index.mjs');
 import { readFileSync, writeFileSync } from 'fs';
+import { servi } from './servi.mjs';
 const D = process.argv[2], nomi = process.argv.slice(3);
+/* ⛔ IL SERVER SE LO ALZA LUI, sulla cartella che gli e' stata passata. Prima
+   dava per scontato che qualcuno stesse gia' servendo `D` sulla 8941: era vero
+   nello scratchpad e falso ovunque altro, e un 404 qui non fa fallire niente —
+   fa misurare una pagina vuota. */
+const srv = await servi(D);
 const b = await chromium.launch();
 for (const n of nomi) {
   // stesso involucro che costruisce l'artefatto: se no document.body non c'e'
@@ -15,7 +21,7 @@ for (const n of nomi) {
     const p = await b.newPage({ viewport: { width: w, height: h }, deviceScaleFactor: 1 });
     const err = [];
     p.on('pageerror', e => err.push(e.message.split('\n')[0]));
-    await p.goto(`http://127.0.0.1:8941/_p-${n}.html`, { waitUntil: 'networkidle' });
+    await p.goto(`http://127.0.0.1:${srv.porta}/_p-${n}.html`, { waitUntil: 'networkidle' });
     await p.evaluate(async () => { for (let y = 0; y < document.documentElement.scrollHeight; y += 600) { window.scrollTo(0, y); await new Promise(r => setTimeout(r, 55)); } window.scrollTo(0, 0); });
     await p.waitForTimeout(1500);
     const m = await p.evaluate(() => {
@@ -72,4 +78,4 @@ for (const n of nomi) {
     await p.close();
   }
 }
-await b.close();
+await b.close(); srv.chiudi();

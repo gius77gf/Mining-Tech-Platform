@@ -80,6 +80,10 @@ CSS = """
 html{overflow-x:clip;scroll-behavior:smooth}
 @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
 body{margin:0;background:var(--nero);color:var(--inch);overflow-x:clip;
+  /* ⛔ `position:relative` NON e' decorativo: senza, la colonna di base —
+     che e' `position:absolute; inset:0` — si aggancia alla FINESTRA invece
+     che al documento, quindi sarebbe alta quanto una schermata. */
+  position:relative;
   font-family:'Barlow',system-ui,-apple-system,sans-serif;font-size:17px;line-height:1.62;
   -webkit-font-smoothing:antialiased;
   /* ⛔ MAI NERO PIATTO (fondatore 25/08: «preferirei che non ci fossero spazi
@@ -100,15 +104,15 @@ a{color:inherit;text-decoration:none}
 .ombra{position:fixed;inset:-30vh -30vw;z-index:0;pointer-events:none;
   animation:giraTinta 150s linear infinite;   /* la durata la riscrive il movimento del cursore */
   background:radial-gradient(closest-side circle at var(--ox,50%) var(--oy,42%),
-    color-mix(in srgb,var(--ombra-tinta) 34%,transparent) 0%,
-    color-mix(in srgb,var(--ombra-tinta) 13%,transparent) 42%,transparent 74%);
-  opacity:.34;filter:blur(34px)}
+    color-mix(in srgb,var(--ombra-tinta) 42%,transparent) 0%,
+    color-mix(in srgb,var(--ombra-tinta) 18%,transparent) 42%,transparent 76%);
+  opacity:.5;filter:blur(34px)}
 /* ⛔ SEMPRE PRESENTE. Prima l'ombra spariva dove un fondale copriva la pagina:
    `.ombra` sta dietro a `main`, e sopra una fotografia col suo velo non
    arrivava piu' niente. Adesso una seconda copia sta SOPRA tutto in `screen`,
    tenuta bassissima: si vede ovunque e non tocca la leggibilita' — la prova e'
    `contrasto-foto.mjs`, che legge i pixel veri con l'ombra accesa. */
-.ombra.sopra{z-index:50;opacity:.13;mix-blend-mode:screen;filter:blur(46px)}
+.ombra.sopra{z-index:50;opacity:.2;mix-blend-mode:screen;filter:blur(46px)}
 /* la stessa tinta bagna anche le fotografie, se no l'ombra sparisce ogni volta
    che passa sopra un fondale e sembra rotta */
 .fondale .tinta{position:absolute;inset:0;pointer-events:none;
@@ -178,12 +182,23 @@ body.mossa .barra{background:rgba(8,9,12,.82);backdrop-filter:blur(18px) saturat
    caldo che pulsa piano, un cerchio di luce netto, e un'aureola sottile. */
 .ingresso .marca::before,.ingresso .marca::after{content:'';position:absolute;
   left:50%;top:48%;translate:-50% -50%;border-radius:50%;pointer-events:none;z-index:0}
-.ingresso .marca::before{width:200%;aspect-ratio:1;
-  background:radial-gradient(circle,rgba(255,150,0,.30),rgba(255,110,0,.12) 42%,transparent 68%);
-  filter:blur(16px);animation:respira 7s ease-in-out infinite}
-.ingresso .marca::after{width:118%;aspect-ratio:1;
-  background:radial-gradient(circle,rgba(255,190,60,.20),transparent 62%);
-  box-shadow:inset 0 0 0 1px rgba(255,171,0,.16),0 0 70px rgba(255,140,0,.24)}
+/* ⛔ NIENTE CERCHIO. Il fondatore (25/08): «il cerchio e' troppo evidente, va
+   sostituito con un'ombra piu' estesa che sfuma fino agli attuali limiti».
+   La causa era precisa: il secondo strato aveva un bordo interno
+   (`inset 0 0 0 1px`) e una fermata netta al 62%, e quei due insieme
+   disegnavano un ANELLO. Un alone non ha bordo: ha solo fermate che si
+   spengono. Qui sono cinque e l'ultima e' trasparente ben prima del limite,
+   quindi non c'e' nessun punto in cui l'occhio possa dire «finisce qui».
+   L'intensita' e' quella di prima — cambia la FORMA. */
+.ingresso .marca::before{width:260%;aspect-ratio:1;
+  background:radial-gradient(circle,
+    rgba(255,150,0,.30) 0%,rgba(255,140,0,.20) 18%,rgba(255,120,0,.10) 36%,
+    rgba(255,110,0,.04) 54%,transparent 72%);
+  filter:blur(26px);animation:respira 7s ease-in-out infinite}
+.ingresso .marca::after{width:170%;aspect-ratio:1;
+  background:radial-gradient(circle,
+    rgba(255,190,60,.16) 0%,rgba(255,170,40,.09) 26%,rgba(255,150,0,.03) 50%,transparent 70%);
+  filter:blur(18px)}
 @keyframes respira{0%,100%{opacity:.82;transform:scale(1)}50%{opacity:1;transform:scale(1.07)}}
 @media(prefers-reduced-motion:reduce){.ingresso .marca::before{animation:none}}
 @keyframes su{to{opacity:1;transform:none}}
@@ -513,18 +528,27 @@ body.mossa .barra{background:rgba(8,9,12,.82);backdrop-filter:blur(18px) saturat
   object-fit:cover;display:block;filter:saturate(.62) contrast(1.04) brightness(.86);
   transform:translate3d(0,calc(var(--y,0) * 46px),0)}
 .fondale .velo{position:absolute;inset:0;background:rgba(8,9,12,.8)}
-#storia>.fondale .velo{background:rgba(8,9,12,.88)}
+#storia>.fondale .velo{background:rgba(8,9,12,.8)}
 .ingresso>.fondale .velo{background:rgba(8,9,12,.5)}
 .ingresso>.fondale img{filter:saturate(.78) contrast(1.12) brightness(.96)}
 /* il buio dove serve, non dappertutto: una colonna scura al centro tiene il
    testo leggibile e lascia respirare i bordi della fotografia */
 .ingresso>.fondale .colonna{position:absolute;inset:0;
   background:radial-gradient(86% 76% at 50% 52%,rgba(8,9,12,.93),rgba(8,9,12,.6) 64%,transparent)}
-.ingresso>.fondale .sfuma.giu{height:44%;background:linear-gradient(0deg,var(--nero) 24%,transparent)}
+.ingresso>.fondale .sfuma.giu{height:40%;
+  background:linear-gradient(0deg,rgba(8,9,12,.86),rgba(8,9,12,.4) 52%,transparent)}
 .fondale{inset:-12% 0}
 .fondale .sfuma{position:absolute;left:0;right:0;height:26%;pointer-events:none}
-.fondale .sfuma.su{top:0;background:linear-gradient(180deg,var(--nero) 6%,rgba(8,9,12,.55) 44%,transparent)}
-.fondale .sfuma.giu{bottom:0;background:linear-gradient(0deg,var(--nero) 6%,rgba(8,9,12,.55) 44%,transparent)}
+/* ⛔ LE SFUMATURE NON ARRIVANO AL NERO PIENO. Era il difetto che il fondatore
+   ha chiamato «punti scuri fra un'immagine e l'altra», e la causa era proprio
+   qui: ogni fondale finiva in `var(--nero)` OPACO, quindi non sfumava in
+   quello sotto — lo COPRIVA. Misurato: 757px di nero pieno di seguito fra
+   l'ingresso e la storia, con la colonna di base perfettamente viva sotto e
+   invisibile. Una sfumatura che finisce in un colore pieno non e' una
+   sfumatura: e' una tenda. Adesso l'ultima fermata e' TRASPARENTE, e la
+   colonna sotto continua senza interruzioni. */
+.fondale .sfuma.su{top:0;background:linear-gradient(180deg,rgba(8,9,12,.8),rgba(8,9,12,.42) 46%,transparent)}
+.fondale .sfuma.giu{bottom:0;background:linear-gradient(0deg,rgba(8,9,12,.8),rgba(8,9,12,.42) 46%,transparent)}
 
 /* ⛔ LA COLONNA — la sezione delle app e' lunga 6.000px e non aveva NIENTE
    dietro. Misurato con `zone-nere.mjs`: 145 fasce su 210 erano nere E piatte,
@@ -538,6 +562,16 @@ body.mossa .barra{background:rgba(8,9,12,.82);backdrop-filter:blur(18px) saturat
 .colonna .strato{position:absolute;left:0;right:0;height:34%;overflow:hidden;
   -webkit-mask-image:linear-gradient(180deg,transparent,#000 26%,#000 74%,transparent);
   mask-image:linear-gradient(180deg,transparent,#000 26%,#000 74%,transparent)}
+/* ⛔ IL PRIMO E L'ULTIMO NON SFUMANO VERSO L'ESTERNO. Sfumando anche li' la
+   colonna finiva nel NULLA in cima e in fondo — e in fondo il nulla e' il
+   piede, cioe' 325px di nero misurati proprio dove la pagina si chiude.
+   Una catena di sfumature deve sfumare fra i suoi anelli, non ai capi. */
+.colonna .strato:first-child{
+  -webkit-mask-image:linear-gradient(180deg,#000 0,#000 74%,transparent);
+  mask-image:linear-gradient(180deg,#000 0,#000 74%,transparent)}
+.colonna .strato:last-child{
+  -webkit-mask-image:linear-gradient(180deg,transparent,#000 26%,#000 100%);
+  mask-image:linear-gradient(180deg,transparent,#000 26%,#000 100%)}
 .colonna .strato:nth-child(1){top:-2%}
 .colonna .strato:nth-child(2){top:22%}
 .colonna .strato:nth-child(3){top:46%}
@@ -547,14 +581,15 @@ body.mossa .barra{background:rgba(8,9,12,.82);backdrop-filter:blur(18px) saturat
    e l'altra (misurati: 34 fasce in cinque gruppi, fino a 541px di seguito).
    Questa sta sotto a tutto e non lascia mai il fondo scoperto: e' l'ultima
    rete, non la prima. Piu' scura delle altre, perche' sopra ci passa tutto. */
-.colonna.base{z-index:0}
-.colonna.base .strato{height:24%}
-.colonna.base .strato:nth-child(1){top:-1%}
-.colonna.base .strato:nth-child(2){top:16%}
-.colonna.base .strato:nth-child(3){top:33%}
-.colonna.base .strato:nth-child(4){top:50%}
-.colonna.base .strato:nth-child(5){top:67%}
-.colonna.base .strato:nth-child(6){top:82%}
+.colonna.base{z-index:0;position:absolute;inset:0}
+.colonna.base .strato{height:26%}
+.colonna.base .strato:nth-child(1){top:-2%}
+.colonna.base .strato:nth-child(2){top:13%}
+.colonna.base .strato:nth-child(3){top:28%}
+.colonna.base .strato:nth-child(4){top:43%}
+.colonna.base .strato:nth-child(5){top:58%}
+.colonna.base .strato:nth-child(6){top:64%}
+.colonna.base .strato:nth-child(7){top:78%}
 .colonna.base .strato img{filter:saturate(.44) contrast(1.04) brightness(.86)}
 .colonna.base .strato::after{background:rgba(8,9,12,.58)}
 .colonna .strato img{position:absolute;inset:0;width:100%;height:118%;object-fit:cover;display:block;
@@ -601,46 +636,131 @@ body.mossa .barra{background:rgba(8,9,12,.82);backdrop-filter:blur(18px) saturat
    `clamp`: scritte in pixel fissi, come nella bozza, sul telefono la corona
    usciva dallo schermo. */
 .corona{position:relative;display:grid;place-items:center;
+  /* ⛔ la misura del marchio sta QUI, nel primo blocco, PRIMA di ogni @media:
+     messa piu' in basso perdeva la gara con quelli, che a parita' di
+     specificita' vincono solo se vengono dopo. Due misure buttate. */
+  --marchio:clamp(104px,15vw,186px);
   --rx:clamp(150px,34vw,420px);--ry:clamp(112px,21vw,228px);
   /* imbottitura SIMMETRICA: 56 sopra e 30 sotto lasciavano 13px di scarto
      (misurati), cioe' meta' della differenza. L'etichetta adesso sta fuori dal
      flusso, quindi lo spazio in piu' in cima non serve. */
   padding:calc(var(--ry) + 46px) 0}
-.corona .anello{position:absolute;inset:0;display:grid;place-items:center;pointer-events:none;
+.corona .anello{position:absolute;inset:0;display:grid;place-items:center;
   animation:gira 54s linear infinite}
-.corona .anello i{position:absolute;font-style:normal;
+.corona .anello a{position:absolute;font-style:normal;text-decoration:none;
   translate:calc(var(--rx) * var(--fx)) calc(var(--ry) * var(--fy));
   font-family:'Barlow Condensed',sans-serif;font-weight:800;
   font-size:clamp(13px,1.5vw,19px);letter-spacing:2.2px;text-transform:uppercase;
   color:var(--t);white-space:nowrap;
   text-shadow:0 0 22px color-mix(in srgb,var(--t) 60%,transparent);
-  animation:controgira 54s linear infinite}
+  animation:controgira 54s linear infinite;
+  padding:7px 13px;border-radius:9px;
+  /* ⛔ UNA PASTIGLIA SCURA SOTTO OGNI NOME, e non e' decorazione: i nomi
+     portano il colore della LORO app — identita', non scelta grafica — e
+     sopra una fotografia i piu' deboli cadono sotto soglia (misurati:
+     Sentinella 4,14 e Campo 4,46 dopo aver rinforzato l'ombra del cursore).
+     Il colore non si puo' toccare, il fondo si. E siccome adesso i nomi sono
+     COLLEGAMENTI, la pastiglia dice anche che si possono premere. */
+  background:rgba(8,9,12,.55);backdrop-filter:blur(3px);
+  border:1px solid color-mix(in srgb,var(--t) 20%,transparent);
+  transition:background .2s var(--posa),border-color .2s var(--posa),
+             text-shadow .25s var(--posa)}
+/* ⛔ Premere un nome apre la sua app, e il tocco NON tocca la rotazione: la
+   pastiglia si accende e basta, l'anello continua per conto suo. */
+.corona .anello a:hover,.corona .anello a:focus-visible{
+  background:color-mix(in srgb,var(--t) 22%,rgba(8,9,12,.7));
+  border-color:color-mix(in srgb,var(--t) 55%,transparent);
+  text-shadow:0 0 30px color-mix(in srgb,var(--t) 90%,transparent)}
+.corona .anello a:focus-visible{outline:2px solid var(--t);outline-offset:2px}
 /* i nomi girano con l'anello ma restano DRITTI: la contro-rotazione si applica
    dopo la traslazione, perche' `translate` e' una proprieta' a se' e viene
    prima di `transform` */
 @keyframes gira{to{transform:rotate(360deg)}}
 @keyframes controgira{to{transform:rotate(-360deg)}}
-.corona:hover .anello,.corona:hover .anello i{animation-duration:26s}
+/* ⛔ NIENTE ACCELERAZIONE AL PASSAGGIO DEL CURSORE. Il fondatore (25/08):
+   «rende macchinosa la cosa e non e' necessaria». E aveva ragione anche
+   tecnicamente: cambiare `animation-duration` a meta' corsa fa SALTARE la
+   rotazione, perche' il tempo gia' trascorso viene riletto sulla durata nuova.
+   Ora e' una sola cosa che gira, sempre uguale — e i nomi si possono premere
+   senza che questo la tocchi. */
 @media(prefers-reduced-motion:reduce){
-  .corona .anello,.corona .anello i{animation:none}}
+  .corona .anello,.corona .anello a{animation:none}}
 
-/* ⛔ SOTTO I 720px L'ANELLO NON C'E'. Misurato con `corona-urti.mjs`: a 390px
-   erano 63 sovrapposizioni su 96 controlli — otto nomi orizzontali attorno a un
-   marchio, in 350px di larghezza, non ci stanno e nessun raggio li fa stare.
-   Invece di stringere il carattere finche' non si legge piu', sul telefono i
-   nomi diventano una griglia sotto il marchio: la stessa informazione, in una
-   forma che quella larghezza sa reggere. */
+/* ⛔ «NESSUN RAGGIO LI FA STARE» ERA FALSO: VALEVA SOLO PER IL CORPO 14px CON
+      CUI L'AVEVO MISURATO.
+
+   Qui c'era scritto che sotto i 720px l'anello non ci sta — «a 390px erano 63
+   sovrapposizioni su 96, e nessun raggio li fa stare» — e al suo posto i nomi
+   diventavano una griglia sotto il marchio. Il 25/08 il fondatore l'ha detto
+   da telefono: «non vedo l'ellisse nella sezione 8 in 1, quindi non posso
+   dirti se la modifica che ti ho chiesto sia stata effettuata».
+   Aveva ragione, e la misura di allora aveva un difetto che questo repository
+   paga da mesi: **una conclusione piu' larga del suo denominatore.** Le 63
+   collisioni erano misurate a `font-size:14px; letter-spacing:1.8px`, cioe' il
+   corpo del desktop. Rimisurato a corpo 10-11,5px: **0 urti su 336 controlli**,
+   0 nomi sul marchio, 0 fuori schermo. Non era il raggio: era il carattere.
+
+   ⛔ E LA ROTAZIONE CAMBIA IL CONTO, che e' la ragione per cui il primo
+      tentativo di ellisse «in piedi» (stretta e alta) e' stato scartato con i
+      numeri: girando, il raggio LUNGO finisce prima o poi in orizzontale.
+      Quindi per lo schermo un'ellisse che ruota vale quanto un CERCHIO del suo
+      raggio massimo, e un'ellisse alta 200 esce di 20 nomi su 96. Il vincolo
+      vero e' doppio e va soddisfatto insieme:
+        · raggio + meta' nome  <=  meta' schermo   (se no il nome esce);
+        · raggio  >=  meta' diagonale del marchio + meta' nome  (se no ci finisce sopra).
+      Le due condizioni si stringono l'una sull'altra al calare della larghezza,
+      quindi il raggio NON puo' essere un numero fisso: e' una formula.
+
+   ⛔ E A DECIDERE E' STATO IL RIGHELLO DI CASA, `corona-urti.mjs`, NON IL MIO.
+      Il mio contava 0 urti a 390px dove lui ne contava 2: e' lui ad avere
+      ragione — gonfia il centro di 10px e misura contro tutto `.centro`,
+      mentre il mio guardava il solo `<svg>` senza margine. Due righelli che
+      non concordano si leggono, non si scelgono: il piu' severo era quello
+      gia' scritto qui.
+      ⚠️ E prima ancora andava reso RIPETIBILE: campionava la rotazione
+      dormendo 650ms su un anello che gira, quindi gli angoli erano quelli che
+      capitavano. Due lanci sullo stesso commit hanno detto 2 e 3 — il numero
+      si muoveva da solo, e una correzione non si poteva giudicare. Adesso
+      l'angolo si impone (12 istanti a 30°), e ha anche la SECONDA domanda —
+      *questo nome esce dallo schermo?* — che nessuno faceva.
+
+   Esito finale, 96 controlli per larghezza (8 nomi x 12 istanti imposti), con
+   `--rx: clamp(86px, 50vw - 54px, 148px)`, `--ry: rx * .95`,
+   marchio `clamp(74px, 19vw, 104px)`, corpo `clamp(10px, 2.7vw, 11.5px)`:
+     1440 · 1024 · 430 · 390 · 375 · 360  ->  **0 sul centro, 0 fuori schermo**
+     320px  ->  8 sul centro (la peggiore 5px dentro il cuscinetto): l'anello
+                non si mostra, restano i nomi in griglia.
+   ⚠️ Provato anche a **togliere** la griglia e tenere l'anello fino a 300px:
+      misurato, e 320 non regge. La griglia resta, ed e' un percorso in piu' da
+      mantenere — ma il conto e' questo, non un'impressione.
+   ⚠️ A 320px le due condizioni quasi si toccano — resta una finestra di pochi
+      pixel — quindi li' l'anello NON si mostra e restano i nomi in griglia. Non
+      e' una rinuncia mascherata: e' il confine misurato, ed e' scritto qui col
+      numero perche' chi lo volesse spostare sappia contro che cosa lotta.
+   ⚠️ E il marchio si RIMPICCIOLISCE, non si semplifica: il disegno resta
+      identico, cambia solo la misura a cui viene reso — che e' esattamente
+      quello che la regola del marchio prescrive di fare quando lo spazio
+      manca. `marchio-intatto.mjs` continua a pretendere le proporzioni del
+      viewBox in tutte le copie. */
 @media(max-width:720px){
-  /* ⚠️ E VA INVERTITO L'ORDINE: nel documento l'anello viene PRIMA del centro
-     (deve stargli dietro), quindi diventando griglia i nomi finivano sopra il
-     marchio e ci si sovrapponevano — 24 collisioni su 96. In flusso l'ordine
-     giusto e' marchio, poi nomi. */
+  .corona{--rx:clamp(86px, calc(50vw - 54px), 148px);--ry:calc(var(--rx) * .95);
+    padding:calc(var(--ry) + 44px) 0}
+  .corona{--marchio:clamp(74px,19vw,104px)}
+  .corona .anello a{font-size:clamp(10px,2.7vw,11.5px);letter-spacing:.5px}
+}
+
+/* ⛔ SOTTO I 360px L'ANELLO NON CI STA — misurato, non temuto (vedi sopra).
+   ⚠️ E VA INVERTITO L'ORDINE: nel documento l'anello viene PRIMA del centro
+      (deve stargli dietro), quindi diventando griglia i nomi finivano sopra il
+      marchio e ci si sovrapponevano — 24 collisioni su 96. In flusso l'ordine
+      giusto e' marchio, poi nomi. */
+@media(max-width:359px){
   .corona{padding:34px 0 0;--rx:0px;--ry:0px;display:flex;flex-direction:column;align-items:center}
   .corona .centro{order:1}
   .corona .anello{order:2}
   .corona .anello{position:static;display:grid;grid-template-columns:repeat(2,1fr);
     gap:12px 18px;animation:none;margin-top:26px;width:100%}
-  .corona .anello i{position:static;translate:none;animation:none;text-align:center;
+  .corona .anello a{position:static;translate:none;animation:none;text-align:center;
     font-size:14px;letter-spacing:1.8px}
   .corona .centro .eti{position:static;margin:0 0 6px}
   .corona .centro{gap:0}
@@ -650,11 +770,45 @@ body.mossa .barra{background:rgba(8,9,12,.82);backdrop-filter:blur(18px) saturat
    spingeva in basso di 28px (misurati con `centro.mjs`), ed e' esattamente il
    «mi pare un po' decentrata» del fondatore: il marchio non stava al centro
    dell'anello, stava 28px sotto. Fuori dal flusso, il marchio e' il centro. */
+/* ⛔ I FILI CHE LEGANO LE APP AL CENTRO — richiesta del fondatore (25/08):
+   «dei fili che collegano le varie voci, come una sorta di sistema solare».
+   Sono un `<svg>` solo dentro l'anello, quindi girano con lui senza costare
+   niente: due ellissi (le orbite) e otto raggi dal centro a ogni nome. I raggi
+   partono dal BORDO del marchio, non dal suo centro, se no gli passerebbero
+   sopra. Il tratteggio scorre piano lungo il filo: e' il dettaglio che fa
+   sembrare il sistema vivo invece che disegnato.
+   ⚠️ `vector-effect:non-scaling-stroke` serve perche' l'SVG viene stirato in
+   un'ellisse (la scatola e' larga il doppio di quanto e' alta): senza, i
+   tratti orizzontali verrebbero piu' sottili dei verticali. */
+.corona .fili{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:0;
+  overflow:visible}
+.corona .fili ellipse{fill:none;stroke:rgba(255,171,0,.13);stroke-width:1;
+  vector-effect:non-scaling-stroke}
+.corona .fili ellipse.interna{stroke:rgba(255,171,0,.085)}
+.corona .fili line{stroke-width:1;opacity:.34;stroke-dasharray:3 7;
+  vector-effect:non-scaling-stroke;animation:scorreFilo 3.4s linear infinite}
+@keyframes scorreFilo{to{stroke-dashoffset:-20}}
+@media(prefers-reduced-motion:reduce){.corona .fili line{animation:none}}
+/* i fili seguono l'anello: spariscono solo dove sparisce lui */
+@media(max-width:359px){.corona .fili{display:none}}
+
 .corona .centro{position:relative;z-index:2;display:grid;justify-items:center}
 .corona .centro .eti{position:absolute;bottom:100%;margin-bottom:10px;white-space:nowrap;
   font-family:'Barlow Condensed',sans-serif;font-weight:800;
-  font-size:clamp(12px,1.4vw,17px);letter-spacing:6px;text-transform:uppercase;color:var(--inch2)}
-.corona .centro svg{width:clamp(104px,15vw,186px);height:auto;display:block;
+  font-size:clamp(12px,1.4vw,17px);letter-spacing:6px;text-transform:uppercase;color:var(--inch)}
+/* ⛔ LA MISURA DEL MARCHIO STA IN UNA VARIABILE, E LA DICHIARAZIONE E' UNA
+   SOLA. Il 25/08 il blocco del telefono ne scriveva una seconda con lo stesso
+   selettore (`.corona .centro svg{width:…}`) ma PIU' SU nel foglio: stessa
+   specificita', quindi vinceva l'ultima — cioe' questa — e il marchio restava
+   a 104px a ogni larghezza. Non un errore visibile: la regola c'era, si
+   leggeva bene, e non faceva niente. Sono state buttate due misure prima di
+   chiedere al browser quanto fosse largo davvero (104px, a tutt'e due le
+   larghezze che credevo diverse).
+   ⚠️ E' la trappola gia' pagata sul core — «vince l'ultimo» — nella veste in
+   cui inganna di piu': il blocco che perde e' quello dentro un `@media`, che
+   uno legge come «piu' specifico» e non lo e'. Una variabile toglie la gara:
+   il `@media` cambia il NUMERO, non ridichiara la regola. */
+.corona .centro svg{width:var(--marchio);height:auto;display:block;
   filter:drop-shadow(0 0 54px rgba(255,150,0,.5)) drop-shadow(0 10px 30px rgba(0,0,0,.6))}
 .corona .centro::before{content:'';position:absolute;left:50%;top:52%;translate:-50% -50%;
   width:230%;aspect-ratio:1;border-radius:50%;z-index:-1;pointer-events:none;
@@ -748,6 +902,55 @@ body.mossa .barra{background:rgba(8,9,12,.82);backdrop-filter:blur(18px) saturat
 /* 5. i due numeri contano da zero quando entrano in vista */
 .fascia .cifre b{font-variant-numeric:tabular-nums}
 
+/* ══ IL TELEFONO ═══════════════════════════════════════════════════════
+   ⛔ MISURATO SU UN TELEFONO VERO (iPhone 13, CPU quattro volte piu' lenta):
+      fotogramma mediano 66,6ms — cioe' 15 al secondo — con 96 fotogrammi
+      lenti su 128. Il fondatore l'ha detto prima che lo misurassi: «non e'
+      molto fluido e le app lampeggiano».
+   La cura non e' limare: e' SPEGNERE cio' che su un telefono non ha senso.
+   `hover:none` sceglie i dispositivi a TOCCO, non le larghezze: un portatile
+   con la finestra stretta tiene tutto, un telefono grande no. E la prima cosa
+   che se ne va e' l'ombra che segue il cursore — su un telefono il cursore
+   NON ESISTE, quindi era un costo pagato per niente.
+   ⚠️ Il lampeggio: sulla scena scorrono TRE finestre insieme, ognuna con la
+   sua dissolvenza, piu' il riflesso, l'ondeggio e le finestrelle che
+   galleggiano. Su un dispositivo lento quelle transizioni non finiscono in
+   tempo e si accavallano — ed e' quello che si vede come lampeggio. Sul
+   telefono scorre SOLO la finestra grande: le due piccole restano ferme sul
+   loro fotogramma, e la scena resta viva senza sfarfallare.
+
+   ⛔ E LA PRIMA STESURA AVEVA SPENTO TROPPO, CON UN DIFETTO CHE SI TRAVESTIVA
+      DA GUASTO. Il 25/08 il fondatore ha scritto: «le schermate dinamiche
+      riesco a visualizzarle solo la prima volta che guardo, se ripasso dallo
+      stesso punto diventano statiche». Sembrava un timer che non riparte, e
+      DUE righelli l'hanno smentito — al secondo passaggio le immagini girano
+      (28 e 26 fotogrammi distinti in otto secondi, timer vivo).
+      La causa vera e' che qui sotto avevo spento TUTTO il moto continuo:
+      restava solo l'animazione d'INGRESSO, che si gioca una volta sola quando
+      la scena entra. Cioe' il primo passaggio era vivo, il secondo no — ed era
+      esattamente cosi', ma non per un guasto: per una scelta scritta qui.
+      ⚠️ Il lampeggio non veniva dal MOVIMENTO, veniva dalle DISSOLVENZE: tre
+      immagini grandi che si scambiano insieme in opacita'. `galleggia` e
+      `ondeggia` sono solo trasformazioni — le fa il compositore, non
+      ridipingono niente — quindi tornano accese. Restano spenti il riflesso
+      (un gradiente che si muove, e quello ridipinge) e le due dissolvenze
+      piccole, che erano il difetto. Misura del prima e dopo piu' in basso.
+      ⚠️ E `transform:none!important` sugli `.orb` batteva l'animazione: una
+      dichiarazione `!important` vince su un'animazione, quindi `ondeggia`
+      era spento anche dove non lo si stava spegnendo. La parallasse sul
+      telefono e' gia' esclusa dal JavaScript (`if(!fermi&&!tocco)`), quindi
+      quella riga non serviva a niente e costava tutto il resto. */
+@media (hover: none){
+  .ombra{display:none}
+  body{background-attachment:scroll}
+  .pop,.barra,.bot.sec,.corona .anello a{backdrop-filter:none;-webkit-backdrop-filter:none}
+  .orb.p .fin img:not(.viva),.orb.t .fin img:not(.viva){display:none}
+  .app.viva .orb.g .fin::after{animation:none}
+  .ingresso .marca::before{animation:none}
+  .corona .fili line{animation:none}
+  .colonna .strato img,.fondale img,.scena .lavoro img{transform:none!important}
+}
+
 .sale{opacity:0;transform:translateY(20px)}
 .sale.dentro{opacity:1;transform:none;transition:opacity .8s var(--posa),transform .8s var(--posa)}
 @media(prefers-reduced-motion:reduce){
@@ -837,10 +1040,29 @@ import math as _m
 #    metterlo nella corona farebbe otto+uno = nove e il numero non tornerebbe.
 _corona = [a for a in C.APP if a[0] != "Deepwork ID"]
 assert len(_corona) == 8, "la corona dice OTTO: sono %d" % len(_corona)
+_pos = [(_m.cos(k / 8 * 2 * _m.pi - _m.pi / 2), _m.sin(k / 8 * 2 * _m.pi - _m.pi / 2))
+        for k in range(8)]
 corona_html = "".join(
-  '<i style="--t:%s;--fx:%.4f;--fy:%.4f">%s</i>'
-  % (a[2], _m.cos(k / 8 * 2 * _m.pi - _m.pi / 2), _m.sin(k / 8 * 2 * _m.pi - _m.pi / 2), a[0])
-  for k, a in enumerate(_corona))
+  '<a href="%s" target="_blank" rel="noopener" style="--t:%s;--fx:%.4f;--fy:%.4f">%s</a>'
+  % (C.via(a[0]), a[2], fx, fy, a[0])
+  for (fx, fy), a in zip(_pos, _corona))
+
+# ⛔ I FILI, in coordinate 0..100 su tutt'e due gli assi: l'SVG ha
+#    `preserveAspectRatio="none"`, quindi viene STIRATO nella scatola
+#    dell'anello (larga il doppio di quanto e' alta) e il cerchio diventa
+#    l'ellisse giusta senza che io debba conoscerne le misure in pixel.
+# ⚠️ I raggi partono a 0,22 del raggio, non da 0: al centro c'e' il marchio, e
+#    un filo che gli passa sopra sporcherebbe il disegno.
+_R, _CX, _CY, _DENTRO, _FUORI = 50.0, 50.0, 50.0, 0.22, 0.86
+fili_html = (
+  '<svg class="fili" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">'
+  + '<ellipse cx="50" cy="50" rx="%.2f" ry="%.2f"/>' % (_R * _FUORI, _R * _FUORI)
+  + '<ellipse class="interna" cx="50" cy="50" rx="%.2f" ry="%.2f"/>' % (_R * .52, _R * .52)
+  + "".join('<line x1="%.2f" y1="%.2f" x2="%.2f" y2="%.2f" stroke="%s"/>'
+            % (_CX + fx * _R * _DENTRO, _CY + fy * _R * _DENTRO,
+               _CX + fx * _R * _FUORI,  _CY + fy * _R * _FUORI, a[2])
+            for (fx, fy), a in zip(_pos, _corona))
+  + '</svg>')
 cifre = "".join("<div><b>%s</b><s>%s</s></div>" % c for c in C.CIFRE)
 # ⛔ Nel piede i nomi portano ALL'APP, non a un'ancora della stessa pagina:
 #    chi arriva in fondo ha gia' letto la scheda, quello che vuole e' entrare.
@@ -894,6 +1116,7 @@ _nvet = min(len(v) for v in SPETTACOLI.values())
 PAG = """<title>Deepwork — L'ecosistema del cantiere</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;800&family=Barlow:wght@300;400;500;600&display=swap">
 <style>@CSS@</style>
+@BASE@
 <div class="ombra" aria-hidden="true"></div>
 <div class="ombra sopra" aria-hidden="true"></div>
 <div class="avanzo" aria-hidden="true"></div>
@@ -903,7 +1126,7 @@ PAG = """<title>Deepwork — L'ecosistema del cantiere</title>
   <a class="bot pri" href="@VIA_DEEPWORK@" target="_blank" rel="noopener">Prova il tour</a>
 </div></header>
 
-<main>@BASE@
+<main>
   <section class="ingresso">@FOND_ING@
     <div class="g">
       <span class="marca">@MARCHIO_G@</span>
@@ -930,7 +1153,7 @@ PAG = """<title>Deepwork — L'ecosistema del cantiere</title>
 
   <section class="fascia">@FOND_FAS@<div class="d">
     <div class="corona">
-      <div class="anello">@CORONA@</div>
+      <div class="anello">@FILI@@CORONA@</div>
       <div class="centro"><span class="eti">L'ecosistema</span>@MARCHIO_C@</div>
     </div>
     <div class="cifre">@CIFRE@</div>
@@ -963,6 +1186,10 @@ PAG = """<title>Deepwork — L'ecosistema del cantiere</title>
 <script>
 (function(){
   var fermi=window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  /* su un dispositivo a tocco la parallasse e l'ombra sono spente dal CSS:
+     qui si spegne anche il codice che le alimenta, se no continua a
+     ricalcolare stili per elementi che non li usano piu'. */
+  var tocco=window.matchMedia&&window.matchMedia('(hover: none)').matches;
   var p=document.querySelectorAll('.sale');
   if(fermi||!('IntersectionObserver' in window)){
     for(var i=0;i<p.length;i++)p[i].classList.add('dentro');
@@ -978,7 +1205,9 @@ PAG = """<title>Deepwork — L'ecosistema del cantiere</title>
   }
   /* le schermate si susseguono solo mentre l'app e' in vista */
   function mostra(s,n,passo){
-    var f=s.querySelectorAll('.fin'), pa=s.querySelectorAll('.punti i');
+    /* sul telefono scorre solo la finestra grande: tre dissolvenze insieme su
+       un dispositivo lento si accavallano, ed e' quello il «lampeggio». */
+    var f=s.querySelectorAll(tocco?'.orb.g .fin':'.fin'), pa=s.querySelectorAll('.punti i');
     for(var k=0;k<f.length;k++){var im=f[k].querySelectorAll('img');
       for(var i=0;i<im.length;i++)im[i].classList.toggle('viva',i===n);}
     /* la barretta si ricrea a ogni cambio: riassegnare la stessa animazione a
@@ -1037,7 +1266,7 @@ PAG = """<title>Deepwork — L'ecosistema del cantiere</title>
       e.style.setProperty('--y',(c<-1.3?-1.3:c>1.3?1.3:c).toFixed(3));
     }
   }
-  if(!fermi){
+  if(!fermi&&!tocco){
     var pf=false;
     function chiedi(){if(pf)return;pf=true;requestAnimationFrame(function(){pf=false;muovi();});}
     addEventListener('scroll',chiedi,{passive:true});
@@ -1133,13 +1362,13 @@ io.open(sys.argv[1], "w", encoding="utf-8").write(
      .replace("@FOND_ING@", fondale("ingresso", "Un cantiere al lavoro", colonna_=True))
      .replace("@FOND_FAS@", fondale("fascia", "Macchine in cantiere"))
      .replace("@FOND_INV@", fondale("invito", "Cantiere all'opera"))
-     .replace("@CIFRE@", cifre).replace("@CORONA@", corona_html)
+     .replace("@CIFRE@", cifre).replace("@CORONA@", corona_html).replace("@FILI@", fili_html)
      .replace("@MARCHIO_C@", C.marchio(190))
      .replace("@ELENCO@", elenco).replace("@VIA_DEEPWORK@", C.via("Deepwork")).replace("@CHIUSURA@", C.CHIUSURA).replace("@FOND_STO@", fondale("storia", "Cantiere al lavoro"))
      .replace("@NASCE@", C.NASCE_TITOLO).replace("@NASCE_SOTTO@", C.NASCE_SOTTO)
      .replace("@STORIA_TESTO@", C.STORIA_TESTO).replace("@APERTURA@", C.APP_APERTURA)
      .replace("@COLONNA@", colonna(["colonna-1","colonna-2","colonna-3","colonna-4"],
                                    "Cantieri al lavoro"))
-     .replace("@BASE@", colonna(["base-%d" % i for i in range(1, 7)],
+     .replace("@BASE@", colonna(["base-%d" % i for i in range(1, 8)],
                                 "Cantiere", cl="base")).replace("@CREDITO@", C.CREDITO))
 print("sito di presentazione scritto")

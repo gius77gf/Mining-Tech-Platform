@@ -224,6 +224,7 @@ SFONDI = {
   "base-4":              "base-4.jpg",
   "base-5":              "base-5.jpg",
   "base-6":              "base-6.jpg",
+  "base-7":             "base-7.jpg",
   "colonna-1":          "colonna-1.jpg",
   "colonna-2":          "colonna-2.jpg",
   "colonna-3":          "colonna-3.jpg",

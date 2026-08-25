@@ -8,9 +8,25 @@
    percorso assoluto fuori dal repository glielo fa dichiarare inesistente.
    Non e' uno stile: e' la convenzione che tiene verde quel controllo. */
 const { chromium } = await import('/opt/node22/lib/node_modules/playwright/index.mjs');
+import { existsSync } from 'fs';
+import { dirname, basename } from 'path';
+import { servi } from './servi.mjs';
+
+/* ⛔ L'INDIRIZZO NON SI INCHIODA DENTRO. Fino al 25/08 qui c'era
+   `http://127.0.0.1:8941/_p-vetrina.html`, il nome che l'anteprima aveva nello
+   scratchpad il giorno in cui il file e' nato — un indirizzo che dopo lo
+   spostamento della pagina nel repository non esisteva piu'. Il server se lo
+   alza `servi.mjs`, che lo fa per tutti e cinque i righelli. */
+const PAGINA = process.argv[2];
+if (!PAGINA || !existsSync(PAGINA)) {
+  console.error('uso: node zone-nere <pagina.html>   (es. apps/index.html)');
+  process.exit(2);
+}
+const srv = await servi(dirname(PAGINA));
+
 const b = await chromium.launch();
 const p = await b.newPage({ viewport: { width: 1440, height: 900 } });
-await p.goto('http://127.0.0.1:8941/_p-vetrina.html', { waitUntil: 'networkidle' });
+await p.goto(`http://127.0.0.1:${srv.porta}/${basename(PAGINA)}`, { waitUntil: 'networkidle' });
 await p.evaluate(async()=>{for(let y=0;y<document.documentElement.scrollHeight;y+=600){scrollTo(0,y);await new Promise(r=>setTimeout(r,70));}scrollTo(0,0);});
 /* ⛔ SI ASPETTA CHE LE IMMAGINI CI SIANO DAVVERO. Senza, il conto dipende da
    quante hanno fatto in tempo a caricarsi durante lo scorrimento: schiarendo i
@@ -48,4 +64,4 @@ const r = await p.evaluate(async (d) => {
 console.log(`pagina alta ${r.alte}px · ${r.fasce} fasce misurate · immagini caricate ${attese}`);
 console.log(`fasce PIATTE E NERE (luce<16 e variazione<7): ${r.vuote}`);
 r.dove.forEach(x => console.log('   ' + x));
-await b.close();
+await b.close(); srv.chiudi();
