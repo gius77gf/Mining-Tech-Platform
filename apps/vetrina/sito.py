@@ -640,6 +640,10 @@ body.mossa .barra{background:rgba(8,9,12,.82);backdrop-filter:blur(18px) saturat
      messa piu' in basso perdeva la gara con quelli, che a parita' di
      specificita' vincono solo se vengono dopo. Due misure buttate. */
   --marchio:clamp(104px,15vw,186px);
+  /* ⛔ e anche il corpo dell'ETICHETTA passa da qui, per la stessa ragione:
+     scritta come regola dentro un @media messo piu' su nel foglio, perderebbe
+     contro quella base a parita' di specificita' e non farebbe niente. */
+  --eti-corpo:clamp(12px,1.4vw,17px);--eti-spazio:6px;
   --rx:clamp(150px,34vw,420px);--ry:clamp(112px,21vw,228px);
   /* imbottitura SIMMETRICA: 56 sopra e 30 sotto lasciavano 13px di scarto
      (misurati), cioe' meta' della differenza. L'etichetta adesso sta fuori dal
@@ -747,6 +751,25 @@ body.mossa .barra{background:rgba(8,9,12,.82);backdrop-filter:blur(18px) saturat
     padding:calc(var(--ry) + 44px) 0}
   .corona{--marchio:clamp(74px,19vw,104px)}
   .corona .anello a{font-size:clamp(10px,2.7vw,11.5px);letter-spacing:.5px}
+  /* ⛔ E L'ETICHETTA DEL CENTRO URTAVA I NOMI, E NESSUN RIGHELLO LO VEDEVA.
+     `corona-urti` misura contro il rettangolo di `.centro`; ma `.eti` e'
+     `position:absolute; bottom:100%`, cioe' sta FUORI da quel rettangolo e non
+     entra nella misura. L'ho visto guardando lo SCATTO — «L'ECOSISTEMA»
+     appoggiata sulla pastiglia di Sentinella — e poi misurato: urti fino a
+     19px a 360px, 12px a 390px, 9px a 430px, ZERO a 1440.
+     A pesare non era il corpo (gia' al suo fondo di 12px) ma la SPAZIATURA:
+     sei pixel per dodici lettere sono 72px di sola aria, su un'etichetta larga
+     162. Con 9,5px di corpo e 2,2px di spaziatura scende a ~110px.
+     ⚠️ La lezione oltre al caso: un righello che misura «il centro» misura la
+     SCATOLA che ha in mano, e un figlio fuori flusso non ci sta dentro. Il
+     numero diceva zero ed era vero — su un soggetto che non comprendeva
+     l'etichetta. L'ha preso l'occhio, non la misura. */
+  .corona{--eti-corpo:9.5px;--eti-spazio:2.2px}
+  /* e l'etichetta si avvicina al marchio: la scatola che l'occhio legge come
+     «il centro» e' l'unione dei due, quindi ogni pixel di distanza fra loro e'
+     un pixel in meno di aria per i nomi che passano di sopra */
+  .corona .centro .eti{margin-bottom:5px}
+  @media(max-width:375px){.corona{--eti-corpo:8.6px;--eti-spazio:1.4px}}
 }
 
 /* ⛔ SOTTO I 360px L'ANELLO NON CI STA — misurato, non temuto (vedi sopra).
@@ -795,7 +818,7 @@ body.mossa .barra{background:rgba(8,9,12,.82);backdrop-filter:blur(18px) saturat
 .corona .centro{position:relative;z-index:2;display:grid;justify-items:center}
 .corona .centro .eti{position:absolute;bottom:100%;margin-bottom:10px;white-space:nowrap;
   font-family:'Barlow Condensed',sans-serif;font-weight:800;
-  font-size:clamp(12px,1.4vw,17px);letter-spacing:6px;text-transform:uppercase;color:var(--inch)}
+  font-size:var(--eti-corpo);letter-spacing:var(--eti-spazio);text-transform:uppercase;color:var(--inch)}
 /* ⛔ LA MISURA DEL MARCHIO STA IN UNA VARIABILE, E LA DICHIARAZIONE E' UNA
    SOLA. Il 25/08 il blocco del telefono ne scriveva una seconda con lo stesso
    selettore (`.corona .centro svg{width:…}`) ma PIU' SU nel foglio: stessa

@@ -69,7 +69,21 @@ for (const w of [1440, 1024, 430, 390, 375, 360, 320]) {
       an.style.animation = 'none'; an.style.transform = `rotate(${g}deg)`;
       voci.forEach(v => { v.style.animation = 'none'; v.style.rotate = `${-g}deg`; });
       await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
-      const cen = document.querySelector('.corona .centro').getBoundingClientRect();
+      /* ⛔ «IL CENTRO» NON E' SOLO `.centro`: L'ETICHETTA STA FUORI DA QUELLA
+         SCATOLA. `.eti` e' `position:absolute; bottom:100%`, quindi non entra
+         nel rettangolo di `.centro` — e questo righello ha risposto ZERO per
+         giorni mentre «L'ECOSISTEMA» appoggiava sulla pastiglia di Sentinella
+         (misurato poi: fino a 19px a 360px, 12 a 390, 9 a 430, zero a 1440).
+         Il numero era vero e il soggetto era incompleto: l'ha trovato l'OCCHIO
+         guardando uno scatto, non la misura.
+         La regola generale: un righello che misura «un elemento» misura la
+         SCATOLA che ha in mano, e un figlio fuori flusso non ci sta dentro —
+         si prende l'UNIONE di tutto cio' che l'occhio legge come quel centro. */
+      const pezzi = [document.querySelector('.corona .centro'),
+                     document.querySelector('.corona .centro .eti')].filter(Boolean)
+                    .map(e => e.getBoundingClientRect());
+      const cen = { x: Math.min(...pezzi.map(r => r.x)), y: Math.min(...pezzi.map(r => r.y)),
+                    right: Math.max(...pezzi.map(r => r.right)), bottom: Math.max(...pezzi.map(r => r.bottom)) };
       const gonf = (r, m) => ({ l: r.x - m, t: r.y - m, r: r.right + m, b: r.bottom + m });
       const C = gonf(cen, 10);
       /* ⛔ LA SECONDA DOMANDA: un nome puo' non toccare il marchio e USCIRE
