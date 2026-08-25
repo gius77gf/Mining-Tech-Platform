@@ -6554,3 +6554,22 @@ di scriverlo qui**: niente entra sulla parola dell'agente.
       many requests`, e il servizio delle miniature di Wikimedia dà **400** a
       questo indirizzo mentre gli originali scaricano benissimo. Uno zero che
       parla del comando, non del mondo.
+
+## Vetrina di presentazione (direttive fondatore 23/08)
+- [x] Immagini di cantiere come sfondo — 12 montate (ingresso, fascia, invito e
+      una per ognuna delle nove app), autore e licenza verificati uno per uno,
+      4 scartate perché la verifica non tornava.
+- [x] Molto più dinamismo fra le finestre che spuntano dai lati — sei elementi
+      per scena invece di due, con parallasse per piano.
+- [x] Più finestre, più pop-up, più immagini dinamiche.
+- [x] La vetrina entra nel repository (`apps/vetrina/`): prima viveva solo nello
+      scratchpad. Pagina generata dal repository identica byte per byte a quella
+      pubblicata.
+- [ ] **DECISIONE DEL FONDATORE:** questa pagina sostituisce `apps/index.html`,
+      cioè la vetrina che Netlify pubblica a ogni merge su main? Se sì, va
+      deciso se lasciare le immagini `data:` dentro (7,8 MB in un file solo) o
+      spezzarle in file veri accanto alla pagina — per Netlify è meglio la
+      seconda.
+- [ ] I dati di esempio del CORE e di DEEPWORK ID dicono ancora «cave»,
+      «volate», `capocava@cava-alfa.it`, e si vedono nelle schermate della
+      vetrina. Vanno cambiati **nella dimostrazione**, non nella vetrina.
