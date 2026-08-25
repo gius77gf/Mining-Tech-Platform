@@ -110,6 +110,7 @@ const SENZA_RETE = {};
    sbaglia manda a rovinare cose sane. */
 const b = BASE ? null : await chromium.launch();
 let ok = 0, ko = 0, dichiarati = 0;
+const ripetuti = [];
 console.log(`${mete.length} destinazioni lette dalla pagina · ${BASE ? 'SITO VERO: ' + ORIGINE : 'radice servita: ' + RADICE}\n`);
 if (BASE) console.log(`⚠️  ONLINE si misura con curl: qui il browser non raggiunge la rete (ERR_CONNECTION_RESET,\n    e il proxy non vede nemmeno il tentativo). Copre lo stato e il contenuto consegnato — e le\n    RISCRITTURE del sito, che in casa non si vedono. NON copre che la pagina si monti: quello lo\n    dice la passata di casa, sugli stessi byte.\n`);
 
@@ -145,6 +146,13 @@ if (!BASE) {
      controllo rispondeva «nessun collegamento trovato» — che e' la guardia
      sullo zero che fa il suo mestiere, e mi ha risparmiato un verde falso. */
   const VIA_REL = '/' + relative(RADICE, resolve(PAGINA)).split(sep).join('/');
+  /* ⛔ e se la pagina sta FUORI dalla radice servita, il server non puo'
+     consegnarla e il controllo direbbe «nessun collegamento trovato» — vero,
+     ma per una ragione che non riguarda il prodotto. Si dice quale. */
+  if (VIA_REL.startsWith('/..')) {
+    console.log(`  ⛔ la pagina «${PAGINA}» sta FUORI dalla radice servita (${RADICE}): non posso chiederla al server.`);
+    console.log(`     Usa --radice con una cartella che la contenga, se no i due controlli qui sotto non hanno soggetto.\n`);
+  } else {
   await pt.goto(`${ORIGINE}${VIA_REL}`, { waitUntil: 'domcontentloaded' });
   await pt.evaluate(async () => { for (let y = 0; y < document.documentElement.scrollHeight; y += 500) { scrollTo(0, y); await new Promise(r => setTimeout(r, 45)); } scrollTo(0, 0); });
   await pt.waitForTimeout(700);
@@ -181,20 +189,42 @@ if (!BASE) {
     ko += mali.length;
   }
   await pt.close();
+  }
   console.log('');
 }
 
 for (const m of mete) {
   let stato = 0, v = { testo: 0, comandi: 0, titolo: '' }, errori = [];
   if (BASE) {
-    let corpo = '';
-    try {
-      const fuori = execFileSync('curl', ['-sSL', '--max-time', '45', '-w', '\n@@STATO:%{http_code}',
-        `${ORIGINE}${m}`], { encoding: 'utf8', maxBuffer: 128 << 20 });
-      const t = fuori.lastIndexOf('\n@@STATO:');
-      stato = +fuori.slice(t + 9).trim() || 0;
-      corpo = fuori.slice(0, t);
-    } catch (e) { stato = -1; errori.push(String(e.message).split('\n')[0].slice(0, 90)); }
+    /* ⛔ UN ERRORE DI TRASPORTO NON E' UNA RISPOSTA DEL SITO, E RIPROVARE NON
+       E' INDULGENZA. Misurato due volte il 25/08: una destinazione su nove
+       cadeva con «Recv failure: Connection reset by peer» e le tre prove
+       successive rispondevano 200 con gli stessi byte al carattere — prima
+       Genesi, poi Terra, cioe' non era il soggetto, era il tragitto.
+       Un solo KO fra otto destinazioni sane e' esattamente la forma che manda
+       ad aprire un cantiere su un difetto che non esiste.
+       ⚠️ Si riprova SOLO su un errore di trasporto — la connessione caduta, il
+       tempo scaduto, il DNS. Un 404 o un 500 sono RISPOSTE, e una risposta non
+       si richiede sperando che cambi. E quante volte ha dovuto riprovare si
+       DICHIARA: un ripiego silenzioso nasconde una rete che peggiora. */
+    let corpo = '', tentativi = 0;
+    for (let k = 0; k < 3; k++) {
+      tentativi++;
+      try {
+        const fuori = execFileSync('curl', ['-sSL', '--max-time', '45', '-w', '\n@@STATO:%{http_code}',
+          `${ORIGINE}${m}`], { encoding: 'utf8', maxBuffer: 128 << 20 });
+        const t = fuori.lastIndexOf('\n@@STATO:');
+        stato = +fuori.slice(t + 9).trim() || 0;
+        corpo = fuori.slice(0, t);
+        errori.length = 0;
+        break;
+      } catch (e) {
+        stato = -1;
+        errori.push(String(e.message).split('\n')[0].slice(0, 90));
+        if (k < 2) execFileSync('sleep', ['3']);
+      }
+    }
+    if (tentativi > 1 && stato === 200) ripetuti.push(`${m} (al tentativo ${tentativi})`);
     /* «quanto testo» si chiede al sorgente: si tolgono script, stile e tag.
        Non e' il renderizzato, ed e' scritto sopra che non lo e'. */
     const nudo = corpo.replace(/<(script|style)[\s\S]*?<\/\1>/gi, ' ').replace(/<[^>]*>/g, ' ');
@@ -231,6 +261,7 @@ for (const m of mete) {
 if (b) await b.close();
 srv?.chiudi();
 
+if (ripetuti.length) console.log(`\n⚠️  ${ripetuti.length} destinazioni hanno risposto solo dopo un ritentativo (errore di TRASPORTO, non del sito): ${ripetuti.join(', ')}`);
 console.log(`\nRisultato tour aperto: ${ok} app aperte davvero, ${ko} che non si aprono, ${dichiarati} non misurabili in locale (dichiarate)`);
 /* ⛔ una destinazione non misurata NON e' una destinazione a posto: se uscisse
    verde, la difesa sarebbe peggiore del difetto. Ma non e' nemmeno un KO —
