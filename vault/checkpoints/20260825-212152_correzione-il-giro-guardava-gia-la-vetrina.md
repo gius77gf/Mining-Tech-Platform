@@ -37,7 +37,7 @@ qualcuno a farlo**. L'ho scritta due volte.
 Le prime due sono **le stesse** che ho scritto oggi in `tour-aperto.mjs`. La
 terza lì non c'è.
 
-## Perché  resta lo stesso (dichiarato, non spacciato per nuovo)
+## Perché `tour-aperto` resta lo stesso (dichiarato, non spacciato per nuovo)
 Due cose che nel giro non ci possono stare:
 - gira in **secondi** dentro `costruisci.sh`, quindi a **ogni build**; il giro
   del browser dura ore e si lancia una volta per blocco;
@@ -71,3 +71,21 @@ nuova**. Questa è l'affermazione vera; quella di prima non lo era.
 
 ## Blocchi
 Nessuno.
+
+## ⛔ E scrivendo questo checkpoint ho rifatto la trappola dei backtick
+L'ho scritto con un heredoc **non quotato** (`<<EOF` invece di `<<'EOF'`),
+quindi la shell ha eseguito i backtick come sostituzione di comando. Uscita:
+`tour-aperto: command not found` — e nel file, al posto del nome, **un buco**:
+«## Perché  resta lo stesso».
+
+Il file **non fallisce**: si scrive, mutilato, e il commit passa. È
+letteralmente la regola già scritta in CLAUDE.md per i messaggi di commit
+(`git commit -F <file>`, mai `-m` fra virgolette), in una veste che quella riga
+non copre: **non è il comando `git`, è l'heredoc**. Un testo di questa casa
+contiene quasi sempre codice fra backtick, quindi il delimitatore si quota
+**sempre**: `<<'EOF'`.
+
+⚠️ E a prenderlo non è stata la rilettura — la riga mutilata si legge quasi
+bene — ma **l'errore stampato dalla shell**, che stava sopra l'uscita del push
+e che stavo per scorrere. Un comando che «riesce» stampando un errore in mezzo
+è la stessa famiglia dello script che non fallisce.
