@@ -46,4 +46,9 @@ io.open(sys.argv[2] + "/img/marchio.svg", "w", encoding="utf-8").write(
 PY
 node "$Q/strumenti/marchio-intatto.mjs" "$U/index.html" | tail -1
 node "$Q/strumenti/tour-vivo.mjs"      "$U/index.html" | tail -1
+# ⛔ e la SECONDA domanda: i collegamenti non solo esistono, ma si aprono.
+#    `tour-vivo` risolve gli href sul disco; questo li segue con un browser e
+#    guarda che cosa arriva a schermo. Un file puo' esserci e la pagina aprirsi
+#    bianca, e in quel caso il tour «funziona» per il righello e non per chi lo prova.
+node "$Q/strumenti/tour-aperto.mjs"    "$U/index.html" --radice "$U/.." | tail -1
 echo "pagina del sito: $U/index.html — $(wc -c < "$U/index.html") byte  ·  immagini: $(ls "$U/img" | wc -l) file, $(du -sh "$U/img" | cut -f1)"

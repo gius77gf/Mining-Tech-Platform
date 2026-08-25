@@ -78,20 +78,38 @@ login risponde «Credenziali errate» su credenziali giuste.
 il repository **dalla radice**, quindi ogni cartella è già un percorso del sito
 esistente: è così che le nove app sono online oggi (`/apps/terra/`,
 `/apps/genesi/genesi.html`, …). Non hanno domini separati — hanno percorsi.
-La vetrina è nella stessa condizione: appena `apps/vetrina/index.html` arriva su
-`main`, è raggiungibile a `<sito-esistente>/apps/vetrina/` e **il tour funziona**,
-perché tutto sta sulla stessa origine.
+La vetrina è nella stessa condizione: appena `apps/index.html` arriva su `main`,
+è raggiungibile a `<sito-esistente>/apps/` e **il tour funziona**, perché tutto
+sta sulla stessa origine.
+
+⚠️ **Che le nove app si aprano davvero da lì è misurato**, non supposto:
+`tour-aperto.mjs` segue i nove collegamenti con un browser vero e guarda che
+cosa arriva a schermo — **9 su 9 aperte, 0 eccezioni**. Il core ci sta dentro
+perché il finto Firebase lo fa partire anche senza rete: un'eccezione che si
+può togliere si toglie, e quella riguardava proprio la superficie che il
+fondatore mostra per prima.
 
 ⚠️ **Quello che manca è l'INDIRIZZO del sito, non il sito.** In questo
 repository è scritto ovunque come `<sito-esistente>`: il dominio vero non
 compare in nessun file (`netlify.toml` non ha il nome del sito, non c'è un
 `CNAME`, i workflow non lo nominano). Sta nel pannello Netlify del fondatore.
 
-### Due comandi, e la pagina è pronta per il sito
+### Un comando solo, e la pagina è pronta per il sito
+
+    sh apps/vetrina/strumenti/costruisci.sh
+
+Genera, scorpora le immagini, monta l'involucro, e passa i tre righelli
+(`marchio-intatto`, `tour-vivo`, `tour-aperto`). L'uscita è `apps/index.html`
+e `apps/img/`.
+
+⛔ **Prima erano quattro passi da ricordare a mente**, e una lista tenuta a
+mente si accorcia da sola: la prima volta che ne saltavo uno, la pagina del
+sito restava indietro rispetto ai sorgenti senza che niente lo dicesse.
+I due passi sotto sono quello che il comando fa dentro, non un'alternativa:
 
     python3 apps/vetrina/sito.py /tmp/tutto-dentro.html
     python3 apps/vetrina/strumenti/scorpora.py \
-        /tmp/tutto-dentro.html apps/vetrina/index.html apps/vetrina/img
+        /tmp/tutto-dentro.html /tmp/corpo.html apps/img
 
 Il primo genera la pagina con **tutte le immagini incollate dentro** — l'unica
 forma che un artefatto su claude.ai accetta, perché lì la politica di sicurezza
@@ -107,9 +125,18 @@ tre finestre diventa un file solo.
 
 ### Prima di committare
 
-    node apps/vetrina/strumenti/marchio-intatto.mjs apps/vetrina/index.html
-    node apps/vetrina/strumenti/tour-vivo.mjs      apps/vetrina/index.html
+    sh   apps/vetrina/strumenti/costruisci.sh        # e i suoi tre righelli
     node apps/deepwork-id/tests/giro-node.mjs
+
+⛔ **E l'indirizzo della pagina si PASSA, non sta scritto dentro il righello.**
+Il 25/08 nove righelli della vetrina portavano dentro
+`http://127.0.0.1:8941/_p-….html`, il nome che l'anteprima aveva nello
+scratchpad il giorno in cui il primo di loro è nato. `contrasto-foto`, lanciato
+sulla pagina vera, ha caricato un 404 e ha stampato «0 testi in 0 sezioni ·
+sotto 4.5:1 → 0»: un verde con tutti i denominatori a zero. Ora il server lo
+alza `servi.mjs` — uno per tutti — che la porta la **chiede al sistema**, e
+zero soggetti non è più «a posto» ma **non misurato**, con uscita diversa da
+zero.
 
 ⚠️ La vetrina è una **superficie** di `run-stile.mjs` dal 25/08, e le sue tre
 eccezioni sono dichiarate lì con la ragione (non carica `dw-app-ui.js`, non

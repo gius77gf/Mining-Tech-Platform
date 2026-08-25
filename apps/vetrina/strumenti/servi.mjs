@@ -20,7 +20,7 @@
    invece di accorgersi che il server e' di un altro, si fa in modo che non ci
    sia nessun altro. */
 import { createServer } from 'http';
-import { readFileSync, existsSync } from 'fs';
+import { readFileSync, existsSync, statSync } from 'fs';
 import { join, extname, resolve } from 'path';
 
 const TIPI = { '.html':'text/html', '.js':'text/javascript', '.mjs':'text/javascript',
@@ -33,9 +33,19 @@ export async function servi(radice) {
   const R = resolve(radice);
   if (!existsSync(R)) throw new Error(`la cartella da servire non esiste: ${R}`);
   const srv = createServer((req, res) => {
-    const via = join(R, decodeURIComponent(req.url.split('?')[0]));
+    let via = join(R, decodeURIComponent(req.url.split('?')[0]));
     /* ⛔ e non si esce dalla radice: un `..` nell'indirizzo leggerebbe il disco */
     if (!via.startsWith(R) || !existsSync(via)) { res.writeHead(404); return res.end('no'); }
+    /* ⛔ UNA CARTELLA SERVE IL SUO `index.html`, come fa il sito vero. Senza
+       questa riga il righello che segue i collegamenti del tour moriva su
+       `/apps/terra/` — che e' esattamente la forma con cui il tour chiama
+       SETTE app su nove. Un server di prova che non si comporta come quello di
+       produzione misura il proprio ripiego, non il prodotto. */
+    if (statSync(via).isDirectory()) {
+      const dentro = join(via, 'index.html');
+      if (!existsSync(dentro)) { res.writeHead(404); return res.end('no'); }
+      via = dentro;
+    }
     res.writeHead(200, { 'content-type': TIPI[extname(via).toLowerCase()] || 'application/octet-stream' });
     res.end(readFileSync(via));
   });
