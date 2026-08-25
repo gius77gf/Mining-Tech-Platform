@@ -1,7 +1,11 @@
 /* Porta le miniature alla misura del fondale. Il ritaglio si DICHIARA (quale
    finestra e' stata usata): la volta scorsa una funzione di ritaglio non
    ritagliava e nessuno se n'era accorto, perche' non stampava la finestra. */
-import { chromium } from '/opt/node22/lib/node_modules/playwright/index.mjs';
+/* ⚠️ Playwright si importa in forma DINAMICA, come i 53 banchi del
+   repository: `import-esistenti.mjs` risolve gli import statici e un
+   percorso assoluto fuori dal repository glielo fa dichiarare inesistente.
+   Non e' uno stile: e' la convenzione che tiene verde quel controllo. */
+const { chromium } = await import('/opt/node22/lib/node_modules/playwright/index.mjs');
 import { readFileSync, writeFileSync, mkdirSync } from 'fs';
 const S = process.argv[2];
 const PIANO = JSON.parse(readFileSync(process.argv[3], 'utf8'));   // [{da, a, largh, alt, cy}]

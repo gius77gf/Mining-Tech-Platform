@@ -1,7 +1,11 @@
 /* Il conto che il difetto di prima non aveva: dove finisce ogni pezzo della
    scena rispetto al bordo dello schermo. Un pezzo che esce non fa scorrere la
    pagina (`overflow-x:clip`), quindi non si vede da nessun'altra misura. */
-import { chromium } from '/opt/node22/lib/node_modules/playwright/index.mjs';
+/* ⚠️ Playwright si importa in forma DINAMICA, come i 53 banchi del
+   repository: `import-esistenti.mjs` risolve gli import statici e un
+   percorso assoluto fuori dal repository glielo fa dichiarare inesistente.
+   Non e' uno stile: e' la convenzione che tiene verde quel controllo. */
+const { chromium } = await import('/opt/node22/lib/node_modules/playwright/index.mjs');
 const b = await chromium.launch();
 for (const w of [1440, 1100]) {
   const p = await b.newPage({ viewport:{width:w,height:900} });

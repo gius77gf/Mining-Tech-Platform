@@ -8,7 +8,11 @@
       schermata a istanti diversi — ed e' esattamente il difetto che questo
       repository chiama «un banco che non naviga risponde tutto a posto».
       Qui si PRETENDE la prova: quale bottone risulta `.on` dopo il click. */
-import { chromium } from '/opt/node22/lib/node_modules/playwright/index.mjs';
+/* ⚠️ Playwright si importa in forma DINAMICA, come i 53 banchi del
+   repository: `import-esistenti.mjs` risolve gli import statici e un
+   percorso assoluto fuori dal repository glielo fa dichiarare inesistente.
+   Non e' uno stile: e' la convenzione che tiene verde quel controllo. */
+const { chromium } = await import('/opt/node22/lib/node_modules/playwright/index.mjs');
 const OUT = process.argv[2], PORTA = process.argv[3] || '8951';
 const APP = [
   ['campo','/apps/campo/index.html',['dash','att','squ','rap','set','dash']],

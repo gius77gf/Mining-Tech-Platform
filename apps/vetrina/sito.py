@@ -300,10 +300,25 @@ body.mossa .barra{background:rgba(8,9,12,.82);backdrop-filter:blur(18px) saturat
 .testo li{position:relative;padding-left:22px;font-size:15px}
 .testo li::before{content:'';position:absolute;left:0;top:9px;width:7px;height:7px;border-radius:50%;
   background:var(--ac);box-shadow:0 0 10px color-mix(in srgb,var(--ac) 60%,transparent)}
-.testo .chi{display:inline-flex;align-items:center;gap:10px;padding-top:var(--s2);
-  border-top:1px solid var(--bordo);font-size:12px;letter-spacing:1.4px;text-transform:uppercase;color:var(--inch2)}
-.testo .chi em{font-style:normal;color:var(--ac2);font-size:19px;line-height:1;transition:transform .3s var(--posa)}
-.app:hover .testo .chi em{transform:translateX(6px)}
+.testo .azioni{display:flex;align-items:center;gap:var(--s3);flex-wrap:wrap;padding-top:var(--s3);
+  border-top:1px solid var(--bordo)}
+.testo .chi{font-size:12px;letter-spacing:1.4px;text-transform:uppercase;color:var(--inch2)}
+/* ⛔ IL TOUR E' UN COLLEGAMENTO VERO, non un `href="#"`. Le app senza accesso
+   partono gia' in dimostrazione (`mode = "demo"`), quindi si aprono e si
+   provano: non serve nessun parametro. */
+.testo .apri{display:inline-flex;align-items:center;gap:9px;min-height:46px;padding:0 22px;
+  border-radius:9px;font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:13.5px;
+  letter-spacing:2px;text-transform:uppercase;white-space:nowrap;
+  color:var(--ac2);border:1px solid color-mix(in srgb,var(--ac) 42%,transparent);
+  background:color-mix(in srgb,var(--ac) 12%,transparent);
+  transition:background .25s var(--posa),border-color .25s var(--posa),transform .22s var(--posa),
+             box-shadow .28s var(--posa)}
+.testo .apri:hover{background:color-mix(in srgb,var(--ac) 22%,transparent);
+  border-color:color-mix(in srgb,var(--ac) 70%,transparent);transform:translateY(-2px);
+  box-shadow:0 12px 30px color-mix(in srgb,var(--ac) 26%,transparent)}
+.testo .apri:focus-visible{outline:2px solid var(--ac2);outline-offset:3px}
+.testo .apri em{font-style:normal;font-size:19px;line-height:1;transition:transform .3s var(--posa)}
+.testo .apri:hover em{transform:translateX(5px)}
 
 /* la scena: piu' piani a profondita' diversa, mossi dallo scorrimento.
    ⚠️ DUE ELEMENTI, NON UNO: `.orb` porta la PARALLASSE (nessuna transizione,
@@ -383,6 +398,46 @@ body.mossa .barra{background:rgba(8,9,12,.82);backdrop-filter:blur(18px) saturat
 .app.viva .pop.b{animation:galleggia 6.4s ease-in-out 2.3s infinite}
 @keyframes galleggia{0%,100%{transform:translateY(0) scale(1)}50%{transform:translateY(-8px) scale(1)}}
 
+/* ── ANCORA PIU' MOVIMENTO NELLE SCENE (punto 6, 25/08) ───────────────────
+   Quattro cose, e nessuna e' rumore: tutte raccontano che quelle finestre sono
+   PROGRAMMI VIVI, non fotografie appese. */
+
+/* 1. il riflesso che passa sul vetro della finestra grande, come su uno
+      schermo vero quando ci passi davanti */
+.orb.g .fin::after{content:'';position:absolute;inset:0;pointer-events:none;z-index:3;
+  background:linear-gradient(104deg,transparent 34%,rgba(244,241,234,.09) 46%,
+             rgba(244,241,234,.16) 50%,rgba(244,241,234,.06) 55%,transparent 66%);
+  transform:translateX(-130%);opacity:0}
+.app.viva .orb.g .fin::after{animation:riflesso 7.5s cubic-bezier(.4,0,.2,1) 1.6s infinite}
+@keyframes riflesso{0%{transform:translateX(-130%);opacity:0}
+  8%{opacity:1}22%{transform:translateX(130%);opacity:0}100%{transform:translateX(130%);opacity:0}}
+
+/* 2. il bordo della finestra grande si accende del colore dell'app quando la
+      schermata cambia: dice «e' successo qualcosa» invece di lasciare che il
+      cambio passi inosservato */
+.orb.g .fin{--lampo:0}
+.app.viva .orb.g .fin{box-shadow:0 36px 92px rgba(0,0,0,.74),
+  0 0 0 1px color-mix(in srgb,var(--ac) calc(var(--lampo) * 55%),transparent),
+  0 0 calc(var(--lampo) * 44px) color-mix(in srgb,var(--ac) calc(var(--lampo) * 40%),transparent);
+  transition:box-shadow .9s var(--posa),transform 1.15s var(--posa),opacity .95s var(--posa)}
+
+/* 3. una barretta che si riempie fra uno scatto e l'altro: si vede QUANTO
+      manca al prossimo, e il movimento non e' piu' a sorpresa */
+.punti{gap:6px}
+.punti i{position:relative;overflow:hidden}
+.punti i.viva::after{content:'';position:absolute;inset:0;transform-origin:left;
+  background:color-mix(in srgb,var(--ac2) 70%,#fff);animation:riempi var(--passo,2200ms) linear}
+@keyframes riempi{from{transform:scaleX(0)}to{transform:scaleX(1)}}
+
+/* 4. le finestre piccole respirano piano, sfasate fra loro: una scena
+      completamente immobile fra un cambio e l'altro sembra un'immagine */
+.app.viva .orb.p{animation:ondeggia 9s ease-in-out 1.2s infinite}
+.app.viva .orb.t{animation:ondeggia 11s ease-in-out 2.6s infinite}
+@keyframes ondeggia{0%,100%{translate:0 0}50%{translate:0 -9px}}
+@media(prefers-reduced-motion:reduce){
+  .app.viva .orb.p,.app.viva .orb.t,.app.viva .orb.g .fin::after,.punti i.viva::after{
+    animation:none!important}}
+
 /* l'alone che segue il mouse — lo stesso comportamento del core */
 .alone{position:absolute;inset:-14%;pointer-events:none;z-index:4;opacity:0;
   transition:opacity .45s var(--posa);
@@ -431,7 +486,11 @@ body.mossa .barra{background:rgba(8,9,12,.82);backdrop-filter:blur(18px) saturat
 .piede h4{margin:0 0 var(--s2);font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:11.5px;
   letter-spacing:2.6px;text-transform:uppercase;color:var(--fumo)}
 .piede ul{list-style:none;margin:0;padding:0;display:grid;gap:9px}
-.piede ul a{font-size:14.5px;color:var(--inch2);transition:color .22s var(--posa)}
+.piede ul a{font-size:14.5px;color:var(--inch2);transition:color .22s var(--posa);
+  display:inline-flex;align-items:center;gap:7px}
+.piede ul a em{font-style:normal;color:var(--ambra);opacity:0;transform:translateX(-4px);
+  transition:opacity .2s var(--posa),transform .25s var(--posa)}
+.piede ul a:hover em{opacity:1;transform:none}
 .piede ul a:hover{color:var(--inch)}
 .piede .fondo{margin-top:var(--s5);padding-top:var(--s3);border-top:1px solid var(--bordo);
   display:flex;flex-wrap:wrap;gap:var(--s2) var(--s4);justify-content:space-between;align-items:center;
@@ -762,10 +821,11 @@ def app_scena(a, k):
             '<div class="testo">'
             '<div class="riga"><span class="nome">%s</span><span class="tag %s">%s</span></div>'
             '<p class="claim">%s</p><p>%s</p><ul>%s</ul>'
-            '<a class="chi" href="#">%s<em>&rsaquo;</em></a></div>'
+            '<div class="azioni"><a class="apri" href="%s" target="_blank" rel="noopener">'
+            'Apri %s<em>&rsaquo;</em></a><span class="chi">%s</span></div></div>'
             '<div class="scena">%s%s%s<span class="alone"></span>%s<span class="punti">%s</span></div>'
             '</article>') % (" dx" if k % 2 else "", ch, n, acc, acctx, nome, cls, stato,
-                             somm, desc, li, achi, lav, faro, piani, pop, pun)
+                             somm, desc, li, C.via(nome), nome, achi, lav, faro, piani, pop, pun)
 
 # ⛔ Niente piu' raggruppamenti: le app si susseguono e basta (fondatore 24/08).
 scene = "".join(app_scena(a, k) for k, a in enumerate(C.APP))
@@ -782,8 +842,10 @@ corona_html = "".join(
   % (a[2], _m.cos(k / 8 * 2 * _m.pi - _m.pi / 2), _m.sin(k / 8 * 2 * _m.pi - _m.pi / 2), a[0])
   for k, a in enumerate(_corona))
 cifre = "".join("<div><b>%s</b><s>%s</s></div>" % c for c in C.CIFRE)
-elenco = "".join('<li><a href="#app-%s">%s</a></li>'
-                 % (a[0].lower().replace(" ", ""), a[0]) for a in C.APP)
+# ⛔ Nel piede i nomi portano ALL'APP, non a un'ancora della stessa pagina:
+#    chi arriva in fondo ha gia' letto la scheda, quello che vuole e' entrare.
+elenco = "".join('<li><a href="%s" target="_blank" rel="noopener">%s<em>&rsaquo;</em></a></li>'
+                 % (C.via(a[0]), a[0]) for a in C.APP)
 # ⛔ LA VETRINA DELL'INGRESSO MOSTRA APP MISTE, NON SOLO DEEPWORK.
 #    Prima erano tre schermate di Terra, ferme e senza nome (fondatore, 24/08:
 #    «completamente fuori contesto»); poi tre di Deepwork, giuste ma tutte
@@ -838,7 +900,7 @@ PAG = """<title>Deepwork — L'ecosistema del cantiere</title>
 <header class="barra"><div class="d">
   <a class="segno" href="#"><span>@MARCHIO_P@</span><b class="parola">Deepwork</b></a>
   <nav><a href="#storia">La storia</a><a href="#app">Le app</a></nav>
-  <a class="bot pri" href="#prova">Prova il tour</a>
+  <a class="bot pri" href="@VIA_DEEPWORK@" target="_blank" rel="noopener">Prova il tour</a>
 </div></header>
 
 <main>@BASE@
@@ -847,7 +909,7 @@ PAG = """<title>Deepwork — L'ecosistema del cantiere</title>
       <span class="marca">@MARCHIO_G@</span>
       <h1 class="disp"><span class="r"><span>@BENV_A@</span></span><span class="r"><span>@BENV_B@</span></span></h1>
       <p class="sott">@CLAIM@</p>
-      <div class="az"><a class="bot pri" href="#prova">Prova il tour</a><a class="bot sec" href="#app">Guarda le app</a></div>
+      <div class="az"><a class="bot pri" href="@VIA_DEEPWORK@" target="_blank" rel="noopener">Prova il tour</a><a class="bot sec" href="#app">Guarda le app</a></div>
       <p class="sotto-az">Dati di esempio, nessuna registrazione: entri e provi.</p>
       <div class="mostra" data-scatti="@NDW@">
         @MSX@@MDX@@MC@
@@ -885,7 +947,7 @@ PAG = """<title>Deepwork — L'ecosistema del cantiere</title>
     <span class="occhio">Provalo adesso</span>
     <h2 class="disp"><span>@CHIUSURA@</span></h2>
     <p>Il tour apre le app con dati di esempio: puoi premere tutto, non si salva niente e non serve registrarsi.</p>
-    <div class="az"><a class="bot pri" href="#">Prova il tour</a><a class="bot sec" href="#app">Rivedi le app</a></div>
+    <div class="az"><a class="bot pri" href="@VIA_DEEPWORK@" target="_blank" rel="noopener">Prova il tour</a><a class="bot sec" href="#app">Rivedi le app</a></div>
   </div></section>
 </main>
 
@@ -894,7 +956,7 @@ PAG = """<title>Deepwork — L'ecosistema del cantiere</title>
     <div><div class="segno">@MARCHIO_P@<b class="parola">Deepwork</b></div>
       <p>Otto app per il cantiere e un accesso unico. I dati di ogni impresa restano suoi.</p></div>
     <div><h4>Le app</h4><ul>@ELENCO@</ul></div>
-    <div><h4>Il sito</h4><ul><li><a href="#storia">La storia</a></li><li><a href="#app">Le app</a></li><li><a href="#prova">Prova il tour</a></li></ul></div>
+    <div><h4>Il sito</h4><ul><li><a href="#storia">La storia</a></li><li><a href="#app">Le app</a></li><li><a href="@VIA_DEEPWORK@" target="_blank" rel="noopener">Prova il tour<em>&rsaquo;</em></a></li></ul></div>
   </div>
   <div class="fondo"><span>Deepwork · ecosistema per il cantiere</span><span>@CREDITO@</span></div>
 </div></footer>
@@ -915,11 +977,22 @@ PAG = """<title>Deepwork — L'ecosistema del cantiere</title>
     [].forEach.call(document.querySelectorAll('.app'),function(a){oe.observe(a);});
   }
   /* le schermate si susseguono solo mentre l'app e' in vista */
-  function mostra(s,n){
+  function mostra(s,n,passo){
     var f=s.querySelectorAll('.fin'), pa=s.querySelectorAll('.punti i');
     for(var k=0;k<f.length;k++){var im=f[k].querySelectorAll('img');
       for(var i=0;i<im.length;i++)im[i].classList.toggle('viva',i===n);}
-    for(var j=0;j<pa.length;j++)pa[j].classList.toggle('viva',j===n);
+    /* la barretta si ricrea a ogni cambio: riassegnare la stessa animazione a
+       un elemento che ce l'ha gia' non la fa ripartire, e resterebbe ferma */
+    for(var j=0;j<pa.length;j++){
+      var era=pa[j].classList.contains('viva');
+      pa[j].classList.toggle('viva',j===n);
+      if(j===n&&!era){var g=pa[j].cloneNode(true);pa[j].parentNode.replaceChild(g,pa[j]);}
+    }
+    if(passo) s.style.setProperty('--passo',passo+'ms');
+    /* il lampo sul bordo: si accende e si spegne da solo */
+    var gr=s.querySelector('.orb.g .fin');
+    if(gr){gr.style.setProperty('--lampo','1');
+      setTimeout(function(){gr.style.setProperty('--lampo','0');},520);}
     s.dataset.ora=n;
   }
   /* la vetrina dell'ingresso scorre come una scena d'app: e' la prima cosa
@@ -936,17 +1009,18 @@ PAG = """<title>Deepwork — L'ecosistema del cantiere</title>
   if(!fermi&&('IntersectionObserver' in window)){
     var os=new IntersectionObserver(function(v){v.forEach(function(x){
       var s=x.target,n=+s.dataset.scatti;
-      if(x.isIntersecting){ if(n>1&&!s._t)s._t=setInterval(function(){mostra(s,((+s.dataset.ora||0)+1)%n);},2200); }
+      if(x.isIntersecting){ if(n>1&&!s._t){s.style.setProperty('--passo','2200ms');
+          s._t=setInterval(function(){mostra(s,((+s.dataset.ora||0)+1)%n,2200);},2200);} }
       else if(s._t){clearInterval(s._t);s._t=null;}
     });},{rootMargin:'-10% 0px -10% 0px',threshold:.2});
     for(var r=0;r<app.length;r++){app[r].dataset.ora=0;os.observe(app[r]);}
     [].forEach.call(app,function(s){
       s.addEventListener('pointerenter',function(){var n=+s.dataset.scatti;if(n<2)return;
-        if(s._t)clearInterval(s._t);mostra(s,((+s.dataset.ora||0)+1)%n);
-        s._t=setInterval(function(){mostra(s,((+s.dataset.ora||0)+1)%n);},1500);});
+        if(s._t)clearInterval(s._t);mostra(s,((+s.dataset.ora||0)+1)%n,1500);
+        s._t=setInterval(function(){mostra(s,((+s.dataset.ora||0)+1)%n,1500);},1500);});
       s.addEventListener('pointerleave',function(){var n=+s.dataset.scatti;if(n<2)return;
         if(s._t)clearInterval(s._t);
-        s._t=setInterval(function(){mostra(s,((+s.dataset.ora||0)+1)%n);},2200);});
+        s._t=setInterval(function(){mostra(s,((+s.dataset.ora||0)+1)%n,2200);},2200);});
     });
   }
   /* PARALLASSE — ogni piano si muove di `--par`, la scena passa `--y` in
@@ -1061,7 +1135,7 @@ io.open(sys.argv[1], "w", encoding="utf-8").write(
      .replace("@FOND_INV@", fondale("invito", "Cantiere all'opera"))
      .replace("@CIFRE@", cifre).replace("@CORONA@", corona_html)
      .replace("@MARCHIO_C@", C.marchio(190))
-     .replace("@ELENCO@", elenco).replace("@CHIUSURA@", C.CHIUSURA).replace("@FOND_STO@", fondale("storia", "Cantiere al lavoro"))
+     .replace("@ELENCO@", elenco).replace("@VIA_DEEPWORK@", C.via("Deepwork")).replace("@CHIUSURA@", C.CHIUSURA).replace("@FOND_STO@", fondale("storia", "Cantiere al lavoro"))
      .replace("@NASCE@", C.NASCE_TITOLO).replace("@NASCE_SOTTO@", C.NASCE_SOTTO)
      .replace("@STORIA_TESTO@", C.STORIA_TESTO).replace("@APERTURA@", C.APP_APERTURA)
      .replace("@COLONNA@", colonna(["colonna-1","colonna-2","colonna-3","colonna-4"],

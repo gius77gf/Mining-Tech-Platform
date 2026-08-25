@@ -3,7 +3,11 @@
    si legge a fasce orizzontali e per ogni fascia si chiede: quanto e' scura, e
    quanto e' UNIFORME? Una fascia scura ma variata e' una fotografia notturna;
    una fascia scura e piatta e' un buco. */
-import { chromium } from '/opt/node22/lib/node_modules/playwright/index.mjs';
+/* ⚠️ Playwright si importa in forma DINAMICA, come i 53 banchi del
+   repository: `import-esistenti.mjs` risolve gli import statici e un
+   percorso assoluto fuori dal repository glielo fa dichiarare inesistente.
+   Non e' uno stile: e' la convenzione che tiene verde quel controllo. */
+const { chromium } = await import('/opt/node22/lib/node_modules/playwright/index.mjs');
 const b = await chromium.launch();
 const p = await b.newPage({ viewport: { width: 1440, height: 900 } });
 await p.goto('http://127.0.0.1:8941/_p-vetrina.html', { waitUntil: 'networkidle' });

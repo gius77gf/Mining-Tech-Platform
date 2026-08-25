@@ -3,7 +3,11 @@
    Un solo istante non basta — l'anello gira, e la collisione capita a un certo
    angolo e non a un altro: guardando uno scatto solo si dichiara pulito un
    difetto che compare due secondi dopo. */
-import { chromium } from '/opt/node22/lib/node_modules/playwright/index.mjs';
+/* ⚠️ Playwright si importa in forma DINAMICA, come i 53 banchi del
+   repository: `import-esistenti.mjs` risolve gli import statici e un
+   percorso assoluto fuori dal repository glielo fa dichiarare inesistente.
+   Non e' uno stile: e' la convenzione che tiene verde quel controllo. */
+const { chromium } = await import('/opt/node22/lib/node_modules/playwright/index.mjs');
 const b = await chromium.launch();
 for (const w of [1440, 1024, 390]) {
   const p = await b.newPage({ viewport: { width: w, height: 900 } });

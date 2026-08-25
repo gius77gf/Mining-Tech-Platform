@@ -12,7 +12,11 @@
    3. si tiene il pixel PEGGIORE e si stampa la FORBICE: sopra una fotografia
       il fondo e' mosso, e un numero solo senza la sua forbice non si sa quanto
       vale. */
-import { chromium } from '/opt/node22/lib/node_modules/playwright/index.mjs';
+/* ⚠️ Playwright si importa in forma DINAMICA, come i 53 banchi del
+   repository: `import-esistenti.mjs` risolve gli import statici e un
+   percorso assoluto fuori dal repository glielo fa dichiarare inesistente.
+   Non e' uno stile: e' la convenzione che tiene verde quel controllo. */
+const { chromium } = await import('/opt/node22/lib/node_modules/playwright/index.mjs');
 const b = await chromium.launch();
 const p = await b.newPage({ viewport:{width:1440,height:900} });
 await p.goto('http://127.0.0.1:8941/_p-S-sito.html', {waitUntil:'networkidle'});

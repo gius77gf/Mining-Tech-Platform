@@ -2,9 +2,13 @@
    (il suo programma sta in un modulo che importa da gstatic): si monta quello
    del repository, si entra con la dimostrazione, e si PRETENDE la prova di
    aver navigato prima di ogni scatto. */
-import { chromium } from '/opt/node22/lib/node_modules/playwright/index.mjs';
+/* ⚠️ Playwright si importa in forma DINAMICA, come i 53 banchi del
+   repository: `import-esistenti.mjs` risolve gli import statici e un
+   percorso assoluto fuori dal repository glielo fa dichiarare inesistente.
+   Non e' uno stile: e' la convenzione che tiene verde quel controllo. */
+const { chromium } = await import('/opt/node22/lib/node_modules/playwright/index.mjs');
 import { readFileSync } from 'fs';
-import { montaFintoFirebase } from '/home/user/Mining-Tech-Platform/apps/deepwork-id/tests/browser/finto-firebase.mjs';
+const { montaFintoFirebase } = await import('../../deepwork-id/tests/browser/finto-firebase.mjs');
 const OUT = process.argv[2], PORTA = process.argv[3] || '8951';
 /* ⛔ Il tema si accende dall'INDIRIZZO (`shared/dw-tema.js` legge `?tema=`,
    lo salva e lo toglie): non serve cercare un bottone. */

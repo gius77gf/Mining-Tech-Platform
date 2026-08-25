@@ -574,6 +574,8 @@ grep -n "^- \[ \] \*\*" vault/ROADMAP_SETTIMANA.md
 - `B7. `sentinella-periodo-adempimento` È INTERMITTENTE — e va rimisurato a`
 - `LA TELA DELLA VETRINA È IN ATTESA DEL FONDATORE` *(la fotografia di cava,
   e il sì o il no alla sezione chiara)*
+- `DECISIONE DEL FONDATORE:` *(la vetrina sostituisce `apps/index.html`? e le
+  immagini restano dentro la pagina o diventano file accanto?)*
 
 ## 🎯 L'obiettivo della settimana
 

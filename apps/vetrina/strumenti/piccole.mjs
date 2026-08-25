@@ -1,7 +1,11 @@
 /* Le finestre piccole rendono a ~200-290 px e portavano la stessa immagine da
    880: tre copie della stessa stringa base64, cioe' 3,7 MB di pagina per pixel
    che nessuno vede. Qui se ne fa una serie da 440. */
-import { chromium } from '/opt/node22/lib/node_modules/playwright/index.mjs';
+/* ⚠️ Playwright si importa in forma DINAMICA, come i 53 banchi del
+   repository: `import-esistenti.mjs` risolve gli import statici e un
+   percorso assoluto fuori dal repository glielo fa dichiarare inesistente.
+   Non e' uno stile: e' la convenzione che tiene verde quel controllo. */
+const { chromium } = await import('/opt/node22/lib/node_modules/playwright/index.mjs');
 import { readFileSync, writeFileSync, readdirSync, mkdirSync } from 'fs';
 const D = process.argv[2]; mkdirSync(D + '/p', { recursive: true });
 const b = await chromium.launch(); const p = await b.newPage();

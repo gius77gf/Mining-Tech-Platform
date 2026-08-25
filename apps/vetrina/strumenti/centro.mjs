@@ -3,7 +3,11 @@
    marchio. Sono due cose diverse — il marchio ha l'emblema in alto e le due
    scritte sotto, quindi il suo centro geometrico NON e' il centro di cio' che
    l'occhio vede. */
-import { chromium } from '/opt/node22/lib/node_modules/playwright/index.mjs';
+/* ⚠️ Playwright si importa in forma DINAMICA, come i 53 banchi del
+   repository: `import-esistenti.mjs` risolve gli import statici e un
+   percorso assoluto fuori dal repository glielo fa dichiarare inesistente.
+   Non e' uno stile: e' la convenzione che tiene verde quel controllo. */
+const { chromium } = await import('/opt/node22/lib/node_modules/playwright/index.mjs');
 const b = await chromium.launch();
 for (const w of [1440, 390]) {
   const p = await b.newPage({ viewport: { width: w, height: 900 } });

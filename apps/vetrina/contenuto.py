@@ -246,3 +246,37 @@ ORIGINE_TITOLO = "Se regge lì, regge nel tuo cantiere"
 ORIGINE_SOTTO = ("Deepwork è cresciuto in un'attività estrattiva autorizzata, dove ogni turno va "
                  "dichiarato, ogni scadenza risponde a una legge e ogni misura finisce sul tavolo "
                  "di un ente. Il cantiere edile chiede le stesse cose con meno vincoli, non di più.")
+
+
+# ── IL TOUR: dove porta ogni app ──────────────────────────────────────────
+# ⛔ PERCORSI RELATIVI, non assoluti. Il sito Netlify pubblica il repository
+#    intero dalla radice (`netlify.toml`, publish = "."), quindi da una pagina
+#    servita da li' `/apps/terra/` e' gia' l'indirizzo giusto — e resta giusto
+#    il giorno che il dominio cambia.
+# ⚠️ E IL LIMITE VA DETTO: dentro un ARTEFATTO su claude.ai questa pagina sta su
+#    un'altra origine, quindi i collegamenti non raggiungono le app. Sull'anteprima
+#    servono assoluti. `BASE` esiste per quello: vuota = sito vero, riempita col
+#    dominio = anteprima. Non e' un ripiego nascosto, e' un interruttore
+#    dichiarato — e finche' il fondatore non da' il dominio resta vuota.
+BASE = ""
+
+# ⚠️ Genesi NON e' `/apps/genesi/`: la sua pagina si chiama `genesi.html`, non
+#    `index.html`. Scritto per convenzione avrebbe dato 404 — ed e' lo stesso
+#    fuori-convenzione che il 03/08 aveva reso cieca la regola 20 di run-stile.
+VIA = {
+  "Deepwork":    "/",
+  "Deepwork ID": "/apps/deepwork-id/",
+  "Genesi":      "/apps/genesi/genesi.html",
+  "Terra":       "/apps/terra/",
+  "Campo":       "/apps/campo/",
+  "Flotta":      "/apps/flotta/",
+  "Scudo":       "/apps/scudo/",
+  "Conti":       "/apps/conti/",
+  "Sentinella":  "/apps/sentinella/",
+}
+
+def via(nome):
+    """L'indirizzo dell'app. Le app in assenza di accesso partono GIA' in
+    dimostrazione (`mode = "demo"`), quindi non serve nessun parametro: si apre
+    e si prova. Verificato nel codice delle app, non supposto."""
+    return BASE + VIA[nome]
