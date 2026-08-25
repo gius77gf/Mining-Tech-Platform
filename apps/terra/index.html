@@ -3772,6 +3772,14 @@ a.dw-btn{text-decoration:none}
           const p = [];
           if (r.dich.tSenzaDensita > 0) p.push(`<b>${n0(r.dich.tSenzaDensita)} t</b> senza densità`);
           if (r.dich.viaggi > 0) p.push(`<b>${r.dich.viaggi} ${plurale(r.dich.viaggi, "viaggio", "viaggi")}</b>`);
+          /* la terza causa, entrata il 14/08: un turno che non ha dichiarato
+             niente. Va NOMINATA qui, se no `parziale` diventa vero e l'elenco
+             resta vuoto — la frase uscirebbe mutila proprio nel caso più
+             frequente dei tre. */
+          if (r.dich.senzaProduzione > 0) {
+            p.push(`<b>${r.dich.senzaProduzione} ${plurale(r.dich.senzaProduzione, "turno", "turni")}</b> `
+              + `che non ${plurale(r.dich.senzaProduzione, "ha", "hanno")} dichiarato nessuna quantità`);
+          }
           /* i due punti al posto del «che non entrano»: l'elenco cambia numero
              a seconda di che cosa c'è dentro, e «ci sono 1 viaggio che non
              entrano» è la stessa riga sbagliata due volte. */

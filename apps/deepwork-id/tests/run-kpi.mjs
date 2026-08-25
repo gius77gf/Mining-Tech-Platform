@@ -2084,10 +2084,13 @@ test("coperturaRapportini: quali squadre hanno consegnato il rapportino, chi man
     { nome: "Squadra B — Carico", stato: "operativa" },
     { nome: "Squadra C — Impianto", stato: "ferma" },
   ];
+  /* ⚠️ il `data` non c'era, e la fixture era incompleta: un rapportino vero ce
+     l'ha sempre (al più vuoto). Dal 14/08 la funzione lo LEGGE, perché un
+     arretrato senza giorno non prova una consegna di oggi. */
   const rapportini = [
-    { squadra: "Squadra A", stato: "inviato" },
-    { squadra: "Squadra C", stato: "bozza" },      // bozza → non conta
-    { squadra: "Squadra B", stato: "inviato" },
+    { squadra: "Squadra A", stato: "inviato", data: "2026-08-14" },
+    { squadra: "Squadra C", stato: "bozza", data: "2026-08-14" },   // bozza → non conta
+    { squadra: "Squadra B", stato: "inviato", data: "2026-08-14" },
   ];
   const c = campo.coperturaRapportini(squadre, rapportini);
   eq(c.coperte, 2, "A e B hanno consegnato");
@@ -2096,7 +2099,27 @@ test("coperturaRapportini: quali squadre hanno consegnato il rapportino, chi man
   eq(c.mancanti, ["Squadra C — Impianto"], "manca la C (solo bozza)");
 });
 test("coperturaRapportini: nessuna squadra = pct null (niente crash)", () =>
-  eq(campo.coperturaRapportini([], []), { coperte: 0, totale: 0, pct: null, mancanti: [] }, "vuoto"));
+  eq(campo.coperturaRapportini([], []), { coperte: 0, totale: 0, pct: null, mancanti: [], senzaGiorno: 0 }, "vuoto"));
+/* ⛔ IL DIFETTO CHE LA CAVA SINTETICA HA TROVATO, e che la dimostrazione non
+   poteva mostrare: `eDelGiorno` tiene dentro «oggi» i rapportini SENZA DATA —
+   di proposito, perché non spariscano — e questa funzione li contava come
+   consegne. Bastava che l'arretrato fosse della squadra che oggi non ha
+   consegnato perché il badge diventasse verde e il nome di chi manca sparisse
+   dalla riga che esiste per dirlo. Un solo rapportino basta.
+   ⚠️ Le due asserzioni sono OPPOSTE di proposito: se un giorno qualcuno
+   «semplificasse» tornando a contarli, la prima cade; se qualcuno li facesse
+   sparire del tutto invece di dichiararli, cade la seconda. */
+test("⛔ coperturaRapportini: un arretrato SENZA GIORNO non copre la squadra che non ha consegnato", () => {
+  const squadre = [{ nome: "Squadra A" }, { nome: "Squadra B" }];
+  const conArretrato = [
+    { squadra: "Squadra B", stato: "inviato", data: "2026-08-14" },
+    { squadra: "Squadra A", stato: "inviato", data: "" },   // l'arretrato di A, senza giorno
+  ];
+  const c = campo.coperturaRapportini(squadre, conArretrato);
+  eq(c.coperte, 1, "ha consegnato solo B");
+  eq(c.mancanti, ["Squadra A"], "e A resta nominata fra i mancanti");
+  eq(c.senzaGiorno, 1, "ma il rapportino senza giorno si DICHIARA, non sparisce");
+});
 test("parseSquadreCsv: legge nome/persone/area/stato; persone intere; stato ignoto → operativa", () => {
   const csv = "nome;persone;area;stato\nSquadra A — Perforazione;4;fronte Est;operativa\nSquadra C — Impianto;2;frantoio;ferma\nSquadra X;3;;boh\n;piazzale;2;operativa\n";
   const p = campo.parseSquadreCsv(csv);
@@ -3476,7 +3499,8 @@ test("prioritaOperative: manutenzione a ore su un mezzo assente viene ignorata (
 test("coperturaRapportini: un rapportino di una squadra sconosciuta non falsa il conteggio", () => {
   const c = campo.coperturaRapportini(
     [{ nome: "Squadra A — Perforazione" }],
-    [{ squadra: "Squadra Z", stato: "inviato" }, { squadra: "Squadra A", stato: "inviato" }]);
+    [{ squadra: "Squadra Z", stato: "inviato", data: "2026-08-14" },
+     { squadra: "Squadra A", stato: "inviato", data: "2026-08-14" }]);
   eq(c.coperte, 1, "solo A conta");
   eq(c.totale, 1, "una squadra");
   eq(c.mancanti, [], "A ha consegnato");
@@ -12638,7 +12662,21 @@ test("⛔ Flotta: senza le ore, il costo orario NON è zero", () => {
     eq(r.euroOra, null, "niente €/h");
     eq([r.da, r.a], [null, null], "e nessuna finestra inventata");
     eq(r.ore, null, "le ore ci sarebbero, ma da sole non bastano a fare un rapporto");
-    ok(/non portano la data/.test(r.perche), "e si dice quale delle due cose manca: " + r.perche);
+    /* ⛔ E LA RAGIONE È QUELLA DEL MODULO CHE LE ORE LE CONTA, NON UNA COPIA
+       (17/08). Prima questa riga pretendeva la frase «i rifornimenti col
+       contatore non portano la data», che `costoOrarioMezzo` si scriveva da
+       sé guardando `da`/`a`: due funzioni che rispondevano alla stessa domanda
+       con due frasi. Da quando `consumoPerMezzo` si rifiuta di contare le ore
+       fra due estremi non datati, la ragione nasce dove nasce il numero e
+       questa funzione la LEGGE. L'asserzione è più severa di prima: non
+       controlla più che ci sia scritta una frase, controlla che sia **la
+       stessa stringa** di `consumoPerMezzo` — due copie uguali oggi divergono
+       domani senza che nessuno se ne accorga. */
+    const cpm = flotta.consumoPerMezzo(
+      [{ mezzo: "Pala X", litri: 100, ore: 1000, euro: 150 },
+       { mezzo: "Pala X", litri: 100, ore: 1100, euro: 150 }]).mezzi[0];
+    eq(r.perche, cpm.perche, "la ragione è quella di consumoPerMezzo, non una seconda stesura");
+    ok(/non ha il giorno/.test(r.perche), "e dice quale delle due cose manca: " + r.perche);
     eq(r.totale, 600, "la spesa registrata invece resta leggibile, come per il Dumper D3");
   });
 
@@ -19935,11 +19973,32 @@ test("⛔ piuGiorni: una data che non esiste non produce una scadenza", () => {
     eq(sentinella.statoMisura(nuovo).stato, "mai", "il modulo lo sa già dire");
     const r = colonne(righeCsv(sentinella.csvAmbiente([nuovo], [], []))[1]);
     eq([r[2], r[5]], ["", "Mai misurato"], "⛔ la cella del valore è vuota, non «0»");
-    // lo storico: una lettura illeggibile non diventa uno zero nel file
+    /* lo storico: una lettura illeggibile non diventa uno zero nel file.
+       ⚠️ L'ASSERZIONE È INVECCHIATA IL 18/08, E SI CORREGGE PIÙ GIUSTA, NON PIÙ
+       PERMISSIVA. Pretendeva la cella `"2026-07-01:60 2026-07-02:"`: teneva la
+       riga illeggibile come una coppia `data:` con la casella vuota. Ma la
+       stessa forma serviva anche a una data che NON ESISTE — `2026-02-30:99` —
+       e lì la coppia non era vuota: portava un valore che nessuna schermata
+       conta, dentro il file che esce dall'azienda. Adesso le leggibili si
+       scrivono e le altre si DICHIARANO, che è la stessa cosa che il report
+       fa a schermo. Le due metà si provano separate, se no basterebbe far
+       sparire tutto per passare. */
     const rotto = { nome: "P", tipo: "rumore", unita: "dB(A)", soglia: 70, valore: 60,
       letture: [{ data: "2026-07-01", valore: 60 }, { data: "2026-07-02", valore: null }] };
-    eq(colonne(righeCsv(sentinella.csvAmbiente([rotto], [], []))[1])[6], "2026-07-01:60 2026-07-02:",
-      "la riga c'è (nessuna sparisce), ma il valore che non si legge resta vuoto");
+    const cS = colonne(righeCsv(sentinella.csvAmbiente([rotto], [], []))[1])[6];
+    ok(cS.startsWith("2026-07-01:60"), "la lettura leggibile è scritta com'era");
+    ok(!/2026-07-02\s*:/.test(cS), "⛔ e quella senza valore non è più una coppia data:valore nel file");
+    ok(/\b1 lettura non utilizzabile\b/.test(cS),
+      "⛔ ma nemmeno sparisce in silenzio: il file dichiara la riga che non ha potuto usare");
+    // la data che NON ESISTE: è la stessa domanda, e prima passava col suo valore
+    const impossibile = { nome: "P", tipo: "polveri", unita: "µg/m³", soglia: 40, valore: 31,
+      letture: [{ data: "2026-06-01", valore: 20 }, { data: "2026-02-30", valore: 99 },
+                { data: "2026-06-08", valore: 31 }] };
+    const cI = colonne(righeCsv(sentinella.csvAmbiente([impossibile], [], []))[1])[6];
+    ok(!cI.includes("2026-02-30"), "⛔ il file per l'ente non scrive un giorno che non esiste");
+    ok(!cI.includes(":99"), "⛔ né il valore che quel giorno si portava dietro");
+    ok(cI.startsWith("2026-06-01:20 2026-06-08:31"), "le due letture vere restano, in ordine di data");
+    ok(/\b1 lettura non utilizzabile\b/.test(cI), "e la terza è dichiarata, non nascosta");
     // il conflitto di unità: il file lo dichiara invece di far sembrare applicata una soglia che non lo è
     const RICu = [{ id: "r1", nome: "Scuola", soglia: 40, unita: "µg/m³" }];
     const dB = { nome: "Rumore", tipo: "rumore", unita: "dB(A)", soglia: 70, valore: 62, ricettoreId: "r1",
@@ -20164,9 +20223,32 @@ test("⛔ piuGiorni: una data che non esiste non produce una scadenza", () => {
     eq(flotta.consumoPerMezzo([pieno("2026-07-01", 5620), pieno("2026-07-01", 5600),
                                pieno("2026-08-01", 5900)]).mezzi[0].oreCoperte, 300,
       "due letture lo STESSO giorno si registrano in qualunque ordine: nessun falso allarme");
-    eq(flotta.consumoPerMezzo([{ mezzo: "Escavatore E1", data: "", litri: 300, euro: 450, ore: 5900 },
-                               pieno("2026-06-01", 5600), pieno("2026-07-01", 5870)]).mezzi[0].oreCoperte, 300,
-      "una lettura senza data non delimita la finestra e non fa scattare la guardia");
+    /* ⛔ QUESTA RIGA È CAMBIATA IL 17/08, E LA VECCHIA VERSIONE CONFONDEVA DUE
+       COSE CHE SI CHIAMANO TUTT'E DUE «FINESTRA». Diceva: «una lettura senza
+       data non delimita la finestra e non fa scattare la guardia», e
+       pretendeva `oreCoperte === 300` — cioè 5900 − 5600, dove il **5900 è
+       proprio la lettura senza data**. Vero per la finestra di DATE (`da`/`a`,
+       che le letture non datate non toccano, ed è la decisione scritta nel
+       modulo); falso per l'intervallo di ORE, che quella lettura la usava come
+       estremo. Un'asserzione che dimostrava il contrario del suo commento.
+       Adesso una lettura che nessuno sa collocare nel tempo non fa da estremo:
+       il consumo si rifiuta e dice perché. L'asserzione non è più permissiva —
+       è più severa: dove prima si accettava un numero, adesso si pretende un
+       rifiuto **e** la sua ragione. */
+    const conEstremoMuto = flotta.consumoPerMezzo(
+      [{ mezzo: "Escavatore E1", data: "", litri: 300, euro: 450, ore: 5900 },
+       pieno("2026-06-01", 5600), pieno("2026-07-01", 5870)]).mezzi[0];
+    eq([conEstremoMuto.oreCoperte, conEstremoMuto.litriOra], [null, null],
+      "⛔ una lettura senza data non può fare da estremo alle ore (dava 300 h e 2,00 l/h)");
+    eq(/non ha il giorno/.test(conEstremoMuto.perche), true,
+      "e la riga dice quale lettura manca: «" + conEstremoMuto.perche.slice(0, 46) + "…»");
+    // ⚠️ ma DENTRO l'intervallo non delimita niente, e allora il conto si fa:
+    //    i suoi litri restano, e nessun dato viene buttato via
+    const dentro = flotta.consumoPerMezzo(
+      [pieno("2026-06-01", 5600), { mezzo: "Escavatore E1", data: "", litri: 300, euro: 450, ore: 5700 },
+       pieno("2026-07-01", 5870)]).mezzi[0];
+    eq([dentro.oreCoperte, dentro.litriOra], [270, 2.22],
+      "una lettura senza data in mezzo non delimita niente: il conto si fa, coi suoi litri dentro");
     // il parco della dimostrazione non si muove di un decimo
     eq(flotta.consumoPerMezzo(flotta.DEMO.rifornimenti).calcolabili, 3, "la dimostrazione resta com'era");
   });
@@ -32701,6 +32783,1162 @@ test("frasePersi · ⚠️ NIENTE `esc()`: la frase esce come l'utente l'ha scri
   });
 }
 /* ===== fine Scudo · il pannello verde e i registri muti ===== */
+
+/* ═══════════════════════════════════════════════════════════════════════
+   SCUDO E SENTINELLA SU VOLUME — quello che la cava sintetica ha esercitato
+   ───────────────────────────────────────────────────────────────────────
+   Da dove vengono queste prove: una cava sintetica di 24 mesi, tre taglie
+   (4, 7 e 35 persone) e dodici semi — 108 cave, 1.008 letture ambientali, 69
+   superamenti, 74 infortuni veri. Su quel volume le tre difese qui sotto
+   hanno retto senza una divergenza; queste righe le inchiodano, perché una
+   misura fatta una volta in uno scratchpad alla sessione dopo non esiste.
+   ⚠️ Le fixture sono SCRITTE QUI e non generate: il generatore è un file di
+   un altro cantiere e si muove: una suite che lo importa diventa rossa
+   quando quel file è a metà di una modifica. Quello che il generatore ha
+   dato è la CONFIDENZA sui numeri; quello che resta in git è il caso minimo.
+   ⚠️ Prove SINCRONE e messe PRIMA del riepilogo: l'`await Promise.all(inVolo)`
+   sta a metà file, quindi una prova asincrona aggiunta qui verrebbe messa in
+   volo e il totale si stamperebbe senza aspettarla.
+   ⚠️ Ogni prova porta la sua COPPIA DISCRIMINANTE: accanto al caso che deve
+   passare c'è quello che deve dare la risposta opposta. Un'asserzione che
+   dice solo «questo è un superamento» passerebbe anche con un controllo che
+   risponde sempre di sì — è la controprova scritta dentro la prova, e senza
+   di lei non si saprebbe se sta misurando qualcosa. */
+{
+  const OGGI_VOL = new Date("2026-08-14T12:00:00Z");
+  /* un punto di misura con soglia 5, nella forma che l'app legge davvero */
+  const punto = (letture, extra = {}) => ({
+    id: "mv1", nome: "Ricettore abitazione", tipo: "vibrazioni", soglia: 5,
+    unita: "mm/s", ricettoreId: "rcv1", tarature: [], nota: "",
+    valore: letture.length ? letture[letture.length - 1].valore : null,
+    letture, ...extra,
+  });
+  const RIC = [{ id: "rcv1", nome: "Abitazione via Cava", distanzaM: 320 }];
+  const report = (m) => sentinella.reportConformita({
+    monitoraggi: [m], ricettori: RIC, reclami: [], volate: [], dal: "", al: "", oggi: OGGI_VOL });
+
+  test("⛔ Sentinella · la lettura PARI alla soglia è un superamento per tutti e cinque i lettori", () => {
+    /* `conSoglia` dice `>=`, e su quel confine si decide se un documento che
+       va all'ente scrive «Conforme» o «Non conforme». Sui 108 casi generati i
+       cinque lettori non hanno mai divergiuto; qui si fissa il confine esatto,
+       che il caso a caso non tocca quasi mai (su 1.008 letture generate,
+       nessuna cadeva ESATTAMENTE su 5,00). */
+    const pari = punto([{ id: "l1", data: "2026-07-01", valore: 5 }]);
+    eq(sentinella.statPeriodo(pari, "", "", 5).superamenti, 1, "schermo: 5,00 su soglia 5 è un superamento");
+    eq(report(pari).nSuperamenti, 1, "documento per l'ente: idem");
+    eq(report(pari).esito, "non-conforme", "e l'esito del documento lo dice");
+    eq(sentinella.statoMisura(pari).stato, "superamento", "il badge dello schermo: idem");
+    ok(!!sentinella.ultimaLetturaOltre(pari, 5), "il ponte verso Scudo: idem");
+    eq(sentinella.esitoPunto(1, 1, 5), "non-conforme", "e la regola del singolo punto");
+    ok(/;Superamento;/.test(sentinella.csvAmbiente([pari], [], RIC, OGGI_VOL)),
+      "il CSV per l'ARPA scrive «Superamento», non «Attenzione»");
+
+    /* LA COPPIA DISCRIMINANTE: un capello sotto la soglia NON è un
+       superamento. Senza questa metà la prova passerebbe con un `>=` scritto
+       come `>= 0`, cioè con un controllo che accusa sempre. */
+    const sotto = punto([{ id: "l1", data: "2026-07-01", valore: 4.99 }]);
+    eq(sentinella.statPeriodo(sotto, "", "", 5).superamenti, 0, "4,99 su 5 NON è un superamento (schermo)");
+    eq(report(sotto).nSuperamenti, 0, "4,99 su 5 NON è un superamento (documento)");
+    eq(report(sotto).esito, "conforme", "e lì l'esito è «conforme»");
+    eq(sentinella.statoMisura(sotto).stato, "attenzione", "il badge dice «attenzione», che è il gradino sotto");
+  });
+
+  test("⛔ Sentinella · su un archivio di 24 letture schermo e documento contano LO STESSO", () => {
+    /* Il difetto che questa prova esiste per prendere è quello del 03/08: il
+       file che esce dall'azienda che dice una cosa diversa dallo schermo.
+       Ventiquattro letture — due anni di misure mensili, il volume che la
+       dimostrazione non ha — di cui tre oltre soglia e una ESATTAMENTE pari. */
+    const letture = Array.from({ length: 24 }, (_, i) => ({
+      id: "l" + (i + 1),
+      data: `${2025 + Math.floor(i / 12)}-${String((i % 12) + 1).padStart(2, "0")}-10`,
+      valore: i === 5 ? 6.2 : i === 11 ? 5 : i === 17 ? 5.4 : 1 + (i % 7) * 0.5,
+    }));
+    const m = punto(letture);
+    const aMano = letture.filter(l => l.valore >= 5).length;
+    eq(aMano, 3, "la fixture contiene davvero tre superamenti (se no la prova non prova niente)");
+    const sp = sentinella.statPeriodo(m, "", "", 5), rep = report(m);
+    eq(sp.n, 24, "lo schermo vede tutte e 24 le letture");
+    eq(rep.punti[0].n, 24, "e il documento pure");
+    eq(sp.superamenti, aMano, "lo schermo conta i tre superamenti");
+    eq(rep.nSuperamenti, aMano, "e il documento conta gli stessi tre");
+    eq(rep.esito, "non-conforme", "quindi il documento NON assolve la cava");
+    eq(rep.punti[0].max, 6.2, "e il massimo è quello vero");
+
+    /* LA COPPIA DISCRIMINANTE: lo stesso archivio senza le tre righe alte
+       deve ribaltare l'esito. Senza, «non-conforme» potrebbe essere una
+       risposta che quella funzione dà sempre. */
+    const sane = punto(letture.map(l => (l.valore >= 5 ? { ...l, valore: 2 } : l)));
+    eq(sentinella.statPeriodo(sane, "", "", 5).superamenti, 0, "tolte le tre alte, lo schermo non vede superamenti");
+    eq(report(sane).nSuperamenti, 0, "né il documento");
+    eq(report(sane).esito, "conforme", "e lì l'esito si ribalta");
+  });
+
+  test("⛔ Scudo · l'infortunio senza anno leggibile non sparisce dagli indici in silenzio", () => {
+    /* La difesa chiusa il 14/08, rimessa alla prova su volume: 288 casi
+       iniettati su 72 cave, nessuna difesa muta. Qui restano le quattro forme
+       di data che un registro può portare, perché sono quattro strade diverse
+       per arrivare allo stesso `null`. */
+    const conAnno = { id: "i1", tipo: "infortunio", data: "2026-03-11", gravita: "media", giorniAssenza: 12 };
+    const ORE = 11900;   // sette persone × 1.700 h, la taglia media della cava sintetica
+    for (const forma of ["", null, "boh", "13"]) {
+      const reg = [conAnno, { id: "i2", tipo: "infortunio", data: forma, gravita: "media", giorniAssenza: 4 }];
+      const ii = scudo.indiciInfortunistici(reg, ORE, 2026);
+      eq(ii.infortuni, 1, `data ${mostra(forma)}: nel conto dell'anno entra solo quello con la data`);
+      eq(ii.senzaAnno, 1, `data ${mostra(forma)}: e l'altro si CONTA a parte, non sparisce`);
+      ok(/più BASSI del vero/.test(scudo.avvisoInfortuniSenzaAnno(ii) || ""),
+        `data ${mostra(forma)}: e la frase dice in che verso l'indice sbaglia`);
+      eq(scudo.riepilogoInfortuni(reg, OGGI_VOL).dataIgnota, 1,
+        `data ${mostra(forma)}: anche il cartellone in cima alla stessa schermata lo dichiara`);
+      eq(scudo.riepilogoInfortuni(reg, OGGI_VOL).infortuni, 2,
+        `data ${mostra(forma)}: e il cartellone conta DUE infortuni, non uno`);
+    }
+
+    /* LA COPPIA DISCRIMINANTE, e non è una formalità: `annoRegistrato` legge
+       i primi quattro caratteri, quindi «2026» — senza mese né giorno — un
+       anno CE L'HA. Se la prova pretendesse `senzaAnno: 1` anche qui starebbe
+       chiedendo al prodotto di sbagliare. */
+    const soloAnno = [conAnno, { id: "i2", tipo: "infortunio", data: "2026", gravita: "media", giorniAssenza: 4 }];
+    const jj = scudo.indiciInfortunistici(soloAnno, ORE, 2026);
+    eq(jj.senzaAnno, 0, "«2026» un anno ce l'ha: non si conta fra quelli senza");
+    eq(jj.infortuni, 2, "e quell'infortunio entra nel conto dell'anno");
+    eq(scudo.avvisoInfortuniSenzaAnno(jj), null, "quindi non c'è niente da avvertire");
+
+    /* e un registro tutto leggibile non deve far scattare niente */
+    const pulito = scudo.indiciInfortunistici([conAnno], ORE, 2026);
+    eq(pulito.senzaAnno, 0, "registro pulito: nessun senzaAnno");
+    eq(scudo.avvisoInfortuniSenzaAnno(pulito), null, "e nessun avviso");
+    eq(pulito.indiceFrequenza, 84.03, "IF di un infortunio su 11.900 ore");
+    eq(pulito.ltifr, 84.03, "e il LTIFR, perché quell'infortunio ha giornate di assenza");
+  });
+}
+/* ===== fine Scudo e Sentinella · su volume ===== */
+
+/* ══════════════════════════════════════════════════════════════════════════
+   CONTI E FLOTTA SU UNA CAVA CHE CAMMINA — le difese che la dimostrazione
+   non esercita mai, provate su archivi lunghi e sui casi storti.
+   ══════════════════════════════════════════════════════════════════════════
+   ⚠️ Prove SINCRONE e messe PRIMA del riepilogo: l'`await Promise.all(inVolo)`
+   sta a metà file, quindi una prova asincrona aggiunta qui non verrebbe
+   aspettata e il totale si stamperebbe senza di lei.
+   ⛔ Queste prove blindano ciò che è stato MISURATO CORRETTO il 16/08 con la
+   cava sintetica a 24 mesi. I difetti trovati nella stessa sessione NON sono
+   qui: una prova rossa in cima al branch non è una segnalazione, è un blocco
+   per tutti gli altri cantieri. Stanno nella relazione, con il loro caso
+   minimo riproducibile. */
+{
+  const OGGI = new Date("2026-08-14T12:00:00Z");
+
+  test("⛔ Conti · su due anni lo `scadutoTot` non si mangia la fattura senza scadenza", () => {
+    /* La promessa scritta il 01/08 accanto ad `agingIncassi`: la fascia
+       `senzaScadenza` nasce PER non gonfiare né sgonfiare lo scaduto. Su un
+       archivio corto non si vede; qui il credito senza data vale un terzo. */
+    const F = [
+      { id: "a", numero: "A", cliente: "Alfa", importo: 10000, emessa: "2024-09-01", scadenza: "2024-10-01", incassata: false },
+      { id: "b", numero: "B", cliente: "Beta", importo: 10000, emessa: "2026-05-01", scadenza: null, incassata: false },
+      { id: "c", numero: "C", cliente: "Gamma", importo: 10000, emessa: "2026-08-01", scadenza: "2026-10-31", incassata: false },
+    ];
+    const g = conti.agingIncassi(F, OGGI);
+    eq(g.senzaScadenza.conto, 1, "la fattura senza scadenza ha un secchio suo");
+    eq(g.senzaScadenza.importo, 10000, "e ci porta dentro il suo importo intero");
+    eq(g.nonScaduto.conto, 1, "«non scaduto» resta la sola fascia tranquilla, e contiene solo chi è nei termini");
+    eq(g.oltre90.conto, 1, "il credito di due anni fa cade oltre i 90 giorni");
+    eq(g.scadutoTot, 10000, "lo scaduto è SOLO quello davvero scaduto: la senza-scadenza non lo gonfia");
+    /* controprova: togliendo la senza-scadenza lo scaduto non si muove */
+    eq(conti.agingIncassi([F[0], F[2]], OGGI).scadutoTot, 10000,
+      "controprova: senza quella fattura lo scaduto è identico — quindi non ci era mai entrata");
+    /* e il conto delle righe torna: nessuna fattura aperta sparisce dall'aging */
+    const somma = ["nonScaduto", "g1_30", "g31_60", "g61_90", "oltre90", "senzaScadenza"]
+      .reduce((t, k) => t + g[k].conto, 0);
+    eq(somma, 3, "tutte e tre le aperte sono da qualche parte: l'aging non ne perde nessuna");
+  });
+
+  test("⛔ Conti · la difesa del listino del 14/08 regge: «10%» e il quintale si DICHIARANO", () => {
+    /* Il difetto chiuso il 14/08: «10%» letto come 22 e il quintale come
+       tonnellata, in silenzio. Il valore di ripiego resta (è la scelta
+       dichiarata), quello che non deve tornare è il silenzio. */
+    const a = conti.leggiAliquotaListino("10%");
+    eq(a.iva, 22, "«10%» non si legge: il ripiego resta l'aliquota ordinaria");
+    eq(a.letta, false, "⛔ ma è DICHIARATO che il 22 lo abbiamo messo noi");
+    eq(a.vuota, false, "e non è una cella vuota: qualcuno ci aveva scritto qualcosa");
+    eq(conti.leggiAliquotaListino("10").letta, true, "«10» invece si legge, ed è 10");
+    eq(conti.leggiAliquotaListino("10").iva, 10, "dieci per cento, non ventidue");
+    eq(conti.leggiAliquotaListino("0").letta, true, "uno zero SCRITTO è una decisione di chi compila");
+    const u = conti.leggiUnitaListino("q");
+    eq(u.unita, "t", "il quintale non lo conosciamo: ripiego sulla tonnellata");
+    eq(u.riconosciuta, false, "⛔ e lo si dichiara, invece di far passare 100 kg per 1.000");
+    eq(conti.leggiUnitaListino("mc").riconosciuta, true, "controprova: «mc» è riconosciuta davvero");
+    /* e la dichiarazione ARRIVA a chi importa, che è la metà che conta */
+    const sc = conti.scartiListinoCsv("Pietrisco 8/12;q;12,00;1,5;10%");
+    eq(sc.entrano, 1, "la riga entra: è buona, il prodotto è vendibile");
+    eq(sc.avvisi.length, 2, "⛔ ma porta con sé DUE avvisi, uno per cella messa da noi");
+    eq(sc.avvisi.filter(x => x.campo === "unita").length, 1, "uno sull'unità");
+    eq(sc.avvisi.filter(x => x.campo === "iva").length, 1, "e uno sull'aliquota");
+    /* controprova: una riga scritta per bene non deve far scattare niente */
+    eq(conti.scartiListinoCsv("Pietrisco 8/12;t;12,00;1,5;22").avvisi.length, 0,
+      "controprova: con unità e aliquota scritte bene, zero avvisi");
+  });
+
+  test("⛔ Conti · csvListino → parseListinoCsv: il giro non perde né inventa", () => {
+    /* La coppia scrivi/leggi provata sul TESTO, non solo sull'identità: due
+       metà che sbagliano insieme resterebbero verdi (regola di casa). */
+    const P = [
+      { id: "p1", nome: "Stabilizzato 0/30", unitaPrezzo: "t", prezzo: 8.5, densita: 1.9, iva: 22 },
+      { id: "p3", nome: "Sabbia lavata 0/4", unitaPrezzo: "m3", prezzo: 22, densita: 1.6, iva: 22 },
+      { id: "p5", nome: "Misto di cava", unitaPrezzo: "t", prezzo: 6.5, densita: null, iva: 22 },
+    ];
+    const testo = conti.csvListino(P);
+    eq(/\n[^\n]*Misto di cava;t;6\.5;;22/.test(testo), true,
+      "la densità che manca esce come cella VUOTA, mai come zero: uno zero direbbe «senza peso»");
+    const r = conti.parseListinoCsv(testo);
+    eq(r.length, 3, "rientrano tutti e tre");
+    eq(r[1].unitaPrezzo, "m3", "il metro cubo torna metro cubo (esce «mc», rientra «m3»)");
+    eq(r[2].densita, null, "e la densità assente rientra assente, non zero");
+    eq(conti.scartiListinoCsv(testo).avvisi.length, 0,
+      "⛔ e il file che scriviamo noi non fa scattare nessun avviso: le due funzioni usano la stessa costante");
+  });
+
+  test("⛔ Flotta · il contatore che scende: le due letture dello stesso fatto si RIFIUTANO insieme", () => {
+    /* Il caso del 03/08 (0,68 l/h invece di 2,22), rimesso alla prova: allora
+       `consumoPerMezzo` rispondeva e `ritmoOreMezzi` no. Adesso devono tacere
+       tutt'e due, se no una schermata smentisce l'altra. */
+    const R = [
+      { id: "a1", data: "2026-06-01", mezzo: "Pala P1", litri: 400, euro: 600, ore: 5600 },
+      { id: "a2", data: "2026-06-15", mezzo: "Pala P1", litri: 400, euro: 600, ore: 5750 },
+      { id: "a3", data: "2026-07-01", mezzo: "Pala P1", litri: 400, euro: 600, ore: 4870 },
+    ];
+    const c = flotta.consumoPerMezzo(R).mezzi[0];
+    eq(c.litriOra, null, "⛔ il consumo NON si calcola: una delle due letture è sbagliata");
+    eq(c.oreCoperte, null, "e nemmeno le ore coperte, che sarebbero il denominatore falso");
+    eq(/contatore è sceso/.test(c.perche), true, "e la ragione è scritta in italiano a chi guarda");
+    const r = flotta.ritmoOreMezzi(R, OGGI)[0];
+    eq(r.oreGiorno, null, "⛔ e il ritmo d'uso si rifiuta sullo stesso dato");
+    eq(c.litriOra == null, r.oreGiorno == null, "le due schermate dicono la STESSA cosa");
+    /* controprova: col contatore che sale, tutt'e due rispondono */
+    const S = R.map((x, i) => i === 2 ? { ...x, ore: 5900 } : x);
+    const c2 = flotta.consumoPerMezzo(S).mezzi[0];
+    eq(c2.oreCoperte, 300, "controprova: 5900 − 5600 = 300 ore coperte");
+    eq(c2.litriOra, 2.67, "e 800 litri dopo il primo pieno fanno 2,67 l/h");
+    /* ⚠️ il ritmo si chiede a un «oggi» VICINO all'ultima lettura: con OGGI
+       (14/08) l'ultima è di 44 giorni prima e `ritmoOreMezzi` si rifiuta a
+       ragione — «quel ritmo racconta un periodo passato, non questo». La prima
+       stesura di questa riga accusava il prodotto di un difetto che era mio. */
+    const vicino = new Date("2026-07-05T12:00:00Z");
+    eq(flotta.ritmoOreMezzi(S, vicino)[0].oreGiorno, 10, "e il ritmo torna misurabile: 300 h in 30 giorni");
+    eq(flotta.ritmoOreMezzi(S, OGGI)[0].oreGiorno, null,
+      "mentre a 44 giorni di distanza si rifiuta, e lo dice: un ritmo vecchio non è il ritmo di adesso");
+  });
+
+  test("⛔ Flotta · un pezzo esaurito senza soglia non è «a posto», e `mancano` resta «non lo so»", () => {
+    /* `parseRicambiCsv` lascia `sogliaMin: null` quando la colonna è vuota —
+       una soglia inventata farebbe tacere un allarme. Qui si prova che i
+       quattro stati reggono su un magazzino arrivato da un import. */
+    const M = flotta.parseRicambiCsv([
+      "nome;giacenza;sogliaMin;prezzo",
+      "Filtro A;1;5;10",
+      "Pompa B;0;;",
+      "Cinghia C;40;;",
+    ].join("\n"));
+    eq(M.length, 3, "entrano tutti e tre: quello che fa perdere la riga è il NOME");
+    eq(M[1].sogliaMin, null, "la soglia mai scritta resta null, non zero");
+    eq(flotta.statoScorta(M[0]).stato, "sotto-scorta", "1 su 5: sotto scorta");
+    eq(flotta.statoScorta(M[1]).stato, "esaurito", "zero pezzi è misurato, e vale anche senza soglia");
+    eq(flotta.statoScorta(M[1]).mancano, null, "⛔ ma quanti ne manchino per una soglia che nessuno ha scritto NON si sa");
+    eq(flotta.statoScorta(M[2]).stato, "senza-soglia", "40 pezzi e nessuna soglia: non giudicabile, non «ok»");
+    eq(flotta.statoScorta(M[2]).cls, "warn", "e il colore non è quello tranquillo");
+    const ss = flotta.sottoScorta(M);
+    eq(ss.length, 2, "nell'avviso ci finiscono l'esaurito e il sotto-scorta, non il non-giudicabile");
+    /* controprova: con la soglia scritta, lo stesso pezzo cambia risposta */
+    eq(flotta.statoScorta({ ...M[2], sogliaMin: 3 }).stato, "a-posto",
+      "controprova: scritta la soglia, 40 su 3 è davvero a posto");
+  });
+}
+/* ===== fine Conti e Flotta · su cava sintetica a 24 mesi ===== */
+
+/* ══════════════════════════════════════════════════════════════════════════
+   ⛔ CONTI · LA PREVISIONE INCASSI DICHIARA QUELLO CHE NON HA POTUTO
+   PIANIFICARE (17/08)
+
+   Fino a oggi `incassoPerMese` aveva due `continue` MUTI — la fattura senza
+   scadenza e quella oltre l'orizzonte — e restituiva `{mesi, scadute}`: nessun
+   posto in cui quel credito potesse comparire. Misurato con tre fatture aperte
+   da 10.000 € l'una (una a settembre, una senza scadenza, una a giugno
+   dell'anno dopo; orizzonte 6 mesi, quello che la pagina passa fisso su tutto
+   l'archivio):
+
+       crediti aperti:              3 per 30.000 €
+       dentro la previsione:        1 per 10.000 €
+       dichiarati come «scadute»:   0 per      0 €
+       ⇒ NON contati e NON dichiarati: 2 per 20.000 €
+
+   E togliendo la sola fattura pianificabile, `prev.mesi.some(m => m.conto)`
+   diventa `false` e la pagina entrava nel ramo vuoto: «Niente in arrivo —
+   Nessuna fattura in scadenza nei prossimi 6 mesi» con 20.000 € di credito
+   aperto in casa. Direzione: RASSICURA, e su soldi dovuti.
+
+   La forma giusta era già in casa, nella schermata ACCANTO: `agingIncassi` dà
+   alla fattura senza scadenza una fascia dichiarata invece di farla sparire —
+   quindi questa era «una regola corretta in un posto solo». Le prove qui sotto
+   la pretendono su TUTT'E DUE le funzioni, e in più pretendono che la pagina
+   la LEGGA: una guardia che non legge nessuno non protegge niente (regola 20).
+
+   ⚠️ Prove SINCRONE e messe PRIMA del riepilogo: l'`await Promise.all(inVolo)`
+   sta a metà file, e una prova asincrona appesa qui non verrebbe aspettata.
+   ══════════════════════════════════════════════════════════════════════════ */
+{
+  const OGGI_P = new Date(2026, 7, 17);               // 17/08/2026, ora locale
+  const fatt = (n, imp, scad, extra = {}) => ({ numero: String(n), cliente: "Cliente " + n,
+    importo: imp, emessa: "2026-07-01", scadenza: scad, incassata: false, ...extra });
+  // dentro i 6 mesi · senza scadenza · oltre l'orizzonte (giugno dell'anno dopo)
+  const TRE = [fatt(1, 10000, "2026-09-30"), fatt(2, 10000, null), fatt(3, 10000, "2027-06-30")];
+
+  test("⛔ Conti · incassoPerMese: il credito che non si può pianificare si DICHIARA, non sparisce", () => {
+    const r = conti.incassoPerMese(TRE, 6, OGGI_P);
+    /* prima di tutto il caso SANO, se no un totale che non torna può essere la
+       fixture invece del prodotto (è costato otto accuse false il 14/08) */
+    const dentro = r.mesi.filter(m => m.conto);
+    eq(dentro.length, 1, "una sola fattura cade dentro l'orizzonte");
+    eq(dentro[0].mese, "2026-09", "ed è quella che scade a settembre");
+    eq(dentro[0].importo, 10000, "col suo importo intero");
+
+    eq(r.senzaScadenza, { conto: 1, importo: 10000 }, "⛔ la fattura senza scadenza ha un secchio suo, come nell'aging");
+    eq(r.oltreOrizzonte, { conto: 1, importo: 10000 }, "⛔ e quella oltre i mesi mostrati pure, con la SUA ragione");
+    eq(r.nonPianificabili, { conto: 2, importo: 20000 }, "⇒ i 20.000 € che prima sparivano adesso sono un numero");
+    eq(r.scadute, { conto: 0, importo: 0 }, "e nessuna di loro viene spacciata per «già scaduta»");
+    eq(r.orizzonte, 6, "l'orizzonte usato torna al chiamante: la frase «oltre i N mesi» non lo indovina");
+
+    /* IL CONTO CHE CHIUDE IL CERCHIO: pianificato + scaduto + non pianificabile
+       deve fare TUTTO il credito aperto. È la stessa asserzione che l'aging ha
+       da sempre («i secchi coprono tutto l'aperto»), e senza di lei una terza
+       categoria scartata domani tornerebbe a sparire in silenzio. */
+    const pianificato = r.mesi.reduce((t, m) => t + m.importo, 0);
+    const aperto = TRE.reduce((t, f) => t + conti.apertoDi(f), 0);
+    eq(pianificato + r.scadute.importo + r.nonPianificabili.importo, aperto,
+      "⛔ i secchi coprono tutto il credito aperto: 10.000 + 0 + 20.000 = 30.000");
+    eq(r.mesi.reduce((t, m) => t + m.conto, 0) + r.scadute.conto + r.nonPianificabili.conto, TRE.length,
+      "e anche i CONTI tornano: nessuna fattura aperta resta fuori da tutti i secchi");
+  });
+
+  test("⛔ Conti · previsione e aging non possono dire due cose sulla stessa fattura", () => {
+    /* la fattura senza scadenza spariva dalla previsione mentre la schermata
+       accanto le dava una fascia dichiarata: «una regola corretta in un posto
+       solo». Qui i due numeri si guardano in faccia. */
+    const p = conti.incassoPerMese(TRE, 6, OGGI_P), a = conti.agingIncassi(TRE, OGGI_P);
+    eq(p.senzaScadenza.conto, a.senzaScadenza.conto, "stesso conto di fatture senza scadenza nelle due schermate");
+    eq(p.senzaScadenza.importo, a.senzaScadenza.importo, "e stesso importo, al centesimo");
+    /* ⚠️ e quello che NON deve diventare uguale: l'aging non ha orizzonte, la
+       fattura di giugno 2027 per lui è semplicemente «non scaduta». Le due
+       funzioni rispondono a due domande diverse e devono continuare a farlo. */
+    eq(a.nonScaduto.conto, 2, "per l'aging settembre e giugno sono tutt'e due «non scaduto»");
+    eq(p.oltreOrizzonte.conto, 1, "mentre la previsione sa che una delle due cade fuori dalla finestra");
+  });
+
+  test("⛔ Conti · «Niente in arrivo» non si può dire con 20.000 € di credito aperto", () => {
+    /* è il caso che produceva la frase falsa: si toglie la sola pianificabile */
+    const soloFuori = [TRE[1], TRE[2]];
+    const r = conti.incassoPerMese(soloFuori, 6, OGGI_P);
+    eq(r.mesi.some(m => m.conto), false, "la condizione che accendeva il ramo vuoto è ancora falsa");
+    eq(r.scadute.conto, 0, "e nemmeno le scadute lo smentivano: prima non restava NIENTE da dire");
+    eq(r.nonPianificabili, { conto: 2, importo: 20000 },
+      "⛔ ma adesso c'è il numero che impedisce alla pagina di dire «niente in arrivo»");
+  });
+
+  test("⛔ Conti · le due ragioni restano separate (portano a due azioni diverse) e l'orizzonte le sposta", () => {
+    /* allargando la finestra, la fattura di giugno 2027 RIENTRA: è la prova che
+       `oltreOrizzonte` è una scelta della finestra e non un dato mancante —
+       per questo non si può fondere con `senzaScadenza`, che invece resta. */
+    const largo = conti.incassoPerMese(TRE, 12, OGGI_P);
+    eq(largo.mesi.length, 12, "dodici mesi restano dodici");
+    eq(largo.oltreOrizzonte, { conto: 0, importo: 0 }, "a 12 mesi giugno 2027 rientra e nessuno è più «oltre»");
+    eq(largo.senzaScadenza, { conto: 1, importo: 10000 }, "⛔ mentre la fattura senza data NON rientra allargando: quel dato manca");
+    eq(largo.nonPianificabili, { conto: 1, importo: 10000 }, "e il totale scende di conseguenza");
+    eq(largo.mesi.filter(m => m.conto).map(m => m.mese), ["2026-09", "2027-06"], "e le due pianificate sono ai loro mesi");
+    eq(largo.orizzonte, 12, "l'orizzonte dichiarato segue quello davvero usato");
+  });
+
+  test("⛔ Conti · una fattura incassata o già stornata non gonfia il credito non pianificabile", () => {
+    /* l'assenza di scadenza non deve diventare una scusa per contare soldi che
+       non sono più dovuti: valgono le stesse regole del resto del modulo —
+       `incassata` esce, e `apertoDi` toglie il residuo e le note di credito */
+    const F = [fatt(10, 10000, null, { incassata: true }),
+               fatt(11, 10000, null, { residuo: 2500 }),
+               fatt(12, 10000, "2027-06-30")];
+    const r = conti.incassoPerMese(F, 6, OGGI_P);
+    eq(r.senzaScadenza, { conto: 1, importo: 2500 }, "l'incassata esce, e della parziale resta il RESIDUO");
+    eq(r.oltreOrizzonte, { conto: 1, importo: 10000 }, "l'altra resta intera, oltre l'orizzonte");
+    eq(r.nonPianificabili, { conto: 2, importo: 12500 }, "totale sul solo credito ancora esigibile");
+    /* e con una nota di credito che ha già stornato metà della fattura senza data */
+    const note = [{ fatturaId: F[1].id, numeroFattura: "11", importo: 1000, data: "2026-08-01" }];
+    const conNota = conti.incassoPerMese(F, 6, OGGI_P, note);
+    eq(conNota.senzaScadenza.importo <= 2500, true, "la nota di credito non può far CRESCERE il non pianificabile");
+  });
+
+  test("⛔ Conti · niente da dichiarare quando non c'è niente: i secchi nuovi restano a zero", () => {
+    /* il verso opposto, che è quello che rende leggibile l'altro: se tutto il
+       credito è collocabile, la pagina non deve stampare nessun avviso */
+    const r = conti.incassoPerMese([fatt(1, 10000, "2026-09-30")], 6, OGGI_P);
+    eq(r.nonPianificabili, { conto: 0, importo: 0 }, "tutto pianificato: niente da dichiarare");
+    eq(r.senzaScadenza, { conto: 0, importo: 0 }, "nessuna senza scadenza");
+    eq(r.oltreOrizzonte, { conto: 0, importo: 0 }, "nessuna oltre l'orizzonte");
+    const vuota = conti.incassoPerMese([], 6, OGGI_P);
+    eq(vuota.nonPianificabili, { conto: 0, importo: 0 }, "archivio vuoto: zero, e senza rompersi");
+    eq(vuota.mesi.length, 6, "e i sei mesi ci sono lo stesso");
+  });
+
+  /* ⛔ E QUESTA PROVA, NELLA SUA PRIMA STESURA, NON SAPEVA FALLIRE — la
+     controprova l'ha bocciata, ed è la parte che vale più del difetto.
+     Chiedeva `src.includes("prev.senzaScadenza")`: spegnendo la lettura vera
+     (`prev.senzaScadenza.conto ? …` diventato `false ? …`) il NOME restava nel
+     file, nella riga sotto, e la prova restava **verde**. È la prima delle
+     cinque cause di «non distingue»: il criterio della prova coincideva con
+     una condizione che regge comunque. Adesso il codice della pagina non si
+     GUARDA, si ESEGUE: si ritagliano dal sorgente le due funzioni che
+     compongono la frase e il ramo dello stato vuoto, si chiamano con un `prev`
+     vero, e si pretende che dicano il numero e la ragione. Se le ancore non
+     combaciano più la prova si FERMA invece di passare in silenzio — è
+     l'iniezione scaduta che spegne la controprova, e qui varrebbe uguale. */
+  test("⛔ Conti · la pagina LEGGE i tre secchi nuovi (una guardia che nessuno legge non protegge niente)", () => {
+    const src = readFileSync(new URL("../../conti/index.html", import.meta.url), "utf8");
+    const taglia = (da, finoA) => {
+      const i = src.indexOf(da), j = src.indexOf(finoA, i);
+      if (i < 0 || j < 0) throw new Error(`ancora scaduta nella pagina di Conti («${da.slice(0, 40)}»): questa prova non sta più guardando quello che crede`);
+      return src.slice(i, j);
+    };
+    /* le due funzioni che compongono la frase, prese dal PRODOTTO: riscriverle
+       qui sarebbe una copia debole che approva sé stessa */
+    const sorgFrasi = taglia("const ragioniPrev = (fmt) =>", `$("prev-list").innerHTML`);
+    /* il ramo dello stato vuoto: la graffa che lo chiude nel sorgente è quella
+       di «else if (G())», quindi qui se ne aggiunge una */
+    const sorgVuoto = taglia("const prevVuoto = !prev.mesi.some", "} else if (G()) {") + "}";
+    const rendi = new Function("prev", "plur", "plurale", "eur0", `
+      ${sorgFrasi}
+      let VUOTO = null;
+      const grafVuoto = (id, icona, titolo, istruzione) => { VUOTO = { icona, titolo, istruzione }; };
+      ${sorgVuoto}
+      return { vuoto: VUOTO, nota: prev.nonPianificabili.conto ? notaPrevFuori(eur0, "Fuori da questa previsione") : "" };
+    `);
+    const soldi = (v) => "€ " + Math.round(+v || 0).toLocaleString("it-IT", { useGrouping: true });
+    const nudo = (s) => String(s).replace(/<[^>]+>/g, "");
+
+    // 1) con tutt'e due le ragioni: la nota le dice per nome, col conto e i soldi
+    const due = rendi(conti.incassoPerMese(TRE, 6, OGGI_P), shell.conta, shell.plurale, soldi);
+    const nota = nudo(due.nota);
+    for (const atteso of ["2 fatture aperte", "€ 20.000", "1 fattura senza data di scadenza",
+                          "1 fattura che scade oltre i 6 mesi"])
+      if (!nota.includes(atteso)) throw new Error(`la nota della previsione non dice «${atteso}»: ${nota || "(vuota)"}`);
+    eq(due.vuoto, null, "con una fattura pianificabile non è il ramo vuoto");
+
+    // 2) il caso che produceva la frase falsa: solo credito non pianificabile
+    const soloFuori = rendi(conti.incassoPerMese([TRE[1], TRE[2]], 6, OGGI_P), shell.conta, shell.plurale, soldi);
+    if (!soloFuori.vuoto) throw new Error("con zero mesi pieni la pagina deve pur dire qualcosa");
+    if (/Niente in arrivo/.test(soloFuori.vuoto.titolo))
+      throw new Error(`⛔ «Niente in arrivo» con 20.000 € di credito aperto: ${soloFuori.vuoto.titolo}`);
+    eq(soloFuori.vuoto.titolo, "Non si sa quando arriveranno", "la frase onesta al posto di quella tranquilla");
+    const istr = nudo(soloFuori.vuoto.istruzione);
+    for (const atteso of ["€ 20.000", "senza data di scadenza", "oltre i 6 mesi"])
+      if (!istr.includes(atteso)) throw new Error(`lo stato vuoto non dice «${atteso}»: ${istr}`);
+
+    // 3) il verso opposto: senza niente da dichiarare torna lo stato vuoto di prima
+    const pulito = rendi(conti.incassoPerMese([], 6, OGGI_P), shell.conta, shell.plurale, soldi);
+    eq(pulito.nota, "", "niente da dichiarare, nessuna nota");
+    eq(pulito.vuoto.titolo, "Niente in arrivo", "e su un archivio vuoto «Niente in arrivo» è la verità");
+  });
+}
+/* ===== fine Conti · previsione incassi: il non pianificabile dichiarato ===== */
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   FLOTTA · TRE NUMERI TRANQUILLI DEL MAGAZZINO E DEL GASOLIO (17/08)
+   ═══════════════════════════════════════════════════════════════════════════
+   Tre difetti della stessa famiglia — il numero, o l'ordine, che rassicura
+   dove non è stato misurato niente — e tutt'e tre con la stessa causa: una
+   regola che il modulo sapeva già dire, riscritta più debole un piano sopra.
+   ⚠️ Prove SINCRONE e messe PRIMA del riepilogo: l'`await Promise.all(inVolo)`
+   sta a metà file, quindi una prova asincrona aggiunta qui sarebbe messa in
+   volo e il totale si stamperebbe senza aspettarla (CLAUDE.md, punto 3). */
+{
+  const SPESA_OGGI = new Date("2026-08-17T10:00:00Z");
+  // ⛔ la fixture si scrive DOPO aver letto come `propostaScorte` legge i dati:
+  //    `ricambi` vuole {id, nome, giacenza, sogliaMin, prezzo} e `interventi`
+  //    vuole {data, ricambiUsati:[{id, nome, qta}]}. Un CSV indovinato è
+  //    costato otto accuse false in un giorno (CLAUDE.md).
+  const usi = (id, nome, volte) => Array.from({ length: volte }, (_, k) =>
+    ({ data: `2026-0${5 + k}-10`, ricambiUsati: [{ id, nome, qta: 1 }] }));
+  const proposta = (ricambi, interventi) => flotta.propostaScorte(ricambi, interventi,
+    { consegnaGiorni: 30, sicurezzaGiorni: 7, finestraGiorni: 180, oggi: SPESA_OGGI });
+
+  test("⛔ Flotta · la lista della spesa non conta ZERO EURO i pezzi senza prezzo", () => {
+    /* `spesa` di riga è già `null` quando il ricambio non ha prezzo — che è
+       esattamente ciò che `parseRicambiCsv` produce su una colonna vuota, per
+       la sua decisione 3 («uno zero farebbe sembrare gratis un pezzo che
+       gratis non è»). Il TOTALE se ne teneva una copia più debole, `t + (r.spesa
+       || 0)`, che di quel `null` rifà uno zero: la copia debole scritta dove il
+       documento si compone, un piano sopra la riga che aveva ragione. */
+    const ric = [{ id: "r1", nome: "Denti benna", giacenza: 0, sogliaMin: 2, prezzo: null },
+                 { id: "r2", nome: "Filtro olio", giacenza: 0, sogliaMin: 2, prezzo: 48 },
+                 { id: "r3", nome: "Pompa idraulica", giacenza: 0, sogliaMin: 1, prezzo: null }];
+    const int = [...usi("r1", "Denti benna", 3), ...usi("r2", "Filtro olio", 3), ...usi("r3", "Pompa idraulica", 3)];
+    const p = proposta(ric, int);
+    eq(p.daOrdinare, 3, "tre ricambi da ordinare");
+    eq(p.senzaPrezzo, 2, "⛔ e due di loro non sanno quanto costano: prima non lo diceva NESSUNA chiave");
+    eq(p.righe.filter(r => r.daOrdinare > 0 && r.spesa == null).length, p.senzaPrezzo,
+      "il conto è quello delle righe che la funzione stessa lascia senza spesa, non un secondo censimento");
+    /* ⚠️ E il totale NON diventa `null`: resta la somma di quello che si SA,
+       cioè un minimo vero — la stessa forma che `costoOrdine` usa per la
+       stessa domanda (`ricambi.costo` + `senzaPrezzo`). Quello che cambia è
+       che adesso c'è il numero accanto che impedisce di leggerlo come
+       completo. */
+    const conPrezzi = proposta(ric.map(r => ({ ...r, prezzo: r.prezzo == null ? 200 : r.prezzo })), int);
+    eq(p.senzaPrezzo > 0 && conPrezzi.spesaTotale > p.spesaTotale, true,
+      `il totale dichiarato è un minimo: ${p.spesaTotale} € contro ${conPrezzi.spesaTotale} € coi prezzi scritti`);
+    eq(conPrezzi.senzaPrezzo, 0, "e con tutti i prezzi scritti non c'è niente da dichiarare");
+    // niente da ordinare: nessuna incertezza da dichiarare, e il totale è uno zero VERO
+    const pieno = proposta([{ id: "r2", nome: "Filtro olio", giacenza: 99, sogliaMin: 2, prezzo: 48 }],
+      usi("r2", "Filtro olio", 3));
+    eq([pieno.daOrdinare, pieno.senzaPrezzo, pieno.spesaTotale], [0, 0, 0],
+      "con il magazzino pieno lo zero è misurato, non un dato che manca");
+  });
+
+  test("⛔ Flotta · e se NESSUN pezzo da ordinare ha il prezzo la pagina non tace", () => {
+    /* La seconda faccia, ed è peggiore della prima perché non stampa un numero
+       sbagliato: stampa il silenzio. `spesaTotale` vale `0`, che in JavaScript
+       è falso, e i due lettori scrivevano `p.spesaTotale ? "…" : "."`. */
+    const ric = [{ id: "a", nome: "Cinghia", giacenza: 0, sogliaMin: 2, prezzo: null },
+                 { id: "b", nome: "Tubo", giacenza: 0, sogliaMin: 2, prezzo: null }];
+    const p = proposta(ric, [...usi("a", "Cinghia", 3), ...usi("b", "Tubo", 3)]);
+    eq(p.spesaTotale, 0, "il totale conosciuto è zero, e resta zero: è quello che si sa");
+    eq([p.daOrdinare, p.senzaPrezzo], [2, 2],
+      "⛔ ma i pezzi da comprare ci sono e NESSUNO ha un prezzo: senza questa chiave la riga finiva con un punto");
+    eq(p.senzaPrezzo >= p.daOrdinare, true, "ed è il caso in cui non si dice «almeno X», si dice che non si sa");
+  });
+
+  test("⛔ Flotta · i due lettori della spesa leggono `senzaPrezzo` (una bandiera che nessuno legge non protegge)", () => {
+    /* regola 20 di `run-stile` applicata a mano: il modulo può dichiarare
+       quanto vuole, se la pagina non lo guarda il numero tranquillo si disegna
+       lo stesso. Si legge il CODICE, non il file — un controllo a testo
+       prenderebbe per fatto il commento che racconta la decisione. */
+    const src = _tok.senzaCommenti(readFileSync(new URL("../../flotta/index.html", import.meta.url), "utf8"));
+    if (!/p\.senzaPrezzo/.test(src))
+      throw new Error("la pagina di Flotta non legge `p.senzaPrezzo`: il modulo lo dichiara e nessuno lo guarda");
+    /* ⛔ E VA LETTO IN TUTT'E DUE I POSTI CHE LEGGONO GIÀ `senzaData`: il
+       riepilogo delle scorte e la lista della spesa. Uno solo dei due
+       lascerebbe l'altro a stampare il totale come se fosse completo — che è
+       il difetto di partenza, spostato di una schermata. */
+    if ((src.match(/p\.senzaPrezzo/g) || []).length < 2)
+      throw new Error("`p.senzaPrezzo` è letto in un posto solo: lo schermo e il file della spesa devono dirlo tutt'e due");
+    if (!/codaSpesa/.test(src))
+      throw new Error("la frase del costo non passa più da un posto solo: due copie divergono alla prima correzione");
+    /* ⛔ E CHE SIA DEFINITA NON VUOL DIRE CHE SIA CHIAMATA — questa riga esiste
+       perché la controprova ha bocciato la difesa. Rimettendo il vecchio
+       ternario **al punto di chiamata** e lasciando `codaSpesa` lì definita e
+       inutilizzata, tutte e tre le domande di questa prova rispondevano di sì:
+       la funzione c'era, l'ordine dentro di lei era giusto, e `p.senzaPrezzo`
+       compariva ancora due volte (una nel corpo mai chiamato, una nel file
+       della spesa). Il riepilogo tornava a tacere sullo zero e nessuna prova
+       cadeva. Si guarda la CHIAMATA, non la dichiarazione. */
+    if (!/\+\s*codaSpesa\(p\)/.test(src))
+      throw new Error("il riepilogo delle scorte non chiama più `codaSpesa`: la frase del costo è tornata in linea");
+    /* ⛔ E QUI IL PRIMO RIGHELLO ERA SBAGLIATO, nel modo che CLAUDE.md nomina:
+       guardava una FORMA DI SCRITTURA invece del verdetto. Pretendeva che il
+       ternario `p.spesaTotale ? … : "."` non comparisse più da nessuna parte —
+       ma quel ternario **sopravvive dentro `codaSpesa`**, ed è giusto che ci
+       sia: è il ramo «so tutto», raggiunto solo dopo che `senzaPrezzo` è stato
+       trovato a zero. Il righello accusava il codice sano.
+       Quello che conta non è che il ternario sparisca: è che la domanda sulla
+       spesa non si faccia MAI prima di quella sull'incertezza. Si misura
+       sull'ORDINE dei due nomi dentro il corpo della funzione. */
+    const iCoda = src.indexOf("const codaSpesa");
+    if (iCoda < 0) throw new Error("`codaSpesa` non è più una funzione dichiarata: il controllo sull'ordine non sa dove guardare");
+    const corpo = src.slice(iCoda, iCoda + 700);
+    const iSenza = corpo.indexOf("senzaPrezzo"), iSpesa = corpo.indexOf("spesaTotale");
+    if (!(iSenza > -1 && iSpesa > -1 && iSenza < iSpesa))
+      throw new Error("`codaSpesa` guarda la spesa prima dell'incertezza: sullo zero tornerebbe a tacere");
+  });
+
+  test("⛔ Flotta · «per gravità» non mette per ultimo lo scaffale VUOTO", () => {
+    /* La chiave era `(a.giacenza - a.sogliaMin) - (b.giacenza - b.sogliaMin)`,
+       cioè la soglia mai scritta letta come un numero: `0 - null` fa **0** e
+       col campo assente fa **NaN**. Due scaffali a zero finivano dopo un pezzo
+       che ce l'aveva. Non scrive niente di falso: NASCONDE. */
+    const mag = [{ nome: "Filtro A", giacenza: 1, sogliaMin: 5 },
+                 { nome: "Filtro C", giacenza: 1, sogliaMin: 8 },
+                 { nome: "Pompa B", giacenza: 0, sogliaMin: null },   // import CSV: colonna vuota
+                 { nome: "Cinghia D", giacenza: 0 }];                  // campo del tutto assente
+    const s = flotta.sottoScorta(mag);
+    eq(s.map(r => r.nome), ["Cinghia D", "Pompa B", "Filtro C", "Filtro A"],
+      "⛔ prima usciva «Filtro C → Filtro A → Pompa B → Cinghia D»: i due scaffali vuoti in fondo");
+    eq(s.slice(0, 2).every(r => r.scorta.stato === "esaurito"), true,
+      "in cima ci stanno gli esauriti: un pezzo che non c'è non si monta");
+    eq(s.slice(2).every(r => r.scorta.stato === "sotto-scorta"), true, "e sotto quelli che qualche pezzo ce l'hanno");
+    /* ⚠️ chi entra non cambia — l'ordinamento non è un filtro */
+    eq(s.length, 4, "tutti e quattro restano nell'elenco: si è mosso l'ordine, non gli avvisi");
+    eq(s.map(r => r.mancano), [null, null, 7, 4],
+      "e `mancano` resta `null` dove nessuno ha scritto la soglia: non è «ne mancano zero»");
+    /* ⛔ LA CHIAVE VECCHIA NON DEVE PIÙ COMPARIRE: era il quarto posto che
+       leggeva `sogliaMin` come un numero invece di chiedere a `statoScorta`. */
+    const mod = _tok.senzaCommenti(readFileSync(new URL("../../flotta/flotta-data.js", import.meta.url), "utf8"));
+    if (/a\.giacenza\s*-\s*a\.sogliaMin/.test(mod))
+      throw new Error("`sottoScorta` è tornata a sottrarre `sogliaMin` a mano invece di leggere `statoScorta`");
+  });
+
+  test("⛔ Flotta · l'ordine per gravità è deterministico anche fra due esauriti identici", () => {
+    /* Con la chiave vecchia due esauriti senza soglia davano `NaN`, e un
+       comparatore che risponde NaN non ordina e non è stabile. */
+    const s = flotta.sottoScorta([{ nome: "Zeta", giacenza: 0 }, { nome: "Alfa", giacenza: 0 },
+                                  { nome: "Mezzo", giacenza: 0, sogliaMin: 4 }]);
+    eq(s.map(r => r.nome), ["Mezzo", "Alfa", "Zeta"],
+      "prima chi sa quanti gliene mancano, poi i muti in ordine di nome: nessun NaN a decidere");
+    eq(s.map(r => r.mancano), [4, null, null], "e il `null` non si traveste da zero per farsi ordinare");
+    // e l'ordine non dipende da come arrivano
+    eq(flotta.sottoScorta([{ nome: "Alfa", giacenza: 0 }, { nome: "Mezzo", giacenza: 0, sogliaMin: 4 },
+                           { nome: "Zeta", giacenza: 0 }]).map(r => r.nome), ["Mezzo", "Alfa", "Zeta"],
+      "lo stesso magazzino in un altro ordine dà lo stesso elenco");
+  });
+
+  test("⛔ Flotta · una lettura senza data non fa da estremo alle ore (era DORMIENTE)", () => {
+    /* ⚠️ ONESTÀ: questo difetto non è mai arrivato a nessuno. L'unica via di
+       scrittura di un rifornimento è il form, e `validaRifornimento` pretende
+       un giorno che esista; non c'è nessun lettore CSV dei rifornimenti. Si
+       chiude perché la porta davanti può aprirsi domani — un import dei pieni
+       è la cosa più naturale da scrivere — e allora questo tacerebbe. */
+    const P = (data, ore, litri = 300) => ({ mezzo: "Escavatore E1", data, litri, euro: 450, ore });
+    const muto = flotta.consumoPerMezzo([P("2026-06-01", 5600), P("2026-06-15", 5750, 500), P("", 4870)]).mezzi[0];
+    const datato = flotta.consumoPerMezzo([P("2026-06-01", 5600), P("2026-06-15", 5750, 500), P("2026-07-01", 4870)]).mezzi[0];
+    /* ⛔ IL SEGNO CHE NON SERVE SAPERE QUALE LETTURA SIA QUELLA VERA:
+       togliere la data MIGLIORAVA il verdetto. Le stesse tre letture col
+       giorno scritto davano `null` («il contatore è sceso»); senza il giorno
+       davano **0,91 l/h** e nessuna ragione. L'assenza di un dato non può
+       essere un dato migliore. */
+    eq(datato.litriOra, null, "con la data la guardia scatta da sempre");
+    eq(muto.litriOra, null, "⛔ e adesso scatta anche senza: prima rispondeva 0,91 l/h");
+    eq([muto.oreCoperte, muto.da, muto.a], [null, null, null],
+      "niente ore e niente finestra: non c'è un periodo di cui parlare (prima: 880 ore in 14 giorni, 62 ore al giorno)");
+    eq(/non ha il giorno/.test(muto.perche), true, "e la riga dice che cosa manca: «" + muto.perche.slice(0, 46) + "…»");
+    /* ⚠️ e la ragione dev'essere DIVERSA da quella del contatore sceso: sono
+       due guasti diversi e chi legge deve sapere quale dei due correggere */
+    eq(muto.perche === datato.perche, false, "due cause diverse, due frasi diverse");
+  });
+
+  test("⛔ Flotta · ma una lettura senza data IN MEZZO non delimita niente, e il conto si fa", () => {
+    /* Il costo della stretta, misurato: se rifiutasse anche qui butterebbe via
+       del gasolio vero. Una lettura che sta dentro l'intervallo non fa da
+       estremo, quindi non serve saperla collocare: i suoi litri restano. */
+    const P = (data, ore) => ({ mezzo: "Pala P1", data, litri: 300, euro: 450, ore });
+    const dentro = flotta.consumoPerMezzo(
+      [P("2026-06-01", 5600), P("", 5700), P("2026-07-01", 5870)]).mezzi[0];
+    eq([dentro.oreCoperte, dentro.litriOra], [270, 2.22], "270 ore e 600 litri dopo il primo pieno: si calcola");
+    eq(dentro.perche, "", "e non c'è niente da spiegare");
+    eq([dentro.da, dentro.a], ["2026-06-01", "2026-07-01"],
+      "la finestra di DATE resta quella delle letture datate: è la decisione di sempre, non l'ho toccata");
+    // e i casi già difesi non si muovono di un decimo
+    const sano = flotta.consumoPerMezzo([P("2026-06-01", 5600), P("2026-06-15", 5750), P("2026-07-01", 5870)]).mezzi[0];
+    eq([sano.oreCoperte, sano.litriOra, sano.euroOra], [270, 2.22, 3.33], "il caso sano è quello di sempre");
+    eq(flotta.consumoPerMezzo(flotta.DEMO.rifornimenti).calcolabili, 3, "e la dimostrazione non si muove");
+  });
+
+  test("⛔ Flotta · il €/h legge la ragione di `consumoPerMezzo`, non una seconda stesura", () => {
+    /* `costoOrarioMezzo` aveva un ramo suo per dire «le ore ci sono ma il
+       periodo no», che si accorgeva del caso guardando `da`/`a`: due funzioni
+       che rispondevano alla stessa domanda con due frasi. Adesso il caso arriva
+       già rifiutato dal modulo che le ore le conta, e questa funzione LEGGE. */
+    const r = flotta.costoOrarioMezzo([],
+      [{ mezzo: "Pala X", litri: 100, ore: 1000, euro: 150 },
+       { mezzo: "Pala X", litri: 100, ore: 1100, euro: 150 }])[0];
+    const c = flotta.consumoPerMezzo(
+      [{ mezzo: "Pala X", litri: 100, ore: 1000, euro: 150 },
+       { mezzo: "Pala X", litri: 100, ore: 1100, euro: 150 }]).mezzi[0];
+    eq([r.euroOra, r.ore, r.da, r.a], [null, null, null, null], "senza date non si risponde e non si inventa una finestra");
+    eq(r.perche, c.perche, "la ragione è LA STESSA STRINGA, non un comportamento uguale");
+    /* ⚠️ 300, non 600: qui non c'è nessun intervento d'officina, solo i due
+       pieni da 150 €. La prima stesura di questa riga aveva copiato il 600 da
+       una prova vicina che l'intervento ce l'aveva — un numero atteso portato
+       dentro senza rileggere la fixture, che è il modo in cui una prova accusa
+       il prodotto per un errore proprio. */
+    eq(r.totale, 300, "la spesa registrata resta leggibile: 150 + 150 di gasolio, quella si sa");
+    /* ⛔ e il ramo morto non deve tornare: misurato su 648 combinazioni di tre
+       letture, «ore note ma finestra assente» non si presenta mai */
+    const mod = _tok.senzaCommenti(readFileSync(new URL("../../flotta/flotta-data.js", import.meta.url), "utf8"));
+    if (/non portano la data: non si sa che periodo coprono/.test(mod))
+      throw new Error("è tornata la seconda stesura della ragione dentro `costoOrarioMezzo`");
+  });
+}
+/* ===== fine Flotta · tre numeri tranquilli del magazzino e del gasolio ===== */
+
+/* ══ SENTINELLA · «QUESTA LETTURA SI PUÒ USARE?» AVEVA ANCORA TRE RISPOSTE (18/08)
+   ────────────────────────────────────────────────────────────────────────────
+   In casa la domanda ne ha UNA, `lettureLeggibili`, che guarda la DATA
+   (`dataISOEsiste`) e il VALORE (`numeroDichiarato`). Il 14/08 due sorelle
+   sono state riportate lì per il valore; restavano tre punti che si
+   costruivano le righe per conto loro, e tutti e tre stanno dove il prodotto
+   parla a qualcuno che non è chi ha scritto il dato — il grafico, il file per
+   l'ARPA, l'archivio che riceve le misure dello strumento.
+
+     A · `serieStorica`  chiedeva il valore e NON la data
+     B · la cella `storico` di `csvAmbiente` non chiedeva né l'una né l'altro
+     C · `firmaLettura`  faceva `+valore || 0`: uno ZERO misurato e un valore
+                         ASSENTE avevano la stessa identica firma
+
+   ⚠️ Le prove stanno nei DUE versi: uno zero SCRITTO deve continuare a
+   contare, e un reimport dello stesso file deve continuare a non aggiungere
+   niente. Se no la cura passerebbe anche buttando via i dati buoni.
+   ⚠️ Prove SINCRONE e PRIMA del riepilogo: l'`await Promise.all(inVolo)` sta a
+   metà file, e una prova appesa dopo verrebbe messa in volo e il totale si
+   stamperebbe senza aspettarla. */
+{
+  // il caso minimo, uno solo, letto da tutte e tre le schermate
+  const puntoFantasma = () => ({ id: "pF", nome: "Polveri fronte", tipo: "polveri",
+    unita: "µg/m³", soglia: 40, valore: 31, letture: [
+      { data: "2026-06-01", valore: 20 },
+      { data: "2026-02-30", valore: 99 },   // il 30 febbraio non esiste
+      { data: "2026-06-08", valore: 31 }] });
+
+  test("⛔ Sentinella · il grafico non disegna una lettura datata in un giorno che NON ESISTE", () => {
+    const m = puntoFantasma();
+    const g = sentinella.serieStorica(m);
+    eq(g.n, 2, "due letture disegnate, non tre");
+    eq(g.max, 31, "⛔ e il massimo è quello vero: il 99 fantasma non c'è più");
+    eq(g.superamenti, 0, "⛔ né il superamento che ne discendeva, sotto un documento che dice «Conforme»");
+    eq(g.punti.map((p) => p.data), ["2026-06-01", "2026-06-08"], "restano i due giorni veri, in ordine");
+    ok(!g.xTicks.some((t) => t.label === "30/02"), "⛔ e nessuna etichetta dice «30/02»");
+  });
+
+  test("⛔ Sentinella · grafico, schermo e documento dicono LA STESSA COSA sullo stesso archivio", () => {
+    const m = puntoFantasma();
+    const g = sentinella.serieStorica(m);
+    const s = sentinella.statPeriodo(m, "", "", 40);
+    const r = sentinella.reportConformita({ monitoraggi: [m], ricettori: [] }).punti[0];
+    eq([g.n, s.n, r.n], [2, 2, 2], "lo stesso numero di letture in tutte e tre");
+    eq([g.max, s.max, r.max], [31, 31, 31], "lo stesso massimo");
+    eq([g.superamenti, s.superamenti, r.nSuperamenti], [0, 0, 0], "lo stesso conto dei superamenti");
+    // e non è «gli stessi numeri per caso»: sono le stesse RIGHE
+    eq(g.punti.map((p) => [p.data, p.valore]), r.letture.map((l) => [l.data, l.valore]),
+      "⛔ il grafico disegna esattamente le righe che il documento usa");
+    eq(r.scartate, 1, "e la riga che nessuno dei due ha potuto usare è dichiarata dal documento");
+  });
+
+  test("⛔ Sentinella · il fantasma sbagliava nei DUE VERSI: anche un valore BASSO era un difetto", () => {
+    /* la direzione non è fissa, ed è per questo che è peggio e non meglio: col
+       99 il grafico gonfiava, con un valore basso ABBASSA la linea — cioè
+       rassicura, e nessuna forma del disegno lo denuncia. */
+    const basso = { id: "pB", nome: "P", tipo: "polveri", unita: "µg/m³", soglia: 40, letture: [
+      { data: "2026-06-01", valore: 38 }, { data: "2026-02-30", valore: 1 }, { data: "2026-06-08", valore: 39 }] };
+    const g = sentinella.serieStorica(basso);
+    eq(g.n, 2, "il fantasma basso non entra come non entrava quello alto");
+    eq(g.punti.map((p) => p.valore), [38, 39], "⛔ e la linea non viene tirata giù verso un giorno che non esiste");
+    eq(g.ultimo, 39, "l'ultima lettura resta quella vera");
+  });
+
+  test("⛔ Sentinella · la cura NON tocca i dati buoni: zero scritto, ora, e archivio sano", () => {
+    // controprova del caso: uno ZERO misurato è un dato e resta un punto del grafico
+    const zero = sentinella.serieStorica({ tipo: "polveri", soglia: 40,
+      letture: [{ data: "2026-06-01", valore: 0 }, { data: "2026-06-08", valore: 31 }] });
+    eq(zero.n, 2, "lo zero SCRITTO continua a essere disegnato");
+    eq(zero.punti[0].valore, 0, "e vale zero, non «assente»");
+    // una lettura senza NESSUNA data non entra: è la stessa domanda, altra forma
+    eq(sentinella.serieStorica({ tipo: "polveri", soglia: 40,
+      letture: [{ data: "", valore: 12 }, { data: "2026-06-08", valore: 31 }] }).n, 1,
+      "una lettura senza data non si può collocare nel tempo, quindi non si disegna");
+    // e un archivio tutto sano non perde niente
+    eq(sentinella.serieStorica({ tipo: "polveri", soglia: 40, letture: [
+      { data: "2026-06-01", ora: "09:00", valore: 20 }, { data: "2026-06-01", ora: "15:00", valore: 22 },
+      { data: "2026-06-08", valore: 31 }] }).n, 3, "tre letture sane restano tre");
+  });
+
+  /* ── B · il file che esce dall'azienda ─────────────────────────────────── */
+
+  test("⛔ Sentinella · il file per l'ARPA non scrive un giorno che non esiste", () => {
+    const cella = sentinella.csvAmbiente([puntoFantasma()], [], [])
+      .split("\n")[1].split(";")[6];
+    ok(!cella.includes("2026-02-30"), "⛔ la data impossibile non è più nel file");
+    ok(!cella.includes(":99"), "⛔ né il valore che si portava dietro, accanto a un «Conforme»");
+    ok(cella.startsWith("2026-06-01:20 2026-06-08:31"), "le due letture vere restano, per data e ora");
+    ok(/\b1 lettura non utilizzabile\b/.test(cella),
+      "⛔ e non sparisce in silenzio: toglierla e basta avrebbe spostato la bugia invece di chiuderla");
+  });
+
+  test("⛔ Sentinella · il file e il documento contano le stesse righe non utilizzabili", () => {
+    const m = { id: "pM", nome: "P", tipo: "rumore", unita: "dB(A)", soglia: 70, letture: [
+      { data: "2026-06-01", valore: 55 },
+      { data: "2025-08-28", valore: null },    // la casella del valore è vuota
+      { data: "2026-02-30", valore: 99 },      // il giorno non esiste
+      { data: "2026-06-08", valore: 61 }] };
+    const cella = sentinella.csvAmbiente([m], [], []).split("\n")[1].split(";")[6];
+    const r = sentinella.reportConformita({ monitoraggi: [m], ricettori: [] });
+    eq(r.punti[0].scartate, 2, "il documento non ha potuto usare due righe");
+    ok(/\b2 letture non utilizzabili\b/.test(cella),
+      "⛔ e il file dichiara lo STESSO numero: due verità sullo stesso archivio non ci stanno");
+    ok(!cella.includes("2025-08-28"), "la riga con la casella vuota non è più una coppia data:valore");
+    ok(cella.startsWith("2026-06-01:55 2026-06-08:61"), "e le due leggibili sono scritte per intero");
+  });
+
+  test("⛔ Sentinella · nessun falso allarme: un archivio sano non dichiara niente", () => {
+    const sano = { nome: "P", tipo: "polveri", unita: "µg/m³", soglia: 40, letture: [
+      { data: "2026-06-01", valore: 20 }, { data: "2026-06-08", valore: 0 }] };
+    const cella = sentinella.csvAmbiente([sano], [], []).split("\n")[1].split(";")[6];
+    eq(cella, "2026-06-01:20 2026-06-08:0",
+      "⛔ lo zero SCRITTO è un dato e viene scritto; e senza righe perse non c'è nessuna coda da leggere");
+    eq(sentinella.csvAmbiente([{ nome: "P", tipo: "polveri", soglia: 40, letture: [] }], [], [])
+      .split("\n")[1].split(";")[6], "",
+      "un punto senza nessuna lettura non ha niente da dire, e tace");
+    // e quando NESSUNA riga è utilizzabile resta la sola dichiarazione
+    const tutteRotte = sentinella.csvAmbiente([{ nome: "P", tipo: "polveri", soglia: 40,
+      letture: [{ data: "2026-02-30", valore: 5 }, { data: "boh", valore: 7 }] }], [], [])
+      .split("\n")[1].split(";")[6];
+    ok(!/\d{4}-\d{2}-\d{2}:/.test(tutteRotte), "nessuna coppia data:valore da nessuna parte");
+    ok(/\b2 letture non utilizzabili\b/.test(tutteRotte), "e il file lo dice invece di uscire vuoto");
+  });
+
+  /* ── C · uno ZERO misurato non è un valore ASSENTE ─────────────────────── */
+
+  test("⛔ Sentinella · firmaLettura distingue lo ZERO misurato dal valore ASSENTE", () => {
+    const base = { data: "2026-07-01", ora: "10:00" };
+    const fZero = sentinella.firmaLettura({ ...base, valore: 0 });
+    const fNull = sentinella.firmaLettura({ ...base, valore: null });
+    ok(fZero !== fNull,
+      "⛔ «lo strumento ha letto zero» e «nessuno ha scritto niente» non possono avere la stessa firma");
+    for (const vuoto of [null, undefined, "", "   ", "abc"])
+      eq(sentinella.firmaLettura({ ...base, valore: vuoto }), fNull,
+        `tutte le forme dell'assenza danno la stessa coda vuota (valore ${JSON.stringify(vuoto)})`);
+    // e la firma di un numero non è cambiata: è quella con cui l'import
+    // riconosce i doppioni, e cambiarla avrebbe fatto rientrare tutto
+    eq(sentinella.firmaLettura({ ...base, valore: 3.2 }), "2026-07-01 10:00|3.2", "un numero firma come prima");
+    eq(sentinella.firmaLettura({ ...base, valore: "3.2" }), "2026-07-01 10:00|3.2", "anche scritto come stringa");
+    eq(sentinella.firmaLettura({ ...base, valore: 0 }), "2026-07-01 10:00|0", "e lo zero firma «0»");
+  });
+
+  test("⛔ Sentinella · la misura vera dello strumento non viene scartata come doppione di un'assenza", () => {
+    const inArchivio = { data: "2026-07-01", ora: "10:00", valore: null };
+    const nelFile = { data: "2026-07-01", ora: "10:00", valore: 0, origine: { da: "import", file: "V2.csv" } };
+    const u = sentinella.unisciLetture([inArchivio], [nelFile]);
+    eq(u.aggiunte, 1, "⛔ la misura entra: prima veniva contata «già presente» e buttata");
+    eq(u.duplicati, 0, "e non c'è nessun doppione da annunciare");
+    ok(u.letture.some((l) => l.valore === 0 && l.origine && l.origine.da === "import"),
+      "⛔ lo zero misurato è in archivio, con la sua provenienza (la catena di custodia non si spezza)");
+  });
+
+  test("⛔ Sentinella · e nel verso opposto: un reimport dello stesso file non aggiunge niente", () => {
+    /* è la metà che rende la cura una cura e non uno scambio di difetti: la
+       firma serve a riconoscere i DOPPIONI, e su un archivio che va all'ente
+       raddoppiare una serie storica sarebbe un falso. */
+    const file = [{ data: "2026-07-01", ora: "10:00", valore: 0 },
+                  { data: "2026-07-02", ora: "11:30", valore: 4.2 },
+                  { data: "2026-07-03", valore: 12 }];
+    const primo = sentinella.unisciLetture([], file);
+    eq([primo.aggiunte, primo.duplicati], [3, 0], "il primo import le prende tutte e tre");
+    const secondo = sentinella.unisciLetture(primo.letture, file);
+    eq([secondo.aggiunte, secondo.duplicati], [0, 3],
+      "⛔ e il secondo non ne aggiunge nessuna: lo zero è doppione di sé stesso, non di un'assenza");
+    eq(secondo.letture.length, 3, "la serie storica non raddoppia");
+  });
+
+  test("⛔ Sentinella · unisciLetture non scrive uno ZERO al posto di un'assenza", () => {
+    /* `valore: +l.valore` stava a quattro righe dalla firma, e finché le due
+       firme combaciavano quel ramo non veniva mai percorso: correggere la
+       firma da sola l'avrebbe SVEGLIATO, scrivendo in archivio una misura di
+       zero dove nessuno ha scritto niente. */
+    const u = sentinella.unisciLetture([], [{ data: "2026-07-01", ora: "10:00", valore: null }]);
+    eq(u.aggiunte, 1, "la riga entra");
+    eq(u.letture[0].valore, null, "⛔ ma il suo valore resta ASSENTE, non diventa uno zero");
+    eq(sentinella.ultimaLettura({ letture: u.letture }), null,
+      "e le schermate continuano a dire «mai misurato», che è la verità");
+    // controprova: lo zero vero passa intatto
+    eq(sentinella.unisciLetture([], [{ data: "2026-07-01", valore: 0 }]).letture[0].valore, 0,
+      "uno zero SCRITTO resta zero");
+    eq(sentinella.unisciLetture([], [{ data: "2026-07-01", valore: 4.2 }]).letture[0].valore, 4.2,
+      "e un numero resta il suo numero");
+  });
+}
+/* ===== fine Sentinella · data e valore, la stessa domanda in tre punti ===== */
+
+/* ==========================================================================
+   Conti · la quadratica di `vociMancantiNelMese`, e lo stato vuoto che mentiva
+   --------------------------------------------------------------------------
+   DUE difetti misurati, chiusi insieme perché vivono sulla stessa schermata.
+
+   1 · `vociMancantiNelMese` contava così, per OGNI voce dell'elenco:
+         mesi.filter((m) => righe.some((c) => meseDi(c.data) === m && c.voce === v))
+       cioè una scorsa delle righe per ogni coppia voce×mese. E `.some()` esce
+       al primo colpo quando la voce **c'è**: quando NON c'è — l'unico caso che
+       produce una risposta — le scorre tutte. Costo = voci mai usate × mesi ×
+       righe, e le voci mai usate sono la normalità (una cava senza noleggi,
+       senza frantoio, senza ripristino in corso).
+       Misurato su dieci anni di storia con 30 costi al mese (3.600 righe) e 3
+       voci mai usate: 45,7 ms per chiamata contro 0,9 ms della stessa storia
+       senza voci mai usate — ×51. E la schermata di chiusura ne faceva DUE
+       passate, perché chiamava `margineMese` (che la calcola già dentro) e
+       subito dopo `vociMancantiNelMese` un'altra volta: 88,7 ms a ogni cambio
+       di mese nella tendina. Dopo: 1,57 ms la funzione, 1,6 ms la schermata.
+
+   2 · `riepilogoCosti` risponde `{conto: 0, senzaData: 0, senzaImporto: 3}`
+       quando ci sono tre costi datati e nessuno con l'importo. La pagina
+       decideva lo stato vuoto con `!r.conto && !r.senzaData` — due bandiere su
+       quattro — e scriveva «Nessun costo registrato nel periodo, comincia
+       dalle voci grosse» a chi le aveva già inserite tutte, cancellando quel 3
+       che era l'unica cosa da dire. Direzione RASSICURANTE, e il modo normale
+       di finirci dentro è un import CSV con la colonna dell'importo sbagliata.
+
+   ⚠️ COME SI PROVA CHE IL VERDETTO NON È CAMBIATO. Il confronto è contro la
+   vecchia implementazione, ricopiata qui sotto **testualmente** e marcata: è
+   l'oracolo di una correzione di velocità, cioè il caso in cui una seconda
+   stesura in casa è la specifica invece che una copia debole. Non calcola
+   niente per conto suo — chiama `conti.VOCI_COSTO`, lo stesso elenco del
+   prodotto.
+   ⚠️ E la prova sulla VELOCITÀ non guarda i millisecondi, che in CI ballano:
+   conta le LETTURE DI CAMPO con un `Proxy`. Sono 4,1 per riga e restano 4,1
+   raddoppiando i mesi o le voci mai usate; con la forma vecchia erano 51,8 con
+   4 voci mai usate su 12 mesi. Un numero che non dipende dalla macchina.
+   ⚠️ Prove SINCRONE e PRIMA del riepilogo: l'`await Promise.all(inVolo)` sta a
+   metà file, e una prova appesa dopo verrebbe messa in volo e il totale si
+   stamperebbe senza aspettarla. Il file lo legge un `import` fuori dal test. */
+const { senzaCommenti: senzaCommentiConti } = await import("./tokenizza.mjs");
+{
+  const CHIAVI = conti.VOCI_COSTO.map((v) => v.chiave);
+  const meseDiT = (d) => String(d || "").slice(0, 7);
+
+  /* ⛔ LA FORMA VECCHIA, RICOPIATA COM'ERA — è l'oracolo, non una difesa.
+     Se un giorno il verdetto dovrà cambiare davvero, questa prova cade e
+     costringe a dirlo invece di lasciarlo succedere. */
+  function vociMancantiVecchia(costi, mese, soglia = 0.5) {
+    if (!/^\d{4}-\d{2}$/.test(String(mese || ""))) return { mancanti: [], mesiVisti: 0, misurabile: false };
+    const righe = (costi || []).filter((c) => c && +c.importo > 0 && /^\d{4}-\d{2}/.test(String(c.data || "")));
+    const mesi = [...new Set(righe.map((c) => meseDiT(c.data)))].filter((m) => m !== mese);
+    if (!mesi.length) return { mancanti: [], mesiVisti: 0, misurabile: false };
+    const quiCi = new Set(righe.filter((c) => meseDiT(c.data) === mese).map((c) => c.voce));
+    const mancanti = [];
+    for (const v of conti.VOCI_COSTO) {
+      if (quiCi.has(v.chiave)) continue;
+      const quanti = mesi.filter((m) => righe.some((c) => meseDiT(c.data) === m && c.voce === v.chiave)).length;
+      if (quanti / mesi.length >= soglia)
+        mancanti.push({ chiave: v.chiave, etichetta: v.etichetta, suQuanti: quanti, mesi: mesi.length });
+    }
+    return { mancanti, mesiVisti: mesi.length, misurabile: true };
+  }
+
+  // ── il verdetto, scritto a mano invece che derivato ──────────────────────
+  test("⛔ Conti · vociMancantiNelMese dice ancora QUALI voci mancano e su quanti mesi", () => {
+    const cos = [];
+    for (const m of ["2026-03", "2026-04", "2026-05"]) {
+      cos.push({ data: m + "-10", voce: "personale", importo: 1000 });
+      cos.push({ data: m + "-11", voce: "energia", importo: 200 });
+    }
+    cos.push({ data: "2026-04-12", voce: "esplosivo", importo: 500 });   // 1 mese su 3: sotto soglia
+    cos.push({ data: "2026-06-01", voce: "personale", importo: 900 });   // giugno ha solo il personale
+    const r = conti.vociMancantiNelMese(cos, "2026-06");
+    eq(r.misurabile, true, "tre mesi di storia: la domanda si può fare");
+    eq(r.mesiVisti, 3, "i mesi guardati sono gli ALTRI tre, non quattro");
+    eq(r.mancanti.map((x) => x.chiave), ["energia"],
+      "⛔ manca l'energia (3 mesi su 3) e non l'esplosivo (1 su 3, sotto la soglia di metà)");
+    eq(r.mancanti[0].suQuanti, 3, "l'energia c'è in tre mesi");
+    eq(r.mancanti[0].mesi, 3, "su tre mesi guardati");
+    eq(r.mancanti[0].etichetta, "Energia elettrica", "l'etichetta è quella dell'elenco condiviso");
+  });
+
+  test("⛔ Conti · e i casi ai bordi rispondono come prima", () => {
+    eq(conti.vociMancantiNelMese([], "2026-06").misurabile, false, "archivio vuoto: non misurabile");
+    eq(conti.vociMancantiNelMese(null, "2026-06").misurabile, false, "niente al posto dell'archivio: non misurabile");
+    eq(conti.vociMancantiNelMese([{ data: "2026-05-01", voce: "personale", importo: 5 }], "giugno").misurabile, false,
+      "un mese che non è un mese: non misurabile");
+    eq(conti.vociMancantiNelMese([{ data: "2026-06-01", voce: "personale", importo: 5 }], "2026-06").misurabile, false,
+      "⛔ un mese solo, ed è quello chiesto: non c'è nessuno storico con cui confrontarlo");
+    /* le righe che non si possono collocare o sommare non fanno storico: una
+       voce senza data o senza importo non dimostra che quella spesa ci sia */
+    eq(conti.vociMancantiNelMese([{ voce: "personale", importo: 5 },
+                                  { data: "boh", voce: "energia", importo: 5 }], "2026-06").misurabile, false,
+      "righe senza data o con data illeggibile: non fanno storico");
+    eq(conti.vociMancantiNelMese([{ data: "2026-05-01", voce: "personale", importo: 0 },
+                                  { data: "2026-04-01", voce: "personale", importo: -3 }], "2026-06").misurabile, false,
+      "righe a zero o in negativo: non fanno storico");
+    const fuoriElenco = conti.vociMancantiNelMese(
+      [{ data: "2026-05-01", voce: "aliena", importo: 5 }, { data: "2026-04-01", voce: "aliena", importo: 5 }], "2026-06");
+    eq(fuoriElenco.misurabile, true, "una voce fuori elenco fa comunque storico di due mesi");
+    eq(fuoriElenco.mancanti.length, 0, "⛔ ma non si chiede conto di una voce che non è nell'elenco");
+  });
+
+  // ── vecchio contro nuovo, con il denominatore dichiarato ─────────────────
+  test("⛔ Conti · 1.000 archivi sorteggiati: il verdetto è IDENTICO a quello di prima", () => {
+    let seme = 20260818;
+    const rnd = () => (seme = (seme * 1103515245 + 12345) % 2147483648) / 2147483648;
+    const scelta = (a) => a[Math.floor(rnd() * a.length)];
+    const DATE = ["2026-01-05", "2026-02-11", "2026-03-20", "2026-04-01", "2026-05-30",
+                  "2026-06-15", "2025-12-31", "2026-06", "boh", "", null, "2026-13-99"];
+    const IMPORTI = [100, 0, -5, "", null, "12,5", "3e2", "boh", undefined, 0.4];
+    const VOCI = [...CHIAVI, "aliena", "", null, undefined];
+    let confrontati = 0, misurabili = 0, conMancanti = 0, pieni = 0;
+    for (let k = 0; k < 1000; k++) {
+      const n = Math.floor(rnd() * 25);
+      const cos = Array.from({ length: n }, () => rnd() < 0.05 ? null
+        : ({ data: scelta(DATE), voce: scelta(VOCI), importo: scelta(IMPORTI) }));
+      const mese = scelta(["2026-06", "2026-05", "2026-01", "2027-01", "boh"]);
+      const soglia = scelta([undefined, 0, 0.25, 0.5, 0.75, 1]);
+      const a = soglia === undefined ? vociMancantiVecchia(cos, mese) : vociMancantiVecchia(cos, mese, soglia);
+      const b = soglia === undefined ? conti.vociMancantiNelMese(cos, mese) : conti.vociMancantiNelMese(cos, mese, soglia);
+      confrontati++;
+      if (b.misurabile) { misurabili++; if (b.mancanti.length) conMancanti++; if (b.mancanti.length >= 3) pieni++; }
+      eq(b, a, `caso #${k} (mese ${mese}, soglia ${soglia}, ${n} righe)`);
+    }
+    /* ⛔ IL DENOMINATORE, se no «0 diversi» potrebbe voler dire «il sorteggio
+       non è mai arrivato al ramo che conta». */
+    eq(confrontati, 1000, "mille casi confrontati davvero");
+    ok(misurabili > 500, `⛔ il ramo che conta è stato attraversato: ${misurabili} casi misurabili su 1000`);
+    ok(conMancanti > 300, `⛔ e con voci mancanti davvero: ${conMancanti} casi`);
+    ok(pieni > 50, `⛔ compresi i casi con tre o più voci mancanti: ${pieni}`);
+  });
+
+  // ── la quadratica non c'è più: si contano le LETTURE, non i millisecondi ──
+  test("⛔ Conti · le letture per riga NON crescono con i mesi né con le voci mai usate", () => {
+    const letturePerRiga = (mesi, maiUsate) => {
+      const usate = CHIAVI.slice(0, CHIAVI.length - maiUsate);
+      const cos = [];
+      for (let m = 0; m < mesi; m++) {
+        const d = new Date(2024, m, 10);
+        const chiave = d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0");
+        for (const v of usate) cos.push({ data: chiave + "-10", voce: v, importo: 100 });
+      }
+      let n = 0;
+      const spiati = cos.map((c) => new Proxy(c, { get(t, k) { if (typeof k === "string") n++; return t[k]; } }));
+      const r = conti.vociMancantiNelMese(spiati, "2024-03");
+      return { perRiga: n / cos.length, righe: cos.length, mancanti: r.mancanti.length };
+    };
+    const senzaBuchi = letturePerRiga(24, 0);
+    const conBuchi = letturePerRiga(24, 6);
+    const pochiMesi = letturePerRiga(6, 6);
+    /* ⛔ E QUI STA IL PUNTO PIÙ AFFILATO DEL DIFETTO, trovato scrivendo questa
+       riga: sei voci che non compaiono MAI danno `quanti = 0`, quindi non
+       finiscono fra le mancanti — la risposta è ZERO. La forma vecchia
+       scorreva tutte le righe per ognuna di quelle sei, in ognuno dei 23 mesi,
+       **per scoprire che non c'era niente da dire**. Pagava tutto il conto per
+       una risposta vuota, ed è il caso normale di una cava. */
+    eq(conBuchi.mancanti, 0, "⛔ il caso caro non produce nemmeno una risposta: le voci mai usate non sono «mancanti»");
+    /* Con la forma vecchia questo numero era 51,8 a 12 mesi e 4 voci mai usate,
+       e saliva coi mesi: è la firma della quadratica. Adesso è una costante. */
+    ok(conBuchi.perRiga < 6, `⛔ letture per riga con sei voci mai usate: ${conBuchi.perRiga.toFixed(2)} (la forma vecchia ne faceva 51,8 con quattro)`);
+    ok(senzaBuchi.perRiga < 6, `letture per riga senza voci mancanti: ${senzaBuchi.perRiga.toFixed(2)}`);
+    ok(Math.abs(conBuchi.perRiga - senzaBuchi.perRiga) < 1,
+      `⛔ e le due sono la STESSA costante (${conBuchi.perRiga.toFixed(2)} contro ${senzaBuchi.perRiga.toFixed(2)}): il caso con i buchi non costa più dell'altro`);
+    ok(Math.abs(conBuchi.perRiga - pochiMesi.perRiga) < 1,
+      `⛔ e non cresce quadruplicando i mesi (6 mesi: ${pochiMesi.perRiga.toFixed(2)}, 24 mesi: ${conBuchi.perRiga.toFixed(2)})`);
+  });
+
+  // ── la seconda passata della schermata di chiusura ───────────────────────
+  test("⛔ Conti · margineMese restituisce le voci mancanti, così la pagina non le ricalcola", () => {
+    const cos = [];
+    for (const m of ["2026-03", "2026-04", "2026-05"]) {
+      cos.push({ data: m + "-10", voce: "personale", importo: 1000 });
+      cos.push({ data: m + "-11", voce: "energia", importo: 200 });
+    }
+    cos.push({ data: "2026-06-01", voce: "personale", importo: 900 });
+    const m = conti.margineMese([], [], cos, [], "2026-06");
+    eq(m.vociMancanti, conti.vociMancantiNelMese(cos, "2026-06"),
+      "⛔ è ESATTAMENTE quello che la pagina otteneva chiamandola una seconda volta");
+    eq(m.vociMancanti.misurabile, true, "e porta con sé la bandiera `misurabile`, che `mancanti` da sola non ha");
+    eq(m.vociMancanti.mesiVisti, 3, "e i mesi guardati");
+    /* a mese chiuso `mancanti` è già filtrato (le voci dichiarate assenti
+       escono): `vociMancanti` resta quello grezzo, e i due non vanno confusi */
+    const chiuso = conti.margineMese([], [], cos, [{ mese: "2026-06", chiusoIl: "2026-07-02", vociAssenti: ["energia"] }], "2026-06");
+    eq(chiuso.mancanti.length, 0, "dichiarata assente: non si chiede più");
+    eq(chiuso.vociMancanti.mancanti.map((x) => x.chiave), ["energia"],
+      "⛔ ma il conto grezzo resta grezzo: sono due domande diverse");
+  });
+
+  test("⛔ Conti · la pagina non chiama più `vociMancantiNelMese` una seconda volta", () => {
+    /* ⚠️ Il sorgente si legge SENZA COMMENTI: il nome sta anche nel commento
+       che racconta perché la chiamata è stata tolta, e un esempio di codice
+       dentro un commento è un commento — è l'errore che questa casa ha già
+       fatto con `plur`, seicento righe più su in questo stesso file. */
+    const pagina = senzaCommentiConti(readFileSync(new URL("../../conti/index.html", import.meta.url), "utf8"));
+    const chiamate = (pagina.match(/\bvociMancantiNelMese\s*\(/g) || []).length;
+    eq(chiamate, 0, "⛔ la schermata di chiusura la otteneva già da `margineMese`: chiamarla di nuovo era una passata in più su tutto l'archivio dei costi");
+    ok(/\bm\.vociMancanti\b/.test(pagina), "e prende il risultato da `margineMese`");
+    /* controprova del righello: sul modulo lo stesso conto NON è zero, se no
+       questa prova direbbe «0» perché non sa cercare */
+    const modulo = senzaCommentiConti(readFileSync(new URL("../../conti/conti-data.js", import.meta.url), "utf8"));
+    ok((modulo.match(/\bvociMancantiNelMese\s*\(/g) || []).length >= 1,
+      "⛔ il righello sa trovare la forma che cerca: nel modulo la chiamata c'è");
+  });
+
+  // ── difetto 2 · lo stato vuoto che cancellava le voci senza importo ───────
+  test("⛔ Conti · tre costi datati e nessuno con l'importo NON sono «nessun costo registrato»", () => {
+    const cos = [
+      { data: "2026-06-03", voce: "personale", importo: "" },
+      { data: "2026-06-10", voce: "energia" },
+      { data: "2026-06-20", voce: "canone", importo: null },
+    ];
+    const r = conti.riepilogoCosti(cos, "2026-06-01", "2026-06-30");
+    eq(r.conto, 0, "niente da sommare");
+    eq(r.senzaData, 0, "e le date ci sono tutte");
+    eq(r.senzaImporto, 3, "⛔ le tre righe il modulo le DICHIARA: erano quelle che la pagina cancellava");
+    const v = conti.perchePeriodoSenzaCosti(r);
+    eq(v.motivo, "importo-illeggibile",
+      "⛔ quindi lo schermo non dice «comincia dalle voci grosse» a chi le ha già inserite tutte");
+    eq(v.quante, 3, "e dice quante sono");
+    eq(v.senzaImporto, 3, "tutte e tre senza importo");
+    eq(v.importoNonPositivo, 0, "nessuna a zero o in negativo");
+  });
+
+  test("⛔ Conti · e nel verso opposto: quando non c'è NIENTE, lo stato vuoto vero resta", () => {
+    const vuotoDavvero = conti.perchePeriodoSenzaCosti(conti.riepilogoCosti([], "2026-06-01", "2026-06-30"));
+    eq(vuotoDavvero.motivo, "nessun-costo", "⛔ archivio vuoto: si continua a dire di cominciare");
+    eq(vuotoDavvero.quante, 0, "e non si promette niente da riscrivere");
+    /* un periodo senza costi ma con l'archivio pieno di roba fuori periodo:
+       resta «nessun costo», perché fuori dal periodo non c'è niente da dire qui */
+    const fuoriPeriodo = conti.riepilogoCosti([{ data: "2025-01-10", voce: "personale", importo: 900 }], "2026-06-01", "2026-06-30");
+    eq(conti.perchePeriodoSenzaCosti(fuoriPeriodo).motivo, "nessun-costo", "costi solo fuori periodo: nessun costo qui");
+  });
+
+  test("⛔ Conti · quando c'è qualcosa da mostrare, lo stato vuoto NON compare", () => {
+    const conCosti = conti.riepilogoCosti([{ data: "2026-06-10", voce: "personale", importo: 900 }], "2026-06-01", "2026-06-30");
+    eq(conti.perchePeriodoSenzaCosti(conCosti), null, "un costo sommato: si mostra il riepilogo");
+    /* ⛔ una riga SENZA DATA non è «niente»: la schermata la elenca in fondo,
+       ed è per questo che `senzaData` tiene aperto il ramo normale */
+    const soloSenzaData = conti.riepilogoCosti([{ voce: "personale", importo: 900 }], "2026-06-01", "2026-06-30");
+    eq(soloSenzaData.conto, 0, "nel periodo non c'è niente");
+    eq(soloSenzaData.senzaData, 1, "ma una riga senza data c'è");
+    eq(conti.perchePeriodoSenzaCosti(soloSenzaData), null,
+      "⛔ e va mostrata: lo stato vuoto la nasconderebbe");
+  });
+
+  test("⛔ Conti · anche uno zero o un negativo SCRITTO tiene fuori la riga, e si dichiara", () => {
+    const cos = [{ data: "2026-06-03", voce: "personale", importo: 0 },
+                 { data: "2026-06-10", voce: "energia", importo: -50 },
+                 { data: "2026-06-20", voce: "canone", importo: "" }];
+    const v = conti.perchePeriodoSenzaCosti(conti.riepilogoCosti(cos, "2026-06-01", "2026-06-30"));
+    eq(v.motivo, "importo-illeggibile", "il totale non si può fare, e si dice perché");
+    eq(v.senzaImporto, 1, "⛔ uno solo è «mai scritto»");
+    eq(v.importoNonPositivo, 2, "⛔ e due li ha scritti qualcuno: sono due gesti diversi, restano separati");
+    eq(v.quante, 3, "in tutto tre righe da riscrivere");
+  });
+
+  test("⛔ Conti · nel registro dei costi un importo MAI SCRITTO non si disegna «€ 0,00»", () => {
+    /* `euro` fa `+v || 0`: un campo vuoto, un `null` e una parola escono tutti
+       come uno zero. Finché la lista mostrava solo righe con `importo > 0` non
+       si vedeva; da quando elenca anche quelle che restano fuori PERCHÉ
+       l'importo non si legge, un «€ 0,00» accanto alla frase che dice che
+       quell'importo non c'è sarebbe la pagina che si smentisce da sola.
+       ⚠️ Il conto si fa sul sorgente SENZA COMMENTI: la forma vecchia è citata
+       nel commento che racconta perché è stata tolta. */
+    const pagina = senzaCommentiConti(readFileSync(new URL("../../conti/index.html", import.meta.url), "utf8"));
+    eq((pagina.match(/\beur\(c\.importo\)/g) || []).length, 0,
+      "⛔ nessun punto stampa l'importo grezzo di un costo: passa da `numeroDichiarato`");
+    ok(/const imp = numeroDichiarato\(c\.importo\);/.test(pagina),
+      "e la riga del registro lo chiede alla funzione che distingue lo zero SCRITTO dal campo mai riempito");
+    /* controprova del righello: la forma che cerca esiste per altri campi, se
+       no questo zero parlerebbe del comando invece che della pagina */
+    ok((pagina.match(/\beur\([a-zA-Z]/g) || []).length > 5,
+      "⛔ il righello sa trovare `eur(` di un'espressione: nella pagina ce ne sono");
+    /* e la convenzione: uno zero o un negativo SCRITTI restano numeri veri —
+       sono un dato, non un campo da compilare, e sono due gesti diversi */
+    eq(conti.numeroDichiarato(""), null, "campo vuoto: non si sa");
+    eq(conti.numeroDichiarato(null), null, "campo mai riempito: non si sa");
+    eq(conti.numeroDichiarato("boh"), null, "campo illeggibile: non si sa");
+    eq(conti.numeroDichiarato(0), 0, "⛔ ma uno zero SCRITTO è uno zero");
+    eq(conti.numeroDichiarato(-50), -50, "e un negativo scritto è un negativo");
+  });
+
+  test("⛔ Conti · perchePeriodoSenzaCosti regge anche su un riepilogo che non c'è", () => {
+    eq(conti.perchePeriodoSenzaCosti(null).motivo, "nessun-costo", "niente al posto del riepilogo");
+    eq(conti.perchePeriodoSenzaCosti(undefined).quante, 0, "e non inventa un numero");
+    eq(conti.perchePeriodoSenzaCosti({}).motivo, "nessun-costo", "un oggetto vuoto è un archivio vuoto");
+  });
+}
+/* ===== fine Conti · la quadratica e lo stato vuoto che mentiva ===== */
 
 console.log(`\nRisultato KPI app: ${passed} passati, ${failed} falliti${inVolo.length ? `  ·  ${inVolo.length} prove asincrone aspettate` : ""}`);
 process.exit(failed > 0 ? 1 : 0);

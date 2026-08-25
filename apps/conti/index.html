@@ -1819,7 +1819,7 @@ label.item:has(.dw-chk:checked){
     CAUSALI_TRASPORTO, causaleTrasporto, TRASPORTO_A_CURA, trasportoACura, mancanzeDdt,
     VOCI_COSTO, voceCosto, gruppoDiVoce, riepilogoCosti, costoPerMetroCubo,
     volumeDaTerra, costiFuoriDaiRilievi,
-    statoMese, vociMancantiNelMese, margineMese,
+    statoMese, margineMese, perchePeriodoSenzaCosti,
     STATI_PREVENTIVO, statoPreventivoLabel, statoPreventivo, ordineConfermato,
     rigaPreventivo, totaliPreventivo, consegnatoOrdine, ddtDaAgganciare,
     avanzamentoOrdine, descriviAvanzamento, portafoglioOrdini,
@@ -1829,7 +1829,7 @@ label.item:has(.dw-chk:checked){
   /* B8 (14/08): `fileDiAltraTabella` risponde «questa prima riga è
      l'intestazione di un'ALTRA nostra tabella?». È l'unica domanda possibile,
      perché il file SENZA intestazione deve continuare a entrare. */
-  import { mountExit, esc, csvCell, statoVuoto, senzaDoppioni, avvolgiUnita, conta, frasePersi, fileDiAltraTabella, fraseFileAltrui, plurale, euro, euro0, conEuro, isoLocale, istanteLocale, oggiISO as oggiISOShell, meseLocale, dataIt, dataPiuGiorni, nomeCsvDimostrazione, modoDimostrazione, avvisoTestoDimostrazione, avvisaSeNonSalva} from "../../shared/deepwork-id-client/dw-shell.js";
+  import { mountExit, esc, csvCell, statoVuoto, senzaDoppioni, avvolgiUnita, conta, dataISOEsiste, frasePersi, fileDiAltraTabella, fraseFileAltrui, plurale, euro, euro0, conEuro, isoLocale, istanteLocale, oggiISO as oggiISOShell, meseLocale, dataIt, dataPiuGiorni, nomeCsvDimostrazione, modoDimostrazione, avvisoTestoDimostrazione, avvisaSeNonSalva} from "../../shared/deepwork-id-client/dw-shell.js";
   // gli agganci della struttura condivisa (modale con Escape, riquadri da
   // tastiera, alone che segue il mouse). Va chiamato QUI e non nel blocco
   // classico in linea: i moduli girano dopo gli script `defer`.
@@ -3472,6 +3472,48 @@ label.item:has(.dw-chk:checked){
     const nomeMese = (k) => { const [y, m] = k.split("-"); return MESI[(+m) - 1] + " " + y; };
     const prev = incassoPerMese(FAT, 6, new Date(), NOT);
     const prevMax = Math.max(1, ...prev.mesi.map(m => m.importo || 0));
+    /* ⛔ QUELLO CHE LA PREVISIONE NON HA POTUTO PIANIFICARE SI DICHIARA, E LA
+       FRASE SI SCRIVE UNA VOLTA SOLA (17/08). Fino a oggi `incassoPerMese`
+       scartava in silenzio due categorie di fattura aperta — quella SENZA
+       SCADENZA e quella OLTRE L'ORIZZONTE (la pagina passa 6 mesi fissi su
+       tutto l'archivio) — e restituiva solo `{mesi, scadute}`: nessun posto in
+       cui quel credito potesse comparire. Misurato: tre fatture aperte da
+       10.000 € l'una, 10.000 € dentro la previsione, 0 € dichiarati scaduti,
+       **20.000 € né contati né dichiarati**. La forma giusta era già nella
+       schermata accanto — `agingIncassi` dà alla fattura senza scadenza una
+       fascia dichiarata — e questa era «una regola corretta in un posto solo».
+       Le due ragioni restano separate perché portano ad AZIONI diverse: sulla
+       prima si scrive la data che manca, sulla seconda si guarda più in là.
+       ⚠️ La stessa frase serve a tre punti (la nota della lista, lo stato vuoto
+       del grafico e la nota del grafico): scritta tre volte diventerebbe tre
+       versioni che divergono: qui è una, col formato dell'euro come argomento
+       perché la lista scrive i centesimi e i grafici no.
+       ⚠️ niente `plur` dove la frase ha già il numero davanti: `plur` lo scrive
+       lui — è l'inciampo raccolto nella nota dell'aging qui sopra. */
+    const ragioniPrev = (fmt) => [
+      prev.senzaScadenza.conto
+        ? plur(prev.senzaScadenza.conto, "fattura senza data di scadenza", "fatture senza data di scadenza")
+          + " (<b>" + fmt(prev.senzaScadenza.importo) + "</b>) — <b>non si sa</b> quando "
+          + plurale(prev.senzaScadenza.conto, "rientra", "rientrano") + ": nell'elenco <b>Fatture</b> "
+          + plurale(prev.senzaScadenza.conto, "porta il segno «senza scadenza» e va aperta", "portano il segno «senza scadenza» e vanno aperte")
+          + " per scrivere entro quando il cliente deve pagare"
+        : "",
+      prev.oltreOrizzonte.conto
+        ? plur(prev.oltreOrizzonte.conto, "fattura che scade", "fatture che scadono")
+          + " oltre i " + prev.orizzonte + " mesi mostrati (<b>" + fmt(prev.oltreOrizzonte.importo) + "</b>)"
+        : "",
+    ].filter(Boolean);
+    /* Con una ragione sola il totale sarebbe la ripetizione di quell'unica
+       riga: si scrive solo quando le ragioni sono due e il totale aggiunge
+       qualcosa. Stringa vuota quando non c'è niente da dichiarare — così chi
+       chiama la concatena senza chiedersi nulla. */
+    const notaPrevFuori = (fmt, apertura) => {
+      const r = ragioniPrev(fmt);
+      if (!r.length) return "";
+      return apertura + " " + (r.length > 1
+        ? plur(prev.nonPianificabili.conto, "fattura aperta", "fatture aperte") + " per <b>" + fmt(prev.nonPianificabili.importo) + "</b>: " + r.join("; ")
+        : r[0]) + ".";
+    };
     $("prev-list").innerHTML = (prev.mesi.some(m => m.conto)
       ? prev.mesi.map(m =>
       `<div class="item st-${m.importo > 0 ? "accent" : "mute"}">
@@ -3480,16 +3522,35 @@ label.item:has(.dw-chk:checked){
       <div class="amt"><div class="amt-n${m.importo > 0 ? " pos" : " mute"}">${eur(m.importo)}</div></div>
       ${barraPeso(m.importo, prevMax)}</div>`).join("")
       : "")   // lo stato vuoto lo dà il grafico qui sopra: non si ripete due volte
-      + (prev.scadute.conto ? `<div class="note">${plurale(prev.scadute.conto, "Esclusa", "Escluse")} <b>${prev.scadute.conto}</b> ${plurale(prev.scadute.conto, "già scaduta", "già scadute")} (<b>${eur(prev.scadute.importo)}</b>): ${plurale(prev.scadute.conto, "quella va sollecitata", "quelle vanno sollecitate")}, la trovi nell'aging qui sopra.</div>` : "");
+      + (prev.scadute.conto ? `<div class="note">${plurale(prev.scadute.conto, "Esclusa", "Escluse")} <b>${prev.scadute.conto}</b> ${plurale(prev.scadute.conto, "già scaduta", "già scadute")} (<b>${eur(prev.scadute.importo)}</b>): ${plurale(prev.scadute.conto, "quella va sollecitata", "quelle vanno sollecitate")}, la trovi nell'aging qui sopra.</div>` : "")
+      // e quello che la previsione non ha potuto collocare nel tempo si
+      // dichiara sotto le colonne, invece di sparire (vedi `notaPrevFuori`)
+      + (prev.nonPianificabili.conto
+        ? `<div class="note avviso">${notaPrevFuori(eur, "Fuori da questa previsione")}</div>` : "");
 
     // ── Grafico della previsione incassi (N2): il tempo si legge in
     //    orizzontale, un mese per colonna. È la domanda «il mese prossimo
     //    ci sono i soldi per gli stipendi?». Le fatture GIÀ SCADUTE restano
     //    fuori (le calcola a parte incassoPerMese): sono un sollecito, non
     //    un'entrata prevista — e metterle dentro gonfierebbe la previsione.
-    if (!prev.mesi.some(m => m.conto)) {
+    /* ⛔ «NIENTE IN ARRIVO» NON SI PUÒ DIRE SE C'È CREDITO APERTO CHE NON SI È
+       POTUTO PIANIFICARE (17/08). Il ramo vuoto qui sotto scattava su
+       `prev.mesi.some(m => m.conto) === false`, e quel `false` lo produceva
+       anche un archivio fatto di sole fatture senza scadenza o in scadenza più
+       in là dei mesi mostrati: misurato, 20.000 € di credito aperto e uno stato
+       vuoto che diceva «Niente in arrivo — Nessuna fattura in scadenza nei
+       prossimi 6 mesi». La frase onesta, lì, non è «niente in arrivo»: è **non
+       si sa quando arriveranno**, con il conto e l'importo scritti accanto e la
+       ragione (la data che manca, oppure la finestra troppo corta). */
+    const prevVuoto = !prev.mesi.some(m => m.conto);
+    if (prevVuoto && prev.nonPianificabili.conto) {
+      grafVuoto("graf-prev", "allarme", "Non si sa quando arriveranno",
+        "Nessuna fattura in scadenza nei prossimi " + prev.orizzonte + " mesi, ma del credito aperto c'è. "
+        + notaPrevFuori(eur0, "Fuori da questa previsione")
+        + (prev.scadute.conto ? " " + plurale(prev.scadute.conto, "Un'altra è <b>già scaduta</b>", "Altre <b>" + prev.scadute.conto + "</b> sono <b>già scadute</b>") + " (" + eur0(prev.scadute.importo) + "): " + plurale(prev.scadute.conto, "va sollecitata", "vanno sollecitate") + "." : ""));
+    } else if (prevVuoto) {
       grafVuoto("graf-prev", "grafico", "Niente in arrivo",
-        "Nessuna fattura in scadenza nei prossimi 6 mesi: la previsione si riempie da sola man mano che emetti fatture con la loro scadenza."
+        "Nessuna fattura in scadenza nei prossimi " + prev.orizzonte + " mesi: la previsione si riempie da sola man mano che emetti fatture con la loro scadenza."
         + (prev.scadute.conto ? " " + plurale(prev.scadute.conto, "L'<b>unica</b> già scaduta", "Le <b>" + prev.scadute.conto + "</b> già scadute") + " (" + eur0(prev.scadute.importo) + ") non " + plurale(prev.scadute.conto, "entra", "entrano") + " nella previsione: " + plurale(prev.scadute.conto, "va sollecitata", "vanno sollecitate") + "." : ""));
     } else if (G()) {
       {
@@ -3502,10 +3563,19 @@ label.item:has(.dw-chk:checked){
           valori: prev.mesi.map(m => ({ etichetta: nomeMese(m.mese), valore: Math.round(+m.importo || 0) })),
           aria: "Liquidità attesa mese per mese: " + prev.mesi
             .map(m => nomeMese(m.mese) + " " + eur0(m.importo)).join(", ") + ".",
+          /* ⛔ «Le colonne a zero sono mesi senza scadenze» è vero solo se
+             tutto il credito aperto è stato collocato: una colonna a zero può
+             anche essere il posto dove sarebbe finita una fattura di cui non si
+             sa la data. Quello che la previsione non ha potuto pianificare si
+             dichiara qui accanto, con la sua ragione. */
           nota: (prev.scadute.conto
             ? "Fuori dalla previsione <b>" + plur(prev.scadute.conto, "fattura già scaduta", "fatture già scadute") +
               "</b> per " + eur0(prev.scadute.importo) + ": quelle si sollecitano, non si mettono in cassa. "
-            : "") + "Le colonne a zero sono mesi senza scadenze: è lì che va guardato il fabbisogno.",
+            : "")
+            + (prev.nonPianificabili.conto
+              ? notaPrevFuori(eur0, prev.scadute.conto ? "Fuori anche" : "Fuori dalla previsione")
+                + " Le colonne a zero sono mesi senza scadenze <b>note</b>: una di esse può essere il posto di quel credito, quindi il fabbisogno si guarda insieme a queste fatture."
+              : "Le colonne a zero sono mesi senza scadenze: è lì che va guardato il fabbisogno."),
         });
       }
     }
@@ -4822,23 +4892,39 @@ label.item:has(.dw-chk:checked){
   const leggiVoce = (chiave) => { const v = voceCosto(chiave);
     return v ? v.etichetta : (String(chiave || "").trim() || "(voce non indicata)"); };
 
+  /* ⛔ E QUI `eur(c.importo)` SCRIVEVA «€ 0,00» SU UN IMPORTO MAI SCRITTO.
+     `euro` fa `+v || 0`, quindi un campo vuoto, un `null` e una parola escono
+     tutti come uno ZERO — il numero tranquillo dove non è stato misurato
+     niente. Finché questa riga la usavano solo le liste del periodo non si
+     vedeva: là le righe hanno per forza `importo > 0`. Da quando la schermata
+     elenca anche le voci che restano fuori PERCHÉ l'importo non si legge, il
+     riquadro avrebbe detto «€ 0,00» tre centimetri sotto una frase che dice
+     che quell'importo non c'è — la pagina che si smentisce da sola.
+     `numeroDichiarato` è la funzione che in questa casa distingue lo zero
+     SCRITTO dal campo mai riempito, ed è già usata così nel listino. Uno zero
+     o un negativo scritti restano scritti: quelli sono un dato vero, e sono un
+     gesto diverso da un campo da compilare. */
   function rigaCosto(c, fuoriPeriodo) {
     const g = gruppoDiVoce(c.voce);
     const nc = g === "non-classificata";
     const v = voceCosto(c.voce);
+    const imp = numeroDichiarato(c.importo);
+    const importoScritto = imp == null ? "—" : eur(imp);
     const meta = [fuoriPeriodo ? "senza data" : fmtD(c.data), c.nota ? esc(c.nota) : ""]
       .filter(Boolean).join(" · ");
-    return `<div class="item ${nc || fuoriPeriodo ? "st-warn" : "st-accent"}">
+    return `<div class="item ${nc || fuoriPeriodo || imp == null || imp <= 0 ? "st-warn" : "st-accent"}">
       <span class="avatar">${IC[ICONA_GRUPPO[g]] || IC.euro}</span>
       <div class="info"><div class="name">${esc(leggiVoce(c.voce))}</div>
       <div class="meta">${meta || "—"}</div></div>
-      <div class="amt"><div class="amt-n">${eur(c.importo)}</div>
+      <div class="amt"><div class="amt-n">${importoScritto}</div>
         <div class="amt-s">${esc(etichettaGruppo(g))}</div></div>
       ${v && v.daMezzo ? `<span class="badge">anche in Flotta</span>` : ""}
       ${nc ? `<span class="badge warn">non classificata</span>` : ""}
       ${fuoriPeriodo ? `<span class="badge warn">senza data</span>` : ""}
+      ${imp == null ? `<span class="badge warn">senza importo</span>`
+        : imp <= 0 ? `<span class="badge warn">${imp === 0 ? "importo a zero" : "importo negativo"}</span>` : ""}
       <div class="acts"><button class="arr del" type="button" data-del-cos="${esc(c.id)}"
-        title="Elimina questo costo" aria-label="Elimina il costo ${esc(leggiVoce(c.voce))} da ${eur(c.importo)}">${IC.croce}</button></div></div>`;
+        title="Elimina questo costo" aria-label="Elimina il costo ${esc(leggiVoce(c.voce))} da ${esc(importoScritto)}">${IC.croce}</button></div></div>`;
   }
 
   /* ⛔ DA DOVE VIENE IL DENOMINATORE, scritto accanto al numero che ne esce.
@@ -4879,7 +4965,14 @@ label.item:has(.dw-chk:checked){
     const mese = $("chi-mese").value || mesePrecedente();
     const st = statoMese(COS, CHI, mese);
     const m = margineMese(FAT, NOT, COS, CHI, mese);
-    const man = vociMancantiNelMese(COS, mese);
+    /* ⛔ QUI C'ERA UNA SECONDA CHIAMATA A `vociMancantiNelMese`, E RADDOPPIAVA
+       IL LAVORO PIÙ CARO DELLA SCHERMATA. `margineMese` la chiama già dentro di
+       sé: rifarla qui voleva dire due passate complete sull'archivio dei costi
+       a ogni cambio di mese nella tendina. Su dieci anni di storia con 30 costi
+       al mese erano 88 ms invece di 44 — e da quando la funzione non è più
+       quadratica sono 1,6 invece di 2,7. Il risultato torna indietro dentro
+       `m.vociMancanti`: una sola verità, calcolata una volta sola. */
+    const man = m.vociMancanti;
     const parlante = meseParlante(mese);
 
     /* Il cartellone del margine: la cifra grossa c'è SOLO se è vera. Prima
@@ -4974,12 +5067,49 @@ label.item:has(.dw-chk:checked){
     const r = costoPerMetroCubo(COS, rv.ok ? rv.valore : null, d1, d2);
     $("cos-cnt").textContent = r.conto;
 
-    if (!r.conto && !r.senzaData) {
-      $("cos-riep").innerHTML = vuoto("euro", "Nessun costo registrato nel periodo",
-        "Il registro dei costi è quello che permette di dire <b>quanto costa un metro cubo</b>. "
-        + "Comincia dalle voci grosse — <b>personale</b>, <b>esplosivo</b>, <b>energia</b> — e "
-        + "aggiungile qui sotto: bastano data, voce e importo.");
-      $("cos-gruppi").innerHTML = ""; $("cos-list").innerHTML = ""; $("cos-m3").innerHTML = "";
+    /* ⛔ «NESSUN COSTO REGISTRATO NEL PERIODO» SI SCRIVEVA ANCHE QUANDO I COSTI
+       C'ERANO. La guardia era `if (!r.conto && !r.senzaData)`, e guardava due
+       dei quattro motivi per cui una riga può restare fuori dal totale: con
+       tre costi datati e nessuno con l'importo, `riepilogoCosti` risponde
+       `{conto: 0, senzaData: 0, senzaImporto: 3}` — e la pagina cancellava
+       proprio quel 3, che era l'unica cosa da dire. Effetto: lo schermo
+       consigliava di «cominciare dalle voci grosse» a chi le aveva già
+       inserite tutte, e il lavoro da fare — andare a compilare l'importo —
+       spariva. Direzione RASSICURANTE, che è la peggiore: è il caso di un
+       import CSV con la colonna dell'importo sbagliata, cioè il modo più
+       normale di finire qui dentro.
+       ⚠️ La bandiera il modulo la DICHIARA da sempre (`senzaImporto`,
+       `importoNonPositivo`, e il commento accanto dice che si dichiarano
+       SEMPRE): in questo ramo non la leggeva nessuno — la guardia scollegata
+       della regola 20 di `run-stile`, applicata al principio del fondatore.
+       ⚠️ E la frase NON dice «nel periodo»: quei due conti guardano tutto
+       l'archivio, non il periodo scelto, perché una voce senza importo è fuori
+       da QUALUNQUE totale. Scrivere «tre voci nel periodo» sarebbe un numero
+       tranquillo di un altro insieme. */
+    const niente = perchePeriodoSenzaCosti(r);
+    if (niente) {
+      const fuori = [];
+      if (niente.senzaImporto) fuori.push(plur(niente.senzaImporto, "voce senza importo", "voci senza importo"));
+      if (niente.importoNonPositivo) fuori.push(plur(niente.importoNonPositivo, "voce a zero o in negativo", "voci a zero o in negativo"));
+      const nFuori = niente.quante;
+      $("cos-riep").innerHTML = niente.motivo === "importo-illeggibile"
+        ? vuoto("euro", "Nessun costo che si possa sommare",
+            "In archivio " + (nFuori === 1 ? "c'è " : "ci sono ") + "<b>" + fuori.join("</b> e <b>") + "</b>: "
+            + "un importo che non si legge tiene la voce fuori da <b>qualunque</b> totale, "
+            + (nFuori === 1 ? "quindi qui non compare niente. Qui sotto trovi quella voce: riscrivila" : "quindi qui non compare niente. Qui sotto trovi quelle voci: riscrivile")
+            + " con quanto " + (nFuori === 1 ? "è costata" : "sono costate") + " e il totale del periodo si calcola da sé.")
+        : vuoto("euro", "Nessun costo registrato nel periodo",
+            "Il registro dei costi è quello che permette di dire <b>quanto costa un metro cubo</b>. "
+            + "Comincia dalle voci grosse — <b>personale</b>, <b>esplosivo</b>, <b>energia</b> — e "
+            + "aggiungile qui sotto: bastano data, voce e importo.");
+      $("cos-gruppi").innerHTML = ""; $("cos-m3").innerHTML = "";
+      /* ⚠️ Le righe si MOSTRANO, se no la frase qui sopra manda a cercare
+         qualcosa che lo schermo non fa vedere. È l'idioma che questa stessa
+         schermata usa già in fondo per le voci senza data: si elencano e si
+         dice di riscriverle. */
+      $("cos-list").innerHTML = niente.motivo !== "importo-illeggibile" ? ""
+        : `<div class="sec">Fuori da ogni totale perché l'importo non si legge</div>`
+          + [...r.righeSenzaImporto, ...r.righeImportoNonPositivo].map(c => rigaCosto(c, !dataISOEsiste(String(c.data || "").slice(0, 10)))).join("");
       grafVuoto("graf-cos", "grafico", "Ancora niente da ripartire",
         "Quando ci sono almeno due voci registrate, qui compare <b>dove</b> se ne va il denaro.");
       return;
@@ -5437,7 +5567,7 @@ label.item:has(.dw-chk:checked){
       const ok = await chiedi("Elimina costo",
         `<p>Stai per togliere questa voce dal registro dei costi.</p>
          <div class="mrec"><span class="k">Voce</span><span class="v">${esc(leggiVoce(c.voce))}</span></div>
-         <div class="mrec"><span class="k">Importo</span><span class="v accent">${eur(c.importo)}</span></div>
+         <div class="mrec"><span class="k">Importo</span><span class="v accent">${numeroDichiarato(c.importo) == null ? "non indicato" : eur(numeroDichiarato(c.importo))}</span></div>
          <div class="mrec"><span class="k">Data</span><span class="v">${c.data ? fmtD(c.data) : "non indicata"}</span></div>
          ${c.nota ? `<div class="mrec"><span class="k">Nota</span><span class="v">${esc(c.nota)}</span></div>` : ""}
          <p style="margin-top:10px;">Esce dal totale del periodo e dal costo al metro cubo.

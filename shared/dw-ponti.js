@@ -139,9 +139,24 @@ export function produzioneDichiarata(rapportini, dal, al, densita) {
     viaggi, turni, senzaProduzione, senzaData,
     primo, ultimo,
     densita: densOk ? dens : null,
-    // c'è qualcosa che NON è entrato nel totale in m³? Allora il confronto è
-    // per difetto, e chi legge deve saperlo prima di trarne conclusioni.
-    parziale: (!densOk && t > 0) || viaggi > 0,
+    /* c'è qualcosa che NON è entrato nel totale in m³? Allora il confronto è
+       per difetto, e chi legge deve saperlo prima di trarne conclusioni.
+       ⛔ E UN TURNO CHE NON HA DICHIARATO NIENTE MANCAVA DA QUESTO ELENCO, che
+       è il caso più frequente dei tre. Misurato il 14/08 sulla cava sintetica e
+       riprodotto su un caso minimo: quattro turni da 225 m³ contro un rilievo
+       da 1.000 m³ danno `coerente` al 10%; se **due dei quattro lasciano la
+       quantità in bianco** il verdetto diventa `implausibile` al 55% — cioè la
+       pagina scrive **«C'è un errore da cercare»** in rosso, e manda a cercarlo
+       nei rilievi o nelle stime dei turni, dove c'è solo un campo lasciato
+       vuoto. E `parziale` restava **false**, mentre il commento qui sopra
+       prometteva l'opposto.
+       ⚠️ Il conto c'era già (`senzaProduzione`) e non lo leggeva **nessuno**:
+       `grep -rn senzaProduzione --include=*.html` dava **0**. Guardia
+       scollegata, la famiglia della regola 20 di `run-stile`.
+       ⚠️ Non si sa se quei turni abbiano prodotto: è precisamente ciò che
+       nessuno ha misurato. Ed è per questo che il confronto è per difetto e non
+       si può concludere — l'assenza di un dato non è un dato favorevole. */
+    parziale: (!densOk && t > 0) || viaggi > 0 || senzaProduzione > 0,
   };
 }
 

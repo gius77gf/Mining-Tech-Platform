@@ -1,0 +1,14 @@
+/* ⚠️ Playwright si importa in forma DINAMICA, come i 53 banchi del
+   repository: `import-esistenti.mjs` risolve gli import statici e un
+   percorso assoluto fuori dal repository glielo fa dichiarare inesistente.
+   Non e' uno stile: e' la convenzione che tiene verde quel controllo. */
+const { chromium } = await import('/opt/node22/lib/node_modules/playwright/index.mjs');
+import fs from 'fs';
+const dir = process.argv[2], out = process.argv[3];
+const f = fs.readdirSync(dir).filter(x=>/\.(jpe?g|png)$/i.test(x)).sort();
+const celle = f.map(x=>`<div style="position:relative"><img src="file://${dir}/${x}" style="width:100%;height:200px;object-fit:cover;display:block"><span style="position:absolute;left:3px;top:3px;background:#000;color:#ffab00;font:700 13px monospace;padding:2px 6px">${x}</span></div>`).join('');
+fs.writeFileSync('/tmp/_sheet.html', `<!doctype html><meta charset="utf-8"><body style="margin:0;padding:8px;background:#fff"><div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px">${celle}</div></body>`);
+const b = await chromium.launch(); const p = await b.newPage({viewport:{width:1400,height:900}});
+await p.goto('file:///tmp/_sheet.html'); await p.waitForTimeout(2500);
+await p.screenshot({path:out, fullPage:true}); await b.close();
+console.log(f.length + ' provini');

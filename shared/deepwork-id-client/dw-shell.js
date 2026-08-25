@@ -1000,14 +1000,43 @@ export function perCampo(v, decimali = 2) {
 // un involucro, e un involucro è il posto da cui le due versioni ricominciano a
 // divergere. Nel core i decimali si passano sempre espliciti, quindi cambiarlo
 // non muove niente — verificato cercando le chiamate a un argomento solo.
+/* ⛔ UN OGGETTO DI OPZIONI PASSATO A `toLocaleString` COSTRUISCE UN
+   `Intl.NumberFormat` NUOVO A OGNI CHIAMATA — e questa è la funzione che
+   formatta OGNI numero di OGNI riga di OGNI app.
+   Misurato il 14/08 sotto sforzo: **36,3 µs a chiamata**, contro **0,7 µs** con
+   il formattatore tenuto da parte: **51 volte**. Il costo non si vedeva perché
+   non sbaglia nessun numero — si vedeva come app lenta. Attribuzione fatta con
+   la sottrazione, non dedotta: `prioritaOperative` di Flotta impiegava 24,4 ms
+   su 303 manutenzioni, e chiamandola con `mezzi: []` (il ramo esce prima di
+   formattare) 0,07 ms; 303 righe × ~2,2 chiamate × 36 µs fa 24 ms, cioè torna
+   alla cifra.
+   ⚠️ E LA FORMA GIUSTA ERA GIÀ IN CASA, in due posti: `EURO2`/`EURO0` duecento
+   righe più in giù in questo stesso file, e `fmtInt`/`fmtDec`/`fmtEur` in
+   `shared/dw-grafici.js`. `perLettura` era l'unica che non lo faceva — la copia
+   più debole, nella sua veste che non sbaglia il risultato ma lo paga.
+   ⚠️ La cache è limitata per costruzione: le chiavi possibili sono i decimali
+   (0-20, in pratica 0-3) per due, non cresce con i dati.
+   ⚠️ `useGrouping: true` resta scritto ANCHE se è il default: è la regola 16 di
+   `run-stile`, che pretende che il raggruppamento sia dichiarato perché Node e
+   Chromium non lo fanno allo stesso modo sui numeri di quattro cifre. */
+const FORMATTATORI = new Map();
+function formattatore(d, fisse) {
+  const k = d + (fisse ? "f" : "");
+  let f = FORMATTATORI.get(k);
+  if (!f) {
+    f = new Intl.NumberFormat("it-IT", {
+      useGrouping: true,
+      maximumFractionDigits: d,
+      ...(fisse ? { minimumFractionDigits: d } : {}),
+    });
+    FORMATTATORI.set(k, f);
+  }
+  return f;
+}
 export function perLettura(v, decimali = 2, fisse = false) {
   if (v == null || v === "" || !Number.isFinite(+v)) return "";
   const d = Math.max(0, decimali);
-  return (+v).toLocaleString("it-IT", {
-    useGrouping: true,
-    maximumFractionDigits: d,
-    ...(fisse ? { minimumFractionDigits: d } : {}),
-  });
+  return formattatore(d, fisse).format(+v);
 }
 
 // IL MESSAGGIO di un numero che non si è potuto leggere. Sta accanto al lettore

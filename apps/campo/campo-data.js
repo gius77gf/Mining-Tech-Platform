@@ -2341,9 +2341,27 @@ export function rapportiniInConto(dich) {
 // rapportino per PREFISSO del nome ("Squadra A — Perforazione" ↔ "Squadra A"),
 // stessa convenzione delle altre app. Ritorna { coperte, totale, pct, mancanti }
 // (pct null se non ci sono squadre). Pura e testabile.
+/* ⛔ UN ARRETRATO SENZA GIORNO NON È UNA CONSEGNA DI OGGI, e per questo lo
+   contava. Questa funzione risponde a una domanda operativa sola — *chi devo
+   sollecitare prima del cambio turno?* — e riceve le righe già filtrate da
+   `eDelGiorno`, che tiene dentro «oggi» anche quelle **senza data**, di
+   proposito e con la ragione scritta (un rapportino senza giorno non deve
+   sparire da nessuna schermata).
+   Effetto misurato il 14/08 su un caso minimo: tre squadre, due consegne vere,
+   e **un solo** rapportino senza data appartenente alla squadra che NON aveva
+   consegnato. Prima: `3/3`, `pct 100`, `mancanti: []` — badge verde «tutte a
+   posto», e **il nome di chi manca sparisce dalla riga che esiste per dirlo**.
+   Sui dati di dimostrazione non si vede perché il rapportino senza data è uno
+   solo e deve capitare che sia della squadra giusta; su due anni di cava
+   sintetica sono 16-26 ed è certo.
+   ⚠️ La cura NON tocca `eDelGiorno`: quelle righe devono restare visibili
+   altrove. Qui si smette soltanto di contarle come prova che una squadra ha
+   consegnato **oggi**, e quante ne sono state tolte si dichiara in
+   `senzaGiorno`, perché chi legge deve sapere che esistono. */
 export function coperturaRapportini(squadre, rapportini) {
-  const inviati = new Set((rapportini || [])
-    .filter(r => r.stato === "inviato")
+  const tutte = (rapportini || []).filter(r => r.stato === "inviato");
+  const conGiorno = tutte.filter(r => dataISOEsiste(String((r || {}).data || "").trim()));
+  const inviati = new Set(conGiorno
     .map(r => String(r.squadra || "").trim())
     .filter(Boolean));
   const righe = (squadre || []).map(q => {
@@ -2356,6 +2374,9 @@ export function coperturaRapportini(squadre, rapportini) {
     coperte, totale,
     pct: totale ? Math.round(100 * coperte / totale) : null,
     mancanti: righe.filter(r => !r.consegnato).map(r => r.squadra),
+    // quanti sono stati tolti dal conto perché non hanno un giorno: non sono
+    // spariti, semplicemente non provano una consegna di OGGI
+    senzaGiorno: tutte.length - conGiorno.length,
   };
 }
 

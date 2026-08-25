@@ -1798,8 +1798,25 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
               : ` (su ${inConto.delPeriodo} ${inConto.delPeriodo === 1 ? "rapportino" : "rapportini"} del periodo)`)
           : "")
       + `: ${tornano ? "<b>i due numeri si parlano</b>" : parole}.`;
+    /* ⛔ LE CAUSE DI «CONTO INCOMPLETO» SI ELENCANO, NON SI INDOVINA LA PRIMA.
+       Questa riga era un `if` a due rami — viaggi, altrimenti «le tonnellate non
+       si convertono senza densità» — e dal 14/08 `parziale` ha una TERZA causa,
+       i turni che non hanno dichiarato niente. Lasciata com'era avrebbe scritto
+       una frase **falsa** proprio nel caso nuovo, che è anche il più frequente.
+       È la regola del contratto allargato a metà: quando un valore guadagna un
+       significato, si cercano tutti i posti che lo leggono. */
+    const cause = [];
+    if (r.dich.viaggi > 0) {
+      cause.push(plurale(r.dich.viaggi, "il <b>viaggio</b> dichiarato non entra",
+        `i <b>${r.dich.viaggi} viaggi</b> non entrano`) + " nei metri cubi (servirebbe la portata del mezzo)");
+    }
+    if (r.dich.tSenzaDensita > 0) cause.push("parte delle tonnellate non si converte senza la densità");
+    if (r.dich.senzaProduzione > 0) {
+      cause.push(`<b>${r.dich.senzaProduzione} ${plurale(r.dich.senzaProduzione, "turno", "turni")}</b> `
+        + `non ${plurale(r.dich.senzaProduzione, "ha", "hanno")} dichiarato nessuna quantità`);
+    }
     const spiega = r.parziale
-      ? `<b>Conto incompleto</b>: ${r.dich.viaggi > 0 ? `${plurale(r.dich.viaggi, "il <b>viaggio</b> dichiarato non entra", `i <b>${r.dich.viaggi} viaggi</b> non entrano`)} nei metri cubi (servirebbe la portata del mezzo)` : `parte delle tonnellate non si converte senza la densità`}. Il dichiarato vero è più alto, quindi il confronto non conclude.`
+      ? `<b>Conto incompleto</b>: ${cause.join("; ")}. Il dichiarato vero è più alto, quindi il confronto non conclude.`
       : tornano
         ? ""
         : `Lo scarto può venire dalla stima di turno o da un volo che non ha coperto tutto lo scavo: vale la pena guardarlo insieme a chi fa i rilievi.`;

@@ -1,0 +1,98 @@
+[
+ {
+  "da": "19.jpg",
+  "a": "ingresso.jpg",
+  "largh": 1800,
+  "alt": 1000,
+  "cy": 0.46,
+  "q": 0.6
+ },
+ {
+  "da": "21.jpg",
+  "a": "fascia.jpg",
+  "largh": 1800,
+  "alt": 900,
+  "cy": 0.5,
+  "q": 0.6
+ },
+ {
+  "da": "15.jpg",
+  "a": "invito.jpg",
+  "largh": 1800,
+  "alt": 820,
+  "cy": 0.5,
+  "q": 0.6
+ },
+ {
+  "da": "23.jpg",
+  "a": "app-genesi.jpg",
+  "largh": 1100,
+  "alt": 760,
+  "cy": 0.5,
+  "q": 0.6
+ },
+ {
+  "da": "00.jpg",
+  "a": "app-terra.jpg",
+  "largh": 1100,
+  "alt": 760,
+  "cy": 0.55,
+  "q": 0.6
+ },
+ {
+  "da": "05.jpg",
+  "a": "app-campo.jpg",
+  "largh": 1100,
+  "alt": 760,
+  "cy": 0.5,
+  "q": 0.6
+ },
+ {
+  "da": "14.jpg",
+  "a": "app-flotta.jpg",
+  "largh": 1100,
+  "alt": 760,
+  "cy": 0.5,
+  "q": 0.6
+ },
+ {
+  "da": "06.jpg",
+  "a": "app-scudo.jpg",
+  "largh": 1100,
+  "alt": 760,
+  "cy": 0.5,
+  "q": 0.6
+ },
+ {
+  "da": "12.jpg",
+  "a": "app-conti.jpg",
+  "largh": 1100,
+  "alt": 760,
+  "cy": 0.5,
+  "q": 0.6
+ },
+ {
+  "da": "09.jpg",
+  "a": "app-sentinella.jpg",
+  "largh": 1100,
+  "alt": 760,
+  "cy": 0.5,
+  "q": 0.6
+ },
+ {
+  "da": "20.jpg",
+  "a": "app-deepwork.jpg",
+  "largh": 1100,
+  "alt": 760,
+  "cy": 0.45,
+  "q": 0.6
+ },
+ {
+  "da": "02.jpg",
+  "a": "app-deepworkid.jpg",
+  "largh": 1100,
+  "alt": 760,
+  "cy": 0.5,
+  "q": 0.6
+ }
+]

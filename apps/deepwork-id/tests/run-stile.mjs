@@ -253,7 +253,11 @@ const ok = (cond, why) => { if (!cond) throw new Error(why); };
 // Tutte le superfici che l'utente apre. Se nasce un'app, va aggiunta qui.
 const SUPERFICI = [
   ["core (radice)", "index.html"],
-  ["vetrina dell'ecosistema", "apps/index.html"],
+  /* ⚠️ Dal 25/08 questo file NON e' piu' la vecchia vetrina: e' quella NUOVA,
+     con le nove app e il tour, costruita da `apps/vetrina/sito.py` e scorporata
+     nelle immagini di `apps/img/`. Cambia il contenuto, non il posto — e i
+     sorgenti stanno in `apps/vetrina/`, che e' la cartella del cantiere. */
+  ["vetrina dell'ecosistema · le nove app", "apps/index.html"],
   ["Genesi", "apps/genesi/genesi.html"],
   ["Conti", "apps/conti/index.html"],
   ["Flotta", "apps/flotta/index.html"],
@@ -2343,6 +2347,11 @@ function usaLaStruttura(src) {
    04/08 quando Genesi — l'ultima rimasta — è passata al condiviso.
    Resta **uno solo**, ed è l'originale. */
 const COPIA_PROPRIA = {
+  "apps/index.html":
+    "vetrina di presentazione, non un'app: non ha toast, modali, barra in basso "
+    + "ne' schermate da navigare, quindi non carica `dw-app-ui.js` e non ne "
+    + "riscrive niente. Quello che sembra una copia sono le sue animazioni "
+    + "d'ingresso, che nella struttura condivisa non esistono",
   "index.html":
     "il core È l'originale — il file condiviso è stato estratto da qui — e il suo "
     + "toast dura di più quando è acceso il modo «all'aperto» (DB.settings.outdoor)",
@@ -3565,7 +3574,9 @@ const SENZA_TEMI = {
     "palette dichiarata FUORI PERIMETRO in docs/PALETTE_APP.md: usa l'ambra del core e ha token con nomi propri. "
     + "⚠️ Conseguenza di prodotto, dichiarata: chi progetta una volata non ha la modalita' sole.",
   "apps/index.html":
-    "la vetrina e' una pagina di presentazione, non uno strumento da cava: non ha schermate ne' dati.",
+    "vetrina di presentazione: e' scura di suo per scelta, e MOSTRA i due temi delle app "
+    + "nelle schermate che scorre (scuro e chiaro si alternano). Darle un interruttore "
+    + "del tema vorrebbe dire far cambiare veste alla vetrina, non alle app.",
   "apps/deepwork-id/index.html": "schermata d'accesso del servizio comune, non una verticale.",
   "apps/deepwork-id/admin.html": "amministrazione del servizio comune, si usa da scrivania.",
   "apps/deepwork-id/profilo.html": "profilo del servizio comune, si usa da scrivania.",

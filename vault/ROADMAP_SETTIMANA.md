@@ -572,6 +572,10 @@ grep -n "^- \[ \] \*\*" vault/ROADMAP_SETTIMANA.md
 - `I 20 KO del giro del 09/08, riverificati sul commit di adesso`
 - `«Adempimenti» è la parola che governa il minimo di Sentinella`
 - `B7. `sentinella-periodo-adempimento` È INTERMITTENTE — e va rimisurato a`
+- `LA TELA DELLA VETRINA È IN ATTESA DEL FONDATORE` *(la fotografia di cava,
+  e il sì o il no alla sezione chiara)*
+- `DECISIONE DEL FONDATORE:` *(la vetrina sostituisce `apps/index.html`? e le
+  immagini restano dentro la pagina o diventano file accanto?)*
 
 ## 🎯 L'obiettivo della settimana
 
@@ -5391,9 +5395,9 @@ numero scritto dove non era stato misurato niente**.*
   (640 precedenti alla regola, contati da `date-checkpoint.mjs`). Chi va per
   nome apre il file sbagliato credendo che sia il più fresco.
 - Le decisioni: `docs/DECISIONI_WEEKEND.md` — pagina d'ingresso in cima.
-- Stato misurato al **14/08** (lanciando le suite, non a memoria):
-  **2.829 prove girano senza rete**. La frase va letta stretta: è la somma
-  delle **nove** suite che contano asserzioni (`run-kpi` 2349, `run-stile` 327,
+- Stato misurato al **18/08** (lanciando le suite, non a memoria):
+  **2.877 prove girano senza rete**. La frase va letta stretta: è la somma
+  delle **nove** suite che contano asserzioni (`run-kpi` 2396, `run-stile` 327,
   `run-helpers` 75, `run-pointcloud` 32, `claims-convergenza` 19, `run-manifest` 9,
   `run-demo` 8, `bootstrap-rivendicazioni` 7, `fogli-guardati` 3), non tutto ciò che gira nel
   giro `node` — che di comandi ne ha **34** e di asserzioni ne esegue di più:
@@ -6485,3 +6489,89 @@ di scriverlo qui**: niente entra sulla parola dell'agente.
       deve nominare deve avere un nome.
       Misure: **22 schermate su 22** nelle tre app nuove, **21 passati, 0
       falliti**; 61 comandi premuti dentro la finestra, 0 muti.
+
+- [x] **LA VETRINA NON RESTITUIVA NIENTE A CHI LA MUOVEVA** *(direttiva del
+      fondatore 23/08, col sito di un ristorante di fascia alta come
+      riferimento)*. La schermata di presentazione rispondeva in due punti
+      soli — l'alone sulle schede e la salita all'entrata — e per il resto
+      era immobile. Adesso quattro strati d'ambiente fissi (grana, barra di
+      lettura, alone del puntatore, tinta della famiglia), l'apertura a
+      tutto schermo, il titolo che sale parola per parola, il ventaglio che
+      deriva sullo scorrimento e la risposta al tocco su tutto ciò che si
+      preme. Misurato a 1280/430/390/320 px: **nessuno scorrimento
+      laterale, nessun errore di pagina, 4 strati su 4, 7 zone di tinta**.
+      ⛔ E la riga che è costata di più da capire: `overflow-x: hidden` su
+      html/body rende il corpo un **contenitore di scorrimento**, e da lì
+      `position: sticky` smette di funzionare in TUTTA la pagina **senza
+      dare nessun errore**. `clip` taglia allo stesso modo — che era la
+      ragione misurata per cui quella riga esiste — e non crea il
+      contenitore.
+- [ ] **LA TELA DELLA VETRINA È IN ATTESA DEL FONDATORE.** Cinque tavole
+      pubblicate il 23/08 (apertura, telefono 390, ponti, nove schede,
+      vocabolario dei pezzi). Due decisioni sono **sue** e il lavoro non va
+      avanti senza:
+      · **una fotografia di cava** per l'apertura — il riferimento ha una
+        foto a tutto schermo scurita col titolo sopra, ed è la mossa che
+        alza di più il risultato. Senza, l'apertura resta su fondo nero;
+      · ~~il sì o il no a una sezione chiara~~ — **APPROVATA dal fondatore
+        il 23/08 e fatta**: «Le app si parlano» è una fascia chiara a tutta
+        larghezza fra due sezioni scure. I colori non sono inventati, sono la
+        ricetta del tema chiaro di `shared/dw-app-ui.css` calcolata con
+        l'ambra; per il testo si usa il gradino PROFONDO dell'accento, che sei
+        app su nove dichiarano già da sé. Misurato: **0 testi sotto soglia su
+        40**, a 1280/430/390/320 px.
+      ⚠️ Misurato sul riferimento, perché non si creda che il movimento sia
+      il suo punto di forza: è WordPress + Elementor Pro, e nel sorgente
+      c'è **una sola classe di animazione** (`elementor-animation-grow`,
+      11 occorrenze). Quello che lo fa sembrare vivo è la **composizione**,
+      non il movimento — ed è esattamente la parte che possiamo battere.
+
+- [x] **LA SEZIONE CHIARA, E IL RIGHELLO CHE L'HA ACCUSATA DUE VOLTE A TORTO**
+      *(23/08)*. Fatta. Ma le due lezioni valgono più della sezione:
+      ⛔ **una fascia dipinta da uno PSEUDO-ELEMENTO è invisibile a chi cerca
+      il fondo risalendo gli antenati.** `getComputedStyle(a).backgroundColor`
+      non la trova mai e finisce sul nero del corpo: **tre accuse di contrasto
+      false**, fino a 1,08:1 su un titolo che dal vero fa 14:1 — e lo stesso
+      errore lo avrebbe fatto `tests/browser/contrasto.mjs`. Una fascia a tutta
+      larghezza si fa **coi margini negativi**, sull'elemento vero.
+      ⚠️ E la seconda: Chromium restituisce i `color-mix()` come
+      `color(srgb 0.96 0.93 0.88)`, **coi canali da 0 a 1 e non da 0 a 255**.
+      Un lettore che li divide per 255 li rende quasi neri e accusa un
+      contrasto di 1,00. La risposta era **già in casa**: il commento di
+      `contrasto.mjs` la chiama «SETTIMA TRAPPOLA, E LA PIÙ COSTOSA DI TUTTE».
+      Il banco del progetto lo sapeva; il righello scritto in cinque minuti no.
+- [x] **LE IMMAGINI DI CAVA: CERCATE, GUARDATE, SCARTATE** *(23/08)*. Otto
+      ricerche su Wikimedia Commons — l'unica fonte raggiungibile con licenza
+      verificabile una per una (Pexels, Pixabay e Openverse rispondono 403):
+      **147 file distinti, zero termini non guardati**, 53 dopo aver tolto
+      mappe e disegni, **24 scaricate e guardate**. Nessuna regge come
+      apertura: foto d'archivio, cartelli, incisioni, scatti a mezzogiorno con
+      cielo bianco, e sette di Carrara (montagna bianca e cielo azzurro, che
+      litigano con l'ambra). Due sono manifesti **contro** le cave.
+      ⚠️ La ragione di fondo, da ricordare prima di rifare la stessa ricerca:
+      **Commons è un archivio enciclopedico, non una banca di immagini
+      commerciali.** Le sue foto di cava sono documentarie.
+      ⚠️ E il righello ha mentito due volte prima di funzionare: la prima
+      ricerca ha risposto **«0 candidati»** perché l'API rispondeva `429 — too
+      many requests`, e il servizio delle miniature di Wikimedia dà **400** a
+      questo indirizzo mentre gli originali scaricano benissimo. Uno zero che
+      parla del comando, non del mondo.
+
+## Vetrina di presentazione (direttive fondatore 23/08)
+- [x] Immagini di cantiere come sfondo — 12 montate (ingresso, fascia, invito e
+      una per ognuna delle nove app), autore e licenza verificati uno per uno,
+      4 scartate perché la verifica non tornava.
+- [x] Molto più dinamismo fra le finestre che spuntano dai lati — sei elementi
+      per scena invece di due, con parallasse per piano.
+- [x] Più finestre, più pop-up, più immagini dinamiche.
+- [x] La vetrina entra nel repository (`apps/vetrina/`): prima viveva solo nello
+      scratchpad. Pagina generata dal repository identica byte per byte a quella
+      pubblicata.
+- [ ] **DECISIONE DEL FONDATORE:** questa pagina sostituisce `apps/index.html`,
+      cioè la vetrina che Netlify pubblica a ogni merge su main? Se sì, va
+      deciso se lasciare le immagini `data:` dentro (7,8 MB in un file solo) o
+      spezzarle in file veri accanto alla pagina — per Netlify è meglio la
+      seconda.
+- [ ] I dati di esempio del CORE e di DEEPWORK ID dicono ancora «cave»,
+      «volate», `capocava@cava-alfa.it`, e si vedono nelle schermate della
+      vetrina. Vanno cambiati **nella dimostrazione**, non nella vetrina.

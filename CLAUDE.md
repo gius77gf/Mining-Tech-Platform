@@ -469,6 +469,26 @@ Perché serva davvero e non produca elenchi generici, cinque vincoli:
   cromatica vera e verificata per contrasto/leggibilità.
   shared/deepwork-style.css resta il veicolo tecnico della STRUTTURA;
   la palette per app passa dalle variabili di tema dell'app.
+- ⛔ **IL MARCHIO NON SI TOCCA. MAI, IN NESSUNA MISURA, PER NESSUNA RAGIONE.**
+  Regola fondamentale del fondatore (23/08, dopo averla dovuta ripetere più
+  volte): il logo Deepwork è **uno solo** e si usa **identico** ovunque — stessi
+  dodici elementi, stesse coordinate, stessi colori, stesse larghezze di tratto.
+  Non si semplifica, non si «adatta alla direzione grafica», non si ridisegna
+  «più pulito», non si toglie un pezzo perché a 22 px non si vede.
+  ⚠️ **E il modo in cui si viola non è la malafede: è la semplificazione.** Il
+  23/08 ho scritto tre direzioni grafiche per la vetrina e in tutte e tre ho
+  ridisegnato il marchio «perché a quella misura i dettagli si perdono» —
+  togliendo i due poligoni del fondo, il gambo scuro, la punta e i tre pallini,
+  e cambiando i tratti da 2/2,2/2,5 a 4/5. Tre varianti in un pomeriggio, ognuna
+  ragionevole da sola, e insieme un marchio che non esiste. Un logo che cambia
+  ogni volta che qualcuno lo trova scomodo **non è un logo**: è un disegno.
+  ⚠️ Se a una certa misura non si legge, si cambia **la misura**, non il
+  marchio.
+  La forma canonica sta in `apps/index.html` (`<svg class="marchio" width="74"
+  height="76" viewBox="0 0 120 122">`) e va **copiata di là**, non riscritta a
+  memoria. Chi costruisce una pagina nuova lo prende da un posto solo.
+  ⏱️ In seguito nasceranno i marchi delle singole app e andranno anche quelli
+  nella vetrina; fino ad allora si usa **solo** questo.
 - 🎯 **L'ECCELLENZA È LO STANDARD — DETERMINANTE PER OGNI SCELTA FUTURA**
   (fondatore 27/07, da applicare a qualsiasi decisione, per sempre):
   1. **Nulla è lasciato al caso.** Ogni singola virgola e ogni singolo
@@ -1094,6 +1114,65 @@ Perché serva davvero e non produca elenchi generici, cinque vincoli:
   La lezione non è sui backtick: è che **una controprova va misurata anche nella
   sua copertura**, non solo nel suo esito. Sapere fallire in un punto non
   dimostra niente sugli altri mille.
+- ⛔ **CHI FABBRICA I DATI DI PROVA SBAGLIA COME IL PRODOTTO, MA NESSUNO LO
+  ACCUSA — le cinque lezioni del simulatore, misurate il 14/08.** Dal giorno in
+  cui è nata `tests/simulatore/cava-sintetica.mjs` (una cava che «vive» per due
+  anni, perché la dimostrazione pesa 408 righe in tutto e Terra copre 23 mesi
+  con otto rilievi), **cinque difetti su sei erano del GENERATORE**, non del
+  prodotto. Valgono per qualunque cosa fabbrichi dati — fixture, demo, banchi.
+  1. ⛔ **L'ORACOLO NON È IL DATO, È IL VERDETTO.** Confrontando i record grezzi
+     fra `scudo.scadenze` e `campo.scadenzeScudo` uscivano **8 righe divergenti
+     su 9** — lo stesso id su persone diverse, e sembrava grave. Chiamando la
+     funzione che decide (`idoneitaDiTurno`): **zero verdetti diversi su
+     quattro persone**. Il prodotto diceva la stessa cosa. *Un confronto fra
+     record produce falsi allarmi; conta solo se le due schermate DICONO
+     all'utente cose diverse.*
+  2. ⛔ **UNA GARANZIA CHE DIPENDE DAL CASO NON È UNA GARANZIA**, e questa è
+     costata **cinque volte in un file solo**. I casi rari — la persona senza
+     scadenze, l'infortunio vero, il rilievo da cumulo, la fattura aperta senza
+     scadenza, quella incassata senza data — erano quote probabilistiche: su
+     sette persone al 10%, col seme 7, ne uscivano **zero**. Cioè la difesa che
+     il prodotto ha costruito apposta non veniva esercitata **e niente lo
+     diceva**. Peggio la quarta e la quinta: lì la garanzia c'era (`nFat % 11`)
+     ma poggiava su un sorteggio fatto dopo (`pagata = rnd() < 0.7`), quindi il
+     caso usciva solo se i due si incontravano. *Lo stato si decide PRIMA e il
+     caso ne discende*, e quanti ne sono stati prodotti si **dichiara**
+     (`meta.casiVoluti` / `meta.maiProdotti`): un generatore che non produce un
+     caso non fallisce, **tace**.
+  3. ⛔ **UN DATO NELLA FORMA CHE IL PRODOTTO NON LEGGE SPARISCE SENZA ACCUSARE
+     NESSUNO.** I fermi macchina erano `{id, data, minuti}`; Flotta legge
+     `{mezzo, causale, inizio, fine}`. Su 24 mesi: 48 fermi generati e
+     `affidabilitaFlotta` che risponde `persi: 0, episodi: 0, senzaDate: 0,
+     pct: 100` — la disponibilità del parco **piena**. È il principio del
+     fondatore violato dal generatore invece che dal prodotto, ed è la forma
+     più subdola perché il conto «non so collocarlo» resta a zero anche lui.
+  4. ⛔ **DUE GRANDEZZE SCORRELATE FANNO ACCUSARE UN PONTE CHE FUNZIONA.** I
+     volumi dei voli erano `4000 + rnd()*8000`, indipendenti dalla produzione
+     dei turni: il ponte Campo↔Terra diceva «implausibile» **nove mesi su
+     nove**. Il prodotto aveva ragione — i dati ERANO incoerenti. Un simulatore
+     così non può provare il ponte che esiste per provare.
+  5. ⛔ **E LE DUE DENSITÀ NON SONO LA STESSA COSA**: il drone misura roccia
+     **in banco** (2,6 t/m³ per il calcare, quella che usa il prodotto), i
+     listini quotano il materiale **sciolto** (1,45-1,60). Il confronto usciva
+     sbagliato di **1,62 volte**, che è esattamente 2,6/1,55 — ed è quel
+     rapporto ad averlo tradito. *Quando uno scarto è IDENTICO su tutte le
+     taglie non è rumore: è un difetto del modello.* (Stessa firma per la
+     stagionalità con media 0,95: −9% ovunque.)
+  ⚠️ E il righello ero io altre due volte: confrontavo per **mese di
+  calendario** un volo che misura *dal volo precedente*, e poi prendevo
+  l'intervallo **chiuso a tutt'e due gli estremi**, contando due rilievi contro
+  un solo intervallo di produzione. Con le domande giuste: **11 intervalli su
+  11 «coerente»**.
+  ⛔ **E UN GENERATORE VA PROVATO COME UNA SUITE, perché rotto è peggio.** Il
+  14/08 `cava-sintetica.mjs` è rimasto sul disco con due nomi **liberi**
+  (`ReferenceError` a ogni chiamata) per venti minuti, e non se n'è accorto
+  nessun controllo: `nomi-liberi` dichiara di non guardare `tests/`. L'ha
+  trovato un cantiere che ci lavorava sopra, e ha dovuto pinnarsi una copia di
+  `HEAD`. Una suite rotta fallisce e si vede; **un generatore rotto ferma il
+  lavoro di chi lo usa e sembra un problema loro**. `prova-cava.mjs` sta in
+  `npm test` e pretende le quattro promesse: che parta, che le copie fra app
+  siano lo **stesso oggetto**, che ogni caso raro esca con **ogni** seme, e che
+  la produzione generata sia quella dichiarata.
 - ⚠️ **UNA FUNZIONE NUOVA SI PROVA IN SCRATCHPAD PRIMA DI SCRIVERLA NEL
   MODULO**, e non è pignoleria: il 05/08 questo passaggio ha bocciato **tre
   progetti su tre**, ognuno con un difetto che leggendo il piano non si vedeva.

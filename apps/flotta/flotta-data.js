@@ -848,12 +848,44 @@ export function statoScorta(ricambio) {
    stati qui sopra lo dicono in chiaro senza spostare nessun avviso: quello
    che cambia è `mancano`, che sull'esaurito senza soglia era `0` — un numero
    tranquillo dove non c'è niente da contare — e adesso è `null`. */
+/* ⛔ E L'ORDINE METTEVA PER ULTIMO LO SCAFFALE VUOTO — la stessa soglia mai
+   scritta, un piano più in giù, dove non stampa un numero ma decide CHI SI
+   LEGGE PER PRIMO.
+   ══════════════════════════════════════════════════════════════════════════
+   La chiave era `(a.giacenza - a.sogliaMin) - (b.giacenza - b.sogliaMin)`, cioè
+   la quarta copia della soglia letta come un numero: con `sogliaMin: null` —
+   quello che `parseRicambiCsv` scrive su una colonna vuota — `0 - null` fa
+   **0**, e col campo del tutto assente fa **NaN**, che in un comparatore non
+   ordina niente e non è nemmeno stabile.
+   Misurato su quattro pezzi:
+     ordine prodotto:  Filtro C → Filtro A → Pompa B → Cinghia D
+     chiavi:              -7        -4          0        NaN
+   `Pompa B` e `Cinghia D` hanno **zero pezzi in magazzino** e finivano DOPO
+   `Filtro A`, che un pezzo ce l'ha. La funzione promette «prima i più sotto
+   scorta» e metteva in fondo i due scaffali vuoti.
+   ⚠️ Non scrive niente di falso: NASCONDE. È la famiglia dei numeri tranquilli
+   applicata a un ordinamento, che è più difficile da vedere perché non c'è
+   nessuna cifra sbagliata da leggere.
+   La risposta era già in casa, dodici righe più su: `statoScorta` distingue
+   `esaurito` da `sotto-scorta` e sa già dire `mancano` (con il suo `null` dove
+   non c'è niente da contare). Qui non si riscrive quella regola, la si LEGGE:
+     1. prima gli **esauriti** — un pezzo che non c'è non si monta, ed è la
+        ragione già scritta nel commento dei quattro stati;
+     2. poi, dentro ogni gruppo, quanti pezzi mancano, dal più al meno;
+     3. e a parità, il nome, così l'ordine è deterministico.
+   ⚠️ `mancano: null` non vuol dire «ne mancano zero»: vuol dire che nessuno ha
+   scritto la soglia. Sta in coda al SUO gruppo — mai sotto un `sotto-scorta`,
+   che era il difetto — e l'idioma `== null ? -1 :` è quello che questo file
+   usa già per ordinare i mezzi senza consumo. */
+const RANGO_SCORTA = { esaurito: 0, "sotto-scorta": 1 };
 export function sottoScorta(ricambi) {
   return (ricambi || [])
     .map(r => ({ ...r, scorta: statoScorta(r) }))
     .filter(r => r.scorta.stato === "esaurito" || r.scorta.stato === "sotto-scorta")
     .map(r => ({ ...r, mancano: r.scorta.mancano }))
-    .sort((a, b) => (a.giacenza - a.sogliaMin) - (b.giacenza - b.sogliaMin));
+    .sort((a, b) => (RANGO_SCORTA[a.scorta.stato] - RANGO_SCORTA[b.scorta.stato])
+      || ((b.mancano == null ? -1 : b.mancano) - (a.mancano == null ? -1 : a.mancano))
+      || String(a.nome || "").localeCompare(String(b.nome || ""), "it"));
 }
 
 export function urgenza(dataISO, oggi = new Date()) {
@@ -1390,12 +1422,26 @@ export function costoOrarioMezzo(interventi, rifornimenti) {
       euroOraOfficina: ore ? Math.round(100 * inFinestra / ore) / 100 : null,
       euroOraCarburante: c && Number.isFinite(c.euroOra) ? c.euroOra : null,
       euroOra: ore && !nienteSpesa ? Math.round(100 * spesaInFinestra / ore) / 100 : null,
+      /* ⛔ E LA RAGIONE «LE ORE CI SONO MA IL PERIODO NO» ERA LA SECONDA COPIA
+         DI UNA DECISIONE CHE ADESSO STA IN UN POSTO SOLO. Qui c'era un ramo in
+         più — `oreNote ? "i rifornimenti col contatore non portano la data" :
+         …` — che serviva quando `consumoPerMezzo` rispondeva con le ore anche
+         se le letture agli estremi non erano datate: allora questa funzione
+         doveva accorgersene da sé, guardando `da`/`a`, e dirlo con parole sue.
+         Da quando `consumoPerMezzo` le ore fra due estremi non datati si
+         rifiuta di contarle, quel caso arriva qui già con `oreCoperte: null` e
+         la sua ragione scritta — che è più precisa di quella che c'era (dice
+         QUALE lettura manca e che cosa fare) e, soprattutto, è una sola.
+         Misurato prima di togliere il ramo: su **648 combinazioni** di tre
+         letture (sei date fra valide, vuote e impossibili × tre contatori) il
+         caso «ore note ma finestra assente» si presenta **zero** volte. Non è
+         un ramo prudente rimasto lì per sicurezza: è un ramo che non può più
+         scattare, e un caso dichiarato che non si presenta più è un caso che
+         nasconde — chi lo legge crede che quella strada esista ancora. */
       perche: ore ? (nienteSpesa
         ? "le ore lavorate si sanno, ma nessuna delle spese che cadono in questo periodo porta il suo importo: il costo di un'ora non si può calcolare"
-        : "") : (oreNote
-        ? "i rifornimenti col contatore non portano la data: non si sa che periodo coprono le ore"
-        : ((c && c.perche)
-          || "Nessun rifornimento porta la lettura del contatore: le ore lavorate non si sanno.")),
+        : "") : ((c && c.perche)
+          || "Nessun rifornimento porta la lettura del contatore: le ore lavorate non si sanno."),
     });
   }
   return righe.sort((a, b) => b.totale - a.totale || a.mezzo.localeCompare(b.mezzo, "it"));
@@ -2059,12 +2105,55 @@ export function consumoPerMezzo(rifornimenti) {
       .slice().sort((a, b) => a.data.localeCompare(b.data) || a.ore - b.ore);
     let sceso = false;
     for (let i = 1; i < conData.length; i++) if (conData[i].ore < conData[i - 1].ore) sceso = true;
+    /* ⛔ E LA GUARDIA QUI SOPRA ERA CIECA PROPRIO SUGLI ESTREMI, cioè sulle due
+       letture che il conto usa per costruire il denominatore.
+       ⚠️ ONESTÀ, PRIMA DI TUTTO: questo difetto era **DORMIENTE** e non è mai
+       arrivato a nessuno. L'unica via di scrittura di un rifornimento è il
+       form, e `validaRifornimento` pretende un giorno che esista
+       (`dataISOEsiste`); non c'è nessun lettore CSV dei rifornimenti. Chi
+       legge questo blocco non ha trovato un difetto vivo: ha trovato una porta
+       aperta dietro una porta chiusa. Si chiude perché la porta davanti può
+       aprirsi domani — un import dei pieni è la cosa più naturale da scrivere —
+       e allora questo tacerebbe.
+       Il difetto, misurato: `sceso` guarda le letture CHE HANNO UNA DATA, ma
+       `oreCoperte` si costruisce sui due estremi di `conOre`, che è ordinato
+       per ORE e le contiene TUTTE. Una lettura senza data con una cifra
+       sbagliata scivola in testa e entra nel denominatore senza mai passare
+       dalla guardia:
+         5600 (01/06) · 5750 (15/06) · 4870 (senza data)
+           → 0,91 l/h, nessun «perche», finestra 01/06 → 15/06
+         le stesse tre CON la data → null, «il contatore è sceso»
+       ⚠️ Il segno che non serve sapere quale delle due letture sia quella vera:
+       **togliere la data MIGLIORA il verdetto.** Un `null` diventa un numero,
+       e per giunta un numero che si smentisce da solo — 880 ore in 14 giorni
+       sono 62 ore al giorno, che una macchina non le fa. L'assenza di un dato
+       non è un dato favorevole, e qui era addirittura un dato migliore.
+       ⛔ LE DUE CURE PIÙ CORTE SONO STATE PROVATE E SCARTATE COL NUMERO, perché
+       nessuno le rifaccia alla cieca:
+       · calcolare le sole ORE sulle letture datate lasciando i litri su tutte
+         spezza il conto — numeratore e denominatore parlerebbero di due periodi
+         diversi, ed è esattamente il difetto che `da`/`a` esistono per
+         impedire: sul caso qui sopra dà **5,33 l/h**, più sbagliato di prima;
+       · portare anche i litri sulle sole datate non è prudente in nessuna
+         direzione: sul caso qui sopra il numero SALE (0,91 → 3,33), sul caso
+         opposto SCENDE (2,00 → 1,11), cioè butterebbe via del gasolio vero
+         nella direzione che rassicura.
+       Quello che regge non inventa nessun numero e non perde nessun dato: una
+       lettura senza data **non si sa collocare nel tempo, quindi non può fare
+       da estremo a un intervallo di ore**. Se sta in mezzo non delimita niente
+       e i suoi litri restano nel conto — quel caso continua a calcolarsi. Se
+       sta a un estremo il consumo si rifiuta e la riga dice che cosa fare, che
+       è la stessa forma già usata per il contatore sceso. */
+    const estremiSenzaData = conOre.length >= 2
+      && (!dataISOEsiste(conOre[0].data) || !dataISOEsiste(conOre[conOre.length - 1].data));
     if (conOre.length < 2) {
       perche = conOre.length === 1
         ? "serve almeno un secondo rifornimento con il contatore delle ore"
         : "nessun rifornimento porta il contatore delle ore";
     } else if (sceso) {
       perche = "fra due rifornimenti il contatore è sceso: una delle due letture è sbagliata, e finché non è corretta il consumo non si può calcolare";
+    } else if (estremiSenzaData) {
+      perche = "il primo o l'ultimo rifornimento non ha il giorno: senza quella data non si sa in che ordine sono stati fatti, e le ore fra i due estremi non si possono contare. Scrivi il giorno e il consumo si calcola da solo";
     } else {
       oreCoperte = conOre[conOre.length - 1].ore - conOre[0].ore;
       if (oreCoperte > 0) {
@@ -2610,6 +2699,31 @@ export function propostaScorte(ricambi, interventi, opzioni) {
     senzaData: cons.senzaData,
     consegna: Math.round(+o.consegnaGiorni || 0), sicurezza: Math.max(0, Math.round(+o.sicurezzaGiorni || 0)),
     daOrdinare: righe.filter(r => r.daOrdinare > 0).length,
+    /* ⛔ LA QUARTA DICHIARAZIONE D'INCERTEZZA DI QUESTO CONTO, e mancava proprio
+       dove il numero si legge per intero. La riga sa già dire la verità —
+       `prezzo: +r.prezzo > 0 ? +r.prezzo : null` e `spesa: … : null`, cioè la
+       decisione 3 di `parseRicambiCsv` («il PREZZO che manca resta null: uno
+       zero farebbe sembrare gratis un pezzo che gratis non è») — e poi il
+       totale se ne teneva una copia più debole, `t + (r.spesa || 0)`, che di
+       quel `null` fa uno ZERO. È la copia debole scritta dove il documento si
+       compone, un piano sopra la riga che aveva ragione.
+       Misurato su 3 pezzi da ordinare di cui 2 senza prezzo: «da ordinare 3 ·
+       spesa 144 €» dove i due muti valgono 600 € che nessuno dichiara — e la
+       direzione è quella che RASSICURA, una lista della spesa più magra del
+       vero.
+       ⚠️ E la seconda faccia è peggiore, perché non stampa un numero sbagliato:
+       stampa il SILENZIO. Se NESSUNO dei pezzi da ordinare ha un prezzo,
+       `spesaTotale` è `0`, e i due lettori scrivono `p.spesaTotale ? … : "."` —
+       cioè su 6 pezzi da comprare la frase finisce con un punto e non dice
+       niente. Misurato: 2 righe, 6 pezzi, zero parole.
+       Il totale NON diventa `null`: resta la somma di quello che si SA, cioè
+       un minimo vero, ed è la stessa forma che `costoOrdine` usa per la stessa
+       domanda dieci schermate più in là (`ricambi.costo` + `senzaPrezzo`) e che
+       `costoOrarioMezzo` usa per il €/h. Quello che mancava è il numero accanto
+       che impedisce di leggerlo come completo, e lo leggono tutt'e due i posti
+       che leggono già `senzaData` e `attendibile`: il riepilogo delle scorte e
+       la lista della spesa. */
+    senzaPrezzo: righe.filter(r => r.daOrdinare > 0 && r.prezzo == null).length,
     spesaTotale: Math.round(righe.reduce((t, r) => t + (r.spesa || 0), 0) * 100) / 100,
   };
 }

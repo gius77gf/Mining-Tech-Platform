@@ -31,3 +31,7 @@ __pid-*.txt
 # l'avevano. Cioè il cerotto non copriva nemmeno il caso per cui era stato
 # messo. Adesso il prefisso basta: la lista può ancora allungarsi per un nome
 # nuovo, non più per un'estensione diversa.
+
+# I .pyc dei generatori della vetrina: prodotti, non sorgenti.
+__pycache__/
+*.pyc
