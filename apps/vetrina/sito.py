@@ -749,7 +749,11 @@ body.mossa .barra{background:rgba(8,9,12,.82);backdrop-filter:blur(18px) saturat
 @media(max-width:720px){
   .corona{--rx:clamp(86px, calc(50vw - 54px), 148px);--ry:calc(var(--rx) * .95);
     padding:calc(var(--ry) + 44px) 0}
-  .corona{--marchio:clamp(74px,19vw,104px)}
+  /* ⛔ il marchio piu' grande possibile CHE ANCORA STA. A 22vw il conto torna
+     a 1 urto a 360px, a 20,5vw e' zero: il numero e' stato cercato salendo
+     finche' non ha morso, non scelto a occhio. La misura del disegno cambia,
+     il disegno no. */
+  .corona{--marchio:clamp(74px,20.5vw,104px)}
   .corona .anello a{font-size:clamp(10px,2.7vw,11.5px);letter-spacing:.5px}
   /* ⛔ E L'ETICHETTA DEL CENTRO URTAVA I NOMI, E NESSUN RIGHELLO LO VEDEVA.
      `corona-urti` misura contro il rettangolo di `.centro`; ma `.eti` e'
