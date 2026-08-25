@@ -35,7 +35,7 @@
    fuori dal repository glielo fa dichiarare inesistente. */
 const { chromium } = await import('/opt/node22/lib/node_modules/playwright/index.mjs');
 import { readFileSync, existsSync } from 'fs';
-import { resolve } from 'path';
+import { resolve, relative, sep } from 'path';
 import { execFileSync } from 'child_process';
 import { servi } from './servi.mjs';
 /* ⛔ IL CORE SI APRE ANCHE IN LOCALE, E L'ECCEZIONE E' STATA TOLTA INVECE CHE
@@ -112,6 +112,77 @@ const b = BASE ? null : await chromium.launch();
 let ok = 0, ko = 0, dichiarati = 0;
 console.log(`${mete.length} destinazioni lette dalla pagina · ${BASE ? 'SITO VERO: ' + ORIGINE : 'radice servita: ' + RADICE}\n`);
 if (BASE) console.log(`⚠️  ONLINE si misura con curl: qui il browser non raggiunge la rete (ERR_CONNECTION_RESET,\n    e il proxy non vede nemmeno il tentativo). Copre lo stato e il contenuto consegnato — e le\n    RISCRITTURE del sito, che in casa non si vedono. NON copre che la pagina si monti: quello lo\n    dice la passata di casa, sugli stessi byte.\n`);
+
+/* ⛔ E PRIMA DI SEGUIRLI: SI POSSONO PREMERE? Un collegamento puo' essere nella
+   pagina, puntare a un file che esiste, aprire un'app perfetta — e non essere
+   raggiungibile col dito: coperto da un altro elemento, alto zero, o fuori
+   dallo schermo. In quel caso tutte e tre le domande precedenti rispondono
+   «a posto» e l'utente non ci arriva lo stesso.
+   La regola e' quella del repository: il punto centrale deve appartenere
+   all'elemento **o a un suo discendente** (accettando un antenato si misura la
+   riga intera e vengono fuori bersagli che non esistono).
+   ⚠️ Tre trappole pestate scrivendola, tutte e tre gia' scritte in CLAUDE.md e
+   tutte e tre rifatte lo stesso:
+     1. `elementFromPoint` vive nel VIEWPORT: un elemento sotto la piega
+        risponde `null`. Accusava 26 collegamenti su 30, «coperti da niente» —
+        cioe' null. Il segno era li': un difetto quasi universale e nessun
+        colpevole nominato;
+     2. `scrollIntoViewIfNeeded` di Playwright aspetta che l'elemento sia
+        AZIONABILE, e i nomi della corona ruotano di continuo: non lo diventano
+        mai, quindi ogni chiamata bruciava il suo tempo pieno e la misura non
+        finiva. Si ferma la rotazione e si scorre a mano;
+     3. la pagina dichiara `scroll-behavior:smooth`, quindi due rAF dopo un
+        `scrollTo` sta ANCORA scorrendo e il rettangolo letto e' a mezz'aria.
+        Accusava 28 su 30 di stare «fuori dalla finestra» mentre erano in
+        viaggio. Lo scorrimento va reso istantaneo.
+   Con le tre corrette: 30 su 30 premibili a 1440px e a 390px, 0 bersagli
+   stretti. */
+if (!BASE) {
+  const pt = await b.newPage({ viewport: { width: 1280, height: 900 } });
+  /* ⛔ la pagina si chiede al server col percorso RELATIVO ALLA RADICE, non
+     col solo nome del file: servendo la radice del repository, `/index.html`
+     e' il CORE, non la vetrina. La prima stesura caricava quello e il
+     controllo rispondeva «nessun collegamento trovato» — che e' la guardia
+     sullo zero che fa il suo mestiere, e mi ha risparmiato un verde falso. */
+  const VIA_REL = '/' + relative(RADICE, resolve(PAGINA)).split(sep).join('/');
+  await pt.goto(`${ORIGINE}${VIA_REL}`, { waitUntil: 'domcontentloaded' });
+  await pt.evaluate(async () => { for (let y = 0; y < document.documentElement.scrollHeight; y += 500) { scrollTo(0, y); await new Promise(r => setTimeout(r, 45)); } scrollTo(0, 0); });
+  await pt.waitForTimeout(700);
+  for (const [w, h] of [[1440, 900], [390, 844]]) {
+    await pt.setViewportSize({ width: w, height: h });
+    await pt.waitForTimeout(400);
+    const r = await pt.evaluate(async () => {
+      document.querySelectorAll('.corona .anello, .corona .anello a').forEach(e => e.style.animationPlayState = 'paused');
+      document.documentElement.style.scrollBehavior = 'auto';
+      document.body.style.scrollBehavior = 'auto';
+      await new Promise(r => setTimeout(r, 120));
+      const out = [];
+      for (const a of document.querySelectorAll('a[href^="/"]')) {
+        const doc = a.getBoundingClientRect().top + scrollY;
+        scrollTo({ top: Math.max(0, doc - innerHeight / 2), behavior: 'instant' });
+        await new Promise(r => setTimeout(r, 55));
+        const q = a.getBoundingClientRect(), cs = getComputedStyle(a);
+        const vis = cs.visibility !== 'hidden' && cs.display !== 'none' && +cs.opacity > .05 && q.width > 1 && q.height > 1;
+        const cx = q.left + q.width / 2, cy = q.top + q.height / 2;
+        const dentro = cx >= 0 && cy >= 0 && cx <= innerWidth && cy <= innerHeight;
+        const so = dentro ? document.elementFromPoint(cx, cy) : null;
+        out.push({ via: a.getAttribute('href'), testo: (a.textContent || '').trim().slice(0, 16),
+          male: !(vis && dentro && so && (so === a || a.contains(so))),
+          stretto: q.width < 40 || q.height < 22, larg: Math.round(q.width), alt: Math.round(q.height),
+          copre: so ? so.tagName + '.' + String(so.className || '').split(' ')[0] : (dentro ? 'niente' : 'FUORI FINESTRA') });
+      }
+      return out;
+    });
+    const mali = r.filter(x => x.male), stretti = r.filter(x => !x.male && x.stretto);
+    if (!r.length) { console.log(`  ⛔ ${w}px · NESSUN COLLEGAMENTO TROVATO: il selettore non aggancia piu' niente`); ko++; }
+    else console.log(`  ${mali.length || stretti.length ? 'KO  ' : 'ok  '} ${String(w).padStart(4)}px · ${r.length} collegamenti premibili: ${r.length - mali.length} · bersaglio stretto: ${stretti.length}`);
+    mali.slice(0, 5).forEach(x => console.log(`         ⛔ ${x.via} «${x.testo}» ${x.larg}x${x.alt} · ${x.copre}`));
+    stretti.slice(0, 5).forEach(x => console.log(`         ⚠️  ${x.via} «${x.testo}» bersaglio ${x.larg}x${x.alt}px`));
+    ko += mali.length;
+  }
+  await pt.close();
+  console.log('');
+}
 
 for (const m of mete) {
   let stato = 0, v = { testo: 0, comandi: 0, titolo: '' }, errori = [];
