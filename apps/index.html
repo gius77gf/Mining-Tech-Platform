@@ -1179,6 +1179,24 @@ body.mossa .barra{background:rgba(8,9,12,.82);backdrop-filter:blur(18px) saturat
     });},{threshold:.6});
     [].forEach.call(document.querySelectorAll('.fascia .cifre b'),function(b){oc.observe(b);});
   }
+
+  /* ⛔ LA VETRINA SI SALVA SUL TELEFONO, cosi' si apre anche senza rete.
+     Misurato prima di scriverlo: staccata la rete, la vetrina era una PAGINA
+     BIANCA — e non bastava il service worker del core, che pure ha la radice
+     come ambito, perche' il suo ripiego di navigazione riporta al core.
+     Che cosa entra in cache e perche' sta scritto in `apps/sw.js`: qui c'e'
+     solo la registrazione.
+     ⚠️ Si registra DOPO il caricamento: l'installazione scarica lo scheletro,
+     e farlo mentre la pagina sta ancora prendendo le sue immagini vorrebbe
+     dire contendersi la rete con cio' che l'utente sta guardando.
+     ⚠️ E si tace se fallisce: un service worker e' un di piu' — su un browser
+     che non lo sa fare, o in una finestra privata, la pagina deve funzionare
+     esattamente come prima. */
+  if('serviceWorker' in navigator){
+    window.addEventListener('load',function(){
+      navigator.serviceWorker.register('./sw.js').catch(function(){});
+    });
+  }
 })();
 </script>
 </body>

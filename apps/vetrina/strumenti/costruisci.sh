@@ -51,4 +51,8 @@ node "$Q/strumenti/tour-vivo.mjs"      "$U/index.html" | tail -1
 #    guarda che cosa arriva a schermo. Un file puo' esserci e la pagina aprirsi
 #    bianca, e in quel caso il tour «funziona» per il righello e non per chi lo prova.
 node "$Q/strumenti/tour-aperto.mjs"    "$U/index.html" --radice "$U/.." | tail -1
+# ⛔ e la QUINTA domanda: la vetrina si apre anche senza rete? Prima del 25/08
+#    era una pagina bianca — nessun service worker, e quello del core non
+#    bastava perche' il suo ripiego di navigazione riporta al core.
+node "$Q/strumenti/senza-rete.mjs"     --radice "$U/.." | tail -1
 echo "pagina del sito: $U/index.html — $(wc -c < "$U/index.html") byte  ·  immagini: $(ls "$U/img" | wc -l) file, $(du -sh "$U/img" | cut -f1)"
