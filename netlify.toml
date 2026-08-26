@@ -1,3 +1,24 @@
 [build]
     command = "echo 'No build needed'"
     publish = "."
+
+# ⛔ LE IMMAGINI DELLA VETRINA PORTANO L'IMPRONTA DEL CONTENUTO NEL NOME, E
+#    QUINDI NON CAMBIANO MAI. Misurato il 25/08: Netlify manda su TUTTO
+#    `cache-control: public, max-age=0, must-revalidate`, immagini comprese.
+#    Effetto alla riapertura: i byte non si riscaricano (la validazione risponde
+#    304 con zero byte, verificato), ma il browser deve chiedere **una per una
+#    148 immagini** prima di poterle mostrare — 148 giri di rete per ricevere
+#    148 volte «è ancora quella di prima».
+#
+#    Un file il cui nome È l'impronta del suo contenuto non ha bisogno di
+#    essere validato: se il contenuto cambia, cambia il nome. Quindi si può
+#    dire al browser di tenerselo per un anno senza chiedere.
+#
+#    ⚠️ Vale SOLO per `/apps/img/`, dove i nomi sono impronte (`scorpora.py` li
+#    costruisce con lo sha1 del contenuto). Non si estende alle pagine, che
+#    cambiano allo stesso indirizzo a ogni deploy: lì `must-revalidate` è
+#    giusto, ed è quello che fa arrivare subito una correzione.
+[[headers]]
+    for = "/apps/img/*"
+    [headers.values]
+        cache-control = "public, max-age=31536000, immutable"
