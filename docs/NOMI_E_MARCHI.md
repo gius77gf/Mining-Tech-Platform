@@ -59,7 +59,28 @@ astratta — è uno strumento del mestiere.
 
 ---
 
-## 3. La direzione scelta per i nomi
+## 3. ⏸️ SOSPESO — si riprende più avanti
+
+**Fondatore, 27/08:** «memorizza la possibilità di cambiare i nomi e creare i
+temi in un altro momento, intanto concentriamoci sulla ripresa dei lavori».
+
+Quindi questo lavoro **non è annullato: è in pausa**, e qui sotto c'è tutto
+quello che serve per riprenderlo a freddo senza rifare la strada.
+
+⚠️ Fino ad allora **i nomi attuali restano quelli buoni**: Terra, Campo,
+Flotta, Scudo, Conti, Sentinella. Nessun documento, nessuna schermata e nessun
+commit deve usare un nome proposto qui dentro — sono candidati, non decisioni.
+
+### Dove eravamo arrivati
+- **asse scelto** (§3a) e **trattamento scelto**: strumenti, deformati;
+- **un concetto di stemma deciso**: la bilancia per Conti (§2);
+- **sei famiglie scartate** con la ragione (§4): non ripartire da lì;
+- **ultima consegna**: 24 candidati (4 per app) sui sei nomi da cambiare. Il
+  fondatore non ne ha scelto nessuno e non ha dato un verso nuovo, quindi la
+  ripresa parte da una domanda, non da altre proposte: *quale SUONO cerchi* —
+  più duro, più morbido, più corto — visto che l'asse va bene e il taglio no.
+
+### 3a. La direzione scelta per i nomi (quando si riprende)
 
 **Asse: gli STRUMENTI** — oggetti che servono a non sbagliare (fondatore,
 26/08: «tra le tre strade, mi piace di più la terza»).

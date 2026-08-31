@@ -2943,6 +2943,69 @@ test("le voci sono ben formate e le chiavi non si ripetono", () => {
     ok(typeof v.daMezzo === "boolean", v.chiave + ": daMezzo dichiarato, non lasciato indefinito");
   }
 });
+/* ══════════════════════════════════════════════════════════════════════
+   PONTE FLOTTA → CONTI · lo stesso euro contato due volte
+   ══════════════════════════════════════════════════════════════════════ */
+test("⛔ Flotta non raggiungibile NON è Flotta a zero", () => {
+  const r = ponti.confrontoCostiMezzi([{ voce: "carburante", importo: 100, data: "2026-03-01" }], null);
+  eq(r.disponibile, false, "si dichiara non disponibile");
+  eq(r.totaleFlotta, undefined, "e NON stampa un totale");
+  /* un totale tranquillo da un'app che non ha risposto darebbe il via libera a
+     inserire il doppione: è la bugia peggiore che questa funzione possa dire */
+  eq(ponti.confrontoCostiMezzi([], undefined).disponibile, false, "vale anche per undefined");
+});
+test("il doppione si vede: la stessa voce in tutt'e due", () => {
+  const r = ponti.confrontoCostiMezzi(
+    [{ voce: "carburante", importo: 100, data: "2026-03-01" }, { voce: "personale", importo: 900, data: "2026-03-01" }],
+    [{ voce: "carburante", importo: 80, data: "2026-03-02" }]);
+  eq(r.entrambe, 1, "una voce sola è in tutt'e due");
+  eq(r.voci[0].conti, 100, "quanto ha Conti");
+  eq(r.voci[0].flotta, 80, "quanto ha Flotta");
+  ok(!r.voci.some(v => v.chiave === "personale"), "personale non entra: Flotta non lo registra per costruzione");
+  eq(r.voci.length, ponti.VOCI_COSTO.filter(v => v.daMezzo).length, "si guardano SOLO le voci daMezzo");
+});
+test("voci diverse: nessun doppione da segnalare", () => {
+  const r = ponti.confrontoCostiMezzi([{ voce: "carburante", importo: 100, data: "2026-03-01" }],
+                                      [{ voce: "noleggio", importo: 50, data: "2026-03-02" }]);
+  eq(r.entrambe, 0, "non si accusa un doppione che non c'è");
+  eq(r.totaleConti, 100, "e i due totali restano leggibili");
+  eq(r.totaleFlotta, 50);
+});
+test("⛔ una riga SENZA DATA si conta a parte, non sparisce dal periodo", () => {
+  const r = ponti.confrontoCostiMezzi(
+    [{ voce: "carburante", importo: 100, data: "2026-03-01" }, { voce: "carburante", importo: 70 }],
+    [{ voce: "carburante", importo: 80, data: "2026-03-02" }], "2026-03-01", "2026-03-31");
+  eq(r.voci[0].conti, 100, "il totale è solo di ciò che si sa collocare");
+  eq(r.senzaData.conti, 1, "e la riga esclusa si dichiara");
+});
+test("⛔ uno ZERO SCRITTO non sparisce, e non è «nessuna riga»", () => {
+  /* la prima stesura di questa funzione filtrava gli importi > 0 e si fermava
+     lì: una voce registrata a zero usciva identica a «non c'è». È la stessa
+     correzione già fatta in `riepilogoCosti`, copiata a metà — l'ha presa la
+     prova in scratchpad, prima che finisse nel modulo. */
+  const zero = ponti.confrontoCostiMezzi([{ voce: "carburante", importo: 0, data: "2026-03-01" }],
+                                         [{ voce: "carburante", importo: 80, data: "2026-03-02" }]);
+  eq(zero.importoNonPositivo.conti, 1, "lo zero scritto si dichiara");
+  eq(zero.senzaImporto.conti, 0, "e non si confonde con un campo mai riempito");
+  const vuoto = ponti.confrontoCostiMezzi([], [{ voce: "carburante", importo: 80, data: "2026-03-02" }]);
+  eq(vuoto.importoNonPositivo.conti, 0, "nessuna riga NON è uno zero scritto");
+  eq(vuoto.voci[0].righeConti, 0, "e il conto delle righe lo dice");
+});
+test("un importo MAI SCRITTO è distinto da uno zero", () => {
+  const r = ponti.confrontoCostiMezzi([{ voce: "carburante", data: "2026-03-01" }],
+                                      [{ voce: "carburante", importo: 80, data: "2026-03-02" }]);
+  eq(r.senzaImporto.conti, 1, "si dichiara");
+  eq(r.voci[0].conti, null, "e non diventa zero");
+  eq(r.importoNonPositivo.conti, 0, "i due motivi restano separati: portano a gesti diversi");
+});
+test("il conto delle righe accompagna il totale", () => {
+  const r = ponti.confrontoCostiMezzi(
+    [{ voce: "carburante", importo: 10, data: "2026-03-01" }, { voce: "carburante", importo: 20, data: "2026-03-05" }], []);
+  eq(r.voci[0].conti, 30, "somma");
+  eq(r.voci[0].righeConti, 2, "e dice da quante righe viene");
+  ok(r.disponibile, "due elenchi vuoti sono comunque una risposta");
+});
+
 test("⛔ una voce che non è nell'elenco NON diventa «generali»", () => {
   eq(ponti.gruppoDiVoce("inventata"), "non-classificata", "un id sconosciuto si dichiara");
   eq(ponti.gruppoDiVoce(null), "non-classificata", "e l'assenza pure");

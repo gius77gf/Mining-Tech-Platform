@@ -942,6 +942,104 @@ export function gruppoDiVoce(chiave) {
 }
 
 // ══════════════════════════════════════════════════════════════════════
+// PONTE · FLOTTA → CONTI — LO STESSO EURO CONTATO DUE VOLTE
+// ══════════════════════════════════════════════════════════════════════
+//
+// ⛔ IL VOCABOLARIO C'ERA GIÀ, LO SCAMBIO NO — E IN MEZZO C'ERA UN DIFETTO.
+// Flotta e Conti importano tutt'e due `VOCI_COSTO` da qui, quindi parlano la
+// stessa lingua sui costi da sempre. E la bandiera `daMezzo` qui sopra dice,
+// con il suo commento, perché esiste: «servono a non contarle DUE VOLTE quando
+// Conti sommerà le proprie».
+//
+// Misurato il 27/08, chi quella bandiera la LEGGE:
+//     grep -rc "daMezzo" shared/dw-ponti.js apps/conti/index.html apps/flotta/flotta-data.js
+//     → shared 11 · conti 4 · **flotta 0**
+//
+// Cioè la difesa era **a senso unico**: Conti avvisa chi inserisce («anche in
+// Flotta»), filtra i doppioni e mette il titolo sul menu — e non può mostrare
+// QUALE spesa, perché i dati non passavano. Faceva già la domanda giusta senza
+// poter avere la risposta, e l'unica difesa vera era che qualcuno si ricordasse
+// che il gasolio sta anche di là.
+//
+// Questa funzione è la risposta: mette in fila, voce per voce, quanto ha Conti
+// e quanto ha Flotta sulle SOLE voci che si sovrappongono.
+//
+// ── QUATTRO SCELTE, E TUTTE E QUATTRO SONO IL PRINCIPIO DEL FONDATORE ──
+// 1. **Flotta non raggiungibile non è Flotta a zero.** Se la lettura non
+//    riesce si risponde `{disponibile:false}` e non si stampa nessun numero:
+//    un totale tranquillo ottenuto da un'app che non ha risposto sarebbe la
+//    bugia peggiore, perché darebbe il via libera a inserire il doppione.
+// 2. **Uno zero SCRITTO non sparisce.** Il filtro somma solo gli importi > 0 —
+//    giusto — ma se ci si fermasse lì una voce registrata a zero uscirebbe dal
+//    risultato identica a «nessuna riga». Sono due cose diverse: la prima
+//    qualcuno l'ha scritta. Si contano a parte (`importoNonPositivo`).
+//    ⚠️ È la stessa correzione che `riepilogoCosti` di Conti ha già fatto, e
+//    scrivendo questa funzione l'avevo copiata A METÀ: la firma esatta della
+//    copia debole. L'ha presa la prova in scratchpad, prima del modulo.
+// 3. **Le righe senza data si contano, non si buttano.** Escluderle da un
+//    periodo in silenzio farebbe sembrare un mese più economico di com'è.
+// 4. **Il conto delle righe accompagna il totale.** Tre righe che sommano zero
+//    e nessuna riga sono due situazioni diverse, e chi legge deve poterle
+//    distinguere senza aprire l'elenco.
+//
+// ⚠️ E si guardano SOLO le voci `daMezzo`. Le altre — personale, energia,
+// esplosivo, canone, ripristino — Flotta non le registra per costruzione, e
+// metterle qui produrrebbe un confronto in cui metà delle righe dice sempre
+// «Flotta non ce l'ha»: rumore che nasconde le tre che contano.
+export function confrontoCostiMezzi(costiConti, costiFlotta, dal = "", al = "") {
+  const d1 = String(dal || ""), d2 = String(al || "");
+  if (costiFlotta == null) return { disponibile: false, motivo: "flotta-non-raggiungibile" };
+
+  const dentro = (c) => {
+    const d = String(c && c.data || "").slice(0, 10);
+    if (!d1 && !d2) return true;
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(d)) return false;   // senza data non si può collocare
+    return (!d1 || d >= d1) && (!d2 || d <= d2);
+  };
+  const r2 = (n) => Math.round(n * 100) / 100;
+  const suMezzo = (c) => (voceCosto(c && c.voce) || {}).daMezzo === true;
+
+  const somma = (righe) => {
+    const tutte = (righe || []).filter(Boolean);
+    const per = {}, conto = {};
+    let senzaData = 0;
+    for (const c of tutte) {
+      if (!suMezzo(c)) continue;
+      if (numeroDichiarato(c.importo) === null || +c.importo <= 0) continue;
+      if (!dentro(c)) { if (d1 || d2) senzaData++; continue; }
+      const k = voceCosto(c.voce).chiave;
+      per[k] = r2((per[k] || 0) + (+c.importo || 0));
+      conto[k] = (conto[k] || 0) + 1;
+    }
+    return {
+      per, conto, senzaData,
+      senzaImporto: tutte.filter(c => suMezzo(c) && numeroDichiarato(c.importo) === null).length,
+      importoNonPositivo: tutte.filter(c => suMezzo(c) && numeroDichiarato(c.importo) !== null && +c.importo <= 0).length,
+    };
+  };
+
+  const C = somma(costiConti), F = somma(costiFlotta);
+  const voci = VOCI_COSTO.filter(v => v.daMezzo).map(v => {
+    const c = C.per[v.chiave] === undefined ? null : C.per[v.chiave];
+    const f = F.per[v.chiave] === undefined ? null : F.per[v.chiave];
+    return {
+      chiave: v.chiave, etichetta: v.etichetta, conti: c, flotta: f,
+      righeConti: C.conto[v.chiave] || 0, righeFlotta: F.conto[v.chiave] || 0,
+      entrambe: c !== null && f !== null,
+    };
+  });
+  return {
+    disponibile: true, voci,
+    entrambe: voci.filter(v => v.entrambe).length,
+    totaleConti: r2(voci.reduce((a, v) => a + (v.conti || 0), 0)),
+    totaleFlotta: r2(voci.reduce((a, v) => a + (v.flotta || 0), 0)),
+    senzaData: { conti: C.senzaData, flotta: F.senzaData },
+    senzaImporto: { conti: C.senzaImporto, flotta: F.senzaImporto },
+    importoNonPositivo: { conti: C.importoNonPositivo, flotta: F.importoNonPositivo },
+  };
+}
+
+// ══════════════════════════════════════════════════════════════════════
 // PONTE P5 · CAMPO → SCUDO — IL MANCATO INFORTUNIO SEGNALATO DAL FRONTE
 // ══════════════════════════════════════════════════════════════════════
 //
