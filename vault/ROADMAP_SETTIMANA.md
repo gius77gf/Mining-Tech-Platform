@@ -88,6 +88,13 @@
   (cinque prove assolute vivono sui suoi numeri): il caso lo mostra il banco
   iniettando la storia nel modulo servito. 4 prove in run-kpi, banco nei due
   versi, copertura flotta 97/97.
+- [x] ✅ 02/09 sera **Passata in profondità su Flotta con la riga nuova**: la
+  famiglia dei banchi rilanciata (consumo contro la storia 9, disegni 54,
+  documenti che escono 79 su 9 punti d'uscita, frasi da uno 42, numeri
+  tranquilli 27, ponte Conti→Flotta 20: zero KO), contrasto nei tre temi (627
+  testi, 0 sotto soglia), la riga «da guardare» guardata a 320 px nei tre temi
+  con la storia iniettata: sta nella scheda, non scorre di lato, il rosso si
+  legge. Nessun difetto trovato.
 - [ ] **Aggiornare la tabella in fondo a `docs/MAPPA_ECOSISTEMA.md`** a ogni
   ponte chiuso: è il registro, e il «6 su 56» deve scendere. *(02/09: 12 su 56.)*
 - [ ] **Una passata in profondità su un'app** (ogni schermata guardata, ogni
