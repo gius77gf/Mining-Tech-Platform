@@ -1727,6 +1727,130 @@ export function riepilogoIvaFattura(fattura) {
 // Legge i numeri già usati nell'anno — sia "2026/037" sia "37/2026" — e
 // propone il primo libero, in formato AAAA/NNN. Così non si salta e non si
 // duplica: il numero non si digita più a mano.
+
+/* ══════════════════════════════════════════════════════════════════════
+   LA FATTURA ELETTRONICA — il file XML per il Sistema di Interscambio (02/09)
+   ──────────────────────────────────────────────────────────────────────
+   È il punto 5 di docs/CONTI_FATTURAZIONE_ROADMAP.md: «generatore XML
+   FatturaPA lato client, con controllo formale prima dell'export». Conti
+   PREPARA il file; l'invio allo SdI e la conservazione si fanno gratis dal
+   portale dell'Agenzia o col commercialista — la riga fissa di onestà sta
+   nella pagina, e questa funzione non promette niente di più.
+   ⛔ ONESTÀ SUL TRACCIATO: la struttura (FPR12: FatturaElettronicaHeader con
+   DatiTrasmissione, CedentePrestatore, CessionarioCommittente; Body con
+   DatiGenerali, DatiBeniServizi, DatiPagamento) è scritta a memoria della
+   versione 1.2 del tracciato, NON riletta dallo schema oggi (la rete del
+   contenitore non apre pagine). Il file va passato dal controllo formale del
+   portale prima del primo invio vero, e il commercialista deve vedere il
+   primo. Per questo la funzione risponde con `mancanti` (bloccanti: senza di
+   loro il file NON è pronto) e `avvisi` (il file esce, ma va saputo).
+   ⛔ E NON SI INVENTA NIENTE: regime fiscale, modalità di pagamento, CAP e
+   provincia sono dati che il cliente deve scrivere (Impostazioni e
+   anagrafica), non ripieghi. Un «RF01» messo di default sarebbe un dato
+   fiscale deciso dal programma: se manca, il file non è pronto e la ragione
+   è scritta in italiano, col posto dove scriverla.
+   `quadra` di `riepilogoIvaFattura` è bloccante: un file in cui le righe non
+   tornano col totale lo rifiuta lo SdI, e prima ancora è il difetto che quella
+   funzione esiste per far vedere. */
+const escXml = (s) => String(s == null ? "" : s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+const dec = (v, n = 2) => (Math.round((+v || 0) * 10 ** n) / 10 ** n).toFixed(n);
+const tag = (nome, contenuto) => contenuto == null || contenuto === "" ? "" : `<${nome}>${escXml(contenuto)}</${nome}>`;
+const blocco = (nome, dentro) => `<${nome}>${dentro}</${nome}>`;
+
+export function xmlFatturaPA(fattura, cliente, impostazioni, { pesate = [], progressivo = "00001" } = {}) {
+  const f = fattura || {}, c = cliente || {}, imp = impostazioni || {};
+  const mancanti = [], avvisi = [];
+  const manca = (t) => mancanti.push(t);
+  const txt = (x) => String(x == null ? "" : x).trim();
+  // ── chi emette
+  const cedPiva = txt(imp.aziendaPiva).replace(/^IT/i, "");
+  if (!/^\d{11}$/.test(cedPiva)) manca("la partita IVA di chi emette (11 cifre), nelle Impostazioni");
+  if (!txt(imp.aziendaNome)) manca("la ragione sociale di chi emette, nelle Impostazioni");
+  if (!txt(imp.aziendaIndirizzo)) manca("l'indirizzo della sede di chi emette");
+  if (!/^\d{5}$/.test(txt(imp.aziendaCap))) manca("il CAP della sede di chi emette (5 cifre)");
+  if (!txt(imp.aziendaComune)) manca("il comune della sede di chi emette");
+  if (!/^[A-Za-z]{2}$/.test(txt(imp.aziendaProvincia))) manca("la provincia della sede di chi emette (sigla di due lettere)");
+  if (!/^RF\d{2}$/.test(txt(imp.aziendaRegimeFiscale))) manca("il regime fiscale di chi emette (codice RFxx: lo dice il commercialista, RF01 è l'ordinario)");
+  // ── a chi
+  const piva = txt(c.piva).replace(/^IT/i, ""), cf = txt(c.codiceFiscale);
+  if (!txt(c.ragioneSociale)) manca("la ragione sociale del cliente");
+  if (!/^\d{11}$/.test(piva) && !cf) manca("la partita IVA (11 cifre) o il codice fiscale del cliente");
+  if (!txt(c.indirizzo)) manca("l'indirizzo del cliente");
+  if (!/^\d{5}$/.test(txt(c.cap))) manca("il CAP del cliente (5 cifre)");
+  if (!txt(c.comune)) manca("il comune del cliente");
+  if (!/^[A-Za-z]{2}$/.test(txt(c.provincia))) manca("la provincia del cliente (sigla di due lettere)");
+  const sdi = txt(c.sdi);
+  let codiceDest = "0000000", pec = "";
+  if (/^[A-Za-z0-9]{7}$/.test(sdi)) codiceDest = sdi.toUpperCase();
+  else if (/@/.test(sdi)) pec = sdi;
+  else avvisi.push("il cliente non ha un codice destinatario né una PEC: il file va con «0000000» e il cliente la trova nel suo cassetto fiscale");
+  // ── il documento
+  const numero = txt(f.numero);
+  if (!numero) manca("il numero della fattura");
+  else if (numero.length > 20) manca("il numero della fattura è più lungo di 20 caratteri");
+  if (!dataISOEsiste(f.emessa)) manca("la data di emissione");
+  const riep = riepilogoIvaFattura(f);
+  if (!riep.quadra) manca(`le righe non tornano con i totali registrati (scarto imponibile ${dec(riep.scartoImponibile)}, IVA ${dec(riep.scartoIva)}): sistemarla prima di esportare`);
+  /* `quadra` confronta righe e totali su imponibile e IVA; il TOTALE registrato
+     può essere stato riscritto a mano da solo, e un ImportoTotaleDocumento che
+     non è imponibile + IVA è la contraddizione più facile da vedere per chi
+     riceve il file */
+  if (riep.conIva && round2(riep.imponibile + riep.ivaImporto) !== round2(riep.totale))
+    manca(`il totale registrato (${dec(riep.totale)}) non è imponibile + IVA (${dec(riep.imponibile + riep.ivaImporto)}): sistemarla prima di esportare`);
+  if (riep.aliquotaIgnota) manca("l'aliquota IVA di almeno una riga");
+  if (!riep.conIva) manca("imponibile, IVA e totale della fattura: è una fattura vecchia a solo importo, l'aliquota non si può dedurre");
+  const righe = (f.righe || []).filter(Boolean);
+  const linee = righe.length ? righe.map((r, i) => {
+    const q = numeroDichiarato(r.quantita), pu = numeroDichiarato(r.prezzoUnitario);
+    const sc = round2(+r.scontoPct || 0);
+    const base = r.imponibile != null ? +r.imponibile : (q || 0) * (pu || 0) * (1 - sc / 100);
+    if (pu == null) manca(`il prezzo unitario della riga ${i + 1} (${txt(r.descrizione) || "senza descrizione"})`);
+    return blocco("DettaglioLinee",
+      tag("NumeroLinea", i + 1) + tag("Descrizione", txt(r.descrizione) || "Fornitura")
+      + (q == null ? "" : tag("Quantita", dec(q, 2)) + tag("UnitaMisura", r.unita === "m3" ? "MC" : "TN"))
+      + tag("PrezzoUnitario", dec(pu, 2))
+      + (sc > 0 ? blocco("ScontoMaggiorazione", tag("Tipo", "SC") + tag("Percentuale", dec(sc, 2))) : "")
+      + tag("PrezzoTotale", dec(base, 2)) + tag("AliquotaIVA", dec(r.aliquota, 2)));
+  }) : [blocco("DettaglioLinee",
+      tag("NumeroLinea", 1) + tag("Descrizione", "Fornitura di inerti")
+      + tag("PrezzoUnitario", dec(riep.imponibile, 2)) + tag("PrezzoTotale", dec(riep.imponibile, 2))
+      + tag("AliquotaIVA", dec(riep.aliquota, 2)))];
+  const riepiloghi = riep.bande.map((b) => blocco("DatiRiepilogo",
+    tag("AliquotaIVA", dec(b.aliquota, 2)) + tag("ImponibileImporto", dec(b.imponibile, 2)) + tag("Imposta", dec(b.imposta, 2)) + tag("EsigibilitaIVA", "I")));
+  // ── i DDT
+  const perId = new Map((pesate || []).filter(Boolean).map((p) => [String(p.id), p]));
+  const ddt = (f.ddtIds || []).map((id) => perId.get(String(id))).filter(Boolean);
+  if ((f.ddtIds || []).length && ddt.length < f.ddtIds.length)
+    avvisi.push(`${f.ddtIds.length - ddt.length} DDT collegati alla fattura non sono in archivio: il file non li cita`);
+  const datiDdt = ddt.map((p) => dataISOEsiste(p.data)
+    ? blocco("DatiDDT", tag("NumeroDDT", txt(p.numero) || "—") + tag("DataDDT", p.data))
+    : (avvisi.push(`il DDT ${txt(p.numero) || p.id} è senza data e nel file non si può citare`), "")).join("");
+  // ── il pagamento: solo se la modalità è stata scelta (non si inventa)
+  const mp = txt(imp.modalitaPagamento);
+  let pagamento = "";
+  if (/^MP\d{2}$/.test(mp) && riep.totale > 0)
+    pagamento = blocco("DatiPagamento", tag("CondizioniPagamento", "TP02")
+      + blocco("DettaglioPagamento", tag("ModalitaPagamento", mp) + (dataISOEsiste(f.scadenza) ? tag("DataScadenzaPagamento", f.scadenza) : "") + tag("ImportoPagamento", dec(riep.totale, 2))));
+  else avvisi.push("nessuna modalità di pagamento nelle Impostazioni (codice MPxx): il file esce senza il blocco del pagamento, che è facoltativo");
+  const xml = `<?xml version="1.0" encoding="UTF-8"?>\n`
+    + `<p:FatturaElettronica versione="FPR12" xmlns:p="http://ivaservizi.agenziaentrate.gov.it/docs/xsd/fatture/v1.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">`
+    + blocco("FatturaElettronicaHeader",
+        blocco("DatiTrasmissione", blocco("IdTrasmittente", tag("IdPaese", "IT") + tag("IdCodice", cedPiva)) + tag("ProgressivoInvio", progressivo) + tag("FormatoTrasmissione", "FPR12") + tag("CodiceDestinatario", codiceDest) + tag("PECDestinatario", pec))
+        + blocco("CedentePrestatore",
+            blocco("DatiAnagrafici", blocco("IdFiscaleIVA", tag("IdPaese", "IT") + tag("IdCodice", cedPiva)) + tag("CodiceFiscale", txt(imp.aziendaCodiceFiscale)) + blocco("Anagrafica", tag("Denominazione", txt(imp.aziendaNome))) + tag("RegimeFiscale", txt(imp.aziendaRegimeFiscale)))
+            + blocco("Sede", tag("Indirizzo", txt(imp.aziendaIndirizzo)) + tag("CAP", txt(imp.aziendaCap)) + tag("Comune", txt(imp.aziendaComune)) + tag("Provincia", txt(imp.aziendaProvincia).toUpperCase()) + tag("Nazione", "IT")))
+        + blocco("CessionarioCommittente",
+            blocco("DatiAnagrafici", (/^\d{11}$/.test(piva) ? blocco("IdFiscaleIVA", tag("IdPaese", "IT") + tag("IdCodice", piva)) : "") + tag("CodiceFiscale", cf) + blocco("Anagrafica", tag("Denominazione", txt(c.ragioneSociale))))
+            + blocco("Sede", tag("Indirizzo", txt(c.indirizzo)) + tag("CAP", txt(c.cap)) + tag("Comune", txt(c.comune)) + tag("Provincia", txt(c.provincia).toUpperCase()) + tag("Nazione", "IT"))))
+    + blocco("FatturaElettronicaBody",
+        blocco("DatiGenerali", blocco("DatiGeneraliDocumento", tag("TipoDocumento", "TD01") + tag("Divisa", "EUR") + tag("Data", txt(f.emessa)) + tag("Numero", numero) + tag("ImportoTotaleDocumento", dec(riep.totale, 2))) + datiDdt)
+        + blocco("DatiBeniServizi", linee.join("") + riepiloghi.join(""))
+        + pagamento)
+    + `</p:FatturaElettronica>\n`;
+  return { xml, mancanti, avvisi, pronto: mancanti.length === 0, totale: riep.totale, righe: linee.length, ddtCitati: (datiDdt.match(/<DatiDDT>/g) || []).length };
+}
+
+
 export function prossimoNumero(numeri, anno = new Date().getFullYear(), cifre = 3, prefisso = "") {
   const y = String(anno);
   const p = String(prefisso || "");

@@ -209,7 +209,7 @@ const APP = ["campo", "conti", "flotta", "scudo", "sentinella", "terra"];
    `descriviPeriodoAdempimento`) più le due arrivate prima e mai raccolte. Il
    conto vero è 139/139; lasciato a 134 il fondo starebbe cinque sotto, cioè
    sarebbe una guardia che per scattare aspetta di perdere cinque prove. */
-const FONDO = { campo: 126, conti: 141, flotta: 92, scudo: 191, sentinella: 143, terra: 68 };
+const FONDO = { campo: 126, conti: 142, flotta: 92, scudo: 191, sentinella: 143, terra: 68 };
 
 /* Quello che resta fuori per un motivo, non per dimenticanza: i caricatori
    dati vogliono la rete e lo SDK, i ponti demo vogliono il localStorage.

@@ -48,6 +48,26 @@
   un netto dopo la fattura, l'identità della pesa che ha pesato.
 
 ## Task
+- [ ] **La fattura elettronica, in tre unità** *(punto 5 di
+  `docs/CONTI_FATTURAZIONE_ROADMAP.md`, la cosa che tutti i concorrenti
+  hanno e Conti no — `docs/MERCATO_E_CONCORRENTI.md`)*:
+  - [x] ✅ 02/09 **A. il generatore nel modulo**: `xmlFatturaPA(fattura,
+    cliente, impostazioni, {pesate, progressivo})` → `{xml, mancanti, avvisi,
+    pronto}`. Tracciato FPR12 a memoria della v1.2 (dichiarato nel commento:
+    va passato dal controllo formale del portale). Niente inventato: regime
+    fiscale, CAP, provincia, modalità di pagamento mancanti → non pronto, con
+    la ragione. 3 prove in run-kpi (43 asserzioni), controprova sulla guardia
+    `quadra` fatta a mano (cade 1).
+  - [ ] **B. i campi che mancano**: Impostazioni (`aziendaCap`, `aziendaComune`,
+    `aziendaProvincia`, `aziendaRegimeFiscale`, `aziendaCodiceFiscale`,
+    `modalitaPagamento`) e anagrafica cliente (`cap`, `comune`, `provincia`,
+    `codiceFiscale`), nel form, nel CSV dei clienti (andata e ritorno) e nella
+    dimostrazione — così la dimostrazione diventa «pronta».
+  - [ ] **C. il bottone** sulla fattura: «Scarica XML per lo SdI», che con
+    `pronto: false` NON scarica e elenca i mancanti col posto dove scriverli;
+    la riga fissa di onestà (Conti prepara, l'invio e la conservazione si
+    fanno gratis dal portale dell'Agenzia o col commercialista); il file
+    aperto da un banco (`conti-documenti-che-escono`, punto d'uscita 13).
 - [x] `apps/conti/conti-data.js`: `api.costiFlotta` sul modello di
   `api.rilieviTerra` (istanza SDK pigra, `null` se non raggiungibile)
 - [x] dimostrazione: `costiFlotta` coerente con `DEMO.costi`, con almeno una
@@ -632,6 +652,7 @@ grep -n "^- \[ \] \*\*" vault/ROADMAP_SETTIMANA.md
 ```
 
 - `Aggiornare la tabella in fondo a `docs/MAPPA_ECOSISTEMA.md``
+- `La fattura elettronica, in tre unità`
 - `Una passata in profondità su un'app`
 - `D-ter. Le otto verdi che vogliono un cantiere`
 - `B12. IL RIPIEGO SILENZIOSO NEL CORE — censito, e sono CANDIDATI, non`
@@ -5476,7 +5497,7 @@ numero scritto dove non era stato misurato niente**.*
   nome apre il file sbagliato credendo che sia il più fresco.
 - Le decisioni: `docs/DECISIONI_WEEKEND.md` — pagina d'ingresso in cima.
 - Stato misurato al **18/08** (lanciando le suite, non a memoria):
-  **2.887 prove girano senza rete**. La frase va letta stretta: è la somma
+  **2.890 prove girano senza rete**. La frase va letta stretta: è la somma
   delle **nove** suite che contano asserzioni (`run-kpi` 2396, `run-stile` 327,
   `run-helpers` 75, `run-pointcloud` 32, `claims-convergenza` 19, `run-manifest` 9,
   `run-demo` 8, `bootstrap-rivendicazioni` 7, `fogli-guardati` 3), non tutto ciò che gira nel

@@ -37,7 +37,14 @@ l'invio, conservazione gratuita dell'Agenzia). Nessun costo prima della vendita.
    % scaduto storico) — dati che Conti già possiede.
 
 ### Fascia 2 — alto valore, in browser ma più impegnativo
-5. **Generatore XML FatturaPA** valido lato client (schema pubblico, dati che Conti
+5. ⏳ **[IN CORSO dal 02/09]** il generatore è nel modulo (`xmlFatturaPA` in
+   `conti-data.js`, tracciato FPR12 scritto a memoria della v1.2 e da passare
+   dal controllo formale del portale): risponde `pronto` solo se non manca
+   niente, e nomina ciò che manca. Con i dati di oggi NON è pronto: mancano
+   CAP/comune/provincia di chi emette e del cliente, il regime fiscale e la
+   modalità di pagamento — campi da aggiungere alle Impostazioni e
+   all'anagrafica (unità successiva), poi il bottone con la riga di onestà.
+   **Generatore XML FatturaPA** valido lato client (schema pubblico, dati che Conti
    già ha) con **controllo formale** prima dell'export. Nota onesta: per B2B/B2C la
    **firma digitale NON è obbligatoria** (lo è solo verso la PA/gare). L'utente scarica
    l'`.xml` e lo trasmette dal portale gratuito dell'Agenzia.

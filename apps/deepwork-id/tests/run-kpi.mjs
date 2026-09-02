@@ -2611,6 +2611,83 @@ test("⛔ il CSV delle pesate: il netto lo decidono i pesi, non la cella", () =>
   const s = conti.scartiPesateCsv(csv);
   eq([s.lette, s.entrano, s.persi.length, s.senzaPeso], [4, 4, 0, 2], "entrano tutte e quattro, e DUE sono dichiarate senza peso");
 });
+/* ⛔ 02/09 — LA FATTURA ELETTRONICA: il file XML per lo SdI, preparato e mai
+   promesso oltre. La forma si prova sui pezzi che lo SdI rifiuterebbe (totali,
+   riepiloghi per aliquota, DDT citati, codice destinatario) e sul principio:
+   niente si inventa — ciò che manca è nominato, e il file non è «pronto». */
+const XML_IMP = { aziendaNome: "Cava di esempio S.r.l.", aziendaPiva: "00000000000", aziendaIndirizzo: "Contrada Esempio 1",
+  aziendaCap: "97100", aziendaComune: "Ragusa", aziendaProvincia: "rg", aziendaRegimeFiscale: "RF01", modalitaPagamento: "MP05" };
+const XML_CLI = { ragioneSociale: "Edilcave & Figli Srl", piva: "01234567890", sdi: "ABC1234", indirizzo: "Zona industriale", cap: "97100", comune: "Ragusa", provincia: "RG" };
+const XML_PES = [{ id: "p1", numero: "2026/010", data: "2026-06-02" }, { id: "p2", numero: "2026/011" }];
+const XML_FAT = { numero: "2026/040", emessa: "2026-06-30", scadenza: "2026-07-30", tipo: "differita", ddtIds: ["p1", "p2", "p9"],
+  righe: [{ descrizione: "Stabilizzato 0/30", quantita: 150, unita: "t", prezzoUnitario: 12.34, scontoPct: 5, aliquota: 22, imponibile: 1758.45 },
+          { descrizione: "Sabbia lavata", quantita: 20, unita: "m3", prezzoUnitario: 10, scontoPct: 0, aliquota: 10, imponibile: 200 }],
+  imponibile: 1958.45, ivaImporto: 406.86, totale: 2365.31 };
+/* i tag si aprono e si chiudono in ordine: un controllo di forma scritto nel
+   test, perché node non ha un DOMParser e il file lo apre un altro programma */
+const tagBilanciati = (xml) => { const pila = []; const re = /<\/?([A-Za-z:]+)[^>]*?>/g; let m;
+  while ((m = re.exec(xml))) { if (m[0].startsWith("<?")) continue; if (m[0].startsWith("</")) { if (pila.pop() !== m[1]) return false; } else if (!m[0].endsWith("/>")) pila.push(m[1]); }
+  return pila.length === 0; };
+test("⛔ xmlFatturaPA: una fattura completa produce un file pronto, coi numeri che lo SdI controlla", () => {
+  const r = conti.xmlFatturaPA(XML_FAT, XML_CLI, XML_IMP, { pesate: XML_PES, progressivo: "00007" });
+  eq(r.pronto, true, "pronto: nessun dato bloccante manca");
+  eq(r.mancanti, [], "e l'elenco dei mancanti è vuoto");
+  ok(tagBilanciati(r.xml), "i tag sono bilanciati");
+  ok(r.xml.startsWith('<?xml version="1.0" encoding="UTF-8"?>'), "comincia con la dichiarazione XML");
+  ok(/<p:FatturaElettronica versione="FPR12"/.test(r.xml), "è un FPR12 (fattura fra privati)");
+  ok(/<ProgressivoInvio>00007<\/ProgressivoInvio>/.test(r.xml), "il progressivo d'invio è quello chiesto");
+  ok(/<CodiceDestinatario>ABC1234<\/CodiceDestinatario>/.test(r.xml) && !/PECDestinatario/.test(r.xml), "col codice destinatario a 7 caratteri non c'è la PEC");
+  ok(/<Denominazione>Edilcave &amp; Figli Srl<\/Denominazione>/.test(r.xml), "la e commerciale è scappata");
+  ok(/<Provincia>RG<\/Provincia>/.test(r.xml) && !/<Provincia>rg</.test(r.xml), "la provincia esce in maiuscolo anche se scritta minuscola");
+  ok(/<ImportoTotaleDocumento>2365.31<\/ImportoTotaleDocumento>/.test(r.xml), "il totale documento è quello della fattura, col punto");
+  eq((r.xml.match(/<DettaglioLinee>/g) || []).length, 2, "due righe di dettaglio");
+  eq((r.xml.match(/<DatiRiepilogo>/g) || []).length, 2, "due riepiloghi IVA: uno per aliquota");
+  ok(/<AliquotaIVA>22.00<\/AliquotaIVA><ImponibileImporto>1758.45<\/ImponibileImporto><Imposta>386.86<\/Imposta>/.test(r.xml), "il riepilogo al 22% ha imponibile e imposta della riga");
+  ok(/<AliquotaIVA>10.00<\/AliquotaIVA><ImponibileImporto>200.00<\/ImponibileImporto><Imposta>20.00<\/Imposta>/.test(r.xml), "e quello al 10%");
+  ok(/<ScontoMaggiorazione><Tipo>SC<\/Tipo><Percentuale>5.00<\/Percentuale><\/ScontoMaggiorazione>/.test(r.xml), "lo sconto del 5% è dichiarato come sconto, non piegato nel prezzo");
+  ok(/<UnitaMisura>TN<\/UnitaMisura>/.test(r.xml) && /<UnitaMisura>MC<\/UnitaMisura>/.test(r.xml), "tonnellate e metri cubi con le sigle del tracciato");
+  eq(r.ddtCitati, 1, "UN solo DDT citato: quello con la data");
+  ok(/<DatiDDT><NumeroDDT>2026\/010<\/NumeroDDT><DataDDT>2026-06-02<\/DataDDT><\/DatiDDT>/.test(r.xml), "ed è il 2026/010 con la sua data");
+  eq(r.avvisi.length, 2, "due avvisi: un DDT fuori archivio e uno senza data");
+  ok(r.avvisi.some((a) => /2026\/011/.test(a) && /senza data/.test(a)), "l'avviso nomina il DDT senza data");
+  ok(/<DatiPagamento><CondizioniPagamento>TP02<\/CondizioniPagamento><DettaglioPagamento><ModalitaPagamento>MP05<\/ModalitaPagamento><DataScadenzaPagamento>2026-07-30<\/DataScadenzaPagamento><ImportoPagamento>2365.31<\/ImportoPagamento>/.test(r.xml), "il pagamento c'è perché la modalità è stata scelta");
+});
+test("⛔ xmlFatturaPA: quello che manca si NOMINA, e il file non è pronto", () => {
+  const demo = conti.xmlFatturaPA({ numero: "2026/031", emessa: "2026-06-07", importo: 18300 },
+    { ragioneSociale: "Edilcave Srl", piva: "01234567890", sdi: "ABC1234", indirizzo: "Zona industriale, Ragusa" },
+    { aziendaNome: "Cava", aziendaPiva: "00000000000", aziendaIndirizzo: "x" });
+  eq(demo.pronto, false, "con i dati della dimostrazione di oggi il file NON è pronto");
+  ok(demo.mancanti.some((m) => /CAP della sede di chi emette/.test(m)), "manca il CAP di chi emette, e lo dice");
+  ok(demo.mancanti.some((m) => /regime fiscale/.test(m) && /RF01/.test(m)), "manca il regime fiscale, con l'esempio ma senza deciderlo");
+  ok(demo.mancanti.some((m) => /CAP del cliente/.test(m)), "manca il CAP del cliente");
+  ok(demo.mancanti.some((m) => /fattura vecchia a solo importo/.test(m)), "una fattura a solo importo non ha un'aliquota da scrivere");
+  ok(!/RF01<\/RegimeFiscale>/.test(demo.xml), "e nel file NON compare un RF01 inventato");
+  const nonQuadra = conti.xmlFatturaPA({ ...XML_FAT, totale: 2000 }, XML_CLI, XML_IMP);
+  eq(nonQuadra.pronto, false, "righe che non tornano col totale registrato: non pronto");
+  ok(nonQuadra.mancanti.some((m) => /non è imponibile \+ IVA/.test(m)), "e la ragione è quella: il totale riscritto da solo");
+  const righeStorte = conti.xmlFatturaPA({ ...XML_FAT, imponibile: 1000, ivaImporto: 220, totale: 1220 }, XML_CLI, XML_IMP);
+  eq(righeStorte.pronto, false, "righe che dicono 1958,45 sotto un imponibile registrato di 1000: non pronto");
+  ok(righeStorte.mancanti.some((m) => /non tornano con i totali/.test(m)), "ed è `quadra` a dirlo");
+  const senzaPrezzo = conti.xmlFatturaPA({ ...XML_FAT, righe: [{ ...XML_FAT.righe[0], prezzoUnitario: null }, XML_FAT.righe[1]] }, XML_CLI, XML_IMP);
+  ok(senzaPrezzo.mancanti.some((m) => /prezzo unitario della riga 1/.test(m)), "una riga senza prezzo è nominata per numero");
+  const lungo = conti.xmlFatturaPA({ ...XML_FAT, numero: "2026/0000000000000000040" }, XML_CLI, XML_IMP);
+  ok(lungo.mancanti.some((m) => /20 caratteri/.test(m)), "un numero più lungo di 20 caratteri è bloccante");
+});
+test("xmlFatturaPA: PEC, cassetto fiscale e fattura vecchia con l'IVA", () => {
+  const pec = conti.xmlFatturaPA(XML_FAT, { ...XML_CLI, sdi: "edilcave@pec.example.it" }, XML_IMP);
+  ok(/<CodiceDestinatario>0000000<\/CodiceDestinatario><PECDestinatario>edilcave@pec.example.it<\/PECDestinatario>/.test(pec.xml), "con la PEC il codice è 0000000 e la PEC c'è");
+  const nulla = conti.xmlFatturaPA(XML_FAT, { ...XML_CLI, sdi: "" }, XML_IMP);
+  eq(nulla.pronto, true, "senza codice né PEC il file è pronto lo stesso (0000000)");
+  ok(nulla.avvisi.some((a) => /cassetto fiscale/.test(a)), "ma l'avviso dice dove il cliente lo troverà");
+  const senzaPag = conti.xmlFatturaPA(XML_FAT, XML_CLI, { ...XML_IMP, modalitaPagamento: "" });
+  ok(senzaPag.pronto && !/DatiPagamento/.test(senzaPag.xml), "senza modalità di pagamento il blocco non c'è, e il file resta pronto");
+  ok(senzaPag.avvisi.some((a) => /MPxx/.test(a)), "con l'avviso che spiega");
+  const vecchia = conti.xmlFatturaPA({ numero: "2026/012", emessa: "2026-03-01", imponibile: 1000, ivaImporto: 220, totale: 1220, aliquotaIva: 22 }, XML_CLI, XML_IMP);
+  eq(vecchia.pronto, true, "una fattura immediata senza righe ma con imponibile, IVA e totale è pronta");
+  eq((vecchia.xml.match(/<DettaglioLinee>/g) || []).length, 1, "con una riga sola");
+  ok(/<PrezzoTotale>1000.00<\/PrezzoTotale><AliquotaIVA>22.00<\/AliquotaIVA>/.test(vecchia.xml), "che vale l'imponibile all'aliquota della fattura");
+  ok(tagBilanciati(vecchia.xml), "e i tag sono bilanciati");
+});
 test("⛔ mancanzeDdt: elenca cosa manca, e non risponde «valido»", () => {
   const pieno = { causaleTrasporto: "vendita", trasportoACura: "mittente" };
   eq(conti.mancanzeDdt(pieno).length, 0, "un DDT completo non ha mancanze");
