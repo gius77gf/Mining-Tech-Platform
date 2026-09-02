@@ -104,6 +104,13 @@
   sistematico dice che le tre grandezze del triangolo si leggono in un'unità
   sola. `autorizzazioneVigente` trasloca in shared (Terra la ri-esporta,
   identità provata). run-kpi +3, copertura dw-ponti 53/53.
+- [x] ✅ 02/09 sera **Passata in profondità su Scudo**: otto schermate aperte
+  a 320 px (nessun elemento sporge, nessun NaN, nessun errore), contrasto nei
+  tre temi (630 testi, 0 sotto soglia), la famiglia dei banchi rilanciata
+  (disegni 82, documenti 89, frasi da uno 47, numeri tranquilli 50, muro unico
+  11, verifica periodica 21: zero KO). Nessun difetto trovato. Le due
+  mancanze della ricerca (denuncia INAIL come scadenza, UNI 7249 per nome)
+  restano sospese a una lettura del testo primario.
 - [ ] **Aggiornare la tabella in fondo a `docs/MAPPA_ECOSISTEMA.md`** a ogni
   ponte chiuso: è il registro, e il «6 su 56» deve scendere. *(02/09: 12 su 56.)*
 - [ ] **Una passata in profondità su un'app** (ogni schermata guardata, ogni
