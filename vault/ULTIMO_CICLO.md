@@ -1,33 +1,30 @@
 # Ultimo ciclo di lavoro automatico
 
-- **Quando**: 2026-09-02, 12:49 UTC
-- **Commit di partenza**: `18622ace`
+- **Quando**: 2026-09-02, 18:48 UTC
+- **Commit di partenza**: `a038ee85`
 - **Branch**: `claude/scheduled-tasks-remote-control-bk4ap6`
 
 ## Che cosa sta per succedere
 
-Il ciclo riprende dal checkpoint `20260902-1108xx_fattura-elettronica-generatore.md`
-— trovato per **data vera** (`node apps/deepwork-id/tests/date-checkpoint.mjs`).
+Il ciclo riprende dal checkpoint `20260902-*_core-stato-e-3c.md` — trovato
+per **data vera** (`node apps/deepwork-id/tests/date-checkpoint.mjs`).
 
-Dal canarino delle 09:49 sono entrate tre unità: il **generatore della fattura
-elettronica** nel modulo di Conti (`xmlFatturaPA`, unità A di tre), la
-**misura di Genesi fuori dal browser** (`docs/GENESI_FUORI_DAL_BROWSER.md`,
-9 chiavi non 4, quattro ponti di file, piano in 8 unità) con la mappa corretta,
-e la chiusura senza difetto della seconda domanda della pesa.
+Dal canarino delle 12:49 sono entrate le passate in profondità su Campo,
+Sentinella, Terra e sul core, il muro unico delle scadenze (Scudo legge Terra
+e Flotta con una regola sola in `shared/`), e la mappa corretta sulle famiglie
+3c e 3d, che erano già in un posto solo.
 
-⚠️ Il cantiere Flotta (il verso Conti→Flotta del ponte) è **morto sul limite di
-sessione** delle 12:30 mentre scriveva nel modulo: il suo lavoro è sul disco,
-non committato, e va **misurato prima di crederci** (tre funzioni esportate
-senza prova, banco browser da verificare).
+Sul disco, **non committato**, sta a metà il ponte **3f — Campo→Conti**, il
+prodotto dichiarato dai rapportini contro il venduto a peso: la funzione
+`confrontoProdottoVenduto` è in `shared/dw-ponti.js` (validata sulla cava
+sintetica), il modulo di Conti ha la lettura da Campo e una dimostrazione
+incompleta che chiama un aiuto per le date relative ancora da scrivere.
 
 Adesso, in ordine:
-1. la misura del cantiere Flotta: `node --check`, sintassi delle pagine,
-   copertura, il banco nei tre modi — poi si finisce o si butta, con la prova;
-2. l'unità B della fattura elettronica (i campi CAP/comune/provincia/regime
-   fiscale/modalità di pagamento nelle Impostazioni e nell'anagrafica, CSV
-   clienti andata e ritorno, dimostrazione «pronta»);
-3. l'unità C: il bottone «Scarica XML per lo SdI» con la riga di onestà.
-
-## Il primo passo
-
-Il canarino stesso, poi `git diff --stat apps/flotta/`.
+1. finire il modulo (l'aiuto per le date, la dimostrazione copiata da Campo
+   con la prova che sia una copia), `node --check` e `run-kpi`;
+2. il terzo lato nella schermata di riconciliazione di Conti, con i tre esiti
+   (Campo irraggiungibile → avviso e nessuno zero; confrontabile; non in
+   tonnellate);
+3. il banco del browser nei tre modi, la mappa §3f e §6 (→ 11 ponti), la
+   roadmap, il giro `node`, il commit con `-F`, il checkpoint, il push.
