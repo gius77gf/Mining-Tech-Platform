@@ -342,7 +342,8 @@ cercando i nomi del mondo. Per ogni «non c'è» il comando e la sua uscita.
    giorni-macchina disponibili meno persi, taglia i fermi alla finestra,
    tiene fuori dal denominatore i mezzi usciti dal parco e li dichiara, e il
    tempo medio fra due fermi lo scrive solo da due episodi in su (`grep -ci
-   mtbf apps/flotta/flotta-data.js` → **1**: la parola non c'è, il conto sì — è il «cercare il
+   mtbf apps/flotta/flotta-data.js` → **1**, ed è un commento: il conto del
+   tempo medio fra fermi c'è con un nome italiano — è il «cercare il
    meccanismo, non il nome» di CLAUDE.md). Il valore 85-95 % del settore
    citato dalla ricerca è di seconda mano e NON va in nessuna schermata.
 6. **Il registro di controllo (D.Lgs 81/2008 art. 71, Allegato VII)** →
