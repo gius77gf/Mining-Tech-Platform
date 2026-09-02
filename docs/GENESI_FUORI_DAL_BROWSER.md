@@ -399,7 +399,7 @@ oggi. Ogni unità è un commit con la sua prova. Ore = stima, non misura.
 |---|---|---|---|---|---|
 | **1** ✅ 02/09 | `genesiData({storage})` in `genesi-data.js`: interfaccia `{mode:'locale', volate, confronti, riconciliazioni, sito, nuvole, aggiungi, aggiorna, rimuovi}` **sopra le stesse chiavi di `localStorage` di oggi** (nomi e forme invariati, tetti 50/30 invariati), storage iniettabile | solo il modulo dati; **la pagina non cambia** | `run-kpi.mjs`: andata e ritorno su una `Map` per ogni collezione; i tetti; `JSON` corrotto → `[]` come oggi (`_lsGet` 4788); `copertura-funzioni` deve salire (69 → 70+); `nomi-doppi` (nessun nome nuovo condiviso) | 2 | **basso**: nessun utente la vede |
 | **2** ✅ 02/09 | la pagina usa `db.volate()/aggiungi/rimuovi` per `genesiVolate` (7 punti: 4850, 4867, 4884, 4890, 4907, 4912) | `genesi.html` | `sintassi-pagine`; `nomi-liberi`; banco browser nuovo `tests/browser/genesi-locale.mjs` (lo script di misura di questo cantiere, reso prova: salva → la chiave `genesiVolate` contiene 1 record con le 5 chiavi; ricarica → la Home la mostra) | 2 | basso; la chiave resta la stessa, i dati esistenti si rileggono |
-| **3** | idem per `genesiCmpA/B`, `genesiRicon`, `genesiSito`, lettura di `genesiNuvole` | `genesi.html` (e `nuvola-poc.html` per la scrittura) | stesso banco, esteso; **Terra continua a leggere la chiave** (`terra/index.html:4465`) → prova che la forma scritta da `nuvola-poc` non cambia | 3 | medio: `sitoLegge` alimenta `ppvSite()` → tutti i calcoli PPV; la prova deve leggere un numero **prima e dopo** (stesso valore) |
+| **3** ✅ 02/09 | idem per `genesiCmpA/B`, `genesiRicon`, `genesiSito`, lettura di `genesiNuvole` | `genesi.html` (e `nuvola-poc.html` per la scrittura) | stesso banco, esteso; **Terra continua a leggere la chiave** (`terra/index.html:4465`) → prova che la forma scritta da `nuvola-poc` non cambia | 3 | medio: `sitoLegge` alimenta `ppvSite()` → tutti i calcoli PPV; la prova deve leggere un numero **prima e dopo** (stesso valore) |
 | **4** | modalità **live**: `DeepworkID.init({appId:'genesi'})` in `try/catch` come `terraData`, cinque `orgCollection`; `mode:'live'` solo con `authState()==='member'`; altrimenti resta `'locale'` (non «demo in memoria») | `genesi-data.js`; `run.mjs` | prova **negativa** in `run.mjs` sotto emulatore (orgB non legge `apps/genesi/volate` di orgA), copiata da `scudo/turni`; **nessuna riga nuova in `firestore.rules`** (§3d) | 3 | medio: `genesi.html` oggi importa **solo** `dw-shell.js` (riga 1140: «non porta dentro né Firebase né l'SDK»); l'SDK carica Firebase da `gstatic`, che il service worker **non mette in cache** (riga 36) → senza rete l'import fallisce e il `catch` deve riportare a `'locale'` — **va misurato staccando la rete**, non dedotto |
 | **5** | «porta le tue volate nell'organizzazione»: al primo accesso live, copia una tantum delle chiavi locali nelle collezioni, con contrassegno `genesiMigratoV1` e i campi `autore`, `creatoIl` | `genesi-data.js` + un bottone in Home | prova pura: la copia è **idempotente** (seconda chiamata → 0 scritture); le chiavi locali **non si cancellano** | 2 | medio: doppioni se la stessa persona migra da due computer → il contrassegno è per browser, il doppione va dichiarato non nascosto |
 | **6** | scrittura **senza rete in live**: scrittura locale **prima** (sempre, sincrona) e poi verso l'org; se `navigator.onLine===false` si dice con il toast (forma di Flotta) e la riga resta segnata `daInviare` | `genesi-data.js`, `genesi.html` | banco browser con rete staccata (Playwright `context.setOffline(true)`): la volata è salvata localmente, la Home la mostra, il toast dice «rete»; riattaccata → la riga parte | 4 | **alto ed è una decisione**: è la 5b applicata a una app. Se il fondatore accende la coda per tutte (`persistentLocalCache` nell'SDK), questa unità si riduce al toast |
@@ -423,6 +423,24 @@ pagina. Banco `tests/browser/genesi-locale.mjs`: salva dalla modale, ricarica,
 duplica, elimina — a ogni gesto guarda la chiave SOTTO e la Home SOPRA (17
 prove); la controprova rimette la Home che non legge dalla porta e cade in 8.
 I banchi che scrivono `genesiVolate` a mano restano verdi: stessa chiave.
+
+✅ **Unità 3 chiusa il 02/09**: le altre quattro chiavi passano dalla porta.
+`cmpSave` → `GDB.aggiungi('confronti', {slot, …})` e `cmpScatti()` al posto di
+`_cmpLoad`; `riconStorico` → `GDB.riconciliazioni()` e il salvataggio →
+`GDB.aggiungi('riconciliazioni', rec)` (la riga guadagna un `id`, additivo);
+la Home legge le nuvole da `GDB.nuvole()` (nuvola-poc continua a scrivere la
+chiave, com'era previsto). **La legge di sito è il caso delicato ed è risolto
+con una copia di lavoro**: `let SITO = await GDB.sito()` a livello di modulo
+(top-level await: la pagina è un module script), `sitoStore()` restituisce la
+copia e `sitoSalva()` aggiorna copia e porta insieme — così `ppvSite()` resta
+sincrona in tutti i calcoli. `_lsGet/_lsSet/_cmpLoad` non esistono più; nella
+pagina restano solo `genesiSent` e il consenso, come dice il §3c.
+⚠️ Conseguenza misurata: una chiave scritta A MANO dopo l'apertura (la
+scorciatoia di un banco, non un gesto dell'utente) si vede alla ricarica, non
+prima — `genesi-foglio-in-cava` ricarica dove seminava la legge di sito fra i
+due scatti A/B. Il banco `genesi-locale.mjs` copre le cinque chiavi (27 prove).
+Il censimento: 169 funzioni nella pagina (via `_lsGet`, `_lsSet`, `_cmpLoad`,
+entrata `cmpScatti`), **68 su 169** estraibili.
 
 **Totale stimato: 20 ore**, di cui 4 (unità 6) sospese a una decisione che
 non è tecnica. Le unità 1-3 valgono da sole anche se le 4-8 non si facessero

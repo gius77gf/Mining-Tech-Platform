@@ -19549,6 +19549,7 @@ console.log("\n— Scudo: il ciclo di vita del DSS (D.Lgs 624/96 art. 6) —");
    ══════════════════════════════════════════════════════════════════════ */
 {
   const mappa = () => { const m = new Map(); return { m, st: { getItem: (k) => (m.has(k) ? m.get(k) : null), setItem: (k, v) => m.set(k, v), removeItem: (k) => m.delete(k) } }; };
+  const { senzaCommenti } = await import("./tokenizza.mjs");   // i commenti della pagina citano le chiavi: non contano
   const srcPagina = readFileSync(new URL("../../genesi/genesi.html", import.meta.url), "utf8");
   const srcPoc = readFileSync(new URL("../../genesi/nuvola-poc.html", import.meta.url), "utf8");
   test("genesiData: la forma è quella delle altre porte, e nasce in modo locale", () => {
@@ -19559,13 +19560,19 @@ console.log("\n— Scudo: il ciclo di vita del DSS (D.Lgs 624/96 art. 6) —");
     eq([...genesi.GENESI_COLLEZIONI], ["volate", "confronti", "riconciliazioni", "sito", "nuvole"]);
   });
   test("⛔ le chiavi e i tetti sono QUELLI DELLA PAGINA, letti dal suo sorgente e non ricordati", () => {
-    /* dall'unità 2 (02/09) le volate passano dalla porta: la chiave e il tetto
-       delle volate stanno nel modulo, e la pagina NON deve più toccarli da sé.
-       Le altre tre chiavi sono ancora nella pagina (unità 3). */
+    /* dalle unità 2 e 3 (02/09) le cinque chiavi passano dalla porta: nomi e
+       tetti stanno nel modulo, e la pagina NON deve più toccarli da sé. Nella
+       pagina restano SOLO le due che il piano lascia al browser: la memoria del
+       modulo (`genesiSent`) e il consenso del dispositivo (`genesiDisclaimerV1`). */
     const srcModulo = readFileSync(new URL("../../genesi/genesi-data.js", import.meta.url), "utf8");
-    for (const k of ["genesiCmp", "genesiRicon", "genesiSito"]) ok(srcPagina.includes("'" + k), "la pagina usa ancora " + k);
-    eq((srcPagina.match(/_ls(Get|Set)\('genesiVolate'/g) || []).length, 0, "la pagina non legge né scrive genesiVolate da sé");
-    ok(srcPagina.includes("await GDB.volate()") && srcPagina.includes("GDB.aggiungi('volate'") && srcPagina.includes("GDB.rimuovi('volate'"), "legge, aggiunge e rimuove dalla porta");
+    const chiaviPagina = [...senzaCommenti(srcPagina).matchAll(/localStorage\.(?:get|set|remove)Item\(\s*'([A-Za-z0-9]+)'/g)].map((m) => m[1]);
+    eq([...new Set(chiaviPagina)].sort(), ["genesiDisclaimerV1", "genesiSent"], "le sole chiavi toccate dalla pagina sono le due lasciate al browser");
+    for (const k of ["genesiVolate", "genesiCmp", "genesiRicon", "genesiSito", "genesiNuvole"]) ok(srcModulo.includes('"' + k), "la chiave " + k + " vive nel modulo");
+    ok(srcPagina.includes("await GDB.volate()") && srcPagina.includes("GDB.aggiungi('volate'") && srcPagina.includes("GDB.rimuovi('volate'"), "volate: legge, aggiunge e rimuove dalla porta");
+    ok(srcPagina.includes("GDB.aggiungi('confronti'") && srcPagina.includes("await GDB.confronti()"), "confronti A/B: dalla porta");
+    ok(srcPagina.includes("GDB.aggiungi('riconciliazioni'") && srcPagina.includes("GDB.riconciliazioni()"), "riconciliazioni: dalla porta");
+    ok(srcPagina.includes("await GDB.sito()") && srcPagina.includes("GDB.aggiungi('sito'"), "legge di sito: letta una volta e scritta dalla porta");
+    ok(srcPagina.includes("await GDB.nuvole()"), "nuvole: dalla porta");
     ok(srcModulo.includes('chiave: "genesiVolate", tetto: 50'), "il tetto delle volate nel modulo è 50, sotto la stessa chiave");
     ok(!srcPagina.includes("while(arr.length>50) arr.shift()"), "e la pagina non ha più il suo tetto scritto a mano");
     ok(srcPoc.includes("while(a.length>30) a.shift()"), "il tetto delle nuvole in nuvola-poc è 30");

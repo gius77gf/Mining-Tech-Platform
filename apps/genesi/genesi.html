@@ -1161,6 +1161,12 @@ import { numeroScritto, messaggioNumero, perCampo, montaGuardiaInteri, oggiISO, 
    `const db=$('diDel')` locale, e un omonimo rende invisibile un nome libero
    (CLAUDE.md, nomi-liberi). */
 const GDB = genesiData();
+/* LA LEGGE DI SITO STA IN UNA COPIA DI LAVORO (unità 3): `sitoStore()` è
+   sincrona e alimenta `ppvSite()` in tutti i calcoli della PPV, quindi non può
+   aspettare una porta asincrona a ogni chiamata. Si legge UNA volta qui — la
+   pagina è un module script, il top-level await regge — e ogni scrittura
+   passa da `sitoSalva`, che aggiorna la copia e la porta insieme. */
+let SITO = await GDB.sito();
 
 /* ══════════════════════════════════════════════════════════════════════════
    NUMERI COME SI SCRIVONO IN ITALIA — un solo posto per la convenzione
@@ -1307,11 +1313,11 @@ function rockFactorA(){
    Qui restano le tre che la pagina non può cedere: le due che parlano con
    `localStorage` e quelle che leggono lo stato del progetto.
    ══════════════════════════════════════════════════════════════════════════ */
-function sitoStore(){
-  try{ const s=JSON.parse(localStorage.getItem('genesiSito')||'null'); if(s&&Array.isArray(s.punti)) return s; }catch(e){}
-  return { punti:[], usa:false };
+function sitoStore(){ return SITO; }
+function sitoSalva(s){
+  SITO = (s && Array.isArray(s.punti)) ? s : { punti:[], usa:false };
+  GDB.aggiungi('sito', SITO);   // sotto è ancora la chiave `genesiSito`, con la stessa forma
 }
-function sitoSalva(s){ try{ localStorage.setItem('genesiSito', JSON.stringify(s)); }catch(e){} }
 /* La legge effettivamente usata nei calcoli: solo se l'utente l'ha attivata
    ed è valida. In ogni altro caso si torna alla stima da litologia. */
 function sitoLegge(){ const s=sitoStore(); if(!s.usa) return null; const f=sitoFit(s.punti); return (f && !f.errore) ? f : null; }
@@ -3318,10 +3324,12 @@ function computeKPI(){
 }
 function cmpSave(slot){
   const snap={ ts:timbroLocale(), kpi:computeKPI(), design:JSON.parse(JSON.stringify({B:D2.B,S:D2.S,diam:D2.diam,prof:D2.prof,kg:D2.kg,stem:D2.stem,sub:D2.sub,esplosivo:D2.esplosivo,innesco:D2.innesco,roccia:D2.roccia,frat:D2.frat,bagnato:D2.bagnato,presplit:D2.presplit,sequenza:D2.sequenza})) };
-  localStorage.setItem('genesiCmp'+slot, JSON.stringify(snap));
+  GDB.aggiungi('confronti', { slot, ...snap });   // sotto: la chiave genesiCmpA/B di sempre
   toast('Progetto salvato come '+slot);
 }
-function _cmpLoad(k){ try{ return JSON.parse(localStorage.getItem(k)||'null'); }catch(e){ return null; } }  // robusto a localStorage corrotto
+/* i due scatti, dalla porta: `null` dove non c'è (o dove è corrotto), come
+   faceva `_cmpLoad` */
+async function cmpScatti(){ const l=await GDB.confronti(); const per=s=>l.find(x=>x&&x.slot===s)||null; return { A:per('A'), B:per('B') }; }
 /* Le due celle che possono non esserci, scritte come le scrive lo schermo.
    ⚠️ Il verdetto si prende dal VALORE e non dalla bandiera: uno scatto salvato
    prima che `costCalcolabile` esistesse non ce l'ha, e leggere una bandiera
@@ -3342,9 +3350,8 @@ function _cmpCm(k,campo){ const v=_cmpNum(k&&k[campo]); return (v===null||(k&&k.
    due righe qui sopra. E come loro si giudica dal NUMERO, con la bandiera in
    più quando c'è, così uno scatto A/B salvato prima del 13/08 non sparisce. */
 function _cmpFly(k){ const v=_cmpNum(k&&k.fly); return (v===null||(k&&k.flyCalcolabile===false))?'<i style="color:#ffca28">non calcolabile</i>':gnum(v,0)+' m'; }
-function cmpRender(){
-  const A=_cmpLoad('genesiCmpA');
-  const B=_cmpLoad('genesiCmpB');
+async function cmpRender(){
+  const {A,B}=await cmpScatti();
   const body=$('cmpBody');
   if(!A||!B){ body.innerHTML='<div style="color:var(--mut)">Salva prima due progetti: imposta i parametri, premi "Salva come A", modifica, poi "Salva come B".</div>'; return; }
   /* ⛔ IL VERDE SI DÀ SOLO A CHI HA VINTO DAVVERO. `A<=B` rispondeva 'A' anche
@@ -3724,9 +3731,8 @@ if($('cmpSaveA')) $('cmpSaveA').onclick=()=>cmpSave('A');
 if($('cmpSaveB')) $('cmpSaveB').onclick=()=>cmpSave('B');
 if($('cmpShow')) $('cmpShow').onclick=()=>{ cmpRender(); $('cmpModal').style.display='flex'; };
 if($('cmpClose')) $('cmpClose').onclick=()=>{ $('cmpModal').style.display='none'; };
-if($('cmpExport')) $('cmpExport').onclick=()=>{
-  const A=_cmpLoad('genesiCmpA');
-  const B=_cmpLoad('genesiCmpB');
+if($('cmpExport')) $('cmpExport').onclick=async ()=>{
+  const {A,B}=await cmpScatti();
   if(!A||!B){ toast('Salva prima i progetti A e B'); return; }
   /* ⛔ QUESTO ERA L'ULTIMO DEI QUATTRO FILE DI GENESI SENZA `csvCell`: la
      passata del 03/08 aveva ripulito la scheda volata, la legge di sito e il
@@ -3779,7 +3785,7 @@ if($('cmpExport')) $('cmpExport').onclick=()=>{
 /* ===== Riconciliazione previsto-vs-reale (P0.1): chiude il cerchio col dato
    reale della volata (come Maptek BlastLogic). Il PREVISTO viene da computeKPI();
    il REALE lo inserisce il fochino dopo lo sparo. Storico in localStorage. ===== */
-function riconStorico(){ try{ return JSON.parse(localStorage.getItem('genesiRicon')||'[]'); }catch(e){ return []; } }
+async function riconStorico(){ return GDB.riconciliazioni(); }   // sotto: la chiave genesiRicon di sempre
 
 let _ricCampo=null;      // consuntivo importato in questa sessione (null = nessuno)
 let _ricNome='';         // nome della volata scritto a mano, per non perderlo al ridisegno
@@ -3879,7 +3885,7 @@ function _riconCampoHtml(){
   h+='<div class="ricamp-note">Dal file arrivano <b>solo</b> i chili caricati. <b>Pezzatura, PPV e gittata non ci sono</b> — nessuno strumento in Campo li misura — e restano da compilare qui sotto a mano.</div>';
   return h+'</div>';
 }
-function riconRender(){
+async function riconRender(){
   const k=computeKPI(), body=$('riconBody');
   /* ⛔ LA PPV PREVISTA SI PORTA DIETRO LA SUA BASE ANCHE QUI. `computeKPI`
      restituisce `ppvBase` da `provenienzaPpv` dal 03/08, e questa schermata lo
@@ -3888,7 +3894,7 @@ function riconRender(){
      storico e il CSV lo tengono per sempre. */
   const prev={x50:k.x50, ppv:k.ppv, fly:k.fly, ppvBase:k.ppvBase};
   $('riconModal').dataset.prev=JSON.stringify(prev);
-  const st=riconStorico();
+  const st=await riconStorico();
   const nomeSug=_ricCampo&&_ricCampo.date.length
     ? 'Volata '+_ricData(_ricCampo.date[0])+(_ricCampo.turni.length?' · turno '+_ricCampo.turni[0]:'') : '';
   body.innerHTML=
@@ -3962,7 +3968,7 @@ function riconRender(){
   // il nome scritto a mano non deve sparire al ridisegno (import, salvataggio)
   if($('ric-nome')) $('ric-nome').addEventListener('input',()=>{ _ricNome=$('ric-nome').value; });
 }
-function riconSave(){
+async function riconSave(){
   const k=computeKPI();
   /* ⛔ QUI STAVA LA COPIA PIÙ DEBOLE DELLA REGOLA CHE STA DODICI RIGHE PIÙ SU.
      `riconDelta` legge il valore scritto a mano con `gIn` — e il suo commento
@@ -4004,14 +4010,14 @@ function riconSave(){
     kgReale:_ricCampo.kgReale, kgProgReg:_ricCampo.kgProgReg, scostKg:_ricCampo.scostKg,
     scostPct:_ricCampo.scostPct, medioKg:_ricCampo.medioKg, medioPct:_ricCampo.medioPct };
   if(rec.real.x50==null&&rec.real.ppv==null&&rec.real.fly==null&&!rec.campo){ toast('Inserisci almeno un valore reale, o importa il consuntivo di carico da Campo'); return; }
-  const st=riconStorico(); st.push(rec); localStorage.setItem('genesiRicon', JSON.stringify(st));
+  await GDB.aggiungi('riconciliazioni', rec);
   toast('Riconciliazione salvata'); riconRender();
 }
 if($('riconOpen')) $('riconOpen').onclick=()=>{ riconRender(); $('riconModal').style.display='flex'; };
 if($('riconClose')) $('riconClose').onclick=()=>{ $('riconModal').style.display='none'; };
 if($('riconSave')) $('riconSave').onclick=riconSave;
-if($('riconExport')) $('riconExport').onclick=()=>{
-  const st=riconStorico();
+if($('riconExport')) $('riconExport').onclick=async ()=>{
+  const st=await riconStorico();
   if(!st.length){ toast('Nessuna riconciliazione da esportare'); return; }
   const csv=csvRiconciliazione(st);
   const a=document.createElement('a'); a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(csv);
@@ -4796,8 +4802,7 @@ if($('pEspl')) $('pEspl').addEventListener('change',()=>{ D2.esplosivo=$('pEspl'
 document.querySelectorAll('#scr-home .card').forEach(c=> c.onclick=()=>setScreen(c.dataset.go));
 /* ============ HOME = centro di comando (fondatore 25/07): storico volate,
    rilievi drone, ponte Deepwork ============ */
-function _lsGet(k){ try{ return JSON.parse(localStorage.getItem(k)||'[]'); }catch(e){ return []; } }
-function _lsSet(k,v){ try{ localStorage.setItem(k, JSON.stringify(v)); }catch(e){} }
+/* `_lsGet`/`_lsSet` non ci sono più (unità 3): le cinque chiavi passano da GDB. */
 function volSnapshot(nome){
   /* `D2.perRow*D2.file` scritto a mano faceva **0 fori** con la griglia
      illeggibile (`null*1` è zero), e questa sintesi finisce SALVATA nello
@@ -4864,7 +4869,7 @@ async function renderHome(){
   if(list) list.innerHTML = arr.length
     ? arr.slice().reverse().map(v=>'<div class="hg-item" data-id="'+v.id+'"><div class="t"><b>'+_rEsc(v.nome)+'</b><small>'+_rEsc(gdata(v.data))+' · '+_rEsc(v.sintesi||'')+'</small></div><button data-act="apri">Apri</button><button data-act="dup">Duplica</button><button data-act="del" title="Elimina">✕</button></div>').join('')
     : '<div class="hg-empty">Nessuna volata salvata. Progetta nel 2D e premi «Salva la volata attuale»: la ritroverai qui.</div>';
-  const nv=_lsGet('genesiNuvole');
+  const nv=await GDB.nuvole();
   if($('hgNuvN')) $('hgNuvN').textContent=nv.length? _ricPlur(nv.length,'lavorazione','lavorazioni'):'';
   const ln=$('hgNuvole');
   if(ln) ln.innerHTML = nv.length

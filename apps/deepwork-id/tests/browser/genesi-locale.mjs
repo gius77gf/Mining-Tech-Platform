@@ -131,6 +131,55 @@ await pg.waitForTimeout(400);
 k = await chiave(); h = await home();
 dice(k.length === 1 && k[0].nome === "Fronte di prova", "eliminata la copia: sotto resta l'originale", k.map((x) => x.nome));
 dice(h.righe.length === 1 && /1 salvata/.test(h.conta || ""), "e sopra 1 riga, «1 salvata»", h);
+
+/* ── unità 3: le altre quattro chiavi, stesso metodo (sotto la chiave, sopra la schermata) ── */
+const leggi = (k, vuoto) => pg.evaluate(([k, v]) => { try { return JSON.parse(localStorage.getItem(k) || v); } catch (e) { return "corrotta"; } }, [k, vuoto]);
+// 5 · A/B: salva come A, cambia un parametro, salva come B, apri il confronto
+await premi("[data-scr='design']"); await pg.waitForTimeout(500);
+await premi("#cmpSaveA");
+await pg.evaluate(() => { const i = document.getElementById("inB") || document.querySelector("input[data-k='B']"); if (i) { i.value = String((+i.value || 3) + 0.5); i.dispatchEvent(new Event("input", { bubbles: true })); i.dispatchEvent(new Event("change", { bubbles: true })); } });
+await pg.waitForTimeout(300);
+await premi("#cmpSaveB");
+const cmpA = await leggi("genesiCmpA", "null"), cmpB = await leggi("genesiCmpB", "null");
+dice(cmpA && cmpA.kpi && cmpA.design && !("slot" in cmpA), "SOTTO: genesiCmpA ha ts/kpi/design e NON il campo slot (forma di cmpSave)", cmpA && Object.keys(cmpA));
+dice(cmpB && cmpB.kpi && cmpB.design, "SOTTO: genesiCmpB c'è", cmpB && Object.keys(cmpB));
+await premi("#cmpShow"); await pg.waitForTimeout(400);
+const cmpTesto = await pg.evaluate(() => (document.getElementById("cmpBody") || {}).textContent || "");
+dice(!/Salva prima due progetti/.test(cmpTesto) && cmpTesto.length > 40, "SOPRA: il confronto A/B è disegnato (non dice «Salva prima due progetti»)", cmpTesto.slice(0, 80));
+await pg.evaluate(() => { const m = document.getElementById("cmpModal"); if (m) m.style.display = "none"; });
+// 6 · la riconciliazione: apri, scrivi una PPV reale, salva
+await premi("#riconOpen"); await pg.waitForTimeout(400);
+await pg.evaluate(() => { const i = document.getElementById("ric-ppv"); if (i) { i.value = "3,2"; i.dispatchEvent(new Event("input", { bubbles: true })); } const n = document.getElementById("ric-nome"); if (n) n.value = "Volata di prova"; });
+await premi("#riconSave"); await pg.waitForTimeout(500);
+const ric = await leggi("genesiRicon", "[]");
+dice(Array.isArray(ric) && ric.length === 1 && ric[0].real && ric[0].prev, "SOTTO: genesiRicon ha 1 riga con prev e real", ric);
+const ricTesto = await pg.evaluate(() => (document.getElementById("riconBody") || {}).textContent || "");
+dice(/Volata di prova/.test(ricTesto), "SOPRA: lo storico mostra la riga appena salvata", ricTesto.slice(0, 120));
+await pg.evaluate(() => { const m = document.getElementById("riconModal"); if (m) m.style.display = "none"; });
+// 7 · la legge di sito: la PPV prima, un referto aggiunto e la legge attivata, la PPV dopo
+const ppvPrima = await pg.evaluate(() => typeof computeKPI === "function" ? computeKPI().ppv : (window.__kpi ? window.__kpi().ppv : null));
+await premi("#sitoOpen"); await pg.waitForTimeout(400);
+for (const [d, w, p] of [[100, 20, 6.5], [200, 20, 2.1], [300, 30, 1.4], [150, 40, 5.2]]) {
+  await pg.evaluate(([d, w, p]) => { document.getElementById("sito-d").value = String(d); document.getElementById("sito-w").value = String(w); document.getElementById("sito-p").value = String(p); }, [d, w, p]);
+  await premi("#sito-add"); await pg.waitForTimeout(150);
+}
+const sito1 = await leggi("genesiSito", "null");
+dice(sito1 && Array.isArray(sito1.punti) && sito1.punti.length === 4 && sito1.usa === false, "SOTTO: genesiSito ha 4 punti e usa=false (forma di sitoSalva)", sito1);
+await pg.evaluate(() => { const c = document.getElementById("sito-usa"); if (c) { c.checked = true; c.dispatchEvent(new Event("change", { bubbles: true })); } });
+await pg.waitForTimeout(300);
+const sito2 = await leggi("genesiSito", "null");
+dice(sito2 && sito2.usa === true && sito2.punti.length === 4, "attivata: usa=true sotto la stessa chiave", sito2 && sito2.usa);
+await pg.reload({ waitUntil: "domcontentloaded" }); await pg.waitForTimeout(2600);
+const sitoDopo = await pg.evaluate(() => { try { return JSON.parse(localStorage.getItem("genesiSito")); } catch (e) { return null; } });
+dice(sitoDopo && sitoDopo.usa === true && sitoDopo.punti.length === 4, "dopo la ricarica la legge di sito è ancora lì (letta una volta dalla porta)", sitoDopo);
+console.log("  ppv prima della legge di sito:", ppvPrima);
+// 8 · le nuvole: scritte da nuvola-poc sotto la stessa chiave, lette dalla Home
+await pg.evaluate(() => localStorage.setItem("genesiNuvole", JSON.stringify([{ nome: "fronte-nord.las", puntiMostrati: 1200, puntiTotali: 41230, data: "01/09/2026 10:00", volume: 5200 }])));
+await pg.reload({ waitUntil: "domcontentloaded" }); await pg.waitForTimeout(2600);
+const nuv = await pg.evaluate(() => ({ n: document.querySelectorAll("#hgNuvole .hg-item").length, conta: (document.getElementById("hgNuvN") || {}).textContent, testo: (document.getElementById("hgNuvole") || {}).textContent || "" }));
+dice(nuv.n === 1 && /1 lavorazione/.test(nuv.conta || "") && /fronte-nord/.test(nuv.testo), "SOPRA: la Home mostra la lavorazione scritta sotto genesiNuvole", nuv);
+const hFine = await home();
+dice(hFine.righe.length === 1, "e la volata salvata all'inizio è ancora lì dopo tutto il giro", hFine);
 dice(errori.length === 0, "nessun errore di pagina in tutto il giro", errori.slice(0, 3));
 
 if (SCATTI) { mkdirSync(OUT, { recursive: true }); await pg.screenshot({ path: join(OUT, CONTROPROVA ? "controprova.png" : "home.png"), fullPage: false }); }

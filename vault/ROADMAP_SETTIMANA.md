@@ -30,6 +30,12 @@
   legge, salva, duplica ed elimina le volate dalla porta (`GDB`), non più con
   `_lsGet/_lsSet`; stessa chiave sotto, stesso tetto (adesso nella porta).
   Banco `genesi-locale.mjs` nei due versi (17 / controprova che cade in 8).
+- [x] ✅ 02/09 **Genesi fuori dal browser, unità 3 di 8**: anche A/B, lo storico
+  delle riconciliazioni, la legge di sito (copia di lavoro + porta, così la
+  PPV resta sincrona) e le nuvole passano dalla porta; nella pagina restano
+  solo la memoria del modulo e il consenso. `genesi-locale.mjs` copre le
+  cinque chiavi (27 prove). Le unità 1-3 valgono da sole: la pagina non tocca
+  più `localStorage` per i suoi dati, e non è cambiato niente per chi la usa.
 - [ ] **Aggiornare la tabella in fondo a `docs/MAPPA_ECOSISTEMA.md`** a ogni
   ponte chiuso: è il registro, e il «6 su 56» deve scendere. *(02/09: 11 su 56.)*
 - [ ] **Una passata in profondità su un'app** (ogni schermata guardata, ogni

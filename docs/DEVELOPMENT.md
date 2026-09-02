@@ -110,7 +110,7 @@ esiste.
 
 ⛔ **E il 100% vale per il perimetro misurato, non per tutto il prodotto.**
 Le sei app hanno la loro logica in `apps/<nome>/<nome>-data.js`, che `node`
-importa. **Genesi no**: le sue **171 funzioni** stanno dentro
+importa. **Genesi no**: le sue **169 funzioni** stanno dentro
 `apps/genesi/genesi.html`, e da lì non si importano — di Genesi entrano nel
 conto solo i moduli già tirati fuori (`pointcloud.js`, `genesi-formato.js`,
 `genesi-data.js`, elencati con i loro conti nella tabella dei condivisi qui
@@ -126,14 +126,14 @@ funzioni si possono portare fuori **senza cambiargli la firma**:
 
 | variabili del modulo che legge | funzioni |
 |---|---|
-| nessuna — si porta fuori com'è | **29** |
-| una o due | **59** |
-| da tre a cinque | 23 |
+| nessuna — si porta fuori com'è | **23** |
+| una o due | **60** |
+| da tre a cinque | 26 |
 | da sei a dieci | 27 |
 | più di dieci — lì è un rifacimento | 33 |
 
-Cioè **66 su 171 si estraggono senza rifare il modo in cui Genesi tiene il suo
-stato**, e le restanti 105 sono una decisione di architettura.
+Cioè **68 su 169 si estraggono senza rifare il modo in cui Genesi tiene il suo
+stato**, e le restanti 101 sono una decisione di architettura.
 
 ⏱️ **Questi sette numeri erano tutt'e sette diversi fino al 09/08** — 46 · 64 ·
 27 · 31 · 24, cioè «110 su 192» — e non perché qualcuno li avesse sbagliati:
