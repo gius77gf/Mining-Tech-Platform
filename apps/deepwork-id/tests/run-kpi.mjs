@@ -19635,6 +19635,37 @@ console.log("\n— Scudo: il ciclo di vita del DSS (D.Lgs 624/96 art. 6) —");
     eq((await (await genesi.genesiData({ live: false })).volate()).length, 0, "e un'altra istanza non la vede");
   })());
 }
+/* ═══ unità 5: «porta nell'organizzazione», una volta sola e senza cancellare ═══ */
+{
+  const mappa = () => { const m = new Map(); return { m, st: { getItem: (k) => (m.has(k) ? m.get(k) : null), setItem: (k, v) => m.set(k, v), removeItem: (k) => m.delete(k) } }; };
+  inVolo.push((async () => {
+    const L = mappa(), O = mappa();
+    const locale = await genesi.genesiData({ storage: L.st, live: false });
+    const org = await genesi.genesiData({ storage: O.st, live: false }); org.mode = "live";   // un finto con la forma della porta live
+    await locale.aggiungi("volate", { id: "v1", nome: "A" }); await locale.aggiungi("volate", { id: "v2", nome: "B", creatoIl: "2026-01-01" });
+    await locale.aggiungi("confronti", { slot: "A", ts: "t", kpi: {} }); await locale.aggiungi("riconciliazioni", { ts: 1 });
+    await locale.aggiungi("sito", { punti: [{ d: 1, w: 1, ppv: 1 }], usa: true }); await locale.aggiungi("nuvole", { nome: "n" });
+    const r1 = await genesi.portaNellOrganizzazione(locale, org, L.st, { autore: "uid1", quando: "2026-09-02T20:00:00Z" });
+    eq(r1.gia, false); eq(r1.scritte, { volate: 2, confronti: 1, riconciliazioni: 1, sito: 1, nuvole: 1 }); eq(r1.totale, 6);
+    const v = await org.volate();
+    eq(v.map((x) => x.nome), ["A", "B"], "le volate sono nell'organizzazione");
+    eq(v[0].origine, "browser"); eq(v[0].autore, "uid1"); eq(v[0].creatoIl, "2026-09-02T20:00:00Z", "creatoIl di chi non l'aveva");
+    eq(v[1].creatoIl, "2026-01-01", "e chi ce l'aveva lo tiene");
+    ok(v[0].id !== "v1", "l'id del browser NON viaggia: l'organizzazione ne dà uno suo");
+    eq((await org.confronti())[0].slot, "A"); eq((await org.sito()).usa, true); eq((await org.nuvole()).length, 1);
+    const r2 = await genesi.portaNellOrganizzazione(locale, org, L.st, { autore: "uid1" });
+    eq(r2.gia, true); eq(r2.totale, 0, "⛔ la seconda chiamata scrive ZERO"); eq(r2.giaScritte.volate, 2, "e dice che cosa aveva scritto la prima");
+    eq((await org.volate()).length, 2, "nell'organizzazione non è raddoppiato niente");
+    eq((await locale.volate()).length, 2, "⛔ e nel browser non si è cancellato niente");
+    ok(!!L.m.get(genesi.GENESI_CONTRASSEGNO_MIGRAZIONE), "il contrassegno sta nel browser di partenza");
+    const nonLive = await genesi.genesiData({ storage: mappa().st, live: false });
+    eq((await genesi.portaNellOrganizzazione(locale, nonLive, mappa().st)).errore, "la destinazione non è un'organizzazione", "verso un'altra memoria locale non si porta niente");
+    eq((await genesi.portaNellOrganizzazione(null, org, mappa().st)).errore, "mancano le due porte");
+    const nulla = await genesi.portaNellOrganizzazione(await genesi.genesiData({ storage: mappa().st, live: false }), org, mappa().st);
+    eq(nulla.totale, 0, "un browser vuoto porta zero, senza errore"); eq(nulla.gia, false);
+    eq(locale.utente, null, "da solo non c'è nessuno da firmare");
+  })());
+}
 /* ===== fine Genesi · i dati dietro una porta sola ===== */
 
 if (inVolo.length) await Promise.all(inVolo);   // si aspetta PRIMA di contare

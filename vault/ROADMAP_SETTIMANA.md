@@ -48,6 +48,14 @@
   sola lettura e tiene la chiave del browser come ripiego; la scelta è pura
   (`ultimoRitaglioNuvola`, 5 prove). Mappa: **12** ponti su 56, Genesi non è
   più un'app che nessuno legge, zero app senza scambio di dati.
+- [x] ✅ 02/09 **Genesi fuori dal browser, unità 5 di 8 — «Porta
+  nell'organizzazione»**: copia una tantum e idempotente delle cinque chiavi
+  del browser nelle collezioni dell'organizzazione (marca `origine/autore/
+  creatoIl`, non cancella, seconda chiamata scrive zero), 17 asserzioni con
+  due porte locali; bottone in Home nascosto fuori dal live. L'unità 7 è
+  stata MISURATA prima di farla: la metà numerica esisteva già (G14), la metà
+  categorica resta candidata. Del piano restano la 6 (decisione 5b del
+  fondatore) e quella metà della 7.
 - [ ] **Aggiornare la tabella in fondo a `docs/MAPPA_ECOSISTEMA.md`** a ogni
   ponte chiuso: è il registro, e il «6 su 56» deve scendere. *(02/09: 12 su 56.)*
 - [ ] **Una passata in profondità su un'app** (ogni schermata guardata, ogni

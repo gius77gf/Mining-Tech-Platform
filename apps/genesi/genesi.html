@@ -610,6 +610,9 @@ body.scr-sim #tl{bottom:80px}
       <div class="hg-list" id="hgVolate"></div>
       <div class="hg-actions">
         <button class="btn" id="hgSalva">💾 Salva la volata attuale</button>
+        <!-- compare SOLO con un'organizzazione (modalità live): porta nelle sue
+             collezioni ciò che questo browser ha salvato da solo, una volta -->
+        <button class="btn" id="hgPorta" hidden title="Copia nell'organizzazione le volate, gli scatti A/B, le riconciliazioni, la legge di sito e le lavorazioni salvate in questo browser. Una volta sola; qui non si cancella niente.">🏢 Porta nell'organizzazione</button>
       </div>
     </div>
     <div class="hg-panel">
@@ -1118,7 +1121,7 @@ import { sitoFit, ppvLimit, ppvSenzaSoglia, ppvSenzaDistanza, airblastDb, normaP
    ⛔ `costoVolata` sapeva già dire «non calcolabile»; a disinnescarlo erano i
    suoi tre chiamanti, che gli passavano 18 fori al posto di una griglia
    illeggibile e 0,9 m di perforazione al posto di un banco illeggibile. */
-         foriDiProgetto, metriPerforati, genesiData } from './genesi-data.js';
+         foriDiProgetto, metriPerforati, genesiData, portaNellOrganizzazione } from './genesi-data.js';
 /* ⛔ «ha una data» si decide con l'ESISTENZA, non con la forma: «2026-02-30» ha
    la forma giusta e non esiste. Il modulo di Genesi questa regola l'ha imparata
    il 03/08 — il commento in cima a `genesi-data.js` lo racconta — e la pagina
@@ -4903,6 +4906,27 @@ async function salvaVolata(codaMsg){
   await GDB.aggiungi('volate', volSnapshot(nome)); renderHome(); toast('✓ Volata salvata'+(codaMsg||''));
 }
 if($('hgSalva')) $('hgSalva').onclick=()=>salvaVolata();
+/* «Porta nell'organizzazione» (unità 5): si vede solo in modalità live. Copia
+   una volta sola, per browser, e non cancella niente dal browser: chi lavora
+   senza rete continua ad avere le sue chiavi. Il conto di quello che è stato
+   copiato si dice nel toast, e «già fatto» si dice come «già fatto». */
+if($('hgPorta')){
+  $('hgPorta').hidden = GDB.mode !== 'live';
+  $('hgPorta').onclick = async ()=>{
+    const si = await chiedi('Portare nell\'organizzazione?',
+      'Copio nell\'organizzazione le volate, gli scatti A/B, le riconciliazioni, la legge di sito e le lavorazioni salvate in <b>questo browser</b>. '
+      + 'Si fa <b>una volta sola</b> e qui non si cancella niente. Se le stesse cose le porti anche da un altro computer, nell\'organizzazione compaiono due volte: si vede da dove vengono.',
+      'Porta');
+    if(!si) return;
+    const locale = await genesiData({ live:false });
+    const r = await portaNellOrganizzazione(locale, GDB, localStorage, { autore: GDB.utente && GDB.utente.uid });
+    if(r.errore){ toast('Non si può: '+r.errore); return; }
+    if(r.gia){ toast('Già fatto'+(r.quando?' il '+gdata(r.quando):'')+': non ricopio niente.'); return; }
+    const parti=[]; for(const [k,n] of Object.entries(r.scritte)) if(n) parti.push(n+' '+k);
+    toast(r.totale ? '✓ Portate nell\'organizzazione: '+parti.join(', ')+'.' : 'In questo browser non c\'era niente da portare.');
+    renderHome();
+  };
+}
 if($('hgVolate')) $('hgVolate').addEventListener('click',async e=>{
   const btn=e.target.closest('button'); if(!btn) return;
   const item=e.target.closest('.hg-item'); const id=item&&item.getAttribute('data-id'); if(!id) return;

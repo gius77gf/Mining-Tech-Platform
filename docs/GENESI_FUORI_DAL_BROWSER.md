@@ -401,9 +401,9 @@ oggi. Ogni unità è un commit con la sua prova. Ore = stima, non misura.
 | **2** ✅ 02/09 | la pagina usa `db.volate()/aggiungi/rimuovi` per `genesiVolate` (7 punti: 4850, 4867, 4884, 4890, 4907, 4912) | `genesi.html` | `sintassi-pagine`; `nomi-liberi`; banco browser nuovo `tests/browser/genesi-locale.mjs` (lo script di misura di questo cantiere, reso prova: salva → la chiave `genesiVolate` contiene 1 record con le 5 chiavi; ricarica → la Home la mostra) | 2 | basso; la chiave resta la stessa, i dati esistenti si rileggono |
 | **3** ✅ 02/09 | idem per `genesiCmpA/B`, `genesiRicon`, `genesiSito`, lettura di `genesiNuvole` | `genesi.html` (e `nuvola-poc.html` per la scrittura) | stesso banco, esteso; **Terra continua a leggere la chiave** (`terra/index.html:4465`) → prova che la forma scritta da `nuvola-poc` non cambia | 3 | medio: `sitoLegge` alimenta `ppvSite()` → tutti i calcoli PPV; la prova deve leggere un numero **prima e dopo** (stesso valore) |
 | **4** ✅ 02/09 | modalità **live**: `DeepworkID.init({appId:'genesi'})` in `try/catch` come `terraData`, cinque `orgCollection`; `mode:'live'` solo con `authState()==='member'`; altrimenti resta `'locale'` (non «demo in memoria») | `genesi-data.js`; `run.mjs` | prova **negativa** in `run.mjs` sotto emulatore (orgB non legge `apps/genesi/volate` di orgA), copiata da `scudo/turni`; **nessuna riga nuova in `firestore.rules`** (§3d) | 3 | medio: `genesi.html` oggi importa **solo** `dw-shell.js` (riga 1140: «non porta dentro né Firebase né l'SDK»); l'SDK carica Firebase da `gstatic`, che il service worker **non mette in cache** (riga 36) → senza rete l'import fallisce e il `catch` deve riportare a `'locale'` — **va misurato staccando la rete**, non dedotto |
-| **5** | «porta le tue volate nell'organizzazione»: al primo accesso live, copia una tantum delle chiavi locali nelle collezioni, con contrassegno `genesiMigratoV1` e i campi `autore`, `creatoIl` | `genesi-data.js` + un bottone in Home | prova pura: la copia è **idempotente** (seconda chiamata → 0 scritture); le chiavi locali **non si cancellano** | 2 | medio: doppioni se la stessa persona migra da due computer → il contrassegno è per browser, il doppione va dichiarato non nascosto |
+| **5** ✅ 02/09 | «porta le tue volate nell'organizzazione»: al primo accesso live, copia una tantum delle chiavi locali nelle collezioni, con contrassegno `genesiMigratoV1` e i campi `autore`, `creatoIl` | `genesi-data.js` + un bottone in Home | prova pura: la copia è **idempotente** (seconda chiamata → 0 scritture); le chiavi locali **non si cancellano** | 2 | medio: doppioni se la stessa persona migra da due computer → il contrassegno è per browser, il doppione va dichiarato non nascosto |
 | **6** | scrittura **senza rete in live**: scrittura locale **prima** (sempre, sincrona) e poi verso l'org; se `navigator.onLine===false` si dice con il toast (forma di Flotta) e la riga resta segnata `daInviare` | `genesi-data.js`, `genesi.html` | banco browser con rete staccata (Playwright `context.setOffline(true)`): la volata è salvata localmente, la Home la mostra, il toast dice «rete»; riattaccata → la riga parte | 4 | **alto ed è una decisione**: è la 5b applicata a una app. Se il fondatore accende la coda per tutte (`persistentLocalCache` nell'SDK), questa unità si riduce al toast |
-| **7** | la porta `Object.assign(D2, design)` (4914) valida i campi **anche** da org: un `design` scritto da un altro browser con un campo illeggibile lascia il campo vuoto e lo dice (già così per `localStorage`) | `genesi-data.js` (funzione pura `designLeggibile`) + 1 riga in pagina | `run-kpi`: 32 campi, ognuno con un valore sporco → vuoto dichiarato, mai zero | 2 | basso |
+| **7** ⏱️ misurata 02/09 | la porta `Object.assign(D2, design)` (4914) valida i campi **anche** da org: un `design` scritto da un altro browser con un campo illeggibile lascia il campo vuoto e lo dice (già così per `localStorage`) | `genesi-data.js` (funzione pura `designLeggibile`) + 1 riga in pagina | `run-kpi`: 32 campi, ognuno con un valore sporco → vuoto dichiarato, mai zero | 2 | basso |
 | **8** ✅ 02/09 | Terra legge le nuvole di Genesi da `orgCollection('nuvole')` con seconda istanza SDK (`appId:'genesi'`, sola lettura, pigra — forma di `rapportiniCampo`) e **tiene la chiave del browser come ripiego** | `terra-data.js`, `terra/index.html` | `run-kpi`: la scelta «org se c'è, chiave se no» è una funzione pura; il banco di Terra che preme `btn-dal-drone` resta verde | 2 | basso; dipende da 3 e 4 |
 
 ✅ **Unità 1 chiusa il 02/09** (`genesi-data.js`, blocco G8): la porta ha la
@@ -465,6 +465,32 @@ non `[]`), `ultimoRitaglioNuvola(daOrg, daChiave)` pura (5 prove) e il bottone
 dall'organizzazione. I banchi di Terra che seminano `genesiNuvole` restano
 verdi: la chiave è il ripiego. Mappa: **12** ponti, Genesi non è più un'app
 che nessuno legge.
+
+✅ **Unità 5 chiusa il 02/09**: `portaNellOrganizzazione(daLocale, aOrg,
+contrassegno, {autore})` in `genesi-data.js` (blocco G9) copia le cinque
+collezioni dal browser all'organizzazione, marca ogni riga con `origine:
+'browser'`, `autore`, `creatoIl` (se non c'era), NON porta l'id del browser,
+NON cancella niente, e si ferma alla seconda chiamata (contrassegno
+`genesiMigratoV1` con data e conti: scritte ZERO, e dice che cosa aveva
+scritto la prima). Verso una destinazione non live risponde con un errore
+detto. Provata in node con due porte locali su due Map (17 asserzioni). In
+Home il bottone «Porta nell'organizzazione» esiste ed è **nascosto** fuori
+dalla modalità live (il banco lo pretende); in live chiede conferma, dice il
+limite dei due computer, e il toast dice i conti o «già fatto il …».
+⚠️ Non ancora misurato in un browser CON organizzazione: qui non c'è un
+utente membro. È il primo cantiere da fare quando ce ne sarà uno vero.
+
+⏱️ **Unità 7, misurata il 02/09 prima di costruirla — e metà esisteva già.**
+`volataSenzaValori` (blocco G14, dal 09/08) nomina i campi NUMERICI con un
+valore illeggibile (21 su 32) e l'azione «apri» la chiama su qualunque
+`design`, da qualunque fonte, PRIMA di disegnare: quindi «valida anche da
+org» è già vero per quei 21, perché la porta è la stessa. Gli 11 restanti
+(`kgAuto`, `esplosivo`, `innesco`, `roccia`, `frat`, `bagnato`, `presplit`,
+`sequenza`, `recNorma`, `profilo`, `piede`) un valore sconosciuto lo
+**tollerano** (`selEsplosivo()||{}`, `normaPpvLab`) ma **non lo dicono**.
+Scrivere una `designLeggibile` a 32 campi adesso sarebbe una copia più debole
+di G14 con un nome nuovo: resta un candidato per la sola metà categorica, con
+il vincolo di riusare `CAMPI_VOLATA` e i cataloghi della pagina.
 
 **Totale stimato: 20 ore**, di cui 4 (unità 6) sospese a una decisione che
 non è tecnica. Le unità 1-3 valgono da sole anche se le 4-8 non si facessero

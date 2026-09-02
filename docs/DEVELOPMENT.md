@@ -90,9 +90,9 @@ sei le app al 100%. Non è «provate bene» — è «non ce n'è nessuna che nes
 ancora guardato», che è il minimo e finora non c'era.
 
 ⚠️ **Quel 769 conta le sei app, non i moduli condivisi**, e la riga di riepilogo
-lo dice («in 6 app»). I condivisi si contano a parte — **189 su 189** in cinque
+lo dice («in 6 app»). I condivisi si contano a parte — **191 su 191** in cinque
 moduli: `dw-shell.js` **54/54**, `dw-ponti.js` **51/51**, `genesi-data.js`
-**71/71**, `genesi-formato.js` **8/8**, `pointcloud.js` **5/5**. Vanno guardati
+**73/73**, `genesi-formato.js` **8/8**, `pointcloud.js` **5/5**. Vanno guardati
 con più attenzione delle app, non con meno: una funzione sbagliata lì sbaglia in
 sei posti insieme.
 ⏱️ **Questi sei numeri sono invecchiati due volte in due giorni, e la seconda
@@ -129,8 +129,8 @@ funzioni si possono portare fuori **senza cambiargli la firma**:
 | nessuna — si porta fuori com'è | **23** |
 | una o due | **60** |
 | da tre a cinque | 26 |
-| da sei a dieci | 27 |
-| più di dieci — lì è un rifacimento | 33 |
+| da sei a dieci | 25 |
+| più di dieci — lì è un rifacimento | 35 |
 
 Cioè **68 su 169 si estraggono senza rifare il modo in cui Genesi tiene il suo
 stato**, e le restanti 101 sono una decisione di architettura.

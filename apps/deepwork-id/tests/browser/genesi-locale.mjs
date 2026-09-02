@@ -104,6 +104,7 @@ const premiModale = async (etichetta) => {
 };
 
 dice(errori.length === 0, "nessun errore di pagina all'apertura", errori.slice(0, 3));
+dice(await pg.evaluate(() => { const b = document.getElementById("hgPorta"); return !!b && b.hidden === true; }), "senza organizzazione il bottone «Porta nell'organizzazione» c'è ed è nascosto");
 const h0 = await home();
 dice(h0.schermata === "home", "si parte dalla Home", h0.schermata);
 dice((await chiave()).length === 0 && h0.vuoto, "all'inizio la chiave è vuota e la Home dice «Nessuna volata salvata»", [await chiave(), h0]);

@@ -1954,6 +1954,8 @@ export async function genesiData(opzioni) {
         const slotDi = (x) => { const s = String((x && x.slot) || x || "").toUpperCase(); return GENESI_SLOT.includes(s) ? s : null; };
         const db = {
           mode: "live",
+          // chi sta lavorando: serve a firmare ciò che si porta nell'organizzazione
+          utente: { uid: id.user.uid, email: id.user.email || null },
           volate: () => read("volate"),
           riconciliazioni: () => read("riconciliazioni"),
           nuvole: () => read("nuvole"),
@@ -2006,6 +2008,7 @@ export async function genesiData(opzioni) {
   const slotDi = (x) => { const s = String((x && x.slot) || x || "").toUpperCase(); return GENESI_SLOT.includes(s) ? s : null; };
   const db = {
     mode: "locale",
+    utente: null,   // da solo sul dispositivo non c'è nessuno da firmare
     volate: async () => elenco("volate"),
     riconciliazioni: async () => elenco("riconciliazioni"),
     nuvole: async () => elenco("nuvole"),
@@ -2043,4 +2046,51 @@ export async function genesiData(opzioni) {
     logout: async () => {},
   };
   return db;
+}
+
+/* ══════════════════════════════════════════════════════════════════════
+   G9 · «PORTA LE TUE VOLATE NELL'ORGANIZZAZIONE» (02/09, unità 5 del piano)
+   ────────────────────────────────────────────────────────────────────────
+   Chi ha usato Genesi da solo ha volate, scatti A/B, riconciliazioni, la legge
+   di sito e le lavorazioni della nuvola nelle chiavi del browser. Al primo
+   accesso con un'organizzazione, questa funzione le COPIA nelle collezioni
+   dell'organizzazione — una volta sola per browser, e senza cancellare niente
+   dal browser: le chiavi restano com'erano, perché sono il ripiego di chi
+   lavora senza rete e perché un dato si copia prima di fidarsi della copia.
+   ⛔ UNA VOLTA SOLA vuol dire un CONTRASSEGNO nel browser (`genesiMigratoV1`,
+   con la data e i conti): la seconda chiamata risponde `gia: true` e scrive
+   ZERO. Il contrassegno è per browser, non per persona: chi porta le stesse
+   volate da due computer le troverà due volte nell'organizzazione — è un
+   limite dichiarato (§5 del piano), e la funzione lo mette nel risultato
+   (`origine: 'browser'`, `autore`, `creatoIl` su ogni riga) perché si possa
+   vedere da dove viene ogni cosa invece di nasconderlo.
+   Pura rispetto alle porte: `daLocale` e `aOrg` sono due `genesiData` (o due
+   finti con la stessa forma), `contrassegno` è un `{getItem, setItem}` — così
+   la prova gira in node con due Map. */
+export const GENESI_CONTRASSEGNO_MIGRAZIONE = "genesiMigratoV1";
+export async function portaNellOrganizzazione(daLocale, aOrg, contrassegno, opzioni) {
+  const o = opzioni || {};
+  const st = contrassegno || { getItem: () => null, setItem: () => {} };
+  const vuoto = { volate: 0, confronti: 0, riconciliazioni: 0, sito: 0, nuvole: 0 };
+  let gia = null;
+  try { gia = JSON.parse(st.getItem(GENESI_CONTRASSEGNO_MIGRAZIONE) || "null"); } catch (e) { gia = null; }
+  if (gia && typeof gia === "object") return { gia: true, quando: gia.quando || null, scritte: { ...vuoto }, totale: 0, giaScritte: gia.scritte || null };
+  if (!daLocale || !aOrg) return { gia: false, scritte: { ...vuoto }, totale: 0, errore: "mancano le due porte" };
+  if (aOrg.mode !== "live" && !o.ancheSeNonLive) return { gia: false, scritte: { ...vuoto }, totale: 0, errore: "la destinazione non è un'organizzazione" };
+  const quando = o.quando || new Date().toISOString();
+  const marchia = (r) => {
+    const { id: _i, ...resto } = r || {};
+    return { ...resto, origine: "browser", autore: o.autore || null, creatoIl: (resto && resto.creatoIl) || quando };
+  };
+  const scritte = { ...vuoto };
+  for (const nome of ["volate", "riconciliazioni", "nuvole"]) {
+    const righe = await daLocale[nome]();
+    for (const r of Array.isArray(righe) ? righe : []) { if (!r) continue; await aOrg.aggiungi(nome, marchia(r)); scritte[nome]++; }
+  }
+  for (const c of await daLocale.confronti()) { if (!c || !c.slot) continue; await aOrg.aggiungi("confronti", { ...marchia(c), slot: c.slot }); scritte.confronti++; }
+  const sito = await daLocale.sito();
+  if (sito && Array.isArray(sito.punti) && sito.punti.length) { await aOrg.aggiungi("sito", { punti: sito.punti, usa: !!sito.usa }); scritte.sito = 1; }
+  const totale = Object.values(scritte).reduce((a, b) => a + b, 0);
+  try { st.setItem(GENESI_CONTRASSEGNO_MIGRAZIONE, JSON.stringify({ quando, scritte, autore: o.autore || null })); } catch (e) {}
+  return { gia: false, quando, scritte, totale };
 }
