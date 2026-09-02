@@ -10,6 +10,42 @@ può procedere con l'attuazione.
 
 ---
 
+## 🟡 02/09 — tre decisioni nuove, nate dai ponti e dalle ricerche di oggi
+
+*Oggi Genesi è uscita dal browser (sette unità su otto del piano), il triangolo
+della produzione è chiuso (Campo→Conti), e sei ricerche hanno avuto il loro
+delta. Da tutto questo escono tre cose che non decido io.*
+
+- [ ] **19. Una volata SPARATA è un «documento emesso»?** Oggi Genesi salva
+  PROGETTI (nome, data, design, sintesi): nessun campo dice «questa è stata
+  sparata, il giorno X all'ora Y». Il ponte di dati Genesi→Sentinella — le
+  volate sparate accanto alle letture del sismografo, invece del file CSV di
+  oggi — ha bisogno di quella distinzione, e di una regola: chi può correggere
+  o cancellare una volata sparata? È la stessa domanda della 10b (chi cancella
+  un DDT emesso), applicata all'esplosivo. **Finché non rispondi, il ponte
+  Genesi→Sentinella resta di file**, e nessuno inventa un campo «sparata».
+  Dettagli: `docs/GENESI_FUORI_DAL_BROWSER.md` §3d.
+- [ ] **20. Le notifiche FUORI dall'app (SMS, e-mail) sono una spesa.** La
+  ricerca su Sentinella dice che i concorrenti mandano l'allarme di
+  superamento via SMS; da noi l'allerta è a schermo. Mandarla fuori vuol dire
+  una Cloud Function e un fornitore di SMS a pagamento: è la regola «nessuna
+  spesa prima della commercializzazione», e resta tua. Se un giorno dici sì,
+  la prima forma onesta è l'e-mail (che il progetto Firebase può mandare), non
+  l'SMS.
+- [ ] **21. Quattro numeri di LEGGE che le ricerche riportano di seconda mano,
+  e che NON scrivo senza il testo.** La denuncia INAIL «entro 2 giorni» per un
+  infortunio con prognosi oltre 3 giorni (Scudo); gli indici «secondo UNI
+  7249» per nome (Scudo li calcola, non cita la norma); il limite giornaliero
+  del PM10 «50 µg/m³, 35 superamenti l'anno» (D.Lgs 155/2010, Sentinella); le
+  soglie del rumore per classe acustica diurno/notturno (D.P.C.M. 14/11/1997,
+  Sentinella). Sono tutte plausibili e tutte da risultato di ricerca: un
+  termine di legge sbagliato in una schermata che va a un ispettore è peggio
+  di uno assente. **Se hai i testi (o un tuo consulente li conferma), me li
+  passi e li metto come preset «da verificare»**, che è la forma che
+  Sentinella usa già per DIN e USBM.
+
+---
+
 ## ⚠️ 14/08 — due numeri che uscivano dall'azienda dicevano una cosa tranquilla, e non era vera
 
 *Anche questa sezione non ti chiede niente di nuovo: ti dice che cosa è cambiato
@@ -105,7 +141,7 @@ cinque elencate qui sotto.
 
 ---
 
-# 📖 Da dove cominciare — le decisioni aperte sono **5**
+# 📖 Da dove cominciare — le decisioni aperte sono **8**
 
 *Erano 19 fino al 07/08. **Nove** sono state chiuse dal **ciclo**, non da te, con
 la regola che avevi concesso il 01/08 (senza risposta entro la settimana si
