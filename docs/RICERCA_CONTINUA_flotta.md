@@ -250,3 +250,110 @@ esistono** — non funzioni che si chiamano in un altro modo.
 
 5. **Ore motore perse** (il mezzo è rimasto fermo tra due letture): il costo orario che era stato calcolato vale lo stesso se la ripartizione è su meno ore reali di utilizzo?
 
+
+## Ricerca del 2026-09-02 — manutenzione preventiva e carburante dei mezzi
+
+### Che cosa esiste già da noi
+Non verificato da questa ricerca: il delta lo fa chi ha il codice.
+
+### Intervalli di manutenzione programmata
+I costruttori (Volvo, Komatsu, Caterpillar) usano intervalli **additivi** a 250/500/1000/2000 ore [seconda mano: heavyvehicleinspection.com]. Caterpillar cita 1.000 ore per estensione OEM con lubrificanti e monitoraggio S·O·S [seconda mano: cat.com]. Komatsu Komtrax pubblica milestone collegate al telematics [seconda mano: heavyvehicleinspection.com].
+
+### Consumi tipici e tolleranze
+Pale gommate medie: 22–45 L/h [seconda mano: taopparts.com]. Escavatori: 15–20 L/h [seconda mano: quarryandconstructionweb.it]. A regime minimo (40% throttle): 3,7 L/h [seconda mano: taopparts.com]. Sistemi SCC (sincronizzazione consumo carburante) rilevano anomalie quando lo scostamento supera soglia configurata tra entrate/uscite/livello sonda [seconda mano: controllogasolio.it]. Tolleranza di olio motore: fino a 1 L ogni 1.000–2.000 km in casi estremi [seconda mano: inforicambi.it].
+
+### Disponibilità (Availability)
+Formula: A = uptime/(uptime+downtime) oppure A = MTBF/(MTBF+MTTR) [seconda mano: fleetrabbit.com]. Medie di settore: 85–95% per flotte curate; MTBF tipico 400–600 h per escavatori; compliance PM > 85% è il principale leva su disponibilità [seconda mano: heavyvehicleinspection.com].
+
+### Registro manutenzione — D.Lgs 81/2008 art. 71
+Obbligo: scariche scritte dei controlli iniziale, periodico, straordinario (risultati su carta, ultimi 3 anni a disposizione); registro aggiornato; conferma permanenza requisiti di sicurezza nel tempo [seconda mano: edafos.it, certifico.com, tussl.it].
+
+### Prodotti e funzioni
+| Prodotto | Manutenzione preventiva | Controllo carburante | Fonte |
+|---|---|---|---|
+| Komatsu Komtrax | Intervalli PM da OEM; ore motore, fault codes in tempo reale | Consumi e caution alerts [dedotto] | komatsu.com |
+| Cat VisionLink | PM scheduling su ore; reporting per macchina | [dedotto] | zieglercat.com |
+| Volvo CareTrack | Gestione remota PM | [dedotto] | [di riferimento] |
+| Trackunit | Utilization in tempo reale; service scheduling | Fuel monitoring integrato | trackunit.com |
+| Samsara | Diagnostica motore, ELD | Fuel/energy monitoring | samsara.com |
+| Fleetio | Scheduling; integrazione multi-OEM | DVIR con Samsara; integrazione telematica | fleetio.com |
+
+### Domande per il delta
+1. Chi decide **quando scade** un tagliando: le ore motore, il calendario, il consumo rilevato, il tipo di suolo (polveroso)?
+2. Il consumo misurato su **delta ore** — come si tratta se l'operatore dimentica il registro fra due riempimenti?
+3. **Tolleranza di consumo anomalo** — Flotta distingue perdita (graduale) da furto (improvviso) o accumula solo il delta?
+4. **Motore a regime minimo** — se un mezzo staziona per ore, il consumo di 3,7 L/h entra nel budget ore lavoro o ha una voce sua?
+5. **Disponibilità calcolata** — usa MTBF del costruttore o MTBF misurato su questa flotta?
+
+### Fonti
+- [https://heavyvehicleinspection.com/blog/post/volvo-construction-equipment-maintenance-schedule](seconda mano)
+- [https://www.cat.com/it_IT/products/new/equipment/excavators/](seconda mano)
+- [https://www.taopparts.com/blog/en/fuel-consumption-on-wheel-loaders-excavators-bulldozers-dumpers](seconda mano)
+- [https://fleetrabbit.com/blogs/post/mining-fleet-uptime](seconda mano)
+- [https://www.edafos.it/attrezzature-e-macchine/registro-manutenzione-attrezzature-obblighi-controlli/](seconda mano)
+- [https://trackunit.com/trackunit-manager/](seconda mano)
+- [https://www.samsara.com/products/telematics](seconda mano)
+- [https://www.fleetio.com/](seconda mano)
+- [https://www.controllogasolio.it/](seconda mano)
+
+### Il delta, fatto da chi ha il codice in mano (02/09, contro `c703c076`)
+
+Le cinque domande, risposte aprendo `apps/flotta/flotta-data.js` e non
+cercando i nomi del mondo. Per ogni «non c'è» il comando e la sua uscita.
+
+1. **Chi decide quando scade un tagliando** → esiste, nei due modi e mai
+   insieme: `prossimoTagliando(man, oreAttuali, dataChiusura)` riparte dalle
+   ORE che il mezzo ha adesso (+`ogniOre`) oppure dal CALENDARIO
+   (+`ogniMesi`); `tagliandiInScadenza(manutenzioni, mezzi, letture, oggi,
+   orizzonte)` proietta le ore a una data col ritmo del mezzo
+   (`ritmoOreMezzi`) e conta a parte i `nonStimabili` — i mezzi senza un
+   ritmo leggibile, dichiarati sulla tessera invece che messi a zero. I
+   piani 250/500/1000/2000 h che i costruttori usano sono quelli di
+   `pianoTagliando(chiave)` e `propostaTagliando`; la dimostrazione ne ha tre
+   (`grep -c 'ogniOre:' apps/flotta/flotta-data.js` → 8). Il suolo polveroso
+   non entra: la ricerca lo cita come fattore dei costruttori, da noi il passo
+   è quello scritto sul piano — è una scelta, non una mancanza.
+2. **Il consumo su ore incomplete** → esiste, e la regola è scritta nel
+   commento di `validaRifornimento`/`consumoPerMezzo`: si scarta il PRIMO
+   pieno (il gasolio che c'era dentro è stato bruciato in ore che non abbiamo),
+   si sommano i pieni dal secondo in poi e si dividono per le ore fra il primo
+   e l'ultimo; con un rifornimento solo il consumo non esiste e la funzione
+   dice `perche`. Il contatore sceso lo rifiuta `validaRifornimento(dati,
+   oreMezzo)` prima di salvare; `ritmoOreMezzi` lo scarta nelle letture.
+3. **Una tolleranza di consumo anomalo** → **non c'è**: `grep -ciE 'consumo
+   anomalo|anomal[a-z]* (di|del|nel) consumo' apps/flotta/flotta-data.js` → **0** (le 37
+   occorrenze di «anomal» sono le anomalie del giro di CONTROLLO del mezzo,
+   `anomalie` nelle checklist, un'altra cosa). Flotta calcola i l/h per mezzo
+   e li mostra; non li confronta con una soglia né col ritmo dello stesso
+   mezzo nei mesi prima. ⏱️ **Candidato**: il consumo del periodo contro la
+   media del mezzo (stesso mezzo, mesi precedenti), con la forbice detta a
+   parole e SENZA distinguere perdita da furto — quello non lo sa nessun
+   software, lo sa chi guarda il mezzo; costo basso (funzione pura su
+   `consumoPerMezzo` per finestre). *Proposto da ricerca, meccanismo
+   verificato, non in roadmap finché non lo sceglie un cantiere.*
+4. **Il motore al minimo** → **non c'è come voce**: `grep -ciE 'regime
+   minimo|al minimo|idle' apps/flotta/flotta-data.js` → **0**. Le ore del contatore sono ore
+   motore, e il gasolio bruciato fermo ci finisce dentro senza nome. Un dato
+   che i telematici hanno (idle time) e che chi scrive a mano il registro non
+   ha: prima di aggiungere una voce va chiesto in cava se qualcuno la
+   compilerebbe. *Candidato debole, dichiarato.*
+5. **Disponibilità** → esiste, ed è calcolata sui FERMI REGISTRATI, non su un
+   MTBF di catalogo: `affidabilitaFlotta(fermi, mezzi, giorni, oggi)` conta
+   giorni-macchina disponibili meno persi, taglia i fermi alla finestra,
+   tiene fuori dal denominatore i mezzi usciti dal parco e li dichiara, e il
+   tempo medio fra due fermi lo scrive solo da due episodi in su (`grep -ci
+   mtbf apps/flotta/flotta-data.js` → **1**: la parola non c'è, il conto sì — è il «cercare il
+   meccanismo, non il nome» di CLAUDE.md). Il valore 85-95 % del settore
+   citato dalla ricerca è di seconda mano e NON va in nessuna schermata.
+6. **Il registro di controllo (D.Lgs 81/2008 art. 71, Allegato VII)** →
+   esiste come citazione nei preset delle scadenze del mezzo (`grep -n
+   '81/2008' apps/flotta/flotta-data.js` → 5 righe, art. 71 c.11, Allegato VII, art. 72) e nei
+   controlli del mezzo con esito e anomalie; la conservazione per tre anni
+   citata dalla ricerca non è una regola del codice (i dati non si cancellano
+   da soli) — verificare quella durata sul testo di legge prima di scriverla
+   in una schermata: la ricerca la riporta di seconda mano.
+
+Riassunto: **quattro esistono (1, 2, 5, 6), due mancano (3 e 4)**, e il solo
+candidato con un valore chiaro è il **3** (il consumo del mezzo contro la sua
+stessa storia). Nessuno dei numeri di settore della ricerca (l/h, 85-95 %,
+MTBF 400-600 h) va scritto nel prodotto: sono di seconda mano.
