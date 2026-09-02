@@ -217,3 +217,125 @@ Autorità competenti: **Provincia** o Regione (per aree protette); **ARPA** sorv
 4. **Quando ARPA/Provincia chiedono lo stato delle scadenze di concessione, quale formato leggono?** CSV / API / pannello web / carta intestata?
 5. **Che cosa mostra il preavviso: data di scadenza - data odierna, oppure conta anche il buffer del medico competente (es. 30gg prima)?**
 
+
+## Ricerca del 2026-09-02 — sicurezza del lavoro in cava, la pratica quotidiana (metà sul mondo)
+
+### Che cosa esiste già da noi
+
+Non verificato da questa ricerca: il delta lo fa chi ha il codice in mano (vedere checkpoint e roadmap).
+
+### Registro degli infortuni e mancati infortuni (near miss)
+
+**Normativa**: D.Lgs. 81/2008 non usa il termine "near miss", ma contiene disposizioni sulla gestione delle condizioni di pericolo [seconda mano]. Art. 15 D.L. 159/2025 impone il tracciamento strutturato dei mancati infortuni alle imprese con più di 15 dipendenti, con comunicazione aggregata al Ministero del Lavoro (non diretto all'INAIL) [seconda mano]. **Scadenze denuncia**: infortuni con almeno 1 giorno di assenza → comunicazione statistica; infortuni > 3 giorni → denuncia INAIL entro 2 giorni [seconda mano - norma INAIL].
+
+### Indici di frequenza e gravità
+
+**Indice di Frequenza (IF)**: numero infortuni denunciati in un anno / (totale ore lavorate × 1.000.000) [seconda mano - UNI 7249:2007].
+
+**Indice di Gravità (IG)**: giorni perduti convenzionali / (ore lavorate × 1.000). Convenzioni: infortunio temporaneo = giorni effettivi; permanente = grado inabilità × 75; mortale = 7.500 giorni [seconda mano - UNI 7249:2007].
+
+### Sorveglianza sanitaria e formazione
+
+**Visite mediche**: preventiva (assenza controindicazioni) + periodica (annuale di norma, modificabile dal medico competente su rischio specifico, art. 41 D.Lgs 81/08) [seconda mano]. Rischi monitora: silice, rumore, vibrazioni, movimentazione carichi [seconda mano].
+
+**Formazione** (Accordo Stato-Regioni 2025): lavoratori rischio alto = 12 ore + 6 ore aggiornamento quinquennale [seconda mano]; preposti = 12 ore (anziché 8), aggiornamento biennale 6 ore [seconda mano]; macchine movimento terra = teoria + addestramento pratico campo [seconda mano].
+
+### DPI, permessi speciali, piani emergenza
+
+**DPI**: datore di lavoro registra consegna con modulo sottoscritto; manutenzione/sostituzione programmata; durata limitata nel tempo [seconda mano]. **Lavori speciali**: D.Lgs 81 art. 81 pone priorità protezioni collettive su DPI per lavori in quota [seconda mano]. **Emergenza**: D.Lgs 624/1996 richiede Documento Sicurezza e Salute (DSS) con valutazione rischi e piani emergenza per possibile coinvolgimento popolazione [seconda mano].
+
+### Software HSE — funzioni per cave
+
+| Software | Registro infortuni | Near miss / KPI | Periodicità sorveglianza | Fonte |
+|---|---|---|---|---|
+| SafetyCulture (iAuditor) | Sì, modello italiano | Sì, tracciamento e corrective actions | Non esplicitato | [seconda mano] safetyculture.com |
+| Intelex | Sì, OSHA-like capture | Sì, riduzione near-miss-to-recordable | Generica integrazione calendari | [seconda mano] intelex alternatives |
+| Cority | Sì, full incident management | Sì, trend analysis con split near/recordable | ISO 45001-ready, periodicità generica | [seconda mano] best-ehs-2026 |
+| Zucchetti Sicurezza | Sì, gestionale italiano HSE | Generica integrazione con KPI | Sorveglianza sanitaria integrata | [seconda mano] zucchetti.it |
+| Blumatica Q-HSE | Sì, moduli modulari | Non esplicitato per cave | Calendari gestione scadenze | [seconda mano] blumatica.it |
+
+**Nota**: Ricerca non ha trovato descrizioni pubbliche specifiche su come questi software gestiscono la complessità italiana (D.Lgs 624/1996, DSS, periodicità medico competente vs. scadenze autoritative). Tutti riportano funzioni generiche di registro + KPI; nessuno cita «idoneità » come stato di visita medica periodica, né la formula UNI 7249 per gli indici.
+
+### Domande per il delta
+
+1. Dove decidiamo il formato del registro infortuni: INAIL-standard, UNI 7249, oppure DSS D.Lgs 624/1996 per cave?
+2. Near miss e infortuni condividono lo stesso elenco o sono separati? Come filtriamo il «rapporto near-miss-to-recordable» se sono insieme?
+3. Visite mediche: la «periodicità» viene dal medico competente (persona) o dalle regole di mansione? Come cambia al cambio mansione?
+4. La sorveglianza sanitaria emette un giudizio di «idoneità» con un valore (es. «idoneo», «idoneo con limitazioni», «non idoneo»)? Da chi?
+5. Quale software usiamo e come lo integriamo col nostro modulo dati (persone, mansioni, storici)?
+
+### Fonti
+
+[seconda mano] https://www.puntosicuro.it/i-quesiti-sul-decreto-81-l-obbligo-di-registrare-i-mancati-incidenti
+[seconda mano] https://www.silaq.com/media/articoli-silaq/near-miss-nei-luoghi-di-lavoro-la-svolta-normativa-che-cambia-la-prevenzione
+[seconda mano] https://www.certifico.com/sicurezza-lavoro/documenti-sicurezza/rischi-infortuni-mancati-infortuni-indicatori
+[seconda mano] https://www.vegaformazione.it/glossario/indice-frequenza-infortuni
+[seconda mano] https://www.vegaformazione.it/glossario/indice-gravita-infortuni
+[seconda mano] https://tussl.it/titolo-i-principi-comuni/capo-iii-gestione-della-prevenzione-nei-luoghi-di-lavoro/sezione-v-sorveglianza-sanitaria/art-41
+[seconda mano] https://www.vegaengineering.com/news/nuovo-accordo-stato-regioni-2025-le-novita-sulla-formazione
+[seconda mano] https://www.puntosicuro.it/valutazione-dei-rischi-come-elaborare-il-documento-di-sicurezza-salute-nel-settore-estrattivo
+[seconda mano] https://safetyculture.com/intelex-alternative
+[seconda mano] https://www.smartqhse.com/best-ehs-software
+[seconda mano] https://www.smartqhse.com/safety-blog/best-incident-reporting-software-2026
+[seconda mano] https://www.zucchetti.it/it/cms/soluzioni/safety-security/safety
+[seconda mano] https://blumatica.it/software/q-hse-manager
+
+### Il delta, fatto da chi ha il codice in mano (02/09, contro `cd1beed0`)
+
+Le cinque domande, risposte aprendo `apps/scudo/scudo-data.js` — cercando il
+MECCANISMO, non la parola del mondo (la lezione del 14/08 su questo stesso
+documento: «near-miss» era già un `tipo` dentro `infortuni`).
+
+1. **Il formato del registro** → è il nostro, e non finge di essere un modulo
+   di legge: `csvRegistroInfortuni(eventi)` con `parseInfortuniCsv` per
+   l'andata e ritorno, `riepilogoInfortuni`, e il DSS delle cave (D.Lgs
+   624/1996) come CICLO — `cicloDss(documento, infortuni, oggi)` e
+   `dssDaSeguire` (`grep -ciE '624/1996|DSS' apps/scudo/scudo-data.js` → **97**). Che cosa dice la
+   legge sul formato oggi (la ricerca cita un D.L. 159/2025 sul tracciamento,
+   di seconda mano) NON è verificato: prima di scrivere un riferimento in una
+   schermata va letto il testo, non un risultato di ricerca.
+2. **Near miss e infortuni** → stesso elenco, `tipo: infortunio|near-miss`,
+   e le funzioni li separano quando serve: `riepilogoNearMiss(infortuni,
+   azioni, giorni)`, `descriviLetturaNearMiss`, `riepilogoPotenziale` (la
+   gravità potenziale, con la pastiglia in testa al nome). Il rapporto
+   near-miss/infortuni è un filtro sullo stesso elenco, non due collezioni.
+3. **La periodicità delle visite** → la decide chi la scrive, per PERSONA: la
+   «Visita medica» è una scadenza con la data della prossima
+   (`periodicitaGiorni` è il campo, presente nelle scadenze della
+   dimostrazione), il preset dà la periodicità tipica, e il cambio mansione
+   passa dalla matrice `matriceMansione`/`abilitazioneLavoratore` che dice
+   che cosa manca per la mansione nuova. Una regola «per mansione con
+   esposizione a silice/rumore/vibrazioni» che generi la periodicità da sola
+   NON c'è (`grep -ciE 'silice|rumore|vibrazion' apps/scudo/scudo-data.js` → 9, tutte in testi e
+   preset, nessuna in una funzione che calcoli una periodicità): è una
+   decisione del medico competente, e va bene che sia lui a scriverla.
+4. **Il giudizio di idoneità** → esiste con quattro stati, D.Lgs 81/2008 art.
+   41: `idoneitaLabel` — `idoneo`, `prescrizioni` (idoneo con limitazioni),
+   `non-idoneo`, e il non definito che si mostra «Idoneità n.d.» e non «idoneo».
+   Chi lo scrive è chi registra l'esito; il ponte Campo↔Scudo lo usa per «chi
+   è in turno è in regola?» (`idoneitaDiTurno`).
+5. **Quale software usiamo** → nessuno: Scudo È il modulo. La domanda della
+   ricerca presuppone un prodotto esterno da integrare; qui il registro, le
+   scadenze, i DPI (`ultimaConsegnaDpi`, `allarmiDpi`, `verbaleDpi`), i
+   permessi di lavoro (`statoPermesso`, `permessiDelGiorno`, 22 occorrenze),
+   l'organigramma (`organigrammaSicurezza`) e gli indici sono funzioni pure
+   sullo stesso modulo dati.
+
+**Le due cose che mancano davvero**, trovate per strada:
+· la **denuncia INAIL entro due giorni** (infortunio > 3 giorni) come scadenza
+  che nasce dall'evento: `grep -ciE 'entro (2|due) giorni|48 ore' apps/scudo/scudo-data.js` → **0**;
+  «INAIL» compare 10 volte, tutte per la PRIMA VERIFICA delle attrezzature
+  (art. 71 c.11), mai per la denuncia. ⏱️ Candidato: alla registrazione di un
+  infortunio con prognosi > 3 giorni, una scadenza «denuncia INAIL» a +2
+  giorni dalla data — SOLO dopo aver letto sul testo primario il termine
+  esatto e da quando decorre (la ricerca lo riporta di seconda mano; un
+  termine di legge sbagliato in una schermata è peggio di uno assente);
+· gli **indici secondo UNI 7249** per nome: `grep -ciE 'UNI 7249' apps/scudo/scudo-data.js` → **0**,
+  ma `indiciInfortunistici(infortuni, oreLavorate, anno)` calcola IF, IG e
+  LTIFR e si RIFIUTA senza le ore lavorate (denominatore mai inventato): la
+  formula c'è, la citazione della norma no — e prima di citarla va verificato
+  che le convenzioni (giorni perduti, ×1.000.000 / ×1.000) siano le sue.
+
+Riassunto: **cinque su cinque esistono**, con la forma giusta per una cava;
+due mancanze vere fuori dalle domande (la denuncia come scadenza, la norma
+citata per nome), tutt'e due sospese a una lettura del testo primario.
