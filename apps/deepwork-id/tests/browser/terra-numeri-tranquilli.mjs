@@ -62,6 +62,26 @@
    secchio «fronti non più in elenco» nel file non c'era affatto — la colonna
    dei banchi non tornava col totale dell'anno, e il file non diceva perché.
 
+   ── terza tornata, 02/09: la passata in profondità ──────────────────────
+   Stessa domanda su tutto quello che esce e su ciò che si colora, con gli
+   scatti guardati a 430 px. Quattro cose, tutte trovate premendo o guardando:
+   9. il foglio per l'ente scriveva «Incertezza complessiva ± 388 m³, ottenuta
+      sommando la tolleranza di OGNI rilievo (stima prudente)» — e sulla
+      dimostrazione quel ± copriva UN rilievo su quattro (19.400 m³ su 79.400):
+      chi non dichiara il metodo non ha tolleranza e pesava ZERO. Adesso il
+      modulo dichiara la copertura (`incertezzaScavo`) e la frase la scrive
+      `descriviIncertezza`, letta da foglio, confronto e verbale;
+  10. sul Quadro la scadenza «senza data» aveva la striscia VERDE e la spunta
+      «a posto» accanto al badge arancione: una copia più debole di `lv.cls`,
+      a tre stati su quattro;
+  11. il CSV dei rilievi — «nel formato che questa pagina sa ri-caricare» —
+      usciva con la colonna «fronte» VUOTA su tutte le righe (`r.fronte` dove
+      il rilievo porta `fronteId`): ri-caricato, la ripartizione per fronte
+      della denuncia spariva;
+  12. nella scheda dei lotti «previsti … · misurati …» finiva nei puntini del
+      `.meta` a due righe, su tre lotti su sei: il misurato è il numero per
+      cui l'elenco esiste, e sta ora nella riga larga sotto.
+
    ⚠️ I DUE CASI SI COSTRUISCONO NEI DATI, NON NEL DOCUMENTO. L'anno cieco e il
    rilievo col volume illeggibile si ottengono aggiungendo una riga alla
    risposta HTTP di `terra-data.js` — cioè passando dalla via vera (il modulo
@@ -114,6 +134,18 @@ const DIFETTI = [
   // ── 7 · i secchi del CSV della denuncia ────────────────────────────────
   ['${s.misurabile ? s.scavo : ""};${s.cumulo}', '${s.scavo};${s.cumulo}'],
   ['      ["Fronti non più in elenco", DEN.banchi.fuoriElenco],\n', ''],
+  /* ── 8 · LA PASSATA DEL 02/09 ─────────────────────────────────────────── */
+  // 8a · la scadenza «senza data» disegnata verde con la spunta
+  ['const cls = "st-" + lv.cls;', 'const cls = st === "scaduta" ? "st-danger" : st === "in-scadenza" ? "st-warn" : "st-ok";'],
+  ['const ico = lv.cls === "danger" ? ["danger", I.allarme] : lv.cls === "warn" ? ["warn", I.sveglia] : ["ok", I.ok];',
+   'const ico = st === "scaduta" ? ["danger", I.allarme] : st === "in-scadenza" ? ["warn", I.sveglia] : ["ok", I.ok];'],
+  // 8b · l'incertezza «di ogni rilievo (stima prudente)» che copriva un rilievo su quattro
+  ['+ (descriviIncertezza(R.incertezza) ? " " + esc(descriviIncertezza(R.incertezza)) : "")',
+   '+ (R.banda > 0 ? " Incertezza complessiva stimata sullo scavo: ± " + n0(R.banda) + " m³, ottenuta sommando la tolleranza tipica del metodo di ogni rilievo (stima prudente)." : "")'],
+  // 8c · il CSV dei rilievi senza i fronti: colonna «fronte» vuota su tutte le righe
+  ['encodeURIComponent(csvRilievi(RIL, FRO))', 'encodeURIComponent(csvRilievi(RIL))'],
+  // 8d · i due volumi del lotto tornano nel `.meta` tagliato a due righe
+  ['    const perche = [\n      volumi,\n', '    const perche = [\n'],
 ];
 
 /* IL CASO DA COSTRUIRE, scelto prima di ogni `goto`. Si aggiunge in coda al
@@ -422,6 +454,99 @@ FIXTURE = FIXTURE_DOCUMENTI;
   await pg.close();
 }
 
+// ── 8 · LA PASSATA DEL 02/09: quattro cose viste premendo e guardando ──────
+/* Tutte sulla dimostrazione com'è, tranne l'incertezza, che vuole dati fermi:
+   con un fixture i numeri attesi non invecchiano quando la dimostrazione
+   cresce (è il banco col numero atteso dentro, censito il 07/08). */
+console.log("\n· il Quadro: una scadenza senza data non è una scadenza a posto");
+FIXTURE = "";
+{
+  const pg = await apri("nav-dash");
+  const righe = await pg.$$eval("#dash-scad .item", (els) => els.map((it) => ({
+    badge: (it.querySelector(".badge") || {}).innerText || "",
+    striscia: [...it.classList].filter((c) => c.startsWith("st-")).join(" "),
+    icona: [...(it.querySelector(".avatar") || { classList: [] }).classList].filter((c) => ["ok", "warn", "danger"].includes(c)).join(" "),
+  })));
+  const senza = righe.find((r) => /senza data/i.test(r.badge));
+  dice(!!senza, "la dimostrazione ha una scadenza senza data sul Quadro", righe.map((r) => r.badge).join(" | "));
+  dice(!!senza && senza.striscia === "st-warn",
+    "⛔ la sua striscia è arancione (st-warn), non verde: una data che non c'è non è una data lontana", senza && senza.striscia);
+  dice(!!senza && senza.icona === "warn",
+    "⛔ e l'icona è la sveglia, non la spunta «a posto»", senza && senza.icona);
+  const scad = righe.find((r) => /^scaduta$/i.test(r.badge));
+  dice(!!scad && scad.striscia === "st-danger" && scad.icona === "danger", "la scaduta resta rossa con l'allarme (la correzione non si porta via il resto)", scad);
+  await pg.close();
+}
+
+console.log("\n· il foglio per l'ente: il ± dice su quanti rilievi si regge");
+/* un rilievo con metodo (10.000 m³, ± 2%) e uno senza (30.000 m³), lo stesso
+   giorno di trenta giorni fa: l'anno è quello, e i numeri attesi sono scritti
+   qui, non presi dalla dimostrazione */
+{
+  const d = new Date(); d.setHours(12, 0, 0, 0); d.setDate(d.getDate() - 30);
+  const iso = d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
+  FIXTURE = "\nDEMO.rilievi.length = 0;"
+    + `\nDEMO.rilievi.push({ id: "m", titolo: "Con metodo", data: "${iso}", tipo: "Ortofoto + DEM", volumeM3: 10000, fronteId: "f1", stato: "elaborato", metodo: "RTK", gsd: "2", provenienza: "scavo" });`
+    + `\nDEMO.rilievi.push({ id: "n", titolo: "Senza metodo", data: "${iso}", tipo: "Ortofoto + DEM", volumeM3: 30000, fronteId: "f2", stato: "elaborato", provenienza: "scavo" });\n`;
+  const pg = await apri("nav-den");
+  await intercetta(pg);
+  await pg.click("#btn-den-stampa"); await pg.waitForTimeout(500);
+  const doc = testo(await pg.evaluate(() => window.__doc));
+  dice(doc.length > 800, "il prospetto viene prodotto davvero", doc.length);
+  dice(/sul solo rilievo con metodo dichiarato \(10\.000 m³ su 40\.000\): ± 200 m³/.test(doc),
+    "⛔ «Come sono stati ottenuti i numeri»: il ± 200 copre 10.000 m³ su 40.000, ed è scritto", (doc.match(/Incertezza[^.]*\./) || [])[0]);
+  /* la frase passa da `esc()` sul foglio, quindi l'apostrofo arriva come
+     `&#39;`: si legge la forma che il browser MOSTRA, non la sorgente */
+  const mostrato = doc.replace(/&#39;/g, "'").replace(/&amp;/g, "&");
+  dice(/L'altro rilievo \(30\.000 m³\) non dichiara il metodo/.test(mostrato),
+    "⛔ e l'altro rilievo, coi suoi 30.000 m³, è nominato invece di pesare zero", (mostrato.match(/L'altro rilievo[^.]*\./) || [])[0]);
+  dice(!/di ogni rilievo \(stima prudente\)/.test(doc),
+    "⛔ nessun «di ogni rilievo (stima prudente)» su un conto che ne copre uno su due", (doc.match(/Incertezza[^.]*\./) || [])[0]);
+  dice(/stimabile solo su 10\.000 m³/.test(doc),
+    "⛔ e nella base dell'onere lo stesso: «stimabile solo su 10.000 m³», non «incertezza del volume dichiarata»", (doc.match(/Incertezza del volume[^.]*\./) || [])[0]);
+  await pg.close();
+}
+
+console.log("\n· il CSV dei rilievi (quello che si ri-carica) porta il fronte");
+FIXTURE = "";
+{
+  const pg = await apri("nav-ril");
+  await intercetta(pg);
+  await pg.click("#btn-exp-ril"); await pg.waitForTimeout(400);
+  const csv = String(await pg.evaluate(() => window.__csv) || "");
+  dice(csv.length > 50, "il file viene prodotto davvero", csv.length);
+  /* il numero atteso si DERIVA dal modulo servito, non si scrive: la
+     dimostrazione cresce e un «5» scritto qui invecchierebbe con lei */
+  const attesi = await pg.evaluate(async () => {
+    const m = await import("./terra-data.js");
+    const nomi = new Map(m.DEMO.fronti.map((f) => [String(f.id), f.nome]));
+    return m.DEMO.rilievi.filter((r) => r.fronteId != null && nomi.has(String(r.fronteId))).map((r) => nomi.get(String(r.fronteId))).sort();
+  });
+  const scritti = csv.trim().split("\n").slice(1).map((r) => r.split(";")[4]).filter(Boolean).sort();
+  dice(attesi.length > 0, `la dimostrazione ha rilievi con un fronte (${attesi.length})`, attesi);
+  dice(JSON.stringify(scritti) === JSON.stringify(attesi),
+    `⛔ la colonna «fronte» porta il nome per ognuno di loro (${scritti.length} su ${attesi.length}; prima: 0 su ${attesi.length})`, scritti.join(", ") || "(tutte vuote)");
+  await pg.close();
+}
+
+console.log("\n· i lotti: previsti e misurati si leggono, non finiscono nei puntini");
+{
+  const pg = await apri("nav-pia");
+  const lotti = await pg.$$eval("#lot-list .item", (els) => els.map((it) => {
+    const m = it.querySelector(".meta"), h = it.querySelector(".form-hint");
+    return { nome: (it.querySelector(".name") || {}).innerText || "", meta: m ? m.innerText : "",
+      metaTagliata: !!m && m.scrollHeight > m.clientHeight + 1,
+      hint: h ? h.innerText : "", hintTagliato: !!h && h.scrollHeight > h.clientHeight + 1 };
+  }));
+  dice(lotti.length >= 3, `la dimostrazione ha dei lotti (${lotti.length})`, lotti.length);
+  const senzaVolumi = lotti.filter((l) => !/Previsti .* · misurati /.test(l.hint));
+  dice(senzaVolumi.length === 0, "⛔ ogni lotto scrive «Previsti … · misurati …» nella riga larga sotto (il form-hint), non nel .meta", senzaVolumi.map((l) => l.nome + " → " + l.hint.slice(0, 60)).join(" | "));
+  dice(lotti.every((l) => !l.hintTagliato), "e quella riga non è tagliata (non ha il clamp)", lotti.filter((l) => l.hintTagliato).map((l) => l.nome).join(", "));
+  dice(lotti.every((l) => !/misurati/.test(l.meta)), "e il .meta non li ripete (se no tornerebbero nei puntini)", lotti.filter((l) => /misurati/.test(l.meta)).map((l) => l.nome).join(", "));
+  console.log(`  ·   .meta ancora tagliati a 430 px: ${lotti.filter((l) => l.metaTagliata).length} su ${lotti.length} (dichiarato, non giudicato: lì restano ordine, superficie e data)`);
+  await pg.close();
+}
+
 // ── 7 · I SECCHI DEL CSV DELLA DENUNCIA ───────────────────────────────────
 /* Le RIGHE dei banchi lasciavano già la cella vuota quando nessuno aveva
    misurato; i tre SECCHI — che sono banchi anche loro, solo senza nome — no.
@@ -429,6 +554,10 @@ FIXTURE = FIXTURE_DOCUMENTI;
    schermo e foglio stampato lo dichiarino: la colonna dei banchi non tornava
    col totale dell'anno, e il file non diceva perché. */
 console.log("\n· il CSV della denuncia: i secchi che non sono un banco");
+/* ⚠️ il fixture si DICHIARA: questa scena si teneva quello lasciato dalla
+   scena 6, e il 02/09 — con quattro scene inserite in mezzo — ha misurato la
+   dimostrazione nuda e accusato tre secchi che non c'erano */
+FIXTURE = FIXTURE_DOCUMENTI;
 {
   const pg = await apri("nav-den");
   await intercetta(pg);
@@ -465,9 +594,11 @@ if (CONTROPROVA) {
   }
   /* la soglia è salita da 10 a 20 il 03/08, con le sette iniezioni nuove: con
      tutti i difetti rimessi ne cadono 26. Lasciarla a 10 avrebbe reso la
-     controprova verde anche se metà delle iniezioni nuove non fosse arrivata. */
-  console.log(ko >= 20 ? "✓ il banco SA fallire: rimessi i difetti cadono le prove giuste"
+     controprova verde anche se metà delle iniezioni nuove non fosse arrivata.
+     E da 20 a 30 il 02/09, con le cinque iniezioni della terza tornata: con
+     tutti i difetti rimessi ne cadono 33. */
+  console.log(ko >= 30 ? "✓ il banco SA fallire: rimessi i difetti cadono le prove giuste"
                       : `⚠️ troppo poche cadute (${ko})`);
-  process.exit(ko >= 20 ? 0 : 1);
+  process.exit(ko >= 30 ? 0 : 1);
 }
 process.exit(ko ? 1 : 0);

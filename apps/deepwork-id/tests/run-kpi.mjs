@@ -34404,5 +34404,91 @@ const { senzaCommenti: senzaCommentiConti } = await import("./tokenizza.mjs");
 
 /* ===== fine ponte Conti → Flotta ===== */
 
+/* ═════ TERRA · LA PASSATA IN PROFONDITÀ DEL 02/09 ═════
+   Tre difetti trovati premendo i bottoni e aprendo i file sulla dimostrazione.
+   ⚠️ Prove SINCRONE e messe PRIMA del riepilogo: l'`await Promise.all(inVolo)`
+   sta a metà file, una prova asincrona qui non verrebbe aspettata. */
+{
+  const RTK = { id: "a", data: "2026-03-10", fronteId: "f1", stato: "elaborato", volumeM3: 10000, metodo: "RTK", gsd: "2" };
+  const ND1 = { id: "b", data: "2026-04-10", fronteId: "f1", stato: "elaborato", volumeM3: 30000 };
+  const ND2 = { id: "c", data: "2026-05-10", fronteId: "f1", stato: "elaborato", volumeM3: 20000 };
+  const AUT = { volumeAutorizzatoM3: 1200000, dataRilascio: "2024-01-01", estrattoPregressoM3: 100000 };
+  const OGGI = new Date("2026-09-02T10:00:00Z");
+
+  test("⛔ Terra · incertezzaScavo: chi non dichiara il metodo non pesa zero, viene DICHIARATO", () => {
+    const i = terra.incertezzaScavo([RTK, ND1, ND2]);
+    eq(i.banda, 200, "il ± è quello di sempre: il 2% dei soli 10.000 m³ con tolleranza nota");
+    eq([i.coperti, i.copertoM3], [1, 10000], "un rilievo coperto, per 10.000 m³");
+    eq([i.scoperti, i.scopertoM3], [2, 50000], "due scoperti, per 50.000 m³ — prima sparivano dal conto");
+    eq([i.rilievi, i.completa], [3, false], "e la somma si dichiara incompleta");
+    eq(terra.incertezzaScavo([RTK]), { banda: 200, coperti: 1, copertoM3: 10000, scoperti: 0, scopertoM3: 0, rilievi: 1, completa: true },
+      "col solo rilievo con metodo la copertura è piena");
+    eq(terra.incertezzaScavo([]).rilievi, 0, "vuoto: zero rilievi");
+    eq(terra.incertezzaScavo(null).completa, true, "e null non rompe");
+    eq(terra.incertezzaScavo([null, ND1]).scoperti, 1, "i buchi nella lista si saltano");
+    eq(terra.incertezzaScavo([{ ...ND1, volumeM3: "" }]).scopertoM3, 0, "un volume illeggibile non conta metri cubi (non è zero misurato, è assente)");
+  });
+
+  test("⛔ Terra · descriviIncertezza: la frase dice su che cosa si regge il ±", () => {
+    const parz = terra.descriviIncertezza(terra.incertezzaScavo([RTK, ND1, ND2]));
+    ok(parz.includes("sul solo rilievo con metodo dichiarato (10.000 m³ su 60.000): ± 200 m³"), "copertura scritta: 1 su 3, 10.000 su 60.000 · " + parz);
+    ok(parz.includes("Gli altri 2 rilievi (50.000 m³) non dichiarano il metodo"), "e chi resta fuori, con i suoi m³ · " + parz);
+    ok(parz.includes("non si può stimare"), "e non chiama «complessiva» una somma parziale · " + parz);
+    ok(!parz.includes("stima prudente"), "niente «stima prudente» su un conto che copre un rilievo su tre");
+    const due = terra.descriviIncertezza(terra.incertezzaScavo([RTK, { ...RTK, id: "a2", volumeM3: 5000 }, ND1]));
+    ok(due.includes("sui soli 2 rilievi con metodo dichiarato") && due.includes("L'altro rilievo (30.000 m³) non dichiara il metodo"), "plurali e singolari al posto giusto · " + due);
+    const piena = terra.descriviIncertezza(terra.incertezzaScavo([RTK, { ...RTK, id: "a2", volumeM3: 5000 }]));
+    ok(piena.includes("± 300 m³") && piena.includes("di ogni rilievo (stima prudente)"), "con la copertura piena la frase resta quella di sempre · " + piena);
+    const nessuno = terra.descriviIncertezza(terra.incertezzaScavo([ND1, ND2]));
+    ok(nessuno.includes("non stimabile") && nessuno.includes("nessuno dei 2 rilievi dichiara il metodo"), "senza nessun metodo non c'è un ± da scrivere · " + nessuno);
+    ok(terra.descriviIncertezza(terra.incertezzaScavo([ND1])).includes("l'unico rilievo non dichiara"), "e al singolare");
+    eq(terra.descriviIncertezza(terra.incertezzaScavo([])), "", "senza rilievi non si scrive niente");
+    eq(terra.descriviIncertezza(null), "", "e null non rompe");
+    eq(terra.descriviIncertezza(terra.incertezzaScavo([{ ...RTK, volumeM3: 0 }])), "", "banda zero su tolleranza nota: niente da dire");
+  });
+
+  test("⛔ Terra · il riepilogo annuale, la base dell'onere e il confronto portano la copertura dell'incertezza", () => {
+    const R = terra.riepilogoAnnuale([RTK, ND1, ND2], 2026, AUT, OGGI);
+    eq(R.banda, 200, "il numero non cambia: la tolleranza che non si sa non si inventa");
+    eq([R.incertezza.coperti, R.incertezza.scoperti, R.incertezza.completa], [1, 2, false], "ma il riepilogo dice chi copre");
+    eq(R.qualita.nd, 2, "e i due senza metodo erano già contati fra i «n.d.» — senza che il ± lo dicesse");
+    const base = terra.baseOnereEscavazione(R, {});
+    eq(base.incertezza, R.incertezza, "la base porta lo stesso oggetto, non una copia");
+    const frase = terra.descriviBaseOnere(base);
+    ok(frase.includes("stimabile solo su 10.000 m³ (il solo rilievo con metodo dichiarato): ± 200 m³; sugli altri 50.000 m³ la tolleranza non è dichiarata"),
+      "e il foglio per l'ente scrive su quanto si regge il ± · " + frase);
+    ok(!frase.includes("Incertezza del volume dichiarata: ± 200"), "non più «incertezza del volume dichiarata» su un ± che copre un sesto del volume");
+    const Rp = terra.riepilogoAnnuale([RTK], 2026, AUT, OGGI);
+    ok(terra.descriviBaseOnere(terra.baseOnereEscavazione(Rp, {})).includes("Incertezza del volume dichiarata: ± 200 m³."), "a copertura piena la frase di sempre");
+    const Rn = terra.riepilogoAnnuale([ND1, ND2], 2026, AUT, OGGI);
+    ok(terra.descriviBaseOnere(terra.baseOnereEscavazione(Rn, {})).includes("non stimabile: nessun rilievo dichiara il metodo"), "e senza nessun metodo lo dice");
+    const c = terra.confrontoRilievi([RTK, ND1, ND2], "a", "c");
+    eq([c.scavato, c.banda], [50000, 0], "fra il primo e il terzo si sommano i due senza metodo: banda zero");
+    eq([c.incertezza.scoperti, c.incertezza.completa], [2, false], "e il confronto dichiara che quello zero è «non stimabile», non «± 0»");
+    ok(terra.descriviIncertezza(c.incertezza).includes("non stimabile"), "con la frase del modulo");
+  });
+
+  test("⛔ Terra · csvRilievi coi fronti: la colonna «fronte» porta il NOME del fronte del rilievo", () => {
+    const FRO = [{ id: "f1", nome: "Fronte Nord" }, { id: 7, nome: " Fronte Est " }];
+    const RIL = [{ data: "2026-03-01", volumeM3: 100, fronteId: "f1", provenienza: "scavo" },
+      { data: "2026-03-02", volumeM3: 200, fronteId: 7, provenienza: "scavo" },
+      { data: "2026-03-03", volumeM3: 300, fronteId: "fZZ", provenienza: "scavo" },
+      { data: "2026-03-04", volumeM3: 400, fronteId: null, provenienza: "cumulo" },
+      { data: "2026-03-05", volumeM3: 500, fronte: "Fronte Ovest", provenienza: "scavo" }];
+    const righe = terra.csvRilievi(RIL, FRO).trim().split("\n").slice(1).map((r) => r.split(";")[4]);
+    eq(righe, ["Fronte Nord", "Fronte Est", "", "", "Fronte Ovest"],
+      "id → nome (anche numerico, e senza spazi in coda); un fronte cancellato o assente resta vuoto; il nome già scritto vince");
+    eq(terra.csvRilievi(RIL).trim().split("\n").slice(1).map((r) => r.split(";")[4]), ["", "", "", "", "Fronte Ovest"],
+      "senza il secondo argomento il file è quello di prima (la firma vecchia resta valida)");
+    /* il giro di andata e ritorno: il nome esce e rientra, com'è il contratto del lettore */
+    eq(terra.parseRilieviCsv(terra.csvRilievi(RIL, FRO))[0].fronte, "Fronte Nord", "e rientra come `fronte`, che la pagina rimappa sull'id per nome");
+    /* sulla DIMOSTRAZIONE, che è dove il difetto si vedeva premendo il bottone */
+    const conFronte = terra.DEMO.rilievi.filter((r) => r.fronteId != null).length;
+    const scritti = terra.csvRilievi(terra.DEMO.rilievi, terra.DEMO.fronti).trim().split("\n").slice(1).filter((r) => r.split(";")[4] !== "").length;
+    ok(conFronte > 0 && scritti === conFronte, `ogni rilievo della dimostrazione con un fronte lo porta nel file (${scritti} su ${conFronte}; prima erano 0)`);
+  });
+}
+/* ===== fine passata Terra 02/09 ===== */
+
 console.log(`\nRisultato KPI app: ${passed} passati, ${failed} falliti${inVolo.length ? `  ·  ${inVolo.length} prove asincrone aspettate` : ""}`);
 process.exit(failed > 0 ? 1 : 0);

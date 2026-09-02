@@ -17,6 +17,28 @@
 - [ ] **Una passata in profondità su un'app** (ogni schermata guardata, ogni
   file che esce aperto, i numeri tranquilli cercati). Prima candidata: Conti,
   perché è quella che il ponte tocca e quella che il mercato guarda (la pesa).
+  ✅ **Sesta tappa, Terra (02/09, cantiere parallelo, misurato prima di
+  crederci: suite, banchi nei due versi, scatti guardati)**: tre banchi, un
+  solo KO iniziale ed era del calendario (fixture assoluta: «1,1 anni» invece
+  di «l'ultimo anno», resa relativa). **Quattro difetti veri, corretti nel
+  modulo**: (1) il foglio per l'ENTE chiamava «incertezza complessiva … di
+  ogni rilievo» un ± 388 m³ che copriva UN rilievo su quattro — gli altri tre
+  (60.000 m³ senza metodo) pesavano zero nella somma: ora `incertezzaScavo`
+  dichiara la copertura («stimata sul solo rilievo con metodo dichiarato,
+  19.400 su 79.400 m³») nel foglio, nell'onere, nel confronto e nel verbale;
+  (2) il CSV dei rilievi «che la pagina sa ricaricare» usciva con la colonna
+  `fronte` vuota su tutte le righe (scriveva il nome dove il rilievo porta
+  `fronteId`): ricaricato, la ripartizione per fronte della denuncia spariva;
+  (3) la scadenza «senza data» sul Quadro aveva striscia verde e spunta «a
+  posto» accanto al badge arancione (`itemScadenza` rifaceva il colore a tre
+  stati su quattro invece di leggere `lv.cls`); (4) «previsti · misurati» dei
+  lotti finiva nei puntini del `.meta` a 430 px. run-kpi 2427 → 2431, Terra
+  70/70, `terra-numeri-tranquilli` 49 → 73 prove.
+  ⏱️ **Scritte, non chiuse**: il rilievo pianificato con data passata resta
+  «Pianificato» senza nota (decisione di parole); nel grafico «Volumi per
+  fronte» Fronte Sud disegna «0 m³» dove la nota dice «non l'ha misurato
+  nessuno» — `dw-grafici` a barre non accetta `null`, cantiere su `shared/`;
+  il conto «anno per anno» della denuncia perde nei puntini il numero di rilievi.
   ✅ **Quarta e quinta tappa, Campo e Sentinella (02/09)**, senza difetti del
   prodotto: Campo cinque banchi verdi (disegni 30 geometrie, foglio di turno
   35 con il file aperto, numeri tranquilli 92, frasi con Sentinella 10 su 18
@@ -5549,7 +5571,7 @@ numero scritto dove non era stato misurato niente**.*
   nome apre il file sbagliato credendo che sia il più fresco.
 - Le decisioni: `docs/DECISIONI_WEEKEND.md` — pagina d'ingresso in cima.
 - Stato misurato al **18/08** (lanciando le suite, non a memoria):
-  **2.908 prove girano senza rete**. La frase va letta stretta: è la somma
+  **2.912 prove girano senza rete**. La frase va letta stretta: è la somma
   delle **nove** suite che contano asserzioni (`run-kpi` 2396, `run-stile` 327,
   `run-helpers` 75, `run-pointcloud` 32, `claims-convergenza` 19, `run-manifest` 9,
   `run-demo` 8, `bootstrap-rivendicazioni` 7, `fogli-guardati` 3), non tutto ciò che gira nel

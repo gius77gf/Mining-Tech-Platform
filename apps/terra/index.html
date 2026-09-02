@@ -1003,7 +1003,7 @@ a.dw-btn{text-decoration:none}
            STATI_LOTTO, statoLotto, divarioRecupero, avanzamentoLotto,
            conformitaProgetto,
            volumeMisuratoDiLotto, rilieviFuoriDaiLotti,
-           aEufonica, articoloNumero } from "./terra-data.js";
+           aEufonica, articoloNumero, descriviIncertezza } from "./terra-data.js";
   /* `plurale` viene da shared/ e non da qui: la regola del singolare c'era
      già, ed è la stessa che usano le altre app. Riscriverla in casa è la
      copia debole che CLAUDE.md censisce — provata riga per riga e buttata. */
@@ -1753,8 +1753,14 @@ a.dw-btn{text-decoration:none}
   function itemScadenza(s, azioni) {
     const lv = livelloScadenzaTerra(s.dataScadenza, s.preavvisoGiorni);
     const st = lv.stato, ric = +s.ricorrenzaMesi || 0;
-    const cls = st === "scaduta" ? "st-danger" : st === "in-scadenza" ? "st-warn" : "st-ok";
-    const ico = st === "scaduta" ? ["danger", I.allarme] : st === "in-scadenza" ? ["warn", I.sveglia] : ["ok", I.ok];
+    /* ⛔ IL COLORE LO DICE `lv.cls`, che è del modulo — e qui ne viveva una
+       copia più debole, a tre stati su quattro: «senza data» cadeva nel
+       ripiego e prendeva la striscia VERDE e la spunta `I.ok`, accanto a un
+       badge arancione «Senza data». Visto sul Quadro il 02/09: una scadenza
+       di cui non si sa la data disegnata come una a posto. Una data che non
+       c'è non è una data lontana. */
+    const cls = "st-" + lv.cls;
+    const ico = lv.cls === "danger" ? ["danger", I.allarme] : lv.cls === "warn" ? ["warn", I.sveglia] : ["ok", I.ok];
     const nome = esc(s.descrizione || etichettaTipoScadenza(s.tipo));
     return `<div class="item ${cls}" style="cursor:default;">
       <div class="avatar ico ${ico[0]}" aria-hidden="true">${ico[1]}</div>
@@ -2057,16 +2063,23 @@ a.dw-btn{text-decoration:none}
          fatta nell'elenco delle autorizzazioni. Il cartellone in cima, che è
          un titolo, arrotonda. */
       +l.superficieMq > 0 ? nD(l.superficieMq) + " m²" : "superficie non dichiarata",
-      // il previsto ACCANTO al misurato: due numeri, mai uno solo — se no non
-      // si sa se il progetto è stato seguito o no
-      "previsti " + (+l.volumeM3 > 0 ? nD(l.volumeM3) + " m³" : "—"),
-      "misurati " + (vm.misurabile ? nD(vm.m3) + " m³" : "—")
-        + (av.pct == null ? "" : " (" + un1(av.pct) + "% del previsto)"),
       conData ? dd[1] + " " + fmtData(l[dd[0]]) : "",
     ].filter(Boolean).join(" · ");
+    /* ⛔ I DUE VOLUMI NON STANNO NEL `.meta`: è tagliato a due righe
+       (`-webkit-line-clamp:2`), e a 430 px con badge e due bottoni accanto la
+       riga «4° del progetto · 12.000 m² · previsti 180.000 m³ · misura…»
+       finiva coi puntini ESATTAMENTE sul misurato — cioè sul numero per cui
+       l'elenco esiste. Visto il 02/09 su tre lotti su sei della dimostrazione.
+       Stanno nel `form-hint` sotto la riga, che è largo quanto la scheda: il
+       previsto ACCANTO al misurato, due numeri e mai uno solo, se no non si
+       sa se il progetto è stato seguito. */
+    const volumi = "Previsti " + (+l.volumeM3 > 0 ? nD(l.volumeM3) + " m³" : "—")
+      + " · misurati " + (vm.misurabile ? nD(vm.m3) + " m³" : "—")
+      + (av.pct == null ? "" : " (" + un1(av.pct) + "% del previsto)") + ".";
     // la ragione per cui manca un numero, con le parole della funzione che
     // quel numero non l'ha dato: non se ne inventano di nuove
     const perche = [
+      volumi,
       !vm.misurabile ? vm.motivo : (av.pct == null ? av.motivo : ""),
       vm.rilieviCumulo > 0
         ? "Sui suoi fronti ci sono anche " + nD(vm.cumuloM3) + " m³ ripresi da cumuli: materiale già cavato, che non conta come scavo di questo lotto."
@@ -2852,8 +2865,11 @@ a.dw-btn{text-decoration:none}
       + "<h2>Come sono stati ottenuti i numeri</h2>"
       + "<p class='mini'>Per l'anno " + R.anno + " risultano registrati in Terra: " + conta + "."
       + (qual.length ? " Qualità dei rilievi di scavo: " + qual.join(", ") + "." : "")
-      + (R.banda > 0 ? " Incertezza complessiva stimata sullo scavo: ± " + n0(R.banda)
-          + " m³, ottenuta sommando la tolleranza tipica del metodo di ogni rilievo (stima prudente)." : "")
+      /* ⛔ la frase la scrive `descriviIncertezza`: fino al 02/09 qui c'era
+         «± N m³, sommando la tolleranza di OGNI rilievo (stima prudente)» — e
+         sulla dimostrazione quel ± copriva UN rilievo su quattro, perché chi
+         non dichiara il metodo non ha tolleranza e pesava zero */
+      + (descriviIncertezza(R.incertezza) ? " " + esc(descriviIncertezza(R.incertezza)) : "")
       + (R.rilieviScavo > 0 ? " Le tolleranze sono valori tipici del metodo di rilievo e vanno confermate con i punti di controllo del rilevatore." : "")
       /* ⛔ e se il pregresso non è dichiarato, il cumulato qui sopra è un
          MINIMO: tacerlo lo farebbe leggere come il totale vero */
@@ -3993,7 +4009,9 @@ a.dw-btn{text-decoration:none}
   // di come sono nati. Stesse tessere del resto dell'app.
   function cardConfronto(c) {
     const nome = c.fronteId ? (nomeFronte(c.fronteId) || "fronte non più in elenco") : "rilievi senza fronte";
-    const band = c.banda > 0 ? " ± " + n0(c.banda) : "";
+    // il ± accanto al numero solo se copre TUTTI i rilievi del periodo: se no
+    // lo spiega la nota sotto, con `descriviIncertezza`
+    const band = c.banda > 0 && c.incertezza && c.incertezza.completa ? " ± " + n0(c.banda) : "";
     const rit = c.alGiorno != null
       ? (c.giorni === 1
           ? `In quel <b>giorno</b> fanno circa <b>${n0(c.alGiorno)} m³</b>, cioè <b>${n0(c.alMese)} m³ al mese</b> se il ritmo resta questo.`
@@ -4008,7 +4026,7 @@ a.dw-btn{text-decoration:none}
       <div class="kpi largo"><div class="l">Ritmo <span class="u">m³</span> al mese</div><div class="n">${c.alMese != null ? fmtM3(Math.round(c.alMese)) : "—"}</div></div>
     </div>
     <div class="note recap">Fra il <b>${fmtData(c.primo.data)}</b> e il <b>${fmtData(c.secondo.data)}</b> su <b>${esc(nome)}</b> risultano misurati <b>${n0(c.scavato)}${band} m³</b> di scavo. ${rit}</div>
-    <div class="note">Il conto somma ${c.rilieviInMezzo === 1 ? "<b>il rilievo</b> successivo" : "i <b>" + c.rilieviInMezzo + "</b> rilievi successivi"} al primo, fino al secondo compreso: ogni rilievo porta il materiale tolto <b>da quando c'era quello prima</b>, quindi i volumi si sommano e non si sottraggono.${c.banda > 0 ? ` Il <b>± ${n0(c.banda)} m³</b> è l'incertezza dei rilievi del periodo sommata (stima prudente).` : ""} ${conf}</div>`;
+    <div class="note">Il conto somma ${c.rilieviInMezzo === 1 ? "<b>il rilievo</b> successivo" : "i <b>" + c.rilieviInMezzo + "</b> rilievi successivi"} al primo, fino al secondo compreso: ogni rilievo porta il materiale tolto <b>da quando c'era quello prima</b>, quindi i volumi si sommano e non si sottraggono.${c.incertezza && c.incertezza.completa && c.banda > 0 ? ` Il <b>± ${n0(c.banda)} m³</b> è l'incertezza dei rilievi del periodo sommata (stima prudente).` : c.incertezza && !c.incertezza.completa ? " " + esc(descriviIncertezza(c.incertezza)) : ""} ${conf}</div>`;
   }
   // Scegliere due volte lo stesso rilievo non è un errore da rimproverare: si
   // sposta l'ALTRA tendina sul rilievo più vicino, così la scelta appena
@@ -4135,7 +4153,10 @@ a.dw-btn{text-decoration:none}
                 + (c.primo.metodo ? " · " + esc(c.primo.metodo) : ""))
             + riga("Giorni fra i due rilievi", c.giorni)
             + riga("Volume scavato fra le due date", "<b>" + n0(c.scavato) + " m³</b>"
-                + (c.banda > 0 ? " (± " + n0(c.banda) + " m³)" : ""))
+                /* il ± fra parentesi solo se copre tutto il periodo; se no la
+                   parentesi dice su quanto si regge, con le parole del modulo */
+                + (c.banda > 0 && c.incertezza && c.incertezza.completa ? " (± " + n0(c.banda) + " m³)"
+                  : c.incertezza && !c.incertezza.completa ? " (" + esc(descriviIncertezza(c.incertezza)) + ")" : ""))
             + riga("Ritmo medio nel periodo", c.alGiorno != null
                 ? n0(c.alGiorno) + " m³ al giorno · " + n0(c.alMese) + " m³ al mese" : "non calcolabile")
             + "</table>"
@@ -4553,7 +4574,9 @@ a.dw-btn{text-decoration:none}
      file che solo la nostra app sa aprire. */
   $("btn-exp-ril").onclick = () => {
     const a = document.createElement("a");
-    a.href = "data:text/csv;charset=utf-8," + encodeURIComponent(csvRilievi(RIL));
+    // ⛔ `FRO` è il secondo argomento: senza, la colonna «fronte» usciva vuota
+    // su tutte le righe (il rilievo porta `fronteId`, il file vuole il nome)
+    a.href = "data:text/csv;charset=utf-8," + encodeURIComponent(csvRilievi(RIL, FRO));
     a.download = "terra_rilievi.csv"; marchiaCsv(a); a.click();
     /* ⛔ «NEL FORMATO CHE QUESTA PAGINA SA RI-CARICARE» ERA UNA PROMESSA CHE IL
        FILE NON MANTENEVA. Misurato il 07/08 sulla dimostrazione: 8 righe

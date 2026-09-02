@@ -710,6 +710,49 @@ export function bandaVolume(volumeM3, tolleranzaPct) {
   return { volume: v, banda, min: Math.max(0, v - banda), max: v + banda };
 }
 
+/* L'INCERTEZZA DI UN INSIEME DI RILIEVI DI SCAVO, CON LA SUA COPERTURA.
+   ⛔ Fino al 02/09 la somma stava scritta due volte (in `riepilogoAnnuale` e
+   in `confrontoRilievi`), e tutt'e due saltavano in silenzio i rilievi che
+   NON dichiarano il metodo: la loro tolleranza è `null`, `bandaVolume` risponde
+   `null`, e il rilievo non entrava nel conto. Il foglio per l'ente scriveva poi
+   «incertezza complessiva ± 388 m³, ottenuta sommando la tolleranza di OGNI
+   rilievo (stima prudente)» — misurato sulla dimostrazione: 388 m³ sono il 2%
+   di UN rilievo su quattro, 19.400 m³ su 79.400; gli altri tre (60.000 m³)
+   non hanno metodo e pesavano ZERO nell'incertezza. È «l'assenza di un dato
+   letta come un dato favorevole», nella forma peggiore: un numero piccolo e
+   tranquillo, chiamato prudente, sul documento che va all'ente.
+   Il numero non cambia (una tolleranza che non si sa non si inventa): cambia
+   che la somma dichiara CHI copre — e chi legge (`descriviIncertezza`, il
+   foglio, il confronto, il verbale) lo scrive accanto al ±. */
+export function incertezzaScavo(rilievi) {
+  let banda = 0, coperti = 0, copertoM3 = 0, scoperti = 0, scopertoM3 = 0;
+  for (const r of (rilievi || [])) {
+    if (!r) continue;
+    const ca = classeAccuratezza(r);
+    const bv = ca.tolleranzaPct != null ? bandaVolume(r.volumeM3, ca.tolleranzaPct) : null;
+    if (bv) { banda += bv.banda; coperti++; copertoM3 += bv.volume; }
+    else { scoperti++; const v = numeroDichiarato(r.volumeM3); scopertoM3 += v != null && v > 0 ? v : 0; }
+  }
+  return { banda, coperti, copertoM3, scoperti, scopertoM3, rilievi: coperti + scoperti, completa: scoperti === 0 };
+}
+
+/* La frase che accompagna il ±, scritta una volta sola: la leggono il foglio
+   annuale per l'ente, la scheda del confronto e il verbale. Vuota quando non
+   c'è niente da dire (nessun rilievo, o banda zero su tolleranze note). */
+export function descriviIncertezza(inc) {
+  const i = inc || {};
+  if (!(i.rilievi > 0)) return "";
+  const m3 = (n) => Number(n).toLocaleString("it-IT", { maximumFractionDigits: 0, useGrouping: true });
+  if (i.completa) return i.banda > 0
+    ? `Incertezza complessiva stimata sullo scavo: ± ${m3(i.banda)} m³, ottenuta sommando la tolleranza tipica del metodo di ogni rilievo (stima prudente).`
+    : "";
+  if (!(i.coperti > 0))
+    return `Incertezza dello scavo non stimabile: ${i.scoperti === 1 ? "l'unico rilievo non dichiara" : "nessuno dei " + i.scoperti + " rilievi dichiara"} il metodo, e senza una tolleranza tipica non c'è niente da sommare.`;
+  return `Incertezza stimata ${i.coperti === 1 ? "sul solo rilievo" : "sui soli " + i.coperti + " rilievi"} con metodo dichiarato (${m3(i.copertoM3)} m³ su ${m3(i.copertoM3 + i.scopertoM3)}): ± ${m3(i.banda)} m³. `
+    + `${i.scoperti === 1 ? "L'altro rilievo" : "Gli altri " + i.scoperti + " rilievi"} (${m3(i.scopertoM3)} m³) non ${i.scoperti === 1 ? "dichiara" : "dichiarano"} il metodo: `
+    + `la ${i.scoperti === 1 ? "sua" : "loro"} tolleranza non è nota e l'incertezza complessiva dello scavo non si può stimare.`;
+}
+
 // Andamento dei volumi: confronta gli ULTIMI DUE rilievi elaborati (per data)
 // per dire a colpo d'occhio se l'estrazione sta accelerando o rallentando —
 // utile per capire se si è "in pari" col piano. Ritorna null se non ci sono
@@ -813,17 +856,14 @@ export function confrontoRilievi(rilievi, idPrimo, idSecondo) {
   const dentro = el.filter(r => (r.fronteId || null) === (b.fronteId || null)
     && String(r.data) > String(a.data) && String(r.data) <= String(b.data));
   const scavato = dentro.reduce((s, r) => s + (+r.volumeM3 || 0), 0);
-  let banda = 0;
-  for (const r of dentro) {
-    const ca = classeAccuratezza(r);
-    const bv = ca.tolleranzaPct != null ? bandaVolume(r.volumeM3, ca.tolleranzaPct) : null;
-    if (bv) banda += bv.banda;
-  }
+  // stessa somma del riepilogo annuale, con la stessa dichiarazione di copertura
+  const incertezza = incertezzaScavo(dentro);
+  const banda = incertezza.banda;
   const va = +a.volumeM3 || 0, vb = +b.volumeM3 || 0;
   const delta = vb - va;
   const alGiorno = giorni > 0 ? scavato / giorni : null;
   return {
-    primo: a, secondo: b, giorni, scavato, banda,
+    primo: a, secondo: b, giorni, scavato, banda, incertezza,
     rilieviInMezzo: dentro.length,
     delta, pct: va > 0 ? Math.round(100 * delta / va) : null,
     alGiorno, alMese: alGiorno != null ? alGiorno * 30.44 : null,
@@ -1084,15 +1124,16 @@ export function riepilogoAnnuale(rilievi, anno, autorizzazione, oggi = new Date(
 
   // qualità del dato: quanti rilievi reggono il numero e con che accuratezza
   const qualita = { surveyGrade: 0, indicativo: 0, nd: 0 };
-  let banda = 0;
   for (const r of scavoRil) {
     const ca = classeAccuratezza(r);
     if (ca.classe === "survey-grade") qualita.surveyGrade++;
     else if (ca.classe === "indicativo") qualita.indicativo++;
     else qualita.nd++;
-    const b = ca.tolleranzaPct != null ? bandaVolume(r.volumeM3, ca.tolleranzaPct) : null;
-    if (b) banda += b.banda;
   }
+  // la banda con la sua copertura: `banda` resta per chi la leggeva già,
+  // `incertezza` dice su quanti rilievi (e quanti m³) quel ± si regge
+  const incertezza = incertezzaScavo(scavoRil);
+  const banda = incertezza.banda;
 
   // dove arriva il titolo alla fine di quell'anno
   const da = /^\d{4}-\d{2}-\d{2}$/.test(String(a.dataRilascio || "")) ? String(a.dataRilascio) : null;
@@ -1116,7 +1157,7 @@ export function riepilogoAnnuale(rilievi, anno, autorizzazione, oggi = new Date(
     anno: +y,
     scavo: somma(scavoRil), cumulo: somma(cumuloRil),
     rilieviScavo: scavoRil.length, rilieviCumulo: cumuloRil.length,
-    mesi, fronti, qualita, banda,
+    mesi, fronti, qualita, banda, incertezza,
     concesso: concesso > 0 ? concesso : null, pregresso, pregressoDichiarato, misurabile,
     cumulatoFineAnno, residuoFineAnno, pctFineAnno,
     inCorso: +y === new Date(oggi).getFullYear(),
@@ -1254,6 +1295,9 @@ export function baseOnereEscavazione(riepilogo, opzioni = {}) {
     // la banda d'incertezza del volume: il riepilogo la calcola già, e questo è
     // l'unico foglio in circolazione che la dichiara invece di nasconderla
     banda: r2(R.banda || 0),
+    // ⛔ e con lei la sua copertura: un «± 388 m³» che copre un rilievo su
+    // quattro non è l'incertezza del volume dichiarato, e il foglio lo dice
+    incertezza: R.incertezza || null,
     avvisi,
   };
 }
@@ -1281,7 +1325,11 @@ export function descriviBaseOnere(base) {
        famiglia di difetti censita il 03/08 in cinque app su cinque — il
        documento che esce più tranquillo di quello che si sa */
     + (o.detrazioneIncompleta ? " ⚠ La detrazione dichiarata è INCOMPLETA (vedi gli avvisi): il volume detratto è più piccolo del vero." : "")
-    + (o.banda ? ` Incertezza del volume dichiarata: ± ${m3(o.banda)} m³.` : "")
+    + (o.incertezza && !o.incertezza.completa
+        ? (o.incertezza.coperti > 0
+            ? ` Incertezza del volume stimabile solo su ${m3(o.incertezza.copertoM3)} m³ (${o.incertezza.coperti === 1 ? "il solo rilievo" : "i " + o.incertezza.coperti + " rilievi"} con metodo dichiarato): ± ${m3(o.banda)} m³; sugli altri ${m3(o.incertezza.scopertoM3)} m³ la tolleranza non è dichiarata.`
+            : " Incertezza del volume non stimabile: nessun rilievo dichiara il metodo.")
+        : o.banda ? ` Incertezza del volume dichiarata: ± ${m3(o.banda)} m³.` : "")
     + " L'importo dovuto si ottiene applicando l'aliquota della concessione,"
     + " che si imposta in Deepwork Conti.";
 }
@@ -1958,8 +2006,19 @@ export function scartiRilieviCsv(text) {
    ⚠️ La `provenienza` si scrive **sempre**, anche quando vale «scavo»: è il
    difetto del 03/08 in una veste nuova — una cella vuota in un file che
    rientra si rilegge come «non dichiarata», e qui invece la si sa. */
-export function csvRilievi(rilievi) {
+/* ⛔ `fronti` È IL SECONDO ARGOMENTO, e fino al 02/09 non c'era: il file
+   scriveva `r.fronte` — il NOME, che esiste solo su una riga appena letta da
+   un CSV — mentre un rilievo registrato porta `fronteId`. Misurato premendo il
+   bottone sulla dimostrazione: otto righe, colonna «fronte» VUOTA su tutte, e a
+   schermo due rilievi su Fronte Nord e due su Fronte Est. Il file «nel formato
+   che questa pagina sa ri-caricare» ri-caricava i rilievi senza fronte: la
+   ripartizione della denuncia, dopo un giro di backup, spariva. La copia
+   nasceva da una firma troppo stretta: si aggiunge l'argomento, non un secondo
+   scrittore. Senza `fronti` la colonna resta come prima (il nome, se c'è). */
+export function csvRilievi(rilievi, fronti) {
   const righe = ["data;volumeM3;metodo;gsd;fronte;provenienza"];
+  const nomeFronte = new Map((fronti || []).filter(f => f && f.id != null)
+    .map(f => [String(f.id), String(f.nome || "").trim()]));
   for (const r of (rilievi || [])) {
     if (!r) continue;
     righe.push([
@@ -1980,7 +2039,7 @@ export function csvRilievi(rilievi) {
       (() => { const v = numeroDichiarato(r.volumeM3); return v == null ? "" : String(v); })(),
       csvCell(r.metodo || ""),
       csvCell(r.gsd || ""),
-      csvCell(r.fronte || ""),
+      csvCell(r.fronte || (r.fronteId != null ? nomeFronte.get(String(r.fronteId)) : "") || ""),
       csvCell(provenienzaDi(r)),
     ].join(";"));
   }

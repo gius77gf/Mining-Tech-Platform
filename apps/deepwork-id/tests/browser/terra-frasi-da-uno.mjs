@@ -185,12 +185,22 @@ DEMO.scadenze[0].ricorrenzaMesi = 1;
    che non aveva dichiarato. Adesso il caso è chiuso in sé — e sta a 88,3%
    invece che a 99,9%, così un rilievo in più nella dimostrazione non lo
    ribalta un'altra volta. */
+/* ⛔ E LE DATE SONO RELATIVE A OGGI, non scritte. Il caso è nato il 06/08 con
+   «2025-08-06» e «2026-08-05»: quel giorno la durata del ritmo faceva 0,999
+   anni → «1» → «dell'ultimo anno». Il 02/09 faceva 1,073 → «1,1» → «degli
+   ultimi 1,1 anni», che è italiano giusto — e il banco accusava il prodotto
+   («KO: dai rilievi dell'ultimo anno») di una cosa che aveva fatto il
+   calendario. È il banco che porta dentro un numero atteso e invecchia; qui
+   il numero era una DATA. Il primo rilievo sta a 365 giorni da oggi (durata
+   0,999, arrotondata «1»), il secondo a 28. */
+const giorniFa = (n) => { const d = new Date(); d.setHours(12, 0, 0, 0); d.setDate(d.getDate() - n);
+  return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0"); };
 const CASO_ANNO = `
 DEMO.rilievi.length = 0;
 DEMO.autorizzazioni[0].estrattoPregressoM3 = 200000;
-DEMO.rilievi.push({ id: "a", titolo: "R1", data: "2025-08-06", tipo: "Ortofoto + DEM",
+DEMO.rilievi.push({ id: "a", titolo: "R1", data: "${giorniFa(365)}", tipo: "Ortofoto + DEM",
   volumeM3: 400000, stato: "elaborato", metodo: "RTK", gsd: "2", fronteId: "f1" });
-DEMO.rilievi.push({ id: "b", titolo: "R2", data: "2026-08-05", tipo: "Ortofoto + DEM",
+DEMO.rilievi.push({ id: "b", titolo: "R2", data: "${giorniFa(28)}", tipo: "Ortofoto + DEM",
   volumeM3: 459000, stato: "elaborato", metodo: "RTK", gsd: "2", fronteId: "f1" });
 `;
 /* due rilievi a UN giorno di distanza sullo stesso fronte */
