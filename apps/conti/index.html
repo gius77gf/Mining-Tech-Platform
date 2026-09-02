@@ -496,6 +496,9 @@ input[type=number].dw-input,
 /* la nota che deve far alzare lo sguardo (Flotta non raggiungibile): la barra
    prende il colore dell'avviso, il resto resta una nota */
 .note.warn{--note-bar:var(--warn)}
+/* l'elenco dei dati che mancano alla fattura elettronica, nella modale (02/09) */
+.modal-body .mancanti{margin:8px 0 10px 18px; padding:0; line-height:1.55; color:var(--text)}
+.modal-body .mancanti li{margin:3px 0}
 /* ─────────────── il confronto con Flotta (02/09) ───────────────
    È la stessa cassa delle tabelle a schermo di questa casa (Sentinella, `.tab`):
    fondo scuro, intestazioni piccole in maiuscolo, cifre allineate. Scorre da
@@ -1933,7 +1936,7 @@ label.item:has(.dw-chk:checked){
     avanzamentoOrdine, descriviAvanzamento, portafoglioOrdini,
     preventiviDaSeguire, prezzoDaOrdine, descriviPrezzoOrdine,
     validaScaglioni, scaglionePer, applicaScaglione, etichettaScaglione,
-    descriviScaglione, confrontoCostiMezzi, pesiPesata } from "./conti-data.js";
+    descriviScaglione, confrontoCostiMezzi, pesiPesata, xmlFatturaPA } from "./conti-data.js";
   /* B8 (14/08): `fileDiAltraTabella` risponde «questa prima riga è
      l'intestazione di un'ALTRA nostra tabella?». È l'unica domanda possibile,
      perché il file SENZA intestazione deve continuare a entrare. */
@@ -2074,6 +2077,7 @@ label.item:has(.dw-chk:checked){
     listino: '<svg viewBox="0 0 24 24"><path d="M12.4 3.1h7.1a1.4 1.4 0 0 1 1.4 1.4v7.1a1.4 1.4 0 0 1-.4 1l-8.2 8.2a1.4 1.4 0 0 1-2 0l-7.1-7.1a1.4 1.4 0 0 1 0-2l8.2-8.2a1.4 1.4 0 0 1 1-.4z"/><path d="M16.6 7.4v.02"/></svg>',
     camion:  '<svg viewBox="0 0 24 24"><path d="M2.6 6.6h11v9.4h-11z"/><path d="M13.6 10.2h3.5l3.3 3.1V16h-6.8z"/><circle cx="7" cy="18.4" r="2"/><circle cx="17" cy="18.4" r="2"/></svg>',
     bilancia:'<svg viewBox="0 0 24 24"><path d="M12 3.4v17.2M5 20.6h14"/><path d="M4 8.6h16M7.4 8.6L4.6 14.4a3 3 0 0 0 5.6 0zM16.6 8.6l-2.8 5.8a3 3 0 0 0 5.6 0z"/></svg>',
+    xml:'<svg viewBox="0 0 24 24"><path d="M6.5 3h7.5l4 4v14h-11.5z"/><path d="M14 3v4h4"/><path d="M9.2 12.2l-2 2 2 2M14.8 12.2l2 2-2 2M12.6 11.6l-1.2 5.2"/></svg>',
     stampa:  '<svg viewBox="0 0 24 24"><path d="M7 8.6V3.5h10v5.1"/><path d="M7 17.4H5.2A2.2 2.2 0 0 1 3 15.2v-4.4a2.2 2.2 0 0 1 2.2-2.2h13.6A2.2 2.2 0 0 1 21 10.8v4.4a2.2 2.2 0 0 1-2.2 2.2H17"/><rect x="7" y="13.6" width="10" height="6.9" rx="1"/></svg>',
     // il fronte di cava (gradoni): il cavato, cioè quello che misura Terra
     fronte:  '<svg viewBox="0 0 24 24"><path d="M2.6 20.4h18.8"/><path d="M2.6 20.4v-4.1h4.6v-4.1h4.6V8.1h4.6V4h4v16.4"/></svg>',
@@ -3211,7 +3215,7 @@ label.item:has(.dw-chk:checked){
            incompleto», nata dallo stesso difetto: una cosa che sapeva solo la
            stampa. */
         rieF.quadra ? "" : `<span class="badge warn" title="Le righe sommano ${eur(rieF.imponibileRighe)} di imponibile e ${eur(rieF.ivaRighe)} di IVA, il documento è registrato per ${eur(im.imponibile)} + ${eur(im.ivaImporto)}. Rifalla dai DDT, oppure correggi le righe, prima di consegnarla.">Non quadra</span>`}
-      <div class="acts"><button class="arr" type="button" title="Stampa la fattura (o salvala in PDF)" aria-label="Stampa la fattura ${esc(f.numero)}" data-stampa-fat="${f.id}">${IC.stampa}</button>${ritardo>0?`<button class="dw-btn secondary mini" data-sollecito="${f.id}" title="Copia il testo del sollecito (con mora 231/2002) da inviare al cliente">${IC.busta}Sollecito</button>`:""}${!f.incassata?`<button class="arr" type="button" title="Modifica fattura" aria-label="Modifica fattura ${esc(f.numero)}" data-edit-fat="${f.id}">${IC.matita}</button>`:""}${!f.incassata?`<button class="arr del" type="button" title="Elimina fattura errata" aria-label="Elimina fattura ${esc(f.numero)}" data-del-fat="${f.id}">${IC.croce}</button>`:""}</div></div>`; }).join("")
+      <div class="acts"><button class="arr" type="button" title="Stampa la fattura (o salvala in PDF)" aria-label="Stampa la fattura ${esc(f.numero)}" data-stampa-fat="${f.id}">${IC.stampa}</button><button class="arr" type="button" title="Scarica il file XML della fattura elettronica, da trasmettere allo SdI" aria-label="File XML per lo SdI della fattura ${esc(f.numero)}" data-xml-fat="${f.id}">${IC.xml}</button>${ritardo>0?`<button class="dw-btn secondary mini" data-sollecito="${f.id}" title="Copia il testo del sollecito (con mora 231/2002) da inviare al cliente">${IC.busta}Sollecito</button>`:""}${!f.incassata?`<button class="arr" type="button" title="Modifica fattura" aria-label="Modifica fattura ${esc(f.numero)}" data-edit-fat="${f.id}">${IC.matita}</button>`:""}${!f.incassata?`<button class="arr del" type="button" title="Elimina fattura errata" aria-label="Elimina fattura ${esc(f.numero)}" data-del-fat="${f.id}">${IC.croce}</button>`:""}</div></div>`; }).join("")
       || (qFat ? vuoto("fattura", "Nessun risultato", "Nessuna fattura trovata per «<b>" + esc(qFat) + "</b>». Prova con il numero o con una parte del nome del cliente.")
          : filtroFat === "tutte" ? vuoto("fattura", "Nessuna fattura", "Emetti la prima fattura dal riquadro <b>Nuova fattura</b> qui sotto, oppure importa un CSV dal tuo gestionale.")
          : vuoto("fattura", "Categoria vuota", "Nessuna fattura in questa categoria. Tocca <b>Tutte</b> per vedere l'elenco completo."));
@@ -5672,6 +5676,43 @@ label.item:has(.dw-chk:checked){
     if (btnStDdt) { const p = PES.find(x => x.id === btnStDdt.getAttribute("data-stampa-ddt")); if (!p) return;
       stampaFoglio(fogliDdt(p), "DDT " + (p.numero || ""));
       if (!azienda().nome) esito("pes-esito", "Manca l'intestazione dell'azienda: la trovi in Listino → Dati della tua azienda. Il foglio esce lo stesso, ma senza chi emette il documento non è valido.", "err");
+      return; }
+    /* ── LA FATTURA ELETTRONICA (02/09, unità C di tre) ──────────────────
+       Conti PREPARA il file XML; l'invio allo SdI e la conservazione a norma
+       si fanno gratis dal portale dell'Agenzia o col commercialista, e la riga
+       lo dice ogni volta. ⛔ Con `pronto: false` NON si scarica niente: si
+       elencano i mancanti col posto dove scriverli. Un file con un buco
+       dentro sarebbe un documento fiscale sbagliato con la faccia di uno
+       giusto. Il progressivo d'invio viene dal numero della fattura (le sue
+       ultime cinque cifre/lettere): univoco quanto il numero, e chi lo
+       ritrasmette lo cambia dal portale. */
+    const btnXml = e.target.closest && e.target.closest("[data-xml-fat]");
+    if (btnXml) { const f = FAT.find(x => x.id === btnXml.getAttribute("data-xml-fat")); if (!f) return;
+      const cli = CLI.find(x => x.id === f.clienteId) || CLI.find(x => chiaveNome(x.ragioneSociale) === chiaveNome(f.cliente)) || { ragioneSociale: f.cliente || "" };
+      const progressivo = String(f.numero || "").replace(/[^A-Za-z0-9]/g, "").slice(-5).padStart(5, "0");
+      const r = xmlFatturaPA(f, cli, IMP || {}, { pesate: PES, progressivo });
+      const ONESTA = "Conti prepara il file; l'invio allo SdI e la conservazione a norma si fanno <b>gratis</b> dal portale <b>Fatture e Corrispettivi</b> dell'Agenzia delle Entrate, oppure col tuo commercialista. Prima del primo invio vero passa il file dal controllo formale del portale.";
+      if (!r.pronto) {
+        apriModale("Il file XML non è ancora pronto",
+          `<p>Per la fattura <b>${esc(f.numero || "")}</b> ${plur(r.mancanti.length, "manca un dato", "mancano " + r.mancanti.length + " dati")} che lo SdI pretende. Il file non viene scaricato: uno con un buco dentro sarebbe un documento fiscale sbagliato con la faccia di uno giusto.</p>
+           <ul class="mancanti">${r.mancanti.map(m => `<li>${esc(m)}</li>`).join("")}</ul>
+           <p class="meta">I dati dell'azienda si scrivono in <b>Listino → Dati della tua azienda</b>; quelli del cliente nella sua scheda in <b>Clienti</b>.</p>
+           <p class="meta">${ONESTA}</p>`,
+          [{ label: "Ho capito", cls: "primary", azione: () => chiudiModale() }]);
+        return; }
+      const a = document.createElement("a");
+      a.href = "data:application/xml;charset=utf-8," + encodeURIComponent(r.xml);
+      /* in modalità dimostrativa il file porta il marchio nel nome, come ogni
+         CSV: un XML «vero» uscito dai dati d'esempio sarebbe peggio di un CSV.
+         (`marchiaCsv` sta sulla stessa riga del nome: la prova che censisce gli
+         export li legge riga per riga) */
+      a.download = "IT" + String((IMP && IMP.aziendaPiva) || "").replace(/^IT/i, "") + "_" + progressivo + ".xml"; marchiaCsv(a); a.click();
+      /* l'esito è un toast e legge TESTO, non HTML (sullo scatto i tag
+         comparivano come lettere): qui la riga di onestà sta corta, quella
+         intera vive nella modale dei mancanti e nel piede della stampa */
+      esito("ft-esito", `File XML della fattura ${f.numero || ""} scaricato: ${plur(r.righe, "riga", "righe")}, ${plur(r.ddtCitati, "DDT citato", "DDT citati")}, totale ${eur(r.totale)}.`
+        + (r.avvisi.length ? " ⚠️ " + r.avvisi.join("; ") + "." : "")
+        + " L'invio allo SdI si fa gratis dal portale dell'Agenzia delle Entrate o col commercialista, dopo il controllo formale del file.", r.avvisi.length ? "warn" : "success");
       return; }
     const btnStFat = e.target.closest && e.target.closest("[data-stampa-fat]");
     if (btnStFat) { const f = FAT.find(x => x.id === btnStFat.getAttribute("data-stampa-fat")); if (!f) return;

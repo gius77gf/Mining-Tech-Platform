@@ -50,11 +50,6 @@ const MODULI = [
    `sonda-vuoto.mjs`, una riga che scusa un caso che non si presenta più viene
    segnalata: se qualcuno collega una di queste, il conto scende e si vede. */
 const ACCETTATE = new Map([
-  ["apps/conti/conti-data.js|xmlFatturaPA",
-    "DA COLLEGARE, dichiarata il 02/09 e con una data di scadenza: è l'unità A di tre della fattura "
-    + "elettronica (docs/CONTI_FATTURAZIONE_ROADMAP.md, punto 5). Il generatore vive nel modulo con le sue "
-    + "43 asserzioni; il bottone che lo chiama è l'unità C e arriva dopo i campi anagrafici (unità B). "
-    + "Quando C sarà collegata questa riga va TOLTA: il controllo la segnalerà da sé."],
   ["apps/conti/conti-data.js|descriviScaglione",
     "SUPERATA. Sembrava «una frase che il prodotto calcola e non mostra»: NON lo è, e la differenza l'ha "
     + "detta solo l'apertura del codice. La pagina ha `spiegaScaglioneRiga`, che dice la stessa cosa e in "

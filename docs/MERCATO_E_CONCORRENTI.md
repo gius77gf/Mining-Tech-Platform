@@ -182,7 +182,7 @@ farle pagare a testa renderebbe il prodotto caro proprio dove serve di più.
 - **Nessuna integrazione con la PESA.** È il cuore dei tre concorrenti
   italiani, ed è il punto in cui un cliente dice «ma io ho già questo». Noi
   abbiamo le `pesate` come dato, **non** il collegamento alla bilancia fisica.
-- **Nessuna fatturazione elettronica** verso lo SdI, che in Italia è obbligo.
+- ~~**Nessuna fatturazione elettronica** verso lo SdI, che in Italia è obbligo.~~ ✅ **Dal 02/09 il file XML (FPR12) esce da Conti**, preparato e mai promesso oltre: l'invio allo SdI e la conservazione restano sul portale gratuito dell'Agenzia o dal commercialista, e il tracciato — scritto a memoria della v1.2 — va passato dal controllo formale del portale prima del primo invio vero (`docs/CONTI_FATTURAZIONE_ROADMAP.md`, punto 5).
 - **Su Genesi i concorrenti sono avanti**: hanno dati reali e hardware.
 - **Nessun documento commerciale**: prezzo, contratto, GDPR, backup, uscita
   dei dati. Un'azienda strutturata non firma senza.

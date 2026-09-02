@@ -48,7 +48,7 @@
   un netto dopo la fattura, l'identità della pesa che ha pesato.
 
 ## Task
-- [ ] **La fattura elettronica, in tre unità** *(punto 5 di
+- [x] ✅ 02/09 **La fattura elettronica, in tre unità** *(punto 5 di
   `docs/CONTI_FATTURAZIONE_ROADMAP.md`, la cosa che tutti i concorrenti
   hanno e Conti no — `docs/MERCATO_E_CONCORRENTI.md`)*:
   - [x] ✅ 02/09 **A. il generatore nel modulo**: `xmlFatturaPA(fattura,
@@ -63,7 +63,7 @@
     `modalitaPagamento`) e anagrafica cliente (`cap`, `comune`, `provincia`,
     `codiceFiscale`), nel form, nel CSV dei clienti (andata e ritorno) e nella
     dimostrazione — così la dimostrazione diventa «pronta».
-  - [ ] **C. il bottone** sulla fattura: «Scarica XML per lo SdI», che con
+  - [x] ✅ 02/09 **C. il bottone** sulla fattura: «Scarica XML per lo SdI», che con
     `pronto: false` NON scarica e elenca i mancanti col posto dove scriverli;
     la riga fissa di onestà (Conti prepara, l'invio e la conservazione si
     fanno gratis dal portale dell'Agenzia o col commercialista); il file
@@ -659,7 +659,6 @@ grep -n "^- \[ \] \*\*" vault/ROADMAP_SETTIMANA.md
 ```
 
 - `Aggiornare la tabella in fondo a `docs/MAPPA_ECOSISTEMA.md``
-- `La fattura elettronica, in tre unità`
 - `Una passata in profondità su un'app`
 - `D-ter. Le otto verdi che vogliono un cantiere`
 - `B12. IL RIPIEGO SILENZIOSO NEL CORE — censito, e sono CANDIDATI, non`
@@ -5515,8 +5514,8 @@ numero scritto dove non era stato misurato niente**.*
   sorvegliati ne contavano sette: due convenzioni per lo stesso numero, che è
   il modo più facile di far sembrare sbagliato un conto giusto. Adesso è una
   sola.*
-  Copertura **751/751** e nessuna funzione scoperta; **206 esecuzioni** che
-  aprono le pagine in un browser vero, da **84** file di banco distinti (contati
+  Copertura **751/751** e nessuna funzione scoperta; **208 esecuzioni** che
+  aprono le pagine in un browser vero, da **85** file di banco distinti (contati
   dalla tabella `BANCHI` di `tutti.mjs`, non a occhio dalla cartella, che di
   `.mjs` ne ha di più perché contiene anche gli aiuti — `giro.mjs`,
   `impronta.mjs`, il runner stesso).

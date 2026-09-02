@@ -486,6 +486,10 @@ const BANCHI = [
   ['il ponte Conti→Flotta nei costi dei mezzi', 'flotta-ponte-conti.mjs', []],
   ['ponte Conti→Flotta · Conti assente', 'flotta-ponte-conti.mjs', ['--conti-assente']],
   ['ponte Conti→Flotta · controprova', 'flotta-ponte-conti.mjs', ['--controprova'], true],
+  /* 02/09: la fattura elettronica esce dal bottone, e il banco APRE il file:
+     righe e DDT citati contro il modulo, e con un dato mancante niente file. */
+  ['il file XML per lo SdI esce dalla fattura', 'conti-xml-sdi.mjs', []],
+  ['XML per lo SdI · controprova', 'conti-xml-sdi.mjs', ['--controprova'], true],
   /* ⛔ AGGIUNTO IL 03/08, stessa domanda applicata a Scudo: dove l'app compone
      qualcosa che ESCE, chi decide i suoi numeri? I quattro CSV li scrive la
      pagina, e ognuno era più tranquillo dello schermo — un'azione scaduta da
