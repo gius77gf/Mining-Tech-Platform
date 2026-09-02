@@ -2094,3 +2094,46 @@ export async function portaNellOrganizzazione(daLocale, aOrg, contrassegno, opzi
   try { st.setItem(GENESI_CONTRASSEGNO_MIGRAZIONE, JSON.stringify({ quando, scritte, autore: o.autore || null })); } catch (e) {}
   return { gia: false, quando, scritte, totale };
 }
+
+/* ⛔ E L'ALTRA METÀ DELL'APERTURA (02/09, unità 7 del piano «Genesi fuori dal
+   browser»): i campi del design che NON sono numeri. `volataSenzaValori` nomina
+   i 21 numerici illeggibili; questi 11 — esplosivo, innesco, roccia,
+   fratturazione, sequenza, norma del recettore, tre bandiere, due profili —
+   arrivavano dalla porta senza nessuno che li guardasse, e il difetto è più
+   silenzioso di uno zero: `selEsplosivo()` e `selRoccia()` RIPIEGANO SUL
+   DEFAULT quando l'id non è nel catalogo, quindi una volata salvata con un
+   esplosivo che questa versione non conosce (o da un altro browser
+   dell'organizzazione, con un catalogo diverso) si apre con un altro
+   esplosivo e nessuna parola. La pagina passa i suoi cataloghi (vivono lì:
+   ESPL, INNESCHI, ROCCE, le tendine, NORME_PPV) e qui si dice che cosa non si
+   riconosce, con la stessa forma di `volataSenzaValori`: `che` e `come`.
+   Un campo ASSENTE non si segnala (volata salvata prima che esistesse); un
+   valore presente e sconosciuto sì. Le bandiere devono essere booleane, i
+   profili elenchi. */
+export const CAMPI_SCELTA = {
+  esplosivo: 'esplosivo', innesco: 'innesco', roccia: 'roccia',
+  frat: 'fratturazione', sequenza: 'sequenza di sparo', recNorma: 'norma del recettore',
+};
+export const CAMPI_BANDIERA = { kgAuto: 'carica automatica', bagnato: 'foro bagnato', presplit: 'presplit' };
+export const CAMPI_PROFILO = { profilo: 'profilo del fronte', piede: 'piede del fronte' };
+export function designSconosciuti(design, cataloghi) {
+  const d = design && typeof design === 'object' ? design : {};
+  const c = cataloghi && typeof cataloghi === 'object' ? cataloghi : {};
+  const campi = [];
+  const ha = (k) => Object.prototype.hasOwnProperty.call(d, k) && d[k] !== undefined;
+  for (const k of Object.keys(CAMPI_SCELTA)) {
+    if (!ha(k)) continue;
+    const ids = Array.isArray(c[k]) ? c[k].map(String) : null;
+    if (!ids) continue;                       // la pagina non ha passato quel catalogo: non si giudica
+    if (!ids.includes(String(d[k]))) campi.push({ chiave: k, nome: CAMPI_SCELTA[k], valore: d[k] === null ? '' : String(d[k]) });
+  }
+  for (const k of Object.keys(CAMPI_BANDIERA)) if (ha(k) && typeof d[k] !== 'boolean') campi.push({ chiave: k, nome: CAMPI_BANDIERA[k], valore: String(d[k]) });
+  for (const k of Object.keys(CAMPI_PROFILO)) if (ha(k) && !Array.isArray(d[k])) campi.push({ chiave: k, nome: CAMPI_PROFILO[k], valore: String(d[k]) });
+  if (!campi.length) return null;
+  const nomi = campi.map((x) => x.nome + (x.valore ? ' («' + x.valore + '»)' : ' (vuoto)')), uno = nomi.length === 1;
+  return { campi,
+    che: (uno ? 'una scelta non si riconosce: ' : nomi.length + ' scelte non si riconoscono: ') + nomi.join(', '),
+    come: uno
+      ? 'Al suo posto è entrato il valore di partenza: controllalo nei parametri prima di fidarti dei numeri.'
+      : 'Al loro posto sono entrati i valori di partenza: controllali nei parametri prima di fidarti dei numeri.' };
+}

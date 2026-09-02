@@ -1121,7 +1121,7 @@ import { sitoFit, ppvLimit, ppvSenzaSoglia, ppvSenzaDistanza, airblastDb, normaP
    ⛔ `costoVolata` sapeva già dire «non calcolabile»; a disinnescarlo erano i
    suoi tre chiamanti, che gli passavano 18 fori al posto di una griglia
    illeggibile e 0,9 m di perforazione al posto di un banco illeggibile. */
-         foriDiProgetto, metriPerforati, genesiData, portaNellOrganizzazione } from './genesi-data.js';
+         foriDiProgetto, metriPerforati, genesiData, portaNellOrganizzazione, designSconosciuti } from './genesi-data.js';
 /* ⛔ «ha una data» si decide con l'ESISTENZA, non con la forma: «2026-02-30» ha
    la forma giusta e non esiste. Il modulo di Genesi questa regola l'ha imparata
    il 03/08 — il commento in cima a `genesi-data.js` lo racconta — e la pagina
@@ -1405,6 +1405,11 @@ const D2 = { B:3.0, S:3.5, file:1, perRow:12, bf:3.0, diam:102, prof:10, kg:60, 
   /* livelli di lettura della pianta: isocrone dei tempi + mappa del burden relief (ms/m per foro) */
   iso:false, isoStep:0, rel:false, relLo:5, relHi:15, ene:false, inn:false,
   errColl:0.15, dev:2.5 };
+/* i valori di partenza degli undici campi non numerici del design: sono quelli
+   che rientrano quando una volata salvata porta una scelta che il catalogo non
+   riconosce (vedi `designSconosciuti`, all'azione «apri») */
+const D2_PARTENZA={ esplosivo:D2.esplosivo, innesco:D2.innesco, roccia:D2.roccia, frat:D2.frat, sequenza:D2.sequenza, recNorma:D2.recNorma,
+  kgAuto:D2.kgAuto, bagnato:D2.bagnato, presplit:D2.presplit, profilo:[], piede:[] };
 
 /* ============ three: scena base ============ */
 const view = document.getElementById('view');
@@ -4974,7 +4979,17 @@ if($('hgVolate')) $('hgVolate').addEventListener('click',async e=>{
        guasto del disegno cancella. Prima si dice quello che manca, poi si
        disegna — così il messaggio non ha bisogno che il resto funzioni. */
     const _senza=volataSenzaValori(arr[i].design);
-    toast('✓ «'+arr[i].nome+'» aperta nel 2D'+(_senza?' — ⚠️ '+_senza.che+'. '+_senza.come:''));
+    /* E L'ALTRA METÀ (02/09, unità 7): le scelte che il catalogo di QUESTA
+       versione non riconosce. `selEsplosivo`/`selRoccia`/`selInnesco` ripiegano
+       in silenzio sul default: qui si rimette il valore di partenza ANCHE in D2
+       (così tendina e conto dicono la stessa cosa) e lo si dice nel toast. I
+       cataloghi vivono nella pagina e si passano: il modulo non li conosce. */
+    const _cataloghi={ esplosivo:ESPL.map(e=>e.id), innesco:INNESCHI.map(e=>e.id), roccia:ROCCE.map(r=>r.id),
+      frat:[...($('dFrat')?.options||[])].map(o=>o.value), sequenza:[...($('dSeq')?.options||[])].map(o=>o.value), recNorma:[...($('dRecNorma')?.options||[])].map(o=>o.value) };
+    const _sc=designSconosciuti(arr[i].design, _cataloghi);
+    if(_sc) for(const c of _sc.campi) D2[c.chiave]=D2_PARTENZA[c.chiave];
+    const _avvisi=[_senza&&(_senza.che+'. '+_senza.come), _sc&&(_sc.che+'. '+_sc.come)].filter(Boolean);
+    toast('✓ «'+arr[i].nome+'» aperta nel 2D'+(_avvisi.length?' — ⚠️ '+_avvisi.join(' ⚠️ '):''));
     setScreen('design');
   }
 });

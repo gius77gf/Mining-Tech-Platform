@@ -195,6 +195,18 @@ const nuv = await pg.evaluate(() => ({ n: document.querySelectorAll("#hgNuvole .
 dice(nuv.n === 1 && /1 lavorazione/.test(nuv.conta || "") && /fronte-nord/.test(nuv.testo), "SOPRA: la Home mostra la lavorazione scritta sotto genesiNuvole", nuv);
 const hFine = await home();
 dice(hFine.righe.length === 1, "e la volata salvata all'inizio è ancora lì dopo tutto il giro", hFine);
+// 9 · unità 7, l'altra metà: una volata salvata con un esplosivo che il catalogo non conosce
+await pg.evaluate(() => { const a = JSON.parse(localStorage.getItem("genesiVolate") || "[]"); const v = JSON.parse(JSON.stringify(a[0]));
+  v.id = "v-strana"; v.nome = "Volata con esplosivo ignoto"; v.design.esplosivo = "dinamite-x"; v.design.kgAuto = "sì"; a.push(v); localStorage.setItem("genesiVolate", JSON.stringify(a)); });
+await pg.reload({ waitUntil: "domcontentloaded" }); await pg.waitForTimeout(2600);
+await pg.evaluate(() => { const ok = document.getElementById("consensoOk"); if (ok && ok.offsetParent !== null) ok.click(); });
+await premi("#hgVolate .hg-item[data-id='v-strana'] [data-act='apri']"); await pg.waitForTimeout(700);
+const aperta = await pg.evaluate(() => ({ toast: [...document.querySelectorAll(".toast, #toast, .dw-toast")].map((t) => t.textContent.replace(/\s+/g, " ").trim()).join(" | "),
+  espl: document.getElementById("dEspl")?.value || null, schermata: [...document.querySelectorAll("#bottomnav button")].find((x) => x.classList.contains("on"))?.dataset.scr }));
+dice(aperta.schermata === "design", "la volata strana si è aperta nel 2D", aperta.schermata);
+dice(/2 scelte non si riconoscono: esplosivo \(«dinamite-x»\), carica automatica \(«sì»\)/.test(aperta.toast), "il toast NOMINA l'esplosivo sconosciuto e la bandiera storta, col valore trovato", aperta.toast);
+dice(/valori di partenza/.test(aperta.toast), "e dice che al loro posto sono entrati i valori di partenza", aperta.toast);
+dice(!!aperta.espl && aperta.espl !== "dinamite-x", "la tendina dell'esplosivo mostra un esplosivo del catalogo, non un vuoto né l'id ignoto", aperta.espl);
 dice(errori.length === 0, "nessun errore di pagina in tutto il giro", errori.slice(0, 3));
 
 if (SCATTI) { mkdirSync(OUT, { recursive: true }); await pg.screenshot({ path: join(OUT, CONTROPROVA ? "controprova.png" : "home.png"), fullPage: false }); }

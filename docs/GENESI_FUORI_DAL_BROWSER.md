@@ -403,7 +403,7 @@ oggi. Ogni unità è un commit con la sua prova. Ore = stima, non misura.
 | **4** ✅ 02/09 | modalità **live**: `DeepworkID.init({appId:'genesi'})` in `try/catch` come `terraData`, cinque `orgCollection`; `mode:'live'` solo con `authState()==='member'`; altrimenti resta `'locale'` (non «demo in memoria») | `genesi-data.js`; `run.mjs` | prova **negativa** in `run.mjs` sotto emulatore (orgB non legge `apps/genesi/volate` di orgA), copiata da `scudo/turni`; **nessuna riga nuova in `firestore.rules`** (§3d) | 3 | medio: `genesi.html` oggi importa **solo** `dw-shell.js` (riga 1140: «non porta dentro né Firebase né l'SDK»); l'SDK carica Firebase da `gstatic`, che il service worker **non mette in cache** (riga 36) → senza rete l'import fallisce e il `catch` deve riportare a `'locale'` — **va misurato staccando la rete**, non dedotto |
 | **5** ✅ 02/09 | «porta le tue volate nell'organizzazione»: al primo accesso live, copia una tantum delle chiavi locali nelle collezioni, con contrassegno `genesiMigratoV1` e i campi `autore`, `creatoIl` | `genesi-data.js` + un bottone in Home | prova pura: la copia è **idempotente** (seconda chiamata → 0 scritture); le chiavi locali **non si cancellano** | 2 | medio: doppioni se la stessa persona migra da due computer → il contrassegno è per browser, il doppione va dichiarato non nascosto |
 | **6** | scrittura **senza rete in live**: scrittura locale **prima** (sempre, sincrona) e poi verso l'org; se `navigator.onLine===false` si dice con il toast (forma di Flotta) e la riga resta segnata `daInviare` | `genesi-data.js`, `genesi.html` | banco browser con rete staccata (Playwright `context.setOffline(true)`): la volata è salvata localmente, la Home la mostra, il toast dice «rete»; riattaccata → la riga parte | 4 | **alto ed è una decisione**: è la 5b applicata a una app. Se il fondatore accende la coda per tutte (`persistentLocalCache` nell'SDK), questa unità si riduce al toast |
-| **7** ⏱️ misurata 02/09 | la porta `Object.assign(D2, design)` (4914) valida i campi **anche** da org: un `design` scritto da un altro browser con un campo illeggibile lascia il campo vuoto e lo dice (già così per `localStorage`) | `genesi-data.js` (funzione pura `designLeggibile`) + 1 riga in pagina | `run-kpi`: 32 campi, ognuno con un valore sporco → vuoto dichiarato, mai zero | 2 | basso |
+| **7** ✅ 02/09 | la porta `Object.assign(D2, design)` (4914) valida i campi **anche** da org: un `design` scritto da un altro browser con un campo illeggibile lascia il campo vuoto e lo dice (già così per `localStorage`) | `genesi-data.js` (funzione pura `designLeggibile`) + 1 riga in pagina | `run-kpi`: 32 campi, ognuno con un valore sporco → vuoto dichiarato, mai zero | 2 | basso |
 | **8** ✅ 02/09 | Terra legge le nuvole di Genesi da `orgCollection('nuvole')` con seconda istanza SDK (`appId:'genesi'`, sola lettura, pigra — forma di `rapportiniCampo`) e **tiene la chiave del browser come ripiego** | `terra-data.js`, `terra/index.html` | `run-kpi`: la scelta «org se c'è, chiave se no» è una funzione pura; il banco di Terra che preme `btn-dal-drone` resta verde | 2 | basso; dipende da 3 e 4 |
 
 ✅ **Unità 1 chiusa il 02/09** (`genesi-data.js`, blocco G8): la porta ha la
@@ -488,9 +488,15 @@ org» è già vero per quei 21, perché la porta è la stessa. Gli 11 restanti
 (`kgAuto`, `esplosivo`, `innesco`, `roccia`, `frat`, `bagnato`, `presplit`,
 `sequenza`, `recNorma`, `profilo`, `piede`) un valore sconosciuto lo
 **tollerano** (`selEsplosivo()||{}`, `normaPpvLab`) ma **non lo dicono**.
-Scrivere una `designLeggibile` a 32 campi adesso sarebbe una copia più debole
-di G14 con un nome nuovo: resta un candidato per la sola metà categorica, con
-il vincolo di riusare `CAMPI_VOLATA` e i cataloghi della pagina.
+Scrivere una `designLeggibile` a 32 campi sarebbe stata una copia più debole
+di G14 con un nome nuovo. ✅ **La metà categorica è chiusa la sera stessa**:
+`designSconosciuti(design, cataloghi)` (11 campi: sei scelte, tre bandiere,
+due profili; i cataloghi li passa la pagina, dove vivono), la stessa forma
+`che`/`come` di G14; l'azione «apri» rimette il valore di partenza ANCHE in
+`D2` (così tendina e conto dicono la stessa cosa — prima `selEsplosivo()`
+ripiegava sul default in silenzio) e lo dice nel toast. Banco: una volata
+salvata con `esplosivo: "dinamite-x"` e `kgAuto: "sì"` si apre, il toast le
+nomina col valore trovato, la tendina mostra un esplosivo del catalogo.
 
 **Totale stimato: 20 ore**, di cui 4 (unità 6) sospese a una decisione che
 non è tecnica. Le unità 1-3 valgono da sole anche se le 4-8 non si facessero

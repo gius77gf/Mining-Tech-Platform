@@ -34518,6 +34518,32 @@ const { senzaCommenti: senzaCommentiConti } = await import("./tokenizza.mjs");
 /* ===== fine Conti · il cavato in tonnellate ===== */
 
 /* ══════════════════════════════════════════════════════════════════════
+   GENESI · LE SCELTE DEL DESIGN CHE NON SI RICONOSCONO (02/09, l'altra metà
+   dell'unità 7): esplosivo, innesco, roccia, fratturazione, sequenza, norma,
+   tre bandiere, due profili. `volataSenzaValori` copre i 21 numerici.
+   ══════════════════════════════════════════════════════════════════════ */
+{
+  const cat = { esplosivo: ["anfo-standard", "emulsione"], innesco: ["nonel", "elettronico", "elettrico", "cordtex"], roccia: ["calcare", "granito"], frat: ["fessurata", "media", "compatta"], sequenza: ["riga", "diagonale"], recNorma: ["din-res", "din-ind"] };
+  const D = genesi.designSconosciuti;
+  test("designSconosciuti: un design coi valori del catalogo non ha niente da dire", () => {
+    eq(D({ esplosivo: "anfo-standard", innesco: "nonel", roccia: "calcare", frat: "media", sequenza: "riga", recNorma: "din-res", kgAuto: true, bagnato: false, presplit: false, profilo: [], piede: [] }, cat), null);
+    eq(D(null, cat), null); eq(D({}, cat), null); eq(D({ esplosivo: undefined }, cat), null, "un campo assente non è un campo sbagliato");
+    eq(D({ esplosivo: "boh" }, {}), null, "senza il catalogo non si giudica: la pagina non l'ha passato");
+    eq(Object.keys(genesi.CAMPI_SCELTA).length + Object.keys(genesi.CAMPI_BANDIERA).length + Object.keys(genesi.CAMPI_PROFILO).length, 11, "gli undici campi non numerici del design");
+  });
+  test("⛔ un esplosivo che il catalogo non conosce si NOMINA, col valore trovato — e non si tace il ripiego sul default", () => {
+    const r = D({ esplosivo: "dinamite-x", roccia: "calcare", kgAuto: "sì", profilo: "no", piede: [] }, cat);
+    eq(r.campi.map((c) => c.chiave), ["esplosivo", "kgAuto", "profilo"]);
+    ok(/3 scelte non si riconoscono: esplosivo \(«dinamite-x»\), carica automatica \(«sì»\), profilo del fronte \(«no»\)/.test(r.che), r.che);
+    ok(/valori di partenza/.test(r.come), "e dice che al loro posto sono entrati i valori di partenza");
+    const uno = D({ recNorma: null }, cat);
+    eq(uno.campi.length, 1); ok(/una scelta non si riconosce: norma del recettore \(vuoto\)/.test(uno.che), uno.che); ok(/valore di partenza/.test(uno.come));
+    eq(D({ recNorma: "din-res", bagnato: 1 }, cat).campi[0].chiave, "bagnato", "una bandiera che non è booleana");
+  });
+}
+/* ===== fine Genesi · le scelte che non si riconoscono ===== */
+
+/* ══════════════════════════════════════════════════════════════════════
    PONTE CAMPO → CONTI · il terzo lato del triangolo (02/09, la 3f della mappa):
    quello che i turni DICHIARANO di aver prodotto contro quello che la pesa ha
    VENDUTO, tonnellate contro tonnellate. La funzione sta in shared/ e Conti la

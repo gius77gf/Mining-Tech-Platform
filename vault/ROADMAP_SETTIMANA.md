@@ -119,6 +119,12 @@
   21: zero KO). Nessun difetto trovato. Le tre mancanze della ricerca (notifiche
   fuori dall'app = spesa del fondatore; PM10 giornaliero; classi acustiche)
   restano sospese come scritto nel delta.
+- [x] ✅ 02/09 sera **Genesi, unità 7 (l'altra metà): le scelte del design che
+  il catalogo non riconosce** — `designSconosciuti` (11 campi non numerici),
+  all'apertura si rimette il valore di partenza anche in `D2` e lo si dice nel
+  toast col valore trovato; prima `selEsplosivo()` ripiegava sul default in
+  silenzio. run-kpi +2, banco della porta 32 prove. Del piano Genesi resta
+  SOLO la 6 (coda offline in live), che è la decisione 5b del fondatore.
 - [ ] **Aggiornare la tabella in fondo a `docs/MAPPA_ECOSISTEMA.md`** a ogni
   ponte chiuso: è il registro, e il «6 su 56» deve scendere. *(02/09: 12 su 56.)*
 - [ ] **Una passata in profondità su un'app** (ogni schermata guardata, ogni
@@ -5687,7 +5693,7 @@ numero scritto dove non era stato misurato niente**.*
   nome apre il file sbagliato credendo che sia il più fresco.
 - Le decisioni: `docs/DECISIONI_WEEKEND.md` — pagina d'ingresso in cima.
 - Stato misurato al **18/08** (lanciando le suite, non a memoria):
-  **2.936 prove girano senza rete**. La frase va letta stretta: è la somma
+  **2.938 prove girano senza rete**. La frase va letta stretta: è la somma
   delle **nove** suite che contano asserzioni (`run-kpi` 2396, `run-stile` 327,
   `run-helpers` 75, `run-pointcloud` 32, `claims-convergenza` 19, `run-manifest` 9,
   `run-demo` 8, `bootstrap-rivendicazioni` 7, `fogli-guardati` 3), non tutto ciò che gira nel
