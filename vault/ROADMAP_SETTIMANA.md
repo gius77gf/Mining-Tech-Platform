@@ -17,6 +17,15 @@
 - [ ] **Una passata in profondità su un'app** (ogni schermata guardata, ogni
   file che esce aperto, i numeri tranquilli cercati). Prima candidata: Conti,
   perché è quella che il ponte tocca e quella che il mercato guarda (la pesa).
+  ✅ **Quarta e quinta tappa, Campo e Sentinella (02/09)**, senza difetti del
+  prodotto: Campo cinque banchi verdi (disegni 30 geometrie, foglio di turno
+  35 con il file aperto, numeri tranquilli 92, frasi con Sentinella 10 su 18
+  schermate; le controprove cadono), Sentinella quattro (disegni 48 con 33
+  geometrie in pixel, numeri tranquilli 26, periodo dell'adempimento 34,
+  report e dichiarazioni 21). Undici schermate scattate e guardate, rete dei
+  sospetti («€ 0,00», «1 giorni», unità in maiuscolo) vuota su tutte. ⚠️ Il
+  banco `campo-sentinella-frasi` a mano vuole la porta del server statico come
+  argomento (esce 2 senza): non è un KO.
   ✅ **Terza tappa, Flotta (02/09)**: quattro banchi senza proxy tutti verdi
   (disegni 54, documenti 79 su 9 punti d'uscita, frasi-da-uno 42, numeri
   tranquilli 24); la domanda del contatore SCESO ha già la risposta giusta
