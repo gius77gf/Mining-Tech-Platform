@@ -17,6 +17,21 @@
 - [ ] **Una passata in profondità su un'app** (ogni schermata guardata, ogni
   file che esce aperto, i numeri tranquilli cercati). Prima candidata: Conti,
   perché è quella che il ponte tocca e quella che il mercato guarda (la pesa).
+  ✅ **Seconda tappa, Scudo (02/09, cantiere parallelo, misurato prima di
+  crederci)**: cinque banchi lanciati senza proxy, 7 KO iniziali tutti del
+  banco (fixture con date assolute invecchiate: il near-miss del 18/05 uscito
+  dai 90 giorni, la consegna DPI del 15/08 scaduta davvero) resi derivati o
+  relativi; **un difetto vero del prodotto, corretto nel modulo**: la
+  «Copertura formazione per tipo» diceva «3 in regola · tutte regolari» in
+  verde sulle verifiche periodiche mentre quindici righe sotto la stessa
+  schermata scriveva «1 con prescrizioni scadute · 1 mai verificata» —
+  `coperturaFormazione` non leggeva `statoVerificaPeriodica`. Ora due secchi
+  in più (negativa / incerta), `statoCopertura` decide colore e pastiglia in un
+  posto solo, sul vuoto risponde «niente registrato». Controprova nel modulo.
+  Scritto e non chiuso: a 320 px la riga di dettaglio della copertura è
+  tagliata dal clamp a due righe (anche la forma vecchia lo era); e
+  `csvPersonaleScadenze` scrive `stato=regolare` sulle righe azienda accanto a
+  «Prescrizioni scadute» — scelta di prodotto da decidere.
   ⏱️ **Prima tappa fatta il 02/09, coi banchi**: le sei passate di Conti
   (`documenti-che-escono` 12 punti d'uscita su 12 aperti, `stampe`,
   `numeri-tranquilli`, `barre-peso` 25 barre su 4 liste, `frasi`, `frasi-da-uno`
@@ -5515,7 +5530,7 @@ numero scritto dove non era stato misurato niente**.*
   nome apre il file sbagliato credendo che sia il più fresco.
 - Le decisioni: `docs/DECISIONI_WEEKEND.md` — pagina d'ingresso in cima.
 - Stato misurato al **18/08** (lanciando le suite, non a memoria):
-  **2.904 prove girano senza rete**. La frase va letta stretta: è la somma
+  **2.907 prove girano senza rete**. La frase va letta stretta: è la somma
   delle **nove** suite che contano asserzioni (`run-kpi` 2396, `run-stile` 327,
   `run-helpers` 75, `run-pointcloud` 32, `claims-convergenza` 19, `run-manifest` 9,
   `run-demo` 8, `bootstrap-rivendicazioni` 7, `fogli-guardati` 3), non tutto ciò che gira nel

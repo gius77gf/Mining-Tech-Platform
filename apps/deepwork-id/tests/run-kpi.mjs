@@ -146,8 +146,8 @@ test("coperturaFormazione: raggruppa per tipo con stati, peggiore prima", () => 
   ];
   const c = scudo.coperturaFormazione(sca, o);
   eq(c[0].tipo, "Visita medica", "peggiore (con scadute) prima");
-  eq(c[0], { tipo: "Visita medica", totale: 2, scadute: 1, inScadenza: 0, senzaData: 0, regolari: 1 }, "conteggi visita");
-  eq(c[1], { tipo: "Corso", totale: 1, scadute: 0, inScadenza: 0, senzaData: 0, regolari: 1 }, "conteggi corso");
+  eq(c[0], { tipo: "Visita medica", totale: 2, scadute: 1, inScadenza: 0, senzaData: 0, verificheNegative: 0, verificheIncerte: 0, regolari: 1 }, "conteggi visita");
+  eq(c[1], { tipo: "Corso", totale: 1, scadute: 0, inScadenza: 0, senzaData: 0, verificheNegative: 0, verificheIncerte: 0, regolari: 1 }, "conteggi corso");
 });
 test("coperturaFormazione: nessuna scadenza = lista vuota (niente crash)", () =>
   eq(scudo.coperturaFormazione([]), [], "vuoto"));
@@ -34318,6 +34318,79 @@ const { senzaCommenti: senzaCommentiConti } = await import("./tokenizza.mjs");
       "quindi la pagina decide «Conti non ha risposto» da sé, prima di chiamarla");
   });
 }
+/* ═══ SCUDO · la copertura per tipo legge la VERIFICA, non solo la data (02/09) ═══
+   Misurato aprendo la schermata Scadenze a 430 px sulla dimostrazione: la riga
+   «Verifica periodica» diceva «3 in regola · 0 in scadenza · 0 scadute — su 3»
+   con la pastiglia VERDE «tutte regolari», e quindici righe più sotto la stessa
+   schermata scriveva «1 con prescrizioni scadute · 1 mai verificata, su 3
+   verifiche registrate» (`verificheDaSistemare`); nel Quadro le stesse due
+   attrezzature stavano in rosso e in giallo. La copertura guardava SOLO la
+   data della prossima verifica, che per tutt'e tre è nel futuro: cioè una
+   verifica mai fatta e una con le prescrizioni scadute entravano fra i
+   «regolari». È il principio del fondatore — l'assenza di un dato non è un
+   dato favorevole — nella schermata che si apre per vedere che cosa manca.
+   La regola esisteva già (`statoVerificaPeriodica`) e la copertura non la
+   leggeva: la copia più debole, non l'invenzione.
+   ⚠️ Prove SINCRONE e messe PRIMA del riepilogo: l'`await Promise.all(inVolo)`
+   sta cinquemila righe più su. */
+{
+  const OGGI_C = new Date("2026-09-02T10:00:00");
+  const VERB = [{ id: "vb1", tipo: "Verbale di verifica periodica", titolo: "verbale", stato: "valido" }];
+  const SCA_C = [
+    // la prossima verifica è lontana per tutt'e tre: per la sola DATA sono «regolari»
+    { id: "a", tipo: "Verifica periodica", dataScadenza: "2027-03-18", verificaEsito: "idonea", verbaleId: "vb1", verificaEnte: "abilitato" },
+    { id: "b", tipo: "Verifica periodica", dataScadenza: "2026-11-27", verificaEsito: "prescrizioni", verificaEntro: "2026-07-15", verificaEnte: "asl" },
+    { id: "c", tipo: "Verifica periodica", dataScadenza: "2027-06-30" },   // mai verificata
+    { id: "d", tipo: "Corso", dataScadenza: "2027-01-01" },
+  ];
+  test("⛔ Scudo · coperturaFormazione: una verifica mai fatta o con prescrizioni scadute non è «in regola»", () => {
+    const c = scudo.coperturaFormazione(SCA_C, OGGI_C, VERB);
+    const v = c.find((x) => x.tipo === "Verifica periodica");
+    // prima: regolari 3, e il tipo in fondo all'elenco come il più tranquillo
+    eq(v.regolari, 1, "in regola resta solo l'idonea col verbale");
+    eq(v.verificheNegative, 1, "le prescrizioni scadute sono una verifica negativa");
+    eq(v.verificheIncerte, 1, "quella mai fatta è incerta: non si sa com'è");
+    eq(v.totale, 3, "nessuna riga persa");
+    eq(v.scadute + v.inScadenza + v.senzaData + v.verificheNegative + v.verificheIncerte + v.regolari, v.totale,
+      "i sei secchi coprono tutto");
+    eq(scudo.daSistemareCopertura(v), 2, "e tutt'e due chiedono di fare qualcosa");
+    eq(c[0].tipo, "Verifica periodica", "il tipo con una verifica negativa va per primo, come uno con una scaduta");
+    // il Corso non è una verifica: i due secchi nuovi restano a zero e il resto non cambia
+    eq(c.find((x) => x.tipo === "Corso"), { tipo: "Corso", totale: 1, scadute: 0, inScadenza: 0, senzaData: 0,
+      verificheNegative: 0, verificheIncerte: 0, regolari: 1 }, "un corso conta come prima");
+  });
+  test("⛔ Scudo · coperturaFormazione: una riga sta in UN secchio solo, e la data scaduta vince", () => {
+    const x = scudo.coperturaFormazione([{ tipo: "Verifica periodica", dataScadenza: "2020-01-01",
+      verificaEsito: "non-idonea" }], OGGI_C, [])[0];
+    eq([x.scadute, x.verificheNegative, x.totale], [1, 0, 1], "scaduta E non idonea: contata una volta, fra le scadute");
+    // senza il registro documenti l'idonea è «verbale mancante» (warn): è incerta, non regolare
+    const s = scudo.coperturaFormazione([SCA_C[0]], OGGI_C, null)[0];
+    eq([s.verificheIncerte, s.regolari], [1, 0], "idonea senza il verbale non è regolare");
+    // la vecchia firma (senza documenti) resta valida sui tipi che non sono verifiche
+    eq(scudo.coperturaFormazione([{ tipo: "Corso", dataScadenza: "2000-01-01" }], OGGI_C)[0].scadute, 1);
+  });
+  test("⛔ Scudo · statoCopertura: colore e pastiglia decisi in un posto solo, e i secchi nuovi li leggono", () => {
+    /* `totale: 1` di base: un gruppo con zero righe è il caso a parte provato in fondo */
+    const st = (o) => scudo.statoCopertura({ scadute: 0, inScadenza: 0, senzaData: 0, verificheNegative: 0, verificheIncerte: 0, regolari: 0, totale: 1, ...o });
+    eq(st({ regolari: 3, totale: 3 }), { cls: "ok", badge: "tutte regolari" });
+    eq(st({ scadute: 2 }), { cls: "danger", badge: "2 scadute" });
+    eq(st({ scadute: 1 }), { cls: "danger", badge: "1 scaduta" });
+    eq(st({ verificheNegative: 1 }), { cls: "danger", badge: "1 negativa" });
+    eq(st({ verificheNegative: 2 }), { cls: "danger", badge: "2 negative" });
+    eq(st({ inScadenza: 1 }), { cls: "warn", badge: "1 in scadenza" });
+    eq(st({ senzaData: 2 }), { cls: "warn", badge: "2 senza data" });
+    eq(st({ verificheIncerte: 1 }), { cls: "warn", badge: "1 incerta" });
+    eq(st({ verificheIncerte: 1, verificheNegative: 1 }), { cls: "danger", badge: "1 negativa" }, "il peggio decide");
+    eq(scudo.statoCopertura(null), { cls: "warn", badge: "niente registrato" },
+      "sul vuoto non risponde «tutte regolari»: niente da misurare non è tutto a posto");
+    /* sulla DIMOSTRAZIONE: la riga che a schermo diceva «tutte regolari» */
+    const demo = scudo.coperturaFormazione(scudo.DEMO.scadenze, OGGI_C, scudo.DEMO.documenti)
+      .find((x) => x.tipo === "Verifica periodica");
+    eq(scudo.statoCopertura(demo).cls, "danger", "la dimostrazione ha una verifica con prescrizioni scadute: rossa, non verde");
+  });
+}
+/* ===== fine copertura e verifica periodica ===== */
+
 /* ===== fine ponte Conti → Flotta ===== */
 
 console.log(`\nRisultato KPI app: ${passed} passati, ${failed} falliti${inVolo.length ? `  ·  ${inVolo.length} prove asincrone aspettate` : ""}`);

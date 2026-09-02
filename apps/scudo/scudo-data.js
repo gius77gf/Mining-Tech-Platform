@@ -2000,20 +2000,45 @@ export function csvRegistroInfortuni(eventi) {
    ricevuta. Un `else` finale è comodo finché la funzione che sta sopra non
    impara a dire una risposta in più — ed è precisamente il caso della regola
    18 di `run-stile.mjs`, applicata a un conteggio invece che a una mappa. */
-export function coperturaFormazione(scadenze, oggi = new Date()) {
+/* ⛔ LA VERIFICA PERIODICA HA DUE STATI, E QUESTA FUNZIONE NE LEGGEVA UNO SOLO
+   (02/09). Misurato aprendo la schermata Scadenze sulla dimostrazione: la riga
+   «Verifica periodica» diceva «3 in regola · 0 in scadenza · 0 scadute» con la
+   pastiglia VERDE «tutte regolari», e quindici righe più sotto la stessa
+   schermata — con `verificheDaSistemare` — scriveva «1 con prescrizioni
+   scadute · 1 mai verificata, su 3»; nel Quadro le stesse due attrezzature
+   stavano in rosso e in giallo. Qui contava SOLO la data della prossima
+   verifica, che per tutt'e tre è nel futuro: cioè una verifica mai fatta e una
+   con le prescrizioni scadute entravano fra i «regolari». È l'assenza di un
+   dato letta come dato favorevole, e la regola giusta esisteva già in questo
+   file (`statoVerificaPeriodica`): la copia più debole, non l'invenzione.
+   Adesso ogni riga sta in UN secchio solo, e il peggio vince: la data scaduta
+   prima di tutto (la prossima verifica è dovuta), poi la verifica negativa
+   (non idonea, prescrizioni scadute), poi la data in scadenza o illeggibile,
+   poi la verifica incerta (mai fatta, esito non letto, verbale mancante,
+   prescrizioni aperte o senza data). `documenti` serve al verbale: senza il
+   registro un'«idonea» resta «verbale mancante», che è la verità di quello che
+   qui si vede. Per i tipi che non sono verifiche i due secchi nuovi restano a
+   zero e il conto è quello di prima. */
+export function coperturaFormazione(scadenze, oggi = new Date(), documenti = null) {
   const per = {};
   for (const s of scadenze || []) {
     const t = (s.tipo || "Altro");
-    const g = per[t] || (per[t] = { tipo: t, totale: 0, scadute: 0, inScadenza: 0, senzaData: 0, regolari: 0 });
+    const g = per[t] || (per[t] = { tipo: t, totale: 0, scadute: 0, inScadenza: 0, senzaData: 0,
+      verificheNegative: 0, verificheIncerte: 0, regolari: 0 });
     g.totale++;
     const st = statoScadenza(s.dataScadenza, oggi);
+    const v = scadenzaDiVerifica(s) ? statoVerificaPeriodica(s, documenti, oggi) : null;
     if (st === "scaduta") g.scadute++;
+    else if (v && v.cls === "danger") g.verificheNegative++;
     else if (st === "in-scadenza") g.inScadenza++;
     else if (st === "senza data") g.senzaData++;
+    else if (v && v.cls !== "ok") g.verificheIncerte++;
     else g.regolari++;
   }
+  const rosse = (c) => c.scadute + c.verificheNegative;
+  const gialle = (c) => c.inScadenza + c.senzaData + c.verificheIncerte;
   return Object.values(per).sort((a, b) =>
-    (b.scadute - a.scadute) || (b.inScadenza - a.inScadenza) || (b.senzaData - a.senzaData)
+    (rosse(b) - rosse(a)) || (gialle(b) - gialle(a))
     || a.tipo.localeCompare(b.tipo, "it"));
 }
 
@@ -2026,7 +2051,31 @@ export function coperturaFormazione(scadenze, oggi = new Date()) {
    qualcuno la guardi. */
 export function daSistemareCopertura(c) {
   const x = c || {};
-  return (+x.scadute || 0) + (+x.inScadenza || 0) + (+x.senzaData || 0);
+  return (+x.scadute || 0) + (+x.inScadenza || 0) + (+x.senzaData || 0)
+    + (+x.verificheNegative || 0) + (+x.verificheIncerte || 0);
+}
+
+/* Il colore e la pastiglia di un tipo, decisi in UN posto. La pagina li
+   scriveva due volte con lo stesso ternario (la barra del grafico e la
+   pastiglia dell'elenco), e un secchio nuovo li avrebbe dovuti aggiornare
+   tutt'e due: è così che «tutte regolari» sarebbe rimasto verde su una
+   verifica negativa in uno dei due posti. Il peggio decide, nell'ordine dei
+   secchi di `coperturaFormazione`. */
+export function statoCopertura(c) {
+  const x = c || {};
+  const n = (k) => +x[k] || 0;
+  /* un tipo senza nessuna riga non è «tutte regolari»: non c'è niente da
+     misurare, e lo si dice (è la sonda dei tranquilli a pretenderlo) */
+  if (!n("totale")) return { cls: "warn", badge: "niente registrato" };
+  if (n("scadute")) return { cls: "danger", badge: conta(n("scadute"), "scaduta", "scadute") };
+  /* «negativa» e «incerta» senza la parola «verifica»: la riga porta già il
+     tipo, e a 360 px la pastiglia lunga spingeva il dettaglio oltre le due
+     righe del taglio (misurato il 02/09: «— su 3 in totale» spariva). */
+  if (n("verificheNegative")) return { cls: "danger", badge: conta(n("verificheNegative"), "negativa", "negative") };
+  if (n("inScadenza")) return { cls: "warn", badge: n("inScadenza") + " in scadenza" };
+  if (n("senzaData")) return { cls: "warn", badge: n("senzaData") + " senza data" };
+  if (n("verificheIncerte")) return { cls: "warn", badge: conta(n("verificheIncerte"), "incerta", "incerte") };
+  return { cls: "ok", badge: "tutte regolari" };
 }
 
 // IL MURO DELLE SCADENZE: quante scadenze cadono in ciascuno dei prossimi N

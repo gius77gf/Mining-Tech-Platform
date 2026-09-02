@@ -1729,7 +1729,7 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
     GRAVITA_POTENZIALE, potenzialeDi, descriviPotenziale, riepilogoPotenziale, descriviRischioPotenziale,
     MODELLI_ISPEZIONE, modelloIspezione, nuovaIspezioneDaModello, riepilogoIspezione, riepilogoIspezioni, vociNonConformi, statoIspezione, azioniDiIspezione, esitoLabel, ESITI_ISPEZIONE, dataPiuGiorni,
     REQUISITI_FORMAZIONE, requisitoFormazione, requisitoSicuro, statoRequisito, MANSIONI_PRESET, mansionePreset,
-    matriceMansione, riepilogoMansioni, lavoratoriScoperti, abilitazioneLavoratore, daSistemareCopertura,
+    matriceMansione, riepilogoMansioni, lavoratoriScoperti, abilitazioneLavoratore, daSistemareCopertura, statoCopertura,
     NOMINE_RUOLI, ruoloNomina, nominaAttiva, organigrammaSicurezza, nomineDaSistemare,
     cartellaLavoratore, descriviCartella, etichettaStatoDocumento, statoPeggioreScadenze,
     TIPI_DPI, tipoDpi, tipoDpiSicuro, ultimaConsegnaDpi, statoConsegnaDpi, allarmiDpi, riepilogoDpi, verbaleDpi,
@@ -2378,7 +2378,9 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
     // accanto a ogni barra c'è il numero, così lo stato si legge anche senza
     // distinguere i colori. Il conto completo (in regola · in scadenza ·
     // scadute · totale) resta nell'elenco qui sotto, riga per riga.
-    const cop = coperturaFormazione(SCA);
+    /* ⛔ `DOC` serve alla VERIFICA PERIODICA: senza il registro documenti la
+       copertura non sa se il verbale c'è, e un'«idonea» senza verbale è incerta. */
+    const cop = coperturaFormazione(SCA, new Date(), DOC);
     /* ⛔ «Da sistemare», non «da rinnovare», e il conto lo fa il modulo
        (`daSistemareCopertura`): il terzo caso — la riga la cui data non si
        legge — non è un rinnovo, è una cosa di cui non si sa se sia scaduta.
@@ -2393,6 +2395,8 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
       if (c.scadute) p.push(c.scadute + (c.scadute === 1 ? " già scaduta" : " già scadute"));
       if (c.inScadenza) p.push(c.inScadenza + " in scadenza entro 30 giorni");
       if (c.senzaData) p.push(c.senzaData + (c.senzaData === 1 ? " con una data che non si legge" : " con una data che non si legge"));
+      if (c.verificheNegative) p.push(c.verificheNegative + (c.verificheNegative === 1 ? " verifica con esito negativo o prescrizioni scadute" : " verifiche con esito negativo o prescrizioni scadute"));
+      if (c.verificheIncerte) p.push(c.verificheIncerte + (c.verificheIncerte === 1 ? " verifica mai fatta o senza il verbale" : " verifiche mai fatte o senza il verbale"));
       return p.join(" e ") || "niente da sistemare";
     };
     if (cop.length >= 2 && copTot > 0) {
@@ -2405,14 +2409,14 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
         valori: cop.map(c => ({
           etichetta: c.tipo,
           valore: daRinnovare(c),
-          stato: c.scadute ? "danger" : (c.inScadenza || c.senzaData ? "warn" : "ok"),
+          stato: statoCopertura(c).cls,
         })),
         aria: "Copertura della formazione per tipo: " + conta(cop.length, "tipo di adempimento", "tipi di adempimento") + ", "
           + conta(copTot, "adempimento da sistemare", "adempimenti da sistemare") + " in tutto. Il tipo più scoperto è "
           + copPeggio.tipo + " con " + daRinnovare(copPeggio) + ".",
         nota: "Ogni barra è il numero di adempimenti <b>da sistemare</b> per quel tipo: "
-          + "<b>critico</b> vuol dire che almeno uno è già scaduto, <b>da tenere d'occhio</b> "
-          + "che scadono entro 30 giorni <b>oppure</b> che la data registrata non si legge, "
+          + "<b>critico</b> vuol dire che almeno uno è già scaduto o ha una verifica periodica con esito negativo, <b>da tenere d'occhio</b> "
+          + "che scadono entro 30 giorni <b>oppure</b> che la data registrata non si legge, <b>oppure</b> che una verifica periodica è mai stata fatta o è senza verbale, "
           + "<b>a posto</b> che non c'è niente da fare. Oggi il "
           + "buco più grosso è su <b>" + copPeggio.tipo + "</b>: " + copParole(copPeggio)
           + ". Passa sopra una barra per il dettaglio."
@@ -2446,20 +2450,24 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
          e nessuna in scadenza, quindi il ternario cadeva sul ramo tranquillo.
          Il terzo caso è giallo — non si sa se sia scaduta — e va detto per
          nome, non lasciato in un «in regola» che nessuno ha misurato. */
-      const cls = c.scadute ? "danger" : (c.inScadenza || c.senzaData ? "warn" : "ok");
-      const lbl = c.scadute ? c.scadute + (c.scadute === 1 ? " scaduta" : " scadute")
-                : (c.inScadenza ? c.inScadenza + " in scadenza"
-                : (c.senzaData ? c.senzaData + (c.senzaData === 1 ? " senza data" : " senza data") : "tutte regolari"));
+      /* ⛔ Dal 02/09 colore e pastiglia li decide `statoCopertura`, lo stesso
+         posto da cui il grafico prende lo stato della barra: due ternari
+         gemelli qui e lassù erano il modo in cui un secchio nuovo (la
+         verifica periodica negativa o incerta) sarebbe rimasto verde in uno
+         dei due. */
+      const { cls, badge: lbl } = statoCopertura(c);
       return `<div class="item ${striscia[cls]}"><div class="info"><div class="name">${esc(c.tipo)}</div>
         <!-- NOTA: «senza data» e non «con una data che non si legge», perché
              la riga di dettaglio è tagliata a due righe (line-clamp) e la
-             forma lunga spingeva «— su N in totale» sul filo del taglio. È
+             forma lunga spingeva «— su N in totale» sul filo del taglio (e il
+             02/09 «1 verifica negativa · 1 verifica incerta» lo ha spinto OLTRE:
+             qui si scrive «negativa» e «incerta», il tipo lo dice la riga). È
              anche il termine che l'ecosistema usa già in tre app, quindi non
              è una parola nuova. La spiegazione per esteso sta nella nota del
              grafico, che spazio ne ha.
              ATTENZIONE: questo commento vive DENTRO un template literal —
              niente accenti gravi qui dentro, chiuderebbero la stringa. -->
-        <div class="meta">${c.regolari} in regola · ${c.inScadenza} in scadenza · ${c.scadute} ${c.scadute === 1 ? "scaduta" : "scadute"}${c.senzaData ? " · <b>" + c.senzaData + " senza data</b>" : ""} — su ${c.totale} in totale</div></div>
+        <div class="meta">${c.regolari} in regola · ${c.inScadenza} in scadenza · ${c.scadute} ${c.scadute === 1 ? "scaduta" : "scadute"}${c.senzaData ? " · <b>" + c.senzaData + " senza data</b>" : ""}${c.verificheNegative ? " · <b>" + c.verificheNegative + (c.verificheNegative === 1 ? " negativa" : " negative") + "</b>" : ""}${c.verificheIncerte ? " · <b>" + c.verificheIncerte + (c.verificheIncerte === 1 ? " incerta" : " incerte") + "</b>" : ""} — su ${c.totale} in totale</div></div>
         <span class="acts"><span class="badge ${cls}">${lbl}</span></span></div>`; }).join("")
       || vuoto(I.grafico, "Copertura da costruire",
           "La copertura per tipo di formazione si calcola da sola: appena registri le prime scadenze, qui vedi chi è in regola e chi no.");

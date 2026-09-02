@@ -152,6 +152,20 @@ const CASI = `
   DEMO.documenti.push({ id: "zdoc", titolo: "Attestato antincendio da archivio cartaceo",
     tipo: "Altro", lavoratoreId: "d4", meta: "", stato: "" });
   DEMO.nomine.push({ id: "znom", ruolo: "antincendio", lavoratoreId: "d4", dal: null, al: null, note: "" });
+  /* ⛔ IL CASO DI CONTROLLO SI COSTRUISCE, NON SI PESCA DALLA DIMOSTRAZIONE
+     (02/09). Era Franco Riva (d6), «che ha tutto a posto» — finché la sua
+     «Consegna DPI» del 15/08/2026, data ASSOLUTA, non è scaduta: da quel
+     giorno la cartella diceva — giustamente — «1 scadenza già scaduta» in
+     rosso, e il banco accusava il prodotto di un avviso che c'era sempre. Il
+     prodotto non ha mai sbagliato: a invecchiare era la fixture. Questa
+     persona ha mansione, una scadenza e un DPI con date calcolate al
+     caricamento, sempre nel futuro: completa E in regola. */
+  DEMO.lavoratori.push({ id: "zsano", nome: "Banco Sano", ruolo: "Operatore", tel: "", attivo: true });
+  DEMO.scadenze.push({ id: "zsano-s", lavoratoreId: "zsano", tipo: "Formazione",
+    descrizione: "Formazione generale + specifica (art. 37)", dataScadenza: gg(-400) });
+  DEMO.dpi.push({ id: "zsano-d", lavoratoreId: "zsano", tipo: "elmetto", modello: "", taglia: "unica",
+    dataConsegna: gg(30), scadenza: gg(-700), addestramento: false, dataAddestramento: null, note: "" });
+  DEMO.mansioni.push({ id: "zsano-m", nome: "BANCO mansione sana", requisiti: [], dpi: ["elmetto"], lavoratoriIds: ["zsano"] });
 }
 `;
 
@@ -945,9 +959,12 @@ if (!inf.errore) {
   }
 
   /* ⛔ IL CASO DI CONTROLLO, senza il quale «l'avviso c'è» non dimostra niente:
-     un avviso che compare sempre non lo legge più nessuno. Franco Riva ha
-     tutto a posto e la sua cartella deve restare pulita e grigia. */
-  const sana = await apriCartella("d6");
+     un avviso che compare sempre non lo legge più nessuno. «Banco Sano» è
+     montato dai CASI con date relative (Franco Riva, che era qui prima, ha
+     una scadenza della dimostrazione che il 15/08/2026 è scaduta davvero). */
+  const sana = await apriCartella("zsano");
+  if (!sana.errore) dice(/Tutte le sezioni della cartella contengono dati/.test(sana.foglio),
+    "e la cartella di controllo è davvero completa (se no «niente avviso» non prova niente)", sana.foglio.slice(-300));
   dice(!sana.errore, "la cartella di chi ha tutto a posto si compone", sana.errore);
   if (!sana.errore) {
     if (DIMMI) console.log("\n[cartella d6]\n" + sana.foglio + "\n");
