@@ -1920,8 +1920,80 @@ function _scriviJson(st, chiave, valore) {
 }
 function _nuovoId(prefisso) { return prefisso + Date.now().toString(36) + Math.random().toString(36).slice(2, 7); }
 
-export function genesiData(opzioni) {
+/* LA MODALITÀ LIVE (unità 4, 02/09). Stessa forma di `terraData`: si prova
+   l'SDK in un try/catch, e si è `live` SOLO se c'è un utente membro di
+   un'organizzazione; in ogni altro caso — SDK che non si carica (senza rete
+   l'import da gstatic fallisce, e il service worker di Genesi non lo mette in
+   cache), tour, nessun login, errore qualunque — si resta `locale`, cioè sulle
+   chiavi del browser di sempre. ⛔ NON «demo in memoria»: Genesi senza
+   organizzazione è un'app che funziona da sola sul dispositivo, e i dati di
+   chi la usa oggi restano dove sono.
+   Le cinque collezioni nascono sotto `organizations/{org}/apps/genesi/…`, il
+   percorso lo costruisce `orgCollection` (mai a mano): l'isolamento fra
+   organizzazioni è quello delle regole già scritte per `apps/{appId}/**`, e
+   la prova negativa sta in `tests/run.mjs` sotto l'emulatore.
+   Forme dei documenti, decise qui e dichiarate:
+     volate / riconciliazioni / nuvole → un documento per riga, id di Firestore;
+     confronti → UN documento per slot, id = "A" | "B" (per organizzazione: la
+       scelta «per persona» è aperta, §3c del piano, e non si decide qui);
+     sito → UN documento, id = "unico" (la legge di sito è della cava).
+   I tetti (50 volate, 30 lavorazioni) valgono per il browser; nell'org NON si
+   applicano — «per organizzazione o per persona» è la decisione aperta del
+   §3c, e tagliare in silenzio dati condivisi sarebbe peggio di non tagliare.
+   `opzioni.live === false` salta l'SDK del tutto (le prove in node). */
+export async function genesiData(opzioni) {
   const o = opzioni || {};
+  if (o.live !== false) {
+    try {
+      const { DeepworkID } = await import("../../shared/deepwork-id-client/index.js");
+      const id = await DeepworkID.init({ appId: "genesi" });
+      if (id && id.user && id.authState() === "member") {
+        const { getDocs, getDoc, addDoc, setDoc, updateDoc, deleteDoc, doc } =
+          await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
+        const read = async (nome) => (await getDocs(id.orgCollection(nome))).docs.map((d) => ({ id: d.id, ...d.data() }));
+        const slotDi = (x) => { const s = String((x && x.slot) || x || "").toUpperCase(); return GENESI_SLOT.includes(s) ? s : null; };
+        const db = {
+          mode: "live",
+          volate: () => read("volate"),
+          riconciliazioni: () => read("riconciliazioni"),
+          nuvole: () => read("nuvole"),
+          confronti: async () => (await read("confronti")).filter((c) => GENESI_SLOT.includes(c.id)).map((c) => ({ ...c, slot: c.id })),
+          sito: async () => {
+            const s = await getDoc(doc(id.orgCollection("sito"), "unico"));
+            const v = s.exists() ? s.data() : null;
+            return v && Array.isArray(v.punti) ? { punti: v.punti, usa: !!v.usa } : GENESI_SITO_VUOTO();
+          },
+          aggiungi: async (nome, dati) => {
+            if (nome === "confronti") {
+              const slot = slotDi(dati); if (!slot) throw new Error("uno scatto di confronto vuole lo slot A o B");
+              const { slot: _s, id: _i, ...resto } = dati || {};
+              await setDoc(doc(id.orgCollection("confronti"), slot), resto); return { id: slot };
+            }
+            if (nome === "sito") {
+              const s = dati && Array.isArray(dati.punti) ? { punti: dati.punti, usa: !!dati.usa } : GENESI_SITO_VUOTO();
+              await setDoc(doc(id.orgCollection("sito"), "unico"), s); return { id: "unico" };
+            }
+            if (!GENESI_CHIAVI[nome]) throw new Error("collezione sconosciuta: " + nome);
+            const { id: _i, ...resto } = dati || {};
+            const r = await addDoc(id.orgCollection(nome), resto); return { id: r.id };
+          },
+          aggiorna: async (nome, docId, dati) => {
+            if (nome === "confronti" || nome === "sito") return db.aggiungi(nome, nome === "confronti" ? { ...(dati || {}), slot: docId } : dati);
+            if (!GENESI_CHIAVI[nome]) throw new Error("collezione sconosciuta: " + nome);
+            await updateDoc(doc(id.orgCollection(nome), docId), dati || {}); return true;
+          },
+          rimuovi: async (nome, docId) => {
+            if (nome === "confronti") { const slot = slotDi(docId); if (!slot) return false; await deleteDoc(doc(id.orgCollection("confronti"), slot)); return true; }
+            if (nome === "sito") { await deleteDoc(doc(id.orgCollection("sito"), "unico")); return true; }
+            if (!GENESI_CHIAVI[nome]) throw new Error("collezione sconosciuta: " + nome);
+            await deleteDoc(doc(id.orgCollection(nome), docId)); return true;
+          },
+          logout: () => id.logout(),
+        };
+        return db;
+      }
+    } catch (e) { /* SDK assente, senza rete, o nessun membro: si resta locale */ }
+  }
   const st = o.storage || (typeof globalThis !== "undefined" && globalThis.localStorage) || _memoriaStorage();
   const elenco = (nome) => { const v = _leggiJson(st, GENESI_CHIAVI[nome].chiave, []); return Array.isArray(v) ? v : []; };
   const scriviElenco = (nome, arr) => {

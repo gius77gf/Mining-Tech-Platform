@@ -286,6 +286,16 @@ riconciliazione, non come tre ponti bidirezionali.
 
 ## 4. Il blocco strutturale: Genesi non esce dal browser
 
+✅ **Tolto il 02/09, in quattro unità** (`docs/GENESI_FUORI_DAL_BROWSER.md` §5,
+righe 1-4): `genesiData()` in `genesi-data.js` è una porta con la forma delle
+altre app; la pagina non tocca più `localStorage` per i suoi dati (restano la
+memoria del modulo e il consenso); con un membro di un'organizzazione lavora su
+cinque `orgCollection` sotto `apps/genesi/…`, e senza rete o senza login resta
+sulle chiavi del browser di sempre — misurato staccando la rete al browser e
+sotto l'emulatore (81 prove). **Da qui un ponte di DATI verso Genesi è
+possibile**; il primo candidato è il §2 (Genesi→Terra, le nuvole, unità 8 del
+piano). Il testo qui sotto resta come misura di partenza.
+
 ⛔ Genesi **non usa `orgCollection` nemmeno una volta**. I suoi dati stanno in
 `localStorage`, con quattro chiavi:
 

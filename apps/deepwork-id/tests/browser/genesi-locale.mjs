@@ -30,6 +30,11 @@ const QUI = dirname(fileURLToPath(import.meta.url));
 const R = process.env.DW_RADICE || resolve(QUI, "../../../..");
 const CONTROPROVA = process.argv.includes("--controprova");
 const SCATTI = process.argv.includes("--scatti");
+/* --offline: il browser è STACCATO dalla rete (unità 4). La pagina da oggi
+   prova l'SDK, che importa Firebase da gstatic: senza rete quell'import
+   fallisce e la porta DEVE tornare locale da sola — cioè tutto questo banco
+   deve passare identico. Misurato, non dedotto (il piano lo pretende). */
+const OFFLINE = process.argv.includes("--offline");
 const OUT = "/tmp/genesi-locale";
 const TIPI = { ".html": "text/html", ".js": "text/javascript", ".mjs": "text/javascript", ".css": "text/css",
   ".json": "application/json", ".svg": "image/svg+xml", ".png": "image/png", ".webmanifest": "application/manifest+json" };
@@ -66,10 +71,19 @@ if (c !== String(process.pid)) { console.error("✗ contrassegno"); process.exit
 
 const chromium = await prendiChromium();
 const b = await chromium.launch({ executablePath: CHROMIUM });
-const pg = await b.newPage({ viewport: { width: 430, height: 950 } });
+const ctx = await b.newContext({ viewport: { width: 430, height: 950 } });
+const pg = await ctx.newPage();
 const errori = [];
 pg.on("pageerror", (e) => errori.push(e.message));
 const URL_G = `http://127.0.0.1:${porta}/apps/genesi/genesi.html`;
+if (OFFLINE) {
+  /* staccata la rete per TUTTO ciò che non è il nostro server: `setOffline`
+     spegne anche 127.0.0.1, quindi si lascia passare solo la porta del banco */
+  await pg.route("**/*", (r) => (r.request().url().startsWith(`http://127.0.0.1:${porta}/`) ? r.continue() : r.abort("internetdisconnected")));
+} else {
+  // senza rete vera in questo contenitore, l'import da gstatic morirebbe da solo dopo ~13 s: lo si taglia subito
+  await pg.route("https://www.gstatic.com/**", (r) => r.abort());
+}
 await pg.goto(URL_G, { waitUntil: "domcontentloaded" });
 await pg.waitForTimeout(2600);
 // il consenso al primo avvio, se c'è, si accetta come farebbe l'utente
@@ -184,6 +198,6 @@ dice(errori.length === 0, "nessun errore di pagina in tutto il giro", errori.sli
 
 if (SCATTI) { mkdirSync(OUT, { recursive: true }); await pg.screenshot({ path: join(OUT, CONTROPROVA ? "controprova.png" : "home.png"), fullPage: false }); }
 await b.close(); srv.close();
-console.log(`\nRisultato porta sui dati di Genesi: ${ok} passati, ${ko} falliti`);
+console.log(`\nRisultato porta sui dati di Genesi${OFFLINE ? " (senza rete)" : ""}: ${ok} passati, ${ko} falliti`);
 if (CONTROPROVA) { console.log(ko ? "✔ CONTROPROVA OK: col difetto rimesso il banco cade" : "✗ CONTROPROVA FALLITA: il banco non distingue"); process.exit(ko ? 0 : 1); }
 process.exit(ko ? 1 : 0);

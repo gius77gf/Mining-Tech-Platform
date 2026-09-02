@@ -36,6 +36,13 @@
   solo la memoria del modulo e il consenso. `genesi-locale.mjs` copre le
   cinque chiavi (27 prove). Le unità 1-3 valgono da sole: la pagina non tocca
   più `localStorage` per i suoi dati, e non è cambiato niente per chi la usa.
+- [x] ✅ 02/09 **Genesi fuori dal browser, unità 4 di 8 — la modalità live**:
+  `genesiData()` prova l'SDK come `terraData` e con un membro di
+  un'organizzazione lavora su cinque `orgCollection` sotto `apps/genesi/…`;
+  senza rete, senza login o in tour resta locale (misurato staccando la rete
+  al browser: 27 prove identiche). Emulatore: 81 prove (6 nuove su Genesi),
+  nessuna riga nuova nelle regole. Da qui **un ponte di dati verso Genesi è
+  possibile** (mappa §4: il blocco strutturale è tolto).
 - [ ] **Aggiornare la tabella in fondo a `docs/MAPPA_ECOSISTEMA.md`** a ogni
   ponte chiuso: è il registro, e il «6 su 56» deve scendere. *(02/09: 11 su 56.)*
 - [ ] **Una passata in profondità su un'app** (ogni schermata guardata, ogni
@@ -5604,7 +5611,7 @@ numero scritto dove non era stato misurato niente**.*
   nome apre il file sbagliato credendo che sia il più fresco.
 - Le decisioni: `docs/DECISIONI_WEEKEND.md` — pagina d'ingresso in cima.
 - Stato misurato al **18/08** (lanciando le suite, non a memoria):
-  **2.921 prove girano senza rete**. La frase va letta stretta: è la somma
+  **2.920 prove girano senza rete**. La frase va letta stretta: è la somma
   delle **nove** suite che contano asserzioni (`run-kpi` 2396, `run-stile` 327,
   `run-helpers` 75, `run-pointcloud` 32, `claims-convergenza` 19, `run-manifest` 9,
   `run-demo` 8, `bootstrap-rivendicazioni` 7, `fogli-guardati` 3), non tutto ciò che gira nel
@@ -5615,7 +5622,7 @@ numero scritto dove non era stato misurato niente**.*
   sorvegliati ne contavano sette: due convenzioni per lo stesso numero, che è
   il modo più facile di far sembrare sbagliato un conto giusto. Adesso è una
   sola.*
-  Copertura **751/751** e nessuna funzione scoperta; **216 esecuzioni** che
+  Copertura **751/751** e nessuna funzione scoperta; **217 esecuzioni** che
   aprono le pagine in un browser vero, da **88** file di banco distinti (contati
   dalla tabella `BANCHI` di `tutti.mjs`, non a occhio dalla cartella, che di
   `.mjs` ne ha di più perché contiene anche gli aiuti — `giro.mjs`,

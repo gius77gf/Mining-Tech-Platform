@@ -19552,13 +19552,19 @@ console.log("\n— Scudo: il ciclo di vita del DSS (D.Lgs 624/96 art. 6) —");
   const { senzaCommenti } = await import("./tokenizza.mjs");   // i commenti della pagina citano le chiavi: non contano
   const srcPagina = readFileSync(new URL("../../genesi/genesi.html", import.meta.url), "utf8");
   const srcPoc = readFileSync(new URL("../../genesi/nuvola-poc.html", import.meta.url), "utf8");
-  test("genesiData: la forma è quella delle altre porte, e nasce in modo locale", () => {
-    const db = genesi.genesiData({ storage: mappa().st });
-    eq(db.mode, "locale");
+  const porta = async (st) => genesi.genesiData({ storage: st, live: false });   // in node l'SDK non si prova
+  inVolo.push((async () => {
+    const db = await porta(mappa().st);
+    eq(db.mode, "locale", "senza organizzazione la porta è locale");
     for (const f of ["volate", "confronti", "riconciliazioni", "sito", "nuvole", "aggiungi", "aggiorna", "rimuovi", "logout"])
       eq(typeof db[f], "function", "c'è " + f);
     eq([...genesi.GENESI_COLLEZIONI], ["volate", "confronti", "riconciliazioni", "sito", "nuvole"]);
-  });
+    /* ⛔ E SENZA `live:false` la porta prova l'SDK, che in node NON c'è (l'import
+       di Firebase da gstatic fallisce): deve tornare locale da sola, non
+       morire — è lo stesso cammino della pagina senza rete. */
+    const senzaRete = await genesi.genesiData({ storage: mappa().st });
+    eq(senzaRete.mode, "locale", "l'SDK che non si carica riporta a locale, senza errore");
+  })());
   test("⛔ le chiavi e i tetti sono QUELLI DELLA PAGINA, letti dal suo sorgente e non ricordati", () => {
     /* dalle unità 2 e 3 (02/09) le cinque chiavi passano dalla porta: nomi e
        tetti stanno nel modulo, e la pagina NON deve più toccarli da sé. Nella
@@ -19578,7 +19584,7 @@ console.log("\n— Scudo: il ciclo di vita del DSS (D.Lgs 624/96 art. 6) —");
     ok(srcPoc.includes("while(a.length>30) a.shift()"), "il tetto delle nuvole in nuvola-poc è 30");
   });
   inVolo.push((async () => {
-    const { m, st } = mappa(); const db = genesi.genesiData({ storage: st });
+    const { m, st } = mappa(); const db = await porta(st);
     eq(await db.volate(), [], "vuoto all'inizio");
     const { id } = await db.aggiungi("volate", { nome: "V1", design: { B: 3 } });
     ok(typeof id === "string" && id.startsWith("v"), "l'id nasce con la v, come nella pagina");
@@ -19599,7 +19605,7 @@ console.log("\n— Scudo: il ciclo di vita del DSS (D.Lgs 624/96 art. 6) —");
     m.set("genesiVolate", JSON.stringify({ non: "un elenco" })); eq(await db.volate(), [], "e un non-elenco è vuoto");
   })());
   inVolo.push((async () => {
-    const { m, st } = mappa(); const db = genesi.genesiData({ storage: st });
+    const { m, st } = mappa(); const db = await porta(st);
     eq(await db.confronti(), [], "nessuno scatto");
     eq((await db.aggiungi("confronti", { slot: "a", ts: "t1", kpi: { ppv: 2 } })).id, "A", "lo slot si normalizza in maiuscolo");
     eq(JSON.parse(m.get("genesiCmpA")), { ts: "t1", kpi: { ppv: 2 } }, "sotto la chiave genesiCmpA, SENZA il campo slot (forma di cmpSave)");
@@ -19611,7 +19617,7 @@ console.log("\n— Scudo: il ciclo di vita del DSS (D.Lgs 624/96 art. 6) —");
     m.set("genesiCmpB", "{rotto"); eq(await db.confronti(), [], "uno scatto corrotto è null, come _cmpLoad: sparisce dall'elenco");
   })());
   inVolo.push((async () => {
-    const { m, st } = mappa(); const db = genesi.genesiData({ storage: st });
+    const { m, st } = mappa(); const db = await porta(st);
     eq(await db.sito(), { punti: [], usa: false }, "il sito vuoto è quello di sitoStore");
     await db.aggiungi("sito", { punti: [{ d: 10, ppv: 1 }], usa: true, extra: "no" });
     eq(JSON.parse(m.get("genesiSito")), { punti: [{ d: 10, ppv: 1 }], usa: true }, "solo punti e usa, sotto genesiSito");
@@ -19624,9 +19630,9 @@ console.log("\n— Scudo: il ciclo di vita del DSS (D.Lgs 624/96 art. 6) —");
     eq((await db.riconciliazioni()).length, 61, "le riconciliazioni non hanno tetto, come oggi");
     let err = null; try { await db.aggiungi("boh", {}); } catch (e) { err = e.message; }
     ok(/sconosciuta/.test(err || ""), "una collezione che non esiste è un errore, non una chiave nuova");
-    const senza = genesi.genesiData(); eq(senza.mode, "locale"); await senza.aggiungi("volate", { nome: "x" });
+    const senza = await genesi.genesiData({ live: false }); eq(senza.mode, "locale"); await senza.aggiungi("volate", { nome: "x" });
     eq((await senza.volate()).length, 1, "senza storage e senza localStorage: memoria che dura quanto l'istanza");
-    eq((await genesi.genesiData().volate()).length, 0, "e un'altra istanza non la vede");
+    eq((await (await genesi.genesiData({ live: false })).volate()).length, 0, "e un'altra istanza non la vede");
   })());
 }
 /* ===== fine Genesi · i dati dietro una porta sola ===== */

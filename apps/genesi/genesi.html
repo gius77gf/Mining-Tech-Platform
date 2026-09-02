@@ -1160,7 +1160,9 @@ import { numeroScritto, messaggioNumero, perCampo, montaGuardiaInteri, oggiISO, 
    ⚠️ Si chiama GDB e non `db`: alla riga del bottone «elimina foro» c'è già un
    `const db=$('diDel')` locale, e un omonimo rende invisibile un nome libero
    (CLAUDE.md, nomi-liberi). */
-const GDB = genesiData();
+// `await`: la porta prova l'organizzazione (unità 4) e, se non c'è o non c'è
+// rete, torna locale da sola — la pagina non lo sa e non deve saperlo
+const GDB = await genesiData();
 /* LA LEGGE DI SITO STA IN UNA COPIA DI LAVORO (unità 3): `sitoStore()` è
    sincrona e alimenta `ppvSite()` in tutti i calcoli della PPV, quindi non può
    aspettare una porta asincrona a ogni chiamata. Si legge UNA volta qui — la

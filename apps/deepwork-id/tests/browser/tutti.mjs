@@ -995,6 +995,7 @@ const BANCHI = [
   ['le frasi limite di Genesi', 'genesi-frasi-limite.mjs', []],
   ['frasi limite di Genesi · controprova', 'genesi-frasi-limite.mjs', ['--controprova'], true],
   ['Genesi: le volate passano dalla porta sui dati', 'genesi-locale.mjs', []],
+  ['porta sui dati di Genesi · senza rete', 'genesi-locale.mjs', ['--offline']],
   ['porta sui dati di Genesi · controprova', 'genesi-locale.mjs', ['--controprova'], true],
   /* ⛔ AGGIUNTO IL 14/08 — lo stesso principio del fondatore applicato al
      TEMPO invece che al dato. Fra l'apertura della pagina e l'arrivo dei dati
