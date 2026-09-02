@@ -1274,8 +1274,20 @@ for (const [nome, file, argomenti, eControprova, appeso] of DA_FARE) {
     /* `detached` serve al kill dell'ALBERO qui sotto: senza, il figlio resta
        nel gruppo del runner e `process.kill(-pid)` ammazzerebbe il runner
        stesso. Con lui, un Chromium orfano non sopravvive al limite. */
+    /* ⛔ IL PROXY DEL CONTENITORE FA ASPETTARE 12,7 SECONDI A OGNI PAGINA, e i
+       banchi che aspettano un tempo fisso misurano una schermata VUOTA.
+       Misurato il 02/09: Chromium legge `HTTPS_PROXY` dall'ambiente e manda lì
+       l'import di Firebase da gstatic; il proxy tiene la connessione e la
+       azzera dopo ~12,7 s, e solo allora l'app ripiega sulla dimostrazione.
+       Senza quelle variabili l'import fallisce in 260 ms. Sei banchi di Conti
+       lanciati a mano davano «#vend-list è vuota: non ho misurato niente»,
+       «il file esce davvero: KO» su tutti i CSV — cioè accusavano il prodotto
+       dell'ambiente. Qui le variabili si tolgono al figlio, non al runner:
+       `giro-node` e chi usa `curl` le vogliono. */
+    const senzaProxy = Object.fromEntries(Object.entries(process.env)
+      .filter(([k]) => !/^(https?_proxy|no_proxy)$/i.test(k)));
     const p = file
-      ? spawn(process.execPath, [join(QUI, file), PORTA, ...argomenti], { stdio: 'inherit', detached: true })
+      ? spawn(process.execPath, [join(QUI, file), PORTA, ...argomenti], { stdio: 'inherit', detached: true, env: senzaProxy })
       : spawn(process.execPath, ['-e', appeso ? 'setInterval(() => {}, 1000)' : 'setTimeout(() => {}, 600)'],
               { stdio: 'inherit', detached: true });
     /* si uccide l'ALBERO, non solo il capo: un banco che alza un browser lascia

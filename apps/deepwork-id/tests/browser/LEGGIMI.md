@@ -1151,3 +1151,16 @@ lavorazione da un altro cantiere nello stesso momento, e sovrapporsi a chi
 scrive è il difetto che `git stash` con cantieri aperti ha già fatto pagare.
 Va unita al primo passaggio: finché ci sono due elenchi, «nessuna frase al
 plurale» vuol dire due cose diverse a seconda di chi lo stampa.
+
+## Un banco lanciato a mano si lancia SENZA le variabili del proxy *(02/09)*
+
+Chromium legge `HTTPS_PROXY` dall'ambiente e ci manda l'import di Firebase da
+gstatic: il proxy del contenitore tiene la connessione **12,7 secondi** prima
+di azzerarla, e solo allora l'app ripiega sulla dimostrazione. Un banco che
+aspetta 2,6 s fissi misura una schermata vuota e accusa il prodotto («#vend-list
+è vuota», «il file esce davvero: KO»). `tutti.mjs` toglie quelle variabili ai
+figli; a mano si fa così:
+
+    env -u HTTPS_PROXY -u HTTP_PROXY -u https_proxy -u http_proxy node conti-frasi.mjs
+
+Misurato: con le variabili i dati arrivano dopo 12.680 ms, senza dopo 260.

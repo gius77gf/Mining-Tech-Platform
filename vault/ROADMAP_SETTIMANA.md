@@ -17,6 +17,19 @@
 - [ ] **Una passata in profondità su un'app** (ogni schermata guardata, ogni
   file che esce aperto, i numeri tranquilli cercati). Prima candidata: Conti,
   perché è quella che il ponte tocca e quella che il mercato guarda (la pesa).
+  ⏱️ **Prima tappa fatta il 02/09, coi banchi**: le sei passate di Conti
+  (`documenti-che-escono` 12 punti d'uscita su 12 aperti, `stampe`,
+  `numeri-tranquilli`, `barre-peso` 25 barre su 4 liste, `frasi`, `frasi-da-uno`
+  41 controlli) → **0 difetti del prodotto**. I 20+ KO della prima lettura erano
+  tutti dell'AMBIENTE (il proxy del contenitore fa aspettare 12,7 s a ogni
+  pagina: tolto ai figli in `tutti.mjs`) e due del CALENDARIO (fixture con una
+  scadenza assoluta al 30/08 e un costo «sei giorni fa» che il 2 del mese cade
+  nel mese sbagliato: rese relative a oggi). Resta da fare la parte che i banchi
+  non fanno: **guardare** ogni schermata con gli occhi e aprire i file che
+  escono, con la domanda «chi decide i suoi numeri?». La ricerca sulla pesa a
+  ponte (`docs/RICERCA_CONTINUA_conti.md`, 02/09) lascia 5 domande sul
+  meccanismo da fare al codice — prima fra tutte: **con la tara non registrata,
+  chi decide il netto?**
 
 ## Task
 - [x] `apps/conti/conti-data.js`: `api.costiFlotta` sul modello di

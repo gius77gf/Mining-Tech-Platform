@@ -190,3 +190,48 @@ colpa di nessuno — il cantiere girava di fianco alla ricerca.
 ⚠️ Aggiornato qui invece che riscritto sopra, perché **la riga vecchia serve**:
 una ricerca che si autocorregge in silenzio non insegna niente a chi la rilegge
 fra un mese.
+
+---
+
+## Ricerca del 2026-09-02 — la pesa a ponte: che cosa esce e in che forma
+
+### Fatti dal mondo
+
+- **Campi tipici del cartellino di pesata**: numero progressivo pesata, data pesata, ora prima pesata, ora seconda pesata, targa/numero mezzo, cliente/fornitore, materiale/descrizione merce, peso lordo (prima pesata), peso tara (mezzo vuoto, dedotto da seconda pesata prima del carico), peso netto (merce pesata), codice pesata/numero ricevuta. [Bottaro Bilance - software pese a ponte; seconda mano]
+
+- **Struttura di pesata ponte in due tempi**: il mezzo entra (registrazione lordo), poi viene caricato, rientra (registrazione lordo nuovo), dal quale il sistema calcola tara mezzo e netto caricato. Stampa automatica di documenti per il cliente. [seconda mano - pratica industriale standard]
+
+- **Termini base**: peso lordo = totale (merce + contenitore); peso netto = sola merce; tara = solo contenitore/mezzo. [FocusJunior.it, chimica-online.it; seconda mano]
+
+- **Formati di esportazione software pesa**: PDF, Excel, Word, CSV sono i formati comuni citati da Laumas, Dini Argeo, WeightIT. [WeightIT/Metricode; seconda mano]
+
+- **Protocolli di comunicazione peso**: RS232 seriale (standard storico), Modbus RTU su RS232/RS485 (per automazione industriale), Ethernet con DHCP, USB, Wi-Fi opzionale su indicatori Dini Argeo DFWX. [Dini Argeo, Sinergica Soluzioni; seconda mano]
+
+- **Software specializzati per cave di inerti**: Vincro offre software di pesatura con integrazione diretta agli indicatori peso comuni, stampa automatica DDT/ricevute di pesata, gestione prezzi e fatture, esportazione dati. [vincro.it; seconda mano]. Coop Bilanciai fornisce software personalizzato interno con ricezione ordini da gestionale esterno e trasmissione dati pesatura verso gestionale per bollettazione/fatturazione/magazzino. [coopbilanciai.com; seconda mano].
+
+- **Legame pesata → DDT**: il DDT (Documento di Trasporto) contiene numero identificativo, dati delle parti, descrizione merce, numero pezzi, numero pacchi, pesi dei pacchi, data consegna. Quando il sistema di pesata emette un DDT, i dati di carico pesato alimentano automaticamente il campo quantità/peso del DDT. [Fattura24, Fiscomania; seconda mano]
+
+- **DDT nella fattura elettronica SdI**: sezione `DatiDDT` in XML contiene i riferimenti al documento di trasporto. È possibile allegare il DDT nel file XML e inserire più sezioni DatiDDT quando una fattura copre più DDT. Il DDT specifica peso e quantità della merce trasportata, che poi la fattura legge come base di quantificazione. [Fattura.it, WindDoc; seconda mano]
+
+- **Integrazione pesata-gestionale**: piattaforme gestionali come Ergo captano automaticamente i dati di pesatura quando viene emesso un DDT, trasferendo il peso al sistema di gestione magazzino e preparando i dati per la bollettazione e la fatturazione. [infominds.eu; seconda mano]
+
+- **Verifica metrica pesa a ponte**: la normativa cita D.M. 93/2017 per le verifiche periodiche delle bilance industriali. [dedotto da riferimenti a norme metrologiche; non verificato direttamente]
+
+### Formati di export trovati
+
+| Produttore | Formato | Colonne/Campi principali | Fonte |
+|---|---|---|---|
+| Coop Bilanciai | PC/USB (formato non specificato) | Dati pesatura da indicatore → foglio dati/gestionale | coopbilanciai.com |
+| Dini Argeo | Software AF03/AF04/AF05 per indicatori 3590E/CPWE | Configurabile (pesatura, statistiche, etichettatura, pesa-veicoli) | diniargeo.it |
+| Laumas | Supervisory software, formato non nominato | Raccolta e archiviazione dati pesatura per archivio | laumas.com |
+| WeightIT (Metricode) | PDF, Excel, Word | Kilogrammi, clienti/fornitori, descrizione merce | weightit.it |
+| Vincro | CSV/dati strutturati | Carico pesato, DDT, intestazione cliente, materiale, prezzo | vincro.it |
+
+### Domande per chi ha il codice in mano
+
+1. Quando entra in sistema una pesata ponte con tara non registrata (mezzo nuovo, tara mancante), come decide il netto: rimanda l'operatore, assume tara zero, o dichiara non-calcolabile?
+2. Un documento di pesata esce da questa app collegato a un DDT per numero, data e ora, oppure rimane separato e il DDT lo legge in un momento diverso?
+3. Dove nasce il nesso fra la quantità della pesata e il peso dichiarato nel DDT: nella app di pesa, oppure il DDT lo legge da un'esportazione successiva del gestionale?
+4. Se un'esportazione CSV di pesate verso la fatturazione specifica il netto, e il cliente dopo il carico scopre che il netto era sbagliato, con quale meccanismo si nota il disallineamento (nota di credito, rettifica)?
+5. Il sistema conosce quale indicatore peso (quale pesa a ponte, quale ID di dispositivo) ha registrato una pesata, o è trasparente e scrive solo il numero finale?
+
