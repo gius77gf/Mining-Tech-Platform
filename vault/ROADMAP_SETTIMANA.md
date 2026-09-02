@@ -111,6 +111,14 @@
   11, verifica periodica 21: zero KO). Nessun difetto trovato. Le due
   mancanze della ricerca (denuncia INAIL come scadenza, UNI 7249 per nome)
   restano sospese a una lettura del testo primario.
+- [x] ✅ 02/09 sera **Passata in profondità su Sentinella**: sei schermate a
+  320 px (nessun NaN né errore; la tabella del Programma scorre dentro il suo
+  `.tab-wrap`, che è il meccanismo previsto), contrasto nei tre temi (458
+  testi, 0 sotto soglia), la famiglia dei banchi rilanciata (disegni 48,
+  numeri tranquilli 26, periodo dell'adempimento 34, dichiarazioni del report
+  21: zero KO). Nessun difetto trovato. Le tre mancanze della ricerca (notifiche
+  fuori dall'app = spesa del fondatore; PM10 giornaliero; classi acustiche)
+  restano sospese come scritto nel delta.
 - [ ] **Aggiornare la tabella in fondo a `docs/MAPPA_ECOSISTEMA.md`** a ogni
   ponte chiuso: è il registro, e il «6 su 56» deve scendere. *(02/09: 12 su 56.)*
 - [ ] **Una passata in profondità su un'app** (ogni schermata guardata, ogni
