@@ -1,4 +1,53 @@
-# Roadmap Settimana — lunedì 03/08 → venerdì 07/08/2026
+# Roadmap Settimana — lunedì 31/08 → venerdì 04/09/2026
+### v7.0 "I DETTAGLI DI OGNI APP" — la fase aperta dal fondatore il 26/08
+
+> Riarmata il 02/09 dalla sessione interattiva insieme al fondatore
+> («riprendiamo il lavoro da dove abbiamo lasciato, con tanto di ripresa della
+> routine»). La routine automatica era ferma dal 14/08.
+> ⚠️ Le settimane precedenti restano **sotto**, in questo stesso file, da
+> «Settimane precedenti» in giù: sono storia, e i loro task aperti valgono
+> ancora — ma la settimana in corso è questa.
+
+## Obiettivi della settimana
+- [x] ✅ 02/09 **Chiudere il primo ponte, Flotta→Conti** — lo stesso euro contato due
+  volte. La funzione condivisa c'è (`confrontoCostiMezzi`, 7 prove); mancano
+  la lettura vera da Conti, i dati di dimostrazione e il punto nella pagina.
+- [ ] **Aggiornare la tabella in fondo a `docs/MAPPA_ECOSISTEMA.md`** a ogni
+  ponte chiuso: è il registro, e il «6 su 56» deve scendere.
+- [ ] **Una passata in profondità su un'app** (ogni schermata guardata, ogni
+  file che esce aperto, i numeri tranquilli cercati). Prima candidata: Conti,
+  perché è quella che il ponte tocca e quella che il mercato guarda (la pesa).
+
+## Task
+- [x] `apps/conti/conti-data.js`: `api.costiFlotta` sul modello di
+  `api.rilieviTerra` (istanza SDK pigra, `null` se non raggiungibile)
+- [x] dimostrazione: `costiFlotta` coerente con `DEMO.costi`, con almeno una
+  voce `daMezzo` presente in tutt'e due (il caso che il ponte esiste per
+  mostrare) — e dichiarata, non lasciata al caso *(nel commento accanto ai
+  dati: la dimostrazione di Conti non ha un `meta`, e fl1/fl3 sono lo stesso
+  gasolio di c02/c05 alla cifra, non un sorteggio)*
+- [x] `apps/conti/index.html`: il badge «anche in Flotta» diventa il confronto
+  vero; con Flotta assente NON compare uno zero (misurato col browser)
+- [x] la riga 3a della mappa aggiornata, e la tabella in §6 (6 → 7 ponti)
+- [ ] checkpoint per ogni unità
+
+## Sospeso, non annullato
+- ⏸️ **Nomi e temi delle app** (fondatore, 27/08): stato e strade scartate in
+  `docs/NOMI_E_MARCHI.md`. I nomi restano quelli attuali.
+
+## Vincoli
+- Niente push su main: PR. Nessuna spesa. Marchio Deepwork e marchio Genesi
+  intoccabili. Le decisioni commerciali sono del fondatore.
+
+## Riferimenti
+- Mappa: `docs/MAPPA_ECOSISTEMA.md` · Mercato: `docs/MERCATO_E_CONCORRENTI.md`
+- Ultimo checkpoint: vedi `node apps/deepwork-id/tests/date-checkpoint.mjs`
+
+---
+
+# Settimane precedenti (archivio, in questo stesso file)
+
+## Roadmap Settimana — lunedì 03/08 → venerdì 07/08/2026
 ### v6.0 "LO STANDARD DELLE FUNZIONI" — dalla sequenza dichiarata dal fondatore il 27/07
 
 > La settimana precedente (27/07 → 01/08, l'estetica) resta nella storia di git:
@@ -553,6 +602,8 @@ nome. Un nome si cerca con `grep`; una riga si sposta.
 grep -n "^- \[ \] \*\*" vault/ROADMAP_SETTIMANA.md
 ```
 
+- `Aggiornare la tabella in fondo a `docs/MAPPA_ECOSISTEMA.md``
+- `Una passata in profondità su un'app`
 - `D-ter. Le otto verdi che vogliono un cantiere`
 - `B12. IL RIPIEGO SILENZIOSO NEL CORE — censito, e sono CANDIDATI, non`
 - `D. Le 24 decisioni ancora aperte`
@@ -5407,8 +5458,8 @@ numero scritto dove non era stato misurato niente**.*
   sorvegliati ne contavano sette: due convenzioni per lo stesso numero, che è
   il modo più facile di far sembrare sbagliato un conto giusto. Adesso è una
   sola.*
-  Copertura **751/751** e nessuna funzione scoperta; **200 esecuzioni** che
-  aprono le pagine in un browser vero, da **82** file di banco distinti (contati
+  Copertura **751/751** e nessuna funzione scoperta; **203 esecuzioni** che
+  aprono le pagine in un browser vero, da **83** file di banco distinti (contati
   dalla tabella `BANCHI` di `tutti.mjs`, non a occhio dalla cartella, che di
   `.mjs` ne ha di più perché contiene anche gli aiuti — `giro.mjs`,
   `impronta.mjs`, il runner stesso).

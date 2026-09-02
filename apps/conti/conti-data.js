@@ -77,6 +77,8 @@ export { numeroDichiarato } from "../../shared/dw-ponti.js";
    quindi serve anche l'import vero — con `export … from` da solo il modulo
    si carica e muore alla prima chiamata, senza errori di sintassi. */
 export { VOCI_COSTO, voceCosto, gruppoDiVoce } from "../../shared/dw-ponti.js";
+/* il ponte Flotta→Conti: stessa regola, la pagina lo prende da qui */
+export { confrontoCostiMezzi } from "../../shared/dw-ponti.js";
 import { gruppoDiVoce, VOCI_COSTO } from "../../shared/dw-ponti.js";
 
 export const DEMO = {
@@ -276,6 +278,26 @@ export const DEMO = {
     // confronto non devono entrare, ed è giusto che si veda
     { id: "t6", titolo: "Prossimo rilievo", data: "2026-08-31", volumeM3: null, stato: "pianificato" },
     { id: "t0", titolo: "Rilievo di fine 2025", data: "2025-11-20", volumeM3: 40, stato: "elaborato", metodo: "RTK", gsd: "2" },
+  ],
+  // COSTI DEI MEZZI COME LI REGISTRA FLOTTA (solo per la modalità dimostrativa):
+  // in un'organizzazione vera arrivano dall'app Flotta. Qui sono finti ma
+  // costruiti APPOSTA per mostrare il caso per cui il ponte esiste — e i casi
+  // sono decisi PRIMA, non lasciati al caso:
+  //  · fl1 e fl3 sono LO STESSO gasolio di c02 e c05 qui sopra: stessa data,
+  //    stesso importo. È l'euro contato due volte, ed è quello che la
+  //    schermata deve far vedere;
+  //  · fl2 e fl4 sono manutenzioni che in Conti non ci sono: Flotta ne sa di
+  //    più, e il confronto lo dice;
+  //  · fl5 è un noleggio che sta SOLO in Flotta;
+  //  · fl6 è senza data: non deve sparire dal periodo in silenzio, deve
+  //    essere contato a parte.
+  costiFlotta: [
+    { id: "fl1", data: "2026-02-14", voce: "carburante", importo: 26, nota: "Gasolio pala e dumper", mezzo: "Pala CAT 966" },
+    { id: "fl2", data: "2026-02-20", voce: "manutenzione", importo: 18, nota: "Filtri e olio motore", mezzo: "Dumper 1" },
+    { id: "fl3", data: "2026-03-13", voce: "carburante", importo: 24, nota: "Gasolio, rifornimento", mezzo: "Pala CAT 966" },
+    { id: "fl4", data: "2026-03-22", voce: "manutenzione", importo: 31, nota: "Pneumatici posteriori", mezzo: "Dumper 2" },
+    { id: "fl5", data: "2026-04-02", voce: "noleggio", importo: 45, nota: "Escavatore a noleggio, aprile", mezzo: "Escavatore (nolo)" },
+    { id: "fl6", voce: "carburante", importo: 22, nota: "Buono gasolio senza data", mezzo: "Dumper 1" },
   ],
   // REGISTRO COSTI d'esempio. Tre righe stanno qui apposta perché fanno vedere
   // cosa succede quando il dato non è pulito — che è la condizione normale del
@@ -2945,6 +2967,25 @@ export async function contiData() {
             .docs.map(d => ({ id: d.id, ...d.data() }));
         } catch (e) { return null; }
       };
+      // ── PONTE CON FLOTTA — SOLA LETTURA ───────────────────────────────
+      // Stessa forma del ponte con Terra qui sopra: seconda istanza dell'SDK
+      // sull'app "flotta", stessa organizzazione, aperta solo la prima volta
+      // che serve. ⛔ Se Flotta non c'è o la lettura non è permessa si torna
+      // `null`, e `confrontoCostiMezzi` risponde «non disponibile» — MAI un
+      // totale a zero, che qui sarebbe la bugia peggiore: darebbe il via libera
+      // a scrivere il doppione.
+      let idFlotta;                      // undefined = mai provato, null = non c'è
+      api.costiFlotta = async () => {
+        if (idFlotta === undefined) {
+          try { idFlotta = await DeepworkID.init({ appId: "flotta" }); }
+          catch (e) { idFlotta = null; }
+        }
+        if (!idFlotta) return null;
+        try {
+          return (await getDocs(idFlotta.orgCollection("costi")))
+            .docs.map(d => ({ id: d.id, ...d.data() }));
+        } catch (e) { return null; }
+      };
     } else if (id.authState() === "tour") mode = "tour";
   } catch (e) {}
   if (mode !== "live") {
@@ -2961,6 +3002,9 @@ export async function contiData() {
       // in dimostrazione i rilievi non arrivano da Terra: sono finti, ma
       // coerenti con le pesate d'esempio (vedi DEMO.rilieviTerra)
       rilieviTerra: async () => mem.rilieviTerra || [],
+      // e i costi dei mezzi non arrivano da Flotta: sono finti, ma coerenti con
+      // i costi d'esempio qui sopra (vedi DEMO.costiFlotta)
+      costiFlotta: async () => mem.costiFlotta || [],
       logout: async () => {},
       aggiungi: async (n, d) => { const id = "m" + Math.random().toString(36).slice(2, 8); (mem[n] = mem[n] || []).push({ id, ...d }); return { id }; },
       aggiorna: async (n, i, d) => { const x = (mem[n] || (mem[n] = [])).find(v => v.id === i); if (x) applicaPercorsi(x, d); },

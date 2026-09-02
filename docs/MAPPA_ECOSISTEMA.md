@@ -15,6 +15,9 @@ Verificato contro il commit dichiarato in fondo.
 
 ## 1. I ponti che esistono oggi: SEI su cinquantasei
 
+> ⏱️ Scritto il 26/08. Dal 02/09 sono **sette**: il settimo è Flotta→Conti, e sta
+> raccontato in §3a. Il titolo resta com'era perché il conto vivo è la tabella in §6.
+
 Un ponte è un'app che legge i dati di un'altra. Si misura cercando chi
 inizializza l'SDK con l'`appId` di qualcun altro:
 
@@ -109,6 +112,36 @@ mostrare quale.
 **Valore: alto — non è una comodità, è la correttezza di un totale.
 Costo: basso**, perché la parte difficile (il vocabolario comune) è già fatta e
 il punto d'aggancio esiste già nella pagina di Conti.
+
+✅ **COSTRUITO IL 02/09 — e la riga qui sopra resta per raccontare da dove si
+partiva.** Il ponte è nella direzione Flotta→Conti, perché è Conti a sommare:
+· `confrontoCostiMezzi` in `shared/dw-ponti.js` (7 prove in `run-kpi`), che
+  mette in fila sulle sole voci `daMezzo` quanto c'è in Conti e quanto in
+  Flotta nel periodo, voce per voce, e dichiara a parte le righe senza data,
+  senza importo e a zero — un importo scritto zero NON sparisce nel conto;
+· `api.costiFlotta` in `apps/conti/conti-data.js`, seconda istanza SDK pigra
+  con `appId: "flotta"` sul modello di `rilieviTerra`: `null` se Flotta non
+  risponde, e `null` resta `null` fino alla schermata;
+· nella schermata Costi di Conti l'avviso «anche in Flotta» è diventato la
+  tabella del confronto, con **tre esiti distinti**: Flotta non raggiungibile
+  (nota in tono avviso, **nessun numero di Flotta**, «non lo do per zero»);
+  voci in tutt'e due (riga evidenziata, «gonfiato fino a …»); Flotta che
+  risponde e non ha niente nel periodo (detto anche quello).
+Misurato col browser a 430 e 320 px nei tre temi: con la dimostrazione
+carburante e manutenzione escono «in tutt'e due» (Flotta 50 € su 2 righe e
+49 € su 2 righe), il noleggio solo di là, la riga senza data dichiarata; col
+modulo servito che risponde `null` la nota è in tono avviso e non contiene
+nessuno zero. Contrasti degli inchiostri della tabella ≥ 5,5:1 in tutti e tre
+i temi. La pagina non scorre mai di lato; a 320 px scorre la sola cassa della
+tabella.
+
+    grep -c "confrontoCostiMezzi" shared/dw-ponti.js apps/conti/conti-data.js apps/conti/index.html
+    → 2 · 1 · 3   (definizione, ri-esportazione, import + chiamata + commento)
+
+⚠️ Quello che il ponte NON fa, e va detto: non toglie il doppione, lo
+**mostra**. Decidere in quale app vive una spesa resta della persona. E Flotta
+continua a non sapere che la bandiera esista (`flotta 0`): il verso
+Conti→Flotta è un ponte a sé, non ancora costruito.
 
 ### 3b. `scadenze` — Terra, Flotta **e** Scudo
 Tre app tengono un proprio scadenzario, ognuna col suo stato. Chi dirige la
@@ -209,12 +242,12 @@ Per onestà, e perché nessuno lo usi per decidere cose che non copre:
 
 | | oggi |
 |---|---|
-| ponti di DATI esistenti | **6** su 56 direzioni |
+| ponti di DATI esistenti | **7** su 56 direzioni *(era 6; il settimo è Flotta→Conti, 02/09, §3a)* |
 | ponti di FILE | almeno **1** (Genesi→Sentinella) — mai censiti, vedi §1 |
-| app che nessuno legge | **5** (Genesi, Flotta, Conti, Sentinella, Deepwork ID) |
-| app senza alcuno scambio DATI | **2** (Genesi, Flotta) — Deepwork ID esclusa, è l'identità |
-| …di cui davvero scollegate da tutto | **1** (Flotta): Genesi un ponte ce l'ha, di file |
-| sovrapposizioni non collegate | **6 famiglie** (§3) |
+| app che nessuno legge | **4** (Genesi, Conti, Sentinella, Deepwork ID) *(era 5: Flotta adesso la legge Conti)* |
+| app senza alcuno scambio DATI | **1** (Genesi) — Deepwork ID esclusa, è l'identità *(era 2)* |
+| …di cui davvero scollegate da tutto | **0** *(era 1, Flotta)*: Genesi un ponte ce l'ha, di file |
+| sovrapposizioni non collegate | **5 famiglie** (§3) *(era 6: la 3a è collegata in un verso)* |
 
 Chi costruisce un ponte aggiorna questa tabella.
 

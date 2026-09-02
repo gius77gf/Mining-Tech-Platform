@@ -493,6 +493,38 @@ input[type=number].dw-input,
 
 /* ─────────────── riquadri informativi (copia di .info-box) ─────────────── */
 .note.recap{--note-bar:var(--app-support2)}
+/* la nota che deve far alzare lo sguardo (Flotta non raggiungibile): la barra
+   prende il colore dell'avviso, il resto resta una nota */
+.note.warn{--note-bar:var(--warn)}
+/* ─────────────── il confronto con Flotta (02/09) ───────────────
+   È la stessa cassa delle tabelle a schermo di questa casa (Sentinella, `.tab`):
+   fondo scuro, intestazioni piccole in maiuscolo, cifre allineate. Scorre da
+   sola in orizzontale sui telefoni stretti — la pagina non si muove di lato —
+   e SOLO la colonna della voce va a capo: un importo spezzato su due righe si
+   legge come due importi. */
+.note .ponte-wrap{
+  overflow-x:auto; -webkit-overflow-scrolling:touch; margin:10px 0 8px;
+  background:var(--dark); border:1px solid var(--border); border-radius:var(--r-sm); box-shadow:var(--edge);
+}
+.note table.ponte{width:100%; border-collapse:collapse; font-size:12px}
+.note .ponte th{
+  font-family:'Barlow',sans-serif; font-size:8.5px; font-weight:600; letter-spacing:1.1px;
+  text-transform:uppercase; color:var(--muted); text-align:left; line-height:1.35;
+  padding:8px 10px; border-bottom:1px solid var(--border2); background:var(--panel);
+}
+.note .ponte td{
+  padding:7px 10px; border-bottom:1px solid var(--border); color:var(--muted2);
+  font-variant-numeric:tabular-nums; white-space:nowrap;
+}
+.note .ponte td:first-child{white-space:normal; color:var(--text); font-weight:600}
+.note .ponte td small{display:block; font-size:10.5px; color:var(--muted); font-weight:400; line-height:1.3}
+.note .ponte tr.doppia td small{color:var(--muted)}
+.note .ponte tr:last-child td{border-bottom:none}
+/* la riga che compare in tutt'e due le app è quella che gonfia il totale:
+   le cifre prendono l'inchiostro dell'avviso (--ink-wr, già tarato per il
+   testo piccolo), la voce resta nel colore del testo */
+.note .ponte tr.doppia td{color:var(--ink-wr)}
+.note .ponte tr.doppia td:first-child{color:var(--text)}
 
 /* ─────────────── riga di totale: la somma che chiude la colonna ─────────────── */
 .tot{
@@ -1825,7 +1857,7 @@ label.item:has(.dw-chk:checked){
     avanzamentoOrdine, descriviAvanzamento, portafoglioOrdini,
     preventiviDaSeguire, prezzoDaOrdine, descriviPrezzoOrdine,
     validaScaglioni, scaglionePer, applicaScaglione, etichettaScaglione,
-    descriviScaglione } from "./conti-data.js";
+    descriviScaglione, confrontoCostiMezzi } from "./conti-data.js";
   /* B8 (14/08): `fileDiAltraTabella` risponde «questa prima riga è
      l'intestazione di un'ALTRA nostra tabella?». È l'unica domanda possibile,
      perché il file SENZA intestazione deve continuare a entrare. */
@@ -2091,6 +2123,7 @@ label.item:has(.dw-chk:checked){
   // disponibili: «non lo so» e «zero» sono due risposte diverse, e l'app deve
   // saperle distinguere invece di mostrare un cavato di zero che non esiste.
   let RIL = null, rilLetti = false;
+  let CFL = null, cflLetti = false;   // i costi dei mezzi letti da Flotta: null = non raggiungibile
   /* Il volume che il costo al metro cubo sta usando ARRIVA DA TERRA, oppure
      l'ha scritto una persona. Non è la stessa cosa e non si mostra uguale: un
      numero misurato porta con sé quanti rilievi, di che periodo e cosa è
@@ -4853,6 +4886,15 @@ label.item:has(.dw-chk:checked){
     try { RIL = db.rilieviTerra ? await db.rilieviTerra() : null; } catch (e) { RIL = null; }
     return RIL;
   }
+  // E i costi dei mezzi da Flotta, con la stessa regola: una volta sola,
+  // quando servono. ⛔ `null` resta `null`: vuol dire «Flotta non ha risposto»,
+  // e la schermata lo deve dire — non tradurlo in «Flotta non ha costi».
+  async function caricaCostiFlotta() {
+    if (cflLetti) return CFL;
+    cflLetti = true;
+    try { CFL = db.costiFlotta ? await db.costiFlotta() : null; } catch (e) { CFL = null; }
+    return CFL;
+  }
 
   // ══════════════════════════════════════════════════════════════════════
   // REGISTRO COSTI — dove se ne va il denaro, e quanto costa un metro cubo
@@ -5166,13 +5208,54 @@ label.item:has(.dw-chk:checked){
       + `<div class="tot"><span class="tot-l">Totale costi del periodo</span>
          <span class="tot-n">${eur(r.totale)}</span></div>`;
 
-    // le voci che Flotta registra già: dirlo è l'unico modo per non contarle
-    // due volte senza accorgersene
+    /* ── IL PONTE CON FLOTTA: LO STESSO EURO CONTATO DUE VOLTE ──────────
+       Fino al 02/09 qui c'era un avviso: «N voci appartengono a costi che
+       Flotta registra già… tienili in uno solo». Giusto, e MONCO: diceva che
+       la spesa POTEVA stare anche di là, e non poteva dire QUANTO, perché i
+       dati di Flotta non passavano. La domanda era già quella giusta; questa
+       è la risposta. `confrontoCostiMezzi` sta in `shared/` (serve a due app)
+       e mette in fila, sulle sole voci che si sovrappongono, quanto c'è qui e
+       quanto c'è in Flotta.
+       ⛔ Tre esiti, e vanno tenuti distinti perché portano a gesti diversi:
+         · Flotta NON raggiungibile → si dice, e NON si stampa nessun numero
+           di Flotta: uno zero qui sarebbe il via libera a scrivere il doppione;
+         · c'è la stessa voce in tutt'e due → il totale qui sopra è gonfiato,
+           e si vede di quanto, voce per voce;
+         · Flotta è raggiungibile e non ha niente nel periodo → si dice anche
+           quello, perché è una risposta, non un'assenza.
+       ⚠️ I costi di Flotta si leggono la prima volta che servono, come i
+       rilievi di Terra: `renderCosti` è sincrona, quindi la prima volta la
+       nota si disegna col dato che c'è e si ridisegna appena Flotta risponde. */
     { const dop = r.righe.filter(c => { const v = voceCosto(c.voce); return v && v.daMezzo; });
       const totDop = dop.reduce((t, c) => t + (+c.importo || 0), 0);
-      $("cos-gruppi").innerHTML += dop.length
-        ? `<div class="note">${plur(dop.length, "voce di questo periodo appartiene", "voci di questo periodo appartengono")} a costi che <b>Flotta</b> registra già mezzo per mezzo (${eur(totDop)}): carburante, manutenzione e noleggi. Se li scrivi in tutt'e due i posti il totale qui sopra è <b>gonfiato</b>: tienili in uno solo.</div>`
-        : "";
+      const nota = (cf) => {
+        if (!dop.length) return "";
+        const intro = `${plur(dop.length, "voce di questo periodo appartiene", "voci di questo periodo appartengono")} a costi che <b>Flotta</b> registra mezzo per mezzo (${eur(totDop)}): carburante, manutenzione e noleggi.`;
+        if (!cflLetti) return `<div class="note">${intro} Sto chiedendo a Flotta quanto ha registrato…</div>`;
+        const c = confrontoCostiMezzi(r.righe, cf, d1, d2);
+        if (!c.disponibile)
+          return `<div class="note warn">${intro} <b>Flotta non è raggiungibile</b>, quindi non posso dirti quanto c'è di là: se li hai scritti anche lì, il totale qui sopra è gonfiato. Non lo do per zero.</div>`;
+        const righe = c.voci.filter(v => v.conti !== null || v.flotta !== null).map(v => {
+          // l'importo sopra e il conto delle righe sotto, in piccolo: sulla
+          // stessa riga la tabella chiedeva 423 px e scorreva anche a 430
+          const cella = (imp, n) => imp === null ? "—" : `${eur(imp)}<small>${plur(n, "riga", "righe")}</small>`;
+          const qui = cella(v.conti, v.righeConti), la = cella(v.flotta, v.righeFlotta);
+          return `<tr${v.entrambe ? ' class="doppia"' : ""}><td>${esc(v.etichetta)}</td><td>${qui}</td><td>${la}</td><td>${v.entrambe ? "⚠️ in tutt'e due" : ""}</td></tr>`;
+        }).join("");
+        const coda = [];
+        if (c.senzaData.flotta) coda.push(`${plur(c.senzaData.flotta, "riga di Flotta è senza data", "righe di Flotta sono senza data")} e resta fuori dal periodo`);
+        if (c.senzaImporto.flotta) coda.push(`${plur(c.senzaImporto.flotta, "riga di Flotta è senza importo", "righe di Flotta sono senza importo")}`);
+        const verdetto = c.entrambe
+          ? `<b>${plur(c.entrambe, "voce compare", "voci compaiono")} in tutt'e due le app</b>: il totale qui sopra è <b>gonfiato</b> fino a ${eur(Math.min(c.totaleConti, c.totaleFlotta))}. Tieni ogni spesa in una sola.`
+          : c.totaleFlotta > 0
+            ? `Nessuna delle tue voci risulta anche in Flotta nel periodo: i totali si possono sommare.`
+            : `Flotta non ha registrato niente su queste voci nel periodo.`;
+        return `<div class="note">${intro}
+          <div class="ponte-wrap"><table class="ponte"><thead><tr><th>voce</th><th>qui, in Conti</th><th>in Flotta</th><th></th></tr></thead><tbody>${righe}</tbody></table></div>
+          ${verdetto}${coda.length ? ` <span class="meta">(${coda.join("; ")})</span>` : ""}</div>`;
+      };
+      $("cos-gruppi").innerHTML += nota(CFL);
+      if (!cflLetti) caricaCostiFlotta().then(() => renderCosti()).catch(() => renderCosti());
     }
 
     if (G() && gruppi.length >= 2) {

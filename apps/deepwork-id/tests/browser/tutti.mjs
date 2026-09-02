@@ -474,6 +474,13 @@ const BANCHI = [
      con una barra di 0 px, identica a chi non ha venduto niente. */
   ['i numeri tranquilli di Conti', 'conti-numeri-tranquilli.mjs', []],
   ['numeri tranquilli di Conti · controprova', 'conti-numeri-tranquilli.mjs', ['--controprova'], true],
+  /* 02/09: il primo ponte fra app, Flotta→Conti. Tre passate perché sono tre
+     esiti: Flotta risponde (tabella, riga «in tutt'e due»), Flotta NON risponde
+     (tono avviso e NESSUNO zero), e la controprova che rimette la traduzione
+     null→[] nella pagina e pretende che il verso «assente» cada. */
+  ['il ponte Flotta→Conti nei costi', 'conti-ponte-flotta.mjs', []],
+  ['ponte Flotta→Conti · Flotta assente', 'conti-ponte-flotta.mjs', ['--flotta-assente']],
+  ['ponte Flotta→Conti · controprova', 'conti-ponte-flotta.mjs', ['--controprova'], true],
   /* ⛔ AGGIUNTO IL 03/08, stessa domanda applicata a Scudo: dove l'app compone
      qualcosa che ESCE, chi decide i suoi numeri? I quattro CSV li scrive la
      pagina, e ognuno era più tranquillo dello schermo — un'azione scaduta da
