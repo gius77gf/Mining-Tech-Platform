@@ -622,15 +622,70 @@ export const ESITI_TURNO = [
 // (quasi tutti i trenta punti di chiamata di Scudo) comincia da solo a
 // mostrarla fra quelle da guardare, ed è il verso giusto.
 // Racconto e misure: docs/IL_CONFORME_CHE_NESSUNO_HA_MISURATO.md
-export function statoScadenzaHSE(dataISO, oggi = new Date()) {
-  // `dataISOEsiste` e non `Date.parse`: «2026-02-30» non è NaN, JavaScript lo
-  // fa scivolare al 2 marzo — una scadenza spostata di due giorni in silenzio.
+/* ⛔ UNA SCADENZA È UNA SCADENZA — misurato il 02/09 sulle tre app che ne
+   tengono una: Terra (`statoScadenzaTerra`, col preavviso scritto sulla
+   riga), Flotta (`statoScadenzaMezzo`, 30 giorni) e Scudo (questa, 30
+   giorni). Sulle 34 scadenze delle tre dimostrazioni i verdetti erano gli
+   stessi, riga per riga, in quattro vocabolari («regolare» / «a-posto»,
+   «senza data» / «senza-data»). Quindi la regola è UNA e sta qui, col
+   preavviso come argomento; `statoScadenzaHSE` resta il nome con cui Scudo e
+   Campo l'hanno sempre chiamata — lo STESSO oggetto, non una copia.
+   `dataISOEsiste` e non `Date.parse`: «2026-02-30» non è NaN, JavaScript lo
+   fa scivolare al 2 marzo. E i giorni li conta `giorniTra`, l'unica che sa
+   della mezzanotte italiana (docs/RICERCA_GIORNO_LOCALE_202607.md). */
+export function statoScadenza(dataISO, oggi = new Date(), preavvisoGiorni = 30) {
   if (!dataISOEsiste(dataISO)) return "senza data";
-  const t = Date.parse(String(dataISO).slice(0, 10) + "T00:00:00");
-  const g = Math.floor((t - new Date(oggi).setHours(0, 0, 0, 0)) / 86400000);
+  const g = giorniTra(String(dataISO).slice(0, 10), oggi);
+  if (!Number.isFinite(g)) return "senza data";
   if (g < 0) return "scaduta";
-  if (g <= 30) return "in-scadenza";
+  // due rientri separati, non un ternario: la regola 18 di run-stile legge le
+  // risposte di questa funzione dalle stringhe restituite, per confrontarle con
+  // le mappe di stati delle pagine (e legge anche i commenti: niente esempi qui)
+  if (g <= Math.max(0, Math.round(+preavvisoGiorni || 0))) return "in-scadenza";
   return "regolare";
+}
+export const statoScadenzaHSE = statoScadenza;
+
+/* ══════════════════════════════════════════════════════════════════════
+   LO SCADENZARIO UNICO (02/09, ponte 3b della mappa): le scadenze di Terra
+   (la concessione), di Flotta (i mezzi) e di Scudo (le persone) nella STESSA
+   forma, con lo stesso verdetto e un ordine solo — prima le scadute, poi
+   quelle in scadenza, poi quelle senza data, poi le regolari.
+   ⛔ Un'app che non risponde NON è un'app senza scadenze: si passa `null`, e
+   la risposta lo dichiara (`nonRaggiungibili`, `completo: false`). Un conto
+   fatto su due app su tre con la faccia di uno completo è il via libera a
+   dimenticare una revisione. Chi disegna deve leggere `completo`. */
+export function scadenzeUnite({ terra, flotta, scudo, lavoratori = [] } = {}, oggi = new Date()) {
+  const righe = [], nonRaggiungibili = [];
+  const nome = new Map((lavoratori || []).filter(Boolean).map((l) => [String(l.id), String(l.nome || "").trim() || String(l.id)]));
+  const metti = (app, s, soggetto, preavviso) => {
+    const d = s.dataScadenza, ok = dataISOEsiste(d);
+    righe.push({ app, id: s.id == null ? null : String(s.id), soggetto,
+      tipo: String(s.tipo || "").trim() || "(tipo non indicato)",
+      descrizione: String(s.descrizione || "").trim(),
+      dataScadenza: ok ? String(d).slice(0, 10) : null, preavvisoGiorni: preavviso,
+      stato: statoScadenza(d, oggi, preavviso),
+      giorni: ok ? giorniTra(String(d).slice(0, 10), oggi) : null });
+  };
+  if (terra == null) nonRaggiungibili.push("terra");
+  else for (const s of terra) if (s) metti("terra", s, "la cava", Math.max(0, +s.preavvisoGiorni || 0));
+  if (flotta == null) nonRaggiungibili.push("flotta");
+  else for (const s of flotta) if (s) metti("flotta", s, String(s.mezzo || "").trim() || "(mezzo non indicato)", 30);
+  if (scudo == null) nonRaggiungibili.push("scudo");
+  else for (const s of scudo) if (s) metti("scudo", s,
+    nome.get(String(s.lavoratoreId)) || (s.lavoratoreId == null ? "(persona non indicata)" : "persona " + s.lavoratoreId), 30);
+  const ordine = { scaduta: 0, "in-scadenza": 1, "senza data": 2, regolare: 3 };
+  righe.sort((a, b) => ordine[a.stato] - ordine[b.stato]
+    || (a.giorni == null ? 1e9 : a.giorni) - (b.giorni == null ? 1e9 : b.giorni)
+    || a.app.localeCompare(b.app) || a.soggetto.localeCompare(b.soggetto, "it"));
+  const conto = { scadute: 0, inScadenza: 0, senzaData: 0, regolari: 0, totale: righe.length };
+  for (const r of righe) {
+    if (r.stato === "scaduta") conto.scadute++;
+    else if (r.stato === "in-scadenza") conto.inScadenza++;
+    else if (r.stato === "senza data") conto.senzaData++;
+    else conto.regolari++;
+  }
+  return { righe, conto, nonRaggiungibili, completo: nonRaggiungibili.length === 0 };
 }
 
 // Lo stato di UN operatore di Campo rispetto ai documenti che Scudo tiene per

@@ -85,7 +85,7 @@
 
 /* la regola sui numeri dichiarati vive in `shared/`: qui si IMPORTA, non si
    riscrive — è il difetto che questo repository ha già pagato quattro volte */
-import { numeroDichiarato, applicaPercorsi, traduciCancellazioni, voceCosto } from "../../shared/dw-ponti.js";
+import { numeroDichiarato, applicaPercorsi, traduciCancellazioni, voceCosto, statoScadenza } from "../../shared/dw-ponti.js";
 import { parseCsvLine, csvCell, numIt, giorniTra, isIntestazione, numeroScritto, oggiISO,
          dataISOEsiste, dataIt, plurale,
          messaggioNumero as messaggioNumeroShell,
@@ -503,13 +503,16 @@ export function aggiungiMesi(dataISO, mesi) {
 // Flotta: cls "danger" | "warn" | "ok" per il badge. Lo stato non si salva
 // MAI: si calcola dalla data. Pura e testabile.
 export function statoScadenzaMezzo(dataISO, oggi = new Date(), preavvisoGiorni = 30) {
-  const soglia = Math.max(0, Math.round(+preavvisoGiorni || 0));
-  if (!dataISO) return { stato: "senza-data", cls: "warn", label: "senza data", giorni: null };
+  /* il verdetto lo decide la regola condivisa (`statoScadenza`, dal 02/09: era
+     la stessa regola scritta tre volte in tre app); qui restano il vocabolario
+     di Flotta («a-posto», «senza-data») e il colore, che il giorno stesso è
+     rosso: una revisione che scade oggi non è un avviso, è oggi */
+  const st = statoScadenza(dataISO, oggi, preavvisoGiorni);
+  if (st === "senza data") return { stato: "senza-data", cls: "warn", label: "senza data", giorni: null };
   const g = giorniTra(String(dataISO).slice(0, 10), oggi);
-  if (!Number.isFinite(g)) return { stato: "senza-data", cls: "warn", label: "senza data", giorni: null };
-  if (g < 0) return { stato: "scaduta", cls: "danger", label: "scaduta da " + (-g) + " gg", giorni: g };
+  if (st === "scaduta") return { stato: "scaduta", cls: "danger", label: "scaduta da " + (-g) + " gg", giorni: g };
   if (g === 0) return { stato: "in-scadenza", cls: "danger", label: "scade oggi", giorni: 0 };
-  if (g <= soglia) return { stato: "in-scadenza", cls: "warn", label: "tra " + g + " gg", giorni: g };
+  if (st === "in-scadenza") return { stato: "in-scadenza", cls: "warn", label: "tra " + g + " gg", giorni: g };
   return { stato: "a-posto", cls: "ok", label: "tra " + g + " gg", giorni: g };
 }
 

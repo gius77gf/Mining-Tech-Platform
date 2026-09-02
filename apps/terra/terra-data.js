@@ -242,7 +242,7 @@ export const DEMO = {
 // serve a Terra, al ponte P2 e a Conti nel confronto cavato-contro-venduto: tre
 // posti, una regola. Qui resta il nome con cui Terra l'ha sempre chiamata.
 export { provenienzaDi as provenienzaRilievo } from "../../shared/dw-ponti.js";
-import { provenienzaDi, applicaPercorsi, traduciCancellazioni } from "../../shared/dw-ponti.js";
+import { provenienzaDi, applicaPercorsi, traduciCancellazioni, statoScadenza } from "../../shared/dw-ponti.js";
 /* ⛔ «QUESTO NUMERO L'HA SCRITTO QUALCUNO?» — la regola sta in `shared/` e la
    usano già Conti e Sentinella; Terra era la terza app a averne bisogno e se ne
    teneva una versione più debole nel file che ESCE (`csvRilievi`). Non si
@@ -1742,11 +1742,17 @@ export function etichettaTipoScadenza(chiave) {
 // e va guardata. Si risponde «senza data», il termine che l'ecosistema usa già.
 // docs/IL_CONFORME_CHE_NESSUNO_HA_MISURATO.md
 export function statoScadenzaTerra(dataISO, preavvisoGiorni, oggi = new Date()) {
-  const g = giorniTra(String(dataISO || ""), oggi);
-  if (!dataISOEsiste(dataISO)) return "senza data";
-  const pre = Math.max(0, +preavvisoGiorni || 0);
-  if (g < 0) return "scaduta";
-  return g <= pre ? "in-scadenza" : "a-posto";
+  /* il verdetto lo decide la regola condivisa (`statoScadenza`, dal 02/09: era
+     la stessa regola scritta tre volte in tre app); qui resta solo il
+     vocabolario di Terra («a-posto» per «regolare»), che le sue schermate e
+     le sue prove chiamano così da sempre */
+  const st = statoScadenza(dataISO, oggi, preavvisoGiorni);
+  // (le quattro risposte scritte una per una: la regola 18 di run-stile le
+  // legge da qui per confrontarle con la mappa SB della pagina)
+  if (st === "scaduta") return "scaduta";
+  if (st === "in-scadenza") return "in-scadenza";
+  if (st === "senza data") return "senza data";
+  return "a-posto";
 }
 
 // Etichetta parlante della scadenza ("scaduta da 17 gg", "tra 12 gg"), con la

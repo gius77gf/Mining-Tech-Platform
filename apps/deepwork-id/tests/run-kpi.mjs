@@ -2688,6 +2688,52 @@ test("xmlFatturaPA: PEC, cassetto fiscale e fattura vecchia con l'IVA", () => {
   ok(/<PrezzoTotale>1000.00<\/PrezzoTotale><AliquotaIVA>22.00<\/AliquotaIVA>/.test(vecchia.xml), "che vale l'imponibile all'aliquota della fattura");
   ok(tagBilanciati(vecchia.xml), "e i tag sono bilanciati");
 });
+/* ⛔ 02/09 — UNA SCADENZA È UNA SCADENZA (ponte 3b): la regola è una in shared/,
+   e le tre app la chiamano coi loro nomi. Prova sui dati delle tre
+   dimostrazioni: 34 scadenze, zero verdetti diversi. */
+test("⛔ statoScadenza: una regola sola, col preavviso come argomento, e HSE è lo STESSO oggetto", () => {
+  const O = new Date("2026-09-02T10:00:00Z");
+  ok(ponti.statoScadenzaHSE === ponti.statoScadenza, "statoScadenzaHSE è statoScadenza, non una copia");
+  ok(scudo.statoScadenza === ponti.statoScadenza, "e l'alias di Scudo è lo stesso oggetto");
+  eq(ponti.statoScadenza("2026-09-01", O), "scaduta", "ieri: scaduta");
+  eq(ponti.statoScadenza("2026-09-02", O), "in-scadenza", "oggi: in scadenza");
+  eq(ponti.statoScadenza("2026-10-02", O), "in-scadenza", "fra 30 giorni: in scadenza (preavviso 30)");
+  eq(ponti.statoScadenza("2026-10-03", O), "regolare", "fra 31: regolare");
+  eq(ponti.statoScadenza("2026-10-03", O, 90), "in-scadenza", "ma con preavviso 90 è in scadenza");
+  eq(ponti.statoScadenza("2026-10-03", O, 0), "regolare", "e con preavviso 0 solo il giorno stesso conta");
+  eq(ponti.statoScadenza("2026-09-02", O, 0), "in-scadenza", "(oggi, preavviso 0: in scadenza)");
+  for (const d of [null, "", "boh", "2026-02-30", "2026-13-45"]) eq(ponti.statoScadenza(d, O), "senza data", JSON.stringify(d) + " → senza data");
+});
+test("⛔ scadenzeUnite: le tre app nella stessa forma, lo stesso verdetto, e un'app assente si DICHIARA", () => {
+  const O = new Date("2026-09-02T10:00:00Z");
+  const T = terra.DEMO.scadenze, F = flotta.DEMO.scadenze, S = scudo.DEMO.scadenze, L = scudo.DEMO.lavoratori;
+  const u = ponti.scadenzeUnite({ terra: T, flotta: F, scudo: S, lavoratori: L }, O);
+  eq(u.righe.length, T.length + F.length + S.length, "tutte le scadenze delle tre app, nessuna persa");
+  eq(u.completo, true, "completo: le tre app hanno risposto");
+  eq(u.nonRaggiungibili, [], "nessuna non raggiungibile");
+  eq(u.conto.scadute + u.conto.inScadenza + u.conto.senzaData + u.conto.regolari, u.conto.totale, "il conto quadra");
+  ok(u.righe.every((r) => r.stato !== "senza data" || r.giorni === null), "senza data ⇒ giorni null, mai NaN");
+  ok(!u.righe.some((r) => Number.isNaN(r.giorni)), "nessun NaN nei giorni");
+  let diversi = 0;
+  const norm = (x) => x === "a-posto" ? "regolare" : x === "senza-data" ? "senza data" : x;
+  for (const s of T) if (norm(terra.statoScadenzaTerra(s.dataScadenza, s.preavvisoGiorni, O)) !== ponti.statoScadenza(s.dataScadenza, O, s.preavvisoGiorni)) diversi++;
+  for (const s of F) if (norm(flotta.statoScadenzaMezzo(s.dataScadenza, O).stato) !== ponti.statoScadenza(s.dataScadenza, O, 30)) diversi++;
+  for (const s of S) if (ponti.statoScadenzaHSE(s.dataScadenza, O) !== ponti.statoScadenza(s.dataScadenza, O, 30)) diversi++;
+  eq(diversi, 0, "zero verdetti diversi da quelli che ogni app dà per conto suo");
+  const stati = u.righe.map((r) => r.stato);
+  const ordine = { scaduta: 0, "in-scadenza": 1, "senza data": 2, regolare: 3 };
+  ok(stati.every((s, i) => i === 0 || ordine[stati[i - 1]] <= ordine[s]), "prima le scadute, poi in scadenza, poi senza data, poi regolari");
+  const persona = u.righe.find((r) => r.app === "scudo" && r.id === "s1");
+  eq(persona.soggetto, "Mario Rossi", "la scadenza di Scudo porta il NOME della persona, non l'id");
+  const terraRiga = u.righe.find((r) => r.app === "terra" && r.id === "t2");
+  eq([terraRiga.soggetto, terraRiga.preavvisoGiorni], ["la cava", 90], "quella di Terra porta il suo preavviso (90), non i 30 degli altri");
+  const parziale = ponti.scadenzeUnite({ terra: null, flotta: F, scudo: S, lavoratori: L }, O);
+  eq([parziale.completo, parziale.nonRaggiungibili], [false, ["terra"]], "Terra che non risponde: non completo, e detto per nome");
+  eq(parziale.righe.length, F.length + S.length, "e le sue righe non ci sono, non sono zero scadenze");
+  const orfana = ponti.scadenzeUnite({ terra: [], flotta: [{ id: "x", tipo: "Revisione", dataScadenza: "2026-09-01" }], scudo: [{ id: "y", lavoratoreId: "zz", tipo: "Visita", dataScadenza: null }] }, O);
+  eq(orfana.righe.map((r) => r.soggetto), ["(mezzo non indicato)", "persona zz"], "un mezzo o una persona che non si sa si dicono, non si inventano");
+  eq(ponti.scadenzeUnite({}, O), { righe: [], conto: { scadute: 0, inScadenza: 0, senzaData: 0, regolari: 0, totale: 0 }, nonRaggiungibili: ["terra", "flotta", "scudo"], completo: false }, "niente passato: tre app non raggiungibili, non «tutto regolare»");
+});
 test("⛔ mancanzeDdt: elenca cosa manca, e non risponde «valido»", () => {
   const pieno = { causaleTrasporto: "vendita", trasportoACura: "mittente" };
   eq(conti.mancanzeDdt(pieno).length, 0, "un DDT completo non ha mancanze");

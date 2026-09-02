@@ -2544,7 +2544,7 @@ controprovaSuiVeri("regola 17 (struttura riscritta in casa)", strutturaInCasa,
    automaticamente vorrebbe dire indovinare male: qui si vuole sapere che
    QUESTA funzione alimenta QUELLA mappa. */
 const COPPIE_STATO = [
-  { funzione: "statoScadenzaHSE", modulo: "shared/dw-ponti.js",
+  { funzione: "statoScadenza", modulo: "shared/dw-ponti.js",   // dal 02/09 statoScadenzaHSE è un alias di statoScadenza: le risposte stanno qui
     pagina: "apps/scudo/index.html", mappa: "B",
     perche: "il semaforo dello scadenzario di Scudo (badge e striscia)" },
   { funzione: "statoScadenzaTerra", modulo: "apps/terra/terra-data.js",
@@ -2571,7 +2571,7 @@ const COPPIE_STATO = [
   { funzione: "esitoAbilitazione", modulo: "apps/scudo/scudo-data.js",
     pagina: "apps/scudo/index.html", mappa: "ESITO_MAT",
     perche: "le pastiglie della matrice «chi può fare cosa» di Scudo" },
-  { funzione: "statoScadenzaHSE", modulo: "shared/dw-ponti.js",
+  { funzione: "statoScadenza", modulo: "shared/dw-ponti.js",   // dal 02/09 statoScadenzaHSE è un alias di statoScadenza: le risposte stanno qui
     pagina: "apps/scudo/index.html", mappa: "DPI_BADGE",
     perche: "l'etichetta al maschile del dispositivo nel registro DPI di Scudo" },
   /* ⚠️ QUI LA MAPPA STA NEL MODULO, NON NELLA PAGINA — ed è il disegno giusto

@@ -78,6 +78,17 @@
 - [x] `apps/conti/index.html`: il badge «anche in Flotta» diventa il confronto
   vero; con Flotta assente NON compare uno zero (misurato col browser)
 - [x] la riga 3a della mappa aggiornata, e la tabella in §6 (6 → 7 ponti)
+- [ ] **Il ponte 3b, le scadenze di Terra, Flotta e Scudo in un muro solo**:
+  - [x] ✅ 02/09 la misura (34 scadenze, 0 verdetti diversi) e la regola unica
+    `statoScadenza` in shared (HSE è lo stesso oggetto; Terra e Flotta
+    delegano), più `scadenzeUnite` con `completo`/`nonRaggiungibili`; 2 prove
+    (run-kpi +2), copertura dw-ponti 50/50.
+  - [ ] il muro di Scudo che mostra anche la concessione (Terra) e i mezzi
+    (Flotta): `api.scadenzeTerra`/`api.scadenzeFlotta` in `scudo-data.js`
+    (istanze SDK pigre, `null` se non raggiungibili), il muro che legge
+    `scadenzeUnite` e dice per nome le app che non hanno risposto; banco nei
+    tre esiti; mappa §6 → 10 ponti. ⚠️ Da fare quando il cantiere della
+    passata su Scudo ha consegnato (stessi file).
 - [x] ✅ 02/09 **il verso di ritorno, Conti→Flotta** (cantiere parallelo,
   morto sul limite di sessione a lavoro finito e misurato da chi raccoglie):
   `api.costiConti`, la traduzione delle voci a testo libero
@@ -659,6 +670,7 @@ grep -n "^- \[ \] \*\*" vault/ROADMAP_SETTIMANA.md
 ```
 
 - `Aggiornare la tabella in fondo a `docs/MAPPA_ECOSISTEMA.md``
+- `Il ponte 3b, le scadenze di Terra, Flotta e Scudo in un muro solo`
 - `Una passata in profondità su un'app`
 - `D-ter. Le otto verdi che vogliono un cantiere`
 - `B12. IL RIPIEGO SILENZIOSO NEL CORE — censito, e sono CANDIDATI, non`
@@ -5503,7 +5515,7 @@ numero scritto dove non era stato misurato niente**.*
   nome apre il file sbagliato credendo che sia il più fresco.
 - Le decisioni: `docs/DECISIONI_WEEKEND.md` — pagina d'ingresso in cima.
 - Stato misurato al **18/08** (lanciando le suite, non a memoria):
-  **2.902 prove girano senza rete**. La frase va letta stretta: è la somma
+  **2.904 prove girano senza rete**. La frase va letta stretta: è la somma
   delle **nove** suite che contano asserzioni (`run-kpi` 2396, `run-stile` 327,
   `run-helpers` 75, `run-pointcloud` 32, `claims-convergenza` 19, `run-manifest` 9,
   `run-demo` 8, `bootstrap-rivendicazioni` 7, `fogli-guardati` 3), non tutto ciò che gira nel

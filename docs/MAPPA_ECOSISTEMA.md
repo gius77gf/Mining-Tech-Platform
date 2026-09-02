@@ -161,6 +161,27 @@ cava non ha un posto solo dove vedere *che cosa scade questo mese*.
 **Valore: alto** (è la domanda che un titolare fa ogni lunedì).
 **Costo: medio** — gli stati vanno unificati senza rompere i tre esistenti.
 
+✅ **MISURATO E COMINCIATO IL 02/09.** Prima la misura: le tre app decidevano
+«scaduta / in scadenza / a posto / senza data» con tre funzioni proprie
+(`statoScadenzaTerra`, `statoScadenzaMezzo`, `statoScadenzaHSE`) e sulle 34
+scadenze delle tre dimostrazioni, poste alla stessa data, i verdetti erano
+**gli stessi riga per riga** — in quattro vocabolari («regolare»/«a-posto»,
+«senza data»/«senza-data») e con tre scale di colore. Cioè non c'era una
+divergenza da sanare: c'era la stessa regola scritta tre volte, e la terza
+copia (Scudo) contava i giorni con `Date.parse` invece che con `giorniTra`.
+Adesso la regola è **una**, `statoScadenza(data, oggi, preavviso)` in
+`shared/dw-ponti.js`; `statoScadenzaHSE` è lo stesso oggetto (provata
+l'identità, non il comportamento), Terra e Flotta le delegano il verdetto e
+tengono il proprio vocabolario. E c'è `scadenzeUnite({terra, flotta, scudo,
+lavoratori}, oggi)`: le tre famiglie nella stessa forma, ordinate (scadute, in
+scadenza, senza data, regolari), con **`completo: false` e i nomi delle app
+che non hanno risposto** — un'app che non risponde non è un'app senza scadenze.
+Il lato che si VEDE — il muro delle scadenze di Scudo che mostra anche la
+concessione e i mezzi — è l'unità successiva: la ricerca del 02/09
+(`docs/RICERCA_CONTINUA_scudo.md`) dice che i software HSE offrono lo
+scadenzario unico, ed è il responsabile della sicurezza che lo guarda.
+
+    grep -c "statoScadenza(" apps/terra/terra-data.js apps/flotta/flotta-data.js shared/dw-ponti.js → 1 · 1 · 3
 ### 3c. Le persone — `lavoratori` (Scudo, Sentinella) e `operatori` (Campo)
 Le stesse persone in tre elenchi. Scudo↔Campo un ponte ce l'ha già
 (`idoneitaDiTurno`); Sentinella no.
@@ -271,7 +292,7 @@ Per onestà, e perché nessuno lo usi per decidere cose che non copre:
 | app che nessuno legge | **3** (Genesi, Sentinella, Deepwork ID) *(era 5: Flotta la legge Conti, e Conti la legge Flotta)* |
 | app senza alcuno scambio DATI | **1** (Genesi) — Deepwork ID esclusa, è l'identità *(era 2)* |
 | …di cui davvero scollegate da tutto | **0** *(era 1, Flotta)*: Genesi un ponte ce l'ha, di file |
-| sovrapposizioni non collegate | **5 famiglie** (§3) *(era 6: la 3a è collegata in un verso)* |
+| sovrapposizioni non collegate | **5 famiglie** (§3) *(era 6: la 3a è collegata nei due versi; la 3b ha la regola unica in shared dal 02/09, il muro arriva)* |
 
 Chi costruisce un ponte aggiorna questa tabella.
 
