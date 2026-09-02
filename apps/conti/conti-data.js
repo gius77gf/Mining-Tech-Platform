@@ -65,7 +65,7 @@
 // KPI CALCOLATI: da incassare, in scadenza, gare aperte, età media del credito.
 // ============================================================
 
-import { parseCsvLine, leggiCsv, csvCell, numIt, giorniTra, isIntestazione, dataISOEsiste, dataIt, conta, plurale,
+import { parseCsvLine, leggiCsv, csvCell, numIt, giorniTra, isIntestazione, dataISOEsiste, dataIt, conta, plurale, isoLocale,
          AVVISO_DECIMALE as AVVISO_DECIMALE_SHELL } from "../../shared/deepwork-id-client/dw-shell.js";
 import { provenienzaDi, misuratoPeriodo, numeroDichiarato, applicaPercorsi, traduciCancellazioni } from "../../shared/dw-ponti.js";
 export { numeroDichiarato } from "../../shared/dw-ponti.js";
@@ -78,9 +78,13 @@ export { numeroDichiarato } from "../../shared/dw-ponti.js";
    si carica e muore alla prima chiamata, senza errori di sintassi. */
 export { VOCI_COSTO, voceCosto, gruppoDiVoce } from "../../shared/dw-ponti.js";
 /* il ponte Flotta→Conti: stessa regola, la pagina lo prende da qui */
-export { confrontoCostiMezzi } from "../../shared/dw-ponti.js";
+export { confrontoCostiMezzi, confrontoProdottoVenduto, produzioneDichiarata } from "../../shared/dw-ponti.js";
 import { gruppoDiVoce, VOCI_COSTO } from "../../shared/dw-ponti.js";
 
+/* le date RELATIVE a oggi dei rapportini di Campo in dimostrazione: la stessa
+   forma di `GIORNI_FA` in apps/campo/campo-data.js, perché quelle righe sono una
+   copia e devono cadere negli stessi giorni (una prova lo pretende) */
+const _giorniFa = (n) => { const d = new Date(); d.setDate(d.getDate() - n); return isoLocale(d); };
 export const DEMO = {
   // fatture d'esempio: alcune già collegate all'anagrafica (clienteId), altre
   // con il solo testo libero — e volutamente scritto in modi diversi — per far
@@ -293,6 +297,31 @@ export const DEMO = {
   //  · fl5 è un noleggio che sta SOLO in Flotta;
   //  · fl6 è senza data: non deve sparire dal periodo in silenzio, deve
   //    essere contato a parte.
+  /* I RAPPORTINI DI CAMPO in dimostrazione (02/09, il terzo lato del triangolo):
+     copiati dalla dimostrazione di Campo id per id (rs0–rs6, r1–r3), con le
+     stesse date RELATIVE a oggi che Campo usa (`GIORNI_FA` di là, `_giorniFa`
+     qui), così cadono sempre nel periodo dell'anno in corso. La quantità è in
+     tonnellate come di là: è l'unico lato del triangolo che non ha bisogno
+     della densità. Tre righe sono qui APPOSTA per far vedere i casi che il
+     confronto deve saper dichiarare:
+      · rs0 è SENZA DATA: resta fuori dal periodo e si conta a parte;
+      · r2 è una bozza senza quantità: un turno che non ha dichiarato niente;
+      · rs6 è senza fronte, e qui non cambia niente (il confronto è per
+        periodo, non per fronte).
+     Una prova pretende che restino uguali a quelle di Campo, id per id, data
+     per data e quantità per quantità: una copia che diverge racconta due cave. */
+  rapportiniCampo: [
+    { id: "rs0", data: "", turno: "Mattina", titolo: "Rapportino trasporti", squadra: "Squadra B", prodQta: 2300, prodUnita: "t", ora: "13:00", stato: "inviato", fronteId: "f1" },
+    { id: "rs1", data: _giorniFa(19), turno: "Mattina",    titolo: "Rapportino trasporti", squadra: "Squadra B", prodQta: 2400, prodUnita: "t", ora: "13:00", stato: "inviato", fronteId: "f1" },
+    { id: "rs2", data: _giorniFa(17), turno: "Mattina",    titolo: "Rapportino trasporti", squadra: "Squadra B", prodQta: 2550, prodUnita: "t", ora: "13:10", stato: "inviato", fronteId: "f1" },
+    { id: "rs3", data: _giorniFa(14), turno: "Pomeriggio", titolo: "Rapportino trasporti", squadra: "Squadra B", prodQta: 2400, prodUnita: "t", ora: "20:00", stato: "inviato", fronteId: "f2" },
+    { id: "rs4", data: _giorniFa(12), turno: "Mattina",    titolo: "Rapportino trasporti", squadra: "Squadra B", prodQta: 2200, prodUnita: "t", ora: "12:50", stato: "inviato", fronteId: "f1" },
+    { id: "rs5", data: _giorniFa(9),  turno: "Mattina",    titolo: "Rapportino trasporti", squadra: "Squadra B", prodQta: 2450, prodUnita: "t", ora: "13:05", stato: "inviato", fronteId: "f2" },
+    { id: "rs6", data: _giorniFa(8),  turno: "Pomeriggio", titolo: "Rapportino trasporti", squadra: "Squadra B", prodQta: 1860, prodUnita: "t", ora: "19:55", stato: "inviato" },
+    { id: "r1", data: _giorniFa(0), turno: "Mattina", titolo: "Rapportino perforazione", squadra: "Squadra A", prodQta: 120, prodUnita: "t", ora: "11:20", stato: "inviato" },
+    { id: "r2", data: _giorniFa(0), turno: "Mattina", titolo: "Rapportino impianto", squadra: "Squadra C", prodQta: null, prodUnita: "t", ora: "", stato: "bozza" },
+    { id: "r3", data: _giorniFa(0), turno: "Mattina", titolo: "Rapportino trasporti", squadra: "Squadra B", prodQta: 90, prodUnita: "t", ora: "10:05", stato: "inviato" },
+  ],
   costiFlotta: [
     { id: "fl1", data: "2026-02-14", voce: "carburante", importo: 26, nota: "Gasolio pala e dumper", mezzo: "Pala CAT 966" },
     { id: "fl2", data: "2026-02-20", voce: "manutenzione", importo: 18, nota: "Filtri e olio motore", mezzo: "Dumper 1" },
@@ -3180,6 +3209,16 @@ export async function contiData() {
             .docs.map(d => ({ id: d.id, ...d.data() }));
         } catch (e) { return null; }
       };
+      /* E I RAPPORTINI DI CAMPO (02/09, il terzo lato del triangolo): quello che
+         i turni dichiarano di aver prodotto, per confrontarlo col venduto alla
+         pesa. Stessa forma: istanza pigra, `null` se Campo non risponde. */
+      let idCampo;
+      api.rapportiniCampo = async () => {
+        if (idCampo === undefined) { try { idCampo = await DeepworkID.init({ appId: "campo" }); } catch (e) { idCampo = null; } }
+        if (!idCampo) return null;
+        try { return (await getDocs(idCampo.orgCollection("rapportini"))).docs.map(d => ({ id: d.id, ...d.data() })); }
+        catch (e) { return null; }
+      };
     } else if (id.authState() === "tour") mode = "tour";
   } catch (e) {}
   if (mode !== "live") {
@@ -3199,6 +3238,7 @@ export async function contiData() {
       // e i costi dei mezzi non arrivano da Flotta: sono finti, ma coerenti con
       // i costi d'esempio qui sopra (vedi DEMO.costiFlotta)
       costiFlotta: async () => mem.costiFlotta || [],
+      rapportiniCampo: async () => mem.rapportiniCampo || [],
       logout: async () => {},
       aggiungi: async (n, d) => { const id = "m" + Math.random().toString(36).slice(2, 8); (mem[n] = mem[n] || []).push({ id, ...d }); return { id }; },
       aggiorna: async (n, i, d) => { const x = (mem[n] || (mem[n] = [])).find(v => v.id === i); if (x) applicaPercorsi(x, d); },

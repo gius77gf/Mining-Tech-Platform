@@ -1844,6 +1844,18 @@ label.item:has(.dw-chk:checked){
   <div id="ric-conf"></div>
   <div id="graf-ric"></div>
   <div id="ric-list"></div>
+  <!-- IL TERZO LATO DEL TRIANGOLO (02/09): quello che i turni di CAMPO dichiarano
+       di aver prodotto contro quello che la pesa ha venduto, nello stesso
+       periodo. Tonnellate contro tonnellate: è l'unico confronto che non ha
+       bisogno della densità. Il numero non è un giudizio (produrre più di
+       quanto si vende è magazzino), la frase sì: il verso si dice a parole. -->
+  <div class="sec">Prodotto contro venduto</div>
+  <div class="note">A fine turno chi lavora in cava scrive in <b>Campo</b> quanto ha prodotto, a
+    occhio e in <b>tonnellate</b>; la pesa scrive in Conti quanto è uscito dal cancello. Sono le
+    stesse tonnellate contate da due parti: qui si mettono una accanto all'altra, nello stesso
+    periodo scelto qui sopra. Quello che i turni hanno scritto in metri cubi o in viaggi
+    <b>non si converte</b>: resta fuori e viene detto.</div>
+  <div id="ric-campo"></div>
   <div class="sec">Valore del cavato (ai prezzi del listino)</div>
   <div class="note">Quanto <b>varrebbe</b> il materiale tolto dal fronte se venisse venduto tutto
     al prezzo scelto qui sotto. <b>Non è un ricavo</b> e non si confronta col fatturato: è un
@@ -1936,7 +1948,8 @@ label.item:has(.dw-chk:checked){
     avanzamentoOrdine, descriviAvanzamento, portafoglioOrdini,
     preventiviDaSeguire, prezzoDaOrdine, descriviPrezzoOrdine,
     validaScaglioni, scaglionePer, applicaScaglione, etichettaScaglione,
-    descriviScaglione, confrontoCostiMezzi, pesiPesata, xmlFatturaPA } from "./conti-data.js";
+    descriviScaglione, confrontoCostiMezzi, pesiPesata, xmlFatturaPA,
+    produzioneDichiarata, confrontoProdottoVenduto } from "./conti-data.js";
   /* B8 (14/08): `fileDiAltraTabella` risponde «questa prima riga è
      l'intestazione di un'ALTRA nostra tabella?». È l'unica domanda possibile,
      perché il file SENZA intestazione deve continuare a entrare. */
@@ -2206,6 +2219,9 @@ label.item:has(.dw-chk:checked){
   // disponibili: «non lo so» e «zero» sono due risposte diverse, e l'app deve
   // saperle distinguere invece di mostrare un cavato di zero che non esiste.
   let RIL = null, rilLetti = false;
+  // e i rapportini di Campo, con la stessa regola dei rilievi: `null` vuol
+  // dire «Campo non ha risposto», e la schermata lo dice — non lo dà per zero
+  let RAPC = null, rapcLetti = false;
   let CFL = null, cflLetti = false;   // i costi dei mezzi letti da Flotta: null = non raggiungibile
   /* Il volume che il costo al metro cubo sta usando ARRIVA DA TERRA, oppure
      l'ha scritto una persona. Non è la stessa cosa e non si mostra uguale: un
@@ -4998,6 +5014,12 @@ label.item:has(.dw-chk:checked){
     try { CFL = db.costiFlotta ? await db.costiFlotta() : null; } catch (e) { CFL = null; }
     return CFL;
   }
+  async function caricaRapportiniCampo() {
+    if (rapcLetti) return RAPC;
+    rapcLetti = true;
+    try { RAPC = db.rapportiniCampo ? await db.rapportiniCampo() : null; } catch (e) { RAPC = null; }
+    return RAPC;
+  }
 
   // ══════════════════════════════════════════════════════════════════════
   // REGISTRO COSTI — dove se ne va il denaro, e quanto costa un metro cubo
@@ -5445,6 +5467,9 @@ label.item:has(.dw-chk:checked){
   function renderRiconciliazione() {
     const [d1, d2] = ricPeriodo();
     const per = ricEtichettaPeriodo();
+    // il lato Campo↔Conti NON dipende da Terra: si disegna prima di ogni
+    // uscita anticipata, così un Terra assente non spegne anche lui
+    renderProdottoVenduto(d1, d2);
     // finché i rilievi non sono stati nemmeno cercati non si dice niente di
     // definitivo: si dice che si sta guardando.
     if (!rilLetti) {
@@ -5620,6 +5645,87 @@ label.item:has(.dw-chk:checked){
     $("ric-list").insertAdjacentHTML("beforeend", avvisi.join(""));
 
     renderValoreCavato(cav, ven, m3f);
+  }
+
+  // ── Prodotto (Campo) contro venduto (la pesa), in tonnellate ──────────
+  // ⛔ Tre cose che questa funzione non fa: non traduce un Campo che non
+  // risponde in «zero prodotto»; non converte i turni scritti in m³ o in
+  // viaggi; non dà un giudizio sul numero — dice il verso, e spiega che cosa
+  // può volere dire, perché produrre più di quanto si vende è magazzino, e
+  // vendere più di quanto si produce è magazzino che si svuota (o stime di
+  // turno troppo basse): non è un errore da cercare, è una domanda da farsi.
+  function renderProdottoVenduto(d1, d2) {
+    const box = $("ric-campo");
+    if (!rapcLetti) {
+      box.innerHTML = `<div class="note">Sto chiedendo a <b>Campo</b> che cosa hanno dichiarato i turni…</div>`;
+      return;
+    }
+    const ven = vendutoPeriodo(PES, d1, d2);
+    const dich = produzioneDichiarata(RAPC, d1, d2);
+    const c = confrontoProdottoVenduto(dich, ven);
+    // la stessa regola di precisione del confronto qui sopra: da mille in su
+    // si arrotonda all'unità, e «14.070,00 t» non dice niente di più di «14.070 t»
+    const grande = Math.max(c.dichiaratoT || 0, c.vendutoT || 0) >= 1000;
+    const tf = (v) => grande ? NUM0.format(Math.round(v)) : qt(v);
+    const tn = (v) => `<b>${tf(v)} t</b>`;
+    // la coda: tutto ciò che NON è entrato nel confronto, detto per nome
+    const coda = [];
+    if (c.fuori.senzaData) coda.push(`${plur(c.fuori.senzaData, "rapportino è senza data", "rapportini sono senza data")} e non si sa in che periodo cada`);
+    if (c.fuori.senzaProduzione) coda.push(`${plur(c.fuori.senzaProduzione, "turno non ha dichiarato", "turni non hanno dichiarato")} la quantità: il prodotto qui sopra è <b>per difetto</b>`);
+    if (c.fuori.m3 > 0) coda.push(`${qt(c.fuori.m3)} m³ dichiarati in metri cubi restano fuori: senza densità non diventano tonnellate`);
+    if (c.fuori.viaggi > 0) coda.push(`${plur(c.fuori.viaggi, "viaggio dichiarato resta", "viaggi dichiarati restano")} fuori: un viaggio non ha un peso`);
+    if (ven.senzaPeso) coda.push(`${plur(ven.senzaPeso, "consegna è senza peso", "consegne sono senza peso")} e non entra nel venduto`);
+    const codaHtml = coda.length ? ` <span class="ponte-coda">(${coda.join("; ")})</span>` : "";
+    if (c.stato === "no-campo") {
+      box.innerHTML = `<div class="note warn"><b>Campo non è raggiungibile</b>, quindi non so quanto i turni
+        abbiano dichiarato di aver prodotto nel periodo: senza il prodotto il confronto col venduto non si
+        fa, e <b>non lo do per zero</b>. Se Campo è attiva nella tua organizzazione, riprova fra poco.</div>`;
+      return;
+    }
+    if (c.stato === "no-dichiarato") {
+      box.innerHTML = `<div class="note">Nel periodo <b>nessun turno ha dichiarato una produzione</b> in Campo:
+        non vuol dire che non si è prodotto, vuol dire che non è stato scritto. La pesa ha registrato
+        ${tn(ven.t)} in ${plur(ven.viaggi, "viaggio", "viaggi")}, ma senza un prodotto dichiarato non c'è con
+        cosa confrontarle.${codaHtml}</div>`;
+      return;
+    }
+    if (c.stato === "dichiarato-non-in-tonnellate") {
+      box.innerHTML = `<div class="note">${plur(c.turni, "turno ha dichiarato", "turni hanno dichiarato")} una
+        produzione nel periodo, ma <b>nessuno in tonnellate</b>: metri cubi e viaggi non si confrontano con
+        la pesa senza una conversione, e Conti non ne inventa una. In Campo si può scegliere l'unità del
+        rapportino.${codaHtml}</div>`;
+      return;
+    }
+    if (c.stato === "no-venduto-nel-periodo") {
+      box.innerHTML = `<div class="note">I turni hanno dichiarato ${tn(c.dichiaratoT)} in
+        ${plur(c.turni, "turno", "turni")}, ma nel periodo <b>non c'è nessuna consegna pesata</b>: o il
+        materiale è a piazzale, o le pesate non sono state registrate nella scheda <b>Pesate</b>.${codaHtml}</div>`;
+      return;
+    }
+    // confrontabile: due colonne e il verso a parole
+    const pctAbs = Math.abs(c.pct);
+    const piuProdotto = c.verso === "prodotto-piu-del-venduto";
+    const spiega = c.verso === "pari"
+      ? `Prodotto e venduto <b>coincidono alla cifra</b> nel periodo: capita di rado con una stima a occhio,
+         e vale la pena chiedersi se le due cose non siano state copiate una dall'altra.`
+      : piuProdotto
+      ? `Il ${perc(pctAbs)} del prodotto dichiarato (${tn(c.divarioT)}) <b>non è uscito dal cancello</b>
+         nel periodo. Le tre spiegazioni, in ordine: è a piazzale (magazzino che cresce), è stato venduto
+         senza passare dalla pesa, oppure le stime di fine turno sono larghe. Nessuna delle tre è un
+         errore di Conti: è una domanda da fare in cava.`
+      : `Dal cancello è uscito <b>più materiale di quanto i turni abbiano dichiarato</b>
+         (${tn(-c.divarioT)}, il ${perc(pctAbs)} del dichiarato). Vuol dire magazzino che si svuota, oppure
+         turni che hanno dichiarato meno del vero — o un rapportino che manca. Vale la pena guardare
+         quale delle tre.`;
+    box.innerHTML = `<div class="conf">
+      <div class="conf-c"><div class="conf-l">Dichiarato dai turni</div>
+        <div class="conf-n">${tf(c.dichiaratoT)} <span class="u">t</span></div>
+        <div class="conf-s">${plur(c.turni, "turno con una produzione", "turni con una produzione")} in Campo${dich.ultimo ? ", l'ultimo del <b>" + fmtD(dich.ultimo) + "</b>" : ""}.</div></div>
+      <div class="conf-c sup"><div class="conf-l">Pesato in uscita</div>
+        <div class="conf-n">${tf(c.vendutoT)} <span class="u">t</span></div>
+        <div class="conf-s">in ${plur(c.viaggiVenduti, "viaggio", "viaggi")}, dai DDT del periodo.</div></div>
+    </div>
+    <div class="note${piuProdotto || c.verso === "pari" ? "" : " warn"}">${spiega}${codaHtml}</div>`;
   }
 
   // ── Valore del cavato ai prezzi del listino (vista del titolare) ──────
@@ -7702,6 +7808,8 @@ label.item:has(.dw-chk:checked){
   // il confronto cavato/venduto si riempie da solo un attimo più tardi,
   // senza far aspettare nessuno all'apertura.
   caricaRilievi().then(renderRiconciliazione).catch(() => renderRiconciliazione());
+  // e i rapportini di Campo, con lo stesso passo: il terzo lato si riempie da sé
+  caricaRapportiniCampo().then(renderRiconciliazione).catch(() => renderRiconciliazione());
 </script>
 </body>
 </html>

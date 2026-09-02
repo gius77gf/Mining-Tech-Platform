@@ -34215,6 +34215,84 @@ const { senzaCommenti: senzaCommentiConti } = await import("./tokenizza.mjs");
 /* ===== fine Conti · la quadratica e lo stato vuoto che mentiva ===== */
 
 /* ══════════════════════════════════════════════════════════════════════
+   PONTE CAMPO → CONTI · il terzo lato del triangolo (02/09, la 3f della mappa):
+   quello che i turni DICHIARANO di aver prodotto contro quello che la pesa ha
+   VENDUTO, tonnellate contro tonnellate. La funzione sta in shared/ e Conti la
+   ri-esporta; la dimostrazione di Conti porta una COPIA dei rapportini di Campo
+   e una prova pretende che resti una copia.
+   ⚠️ Prove SINCRONE e messe PRIMA del riepilogo.
+   ══════════════════════════════════════════════════════════════════════ */
+{
+  const CPV = ponti.confrontoProdottoVenduto;
+  const dich = (t, extra = {}) => ({ t, m3Diretti: 0, viaggi: 0, turni: 3, senzaData: 0, senzaProduzione: 0, ...extra });
+  test("⛔ Conti ri-esporta confrontoProdottoVenduto e produzioneDichiarata: lo STESSO oggetto di shared", () => {
+    ok(conti.confrontoProdottoVenduto === ponti.confrontoProdottoVenduto, "identità, non comportamento");
+    ok(conti.produzioneDichiarata === ponti.produzioneDichiarata, "e anche il conto del dichiarato");
+  });
+  test("⛔ la dimostrazione di Conti porta una COPIA dei rapportini di Campo, id per id", () => {
+    const mio = conti.DEMO.rapportiniCampo, loro = campo.DEMO.rapportini;
+    eq(mio.length, loro.length, "stesso numero di righe");
+    for (const r of mio) {
+      const o = loro.find((x) => x.id === r.id);
+      ok(!!o, "esiste in Campo: " + r.id);
+      if (!o) continue;
+      eq(r.data, o.data, "stessa data (relativa a oggi in tutt'e due): " + r.id);
+      eq(r.prodQta, o.prodQta, "stessa quantità: " + r.id);
+      eq(r.prodUnita, o.prodUnita, "stessa unità: " + r.id);
+      eq(r.stato, o.stato, "stesso stato: " + r.id);
+      eq(r.turno, o.turno, "stesso turno: " + r.id);
+    }
+    ok(mio.some((r) => r.data === ""), "e c'è il rapportino SENZA data (rs0): deve restare fuori e dichiararsi");
+    ok(mio.some((r) => r.prodQta == null), "e la bozza senza quantità (r2): un turno che non ha dichiarato niente");
+  });
+  test("un'app che non risponde è «non lo so», non zero", () => {
+    eq(CPV(null, { t: 100, viaggi: 4 }).stato, "no-campo", "Campo non risponde");
+    eq(CPV(null, { t: 100, viaggi: 4 }).dichiaratoT, null, "e nessuna tonnellata attribuita a Campo");
+    eq(CPV(dich(100), null).stato, "no-venduto", "il venduto non c'è");
+    eq(CPV(undefined, undefined).stato, "no-campo", "tutt'e due assenti: si dice il primo che manca");
+  });
+  test("gli stati intermedi: nessun turno, turni non in tonnellate, nessuna consegna", () => {
+    eq(CPV(dich(0, { turni: 0 }), { t: 50, viaggi: 2 }).stato, "no-dichiarato", "zero turni con una produzione");
+    const soloM3 = CPV(dich(0, { m3Diretti: 120, turni: 2 }), { t: 50, viaggi: 2 });
+    eq(soloM3.stato, "dichiarato-non-in-tonnellate", "turni scritti in metri cubi");
+    eq(soloM3.fuori.m3, 120, "e i metri cubi si contano fuori"); eq(soloM3.parziale, true, "quindi è parziale");
+    const soloViaggi = CPV(dich(0, { viaggi: 9, turni: 2 }), { t: 50, viaggi: 2 });
+    eq(soloViaggi.stato, "dichiarato-non-in-tonnellate", "turni scritti in viaggi");
+    eq(soloViaggi.fuori.viaggi, 9, "e i viaggi si contano fuori");
+    eq(CPV(dich(800), { t: 0, viaggi: 0 }).stato, "no-venduto-nel-periodo", "prodotto ma niente pesato");
+  });
+  test("confrontabile: il divario, la percentuale sul dichiarato e il VERSO a parole", () => {
+    const a = CPV(dich(1000), { t: 800, viaggi: 30 });
+    eq(a.stato, "confrontabile"); eq(a.divarioT, 200); eq(a.pct, 20); eq(a.verso, "prodotto-piu-del-venduto");
+    eq(a.viaggiVenduti, 30); eq(a.turni, 3); eq(a.parziale, false, "niente fuori: non è parziale");
+    const b = CPV(dich(1000), { t: 1250, viaggi: 40 });
+    eq(b.divarioT, -250, "il segno resta"); eq(b.pct, -25); eq(b.verso, "venduto-piu-del-prodotto");
+    const c = CPV(dich(500), { t: 500, viaggi: 10 });
+    eq(c.divarioT, 0); eq(c.pct, 0); eq(c.verso, "pari");
+    const d = CPV(dich(1000.555), { t: 0.004, viaggi: 1 });
+    eq(d.dichiaratoT, 1000.56, "arrotondato al centesimo"); eq(d.vendutoT, 0, "e 0,004 t è zero al centesimo");
+    eq(d.stato, "no-venduto-nel-periodo", "quindi non si confronta con un venduto che al centesimo è zero");
+  });
+  test("⛔ un turno che non ha dichiarato la quantità rende il confronto PER DIFETTO (parziale)", () => {
+    const a = CPV(dich(1000, { senzaProduzione: 1 }), { t: 800, viaggi: 30 });
+    eq(a.stato, "confrontabile", "si confronta lo stesso"); eq(a.parziale, true, "ma si dichiara parziale");
+    eq(a.fuori.senzaProduzione, 1); eq(CPV(dich(1000, { senzaData: 2 }), { t: 1, viaggi: 1 }).fuori.senzaData, 2, "e i senza data si contano");
+    eq(CPV(dich(1000, { senzaData: 2 }), { t: 1, viaggi: 1 }).parziale, false, "un senza data NON rende parziale: non si sa nemmeno se sia del periodo");
+  });
+  test("sulla dimostrazione di Conti, l'anno in corso: 8 turni, 14.070 t dichiarate, e i due fuori dichiarati", () => {
+    const a = new Date().getFullYear();
+    const d = ponti.produzioneDichiarata(conti.DEMO.rapportiniCampo, a + "-01-01", a + "-12-31");
+    eq(d.turni, 8); eq(d.t, 14070); eq(d.senzaData, 1); eq(d.senzaProduzione, 1);
+    const ven = conti.vendutoPeriodo(conti.DEMO.pesate, a + "-01-01", a + "-12-31");
+    const c = CPV(d, ven);
+    eq(c.stato, "confrontabile"); eq(c.verso, "prodotto-piu-del-venduto");
+    eq(c.vendutoT, ven.t, "il venduto è quello della pesa, alla cifra");
+    eq(c.divarioT, Math.round((14070 - ven.t) * 100) / 100); eq(c.parziale, true, "r2 non ha dichiarato: per difetto");
+  });
+}
+/* ===== fine ponte Campo → Conti ===== */
+
+/* ══════════════════════════════════════════════════════════════════════
    PONTE CONTI → FLOTTA · questa spesa risulta anche nel registro della cava?
    (02/09) Il verso di ritorno del ponte Flotta→Conti: Flotta legge il
    registro costi di Conti e dice, voce per voce e riga per riga, che cosa

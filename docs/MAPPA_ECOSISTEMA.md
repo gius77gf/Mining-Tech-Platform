@@ -251,6 +251,37 @@ produzione, la pesa registra quello che esce. Terra↔Campo e Conti↔Terra
 esistono già; **manca il triangolo**, cioè la riconciliazione a tre.
 **Valore: alto. Costo: medio.**
 
+✅ **Chiuso il 02/09: il lato che mancava era Campo→Conti, ed è l'unico dei tre
+che non ha bisogno della densità** — i turni dichiarano in tonnellate e la pesa
+pesa in tonnellate. Prima del ponte è stato misurato sulla cava sintetica (12
+mesi, seme 5) che le due grandezze sono confrontabili: `confrontabile` in tutti
+e quattro i trimestri, con un divario identico dell'83-86% — uno scarto uguale
+su tutte le taglie è del generatore (le sue pesate sono un quinto della
+produzione), non del confronto.
+· `confrontoProdottoVenduto(dichiarato, venduto)` in `shared/dw-ponti.js`
+  (9 prove in `run-kpi`), ri-esportata da Conti per identità; il dichiarato lo
+  conta `produzioneDichiarata`, la stessa del ponte Terra↔Campo;
+· Conti legge `rapportini` di Campo con un'istanza pigra dell'SDK
+  (`api.rapportiniCampo`, `null` se Campo non risponde) e porta in
+  dimostrazione una **copia** dei dieci rapportini di Campo, id per id e data
+  per data, che una prova tiene uguale;
+· nella schermata **Report**, sotto «Cavato contro venduto», il riquadro
+  «Prodotto contro venduto»: due colonne (dichiarato dai turni / pesato in
+  uscita), il **verso detto a parole** — produrre più di quanto si vende è
+  magazzino, vendere più di quanto si produce è magazzino che si svuota o
+  turni che dichiarano meno del vero — e la coda che nomina ciò che NON è
+  entrato (il rapportino senza data, il turno senza quantità che rende il
+  conto **per difetto**, i metri cubi e i viaggi che non si convertono).
+  Il lato Campo **non dipende da Terra**: si disegna anche quando il confronto
+  cavato/venduto è fermo;
+· Campo che non risponde è una nota in tono avviso e **nessuna tonnellata
+  attribuita**: «0 t prodotte» si leggerebbe come «la cava è ferma»;
+· banco `tests/browser/conti-ponte-campo.mjs` nei tre modi (sano 15, assente
+  10, controprova che rimette il `null` tradotto in lista vuota e cade in 4).
+⚠️ Il lato che resta scoperto è Conti→Campo: a chi lavora in cava il venduto
+non serve a fine turno, e nessuno l'ha chiesto. Il triangolo è chiuso come
+riconciliazione, non come tre ponti bidirezionali.
+
 ---
 
 ## 4. Il blocco strutturale: Genesi non esce dal browser
@@ -326,12 +357,12 @@ Per onestà, e perché nessuno lo usi per decidere cose che non copre:
 
 | | oggi |
 |---|---|
-| ponti di DATI esistenti | **10** su 56 direzioni *(era 6; il 02/09 sono entrati Flotta→Conti, Conti→Flotta (§3a), Terra→Scudo e Flotta→Scudo (§3b))* |
+| ponti di DATI esistenti | **11** su 56 direzioni *(era 6; il 02/09 sono entrati Flotta→Conti, Conti→Flotta (§3a), Terra→Scudo e Flotta→Scudo (§3b), Campo→Conti (§3f))* |
 | ponti di FILE | almeno **1** (Genesi→Sentinella) — mai censiti, vedi §1 |
 | app che nessuno legge | **3** (Genesi, Sentinella, Deepwork ID) *(era 5: Flotta la legge Conti, e Conti la legge Flotta)* |
 | app senza alcuno scambio DATI | **1** (Genesi) — Deepwork ID esclusa, è l'identità *(era 2)* |
 | …di cui davvero scollegate da tutto | **0** *(era 1, Flotta)*: Genesi un ponte ce l'ha, di file |
-| sovrapposizioni non collegate | **2 famiglie** (§3: la 3e, che passa da un file, e la 3f, il triangolo della produzione) *(era 6: 3a e 3b collegate il 02/09; 3c e 3d erano già collegate — la fonte è Scudo — e le righe lo dicevano male)* |
+| sovrapposizioni non collegate | **1 famiglia** (§3: la 3e, che passa da un file) *(era 6: 3a, 3b e 3f collegate il 02/09; 3c e 3d erano già collegate — la fonte è Scudo — e le righe lo dicevano male)* |
 
 Chi costruisce un ponte aggiorna questa tabella.
 

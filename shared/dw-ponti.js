@@ -200,6 +200,46 @@ export const SOGLIA_TURNI = { coerente: 15, attenzione: 40 };
 // Sopra la banda, però, il verso cambia il SIGNIFICATO: dichiarare più roccia di
 // quanta ne manchi dal fronte non è imprecisione, è una delle due cose scritte
 // sopra. Per questo lo stato resta distinto.
+/* ══════════════════════════════════════════════════════════════════════
+   IL TERZO LATO DEL TRIANGOLO (02/09, ponte 3f della mappa): quello che i turni
+   DICHIARANO di aver prodotto (Campo, in tonnellate) contro quello che la pesa
+   ha VENDUTO (Conti, in tonnellate). Terra↔Campo e Terra↔Conti esistevano già;
+   mancava Campo↔Conti, ed è l'unico lato che NON ha bisogno della densità:
+   tonnellate contro tonnellate. Chi chiama passa `produzioneDichiarata(…)` e
+   il venduto di Conti (`{t, viaggi}`); qui si confronta e si dichiara.
+   ⛔ Non si inventa niente: un'app che non risponde è `no-campo`/`no-venduto`
+   (null in ingresso), i turni scritti in metri cubi o in viaggi restano FUORI
+   dal confronto e si contano (`fuori`), e il verso del divario si dice a
+   parole. Il venduto può essere minore del prodotto (magazzino) o maggiore
+   (magazzino che si svuota): il numero non è un giudizio, la frase sì.
+   ⚠️ Misurato sulla cava sintetica: divario 83-86% in tutt'e quattro i
+   trimestri — uno scarto identico su tutte le taglie è del GENERATORE (le sue
+   pesate sono un quinto della produzione), non del confronto (CLAUDE.md, le
+   lezioni del simulatore, la 4). */
+export function confrontoProdottoVenduto(dichiarato, venduto) {
+  const vuoto = { dichiaratoT: null, vendutoT: null, divarioT: null, pct: null, turni: 0, viaggiVenduti: 0,
+    fuori: { m3: 0, viaggi: 0, senzaData: 0, senzaProduzione: 0 }, parziale: false, verso: null };
+  if (dichiarato == null) return { ...vuoto, stato: "no-campo" };
+  if (venduto == null) return { ...vuoto, stato: "no-venduto" };
+  const dT = r2(+dichiarato.t || 0), vT = r2(+venduto.t || 0);
+  const fuori = { m3: r3(+dichiarato.m3Diretti || 0), viaggi: +dichiarato.viaggi || 0,
+    senzaData: +dichiarato.senzaData || 0, senzaProduzione: +dichiarato.senzaProduzione || 0 };
+  /* `parziale` = il dichiarato è PER DIFETTO: turni scritti in m³ o in viaggi
+     (non convertibili senza densità o portata) e turni che non hanno dichiarato
+     niente — un turno con la quantità in bianco non ha prodotto zero, non si
+     sa quanto ha prodotto (la lezione del 14/08 di `produzioneDichiarata`). Chi
+     legge il divario deve saperlo prima di trarne conclusioni. */
+  const base = { ...vuoto, dichiaratoT: dT, vendutoT: vT, turni: +dichiarato.turni || 0,
+    viaggiVenduti: +venduto.viaggi || 0, fuori,
+    parziale: fuori.m3 > 0 || fuori.viaggi > 0 || fuori.senzaProduzione > 0 };
+  if (!base.turni) return { ...base, stato: "no-dichiarato" };
+  if (!(dT > 0)) return { ...base, stato: "dichiarato-non-in-tonnellate" };
+  if (!(vT > 0)) return { ...base, stato: "no-venduto-nel-periodo" };
+  const divarioT = r2(dT - vT), pct = r2(100 * divarioT / dT);
+  return { ...base, stato: "confrontabile", divarioT, pct,
+    verso: divarioT > 0 ? "prodotto-piu-del-venduto" : divarioT < 0 ? "venduto-piu-del-prodotto" : "pari" };
+}
+
 export function riconciliazioneTurni(rilievi, rapportini, dal, al, densita) {
   const dich = produzioneDichiarata(rapportini, dal, al, densita);
   const mis = misuratoPeriodo(rilievi, dal, al);

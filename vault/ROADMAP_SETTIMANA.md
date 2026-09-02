@@ -12,8 +12,17 @@
 - [x] ✅ 02/09 **Chiudere il primo ponte, Flotta→Conti** — lo stesso euro contato due
   volte. La funzione condivisa c'è (`confrontoCostiMezzi`, 7 prove); mancano
   la lettura vera da Conti, i dati di dimostrazione e il punto nella pagina.
+- [x] ✅ 02/09 **Il ponte 3f, Campo→Conti — il terzo lato del triangolo della
+  produzione**: i turni dichiarano in tonnellate, la pesa pesa in tonnellate,
+  e nessuno dei due aveva mai visto l'altro. Misurato PRIMA sulla cava
+  sintetica (confrontabile in 4 trimestri su 4), poi `confrontoProdottoVenduto`
+  in `shared/` (9 prove), la lettura pigra da Campo in Conti, la copia dei
+  rapportini in dimostrazione tenuta uguale da una prova, il riquadro
+  «Prodotto contro venduto» nel Report (verso a parole, coda con i fuori, Campo
+  assente in tono avviso e senza zeri), banco nei tre modi. Mappa: **11** ponti
+  su 56, **1** famiglia scoperta (la 3e, che passa da un file).
 - [ ] **Aggiornare la tabella in fondo a `docs/MAPPA_ECOSISTEMA.md`** a ogni
-  ponte chiuso: è il registro, e il «6 su 56» deve scendere.
+  ponte chiuso: è il registro, e il «6 su 56» deve scendere. *(02/09: 11 su 56.)*
 - [ ] **Una passata in profondità su un'app** (ogni schermata guardata, ogni
   file che esce aperto, i numeri tranquilli cercati). Prima candidata: Conti,
   perché è quella che il ponte tocca e quella che il mercato guarda (la pesa).
@@ -5580,7 +5589,7 @@ numero scritto dove non era stato misurato niente**.*
   nome apre il file sbagliato credendo che sia il più fresco.
 - Le decisioni: `docs/DECISIONI_WEEKEND.md` — pagina d'ingresso in cima.
 - Stato misurato al **18/08** (lanciando le suite, non a memoria):
-  **2.912 prove girano senza rete**. La frase va letta stretta: è la somma
+  **2.919 prove girano senza rete**. La frase va letta stretta: è la somma
   delle **nove** suite che contano asserzioni (`run-kpi` 2396, `run-stile` 327,
   `run-helpers` 75, `run-pointcloud` 32, `claims-convergenza` 19, `run-manifest` 9,
   `run-demo` 8, `bootstrap-rivendicazioni` 7, `fogli-guardati` 3), non tutto ciò che gira nel
@@ -5591,8 +5600,8 @@ numero scritto dove non era stato misurato niente**.*
   sorvegliati ne contavano sette: due convenzioni per lo stesso numero, che è
   il modo più facile di far sembrare sbagliato un conto giusto. Adesso è una
   sola.*
-  Copertura **751/751** e nessuna funzione scoperta; **211 esecuzioni** che
-  aprono le pagine in un browser vero, da **86** file di banco distinti (contati
+  Copertura **751/751** e nessuna funzione scoperta; **214 esecuzioni** che
+  aprono le pagine in un browser vero, da **87** file di banco distinti (contati
   dalla tabella `BANCHI` di `tutti.mjs`, non a occhio dalla cartella, che di
   `.mjs` ne ha di più perché contiene anche gli aiuti — `giro.mjs`,
   `impronta.mjs`, il runner stesso).
