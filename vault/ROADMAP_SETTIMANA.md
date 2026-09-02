@@ -868,7 +868,6 @@ grep -n "^- \[ \] \*\*" vault/ROADMAP_SETTIMANA.md
 - `Q1`
 - `I 20 KO del giro del 09/08, riverificati sul commit di adesso`
 - `«Adempimenti» è la parola che governa il minimo di Sentinella`
-- `B7. `sentinella-periodo-adempimento` È INTERMITTENTE — e va rimisurato a`
 - `LA TELA DELLA VETRINA È IN ATTESA DEL FONDATORE` *(la fotografia di cava,
   e il sì o il no alla sezione chiara)*
 - `DECISIONE DEL FONDATORE:` *(la vetrina sostituisce `apps/index.html`? e le
@@ -6361,7 +6360,16 @@ di scriverlo qui**: niente entra sulla parola dell'agente.
       **mandata ai due cantieri mentre lavoravano**, col vincolo di dichiarare
       nella consegna ogni forma nuova che dovessero coniare.
 
-- [ ] **B7. `sentinella-periodo-adempimento` È INTERMITTENTE — e va rimisurato a
+- [x] ✅ **02/09 sera, rimisurato A MACCHINA FERMA come pretendeva la riga: tre
+      passate di fila sullo stesso commit (`3ae2df59`), nessun altro Chromium in
+      giro — 34 ok, 0 KO, 34 ok, 0 KO, 34 ok, 0 KO; più la quarta della famiglia
+      di Sentinella nel pomeriggio, 34/0.** Le due passate storte del 13/08
+      erano la SCENA sotto contesa (tre cantieri coi loro Chromium), non
+      prodotto: nessun errore di pagina da leggere. Resta valida la nota qui
+      sotto come metodo — il totale che scende è il segno — e l'unico residuo
+      è un candidato piccolo: dare anche al controllo «la pagina non solleva
+      errori» una precondizione dichiarata, come ce l'hanno i casi.
+      *(testo originale)* **B7. `sentinella-periodo-adempimento` È INTERMITTENTE — e va rimisurato a
       MACCHINA FERMA prima che qualcuno ci apra un cantiere.** ⏱️ *13/08, notte,
       rilanciandolo sul committato: è nato oggi e non era mai girato fuori dal
       cantiere che l'ha scritto.*
