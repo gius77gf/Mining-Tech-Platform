@@ -235,3 +235,131 @@ fra un mese.
 4. Se un'esportazione CSV di pesate verso la fatturazione specifica il netto, e il cliente dopo il carico scopre che il netto era sbagliato, con quale meccanismo si nota il disallineamento (nota di credito, rettifica)?
 5. Il sistema conosce quale indicatore peso (quale pesa a ponte, quale ID di dispositivo) ha registrato una pesata, o è trasparente e scrive solo il numero finale?
 
+
+---
+
+## Ricerca del 2026-09-02 — riconciliazione prodotto / venduto / scorte (metà sul mondo)
+
+**Che cosa esiste già**: non verificato da questa ricerca; il delta lo fa chi ha il codice.
+
+### Grandezze confrontate in una riconciliazione di inventario
+
+Una riconciliazione mensile di inventario in una cava confronta quattro classi di dati [seconda mano: Birdi, minebright]:
+
+1. **Tonnellate prodotte da turni**: volumi estratti stimati dai turni di lavoro e dalle schermate operative
+2. **Tonnellate pesate in uscita**: totale lordo dalle pese a ponte, meno pesi a vuoto, registrato su DDT e fatture
+3. **Rilievi volumetrici di cumuli (stockpile)**: misurati con drone (fotogrammetria, LiDAR) e convertiti in tonnellate tramite densità
+4. **Densità**: fattore cruciale che lega volume a tonnellate; distinto in densità in banco (1,55–2,75 g/cm³ per calcare) e densità sciolta/bulk (1,4–1,5 t/m³ per aggregati) [seconda mano: CivilToday, calcolatori aggregati]
+
+### Tolleranze e frequenze
+
+**Tolleranza accettata**: ±2–5% di varianza su drone con densità verificata; ±5–10% con rilievi GPS tradizionali [seconda mano: Birdi, Propeller Aero, Kespry].
+
+**Frequenza di riconciliazione**: **mensile** per la maggior parte delle cave attive; settimanale per siti ad alto throughput, trimestrale per materiali lenti. L'allineamento con cicli di reporting finanziario è lo standard [seconda mano: Propeller Aero, DroneDeploy].
+
+### Cause tipiche degli scarti
+
+1. **Stima a occhio dei volumi estratti**: i turni dichiarano volumi senza verifiche; errori di ±10–15% comuni
+2. **Swell/shrinkage non controllato**: materiale sciolto vs compatto varia 20–40% a seconda di umidità e granulometria; errori densità ±10%, errori swell ±33% possibili [seconda mano: DroneDeploy, Propeller Aero]
+3. **Densità non aggiornata**: una variazione 1,60 → 1,55 t/m³ su 50.000 m³ = 2.500 t di differenza [seconda mano: Propeller Aero]
+4. **Doppi conteggi in pesata**: stesso carico pesato due volte, o pesata parziale non tracciata
+5. **Cumuli non rilevati**: stockpile piccoli o nascosti non entrano nel rilievo drone
+6. **Vendite senza pesata**: consegne non registrate sulla pesa (astuccaggio informale)
+
+### Software del settore
+
+| Software | Che cosa riconcilia | Fonte |
+|----------|-------------------|-------|
+| **Command Alkon / Apex** | Ticketing scale, inventario, dispatch; integra pese con produzione e fleet tracking | [seconda mano: Command Alkon] |
+| **Trimble Business Center** | Volume stockpile da rilievi (SX12, X9 laser); estrae volumi automatici per reportistica | [seconda mano: Trimble Geospatial] |
+| **Propeller Aero / Stockpile Reports** | Drone volumetria + storici; esporta a ERP per riconciliazione; tolleranza 2–5% | [seconda mano: Propeller Aero] |
+| **Kespry Cloud** | Mining-only, volumetria entro 1–3%, integrazione ERP, esportazione liste per riconciliazione mensile | [seconda mano: Kespry] |
+| **Birdi** | Multi-site, collaborative, drone volumetria con shrink/swell, target 2–5% | [seconda mano: Birdi] |
+| **Datamine (Tier 1 Mining)** | Enterprise production accounting; mine-to-mill reconciliation completa, metallurgical accounting | [seconda mano: Datamine Software] |
+
+### Domande per il delta (confronto con app)
+
+1. **Come la nostra app raccoglie le stime di tonnellate prodotte da turno?** Deriva da volumi eye estimate (m³ scavato) o da pesate progressive?
+2. **Distingue densità in banco da densità sciolta (bulk)?** E traccia quando la densità viene aggiornata (per cambi di materiale, umidità)?
+3. **Chi decide la base di riconciliazione** — scavato, venduto, o rilievi drone?
+4. **Esiste un flusso di storico dei rilievi volumetrici** (cumuli per data) con versioning, o ogni nuovo rilievo sovrascrive il precedente?
+5. **Come si registra un'anomalia di riconciliazione** (es. prodotto 1.000 t, venduto 950 t, cumulo +30 t → delta −20 t)? C'è campo di causa, chi indaga, follow-up?
+6. **La frequenza di riconciliazione è programmabile?** (mensile, settimanale, su richiesta)
+
+### Fonti
+
+- [Birdi: How to reconcile stockpile volumes](https://www.birdi.io/blog-post/how-to-reconcile-stockpile-volumes-a-step-by-step-guide-for-mine-and-quarry-operators)
+- [Propeller Aero: Streamline Inventory Management](https://www.propelleraero.com/blog/streamline-inventory-management-at-your-quarry-or-mine-with-stockpile-reports/)
+- [Kespry: Inventory Management](https://kespry.com/aerial-intelligence/use-cases/inventory-management/)
+- [DroneDeploy: Accurate Stockpile Measurements](https://www.dronedeploy.com/blog/how-to-get-accurate-stockpile-measurements-in-mining)
+- [Propeller Aero: Calculating Shrink/Swell](https://help.propelleraero.com/hc/en-us/articles/28452401313559-Calculating-Shrink-Swell)
+- [Propeller Aero: Audit Aggregate Inventory](https://www.propelleraero.com/blog/audit-aggregate-inventory/)
+- [Minebright: Mine Reconciliation Guide](https://minebright.com/reconciliation-guide/)
+- [Datamine: Production Accounting](https://dataminesoftware.com/solutions/production/)
+- [Trimble Geospatial: Mining Operations](https://geospatial.trimble.com/en/industries/mining/operations-and-processing)
+- [CivilToday: Density of Aggregate](https://civiltoday.com/civil-engineering-materials/aggregate/198-density-of-aggregate)
+
+
+### Il delta, fatto da chi ha il codice in mano (02/09, contro `f20b9668`)
+
+Le sei domande, risposte aprendo le funzioni e non cercando i nomi. Per ogni
+«non c'è» il comando e la sua uscita, così si rilancia.
+
+1. **Come si raccolgono le stime dei turni** → esiste: il rapportino di Campo
+   porta `prodQta` + `prodUnita`, e `produzioneRapportino` in `shared/dw-ponti.js`
+   accetta tre unità — `grep -oE 'RAPP_UNITA = \[[^]]*\]' shared/dw-ponti.js` →
+   `["t", "m³", "viaggi"]`. È una stima a occhio di fine turno, come nel mondo;
+   nessuna pesata progressiva, e il ponte 3f la confronta con la pesa **solo in
+   tonnellate**, dichiarando fuori m³ e viaggi.
+2. **Densità in banco contro densità sciolta** → **non c'è come dato, c'è come
+   avvertenza**. Il listino ha UNA densità per prodotto (`prodotti.densita`, in
+   t/m³, 69 occorrenze in `conti-data.js`) ed è quella di vendita; ogni DDT ne
+   conserva una copia (`pesate.densita`), quindi lo storico per consegna esiste.
+   Un campo distinto per la densità in banco: `grep -cE
+   'densitaBanco|densitaInBanco|densitaSciolta|inBanco' apps/conti/conti-data.js
+   apps/terra/terra-data.js` → **0 e 0**. La schermata «Cavato contro venduto»
+   lo DICE («il rilievo misura il volume in banco, mentre la densità del
+   listino è quella con cui vendi… Conti non lo corregge con nessun coefficiente
+   inventato») — è il principio giusto applicato a un dato che manca. ⏱️
+   **Candidato**: una densità in banco per litotipo, dichiarata dall'azienda
+   (non inventata), che permetta di convertire il cavato di Terra in tonnellate
+   e chiudere il triangolo su una sola unità. Valore alto (la ricerca lo mette
+   fra le prime cause di scarto: 1,60 → 1,55 t/m³ su 50.000 m³ sono 2.500 t),
+   costo medio (listino + `riconciliazione` + nota). *Proposto da ricerca,
+   meccanismo verificato, NON in roadmap finché non lo decide un cantiere.*
+3. **La base della riconciliazione** → oggi sono DUE confronti a coppie sulla
+   stessa schermata: cavato (Terra) contro venduto, prodotto (Campo) contro
+   venduto. La terza grandezza del mondo — **le scorte a piazzale misurate come
+   inventario** — non esiste in nessuna delle tre app: `grep -ciE
+   'stockpile|scorte a piazzale|inventario' apps/terra/terra-data.js` → **0**,
+   idem in Conti. Terra conosce il cumulo solo come *provenienza* di un volume
+   rimosso (`provenienza: "cumulo"`, 32 occorrenze), non come volume che sta
+   fermo sul piazzale. Quindi l'equazione che il mondo chiude ogni mese —
+   prodotto − venduto = Δ scorte — da noi ha il terzo termine mancante, e la
+   schermata lo chiama onestamente «scorte a piazzale **stimate**». ⏱️
+   **Candidato** (il più grosso): un rilievo di Terra di tipo «inventario dei
+   cumuli» (volume per prodotto, alla data), e in Conti la chiusura del
+   triangolo. Valore alto, costo alto (Terra + Conti + ponte). *Proposto da
+   ricerca, meccanismo verificato.*
+4. **Storico dei rilievi con versioni** → esiste: ogni rilievo è un record
+   datato in `rilievi` di Terra, mai sovrascritto (la dimostrazione ne ha sette
+   da tre anni, t0–t6, e il confronto sceglie per periodo).
+5. **Registrare un'anomalia con la causa** → **non c'è**: `grep -n divario
+   apps/conti/conti-data.js | grep -ciE 'aggiungi|salva|storico|chiusur'` →
+   **0**. Il divario si calcola ogni volta e non si conserva; le tre cause
+   possibili la schermata le elenca già, in ordine, ma nessuno può scrivere
+   «era la seconda» e ritrovarlo il mese dopo. Le `chiusure` di Conti chiudono
+   i COSTI del mese (`statoMese`), non la riconciliazione. ⏱️ **Candidato**:
+   un verbale di riconciliazione per periodo — divario, causa scelta fra
+   quelle elencate, nota — salvato in `orgCollection`, con lo storico che
+   mostra se il divario cresce. Valore medio, costo basso.
+6. **Frequenza programmabile** → parziale: il periodo è libero (dal/al) con i
+   due scorciatoie «Quest'anno» / «Anno scorso» (`grep -cE 'btn-ric-anno|
+   btn-ric-prec' apps/conti/index.html` → 4); manca un «questo mese» e non c'è
+   nessun promemoria. Costo basso, ma da solo vale poco senza il punto 5.
+
+Riassunto: **tre esistono (1, 4, e il principio del 2), due mancano davvero
+(3 e 5), una è a metà (6)**. Nessuna delle due mancanze entra in roadmap sulla
+parola di questa ricerca: entrano quando un cantiere le sceglie, e il primo
+candidato per costo/valore è il **5** (il verbale), perché dà uno storico ai
+due confronti che esistono già.
