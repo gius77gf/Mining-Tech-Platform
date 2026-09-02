@@ -129,7 +129,7 @@ const costantiDi = (src, finoA) => {
    dichiara**: le tabelle di coppie che il vocabolario NON prende si contano e
    si stampano, così una quarta convenzione di nome compare come un numero
    invece che come silenzio. È la lezione delle righe «non ho guardato». */
-const VOCABOLARIO = /^(DIFETT|INIEZION|COME_LIVE)/;
+const VOCABOLARIO = /^(DIFETT|INIEZION|COME_LIVE|GUARDIE)/;   // GUARDIE dal 02/09: core-date-illeggibili aveva un pezzo scaduto che nessuno guardava
 
 /* ⛔ QUATTRO FORME DI TABELLA, non due, e la quarta è la più onesta delle
    altre. Oltre a `[cerca, sostituisci]` e alle due col percorso in testa o in

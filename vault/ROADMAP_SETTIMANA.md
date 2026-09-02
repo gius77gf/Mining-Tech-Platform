@@ -17,6 +17,15 @@
 - [ ] **Una passata in profondità su un'app** (ogni schermata guardata, ogni
   file che esce aperto, i numeri tranquilli cercati). Prima candidata: Conti,
   perché è quella che il ponte tocca e quella che il mercato guarda (la pesa).
+  ✅ **Settima tappa, il core (02/09)**: sette banchi a mano senza proxy,
+  tutti verdi (dashboard senza rete 14, date illeggibili 15, documenti che
+  escono 67, PDF senza plugin 12, rapportini non misurati 26, sequenza ritardi
+  7, volate non misurate 13). Una cosa del BANCO: la controprova di
+  `core-date-illeggibili` usciva «A VUOTO» perché il core scrive i totali con
+  `perLettura` e non più con `toFixed` — due guardie aggiornate, la tabella
+  scritta a coppie e `iniezioni-fresche` che da oggi legge anche le tabelle
+  chiamate GUARDIE (prima quel banco non lo guardava nessuno). Zero difetti del
+  prodotto.
   ✅ **Sesta tappa, Terra (02/09, cantiere parallelo, misurato prima di
   crederci: suite, banchi nei due versi, scatti guardati)**: tre banchi, un
   solo KO iniziale ed era del calendario (fixture assoluta: «1,1 anni» invece
