@@ -83,6 +83,8 @@ export { numeroDichiarato } from "../../shared/dw-ponti.js";
 export { VOCI_COSTO, voceCosto, gruppoDiVoce } from "../../shared/dw-ponti.js";
 /* il ponte Flotta→Conti: stessa regola, la pagina lo prende da qui */
 export { confrontoCostiMezzi, confrontoProdottoVenduto, produzioneDichiarata } from "../../shared/dw-ponti.js";
+/* la densità della cava la dichiara Terra: Conti la legge con le stesse funzioni, non se ne tiene una copia */
+export { autorizzazioneVigente, densitaDellaCava, cavatoInTonnellate } from "../../shared/dw-ponti.js";
 import { gruppoDiVoce, VOCI_COSTO } from "../../shared/dw-ponti.js";
 
 /* le date RELATIVE a oggi dei rapportini di Campo in dimostrazione: la stessa
@@ -287,6 +289,14 @@ export const DEMO = {
     { id: "vr1", dal: "2026-01-01", al: "2026-06-30", tipo: "cavato", divario: 35.055, pct: 28.27, stato: "attenzione",
       causa: "cumulo", nota: "A maggio abbiamo ripreso dal cumulo di piazzale: il venduto in più viene da lì, non dal fronte.",
       scrittoIl: "2026-07-02T09:40:00" },
+  ],
+  /* L'AUTORIZZAZIONE DELLA CAVA in dimostrazione (02/09): i soli campi che
+     servono alla densità, copiati dalla dimostrazione di Terra (`a1`) — una
+     prova pretende che restino uguali. Terra non ha una densità scritta:
+     vale il valore tipico del materiale, «da verificare», ed è giusto che la
+     dimostrazione mostri proprio questo caso. */
+  autorizzazioniTerra: [
+    { id: "a1", numeroAtto: "Atto n. 128 del 2021 (esempio)", stato: "vigente", materiale: "Sabbia e ghiaia" },
   ],
   rilieviTerra: [
     { id: "t1", titolo: "Rilievo di fine febbraio", data: "2026-02-28", volumeM3: 31, stato: "elaborato", metodo: "RTK+GCP", gsd: "2" },
@@ -3207,6 +3217,20 @@ export async function contiData() {
             .docs.map(d => ({ id: d.id, ...d.data() }));
         } catch (e) { return null; }
       };
+      /* e le AUTORIZZAZIONI di Terra (02/09), sulla stessa istanza: servono per
+         la densità in banco della cava, che Conti non chiede una seconda volta.
+         `null` = Terra non risponde; `[]` = risponde e non ne ha. */
+      api.autorizzazioniTerra = async () => {
+        if (idTerra === undefined) {
+          try { idTerra = await DeepworkID.init({ appId: "terra" }); }
+          catch (e) { idTerra = null; }
+        }
+        if (!idTerra) return null;
+        try {
+          return (await getDocs(idTerra.orgCollection("autorizzazioni")))
+            .docs.map(d => ({ id: d.id, ...d.data() }));
+        } catch (e) { return null; }
+      };
       // ── PONTE CON FLOTTA — SOLA LETTURA ───────────────────────────────
       // Stessa forma del ponte con Terra qui sopra: seconda istanza dell'SDK
       // sull'app "flotta", stessa organizzazione, aperta solo la prima volta
@@ -3253,6 +3277,8 @@ export async function contiData() {
       // in dimostrazione i rilievi non arrivano da Terra: sono finti, ma
       // coerenti con le pesate d'esempio (vedi DEMO.rilieviTerra)
       rilieviTerra: async () => mem.rilieviTerra || [],
+      // e l'autorizzazione della cava, copiata dalla dimostrazione di Terra (vedi DEMO.autorizzazioniTerra)
+      autorizzazioniTerra: async () => mem.autorizzazioniTerra || [],
       // e i costi dei mezzi non arrivano da Flotta: sono finti, ma coerenti con
       // i costi d'esempio qui sopra (vedi DEMO.costiFlotta)
       costiFlotta: async () => mem.costiFlotta || [],

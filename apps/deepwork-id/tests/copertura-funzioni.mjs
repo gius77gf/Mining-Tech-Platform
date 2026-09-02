@@ -212,7 +212,7 @@ const APP = ["campo", "conti", "flotta", "scudo", "sentinella", "terra"];
 /* ⏱️ `flotta` 92 → 95 il 02/09: le tre funzioni del ponte Conti→Flotta
    (`chiaveVoceMezzo`, `costiPerConfronto`, `doppioniAllaCifra`), provate in
    run-kpi nel blocco «PONTE CONTI → FLOTTA». Il conto vero è 95/95. */
-const FONDO = { campo: 126, conti: 146, flotta: 97, scudo: 192, sentinella: 143, terra: 71 };
+const FONDO = { campo: 126, conti: 146, flotta: 97, scudo: 192, sentinella: 143, terra: 70 };
 
 /* Quello che resta fuori per un motivo, non per dimenticanza: i caricatori
    dati vogliono la rete e lo SDK, i ponti demo vogliono il localStorage.
@@ -296,7 +296,7 @@ const CONDIVISI = [
      `luogoNearMiss`, `descrizioneNearMiss` — più `CHI_SEGNALA` e
      `bozzaNearMiss`, che sono nuove. Il fondo di `scudo` scende di cinque
      nello stesso momento: i due numeri vanno letti insieme. */
-  { file: "shared/dw-ponti.js", fondo: 51,
+  { file: "shared/dw-ponti.js", fondo: 53,
     perche: "le regole che servono a DUE app: è il posto dove un difetto si moltiplica" },
   /* 40 → 41 il 06/08: `modoDimostrazione`, cioè «questi dati sono veri?».
      Era scritta in quattro varianti dentro quattro pagine (Conti, Scudo,

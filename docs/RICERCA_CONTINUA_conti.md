@@ -323,10 +323,17 @@ Le sei domande, risposte aprendo le funzioni e non cercando i nomi. Per ogni
    inventato») — è il principio giusto applicato a un dato che manca. ⏱️
    **Candidato**: una densità in banco per litotipo, dichiarata dall'azienda
    (non inventata), che permetta di convertire il cavato di Terra in tonnellate
-   e chiudere il triangolo su una sola unità. Valore alto (la ricerca lo mette
-   fra le prime cause di scarto: 1,60 → 1,55 t/m³ su 50.000 m³ sono 2.500 t),
-   costo medio (listino + `riconciliazione` + nota). *Proposto da ricerca,
-   meccanismo verificato, NON in roadmap finché non lo decide un cantiere.*
+   e chiudere il triangolo su una sola unità. ✅ **Fatto il 02/09 sera, ed era
+   GIÀ IN CASA**: la densità in banco della cava la dichiara Terra
+   sull'autorizzazione vigente — `densitaDellaCava` in `shared/dw-ponti.js`
+   (atto → laboratorio → valore tipico da verificare), la chiamavano già Terra e
+   Campo. Il delta era una LETTURA, non un campo nuovo: Conti legge le
+   autorizzazioni di Terra sulla stessa istanza dei rilievi, `cavatoInTonnellate`
+   (in shared) fa la conversione e dichiara quando la densità è un valore
+   tipico; la scheda «Cavato dal fronte» dice anche le tonnellate, e la nota
+   sullo scarto sistematico dice che le tre grandezze si leggono in un'unità
+   sola. Il `grep` del delta di mezzogiorno cercava `densitaBanco|inBanco`:
+   ancora una volta il NOME del mondo dentro il nostro codice (CLAUDE.md, 14/08).
 3. **La base della riconciliazione** → oggi sono DUE confronti a coppie sulla
    stessa schermata: cavato (Terra) contro venduto, prodotto (Campo) contro
    venduto. La terza grandezza del mondo — **le scorte a piazzale misurate come
@@ -364,5 +371,5 @@ Riassunto: **tre esistono (1, 4, e il principio del 2), due mancano davvero
 (3 e 5), una è a metà (6)**. Nessuna delle due mancanze entra in roadmap sulla
 parola di questa ricerca: entrano quando un cantiere le sceglie, e il primo
 candidato per costo/valore è il **5** (il verbale), perché dà uno storico ai
-due confronti che esistono già. *(02/09 sera: il 5 è fatto; restano il 2, il 3
-e la metà del 6.)*
+due confronti che esistono già. *(02/09 sera: il 5 è fatto, e il 2 era già in
+casa ed è collegato; restano il 3 — l'inventario dei cumuli — e la metà del 6.)*

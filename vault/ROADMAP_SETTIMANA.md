@@ -95,6 +95,15 @@
   testi, 0 sotto soglia), la riga «da guardare» guardata a 320 px nei tre temi
   con la storia iniettata: sta nella scheda, non scorre di lato, il rosso si
   legge. Nessun difetto trovato.
+- [x] ✅ 02/09 sera **Conti: il cavato anche in tonnellate, con la densità che
+  Terra già dichiara** (candidato 2 della ricerca — era GIÀ IN CASA:
+  `densitaDellaCava` in shared, atto → laboratorio → valore tipico). Conti legge
+  le autorizzazioni di Terra sulla stessa istanza dei rilievi,
+  `cavatoInTonnellate` (shared) converte e dichiara il «da verificare»; la
+  scheda «Cavato dal fronte» dice le tonnellate e la nota sullo scarto
+  sistematico dice che le tre grandezze del triangolo si leggono in un'unità
+  sola. `autorizzazioneVigente` trasloca in shared (Terra la ri-esporta,
+  identità provata). run-kpi +3, copertura dw-ponti 53/53.
 - [ ] **Aggiornare la tabella in fondo a `docs/MAPPA_ECOSISTEMA.md`** a ogni
   ponte chiuso: è il registro, e il «6 su 56» deve scendere. *(02/09: 12 su 56.)*
 - [ ] **Una passata in profondità su un'app** (ogni schermata guardata, ogni
@@ -5663,7 +5672,7 @@ numero scritto dove non era stato misurato niente**.*
   nome apre il file sbagliato credendo che sia il più fresco.
 - Le decisioni: `docs/DECISIONI_WEEKEND.md` — pagina d'ingresso in cima.
 - Stato misurato al **18/08** (lanciando le suite, non a memoria):
-  **2.933 prove girano senza rete**. La frase va letta stretta: è la somma
+  **2.936 prove girano senza rete**. La frase va letta stretta: è la somma
   delle **nove** suite che contano asserzioni (`run-kpi` 2396, `run-stile` 327,
   `run-helpers` 75, `run-pointcloud` 32, `claims-convergenza` 19, `run-manifest` 9,
   `run-demo` 8, `bootstrap-rivendicazioni` 7, `fogli-guardati` 3), non tutto ciò che gira nel

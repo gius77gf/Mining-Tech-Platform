@@ -34482,6 +34482,42 @@ const { senzaCommenti: senzaCommentiConti } = await import("./tokenizza.mjs");
 /* ===== fine Flotta · il consumo contro la storia ===== */
 
 /* ══════════════════════════════════════════════════════════════════════
+   CONTI · IL CAVATO IN TONNELLATE CON LA DENSITÀ CHE TERRA DICHIARA (02/09,
+   candidato 2 della ricerca di Conti — che stava già in casa: `densitaDellaCava`
+   in shared, la chiamavano Terra e Campo). `autorizzazioneVigente` trasloca in
+   shared, Terra la ri-esporta.
+   ══════════════════════════════════════════════════════════════════════ */
+{
+  test("⛔ autorizzazioneVigente è la STESSA di shared, in Terra e in Conti", () => {
+    ok(terra.autorizzazioneVigente === ponti.autorizzazioneVigente, "Terra: identità");
+    ok(conti.autorizzazioneVigente === ponti.autorizzazioneVigente, "Conti: identità");
+    ok(conti.densitaDellaCava === ponti.densitaDellaCava && conti.cavatoInTonnellate === ponti.cavatoInTonnellate, "e le due funzioni della densità");
+    eq(ponti.autorizzazioneVigente([{ id: "x" }, { id: "v", stato: "vigente" }]).id, "v"); eq(ponti.autorizzazioneVigente([{ id: "x" }]).id, "x"); eq(ponti.autorizzazioneVigente([]), null); eq(ponti.autorizzazioneVigente(null), null);
+  });
+  test("cavatoInTonnellate: metri cubi per densità, e senza densità niente numero con la ragione", () => {
+    const lab = ponti.densitaDellaCava({ materiale: "Calcare", densita: 2.6, densitaFonte: "laboratorio" });
+    eq(ponti.cavatoInTonnellate(100, lab), { t: 260, densita: 2.6, da: "laboratorio", calcolabile: true, daVerificare: false, perche: "" });
+    const tipico = ponti.densitaDellaCava({ materiale: "Sabbia e ghiaia" });
+    const r = ponti.cavatoInTonnellate(100, tipico);
+    eq(r.calcolabile, true); eq(r.daVerificare, true, "un valore tipico si usa ma si dichiara da verificare"); eq(r.da, ponti.DENS_PRESET); ok(r.t > 0);
+    const nulla = ponti.cavatoInTonnellate(100, ponti.densitaDellaCava({ materiale: "Materiale ignoto" }));
+    eq(nulla.calcolabile, false); eq(nulla.t, null); ok(/non è dichiarata in Terra/.test(nulla.perche), nulla.perche);
+    const storta = ponti.cavatoInTonnellate(100, ponti.densitaDellaCava({ materiale: "Calcare", densita: "boh", densitaFonte: "laboratorio" }));
+    eq(storta.calcolabile, false); ok(/non è un numero/.test(storta.perche), storta.perche);
+    eq(ponti.cavatoInTonnellate(null, lab).perche, "il cavato in metri cubi non c'è"); eq(ponti.cavatoInTonnellate(undefined, undefined).calcolabile, false, "senza niente non esplode");
+    eq(ponti.cavatoInTonnellate(0, lab).t, 0, "zero metri cubi sono zero tonnellate: uno zero vero");
+  });
+  test("⛔ la dimostrazione di Conti porta una COPIA dell'autorizzazione di Terra, sui campi che servono", () => {
+    const mia = conti.DEMO.autorizzazioniTerra[0], loro = terra.DEMO.autorizzazioni.find((a) => a.id === mia.id);
+    ok(!!loro, "esiste in Terra"); eq(mia.materiale, loro.materiale); eq(mia.numeroAtto, loro.numeroAtto);
+    const d = ponti.densitaDellaCava(ponti.autorizzazioneVigente(conti.DEMO.autorizzazioniTerra));
+    eq(d.da, ponti.DENS_PRESET, "in dimostrazione la densità è il valore tipico del materiale: il caso «da verificare», mostrato apposta");
+    ok(ponti.cavatoInTonnellate(10, d).daVerificare, "e il cavato in tonnellate lo dice");
+  });
+}
+/* ===== fine Conti · il cavato in tonnellate ===== */
+
+/* ══════════════════════════════════════════════════════════════════════
    PONTE CAMPO → CONTI · il terzo lato del triangolo (02/09, la 3f della mappa):
    quello che i turni DICHIARANO di aver prodotto contro quello che la pesa ha
    VENDUTO, tonnellate contro tonnellate. La funzione sta in shared/ e Conti la

@@ -1955,7 +1955,8 @@ label.item:has(.dw-chk:checked){
     validaScaglioni, scaglionePer, applicaScaglione, etichettaScaglione,
     descriviScaglione, confrontoCostiMezzi, pesiPesata, xmlFatturaPA,
     produzioneDichiarata, confrontoProdottoVenduto,
-    CAUSE_DIVARIO, causaDivario, verbaleDelPeriodo, storicoVerbali } from "./conti-data.js";
+    CAUSE_DIVARIO, causaDivario, verbaleDelPeriodo, storicoVerbali,
+    autorizzazioneVigente, densitaDellaCava, cavatoInTonnellate } from "./conti-data.js";
   /* B8 (14/08): `fileDiAltraTabella` risponde «questa prima riga è
      l'intestazione di un'ALTRA nostra tabella?». È l'unica domanda possibile,
      perché il file SENZA intestazione deve continuare a entrare. */
@@ -2226,6 +2227,8 @@ label.item:has(.dw-chk:checked){
   // saperle distinguere invece di mostrare un cavato di zero che non esiste.
   let VER = [];   // i verbali di riconciliazione (letti con il resto in refresh)
   let RIL = null, rilLetti = false;
+  // e l'autorizzazione della cava, sempre da Terra: per la densità in banco
+  let AUT = null, autLetti = false;
   // e i rapportini di Campo, con la stessa regola dei rilievi: `null` vuol
   // dire «Campo non ha risposto», e la schermata lo dice — non lo dà per zero
   let RAPC = null, rapcLetti = false;
@@ -5013,6 +5016,12 @@ label.item:has(.dw-chk:checked){
     try { RIL = db.rilieviTerra ? await db.rilieviTerra() : null; } catch (e) { RIL = null; }
     return RIL;
   }
+  async function caricaAutorizzazioniTerra() {
+    if (autLetti) return AUT;
+    autLetti = true;
+    try { AUT = db.autorizzazioniTerra ? await db.autorizzazioniTerra() : null; } catch (e) { AUT = null; }
+    return AUT;
+  }
   // E i costi dei mezzi da Flotta, con la stessa regola: una volta sola,
   // quando servono. ⛔ `null` resta `null`: vuol dire «Flotta non ha risposto»,
   // e la schermata lo deve dire — non tradurlo in «Flotta non ha costi».
@@ -5539,6 +5548,13 @@ label.item:has(.dw-chk:checked){
     }
 
     // ── il confronto vero ──────────────────────────────────────────────
+    /* il cavato ANCHE in tonnellate (02/09): con la densità in banco che Terra
+       dichiara sull'autorizzazione vigente (atto → laboratorio → valore tipico
+       da verificare), le tre grandezze del triangolo si leggono in un'unità
+       sola. Terra che non risponde → «non calcolabile», con la ragione. */
+    const densCava = densitaDellaCava(autorizzazioneVigente(AUT));
+    const cavatoT = cavatoInTonnellate(cav.m3, densCava);
+    const fonteDensita = (da) => da === "atto" ? "dall'atto autorizzativo" : da === "laboratorio" ? "da una prova di laboratorio" : da === "manuale" ? "scritta a mano in Terra" : "dichiarata in Terra";
     const negativo = r.stato === "disavanzo";
     const grave = negativo || r.stato === "implausibile";
     const cls = r.stato === "coerente" ? "" : r.stato === "attenzione" ? "attenta" : "grave";
@@ -5573,7 +5589,9 @@ label.item:has(.dw-chk:checked){
     $("ric-conf").innerHTML = `<div class="conf">
       <div class="conf-c"><div class="conf-l">Cavato dal fronte</div>
         <div class="conf-n">${m3u(cav.m3)}</div>
-        <div class="conf-s">${plur(cav.rilievi, "rilievo elaborato", "rilievi elaborati")} in Terra${cav.ultimo ? ", l'ultimo del <b>" + fmtD(cav.ultimo) + "</b>" : ""}.</div></div>
+        <div class="conf-s">${plur(cav.rilievi, "rilievo elaborato", "rilievi elaborati")} in Terra${cav.ultimo ? ", l'ultimo del <b>" + fmtD(cav.ultimo) + "</b>" : ""}.${cavatoT.calcolabile
+          ? ` ≈ <b>${qt(cavatoT.t)} t</b> alla densità in banco di ${qt(cavatoT.densita)} t/m³ ${cavatoT.daVerificare ? "(<b>valore tipico del materiale, da verificare</b> in Terra)" : "(" + esc(fonteDensita(cavatoT.da)) + ")"}.`
+          : autLetti ? ` In tonnellate: <b>non calcolabile</b>, ${esc(cavatoT.perche)}.` : ""}</div></div>
       <div class="conf-c sup"><div class="conf-l">Venduto, convertito in volume</div>
         <div class="conf-n">${m3u(ven.m3)}</div>
         <div class="conf-s"><b>${qt(ven.tConvertite)} t</b> su ${qt(ven.t)} t consegnate, in ${plur(ven.viaggi, "viaggio", "viaggi")}.</div></div>
@@ -5645,7 +5663,9 @@ label.item:has(.dw-chk:checked){
       dentro la tolleranza di tutte e due. Un'avvertenza tecnica che conta: il rilievo misura il
       volume <b>in banco</b>, mentre la densità del listino è quella con cui vendi — se è stata
       presa sul materiale sciolto e non in banco, il confronto ha uno scarto sistematico. Conti
-      <b>non lo corregge con nessun coefficiente inventato</b>: te lo scrive.</div>`);
+      <b>non lo corregge con nessun coefficiente inventato</b>: te lo scrive.${cavatoT.calcolabile
+        ? ` La densità <b>in banco</b> della cava, invece, Terra la dichiara (${qt(cavatoT.densita)} t/m³${cavatoT.daVerificare ? ", valore tipico da verificare" : ""}): con quella il cavato fa <b>${qt(cavatoT.t)} t</b>, un numero che si legge accanto alle tonnellate pesate qui sopra e a quelle dichiarate dai turni qui sotto — le tre grandezze in un'unità sola.`
+        : ""}</div>`);
     if (ven.densitaMedia != null) avvisi.push(`<div class="note">Controllo di coerenza: nel
       periodo è uscito materiale a una densità media di <b>${qt(ven.densitaMedia)} t/m³</b>
       (${qt(ven.tConvertite)} t su ${m3f(ven.m3)} m³). È la media di quello che hai davvero
@@ -7891,6 +7911,8 @@ label.item:has(.dw-chk:checked){
   // il confronto cavato/venduto si riempie da solo un attimo più tardi,
   // senza far aspettare nessuno all'apertura.
   caricaRilievi().then(renderRiconciliazione).catch(() => renderRiconciliazione());
+  // e l'autorizzazione della cava, per la densità in banco: stesso passo
+  caricaAutorizzazioniTerra().then(renderRiconciliazione).catch(() => renderRiconciliazione());
   // e i rapportini di Campo, con lo stesso passo: il terzo lato si riempie da sé
   caricaRapportiniCampo().then(renderRiconciliazione).catch(() => renderRiconciliazione());
 </script>

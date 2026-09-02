@@ -883,10 +883,10 @@ export function confrontoRilievi(rilievi, idPrimo, idSecondo) {
 // L'autorizzazione VIGENTE tra quelle registrate (le altre restano come
 // storico/varianti). Se nessuna è marcata vigente, prende la prima.
 // Ritorna null se non ce n'è nessuna.
-export function autorizzazioneVigente(autorizzazioni) {
-  const a = autorizzazioni || [];
-  return a.find(x => x.stato === "vigente") || a[0] || null;
-}
+/* ⛔ TRASLOCATA in shared/dw-ponti.js il 02/09: la chiama anche Conti, per
+   leggere la densità della cava. Qui resta l'alias, così la pagina non cambia;
+   nomi-doppi pretende l'identità, non una seconda copia. */
+export { autorizzazioneVigente } from "../../shared/dw-ponti.js";
 
 // Volume estratto COMPLESSIVO sotto un titolo autorizzativo:
 //  - `rilevato`: somma dei rilievi elaborati con volume, contati solo dalla

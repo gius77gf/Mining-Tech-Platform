@@ -128,7 +128,7 @@ if (box) {
   if (ASSENTE) {
     dice(iniettato > 0, `il modulo servito rispondeva null (${iniettato} iniezioni)`);
     if (CONTROPROVA) dice(difettiRimessi > 0, `il difetto è stato rimesso nella pagina servita (${difettiRimessi} volte)`);
-    dice(box.note.length === 1 && box.note[0].warn, "una nota sola, in tono warn", box.note);
+    dice(box.note.length >= 1 && box.note[0].warn, "la prima nota è in tono warn", box.note);
     dice(/Campo non è raggiungibile/.test(box.testo), "dice che Campo non è raggiungibile");
     dice(/non lo do per zero/.test(box.testo), "e dice che non lo dà per zero");
     dice(!box.conf, "nessuna coppia di colonne");
@@ -150,8 +150,15 @@ if (box) {
     dice(/non è uscito dal cancello/.test(box.testo), "il verso è detto a parole: «non è uscito dal cancello»");
     dice(/1 rapportino è senza data/.test(box.testo), "la coda dichiara il rapportino senza data (rs0)");
     dice(/1 turno non ha dichiarato la quantità/.test(box.testo) && /per difetto/.test(box.testo), "la coda dichiara il turno senza quantità (r2) e dice «per difetto»");
-    dice(box.note.length === 1 && !box.note[0].warn, "la nota del verso non è in tono warn: prodotto > venduto è magazzino, non un errore", box.note);
+    // dal verbale del prodotto (02/09) nel riquadro ci sono DUE note: la prima è quella del verso
+    dice(box.note.length >= 1 && !box.note[0].warn && /non è uscito dal cancello/.test(box.note[0].testo), "la nota del verso non è in tono warn: prodotto > venduto è magazzino, non un errore", box.note);
     dice(!!box.terraSopra && box.terraSopra.length > 0, "il lato Terra sopra è ancora in piedi", box.terraSopra);
+    /* il cavato ANCHE in tonnellate (02/09): la scheda «Cavato dal fronte» lo
+       dice con la densità in banco che Terra dichiara — in dimostrazione un
+       valore tipico del materiale, e la scheda lo dichiara da verificare */
+    const conf = await pg.evaluate(() => (document.getElementById("ric-conf") || {}).textContent?.replace(/\s+/g, " ").trim() || "");
+    dice(/≈ [\d.,]+ t alla densità in banco di [\d,]+ t\/m³/.test(conf), "la scheda del cavato dice anche le tonnellate, con la densità in banco", conf.slice(0, 260));
+    dice(/valore tipico del materiale, da verificare/.test(conf), "e in dimostrazione dichiara che la densità è un valore tipico da verificare", conf.slice(0, 260));
     dice(box.paginaScroll <= box.paginaClient, `la pagina non scorre di lato a ${LARG}px`, [box.paginaScroll, box.paginaClient]);
     dice(box.conf && box.conf.sxRect && box.conf.dxRect && box.conf.sxRect.width > 0 && box.conf.dxRect.width > 0, "i due numeri hanno un'area");
   }

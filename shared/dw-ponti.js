@@ -611,6 +611,34 @@ export function densitaDellaCava(autorizzazione) {
   return densitaDichiarata({ densita: p.densita, da: DENS_PRESET, etichetta: p.etichetta, fonte: p.fonte });
 }
 
+// L'autorizzazione VIGENTE tra quelle registrate (le altre restano come
+// storico/varianti). Se nessuna è marcata vigente, prende la prima; null se
+// non ce n'è nessuna. ⛔ Viveva in Terra; dal 02/09 la chiama anche Conti (per
+// la densità della cava, qui sotto), quindi vive qui e Terra la ri-esporta.
+export function autorizzazioneVigente(autorizzazioni) {
+  const a = autorizzazioni || [];
+  return a.find(x => x && x.stato === "vigente") || a[0] || null;
+}
+
+/* IL CAVATO IN TONNELLATE (02/09). Terra misura in metri cubi IN BANCO, la
+   pesa in tonnellate, i turni di Campo in tonnellate: per leggere le tre cose
+   in un'unità sola serve la densità in banco — e Conti non la chiede una
+   seconda volta, la prende da dove è già dichiarata: `densitaDellaCava` sulla
+   autorizzazione vigente di Terra (atto → laboratorio → valore tipico da
+   verificare). Regole: senza densità niente numero, con la ragione; con un
+   valore tipico si converte ma si DICE che è un valore tipico da verificare
+   (`daVerificare`), perché su questo confronto la densità sposta le tonnellate
+   quanto il confronto dovrebbe misurare. Pura. */
+export function cavatoInTonnellate(m3, densitaRecord) {
+  const d = densitaRecord || densitaDichiarata(null);
+  const v = m3 == null || m3 === "" ? null : +m3;
+  if (!Number.isFinite(v)) return { t: null, densita: d.densita, da: d.da, calcolabile: false, daVerificare: false, perche: "il cavato in metri cubi non c'è" };
+  if (!(d.densita > 0)) return { t: null, densita: null, da: d.da, calcolabile: false, daVerificare: false,
+    perche: d.noto ? "la densità dichiarata in Terra non è un numero" : "la densità in banco della cava non è dichiarata in Terra" };
+  return { t: Math.round(v * d.densita * 100) / 100, densita: d.densita, da: d.da, calcolabile: true,
+    daVerificare: d.da === DENS_PRESET, perche: "" };
+}
+
 // ══════════════════════════════════════════════════════════════════════
 // PONTE P3 · CAMPO ↔ SCUDO — «chi è in turno è in regola?»
 // ══════════════════════════════════════════════════════════════════════
