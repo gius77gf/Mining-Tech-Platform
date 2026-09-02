@@ -121,10 +121,14 @@ const DIFETTI = [
           <div class="meta norma">\${esc(m.perche.charAt(0).toUpperCase() + m.perche.slice(1))}</div></div>`,
    `          <div class="meta">\${eur(m.totale)} spesi, ma \${esc(m.perche.charAt(0).toLowerCase() + m.perche.slice(1))}</div></div>`],
   // 2 · la pastiglia dell'importo che faceva «€ 0,00» su una spesa mai scritta
-  [`<div class="acts">\${numeroDichiarato(c.importo) == null
+  /* ⚠️ AGGIORNATA IL 02/09: il ponte con Conti ha messo davanti all'importo il
+     contrassegno «anche in Conti», e l'iniezione non trovava più il suo pezzo
+     (l'ha detto `iniezioni-fresche`, non il giro). Il difetto rimesso è lo
+     stesso: la pastiglia torna a scrivere «€ 0,00» su una spesa mai scritta. */
+  [`: ""}\${numeroDichiarato(c.importo) == null
         ? \`<span class="badge">importo non scritto</span>\`
         : \`<span class="badge accent euro">\${eur(c.importo)}</span>\`}`,
-   `<div class="acts"><span class="badge accent euro">\${eur(c.importo)}</span>`],
+   `: ""}<span class="badge accent euro">\${eur(c.importo)}</span>`],
 ];
 
 let iniezioni = 0;

@@ -78,6 +78,13 @@
 - [x] `apps/conti/index.html`: il badge «anche in Flotta» diventa il confronto
   vero; con Flotta assente NON compare uno zero (misurato col browser)
 - [x] la riga 3a della mappa aggiornata, e la tabella in §6 (6 → 7 ponti)
+- [x] ✅ 02/09 **il verso di ritorno, Conti→Flotta** (cantiere parallelo,
+  morto sul limite di sessione a lavoro finito e misurato da chi raccoglie):
+  `api.costiConti`, la traduzione delle voci a testo libero
+  (`chiaveVoceMezzo`/`costiPerConfronto`, con le non riconosciute contate), il
+  contrassegno «anche in Conti» alla cifra (`doppioniAllaCifra`), la nota coi
+  tre esiti; banco `flotta-ponte-conti.mjs` (20 + 9, controprova che cade in
+  3), run-kpi +10, copertura Flotta 95/95. Mappa: 7 → **8** ponti.
 - [ ] checkpoint per ogni unità
 
 ## Sospeso, non annullato
@@ -5497,7 +5504,7 @@ numero scritto dove non era stato misurato niente**.*
   nome apre il file sbagliato credendo che sia il più fresco.
 - Le decisioni: `docs/DECISIONI_WEEKEND.md` — pagina d'ingresso in cima.
 - Stato misurato al **18/08** (lanciando le suite, non a memoria):
-  **2.890 prove girano senza rete**. La frase va letta stretta: è la somma
+  **2.900 prove girano senza rete**. La frase va letta stretta: è la somma
   delle **nove** suite che contano asserzioni (`run-kpi` 2396, `run-stile` 327,
   `run-helpers` 75, `run-pointcloud` 32, `claims-convergenza` 19, `run-manifest` 9,
   `run-demo` 8, `bootstrap-rivendicazioni` 7, `fogli-guardati` 3), non tutto ciò che gira nel
@@ -5508,8 +5515,8 @@ numero scritto dove non era stato misurato niente**.*
   sorvegliati ne contavano sette: due convenzioni per lo stesso numero, che è
   il modo più facile di far sembrare sbagliato un conto giusto. Adesso è una
   sola.*
-  Copertura **751/751** e nessuna funzione scoperta; **203 esecuzioni** che
-  aprono le pagine in un browser vero, da **83** file di banco distinti (contati
+  Copertura **751/751** e nessuna funzione scoperta; **206 esecuzioni** che
+  aprono le pagine in un browser vero, da **84** file di banco distinti (contati
   dalla tabella `BANCHI` di `tutti.mjs`, non a occhio dalla cartella, che di
   `.mjs` ne ha di più perché contiene anche gli aiuti — `giro.mjs`,
   `impronta.mjs`, il runner stesso).

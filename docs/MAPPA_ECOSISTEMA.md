@@ -139,9 +139,21 @@ tabella.
     → 2 · 1 · 3   (definizione, ri-esportazione, import + chiamata + commento)
 
 ⚠️ Quello che il ponte NON fa, e va detto: non toglie il doppione, lo
-**mostra**. Decidere in quale app vive una spesa resta della persona. E Flotta
-continua a non sapere che la bandiera esista (`flotta 0`): il verso
-Conti→Flotta è un ponte a sé, non ancora costruito.
+**mostra**. Decidere in quale app vive una spesa resta della persona.
+
+✅ **E IL VERSO DI RITORNO, Conti→Flotta, È COSTRUITO LO STESSO GIORNO** (02/09,
+cantiere parallelo): `api.costiConti` in `flotta-data.js` (seconda istanza SDK
+con `appId: "conti"`, `null` se non risponde), la nota del confronto nella
+schermata dei costi di Flotta con gli stessi tre esiti, e il contrassegno
+«anche in Conti» sulla riga uguale **alla cifra** (stessa voce da mezzo, stesso
+giorno, stesso importo: `doppioniAllaCifra`). ⚠️ Con una differenza che vale
+la pena scrivere: qui la voce è a **testo libero** («Gasolio pala»), non una
+chiave di `VOCI_COSTO`, quindi prima di chiamare la funzione condivisa le righe
+vanno **tradotte** (`chiaveVoceMezzo` → `costiPerConfronto`); senza, Flotta
+risultava a zero — misurato. Le voci che la traduzione non riconosce si
+contano e si dicono (`nonClassificate`), non spariscono.
+
+    grep -c "confrontoCostiMezzi" apps/flotta/flotta-data.js apps/flotta/index.html → 1 · 3
 
 ### 3b. `scadenze` — Terra, Flotta **e** Scudo
 Tre app tengono un proprio scadenzario, ognuna col suo stato. Chi dirige la
@@ -254,9 +266,9 @@ Per onestà, e perché nessuno lo usi per decidere cose che non copre:
 
 | | oggi |
 |---|---|
-| ponti di DATI esistenti | **7** su 56 direzioni *(era 6; il settimo è Flotta→Conti, 02/09, §3a)* |
+| ponti di DATI esistenti | **8** su 56 direzioni *(era 6; il settimo è Flotta→Conti e l'ottavo il suo ritorno Conti→Flotta, tutt'e due del 02/09, §3a)* |
 | ponti di FILE | almeno **1** (Genesi→Sentinella) — mai censiti, vedi §1 |
-| app che nessuno legge | **4** (Genesi, Conti, Sentinella, Deepwork ID) *(era 5: Flotta adesso la legge Conti)* |
+| app che nessuno legge | **3** (Genesi, Sentinella, Deepwork ID) *(era 5: Flotta la legge Conti, e Conti la legge Flotta)* |
 | app senza alcuno scambio DATI | **1** (Genesi) — Deepwork ID esclusa, è l'identità *(era 2)* |
 | …di cui davvero scollegate da tutto | **0** *(era 1, Flotta)*: Genesi un ponte ce l'ha, di file |
 | sovrapposizioni non collegate | **5 famiglie** (§3) *(era 6: la 3a è collegata in un verso)* |

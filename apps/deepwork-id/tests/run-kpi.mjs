@@ -34129,5 +34129,122 @@ const { senzaCommenti: senzaCommentiConti } = await import("./tokenizza.mjs");
 }
 /* ===== fine Conti · la quadratica e lo stato vuoto che mentiva ===== */
 
+/* ══════════════════════════════════════════════════════════════════════
+   PONTE CONTI → FLOTTA · questa spesa risulta anche nel registro della cava?
+   (02/09) Il verso di ritorno del ponte Flotta→Conti: Flotta legge il
+   registro costi di Conti e dice, voce per voce e riga per riga, che cosa
+   sta in tutt'e due.
+   ⚠️ Prove SINCRONE e messe PRIMA del riepilogo: l'`await Promise.all(inVolo)`
+   sta a metà file, una prova asincrona qui non verrebbe aspettata.
+   ══════════════════════════════════════════════════════════════════════ */
+{
+  const srcFlotta = readFileSync(new URL("../../flotta/flotta-data.js", import.meta.url), "utf8");
+  const paginaFlotta = readFileSync(new URL("../../flotta/index.html", import.meta.url), "utf8");
+  test("⛔ Flotta ri-esporta confrontoCostiMezzi: lo STESSO oggetto di shared, non un gemello", () => {
+    ok(flotta.confrontoCostiMezzi === ponti.confrontoCostiMezzi, "identità, non comportamento");
+    ok(flotta.confrontoCostiMezzi === conti.confrontoCostiMezzi, "e la stessa di Conti");
+  });
+  test("⛔ le voci di Flotta sono a testo libero: GREZZE, il confronto vede Flotta a ZERO", () => {
+    /* misurato il 02/09, ed è la ragione per cui `costiPerConfronto` esiste. Il
+       giorno in cui questa prova cade, shared ha imparato a classificare da sé:
+       si tolgono la traduzione in Flotta e questa prova — non si aggiusta la
+       prova per farla passare. */
+    eq(ponti.voceCosto("Carburante"), null, "«Carburante» non è la chiave «carburante»");
+    const grezzo = ponti.confrontoCostiMezzi([], flotta.DEMO.costi);
+    eq(grezzo.totaleFlotta, 0, "sui sette costi della dimostrazione, Flotta risulta a zero");
+    const tradotto = ponti.confrontoCostiMezzi([], flotta.costiPerConfronto(flotta.DEMO.costi).righe);
+    ok(tradotto.totaleFlotta > 0, "tradotte, le stesse righe si vedono");
+    eq(tradotto.totaleFlotta, flotta.DEMO.costi.reduce((t, c) => t + c.importo, 0),
+      "e non se ne perde nessuna: le sette della dimostrazione sono tutte da mezzo");
+  });
+  test("chiaveVoceMezzo riconosce i nomi che Flotta scrive davvero", () => {
+    eq(flotta.chiaveVoceMezzo("Carburante"), "carburante", "la voce che nasce dal rifornimento");
+    eq(flotta.chiaveVoceMezzo("Manutenzione: Tagliando 500h (Escavatore E1)"), "manutenzione", "la voce che nasce dalla chiusura dell'ordine");
+    eq(flotta.chiaveVoceMezzo("Ricambi e officina"), "manutenzione", "voce della dimostrazione");
+    eq(flotta.chiaveVoceMezzo("Gomme"), "manutenzione", "voce della dimostrazione");
+    eq(flotta.chiaveVoceMezzo("Noleggi esterni"), "noleggio", "voce della dimostrazione");
+    eq(flotta.chiaveVoceMezzo("Nolo gru"), "noleggio", "«nolo» come parola intera");
+    eq(flotta.chiaveVoceMezzo("Carburante settimana 30"), "carburante", "quello che l'utente batte a mano");
+    eq(flotta.chiaveVoceMezzo("Gasolio"), "carburante", "⛔ «gasolio» contiene «olio»: il carburante si guarda prima");
+    for (const k of ponti.VOCI_COSTO.filter(v => v.daMezzo).map(v => v.chiave))
+      eq(flotta.chiaveVoceMezzo(k), k, "la chiave stessa passa: " + k);
+  });
+  test("⛔ quello che non si riconosce risponde null, non «manutenzione» per comodità", () => {
+    eq(flotta.chiaveVoceMezzo("Assicurazione RC"), null, "una spesa del mezzo che non è fra le tre voci");
+    eq(flotta.chiaveVoceMezzo(""), null, "vuoto"); eq(flotta.chiaveVoceMezzo(null), null, "null"); eq(flotta.chiaveVoceMezzo(undefined), null, "undefined");
+    const pc = flotta.costiPerConfronto([
+      { id: "a", voce: "Assicurazione RC", importo: 900, data: "2026-01-01" },
+      { id: "b", voce: "Gomme", importo: 100, data: "2026-01-02" }, null, { id: "c", voce: "", importo: 5 }]);
+    eq(pc.righe.length, 1, "entra solo la riga riconosciuta");
+    eq(pc.righe[0].voce, "manutenzione", "con la chiave al posto del nome");
+    eq(pc.righe[0].voceScritta, "Gomme", "e il nome scritto conservato accanto");
+    eq(pc.nonClassificate, 2, "le altre si contano");
+    eq(pc.fuori, ["Assicurazione RC", "(senza voce)"], "con i loro nomi, così chi legge sa quali sono");
+  });
+  test("la dimostrazione contiene i casi VOLUTI, e sono quelli decisi nel commento", () => {
+    const F = flotta.DEMO.costi, K = flotta.DEMO.costiConti;
+    const c1 = F.find(c => c.id === "c1"), k1 = K.find(c => c.id === "k1");
+    ok(c1 && k1 && c1.data === k1.data && c1.importo === k1.importo && flotta.chiaveVoceMezzo(c1.voce) === k1.voce,
+      "k1 è c1 alla cifra: stessa data, stesso importo, stessa voce");
+    const k2 = K.find(c => c.id === "k2");
+    ok(k2 && ponti.voceCosto(k2.voce).daMezzo && !F.some(c => c.data === k2.data && c.importo === k2.importo), "k2 è una voce da mezzo che sta SOLO in Conti");
+    const k3 = K.find(c => c.id === "k3");
+    ok(k3 && !k3.data && ponti.voceCosto(k3.voce).daMezzo, "k3 è una voce da mezzo SENZA data");
+    ok(K.some(c => !ponti.voceCosto(c.voce).daMezzo), "e c'è una voce che non è da mezzo, per far vedere che resta fuori");
+    ok(!K.some(c => c.voce === "noleggio"), "i noleggi stanno solo in Flotta: Conti risponde «—»");
+    const r = ponti.confrontoCostiMezzi(K, flotta.costiPerConfronto(F).righe);
+    eq(r.entrambe, 2, "carburante e manutenzione in tutt'e due");
+    const nol = r.voci.find(v => v.chiave === "noleggio");
+    eq(nol.conti, null, "noleggio: Conti «—», non zero"); ok(nol.flotta > 0, "e Flotta ce l'ha");
+  });
+  test("doppioniAllaCifra: la riga che ha in Conti una gemella, e SOLO quella", () => {
+    const d = flotta.doppioniAllaCifra(flotta.DEMO.costi, flotta.DEMO.costiConti);
+    eq(d.doppioni, { c1: "k1" }, "c1 → k1, nessun'altra");
+    eq(d.quanti, 1, "una");
+    eq(d.nonConfrontabili, { flotta: 1, conti: 1 },
+      "c3 (senza data) di qua e k3 (senza data) di là non si possono confrontare, e si contano invece di sparire");
+  });
+  test("⛔ Conti non raggiungibile NON è «nessun doppione»", () => {
+    eq(flotta.doppioniAllaCifra(flotta.DEMO.costi, null), null, "null resta null");
+    eq(flotta.doppioniAllaCifra(flotta.DEMO.costi, undefined), null, "e undefined pure");
+    eq(flotta.doppioniAllaCifra(flotta.DEMO.costi, []).quanti, 0, "un elenco vuoto invece è una risposta: zero doppioni");
+  });
+  test("una riga di Conti si spende una volta sola, e l'importo si confronta al centesimo", () => {
+    const due = [{ id: "a", voce: "Carburante", importo: 10, data: "2026-01-01" }, { id: "b", voce: "Carburante", importo: 10, data: "2026-01-01" }];
+    eq(flotta.doppioniAllaCifra(due, [{ id: "x", voce: "carburante", importo: "10", data: "2026-01-01" }]).quanti, 1,
+      "due rifornimenti uguali contro una fattura sola: un doppione solo (e l'importo scritto come testo si legge)");
+    const uno = (imp, data = "2026-01-01", voceConti = "carburante") =>
+      flotta.doppioniAllaCifra([{ id: "a", voce: "Carburante", importo: imp, data }], [{ id: "x", voce: voceConti, importo: 10, data }]);
+    eq(uno(10.004).quanti, 1, "al centesimo");
+    eq(uno(10.01).quanti, 0, "un centesimo di differenza non è la stessa spesa");
+    eq(uno(10, "2026-02-30").nonConfrontabili, { flotta: 1, conti: 1 }, "⛔ un giorno che non esiste non è una data, da nessuna delle due parti");
+    eq(uno(10, "2026-01-01", "personale").quanti, 0, "una voce di Conti che non è da mezzo non fa gemella");
+    eq(uno(0).nonConfrontabili.flotta, 1, "uno zero scritto non ha una firma: si conta, non si accoppia");
+  });
+  test("api.costiConti: il ponte pigro con la stessa forma di Conti, e la dimostrazione lo serve", () => {
+    ok(/DeepworkID\.init\(\{ appId: "conti" \}\)/.test(srcFlotta), "seconda istanza dell'SDK sull'app conti");
+    ok(/idConti\.orgCollection\("costi"\)/.test(srcFlotta), "che legge la collezione costi di Conti");
+    ok(/costiConti: async \(\) => mem\.costiConti \|\| \[\]/.test(srcFlotta), "e in dimostrazione serve DEMO.costiConti");
+    ok(Array.isArray(flotta.DEMO.costiConti) && flotta.DEMO.costiConti.length >= 3, "che esiste e ha i casi");
+    /* e la pagina NON traduce il null di Conti in una lista vuota: è il difetto
+       che la controprova del banco `browser/flotta-ponte-conti.mjs` rimette */
+    ok(paginaFlotta.includes("try { CC = db.costiConti ? await db.costiConti() : null; } catch (e) { CC = null; }"), "la pagina tiene il null di Conti");
+    ok(!/db\.costiConti\(\)[^\n]*\|\| \[\]/.test(paginaFlotta), "e nessuna riga lo traduce in []");
+  });
+  test("⛔ shared dichiara «non disponibile» solo il SECONDO argomento: il null di Conti lo guarda la pagina", () => {
+    /* misurato il 02/09 col banco `flotta-ponte-conti --conti-assente`, che
+       cadeva PRIMA della controprova: `confrontoCostiMezzi(null, righe)` NON
+       risponde `disponibile:false` — passa da `somma(null)` e dice «Conti non
+       ha niente». Il giorno in cui la prima riga qui sotto cade, shared è
+       diventata simmetrica: si toglie questa prova (la guardia nella pagina
+       può restare, è innocua). */
+    eq(ponti.confrontoCostiMezzi(null, []).disponibile, true, "il null al primo posto NON è dichiarato");
+    eq(ponti.confrontoCostiMezzi([], null).disponibile, false, "quello al secondo sì");
+    ok(paginaFlotta.includes('const c = CC === null ? { disponibile: false, motivo: "conti-non-raggiungibile" } : confrontoCostiMezzi(CC, pc.righe);'),
+      "quindi la pagina decide «Conti non ha risposto» da sé, prima di chiamarla");
+  });
+}
+/* ===== fine ponte Conti → Flotta ===== */
+
 console.log(`\nRisultato KPI app: ${passed} passati, ${failed} falliti${inVolo.length ? `  ·  ${inVolo.length} prove asincrone aspettate` : ""}`);
 process.exit(failed > 0 ? 1 : 0);

@@ -481,6 +481,11 @@ const BANCHI = [
   ['il ponte Flotta→Conti nei costi', 'conti-ponte-flotta.mjs', []],
   ['ponte Flotta→Conti · Flotta assente', 'conti-ponte-flotta.mjs', ['--flotta-assente']],
   ['ponte Flotta→Conti · controprova', 'conti-ponte-flotta.mjs', ['--controprova'], true],
+  /* 02/09, il verso di ritorno: Flotta chiede a Conti «questa spesa ce l'hai
+     anche tu?». Stessa funzione condivisa, stessi tre esiti, stessa controprova. */
+  ['il ponte Conti→Flotta nei costi dei mezzi', 'flotta-ponte-conti.mjs', []],
+  ['ponte Conti→Flotta · Conti assente', 'flotta-ponte-conti.mjs', ['--conti-assente']],
+  ['ponte Conti→Flotta · controprova', 'flotta-ponte-conti.mjs', ['--controprova'], true],
   /* ⛔ AGGIUNTO IL 03/08, stessa domanda applicata a Scudo: dove l'app compone
      qualcosa che ESCE, chi decide i suoi numeri? I quattro CSV li scrive la
      pagina, e ognuno era più tranquillo dello schermo — un'azione scaduta da

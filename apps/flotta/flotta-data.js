@@ -85,7 +85,7 @@
 
 /* la regola sui numeri dichiarati vive in `shared/`: qui si IMPORTA, non si
    riscrive — è il difetto che questo repository ha già pagato quattro volte */
-import { numeroDichiarato, applicaPercorsi, traduciCancellazioni } from "../../shared/dw-ponti.js";
+import { numeroDichiarato, applicaPercorsi, traduciCancellazioni, voceCosto } from "../../shared/dw-ponti.js";
 import { parseCsvLine, csvCell, numIt, giorniTra, isIntestazione, numeroScritto, oggiISO,
          dataISOEsiste, dataIt, plurale,
          messaggioNumero as messaggioNumeroShell,
@@ -364,6 +364,27 @@ export const DEMO = {
     { id: "c5", voce: "Noleggi esterni", importo: 2100, nota: "escavatore a nolo", data: "2026-06-03" },
     { id: "c6", voce: "Gomme", importo: 3400, nota: "4 gomme dumper", data: "2026-05-22" },
     { id: "c7", voce: "Ricambi e officina", importo: 1760, nota: "", data: "2026-05-07" },
+  ],
+  // IL REGISTRO COSTI DELLA CAVA COME LO TIENE CONTI (solo per la modalità
+  // dimostrativa): in un'organizzazione vera arriva dall'app Conti, che scrive
+  // la voce con la CHIAVE di `VOCI_COSTO` («carburante»), non col nome libero
+  // che si scrive qui. I casi sono DECISI, non sorteggiati, e ognuno serve a
+  // far vedere una riga della schermata Costi:
+  //  · k1 è LO STESSO gasolio di c1 qui sopra: stessa data, stesso importo,
+  //    alla cifra. È l'euro contato due volte, e nell'elenco c1 prende il
+  //    contrassegno «anche in Conti»;
+  //  · k2 è un'officina esterna che in Conti c'è e qui NO: Conti ne sa di più
+  //    su quella voce, e il confronto lo dice senza accusare nessuno;
+  //  · k3 è SENZA data: entra nel totale di Conti ma non si può confrontare
+  //    alla cifra, e va detto invece di farla sparire;
+  //  · k4 non è una voce da mezzo (personale): resta fuori dal confronto per
+  //    costruzione, come vuole la bandiera `daMezzo` di shared/.
+  // I noleggi restano SOLO qui (c3, c5): Conti risponde «—», non zero.
+  costiConti: [
+    { id: "k1", data: "2026-07-06", voce: "carburante", importo: 8400, nota: "Gasolio, fattura del distributore" },
+    { id: "k2", data: "2026-07-20", voce: "manutenzione", importo: 640, nota: "Officina esterna, fattura di luglio" },
+    { id: "k3", voce: "carburante", importo: 500, nota: "Buono gasolio senza data" },
+    { id: "k4", data: "2026-07-03", voce: "personale", importo: 5500, nota: "Squadra di fronte, luglio" },
   ],
   interventi: [
     // w1 porta la LAVORAZIONE (L5): due persone, ore e costo orario, il pezzo
@@ -1189,6 +1210,98 @@ export function costiPerMese(costi) {
     mancanti = (a2 * 12 + m2) - (a1 * 12 + m1) + 1 - mesi.length;
   }
   return { mesi, totale, senzaData: { voci: sdVoci, importo: sdImporto }, mancanti };
+}
+
+// ══════════════════════════════════════════════════════════════════════
+// PONTE · CONTI → FLOTTA — QUESTA SPESA RISULTA ANCHE NEL REGISTRO DELLA CAVA?
+// ══════════════════════════════════════════════════════════════════════
+// Il confronto voce per voce vive in `shared/` (`confrontoCostiMezzi`, serve a
+// due app) e qui si RI-ESPORTA: un alias non è una seconda implementazione.
+export { confrontoCostiMezzi } from "../../shared/dw-ponti.js";
+//
+// ⛔ MISURATO IL 02/09, E VALE PIÙ DI TUTTO QUELLO CHE STA QUI SOTTO: il registro
+// costi di Flotta scrive la voce A TESTO LIBERO — «Carburante» dal
+// rifornimento, «Manutenzione: <titolo> (<mezzo>)» dalla chiusura dell'ordine,
+// e quello che l'utente batte nel campo — mentre `confrontoCostiMezzi`
+// riconosce una voce da mezzo con `voceCosto(c.voce)`, che combacia SOLO con la
+// chiave («carburante»). Provato: `voceCosto("Carburante")` → `null`, e sui
+// sette costi della dimostrazione `confrontoCostiMezzi(…, DEMO.costi)` risponde
+// `totaleFlotta: 0`. Cioè il ponte Flotta→Conti, sui dati che Flotta scrive
+// davvero, vede Flotta a ZERO — e Conti direbbe «Flotta non ha registrato
+// niente su queste voci», con la faccia tranquilla.
+// La traduzione sta qui perché questo cantiere non può toccare `shared/` né
+// Conti; ma la regola «serve a due app, vive in shared» è già scattata OGGI,
+// non domani: Conti legge la stessa collezione e ha lo stesso bisogno. Il
+// giorno in cui `chiaveVoceMezzo` sale in `shared/` e `confrontoCostiMezzi`
+// classifica da sé, `costiPerConfronto` diventa un passaggio vuoto e la prova
+// «grezzo → 0» in run-kpi cade: è il segnale per togliere tutt'e due.
+//
+// Riconosce, dal nome libero di una voce, quale delle tre voci `daMezzo` è.
+// Il carburante si guarda per primo perché «gasolio» contiene «olio».
+// Quello che non si riconosce risponde `null`: NON «generali», non
+// «manutenzione» per comodità — si dichiara e si lascia fuori dal confronto.
+export function chiaveVoceMezzo(voce) {
+  const t = String(voce || "").trim().toLowerCase();
+  if (!t) return null;
+  if (/carburant|gasolio|diesel|benzin|rifornim|adblue/.test(t)) return "carburante";
+  if (/nolegg|\bnolo\b|leasing/.test(t)) return "noleggio";
+  if (/manutenz|ricamb|officina|gomm|pneumatic|filtr|\bolio|taglian|riparaz/.test(t)) return "manutenzione";
+  return null;
+}
+
+// Le righe del registro di Flotta nella forma che `confrontoCostiMezzi` sa
+// leggere: la voce diventa la chiave, il nome scritto resta accanto
+// (`voceScritta`). Le righe che non si riconoscono NON entrano nel confronto e
+// si contano — con i loro nomi, così chi legge sa quali sono.
+export function costiPerConfronto(costi) {
+  const righe = [], fuori = [];
+  for (const c of costi || []) {
+    if (!c) continue;
+    const k = chiaveVoceMezzo(c.voce);
+    if (k) righe.push({ ...c, voceScritta: c.voce, voce: k });
+    else fuori.push(String(c.voce || "").trim() || "(senza voce)");
+  }
+  return { righe, nonClassificate: fuori.length, fuori };
+}
+
+// LA STESSA SPESA, ALLA CIFRA. Il confronto per voce dice «il carburante è in
+// tutt'e due»; questa dice QUALE riga di Flotta ha in Conti una riga identica
+// — stessa voce da mezzo, stesso giorno, stesso importo al centesimo — ed è
+// quella che nell'elenco prende il contrassegno «anche in Conti».
+//  · Conti non raggiungibile → `null`, che non è «nessun doppione»;
+//  · una riga senza data o senza importo positivo non ha una firma: non si può
+//    dire né che è doppia né che non lo è, e si conta (`nonConfrontabili`);
+//  · una riga di Conti si spende UNA volta sola: due rifornimenti uguali lo
+//    stesso giorno contro una sola fattura marcano un solo doppione;
+//  · di Conti si guardano solo le voci `daMezzo`, come fa il confronto.
+export function doppioniAllaCifra(costiFlotta, costiConti) {
+  if (costiConti == null) return null;
+  const firma = (k, c) => {
+    const d = String(c && c.data || "").slice(0, 10), imp = numeroDichiarato(c && c.importo);
+    if (!k || !dataISOEsiste(d) || imp === null || imp <= 0) return null;
+    return k + "|" + d + "|" + Math.round(imp * 100);
+  };
+  const inConti = new Map();
+  let nonConfrontabiliConti = 0;
+  for (const c of costiConti) {
+    const v = voceCosto(c && c.voce);
+    if (!v || !v.daMezzo) continue;
+    const f = firma(v.chiave, c);
+    if (!f) { nonConfrontabiliConti++; continue; }
+    inConti.set(f, (inConti.get(f) || []).concat([c.id == null ? "" : String(c.id)]));
+  }
+  const doppioni = {};
+  let nonConfrontabiliFlotta = 0;
+  for (const c of costiFlotta || []) {
+    const k = chiaveVoceMezzo(c && c.voce);
+    if (!k) continue;
+    const f = firma(k, c);
+    if (!f) { nonConfrontabiliFlotta++; continue; }
+    const l = inConti.get(f);
+    if (l && l.length && c.id != null) doppioni[c.id] = l.shift();
+  }
+  return { doppioni, quanti: Object.keys(doppioni).length,
+           nonConfrontabili: { flotta: nonConfrontabiliFlotta, conti: nonConfrontabiliConti } };
 }
 
 // FOTOGRAFIA DEL PARCO DA REGISTRARE OGGI, se serve. L'app la chiama a ogni
@@ -3531,12 +3644,34 @@ export async function flottaData() {
         aggiorna: (n, i, d) => updateDoc(doc(id.orgCollection(n), i), traduciCancellazioni(d, deleteField)),
         rimuovi: (n, i) => deleteDoc(doc(id.orgCollection(n), i)),
       };
+      // ── PONTE CON CONTI — SOLA LETTURA ────────────────────────────────
+      // Stessa forma del ponte Flotta→Conti in `conti-data.js`: seconda
+      // istanza dell'SDK sull'app "conti", stessa organizzazione, aperta solo
+      // la prima volta che serve, così l'avvio di Flotta non rallenta. ⛔ Se
+      // Conti non c'è o la lettura non è permessa si torna `null`, e la
+      // schermata dice «Conti non raggiungibile» — MAI «in Conti non c'è
+      // niente», che sarebbe il via libera a scrivere il doppione.
+      let idConti;                       // undefined = mai provato, null = non c'è
+      api.costiConti = async () => {
+        if (idConti === undefined) {
+          try { idConti = await DeepworkID.init({ appId: "conti" }); }
+          catch (e) { idConti = null; }
+        }
+        if (!idConti) return null;
+        try {
+          return (await getDocs(idConti.orgCollection("costi")))
+            .docs.map(d => ({ id: d.id, ...d.data() }));
+        } catch (e) { return null; }
+      };
     } else if (id.authState() === "tour") mode = "tour";
   } catch (e) {}
   if (mode !== "live") {
     const mem = JSON.parse(JSON.stringify(DEMO));
     api = {
       mezzi: async () => mem.mezzi, manutenzioni: async () => mem.manutenzioni, costi: async () => mem.costi, ricambi: async () => mem.ricambi, interventi: async () => mem.interventi, scadenze: async () => mem.scadenze, disponibilita: async () => mem.disponibilita || [], controlli: async () => mem.controlli || [], rifornimenti: async () => mem.rifornimenti || [], fermi: async () => mem.fermi || [],
+      // in dimostrazione il registro della cava non arriva da Conti: è finto,
+      // ma costruito apposta sui costi d'esempio qui sopra (vedi DEMO.costiConti)
+      costiConti: async () => mem.costiConti || [],
       logout: async () => {},
       aggiungi: async (n, d) => { const id = "m" + Math.random().toString(36).slice(2, 8); (mem[n] = mem[n] || []).push({ id, ...d }); return { id }; },
       aggiorna: async (n, i, d) => { const x = (mem[n] || (mem[n] = [])).find(v => v.id === i); if (x) applicaPercorsi(x, d); },
