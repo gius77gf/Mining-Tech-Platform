@@ -77,6 +77,17 @@
   conto) nei tre temi, scatti guardati. Un difetto di frase: sul terzo lato,
   con nessun turno e nessuna consegna, «La pesa ha registrato 0,00 t in 0
   viaggi» — uno zero vero che si legge come un conto; adesso lo dice a parole.
+- [x] ✅ 02/09 sera **Flotta: il consumo di un mezzo contro la sua storia**
+  (candidato 3 della ricerca di Flotta, meccanismo verificato): finestra
+  degli ultimi 30 giorni contro tutto ciò che c'è prima, con le regole di
+  `consumoPerMezzo` (si scarta il primo pieno di ogni tratto) e senza giudizio
+  nel modulo; la tolleranza del 15% è una scelta dichiarata della pagina (la
+  ricerca non ne ha trovata una con la fonte). La riga del mezzo dice il
+  recente contro il suo solito, la forbice, e «da guardare» sopra la
+  tolleranza — o perché non lo si può dire. La dimostrazione resta com'è
+  (cinque prove assolute vivono sui suoi numeri): il caso lo mostra il banco
+  iniettando la storia nel modulo servito. 4 prove in run-kpi, banco nei due
+  versi, copertura flotta 97/97.
 - [ ] **Aggiornare la tabella in fondo a `docs/MAPPA_ECOSISTEMA.md`** a ogni
   ponte chiuso: è il registro, e il «6 su 56» deve scendere. *(02/09: 12 su 56.)*
 - [ ] **Una passata in profondità su un'app** (ogni schermata guardata, ogni
@@ -5645,7 +5656,7 @@ numero scritto dove non era stato misurato niente**.*
   nome apre il file sbagliato credendo che sia il più fresco.
 - Le decisioni: `docs/DECISIONI_WEEKEND.md` — pagina d'ingresso in cima.
 - Stato misurato al **18/08** (lanciando le suite, non a memoria):
-  **2.929 prove girano senza rete**. La frase va letta stretta: è la somma
+  **2.933 prove girano senza rete**. La frase va letta stretta: è la somma
   delle **nove** suite che contano asserzioni (`run-kpi` 2396, `run-stile` 327,
   `run-helpers` 75, `run-pointcloud` 32, `claims-convergenza` 19, `run-manifest` 9,
   `run-demo` 8, `bootstrap-rivendicazioni` 7, `fogli-guardati` 3), non tutto ciò che gira nel
@@ -5656,8 +5667,8 @@ numero scritto dove non era stato misurato niente**.*
   sorvegliati ne contavano sette: due convenzioni per lo stesso numero, che è
   il modo più facile di far sembrare sbagliato un conto giusto. Adesso è una
   sola.*
-  Copertura **751/751** e nessuna funzione scoperta; **219 esecuzioni** che
-  aprono le pagine in un browser vero, da **89** file di banco distinti (contati
+  Copertura **751/751** e nessuna funzione scoperta; **221 esecuzioni** che
+  aprono le pagine in un browser vero, da **90** file di banco distinti (contati
   dalla tabella `BANCHI` di `tutti.mjs`, non a occhio dalla cartella, che di
   `.mjs` ne ha di più perché contiene anche gli aiuti — `giro.mjs`,
   `impronta.mjs`, il runner stesso).

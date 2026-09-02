@@ -329,8 +329,13 @@ cercando i nomi del mondo. Per ogni «non c'è» il comando e la sua uscita.
    media del mezzo (stesso mezzo, mesi precedenti), con la forbice detta a
    parole e SENZA distinguere perdita da furto — quello non lo sa nessun
    software, lo sa chi guarda il mezzo; costo basso (funzione pura su
-   `consumoPerMezzo` per finestre). *Proposto da ricerca, meccanismo
-   verificato, non in roadmap finché non lo sceglie un cantiere.*
+   `consumoPerMezzo` per finestre). ✅ **Fatto il 02/09, la sera stessa**:
+   `consumoControStoria(rifornimenti, mezzo, oggi, finestra)` in
+   `flotta-data.js` (finestra recente contro la storia, le regole di
+   `consumoPerMezzo`, nessun giudizio nel modulo), `TOLLERANZA_CONSUMO_PCT`
+   dichiarata come scelta della pagina, la riga del mezzo che dice il recente
+   contro il suo solito e «da guardare» sopra la tolleranza; banco
+   `flotta-consumo-storia.mjs` con la storia iniettata nel modulo servito.
 4. **Il motore al minimo** → **non c'è come voce**: `grep -ciE 'regime
    minimo|al minimo|idle' apps/flotta/flotta-data.js` → **0**. Le ore del contatore sono ore
    motore, e il gasolio bruciato fermo ci finisce dentro senza nome. Un dato
@@ -354,7 +359,7 @@ cercando i nomi del mondo. Per ogni «non c'è» il comando e la sua uscita.
    da soli) — verificare quella durata sul testo di legge prima di scriverla
    in una schermata: la ricerca la riporta di seconda mano.
 
-Riassunto: **quattro esistono (1, 2, 5, 6), due mancano (3 e 4)**, e il solo
-candidato con un valore chiaro è il **3** (il consumo del mezzo contro la sua
-stessa storia). Nessuno dei numeri di settore della ricerca (l/h, 85-95 %,
+Riassunto: **quattro esistono (1, 2, 5, 6), due mancavano (3 e 4)**, e il solo
+candidato con un valore chiaro era il **3** (il consumo del mezzo contro la sua
+stessa storia) — *fatto la sera stessa; resta il 4, dichiarato debole*. Nessuno dei numeri di settore della ricerca (l/h, 85-95 %,
 MTBF 400-600 h) va scritto nel prodotto: sono di seconda mano.

@@ -34427,6 +34427,61 @@ const { senzaCommenti: senzaCommentiConti } = await import("./tokenizza.mjs");
 /* ===== fine Conti · il verbale di riconciliazione ===== */
 
 /* ══════════════════════════════════════════════════════════════════════
+   FLOTTA · IL CONSUMO DI UN MEZZO CONTRO LA SUA STORIA (02/09, candidato 3
+   della ricerca di Flotta): finestra recente contro tutto ciò che c'è prima,
+   con le regole di `consumoPerMezzo` (si scarta il primo pieno di ogni
+   tratto) e nessun giudizio nel modulo.
+   ══════════════════════════════════════════════════════════════════════ */
+{
+  const O = new Date("2026-09-02T12:00:00Z");
+  const g = (n) => new Date(O.getTime() - n * 86400000).toISOString().slice(0, 10);
+  const R = [
+    { mezzo: "Dumper D1", data: g(70), litri: 400, ore: 8000 }, { mezzo: "Dumper D1", data: g(55), litri: 380, ore: 8100 },
+    { mezzo: "Dumper D1", data: g(40), litri: 390, ore: 8200 },
+    { mezzo: "Dumper D1", data: g(20), litri: 390, ore: 8300 }, { mezzo: "Dumper D1", data: g(9), litri: 415, ore: 8390 },
+    { mezzo: "Dumper D1", data: g(2), litri: 360, ore: 8416 },
+    { mezzo: "Pala P1", data: g(16), litri: 300, ore: 6498 }, { mezzo: "Pala P1", data: g(4), litri: 320, ore: 6531 },
+    { mezzo: "Esc E2", data: g(6), litri: 300, ore: 3195 }, { mezzo: "Esc E2", data: g(1), litri: 280, ore: null },
+  ];
+  const C = flotta.consumoControStoria;
+  test("consumoControStoria: la finestra parte dall'ULTIMO pieno della storia, e la storia scarta il suo primo", () => {
+    const r = C(R, "Dumper D1", O);
+    eq(r.calcolabile, true); eq(r.finestra, 30); eq(r.dal, "2026-08-04");
+    eq(r.storia, { litriOra: 3.85, litri: 770, ore: 200, pieni: 3, dal: g(70), al: g(40), perche: "" }, "storia: (380+390)/(8200−8000)");
+    eq(r.recente, { litriOra: 5.39, litri: 1165, ore: 216, pieni: 4, dal: g(40), al: g(2), perche: "" }, "recente: parte dal pieno di g(40), litri dei tre dopo");
+    eq(r.forbicePct, 40); eq(r.verso, "sopra");
+  });
+  test("senza una storia non si confronta, e si dice quale metà manca", () => {
+    const p = C(R, "Pala P1", O);
+    eq(p.calcolabile, false); eq(p.storia, null); ok(p.recente && p.recente.litriOra === 9.7, "il recente c'è lo stesso (320/33)");
+    ok(/prima della finestra non c'è nessun pieno/.test(p.perche), p.perche);
+    ok(/un pieno solo con le ore/.test(C(R, "Esc E2", O).perche), "un pieno con ore e uno senza: non basta");
+    ok(/nessun pieno con data e ore/.test(C(R, "Boh", O).perche)); eq(C(null, "", O).perche, "manca il nome del mezzo");
+    ok(/il contatore non è salito/.test(C([{ mezzo: "X", data: g(50), litri: 1, ore: 100 }, { mezzo: "X", data: g(45), litri: 1, ore: 100 }, { mezzo: "X", data: g(3), litri: 1, ore: 150 }], "X", O).perche), "contatore fermo nella storia: niente numero");
+    eq(C(R, "Dumper D1", O, 400).calcolabile, false, "con una finestra che ingoia tutto la storia è vuota");
+  });
+  test("nel modulo non c'è un giudizio: la tolleranza è una scelta dichiarata della pagina", () => {
+    eq(flotta.TOLLERANZA_CONSUMO_PCT, 15);
+    const r = C(R, "Dumper D1", O); ok(!("stato" in r) && !("allarme" in r), "niente stato né allarme nel risultato");
+    eq(C(R.map((x) => (x.data >= g(30) ? { ...x, litri: 100 } : x)), "Dumper D1", O).verso, "sotto", "meno litri nella finestra per le stesse ore: sotto");
+  });
+  test("la dimostrazione NON ha una storia (dieci pieni in venti giorni), e ogni mezzo dice perché", () => {
+    /* La dimostrazione resta com'è: cinque prove assolute sui suoi numeri
+       (€/h, pagella) sono scritte a mano di proposito, e una storia aggiunta le
+       sposterebbe tutte. Il caso «beve più del suo solito» lo mostra il banco
+       del browser iniettando i pieni vecchi nel modulo SERVITO
+       (`flotta-consumo-storia.mjs`), non la dimostrazione. */
+    for (const m of ["Escavatore E1", "Dumper D1", "Pala P1"]) {
+      const r = C(flotta.DEMO.rifornimenti, m);
+      eq(r.calcolabile, false, m); ok(r.recente && r.recente.litriOra != null, m + ": il recente c'è");
+      ok(/non c'è una storia/.test(r.perche), m + ": " + r.perche);
+    }
+    ok(/un pieno solo con le ore/.test(C(flotta.DEMO.rifornimenti, "Escavatore E2").perche), "E2: un pieno con le ore e uno senza");
+  });
+}
+/* ===== fine Flotta · il consumo contro la storia ===== */
+
+/* ══════════════════════════════════════════════════════════════════════
    PONTE CAMPO → CONTI · il terzo lato del triangolo (02/09, la 3f della mappa):
    quello che i turni DICHIARANO di aver prodotto contro quello che la pesa ha
    VENDUTO, tonnellate contro tonnellate. La funzione sta in shared/ e Conti la

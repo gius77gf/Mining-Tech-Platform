@@ -3683,3 +3683,63 @@ export async function flottaData() {
   }
   return { mode, ...api };
 }
+
+/* ══════════════════════════════════════════════════════════════════════
+   IL CONSUMO DI UN MEZZO CONTRO LA SUA STORIA (02/09)
+   ────────────────────────────────────────────────────────────────────────
+   Il grafico dei consumi dice da mesi che «un consumo che sale rispetto al
+   solito è spesso il primo segnale di un guasto» — e nessuno lo misurava: i
+   l/h erano un numero solo per mezzo, su tutta la sua vita. Qui si spezza in
+   due: la FINESTRA recente (gli ultimi N giorni) e la STORIA (tutto ciò che
+   c'è prima), e si dice di quanto la prima sta sopra o sotto la seconda.
+   Regole di onestà, le stesse di `consumoPerMezzo`:
+   · si scarta il primo pieno di ogni tratto: il gasolio che c'era dentro è
+     stato bruciato in ore che non abbiamo. Per la finestra, il punto di
+     partenza è l'ULTIMO pieno della storia (se c'è): così la finestra non
+     perde il suo primo pieno, e i due tratti non si sovrappongono;
+   · un contatore che non sale fra due letture non dà un consumo — si
+     risponde `perche`, non un numero;
+   · servono almeno due pieni con le ore in ciascun tratto, se no
+     `calcolabile: false` e `perche` dice quale dei due manca;
+   · non si giudica: `forbicePct` è la differenza in percentuale della storia,
+     `verso` la dice a parole; la soglia da cui la pagina dice «da guardare»
+     è `TOLLERANZA_CONSUMO_PCT`, dichiarata come SCELTA nostra (la ricerca del
+     02/09 non ha trovato una tolleranza di settore con una fonte: un numero
+     senza fonte non si spaccia per norma). Perdita, furto o motore non li
+     distingue nessun software: lo sa chi guarda il mezzo.
+   Pura e testabile: `oggi` iniettabile. */
+export const TOLLERANZA_CONSUMO_PCT = 15;
+export function consumoControStoria(rifornimenti, nomeMezzo, oggi = new Date(), finestraGiorni = 30) {
+  const n = nomeBreve(nomeMezzo);
+  const finestra = Math.max(1, Math.round(+finestraGiorni || 30));
+  const a = oggiIso(oggi);
+  const da = oggiIso(new Date(Date.parse(a + "T12:00:00Z") - (finestra - 1) * 86400000));
+  const base = { mezzo: n, finestra, dal: da, al: a, recente: null, storia: null, forbicePct: null, verso: null, calcolabile: false, perche: "" };
+  const pieni = (rifornimenti || [])
+    .filter((r) => r && nomeBreve(r.mezzo) === n && +r.litri > 0)
+    .map((r) => ({ data: String(r.data || "").slice(0, 10), litri: +r.litri, ore: Number.isFinite(Math.round(+r.ore)) && Math.round(+r.ore) > 0 ? Math.round(+r.ore) : null }))
+    .filter((p) => dataISOEsiste(p.data) && p.ore != null)
+    .sort((x, y) => x.data.localeCompare(y.data) || x.ore - y.ore);
+  if (!n) return { ...base, perche: "manca il nome del mezzo" };
+  const storia = pieni.filter((p) => p.data < da), recenti = pieni.filter((p) => p.data >= da);
+  // un tratto: dal pieno di partenza (escluso dai litri) all'ultimo
+  const tratto = (partenza, seguenti) => {
+    if (!partenza || !seguenti.length) return null;
+    const ultimo = seguenti[seguenti.length - 1];
+    const ore = ultimo.ore - partenza.ore;
+    const litri = seguenti.reduce((t, p) => t + p.litri, 0);
+    if (!(ore > 0)) return { litriOra: null, litri, ore, pieni: seguenti.length + 1, dal: partenza.data, al: ultimo.data, perche: "fra la prima e l'ultima lettura il contatore non è salito" };
+    return { litriOra: Math.round((litri / ore) * 100) / 100, litri, ore, pieni: seguenti.length + 1, dal: partenza.data, al: ultimo.data, perche: "" };
+  };
+  const st = storia.length >= 2 ? tratto(storia[0], storia.slice(1)) : null;
+  const partenzaRecente = storia.length ? storia[storia.length - 1] : (recenti.length ? recenti[0] : null);
+  const seguenti = storia.length ? recenti : recenti.slice(1);
+  const rc = partenzaRecente && seguenti.length ? tratto(partenzaRecente, seguenti) : null;
+  const out = { ...base, recente: rc, storia: st };
+  if (!rc) return { ...out, perche: recenti.length ? "nella finestra c'è un pieno solo con le ore, e nessuno prima da cui partire" : "nessun pieno con data e ore nella finestra" };
+  if (rc.litriOra == null) return { ...out, perche: "nella finestra " + rc.perche };
+  if (!st) return { ...out, perche: storia.length ? "prima della finestra c'è un pieno solo con le ore: non fa una storia" : "prima della finestra non c'è nessun pieno: non c'è una storia con cui confrontare" };
+  if (st.litriOra == null) return { ...out, perche: "nella storia " + st.perche };
+  const forbice = Math.round((100 * (rc.litriOra - st.litriOra)) / st.litriOra * 10) / 10;
+  return { ...out, calcolabile: true, forbicePct: forbice, verso: forbice > 0 ? "sopra" : forbice < 0 ? "sotto" : "pari" };
+}

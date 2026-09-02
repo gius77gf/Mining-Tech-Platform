@@ -1324,7 +1324,7 @@ body.dw b.bad{color:var(--ink-dg)}
            confrontoCostiMezzi, costiPerConfronto, doppioniAllaCifra,
            GRAVITA_GUASTO, gravitaGuasto, validaGuasto, manutenzioneDaGuasto,
            PIANI_TAGLIANDO, pianoTagliando, propostaTagliando, prossimoTagliando,
-           validaRifornimento, consumoPerMezzo, fascicoloMezzo,
+           validaRifornimento, consumoPerMezzo, consumoControStoria, TOLLERANZA_CONSUMO_PCT, fascicoloMezzo,
            STATI_ORDINE, statoOrdine, costoOrdine, ordineDaManutenzione,
            validaRigaManodopera, validaRigaRicambio, riepilogoOrdini,
            CAUSALI_FERMO, causaleFermo, etichettaCausale, validaFermo,
@@ -2936,6 +2936,24 @@ body.dw b.bad{color:var(--ink-dg)}
       puliscoGrafico("graf-consumo");
     }
 
+    /* IL CONSUMO CONTRO LA STORIA DEL MEZZO (02/09): la nota del grafico dice
+       da mesi che un consumo che sale è il primo segnale di un guasto, e
+       nessuno lo misurava. Adesso ogni riga dice come beve negli ultimi 30
+       giorni rispetto a prima — o perché non lo si può dire. La soglia da cui
+       si scrive «da guardare» è una scelta dichiarata (TOLLERANZA_CONSUMO_PCT),
+       non una norma: la ricerca del 02/09 non ne ha trovata una con la fonte. */
+    const storiaTx = (m) => {
+      if (m.litriOra == null) return "";
+      const st = consumoControStoria(RIF, m.mezzo);
+      if (!st.calcolabile) return ` · ultimi ${st.finestra} giorni: ${st.recente && st.recente.litriOra != null ? lh(st.recente.litriOra) + ", " : ""}${esc(st.perche)}`;
+      const f = st.forbicePct, sopra = st.verso === "sopra" && f > TOLLERANZA_CONSUMO_PCT;
+      const pct = Math.abs(f).toLocaleString("it-IT", { maximumFractionDigits: 0 }) + "%";
+      return ` · ultimi ${st.finestra} giorni: <b>${lh(st.recente.litriOra)}</b> contro ${lh(st.storia.litriOra)} del suo solito → `
+        + (st.verso === "pari" ? "uguale"
+          : sopra ? `<b class="bad">+${pct}, sopra la tolleranza del ${TOLLERANZA_CONSUMO_PCT}%: da guardare</b> (filtri, iniettori, freni che strisciano — o un pieno scritto a un altro mezzo)`
+          : st.verso === "sopra" ? `+${pct}, dentro la tolleranza del ${TOLLERANZA_CONSUMO_PCT}%`
+          : `−${pct}, beve meno di prima`);
+    };
     const perMezzo = cons.mezzi.map(m => {
       const cls = m.litriOra != null ? "ok" : "mute";
       return `<div class="item statico ${striscia[cls] || "st-mute"}">
@@ -2952,7 +2970,7 @@ body.dw b.bad{color:var(--ink-dg)}
                ragione di un banco non misurato è stata spostata. Vale per
                tutt'e due i numeri della riga: il €/l e il €/h scendono
                insieme quando un pieno non porta la sua spesa. */
-            m.senzaSpesa ? ` · <b class="bad">${m.senzaSpesa === 1 ? "1 pieno senza la spesa" : m.senzaSpesa + " pieni senza la spesa"}</b>` : ""}</div></div>
+            m.senzaSpesa ? ` · <b class="bad">${m.senzaSpesa === 1 ? "1 pieno senza la spesa" : m.senzaSpesa + " pieni senza la spesa"}</b>` : ""}${storiaTx(m)}</div></div>
         ${m.litriOra != null
           ? `<span class="badge ok">${ggU(lh(m.litriOra))}</span>${m.euroOra ? `<span class="badge tag euro">${ggU(eh(m.euroOra))}</span>` : ""}`
           : `<span class="badge tag">consumo n.d.</span>`}</div>`;
