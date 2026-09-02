@@ -195,6 +195,26 @@ Le stesse persone in tre elenchi. Scudo↔Campo un ponte ce l'ha già
 **Valore: alto** — una persona assunta va inserita una volta, non tre.
 **Costo: medio**, e va deciso **chi è la fonte** (probabilmente Scudo).
 
+✅ **RIMISURATO IL 02/09: la fonte è GIÀ Scudo, e gli elenchi da unire non sono
+tre.** Il «Sentinella no» qui sopra era un «non c'è» scaduto (la famiglia di
+§1): Sentinella non tiene un elenco suo — il responsabile di un'azione
+correttiva lo cerca nell'elenco dei lavoratori che arriva **da Scudo**
+(`ponteScudo`, istanza SDK con `appId: "scudo"`, e la lettura fallita si
+dichiara «non leggibile», non «nessuno»). Campo legge lo stesso elenco
+(`lavoratoriScudo`) e i suoi `operatori` non sono una copia delle persone: sono
+**chi è in forza sul turno, con la squadra**, agganciati alla persona di Scudo
+per `lavoratoreId` (14 punti nel modulo). Cioè una persona si inserisce **una
+volta**, in Scudo, e le altre due app la leggono.
+
+    grep -c 'appId: "scudo"' apps/sentinella/sentinella-data.js → 1
+    grep -c lavoratoreId apps/campo/campo-data.js → 14
+
+Quello che resta non è un ponte: è una **decisione di prodotto** — se un
+operatore di Campo senza `lavoratoreId` (una persona scritta a mano sul turno,
+che Scudo non conosce) debba poter esistere. Oggi può, e `idoneitaOperatore`
+lo dichiara «non-collegato» invece di dargli un'idoneità: è la scelta giusta
+finché la decisione non è presa.
+
 ### 3d. `azioni` — Scudo **e** Sentinella
 Azioni correttive in due posti. Chi ne ha una aperta di sicurezza e una
 ambientale non le vede insieme. **Valore: medio. Costo: basso.**
@@ -299,7 +319,7 @@ Per onestà, e perché nessuno lo usi per decidere cose che non copre:
 | app che nessuno legge | **3** (Genesi, Sentinella, Deepwork ID) *(era 5: Flotta la legge Conti, e Conti la legge Flotta)* |
 | app senza alcuno scambio DATI | **1** (Genesi) — Deepwork ID esclusa, è l'identità *(era 2)* |
 | …di cui davvero scollegate da tutto | **0** *(era 1, Flotta)*: Genesi un ponte ce l'ha, di file |
-| sovrapposizioni non collegate | **4 famiglie** (§3) *(era 6: la 3a è collegata nei due versi, la 3b in un muro solo, tutt'e due il 02/09)* |
+| sovrapposizioni non collegate | **3 famiglie** (§3) *(era 6: la 3a è collegata nei due versi e la 3b in un muro solo il 02/09; la 3c era già collegata — la fonte è Scudo — e la riga lo diceva male)* |
 
 Chi costruisce un ponte aggiorna questa tabella.
 
