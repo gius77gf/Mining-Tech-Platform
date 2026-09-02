@@ -120,8 +120,10 @@ export const DEMO = {
     { id: "i3", fatturaId: "f1", data: "2026-07-02", importo: 6000, metodo: "bonifico" },
   ],
   clienti: [
-    { id: "c1", ragioneSociale: "Edilcave Srl", piva: "01234567890", sdi: "ABC1234", indirizzo: "Zona industriale, Ragusa", sconto: 5, fido: 25000, note: "" },
-    { id: "c2", ragioneSociale: "Stradesud", piva: "09876543210", sdi: "stradesud@pec.example.it", indirizzo: "SS115 km 12, Modica", sconto: 0, fido: 15000, note: "" },
+    // CAP, comune e provincia sono entrati il 02/09: servono alla fattura
+    // elettronica, e la dimostrazione deve poterne produrre una «pronta»
+    { id: "c1", ragioneSociale: "Edilcave Srl", piva: "01234567890", sdi: "ABC1234", indirizzo: "Zona industriale", cap: "97100", comune: "Ragusa", provincia: "RG", codiceFiscale: "", sconto: 5, fido: 25000, note: "" },
+    { id: "c2", ragioneSociale: "Stradesud", piva: "09876543210", sdi: "stradesud@pec.example.it", indirizzo: "SS115 km 12", cap: "97015", comune: "Modica", provincia: "RG", codiceFiscale: "", sconto: 0, fido: 15000, note: "" },
   ],
   gare: [
     { id: "g1", titolo: "Comune di Ragusa — inerti 2026-27", base: 120000, scadenza: "2026-07-28", stato: "aperta" },
@@ -347,7 +349,10 @@ export const DEMO = {
     { id: "s1", canoneUnita: "m3", canoneAliquota: 0.55, canoneNota: "Valore di esempio: metti la tariffa della tua concessione.",
       // intestazione dei documenti stampati (DDT e fatture): dati d'esempio
       aziendaNome: "Cava di esempio S.r.l.", aziendaPiva: "00000000000",
-      aziendaIndirizzo: "Contrada Esempio 1, Ragusa", aziendaContatti: "0932 000000 · amministrazione@esempio.it" },
+      aziendaIndirizzo: "Contrada Esempio 1", aziendaContatti: "0932 000000 · amministrazione@esempio.it",
+      // per la fattura elettronica (02/09): valori d'esempio, da sostituire coi propri
+      aziendaCap: "97100", aziendaComune: "Ragusa", aziendaProvincia: "RG", aziendaCodiceFiscale: "",
+      aziendaRegimeFiscale: "RF01", modalitaPagamento: "MP05" },
   ],
   /* PREVENTIVI E ORDINI d'esempio. ⛔ Come per la fattura senza scadenza, la
      dimostrazione DEVE contenere i casi che il prodotto esiste per raccontare,
@@ -5019,7 +5024,11 @@ export function scartiIncassiCsv(text) {
         scriveva uguali.
    Perciò questo file usa `numeroDichiarato` come gli altri due, e il vuoto
    resta vuoto. */
-export const CSV_CLIENTI_INTESTAZIONE = "id;ragioneSociale;piva;sdi;indirizzo;sconto;fido;note";
+/* ⚠️ Le quattro colonne in CODA sono entrate il 02/09 per la fattura
+   elettronica (CAP, comune, provincia, codice fiscale): stanno in fondo così
+   un file scritto prima rientra tale e quale — le celle che non ci sono
+   leggono vuoto, non zero e non «undefined». */
+export const CSV_CLIENTI_INTESTAZIONE = "id;ragioneSociale;piva;sdi;indirizzo;sconto;fido;note;cap;comune;provincia;codiceFiscale";
 
 export function csvClienti(clienti) {
   const num = (x) => { const v = numeroDichiarato(x); return v == null ? "" : String(Math.round(v * 100) / 100); };
@@ -5029,7 +5038,8 @@ export function csvClienti(clienti) {
     if (!c) continue;
     righe.push([csvCell(c.id || ""), csvCell(c.ragioneSociale || ""), csvCell(c.piva || ""),
       csvCell(c.sdi || ""), csvCell(c.indirizzo || ""), num(c.sconto), num(c.fido),
-      csvCell(c.note || "")].join(";"));
+      csvCell(c.note || ""), csvCell(c.cap || ""), csvCell(c.comune || ""),
+      csvCell(c.provincia || ""), csvCell(c.codiceFiscale || "")].join(";"));
   }
   return righe.join("\n") + "\n";
 }
@@ -5042,13 +5052,15 @@ export function parseClientiCsv(text) {
        «ragioneSociale». La prima colonna è `id`. */
     .filter((c) => c.length && !isIntestazione(c.join(";"), "id"))
     .map((c) => {
-      const [id, ragioneSociale, piva, sdi, indirizzo, sconto, fido, note] = c;
+      const [id, ragioneSociale, piva, sdi, indirizzo, sconto, fido, note, cap, comune, provincia, codiceFiscale] = c;
       const t = (x) => { const v = String(x == null ? "" : x).trim(); return v || null; };
       const n = (x) => { const v = numIt(x); return numeroDichiarato(v === null || Number.isNaN(v) ? null : v); };
       return {
         id: t(id), ragioneSociale: t(ragioneSociale) || "", piva: t(piva) || "",
         sdi: t(sdi) || "", indirizzo: t(indirizzo) || "",
         sconto: n(sconto), fido: n(fido), note: t(note) || "",
+        cap: t(cap) || "", comune: t(comune) || "", provincia: (t(provincia) || "").toUpperCase(),
+        codiceFiscale: (t(codiceFiscale) || "").toUpperCase(),
       };
     })
     /* ⛔ un cliente senza ragione sociale non è un cliente: è una riga vuota

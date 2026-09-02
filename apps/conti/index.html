@@ -1625,6 +1625,54 @@ label.item:has(.dw-chk:checked){
       <input class="dw-input" id="az-ind" placeholder="via, città" autocomplete="off">
       <span class="err-msg" id="err-az-ind"></span>
     </div>
+    <!-- Per la fattura elettronica (02/09): la sede a campi, il codice fiscale,
+         il regime fiscale e la modalità di pagamento. Nessun valore è deciso
+         dal programma: finché non sono scritti, il file XML non è «pronto». -->
+    <div class="fld" id="fld-az-cap" style="flex:0 1 104px;">
+      <label for="az-cap">CAP</label>
+      <input class="dw-input" id="az-cap" inputmode="numeric" maxlength="5" placeholder="97100" autocomplete="off">
+      <span class="err-msg" id="err-az-cap"></span>
+    </div>
+    <div class="fld" id="fld-az-comune" style="flex:1 1 140px;">
+      <label for="az-comune">Comune della sede</label>
+      <input class="dw-input" id="az-comune" placeholder="es. Ragusa" autocomplete="off">
+      <span class="err-msg" id="err-az-comune"></span>
+    </div>
+    <div class="fld" id="fld-az-prov" style="flex:0 1 92px;">
+      <label for="az-prov">Provincia</label>
+      <input class="dw-input" id="az-prov" maxlength="2" placeholder="es. RG" autocomplete="off">
+      <span class="err-msg" id="err-az-prov"></span>
+    </div>
+    <div class="fld" id="fld-az-cf" style="flex:1 1 160px;">
+      <label for="az-cf">Codice fiscale</label>
+      <input class="dw-input" id="az-cf" maxlength="16" placeholder="se diverso dalla P.IVA" autocomplete="off" title="Va nella fattura elettronica accanto alla partita IVA, se è diverso">
+      <span class="err-msg" id="err-az-cf"></span>
+    </div>
+    <div class="fld" id="fld-az-regime" style="flex:1 1 220px;">
+      <label for="az-regime">Regime fiscale (lo dice il commercialista)</label>
+      <select class="dw-input" id="az-regime" title="Il codice RF che va nella fattura elettronica: chiedilo al commercialista, il programma non lo decide">
+        <option value="">— non ancora scelto —</option>
+        <option value="RF01">RF01 · Ordinario</option>
+        <option value="RF19">RF19 · Forfettario</option>
+        <option value="RF02">RF02 · Contribuenti minimi</option>
+        <option value="RF04">RF04 · Agricoltura e attività connesse</option>
+        <option value="RF18">RF18 · Altro</option>
+      </select>
+      <span class="err-msg" id="err-az-regime"></span>
+    </div>
+    <div class="fld" id="fld-az-pagamento" style="flex:1 1 220px;">
+      <label for="az-pagamento">Modalità di pagamento abituale</label>
+      <select class="dw-input" id="az-pagamento" title="Va scritta nella fattura elettronica; se non è scelta il file esce senza il blocco del pagamento">
+        <option value="">— non ancora scelta —</option>
+        <option value="MP05">MP05 · Bonifico</option>
+        <option value="MP12">MP12 · RIBA</option>
+        <option value="MP19">MP19 · SEPA direct debit</option>
+        <option value="MP02">MP02 · Assegno</option>
+        <option value="MP01">MP01 · Contanti</option>
+        <option value="MP08">MP08 · Carta di pagamento</option>
+      </select>
+      <span class="err-msg" id="err-az-pagamento"></span>
+    </div>
     <div class="fld w2" id="fld-az-con">
       <label for="az-con">Contatti (telefono, email, PEC)</label>
       <input class="dw-input" id="az-con" placeholder="es. 0932 000000 · amministrazione@…" autocomplete="off">
@@ -1664,6 +1712,29 @@ label.item:has(.dw-chk:checked){
       <label for="cl-ind">Indirizzo</label>
       <input class="dw-input" id="cl-ind" placeholder="via, città" autocomplete="off">
       <span class="err-msg" id="err-cl-ind"></span>
+    </div>
+    <!-- CAP, comune, provincia e codice fiscale sono entrati il 02/09: li vuole
+         la fattura elettronica (la sede del cliente va scritta a campi, non in
+         una riga sola). Facoltativi per tutto il resto. -->
+    <div class="fld" id="fld-cl-cap" style="flex:0 1 104px;">
+      <label for="cl-cap">CAP</label>
+      <input class="dw-input" id="cl-cap" inputmode="numeric" maxlength="5" placeholder="97100" autocomplete="off" title="Cinque cifre: serve alla fattura elettronica">
+      <span class="err-msg" id="err-cl-cap"></span>
+    </div>
+    <div class="fld" id="fld-cl-comune" style="flex:1 1 140px;">
+      <label for="cl-comune">Comune</label>
+      <input class="dw-input" id="cl-comune" placeholder="es. Ragusa" autocomplete="off">
+      <span class="err-msg" id="err-cl-comune"></span>
+    </div>
+    <div class="fld" id="fld-cl-prov" style="flex:0 1 92px;">
+      <label for="cl-prov">Provincia</label>
+      <input class="dw-input" id="cl-prov" maxlength="2" placeholder="es. RG" autocomplete="off" title="La sigla di due lettere">
+      <span class="err-msg" id="err-cl-prov"></span>
+    </div>
+    <div class="fld" id="fld-cl-cf" style="flex:1 1 160px;">
+      <label for="cl-cf">Codice fiscale</label>
+      <input class="dw-input" id="cl-cf" maxlength="16" placeholder="se diverso dalla P.IVA" autocomplete="off" title="Serve alla fattura elettronica quando il cliente non ha partita IVA, o l'ha diversa dal codice fiscale">
+      <span class="err-msg" id="err-cl-cf"></span>
     </div>
     <div class="fld" id="fld-cl-sconto" style="flex:1 1 110px;">
       <label for="cl-sconto">Sconto %</label>
@@ -2158,7 +2229,7 @@ label.item:has(.dw-chk:checked){
   // Campi del form fattura: il cliente si sceglie dall'anagrafica (select) e
   // "ft-cli-nuovo" compare solo quando si crea un cliente al volo.
   const FT_CAMPI = ["ft-num","ft-cli","ft-cli-nuovo","ft-imp","ft-iva","ft-scad"];
-  const CL_CAMPI = ["cl-nome","cl-piva","cl-sdi","cl-ind","cl-sconto","cl-fido","cl-note"];
+  const CL_CAMPI = ["cl-nome","cl-piva","cl-sdi","cl-ind","cl-cap","cl-comune","cl-prov","cl-cf","cl-sconto","cl-fido","cl-note"];
   const PR_CAMPI = ["pr-nome","pr-unita","pr-prezzo","pr-dens","pr-iva"];
   const PES_CAMPI = ["pes-data","pes-cli","pes-prod","pes-ordine","pes-lordo","pes-tara","pes-mezzo","pes-dest"];
   let ftNumAuto = true;   // finché è vero, il numero lo propone Conti
@@ -3892,6 +3963,10 @@ label.item:has(.dw-chk:checked){
       $("az-piva").value = (IMP && IMP.aziendaPiva) || "";
       $("az-ind").value  = (IMP && IMP.aziendaIndirizzo) || "";
       $("az-con").value  = (IMP && IMP.aziendaContatti) || "";
+      $("az-cap").value = (IMP && IMP.aziendaCap) || ""; $("az-comune").value = (IMP && IMP.aziendaComune) || "";
+      $("az-prov").value = (IMP && IMP.aziendaProvincia) || ""; $("az-cf").value = (IMP && IMP.aziendaCodiceFiscale) || "";
+      $("az-regime").value = (IMP && IMP.aziendaRegimeFiscale) || "";
+      $("az-pagamento").value = (IMP && IMP.modalitaPagamento) || "";
       const a = new Date().getFullYear();
       $("can-dal").value = a + "-01-01"; $("can-al").value = a + "-12-31";
       // stesso periodo di partenza per il confronto cavato/venduto: l'anno
@@ -5848,6 +5923,8 @@ label.item:has(.dw-chk:checked){
       editCli = c.id;
       $("cl-nome").value = c.ragioneSociale || ""; $("cl-piva").value = c.piva || "";
       $("cl-sdi").value = c.sdi || ""; $("cl-ind").value = c.indirizzo || "";
+      $("cl-cap").value = c.cap || ""; $("cl-comune").value = c.comune || "";
+      $("cl-prov").value = c.provincia || ""; $("cl-cf").value = c.codiceFiscale || "";
       $("cl-sconto").value = itDec(c.sconto); $("cl-fido").value = itDec(c.fido);
       $("cl-note").value = c.note || "";
       CL_CAMPI.forEach(puliscoErr);
@@ -6133,8 +6210,20 @@ label.item:has(.dw-chk:checked){
       segnaErr("cl-fido", numIllegibile(rf) ? spiegaNum("il fido", rf, "€")
         : "Il fido è un importo in euro e non può essere negativo (es. 25.000,00).");
       esito("cl-esito", "Controlla il fido: il cliente non è stato salvato.", "err"); primoErrore(CL_CAMPI); return; }
+    /* CAP e provincia si controllano SOLO se scritti: sono facoltativi per
+       tutto tranne che per la fattura elettronica, che li chiede da sé e dice
+       dove mancano. Ma un CAP di quattro cifre o una provincia di tre lettere
+       sono un refuso, e un refuso salvato finisce su un file fiscale. */
+    const capV = $("cl-cap").value.trim(), provV = $("cl-prov").value.trim().toUpperCase();
+    if (capV && !/^\d{5}$/.test(capV)) {
+      segnaErr("cl-cap", "Il CAP è di cinque cifre (es. 97100).");
+      esito("cl-esito", "Controlla il CAP: il cliente non è stato salvato.", "err"); primoErrore(CL_CAMPI); return; }
+    if (provV && !/^[A-Z]{2}$/.test(provV)) {
+      segnaErr("cl-prov", "La provincia è la sigla di due lettere (es. RG).");
+      esito("cl-esito", "Controlla la provincia: il cliente non è stato salvato.", "err"); primoErrore(CL_CAMPI); return; }
     const dati = { ragioneSociale, piva: $("cl-piva").value.trim(), sdi: $("cl-sdi").value.trim(),
-      indirizzo: $("cl-ind").value.trim(), sconto: rs.ok ? rs.valore : 0,
+      indirizzo: $("cl-ind").value.trim(), cap: capV, comune: $("cl-comune").value.trim(), provincia: provV,
+      codiceFiscale: $("cl-cf").value.trim().toUpperCase(), sconto: rs.ok ? rs.valore : 0,
       fido: rf.ok ? rf.valore : 0, note: $("cl-note").value.trim() };
     if (editCli) {
       await db.aggiorna("clienti", editCli, dati);
@@ -6796,8 +6885,19 @@ label.item:has(.dw-chk:checked){
     if (!aziendaNome) {
       segnaErr("az-nome", "Scrivi la ragione sociale: è il nome di chi emette DDT e fatture, e senza quello un documento stampato non vale.");
       esito("az-esito", "Serve almeno la ragione sociale.", "err"); return; }
+    const azCap = $("az-cap").value.trim(), azProv = $("az-prov").value.trim().toUpperCase();
+    puliscoErr("az-cap"); puliscoErr("az-prov");
+    if (azCap && !/^\d{5}$/.test(azCap)) {
+      segnaErr("az-cap", "Il CAP è di cinque cifre (es. 97100).");
+      esito("az-esito", "Controlla il CAP: l'intestazione non è stata salvata.", "err"); return; }
+    if (azProv && !/^[A-Z]{2}$/.test(azProv)) {
+      segnaErr("az-prov", "La provincia è la sigla di due lettere (es. RG).");
+      esito("az-esito", "Controlla la provincia: l'intestazione non è stata salvata.", "err"); return; }
     const dati = { aziendaNome, aziendaPiva: $("az-piva").value.trim(),
-      aziendaIndirizzo: $("az-ind").value.trim(), aziendaContatti: $("az-con").value.trim() };
+      aziendaIndirizzo: $("az-ind").value.trim(), aziendaContatti: $("az-con").value.trim(),
+      aziendaCap: azCap, aziendaComune: $("az-comune").value.trim(), aziendaProvincia: azProv,
+      aziendaCodiceFiscale: $("az-cf").value.trim().toUpperCase(),
+      aziendaRegimeFiscale: $("az-regime").value, modalitaPagamento: $("az-pagamento").value };
     if (IMP && IMP.id) await db.aggiorna("impostazioni", IMP.id, dati);
     else await db.aggiungi("impostazioni", dati);
     esito("az-esito", "Intestazione salvata: i documenti stampati escono a nome di " + aziendaNome + ".", "success");

@@ -58,7 +58,7 @@
     fiscale, CAP, provincia, modalità di pagamento mancanti → non pronto, con
     la ragione. 3 prove in run-kpi (43 asserzioni), controprova sulla guardia
     `quadra` fatta a mano (cade 1).
-  - [ ] **B. i campi che mancano**: Impostazioni (`aziendaCap`, `aziendaComune`,
+  - [x] ✅ 02/09 **B. i campi che mancano**: Impostazioni (`aziendaCap`, `aziendaComune`,
     `aziendaProvincia`, `aziendaRegimeFiscale`, `aziendaCodiceFiscale`,
     `modalitaPagamento`) e anagrafica cliente (`cap`, `comune`, `provincia`,
     `codiceFiscale`), nel form, nel CSV dei clienti (andata e ritorno) e nella
@@ -5504,7 +5504,7 @@ numero scritto dove non era stato misurato niente**.*
   nome apre il file sbagliato credendo che sia il più fresco.
 - Le decisioni: `docs/DECISIONI_WEEKEND.md` — pagina d'ingresso in cima.
 - Stato misurato al **18/08** (lanciando le suite, non a memoria):
-  **2.900 prove girano senza rete**. La frase va letta stretta: è la somma
+  **2.902 prove girano senza rete**. La frase va letta stretta: è la somma
   delle **nove** suite che contano asserzioni (`run-kpi` 2396, `run-stile` 327,
   `run-helpers` 75, `run-pointcloud` 32, `claims-convergenza` 19, `run-manifest` 9,
   `run-demo` 8, `bootstrap-rivendicazioni` 7, `fogli-guardati` 3), non tutto ciò che gira nel

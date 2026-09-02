@@ -25928,6 +25928,34 @@ test("csvClienti → parseClientiCsv: il giro torna identico, id compreso", () =
   const [fuori] = conti.parseClientiCsv(conti.csvClienti([dentro]));
   for (const k of Object.keys(dentro)) eq(fuori[k], dentro[k], `campo ${k}`);
 });
+test("⛔ csvClienti: i campi della fattura elettronica fanno il giro, e il file VECCHIO rientra", () => {
+  const dentro = { id: "c9", ragioneSociale: "Nuova Srl", piva: "11111111111", sdi: "XYZ9876", indirizzo: "Via Uno 1",
+    sconto: 2.5, fido: 1000, note: "n", cap: "97100", comune: "Ragusa", provincia: "rg", codiceFiscale: "rssmra80a01h163x" };
+  const [fuori] = conti.parseClientiCsv(conti.csvClienti([dentro]));
+  eq([fuori.cap, fuori.comune, fuori.provincia, fuori.codiceFiscale], ["97100", "Ragusa", "RG", "RSSMRA80A01H163X"],
+     "CAP, comune, provincia e codice fiscale tornano (provincia e CF in maiuscolo)");
+  ok(conti.CSV_CLIENTI_INTESTAZIONE.endsWith(";cap;comune;provincia;codiceFiscale"), "le colonne nuove stanno in CODA");
+  const vecchio = "id;ragioneSociale;piva;sdi;indirizzo;sconto;fido;note\nc1;Vecchia Srl;01234567890;ABC1234;Via Due 2;0;0;\n";
+  const [v] = conti.parseClientiCsv(vecchio);
+  eq([v.ragioneSociale, v.cap, v.comune, v.provincia, v.codiceFiscale], ["Vecchia Srl", "", "", "", ""],
+     "un file scritto prima delle quattro colonne rientra: i campi nuovi sono vuoti, non «undefined»");
+});
+test("⛔ la dimostrazione produce una fattura elettronica PRONTA (dal DDT al file)", () => {
+  const D = conti.DEMO;
+  const c1 = D.clienti.find((c) => c.id === "c1");
+  const imp = D.impostazioni[0];
+  eq([imp.aziendaCap, imp.aziendaProvincia, imp.aziendaRegimeFiscale, imp.modalitaPagamento], ["97100", "RG", "RF01", "MP05"],
+     "le Impostazioni d'esempio portano i campi della fattura elettronica");
+  const ddt = D.pesate.filter((p) => p.clienteId === "c1" && p.unitaVendita === "t" && p.prezzoUnitario != null);
+  ok(ddt.length >= 1, "c'è almeno un DDT a tonnellata di Edilcave con un prezzo: " + ddt.length);
+  const fd = conti.fatturaDaPesate(ddt);
+  ok(fd && fd.calcolabile, "la fattura differita da quei DDT è calcolabile");
+  const f = { numero: "2026/099", emessa: "2026-08-31", scadenza: "2026-09-30", tipo: "differita", ...fd };
+  const r = conti.xmlFatturaPA(f, c1, imp, { pesate: D.pesate });
+  eq(r.mancanti, [], "niente manca");
+  eq(r.pronto, true, "il file è pronto");
+  eq(r.ddtCitati, ddt.length, "e cita tutti i DDT della fattura, con la loro data");
+});
 test("csvClienti: FIDO NON IMPOSTATO non diventa «fido zero»", () => {
   const [c] = conti.parseClientiCsv(conti.csvClienti([{ id: "c2", ragioneSociale: "Senza fido" }]));
   eq(c.fido, null, "«non gli si fa credito» e «nessuno ci ha pensato» sono due frasi opposte");
