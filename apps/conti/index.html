@@ -5763,10 +5763,12 @@ label.item:has(.dw-chk:checked){
       verbale(null, null, null); return;
     }
     if (c.stato === "no-dichiarato") {
+      // «0 t in 0 viaggi» è uno zero vero ma si legge come un conto: se non c'è
+      // nemmeno una consegna lo si dice a parole (visto a 320 px sul 2024)
       box.innerHTML = `<div class="note">Nel periodo <b>nessun turno ha dichiarato una produzione</b> in Campo:
-        non vuol dire che non si è prodotto, vuol dire che non è stato scritto. La pesa ha registrato
-        ${tn(ven.t)} in ${plur(ven.viaggi, "viaggio", "viaggi")}, ma senza un prodotto dichiarato non c'è con
-        cosa confrontarle.${codaHtml}</div>`;
+        non vuol dire che non si è prodotto, vuol dire che non è stato scritto. ${ven.viaggi
+          ? `La pesa ha registrato ${tn(ven.t)} in ${plur(ven.viaggi, "viaggio", "viaggi")}, ma senza un prodotto dichiarato non c'è con cosa confrontarle.`
+          : `E nel periodo non c'è nemmeno una consegna pesata: da nessuna delle due parti c'è un numero.`}${codaHtml}</div>`;
       verbale(null, null, null); return;
     }
     if (c.stato === "dichiarato-non-in-tonnellate") {

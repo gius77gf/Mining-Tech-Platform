@@ -68,6 +68,15 @@
   detto a parole («prodotte e non uscite dal cancello» / «vendute più del
   prodotto dichiarato»); gli storici dei due tipi non si mescolano (il banco
   lo pretende). `conti-verbale.mjs` 20 prove, controprova cade su tutt'e due.
+- [x] ✅ 02/09 sera **Seconda passata in profondità su Conti, dopo che il
+  Report è cresciuto**: la famiglia dei banchi di Conti rilanciata (documenti
+  che escono 81, stampe 20, frasi 22, barre 15, numeri tranquilli 41, frasi
+  da uno 41, XML 17, tutti a zero KO), contrasto nei tre temi (1.049 testi,
+  0 sotto soglia), i casi limite del verbale a mano a 320 px (periodo senza
+  confronto → solo storico; due verbali sullo stesso periodo → l'ultimo, col
+  conto) nei tre temi, scatti guardati. Un difetto di frase: sul terzo lato,
+  con nessun turno e nessuna consegna, «La pesa ha registrato 0,00 t in 0
+  viaggi» — uno zero vero che si legge come un conto; adesso lo dice a parole.
 - [ ] **Aggiornare la tabella in fondo a `docs/MAPPA_ECOSISTEMA.md`** a ogni
   ponte chiuso: è il registro, e il «6 su 56» deve scendere. *(02/09: 12 su 56.)*
 - [ ] **Una passata in profondità su un'app** (ogni schermata guardata, ogni
