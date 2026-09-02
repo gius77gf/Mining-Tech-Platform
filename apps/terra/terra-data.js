@@ -2221,6 +2221,26 @@ export {
   produzionePerFronte,
 } from "../../shared/dw-ponti.js";
 
+/* L'ULTIMO RITAGLIO CON UN VOLUME, da dove c'è (02/09, unità 8): prima
+   l'organizzazione (Genesi scrive lì dal 02/09), e se l'organizzazione non
+   risponde — o non ha nessun ritaglio con volume — la chiave del browser, che
+   resta la via di chi usa il visore da solo sul dispositivo. Risponde CHI ha
+   dato il volume (`fonte`), così la pagina può dirlo; e `null` se non c'è da
+   nessuna parte. Pura: `daOrg` è null quando l'org non risponde, un elenco
+   altrimenti; `daChiave` l'elenco letto dalla chiave (o niente). */
+export function ultimoRitaglioNuvola(daOrg, daChiave) {
+  const ultimoDi = (a) => {
+    if (!Array.isArray(a)) return null;
+    for (let i = a.length - 1; i >= 0; i--) if (a[i] && a[i].volume != null) return a[i];
+    return null;
+  };
+  const org = ultimoDi(daOrg);
+  if (org) return { ultimo: org, fonte: "organizzazione", orgRisponde: true };
+  const chiave = ultimoDi(daChiave);
+  if (chiave) return { ultimo: chiave, fonte: "browser", orgRisponde: Array.isArray(daOrg) };
+  return { ultimo: null, fonte: null, orgRisponde: Array.isArray(daOrg) };
+}
+
 export async function terraData() {
   let mode = "demo", api = null;
   try {
@@ -2267,6 +2287,27 @@ export async function terraData() {
             .docs.map(d => ({ id: d.id, ...d.data() }));
         } catch (e) { return null; }
       };
+      /* ── PONTE CON GENESI — LE NUVOLE, SOLA LETTURA (02/09, unità 8 del piano
+         «Genesi fuori dal browser») ───────────────────────────────────────
+         Dal 02/09 Genesi scrive le lavorazioni della nuvola anche nella sua
+         organizzazione (`apps/genesi/nuvole`), e Terra le legge da lì con una
+         seconda istanza dell'SDK, pigra e in sola lettura — la stessa forma
+         del ponte con Campo qui sopra. È il PRIMO ponte di dati verso Genesi.
+         `null` = «l'organizzazione non risponde» (Genesi non c'è, o la lettura
+         non è permessa): la pagina ripiega sulla chiave del browser, che resta
+         la via di chi usa il visore da solo — e lo dice, non lo confonde. */
+      let idGenesi;
+      api.nuvoleGenesi = async () => {
+        if (idGenesi === undefined) {
+          try { idGenesi = await DeepworkID.init({ appId: "genesi" }); }
+          catch (e) { idGenesi = null; }
+        }
+        if (!idGenesi) return null;
+        try {
+          return (await getDocs(idGenesi.orgCollection("nuvole")))
+            .docs.map(d => ({ id: d.id, ...d.data() }));
+        } catch (e) { return null; }
+      };
     } else if (id.authState() === "tour") mode = "tour";
   } catch (e) { /* backend assente: demo */ }
 
@@ -2282,6 +2323,9 @@ export async function terraData() {
       // in dimostrazione i rapportini non arrivano da Campo: sono finti, ma
       // coerenti coi rilievi d'esempio (vedi DEMO.rapportiniCampo)
       rapportiniCampo: async () => mem.rapportiniCampo || [],
+      // in dimostrazione non c'è un'organizzazione: le nuvole di Genesi si
+      // leggono dalla chiave del browser, come sempre (null = «org assente»)
+      nuvoleGenesi: async () => null,
       logout: async () => {},
       aggiungi: async (name, data) => { const id = "m" + Math.random().toString(36).slice(2, 8); (mem[name] = mem[name] || []).push({ id, ...data }); return { id }; },
       aggiorna: async (name, docId, data) => { const x = (mem[name] || (mem[name] = [])).find(v => v.id === docId); if (x) applicaPercorsi(x, data); },

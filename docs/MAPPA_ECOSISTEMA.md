@@ -293,8 +293,13 @@ memoria del modulo e il consenso); con un membro di un'organizzazione lavora su
 cinque `orgCollection` sotto `apps/genesi/…`, e senza rete o senza login resta
 sulle chiavi del browser di sempre — misurato staccando la rete al browser e
 sotto l'emulatore (81 prove). **Da qui un ponte di DATI verso Genesi è
-possibile**; il primo candidato è il §2 (Genesi→Terra, le nuvole, unità 8 del
-piano). Il testo qui sotto resta come misura di partenza.
+possibile — e il primo è fatto lo stesso giorno (unità 8)**: Terra legge le
+lavorazioni della nuvola da `apps/genesi/nuvole` con una seconda istanza
+dell'SDK, pigra e in sola lettura (`api.nuvoleGenesi` in `terra-data.js`), e
+tiene la chiave del browser come ripiego per chi usa il visore da solo; a
+scegliere è `ultimoRitaglioNuvola`, pura e provata (organizzazione se risponde
+e ha un volume, chiave se no, `null` se niente — mai un ritaglio inventato).
+Il testo qui sotto resta come misura di partenza.
 
 ⛔ Genesi **non usa `orgCollection` nemmeno una volta**. I suoi dati stanno in
 `localStorage`, con quattro chiavi:
@@ -367,11 +372,11 @@ Per onestà, e perché nessuno lo usi per decidere cose che non copre:
 
 | | oggi |
 |---|---|
-| ponti di DATI esistenti | **11** su 56 direzioni *(era 6; il 02/09 sono entrati Flotta→Conti, Conti→Flotta (§3a), Terra→Scudo e Flotta→Scudo (§3b), Campo→Conti (§3f))* |
+| ponti di DATI esistenti | **12** su 56 direzioni *(era 6; il 02/09 sono entrati Flotta→Conti, Conti→Flotta (§3a), Terra→Scudo e Flotta→Scudo (§3b), Campo→Conti (§3f), Genesi→Terra (§4, le nuvole))* |
 | ponti di FILE | almeno **1** (Genesi→Sentinella) — mai censiti, vedi §1 |
-| app che nessuno legge | **3** (Genesi, Sentinella, Deepwork ID) *(era 5: Flotta la legge Conti, e Conti la legge Flotta)* |
-| app senza alcuno scambio DATI | **1** (Genesi) — Deepwork ID esclusa, è l'identità *(era 2)* |
-| …di cui davvero scollegate da tutto | **0** *(era 1, Flotta)*: Genesi un ponte ce l'ha, di file |
+| app che nessuno legge | **2** (Sentinella, Deepwork ID) *(era 5: Flotta la legge Conti, Conti la legge Flotta; dal 02/09 Genesi la legge Terra)* |
+| app senza alcuno scambio DATI | **0** — Deepwork ID esclusa, è l'identità *(era 2; Genesi dal 02/09 scrive nell'organizzazione e Terra la legge)* |
+| …di cui davvero scollegate da tutto | **0** *(era 1, Flotta)* |
 | sovrapposizioni non collegate | **1 famiglia** (§3: la 3e, che passa da un file) *(era 6: 3a, 3b e 3f collegate il 02/09; 3c e 3d erano già collegate — la fonte è Scudo — e le righe lo dicevano male)* |
 
 Chi costruisce un ponte aggiorna questa tabella.

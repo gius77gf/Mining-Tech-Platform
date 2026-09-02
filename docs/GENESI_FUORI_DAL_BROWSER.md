@@ -404,7 +404,7 @@ oggi. Ogni unità è un commit con la sua prova. Ore = stima, non misura.
 | **5** | «porta le tue volate nell'organizzazione»: al primo accesso live, copia una tantum delle chiavi locali nelle collezioni, con contrassegno `genesiMigratoV1` e i campi `autore`, `creatoIl` | `genesi-data.js` + un bottone in Home | prova pura: la copia è **idempotente** (seconda chiamata → 0 scritture); le chiavi locali **non si cancellano** | 2 | medio: doppioni se la stessa persona migra da due computer → il contrassegno è per browser, il doppione va dichiarato non nascosto |
 | **6** | scrittura **senza rete in live**: scrittura locale **prima** (sempre, sincrona) e poi verso l'org; se `navigator.onLine===false` si dice con il toast (forma di Flotta) e la riga resta segnata `daInviare` | `genesi-data.js`, `genesi.html` | banco browser con rete staccata (Playwright `context.setOffline(true)`): la volata è salvata localmente, la Home la mostra, il toast dice «rete»; riattaccata → la riga parte | 4 | **alto ed è una decisione**: è la 5b applicata a una app. Se il fondatore accende la coda per tutte (`persistentLocalCache` nell'SDK), questa unità si riduce al toast |
 | **7** | la porta `Object.assign(D2, design)` (4914) valida i campi **anche** da org: un `design` scritto da un altro browser con un campo illeggibile lascia il campo vuoto e lo dice (già così per `localStorage`) | `genesi-data.js` (funzione pura `designLeggibile`) + 1 riga in pagina | `run-kpi`: 32 campi, ognuno con un valore sporco → vuoto dichiarato, mai zero | 2 | basso |
-| **8** | Terra legge le nuvole di Genesi da `orgCollection('nuvole')` con seconda istanza SDK (`appId:'genesi'`, sola lettura, pigra — forma di `rapportiniCampo`) e **tiene la chiave del browser come ripiego** | `terra-data.js`, `terra/index.html` | `run-kpi`: la scelta «org se c'è, chiave se no» è una funzione pura; il banco di Terra che preme `btn-dal-drone` resta verde | 2 | basso; dipende da 3 e 4 |
+| **8** ✅ 02/09 | Terra legge le nuvole di Genesi da `orgCollection('nuvole')` con seconda istanza SDK (`appId:'genesi'`, sola lettura, pigra — forma di `rapportiniCampo`) e **tiene la chiave del browser come ripiego** | `terra-data.js`, `terra/index.html` | `run-kpi`: la scelta «org se c'è, chiave se no» è una funzione pura; il banco di Terra che preme `btn-dal-drone` resta verde | 2 | basso; dipende da 3 e 4 |
 
 ✅ **Unità 1 chiusa il 02/09** (`genesi-data.js`, blocco G8): la porta ha la
 forma delle altre (`mode`, cinque lettori, `aggiungi/aggiorna/rimuovi/logout`,
@@ -456,6 +456,15 @@ senza `live:false` torna locale da sola. Prova negativa sotto l'emulatore in
 `tests/run.mjs` (**81** prove, 0 cadute: orgA non legge le volate né la legge
 di sito di orgB, chi non ha login non legge niente, nessuna riga nuova in
 `firestore.rules`).
+
+✅ **Unità 8 chiusa il 02/09** (fatta prima della 5 e della 7 perché dipendeva
+solo da 3 e 4): `api.nuvoleGenesi` in `terra-data.js` (seconda istanza SDK su
+`genesi`, pigra, sola lettura, `null` se non risponde; in dimostrazione `null`,
+non `[]`), `ultimoRitaglioNuvola(daOrg, daChiave)` pura (5 prove) e il bottone
+«Dal visore drone» che legge le due fonti e dice quando il volume viene
+dall'organizzazione. I banchi di Terra che seminano `genesiNuvole` restano
+verdi: la chiave è il ripiego. Mappa: **12** ponti, Genesi non è più un'app
+che nessuno legge.
 
 **Totale stimato: 20 ore**, di cui 4 (unità 6) sospese a una decisione che
 non è tecnica. Le unità 1-3 valgono da sole anche se le 4-8 non si facessero

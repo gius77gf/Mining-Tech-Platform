@@ -34316,6 +34316,43 @@ const { senzaCommenti: senzaCommentiConti } = await import("./tokenizza.mjs");
 /* ===== fine Conti · la quadratica e lo stato vuoto che mentiva ===== */
 
 /* ══════════════════════════════════════════════════════════════════════
+   PONTE GENESI → TERRA · le nuvole dall'organizzazione, la chiave come ripiego
+   (02/09, unità 8 del piano «Genesi fuori dal browser»): il primo ponte di
+   DATI verso Genesi. La scelta è pura e sta in terra-data.js.
+   ══════════════════════════════════════════════════════════════════════ */
+{
+  const U = terra.ultimoRitaglioNuvola;
+  const org = [{ nome: "a", volume: null }, { nome: "b", volume: 5200 }, { nome: "c" }];
+  const chiave = [{ nome: "k1", volume: 1234 }, { nome: "k2", volume: "3.100 u³" }];
+  test("ultimoRitaglioNuvola: prima l'organizzazione, e prende l'ULTIMO con un volume", () => {
+    const r = U(org, chiave);
+    eq(r.fonte, "organizzazione"); eq(r.ultimo.nome, "b", "c non ha volume, a ce l'ha nullo: si prende b"); eq(r.orgRisponde, true);
+  });
+  test("se l'organizzazione non risponde (null) si ripiega sulla chiave del browser, e lo si dice", () => {
+    const r = U(null, chiave);
+    eq(r.fonte, "browser"); eq(r.ultimo.nome, "k2", "l'ultimo, anche con un volume in unità del file: giudicarlo tocca alla pagina"); eq(r.orgRisponde, false);
+  });
+  test("se l'organizzazione risponde ma non ha ritagli con volume, la chiave vale lo stesso", () => {
+    const r = U([], chiave); eq(r.fonte, "browser"); eq(r.orgRisponde, true, "l'org ha risposto: vuota");
+    eq(U([{ nome: "x" }], chiave).fonte, "browser", "un elenco senza volumi è come vuoto");
+  });
+  test("⛔ niente da nessuna parte è null, non un ritaglio inventato", () => {
+    eq(U(null, []), { ultimo: null, fonte: null, orgRisponde: false });
+    eq(U([], null), { ultimo: null, fonte: null, orgRisponde: true });
+    eq(U(undefined, undefined).ultimo, null); eq(U("corrotto", { non: "elenco" }).ultimo, null, "forme sbagliate non rompono");
+  });
+  test("la dimostrazione di Terra non ha organizzazione: nuvoleGenesi risponde null, non []", () => {
+    /* `null` = «org assente» → la pagina ripiega sulla chiave; `[]` direbbe
+       «org presente e vuota», che in dimostrazione sarebbe una bugia */
+    const src = readFileSync(new URL("../../terra/terra-data.js", import.meta.url), "utf8");
+    ok(src.includes("nuvoleGenesi: async () => null"), "la riga della dimostrazione risponde null");
+    ok(src.includes('DeepworkID.init({ appId: "genesi" })'), "e in live apre una seconda istanza sull'app genesi, mai un percorso a mano");
+    ok(!/organizations\/[^"']*genesi/.test(src), "nessun percorso Firestore scritto a mano verso genesi");
+  });
+}
+/* ===== fine ponte Genesi → Terra ===== */
+
+/* ══════════════════════════════════════════════════════════════════════
    PONTE CAMPO → CONTI · il terzo lato del triangolo (02/09, la 3f della mappa):
    quello che i turni DICHIARANO di aver prodotto contro quello che la pesa ha
    VENDUTO, tonnellate contro tonnellate. La funzione sta in shared/ e Conti la

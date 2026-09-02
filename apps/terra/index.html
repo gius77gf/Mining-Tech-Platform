@@ -1003,7 +1003,7 @@ a.dw-btn{text-decoration:none}
            STATI_LOTTO, statoLotto, divarioRecupero, avanzamentoLotto,
            conformitaProgetto,
            volumeMisuratoDiLotto, rilieviFuoriDaiLotti,
-           aEufonica, articoloNumero, descriviIncertezza } from "./terra-data.js";
+           aEufonica, articoloNumero, descriviIncertezza, ultimoRitaglioNuvola } from "./terra-data.js";
   /* `plurale` viene da shared/ e non da qui: la regola del singolare c'era
      già, ed è la stessa che usano le altre app. Riscriverla in casa è la
      copia debole che CLAUDE.md censisce — provata riga per riga e buttata. */
@@ -4482,9 +4482,15 @@ a.dw-btn{text-decoration:none}
   // Ponte col visore nuvola (Genesi): riprende l'ULTIMO ritaglio con volume
   // calcolato e precompila il form del rilievo — il flusso drone→Terra chiuso.
   $("btn-dal-drone").onclick = async () => {
-    let ultimo = null;
-    try { const a = JSON.parse(localStorage.getItem("genesiNuvole") || "[]");
-      for (let i = a.length - 1; i >= 0; i--) if (a[i] && a[i].volume != null) { ultimo = a[i]; break; } } catch (e) {}
+    /* dal 02/09 le lavorazioni della nuvola stanno anche nell'organizzazione
+       (Genesi, `apps/genesi/nuvole`): si guarda prima lì, e la chiave del
+       browser resta il ripiego di chi usa il visore da solo. Chi sceglie è
+       `ultimoRitaglioNuvola`, pura e provata; qui si leggono solo le due fonti. */
+    let daOrg = null;
+    try { daOrg = db.nuvoleGenesi ? await db.nuvoleGenesi() : null; } catch (e) { daOrg = null; }
+    let daChiave = [];
+    try { daChiave = JSON.parse(localStorage.getItem("genesiNuvole") || "[]"); } catch (e) { daChiave = []; }
+    const { ultimo, fonte } = ultimoRitaglioNuvola(daOrg, daChiave);
     if (!ultimo) { esito("ril-esito", "Nessun volume dal visore: apri il visore nuvola (in Genesi), carica la nuvola del drone, ritaglia il cumulo o il fronte e torna qui.", "err"); return; }
     const vol = Math.max(0, Math.round(+String(ultimo.volume).replace(/[^0-9.,-]/g, "").replace(",", ".")) || 0);
     if (!vol) { esito("ril-esito", "L'ultimo ritaglio del visore non ha un volume in metri reali: la nuvola non è georeferenziata.", "err"); return; }
@@ -4492,7 +4498,8 @@ a.dw-btn{text-decoration:none}
     // scavato o un mucchio sul piazzale. È l'unica cosa che deve dirla una
     // persona, e cambia se quel volume scala o no il concesso.
     const scelta = await chiediValore("Che cosa hai misurato?",
-      "Il visore ha calcolato <b>" + vol.toLocaleString("it-IT") + " m³</b> su «" + esc(ultimo.nome || "ritaglio") + "».<br><br>"
+      "Il visore ha calcolato <b>" + vol.toLocaleString("it-IT") + " m³</b> su «" + esc(ultimo.nome || "ritaglio") + "»"
+      + (fonte === "organizzazione" ? " (dalle lavorazioni della tua organizzazione)" : "") + ".<br><br>"
       + "Se è <b>scavo</b> del fronte, quei metri cubi consumano il volume concesso dall'autorizzazione. "
       + "Se è la <b>ripresa di un cumulo</b>, quel materiale era già stato scavato (e già scalato) in passato: contarlo di nuovo "
       + "farebbe risultare consumata più concessione di quella vera.",

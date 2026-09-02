@@ -43,8 +43,13 @@
   al browser: 27 prove identiche). Emulatore: 81 prove (6 nuove su Genesi),
   nessuna riga nuova nelle regole. Da qui **un ponte di dati verso Genesi è
   possibile** (mappa §4: il blocco strutturale è tolto).
+- [x] ✅ 02/09 **Il primo ponte di DATI verso Genesi (unità 8): Genesi→Terra, le
+  nuvole**. Terra legge `apps/genesi/nuvole` con una seconda istanza SDK in
+  sola lettura e tiene la chiave del browser come ripiego; la scelta è pura
+  (`ultimoRitaglioNuvola`, 5 prove). Mappa: **12** ponti su 56, Genesi non è
+  più un'app che nessuno legge, zero app senza scambio di dati.
 - [ ] **Aggiornare la tabella in fondo a `docs/MAPPA_ECOSISTEMA.md`** a ogni
-  ponte chiuso: è il registro, e il «6 su 56» deve scendere. *(02/09: 11 su 56.)*
+  ponte chiuso: è il registro, e il «6 su 56» deve scendere. *(02/09: 12 su 56.)*
 - [ ] **Una passata in profondità su un'app** (ogni schermata guardata, ogni
   file che esce aperto, i numeri tranquilli cercati). Prima candidata: Conti,
   perché è quella che il ponte tocca e quella che il mercato guarda (la pesa).
@@ -5611,7 +5616,7 @@ numero scritto dove non era stato misurato niente**.*
   nome apre il file sbagliato credendo che sia il più fresco.
 - Le decisioni: `docs/DECISIONI_WEEKEND.md` — pagina d'ingresso in cima.
 - Stato misurato al **18/08** (lanciando le suite, non a memoria):
-  **2.920 prove girano senza rete**. La frase va letta stretta: è la somma
+  **2.925 prove girano senza rete**. La frase va letta stretta: è la somma
   delle **nove** suite che contano asserzioni (`run-kpi` 2396, `run-stile` 327,
   `run-helpers` 75, `run-pointcloud` 32, `claims-convergenza` 19, `run-manifest` 9,
   `run-demo` 8, `bootstrap-rivendicazioni` 7, `fogli-guardati` 3), non tutto ciò che gira nel
