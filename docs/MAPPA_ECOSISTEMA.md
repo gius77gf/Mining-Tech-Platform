@@ -176,10 +176,17 @@ tengono il proprio vocabolario. E c'è `scadenzeUnite({terra, flotta, scudo,
 lavoratori}, oggi)`: le tre famiglie nella stessa forma, ordinate (scadute, in
 scadenza, senza data, regolari), con **`completo: false` e i nomi delle app
 che non hanno risposto** — un'app che non risponde non è un'app senza scadenze.
-Il lato che si VEDE — il muro delle scadenze di Scudo che mostra anche la
-concessione e i mezzi — è l'unità successiva: la ricerca del 02/09
-(`docs/RICERCA_CONTINUA_scudo.md`) dice che i software HSE offrono lo
-scadenzario unico, ed è il responsabile della sicurezza che lo guarda.
+✅ **E il lato che si VEDE è fatto lo stesso giorno**: la schermata Scadenze
+di Scudo apre con «Tutta la cava» — il conto di concessione, mezzi e persone
+con la stessa regola, e le righe scadute o in scadenza di Terra e Flotta con
+la pastiglia dell'app (le persone stanno nell'elenco di Scudo). `api.scadenzeTerra`
+e `api.scadenzeFlotta` in `scudo-data.js` (istanze SDK pigre, `null` se non
+rispondono), dimostrazione copiata riga per riga da quelle app (una prova
+pretende che restino uguali). ⛔ Un'app che non risponde è detta per nome —
+«Terra non ha risposto: la concessione non è in questo conto, e non vale
+zero» — e la nota passa in tono avviso. Banco `scudo-scadenze-unite.mjs` nei
+tre esiti. È il responsabile della sicurezza che guarda questo muro, come
+dicono i software HSE censiti in `docs/RICERCA_CONTINUA_scudo.md`.
 
     grep -c "statoScadenza(" apps/terra/terra-data.js apps/flotta/flotta-data.js shared/dw-ponti.js → 1 · 1 · 3
 ### 3c. Le persone — `lavoratori` (Scudo, Sentinella) e `operatori` (Campo)
@@ -287,12 +294,12 @@ Per onestà, e perché nessuno lo usi per decidere cose che non copre:
 
 | | oggi |
 |---|---|
-| ponti di DATI esistenti | **8** su 56 direzioni *(era 6; il settimo è Flotta→Conti e l'ottavo il suo ritorno Conti→Flotta, tutt'e due del 02/09, §3a)* |
+| ponti di DATI esistenti | **10** su 56 direzioni *(era 6; il 02/09 sono entrati Flotta→Conti, Conti→Flotta (§3a), Terra→Scudo e Flotta→Scudo (§3b))* |
 | ponti di FILE | almeno **1** (Genesi→Sentinella) — mai censiti, vedi §1 |
 | app che nessuno legge | **3** (Genesi, Sentinella, Deepwork ID) *(era 5: Flotta la legge Conti, e Conti la legge Flotta)* |
 | app senza alcuno scambio DATI | **1** (Genesi) — Deepwork ID esclusa, è l'identità *(era 2)* |
 | …di cui davvero scollegate da tutto | **0** *(era 1, Flotta)*: Genesi un ponte ce l'ha, di file |
-| sovrapposizioni non collegate | **5 famiglie** (§3) *(era 6: la 3a è collegata nei due versi; la 3b ha la regola unica in shared dal 02/09, il muro arriva)* |
+| sovrapposizioni non collegate | **4 famiglie** (§3) *(era 6: la 3a è collegata nei due versi, la 3b in un muro solo, tutt'e due il 02/09)* |
 
 Chi costruisce un ponte aggiorna questa tabella.
 

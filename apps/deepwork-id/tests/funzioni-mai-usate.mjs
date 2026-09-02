@@ -50,11 +50,6 @@ const MODULI = [
    `sonda-vuoto.mjs`, una riga che scusa un caso che non si presenta più viene
    segnalata: se qualcuno collega una di queste, il conto scende e si vede. */
 const ACCETTATE = new Map([
-  ["shared/dw-ponti.js|scadenzeUnite",
-    "DA COLLEGARE, dichiarata il 02/09 con una data di scadenza: è la metà in shared del ponte 3b (lo "
-    + "scadenzario unico). La legge il muro delle scadenze di Scudo nell'unità successiva, quando il "
-    + "cantiere della passata su Scudo ha consegnato (stessi file). Collegata, questa riga va TOLTA: il "
-    + "controllo la segnalerà da sé."],
   ["apps/conti/conti-data.js|descriviScaglione",
     "SUPERATA. Sembrava «una frase che il prodotto calcola e non mostra»: NON lo è, e la differenza l'ha "
     + "detta solo l'apertura del codice. La pagina ha `spiegaScaglioneRiga`, che dice la stessa cosa e in "

@@ -490,6 +490,11 @@ const BANCHI = [
      righe e DDT citati contro il modulo, e con un dato mancante niente file. */
   ['il file XML per lo SdI esce dalla fattura', 'conti-xml-sdi.mjs', []],
   ['XML per lo SdI · controprova', 'conti-xml-sdi.mjs', ['--controprova'], true],
+  /* 02/09, ponte 3b: il muro di Scudo legge concessione (Terra) e mezzi (Flotta).
+     Tre esiti come per i ponti dei costi, e la controprova rimette null→[]. */
+  ['il muro di tutta la cava in Scudo', 'scudo-scadenze-unite.mjs', []],
+  ['muro di tutta la cava · Terra assente', 'scudo-scadenze-unite.mjs', ['--terra-assente']],
+  ['muro di tutta la cava · controprova', 'scudo-scadenze-unite.mjs', ['--controprova'], true],
   /* ⛔ AGGIUNTO IL 03/08, stessa domanda applicata a Scudo: dove l'app compone
      qualcosa che ESCE, chi decide i suoi numeri? I quattro CSV li scrive la
      pagina, e ognuno era più tranquillo dello schermo — un'azione scaduta da

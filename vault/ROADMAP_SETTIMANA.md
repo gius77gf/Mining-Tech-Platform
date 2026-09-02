@@ -93,13 +93,14 @@
 - [x] `apps/conti/index.html`: il badge «anche in Flotta» diventa il confronto
   vero; con Flotta assente NON compare uno zero (misurato col browser)
 - [x] la riga 3a della mappa aggiornata, e la tabella in §6 (6 → 7 ponti)
-- [ ] **Il ponte 3b, le scadenze di Terra, Flotta e Scudo in un muro solo**:
+- [x] ✅ 02/09 **Il ponte 3b, le scadenze di Terra, Flotta e Scudo in un muro solo**:
   - [x] ✅ 02/09 la misura (34 scadenze, 0 verdetti diversi) e la regola unica
     `statoScadenza` in shared (HSE è lo stesso oggetto; Terra e Flotta
     delegano), più `scadenzeUnite` con `completo`/`nonRaggiungibili`; 2 prove
     (run-kpi +2), copertura dw-ponti 50/50.
-  - [ ] il muro di Scudo che mostra anche la concessione (Terra) e i mezzi
-    (Flotta): `api.scadenzeTerra`/`api.scadenzeFlotta` in `scudo-data.js`
+  - [x] ✅ 02/09 il muro di Scudo che mostra anche la concessione (Terra) e i mezzi
+    (Flotta) — fatto: `api.scadenzeTerra/Flotta`, riquadro «Tutta la cava»,
+    banco nei tre esiti, mappa 8 → 10 ponti. Il piano era: `api.scadenzeTerra`/`api.scadenzeFlotta` in `scudo-data.js`
     (istanze SDK pigre, `null` se non raggiungibili), il muro che legge
     `scadenzeUnite` e dice per nome le app che non hanno risposto; banco nei
     tre esiti; mappa §6 → 10 ponti. ⚠️ Da fare quando il cantiere della
@@ -685,7 +686,6 @@ grep -n "^- \[ \] \*\*" vault/ROADMAP_SETTIMANA.md
 ```
 
 - `Aggiornare la tabella in fondo a `docs/MAPPA_ECOSISTEMA.md``
-- `Il ponte 3b, le scadenze di Terra, Flotta e Scudo in un muro solo`
 - `Una passata in profondità su un'app`
 - `D-ter. Le otto verdi che vogliono un cantiere`
 - `B12. IL RIPIEGO SILENZIOSO NEL CORE — censito, e sono CANDIDATI, non`
@@ -5530,7 +5530,7 @@ numero scritto dove non era stato misurato niente**.*
   nome apre il file sbagliato credendo che sia il più fresco.
 - Le decisioni: `docs/DECISIONI_WEEKEND.md` — pagina d'ingresso in cima.
 - Stato misurato al **18/08** (lanciando le suite, non a memoria):
-  **2.907 prove girano senza rete**. La frase va letta stretta: è la somma
+  **2.908 prove girano senza rete**. La frase va letta stretta: è la somma
   delle **nove** suite che contano asserzioni (`run-kpi` 2396, `run-stile` 327,
   `run-helpers` 75, `run-pointcloud` 32, `claims-convergenza` 19, `run-manifest` 9,
   `run-demo` 8, `bootstrap-rivendicazioni` 7, `fogli-guardati` 3), non tutto ciò che gira nel
@@ -5541,8 +5541,8 @@ numero scritto dove non era stato misurato niente**.*
   sorvegliati ne contavano sette: due convenzioni per lo stesso numero, che è
   il modo più facile di far sembrare sbagliato un conto giusto. Adesso è una
   sola.*
-  Copertura **751/751** e nessuna funzione scoperta; **208 esecuzioni** che
-  aprono le pagine in un browser vero, da **85** file di banco distinti (contati
+  Copertura **751/751** e nessuna funzione scoperta; **211 esecuzioni** che
+  aprono le pagine in un browser vero, da **86** file di banco distinti (contati
   dalla tabella `BANCHI` di `tutti.mjs`, non a occhio dalla cartella, che di
   `.mjs` ne ha di più perché contiene anche gli aiuti — `giro.mjs`,
   `impronta.mjs`, il runner stesso).

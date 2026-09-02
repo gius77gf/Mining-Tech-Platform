@@ -937,6 +937,9 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
   .vb-pie{margin-top:10mm; font-size:9.5px; color:#6a6480; border-top:1px solid #d5d0e4; padding-top:5px}
 }
 
+/* la pastiglia dell'app di provenienza nel muro di tutta la cava (02/09) */
+.badge.app{background:var(--card2); color:var(--muted2); border:1px solid var(--border2); text-transform:none; letter-spacing:.3px}
+.note.warn{--note-bar:var(--warn)}
 </style>
 </head>
 <body class="dw">
@@ -1176,6 +1179,10 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
   <!-- S2 — «Il muro delle scadenze»: quante scadono in ciascuno dei prossimi
        12 mesi, con l'arretrato già scaduto staccato a sinistra. Filtri,
        ricerca e ordinamento della lista NON toccano questo grafico. -->
+  <!-- IL MURO DI TUTTA LA CAVA (02/09, ponte 3b): concessione (Terra), mezzi
+       (Flotta) e persone (qui) con la stessa regola. Si riempie quando le
+       altre due app rispondono; se una non risponde lo dice per nome. -->
+  <div id="scad-unite"></div>
   <div id="graf-muro"></div>
   <div id="scad-filtri" class="chgs">
     <button class="chg active" data-filtro="tutte">Tutte</button>
@@ -1756,7 +1763,7 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
     dssDaSeguire, registriMuti,
     TIPO_VERIFICA_PERIODICA, ENTI_VERIFICA, enteVerificaSicuro, ESITI_VERIFICA, esitoVerifica,
     scadenzaDiVerifica, verbaleDiScadenza, statoVerificaPeriodica, descriviVerificaPeriodica,
-    verificheDaSistemare, voceDocumentoInElenco } from "./scudo-data.js";
+    verificheDaSistemare, voceDocumentoInElenco, scadenzeUnite } from "./scudo-data.js";
   import { mountExit, esc, csvCell, statoVuoto, giorniTra, montaGuardiaInteri, avvolgiUnita, oggiISO, dataISOEsiste,
            controllaAllegato, testoAllegatoRifiutato, pezziDataURL, dataIt,
            numeroScritto, AVVISO_DECIMALE, timbroLocale, modoDimostrazione, avvisoTestoDimostrazione,
@@ -1965,6 +1972,15 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
     : "Stai guardando <b>dati di esempio</b> (" + db.mode + "): le modifiche non vengono salvate.";
 
   let LAV = [], SCA = [], DOC = [], INF = [], CANT = [], AZI = [], ISP = [], ORE = [];
+  /* le scadenze di Terra e di Flotta, lette la prima volta che serve il muro:
+     `undefined` = mai chieste, `null` = l'app non ha risposto (e lo si dice) */
+  let SCT, SCF, altreChieste = false;
+  async function caricaAltreScadenze() {
+    if (altreChieste) return;
+    altreChieste = true;
+    try { SCT = db.scadenzeTerra ? await db.scadenzeTerra() : null; } catch (e) { SCT = null; }
+    try { SCF = db.scadenzeFlotta ? await db.scadenzeFlotta() : null; } catch (e) { SCF = null; }
+  }
   // PONTE P3 · chi è schierato, letto da Campo. `null` = non lo sappiamo (Campo
   // non c'è o non è leggibile) ed è diverso da «non sta lavorando nessuno».
   let OPER_CAMPO = null, SQU_CAMPO = null;
@@ -2485,6 +2501,31 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
     // legge: sei mesi sul telefono, dodici sullo schermo largo. Il periodo
     // disegnato è scritto in chiaro accanto al titolo, così non si promette
     // mai più di quello che si mostra.
+    /* ── LE SCADENZE DI TUTTA LA CAVA ─────────────────────────────────────
+       `scadenzeUnite` (shared/) mette insieme Terra, Flotta e questo
+       scadenzario con la stessa regola e lo stesso ordine. Qui si mostrano le
+       righe delle ALTRE due app che sono scadute o in scadenza (quelle di
+       Scudo stanno nell'elenco qui sotto) e il conto di tutta la cava.
+       ⛔ Un'app che non ha risposto NON è un'app senza scadenze: la nota lo
+       dice per nome, e il conto non si stampa come se fosse completo. */
+    if (!altreChieste) caricaAltreScadenze().then(() => refresh()).catch(() => refresh());
+    { const u = scadenzeUnite({ terra: SCT === undefined ? null : SCT, flotta: SCF === undefined ? null : SCF, scudo: SCA, lavoratori: LAV }, new Date());
+      const APP = { terra: ["Terra", "la concessione"], flotta: ["Flotta", "i mezzi"] };
+      const altre = u.righe.filter(r => r.app !== "scudo" && (r.stato === "scaduta" || r.stato === "in-scadenza"));
+      const righe = altre.map(r => `<div class="item st-${r.stato === "scaduta" ? "danger" : "warn"}">
+        <span class="avatar">${r.app === "terra" ? "🏔" : "🚜"}</span>
+        <div class="info"><div class="name">${esc(r.tipo)} · ${esc(r.soggetto)}</div>
+          <div class="meta">${r.descrizione ? esc(r.descrizione) + " · " : ""}${r.dataScadenza ? dataIt(r.dataScadenza) : "senza data"} · <span class="badge app">${APP[r.app][0]}</span></div></div>
+        <span class="acts"><span class="badge ${B[r.stato][0]}">${r.giorni < 0 ? "scaduta da " + (-r.giorni) + " gg" : r.giorni === 0 ? "scade oggi" : "tra " + r.giorni + " gg"}</span></span></div>`).join("");
+      const mancano = u.nonRaggiungibili.filter(a => a !== "scudo");
+      const nota = !altreChieste || (SCT === undefined && SCF === undefined)
+        ? `<div class="note">Sto chiedendo a <b>Terra</b> e a <b>Flotta</b> le loro scadenze…</div>`
+        : `<div class="note${mancano.length ? " warn" : ""}"><b>Tutta la cava</b> — concessione, mezzi e persone con la stessa regola: `
+          + `<b>${conta(u.conto.scadute, "scaduta", "scadute")}</b>, <b>${u.conto.inScadenza} in scadenza</b>, ${conta(u.conto.senzaData, "senza data", "senza data")}, ${conta(u.conto.regolari, "regolare", "regolari")}`
+          + (mancano.length ? `. ⚠️ <b>${mancano.map(a => APP[a][0]).join(" e ")} non ${mancano.length === 1 ? "ha" : "hanno"} risposto</b>: ${mancano.map(a => APP[a][1]).join(" e ")} non ${mancano.length === 1 ? "è" : "sono"} in questo conto, e non ${mancano.length === 1 ? "vale" : "valgono"} zero.` : ".")
+          + (altre.length ? ` Qui sotto ${conta(altre.length, "scadenza delle altre app da guardare", "scadenze delle altre app da guardare")}; le persone stanno nell'elenco più in basso.` : (mancano.length === 2 ? "" : " Concessione e mezzi non hanno niente di scaduto né in scadenza."))
+          + `</div>`;
+      $("scad-unite").innerHTML = nota + righe; }
     const largoMuro = ($("graf-muro") && $("graf-muro").clientWidth) || Math.min(720, innerWidth - 32);
     const quantiMesi = largoMuro >= 600 ? 12 : largoMuro >= 360 ? 6 : 4;
     const muro = muroScadenze(SCA, new Date(), quantiMesi);

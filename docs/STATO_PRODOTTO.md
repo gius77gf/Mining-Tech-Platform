@@ -68,14 +68,14 @@ Il racconto è in `docs/IL_CONFORME_CHE_NESSUNO_HA_MISURATO.md`.
   impediscono a un'app di riscriversene una propria.
 
 **Quanto è controllato, oggi** *(ricontato il 18/08 lanciando le suite, non a
-memoria)*: **2.907** prove automatiche che girano senza rete — **2426** sulle
+memoria)*: **2.908** prove automatiche che girano senza rete — **2427** sulle
 funzioni delle app, **328** sulle regole di stile, 75 sugli aiuti condivisi, 32
 sulla nuvola di punti, **19** sull'ordine con cui due trigger riscrivono i
 claims, 9 sul manifesto, 8 sulla demo, 7 sulle rivendicazioni del
 primo avvio, 3 sulle superfici che stampano e su chi le preme — più **123** che
 girano con l'emulatore Firestore (**75** sulle
 **regole di sicurezza**, 19 sull'SDK, 21 sulle funzioni, 8 sul primo avvio) e
-**208 esecuzioni** che aprono davvero le pagine in un browser.
+**211 esecuzioni** che aprono davvero le pagine in un browser.
 ⚠️ *Il primo avvio è tornato da 10 a **8** l'08/08, e non è un passo indietro:
 le due prove aggiunte quel giorno chiedevano lo* stato finale *delle
 rivendicazioni, che dove le Cloud Functions girano è di* `rebuildClaims` *e non
@@ -88,7 +88,7 @@ contenitore non parte perché chiede la rete e la politica la nega. Il numero
 era 58 e non 68 perché nessuno l'aveva più lanciato in casa: la suite delle
 regole si lancia con* `firebase emulators:exec --only firestore --project
 demo-deepwork "cd tests && node run.mjs"`.
-*(⚠️ Il **2.907** conta nove suite: il giro completo ne esegue **3.315**, e da
+*(⚠️ Il **2.908** conta nove suite: il giro completo ne esegue **3.317**, e da
 oggi quel numero **lo stampa il giro** — `node apps/deepwork-id/tests/giro-node.mjs`,
 riga «Asserzioni eseguite dal giro». Le altre suite contano **file** invece che
 casi — crescono da sole quando nasce un file — e fra i comandi ci sono le

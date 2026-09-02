@@ -152,6 +152,23 @@ export const DEMO = {
   // Copiati dalla dimostrazione di Campo id per id: se le due dimostrazioni
   // dicessero cose diverse sulla stessa squadra, l'ecosistema smentirebbe sé
   // stesso proprio nel punto che serve a mostrare che le app si parlano.
+  /* LE SCADENZE DI TERRA E DI FLOTTA, copiate riga per riga dalle loro
+     dimostrazioni (02/09) — `run-kpi` pretende che restino uguali a quelle,
+     id per id e data per data, così una modifica di là si vede di qua. Servono
+     al muro di tutta la cava: c'è la fideiussione in scadenza, la prescrizione
+     senza data, la verifica periodica scaduta. */
+  scadenzeTerra: [
+    { id: "t1", tipo: "autorizzazione", descrizione: "Scadenza del titolo autorizzativo", dataScadenza: "2031-03-14", preavvisoGiorni: 180, ricorrenzaMesi: null, note: "" },
+    { id: "t2", tipo: "fideiussione", descrizione: "Polizza fideiussoria — rinnovo annuale", dataScadenza: "2026-09-30", preavvisoGiorni: 90, ricorrenzaMesi: 12, note: "Si svincola solo dopo il collaudo finale." },
+    { id: "t3", tipo: "rilievo", descrizione: "Rilievo periodico dei lavori", dataScadenza: "2026-08-10", preavvisoGiorni: 30, ricorrenzaMesi: 6, note: "" },
+    { id: "t4", tipo: "screening-via", descrizione: "Prescrizione dello screening da ottemperare", dataScadenza: "2026-07-10", preavvisoGiorni: 60, ricorrenzaMesi: null, note: "" },
+    { id: "t5", tipo: "prescrizione", descrizione: "Prescrizione dell'atto — termine da chiarire con l'ente", dataScadenza: null, preavvisoGiorni: 60, ricorrenzaMesi: null, note: "Sul titolo il termine è illeggibile: chiesto chiarimento." },
+  ],
+  scadenzeFlotta: [
+    { id: "sc1", mezzo: "Escavatore E1", tipo: "Verifica periodica", chiave: "verifica-periodica", dataScadenza: "2026-07-10", mesi: 12, documento: "verbale ASL 2025/118", note: "", ultimaData: "2025-07-10", ultimoEsito: "regolare" },
+    { id: "sc2", mezzo: "Pala P1", tipo: "Funi e catene", chiave: "funi-catene", dataScadenza: "2026-08-12", mesi: 3, documento: "registro di controllo", note: "" },
+    { id: "sc3", mezzo: "Dumper D1", tipo: "Revisione", chiave: "revisione", dataScadenza: "2029-03-01", mesi: 60, documento: "libretto di circolazione", note: "mezzo targato" },
+  ],
   operatoriCampo: [
     { id: "o1", nome: "Mario Rossi", ruolo: "Fochino", squadra: "Squadra A", stato: "in-forza", lavoratoreId: "d1" },
     { id: "o2", nome: "Luca Bianchi", ruolo: "Perforatore", squadra: "Squadra A", stato: "in-forza", lavoratoreId: "d2" },
@@ -657,6 +674,9 @@ export { percorsiDi, DW_CANCELLA } from "../../shared/dw-ponti.js";
 import { dataPiuGiorni as dataPiuGiorniShell } from "../../shared/deepwork-id-client/dw-shell.js";
 const statoScadenza = statoScadenzaHSE;
 export { statoScadenza };
+// lo scadenzario di tutta la cava è una regola di shared/ (serve a tre app): qui
+// solo il nome, lo stesso oggetto
+export { scadenzeUnite } from "../../shared/dw-ponti.js";
 
 // Giudizio di IDONEITÀ SANITARIA (D.Lgs 81/2008 art. 41): esito della
 // sorveglianza sanitaria per la mansione. La data della prossima visita
@@ -4058,6 +4078,22 @@ export async function scudoData() {
       };
       api.operatoriCampo = () => leggiCampo("operatori");
       api.squadreCampo = () => leggiCampo("squadre");
+      /* IL MURO DI TUTTA LA CAVA (02/09, ponte 3b): le scadenze della concessione
+         (Terra) e dei mezzi (Flotta) si leggono con la stessa forma di Campo —
+         una seconda istanza SDK pigra per app, `null` se non risponde. ⛔ Il
+         `null` resta `null` fino alla schermata: «Terra non ha risposto» e
+         «Terra non ha scadenze» sono due frasi diverse, e la seconda sarebbe
+         il via libera a dimenticare il rinnovo della fideiussione. */
+      const leggiAltra = (appId) => { let idAltra;
+        return async (nome) => {
+          if (idAltra === undefined) { try { idAltra = await DeepworkID.init({ appId }); } catch (e) { idAltra = null; } }
+          if (!idAltra) return null;
+          try { return (await getDocs(idAltra.orgCollection(nome))).docs.map(d => ({ id: d.id, ...d.data() })); }
+          catch (e) { return null; }
+        }; };
+      const leggiTerra = leggiAltra("terra"), leggiFlotta = leggiAltra("flotta");
+      api.scadenzeTerra = () => leggiTerra("scadenze");
+      api.scadenzeFlotta = () => leggiFlotta("scadenze");
     } else if (id.authState() === "tour") {
       mode = "tour";
     }
@@ -4073,6 +4109,10 @@ export async function scudoData() {
       // copiato dalla dimostrazione di Campo id per id (vedi DEMO.operatoriCampo)
       operatoriCampo: async () => mem.operatoriCampo || [],
       squadreCampo:   async () => mem.squadreCampo || [],
+      // e le scadenze di Terra e di Flotta: finte, copiate dalle loro
+      // dimostrazioni riga per riga (vedi DEMO.scadenzeTerra / scadenzeFlotta)
+      scadenzeTerra:  async () => mem.scadenzeTerra || [],
+      scadenzeFlotta: async () => mem.scadenzeFlotta || [],
       documenti:  async () => mem.documenti,
       // gli eventi di esempio PIÙ i near-miss segnalati dal fronte in Campo
       // (ponte P5 in demo): in esercizio è la stessa collezione e questa riga

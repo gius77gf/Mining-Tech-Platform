@@ -2734,6 +2734,17 @@ test("⛔ scadenzeUnite: le tre app nella stessa forma, lo stesso verdetto, e un
   eq(orfana.righe.map((r) => r.soggetto), ["(mezzo non indicato)", "persona zz"], "un mezzo o una persona che non si sa si dicono, non si inventano");
   eq(ponti.scadenzeUnite({}, O), { righe: [], conto: { scadute: 0, inScadenza: 0, senzaData: 0, regolari: 0, totale: 0 }, nonRaggiungibili: ["terra", "flotta", "scudo"], completo: false }, "niente passato: tre app non raggiungibili, non «tutto regolare»");
 });
+test("⛔ Scudo legge le scadenze di Terra e Flotta: alias identico, dimostrazione copiata riga per riga", () => {
+  ok(scudo.scadenzeUnite === ponti.scadenzeUnite, "scadenzeUnite in Scudo è lo stesso oggetto di shared");
+  const T = terra.DEMO.scadenze, F = flotta.DEMO.scadenze;
+  eq(scudo.DEMO.scadenzeTerra.map((s) => [s.id, s.dataScadenza, s.preavvisoGiorni]), T.map((s) => [s.id, s.dataScadenza, s.preavvisoGiorni]),
+     "le scadenze di Terra nella dimostrazione di Scudo sono quelle di Terra, id, data e preavviso");
+  eq(scudo.DEMO.scadenzeFlotta.map((s) => [s.id, s.mezzo, s.dataScadenza]), F.map((s) => [s.id, s.mezzo, s.dataScadenza]),
+     "e quelle di Flotta sono quelle di Flotta, id, mezzo e data");
+  const O = new Date("2026-09-02T10:00:00Z");
+  const u = scudo.scadenzeUnite({ terra: scudo.DEMO.scadenzeTerra, flotta: scudo.DEMO.scadenzeFlotta, scudo: scudo.DEMO.scadenze, lavoratori: scudo.DEMO.lavoratori }, O);
+  ok(u.completo && u.righe.some((r) => r.app === "terra" && r.stato === "senza data"), "e la prescrizione senza data di Terra arriva nel muro come «senza data», non sparisce");
+});
 test("⛔ mancanzeDdt: elenca cosa manca, e non risponde «valido»", () => {
   const pieno = { causaleTrasporto: "vendita", trasportoACura: "mittente" };
   eq(conti.mancanzeDdt(pieno).length, 0, "un DDT completo non ha mancanze");
