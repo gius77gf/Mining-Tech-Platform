@@ -191,6 +191,18 @@ esistono già; **manca il triangolo**, cioè la riconciliazione a tre.
 `genesiCmp` (confronti), `genesiRicon` (storico riconciliazioni), `genesiSent`,
 `genesiSito` (punti del sito).
 
+⛔ **Misurato il 02/09, e il conto qui sopra era stretto — di nuovo il righello
+che cerca UNA forma.** Le chiavi sono **nove**, non quattro: quel `grep` cerca
+il letterale `localStorage.getItem('…')`, e Genesi ne scrive tre per alias
+(`_lsGet('genesiVolate')`) o per concatenazione (`'genesiCmp' + slot`). E i
+ponti di **file** già vivi sono **quattro**, non uno: Genesi→Sentinella
+(`parseVolateCsv`), Genesi→Campo (`parsePianoCsv`), Campo→Genesi
+(`pianoConsuntivoCsv`) e Genesi→Terra **via chiave del browser** (Terra legge
+`genesiNuvole`). Il censimento completo, coi pesi misurati in Chromium (una
+volata 561 B, la nuvola da 700.000 punti che NON sta in nessun archivio e non
+deve), i vincoli (l'offline prima di tutto: è la decisione 5b del fondatore) e
+un piano in 8 unità ≈ 20 ore sta in `docs/GENESI_FUORI_DAL_BROWSER.md`.
+
 **Quindi Genesi non è isolata per dimenticanza: è isolata perché quello che
 produce non esce dalla macchina di chi l'ha usata.** Un collega che apre Genesi
 da un altro computer non vede niente di quello che hai progettato.
