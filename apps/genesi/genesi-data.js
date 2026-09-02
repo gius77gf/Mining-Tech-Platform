@@ -1863,3 +1863,112 @@ export function metriPerforati(nf, prof, sub){
   }
   return f * (h + s);
 }
+
+/* ══════════════════════════════════════════════════════════════════════
+   G8 · I DATI DI GENESI DIETRO UNA PORTA SOLA (02/09, unità 1 di
+   `docs/GENESI_FUORI_DAL_BROWSER.md` §5)
+   ────────────────────────────────────────────────────────────────────────
+   Genesi è l'unica app che NON esce dal browser: cinque chiavi di
+   `localStorage` lette e scritte da otto funzioni sparse nella pagina
+   (`_lsGet/_lsSet`, `sitoStore/sitoSalva`, `cmpSave/_cmpLoad`,
+   `riconStorico`, e la scrittura di `nuvola-poc.html`). Finché è così nessun
+   ponte di DATI verso Genesi è possibile, e la mappa lo dichiara.
+   Questa è la prima unità del piano, e per scelta NON CAMBIA NIENTE per chi
+   usa Genesi oggi: `genesiData()` è una porta con la stessa forma delle porte
+   di Terra e Conti (`db.volate()`, `db.aggiungi(nome, doc)`, …) costruita
+   SOPRA LE STESSE CHIAVI, con gli stessi nomi, le stesse forme e gli stessi
+   tetti (50 volate, 30 lavorazioni della nuvola). Un dato scritto da qui lo
+   rilegge la pagina di oggi, e viceversa. La pagina non la chiama ancora:
+   sono le unità 2 e 3 a portarcela, sette punti alla volta, con un banco che
+   guarda la chiave prima e dopo.
+   ⚠️ Lo storage si INIETTA (`{getItem, setItem, removeItem}`): in `node` non
+   c'è `localStorage`, e la prova lo passa da una `Map`. Con niente, si usa
+   `globalThis.localStorage` se esiste, se no una memoria che dura quanto la
+   pagina — è la scelta di Terra e Conti in modalità non-live.
+   ⚠️ La forma è ASINCRONA come nelle altre app, anche se oggi sotto c'è una
+   memoria sincrona: è l'unica forma che regge quando sotto ci sarà
+   l'organizzazione (unità 4), e una porta con due forme è la copia debole in
+   agguato.
+   Le collezioni e le chiavi, una a una (§3c del documento):
+     volate          ← `genesiVolate`   elenco, tetto 50, `id` per riga
+     confronti       ← `genesiCmpA/B`   uno scatto per slot, `slot` per riga
+     riconciliazioni ← `genesiRicon`    elenco senza tetto
+     sito            ← `genesiSito`     UN documento `{punti, usa}`
+     nuvole          ← `genesiNuvole`   elenco, tetto 30 (lo scrive nuvola-poc)
+   Un JSON corrotto risponde vuoto — `[]`, `null` per lo scatto, il sito
+   vuoto — esattamente come le otto funzioni di oggi: non è una scelta nuova,
+   è la loro, tenuta uguale di proposito e messa sotto prova.
+   ══════════════════════════════════════════════════════════════════════ */
+const GENESI_CHIAVI = Object.freeze({
+  volate: { chiave: "genesiVolate", tetto: 50 },
+  riconciliazioni: { chiave: "genesiRicon", tetto: 0 },
+  nuvole: { chiave: "genesiNuvole", tetto: 30 },
+});
+const GENESI_SLOT = Object.freeze(["A", "B"]);
+const GENESI_SITO_VUOTO = () => ({ punti: [], usa: false });
+export const GENESI_COLLEZIONI = Object.freeze(["volate", "confronti", "riconciliazioni", "sito", "nuvole"]);
+
+function _memoriaStorage() {
+  const m = new Map();
+  return { getItem: (k) => (m.has(k) ? m.get(k) : null), setItem: (k, v) => { m.set(k, String(v)); }, removeItem: (k) => { m.delete(k); } };
+}
+function _leggiJson(st, chiave, vuoto) {
+  try { const v = st.getItem(chiave); return v == null || v === "" ? vuoto : JSON.parse(v); } catch (e) { return vuoto; }
+}
+function _scriviJson(st, chiave, valore) {
+  try { st.setItem(chiave, JSON.stringify(valore)); return true; } catch (e) { return false; }
+}
+function _nuovoId(prefisso) { return prefisso + Date.now().toString(36) + Math.random().toString(36).slice(2, 7); }
+
+export function genesiData(opzioni) {
+  const o = opzioni || {};
+  const st = o.storage || (typeof globalThis !== "undefined" && globalThis.localStorage) || _memoriaStorage();
+  const elenco = (nome) => { const v = _leggiJson(st, GENESI_CHIAVI[nome].chiave, []); return Array.isArray(v) ? v : []; };
+  const scriviElenco = (nome, arr) => {
+    const t = GENESI_CHIAVI[nome].tetto; const a = arr.slice();
+    if (t > 0) while (a.length > t) a.shift();
+    _scriviJson(st, GENESI_CHIAVI[nome].chiave, a); return a;
+  };
+  const scatto = (slot) => { const v = _leggiJson(st, "genesiCmp" + slot, null); return v && typeof v === "object" ? { ...v, slot } : null; };
+  const sito = () => { const s = _leggiJson(st, "genesiSito", null); return s && Array.isArray(s.punti) ? { punti: s.punti, usa: !!s.usa } : GENESI_SITO_VUOTO(); };
+  const slotDi = (x) => { const s = String((x && x.slot) || x || "").toUpperCase(); return GENESI_SLOT.includes(s) ? s : null; };
+  const db = {
+    mode: "locale",
+    volate: async () => elenco("volate"),
+    riconciliazioni: async () => elenco("riconciliazioni"),
+    nuvole: async () => elenco("nuvole"),
+    confronti: async () => GENESI_SLOT.map(scatto).filter(Boolean),
+    sito: async () => sito(),
+    aggiungi: async (nome, doc) => {
+      if (nome === "confronti") {
+        const slot = slotDi(doc); if (!slot) throw new Error("uno scatto di confronto vuole lo slot A o B");
+        const { slot: _s, ...resto } = doc || {};
+        _scriviJson(st, "genesiCmp" + slot, resto); return { id: slot };
+      }
+      if (nome === "sito") {
+        const s = doc && Array.isArray(doc.punti) ? { punti: doc.punti, usa: !!doc.usa } : GENESI_SITO_VUOTO();
+        _scriviJson(st, "genesiSito", s); return { id: "sito" };
+      }
+      if (!GENESI_CHIAVI[nome]) throw new Error("collezione sconosciuta: " + nome);
+      const d = { ...(doc || {}) }; if (d.id == null || d.id === "") d.id = _nuovoId(nome === "volate" ? "v" : "g");
+      scriviElenco(nome, [...elenco(nome), d]); return { id: d.id };
+    },
+    aggiorna: async (nome, id, doc) => {
+      if (nome === "confronti" || nome === "sito") return db.aggiungi(nome, nome === "confronti" ? { ...(doc || {}), slot: id } : doc);
+      if (!GENESI_CHIAVI[nome]) throw new Error("collezione sconosciuta: " + nome);
+      const a = elenco(nome); const i = a.findIndex((x) => x && x.id === id);
+      if (i < 0) return false;
+      a[i] = { ...a[i], ...(doc || {}), id }; scriviElenco(nome, a); return true;
+    },
+    rimuovi: async (nome, id) => {
+      if (nome === "confronti") { const slot = slotDi(id); if (!slot) return false; const c = scatto(slot) !== null; try { st.removeItem("genesiCmp" + slot); } catch (e) {} return c; }
+      if (nome === "sito") { try { st.removeItem("genesiSito"); } catch (e) {} return true; }
+      if (!GENESI_CHIAVI[nome]) throw new Error("collezione sconosciuta: " + nome);
+      const a = elenco(nome); const n = a.length; const r = a.filter((x) => !(x && x.id === id));
+      if (r.length === n) return false;
+      scriviElenco(nome, r); return true;
+    },
+    logout: async () => {},
+  };
+  return db;
+}

@@ -46,10 +46,10 @@ segnaposto («Funzione nav non ancora pronta»). Per aprirlo davvero si monta
 
 ## Le prove
 
-**2.919 prove girano senza rete e senza browser**, con `node` (contate lanciandole, non a memoria — al 02/09: 2438 + 328 + 75 + 32 + 9 + 8 + 7 + 3 + 19):
+**2.921 prove girano senza rete e senza browser**, con `node` (contate lanciandole, non a memoria — al 02/09: 2440 + 328 + 75 + 32 + 9 + 8 + 7 + 3 + 19):
 
 > ⚠️ **E quel numero conta NOVE suite, non tutto quello che gira.** Il giro
-> `node` completo esegue **3.286** asserzioni su **37** comandi.
+> `node` completo esegue **3.331** asserzioni su **37** comandi.
 > ⏱️ **Dal 09/08 quel numero non si scrive più a mano: lo stampa il giro**
 > (`node apps/deepwork-id/tests/giro-node.mjs`, riga «Asserzioni eseguite dal
 > giro»), col suo denominatore accanto — 22 comandi su 34 hanno una riga da
@@ -78,7 +78,7 @@ segnaposto («Funzione nav non ancora pronta»). Per aprirlo davvero si monta
 > 2.251» mentre il titolo sopra diceva già 2.310: il controllo sorveglia il
 > **totale**, non la prosa che lo spiega. È la quarta forma di invecchiamento
 > raccolta in `CLAUDE.md`.*
-> **Il numero da citare resta 2.919**, e la ragione è che le altre dieci contano
+> **Il numero da citare resta 2.921**, e la ragione è che le altre dieci contano
 > **file, non prove**: `import esistenti` fa un'asserzione per file e `classi
 > orfane` una per pagina, quindi il loro totale si muove ogni volta che nasce un
 > file — un numero che cresce senza che nessuno abbia scritto una prova è un
@@ -90,9 +90,9 @@ sei le app al 100%. Non è «provate bene» — è «non ce n'è nessuna che nes
 ancora guardato», che è il minimo e finora non c'era.
 
 ⚠️ **Quel 768 conta le sei app, non i moduli condivisi**, e la riga di riepilogo
-lo dice («in 6 app»). I condivisi si contano a parte — **187 su 187** in cinque
+lo dice («in 6 app»). I condivisi si contano a parte — **189 su 189** in cinque
 moduli: `dw-shell.js` **54/54**, `dw-ponti.js` **51/51**, `genesi-data.js`
-**69/69**, `genesi-formato.js` **8/8**, `pointcloud.js` **5/5**. Vanno guardati
+**71/71**, `genesi-formato.js` **8/8**, `pointcloud.js` **5/5**. Vanno guardati
 con più attenzione delle app, non con meno: una funzione sbagliata lì sbaglia in
 sei posti insieme.
 ⏱️ **Questi sei numeri sono invecchiati due volte in due giorni, e la seconda

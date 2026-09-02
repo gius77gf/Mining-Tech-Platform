@@ -19536,6 +19536,87 @@ console.log("\n— Scudo: il ciclo di vita del DSS (D.Lgs 624/96 art. 6) —");
   });
 }
 
+/* ══════════════════════════════════════════════════════════════════════
+   GENESI · I DATI DIETRO UNA PORTA SOLA (02/09, unità 1 del piano «Genesi
+   fuori dal browser»). `genesiData({storage})` ha la forma delle porte di
+   Terra e Conti ed è costruita SOPRA le stesse chiavi di `localStorage` della
+   pagina: stessi nomi, stesse forme, stessi tetti. Qui lo storage è una Map.
+   La pagina non la chiama ancora (unità 2 e 3): queste prove sono il contratto
+   che quelle unità dovranno rispettare.
+   ⚠️ Prove ASINCRONE: stanno in `inVolo`, e questo blocco sta PRIMA
+   dell'`await Promise.all(inVolo)` — messo in fondo al file non verrebbe
+   aspettato (CLAUDE.md, la terza avvertenza sui test).
+   ══════════════════════════════════════════════════════════════════════ */
+{
+  const mappa = () => { const m = new Map(); return { m, st: { getItem: (k) => (m.has(k) ? m.get(k) : null), setItem: (k, v) => m.set(k, v), removeItem: (k) => m.delete(k) } }; };
+  const srcPagina = readFileSync(new URL("../../genesi/genesi.html", import.meta.url), "utf8");
+  const srcPoc = readFileSync(new URL("../../genesi/nuvola-poc.html", import.meta.url), "utf8");
+  test("genesiData: la forma è quella delle altre porte, e nasce in modo locale", () => {
+    const db = genesi.genesiData({ storage: mappa().st });
+    eq(db.mode, "locale");
+    for (const f of ["volate", "confronti", "riconciliazioni", "sito", "nuvole", "aggiungi", "aggiorna", "rimuovi", "logout"])
+      eq(typeof db[f], "function", "c'è " + f);
+    eq([...genesi.GENESI_COLLEZIONI], ["volate", "confronti", "riconciliazioni", "sito", "nuvole"]);
+  });
+  test("⛔ le chiavi e i tetti sono QUELLI DELLA PAGINA, letti dal suo sorgente e non ricordati", () => {
+    for (const k of ["genesiVolate", "genesiCmp", "genesiRicon", "genesiSito"]) ok(srcPagina.includes("'" + k), "la pagina usa " + k);
+    ok(srcPagina.includes("while(arr.length>50) arr.shift()"), "il tetto delle volate nella pagina è 50");
+    ok(srcPoc.includes("while(a.length>30) a.shift()"), "il tetto delle nuvole in nuvola-poc è 30");
+  });
+  inVolo.push((async () => {
+    const { m, st } = mappa(); const db = genesi.genesiData({ storage: st });
+    eq(await db.volate(), [], "vuoto all'inizio");
+    const { id } = await db.aggiungi("volate", { nome: "V1", design: { B: 3 } });
+    ok(typeof id === "string" && id.startsWith("v"), "l'id nasce con la v, come nella pagina");
+    eq(JSON.parse(m.get("genesiVolate")).length, 1, "scritto SOTTO la chiave della pagina");
+    eq((await db.volate())[0].nome, "V1");
+    const { id: id2 } = await db.aggiungi("volate", { id: "v-mio", nome: "V2" }); eq(id2, "v-mio", "un id dato si rispetta");
+    eq(await db.aggiorna("volate", "v-mio", { nome: "V2b" }), true); eq((await db.volate())[1].nome, "V2b");
+    eq(await db.aggiorna("volate", "manca", { nome: "x" }), false, "aggiornare chi non c'è risponde false, non crea");
+    eq(await db.rimuovi("volate", "v-mio"), true); eq((await db.volate()).length, 1); eq(await db.rimuovi("volate", "v-mio"), false);
+    // il tetto: 50, e cade il PIÙ VECCHIO come fa `arr.shift()` nella pagina
+    for (let i = 0; i < 55; i++) await db.aggiungi("volate", { id: "t" + i });
+    const vs = await db.volate(); eq(vs.length, 50); eq(vs[0].id, "t5", "i primi sei (V1 e t0-t4) sono caduti"); eq(vs[49].id, "t54");
+    // la pagina scrive con _lsSet e rilegge con _lsGet: la porta legge ciò che scrive la pagina
+    m.set("genesiVolate", JSON.stringify([{ id: "p1", nome: "dalla pagina" }]));
+    eq((await db.volate())[0].nome, "dalla pagina");
+    // JSON corrotto → [] come `_lsGet`
+    m.set("genesiVolate", "{corrotto"); eq(await db.volate(), [], "corrotto è vuoto, come _lsGet");
+    m.set("genesiVolate", JSON.stringify({ non: "un elenco" })); eq(await db.volate(), [], "e un non-elenco è vuoto");
+  })());
+  inVolo.push((async () => {
+    const { m, st } = mappa(); const db = genesi.genesiData({ storage: st });
+    eq(await db.confronti(), [], "nessuno scatto");
+    eq((await db.aggiungi("confronti", { slot: "a", ts: "t1", kpi: { ppv: 2 } })).id, "A", "lo slot si normalizza in maiuscolo");
+    eq(JSON.parse(m.get("genesiCmpA")), { ts: "t1", kpi: { ppv: 2 } }, "sotto la chiave genesiCmpA, SENZA il campo slot (forma di cmpSave)");
+    eq(await db.confronti(), [{ ts: "t1", kpi: { ppv: 2 }, slot: "A" }], "riletto con lo slot addosso");
+    await db.aggiorna("confronti", "B", { ts: "t2" }); eq((await db.confronti()).length, 2);
+    eq(await db.rimuovi("confronti", "A"), true); eq(await db.rimuovi("confronti", "A"), false); eq(await db.rimuovi("confronti", "C"), false);
+    let err = null; try { await db.aggiungi("confronti", { ts: 1 }); } catch (e) { err = e.message; }
+    ok(/slot A o B/.test(err || ""), "senza slot si rifiuta, non si inventa uno slot");
+    m.set("genesiCmpB", "{rotto"); eq(await db.confronti(), [], "uno scatto corrotto è null, come _cmpLoad: sparisce dall'elenco");
+  })());
+  inVolo.push((async () => {
+    const { m, st } = mappa(); const db = genesi.genesiData({ storage: st });
+    eq(await db.sito(), { punti: [], usa: false }, "il sito vuoto è quello di sitoStore");
+    await db.aggiungi("sito", { punti: [{ d: 10, ppv: 1 }], usa: true, extra: "no" });
+    eq(JSON.parse(m.get("genesiSito")), { punti: [{ d: 10, ppv: 1 }], usa: true }, "solo punti e usa, sotto genesiSito");
+    m.set("genesiSito", JSON.stringify({ punti: "non un elenco", usa: true })); eq(await db.sito(), { punti: [], usa: false }, "punti storti → sito vuoto, come sitoStore");
+    m.set("genesiSito", "{rotto"); eq(await db.sito(), { punti: [], usa: false });
+    eq(await db.rimuovi("sito", "sito"), true); eq(m.has("genesiSito"), false);
+    for (let i = 0; i < 31; i++) await db.aggiungi("nuvole", { nome: "n" + i });
+    const nv = await db.nuvole(); eq(nv.length, 30, "tetto 30 come nuvola-poc"); eq(nv[0].nome, "n1");
+    await db.aggiungi("riconciliazioni", { ts: 1 }); for (let i = 0; i < 60; i++) await db.aggiungi("riconciliazioni", { ts: i });
+    eq((await db.riconciliazioni()).length, 61, "le riconciliazioni non hanno tetto, come oggi");
+    let err = null; try { await db.aggiungi("boh", {}); } catch (e) { err = e.message; }
+    ok(/sconosciuta/.test(err || ""), "una collezione che non esiste è un errore, non una chiave nuova");
+    const senza = genesi.genesiData(); eq(senza.mode, "locale"); await senza.aggiungi("volate", { nome: "x" });
+    eq((await senza.volate()).length, 1, "senza storage e senza localStorage: memoria che dura quanto l'istanza");
+    eq((await genesi.genesiData().volate()).length, 0, "e un'altra istanza non la vede");
+  })());
+}
+/* ===== fine Genesi · i dati dietro una porta sola ===== */
+
 if (inVolo.length) await Promise.all(inVolo);   // si aspetta PRIMA di contare
 // ── ⛔ UNA LETTURA DI VIBRAZIONE PORTATA A ZERO, CON LA FIRMA (03/08) ──
 test("⛔ correggiLettura: il VUOTO non è uno zero corretto da qualcuno", () => {

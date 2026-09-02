@@ -21,6 +21,11 @@
   «Prodotto contro venduto» nel Report (verso a parole, coda con i fuori, Campo
   assente in tono avviso e senza zeri), banco nei tre modi. Mappa: **11** ponti
   su 56, **1** famiglia scoperta (la 3e, che passa da un file).
+- [x] ✅ 02/09 **Genesi fuori dal browser, unità 1 di 8** (`docs/GENESI_FUORI_DAL_BROWSER.md`
+  §5): `genesiData({storage})` in `genesi-data.js`, la porta con la forma delle
+  altre app sopra le stesse cinque chiavi di `localStorage` (nomi, forme e
+  tetti invariati, letti dal sorgente della pagina dalle prove). La pagina non
+  cambia: sono le unità 2 e 3 a chiamarla, sette punti alla volta.
 - [ ] **Aggiornare la tabella in fondo a `docs/MAPPA_ECOSISTEMA.md`** a ogni
   ponte chiuso: è il registro, e il «6 su 56» deve scendere. *(02/09: 11 su 56.)*
 - [ ] **Una passata in profondità su un'app** (ogni schermata guardata, ogni
@@ -5589,7 +5594,7 @@ numero scritto dove non era stato misurato niente**.*
   nome apre il file sbagliato credendo che sia il più fresco.
 - Le decisioni: `docs/DECISIONI_WEEKEND.md` — pagina d'ingresso in cima.
 - Stato misurato al **18/08** (lanciando le suite, non a memoria):
-  **2.919 prove girano senza rete**. La frase va letta stretta: è la somma
+  **2.921 prove girano senza rete**. La frase va letta stretta: è la somma
   delle **nove** suite che contano asserzioni (`run-kpi` 2396, `run-stile` 327,
   `run-helpers` 75, `run-pointcloud` 32, `claims-convergenza` 19, `run-manifest` 9,
   `run-demo` 8, `bootstrap-rivendicazioni` 7, `fogli-guardati` 3), non tutto ciò che gira nel

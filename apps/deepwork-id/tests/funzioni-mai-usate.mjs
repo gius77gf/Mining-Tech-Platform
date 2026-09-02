@@ -42,6 +42,11 @@ const MODULI = [
   "shared/deepwork-id-client/dw-shell.js",
   "shared/dw-grafici.js",
   "apps/genesi/pointcloud.js",
+  /* ⛔ Genesi non stava nell'elenco perché non è in APP (la sua pagina si chiama
+     genesi.html e il suo modulo è nato dopo): un controllo che esclude un modulo
+     è cieco lì. Misurato il 02/09 prima di aggiungerlo: 768 funzioni al posto di
+     717, e UN allarme nuovo — genesiData, dichiarata qui sotto da collegare. */
+  "apps/genesi/genesi-data.js",
 ];
 
 /* ⛔ LE ECCEZIONI, DICHIARATE UNA PER UNA CON LA RAGIONE E CON LA DECISIONE.
@@ -50,6 +55,11 @@ const MODULI = [
    `sonda-vuoto.mjs`, una riga che scusa un caso che non si presenta più viene
    segnalata: se qualcuno collega una di queste, il conto scende e si vede. */
 const ACCETTATE = new Map([
+  ["apps/genesi/genesi-data.js|genesiData",
+    "DA COLLEGARE (unità 2 e 3 di docs/GENESI_FUORI_DAL_BROWSER.md §5, entro il 09/09): la porta sui dati di "
+    + "Genesi, costruita sopra le stesse chiavi di localStorage della pagina e provata in run-kpi. La pagina "
+    + "la chiamerà al posto di _lsGet/_lsSet, cmpSave/_cmpLoad, riconStorico, sitoStore/sitoSalva: sette "
+    + "punti per le volate prima, il resto poi. Finché non è collegata è un contratto scritto, non un prodotto."],
   ["apps/conti/conti-data.js|descriviScaglione",
     "SUPERATA. Sembrava «una frase che il prodotto calcola e non mostra»: NON lo è, e la differenza l'ha "
     + "detta solo l'apertura del codice. La pagina ha `spiegaScaglioneRiga`, che dice la stessa cosa e in "
