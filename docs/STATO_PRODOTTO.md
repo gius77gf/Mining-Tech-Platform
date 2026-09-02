@@ -65,6 +65,46 @@ chiesto.
 
 ---
 
+### La sera del 2 settembre, in sei righe
+
+**Genesi è uscita dal browser.** Fino a stamattina i suoi dati (volate salvate,
+confronti A/B, riconciliazioni, legge di sito, lavorazioni del drone) vivevano
+solo nella memoria del browser di un computer: nessun'altra app poteva
+leggerli, e cambiando computer sparivano. Da stasera Genesi ha la stessa
+«porta» delle altre app: da sola sul dispositivo lavora come prima (nessuno
+perde niente), con un'organizzazione scrive nelle sue collezioni, e senza rete
+torna da sola al browser — misurato staccando la rete. C'è il bottone «Porta
+nell'organizzazione» (una volta sola, non cancella niente), e Terra legge già
+le lavorazioni del drone da lì: è il **primo ponte di dati verso Genesi**. La
+mappa è a **12 ponti su 56**; nessuna app è più senza scambio di dati. Del
+piano in otto unità resta solo la coda offline, che è la tua decisione 5b.
+
+**Il triangolo della produzione si legge in un'unità sola.** Sotto «Cavato
+contro venduto» Conti mostra ora anche «Prodotto contro venduto» (quello che i
+turni di Campo dichiarano, in tonnellate, contro la pesa), e il cavato di Terra
+anche in tonnellate con la densità in banco che Terra dichiara sull'atto — con
+scritto quando è un valore tipico da verificare. E il **verbale di
+riconciliazione**: il divario del periodo si conserva con la causa che gli hai
+trovato e una nota; se i dati cambiano dopo, Conti lo dice accanto invece di
+sovrascrivere.
+
+**Flotta dice quando un mezzo beve più del suo solito**: gli ultimi trenta
+giorni contro la sua storia, con la forbice e «da guardare» sopra una
+tolleranza dichiarata come scelta nostra (nessuna norma la fissa).
+
+**Sei ricerche, sei delta dal meccanismo** (Conti, Flotta, Scudo, Sentinella,
+Campo, Terra): quasi tutto quello che i concorrenti fanno c'era già, con il
+nome del mestiere; le poche mancanze vere sono chiuse (il verbale, il consumo
+contro la storia, la densità che era già in casa) o sospese a te — sono le
+decisioni **19, 20 e 21** in `docs/DECISIONI_WEEKEND.md`: la volata sparata
+come documento emesso, le notifiche fuori dall'app (costano), quattro numeri
+di legge che non scrivo senza il testo.
+
+**Tutte e sei le app rimisurate in profondità** dopo le modifiche, nessun
+difetto nuovo; un banco «intermittente» rimisurato a macchina ferma tre volte,
+verde. Un giro completo del browser è partito a sera sulla copia di quello che
+è committato: si legge domattina.
+
 ## ⚠️ Aggiornamento del 30 luglio — leggi prima questo
 
 *Il resto del documento è del **23 luglio** e le schede app per app sono ancora
