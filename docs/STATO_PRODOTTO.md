@@ -20,6 +20,51 @@ così un commerciale può farle vedere senza configurare nulla.
 
 ---
 
+## ⚠️ Aggiornamento del 2 settembre — la giornata dei ponti
+
+*Il blocco del 30 luglio qui sotto resta vero. Questo dice che cosa è cambiato
+il 2 settembre, in un giorno solo, con la fase nuova che hai aperto il 26/08
+(«i dettagli di ogni app»).*
+
+**Le app si parlano di più.** La mappa dell'ecosistema (`docs/MAPPA_ECOSISTEMA.md`)
+contava 6 ponti di dati su 56 possibili; a sera sono **10**. Quattro sono nuovi:
+- **Conti ↔ Flotta, nei due versi**: lo stesso euro di gasolio o di officina non
+  si conta più due volte senza saperlo. In Conti la schermata Costi mostra
+  voce per voce quanto c'è anche in Flotta; in Flotta ogni spesa uguale alla
+  cifra porta il contrassegno «anche in Conti». Se l'altra app non risponde
+  lo dice per nome, e **non** scrive zero.
+- **Terra e Flotta → Scudo**: la schermata Scadenze di Scudo apre con «Tutta
+  la cava»: le scadenze della concessione, dei mezzi e delle persone con la
+  stessa regola, in un muro solo. È quello che i software del mestiere
+  chiamano scadenzario unico.
+
+**La fattura elettronica esce da Conti.** Il bottone «XML per lo SdI» sulla
+fattura produce il file per il Sistema di Interscambio. Onestà: Conti lo
+prepara; l'invio e la conservazione si fanno gratis dal portale dell'Agenzia
+o col commercialista, e il tracciato va passato dal controllo formale del
+portale prima del primo invio vero. Se manca un dato (CAP, regime fiscale…)
+il file **non** esce e la finestra dice che cosa manca e dove scriverlo.
+
+**Sette passate in profondità, sette app** (Conti, Scudo, Flotta, Campo,
+Sentinella, Terra, il core): ogni banco lanciato, ogni schermata guardata,
+ogni file che esce aperto. Difetti veri trovati e chiusi: in Conti una pesata
+senza tara «vendeva il camion»; in Scudo la copertura formazione diceva
+«tutte regolari» sopra una verifica scaduta; in Flotta la tessera del
+carburante scriveva «€ 0,00» per un mese senza rifornimenti registrati; in
+Terra il foglio per l'ente chiamava «complessiva» un'incertezza stimata su un
+rilievo su quattro. Campo, Sentinella e il core: puliti.
+
+**Genesi fuori dal browser**: misurato prima di costruire
+(`docs/GENESI_FUORI_DAL_BROWSER.md`): nove chiavi, quattro ponti di file già
+vivi, l'offline come vincolo vero; piano in otto unità. Aspetta la tua
+decisione 5b (la coda offline).
+
+**Aspetta te**: la PR #345 su GitHub raccoglie tutto questo ed è verde; unire
+a main è una tua scelta. I nomi e i temi delle app restano sospesi come hai
+chiesto.
+
+---
+
 ## ⚠️ Aggiornamento del 30 luglio — leggi prima questo
 
 *Il resto del documento è del **23 luglio** e le schede app per app sono ancora
