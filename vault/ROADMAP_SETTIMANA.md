@@ -63,6 +63,11 @@
   lo storico dice se il divario cresce o cala; se i dati cambiano dopo, il
   riquadro lo dice invece di sovrascrivere. `verbaleDelPeriodo`,
   `storicoVerbali`, `CAUSE_DIVARIO`; demo con un verbale coerente per prova.
+- [x] ✅ 02/09 **Il verbale anche per «Prodotto contro venduto»**: stesso
+  riquadro, stesse funzioni (`tipo: "prodotto"`), unità in tonnellate e verso
+  detto a parole («prodotte e non uscite dal cancello» / «vendute più del
+  prodotto dichiarato»); gli storici dei due tipi non si mescolano (il banco
+  lo pretende). `conti-verbale.mjs` 20 prove, controprova cade su tutt'e due.
 - [ ] **Aggiornare la tabella in fondo a `docs/MAPPA_ECOSISTEMA.md`** a ogni
   ponte chiuso: è il registro, e il «6 su 56» deve scendere. *(02/09: 12 su 56.)*
 - [ ] **Una passata in profondità su un'app** (ogni schermata guardata, ogni

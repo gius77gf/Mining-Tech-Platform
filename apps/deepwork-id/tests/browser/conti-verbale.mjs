@@ -31,8 +31,8 @@ const TIPI = { ".html": "text/html", ".js": "text/javascript", ".mjs": "text/jav
   ".json": "application/json", ".svg": "image/svg+xml", ".png": "image/png", ".webmanifest": "application/manifest+json" };
 const DIFETTI = [
   ["apps/conti/index.html",
-   'await db.aggiungi("verbali", { dal: d1, al: d2, tipo: "cavato", divario, pct, stato, causa, nota, scrittoIl: istanteLocale() });',
-   'await db.aggiungi("verbali", { dal: d1, al: d2, tipo: "cavato", divario: 0, pct, stato, causa, nota, scrittoIl: istanteLocale() });   /* difetto rimesso dal banco */'],
+   'await db.aggiungi("verbali", { dal: d1, al: d2, tipo, divario, pct, stato, causa, nota, scrittoIl: istanteLocale() });',
+   'await db.aggiungi("verbali", { dal: d1, al: d2, tipo, divario: 0, pct, stato, causa, nota, scrittoIl: istanteLocale() });   /* difetto rimesso dal banco */'],
 ];
 let difettiRimessi = 0;
 
@@ -103,6 +103,30 @@ dice(v.note[0] && v.note[0].testo.includes(nSchermo) && !v.note[0].warn && /lo s
 dice(v.bottone === "Scrivi un altro verbale", "il bottone ora dice «Scrivi un altro verbale»", v.bottone);
 dice(v.righe.length === 2 && /rilievo/i.test(v.righe[0].meta), "lo storico è cresciuto di una riga, la più recente in cima", v.righe);
 dice(v.righe[0] && /il divario (cresce|cala)|come prima/.test(v.righe[0].verso), "e la riga nuova dice il verso del passo rispetto al verbale prima", v.righe[0]);
+// ── e il verbale del PRODOTTO (Campo), nello stesso riquadro del terzo lato ──
+const leggiP = () => pg.evaluate(() => {
+  const box = document.getElementById("ric-campo");
+  const note = [...box.querySelectorAll(".note")].map((n) => n.textContent.replace(/\s+/g, " ").trim());
+  return { note, bottone: document.getElementById("btn-ric-verbale-prodotto")?.textContent.trim() || null,
+    righe: [...box.querySelectorAll(".item")].map((i) => i.querySelector(".meta")?.textContent.replace(/\s+/g, " ").trim()),
+    divario: (box.textContent.match(/\(([\d.,]+) t\) non è uscito/) || [])[1] || null };
+});
+let vp = await leggiP();
+dice(vp.bottone === "Scrivi il verbale", "sotto «Prodotto contro venduto» c'è il suo bottone «Scrivi il verbale»", vp.bottone);
+dice(vp.righe.length === 0, "e nessuno storico: i verbali del cavato NON si mescolano con quelli del prodotto", vp.righe);
+await pg.click("#btn-ric-verbale-prodotto"); await pg.waitForTimeout(400);
+const testoModale = await pg.evaluate(() => (document.getElementById("modal-body") || document.querySelector(".modal") || document.body).textContent.replace(/\s+/g, " "));
+dice(/prodotte e non uscite dal cancello/.test(testoModale) && /del dichiarato/.test(testoModale), "la modale parla in tonnellate e «del dichiarato», non in m³ del cavato", testoModale.slice(0, 200));
+await pg.selectOption("#modal-campo", "stime-turno");
+await pg.fill("#modal-nota", "i turni arrotondano a 50 t");
+await pg.evaluate(() => { const b = [...document.querySelectorAll("#modal-foot .mbtn")].find((x) => /Salva/.test(x.textContent)); if (b) b.click(); });
+await pg.waitForTimeout(900);
+vp = await leggiP();
+dice(vp.note.some((n) => /Verbale di questo periodo/.test(n) && /stime di fine turno/.test(n) && /arrotondano a 50 t/.test(n) && /lo stesso numero/.test(n)), "il verbale del prodotto è comparso con causa, nota e il numero di oggi che coincide", vp.note);
+dice(vp.divario && vp.note.some((n) => n.includes(vp.divario + " t")), `e il numero salvato è quello sullo schermo (${vp.divario} t)`, vp.note);
+dice(vp.righe.length === 1 && /stime di fine turno/.test(vp.righe[0]), "lo storico del prodotto ha la sua riga, e solo quella", vp.righe);
+const vc = await leggi();
+dice(vc.righe.length === 2, "lo storico del CAVATO è rimasto a due righe: il verbale del prodotto non ci è finito dentro", vc.righe);
 dice(errori.length === 0, "nessun errore di pagina in tutto il giro", errori.slice(0, 3));
 if (SCATTI) { mkdirSync(OUT, { recursive: true }); await pg.evaluate(() => document.getElementById("ric-verbale")?.scrollIntoView({ block: "center" })); await pg.screenshot({ path: join(OUT, CONTROPROVA ? "controprova.png" : "verbale.png") }); }
 await b.close(); srv.close();

@@ -5662,37 +5662,45 @@ label.item:has(.dw-chk:checked){
   // `divario` null = il confronto è fermo (niente da verbalizzare adesso); si
   // mostra lo stesso lo storico, perché un verbale scritto ieri vale anche
   // quando oggi i dati non bastano. Il numero salvato è quello sullo schermo.
-  function renderVerbale(d1, d2, divario, pct, stato, m3f) {
-    const box = $("ric-verbale"); if (!box) return;
+  // `opz.tipo`: "cavato" (m³, sotto il confronto con Terra) o "prodotto" (t,
+  // sotto il confronto con Campo). Stesse funzioni, stesso riquadro, un'unità
+  // e un verso a parole per ciascuno: il segno di un divario si legge male.
+  function renderVerbale(d1, d2, divario, pct, stato, m3f, opz) {
+    const o = opz || {};
+    const tipo = o.tipo || "cavato", u = tipo === "prodotto" ? "t" : "m³";
+    const box = $(o.box || "ric-verbale"); if (!box) return;
     const fm = m3f || ((v) => NUMV.format(Math.round(v * 100) / 100));
-    // il segno si dice a parole: «-1,3 m³» si legge male, «venduto 1,3 m³ più del cavato» no
-    const dv = (x) => x == null ? "—" : x < 0 ? `<b>${fm(-x)} m³</b> venduti più del cavato` : x > 0 ? `<b>${fm(x)} m³</b> di scorta stimata` : "<b>0 m³</b>, pari";
-    const mio = verbaleDelPeriodo(VER, d1, d2, "cavato", divario);
-    const storico = storicoVerbali(VER, "cavato").slice(-6).reverse();
+    const dv = tipo === "prodotto"
+      ? (x) => x == null ? "—" : x < 0 ? `<b>${fm(-x)} t</b> vendute più del prodotto dichiarato` : x > 0 ? `<b>${fm(x)} t</b> prodotte e non uscite dal cancello` : "<b>0 t</b>, pari"
+      : (x) => x == null ? "—" : x < 0 ? `<b>${fm(-x)} m³</b> venduti più del cavato` : x > 0 ? `<b>${fm(x)} m³</b> di scorta stimata` : "<b>0 m³</b>, pari";
+    const base = tipo === "prodotto" ? "del dichiarato" : "del cavato";
+    const mio = verbaleDelPeriodo(VER, d1, d2, tipo, divario);
+    const storico = storicoVerbali(VER, tipo).slice(-6).reverse();
     let testa;
     if (mio) {
       const v = mio.verbale;
       testa = `<div class="note${mio.adesso != null && !mio.coerente ? " warn" : ""}"><b>Verbale di questo periodo</b>, scritto il ${fmtD(String(v.scrittoIl || "").slice(0, 10))}:
-        ${dv(mio.allora)}${Number.isFinite(+v.pct) ? " (" + perc(Math.abs(+v.pct)) + " del cavato)" : ""} —
+        ${dv(mio.allora)}${Number.isFinite(+v.pct) ? " (" + perc(Math.abs(+v.pct)) + " " + base + ")" : ""} —
         causa: <b>${esc(mio.causa ? mio.causa.etichetta : v.causa || "non indicata")}</b>${v.nota ? ". «" + esc(v.nota) + "»" : "."}
         ${mio.adesso == null ? "" : mio.coerente
           ? " Oggi il conto dà lo stesso numero."
-          : ` <b>Oggi il conto dà ${dv(mio.adesso)}</b> (${mio.differenza > 0 ? "+" : ""}${fm(mio.differenza)} m³ rispetto ad allora): i dati sono cambiati dopo il verbale — un rilievo o una pesata in più o corretta. Il verbale resta vero su allora; se vuoi, scrivine un altro.`}
+          : ` <b>Oggi il conto dà ${dv(mio.adesso)}</b> (${mio.differenza > 0 ? "+" : ""}${fm(mio.differenza)} ${u} rispetto ad allora): i dati sono cambiati dopo il verbale — ${tipo === "prodotto" ? "un rapportino" : "un rilievo"} o una pesata in più o corretta. Il verbale resta vero su allora; se vuoi, scrivine un altro.`}
         ${mio.quanti > 1 ? ` <span class="ponte-coda">(${mio.quanti} verbali per questo periodo: si mostra l'ultimo)</span>` : ""}</div>`;
     } else if (divario == null) {
       testa = "";
     } else {
-      testa = `<div class="note">Per questo periodo <b>non c'è ancora un verbale</b>: il divario qui sopra è un numero che si rifà a ogni apertura, e la ragione che gli hai trovato — la scorta a piazzale, un rilievo che manca, una densità da correggere — oggi non la conserva nessuno.</div>`;
+      testa = `<div class="note">Per questo periodo <b>non c'è ancora un verbale</b>: il divario qui sopra è un numero che si rifà a ogni apertura, e la ragione che gli hai trovato — ${tipo === "prodotto" ? "il materiale a piazzale, le stime di turno larghe, le consegne fuori dalla pesa" : "la scorta a piazzale, un rilievo che manca, una densità da correggere"} — oggi non la conserva nessuno.</div>`;
     }
-    const bottone = divario == null ? "" : `<div class="tools"><button class="dw-btn secondary" id="btn-ric-verbale">${mio ? "Scrivi un altro verbale" : "Scrivi il verbale"}</button></div>`;
+    const idBtn = tipo === "prodotto" ? "btn-ric-verbale-prodotto" : "btn-ric-verbale";
+    const bottone = divario == null ? "" : `<div class="tools"><button class="dw-btn secondary" id="${idBtn}">${mio ? "Scrivi un altro verbale" : "Scrivi il verbale"}</button></div>`;
     const righe = storico.length ? `<div class="sec" style="margin-top:14px;">Verbali precedenti</div>` + storico.map(v => `<div class="item st-accent">
       <span class="avatar">${IC.cumulo}</span>
       <div class="info"><div class="name">${fmtD(v.dal)} – ${fmtD(v.al)} · ${Number.isFinite(+v.divario) ? dv(+v.divario).replace(/<\/?b>/g, "") : "divario —"}${v.pctNum != null ? " (" + perc(Math.abs(v.pctNum)) + ")" : ""}</div>
       <div class="meta">${esc(v.causaEtichetta || v.causa || "causa non indicata")}${v.nota ? " · «" + esc(v.nota) + "»" : ""}</div></div>
       <div class="amt"><div class="amt-n${v.verso == null ? " mute" : ""}">${v.verso == null ? "—" : v.verso === "cresce" ? "▲" : v.verso === "cala" ? "▼" : "="}</div>
         <div class="amt-s">${v.verso == null ? "primo" : v.verso === "pari" ? "come prima" : "il divario " + v.verso}</div></div></div>`).join("") : "";
-    box.innerHTML = testa + bottone + righe;
-    const b = $("btn-ric-verbale");
+    if (o.appendi) box.insertAdjacentHTML("beforeend", testa + bottone + righe); else box.innerHTML = testa + bottone + righe;
+    const b = $(idBtn);
     if (b) b.onclick = async () => {
       const opz = CAUSE_DIVARIO.map(c => `<option value="${esc(c.chiave)}">${esc(c.etichetta)}</option>`).join("");
       const campo = `<label class="fl" for="modal-campo">Causa del divario</label><select class="dw-input" id="modal-campo">${opz}</select>
@@ -5702,7 +5710,7 @@ label.item:has(.dw-chk:checked){
          della modale in fase di cattura */
       let nota = "";
       const p = chiediValore("Scrivi il verbale",
-        `<p>Periodo <b>${fmtD(d1)} – ${fmtD(d2)}</b>: ${dv(divario)}${pct != null ? " (" + perc(Math.abs(pct)) + " del cavato)" : ""}, stato <b>${esc(stato || "")}</b>.</p>
+        `<p>Periodo <b>${fmtD(d1)} – ${fmtD(d2)}</b>: ${dv(divario)}${pct != null ? " (" + perc(Math.abs(pct)) + " " + base + ")" : ""}, stato <b>${esc(stato || "")}</b>.</p>
          <p>Il verbale conserva <b>questo numero</b> e la ragione che gli dai. Non corregge il conto e non blocca niente: se i dati cambiano dopo, Conti te lo dirà accanto al verbale.</p>`,
         campo, "Salva il verbale");
       const foot = $("modal-foot");
@@ -5710,7 +5718,7 @@ label.item:has(.dw-chk:checked){
       const causa = await p;
       if (causa == null) return;
       if (!causaDivario(causa)) { toast("Scegli una causa fra quelle elencate.", "err"); return; }
-      await db.aggiungi("verbali", { dal: d1, al: d2, tipo: "cavato", divario, pct, stato, causa, nota, scrittoIl: istanteLocale() });
+      await db.aggiungi("verbali", { dal: d1, al: d2, tipo, divario, pct, stato, causa, nota, scrittoIl: istanteLocale() });
       toast("✓ Verbale salvato per " + fmtD(d1) + " – " + fmtD(d2));
       await refresh();
       renderRiconciliazione();
@@ -5746,31 +5754,33 @@ label.item:has(.dw-chk:checked){
     if (c.fuori.viaggi > 0) coda.push(`${plur(c.fuori.viaggi, "viaggio dichiarato resta", "viaggi dichiarati restano")} fuori: un viaggio non ha un peso`);
     if (ven.senzaPeso) coda.push(`${plur(ven.senzaPeso, "consegna è senza peso", "consegne sono senza peso")} e non entra nel venduto`);
     const codaHtml = coda.length ? ` <span class="ponte-coda">(${coda.join("; ")})</span>` : "";
+    // il verbale del PRODOTTO: negli stati fermi solo lo storico, se c'è
+    const verbale = (div, p, st) => renderVerbale(d1, d2, div, p, st, tf, { tipo: "prodotto", box: "ric-campo", appendi: true });
     if (c.stato === "no-campo") {
       box.innerHTML = `<div class="note warn"><b>Campo non è raggiungibile</b>, quindi non so quanto i turni
         abbiano dichiarato di aver prodotto nel periodo: senza il prodotto il confronto col venduto non si
         fa, e <b>non lo do per zero</b>. Se Campo è attiva nella tua organizzazione, riprova fra poco.</div>`;
-      return;
+      verbale(null, null, null); return;
     }
     if (c.stato === "no-dichiarato") {
       box.innerHTML = `<div class="note">Nel periodo <b>nessun turno ha dichiarato una produzione</b> in Campo:
         non vuol dire che non si è prodotto, vuol dire che non è stato scritto. La pesa ha registrato
         ${tn(ven.t)} in ${plur(ven.viaggi, "viaggio", "viaggi")}, ma senza un prodotto dichiarato non c'è con
         cosa confrontarle.${codaHtml}</div>`;
-      return;
+      verbale(null, null, null); return;
     }
     if (c.stato === "dichiarato-non-in-tonnellate") {
       box.innerHTML = `<div class="note">${plur(c.turni, "turno ha dichiarato", "turni hanno dichiarato")} una
         produzione nel periodo, ma <b>nessuno in tonnellate</b>: metri cubi e viaggi non si confrontano con
         la pesa senza una conversione, e Conti non ne inventa una. In Campo si può scegliere l'unità del
         rapportino.${codaHtml}</div>`;
-      return;
+      verbale(null, null, null); return;
     }
     if (c.stato === "no-venduto-nel-periodo") {
       box.innerHTML = `<div class="note">I turni hanno dichiarato ${tn(c.dichiaratoT)} in
         ${plur(c.turni, "turno", "turni")}, ma nel periodo <b>non c'è nessuna consegna pesata</b>: o il
         materiale è a piazzale, o le pesate non sono state registrate nella scheda <b>Pesate</b>.${codaHtml}</div>`;
-      return;
+      verbale(null, null, null); return;
     }
     // confrontabile: due colonne e il verso a parole
     const pctAbs = Math.abs(c.pct);
@@ -5796,6 +5806,7 @@ label.item:has(.dw-chk:checked){
         <div class="conf-s">in ${plur(c.viaggiVenduti, "viaggio", "viaggi")}, dai DDT del periodo.</div></div>
     </div>
     <div class="note${piuProdotto || c.verso === "pari" ? "" : " warn"}">${spiega}${codaHtml}</div>`;
+    verbale(c.divarioT, c.pct, c.stato);
   }
 
   // ── Valore del cavato ai prezzi del listino (vista del titolare) ──────
