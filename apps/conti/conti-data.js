@@ -2002,6 +2002,44 @@ export function nettoPesata(lordo, tara) {
   return round2(Math.max(0, (+lordo || 0) - (+tara || 0)));
 }
 
+/* ⛔ I PESI DI UNA PESATA SI DECIDONO IN UN POSTO SOLO — nato il 02/09 dalla
+   prima domanda della ricerca sulla pesa a ponte («con la tara non registrata,
+   chi decide il netto?»), misurata sullo schermo: una pesata con la tara mai
+   scritta usciva nell'elenco come «lordo 32,50 − tara 0,00 = netto 0,00 t» e
+   «€ 0,00» — tre zeri tranquilli, di cui uno DENTRO un'equazione che li fa
+   sembrare misurati — e una col netto scritto a mano e la tara vuota «vendeva
+   anche il camion» (32,50 t) con la stessa tara 0,00 mai esistita. La pagina
+   del form si difende dal 09/08; il MODULO no, quindi un dato che entra da un
+   CSV, da un ripristino o da un archivio vecchio passava.
+   La regola, in tre righe:
+   · lordo E tara scritti → il netto è lordo − tara, SEMPRE (il netto non si
+     digita, e se il file ne porta un altro quello del file non conta);
+   · nessuno dei due scritto → il netto è quello DICHIARATO, se c'è: è il caso
+     di chi registra solo il netto (una pesa che stampa solo quello, un dato
+     d'archivio), e si dichiara `dichiarato: true`;
+   · UNO solo dei due scritto → il netto NON si sa (`noto: false`,
+     `incompleto: true`, con `manca`): un lordo senza tara è il camion pieno,
+     e chiamarlo netto è il modo di vendere il camion.
+   ⚠️ `incompleto` è la bandiera che le altre funzioni leggono, e NON coincide
+   con «non noto»: un record senza nessun peso e con la sola quantità (i DDT
+   salvati prima che il form chiedesse i pesi, e 72 prove che li descrivono)
+   non è contraddittorio — è un dato dichiarato, e resta com'era. Quello che
+   cambia è SOLO il caso in cui i pesi ci sono a metà.
+   Chi legge una quantità, un valore o un'equazione a schermo parte da qui. */
+export function pesiPesata(pesata) {
+  const d = pesata || {};
+  const lordo = numeroDichiarato(d.lordo), tara = numeroDichiarato(d.tara);
+  const manca = [];
+  if (lordo == null) manca.push("lordo");
+  if (tara == null) manca.push("tara");
+  if (!manca.length) return { lordo, tara, netto: nettoPesata(lordo, tara), noto: true, dichiarato: false, incompleto: false, manca };
+  if (manca.length === 2) {
+    const n = numeroDichiarato(d.netto);
+    return { lordo, tara, netto: n == null ? null : round2(n), noto: n != null, dichiarato: n != null, incompleto: false, manca: n != null ? [] : manca };
+  }
+  return { lordo, tara, netto: null, noto: false, dichiarato: false, incompleto: true, manca };
+}
+
 /* ⛔ LO SCONTO DEL CLIENTE È UNA PERCENTUALE SULL'IMPONIBILE, non un prezzo
    diverso. Sono due cose che sembrano uguali e non lo sono:
    · piegando lo sconto dentro il prezzo unitario, quel prezzo va arrotondato
@@ -2316,6 +2354,11 @@ export function rigaPesata(prodotto, lordo, tara, cliente, ordine, oggi = new Da
 export function quantitaVenduta(pesata) {
   const d = pesata || {};
   const unita = d.unitaVendita === "m3" ? "m3" : "t";
+  /* ⛔ A TONNELLATA LA QUANTITÀ È IL NETTO PESATO, e `quantita` ne è una copia
+     scritta dal form: se i pesi non bastano a calcolare il netto (lordo senza
+     tara), la copia non vale più della sua origine — 02/09, `pesiPesata`. A
+     metro cubo la quantità DICHIARATA resta: l'ha decisa una persona. */
+  if (unita === "t" && pesiPesata(d).incompleto) return null;
   const qDich = quantitaDichiarata(d);
   if (qDich != null) return qDich;
   const q = quantitaPesata(d);
@@ -2361,6 +2404,12 @@ export function quantitaVenduta(pesata) {
 export function valoreDdt(pesata) {
   const d = pesata || {};
   const q = quantitaVenduta(d);
+  const w = pesiPesata(d);
+  if (q == null && w.incompleto)
+    return { valore: null, quantita: null, calcolabile: false,
+      motivo: "peso-mancante", manca: w.manca,
+      perche: "manca " + (w.manca[0] === "tara" ? "la tara" : "il lordo")
+        + ": il netto non si può calcolare, e senza netto la consegna non ha una quantità" };
   if (q == null)
     return { valore: null, quantita: null, calcolabile: false,
       motivo: "densita-mancante",
@@ -2390,7 +2439,15 @@ export function valorePesata(pesata) {
 // Tonnellate e metri cubi di una pesata (i m³ solo se la densità c'era).
 export function quantitaPesata(pesata) {
   const d = pesata || {};
-  const t = +d.netto || 0;
+  /* ⛔ `+d.netto || 0` faceva ZERO di un netto mai calcolato: 02/09, vedi
+     `pesiPesata`. Se il netto non si sa, la quantità non si sa — `t: null`,
+     con `pesoNoto: false` e `manca` per dire che cosa non è stato scritto. */
+  const w = pesiPesata(d);
+  if (w.incompleto) return { t: null, m3: null, pesoNoto: false, manca: w.manca };
+  /* senza NESSUN peso scritto il netto resta quello di prima — zero — perché
+     così lo pretende chi somma (`quantitaVenduta(null)` → 0 t, prova scritta
+     apposta): è un caso «niente», non un caso «a metà» */
+  const t = w.netto == null ? 0 : w.netto;
   /* ⛔ `Number.isFinite(+d.quantita)` DA SOLO NON BASTA, ed è la trappola che
      questo file documenta in altri due punti: `+null` fa **0**, e
      `Number.isFinite(0)` risponde **true**. Quindi una pesata venduta a metro
@@ -2402,7 +2459,7 @@ export function quantitaPesata(pesata) {
   const qDich = quantitaDichiarata(d);
   const m3 = d.unitaVendita === "m3" && qDich != null
     ? qDich : convertiQuantita(t, "t", "m3", d.densita);
-  return { t: round2(t), m3: m3 == null ? null : round3(m3) };
+  return { t: round2(t), m3: m3 == null ? null : round3(m3), pesoNoto: true, manca: [] };
 }
 
 /* La quantità SCRITTA sul documento, se è leggibile — `null` se non c'è o non
@@ -2731,8 +2788,15 @@ export function venditePerProdotto(pesate, dal, al) {
     const q = quantitaPesata(p);
     const r = per[nome] || (per[nome] = { prodotto: nome, t: 0, m3: 0, valore: 0, viaggi: 0,
       senzaDensita: 0, tSenzaDensita: 0, valoreConvertibile: 0,
-      nonValorizzabili: 0, tNonValorizzabile: 0, soloSenzaDensita: 0 });
-    r.viaggi++; r.t = round2(r.t + q.t);
+      nonValorizzabili: 0, tNonValorizzabile: 0, soloSenzaDensita: 0, senzaPeso: 0 });
+    r.viaggi++;
+    /* ⛔ UNA CONSEGNA SENZA PESO (02/09, `pesiPesata`): `q.t` è `null`, e un
+       `null` in una somma fa NaN o, peggio, zero. Si conta a parte e non entra
+       in nessun tonnellaggio: è un viaggio di cui non si sa quanto ha portato,
+       e il totale del prodotto diventa «per difetto» come per le non
+       valorizzabili — che infatti la comprendono, con la sua ragione. */
+    if (q.t == null) { r.senzaPeso++; r.nonValorizzabili++; r.senzaDensita++; continue; }
+    r.t = round2(r.t + q.t);
     const v = valorePesata(p);
     const vale = valoreDdt(p).calcolabile;
     if (!vale) { r.nonValorizzabili++; r.tNonValorizzabile = round2(r.tNonValorizzabile + q.t); }
@@ -2841,8 +2905,9 @@ export function vendutoPeriodo(pesate, dal, al) {
   const prodotti = venditePerProdotto(pesate, dal, al);
   let t = 0, m3 = 0, valore = 0, valoreConvertibile = 0, viaggi = 0,
       tSenzaDensita = 0, viaggiSenzaDensita = 0,
-      nonValorizzabili = 0, tNonValorizzabile = 0;
+      nonValorizzabili = 0, tNonValorizzabile = 0, senzaPeso = 0;
   for (const p of prodotti) {
+    senzaPeso += p.senzaPeso || 0;
     t = round2(t + p.t); m3 = round3(m3 + p.m3);
     valore = round2(valore + p.valore);
     valoreConvertibile = round2(valoreConvertibile + p.valoreConvertibile);
@@ -2858,7 +2923,7 @@ export function vendutoPeriodo(pesate, dal, al) {
     viaggiSenzaDensita, prodotti,
     /* quante consegne del periodo NON entrano in `valore`, e quanto pesano.
        Senza questi due `valore` è un totale per difetto che non lo dice. */
-    nonValorizzabili, tNonValorizzabile,
+    nonValorizzabili, tNonValorizzabile, senzaPeso,
     valoreParziale: nonValorizzabili > 0,
     // quota di tonnellate che è stato possibile convertire in m³ (0–100)
     copertura: t > 0 ? round2(100 * tConvertite / t) : null,
@@ -3103,6 +3168,11 @@ export function trasportoACura(id) {
 export function mancanzeDdt(pesata) {
   const p = pesata || {};
   const mancano = [];
+  /* il peso viene prima di tutto: un DDT senza netto non dice quanto viaggia
+     (02/09, `pesiPesata`) */
+  const w = pesiPesata(p);
+  if (w.incompleto)
+    mancano.push("il peso: manca " + (w.manca[0] === "tara" ? "la tara" : "il lordo") + " e il netto non si può calcolare");
   if (!causaleTrasporto(p.causaleTrasporto))
     mancano.push("la causale del trasporto (vendita, conto lavorazione, reso…): decide come va trattata la consegna");
   const cura = trasportoACura(p.trasportoACura);
@@ -4679,7 +4749,13 @@ function pesataDaCella(c) {
     numero: t(numero) || "", data: (data || "").trim(),
     clienteId: t(clienteId), cliente: t(cliente) || "",
     prodottoId: t(prodottoId), prodotto: t(prodotto) || "",
-    lordo: n(lordo), tara: n(tara), netto: n(netto),
+    lordo: n(lordo), tara: n(tara),
+    /* il netto NON si legge dalla cella: lo decide `pesiPesata` dai due pesi
+       (02/09). Con lordo e tara scritti è lordo − tara qualunque cosa dica il
+       file; con uno solo dei due è `null`, e la riga entra dichiarata
+       incompleta (`scartiPesateCsv.senzaPeso`) invece di vendere il camion;
+       con nessuno dei due vale il netto dichiarato, se c'è. */
+    netto: pesiPesata({ lordo: n(lordo), tara: n(tara), netto: n(netto) }).netto,
     unitaVendita: String(unitaVendita || "").trim() === "m3" ? "m3" : "t",
     quantita: n(quantita), densita: n(densita),
     prezzoUnitario: n(prezzoUnitario), scontoPct: n(scontoPct), aliquotaIva: n(aliquotaIva),
@@ -4712,12 +4788,12 @@ export function parsePesateCsv(text) {
    altri, dichiarata invece che diversa in silenzio. */
 export function scartiPesateCsv(text) {
   const persi = [];
-  let nRiga = 0;
+  let nRiga = 0, senzaPeso = 0;   // entrate, ma col netto che non si può calcolare
   const celle = cellePesate(text);
   for (const c of celle) {
     nRiga++;
     const p = pesataDaCella(c);
-    if (pesataUsabile(p)) continue;
+    if (pesataUsabile(p)) { if (pesiPesata(p).incompleto) senzaPeso++; continue; }
     persi.push({
       nome: p.numero || p.cliente || "riga " + nRiga,
       ragione: !p.data ? "la data non è stata scritta"
@@ -4725,7 +4801,7 @@ export function scartiPesateCsv(text) {
         : "il lettore la scarta",
     });
   }
-  return { lette: celle.length, entrano: celle.length - persi.length, persi, vuote: 0 };
+  return { lette: celle.length, entrano: celle.length - persi.length, persi, vuote: 0, senzaPeso };
 }
 
 /* ⛔ LA PRIMA NOTA CHE SI RI-CARICA — decisione 12a, terza voce.

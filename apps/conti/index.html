@@ -1857,7 +1857,7 @@ label.item:has(.dw-chk:checked){
     avanzamentoOrdine, descriviAvanzamento, portafoglioOrdini,
     preventiviDaSeguire, prezzoDaOrdine, descriviPrezzoOrdine,
     validaScaglioni, scaglionePer, applicaScaglione, etichettaScaglione,
-    descriviScaglione, confrontoCostiMezzi } from "./conti-data.js";
+    descriviScaglione, confrontoCostiMezzi, pesiPesata } from "./conti-data.js";
   /* B8 (14/08): `fileDiAltraTabella` risponde «questa prima riga è
      l'intestazione di un'ALTRA nostra tabella?». È l'unica domanda possibile,
      perché il file SENZA intestazione deve continuare a entrare. */
@@ -1908,6 +1908,9 @@ label.item:has(.dw-chk:checked){
   // ── QUANTITÀ: pesi e volumi in formato italiano. Due decimali come gli
   //    importi (10 kg di precisione sulla pesata: più che sufficiente).
   const qt   = (v) => NUM2.format(+v || 0);
+  // un peso mai scritto si stampa «—», non «0,00»: dentro «lordo − tara = netto»
+  // uno zero sembra misurato (02/09, `pesiPesata`)
+  const qtN  = (v) => (v == null ? "—" : qt(v));
   const uni  = (u) => (u === "m3" ? "m³" : "t");
   const qtu  = (v, u) => qt(v) + " " + uni(u);
   const perc = (v) => NUM0.format(+v || 0) + "%";
@@ -3795,7 +3798,15 @@ label.item:has(.dw-chk:checked){
          che spariva. Il taglio adesso non c'è più, ma il posto resta sbagliato
          lo stesso: nessuno legge un avvertimento in fondo a «lordo − tara =
          netto». Ha una riga sua, sotto, nel colore del suo stato. */
-      const dettaglio = ["lordo " + qt(p.lordo) + " − tara " + qt(p.tara) + " = netto <b>" + qt(p.netto) + " t</b>",
+      /* i pesi li decide `pesiPesata` (02/09): con la tara mai scritta qui
+         usciva «lordo 32,50 − tara 0,00 = netto 0,00 t», tre zeri di cui
+         nessuno misurato. Con un peso a metà l'equazione non si scrive. */
+      const w = pesiPesata(p);
+      const dettaglio = [w.incompleto
+          ? "lordo " + qtN(w.lordo) + " − tara " + qtN(w.tara) + " : <b>netto non calcolabile</b>, manca " + (w.manca[0] === "tara" ? "la tara" : "il lordo")
+          : w.dichiarato
+            ? "netto dichiarato <b>" + qt(w.netto) + " t</b> (lordo e tara non registrati)"
+            : "lordo " + qtN(w.lordo) + " − tara " + qtN(w.tara) + " = netto <b>" + qtN(w.netto) + " t</b>",
         p.mezzo ? esc(p.mezzo) : "", p.destinatario ? esc(p.destinatario) : ""]
         .filter(Boolean).join(" · ");
       const rigaManca = manca.length
@@ -3960,7 +3971,12 @@ label.item:has(.dw-chk:checked){
       const vendMeta = (v) => {
         const soloM3 = v.soloSenzaDensita;
         return (v.nonValorizzabili
-          ? ` · <b>${plur(v.nonValorizzabili, "consegna non valorizzabile", "consegne non valorizzabili")}</b> (${qt(v.tNonValorizzabile)} t)`
+          ? ` · <b>${plur(v.nonValorizzabili, "consegna non valorizzabile", "consegne non valorizzabili")}</b> (${
+              /* le tonnellate si scrivono solo se c'è una consegna pesata fra
+                 le non valorizzabili: «0,00 t» accanto a due senza peso sarebbe
+                 uno zero tranquillo (02/09) */
+              [v.nonValorizzabili > (v.senzaPeso || 0) ? qt(v.tNonValorizzabile) + " t" : "",
+               v.senzaPeso ? plurale(v.senzaPeso, "una senza peso", v.senzaPeso + " senza peso") : ""].filter(Boolean).join(", ")})`
           : "")
           + (soloM3 ? ` · ${plur(soloM3, "consegna senza densità", "consegne senza densità")}` : "");
       };
@@ -4129,6 +4145,7 @@ label.item:has(.dw-chk:checked){
      si vedrebbe subito: si legge «valore non calcolabile», che è vero e non
      accusa nessuno. */
   function valoreMancante(v) {
+    if (v.motivo === "peso-mancante") return "peso incompleto: manca " + ((v.manca || [])[0] === "tara" ? "la tara" : "il lordo");
     if (v.motivo === "densita-mancante") return "quantità non calcolabile";
     if (v.motivo === "prezzo-mancante") return "prezzo non scritto sul DDT";
     return "valore non calcolabile";
@@ -4641,8 +4658,10 @@ label.item:has(.dw-chk:checked){
         <th class="num">Netto (<span class="u">t</span>)</th><th class="num">Quantità</th><th class="num">Prezzo</th><th class="num">Sconto</th><th class="num">Valore</th>
       </tr></thead><tbody><tr>
         <td>${esc(p.prodotto || "—")}</td>
-        <td class="num">${qt(p.lordo)}</td><td class="num">${qt(p.tara)}</td>
-        <td class="num"><b>${qt(p.netto)}</b></td>
+        ${/* sul documento che viaggia col camion un peso mai scritto è «—»,
+              non «0,00» (02/09, `pesiPesata`) */ ""}
+        <td class="num">${qtN(pesiPesata(p).lordo)}</td><td class="num">${qtN(pesiPesata(p).tara)}</td>
+        <td class="num"><b>${qtN(pesiPesata(p).netto)}</b></td>
         <td class="num">${p.quantita == null ? "—" : qtu(p.quantita, p.unitaVendita)}</td>
         ${/* ⛔ «€ 0,00/t» SU UN DOCUMENTO CHE VIAGGIA SUL CAMION. `eur(null)` fa
               «€ 0,00», e su un DDT quello è un prezzo DICHIARATO: chi lo legge
@@ -6570,9 +6589,17 @@ label.item:has(.dw-chk:checked){
     const pesAltrove = fileDiAltraTabella(testoPes, ["conti.pesate"]);
     if (pesAltrove) { esito("pes-esito", fraseFileAltrui(pesAltrove, "nell'archivio delle pesate"), "err"); e.target.value = ""; return; }
     const scartate = scartiPesateCsv(testoPes);
+    /* una riga col lordo e senza tara ENTRA, ma il suo netto non si può
+       calcolare (02/09, `pesiPesata`): non è persa, quindi non sta fra i
+       persi, e non è a posto, quindi si dice — è l'elenco a marcarla «DDT
+       incompleto» con il peso da completare */
+    const fraseSenzaPeso = (s) => s.senzaPeso
+      ? " " + plur(s.senzaPeso, "Una riga entra senza un netto calcolabile", s.senzaPeso + " righe entrano senza un netto calcolabile")
+        + " (lordo o tara mancante): nell'elenco " + plurale(s.senzaPeso, "la trovi", "le trovi") + " come «DDT incompleto», col peso da completare."
+      : "";
     e.target.value = "";
     if (!righe.length) {
-      esito("pes-esito", "Nel file non c'è nessuna pesata leggibile: controlla che sia la copia di sicurezza e non il prospetto (le colonne sono diverse)." + frasePersi(scartate), "err");
+      esito("pes-esito", "Nel file non c'è nessuna pesata leggibile: controlla che sia la copia di sicurezza e non il prospetto (le colonne sono diverse)." + frasePersi(scartate) + fraseSenzaPeso(scartate), "err");
       return;
     }
     /* ⛔ non si sovrascrive niente: si aggiunge quello che NON c'è già, per
@@ -6586,7 +6613,7 @@ label.item:has(.dw-chk:checked){
       ? plurale(nuove.length, "Rimessa dentro ", "Rimesse dentro ") + plur(nuove.length, "pesata", "pesate")
         + (righe.length > nuove.length ? ` · ${conta(righe.length - nuove.length, "era già in archivio", "erano già in archivio")}, non duplicate.` : ".")
       : "Erano tutte già in archivio: non è stato aggiunto niente.")
-      + frasePersi(scartate),
+      + frasePersi(scartate) + fraseSenzaPeso(scartate),
       scartate.persi.length ? "warn" : nuove.length ? "success" : "");
   };
   $("btn-pes-export").onclick = () => {

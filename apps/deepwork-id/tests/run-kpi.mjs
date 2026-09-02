@@ -2561,6 +2561,56 @@ test("⛔ trasportoACura: le tre possibilita' del DDT, e nessuna inventata", () 
   for (const x of [undefined, null, "", "corriere", 0])
     eq(conti.trasportoACura(x), null, `su ${JSON.stringify(x)} risponde null invece di indovinare`);
 });
+/* ⛔ 02/09 — I PESI SI DECIDONO IN UN POSTO SOLO. Nati dalla prima domanda della
+   ricerca sulla pesa a ponte e misurati sullo schermo: una pesata con la tara
+   mai scritta usciva «lordo 32,50 − tara 0,00 = netto 0,00 t · € 0,00», e una
+   col netto scritto e la tara vuota vendeva il camion (32,50 t). */
+test("⛔ pesiPesata: lordo e tara decidono il netto, e a metà non si sa", () => {
+  const w = conti.pesiPesata;
+  eq(w({ lordo: 32.5, tara: 14.2, netto: 30 }), { lordo: 32.5, tara: 14.2, netto: 18.3, noto: true, dichiarato: false, incompleto: false, manca: [] },
+     "con tutt'e due i pesi il netto è lordo − tara, QUALUNQUE cosa dica il campo netto");
+  eq(w({ lordo: 32.5, tara: null, netto: 32.5 }).netto, null, "lordo senza tara: il netto NON è il lordo (è il camion pieno)");
+  eq(w({ lordo: 32.5, tara: null, netto: 32.5 }).incompleto, true, "e il record è dichiarato incompleto");
+  eq(w({ lordo: 32.5, tara: null, netto: 32.5 }).manca, ["tara"], "con scritto che cosa manca");
+  eq(w({ lordo: "", tara: 14.2, netto: 5 }).manca, ["lordo"], "tara senza lordo: manca il lordo");
+  eq(w({ lordo: 32.5, tara: 0 }).netto, 32.5, "una tara scritta ZERO è una tara (rimorchio già tarato), non un vuoto");
+  eq(w({ netto: 18.3 }), { lordo: null, tara: null, netto: 18.3, noto: true, dichiarato: true, incompleto: false, manca: [] },
+     "nessun peso e un netto: è un netto DICHIARATO, e vale");
+  eq(w({ quantita: 22.3 }), { lordo: null, tara: null, netto: null, noto: false, dichiarato: false, incompleto: false, manca: ["lordo", "tara"] },
+     "niente di niente: non noto, ma NON incompleto — è il DDT vecchio con la sola quantità");
+  eq(w(null).incompleto, false, "e null non è contraddittorio");
+});
+test("⛔ un lordo senza tara non vende il camion: quantità, valore, riepilogo, mancanze", () => {
+  const camion = { id: "k", data: "2026-09-01", prodotto: "Ghiaia", lordo: 32.5, tara: null, netto: 32.5, quantita: 32.5,
+    unitaVendita: "t", prezzoUnitario: 12, causaleTrasporto: "vendita", trasportoACura: "mittente" };
+  eq(conti.quantitaPesata(camion), { t: null, m3: null, pesoNoto: false, manca: ["tara"] }, "quantitaPesata: t null, non 32,5 e non 0");
+  eq(conti.quantitaVenduta(camion), null, "quantitaVenduta: la copia in `quantita` non vale più della pesa");
+  const v = conti.valoreDdt(camion);
+  eq([v.calcolabile, v.valore, v.motivo], [false, null, "peso-mancante"], "valoreDdt: non calcolabile, con la ragione giusta");
+  ok(/manca la tara/.test(v.perche), "e il perché nomina la tara: " + v.perche);
+  eq(conti.valorePesata(camion), 0, "valorePesata (chi somma) resta zero, ed è lo zero di una non-misurabilità dichiarata");
+  const m = conti.mancanzeDdt(camion);
+  eq(m.length, 1, "mancanzeDdt: una mancanza sola, il peso");
+  ok(/manca la tara/.test(m[0]), "e dice che è la tara: " + m[0]);
+  eq(conti.mancanzeDdt({ ...camion, lordo: null, netto: 18.3 }).length, 0, "un netto dichiarato senza pesi non è una mancanza");
+  const sana = { ...camion, id: "s", tara: 14.2, netto: 18.3, quantita: 18.3 };
+  const r = conti.venditePerProdotto([camion, sana], "2026-01-01", "2026-12-31");
+  eq(r.length, 1, "un prodotto");
+  eq([r[0].viaggi, r[0].t, r[0].senzaPeso, r[0].nonValorizzabili, r[0].valore], [2, 18.3, 1, 1, 219.6],
+     "due viaggi, 18,3 t (non 50,8 e non NaN), uno senza peso contato fra i non valorizzabili, valore della sola sana");
+  eq(r[0].valoreParziale, true, "e il valore è dichiarato per difetto");
+  const tot = conti.vendutoPeriodo([camion, sana], "2026-01-01", "2026-12-31");
+  eq([tot.t, tot.senzaPeso, Number.isNaN(tot.t)], [18.3, 1, false], "vendutoPeriodo somma senza NaN e porta il conto");
+});
+test("⛔ il CSV delle pesate: il netto lo decidono i pesi, non la cella", () => {
+  const riga = (numero, lordo, tara, netto) => [numero, "2026-09-01", "", "Cliente", "", "Ghiaia", lordo, tara, netto, "t", netto, "", "12", "0", "22", "AA111BB", "Cantiere", "", "", ""].join(";");
+  const csv = [riga("A", "32,5", "", ""), riga("B", "32,5", "", "32,5"), riga("C", "32,5", "14,2", "30"), riga("D", "", "", "18,3")].join("\n");
+  const p = conti.parsePesateCsv(csv);
+  eq(p.map((x) => x.netto), [null, null, 18.3, 18.3], "A e B senza tara: netto null; C: lordo − tara e non il 30 del file; D: netto dichiarato");
+  eq(p.map((x) => conti.quantitaVenduta(x)), [null, null, 30, 18.3], "e la quantità venduta segue (in C la quantità DICHIARATA 30 resta: l'ha scritta una persona)");
+  const s = conti.scartiPesateCsv(csv);
+  eq([s.lette, s.entrano, s.persi.length, s.senzaPeso], [4, 4, 0, 2], "entrano tutte e quattro, e DUE sono dichiarate senza peso");
+});
 test("⛔ mancanzeDdt: elenca cosa manca, e non risponde «valido»", () => {
   const pieno = { causaleTrasporto: "vendita", trasportoACura: "mittente" };
   eq(conti.mancanzeDdt(pieno).length, 0, "un DDT completo non ha mancanze");
@@ -11022,9 +11072,8 @@ test("statoVuoto: la struttura è quella del core, invariata", () => {
   });
   test("quantitaPesata: le tonnellate sono sempre vere, i metri cubi solo con la densità", () => {
     /* le tonnellate le ha pesate la bilancia; i m³ sono un conto */
-    eq(conti.quantitaPesata({ netto: 18.3, quantita: 18.3, unitaVendita: "t", densita: 1.6 }),
-      { t: 18.3, m3: 11.438 }, "con densità");
-    eq(conti.quantitaPesata({ netto: 5, quantita: 5, unitaVendita: "t" }), { t: 5, m3: null }, "senza densità");
+    eq(conti.quantitaPesata({ netto: 18.3, quantita: 18.3, unitaVendita: "t", densita: 1.6 }), { t: 18.3, m3: 11.438, pesoNoto: true, manca: [] }, "con densità (e dal 02/09 dichiara che il peso è noto)");
+    eq(conti.quantitaPesata({ netto: 5, quantita: 5, unitaVendita: "t" }), { t: 5, m3: null, pesoNoto: true, manca: [] }, "senza densità");
   });
   test("prezzoPerMetroCubo: si converte solo se la densità c'è", () => {
     eq(conti.prezzoPerMetroCubo(P_T), 20, "12,50 €/t × 1,6");

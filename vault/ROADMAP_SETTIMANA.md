@@ -30,6 +30,22 @@
   ponte (`docs/RICERCA_CONTINUA_conti.md`, 02/09) lascia 5 domande sul
   meccanismo da fare al codice — prima fra tutte: **con la tara non registrata,
   chi decide il netto?**
+  ✅ **02/09, risposta alla prima domanda, e c'era un difetto vero.** Nella
+  pagina il form si difendeva dal 09/08; nel MODULO no: una pesata con la tara
+  mai scritta (da CSV, ripristino, archivio) usciva nell'elenco «lordo 32,50 −
+  tara **0,00** = netto **0,00 t** · € 0,00», e una col netto copiato dal lordo
+  «vendeva il camion» (32,50 t · € 390,00) con la stessa tara 0,00 mai
+  esistita. Adesso `pesiPesata` (in `conti-data.js`) decide i pesi in un posto
+  solo — lordo e tara → netto sempre ricalcolato; nessuno dei due → netto
+  dichiarato; UNO solo → `incompleto`, netto non noto — e da lì discendono
+  quantità, valore («peso incompleto: manca la tara»), riepilogo del venduto
+  (`senzaPeso`, niente NaN, totale per difetto), mancanze del DDT, stampa («—»
+  al posto di 0,00) e lettore CSV (il netto lo decidono i pesi, non la cella;
+  `scartiPesateCsv.senzaPeso`). 3 prove nuove in `run-kpi` (2.403 → 2.406), il
+  banco `conti-numeri-tranquilli` allunga di 13 asserzioni con la controprova
+  a due pezzi (20 KO voluti). Le altre quattro domande della ricerca restano da
+  fare al codice: il nesso pesata→DDT (`fatturaId`/`ddtIds`), la rettifica di
+  un netto dopo la fattura, l'identità della pesa che ha pesato.
 
 ## Task
 - [x] `apps/conti/conti-data.js`: `api.costiFlotta` sul modello di
@@ -5460,7 +5476,7 @@ numero scritto dove non era stato misurato niente**.*
   nome apre il file sbagliato credendo che sia il più fresco.
 - Le decisioni: `docs/DECISIONI_WEEKEND.md` — pagina d'ingresso in cima.
 - Stato misurato al **18/08** (lanciando le suite, non a memoria):
-  **2.884 prove girano senza rete**. La frase va letta stretta: è la somma
+  **2.887 prove girano senza rete**. La frase va letta stretta: è la somma
   delle **nove** suite che contano asserzioni (`run-kpi` 2396, `run-stile` 327,
   `run-helpers` 75, `run-pointcloud` 32, `claims-convergenza` 19, `run-manifest` 9,
   `run-demo` 8, `bootstrap-rivendicazioni` 7, `fogli-guardati` 3), non tutto ciò che gira nel
