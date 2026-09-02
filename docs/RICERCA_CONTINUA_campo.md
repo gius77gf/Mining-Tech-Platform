@@ -1078,3 +1078,154 @@ severa** di quanto la fonte del mondo pretendesse. La ricerca ha reso quello che
 poteva rendere — la **domanda** — e il delta l'ha fatto chi aveva il codice: se
 avesse consegnato lei un elenco di «non c'è», oggi avremmo cinque mancanze false
 su sei.
+
+---
+
+## Ricerca del 2026-09-02 — il rapporto di fine turno e le grandezze di produttività (metà sul mondo)
+
+### Ciò che esiste già da noi
+Non verificato da questa ricerca: il delta lo fa chi ha il codice.
+
+### 1. CAMPI di un rapporto di fine turno — voce per voce
+
+**Intestazione e consegna**: nome e firma del sorvegliante uscente e di quello entrante, ora di fine, note di consegna, spunta di presa in carico [seconda mano: SafetyCulture templates].
+
+**Personale**: organico del turno, assenze, argomenti briefing inizio turno, obblighi di sicurezza [seconda mano: SafetyCulture templates].
+
+**Mezzi e postazioni**: identificativo escavatore/pala, posizione, tipo materiale (carbone/sterile/tutt'e due), discarica primaria e secondaria, stato del mezzo [seconda mano: SafetyCulture templates].
+
+**Produzione contro piano**: ora primo carico, ritmo di scavo (t/h o cicli/h), assegnazione camion, tempi ciclo, code, volumi, conformità al progetto [seconda mano: Mining Doc].
+
+**Fermi e ritardi**: attività classificate come produzione/downtime/delay, ritardi programmati e non, ritardi «scusabili», impatti su ritmo [seconda mano: SafetyCulture templates].
+
+**Carico utile**: prestazione payload contro obiettivo mezzo [seconda mano: SafetyCulture templates].
+
+**Sicurezza**: infortuni/incidenti, osservazioni di sicurezza, controlli pre-avviamento, verifiche su veicoli, verifica controlli critici (separazione operativa, gestione traffico, comunicazione positiva) [seconda mano: SafetyCulture + MSHA 30 CFR].
+
+**Ambiente/condizioni**: meteo, problemi coperture, condizioni che limitano operatività [seconda mano: SafetyCulture templates].
+
+### 2. GRANDEZZE di produttività e formule (fonte accanto)
+
+**OEE (Overall Equipment Effectiveness)**: OEE = Availability × Utilization × Performance [seconda mano: Opsima, Groundhog Apps].
+
+**Availability**: % del tempo programmato in cui il mezzo era disponibile. Formula: `(Ore programmate − Ore fermo) / Ore programmate × 100` [seconda mano: Opsima].
+
+**Utilization**: uso ore disponibili per lavorare davvero. Formula: `Ore operative / (Ore operative + Fermo + Standby) × 100` [seconda mano: Opsima].
+
+**Equipment Productivity**: tonnellate mosse o trasportate per ora operativa. Formula: `Tonnellate / Ore operative` [seconda mano: Opsima].
+
+**Stima produzione senza pesa**: Bucket capacity = Payload (t) / Densità materiale (t/m³). Con fill factor 75-90% e perdite 3-8% per ciclo [seconda mano: Hunker, P&Q University].
+
+**Powder factor (fattore di carica)**: kg esplosivo / m³ roccia: Hard rock 0.70–0.80, Medium 0.40–0.50, Soft 0.25–0.35 kg/m³ [seconda mano: Tool Grit, WipWare].
+
+**Haul cycle time**: componenti tipiche 4.3 min carica, 8.5 min trasporto, 0.9 min scarica, 6.2 min ritorno vuoto = 19.8 min totali (distanza 239 m, velocità 10.1 km/h) [seconda mano: ResearchGate, mining.in.ua].
+
+### 3. CONTROLLI pre-start e consegne fra turni
+
+**Pre-shift inspection** (obbligatorio MSHA 30 CFR): fluidi, cinghie, tubi, batterie, pneumatici, tracce; sistemi sicurezza (cinture, estintore, specchi, tergicristalli, luci, allarme retromarcia, telecamera); integrità meccanica (freni, sterzo, ROPS/FOPS, soppressione incendi) [seconda mano: Heavy Vehicle Inspection, SafetyCulture].
+
+**Shift handover**: pre-start communications, weather checks, JSA review; valutazione setup escavatore, condizioni banco, cordoli, conformità progetto; audit strade di carico per segnaletica, delineazione, pendenze [seconda mano: SafetyCulture].
+
+**Passaggio consegne è orario di lavoro retribuito** (Cassazione ordinanza 20787/2024): informazioni essenziali, stato macchina, anomalie, lavori in sospeso, parametri processo [seconda mano: Avvocato Lavoro Asti].
+
+### 4. PRODOTTI di settore e moduli di rapporto
+
+| Prodotto | Tipo | Fonte |
+|----------|------|-------|
+| **Wenco Mine Performance Suite** | Fleet management, dispatch, reporting real-time | [seconda mano: Hitachi CM, Wenco Wikipedia] |
+| **Wencolite FMS** | Versione snella per cave piccole, senza infrastruttura wireless | [seconda mano: Hitachi CM] |
+| **Modular Mining DISPATCH** | Dispatch fleet, production monitoring | [seconda mano: Mining Software Reviews] |
+| **Loadrite InsightHQ** | Portal quarry management, dashboard shift/day/week/month | [seconda mano: New England Loadrite] |
+| **Opsima** | Mining operations software, KPI reporting | [seconda mano: Opsima] |
+| **SafetyCulture Library** | Moduli shift report, pre-start, supervisor log (pubblici) | [seconda mano: SafetyCulture] |
+
+### 5. DOMANDE per il delta
+
+1. **Chi decide la portata dichiarata di un dumper** (è costante, oppure Campo la registra per ogni viaggio)?
+2. **La nostra app distingue fra tempi di carica, trasporto, scarico e ritorno** oppure somma il ciclo intero?
+3. **Un fermo lungo gli interi 8 ore del turno** si somma come 480 minuti, oppure va segnalato come «non misurato»?
+4. **Come aggrega Campo la produzione di un turno con più fronti** (somma semplice per fronte, oppure peso per ore di operatività)?
+5. **Chi collega una anomalia di sicurezza (infortunio, near-miss) al turno che l'ha registrata** se l'anomalia non ha `turno` ma solo `data`?
+6. **La "conformità al progetto"** (assegna dump 1° e 2°, controlla bench height e gradini disegnati) è responsabilità di chi controlla nella nostra app?
+
+### 6. FONTI (marcate [seconda mano])
+
+[https://safetyculture.com/library/mining/](https://safetyculture.com/library/mining/) — Moduli di turno vari
+[https://www.miningdoc.tech/question/what-are-the-key-performance-metrics-tracked-in-a-daily-mining-operations-report/](https://www.miningdoc.tech/question/what-are-the-key-performance-metrics-tracked-in-a-daily-mining-operations-report/) — Mining Doc
+[https://cms.nucleusnetwork.com/urban-beat/understanding-mining-productivity-key-concepts-and-metrics-1767646798](https://cms.nucleusnetwork.com/urban-beat/understanding-mining-productivity-key-concepts-and-metrics-1767646798) — Nucleus Network
+[https://opsima.com/blog/kpis/mining-industry-kpis/](https://opsima.com/blog/kpis/mining-industry-kpis/) — Opsima
+[https://groundhogapps.com/understanding-overall-equipment-effectiveness/](https://groundhogapps.com/understanding-overall-equipment-effectiveness/) — Groundhog Apps
+[https://www.hunker.com/13425998/how-to-calculate-excavator-bucket-capacity/](https://www.hunker.com/13425998/how-to-calculate-excavator-bucket-capacity/) — Hunker
+[https://www.pitandquarry.com/hauling-pq-university-handbook/2/](https://www.pitandquarry.com/hauling-pq-university-handbook/2/) — P&Q University
+[https://www.toolgrit.com/guides/blasting-powder-factor](https://www.toolgrit.com/guides/blasting-powder-factor) — Tool Grit
+[https://wipware.com/drilling-and-blasting-charge-and-design/](https://wipware.com/drilling-and-blasting-charge-and-design/) — WipWare
+[https://www.researchgate.net/publication/388122540_Optimization_of_cycle_time_for_loading_and_hauling_trucks_in_open-pit_mining](https://www.researchgate.net/publication/388122540_Optimization_of_cycle_time_for_loading_and_hauling_trucks_in_open-pit_mining) — ResearchGate
+[http://mining.in.ua/articles/volume18_1/03.pdf](http://mining.in.ua/articles/volume18_1/03.pdf) — Mining journal
+[https://www.wencomine.com/our-solutions/dispatching](https://www.wencomine.com/our-solutions/dispatching) — Wenco
+[https://www.neloadrite.com/reporting](https://www.neloadrite.com/reporting) — New England Loadrite
+[https://heavyvehicleinspection.com/blog/post/mining-equipment-pre-shift-inspection-checklist-guide/](https://heavyvehicleinspection.com/blog/post/mining-equipment-pre-shift-inspection-checklist-guide/) — Heavy Vehicle Inspection
+[https://www.avvocatolavoroasti.it/blog/tempo-tuta-orario-di-lavoro/](https://www.avvocatolavoroasti.it/blog/tempo-tuta-orario-di-lavoro/) — Avvocato Lavoro Asti
+
+---
+
+**Ricerca scritta**: 02/09/2026 — metà mondo con fonti marcate [seconda mano]; delta da fare col codice; domande enumerate.
+
+
+### Il delta, fatto da chi ha il codice in mano (02/09, contro `e5d0f81e`)
+
+Le sei domande, risposte aprendo `apps/campo/campo-data.js` (e
+`shared/dw-ponti.js` dove il ponte vive) e cercando il MECCANISMO.
+
+1. **La portata del dumper** → **non si registra, di proposito**: il
+   rapportino dichiara la produzione in `t`, `m³` o `viaggi`
+   (`produzioneRapportino`, `RAPP_UNITA`), e nel ponte con Terra e Conti i
+   viaggi «**non si convertono mai**: servirebbe la portata del mezzo, che
+   cambia da camion a camion e da carico a carico — si contano e si
+   dichiarano a parte» (`produzioneDichiarata`, shared). `grep -ci portata
+   apps/campo/campo-data.js` → 2, tutt'e due in commenti che spiegano PERCHÉ non c'è. La stima
+   «cassone × densità sciolta × riempimento» della ricerca è esattamente il
+   coefficiente inventato che questa casa non scrive. ⏱️ Se un giorno servisse,
+   la strada onesta è una portata NOMINALE per mezzo in Flotta (che il mezzo ce
+   l'ha), dichiarata «nominale», mai una media.
+2. **Carico, trasporto, scarico, ritorno** → **non si distinguono**: `grep -ciE
+   'tempo di ciclo|cicli/ora' apps/campo/campo-data.js` → 0. Campo non ha un cronometro del ciclo:
+   ha il rapportino di fine turno e i FERMI con causale e minuti. Un tempo di
+   ciclo è un dato di telematica (DISPATCH, Wenco), non di un foglio a fine
+   turno; senza lo strumento sarebbe una stima a occhio spacciata per misura.
+3. **Un fermo lungo tutto il turno** → i minuti sono `null` quando nessuno li
+   ha scritti, «mai 0» (`minutiFermoDi`, `minutiFermoTesto`), e
+   `disponibilitaTurno(attivita, durate, data, turno, chiusure)` risponde «non
+   calcolabile» quando il fermo supera quello che il turno ha da dare — è il
+   caso dei 55 minuti su mezz'ora che il banco di Campo prova di proposito.
+   L'OEE **non si chiamerà mai così**, ed è scritto nel modulo con la ragione
+   («servirebbero portata e granulometria in continuo, cioè hardware che non
+   abbiamo»): si chiama disponibilità.
+4. **Più fronti nello stesso turno** → `totaliProduzione` somma per unità e
+   per turno (i rapportini senza quantità NON contano; il turno mancante
+   finisce in «Senza turno»); per FRONTE la ripartizione la fa il ponte con
+   Terra (`fronteId`: 8 occorrenze), e un rapportino senza fronte — `rs6`
+   nella dimostrazione, di proposito — «non si sa da dove viene» invece di
+   essere spalmato a intuito. Nessun peso per ore di operatività: la somma è
+   semplice e dichiarata.
+5. **L'anomalia e il turno** → le anomalie di Campo nascono dalle ATTIVITÀ
+   (`anomalieAperte(attivita)`), che portano data e turno per costruzione; gli
+   infortuni e i near miss sono di Scudo (ponte P3 in shared, `bozzaNearMiss`),
+   e lì la data è la chiave — il turno, se c'è, è un campo del near miss. Un
+   evento con la sola data non si «collega» a un turno indovinando: resta
+   sulla giornata.
+6. **La conformità al progetto** → `grep -ci conformit apps/campo/campo-data.js` → 0: il
+   confronto progettato/reale foro per foro passa dal piano di Genesi
+   (`parsePianoCsv` / `pianoConsuntivoCsv`, i file) e dice gli scostamenti
+   di carica; l'altezza del banco e i gradini disegnati non sono un controllo
+   di Campo — sono un rilievo, e i rilievi sono di Terra. La responsabilità è
+   di chi firma il consuntivo, non dell'app.
+
+E le cose del rapporto di turno che la ricerca elenca: il **pre-start** c'è
+(la checklist di inizio turno, C3: `checklistDi`, `statoChecklist`, «a inizio
+turno essere a zero è normale, non un allarme»); l'**handover** c'è come
+campo del rapportino («consegne per il turno successivo»); il **fattore di
+carica** per volata NON è di Campo (è di Genesi: `consumoSpecifico`).
+
+Riassunto: **cinque su sei esistono nella forma che una cava senza telematica
+può compilare**; le due «mancanze» (portata del dumper, tempi del ciclo) sono
+rifiuti dichiarati, non buchi — un numero inventato in meno.
