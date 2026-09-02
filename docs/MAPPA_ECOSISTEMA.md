@@ -219,6 +219,18 @@ finché la decisione non è presa.
 Azioni correttive in due posti. Chi ne ha una aperta di sicurezza e una
 ambientale non le vede insieme. **Valore: medio. Costo: basso.**
 
+✅ **RIMISURATO IL 02/09: sono in un posto solo, e la riga lo diceva male.**
+Sentinella non ha una collezione sua di azioni: le legge e le SCRIVE sulla
+collezione `azioni` di Scudo, con una seconda istanza SDK (`appId: "scudo"`),
+e il suo Quadro lo dice a parole («Le azioni correttive vivono in Scudo: li
+hanno un responsabile e una data»). In dimostrazione, dove Scudo non si può
+interrogare, il ponte tiene una coda locale (`ponteDemoLeggi`/`ponteDemoScrivi`)
+e dichiara «non leggibile» invece di «nessuna». Chi ha un'azione di sicurezza
+e una ambientale le vede insieme: nello scadenzario delle azioni di Scudo.
+
+    grep -n 'orgCollection("azioni")' apps/sentinella/sentinella-data.js → 1 (scrittura sull'istanza Scudo)
+    grep -c 'appId: "scudo"' apps/sentinella/sentinella-data.js → 1
+
 ### 3e. `volate` — Sentinella **e** Genesi · *il ponte c'è già, ma è un file*
 ⚠️ **Qui mi ero sbagliato, e la correzione conta.** Genesi **esporta già** un
 CSV con esattamente le colonne del registro volate di Sentinella, e la volata
@@ -319,7 +331,7 @@ Per onestà, e perché nessuno lo usi per decidere cose che non copre:
 | app che nessuno legge | **3** (Genesi, Sentinella, Deepwork ID) *(era 5: Flotta la legge Conti, e Conti la legge Flotta)* |
 | app senza alcuno scambio DATI | **1** (Genesi) — Deepwork ID esclusa, è l'identità *(era 2)* |
 | …di cui davvero scollegate da tutto | **0** *(era 1, Flotta)*: Genesi un ponte ce l'ha, di file |
-| sovrapposizioni non collegate | **3 famiglie** (§3) *(era 6: la 3a è collegata nei due versi e la 3b in un muro solo il 02/09; la 3c era già collegata — la fonte è Scudo — e la riga lo diceva male)* |
+| sovrapposizioni non collegate | **2 famiglie** (§3: la 3e, che passa da un file, e la 3f, il triangolo della produzione) *(era 6: 3a e 3b collegate il 02/09; 3c e 3d erano già collegate — la fonte è Scudo — e le righe lo dicevano male)* |
 
 Chi costruisce un ponte aggiorna questa tabella.
 
