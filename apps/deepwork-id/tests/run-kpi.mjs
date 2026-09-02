@@ -34384,6 +34384,49 @@ const { senzaCommenti: senzaCommentiConti } = await import("./tokenizza.mjs");
 /* ===== fine ponte Genesi → Terra ===== */
 
 /* ══════════════════════════════════════════════════════════════════════
+   CONTI · IL VERBALE DI RICONCILIAZIONE (02/09): il divario scritto con la
+   sua causa, per periodo. Il numero conservato è quello di allora, e la
+   funzione lo confronta con quello di adesso invece di sovrascriverlo.
+   ══════════════════════════════════════════════════════════════════════ */
+{
+  const V = [
+    { id: "a", dal: "2026-01-01", al: "2026-06-30", tipo: "cavato", divario: 12.5, pct: 14.2, causa: "cumulo", scrittoIl: "2026-07-02T10:00:00" },
+    { id: "b", dal: "2026-01-01", al: "2026-06-30", tipo: "cavato", divario: 12.5, pct: 14.2, causa: "altro", scrittoIl: "2026-07-03T10:00:00" },
+    { id: "c", dal: "2026-01-01", al: "2026-03-31", divario: 3, pct: 8, causa: "sfrido", scrittoIl: "2026-04-01" },
+    { id: "d", dal: "2026-01-01", al: "2026-12-31", tipo: "prodotto", divario: 13695, pct: 97, causa: "piazzale", scrittoIl: "2026-09-02" },
+  ];
+  test("le cause del divario sono quelle che la schermata elenca, con «altro» in fondo", () => {
+    eq(conti.CAUSE_DIVARIO.map((c) => c.chiave), ["piazzale", "cumulo", "rilievo", "densita", "senza-pesata", "stime-turno", "sfrido", "altro"]);
+    eq(conti.causaDivario("densita").etichetta, "Una densità del listino è sbagliata"); eq(conti.causaDivario("boh"), null); eq(conti.causaDivario(null), null);
+  });
+  test("verbaleDelPeriodo: il periodo ESATTO, l'ultimo scritto, e il confronto allora/adesso", () => {
+    const r = conti.verbaleDelPeriodo(V, "2026-01-01", "2026-06-30", "cavato", 12.5);
+    eq(r.verbale.id, "b", "l'ultimo scritto, non il primo"); eq(r.quanti, 2); eq(r.coerente, true); eq(r.differenza, 0); eq(r.causa.chiave, "altro");
+    const r2 = conti.verbaleDelPeriodo(V, "2026-01-01", "2026-06-30", "cavato", 13.1);
+    eq(r2.coerente, false); eq(r2.differenza, 0.6, "i dati sono cambiati dopo il verbale: si dice di quanto");
+    eq(conti.verbaleDelPeriodo(V, "2026-02-01", "2026-06-30", "cavato", 1), null, "un periodo che si sovrappone ma non coincide NON è lo stesso verbale");
+    eq(conti.verbaleDelPeriodo(V, "2026-01-01", "2026-03-31", "cavato", 3).verbale.id, "c", "senza tipo vale «cavato»");
+    eq(conti.verbaleDelPeriodo(V, "2026-01-01", "2026-12-31", "cavato", 1), null, "il verbale del prodotto non risponde per il cavato");
+    eq(conti.verbaleDelPeriodo(null, "x", "y"), null); eq(conti.verbaleDelPeriodo(V, "2026-01-01", "2026-06-30", "cavato", null).adesso, null, "senza numero di adesso non si confronta");
+  });
+  test("storicoVerbali: in ordine di periodo, col passo sulla percentuale e il verso a parole", () => {
+    const st = conti.storicoVerbali(V, "cavato");
+    eq(st.map((r) => [r.id, r.pctNum, r.passo, r.verso]), [["c", 8, null, null], ["a", 14.2, 6.2, "cresce"], ["b", 14.2, 0, "pari"]]);
+    eq(st[1].causaEtichetta, "Venduto materiale già a piazzale da prima (ripresa dai cumuli)");
+    eq(conti.storicoVerbali(V, "prodotto").map((r) => r.id), ["d"]); eq(conti.storicoVerbali(undefined), []);
+    eq(conti.storicoVerbali([{ al: "2026-05-01", pct: "no" }, { al: "2026-06-01", pct: 3 }])[1].passo, null, "una percentuale illeggibile non dà un passo");
+  });
+  test("⛔ il verbale della dimostrazione dice il numero che la schermata calcola su quegli stessi dati", () => {
+    const v = conti.DEMO.verbali[0];
+    const r = conti.riconciliazione(conti.DEMO.rilieviTerra, conti.DEMO.pesate, v.dal, v.al);
+    eq(v.divario, r.divario); eq(v.pct, r.pct); eq(v.stato, r.stato);
+    eq(conti.verbaleDelPeriodo(conti.DEMO.verbali, v.dal, v.al, "cavato", r.divario).coerente, true);
+    ok(!!conti.causaDivario(v.causa), "la causa è una di quelle elencate");
+  });
+}
+/* ===== fine Conti · il verbale di riconciliazione ===== */
+
+/* ══════════════════════════════════════════════════════════════════════
    PONTE CAMPO → CONTI · il terzo lato del triangolo (02/09, la 3f della mappa):
    quello che i turni DICHIARANO di aver prodotto contro quello che la pesa ha
    VENDUTO, tonnellate contro tonnellate. La funzione sta in shared/ e Conti la

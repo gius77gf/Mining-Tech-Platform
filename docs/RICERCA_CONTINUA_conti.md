@@ -349,10 +349,12 @@ Le sei domande, risposte aprendo le funzioni e non cercando i nomi. Per ogni
    **0**. Il divario si calcola ogni volta e non si conserva; le tre cause
    possibili la schermata le elenca già, in ordine, ma nessuno può scrivere
    «era la seconda» e ritrovarlo il mese dopo. Le `chiusure` di Conti chiudono
-   i COSTI del mese (`statoMese`), non la riconciliazione. ⏱️ **Candidato**:
-   un verbale di riconciliazione per periodo — divario, causa scelta fra
-   quelle elencate, nota — salvato in `orgCollection`, con lo storico che
-   mostra se il divario cresce. Valore medio, costo basso.
+   i COSTI del mese (`statoMese`), non la riconciliazione. ✅ **Fatto il
+   02/09, la sera stessa**: `verbali/{id}` in Conti (`CAUSE_DIVARIO`,
+   `verbaleDelPeriodo`, `storicoVerbali`), il riquadro sotto «Cavato contro
+   venduto» con «Scrivi il verbale», lo storico col verso del passo, e il
+   confronto allora/adesso che dice quando i dati sono cambiati dopo il
+   verbale. Banco `tests/browser/conti-verbale.mjs` nei due versi.
 6. **Frequenza programmabile** → parziale: il periodo è libero (dal/al) con i
    due scorciatoie «Quest'anno» / «Anno scorso» (`grep -cE 'btn-ric-anno|
    btn-ric-prec' apps/conti/index.html` → 4); manca un «questo mese» e non c'è
@@ -362,4 +364,5 @@ Riassunto: **tre esistono (1, 4, e il principio del 2), due mancano davvero
 (3 e 5), una è a metà (6)**. Nessuna delle due mancanze entra in roadmap sulla
 parola di questa ricerca: entrano quando un cantiere le sceglie, e il primo
 candidato per costo/valore è il **5** (il verbale), perché dà uno storico ai
-due confronti che esistono già.
+due confronti che esistono già. *(02/09 sera: il 5 è fatto; restano il 2, il 3
+e la metà del 6.)*

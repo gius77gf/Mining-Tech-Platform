@@ -56,6 +56,13 @@
   stata MISURATA prima di farla: la metà numerica esisteva già (G14), la metà
   categorica resta candidata. Del piano restano la 6 (decisione 5b del
   fondatore) e quella metà della 7.
+- [x] ✅ 02/09 **Il verbale di riconciliazione in Conti** (candidato 5 della
+  ricerca del giorno, meccanismo verificato): il divario del periodo si
+  conserva con la causa scelta fra quelle che la schermata elenca e una nota;
+  il numero salvato è quello sullo schermo (il banco lo legge dallo schermo);
+  lo storico dice se il divario cresce o cala; se i dati cambiano dopo, il
+  riquadro lo dice invece di sovrascrivere. `verbaleDelPeriodo`,
+  `storicoVerbali`, `CAUSE_DIVARIO`; demo con un verbale coerente per prova.
 - [ ] **Aggiornare la tabella in fondo a `docs/MAPPA_ECOSISTEMA.md`** a ogni
   ponte chiuso: è il registro, e il «6 su 56» deve scendere. *(02/09: 12 su 56.)*
 - [ ] **Una passata in profondità su un'app** (ogni schermata guardata, ogni
@@ -5624,7 +5631,7 @@ numero scritto dove non era stato misurato niente**.*
   nome apre il file sbagliato credendo che sia il più fresco.
 - Le decisioni: `docs/DECISIONI_WEEKEND.md` — pagina d'ingresso in cima.
 - Stato misurato al **18/08** (lanciando le suite, non a memoria):
-  **2.925 prove girano senza rete**. La frase va letta stretta: è la somma
+  **2.929 prove girano senza rete**. La frase va letta stretta: è la somma
   delle **nove** suite che contano asserzioni (`run-kpi` 2396, `run-stile` 327,
   `run-helpers` 75, `run-pointcloud` 32, `claims-convergenza` 19, `run-manifest` 9,
   `run-demo` 8, `bootstrap-rivendicazioni` 7, `fogli-guardati` 3), non tutto ciò che gira nel
@@ -5635,8 +5642,8 @@ numero scritto dove non era stato misurato niente**.*
   sorvegliati ne contavano sette: due convenzioni per lo stesso numero, che è
   il modo più facile di far sembrare sbagliato un conto giusto. Adesso è una
   sola.*
-  Copertura **751/751** e nessuna funzione scoperta; **217 esecuzioni** che
-  aprono le pagine in un browser vero, da **88** file di banco distinti (contati
+  Copertura **751/751** e nessuna funzione scoperta; **219 esecuzioni** che
+  aprono le pagine in un browser vero, da **89** file di banco distinti (contati
   dalla tabella `BANCHI` di `tutti.mjs`, non a occhio dalla cartella, che di
   `.mjs` ne ha di più perché contiene anche gli aiuti — `giro.mjs`,
   `impronta.mjs`, il runner stesso).

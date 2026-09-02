@@ -1844,6 +1844,11 @@ label.item:has(.dw-chk:checked){
   <div id="ric-conf"></div>
   <div id="graf-ric"></div>
   <div id="ric-list"></div>
+  <!-- IL VERBALE (02/09): il divario qui sopra, scritto con la causa che
+       qualcuno ha concluso guardandolo, per questo periodo. Non corregge il
+       conto e non lo blocca: dice che cosa si è deciso, e lo storico dice se
+       il divario cresce o cala da un verbale all'altro. -->
+  <div id="ric-verbale"></div>
   <!-- IL TERZO LATO DEL TRIANGOLO (02/09): quello che i turni di CAMPO dichiarano
        di aver prodotto contro quello che la pesa ha venduto, nello stesso
        periodo. Tonnellate contro tonnellate: è l'unico confronto che non ha
@@ -1949,7 +1954,8 @@ label.item:has(.dw-chk:checked){
     preventiviDaSeguire, prezzoDaOrdine, descriviPrezzoOrdine,
     validaScaglioni, scaglionePer, applicaScaglione, etichettaScaglione,
     descriviScaglione, confrontoCostiMezzi, pesiPesata, xmlFatturaPA,
-    produzioneDichiarata, confrontoProdottoVenduto } from "./conti-data.js";
+    produzioneDichiarata, confrontoProdottoVenduto,
+    CAUSE_DIVARIO, causaDivario, verbaleDelPeriodo, storicoVerbali } from "./conti-data.js";
   /* B8 (14/08): `fileDiAltraTabella` risponde «questa prima riga è
      l'intestazione di un'ALTRA nostra tabella?». È l'unica domanda possibile,
      perché il file SENZA intestazione deve continuare a entrare. */
@@ -2218,6 +2224,7 @@ label.item:has(.dw-chk:checked){
   // Rilievi di TERRA, in sola lettura (confronto cavato/venduto). null = non
   // disponibili: «non lo so» e «zero» sono due risposte diverse, e l'app deve
   // saperle distinguere invece di mostrare un cavato di zero che non esiste.
+  let VER = [];   // i verbali di riconciliazione (letti con il resto in refresh)
   let RIL = null, rilLetti = false;
   // e i rapportini di Campo, con la stessa regola dei rilievi: `null` vuol
   // dire «Campo non ha risposto», e la schermata lo dice — non lo dà per zero
@@ -3017,6 +3024,7 @@ label.item:has(.dw-chk:checked){
       /* chi non ha mai fatto un preventivo legge una lista vuota: il ciclo che
          parte dalla pesata resta valido, l'ordine è un passo IN PIÙ */
       db.ordini ? db.ordini() : [], db.impostazioni()]);
+    VER = (db.verbali ? await db.verbali() : []) || [];
     INC = INC || [];
     ORD = ORD || [];
     NOT = NOT || [];
@@ -5497,6 +5505,8 @@ label.item:has(.dw-chk:checked){
       $("ric-riep").innerHTML = vuoto(icona, titolo, testo);
       $("ric-conf").innerHTML = ""; $("ric-list").innerHTML = "";
       $("ric-val").innerHTML = ""; svuotaGraf("graf-ric");
+      // senza un confronto non c'è un divario da verbalizzare: si mostra solo lo storico, se c'è
+      renderVerbale(d1, d2, null, null, null);
     };
     if (r.stato === "no-terra") {
       return fermo("fronte", "Il cavato non arriva",
@@ -5643,8 +5653,68 @@ label.item:has(.dw-chk:checked){
       densità del listino. <b>Non viene usata per convertire il cavato</b>: quella sarebbe una
       stima, e qui non se ne fanno.</div>`);
     $("ric-list").insertAdjacentHTML("beforeend", avvisi.join(""));
+    renderVerbale(d1, d2, r.divario, r.pct, r.stato, m3f);
 
     renderValoreCavato(cav, ven, m3f);
+  }
+
+  // ── Il verbale di riconciliazione: il divario di QUESTO periodo con la sua causa ──
+  // `divario` null = il confronto è fermo (niente da verbalizzare adesso); si
+  // mostra lo stesso lo storico, perché un verbale scritto ieri vale anche
+  // quando oggi i dati non bastano. Il numero salvato è quello sullo schermo.
+  function renderVerbale(d1, d2, divario, pct, stato, m3f) {
+    const box = $("ric-verbale"); if (!box) return;
+    const fm = m3f || ((v) => NUMV.format(Math.round(v * 100) / 100));
+    // il segno si dice a parole: «-1,3 m³» si legge male, «venduto 1,3 m³ più del cavato» no
+    const dv = (x) => x == null ? "—" : x < 0 ? `<b>${fm(-x)} m³</b> venduti più del cavato` : x > 0 ? `<b>${fm(x)} m³</b> di scorta stimata` : "<b>0 m³</b>, pari";
+    const mio = verbaleDelPeriodo(VER, d1, d2, "cavato", divario);
+    const storico = storicoVerbali(VER, "cavato").slice(-6).reverse();
+    let testa;
+    if (mio) {
+      const v = mio.verbale;
+      testa = `<div class="note${mio.adesso != null && !mio.coerente ? " warn" : ""}"><b>Verbale di questo periodo</b>, scritto il ${fmtD(String(v.scrittoIl || "").slice(0, 10))}:
+        ${dv(mio.allora)}${Number.isFinite(+v.pct) ? " (" + perc(Math.abs(+v.pct)) + " del cavato)" : ""} —
+        causa: <b>${esc(mio.causa ? mio.causa.etichetta : v.causa || "non indicata")}</b>${v.nota ? ". «" + esc(v.nota) + "»" : "."}
+        ${mio.adesso == null ? "" : mio.coerente
+          ? " Oggi il conto dà lo stesso numero."
+          : ` <b>Oggi il conto dà ${dv(mio.adesso)}</b> (${mio.differenza > 0 ? "+" : ""}${fm(mio.differenza)} m³ rispetto ad allora): i dati sono cambiati dopo il verbale — un rilievo o una pesata in più o corretta. Il verbale resta vero su allora; se vuoi, scrivine un altro.`}
+        ${mio.quanti > 1 ? ` <span class="ponte-coda">(${mio.quanti} verbali per questo periodo: si mostra l'ultimo)</span>` : ""}</div>`;
+    } else if (divario == null) {
+      testa = "";
+    } else {
+      testa = `<div class="note">Per questo periodo <b>non c'è ancora un verbale</b>: il divario qui sopra è un numero che si rifà a ogni apertura, e la ragione che gli hai trovato — la scorta a piazzale, un rilievo che manca, una densità da correggere — oggi non la conserva nessuno.</div>`;
+    }
+    const bottone = divario == null ? "" : `<div class="tools"><button class="dw-btn secondary" id="btn-ric-verbale">${mio ? "Scrivi un altro verbale" : "Scrivi il verbale"}</button></div>`;
+    const righe = storico.length ? `<div class="sec" style="margin-top:14px;">Verbali precedenti</div>` + storico.map(v => `<div class="item st-accent">
+      <span class="avatar">${IC.cumulo}</span>
+      <div class="info"><div class="name">${fmtD(v.dal)} – ${fmtD(v.al)} · ${Number.isFinite(+v.divario) ? dv(+v.divario).replace(/<\/?b>/g, "") : "divario —"}${v.pctNum != null ? " (" + perc(Math.abs(v.pctNum)) + ")" : ""}</div>
+      <div class="meta">${esc(v.causaEtichetta || v.causa || "causa non indicata")}${v.nota ? " · «" + esc(v.nota) + "»" : ""}</div></div>
+      <div class="amt"><div class="amt-n${v.verso == null ? " mute" : ""}">${v.verso == null ? "—" : v.verso === "cresce" ? "▲" : v.verso === "cala" ? "▼" : "="}</div>
+        <div class="amt-s">${v.verso == null ? "primo" : v.verso === "pari" ? "come prima" : "il divario " + v.verso}</div></div></div>`).join("") : "";
+    box.innerHTML = testa + bottone + righe;
+    const b = $("btn-ric-verbale");
+    if (b) b.onclick = async () => {
+      const opz = CAUSE_DIVARIO.map(c => `<option value="${esc(c.chiave)}">${esc(c.etichetta)}</option>`).join("");
+      const campo = `<label class="fl" for="modal-campo">Causa del divario</label><select class="dw-input" id="modal-campo">${opz}</select>
+        <label class="fl" for="modal-nota" style="margin-top:8px;">Nota (facoltativa)</label><input class="dw-input" id="modal-nota" type="text" autocomplete="off" placeholder="che cosa hai visto, e dove">`;
+      /* la nota si legge PRIMA che la modale si chiuda: il bottone della
+         struttura risolve col solo #modal-campo, quindi si ascolta il piede
+         della modale in fase di cattura */
+      let nota = "";
+      const p = chiediValore("Scrivi il verbale",
+        `<p>Periodo <b>${fmtD(d1)} – ${fmtD(d2)}</b>: ${dv(divario)}${pct != null ? " (" + perc(Math.abs(pct)) + " del cavato)" : ""}, stato <b>${esc(stato || "")}</b>.</p>
+         <p>Il verbale conserva <b>questo numero</b> e la ragione che gli dai. Non corregge il conto e non blocca niente: se i dati cambiano dopo, Conti te lo dirà accanto al verbale.</p>`,
+        campo, "Salva il verbale");
+      const foot = $("modal-foot");
+      if (foot) foot.addEventListener("click", () => { const n = $("modal-nota"); if (n) nota = n.value.trim(); }, { capture: true, once: false });
+      const causa = await p;
+      if (causa == null) return;
+      if (!causaDivario(causa)) { toast("Scegli una causa fra quelle elencate.", "err"); return; }
+      await db.aggiungi("verbali", { dal: d1, al: d2, tipo: "cavato", divario, pct, stato, causa, nota, scrittoIl: istanteLocale() });
+      toast("✓ Verbale salvato per " + fmtD(d1) + " – " + fmtD(d2));
+      await refresh();
+      renderRiconciliazione();
+    };
   }
 
   // ── Prodotto (Campo) contro venduto (la pesa), in tonnellate ──────────

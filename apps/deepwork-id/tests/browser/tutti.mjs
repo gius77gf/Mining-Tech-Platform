@@ -484,6 +484,8 @@ const BANCHI = [
   ['il ponte Campo→Conti nel report', 'conti-ponte-campo.mjs', []],
   ['ponte Campo→Conti · Campo assente', 'conti-ponte-campo.mjs', ['--campo-assente']],
   ['ponte Campo→Conti · controprova', 'conti-ponte-campo.mjs', ['--controprova'], true],
+  ['il verbale di riconciliazione di Conti', 'conti-verbale.mjs', []],
+  ['verbale di riconciliazione · controprova', 'conti-verbale.mjs', ['--controprova'], true],
   /* 02/09, il verso di ritorno: Flotta chiede a Conti «questa spesa ce l'hai
      anche tu?». Stessa funzione condivisa, stessi tre esiti, stessa controprova. */
   ['il ponte Conti→Flotta nei costi dei mezzi', 'flotta-ponte-conti.mjs', []],

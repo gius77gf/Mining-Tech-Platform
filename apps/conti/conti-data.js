@@ -42,6 +42,10 @@
 //   chiusure/{id}: { mese ("AAAA-MM"), chiusoIl (ISO), vociAssenti [chiavi],
 //                    nota } — «per questo mese ho finito di inserire». NON è un
 //                    lucchetto: un costo arrivato dopo si registra lo stesso.
+//   verbali/{id}: { dal, al (ISO), tipo "cavato"|"prodotto", divario (m³ o t: il
+//                    numero che la schermata mostrava quando è stato scritto),
+//                    pct, stato, causa (chiave di CAUSE_DIVARIO), nota, scrittoIl }
+//                    — il verbale di riconciliazione: non corregge e non blocca.
 //   impostazioni/{id}: { canoneUnita: "t"|"m3", canoneAliquota (€/unità), canoneNota }
 // LETTURA DAI RILIEVI DI TERRA (sola lettura, ponte cavato↔venduto): i rilievi
 // NON sono di Conti, stanno sotto l'app Terra della STESSA organizzazione
@@ -273,6 +277,17 @@ export const DEMO = {
   // RILIEVI DI TERRA (solo per la modalità dimostrativa): in un'organizzazione
   // vera arrivano dall'app Terra, qui sono finti ma COERENTI con le pesate
   // qui sopra, così il confronto cavato/venduto mostra numeri che quadrano.
+  /* UN VERBALE DI RICONCILIAZIONE in dimostrazione (02/09): il primo semestre,
+     con la causa che i rilievi d'esempio raccontano (la ripresa dal cumulo di
+     maggio). ⛔ divario, pct e stato sono QUELLI CHE LA SCHERMATA CALCOLA su
+     questi stessi dati — una prova in run-kpi lo pretende, così se la
+     dimostrazione cambia il verbale non resta a raccontare un numero vecchio
+     senza che nessuno lo veda (sarebbe il verbale che mente). */
+  verbali: [
+    { id: "vr1", dal: "2026-01-01", al: "2026-06-30", tipo: "cavato", divario: 35.055, pct: 28.27, stato: "attenzione",
+      causa: "cumulo", nota: "A maggio abbiamo ripreso dal cumulo di piazzale: il venduto in più viene da lì, non dal fronte.",
+      scrittoIl: "2026-07-02T09:40:00" },
+  ],
   rilieviTerra: [
     { id: "t1", titolo: "Rilievo di fine febbraio", data: "2026-02-28", volumeM3: 31, stato: "elaborato", metodo: "RTK+GCP", gsd: "2" },
     { id: "t2", titolo: "Rilievo di fine aprile",   data: "2026-04-30", volumeM3: 46, stato: "elaborato", metodo: "RTK+GCP", gsd: "2" },
@@ -3165,6 +3180,8 @@ export async function contiData() {
         ordini: () => read("ordini"),
         // le chiusure di mese: chi non ne ha mai dichiarata una legge vuoto
         chiusure: () => read("chiusure"),
+        // i verbali di riconciliazione: chi non ne ha mai scritto uno legge vuoto
+        verbali: () => read("verbali"),
         impostazioni: () => read("impostazioni"),
         aggiungi: (n, d) => addDoc(id.orgCollection(n), d),
         logout: () => id.logout(),
@@ -3231,6 +3248,7 @@ export async function contiData() {
       costi: async () => mem.costi || (mem.costi = []),
       ordini: async () => mem.ordini || (mem.ordini = []),
       chiusure: async () => mem.chiusure || (mem.chiusure = []),
+      verbali: async () => mem.verbali || (mem.verbali = []),
       impostazioni: async () => mem.impostazioni,
       // in dimostrazione i rilievi non arrivano da Terra: sono finti, ma
       // coerenti con le pesate d'esempio (vedi DEMO.rilieviTerra)
@@ -5146,4 +5164,73 @@ export function scartiClientiCsv(text) {
   }
   const lette = celle.length - vuote;
   return { lette, entrano: lette - persi.length, persi, vuote };
+}
+
+/* ══════════════════════════════════════════════════════════════════════
+   IL VERBALE DI RICONCILIAZIONE (02/09) — il divario, scritto con la sua causa
+   ────────────────────────────────────────────────────────────────────────
+   «Cavato contro venduto» e «Prodotto contro venduto» si CALCOLANO a ogni
+   apertura e non si conservano: chi guarda la schermata a marzo non sa se il
+   divario di febbraio era già stato spiegato, e chi lo aveva spiegato non ha
+   dove scriverlo. Nel mondo la riconciliazione di inventario è un atto
+   periodico con una causa e una firma (docs/RICERCA_CONTINUA_conti.md, la
+   ricerca del 02/09, punto 5 del delta). Qui è un documento per periodo:
+   `verbali/{id}: { dal, al, tipo: "cavato"|"prodotto", divario, pct, stato,
+   causa, nota, scrittoIl }` — il numero è quello che la schermata mostrava
+   nel momento in cui è stato scritto (una prova lo pretende), la causa è una
+   fra quelle che la schermata stessa elenca, la nota è libera.
+   ⛔ Un verbale non corregge il conto e non lo blocca: il conto si rifà ogni
+   volta dai dati; il verbale dice che cosa qualcuno ha concluso guardandolo.
+   Se i dati cambiano dopo (un rilievo aggiunto, una pesata corretta) il
+   verbale resta vero su quello che diceva allora, e `verbaleDelPeriodo` lo
+   dice confrontando il numero di allora con quello di adesso.
+   ══════════════════════════════════════════════════════════════════════ */
+export const CAUSE_DIVARIO = Object.freeze([
+  { chiave: "piazzale", etichetta: "Materiale fermo a piazzale (scorta che cresce)" },
+  { chiave: "cumulo", etichetta: "Venduto materiale già a piazzale da prima (ripresa dai cumuli)" },
+  { chiave: "rilievo", etichetta: "Manca un rilievo nel periodo" },
+  { chiave: "densita", etichetta: "Una densità del listino è sbagliata" },
+  // («senza» è una parola del lessico dell'assenza di `sonda-vuoto`: questa è una CAUSA, non un dato che manca, e si dice con altre parole)
+  { chiave: "senza-pesata", etichetta: "Consegne uscite dal cancello fuori dalla pesa a ponte" },
+  { chiave: "stime-turno", etichetta: "Le stime di fine turno sono larghe" },
+  { chiave: "sfrido", etichetta: "Sfrido di lavorazione e tolleranza dei rilievi" },
+  { chiave: "altro", etichetta: "Altro (scritto nella nota)" },
+]);
+export function causaDivario(chiave) {
+  return CAUSE_DIVARIO.find((c) => c.chiave === String(chiave || "")) || null;
+}
+/* ⛔ `+null` fa ZERO e `Number.isFinite(0)` risponde true (CLAUDE.md, il caso di
+   `avanzamentoLotto`): un numero assente deve restare assente, non diventare
+   uno zero che poi «coincide» con qualunque cosa. */
+const _numOAssente = (x) => (x == null || x === "" ? null : Number.isFinite(+x) ? +x : null);
+/* il verbale del periodo ESATTO (dal/al), del tipo chiesto — l'ultimo scritto
+   se ce n'è più d'uno — con il confronto fra il numero di allora e quello di
+   adesso: `coerente` se al centesimo di m³/t, `differenza` altrimenti. */
+export function verbaleDelPeriodo(verbali, dal, al, tipo, divarioAdesso) {
+  const t = tipo || "cavato";
+  const miei = (Array.isArray(verbali) ? verbali : []).filter((v) => v && v.dal === dal && v.al === al && (v.tipo || "cavato") === t);
+  if (!miei.length) return null;
+  miei.sort((a, b) => String(a.scrittoIl || "").localeCompare(String(b.scrittoIl || "")));
+  const v = miei[miei.length - 1];
+  const allora = _numOAssente(v.divario);
+  const adesso = _numOAssente(divarioAdesso);
+  const differenza = allora != null && adesso != null ? Math.round((adesso - allora) * 100) / 100 : null;
+  return { verbale: v, causa: causaDivario(v.causa), allora, adesso,
+    coerente: differenza != null && Math.abs(differenza) < 0.005, differenza, quanti: miei.length };
+}
+/* lo storico: i verbali di un tipo in ordine di periodo, con il segno del
+   passo fra uno e il successivo sulla percentuale. `null` nel passo = non si
+   può dire (manca la percentuale in uno dei due). */
+export function storicoVerbali(verbali, tipo) {
+  const t = tipo || "cavato";
+  const righe = (Array.isArray(verbali) ? verbali : []).filter((v) => v && (v.tipo || "cavato") === t && v.al)
+    .slice().sort((a, b) => String(a.al).localeCompare(String(b.al)) || String(a.scrittoIl || "").localeCompare(String(b.scrittoIl || "")));
+  return righe.map((v, i) => {
+    const p = _numOAssente(v.pct);
+    const prima = i ? righe[i - 1] : null;
+    const pp = prima ? _numOAssente(prima.pct) : null;
+    const passo = p != null && pp != null ? Math.round((Math.abs(p) - Math.abs(pp)) * 100) / 100 : null;
+    return { ...v, pctNum: p, causaEtichetta: (causaDivario(v.causa) || {}).etichetta || null,
+      passo, verso: passo == null ? null : passo > 0 ? "cresce" : passo < 0 ? "cala" : "pari" };
+  });
 }
