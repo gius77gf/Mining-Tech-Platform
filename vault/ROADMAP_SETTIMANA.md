@@ -17,6 +17,16 @@
 - [ ] **Una passata in profondità su un'app** (ogni schermata guardata, ogni
   file che esce aperto, i numeri tranquilli cercati). Prima candidata: Conti,
   perché è quella che il ponte tocca e quella che il mercato guarda (la pesa).
+  ✅ **Terza tappa, Flotta (02/09)**: quattro banchi senza proxy tutti verdi
+  (disegni 54, documenti 79 su 9 punti d'uscita, frasi-da-uno 42, numeri
+  tranquilli 24); la domanda del contatore SCESO ha già la risposta giusta
+  in tre funzioni (`consumoPerMezzo`, `ritmoOreMezzi`, `costoOrarioMezzo`:
+  «una delle due letture è sbagliata: il consumo non si calcola»); sei
+  schermate scattate e guardate. **Un difetto vero, corretto**: sul Quadro la
+  tessera «Carburante mese» scriveva «€ 0,00» col titolo «registrato in
+  questo mese» quando i rifornimenti c'erano ma nessuno cadeva nel mese in
+  corso — adesso «—» e il titolo dice il mese. Caso montato nel banco
+  (voce di due mesi fa, relativa), controprova che cade in 2.
   ✅ **Seconda tappa, Scudo (02/09, cantiere parallelo, misurato prima di
   crederci)**: cinque banchi lanciati senza proxy, 7 KO iniziali tutti del
   banco (fixture con date assolute invecchiate: il near-miss del 18/05 uscito

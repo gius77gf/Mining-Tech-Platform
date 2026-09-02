@@ -83,6 +83,11 @@ const TIPI = { ".html": "text/html", ".js": "text/javascript", ".mjs": "text/jav
      vuoto).
    · «Zeta Muta» non ha il contaore e non ha spesa: serve a provare che
      l'app non le inventa né le ore né gli euro. */
+/* la voce di carburante di DUE MESI FA: relativa a oggi, così non cade mai nel
+   mese in corso (una data assoluta invecchierebbe col calendario) — serve
+   alla tessera «Carburante mese», che con voci in altri mesi e nessuna in
+   questo deve dire «—», non «€ 0,00» (02/09) */
+const _dueMesiFa = new Date(Date.now() - 62 * 86400000).toISOString().slice(0, 10);
 const CASI = `
 DEMO.mezzi = [
   { id: "zz1", nome: "Zeta Muta — senza contaore", ore: null, area: "", stato: "operativo", tipo: "pala" },
@@ -107,6 +112,7 @@ DEMO.ricambi = [
 DEMO.costi = [
   { id: "zc1", data: "2026-08-01", mezzo: "Zeta Muta", voce: "Gomme", importo: null, nota: "la fattura non è ancora arrivata" },
   { id: "zc2", data: "2026-08-02", mezzo: "Omega Nota", voce: "Officina", importo: 500, nota: "" },
+  { id: "zc3", data: "${_dueMesiFa}", mezzo: "Omega Nota", voce: "Carburante", importo: 300, nota: "gasolio di due mesi fa: nessun rifornimento in questo mese" },
 ];
 DEMO.interventi = [
   { id: "zi1", mezzo: "Zeta Muta", titolo: "Riparazione chiusa senza costo", data: "2026-08-03",
@@ -116,6 +122,10 @@ DEMO.interventi = [
 
 /* I DIFETTI DA RIMETTERE: le righe VERE che la pagina aveva, non caricature. */
 const DIFETTI = [
+  // 0 · (02/09) la tessera «Carburante mese» torna a scrivere «€ 0,00» quando i
+  //     rifornimenti ci sono ma nessuno cade nel mese in corso
+  [`    const meseSenzaVoci = carbConData.length > 0 && carbNelMese.length === 0;`,
+   `    const meseSenzaVoci = false;   /* difetto rimesso dal banco */`],
   // 1 · il totale incollato al perché con «, ma » e l'iniziale abbassata
   [`          <div class="meta">\${eur(m.totale)} spesi</div>
           <div class="meta norma">\${esc(m.perche.charAt(0).toUpperCase() + m.perche.slice(1))}</div></div>`,
@@ -280,6 +290,18 @@ for (const [nav, pagina] of SCHERMATE) {
 }
 dice(guardate === SCHERMATE.length,
   `tutte e ${SCHERMATE.length} le schermate si sono aperte davvero (${guardate})`);
+
+/* ⛔ LA TESSERA «CARBURANTE MESE» (02/09): il caso lo monta il banco — una voce
+   di carburante di due mesi fa e nessuna in questo mese — quindi l'atteso non
+   dipende dal giorno in cui si gira. La tessera deve dire «—» e il titolo il
+   mese; con il difetto rimesso scrive «€ 0,00» col titolo «registrato in
+   questo mese», che è lo zero tranquillo misurato sullo scatto. */
+{ await pg.click("#nav-dash").catch(() => {}); await pg.waitForTimeout(500);
+  const k = await pg.evaluate(() => ({ n: (document.querySelector("#kpi-carb .n") || {}).textContent, titolo: (document.getElementById("kpi-carb") || {}).title, eti: (document.getElementById("kpi-carb-l") || {}).textContent }));
+  dice(k.eti === "Carburante mese", "la tessera parla del mese (c'è una voce di carburante datata)", k.eti);
+  dice(k.n === "—", "rifornimenti in altri mesi e nessuno in questo: la tessera dice «—», non «€ 0,00»", k.n);
+  dice(/questo mese/.test(k.titolo) && /non si sa/.test(k.titolo), "e il titolo dice che questo mese non si sa", k.titolo);
+}
 
 console.log(`\nRisultato numeri tranquilli di Flotta${CONTROPROVA ? " · CONTROPROVA" : ""}: ${ok} passati, ${ko} falliti`);
 await b.close(); srv.close();

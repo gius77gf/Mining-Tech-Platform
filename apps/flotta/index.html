@@ -1863,9 +1863,16 @@ body.dw b.bad{color:var(--ink-dg)}
        scadenzario usa già; qui la pagina se n'era tenuta una copia più debole in
        otto punti, compresa la cella del CSV che va al commercialista. */
     const carbConData = carb.filter(c => dataISOEsiste(String(c.data || "").slice(0,10)));
-    const carbMese = carbConData.filter(c => String(c.data).slice(0,7) === meseOra)
-                                .reduce((t, c) => t + (+c.importo || 0), 0);
+    const carbNelMese = carbConData.filter(c => String(c.data).slice(0,7) === meseOra);
+    const carbMese = carbNelMese.reduce((t, c) => t + (+c.importo || 0), 0);
     const carbValore = carbConData.length ? carbMese : k.carburante;
+    /* ⛔ E LA SECONDA FORMA DELLO STESSO ZERO, misurata il 02/09 sullo scatto:
+       i rifornimenti CI SONO (giugno, luglio), ma nessuno cade nel mese in
+       corso — e la tessera scriveva «€ 0,00» col titolo «registrato in questo
+       mese». Non è «questo mese zero gasolio»: è «questo mese nessuno ha
+       registrato un rifornimento», e su una flotta che lavora la seconda è la
+       lettura giusta. Si scrive «—» e il titolo dice il mese. */
+    const meseSenzaVoci = carbConData.length > 0 && carbNelMese.length === 0;
     // toFixed dà il punto decimale inglese: la tessera scriveva «€8.4k» sulla
     // prima schermata, accanto a numeri con la virgola. Sotto i mille euro il
     // «k» non serve e nasconde il numero: si scrive l'importo per intero.
@@ -1880,13 +1887,15 @@ body.dw b.bad{color:var(--ink-dg)}
        una flotta che lavora non è un dato favorevole: è l'assenza del dato.
        Il caso «voci senza data» resta com'era: lì una misura c'è, ed è il mese
        che non si può isolare. */
-    if (kn[3]) kn[3].textContent = !carb.length ? "—"
+    if (kn[3]) kn[3].textContent = !carb.length || meseSenzaVoci ? "—"
       : carbValore >= 1000
         ? conEuro((carbValore / 1000).toLocaleString("it-IT", { maximumFractionDigits: 1 })) + "k"
         : eur(carbValore);
     if ($("kpi-carb-l")) $("kpi-carb-l").textContent = carbConData.length ? "Carburante mese" : "Carburante";
     { const card = $("kpi-carb"); if (card) card.title = !carb.length
         ? "Nessuna voce di carburante registrata: quanto sia stato speso di gasolio non si sa. Tocca per registrare la prima."
+        : meseSenzaVoci
+          ? "Nessuna voce di carburante registrata questo mese: quanto sia stato speso di gasolio a " + new Date().toLocaleDateString("it-IT", { month: "long" }) + " non si sa. L'ultima voce registrata è di un altro mese."
         : carbConData.length
           ? "Carburante registrato in questo mese. Le voci senza data non sono conteggiate."
           : "Nessuna voce di carburante ha una data: qui c'è il totale registrato, non il mese."; }
