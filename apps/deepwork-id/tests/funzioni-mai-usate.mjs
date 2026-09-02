@@ -55,11 +55,6 @@ const MODULI = [
    `sonda-vuoto.mjs`, una riga che scusa un caso che non si presenta più viene
    segnalata: se qualcuno collega una di queste, il conto scende e si vede. */
 const ACCETTATE = new Map([
-  ["apps/genesi/genesi-data.js|genesiData",
-    "DA COLLEGARE (unità 2 e 3 di docs/GENESI_FUORI_DAL_BROWSER.md §5, entro il 09/09): la porta sui dati di "
-    + "Genesi, costruita sopra le stesse chiavi di localStorage della pagina e provata in run-kpi. La pagina "
-    + "la chiamerà al posto di _lsGet/_lsSet, cmpSave/_cmpLoad, riconStorico, sitoStore/sitoSalva: sette "
-    + "punti per le volate prima, il resto poi. Finché non è collegata è un contratto scritto, non un prodotto."],
   ["apps/conti/conti-data.js|descriviScaglione",
     "SUPERATA. Sembrava «una frase che il prodotto calcola e non mostra»: NON lo è, e la differenza l'ha "
     + "detta solo l'apertura del codice. La pagina ha `spiegaScaglioneRiga`, che dice la stessa cosa e in "

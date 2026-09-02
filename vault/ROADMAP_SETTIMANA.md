@@ -26,6 +26,10 @@
   altre app sopra le stesse cinque chiavi di `localStorage` (nomi, forme e
   tetti invariati, letti dal sorgente della pagina dalle prove). La pagina non
   cambia: sono le unità 2 e 3 a chiamarla, sette punti alla volta.
+- [x] ✅ 02/09 **Genesi fuori dal browser, unità 2 di 8**: la Home di Genesi
+  legge, salva, duplica ed elimina le volate dalla porta (`GDB`), non più con
+  `_lsGet/_lsSet`; stessa chiave sotto, stesso tetto (adesso nella porta).
+  Banco `genesi-locale.mjs` nei due versi (17 / controprova che cade in 8).
 - [ ] **Aggiornare la tabella in fondo a `docs/MAPPA_ECOSISTEMA.md`** a ogni
   ponte chiuso: è il registro, e il «6 su 56» deve scendere. *(02/09: 11 su 56.)*
 - [ ] **Una passata in profondità su un'app** (ogni schermata guardata, ogni
@@ -5605,8 +5609,8 @@ numero scritto dove non era stato misurato niente**.*
   sorvegliati ne contavano sette: due convenzioni per lo stesso numero, che è
   il modo più facile di far sembrare sbagliato un conto giusto. Adesso è una
   sola.*
-  Copertura **751/751** e nessuna funzione scoperta; **214 esecuzioni** che
-  aprono le pagine in un browser vero, da **87** file di banco distinti (contati
+  Copertura **751/751** e nessuna funzione scoperta; **216 esecuzioni** che
+  aprono le pagine in un browser vero, da **88** file di banco distinti (contati
   dalla tabella `BANCHI` di `tutti.mjs`, non a occhio dalla cartella, che di
   `.mjs` ne ha di più perché contiene anche gli aiuti — `giro.mjs`,
   `impronta.mjs`, il runner stesso).

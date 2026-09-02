@@ -1118,7 +1118,7 @@ import { sitoFit, ppvLimit, ppvSenzaSoglia, ppvSenzaDistanza, airblastDb, normaP
    ⛔ `costoVolata` sapeva già dire «non calcolabile»; a disinnescarlo erano i
    suoi tre chiamanti, che gli passavano 18 fori al posto di una griglia
    illeggibile e 0,9 m di perforazione al posto di un banco illeggibile. */
-         foriDiProgetto, metriPerforati } from './genesi-data.js';
+         foriDiProgetto, metriPerforati, genesiData } from './genesi-data.js';
 /* ⛔ «ha una data» si decide con l'ESISTENZA, non con la forma: «2026-02-30» ha
    la forma giusta e non esiste. Il modulo di Genesi questa regola l'ha imparata
    il 03/08 — il commento in cima a `genesi-data.js` lo racconta — e la pagina
@@ -1150,6 +1150,17 @@ import { numeroScritto, messaggioNumero, perCampo, montaGuardiaInteri, oggiISO, 
   // I campi INTERI restano `type=number` per lo spinner: la guardia rifiuta la
   // virgola, che lì non serve e che il browser scarterebbe in silenzio.
   montaGuardiaInteri((m) => toast(m, "err"));
+
+/* LA PORTA SUI DATI (02/09, unità 2 di docs/GENESI_FUORI_DAL_BROWSER.md §5).
+   Le volate salvate passano da qui e non più da `_lsGet/_lsSet`: sotto c'è
+   ANCORA la stessa chiave di `localStorage` (`genesiVolate`), con lo stesso
+   tetto di 50 — cioè chi ha volate salvate le ritrova, e i banchi che scrivono
+   la chiave a mano restano veri. La differenza è che il giorno in cui sotto ci
+   sarà l'organizzazione (unità 4) questa pagina non cambierà una riga.
+   ⚠️ Si chiama GDB e non `db`: alla riga del bottone «elimina foro» c'è già un
+   `const db=$('diDel')` locale, e un omonimo rende invisibile un nome libero
+   (CLAUDE.md, nomi-liberi). */
+const GDB = genesiData();
 
 /* ══════════════════════════════════════════════════════════════════════════
    NUMERI COME SI SCRIVONO IN ITALIA — un solo posto per la convenzione
@@ -4846,8 +4857,8 @@ function _puntiNuvola(e){
     ? ' · '+_ricPlur(mostrati,'punto disegnato','punti disegnati')+' su '+gnum(tot,0)+' caricati'
     : ' · '+_ricPlur(mostrati,'punto caricato','punti caricati');
 }
-function renderHome(){
-  const arr=_lsGet('genesiVolate');
+async function renderHome(){
+  const arr=await GDB.volate();
   if($('hgVolN')) $('hgVolN').textContent=arr.length? _ricPlur(arr.length,'salvata','salvate'):'';
   const list=$('hgVolate');
   if(list) list.innerHTML = arr.length
@@ -4864,7 +4875,7 @@ function renderHome(){
    con due copie dello stesso codice, e una delle due scriveva un messaggio
    diverso a parità di azione. */
 async function salvaVolata(codaMsg){
-  const arr=_lsGet('genesiVolate');
+  const arr=await GDB.volate();
   const proposta='Volata '+new Date().toLocaleDateString('it-IT');
   /* il terzo parametro del condiviso è l'HTML DEL CAMPO, non il valore: la
      proposta va messa dentro l'input, se no il campo compare vuoto e nessuno
@@ -4880,14 +4891,15 @@ async function salvaVolata(codaMsg){
   /* un nome vuoto non diventa «Volata senza nome»: si dice cosa manca e si
      lascia l'utente dov'era, con quello che aveva già scritto */
   if(!nome){ toast('Serve un nome per ritrovarla in Home.'); return; }
-  arr.push(volSnapshot(nome)); while(arr.length>50) arr.shift();
-  _lsSet('genesiVolate',arr); renderHome(); toast('✓ Volata salvata'+(codaMsg||''));
+  /* il tetto delle 50 sta nella porta, non qui: è la stessa regola per chi
+     salva, chi duplica e chi domani scriverà da un'altra pagina */
+  await GDB.aggiungi('volate', volSnapshot(nome)); renderHome(); toast('✓ Volata salvata'+(codaMsg||''));
 }
 if($('hgSalva')) $('hgSalva').onclick=()=>salvaVolata();
-if($('hgVolate')) $('hgVolate').addEventListener('click',e=>{
+if($('hgVolate')) $('hgVolate').addEventListener('click',async e=>{
   const btn=e.target.closest('button'); if(!btn) return;
   const item=e.target.closest('.hg-item'); const id=item&&item.getAttribute('data-id'); if(!id) return;
-  const arr=_lsGet('genesiVolate'); const i=arr.findIndex(v=>v.id===id); if(i<0) return;
+  const arr=await GDB.volate(); const i=arr.findIndex(v=>v.id===id); if(i<0) return;
   const act=btn.getAttribute('data-act');
   if(act==='del'){
     /* la conferma dice cosa si perde — la data e la sintesi della volata — e
@@ -4897,19 +4909,19 @@ if($('hgVolate')) $('hgVolate').addEventListener('click',e=>{
       + (arr[i].data ? ', salvata il '+_rEsc(gdata(arr[i].data)) : '')
       + (arr[i].sintesi ? ' — '+_rEsc(arr[i].sintesi) : '')
       + '. Non si può annullare.', 'Elimina', true)
-      .then(si=>{
+      .then(async si=>{
         if(!si) return;
-        const a=_lsGet('genesiVolate'); const j=a.findIndex(v=>v.id===id);
+        const a=await GDB.volate(); const j=a.findIndex(v=>v.id===id);
         /* si rilegge l'indice: fra la domanda e la risposta l'elenco può
            essere cambiato, e cancellare la riga sbagliata sarebbe peggio */
         if(j<0){ toast('Quella volata non c\'è più.'); renderHome(); return; }
         const nome=a[j].nome;
-        a.splice(j,1); _lsSet('genesiVolate',a); renderHome();
+        await GDB.rimuovi('volate', id); renderHome();
         toast('✓ «'+nome+'» eliminata');
       });
     return;
   }
-  if(act==='dup'){ const c=JSON.parse(JSON.stringify(arr[i])); c.id='v'+Date.now(); c.nome=arr[i].nome+' (copia)'; c.data=timbroLocale(); arr.push(c); _lsSet('genesiVolate',arr); renderHome(); toast('✓ Duplicata'); return; }
+  if(act==='dup'){ const c=JSON.parse(JSON.stringify(arr[i])); c.id='v'+Date.now(); c.nome=arr[i].nome+' (copia)'; c.data=timbroLocale(); await GDB.aggiungi('volate', c); renderHome(); toast('✓ Duplicata'); return; }
   if(act==='apri'){
     Object.assign(D2, JSON.parse(JSON.stringify(arr[i].design)));
     D2.holes=[]; D2.sel=-1; D2.selPt=-1;

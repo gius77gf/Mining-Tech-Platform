@@ -454,7 +454,9 @@ console.log(`\n${coperteC} funzioni condivise coperte su ${guardateC} guardate, 
 const genesiPagina = (() => {
   try {
     const t = readFileSync(join(RADICE, "apps/genesi/genesi.html"), "utf8");
-    return (t.match(/^\s*function\s+[A-Za-z_$][\w$]*\s*\(/gm) || []).length;
+    // `async function` conta come le altre (02/09): è la stessa forma di
+    // `genesi-estraibili`, che per un giorno non le vedeva e perdeva renderHome
+    return (t.match(/^\s*(?:async\s+)?function\s+[A-Za-z_$][\w$]*\s*\(/gm) || []).length;
   } catch { return null; }
 })();
 /* ⚠️ Questa riga diceva «di Genesi entra solo pointcloud.js» ed è stata

@@ -19559,8 +19559,15 @@ console.log("\n— Scudo: il ciclo di vita del DSS (D.Lgs 624/96 art. 6) —");
     eq([...genesi.GENESI_COLLEZIONI], ["volate", "confronti", "riconciliazioni", "sito", "nuvole"]);
   });
   test("⛔ le chiavi e i tetti sono QUELLI DELLA PAGINA, letti dal suo sorgente e non ricordati", () => {
-    for (const k of ["genesiVolate", "genesiCmp", "genesiRicon", "genesiSito"]) ok(srcPagina.includes("'" + k), "la pagina usa " + k);
-    ok(srcPagina.includes("while(arr.length>50) arr.shift()"), "il tetto delle volate nella pagina è 50");
+    /* dall'unità 2 (02/09) le volate passano dalla porta: la chiave e il tetto
+       delle volate stanno nel modulo, e la pagina NON deve più toccarli da sé.
+       Le altre tre chiavi sono ancora nella pagina (unità 3). */
+    const srcModulo = readFileSync(new URL("../../genesi/genesi-data.js", import.meta.url), "utf8");
+    for (const k of ["genesiCmp", "genesiRicon", "genesiSito"]) ok(srcPagina.includes("'" + k), "la pagina usa ancora " + k);
+    eq((srcPagina.match(/_ls(Get|Set)\('genesiVolate'/g) || []).length, 0, "la pagina non legge né scrive genesiVolate da sé");
+    ok(srcPagina.includes("await GDB.volate()") && srcPagina.includes("GDB.aggiungi('volate'") && srcPagina.includes("GDB.rimuovi('volate'"), "legge, aggiunge e rimuove dalla porta");
+    ok(srcModulo.includes('chiave: "genesiVolate", tetto: 50'), "il tetto delle volate nel modulo è 50, sotto la stessa chiave");
+    ok(!srcPagina.includes("while(arr.length>50) arr.shift()"), "e la pagina non ha più il suo tetto scritto a mano");
     ok(srcPoc.includes("while(a.length>30) a.shift()"), "il tetto delle nuvole in nuvola-poc è 30");
   });
   inVolo.push((async () => {

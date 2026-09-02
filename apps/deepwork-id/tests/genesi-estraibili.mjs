@@ -66,7 +66,13 @@ const src = readFileSync(join(RADICE, "apps/genesi/genesi.html"), "utf8");
 
 /* le funzioni dichiarate, col corpo a graffe bilanciate */
 const funzioni = [];
-const dichiarazione = /(?:^|\n)\s*(?:export\s+)?function\s+([A-Za-z_$][\w$]*)\s*\(([^)]*)\)/g;
+/* ⛔ `async function` entra nel conto (02/09): la forma precedente prendeva solo
+   `function`, e `salvaVolata` — asincrona da luglio — non era mai stata
+   contata; il giorno in cui `renderHome` è diventata asincrona (unità 2 del
+   piano) il censimento è sceso di uno e la tabella del documento ha smesso di
+   tornare. Un righello che non vede una forma di dichiarazione risponde «una
+   funzione in meno» con la stessa faccia con cui direbbe la verità. */
+const dichiarazione = /(?:^|\n)\s*(?:export\s+)?(?:async\s+)?function\s+([A-Za-z_$][\w$]*)\s*\(([^)]*)\)/g;
 let m;
 while ((m = dichiarazione.exec(src))) {
   const apre = src.indexOf("{", m.index + m[0].length - 1);
