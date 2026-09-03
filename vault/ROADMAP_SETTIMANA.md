@@ -274,6 +274,19 @@
   m³), non quella di Terra (ventimila): alla scala sbagliata il triangolo
   chiudeva «implausibile» per costruzione. Il candidato 3 della ricerca di
   Conti è chiuso; la metà del 6 pure; resta il promemoria (decisione 20).
+- [x] **FLOTTA, SECONDA TORNATA (03/09): un difetto vero, corretto.** 8 banchi
+  verdi (280 prove), 7 tendine chiuse aperte, 4 gruppi di filtri, 5 finestre,
+  il libretto e l'ordine di lavoro a 390/320 nei due temi (288 misure; 18
+  falsi allarmi del righello riconosciuti), 10 file aperti, 10 collezioni
+  svuotate più tutte insieme. Il difetto: nelle tessere «Quanto costa»
+  dell'ORDINE DI LAVORO il corpo fisso a 32 px con `overflow:hidden` tagliava
+  l'importo — «€ 12.750,00» letto **«€ 12.750»** a 320 px, cioè un numero
+  diverso, e già sulla demo «€ 178,50» usciva di 9 px — la stessa famiglia
+  curata a luglio solo per il libretto. Ora la guardia vale per tutt'e due.
+  ⏱️ Da decidere: senza fermi registrati la pagella scrive «100 %» e lo
+  dichiara non distinguibile, ma le righe per mezzo restano «IN LINEA» verdi
+  sotto quell'avviso; la quarta colonna della tabella del ponte con Conti a
+  320 resta fuori dal riquadro scorrevole senza un segno che si può scorrere.
 - [x] **SCUDO, PASSATA COMPLETA (03/09): due difetti veri, corretti.** 100
   scatti (8 voci + 4 schede × 390/320 × due temi) più le modali vere e
   un'ispezione e un permesso aperti: zero testi fuori, zero sovrapposizioni;

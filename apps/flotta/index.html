@@ -795,7 +795,14 @@ body.dw b.bad{color:var(--ink-dg)}
    va A CAPO dentro la tessera invece di essere tagliato via — un numero
    spezzato su due righe si legge, uno tagliato è un altro numero. */
 @media(max-width:400px){
-  #sch-kpi .n{font-size:21px; line-height:1.2; overflow-wrap:anywhere}
+  /* ⚠️ 03/09: le tessere «Quanto costa» dell'ORDINE DI LAVORO (`#odl-kpi`)
+     portano gli stessi importi del libretto e avevano lo stesso taglio, che la
+     guardia qui sotto non copriva perché nominava il libretto e basta.
+     Misurato aprendo un ordine con 100 h a 127,50 €/h: «€ 12.750,00» chiede
+     169 px e a 320 px si leggeva «€ 12.750» — tagliato di 39 px (19 a 360,
+     10 a 390); già sulla dimostrazione «€ 178,50» usciva dal suo riquadro di
+     9 px mangiandosi il padding. Stessa cura, stessi due strati. */
+  #sch-kpi .n, #odl-kpi .n{font-size:21px; line-height:1.2; overflow-wrap:anywhere}
 }
 
 </style>
