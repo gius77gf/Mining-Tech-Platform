@@ -2125,15 +2125,29 @@ export function designSconosciuti(design, cataloghi) {
     if (!ha(k)) continue;
     const ids = Array.isArray(c[k]) ? c[k].map(String) : null;
     if (!ids) continue;                       // la pagina non ha passato quel catalogo: non si giudica
-    if (!ids.includes(String(d[k]))) campi.push({ chiave: k, nome: CAMPI_SCELTA[k], valore: d[k] === null ? '' : String(d[k]) });
+    /* ⛔ LA NORMA DEL RECETTORE NON SI SOSTITUISCE (03/09, passata di verifica).
+       Un esplosivo al posto di un altro si vede nella tendina; un codice di
+       norma che non si riconosce, rimpiazzato con «DIN residenziale», produce
+       un LIMITE (15 mm/s) e un VERDETTO («ampiamente sotto soglia») su una
+       norma che nessuno ha scelto — misurato: nove KO in tre banchi (scheda
+       CSV, report stampabile, file per Sentinella), tutti «limite 15,0, DIN
+       residenziale» dove dal 08/08 usciva «non confrontabile». È il principio
+       del fondatore: l'assenza di un dato non è un dato favorevole. Quindi il
+       codice resta com'è scritto — `ppvSenzaSoglia` lo vede, `normaPpvLab` lo
+       ripete — e il campo porta `sostituisci:false`, che la pagina legge. */
+    if (!ids.includes(String(d[k]))) campi.push({ chiave: k, nome: CAMPI_SCELTA[k], valore: d[k] === null ? '' : String(d[k]), sostituisci: k !== 'recNorma' });
   }
-  for (const k of Object.keys(CAMPI_BANDIERA)) if (ha(k) && typeof d[k] !== 'boolean') campi.push({ chiave: k, nome: CAMPI_BANDIERA[k], valore: String(d[k]) });
-  for (const k of Object.keys(CAMPI_PROFILO)) if (ha(k) && !Array.isArray(d[k])) campi.push({ chiave: k, nome: CAMPI_PROFILO[k], valore: String(d[k]) });
+  for (const k of Object.keys(CAMPI_BANDIERA)) if (ha(k) && typeof d[k] !== 'boolean') campi.push({ chiave: k, nome: CAMPI_BANDIERA[k], valore: String(d[k]), sostituisci: true });
+  for (const k of Object.keys(CAMPI_PROFILO)) if (ha(k) && !Array.isArray(d[k])) campi.push({ chiave: k, nome: CAMPI_PROFILO[k], valore: String(d[k]), sostituisci: true });
   if (!campi.length) return null;
-  const nomi = campi.map((x) => x.nome + (x.valore ? ' («' + x.valore + '»)' : ' (vuoto)')), uno = nomi.length === 1;
+  const nomi = campi.map((x) => x.nome + (x.valore ? ' («' + x.valore + '»)' : ' (vuoto)'));
+  const sost = campi.filter((x) => x.sostituisci), tenuti = campi.filter((x) => !x.sostituisci);
+  const come = [];
+  if (sost.length) come.push(sost.length === 1
+    ? 'Al suo posto è entrato il valore di partenza: controllalo nei parametri prima di fidarti dei numeri.'
+    : 'Al loro posto sono entrati i valori di partenza: controllali nei parametri prima di fidarti dei numeri.');
+  if (tenuti.length) come.push('Per la norma del recettore non entra nessun valore di partenza: resta com\'è scritta e il limite PPV non si calcola finché non ne scegli una nei parametri.');
   return { campi,
-    che: (uno ? 'una scelta non si riconosce: ' : nomi.length + ' scelte non si riconoscono: ') + nomi.join(', '),
-    come: uno
-      ? 'Al suo posto è entrato il valore di partenza: controllalo nei parametri prima di fidarti dei numeri.'
-      : 'Al loro posto sono entrati i valori di partenza: controllali nei parametri prima di fidarti dei numeri.' };
+    che: (nomi.length === 1 ? 'una scelta non si riconosce: ' : nomi.length + ' scelte non si riconoscono: ') + nomi.join(', '),
+    come: come.join(' ') };
 }

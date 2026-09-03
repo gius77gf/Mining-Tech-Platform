@@ -222,7 +222,7 @@
 // Come si aggiunge una regola: una funzione che restituisce l'elenco delle
 // violazioni con file e riga, e un `test(...)` che pretende zero.
 // ============================================================
-import { readFileSync, readdirSync, existsSync } from "node:fs";
+import { readFileSync, readdirSync, existsSync, statSync } from "node:fs";
 import { classifica, mascheraCodice, senzaCommenti, COMMENTO, CODICE, DENTRO } from "./tokenizza.mjs";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
@@ -3503,6 +3503,12 @@ const VIETATI = [
   [/\b190\s*(video|filmat)/i, "l'archivio dei video"],
   [/\b6\s*\/\s*23\s*volate\b|\b6\s+volate\s+su\s+23\b/i, "le volate misurate di quell'origine"],
   [/dominio di validit[àa]/i, "il litotipo dichiarato come dominio di validità del modello"],
+  /* 03/09: la passata su Genesi ha trovato in `apps/genesi/calibrazione.json`
+     la `_meta` con l'elenco intero della regola ferrea e il nome della ripresa
+     di riferimento. Il commit e262c880 «rimosse tutte le citazioni» aveva
+     guardato le pagine: i JSON pubblicati tali e quali no. */
+  [/\bVID_\d{6,}/, "la ripresa di riferimento di quell'origine"],
+  [/\bdominio_validita\b/i, "il dominio di validità del modello, scritto come chiave"],
 ];
 
 test("regola 26: i dati di riferimento del fondatore non compaiono in nessuna superficie", () => {
@@ -3520,6 +3526,16 @@ test("regola 26: i dati di riferimento del fondatore non compaiono in nessuna su
   }
   /* quanti soggetti ha guardato davvero: uno «zero violazioni» senza questo
      numero non distingue «pulito» da «non ho aperto niente» */
+  /* e i JSON delle app, che il sito pubblica tali e quali (03/09) */
+  const _rd = readdirSync, _st = statSync;
+  const jsonApp = [];
+  const cammina = (d) => { for (const n of _rd(d)) { const f = join(d, n); if (n === "node_modules" || n === "tests") continue; if (_st(f).isDirectory()) cammina(f); else if (/\.json$/.test(n)) jsonApp.push(f); } };
+  cammina(join(root, "apps"));
+  for (const f of jsonApp) {
+    const testo = readFileSync(f, "utf8"); guardate++; caratteri += testo.length;
+    for (const [re, che] of VIETATI) { const m = re.exec(testo); if (m) male.push(`${f.slice(root.length + 1)}: «${m[0]}» — ${che}`); }
+  }
+  ok(jsonApp.length >= 3, `JSON delle app guardati: ${jsonApp.length} — dovrebbero esserci almeno esplosivi, calibrazione e un manifest`);
   ok(guardate >= 14, `superfici guardate: ${guardate} — l'elenco si è accorciato`);
   ok(caratteri > 500000, `solo ${caratteri} caratteri esaminati: il tokenizzatore sta buttando via il file`);
   ok(male.length === 0,
@@ -3527,10 +3543,11 @@ test("regola 26: i dati di riferimento del fondatore non compaiono in nessuna su
     + male.join("\n  "));
 });
 
-test("regola 26: la controprova — rimessi i quattro dati, la regola li vede tutti e quattro", () => {
+test("regola 26: la controprova — rimessi i sei dati, la regola li vede tutti e sei", () => {
   const sano = senzaCommenti(leggi("index.html"));
   const finti = ["maglia 4,5×3,5", "archivio di 190 video", "6/23 volate misurate",
-                 "il dominio di validità del modello"];
+                 "il dominio di validità del modello",
+                 "riprese VID_20250606", "\"dominio_validita\": \"…\""];   // 03/09: i due del JSON di Genesi
   const visti = [];
   for (let i = 0; i < VIETATI.length; i++) {
     /* si inietta in una COPIA in memoria, mai sul file: il core lo carica il

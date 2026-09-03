@@ -34940,6 +34940,43 @@ console.log("\n— Campo: causali di fermo con chiave ed etichetta —");
 
 /* ===== fine Campo · le causali con chiave ===== */
 
+/* ===== Genesi · la norma del recettore non si sostituisce (03/09, passata in profondità):
+   l'unità 7 del 02/09 rimetteva il valore di partenza ANCHE a `recNorma`, e una norma
+   sconosciuta usciva nel CSV, nel report e nel file per Sentinella come «DIN residenziale»
+   con un limite e un verdetto. Prove SINCRONE e PRIMA del riepilogo. ===== */
+{
+  const cat = { esplosivo: ["anfo-standard"], innesco: ["nonel"], roccia: ["calcare"], frat: ["media"], sequenza: ["riga", "diagonale"], recNorma: Object.keys(genesi.NORME_PPV) };
+{
+  const D = genesi.designSconosciuti;
+  test("⛔ la norma del recettore che non si riconosce si NOMINA ma NON si sostituisce: `sostituisci:false`", () => {
+    const r = D({ recNorma: "uni-9916" }, cat);
+    eq(r.campi.length, 1); eq(r.campi[0].chiave, "recNorma"); eq(r.campi[0].sostituisci, false);
+    ok(/una scelta non si riconosce: norma del recettore \(«uni-9916»\)/.test(r.che), r.che);
+    ok(/resta com'è scritta/.test(r.come) && /limite PPV non si calcola/.test(r.come), r.come);
+    ok(!/Al suo posto è entrato/.test(r.come), "e NON dice che al suo posto è entrato qualcosa: " + r.come);
+    ok(genesi.ppvSenzaSoglia("uni-9916", 25) !== null, "premessa: sul codice tenuto il modulo risponde «senza soglia»");
+    eq(genesi.ppvLimit("uni-9916", 25), null, "e il limite è null, non 15");
+  });
+  test("le altre scelte si sostituiscono ancora, e lo dicono: `sostituisci:true`", () => {
+    const r = D({ esplosivo: "dinamite-x", kgAuto: "sì", profilo: "no" }, cat);
+    ok(r.campi.every((c) => c.sostituisci === true), JSON.stringify(r.campi));
+    ok(/Al loro posto sono entrati i valori di partenza/.test(r.come), r.come);
+    ok(!/norma del recettore/.test(r.come), "senza norma ignota non se ne parla");
+  });
+  test("le due famiglie insieme: una frase per ciò che entra e una per ciò che resta", () => {
+    const r = D({ esplosivo: "dinamite-x", recNorma: "uni-9916" }, cat);
+    eq(r.campi.map((c) => c.sostituisci), [true, false]);
+    ok(/2 scelte non si riconoscono/.test(r.che), r.che);
+    ok(/Al suo posto è entrato il valore di partenza/.test(r.come) && /norma del recettore non entra nessun valore di partenza/.test(r.come), r.come);
+  });
+  test("⛔ e la pagina LEGGE la bandiera: la sostituzione all'azione «apri» è condizionata a `sostituisci`", () => {
+    const html = readFileSync(join(HERE, "../../genesi/genesi.html"), "utf8");
+    ok(/for\(const c of _sc\.campi\) if\(c\.sostituisci\) D2\[c\.chiave\]=D2_PARTENZA\[c\.chiave\]/.test(html), "guardia sul sorgente: senza `if(c.sostituisci)` la norma tornerebbe «DIN residenziale»");
+  });
+}
+}
+/* ===== fine Genesi · la norma del recettore ===== */
+
 /* ══════════════════════════════════════════════════════════════════════
    CORE · LA FRECCIA DELLA CALOTTA: ZERO È UN VALORE (03/09, dal candidato
    «fronte» di B12). `calotta_m||1` leggeva uno zero scritto come «mai

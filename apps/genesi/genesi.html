@@ -130,6 +130,12 @@ html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--tx);
 #tl{left:50%;transform:translateX(-50%);bottom:16px;width:min(920px,calc(100vw - 32px));
   background:rgba(16,13,7,.72);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border:1px solid rgba(255,171,0,.22);border-radius:14px;padding:11px 16px 13px;box-shadow:0 0 40px rgba(255,171,0,.08),0 10px 34px rgba(0,0,0,.45)}
 #tlrow1{display:flex;align-items:center;gap:10px;margin-bottom:9px}
+/* ⛔ Sul telefono la riga non ci stava e l'orologio della simulazione (#tclock,
+   «0 ms», 108 px) usciva dalla scheda: misurato il 03/09, a 390 px la riga
+   finisce a 357 e l'orologio sta a 358–466, a 320 escono anche «pausa» e i
+   fps — cioè il tempo della volata non si vedeva MAI su uno schermo stretto.
+   Sotto i 480 px la riga va a capo e l'orologio si allinea a destra da solo. */
+@media(max-width:480px){#tlrow1{flex-wrap:wrap}#fps{margin-left:0}#tclock{margin-left:auto}}
 #play{width:40px;height:40px;border-radius:50%;border:none;background:var(--cu);color:#2a1407;
   font-size:16px;cursor:pointer;flex:0 0 auto;display:flex;align-items:center;justify-content:center}
 #play:hover{background:#ffa069}
@@ -380,7 +386,16 @@ body.scr-design #scr-design{display:flex}
 .es-card.sel .es-pick{background:#1a140b;color:#ffd54f;border:1px solid var(--cu)}
 body:not(.scr-sim) #view,body:not(.scr-sim) #cams,body:not(.scr-sim) #params,body:not(.scr-sim) #topright,body:not(.scr-sim) #tl,body:not(.scr-sim) #helpcard{display:none!important}
 body.scr-sim #tl{bottom:80px}
-#scr-home{position:relative;align-items:center;justify-content:flex-start;gap:15px;text-align:center;padding:26px 22px 124px;overflow-y:auto}
+/* ⛔ NIENTE `position:relative` QUI: la Home è `position:fixed;inset:0` (regola
+   condivisa con #scr-design, più su) ed è quell'inset a darle un'altezza; il
+   30/07 un `relative` aggiunto per ancorare il ritorno all'ecosistema l'ha
+   sganciata dal viewport, e da allora la Home CRESCEVA col contenuto dentro un
+   body `overflow:hidden`: su un telefono (390×844, 320×568) «Le tue volate»,
+   «Drone & rilievi» e il ponte Deepwork stavano sotto il bordo e NON SI
+   RAGGIUNGEVANO — rotella e dito non scorrevano niente (misurato il 03/09:
+   scrollTop 0, contenuto fino a 986 px su 844). Un `fixed` ancora gli assoluti
+   esattamente come un `relative`. */
+#scr-home{align-items:center;justify-content:flex-start;gap:15px;text-align:center;padding:26px 22px 124px;overflow-y:auto}
 #homeGrid{width:100%;max-width:620px;display:grid;grid-template-columns:repeat(auto-fit,minmax(270px,1fr));gap:12px;text-align:left}
 .hg-panel{background:linear-gradient(150deg,rgba(255,236,200,.055),rgba(255,210,150,.018));border:1px solid rgba(255,228,180,.16);border-radius:16px;padding:13px 14px;box-shadow:0 12px 34px rgba(0,0,0,.4),0 1px 0 rgba(255,240,210,.1) inset}
 .hg-panel h4{margin:0 0 8px;font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:13.5px;letter-spacing:.07em;text-transform:uppercase;color:#ffd54f;display:flex;align-items:center;gap:7px}
@@ -3910,7 +3925,7 @@ async function riconRender(){
   body.innerHTML=
     _riconCampoHtml()
     +'<div style="color:var(--mut);font-size:12px;margin-bottom:10px;">Dopo lo sparo inserisci i valori <b>misurati</b> per confrontarli con la previsione della volata corrente (dalla Scheda validatori). Verde = scostamento &lt;15%, giallo &lt;35%, rosso oltre.</div>'
-    +'<div style="display:grid;grid-template-columns:1.1fr .8fr 1fr 1.2fr;gap:6px 8px;align-items:center;font-size:13px;font-variant-numeric:tabular-nums;">'
+    +'<div style="display:grid;grid-template-columns:1.1fr .8fr 1fr 1.2fr;gap:6px 8px;align-items:center;font-size:13px;font-variant-numeric:tabular-nums;overflow-x:auto;">'
     +'<div style="color:var(--mut);font-size:11px;letter-spacing:.08em;text-transform:uppercase">Metrica</div><div style="color:#ffd54f;font-weight:700">Previsto</div><div style="color:#ffd54f;font-weight:700">Reale</div><div style="color:#ffd54f;font-weight:700">Scostamento</div>'
     +'<div style="color:var(--mut)">X50 pezzatura</div><div>'+gnum(prev.x50,1)+' cm</div><div><input id="ric-x50" type="text" inputmode="decimal" min="0" style="width:70px"> cm</div><div id="ric-d-x50">—</div>'
     +'<div style="color:var(--mut)">PPV vibrazione</div><div>'+gnum(prev.ppv,1)+' mm/s</div><div><input id="ric-ppv" type="text" inputmode="decimal" min="0" step="0.1" style="width:70px"> mm/s</div><div id="ric-d-ppv">—</div>'
@@ -4779,7 +4794,7 @@ document.querySelectorAll('#bottomnav button').forEach(b=> b.onclick=()=>setScre
    nei form compare SOLO la dicitura; l'approfondimento (scheda completa) si apre
    su richiesta col bottone ⓘ. La vecchia schermata «Indice» è stata eliminata. */
 function esplCardHtml(e){ const specs=[];
-  if(e.densita_gcc!=null) specs.push(e.densita_gcc+' g/cc');
+  if(e.densita_gcc!=null) specs.push(gfix(e.densita_gcc,2)+' g/cc');   // 03/09: «0.82 g/cc» accanto a «3,8k m/s» — la virgola la scrive gfix, come per la VOD
   if(e.vod_ms!=null) specs.push(gfix(e.vod_ms/1000,1)+'k m/s VOD');
   if(e.rws_pct!=null) specs.push('RWS '+e.rws_pct);
   if(e.rbs_pct!=null) specs.push('RBS '+e.rbs_pct);
@@ -4987,7 +5002,10 @@ if($('hgVolate')) $('hgVolate').addEventListener('click',async e=>{
     const _cataloghi={ esplosivo:ESPL.map(e=>e.id), innesco:INNESCHI.map(e=>e.id), roccia:ROCCE.map(r=>r.id),
       frat:[...($('dFrat')?.options||[])].map(o=>o.value), sequenza:[...($('dSeq')?.options||[])].map(o=>o.value), recNorma:[...($('dRecNorma')?.options||[])].map(o=>o.value) };
     const _sc=designSconosciuti(arr[i].design, _cataloghi);
-    if(_sc) for(const c of _sc.campi) D2[c.chiave]=D2_PARTENZA[c.chiave];
+    /* ⛔ Ma non tutte: la norma del recettore porta `sostituisci:false` (03/09) —
+       rimessa a «DIN residenziale» produceva un limite e un verdetto su una
+       norma che nessuno aveva scelto. Il codice resta e il limite non si calcola. */
+    if(_sc) for(const c of _sc.campi) if(c.sostituisci) D2[c.chiave]=D2_PARTENZA[c.chiave];
     const _avvisi=[_senza&&(_senza.che+'. '+_senza.come), _sc&&(_sc.che+'. '+_sc.come)].filter(Boolean);
     toast('✓ «'+arr[i].nome+'» aperta nel 2D'+(_avvisi.length?' — ⚠️ '+_avvisi.join(' ⚠️ '):''));
     setScreen('design');
@@ -6348,7 +6366,7 @@ function renderScheda2D(){
         +(aMano?' Attenzione: '+aMano+(aMano===1?' foro ha':' fori hanno')+' il ritardo messo a mano, quindi la rete non segue più solo lo schema.':'')
         +' Il verso della freccia dice da dove arriva il fuoco. È una <b>ricostruzione</b> dai tempi: il collegamento vero resta decisione del responsabile del tiro.'});
   })();
-  rows.push(badge(subB,'Sottoperforazione',gfix(sub,1)+' m ('+gfix(subB,2)+'·B)',0.2,0.4,0.1,0.55,
+  rows.push(badge(subB,'Sottoperf.',gfix(sub,1)+' m ('+gfix(subB,2)+'·B)',0.2,0.4,0.1,0.55,
     'sottoperf. nel range 0,2–0,4·B (~'+gfix(subRec,1)+' m, 8–12·Ø): piede pulito.',
     'sottoperf. scarsa → rischio toe/zoccoli e blocchi al piede; consigliata ~'+gfix(subRec,1)+' m.',
     'sottoperf. eccessiva → perforazione sprecata, vibrazioni e danno al banco sottostante.'));

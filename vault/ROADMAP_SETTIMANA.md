@@ -274,6 +274,30 @@
   m³), non quella di Terra (ventimila): alla scala sbagliata il triangolo
   chiudeva «implausibile» per costruzione. Il candidato 3 della ricerca di
   Conti è chiuso; la metà del 6 pure; resta il promemoria (decisione 20).
+- [x] **GENESI, PASSATA IN PROFONDITÀ (03/09): sei difetti veri, uno di cinque
+  settimane, e un dato del fondatore in un file pubblico.** 9 banchi lanciati
+  (327 prove, 9 KO con UNA causa), 26 schermate a 390/320, 7 file aperti, la
+  modalità locale rifatta a mano (54 chiavi identiche dopo la ricarica).
+  · **A, regressione dell'unità 7 di ieri**: `designSconosciuti` rimetteva il
+    valore di partenza anche alla NORMA del recettore, e una norma sconosciuta
+    usciva nel CSV, nel report e nel file per Sentinella come «DIN
+    residenziale» con limite e verdetto — la decisione dell'08/08 era il
+    contrario. Ora `sostituisci:false` per `recNorma`, la frase lo dice, il
+    limite non si calcola; 4 prove in `run-kpi` (una sul sorgente).
+  · **B, la HOME NON SCORREVA sul telefono dal 30/07**: un `position:relative`
+    aggiunto al ritorno all'ecosistema sganciava `#scr-home` dal viewport; «Le
+    tue volate», «Drone & rilievi» e «Ponte Deepwork» irraggiungibili a 390 e
+    320 per cinque settimane, e nessun banco lo vedeva.
+  · C l'orologio del 3D fuori dalla scheda a 390/320; D la colonna
+    «Scostamento» della riconciliazione tagliata a 320; E «SOTTOPERFORAZIONE»
+    sotto il chevron a 390; F «0.82 g/cc» col punto accanto a «3,8k m/s».
+  ⛔ **E `apps/genesi/calibrazione.json` portava nella `_meta` l'elenco della
+  regola ferrea** (maglia, ritardo, numero di fori, litotipo, la ripresa di
+  riferimento, ripetuta in una `_provenienza`): non mostrato da nessuna
+  schermata né file, ma pubblicato tale e quale sul sito. Il commit `e262c880`
+  «rimosse tutte le citazioni» aveva guardato le pagine, non i JSON. Tolto; la
+  regola 26 di `run-stile` ora legge anche i JSON delle app e riconosce il
+  nome della ripresa.
 - [x] **TERRA, PASSATA IN PROFONDITÀ (03/09, dopo le schermate nuove):** 5
   banchi verdi (255 prove, 0 KO, le righe «non ho guardato» lette: 17 barre
   sotto il minimo del motore dichiarate e non confrontate), 24 schermate
@@ -5856,7 +5880,7 @@ numero scritto dove non era stato misurato niente**.*
   nome apre il file sbagliato credendo che sia il più fresco.
 - Le decisioni: `docs/DECISIONI_WEEKEND.md` — pagina d'ingresso in cima.
 - Stato misurato al **18/08** (lanciando le suite, non a memoria):
-  **2.996 prove girano senza rete**. La frase va letta stretta: è la somma
+  **3.000 prove girano senza rete**. La frase va letta stretta: è la somma
   delle **nove** suite che contano asserzioni (`run-kpi` 2396, `run-stile` 327,
   `run-helpers` 75, `run-pointcloud` 32, `claims-convergenza` 19, `run-manifest` 9,
   `run-demo` 8, `bootstrap-rivendicazioni` 7, `fogli-guardati` 3), non tutto ciò che gira nel
