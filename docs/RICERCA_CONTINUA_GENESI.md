@@ -122,3 +122,20 @@ _Cercato per MECCANISMO, non per parola: chi conserva il dato dopo lo sparo? Sup
 
 **Riassunto** — 6 campi **esistono** (data/ora, fronte, n. fori, CMR, pezzatura, PPV); 6 **in altro modo** (esplosivo per foro e non per tipo; ritardi solo nel progetto; proiezioni come gittata reale + near-miss; esito come nota/contestazione; autore al posto della firma; stato eseguita in Sentinella e non sul progetto del core); 3 **mancano davvero** (colpi mancati, conteggio colpi esplosi, registro carico/scarico esplosivi).
 Costo/valore, onesto: i primi due sono **un campo ciascuno** sul rapportino fochino (`mancati` numero+nota, `esplosi` numero) con una riga nel PDF e, per i mancati, un ponte già mezzo fatto verso il near-miss di Scudo (categoria `volata` esistente) — costo basso, valore alto perché è ciò che chi ispeziona chiede [di seconda mano]. La somma per tipo di esplosivo è **una funzione** (`reduce` su `fori_dettaglio` per `esplosivo`) e vive in `shared/` accanto a `misureVolataFochino`. Il registro carico/scarico è **una schermata + una collezione** (giacenza per tipo, entrate/uscite, con lo scarico che potrebbe nascere dal rapportino stesso): valore alto ma è un adempimento a sé, non un pezzo del rapporto — candidato, non priorità. Tutto quanto sopra è «proposto da ricerca, meccanismo verificato»: niente entra come «da fare».
+
+#### Seguito del delta (03/09, contro `82d2156d`)
+· **Colpi esplosi contati e colpi mancati: FATTI** (`esitoSparo` in dw-shell,
+  campi sul rapportino fochino, badge in elenco, sezione nella scheda, riga nel
+  PDF; commit `b110e3e1`). La somma dei **chili per tipo** (`esplosivoPerTipo`)
+  è scritta e in cantiere sulla scheda e sul PDF.
+· **Il ponte «colpo mancato → mancato infortunio in Scudo» NON si può fare
+  oggi, e la ragione va detta**: il core non passa da Deepwork ID —
+  `grep -c "DeepworkID\|orgCollection" index.html` → **0**, ha un progetto
+  Firebase suo (`projectId` alla riga ~117) — quindi non ha una seconda
+  istanza SDK con cui scrivere nel registro `infortuni` di Scudo, come fanno
+  Campo e Sentinella. Aspetta la **Fase B** di
+  `apps/deepwork-id/ARCHITETTURA.md` §8 (il core aggiunge il login Deepwork
+  ID). Candidato registrato lì, non qui.
+· **Il registro di carico e scarico degli esplosivi** resta un adempimento a
+  sé (schermata + collezione): candidato, «proposto da ricerca, meccanismo
+  verificato», senza numeri di legge nel prodotto finché non si legge il testo.

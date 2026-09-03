@@ -3544,6 +3544,14 @@ numero scritto dove non era stato misurato niente**.*
       dentro l'organizzazione) — legata alla decisione **10b/10c**.
 
 - [ ] **I 20 KO del giro del 09/08, riverificati sul commit di adesso** — la
+  ⏱️ **03/09, due giri di fila morti con la sessione**: quello delle 22:29Z del
+  02/09 dopo 7 minuti (fine del turno), quello delle 00:50Z del 03/09 dopo
+  56 minuti al **limite di crediti** (15 passate su 227: 7 sane, **0 KO**, 8
+  controprove con 75 rossi voluti — letto con `leggi-giro.mjs`, che dichiara
+  «non arrivato in fondo»). La lezione di CLAUDE.md regge alla lettera: un
+  giro più lungo della sessione non finisce mai, e con tre cantieri paralleli
+  sulla stessa macchina va a **quattro minuti a passata**. Si rilancia su uno
+  stato fermo, presto nel ciclo, e si legge quello che ha fatto.
   riverifica è cominciata e i primi due fronti hanno risposto in modo opposto,
   che è esattamente perché la sezione 0 esiste:
   ⏱️ **AGGIORNAMENTO DEL GIRO SUCCESSIVO (quello delle 06:56Z, letto alle
