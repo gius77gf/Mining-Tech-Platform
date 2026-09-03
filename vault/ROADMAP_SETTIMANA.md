@@ -274,6 +274,23 @@
   m³), non quella di Terra (ventimila): alla scala sbagliata il triangolo
   chiudeva «implausibile» per costruzione. Il candidato 3 della ricerca di
   Conti è chiuso; la metà del 6 pure; resta il promemoria (decisione 20).
+- [x] **SCUDO, PASSATA COMPLETA (03/09): due difetti veri, corretti.** 100
+  scatti (8 voci + 4 schede × 390/320 × due temi) più le modali vere e
+  un'ispezione e un permesso aperti: zero testi fuori, zero sovrapposizioni;
+  26 file aperti (registro infortuni, near-miss, scadenze, azioni, 7 verbali
+  DPI, 7 cartelle, 5 promemoria) senza un `undefined`; 19 collezioni svuotate
+  una per una più tutte insieme. (1) **`duvriDovuto`: un appalto SENZA SITO
+  diventava «A POSTO»** — senza il cantiere valeva la regola del DUVRI, che la
+  firma del DSS non la chiede, e l'appalto col DSS coordinato non sottoscritto
+  passava da «da sistemare» ad «A POSTO · DUVRI in vigore» (riepilogo «A
+  posto: 2» invece di 1). Ora `noto:false, serve:null` → «Non si può dire ·
+  NON VERIFICATO» con la ragione; 15 asserzioni in `run-kpi`, 9 cadute con il
+  difetto rimesso. (2) La nota «Tutta la cava» col solo ponte di Flotta caduto
+  scriveva «i mezzi non è in questo conto»: il verbo seguiva il numero di app,
+  non il soggetto. Le 7 tendine tagliate: contate, non ricontate. ⏱️ Da
+  decidere: con l'anagrafica vuota il registro DPI dice «27 consegne a 5
+  persone · niente da sistemare» su persone che non esistono più (nessuna
+  pastiglia verde, per questo lasciata).
 - [x] **SENTINELLA, SECONDA TORNATA (03/09): un difetto vero, corretto.** 7
   banchi verdi (222 prove), un banco di 290 asserzioni sulle modali, i filtri
   e le tendine a 390/320 nei due temi (zero fuori riquadro, zero errori), 5
@@ -5926,7 +5943,7 @@ numero scritto dove non era stato misurato niente**.*
   nome apre il file sbagliato credendo che sia il più fresco.
 - Le decisioni: `docs/DECISIONI_WEEKEND.md` — pagina d'ingresso in cima.
 - Stato misurato al **18/08** (lanciando le suite, non a memoria):
-  **3.000 prove girano senza rete**. La frase va letta stretta: è la somma
+  **3.002 prove girano senza rete**. La frase va letta stretta: è la somma
   delle **nove** suite che contano asserzioni (`run-kpi` 2396, `run-stile` 327,
   `run-helpers` 75, `run-pointcloud` 32, `claims-convergenza` 19, `run-manifest` 9,
   `run-demo` 8, `bootstrap-rivendicazioni` 7, `fogli-guardati` 3), non tutto ciò che gira nel

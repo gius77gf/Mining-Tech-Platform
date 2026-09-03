@@ -2531,7 +2531,10 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
        dice per nome, e il conto non si stampa come se fosse completo. */
     if (!altreChieste) caricaAltreScadenze().then(() => refresh()).catch(() => refresh());
     { const u = scadenzeUnite({ terra: SCT === undefined ? null : SCT, flotta: SCF === undefined ? null : SCF, scudo: SCA, lavoratori: LAV }, new Date());
-      const APP = { terra: ["Terra", "la concessione"], flotta: ["Flotta", "i mezzi"] };
+      /* Il verbo lo decide il SOGGETTO, non quante app mancano: «i mezzi» è plurale
+         anche quando a mancare è Flotta da sola («i mezzi non è in questo conto»,
+         misurato il 03/09 facendo cadere il solo ponte di Flotta). */
+      const APP = { terra: ["Terra", "la concessione", "è", "vale"], flotta: ["Flotta", "i mezzi", "sono", "valgono"] };
       const altre = u.righe.filter(r => r.app !== "scudo" && (r.stato === "scaduta" || r.stato === "in-scadenza"));
       const righe = altre.map(r => `<div class="item st-${r.stato === "scaduta" ? "danger" : "warn"}">
         <span class="avatar">${r.app === "terra" ? "🏔" : "🚜"}</span>
@@ -2543,7 +2546,7 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
         ? `<div class="note">Sto chiedendo a <b>Terra</b> e a <b>Flotta</b> le loro scadenze…</div>`
         : `<div class="note${mancano.length ? " warn" : ""}"><b>Tutta la cava</b> — concessione, mezzi e persone con la stessa regola: `
           + `<b>${conta(u.conto.scadute, "scaduta", "scadute")}</b>, <b>${u.conto.inScadenza} in scadenza</b>, ${conta(u.conto.senzaData, "senza data", "senza data")}, ${conta(u.conto.regolari, "regolare", "regolari")}`
-          + (mancano.length ? `. ⚠️ <b>${mancano.map(a => APP[a][0]).join(" e ")} non ${mancano.length === 1 ? "ha" : "hanno"} risposto</b>: ${mancano.map(a => APP[a][1]).join(" e ")} non ${mancano.length === 1 ? "è" : "sono"} in questo conto, e non ${mancano.length === 1 ? "vale" : "valgono"} zero.` : ".")
+          + (mancano.length ? `. ⚠️ <b>${mancano.map(a => APP[a][0]).join(" e ")} non ${mancano.length === 1 ? "ha" : "hanno"} risposto</b>: ${mancano.map(a => APP[a][1]).join(" e ")} non ${mancano.length === 1 ? APP[mancano[0]][2] : "sono"} in questo conto, e non ${mancano.length === 1 ? APP[mancano[0]][3] : "valgono"} zero.` : ".")
           + (altre.length ? ` Qui sotto ${conta(altre.length, "scadenza delle altre app da guardare", "scadenze delle altre app da guardare")}; le persone stanno nell'elenco più in basso.` : (mancano.length === 2 ? "" : " Concessione e mezzi non hanno niente di scaduto né in scadenza."))
           + `</div>`;
       $("scad-unite").innerHTML = nota + righe; }

@@ -34977,6 +34977,53 @@ console.log("\n— Campo: causali di fermo con chiave ed etichetta —");
 }
 /* ===== fine Genesi · la norma del recettore ===== */
 
+/* ===== Scudo · un appalto senza sito non è «a posto» (03/09, passata in profondità):
+   senza il cantiere valeva la regola del DUVRI, che la firma del DSS non la chiede, e
+   l'appalto col DSS non sottoscritto passava ad A POSTO. Ora `noto:false, serve:null`.
+   Prove SINCRONE e PRIMA del riepilogo. ===== */
+{
+test("Scudo · un appalto senza sito in anagrafe non è «a posto»: non si sa quale documento serve", () => {
+  const OGGI = new Date("2026-09-03T10:00:00");
+  const CAVA = { id: "k1", nome: "Cava", tipo: "cava" };
+  const IMPRESA = { id: "a1", ragioneSociale: "Impresa", attivo: true };
+  /* l'appalto della dimostrazione: DSS coordinato redatto ma NON sottoscritto */
+  const A = scudo.DEMO.appalti.find((x) => x.id === "pa4");
+  const QUAL = scudo.DEMO.documenti;
+  const ap = scudo.DEMO.appaltatori.find((x) => x.id === A.appaltatoreId);
+  eq(scudo.statoAppalto(A, CAVA, ap, QUAL, OGGI).esito, "da-sistemare", "col sito (una cava) il DSS non firmato è un problema vero");
+  const senza = scudo.statoAppalto(A, undefined, ap, QUAL, OGGI);
+  eq(senza.esito, "non-verificato", "⛔ senza il sito lo stesso appalto NON diventa «a posto» (misurato il 03/09: lo diventava)");
+  eq([senza.noto, senza.problemi.length, senza.ignoti.length], [false, 0, 1], "è un buco dichiarato, non un problema e non un verde");
+  eq(senza.coordinamento.stato, "non-decidibile", "il coordinamento si dichiara non decidibile");
+  eq(senza.coordinamento.sigla, "DUVRI", "la sigla resta quella del DUVRI: un sito che non si trova non diventa una cava (contratto già provato)");
+  eq(/sito/i.test(senza.ignoti[0]) && /cava/i.test(senza.ignoti[0]), true, "la ragione nomina il sito e la cava, non un articolo di legge da solo");
+  /* le due porte vere: il modulo salva `cantiereId: null`, e il sito cancellato */
+  eq(scudo.duvriDovuto({ ...A, cantiereId: null }, null).serve, null, "sito mai indicato (null dal modulo): non si può dire");
+  eq(scudo.duvriDovuto({ ...A, cantiereId: "kX" }, undefined).serve, null, "sito non più in anagrafe: non si può dire");
+  /* e il verso opposto: con un sito FUORI cava la regola del DUVRI resta quella di prima */
+  const FUORI = { id: "k2", nome: "Deposito", tipo: "deposito" };
+  eq(scudo.duvriDovuto({ uominiGiorno: 18, rischiValutati: true }, FUORI).serve, true, "fuori cava, 18 uomini-giorno: il DUVRI serve (come prima)");
+  eq(scudo.statoAppalto(A, FUORI, ap, QUAL, OGGI).esito, "a-posto", "fuori cava il documento senza firma è in vigore (il DUVRI la firma non la chiede)");
+  /* il riepilogo per l'ispettore, con l'anagrafe dei siti vuota */
+  const r = scudo.riepilogoAppalti(scudo.DEMO.appalti, [], scudo.DEMO.appaltatori, QUAL, OGGI);
+  eq(r.righe.find((x) => x.appalto.id === "pa4").esito, "non-verificato", "nel riepilogo l'appalto di ripristino resta da verificare, non a posto");
+  eq(r.noto, false, "il riepilogo intero si dichiara non noto");
+});
+
+test("Scudo · il permesso legato a un appalto senza sito dice «non lo sappiamo»", () => {
+  const OGGI = new Date("2026-09-03T10:00:00");
+  const P = scudo.DEMO.permessi.find((p) => p.appaltoId === "pa4") || { appaltoId: "pa4" };
+  const ctx = { appalti: scudo.DEMO.appalti, cantieri: [], appaltatori: scudo.DEMO.appaltatori, documenti: scudo.DEMO.documenti };
+  const v = scudo.impresaPermesso(P, ctx, OGGI);
+  eq(v.esito, "non-verificato", "senza il sito il permesso non è «a posto»");
+  eq([v.noto, v.ignoti.length], [false, 1], "e lo dichiara come buco, non come colpa");
+  eq(scudo.impresaPermesso(P, { ...ctx, cantieri: scudo.DEMO.cantieri }, OGGI).esito, "da-sistemare", "col sito (una cava) torna il problema vero: il DSS non è firmato");
+});
+
+
+}
+/* ===== fine Scudo · appalto senza sito ===== */
+
 /* ══════════════════════════════════════════════════════════════════════
    CORE · LA FRECCIA DELLA CALOTTA: ZERO È UN VALORE (03/09, dal candidato
    «fronte» di B12). `calotta_m||1` leggeva uno zero scritto come «mai

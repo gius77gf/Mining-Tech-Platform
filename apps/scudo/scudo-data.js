@@ -4760,6 +4760,21 @@ export const NATURE_APPALTO = [
 export function duvriDovuto(appalto, cantiere) {
   const a = appalto || {};
   const doc = documentoCoordinamento(cantiere);
+  /* ⛔ UN SITO CHE NON C’È NON È «FUORI CAVA». Misurato il 03/09 svuotando
+     l’anagrafe dei siti nella risposta HTTP del modulo: l’appalto di ripristino
+     della dimostrazione, che ha il DSS coordinato NON sottoscritto, passava da
+     «da sistemare» ad «A POSTO» — perché senza il sito la regola diventava
+     quella del DUVRI, che la firma non la chiede. Il sito manca in due modi
+     veri: il modulo lo lascia facoltativo (`cantiereId: null`) e togliere un
+     sito dall’anagrafe non tocca i suoi appalti. In tutt’e due non si sa se è
+     una cava, quindi non si sa quale documento serve: «non lo sappiamo», non
+     «a posto». La sigla resta quella del DUVRI — un sito che non si trova non
+     diventa una cava con le sue regole — ma il verdetto no. */
+  if (!cantiere)
+    return { ...doc, noto: false, serve: null,
+      perche: "Il sito dell’appalto non è indicato, o non è più in anagrafe: senza sapere se è una cava "
+        + "non si sa se serve il DSS coordinato (art. 9 D.Lgs 624/96) o il DUVRI (art. 26 D.Lgs 81/08), "
+        + "e un appalto di cui non si sa non è un appalto a posto." };
   const rischi = (Array.isArray(a.rischiParticolari) ? a.rischiParticolari : [])
     .map((k) => rischioParticolare(k)).filter(Boolean);
 
