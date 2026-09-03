@@ -274,6 +274,18 @@
   m³), non quella di Terra (ventimila): alla scala sbagliata il triangolo
   chiudeva «implausibile» per costruzione. Il candidato 3 della ricerca di
   Conti è chiuso; la metà del 6 pure; resta il promemoria (decisione 20).
+- [x] **SENTINELLA, SECONDA TORNATA (03/09): un difetto vero, corretto.** 7
+  banchi verdi (222 prove), un banco di 290 asserzioni sulle modali, i filtri
+  e le tendine a 390/320 nei due temi (zero fuori riquadro, zero errori), 5
+  file aperti (lettura PARI alla soglia: schermo, file ARPA e report dicono
+  «Superamento» tutt'e tre), la demo svuotata in 10 casi. Il difetto: su una
+  cava SENZA nessun punto di misura il Quadro mostrava due spunte verdi —
+  «Nessuna allerta… il quadro resta pulito» e «Niente da rincorrere» — vere a
+  vuoto: «tutto a posto» su niente misurato, nella prima schermata di chi
+  apre l'app da zero. Ora dicono «Niente da sorvegliare, ancora» / «Niente in
+  ascolto, quindi niente da rincorrere», con l'icona del sensore. Le 2 tendine
+  tagliate: contate, non ricontate (col puntatore fine restano 6 px fuori; la
+  voce «chiuse» qui sotto vale per il tocco, dove il carattere è 16 px).
 - [x] **SCUDO, PASSATA IN PROFONDITÀ — PARZIALE (03/09): due difetti veri a
   320/390 px, corretti e RIMISURATI dal coordinatore.** Il cantiere è morto col
   limite di crediti prima del rapporto, lasciando sul disco due regole CSS con

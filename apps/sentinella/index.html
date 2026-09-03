@@ -2467,6 +2467,14 @@ textarea.dw-input{
               + `Su ${senzaSoglia.length === 1 ? "<b>un punto</b>" : "<b>" + senzaSoglia.length + " punti</b>"} `
               + `però non è impostata nessuna soglia, quindi lì un superamento non si può riconoscere: `
               + `finché resta così, questa sezione non può dire che sia tutto a posto.`)
+          /* ⛔ e con ZERO punti in ascolto «nessun punto è oltre soglia» è vero
+             a vuoto (03/09): un superamento qui non può nemmeno comparire,
+             quindi il vuoto non è «tutto a posto», è «non c'è niente che
+             ascolti». Stessa spunta tolta anche nelle Allerte, stesso giorno. */
+          : MON.length === 0
+          ? vuoto(I.sensore, "Niente in ascolto, quindi niente da rincorrere",
+              "Non c'è nessun punto di misura, quindi un superamento qui non può comparire: non è un risultato, è un'assenza. "
+              + "I reclami invece si registrano lo stesso, dai <b>Registri</b>, e compaiono qui anche senza punti di misura.")
           : vuoto(I.fatto, "Niente da rincorrere",
               "Nessun punto di misura è oltre soglia e non ci sono reclami aperti. Quando ne comparirà uno, da qui si apre in un tocco l'<b>azione correttiva</b> in Scudo — con un responsabile e una data — e qui resta scritto a che punto è."));
   }
@@ -3911,8 +3919,23 @@ textarea.dw-input{
          se questo elenco è vuoto punti senza soglia non ce ne sono — la frase
          però resta scritta al modo giusto, perché è quella che qualcuno
          leggerà il giorno che la si sposta altrove. */
-      || vuoto(I.fatto, "Nessuna allerta",
-          "Tutti i punti di misura che hanno una soglia sono entro il limite, il programma di monitoraggio è in pari, nessun adempimento è vicino alla scadenza e nessuna taratura registrata sta per scadere. Il quadro resta pulito finché un valore non si avvicina al limite.");
+      /* ⛔ E SU UNA CAVA SENZA NESSUN PUNTO IN ASCOLTO LA FRASE QUI SOTTO ERA
+         VERA A VUOTO (03/09): «tutti i punti che hanno una soglia sono entro il
+         limite» con zero punti, zero righe di programma e zero scadenze — la
+         spunta verde e «il quadro resta pulito» sulla prima schermata di chi
+         ha appena aperto l'app. È l'assenza di un dato letta come un dato
+         favorevole, nella sua forma più semplice. Il cartellone e «il punto
+         messo peggio» lo dicevano già («nessun punto configurato»): questa
+         sezione lo dice allo stesso modo, senza la spunta. */
+      || (MON.length === 0
+        ? vuoto(I.sensore, "Niente da sorvegliare, ancora",
+            "Non c'è nessun punto di misura in ascolto"
+            + (PRG.length ? "" : ", nessuna riga di programma")
+            + (ADE.length ? "" : ", nessuna scadenza registrata")
+            + ": qui non può comparire nessuna allerta, e non vuol dire che sia tutto a posto — vuol dire che non è stato misurato niente. "
+            + "Aggiungi il primo punto dai <b>Monitoraggi</b>: da lì in poi questa sezione dice davvero com'è messa la cava.")
+        : vuoto(I.fatto, "Nessuna allerta",
+          "Tutti i punti di misura che hanno una soglia sono entro il limite, il programma di monitoraggio è in pari, nessun adempimento è vicino alla scadenza e nessuna taratura registrata sta per scadere. Il quadro resta pulito finché un valore non si avvicina al limite."));
 
     $("mon-tot").textContent = MON.length;
     /* ⛔ IL DENOMINATORE È «GIUDICABILI», NON «TUTTI» (decisione 16). «3
