@@ -1,30 +1,29 @@
 # Ultimo ciclo di lavoro automatico
 
-- **Quando**: 2026-09-02, 18:48 UTC
-- **Commit di partenza**: `a038ee85`
+- **Quando**: 2026-09-03, 00:47 UTC
+- **Commit di partenza**: `8e60d844`
 - **Branch**: `claude/scheduled-tasks-remote-control-bk4ap6`
 
 ## Che cosa sta per succedere
 
-Il ciclo riprende dal checkpoint `20260902-*_core-stato-e-3c.md` — trovato
-per **data vera** (`node apps/deepwork-id/tests/date-checkpoint.mjs`).
+Il ciclo riprende dal checkpoint più recente per **data vera**
+(`node apps/deepwork-id/tests/date-checkpoint.mjs`): la giornata del 2
+settembre ha chiuso il ponte 3f (Campo→Conti), il ponte Genesi→Terra, sette
+unità su otto del piano «Genesi fuori dal browser», il verbale di
+riconciliazione di Conti, il cavato in tonnellate, il consumo contro la storia
+in Flotta, e le passate in profondità su Conti, Flotta, Scudo e Sentinella.
 
-Dal canarino delle 12:49 sono entrate le passate in profondità su Campo,
-Sentinella, Terra e sul core, il muro unico delle scadenze (Scudo legge Terra
-e Flotta con una regola sola in `shared/`), e la mappa corretta sulle famiglie
-3c e 3d, che erano già in un posto solo.
-
-Sul disco, **non committato**, sta a metà il ponte **3f — Campo→Conti**, il
-prodotto dichiarato dai rapportini contro il venduto a peso: la funzione
-`confrontoProdottoVenduto` è in `shared/dw-ponti.js` (validata sulla cava
-sintetica), il modulo di Conti ha la lettura da Campo e una dimostrazione
-incompleta che chiama un aiuto per le date relative ancora da scrivere.
+Il giro completo del browser lanciato ieri alle 22:29Z **è morto con la
+sessione** dopo sette minuti (registro fermo alle 22:36, nessun processo
+vivo): va rilanciato **presto nel ciclo**, come dice CLAUDE.md, e nel
+frattempo si lavora solo su test e documenti.
 
 Adesso, in ordine:
-1. finire il modulo (l'aiuto per le date, la dimostrazione copiata da Campo
-   con la prova che sia una copia), `node --check` e `run-kpi`;
-2. il terzo lato nella schermata di riconciliazione di Conti, con i tre esiti
-   (Campo irraggiungibile → avviso e nessuno zero; confrontabile; non in
-   tonnellate);
-3. il banco del browser nei tre modi, la mappa §3f e §6 (→ 11 ponti), la
-   roadmap, il giro `node`, il commit con `-F`, il checkpoint, il push.
+1. rilanciare il giro del browser sulla copia di `8e60d844` e verificare che il
+   registro esista e cresca;
+2. mentre gira: seconde iterazioni sui documenti e sulle suite `node`
+   (candidati rimasti: inventario cumuli in Conti — ricerca 3 —, i tre
+   «numeri di legge» sospesi al testo primario, che NON si scrivono);
+3. a giro finito: `leggi-giro.mjs`, riverifica di ogni KO sul commit
+   corrente prima di aprire un cantiere, aggiornamento della voce di roadmap
+   «I 20 KO del giro del 09/08», checkpoint.
