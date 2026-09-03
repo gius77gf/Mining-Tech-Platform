@@ -236,7 +236,13 @@ body.dw.outdoor-mode{
 .vita.danger::before{
   background:radial-gradient(320px 190px at 6% 0%,rgba(240,95,90,.12),transparent 72%);
 }
-.vita-head{display:flex; align-items:center; gap:12px; margin-bottom:10px}
+.vita-head{display:flex; align-items:center; gap:12px; margin-bottom:10px; flex-wrap:wrap}
+/* Se accanto al titolo non restano almeno 100 px, la pastiglia scende sotto,
+   allineata a destra: a 320 px «DENTRO IL PROGETTO» (148 px) lasciava al
+   titolo 48 px, «SCENDERE» in maiuscolo spaziato non si spezza (72 px) e
+   finiva SOTTO la pastiglia, sovrapposto di 12 px — misurato col Range.
+   A 390 px e oltre non cambia niente: la pastiglia resta sulla riga. */
+.vita-head>.badge{margin-left:auto}
 .vita-ico{
   display:inline-flex; align-items:center; justify-content:center; flex-shrink:0;
   width:44px; height:44px; border-radius:13px; line-height:0; color:var(--app-accent2);
@@ -255,7 +261,7 @@ body.dw.outdoor-mode{
   width:24px; height:24px; stroke:currentColor; fill:none; stroke-width:1.7;
   stroke-linecap:round; stroke-linejoin:round;
 }
-.vita-htxt{flex:1; min-width:0}
+.vita-htxt{flex:1 1 100px; min-width:0}
 .vita-lab{
   font-family:'Barlow',sans-serif; font-size:10px; font-weight:600; letter-spacing:2px;
   text-transform:uppercase; color:var(--muted); line-height:1.35;

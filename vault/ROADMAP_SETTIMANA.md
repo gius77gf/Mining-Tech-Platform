@@ -274,6 +274,23 @@
   m³), non quella di Terra (ventimila): alla scala sbagliata il triangolo
   chiudeva «implausibile» per costruzione. Il candidato 3 della ricerca di
   Conti è chiuso; la metà del 6 pure; resta il promemoria (decisione 20).
+- [x] **TERRA, PASSATA IN PROFONDITÀ (03/09, dopo le schermate nuove):** 5
+  banchi verdi (255 prove, 0 KO, le righe «non ho guardato» lette: 17 barre
+  sotto il minimo del motore dichiarate e non confrontate), 24 schermate
+  guardate (6 voci × 390/320 × scuro/chiaro) più dettaglio e modale
+  dell'inventario a 320, 6 file aperti (4 CSV, il foglio della denuncia, il
+  verbale), i numeri tranquilli con la demo svuotata pezzo per pezzo. **Un
+  difetto vero, corretto**: nel Piano a 320 px la pastiglia «DENTRO IL
+  PROGETTO» non cedeva e il titolo «Fin dove si può scendere» finiva in 48 px,
+  con «SCENDERE» sovrapposto alla pastiglia di 12 px (misurato col `Range`,
+  scuro e chiaro); ora l'intestazione va a capo e la pastiglia scende sotto a
+  destra, a 390 e 430 nessuna coordinata cambia. ⏱️ Osservazione da decidere:
+  il CSV dei rilievi esporta il rilievo **pianificato** senza una colonna
+  `stato`, e ricaricandolo quella riga viene dichiarata persa («il volume non
+  è stato misurato») — un giro di casa nostra che perde una riga, detto ma non
+  chiuso; e tre «0» dichiarati di proposito nel codice (ripresa da cumuli,
+  mesi senza rilievi nel modulo dell'ente, rilievi drone del mese) che
+  seguono un principio diverso dal «—» accanto.
 - [x] **TERRA: IL CSV DEGLI INVENTARI CHE ESCE E SI RI-CARICA (03/09,
   decisione 12a applicata agli inventari).** Una riga per cumulo, il volume non
   misurato scritto VUOTO (mai 0), i numeri col punto — con l'asserzione sul
