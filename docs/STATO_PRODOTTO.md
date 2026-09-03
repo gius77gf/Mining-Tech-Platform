@@ -20,6 +20,41 @@ così un commerciale può farle vedere senza configurare nulla.
 
 ---
 
+## ⚠️ Aggiornamento del 3 settembre — il terzo lato del triangolo, in cinque righe
+
+**Le scorte a piazzale si misurano, non si stimano più.** Terra ha una schermata
+nuova, «Inventario dei cumuli»: la fotografia del piazzale a una data (per ogni
+cumulo il materiale e i metri cubi; un cumulo che nessuno ha misurato resta
+«non misurato», non zero). Conti la legge e chiude il conto che ogni cava fa a
+fine mese — cavato − venduto − variazione delle scorte — in tonnellate, con la
+densità giusta per ciascuno (in banco per il fronte, del listino per i cumuli).
+Se lo scarto non torna, Conti dice il verso: materiale sparito (sfrido,
+ripristino, uscite non pesate) o materiale in più (manca un rilievo, o una
+densità è sbagliata). Il verbale di riconciliazione registra anche questo terzo
+lato, o scrive perché restava stimato.
+
+**Il rapportino del fochino ha l'esito dello sparo.** Colpi esplosi contati e
+colpi mancati con la nota di dove sono e chi bonifica: se non è scritto niente
+l'app dice «non contato», mai «0 mancati». Il pericolo si vede nell'elenco,
+nella scheda, nel PDF e nella cronologia della cava. E i chili di esplosivo
+sono anche per tipo, come li vuole il registro di carico e scarico.
+
+**Un difetto piccolo ma della famiglia peggiore**, trovato leggendo il core: la
+freccia della calotta di una galleria scritta a **zero** (cielo piatto) veniva
+letta come «mai scritta» e i fori di contorno nascevano su un arco di un metro
+che tu avevi tolto. Corretto, con la prova sul sorgente.
+
+**Sei documenti di ricerca esistevano due volte** con lo stesso nome a
+maiuscole diverse: su un computer Windows o Mac il repository non si sarebbe
+scaricato intero. Uniti, e un controllo impedisce che ricapiti.
+
+**Due ricerche nuove, con il delta**: il rapporto di volata (le due mancanze
+vere sono quelle chiuse sopra) e i ruoli in cava — oggi chi entra in
+un'organizzazione vede tutte le app, e le figure di legge (direttore
+responsabile, sorvegliante, RSPP, medico) sono nomine in Scudo, non permessi:
+è la decisione Q1, tua, preparata e non presa. Nella notte la sessione ha
+toccato il limite dei crediti e si è ripresa alle 05:40.
+
 ## ⚠️ Aggiornamento del 2 settembre — la giornata dei ponti
 
 *Il blocco del 30 luglio qui sotto resta vero. Questo dice che cosa è cambiato
