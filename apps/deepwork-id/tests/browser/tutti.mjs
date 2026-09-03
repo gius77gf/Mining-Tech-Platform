@@ -1079,7 +1079,10 @@ async function aspetta(porta, secondi) {
   return false;
 }
 
-const PORTA = process.argv[2] || '8823';
+/* ⚠️ 03/09: lanciato come `tutti.mjs --solo=conti` prendeva «--solo=conti» per
+   la PORTA e moriva provando ad alzare un server lì sopra. La porta è il
+   primo argomento che NON comincia con `--`; se non c'è, 8823. */
+const PORTA = process.argv.slice(2).find((a) => !a.startsWith('--')) || '8823';
 const SU_COPIA = !process.argv.includes('--sulla-viva');
 
 /* ══ IL GIRO GIRA SU UNA COPIA CONGELATA ═══════════════════════════════════
