@@ -426,6 +426,15 @@ body.dw.outdoor-mode{
    ogni pulsante porta la sua parola.                                      */
 .voce .acts{flex:1 1 100%; justify-content:flex-start; gap:6px; margin-top:2px}
 .voce .acts .chg{flex:1 1 0; min-width:0; padding:7px 6px}
+/* ⛔ A 390 px E SOTTO LA PAROLA USCIVA DAL BOTTONE, misurato il 03/09 col
+   Range sui nodi di testo: i tre esiti dividono la riga con le due icone
+   (✎ e foto, 34 px l'una), e a 320 px restano 59 px a testa — «CONFORME»
+   in maiuscolo ne chiede 72, «APPLICABILE» 84. Le tre parole si
+   sovrapponevano l'una sull'altra («CONFORMEPPLICABILE») senza un errore e
+   senza una riga rossa: `overflow:visible`, niente da leggere. Sotto i 400 px
+   i tre esiti prendono la riga intera (30% l'uno) e le icone vanno a capo:
+   rimisurato a 390, 360 e 320 → zero parole fuori dal bottone. */
+@media(max-width:400px){.voce .acts .chg{flex:1 1 30%}}
 .voce .acts .arr{flex:0 0 auto; min-width:34px; min-height:34px}
 .chg.e-ok.active{background:var(--success); border-color:var(--success); color:var(--on-ok)}
 .chg.e-no.active{background:var(--danger); border-color:var(--danger); color:var(--on-dg)}
@@ -440,6 +449,18 @@ body.dw.outdoor-mode{
    è proprio la differenza che conta (l'assenza di un dato non è un dato). */
 .chg.e-na.active{background:var(--chg-na,var(--border2)); border-color:var(--border-hi); color:var(--text)}
 .voce .name{-webkit-line-clamp:3}
+/* ⛔ A 320 px LA PASTIGLIA DEL TIPO DI DOCUMENTO USCIVA DAL NOME E VENIVA
+   TAGLIATA SENZA PUNTINI, misurata il 03/09: «VERBALE DI VERIFICA PERIODICA»
+   chiede 215 px, `.name` ne ha 199, e `overflow:hidden` del nome la mozzava a
+   «…PERIODIC» come se fosse la parola intera. Il nome sotto aveva i suoi
+   puntini; la pastiglia no. A 360 px e sopra ci sta (0 pastiglie tagliate su
+   otto schermate). Qui la pastiglia si stringe al suo contenitore e dichiara
+   il taglio con i puntini, come fa il nome accanto a lei.
+   ⚠️ `inline-block` non è un vezzo: `.badge` è `inline-flex`, e su un
+   contenitore flex `text-overflow` non fa niente — misurato: la pastiglia si
+   chiudeva a «…PERIODIC» senza puntini, cioè tagliata lo stesso. Altezza e
+   larghezza a 390 e 320 px restano identiche (21 px). */
+.name .badge.tag{display:inline-block; max-width:100%; overflow:hidden; text-overflow:ellipsis; vertical-align:bottom}
 .isp-nota{font-style:italic}
 /* ⛔ LA RIGA DELLA PROVA, e ha un colore perché è un avviso, non un consiglio.
    La classe `.avviso` esisteva solo per `.note`: appesa a un `form-hint`
@@ -1542,7 +1563,7 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
 
   <div class="sec">Appalti<span class="cnt" id="appa-count">—</span></div>
   <div id="appa-list"></div>
-  <div class="note">Tocca un appalto per registrare il <b>documento di coordinamento</b>: chi l'ha redatto, quando, e — in cava — se l'impresa l'ha <b>sottoscritto</b>. Non e' un allegato, e' una decisione: un documento senza data non copre nessun periodo.</div>
+  <div class="note">Tocca un appalto per registrare il <b>documento di coordinamento</b>: chi l'ha redatto, quando, e — in cava — se l'impresa l'ha <b>sottoscritto</b>. Non è un allegato, è una decisione: un documento senza data non copre nessun periodo.</div>
 
   <div class="sec">Nuovo appalto</div>
   <div class="form col">
@@ -1565,8 +1586,8 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
         <input class="dw-input" id="appa-costi" type="text" inputmode="decimal" autocomplete="off" placeholder="es. 900">
       </div>
     </div>
-    <div class="form-hint">La <b>durata in uomini-giorno</b> non e' un dettaglio burocratico: sotto i cinque il DUVRI non e' richiesto, sopra si. Lasciarla vuota non rende l'appalto esente &mdash; lo rende <b>indecidibile</b>, e Scudo lo scrive invece di dare un via libera.</div>
-    <div class="form-hint" style="margin-top:9px;">Rischi particolari presenti (art. 26 c.3-bis): se ce n'e' anche uno, nessuna esclusione vale.</div>
+    <div class="form-hint">La <b>durata in uomini-giorno</b> non è un dettaglio burocratico: sotto i cinque il DUVRI non è richiesto, sopra si. Lasciarla vuota non rende l'appalto esente &mdash; lo rende <b>indecidibile</b>, e Scudo lo scrive invece di dare un via libera.</div>
+    <div class="form-hint" style="margin-top:9px;">Rischi particolari presenti (art. 26 c.3-bis): se ce n'è anche uno, nessuna esclusione vale.</div>
     <div class="chgs" id="appa-rischi"></div>
     <div class="frow">
       <button type="button" class="chg" id="appa-valutati" aria-pressed="false" title="Spunta solo dopo aver davvero guardato quali rischi particolari ci sono">Rischi particolari verificati</button>
@@ -1574,7 +1595,7 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
     </div>
   </div>
   <div class="note esito" id="appa-esito"></div>
-  <div class="note">In <b>cava</b> il documento di coordinamento non e' il DUVRI: e' il <b>DSS coordinato</b> (art. 9 D.Lgs 624/96), che il titolare redige valutando anche la valutazione dei rischi che l'impresa gli trasmette, e che l'impresa <b>sottoscrive</b> &mdash; ed e' con quella firma che diventa responsabile della parte di sua competenza. Fuori dalla cava vale la regola generale dell'art. 26 c.3. <b>Nota informativa, non un parere legale</b>: modalita' e obblighi vanno confermati con l'RSPP e il consulente dell'azienda.</div>
+  <div class="note">In <b>cava</b> il documento di coordinamento non è il DUVRI: è il <b>DSS coordinato</b> (art. 9 D.Lgs 624/96), che il titolare redige valutando anche la valutazione dei rischi che l'impresa gli trasmette, e che l'impresa <b>sottoscrive</b> &mdash; ed è con quella firma che diventa responsabile della parte di sua competenza. Fuori dalla cava vale la regola generale dell'art. 26 c.3. <b>Nota informativa, non un parere legale</b>: modalità e obblighi vanno confermati con l'RSPP e il consulente dell'azienda.</div>
 
   <div class="sec">Imprese esterne<span class="cnt" id="appt-count">—</span></div>
   <div id="appt-list"></div>
@@ -1602,7 +1623,7 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
     </div>
   </div>
   <div class="note esito" id="appq-esito"></div>
-  <div class="note">L'art. 26 c.1 lett. a) chiede al committente di acquisire <b>due</b> cose: il <b>certificato camerale</b> e l'<b>autocertificazione</b> dei requisiti di idoneita' tecnico-professionale (art. 47 DPR 445/2000). Il <b>DURC</b> non e' in quell'elenco &mdash; e' obbligatorio nei cantieri (art. 90 c.9) e nella pratica lo chiedono quasi tutti i committenti: Scudo lo tiene fra i documenti utili, non fra gli obblighi dell'art. 26. I documenti finiscono nel <b>registro documenti</b>, con la stessa graffetta e le stesse scadenze di tutti gli altri.</div>
+  <div class="note">L'art. 26 c.1 lett. a) chiede al committente di acquisire <b>due</b> cose: il <b>certificato camerale</b> e l'<b>autocertificazione</b> dei requisiti di idoneità tecnico-professionale (art. 47 DPR 445/2000). Il <b>DURC</b> non è in quell'elenco &mdash; è obbligatorio nei cantieri (art. 90 c.9) e nella pratica lo chiedono quasi tutti i committenti: Scudo lo tiene fra i documenti utili, non fra gli obblighi dell'art. 26. I documenti finiscono nel <b>registro documenti</b>, con la stessa graffetta e le stesse scadenze di tutti gli altri.</div>
 </div>
 
 <div class="page" id="page-perm">
@@ -1637,7 +1658,7 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
         <select class="dw-input" id="perm-cant" style="flex:1 1 180px;"></select>
       </div>
       <div class="frow">
-        <input class="dw-input" id="perm-lavoro" placeholder="Che lavoro e' (es. Pulizia della tramoggia)" style="flex:2 1 240px;">
+        <input class="dw-input" id="perm-lavoro" placeholder="Che lavoro è (es. Pulizia della tramoggia)" style="flex:2 1 240px;">
         <input class="dw-input" id="perm-luogo" placeholder="Dove, con precisione (es. Tramoggia TR-01)" style="flex:1 1 200px;">
       </div>
       <div class="frow">
@@ -1655,14 +1676,14 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
         <select class="dw-input" id="perm-riceve" style="flex:1 1 190px;"></select>
         <select class="dw-input" id="perm-sorveglia" style="flex:1 1 190px;"></select>
       </div>
-      <div class="form-hint">Chi <b>riceve</b> il permesso e' la persona che entra: Scudo controlla che abbia in corso di validita' i corsi che quel tipo di lavoro richiede, leggendoli dallo <b>scadenzario</b> — non da un secondo elenco. Se il lavoro lo fa un'impresa esterna, si sceglie l'<b>appalto</b> qui sotto: i corsi dei suoi addetti li garantisce l'impresa, e quello che si verifica e' la sua qualifica e il documento di coordinamento.</div>
+      <div class="form-hint">Chi <b>riceve</b> il permesso è la persona che entra: Scudo controlla che abbia in corso di validità i corsi che quel tipo di lavoro richiede, leggendoli dallo <b>scadenzario</b> — non da un secondo elenco. Se il lavoro lo fa un'impresa esterna, si sceglie l'<b>appalto</b> qui sotto: i corsi dei suoi addetti li garantisce l'impresa, e quello che si verifica è la sua qualifica e il documento di coordinamento.</div>
       <div class="frow">
         <select class="dw-input" id="perm-appalto" style="flex:2 1 260px;"></select>
         <button class="dw-btn" id="btn-perm" style="margin-left:auto;">Crea la bozza</button>
       </div>
     </div>
     <div class="note esito" id="perm-esito"></div>
-    <div class="note"><b>Nota informativa, non un parere legale.</b> Per gli <b>ambienti sospetti di inquinamento o confinati</b> il <b>D.P.R. 177/2011</b> chiede una <b>procedura di lavoro</b> scritta (art. 3 c.3) che comprenda la fase di soccorso e il coordinamento con il 118 e i Vigili del fuoco, l'individuazione di un <b>rappresentante del datore di lavoro committente</b> presente per tutta la durata (art. 3 c.2), e la <b>qualificazione</b> dell'impresa con formazione e addestramento di tutto il personale impiegato (art. 2). Il permesso di lavoro e' lo strumento con cui quella procedura si applica al singolo intervento: tipi, misure e valori dell'aria che trovi qui sono una <b>base di partenza</b> da adattare al DSS e al DVR della tua cava insieme all'RSPP.</div>
+    <div class="note"><b>Nota informativa, non un parere legale.</b> Per gli <b>ambienti sospetti di inquinamento o confinati</b> il <b>D.P.R. 177/2011</b> chiede una <b>procedura di lavoro</b> scritta (art. 3 c.3) che comprenda la fase di soccorso e il coordinamento con il 118 e i Vigili del fuoco, l'individuazione di un <b>rappresentante del datore di lavoro committente</b> presente per tutta la durata (art. 3 c.2), e la <b>qualificazione</b> dell'impresa con formazione e addestramento di tutto il personale impiegato (art. 2). Il permesso di lavoro è lo strumento con cui quella procedura si applica al singolo intervento: tipi, misure e valori dell'aria che trovi qui sono una <b>base di partenza</b> da adattare al DSS e al DVR della tua cava insieme all'RSPP.</div>
   </div>
 
   <!-- LA SCHEDA DEL SINGOLO PERMESSO -->
@@ -1690,7 +1711,7 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
       <div class="note" id="perm-s-aria-esito"></div>
     </div>
 
-    <div class="sec">Che cosa si puo' fare</div>
+    <div class="sec">Che cosa si può fare</div>
     <div class="form">
       <button class="dw-btn" id="btn-perm-rilascia">Rilascia il permesso</button>
       <button class="dw-btn secondary" id="btn-perm-sospendi">Sospendi</button>
@@ -2767,7 +2788,7 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
        errore di sintassi da vedere. La prova che tiene i due elenchi allineati
        sta in run-kpi ("gli stati del coordinamento sono tutti raggiungibili"). */
     const SC = {
-      "non-decidibile":  ["warn", "Non si puo' dire"],
+      "non-decidibile":  ["warn", "Non si può dire"],
       "non-dovuto":      ["tag", "Non richiesto"],
       "non-redatto":     ["danger", "Non redatto"],
       "senza-data":      ["danger", "Senza data"],
@@ -2902,7 +2923,7 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
           <span class="arr" style="cursor:pointer" title="Rimuovi l'appalto" data-del-appa="${a.id}">✕</span></span></div>`
           + (dire.length ? `<div class="form-hint" style="margin:-4px 0 10px 4px;">${dire.map(x => esc(x)).join("<br>")}</div>` : "");
       }).join("") || vuoto(I.doc, "Nessun appalto registrato",
-          "In una cava le imprese esterne ci sono sempre: chi trasporta, chi ripara, chi perfora, chi ripristina. Finche' questo elenco e' vuoto <b>non dimostra che siano in regola</b>: dimostra che non e' stato compilato.");
+          "In una cava le imprese esterne ci sono sempre: chi trasporta, chi ripara, chi perfora, chi ripristina. Finché questo elenco è vuoto <b>non dimostra che siano in regola</b>: dimostra che non è stato compilato.");
 
       // le imprese, con l'esito della qualifica
       const bQ = { "verificato": ["ok", "Verificato", "st-ok"], "in-scadenza": ["warn", "In scadenza", "st-warn"],
@@ -2912,7 +2933,7 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
       $("appt-list").innerHTML = APPT.map(t => {
         const q = qualificaAppaltatore(t, DOC), b = bQ[q.esito];
         const n = appaltiDiAppaltatore(APPA, t.id).length;
-        const meta = [t.attivita || "attivita' non indicata",
+        const meta = [t.attivita || "attività non indicata",
                       q.quanti ? q.quanti + (q.quanti === 1 ? " documento" : " documenti") : "nessun documento",
                       n ? n + (n === 1 ? " appalto" : " appalti") : "nessun appalto"].join(" · ");
         return `<div class="item ${b[2]}">
@@ -2923,7 +2944,7 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
           <span class="arr" style="cursor:pointer" title="Rimuovi l'impresa" data-del-appt="${t.id}">✕</span></span></div>`
           + `<div class="form-hint" style="margin:-4px 0 10px 4px;">${esc(descriviQualifica(q))}</div>`;
       }).join("") || vuoto(I.persone, "Nessuna impresa esterna",
-          "Registra qui trasportatori, manutentori, ditte di perforazione e imprese di ripristino: e' di loro che l'art. 26 chiede di verificare l'idoneita' tecnico-professionale.");
+          "Registra qui trasportatori, manutentori, ditte di perforazione e imprese di ripristino: è di loro che l'art. 26 chiede di verificare l'idoneità tecnico-professionale.");
 
       // tendine dei form — ricostruite solo quando l'elenco cambia davvero
       const optImp = t => `<option value="${t.id}">${esc(t.ragioneSociale || "senza nome")}</option>`;
@@ -4594,7 +4615,7 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
        appena creata non ha nessun documento: e' esattamente lo stato
        «non verificato», e lasciar credere di aver fatto il lavoro sarebbe la
        bugia piu' comoda che questa schermata possa dire. */
-    esito("appt-esito", nome + " e' in anagrafe, ma NON e' ancora verificata: "
+    esito("appt-esito", nome + " è in anagrafe, ma NON è ancora verificata: "
       + "servono il certificato camerale e l'autocertificazione dei requisiti (art. 26 c.1 lett. a).", "err");
     await refresh();
   };
@@ -4630,10 +4651,10 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
     const impresa = $("appa-impresa").value, cantiere = $("appa-cantiere").value;
     const oggetto = $("appa-oggetto").value.trim();
     if (!impresa) { err("appa-impresa", true); $("appa-impresa").focus();
-      esito("appa-esito", "Scegli l'impresa a cui e' affidato il lavoro.", "err"); return; }
+      esito("appa-esito", "Scegli l'impresa a cui è affidato il lavoro.", "err"); return; }
     err("appa-impresa", false);
     if (!oggetto) { err("appa-oggetto", true); $("appa-oggetto").focus();
-      esito("appa-esito", "Serve dire che lavoro fa: e' l'oggetto dell'appalto.", "err"); return; }
+      esito("appa-esito", "Serve dire che lavoro fa: è l'oggetto dell'appalto.", "err"); return; }
     err("appa-oggetto", false);
     /* ⛔ UN CAMPO VUOTO SI SCRIVE `null`, NON ZERO. `$("appa-ug").value` di un
        campo mai toccato e' la stringa vuota, e `+""` fa 0: salvarlo cosi'
@@ -4902,7 +4923,7 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
   $("btn-appq").onclick = async () => {
     const imp = $("appq-impresa").value, chiave = $("appq-tipo").value;
     if (!imp) { err("appq-impresa", true); $("appq-impresa").focus();
-      esito("appq-esito", "Scegli di quale impresa e' il documento.", "err"); return; }
+      esito("appq-esito", "Scegli di quale impresa è il documento.", "err"); return; }
     err("appq-impresa", false);
     const t = tipoDocAppaltatore(chiave), impresa = APPT.find(x => x.id === imp);
     const rec = { titolo: t.nome + " — " + (impresa ? impresa.ragioneSociale : "impresa"),

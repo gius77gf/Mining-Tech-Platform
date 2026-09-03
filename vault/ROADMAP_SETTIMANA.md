@@ -274,6 +274,18 @@
   m³), non quella di Terra (ventimila): alla scala sbagliata il triangolo
   chiudeva «implausibile» per costruzione. Il candidato 3 della ricerca di
   Conti è chiuso; la metà del 6 pure; resta il promemoria (decisione 20).
+- [x] **SCUDO, PASSATA IN PROFONDITÀ — PARZIALE (03/09): due difetti veri a
+  320/390 px, corretti e RIMISURATI dal coordinatore.** Il cantiere è morto col
+  limite di crediti prima del rapporto, lasciando sul disco due regole CSS con
+  la misura scritta nel commento e sei apostrofi. Niente entra sulla parola di
+  un agente morto: rimisurato con una sonda a `Range` su `HEAD` e sul disco —
+  nella checklist di un'ispezione i tre esiti (conforme / non conforme / non
+  applicabile) uscivano dal bottone in **24 casi su 24 a 320 px e 8 su 24 a
+  390** («Non applicabile», 84 px in 79); dopo, zero a tutt'e due; la pastiglia
+  «Verbale di verifica periodica» a 320 (213 px in 199) ora dichiara il taglio
+  coi puntini invece di mozzarsi. Banchi di Scudo rilanciati sul disco: tutti
+  verdi. ⏱️ La passata COMPLETA (schermate, file, numeri tranquilli) resta da
+  fare: è la prossima.
 - [x] **CAMPO, PASSATA IN PROFONDITÀ (03/09, con le causali nuove): due difetti
   veri, corretti.** 5 banchi verdi (180 prove), 20 scatti (5 voci × 390/320 ×
   due temi) con 0 traboccamenti misurati, 7 file aperti (nessuna chiave esce:
@@ -3679,6 +3691,16 @@ numero scritto dove non era stato misurato niente**.*
   giro più lungo della sessione non finisce mai, e con tre cantieri paralleli
   sulla stessa macchina va a **quattro minuti a passata**. Si rilancia su uno
   stato fermo, presto nel ciclo, e si legge quello che ha fatto.
+  ⏱️ **Terzo giro della giornata, stessa fine** (07:00Z, morto alle ~08:00 col
+  limite di crediti a 11 sezioni; quarto alle 15:50Z, morto alle ~17:00 a 23
+  sezioni: 12 passate sane, **0 KO**, 11 controprove). In tre giri parziali le
+  passate sane sono 7 + 7 + 12, tutte a zero KO, sulle prime sezioni
+  dell'elenco (pagine vive, interi, unità, modali, contrasto del core): la
+  coda dell'elenco — dove stanno i banchi delle app toccate stanotte — non è
+  MAI stata raggiunta. Cioè il giro intero come verifica «una volta per
+  blocco» non esiste più in una giornata a tre interruzioni: la strada è
+  `--solo=` per famiglia, una famiglia per ciclo, e il conto di che cosa
+  resta fuori stampato ogni volta.
   riverifica è cominciata e i primi due fronti hanno risposto in modo opposto,
   che è esattamente perché la sezione 0 esiste:
   ⏱️ **AGGIORNAMENTO DEL GIRO SUCCESSIVO (quello delle 06:56Z, letto alle
