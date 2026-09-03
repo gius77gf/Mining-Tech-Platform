@@ -1842,6 +1842,12 @@ label.item:has(.dw-chk:checked){
   </div>
   <div id="ric-riep"></div>
   <div id="ric-conf"></div>
+  <!-- LE SCORTE A PIAZZALE, MISURATE (03/09): il terzo lato del triangolo
+       cavato − venduto − Δscorte, con gli inventari dei cumuli di Terra. Se i
+       due inventari che racchiudono il periodo ci sono, la variazione delle
+       scorte è una misura e il triangolo chiude su uno scarto con la sua
+       ragione; se no si dice perché, e le scorte restano stimate. -->
+  <div id="ric-scorte"></div>
   <div id="graf-ric"></div>
   <div id="ric-list"></div>
   <!-- IL VERBALE (02/09): il divario qui sopra, scritto con la causa che
@@ -1956,7 +1962,7 @@ label.item:has(.dw-chk:checked){
     descriviScaglione, confrontoCostiMezzi, pesiPesata, xmlFatturaPA,
     produzioneDichiarata, confrontoProdottoVenduto,
     CAUSE_DIVARIO, causaDivario, verbaleDelPeriodo, storicoVerbali,
-    autorizzazioneVigente, densitaDellaCava, cavatoInTonnellate } from "./conti-data.js";
+    autorizzazioneVigente, densitaDellaCava, cavatoInTonnellate, triangolo } from "./conti-data.js";
   /* B8 (14/08): `fileDiAltraTabella` risponde «questa prima riga è
      l'intestazione di un'ALTRA nostra tabella?». È l'unica domanda possibile,
      perché il file SENZA intestazione deve continuare a entrare. */
@@ -2229,6 +2235,9 @@ label.item:has(.dw-chk:checked){
   let RIL = null, rilLetti = false;
   // e l'autorizzazione della cava, sempre da Terra: per la densità in banco
   let AUT = null, autLetti = false;
+  // e gli inventari dei cumuli, da Terra (03/09): il terzo lato del
+  // triangolo. `null` = Terra non ha risposto, e le scorte restano stimate
+  let INV = null, invLetti = false;
   // e i rapportini di Campo, con la stessa regola dei rilievi: `null` vuol
   // dire «Campo non ha risposto», e la schermata lo dice — non lo dà per zero
   let RAPC = null, rapcLetti = false;
@@ -5022,6 +5031,15 @@ label.item:has(.dw-chk:checked){
     try { AUT = db.autorizzazioniTerra ? await db.autorizzazioniTerra() : null; } catch (e) { AUT = null; }
     return AUT;
   }
+  // E gli inventari dei cumuli, stessa regola: una volta sola, quando
+  // servono. ⛔ `null` resta `null`: vuol dire «Terra non ha risposto», e la
+  // schermata lo dice — non lo traduce in «Terra non ha inventari».
+  async function caricaInventariTerra() {
+    if (invLetti) return INV;
+    invLetti = true;
+    try { INV = db.inventariTerra ? await db.inventariTerra() : null; } catch (e) { INV = null; }
+    return INV;
+  }
   // E i costi dei mezzi da Flotta, con la stessa regola: una volta sola,
   // quando servono. ⛔ `null` resta `null`: vuol dire «Flotta non ha risposto»,
   // e la schermata lo deve dire — non tradurlo in «Flotta non ha costi».
@@ -5492,7 +5510,7 @@ label.item:has(.dw-chk:checked){
     if (!rilLetti) {
       $("ric-riep").innerHTML = vuoto("fronte", "Sto leggendo i rilievi di Terra",
         "Il cavato arriva dall'app <b>Terra</b> della stessa organizzazione. Un istante.");
-      $("ric-conf").innerHTML = ""; $("ric-list").innerHTML = ""; $("ric-val").innerHTML = "";
+      $("ric-conf").innerHTML = ""; $("ric-scorte").innerHTML = ""; $("ric-list").innerHTML = ""; $("ric-val").innerHTML = "";
       svuotaGraf("graf-ric");
       return;
     }
@@ -5512,7 +5530,7 @@ label.item:has(.dw-chk:checked){
     // ── stati in cui il confronto non si può fare: si spiega, non si stima ──
     const fermo = (icona, titolo, testo) => {
       $("ric-riep").innerHTML = vuoto(icona, titolo, testo);
-      $("ric-conf").innerHTML = ""; $("ric-list").innerHTML = "";
+      $("ric-conf").innerHTML = ""; $("ric-scorte").innerHTML = ""; $("ric-list").innerHTML = "";
       $("ric-val").innerHTML = ""; svuotaGraf("graf-ric");
       // senza un confronto non c'è un divario da verbalizzare: si mostra solo lo storico, se c'è
       renderVerbale(d1, d2, null, null, null);
@@ -5559,8 +5577,15 @@ label.item:has(.dw-chk:checked){
     const grave = negativo || r.stato === "implausibile";
     const cls = r.stato === "coerente" ? "" : r.stato === "attenzione" ? "attenta" : "grave";
     const pctAbs = Math.abs(r.pct);
+    /* il terzo lato (03/09): se gli inventari dei cumuli di Terra racchiudono
+       il periodo, le scorte NON sono più una stima, e la cassa qui sopra non
+       può più chiamarle così — il suo numero resta cavato meno venduto, e le
+       scorte misurate stanno nel riquadro sotto le due schede */
+    const tri = invLetti ? triangolo(RIL, PES, INV, PRO, AUT, d1, d2) : null;
+    const misurate = !!tri && tri.stato === "chiuso";
     const etichetta = negativo ? "Venduto più di quanto cavato"
       : r.stato === "implausibile" ? "Divario da verificare"
+      : misurate ? "Divario cavato − venduto"
       : "Scorte a piazzale stimate";
     const spiega = negativo
       ? `Nel periodo è uscito dal cancello <b>più materiale di quanto ne sia stato cavato</b>
@@ -5596,6 +5621,7 @@ label.item:has(.dw-chk:checked){
         <div class="conf-n">${m3u(ven.m3)}</div>
         <div class="conf-s"><b>${qt(ven.tConvertite)} t</b> su ${qt(ven.t)} t consegnate, in ${plur(ven.viaggi, "viaggio", "viaggi")}.</div></div>
     </div>`;
+    renderScorte(tri, m3f);
 
     // ── il grafico: due grandezze da guardare una accanto all'altra. Non si
     //    sommano (sono lo stesso materiale contato da due parti), quindi
@@ -5676,6 +5702,92 @@ label.item:has(.dw-chk:checked){
     renderVerbale(d1, d2, r.divario, r.pct, r.stato, m3f);
 
     renderValoreCavato(cav, ven, m3f);
+  }
+
+  // ── Le scorte a piazzale MISURATE: il terzo lato del triangolo (03/09) ──
+  // `tri` null = gli inventari di Terra non sono ancora stati chiesti. Tre
+  // esiti, e in nessuno uno zero al posto di un dato che non c'è:
+  //  · chiuso   → la variazione misurata fra i due inventari (in m³ e in t,
+  //               col verso IN PAROLE), le loro date, lo scarto in giorni dai
+  //               confini del periodo, e la chiusura cavato − venduto − Δscorte
+  //               con lo stato e il verso; i materiali fuori dal conto
+  //               ELENCATI per nome con la ragione;
+  //  · non chiudibile → la ragione (con le parole del modulo) e cosa fare:
+  //               le scorte restano stimate, e la cassa sopra lo dice;
+  //  · no-terra → Terra non risponde: tono avviso, nessun numero di scorte.
+  // Il commento sta QUI e non dentro le stringhe qui sotto: là un commento
+  // HTML sarebbe testo, e i suoi apostrofi chiuderebbero il template.
+  function renderScorte(tri, m3f) {
+    const box = $("ric-scorte"); if (!box) return;
+    if (!tri) {
+      box.innerHTML = `<div class="note">Sto chiedendo a <b>Terra</b> gli inventari dei cumuli…</div>`;
+      return;
+    }
+    if (tri.stato === "no-confronto") { box.innerHTML = ""; return; }
+    if (tri.stato === "no-terra") {
+      box.innerHTML = `<div class="note warn"><b>Gli inventari dei cumuli di Terra non arrivano: le scorte
+        restano stimate.</b> Il divario qui sopra è cavato meno venduto, non una misura del piazzale.
+        Se Terra è attiva e gli inventari sono registrati, riprova fra poco.</div>`;
+      return;
+    }
+    if (tri.stato !== "chiuso") {
+      const cosaFare = tri.stato === "no-inventari"
+        ? `Registra in <b>Terra</b> un inventario dei cumuli a fine periodo — e uno all'inizio, se
+           manca: con due fotografie del piazzale la variazione delle scorte diventa una misura e
+           il triangolo cavato − venduto − scorte si chiude qui.`
+        : tri.stato === "no-densita-cava"
+        ? `Dichiara in <b>Terra</b> la densità in banco della cava, sull'autorizzazione vigente:
+           senza di quella il cavato non si converte in tonnellate e il triangolo non chiude.`
+        : `Scrivi la densità dei prodotti nel <b>Listino</b>, con lo stesso nome che i cumuli hanno
+           in Terra: senza densità i metri cubi a piazzale non diventano tonnellate.`;
+      const s = tri.scorte;
+      const misurataM3 = s && s.calcolabile
+        ? ` Gli inventari però ci sono: fra il ${fmtD(s.inizio.data)} e il ${fmtD(s.fine.data)} il
+            piazzale è <b>${s.deltaM3 > 0 ? "cresciuto di " + m3f(s.deltaM3) + " m³" : s.deltaM3 < 0 ? "diminuito di " + m3f(-s.deltaM3) + " m³" : "invariato"}</b>.`
+        : "";
+      box.innerHTML = `<div class="note recap"><b>Le scorte a piazzale restano stimate</b>:
+        ${esc(tri.perche)}.${misurataM3} ${cosaFare}</div>`;
+      return;
+    }
+    // ── chiuso: la variazione misurata, poi la chiusura ──
+    const s = tri.scorte, st = tri.scorteT, ch = tri.chiusura, cavT = tri.cavatoT, ven = tri.ric.ven;
+    const m3 = (v) => m3f(v) + " m³", tonn = (v) => qt(v) + " t";
+    const inParole = (v, u) => v > 0 ? `<b>cresciute di ${u(v)}</b>` : v < 0 ? `<b>diminuite di ${u(-v)}</b>` : "<b>invariate</b>";
+    const stessoVerso = Math.sign(s.deltaM3) === Math.sign(st.deltaT);
+    const variazione = stessoVerso
+      ? `${inParole(s.deltaM3, m3)}${st.deltaT === 0 ? "" : ", cioè <b>" + tonn(Math.abs(st.deltaT)) + "</b> alle densità del listino"}`
+      : `${inParole(s.deltaM3, m3)} ma, alle densità del listino, ${inParole(st.deltaT, tonn)}: i materiali
+         che crescono e quelli che calano hanno densità diverse`;
+    const quando = (i) => fmtD(i.data) + (i.metodo === "stima" ? " (una stima, non un rilievo)" : "");
+    const scarti = [];
+    if (s.scartoGiorni.inizio > 0) scarti.push(`L'inventario di inizio è di <b>${plur(s.scartoGiorni.inizio, "giorno", "giorni")}</b> prima dell'inizio del periodo`);
+    if (s.scartoGiorni.fine > 0) scarti.push(`L'inventario di fine è di <b>${plur(s.scartoGiorni.fine, "giorno", "giorni")}</b> prima della fine del periodo`);
+    const cls = ch.stato === "coerente" ? "" : ch.stato === "attenzione" ? "attenta" : "grave";
+    const grave = ch.stato === "implausibile";
+    const giudizio = ch.stato === "coerente"
+      ? "sta dentro quello che spiegano lo sfrido e la tolleranza delle misure"
+      : ch.stato === "attenzione" ? "può starci, ma merita un'occhiata"
+      : "troppo per essere sfrido: è un errore da cercare";
+    const versoTxt = ch.verso === "sparito"
+      ? "<b>Materiale che non risulta né venduto né a piazzale</b>: sfrido, ripristino o uscite non pesate."
+      : ch.verso === "in-eccesso"
+      ? "<b>Più materiale venduto e a piazzale di quanto cavato</b>: manca un rilievo, o una densità è sbagliata."
+      : "<b>Cavato, venduto e scorte tornano</b> alla tonnellata.";
+    const scorteTxt = st.deltaT > 0 ? "scorte cresciute di " + tonn(st.deltaT) : st.deltaT < 0 ? "scorte diminuite di " + tonn(-st.deltaT) : "scorte invariate";
+    const fuori = tri.fuori.map((f) => `<b>${esc(f.materiale)}</b>: ${f.mancaIn
+      ? "c'è in un solo inventario (manca in quello di " + (f.mancaIn === "fine" ? "fine" : "inizio") + ")"
+      : esc(f.perche)}`);
+    box.innerHTML = `<div class="cassa${cls ? " " + cls : ""}">
+      <span class="cassa-ico">${grave ? IC.allarme : IC.cumulo}</span>
+      <div><div class="cassa-num">${qt(Math.abs(st.deltaT))}<span class="u"> t</span></div>
+      <div class="cassa-lab">Scorte a piazzale misurate</div></div>
+      <div class="cassa-txt" style="margin-left:auto;text-align:right;">Fra l'inventario del
+        <b>${quando(s.inizio)}</b> e quello del <b>${quando(s.fine)}</b> le scorte sono ${variazione}.${scarti.length ? " " + scarti.join(". ") + "." : ""}</div></div>
+      <div class="note${grave ? " warn" : ""}">Il triangolo chiude a <b>${tonn(Math.abs(ch.scarto))}</b> (il ${perc(ch.pct)} del cavato):
+        cavato ${tonn(cavT.t)} − venduto ${tonn(ven.t)} − ${scorteTxt}. ${versoTxt} Uno scarto così ${giudizio}.${cavT.daVerificare
+          ? " La densità in banco del cavato è un <b>valore tipico da verificare</b> in Terra: lo scarto ne risente."
+          : ""}</div>
+      ${fuori.length ? `<div class="note recap">Fuori dal conto delle scorte — ${fuori.join(" · ")}. La variazione qui sopra è quindi <b>parziale</b>: vale per i materiali misurati in tutt'e due gli inventari e con una densità nel listino.</div>` : ""}`;
   }
 
   // ── Il verbale di riconciliazione: il divario di QUESTO periodo con la sua causa ──
@@ -7913,6 +8025,8 @@ label.item:has(.dw-chk:checked){
   caricaRilievi().then(renderRiconciliazione).catch(() => renderRiconciliazione());
   // e l'autorizzazione della cava, per la densità in banco: stesso passo
   caricaAutorizzazioniTerra().then(renderRiconciliazione).catch(() => renderRiconciliazione());
+  // e gli inventari dei cumuli, per le scorte misurate: stesso passo
+  caricaInventariTerra().then(renderRiconciliazione).catch(() => renderRiconciliazione());
   // e i rapportini di Campo, con lo stesso passo: il terzo lato si riempie da sé
   caricaRapportiniCampo().then(renderRiconciliazione).catch(() => renderRiconciliazione());
 </script>

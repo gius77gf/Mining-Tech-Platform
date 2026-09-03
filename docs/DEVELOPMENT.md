@@ -46,10 +46,10 @@ segnaposto («Funzione nav non ancora pronta»). Per aprirlo davvero si monta
 
 ## Le prove
 
-**2.938 prove girano senza rete e senza browser**, con `node` (contate lanciandole, non a memoria — al 02/09: 2457 + 328 + 75 + 32 + 9 + 8 + 7 + 3 + 19):
+**2.968 prove girano senza rete e senza browser**, con `node` (contate lanciandole, non a memoria — al 02/09: 2487 + 328 + 75 + 32 + 9 + 8 + 7 + 3 + 19):
 
 > ⚠️ **E quel numero conta NOVE suite, non tutto quello che gira.** Il giro
-> `node` completo esegue **3.351** asserzioni su **37** comandi.
+> `node` completo esegue **3.389** asserzioni su **38** comandi.
 > ⏱️ **Dal 09/08 quel numero non si scrive più a mano: lo stampa il giro**
 > (`node apps/deepwork-id/tests/giro-node.mjs`, riga «Asserzioni eseguite dal
 > giro»), col suo denominatore accanto — 22 comandi su 34 hanno una riga da
@@ -78,20 +78,20 @@ segnaposto («Funzione nav non ancora pronta»). Per aprirlo davvero si monta
 > 2.251» mentre il titolo sopra diceva già 2.310: il controllo sorveglia il
 > **totale**, non la prosa che lo spiega. È la quarta forma di invecchiamento
 > raccolta in `CLAUDE.md`.*
-> **Il numero da citare resta 2.938**, e la ragione è che le altre dieci contano
+> **Il numero da citare resta 2.968**, e la ragione è che le altre dieci contano
 > **file, non prove**: `import esistenti` fa un'asserzione per file e `classi
 > orfane` una per pagina, quindi il loro totale si muove ogni volta che nasce un
 > file — un numero che cresce senza che nessuno abbia scritto una prova è un
 > numero che non vuol dire niente. Le sei suite contano **casi**, e per questo
 > sono quelle sorvegliate da `numeri-nei-documenti.mjs`.
 
-E **774 funzioni pure su 774** sono chiamate per nome da quelle prove: tutte e
+E **778 funzioni pure su 778** sono chiamate per nome da quelle prove: tutte e
 sei le app al 100%. Non è «provate bene» — è «non ce n'è nessuna che nessuno ha
 ancora guardato», che è il minimo e finora non c'era.
 
-⚠️ **Quel 774 conta le sei app, non i moduli condivisi**, e la riga di riepilogo
-lo dice («in 6 app»). I condivisi si contano a parte — **197 su 197** in cinque
-moduli: `dw-shell.js` **54/54**, `dw-ponti.js` **53/53**, `genesi-data.js`
+⚠️ **Quel 778 conta le sei app, non i moduli condivisi**, e la riga di riepilogo
+lo dice («in 6 app»). I condivisi si contano a parte — **206 su 206** in cinque
+moduli: `dw-shell.js` **55/55**, `dw-ponti.js` **61/61**, `genesi-data.js`
 **77/77**, `genesi-formato.js` **8/8**, `pointcloud.js` **5/5**. Vanno guardati
 con più attenzione delle app, non con meno: una funzione sbagliata lì sbaglia in
 sei posti insieme.
@@ -233,7 +233,7 @@ vuota**, e nessuno ha riletto quel messaggio d'errore perché **la spiegazione
 c'era già**. Il segno da riconoscere non è l'errore: è la **rinuncia scritta
 accanto**.
 
-**221 esecuzioni che aprono davvero le pagine** in Chromium — banchi distinti,
+**227 esecuzioni che aprono davvero le pagine** in Chromium — banchi distinti,
 ognuno seguito dalla sua **controprova** (Chromium è già installato in
 `/opt/pw-browsers/chromium`, **non** si lancia `playwright install`):
 

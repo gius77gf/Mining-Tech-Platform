@@ -1787,6 +1787,38 @@ export function misureVolataFochino(r) {
            conKg, senzaKg, parziale: kg !== null && senzaKg > 0 };
 }
 
+/* L'ESITO DELLO SPARO sul rapportino del fochino (03/09, dal delta della
+   ricerca sul rapporto di volata: «colpi esplosi contati» e «colpi mancati»
+   erano le due cose che mancavano davvero). Una funzione sola decide i numeri
+   per la lista, il dettaglio e il PDF — così il PDF non può dire una cosa
+   diversa dallo schermo. Le regole del principio del fondatore:
+   · `colpiEsplosi`/`colpiMancati` assenti = NON CONTATI (`contato: false`),
+     mai «0 mancati»: un rapportino vecchio, o uno scritto di fretta, non
+     diventa una volata perfetta per omissione;
+   · un solo numero scritto vale come conto parziale: `contato` resta vero
+     ma `parziale` lo dice, e il mancante si legge `null`;
+   · mancati > fori caricati, o esplosi + mancati > fori: `coerente: false`
+     con la ragione — il conto non si tocca, si dichiara;
+   · con mancati > 0 e senza nota: `notaMancante: true`, perché un colpo
+     mancato senza scritto dov'è e chi bonifica è un pericolo lasciato al
+     turno dopo. */
+export function esitoSparo(r) {
+  const o = r || {};
+  const fori = misureVolataFochino(o).fori;
+  const e = _numRapp(o.colpiEsplosi), m = _numRapp(o.colpiMancati);
+  const esplosi = e !== null && e >= 0 && Number.isInteger(e) ? e : null;
+  const mancati = m !== null && m >= 0 && Number.isInteger(m) ? m : null;
+  const nota = String(o.mancatiNota || "").trim();
+  const contato = esplosi !== null || mancati !== null;
+  const parziale = contato && (esplosi === null || mancati === null);
+  let coerente = true, perche = "";
+  if (mancati !== null && fori > 0 && mancati > fori) { coerente = false; perche = `${mancati} colpi mancati su ${fori} fori caricati`; }
+  else if (esplosi !== null && mancati !== null && fori > 0 && esplosi + mancati > fori) { coerente = false; perche = `${esplosi} esplosi più ${mancati} mancati fanno più dei ${fori} fori caricati`; }
+  else if (esplosi !== null && mancati !== null && fori > 0 && esplosi + mancati < fori) { const k = fori - esplosi - mancati; perche = k === 1 ? "un foro caricato senza esito" : `${k} fori caricati senza esito`; }
+  return { fori, esplosi, mancati, nota, contato, parziale, coerente, perche,
+           pericolo: mancati !== null && mancati > 0, notaMancante: mancati !== null && mancati > 0 && !nota };
+}
+
 /* ⛔ E LA TERZA È LA PIÙ NETTA DELLE TRE: LA FRAMMENTAZIONE POST-VOLATA.
    Misurato il 03/08 premendo il bottone. La scheda a schermo, quando nessuno
    ha valutato niente, **tace**: il riquadro dell'indice oversize sta dentro un

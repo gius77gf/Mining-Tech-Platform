@@ -212,7 +212,7 @@ const APP = ["campo", "conti", "flotta", "scudo", "sentinella", "terra"];
 /* ⏱️ `flotta` 92 → 95 il 02/09: le tre funzioni del ponte Conti→Flotta
    (`chiaveVoceMezzo`, `costiPerConfronto`, `doppioniAllaCifra`), provate in
    run-kpi nel blocco «PONTE CONTI → FLOTTA». Il conto vero è 95/95. */
-const FONDO = { campo: 126, conti: 146, flotta: 97, scudo: 192, sentinella: 143, terra: 70 };
+const FONDO = { campo: 126, conti: 148, flotta: 97, scudo: 192, sentinella: 143, terra: 72 };
 
 /* Quello che resta fuori per un motivo, non per dimenticanza: i caricatori
    dati vogliono la rete e lo SDK, i ponti demo vogliono il localStorage.
@@ -296,7 +296,7 @@ const CONDIVISI = [
      `luogoNearMiss`, `descrizioneNearMiss` — più `CHI_SEGNALA` e
      `bozzaNearMiss`, che sono nuove. Il fondo di `scudo` scende di cinque
      nello stesso momento: i due numeri vanno letti insieme. */
-  { file: "shared/dw-ponti.js", fondo: 53,
+  { file: "shared/dw-ponti.js", fondo: 61,
     perche: "le regole che servono a DUE app: è il posto dove un difetto si moltiplica" },
   /* 40 → 41 il 06/08: `modoDimostrazione`, cioè «questi dati sono veri?».
      Era scritta in quattro varianti dentro quattro pagine (Conti, Scudo,
@@ -316,7 +316,7 @@ const CONDIVISI = [
      senza intestazione. Il fondo si alza DOPO aver visto il conto salire
      (53/53), e si alza perché un fondo che sta cinque sotto il conto vero non
      può più scattare. */
-  { file: "shared/deepwork-id-client/dw-shell.js", fondo: 54,
+  { file: "shared/deepwork-id-client/dw-shell.js", fondo: 55,
     perche: "gli aiuti che tutte le app importano (numeri, date, CSV)" },
   { file: "apps/genesi/pointcloud.js", fondo: 5,
     perche: "il calcolo del volume dal drone: da lì passano i m³ che consumano la concessione" },

@@ -85,7 +85,13 @@ export { VOCI_COSTO, voceCosto, gruppoDiVoce } from "../../shared/dw-ponti.js";
 export { confrontoCostiMezzi, confrontoProdottoVenduto, produzioneDichiarata } from "../../shared/dw-ponti.js";
 /* la densità della cava la dichiara Terra: Conti la legge con le stesse funzioni, non se ne tiene una copia */
 export { autorizzazioneVigente, densitaDellaCava, cavatoInTonnellate } from "../../shared/dw-ponti.js";
-import { gruppoDiVoce, VOCI_COSTO } from "../../shared/dw-ponti.js";
+/* il terzo lato del triangolo (03/09): l'inventario dei cumuli che Terra
+   registra e Conti legge. Le regole vivono in shared perché le usano due app;
+   qui si ri-esportano (identità, pretesa da `nomi-doppi`) e si importano
+   ANCHE, perché `triangolo` qui sotto le chiama — vedi l'avvertenza sopra. */
+export { variazioneScorte, scorteInTonnellate, chiusuraTriangolo, chiaveMateriale, SOGLIA_TRIANGOLO } from "../../shared/dw-ponti.js";
+import { gruppoDiVoce, VOCI_COSTO, autorizzazioneVigente, densitaDellaCava, cavatoInTonnellate,
+         variazioneScorte, scorteInTonnellate, chiusuraTriangolo, chiaveMateriale } from "../../shared/dw-ponti.js";
 
 /* le date RELATIVE a oggi dei rapportini di Campo in dimostrazione: la stessa
    forma di `GIORNI_FA` in apps/campo/campo-data.js, perché quelle righe sono una
@@ -297,6 +303,41 @@ export const DEMO = {
      dimostrazione mostri proprio questo caso. */
   autorizzazioniTerra: [
     { id: "a1", numeroAtto: "Atto n. 128 del 2021 (esempio)", stato: "vigente", materiale: "Sabbia e ghiaia" },
+  ],
+  /* INVENTARI DEI CUMULI di Terra, in dimostrazione (03/09, il terzo lato del
+     triangolo). ⚠️ NON sono una copia della dimostrazione di Terra, e va detto:
+     la cava di dimostrazione di Conti è PICCOLA (i suoi `rilieviTerra` cavano
+     decine di metri cubi, quelli di Terra ventimila) — ogni app racconta la
+     sua cava, e un inventario alla scala di Terra qui faceva chiudere il
+     triangolo «implausibile» per costruzione dei dati (misurato: 923 t di
+     scorte su 236 t cavate). Le forme (i campi, i tre casi) sono le stesse.
+     Tre fotografie, decise PRIMA per far vedere i casi che il conto deve saper
+     dichiarare:
+      · i1 e i2 racchiudono il primo semestre (3 giorni prima dell'inizio e 3
+        prima della fine): la variazione delle scorte è MISURATA;
+      · i3 è una STIMA di fine agosto in cui la sabbia non è misurata
+        (`volumeM3: null`) e le terre di scavo non ci sono: un materiale in un
+        solo inventario NON vale zero nell'altro, resta fuori ed è elencato;
+      · le terre di scavo non hanno una densità nel listino: in tonnellate
+        restano fuori, dichiarate. */
+  inventariTerra: [
+    { id: "i1", data: "2025-12-29", metodo: "drone", cumuli: [
+      { materiale: "Stabilizzato 0/30", volumeM3: 240 },
+      { materiale: "Sabbia lavata 0/4", volumeM3: 115 },
+      { materiale: "Pietrisco 8/12", volumeM3: 62 },
+      { materiale: "Terre di scavo", volumeM3: 30 },
+    ] },
+    { id: "i2", data: "2026-06-27", metodo: "drone", cumuli: [
+      { materiale: "Stabilizzato 0/30", volumeM3: 265 },
+      { materiale: "Sabbia lavata 0/4", volumeM3: 88 },
+      { materiale: "Pietrisco 8/12", volumeM3: 70 },
+      { materiale: "Terre di scavo", volumeM3: 30 },
+    ] },
+    { id: "i3", data: "2026-08-30", metodo: "stima", cumuli: [
+      { materiale: "Stabilizzato 0/30", volumeM3: 250 },
+      { materiale: "Sabbia lavata 0/4", volumeM3: null, nota: "Cumulo in lavorazione: non misurato" },
+      { materiale: "Pietrisco 8/12", volumeM3: 64 },
+    ] },
   ],
   rilieviTerra: [
     { id: "t1", titolo: "Rilievo di fine febbraio", data: "2026-02-28", volumeM3: 31, stato: "elaborato", metodo: "RTK+GCP", gsd: "2" },
@@ -3162,6 +3203,74 @@ export function valoreCavato(m3, prezzoM3) {
   return round2(v * p);
 }
 
+// ============================================================
+// IL TRIANGOLO CHIUSO (03/09): cavato − venduto − Δscorte = scarto
+// ------------------------------------------------------------
+// Il confronto qui sopra ha due lati e chiama il divario «scorte a piazzale
+// STIMATE». Con gli inventari dei cumuli di Terra il terzo lato diventa una
+// MISURA: la variazione delle scorte fra due fotografie del piazzale, e il
+// triangolo chiude su uno scarto che ha una ragione se non torna.
+// Le regole stanno in shared/dw-ponti.js (sezione «l'inventario dei cumuli»);
+// qui si compongono con quello che Conti ha già: la riconciliazione, la
+// densità in banco dell'autorizzazione di Terra, il listino.
+// ============================================================
+
+// La densità con cui si convertono i CUMULI: quella del listino, cioè del
+// materiale SCIOLTO — la giusta per un mucchio a piazzale (il cavato usa
+// invece quella in banco, che dichiara Terra). L'accoppiamento è per nome
+// normalizzato (`chiaveMateriale`): «Sabbia lavata 0/4» e «sabbia  lavata 0/4»
+// sono lo stesso prodotto, «Sabbia 0/4» no. Un prodotto senza densità, o un
+// nome che il listino non ha, risponde null — mai una densità di comodo.
+export function densitaDalListino(prodotti) {
+  const m = new Map();
+  for (const p of Array.isArray(prodotti) ? prodotti : []) {
+    const k = chiaveMateriale(p && p.nome), d = +(p && p.densita);
+    if (k && Number.isFinite(d) && d > 0 && !m.has(k)) m.set(k, d);
+  }
+  return (materiale) => { const d = m.get(chiaveMateriale(materiale)); return d == null ? null : d; };
+}
+
+/* Gli stati in cui il confronto a due lati è fermo: senza cavato e venduto il
+   terzo lato non ha con che cosa chiudere. */
+const RIC_FERMA = { "no-terra": true, "no-cavato": true, "no-venduto": true, "no-densita": true };
+
+// IL TRIANGOLO: cavato (Terra, in banco) − venduto (la pesa) − variazione delle
+// scorte (due inventari di Terra, alle densità del listino) = scarto. Tutto in
+// tonnellate, ognuno con la SUA densità. Ritorna SEMPRE uno `stato`:
+//   no-confronto        · il confronto a due lati è fermo (vedi `riconciliazione`)
+//   no-terra            · gli inventari non arrivano (Terra non risponde)
+//   no-inventari        · nessun inventario usabile, uno solo, o nessuno prima
+//                         dell'inizio: `perche` lo dice con le parole di
+//                         `variazioneScorte`
+//   no-densita-cava     · il cavato non si converte in tonnellate
+//   no-densita-listino  · nessun materiale dell'inventario ha una densità nel listino
+//   chiuso              · la chiusura è calcolabile; `parziale` se qualche
+//                         materiale è fuori dal conto, ed è ELENCATO in `fuori`
+//                         con la ragione (un solo inventario, o senza densità)
+// ⛔ Principio: nessuno zero dove non è misurato. Un materiale in un solo
+// inventario non vale zero nell'altro, un cumulo senza densità non pesa zero:
+// restano fuori, con il nome, e il totale si dichiara parziale.
+export function triangolo(rilievi, pesate, inventari, prodotti, autorizzazioni, dal, al) {
+  const ric = riconciliazione(rilievi, pesate, dal, al);
+  const base = { stato: null, perche: "", ric, cavatoT: null, scorte: null, scorteT: null, chiusura: null, parziale: false, fuori: [] };
+  if (RIC_FERMA[ric.stato]) return { ...base, stato: "no-confronto",
+    perche: "senza il confronto fra cavato e venduto il terzo lato non ha con che cosa chiudere" };
+  const cavatoT = cavatoInTonnellate(ric.cav.m3, densitaDellaCava(autorizzazioneVigente(autorizzazioni)));
+  const scorte = variazioneScorte(inventari, dal, al);
+  if (!scorte.terraRisponde) return { ...base, stato: "no-terra", perche: scorte.perche, cavatoT, scorte };
+  if (!scorte.calcolabile) return { ...base, stato: "no-inventari", perche: scorte.perche, cavatoT, scorte };
+  if (!cavatoT.calcolabile) return { ...base, stato: "no-densita-cava", perche: cavatoT.perche, cavatoT, scorte };
+  // in tonnellate entrano SOLO le righe misurate in tutt'e due gli inventari
+  const scorteT = scorteInTonnellate(scorte.perMateriale.filter((r) => r.confrontabile), densitaDalListino(prodotti));
+  if (!scorteT.calcolabile) return { ...base, stato: "no-densita-listino", perche: scorteT.perche, cavatoT, scorte, scorteT };
+  const chiusura = chiusuraTriangolo(cavatoT.t, ric.ven.t, scorteT.deltaT);
+  const fuori = [
+    ...scorte.nonConfrontabili.map((r) => ({ materiale: r.materiale, perche: "misurato in un solo inventario", mancaIn: r.mancaIn })),
+    ...scorteT.scoperte.map((r) => ({ materiale: r.materiale, perche: "senza densità nel listino", mancaIn: null })),
+  ];
+  return { ...base, stato: "chiuso", cavatoT, scorte, scorteT, chiusura, parziale: fuori.length > 0, fuori };
+}
+
 export async function contiData() {
   let mode = "demo", api = null;
   try {
@@ -3231,6 +3340,20 @@ export async function contiData() {
             .docs.map(d => ({ id: d.id, ...d.data() }));
         } catch (e) { return null; }
       };
+      /* e gli INVENTARI DEI CUMULI di Terra (03/09), sulla stessa istanza: il
+         terzo lato del triangolo. `null` = Terra non risponde (le scorte
+         restano stimate, e la pagina lo dice); `[]` = risponde e non ne ha. */
+      api.inventariTerra = async () => {
+        if (idTerra === undefined) {
+          try { idTerra = await DeepworkID.init({ appId: "terra" }); }
+          catch (e) { idTerra = null; }
+        }
+        if (!idTerra) return null;
+        try {
+          return (await getDocs(idTerra.orgCollection("inventari")))
+            .docs.map(d => ({ id: d.id, ...d.data() }));
+        } catch (e) { return null; }
+      };
       // ── PONTE CON FLOTTA — SOLA LETTURA ───────────────────────────────
       // Stessa forma del ponte con Terra qui sopra: seconda istanza dell'SDK
       // sull'app "flotta", stessa organizzazione, aperta solo la prima volta
@@ -3279,6 +3402,8 @@ export async function contiData() {
       rilieviTerra: async () => mem.rilieviTerra || [],
       // e l'autorizzazione della cava, copiata dalla dimostrazione di Terra (vedi DEMO.autorizzazioniTerra)
       autorizzazioniTerra: async () => mem.autorizzazioniTerra || [],
+      // e gli inventari dei cumuli, copiati dalla dimostrazione di Terra (vedi DEMO.inventariTerra)
+      inventariTerra: async () => mem.inventariTerra || [],
       // e i costi dei mezzi non arrivano da Flotta: sono finti, ma coerenti con
       // i costi d'esempio qui sopra (vedi DEMO.costiFlotta)
       costiFlotta: async () => mem.costiFlotta || [],
@@ -5199,7 +5324,7 @@ export function scartiClientiCsv(text) {
    apertura e non si conservano: chi guarda la schermata a marzo non sa se il
    divario di febbraio era già stato spiegato, e chi lo aveva spiegato non ha
    dove scriverlo. Nel mondo la riconciliazione di inventario è un atto
-   periodico con una causa e una firma (docs/RICERCA_CONTINUA_conti.md, la
+   periodico con una causa e una firma (docs/RICERCA_CONTINUA_CONTI.md, la
    ricerca del 02/09, punto 5 del delta). Qui è un documento per periodo:
    `verbali/{id}: { dal, al, tipo: "cavato"|"prodotto", divario, pct, stato,
    causa, nota, scrittoIl }` — il numero è quello che la schermata mostrava

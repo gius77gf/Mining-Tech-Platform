@@ -727,6 +727,21 @@ a.dw-btn{text-decoration:none}
   <div id="ril-count" class="count"></div>
   <div id="ril-list"></div>
 
+  <!-- L'INVENTARIO DEI CUMULI: la fotografia del piazzale a una data. Sta qui,
+       accanto alle riprese da cumulo, perché parla dello stesso materiale — già
+       estratto, fermo sul piazzale. Conti lo legge per chiudere il triangolo
+       prodotto − venduto = Δ scorte: con due fotografie che racchiudono il
+       periodo la variazione delle scorte è MISURATA, non stimata. Un cumulo
+       senza volume è «non misurato», mai zero: la riga lo dichiara. -->
+  <div class="sec">Inventario dei cumuli <span class="badge tag inline">verso Conti</span></div>
+  <div id="inv-count" class="count"></div>
+  <div id="inv-list"></div>
+  <div class="tools">
+    <button class="dw-btn" id="btn-add-inv" title="Registra la fotografia del piazzale di oggi: un cumulo per riga, col volume in metri cubi">Nuovo inventario</button>
+  </div>
+  <div class="form-hint">Ogni inventario è la <b>fotografia del piazzale</b> a una data: quanti metri cubi <b>sciolti</b> ci sono in ogni cumulo. Con due fotografie che racchiudono un periodo, Conti misura la <b>variazione delle scorte</b> e chiude il conto prodotto − venduto. Il materiale si scrive con lo stesso nome del listino di Conti: è quel nome che gli dà la densità.</div>
+  <div class="note esito" id="inv-esito"></div>
+
   <!-- CONFRONTO FRA DUE RILIEVI: «quanto abbiamo cavato da lì fra marzo e luglio» -->
   <div class="sec">Confronto fra due rilievi</div>
   <div class="form col">
@@ -1003,7 +1018,8 @@ a.dw-btn{text-decoration:none}
            STATI_LOTTO, statoLotto, divarioRecupero, avanzamentoLotto,
            conformitaProgetto,
            volumeMisuratoDiLotto, rilieviFuoriDaiLotti,
-           aEufonica, articoloNumero, descriviIncertezza, ultimoRitaglioNuvola } from "./terra-data.js";
+           aEufonica, articoloNumero, descriviIncertezza, ultimoRitaglioNuvola,
+           inventariOrdinati, riepilogoInventario, cumuliUsabili } from "./terra-data.js";
   /* `plurale` viene da shared/ e non da qui: la regola del singolare c'era
      già, ed è la stessa che usano le altre app. Riscriverla in casa è la
      copia debole che CLAUDE.md censisce — provata riga per riga e buttata. */
@@ -1104,6 +1120,8 @@ a.dw-btn{text-decoration:none}
     // il piano a lotti: una particella divisa in campi, come sulla tavola del
     // progetto di coltivazione
     lotti:  '<svg viewBox="0 0 24 24"><path d="M2.8 5.2h18.4v13.6H2.8z"/><path d="M9.4 5.2v13.6M15.4 5.2v13.6"/><path d="M2.8 12h6.6"/></svg>',
+    // il cumulo sul piazzale: due mucchi, uno davanti all'altro
+    cumuli: '<svg viewBox="0 0 24 24"><path d="M2.5 19.5h19"/><path d="M3.5 19.5c2.2-6.4 4.8-9.6 7.8-9.6s5.6 3.2 7.8 9.6"/><path d="M12.6 19.5c.9-3.4 2.3-5.1 4.2-5.1s3.3 1.7 4.2 5.1"/></svg>',
   };
   // azioni di riga: pittogrammi, non caratteri
   const A = {
@@ -1192,7 +1210,7 @@ a.dw-btn{text-decoration:none}
      chiamare. */
   const marchiaCsv = (el) => { el.download = nomeCsvDimostrazione(el.download, db.mode); return el; };
 
-  let FRO=[], RIL=[], PIA=[], AUT=[], SCA=[], LOT=[];
+  let FRO=[], RIL=[], PIA=[], AUT=[], SCA=[], LOT=[], INV=[];
   let editFro = null;   // id del fronte in modifica (riusa il form "Nuovo fronte"; rilievi/avanzamento restano)
   let editAut = null;   // id dell'autorizzazione in modifica (null = la scheda compilata è nuova)
   let editLot = null;   // id del lotto in modifica (riusa il form "Nuovo lotto")
@@ -1226,9 +1244,9 @@ a.dw-btn{text-decoration:none}
     go(card.getAttribute("data-goto")); refresh();
   });
   async function refresh(){
-    [FRO,RIL,PIA,AUT,SCA,LOT] = await Promise.all([db.fronti(), db.rilievi(), db.piano(),
+    [FRO,RIL,PIA,AUT,SCA,LOT,INV] = await Promise.all([db.fronti(), db.rilievi(), db.piano(),
       db.autorizzazioni ? db.autorizzazioni() : [], db.scadenze ? db.scadenze() : [],
-      db.lotti ? db.lotti() : []]);
+      db.lotti ? db.lotti() : [], db.inventari ? db.inventari() : []]);
     const k = kpiFrom(FRO,RIL,PIA);
     const kn = document.querySelectorAll(".kpis .kpi .n");
     if (kn[0]) kn[0].textContent = fmtM3(k.volumiMese);
@@ -1370,6 +1388,7 @@ a.dw-btn{text-decoration:none}
     renderTitolo();
     renderConformita();
     renderLotti();
+    renderInventari();
     renderDenuncia();
     densitaDaAutorizzazione();   // prima di renderValore: la densità la usano entrambi
     renderValore();
@@ -1377,6 +1396,167 @@ a.dw-btn{text-decoration:none}
     renderTurni();
     grafici();
   }
+
+  // ══════════════════════════════════════════════════════════════════════
+  // L'INVENTARIO DEI CUMULI — la fotografia del piazzale a una data (03/09)
+  // Chi decide se un inventario è usabile, quanti cumuli ha e quanti non sono
+  // misurati è il modulo (`inventariOrdinati`, `riepilogoInventario`,
+  // `cumuliUsabili` di shared/): la pagina LEGGE e disegna. Un cumulo con il
+  // volume vuoto è «non misurato» — esiste, il suo numero no — e resta fuori
+  // dal totale con la dichiarazione accanto, mai sommato come zero.
+  // ══════════════════════════════════════════════════════════════════════
+  const METODI_INV = [["drone", "Rilievo drone"], ["topografico", "Rilievo topografico"], ["stima", "Stima a vista"]];
+  const etMetodoInv = (m) => { const v = METODI_INV.find(x => x[0] === m); return v ? v[1] : m ? esc(String(m)) : "metodo non dichiarato"; };
+  // la stessa frase nella riga, nel dettaglio e nel messaggio dopo il salvataggio
+  const fraseNonMisurati = (n) => conta(n, "cumulo non misurato", "cumuli non misurati");
+  function renderInventari() {
+    const righe = inventariOrdinati(INV);
+    $("inv-list").innerHTML = righe.map(v => {
+      const nm = v.nonMisurati;
+      /* ⛔ la dichiarazione del non misurato sta PRIMA del metodo, e anche
+         nella pastiglia: `.meta` è tagliata a due righe, e nel primo scatto a
+         390 px «1 cumulo non misurato» era finito proprio nella parte con i
+         puntini — la frase per cui la riga esiste, illeggibile. Una pastiglia
+         non va a capo e non si taglia. */
+      const meta = [nm ? fraseNonMisurati(nm) + " su " + v.cumuli : conta(v.cumuli, "cumulo", "cumuli"),
+        v.usabile ? nD(v.volumeM3) + " m³" : "volume non calcolabile: " + v.perche,
+        etMetodoInv(v.metodo)].filter(Boolean).join(" · ");
+      const badge = !v.usabile ? ["warn", "Non usabile"] : nm ? ["warn", conta(nm, "non misurato", "non misurati")] : ["ok", "Completo"];
+      return `<div class="item ${v.usabile && !nm ? "st-accent" : "st-warn"}" data-inv="${esc(v.id)}" title="Tocca per vedere i cumuli di questo inventario">
+      <div class="info"><div class="name">Inventario del ${fmtData(v.data)}</div><div class="meta">${meta}</div></div>
+      <div class="acts"><span class="badge ${badge[0]}">${badge[1]}</span>
+      <button class="arr del" type="button" title="Elimina questo inventario" aria-label="Elimina l'inventario del ${fmtData(v.data)}" data-del-inv="${esc(v.id)}">${A.del}</button></div></div>`;
+    }).join("")
+      || vuoto(I.cumuli, "Nessun inventario dei cumuli",
+          "La variazione delle scorte a piazzale in Conti resta <b>stimata</b> finché non ne registri due: una fotografia all'inizio del periodo e una alla fine.",
+          `<button class="dw-btn secondary mini" data-vuoto-fai="#btn-add-inv">Registra il primo inventario</button>`);
+    const n = righe.length, ultimo = righe.find(v => v.usabile);
+    $("inv-count").innerHTML = n === 0 ? "" : "<b>" + n + "</b> " + (n === 1 ? "inventario" : "inventari")
+      + (ultimo ? " · l'ultimo usabile è del " + fmtData(ultimo.data) : " · nessuno usabile");
+  }
+
+  /* Il dettaglio: i cumuli uno per riga, con la stessa struttura delle liste.
+     La lettura di ogni cumulo la fa `cumuliUsabili` su quel cumulo solo, così
+     l'ordine resta quello scritto e la nota resta accanto al suo mucchio. */
+  function apriInventario(id) {
+    const inv = INV.find(x => x.id === id); if (!inv) return;
+    const r = riepilogoInventario(inv);
+    const righe = (Array.isArray(inv.cumuli) ? inv.cumuli : []).map(c => {
+      const u = cumuliUsabili({ cumuli: [c] });
+      const buono = u.buoni[0] || null, perche = u.scartati[0] ? u.scartati[0].perche : "";
+      const nonMis = !buono && perche === "volume non leggibile";
+      return `<div class="item ${buono ? "st-accent" : "st-warn"}" style="cursor:default;">
+        <div class="info"><div class="name">${esc(c && c.materiale ? c.materiale : "(senza materiale)")}</div>
+        <div class="meta">${buono ? nD(buono.volumeM3) + " m³" : nonMis ? "non misurato" : esc(perche)}${c && c.nota ? " · " + esc(c.nota) : ""}</div></div>
+        ${buono ? "" : `<div class="acts"><span class="badge warn">${nonMis ? "Non misurato" : "Escluso"}</span></div>`}</div>`;
+    }).join("");
+    const corpo = `<p>Fotografia del piazzale del <b>${fmtData(inv.data)}</b> · ${etMetodoInv(inv.metodo)}.</p>
+      ${righe || `<p>Questo inventario non ha nessun cumulo.</p>`}
+      <p style="margin-top:10px;">${r.usabile
+        ? `Totale misurato: <b>${nD(r.volumeM3)} m³</b> su ${conta(r.cumuli, "cumulo", "cumuli")}`
+          + (r.nonMisurati ? ` — <b>${fraseNonMisurati(r.nonMisurati)}</b> ${r.nonMisurati === 1 ? "resta" : "restano"} fuori dal conto, non a zero.` : ".")
+        : `Questo inventario <b>non è usabile</b> (${esc(r.perche)}): Conti non lo conta fra le fotografie del piazzale.`}</p>
+      ${inv.note ? `<p><b>Note:</b> ${esc(inv.note)}</p>` : ""}`;
+    apriModale("Inventario del " + fmtData(inv.data), corpo, [
+      { label: "Chiudi", azione: chiudiModale },
+      { label: "Elimina", cls: "danger", azione: () => { chiudiModale(); eliminaInventario(inv.id); } },
+    ]);
+  }
+
+  async function eliminaInventario(id) {
+    const inv = INV.find(x => x.id === id); if (!inv) return;
+    const r = riepilogoInventario(inv);
+    const ok = await chiedi("Eliminare l'inventario",
+      "La fotografia del piazzale del <b>" + fmtData(inv.data) + "</b> (" + conta(r.cumuli, "cumulo", "cumuli") + ") viene tolta.<br><br>"
+      + "Se era una delle due che racchiudono un periodo, in Conti la variazione delle scorte di quel periodo torna <b>stimata</b>.",
+      "Elimina l'inventario", true);
+    if (!ok) return;
+    await db.rimuovi("inventari", id);
+    esito("inv-esito", "Inventario del " + fmtData(inv.data) + " eliminato.");
+    await refresh();
+  }
+
+  /* La finestra del nuovo inventario: data (oggi), metodo, un cumulo per riga.
+     Il volume è un campo decimale letto con `numeroDaCampo`, come tutti i
+     volumi di questa pagina: vuoto = non misurato (si salva `null`), un numero
+     che non si capisce ferma il salvataggio e dice perché. */
+  /* ⚠️ Le misure sono MISURATE, non scelte: a 390 px la finestra ha 314 px
+     utili, e a 16 px «Sabbia lavata 0/4» vuole 171 px di campo, un volume a
+     cinque cifre 92, la croce una trentina. I nomi veri di un listino sono
+     più lunghi di quelli della dimostrazione («Misto granulare stabilizzato
+     0/30»), quindi il materiale ha una base di 220 px: a 390 px va a capo da
+     solo e prende tutta la riga (314 px, una quarantina di lettere), il volume
+     e la croce stanno sotto; nella finestra larga (404 px) restano tutti su
+     una riga. Il banco lo misura col `scrollWidth` dei campi. */
+  const rigaInv = (m = "", v = "") => `<div class="frow inv-riga" style="gap:6px; margin-bottom:14px;">
+      <div class="fld" style="flex:1 1 220px;"><input class="dw-input inv-mat" type="text" list="inv-materiali" autocomplete="off" placeholder="Materiale (come nel listino)" value="${esc(m)}" aria-label="Materiale del cumulo" title="Il nome del materiale, scritto come nel listino di Conti: è quel nome che gli dà la densità"></div>
+      <div class="fld" style="flex:1 1 92px;"><input class="dw-input dec inv-vol" type="text" inputmode="decimal" autocomplete="off" spellcheck="false" placeholder="m³" value="${esc(v)}" aria-label="Volume del cumulo in metri cubi" title="Volume del cumulo in metri cubi sciolti. La virgola va benissimo: 1250,5. Lasciato vuoto = non misurato."></div>
+      <button class="arr del" type="button" title="Togli questa riga" aria-label="Togli questa riga" data-inv-togli>${A.del}</button></div>`;
+  function nuovoInventario() {
+    const oggi = oggiISO();
+    const materiali = [...new Set(INV.flatMap(i => Array.isArray(i.cumuli) ? i.cumuli.map(c => c && c.materiale) : []).filter(Boolean))].sort((a, b) => a.localeCompare(b, "it"));
+    const corpo = `<p>Un cumulo per riga, col volume in metri cubi <b>sciolti</b>. Un volume lasciato vuoto si salva come <b>non misurato</b>: resta fuori dal totale e la riga lo dice.</p>
+      <label class="fl" for="inv-data">Data dell'inventario</label>
+      <input class="dw-input" id="inv-data" type="date" value="${oggi}" max="${oggi}">
+      <label class="fl" for="inv-metodo">Metodo</label>
+      <select class="dw-input" id="inv-metodo">${METODI_INV.map(m => `<option value="${m[0]}">${m[1]}</option>`).join("")}</select>
+      <span class="fl">Cumuli</span>
+      <div id="inv-righe">${rigaInv()}${rigaInv()}</div>
+      <div class="tools"><button class="dw-btn secondary mini" type="button" id="inv-add-riga">Aggiungi cumulo</button></div>
+      <datalist id="inv-materiali">${materiali.map(m => `<option value="${esc(m)}"></option>`).join("")}</datalist>
+      <div class="note err" id="inv-err"></div>`;
+    const errore = (testo, el) => {
+      $("inv-err").textContent = testo; toast(testo, "err");
+      if (el) { el.classList.add("err"); try { el.focus({ preventScroll: false }); } catch (e) { el.focus(); } }
+    };
+    const salva = async () => {
+      document.querySelectorAll("#modal-body .err").forEach(el => el.classList.remove("err"));
+      const data = $("inv-data").value, metodo = $("inv-metodo").value || null;
+      if (!dataISOEsiste(data)) return errore("Manca la data dell'inventario: è lei a dire di quando è la fotografia del piazzale.", $("inv-data"));
+      if (data > oggi) return errore("Un inventario non può avere una data futura: il piazzale si fotografa, non si prevede.", $("inv-data"));
+      const cumuli = []; let nonMis = 0;
+      for (const riga of document.querySelectorAll("#inv-righe .inv-riga")) {
+        const matEl = riga.querySelector(".inv-mat"), volEl = riga.querySelector(".inv-vol");
+        const mat = matEl.value.trim();
+        const rv = numeroDaCampo(volEl.value, { min: 0, decimali: 2 });
+        if (!mat && rv.vuoto) continue;   // riga lasciata in bianco: non è un cumulo
+        if (!mat) return errore("Un cumulo senza materiale non si può registrare: scrivi che cosa c'è nel mucchio.", matEl);
+        if (!rv.ok && !rv.vuoto) return errore((numIllegibile(rv) ? spiegaNum("il volume di «" + mat + "»", rv, "m³") : "Il volume di «" + mat + "» non può essere negativo.") + " L'inventario non è stato registrato.", volEl);
+        if (rv.vuoto) nonMis++;
+        cumuli.push({ materiale: mat, volumeM3: rv.ok ? rv.valore : null });
+      }
+      if (!cumuli.length) return errore("Serve almeno un cumulo col suo materiale: un inventario senza cumuli non fotografa niente.", document.querySelector("#inv-righe .inv-mat"));
+      await db.aggiungi("inventari", { data, metodo, cumuli });
+      chiudiModale();
+      esito("inv-esito", "Inventario del " + fmtData(data) + " registrato: " + conta(cumuli.length, "cumulo", "cumuli")
+        + (nonMis ? ", di cui " + fraseNonMisurati(nonMis) + " — fuori dal totale finché non lo misuri." : "."), nonMis ? "warn" : undefined);
+      await refresh();
+    };
+    apriModale("Nuovo inventario dei cumuli", corpo, [
+      { label: "Annulla", azione: chiudiModale },
+      { label: "Registra", cls: "primary", azione: salva },
+    ]);
+    $("inv-add-riga").onclick = () => {
+      $("inv-righe").insertAdjacentHTML("beforeend", rigaInv());
+      const ultima = $("inv-righe").querySelector(".inv-riga:last-child .inv-mat"); if (ultima) ultima.focus();
+    };
+    // appena si corregge un campo, il bordo rosso e il messaggio spariscono
+    $("inv-righe").addEventListener("input", (e) => { if (e.target.classList) e.target.classList.remove("err"); $("inv-err").textContent = ""; });
+  }
+  $("btn-add-inv").onclick = nuovoInventario;
+  document.addEventListener("click", async (e) => {
+    const togli = e.target.closest && e.target.closest("[data-inv-togli]");
+    if (togli) { e.stopPropagation();
+      const righe = document.querySelectorAll("#inv-righe .inv-riga");
+      // l'ultima riga non si toglie: si svuota, così c'è sempre dove scrivere
+      if (righe.length > 1) togli.closest(".inv-riga").remove();
+      else togli.closest(".inv-riga").querySelectorAll("input").forEach(i => { i.value = ""; });
+      return; }
+    const del = e.target.closest && e.target.closest("[data-del-inv]");
+    if (del) { e.stopPropagation(); await eliminaInventario(del.getAttribute("data-del-inv")); return; }
+    const riga = e.target.closest && e.target.closest("[data-inv]");
+    if (riga) apriInventario(riga.getAttribute("data-inv"));
+  });
 
   // ══════════════════════════════════════════════════════════════════════
   // GRAFICI — motore condiviso dwGrafici (SVG puro, nessuna libreria)

@@ -186,7 +186,7 @@ pretende che restino uguali). ⛔ Un'app che non risponde è detta per nome —
 «Terra non ha risposto: la concessione non è in questo conto, e non vale
 zero» — e la nota passa in tono avviso. Banco `scudo-scadenze-unite.mjs` nei
 tre esiti. È il responsabile della sicurezza che guarda questo muro, come
-dicono i software HSE censiti in `docs/RICERCA_CONTINUA_scudo.md`.
+dicono i software HSE censiti in `docs/RICERCA_CONTINUA_SCUDO.md`.
 
     grep -c "statoScadenza(" apps/terra/terra-data.js apps/flotta/flotta-data.js shared/dw-ponti.js → 1 · 1 · 3
 ### 3c. Le persone — `lavoratori` (Scudo, Sentinella) e `operatori` (Campo)
@@ -372,7 +372,7 @@ Per onestà, e perché nessuno lo usi per decidere cose che non copre:
 
 | | oggi |
 |---|---|
-| ponti di DATI esistenti | **12** su 56 direzioni *(era 6; il 02/09 sono entrati Flotta→Conti, Conti→Flotta (§3a), Terra→Scudo e Flotta→Scudo (§3b), Campo→Conti (§3f), Genesi→Terra (§4, le nuvole))* |
+| ponti di DATI esistenti | **12** su 56 direzioni *(era 6; il 02/09 sono entrati Flotta→Conti, Conti→Flotta (§3a), Terra→Scudo e Flotta→Scudo (§3b), Campo→Conti (§3f), Genesi→Terra (§4, le nuvole))* — e il 03/09 il ponte Terra→Conti porta anche gli **inventari dei cumuli**, il terzo lato del triangolo: stessa direzione, un dato in più, il conto non sale |
 | ponti di FILE | almeno **1** (Genesi→Sentinella) — mai censiti, vedi §1 |
 | app che nessuno legge | **2** (Sentinella, Deepwork ID) *(era 5: Flotta la legge Conti, Conti la legge Flotta; dal 02/09 Genesi la legge Terra)* |
 | app senza alcuno scambio DATI | **0** — Deepwork ID esclusa, è l'identità *(era 2; Genesi dal 02/09 scrive nell'organizzazione e Terra la legge)* |

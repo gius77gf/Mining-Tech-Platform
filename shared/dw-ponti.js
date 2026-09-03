@@ -1584,3 +1584,163 @@ export function trasformaInMemoria(riga, cambia) {
   if (!cambi) return riga;
   return applicaPercorsi(riga, cambi);
 }
+
+// ══════════════════════════════════════════════════════════════════════
+// PONTE TERRA → CONTI · L'INVENTARIO DEI CUMULI — il terzo lato del triangolo
+// ══════════════════════════════════════════════════════════════════════
+//
+// Il mondo chiude ogni mese un'equazione sola: prodotto − venduto = variazione
+// delle scorte a piazzale. Fino al 03/09 l'ecosistema aveva due lati (il cavato
+// di Terra e il prodotto di Campo contro il venduto a peso di Conti) e il terzo
+// lo chiamava onestamente «scorte a piazzale STIMATE»: un divario, non una
+// misura. L'inventario dei cumuli è la fotografia del piazzale a una data —
+// `{ data, metodo, cumuli: [{ materiale, volumeM3 }] }` — che Terra registra e
+// Conti legge. Con due fotografie che racchiudono il periodo la variazione
+// delle scorte diventa un dato MISURATO, e il triangolo si chiude su un numero
+// che ha una ragione se non torna.
+//
+// Le regole, tutte del principio del fondatore (l'assenza non è un dato):
+//  · un inventario senza data leggibile o senza un cumulo con volume non entra,
+//    e si CONTA fra i non usabili invece di sparire;
+//  · la variazione vuole DUE inventari distinti, uno a (o prima di) l'inizio del
+//    periodo e uno a (o prima di) la fine: con uno solo si dice perché no;
+//  · lo scarto in giorni fra ogni inventario e il confine del periodo si
+//    dichiara (`scartoGiorni`): un inventario di quaranta giorni prima è
+//    onesto, ma chi legge lo deve sapere;
+//  · un cumulo si accoppia al listino per NOME del materiale normalizzato
+//    (`chiaveMateriale`): accenti, maiuscole e spazi non contano. Chi non trova
+//    la densità resta FUORI dal conto e viene elencato — mai contato a zero.
+// Tutte pure: Terra e Conti le importano da qui, non l'una dall'altra.
+
+const _r2 = (x) => Math.round(x * 100) / 100;
+
+/* Il nome con cui un materiale si riconosce fra due app che non condividono un
+   id: senza accenti, minuscolo, spazi normalizzati. «Sabbia lavata 0/4» e
+   «sabbia  lavata 0/4» sono lo stesso cumulo; «Sabbia 0/4» no, e non si prova
+   a indovinare. */
+export function chiaveMateriale(s) {
+  return String(s ?? "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().replace(/\s+/g, " ").trim();
+}
+
+/* I cumuli di un inventario divisi fra quelli che si possono contare e quelli
+   no, con la ragione. Un volume «non misurato» (null, vuoto, testo) NON è zero:
+   il cumulo esiste, il suo numero no. */
+export function cumuliUsabili(inv) {
+  const cumuli = Array.isArray(inv?.cumuli) ? inv.cumuli : [];
+  const buoni = [], scartati = [];
+  for (const c of cumuli) {
+    const v = c?.volumeM3 == null || c.volumeM3 === "" ? NaN : +c.volumeM3;
+    const chiave = chiaveMateriale(c?.materiale);
+    if (chiave && Number.isFinite(v) && v >= 0) buoni.push({ materiale: c.materiale, chiave, volumeM3: v });
+    else scartati.push({ materiale: c?.materiale ?? null, perche: !chiave ? "senza materiale" : "volume non leggibile" });
+  }
+  return { buoni, scartati };
+}
+
+export function inventarioUsabile(inv) {
+  return !!inv && dataISOEsiste(inv.data) && cumuliUsabili(inv).buoni.length > 0;
+}
+
+/* Il volume totale a piazzale in quell'inventario; null se l'inventario non è
+   usabile (niente «0 m³» su un piazzale che nessuno ha misurato). */
+export function volumeInventario(inv) {
+  if (!inventarioUsabile(inv)) return null;
+  return _r2(cumuliUsabili(inv).buoni.reduce((s, c) => s + c.volumeM3, 0));
+}
+
+function _perMateriale(inv) {
+  const m = new Map();
+  for (const c of cumuliUsabili(inv).buoni) {
+    const g = m.get(c.chiave) || { materiale: c.materiale, chiave: c.chiave, m3: 0 };
+    g.m3 = _r2(g.m3 + c.volumeM3); m.set(c.chiave, g);
+  }
+  return m;
+}
+
+/* La variazione delle scorte fra l'inizio e la fine del periodo, materiale per
+   materiale. `inventari` null = Terra non risponde (diverso da «nessun
+   inventario», che è una lista vuota). Ritorna sempre `perche` quando non è
+   calcolabile, e `nonUsabili` conta gli inventari lasciati fuori. */
+export function variazioneScorte(inventari, dal, al) {
+  const vuoto = { inizio: null, fine: null, deltaM3: null, perMateriale: [], calcolabile: false, parziale: false,
+                  scartoGiorni: null, nonUsabili: 0, nonConfrontabili: [], terraRisponde: Array.isArray(inventari), perche: "" };
+  if (!Array.isArray(inventari)) return { ...vuoto, perche: "gli inventari dei cumuli di Terra non arrivano" };
+  if (!dataISOEsiste(dal) || !dataISOEsiste(al) || dal > al) return { ...vuoto, perche: "il periodo non è un intervallo di date leggibile" };
+  const usabili = inventari.filter(inventarioUsabile).sort((a, b) => a.data < b.data ? -1 : a.data > b.data ? 1 : 0);
+  const nonUsabili = inventari.length - usabili.length;
+  if (!usabili.length) return { ...vuoto, nonUsabili,
+    perche: inventari.length ? "nessun inventario dei cumuli è leggibile (data o volumi mancanti)" : "in Terra non c'è nessun inventario dei cumuli" };
+  const primaDi = (d) => { let u = null; for (const i of usabili) { if (i.data <= d) u = i; else break; } return u; };
+  const inizio = primaDi(dal), fine = primaDi(al);
+  if (!inizio) return { ...vuoto, nonUsabili, fine,
+    perche: `nessun inventario dei cumuli a o prima dell'inizio del periodo: il primo è del ${usabili[0].data}` };
+  if (fine === inizio) return { ...vuoto, nonUsabili, inizio, fine,
+    perche: "nel periodo non c'è un secondo inventario: senza la fotografia di fine periodo la variazione non si misura" };
+  const a = _perMateriale(inizio), b = _perMateriale(fine);
+  const chiavi = [...new Set([...a.keys(), ...b.keys()])];
+  /* ⛔ Un materiale che sta in UN solo inventario non vale zero nell'altro:
+     può essere un cumulo finito (allora si scrive 0 m³, di proposito) o un
+     cumulo che quel giorno nessuno ha misurato. Senza quella distinzione la
+     variazione lo conterebbe come sparito o come nato dal nulla — un numero
+     tranquillo su un dato assente. Quindi la riga resta, con `deltaM3: null`,
+     e il totale si dichiara PARZIALE elencando chi manca. */
+  const righe = chiavi.map((k) => {
+    const ia = a.get(k), ib = b.get(k);
+    const confrontabile = !!ia && !!ib;
+    return { materiale: (ib || ia).materiale, chiave: k, inizioM3: ia ? ia.m3 : null, fineM3: ib ? ib.m3 : null,
+             deltaM3: confrontabile ? _r2(ib.m3 - ia.m3) : null, confrontabile,
+             mancaIn: confrontabile ? null : ia ? "fine" : "inizio" };
+  }).sort((x, y) => Math.abs(y.deltaM3 ?? -1) - Math.abs(x.deltaM3 ?? -1));
+  const confrontabili = righe.filter((r) => r.confrontabile);
+  const nonConfrontabili = righe.filter((r) => !r.confrontabile);
+  const scartoGiorni = { inizio: giorniTra(dal, inizio.data), fine: giorniTra(al, fine.data) };
+  if (!confrontabili.length) return { ...vuoto, nonUsabili, inizio, fine, perMateriale: righe, scartoGiorni, nonConfrontabili,
+    perche: "nessun materiale è misurato in tutt'e due gli inventari: la variazione non si può calcolare" };
+  const deltaM3 = _r2(confrontabili.reduce((s, r) => s + r.deltaM3, 0));
+  const n = nonConfrontabili.length;
+  return { inizio, fine, deltaM3, perMateriale: righe, calcolabile: true, nonUsabili, scartoGiorni, nonConfrontabili,
+           parziale: n > 0, terraRisponde: true,
+           perche: n ? `${n === 1 ? "un materiale" : n + " materiali"} ${n === 1 ? "è misurato" : "sono misurati"} in un solo inventario: fuori dal conto` : "" };
+}
+
+/* Da metri cubi SCIOLTI a tonnellate, con la densità che `densitaDi(materiale)`
+   sa dare (in Conti: quella del listino, che è la densità di vendita — cioè
+   del materiale sciolto, la giusta per un cumulo). Chi non ha densità resta
+   fuori ed è elencato in `scoperte`; il totale è `parziale` e lo dice. */
+export function scorteInTonnellate(righe, densitaDi) {
+  const out = { deltaT: null, coperte: [], scoperte: [], calcolabile: false, parziale: false, perche: "" };
+  if (!Array.isArray(righe) || !righe.length) return { ...out, perche: "nessuna variazione per materiale da convertire" };
+  if (typeof densitaDi !== "function") return { ...out, perche: "manca il modo di leggere la densità di un materiale" };
+  let t = 0;
+  for (const r of righe) {
+    const d = +densitaDi(r.materiale);
+    if (Number.isFinite(d) && d > 0) { out.coperte.push({ ...r, densita: d, deltaT: _r2(r.deltaM3 * d) }); t += r.deltaM3 * d; }
+    else out.scoperte.push({ ...r, densita: null });
+  }
+  if (!out.coperte.length) return { ...out, perche: "nessun materiale dell'inventario ha una densità nel listino" };
+  const n = out.scoperte.length;
+  return { ...out, deltaT: _r2(t), calcolabile: true, parziale: n > 0,
+           perche: n ? `${n === 1 ? "un materiale" : n + " materiali"} senza densità nel listino ${n === 1 ? "resta" : "restano"} fuori dal conto` : "" };
+}
+
+/* Le soglie sono in % del cavato e non sono legge: sono la distanza oltre la
+   quale lo scarto non si spiega più con lo sfrido e la tolleranza delle
+   misure. Le stesse della riconciliazione a due lati di Conti. */
+export const SOGLIA_TRIANGOLO = { coerente: 10, attenzione: 35 };
+
+/* cavato − venduto − Δscorte = scarto. Tutto in tonnellate, ognuno con la SUA
+   densità (il cavato quella in banco, il cumulo quella sciolta): è l'unica
+   unità in cui i tre lati si sommano senza un coefficiente inventato.
+   `verso`: «sparito» (scarto > 0: sfrido, ripristino, uscite non pesate),
+   «in-eccesso» (scarto < 0: manca un rilievo, o una densità è sbagliata). */
+export function chiusuraTriangolo(cavatoT, vendutoT, deltaScorteT, soglie = SOGLIA_TRIANGOLO) {
+  const n = (x) => x == null || x === "" ? NaN : +x;
+  const c = n(cavatoT), v = n(vendutoT), s = n(deltaScorteT);
+  const base = { scarto: null, pct: null, stato: null, verso: null, calcolabile: false, perche: "" };
+  if (!Number.isFinite(c) || !(c > 0)) return { ...base, perche: "il cavato in tonnellate non c'è" };
+  if (!Number.isFinite(v)) return { ...base, perche: "il venduto in tonnellate non c'è" };
+  if (!Number.isFinite(s)) return { ...base, perche: "la variazione delle scorte in tonnellate non c'è" };
+  const scarto = _r2(c - v - s), pct = _r2(100 * Math.abs(scarto) / c);
+  const stato = pct <= soglie.coerente ? "coerente" : pct <= soglie.attenzione ? "attenzione" : "implausibile";
+  return { scarto, pct, stato, verso: scarto > 0 ? "sparito" : scarto < 0 ? "in-eccesso" : "pari", calcolabile: true, perche: "" };
+}

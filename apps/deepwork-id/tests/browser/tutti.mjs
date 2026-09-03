@@ -488,6 +488,16 @@ const BANCHI = [
   ['ponte Campo→Conti · controprova', 'conti-ponte-campo.mjs', ['--controprova'], true],
   ['il verbale di riconciliazione di Conti', 'conti-verbale.mjs', []],
   ['verbale di riconciliazione · controprova', 'conti-verbale.mjs', ['--controprova'], true],
+  /* 03/09: il terzo lato del triangolo. Terra registra l'inventario dei
+     cumuli (fotografia del piazzale a una data), Conti lo legge e chiude
+     cavato − venduto − Δscorte in tonnellate, ognuno con la SUA densità.
+     Un cumulo non misurato non vale zero, un materiale senza densità nel
+     listino resta fuori ed è elencato: i due banchi lo pretendono nei tre
+     esiti (chiuso, un inventario solo / nessuno, Terra che non risponde). */
+  ["Terra: l'inventario dei cumuli", 'terra-inventario.mjs', []],
+  ["inventario dei cumuli · controprova", 'terra-inventario.mjs', ['--controprova'], true],
+  ['Conti: le scorte misurate chiudono il triangolo', 'conti-inventario.mjs', []],
+  ['scorte misurate · controprova', 'conti-inventario.mjs', ['--controprova'], true],
   /* 02/09, il verso di ritorno: Flotta chiede a Conti «questa spesa ce l'hai
      anche tu?». Stessa funzione condivisa, stessi tre esiti, stessa controprova. */
   ['il ponte Conti→Flotta nei costi dei mezzi', 'flotta-ponte-conti.mjs', []],
@@ -786,6 +796,11 @@ const BANCHI = [
      uno scratchpad, che alla sessione dopo non esistono. */
   ['il core e i rapportini mai misurati', 'core-rapportini-non-misurati.mjs', []],
   ['rapportini mai misurati · controprova', 'core-rapportini-non-misurati.mjs', ['--controprova'], true],
+  /* 03/09: l'esito dello sparo sul rapportino fochino — colpi esplosi contati
+     e colpi mancati. Assenti = NON CONTATO, mai «0 mancati»; una funzione sola
+     (`esitoSparo` in dw-shell) decide lista, scheda e PDF. */
+  ["il core: l'esito dello sparo (colpi esplosi e mancati)", 'core-esito-sparo.mjs', []],
+  ["esito dello sparo · controprova", 'core-esito-sparo.mjs', ['--controprova'], true],
   /* ⛔ AGGIUNTO IL 07/08, gemello del banco qui sopra sull'ALTRO documento del
      core. Stessa decisione (`misureVolataProgetto` in `shared/`), quarta copia
      debole: documento, scheda e riquadro la chiamavano, l'ELENCO no — e

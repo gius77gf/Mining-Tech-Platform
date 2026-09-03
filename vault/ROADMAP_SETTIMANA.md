@@ -205,7 +205,7 @@
   nel mese sbagliato: rese relative a oggi). Resta da fare la parte che i banchi
   non fanno: **guardare** ogni schermata con gli occhi e aprire i file che
   escono, con la domanda «chi decide i suoi numeri?». La ricerca sulla pesa a
-  ponte (`docs/RICERCA_CONTINUA_conti.md`, 02/09) lascia 5 domande sul
+  ponte (`docs/RICERCA_CONTINUA_CONTI.md`, 02/09) lascia 5 domande sul
   meccanismo da fare al codice — prima fra tutte: **con la tara non registrata,
   chi decide il netto?**
   ✅ **02/09, risposta alla prima domanda, e c'era un difetto vero.** Nella
@@ -224,6 +224,51 @@
   a due pezzi (20 KO voluti). Le altre quattro domande della ricerca restano da
   fare al codice: il nesso pesata→DDT (`fatturaId`/`ddtIds`), la rettifica di
   un netto dopo la fattura, l'identità della pesa che ha pesato.
+- [x] **IL TERZO LATO DEL TRIANGOLO: L'INVENTARIO DEI CUMULI (Terra → Conti,
+  03/09)** — il candidato 3 della ricerca di Conti, «il più grosso». Il mondo
+  chiude ogni mese prodotto − venduto = Δ scorte; da noi il terzo termine era
+  «scorte a piazzale STIMATE», cioè il divario chiamato con un altro nome.
+  Adesso Terra registra l'**inventario dei cumuli** (fotografia del piazzale a
+  una data: `inventari/{id}`, con metodo e cumuli materiale+volume; un cumulo
+  può essere «non misurato» = `null`, e la riga lo dichiara con la pastiglia,
+  mai «0 m³»), con lista, dettaglio, modale «Nuovo inventario» e cancellazione
+  nella schermata Rilievi; Conti lo legge sulla stessa istanza SDK dei rilievi
+  e chiude il triangolo **in tonnellate, ognuno con la SUA densità** (il cavato
+  con quella in banco di Terra, i cumuli con quella del listino, che è del
+  materiale sciolto — accoppiati per nome normalizzato, `chiaveMateriale`).
+  Le regole in `shared/dw-ponti.js` (`cumuliUsabili`, `inventarioUsabile`,
+  `volumeInventario`, `variazioneScorte`, `scorteInTonnellate`,
+  `chiusuraTriangolo`, `SOGLIA_TRIANGOLO`), ri-esportate per identità dalle
+  due app; in Conti `densitaDalListino` e `triangolo` con sette stati, ognuno
+  con la ragione. Tre principi del fondatore scritti nel conto: un materiale
+  misurato in UN solo inventario **non vale zero** nell'altro (resta fuori,
+  elencato, e il totale si dichiara parziale — la prima stesura lo contava
+  −880 m³, ed è stata bocciata dal prototipo in scratchpad); un materiale
+  senza densità nel listino resta fuori, elencato; lo scarto in giorni fra
+  l'inventario e il confine del periodo si dichiara. Prove: 8 su shared, 11 su
+  Conti, 6 su Terra in `run-kpi`; banchi `terra-inventario.mjs` (45 prove, 3
+  difetti rimessi) e `conti-inventario.mjs` (47 prove, 4 esiti, 3 difetti
+  rimessi), registrati in `tutti.mjs`.
+  ⚠️ **La dimostrazione di Conti NON è una copia di quella di Terra**, e la
+  prima stesura lo era: la cava di Conti cava decine di metri cubi, quella di
+  Terra ventimila, e con i cumuli alla scala di Terra il triangolo chiudeva
+  «implausibile» in tutt'e due i periodi — per costruzione dei dati, non per
+  un difetto. Riscalata (H1: Δ 6 m³ = 16,3 t, scarto 55,2 t «sparito», 23%,
+  attenzione; anno: Δ 12 m³ = 22 t, scarto −58,76 t «in eccesso», 17%). Un
+  banco che pretendesse quei 923 t avrebbe blindato una dimostrazione
+  incoerente.
+- [x] **SEI DOCUMENTI DI RICERCA ESISTEVANO DUE VOLTE, con lo stesso nome a
+  maiuscole diverse** (`RICERCA_CONTINUA_CONTI.md` e `RICERCA_CONTINUA_conti.md`,
+  e così campo, flotta, scudo, sentinella, terra) — trovati il 03/09 cercando
+  la ricerca di Conti. Le minuscole erano nate il **14/08** da un agente che
+  cercava il file col nome sbagliato, non lo trovava e ne creava uno: da allora
+  le due serie crescevano ognuna per conto suo (la ricerca del 02/09 scriveva
+  nella minuscola, il delta leggeva la maiuscola). Su Windows e macOS il
+  repository **non si sarebbe clonato intero**. Unite (il contenuto della
+  minuscola in coda alla maiuscola, con la nota), riferimenti corretti, e
+  `tests/omonimi-a-maiuscole.mjs` in `npm test` guarda tutti i 1.818 file
+  tracciati: su `HEAD` prima dell'unione **6 collisioni**, dopo **0**,
+  controprova nei due versi.
 
 ## Task
 - [x] ✅ 02/09 **La fattura elettronica, in tre unità** *(punto 5 di
@@ -709,6 +754,26 @@ chiuse. Le aperte sono **24**; la pagina d'ingresso di
       | scudo · modulo | 154 | 3 | 131 | 21 | **2** | 1 | 7 |
       | scudo · pagina | 157 | 1 | 155 | 1 | **1** | 0 | 1 |
       | **totale** | **2.510** | **97** | **1.743** | **495** | **272** | **45** | **165** |
+      ✅ **IL FRONTE È CHIUSO (03/09), e il difetto vero non era dove la riga lo
+      cercava.** Letti tutti e otto i punti: `lunghezza_m||20` (4814) è la
+      scena 3D, `||1` (7720) è la scala della planimetria PDF, `pref.fori||5`
+      è il numero di righe vuote del rapportino — DISEGNO e moduli, nessun
+      numero che l'utente legge. I `||5`/`||4` della galleria non partono mai
+      su un campo vuoto: `magliaGenerabile` pretende larghezza e altezza
+      scritte prima di generare, e la creazione le scrive. Quello che restava
+      era `calotta_m||1` in QUATTRO punti: **uno zero scritto** («cielo
+      piatto», campo «Freccia calotta» dell'editor) veniva letto come «mai
+      scritta» — misurato estraendo `galleriaArcY` dal sorgente: con la
+      calotta a 0 il contorno a lato stava a **3,29 m su un cielo a 4,00**,
+      identico al caso assente, e i fori di contorno venivano GENERATI su
+      quell'arco. È la famiglia «un controllo che guarda com'è scritto un
+      dato invece di che cosa vale», nella veste `0||1`. Adesso
+      `calottaDetta(v)` (null = non scritta) e `calottaDisegno(v)` (ripiego
+      1 solo per il disegno, dichiarato); chi genera si ferma se non è
+      scritta. Prova **sul sorgente** in `run-kpi` (le tre funzioni si
+      estraggono e si eseguono: 0 → 4,00; assente → 3,29; «1,2» → 3,15), più
+      il conto che nessun `calotta_m||1` resti. Le due famiglie in coda
+      (`+finite` ×3, `max(0,` ×10) restano candidati da leggere.
 
       ⛔ **La riga che salta agli occhi è Genesi · pagina: 119 ripieghi di
       mestiere, tre volte il core e cinque volte chiunque altro** — ed è
@@ -5692,7 +5757,7 @@ numero scritto dove non era stato misurato niente**.*
   nome apre il file sbagliato credendo che sia il più fresco.
 - Le decisioni: `docs/DECISIONI_WEEKEND.md` — pagina d'ingresso in cima.
 - Stato misurato al **18/08** (lanciando le suite, non a memoria):
-  **2.938 prove girano senza rete**. La frase va letta stretta: è la somma
+  **2.968 prove girano senza rete**. La frase va letta stretta: è la somma
   delle **nove** suite che contano asserzioni (`run-kpi` 2396, `run-stile` 327,
   `run-helpers` 75, `run-pointcloud` 32, `claims-convergenza` 19, `run-manifest` 9,
   `run-demo` 8, `bootstrap-rivendicazioni` 7, `fogli-guardati` 3), non tutto ciò che gira nel
@@ -5703,8 +5768,8 @@ numero scritto dove non era stato misurato niente**.*
   sorvegliati ne contavano sette: due convenzioni per lo stesso numero, che è
   il modo più facile di far sembrare sbagliato un conto giusto. Adesso è una
   sola.*
-  Copertura **751/751** e nessuna funzione scoperta; **221 esecuzioni** che
-  aprono le pagine in un browser vero, da **90** file di banco distinti (contati
+  Copertura **751/751** e nessuna funzione scoperta; **227 esecuzioni** che
+  aprono le pagine in un browser vero, da **93** file di banco distinti (contati
   dalla tabella `BANCHI` di `tutti.mjs`, non a occhio dalla cartella, che di
   `.mjs` ne ha di più perché contiene anche gli aiuti — `giro.mjs`,
   `impronta.mjs`, il runner stesso).

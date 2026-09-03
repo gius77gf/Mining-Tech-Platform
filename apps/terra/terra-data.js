@@ -35,6 +35,12 @@
 //                   quotaFondoM (il fondo di QUESTO settore quando il
 //                   progetto ne dà uno diverso da quello generale: vince
 //                   sull'atto), nota }
+//   inventari/{id}: { data (ISO), metodo: drone|topografico|stima,
+//                   cumuli: [{ materiale, volumeM3|null, nota? }], note? }
+//                   — la fotografia del piazzale a una data (03/09): Conti la
+//                   legge per chiudere il triangolo prodotto − venduto =
+//                   Δ scorte. Un cumulo con volumeM3 null è «non misurato»,
+//                   NON zero: si conta a parte e non entra nel totale.
 // I KPI non si salvano mai: si CALCOLANO dai rilievi
 // (volumi mese = somma dei volumi elaborati del mese,
 //  avanzamento piano = estratto anno / pianificato anno).
@@ -221,6 +227,27 @@ export const DEMO = {
        prescrizione c'è, il termine sull'atto è scritto a mano e non si legge —
        e finché non lo si chiarisce non è «a posto», è «non si sa». */
     { id: "t5", tipo: "prescrizione", descrizione: "Prescrizione dell'atto — termine da chiarire con l'ente", dataScadenza: null, preavvisoGiorni: 60, ricorrenzaMesi: null, note: "Sul titolo il termine è illeggibile: chiesto chiarimento." },
+  ],
+  /* L'INVENTARIO DEI CUMULI: la fotografia del piazzale a una data. È il terzo
+     lato del triangolo che Conti chiude (prodotto − venduto = Δ scorte): con
+     due fotografie che racchiudono il periodo la variazione delle scorte è
+     MISURATA, non stimata. I nomi dei materiali combaciano col listino di
+     Conti — tranne «Terre di scavo», fuori listino DI PROPOSITO: è il cumulo
+     che nella conversione in tonnellate resta senza densità e va elencato,
+     non contato a zero. `i3` è una stima con la sabbia «in lavorazione» e il
+     volume a null: quel cumulo esiste, il suo numero no, e la riga lo deve
+     dire («1 cumulo non misurato») invece di sommare uno zero. */
+  inventari: [
+    { id: "i1", data: "2025-12-29", metodo: "drone", cumuli: [
+      { materiale: "Stabilizzato 0/30", volumeM3: 2400 }, { materiale: "Sabbia lavata 0/4", volumeM3: 1150 },
+      { materiale: "Pietrisco 8/12", volumeM3: 620 }, { materiale: "Terre di scavo", volumeM3: 300 } ] },
+    { id: "i2", data: "2026-06-27", metodo: "drone", cumuli: [
+      { materiale: "Stabilizzato 0/30", volumeM3: 3050 }, { materiale: "Sabbia lavata 0/4", volumeM3: 880 },
+      { materiale: "Pietrisco 8/12", volumeM3: 700 }, { materiale: "Terre di scavo", volumeM3: 300 } ] },
+    { id: "i3", data: "2026-08-30", metodo: "stima", cumuli: [
+      { materiale: "Stabilizzato 0/30", volumeM3: 2900 },
+      { materiale: "Sabbia lavata 0/4", volumeM3: null, nota: "Cumulo in lavorazione: non misurato" },
+      { materiale: "Pietrisco 8/12", volumeM3: 640 } ] },
   ],
 };
 
@@ -2259,6 +2286,7 @@ export async function terraData() {
         autorizzazioni: () => read("autorizzazioni"),
         scadenze: () => read("scadenze"),
         lotti: () => read("lotti"),
+        inventari: () => read("inventari"),
         aggiungi: (name, data) => addDoc(id.orgCollection(name), data),
         logout: () => id.logout(),
         aggiorna: (name, docId, data) => updateDoc(doc(id.orgCollection(name), docId), traduciCancellazioni(data, deleteField)),
@@ -2320,6 +2348,9 @@ export async function terraData() {
       autorizzazioni: async () => mem.autorizzazioni,
       scadenze: async () => mem.scadenze,
       lotti: async () => mem.lotti,
+      // `mem.inventari` e non `mem.inventari || []`: se un giorno la
+      // dimostrazione non li avesse, la pagina deve vederlo, non un vuoto
+      inventari: async () => mem.inventari,
       // in dimostrazione i rapportini non arrivano da Campo: sono finti, ma
       // coerenti coi rilievi d'esempio (vedi DEMO.rapportiniCampo)
       rapportiniCampo: async () => mem.rapportiniCampo || [],
@@ -2964,4 +2995,43 @@ export function conformitaProgetto(fronti, lotti, rilievi, autorizzazione) {
       oltrePrevisto, fuoriSequenza,
     },
   };
+}
+
+// ══════════════════════════════════════════════════════════════════════
+// L'INVENTARIO DEI CUMULI (03/09) — il terzo lato del triangolo
+// Le regole stanno in `shared/dw-ponti.js` (sezione «PONTE TERRA → CONTI ·
+// L'INVENTARIO DEI CUMULI»), perché le legge anche Conti: qui si RI-ESPORTANO
+// col nome con cui Terra le chiama — un alias, non una seconda implementazione
+// (`nomi-doppi` pretende l'identità). Sotto, le due funzioni che servono SOLO
+// alla pagina di Terra per disegnare l'elenco: pure, così si provano in `node`.
+// ══════════════════════════════════════════════════════════════════════
+export { inventarioUsabile, volumeInventario, cumuliUsabili, variazioneScorte, chiaveMateriale } from "../../shared/dw-ponti.js";
+import { inventarioUsabile, volumeInventario, cumuliUsabili } from "../../shared/dw-ponti.js";
+
+/* Che cosa dice UNA riga dell'elenco di un inventario. `volumeM3` è null quando
+   l'inventario non è usabile — niente «0 m³» su un piazzale che nessuno ha
+   misurato — e `perche` lo spiega. `nonMisurati` conta i cumuli che hanno un
+   materiale ma non un volume leggibile (null, vuoto, testo): esistono, il loro
+   numero no, e la riga li deve dichiarare invece di sommare uno zero. Un
+   cumulo senza materiale è un altro difetto (lo scarta `cumuliUsabili` con la
+   sua ragione) e NON si conta fra i non misurati. */
+export function riepilogoInventario(inv) {
+  const usabile = inventarioUsabile(inv);
+  const { scartati } = cumuliUsabili(inv);
+  const cumuli = Array.isArray(inv?.cumuli) ? inv.cumuli.length : 0;
+  const nonMisurati = scartati.filter((s) => s.perche === "volume non leggibile").length;
+  const perche = usabile ? "" : !inv || !dataISOEsiste(inv.data) ? "data non leggibile" : "nessun cumulo con un volume";
+  return { usabile, volumeM3: usabile ? volumeInventario(inv) : null, cumuli, nonMisurati, perche };
+}
+
+/* L'elenco per la pagina: dal più recente, ogni voce con i campi del record e il
+   suo riepilogo (`cumuli` qui è il NUMERO dei cumuli; l'elenco vero resta in
+   `record`, che è il documento originale, per il dettaglio). Un inventario con
+   la data illeggibile non sparisce: va in coda, non usabile, con la ragione.
+   Su un valore che non è una lista risponde una lista vuota. */
+export function inventariOrdinati(inventari) {
+  if (!Array.isArray(inventari)) return [];
+  const chiave = (i) => dataISOEsiste(i?.data) ? String(i.data) : "";
+  return inventari.map((inv) => ({ ...inv, ...riepilogoInventario(inv), record: inv }))
+    .sort((a, b) => chiave(b).localeCompare(chiave(a)) || String(a.id ?? "").localeCompare(String(b.id ?? "")));
 }

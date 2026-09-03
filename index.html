@@ -58,7 +58,7 @@
     'closeModal','openModal',
     'addFori','removeFori','setFori','togglePers','markUnsaved','aggiornaTotali',
     'exitRapp','previewRapp','inviaRapp','onCavaChange',
-    'markUnsavedFoc','addResoPhoto','delResoPhoto','exitRappFoc','inviaRappFoc','toggleReso',
+    'markUnsavedFoc','addResoPhoto','delResoPhoto','exitRappFoc','inviaRappFoc','toggleReso','aggiornaEsitoSparo',
     'renderMenu','toggleOutdoor',
     'renderClienti','apriCliente','openClienteForm','openClienteEdit','salvaCliente','confermaDelCliente',
     'renderDashboard','exportRapportinoPDF','exportRapportinoFocPDF','exportLastRapportinoPDF','exportRapportiniXLSX','exportRapportiniMeseCorrentePDF',
@@ -108,7 +108,7 @@ import {
 // per il core e per tutte e sei le app. Quando era scritta in ogni app, le sei
 // leggevano «1.250» in tre modi diversi senza che nessun test se ne accorgesse.
 // È un modulo di sole funzioni pure, senza effetti al caricamento.
-import { numeroScritto, messaggioNumero, perCampo, perLettura, montaGuardiaInteri, isoLocale, meseLocale, motivoDatiNonSalvati, giorniTra, dataIt, misureRapportino, totaliRapportini, misureVolataFochino, misureVolataProgetto, misureFrammentazione, riservaFrammentazione, plurale, conta, foriDalModello } from "./shared/deepwork-id-client/dw-shell.js";
+import { numeroScritto, messaggioNumero, perCampo, perLettura, montaGuardiaInteri, isoLocale, meseLocale, motivoDatiNonSalvati, giorniTra, dataIt, misureRapportino, totaliRapportini, misureVolataFochino, esitoSparo, misureVolataProgetto, misureFrammentazione, riservaFrammentazione, plurale, conta, foriDalModello } from "./shared/deepwork-id-client/dw-shell.js";
 
 // ── Config Firebase ──
 const firebaseConfig = {
@@ -442,11 +442,16 @@ const DEFAULT_RAPPORTINI = [
 ];
 const DEFAULT_RAPPORTINI_FOC = [
   { id:'rf_1', userId:'user_fochino', cavaId:'cava_1', data:'2026-07-15',
-    oi:'14:00', of:'16:30', note:'Volata regolare, nessun fuori sagoma.',
+    oi:'14:00', of:'16:30', note:'Nessun fuori sagoma. Un colpo mancato: vedi esito dello sparo.',
     fori:14, tot_kg:112,
     fori_dettaglio:Array.from({length:14},(_,i)=>({n:i+1,esplosivo:'Emulsione',esplosivo2:'',innesco:'Detonatore a tubo',kg:8})),
+    /* l'esito dello sparo contato: 13 esplosi su 14, uno mancato con la nota
+       che dice dov'e' e chi bonifica (`esitoSparo` in shared/) */
+    colpiEsplosi:13, colpiMancati:1,
+    mancatiNota:'Foro 9, seconda fila: area interdetta 20 m, bonifica prevista domani mattina con il direttore',
     volataId:null, rappPerfId:'rp_1', inviato:'2026-07-15', modificabile:true, reso:'', foto:[] },
-  /* i chili non li ha scritti nessuno: NON e' una volata a vuoto */
+  /* i chili non li ha scritti nessuno: NON e' una volata a vuoto — e l'esito
+     dello sparo non c'e': e' il caso «non contato», che NON e' «0 mancati» */
   { id:'rf_2', userId:'user_fochino', cavaId:'cava_2', data:'2026-07-18',
     oi:'15:00', of:'17:00', note:'Chili da recuperare dal registro del deposito.',
     fori:11, tot_kg:0,
@@ -652,6 +657,25 @@ function focKg(r,vuoto='chili non dichiarati'){
   const m=misureVolataFochino(r);
   if(!m.dichiarato) return vuoto;
   return `${m.parziale?'almeno ':''}${m.kg.toFixed(1)} kg`;
+}
+/* Le PAROLE dell'esito dello sparo — colpi esplosi contati e colpi mancati —
+   scritte una volta sola per la scheda, l'elenco e il PDF del fochino. I
+   numeri li decide `esitoSparo` in shared/: qui non si conta niente, si
+   racconta. «non contato» quando nessuno ha scritto l'esito (che NON è «0
+   mancati»); «contato in parte» quando c'è un numero solo; e la ragione di
+   `esitoSparo` in coda quando il conto non torna con i fori caricati. */
+function fraseEsitoSparo(r){
+  const e=esitoSparo(r);
+  if(!e.contato) return 'non contato';
+  let s;
+  if(e.parziale){
+    s=e.esplosi===null
+      ? `${conta(e.mancati,'colpo mancato','colpi mancati')} — contato in parte: colpi esplosi non scritti`
+      : `${conta(e.esplosi,'colpo esploso','colpi esplosi')} — contato in parte: colpi mancati non scritti`;
+  }else{
+    s=`${conta(e.esplosi,'colpo esploso','colpi esplosi')}, ${e.mancati} ${plurale(e.mancati,'mancato','mancati')}`;
+  }
+  return e.perche?`${s} — ${e.perche}`:s;
 }
 /* Il solo volume, per le celle e i documenti: «—» quando non si sa. */
 function rappMc(r,vuoto='—'){ const m=misureRapportino(r); return m.calcolabile?perLettura(m.mc,1,true):vuoto; }
@@ -2150,7 +2174,36 @@ function initRappFoc(){
   state.rappPhotos=[];
   state.resoVisibile=false;
   aggiornaResoVisibility();
+  // Esito dello sparo: vuoto = non contato, che non è zero
+  if($('rf-esplosi'))$('rf-esplosi').value='';
+  if($('rf-mancati'))$('rf-mancati').value='';
+  if($('rf-mancati-nota'))$('rf-mancati-nota').value='';
+  aggiornaEsitoSparo();
   state.unsavedFoc=false;$('rf-unsaved').style.display='none';$('rf-err').style.display='none';
+}
+/* L'esito dello sparo COME LO SI STA SCRIVENDO: la nota dei colpi mancati
+   compare solo quando i mancati sono più di zero (come il reso), e la riga
+   sotto i campi dice subito se il conto non torna con i fori caricati — con
+   le stesse parole che userà il salvataggio, perché le decide `esitoSparo`. */
+function esitoSparoDalForm(){
+  const foriValidi=(state.rappFocFori||[]).filter(f=>f.esplosivo||f.esplosivo2||f.innesco);
+  return {
+    fori:foriValidi.length,
+    colpiEsplosi:numDaCampo('rf-esplosi',{decimali:0}),
+    colpiMancati:numDaCampo('rf-mancati',{decimali:0}),
+    mancatiNota:$('rf-mancati-nota')?$('rf-mancati-nota').value:''
+  };
+}
+function aggiornaEsitoSparo(){
+  const sec=$('rf-mancati-section'), hint=$('rf-esito-hint');
+  if(!sec||!hint) return;
+  const e=esitoSparo(esitoSparoDalForm());
+  sec.style.display=e.pericolo?'block':'none';
+  if(!e.coerente){ hint.textContent=e.perche; hint.style.color='var(--ink-dg)'; }
+  else if(!e.contato){ hint.textContent='Vuoto = non contato. Il rapportino si salva lo stesso, e lo dice.'; hint.style.color='var(--muted)'; }
+  else if(e.perche){ hint.textContent=e.perche; hint.style.color='var(--ink-wr)'; }
+  else if(e.notaMancante){ hint.textContent='Colpi mancati senza nota: scrivi dove sono e chi bonifica.'; hint.style.color='var(--ink-wr)'; }
+  else { hint.textContent=fraseEsitoSparo(esitoSparoDalForm()); hint.style.color='var(--muted)'; }
 }
 
 // Fori fochino: n.fori, esplosivo, innesco
@@ -2167,10 +2220,10 @@ function addFocFori(n){
       <input type="text" class="cinput" placeholder="Innesco" oninput="setFocForo(${idx-1},'innesco',this.value);markUnsavedFoc()">`;
     tb.appendChild(row);
   }
-  markUnsavedFoc();
+  markUnsavedFoc();aggiornaEsitoSparo();
 }
-function removeFocFori(){if(state.rappFocFori.length<=1){toast('Almeno 1 foro richiesto');return;}state.rappFocFori.pop();$('rf-tbody').removeChild($('rf-tbody').lastChild);markUnsavedFoc();}
-function setFocForo(i,k,v){if(state.rappFocFori[i])state.rappFocFori[i][k]=v;}
+function removeFocFori(){if(state.rappFocFori.length<=1){toast('Almeno 1 foro richiesto');return;}state.rappFocFori.pop();$('rf-tbody').removeChild($('rf-tbody').lastChild);markUnsavedFoc();aggiornaEsitoSparo();}
+function setFocForo(i,k,v){if(state.rappFocFori[i])state.rappFocFori[i][k]=v;aggiornaEsitoSparo();}
 
 function allegaVolataFochino(){
   const vols=DB.volate;
@@ -2287,15 +2340,35 @@ async function inviaRappFoc(e){
       inviato:today(),
       modificabile:true
     };
+    /* L'esito dello sparo: interi, o `null` se il campo è vuoto — mai `+x`,
+       che sul vuoto fa zero e trasforma «non contato» in «0 mancati». La nota
+       vive solo con dei colpi mancati: senza, il suo campo non si vede. */
+    {
+      const ef=esitoSparoDalForm();
+      obj.colpiEsplosi=ef.colpiEsplosi;
+      obj.colpiMancati=ef.colpiMancati;
+      obj.mancatiNota=(ef.colpiMancati!==null&&ef.colpiMancati>0)?String(ef.mancatiNota||'').trim():'';
+    }
     if(state.resoVisibile){
       obj.reso=$('rf-reso')?.value||'';
       obj.foto=[...state.rappPhotos];
     }else{
       obj.reso='';obj.foto=[];
     }
+    /* L'unico caso IMPOSSIBILE — più colpi mancati che fori caricati — ferma il
+       salvataggio con la ragione di `esitoSparo`. Un colpo mancato senza nota
+       invece si salva comunque: è un pericolo da scrivere, non un rapportino
+       da bloccare — e il toast lo dice. */
+    const es=esitoSparo(obj);
+    if(!es.coerente){
+      $('rf-err').textContent='Esito dello sparo: '+es.perche;
+      $('rf-err').style.display='block';
+      return;
+    }
     await fbSet('rapportiniFoc',id,obj);
     state.unsavedFoc=false;state.lastRappFocId=id;
-    toast('Rapportino fochino salvato','success');
+    if(es.notaMancante) toast('Salvato. Colpi mancati senza nota: scrivi dove sono','err');
+    else toast('Rapportino fochino salvato','success');
     nav('home');
   });
 }
@@ -2709,9 +2782,14 @@ function applicaFiltriVolate(){
     const totKg=focANoti.length?focANoti.reduce((s,x)=>s+x.kg,0):null;
     const focASenza=focA.length-focANoti.length;
     const totFori=all.reduce((s,r)=>s+(r.fori||0),0);
-    $('vol-summary').innerHTML=all.length?`<div class="vol-sum"><b>${all.length}</b> ${plurale(all.length,'volata','volate')} · <b>${totFori}</b> ${plurale(totFori,'foro','fori')} · <b>${totKg===null?'—':totKg.toFixed(1)}</b> kg${focASenza?` · ${focASenza} ${focASenza===1?'non dichiara':'non dichiarano'} i chili`:''}</div>`:'';
+    /* l'esito dello sparo: quante volate hanno colpi mancati (pericolo) e
+       quante non hanno l'esito contato — dichiarato, non nascosto */
+    const focEs=all.map(esitoSparo);
+    const conMancati=focEs.filter(x=>x.pericolo).length;
+    const senzaEsito=focEs.filter(x=>!x.contato).length;
+    $('vol-summary').innerHTML=all.length?`<div class="vol-sum"><b>${all.length}</b> ${plurale(all.length,'volata','volate')} · <b>${totFori}</b> ${plurale(totFori,'foro','fori')} · <b>${totKg===null?'—':totKg.toFixed(1)}</b> kg${focASenza?` · ${focASenza} ${focASenza===1?'non dichiara':'non dichiarano'} i chili`:''}${conMancati?` · <b style="color:var(--ink-dg);">${conMancati}</b> ${plurale(conMancati,'volata','volate')} con colpi mancati`:''}${senzaEsito?` · ${senzaEsito} senza esito contato`:''}</div>`:'';
     if(all.length===0){$('vol-list').innerHTML='<div class="empty-state"><div class="empty-icon">💥</div><div class="empty-title">Nessuna volata</div><div class="empty-sub">Non ci sono ancora rapportini fochino</div></div>';return;}
-    $('vol-list').innerHTML=all.map(r=>{const c=DB.cave.find(x=>x.id===r.cavaId);const u=DB.users.find(x=>x.id===r.userId);return`<div class="sitem" onclick="apriRappFocDett('${r.id}')"><div class="av" style="background:linear-gradient(135deg,#ef5350,#c62828);color:#fff;">💥</div><div class="sinfo"><div class="sname">${c?escHtml(c.nome):'—'} · ${fmt(r.data)}</div><div class="ssub">${u?escHtml(u.nome+' '+u.cognome):'—'} · ${conta(r.fori||0,'foro','fori')} · ${focKg(r)}</div></div><div class="sarr">›</div></div>`;}).join('');
+    $('vol-list').innerHTML=all.map(r=>{const c=DB.cave.find(x=>x.id===r.cavaId);const u=DB.users.find(x=>x.id===r.userId);const es=esitoSparo(r);return`<div class="sitem" onclick="apriRappFocDett('${r.id}')"><div class="av" style="background:linear-gradient(135deg,#ef5350,#c62828);color:#fff;">💥</div><div class="sinfo"><div class="sname">${c?escHtml(c.nome):'—'} · ${fmt(r.data)}</div><div class="ssub">${es.pericolo?`<span class="scad-badge danger" style="margin:0 4px 0 0;">${conta(es.mancati,'colpo mancato','colpi mancati')}</span>`:''}${u?escHtml(u.nome+' '+u.cognome):'—'} · ${conta(r.fori||0,'foro','fori')} · ${focKg(r)}</div></div><div class="sarr">›</div></div>`;}).join('');
     return;
   }
   const totAll=totaliRapportini(all);
@@ -2733,6 +2811,9 @@ function apriRappFocDett(id){
     const kg=misureVolataFochino({fori:1,tot_kg:f&&f.kg,fori_dettaglio:[f||{}]});
     return `<div class="preview-row"><span class="preview-lab">Foro ${i+1}</span><span class="preview-val">${escHtml(f.esplosivo||'—')}${f.esplosivo2?' + '+escHtml(f.esplosivo2):''} · ${escHtml(f.innesco||'—')} · ${kg.dichiarato?kg.kg.toFixed(1)+' kg':'<span style="color:var(--muted)">kg non scritti</span>'}</span></div>`;
   }).join('');
+  /* l'esito dello sparo: i numeri li decide `esitoSparo`, le parole
+     `fraseEsitoSparo` — le stesse del PDF, che esce da questa scheda */
+  const es=esitoSparo(r);
   openModal(`Volata ${fmt(r.data)}`,`
     <div class="preview-sec">
       <div class="preview-row"><span class="preview-lab">Cava</span><span class="preview-val">${escHtml(c?c.nome:'—')}</span></div>
@@ -2741,6 +2822,11 @@ function apriRappFocDett(id){
       <div class="preview-row"><span class="preview-lab">Fori</span><span class="preview-val">${misureVolataFochino(r).fori}</span></div>
       <div class="preview-row"><span class="preview-lab">Esplosivo tot.</span><span class="preview-val">${focKg(r,'non dichiarato: nessun foro porta i chili')}</span></div>
       ${misureVolataFochino(r).parziale?`<div class="preview-row"><span class="preview-lab"></span><span class="preview-val" style="color:var(--muted);font-size:12px;">${conta(misureVolataFochino(r).senzaKg,'foro','fori')} su ${misureVolataFochino(r).fori} non dichiarano i chili: il totale è un minimo</span></div>`:''}
+    </div>
+    <div class="preview-sec">
+      <div class="preview-row"><span class="preview-lab">Esito dello sparo</span><span class="preview-val" id="rfd-esito" style="${es.pericolo?'color:var(--ink-dg);':(es.contato?'':'color:var(--muted);')}">${escHtml(fraseEsitoSparo(r))}${es.pericolo?` <span class="scad-badge danger">${conta(es.mancati,'colpo mancato','colpi mancati')}</span>`:''}</span></div>
+      ${es.nota?`<div class="preview-row"><span class="preview-lab"></span><span class="preview-val" id="rfd-esito-nota" style="font-weight:500;font-size:12px;">${escHtml(es.nota)}</span></div>`:''}
+      ${es.notaMancante?`<div class="preview-row"><span class="preview-lab"></span><span class="preview-val" id="rfd-esito-nota" style="color:var(--ink-dg);font-size:12px;">senza nota: dove sono?</span></div>`:''}
     </div>
     ${foriRows?`<div class="preview-sec">${foriRows}</div>`:''}
     ${r.note?`<div class="preview-sec"><div class="preview-head">Note</div><div style="font-size:13px;">${escHtml(r.note)}</div></div>`:''}
@@ -4376,6 +4462,28 @@ function exportRapportinoFocPDF(r){
       y=d.lastAutoTable.finalY+6;
     }
   }
+  /* L'ESITO DELLO SPARO, con le STESSE parole della scheda: le decide
+     `fraseEsitoSparo`, i numeri `esitoSparo`. «non contato» quando nessuno
+     l'ha scritto — mai «0 mancati» inventato; la nota dei colpi mancati
+     quando c'è, e quando manca lo si dice, perché un colpo mancato senza
+     scritto dov'è resta al turno dopo. */
+  {
+    const es=esitoSparo(r);
+    d.setDrawColor(239,83,80);d.setLineWidth(0.4);d.line(14,y,196,y);y+=4;
+    d.setFont('helvetica','bold');d.setFontSize(10);d.text('ESITO DELLO SPARO',14,y);y+=5;
+    d.setFont('helvetica','normal');d.setFontSize(9);
+    if(es.pericolo)d.setTextColor(192,32,28);
+    d.text(`Esito dello sparo: ${fraseEsitoSparo(r)}`,14,y);y+=5;
+    d.setTextColor(40,40,40);
+    if(es.nota){
+      const lines=d.splitTextToSize(`Colpi mancati: ${es.nota}`,180);d.text(lines,14,y);y+=lines.length*4.5;
+    }else if(es.notaMancante){
+      d.setTextColor(150,90,0);d.setFont('helvetica','italic');
+      d.text('Colpi mancati senza nota: dove sono?',14,y);
+      d.setFont('helvetica','normal');d.setTextColor(40,40,40);y+=5;
+    }
+    y+=3;
+  }
   // Note giornata
   if(r.note){
     d.setDrawColor(239,83,80);d.setLineWidth(0.4);d.line(14,y,196,y);y+=4;
@@ -4894,7 +5002,7 @@ async function build3D(volataId){
 // v3.7 — vista 3D galleria: sezione estrusa (cavità) + fori che entrano nel fronte
 function build3DGalleria(v,wrap,THREE){
   const W=wrap.clientWidth||360,H=wrap.clientHeight||320;
-  const Wm=v.fronte.lunghezza_m||5,Hm=v.fronte.altezza_m||4,cal=v.fronte.calotta_m||1,av=parseNum0(v.default.profondita_m)||3;
+  const Wm=v.fronte.lunghezza_m||5,Hm=v.fronte.altezza_m||4,cal=calottaDisegno(v),av=parseNum0(v.default.profondita_m)||3;
   if(_three&&_three.renderer){try{_three.renderer.dispose();}catch(e){}wrap.querySelectorAll('canvas').forEach(c=>c.remove());}
   const scene=new THREE.Scene();scene.background=new THREE.Color(0x0a0805);
   const cam=new THREE.PerspectiveCamera(55,W/H,0.1,2000);
@@ -5431,6 +5539,14 @@ function magliaDetta(v){
   return {borraggio,spaziatura,noto:borraggio!==null&&spaziatura!==null};
 }
 /* solo per il DISEGNO: chi SCRIVE un numero a chi legge passa da `magliaDetta`. */
+/* La freccia della calotta di una galleria: ZERO è un valore (cielo piatto), e
+   il ripiego «oppure 1» lo leggeva come assente disegnando — e GENERANDO i fori di
+   contorno su — un arco di un metro che l'utente aveva tolto di proposito.
+   Misurato il 03/09: con la calotta scritta 0 il contorno a lato stava a
+   3,29 m su un cielo a 4,00, identico al caso «mai scritta». Qui null vuol
+   dire «non scritta»; chi disegna ripiega su 1 e lo sa, chi genera si ferma. */
+function calottaDetta(v){const q=parseNum(((v&&v.fronte)||{}).calotta_m);return Number.isFinite(q)&&q>=0?q:null;}
+function calottaDisegno(v){const c=calottaDetta(v);return c===null?1:c;}
 function getBorraggio(v){const b=magliaDetta(v).borraggio;return b===null?3.5:b;}
 function getSpaziatura(v){const s=magliaDetta(v).spaziatura;return s===null?4:s;}
 
@@ -5477,7 +5593,7 @@ function generaMagliaFori(v){
 }
 
 // v3.7 — schema volata in GALLERIA: cut centrale (rinora) + abbattimento + contorno; sequenza centro→esterno
-function galleriaArcY(v,x){const W=v.fronte.lunghezza_m||5,H=v.fronte.altezza_m||4,cal=v.fronte.calotta_m||1;const t=(x-W/2)/(W/2||1);return (H-cal)+cal*Math.max(0,1-t*t);}
+function galleriaArcY(v,x){const W=v.fronte.lunghezza_m||5,H=v.fronte.altezza_m||4,cal=calottaDisegno(v);const t=(x-W/2)/(W/2||1);return (H-cal)+cal*Math.max(0,1-t*t);}
 function generaGalleria(v){
   const W=v.fronte.lunghezza_m||5,H=v.fronte.altezza_m||4,S=Math.max(0.5,getSpaziatura(v));
   const cx=W/2, cy=H*0.48, fori=[]; let num=1;
@@ -5561,7 +5677,7 @@ function renderEditorCava(){
 // v3.7 — canvas sezione galleria (x = larghezza, y = altezza dal piano)
 function renderGalleriaCanvas(v){
   const W=680,H=360,pad=40;
-  const Wm=v.fronte.lunghezza_m||5, Hm=v.fronte.altezza_m||4, cal=v.fronte.calotta_m||1;
+  const Wm=v.fronte.lunghezza_m||5, Hm=v.fronte.altezza_m||4, cal=calottaDisegno(v);
   const sx=(W-2*pad)/Math.max(Wm,1), sy=(H-2*pad)/Math.max(Hm,1);
   const toPx=(x,y)=>({px:pad+x*sx, py:H-pad-y*sy});
   state._galMap={pad,sx,sy,H,Wm,Hm};
@@ -7344,6 +7460,7 @@ function magliaGenerabile(v){
   if(v&&v.tipo==='galleria'){
     if(!scritto(fr.lunghezza_m)) manca.push('la larghezza della sezione');
     if(!scritto(fr.altezza_m)) manca.push('l\'altezza della sezione');
+    if(calottaDetta(v)===null) manca.push('la freccia della calotta (0 se il cielo è piatto)');
   }else{
     if(mg.borraggio===null) manca.push('la spalla (fronte-foro)');
     if(!scritto(fr.lunghezza_m)) manca.push('la lunghezza del fronte');
@@ -7956,7 +8073,7 @@ Object.assign(window, {
   markUnsaved,aggiornaTotali,
   exitRapp,previewRapp,inviaRapp,onCavaChange,
   apriRappModifica,
-  markUnsavedFoc,addResoPhoto,delResoPhoto,exitRappFoc,inviaRappFoc,toggleReso,
+  markUnsavedFoc,addResoPhoto,delResoPhoto,exitRappFoc,inviaRappFoc,toggleReso,aggiornaEsitoSparo,
   addFocFori,removeFocFori,setFocForo,
   allegaVolataFochino,selezionaVolataFoc,rimuoviVolataFoc,
   focCalcEsp,focCalcMc,focCalcInc,calcKonya,calcPPV,calcKuzRam,open3DVolata,setInclTutti,simulate3D,simReset,reconPickPhoto,reconBuild,reconSnapshot,reconCalibra,reconToggleHoles,reconClearHoles,reconExportHoles,reconToVolata,
@@ -9910,6 +10027,23 @@ body{min-height:100vh;min-height:100dvh;}
     <div style="display:flex;gap:6px;margin-top:6px;">
       <button class="chg flex1" onclick="addFocFori(1)">+1 foro</button>
       <button class="chg flex1" onclick="removeFocFori()">−1 foro</button>
+    </div>
+
+    <!-- Esito dello sparo: colpi esplosi contati e colpi mancati. Vuoto = NON
+         contato, che non è zero; i campi sono interi con la guardia condivisa
+         (type=number + inputmode=numeric, come rv-fori). La nota dei mancati
+         compare solo con dei colpi mancati, come la sezione del reso. -->
+    <div class="sec-title" style="margin-top:14px;"><span class="dot" style="background:#ef5350;"></span>Esito dello sparo</div>
+    <!-- `align-items:end`: a 390 px l'etichetta di sinistra va su due righe e
+         senza questo i due campi restavano sfalsati (visto nello scatto) -->
+    <div class="frow" style="align-items:end;">
+      <div><label class="fl">Colpi esplosi (contati)</label><input type="number" inputmode="numeric" min="0" class="finput" id="rf-esplosi" placeholder="non contati" oninput="markUnsavedFoc();aggiornaEsitoSparo()"></div>
+      <div><label class="fl">Colpi mancati</label><input type="number" inputmode="numeric" min="0" class="finput" id="rf-mancati" placeholder="non contati" oninput="markUnsavedFoc();aggiornaEsitoSparo()"></div>
+    </div>
+    <div id="rf-esito-hint" style="font-size:11px;color:var(--muted);margin-top:4px;line-height:1.4;"></div>
+    <div id="rf-mancati-section" style="display:none;margin-top:8px;">
+      <label class="fl">Dove sono i colpi mancati e cosa è stato fatto</label>
+      <textarea class="finput" id="rf-mancati-nota" rows="2" placeholder="Numero del foro, area interdetta, chi bonifica e quando" oninput="markUnsavedFoc();aggiornaEsitoSparo()"></textarea>
     </div>
 
     <!-- Progetto volata allegato -->

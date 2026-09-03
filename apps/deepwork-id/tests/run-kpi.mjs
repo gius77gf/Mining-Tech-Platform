@@ -34518,6 +34518,373 @@ const { senzaCommenti: senzaCommentiConti } = await import("./tokenizza.mjs");
 /* ===== fine Conti · il cavato in tonnellate ===== */
 
 /* ══════════════════════════════════════════════════════════════════════
+   PONTE TERRA → CONTI · L'INVENTARIO DEI CUMULI — il terzo lato del triangolo
+   (03/09, candidato 3 della ricerca di Conti). Le funzioni stanno in shared
+   perché le usano due app: qui si provano su shared, e le due app le
+   ri-esportano (identità, provata nei loro blocchi).
+   ⚠️ Prove SINCRONE e messe PRIMA del riepilogo: l'`await Promise.all(inVolo)`
+   sta cinquemila righe più su.
+   ══════════════════════════════════════════════════════════════════════ */
+{
+  const INV = [
+    { id: "i1", data: "2025-12-29", metodo: "drone", cumuli: [{ materiale: "Stabilizzato 0/30", volumeM3: 2400 }, { materiale: "Sabbia lavata 0/4", volumeM3: 1150 }, { materiale: "Pietrisco 8/12", volumeM3: 620 }, { materiale: "Terre di scavo", volumeM3: 300 }] },
+    { id: "i2", data: "2026-06-27", metodo: "drone", cumuli: [{ materiale: "Stabilizzato 0/30", volumeM3: 3050 }, { materiale: "sabbia  lavata 0/4", volumeM3: 880 }, { materiale: "Pietrisco 8/12", volumeM3: 700 }, { materiale: "Terre di scavo", volumeM3: 300 }] },
+    { id: "i3", data: "2026-08-30", metodo: "stima", cumuli: [{ materiale: "Stabilizzato 0/30", volumeM3: 2900 }, { materiale: "Sabbia lavata 0/4", volumeM3: null }, { materiale: "Pietrisco 8/12", volumeM3: 640 }] },
+  ];
+  const LISTINO = { "stabilizzato 0/30": 1.9, "sabbia lavata 0/4": 1.6, "pietrisco 8/12": 1.5 };
+  const densitaDi = (m) => LISTINO[ponti.chiaveMateriale(m)] ?? null;
+
+  test("chiaveMateriale: accenti, maiuscole e spazi non contano; il nome sì", () => {
+    eq(ponti.chiaveMateriale("  Sàbbia   Lavata 0/4 "), "sabbia lavata 0/4");
+    eq(ponti.chiaveMateriale("sabbia  lavata 0/4"), ponti.chiaveMateriale("Sabbia lavata 0/4"));
+    ok(ponti.chiaveMateriale("Sabbia 0/4") !== ponti.chiaveMateriale("Sabbia lavata 0/4"), "un nome diverso non si indovina");
+    eq(ponti.chiaveMateriale(null), ""); eq(ponti.chiaveMateriale(undefined), "");
+  });
+  test("cumuliUsabili: un volume assente NON è zero, e si dice perché resta fuori", () => {
+    const r = ponti.cumuliUsabili(INV[2]);
+    eq(r.buoni.length, 2); eq(r.scartati, [{ materiale: "Sabbia lavata 0/4", perche: "volume non leggibile" }]);
+    eq(ponti.cumuliUsabili({ cumuli: [{ materiale: "", volumeM3: 5 }, { materiale: "X", volumeM3: "abc" }, { materiale: "Y", volumeM3: -1 }, { materiale: "Z", volumeM3: 0 }] }),
+       { buoni: [{ materiale: "Z", chiave: "z", volumeM3: 0 }], scartati: [{ materiale: "", perche: "senza materiale" }, { materiale: "X", perche: "volume non leggibile" }, { materiale: "Y", perche: "volume non leggibile" }] });
+    eq(ponti.cumuliUsabili(null), { buoni: [], scartati: [] }, "senza niente non esplode");
+    eq(ponti.cumuliUsabili({ cumuli: [{ materiale: "A", volumeM3: "12,5" }] }).buoni.length, 0, "la virgola italiana non si legge a occhio qui: il modulo la legge prima di salvare");
+  });
+  test("inventarioUsabile / volumeInventario: data che esiste e almeno un cumulo misurato; se no null, non 0", () => {
+    ok(ponti.inventarioUsabile(INV[0])); ok(ponti.inventarioUsabile(INV[2]), "un cumulo non misurato non rende inusabile l'inventario");
+    eq(ponti.inventarioUsabile({ data: "2026-02-30", cumuli: [{ materiale: "A", volumeM3: 1 }] }), false, "il 30 febbraio non esiste");
+    eq(ponti.inventarioUsabile({ data: "2026-03-01", cumuli: [{ materiale: "A", volumeM3: null }] }), false, "tutti non misurati");
+    eq(ponti.inventarioUsabile(null), false);
+    eq(ponti.volumeInventario(INV[0]), 4470); eq(ponti.volumeInventario(INV[2]), 3540, "la sabbia non misurata non entra come zero: il totale è dei due misurati");
+    eq(ponti.volumeInventario({ data: "2026-03-01", cumuli: [] }), null);
+  });
+  test("variazioneScorte: due inventari che racchiudono il periodo, materiale per materiale", () => {
+    const v = ponti.variazioneScorte(INV, "2026-01-01", "2026-06-30");
+    eq(v.calcolabile, true); eq(v.inizio.id, "i1"); eq(v.fine.id, "i2"); eq(v.parziale, false); eq(v.perche, "");
+    eq(v.deltaM3, 460, "650 − 270 + 80 + 0");
+    eq(v.perMateriale.map((r) => [r.chiave, r.deltaM3]), [["stabilizzato 0/30", 650], ["sabbia lavata 0/4", -270], ["pietrisco 8/12", 80], ["terre di scavo", 0]], "ordinate per ampiezza, e «sabbia  lavata» si è accoppiata con «Sabbia lavata»");
+    eq(v.scartoGiorni, { inizio: 3, fine: 3 }, "i giorni fra l'inventario e il confine del periodo si dichiarano");
+    eq(v.nonUsabili, 0); eq(v.terraRisponde, true);
+  });
+  test("⛔ variazioneScorte: un materiale misurato in UN solo inventario non vale zero nell'altro — resta fuori, dichiarato", () => {
+    const v = ponti.variazioneScorte(INV, "2026-01-01", "2026-09-03");
+    eq(v.fine.id, "i3"); eq(v.calcolabile, true); eq(v.parziale, true);
+    eq(v.deltaM3, 520, "500 + 20: la sabbia (non misurata il 30/08) e le terre (assenti) NON entrano come −880 e −300");
+    eq(v.nonConfrontabili.map((r) => [r.chiave, r.mancaIn]), [["sabbia lavata 0/4", "fine"], ["terre di scavo", "fine"]]);
+    ok(/2 materiali sono misurati in un solo inventario/.test(v.perche), v.perche);
+    const r = v.perMateriale.find((x) => x.chiave === "sabbia lavata 0/4");
+    eq(r.deltaM3, null); eq(r.inizioM3, 1150); eq(r.fineM3, null); eq(r.confrontabile, false);
+  });
+  test("variazioneScorte: i casi in cui NON si calcola, ognuno con la sua ragione", () => {
+    const n = ponti.variazioneScorte(null, "2026-01-01", "2026-06-30");
+    eq(n.calcolabile, false); eq(n.terraRisponde, false); eq(n.perche, "gli inventari dei cumuli di Terra non arrivano");
+    eq(ponti.variazioneScorte([], "2026-01-01", "2026-06-30").perche, "in Terra non c'è nessun inventario dei cumuli");
+    const uno = ponti.variazioneScorte(INV, "2026-01-01", "2026-03-31");
+    eq(uno.calcolabile, false); eq(uno.inizio.id, "i1"); ok(/non c'è un secondo inventario/.test(uno.perche), uno.perche);
+    const prima = ponti.variazioneScorte(INV, "2025-01-01", "2026-06-30");
+    eq(prima.calcolabile, false); eq(prima.inizio, null); ok(/il primo è del 2025-12-29/.test(prima.perche), prima.perche);
+    eq(ponti.variazioneScorte(INV, "2026-06-30", "2026-01-01").perche, "il periodo non è un intervallo di date leggibile");
+    eq(ponti.variazioneScorte(INV, "2026-02-30", "2026-06-30").calcolabile, false, "una data che non esiste non è un confine");
+    const rotti = ponti.variazioneScorte([{ data: "boh", cumuli: [{ materiale: "A", volumeM3: 1 }] }], "2026-01-01", "2026-06-30");
+    eq(rotti.nonUsabili, 1); ok(/nessun inventario dei cumuli è leggibile/.test(rotti.perche), rotti.perche);
+    const disgiunti = ponti.variazioneScorte([{ data: "2026-01-01", cumuli: [{ materiale: "A", volumeM3: 1 }] }, { data: "2026-06-01", cumuli: [{ materiale: "B", volumeM3: 1 }] }], "2026-01-01", "2026-06-30");
+    eq(disgiunti.calcolabile, false); ok(/nessun materiale è misurato in tutt'e due/.test(disgiunti.perche), disgiunti.perche);
+    eq(disgiunti.nonConfrontabili.length, 2, "e i due restano elencati");
+  });
+  test("scorteInTonnellate: ogni materiale con la SUA densità del listino; chi non ce l'ha resta fuori, elencato", () => {
+    const v = ponti.variazioneScorte(INV, "2026-01-01", "2026-06-30");
+    const t = ponti.scorteInTonnellate(v.perMateriale, densitaDi);
+    eq(t.calcolabile, true); eq(t.parziale, true);
+    eq(t.deltaT, 923, "650·1,9 − 270·1,6 + 80·1,5 = 1235 − 432 + 120");
+    eq(t.scoperte.map((r) => r.chiave), ["terre di scavo"]); eq(t.perche, "un materiale senza densità nel listino resta fuori dal conto");
+    eq(t.coperte.find((r) => r.chiave === "sabbia lavata 0/4").deltaT, -432);
+    eq(ponti.scorteInTonnellate([], densitaDi).perche, "nessuna variazione per materiale da convertire");
+    eq(ponti.scorteInTonnellate(v.perMateriale, null).calcolabile, false);
+    const nessuna = ponti.scorteInTonnellate(v.perMateriale, () => null);
+    eq(nessuna.calcolabile, false); eq(nessuna.deltaT, null); eq(nessuna.perche, "nessun materiale dell'inventario ha una densità nel listino");
+    eq(ponti.scorteInTonnellate([{ chiave: "a", materiale: "A", deltaM3: 10 }], () => "1,5").calcolabile, false, "una densità scritta con la virgola non è un numero qui");
+  });
+  test("chiusuraTriangolo: cavato − venduto − Δscorte, in tonnellate, con lo stato e il verso", () => {
+    eq(ponti.chiusuraTriangolo(20000, 17000, 923), { scarto: 2077, pct: 10.39, stato: "attenzione", verso: "sparito", calcolabile: true, perche: "" });
+    eq(ponti.chiusuraTriangolo(20000, 18500, 923).stato, "coerente");
+    const ecc = ponti.chiusuraTriangolo(20000, 25000, 923);
+    eq(ecc.scarto, -5923); eq(ecc.verso, "in-eccesso"); eq(ecc.stato, "attenzione");
+    eq(ponti.chiusuraTriangolo(20000, 5000, 0).stato, "implausibile");
+    eq(ponti.chiusuraTriangolo(100, 60, 40).verso, "pari");
+    eq(ponti.chiusuraTriangolo(null, 1, 1).perche, "il cavato in tonnellate non c'è");
+    eq(ponti.chiusuraTriangolo(0, 1, 1).calcolabile, false, "con zero cavato la percentuale non ha senso");
+    eq(ponti.chiusuraTriangolo(10, null, 1).perche, "il venduto in tonnellate non c'è");
+    eq(ponti.chiusuraTriangolo(10, 1, "").perche, "la variazione delle scorte in tonnellate non c'è");
+    eq(ponti.chiusuraTriangolo(100, 50, 30, { coerente: 5, attenzione: 15 }).stato, "implausibile", "le soglie si passano");
+    eq(ponti.SOGLIA_TRIANGOLO, { coerente: 10, attenzione: 35 });
+  });
+}
+/* ===== fine ponte Terra → Conti · l'inventario dei cumuli ===== */
+
+/* ══════════════════════════════════════════════════════════════════════
+   CORE · LA FRECCIA DELLA CALOTTA: ZERO È UN VALORE (03/09, dal candidato
+   «fronte» di B12). `calotta_m||1` leggeva uno zero scritto come «mai
+   scritta» e generava i fori di contorno su un arco di un metro che l'utente
+   aveva tolto. Il core non si importa da node: le tre funzioni si ESTRAGGONO
+   dal sorgente e si eseguono con un `parseNum` di servizio — è la difesa
+   «sul sorgente», non una copia riscritta qui.
+   ⚠️ Prove SINCRONE e messe PRIMA del riepilogo.
+   ══════════════════════════════════════════════════════════════════════ */
+{
+  const coreSrc = readFileSync(join(HERE, "../../../index.html"), "utf8");
+  const prendi = (nome) => { const m = coreSrc.match(new RegExp("\\nfunction " + nome + "\\([^\\n]*\\n?")); return m ? m[0] : null; };
+  const testi = ["calottaDetta", "calottaDisegno", "galleriaArcY"].map(prendi);
+  test("⛔ core: le tre funzioni della calotta esistono nel sorgente e nessun `calotta_m||1` è rimasto", () => {
+    ok(testi.every(Boolean), "estratte: " + testi.map((t) => !!t).join(","));
+    eq((coreSrc.match(/calotta_m\|\|1/g) || []).length, 0, "il ripiego che leggeva lo zero come assente");
+    eq((coreSrc.match(/cal=calottaDisegno\(v\)/g) || []).length, 3, "i tre disegni (3D, arco, canvas) passano dalla funzione dichiarata");
+    ok(/calottaDetta\(v\)===null\) manca\.push\('la freccia della calotta/.test(coreSrc), "e chi GENERA si ferma se non è scritta");
+  });
+  test("core: con la calotta scritta 0 il cielo è piatto; assente → ripiego di disegno; «1,2» scritto all'italiana si legge", () => {
+    const parseNum = (v) => v === null || v === undefined || v === "" ? NaN : typeof v === "number" ? v : Number(String(v).replace(",", "."));
+    const f = new Function("parseNum", testi.join("\n") + "\nreturn { calottaDetta, calottaDisegno, galleriaArcY };")(parseNum);
+    const y = (cal, x) => Math.round(f.galleriaArcY({ fronte: { lunghezza_m: 5, altezza_m: 4, calotta_m: cal } }, x) * 100) / 100;
+    eq(y(0, 0.4), 4, "lato: sul cielo"); eq(y(0, 2.5), 4, "centro: sul cielo");
+    eq(y(undefined, 0.4), 3.29, "assente: l'arco di un metro del disegno, dichiarato"); eq(y(1.2, 0.4), 3.15);
+    eq(y("1,2", 0.4), 3.15, "la virgola italiana"); eq(y("0", 0.4), 4, "zero scritto come testo");
+    eq(f.calottaDetta({ fronte: { calotta_m: 0 } }), 0); eq(f.calottaDetta({ fronte: {} }), null); eq(f.calottaDetta({ fronte: { calotta_m: -1 } }), null, "una freccia negativa non è scritta");
+    eq(f.calottaDetta(null), null, "senza volata non esplode"); eq(f.calottaDisegno(null), 1);
+  });
+}
+/* ===== fine core · la freccia della calotta ===== */
+
+/* ══════════════════════════════════════════════════════════════════════
+   SHELL · L'ESITO DELLO SPARO (03/09, dal delta sul rapporto di volata: i
+   colpi esplosi contati e i colpi mancati erano le due mancanze vere). Una
+   funzione sola per lista, dettaglio e PDF del rapportino fochino.
+   ⚠️ Prove SINCRONE e messe PRIMA del riepilogo.
+   ══════════════════════════════════════════════════════════════════════ */
+{
+  const E = (c) => shell.esitoSparo({ fori: 12, fori_dettaglio: [], ...c });
+  test("⛔ esitoSparo: senza i due numeri l'esito è NON CONTATO, non «0 mancati»", () => {
+    const r = E({});
+    eq([r.contato, r.parziale, r.esplosi, r.mancati, r.pericolo, r.notaMancante, r.coerente], [false, false, null, null, false, false, true]);
+    eq(shell.esitoSparo(null).contato, false, "senza rapportino non esplode"); eq(shell.esitoSparo(null).fori, 0);
+    eq(E({ colpiEsplosi: 1.5 }).contato, false, "un decimale non è un conto di colpi"); eq(E({ colpiMancati: -1 }).contato, false, "né un negativo");
+  });
+  test("esitoSparo: contato pieno, parziale, e il pericolo con la nota", () => {
+    const pieno = E({ colpiEsplosi: 12, colpiMancati: 0 });
+    eq([pieno.contato, pieno.parziale, pieno.pericolo, pieno.coerente, pieno.perche], [true, false, false, true, ""]);
+    const p = E({ colpiMancati: 0 }); eq([p.contato, p.parziale, p.esplosi, p.mancati], [true, true, null, 0], "un numero solo: contato ma parziale");
+    const m = E({ colpiEsplosi: 11, colpiMancati: 1 }); eq([m.pericolo, m.notaMancante, m.coerente], [true, true, true], "un mancato senza nota: pericolo dichiarato");
+    const n = E({ colpiEsplosi: 11, colpiMancati: 1, mancatiNota: "  foro 7, area interdetta " }); eq(n.notaMancante, false); eq(n.nota, "foro 7, area interdetta");
+    eq(E({ colpiEsplosi: "11", colpiMancati: "1" }).mancati, 1, "scritti come testo dal campo");
+  });
+  test("esitoSparo: quando i conti non tornano si DICE, e il numero resta", () => {
+    const troppi = E({ colpiMancati: 13 }); eq(troppi.coerente, false); eq(troppi.perche, "13 colpi mancati su 12 fori caricati"); eq(troppi.mancati, 13, "il numero non si corregge");
+    const somma = E({ colpiEsplosi: 11, colpiMancati: 2 }); eq(somma.coerente, false); eq(somma.perche, "11 esplosi più 2 mancati fanno più dei 12 fori caricati");
+    eq(E({ colpiEsplosi: 10, colpiMancati: 1 }).perche, "un foro caricato senza esito"); eq(E({ colpiEsplosi: 8, colpiMancati: 1 }).perche, "3 fori caricati senza esito");
+    eq(E({ colpiEsplosi: 8, colpiMancati: 1 }).coerente, true, "meno della somma non è incoerente: è un esito non scritto");
+    const senzaFori = shell.esitoSparo({ colpiEsplosi: 3, colpiMancati: 1 }); eq(senzaFori.coerente, true, "senza fori caricati non c'è con che confrontare"); eq(senzaFori.fori, 0);
+  });
+}
+/* ===== fine shell · l'esito dello sparo ===== */
+
+/* ══════════════════════════════════════════════════════════════════════
+   CONTI · IL TRIANGOLO CHIUSO CON L'INVENTARIO DEI CUMULI (03/09)
+   `densitaDalListino` e `triangolo` in apps/conti/conti-data.js, sulle regole
+   di shared/dw-ponti.js che Conti ri-esporta. I numeri attesi sono calcolati
+   A MANO dalla dimostrazione (densità del listino: Stabilizzato 1,9 · Sabbia
+   1,6 · Pietrisco 1,5; le Terre di scavo non sono a listino):
+   · primo semestre (i1 29/12/2025 → i2 27/06/2026): +25·1,9 − 27·1,6 + 8·1,5
+     = 47,5 − 43,2 + 12 = 16,3 t su 6 m³; cavato 124 m³ × 1,9 = 235,6 t;
+     venduto 164,1 t; scarto 235,6 − 164,1 − 16,3 = 55,2 t = 23,43% → attenzione, «sparito»;
+   · anno (i1 → i3 30/08, stima): +10·1,9 + 2·1,5 = 22 t su 12 m³, la
+     sabbia (null in i3) e le terre (assenti) fuori; cavato 178 m³ → 338,2 t;
+     venduto 374,96 t; scarto −58,76 t = 17,37% → attenzione, «in eccesso».
+   ⚠️ La dimostrazione di Conti NON è una copia di quella di Terra: ogni app
+   racconta la sua cava (qui piccola, decine di m³), e alla scala di Terra il
+   triangolo chiudeva «implausibile» per costruzione.
+   ⚠️ Prove SINCRONE e messe PRIMA del riepilogo.
+   ══════════════════════════════════════════════════════════════════════ */
+console.log("\n— Conti: il triangolo chiuso con l'inventario dei cumuli —");
+{
+  const D = conti.DEMO;
+  const tri = (inv, opz = {}) => conti.triangolo(opz.rilievi === undefined ? D.rilieviTerra : opz.rilievi, D.pesate, inv,
+    opz.prodotti === undefined ? D.prodotti : opz.prodotti, opz.aut === undefined ? D.autorizzazioniTerra : opz.aut,
+    opz.dal || "2026-01-01", opz.al || "2026-06-30");
+  const INV_ATTESI = [
+    { id: "i1", data: "2025-12-29", metodo: "drone", cumuli: [
+      { materiale: "Stabilizzato 0/30", volumeM3: 240 }, { materiale: "Sabbia lavata 0/4", volumeM3: 115 },
+      { materiale: "Pietrisco 8/12", volumeM3: 62 }, { materiale: "Terre di scavo", volumeM3: 30 }] },
+    { id: "i2", data: "2026-06-27", metodo: "drone", cumuli: [
+      { materiale: "Stabilizzato 0/30", volumeM3: 265 }, { materiale: "Sabbia lavata 0/4", volumeM3: 88 },
+      { materiale: "Pietrisco 8/12", volumeM3: 70 }, { materiale: "Terre di scavo", volumeM3: 30 }] },
+    { id: "i3", data: "2026-08-30", metodo: "stima", cumuli: [
+      { materiale: "Stabilizzato 0/30", volumeM3: 250 },
+      { materiale: "Sabbia lavata 0/4", volumeM3: null, nota: "Cumulo in lavorazione: non misurato" },
+      { materiale: "Pietrisco 8/12", volumeM3: 64 }] },
+  ];
+
+  test("⛔ le regole dell'inventario sono le STESSE di shared: Conti le ri-esporta, non le riscrive", () => {
+    ok(conti.variazioneScorte === ponti.variazioneScorte, "variazioneScorte");
+    ok(conti.scorteInTonnellate === ponti.scorteInTonnellate, "scorteInTonnellate");
+    ok(conti.chiusuraTriangolo === ponti.chiusuraTriangolo, "chiusuraTriangolo");
+    ok(conti.chiaveMateriale === ponti.chiaveMateriale, "chiaveMateriale");
+    ok(conti.SOGLIA_TRIANGOLO === ponti.SOGLIA_TRIANGOLO, "SOGLIA_TRIANGOLO");
+  });
+  test("densitaDalListino: accoppia per nome normalizzato, e chi non c'è (o non ha densità) risponde null", () => {
+    const d = conti.densitaDalListino(D.prodotti);
+    eq(d("Stabilizzato 0/30"), 1.9); eq(d("SABBIA LAVATA 0/4"), 1.6, "le maiuscole non contano");
+    eq(d("Pietrisco  8/12"), 1.5, "gli spazi doppi non contano"); eq(d("Sàbbia lavata 0/4"), 1.6, "gli accenti non contano");
+    eq(d("Terre di scavo"), null, "un materiale che il listino non ha");
+    eq(d("Misto di cava (non classificato)"), null, "p5 è a listino ma SENZA densità: null, non un ripiego");
+    eq(d("Sabbia 0/4"), null, "un nome diverso non si indovina");
+    eq(d(null), null); eq(d(""), null);
+    eq(conti.densitaDalListino(null)("Stabilizzato 0/30"), null, "senza listino non esplode e non inventa");
+    eq(conti.densitaDalListino([{ nome: "X", densita: "boh" }, { nome: "Y", densita: 0 }, { nome: "", densita: 2 }])("X"), null, "densità non numerica, zero o prodotto senza nome: fuori");
+  });
+  test("⛔ la dimostrazione di Conti porta i tre inventari decisi prima, alla scala della SUA cava (non una copia di Terra)", () => {
+    eq(D.inventariTerra, INV_ATTESI, "i tre record, con la sabbia NON misurata (null) nel terzo");
+  });
+  test("triangolo: no-terra quando gli inventari non arrivano, con la ragione e SENZA numeri di scorte", () => {
+    const t = tri(null);
+    eq(t.stato, "no-terra"); eq(t.perche, "gli inventari dei cumuli di Terra non arrivano");
+    eq(t.scorteT, null); eq(t.chiusura, null); eq(t.scorte.deltaM3, null); eq(t.parziale, false); eq(t.fuori, []);
+    ok(t.ric && t.ric.stato === "attenzione", "il confronto a due lati c'è lo stesso");
+    ok(t.cavatoT && t.cavatoT.calcolabile, "e il cavato in tonnellate pure");
+  });
+  test("triangolo: no-inventari con una lista vuota, con uno solo, e con nessuno prima dell'inizio", () => {
+    const vuoto = tri([]);
+    eq(vuoto.stato, "no-inventari"); eq(vuoto.perche, "in Terra non c'è nessun inventario dei cumuli"); eq(vuoto.scorteT, null); eq(vuoto.chiusura, null);
+    const uno = tri([D.inventariTerra[0]]);
+    eq(uno.stato, "no-inventari"); ok(/non c'è un secondo inventario/.test(uno.perche), uno.perche);
+    const tardi = tri([D.inventariTerra[1], D.inventariTerra[2]]);
+    eq(tardi.stato, "no-inventari"); ok(/prima dell'inizio del periodo: il primo è del 2026-06-27/.test(tardi.perche), tardi.perche);
+    const rotti = tri([{ id: "x", data: "boh", cumuli: [{ materiale: "A", volumeM3: 1 }] }]);
+    eq(rotti.stato, "no-inventari"); ok(/nessun inventario dei cumuli è leggibile/.test(rotti.perche), rotti.perche);
+  });
+  test("⛔ triangolo chiuso sul primo semestre: Δ 6 m³ = 16,3 t, scarto 55,2 t «sparito» (23% del cavato), le Terre fuori per densità", () => {
+    const t = tri(D.inventariTerra);
+    eq(t.stato, "chiuso"); eq(t.perche, "");
+    eq(t.scorte.inizio.id, "i1"); eq(t.scorte.fine.id, "i2"); eq(t.scorte.deltaM3, 6); eq(t.scorte.scartoGiorni, { inizio: 3, fine: 3 });
+    eq(t.scorteT.deltaT, 16.3, "25·1,9 − 27·1,6 + 8·1,5"); eq(t.scorteT.calcolabile, true);
+    eq(t.scorteT.coperte.map((r) => [r.chiave, r.deltaT]), [["sabbia lavata 0/4", -43.2], ["stabilizzato 0/30", 47.5], ["pietrisco 8/12", 12]]);
+    eq(t.cavatoT.t, 235.6, "124 m³ × 1,9"); eq(t.cavatoT.daVerificare, true); eq(t.ric.ven.t, 164.1);
+    eq(t.chiusura, { scarto: 55.2, pct: 23.43, stato: "attenzione", verso: "sparito", calcolabile: true, perche: "" });
+    eq(t.parziale, true, "le Terre di scavo non hanno densità: il conto in tonnellate è parziale");
+    eq(t.fuori, [{ materiale: "Terre di scavo", perche: "senza densità nel listino", mancaIn: null }]);
+  });
+  test("⛔ triangolo chiuso sull'anno: la sabbia NON misurata nel terzo inventario non vale zero — resta fuori, Δ = 22 t", () => {
+    const t = tri(D.inventariTerra, { al: "2026-12-31" });
+    eq(t.stato, "chiuso"); eq(t.scorte.fine.id, "i3"); eq(t.scorte.fine.metodo, "stima");
+    eq(t.scorte.deltaM3, 12); eq(t.scorteT.deltaT, 22, "10·1,9 + 2·1,5: senza i −115 m³ della sabbia sparita");
+    eq(t.scorte.scartoGiorni, { inizio: 3, fine: 123 });
+    eq(t.cavatoT.t, 338.2); eq(t.ric.ven.t, 374.96);
+    eq(t.chiusura.scarto, -58.76); eq(t.chiusura.pct, 17.37); eq(t.chiusura.stato, "attenzione"); eq(t.chiusura.verso, "in-eccesso");
+    eq(t.parziale, true);
+    eq(t.fuori, [{ materiale: "Sabbia lavata 0/4", perche: "misurato in un solo inventario", mancaIn: "fine" },
+                 { materiale: "Terre di scavo", perche: "misurato in un solo inventario", mancaIn: "fine" }]);
+    ok(!t.scorteT.scoperte.length, "le Terre non arrivano nemmeno alla densità: sono già fuori a monte, e non si contano due volte");
+  });
+  test("triangolo: no-densita-cava senza l'autorizzazione di Terra, con la ragione — e gli inventari restano letti", () => {
+    for (const aut of [[], null, [{ id: "a", stato: "vigente", materiale: "Materiale ignoto" }]]) {
+      const t = tri(D.inventariTerra, { aut });
+      eq(t.stato, "no-densita-cava"); ok(/non è dichiarata in Terra/.test(t.perche), t.perche);
+      eq(t.scorte.deltaM3, 6, "la variazione in m³ è misurata lo stesso: si può dire"); eq(t.scorteT, null); eq(t.chiusura, null);
+    }
+  });
+  test("triangolo: no-densita-listino quando nessun cumulo trova una densità, e Δ in m³ resta detto", () => {
+    const t = tri(D.inventariTerra, { prodotti: [] });
+    eq(t.stato, "no-densita-listino"); eq(t.perche, "nessun materiale dell'inventario ha una densità nel listino");
+    eq(t.scorte.deltaM3, 6); eq(t.scorteT.deltaT, null); eq(t.chiusura, null);
+  });
+  test("triangolo: no-confronto quando il confronto a due lati è fermo, qualunque cosa dicano gli inventari", () => {
+    eq(tri(D.inventariTerra, { rilievi: null }).stato, "no-confronto", "Terra senza rilievi");
+    const t = tri(D.inventariTerra, { dal: "2024-01-01", al: "2024-06-30" });
+    eq(t.stato, "no-confronto"); eq(t.ric.stato, "no-cavato"); eq(t.scorte, null); eq(t.chiusura, null);
+    ok(/senza il confronto fra cavato e venduto/.test(t.perche), t.perche);
+  });
+  test("triangolo: il verso «sparito» e lo stato coerente, su numeri costruiti apposta", () => {
+    /* cavato 1000 m³ × 2,6 = 2600 t; venduto 1500 t; scorte +500 m³ × 1,9 = 950 t → scarto 150 t = 5,77% → coerente, sparito */
+    const ril = [{ id: "r", data: "2026-03-01", volumeM3: 1000, stato: "elaborato", metodo: "RTK" }];
+    /* la pesata ha la forma della dimostrazione (`DEMO.pesate`), letta PRIMA di
+       scriverla: `quantitaPesata` vuole netto, unitaVendita, quantita e densita */
+    const pes = [{ id: "p", numero: "2026/900", data: "2026-03-10", clienteId: "c1", cliente: "Edilcave Srl", prodottoId: "p1", prodotto: "Stabilizzato 0/30",
+                   lordo: 1540, tara: 40, netto: 1500, unitaVendita: "t", quantita: 1500, densita: 1.9, prezzoUnitario: 8.5, aliquotaIva: 22 }];
+    const inv = [{ id: "a", data: "2025-12-31", cumuli: [{ materiale: "Stabilizzato 0/30", volumeM3: 100 }] },
+                 { id: "b", data: "2026-06-30", cumuli: [{ materiale: "Stabilizzato 0/30", volumeM3: 600 }] }];
+    const aut = [{ id: "a1", stato: "vigente", materiale: "Calcare", densita: 2.6, densitaFonte: "laboratorio" }];
+    const t = conti.triangolo(ril, pes, inv, D.prodotti, aut, "2026-01-01", "2026-06-30");
+    eq(t.stato, "chiuso"); eq(t.cavatoT.t, 2600); eq(t.ric.ven.t, 1500); eq(t.scorteT.deltaT, 950);
+    eq(t.chiusura.scarto, 150); eq(t.chiusura.pct, 5.77); eq(t.chiusura.stato, "coerente"); eq(t.chiusura.verso, "sparito");
+    eq(t.parziale, false); eq(t.fuori, []);
+  });
+}
+/* ===== fine Conti · il triangolo chiuso con l'inventario dei cumuli ===== */
+/* ===== fine Conti · il triangolo con l'inventario ===== */
+
+/* ══════════════════════════════════════════════════════════════════════
+   TERRA · L'INVENTARIO DEI CUMULI (03/09, il terzo lato del triangolo):
+   la fotografia del piazzale che Conti legge per misurare Δ scorte. Le regole
+   vivono in shared/dw-ponti.js e Terra le ri-esporta (identità, non copia);
+   qui si provano le due funzioni della pagina — `riepilogoInventario` e
+   `inventariOrdinati` — e la dimostrazione, che porta di proposito un cumulo
+   senza volume (`i3`, la sabbia «in lavorazione»): esiste, il suo numero no.
+   ⚠️ Prove SINCRONE e messe PRIMA del riepilogo: l'`await Promise.all(inVolo)`
+   sta a metà file, una prova asincrona aggiunta dopo non verrebbe aspettata.
+   ══════════════════════════════════════════════════════════════════════ */
+{
+  const { riepilogoInventario, inventariOrdinati } = terra;
+  const INV = terra.DEMO.inventari;
+  test("inventario dei cumuli: Terra ri-esporta le regole di dw-ponti come lo STESSO oggetto", () => {
+    for (const n of ["variazioneScorte", "inventarioUsabile", "volumeInventario", "cumuliUsabili", "chiaveMateriale"])
+      ok(typeof terra[n] === "function" && terra[n] === ponti[n], `terra.${n} è ponti.${n}, non una copia`);
+  });
+  test("la dimostrazione porta tre inventari, e i3 dichiara UN cumulo non misurato — mai uno zero", () => {
+    eq(INV.map((i) => i.id), ["i1", "i2", "i3"]);
+    ok(INV.every(terra.inventarioUsabile), "tutti e tre sono usabili (data che esiste, almeno un cumulo con volume)");
+    eq(riepilogoInventario(INV[0]), { usabile: true, volumeM3: 4470, cumuli: 4, nonMisurati: 0, perche: "" });
+    eq(riepilogoInventario(INV[1]), { usabile: true, volumeM3: 4930, cumuli: 4, nonMisurati: 0, perche: "" });
+    eq(riepilogoInventario(INV[2]), { usabile: true, volumeM3: 3540, cumuli: 3, nonMisurati: 1, perche: "" },
+       "i3: 2900 + 640, la sabbia senza volume resta FUORI e si conta a parte");
+    const sabbia = INV[2].cumuli.find((c) => /Sabbia/.test(c.materiale));
+    eq(sabbia.volumeM3, null); ok(/non misurato/.test(sabbia.nota), "e la nota dice perché");
+    ok(INV[0].cumuli.some((c) => c.materiale === "Terre di scavo"), "le terre di scavo ci sono di proposito: fuori listino, senza densità");
+  });
+  test("riepilogoInventario: data 30/02 → non usabile con la ragione, e il volume è null, non 0", () => {
+    eq(riepilogoInventario({ id: "x", data: "2026-02-30", metodo: "drone", cumuli: [{ materiale: "a", volumeM3: 100 }] }),
+       { usabile: false, volumeM3: null, cumuli: 1, nonMisurati: 0, perche: "data non leggibile" });
+    eq(riepilogoInventario(null).perche, "data non leggibile");
+    eq(riepilogoInventario({ data: "2026-01-01" }), { usabile: false, volumeM3: null, cumuli: 0, nonMisurati: 0, perche: "nessun cumulo con un volume" });
+  });
+  test("riepilogoInventario: cumuli tutti senza volume → non usabile, e li conta tutti fra i non misurati", () => {
+    eq(riepilogoInventario({ data: "2026-02-10", cumuli: [{ materiale: "a", volumeM3: null }, { materiale: "b", volumeM3: "" }, { materiale: "c", volumeM3: "boh" }] }),
+       { usabile: false, volumeM3: null, cumuli: 3, nonMisurati: 3, perche: "nessun cumulo con un volume" });
+    // un cumulo SENZA materiale è un altro difetto: non si conta fra i non misurati
+    const r = riepilogoInventario({ data: "2026-02-10", cumuli: [{ materiale: "", volumeM3: 5 }, { materiale: "a", volumeM3: 7 }] });
+    eq([r.usabile, r.volumeM3, r.cumuli, r.nonMisurati], [true, 7, 2, 0]);
+    // uno zero VERO è un volume: il cumulo finito si scrive 0 e conta
+    eq(riepilogoInventario({ data: "2026-02-10", cumuli: [{ materiale: "a", volumeM3: 0 }] }), { usabile: true, volumeM3: 0, cumuli: 1, nonMisurati: 0, perche: "" });
+  });
+  test("inventariOrdinati: dal più recente, arricchito, l'illeggibile in coda e mai sparito", () => {
+    const o = inventariOrdinati([INV[0], { id: "z", data: "boh", cumuli: [] }, INV[2], INV[1]]);
+    eq(o.map((v) => v.id), ["i3", "i2", "i1", "z"]);
+    eq(o.map((v) => v.volumeM3), [3540, 4930, 4470, null]);
+    eq(o.map((v) => v.nonMisurati), [1, 0, 0, 0]);
+    eq(o[0].cumuli, 3, "`cumuli` sulla voce è il NUMERO");
+    ok(o[0].record === INV[2] && Array.isArray(o[0].record.cumuli), "e `record` è il documento originale, con l'elenco");
+    eq(o[3].perche, "data non leggibile");
+    eq(inventariOrdinati(null), []); eq(inventariOrdinati(undefined), []); eq(inventariOrdinati("x"), []); eq(inventariOrdinati([]), []);
+  });
+  test("variazioneScorte sulla dimostrazione: fra i1 e i2 la variazione è misurata, e la terra di scavo è confrontabile a zero", () => {
+    const v = terra.variazioneScorte(INV, "2026-01-01", "2026-06-30");
+    ok(v.calcolabile && v.inizio.id === "i1" && v.fine.id === "i2", "i1 racchiude l'inizio, i2 la fine");
+    eq(v.deltaM3, 460, "(3050+880+700+300) − (2400+1150+620+300)");
+    eq(v.parziale, false);
+    // con i3 come fine, la sabbia non c'è: la variazione è PARZIALE e lo dice
+    const p = terra.variazioneScorte(INV, "2026-07-01", "2026-08-31");
+    ok(p.calcolabile && p.parziale && p.nonConfrontabili.length === 2, "sabbia (non misurata) e terre (assenti in i3) restano fuori");
+    ok(/2 materiali sono misurati in un solo inventario/.test(p.perche), p.perche);
+  });
+}
+/* ===== fine Terra · l'inventario dei cumuli ===== */
+/* ===== fine Terra · l'inventario dei cumuli ===== */
+
+/* ══════════════════════════════════════════════════════════════════════
    GENESI · LE SCELTE DEL DESIGN CHE NON SI RICONOSCONO (02/09, l'altra metà
    dell'unità 7): esplosivo, innesco, roccia, fratturazione, sequenza, norma,
    tre bandiere, due profili. `volataSenzaValori` copre i 21 numerici.
